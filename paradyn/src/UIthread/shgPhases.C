@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -45,9 +45,17 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.23  1996/11/26 16:06:57  naim
-/* Fixing asserts - naim
+/* Revision 1.24  1999/03/03 18:16:10  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.4  1999/03/01 18:04:02  pcroth
+ * change guard macros to disallow on NT
+ *
+ * Revision 1.23  1996/11/26 16:06:57  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.22  1996/08/16 21:07:15  tamches
  * updated copyright for release 1.1
  *
@@ -79,6 +87,7 @@
  */
 
 #include <limits.h>
+#include "util/h/headers.h"
 #include "tkTools.h" // myTclEval()
 #include "shgPhases.h"
 
@@ -142,7 +151,7 @@ shgPhases::shgStruct &shgPhases::getByIDLL(int phaseID) {
 
    cerr << "shgPhases: phase id " << phaseID << " doesn't exist." << endl;
    assert(false);
-   abort(); // placate compiler
+   return theShgPhases[0];	// placate compiler
 }
 
 shg &shgPhases::getByID(int phaseID) {
@@ -163,7 +172,7 @@ const string &shgPhases::id2name(int id) const {
       if (theShgPhases[lcv].getPhaseId() == id)
          return theShgPhases[lcv].phaseName;
    assert(false);
-   abort();
+   return NULL;	// placate compiler
 }
 
 bool shgPhases::changeLL(unsigned newIndex) {
@@ -229,7 +238,7 @@ bool shgPhases::changeLL(unsigned newIndex) {
 
    // This should update the menu:
    Tcl_SetVar(interp, "currShgPhase",
-	      string(theNewShgStruct.getPhaseId()).string_of(), TCL_GLOBAL_ONLY);
+	      (char*)string(theNewShgStruct.getPhaseId()).string_of(), TCL_GLOBAL_ONLY);
 
    // Update the label containing the current phase name:
    commandStr = currPhaseLabelName + " config -text \"" +
@@ -398,11 +407,15 @@ bool shgPhases::altPress(int x, int y) {
       getCurrent().adjustHorizSBOffsetFromDeltaPix(deltax);
       getCurrent().adjustVertSBOffsetFromDeltaPix(deltay);
 
+#if !defined(i386_unknown_nt4_0)
       XWarpPointer(Tk_Display(theTkWindow),
 		   Tk_WindowId(theTkWindow),
 		   Tk_WindowId(theTkWindow),
 		   0, 0, 0, 0,
 		   shgAltAnchorX, shgAltAnchorY);
+#else // !defined(i386_unknown_nt4_0)
+	// TODO - implement warping support
+#endif // !defined(i386_unknown_nt4_0)
 
       ignoreNextShgAltMove = true;
          

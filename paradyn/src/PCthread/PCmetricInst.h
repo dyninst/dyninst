@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -45,6 +45,11 @@
  * The PCmetricInst class and the PCmetricInstServer class.
  * 
  * $Log: PCmetricInst.h,v $
+ * Revision 1.12  1999/03/03 18:15:16  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
  * Revision 1.11  1996/08/16 21:03:37  tamches
  * updated copyright for release 1.1
  *

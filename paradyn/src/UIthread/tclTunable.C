@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,9 +43,14 @@
 // C++ code that provides access to tunable constants from tcl.
 
 /* $Log: tclTunable.C,v $
-/* Revision 1.12  1996/11/26 16:06:58  naim
-/* Fixing asserts - naim
+/* Revision 1.13  1999/03/03 18:16:12  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.12  1996/11/26 16:06:58  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.11  1996/08/16 21:07:25  tamches
  * updated copyright for release 1.1
  *
@@ -72,6 +77,8 @@
 
 #include <assert.h>
 #include <stdlib.h> // atoi()
+
+#include "util/h/headers.h"
 #include "tcl.h"
 #include "tk.h"
 #include "../TCthread/tunableConst.h"
@@ -158,7 +165,7 @@ char *getBoolAllNames() {
       boolConstantStrings[lcv] = theName.string_of();
    }
 
-   char *resultString = Tcl_Merge(numBoolTunables, boolConstantStrings);
+   char *resultString = Tcl_Merge(numBoolTunables, (char**)boolConstantStrings);
    return resultString;
 }
 
@@ -177,7 +184,7 @@ char *getFloatAllNames() {
       floatConstantStrings[lcv] = theName.string_of();
    }
 
-   char *resultString = Tcl_Merge(numFloatTunables, floatConstantStrings);
+   char *resultString = Tcl_Merge(numFloatTunables, (char**)floatConstantStrings);
    return resultString;
 }
 
@@ -229,7 +236,7 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
 	 }
 
          tunableConstantBase tcb = tunableConstantRegistry::getGenericTunableConstantByName(argv[2]);
-	 Tcl_SetResult(interp, (tcb.getDesc().string_of()==NULL) ? tcb.getName().string_of() : tcb.getDesc().string_of(), TCL_VOLATILE);
+	 Tcl_SetResult(interp, (char*)((tcb.getDesc().string_of()==NULL) ? tcb.getName().string_of() : tcb.getDesc().string_of()), TCL_VOLATILE);
          return TCL_OK;
       }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -60,10 +60,10 @@
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
 #include "paradyn/src/TCthread/tunableConst.h"
+#include "paradyn/src/UIthread/minmax.h"
 
 #define  ERROR_MSG(s1, s2) \
 	 uiMgr->showError(s1,s2); 
-#define  min(a,b) ((a)<(b) ? (a):(b))
 
 char *AbbreviatedFocus(const char *);
 
@@ -489,6 +489,9 @@ int VISIthreadStartProcess(){
 
   // start the visualization process
   if(ptr->start_up){
+	PDSOCKET	visiSock;
+
+
     PARADYN_DEBUG(("start_up in VISIthreadStartProcess"));
     vector<string> av;
     // start at 1 since RPCprocessCreate will add 0th arg to list
@@ -497,25 +500,25 @@ int VISIthreadStartProcess(){
       av += ptr->args->argv[index];
       index++;
     }
-    ptr->fd = RPCprocessCreate("localhost","",ptr->args->argv[0], av);
+    visiSock = RPCprocessCreate("localhost","",ptr->args->argv[0], av);
 
-    if (ptr->fd < 0) {
+    if (visiSock == PDSOCKET_ERROR) {
       PARADYN_DEBUG(("Error in process Create: RPCprocessCreate"));
       ERROR_MSG(14,"");
       ptr->quit = 1;
       return(0);
     }
 
-    ptr->visip = new visiUser(ptr->fd); 
+    ptr->visip = new visiUser(visiSock); 
     if (ptr->visip->errorConditionFound) {
       ERROR_MSG(14,"");
       ptr->quit = 1;
       return(0);
     }
 
-    if(msg_bind_buffered(ptr->fd,0,
-	(int(*)(void*)) xdrrec_eof,ptr->visip->net_obj()) != THR_OKAY) {
-      PARADYN_DEBUG(("Error in msg_bind(ptr->fd)"));
+    if(msg_bind_socket(visiSock,0,
+		(int(*)(void*)) xdrrec_eof,ptr->visip->net_obj(), &(ptr->vtid)) != THR_OKAY) {
+      PARADYN_DEBUG(("Error in msg_bind_socket(ptr->fd)"));
       ERROR_MSG(14,"");
       ptr->quit = 1;
       return(0);
@@ -796,7 +799,7 @@ void VISIthreadEnableCallback(vector<metricInstInfo> *response, u_int){
         // trace data streams
         flush_traceBuffer_if_nonempty(ptr);
 
-        unsigned newMaxBufferSize = min(ptr->buffer.size()+numEnabled,
+        unsigned newMaxBufferSize = min<unsigned>(ptr->buffer.size()+numEnabled,
 					DM_DATABUF_LIMIT);
         ptr->buffer.resize(newMaxBufferSize); // new
 
@@ -921,7 +924,7 @@ void *VISIthreadmain(void *vargs){
   // globals->buffer is left a 0-sized array
   globals->buffer_next_insert_index = 0;
 
-  globals->fd = -1;
+  globals->vtid = THR_TID_UNSPEC;
   globals->quit = 0;
   globals->bucketWidth = globals->args->bucketWidth;
 
@@ -1026,9 +1029,14 @@ void *VISIthreadmain(void *vargs){
 	  }
 	}
       }
-      thread_t tag = MSG_TAG_ANY;
-      // int from = msg_poll(&tag, 1);
-      int from  = msg_poll_preference(&tag, 1,globals->fd_first);
+	  thread_t from = THR_TID_UNSPEC;
+      tag_t tag = MSG_TAG_ANY;
+	  if( msg_poll_preference(&from, &tag, 1,globals->fd_first) != THR_OKAY )
+	  {
+			// TODO
+		  cerr << "Error in VISIthreadmain.C\n";
+		  assert(0);
+	  }
       globals->fd_first = !globals->fd_first;
 
       if (globals->ump->isValidTag((T_UI::message_tags)tag)) {
@@ -1052,9 +1060,9 @@ void *VISIthreadmain(void *vargs){
 	  cerr << "Error in VISIthreadmain.C\n";
 	  assert(0);
 	}
-      } else if (tag == MSG_TAG_FILE){
+      } else if (tag == MSG_TAG_SOCKET){
 	assert(globals->visip);
-	assert(from == globals->visip->get_fd());
+	assert(thr_socket(from) == globals->visip->get_sock());
 	if (globals->visip->waitLoop() == T_visi::error) {
 	  PARADYN_DEBUG(("igen: visip->awaitResponce() in VISIthreadmain"));
 	  globals->quit = 1;
@@ -1116,8 +1124,8 @@ void *VISIthreadmain(void *vargs){
 
   // unbind file descriptor associated with visualization
   if(!globals->start_up){
-      if(msg_unbind(globals->fd) == THR_ERR){
-          PARADYN_DEBUG(("Error in msg_unbind(globals->fd)"));
+      if(msg_unbind(globals->vtid) == THR_ERR){
+          PARADYN_DEBUG(("Error in msg_unbind(globals->vtid)"));
           ERROR_MSG(14,"Error in VISIthreadmain: msg_unbind");
       }
       delete globals->visip;

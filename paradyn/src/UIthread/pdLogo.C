@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,6 +43,11 @@
 
 /*
  * $Log: pdLogo.C,v $
+ * Revision 1.4  1999/03/03 18:16:07  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
  * Revision 1.3  1997/10/28 20:35:56  tamches
  * dictionary_lite --> dictionary_hash
  *
@@ -61,26 +66,32 @@ dictionary_hash<string, pdLogo::logoStruct> pdLogo::all_installed_logos(string::
 dictionary_hash<string, pdLogo *> pdLogo::all_logos(string::hash, 9);
 
 bool pdLogo::tryFirst() {
+   XGCValues values;
+
    if (theLogo != None)
       return true;
 
    if (Tk_WindowId(theTkWindow) == 0)
       return false; // not yet ready
 
-   theLogo = XCreatePixmapFromBitmapData(Tk_Display(theTkWindow),
-					 Tk_WindowId(theTkWindow),
-					 (char *)theLogoData.rawData,
-					 theLogoData.width, theLogoData.height,
-					 foregroundColor->pixel,
-					 backgroundColor->pixel,
-					 Tk_Depth(theTkWindow)
-					 );
-   assert(theLogo);
+	// obtain a graphics context that specifies the correct
+	// foreground and background colors for our destination 
+	// drawable
+	values.foreground = foregroundColor->pixel;
+	values.background = backgroundColor->pixel;
+	copyGC = XCreateGC(theDisplay,
+						Tk_WindowId(theTkWindow),
+						GCForeground | GCBackground,
+						&values);
 
-   XGCValues values;
-   copyGC = Tk_GetGC(theTkWindow,
-		     0, // (!)
-		     &values);
+	// create a bitmap from the data
+	theLogo = Tk_GetBitmapFromData(interp,
+						theTkWindow,
+						(char*)theLogoData.rawData,
+						theLogoData.width,
+						theLogoData.height);
+
+   assert(theLogo);
 
    return true;
 }
@@ -96,13 +107,14 @@ void pdLogo::real_draw(ClientData cd) {
    pdLogo *pthis = (pdLogo *)cd;
    assert(pthis);
 
-   XCopyArea(Tk_Display(pthis->theTkWindow),
+   XCopyPlane(Tk_Display(pthis->theTkWindow),
 	     pthis->theLogo, // src drawable
 	     Tk_WindowId(pthis->theTkWindow), // dest drawable
 	     pthis->copyGC,
 	     0, 0, // src x, y
 	     pthis->theLogoData.width, pthis->theLogoData.height,
-	     pthis->borderPix, pthis->borderPix // dest x, y
+	     pthis->borderPix, pthis->borderPix, // dest x, y
+		 1 // plane - we copy from a bitmap
 	     );
 }
 
@@ -143,11 +155,15 @@ pdLogo::pdLogo(Tcl_Interp *iInterp, Tk_Window iTkWindow,
 }
 
 pdLogo::~pdLogo() {
-   if (copyGC)
-      Tk_FreeGC(theDisplay, copyGC);
+   if (copyGC != None)
+   {
+      XFreeGC(theDisplay, copyGC);
+   }
 
    if (theLogo)
-      XFreePixmap(theDisplay, theLogo);
+   {
+		Tk_FreeBitmap(theDisplay, theLogo);
+   }
 
    Tk_FreeColor(foregroundColor);
    Tk_FreeColor(backgroundColor);
@@ -213,7 +229,7 @@ int pdLogo::makeLogoCommand(ClientData cd, Tcl_Interp *interp,
 	     " -highlightcolor " + colorString);
 
    // At last, we can obtain the Tk_Window
-   Tk_Window theTkWindow = Tk_NameToWindow(interp, theTkWindowName.string_of(),
+   Tk_Window theTkWindow = Tk_NameToWindow(interp, (char*)theTkWindowName.string_of(),
 					   rootTkWindow);
    if (theTkWindow == NULL) {
       cout << "pdLogo::createCommand() -- sorry, window " << theTkWindowName <<

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -75,7 +75,7 @@ struct VISIGlobalsStruct {
   perfStreamHandle pt_handle;
   vector<T_visi::traceDataValue> traceBuffer;
 
-  int fd;
+  thread_t vtid;
   int quit;
   double bucketWidth;
   visi_thread_args* args;
@@ -104,8 +104,8 @@ typedef struct VISIGlobalsStruct VISIthreadGlobals;
 class visiUser : public visualizationUser
 {
   public:
-    visiUser(int fd) :
-	visualizationUser(fd, NULL, NULL, 0) {;};
+    visiUser(PDSOCKET sock) :
+	visualizationUser(sock, NULL, NULL, 0) {;};
     virtual void handle_error();
 };
 

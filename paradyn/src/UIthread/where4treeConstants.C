@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,10 +43,15 @@
 // Ariel Tamches
 
 /* $Log: where4treeConstants.C,v $
-/* Revision 1.7  1997/09/24 19:26:56  tamches
-/* XLoadQueryFont --> Tk_GetFont;use of Tk_GetFontMetrics; other changes
-/* for tcl 8.0
+/* Revision 1.8  1999/03/03 18:16:16  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.7  1997/09/24 19:26:56  tamches
+ * XLoadQueryFont --> Tk_GetFont;use of Tk_GetFontMetrics; other changes
+ * for tcl 8.0
+ *
  * Revision 1.6  1996/08/16 21:07:41  tamches
  * updated copyright for release 1.1
  *
@@ -71,8 +76,9 @@
 #include <stdlib.h>
 #include <iostream.h>
 
-#include "tkTools.h" // tclpanic
+#include "util/h/headers.h"
 #include "where4treeConstants.h"
+#include "tkTools.h" // tclpanic
 
 where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
 					 Tk_Window theWindow) {
@@ -83,7 +89,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    theTkWindow = theWindow;
    display = Tk_Display(theTkWindow);
 
-   offscreenPixmap = XCreatePixmap(display, Tk_WindowId(theTkWindow),
+   offscreenPixmap = Tk_GetPixmap(display, Tk_WindowId(theTkWindow),
 				   1, // dummy width (for now)
 				   1, // dummy height (for now)
 				   Tk_Depth(theWindow));
@@ -241,12 +247,12 @@ where4TreeConstants::~where4TreeConstants() {
    Tk_Free3DBorder(rootNodeBorder);
    Tk_Free3DBorder(listboxBorder);
 
-   XFreePixmap(display, offscreenPixmap);
+   Tk_FreePixmap(display, offscreenPixmap);
 }
 
 void where4TreeConstants::resize() {
-   XFreePixmap(display, offscreenPixmap);
-   offscreenPixmap = XCreatePixmap(display, Tk_WindowId(theTkWindow),
+   Tk_FreePixmap(display, offscreenPixmap);
+   offscreenPixmap = Tk_GetPixmap(display, Tk_WindowId(theTkWindow),
 				   Tk_Width(theTkWindow),
 				   Tk_Height(theTkWindow),
 				   Tk_Depth(theTkWindow));

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,9 +43,14 @@
 // Ariel Tamches
 
 /* $Log: tkTools.C,v $
-/* Revision 1.7  1996/11/26 16:06:59  naim
-/* Fixing asserts - naim
+/* Revision 1.8  1999/03/03 18:16:12  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.7  1996/11/26 16:06:59  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.6  1996/08/16 21:07:27  tamches
  * updated copyright for release 1.1
  *
@@ -66,7 +71,7 @@
 #include <assert.h>
 #include <stdlib.h> // exit()
 #include "minmax.h"
-
+#include "util/h/headers.h"
 #include "tkTools.h"
 
 tkInstallIdle::tkInstallIdle(void (*iUsersRoutine)(ClientData)) {
@@ -107,7 +112,7 @@ void myTclEval(Tcl_Interp *interp, const string &str) {
 }
 
 void myTclEval(Tcl_Interp *interp, const char *buffer) {
-   if (TCL_OK != Tcl_Eval(interp, buffer)) {
+   if (TCL_OK != Tcl_Eval(interp, (char*)buffer)) {
       cerr << interp->result << endl;
       exit(5);
    }

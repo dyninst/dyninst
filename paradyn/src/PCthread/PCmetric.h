@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -45,6 +45,11 @@
  * The PCmetric class and the PCmetricInst class.
  * 
  * $Log: PCmetric.h,v $
+ * Revision 1.23  1999/03/03 18:15:15  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
  * Revision 1.22  1996/08/16 21:03:33  tamches
  * updated copyright for release 1.1
  *
@@ -75,11 +80,11 @@
 //sys.h defines the following:
 //  typedef double timeStamp;
 //  typedef float sampleValue;
-//  typedef struct {
+//  struct Interval {
 //     timeStamp start;
 //     timeStamp end;
 //      sampleValue value;
-//  } Interval;
+//  };
 
 typedef enum PCmetricType {derived, simple};
 typedef metricInstanceHandle PCmetDataID;
@@ -87,18 +92,18 @@ typedef bool (*initPCmetricInstFunc)(focus foo);
 typedef sampleValue (*evalPCmetricInstFunc)(focus foo, sampleValue *data,
 					    int dataSize); 
 typedef enum focusType {cf, tlf};
-typedef struct {
+struct metNameFocusStruct {
   const char *mname;
   focusType whichFocus;
   filterType ft;
-} metNameFocusStruct;
+};
 typedef struct metNameFocusStruct metNameFocus;
 
-typedef struct {
+struct PCMetInfoStruct {
   metricHandle mh;
   focusType fType;
   filterType ft;
-} PCMetInfoStruct;
+};
 typedef struct PCMetInfoStruct PCMetInfo;
 
 class PCmetric;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -47,8 +47,11 @@
 
 extern "C" {
 #include <malloc.h>
-#include <unistd.h>
 #include <assert.h>
+
+#if !defined(i386_unknown_nt4_0)
+#include <unistd.h>
+#endif // !defined(i386_unknown_nt4_0)
 }
 
 #include "util/h/Vector.h"

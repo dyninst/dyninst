@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.102 1998/03/04 19:56:15 wylie Exp $
+// $Id: DMpublic.C,v 1.103 1999/03/03 18:13:48 pcroth Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -369,7 +369,11 @@ dataManager::saveAllResources (const char *dirname)
     resource::saveHierarchiesToFile(saveFile);
     saveFile.close();
   }
-  delete dirname;
+
+  // TODO - is there a way to deallocate this memory
+  // at the caller?  parameter was passed as const
+  delete (char*)dirname;
+
   uiMgr->resourcesSaved(success);
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,6 +43,11 @@
 
 /*
  * $Log: pdLogo.h,v $
+ * Revision 1.6  1999/03/03 18:16:08  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
  * Revision 1.5  1997/10/28 20:35:55  tamches
  * dictionary_lite --> dictionary_hash
  *
@@ -66,17 +71,10 @@
 #include <assert.h>
 #include <iostream.h>
 
-#include "tcl.h"
-#include "tk.h"
-#include "tkTools.h"
 
-#ifdef PARADYN
 #include "util/h/Dictionary.h"
 #include "util/h/String.h"
-#else
-#include "Dictionary.h"
-#include "String.h"
-#endif
+#include "tkTools.h"
 
 class pdLogo {
  private:

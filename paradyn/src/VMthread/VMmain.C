@@ -40,11 +40,16 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.43  1997/06/02 19:41:54  karavan
-/* added new call registerValidVisis.  This single call from Visi Manager to
-/* UI thread at startup registers all valid visis as specified in a config
-/* file, and replaces use of synchronous VM->VMAvailableVisis().
+/* Revision 1.44  1999/03/03 18:16:37  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.43  1997/06/02 19:41:54  karavan
+ * added new call registerValidVisis.  This single call from Visi Manager to
+ * UI thread at startup registers all valid visis as specified in a config
+ * file, and replaces use of synchronous VM->VMAvailableVisis().
+ *
  * Revision 1.42  1996/11/26 16:07:14  naim
  * Fixing asserts - naim
  *
@@ -190,7 +195,7 @@ int VM_AddNewVisualization(const char *name,
 
   unsigned size = arg_str->size();
   // update info. for new entry 
-  if((temp->argv = new (char*)[size+1]) == NULL){
+  if((temp->argv = new char*[size+1]) == NULL){
       ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
       return(VMERROR);
   }
@@ -438,8 +443,10 @@ int VM::VM_post_thread_create_init(){
   // global synchronization
   int retVal = msg_send (MAINtid, MSG_TAG_VM_READY,(char *)NULL,0);
   tag_t mtag   = MSG_TAG_ALL_CHILDREN_READY;
+  thread_t mtid = MAINtid;
   unsigned msgSize = 0;
-  retVal = msg_recv (&mtag, VMbuff, &msgSize);
+  retVal = msg_recv (&mtid, &mtag, VMbuff, &msgSize);
+  assert( mtid == MAINtid );
 
   // register valid visis with the UI
   vector<VM_visiInfo> *temp = new vector<VM_visiInfo>;
@@ -464,9 +471,10 @@ void *VMmain(void* varg) {
 
 
   while(1){
+	  thread_t tid = THR_TID_UNSPEC;
       unsigned tag = MSG_TAG_ANY;
-      int from = msg_poll(&tag, 1);
-      assert(from != THR_ERR);
+      int err = msg_poll(&tid, &tag, 1);
+      assert(err != THR_ERR);
       if (uiMgr->isValidTag((T_UI::message_tags)tag)) {
 	if (uiMgr->waitLoop(true, (T_UI::message_tags)tag) == T_UI::error) {
 	  // TODO

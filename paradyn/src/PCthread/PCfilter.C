@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -46,6 +46,11 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.34  1999/03/03 18:15:12  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
  * Revision 1.33  1997/12/18 17:07:38  newhall
  * add trace perfStreamHandle to disableData calls
  *
@@ -402,8 +407,7 @@ filteredDataServer::filteredDataServer(unsigned phID)
   }
   // adjusted minGranularity, or binsize, whichever's bigger
   intervalSize = binFactor;
-  miIndex = new (dictionary_hash<focus, filter*>*) 
-    [performanceConsultant::numMetrics];
+  miIndex = new dictionary_hash<focus, filter*>*[performanceConsultant::numMetrics];
   for (unsigned j = 0; j < performanceConsultant::numMetrics; j++)
     miIndex[j] = new dictionary_hash<focus, filter*> 
       (filteredDataServer::fdid_hash);

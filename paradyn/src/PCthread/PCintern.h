@@ -45,6 +45,11 @@
  * Included by PC modules only
  *  
  * $Log: PCintern.h,v $
+ * Revision 1.11  1999/03/03 18:15:14  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
  * Revision 1.10  1997/03/29 02:04:41  sec
  * Changed the resource handle MsgTags to Messages
  *
@@ -130,13 +135,12 @@
 //sys.h defines the following:
 //  typedef double timeStamp;
 //  typedef float sampleValue;
-//  typedef struct {
+//  struct Interval {
 //     timeStamp start;
 //     timeStamp end;
 //      sampleValue value;
-//  } Interval;
+//  };
 #define PCdataQSize 20
-typedef struct Interval Interval;
 ostream& operator <<(ostream &os, Interval &i);
 
 #include "../pdMain/paradyn.h"
@@ -153,7 +157,6 @@ typedef resourceListHandle focus;
 typedef metricInstanceHandle PCmetDataID;
 class experiment;
 typedef experiment* PCmetSubscriber;
-typedef enum testResult {tfalse, ttrue, tunknown}; 
 typedef enum filterType { averaging, nonfiltering}; 
 
 // known or "base" resources -- these don't vary across applications

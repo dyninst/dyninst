@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -45,9 +45,17 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.18  1997/12/04 18:28:59  tamches
-/* bug fix to navigate menu
+/* Revision 1.19  1999/03/03 18:16:17  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.4  1999/03/01 18:04:02  pcroth
+ * change guard macros to disallow on NT
+ *
+ * Revision 1.18  1997/12/04 18:28:59  tamches
+ * bug fix to navigate menu
+ *
  * Revision 1.17  1997/10/28 20:37:01  tamches
  * dictionary_lite --> dictionary_hash
  *
@@ -112,7 +120,6 @@
 #endif
 
 #include "tkTools.h"
-#include "tk.h"
 
 Tk_Font whereAxis::theRootItemFontStruct = NULL;
 Tk_Font whereAxis::theListboxItemFontStruct = NULL;
@@ -235,6 +242,7 @@ bool whereAxis::set_scrollbars(int absolute_x, int relative_x,
 					rootPtr->entire_height(consts),
 					absolute_y, relative_y);
 
+#if !defined(i386_unknown_nt4_0)
    if (warpPointer)
       XWarpPointer(Tk_Display(consts.theTkWindow),
 		   Tk_WindowId(consts.theTkWindow), // src win
@@ -243,6 +251,9 @@ bool whereAxis::set_scrollbars(int absolute_x, int relative_x,
 		   0, 0, // src height, width
 		   relative_x, relative_y
 		   );
+#else // !defined(i386_unknown_nt4_0)
+	// TODO - implement warping behavior (?)
+#endif // !defined(i386_unknown_nt4_0)
 
    return anyChanges;
 }

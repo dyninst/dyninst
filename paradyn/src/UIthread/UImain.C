@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,18 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.87 1998/04/06 04:27:24 wylie Exp $
+// $Id: UImain.C,v 1.88 1999/03/03 18:16:03 pcroth Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
  *    called at thread creation.
  */
 
-#include "tcl.h"
-#include "tk.h"
-
 #include "util/h/headers.h"
+
+#if !defined(i386_unknown_nt4_0)
 #include <sys/param.h>
+#endif // !defined(i386_unknown_nt4_0)
 
 #include "UIglobals.h" 
 #include "paradyn/src/DMthread/DMinclude.h"
@@ -72,12 +72,15 @@
 #include "paradyn/xbm/dont.xbm" // defines error_bits[], error_width, error_height
 
 #include "util/h/Ident.h"
-extern const char V_paradyn[];
+extern "C" const char V_paradyn[];
 const Ident V_id(V_paradyn,"Paradyn");
-extern const char V_libpdutil[];
+extern "C" const char V_libpdutil[];
 const Ident V_Uid(V_libpdutil,"Paradyn");
-extern const char V_libpdthread[];
+extern "C" const char V_libpdthread[];
 const Ident V_Tid(V_libpdthread,"Paradyn");
+
+extern abstractions *theAbstractions; // whereAxisTcl.C
+
 
 bool haveSeenFirstGoodWhereAxisWid = false;
 bool tryFirstGoodWhereAxisWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
@@ -93,7 +96,6 @@ bool tryFirstGoodWhereAxisWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
 
    haveSeenFirstGoodWhereAxisWid = true;
 
-   extern abstractions *theAbstractions; // whereAxisTcl.C
    theAbstractions = new abstractions(".whereAxis.top.mbar.abs.m",
 				      ".whereAxis.top.mbar.nav.m",
 				      ".whereAxis.nontop.main.bottsb",
@@ -173,7 +175,6 @@ void resourceBatchChanged(perfStreamHandle, batchMode mode)
 
       UIM_BatchMode++;
 
-      extern abstractions *theAbstractions;
       assert(theAbstractions);
 
       theAbstractions->startBatchMode();
@@ -185,7 +186,6 @@ void resourceBatchChanged(perfStreamHandle, batchMode mode)
          // spatial graphications...
          ui_status->message("Rethinking after batch mode");
 
-         extern abstractions *theAbstractions;
          assert(theAbstractions);
 
 	 theAbstractions->endBatchMode();
@@ -263,22 +263,32 @@ void Prompt(Tcl_Interp *, int partial);
 void StdinProc(ClientData, int mask);
 
 void tclPromptCallback(bool newValue) {
+#if !defined(i386_unknown_nt4_0)
+	static thread_t stdin_tid = THR_TID_UNSPEC;
+
    // Such a change affects whether or not a prompt is displayed; and,
    // more importantly, whether or not we should bind to stdin.
    if (newValue) {
       //cout << "binding to stdin:" << endl;
       msg_bind(fileno(stdin),
-	       1 // "special" flag --> libthread leaves it to us to manually
+	       1, // "special" flag --> libthread leaves it to us to manually
 	         // dequeue messages
+			NULL,
+			NULL,
+			&stdin_tid
 	       );
    }
    else {
       //cout << "unbinding from stdin:" << endl;
-      msg_unbind(fileno(stdin));
+	  assert(stdin_tid != THR_TID_UNSPEC);
+      msg_unbind(stdin_tid);
 
       //cout << "deleting file handler:" << endl;
-      Tk_DeleteFileHandler(fileno(stdin));
+	  Tcl_DeleteChannelHandler(Tcl_GetStdChannel(TCL_STDIN), StdinProc, (ClientData)0);
    }
+#else
+	// TODO - handle this mechanism (or similar) under Windows NT
+#endif // !defined(i386_unknown_nt4_0)
 }
 
 extern shgPhases *theShgPhases;
@@ -321,6 +331,7 @@ void tcShgHideShadowCallback(bool hide) {
 }
 
 void *UImain(void*) {
+	thread_t mtid;
     tag_t mtag;
     int retVal;
     unsigned msgSize = 0;
@@ -454,12 +465,20 @@ void *UImain(void*) {
     uim_server = new UIM(MAINtid);
 
     // register fd for X events with threadlib as special
-    Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
+	thread_t xtid;
+#if !defined(i386_unknown_nt4_0)
+	Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
     int xfd = XConnectionNumber (UIMdisplay);
-    retVal = msg_bind (xfd,
-		       1 // "special" flag --> libthread leaves it to us to manually
+    retVal = msg_bind_socket (xfd,
+		       1, // "special" flag --> libthread leaves it to us to manually
                          // dequeue these messages
+				NULL,
+				NULL,
+				&xtid
 		       );
+#else // !defined(i386_unknown_nt4_0)
+	retVal = msg_bind_wmsg( &xtid );
+#endif // !defined(i386_unknown_nt4_0)
 
     // initialize hash table for async call replies
     Tcl_InitHashTable (&UIMMsgReplyTbl, TCL_ONE_WORD_KEYS);
@@ -470,7 +489,9 @@ void *UImain(void*) {
 
     retVal = msg_send (MAINtid, MSG_TAG_UIM_READY, (char *) NULL, 0);
     mtag = MSG_TAG_ALL_CHILDREN_READY;
-    retVal = msg_recv (&mtag, UIMbuff, &msgSize);
+	mtid = MAINtid;
+    retVal = msg_recv (&mtid, &mtag, UIMbuff, &msgSize);
+	assert( mtid == MAINtid );
 
     PARADYN_DEBUG(("UIM thread past barrier\n"));
 
@@ -522,8 +543,9 @@ void *UImain(void*) {
       processPendingTkEventsNoBlock();
 
       msgSize = UIMBUFFSIZE;
+	  thread_t pollsender = THR_TID_UNSPEC;
       mtag = MSG_TAG_ANY;
-      int pollsender = msg_poll (&mtag, 1); // 1-->make this a blocking poll
+      int err = msg_poll (&pollsender, &mtag, 1); // 1-->make this a blocking poll
                                             // i.e., not really a poll at all...
       // Why don't we do a blocking msg_recv() in all cases?  Because it soaks
       // up the pending message, throwing off the X file descriptor (tk wants to
@@ -533,26 +555,42 @@ void *UImain(void*) {
       //       But libthread doesn't yet support time-bounded blocking!!!
 
       // check for X events or commands on stdin
-      if (mtag == MSG_TAG_FILE) {
+      if (mtag == MSG_TAG_SOCKET) {
          // Note: why don't we do a msg_recv(), to consume the pending
-         //       event?  Because both of the MSG_TAG_FILEs we have set
+         //       event?  Because both of the MSG_TAG_FILE we have set
          //       up have the special flag set (in the call to msg_bind()),
          //       which indicated that we, instead of libthread, will take
          //       responsibility for that.  In other words, a msg_recv()
          //       now would not dequeue anything, so there's no point in doing it...
 
-	 if (pollsender == xfd)
+	 if (pollsender == xtid)
             processPendingTkEventsNoBlock();
-         else if (pollsender == fileno(stdin))
-            // process all pending stdin events
-            StdinProc(NULL, 0);
          else
-            cerr << "hmmm...unknown sender of a MSG_TAG_FILE message...ignoring" << endl;
+            cerr << "hmmm...unknown sender of a MSG_TAG_SOCKET message...ignoring" << endl;
 
 	 // The above processing may have created some pending tk DoWhenIdle
 	 // requests.  If so, process them now.
          processPendingTkEventsNoBlock();
       }
+#if defined(i386_unknown_nt4_0)
+		else if( mtag == MSG_TAG_WMSG )
+		{
+			// there are events in the Windows message queue - handle them
+			processPendingTkEventsNoBlock();
+		}
+#endif // defined(i386_unknown_nt4_0)
+
+#if !defined(i386_unknown_nt4_0)
+		else if( mtag == MSG_TAG_FILE )
+		{
+			// input should be from our file bound to stdin
+			StdinProc(NULL,0);
+
+			// The above processing may have created some pending tk DoWhenIdle
+			// requests.  If so, process them now.
+			processPendingTkEventsNoBlock();
+		}
+#endif // defined(i386_unknown_nt4_0)
       else  {
          // check for upcalls
          if (dataMgr->isValidTag((T_dataManager::message_tags)mtag)) {
@@ -638,6 +676,10 @@ void *UImain(void*) {
  *----------------------------------------------------------------------
  */
 
+/*
+ * 12/10/98: pcr: changed to avoid Tcl_CreateFileHandler and
+ * Tcl_DeleteFileHandler due to lack of support on non-UNIX platforms.
+ */
 void
 StdinProc(ClientData, int)
 {
@@ -654,7 +696,7 @@ StdinProc(ClientData, int)
                 Tcl_Eval(interp, "exit");
                 exit(1);
             } else {
-                Tk_DeleteFileHandler(0);
+				Tcl_DeleteChannelHandler(Tcl_GetStdChannel(TCL_STDIN), StdinProc, (ClientData)0);
             }
             return;
         } else {
@@ -682,9 +724,11 @@ StdinProc(ClientData, int)
      * command being evaluated.
      */
 
-    Tk_CreateFileHandler(0, 0, StdinProc, (ClientData) 0);
+    Tcl_CreateChannelHandler(Tcl_GetStdChannel(TCL_STDIN),
+								0, StdinProc, (ClientData) 0);
     code = Tcl_RecordAndEval(interp, cmd, TCL_EVAL_GLOBAL);
-    Tk_CreateFileHandler(0, TK_READABLE, StdinProc, (ClientData) 0);
+    Tcl_CreateChannelHandler(Tcl_GetStdChannel(TCL_STDIN),
+								TK_READABLE, StdinProc, (ClientData) 0);
     Tcl_DStringFree(&command);
     if (*interp->result != 0) {
         if ((code != TCL_OK) || tty)

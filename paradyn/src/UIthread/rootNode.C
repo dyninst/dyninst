@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,9 +43,17 @@
 // Ariel Tamches
 
 /* $Log: rootNode.C,v $
-/* Revision 1.7  1997/09/24 19:19:56  tamches
-/* XTextWidth --> Tk_TextWidth, and use of Tk_GetFontMetrics
+/* Revision 1.8  1999/03/03 18:16:08  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.5  1999/03/01 18:04:02  pcroth
+ * change guard macros to disallow on NT
+ *
+ * Revision 1.7  1997/09/24 19:19:56  tamches
+ * XTextWidth --> Tk_TextWidth, and use of Tk_GetFontMetrics
+ *
  * Revision 1.6  1996/08/16 21:07:03  tamches
  * updated copyright for release 1.1
  *
@@ -73,6 +81,7 @@
 
 #include <assert.h>
 
+#include "util/h/headers.h"
 #include "whereAxis.h" // for some of its static vrbles / member functions
 #include "rootNode.h" // change to whereAxisRootNode.h some day
 
@@ -140,11 +149,12 @@ void whereAxisRootNode::drawAsRoot(Tk_Window theTkWindow,
    const int textBaseLine = root_topy + borderPix + vertPad +
                             rootItemFontMetrics.ascent - 1;
 
-   XDrawString(Tk_Display(theTkWindow), theDrawable,
-	       // tc.rootItemTextGC,
-	       whereAxis::getRootItemTextGC(),
-	       textLeft, textBaseLine,
-	       name.string_of(), name.length());
+	Tk_DrawChars(Tk_Display(theTkWindow),
+		theDrawable,
+		whereAxis::getRootItemTextGC(),
+		whereAxis::getRootItemFontStruct(),
+		name.string_of(), name.length(),
+		textLeft, textBaseLine );
 }
 
 GC whereAxisRootNode::getGCforListboxRay(const whereAxisRootNode &, // parent
@@ -163,8 +173,12 @@ GC whereAxisRootNode::getGCforNonListboxRay(const whereAxisRootNode &, // parent
 
 void whereAxisRootNode::prepareForDrawingListboxItems(Tk_Window theTkWindow,
 						      XRectangle &listboxBounds) {
+#if !defined(i386_unknown_nt4_0)
    XSetClipRectangles(Tk_Display(theTkWindow), whereAxis::getListboxItemGC(),
 		      0, 0, &listboxBounds, 1, YXBanded);
+#else // !defined(i386_unknown_nt4_0)
+	// TODO - is this needed?
+#endif // !defined(i386_unknown_nt4_0)
 }
 
 void whereAxisRootNode::doneDrawingListboxItems(Tk_Window theTkWindow) {
@@ -186,12 +200,12 @@ void whereAxisRootNode::drawAsListboxItem(Tk_Window theTkWindow,
 		      1, // 2 also looks pretty good; 3 doesn't
 		      highlighted ? TK_RELIEF_SUNKEN : TK_RELIEF_RAISED);
 
-   XDrawString(Tk_Display(theTkWindow), theDrawable,
-	       whereAxis::getListboxItemGC(),
-	       textLeft, // boxLeft + tc.listboxHorizPadBeforeText
-	       textBaseline, // boxTop + tc.listboxVertPadAboveItem +
-                             // tc.listboxFontStruct->ascent - 1
-	       name.string_of(), name.length());
+	Tk_DrawChars(Tk_Display(theTkWindow),
+		theDrawable,
+		whereAxis::getListboxItemGC(),
+		whereAxis::getRootItemFontStruct(),	// is this correct?
+		name.string_of(), name.length(),
+		textLeft, textBaseline );
 }
 
 

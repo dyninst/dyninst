@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,9 +43,14 @@
 // Ariel Tamches
 
 /* $Log: graphicalPath.C,v $
-/* Revision 1.3  1996/08/16 21:06:53  tamches
-/* updated copyright for release 1.1
+/* Revision 1.4  1999/03/03 18:16:06  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.3  1996/08/16 21:06:53  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.2  1995/10/17 20:54:37  tamches
  * Added check for NULL rootPtr in constructors (needed by new shg).
  * class where4tree is templated in a different manner.
@@ -53,6 +58,7 @@
  *
  */
 
+#include "util/h/headers.h"
 #include "graphicalPath.h"
 
 template <class ROOTTYPE>

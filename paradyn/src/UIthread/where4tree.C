@@ -43,9 +43,17 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.17  1997/09/24 19:25:16  tamches
-/* use of Tk_GetFontMetrics; other changes for tcl 8.0
+/* Revision 1.18  1999/03/03 18:16:14  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.4  1999/03/01 18:04:02  pcroth
+ * change guard macros to disallow on NT
+ *
+ * Revision 1.17  1997/09/24 19:25:16  tamches
+ * use of Tk_GetFontMetrics; other changes for tcl 8.0
+ *
  * Revision 1.16  1996/11/26 16:07:02  naim
  * Fixing asserts - naim
  *
@@ -523,12 +531,16 @@ void where4tree<NODEDATA>::draw_listbox(Tk_Window theTkWindow,
    GC lightGC = Tk_3DBorderGC(theTkWindow, tc.listboxBorder, TK_3D_LIGHT_GC);
    GC darkGC = Tk_3DBorderGC(theTkWindow, tc.listboxBorder, TK_3D_DARK_GC);
    GC flatGC = Tk_3DBorderGC(theTkWindow, tc.listboxBorder, TK_3D_FLAT_GC);
-			      
+
+#if !defined(i386_unknown_nt4_0)
    XSetClipRectangles(tc.display, lightGC, 0, 0, &clipRect, 1, YXBanded);
    XSetClipRectangles(tc.display, darkGC, 0, 0, &clipRect, 1, YXBanded);
    XSetClipRectangles(tc.display, flatGC, 0, 0, &clipRect, 1, YXBanded);
 
    XSetClipRectangles(tc.display, tc.listboxTriangleGC, 0, 0, &clipRect, 1, YXBanded);
+#else // !defined(i386_unknown_nt4_0)
+	// TODO - implement clipping support (?)
+#endif // !defined(i386_unknown_nt4_0)
 
    NODEDATA::prepareForDrawingListboxItems(tc.theTkWindow, clipRect);
                       

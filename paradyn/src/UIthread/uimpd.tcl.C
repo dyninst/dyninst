@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -45,9 +45,14 @@
 */
 
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.39  1997/10/28 20:36:30  tamches
-/* dictionary_lite --> dictionary_hash
+/* Revision 1.40  1999/03/03 18:16:13  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.39  1997/10/28 20:36:30  tamches
+ * dictionary_lite --> dictionary_hash
+ *
  * Revision 1.38  1997/10/10 00:22:07  tamches
  * removed a warning
  *
@@ -82,8 +87,6 @@
  */
  
 #include <stdlib.h>
-#include "tcl.h"
-#include "tk.h"
 #include "util/h/odometer.h"
 
 extern "C" {
@@ -296,7 +299,7 @@ int processVisiSelectionCmd(ClientData,
 	 uim_VisiSelections += metric_focus_pair(metric_id, fociList[focuslcv]);
    }
 
-   free (metlst);   // cleanup after Tcl_SplitList
+   Tcl_Free ((char*)metlst);   // cleanup after Tcl_SplitList
 
    sprintf (interp->result, "%d", 1);
    return TCL_OK;

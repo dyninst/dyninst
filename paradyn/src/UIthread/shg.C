@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -41,11 +41,10 @@
 
 // new search history graph user interface, along the lines
 // of the new where axis user interface
-// $Id: shg.C,v 1.28 1998/04/28 22:09:59 wylie Exp $
+// $Id: shg.C,v 1.29 1999/03/03 18:16:08 pcroth Exp $
 // Ariel Tamches
 
 #include <assert.h>
-#include "tkTools.h"
 #include "shg.h"
 
 #ifdef PARADYN
@@ -53,6 +52,7 @@
 #include "performanceConsultant.thread.h" // for struct shg_node_info
 #include "performanceConsultant.thread.CLNT.h" // for class performanceConsultantUser
 #endif
+#include "tkTools.h"
 
 // Define static member vrbles:
 Tk_Font shg::theRootItemFontStruct, shg::theRootItemShadowFontStruct;
@@ -203,6 +203,7 @@ bool shg::set_scrollbars(int absolute_x, int relative_x,
 					entire_height,
                                         absolute_y, relative_y);
 
+#if !defined(i386_unknown_nt4_0)
    if (warpPointer)
       XWarpPointer(Tk_Display(consts.theTkWindow),
                    Tk_WindowId(consts.theTkWindow), // src win
@@ -211,6 +212,9 @@ bool shg::set_scrollbars(int absolute_x, int relative_x,
                    0, 0, // src height, width
                    relative_x, relative_y
                    );
+#else // !defined(i386_unknown_nt4_0)
+	// TODO - implement warping support (?)
+#endif // !defined(i386_unknown_nt4_0)
 
    return anyChanges;
 }

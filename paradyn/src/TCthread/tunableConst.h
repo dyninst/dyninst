@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,6 +43,11 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
+ * Revision 1.8  1999/03/03 18:15:26  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
  * Revision 1.7  1997/10/28 20:35:08  tamches
  * dictionary_lite --> dictionary_hash
  *
@@ -196,7 +201,7 @@ class tunableFloatConstant : public tunableConstantBase {
 
  private:
    float value;
-   float min, max;
+   float minval, maxval;
    isValidFunc isValidValue;
    floatChangeValCallBackFunc newValueCallBack;
 
@@ -205,7 +210,7 @@ class tunableFloatConstant : public tunableConstantBase {
    tunableFloatConstant(const string &iname,
 			const string &idesc,
 			float initialValue, 
-			float min, float max,
+			float minval, float maxval,
 			floatChangeValCallBackFunc cb,
 		        tunableUse use);
    tunableFloatConstant(const string &iname,
@@ -223,8 +228,8 @@ class tunableFloatConstant : public tunableConstantBase {
 
    float getValue() const {return value;}
 
-   float getMin() const {return min;}
-   float getMax() const {return max;}
+   float getMin() const {return minval;}
+   float getMax() const {return maxval;}
 };
 
 /* *****************************************************************
@@ -297,7 +302,7 @@ class tunableConstantRegistry {
                                           floatChangeValCallBackFunc cb,
                                           tunableUse type,
                                           const float initialVal,
-					  float min, float max);
+					  float minval, float maxval);
       // returns true iff successfully created
       // outside code can use class tunableFloatConstantDeclarator to avoid the
       // need to bother with this routine and the next two...
@@ -354,7 +359,7 @@ class tunableFloatConstantDeclarator {
    tunableFloatConstantDeclarator(const string &iname,
 				  const string &idesc,
 				  float initialValue,
-				  float min, float max,
+				  float minval, float maxval,
 				  floatChangeValCallBackFunc cb,
 				  tunableUse type);
    tunableFloatConstantDeclarator(const string &iname,

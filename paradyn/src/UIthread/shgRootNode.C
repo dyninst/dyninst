@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,9 +43,17 @@
 // Ariel Tamches
 
 /* $Log: shgRootNode.C,v $
-/* Revision 1.7  1997/09/24 19:24:37  tamches
-/* XFontStruct --> Tk_Font; other changes for tcl 8.0
+/* Revision 1.8  1999/03/03 18:16:11  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.4  1999/03/01 18:04:02  pcroth
+ * change guard macros to disallow on NT
+ *
+ * Revision 1.7  1997/09/24 19:24:37  tamches
+ * XFontStruct --> Tk_Font; other changes for tcl 8.0
+ *
  * Revision 1.6  1996/08/16 21:07:18  tamches
  * updated copyright for release 1.1
  *
@@ -214,10 +222,12 @@ void shgRootNode::drawAsRoot(Tk_Window theTkWindow,
    const int textBaseLine = root_topy + borderPix + vertPad +
                             rootItemFontMetrics.ascent - 1;
 
-   XDrawString(Tk_Display(theTkWindow), theDrawable,
-	       shg::getRootItemTextGC(active, shadowNode),
-	       textLeft, textBaseLine,
-	       label.string_of(), label.length());
+	Tk_DrawChars(Tk_Display(theTkWindow),
+		theDrawable,
+		shg::getRootItemTextGC(active, shadowNode),
+		shg::getRootItemFontStruct(shadowNode),
+		label.string_of(), label.length(),
+		textLeft, textBaseLine );
 }
 
 GC shgRootNode::getGCforListboxRay(const shgRootNode &,
@@ -235,6 +245,7 @@ GC shgRootNode::getGCforNonListboxRay(const shgRootNode &,
 
 void shgRootNode::prepareForDrawingListboxItems(Tk_Window theTkWindow,
 						XRectangle &listboxBounds) {
+#if !defined(i386_unknown_nt4_0)
    XSetClipRectangles(Tk_Display(theTkWindow),
 		      shg::getListboxItemGC(false, false), // inactive, not shadow
 		      0, 0, &listboxBounds, 1, YXBanded);
@@ -264,6 +275,9 @@ void shgRootNode::prepareForDrawingListboxItems(Tk_Window theTkWindow,
 			 Tk_3DBorderGC(theTkWindow, thisStyleTk3DBorder,  TK_3D_FLAT_GC),
 			 0, 0, &listboxBounds, 1, YXBanded);
    }
+#else // !defined(i386_unknown_nt4_0)
+	// TODO - implement clipping support (?)
+#endif // !defined(i386_unknown_nt4_0)
 }
 
 void shgRootNode::doneDrawingListboxItems(Tk_Window theTkWindow) {
@@ -302,12 +316,12 @@ void shgRootNode::drawAsListboxItem(Tk_Window theTkWindow, int theDrawable,
 		      1, // 2 is not bad looking
 		      highlighted ? TK_RELIEF_SUNKEN : TK_RELIEF_RAISED);
 
-   XDrawString(Tk_Display(theTkWindow), theDrawable,
-	       shg::getListboxItemGC(active, shadowNode),
-	       textLeft, // boxLeft + tc.listboxHorizPadBeforeText
-	       textBaseline, // boxTop + tc.listboxVertPadAboveItem +
-                             // tc.listboxFontStruct->ascent - 1,
-	       label.string_of(), label.length());
+	Tk_DrawChars(Tk_Display(theTkWindow),
+		theDrawable,
+		shg::getListboxItemGC(active, shadowNode),
+		shg::getRootItemFontStruct(shadowNode),
+		label.string_of(), label.length(),
+		textLeft, textBaseline);
 }
 
 int shgRootNode::pointWithinAsRoot(int xpix, int ypix,

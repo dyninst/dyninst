@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -45,9 +45,14 @@
 // Implementations of new commands and tk bindings related to the search history graph.
 
 /* $Log: shgTcl.C,v $
-/* Revision 1.11  1996/08/16 21:07:21  tamches
-/* updated copyright for release 1.1
+/* Revision 1.12  1999/03/03 18:16:11  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.11  1996/08/16 21:07:21  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.10  1996/08/05 07:30:51  tamches
  * update for tcl 7.5
  *
@@ -78,8 +83,7 @@
  *
  */
 
-#include "tcl.h"
-#include "tk.h"
+#include "util/h/headers.h"
 #include "tkTools.h"
 
 #ifndef PARADYN

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.19 1999/01/24 00:12:18 wylie Exp $
+// $Id: mdl.h,v 1.20 1999/03/03 18:16:53 pcroth Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -189,15 +189,15 @@ class paradynDaemon: public dynRPCUser {
 	friend class phaseInfo;
         friend class dataManager;
 	friend void *DMmain(void* varg);
-	friend void newSampleRate(float rate);
+	friend void newSampleRate(double rate);
 	friend bool metDoDaemon();
-	friend int dataManager::DM_post_thread_create_init(int tid);
+	friend int dataManager::DM_post_thread_create_init(thread_t tid);
 	friend void DMdoEnableData(perfStreamHandle,perfStreamHandle,vector<metricRLType>*,
 				 u_int,phaseType,phaseHandle,u_int,u_int,u_int);
     public:
 	paradynDaemon(const string &m, const string &u, const string &c,
 		      const string &n, const string &flav);
-	paradynDaemon(int f); // remaining values are set via a callback
+	paradynDaemon(PDSOCKET use_sock); // remaining values are set via a callback
 	~paradynDaemon();
 	
 	// replace the igen provided error handler
@@ -231,8 +231,12 @@ class paradynDaemon: public dynRPCUser {
         timeStamp getTimeFactor() { return time_factor; }
         timeStamp getAdjustedTime(timeStamp time) { return time + time_factor; }
 
+		thread_t	getSocketTid( void ) const	{ return stid; }
+
+#ifdef notdef
 	// Not working -- would provide a read that didn't block other threads
 	static int read(const void *handle, char *buf, const int len);
+#endif // notdef
 
         // application and daemon definition functions
 	static bool defineDaemon(const char *command, const char *dir,
@@ -260,7 +264,7 @@ class paradynDaemon: public dynRPCUser {
            // the word Stub was appended to the name to avoid conflict with the
            // igen call "attach"
 
-        static bool addDaemon(int new_fd);
+        static bool addDaemon(PDSOCKET sock);
         static bool getDaemon (const string &machine, 
 			       const string &login, 
 			       const string &name);
@@ -312,7 +316,8 @@ class paradynDaemon: public dynRPCUser {
         string command;
         string name;
         string flavor;
-	u_int id;
+		u_int id;
+		thread_t	stid;	// tid assigned to our RPC socket
 
         status_line *status;
 

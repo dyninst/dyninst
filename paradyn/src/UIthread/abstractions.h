@@ -47,10 +47,15 @@
 // abstractions.
 
 /* $Log: abstractions.h,v $
-/* Revision 1.12  1997/01/15 00:12:31  tamches
-/* made getCurrent() private; added many public members to operate on the
-/* current where axis.
+/* Revision 1.13  1999/03/03 18:16:05  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.12  1997/01/15 00:12:31  tamches
+ * made getCurrent() private; added many public members to operate on the
+ * current where axis.
+ *
  * Revision 1.11  1996/10/16 16:11:13  tamches
  * resizeEverything() now takes a sort flag
  *
@@ -95,9 +100,6 @@
 
 #include <limits.h>
 
-#include "tcl.h"
-#include "tk.h"
-
 #ifndef PARADYN
 // The test program has "correct" -I paths already set
 #include "Vector.h"
@@ -109,6 +111,7 @@
 
 #include "whereAxis.h"
 #include "tkTools.h" // myTclEval
+
 
 class abstractions {
  private:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,15 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.49 1998/04/06 04:22:37 wylie Exp $
+// $Id: main.C,v 1.50 1999/03/03 18:17:02 pcroth Exp $
 
 /*
  * main.C - main routine for paradyn.  
  *   This routine creates DM, UIM, VM, and PC threads.
  */
-
-#include "tcl.h"
-#include "tk.h"
 
 #include "../TCthread/tunableConst.h"
 #include "util/h/headers.h"
@@ -59,6 +56,10 @@
 #include "util/h/makenan.h"
 #include "paradyn/src/DMthread/BufferPool.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
+
+#include "tcl.h"
+#include "tk.h"
+
 
 // trace data streams
 BufferPool<traceDataValueType>  tracedatavalues_bufferpool;
@@ -86,9 +87,12 @@ thread_t VMtid;
 // wrapped it in an ifdef so others don't pay the price --ari 10/95
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 char UIStack[327680];
+char DMStack[327680];
 #else
 char UIStack[32768];
+char DMStack[32768];
 #endif
+
 
 // applicationContext *context;
 dataManagerUser *dataMgr;
@@ -151,6 +155,7 @@ main (int argc, char **argv)
 {
   char mbuf[MBUFSIZE];
   unsigned int msgsize;
+  thread_t mtid;
   tag_t mtag;
   char *temp=NULL;
 
@@ -169,12 +174,12 @@ main (int argc, char **argv)
 //     tclpanic(interp, "tix_init() failed (perhaps TIX_LIBRARY not set?");
 
   // copy command-line arguments into tcl vrbles argc / argv
-  char *args = Tcl_Merge(argc - 1, (const char **) (argv + 1));
+  char *args = Tcl_Merge(argc - 1, (char **) (argv + 1));
   Tcl_SetVar(interp, "argv", args, TCL_GLOBAL_ONLY);
-  ckfree(args);
+  Tcl_Free(args);
 
   string argcStr = string(argc - 1);
-  Tcl_SetVar(interp, "argc", argcStr.string_of(), TCL_GLOBAL_ONLY);
+  Tcl_SetVar(interp, "argc", (char*)argcStr.string_of(), TCL_GLOBAL_ONLY);
   Tcl_SetVar(interp, "argv0", argv[0], TCL_GLOBAL_ONLY);
 
   // Here is one tunable constant that is definitely intended to be hard-coded in:
@@ -196,7 +201,9 @@ main (int argc, char **argv)
   //
   // We check our own read/write events.
   //
+#if !defined(i386_unknown_nt4_0)
   P_signal(SIGPIPE, (P_sig_handler) SIG_IGN);
+#endif // !defined(i386_unknown_nt4_0)
 
   // get paradyn_debug environment var PARADYNDEBUG, if its value
   // is > 1, then PARADYN_DEBUG msgs will be printed to stdout
@@ -253,14 +260,16 @@ main (int argc, char **argv)
   
 // initialize DM
 
-  if (thr_create(0, 0, DMmain, (void *) &MAINtid, 0, 
+  if (thr_create(DMStack, sizeof(DMStack), DMmain, (void *) &MAINtid, 0, 
 		 (unsigned int *) &DMtid) == THR_ERR)
     exit(1);
   PARADYN_DEBUG (("DM thread created\n"));
 
   msgsize = MBUFSIZE;
+  mtid = THR_TID_UNSPEC;
   mtag = MSG_TAG_DM_READY;
-  msg_recv(&mtag, mbuf, &msgsize);
+  msg_recv(&mtid, &mtag, mbuf, &msgsize);
+  assert( mtid == DMtid );
   msg_send (DMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
   dataMgr = new dataManagerUser (DMtid);
   // context = dataMgr->createApplicationContext(eFunction);
@@ -273,8 +282,10 @@ main (int argc, char **argv)
   PARADYN_DEBUG (("UI thread created\n"));
 
   msgsize = MBUFSIZE;
+  mtid = THR_TID_UNSPEC;
   mtag = MSG_TAG_UIM_READY;
-  msg_recv(&mtag, mbuf, &msgsize);
+  msg_recv(&mtid, &mtag, mbuf, &msgsize);
+  assert( mtid == UIMtid );
   msg_send (UIMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
   uiMgr = new UIMUser (UIMtid);
 
@@ -286,8 +297,10 @@ main (int argc, char **argv)
   PARADYN_DEBUG (("PC thread created\n"));
 
   msgsize = MBUFSIZE;
+  mtid = THR_TID_UNSPEC;
   mtag = MSG_TAG_PC_READY;
-  msg_recv(&mtag, mbuf, &msgsize);
+  msg_recv(&mtid, &mtag, mbuf, &msgsize);
+  assert( mtid == PCtid );
   msg_send (PCtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
   perfConsult = new performanceConsultantUser (PCtid);
 
@@ -298,8 +311,10 @@ main (int argc, char **argv)
 
   PARADYN_DEBUG (("VM thread created\n"));
   msgsize = MBUFSIZE;
+  mtid = THR_TID_UNSPEC;
   mtag = MSG_TAG_VM_READY;
-  msg_recv(&mtag, mbuf, &msgsize);
+  msg_recv(&mtid, &mtag, mbuf, &msgsize);
+  assert( mtid == VMtid );
   msg_send (VMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
   vmMgr = new VMUser (VMtid);
 
@@ -323,4 +338,6 @@ main (int argc, char **argv)
   thr_join (UIMtid, NULL, NULL);
 
   Tcl_DeleteInterp(interp);
+
+  return 0;
 }

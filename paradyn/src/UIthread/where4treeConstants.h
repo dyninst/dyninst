@@ -43,9 +43,14 @@
 // Ariel Tamches
 
 /* $Log: where4treeConstants.h,v $
-/* Revision 1.5  1997/09/24 19:25:45  tamches
-/* XFontStruct --> Tk_Font
+/* Revision 1.6  1999/03/03 18:16:17  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.5  1997/09/24 19:25:45  tamches
+ * XFontStruct --> Tk_Font
+ *
  * Revision 1.4  1996/08/16 21:07:42  tamches
  * updated copyright for release 1.1
  *
@@ -66,7 +71,6 @@
 #define _WHERE4TREECONSTANTS_H_
 
 #include <iostream.h>
-
 #include "tcl.h"
 #include "tk.h"
 

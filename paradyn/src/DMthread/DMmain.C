@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.119 1998/04/06 04:27:21 wylie Exp $
+// $Id: DMmain.C,v 1.120 1999/03/03 18:13:47 pcroth Exp $
 
 #include <assert.h>
 extern "C" {
@@ -70,14 +70,19 @@ double   quiet_nan();
 extern "C" const char V_paradyn[];
 extern const Ident V_id;
 
+#if defined(i386_unknown_nt4_0)
+#define	S_ISDIR(m)	(((m)&0xF000) == _S_IFDIR)
+#define	S_ISREG(m)	(((m)&0xF000) == _S_IFREG)
+#endif // defined(i386_unknown_nt4_0)
+
 typedef vector<string> blahType;
 
 // bool parse_metrics(string metric_file);
 bool metMain(string &userFile);
 
 // this has to be declared before baseAbstr, cmfAbstr, and rootResource 
-int dataManager::sock_fd;  
-int dataManager::socket;  
+PDSOCKET dataManager::sock_desc;  
+int dataManager::sock_port;  
 dataManager *dataManager::dm = NULL;  
 
 dictionary_hash<string,abstraction*> abstraction::allAbstractions(string::hash);
@@ -124,7 +129,7 @@ u_int metricInstance::num_curr_hists = 0;
 u_int metricInstance::num_global_hists = 0;
 
 double paradynDaemon::earliestFirstTime = 0;
-void newSampleRate(float rate);
+void newSampleRate(double rate);
 
 extern void histDataCallBack(sampleValue*, timeStamp, int, int, void*, bool);
 extern void histFoldCallBack(timeStamp, void*, bool);
@@ -329,7 +334,7 @@ void DMenableResponse(DM_enableType &enable,vector<bool> &successful){
 
 		// set sample rate to match current phase hist. bucket width
 	        if(!metricInstance::numCurrHists()){
-	            float rate = phaseInfo::GetLastBucketWidth();
+	            double rate = phaseInfo::GetLastBucketWidth();
 	            newSampleRate(rate);
 		}
 		// new active curr. histogram added if there are no previous
@@ -359,7 +364,7 @@ void DMenableResponse(DM_enableType &enable,vector<bool> &successful){
 	        // curr hists, then set sample rate to global bucket width
 	        if(!metricInstance::numCurrHists()){
 	            if(!metricInstance::numGlobalHists()){
-	                float rate = Histogram::getGlobalBucketWidth();
+	                double rate = Histogram::getGlobalBucketWidth();
 	                newSampleRate(rate);
 	        }}
 		// new global hist added: update count
@@ -738,16 +743,15 @@ dynRPCUser::endOfDataCollection(int)
 // this socket will allow paradynd's to connect to paradyn for pvm
 //
 static void
-DMsetupSocket (int &sockfd)
+DMsetupSocket (PDSOCKET &sock)
 {
   // setup "well known" socket for pvm paradynd's to connect to
-  bool aflag;
-  aflag = ((dataManager::dm->socket =
-           RPC_setup_socket (sockfd, AF_INET, SOCK_STREAM)) >= 0);
-  assert(aflag);
+  dataManager::dm->sock_port = RPC_setup_socket (sock, AF_INET, SOCK_STREAM);
+  assert(dataManager::dm->sock_port != (-1));
 
   // bind fd for this thread
-  msg_bind (sockfd, true);
+  thread_t stid;
+  msg_bind_socket (sock, true, NULL, NULL, &stid);
 }
 
 
@@ -782,9 +786,9 @@ void dataManager::displayParadynVersionInfo()
 void dataManager::displayDaemonStartInfo() 
 {
     const string machine = getHostName();
-    const string socket  = string(dataManager::dm->socket);
+    const string port    = string(dataManager::dm->sock_port);
     const string command = string("paradynd -z<flavor> -l2")
-                         + string(" -m") + machine + string(" -p") + socket;
+                         + string(" -m") + machine + string(" -p") + port;
     static char buf[1000];
 
     string msg = string("To start a paradyn daemon on a remote machine,")
@@ -806,9 +810,9 @@ void dataManager::displayDaemonStartInfo()
 void dataManager::printDaemonStartInfo(const char *filename)
 {
     const string machine = getHostName();
-    const string socket  = string(dataManager::dm->socket);
+    const string port  = string(dataManager::dm->sock_port);
     const string command = string("paradynd -z<flavor> -l2")
-                         + string(" -m") + machine + string(" -p") + socket;
+                         + string(" -m") + machine + string(" -p") + port;
     static char buf[1000];
 
     assert (filename && (filename[0]!='\0'));
@@ -859,12 +863,16 @@ static void
 DMnewParadynd ()
 {
   // accept the connection
-  int new_fd = RPC_getConnect(dataManager::dm->sock_fd);
-  if (new_fd < 0)
-    uiMgr->showError(4, "");
-
-  // add new daemon to dictionary of all deamons
-  paradynDaemon::addDaemon(new_fd); 
+  PDSOCKET new_sock = RPC_getConnect(dataManager::dm->sock_desc);
+  if (new_sock != PDSOCKET_ERROR)
+  {
+		// add new daemon to dictionary of all deamons
+		paradynDaemon::addDaemon(new_sock);
+  }
+  else
+  {
+		uiMgr->showError(4, "");
+  }
 }
 
 bool dataManager::DM_sequential_init(const char* met_file){
@@ -872,18 +880,18 @@ bool dataManager::DM_sequential_init(const char* met_file){
    return(metMain(mfile)); 
 }
 
-int dataManager::DM_post_thread_create_init(int tid) {
+int dataManager::DM_post_thread_create_init(thread_t tid) {
 
     thr_name("Data Manager");
     dataManager::dm = new dataManager(tid);
 
     // supports argv passed to paradynDaemon
     // new paradynd's may try to connect to well known port
-    DMsetupSocket (dataManager::dm->sock_fd);
+    DMsetupSocket (dataManager::dm->sock_desc);
 
     bool aflag;
     aflag=(RPC_make_arg_list(paradynDaemon::args,
-  	 	             dataManager::dm->socket, 1, 1, "", false));
+  	 	             dataManager::dm->sock_port, 1, 1, "", false));
     assert(aflag);
 
     // start initial phase
@@ -893,8 +901,11 @@ int dataManager::DM_post_thread_create_init(int tid) {
     char DMbuff[64];
     unsigned int msgSize = 64;
     msg_send (MAINtid, MSG_TAG_DM_READY, (char *) NULL, 0);
-    unsigned int tag = MSG_TAG_ALL_CHILDREN_READY;
-    msg_recv (&tag, DMbuff, &msgSize);
+    tag_t tag = MSG_TAG_ALL_CHILDREN_READY;
+	thread_t from = MAINtid;
+    msg_recv (&from, &tag, DMbuff, &msgSize);
+	assert( from == MAINtid );
+
     return 1;
 }
 
@@ -903,6 +914,8 @@ int dataManager::DM_post_thread_create_init(int tid) {
 //
 void *DMmain(void* varg)
 {
+	thread_t mainTid = *(thread_t*)varg;
+
     unsigned fd_first = 0;
     // We declare the "printChangeCollection" tunable constant here; it will
     // last for the lifetime of this function, which is pretty much forever.
@@ -925,64 +938,77 @@ void *DMmain(void* varg)
 	      printSampleArrivalCallback,
 	      developerConstant);
 
-    int tid; memcpy((void*)&tid,varg, sizeof(int));
-    dataManager::DM_post_thread_create_init(tid);
+    dataManager::DM_post_thread_create_init(mainTid);
 
-    int ret;
+	thread_t tid;
     unsigned int tag;
     paradynDaemon *pd = NULL;
+	int err;
+
     while (1) {
         for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-	    pd = paradynDaemon::allDaemons[i]; 
-	    // handle up to max async requests that may have been buffered
-	    // while blocking on a sync request
-	    while (pd->buffered_requests()){
-	        if(pd->process_buffered() == T_dyninstRPC::error) {
-		    cout << "error on paradyn daemon\n";
-		    paradynDaemon::removeDaemon(pd, true);
-	} } }
+			pd = paradynDaemon::allDaemons[i]; 
+			// handle up to max async requests that may have been buffered
+			// while blocking on a sync request
+			while (pd->buffered_requests()){
+				if(pd->process_buffered() == T_dyninstRPC::error) {
+					cout << "error on paradyn daemon\n";
+					paradynDaemon::removeDaemon(pd, true);
+				}
+			}
+		}
 
-	tag = MSG_TAG_ANY;
-	// ret = msg_poll(&tag, true);
-	ret = msg_poll_preference(&tag, true,fd_first);
-	fd_first = !fd_first;
-	assert(ret != THR_ERR);
+		// wait for next message from anyone, blocking till available
+		tid = THR_TID_UNSPEC;
+		tag = MSG_TAG_ANY;
+		err = msg_poll_preference(&tid, &tag, true,fd_first);
+		assert(err != THR_ERR);
+		fd_first = !fd_first;
 
-	if (tag == MSG_TAG_FILE) {
-	    // must be an upcall on something speaking the dynRPC protocol.
-	    if (ret == dataManager::dm->sock_fd){
-	        DMnewParadynd(); // set up a new daemon
-            }
-	    else {
-                for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-	            pd = paradynDaemon::allDaemons[i]; 
-		    if(pd->get_fd() == ret){
-		        if(pd->waitLoop() == T_dyninstRPC::error) {
-			    cout << "error on paradyn daemon\n";
-			    paradynDaemon::removeDaemon(pd, true);
-	            }}
+		if (tag == MSG_TAG_SOCKET) {
+			// must be an upcall on something speaking the dynRPC protocol.
+			PDSOCKET fromSock = thr_socket( tid );
+			assert(fromSock != INVALID_PDSOCKET);
 
-	            // handle async requests that may have been buffered
-	            // while blocking on a sync request
-                    while(pd->buffered_requests()){
-		        if(pd->process_buffered() == T_dyninstRPC::error) {
-			    cout << "error on paradyn daemon\n";
-			    paradynDaemon::removeDaemon(pd, true);
-		    }}
-	        }
-	    }
-	} else if (dataManager::dm->isValidTag
-		  ((T_dataManager::message_tags)tag)) {
-	    if (dataManager::dm->waitLoop(true, 
-	       (T_dataManager::message_tags)tag) == T_dataManager::error) {
-	        // handle error
-	        assert(0);
-	    }
-	} else {
-	    cerr << "Unrecognized message in DMmain.C\n";
-	    assert(0);
+			if (fromSock == dataManager::dm->sock_desc){
+				DMnewParadynd(); // set up a new daemon
+				}
+			else {
+
+					for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
+					pd = paradynDaemon::allDaemons[i]; 
+				if(pd->get_sock() == fromSock){
+
+					if(pd->waitLoop() == T_dyninstRPC::error) {
+					cout << "error on paradyn daemon\n";
+					paradynDaemon::removeDaemon(pd, true);
+					}}
+
+					// handle async requests that may have been buffered
+					// while blocking on a sync request
+						while(pd->buffered_requests()){
+					if(pd->process_buffered() == T_dyninstRPC::error) {
+					cout << "error on paradyn daemon\n";
+					paradynDaemon::removeDaemon(pd, true);
+				}}
+				}
+			}
+		} else if (dataManager::dm->isValidTag
+			  ((T_dataManager::message_tags)tag)) {
+			if (dataManager::dm->waitLoop(true, 
+			   (T_dataManager::message_tags)tag) == T_dataManager::error) {
+				// handle error
+				assert(0);
+			}
+		} else {
+			cerr << "Unrecognized message in DMmain.C: tag = "
+				 << tag << ", tid = "
+				 << tid << '\n';
+			assert(0);
+		}
 	}
-   }
+
+	return NULL;
 }
 
 
@@ -1167,7 +1193,7 @@ resourceHandle createResource_ncb(vector<string>& resource_name, string& abstr, 
     return(r_handle);
 }
 
-void newSampleRate(float rate)
+void newSampleRate(double rate)
 {
     paradynDaemon *pd = NULL;
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){

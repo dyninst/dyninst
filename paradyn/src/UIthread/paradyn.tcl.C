@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,7 @@
  */
 
 /* paradyn.tcl.C
-   $Id: paradyn.tcl.C,v 1.83 1998/04/06 04:23:52 wylie Exp $
+   $Id: paradyn.tcl.C,v 1.84 1999/03/03 18:16:06 pcroth Exp $
    This code implements the tcl "paradyn" command.  See the README file for 
    command descriptions.
 */
@@ -49,9 +49,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "tcl.h"
-#include "tk.h"
-
+#include "util/h/headers.h"
 #include "UIglobals.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "../TCthread/tunableConst.h"
@@ -153,7 +151,7 @@ int ParadynMetricsCmd(ClientData,
 {
   vector<string> *ml = dataMgr->getAvailableMetrics(false);
   for (unsigned i=0; i < ml->size(); i++)
-    Tcl_AppendElement(interp, (*ml)[i].string_of());
+    Tcl_AppendElement(interp, (char*)(*ml)[i].string_of());
   delete ml;
   return TCL_OK;
 }
@@ -166,7 +164,7 @@ int ParadynDaemonsCmd(ClientData,
 {
   vector<string> *dl = dataMgr->getAvailableDaemons();
   for (unsigned i=0; i < dl->size(); i++)
-    Tcl_AppendElement(interp, (*dl)[i].string_of());
+    Tcl_AppendElement(interp, (char*)(*dl)[i].string_of());
   delete dl;
   return TCL_OK;
 }
@@ -590,7 +588,7 @@ int ParadynEnableCmd (ClientData,
       resList += *res;
     }
     cout << endl;
-    free(argsv);
+    Tcl_Free((char*)argsv);
   }
 
   // Now check the metric
@@ -620,8 +618,9 @@ int ParadynEnableCmd (ClientData,
  	  T_dataManager::msg_buf buffer;
  	  T_dataManager::message_tags waitTag;
 	  tag_t tag = T_dataManager::enableDataCallback_REQ;
-	  int from = msg_poll(&tag, true);
-	  assert(from != THR_ERR);
+	  thread_t from;
+	  int err = msg_poll(&from, &tag, true);
+	  assert(err != THR_ERR);
 	  if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
 	      waitTag = dataMgr->waitLoop(true,
 			(T_dataManager::message_tags)tag,&buffer);
@@ -749,7 +748,7 @@ int ParadynWaSetAbstraction(ClientData, Tcl_Interp *interp,
                        string(menuIndex);
    cout << "invoking menu item " << menuIndex << endl;
 
-   if (TCL_OK != Tcl_Eval(interp, commandStr.string_of())) {
+   if (TCL_OK != Tcl_Eval(interp, (char*)commandStr.string_of())) {
       cerr << interp->result << endl;
       exit(5);
    }
@@ -862,7 +861,7 @@ int ParadynSuppressCmd (ClientData,
       delete res;
     }
     cout << endl;
-    free(argsv);
+    Tcl_Free((char*)argsv);
     return TCL_OK;
   }
 }
@@ -974,14 +973,6 @@ int ParadynSaveCmd (ClientData,
   return TCL_ERROR;
 }
 
-int ParadynExitCmd (ClientData,
-		    Tcl_Interp *,
-		    int, char **)
-{
-  exit(0);
-}
-
-
 int ParadynDaemonStartInfoCmd(ClientData, Tcl_Interp *, int, char **) {
   dataMgr->displayDaemonStartInfo();
   return TCL_OK;
@@ -1031,7 +1022,6 @@ static struct cmdTabEntry Pd_Cmds[] = {
   {"waSetAbstraction", ParadynWaSetAbstraction},
   {"waSelect", ParadynWaSelect},
   {"waUnselect", ParadynWaUnSelect},
-  {"exit",ParadynExitCmd},
   {"daemonStartInfo", ParadynDaemonStartInfoCmd},
   {"generalInfo", ParadynGeneralInfoCmd},
   {"licenseInfo", ParadynLicenseInfoCmd},

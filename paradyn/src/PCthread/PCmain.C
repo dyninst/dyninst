@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,9 +40,17 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.64  1996/08/16 21:03:31  tamches
-/* updated copyright for release 1.1
+/* Revision 1.65  1999/03/03 18:15:15  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.5  1999/03/01 17:56:19  pcroth
+ * removed carriage returns
+ *
+ * Revision 1.64  1996/08/16 21:03:31  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.63  1996/07/26 07:25:07  karavan
  * added global performanceConsultant::numMetrics which is used to size
  * some filteredDataServer data structures.
@@ -290,14 +298,16 @@ inline void readTag(unsigned tag)
   }
 }
 
-void PCmain(void* varg)
+void* PCmain(void* varg)
 {
     int arg; memcpy((void *) &arg, varg, sizeof arg);
 
-    int from;
+    thread_t from;
     unsigned int tag;
     char PCbuff[64];
     unsigned int msgSize = 64;
+	int err;
+
 
     // define all tunable constants used by the performance Consultant
     // tunable constants must be defined here in the sequential section
@@ -309,8 +319,10 @@ void PCmain(void* varg)
     thr_name("PerformanceConsultant");
     pc = new performanceConsultant(MAINtid);
     msg_send (MAINtid, MSG_TAG_PC_READY, (char *) NULL, 0);
+	from = MAINtid;
     tag = MSG_TAG_ALL_CHILDREN_READY;
-    msg_recv (&tag, PCbuff, &msgSize);
+    msg_recv (&from, &tag, PCbuff, &msgSize);
+	assert( from == MAINtid );
 
     // register performance stream with data manager
     union dataCallback dataHandlers;
@@ -360,7 +372,8 @@ void PCmain(void* varg)
             for (unsigned i=loopStart;i<loopLimit;i++) {
               tag = i;
               //printf("********** waiting for tag=%d\n",tag);
-              if (msg_poll(&tag, false) != THR_ERR) {
+			  from = THR_TID_UNSPEC;
+              if (msg_poll(&from, &tag, false) != THR_ERR) {
                 readTag(tag);
               }
             }
@@ -368,16 +381,19 @@ void PCmain(void* varg)
           t1=TESTgetTime();
         }
         else {
-	  tag = MSG_TAG_ANY;
-	  from = msg_poll(&tag, true);
-	  assert(from != THR_ERR);
-          readTag(tag);
+			from = THR_TID_UNSPEC;
+			tag = MSG_TAG_THREAD;
+			err = msg_poll(&from, &tag, true);
+			assert(err != THR_ERR);
+			readTag(tag);
         }
 #else
-        tag = MSG_TAG_ANY;
-	from = msg_poll(&tag, true);
-	assert(from != THR_ERR);
-        readTag(tag);
+		from = THR_TID_UNSPEC;
+		tag = MSG_TAG_THREAD;
+		err = msg_poll(&from, &tag, true);
+		assert(err != THR_ERR);
+		readTag(tag);
 #endif
     }
+	return NULL;
 }

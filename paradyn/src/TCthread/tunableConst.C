@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,6 +44,11 @@
  *    execution of the system.
  *
  * $Log: tunableConst.C,v $
+ * Revision 1.7  1999/03/03 18:15:26  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
  * Revision 1.6  1996/08/16 21:04:36  tamches
  * updated copyright for release 1.1
  *
@@ -203,7 +208,7 @@ bool tunableConstantRegistry::createFloatTunableConstant(const string &theName,
 							 floatChangeValCallBackFunc cb,
 							 tunableUse theUse,
 							 const float initialVal,
-							 float min, float max) {
+							 float minval, float maxval) {
    // returns true iff successfully created
    if (allFloatTunables.defines(theName)) {
       cerr << "tunable constant: attempt to create float tc with name=\"" << theName << "\" ignored (already exists)" << endl;
@@ -212,7 +217,7 @@ bool tunableConstantRegistry::createFloatTunableConstant(const string &theName,
 
    tunableFloatConstant theConst(theName, theDesc,
 				 initialVal,
-				 min, max,
+				 minval, maxval,
 				 cb,
 				 theUse);
       // protected constructor; available only to us.
@@ -345,12 +350,12 @@ tunableBooleanConstant::tunableBooleanConstant(bool initialValue,
 
 tunableFloatConstant::tunableFloatConstant(const tunableFloatConstant &src) :
       tunableConstantBase(src),
-      value(src.value), min(src.min), max(src.max), isValidValue(src.isValidValue),
+      value(src.value), minval(src.minval), maxval(src.maxval), isValidValue(src.isValidValue),
       newValueCallBack(src.newValueCallBack) {
 }
 
 bool tunableFloatConstant::simpleRangeCheck(float val) {
-    return (val >= min && val <= max);
+    return (val >= minval && val <= maxval);
 }
 
 tunableFloatConstant::tunableFloatConstant(const string &theName,
@@ -363,8 +368,8 @@ tunableFloatConstant::tunableFloatConstant(const string &theName,
 {
    // a private constructor; outside code must not call this
    this->value = initialValue;
-   this->min = low;
-   this->max = high;
+   this->minval = low;
+   this->maxval = high;
    this->isValidValue = NULL;
    this->newValueCallBack = cb;
 }
@@ -379,7 +384,7 @@ tunableFloatConstant::tunableFloatConstant(const string &theName,
 {
    // a private constructor; outside code must not call this
    this->value = initialValue;
-   this->min = this->max = 0;
+   this->minval = this->maxval = 0;
    this->isValidValue = func;
    this->newValueCallBack = cb;
 }
@@ -413,7 +418,7 @@ tunableFloatConstantDeclarator::tunableFloatConstantDeclarator
                  (const string &theName,
 		  const string &theDesc,
 		  float initialValue,
-		  float min, float max,
+		  float minval, float maxval,
 		  floatChangeValCallBackFunc cb,
 		  tunableUse type) : the_name(theName) {
    const bool result = tunableConstantRegistry::createFloatTunableConstant(theName,
@@ -421,7 +426,7 @@ tunableFloatConstantDeclarator::tunableFloatConstantDeclarator
 									   cb,
 									   type,
 									   initialValue,
-									   min, max);
+									   minval, maxval);
    if (!result) {
       cerr << "tunable constant warning: could not create float tc \"" << theName << "\"" << endl;
       return;

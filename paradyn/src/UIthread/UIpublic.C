@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,15 +44,12 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.65 1998/03/04 19:56:28 wylie Exp $
+/* $Id: UIpublic.C,v 1.66 1999/03/03 18:16:04 pcroth Exp $
  */
 
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-
-#include "tcl.h"
-#include "tk.h"
 
 #include "UI.thread.CLNT.h"
 #include "UI.thread.SRVR.h"
@@ -83,7 +80,7 @@ UIM::readStartupFile(const char *script)
   if (script != NULL) {   // script specified on paradyn command line
     string tcommand = string("source \"") + string(script) + "\"";
 
-    if (Tcl_Eval (interp, tcommand.string_of()) == TCL_ERROR)
+    if (Tcl_Eval (interp, (char*)tcommand.string_of()) == TCL_ERROR)
       uiMgr->showError(24, "");
   }
 }
@@ -174,8 +171,8 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 	 string idString(id);
 	 bool aflag;
 	 aflag=(Tcl_SetVar2(interp, "metricNamesById", 
-			    idString.string_of(),
-			    name.string_of(), TCL_GLOBAL_ONLY));
+			    (char*)idString.string_of(),
+			    (char*)name.string_of(), TCL_GLOBAL_ONLY) != NULL);
          assert(aflag);
       }
       
@@ -193,8 +190,8 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
      string metricIdStr = string(curr_avail_mets[metlcv].id);
      
      bool aflag;
-     aflag=(Tcl_SetVar(interp, "temp", metricIdStr.string_of(),
-		       TCL_APPEND_VALUE | TCL_LIST_ELEMENT));
+     aflag=(Tcl_SetVar(interp, "temp", (char*)metricIdStr.string_of(),
+		       TCL_APPEND_VALUE | TCL_LIST_ELEMENT) != NULL);
      assert(aflag);
   }
   delete curr_avail_mets_ptr;
@@ -401,6 +398,7 @@ shgRootNode::refinement int2refinement(int styleid) {
 
    cerr << "unrecognized refinement id " << styleid << endl;
    exit(5);
+   return shgRootNode::ref_why; // placate compiler
 }
 
 /*  flags: 1 = root

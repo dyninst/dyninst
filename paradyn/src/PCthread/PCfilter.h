@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCfilter.h,v 1.13 1998/08/16 23:37:39 wylie Exp $
+ * $Id: PCfilter.h,v 1.14 1999/03/03 18:15:13 pcroth Exp $
  * Data filter class performs initial processing of raw DM data arriving 
  * in the Performance Consultant.  
  */
@@ -48,16 +48,16 @@
 #ifndef pc_filter_h
 #define pc_filter_h
 
-#include <stream.h>
+#include <iostream.h>
 #include <assert.h>
 //sys.h defines the following:
 //  typedef double timeStamp;
 //  typedef float sampleValue;
-//  typedef struct {
+//  struct Interval {
 //     timeStamp start;
 //     timeStamp end;
 //      sampleValue value;
-//  } Interval;
+//  };
 #include "PCintern.h"
 #include "PCdata.h"
 

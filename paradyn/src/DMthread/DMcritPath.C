@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,9 +43,14 @@
 // Process Critical Path data from the various paradyn daemons.
 //
 /* $Log: DMcritPath.C,v $
-/* Revision 1.7  1996/11/26 16:06:47  naim
-/* Fixing asserts - naim
+/* Revision 1.8  1999/03/03 18:13:45  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.7  1996/11/26 16:06:47  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.6  1996/08/16 21:01:31  tamches
  * updated copyright for release 1.1
  *
@@ -96,9 +101,8 @@ void paradynDaemon::cpDataCallbackFunc(int,
     cpContext *conn;
     metricInstance *mi;
 
-    bool aflag;
-    aflag=getEarliestFirstTime();
-    assert(aflag);
+	double aval = getEarliestFirstTime();
+    assert(aval != 0);
     timeStamp -= getEarliestFirstTime();
 
     if (!allCPContexts.defines(context)) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -50,6 +50,14 @@
 
 /*
  * $Log: metMain.C,v $
+ * Revision 1.37  1999/03/03 18:16:54  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
+ * Revision 1.6  1999/03/01 17:32:24  pcroth
+ * removed carriage returns
+ *
  * Revision 1.36  1997/06/07 21:01:24  newhall
  * replaced exclude_func and exclude_lib with exclude_node
  *
@@ -109,7 +117,11 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
+
+#if !defined(i386_unknown_nt4_0)
 #include <unistd.h>
+#endif // !defined(i386_unknown_nt4_0)
+
 #include "paradyn/src/pdMain/paradyn.h"
 #include "util/h/rpcUtil.h"
 #include "util/h/pathName.h"
@@ -117,7 +129,7 @@
 #include "paradyn/src/DMthread/DMdaemon.h"
 
 extern int yyparse();
-extern int yyrestart(FILE *);
+extern void yyrestart(FILE *);
 extern appState PDapplicState;
 
 static int open_N_parse(string& file);
@@ -146,7 +158,7 @@ static int open_N_parse (string& file)
       fclose(f);
       return res;
     } else {
-      res = yyrestart(f);
+      yyrestart(f);
       res = yyparse();
       fclose(f);
       return res;
@@ -357,7 +369,7 @@ static void set_tunable (tunableMet *the_ts)
      }
 
      tunableConstantRegistry::setBoolTunableConstant(the_ts->name().string_of(),
-						     (bool) the_ts->Bvalue());
+						     the_ts->Bvalue());
   }
   else {
      if (the_ts->useBvalue()) {

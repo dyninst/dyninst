@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -45,9 +45,14 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.h,v $
-/* Revision 1.16  1996/08/16 21:07:17  tamches
-/* updated copyright for release 1.1
+/* Revision 1.17  1999/03/03 18:16:10  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.16  1996/08/16 21:07:17  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.15  1996/05/01 20:56:07  tamches
  * added inactivateEntireSearch
  *
@@ -84,8 +89,6 @@
 #include "util/h/Vector.h"
 #endif
 
-#include "tcl.h"
-#include "tk.h"
 #include "tkTools.h"
 
 #include "shg.h"

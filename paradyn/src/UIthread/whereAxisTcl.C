@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -45,9 +45,17 @@
 // Implementations of new commands and tk bindings related to the where axis.
 
 /* $Log: whereAxisTcl.C,v $
-/* Revision 1.11  1997/01/15 00:14:10  tamches
-/* removed references to getCurrent() method of class abstraction
+/* Revision 1.12  1999/03/03 18:16:19  pcroth
+/* Updated to support Windows NT as a front-end platform
+/* Changes made to X code, to use Tcl analogues when appropriate
+/* Also changed in response to modifications in thread library and igen output.
 /*
+ * Revision 1.4  1999/03/01 18:04:02  pcroth
+ * change guard macros to disallow on NT
+ *
+ * Revision 1.11  1997/01/15 00:14:10  tamches
+ * removed references to getCurrent() method of class abstraction
+ *
  * Revision 1.10  1996/08/16 21:07:48  tamches
  * updated copyright for release 1.1
  *
@@ -84,10 +92,6 @@
  *
  */
 
-#include "tcl.h"
-#include "tk.h"
-#include "tkTools.h"
-
 #ifndef PARADYN
 // The test program has "correct" -I paths already set
 #include "DMinclude.h" // for resourceHandle
@@ -97,6 +101,7 @@
 
 #include "abstractions.h"
 #include "whereAxisTcl.h"
+#include "tkTools.h"
 
 // Here is the main where axis global variable:
 abstractions *theAbstractions;
@@ -406,11 +411,15 @@ int whereAxisAltPressCommand(ClientData, Tcl_Interp *interp,
 
       Tk_Window theTkWindow = theAbstractions->getTkWindow();
 
+#if !defined(i386_unknown_nt4_0)
       XWarpPointer(Tk_Display(theTkWindow),
 		   Tk_WindowId(theTkWindow),
 		   Tk_WindowId(theTkWindow),
 		   0, 0, 0, 0,
 		   altAnchorX, altAnchorY);
+#else // !defined(i386_unknown_nt4_0)
+		// TODO - implement warping behavior
+#endif // !defined(i386_unknown_nt4_0)
 
       ignoreNextAltMove = true;
 
@@ -452,6 +461,22 @@ int whereAxisAltReleaseCommand(ClientData, Tcl_Interp *,
 
    return TCL_OK;
 }
+
+
+int
+whereAxisDestroyHandler(ClientData, Tcl_Interp*, int, char **)
+{
+
+   if (!haveSeenFirstGoodWhereAxisWid)
+      return TCL_OK;
+
+	// cleanup data owned by the whereAxis window
+   delete theAbstractions;
+   theAbstractions = NULL;
+
+   return TCL_OK;
+}
+
 
 /* ******************************************************************** */
 
@@ -509,6 +534,8 @@ void installWhereAxisCommands(Tcl_Interp *interp) {
 		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "whereAxisAltReleaseHook", whereAxisAltReleaseCommand,
 		     NULL, deleteDummyProc);
+   Tcl_CreateCommand(interp, "whereAxisDestroyHook", whereAxisDestroyHandler,
+		     NULL, deleteDummyProc);
 }
 
 void unInstallWhereAxisCommands(Tcl_Interp *interp) {
@@ -526,4 +553,5 @@ void unInstallWhereAxisCommands(Tcl_Interp *interp) {
    Tcl_DeleteCommand(interp, "whereAxisSingleClickHook");
    Tcl_DeleteCommand(interp, "whereAxisExposeHook");
    Tcl_DeleteCommand(interp, "whereAxisConfigureHook");
+   Tcl_DeleteCommand(interp, "whereAxisDestroyHook");
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,6 +43,14 @@
  * Implements classes used for metric description language
  *
  * $Log: metClass.C,v $
+ * Revision 1.9  1999/03/03 18:16:54  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
+ * Revision 1.4  1999/03/01 17:32:24  pcroth
+ * removed carriage returns
+ *
  * Revision 1.8  1997/10/10 00:22:23  tamches
  * removed some warnings
  *
@@ -114,7 +122,7 @@ void tunableMet::dumpAll()
 void tunableMet::dump() const
 {
   cout << "TUNABLE:  name " << name_;
-  if (useBvalue) {
+  if (useBvalue()) {
     cout << "   value: " << (Bvalue_ ? "TRUE" : "FALSE") << endl;
   } else {
     cout << "   value: " << Fvalue_ << endl;
@@ -145,7 +153,7 @@ bool tunableMet::addTunable(string &c, float f)
   return true;
 }
 
-bool tunableMet::addTunable(string &c, int b)
+bool tunableMet::addTunable(string &c, bool b)
 {
   tunableMet *tm = new tunableMet(b, c);
   if (!tm) {
@@ -306,9 +314,10 @@ void processMet::dump() const
 
 bool processMet::addProcess(processMet *pm)
 {
-  if (!pm || !pm->name || !pm->command) {
+  if ((pm == NULL) || (pm->name() == NULL) || (pm->command() == NULL)) {
     metParseError = ERR_BAD_ARGS;
-    if (pm) delete pm; pm = NULL;
+    delete pm;
+	pm = NULL;
     return false;
   }
 
@@ -346,7 +355,7 @@ void visiMet::dump() const
 
 bool visiMet::addVisi(visiMet *vm)
 {
-  if (!vm || !vm->name || !vm->command) {
+  if ((vm == NULL) || (vm->name() == NULL) || (vm->command() == NULL)) {
     metParseError = ERR_BAD_ARGS;
     delete vm; vm = 0;
     return false;

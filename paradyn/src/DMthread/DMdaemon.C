@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.78 1998/03/04 19:53:04 wylie Exp $
+ * $Id: DMdaemon.C,v 1.79 1999/03/03 18:13:46 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -54,7 +54,6 @@ double   quiet_nan();
 }
 
 #include <sys/types.h>
-#include <sys/socket.h>
 #include "thread/h/thread.h"
 #include "paradyn/src/pdMain/paradyn.h"
 #include "dataManager.thread.h"
@@ -64,7 +63,7 @@ double   quiet_nan();
 #include "paradyn/src/UIthread/Status.h"
 #include "DMmetric.h"
 #include "paradyn/src/met/metricExt.h"
-#include "util/h/Time.h"
+#include "DMtime.h"
 
 // TEMP this should be part of a class def.
 status_line *DMstatus=NULL;
@@ -187,10 +186,10 @@ bool paradynDaemon::addRunningProgram (int pid,
 // add a new paradyn daemon
 // called when a new paradynd contacts the advertised socket
 //
-bool paradynDaemon::addDaemon (int new_fd)
+bool paradynDaemon::addDaemon (PDSOCKET sock)
 {
   // constructor adds new daemon to dictionary allDaemons
-  paradynDaemon *new_daemon = new paradynDaemon (new_fd);
+  paradynDaemon *new_daemon = new paradynDaemon (sock);
 
   if (new_daemon->errorConditionFound) {
     //TODO: "something" has to be done for a proper clean up - naim
@@ -206,13 +205,13 @@ bool paradynDaemon::addDaemon (int new_fd)
    int num_bytes =0;
    int size = sizeof(num_bytes);
    num_bytes = 32768;
-   if(setsockopt(new_daemon->get_fd(),SOL_SOCKET,SO_SNDBUF,(char *)&num_bytes ,size) < 0){
+   if(setsockopt(new_daemon->get_sock(),SOL_SOCKET,SO_SNDBUF,(char *)&num_bytes ,size) < 0){
       perror("setsocketopt SND_BUF error");
    }
 #endif
 
-  msg_bind_buffered (new_daemon->get_fd(), true, (int(*)(void*)) xdrrec_eof,
-		     (void*)new_daemon->net_obj());
+  msg_bind_socket (new_daemon->get_sock(), true, (int(*)(void*)) xdrrec_eof,
+		     (void*)new_daemon->net_obj(), &(new_daemon->stid));
   assert(new_daemon);
   // The pid is reported later in an upcall
   return (true);
@@ -253,28 +252,9 @@ void paradynDaemon::removeDaemon(paradynDaemon *d, bool informUser)
 #endif
 
     // tell the thread package to ignore the fd to the daemon.
-    msg_unbind(d->get_fd());
+    msg_unbind(d->getSocketTid());
 }
 
-timeStamp getCurrentTime(void) {
-    static double previousTime=0.0;
-    struct timeval tv;
-  retry:
-    bool aflag;
-    aflag=(gettimeofday(&tv, NULL) == 0); // 0 --> success; -1 --> error
-    assert(aflag);
-
-    double seconds_dbl = tv.tv_sec * 1.0;
-    assert(tv.tv_usec < 1000000);
-    double useconds_dbl = tv.tv_usec * 1.0;
-
-    seconds_dbl += useconds_dbl / 1000000.0;
-
-    if (seconds_dbl < previousTime) goto retry;
-    previousTime = seconds_dbl;
-
-    return seconds_dbl;
-}
 
 // get the current time of a daemon, to adjust for clock differences.
 void getDaemonTime(paradynDaemon *pd) {
@@ -348,7 +328,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
    int num_bytes =0;
    int nb_size = sizeof(num_bytes);
    num_bytes = 32768;
-   if(setsockopt(pd->get_fd(),SOL_SOCKET,SO_SNDBUF,(char *)&num_bytes ,nb_size) < 0){
+   if(setsockopt(pd->get_desc(),SOL_SOCKET,SO_SNDBUF,(char *)&num_bytes ,nb_size) < 0){
       perror("setsocketopt SND_BUF error");
    }
 #endif
@@ -356,7 +336,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
     paradynDaemon::args.resize(asize);
     uiMgr->updateStatus(DMstatus,P_strdup("ready"));
 
-    if (pd->get_fd() < 0) {
+    if (pd->get_sock() == PDSOCKET_ERROR) {
         uiMgr->showError (6, "");
         return((paradynDaemon*) 0);
     }
@@ -371,8 +351,8 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
 
     getDaemonTime(pd);
 
-    msg_bind_buffered(pd->get_fd(), true, (int(*)(void*))xdrrec_eof,
-		     (void*) pd->net_obj());
+    msg_bind_socket(pd->get_sock(), true, (int(*)(void*))xdrrec_eof,
+		     (void*) pd->net_obj(), &(pd->stid));
     return (pd);
 }
 
@@ -523,11 +503,12 @@ static int startBlzApp(const string &machine,
                        const string &, // dir
                        const vector<string> &argv)
 {
+#if !defined(i386_unknown_nt4_0)
         //int firstPVM = 1 ;                   // "-v"   1
         //int  flag = 2;                       // "-l"   2
         // flavor == "-z"   cow
         string localhost ;                     // "-m"   gethostname
-        int  port = dataManager::dm->socket ;  // "-p"   dataManager::sock_fd
+        int  port = dataManager::dm->sock_port ; // "-p"   dataManager::sock_fd
 
         char temp[256], *p;
         string hostname = getHostName();
@@ -657,6 +638,10 @@ static int startBlzApp(const string &machine,
         else    return false; // error situation
 
         return true ;
+#else // defined(i386_unknown_nt4_0)
+		// TODO - implement this?
+		return false;
+#endif // defined(i386_unknown_nt4_0)
 }
 
 
@@ -665,6 +650,9 @@ static bool execPOE(const string /* &machine*/, const string /* &login */,
                     const vector<string> &argv, const vector<string>  args,
                     daemonEntry          *de)
 {
+	unsigned i;
+
+
   char **s = (char**) malloc(sizeof(char*) * (args.size() + argv.size() + 5));
   char   t[1024];
   assert(s != NULL);
@@ -672,7 +660,7 @@ static bool execPOE(const string /* &machine*/, const string /* &login */,
   s[0] = strdup("poe");
   s[1] = strdup(de->getCommand());
 
-  for (unsigned i = 0; i < args.size(); i++)
+  for (i = 0; i < args.size(); i++)
     s[i+2] = (strcmp(args[i].string_of(), "-l1")) 
              ? strdup(args[i].string_of()) : strdup("-l0");
 
@@ -680,7 +668,7 @@ static bool execPOE(const string /* &machine*/, const string /* &login */,
   s[args.size()+2] = strdup(t);
   s[args.size()+3] = strdup("-runme");
       
-  for (unsigned i = 0; i < argv.size(); i++) 
+  for (i = 0; i < argv.size(); i++) 
     s[args.size()+4+i] = (i || strcmp(argv[i].string_of(), "poe"))
                          ? strdup(argv[i].string_of()) : strdup("");
 
@@ -701,6 +689,7 @@ static bool rshPOE(const string         &machine, const string         &login,
                    const vector<string> &argv,    const vector<string>  args,
                    daemonEntry          *de)
 {
+	unsigned i;
   char *s[6];
   char  t[1024];
 
@@ -715,13 +704,13 @@ static bool rshPOE(const string         &machine, const string         &login,
 
   strcat(strcat(strcat(t, "poe "), de->getCommand()), " ");
 
-  for (unsigned i = 0; i < args.size(); i++)
+  for (i = 0; i < args.size(); i++)
     strcat(strcat(t, (strcmp(args[i].string_of(), "-l1")) 
                      ? args[i].string_of() : "-l0"), " ");
 
   strcat(strcat(strcat(t, "-z"), de->getFlavor()), " -runme ");
       
-  for (unsigned i = 0; i < argv.size(); i++) 
+  for (i = 0; i < argv.size(); i++) 
     strcat(strcat(t, (i || strcmp(argv[i].string_of(), "poe"))
                      ? argv[i].string_of() : ""), " ");
 
@@ -740,7 +729,7 @@ static bool startPOE(const string         &machine, const string         &login,
                      const vector<string> &argv,    const vector<string>  args,
 		     daemonEntry          *de)
 {
-
+#if !defined(i386_unknown_nt4_0)
   if (DMstatus)   uiMgr->updateStatus(DMstatus,   "ready");
   if (PROCstatus) uiMgr->updateStatus(PROCstatus, "IBM POE");
 
@@ -751,6 +740,10 @@ static bool startPOE(const string         &machine, const string         &login,
     return(execPOE(machine, login, name, dir, argv, args, de));
   else
     return( rshPOE(machine, login, name, dir, argv, args, de));
+#else // !defined(i386_unknown_nt4_0)
+	// TODO - implement this?
+	return false;
+#endif // !defined(i386_unknown_nt4_0)
 }
 
 
@@ -1294,9 +1287,11 @@ void daemonEntry::print()
   cout << "  flavor: " << flavor << endl;
 }
 
+#ifdef notdef
 int paradynDaemon::read(const void* handle, char *buf, const int len) {
   assert(0);
-  int ret, ready_fd;
+  int ret, err;
+
   assert(len > 0);
   assert((int)handle<200);
   assert((int)handle >= 0);
@@ -1304,31 +1299,33 @@ int paradynDaemon::read(const void* handle, char *buf, const int len) {
 
   // must handle the msg_bind_buffered call here because xdr_read will be
   // called in the constructor for paradynDaemon, before the previous call
-  // to msg_bind_buffered had been called
+  // to msg_bind had been called
 
   if (!fd_vect[(unsigned)handle]) {
     paradynDaemon *pd;
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i];
-        if(pd->get_fd() == (int)handle)
+        if(pd->get_sock() == (int)handle)
 	    break;
     }
     if (!(pd))
       return -1;
 
-    msg_bind_buffered((int)handle, true, (int(*)(void*))xdrrec_eof,
-		      (void*)(pd)->net_obj());
+    msg_bind((int)handle, true, (int(*)(void*))xdrrec_eof,
+		      (void*)(pd)->net_obj(), &???);
     fd_vect[(unsigned)handle] = 1;
   }
 
   do {
-    unsigned tag = MSG_TAG_FILE;
+    tag_t tag = MSG_TAG_FILE;
+	thread_t ready_tid;
 
-    do 
-      ready_fd = msg_poll(&tag, true);
-    while ((ready_fd != (int) handle) && (ready_fd != THR_ERR));
+    do
+		ready_tid = THR_TID_UNSPEC;
+		err = msg_poll(&ready_tid, &tag, true);
+	while ((err != THR_ERR) && (ready_tid != (thread_t)handle))
     
-    if (ready_fd == (int) handle) {
+    if (ready_tid == (thread_t) handle) {
       errno = 0;
       ret = P_read((int)handle, buf, len);
     } else 
@@ -1340,6 +1337,7 @@ int paradynDaemon::read(const void* handle, char *buf, const int len) {
   else
     return ret;
 }
+#endif // notdef
 
 void paradynDaemon::firstSampleCallback(int, double firstTime) {
   static bool done = false;
@@ -1354,7 +1352,7 @@ void paradynDaemon::firstSampleCallback(int, double firstTime) {
 
 paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
 			     const string &n, const string &f)
-: dynRPCUser(m, u, c, NULL, NULL, args, 1, dataManager::sock_fd),
+: dynRPCUser(m, u, c, NULL, NULL, args, 1, dataManager::sock_desc),
   machine(m), login(u), command(c), name(n), flavor(f), activeMids(uiHash)
 {
   if (!this->errorConditionFound) {
@@ -1382,8 +1380,8 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
 }
 
 // machine, name, command, flavor and login are set via a callback
-paradynDaemon::paradynDaemon(int f)
-: dynRPCUser(f, NULL, NULL, 1), flavor(0), activeMids(uiHash){
+paradynDaemon::paradynDaemon(PDSOCKET use_sock)
+: dynRPCUser(use_sock, NULL, NULL, 1), flavor(0), activeMids(uiHash){
   if (!this->errorConditionFound) {
     // No problems found in order to create this new daemon process - naim 
     paradynDaemon *pd = this;

@@ -41,6 +41,14 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.37  1999/03/03 18:16:52  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
+ * Revision 1.3  1999/03/01 17:32:24  pcroth
+ * removed carriage returns
+ *
  * Revision 1.36  1998/03/26 07:12:20  czhang
  * In mdl_v_expr::apply(), check for (var_=="$return") in the case of
  * MDL_EXPR_VAR.
@@ -154,13 +162,15 @@ static bool do_operation(mdl_var& ret, mdl_var& lval, unsigned u_op, bool is_pre
 
 
 void mdl_data::unique_name(string name) {
+  unsigned u, v;
+
   unsigned sz = mdl_data::stmts.size();
-  for (unsigned u = 0; u < sz; u++) {
+  for (u = 0; u < sz; u++) {
     T_dyninstRPC::mdl_list_stmt *lstmt = 
                           (T_dyninstRPC::mdl_list_stmt *) mdl_data::stmts[u];
     if (lstmt->id_ == name) {
       delete mdl_data::stmts[u];
-      for (unsigned v = u; v < sz-1; v++) {
+      for (v = u; v < sz-1; v++) {
 	mdl_data::stmts[v] = mdl_data::stmts[v+1];
       }
       mdl_data::stmts.resize(sz-1);
@@ -169,10 +179,10 @@ void mdl_data::unique_name(string name) {
   }
 
   sz = mdl_data::all_constraints.size();
-  for (unsigned u = 0; u < sz; u++) {
+  for (u = 0; u < sz; u++) {
     if (mdl_data::all_constraints[u]->id_ == name) {
       delete mdl_data::all_constraints[u];
-      for (unsigned v = u; v < sz-1; v++) {
+      for (v = u; v < sz-1; v++) {
 	mdl_data::all_constraints[v] = mdl_data::all_constraints[v+1];
       }
       mdl_data::all_constraints.resize(sz-1);
@@ -181,10 +191,10 @@ void mdl_data::unique_name(string name) {
   }
 
   sz = mdl_data::all_metrics.size();
-  for (unsigned u = 0; u < sz; u++) {
+  for (u = 0; u < sz; u++) {
     if (mdl_data::all_metrics[u]->id_ == name) {
       delete mdl_data::all_metrics[u];
-      for (unsigned v = u; v < sz-1; v++) {
+      for (v = u; v < sz-1; v++) {
         mdl_data::all_metrics[v] = mdl_data::all_metrics[v+1];
       }
       mdl_data::all_metrics.resize(sz-1);

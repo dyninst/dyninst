@@ -47,6 +47,11 @@
 
 /*
  * $Log: tkTools.h,v $
+ * Revision 1.6  1999/03/03 18:16:13  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
  * Revision 1.5  1996/08/16 21:07:30  tamches
  * updated copyright for release 1.1
  *
@@ -66,12 +71,7 @@
 
 #include "tcl.h"
 #include "tk.h"
-
-#ifdef PARADYN
 #include "util/h/String.h"
-#else
-#include "String.h"
-#endif
 
 #include <iostream.h>
 
@@ -134,11 +134,11 @@ class tcl_cmd_installer {
 
  public:
    tcl_cmd_installer(Tcl_Interp *interp, const string &tclCmdName, Tcl_CmdProc proc) {
-      Tcl_CreateCommand(interp, tclCmdName.string_of(), proc, NULL, &dummy_delete_proc);
+      Tcl_CreateCommand(interp, (char*)tclCmdName.string_of(), proc, NULL, &dummy_delete_proc);
    }
 
    tcl_cmd_installer(Tcl_Interp *interp, const string &tclCmdName, Tcl_CmdProc proc, ClientData cd) {
-      Tcl_CreateCommand(interp, tclCmdName.string_of(), proc, cd, &dummy_delete_proc);
+      Tcl_CreateCommand(interp, (char*)tclCmdName.string_of(), proc, cd, &dummy_delete_proc);
    }
   ~tcl_cmd_installer() {}
 };

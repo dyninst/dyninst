@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -41,6 +41,11 @@
 
 /*
  * $Log: metParse.h,v $
+ * Revision 1.16  1999/03/03 18:16:55  pcroth
+ * Updated to support Windows NT as a front-end platform
+ * Changes made to X code, to use Tcl analogues when appropriate
+ * Also changed in response to modifications in thread library and igen output.
+ *
  * Revision 1.15  1998/01/19 21:05:50  czhang
  * Massive changes for MDL expression.
  * Changes to tokens are in metScanner.l.  This includes adding of new
@@ -359,11 +364,11 @@ class tunableMet {
 public:
   tunableMet() { }
   tunableMet(float f, string &c) : Fvalue_(f), name_(c), useBvalue_(false) {}
-  tunableMet(int b, string &c) : Bvalue_(b), name_(c), useBvalue_(true) {}
+  tunableMet(bool b, string &c) : Bvalue_(b), name_(c), useBvalue_(true) {}
   ~tunableMet() { }
 
   static bool addTunable (string &c, float f);
-  static bool addTunable (string &c, int b);
+  static bool addTunable (string &c, bool b);
 
   // print the instance
   void dump() const;
@@ -371,13 +376,13 @@ public:
 
   static vector<tunableMet*> allTunables;
   string name() const { return name_; }
-  int Bvalue() const { return Bvalue_; }
+  bool Bvalue() const { return Bvalue_; }
   float Fvalue() const { return Fvalue_; }
   bool useBvalue() const { return useBvalue_; }
   
 private:
   float Fvalue_;
-  int Bvalue_;
+  bool Bvalue_;
   string name_;
   bool useBvalue_;
   static void addHelper(tunableMet *addIt);
