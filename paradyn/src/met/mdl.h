@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.38 2002/12/20 07:50:06 jaw Exp $
+// $Id: mdl.h,v 1.39 2003/05/21 18:22:12 pcroth Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
@@ -451,10 +451,23 @@ public:
   static bool get_type(unsigned &ret, const string& var_name);
   static bool is_remote(bool &is_rem, const string& var_name);
 
+  static void appendErrorString( const string& msg );
+  static string getSavedErrorString( void )     { return savedMsg; }
+
 private:
+  struct Frame
+  {
+    unsigned int idx;           // "start of frame" index into all_vars
+    string msg;                 // error message, if any
+
+    Frame( unsigned int startIndex = 0 )
+      : idx( startIndex )
+    { }
+  };
   static bool find(unsigned &index, const string& var_name);
-  static pdvector<unsigned> frames;
+  static pdvector<Frame> frames;
   static pdvector<mdl_var> all_vars;
+  static string savedMsg;
 };
 
 inline void mdl_var::dump() {
@@ -939,14 +952,15 @@ inline void mdl_env::dump() {
 }
 
 inline void mdl_env::push() {
-  mdl_env::frames += mdl_env::all_vars.size();
+  mdl_env::frames.push_back( mdl_env::all_vars.size() );
 }
 
 inline bool mdl_env::pop() {
   unsigned frame_size = mdl_env::frames.size();
   if (frame_size <= 0)
     return false;
-  unsigned index = mdl_env::frames[frame_size - 1];
+  unsigned index = mdl_env::frames[frame_size - 1].idx;
+  mdl_env::savedMsg = mdl_env::frames[frame_size - 1].msg;
   mdl_env::frames.resize(frame_size-1);
   mdl_env::all_vars.resize(index);
   return true;
@@ -1118,6 +1132,20 @@ inline bool mdl_env::set(pdvector<instPoint*> *vip, const string& var_name) {
   if (!mdl_env::find(index, var_name))
     return false;
   return mdl_env::all_vars[index].set(vip);
+}
+
+
+inline void mdl_env::appendErrorString( const string& msg )
+{
+    string& currMsg = mdl_env::frames[mdl_env::frames.size() - 1].msg;
+    if( currMsg.length() == 0 )
+    {
+        currMsg = msg;
+    }
+    else
+    {
+        currMsg += (string("\n") + msg);
+    }
 }
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.56 2002/12/20 07:50:06 jaw Exp $
+// $Id: mdl.C,v 1.57 2003/05/21 18:22:11 pcroth Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -49,8 +49,9 @@
 
 inline unsigned ui_hash(const unsigned &u) { return u; }
 
-pdvector<unsigned> mdl_env::frames;
+pdvector<mdl_env::Frame> mdl_env::frames;
 pdvector<mdl_var> mdl_env::all_vars;
+string mdl_env::savedMsg;
 
 pdvector<T_dyninstRPC::mdl_stmt*> mdl_data::stmts;
 pdvector<T_dyninstRPC::mdl_metric*> mdl_data::all_metrics;
