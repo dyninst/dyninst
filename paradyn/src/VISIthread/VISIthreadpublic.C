@@ -163,7 +163,8 @@ void visualizationUser::StopMetricResource(u_int metricId,
           PARADYN_DEBUG(("in visualizationUser::StopMetricResource: mi found"));
 	  metricInstanceHandle mi_handle = ptr->mrlist[i].mi_id;
 	  // make disable request to DM
-          ptr->dmp->disableDataCollection(ptr->ps_handle,mi_handle,
+          ptr->dmp->disableDataCollection(ptr->ps_handle,
+					  ptr->pt_handle, mi_handle,
 					  ptr->args->phase_type);
 
           // new; avoids losing data when we shrink buffer

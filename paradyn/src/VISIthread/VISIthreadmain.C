@@ -1083,10 +1083,14 @@ void *VISIthreadmain(void *vargs){
   // disable all metricInstance data collection
   for(unsigned i =0; i < globals->mrlist.size(); i++){
 	metricInstanceHandle handle = globals->mrlist[i].mi_id;
-        globals->dmp->disableDataCollection(globals->ps_handle,handle,
+        globals->dmp->disableDataCollection(globals->ps_handle,
+					    globals->pt_handle,
+					    handle,
 					    globals->args->phase_type);
         // trace data streams
-        globals->dmp->disableDataCollection(globals->pt_handle,handle,
+        globals->dmp->disableDataCollection(globals->ps_handle,
+					    globals->pt_handle,
+					    handle,
                                             globals->args->phase_type);
 
   }
