@@ -42,6 +42,7 @@
 #include "common/h/headers.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/dyn_thread.h"
+#include "dyninstAPI/src/instP.h" // initTramps
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/rpcMgr.h"
 
