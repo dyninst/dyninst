@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.45 2002/04/05 19:38:51 schendel Exp $
+// $Id: mdl.C,v 1.46 2002/04/09 18:06:13 mjbrim Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -69,8 +69,7 @@ void mdl_data::unique_name(string name) {
 
   unsigned sz = mdl_data::stmts.size();
   for (u = 0; u < sz; u++) {
-    T_dyninstRPC::mdl_list_stmt *lstmt = 
-                          (T_dyninstRPC::mdl_list_stmt *) mdl_data::stmts[u];
+    T_dyninstRPC::mdl_list_stmt *lstmt = (T_dyninstRPC::mdl_list_stmt *) mdl_data::stmts[u];
     if (lstmt->id_ == name) {
       delete mdl_data::stmts[u];
       for (v = u; v < sz-1; v++) {
@@ -120,7 +119,10 @@ T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units,
   temp_ctr_(temp_counters), developerMode_(developerMode),
   unitstype_(unitstype) { }
 
-T_dyninstRPC::mdl_metric::mdl_metric() { }
+T_dyninstRPC::mdl_metric::mdl_metric()
+: id_(""), name_(""), units_(""), agg_op_(0), style_(0), type_(0), 
+  stmts_(NULL), flavors_(NULL), constraints_(NULL), temp_ctr_(NULL),
+  developerMode_(false), unitstype_(0) { }
 
 T_dyninstRPC::mdl_metric::~mdl_metric() {
   if (stmts_) {
@@ -222,10 +224,13 @@ machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(int,
   return ((machineMetFocusNode*)1);
 }
 
-T_dyninstRPC::mdl_constraint::mdl_constraint() { }
+T_dyninstRPC::mdl_constraint::mdl_constraint()
+: id_(""), match_path_(NULL), stmts_(NULL), replace_(false),
+  data_type_(0), hierarchy_(0), type_(0) { }
+
 T_dyninstRPC::mdl_constraint::mdl_constraint(string id, vector<string> *match_path,
-				      vector<T_dyninstRPC::mdl_stmt*> *stmts,
-				      bool replace, u_int d_type, bool& error)
+					     vector<T_dyninstRPC::mdl_stmt*> *stmts,
+					     bool replace, u_int d_type, bool& error)
 : id_(id), match_path_(match_path), stmts_(stmts), replace_(replace),
   data_type_(d_type), hierarchy_(0), type_(0)
 {
@@ -306,7 +311,7 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
 bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *,
 					 instrThrDataNode *,
 					 dataReqNode **,
-					 vector<string>&,
+					 const vector<string>&,
 					 process *, pdThread*,
 					 dataInstHandle *)
 {
@@ -371,13 +376,19 @@ T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id,
 
 T_dyninstRPC::mdl_stmt::mdl_stmt() { }
 
-T_dyninstRPC::mdl_for_stmt::mdl_for_stmt(string index_name, T_dyninstRPC::mdl_expr *list_exp, T_dyninstRPC::mdl_stmt *body) 
+T_dyninstRPC::mdl_for_stmt::mdl_for_stmt(string index_name, 
+					 T_dyninstRPC::mdl_expr *list_exp, 
+					 T_dyninstRPC::mdl_stmt *body) 
 : for_body_(body), index_name_(index_name), list_expr_(list_exp) { }
-T_dyninstRPC::mdl_for_stmt::mdl_for_stmt() { }
+
+T_dyninstRPC::mdl_for_stmt::mdl_for_stmt()
+: for_body_(NULL), index_name_(""), list_expr_(NULL) { }
+
 T_dyninstRPC::mdl_for_stmt::~mdl_for_stmt() {
   delete for_body_;
   delete list_expr_;
 }
+
 
 bool T_dyninstRPC::mdl_for_stmt::apply(instrCodeNode *mn,
 				       vector<const dataReqNode*>& flags) {
@@ -398,8 +409,13 @@ bool T_dyninstRPC::mdl_for_stmt::apply(instrCodeNode *mn,
 T_dyninstRPC::mdl_list_stmt::mdl_list_stmt(u_int type, string ident,
 					   vector<string> *elems,
 					   bool is_lib, vector<string> *flavor) 
-: type_(type), id_(ident), elements_(elems), is_lib_(is_lib), flavor_(flavor) { }
-T_dyninstRPC::mdl_list_stmt::mdl_list_stmt() { }
+: type_(type), id_(ident), elements_(elems), is_lib_(is_lib), flavor_(flavor) 
+{ }
+
+T_dyninstRPC::mdl_list_stmt::mdl_list_stmt()
+: type_(MDL_T_NONE), id_(""), elements_(NULL), is_lib_(false), flavor_(NULL)
+{ }
+
 T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt() { delete elements_; }
 
 bool T_dyninstRPC::mdl_list_stmt::apply(instrCodeNode * ,
@@ -421,10 +437,13 @@ bool T_dyninstRPC::mdl_list_stmt::apply(instrCodeNode * ,
   return (mdl_env::add(id_, false, list_type));
 }
 
-T_dyninstRPC::mdl_icode::mdl_icode() {}
-T_dyninstRPC::mdl_icode::mdl_icode(
-    T_dyninstRPC::mdl_expr *expr1, T_dyninstRPC::mdl_expr *expr2)
-    : if_expr_(expr1), expr_(expr2) { }
+T_dyninstRPC::mdl_icode::mdl_icode()
+  : if_expr_(NULL), expr_(NULL) { }
+
+T_dyninstRPC::mdl_icode::mdl_icode(T_dyninstRPC::mdl_expr *expr1, 
+				   T_dyninstRPC::mdl_expr *expr2)
+  : if_expr_(expr1), expr_(expr2) { }
+
 T_dyninstRPC::mdl_icode::~mdl_icode() { delete if_expr_; delete expr_; }
 
 bool T_dyninstRPC::mdl_icode::apply(AstNode *&, bool, void *)
@@ -441,6 +460,7 @@ bool T_dyninstRPC::mdl_icode::apply(AstNode *&, bool, void *)
 }
 
 T_dyninstRPC::mdl_expr::mdl_expr() { }
+
 T_dyninstRPC::mdl_expr::~mdl_expr() { }
 
 T_dyninstRPC::mdl_v_expr::mdl_v_expr() 
@@ -469,7 +489,8 @@ T_dyninstRPC::mdl_v_expr::mdl_v_expr(string a_str, bool is_literal)
   }
 }
 
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(mdl_expr* expr, vector<string> fields) 
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(T_dyninstRPC::mdl_expr* expr, 
+				     vector<string> fields) 
 : type_(MDL_EXPR_DOT), int_literal_(0), bin_op_(0), 
   u_op_(0), left_(expr), right_(NULL), args_(NULL),
   fields_(fields), do_type_walk_(false), ok_(false) 
@@ -483,20 +504,20 @@ T_dyninstRPC::mdl_v_expr::mdl_v_expr(string func_name,
 { }
 
 T_dyninstRPC::mdl_v_expr::mdl_v_expr(u_int bin_op, T_dyninstRPC::mdl_expr *left,
-				 T_dyninstRPC::mdl_expr *right) 
+				     T_dyninstRPC::mdl_expr *right) 
 : type_(MDL_EXPR_BINOP), int_literal_(0), bin_op_(bin_op), u_op_(0),
   left_(left), right_(right), args_(NULL), do_type_walk_(false), ok_(false) 
 { }
 
 T_dyninstRPC::mdl_v_expr::mdl_v_expr(string var, u_int assign_op, 
-	T_dyninstRPC::mdl_expr *expr)
+				     T_dyninstRPC::mdl_expr *expr)
 : type_(MDL_EXPR_ASSIGN), int_literal_(0), var_(var), bin_op_(assign_op), 
   u_op_(0), left_(expr), right_(NULL), args_(NULL), 
   do_type_walk_(false), ok_(false) 
 { }
 
 T_dyninstRPC::mdl_v_expr::mdl_v_expr(u_int u_op, T_dyninstRPC::mdl_expr *expr,
-				 bool is_preop)
+				     bool is_preop)
 : int_literal_(0), bin_op_(0), u_op_(u_op), left_(expr), right_(NULL), 
   args_(NULL), do_type_walk_(false), ok_(false) 
 { 
@@ -506,7 +527,7 @@ T_dyninstRPC::mdl_v_expr::mdl_v_expr(u_int u_op, T_dyninstRPC::mdl_expr *expr,
     type_ = MDL_EXPR_POSTUOP;
 }
 
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(string var, mdl_expr* index_expr) 
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(string var, T_dyninstRPC::mdl_expr* index_expr) 
 : type_(MDL_EXPR_INDEX), int_literal_(0), var_(var), bin_op_(0),
   u_op_(0), left_(index_expr), right_(NULL), args_(NULL),
   do_type_walk_(false), ok_(false)
@@ -906,8 +927,13 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
   return false;
 }
 
-T_dyninstRPC::mdl_if_stmt::mdl_if_stmt(T_dyninstRPC::mdl_expr *expr, T_dyninstRPC::mdl_stmt *body) : expr_(expr), body_(body) { }
-T_dyninstRPC::mdl_if_stmt::mdl_if_stmt() { }
+T_dyninstRPC::mdl_if_stmt::mdl_if_stmt(T_dyninstRPC::mdl_expr *expr, 
+				       T_dyninstRPC::mdl_stmt *body) 
+: expr_(expr), body_(body) { }
+
+T_dyninstRPC::mdl_if_stmt::mdl_if_stmt()
+: expr_(NULL), body_(NULL) { }
+
 T_dyninstRPC::mdl_if_stmt::~mdl_if_stmt() {
   delete expr_; delete body_;
 }
@@ -929,8 +955,12 @@ bool T_dyninstRPC::mdl_if_stmt::apply(instrCodeNode * ,
   return ret;
 }
 
-T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt(vector<T_dyninstRPC::mdl_stmt*> *stmts) : stmts_(stmts) { }
-T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt() { }
+T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt(vector<T_dyninstRPC::mdl_stmt*> *stmts) 
+: stmts_(stmts) { }
+
+T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt()
+: stmts_(NULL) { }
+
 T_dyninstRPC::mdl_seq_stmt::~mdl_seq_stmt() {
   if (stmts_) {
     unsigned size = stmts_->size();
@@ -951,12 +981,17 @@ bool T_dyninstRPC::mdl_seq_stmt::apply(instrCodeNode * ,
   return true;
 }
 
-T_dyninstRPC::mdl_instr_stmt::mdl_instr_stmt(unsigned pos, T_dyninstRPC::mdl_expr *expr,
-				      vector<T_dyninstRPC::mdl_icode*> *reqs,
-				      unsigned where, bool constrained) 
+T_dyninstRPC::mdl_instr_stmt::mdl_instr_stmt(unsigned pos, 
+					     T_dyninstRPC::mdl_expr *expr,
+					     vector<T_dyninstRPC::mdl_icode*> *reqs,
+					     unsigned where, bool constrained) 
 : position_(pos), point_expr_(expr), icode_reqs_(reqs),
   where_instr_(where), constrained_(constrained) { }
-T_dyninstRPC::mdl_instr_stmt::mdl_instr_stmt() { }
+
+T_dyninstRPC::mdl_instr_stmt::mdl_instr_stmt()
+: position_(0), point_expr_(NULL), icode_reqs_(NULL),
+  where_instr_(0), constrained_(false) { }
+
 T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
   delete point_expr_;
   if (icode_reqs_) {
@@ -1485,3 +1520,4 @@ bool T_dyninstRPC::mdl_seq_stmt::mk_list(vector<string> &) {return true;}
 bool T_dyninstRPC::mdl_instr_stmt::mk_list(vector<string> &) {return true;}
 bool T_dyninstRPC::mdl_constraint::mk_list(vector<string> &) {return true;}
 bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &) {return true;}
+
