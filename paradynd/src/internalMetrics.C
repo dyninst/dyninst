@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// internalMetrics.C
+// $Id: internalMetrics.C,v 1.7 1999/01/21 20:57:55 wylie Exp $
 
 #include "dyninstAPI/src/process.h" // processVec
 #include "internalMetrics.h"
@@ -142,10 +142,11 @@ T_dyninstRPC::metricInfo internalMetric::getInfo() {
     ret.aggregate = agg_;
     ret.units = units_;
     ret.developerMode = developermode_;
-    ret.unitstype = 0;
-    if(unitstype_ == UnNormalized) ret.unitstype = 0;
+    if (unitstype_ == UnNormalized) ret.unitstype = 0;
     else if (unitstype_ == Normalized) ret.unitstype = 1; 
     else if (unitstype_ == Sampled) ret.unitstype = 2; 
+    else ret.unitstype = 0;
+    ret.handle = 0; // ignored by paradynd for now
     return ret;
 }
 

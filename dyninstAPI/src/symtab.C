@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.89 1999/01/21 01:26:50 hollings Exp $
+// $Id: symtab.C,v 1.90 1999/01/21 20:50:44 wylie Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -808,7 +808,8 @@ void image::defineModules() {
 
   of << "INCLUDED FUNCTIONS\n";
   for (unsigned ni=0; ni<includedFunctions.size(); ni++) {
-    of << includedFunctions[ni]->prettyName() << "\t\t" << includedFunctions[ni]->addr() << "\t\t" << << endl;
+    of << includedFunctions[ni]->prettyName() << "\t\t" 
+       << includedFunctions[ni]->addr() << "\t\t" << endl;
   }
   
 #endif

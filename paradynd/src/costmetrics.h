@@ -39,8 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: costmetrics.h,v 1.9 1999/01/21 20:54:59 wylie Exp $
+
 #ifndef COST_METRICS_HDR 
-#define  COST_METRICS_HDR
+#define COST_METRICS_HDR
 
 #include "paradynd/src/metric.h"
 #include "dyninstAPI/src/process.h"
@@ -95,10 +97,11 @@ class costMetric {
     ret.name = name_; ret.style = style_;
     ret.aggregate = agg_; ret.units = units_;
     ret.developerMode = developermode_;
-    ret.unitstype = 0;
-    if(unitstype_ == UnNormalized) ret.unitstype = 0;
+    if (unitstype_ == UnNormalized) ret.unitstype = 0;
     else if (unitstype_ == Normalized) ret.unitstype = 1; 
     else if (unitstype_ == Sampled) ret.unitstype = 2; 
+    else ret.unitstype = 0;
+    ret.handle = 0; // ignored by paradynd for now
     return ret;
   }
 
