@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.125 2002/03/15 19:01:47 gaburici Exp $
+ * $Id: inst-power.C,v 1.126 2002/03/15 21:05:13 gaburici Exp $
  */
 
 #include "common/h/headers.h"
@@ -1174,7 +1174,7 @@ void generateCostSection(instruction *&insn, Address &base)
  *
  */
 
-trampTemplate *installBaseTramp(const instPoint *location, process *proc,
+trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 				bool trampRecursiveDesired = false,
 				trampTemplate *oldTemplate = NULL,
                                 Address exitTrampAddr = 0,
@@ -1700,7 +1700,7 @@ void findAndReinstallBaseTramps(process                  *p,
 
 
 
-trampTemplate *findAndInstallBaseTramp(process *proc, 
+trampTemplate* findAndInstallBaseTramp(process *proc, 
 				       instPoint *&location,
 				       returnInstance *&retInstance,
 				       bool trampRecursiveDesired,
@@ -2006,7 +2006,7 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
  *  
  *   This is done to return a better idea of which function we are using.
  */
-pd_Function *getFunction(instPoint *point)
+pd_Function* getFunction(instPoint *point)
 {
     return(point->callee ? point->callee : point->func);
 }
@@ -2493,9 +2493,9 @@ static inline bool needsRestore(Register x)
   return ((x <= 12) && !(x==2)) || (x == 9999);
 }
 
-// VG(03/15/02): The new AIX tramp needs this
-static inline void restoreGPR(instruction *&insn, Address &base,
-                              Register reg, Register dest)
+// VG(03/15/02): Restore mutatee value of GPR reg to dest GPR
+static inline void restoreGPRtoGPR(instruction *&insn, Address &base,
+                                   Register reg, Register dest)
 {
   if(reg == 1) // SP is in a different place, but we don't need to
                // restore it, just subtract the stack frame size
@@ -2512,10 +2512,40 @@ static inline void restoreGPR(instruction *&insn, Address &base,
   base += sizeof(instruction);
 }
 
+// VG(03/15/02): Restore mutatee value of XER to dest GPR
+static inline void restoreXERtoGPR(instruction *&insn, Address &base, Register dest)
+{
+  genImmInsn(insn, Lop, dest, 1, TRAMP_SPR_OFFSET + STK_XER);
+  insn++;
+  base += sizeof(instruction);
+}
+
+// VG(03/15/02): Move bits 25:31 of GPR reg to GPR dest
+static inline void moveGPR2531toGPR(instruction *&insn, Address &base,
+                                    Register reg, Register dest)
+{
+  // keep only bits 32+25:32+31; extrdi dest, reg, 7 (n bits), 32+25 (start at b)
+  // which is actually: rldicl dest, reg, 32+25+7 (b+n), 64-7 (64-n)
+  // which is the same as: clrldi dest,reg,57 because 32+25+7 = 64
+  insn->raw = 0;
+  insn->mdform.op = RLDop;
+  insn->mdform.rs = reg;
+  insn->mdform.ra = dest;
+  insn->mdform.sh = 0;  //(32+25+7) % 32;
+  insn->mdform.mb_or_me = (64-7) % 32;
+  insn->mdform.mb_or_me2 = (64-7) / 32;
+  insn->mdform.xo = 0;  // rldicl
+  insn->mdform.sh2 = 0; //(32+25+7) / 32;
+  insn->mdform.rc = 0;
+  ++insn;
+  base += sizeof(instruction);
+}
+
 // VG(11/16/01): Emit code to add the original value of a register to
 // another. The original value may need to be restored from stack...
+// VG(03/15/02): Made functionality more obvious by adding the above functions
 static inline void emitAddOriginal(Register src, Register acc, 
-			    char* baseInsn, Address &base, bool noCost)
+                                   char* baseInsn, Address &base, bool noCost)
 {
   bool nr = needsRestore(src);
   instruction *insn = (instruction *) ((void*)&baseInsn[base]);
@@ -2534,31 +2564,12 @@ static inline void emitAddOriginal(Register src, Register acc,
     // This writes at insn, and updates insn and base.
 
     if(src == 9999) { // hack for XER_25:31
-      fprintf(stderr, "XER_25:31\n");
-      //restoreRegister(insn, base, 15, temp, 8); // get orignal XER value
-      base += restoreSPR(insn, temp, SPR_XER, TRAMP_SPR_OFFSET);
-      // keep only bits 32+25:32+31; extrdi temp, temp, 7 (n bits), 32+25 (start at b)
-      // which is actually: rldicl temp, temp, 32+25+7 (b+n), 64-7 (64-n)
-      // which is the same as: clrldi temp,temp,57 because 32+25+7 = 64
-      insn->raw = 0;
-      insn->mdform.op = RLDop;
-      insn->mdform.rs = temp;
-      insn->mdform.ra = temp;
-      insn->mdform.sh = 0;  //(32+25+7) % 32;
-      insn->mdform.mb_or_me = (64-7) % 32;
-      insn->mdform.mb_or_me2 = (64-7) / 32;
-      insn->mdform.xo = 0;  // rldicl
-      insn->mdform.sh2 = 0; //(32+25+7) / 32;
-      insn->mdform.rc = 0;
-      ++insn;
-      base += sizeof(instruction);
+      //fprintf(stderr, "XER_25:31\n");
+      restoreXERtoGPR(insn, base, temp);
+      moveGPR2531toGPR(insn, base, temp, temp);
     }
-    else {
-      fprintf(stderr, "Restoring register %d into %d\n",
-	      src, temp);
-
-      restoreGPR(insn, base, src, temp);
-    }
+    else
+      restoreGPRtoGPR(insn, base, src, temp);
   }
   else
     temp = src;
@@ -3873,7 +3884,7 @@ bool deleteBaseTramp(process */*proc*/,instPoint* /*location*/,
  * proc         The process in which to create the inst point.
  * address      The address for which to create the point.
  */
-BPatch_point *createInstructionInstPoint(process *proc, void *address,
+BPatch_point* createInstructionInstPoint(process *proc, void *address,
                                          BPatch_point** /*alternative*/)
 {
     function_base *func = proc->findFuncByAddr((Address)address);

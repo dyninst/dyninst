@@ -1,10 +1,10 @@
-/* $Id: test6.mutatee.c,v 1.10 2002/03/15 19:01:47 gaburici Exp $ */
+/* $Id: test6.mutatee.c,v 1.11 2002/03/15 21:05:16 gaburici Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 
 #define dprintf	if (debugPrint) printf
-int debugPrint = 1;
+int debugPrint = 0;
 
 #define MAX_TEST 6
 
@@ -119,7 +119,7 @@ int eaExpOffset[] =    { 0, 17,3,1,2,  0,4,2,0,  2,2,2,2,  0,4,4,4,
 			 4,12,2,  0,0,0,0,  3,1,1,1,  2,6,2,2,
 			 0,4,4,4,  0,0,0,0,  0,0,0,0,  -76,-76,-24,-24,
 			 -20,-20,    0,0,0,0,  0,  0,4,0,4,  0,  0,8,8,8,
-			 4,0,0,0,  0,8,8,8,  0 };
+			 4,4,0,0,  0,8,8,8,  0 };
 
 extern void* eaExp[]; /* forward */
 extern int divarw;
@@ -140,12 +140,12 @@ extern void* getsp();
   void *toc = gettoc();
   void *sp  = getsp(1,2,3);
 
-  printf("&divarw = %p\n", &divarw);
-  printf("&dfvars = %p\n", &dfvars);
-  printf("&dfvard = %p\n", &dfvard);
+  dprintf("&divarw = %p\n", &divarw);
+  dprintf("&dfvars = %p\n", &dfvars);
+  dprintf("&dfvard = %p\n", &dfvard);
 
-  printf("toc = %p\n", toc);
-  printf("sp = %p\n", sp);
+  dprintf("toc = %p\n", toc);
+  dprintf("sp = %p\n", sp);
 
   eaExp[0] = toc; /* assuming that TOC entries are not reordered */
 
