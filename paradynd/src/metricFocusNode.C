@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.171 2000/04/26 16:37:29 zhichen Exp $
+// $Id: metricFocusNode.C,v 1.172 2000/05/11 04:52:28 zandy Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -1818,8 +1818,13 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 		//cerr << "startCollecting -- pausing processes" << endl;
         for (unsigned u = 0; u < mi->components.size(); u++) {
           process *p = mi->components[u]->proc();
-          if (p->status() == running && p->pause()) {
-            procsToCont += p;
+          if (p->status() == running) {
+#ifdef DETACH_ON_THE_FLY
+	       if (p->reattachAndPause())
+#else
+	       if (p->pause())
+#endif
+		    procsToCont += p;
           }
         }
 
@@ -1863,13 +1868,23 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 
 	   bool alreadyRunning = (theProc->status_ == running);
 
-	   if (alreadyRunning)
+	   if (alreadyRunning) {
+#ifdef DETACH_ON_THE_FLY
+	      theProc->reattachAndPause();
+#else
 	      theProc->pause();
+#endif
+	   }
 
 	   mi->manuallyTrigger(id);
 
-	   if (alreadyRunning) 
+	   if (alreadyRunning) {
+#ifdef DETACH_ON_THE_FLY
+	     theProc->detachAndContinue();
+#else
 	     theProc->continueProc();
+#endif
+	   }
 	}
     }
 
@@ -1929,7 +1944,11 @@ bool metricDefinitionNode::insertInstrumentation()
       logLine(errorLine);
 #endif
       bool needToCont = proc_->status() == running;
+#ifdef DETACH_ON_THE_FLY
+      bool res = proc_->reattachAndPause();
+#else
       bool res = proc_->pause();
+#endif
       if (!res)
 	return false;
 
@@ -1974,8 +1993,13 @@ bool metricDefinitionNode::insertInstrumentation()
 	     return false; // shouldn't we try to undo what's already put in?
 #endif
 
-      if (needToCont)
-	 proc_->continueProc();
+	if (needToCont) {
+#ifdef DETACH_ON_THE_FLY
+	     proc_->detachAndContinue();
+#else
+	     proc_->continueProc();
+#endif
+	}
     }
 
     return(true);
@@ -2020,7 +2044,11 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
 	    // why no checking of the return value?
     } else {
         needToCont = proc_->status() == running;
+#ifdef DETACH_ON_THE_FLY
+        if (!proc_->reattachAndPause()) {
+#else
         if (!proc_->pause()) {
+#endif
 	    cerr << "checkAndInstallInstrumentation -- pause failed" << endl; cerr.flush();
             return false;
         }
@@ -2139,7 +2167,13 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
 	        }
 	}
 
-        if (needToCont) proc_->continueProc();
+        if (needToCont) {
+#ifdef DETATCH_ON_THE_FLY
+	     proc_->detachAndContinue();
+#else
+	     proc_->continueProc();
+#endif
+	}
     }
     return(true);
 }
@@ -2952,7 +2986,11 @@ bool instReqNode::triggerNow(process *theProc, int mid, int thrId) {
 bool instReqNode::triggerNow(process *theProc, int mid) {
 #endif
    bool needToCont = theProc->status() == running;
+#ifdef DETACH_ON_THE_FLY
+   if ( !theProc->reattachAndPause() ) {
+#else
    if ( !theProc->pause() ) {
+#endif
 	   cerr << "instReqNode::triggerNow -- pause failed" << endl;
 	   return false;
    }
@@ -3000,10 +3038,20 @@ bool instReqNode::triggerNow(process *theProc, int mid) {
    if ( pd_debug_catchup )
      cerr << "catchup instrumentation finished ..." << endl;
 
-   if( needToCont && (theProc->status() != running))
+   if( needToCont && (theProc->status() != running)) {
+#ifdef DETACH_ON_THE_FLY
+	   theProc->detachAndContinue();
+#else
 	   theProc->continueProc();
-   else if ( !needToCont && theProc->status()==running )
+#endif
+   }
+   else if ( !needToCont && theProc->status()==running ) {
+#ifdef DETACH_ON_THE_FLY
+          theProc->reattachAndPause();
+#else
           theProc->pause();
+#endif
+   }
 
    return true;
 }
@@ -4243,13 +4291,22 @@ void metricDefinitionNode::addThread(pdThread *thr)
     bool needToContinue = (theProc->status_ == running);
     bool ok;
     if (needToContinue) {
+#ifdef DETACH_ON_THE_FLY
+      ok = theProc->reattachAndPause();
+#else
       ok = theProc->pause();
+#endif
     }
 
     manuallyTrigger(id_, tid);
 
     if (needToContinue) {
-      ok = theProc->continueProc(); // the continue will trigger our code
+      // the continue will trigger our code
+#ifdef DETACH_ON_THE_FLY
+      ok = theProc->detachAndContinue();
+#else
+      ok = theProc->continueProc();
+#endif
     }
   }
 }

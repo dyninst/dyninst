@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.80 2000/03/23 01:41:47 wylie Exp $
+// $Id: mdl.C,v 1.81 2000/05/11 04:52:27 zandy Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -1373,16 +1373,32 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
   unsigned size = stmts_->size();
   vector<dataReqNode*> flags;
   bool wasRunning = global_proc->status()==running;
+#ifdef DETACH_ON_THE_FLY
+  global_proc->reattachAndPause();
+#else
   global_proc->pause();
+#endif
   for (unsigned u=0; u<size; u++) {
     if (!(*stmts_)[u]->apply(mn, flags)) { // virtual fn call; several possibilities
       metric_cerr << "apply of constraint " << id_ << " failed\n";
-      if (wasRunning) global_proc->continueProc();
+      if (wasRunning) {
+#ifdef DETACH_ON_THE_FLY
+	   global_proc->detachAndContinue();
+#else
+	   global_proc->continueProc();
+#endif
+      }
       return(false);
     }
   }
   mdl_env::pop();
-  if (wasRunning) global_proc->continueProc();
+  if (wasRunning) {
+#ifdef DETACH_ON_THE_FLY
+       global_proc->detachAndContinue();
+#else
+       global_proc->continueProc();
+#endif
+  }
   return(true);
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.30 2000/04/28 22:37:45 mirg Exp $
+// $Id: linux.C,v 1.31 2000/05/11 04:52:22 zandy Exp $
 
 #include <fstream.h>
 
@@ -239,6 +239,17 @@ bool ptraceKludge::deliverPtrace(process *p, int req, int addr,
 // - nash
 int ptraceKludge::deliverPtraceReturn(process *p, int req, int addr,
 				 int data ) {
+#ifdef DETACH_ON_THE_FLY
+  bool detached = p->haveDetached;
+  if (detached) {
+       p->reattach();
+  }
+  int ret = P_ptrace(req, p->getPid(), addr, data);
+  if (detached) {
+       p->detach();
+  }
+  return ret;
+#else
   bool halted = true;
 
   if (req != PTRACE_DETACH)
@@ -250,6 +261,7 @@ int ptraceKludge::deliverPtraceReturn(process *p, int req, int addr,
      continueProcess(p, halted);
 
   return ret;
+#endif
 }
 
 /* ********************************************************************** */
@@ -301,18 +313,6 @@ static bool changeBP(int pid, Address loc) {
 
   return true;
 }
-
- Address getPC(int pid) {
-   Address regaddr = EIP * INTREGSIZE;
-   int res;
-   res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
-   if( errno ) {
-     perror( "getPC" );
-     exit(-1);
-     return 0; // Shut up the compiler
-   } else
-     return (Address)res;
- }
 
 void printStackWalk( process *p ) {
 	Frame theFrame(p);
@@ -431,7 +431,19 @@ void OS::osDisconnect(void) {
 }
 
 bool process::stop_() {
-	return (P_kill(getPid(), SIGSTOP) != -1); 
+#ifdef DETACH_ON_THE_FLY
+     if (haveDetached)
+	  return reattach(); /* will stop the process */
+#endif
+#if 0
+     /* FIXME: We used to do the ptrace for detach/attach, instead of
+	kill, but it doesn't seem to be necessary (we tested it).
+	Remove this comment at commit time if there's been no
+	change. */
+     return (P_ptrace(PTRACE_CONT, getPid(), 1, SIGSTOP));
+#else
+     return (P_kill(getPid(), SIGSTOP) != -1); 
+#endif
 }
 
 bool process::continueWithForwardSignal(int sig) {
@@ -442,6 +454,281 @@ bool process::continueWithForwardSignal(int sig) {
 void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0); }
 
 process *findProcess(int);  // In process.C
+
+Address getPC(int pid) {
+
+#ifdef DETACH_ON_THE_FLY
+   process *proc;
+   proc = findProcess(pid);
+   assert(proc);
+   /* If inferior was stopped by an illegal instruction trap that was
+      handled in the inferior's SIGILL handler, then its actual PC is
+      in the handler, but the PC we want to return here is in
+      proc->sigill_pc (it is the pc of the trap instruction). */
+   if (proc->use_sigill_pc) {
+	assert(proc->sigill_pc);
+	return proc->sigill_pc;
+   }
+#endif
+
+   Address regaddr = EIP * INTREGSIZE;
+   int res;
+   res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
+   if( errno ) {
+     perror( "getPC" );
+     exit(-1);
+     return 0; // Shut up the compiler
+   } else {
+     assert(res);
+     return (Address)res;
+   }   
+}
+
+#ifdef DETACH_ON_THE_FLY
+/* Input P points to a buffer containing the contents of
+   /proc/PID/stat.  This buffer will be modified.  Output STATUS is
+   the status field (field 3), and output SIGPEND is the pending
+   signals field (field 31).  As of Linux 2.2, the format of this file
+   is defined in /usr/src/linux/fs/proc/array.c (get_stat). */
+static void
+parse_procstat(char *p, char *status, unsigned long *sigpend)
+{
+     int i;
+
+     /* Advance past pid and program name */
+     p = strchr(p, ')');
+     assert(p);
+
+     /* Advance to status character */
+     p += 2;
+     *status = *p;
+
+     /* Advance to sigpending int */
+     p = strtok(p, " ");
+     assert(p);
+     for (i = 0; i < 28; i++) {
+	  p = strtok(NULL, " ");
+	  assert(p);
+     }
+     *sigpend = strtoul(p, NULL, 10);
+}
+
+
+/* The purpose of this is to synchronize with the sigill handler in
+   the inferior.  In this handler, the inferior signals us (SIG33),
+   and then it stops itself.  This routine does not return until the
+   inferior stop has occurred.  In some contexts, the inferior may be
+   acquire a pending SIGSTOP as or after it stops.  We clear the
+   pending the SIGSTOP here, so the process doesn't inadvertently stop
+   when we continue it later.
+
+   We don't understand how the pending SIGSTOP is acquired.  It seems
+   to have something to do with the process sending itself the SIGILL
+   (i.e., kill(getpid(),SIGILL)).  */
+static void
+waitForInferiorSigillStop(int pid)
+{
+     int fd;
+     char name[32];
+     char buf[512];
+     char status;
+     unsigned long sigpend;
+
+     sprintf(name, "/proc/%d/stat", pid);
+
+     /* Keep checking the process until it is stopped */
+     while (1) {
+	  /* Read current contents of /proc/pid/stat */
+	  fd = open(name, O_RDONLY);
+	  assert(fd >= 0);
+	  assert(read(fd, buf, sizeof(buf)) > 0);
+	  close(fd);
+
+	  /* Parse status and pending signals */
+	  parse_procstat(buf, &status, &sigpend);
+
+	  /* status == T iff the process is stopped */
+	  if (status != 'T')
+	       continue;
+	  /* This is true iff SIGSTOP is set in sigpend */
+	  if (0x1 & (sigpend >> (SIGSTOP-1))) {
+	       /* The process is stopped, but it has another SIGSTOP
+		  pending.  Continue the process to clear the SIGSTOP
+		  (the process will stop again immediately). */
+	       P_ptrace(PTRACE_CONT, pid, 0, 0);
+	       continue; /* repeat to be sure we've stopped */
+	  }
+
+	  /* The process is stopped properly */
+	  break;
+     }
+}
+
+static void sigill_handler(int sig, siginfo_t *si, void *unused)
+{
+     int ret;
+     process *p;
+     p = findProcess(si->si_pid);
+     if (!p) {
+	  fprintf(stderr, "Received SIGILL sent by unregistered or non-inferior process\n");
+     }
+     assert(p);
+
+     /* Reattach, which should stop the process. */
+     p->reattach();
+
+     /* Synchronize with the inferior sigill handler */
+     waitForInferiorSigillStop(p->getPid());
+
+     /* Copy the PC from where the inferior took the signal */
+     assert(p->readDataSpace((void *)p->sigill_inferiorPCaddr, sizeof(p->sigill_pc), &p->sigill_pc, true));
+     assert(p->sigill_pc);
+
+     p->sigill_waiting = 1;
+}
+
+void initDetachOnTheFly()
+{
+     /* FIXME: This is a hack to prevent this from being called every
+	time a new process is created in Dyninst.  We need an init()
+	function that is called when the Dyninst API library is
+	loaded.  In Paradyn this will only be called once. */
+     static int already_installed = 0;
+
+     struct sigaction act;
+     act.sa_handler = NULL;
+     act.sa_sigaction = sigill_handler;
+     sigemptyset(&act.sa_mask);
+     act.sa_flags = SA_SIGINFO;
+     /* FIXME: Linux 2.2, bless its open-sourced little heart, does
+	not provide siginfo values for non-realtime (<= 32) signals,
+	although it will let you register a siginfo handler for them.
+	FIXME: Are there names for the realtime signals? */
+     if (0 > sigaction(33, &act, NULL)) {
+	  perror("SIG33 sigaction");
+	  assert(0);
+     }
+     already_installed = 1;
+}
+
+/* Returns true if we are detached from process PID.  This is global
+   (not a process member) because we need to call it from P_ptrace,
+   which does not know about process objects. */
+bool haveDetachedFromProcess(int pid)
+{
+     /* This can be called before a process is initialized.  If we
+	don't find a process for PID, we assume it hasn't been
+	initialized yet, and thus we have not ever detached from it. */
+     process *p = findProcess(pid);
+     if (! p)
+	  return false;
+     return p->haveDetached;
+}
+
+
+/* The following two routines block SIG33 to prevent themselves from
+   being reentered.  (FIXME: Is this okay for multiple processes?) */
+int process::detach()
+{
+     int res, ret;
+     sigset_t tmp, old;
+
+     ret = 0;
+     sigemptyset(&tmp);
+     sigaddset(&tmp, 33);
+     sigprocmask(SIG_BLOCK, &tmp, &old);
+
+#if 0
+     fprintf(stderr, "ZANDY: detach ENTRY\n");
+#endif
+
+     if (this->haveDetached) {
+	  /* It is safe to call this when already detached.  Silently
+             ignore the call.  But the caller really ought to know
+             better. */
+	  goto out;
+     }
+     res = P_ptrace(PTRACE_DETACH, pid, 0, 0);
+     assert(res >= 0);
+     this->haveDetached = 1;
+     this->juststopped = false;
+     ret = 1;
+out:
+#if 0
+     fprintf(stderr, "ZANDY: detach EXIT (%s)\n", ret == 1 ? "success" : "failure");
+#endif
+     sigprocmask(SIG_SETMASK, &old, NULL);
+     return ret;
+}
+
+int process::reattach()
+{
+     int res, ret;
+     sigset_t tmp, old;
+
+     ret = 0;
+     sigemptyset(&tmp);
+     sigaddset(&tmp, 33);
+     sigprocmask(SIG_BLOCK, &tmp, &old);
+
+#if 0
+     fprintf(stderr, "ZANDY: reattach ENTRY\n");
+#endif
+     if (! this->haveDetached) {
+	  /* It is safe to call this when already attached.  Silently
+             ignore the call.  But the caller really ought to know
+             better. */
+	  goto out;
+     }
+     res = P_ptrace(PTRACE_ATTACH, pid, 0, 0);
+     /* FIXME: This should never happen, but it currently does when
+	the test suite exits.  Fix that, and then make this an assert. */
+     if (0 > res)
+	  goto out;
+     /* Every attach must be followed by a wait to consume the stop event */
+     res = waitpid(pid, 0, 0);
+     assert(res >= 0);
+     this->haveDetached = 0;
+     this->juststopped = true;
+     ret = 1;
+out:
+#if 0
+     fprintf(stderr, "ZANDY: reattach EXIT (%s)\n", ret == 1 ? "success" : "failure");
+#endif
+     sigprocmask(SIG_SETMASK, &old, NULL);
+     return ret;
+}
+
+/* This method replaces continueProc. */
+int process::detachAndContinue()
+{
+     if (status_ == exited)
+	  return false;
+
+     if (status_ != stopped && status_ != neonatal) {
+	  sprintf(errorLine, "Internal error: "
+		  "Unexpected process state %d in process::contineProc",
+		  (int)status_);
+	  showErrorCallback(39, errorLine);
+	  return false;
+     }
+
+     if (! this->detach()) {
+	  showErrorCallback(38, "System error: can't continue process");
+	  return false;
+     }
+
+     status_ = running;
+     return true;
+}
+
+/* This method replaces pause. */
+int process::reattachAndPause()
+{
+     this->reattach();
+     return this->pause();
+}
+#endif /* DETACH_ON_THE_FLY */
 
 // wait for a process to terminate or stop
 // We only want to catch SIGSTOP and SIGILL
@@ -456,56 +743,72 @@ int process::waitProcs(int *status) {
 #endif
   int result = 0, sig = 0;
   bool ignore;
-  do {
-    ignore = false;
-    result = waitpid( -1, status, options );
 
-	// Check for TRAP at the end of a syscall, then
-    // if the signal's not SIGSTOP or SIGILL,
-    // send the signal back and wait for another.
-    if( result > 0 && WIFSTOPPED(*status) ) {
-		process *p = findProcess( result );
-		sig = WSTOPSIG(*status);
-		if( sig == SIGTRAP && ( !p->reachedVeryFirstTrap || p->inExec ) )
-			; // Report it
-/*
-#ifdef CHECK_SYSTEM_CALLS
-// This code is needed if we are using PTRACE_SYSCALL to wait for the
-// end of a system call.  However, that's not what we do, we set our own
-// illegal instruction in the user code at the return from the system call.
-		else if( sig == SIGTRAP && p->isRPCwaitingForSysCallToComplete() )
-		{
-			inferiorrpc_cerr << "Catching SIGTRAP for RPCwaitingForSysCallToComplete" << endl;
-			assert( !p->isRunning_() );
-		}
-#endif
-*/
-		else if( sig != SIGSTOP && sig != SIGILL ) {
+#ifdef DETACH_ON_THE_FLY
+  process *ill_proc = 0;
+  /* Check for any process that has triggered its own sigill handler */
+  /* FIXME: This should be replaced by the general purpose
+     asynchronous inferior->daemon/mutator signalling mechanism, if it
+     is ever written. */
+  for (unsigned u = 0; u < processVec.size(); u++)
+       if (processVec[u] && processVec[u]->sigill_waiting)
+	    ill_proc = processVec[u];
+  if (ill_proc) {
+       /* sigill waiting in ill_proc*/
+       int x;
+       x = 0x7f;                /* STOPPED */
+       x |= ((int)SIGILL << 8); /* in SIGILL */
+       *status = x;
+       result = ill_proc->getPid();
+       ill_proc->sigill_waiting = 0;
+       ill_proc->use_sigill_pc = 1;
+  } else
+#endif /* DETACH_ON_THE_FLY */
+       /* ZANDY: FIXME:  race between sigusr2 arrival and waitpid calls */
+       do {
+	    ignore = false;
+	    result = waitpid( -1, status, options );
+	    
+	    // Check for TRAP at the end of a syscall, then
+	    // if the signal's not SIGSTOP or SIGILL,
+	    // send the signal back and wait for another.
+	    if( result > 0 && WIFSTOPPED(*status) ) {
+		 process *p = findProcess( result );
+#ifdef DETACH_ON_THE_FLY
+		 /* We have consumed an event caused by the sigill
+		    handler in the inferior.  Resume normal PC
+		    value access. */
+		 p->use_sigill_pc = 0;
+#endif /* DETACH_ON_THE_FLY */
+		 sig = WSTOPSIG(*status);
+		 if( sig == SIGTRAP && ( !p->reachedVeryFirstTrap || p->inExec ) )
+		      ; // Report it
+		 else if( sig != SIGSTOP && sig != SIGILL ) {
 			ignore = true;
 			if( sig != SIGTRAP )
 			{
 //#ifdef notdef
-				Address pc;
-				pc = getPC( result );
-				signal_cerr << "process::waitProcs -- Signal #" << sig << " in " << result << "@" << (void*)pc << ", resignalling the process" << endl;
+			     Address pc;
+			     pc = getPC( result );
+			     signal_cerr << "process::waitProcs -- Signal #" << sig << " in " << result << "@" << (void*)pc << ", resignalling the process" << endl;
 //#endif
 			}
 			if( P_ptrace(PTRACE_CONT, result, 1, sig) == -1 ) {
-				if( errno == ESRCH ) {
-					cerr << "WARNING -- process does not exist, constructing exit code" << endl;
-					*status = W_EXITCODE(0,sig);
-					ignore = false;
-				} else
-					cerr << "ERROR -- process::waitProcs forwarding signal " << sig << " -- " << sys_errlist[errno] << endl;
+			     if( errno == ESRCH ) {
+				  cerr << "WARNING -- process does not exist, constructing exit code" << endl;
+				  *status = W_EXITCODE(0,sig);
+				  ignore = false;
+			     } else
+				  cerr << "ERROR -- process::waitProcs forwarding signal " << sig << " -- " << sys_errlist[errno] << endl;
 			}
 #ifdef notdef
 			else
-				signal_cerr << "Signal " << sig << " in " << result << endl;
+			     signal_cerr << "Signal " << sig << " in " << result << endl;
 #endif
-		}
-    }
-	
-  } while ( ignore );
+		 }
+	    }
+       } while ( ignore );
+
 
   if( result > 0 ) {
 #if defined(USES_LIBDYNINSTRT_SO)
@@ -1452,44 +1755,53 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) /* const */ {
 #endif // SHM_SAMPLING
 
 bool process::loopUntilStopped() {
-  int flags = WUNTRACED | WNOHANG;
-  bool stopSig = false;
-  int count = 0;
-  /* make sure the process is stopped in the eyes of ptrace */
+     int flags = WUNTRACED | WNOHANG;
+     bool stopSig = false;
+     int count = 0;
+     /* make sure the process is stopped in the eyes of ptrace */
+     
+     while (true) {
+	  int waitStatus;
+	  int ret = P_waitpid( getPid(), &waitStatus, flags );
+	  if( ret == 0 ) {
+#ifdef DETACH_ON_THE_FLY
+	       /* This used to go between the stopSig = true and the stop_ call. */
+	       /* FIXME: Maybe we can clean up loopUntilStopped and make this go away? */
+	       if (juststopped) {
+		    /* The process was already stopped by reattach() */
+		    juststopped = false;
+		    break;
+	       }
+#endif /* DETACH_ON_THE_FLY */
 
-  while (true) {
-    int waitStatus;
-    int ret = P_waitpid( getPid(), &waitStatus, flags );
-	if( ret == 0 ) {
-	  if( !stopSig )
-	  {
-		  stopSig = true;
-		  stop_();
+	       if( !stopSig ) {
+		    stopSig = true;
+		    stop_();
+	       }
+	       else if( ++count > 10 && !isRunning_() )
+		    break;
+	  } else if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
+	       // the child is gone.
+	       handleProcessExit(this, WEXITSTATUS(waitStatus));
+	       return(false);
+	  } else if (WIFSIGNALED(waitStatus)) {
+	       handleProcessExit(this, WTERMSIG(waitStatus));
+	       return false;
+	  } else if (WIFSTOPPED(waitStatus)) {
+	       int sig = WSTOPSIG(waitStatus);
+	       if ( sig == SIGSTOP ) {
+		    break; // success
+	       } else {
+		    extern int handleSigChild(int, int);
+		    handleSigChild(pid, waitStatus);
+	       }
 	  }
-	  else if( ++count > 10 && !isRunning_() )
-		  break;
-	} else if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
-      // the child is gone.
-      handleProcessExit(this, WEXITSTATUS(waitStatus));
-      return(false);
-    } else if (WIFSIGNALED(waitStatus)) {
-      handleProcessExit(this, WTERMSIG(waitStatus));
-      return false;
-    } else if (WIFSTOPPED(waitStatus)) {
-      int sig = WSTOPSIG(waitStatus);
-      if ( sig == SIGSTOP ) {
-        break; // success
-      } else {
-        extern int handleSigChild(int, int);
-        handleSigChild(pid, waitStatus);
-      }
-    }
-    else {
-      logLine("Problem stopping process\n");
-      abort();
-    }
-  }
-  return true;
+	  else {
+	       logLine("Problem stopping process\n");
+	       abort();
+	  }
+     }
+     return true;
 }
 
 #ifndef BPATCH_LIBRARY

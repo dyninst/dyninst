@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.44 2000/05/04 18:19:39 jasonxie Exp $ */
+/* $Id: test1.mutatee.c,v 1.45 2000/05/11 04:52:25 zandy Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -250,7 +250,11 @@ void stop_process()
     beginFP = fp;
 #endif
 
+#ifdef DETACH_ON_THE_FLY
+    kill(getpid(), SIGILL);
+#else
     kill(getpid(), SIGSTOP);
+#endif
 
 #if defined(alpha_dec_osf4_0) && defined(__GNUC__)
     fp = beginFP;

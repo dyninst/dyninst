@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.218 2000/04/07 15:07:23 pcroth Exp $
+// $Id: process.C,v 1.219 2000/05/11 04:52:22 zandy Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1312,6 +1312,10 @@ void inferiorFree(process *p, Address block,
 }
 
 
+#ifdef DETACH_ON_THE_FLY
+extern void initDetachOnTheFly();
+#endif
+
 // initializes all DYNINST lib stuff: init the inferior heap and check for 
 // required symbols.
 // This is only called after we get the first breakpoint (SIGTRAP), because
@@ -1348,6 +1352,14 @@ bool process::initDyninstLib() {
     return false;
 
   initInferiorHeap();
+
+#ifdef DETACH_ON_THE_FLY
+  /* FIXME: For Dyninst find somewhere to call initDetachOnTheFly only once. */
+  initDetachOnTheFly();
+  bool sigillerr;
+  this->sigill_inferiorPCaddr = findInternalAddress("DYNINSTinferiorPC", true, sigillerr);
+  assert(!sigillerr);
+#endif
 
   return true;
 }
@@ -1413,6 +1425,15 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #endif
 #endif
 {
+#ifdef DETACH_ON_THE_FLY
+  haveDetached = 0;
+  juststopped = 0;
+  sigill_waiting = 0;
+  use_sigill_pc = 0;
+  sigill_pc = 0;
+  sigill_inferiorPCaddr = 0;
+#endif /* DETACH_ON_THE_FLY */
+
 #if defined(MT_THREAD)
     preambleForDYNINSTinit=true;
     inThreadCreation=false;
@@ -1566,6 +1587,16 @@ process::process(int iPid, image *iSymbols,
 #endif
 #endif
 {
+#ifdef DETACH_ON_THE_FLY
+  haveDetached = 0;
+  juststopped = 0;
+  sigill_waiting = 0;
+  use_sigill_pc = 0;
+  sigill_pc = 0;
+  sigill_inferiorPCaddr = 0;
+#endif /* DETACH_ON_THE_FLY */
+
+
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
    inThreadCreation=false;
    preambleForDYNINSTinit=true;
@@ -1775,6 +1806,15 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
   theSuperTable(parentProc.getTable(), this)
 #endif
 {
+#ifdef DETACH_ON_THE_FLY
+  haveDetached = 0;
+  juststopped = 0;
+  sigill_waiting = 0;
+  use_sigill_pc = 0;
+  sigill_pc = 0;
+  sigill_inferiorPCaddr = 0;
+#endif /* DETACH_ON_THE_FLY */
+
     // This is the "fork" ctor
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
     inThreadCreation=false;
@@ -2649,12 +2689,21 @@ void process::processCost(unsigned obsCostLow,
 bool process::writeDataSpace(void *inTracedProcess, unsigned size,
                              const void *inSelf) {
   bool needToCont = false;
+#ifdef DETACH_ON_THE_FLY
+  bool needToDetach = false;
+#endif
 
   if (status_ == exited)
     return false;
 
   if (status_ == running) {
     needToCont = true;
+#ifdef DETACH_ON_THE_FLY
+    if (this->haveDetached) {
+	 needToDetach = true;
+	 this->reattach();
+    }
+#endif /* DETACH_ON_THE_FLY */
     if (! pause())
       return false;
   }
@@ -2676,27 +2725,43 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
     return false;
   }
 
-  if (needToCont)
+  if (needToCont) {
+#ifdef DETACH_ON_THE_FLY
+    if (needToDetach)
+	 return this->detachAndContinue();
+    else
+	 return this->continueProc();
+#else
     return this->continueProc();
+#endif /* DETACH_ON_THE_FLY */
+  }
   return true;
 }
 
 bool process::readDataSpace(const void *inTracedProcess, unsigned size,
                             void *inSelf, bool displayErrMsg) {
   bool needToCont = false;
+#ifdef DETACH_ON_THE_FLY
+  bool needToDetach = false;
+#endif
 
   if (status_ == exited)
     return false;
 
   if (status_ == running) {
     needToCont = true;
+#ifdef DETACH_ON_THE_FLY
+    if (this->haveDetached) {
+	 needToDetach = true;
+	 this->reattach();
+    }
+#endif /* DETACH_ON_THE_FLY */
     if (! pause()) {
       sprintf(errorLine, "in readDataSpace, status_ = running, but unable to pause()\n");
       logLine(errorLine);
       return false;
     }
   }
-
   if (status_ != stopped && status_ != neonatal) {
     sprintf(errorLine, "Internal error: "
                 "Unexpected process state %d in process::readDataSpace",
@@ -2719,7 +2784,14 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
  }
 
   if (needToCont) {
+#ifdef DETACH_ON_THE_FLY
+    if (needToDetach)
+	 needToCont = this->detachAndContinue();
+    else
+	 needToCont = this->continueProc();
+#else
     needToCont = this->continueProc();
+#endif /* DETACH_ON_THE_FLY */
     if (!needToCont) {
         sprintf(errorLine, "warning : readDataSpace, needToCont FALSE, returning FALSE\n");
         logLine(errorLine);
@@ -2732,12 +2804,21 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
 
 bool process::writeTextWord(caddr_t inTracedProcess, int data) {
   bool needToCont = false;
+#ifdef DETACH_ON_THE_FLY
+  bool needToDetach = false;
+#endif /* DETACH_ON_THE_FLY */
 
   if (status_ == exited)
     return false;
 
   if (status_ == running) {
     needToCont = true;
+#ifdef DETACH_ON_THE_FLY
+    if (this->haveDetached) {
+	 needToDetach = true;
+	 this->reattach();
+    }
+#endif /* DETACH_ON_THE_FLY */
     if (! pause())
       return false;
   }
@@ -2766,8 +2847,16 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
     return false;
   }
 
-  if (needToCont)
+  if (needToCont) {
+#ifdef DETACH_ON_THE_FLY
+    if (needToDetach)
+	 return this->detachAndContinue();
+    else
+	 return this->continueProc();
+#else
     return this->continueProc();
+#endif /* DETACH_ON_THE_FLY */
+  }
   return true;
 
 }
@@ -2775,12 +2864,21 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
 bool process::writeTextSpace(void *inTracedProcess, u_int amount, 
                              const void *inSelf) {
   bool needToCont = false;
+#ifdef DETACH_ON_THE_FLY
+  bool needToDetach = false;
+#endif /* DETACH_ON_THE_FLY */
 
   if (status_ == exited)
     return false;
 
   if (status_ == running) {
     needToCont = true;
+#ifdef DETACH_ON_THE_FLY
+    if (this->haveDetached) {
+	 needToDetach = true;
+	 this->reattach();
+    }
+#endif /* DETACH_ON_THE_FLY */
     if (! pause())
       return false;
   }
@@ -2809,8 +2907,16 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
     return false;
   }
 
-  if (needToCont)
+  if (needToCont) {
+#ifdef DETACH_ON_THE_FLY
+    if (needToDetach)
+	 return this->detachAndContinue();
+    else
+	 return this->continueProc();
+#else
     return this->continueProc();
+#endif /* DETACH_ON_THE_FLY */
+  }
   return true;
 }
 
@@ -2819,12 +2925,21 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
                             const void *inSelf)
 {
   bool needToCont = false;
+#ifdef DETACH_ON_THE_FLY
+  bool needToDetach = false;
+#endif /* DETACH_ON_THE_FLY */
 
   if (status_ == exited)
     return false;
 
   if (status_ == running) {
     needToCont = true;
+#ifdef DETACH_ON_THE_FLY
+    if (this->haveDetached) {
+	 needToDetach = true;
+	 this->reattach();
+    }
+#endif
     if (! pause())
       return false;
   }
@@ -2847,8 +2962,16 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
     return false;
   }
 
-  if (needToCont)
+  if (needToCont) {
+#ifdef DETACH_ON_THE_FLY
+    if (needToDetach)
+	 return this->detachAndContinue();
+    else
+	 return this->continueProc();
+#else
     return this->continueProc();
+#endif /* DETACH_ON_THE_FLY */
+  }
   return true;
 
 }
@@ -4283,6 +4406,8 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    else
            inProgStruct.wasRunning = wasRunning;
 
+
+
       // If finishing up a system call, current state is paused, but we want to
       // set wasRunning to true so that it'll continue when the inferiorRPC
       // completes.  Sorry for the kludge.
@@ -5365,6 +5490,8 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 
    assert(status_ == stopped);
       // though not for long, if 'wasRunning' is true (paradyn will soon continue us)
+
+   inferiorrpc_cerr << "handleCompletionOfDYNINSTinit...done" << endl;
 }
 
 void process::getObservedCostAddr() {

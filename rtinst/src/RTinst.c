@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.30 2000/04/27 21:49:23 chambrea Exp $
+ * $Id: RTinst.c,v 1.31 2000/05/11 04:52:31 zandy Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -166,7 +166,7 @@ int DYNINST_shmSegNumBytes;
 int DYNINST_shmSegShmId; /* needed? */
 void *DYNINST_shmSegAttachedPtr;
 #endif
-static int the_paradyndPid; /* set in DYNINSTinit(); pass to connectToDaemon();
+int DYNINST_paradyndPid; /* set in DYNINSTinit(); pass to connectToDaemon();
 			       needed if we fork */
 #ifndef SHM_SAMPLING
 static int DYNINSTin_sample = 0;
@@ -831,6 +831,8 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   (void)gethostname(thehostname, 80);
   thehostname[79] = '\0';
   
+fprintf(stderr, "ZANDY: DYNINSTinit called\n");
+
   shmsampling_printf("WELCOME to DYNINSTinit (%s, pid=%d), args are %d, %d, %d\n",
 		     thehostname, (int)getpid(), theKey, shmSegNumBytes,
 		     paradyndPid);
@@ -846,7 +848,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   if (calledFromAttach)
     paradyndPid = -paradyndPid;
   
-  the_paradyndPid = paradyndPid; /* important -- needed in case we fork() */
+  DYNINST_paradyndPid = paradyndPid; /* important -- needed in case we fork() */
   
   TagGroupInfo.TagHierarchy = 0; /* FALSE; */
   TagGroupInfo.NumGroups = 0;
@@ -1185,8 +1187,8 @@ DYNINSTfork(int pid) {
 	DYNINSTcloseTrace();
 
 	forkexec_printf("dyninst-fork child opening new connection.\n");
-	assert(the_paradyndPid > 0);
-	DYNINSTinitTrace(the_paradyndPid);
+	assert(DYNINST_paradyndPid > 0);
+	DYNINSTinitTrace(DYNINST_paradyndPid);
 
 	forkexec_printf("dyninst-fork child pid %d opened new connection...now sending pid etc. along it\n", (int)getpid());
 
@@ -1210,7 +1212,7 @@ DYNINSTfork(int pid) {
 
 	forkexec_printf("dyninst-fork child past DYNINSTbreakPoint()...calling DYNINSTinit(-1,-1)\n");
 
-	DYNINSTinit(-1, -1, the_paradyndPid);
+	DYNINSTinit(-1, -1, DYNINST_paradyndPid);
 	   /* -1 params indicate called from DYNINSTfork */
 
 	forkexec_printf("dyninst-fork child done...running freely.\n");

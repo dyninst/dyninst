@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.11 2000/04/25 21:33:27 schendel Exp $ */
+/* $Id: RTetc-linux.c,v 1.12 2000/05/11 04:52:31 zandy Exp $ */
 
 /************************************************************************
  * RTlinux.c: clock access functions for linux-2.0.x and linux-2.2.x
@@ -54,6 +54,7 @@
 #include <sys/ptrace.h>
 #include <unistd.h>
 #include <math.h>
+#include <errno.h>
 
 #include <sys/procfs.h> /* /proc PIOCUSAGE */
 #include <stdio.h>
@@ -106,6 +107,34 @@ void DYNINSTgetCPUtimeInitialize(void) {
 }
 
 
+#ifdef DETACH_ON_THE_FLY 
+extern struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
+unsigned long DYNINSTinferiorPC;
+extern int DYNINST_paradyndPid;
+
+static void sigill_handler(int sig, struct sigcontext uap)
+{
+     int saved_errno;
+     unsigned char *p;
+
+     saved_errno = errno;
+
+     DYNINSTinferiorPC = uap.eip;
+
+     if (DYNINST_paradyndPid <= 0)
+	  fprintf(stderr, "ZANDY: DYNINST_paradyndPid is not a pid (%d)\n",
+		  DYNINST_paradyndPid);
+     if (0 > kill(DYNINST_paradyndPid, 33)) {
+	  perror("RTinst kill");
+	  assert(0);
+     }
+     kill(getpid(), SIGSTOP);
+     errno = saved_errno;
+}
+#endif /* DETACH_ON_THE_FLY */
+
+
+
 /************************************************************************
  * void DYNINSTos_init(void)
  *
@@ -131,6 +160,19 @@ DYNINSTos_init(int calledByFork, int calledByAttach) {
     assert(0);
     abort();
   }
+
+  sigfillset(&act.sa_mask);
+  sigdelset(&act.sa_mask, SIGILL);
+  sigdelset(&act.sa_mask, SIGTRAP);
+  sigdelset(&act.sa_mask, SIGSTOP);
+#ifdef DETACH_ON_THE_FLY
+  act.sa_handler = (void(*)(int))sigill_handler;
+  act.sa_flags = SA_NOMASK; /* FIXME: Really allow recursive SIGILL handling? */
+  if (0 > sigaction(SIGILL, &act, NULL)) {
+      perror("sigaction(SIGILL)");
+      assert(0);
+  }
+#endif /* DETACH_ON_THE_FLY */
 
   ptrace( PTRACE_TRACEME, 0, 0, 0 );
 
@@ -495,7 +537,7 @@ void DYNINSTtrapHandler(int sig, struct sigcontext uap ) {
     if (nextpc) {
 		/* WARNING -- Remove before using in real use, it could KILL anything
 		   that instruments libc */
-		/*fprintf( stderr, "DYNINST trap %#.8x -> %#.8x\n", pc, nextpc );*/
+	        /*fprintf( stderr, "DYNINST trap %#.8x -> %#.8x\n", pc, nextpc ); */
       uap.eip = nextpc;
     } else {
       assert(0);
@@ -503,6 +545,3 @@ void DYNINSTtrapHandler(int sig, struct sigcontext uap ) {
     }
     DYNINSTtotalTraps++;
 }
-
-
-

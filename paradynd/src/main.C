@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.85 2000/05/04 18:05:24 bernat Exp $
+// $Id: main.C,v 1.86 2000/05/11 04:52:27 zandy Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -95,6 +95,10 @@ int ready;
 
 #ifdef mips_sgi_irix6_4
 extern bool execIrixMPIProcess(vector<string> &argv);
+#endif
+
+#ifdef DETACH_ON_THE_FLY
+extern void initDetachOnTheFly();
 #endif
 
 /*
@@ -280,6 +284,10 @@ int main(unsigned argc, char *argv[]) {
         perror("sigaction(SIGTERM)");
         abort();
     }
+#endif
+
+#ifdef DETACH_ON_THE_FLY
+    initDetachOnTheFly();
 #endif
 
 #if defined(i386_unknown_nt4_0)

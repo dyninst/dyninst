@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.C,v 1.7 2000/02/22 23:12:14 pcroth Exp $
+// $Id: superVector.C,v 1.8 2000/05/11 04:52:29 zandy Exp $
 
 #include <sys/types.h>
 #include <limits.h>
@@ -950,7 +950,11 @@ void superVector<HK, RAW>::updateThreadTable(RAW *shmAddr, unsigned pos,
     needToCont = false;
     if (inferiorProcess->status() == running) {
       needToCont = true;
+#ifdef DETACH_ON_THE_FLY
+      inferiorProcess->reattachAndPause();
+#else
       inferiorProcess->pause();
+#endif
     }
     // process should be stopped now - naim
     if (inferiorProcess->status() == stopped) {
@@ -970,7 +974,13 @@ void superVector<HK, RAW>::updateThreadTable(RAW *shmAddr, unsigned pos,
       inferiorProcess->writeDataSpace((caddr_t) addr, sizeof(unsigned),
 				      (caddr_t) &tmp_addr);
       
-      if (needToCont) inferiorProcess->continueProc();
+      if (needToCont) {
+#ifdef DETACH_ON_THE_FLY
+	   inferiorProcess->detachAndContinue();
+#else
+	   inferiorProcess->continueProc();
+#endif
+      }
     }
 }
 #endif

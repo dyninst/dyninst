@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2000/03/31 01:59:28 wylie Exp $
+# $Id: Makefile,v 1.2 2000/05/11 04:52:30 zandy Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -38,6 +38,10 @@ endif
 LDFLAGS         = -shared
 else
 TARGET2 = libdyninstRT.a
+endif
+
+ifdef DETACH_ON_THE_FLY
+CFLAGS += -DDETACH_ON_THE_FLY
 endif
 
 SRCS	     += ../src/RTfirst.c \

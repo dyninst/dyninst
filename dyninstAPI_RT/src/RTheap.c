@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.4 2000/03/04 01:29:22 zandy Exp $ */
+/* $Id: RTheap.c,v 1.5 2000/05/11 04:52:26 zandy Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -123,6 +123,10 @@ trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
      try = beg;
      while (try + len <= end) {
 	  /* We assume MAP_FIXED is set in mmapFlags. */
+#if 0
+	  fprintf(stderr, "Calling mmap(addr = 0x%x, len = 0x%x, prot = 0x%x, flags = 0x%x)\n",
+		  try, len, PROT_READ|PROT_WRITE|PROT_EXEC, DYNINSTheap_mmapFlags);
+#endif
 	  if (MAP_FAILED != mmap((void*)try, len, PROT_READ|PROT_WRITE|PROT_EXEC,
 				 DYNINSTheap_mmapFlags, fd, 0))
 	       return try;
@@ -298,6 +302,10 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     /*DYNINSTheap_printMappings(nmaps, maps);*/
 
     fd = DYNINSTheap_mmapFdOpen();
+    if (0 > fd) {
+	 free(node);
+	 return NULL;
+    }
     heap = (void*) constrained_mmap(size, lo, hi, maps, nmaps, fd);
     free(maps);
     DYNINSTheap_mmapFdClose(fd);

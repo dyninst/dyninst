@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.59 2000/05/01 17:33:42 mihai Exp $
+ * $Id: inst-x86.C,v 1.60 2000/05/11 04:52:22 zandy Exp $
  */
 
 #include <iomanip.h>
@@ -599,6 +599,28 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
      }
    }
 
+#ifdef DETACH_ON_THE_FLY
+   /* On Linux, trap-based instrumentation points must have at least
+      two bytes. */
+   for (u = 0; u < npoints; u++) {
+	instPoint *p = points[u].point;
+	if (p->size() < 2) {
+	     /* FIXME: We assume this test is sufficent to find trap
+		points.  Existing code to determine if a point really
+		needs a trap requires a proc handle (it probably
+		should not).  Does this test exclude points that may
+		not really need traps? */
+#if 0
+	     fprintf(stderr, "ZANDY: Rejecting function %s for 1-byte trap point\n",
+		     prettyName().string_of());
+#endif
+	     delete points;
+	     delete allInstr;
+	     return false;
+	}
+   }
+#endif /* DETACH_ON_THE_FLY */
+
    delete points;
    delete allInstr;
 
@@ -1008,8 +1030,21 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, Address ba
     if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr, baseAddr))
       return 0;
 
+    *insn++ = 0xCC;
+    
+#ifdef DETACH_ON_THE_FLY
+    /* On Linux, we need two trap instructions.  Usually the first
+       works.  But sometimes the trap signal gets lost when we attach
+       to the process as it executes a trap.  Control falls through to
+       the next instruction.  Execution of the second trap is certain. */
+    if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr+1, baseAddr))
+      return 0;
     *insn = 0xCC;
+    return 2;
+#else
     return 1;
+#endif
+
   } else {
     // replace instructions at point with jump to base tramp
     emitJump(baseAddr - (point->jumpAddr() + imageBaseAddr + JUMP_REL32_SZ), insn);

@@ -55,5 +55,9 @@
 
 void DYNINSTbreakPoint(void)
 {
+#ifdef DETACH_ON_THE_FLY
+    kill(getpid(), SIGILL);
+#else
     kill(getpid(), SIGSTOP);
+#endif /* DETACH_ON_THE_FLY */
 }

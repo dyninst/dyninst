@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.63 2000/04/28 22:42:39 mirg Exp $ */
+/* $Id: context.C,v 1.64 2000/05/11 04:52:27 zandy Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -309,7 +309,11 @@ bool continueAllProcesses()
     for (unsigned u=0; u<p_size; u++) {
        process *p = processVec[u];
        if (p != NULL && p->status() != running) {
+#ifdef DETACH_ON_THE_FLY
+         if (!processVec[u]->detachAndContinue()) {
+#else
 	 if (!processVec[u]->continueProc()) {
+#endif
 	   sprintf(errorLine,"WARNING: cannot continue process %d\n",processVec[u]->getPid());
 	   cerr << errorLine << endl;
 	 }
@@ -334,8 +338,13 @@ bool pauseAllProcesses()
     unsigned p_size = processVec.size();
     for (unsigned u=0; u<p_size; u++) {
        process *p = processVec[u];
-       if (p != NULL && p->status() == running)
-         processVec[u]->pause();
+       if (p != NULL && p->status() == running) {
+#ifdef DETACH_ON_THE_FLY
+         p->reattachAndPause();
+#else
+         p->pause();
+#endif
+       }
     }
 
     if (changed)
@@ -426,8 +435,14 @@ void processNewTSConnection(int tracesocket_fd) {
 		  curr->continueAfterNextStop();
 //#endif
 	  }
-	  else if (!curr->continueProc())
-		  assert(false);
+	  else {
+#ifdef DETACH_ON_THE_FLY
+	       if (!curr->detachAndContinue())
+#else
+	       if (!curr->continueProc())
+#endif
+		    assert(false);
+	  }
 
 #if defined(rs6000_ibm_aix4_1)
       // HACK to compensate for AIX goofiness: as soon as we call continueProc() above
@@ -449,7 +464,11 @@ void processNewTSConnection(int tracesocket_fd) {
 	    int sig = WSTOPSIG(wait_status);
 	    if (sig == 5)  { // sigtrap
 	       curr->status_ = stopped;
+#ifdef DETACH_ON_THE_FLY
+	       if (!curr->detachAndContinue())
+#else
 	       if (!curr->continueProc())
+#endif
 		  assert(false);
 	    }
 	 }
@@ -464,7 +483,11 @@ void processNewTSConnection(int tracesocket_fd) {
 		  if (sig == SIGTRAP || sig == SIGSTOP)
 		  {
 			  curr->status_ = stopped;
+#ifdef DETACH_ON_THE_FLY
+			  if (!curr->detachAndContinue())
+#else
 			  if (!curr->continueProc())
+#endif
 				  assert(false);
 		  }
 	  }

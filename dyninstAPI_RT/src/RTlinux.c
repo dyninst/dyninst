@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.6 2000/03/17 21:56:19 schendel Exp $
+ * $Id: RTlinux.c,v 1.7 2000/05/11 04:52:26 zandy Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -49,10 +49,42 @@
 #include <stdio.h>
 #include <dlfcn.h>
 #include <link.h>
+#include <errno.h>
 
 #include <sys/ptrace.h>
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+
+#ifdef DETACH_ON_THE_FLY 
+extern struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
+unsigned long DYNINSTinferiorPC;
+
+static void sigill_handler(int sig, struct sigcontext uap)
+{
+     int saved_errno;
+     unsigned char *p;
+
+     saved_errno = errno;
+
+     DYNINSTinferiorPC = uap.eip;
+
+     if (0 > kill(DYNINST_bootstrap_info.ppid, 33)) {
+	  perror("RTinst kill");
+	  assert(0);
+     }
+     kill(getpid(), SIGSTOP);
+     errno = saved_errno;
+
+#if 0
+     /* We won't need this once we fix this to return to reexecute the ill instruction */
+     if (*((char*) (uap.eip)) == '\017' && *((char*) (uap.eip+1)) == '\013') {
+	  fprintf(stderr, "ZANDY: RTinst sigill_handler advancing the PC by 4\n");
+	  uap.eip += 4;
+     } else
+	  fprintf(stderr, "ZANDY: RTinst sigill_handler returning to %x\n", uap.eip);
+#endif     
+}
+#endif /* DETACH_ON_THE_FLY */
 
 /************************************************************************
  * void DYNINSTos_init(void)
@@ -80,6 +112,19 @@ DYNINSTos_init(int calledByFork, int calledByAttach)
 	abort();
     }
     
+    sigfillset(&act.sa_mask);
+    sigdelset(&act.sa_mask, SIGILL);
+    sigdelset(&act.sa_mask, SIGTRAP);
+    sigdelset(&act.sa_mask, SIGSTOP);
+#ifdef DETACH_ON_THE_FLY
+    act.sa_handler = (void(*)(int))sigill_handler;
+    act.sa_flags = SA_NOMASK; /* FIXME: Really allow recursive SIGILL handling? */
+    if (0 > sigaction(SIGILL, &act, NULL)) {
+	 perror("sigaction(SIGILL)");
+	 assert(0);
+    }
+#endif /* DETACH_ON_THE_FLY */
+
     ptrace( PTRACE_TRACEME, 0, 0, 0 );
 }
 

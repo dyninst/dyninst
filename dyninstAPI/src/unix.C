@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.35 2000/03/12 23:27:16 hollings Exp $
+// $Id: unix.C,v 1.36 2000/05/11 04:52:24 zandy Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -70,7 +70,6 @@ extern debug_ostream forkexec_cerr;
 extern debug_ostream metric_cerr;
 extern debug_ostream signal_cerr;
 extern debug_ostream sharedobj_cerr;
-
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -418,17 +417,25 @@ int handleSigChild(int pid, int status)
         // we put an illegal instead of a trap at the following places, but 
         // the illegal instructions are really for trapping purpose, so the
         // handling should be the same as for trap
-		{
-		  Address pc = getPC( pid );
-          if ( (sig == SIGILL)
-          && (pc==(Address)curr->rbrkAddr()
-            ||pc==(Address)curr->main_brk_addr
-            ||pc==(Address)curr->dyninstlib_brk_addr
-			||curr->isRPCwaitingForSysCallToComplete())) {
-			  signal_cerr << "Changing SIGILL to SIGTRAP" << endl;
-			  sig = SIGTRAP;
-          }
-        }
+	{
+	     Address pc = getPC( pid );
+	     if (sig == SIGILL)
+		  if (pc==(Address)curr->rbrkAddr()
+		      || pc==(Address)curr->main_brk_addr
+		      || pc==(Address)curr->dyninstlib_brk_addr
+		      || curr->isRPCwaitingForSysCallToComplete()) {
+		       signal_cerr << "Changing SIGILL to SIGTRAP" << endl;
+		       sig = SIGTRAP;
+		  }
+#ifdef DETACH_ON_THE_FLY
+		  else {
+		       /* FIXME: If the inferior executes a bona fide illegal instruction,
+			  the resulting signal is now lost. */
+		       signal_cerr << "Changing SIGILL to SIGSTOP" << endl;
+		       sig = SIGSTOP;
+		  }
+#endif /* DETACH_ON_THE_FLY */
+	}
 #endif
 
 	switch (sig) {
@@ -444,7 +451,12 @@ int handleSigChild(int pid, int status)
 		// started up.  Several have been added.  We must be careful
 		// to make sure that uses of SIGTRAPs do not conflict.
 
-	        signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid() << " status=" << curr->getStatusAsString() << endl;
+	        signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid()
+			    << " status =" << curr->getStatusAsString() << endl;
+#if 0
+		/* FIXME: ZANDY: test2 fails when this line is compiled. */
+			    << " pc = " << curr->currentPC() << endl;
+#endif
 		const bool wasRunning = (curr->status() == running);
 		curr->status_ = stopped;
 
@@ -675,6 +687,16 @@ int handleSigChild(int pid, int status)
 		curr->status_ = stopped;
 		   // the following routines expect (and assert) this status.
 
+#ifdef DETACH_ON_THE_FLY
+		/* FIXME: During rtinst initialization for
+		   attachProcess, we convert an RPC trap into a STOP.
+		   We catch it here, otherwise procStopFromDYNINSTinit
+		   will mishandle it. */
+ 	        if (curr->handleTrapIfDueToRPC()) {
+		     inferiorrpc_cerr << "processed RPC response in SIGSTOP!" << endl; cerr.flush();
+		     break; // we don't forward the signal -- on purpose
+		}
+#endif
 		int result = curr->procStopFromDYNINSTinit();
 		assert(result >=0 && result <= 2);
 		if (result != 0) {
@@ -703,8 +725,7 @@ int handleSigChild(int pid, int status)
 		 * uses cause wait() to re-report the signal that we're
 		 * currently stopped on, causing an infinite loop.
 		 * Exec doesn't work with the Dyninst API yet anyway.
-		 * - brb 7/4/98
-		 */
+		 * - brb 7/4/98 */
 		else if (curr->handleStopDueToExecEntry()) {
 		   // grabs data from DYNINST_bootstrap_info
 		   forkexec_cerr << "fork/exec -- handled stop before exec" << endl;

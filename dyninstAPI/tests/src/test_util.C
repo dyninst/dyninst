@@ -1,5 +1,5 @@
 //
-// $Id: test_util.C,v 1.11 1999/11/06 21:43:36 wylie Exp $
+// $Id: test_util.C,v 1.12 2000/05/11 04:52:25 zandy Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -40,8 +40,15 @@ void waitUntilStopped(BPatch *bpatch,
 	exit(-1);
     }
 #else
+#ifdef DETACH_ON_THE_FLY
+    /* FIXME: Why add SIGILL here? */
     else if ((appThread->stopSignal() != SIGSTOP) &&
-	    (appThread->stopSignal() != SIGHUP)) {
+	     (appThread->stopSignal() != SIGHUP) &&
+	     (appThread->stopSignal() != SIGILL)) {
+#else
+    else if ((appThread->stopSignal() != SIGSTOP) &&
+	     (appThread->stopSignal() != SIGHUP)) {
+#endif /* DETACH_ON_THE_FLY */
 	printf("**Failed test #%d (%s)\n", testnum, testname);
 	printf("    process stopped on signal %d, not SIGSTOP\n", 
 		appThread->stopSignal());

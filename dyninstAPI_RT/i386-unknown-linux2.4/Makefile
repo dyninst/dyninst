@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2000/04/07 22:55:27 wylie Exp $
+# $Id: Makefile,v 1.3 2000/05/11 04:52:26 zandy Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -23,6 +23,10 @@ CC              = gcc
 LD              = gcc
 CFLAGS          = -I. -I../.. -Di386_unknown_linux2_0 -g -Dexternal_templates -fpic
 LDFLAGS         = -shared -ldl
+endif
+
+ifdef DETACH_ON_THE_FLY
+CFLAGS += -DDETACH_ON_THE_FLY
 endif
 
 SRCS		+= ../src/RTposix.c \

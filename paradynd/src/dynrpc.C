@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.74 2000/04/28 22:42:39 mirg Exp $ */
+/* $Id: dynrpc.C,v 1.75 2000/05/11 04:52:27 zandy Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -169,7 +169,11 @@ void dynRPC::disableDataCollection(int mid)
     for (unsigned i=0; i<processVec.size(); i++) {
       proc = processVec[i];
       if (proc->status()==running) {
-	proc->pause();
+#ifdef DETACH_ON_THE_FLY
+         proc->reattachAndPause();
+#else
+         proc->pause();
+#endif
 	procsToCont += proc;
       }
       if (proc->existsRPCreadyToLaunch()) {
@@ -179,7 +183,11 @@ void dynRPC::disableDataCollection(int mid)
 
     mi->disable();
     for (unsigned p=0;p<procsToCont.size();p++) {
+#ifdef DETACH_ON_THE_FLY
+      procsToCont[p]->detachAndContinue();
+#else
       procsToCont[p]->continueProc();
+#endif
     }
     allMIs.undef(mid);
     delete(mi);
@@ -245,11 +253,15 @@ void dynRPC::enableDataCollection(vector<T_dyninstRPC::focusStruct> focus,
 #endif
 
     // continue the processes that were stopped in start collecting
-    for (unsigned u = 0; u < procsToContinue.size(); u++)
+    for (unsigned u = 0; u < procsToContinue.size(); u++) {
+#ifdef DETACH_ON_THE_FLY
+      procsToContinue[u]->detachAndContinue();
+#else
       procsToContinue[u]->continueProc();
+#endif
       // uncomment next line for debugging purposes on AIX
       // procsToContinue[u]->detach(false);
-
+    }
     totalInstTime.stop();
 
     enableDataCallback(daemon_id,return_id,mi_ids,request_id);
@@ -264,8 +276,13 @@ int dynRPC::enableDataCollection2(vector<u_int> focus, string met, int gid)
 
   id = startCollecting(met, focus, gid, procsToContinue);
 
-  for (unsigned u = 0; u < procsToContinue.size(); u++)
+  for (unsigned u = 0; u < procsToContinue.size(); u++) {
+#ifdef DETACH_ON_THE_FLY
+    procsToContinue[u]->detachAndContinue();
+#else
     procsToContinue[u]->continueProc();
+#endif
+  }
   totalInstTime.stop();
   // cout << "Enabled " << met << " = " << id << endl;
   return(id);
@@ -372,13 +389,18 @@ void dynRPC::continueProgram(int program)
       // finishes - naim
       proc->deferredContinueProc=true;
     } else {
-	  if( proc->status() != running )
+	 if( proc->status() != running ) {
+#ifdef DETACH_ON_THE_FLY
+	        proc->detachAndContinue();
+#else
 		proc->continueProc();
-	  // we are no longer paused, are we?
-	  statusLine("application running");
-	  if (!markApplicationRunning()) {
-		  return;
-	  }
+#endif
+	 }
+	 // we are no longer paused, are we?
+	 statusLine("application running");
+	 if (!markApplicationRunning()) {
+	      return;
+	 }
     }
 }
 
@@ -404,7 +426,11 @@ bool dynRPC::pauseProgram(int program)
 		        machineResource->part_name());
       return false;
     }
-    return (proc->pause());
+#ifdef DETACH_ON_THE_FLY
+    return proc->reattachAndPause();
+#else
+    return proc->pause();
+#endif
 }
 
 bool dynRPC::startProgram(int )

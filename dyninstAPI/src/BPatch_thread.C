@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.33 2000/03/22 00:47:41 mihai Exp $
+// $Id: BPatch_thread.C,v 1.34 2000/05/11 04:52:21 zandy Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -280,7 +280,12 @@ bool BPatch_thread::stopExecution()
     assert(BPatch::bpatch);
     BPatch::bpatch->getThreadEvent(false);
 
+#ifdef DETACH_ON_THE_FLY
+    return proc->reattachAndPause();
+#else
     return proc->pause();
+#endif
+
 
     assert(BPatch::bpatch);
 
@@ -303,7 +308,11 @@ bool BPatch_thread::continueExecution()
     assert(BPatch::bpatch);
     BPatch::bpatch->getThreadEvent(false);
 
+#ifdef DETACH_ON_THE_FLY
+    if (proc->detachAndContinue()) {
+#else
     if (proc->continueProc()) {
+#endif
 	setUnreportedStop(false);
 	return true;
     }
