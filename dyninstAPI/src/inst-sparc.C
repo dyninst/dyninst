@@ -104,6 +104,74 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
   }
 }
 
+
+// Add the astNode opt to generate one instruction to get the 
+// return value for the compiler optimazed case
+void
+AstNode::optRetVal(AstNode *opt) {
+
+    if (oType == ReturnVal) {
+	if (loperand == 0) {
+	    assert(opt != 0);  // AstNode is not null
+	    loperand = opt;
+	    return;
+	} else {
+	    assert(opt == 0);  // AstNode is null in this case
+	    delete loperand;
+	    loperand = NULL;
+	    return; 
+	}
+    }
+    if (loperand) loperand->optRetVal(opt);
+    if (roperand) roperand->optRetVal(opt);
+    for (int i = 0; i < operands.size(); i++) 
+	operands[i] -> optRetVal(opt);
+}
+
+bool 
+processOptimaRet(instPoint *location, AstNode *&ast) {
+
+    // For optimazed return code
+    if (location -> ipType == functionExit) {
+	if ((isInsnType(location -> originalInstruction, RETmask, RETmatch)) ||
+	    (isInsnType(location -> originalInstruction, RETLmask, RETLmatch)))
+	{
+	    if (isInsnType(location -> delaySlotInsn, 
+			   RESTOREmask, RESTOREmatch)&&
+		((location->delaySlotInsn.raw | 0xc1e82000) != 0xc1e82000)) 
+	    {
+		cout << "Optimazed Retrun Value:  Addr " << hex << 
+		    location->addr << " in "
+			<< location -> func -> prettyName() << endl;
+		AstNode *opt = new AstNode(AstNode::Constant,
+					   (void *)location->delaySlotInsn.raw);
+		ast -> optRetVal(opt);
+		return true;
+	    }
+	}
+    }
+    return false;
+}
+
+unsigned 
+emitOptReturn(unsigned instr, reg src, char *insn, unsigned &base, bool noCost) {
+    
+    cout << "Handling a special case for optimazed return value." << endl;
+
+    assert((((instr&0x3e000000)>>25) >= 0) ||
+	   (((instr&0x3e000000)>>25) <= 16));
+
+    if ((instr&0x02000)>>13)
+	emitImm(plusOp, (instr&0x07c000)>>14, instr&0x01fff,
+		((instr&0x3e000000)>>25)+16, insn, base, noCost);
+    else
+	emit(plusOp, (instr&0x07c000)>>14, instr&0x01fff,
+	     ((instr&0x3e000000)>>25)+16, insn, base, noCost);
+    
+    return emit(getSysRetValOp, 0, 0, src, insn, base, noCost);
+}
+
+
 //
 // initDefaultPointFrequencyTable - define the expected call frequency of
 //    procedures.  Currently we just define several one shots with a

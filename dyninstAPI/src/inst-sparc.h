@@ -438,6 +438,8 @@ inline void genLoadD(instruction *insn, int rs1, int offset, int rd)
     insn->resti.simm13 = offset;
 }
 
+bool processOptimaRet(instPoint *location, AstNode *&ast);
+
 extern bool isPowerOf2(int value, int &result);
 extern void generateNoOp(process *proc, int addr);
 extern void changeBranch(process *proc, unsigned fromAddr, unsigned newAddr,
@@ -458,6 +460,8 @@ extern unsigned emitFuncCall(opCode op, registerSpace *rs, char *i,
 
 extern unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 			unsigned &base, bool noCost);
+
+extern unsigned emitOptReturn(unsigned, reg, char *, unsigned &, bool);
 
 extern int getInsnCost(opCode op);
 extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne);

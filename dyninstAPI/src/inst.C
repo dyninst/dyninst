@@ -229,10 +229,23 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)     
     ast->sysFlag((instPoint*)location);  
+
+    // If the return value is in the case of compiler optimization,
+    // modify the ast node tree to insert an instruction to get the 
+    // return the value
+    extern bool processOptimaRet(instPoint *location, AstNode *&ast);
+    bool isOpt = processOptimaRet(location, ast);
 #endif
 
     int trampCost = 0;
     ret->returnAddr = ast->generateTramp(proc, insn, count, trampCost, noCost);
+
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+    // The ast node might be shared, so remove the changes made to
+    // ast node tree  
+    if (isOpt)
+	ast->optRetVal(NULL); 
+#endif
 
     if (!noCost) {
 	ret->cost = trampCost; 

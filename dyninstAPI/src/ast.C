@@ -41,6 +41,9 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.39  1997/03/14 15:58:59  lzheng
+ * Dealing with complier optimization related to the return value
+ *
  * Revision 1.38  1997/02/26 23:42:48  mjrg
  * First part on WindowsNT port: changes for compiling with Visual C++;
  * moved unix specific code to unix.C
@@ -983,7 +986,11 @@ reg AstNode::generateCode_phase2(process *proc,
 	    rs->freeRegister(dest);
 	    src = rs->allocateRegister(insn, base, noCost);
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
-	    if (astFlag)
+	    if (loperand) {
+		unsigned emitOptReturn(unsigned, reg, char *, unsigned &, bool);
+		dest = emitOptReturn(loperand -> oValue, src, insn, base, noCost);
+	    }
+	    else if (astFlag)
 		dest = emit(getSysRetValOp, 0, 0, src, insn, base, noCost);
 	    else 
 #endif

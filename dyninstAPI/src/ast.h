@@ -44,6 +44,9 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.23  1997/03/14 15:58:13  lzheng
+ * Dealing with complier optimization related to the return value
+ *
  * Revision 1.22  1997/02/26 23:42:50  mjrg
  * First part on WindowsNT port: changes for compiling with Visual C++;
  * moved unix specific code to unix.C
@@ -164,6 +167,8 @@ class AstNode {
     public:	
 	bool astFlag;  
 	void sysFlag(instPoint *location);    
+
+	void optRetVal(AstNode *opt);
 #endif
 
     private:

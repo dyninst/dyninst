@@ -48,6 +48,9 @@
 
 /*
  * $Log: arch-sparc.h,v $
+ * Revision 1.17  1997/03/14 15:58:36  lzheng
+ * Dealing with complier optimization related to the return value
+ *
  * Revision 1.16  1997/02/21 20:13:12  naim
  * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
  * out of the ast class. The is the first pre-dyninstAPI commit! - naim
@@ -290,6 +293,8 @@ typedef union instructUnion instruction;
 #define SAVEmask        (OPmask|OP3mask)
 #define SAVEmatch       0x81e00000
 
+#define RESTOREmask     (OPmask|OP3mask)
+#define RESTOREmatch    0x81e80000
 
 /* noop insn */
 #define NOOPop2		4
