@@ -2,6 +2,9 @@
 
 /*
  * $Log: DictionaryLite.C,v $
+ * Revision 1.4  1996/05/06 04:39:20  karavan
+ * added new function find() to dictionary_lite class
+ *
  * Revision 1.3  1995/12/26 19:57:17  tamches
  * made (empty) destructor inline.
  * removed unused member function clear()
@@ -88,6 +91,20 @@ dictionary_lite<K,V>::operator[](const K& key) {
         return data_[chain][i].value;
     }
     return insert(key, hash, chain);
+}
+
+template<class K, class V>
+DO_INLINE_F
+bool 
+dictionary_lite<K,V>::find (const K& key, V& el)
+{
+  unsigned hash, chain, i;
+  if (locate(key, hash, chain, i)) {
+    el = data_[chain][i].value;
+    return true;
+  } else {
+    return false;
+  }
 }
 
 template<class K, class V>
