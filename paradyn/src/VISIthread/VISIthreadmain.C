@@ -25,12 +25,16 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.3  1994/05/11 17:21:32  newhall
-/* Changes to handle multiple curves on one visualization
-/* and multiple visualizations.  Fixed problems with folding
-/* and resource name string passed to visualization.  Changed
-/* data type from double to float.
+/* Revision 1.4  1994/05/17 00:53:14  hollings
+/* Changed waiting time to transfer data to visi process to 0.  We used to wait
+/* for the buffer to fill which delayed the data too much.
 /*
+ * Revision 1.3  1994/05/11  17:21:32  newhall
+ * Changes to handle multiple curves on one visualization
+ * and multiple visualizations.  Fixed problems with folding
+ * and resource name string passed to visualization.  Changed
+ * data type from double to float.
+ *
  * Revision 1.2  1994/04/28  22:08:10  newhall
  * test version 2
  *
@@ -144,7 +148,8 @@ void VISIthreadDataHandler(performanceStream *ps,
 #endif
 
   // if buffer is full, send buffer to visualization
-  if(ptr->bufferSize == BUFFERSIZE){
+  // if(ptr->bufferSize == BUFFERSIZE){
+  if(ptr->bufferSize) {
 
     temp.count = ptr->bufferSize;
     temp.data = ptr->buffer;
