@@ -1,0 +1,374 @@
+/*
+ *  Copyright 1993 Jeff Hollingsworth.  All rights reserved.
+ *
+ */
+
+#ifndef lint
+static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
+    All rights reserved.";
+
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.1 1994/01/27 20:31:35 hollings Exp $";
+#endif
+
+/*
+ * perfStream.C - Manage performance streams.
+ *
+ * $Log: perfStream.C,v $
+ * Revision 1.1  1994/01/27 20:31:35  hollings
+ * Iinital version of paradynd speaking dynRPC igend protocol.
+ *
+ * Revision 1.16  1994/01/20  17:47:41  hollings
+ * moved signal stuff into seperate functions.
+ *
+ * Revision 1.15  1993/12/14  17:57:24  jcargill
+ * Added alignment sanity checking and fixup
+ *
+ * Revision 1.14  1993/10/19  15:27:54  hollings
+ * AST based mini-tramp code generator.
+ *
+ * Revision 1.13  1993/10/04  21:38:22  hollings
+ * added createResource.
+ *
+ * Revision 1.12  1993/09/08  23:02:32  hollings
+ * added option to indicate if dumpCore should stop process.
+ *
+ * Revision 1.11  1993/08/30  18:25:40  hollings
+ * added better checking for unused trace link fields.
+ *
+ * Revision 1.10  1993/08/26  19:51:40  hollings
+ * make change for trace line >= 0 rather than non zero.
+ *
+ * Revision 1.9  1993/08/26  18:20:26  hollings
+ * added code to dump binary on illegal instruction faults.
+ *
+ * Revision 1.8  1993/08/25  20:00:37  jcargill
+ * Changes for new ptrace
+ *
+ * Revision 1.7  1993/08/11  01:57:26  hollings
+ * added code for UNIX fork.
+ *
+ * Revision 1.6  1993/07/13  18:29:16  hollings
+ * new include file syntax.
+ *
+ * Revision 1.5  1993/06/28  23:13:18  hollings
+ * fixed process stopping.
+ *
+ * Revision 1.4  1993/06/24  16:18:06  hollings
+ * global fixes.
+ *
+ * Revision 1.3  1993/06/22  19:00:01  hollings
+ * global inst state.
+ *
+ * Revision 1.2  1993/06/08  20:14:34  hollings
+ * state prior to bc net ptrace replacement.
+ *
+ * Revision 1.1  1993/03/19  22:45:45  hollings
+ * Initial revision
+ *
+ *
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/file.h>
+#include <sys/time.h>
+#include <sys/uio.h>
+#include <fcntl.h>
+#include <sys/signal.h>
+#include <sys/wait.h>
+#include <sys/ptrace.h>
+#include <string.h>
+
+// this is missing from ptrace.h
+extern "C" {
+    int ptrace(enum ptracereq request,	
+	       int pid,
+	       char *addr, 
+	       int data,
+	       char *addr2);
+}
+
+#include <assert.h>
+#include <unistd.h>
+
+#include "rtinst/h/rtinst.h"
+#include "rtinst/h/trace.h"
+#include "symtab.h"
+#include "process.h"
+#include "inst.h"
+#include "dyninstP.h"
+#include "metric.h"
+#include "primitives.h"
+#include "util.h"
+
+extern dynRPC *tp;
+extern void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr);
+extern void processPtraceAck (traceHeader *header, ptraceAck *ackRecord);
+extern void forkProcess(traceHeader *hr, traceFork *fr);
+extern void sendPtraceBuffer(process *proc);
+extern void createResource(traceHeader *header, struct _newresource *res);
+
+extern "C" Boolean synchronousMode;
+Boolean synchronousMode;
+Boolean firstSampleReceived;
+
+
+time64 firstRecordTime;
+
+void processTraceStream(process *curr)
+{
+    int ret;
+    traceStream sid;
+    char *recordData;
+    traceHeader header;
+    int bufStart;		/* current starting point */
+
+    static char buffer[2048];	/* buffer for data */
+    static int bufEnd = 0;	/* last valid data in buffer */
+
+    ret = read(curr->traceLink, &buffer[bufEnd], sizeof(buffer)-bufEnd);
+    if (ret < 0) {
+	perror("read error");
+	exit(-2);
+    } else if (ret == 0) {
+	/* end of file */
+	printf("got EOF on link %d\n", curr->traceLink);
+	curr->traceLink = -1;
+	curr->status = exited;
+	return;
+    }
+
+    bufEnd += ret;
+
+    bufStart = 0;
+    while (bufStart < bufEnd) {
+	if (bufEnd - bufStart < (sizeof(traceStream) + sizeof(header))) {
+	    break;
+	}
+
+	if (bufStart % WORDSIZE != 0)	/* Word alignment check */
+	    break;		        /* this will re-align by shifting */
+
+	memcpy(&sid, &buffer[bufStart], sizeof(traceStream));
+	bufStart += sizeof(traceStream);
+
+	memcpy(&header, &buffer[bufStart], sizeof(header));
+	bufStart += sizeof(header);
+
+	if (header.length % WORDSIZE != 0)
+	    printf("Warning: non-aligned length (%d) received on traceStream.  Type=%d\n", header.length, header.type);
+	    
+	if (bufEnd - bufStart < header.length) {
+	    /* the whole record isn't here yet */
+	    bufStart -= sizeof(traceStream) + sizeof(header);
+	    break;
+	}
+
+	recordData = &buffer[bufStart];
+	bufStart +=  header.length;
+
+	/*
+	 * convert header to time based on first record.
+	 *
+	 */
+	if (!firstRecordTime) {
+	    double st;
+
+	    firstRecordTime = header.wall;
+	    st = firstRecordTime/1000000.0;
+	    printf("started at %f\n", st);
+	}
+	header.wall -= firstRecordTime;
+
+	switch (header.type) {
+	    case TR_FORK:
+		forkProcess(&header, (traceFork *) recordData);
+		break;
+
+	    case TR_NEW_RESOURCE:
+		createResource(&header, (struct _newresource *) recordData);
+		break;
+
+	    case TR_MULTI_FORK:
+		forkNodeProcesses(curr, &header, (traceFork *) recordData);
+		break;
+
+	    case TR_SAMPLE:
+		processSample(&header, (traceSample *) recordData);
+		firstSampleReceived = True;
+		break;
+
+	    case TR_PTRACE_ACK:
+		processPtraceAck (&header, (ptraceAck *) recordData);
+		break;
+
+	    case TR_HANDLER_READY:
+		sendPtraceBuffer (curr);
+		break;
+
+	    case TR_EXIT:
+		curr->status = exited;
+		break;
+
+	    default:
+		printf("got record type %d on sid %d\n", header.type, sid);
+	}
+    }
+
+    /* copy those bits we have to the base */
+    memcpy(buffer, &buffer[bufStart], bufEnd - bufStart);
+    bufEnd = bufEnd - bufStart;
+}
+
+extern void dumpProcessImage(process *, Boolean stopped);
+
+int handleSigChild(int pid, int status)
+{
+    int sig;
+    process *curr;
+    List<process*> pl;
+
+    for (pl=processList; curr=*pl; pl++) {
+	if (curr->pid == pid) break;
+    }
+    if (!curr) {
+	// ignore signals from unkown processes
+	return(-1);
+    }
+    if (WIFSTOPPED(status)) {
+	sig = WSTOPSIG(status);
+	switch (sig) {
+
+	    case SIGTSTP:
+		curr->status = stopped;
+		break;
+
+	    case SIGTRAP:
+		/* trap at the start of a ptraced process 
+		 *   continue past it.
+		 */
+		printf("passed trap at start of program\n");
+		ptrace(PTRACE_CONT, pid, (char*)1, 0, 0);
+		curr->status = running;
+		break;
+
+	    case SIGSTOP:
+		printf("CONTROLLER: Breakpoint reached\n");
+		curr->status = stopped;
+		/* force it into the stoped signal handler */
+		ptrace(PTRACE_CONT, pid, (char*)1, SIGPROF, 0);
+		/* pause the rest of the application */
+		pauseApplication();
+		break;
+
+	    case SIGIOT:
+	    case SIGSEGV:
+	    case SIGBUS:
+	    case SIGILL:
+		printf("caught fatal signal, dumping program image\n");
+		dumpProcessImage(curr, True);
+		ptrace(PTRACE_DUMPCORE, pid, "core.real", 0, 0);
+		abort();
+		break;
+
+	    case SIGUSR1:
+	    case SIGUSR2:
+	    case SIGALRM:
+	    case SIGCONT:
+	    case SIGCHLD:
+	    default:
+		ptrace(PTRACE_CONT, pid, (char*)1, WSTOPSIG(status), 0);
+		break;
+	}
+    } else if (WIFEXITED(status)) {
+	printf("process %d has terminated\n", curr->pid);
+	curr->status = exited;
+    } else if (WIFSIGNALED(status)) {
+	printf("process %d has terminated on signal %d\n", curr->pid,
+	    WTERMSIG(status));
+    } else {
+	printf("unknown state %d from process %d\n", status, curr->pid);
+    }
+    return(0);
+}
+
+/*
+ * Wait for a data from one of the inferriors or a request to come in.
+ *
+ */
+void controllerMainLoop()
+{
+    int ct;
+    int pid;
+    int ret;
+    int width;
+    int status;
+    process *curr;
+    fd_set readSet;
+    List<process*> pl;
+    struct timeval pollTime;
+
+    while (1) {
+	FD_ZERO(&readSet);
+	width = 0;
+	for (pl=processList; curr=*pl; pl++) {
+	    if (curr->traceLink >= 0) FD_SET(curr->traceLink, &readSet);
+	    if (curr->traceLink > width) width = curr->traceLink;
+	}
+
+	// add connection to paradyn process.
+	FD_SET(tp->fd, &readSet);
+	if (tp->fd > width) width = tp->fd;
+
+	pollTime.tv_sec = 0;
+	pollTime.tv_usec = 50000;
+	ct = select(width+1, &readSet, NULL, NULL, &pollTime);
+	if (ct > 0) {
+	    for (pl=processList; curr=*pl; pl++) {
+		if ((curr->traceLink >= 0) && 
+		    FD_ISSET(curr->traceLink, &readSet)) {
+		    processTraceStream(curr);
+		    /* clear it in case another process is sharing it */
+		    if (curr->traceLink >= 0) FD_CLR(curr->traceLink, &readSet);
+		}
+	    }
+	    if (FD_ISSET(tp->fd, &readSet)) {
+		ret = tp->mainLoop();
+		if (ret < 0) {
+		    // assume the client has exited, and leave.
+		    exit(-1);
+		}
+	    }
+	}
+
+
+
+	/* check for status change on inferrior processes */
+	pid = wait3(&status, WNOHANG, NULL);
+	if (pid > 0) {
+	    handleSigChild(pid, status);
+	}
+    }
+}
+
+void createResource(traceHeader *header, struct _newresource *r)
+{
+    char *tmp;
+    char *name;
+    resource res;
+    resource parent;
+
+    name = r->name;
+    parent = rootResource;
+    while (name) {
+	tmp = strchr(name, '/');
+	if (tmp) {
+	    *tmp = '\0';
+	    tmp++;
+	}
+	res = newResource(parent, r->maping, name, header->wall);
+	parent = res;
+	name = tmp;
+    }
+}
