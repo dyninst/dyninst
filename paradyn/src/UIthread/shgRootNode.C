@@ -2,9 +2,13 @@
 // Ariel Tamches
 
 /* $Log: shgRootNode.C,v $
-/* Revision 1.4  1996/02/15 23:13:20  tamches
-/* added code to properly support why vs. where axis refinement
+/* Revision 1.5  1996/03/08 00:22:50  tamches
+/* added support for hidden nodes
+/* added operator=
 /*
+ * Revision 1.4  1996/02/15 23:13:20  tamches
+ * added code to properly support why vs. where axis refinement
+ *
  * Revision 1.3  1996/01/23 19:48:10  tamches
  * added shadow node features
  *
@@ -27,7 +31,10 @@ void shgRootNode::initialize(unsigned iId,
 			     bool iActive, shgRootNode::evaluationState iEvalState,
 			     shgRootNode::refinement iRefinement,
 			     bool iShadow,
-			     const string &iLabel, const string &iFullInfo) {
+			     const string &iLabel, const string &iFullInfo,
+			     bool iHidden) {
+   hidden = iHidden;
+
    label = iLabel;
    fullInfo = iFullInfo;
 
@@ -62,21 +69,24 @@ shgRootNode::shgRootNode(unsigned iId,
 			 bool iActive, shgRootNode::evaluationState iEvalState,
 			 shgRootNode::refinement iRefinement,
 			 bool iShadow,
-			 const string &iLabel, const string &iFullInfo) {
+			 const string &iLabel, const string &iFullInfo,
+			 bool iHidden) {
    initialize(iId, iActive, iEvalState, iRefinement,
-	      iShadow, iLabel, iFullInfo);
+	      iShadow, iLabel, iFullInfo, iHidden);
 }
 
 shgRootNode::shgRootNode(unsigned iId, bool iActive,
 			 shgRootNode::evaluationState iEvalState,
 			 bool iShadow,
-			 const string &iLabel, const string &iFullInfo) {
+			 const string &iLabel, const string &iFullInfo,
+			 bool iHidden) {
    initialize(iId, iActive, iEvalState, ref_undefined,
-	      iShadow, iLabel, iFullInfo);
+	      iShadow, iLabel, iFullInfo, iHidden);
 }
 
 shgRootNode::shgRootNode(const shgRootNode &src) : label(src.label),
                                                    fullInfo(src.fullInfo) {
+   hidden = src.hidden;
    id = src.id;
    highlighted = src.highlighted;
    active = src.active;
@@ -86,6 +96,24 @@ shgRootNode::shgRootNode(const shgRootNode &src) : label(src.label),
    pixWidthAsRoot = src.pixWidthAsRoot;
    pixHeightAsRoot = src.pixHeightAsRoot;
    pixWidthAsListboxItem = src.pixWidthAsListboxItem;
+}
+
+shgRootNode &shgRootNode::operator=(const shgRootNode &src) {
+   label = src.label;
+   fullInfo = src.fullInfo;
+   
+   hidden = src.hidden;
+   id = src.id;
+   highlighted = src.highlighted;
+   active = src.active;
+   evalState = src.evalState;
+   theRefinement = src.theRefinement;
+   shadowNode = src.shadowNode;
+   pixWidthAsRoot = src.pixWidthAsRoot;
+   pixHeightAsRoot = src.pixHeightAsRoot;
+   pixWidthAsListboxItem = src.pixWidthAsListboxItem;
+
+   return *this;
 }
 
 bool shgRootNode::configStyle(bool newActive, evaluationState newEvalState) {
