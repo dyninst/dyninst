@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.53  1994/11/11 07:08:51  markc
+ * Revision 1.54  1994/11/11 23:06:49  markc
+ * Check to see if status is non-null
+ *
+ * Revision 1.53  1994/11/11  07:08:51  markc
  * Added extra arg to RPC_make_arg_list to tell paradyndPVM that it should
  * start other paradyndPVMs
  *
@@ -655,7 +658,8 @@ dynRPCUser::reportStatus (const char *line)
 void 
 paradynDaemon::reportStatus (const char *line)
 {
-  status->message(line);
+  if (status)
+    status->message(line);
 }
 
 // 
