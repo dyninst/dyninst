@@ -4,7 +4,10 @@
 
 /*
  * $Log: init.h,v $
- * Revision 1.8  1995/11/30 16:53:51  naim
+ * Revision 1.9  1995/11/30 22:01:11  naim
+ * Minor change to bucket_width metric - naim
+ *
+ * Revision 1.8  1995/11/30  16:53:51  naim
  * Adding bucket_width metric - naim
  *
  * Revision 1.7  1995/11/13  14:55:36  naim
@@ -62,8 +65,7 @@ extern internalMetric *sigs_daemon;
 extern internalMetric *vol_csw_daemon;
 extern internalMetric *inv_csw_daemon;
 
-extern internalMetric *c_bucket_width;
-extern internalMetric *g_bucket_width;
+extern internalMetric *bucket_width;
 
 extern bool init();
 extern bool initOS();

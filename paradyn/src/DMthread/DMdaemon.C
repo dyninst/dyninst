@@ -942,20 +942,11 @@ paradynDaemon::nodeDaemonReadyCallback(void) {
     }
 }
 
-void paradynDaemon::setCurrentBucketWidth(timeStamp bucket)
+void paradynDaemon::setBucketWidth(timeStamp bucket)
 {
   paradynDaemon *pd;
   for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
     pd = paradynDaemon::allDaemons[i];
-    pd->computeCurrentBucketWidth(bucket);
-  }
-}
-
-void paradynDaemon::setGlobalBucketWidth(timeStamp bucket)
-{
-  paradynDaemon *pd;
-  for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-    pd = paradynDaemon::allDaemons[i];
-    pd->computeGlobalBucketWidth(bucket);
+    pd->computeBucketWidth(bucket);
   }
 }

@@ -474,15 +474,10 @@ $remote dynRPC {
     //
     bool detachProgram(int program, bool pause);
 
-     //
-    // Set internal metric current bucket width
     //
-    void computeCurrentBucketWidth(double bucket);
-
+    // Set internal metric bucket width
     //
-    // Set internal metric global bucket width
-    //
-    void computeGlobalBucketWidth(double bucket);
+    void computeBucketWidth(double bucket);
 
     //
     // Gets called when a new application is started that is not visible to

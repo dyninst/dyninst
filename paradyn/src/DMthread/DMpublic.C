@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.55  1995/11/30 16:50:55  naim
+ * Revision 1.56  1995/11/30 21:59:16  naim
+ * Minor change to bucket_width metric - naim
+ *
+ * Revision 1.55  1995/11/30  16:50:55  naim
  * Adding bucket_width metric - naim
  *
  * Revision 1.54  1995/11/28  15:46:18  naim
@@ -1206,7 +1209,7 @@ timeStamp dataManager::getGlobalBucketWidth()
 {
     timeStamp bucket;
     bucket = Histogram::getGlobalBucketWidth();
-    paradynDaemon::setGlobalBucketWidth(bucket);
+    paradynDaemon::setBucketWidth(bucket);
     return(bucket);
 }
 
@@ -1214,7 +1217,7 @@ timeStamp dataManager::getCurrentBucketWidth()
 {
     timeStamp bucket;
     bucket = phaseInfo::GetLastBucketWidth();
-    paradynDaemon::setCurrentBucketWidth(bucket);
+    paradynDaemon::setBucketWidth(bucket);
     return(bucket);
 }
 
