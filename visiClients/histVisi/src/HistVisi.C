@@ -46,7 +46,7 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.C,v 1.5 2000/10/17 17:28:54 schendel Exp $
+// $Id: HistVisi.C,v 1.6 2001/08/23 14:44:51 schendel Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include "common/h/headers.h"
@@ -363,37 +363,35 @@ HistVisi::AddMetricResourcePair(int midx, int ridx)
                                 visi_MetricLabel( midx ),
                                 pair->rname.string_of() );
 
-    if( pair->curveId >= 0 )
+    if( pair->curveId>=0)
     {
-
         // associate the object with this metric/resource pair
         visi_SetUserData(midx, ridx, pair);
         mrpairs += pair;
+	
+	int firstBucket = visi_FirstValidBucket(midx, ridx);
+	int lastBucket = visi_LastBucketFilled( midx, ridx );       
+	int nSamples = lastBucket - firstBucket + 1;
+	if(! (firstBucket >= 0 && visi_NumBuckets()>0))  nSamples = 0;
+	float *data = NULL;
+	if(nSamples > 0) {
+	  data = new float[visi_NumBuckets() + 1];
+	  int resI = visi_DataValues(midx, ridx, data, firstBucket,lastBucket);
+	  bool result = (resI == 1 ? true : false);
+	  if(result==false)  {  delete data;  data=NULL; }
+	}
 
-        // set the initial data for this curve
-        const float* data = visi_DataValues( midx, ridx );
-        if( data != NULL )
-        {
-            int nSamples = visi_LastBucketFilled( midx, ridx );
-            graph->SetCurveData( pair->curveId, 0, nSamples, data );
-            pair->lastFilledBucket = nSamples;
-        }
-        else
-        {
-#if READY
-            is this necessary? can we just assume no data means empty?
-            // no data to add, so initalize to a zero value
-            float initialDataValue = 0.0;
-            graph->SetCurveData( pair->curveId, 0, 1, &initialDataValue );
-#endif // READY
-        }
+	if(nSamples > 0 && data!=NULL) {
+	  graph->SetCurveData( pair->curveId, firstBucket, nSamples, data );
+	  pair->lastFilledBucket = lastBucket;
+	}
+	delete data;
     }
     else
     {
         // TODO - how to indicate failure to add pair to graph?
         delete pair;
     }
-
     return added;
 }
 
@@ -630,51 +628,56 @@ HistVisi::HandleData( int /* lastBucket */, bool isFold )
         visi_NumBuckets(),
         visi_BucketWidth() );
 
-    for( m = 0; m < nMetrics; m++ )
-    {
-        for( r = 0; r < nResources; r++ )
-        {
-            if( !visi_Valid( m, r ) )
-            {
-                // invalid metric-resource pair
-                // skip to next pair
+    for( m = 0; m < nMetrics; m++ ) {
+        for( r = 0; r < nResources; r++ ) {
+            if( !visi_Valid( m, r ) ) {
+                // invalid metric-resource pair - skip to next pair
                 continue;
             }
 
             // access the histogram data for this pair
             MetricResourcePair* pair = 
-                (MetricResourcePair*)visi_GetUserData( m, r );
-            if( pair == NULL )
-            {
-                // this curve was previously deleted and
-                // now has new data - 
+	            (MetricResourcePair*)visi_GetUserData( m, r );
+      
+            if( pair == NULL ) {
+                // this curve was previously deleted and now has new data -
                 // re-add the curve and try again
-                if( AddMetricResourcePair( m, r ) )
-                {
+                if( AddMetricResourcePair( m, r ) ) {
                     pair = (MetricResourcePair*)visi_GetUserData( m, r );
                     assert( pair != NULL );
                 }
+		else continue;
             }
 
             // obtain the curve data
-            const float* data = visi_DataValues( m, r );
+	    int firstBucket, lastBucket;
+	    if(isFold) {
+	      firstBucket = 0;
+	      lastBucket  = visi_NumBuckets() - 1;
+	    } else if(pair->lastFilledBucket == -1) {  // no buckets filled yet
+	      lastBucket = visi_LastBucketFilled(m, r);
+	      firstBucket = visi_FirstValidBucket(m, r);
+	    } else {
+	      lastBucket = visi_LastBucketFilled(m, r);
+	      firstBucket = pair->lastFilledBucket + 1;
+	    }
+	    int nSamples = lastBucket - firstBucket + 1;
+	    float *data = new float[visi_NumBuckets() + 1];
+
+	    int resI = visi_DataValues( m, r, data, firstBucket, lastBucket);
+	    bool result = (resI == 1 ? true : false);
+	    if(result == false)  nSamples = 0;  // that is don't draw anything
 
             // update the display with the new data
-            if( isFold )
-            {
-                graph->SetCurveData( pair->curveId,
-                    0,
-                    visi_LastBucketFilled( m, r ),
-                    data );
+	    if(nSamples>0) {
+	      //cerr << "calling SetCurveData- metric: " << m 
+	      //   << ", firstBucket: " << firstBucket << ", nSamples: " 
+	      //   << nSamples << ", data[]: " << data[firstBucket] << "\n";
+	      graph->SetCurveData( pair->curveId, firstBucket, 
+				   nSamples, &(data[firstBucket]));
+	      pair->lastFilledBucket = visi_LastBucketFilled(m,r);
             }
-            else
-            {
-                graph->SetCurveData( pair->curveId,
-                    pair->lastFilledBucket,
-                    visi_LastBucketFilled( m, r ) - pair->lastFilledBucket,
-                    &(data[pair->lastFilledBucket]));
-            }
-            pair->lastFilledBucket = visi_LastBucketFilled( m, r );
+	    delete data;
         }
     }
 
@@ -768,7 +771,7 @@ HistVisi::HandleParadynTermination( int )
 HistVisi::MetricResourcePair::MetricResourcePair( int metricId, int resourceId )
   : midx( metricId ),
     ridx( resourceId ),
-    lastFilledBucket( 0 )
+    lastFilledBucket( -1 )
 {
     const char* name = visi_MetricName(midx);
     if( name != NULL )
