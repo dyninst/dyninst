@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.15 2003/05/12 21:29:11 bernat Exp $
+// $Id: varInstanceHKs.C,v 1.16 2003/05/30 21:32:39 bernat Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -283,8 +283,9 @@ bool wallTimerHK::perform(const tTimer *theTimer, pd_process *) {
 	   << timeValueToUse << "," << lastTimeValueUsed << ")"
 	   << bell << endl;
       cerr << "timer was " << (count > 0 ? "active" : "inactive") << endl;
+      timeValueToUse = lastTimeValueUsed;
 
-      assert(false);
+      //assert(false);
    }
    else
       lastTimeValueUsed = timeValueToUse;
