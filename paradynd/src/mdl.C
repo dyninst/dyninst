@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.137 2003/05/13 19:55:13 igor Exp $
+// $Id: mdl.C,v 1.138 2003/05/19 03:02:58 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -668,7 +668,7 @@ bool setup_sampled_code_node(const processMetFocusNode* procNode,
 			     bool dontInsertData)
 {
    update_environment_start_point(codeNode);
-
+   
    instrDataNode *sampledDataNode = 
       new instrDataNode(proc, type, dontInsertData, codeNode->getHwEvent());
 
@@ -678,27 +678,27 @@ bool setup_sampled_code_node(const processMetFocusNode* procNode,
    // Create the temporary counters 
    for (unsigned tc=0; tc < temp_ctr.size(); tc++) {
       instrDataNode *tempCtrDataNode = 
-	 new instrDataNode(proc, MDL_T_COUNTER, dontInsertData);
+         new instrDataNode(proc, MDL_T_COUNTER, dontInsertData);
       codeNode->addTempCtrDataNode(tempCtrDataNode);
       mdl_env::set(tempCtrDataNode, temp_ctr[tc]);
    }
-
+   
    // create the ASTs for the code
    if(repl_cons!=NULL) {
       // mdl_constraint::apply()
       instrDataNode *notAssignedToDataNode;
       if (!repl_cons->apply(codeNode, &notAssignedToDataNode, 
-			    repl_focus_data, proc, dontInsertData)) {
-	 return false;
+                            repl_focus_data, proc, dontInsertData)) {
+         return false;
       }
    } else {
       pdvector<const instrDataNode*> flagNodes = procNode->getFlagDataNodes();
       unsigned size = stmts->size();
       for (unsigned u=0; u<size; u++) {
-	 // virtual fn call depending on stmt type
-	 if (!(*stmts)[u]->apply(codeNode, flagNodes)) {
-	    return false;
-	 }
+         // virtual fn call depending on stmt type
+         if (!(*stmts)[u]->apply(codeNode, flagNodes)) {
+            return false;
+         }
       }
    }
 
@@ -733,68 +733,68 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
 		     const pdvector<string> &temp_ctr, 
 		     bool /*replace_component*/)
 {
-    processMetFocusNode *procNode = (*procNode_arg);
-    pd_process *proc = procNode->proc();
-    bool dontInsertData = procNode->dontInsertData();
-    // create the instrCodeNodes and instrDataNodes for the flag constraints
-    
-    if(repl_cons == NULL) {
-        unsigned flag_size = flag_cons.size(); // could be zero
-        
-        for(unsigned fs=0; fs<flag_size; fs++) {
-            string cons_name(flag_cons[fs]->id());
-            
-            instrCodeNode *consCodeNode = 
+   processMetFocusNode *procNode = (*procNode_arg);
+   pd_process *proc = procNode->proc();
+   bool dontInsertData = procNode->dontInsertData();
+   // create the instrCodeNodes and instrDataNodes for the flag constraints
+   
+   if(repl_cons == NULL) {
+      unsigned flag_size = flag_cons.size(); // could be zero
+      
+      for(unsigned fs=0; fs<flag_size; fs++) {
+         string cons_name(flag_cons[fs]->id());
+         
+         instrCodeNode *consCodeNode = 
             instrCodeNode::newInstrCodeNode(cons_name, no_thr_focus,
                                             proc, dontInsertData);
-            bool consCodeNodeComplete = (consCodeNode->numDataNodes() > 0);
-            
-            if(! consCodeNodeComplete) {
-                if(! setup_constraint_code_node(consCodeNode, proc, flag_cons[fs],
-                                                *flags_focus_data[fs], dontInsertData)) 
-                {
-                    delete consCodeNode;
-                    return false;
-                }
-            } else {
-                metric_cerr << "  flag already there " << endl;
-                assert(consCodeNode);
+         bool consCodeNodeComplete = (consCodeNode->numDataNodes() > 0);
+         
+         if(! consCodeNodeComplete) {
+            if(! setup_constraint_code_node(consCodeNode, proc, flag_cons[fs],
+                                        *flags_focus_data[fs], dontInsertData))
+            {
+               delete consCodeNode;
+               return false;
             }
-            procNode->addConstraintCodeNode(consCodeNode);	    
-        }
-    }
-    instrCodeNode *metCodeNode = 
-    instrCodeNode::newInstrCodeNode(name, no_thr_focus, proc, dontInsertData,
-                                    hw_cntr_str);
+         } else {
+            metric_cerr << "  flag already there " << endl;
+            assert(consCodeNode);
+         }
+         procNode->addConstraintCodeNode(consCodeNode);	    
+      }
+   }
+   instrCodeNode *metCodeNode = 
+      instrCodeNode::newInstrCodeNode(name, no_thr_focus, proc,
+                                      dontInsertData, hw_cntr_str);
+   
+   /* if hw_cntr_str is no good, metCodeNode is NULL */
+   if (metCodeNode == NULL) {
+      return false;
+   }
     
-    /* if hw_cntr_str is no good, metCodeNode is NULL */
-    if (metCodeNode == NULL) {
-        return false;
-    }
     
+   bool metCodeNodeComplete = (metCodeNode->numDataNodes() > 0);
+   if(! metCodeNodeComplete) {
+      // Create the data objects (timers/counters) and create the
+      // astNodes which will be used to generate the instrumentation
+      if(! setup_sampled_code_node(procNode, metCodeNode, proc, id, type, 
+                                   repl_cons, stmts, temp_ctr,
+                                   repl_focus_data, dontInsertData)) {
+         delete metCodeNode;
+         return false;
+      }
+   } else {
+      //cerr << "  met code node already there, reuse it! " << endl;
+   }
+   
+   if(!metCodeNode->nonNull()) {
+      metric_cerr << "metCodeNode->nonNull()" << endl;
+      delete metCodeNode;
+      return false;
+   }
     
-    bool metCodeNodeComplete = (metCodeNode->numDataNodes() > 0);
-    if(! metCodeNodeComplete) {
-        // Create the data objects (timers/counters) and create the
-        // astNodes which will be used to generate the instrumentation
-        if(! setup_sampled_code_node(procNode, metCodeNode, proc, id, type, 
-                                     repl_cons, stmts, temp_ctr,
-                                     repl_focus_data, dontInsertData)) {
-            delete metCodeNode;
-            return false;
-        }
-    } else {
-        //cerr << "  met code node already there, reuse it! " << endl;
-    }
-    
-    if(!metCodeNode->nonNull()) {
-        metric_cerr << "metCodeNode->nonNull()" << endl;
-        delete metCodeNode;
-        return false;
-    }
-    
-    procNode->setMetricVarCodeNode(metCodeNode);
-    return true;
+   procNode->setMetricVarCodeNode(metCodeNode);
+   return true;
 }
 
 bool createThreadNodes(processMetFocusNode **procNode_arg,
@@ -809,38 +809,39 @@ bool createThreadNodes(processMetFocusNode **procNode_arg,
    pdvector<threadMetFocusNode *> threadNodeBuf;
    if(! bMT) {   // --- single-threaded ---
       threadMetFocusNode *thrNode = 
-	 threadMetFocusNode::newThreadMetFocusNode(metname, no_thr_focus,
-						   proc->STthread());
+         threadMetFocusNode::newThreadMetFocusNode(metname, no_thr_focus,
+                                                   proc->STthread());
       threadNodeBuf.push_back(thrNode);
    } else {      // --- multi-threaded ---
      int thrSelected = full_focus.getThreadID();
       if(thrSelected == -1) {
-	 Focus focus_with_thr = no_thr_focus;
-	 threadMgr::thrIter itr = proc->beginThr();
-	 while(itr != proc->endThrMark()) {
-	    pd_thread *thr = *itr;
+         Focus focus_with_thr = no_thr_focus;
+         threadMgr::thrIter itr = proc->beginThr();
+         while(itr != proc->endThrMark()) {
+            pd_thread *thr = *itr;
             itr++;
-	    string start_func_name;
-	    start_func_name = thr->get_start_func() ? thr->get_start_func()->prettyName()
-	      : string("no start func!");
-	    
-	    string thrName = string("thr_") + string(thr->get_tid()) + "{" + 
-	                      start_func_name + "}";
-	    focus_with_thr.set_thread(thrName);
-	    threadMetFocusNode *thrNode = threadMetFocusNode::
-	       newThreadMetFocusNode(metname, focus_with_thr, thr);
-	    threadNodeBuf.push_back(thrNode);
-	 }
+            string start_func_name;
+            start_func_name = thr->get_start_func() ? 
+               thr->get_start_func()->prettyName()
+               : string("no start func!");
+            
+            string thrName = string("thr_") + string(thr->get_tid()) + "{" + 
+                             start_func_name + "}";
+            focus_with_thr.set_thread(thrName);
+            threadMetFocusNode *thrNode = threadMetFocusNode::
+               newThreadMetFocusNode(metname, focus_with_thr, thr);
+            threadNodeBuf.push_back(thrNode);
+         }
       } else {
-	 pd_thread *selThr = proc->thrMgr().find_pd_thread(thrSelected);
+         pd_thread *selThr = proc->thrMgr().find_pd_thread(thrSelected);
          if(selThr == NULL) return false;
-	 threadMetFocusNode *thrNode = 
-	    threadMetFocusNode::newThreadMetFocusNode(metname, full_focus,
-						      selThr);
-	 threadNodeBuf.push_back(thrNode);
+         threadMetFocusNode *thrNode = 
+            threadMetFocusNode::newThreadMetFocusNode(metname, full_focus,
+                                                      selThr);
+         threadNodeBuf.push_back(thrNode);
       }
    }
-
+   
    for(unsigned k=0; k<threadNodeBuf.size(); k++) {
       procNode->addThrMetFocusNode(threadNodeBuf[k]);
    }
@@ -855,21 +856,16 @@ bool createThreadNodes(processMetFocusNode **procNode_arg,
    returns 2 if thrMF_node is set
 */
 processMetFocusNode *
-apply_to_process(pd_process *proc,
-                 string& id, string& name,
-		 const Focus &focus,
-                 unsigned agg_op,
-                 unsigned type,
+apply_to_process(pd_process *proc, string& id, string& name,
+                 const Focus &focus, unsigned agg_op, unsigned type,
                  string& hw_cntr_str,
                  pdvector<T_dyninstRPC::mdl_constraint*>& flag_cons,
                  T_dyninstRPC::mdl_constraint *repl_cons,
                  pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
-		 pdvector<const Hierarchy *> &flags_focus_data,
+                 pdvector<const Hierarchy *> &flags_focus_data,
                  const Hierarchy &repl_focus_data,
                  const pdvector<string> &temp_ctr,
-                 bool replace_component,
-                 bool dontInsertData) {
-
+                 bool replace_component, bool dontInsertData) {
    metric_cerr << "apply_to_process()" << endl;
    if (!update_environment(proc)) return NULL;
 
@@ -889,15 +885,18 @@ apply_to_process(pd_process *proc,
 					  aggregateOp(agg_op), dontInsertData);
 
    bool ret = createCodeAndDataNodes(&procNode, id, name, no_thr_focus, 
-                                     type, hw_cntr_str, flag_cons, repl_cons, stmts, 
-                                     flags_focus_data, repl_focus_data, temp_ctr, 
-                                     replace_component);
-   
+                                     type, hw_cntr_str, flag_cons, repl_cons,
+                                     stmts, flags_focus_data, repl_focus_data,
+                                     temp_ctr, replace_component);
+
    if(ret == false) {
+      delete procNode;
       return NULL;
    }
-   if(createThreadNodes(&procNode, name, no_thr_focus, full_focus) == false)
+   if(createThreadNodes(&procNode, name, no_thr_focus, full_focus) == false) {
+      delete procNode;
       return NULL;
+   }
 
    return procNode;
 }
@@ -930,7 +929,7 @@ static bool apply_to_process_list(pdvector<pd_process*>& instProcess,
                           flag_cons, repl_cons, stmts, flags_focus_data, 
                           repl_focus_data, temp_ctr, 
                           replace_components_if_present, dontInsertData);
-      
+
       if(procRetNode)  (*procParts).push_back(procRetNode);
    }
    
@@ -1186,59 +1185,59 @@ bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *codeNode,
 					 pd_process *proc,
 					 bool dontInsertData)
 {
-  assert(dataNode);
-  switch (data_type_) {
-  case MDL_T_COUNTER:
-  case MDL_T_WALL_TIMER:
-  case MDL_T_PROC_TIMER:
-  case MDL_T_HW_TIMER:
-  case MDL_T_HW_COUNTER:
-    break;
-  default:
-    assert(0);
-  }
-  mdl_env::push();
+   assert(dataNode);
+   switch (data_type_) {
+     case MDL_T_COUNTER:
+     case MDL_T_WALL_TIMER:
+     case MDL_T_PROC_TIMER:
+     case MDL_T_HW_TIMER:
+     case MDL_T_HW_COUNTER:
+        break;
+     default:
+        assert(0);
+   }
+   mdl_env::push();
 
-  if (!replace_) {
-    // create the counter used as a flag
-    mdl_env::add(id_, false, MDL_T_DATANODE);
-    // "true" means that we are going to create a sampled int counter but
-    // we are *not* going to sample it, because it is just a temporary
-    // counter - naim 4/22/97
-    // By default, the last parameter is false - naim 4/23/97
+   if (!replace_) {
+      // create the counter used as a flag
+      mdl_env::add(id_, false, MDL_T_DATANODE);
+      // "true" means that we are going to create a sampled int counter but
+      // we are *not* going to sample it, because it is just a temporary
+      // counter - naim 4/22/97
+      // By default, the last parameter is false - naim 4/23/97
+      
+      (*dataNode) = new instrDataNode(proc, MDL_T_COUNTER, dontInsertData,
+                                      NULL);
+      codeNode->setConstraintDataNode(*dataNode);
+      
+      // this flag constructs a predicate for the metric -- have to return it
+      mdl_env::set(*dataNode, id_);
+   }
 
-    (*dataNode) = new instrDataNode(proc, MDL_T_COUNTER, dontInsertData, NULL);
-    codeNode->setConstraintDataNode(*dataNode);
-
-    // this flag will construct a predicate for the metric -- have to return it
-    mdl_env::set(*dataNode, id_);
-  }
-
-  // put $constraint[X] in the environment
-  if(!do_trailing_resources(resource.tokenized(), proc)) {
-    mdl_env::pop();
-    return(false);
-  }
-
-  // Now evaluate the constraint statements
-  unsigned size = stmts_->size();
-  pdvector<const instrDataNode*> flags;
-  bool wasRunning = global_proc->status()==running;
-  global_proc->pause();
-  for (unsigned u=0; u<size; u++) {
-    if (!(*stmts_)[u]->apply(codeNode, flags)) { // virtual fn call; several possibilities
-
-      if (wasRunning) {
-	   global_proc->continueProc();
-      }
+   // put $constraint[X] in the environment
+   if(!do_trailing_resources(resource.tokenized(), proc)) {
+      mdl_env::pop();
       return(false);
-    }
-  }
-  mdl_env::pop();
-  if (wasRunning) {
-       global_proc->continueProc();
-  }
-  return(true);
+   }
+   
+   // Now evaluate the constraint statements
+   unsigned size = stmts_->size();
+   pdvector<const instrDataNode*> flags;
+   bool wasRunning = global_proc->status()==running;
+   global_proc->pause();
+   for (unsigned u=0; u<size; u++) {
+      if (!(*stmts_)[u]->apply(codeNode, flags)) { // virtual fn call         
+         if (wasRunning) {
+            global_proc->continueProc();
+         }
+         return(false);
+      }
+   }
+   mdl_env::pop();
+   if (wasRunning) {
+      global_proc->continueProc();
+   }
+   return(true);
 }
 
 bool T_dyninstRPC::mdl_constraint::replace() {
@@ -2364,22 +2363,22 @@ bool mdl_do(pdvector<processMetFocusNode *> *createdProcNodes,
 	    const pdvector<pd_process *> &procs,
 	    bool replace_components_if_present, bool enable, 
 	    aggregateOp *aggOpToUse) {
-  currentMetric = met_name;
-  unsigned size = mdl_data::all_metrics.size();
-  // NOTE: We can do better if there's a dictionary of <metric-name> to
-  // <metric>!
-
-  for (unsigned u=0; u<size; u++) {
-     T_dyninstRPC::mdl_metric *curMetric = mdl_data::all_metrics[u];
-     if (curMetric->name_ == met_name) {
-	// calls mdl_metric::apply()
-        bool ret = curMetric->apply(createdProcNodes, focus, procs,
-				    replace_components_if_present, enable);
-	(*aggOpToUse) = aggregateOp(curMetric->agg_op_);
-	return ret;
-    }
-  }
-  return false;
+   currentMetric = met_name;
+   unsigned size = mdl_data::all_metrics.size();
+   // NOTE: We can do better if there's a dictionary of <metric-name> to
+   // <metric>!
+   
+   for (unsigned u=0; u<size; u++) {
+      T_dyninstRPC::mdl_metric *curMetric = mdl_data::all_metrics[u];
+      if (curMetric->name_ == met_name) {
+         // calls mdl_metric::apply()
+         bool ret = curMetric->apply(createdProcNodes, focus, procs,
+                                     replace_components_if_present, enable);
+         (*aggOpToUse) = aggregateOp(curMetric->agg_op_);
+         return ret;
+      }
+   }
+   return false;
 }
 
 machineMetFocusNode *makeMachineMetFocusNode(int mid, const Focus& focus, 
@@ -2962,37 +2961,37 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
 
 
 bool mdl_get_initial(string flavor, pdRPC *connection) {
-  mdl_init(flavor);
-  while (!(mdl_met && mdl_cons && mdl_stmt && mdl_libs)) {
-    switch (connection->waitLoop()) {
-    case T_dyninstRPC::error:
-      metric_cerr << "mdl_get_initial flavor = " << flavor
-	  << " connection = " << connection
-          << "  error in connection->waitLoop()" << endl;
-      return false;
-    default:
-      break;
-    }
-    while (connection->buffered_requests()) {
-      switch (connection->process_buffered()) {
-      case T_dyninstRPC::error:
-	metric_cerr << "mdl_get_initial flavor = " << flavor
-	  << " connection = " << connection
-          << "  error in connection->processBuffered()" << endl;
-	return false;
-      default:
-	break;
+   mdl_init(flavor);
+   while (!(mdl_met && mdl_cons && mdl_stmt && mdl_libs)) {
+      switch (connection->waitLoop()) {
+        case T_dyninstRPC::error:
+           metric_cerr << "mdl_get_initial flavor = " << flavor
+                       << " connection = " << connection
+                       << "  error in connection->waitLoop()" << endl;
+           return false;
+        default:
+           break;
       }
-    }
-  }
-  return true;
+      while (connection->buffered_requests()) {
+         switch (connection->process_buffered()) {
+           case T_dyninstRPC::error:
+              metric_cerr << "mdl_get_initial flavor = " << flavor
+                          << " connection = " << connection
+                          << "  error in connection->processBuffered()" << endl;
+              return false;
+           default:
+              break;
+         }
+      }
+   }
+   return true;
 }
 
 bool mdl_get_lib_constraints(pdvector<string> &lc){
-    for(u_int i=0; i < mdl_data::lib_constraints.size(); i++){
-	lc += mdl_data::lib_constraints[i];
-    }
-    return (lc.size()>0);
+   for(u_int i=0; i < mdl_data::lib_constraints.size(); i++){
+      lc += mdl_data::lib_constraints[i];
+   }
+   return (lc.size()>0);
 }
 
 void mdl_get_info(pdvector<T_dyninstRPC::metricInfo>& metInfo) {
