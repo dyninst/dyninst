@@ -10,7 +10,10 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.15  1995/02/27 18:59:02  tamches
+ * Revision 1.16  1995/03/30 15:32:37  jcargill
+ * Fixed a minor UMR purify turned up
+ *
+ * Revision 1.15  1995/02/27  18:59:02  tamches
  * The use of tunable constants has changed to reflect the new
  * "tunableConstantRegistry" class and the new TCthread.
  *
@@ -124,7 +127,7 @@ char *makeName(char *prefix, char *suffix)
 int metMain(char *userFile)
 {
   // return yyparse();
-  int yy1=0, yy2, yy3;
+  int yy1=0, yy2=0, yy3=0;
   char *home, *proot, *fname, *cwd;
 
   // empty the lists
