@@ -2,8 +2,12 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.22  1995/11/08 02:15:31  tamches
-#  Changed logo and title bar background from slategray to indianred
+#  Revision 1.23  1995/11/17 17:32:20  newhall
+#  changed Dg start command to take no arguments, replaced call to MetricUnits
+#  with call to MetricLabel
+#
+# Revision 1.22  1995/11/08  02:15:31  tamches
+# Changed logo and title bar background from slategray to indianred
 #
 # Revision 1.21  1995/08/24  15:15:08  hollings
 # AIX/SP-2 port (including option for split instruction/data heaps)
@@ -1268,13 +1272,13 @@ proc DgPhaseCallback {} {
 # ###########  AddMetricDialog -- Ask paradyn for another metric ########
 
 proc AddMetricDialog {} {
-   Dg start "*" "*"
+   Dg start 
 }
 
 # #########  AddResourceDialog -- Ask paradyn for another resource #######
 
 proc AddResourceDialog {} {
-   Dg start "*" "*"
+   Dg start
 }
 
 # A menu item was chosen to change the sorting options

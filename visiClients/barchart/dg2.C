@@ -2,9 +2,13 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.9  1995/09/22 19:23:41  tamches
-/* removed warnings under g++ 2.7.0
+/* Revision 1.10  1995/11/17 17:32:27  newhall
+/* changed Dg start command to take no arguments, replaced call to MetricUnits
+/* with call to MetricLabel
 /*
+ * Revision 1.9  1995/09/22  19:23:41  tamches
+ * removed warnings under g++ 2.7.0
+ *
  * Revision 1.8  1995/08/06  22:11:48  tamches
  * removed some warnings by using myTclEval
  *
@@ -206,7 +210,7 @@ int Dg_TclCommand(ClientData,
 
   case METRICUNITS:  
     m = atoi(argv[2]);
-    sprintf(interp->result, "%s", dataGrid.MetricUnits(m));
+    sprintf(interp->result, "%s", dataGrid.MetricLabel(m));
     return TCL_OK;
 
   case NUMBINS:     
