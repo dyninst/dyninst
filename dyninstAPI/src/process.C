@@ -2490,9 +2490,10 @@ return false;
 	   return false;
        }
    } else {
-       pdFunction *f = symbols->findOneFunctionFromAll("$$dyncall");
+       pdFunction *f = symbols->findOneFunctionFromAll("DYNINSTdyncall");
+       // pdFunction *f = symbols->findOneFunctionFromAll("$$dyncall");
        if (!f) {
-	   cerr << "$$dyncall was not found, inferior RPC won't work!" << endl;   
+	   cerr << "DYNINSTdyncall was not found, inferior RPC won't work!" << endl;   
 	
 	   //       if (wasRunning)
 	   //	   (void)continueProc();
