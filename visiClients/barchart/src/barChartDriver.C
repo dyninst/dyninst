@@ -1,10 +1,13 @@
 // barChartDriver.C
 
 /* $Log: barChartDriver.C,v $
-/* Revision 1.12  1996/01/10 02:25:34  tamches
-/* added --xsynch and --debug command-line options
-/* installed getMetricColorNameCommand
+/* Revision 1.13  1996/01/11 01:52:53  tamches
+/* added command long2shortFocusName
 /*
+ * Revision 1.12  1996/01/10 02:25:34  tamches
+ * added --xsynch and --debug command-line options
+ * installed getMetricColorNameCommand
+ *
  * Revision 1.11  1995/12/20 18:37:59  newhall
  * matherr.h does not need to be included by visis
  *
@@ -51,8 +54,8 @@
 #include <stdlib.h>
 #include <iostream.h>
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 #include "tkTools.h"
 
 #include "pdLogo.h"
@@ -144,6 +147,10 @@ int main(int argc, char **argv) {
 		     getMetricColorNameCommand,
 		     NULL, // ClientData
 		     deleteDummyProc);
+
+   Tcl_CreateCommand(MainInterp, "long2shortFocusName", long2shortFocusNameCommand,
+		     NULL, // ClientData
+		     deleteLaunchBarChartCommand);
 
    Tcl_CreateCommand(MainInterp, "launchBarChart", launchBarChartCommand,
 		     NULL, // ClientData
