@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.20 2001/02/02 21:20:18 gurari Exp $
+// $Id: templates0.C,v 1.21 2001/02/20 21:48:45 gurari Exp $
 // Generate all the templates in one file.
 
 /*
@@ -79,13 +79,8 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/Object.h"
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
-#include "dyninstAPI/src/LocalAlteration-x86.h"
-#include "dyninstAPI/src/FunctionExpansionRecord-x86.h"
-#else
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
-#endif
 
 template class  vector<pdThread *>;
 template class  vector< vector<pdThread *> >;
