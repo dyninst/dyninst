@@ -3,11 +3,14 @@
 // programmed in tk/tcl in barChart.tcl.
 
 /* $Log: barChart.C,v $
-/* Revision 1.3  1994/09/30 23:13:41  tamches
-/* reads resource width from tcl as "currResourceWidth", to accomodate
-/* new barChart.tcl code which adjusts this variable when resources
-/* are added/deleted.  (previously it had been constant)
+/* Revision 1.4  1994/10/04 19:01:05  tamches
+/* Cleaned up the resource bar color choices
 /*
+ * Revision 1.3  1994/09/30  23:13:41  tamches
+ * reads resource width from tcl as "currResourceWidth", to accomodate
+ * new barChart.tcl code which adjusts this variable when resources
+ * are added/deleted.  (previously it had been constant)
+ *
  * Revision 1.2  1994/09/29  20:05:32  tamches
  * minor cvs fixes
  *
@@ -50,12 +53,14 @@
 
 #include "barChart.h"
 
-BarChart *theBarChart; // main data structure; holds bar information.  Does not
-                       // hold x axis or y axis information (or contents), because
-                       // they are managed just fine from tcl (barChart.tcl) at present.
-                       // Created dynamically in DrawBarsInstallCommand.  Cannot be
-                       // created before then since necessary constructor arguments
-                       // such as tk window name are not yet known.
+ // main data structure; holds bar information.  Does not
+ // hold x axis or y axis information (or contents), because
+ // they are managed just fine from tcl (barChart.tcl) at present.
+ // Created dynamically in DrawBarsInstallCommand.  Cannot be
+ // created before then since necessary constructor arguments
+ // such as tk window name are not yet known.
+
+BarChart *theBarChart;
 
 /* ********************************************************************
  * *********************** BarChart methods ***************************
@@ -219,11 +224,18 @@ char *gimmeColorName(const int metriclcv) {
    static char *theNames[] = {
       "blue",
       "red",
-      "green",
-      "orange"
+      "purple",
+      "orange",
+      "yellow",
+      "aquamarine",
+      "darkGreen",
+      "lightBlue",
+      "navyBlue",
    };
 
-   return theNames[metriclcv % 4];
+   // it's safe to return a pointer to a local variable in this case,
+   // because it (the array and its contents) is statically allocated.
+   return theNames[metriclcv % 8];
 }
 
 void BarChart::RethinkMetricColors() {
@@ -260,10 +272,11 @@ void BarChart::ResetPrevBarHeights() {
 }
 
 void BarChart::RethinkMetricsAndResources() {
-   // clear window, erase and reallocate barXoffsets, barWidths, prevBarHeights,
-   // barHeights, metricCurrMaxYs; set numMetrics, numResources -- all based on a
-   // complete re-reading from dataGrid[][].  (If visi had provided more fine-grained
-   // callbacks than ADDMETRICSRESOURCES, such a crude routine would not be necessary.)
+   // clear window, erase and reallocate barXoffsets, barWidths,
+   // prevBarHeights, barHeights, metricCurrMaxYs; set numMetrics,
+   // numResources -- all based on a complete re-reading from dataGrid[][].
+   // (If visi had provided more fine-grained callbacks than
+   // ADDMETRICSRESOURCES, such a crude routine would not be necessary.)
 
    // When done, redraw.
 
