@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.141 2003/04/25 22:31:13 jaw Exp $
+// $Id: aix.C,v 1.142 2003/05/07 19:10:47 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -47,6 +47,7 @@
 #include "dyninstAPI/src/signalhandler.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
+#include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/stats.h"
 #include "common/h/Types.h"
@@ -178,7 +179,6 @@ bool ptraceKludge::haltProcess(process *p) {
 Frame dyn_lwp::getActiveFrame()
 {
    unsigned pc, fp;
-
    if (lwp_id_) { // We have a kernel thread to target. Nifty, eh?
       struct ptsprs spr_contents;
       bool kernel_mode = false;
@@ -292,25 +292,24 @@ Frame Frame::getCallerFrame(process *p) const
     //    if not, get it from the pthread debug library
     // LWP: call ptrace(lwp)
     struct ptsprs spr_contents;
-    if (lwp_) {
-      if (P_ptrace(PTT_READ_SPRS, lwp_->get_lwp_id(), (int *)&spr_contents,
-		   0, 0) == -1) {
-	perror("Failed to read SPR data in getCallerFrameLWP");
-	fprintf(stderr, "errno = %d\n", errno);
-	return Frame();
-      }
-      ret.pc_ = spr_contents.pt_lr;
+    if (lwp_ && lwp_->get_lwp_id()) {
+        if (P_ptrace(PTT_READ_SPRS, lwp_->get_lwp_id(), (int *)&spr_contents,
+                     0, 0) == -1) {
+            perror("Failed to read SPR data in getCallerFrameLWP");
+            return Frame();
+        }
+        ret.pc_ = spr_contents.pt_lr;
     }
-    else if (thread_) {
-	cerr << "NOT IMPLEMENTED YET" << endl;
-      }
+    else if (thread_ && thread_->get_tid()) {
+        cerr << "NOT IMPLEMENTED YET" << endl;
+    }
     else { // normal
-      ret.pc_ = P_ptrace(PT_READ_GPR, pid_, (void *)LR, 0, 0);
+        ret.pc_ = P_ptrace(PT_READ_GPR, pid_, (void *)LR, 0, 0);
     }
   }
   else if (inTramp) {
-    p->readDataSpace((caddr_t)thisStackFrame.oldFp-TRAMP_FRAME_SIZE+TRAMP_SPR_OFFSET+STK_LR, sizeof(int),
-		     (caddr_t)&ret.pc_, false);
+      p->readDataSpace((caddr_t)thisStackFrame.oldFp-TRAMP_FRAME_SIZE+TRAMP_SPR_OFFSET+STK_LR, sizeof(int),
+                       (caddr_t)&ret.pc_, false);
   }
   else { // Not a leaf function, grab the LR from the stack
     // Oh lordy... but NOT if we're at the entry of the function. See, we haven't
@@ -1382,7 +1381,7 @@ bool process::loopUntilStopped() {
         procSignalWhy_t why;
         procSignalWhat_t what;
         procSignalInfo_t info;
-        if(hasExited()) false;
+        if(hasExited()) return false;
         if (loops == 2000) {
             // Resend sigstop...
             stop_();
@@ -2358,18 +2357,19 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
   
   if (isLeaf) {
       // Stomp the LR
-      if (frame.getLWP()) {
+      dyn_lwp *lwp = frame.getLWP();
+      if (lwp && lwp->get_lwp_id()) {
           // LWP method
           struct ptsprs spr_contents;
           Address oldLR;
-          if (P_ptrace(PTT_READ_SPRS, frame.getLWP()->get_lwp_id(),
+          if (P_ptrace(PTT_READ_SPRS, lwp->get_lwp_id(),
                        (int *)&spr_contents, 0, 0) == -1) {
               perror("Failed to read SPRS in catchupSideEffect");
               return false;
           }
           oldReturnAddr = spr_contents.pt_lr;
           spr_contents.pt_lr = (unsigned) exitTrampAddr;
-          if (P_ptrace(PTT_WRITE_SPRS, frame.getLWP()->get_lwp_id(),
+          if (P_ptrace(PTT_WRITE_SPRS, lwp->get_lwp_id(),
                        (int *)&spr_contents, 0, 0) == -1) {
               perror("Failed to write SPRS in catchupSideEffect");
               return false;
