@@ -3,9 +3,12 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
- * Revision 1.1  1994/02/01 18:47:35  hollings
- * Upgrades for performanceConsultant thread.
+ * Revision 1.2  1994/02/02 00:43:20  hollings
+ * Added Auto Refinement options.
  *
+# Revision 1.1  1994/02/01  18:47:35  hollings
+# Upgrades for performanceConsultant thread.
+#
  *
  */
 #include "dataManager.h"
@@ -28,7 +31,8 @@ $remote performanceConsultant {
     void printSHGNode(searchHistoryNode *);
     void changeCurrentRefinement(int);
     void printSHGList();
-    void Search(Boolean);
+    void search(Boolean);
+    void autoRefine(int limit);
     void createInterval(int, timeStamp, timeStamp, char*);
     void doRefine($array int ids);
     void resetRefinement();
