@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.294 2004/04/02 06:34:15 jaw Exp $
+/* $Id: process.h,v 1.295 2004/04/07 20:20:32 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -108,8 +108,9 @@
 #include <libunwind.h>
 #endif
 
-#if !defined(MAX_NUMBER_OF_THREADS) 
-#define MAX_NUMBER_OF_THREADS 256
+extern unsigned MAX_NUMBER_OF_THREADS;
+#if defined(SHM_SAMPLING)
+extern unsigned SHARED_SEGMENT_SIZE;
 #endif
 
 extern unsigned activeProcesses; // number of active processes
