@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.27 2003/08/11 11:58:01 tlmiller Exp $
+// $Id: templates2.C,v 1.28 2003/09/05 16:28:08 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -156,7 +156,7 @@ template class varTable<hwCounterHK>;
 template class pdvector<baseVarTable *>;
 #endif
 
-#ifdef BPATCH_LIBRARY
+//#ifdef BPATCH_LIBRARY
 template class dictionary_hash <pdstring, Symbol>;
 template class pdvector<dictionary_hash <pdstring, Symbol>::entry>;
 template class pdvector<dictionary_hash<Address, BPatch_point *>::entry>;
@@ -178,7 +178,7 @@ template class pdvector<dictionary_hash <int, BPatch_thread *>::entry>;
 
 template class pdvector<BPatch_localVar *>;
 template class pdvector<BPatch_field *>;
-#endif
+//#endif
 
 template class pdvector<pdpair<pdstring, pdvector<pdstring> *> >;
 template class dictionary_hash <pdstring, pdvector<pdstring> *>;
