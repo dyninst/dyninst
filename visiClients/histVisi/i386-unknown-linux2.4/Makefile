@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2000/03/31 02:00:17 wylie Exp $
+# $Id: Makefile,v 1.2 2001/06/12 19:52:35 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -16,10 +16,9 @@ include $(TO_CORE)/make.config
 
 # Now make any necessary architecture specific changes to variables:
 # this two are a temporary kludge; barchart should have a "src" dir
-VPATH	    += ..
-CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) -g
-TFLAGS	    += $(TCLFRIENDLYWARNINGS)
-CFLAGS	    += $(TCLFRIENDLYWARNINGS)
+CXXFLAGS    += $(TCLFRIENDLYWARNINGS)
+TFLAGS      += $(TCLFRIENDLYWARNINGS)
+CFLAGS      += $(TCLFRIENDLYWARNINGS)
 SYSLIBS	    = -ldl
 
 # Include the module-specific Makefile, which defines everything about
