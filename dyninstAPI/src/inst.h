@@ -11,7 +11,10 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
- * Revision 1.11  1995/03/10 19:30:21  hollings
+ * Revision 1.12  1995/05/18 10:37:04  markc
+ * removed tag dictionary
+ *
+ * Revision 1.11  1995/03/10  19:30:21  hollings
  * Added getPointCost and getInsnCost.
  *
  * Revision 1.10  1995/02/16  08:53:35  markc
@@ -81,6 +84,8 @@
  *
  *
  */
+
+#include "rtinst/h/trace.h"
 
 class instInstance;
 class process;
@@ -187,18 +192,9 @@ pdFunction *getFunction(instPoint *point);
 
 class instMapping {
  public:
-  instMapping(const string f, const string i, const int w,
-	      AstNode *a, bool mr=true)
-    : more(mr), func(f), inst(i), where(w), arg(a) { }
+  instMapping(const string f, const string i, const int w, AstNode *a=NULL)
+    : func(f), inst(i), where(w), arg(a) { }
 
-  instMapping() : more(true), where(0), arg(NULL) { }
-
-  void set(const string f, const string i, const int w,
-	   AstNode *a=NULL, bool mr=true) {
-    func = f; inst =i; where = w; arg = a; more = mr;}
-
-  // KLUDGE -- TODO fix this -- marks last element in array
-  bool more;
   string func;         /* function to instrument */
   string inst;         /* inst. function to place at func */
   int where;          /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
@@ -209,7 +205,7 @@ class instMapping {
  * Install a list of inst requests in a process.
  *
  */
-void installDefaultInst(process *proc, instMapping *initialReq);
+void installDefaultInst(process *proc, vector<instMapping*>& initialReq);
 
 /*
  * get information about the cost of pimitives.
@@ -298,10 +294,9 @@ extern void forkNodeProcesses(process *curr,
 extern unsigned getMaxBranch();
 
 // find these internal functions before finding any other functions
-extern dictionary_hash<string, unsigned> tagDict;
-
+// extern dictionary_hash<string, unsigned> tagDict;
 extern dictionary_hash <string, unsigned> primitiveCosts;
-extern dictionary_hash<string, unsigned> tagDict;
+
 extern process *nodePseudoProcess;
 
 #endif

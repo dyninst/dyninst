@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.15 1995/03/10 19:33:51 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.16 1995/05/18 10:36:42 markc Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.15  1995/03/10 19:33:51  hollings
+ * Revision 1.16  1995/05/18 10:36:42  markc
+ * removed tag dictionary
+ *
+ * Revision 1.15  1995/03/10  19:33:51  hollings
  * Fixed several aspects realted to the cost model:
  *     track the cost of the base tramp not just mini-tramps
  *     correctly handle inst cost greater than an imm format on sparc
@@ -148,7 +151,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 #define NS_TO_SEC	1000000000.0
 dictionary_hash <string, unsigned> primitiveCosts(string::hash);
-dictionary_hash<string, unsigned> tagDict(string::hash);
+// dictionary_hash<string, unsigned> tagDict(string::hash);
 process *nodePseudoProcess=NULL;
 
 int getBaseBranchAddr(process *proc, instInstance *inst)
@@ -385,13 +388,15 @@ void deleteInst(instInstance *old)
 }
 
 
-void installDefaultInst(process *proc, instMapping *initialReqs)
+void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
 {
     int i;
     AstNode *ast;
     instMapping *item;
 
-    for (item = initialReqs; item->more; item++) {
+    unsigned ir_size = initialReqs.size(); 
+    for (unsigned u=0; u<ir_size; u++) {
+      item = initialReqs[u];
       // TODO this assumes only one instance of each function (no siblings)
       // TODO - are failures safe here ?
       pdFunction *func = (proc->symbols)->findOneFunction(item->func);
@@ -459,8 +464,11 @@ unsigned getPrimitiveCost(const string name)
 
 // find any tags to associate semantic meaning to function
 unsigned findTags(const string funcName) {
+  return 0;
+#ifdef notdef
   if (tagDict.defines(funcName))
     return (tagDict[funcName]);
   else
     return 0;
+#endif
 }
