@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.16 1999/06/08 06:01:26 csserra Exp $
+// $Id: test2.C,v 1.17 1999/06/08 18:58:03 hollings Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -253,7 +253,7 @@ main(int argc, char *argv[])
 	}
     }
 
-#if defined(sparc_sun_sunos4_1_3) || defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_sunos4_1_3)
     if (useAttach) {
 	printf("Attach is not supported on this platform.\n");
 	exit(1);
