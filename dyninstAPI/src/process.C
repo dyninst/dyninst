@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.469 2004/02/07 18:34:17 schendel Exp $
+// $Id: process.C,v 1.470 2004/02/25 04:36:45 schendel Exp $
 
 #include <ctype.h>
 
@@ -3236,7 +3236,7 @@ dyn_lwp *process::query_for_stopped_lwp() {
 }
 
 // first searches for stopped lwp and if not found explicitly stops an lwp
-dyn_lwp *process::stop_an_lwp() {
+dyn_lwp *process::stop_an_lwp(bool *wasRunning) {
    dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
    dyn_lwp *lwp;
    dyn_lwp *stopped_lwp = NULL;
@@ -3244,16 +3244,33 @@ dyn_lwp *process::stop_an_lwp() {
 
    if(IndependentLwpControl()) {
       while(lwp_iter.next(index, lwp)) {
+         if(lwp->status() == stopped) {
+            stopped_lwp = lwp;
+            *wasRunning = false;
+            break;
+         }
          if(lwp->pauseLWP()) {
             stopped_lwp = lwp;
+            *wasRunning = true;
             break;
          }
       }
-      if(stopped_lwp == NULL)
-         if(getRepresentativeLWP()->pauseLWP())
-            stopped_lwp = getRepresentativeLWP();
+      if(stopped_lwp == NULL) {
+         if(getRepresentativeLWP()->status() == stopped) {
+            *wasRunning = false;
+         } else {
+            getRepresentativeLWP()->pauseLWP();
+            *wasRunning = true;
+         }
+         stopped_lwp = getRepresentativeLWP();
+      }
    } else {
-      getRepresentativeLWP()->pauseLWP();
+      if(getRepresentativeLWP()->status() == stopped)
+         *wasRunning = false;
+      else {
+         getRepresentativeLWP()->pauseLWP();
+         *wasRunning = true;
+      }
       stopped_lwp = getRepresentativeLWP();
    }
 
@@ -3283,7 +3300,7 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
 
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
-      stopped_lwp = stop_an_lwp();
+      stopped_lwp = stop_an_lwp(&needToCont);
       if(stopped_lwp == NULL) {
          pdstring msg =
             pdstring("System error: unable to write to process data "
@@ -3291,7 +3308,6 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
          showErrorCallback(38, msg);
          return false;
       }
-      needToCont = true;
    }
    
    bool res = stopped_lwp->writeDataSpace(inTracedProcess, size, inSelf);
@@ -3318,7 +3334,7 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
 
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
-      stopped_lwp = stop_an_lwp();
+      stopped_lwp = stop_an_lwp(&needToCont);
       if(stopped_lwp == NULL) {
          pdstring msg =
             pdstring("System error: unable to read to process data "
@@ -3326,7 +3342,6 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
          showErrorCallback(38, msg);
          return false;
       }
-      needToCont = true;
    }
 
    bool res = stopped_lwp->readDataSpace(inTracedProcess, size, inSelf);
@@ -3358,7 +3373,7 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
 
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
-      stopped_lwp = stop_an_lwp();
+      stopped_lwp = stop_an_lwp(&needToCont);
       if(stopped_lwp == NULL) {
          pdstring msg =
             pdstring("System error: unable to write word to process text "
@@ -3366,7 +3381,6 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
          showErrorCallback(38, msg);
          return false;
       }
-      needToCont = true;
    }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
@@ -3400,7 +3414,7 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
 
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
-      stopped_lwp = stop_an_lwp();
+      stopped_lwp = stop_an_lwp(&needToCont);
       if(stopped_lwp == NULL) {
          pdstring msg =
             pdstring("System error: unable to write to process text "
@@ -3408,7 +3422,6 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
          showErrorCallback(38, msg);
          return false;
       }
-      needToCont = true;
    }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
@@ -3447,7 +3460,7 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
 
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
-      stopped_lwp = stop_an_lwp();
+      stopped_lwp = stop_an_lwp(&needToCont);
       if(stopped_lwp == NULL) {
          pdstring msg =
             pdstring("System error: unable to read to process text "
@@ -3455,7 +3468,6 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
          showErrorCallback(39, msg);
          return false;
       }
-      needToCont = true;
    }
 
    bool res = stopped_lwp->readTextSpace(const_cast<void*>(inTracedProcess),
@@ -4589,10 +4601,10 @@ pd_Function *process::findFuncByAddr(const Address &addr) {
         return range->function_ptr;
     }
     else if (range->basetramp_ptr) {
-        return range->basetramp_ptr->location->func();
+        return range->basetramp_ptr->location->pointFunc();
     }
     else if (range->minitramp_ptr) {   
-        return range->minitramp_ptr->baseTramp->location->func();
+        return range->minitramp_ptr->baseTramp->location->pointFunc();
     }
     else if (range->reloc_ptr) {
         return range->reloc_ptr->func();
@@ -5725,7 +5737,7 @@ bool process::writeMutationList(mutationList &list) {
 
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
-      stopped_lwp = stop_an_lwp();
+      stopped_lwp = stop_an_lwp(&needToCont);
       if(stopped_lwp == NULL) {
          pdstring msg =
             pdstring("System error: unable to write mutation list "
@@ -5733,7 +5745,6 @@ bool process::writeMutationList(mutationList &list) {
          showErrorCallback(38, msg);
          return false;
       }
-      needToCont = true;
    }
 
    mutationRecord *mr = list.getHead();
@@ -5826,11 +5837,11 @@ BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
 					   instPoint *ip,
 					   BPatch_procedureLocation pointType)
 {
-   Address addr = ip->iPgetAddress();
+   Address addr = ip->pointAddr();
 
-   if (ip->iPgetOwner() != NULL) {
+   if (ip->getOwner() != NULL) {
       Address baseAddr;
-      if (getBaseAddress(ip->iPgetOwner(), baseAddr)) {
+      if (getBaseAddress(ip->getOwner(), baseAddr)) {
          addr += baseAddr;
       }
    }
@@ -5840,7 +5851,7 @@ BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
    } else {
       if (bpfunc == NULL) {
          const pd_Function *fc =
-            dynamic_cast<const pd_Function *>(ip->iPgetFunction());
+            dynamic_cast<const pd_Function *>(ip->pointFunc());
          pd_Function *f = const_cast<pd_Function *>(fc);
          const BPatch_function *ptr =
             dynamic_cast<const BPatch_function *>(findOrCreateBPFunc(f));
@@ -5959,43 +5970,49 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
 
   if (pendingGCInstrumentation.size() == 0) return;
 
-  for (unsigned i = 0; i < pendingGCInstrumentation.size(); i++) {
-    instPendingDeletion *old = pendingGCInstrumentation[i];
+  for (unsigned deletedIter = 0; 
+       deletedIter < pendingGCInstrumentation.size(); 
+       deletedIter++) {
+    instPendingDeletion *deletedInst = pendingGCInstrumentation[deletedIter];
     bool safeToDelete = true;
 
-    for (unsigned tI = 0;
-         tI < stackWalks.size(); 
-         tI++) {
-        for (unsigned sI = 0;
-             sI < stackWalks[tI].size();
-             tI++) {
-            codeRange *range = findCodeRangeByAddress(stackWalks[sI][tI].getPC());
-            if (old->oldBase) {
+    for (unsigned threadIter = 0;
+         threadIter < stackWalks.size(); 
+         threadIter++) {
+        pdvector<Frame> stackWalk = stackWalks[threadIter];
+        for (unsigned walkIter = 0;
+             walkIter < stackWalk.size();
+             walkIter++) {
+            Frame frame = stackWalk[walkIter];
+            codeRange *range = findCodeRangeByAddress(frame.getPC());
+            if (deletedInst->oldBase) {
                 // If we're in the base tramp we can't delete
-                if (range->basetramp_ptr == old->oldBase)
+                if (range->basetramp_ptr == deletedInst->oldBase)
                     safeToDelete = false;
                 // If we're in a child minitramp, we also can't delete
-                if (range->minitramp_ptr->baseTramp == old->oldBase)
+                if (range->minitramp_ptr->baseTramp == deletedInst->oldBase)
                     safeToDelete = false;
             }
             else {
-                assert(old->oldMini);
-                if (range->minitramp_ptr == old->oldMini)
+                assert(deletedInst->oldMini);
+                if (range->minitramp_ptr == deletedInst->oldMini)
                     safeToDelete = false;
             }
+            // If we can't delete, don't bother to continue checking
             if (!safeToDelete)
                 break;
         }
+        // Same as above... pop out.
         if (!safeToDelete)
             break;
     }
     if (safeToDelete) {
         heapItem *ptr = NULL;
         Address baseAddr;
-        if (old->oldBase)
-            baseAddr = old->oldBase->baseAddr;
+        if (deletedInst->oldBase)
+            baseAddr = deletedInst->oldBase->baseAddr;
         else
-            baseAddr = old->oldMini->miniTrampBase;
+            baseAddr = deletedInst->oldMini->miniTrampBase;
         if (!hp->heapActive.find(baseAddr, ptr)) {
             sprintf(errorLine,"Warning: attempt to free undefined heap entry 0x%p (pid=%d, heapActive.size()=%d)\n", 
                     (void*)baseAddr, getPid(), 
@@ -6007,20 +6024,24 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
         inferiorFree(baseAddr);
 
         // Delete from list of GCs
-        pendingGCInstrumentation[i] = 
-        pendingGCInstrumentation[pendingGCInstrumentation.size()-1];
+        // Vector deletion is slow... so copy the last item in the list to
+        // the current position. We could also set this one to NULL, but that
+        // means the GC vector could get very, very large.
+        pendingGCInstrumentation[deletedIter] = 
+          pendingGCInstrumentation[pendingGCInstrumentation.size()-1];
+        // Lop off the last one
         pendingGCInstrumentation.resize(pendingGCInstrumentation.size()-1);
         // Back up iterator to cover the fresh one
-        i--;
+        deletedIter--;
         
         // Delete from the codeRange tree
         deleteCodeRange(baseAddr);
         
-        if (old->oldMini)
-            delete old->oldMini;
-        if (old->oldBase)
-            delete old->oldBase;
-        delete old;
+        if (deletedInst->oldMini)
+            delete deletedInst->oldMini;
+        if (deletedInst->oldBase)
+            delete deletedInst->oldBase;
+        delete deletedInst;
     }
   }
 }
