@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.17 2003/04/25 22:31:15 jaw Exp $
+// $Id: test6.C,v 1.18 2003/05/19 15:55:27 chadd Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -107,10 +107,31 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
 #define snprintf _snprintf
 #endif
 
+BPatch_callWhen instrumentWhere(  const BPatch_memoryAccess* memAccess){
+
+	BPatch_callWhen whenToCall;
+	if(memAccess != NULL){
+		if(memAccess->hasALoad()){
+			whenToCall = BPatch_callBefore;
+		}else if(memAccess->hasAStore()){
+			whenToCall = BPatch_callAfter;
+		}else if(memAccess->hasAPrefetch() ){
+			whenToCall = BPatch_callBefore;
+		}else{
+			whenToCall = BPatch_callBefore;
+		}
+	}else{
+		whenToCall = BPatch_callBefore;
+	}
+	return whenToCall;
+}
+
 void instCall(BPatch_thread* bpthr, const char* fname,
               const BPatch_Vector<BPatch_point*>* res)
 {
   char buf[30];
+	BPatch_callWhen whenToCall = BPatch_callBefore;
+
   snprintf(buf, 30, "count%s", fname);
 
   BPatch_Vector<BPatch_snippet*> callArgs;
@@ -125,7 +146,18 @@ void instCall(BPatch_thread* bpthr, const char* fname,
   BPatch_function *countXXXFunc = bpfv[0];  
 
   BPatch_funcCallExpr countXXXCall(*countXXXFunc, callArgs);
-  bpthr->insertSnippet(countXXXCall, *res);
+
+  for(unsigned int i=0;i<(*res).size();i++){
+
+#if defined(rs6000_ibm_aix4_1) && defined(AIX5)
+  	const BPatch_memoryAccess* memAccess;
+	memAccess = (*res)[i]->getMemoryAccess() ;
+
+	whenToCall = instrumentWhere( memAccess);
+
+#endif
+	bpthr->insertSnippet(countXXXCall, *((*res)[i]),whenToCall);
+  }
 }
 
 void instEffAddr(BPatch_thread* bpthr, const char* fname,
@@ -151,12 +183,24 @@ void instEffAddr(BPatch_thread* bpthr, const char* fname,
   BPatch_function *listXXXFunc = bpfv[0];  
   BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
 
-  if(!conditional)
-    bpthr->insertSnippet(listXXXCall, *res, BPatch_lastSnippet);
-  else {
-    BPatch_ifMachineConditionExpr listXXXCallCC(listXXXCall);
-    bpthr->insertSnippet(listXXXCallCC, *res, BPatch_lastSnippet);
+
+  BPatch_callWhen whenToCall = BPatch_callBefore;
+  for(unsigned int i=0;i<(*res).size();i++){
+#if defined(rs6000_ibm_aix4_1)  && defined(AIX5) 
+  	const BPatch_memoryAccess* memAccess;
+
+	memAccess = (*res)[i]->getMemoryAccess() ;
+
+	whenToCall = instrumentWhere( memAccess);
+#endif
+  	if(!conditional)
+	    bpthr->insertSnippet(listXXXCall, *((*res)[i]), whenToCall, BPatch_lastSnippet);
+	  else {
+	    BPatch_ifMachineConditionExpr listXXXCallCC(listXXXCall);
+	    bpthr->insertSnippet(listXXXCallCC, *((*res)[i]), whenToCall, BPatch_lastSnippet);
+	  }
   }
+
 #if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
   BPatch_effectiveAddressExpr eae2(1);
   BPatch_Vector<BPatch_snippet*> listArgs2;
@@ -165,6 +209,7 @@ void instEffAddr(BPatch_thread* bpthr, const char* fname,
   BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
   
   const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
+
   if(!conditional)
     bpthr->insertSnippet(listXXXCall2, *res2, BPatch_lastSnippet);
   else {
@@ -196,12 +241,24 @@ void instByteCnt(BPatch_thread* bpthr, const char* fname,
   }
   BPatch_function *listXXXFunc = bpfv[0];  
 
-  BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
-  if(!conditional)
-    bpthr->insertSnippet(listXXXCall, *res, BPatch_lastSnippet);
-  else {
-    BPatch_ifMachineConditionExpr listXXXCallCC(listXXXCall);
-    bpthr->insertSnippet(listXXXCallCC, *res, BPatch_lastSnippet);
+  BPatch_callWhen whenToCall = BPatch_callBefore;
+
+  for(unsigned int i=0;i<(*res).size();i++){
+
+#if defined(rs6000_ibm_aix4_1) && defined(AIX5)
+  	const BPatch_memoryAccess* memAccess;
+	memAccess = (*res)[i]->getMemoryAccess() ;
+
+	whenToCall = instrumentWhere( memAccess);
+
+#endif
+  	BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
+	  if(!conditional)
+	    bpthr->insertSnippet(listXXXCall, *((*res)[i]), whenToCall, BPatch_lastSnippet);
+	  else {
+	    BPatch_ifMachineConditionExpr listXXXCallCC(listXXXCall);
+	    bpthr->insertSnippet(listXXXCallCC, *((*res)[i]), whenToCall, BPatch_lastSnippet);
+	  }
   }
 
 #if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
@@ -890,7 +947,7 @@ void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 5,
                   const char* testdesc = "instrumentation w/effective address snippet")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) &&  ( !defined(rs6000_ibm_aix4_1) ||  defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) 
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -966,7 +1023,7 @@ void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
 void mutatorTest7(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 7,
                   const char* testdesc = "conditional instrumentation w/effective address snippet")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) &&  ( !defined(rs6000_ibm_aix4_1) ||  defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) 
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -1053,7 +1110,7 @@ void mutatorMAIN(char *pathname)
   // Force functions to be relocated
   // VG: not sure why we need this...
   //if (forceRelocation) {
-  //bpatch->setForcedRelocation_NP(true);
+  //	bpatch->setForcedRelocation_NP(true);
   //}
 
   // Start the mutatee

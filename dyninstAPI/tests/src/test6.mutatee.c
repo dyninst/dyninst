@@ -1,4 +1,4 @@
-/* $Id: test6.mutatee.c,v 1.19 2003/01/02 19:52:08 schendel Exp $ */
+/* $Id: test6.mutatee.c,v 1.20 2003/05/19 15:55:32 chadd Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -473,7 +473,7 @@ int validateEA(void* ea1[], void* ea2[], unsigned int n)
   for(; i<n; ++i) {
     ok = (ok && ((ea1[i] == ea2[i]) || ea1[i] == NULL));
     if(!ok) {
-      printf("Validation failed at access #%d. Expecting: %x. Got: %x.\n", i+1, ea1[i], ea2[i]);
+      printf("EA Validation failed at access #%d. Expecting: %x. Got: %x.\n", i+1, ea1[i], ea2[i]);
       return 0;
     }
   }
@@ -488,7 +488,7 @@ int validateBC(unsigned int bc1[], unsigned int bc2[], unsigned int n)
   for(; i<n; ++i) {
     ok = (ok && (bc1[i] == bc2[i]));
     if(!ok) {
-printf("Validation failed at access #%d. Expecting: %d. Got: %d.\n", i+1, bc1[i], bc2[i]);
+printf("BC Validation failed at access #%d. Expecting: %d. Got: %d.\n", i+1, bc1[i], bc2[i]);
       return 0;
     }
   }
@@ -523,7 +523,7 @@ void check4()
 
 void check5()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1)  || defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
   skiptest(5, "instrumentation w/ [unconditional] effective address snippet");
 #else
   passorfail(5, !doomEA && validateEA(eaExp, eaList, accessExp),
@@ -543,7 +543,7 @@ void check6()
 
 void check7()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1)  || defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) 
   skiptest(7, "instrumentation w/ conditional effective address snippet");
 #else
   passorfail(7, !doomEAcc && validateEA(eaExpCC, eaListCC, accessExpCC),
@@ -565,7 +565,6 @@ void check8()
 /* functions called by the simple instrumentation points */
 void countLoad()
 {
-  /* fprintf(stderr, "Load!\n"); */
   ++loadCnt;
 }
 
