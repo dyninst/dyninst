@@ -83,10 +83,6 @@ class instrThrDataNode {
   // styles are enumerated in aggregation.h
   instrThrDataNode(instrCodeNode_Val *_parentNode, bool arg_dontInsertData);
 
-#if defined(MT_THREAD)
-  void reUseIndexAndLevel(unsigned &p_allocatedIndex, 
-			  unsigned &p_allocatedLevel);
-#endif
   vector<dataReqNode *> getDataRequests();
   unsigned numDataRequests() const { 
     return tempCtrDataRequests.size() + ((sampledDataReq!=NULL)? 1:0)
