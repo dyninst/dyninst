@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeFortC.c,v 1.1 2001/10/26 22:46:48 hollings Exp $ */
+/* $Id: test1.mutateeFortC.c,v 1.2 2002/04/02 16:11:12 pcroth Exp $ */
 
 #include "test1.mutateeCommon.h"
 
@@ -65,7 +65,7 @@ struct block_ {
 	int globalVariable25_1_, globalVariable25_2_, globalVariable25_3_, globalVariable25_4_, globalVariable25_5_,
 		globalVariable25_6_, globalVariable25_7_;
 
-//	struct struct26_2_ globalVariable26_1_;
+/*	struct struct26_2_ globalVariable26_1_; */
 	int globalVariable26_2_, globalVariable26_3_, globalVariable26_4_, globalVariable26_5_, globalVariable26_6_,
 		globalVariable26_7_, globalVariable26_8_, globalVariable26_9_, globalVariable26_10_, globalVariable26_11_,
 		globalVariable26_12_, globalVariable26_13_;
