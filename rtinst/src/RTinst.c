@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.16 1999/10/13 18:18:15 bernat Exp $
+ * $Id: RTinst.c,v 1.17 1999/10/14 20:57:26 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -342,27 +342,14 @@ DYNINSTstopProcessTimer(tTimer* timer) {
 /* TODO: FIX THIS!!!! */
 
 #ifdef BERNAT_HORRIBLE_HACK
-
 static int DYNINST_local_write = 0;
 
-static void walltime_printf(const char *fmt, ...) {
-   va_list args;
-   DYNINST_local_write = 1;
-
-   va_start(args, fmt);
-
-   vfprintf(stderr, fmt, args);
-
-   va_end(args);
-
-   fflush(stderr);
-   DYNINST_local_write = 0;
-}
-
+#define walltime_printf(x) do {DYNINST_local_write = 1; printf(x); DYNINST_local_write = 0;} while (0)
 #define LOCAL_WRITE_printf(x) {walltime_printf(x);}
 #define LOCAL_WRITE_assert(x) {DYNINST_local_write = 1; assert(x); DYNINST_local_write = 0;}
 
 #else
+#define walltime_printf(x) do {printf(x);} while(0)
 #define LOCAL_WRITE_printf(x) {printf(x);}
 #define LOCAL_WRITE_assert(x) {assert(x);}
 #endif
@@ -443,7 +430,7 @@ DYNINSTstopWallTimer(tTimer* timer) {
        const time64 now = DYNINSTgetWalltime();
 
        if (now < timer->start) {
-	  walltime_printf("rtinst wall timer rollback.\n");
+	 walltime_printf("rtinst wall timer rollback.\n");
 	  LOCAL_WRITE_assert(0);
        }
        timer->total += (now - timer->start);
