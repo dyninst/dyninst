@@ -4958,7 +4958,7 @@ bool deleteBaseTramp(process *, instPoint *,
 	return false;
 }
 
-#ifdef BPATCH_LIBRARY
+
 /*
  * createInstructionInstPoint
  *
@@ -5084,6 +5084,8 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
     return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_arbitrary);
 }
 
+
+#ifdef BPATCH_LIBRARY
 /*
  * BPatch_point::getDisplacedInstructions
  *

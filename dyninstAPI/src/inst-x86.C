@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.141 2003/08/01 22:58:44 jodom Exp $
+ * $Id: inst-x86.C,v 1.142 2003/09/05 16:27:45 schendel Exp $
  */
 
 #include <iomanip>
@@ -3690,7 +3690,6 @@ bool deleteBaseTramp(process *, instPoint *,
 }
 
 
-#ifdef BPATCH_LIBRARY
 /*
  * createInstructionInstPoint
  *
@@ -3824,6 +3823,7 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
     return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_arbitrary);
 }
 
+#ifdef BPATCH_LIBRARY
 /*
  * BPatch_point::getDisplacedInstructions
  *

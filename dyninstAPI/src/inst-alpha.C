@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.67 2003/08/01 22:58:43 jodom Exp $
+// $Id: inst-alpha.C,v 1.68 2003/09/05 16:27:42 schendel Exp $
 
 #include "common/h/headers.h"
 
@@ -2231,7 +2231,7 @@ bool deleteBaseTramp(process * /*proc*/, instPoint* /*location*/,
 	return false;
 }
 
-#ifdef BPATCH_LIBRARY
+
 /*
  * createInstructionInstPoint
  *
@@ -2275,6 +2275,8 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
 
     return proc->findOrCreateBPPoint(NULL, newpt, BPatch_arbitrary);
 }
+
+#ifdef BPATCH_LIBRARY
 
 #include "BPatch_point.h"
 #include "BPatch_snippet.h"

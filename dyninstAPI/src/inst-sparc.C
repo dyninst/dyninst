@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.148 2003/08/05 21:49:22 hollings Exp $
+// $Id: inst-sparc.C,v 1.149 2003/09/05 16:27:44 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -47,6 +47,11 @@
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
 
 #include "dyninstAPI/src/rpcMgr.h"
+
+#ifdef BPATCH_LIBRARY
+#include "BPatch_flowGraph.h"
+#include "BPatch_function.h"
+#endif
 
 /****************************************************************************/
 /****************************************************************************/
@@ -1894,12 +1899,6 @@ bool deleteBaseTramp(process *proc, instPoint* location,
   return true;
 }
 
-
-#ifdef BPATCH_LIBRARY
-
-#include "BPatch_flowGraph.h"
-#include "BPatch_function.h"
-
 #include <sys/systeminfo.h>
 
 // VG(4/24/2002) It seems a good idea to cache the result.
@@ -1951,7 +1950,6 @@ bool isV9ISA()
     return false;
   }
 }
-
 
 /*
  * createInstructionInstPoint
@@ -2186,6 +2184,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
     return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_arbitrary);
 }
 
+#ifdef BPATCH_LIBRARY
 /*
  * BPatch_point::getDisplacedInstructions
  *
