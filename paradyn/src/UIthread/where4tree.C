@@ -42,7 +42,7 @@
 // where4tree.C
 // Ariel Tamches
 
-/* $Id: where4tree.C,v 1.22 2002/05/13 19:53:33 mjbrim Exp $ */
+/* $Id: where4tree.C,v 1.23 2002/11/25 23:52:35 schendel Exp $ */
 
 /* ******************************************************************
  *
@@ -143,9 +143,10 @@ bool where4tree<NODEDATA>::rethinkListboxAfterResize(const where4TreeConstants &
    bool anyChildrenHaveChanged = false;
 
    const unsigned numChildren = theChildren.size();
-   for (unsigned i=0; i < numChildren; i++)
+   for (unsigned i=0; i < numChildren; i++) {
       if (getChildTree(i)->rethinkListboxAfterResize(tc))
          anyChildrenHaveChanged = true;
+   }
 
    if (anyChildrenHaveChanged)
       // Fairly expensive routines: O(numchildren); could be optimized to
@@ -844,7 +845,7 @@ void where4tree<NODEDATA>::draw(Tk_Window theTkWindow,
       // y is the only unknown; isolate to get y=y0 + m(rightEdge-x0).
       // Draw ray from (rayOriginX, rayOriginY) to (windowMaxX, y); done.
 
-const int maximus = 32768;
+      const int maximus = 32768;
 
       GC lineGC = NODEDATA::getGCforNonListboxRay(getNodeData(),
 						  theChild->getNodeData());
@@ -867,7 +868,7 @@ const int maximus = 32768;
 		   rayOriginX, rayOriginY,
 		   rayDestinationX, rayDestinationY);
       }
-                              
+
       // Recursively draw the subtree
       theChild->draw(tc.theTkWindow, tc, theDrawable,
 		     subtree_centerx, childtopypix,
