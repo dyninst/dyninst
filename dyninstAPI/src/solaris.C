@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.147 2003/05/30 02:36:29 bernat Exp $
+// $Id: solaris.C,v 1.148 2003/06/02 22:04:39 mjbrim Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -959,11 +959,14 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
 #endif
 
   // compute the CPU timer for the whole process
-  if (pread(usage_fd(), &theUsage, sizeof(prusage_t), 0) 
-      != sizeof(prusage_t)) {
-      perror("getInfCPU: read");
-      return -1;  // perhaps the process ended
+  if(fd_opened()) {
+     if(pread(usage_fd(), &theUsage, sizeof(prusage_t), 0) 
+	!= sizeof(prusage_t)) {
+        perror("getInfCPU: read");
+        return -1;  // perhaps the process ended
+     }
   }
+  else return -1; // perhaps the process ended
 
   result =  (theUsage.pr_utime.tv_sec + theUsage.pr_stime.tv_sec) * 1000000000LL;
   result += (theUsage.pr_utime.tv_nsec+ theUsage.pr_stime.tv_nsec);
