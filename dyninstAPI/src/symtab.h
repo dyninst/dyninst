@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.88 2001/07/12 21:35:22 shergali Exp $
+// $Id: symtab.h,v 1.89 2001/07/14 03:43:31 shergali Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -153,6 +153,12 @@ public:
 		line_(0), addr_(adr),size_(size) { 
 		symTabName_.push_back(symbol); prettyName_.push_back(pretty); }
     virtual ~function_base() { /* TODO */ }
+
+    /* The next two asserts should necver be reached, function_base has no
+     * default constructor which leaves the string vectors empty, the if
+     * is more or less a sanity check, if the asserts here are ever reached
+     * then something really bad must have happened
+     */
     const string &symTabName() const { 
  	if (symTabName_.size() > 0) return symTabName_[0];
 	else assert(0 && "symtab name"); return string(); }
