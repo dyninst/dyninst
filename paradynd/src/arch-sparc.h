@@ -7,7 +7,10 @@
 
 /*
  * $Log: arch-sparc.h,v $
- * Revision 1.6  1995/07/11 20:57:23  jcargill
+ * Revision 1.7  1995/12/11 15:06:41  naim
+ * Implementing >, >=, < and <= operators - naim
+ *
+ * Revision 1.6  1995/07/11  20:57:23  jcargill
  * Changed sparc-specific ifdefs to include sparc_tmc_cmost7_3
  *
  * Revision 1.5  1995/05/30  05:04:49  krisna
@@ -154,6 +157,9 @@ typedef union instructUnion instruction;
 
 #define BEcond		1
 #define BLEcond		2
+#define BLTcond         3
+#define BGTcond        10
+#define BGEcond        11
 #define BAcond		8
 #define BNEcond		9
 

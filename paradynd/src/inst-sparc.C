@@ -19,14 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.30 1995/11/29 18:43:42 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.31 1995/12/11 15:06:46 naim Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.30  1995/11/29 18:43:42  krisna
+ * Revision 1.31  1995/12/11 15:06:46  naim
+ * Implementing >, >=, < and <= operators - naim
+ *
+ * Revision 1.30  1995/11/29  18:43:42  krisna
  * deleted orphan code
  *
  * Revision 1.29  1995/10/19 22:30:54  mjrg
@@ -970,6 +973,9 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 		break;
 
 	    // rel ops
+	    // For a particular condition (e.g. <=) we need to use the
+            // the opposite in order to get the right value (e.g. for >=
+            // we need BLTcond) - naim
 	    case eqOp:
 		genRelOp(insn, BNEcond, src1, src2, dest, base);
 		return(0);
@@ -981,12 +987,25 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
                 break;
 
 	    case lessOp:
-	    case greaterOp:
-	    case leOp:
-	    case geOp:
-		abort();
-		break;
-	    
+                genRelOp(insn, BGEcond, src1, src2, dest, base);
+                return(0);
+                break;
+
+            case leOp:
+                genRelOp(insn, BGTcond, src1, src2, dest, base);
+                return(0);
+                break;
+
+            case greaterOp:
+                genRelOp(insn, BLEcond, src1, src2, dest, base);
+                return(0);
+                break;
+
+            case geOp:
+                genRelOp(insn, BLTcond, src1, src2, dest, base);
+                return(0);
+                break;
+
 	    default:
 		abort();
 		break;
@@ -1065,18 +1084,13 @@ int getInsnCost(opCode op)
 	    // rel ops
 	    case eqOp:
             case neOp:
+	    case lessOp:
+            case leOp:
+            case greaterOp:
+	    case geOp:
 	        // bne -- assume taken
 	        return(2);
 	        break;
-
-	    case lessOp:
-	    case greaterOp:
-	    case leOp:
-	    case geOp:
-		abort();
-		return(-1);
-		break;
-	    
 	    default:
 		return(1);
 		break;

@@ -6,7 +6,10 @@
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
  * $Log: inst-power.C,v $
- * Revision 1.4  1995/12/10 23:21:09  hollings
+ * Revision 1.5  1995/12/11 15:06:43  naim
+ * Implementing >, >=, < and <= operators - naim
+ *
+ * Revision 1.4  1995/12/10  23:21:09  hollings
  * Fixed relops and if to generate the correct branch instructions.
  *
  * Revision 1.3  1995/11/29  18:43:41  krisna
@@ -825,13 +828,26 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
                 return(0);
                 break;
 
-	    case lessOp:
-	    case greaterOp:
-	    case leOp:
-	    case geOp:
-		abort();
+            case lessOp:
+		genRelOp(insn, LTcond, BFALSEcond, src1, src2, dest, base);
+		return(0);
 		break;
-	    
+
+            case greaterOp:
+                genRelOp(insn, GTcond, BFALSEcond, src1, src2, dest, base);
+                return(0);
+                break;
+
+            case leOp:
+		genRelOp(insn, GTcond, BTRUEcond, src1, src2, dest, base);
+		return(0);
+		break;
+
+            case geOp:
+                genRelOp(insn, LTcond, BTRUEcond, src1, src2, dest, base);
+                return(0);
+                break;
+
 	    default:
 		abort();
 		break;
