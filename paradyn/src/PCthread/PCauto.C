@@ -1,0 +1,232 @@
+/*
+ * Do automated refinement
+ *
+ * $Log: PCauto.C,v $
+ * Revision 1.1  1994/02/02 00:38:10  hollings
+ * First version of the Performance Consultant using threads.
+ *
+ * Revision 1.8  1993/09/03  18:53:05  hollings
+ * switched to a cost base limit on the number of refinements considered from
+ * a static limit of 5.
+ *
+ * Revision 1.7  1993/08/05  18:52:34  hollings
+ * new include and improved mode for giving up on includes.
+ *
+ * Revision 1.6  1993/05/07  20:19:17  hollings
+ * Upgrade to use dyninst interface.
+ *
+ * Revision 1.5  1993/01/28  19:31:08  hollings
+ * made SearchHistoryGraph a pointer to a SHG node.
+ *
+ * Revision 1.4  1992/12/14  19:56:57  hollings
+ * added true enable/disable.
+ *
+ * Revision 1.3  1992/10/23  20:13:37  hollings
+ * Working version right after prelim.
+ *
+ * Revision 1.2  1992/08/24  15:29:48  hollings
+ * fixed rcs log entry.
+ *
+ * Revision 1.1  1992/08/24  15:06:33  hollings
+ * Initial revision
+ *
+ *
+ */
+#include <stdlib.h>
+#include <stdio.h>
+
+#include "dataManager.h"
+#include "PCshg.h"
+#include "PCevalTest.h"
+#include "PCglobals.h"
+#include "PCauto.h"
+
+
+// 25% to start
+float predictedCostLimit = 0.25;
+searchHistoryNode *baseSHGNode;
+extern int autoRefinementLimit;
+extern searchHistoryNodeList BuildAllRefinements(searchHistoryNode *of);
+
+int CompareOptions(const void *left, const void *right)
+{
+    hint *h;
+    hintList hl;
+    searchHistoryNode *a = *(searchHistoryNode**) left;
+    searchHistoryNode *b = *(searchHistoryNode**) right;
+
+    // first use hints.
+    if (baseSHGNode->hints) {
+	hl = *baseSHGNode->hints;
+	for (;h = *hl; (void ) hl++) {
+	    if (a->why == h->why) {
+		return(-1);
+	    }
+	    if (b->why == h->why) {
+		return(1);
+	    }
+	    if (a->where == h->where) {
+		return(-1);
+	    }
+	    if (b->where == h->where) {
+		return(1);
+	    }
+	}
+	return(0);
+    }
+    // next use why before where.
+    if ((a->why != baseSHGNode->why) || (b->why !=  baseSHGNode->why)) {
+	if (a->why == baseSHGNode->why)
+	    return(1);
+	if (b->why == baseSHGNode->why)
+	    return(-1);
+	return(strcmp(a->why->name, b->why->name));
+    } else if ((a->where != baseSHGNode->where) || 
+	       (b->where != baseSHGNode->where)) {
+	if (a->where == baseSHGNode->where)
+	    return(1);
+	if (b->where == baseSHGNode->where)
+	    return(-1);
+	// use strcmp to ensure a unique ordering.
+	return(strcmp(a->where->getName(), b->where->getName()));
+    } else {
+	return(0);
+    }
+}
+
+// consider at most 25 possible refinements at a time.
+int const INC = 25;
+
+// must wait 10 bins before trying another set.
+double const MIN_OBS_TIME = 10;
+
+static int refineCount;
+static int currentRefinementBase;
+static int currentRefinementLimit;
+static searchHistoryNode **refinementOptions;
+
+void autoSelectRefinements()
+{
+    int i;
+    searchHistoryNodeList refList;
+
+    if (currentSHGNode->status != TRUE) return;
+
+    refList = BuildAllRefinements(currentSHGNode);
+    refineCount = refList.count();
+
+    if (refineCount == 0) return;
+
+    // build an array of refinements.
+    currentRefinementBase = 0;
+    refinementOptions = (searchHistoryNode**) 
+	calloc(sizeof(searchHistoryNode *), refineCount);
+    for (i=0; *refList; i++, refList++) {
+	refinementOptions[i] = *refList;
+    }
+
+    // order the options list.
+    baseSHGNode = currentSHGNode;
+    qsort(refinementOptions, refineCount, sizeof(searchHistoryNode*), 
+	CompareOptions);
+
+    // now consider the refinements.
+    autoChangeRefineList();
+}
+
+void autoChangeRefineList()
+{
+    int i;
+    // float newCost;
+    float totalCost = 0.0;
+    searchHistoryNode *curr;
+
+    if (printNodes) printf("TRYING: ");
+    // for (i = currentRefinementBase; i < currentRefinementBase + INC; i++) {
+    for (i = currentRefinementBase; totalCost < predictedCostLimit; i++) {
+	// also limit to 25 refinements for now.
+	if (i >= currentRefinementBase + INC) break;
+	if (i >= refineCount) break;
+	curr = refinementOptions[i];
+	// newCost = curr->cost(); 
+	// totalCost += newCost;
+	curr->active = TRUE;
+    }
+    currentRefinementLimit = i;
+
+    if (printNodes) printf("\n");
+
+    // see if there was any thing to test.
+    if (currentRefinementBase >= refineCount) {
+	// ???? what should really go here.
+	dataMgr->pauseApplication(NULL);
+	printf("all refinements considered...application paused\n");
+
+	// prevent any further auto refinement.
+	autoRefinementLimit = 0;
+
+	return;
+    }
+
+    configureTests();
+    // timeLimit = currentTime + MIN_OBS_TIME * bucket_size;
+    // at least one second.
+    // if (timeLimit < currentTime + 1.0) timeLimit = currentTime + 1.0;
+    timeLimit = currentTime + 7.0;
+    printf("setting autorefinement timelimit to %f\n", timeLimit);
+
+    // see if the new ones are true already.
+    (void) autoTestRefinements();
+}
+
+void autoTimeLimitExpired()
+{
+    int i;
+
+    if (printNodes) printf("GIVING UP ON: ");
+    for (i=currentRefinementBase; i <= currentRefinementLimit; i++) {
+	if (i >= refineCount) break;
+	if (printNodes) printf("%d ",  refinementOptions[i]->nodeId);
+	refinementOptions[i]->active = FALSE;
+    }
+    if (printNodes) printf("\n");
+
+    currentRefinementBase = currentRefinementLimit+1;
+    autoChangeRefineList();
+}
+
+Boolean autoTestRefinements()
+{
+    int i;
+    searchHistoryNode *curr;
+    extern void setCurrentRefinement(searchHistoryNode*);
+    extern Boolean verifyPreviousRefinements();
+
+    verifyPreviousRefinements();
+
+    // see if we found one.
+    for (i=currentRefinementBase; i <= currentRefinementLimit; i++) {
+	if (i >= refineCount) break;
+	curr = refinementOptions[i];
+	if (curr->status == TRUE) {
+
+	    setCurrentRefinement(curr);
+
+	    // disable other refinement options.
+	    for (i=0; i < refineCount; i++) {
+		if (refinementOptions[i] == curr) continue;
+		refinementOptions[i]->active = FALSE;
+	    }
+	    free(refinementOptions);
+	    refinementOptions = NULL;
+
+	    // we made a refinement decrement counter.
+	    autoRefinementLimit--;
+
+	    // advance to next refinement canidate list.
+	    autoSelectRefinements();
+	    return(TRUE);
+	}
+    }
+    return(FALSE);
+}
