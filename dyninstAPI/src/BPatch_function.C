@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.36 2003/08/01 22:57:15 jodom Exp $
+// $Id: BPatch_function.C,v 1.37 2003/08/03 19:24:08 jodom Exp $
 
 #define BPATCH_FILE
 
@@ -354,7 +354,7 @@ BPatch_point* createInstPointForMemAccess(process *proc,
  * proc         The process object
  * bpf          The BPatch_function object we are in 
  */
-BPatch_Vector<BPatch_point*> *::findPoint(const BPatch_Set<BPatch_opCode>& ops,
+BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
 					  InstrucIter &ii, 
 					  process *proc,
 					  BPatch_function *bpf) {
