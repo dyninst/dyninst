@@ -78,9 +78,27 @@ string::string(int i) {
    key_ = hashs (tempBuffer);
 }
 
+string::string(long l) {
+   char tempBuffer[40];
+   sprintf(tempBuffer, "%ld", l);
+
+   str_ = STRDUP(tempBuffer);
+   len_ = STRLEN(tempBuffer);
+   key_ = hashs (tempBuffer);
+}
+
 string::string(unsigned u) {
    char tempBuffer[40];
    sprintf(tempBuffer, "%u", u);
+
+   str_ = STRDUP(tempBuffer);
+   len_ = STRLEN(tempBuffer);
+   key_ = hashs (tempBuffer);
+}
+
+string::string(unsigned long ul) {
+   char tempBuffer[40];
+   sprintf(tempBuffer, "%lu", ul);
 
    str_ = STRDUP(tempBuffer);
    len_ = STRLEN(tempBuffer);
@@ -277,4 +295,6 @@ ostream& operator<< (ostream &os, const string &s) {
    return os << s.str_;
 }
 
-
+debug_ostream& operator<< (debug_ostream &os, const string &s) {
+   return os << s.str_;
+}
