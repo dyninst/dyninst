@@ -1817,7 +1817,7 @@ int traceCommand(ClientData, Tcl_Interp *interp, int argc, char *argv[])
     if (!haveApp()) return TCL_ERROR;
 
     if (argc < 3) {
-	printf("Usage: trace <function>\n");
+	printf("Usage: trace function <function>\n");
 	printf("or     trace functions in <module>\n");
 	return TCL_ERROR;
     }
