@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.40 2001/06/12 15:43:28 hollings Exp $
+// $Id: BPatch_thread.C,v 1.41 2001/07/13 19:33:58 buck Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -536,7 +536,6 @@ bool BPatch_thread::dumpImage(const char *file)
  */
 BPatch_variableExpr *BPatch_thread::malloc(int n)
 {
-    // XXX What to do about the type?
     assert(BPatch::bpatch != NULL);
 
     void *ptr = (void *) inferiorMalloc(proc, n, dataHeap);
@@ -567,16 +566,9 @@ BPatch_variableExpr *BPatch_thread::malloc(int n)
  */
 BPatch_variableExpr *BPatch_thread::malloc(const BPatch_type &type)
 {
-    /*
-     * XXX For now, the only type that will work is "int."
-     */
+    void *mem = (void *)inferiorMalloc(proc, type.getSize(), dataHeap);
 
-    void *mem = (void *)inferiorMalloc(proc, sizeof(int), dataHeap);
     if (!mem) return NULL;
-
-    /* XXX At least for now, the memory is initially filled with zeroes. */
-    int zero = 0;
-    proc->writeDataSpace((char *)mem, sizeof(int), (char *)&zero);
 
     return new BPatch_variableExpr(proc, mem, &type);
 }
