@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.140 2004/04/09 18:03:00 legendre Exp $
+// $Id: linux.C,v 1.141 2004/04/11 04:52:11 legendre Exp $
 
 #include <fstream>
 
@@ -214,8 +214,10 @@ bool checkForAndHandleProcessEventOnLwp(bool block, dyn_lwp *lwp) {
 }
 #endif
 
-static char getState(int pid);
 bool dyn_lwp::stop_() {
+#if defined(arch_x86) && defined(os_linux)
+  enqStop();
+#endif
    return (P_kill(get_lwp_id(), SIGSTOP) != -1); 
 }
 
@@ -712,9 +714,8 @@ bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
       if(lwp->proc()->hasExited()) {
          return false;
       }
-      ++loopCt;
 
-      if(loopCt>10000) 
+      if(loopCt>10) 
       {
         lwp->stop_();
         loopCt = 0;
@@ -728,28 +729,32 @@ bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
         if(didProcReceiveSignal(new_event.why) && new_event.what == SIGSTOP &&
            new_event.lwp == lwp)
         {
-           haveStopped = true;
-           continue;
+#if defined(arch_x86) && defined(os_linux)
+	  lwp->deqStop();
+#endif
+	  haveStopped = true;
+	  continue;
         }
         getSH()->handleProcessEvent(new_event);
       }
-      else {
-        if (lwp->status() == stopped)
-        {
-          //We've waited long enough for the stop.  If another event
-          // did the jobs for us, we'll accept it and move on.  Note
-          // that this may result in extra SIGSTOPS.
-          haveStopped = true;
-          continue;
-        }
+      else if (lwp->status() == stopped)
+      {
+	//We've waited long enough for the stop.  If another event
+	// did the jobs for us, we'll accept it and move on.  Note
+	// that this may result in extra SIGSTOPS.
+	haveStopped = true;
+	continue;
+      }      
+      else
+      {
+	// a slight delay to lesson impact of spinning
+	// *** important for performance ***
+	struct timeval timeout;
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 100000; //.1 seconds
+	select(0, NULL, NULL, NULL, &timeout);
+	loopCt++;
       }
-      
-      // a slight delay to lesson impact of spinning
-      // *** important for performance ***
-      struct timeval timeout;
-      timeout.tv_sec = 0;
-      timeout.tv_usec = 1;
-      select(0, NULL, NULL, NULL, &timeout);
    }
    
    /**
