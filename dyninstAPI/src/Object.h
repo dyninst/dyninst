@@ -17,14 +17,14 @@
  * header files.
 ************************************************************************/
 
-#include <Dictionary.h>
-#include <Line.h>
-#include <String.h>
-#include <Symbol.h>
-#include <Types.h>
-#include <Vector.h>
+#include <util/h/Dictionary.h>
+#include <util/h/Line.h>
+#include <util/h/String.h>
+#include <util/h/Symbol.h>
+#include <util/h/Types.h>
+#include <util/h/Vector.h>
 
-#include "lprintf.h"
+#include "util/h/lprintf.h"
 
 
 
@@ -198,17 +198,17 @@ AObject::data_len() const {
 #undef HAVE_SPECIFIC_OBJECT
 
 #if defined(sparc_sun_solaris2_3)
-#include <Object-elf32.h>
+#include <util/h/Object-elf32.h>
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(sparc_sun_solaris2_3) */
 
 #if defined(sparc_sun_sunos4_1_3)
-#include <Object-bsd.h>
+#include <util/h/Object-bsd.h>
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(sparc_sun_sunos4_1_3) */
 
 #if defined(sparc_tmc_cmost7_3)
-#include <Object-cm5.h>
+#include <util/h/Object-cm5.h>
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(sparc_tmc_cmost7_3) */
 

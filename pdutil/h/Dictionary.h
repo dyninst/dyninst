@@ -17,8 +17,8 @@
  * header files.
 ************************************************************************/
 
-#include "Pair.h"
-#include "Vector.h"
+#include "util/h/Pair.h"
+#include "util/h/Vector.h"
 
 
 
@@ -191,7 +191,7 @@ dictionary_hash<K,V>::size() const {
 }
 
 template<class K, class V>
-inline
+DO_INLINE
 V&
 dictionary_hash<K,V>::operator[](const K& key) const {
     unsigned hash, chain, i;
@@ -202,7 +202,7 @@ dictionary_hash<K,V>::operator[](const K& key) const {
 }
 
 template<class K, class V>
-inline
+DO_INLINE
 bool
 dictionary_hash<K,V>::defines(const K& key) const {
     unsigned hash, chain, i;

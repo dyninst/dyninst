@@ -18,7 +18,7 @@
 ************************************************************************/
 
 #include <iostream.h>
-#include "kludges.h"
+#include "util/h/kludges.h"
 
 
 

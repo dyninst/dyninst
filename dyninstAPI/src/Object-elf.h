@@ -17,12 +17,12 @@
  * header files.
 ************************************************************************/
 
-#include <Dictionary.h>
-#include <Line.h>
-#include <String.h>
-#include <Symbol.h>
-#include <Types.h>
-#include <Vector.h>
+#include <util/h/Dictionary.h>
+#include <util/h/Line.h>
+#include <util/h/String.h>
+#include <util/h/Symbol.h>
+#include <util/h/Types.h>
+#include <util/h/Vector.h>
 
 extern "C" {
 #include <libelf.h>

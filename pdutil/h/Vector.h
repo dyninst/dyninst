@@ -17,7 +17,7 @@
  * header files.
 ************************************************************************/
 
-#include "kludges.h"
+#include "util/h/kludges.h"
 #include <assert.h>
 #include <stdlib.h>
 
@@ -114,7 +114,7 @@ vector<T>::operator=(const vector<T>& v) {
 }
 
 template<class T>
-inline
+DO_INLINE
 vector<T>&
 vector<T>::operator=(const T& v0) {
     init(v0);
@@ -134,7 +134,7 @@ vector<T>::operator+=(const vector<T>& v) {
 }
 
 template<class T>
-inline
+DO_INLINE
 vector<T>&
 vector<T>::operator+=(const T& v0) {
     resize(sz_+1);
@@ -143,7 +143,7 @@ vector<T>::operator+=(const T& v0) {
 }
 
 template<class T>
-inline
+DO_INLINE
 vector<T>
 vector<T>::operator+(const vector<T>& v) const {
     vector<T> ret = *this;
@@ -162,7 +162,7 @@ vector<T>::operator-() const {
 }
 
 template<class T>
-inline
+DO_INLINE
 T&
 vector<T>::operator[](unsigned i) const {
     assert(i < sz_);
@@ -185,7 +185,7 @@ vector<T>::operator==(const vector<T>& v) const {
 }
 
 template<class T>
-inline
+DO_INLINE
 unsigned
 vector<T>::size() const {
     return sz_;
