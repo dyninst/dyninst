@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,37 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * PCmetric.C
- * 
- * The PCmetric class implements a limited subset of derived metrics.
- * 
- * $Log: PCmetric.C,v $
- * Revision 1.34  1996/08/16 21:03:32  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.33  1996/04/30 06:26:57  karavan
- * change PC pause function so cost-related metric instances aren't disabled
- * if another phase is running.
- *
- * fixed bug in search node activation code.
- *
- * added change to treat activeProcesses metric differently in all PCmetrics
- * in which it is used; checks for refinement along process hierarchy and
- * if there is one, uses value "1" instead of enabling activeProcesses metric.
- *
- * changed costTracker:  we now use min of active Processes and number of
- * cpus, instead of just number of cpus; also now we average only across
- * time intervals rather than cumulative average.
- *
- * Revision 1.32  1996/02/22 18:30:36  karavan
- * cleanup after dataMgr calls; explicitly cast all NULLs to keep
- * AIX happy
- *
- * Revision 1.31  1996/02/02 02:06:40  karavan
- * A baby Performance Consultant is born!
- *
- */
+// $Id: PCmetric.C,v 1.35 2000/03/23 01:34:25 wylie Exp $
+// The PCmetric class implements a limited subset of derived metrics.
 
 /*
  ****** important********

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,50 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * PCwhy.h
- * 
- * The hypothesis class and the why axis.
- * 
- * $Log: PCwhy.h,v $
- * Revision 1.13  1996/12/08 17:36:23  karavan
- * part 1 of 2 part commit to add new searching functionality
- *
- * Revision 1.12  1996/08/16 21:03:49  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.11  1996/07/22 21:19:50  karavan
- * added new suppress feature to hypothesis definition.
- *
- * Revision 1.10  1996/04/30 06:27:14  karavan
- * change PC pause function so cost-related metric instances aren't disabled
- * if another phase is running.
- *
- * fixed bug in search node activation code.
- *
- * added change to treat activeProcesses metric differently in all PCmetrics
- * in which it is used; checks for refinement along process hierarchy and
- * if there is one, uses value "1" instead of enabling activeProcesses metric.
- *
- * changed costTracker:  we now use min of active Processes and number of
- * cpus, instead of just number of cpus; also now we average only across
- * time intervals rather than cumulative average.
- *
- * Revision 1.9  1996/02/08 19:52:56  karavan
- * changed performance consultant's use of tunable constants:  added 3 new
- * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
- * are used for all hypotheses for the respective categories.  Also added
- * PC_useIndividualThresholds, which switches thresholds back to use hypothesis-
- * specific, rather than categorical, thresholds.
- *
- * Moved all TC initialization to PCconstants.C.
- *
- * Switched over to callbacks for TC value updates.
- *
- * Revision 1.8  1996/02/02 02:07:36  karavan
- * A baby Performance Consultant is born!
- *
- */
+// $Id: PCwhy.h,v 1.14 2000/03/23 01:34:26 wylie Exp $
+// The hypothesis class and the why axis.
 
 #ifndef pc_why_h
 #define pc_why_h

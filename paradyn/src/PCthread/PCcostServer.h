@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,22 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * PCcostServer.h
- * 
- * a static class which manages predicted cost data for the performance 
- * consultant.
- * 
- * $Log: PCcostServer.h,v $
- * Revision 1.2  1996/08/16 21:03:19  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.1  1996/05/02 19:48:17  karavan
- * a new class to cache predicted cost values, since these calls take so
- * darn long to get back from the daemons we seek to minimize them where
- * possible.
- *
- */
+// $Id: PCcostServer.h,v 1.3 2000/03/23 01:34:25 wylie Exp $
+// a static class which manages predicted cost data for the Performance 
+// Consultant.
 
 #include "PCintern.h"
 

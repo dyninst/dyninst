@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,42 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * PCmetric.h
- * 
- * The PCmetric class and the PCmetricInst class.
- * 
- * $Log: PCmetric.h,v $
- * Revision 1.24  1999/08/09 05:40:36  csserra
- * - added support for (mips-sgi-irix6.4) native compiler build
- * - eliminated misc. compiler warnings
- *
- * Revision 1.23  1999/03/03 18:15:15  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.22  1996/08/16 21:03:33  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.21  1996/04/30 06:26:59  karavan
- * change PC pause function so cost-related metric instances aren't disabled
- * if another phase is running.
- *
- * fixed bug in search node activation code.
- *
- * added change to treat activeProcesses metric differently in all PCmetrics
- * in which it is used; checks for refinement along process hierarchy and
- * if there is one, uses value "1" instead of enabling activeProcesses metric.
- *
- * changed costTracker:  we now use min of active Processes and number of
- * cpus, instead of just number of cpus; also now we average only across
- * time intervals rather than cumulative average.
- *
- * Revision 1.20  1996/02/02 02:07:30  karavan
- * A baby Performance Consultant is born!
- *
- */
+// $Id: PCmetric.h,v 1.25 2000/03/23 01:34:25 wylie Exp $
+// The PCmetric class and the PCmetricInst class.
 
 #ifndef pc_metric_h
 #define pc_metric_h

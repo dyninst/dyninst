@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,32 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * PCdata.h
- *
- * dataSubscriber and dataProvider base classes
- *
- * $Log: PCdata.h,v $
- * Revision 1.5  1996/08/16 21:03:21  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.4  1996/07/26 07:28:10  karavan
- * bug fix: eliminated race condition from data subscription code.  Changed
- * data structures used as indices in class filteredDataServer.  Obsoleted
- * class fmf.
- *
- * Revision 1.3  1996/07/22 18:55:37  karavan
- * part one of two-part commit for new PC functionality of restarting searches.
- *
- * Revision 1.2  1996/05/08 07:35:05  karavan
- * Changed enable data calls to be fully asynchronous within the performance consultant.
- *
- * some changes to cost handling, with additional limit on number of outstanding enable requests.
- *
- * Revision 1.1  1996/02/02 02:07:21  karavan
- * A baby Performance Consultant is born!
- *
- */
+// $Id: PCdata.h,v 1.6 2000/03/23 01:34:25 wylie Exp $
+// dataSubscriber and dataProvider base classes
 
 #ifndef pc_data_h
 #define pc_data_h

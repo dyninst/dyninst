@@ -42,7 +42,7 @@
 /*
  * The specific metric and hypothesis definitions which will eventually 
  * be parsed from a configuration file.
- * $Id: PCrules.C,v 1.48 2000/03/06 21:41:23 zhichen Exp $
+ * $Id: PCrules.C,v 1.49 2000/03/23 01:34:26 wylie Exp $
  */
 
 #include "PCintern.h"
@@ -232,8 +232,9 @@ void initPCmetrics()
   // **this is just a test but should 
   // be some way to catch these more generally
   temp = new PCmetric( "PauseTime", specs, 1, NULL, NULL, 0);
+#ifdef PCDEBUG
   cout << "PCmetric " << temp->getName() << " created." << endl;
-
+#endif
 }
 
 sampleValue defaultGetThresholdFunc (const char *tname, focus)

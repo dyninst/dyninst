@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,58 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * PCdata.C
- *
- * dataSubscriber and dataProvider base classes
- *
- * $Log: PCdata.C,v $
- * Revision 1.7  1996/08/16 21:03:20  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.6  1996/07/22 18:55:36  karavan
- * part one of two-part commit for new PC functionality of restarting searches.
- *
- * Revision 1.5  1996/05/08 07:35:01  karavan
- * Changed enable data calls to be fully asynchronous within the performance consultant.
- *
- * some changes to cost handling, with additional limit on number of outstanding enable requests.
- *
- * Revision 1.4  1996/05/06 04:34:57  karavan
- * Bug fix for asynchronous predicted cost changes.
- *
- * added new function find() to template classes dictionary_hash and
- * dictionary_lite.
- *
- * changed filteredDataServer::DataFilters to dictionary_lite
- *
- * changed normalized hypotheses to use activeProcesses:cf rather than
- * activeProcesses:tlf
- *
- * code cleanup
- *
- * Revision 1.3  1996/05/02 19:46:26  karavan
- * changed predicted data cost to be fully asynchronous within the pc.
- *
- * added predicted cost server which caches predicted cost values, minimizing
- * the number of calls to the data manager.
- *
- * added new batch version of ui->DAGconfigNode
- *
- * added hysteresis factor to cost threshold
- *
- * eliminated calls to dm->enable wherever possible
- *
- * general cleanup
- *
- * Revision 1.2  1996/05/01 14:06:53  naim
- * Multiples changes in PC to make call to requestNodeInfoCallback async.
- * (UI<->PC). I also added some debugging information - naim
- *
- * Revision 1.1  1996/02/02  02:06:29  karavan
- * A baby Performance Consultant is born!
- *
- */
+// $Id: PCdata.C,v 1.8 2000/03/23 01:34:25 wylie Exp $
+// dataSubscriber and dataProvider base classes
 
 #include "PCintern.h"
 #include "PCdata.h"
