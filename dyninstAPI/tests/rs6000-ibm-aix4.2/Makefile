@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2000/12/18 19:52:40 schendel Exp $
+# $Id: Makefile,v 1.13 2001/02/26 21:35:35 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -31,7 +31,7 @@ GNU_CXX = g++
 
 include ../make.module.tmpl
 
-DYNINSTAPI_RT_LIB=$(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI_RT.o
+#DYNINSTAPI_RT_LIB=$(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI_RT.o
 
 # replace testN.mutatee_compiler with ../src/testN.mutatatee.c
 MUTATEE_OBJ = $(TARGET2:_$(MUTATEE_CC)=.o)
@@ -56,13 +56,21 @@ MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
 $(TARGET2): $(MUTATEE_SRC)
 	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) -Wl,-bnoobjreorder \
-	-Wl,-bE:$(TO_CORE)/$(LIBRARY_DEST)/DYNINSTAPI_RT_EXPORTS \
-	$(MUTATEE_SRC) -o $(TARGET2) \
-	$(DYNINSTAPI_RT_LIB)
+	$(MUTATEE_SRC) -o $(TARGET2)
 
+#	$(DYNINSTAPI_RT_LIB)
+#	-Wl,-bE:$(TO_CORE)/$(LIBRARY_DEST)/DYNINSTAPI_RT_EXPORTS \
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.
 
 include $(TO_CORE)/make.program.tmpl
 
+libtestA.o:
+	$(CC) -g -c ../src/libtestA.c
+libtestB.o:
+	$(CC) -g -c ../src/libtestB.c
+libtestA.so: libtestA.o
+	ld -bM:SRE -bnoentry -o libtestA.so libtestA.o -bexpall -berok
+libtestB.so: libtestB.o
+	ld -bM:SRE -bnoentry -o libtestB.so libtestB.o -bexpall -berok
 
