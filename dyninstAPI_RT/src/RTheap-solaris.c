@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-solaris.c,v 1.8 2001/11/05 18:47:39 zandy Exp $ */
+/* $Id: RTheap-solaris.c,v 1.9 2002/06/26 21:15:05 schendel Exp $ */
 /* RTheap-solaris.c: Solaris-specific heap components */
 
 #include <stdlib.h>
@@ -60,7 +60,7 @@ int     DYNINSTheap_align = 4; /* heaps are word-aligned */
 Address DYNINSTheap_loAddr;
 Address DYNINSTheap_hiAddr;
 
-int     DYNINSTheap_mmapFlags = MAP_FIXED | MAP_SHARED;
+int     DYNINSTheap_mmapFlags = MAP_FIXED | MAP_PRIVATE;
 
 
 RT_Boolean DYNINSTheap_useMalloc(void *lo, void *hi)
