@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.35 2002/05/14 19:00:35 schendel Exp $
+// $Id: mdl.h,v 1.36 2002/08/31 16:53:19 mikem Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
@@ -90,7 +90,11 @@ const char RH_SEPARATOR = '/';
 #define MDL_T_MEMORY       46
 #define MDL_T_VARIABLE     47
 #define MDL_T_RECORD       48 //for $constraint[x].XXX
-#define MDL_T_SCALAR_END 48
+
+#define MDL_T_HW_COUNTER 49
+#define MDL_T_HW_TIMER 50
+
+#define MDL_T_SCALAR_END 50 
 
 #define MDL_T_LIST_BASE 52
 #define MDL_T_LIST_PROCEDURE_NAME 52

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.51 2002/05/14 19:00:36 schendel Exp $
+// $Id: mdl.C,v 1.52 2002/08/31 16:53:18 mikem Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -107,7 +107,7 @@ void mdl_data::unique_name(string name) {
 
 
 T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units, 
-				    u_int agg, u_int sty, u_int type,
+				    u_int agg, u_int sty, u_int type, string hwcntr, 
 				    vector<T_dyninstRPC::mdl_stmt*> *mv, 
 				    vector<string> *flav,
 				    vector<T_dyninstRPC::mdl_constraint*> *cons,
@@ -115,7 +115,7 @@ T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units,
 				    bool developerMode,
 				    int unitstype)
 : id_(id), name_(name), units_(units), agg_op_(agg), style_(sty),
-  type_(type), stmts_(mv), flavors_(flav), constraints_(cons),
+  type_(type), hwcntr_(hwcntr), stmts_(mv), flavors_(flav), constraints_(cons),
   temp_ctr_(temp_counters), developerMode_(developerMode),
   unitstype_(unitstype) { }
 
@@ -141,7 +141,7 @@ T_dyninstRPC::mdl_metric::~mdl_metric() {
 }
 
 bool mdl_data::new_metric(string id, string name, string units,
-			  u_int agg, u_int sty, u_int type,
+			  u_int agg, u_int sty, u_int type, string hwcntr, 
 			  vector<T_dyninstRPC::mdl_stmt*> *mv,
 			  vector<string> *flavs,
 			  vector<T_dyninstRPC::mdl_constraint*> *cons,
@@ -151,7 +151,7 @@ bool mdl_data::new_metric(string id, string name, string units,
 
   T_dyninstRPC::mdl_metric *m = new T_dyninstRPC::mdl_metric(id, name, units, 
 							     agg,
-							     sty, type, mv, 
+							     sty, type, hwcntr, mv, 
 							     flavs, cons,
 							     temp_counters,
 							     developerMode,
@@ -317,6 +317,8 @@ bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *,
   case MDL_T_COUNTER:
   case MDL_T_WALL_TIMER:
   case MDL_T_PROC_TIMER:
+  case MDL_T_HW_TIMER:
+  case MDL_T_HW_COUNTER:
     break;
   case MDL_T_NONE:
     return true;
@@ -682,6 +684,8 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*&)
         case MDL_T_COUNTER:
         case MDL_T_PROC_TIMER:
         case MDL_T_WALL_TIMER:
+        case MDL_T_HW_TIMER:
+        case MDL_T_HW_COUNTER:
         case MDL_T_DATANODE:
           ok_ = true;
           return true;
