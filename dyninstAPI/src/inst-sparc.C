@@ -19,14 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.25 1995/05/25 20:39:02 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.26 1995/08/05 17:14:46 krisna Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.25  1995/05/25 20:39:02  markc
+ * Revision 1.26  1995/08/05 17:14:46  krisna
+ * read the code to find out why
+ *
+ * Revision 1.25  1995/05/25  20:39:02  markc
  * Classify indirect calls as "unknown" user functions
  *
  * Revision 1.24  1995/05/18  10:36:08  markc
@@ -404,8 +407,19 @@ Address pdFunction::newCallPoint(const Address adr, const instruction instr,
 {
     Address ret=adr;
     instPoint *point;
-    bool err = true;
 
+//    bool err = true;
+//    AAAAAARRRRRRGGGGGGGHHHHHHH
+//    why do a function parameter and a function scope local variable
+//    need to have the same names
+//
+//    obviously this CODE HAS NOT WORKED CORRECTLY BEFORE
+//    and all RESULTS OBTAINED FROM IT ARE BOGUS
+//    or the caller was not checking errors (SURPRISE !)
+//
+//    modify the incoming parameter
+//
+    err = true;
     point = new instPoint(this, instr, owner, adr, false);
 
     if (!isInsnType(instr, CALLmask, CALLmatch)) {
