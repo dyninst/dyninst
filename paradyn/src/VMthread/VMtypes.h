@@ -16,9 +16,12 @@
  */
 
 /* $Log: VMtypes.h,v $
-/* Revision 1.2  1994/04/28 22:08:36  newhall
-/* test version 2
+/* Revision 1.3  1994/04/29 18:57:56  newhall
+/* changed typedefs of structs to deal with g++/gdb bug
 /*
+ * Revision 1.2  1994/04/28  22:08:36  newhall
+ * test version 2
+ *
  * Revision 1.1  1994/04/09  21:23:59  newhall
  * test version
  * */
@@ -41,27 +44,28 @@
 extern thread_key_t visiThrd_key;  // for VISIthread local storage
 extern thread_t VM_tid; // visiManager tid 
 
-typedef struct {
+struct VMactiveStruct {
   int visiTypeId;
   char *name;
   int visiThreadId;
   VISIthreadUser *visip;
-} VMactiveVisi;
+};
+typedef struct VMactiveStruct VMactiveVisi;
 
-
-typedef struct {
+struct VMvisisStruct{
 
   char *name; 
   int  argc;    // number of command line arguments
   char **argv;  // command line arguments, 1st arg is name of executable
   int  Id;
-} VMvisis;
+};
+typedef struct VMvisisStruct VMvisis;
 
-
-typedef struct {
+struct visi_thread_argsStruct{
   int argc;
   char **argv;
   int  parent_tid;
-} visi_thread_args;
+};
+typedef struct visi_thread_argsStruct visi_thread_args;
 
 #endif

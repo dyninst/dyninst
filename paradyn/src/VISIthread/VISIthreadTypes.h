@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.2  1994/04/28 22:08:07  newhall
-/* test version 2
+/* Revision 1.3  1994/04/29 18:57:35  newhall
+/* changed typedefs of structs to deal with g++/gdb bug
 /*
+ * Revision 1.2  1994/04/28  22:08:07  newhall
+ * test version 2
+ *
  * Revision 1.1  1994/04/09  21:23:04  newhall
  * test version
  * */
@@ -37,7 +40,7 @@
 ////////////////////////////////////////
 //  for VISIthread local data  
 ///////////////////////////////////////
-typedef struct {
+struct VISIGlobalsStruct {
 
   UIMUser *ump;
   VMUser *vmp;
@@ -51,5 +54,7 @@ typedef struct {
   int quit;
   List<metricInstance *> *mrlist;  // data and key are metricInstance *
 
-} VISIthreadGlobals;
+};
+typedef struct VISIGlobalsStruct VISIthreadGlobals;
+
 #endif
