@@ -39,13 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TclTools.h,v 1.3 2002/08/01 18:21:45 willb Exp $
+// $Id: TclTools.h,v 1.4 2002/08/02 15:21:48 willb Exp $
 
 #if !defined(pd_tcl_tools_h)
 #define pd_tcl_tools_h
 
-//strstream
-
+#if defined(i386_unknown_nt4_0)
+#include <strstrea.h>
+#else
+#include <strstream.h>
+#endif
 
 // SetInterpResult - assigns the result of the given Tcl interperter 
 // with the string held by the given ostrstream.
