@@ -1,0 +1,4 @@
+RTwinnt.obj: ../src/RTwinnt.c ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
+ ../../common/h/Types.h
+RTcommon.obj: ../src/RTcommon.c ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
+ ../../common/h/Types.h

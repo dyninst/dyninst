@@ -1,0 +1,29 @@
+main.obj: ../src/main.C ../src/parse.h ../src/Options.h \
+ ../src/type_defn.h ../../common/h/Ident.h
+parser.obj: ../src/parser.y ../src/parse.h ../src/Options.h
+scanner.obj: ../src/scanner.l y.tab.h ../src/parse.h
+arg.obj: ../src/arg.C ../src/arg.h ../src/Options.h
+interface_spec.obj: ../src/interface_spec.C ../src/interface_spec.h \
+ ../src/parse.h ../src/Options.h
+message_layer.obj: ../src/message_layer.C ../src/message_layer.h \
+ ../src/Options.h
+remote_func.obj: ../src/remote_func.C ../src/remote_func.h ../src/Options.h
+signature.obj: ../src/signature.C ../src/signature.h ../src/type_defn.h \
+ ../src/Options.h ../../common/h/Dictionary.h
+type_defn.obj: ../src/type_defn.C ../src/type_defn.h ../src/Options.h
+templates-nt.obj: ../src/templates-nt.C ../../common/h/Dictionary.h \
+ ../src/arg.h ../src/type_defn.h ../src/message_layer.h ../src/Options.h
+debugOstream.obj: ../../common/src/debugOstream.C \
+ ../../common/h/debugOstream.h ../../common/h/Types.h \
+ ../../common/h/Time.h ../../common/h/fraction.h \
+ ../../common/h/int64iostream.h
+Ident.obj: ../../common/src/Ident.C ../../common/h/Ident.h \
+ ../../common/h/String.h ../../common/h/debugOstream.h \
+ ../../common/h/Types.h ../../common/h/headers.h \
+ ../../common/h/ntHeaders.h ../../common/h/refCounter.h
+int64iostream.obj: ../../common/src/int64iostream.C \
+ ../../common/h/int64iostream.h ../../common/h/Types.h
+String.obj: ../../common/src/String.C ../../common/h/headers.h \
+ ../../common/h/Types.h ../../common/h/ntHeaders.h \
+ ../../common/h/String.h ../../common/h/debugOstream.h \
+ ../../common/h/refCounter.h
