@@ -84,26 +84,18 @@ void vectorNameMatchKLUDGE(BPatch_module *mod, char *demangled_sym, BPatch_Vecto
     char l_mangled[bufsize];
     bpfv[i]->getMangledName(l_mangled, bufsize);
     
-    char l_demangled_raw[100]; 
-    P_cplus_demangle(l_mangled, l_demangled_raw, sizeof(l_demangled_raw), mod->isNativeCompiler());
-    if(l_demangled_raw==NULL){
-      //cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot demangle " << l_mangled << endl;
-      //continue;
-      strcpy(l_demangled_raw,l_mangled);
-    }
+    char * l_demangled_raw = P_cplus_demangle( l_mangled, mod->isNativeCompiler() );
+    if( l_demangled_raw == NULL ) {
+    	l_demangled_raw = strdup( l_mangled );
+    	assert( l_demangled_raw != NULL );
+    	}
+    
     if (!strcmp(l_demangled_raw, demangled_sym)) {
-      //cerr << __FILE__ << __LINE__ << ": " <<"Inferring that " << l_mangled << " matches " 
-      //	   << mangled << endl;
       matches.push_back(i);
     }
-    else {
-      //cerr << __FILE__ << __LINE__ << ": " << l_demangled_raw << " does not match " 
-      //	   << demangled_sym << endl;
-    }  
-    if (l_demangled_raw != l_mangled)
-      free(l_demangled_raw);// cplus_demangle allocates
-  }
 
+	free( l_demangled_raw );
+  } /* end iteration over function vector */
 }
 
 BPatch_function *mangledNameMatchKLUDGE(char *pretty, char *mangled, 
@@ -129,12 +121,12 @@ BPatch_function *mangledNameMatchKLUDGE(char *pretty, char *mangled,
     }
 
   // demangle name with extra parameters
-  char demangled_sym[1000];
-  if (!P_cplus_demangle(mangled, demangled_sym, sizeof(demangled_sym), mod->isNativeCompiler(), true)) {
-    //cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot demangle " << mangled << endl;
-    //return NULL;
-    strcpy(demangled_sym, mangled);
-  }
+  char * demangled_sym = P_cplus_demangle( mangled, mod->isNativeCompiler(), true );
+  if( demangled_sym == NULL ) {
+  	demangled_sym = strdup( mangled );
+  	assert( demangled_sym != NULL );
+  	}
+
   pdvector<int> matches;
 
   vectorNameMatchKLUDGE(mod, demangled_sym, bpfv, matches);
@@ -158,8 +150,7 @@ BPatch_function *mangledNameMatchKLUDGE(char *pretty, char *mangled,
   if (matches.size() > 1) goto clean_up;
 
  clean_up:
-  if (demangled_sym != mangled)
-    free(demangled_sym);// cplus_demangle allocates
+  free( demangled_sym );
   return ret;
 }
 
@@ -200,24 +191,20 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
     cnt= 0;
 
     /* get type or variable name */
-    char *mangledname = getIdentifier(stabstr, cnt);
-    currentRawSymbolName = mangledname;
-    char *name = (char *) malloc(1000 * sizeof(char));
-    if (P_cplus_demangle(mangledname, name, 1000, mod->isNativeCompiler())) {
-      free(name);
-      name = mangledname;
-    } else {
-      // MEMORY LEAK?
-      //free(mangledname);
-    }
+    char * mangledname = getIdentifier( stabstr, cnt );
+	if( mangledname == NULL ) { mangledname = ""; }
 
-    if (*name) {
-       // non-null string
-       // AIX puts out some symbols like this eg .bs
-       if (stabstr[cnt] != ':') {
-	   return name;
-       }
-    }
+    currentRawSymbolName = mangledname;
+    char * name = P_cplus_demangle( mangledname, mod->isNativeCompiler() );
+    if( name == NULL ) {
+    	name = strdup( mangledname );
+    	assert( name != NULL );
+    	}
+
+    if( name[0] != '\0' && stabstr[cnt] != ':' ) {
+		return name;
+		}
+    
     if (stabstr[cnt] == ':') {
        // skip to type part
        cnt++;
@@ -714,64 +701,63 @@ int parseSymDesc(char *stabstr, int &cnt)
 //
 // parse an identifier up to a ":" or "," or ";"
 //
-char *getIdentifier(char *stabstr, int &cnt, bool stopOnSpace)
-{
-    int i = 0;
-    char *ret;
-    int brCnt = 0;
-    int limit;
-    bool idChar = true;
+char * getIdentifier( char *stabstr, int &cnt, bool stopOnSpace ) {
+	int i = 0;
+	int brCnt = 0;
+	bool idChar = true;
 
-    limit = strlen(&stabstr[cnt]) + 1;
+	while( idChar ) {
+		switch( stabstr[ cnt + i ] ) {
+			case '<':
+			case '(':
+				brCnt++;
+				i++;
+				break;
 
-    while(idChar) {
-	assert(i < limit);
-	switch(stabstr[cnt+i]) {
-	case '<':
-	case '(':
-		brCnt++;
-		i++;
-		break;
+			case '>':
+			case ')':
+				brCnt--;
+				i++;
+				break;
 
-	case '>':
-	case ')':
-		brCnt--;
-		i++;
-		break;
+	        case ' ':
+				if ( !stopOnSpace ) {
+				    i++;
+				    break;
+					} // else fall through
+			case '\0':
+			case ':':
+			case ',':
+			case ';':
+				/* If we're inside a bracket and we haven't reached
+				   the end of the string, continue. */
+				if( brCnt != 0 && stabstr[ cnt + i ] != '\0' ) {
+					i++;
+					}
+				else if( brCnt ) {
+					fprintf( stderr, "Failed to find identifier in stabstring '%s;\n", stabstr );
+					idChar = false;
+					}
+				else {
+					idChar = false;
+					}
+				break;
+				
+			default:
+				i++;
+				break;
+			} /* end switch */
+    } /* end while */
 
-        case ' ':
-		if (!stopOnSpace) {
-		    i++;
-		    break;
-		} // else fall through
-	case '\0':
-	case ':':
-	case ',':
-	case ';':
-		if ((brCnt) && stabstr[cnt+i]) {
-			i++;
-		} else if (brCnt) {
-			printf("got to end of stabstr %s\n", stabstr);
-			idChar = false;
-		} else {
-			idChar = false;
-		}
-		break;
-	default:
-		i++;
-		break;
-	}
-    }
-
-    ret = (char *) malloc(i+1);
-    assert(ret);
-
-    strncpy(ret, &stabstr[cnt], i);
-    ret[i] = '\0';
-    cnt += i;
-
-    return ret;
-}
+	char * identifier = (char *)malloc( i + 1 );
+	assert( identifier );
+	
+	strncpy( identifier, & stabstr[cnt], i );
+	identifier[i] = '\0';
+	cnt += i;
+	
+	return identifier;
+	} /* end getIdentifier() */
 
 //
 // Parse a use of a type.  
@@ -1563,7 +1549,7 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 	name = (char *) calloc(len + 1, sizeof(char));
 	strncpy(name, n, len);
     } else {
-	name = const_cast<char *>(mangledName);
+	name = const_cast< char * >( mangledName );
     }
 
     //Create new type
@@ -1605,20 +1591,17 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 	    while (isdigit(*funcName)) funcName++; // skip virtual function index
 	    funcName++;
 
-	    char *name = (char *) malloc(1000 * sizeof(char));
 	    char *className = strdup(currentRawSymbolName);
 	    className[3] = 'c';
 	    className[strlen(className)-1] = '\0';	// remove tailing "_"
 	    pdstring methodName = pdstring(className) + pdstring(funcName) + pdstring("_");
-	    if (!P_cplus_demangle(methodName.c_str(), name, 1000, 
-		mod->isNativeCompiler())) {
-		funcName = strrchr(name, ':');
-		if (funcName) {
-		   funcName++;
-		} else {
-		   funcName = name;
-		}
-	    } 
+		char * name = P_cplus_demangle( methodName.c_str(), mod->isNativeCompiler() );
+		if( name != NULL ) {
+			funcName = strrchr( name, ':' );
+			if( funcName ) { funcName++; }
+			else { funcName = name; }
+			}
+
 	    // should include position for virtual methods
 	    BPatch_type *fieldType = mod->moduleTypes->findType("void");
 	    newType->addField(funcName, BPatch_dataMethod, fieldType, 0, 0);
