@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.532 2005/03/16 20:53:22 bernat Exp $
+// $Id: process.C,v 1.533 2005/03/16 22:59:45 bernat Exp $
 
 #include <ctype.h>
 
@@ -4710,9 +4710,9 @@ bool process::getBaseAddress(const image *which, Address &baseAddress) const {
 void process::findSignalHandler(){
   if (signal_restore.size() == 0) {
     Symbol s;
-    if (getSymbolInfo(SIGNAL_HANDLER, s))
-	signal_restore.push_back(s.addr());
-
+    if (getSymbolInfo(SIGNAL_HANDLER, s)) {
+      signal_restore.push_back(s.addr());
+    }
     signal_cerr << "process::findSignalHandler <" << SIGNAL_HANDLER << ">";
     if (signal_restore.size() == 0) signal_cerr << " NOT";
     signal_cerr << " found." << endl;
