@@ -8,8 +8,8 @@
  *	process::getProcessStatus()
  *	computePauseTimeMetric()
  *
- * $Log: inst-aix.C,v $
- * Revision 1.1  1995/08/24 15:03:55  hollings
+ * $log: inst-aix.C,v$
+ * Revision 1.1  1995/08/24  15:03:55  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -83,21 +83,19 @@ void initPrimitiveCost()
     // this happens before we start keeping time.
     primitiveCosts["DYNINSTinit"] = 1;
 
-    // isthmus acutal numbers from 7/3/94 -- jkh
+    // nene acutal numbers from 1/26/96 -- jkh
     // 240 ns
     primitiveCosts["DYNINSTincrementCounter"] = 16;
     // 240 ns
     primitiveCosts["DYNINSTdecrementCounter"] = 16;
-    // 23.39 usec * 85 mhz (SS-5)
-    primitiveCosts["DYNINSTstartWallTimer"] = 1988;
-    // 48.05 usec * 85 mhz (SS-5)
-    primitiveCosts["DYNINSTstopWallTimer"] = 4084;
-    // 1.61 usec * 85 Mhz (measured on a SS-5)
-    // 25 cycles (read clock) +  26 (startProcessTimer)
-    primitiveCosts["DYNINSTstartProcessTimer"] = 51;
-     // 3.38 usec * 85 mhz (measured on a SS-5)
-    // 61 cycles + 2*25 cycles to read clock
-    primitiveCosts["DYNINSTstopProcessTimer"] = 111;
+    // 0.8 usec * 66 mhz (measured on a POWER-2 RS600)
+    primitiveCosts["DYNINSTstartWallTimer"] = 53;
+    // 1.0 usec * 66 mhz (measured on a POWER-2 RS600)
+    primitiveCosts["DYNINSTstopWallTimer"] = 66;
+    // 2.4 usec * 66 Mhz (measured on a POWER-2 RS600)
+    primitiveCosts["DYNINSTstartProcessTimer"] = 160;
+    // 4.8 usec * 66 Mhz (measured on a POWER-2 RS600)
+    primitiveCosts["DYNINSTstopProcessTimer"] = 317;
 }
 
 int flushPtrace()

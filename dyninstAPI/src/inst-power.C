@@ -6,8 +6,8 @@
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
  * $Log: inst-power.C,v $
- * Revision 1.8  1996/01/18 16:27:28  hollings
- * removed bool variable err that was shadowing a parameter.
+ * Revision 1.9  1996/01/30 23:44:21  hollings
+ * Added the cost model to the POWER version of Paradyn
  *
  * Revision 1.7  1995/12/19  01:18:43  hollings
  * Fixed a couple of ADDISop that should be ADDIop's.
@@ -743,8 +743,50 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	//   called function.
 	return(3);
     } else if (op ==  trampPreamble) {
-	// XXXX - Todo generate code to update the observed cost.
+	// add in the cost to the passed pointer variable.
 
+	// high order bits of the address of the cummlative cost.
+	reg obsCostAddr = regSpace->allocateRegister((char *)insn, base);
+
+	// actual cost.
+	reg obsCostValue = regSpace->allocateRegister((char *)insn, base);
+
+        int high;
+
+        // load high half word of address into dest.
+        // really addis 0,dest,HIGH(dest) aka lis dest, HIGH(dest)
+        if (LOW(dest) & 0x8000) {
+            // high bit of low is set so the sign extension of the load
+            // will cause the wrong effective addr to be computed.
+            // so we subtract the sign ext value from HIGH.
+            // sounds odd, but works and saves an instruction - jkh 5/25/95
+            high = HIGH(dest) - 0xffff;
+        } else {
+            high = HIGH(dest);
+        }
+        genImmInsn(insn, ADDISop, obsCostAddr, 0, high);
+        insn++;
+
+        // really load obsCostValue, (obsCostAddr)imm
+        genImmInsn(insn, Lop, obsCostValue, obsCostAddr, LOW(dest));
+	insn++;
+
+	assert(src1 <= MAX_IMM);
+        genImmInsn(insn, ADDIop, obsCostValue, obsCostValue, LOW(src1));
+        insn++;
+
+	// now store it back.
+	// low == LOW(dest)
+	// generate -- st obsCostValue, obsCostAddr+low(dest)
+	insn->dform.op = STWop;
+	insn->dform.rt = obsCostValue;
+	insn->dform.ra = obsCostAddr;
+	insn->dform.d_or_si = LOW(dest);
+        insn++;
+	base += 4 * sizeof(instruction);
+
+	regSpace->freeRegister(obsCostValue);
+	regSpace->freeRegister(obsCostAddr);
     } else if (op ==  trampTrailer) {
 	// restore the registers we have saved
 	int i;
@@ -877,11 +919,109 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 }
 
 //
+// I don't know how to compute cycles for POWER instructions due to 
+//   multiple functional units.  However, we can computer the number of
+//   instructions and hope that is fairly close. - jkh 1/30/96
 //
 int getInsnCost(opCode op)
 {
-    // XXXX - todo add cost model
-    return 0;
+    int cost = 0;
+
+    if (op == loadConstOp) {
+	// worse case is addi followed by ori
+	cost = 2;
+    } else if (op ==  loadOp) {
+	// addis
+	// l 
+	cost = 2;
+    } else if (op ==  storeOp) {
+	cost = 2;
+    } else if (op ==  ifOp) {
+	// cmpi 0,0,src1,0
+	// bne 0, dest
+	// nop
+	cost = 3;
+    } else if (op ==  callOp) {
+	// mflr r0
+	// st r0, (r1)
+	cost += 2;
+
+	// Should compute the cost to save registers here.  However, we lack 
+	//   sufficient information to compute this value. We need to be 
+	//   inside the code generator to know this amount.
+	//
+	// We know it is at *least* every live register (i.e. parameter reg)
+	cost += sizeof(liveRegList)/sizeof(int);
+
+	// clr r5
+	// clr r6
+	//  stu r1, -184(r1)		(AKA STWU)
+	// load r0 with address, then move to link reg and branch and link.
+	// ori dest,dest,LOW(src1)
+	// mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
+	// brl - branch and link through the link reg.
+	cost += 7;
+	
+	// now cleanup.
+
+	//  ai r1, r1, 184
+	// restore the saved register 0.
+	cost += 2;
+
+	// Should compute the cost to restore registers here.  However, we lack 
+	//   sufficient information to compute this value. We need to be 
+	//   inside the code generator to know this amount.
+	//
+	// We know it is at *least* every live register (i.e. parameter reg)
+	cost += sizeof(liveRegList)/sizeof(int);
+
+	// mtlr	0 
+	cost++;
+    } else if (op ==  trampPreamble) {
+	// XXXX - Todo generate code to update the observed cost.
+
+    } else if (op ==  trampTrailer) {
+	// Should compute the cost to restore registers here.  However, we lack 
+	//   sufficient information to compute this value. We need to be 
+	//   inside the code generator to know this amount.
+	//
+
+	// branch
+	// nop
+	cost += 2;
+    } else if (op == noOp) {
+	cost = 1;
+    } else if (op == getParamOp) {
+	// worse case is it is on the stack and takes one instruction.
+	cost = 1;
+    } else if (op == saveRegOp) {
+	cost = 1;
+    } else {
+	switch (op) {
+	    // integer ops
+	    case plusOp:
+	    case minusOp:
+	    case timesOp:
+	    case divOp:
+		cost = 1;
+		break;
+
+	    // rel ops
+	    case eqOp:
+            case neOp:
+            case lessOp:
+            case greaterOp:
+            case leOp:
+            case geOp:
+		cost = 4;
+		break;
+
+	    default:
+		cost = 0;
+		break;
+	}
+      }
+      return (cost);
 }
 
 //
