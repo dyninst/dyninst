@@ -1,9 +1,13 @@
 /* $Log: UImain.C,v $
-/* Revision 1.79  1996/04/07 21:17:07  karavan
-/* changed new phase notification handling; instead of being notified by the
-/* data manager, the UI is notified by the performance consultant.  This prevents
-/* a race condition.
+/* Revision 1.80  1996/04/30 18:56:29  newhall
+/* changes to support the asynchrounous enable data calls to the DM
+/* this code contains a kludge to make the UI wait for the DM's async response
 /*
+ * Revision 1.79  1996/04/07  21:17:07  karavan
+ * changed new phase notification handling; instead of being notified by the
+ * data manager, the UI is notified by the performance consultant.  This prevents
+ * a race condition.
+ *
  * Revision 1.78  1996/03/08 03:00:34  tamches
  * fixed hide-node bug whereby a tc change before PC window was open would
  * give an assertion failure
@@ -253,6 +257,17 @@ void applicStateChanged (perfStreamHandle, appState newstate) {
   }
 
   PDapplicState = newstate;
+}
+
+// Currently this routine never executes because of a kludge
+// that receives the response message from the DM before a call to this
+// routine is made.  This routine must still be registered with the DM on
+// createPerformanceStream, otherwise the DM will not send the response
+// message.  If the UI is changed so that the call to getPredictedDataCost
+// is handled in a truely asynchronous manner, then this routine should
+// contain the code to handle the upcall from the DM
+void UIenableDataResponse(vector<metricInstInfo> *,  u_int){
+    cout << "UIenableDataResponse: THIS SHOULD NEVER EXECUTE" << endl;
 }
 
 /*
@@ -509,6 +524,7 @@ void *UImain(void*) {
     controlFuncs.sFunc = applicStateChanged;
     controlFuncs.bFunc = resourceBatchChanged;
     controlFuncs.pFunc = NULL;
+    controlFuncs.eFunc = UIenableDataResponse;
     dataFunc.sample = NULL;
 
     uim_ps_handle = dataMgr->createPerformanceStream

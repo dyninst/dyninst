@@ -5,11 +5,15 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.68  1996/02/21 18:17:13  tamches
-/* ParadynPauseCmd and ParadynContCmd disable related tk buttons _before_
-/* making the dataMgr igen call.  No bool reentrancy protection flag used
-/* anymore.
+/* Revision 1.69  1996/04/30 18:56:32  newhall
+/* changes to support the asynchrounous enable data calls to the DM
+/* this code contains a kludge to make the UI wait for the DM's async response
 /*
+ * Revision 1.68  1996/02/21  18:17:13  tamches
+ * ParadynPauseCmd and ParadynContCmd disable related tk buttons _before_
+ * making the dataMgr igen call.  No bool reentrancy protection flag used
+ * anymore.
+ *
  * Revision 1.67  1996/02/21 16:10:50  naim
  * Minor warning fix - naim
  *
@@ -717,10 +721,58 @@ int ParadynEnableCmd (ClientData,
     return TCL_ERROR;
   }
   else {
+
     // Finally enable the data collection
     // TODO: phaseType, and persistent flags should be command args
-    mi = dataMgr->enableDataCollection (uim_ps_handle, resList, *met,
-					GlobalPhase,0,0);
+    
+    vector<metric_focus_pair> *request = new vector<metric_focus_pair>;
+    metric_focus_pair new_request_entry(*met,*resList);
+    *request += new_request_entry;
+    assert(request->size() == 1);
+    dataMgr->enableDataRequest(uim_ps_handle,request,0,GlobalPhase,0,0,0);
+
+    // KLUDGE: wait for async response from DM
+    bool ready=false;
+    vector<metricInstInfo> *response;
+    // wait for response from DM
+    while(!ready){
+ 	  T_dataManager::msg_buf buffer;
+ 	  T_dataManager::message_tags waitTag;
+	  tag_t tag = T_dataManager::enableDataCallback_REQ;
+	  int from = msg_poll(&tag, true);
+	  assert(from != THR_ERR);
+	  if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
+	      waitTag = dataMgr->waitLoop(true,
+			(T_dataManager::message_tags)tag,&buffer);
+              if(waitTag == T_dataManager::enableDataCallback_REQ){
+		  ready = true;
+		  response = buffer.enableDataCallback_call.response;
+		  buffer.enableDataCallback_call.response = 0;
+	      }
+	      else {
+		  cout << "error UI wait data enable resp:tag invalid" << endl;
+		  assert(0);
+	      }
+	  }
+	  else{
+	      cout << "error UI wait data enable resp:tag invalid" << endl;
+	      assert(0);
+	  }
+    } // while(!ready)
+    mi = 0;
+    // if this MI was successfully enabled
+    if(response && (*response)[0].successfully_enabled) {
+	  mi = new metricInstInfo;
+	  mi->successfully_enabled = (*response)[0].successfully_enabled;
+	  mi->mi_id = (*response)[0].mi_id;
+	  mi->m_id = (*response)[0].m_id;
+	  mi->r_id = (*response)[0].r_id;
+	  mi->metric_name = (*response)[0].metric_name;
+	  mi->metric_units = (*response)[0].metric_units;
+	  mi->focus_name = (*response)[0].focus_name;
+	  mi->units_type = (*response)[0].units_type;
+    }
+
     if (mi) {
       uim_enabled.add(mi, (void *)mi->mi_id);
       sprintf(interp->result, MetHandleToStr (mi->mi_id));
@@ -1003,7 +1055,7 @@ int ParadynExitCmd (ClientData,
 		    Tcl_Interp *,
 		    int, char **)
 {
-  exit(0);
+  exit(1);
 }
 
 static struct cmdTabEntry Pd_Cmds[] = {
