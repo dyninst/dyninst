@@ -2,7 +2,14 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.66  1995/07/06 01:52:49  newhall
+ * Revision 1.67  1995/08/01 02:11:08  newhall
+ * complete implementation of phase interface:
+ *   - additions and changes to DM interface functions
+ *   - changes to DM classes to support data collection at current or
+ *     global phase granularity
+ * added alphabetical ordering to foci name creation
+ *
+ * Revision 1.66  1995/07/06  01:52:49  newhall
  * update for new version of Histogram library, removed compiler warnings
  *
  * Revision 1.65  1995/06/02  20:48:19  newhall
@@ -290,6 +297,9 @@ vector<phaseInfo *> phaseInfo::dm_phases;
 vector<bool> metricInstance::nextId;
 vector<bool> performanceStream::nextId;
 resource *resource::rootResource = new resource();
+timeStamp metricInstance::curr_bucket_width;
+timeStamp metricInstance::global_bucket_width;
+phaseHandle metricInstance::curr_phase_id;
 
 double paradynDaemon::earliestFirstTime = 0;
 
@@ -595,6 +605,11 @@ void *DMmain(void* varg)
     assert(RPC_make_arg_list(paradynDaemon::args, AF_INET, SOCK_STREAM,
 			     known_sock, 1, 1, "", false));
 
+
+    // start initial phase
+
+    string dm_phase0 = "phase_0";
+    phaseInfo::startPhase(0.0,dm_phase0);
     msg_send (MAINtid, MSG_TAG_DM_READY, (char *) NULL, 0);
     tag = MSG_TAG_ALL_CHILDREN_READY;
     msg_recv (&tag, DMbuff, &msgSize);

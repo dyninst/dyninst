@@ -2,7 +2,14 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.18  1995/06/02 20:48:30  newhall
+ * Revision 1.19  1995/08/01 02:11:21  newhall
+ * complete implementation of phase interface:
+ *   - additions and changes to DM interface functions
+ *   - changes to DM classes to support data collection at current or
+ *     global phase granularity
+ * added alphabetical ordering to foci name creation
+ *
+ * Revision 1.18  1995/06/02  20:48:30  newhall
  * * removed all pointers to datamanager class objects from datamanager
  *    interface functions and from client threads, objects are now
  *    refered to by handles or by passing copies of DM internal data
@@ -176,12 +183,11 @@ class resourceList {
       resourceList(const vector<resourceHandle> &resources); 
       resourceList(const vector<string> &names); 
       bool getNth(int n,resourceHandle *h) {
-	  if(n >= elements.size())
-	      return FALSE;
-          else{ 
-	      *h = elements[n]->getHandle();
+	  if(n < elements.size()){
+	      *h = (elements[n])->getHandle();
 	      return TRUE;
           }
+	  return FALSE;
       }
       resourceListHandle getHandle(){return(id);}
       int getCount() { return(elements.size()); }

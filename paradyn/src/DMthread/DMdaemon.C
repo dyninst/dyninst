@@ -539,50 +539,27 @@ float paradynDaemon::currentHybridCost()
     return(max);
 }
 
-void histDataCallBack(sampleValue *buckets,
-		      int count,
-		      int first,
-		      void *arg)
-{
-    metricInstance *mi = (metricInstance *) arg;
-    for (unsigned i=0; i < mi->users.size(); i++) {
-	performanceStream *ps = performanceStream::find(mi->users[i]); 
-	if(ps)
-	    ps->callSampleFunc(mi->getHandle(), buckets, count, first);
-    }
-}
-
-void histFoldCallBack(timeStamp width, void *arg)
-{
-    static timeStamp oldWidth;
-
-    if (oldWidth == width) return;
-    oldWidth = width;
-    performanceStream::foldAll(width);
-}
-
 //
 // Start collecting data about the passed resource list (focus) and metric.
 //    The returned metricInstance is used to provide a unique handle for this
 //    metric/focus pair.
 //
-metricInstance *paradynDaemon::enableData(resourceListHandle r_handle, 
-					  metricHandle m_handle) {
+bool paradynDaemon::enableData(resourceListHandle r_handle, 
+			       metricHandle m_handle,
+			       metricInstance *mi) {
 
-    // this is a new metricInstance
-    component *comp;
-    vector<u_int> vs;
     resourceList *rl = resourceList::getFocus(r_handle);
     metric *m = metric::getMetric(m_handle);
-    assert(rl);
-    assert(m);
-    assert(rl->convertToIDList(vs));
+    if(!rl || !m) 
+	return false;
+
+    vector<u_int> vs;
+    if(!(rl->convertToIDList(vs)))
+	return false;
 
     // 
     // for each daemon request the data to be enabled.
     //
-    metricInstance *mi = new metricInstance(r_handle, m_handle);
-    assert(mi);
     bool foundOne = false;
     // get a fresh copy of the TC "printChangeCollection"
     tunableBooleanConstant printChangeCollection = 
@@ -599,47 +576,21 @@ metricInstance *paradynDaemon::enableData(resourceListHandle r_handle,
    	            << (char *) rl->getName() << " " << id <<"\n";
         }
 	if (id > 0 && !pd->did_error_occur()) {
-	    comp = new component(pd, id, mi);
-	    mi->components += comp;
-	    mi->parts += &comp->sample;
+	    component *comp = new component(pd, id, mi);
+	    if(mi->addComponent(comp)){
+		mi->addPart(&comp->sample);
+            }
+	    else {
+               cout << "error in paradynDaemon::enableData" << endl;
+	    } 
 	    foundOne = true;
 	}
     }
+
     if (foundOne) {
-        mi->newDataCollection(m->getStyle(), 
-    		      histDataCallBack, histFoldCallBack);
-	if (printChangeCollection.getValue()) {
-            const char *name = rl->getName();
-	    cout << "EN: " << m->getName() << (char *)name << "\n";
-	}
-	return(mi);
-    } else {
-        delete(mi);
-        return(NULL);
+        mi->setEnabled();	
     }
-}
-
-//
-// This actuals stops the data from being collected.
-//
-void paradynDaemon::disableData(metricInstance *mi)
-{
-
-    metricHandle m = mi->getMetricHandle();
-    resourceListHandle rl = mi->getFocusHandle();
-
-    // get a fresh copy of the TC "printChangeCollection"
-    tunableBooleanConstant printChangeCollection = tunableConstantRegistry::findBoolTunableConstant("printChangeCollection");
-
-    if (printChangeCollection.getValue()) {
-	const char *name = resourceList::getName(rl);
-	cout << "DI: " << metric::getName(m) << (char *)name  << "\n";
-    }
-
-    // TODO -- is this safe, what if data is reported for this ?
-    // this should call a mi routine that either destroys the mi
-    // or not if the data is persistant
-    delete(mi);
+    return foundOne;
 }
 
 

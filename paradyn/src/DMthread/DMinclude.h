@@ -5,6 +5,7 @@
 
 #include "util/h/String.h"
 #include "util/h/Vector.h"
+#include "util/h/sys.h"
 
 typedef unsigned metricHandle;
 typedef unsigned resourceListHandle;
@@ -12,6 +13,8 @@ typedef unsigned resourceHandle;
 typedef unsigned perfStreamHandle;
 typedef unsigned metricInstanceHandle;
 typedef unsigned phaseHandle;
+
+typedef enum {GlobalPhase, CurrentPhase} phaseType;
 
 struct metfocusType{
     vector<resourceHandle> res;
@@ -31,7 +34,7 @@ typedef struct miInfoType metricInstInfo;
 
 struct metNameIdType {
     metricHandle id;
-    string name;
+    string       name;
 };
 typedef struct metNameIdType met_name_id;
 

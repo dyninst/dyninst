@@ -86,11 +86,11 @@ void performanceStream::callResourceBatchFunc(batchMode mode)
     }
 }
 
-void performanceStream::callFoldFunc(timeStamp width)
+void performanceStream::callFoldFunc(timeStamp width,phaseType phase_type)
 {
     if (controlFunc.fFunc) {
 	dataManager::dm->setTid(threadId);
-	dataManager::dm->histFold(controlFunc.fFunc, handle, width);
+	dataManager::dm->histFold(controlFunc.fFunc, handle, width, phase_type);
     }
 }
 
@@ -123,13 +123,13 @@ void performanceStream::ResourceBatchMode(batchMode mode){
 
 }
 
-void performanceStream::foldAll(timeStamp width){
+void performanceStream::foldAll(timeStamp width,phaseType phase_type){
 
    dictionary_hash_iter<perfStreamHandle,performanceStream*> allS(allStreams);
    perfStreamHandle h;
    performanceStream *ps;
    while(allS.next(h,ps)){
-       ps->callFoldFunc(width);
+       ps->callFoldFunc(width,phase_type);
    }
 }
 

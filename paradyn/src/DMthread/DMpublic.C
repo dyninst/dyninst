@@ -4,7 +4,14 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.41  1995/07/06 01:52:53  newhall
+ * Revision 1.42  1995/08/01 02:11:18  newhall
+ * complete implementation of phase interface:
+ *   - additions and changes to DM interface functions
+ *   - changes to DM classes to support data collection at current or
+ *     global phase granularity
+ * added alphabetical ordering to foci name creation
+ *
+ * Revision 1.41  1995/07/06  01:52:53  newhall
  * update for new version of Histogram library, removed compiler warnings
  *
  * Revision 1.40  1995/06/02  20:48:27  newhall
@@ -160,6 +167,7 @@ extern "C" {
 #include "dataManager.thread.SRVR.h"
 #include "dataManager.thread.CLNT.h"
 #include "dyninstRPC.xdr.CLNT.h"
+#include "visi.xdr.h"
 #include "util/h/sys.h"
 #include "util/h/Vector.h"
 #include "util/h/Dictionary.h"
@@ -178,6 +186,78 @@ extern bool parse_metrics(string metric_file);
 void dataManager::kludge(char *file) {
   parse_metrics(file);
 }
+
+void histDataCallBack(sampleValue *buckets,
+                      timeStamp start_time,
+		      int count,
+		      int first,
+		      void *arg)
+{
+    metricInstance *mi = (metricInstance *) arg;
+    performanceStream *ps = 0;
+    unsigned i;
+
+    if(start_time == 0.0) { 
+	// update global data
+        for (i=0; i < mi->global_users.size(); i++) {
+	    ps = performanceStream::find(mi->global_users[i]); 
+	    if(ps)
+	        ps->callSampleFunc(mi->getHandle(), buckets, count, first);
+        }
+	// update curr. phase data if curr. phase started at time 0.0
+	if (phaseInfo::GetLastPhaseStart() == 0.0) {
+            for (i=0; i < mi->users.size(); i++) {
+	        ps = performanceStream::find(mi->users[i]); 
+	        if(ps)
+	            ps->callSampleFunc(mi->getHandle(), buckets, count, first);
+            }
+	}
+    }
+
+    else {  // update just curr. phase data
+        for (i=0; i < mi->users.size(); i++) {
+	    ps = performanceStream::find(mi->users[i]); 
+	    if(ps)
+	        ps->callSampleFunc(mi->getHandle(), buckets, count, first);
+        }
+    }
+
+    for(i=first; i < count; i++){
+        if(buckets[i] < 0) printf("bucket %d : %f \n",i,buckets[i]);
+    }
+}
+
+//
+// start_time specifies the phaseType (globalType starts at 0.0) 
+//
+void histFoldCallBack(timeStamp width, void *arg,timeStamp start_time)
+{
+
+    // need to check if current phase also starts at 0.0
+    // if it does, then fold applies to both global and curr phase
+    if(start_time == 0.0){
+        timeStamp curr_start =  phaseInfo::GetLastPhaseStart(); 
+        if(curr_start == 0.0){
+	    if(metricInstance::GetCurrWidth() != width) {
+	        metricInstance::SetCurrWidth(width);
+	        performanceStream::foldAll(width,CurrentPhase);
+	    }
+	    phaseInfo::setCurrentBucketWidth(width);
+        }
+	if(metricInstance::GetGlobalWidth() != width) {
+	    metricInstance::SetGlobalWidth(width);
+	    performanceStream::foldAll(width,GlobalPhase);
+	}
+    }
+    else {  // fold applies to current phase
+	if(metricInstance::GetCurrWidth() != width) {
+	    metricInstance::SetCurrWidth(width);
+	    performanceStream::foldAll(width,CurrentPhase);
+	}
+	phaseInfo::setCurrentBucketWidth(width);
+    }
+}
+
 
 void dataManager::setResourceSearchSuppress(resourceHandle res, bool newValue)
 {
@@ -349,9 +429,13 @@ resourceHandle *dataManager::getRootResource()
     return(rh);
 }
 
+#ifdef ndef
+// OLD VERSION
 metricInstInfo *dataManager::enableDataCollection(perfStreamHandle ps_handle,
 					const vector<resourceHandle> *focus, 
-					metricHandle m)
+					metricHandle m, phaseType type,
+					unsigned persistent_data,
+					unsigned persistent_collection)
 {
     if(!focus || !focus->size()){
         if(focus) 
@@ -367,7 +451,8 @@ metricInstInfo *dataManager::enableDataCollection(perfStreamHandle ps_handle,
 	 mi->addUser(ps_handle); // add this ps to users list
      }
      else {
-        mi = paradynDaemon::enableData(rl,m);
+	// TODO: pass persistence flags and phaseType
+        mi = (paradynDaemon::enableData(rl,m)
      }
      if(mi){
 	mi->addUser(ps_handle); // add this ps to users list
@@ -385,28 +470,152 @@ metricInstInfo *dataManager::enableDataCollection(perfStreamHandle ps_handle,
 	temp = 0;
      }
      else {
-	/*
         printf("error in DMenable\n");
 	for(unsigned i=0; i < focus->size(); i++){
 	    printf("resource %d\n",(*focus)[i]);  
 	}
 	printf("metric = %d\n",m);
-	*/
      }
      return 0;
 }
+#endif
 
-void dataManager::disableDataCollection(perfStreamHandle handle, 
-					metricInstanceHandle mh)
+
+// TODO: implement phaseType and persistent options
+metricInstInfo *dataManager::enableDataCollection(perfStreamHandle ps_handle,
+					const vector<resourceHandle> *focus, 
+					metricHandle m,
+					phaseType type,
+					unsigned persistent_data,
+					unsigned persistent_collection)
 {
+    if(!focus || !focus->size()){
+        if(focus) 
+	    printf("error in enableDataCollection size = %d\n",focus->size());
+        else
+	    printf("error in enableDataCollection focus is NULL\n");
+        return 0;
+    } 
+    resourceListHandle rl = resourceList::getResourceList(*focus);
+
+    // does this this metric/focus combination already exist? 
+     metricInstance *mi = metricInstance::find(m,rl);
+
+    if (!mi) {  // create new metricInstance
+	if(!(mi = new metricInstance(rl,m,phaseInfo::CurrentPhaseHandle()))) {
+            return 0;
+    }}
+
+    if ( !(mi->isEnabled()) ){  // enable data collection for this MI
+        if (!(paradynDaemon::enableData(rl,m,mi))) { // TODO: pass phaseType?
+	    return 0;
+    }}
+
+    metric *metricptr = metric::getMetric(m);
+
+    // update appropriate MI info. 
+    if (type == CurrentPhase) {
+	 mi->newCurrDataCollection(metricptr->getStyle(),
+				   histDataCallBack,
+				   histFoldCallBack);
+	 mi->newGlobalDataCollection(metricptr->getStyle(),
+				   histDataCallBack,
+				   histFoldCallBack);
+         mi->addCurrentUser(ps_handle);
+    }
+    else {
+	 mi->newGlobalDataCollection(metricptr->getStyle(),
+				   histDataCallBack,
+				   histFoldCallBack);
+         mi->addGlobalUser(ps_handle);
+
+    }
+
+    // update persistence flags:  the OR of new and previous values
+    if(persistent_data)
+	mi->setPersistentData();
+    if(persistent_collection)
+	mi->setPersistentCollection();
+
+
+    metricInstInfo *temp = new metricInstInfo;
+    assert(temp);
+    temp->mi_id = mi->getHandle();
+    temp->m_id = m;
+    temp->r_id = rl;
+    resourceList *rl_temp = resourceList::getFocus(rl);
+    temp->metric_name = metricptr->getName();
+    temp->metric_units = metricptr->getUnits();
+    temp->focus_name = rl_temp->getName();
+    return(temp);
+    temp = 0;
+}
+
+
+// data is really disabled when there are no current or global users and
+// when the persistent_collection flag is clear
+// when persistent_data flag is clear:
+// current histogram is destroyed when there are no curr users 
+// global histogram is destroyed whern there are no curr or gloabl users
+// TODO: add persistent data support: clear active flag on archived
+// histograms rather than deleting them
+void dataManager::disableDataCollection(perfStreamHandle handle, 
+					metricInstanceHandle mh,
+					phaseType type)
+{
+
     metricInstance *mi = metricInstance::getMI(mh);
-    if (mi){
-	mi->disableDataCollection(handle);
-	if(!mi->getCount()){ 
-            paradynDaemon::disableData(mi); // deletes the metricInstance 
+    if (!mi) return;
+
+    
+    if (mi->isCollectionPersistent()) {
+        // just remove handle from appropriate client list
+        if (type == GlobalPhase){
+	    mi->removeGlobalUser(handle);
+        }
+        else {
+            mi->removeCurrUser(handle);
+        }
+        return;
+    }
+    
+    // remove user from appropriate list
+    if (type == CurrentPhase) {
+        mi->removeCurrUser(handle); 
+    }
+    else {
+        mi->removeGlobalUser(handle);
+    }
+
+    // really disable MI data collection?  
+    if (!(mi->currUsersCount())) {
+	if (!(mi->isDataPersistent())){
+	    // remove histogram
+	    mi->deleteCurrHistogram();
+	}
+	else {  //TODO: clear active flag on histogram
+
+	}
+	if (!(mi->globalUsersCount())) {
+	    // paradynDaemon::disableData(mi);
+	    mi->dataDisable();  // makes disable call to daemons
+	    if (!(mi->isDataPersistent())){
+	        delete mi;	
+	    }
 	}
     }
+    return;
 }
+
+
+
+// TODO: implement these: setting and clearing persistentCollection may have
+// enable/disable side effects, clearing persistentData may cause MI to be 
+// deleted
+void dataManager::setPersistentCollection(metricInstanceHandle){}
+void dataManager::clearPersistentCollection(metricInstanceHandle){}
+void dataManager::setPersistentData(metricInstanceHandle){}
+void dataManager::clearPersistentData(metricInstanceHandle){}
 
 metricHandle *dataManager::getMetric(metricInstanceHandle mh)
 {
@@ -542,17 +751,33 @@ float dataManager::getCurrentHybridCost()
     return(paradynDaemon::currentHybridCost());
 }
 
+// TODO: implement phase option
 // caller provides array of sampleValue to be filled
 int dataManager::getSampleValues(metricInstanceHandle mh,
 				 sampleValue *buckets,
 				 int numberOfBuckets,
-				 int first)
+				 int first,
+				 phaseType phase)
 {
     metricInstance *mi = metricInstance::getMI(mh);
     if(mi) 
-        return(mi->getSampleValues(buckets, numberOfBuckets, first));
+        return(mi->getSampleValues(buckets, numberOfBuckets, first, phase));
     return(0); 
 }
+
+
+//  TODO: implement this
+// fill the passed array of buckets with the archived histogram values
+// of the passed metricInstance
+int dataManager::getArchiveValues(metricInstanceHandle mi,
+		     sampleValue *buckets,
+		     int numberOfBuckets,
+		     int first,
+		     phaseHandle phase_id){
+
+    return 0;
+}
+
 
 void dataManager::printResources()
 {
@@ -573,6 +798,10 @@ void dataManager::StartPhase(timeStamp start_Time, const char *name)
 {
     string n = name;
     phaseInfo::startPhase(start_Time,n);
+}
+
+vector<T_visi::phase_info> *dataManager::getAllPhaseInfo(){
+    return(phaseInfo::GetAllPhaseInfo());
 }
 
 //
@@ -610,9 +839,10 @@ void dataManagerUser::changeResourceBatchMode(resourceBatchModeCallback cb,
 
 void dataManagerUser::histFold(histFoldCallback cb,
 			       perfStreamHandle handle,
-			       timeStamp width)
+			       timeStamp width,
+			       phaseType phase_type)
 {
-    (cb)(handle, width);
+    (cb)(handle, width, phase_type);
 }
 
 void dataManagerUser::changeState(appStateChangeCallback cb,
@@ -722,11 +952,27 @@ resourceHandle dataManager::newResource(resourceHandle parent,
 
 }
 
-
-timeStamp dataManager::getCurrentBucketWidth()
+timeStamp dataManager::getGlobalBucketWidth()
 {
     return(Histogram::getGlobalBucketWidth());
 }
+
+timeStamp dataManager::getCurrentBucketWidth()
+{
+    return(phaseInfo::GetLastBucketWidth());
+}
+
+timeStamp dataManager::getCurrentStartTime() 
+{
+    return(phaseInfo::GetLastPhaseStart());
+}
+
+u_int dataManager::getCurrentPhaseId() 
+{
+    return(phaseInfo::CurrentPhaseHandle());
+}
+
+
 
 int dataManager::getMaxBins()
 {

@@ -20,6 +20,7 @@
 #include "util/h/String.h"
 #include "util/h/sys.h"
 #include "util/h/Vector.h"
+#include "visi.xdr.h"
 #include "DMinclude.h"
 
 class phaseInfo {
@@ -40,8 +41,15 @@ public:
 	void SetEndTime(timeStamp time){ endTime = time;}
 	void ChangeBucketWidth(float newWidth){ bucketWidth = newWidth; }
         const char *PhaseName(){return(name.string_of());}
+	static vector<T_visi::phase_info> *GetAllPhaseInfo();
 	static int NumPhases(){return(dm_phases.size());}
 	static void startPhase(timeStamp start_Time, const string &name);
+	static void setLastEndTime(timeStamp);
+	// returns start time of current phase 
+	static timeStamp GetLastPhaseStart();  
+	static phaseHandle CurrentPhaseHandle();
+	static timeStamp GetLastBucketWidth();
+	static void setCurrentBucketWidth(timeStamp new_width);
 };
 
 #endif

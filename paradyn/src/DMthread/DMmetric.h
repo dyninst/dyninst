@@ -50,6 +50,7 @@ class component {
             daemon->disabledMids += (unsigned) id;
             daemon->activeMids.undef((unsigned)id);
 	}
+	int getId(){return(id);}
     private:
 	sampleInfo sample;
 	paradynDaemon *daemon;
@@ -65,8 +66,8 @@ class metric {
     friend class metricInstance;
     friend class paradynDaemon;
     friend void addMetric(T_dyninstRPC::metricInfo &info);
-    friend void histDataCallBack(sampleValue *buckets, int count, 
-				 int first, void *arg);
+    friend void histDataCallBack(sampleValue *buckets, timeStamp start_time, 
+				 int count, int first, void *arg);
     // TODO: remove these when PC is re-written ***************
     friend void PCmetricFunc(perfStreamHandle, const char *name,
 			     int style, int aggregate,
@@ -100,6 +101,12 @@ class metric {
         static metric  *getMetric(metricHandle iName); 
 };
 
+struct archive_type {
+    Histogram *data;
+    phaseHandle phaseId;
+};
+
+typedef struct archive_type ArchiveType;
 
 class metricInstance {
     friend class dataManager;
@@ -112,10 +119,10 @@ class metricInstance {
 			  sampleValue,int,int);
     friend class datum;
     friend class PCmetric;
-    friend void phaseInfo::startPhase(timeStamp start_Time, const string &name);
+    // friend void phaseInfo::startPhase(timeStamp start_Time, const string &name);
     // ********************************************************
     public:
-	metricInstance(resourceListHandle rl, metricHandle m); 
+	metricInstance(resourceListHandle rl, metricHandle m,phaseHandle ph);
 	~metricInstance(); 
 	float getValue() {
 	    float ret;
@@ -131,13 +138,10 @@ class metricInstance {
 	    ret = data->getValue();
 	    return(ret);
 	}
-	int getCount(){return(users.size());}
-	int getSampleValues(sampleValue *buckets,
-			    int numberOfBuckets,
-			    int first){
-	    if (!data) return (-1);
-	    return(data->getBuckets(buckets, numberOfBuckets, first));
-        }
+	int currUsersCount(){return(users.size());}
+	int globalUsersCount(){return(global_users.size());}
+	int getSampleValues(sampleValue*, int, int, phaseType);
+
         static unsigned  mhash(const metricInstanceHandle &val){
 	    return((unsigned)val);
 	}
@@ -145,18 +149,53 @@ class metricInstance {
 	metricHandle getMetricHandle(){ return(met); }
 	resourceListHandle getFocusHandle(){ return(focus); }
 	void addInterval(timeStamp s,timeStamp e,sampleValue v,bool b){
-             data->addInterval(s,e,v,b);
+	     if(data) 
+                 data->addInterval(s,e,v,b);
+             if(global_data)
+		 global_data->addInterval(s,e,v,b);
 	}
-        void disableDataCollection(perfStreamHandle ps);
-	void addUser(perfStreamHandle p); 
+        // void disableDataCollection(perfStreamHandle ps);
+
+	bool isEnabled(){return(enabled);}
+	void setEnabled(){ enabled = true;}
+	void clearEnabled(){ enabled = false;}
+	void setPersistentData(){ persistent_data = true; } 
+	void setPersistentCollection(){ persistent_collection = true; } 
+	void clearPersistentData(){ persistent_data = false; } 
+	void clearPersistentCollection(){ persistent_collection = false; } 
+	bool isDataPersistent(){ return persistent_data;}
+	bool isCollectionPersistent(){ return persistent_collection;}
+	// returns false if componet was already on list (not added)
+	bool addComponent(component *new_comp);
+	bool addPart(sampleInfo *new_part);
+
+	static timeStamp GetGlobalWidth(){return(global_bucket_width);}
+	static timeStamp GetCurrWidth(){return(curr_bucket_width);}
+	static void SetGlobalWidth(timeStamp nw){global_bucket_width = nw;}
+	static void SetCurrWidth(timeStamp nw){curr_bucket_width = nw;}
+	static phaseHandle GetCurrPhaseId(){return(curr_phase_id);}
+	static void setPhaseId(phaseHandle ph){curr_phase_id = ph;}
+	static void stopAllCurrentDataCollection();
+
     private:
 	metricHandle met;
 	resourceListHandle focus;
 	float enabledTime;
+	bool enabled;    // set if data for mi is currently enabled
 	vector<sampleInfo *> parts;
 	vector<component *> components;
-	vector<perfStreamHandle> users;
-	Histogram *data;
+
+	vector<perfStreamHandle> users;  // subscribers to curr. phase data
+	Histogram *data;		 // data corr. to curr. phase
+	vector<perfStreamHandle> global_users;  // subscribers to global data
+	Histogram *global_data;	    // data corr. to global phase
+        vector<ArchiveType *> old_data;  // histograms of data from old phases 
+        
+	// if set, archive old data on disable and on new phase definition
+	bool persistent_data;  
+	// if set, don't disable on new phase definition
+	bool persistent_collection; 
+
 	unsigned id;
 	sampleInfo sample;
 	static dictionary_hash<metricInstanceHandle,metricInstance *> 
@@ -165,11 +204,21 @@ class metricInstance {
         // vector of ids...reuse ids of deleted metricInstances
 	static vector<bool> nextId;
 
+        // info. about phase data
+	static phaseHandle curr_phase_id;  // TODO: set this on Startphase
+	static timeStamp global_bucket_width;  // updated on fold
+	static timeStamp curr_bucket_width;    // updated on fold
+
         static metricInstance *getMI(metricInstanceHandle);
 	static metricInstance *find(metricHandle, resourceListHandle);
-        void newDataCollection(metricStyle style, dataCallBack dcb,
-			       foldCallBack fcb){
-            data = new Histogram(style, dcb, fcb, this);
-        }
+        void newCurrDataCollection(metricStyle, dataCallBack, foldCallBack);
+        void newGlobalDataCollection(metricStyle, dataCallBack, foldCallBack);
+	void addCurrentUser(perfStreamHandle p); 
+	void addGlobalUser(perfStreamHandle p); 
+	// clear enabled flag and remove comps and parts
+	void dataDisable();  
+        void removeGlobalUser(perfStreamHandle);
+        void removeCurrUser(perfStreamHandle);
+	void deleteCurrHistogram();
 };
 #endif

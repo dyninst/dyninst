@@ -7,10 +7,14 @@
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.24  1995/07/20 22:34:22  rbi
- * fixed descendancy evaluation bug
+ * Revision 1.25  1995/08/01 02:11:20  newhall
+ * complete implementation of phase interface:
+ *   - additions and changes to DM interface functions
+ *   - changes to DM classes to support data collection at current or
+ *     global phase granularity
+ * added alphabetical ordering to foci name creation
  *
- * Revision 1.23  1995/07/15  03:34:53  karavan
+ * Revision 1.23  1995/07/15 03:34:53  karavan
  * fixed "paradyn suppress searchChildren" command by checking for parent's
  * suppress value in resource constructor.
  *
@@ -213,29 +217,39 @@ bool resource::string_to_handle(string res,resourceHandle *h){
 }
 
 /*
- * Convenience function with too many es
+ * Convinence function.
  *
  */
+#ifdef ndef
+bool resource::isDescendent(resourceHandle child)
+{
+    for(unsigned i=0; i < children.size(); i++){
+        if(child == children[i])
+	    return(TRUE);
+    }
+    return(FALSE);
+}
+#endif
+
 bool resource::isDescendent(resourceHandle child_handle)
 {
     resourceHandle root_handle = rootResource->getHandle();
     resourceHandle this_handle = getHandle();
-
-    if (child_handle == this_handle) {
-      return FALSE;
-    }
-    if (this_handle == root_handle) {
-      return TRUE;
-    }
+    if (this_handle == child_handle) 
+        return FALSE;
+    if (this_handle == root_handle) 
+	    return TRUE;
     while (child_handle != root_handle) {
         if (child_handle == this_handle) {
-	  return TRUE;
-        } else {
-            child_handle = handle_to_resource(child_handle)->getParent();
-        }
+	    return TRUE;
+	} else {
+	    child_handle = handle_to_resource(child_handle)->getParent();
+	}
     }
     return FALSE;
 }
+
+
 
 /*
  * Do the two resources have the same base?
@@ -281,18 +295,32 @@ resource *resource::string_to_resource(string res){
     return 0;
 }
 
+int DMresourceListNameCompare(const void *n1, const void *n2){
+    
+    const string *s1 = (const string*)n1, *s2 = (const string*)n2;
+    return( *s1 >= *s2);
+
+}
+
 string DMcreateRLname(const vector<resourceHandle> &res){
     // create a unique name
     string temp;
     resource *next;
-    for(unsigned i=0; i < (res.size() - 1); i++){
+
+    vector <string> sorted_names;
+
+    for(unsigned i=0; i < res.size(); i++){
 	next = resource::handle_to_resource(res[i]);
-	temp += next->getFullName();
+	sorted_names += next->getFullName();
+    }
+    sorted_names.sort(DMresourceListNameCompare);
+
+    for(i=0; i < (res.size() - 1); i++){
+	temp += sorted_names[i].string_of();
 	temp += ",";
     }
     if(res.size() > 0){
-	next = resource::handle_to_resource(res[i]);
-	temp += next->getFullName();
+	temp += sorted_names[i].string_of();
     }
 
     return(temp);
@@ -315,6 +343,9 @@ resourceList::resourceList(const vector<resourceHandle> &res){
 	    elements += resource::handle_to_resource(res[i]);
             // elements += r;
     } }
+    else {
+        printf("ERROR: this resourceList already created: %s\n",temp.string_of());
+    }
 }
 
 // this should be called with strings of fullNames for resources
@@ -340,6 +371,9 @@ resourceList::resourceList(const vector<string> &names){
         for(i=0; i < size; i++){
 	    elements += resource::string_to_resource(names[i]);
     } }
+    else {
+        printf("ERROR: this resourceList already created: %s\n",temp.string_of());
+    }
 }
 
 
@@ -427,6 +461,7 @@ resourceListHandle resourceList::getResourceList(
     }
     // create a new resourceList
     resourceList *res = new resourceList(h);
+    assert(res);
     return(res->getHandle());
 }
 

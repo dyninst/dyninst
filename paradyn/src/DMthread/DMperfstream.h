@@ -51,13 +51,13 @@ class performanceStream {
 	void callResourceFunc(resourceHandle parent, resourceHandle child, 
 			      const char *name, const char *abstr);
 	void callResourceBatchFunc(batchMode mode);
-	void callFoldFunc(timeStamp width);
+	void callFoldFunc(timeStamp width,phaseType phase_type);
 	void callStateFunc(appState state);
 	void callPhaseFunc(phaseInfo& phase);
 	perfStreamHandle Handle(){return(handle);}
 	static void notifyAllChange(appState state);
 	static void ResourceBatchMode(batchMode mode);
-	static void foldAll(timeStamp width); 
+	static void foldAll(timeStamp width, phaseType phase_type); 
 	static performanceStream *find(perfStreamHandle psh);
 	static unsigned pshash(const perfStreamHandle &val) {
 		    return((unsigned)val);

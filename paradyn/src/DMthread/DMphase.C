@@ -35,6 +35,13 @@ phaseInfo::phaseInfo(timeStamp s, timeStamp e, timeStamp b, const string &n){
     dm_phases += p;
 }
 
+void phaseInfo::setLastEndTime(timeStamp stop_time){
+   unsigned size = dm_phases.size();
+   if(size > 0){
+       (dm_phases[size-1])->SetEndTime(stop_time);
+   }
+}
+
 #ifdef n_def
 void phaseInfo::startPhase(timeStamp start_Time, const string &name){
     // update the histogram data structs assoc with each MI
@@ -42,46 +49,9 @@ void phaseInfo::startPhase(timeStamp start_Time, const string &name){
 
     // create a new phaseInfo object 
     timeStamp bin_width = (Histogram::getGlobalBucketWidth());
-
-    // **** kludge: the PC search screws up the lastGlobalBin value in
-    // the Histogram class, so search all active DM histograms for
-    // the lastBucket value.  when the PC is fixed replace with  
-    // this:   timeStamp start_time = bin_width*(Histogram::lastGlobalBin);
-
-    dictionary_hash_iter<metricInstanceHandle,metricInstance *> 
-			allMIs(metricInstance::allMetricInstances);
-    metricInstanceHandle mi_h; metricInstance *next = 0;
-    int lastBin = Histogram::getNumBins();
-    while(allMIs.next(mi_h,next)){
-        if(next->data){
-            if(next->data->getCurrBin() < lastBin){
-		lastBin = next->data->getCurrBin();
-    }}}
-    timeStamp start_time = bin_width*lastBin;
-    // ****
-
-
-
-    phaseInfo *p = new phaseInfo(start_time, (timeStamp)-1.0, bin_width, name);
-    // invoke newPhaseCallback for all perf. streams
-    dictionary_hash_iter<perfStreamHandle,performanceStream*>
-			allS(performanceStream::allStreams);
-     perfStreamHandle h;
-     performanceStream *ps;
-     while(allS.next(h,ps)){
-         ps->callPhaseFunc(*p);
-     }
-     p = 0;
-}
-#endif
-
-void phaseInfo::startPhase(timeStamp start_Time, const string &name){
-    // update the histogram data structs assoc with each MI
-    // return a start time for the phase
-
-    // create a new phaseInfo object 
-    timeStamp bin_width = (Histogram::getGlobalBucketWidth());
     timeStamp start_time = Histogram::currentTime();
+    // set the end time for the curr. phase
+    phaseInfo::setLastEndTime(start_time);
     phaseInfo *p = new phaseInfo(start_time, (timeStamp)-1.0, bin_width, name);
     // invoke newPhaseCallback for all perf. streams
     dictionary_hash_iter<perfStreamHandle,performanceStream*>
@@ -93,3 +63,88 @@ void phaseInfo::startPhase(timeStamp start_Time, const string &name){
      }
      p = 0;
 }	
+#endif
+
+void phaseInfo::startPhase(timeStamp start_Time, const string &name){
+
+    // disable all currPhase data collection if persistent_collection flag
+    // clear, and remove all currPhase data if persistent_data flag clear
+    metricInstance::stopAllCurrentDataCollection();
+
+    // TODO: change sampling rate (???)  if this is changed on fold
+    // events (it is not currently) it should be changed here as well 
+
+    // create a new phaseInfo object 
+    timeStamp bin_width = (Histogram::getMinBucketWidth());
+    timeStamp start_time = Histogram::currentTime();
+
+    // set the end time for the curr. phase
+    phaseInfo::setLastEndTime(start_time);
+    phaseInfo *p = new phaseInfo(start_time, (timeStamp)-1.0, bin_width, name);
+    assert(p);
+    
+    // update MI's current phase info 
+    metricInstance::setPhaseId(p->GetPhaseHandle());
+    metricInstance::SetCurrWidth(bin_width);
+
+    // invoke newPhaseCallback for all perf. streams
+    dictionary_hash_iter<perfStreamHandle,performanceStream*>
+			allS(performanceStream::allStreams);
+     perfStreamHandle h;
+     performanceStream *ps;
+     while(allS.next(h,ps)){
+         ps->callPhaseFunc(*p);
+     }
+     p = 0;
+}	
+
+// caller is responsible for freeing space assoc. with return list
+vector<T_visi::phase_info> *phaseInfo::GetAllPhaseInfo(){
+
+    vector<T_visi::phase_info> *phase_list = new vector<T_visi::phase_info>;
+    T_visi::phase_info newValue;
+
+    for(unsigned i=0; i < dm_phases.size(); i++){
+	newValue.start = dm_phases[i]->GetStartTime();
+	newValue.end = dm_phases[i]->GetEndTime();
+	newValue.bucketWidth = dm_phases[i]->GetBucketWidth();
+	newValue.handle = dm_phases[i]->GetPhaseHandle();
+	newValue.name = dm_phases[i]->PhaseName();
+	*phase_list += newValue;
+    }
+    assert(phase_list->size() == dm_phases.size());
+    return(phase_list);
+}
+
+// returns the start time of the last defined phase
+timeStamp phaseInfo::GetLastPhaseStart(){
+
+  unsigned size = dm_phases.size(); 
+  if (size == 0) return -1;
+  return(dm_phases[size-1]->GetStartTime());
+
+}
+
+// returns handle of the last defined phase
+phaseHandle phaseInfo::CurrentPhaseHandle(){
+
+  unsigned size = dm_phases.size(); 
+  if (size == 0) return 0;
+  return(dm_phases[size-1]->GetPhaseHandle());
+}
+
+timeStamp phaseInfo::GetLastBucketWidth(){
+
+  unsigned size = dm_phases.size(); 
+  if (size == 0) return -1;
+  return(dm_phases[size-1]->GetBucketWidth());
+
+}
+
+void phaseInfo::setCurrentBucketWidth(timeStamp new_width){
+
+  unsigned size = dm_phases.size(); 
+  if (size == 0) return;
+  dm_phases[size-1]->ChangeBucketWidth(new_width);
+
+}

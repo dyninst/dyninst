@@ -146,8 +146,7 @@ class paradynDaemon: public dynRPCUser {
   	static bool pauseAll();	
 	static bool continueAll();
 	static bool setInstSuppress(resource *, bool);
-	static metricInstance *enableData(resourceListHandle, metricHandle);
-	static void disableData(metricInstance*);
+	static bool enableData(resourceListHandle,metricHandle,metricInstance*);
 	static void tellDaemonsOfResource(u_int parent,
 					  u_int res,const char *name);
         // sets the name of the daemon to use

@@ -100,13 +100,20 @@ vector<met_name_id> *metric::allMetricNamesIds(){
     temp = 0;
 }
 
-metricInstance::metricInstance(resourceListHandle rl, metricHandle m) {
+metricInstance::metricInstance(resourceListHandle rl, 
+			       metricHandle m,
+			       phaseHandle ph){
     met = m;
     focus = rl;
     enabledTime = 0.0;
     metric *mp = metric::getMetric(m);
     sample.aggOp = mp->getAggregate();
-    data = NULL;
+    data = 0;
+    global_data = 0;
+    persistent_data = 0;
+    persistent_collection = 0;
+    enabled = false;
+    metricInstance::curr_phase_id = ph;
 
     // find an Id for this metricInstance
     for(unsigned i=0; i < nextId.size(); i++){
@@ -127,10 +134,31 @@ metricInstance::~metricInstance() {
     for(unsigned i=0; i < components.size(); i++){
         delete (components[i]);    
     }
+    for(i=0; i < parts.size(); i++){
+        delete (parts[i]);    
+    }
+    for(i=0; i < old_data.size(); i++){
+        delete (old_data[i]);    
+    }
     if (data) delete(data);
+    if (global_data) delete(global_data);
     nextId[id] = false;
     // remove metricInstace from list of allMetricsInstances
     allMetricInstances.undef(id);
+}
+
+int metricInstance::getSampleValues(sampleValue *buckets,int numOfBuckets,
+				    int first,phaseType phase){
+
+    if(phase == CurrentPhase){
+        if (!data) return (-1);
+        return(data->getBuckets(buckets, numOfBuckets, first));
+    }
+    else {
+        if (!global_data) return (-1);
+        return(global_data->getBuckets(buckets, numOfBuckets, first));
+    }
+
 }
 
 metricInstance *metricInstance::getMI(metricInstanceHandle mh){
@@ -141,7 +169,25 @@ metricInstance *metricInstance::getMI(metricInstanceHandle mh){
     return 0;
 }
 
-void metricInstance::disableDataCollection(perfStreamHandle ps){
+// TODO: remove asserts
+void metricInstance::dataDisable(){
+    
+    assert(!users.size());
+    assert(!global_users.size());
+    for(unsigned i=0; i < components.size(); i++){
+        delete (components[i]);  // this disables data collection  
+    }
+    components.resize(0);
+    for(i=0; i < parts.size(); i++){
+        delete (parts[i]);    
+    }
+    parts.resize(0);
+    enabled = false;
+    assert(!components.size());
+    assert(!parts.size());
+}
+
+void metricInstance::removeCurrUser(perfStreamHandle ps){
 
     // remove ps from vector of users
     unsigned size = users.size();
@@ -152,6 +198,30 @@ void metricInstance::disableDataCollection(perfStreamHandle ps){
 	    assert(users.size() < size);
 	    return;
     } }
+}
+
+void metricInstance::removeGlobalUser(perfStreamHandle ps){
+
+    // remove ps from vector of users
+    unsigned size = global_users.size();
+    for(unsigned i=0; i < size; i++){
+	if(global_users[i] == ps){
+	    global_users[i] = global_users[size-1];
+	    global_users.resize(size-1);
+	    assert(global_users.size() < size);
+	    return;
+    } }
+
+
+}
+
+void metricInstance::deleteCurrHistogram(){
+
+    // if curr histogram exists and ther are no users delete
+    if(!(users.size()) && data) {
+        delete data;
+        data = 0;
+    }
 }
 
 metricInstance *metricInstance::find(metricHandle mh, resourceListHandle rh){
@@ -169,7 +239,67 @@ metricInstance *metricInstance::find(metricHandle mh, resourceListHandle rh){
     return 0;
 }
 
-void metricInstance::addUser(perfStreamHandle p){
+bool metricInstance::addComponent(component *new_comp){
+
+    int new_id =  new_comp->getId();
+    for (unsigned i=0; i < components.size(); i++){
+        if((components[i])->getId() == new_id) return false;
+    }
+    components += new_comp;
+    return true;
+}
+
+bool metricInstance::addPart(sampleInfo *new_part){
+    
+    parts += new_part;
+    return true;
+}
+
+// stops currentPhase data collection for all metricInstances
+void metricInstance::stopAllCurrentDataCollection() {
+
+    dictionary_hash_iter<metricInstanceHandle,metricInstance *> 
+			allMI(allMetricInstances);
+    metricInstanceHandle handle;
+    metricInstance *mi;
+
+
+    while(allMI.next(handle,mi)){
+        // remove all users from user list
+	mi->users.resize(0);
+	assert(!(mi->users.size()));
+
+        // if persistent data archive curr histogram
+	if(mi->isDataPersistent()){
+            // TODO: add this  
+	    cout << "    ERROR: data is persistent" << endl;
+	}
+	else { // else delete curr histogram
+            mi->deleteCurrHistogram();
+	}
+
+        // if not persistent collection
+	if (!(mi->isCollectionPersistent())){
+	    // really disable data collection 
+	    if((mi->isEnabled()) && (!mi->globalUsersCount())) { 
+		// disable MI data collection 
+		// paradynDaemon::disableData(mi);
+		mi->dataDisable();
+		if(!(mi->isDataPersistent())){
+		    mi->deleteCurrHistogram();
+		    delete(mi);
+		}
+            }
+	}
+	else { // else, create new curr histogram with empty curr users list
+            // TODO: add this  
+	    cout << "    ERROR:collection is persistent" << endl;
+	}
+    }
+}
+
+
+void metricInstance::addCurrentUser(perfStreamHandle p) {
 
     for(unsigned i=0; i < users.size(); i++){
         if(users[i] == p) return;
@@ -177,3 +307,39 @@ void metricInstance::addUser(perfStreamHandle p){
     users += p;
     assert(users.size());
 }
+
+void metricInstance::addGlobalUser(perfStreamHandle p) {
+
+    for(unsigned i=0; i < global_users.size(); i++){
+        if(global_users[i] == p) return;
+    }
+    global_users += p;
+    assert(global_users.size());
+}
+
+void metricInstance::newGlobalDataCollection(metricStyle style, 
+					     dataCallBack dcb, 
+					     foldCallBack fcb) {
+
+    if (global_data) return;  // histogram has already been created
+    // call constructor for start time 0.0 
+    global_data = new Histogram(style, dcb, fcb, this);
+}
+
+void metricInstance::newCurrDataCollection(metricStyle style, 
+					   dataCallBack dcb, 
+					   foldCallBack fcb) {
+
+    if (data) return;  // histogram has already been created
+
+    // create new histogram
+    timeStamp start_time = phaseInfo::GetLastPhaseStart();
+    if(start_time == 0.0) {
+        data = new Histogram(style, dcb, fcb, this);
+
+    }
+    else {
+        data = new Histogram(start_time, style, dcb, fcb, this);
+    }
+}
+
