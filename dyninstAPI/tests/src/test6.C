@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.5 2002/02/11 22:02:41 tlmiller Exp $
+// $Id: test6.C,v 1.6 2002/02/19 19:19:34 gaburici Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -562,7 +562,7 @@ void mutatorMAIN(char *pathname)
 
   // XXX: On Solaris we need an empty argv
   char *argv[] = { NULL };
-  BPatch_thread *bpthr = bpatch->createProcess(pathname, argv);
+  BPatch_thread *bpthr;
 
   // Force functions to be relocated
   // VG: not sure why we need this...
