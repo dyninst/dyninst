@@ -40,88 +40,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * $Log: metScanner.l,v $
- * Revision 1.19  1998/01/28 16:31:50  czhang
- * Check for obsolete words "setCounter", "subCounter", "addCounter",
- * "functionCall".  If there's any, bail out and warn user.  Fixed a bug about
- * the inaccuracy of the line number reporting.
- *
- * Revision 1.18  1998/01/19 21:05:53  czhang
- * Massive changes for MDL expression.
- * Changes to tokens are in metScanner.l.  This includes adding of new
- * operators.  Some obsolete keywords are removed.
- * Changes to the mdl expression are in metParser.y.  Rules associated with
- * the instrumentation expression (obsolete) are removed and the mdl expression
- * is expanded.
- * Other files, mdl.C, mdl.h, metParse.h contain changes due to the grammer,
- * this includes support for new mdl expression types, etc.
- *
- * Revision 1.17  1997/06/24 17:13:19  newhall
- * changed exclude_node to exclude
- *
- * Revision 1.16  1997/06/07 21:01:26  newhall
- * replaced exclude_func and exclude_lib with exclude_node
- *
- * Revision 1.15  1997/06/05 04:29:47  newhall
- * added exclude_func mdl option to exclude shared object functions
- *
- * Revision 1.14  1996/10/08 21:52:18  mjrg
- * changed the evaluation of resource lists
- * removed warnings
- *
- * Revision 1.13  1996/09/26 19:03:27  newhall
- * added "exclude_lib" mdl option
- *
- * Revision 1.12  1996/04/04  21:55:28  newhall
- * added limit option to visi definition
- *
- * Revision 1.11  1996/03/20  17:04:22  mjrg
- * Changed mdl to support calls with multiple arguments.
- *
- * Revision 1.10  1995/12/18 23:22:14  newhall
- * changed metric units type so that it can have one of 3 values (normalized,
- * unnormalized or sampled)
- *
- * Revision 1.9  1995/12/15 22:30:09  mjrg
- * Merged paradynd and paradyndPVM
- * Get module name for functions from symbol table in solaris
- * Fixed code generation for multiple instrumentation statements
- * Change syntax of MDL resource lists
- *
- * Revision 1.8  1995/11/21 15:15:39  naim
- * Changing the MDL grammar to allow more flexible metric definitions (i.e. we
- * can specify all elements in any order). Additionally, the option "fold"
- * has been removed - naim
- *
- * Revision 1.7  1995/11/17  17:22:16  newhall
- * added "unitsType" option to MDL, can be "normalized" or "unnormalized"
- *
- * Revision 1.6  1995/11/13  14:54:06  naim
- * Adding "mode" option to the Metric Description Language to allow specificacion
- * of developer mode for metrics (default mode is "normal") - naim
- *
- * Revision 1.5  1995/08/24  15:02:48  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.4  1995/05/18  10:58:35  markc
- * mdl
- *
- * Revision 1.3  1995/02/07  21:59:56  newhall
- * added a force option to the visualization definition, this specifies
- * if the visi should be started before metric/focus menuing
- * removed compiler warning * Revision 1.2  1994/08/22  15:53:30  markc
- * Config language version 2.
- *
- * Revision 1.1  1994/07/07  03:25:28  markc
- * Configuration language parser.
- *
- *
+ * $Id: metScanner.l,v 1.20 1998/06/04 00:16:39 wylie Exp $
  */
 
 #include <stdio.h>
@@ -177,7 +96,7 @@ INT	{DIGIT}+
 FIX	{INT}"."{INT}
 ALPHA	[A-Za-z]
 SLASH	\/
-IDENT	{DOLLAR}?{ALPHA}({ALPHA}|{DIGIT}|_)*
+IDENT	{DOLLAR}?(_|{ALPHA})({ALPHA}|{DIGIT}|_)*
 COMMENT	{SLASH}{SLASH}
 %x mdlcomment mdlstr
 
