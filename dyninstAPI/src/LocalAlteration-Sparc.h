@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.h,v 1.8 2001/08/06 23:21:59 gurari Exp $
+// $Id: LocalAlteration-Sparc.h,v 1.9 2003/05/06 20:44:50 mirg Exp $
 
 #ifndef __LocalAlteration_SPARC_H__
 #define __LocalAlteration_SPARC_H__
@@ -128,6 +128,32 @@ class JmpNopTailCallOptimization : public TailCallOptimization {
      virtual int getShift() const;
      virtual int numInstrAddedAfter();
      virtual int getOffset() const { return beginning_offset; }
+};
+
+// used to unwind tail-call optimizations which match the pattern:
+//  mov %o7, %reg
+//  call foo
+//  mov %reg, %o7
+//
+class MovCallMovTailCallOptimization : public TailCallOptimization {
+ public:
+    MovCallMovTailCallOptimization(pd_Function *f, int beginning_offset,
+				   int ending_offset);
+    // update branch targets and inst point locations in/around footprint....
+    virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
+    // update inst point locations in/around footprint....
+    virtual bool UpdateInstPoints(FunctionExpansionRecord *ips);
+    virtual bool RewriteFootprint(Address oldBaseAdr, Address &oldAdr, 
+				  Address newBaseAdr, Address &newAdr,
+				  instruction oldInstr[], 
+				  instruction newInstr[], 
+				  int &oldOffset, int &newOffset,
+				  int newDisp,
+				  unsigned &codeOffset, 
+				  unsigned char *code);
+    virtual int getShift() const;
+    virtual int numInstrAddedAfter();
+    virtual int getOffset() const { return beginning_offset; }
 };
 
 //class SecondInsnCall : public LocalAlteration {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.15 2003/04/25 17:32:36 mirg Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.16 2003/05/06 20:44:50 mirg Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -284,7 +284,177 @@ int JmpNopTailCallOptimization::numInstrAddedAfter() {
 int fubar() {
     return 1;
 }
+
+MovCallMovTailCallOptimization::MovCallMovTailCallOptimization(
+    pd_Function *f, int offsetBegins, int offsetEnds) :
+  TailCallOptimization(f, offsetBegins, offsetEnds)
+{
+}
+//
+//   before:          --->             after
+// ---------------------------------------------------
+//                                    save  %sp, -96, %sp
+//   call PC_REL_ADDR                 mov %i0 %o0
+//   mov %reg, %o7                    mov %i1 %o1
+//                                    mov %i2 %o2
+//                                    mov %i3 %o3
+//                                    mov %i4 %o4
+//                                    mov %i5 %o5
+//                                    call PC_REL_ADDR'
+//                                    nop
+//                                    mov %o0 %i0
+//                                    mov %o1 %i1
+//                                    mov %i2 %o2
+//                                    mov %i3 %o3
+//                                    mov %i4 %o4
+//                                    mov %i5 %o5
+//                                    ret
+//                                    restore
+//                                    nop
+// The following method is a copy of JmpNop... with minor alterations
+bool MovCallMovTailCallOptimization::RewriteFootprint(Address /* oldBaseAdr */,
+						      Address &oldAdr, 
+						      Address newBaseAdr, 
+						      Address &newAdr, 
+						      instruction oldInstr[], 
+						      instruction newInstr[], 
+						      int &oldOffset, 
+						      int &newOffset, 
+						      int /* newDisp */, 
+						      unsigned&/* codeOffset*/,
+						      unsigned char*/* code */)
+{
+    int i, originalOffset;
+
+    // make sure implied offset from beginning of newInstr array is int....
+    assert(((newAdr - newBaseAdr) % sizeof(instruction)) == 0);
+    i = (newAdr - newBaseAdr)/sizeof(instruction);
+
+    // figure out offset of original instruction in oldInstr....
+    assert(beginning_offset % sizeof(instruction) == 0);
+    originalOffset = beginning_offset / sizeof(instruction);
+
+    // generate save instruction to free up new stack frame for
+    //  inserted call....
+    genImmInsn(&newInstr[i++], SAVEop3, REG_SPTR, -112, REG_SPTR);
+  
+    // generate mov i0 ... i5 ==> O0 ... 05 instructions....
+    // as noted above, mv inst %1 %2 is synthetic inst. implemented as
+    //  orI %1, 0, %2  
+    genImmInsn(&newInstr[i++], ORop3, REG_I(0), 0, REG_O(0));
+    genImmInsn(&newInstr[i++], ORop3, REG_I(1), 0, REG_O(1));
+    genImmInsn(&newInstr[i++], ORop3, REG_I(2), 0, REG_O(2));
+    genImmInsn(&newInstr[i++], ORop3, REG_I(3), 0, REG_O(3));
+    genImmInsn(&newInstr[i++], ORop3, REG_I(4), 0, REG_O(4));
+    genImmInsn(&newInstr[i++], ORop3, REG_I(5), 0, REG_O(5));
+
+    // We handle "mov; call rc_rel_addr; mov" only. The compiler is
+    // not likely to generate "mov; call reg; mov", because it would
+    // be equivalent to a shorter jmp; nop
+    assert(isTrueCallInsn(oldInstr[originalOffset]));
+    newInstr[i].raw = oldInstr[originalOffset].raw;
+    instruction* tmpInsn = &newInstr[i];
+    Address tmpAddr = newAdr + 7 * sizeof(instruction);
+    relocateInstruction(tmpInsn, oldAdr, tmpAddr, NULL);
+    i++;    
+
+    // generate NOP following call instruction (for delay slot)
+    //  ....
+    generateNOOP(&newInstr[i++]);
     
+    // generate mov instructions moving %o0 ... %o5 ==> 
+    //     %i0 ... %i5.  
+    genImmInsn(&newInstr[i++], ORop3, REG_O(0), 0, REG_I(0));
+    genImmInsn(&newInstr[i++], ORop3, REG_O(1), 0, REG_I(1));
+    genImmInsn(&newInstr[i++], ORop3, REG_O(2), 0, REG_I(2));
+    genImmInsn(&newInstr[i++], ORop3, REG_O(3), 0, REG_I(3));
+    genImmInsn(&newInstr[i++], ORop3, REG_O(4), 0, REG_I(4));
+    genImmInsn(&newInstr[i++], ORop3, REG_O(5), 0, REG_I(5));
+    
+    // generate ret instruction
+    generateJmplInsn(&newInstr[i++], REG_I(7), 8 ,0);
+    
+    // generate restore operation....
+    genSimpleInsn(&newInstr[i++], RESTOREop3, 0, 0, 0);
+
+    // generate NOP following call instruction (for instrumentation)
+    //  ....
+    generateNOOP(&newInstr[i++]);
+
+    //
+    // And modify inout params....
+    //
+    // oldAdr incremented to end of footpirnt....    
+    assert((ending_offset - beginning_offset) == 2 * sizeof(instruction));
+    oldAdr += 2 * sizeof(instruction);
+    oldOffset += 2;
+
+    // newAdr incremented by # of instructions written (curr 18)....
+    newAdr += 18 * sizeof(instruction);
+    newOffset += 18;
+    return true;
+}
+
+// update expansion record based on local re-write....
+// Origional sequence:
+//    call PC_REL_ADDR
+//    mov %reg, %o7
+//  A jump to (before) the call should go to before the new save....
+//  A jump to (before) the mov should go to before the new ret, restore....
+//   ==> Assume that never happens in code below....
+//  A jump around the footprint should get an extra offset of 16
+//  (change in size)....
+//
+// This routine is a copy of JmpNop ... with minor alterations
+bool MovCallMovTailCallOptimization::UpdateExpansions(
+    FunctionExpansionRecord *fer)
+{
+    // beginning_offset should fall on instruction word boundary.... 
+    assert((beginning_offset % sizeof(instruction)) == 0);
+    //  A jump to (before) the call should go to before the new save (0
+    //  extra offset)....  A jump to (before) the mov should go to
+    //  after the new ret, restore (16 extra offset)....  ==> code
+    //  currently assumes this never happens ...
+    //  Jumps that go around the region get an extra offset of the
+    //  size change (old: 2 instructions, new : 18 instructions)....
+    fer->AddExpansion(beginning_offset + sizeof(instruction),
+		      16 * sizeof(instruction));
+    return true;
+}
+    
+//  An inst point previously located at the call should be located at the call
+//   call point ONLY....
+//  An inst point previously located at the mov should be located at
+//  the restore
+//   return point ONLY.... 
+//
+// This routine is a copy of JmpNop ... with minor alterations
+bool MovCallMovTailCallOptimization::UpdateInstPoints(
+    FunctionExpansionRecord *ips) {
+    // An inst point previously located at the old call should be
+    // moved to the new call.
+    ips->AddExpansion(beginning_offset, 7 * sizeof(instruction));
+    // An inst point previously located at the old mov should be moved to the
+    // new ret
+    ips->AddExpansion(beginning_offset + sizeof(instruction),
+		      7 * sizeof(instruction));
+    // Two more insn of offset is added to make the total # of bytes
+    // of offset agree with the size change....
+    ips->AddExpansion(beginning_offset + 3 * sizeof(instruction), // why +3?
+		      2 * sizeof(instruction));
+    return true;
+} 
+
+int MovCallMovTailCallOptimization::getShift() const {
+    return 16 * sizeof(instruction);
+}
+
+// the number of machine instructions added during the rewriting of the
+// function
+int MovCallMovTailCallOptimization::numInstrAddedAfter() { 
+    return (getShift() % sizeof(instruction));
+}
+
 // constructor for CallRestoreTailCallOptimization....
 CallRestoreTailCallOptimization::CallRestoreTailCallOptimization(
                                        pd_Function *f, int offsetBegins, 
