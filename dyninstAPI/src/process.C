@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.242 2001/02/26 21:34:41 bernat Exp $
+// $Id: process.C,v 1.243 2001/02/27 16:26:17 pcroth Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -242,7 +242,7 @@ Frame Frame::getCallerFrame(process *p) const
 }
 
 #if !defined(rs6000_ibm_aix4_1)
-Address process::getTOCoffsetInfo(Address /*dest */) const
+Address process::getTOCoffsetInfo(Address /*dest */)
 {
   Address tmp;
   assert(0);
