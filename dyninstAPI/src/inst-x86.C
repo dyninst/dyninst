@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.110 2002/08/04 17:29:53 gaburici Exp $
+ * $Id: inst-x86.C,v 1.111 2002/08/05 15:39:44 gaburici Exp $
  */
 
 #include <iomanip.h>
@@ -1085,7 +1085,7 @@ static void emitAddRegImm32(Register dest, int imm, unsigned char *&insn);
 static void emitOpRegImm(int opcode, Register dest, int imm, unsigned char *&insn);
 static void emitMovRegToRM(Register base, int disp, Register src, unsigned char *&insn);
 static void emitMovRMToReg(Register dest, Register base, int disp, unsigned char *&insn);
-void emitCallRel32(unsigned disp32, unsigned char *&insn);
+void emitCallRel32(unsigned disp32, unsigned char *&insn); // XXX used by paradyn
 static void emitOpRegRM(unsigned opcode, Register dest, Register base, int disp,
                  unsigned char *&insn);
 
@@ -2142,7 +2142,7 @@ static inline void emitJump(unsigned disp32, unsigned char *&insn) {
 } 
 
 // emit CALL rel32
-inline void emitCallRel32(unsigned disp32, unsigned char *&insn) {
+void emitCallRel32(unsigned disp32, unsigned char *&insn) {
   *insn++ = 0xE8;
   *((int *)insn) = disp32;
   insn += sizeof(int);
