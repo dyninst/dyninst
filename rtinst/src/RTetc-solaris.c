@@ -363,7 +363,7 @@ unsigned DYNINSTtotalTraps = 0;
 static unsigned lookup(unsigned key) {
     unsigned u;
     unsigned k;
-    for (u = HASH1(key); 1; u += HASH2(key) % TRAMPTABLESZ) {
+    for (u = HASH1(key); 1; u = (u + HASH2(key)) % TRAMPTABLESZ) {
       k = DYNINSTtrampTable[u].key;
       if (k == 0)
         return 0;
