@@ -4,6 +4,9 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.22  1996/02/02 02:22:52  karavan
+#  Its a baby performance consultant!
+#
 # Revision 1.21  1995/12/20 01:11:40  tamches
 # removed TCL2C, TCL2C_GEN_SRCS (now in make.config)
 #
@@ -80,7 +83,8 @@
 #
 
 CFLAGS		+= $(TCLFRIENDLYWARNINGS)
-CXXFLAGS	+= $(TCLFRIENDLYWARNINGS)
+#CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) -DPCDEBUG
+CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) 
 TFLAGS		+= $(TCLFRIENDLYWARNINGS)
 
 TARGET	      = paradyn
@@ -101,16 +105,20 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/VMthread/VMmain.C \
 		../src/VISIthread/VISIthreadmain.C \
 		../src/VISIthread/VISIthreadpublic.C \
-		../src/PCthread/PCauto.C \
+		../src/PCthread/PCdataQ.C \
+		../src/PCthread/PCdata.C \
+		../src/PCthread/PCfocus.C \
+		../src/PCthread/PCsearch.C \
 		../src/PCthread/PCpublic.C \
-		../src/PCthread/PCevalTest.C \
+		../src/PCthread/PCmain.C \
+		../src/PCthread/PCconstants.C \
+		../src/PCthread/PCfilter.C \
 		../src/PCthread/PCmetric.C \
+		../src/PCthread/PCwhy.C \
+		../src/PCthread/PCexperiment.C \
 		../src/PCthread/PCrules.C \
 		../src/PCthread/PCshg.C \
-		../src/PCthread/PCwhen.C \
-		../src/PCthread/PCwhere.C \
-		../src/PCthread/PCwhy.C \
-		../src/PCthread/PCmain.C \
+		../src/PCthread/PCmetricInst.C \
 		../src/UIthread/tclTunable.C \
 		../src/UIthread/Status.C \
 		../src/UIthread/uimpd.tcl.C \
@@ -205,3 +213,5 @@ templatesUI.o: ../src/templatesUI.C
 
 $(TCL2C_GEN_SRCS):	$(TCL_SRCS)
 	$(TCL2C) $^ > $@
+
+
