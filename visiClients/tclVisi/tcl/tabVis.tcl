@@ -2,8 +2,11 @@
 #  tabVis -- A tabular display visualization for Paradyn
 #
 #  $Log: tabVis.tcl,v $
-#  Revision 1.1  1994/05/31 22:18:53  rbi
-#  Fix for direct execution of tcl visis
+#  Revision 1.2  1994/06/01 16:59:30  rbi
+#  Better menu bar.  Short names option.
+#
+# Revision 1.1  1994/05/31  22:18:53  rbi
+# Fix for direct execution of tcl visis
 #
 #
 
@@ -41,6 +44,7 @@ menu .table.menubar.file.m
 menubutton .table.menubar.opts -text "Options" -menu .table.menubar.opts.m
 menu .table.menubar.opts.m -selector black
 .table.menubar.opts.m add command -label "Signif. Digits" -command SetSignif
+.table.menubar.opts.m add check -label "Short Names" -variable ShortNames
 .table.menubar.opts.m add separator
 .table.menubar.opts.m add radio -label "Current Value" \
     -variable DataFormat \
@@ -71,12 +75,15 @@ menu .table.menubar.help.m
 #
 #  Build the menu bar and add to display
 #
-blt_table .table.menubar .table.menubar.file 0,0 -padx 2 \
-                         .table.menubar.opts 0,1 -padx 2 \
-                         .table.menubar.pad 0,2 \
-                         .table.menubar.help 0,3 -padx 2 -anchor e
+pack .table.menubar.file .table.menubar.opts -side left
+pack .table.menubar.help -side right
 
 blt_table .table .table.menubar 0,0 -cspan 50 -pady 2 -fill both
+
+#
+#  Organize all menu buttons into a menubar
+#
+tk_menuBar .table.menubar .table.menubar.file .table.menubar.opts .table.menubar.help 
 
 #
 #  Data space initially blank
@@ -99,7 +106,6 @@ blt_table .table .table.status 50,1 -cspan 4 \
 #  Finally display everything
 #
 pack append . .table {fill expand frame center}
-
 
 #
 #  Significant digits adjustment is done with a scale widget
@@ -167,7 +173,7 @@ proc DgConfigCallback {} {
     for {set r 0} {$r < $nR} {incr r} {
       if {$row == 1} {
         set col [expr $r+1]
-        label .table.data.collabel($r) -text [Dg resourcename $r] 
+        label .table.data.collabel($r) -text [GetResourceName $r]
         blt_table .table.data .table.data.collabel($r) 0,$col -anchor e
 	blt_table column .table.data configure $col -padx 2
       }
@@ -193,6 +199,33 @@ trace variable DataFormat w FormatChanged
 proc FormatChanged {name1 name2 how} {
   DgDataCallback
   UpdateStatus
+}
+
+#
+#  Default to long names
+#
+set ShortNames 0
+
+#
+#  Whenever ShortNames is changed, redo resource labels
+#  
+trace variable ShortNames w UpdateResourceLabels
+
+proc UpdateResourceLabels {name1 name2 how} {
+  set nR [Dg numresources]
+  for {set r 0} {$r < $nR} {incr r} {
+    .table.data.collabel($r) configure -text [GetResourceName $r]
+  }    
+}
+
+proc GetResourceName {resid} {
+  global ShortNames
+
+  set Resource [Dg resourcename $resid]
+  if {$ShortNames == 1} {
+    set Resource [file tail $Resource]
+  }
+  return $Resource
 }
 
 #
