@@ -41,8 +41,8 @@
 #ifndef _BPatch_dll_h_
 #define _BPatch_dll_h_
 
-#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 6 apr 2001
-// we are building for a Windows target
+#if defined(BPATCH_LIBRARY) && (defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11)) //ccw 6 apr 2001
+// we are building for a Windows target AND not building paradynd
 
 // we get numerous spurious warnings about having some template classes
 // needing to have a dll-interface if instances of these classes are
@@ -69,10 +69,12 @@
 
 #else
 
-// we are not building for a Windows target
+// we are not building for a Windows target OR are building paradynd
 #define	BPATCH_DLL_EXPORT
 
 #endif
+
+
 
 
 // declare our version string
