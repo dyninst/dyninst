@@ -215,7 +215,9 @@ extern visi_sampleType visi_DataValue(int metric_num, int resource_num,
 /* returns the data values for the metric/resource pair "metric_num" 
  * and "resource_num", returns NaN value on error 
  */
-extern const visi_sampleType *visi_DataValues(int metric_num, int resource_num);
+extern int visi_DataValues(int metric_num, int resource_num, 
+			   visi_sampleType *samples, int firstBucket, 
+			   int lastBucket);
 
 /* returns 1 if the data grid cell corresponding to metric_num   
  * and resource_num contains data, otherwise returns 0 
