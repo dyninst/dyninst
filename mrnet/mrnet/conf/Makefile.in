@@ -40,57 +40,52 @@ VPATH   = $(SRCDIR)/src:$(SRCDIR)/tests
 
 CXX = @CXX@
 CXXFLAGS = @CXXFLAGS@ $(INCDIR) $(WARNFLAGS)
-LDFLAGS = @LDFLAGS@ -L./xplat
+LDFLAGS = @LDFLAGS@
 SOFLAGS = @SOFLAGS@
 C_AS_CPLUSPLUS = @C_AS_CPLUSPLUS@
-LIBS = -lxplat @LIBS@
+LIBS = $(LIBXPLAT) @LIBS@
 
 MAKEDEPENDS = $(SRCDIR)/conf/makedepends.sh
 
-GCC_VER := $(shell $(CXX) --version 2> /dev/null )
-ifeq (GCC,$(findstring GCC,$(GCC_VER)))
-GNU_COMPILER = true
-endif
+COMPILER_TYPE = @COMPILER_TYPE@
 
-ifdef GNU_COMPILER
-ifndef SILENCE_WARNINGS
-WARNFLAGS = -Wall \
-	        -Wpointer-arith        \
-	        -Wcast-qual            \
-	        -Woverloaded-virtual   \
-	        -Wno-deprecated        \
-	        -Wwrite-strings        \
-	        -Wconversion           \
-	        -Wshadow               \
-	        -Wredundant-decls      \
-	        -Wno-non-template-friend
-endif # SILENCE_WARNINGS
+ifeq ($(COMPILER_TYPE), gnu)
 
-ifeq (aix,$(findstring aix,$(MRNET_PLATFORM)))
-# add pthread flag for GNU compiler
-CFLAGS      += -pthread
-CXXFLAGS    += -pthread
-LDFLAGS     += -pthread
-endif  # End GNU/AIX
+    ifndef SILENCE_WARNINGS
+    WARNFLAGS = -fmessage-length=72 \
+                -Wall \
+                -W \
+	            -Wno-system-headers \
+                -Wfloat-equal \
+                -Wconversion \
+                -Wshadow \
+                -Wpointer-arith \
+                -Wcast-qual \
+                -Wcast-align \
+                -Wwrite-strings \
+                -Wsign-compare \
+                -Wredundant-decls \
+                -Wlong-long \
+	            -Woverloaded-virtual   \
+	            -Wno-non-template-friend
+   endif # SILENCE_WARNINGS
 
-ifeq (solaris,$(findstring solaris,$(MRNET_PLATFORM)))
-WARNFLAGS       += -Wno-unknown-pragmas
-else   # STL on Solaris with cast-align generates a warning with much output
-WARNFLAGS       += -Wcast-align
-endif  #End GNU/Solaris
-endif  #GNU_COMPILER
+endif #GNU options
 
+ifeq ($(COMPILER_TYPE), forte)
+    ifndef SILENCE_WARNINGS
+        WARNFLAGS = +w +w2
+    endif # SILENCE_WARNINGS
+endif #Forte (Sun) compiler warnings
 
 #############################
 # System Specific Definitions
 #############################
 LIBMRNET    = $(LIBDIR)/libmrnet.a
+LIBXPLAT    = $(SRCDIR)/xplat/libxplat.a
 COMMNODE    = $(BINDIR)/mrnet_commnode 
 TARGETS     = $(LIBMRNET) $(COMMNODE)
-INCDIR      = -I$(SRCDIR) -I$(SRCDIR)/.. \
-            -I$(SRCDIR)/xplat/include \
-            -I$(SRCDIR)/h \
-            -I.
+INCDIR      = -I$(SRCDIR) -I$(SRCDIR)/.. -I$(SRCDIR)/xplat/include -I. -I$(SRCDIR)/h
 
 TESTS   = $(BINDIR)/microbench_FE \
 	      $(BINDIR)/microbench_BE \
@@ -216,7 +211,9 @@ $(LIBMRNET): $(LIBMRNET_OBJS)
 
 #$(COMMNODE_OBJS): $(OBJDIR)
 
-$(BINDIR)/mrnet_commnode: $(COMMNODE_OBJS) $(LIBMRNET) xplat-all
+$(LIBXPLAT): xplat-all
+
+$(BINDIR)/mrnet_commnode: $(COMMNODE_OBJS) $(LIBMRNET) $(LIBXPLAT)
 	@echo Linking `basename $@` ...
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@  $(COMMNODE_OBJS) $(LIBMRNET) $(LIBS)
 
@@ -224,7 +221,7 @@ $(BINDIR)/mrnet_topgen: $(SRCDIR)/tests/config_generator.C
 	@echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -o $@ $(SRCDIR)/tests/config_generator.C
 
-$(TESTS): $(BINDIR)/%: $(LIBMRNET) $(OBJDIR)/test_common.o $(OBJDIR)/%.o $(OBJDIR)/test_DynamicFilters.so
+$(TESTS): $(BINDIR)/%: $(LIBMRNET) $(OBJDIR)/test_common.o $(OBJDIR)/%.o $(OBJDIR)/test_DynamicFilters.so $(SRCDIR)/tests/test_common.h
 	@echo "Linking `basename $*` ..."
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJDIR)/$*.o $(OBJDIR)/test_common.o $(LIBMRNET) $(LIBS)
 
