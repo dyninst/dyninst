@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.28 2003/05/08 15:00:16 chadd Exp $
+// $Id: linux-x86.C,v 1.29 2003/05/21 14:52:23 pcroth Exp $
 
 #include <fstream.h>
 
@@ -795,10 +795,10 @@ bool process::getDyninstRTLibName() {
             dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
         }
         else {
-            string msg = string("Environment variable " + string("DYNINSTAPI_RT_
-LIB")
-                                + " has not been defined for process ") + string
-            (pid);
+            string msg = string("Environment variable ") +
+                            string("DYNINSTAPI_RT_LIB") +
+                            string(" has not been defined for process ")
+                            + string(pid);
             showErrorCallback(101, msg);
             return false;
         }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.166 2003/04/28 19:05:35 jaw Exp $
+// $Id: symtab.C,v 1.167 2003/05/21 14:52:23 pcroth Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2270,7 +2270,7 @@ void pdmodule::checkAllCallPoints() {
 
 #define PDMODULE_FIND(name, src, dest, type) {  \
   for (unsigned int f=0; f<src.size(); f++) {\
-    pdvector<string> funcNames = src[f]->##type##NameVector(); \
+    pdvector<string> funcNames = src[f]->type##NameVector(); \
     for (unsigned i = 0; i < funcNames.size(); i++) \
       if (funcNames[i] == name) {\
 	dest->push_back(src[f]); break;}\
@@ -2298,7 +2298,7 @@ pdmodule::findFunction(const string &name, pdvector<function_base *> *found)
 
 #define REGEX_FIND(pat, src, dest, type) { \
   for (unsigned int i = 0; i < src.size(); ++i) { \
-    pdvector<string> funcNames = src[i]->##type##NameVector(); \
+    pdvector<string> funcNames = src[i]->type##NameVector(); \
     for (unsigned int j =  0; j <funcNames.size(); ++j) { \
       int err; \
       if (0 == (err = regexec( (regex_t *)pat, funcNames[j].c_str(), 1, NULL, 0 ))){ \
