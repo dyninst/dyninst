@@ -3,6 +3,9 @@
 
 /*
  * $Log: tvFocus.h,v $
+ * Revision 1.4  1996/08/05 07:12:12  tamches
+ * tkclean.h --> tk.h
+ *
  * Revision 1.3  1995/12/22 22:39:28  tamches
  * added visiLibId
  *
@@ -17,8 +20,8 @@
 #ifndef _TV_FOCUS_H_
 #define _TV_FOCUS_H_
 
-#include "String.h"
-#include "tkclean.h"
+#include "util/h/String.h"
+#include "tk.h"
 
 class tvFocus {
  private:

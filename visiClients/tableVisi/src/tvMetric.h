@@ -3,6 +3,9 @@
 
 /*
  * $Log: tvMetric.h,v $
+ * Revision 1.5  1996/08/05 07:12:33  tamches
+ * tkclean.h --> tk.h
+ *
  * Revision 1.4  1995/12/22 22:38:56  tamches
  * added visiLibId
  *
@@ -23,7 +26,7 @@
 #define _TV_METRIC_H_
 
 #include "String.h"
-#include "tkclean.h"
+#include "tk.h"
 
 class tvMetric {
  private:
