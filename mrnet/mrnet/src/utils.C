@@ -13,6 +13,9 @@
 #include <string.h>
 #include <pthread.h>
 
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+
 #define SA struct sockaddr
 
 unsigned int _count;
@@ -87,6 +90,20 @@ int connect_to_host(int *sock_in, const char * hostname, unsigned short port)
     return -1;
   }
 
+#if defined(TCP_NODELAY)
+    // turn off Nagle algorithm for coalescing packets
+    int optVal = 1;
+    int ssoret = setsockopt( sock,
+                                IPPROTO_TCP,
+                                TCP_NODELAY,
+                                &optVal,
+                                sizeof(optVal) );
+    if( ssoret == -1 )
+    {
+        mc_printf(MCFL, stderr, "failed to set TCP_NODELAY\n" );
+    }
+#endif // defined(TCP_NODELAY)
+
   //char *_hostname; unsigned short _p;
   //if(get_socket_peer(sock, &_hostname, &_p) == -1){
     //mc_printf(MCFL, stderr, "%s", ""));
@@ -148,6 +165,20 @@ int bind_to_port(int *sock_in, unsigned short *port_in)
     return -1;
   }
 
+#if defined(TCP_NODELAY)
+    // turn off Nagle algorithm for coalescing packets
+    int optVal = 1;
+    int ssoret = setsockopt( sock,
+                                IPPROTO_TCP,
+                                TCP_NODELAY,
+                                &optVal,
+                                sizeof(optVal) );
+    if( ssoret == -1 )
+    {
+        mc_printf(MCFL, stderr, "failed to set TCP_NODELAY\n" );
+    }
+#endif // defined(TCP_NODELAY)
+
   *sock_in = sock;
   *port_in = port;
   //mc_printf(MCFL, stderr, "Leaving bind_to_port(). Returning sock:%d, port:%d\n",
@@ -167,6 +198,20 @@ int get_socket_connection(int bound_socket)
     perror("accept()");
     return -1;
   }
+
+#if defined(TCP_NODELAY)
+    // turn off Nagle algorithm for coalescing packets
+    int optVal = 1;
+    int ssoret = setsockopt( connected_socket,
+                                IPPROTO_TCP,
+                                TCP_NODELAY,
+                                &optVal,
+                                sizeof(optVal) );
+    if( ssoret == -1 )
+    {
+        mc_printf(MCFL, stderr, "failed to set TCP_NODELAY\n" );
+    }
+#endif // defined(TCP_NODELAY)
 
   mc_printf(MCFL, stderr, "Leaving get_connection(). Returning sock:%d\n",
              connected_socket);
@@ -276,6 +321,20 @@ int connect_socket_by_IP(int IP, short port){
     perror("connect()");
     return -1;
   }
+
+#if defined(TCP_NODELAY)
+    // turn off Nagle algorithm for coalescing packets
+    int optVal = 1;
+    int ssoret = setsockopt( sock,
+                                IPPROTO_TCP,
+                                TCP_NODELAY,
+                                &optVal,
+                                sizeof(optVal) );
+    if( ssoret == -1 )
+    {
+        mc_printf(MCFL, stderr, "failed to set TCP_NODELAY\n" );
+    }
+#endif // defined(TCP_NODELAY)
 
   return sock;
 }
