@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.24 1999/04/27 16:04:33 nash Exp $ */
+/* $Id: init-sunos.C,v 1.25 1999/07/07 16:17:46 zhichen Exp $ */
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -75,10 +75,62 @@ bool initOS() {
 		FUNC_EXIT|FUNC_ARG, retVal);*/
 #endif
   }
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-  AstNode *THRidArg = new AstNode(AstNode::Param, (void *) 5);
-  initialRequests += new instMapping("MY_thr_create", "DYNINSTthreadCreate", 
-                                     FUNC_EXIT|FUNC_ARG, THRidArg);
+#if defined(MT_THREAD)
+  //libthread _fork
+  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+  initialRequests += new instMapping("_fork", "DYNINSTfork", 
+				     FUNC_EXIT|FUNC_ARG, retVal);
+  
+  initialRequests += new instMapping("_thread_start",
+				     "DYNINST_VirtualTimerCREATE",
+				     FUNC_ENTRY, callPreInsn,
+				     orderLastAtPoint) ;
+
+  initialRequests += new instMapping("_thr_exit_common", "DYNINSTthreadDelete", 
+                                     FUNC_ENTRY, callPreInsn, 
+				     orderLastAtPoint);
+
+  initialRequests += new instMapping("_resume_ret",
+				     "DYNINST_VirtualTimerStart",
+				     FUNC_ENTRY, callPreInsn,
+				     orderLastAtPoint) ;
+
+  initialRequests += new instMapping("_resume",
+				     "DYNINST_VirtualTimerStop",
+				     FUNC_ENTRY, callPreInsn,
+				     orderLastAtPoint) ;
+
+  // Thread SyncObjects
+  // mutex
+  AstNode* arg0 = new AstNode(AstNode::Param, (void*) 0);
+  initialRequests += new instMapping("_cmutex_lock", 
+  				     "DYNINSTreportNewMutex", 
+                                     FUNC_ENTRY|FUNC_ARG, 
+  				     arg0);
+
+  // rwlock
+  //
+  arg0 = new AstNode(AstNode::Param, (void*) 0);
+  initialRequests += new instMapping("_lrw_rdlock", 
+  				     "DYNINSTreportNewRwLock", 
+                                     FUNC_ENTRY|FUNC_ARG, 
+  				     arg0);
+
+  //Semaphore
+  //
+  arg0 = new AstNode(AstNode::Param, (void*) 0);
+  initialRequests += new instMapping("_sema_wait_cancel", 
+  				     "DYNINSTreportNewSema", 
+                                     FUNC_ENTRY|FUNC_ARG, 
+  				     arg0);
+
+  // Conditional variable
+  //
+  arg0 = new AstNode(AstNode::Param, (void*) 0);
+  initialRequests += new instMapping("_cond_wait_cancel", 
+  				     "DYNINSTreportNewCondVar", 
+                                     FUNC_ENTRY|FUNC_ARG, 
+  				     arg0);
 #endif
 
   if(process::pdFlavor != string("cow"))
