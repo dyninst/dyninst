@@ -14,9 +14,13 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.33  1995/11/13 17:24:25  newhall
-/* bug fix
+/* Revision 1.34  1995/11/17 17:28:40  newhall
+/* added normalized member to Metric class which specifies units type
+/* added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
 /*
+ * Revision 1.33  1995/11/13  17:24:25  newhall
+ * bug fix
+ *
  * Revision 1.32  1995/11/12  23:29:55  newhall
  * removed warnings, removed error.C
  *
@@ -430,6 +434,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
             else
 	        mets[numMet].units = newElements[i].met.units;
             mets[numMet].Id = newElements[i].met.Id;
+            mets[numMet].normalized = newElements[i].met.normalized;
 	    mets[numMet++].aggregate = newElements[i].met.aggregate;
 	}
 	  ok = 0;
@@ -502,6 +507,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
               else
 	          mets[numMet].units = newElements[i2].met.units;
             mets[numMet].Id = newElements[i2].met.Id;
+            mets[numMet].normalized = newElements[i2].met.normalized;
 	    mets[numMet++].aggregate = newElements[i2].met.aggregate;
 	}
     }}

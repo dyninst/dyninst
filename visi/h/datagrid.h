@@ -17,9 +17,13 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.20  1995/11/12 23:29:24  newhall
-/* removed warnings, removed error.C
+/* Revision 1.21  1995/11/17 17:27:54  newhall
+/* added normalized member to Metric class which specifies units type
+/* added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
 /*
+ * Revision 1.20  1995/11/12  23:29:24  newhall
+ * removed warnings, removed error.C
+ *
  * Revision 1.19  1995/11/12  00:45:05  newhall
  * added PARADYNEXITED event, added "InvalidSpans" dataGrid method
  *
@@ -102,14 +106,22 @@ class Metric{
      string     name;     // for y-axis labeling  
      u_int      Id;       // unique metric Id
      int        aggregate; //either SUM or AVE, for fold operation 
+     bool	normalized; // specifies units type
+     string	label;      // for data values, and ave. aggregate
+     string	total_label; // for sum aggregate 
   public:
-     Metric(){units = NULL; Id = 0; aggregate=SUM;}
-     Metric(string ,string,u_int,int); 
+     Metric(){name = 0; units = 0; Id = 0; aggregate=SUM;
+	      normalized = true; label = 0; total_label = 0;}
+     Metric(string,string,u_int,int,bool); 
      ~Metric(); 
      const char *Units(){return(units.string_of());}
      const char *Name(){return(name.string_of());}
      u_int       Identifier(){return(Id);}
      int         Aggregate(){return(aggregate);}
+     bool        Normalized(){return(normalized);}
+     const char *Label(){return(label.string_of());}
+     const char *AveLabel(){return(label.string_of());}
+     const char *SumLabel(){return(total_label.string_of());}
 };
 
 
@@ -463,6 +475,9 @@ class visi_DataGrid {
      ~visi_DataGrid();
      const char *MetricName(int i);
      const char *MetricUnits(int i);
+     const char *MetricLabel(int i);
+     const char *MetricAveLabel(int i);
+     const char *MetricSumLabel(int i);
      const char *ResourceName(int j);
      int        NumMetrics(){return(numMetrics);}
      int        FoldMethod(int);

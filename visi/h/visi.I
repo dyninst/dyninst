@@ -16,9 +16,13 @@
  */
 
 /* $Log: visi.I,v $
-/* Revision 1.12  1995/08/01 01:58:45  newhall
-/* changes relating to phase interface stuff
+/* Revision 1.13  1995/11/17 17:27:56  newhall
+/* added normalized member to Metric class which specifies units type
+/* added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
 /*
+# Revision 1.12  1995/08/01  01:58:45  newhall
+# changes relating to phase interface stuff
+#
 # Revision 1.11  1995/06/02  21:01:55  newhall
 # changed type of metric and focus handles to u_int
 #
@@ -68,6 +72,7 @@ $remote struct metricType {
      string name;     // for y-axis labeling  
      u_int  Id;       // unique metric Id
      int    aggregate;  //either SUM or AVE
+     bool   normalized;  // specifies units type
 };
 
 $remote struct resourceType {
@@ -97,7 +102,7 @@ $remote struct phase_info{
 
 $remote visualization {
   $base  7000;
-  $version  12;
+  $version  13;
 
   // data: list of new data values from Paradyn 
   $async void Data(vector<dataValue> data);  
