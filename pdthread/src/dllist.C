@@ -220,7 +220,10 @@ dllist<Element,Sync>::new_node() {
 }
 
 template<class Element, class Sync>
-inline void dllist<Element,Sync>::free_node(dllist<Element,Sync>::node* n) {
+inline 
+void 
+dllist<Element,Sync>::free_node(TYPENAME dllist<Element,Sync>::node* n)
+{
     n->next = free_list;
     n->prev = NULL;
     free_list = n;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -50,11 +50,14 @@
 #if ! defined( TYPENAME )
 
 #if defined( __GNUC__ )
-#define TYPENAME typename
+#  define TYPENAME typename
 #elif defined(__SUNPRO_CC)
-#define TYPENAME typename
+#  define TYPENAME typename
 #elif defined(mips_sgi_irix6_4)  // not sure what MACRO the IRIX compiler uses
-#define TYPENAME typename
+#  define TYPENAME typename
+#elif defined(_MSC_VER) && (_MSC_VER >= 1310)
+    // Visual Studio .NET or greater
+#  define TYPENAME typename
 #else  // other compilers may not support the typename keyword yet
 #define TYPENAME
 #endif
