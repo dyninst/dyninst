@@ -3759,10 +3759,12 @@ void process::Exited() {
   removeFromMetricInstances(this);
 #endif
 
+  status_ = exited;
+
   detach(false);
      // the process will continue to run (presumably, it will finish _very_ soon)
 
-  status_ = exited;
+//  status_ = exited;
 
 #ifndef BPATCH_LIBRARY
   tp->processStatus(pid, procExited);
