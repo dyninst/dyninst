@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.251 2001/06/04 18:42:18 bernat Exp $
+// $Id: process.C,v 1.252 2001/06/05 19:50:13 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3297,7 +3297,8 @@ bool process::handleIfDueToSharedObjectMapping(){
 	    // Paradyn -- don't add new symbols unless it's the runtime
 	    // library
 #if !defined(BPATCH_LIBRARY) && !defined(rs6000_ibm_aix4_1)
-	    if (((*changed_objects)[i])->getImage()->isDyninstRTLib())
+	    //if (((*changed_objects)[i])->getImage()->isDyninstRTLib())
+	    if (((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB")))
 	    {
 #endif
                if(addASharedObject(*((*changed_objects)[i]))){
@@ -4486,11 +4487,17 @@ void signalRPCthreadCallback(process * /*p*/, void *data, void *result)
 #endif
 
 void signalRPCthread(process *p) {
+#ifdef rs6000_ibm_aix4_1
+  pthread_mutex_lock(p->DYNINSTthreadRPC_mp);
+  *(p->DYNINSTthreadRPC_pending_p) = 1;
+  pthread_cond_signal(p->DYNINSTthreadRPC_cvp);
+  pthread_mutex_unlock(p->DYNINSTthreadRPC_mp);
+#else
   mutex_lock(p->DYNINSTthreadRPC_mp);
   *(p->DYNINSTthreadRPC_pending_p) = 1;
   cond_signal(p->DYNINSTthreadRPC_cvp);
   mutex_unlock(p->DYNINSTthreadRPC_mp);
-
+#endif
 #if defined(USES_RPC_TO_TRIGGER_RPC) // Temporary here
   string callee = "DYNINSTsignalRPCthread";
   vector<AstNode*> args(0);
@@ -4858,6 +4865,7 @@ Address process::createRPCtempTramp(AstNode *action,
      //
      unsigned pos = 0;
      for (unsigned u=0; u<threads.size(); u++) {
+       // Find our hashed version of the thread ID
        if (thrId == threads[u]->get_tid()) {
          pos = threads[u]->get_pos();
          break;
@@ -4869,6 +4877,8 @@ Address process::createRPCtempTramp(AstNode *action,
      param +=  new  AstNode(AstNode::Constant,(void *) thrId) ;
      param +=  new  AstNode(AstNode::Constant,(void *) pos);
 
+     // If we're starting a (thread) timer, start it for the 
+     // thread we're acting as
      function_base* DYNINSTstartThreadTimer = 
        findOneFunction(string("DYNINSTstartThreadTimer"));
      function_base* DYNINSTstartThreadTimer_inferiorRPC = 
@@ -4877,6 +4887,7 @@ Address process::createRPCtempTramp(AstNode *action,
                               DYNINSTstartThreadTimer_inferiorRPC, param, 1);
 
      // replace DYNINSTthreadPos with DYNINSTthreadPosTID
+     // Fake it as above :)
      function_base* DYNINST_not_deleted =
        findOneFunction(string("DYNINST_not_deleted"));
      function_base* DYNINST_not_deletedTID =
@@ -4885,6 +4896,7 @@ Address process::createRPCtempTramp(AstNode *action,
                               DYNINST_not_deletedTID, param, 0);
   
      // replace DYNINSTloop with DYNINSTloopTID
+     // Same thing
      function_base* DYNINSTloop =
        findOneFunction(string("DYNINSTloop"));
      function_base* DYNINSTloopTID =
@@ -4900,6 +4912,7 @@ Address process::createRPCtempTramp(AstNode *action,
      action->generateCode(this, regSpace, (char*) tmp, cnt, noCost, true) ;
      regSpace->resetSpace();
 
+     // FIXME: 7*sizeof(instruction)? 
      generateRPCpreamble((char*)insnBuffer,count,this,
                          (cnt)+7*sizeof(instruction), thrId, pos);
    }
