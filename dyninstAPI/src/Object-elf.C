@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.49 2003/05/14 18:32:30 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.50 2003/06/10 17:45:35 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1046,7 +1046,11 @@ void Object::fix_zero_function_sizes(pdvector<Symbol> &allsymbols, bool isEEL)
 		//  end and this symbol.
 		// 
         if (allsymbols[u].type() == Symbol::PDST_FUNCTION
+#if ! defined(ia64_unknown_linux2_4)
                && (isEEL || allsymbols[u].size() == 0)) {
+#else
+               ) {
+#endif
 
 			// find the section to which allsymbols[u] belongs
 			// (most likely, it is the section to which allsymbols[u-1] 
@@ -1063,7 +1067,7 @@ void Object::fix_zero_function_sizes(pdvector<Symbol> &allsymbols, bool isEEL)
 				shi -= get_base_addr();
 #endif
 				if( (allsymbols[u].addr() >= slow) &&
-					(allsymbols[u].addr() <= shi) )
+					(allsymbols[u].addr() < shi) )
 				{
 					// we found u's section
 					break;
@@ -1099,7 +1103,7 @@ void Object::fix_zero_function_sizes(pdvector<Symbol> &allsymbols, bool isEEL)
 					shi -= get_base_addr();
 #endif
 					if( (allsymbols[v].addr() >= slow) &&
-						(allsymbols[v].addr() <= shi) )
+						(allsymbols[v].addr() < shi) )
 					{
 						// we found v's section
 						break;
