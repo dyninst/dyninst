@@ -30,12 +30,7 @@
 namespace MRN
 {
 
-extern std::string LocalHostName;
-extern Port LocalPort;
-extern bool tsd_initialized;
-
-int connectHost( int *sock_in,
-                 const std::string & hostname, Port port );
+int connectHost( int *sock_in, const std::string & hostname, Port port );
 
 int bindPort( int *sock_in, Port *port_in );
 int getSocketConnection( int bound_socket );
@@ -76,8 +71,23 @@ class tsd_t {
 #  define _perror(X) ;
 #endif                          // defined(DEBUG_MRNET)
 
-#define MCFL  __FILE__,__LINE__ //used to call mrn_printf(MCFL, ...)
-int mrn_printf( int level, const char *file, int line, FILE * fp,
+#define mrn_dbg( x, y ) \
+do{ \
+  if( OUTPUT_LEVEL >= x ){  \
+    y; \
+  } \
+}while(0);
+
+
+//FLF is used to call mrn_printf(FLF, ...)
+#if !defined( __GNUC__ )
+#define CURRENT_FUNCTION ((const char*)0)
+#define FLF  __FILE__,__LINE__,""
+#else
+#define FLF  __FILE__,__LINE__,__FUNCTION__
+#endif
+
+int mrn_printf( const char *file, int line, const char * func, FILE * fp,
                 const char *format, ... );
 
 }                               // namespace MRN
