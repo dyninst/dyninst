@@ -39,10 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.3 2002/05/09 21:43:05 schendel Exp $
+// $Id: aixMT.C,v 1.4 2002/05/10 18:36:53 schendel Exp $
 
 #include <sys/pthdebug.h> // Pthread debug library
 #include "dyninstAPI/src/pdThread.h"
+#include "paradynd/src/metricFocusNode.h"
+
 /* Necessary functions:
   bool getLWPIDs(int **IDs_p); //caller should do a "delete [] *IDs_p"
   bool getLWPFrame(int lwp_id, Address *fp, Address *pc);
@@ -119,7 +121,7 @@ pdThread *process::createThread(
   }
 
   cerr << "aix.C: adding thread...";
-  getVariableMgr().addThread(thr);
+  metricFocusNode::handleNewThread(thr);
   cerr << " done." << endl;
 
   sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",

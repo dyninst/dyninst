@@ -39,10 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisMT.C,v 1.3 2002/05/02 21:29:08 schendel Exp $
+// $Id: solarisMT.C,v 1.4 2002/05/10 18:36:54 schendel Exp $
 
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
+#include "paradynd/src/metricFocusNode.h"
 
 int process::findLWPbyPthread(int pthread) {
   // Unimplemented
@@ -103,7 +104,7 @@ pdThread *process::createThread(
     }
   }
 
-  //getVariableMgr().addThread(thr);  // is this still needed? - bhs
+  metricFocusNode::handleNewThread(thr);
 
   //  
   sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
