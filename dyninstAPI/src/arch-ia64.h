@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.14 2003/02/25 21:11:08 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.15 2003/06/10 17:45:37 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -211,6 +211,7 @@ IA64_instruction_x generateLongBranchTo( long long int displacement64 );
 
 /* Convience method for inst-ia64.C */
 IA64_bundle generateBundleFromLongInstruction( IA64_instruction_x longInstruction );
+void alterLongMoveAtTo( Address target, Address imm64 );
 
 /* Required by inst-ia64.C */
 IA64_instruction generateIPToRegisterMove( Register destination );
@@ -220,11 +221,13 @@ IA64_instruction generateShortImmediateAdd( Register destination, int immediate,
 IA64_instruction generateIndirectCallTo( Register indirect, Register rp );
 IA64_instruction generatePredicatesToRegisterMove( Register destination );
 IA64_instruction generateRegisterToPredicatesMove( Register source, uint64_t imm17 );
-IA64_instruction generateRegisterStore( Register address, Register source );
-IA64_instruction generateRegisterLoad( Register destination, Register address );
+IA64_instruction generateRegisterStore( Register address, Register source, int imm9 = 0 );
+IA64_instruction generateRegisterLoad( Register destination, Register address, int imm9 = 0 );
 IA64_instruction generateRegisterToApplicationMove( Register source, Register destination );
 IA64_instruction generateApplicationToRegisterMove( Register source, Register destination );
 
+IA64_instruction generateSpillTo( Register address, Register source, int64_t imm9 = 0 );
+IA64_instruction generateFillFrom( Register address, Register destination, int64_t imm9 = 0 );
 IA64_instruction generateFPSpillTo( Register address, Register source, int64_t imm9 = 0 );
 IA64_instruction generateFPFillFrom( Register address, Register destination, int64_t imm9 = 0 );
 IA64_instruction generateRegisterToFloatMove( Register source, Register destination );
@@ -248,14 +251,16 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 /* Constants for code generation. */
 #define ALIGN_RIGHT_SHIFT 23
 
-#define BRANCH_SCRATCH	6	/* or 7 */
-#define BRANCH_RETURN	0
-#define REGISTER_ZERO	0	/* makes it clearer when I'm using the register and not the value */
-#define REGISTER_GP	1	/* the general pointer */
-#define REGISTER_RV	8	/* return value, if structure/union, pointer. */
-#define REGISTER_SP	12	/* memory stack pointer */
-#define REGISTER_TP	13	/* thread pointer */
-#define AR_PFS		64	/* application register: previous function state */
+#define BRANCH_SCRATCH		6	
+#define BRANCH_SCRATCH_ALT 	7
+#define BRANCH_RETURN		0
+#define REGISTER_ZERO		0	/* makes it clearer when I'm using the register and not the value */
+#define REGISTER_GP		1	/* the general pointer */
+#define REGISTER_RV		8	/* return value, if structure/union, pointer. */
+#define REGISTER_SP		12	/* memory stack pointer */
+#define REGISTER_TP		13	/* thread pointer */
+#define AR_PFS			64	/* application register: previous function state */
+#define AR_UNAT			36	/* application register: User Not-a-Thing collection */
 
 /* (right-aligned) Template IDs. */
 const uint8_t MIIstop = 0x01;
@@ -269,5 +274,6 @@ const uint8_t MFIstop = 0x0D;
 const uint64_t NOP_I = 0x0004000000000000;
 const uint64_t NOP_M = 0x0004000000000000;
 const uint64_t TRAP_M = 0x0000800000000000;
+const uint64_t TRAP_I = 0x0000800000000000;
 
 #endif
