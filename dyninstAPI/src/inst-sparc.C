@@ -352,7 +352,7 @@ void generateMTpreamble(char *insn, unsigned &base, process *proc)
   t3 = new AstNode(plusOp, t2, t5);
   removeAst(t2);
   removeAst(t5);
-  src = t3->generateCode(proc, regSpace, insn, base, false);
+  src = t3->generateCode(proc, regSpace, insn, base, false, true);
   removeAst(t3);
   (void) emit(orOp, src, 0, REG_MT, insn, base, false);
   regSpace->freeRegister(src);

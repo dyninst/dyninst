@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.41 1998/08/16 23:50:08 wylie Exp $
+// $Id: inst-sparc-solaris.C,v 1.42 1998/08/26 20:59:04 zhichen Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1176,7 +1176,7 @@ unsigned emitFuncCall(opCode op,
 	}
 	
 	for (unsigned u = 0; u < operands.size(); u++)
-	    srcs += operands[u]->generateCode(proc, rs, i, base, noCost);
+	    srcs += operands[u]->generateCode(proc, rs, i, base, noCost, false);
 
 	// TODO cast
 	instruction *insn = (instruction *) ((void*)&i[base]);
