@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.82 1999/07/26 21:50:35 cain Exp $
+/* $Id: dyninstRPC.I,v 1.83 1999/11/09 19:24:11 cain Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -428,7 +428,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 57;
+    $version 58;
 
     //
     // Define a program to run. 
@@ -475,6 +475,11 @@ $remote dynRPC {
     //
     //
     bool detachProgram(int program, bool pause);
+
+    //	
+    // Monitor the dynamic call sites contained in function <function_name>
+    //		
+    void MonitorDynamicCallSites(string function_name);
 
     //
     // Called by paradynd when a new process starts up.  Specifically, paradynd
@@ -574,6 +579,17 @@ $remote dynRPC {
     //Notify the DM that all static info for a given call graph has been
     //reported.
     $virtual $upcall $async void CallGraphFillDone(string exe_name);	
+
+    //Notify the call graph that function <parent> contains one or more
+    //dynamic call sites.
+    $virtual $upcall $async void CallGraphAddDynamicCallSiteCallback(string exe_name, 
+                                                             string parent);
+
+    //Notify the call graoh that function <parent> calls function <child>
+    //through a dynamic call site.
+    $virtual $upcall $async void AddCallGraphDynamicChildCallback(
+                                  string exe_name,string parent, string child);
+
 
     // Handler that gets called when a new memory is defined.
     //
