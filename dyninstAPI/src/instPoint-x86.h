@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.18 2002/12/20 07:49:57 jaw Exp $
+// $Id: instPoint-x86.h,v 1.19 2003/02/26 21:27:40 schendel Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -58,12 +58,20 @@ class BPatch_point;
  *
  ***********************************************************************/
 
+typedef enum {
+    noneType,
+    functionEntry,
+    functionExit,
+    callSite,
+    otherPoint
+} instPointType;
+
 class instPoint {
 
  public:
 
-  instPoint(pd_Function *f, const image *, Address adr, instruction inst,
-	    bool conservative = false) {
+  instPoint(pd_Function *f, const image *, Address adr, instPointType ipt,
+            instruction inst, bool conservative = false) {
     addr_   = adr;
     func_   = f;
     callee_ = NULL;
@@ -75,6 +83,7 @@ class instPoint {
     bonusBytes_   = 0;
     relocated_ = false;    
     conservative_ = conservative;
+    ipType = ipt;
   };
 
   ~instPoint() {
@@ -231,6 +240,8 @@ class instPoint {
 
   bool isConservative() const { return conservative_; }
 
+  instPointType getPointType() const { return ipType; }
+
  private:
   Address      addr_;    //The address of this instPoint: this is the address
                          // of the actual point (i.e. a function entry point,
@@ -249,6 +260,8 @@ class instPoint {
                          // has been relocated, and this instPoint has been 
                          // updated to reflect that relocation. 
   bool conservative_;    // true for arbitrary inst points
+
+  instPointType ipType;
 
   // VG(11/06/01): there is some common stuff amongst instPoint
   // classes on all platforms (like addr and the back pointer to
