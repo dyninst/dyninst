@@ -3,14 +3,24 @@
 
 /*
  * $Log: tableVisiTcl.C,v $
+ * Revision 1.2  1995/11/08 21:56:05  tamches
+ * when-idle routine does a tryFirst()
+ * fold, invalidmetrics, phasename callbacks gone since unused
+ * sigFigChangeCommand reads from tcl vrble SignificantDigits instead
+ *    of argv
+ * removed unInstallTableVisiCommands, since not useful
+ *
  * Revision 1.1  1995/11/04 00:48:25  tamches
  * First version of new table visi
  *
  */
 
 #include <iostream.h>
+
 #include "tclclean.h"
 #include "tkclean.h"
+#include "tkTools.h"
+
 #include "tableVisi.h"
 #include "visi/h/visualization.h"
 
@@ -25,7 +35,8 @@ unsigned currFormat=0; // 0 --> current; 1 --> averages; 2 --> totals
 /* ************************************************************* */
 
 void tableWhenIdleDrawRoutine(ClientData) {
-   theTableVisi->draw(xsynch_flag);
+   if (theTableVisi->tryFirst())
+      theTableVisi->draw(xsynch_flag);
 }
 tkInstallIdle tableDrawWhenIdle(&tableWhenIdleDrawRoutine);
 
@@ -107,28 +118,28 @@ int Dg2AddMetricsCallback(int) {
    return TCL_OK;
 }
 
-int Dg2Fold(int) {
-   cout << "welcome to Dg2Fold" << endl;
-   tableDrawWhenIdle.install(NULL);
+//int Dg2Fold(int) {
+//   cout << "welcome to Dg2Fold" << endl;
+//   tableDrawWhenIdle.install(NULL);
+//
+//   return TCL_OK;
+//}
 
-   return TCL_OK;
-}
+//int Dg2InvalidMetricsOrResources(int) {
+//   cout << "welcome to Dg2InvalidMetricsOrResources" << endl;
+////   myTclEval(MainInterp, "DgInvalidCallback");
+//   tableDrawWhenIdle.install(NULL);
+//
+//   return TCL_OK;
+//}
 
-int Dg2InvalidMetricsOrResources(int) {
-   cout << "welcome to Dg2InvalidMetricsOrResources" << endl;
-//   myTclEval(MainInterp, "DgInvalidCallback");
-   tableDrawWhenIdle.install(NULL);
-
-   return TCL_OK;
-}
-
-int Dg2PhaseNameCallback(int) {
-   cout << "welcome to Dg2PhaseNameCallback" << endl;
-//   myTclEval(MainInterp, "DgPhaseCallback");
-   tableDrawWhenIdle.install(NULL);
-
-   return TCL_OK;
-}
+//int Dg2PhaseNameCallback(int) {
+//   cout << "welcome to Dg2PhaseNameCallback" << endl;
+////   myTclEval(MainInterp, "DgPhaseCallback");
+//   tableDrawWhenIdle.install(NULL);
+//
+//   return TCL_OK;
+//}
 
 /* ************************************************************* */
 
@@ -215,9 +226,14 @@ int updateNamesCommand(ClientData, Tcl_Interp *interp,
 }
 
 int sigFigChangeCommand(ClientData, Tcl_Interp *interp,
-			int argc, char **argv) {
-   assert(argc == 2);
-   int newNumSigFigs = atoi(argv[1]);
+			int argc, char **) {
+   assert(argc == 1);
+
+   char *sigFigStr = Tcl_GetVar(interp, "SignificantDigits", TCL_GLOBAL_ONLY);
+   if (sigFigStr == NULL)
+      tclpanic(interp, "could not find vrble SignificantDigits");
+
+   int newNumSigFigs = atoi(sigFigStr);
 
    assert(theTableVisi->tryFirst());
 
@@ -227,32 +243,32 @@ int sigFigChangeCommand(ClientData, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int sortMetricsCommand(ClientData, Tcl_Interp *interp,
-		       int argc, char **argv) {
+int sortMetricsCommand(ClientData, Tcl_Interp *,
+		       int, char **) {
    theTableVisi->sortMetrics();
    if (theTableVisi->tryFirst())
       tableDrawWhenIdle.install(NULL);
    return TCL_OK;
 }
 
-int unsortMetricsCommand(ClientData, Tcl_Interp *interp,
-		       int argc, char **argv) {
+int unsortMetricsCommand(ClientData, Tcl_Interp *,
+		       int, char **) {
    theTableVisi->unsortMetrics();
    if (theTableVisi->tryFirst())
       tableDrawWhenIdle.install(NULL);
    return TCL_OK;
 }
 
-int sortFociCommand(ClientData, Tcl_Interp *interp,
-		       int argc, char **argv) {
+int sortFociCommand(ClientData, Tcl_Interp *,
+		       int, char **) {
    theTableVisi->sortFoci();
    if (theTableVisi->tryFirst())
       tableDrawWhenIdle.install(NULL);
    return TCL_OK;
 }
 
-int unsortFociCommand(ClientData, Tcl_Interp *interp,
-		       int argc, char **argv) {
+int unsortFociCommand(ClientData, Tcl_Interp *,
+		       int, char **) {
    theTableVisi->unsortFoci();
    if (theTableVisi->tryFirst())
       tableDrawWhenIdle.install(NULL);
@@ -260,7 +276,7 @@ int unsortFociCommand(ClientData, Tcl_Interp *interp,
 }
 
 int formatChangedCommand(ClientData, Tcl_Interp *interp,
-			 int argc, char **argv) {
+			 int, char **) {
    char *dataFormatStr = Tcl_GetVar(interp, "DataFormat", TCL_GLOBAL_ONLY);
    if (dataFormatStr == NULL)
       tclpanic(interp, "could not find DataFormat tcl vrble");
@@ -314,19 +330,4 @@ void installTableVisiCommands(Tcl_Interp *interp) {
    Tcl_CreateCommand(interp, "formatChanged",
 		     formatChangedCommand,
 		     NULL, dummyDeleteProc);
-}
-
-void unInstallTableVisiCommands(Tcl_Interp *interp) {
-   Tcl_DeleteCommand(interp, "formatChanged");
-
-   Tcl_DeleteCommand(interp, "sortMetrics");
-   Tcl_DeleteCommand(interp, "unsortMetrics");
-   Tcl_DeleteCommand(interp, "sortFoci");
-   Tcl_DeleteCommand(interp, "unsortFoci");
-
-   Tcl_DeleteCommand(interp, "sigFigChange");
-   Tcl_DeleteCommand(interp, "tableVisiConfigure");
-   Tcl_DeleteCommand(interp, "tableVisiExpose");
-   Tcl_DeleteCommand(interp, "whereAxisNewHorizScrollPosition");
-   Tcl_DeleteCommand(interp, "whereAxisNewVertScrollPosition");
 }
