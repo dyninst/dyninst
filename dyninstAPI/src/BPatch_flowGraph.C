@@ -1533,19 +1533,19 @@ BPatch_flowGraph::createLoopHierarchy()
     getOuterLoops(loops);
     dfsCreateLoopHierarchy(loopRoot, loops, "");
 
-    const pdvector<instPoint*> & instPs = func->funcCalls(proc);
+    const pdvector<instPoint*> &instPs = func->funcCalls(proc);
 
-    for (unsigned int i = 0; i < instPs.size(); i++) {
+    for (unsigned i = 0; i < instPs.size(); i++) {
 	function_base *f;
 
 	bool found = proc->findCallee(*(instPs[i]), f);
 
 	if (found && f != NULL) {
-	    insertCalleeIntoLoopHierarchy( f, instPs[i]->pointAddr() );
+	    insertCalleeIntoLoopHierarchy(f, instPs[i]->pointAddr());
 	}
 	else {
-	    fprintf( stderr, "BPatch_flowGraph::createLoopHierarchy "
-		     "couldn't find callee by inst point.\n");
+	    //fprintf( stderr, "BPatch_flowGraph::createLoopHierarchy "
+            //"couldn't find callee by inst point.\n");
 	}
     }
 }
