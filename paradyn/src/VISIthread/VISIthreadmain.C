@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.57  1996/01/05 20:01:00  newhall
-/* removed warnings
+/* Revision 1.58  1996/01/31 19:56:18  newhall
+/* added comments
 /*
+ * Revision 1.57  1996/01/05 20:01:00  newhall
+ * removed warnings
+ *
  * Revision 1.56  1995/12/18 23:21:58  newhall
  * changed metric units type so that it can have one of 3 values (normalized,
  * unnormalized or sampled)
@@ -614,6 +617,7 @@ int VISIthreadStartProcess(){
 }
 
 #ifdef n_def
+// this is used in persistence flag test code in VISIchooseMetRes
 static u_int VISIthread_num_enabled = 0;
 #endif
 ///////////////////////////////////////////////////////////////////
@@ -662,6 +666,8 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
   for(unsigned k=0; k < newMetRes->size(); k++){
 
 #ifdef n_def
+// *********************************************************
+// this code tests enabling with each combo. of persistent flags
       switch (VISIthread_num_enabled % 4) {
             case 0:
 		cout << "enabling with persistent data 0 collection 0" << endl;
@@ -691,9 +697,10 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
       }
 
       VISIthread_num_enabled++;
-      if(newPair)
+      if(newPair)  // replace this if stmt with if stmt below 
+// ***********************************************************
 #endif
-
+  
       if((newPair = ptr->dmp->enableDataCollection(ptr->ps_handle,
 		    &((*newMetRes)[k].res), (*newMetRes)[k].met,
 		    ptr->args->phase_type,0,0))){
