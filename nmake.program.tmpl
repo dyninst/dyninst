@@ -4,12 +4,31 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: nmake.program.tmpl,v 1.2 1998/03/02 00:42:13 wylie Exp $
+# $Id: nmake.program.tmpl,v 1.3 1998/04/01 02:59:52 wylie Exp $
 #
 
+BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
+
+!ifndef DEST
+DEST		= $(TO_CORE)\$(PROGRAM_DEST)
+!endif
+
+!ifndef TARGETS
+XTARGET = $(TARGET:.exe=)
+VOUCHER = V_$(XTARGET)
+
+$(VOUCHER):
+	@echo Updating build voucher information: $(VOUCHER)
+	$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
+	$(CC) -c -Tc $(VOUCHER).c
+!endif
+
 !ifndef UNCOMMON_LINK
+!ifdef TARGET
 $(TARGET): $(OBJS)
-	link -out:$(TARGET) -debug $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+	@$(MAKE) $(VOUCHER)
+	link -out:$(TARGET) -debug $(LDFLAGS) $(VOUCHER).obj $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+!endif
 !endif
 
 #!ifndef UNCOMMON_LINK
@@ -32,24 +51,21 @@ $(TARGET): $(OBJS)
 #	qpt2 -s $(TARGET)
 #!endif
 
-!ifndef DEST
-DEST		= $(PROGRAM_DEST)
-!endif
-
-VPATH		= $(VPATH) ../src:$(TO_CORE)/../lib/$(PLATFORM):$(BACKUP_CORE)/../lib/$(PLATFORM)
+VPATH		= $(VPATH) ../src:$(TO_CORE)\$(LIBRARY_DEST):$(TO_CORE)/../lib/$(PLATFORM):$(BACKUP_CORE)/../lib/$(PLATFORM)
 
 
 echo:
 	echo $(VPATH)
 
 clean:
-	$(RM) *.obj  *.ilk *.pdb *.h *.C $(TARGET)
+	$(RM) *.obj  *.ilk *.pdb *.h *.C $(TARGET) $(TARGETS)
 
+!ifndef UNCOMMON_INSTALL
 install:  $(DEST)\$(TARGET)
 
 $(DEST)\$(TARGET): $(TARGET)
-	@-$(MKDIR) $(DEST)
 	$(CP) $(TARGET) $(DEST)
+!endif
 
 #.PHONY : depend
 #depend:

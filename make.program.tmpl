@@ -4,54 +4,22 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Log: make.program.tmpl,v $
-# Revision 1.12  1996/11/14 14:18:34  naim
-# Minor change to make qpt work for paradynd - naim
+# $Id: make.program.tmpl,v 1.13 1998/04/01 02:59:51 wylie Exp $
 #
-# Revision 1.11  1996/08/05 07:08:53  tamches
-# used BACKUP_CORE to remove a /p/paradyn dependency in VPATH
-#
-# Revision 1.10  1996/04/29 03:27:55  tamches
-# added APP_PURE_OPTIONS for application-specific purify options
-#
-# Revision 1.9  1996/01/05 19:52:09  tamches
-# igen --> $(IGEN)
-#
-# Revision 1.8  1995/11/29 00:14:12  tamches
-# added -cache-dir=/tmp option to purify so we don't run out of disk space
-# while purify works.  Added quantify; added qpt.
-#
-# Revision 1.7  1995/08/29  20:18:17  krisna
-# removed the "tmp" directory references
-# changed "cp" BACK TO "mv" for yacc output
-#
-# Revision 1.6  1995/08/24 15:00:55  hollings
-# AIX/SP-2 port (including option for split instruction/data heaps)
-# Tracing of rexec (correctly spawns a paradynd if needed)
-# Added rtinst function to read getrusage stats (can now be used in metrics)
-# Critical Path
-# Improved Error reporting in MDL sematic checks
-# Fixed MDL Function call statement
-# Fixed bugs in TK usage (strings passed where UID expected)
-#
-# Revision 1.5  1995/03/15  19:12:13  jcargill
-# Added real pure rule, and fixed LDFLAGS
-#
-# Revision 1.4  1995/02/27  17:37:06  jcargill
-# Added support for suppressing implicit dependency generation
-# (EXPLICIT_DEPENDS) and removed PD_NO_DEPENDS support
-#
-# Revision 1.3  1995/02/16  07:56:46  markc
-# Added flag to prevent generation of DEPENDS file if PD_NO_DEPENDS is true
-# to save time during recompiles.
-#
-# Revision 1.2  1995/01/30  21:26:15  jcargill
-# Better use of TO_CORE for modules below top-level (e.g. visiClients)
-#
-# Revision 1.1  1995/01/30  18:08:21  jcargill
-# Major build system reorganization
-#
-#
+
+BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
+
+ifndef DEST
+DEST		= $(TO_CORE)/$(PROGRAM_DEST)
+endif
+
+ifndef TARGETS
+VOUCHER	= V_$(TARGET)
+$(VOUCHER):
+	@echo "Updating build voucher information: $(VOUCHER)
+	$(BUILDSTAMP) $(BUILD_ID) $(TARGET)
+	$(MODCC) -c $(VOUCHER).c
+endif
 
 OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
@@ -63,7 +31,8 @@ OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 
 ifndef UNCOMMON_LINK
 $(TARGET): $(OBJS) $(LIBS)
-	$(MODCC) -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+	@$(MAKE) $(VOUCHER)
+	$(MODCC) -o $(TARGET) $(LDFLAGS) $(VOUCHER).o $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
 endif
 
 ifndef UNCOMMON_LINK
@@ -86,28 +55,25 @@ qpt: $(OBJS) $(LIBS)
 	/unsup/qpt2/bin/qpt2 -s $(TARGET)
 endif
 
-ifndef DEST
-DEST		= $(TO_CORE)/../bin/$(PLATFORM)
-endif
-
-#VPATH		+= ../src:$(TO_CORE)/../lib/$(PLATFORM):/p/paradyn/lib/$(PLATFORM)
-VPATH		+= ../src:$(TO_CORE)/../lib/$(PLATFORM):$(BACKUP_CORE)/../lib/$(PLATFORM)
+VPATH		+= ../src:$(TO_CORE)/$(LIBRARY_DEST):$(TO_CORE)/../lib/$(PLATFORM):$(BACKUP_CORE)/../lib/$(PLATFORM)
 
 
 echo:
 	echo $(VPATH)
 
 clean:
-	rm -f *.o *.[hC] $(TARGET)
+	$(RM) *.o *.[hC] $(TARGET) $(TARGETS)
 
+ifndef UNCOMMON_INSTALL
 install:  $(DEST)/$(TARGET)
 
 $(DEST)/$(TARGET): $(TARGET)
 	cp $(TARGET) $(DEST)
+endif
 
 .PHONY : depend
 depend:
-	rm -f DEPENDS
+	$(RM) DEPENDS
 	$(MAKE) DEPENDS
 
 # 
@@ -148,10 +114,10 @@ endif
 # changed to generate different output files for the various type of
 # interfaces.
 #
-
+ 
 %.C: %.y
 	$(YACC) $(YFLAGS) $<
-	mv y.tab.c $@
+	$(MV) y.tab.c $@
 
 %.C: %.l
 	$(LEX) -t $(LFLAGS) $< > $@

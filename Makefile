@@ -1,8 +1,13 @@
 #
 # TopLevel Makefile for the Paradyn system.
 #
-# $Id: Makefile,v 1.25 1997/12/22 23:27:51 wylie Exp $
+# $Id: Makefile,v 1.26 1998/04/01 02:59:47 wylie Exp $
 #
+
+include ./make.config
+-include ./make.config.local
+
+BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 
 # "buildFirst" is the list of components which need to be built first
 # with "make world", since they are used building the rest of the system.
@@ -17,7 +22,7 @@ subSystems	= paradyn rtinst rthist paradynd \
 		visiClients/tclVisi visiClients/barchart \
 		visiClients/tableVisi visiClients/phaseTable \
 		visiClients/terrain
-dynInstAPI	= dyninstAPI dyninstAPI_RT
+dynInstAPI	= dyninstAPI_RT dyninstAPI dyninstAPI/tests 
 
 #
 # "fullSystem" is the complete list of all components
@@ -32,14 +37,30 @@ fullSystem	= $(buildFirst) $(subSystems) $(dynInstAPI)
 # made by default if make is passed no arguments.  Don't add other
 # targets before all!
 
-all clean install depend:
-	+for subsystem in $(fullSystem); do 			\
+all: ready world
+	@echo "$(BUILD_ID) build complete for $(PLATFORM)!"
+
+clean install depend:
+	+@for subsystem in $(fullSystem); do 			\
 	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
 		$(MAKE) -C $$subsystem/$(PLATFORM) $@;		\
 	    else						\
 		true;						\
 	    fi							\
 	done
+
+ready:
+	+@for installdir in $(LIBRARY_DEST) $(PROGRAM_DEST); do \
+	    if [ -d $$installdir ]; then			\
+		echo "Installation directory $$installdir exists...";	\
+	        true;						\
+	    else						\
+		echo "Creating installation directory $$installdir ...";\
+	        mkdir -p $$installdir;				\
+	    fi							\
+	done
+	@echo "Primary compiler for Paradyn build is:"
+	@$(CXX) -v
 
 # This rules passes down the documentation-related stuff to
 # lower-level Makefiles in the individual "docs" directories.
@@ -68,6 +89,8 @@ docs install-man:
 # unnecessary work.
 
 world:
+	@echo "Making $(BUILD_ID) world for $(PLATFORM)!"
+	@date
 	+for subsystem in $(buildFirst); do 			\
 	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
 		$(MAKE) -C $$subsystem/$(PLATFORM) all install;	\
@@ -89,6 +112,7 @@ world:
 		true;						\
 	    fi							\
 	done
+	@date
 
 # Currently optional dynInstAPI build and install
 
