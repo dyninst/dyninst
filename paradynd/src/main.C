@@ -43,6 +43,9 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.54  1997/01/16 22:07:15  tamches
+ * moved RPC_undo_arg_list here from util lib
+ *
  * Revision 1.53  1997/01/15 00:28:09  tamches
  * added some debug msgs
  *
@@ -203,11 +206,61 @@ void cleanUpAndExit(int status) {
   P_exit(status);
 }
 
-int main(int argc, char *argv[])
+// TODO
+// mdc - I need to clean this up
+bool
+RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
+		   int &well_known_socket, int &flag,
+		   int &firstPVM)
 {
-    int i;
-    vector<string> cmdLine;
-    vector<string> envp;
+  char *ptr;
+  bool b_well_known=false; // found well-known socket port num
+  bool b_first=false;
+  bool b_machine = false, b_flag = false, b_flavor=false;
+
+  for (int loop=0; loop < argc; ++loop) {
+      // stop at the -runme argument since the rest are for the application
+      //   process we are about to spawn
+      if (!strcmp(arg_list[loop], "-runme")) break;
+      if (!P_strncmp(arg_list[loop], "-p", 2)) {
+	  well_known_socket = P_strtol (arg_list[loop] + 2, &ptr, 10);
+	  if (ptr == (arg_list[loop] + 2))
+	    return(false);
+	  b_well_known = true;
+      }
+      else if (!P_strncmp(arg_list[loop], "-v", 2)) {
+	  firstPVM = P_strtol (arg_list[loop] + 2, &ptr, 10);
+	  if (ptr == (arg_list[loop] + 2))
+	    return(false);
+	  b_first = true;
+      }
+      else if (!P_strncmp(arg_list[loop], "-m", 2)) {
+	  machine = (arg_list[loop] + 2);
+	  if (!machine.length()) return false;
+	  b_machine = true;
+      }
+      else if (!P_strncmp(arg_list[loop], "-l", 2)) {
+	  flag = P_strtol (arg_list[loop] + 2, &ptr, 10);
+	  if (ptr == (arg_list[loop] + 2))
+	    return(false);
+	  b_flag = true;
+      }
+      else if (!P_strncmp(arg_list[loop], "-z", 2)) {
+	  flavor = (arg_list[loop]+2);
+	  if (!flavor.length()) return false;
+	  b_flavor = true;
+      }
+  }
+
+  return (b_flag && b_first && b_machine && b_well_known && b_flavor);
+}
+
+int main(int argc, char *argv[]) {
+//    cerr << "welcome to paradynd, args are:" << endl;
+//    for (unsigned lcv=0; lcv < argc; lcv++) {
+//       cerr << argv[lcv] << endl;
+//    }
+
     struct sigaction act;
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
@@ -228,11 +281,6 @@ int main(int argc, char *argv[])
         perror("sigaction(SIGTERM)");
         abort();
     }
-
-    // for debugging
-    // { int i= 1; while (i); }
-
-//    {volatile int i = 1; while (i);}
 
     process::programName = argv[0];
 
@@ -259,10 +307,11 @@ int main(int argc, char *argv[])
     //
     // See if we should fork an app process now.
     //
-    for (i=0; argv[i]; i++) {
-	int j;
+    vector<string> cmdLine;
+    for (int i=0; argv[i]; i++) {
 	if (!strcmp(argv[i], "-runme")) {
 	     // next arg is the command to run.
+	     int j;
 	     for (j=0,i++; argv[i]; i++,j++) {
 		 cmdLine += argv[i];
 	     }
@@ -320,11 +369,6 @@ int main(int argc, char *argv[])
 	}
 
       } else if (pid > 0) {
-//	// Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
-//	sprintf(errorLine, "PARADYND %d\n", pid);
-//	//logLine(errorLine); <<--- WON'T WORK SINCE SOCKETS NOT YET SET UP!!
-//	fprintf(stdout, errorLine); // this works just fine...no need for logLine()
-//	fflush(stdout);
 	P__exit(-1);
       } else {
 	cerr << "Fatal error on paradyn daemon: fork failed." << endl;
@@ -360,11 +404,6 @@ int main(int argc, char *argv[])
 	    tp->reportSelf(machine_name, argv[0], getpid(), pd_flavor);
 	}
       } else if (pid > 0) {
-//	// Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
-//	sprintf(errorLine, "PARADYND %d\n", pid);
-//	// logLine(errorLine); <<--- WON'T WORK SINCE SOCKETS NOT YET SET UP!!
-//	fprintf(stdout, errorLine); // this works just fine...no need for logLine()
-//	fflush(stdout);
 	P__exit(-1);
       } else {
 	cerr << "Fatal error on paradyn daemon: fork failed." << endl;
@@ -392,13 +431,23 @@ int main(int argc, char *argv[])
       abort();
 
     if (cmdLine.size()) {
-	 addProcess(cmdLine, envp, string(""));
+         //cerr << "paradynd: cmdLine is non-empty so we'll be calling addProcess now!" << endl;
+	 //cerr << "cmdLine is:" << endl;
+	 //for (unsigned lcv=0; lcv < cmdLine.size(); lcv++)
+	 //   cerr << cmdLine[lcv] << endl;
+
+         vector<string> envp;
+	 addProcess(cmdLine, envp, string("")); // ignore return val (is this right?)
     }
 
 
     /* set up a socket to be used to create a trace link
        by inferior processes that are not forked 
        directly by this daemon.
+       "traceSocket" is a port num; traceSocket_fd is a socket.
+       They represent a socket created with socket(); listen()
+       In other words, one which we intend to call accept() on.
+       (See perfStream.C -- the call to RPC_getConnect(traceSocket_fd))
     */
     traceSocket = RPC_setup_socket(traceSocket_fd, PF_INET, SOCK_STREAM);
     if (traceSocket < 0) {
