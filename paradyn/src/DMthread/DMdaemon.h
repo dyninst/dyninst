@@ -39,20 +39,20 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.44 2001/01/04 22:26:25 pcroth Exp $
+// $Id: DMdaemon.h,v 1.45 2001/06/20 20:34:54 schendel Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
 
 #include <string.h>
 #include <stdlib.h>
-#include "pdutilOld/h/sys.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/String.h"
 // trace data streams
-#include "pdutilOld/h/ByteArray.h"
+#include "pdutil/h/ByteArray.h"
 #include "common/h/machineType.h"
+#include "common/h/Time.h"
 #include "dataManager.thread.h"
 #include "dataManager.thread.SRVR.h"
 #include "dyninstRPC.xdr.CLNT.h"
@@ -196,7 +196,7 @@ class paradynDaemon: public dynRPCUser {
 	friend class phaseInfo;
         friend class dataManager;
 	friend void *DMmain(void* varg);
-	friend void newSampleRate(double rate);
+	friend void newSampleRate(timeLength rate);
 	friend bool metDoDaemon();
 	friend int dataManager::DM_post_thread_create_init(thread_t tid);
 	friend void DMdoEnableData(perfStreamHandle,perfStreamHandle,vector<metricRLType>*,
@@ -277,15 +277,17 @@ class paradynDaemon: public dynRPCUser {
         virtual void resourceBatchMode(bool onNow);  
 	void reportResources();
 
-	double getEarliestFirstTime() const { return earliestFirstTime;}
-	static void setEarliestFirstTime(double f){
-            if(!earliestFirstTime) earliestFirstTime = f;
+	timeStamp getEarliestFirstTime() const { return earliestFirstTime;}
+	static void setEarliestFirstTime(timeStamp f){
+            if(! earliestFirstTime.isInitialized()) earliestFirstTime = f;
 	}
-        void setTimeFactor(timeStamp timef) {
+        void setTimeFactor(timeLength timef) {
             time_factor = timef;
         }
-        timeStamp getTimeFactor() { return time_factor; }
-        timeStamp getAdjustedTime(timeStamp time) { return time + time_factor; }
+        timeLength getTimeFactor() { return time_factor; }
+        timeStamp getAdjustedTime(timeStamp time) { 
+	  return time + time_factor; 
+	}
 
 	thread_t	getSocketTid( void ) const	{ return stid; }
 
@@ -384,7 +386,7 @@ class paradynDaemon: public dynRPCUser {
 
         status_line *status;
 
-        timeStamp time_factor; // for adjusting the time to account for 
+        timeLength time_factor; // for adjusting the time to account for 
                                // clock differences between daemons.
 
 	// all active metrics ids for this daemon.
@@ -396,7 +398,7 @@ class paradynDaemon: public dynRPCUser {
 	vector<resourceHandle> newResourceHandles;
 	static u_int count;
 
-        static double earliestFirstTime;
+        static timeStamp earliestFirstTime;
 
         // list of all possible daemons: currently one per unique name
         static vector<daemonEntry*> allEntries; 
@@ -419,6 +421,11 @@ class paradynDaemon: public dynRPCUser {
 				       const string &name);
 
         void propagateMetrics();
-
+	void checkForSampleTooEarly(metricInstance *mi,
+			   timeStamp *newStartTimeP, timeStamp *newEndTimeP);
+	void updateComponent(metricInstance *mi, timeStamp newStartTime,
+			     timeStamp newEndTime, pdSample value, 
+			     u_int weight);
+	void doAggregation(metricInstance *mi);
 };
 #endif
