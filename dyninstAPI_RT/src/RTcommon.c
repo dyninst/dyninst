@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.11 2000/08/07 01:00:12 wylie Exp $ */
+/* $Id: RTcommon.c,v 1.12 2000/08/18 20:11:34 zandy Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -79,6 +79,8 @@ int DYNINSTdebugPrintRT = 1;
 int DYNINSTdebugPrintRT = 0;
 #endif
 
+int DYNINST_mutatorPid = -1;
+
 extern const char V_libdyninstAPI_RT[];
 
 /*
@@ -105,6 +107,8 @@ void DYNINSTinit(int cause, int pid)
     DYNINST_bootstrap_info.pid = getpid();
     DYNINST_bootstrap_info.ppid = pid;
     DYNINST_bootstrap_info.event = cause;
+
+    DYNINST_mutatorPid = pid;
 
     DYNINSTbreakPoint();
 }
