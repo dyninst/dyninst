@@ -4,9 +4,12 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.12  1996/02/11 18:24:16  tamches
-/* removed addToStatusDisplay
+/* Revision 1.13  1996/02/15 23:10:34  tamches
+/* added proper code for why vs. where axis refinement
 /*
+ * Revision 1.12  1996/02/11 18:24:16  tamches
+ * removed addToStatusDisplay
+ *
  * Revision 1.11  1996/02/07 21:50:33  tamches
  * fixed draw() bug that wouldn't properly double-buffer when drawing a
  * blank shg
@@ -74,6 +77,10 @@ GC shg::rootItemInactiveShadowTextGC, shg::rootItemActiveShadowTextGC;
 GC shg::listboxInactiveItemGC, shg::listboxActiveItemGC;
 GC shg::listboxInactiveShadowItemGC, shg::listboxActiveShadowItemGC;
 
+GC shg::whyRefinementRayGC;
+GC shg::whereRefinementRayGC;
+GC shg::listboxRayGC;
+
 int shg::listboxBorderPix = 3;
 int shg::listboxScrollBarWidth = 16;
 
@@ -99,6 +106,10 @@ void shg::initializeStaticsIfNeeded() {
    listboxActiveItemGC = theShgConsts.listboxItemActiveTextGC;
    listboxInactiveShadowItemGC = theShgConsts.listboxItemInactiveShadowTextGC;
    listboxActiveShadowItemGC = theShgConsts.listboxItemActiveShadowTextGC;
+
+   whyRefinementRayGC = theShgConsts.whyRefinementRayGC;
+   whereRefinementRayGC = theShgConsts.whereRefinementRayGC;
+   listboxRayGC = consts.listboxRayGC;
 }
 
 shg::shg(int iPhaseId, Tcl_Interp *iInterp, Tk_Window theTkWindow,
@@ -421,6 +432,17 @@ void shg::sliderMouseMotion(ClientData cd, XEvent *eventPtr) {
 
    where4tree<shgRootNode> *ptr = pthis->slider_currently_dragging_subtree;
    assert(thePath.getLastPathNode(pthis->rootPtr) == ptr);
+
+   // The scrollbar may no longer exist in the listbox, if one or more items
+   // have been expanded from it, thus shrinking the listbox to the point where
+   // a scrollbar was no longer needed.  Check for that now.
+   if (!ptr->getScrollbar().isValid()) {
+      //cout << "scrollbar no longer valid; ending dragging vrbles" << endl;
+      XEvent hackEvent = *eventPtr;
+      hackEvent.type = ButtonRelease;
+      sliderButtonRelease(pthis, &hackEvent);
+      return;
+   }
 
    int slider_scrollbar_top = thePath.get_endpath_topy() +
                                  ptr->getNodeData().getHeightAsRoot() +
@@ -927,7 +949,7 @@ bool shg::configNode(unsigned id, bool newActive,
 }
 
 void shg::addEdge(unsigned fromId, unsigned toId,
-		  shgRootNode::evaluationState theState,
+		  shgRootNode::refinement theRefinement,
 		  const char *label, // only used for shadow nodes; else NULL
 		  bool isCurrShg
 		  ) {
@@ -956,6 +978,10 @@ void shg::addEdge(unsigned fromId, unsigned toId,
       // We are _not_ adding a shadow node.
       hash2[childPtr] = parentPtr;
       assert(label==NULL);
+
+      // For drawing purposes, let's correctly update the refinement field of
+      // the child node, which would otherwise be left at ref_undefined.
+      childPtr->getNodeData().setRefinement(theRefinement);
    }
    else {
       // We are adding a shadow node.
@@ -972,11 +998,29 @@ void shg::addEdge(unsigned fromId, unsigned toId,
       theShadowNodes += childPtr;
 
       // Note: we do not add shadow node pointers to hash2[] (is this right?)
+
+      // Note: we make no attempt to set the refinement field of the child shadow node.
+      // It will have been copied from the "real" non-shadow node it points to, and
+      // is presumably correct.  Hence no need to look at "theRefinement", except
+      // perhaps to assert that it's the same as that already present in the shadow node.
    }
 
-   const bool explicitlyExpandedFlag = (theState==shgRootNode::es_true &&
-					!addingShadowNode);
-      // whether active or not...
+   // Should the child node be explicitly expanded when added to its parent?
+   // Here are the rules:
+   // 1) If a shadow node, then no.
+   // 2) Else, yes iff the child node is true
+   // Note that whether the node is active or not is irrelevant.
+
+   bool explicitlyExpandedFlag;
+   if (addingShadowNode)
+      explicitlyExpandedFlag = false;
+   else {
+      const shgRootNode &childNodeData = childPtr->getNodeData();
+      shgRootNode::evaluationState theEvalState = childNodeData.getEvalState();
+
+      explicitlyExpandedFlag = (theEvalState == shgRootNode::es_true);
+   }
+
    parentPtr->addChild(childPtr,
 		       explicitlyExpandedFlag,
 		       consts,
