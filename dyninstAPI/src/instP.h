@@ -43,6 +43,10 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
+ * Revision 1.13  1996/08/20 19:05:41  lzheng
+ * Implementation of moving multiple instructions sequence and splitting
+ * the instrumentation into two phases.
+ *
  * Revision 1.12  1996/08/16 21:19:09  tamches
  * updated copyright for release 1.1
  *
@@ -91,6 +95,7 @@
  * Functions that need to be provided by the inst-arch file.
  *
  */
+
 class trampTemplate {
  public:
     int size;
@@ -125,7 +130,44 @@ class instInstance {
      int cost;			/* cost in cycles of this inst req. */
 };
 
-unsigned findAndInstallBaseTramp(process *proc, instPoint *location);
+class returnInstance {
+  public:
+    returnInstance() {
+	addr_ = 0;
+    }
+
+    returnInstance(instruction *instSeq, int seqSize, Address addr, int size) 
+	:instructionSeq(instSeq), instSeqSize(seqSize), addr_(addr), size_(size)
+	    {};
+
+    bool checkReturnInstance(const Address adr);
+    void installReturnInstance(process *proc);
+    void addToReturnWaitingList(instruction insn, Address pc);
+
+  private: 
+    instruction *instructionSeq;     /* instructions to be installed */
+    int instSeqSize;
+    Address addr_;                  /* beginning address */
+    int size_;                      
+}; 
+
+
+class instWaitingList {
+  public:
+    instruction *instructionSeq;
+    int instSeqSize;
+    Address addr_;
+
+    instruction relocatedInstruction;
+    Address relocatedInsnAddr;
+
+    instWaitingList *next;
+};
+
+extern List<instWaitingList *> instWList;
+
+unsigned findAndInstallBaseTramp(process *proc, instPoint *location,
+				 returnInstance *&retInstance);
 void installTramp(instInstance *inst, char *code, int codeSize);
 void modifyTrampReturn(process*, int returnAddr, int newReturnTo);
 void generateReturn(process *proc, int currAddr, instPoint *location);
@@ -137,4 +179,34 @@ void generateBranch(process *proc, unsigned fromAddr, unsigned newAddr);
 void removeTramp(process *proc, instPoint *location);
 
 int flushPtrace();
+
+
+/*inline bool returnInstance::checkReturnInstance(const Address adr) {
+    if ((adr > addr_) && ( adr <= addr_+size_))
+	return false;
+    else 
+	return true;
+}
+ 
+inline void returnInstance::installReturnInstance(process *proc) {
+    proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t) instructionSeq); 
+}
+
+inline void returnInstance::addToReturnWaitingList(instruction insn, Address pc) {
+
+    instWaitingList *instW = new instWaitingList; 
+    
+    instW->instructionSeq = instructionSeq;
+    instW->instSeqSize = instSeqSize;
+    instW->addr_ = addr_;
+
+    instW->relocatedInstruction = insn;
+    instW->relocatedInsnAddr = pc;
+
+    instWList.add(instW, (void *)pc);
+}*/
+
+
+
+
 
