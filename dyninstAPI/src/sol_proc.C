@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.1 2003/01/03 21:57:44 bernat Exp $
+// $Id: sol_proc.C,v 1.2 2003/01/14 18:36:12 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -649,7 +649,7 @@ bool process::setProcfsFlags()
         // cause the child to inherit trap-on-exit from exec and other traps
         // so we can learn of the child (if the user cares)
         //flags = PR_BPTADJ | PR_FORK | PR_ASYNC | PR_RLC;
-        flags = PR_BPTADJ | PR_ASYNC | PR_RLC;
+        flags = PR_BPTADJ | PR_ASYNC | PR_RLC | PR_MSACCT;
     }
     command[1] = flags;
 
@@ -788,9 +788,9 @@ bool process::attach() {
     command[0] = PCSET;
   
     if(process::pdFlavor == string("cow") || process::pdFlavor == string("mpi"))
-        command[1] = PR_KLC |  PR_BPTADJ;
+        command[1] = PR_KLC |  PR_BPTADJ | PR_MSACCT;
     else
-        command[1] = PR_KLC | PR_FORK | PR_BPTADJ;
+        command[1] = PR_KLC | PR_FORK | PR_BPTADJ | PR_MSACCT;
     if (write(getDefaultLWP()->ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
         perror("setProcfsFlags: PCSET");
         return false;
@@ -1098,26 +1098,28 @@ bool process::set_breakpoint_for_syscall_completion() {
       Returns true iff breakpoint was successfully set. */
 
     // Only one breakpoint at a time
-   assert(save_exitset_ptr == NULL);
-   save_exitset_ptr = SYSSET_ALLOC(getPid());
-
-   pstatus_t proc_status;
-   if (get_status(&proc_status)) return false;
-
-   if (!get_exit_syscalls(&proc_status, save_exitset_ptr)) return false;
-
-   sysset_t *new_exit_set = SYSSET_ALLOC(getPid());
-   prfillset(new_exit_set);
-   int bufsize = sizeof(long) + SYSSET_SIZE(save_exitset_ptr);
-   char buf[bufsize]; long *bufptr = (long *)buf;
-   *bufptr = PCSEXIT; bufptr++;
-   memcpy(bufptr, new_exit_set, SYSSET_SIZE(save_exitset_ptr));
-   
-   if (write(getDefaultLWP()->ctl_fd(), buf, bufsize) != bufsize) {
-       perror("set_breakpoint write");
-       return false;
-   }
-   return true;
+    fprintf(stderr, "Setting breakpoint for all system call completions\n");
+    
+    assert(save_exitset_ptr == NULL);
+    save_exitset_ptr = SYSSET_ALLOC(getPid());
+    
+    pstatus_t proc_status;
+    if (get_status(&proc_status)) return false;
+    
+    if (!get_exit_syscalls(&proc_status, save_exitset_ptr)) return false;
+    
+    sysset_t *new_exit_set = SYSSET_ALLOC(getPid());
+    prfillset(new_exit_set);
+    int bufsize = sizeof(long) + SYSSET_SIZE(save_exitset_ptr);
+    char buf[bufsize]; long *bufptr = (long *)buf;
+    *bufptr = PCSEXIT; bufptr++;
+    memcpy(bufptr, new_exit_set, SYSSET_SIZE(save_exitset_ptr));
+    
+    if (write(getDefaultLWP()->ctl_fd(), buf, bufsize) != bufsize) {
+        perror("set_breakpoint write");
+        return false;
+    }
+    return true;
 }
 
 bool process::clear_breakpoint_for_syscall_completion() 
