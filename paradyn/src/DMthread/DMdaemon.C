@@ -108,7 +108,7 @@ bool paradynDaemon::addRunningProgram (int pid,
     programs += exec;
     ++procRunning;
 
-    daemon->propagateMetrics(daemon);
+    daemon->propagateMetrics();
 
     if (applicationState == appRunning) {
       daemon->continueProcess(pid);
@@ -288,13 +288,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
 #endif
 
     paradynDaemon::args.resize(asize);
-    if (def->getFlavorString() == "cm5") {
-      // if the daemon flavor is cm5, we have to wait until the node
-      // daemon starts 
-      uiMgr->updateStatus(DMstatus,P_strdup("Waiting for CM5 node daemon ..."));
-    }
-     else  
-       uiMgr->updateStatus(DMstatus,P_strdup("ready"));
+    uiMgr->updateStatus(DMstatus,P_strdup("ready"));
 
     if (pd->get_fd() < 0) {
         uiMgr->showError (6, "");
@@ -480,7 +474,7 @@ bool paradynDaemon::newExecutable(const string &machine,
       return false;
 
   performanceStream::ResourceBatchMode(batchStart);
-  int pid = daemon->addExecutable(argv, dir, true);
+  int pid = daemon->addExecutable(argv, dir);
   performanceStream::ResourceBatchMode(batchEnd);
 
   // did the application get started ok?
@@ -742,17 +736,6 @@ void paradynDaemon::enableData(vector<metricInstance *> *miVec,
 	assert(foci.size() == metrics.size());
 	assert(metrics.size() == mi_ids.size());
 	assert(daemon_subset.size() <= paradynDaemon::allDaemons.size());
-
-        //
-        // kludge to make a cm5 application request to whole program focus
-	//
-	string cm5_string = string("cm5");
-	for(u_int k=0; k < paradynDaemon::allDaemons.size(); k++){
-            if((paradynDaemon::allDaemons[k])->flavor == cm5_string){
-		whole_prog_focus = true;
-		break;
-	} }
-
 	// if there is a whole_prog_focus then make the request to all 
 	// the daemons, else make the request to the daemon subset
 	// make enable requests to all daemons
@@ -789,7 +772,7 @@ void paradynDaemon::enableData(vector<metricInstance *> *miVec,
 // other processes running on a daemon, than it is up to the daemon to do the
 // propagation (we can't do it here because the daemon has to do the aggregation).
 // Calling this function has no effect if there are no metrics enabled.
-void paradynDaemon::propagateMetrics(paradynDaemon *daemon) {
+void paradynDaemon::propagateMetrics() {
 
     vector<metricInstanceHandle> allMIHs = metricInstance::allMetricInstances.keys();
 
@@ -804,7 +787,7 @@ void paradynDaemon::propagateMetrics(paradynDaemon *daemon) {
 	// daemon will do the propagation by itself.
 	bool found = false;
 	for (unsigned j = 0; j < mi->components.size(); j++) {
-	  if (mi->components[j]->getDaemon() == daemon) {
+	  if (mi->components[j]->getDaemon() == this) {
 	    found = true;
 	    break;
 	  }
@@ -818,14 +801,11 @@ void paradynDaemon::propagateMetrics(paradynDaemon *daemon) {
 	  vector<u_int> vs;
 	  assert(rl->convertToIDList(vs));
 
-	  int id = daemon->enableDataCollection2(vs, (const char *) m->getName(), mi->id);
+	  int id = enableDataCollection2(vs, (const char *) m->getName(), mi->id);
 
-	  if (id > 0 && !daemon->did_error_occur()) {
-	    component *comp = new component(daemon, id, mi);
-	    if (mi->addComponent(comp)) {
-	      //mi->addPart(&comp->sample);
-	    }
-	    else {
+	  if (id > 0 && !did_error_occur()) {
+	    component *comp = new component(this, id, mi);
+	    if (!mi->addComponent(comp)) {
 	      cout << "internal error in paradynDaemon::addRunningProgram" << endl;
 	      abort();
 	    }
@@ -1166,10 +1146,6 @@ paradynDaemon::reportSelf (string m, string p, int pd, string flav)
 
   getDaemonTime(this);
 
-  if (machine == "CM5 node daemon") {
-    uiMgr->updateStatus(DMstatus,P_strdup("ready"));
-  }
-
   return;
 }
 
@@ -1195,35 +1171,15 @@ paradynDaemon::processStatus(int pid, u_int stat) {
   if (stat == procExited) { // process exited
     for(unsigned i=0; i < programs.size(); i++) {
         if ((programs[i]->pid == (unsigned)pid) && programs[i]->controlPath == this) {
-	  programs[i]->exited = true;
-	  if (--procRunning == 0)
-	    performanceStream::notifyAllChange(appExited);
-	  break;
+        programs[i]->exited = true;
+        if (--procRunning == 0)
+          performanceStream::notifyAllChange(appExited);
+        break;
         }
     }
   }
 }
-
-/*** 
- This call is made by paradyndCM5 when it is ready to run an
- application. ParadyndCM5 is started by paradynd, when the application
- writes a MULTI_FORK. The application must then stop until the daemon
- is ready. After paradyndCM5 has read the symbol table and installed
- the initial instrumentation, the daemon calls
- nodeDaemonReadyCallback, and paradyn notifies all other daemons so that
- they can resume a procss that was waiting for the node daemon.
-***/
-void
-paradynDaemon::nodeDaemonReadyCallback(void) {
-
-    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++) {
-      paradynDaemon *pd = paradynDaemon::allDaemons[i];
-      if (pd != this) {
-	pd->nodeDaemonReady();
-      }
-    }
-}
-
+ 
 
 // Called by a daemon when there is no more data to be sent for a metric
 // instance (because the processes have exited).

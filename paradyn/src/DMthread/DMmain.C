@@ -545,12 +545,6 @@ dynRPCUser::processStatus(int, u_int)
 }
 
 void
-dynRPCUser::nodeDaemonReadyCallback(void)
-{
-    assert(0 && "Invalid virtual function");
-}
-
-void
 dynRPCUser::endOfDataCollection(int)
 {
   assert(0 && "Invalid virtual function");

@@ -473,15 +473,13 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 43;
+    $version 44;
 
     //
     // Define a program to run. 
     // argv: the command and arguments
     // dir: working directory where program will run.
-    // stopAtFirstBreak: if true, the program will stops before it executes its
-    //			 first instruction.
-    int addExecutable(vector<string> argv, string dir, bool stopAtFirstBreak);
+    int addExecutable(vector<string> argv, string dir);
 
     //
     // Connect up with a running program (not possible on all platforms).
@@ -714,15 +712,6 @@ $remote dynRPC {
     // or the process exits
     //
     $virtual $upcall $async void processStatus(int pid, u_int procstat);
-
-    // this call is used by the paradyndCM5 daemon to notify paradyn
-    // that it is ready, so that the application can be restarted.
-    $virtual $upcall $async void nodeDaemonReadyCallback();
-
-    // this call is used to notify all daemons that the CM5 node daemon is ready.
-    // Daemons that have a process waiting for the CM5 node daemon can then 
-    // resume the application.
-    $async void nodeDaemonReady();
 
     //
     // For timing and other measurements of paradynd

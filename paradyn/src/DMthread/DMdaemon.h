@@ -175,7 +175,6 @@ class paradynDaemon: public dynRPCUser {
 	virtual void firstSampleCallback(int program, double firstTime);
         virtual void reportStatus(string);
 	virtual void processStatus(int pid, u_int stat);
-	virtual void nodeDaemonReadyCallback(void);
 	virtual void reportSelf (string m, string p, int pd, string flav);
 	virtual void batchSampleDataCallbackFunc(int program,
                                vector<T_dyninstRPC::batch_buffer_entry>);
@@ -293,7 +292,7 @@ class paradynDaemon: public dynRPCUser {
         static daemonEntry *findEntry (const string &machine, 
 				       const string &name);
 
-        void propagateMetrics(paradynDaemon *daemon);
+        void propagateMetrics();
 
 };
 #endif
