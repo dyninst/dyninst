@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.146 2003/01/29 23:01:22 jodom Exp $
+// $Id: symtab.C,v 1.147 2003/02/21 20:06:05 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -406,8 +406,8 @@ bool image::addAllFunctions(pdvector<Symbol> &mods)
     is_libdyninstRT = false;
  
 #if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
-  if (linkedFile.get_symbol(symString="pDYNINSTinit",  lookUp) ||
-      linkedFile.get_symbol(symString="_pDYNINSTinit", lookUp))
+  if (linkedFile.get_symbol(symString="PARADYNinit",  lookUp) ||
+      linkedFile.get_symbol(symString="PARADYNinit", lookUp))
     is_libparadynRT = true;
   else
     is_libparadynRT = false;
