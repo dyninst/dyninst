@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.170 2005/02/02 17:27:35 bernat Exp $
+// $Id: solaris.C,v 1.171 2005/02/17 21:10:46 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -813,16 +813,17 @@ int getNumberOfCPUs()
     return(1);
 }  
 
-Frame Frame::getCallerFrame(process *p) const
+Frame Frame::getCallerFrame()
 {
    Frame ret;
    ret.lwp_ = lwp_;
    ret.thread_ = thread_;
+   ret.proc_ = proc_;
    ret.pid_ = pid_;
    ret.thread_ = thread_;
    ret.lwp_ = lwp_;
    if (uppermost_) {
-       codeRange *range = p->findCodeRangeByAddress(pc_);
+     codeRange *range = getRange();
        int_function *func = range->is_function();
        if (func) {
            if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
@@ -840,7 +841,7 @@ Frame Frame::getCallerFrame(process *p) const
                    cerr << "Not implemented yet" << endl;
                else {
                    struct dyn_saved_regs regs;
-                   bool status = p->getRepresentativeLWP()->getRegisters(&regs);
+                   bool status = getProc()->getRepresentativeLWP()->getRegisters(&regs);
                    assert(status == true);
                    ret.pc_ = regs.theIntRegs[R_O7] + 8;
                    ret.fp_ = fp_;
@@ -864,7 +865,7 @@ Frame Frame::getCallerFrame(process *p) const
       Address rtn;
    } addrs;
    
-   if (p->readDataSpace((caddr_t)(fp_ + 56), 2*sizeof(int),
+   if (getProc()->readDataSpace((caddr_t)(fp_ + 56), 2*sizeof(int),
                         (caddr_t)&addrs, true))
    {
       ret.fp_ = addrs.fp;
@@ -872,19 +873,19 @@ Frame Frame::getCallerFrame(process *p) const
       
       // Check if we're in a sig handler, since we don't know if the
       // _current_ frame has its type set at all.
-      if (p->isInSignalHandler(pc_)) {
+      if (getProc()->isInSignalHandler(pc_)) {
          // get the value of the saved PC: this value is stored in the
          // address specified by the value in register i2 + 44. Register i2
          // must contain the address of some struct that contains, among
          // other things, the saved PC value.
          u_int reg_i2;
-         if (p->readDataSpace((caddr_t)(fp_+40), sizeof(u_int),
+         if (getProc()->readDataSpace((caddr_t)(fp_+40), sizeof(u_int),
                               (caddr_t)&reg_i2,true)) {
             Address saved_pc;
-            if (p->readDataSpace((caddr_t) (reg_i2+44), sizeof(int),
+            if (getProc()->readDataSpace((caddr_t) (reg_i2+44), sizeof(int),
                                  (caddr_t) &saved_pc,true)) {
                
-               int_function *func = p->findFuncByAddr(saved_pc);
+               int_function *func = getProc()->findFuncByAddr(saved_pc);
                
                ret.pc_ = saved_pc;
                if (func && func->hasNoStackFrame())
@@ -897,11 +898,11 @@ Frame Frame::getCallerFrame(process *p) const
       
       // If we're in a base tramp, skip this frame (return getCallerFrame)
       // as we only return minitramps
-      codeRange *range = p->findCodeRangeByAddress(ret.pc_);
+      codeRange *range = getRange();
       if (range->is_basetramp())
-          return ret.getCallerFrame(p);
+          return ret.getCallerFrame();
 
-      if(p->multithread_capable()) {
+      if(getProc()->multithread_capable()) {
          // MT thread adds another copy of the start function
          // to the top of the stack... this breaks instrumentation
          // since we think we're at a function entry.
@@ -909,7 +910,7 @@ Frame Frame::getCallerFrame(process *p) const
       }
 
       // Check if the _current_ PC is in a signal handler, and if so set the type
-      if (p->isInSignalHandler(ret.pc_)) {
+      if (getProc()->isInSignalHandler(ret.pc_)) {
           ret.frameType_ = FRAME_signalhandler;
       }
 
@@ -917,6 +918,12 @@ Frame Frame::getCallerFrame(process *p) const
    }
   
    return Frame(); // zero frame
+}
+
+bool Frame::setPC(Address newpc) {
+  fprintf(stderr, "Implement me! Changing frame PC from %x to %x\n",
+	  pc_, newpc);
+  return true;
 }
 
 
@@ -974,13 +981,32 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
   
   return result;
 }
+#endif // BPATCH_LIBRARY
 
 
-bool process::catchupSideEffect(Frame & /*frame*/, instReqNode * /*inst*/)
+bool process::instrSideEffect(Frame &frame, instPoint *inst)
 {
+  int_function *instFunc = inst->pointFunc();
+  if (!instFunc) return false;
+
+  codeRange *range = frame.getRange();
+  if (range->is_function() != instFunc) {
+    return true;
+  }
+
+  if (inst->getPointType() == callSite) {
+    Address insnAfterPoint = inst->absPointAddr(this) + sizeof(instruction);
+
+    if (frame.getPC() == insnAfterPoint) {
+      fprintf(stderr, "Should be changing frame PC 0x%x to 0x%x\n",
+	      insnAfterPoint,
+	      baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset);
+      frame.setPC(baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset);
+    }
+  }
+
   return true;
 }
-#endif // BPATCH_LIBRARY
 
 #if 0
 // needToAddALeafFrame: returns true if the between the current frame 

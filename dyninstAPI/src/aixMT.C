@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.20 2004/04/06 16:37:08 bernat Exp $
+// $Id: aixMT.C,v 1.21 2005/02/17 21:10:34 bernat Exp $
 
 //#include <sys/pthdebug.h> // Pthread debug library, disabled
 #include "dyninstAPI/src/dyn_thread.h"
@@ -66,7 +66,7 @@ Frame dyn_thread::getActiveFrameMT() {
     Frame lwpFrame = lwp->getActiveFrame();
     newFrame = Frame(lwpFrame.getPC(), lwpFrame.getFP(),
                      0, // no SP
-                     lwpFrame.getPID(), this, lwp, true);
+                     lwpFrame.getPID(), lwpFrame.getProc(), this, lwp, true);
   }
   else {
 #if 0 // Unsupported for now
@@ -104,7 +104,7 @@ Frame dyn_thread::getActiveFrameMT() {
 	bperr("Pthread is suspended at IAR 0x%x and SP 0x%x\n",
 		(unsigned) context.iar, (unsigned) context.gpr[1]);
 	newFrame = Frame(context.iar, context.gpr[1], 
-			 proc->getPid(), this, 0, true);
+			 proc->getPid(), proc, this, 0, true);
       }
     else
       {

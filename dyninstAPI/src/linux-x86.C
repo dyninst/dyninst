@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.58 2005/02/02 17:27:29 bernat Exp $
+// $Id: linux-x86.C,v 1.59 2005/02/17 21:10:40 bernat Exp $
 
 #include <fstream>
 
@@ -287,7 +287,7 @@ Frame dyn_lwp::getActiveFrame()
    sp = deliverPtraceReturn(PTRACE_PEEKUSER, 0 + UESP * INTREGSIZE, 0);
    if (errno) return Frame();
 
-   return Frame(pc, fp, sp, proc_->getPid(), NULL, this, true);
+   return Frame(pc, fp, sp, proc_->getPid(), proc_, NULL, this, true);
 }
 
 // MT problem FIXME
@@ -652,7 +652,7 @@ static bool isEntryExitInstrumentation(process *p, Frame f)
 {
 
    Address pc = f.getPC();
-   codeRange *range = p->findCodeRangeByAddress(pc);
+   codeRange *range = f.getRange();
    miniTrampHandle *mini = range->is_minitramp();
    trampTemplate *base = range->is_basetramp();
 
@@ -687,7 +687,7 @@ extern int tramp_pre_frame_size;
 #define DW_PC  8
 #define MAX_DW_VALUE 8
 
-Frame Frame::getCallerFrame(process *p) const
+Frame Frame::getCallerFrame()
 {
    /**
     * These two variables are only valid when this function is
@@ -708,20 +708,20 @@ Frame Frame::getCallerFrame(process *p) const
    int status;
    Frame ret(*this);
 
-   status = getFrameStatus(p, pc_);
+   status = getFrameStatus(getProc(), pc_);
 
    if (status == VSYSCALL_PAGE)
    {
       void *vsys_data;
 
-      if ((vsys_data = p->getVsyscallData()) == NULL)
+      if ((vsys_data = getProc()->getVsyscallData()) == NULL)
       {
         /**
          * No vsyscall stack walking data present (we're probably 
          * on Linux 2.4) we'll go ahead and treat the vsyscall page 
          * as a leaf
          **/
-        if (!p->readDataSpace((caddr_t) sp_, sizeof(int), 
+        if (!getProc()->readDataSpace((caddr_t) sp_, sizeof(int), 
                              (caddr_t) &addrs.rtn, true))
           return Frame();
         ret.fp_ = fp_;
@@ -748,14 +748,14 @@ Frame Frame::getCallerFrame(process *p) const
 
         //Calc frame start
         reg_map[DW_CFA] = getRegValueAtFrame(vsys_data, pc_, DW_CFA, reg_map, 
-                                 p, &error);
+                                 getProc(), &error);
         if (error) return Frame();
 
         //Calc registers values.
-        ret.pc_ = getRegValueAtFrame(vsys_data, pc_, DW_PC, reg_map, p, 
+        ret.pc_ = getRegValueAtFrame(vsys_data, pc_, DW_PC, reg_map, getProc(), 
 				     &error);
         if (error) return Frame();
-        ret.fp_ = getRegValueAtFrame(vsys_data, pc_, DW_EBP, reg_map, p, 
+        ret.fp_ = getRegValueAtFrame(vsys_data, pc_, DW_EBP, reg_map, getProc(), 
 				     &error);
         if (error) return Frame();
         ret.sp_ = reg_map[DW_CFA];	
@@ -763,9 +763,9 @@ Frame Frame::getCallerFrame(process *p) const
       }
    }
    else if (status == SIG_HANDLER &&
-       p->readDataSpace((caddr_t)(sp_+28), sizeof(int),
+       getProc()->readDataSpace((caddr_t)(sp_+28), sizeof(int),
 			(caddr_t)&addrs.fp, true) &&
-       p->readDataSpace((caddr_t)(sp_+60), sizeof(int),
+       getProc()->readDataSpace((caddr_t)(sp_+60), sizeof(int),
 			(caddr_t)&addrs.rtn, true))
 
    {  
@@ -787,11 +787,11 @@ Frame Frame::getCallerFrame(process *p) const
        * appropriate data from the frame pointer.
        **/
       int offset = 0;
-      if (!hasAllocatedFrame(pc_, p, offset) || 
-          (prevFrameValid && isEntryExitInstrumentation(p, prevFrame)))
+      if (!hasAllocatedFrame(pc_, getProc(), offset) || 
+          (prevFrameValid && isEntryExitInstrumentation(getProc(), prevFrame)))
       {
          addrs.fp = offset + sp_;
-         if (!p->readDataSpace((caddr_t) addrs.fp, sizeof(int), 
+         if (!getProc()->readDataSpace((caddr_t) addrs.fp, sizeof(int), 
                                (caddr_t) &addrs.rtn, true))
             return Frame();
          ret.pc_ = addrs.rtn;
@@ -800,7 +800,7 @@ Frame Frame::getCallerFrame(process *p) const
       }
       else
       {
-         if (!p->readDataSpace((caddr_t) fp_, 2*sizeof(int), (caddr_t) &addrs, 
+         if (!getProc()->readDataSpace((caddr_t) fp_, 2*sizeof(int), (caddr_t) &addrs, 
                                true))
             return Frame();
          ret.fp_ = addrs.fp;
@@ -841,7 +841,7 @@ Frame Frame::getCallerFrame(process *p) const
          // assume that's the one in use.
         stack_top = 0xc0000000 - 4;
       }
-      else if (p->multithread_capable() && thread_ != NULL)
+      else if (getProc()->multithread_capable() && thread_ != NULL)
       {
          int stack_diff = thread_->get_stack_addr() - sp_;
          if (stack_diff < MAX_STACK_FRAME && stack_diff > 0)
@@ -857,21 +857,21 @@ Frame Frame::getCallerFrame(process *p) const
       estimated_sp = sp_;
       for (; estimated_sp < stack_top; estimated_sp++)
       {
-         result = p->readDataSpace((caddr_t) estimated_sp, sizeof(int), 
+         result = getProc()->readDataSpace((caddr_t) estimated_sp, sizeof(int), 
                                    (caddr_t) &estimated_ip, false);
          
          if (!result) break;
 
          //If the instruction that preceeds this address isn't a call
          // instruction, then we'll go ahead and look for another address.
-         if (!isPrevInstrACall(estimated_ip, p, &callee))
+         if (!isPrevInstrACall(estimated_ip, getProc(), &callee))
             continue;
 
          //Given this point for the top of our stack frame, calculate the 
          // frame pointer         
          if (status == SAVES_FP_NOFRAME)
          {
-            result = p->readDataSpace((caddr_t) estimated_sp-4, sizeof(int),
+            result = getProc()->readDataSpace((caddr_t) estimated_sp-4, sizeof(int),
                                       (caddr_t) &estimated_fp, false);
             if (!result) break;
          }
@@ -883,7 +883,7 @@ Frame Frame::getCallerFrame(process *p) const
          //If the call instruction calls into the current function, then we'll
          // just skip everything else and assume we've got the correct return
          // value (fingers crossed).
-         int_function *cur_func = p->findFuncByAddr(pc_);
+         int_function *cur_func = getProc()->findFuncByAddr(pc_);
          if (cur_func != NULL && callee != NULL &&
              cur_func->match(callee))
          {
@@ -896,9 +896,9 @@ Frame Frame::getCallerFrame(process *p) const
          //Check the validity of the frame pointer.  It's possible the
          // previous frame doesn't have a valid fp, so we won't be able
          // to rely on the check in this case.
-         int_function *next_func = p->findFuncByAddr(estimated_ip);
+         int_function *next_func = getProc()->findFuncByAddr(estimated_ip);
          if (next_func != NULL && 
-             getFrameStatus(p, estimated_ip) == ALLOCATES_FRAME &&
+             getFrameStatus(getProc(), estimated_ip) == ALLOCATES_FRAME &&
              (estimated_fp < fp_ || estimated_fp > stack_top))
          {
             continue;
@@ -922,12 +922,15 @@ Frame Frame::getCallerFrame(process *p) const
       }
    }
 
-   return Frame();
+   ret.pc_ = 0;
+   ret.fp_ = 0;
+   ret.sp_ = 0;
+   return ret;
 
  done:
    ret.uppermost_ = false;
 
-   status = getFrameStatus(p, ret.pc_);         
+   status = getFrameStatus(getProc(), ret.pc_);         
    if (status == TRAMP)
       ret.frameType_ = FRAME_instrumentation;
    else if (status == SIG_HANDLER)
@@ -946,10 +949,18 @@ Frame Frame::getCallerFrame(process *p) const
        **/
       prevFrameValid = true;
       prevFrame = *this;
-      ret = ret.getCallerFrame(p);
+      ret = ret.getCallerFrame();
       prevFrameValid = false;
    }
    return ret;
+}
+
+bool Frame::setPC(Address newpc) {
+  fprintf(stderr, "Implement me! Changing frame PC from %x to %x\n",
+	  pc_, newpc);
+  pc_ = newpc;
+  range_ = NULL;
+  return true;
 }
 
 char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002 

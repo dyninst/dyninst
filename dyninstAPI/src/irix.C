@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.84 2005/01/21 23:44:39 bernat Exp $
+// $Id: irix.C,v 1.85 2005/02/17 21:10:38 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1087,7 +1087,7 @@ Frame dyn_lwp::getActiveFrame()
   // (kludge for stack walk code)
   if (fp == 0) fp = sp;
 
-  return Frame(pc, fp, sp, proc_->getPid(), NULL, this, true);
+  return Frame(pc, fp, sp, proc_->getPid(), NULL, NULL, this, true);
 
 }
  
@@ -1125,16 +1125,16 @@ static bool basetrampRegSaved(Address pc, Register reg,
 }
 
 // TODO: need dataflow, ($pc < saveInsn) insufficient
-Frame Frame::getCallerFrame(process *p) const
+Frame Frame::getCallerFrame()
 {
   // check for active instrumentation
   // (i.e. $pc in native/basetramp/minitramp code)
   
-    codeRange *range = p->findCodeRangeByAddress(pc_);
-    if (!range) {
-        // We have no idea where we are....
-        return Frame();
-    }
+  codeRange *range = getRange();
+  if (!range) {
+    // We have no idea where we are....
+    return Frame();
+  }
     
     trampTemplate *bt = range->is_basetramp();
     miniTrampHandle  *mt = range->is_minitramp();
@@ -1153,10 +1153,10 @@ Frame Frame::getCallerFrame(process *p) const
     }
 
     if (ip) {
-        pc_off = ip->pointAddr() - callee->getEffectiveAddress(p);
+        pc_off = ip->pointAddr() - callee->getEffectiveAddress(getProc());
     }
     else {
-        pc_off = pc_ - callee->getEffectiveAddress(p);
+        pc_off = pc_ - callee->getEffectiveAddress(getProc());
     }
     
     // frame pointers for native and basetramp frames
@@ -1192,12 +1192,12 @@ Frame Frame::getCallerFrame(process *p) const
     if (!bt && ra_saved_native) {
         // $ra saved in native frame
         ra_addr = fp_native + ra_save.slot;
-        ra = readAddressInMemory(p, ra_addr, ra_save.dword);
+        ra = readAddressInMemory(getProc(), ra_addr, ra_save.dword);
         sprintf(ra_debug, "[$fp - %i]", -ra_save.slot);
     } else if (bt && ra_saved_bt) {
         // $ra saved in basetramp frame
         ra_addr = fp_bt + bt_ra_slot;
-        ra = readAddressInMemory(p, ra_addr, true);
+        ra = readAddressInMemory(getProc(), ra_addr, true);
         sprintf(ra_debug, "[$fp - %i]", -bt_ra_slot);
 
 	// The basetramp's caller might have set up a stack frame.
@@ -1208,7 +1208,7 @@ Frame Frame::getCallerFrame(process *p) const
         if (ra_saved_native) {
             Address fp_tmp = fp_bt + callee->frame_size;
             Address ra_addr_tmp = fp_tmp + ra_save.slot;
-            Address ra_tmp = readAddressInMemory(p, ra_addr_tmp, true);
+            Address ra_tmp = readAddressInMemory(getProc(), ra_addr_tmp, true);
 
             if (ra_tmp == ra) {
                 // Stack frame for caller was active.
@@ -1227,7 +1227,7 @@ Frame Frame::getCallerFrame(process *p) const
             if (lwp_)
                 fd = lwp_->get_fd();
             else
-                fd = p->getRepresentativeLWP()->get_fd();
+                fd = getProc()->getRepresentativeLWP()->get_fd();
             if (ioctl(fd, PIOCGREG, &regs) == -1) {
                 perror("process::readDataFromFrame(PIOCGREG)");
                 return Frame(); // zero frame
@@ -1252,7 +1252,7 @@ Frame Frame::getCallerFrame(process *p) const
     trampTemplate *bt2 = NULL;
     miniTrampHandle *mt2 = NULL;
     int_function *caller = NULL;
-    range = p->findCodeRangeByAddress(ra);
+    range = getProc()->findCodeRangeByAddress(ra);
     if (range) {
         mt2 = range->is_minitramp();
         bt2 = range->is_basetramp();
@@ -1271,13 +1271,13 @@ Frame Frame::getCallerFrame(process *p) const
     if (!bt && fp_saved_native) {
         // $fp saved in native frame
         fp_addr = fp_native + fp_save.slot;
-        fp2 = readAddressInMemory(p, fp_addr, fp_save.dword);
+        fp2 = readAddressInMemory(getProc(), fp_addr, fp_save.dword);
         sprintf(fp_debug, "[$fp - %i]", -fp_save.slot);
         //bperr( "  read fp_saved_native at %x from fp_native %x and slot %d\n", fp_addr, fp_native, fp_save.slot);
     } else if (bt && fp_saved_bt) {
         // $ra saved in basetramp frame
         fp_addr = fp_bt + bt_fp_slot;
-        fp2 = readAddressInMemory(p, fp_addr, true);
+        fp2 = readAddressInMemory(getProc(), fp_addr, true);
         sprintf(fp_debug, "[$fp - %i]", -bt_fp_slot);
         //bperr( "  read fp_saved_bt at %x from fp_native %x and slot %d\n", fp_addr, fp_bt, bt_fp_slot);
     } else {
@@ -1298,20 +1298,20 @@ Frame Frame::getCallerFrame(process *p) const
       gregset_t regs;
       unsigned fd;
       if (lwp_) fd = lwp_->get_fd();
-      else fd = p->getRepresentativeLWP()->get_fd();
+      else fd = getProc()->getRepresentativeLWP()->get_fd();
       if (ioctl(fd, PIOCGREG, &regs) == -1) {
           perror("process::readDataFromFrame(PIOCGREG)");
           return Frame(); // zero frame
       }
       ra = regs[PROC_REG_RA];
-      caller = p->findFuncByAddr(ra);
+      caller = getProc()->findFuncByAddr(ra);
   }
   
   // caller frame is invalid if $pc does not resolve to a function
   if (!caller) return Frame(); // zero frame
 
   // return value
-  Frame ret(0, 0, 0, pid_, thread_, lwp_, false);
+  Frame ret(0, 0, 0, pid_, proc_, thread_, lwp_, false);
 
   // I've gotten the strangest segfaults doing direct assignment
   memcpy(&ret.pc_, &ra, sizeof(Address));
@@ -1332,6 +1332,12 @@ Frame Frame::getCallerFrame(process *p) const
   ret.saved_fp = fp2;
   
   return ret;
+}
+
+bool Frame::setPC(Address newpc) {
+  fprintf(stderr, "Implement me! Changing frame PC from %x to %x\n",
+	  pc_, newpc);
+  return true;
 }
 
 

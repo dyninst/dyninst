@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.190 2005/01/21 23:44:10 bernat Exp $
+// $Id: aix.C,v 1.191 2005/02/17 21:10:33 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -164,7 +164,7 @@ extern unsigned enable_pd_fork_exec_debug;
 // The behavior is identical unless we're in a leaf node where
 // the LR is in a register, then it's different.
 
-Frame Frame::getCallerFrame(process *p) const
+Frame Frame::getCallerFrame()
 {
   typedef struct {
     unsigned oldFp;
@@ -175,9 +175,15 @@ Frame Frame::getCallerFrame(process *p) const
     unsigned savedTOC;
   } linkArea_t;
 
+  const int savedLROffset=8;
+  const int compilerInfoOffset=12;
+  const int binderInfoOffset=16;
+  
+
   linkArea_t thisStackFrame;
   linkArea_t lastStackFrame;
   linkArea_t stackFrame;
+  Address basePCAddr;
 
   Frame ret; // zero frame
 
@@ -186,41 +192,48 @@ Frame Frame::getCallerFrame(process *p) const
   bool noFrame = false;
 
   if (uppermost_) {
-      codeRange *range = p->findCodeRangeByAddress(pc_);
-      int_function *func = range->is_function();
-      if (func) {
-          isLeaf = func->makesNoCalls();
-          noFrame = func->hasNoStackFrame();
-      }
+    codeRange *range = getRange();
+    int_function *func = range->is_function();
+    if (func) {
+      isLeaf = func->makesNoCalls();
+      noFrame = func->hasNoStackFrame();
+    }
   }
   ret.pid_ = pid_;
+  ret.proc_ = proc_;
   ret.thread_ = thread_;
   ret.lwp_ = lwp_;
  
   // Get current stack frame link area
-  if (!p->readDataSpace((caddr_t)fp_, sizeof(linkArea_t),
+  if (!getProc()->readDataSpace((caddr_t)fp_, sizeof(linkArea_t),
                         (caddr_t)&thisStackFrame, false))
       return Frame();
-  p->readDataSpace((caddr_t) thisStackFrame.oldFp, sizeof(linkArea_t),
+  getProc()->readDataSpace((caddr_t) thisStackFrame.oldFp, sizeof(linkArea_t),
                    (caddr_t) &lastStackFrame, false);
   
-  if (noFrame)
-      stackFrame = thisStackFrame;
-  else
-      stackFrame = lastStackFrame;
+  if (noFrame) {
+    stackFrame = thisStackFrame;
+    basePCAddr = fp_;
+  }
+  else {
+    stackFrame = lastStackFrame;
+    basePCAddr = thisStackFrame.oldFp;
+  }
 
   // Figure out where to grab the LR value from. Switch off a "cookie"
   // we store if we're in a base tramp or have modified the LR
   if ((stackFrame.binderInfo & MODIFIED_LR_MASK) == MODIFIED_LR) {
       // The actual LR is stored in the "compilerInfo" word
       ret.pc_ = stackFrame.compilerInfo;
+      ret.pcAddr_ = basePCAddr + compilerInfoOffset;
       ret.fp_ = thisStackFrame.oldFp;
   }
   else if ((stackFrame.binderInfo & IN_TRAMP_MASK) == IN_TRAMP) {
       ret.pc_ = stackFrame.savedLR;
+      ret.pcAddr_ = basePCAddr + savedLROffset;
       // Skip the next stack frame, as we "grew" the frame rather than making
       // a new one
-      if (!p->readDataSpace((caddr_t) thisStackFrame.oldFp,
+      if (!getProc()->readDataSpace((caddr_t) thisStackFrame.oldFp,
                             sizeof(unsigned),
                             (caddr_t) &ret.fp_, false))
           return Frame();
@@ -234,17 +247,19 @@ Frame Frame::getCallerFrame(process *p) const
               return Frame();
           }
           ret.pc_ = regs.theIntRegs.__lr;
+	  ret.pcAddr_ = (Address) 1; /* I'm using an address to signify a register */
       }
       else if (thread_ && thread_->get_tid()) {
           cerr << "NOT IMPLEMENTED YET" << endl;
       }
       else { // normal
           dyn_saved_regs regs;
-          bool status = p->getRepresentativeLWP()->getRegisters(&regs);
+          bool status = getProc()->getRepresentativeLWP()->getRegisters(&regs);
           if (!status) {
               return Frame();
           }
           ret.pc_ = regs.theIntRegs.__lr;
+	  ret.pcAddr_ = (Address) 1;
       }
       if (noFrame)
           ret.fp_ = fp_;
@@ -254,18 +269,123 @@ Frame Frame::getCallerFrame(process *p) const
   else {
       // Common case.
       ret.pc_ = stackFrame.savedLR;
+      ret.pcAddr_ = basePCAddr + savedLROffset;
       if (noFrame)
           ret.fp_ = fp_;
       else
           ret.fp_ = thisStackFrame.oldFp;
-      ret.fp_ = thisStackFrame.oldFp;
   }
 
-#ifdef DEBUG_STACKWALK
-  bperr( "PC %x, FP %x\n", ret.pc_, ret.fp_);
-#endif
+  //#ifdef DEBUG_STACKWALK
+  fprintf(stderr, "PC %x, FP %x\n", ret.pc_, ret.fp_);
+  //#endif
 
   return ret;
+}
+
+bool Frame::setPC(Address newpc) {
+
+  fprintf(stderr, "Resetting pc from %x to %x\n",
+	  pc_, newpc);
+
+  // Encapsulate all the logic necessary to set a new PC in a frame
+  // If the function is a leaf function, we need to overwrite the LR directly.
+  // The return addr for a frame is basically the parent's pc...
+
+  if (pc_ == newpc) return true;
+
+  if (isUppermost()) {
+    if (getLWP())
+      getLWP()->changePC(newpc, NULL);
+    else if (getThread())
+      getThread()->get_lwp()->changePC(newpc, NULL);
+    else 
+      getProc()->getRepresentativeLWP()->changePC(newpc, NULL);
+  }
+  else if (pcAddr_ == 1) {
+    // Stomp the LR
+    dyn_lwp *lwp = getLWP();
+    if (lwp && lwp->get_lwp_id()) {
+      // Get the current LR and reset it to our new version
+#if defined(AIX_PROC)
+      dyn_saved_regs regs;
+      bool status = lwp->getRegisters(&regs);
+      if (!status) {
+	bperr( "Failure to get registers in catchupSideEffect\n");
+	return false;
+      }
+      regs.theIntRegs.__lr = newpc;
+      if (!lwp->restoreRegisters(regs)) {
+	bperr( "Failure to restore registers in catchupSideEffect\n");
+	return false;
+      }
+#else
+      struct ptsprs spr_contents;
+      Address oldLR;
+      if (P_ptrace(PTT_READ_SPRS, lwp->get_lwp_id(),
+		   (int *)&spr_contents, 0, 0) == -1) {
+	perror("Failed to read SPRS in catchupSideEffect");
+	return false;
+      }
+      spr_contents.pt_lr = (unsigned) newpc;
+      if (P_ptrace(PTT_WRITE_SPRS, lwp->get_lwp_id(),
+		   (int *)&spr_contents, 0, 0) == -1) {
+	perror("Failed to write SPRS in catchupSideEffect");
+	return false;
+      }
+#endif
+    }
+    else {
+      // Process-wide
+#if defined(AIX_PROC)
+      dyn_saved_regs regs;
+      bool status = getProc()->getRepresentativeLWP()->getRegisters(&regs);
+      if (!status) {
+	bperr("Failure to get registers in catchupSideEffect\n");
+	return false;
+      }
+      regs.theIntRegs.__lr = newpc;
+      getProc()->getRepresentativeLWP()->restoreRegisters(regs);
+#else
+      if (P_ptrace(PT_WRITE_GPR, getPID(), (void *)LR, newpc, 0) == -1) {
+	perror("Failed to write LR in catchupSideEffect");
+	return false;
+      }
+#endif
+    }
+  }
+  else {    
+    // The LR is stored at pcAddr
+    Address oldReturnAddr;
+    
+    getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), 
+			      &newpc);
+    fprintf(stderr, "Replaced old return addr with 0x%x\n", newpc);
+  }
+  
+  pc_ = newpc;
+  range_ = NULL;
+  return true;
+}
+
+// We stash the actual LR of an instrumented function
+// into the compiler info word on the stack, and a trigger
+// "We've modified the LR" for stackwalking into the binder info word.
+bool Frame::setRealReturnAddr(Address retaddr) {
+  fprintf(stderr, "Resetting real ret addr to %x\n",
+	  retaddr);
+
+  // And write the actual LR into an unused word.
+  fprintf(stderr, "Writing 0x%x to 0x%x\n", retaddr, getFP()+12);
+  if (!getProc()->writeDataSpace((void*)(getFP()+12), sizeof(Address), &retaddr))
+    return false;
+
+  // And write the "we've modified the LR" trigger value
+  Address trigger = MODIFIED_LR;
+  fprintf(stderr, "Writing 0x%x to 0x%x\n", trigger, getFP()+16);
+  if (!getProc()->writeDataSpace((void*)(getFP()+16), sizeof(Address), &trigger))
+    return false;
+  return true;
 }
 
 
@@ -657,145 +777,47 @@ void process::inferiorMallocAlign(unsigned &size)
 }
 #endif
 
-#ifndef BPATCH_LIBRARY
-class instReqNode;
-
-bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
+bool process::instrSideEffect(Frame &frame, instPoint *inst)
 {
-  // Okay, here's what we need to do: when a base tramp is
-  // entered, we change the link register to point to the
-  // exit tramp. We need to repeat that behavior. It
-  // consists of:
-  //   Get the address of the exit tramp for the current
-  //     function.
-  //   Write the old LR to the save slot.
-  //   Write this address to where the LR is stored (or the 
-  //     register if we have a leaf func)
-  //   Layout: (starting at 0 and proceeding upwards)
-  //        0: stack backchain
-  //        4: saved TC
-  //        8: saved LR
-  //       12: our save slot for the LR
+  // Two cases: fixing a call site, fixing entry/exit tramps.
 
-  Address exitTrampAddr;
-  int_function *instFunc = inst->Point()->PDSEP_instPoint()->pointFunc();
+  int_function *instFunc = inst->pointFunc();
   if (!instFunc) return false;
-  // Check: see if the PC is within the instFunc. We might be within
-  // an entry or exit tramp, at which point we don't need to fix anything.
-  // 27FEB03: if we're before the function _or at the first instruction_ there
-  // is no need to fix anything, as we will jump into the base tramp normally
-  // 10OCT03: fix up to include in-function call sites as well -- collapse
-  // address before checking
-  if ((frame.getPC() <= instFunc->get_address()) ||
-      (frame.getPC() > instFunc->get_address() + instFunc->get_size()))
+
+  codeRange *range = frame.getRange();
+  if (range->is_function() != instFunc) {
+    // Trivially done
     return true;
-
-  const pdvector <instPoint *>exitPoints = instFunc->funcExits(this);
-  exitTrampAddr = baseMap[exitPoints[0]]->baseAddr;
-
-  // If the function is a leaf function, we need to overwrite the LR directly.
-  bool isLeaf = false;
-  bool noFrame = false;
-  if (frame.isUppermost()) {
-    isLeaf = instFunc->makesNoCalls();
-    noFrame = instFunc->hasNoStackFrame();
   }
 
-  if (frame.isLastFrame(this))
-      return false;
-  Frame parentFrame = frame.getCallerFrame(this);
-  Address oldReturnAddr;
-  
-  if (isLeaf) {
-      // Stomp the LR
-      dyn_lwp *lwp = frame.getLWP();
-      if (lwp && lwp->get_lwp_id()) {
-          // Get the current LR and reset it to our new version
-#if defined(AIX_PROC)
-          dyn_saved_regs regs;
-          bool status = lwp->getRegisters(&regs);
-          if (!status) {
-              bperr( "Failure to get registers in catchupSideEffect\n");
-              return false;
-          }
-          oldReturnAddr = regs.theIntRegs.__lr;
-          regs.theIntRegs.__lr = exitTrampAddr;
-          if (!lwp->restoreRegisters(regs)) {
-              bperr( "Failure to restore registers in catchupSideEffect\n");
-              return false;
-          }
-#else
-          struct ptsprs spr_contents;
-          Address oldLR;
-          if (P_ptrace(PTT_READ_SPRS, lwp->get_lwp_id(),
-                       (int *)&spr_contents, 0, 0) == -1) {
-              perror("Failed to read SPRS in catchupSideEffect");
-              return false;
-          }
-          oldReturnAddr = spr_contents.pt_lr;
-          spr_contents.pt_lr = (unsigned) exitTrampAddr;
-          if (P_ptrace(PTT_WRITE_SPRS, lwp->get_lwp_id(),
-                       (int *)&spr_contents, 0, 0) == -1) {
-              perror("Failed to write SPRS in catchupSideEffect");
-              return false;
-          }
-#endif
-      }
-      else {
-          // Old method
-#if defined(AIX_PROC)
-          dyn_saved_regs regs;
-          bool status = getRepresentativeLWP()->getRegisters(&regs);
-          if (!status) {
-              bperr("Failure to get registers in catchupSideEffect\n");
-              return false;
-          }
-          oldReturnAddr = regs.theIntRegs.__lr;
-          regs.theIntRegs.__lr = exitTrampAddr;
-          getRepresentativeLWP()->restoreRegisters(regs);
-#else
-          oldReturnAddr = P_ptrace(PT_READ_GPR, pid, (void *)LR, 0, 0);
-          if (oldReturnAddr == -1)
-          {
-              perror("Failed to read LR in catchupSideEffect");
-          }
-          if (P_ptrace(PT_WRITE_GPR, pid, (void *)LR, exitTrampAddr, 0) == -1) {
-              perror("Failed to write LR in catchupSideEffect");
-              return false;
-          }
-#endif
-      }
+  if (inst->getPointType() == callSite) {
+    Address insnAfterPoint = inst->absPointAddr(this) + sizeof(instruction);
+    if (frame.getPC() == insnAfterPoint) {
+      fprintf(stderr, "Should be changing frame PC 0x%x to 0x%x\n",
+	      insnAfterPoint,
+	      baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset);
+      if (!frame.setPC(baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset))
+	return false;
+    }
   }
-  else {    
-      // The LR is stored in the parent's frame to allow functions to
-      // store the LR without creating a stack frame. 
-      readDataSpace((void *)(parentFrame.getFP()+8), sizeof(Address), 
-                    &oldReturnAddr, false);
-      if (oldReturnAddr == exitTrampAddr) {
-          // We must've already overwritten the link register, so we're fine 
-          return true;
-      }
-      else { 
-          // Write it into the save slot
-          writeDataSpace((void*)(parentFrame.getFP()+8), sizeof(Address), 
-                         &exitTrampAddr);
-      }
+  else if (inst->getPointType() == functionExit) {
+    // We hit exit tramps by overwriting the return address from
+    // a function. So... if we're in the same function as the inst
+    // point, we want to overwrite the pc in the _parent_ frame
+    // (AKA our return address)
+    
+    if (frame.getPC() != instFunc->getAddress(this)) {
+      Address exitTrampAddr = baseMap[inst]->baseAddr;
+      Frame parentFrame = frame.getCallerFrame();
+      if (!parentFrame.setRealReturnAddr(parentFrame.getPC()))
+	return false;
+      if (!parentFrame.setPC(exitTrampAddr))
+	return false;
+    }
   }
-  // And write the actual LR into an unused word.
-
-  // We can always use the "parent" stack frame -- if the current function
-  // has not made a frame yet, then the two stack pointers will be
-  // identical.
-  
-  writeDataSpace((void*)(parentFrame.getFP()+12), sizeof(Address), &oldReturnAddr);
-  // And write the "we've modified the LR" trigger value
-  Address trigger = MODIFIED_LR;
-  writeDataSpace((void*)(parentFrame.getFP()+16), sizeof(Address), &trigger);
-
   return true;
   
 }
-#endif
 
 #define DEBUG_MSG 0 
 #define _DEBUG_MSG 0

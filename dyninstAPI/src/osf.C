@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.71 2005/02/09 03:27:47 jaw Exp $
+// $Id: osf.C,v 1.72 2005/02/17 21:10:43 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -166,7 +166,7 @@ Frame dyn_lwp::getActiveFrame()
   if (ioctl(fd_, PIOCGREG, &theIntRegs) != -1) {
     fp = theIntRegs.regs[SP_REGNUM];  
     pc = theIntRegs.regs[PC_REGNUM]-4; /* -4 because the PC is updated */
-    theFrame = Frame(pc, fp, 0, proc_->getPid(), NULL, this, true);
+    theFrame = Frame(pc, fp, 0, proc_->getPid(), proc_, NULL, this, true);
   }
   return theFrame;
 }
@@ -539,20 +539,21 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
     return foundEvent;
 } 
 
-Frame Frame::getCallerFrame(process *p) const
+Frame Frame::getCallerFrame()
 {
   Frame ret;
   Address values[2];
   gregset_t theIntRegs;
   int_function *currFunc;
   if (fp_ == 0) return Frame();
+  ret.proc_ = proc_;
 
   if (uppermost_) {
-      int proc_fd = p->getRepresentativeLWP()->get_fd();
+      int proc_fd = getProc()->getRepresentativeLWP()->get_fd();
       if (ioctl(proc_fd, PIOCGREG, &theIntRegs) != -1) {
           ret.pc_ = theIntRegs.regs[PC_REGNUM];  
 
-          currFunc = p->findFuncByAddr(ret.pc_);
+          currFunc = getProc()->findFuncByAddr(ret.pc_);
           if (currFunc && currFunc->frame_size) {
               ret.fp_ = theIntRegs.regs[SP_REGNUM] + currFunc->frame_size;  
               ret.sp_ = theIntRegs.regs[SP_REGNUM];
@@ -568,7 +569,7 @@ Frame Frame::getCallerFrame(process *p) const
           return Frame(); // zero frame
       }
   } else {
-      if (!p->readDataSpace((void *)sp_, sizeof(Address), values, false)){
+      if (!getProc()->readDataSpace((void *)sp_, sizeof(Address), values, false)){
           bperr("error reading frame at %lx\n", fp_);
           return Frame(); // zero frame
       } else {
@@ -576,7 +577,7 @@ Frame Frame::getCallerFrame(process *p) const
           // fp_ + frame_size = saved fp
           ret.pc_ = values[0];
           
-          currFunc = p->findFuncByAddr(ret.pc_);
+          currFunc = getProc()->findFuncByAddr(ret.pc_);
           if (currFunc && currFunc->frame_size) {
               ret.sp_ = fp_;		/* current stack pointer is old fp */
               ret.fp_ = fp_ + currFunc->frame_size;  
@@ -590,6 +591,12 @@ Frame Frame::getCallerFrame(process *p) const
       }
   }
   return ret;
+}
+
+bool Frame::setPC(Address newpc) {
+  fprintf(stderr, "Implement me! Changing frame PC from %x to %x\n",
+	  pc_, newpc);
+  return true;
 }
 
 bool process::dumpCore_(const pdstring coreFile) 

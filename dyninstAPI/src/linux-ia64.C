@@ -360,7 +360,8 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 	/* FIXME: multithread implementation. */
 	dyn_thread * dynThread = NULL;
     
-	Frame currentFrame( ip, fp, sp, pid, dynThread, dynLWP, isUppermost, unwindCursor );
+	Frame currentFrame( ip, fp, sp, pid, dynLWP->proc(), dynThread, dynLWP, isUppermost, 0 /*FIXME*/, unwindCursor );
+	currentFrame.setRange(range);
 	if( isTrampoline ) {
 		currentFrame.frameType_ = FRAME_instrumentation;
 		}
@@ -590,22 +591,22 @@ bool process::loadDYNINSTlibCleanup() {
 #include <miniTrampHandle.h>
 #include <trampTemplate.h>	
 #include <instPoint.h>
-Frame Frame::getCallerFrame( process * proc ) const {
+Frame Frame::getCallerFrame() {
 	// /* DEBUG */ fprintf( stderr, "getCallerFrame(): getting caller's frame (ip = 0x%lx, fp = 0x%lx, sp = 0x%lx).\n", getPC(), getFP(), getSP() );
 
 	int status = 0;
 
 	/* Initialize the unwinder. */
-	if( proc->unwindAddressSpace == NULL ) {
+	if( getProc()->unwindAddressSpace == NULL ) {
 		// /* DEBUG */ fprintf( stderr, "Creating unwind address space for process pid %d\n", proc->getPid() );
-		proc->unwindAddressSpace = unw_create_addr_space( & _UPT_accessors, 0 );
-		assert( proc->unwindAddressSpace != NULL );
+		getProc()->unwindAddressSpace = unw_create_addr_space( & _UPT_accessors, 0 );
+		assert( getProc()->unwindAddressSpace != NULL );
 		}
 	
-	if( proc->unwindProcessArg == NULL ) {
+	if( getProc()->unwindProcessArg == NULL ) {
 		// /* DEBUG */ fprintf( stderr, "Creating unwind context for process pid %d\n", proc->getPid() );
-		proc->unwindProcessArg = _UPT_create( proc->getPid() );
-		assert( proc->unwindProcessArg != NULL );
+		getProc()->unwindProcessArg = _UPT_create( getProc()->getPid() );
+		assert( getProc()->unwindProcessArg != NULL );
 		}
 	
 	/* Generate the synthetic frame above the instrumentation is cross-platform code. */
@@ -622,17 +623,17 @@ Frame Frame::getCallerFrame( process * proc ) const {
 		assert( unwindCursor != NULL );
 
 		/* Initialize it to the active frame. */
-		status = unw_init_remote( unwindCursor, proc->unwindAddressSpace, proc->unwindProcessArg );
+		status = unw_init_remote( unwindCursor, getProc()->unwindAddressSpace, getProc()->unwindProcessArg );
 		assert( status == 0 );
 
 		/* Unwind to the current frame. */
-		currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, proc->getPid(), true );
+		currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid(), true );
 		while( ! currentFrame.isUppermost() ) {
 			if( getFP() == currentFrame.getFP() && getSP() == currentFrame.getSP() && getPC() == currentFrame.getPC() ) {
-				currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, proc->getPid(), false );
+				currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid(), false );
 				break;
 				} /* end if we've found this frame */
-			currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, proc->getPid(), false );
+			currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid(), false );
 			}
 		} /* end if this frame was copied before being unwound. */
 	else {
@@ -642,7 +643,7 @@ Frame Frame::getCallerFrame( process * proc ) const {
 		/* Since createFrameFromUnwindCursor() actually unwinds the cursor,
 		   the createFFUC() call which created _this_ frame will have left the cursor
 		   pointing at _this_ frame's caller. */
-		currentFrame = createFrameFromUnwindCursor( (unw_cursor_t *)this->unwindCursor_, lwp_, proc->getPid(), false );
+		currentFrame = createFrameFromUnwindCursor( (unw_cursor_t *)this->unwindCursor_, lwp_, getProc()->getPid(), false );
 		} /* end if this frame was _not_ copied before being unwound. */
 	
 	/* Make sure we made progress. */	
@@ -662,6 +663,11 @@ Frame Frame::getCallerFrame( process * proc ) const {
 	/* Return the result. */
 	return currentFrame;
 	} /* end getCallerFrame() */
+
+
+bool Frame::setPC(Address newpc) {
+  return true;
+}
 
 syscallTrap *process::trapSyscallExitInternal(Address syscall) {
     syscallTrap *trappedSyscall = NULL;

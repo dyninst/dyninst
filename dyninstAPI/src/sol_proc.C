@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.56 2005/01/18 18:34:06 bernat Exp $
+// $Id: sol_proc.C,v 1.57 2005/02/17 21:10:45 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -452,7 +452,7 @@ Frame dyn_lwp::getActiveFrame()
    Frame newFrame = Frame(GETREG_PC(regs.theIntRegs),
                           GETREG_FP(regs.theIntRegs), 
                           0, // SP unused
-                          proc_->getPid(), NULL, this, true);
+                          proc_->getPid(), proc_, NULL, this, true);
    return newFrame;
 }
 
@@ -1152,7 +1152,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
         // in the call
         dyn_lwp *syslwp = getLWP((unsigned) syscall);
         Frame frame = syslwp->getActiveFrame();
-        Frame callerFrame = frame.getCallerFrame(this);
+        Frame callerFrame = frame.getCallerFrame();
         
         Address origLR;
         readDataSpace((void *)(callerFrame.getFP() + 8),

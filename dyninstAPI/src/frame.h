@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.18 2004/10/07 00:45:56 jaw Exp $
+// $Id: frame.h,v 1.19 2005/02/17 21:10:36 bernat Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -57,28 +57,17 @@ class Frame {
  public:
   
   // default ctor (zero frame)
-  Frame() : frameType_(FRAME_unset), uppermost_(false), pc_(0), fp_(0), sp_(0),
-  pid_(0), thread_(NULL), lwp_(NULL), range_(0), unwindCursor_(NULL)
-  {}
+  Frame();
 
-  // I'm keeping the frame class (relatively) stupid,
-  // so the standard method of getting a frame is to
-  // call a different function (getActiveFrame or the
-  // dyn_thread method) which gives you a frame. You can
-  // then trace it back. The thread and lwp are just there
-  // for reference by the frame user
-
-  // Identical, with sp definition
+  // Real constructor -- fill-in.
+  // Option 2 would be to have the constructor look up this info,
+  // but getCallerFrame works as is.
   Frame(Address pc, Address fp, Address sp,
-        unsigned pid, dyn_thread *thread, dyn_lwp *lwp, 
+        unsigned pid, process *proc, 
+	dyn_thread *thread, dyn_lwp *lwp, 
         bool uppermost,
-        void * unwindCursor = NULL ) :
-  frameType_(FRAME_unset),
-  uppermost_(uppermost),
-  pc_(pc), fp_(fp), sp_(sp),
-  pid_(pid), thread_(thread), lwp_(lwp), 
-  range_(0), unwindCursor_( unwindCursor )
-  {};
+	Address pcAddr = 0,
+        void * unwindCursor = NULL );
 
   bool operator==(const Frame &F) {
     return ((uppermost_ == F.uppermost_) &&
@@ -86,6 +75,7 @@ class Frame {
 	    (fp_      == F.fp_) &&
 	    (sp_      == F.sp_) &&	    
 	    (pid_     == F.pid_) &&
+	    (proc_    == F.proc_) &&
 	    (thread_  == F.thread_) &&
 	    (lwp_     == F.lwp_) &&
 	    (saved_fp == F.saved_fp) &&
@@ -96,21 +86,29 @@ class Frame {
   Address  getFP() const { return fp_; }
   Address  getSP() const { return sp_; }
   unsigned getPID() const { return pid_; }
+  process *getProc() const { return proc_; }
   dyn_thread *getThread() const { return thread_; }
   dyn_lwp  *getLWP() const { return lwp_;}
   bool     isUppermost() const { return uppermost_; }
   bool	   isSignalFrame() const { return frameType_ == FRAME_signalhandler;}
   bool 	   isInstrumentation() const { return frameType_ == FRAME_instrumentation;}
-  codeRange *getRange() const { return range_;}
-  void setRange(codeRange *r) { range_ = r;}
+  codeRange *getRange();
+  void setRange (codeRange *range); 
   friend ostream& operator<<(ostream&s, const Frame &m);
-  
+
+  bool setPC(Address newpc);
+
+#if defined(arch_power)
+  // We store the actual return addr in a word on the stack
+  bool setRealReturnAddr(Address retaddr);
+#endif
+
   // check for zero frame
-  bool isLastFrame(process *p) const;
+  bool isLastFrame() const;
   
   // get stack frame of caller
   // May need the process image for various reasons
-  Frame getCallerFrame(process *p) const;
+  Frame getCallerFrame();
   frameType_t frameType_;
   
  private:
@@ -119,14 +117,18 @@ class Frame {
   Address   fp_;
   Address   sp_;     // NOTE: this is not always populated
   int       pid_;    // Process id 
+  process *proc_;    // We're only valid for a single process anyway
   dyn_thread *thread_; // user-level thread
   dyn_lwp  *lwp_;    // kernel-level thread (LWP)
   Address   saved_fp;// IRIX
   codeRange *range_; // If we've done a by-address lookup,
                     // keep it here
   void *	unwindCursor_; // Linux/ia64.
+
+  Address pcAddr_; // If 0, PC was in a register -- used for overwriting the PC
+  
 };
 
-ostream& operator<<(ostream&s, const Frame &m);
+ostream& operator<<(ostream&s, Frame &m);
 
 #endif

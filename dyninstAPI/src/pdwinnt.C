@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.130 2005/01/21 23:44:43 bernat Exp $
+// $Id: pdwinnt.C,v 1.131 2005/02/17 21:10:44 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -384,7 +384,8 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
           }
           
           stackWalk.push_back(Frame(pc, 0, 0, getPid(), 
-                                    currentFrame.getThread(), 
+                                    currentFrame.getProc(),
+				    currentFrame.getThread(), 
                                     currentFrame.getLWP(), 
                                     false));
           
@@ -1259,7 +1260,7 @@ Frame dyn_lwp::getActiveFrame()
       sp = cont.IntSp;
       fp = cont.IntS8;
 #endif
-      return Frame(pc, fp, sp, proc_->getPid(), NULL, this, true);
+      return Frame(pc, fp, sp, proc_->getPid(), NULL, NULL, this, true);
     }
     printSysError(GetLastError());
     return Frame();
@@ -1268,7 +1269,7 @@ Frame dyn_lwp::getActiveFrame()
 #if defined(i386_unknown_nt4_0) //ccw 29 mar 2001
  
 
-Frame Frame::getCallerFrame(process *p) const
+Frame Frame::getCallerFrame()
 {
     // For x86, the frame-pointer (EBP) points to the previous 
     // frame-pointer, and the saved return address is in EBP-4.
@@ -1278,7 +1279,7 @@ Frame Frame::getCallerFrame(process *p) const
 	Address rtn;
     } addrs;
 
-    if (p->readDataSpace((caddr_t)(fp_), sizeof(int)*2,
+    if (getProc()->readDataSpace((caddr_t)(fp_), sizeof(int)*2,
 			 (caddr_t)&addrs, true))
     {
         Frame ret;
@@ -1302,13 +1303,19 @@ Frame Frame::getCallerFrame(process *p) const
 	ret.sp_ = sp_ - callee->frame_size;
 
 	Address tmpSp = sp_ + 20;
-	p->readDataSpace((caddr_t)(tmpSp), sizeof(int),
+	getProc()->readDataSpace((caddr_t)(tmpSp), sizeof(int),
 			 &prevPC, true);
 
 	ret.pc_ = prevPC;
 	return ret;
 }
 #endif
+
+bool Frame::setPC(Address newpc) {
+  fprintf(stderr, "Implement me! Changing frame PC from %x to %x\n",
+	  pc_, newpc);
+  return true;
+}
 
 bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {
    // we must set ContextFlags to indicate the registers we want returned,
@@ -1854,7 +1861,7 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
   return now;
 }
 
-bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
+bool process::instrSideEffect(Frame &frame, instPoint *inst)
 {
   return true;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.156 2005/02/09 03:27:46 jaw Exp $
+// $Id: inst-sparc-solaris.C,v 1.157 2005/02/17 21:10:37 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2235,14 +2235,14 @@ bool int_function::findInstPoints(const image *owner) {
 
    bool checkPoints; 
 
-   if (get_size() == 0) 
+   if (get_size() == 0) {
       goto set_uninstrumentable;
-   
+   }
 
    instr.raw = owner->get_instruction(firstAddress);
-   if (!IS_VALID_INSN(instr)) 
+   if (!IS_VALID_INSN(instr)) {
       goto set_uninstrumentable;
-  
+   }
    // Determine if function needs to be relocated when instrumented
    for ( adr = firstAddress; adr < lastAddress; adr += 4) { 
       instr.raw = owner->get_instruction(adr);
@@ -2341,9 +2341,9 @@ bool int_function::findInstPoints(const image *owner) {
 
 
    // Can't handle function
-   if (canBeRelocated_ == false && needs_relocation_ == true) 
+   if (canBeRelocated_ == false && needs_relocation_ == true) {
       goto set_uninstrumentable;
-    
+   }    
 #ifdef BPATCH_LIBRARY
    if (BPatch::bpatch->hasForcedRelocation_NPInt()) {
       if (canBeRelocated_ == true) {
@@ -2636,7 +2636,7 @@ bool int_function::findInstPoints(const image *owner) {
    return true;
 
  set_uninstrumentable:
-   isInstrumentable_ = 0;
+      isInstrumentable_ = 0;
    return false;
 }
 
@@ -2716,9 +2716,9 @@ bool int_function::checkInstPoints(const image *owner) {
    // we can't deal with this...the only example I can find is _cerror
    // and _cerror64 in libc.so.1
    if(retl_inst && !noStackFrame && !restore_inst){ 
-      //cerr << "WARN : function " << prettyName().c_str()
-      //     << " retl instruction in non-leaf function, can't instrument"
-      //      << endl;
+     cerr << "WARN : function " << prettyName().c_str()
+          << " retl instruction in non-leaf function, can't instrument"
+	  << endl;
       return false;
    }
 
