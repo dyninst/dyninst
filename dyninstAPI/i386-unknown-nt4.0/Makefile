@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.20 2003/03/28 23:29:17 pcroth Exp $
+# $Id: Makefile,v 1.21 2003/05/08 21:46:28 pcroth Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -43,7 +43,7 @@ OBJS = 		pdwinnt.obj \
 #		MapSymbols.obj 
 # ccw 13 july 2001
 
-LIBS		= dbghelp.lib advapi32.lib
+LIBS		= dbghelp.lib advapi32.lib psapi.lib
 
 CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT -DBPATCH_DLL_BUILD
 
