@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.1  1994/11/01 16:56:42  markc
+ * Revision 1.2  1994/11/07 16:15:43  jcargill
+ * Fixed bug in predicate list defns; observed_cost and default preds
+ *
+ * Revision 1.1  1994/11/01  16:56:42  markc
  * Environment code that is shared by all environs (pvm, cm5, sunos)
  *
  */
@@ -38,14 +41,14 @@ bool init() {
   observedCostPredicates[1].set("/Machine", nullPredicate, NULL);
   observedCostPredicates[2].set("/Process", nullPredicate, NULL);
   observedCostPredicates[3].set("/Procedure", invalidPredicate, NULL);
-  observedCostPredicates[4].set((char*)NULL, nullPredicate, NULL);
+  observedCostPredicates[4].set((char*)NULL, nullPredicate, NULL, false);
 
   defaultIMpreds = new resourcePredicate[5];
   defaultIMpreds[0].set("/SyncObject", invalidPredicate, NULL);
   defaultIMpreds[1].set("/Machine", nullPredicate, NULL);
   defaultIMpreds[2].set("/Process", invalidPredicate, NULL);
   defaultIMpreds[3].set("/Procedure", invalidPredicate, NULL);
-  defaultIMpreds[4].set((char*)NULL, nullPredicate, NULL);
+  defaultIMpreds[4].set((char*)NULL, nullPredicate, NULL, false);
 
   pauseTime = new internalMetric("pause_time", 
 				 SampledFunction, 
