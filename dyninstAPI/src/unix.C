@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.86 2003/04/15 18:44:41 bernat Exp $
+// $Id: unix.C,v 1.87 2003/04/16 17:00:12 zandy Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -494,6 +494,8 @@ int forwardSigToProcess(process *proc,
         return 0;
         //P_abort();
     } 
+    if (what != SIGSTOP)
+	    proc->status_ = running;
     return 1;
 }
 
