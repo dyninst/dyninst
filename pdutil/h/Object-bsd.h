@@ -149,7 +149,7 @@ Object::load_object() {
                 type = Symbol::PDST_OBJECT;
                 break;
 
-            case N_TEXT:
+            case N_TEXT: {
 		// KLUDGE: <file>.o entries have a nasty habit of showing up in
 		// symbol tables as N_TEXT when debugging info is not
 		// in the symbol table
@@ -171,7 +171,7 @@ Object::load_object() {
 		  st_kludge = true;
 		}
 		break;
-
+            }
             case N_FNAME:
             case N_FUN:
                 type = Symbol::PDST_FUNCTION;
