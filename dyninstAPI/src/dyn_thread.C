@@ -276,17 +276,3 @@ bool dyn_thread::isRunningIRPC()
   return in_IRPC;
 }
 
-void dyn_thread::setInSyscall()
-{
-  in_syscall = true;
-}
-
-void dyn_thread::clearInSyscall()
-{
-  in_syscall = false;
-}
-
-bool dyn_thread::isInSyscall()
-{
-  return in_syscall;
-}

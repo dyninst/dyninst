@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.3 2002/10/28 04:54:01 schendel Exp $
+// $Id: dyn_thread.h,v 1.4 2002/10/29 22:56:13 bernat Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -61,7 +61,7 @@ class dyn_thread {
     start_func(NULL),
     rid(NULL),
     pending_tramp_addr( ADDR_NULL ),
-    in_IRPC(false), in_syscall(false)
+    in_IRPC(false), isIRPCwaitingForSyscall_(false)
     { 
       proc = pproc; 
       ppid = pproc->getPid();
@@ -76,7 +76,7 @@ class dyn_thread {
     start_func(NULL),
     rid(NULL),
     pending_tramp_addr( ADDR_NULL ),
-    in_IRPC(false), in_syscall(false)
+    in_IRPC(false), isIRPCwaitingForSyscall_(false)
     {
       proc = proc_;
       ppid = proc_->getPid();
@@ -96,7 +96,7 @@ class dyn_thread {
     proc = parent;
     pending_tramp_addr = ADDR_NULL;
     in_IRPC = false;
-    in_syscall = false;
+    isIRPCwaitingForSyscall_ = false;
   }
   ~dyn_thread() {
   }
@@ -145,10 +145,11 @@ class dyn_thread {
   inferiorRPCinProgress getIRPC();
   void clearRunningIRPC();
   bool isRunningIRPC();
-  void setInSyscall();
-  void clearInSyscall();
-  bool isInSyscall();
-  
+
+  bool isIRPCwaitingForSyscall() { return isIRPCwaitingForSyscall_; }
+  void setIRPCwaitingForSyscall() { isIRPCwaitingForSyscall_ = true; }
+  void clearIRPCwaitingForSyscall() { isIRPCwaitingForSyscall_ = false; }
+
   ///
  private:
   int ppid;
@@ -169,8 +170,8 @@ class dyn_thread {
   vectorSet<inferiorRPCtoDo> thrRPCsWaitingToStart;
   inferiorRPCinProgress thrCurrRunningRPC;
   bool in_IRPC;
-  bool in_syscall;
-
+  bool isIRPCwaitingForSyscall_;
+  
 };
 
 #endif

@@ -155,9 +155,8 @@ class pd_process {
       return dyninst_process->wasCreatedViaAttach();
    }
 
-   bool launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
-      return dyninst_process->launchRPCifAppropriate(wasRunning, 
-						     finishingSysCall);
+   bool launchRPCifAppropriate(bool wasRunning) {
+      return dyninst_process->launchRPCifAppropriate(wasRunning);
    }
 
    bool isPARADYNBootstrappedYet() const {
@@ -280,9 +279,12 @@ class pd_process {
       return (*beginThr());
    }
       
-   bool isInSyscall() { return dyninst_process->isInSyscall(); }
-   bool thrInSyscall() { return dyninst_process->thrInSyscall(); }
-
+  bool isAnyIRPCwaitingForSyscall()
+    { return dyninst_process->isAnyIRPCwaitingForSyscall();};
+  void clearAllIRPCwaitingForSyscall()
+    { return dyninst_process->clearAllIRPCwaitingForSyscall();};
+  
+      
 };
 
 

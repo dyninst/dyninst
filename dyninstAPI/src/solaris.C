@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.125 2002/10/18 22:41:13 bernat Exp $
+// $Id: solaris.C,v 1.126 2002/10/29 22:56:15 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -688,7 +688,7 @@ int process::waitProcs(int *status) {
 	 // exit of a system call.
 	 process *p = processVec[curr];
 
-	 if (p->isInSyscall()) {
+	 if (p->isAnyIRPCwaitingForSyscall()) {
  	    // reset PIOCSEXIT mask
 	    // inferiorrpc_cerr << "solaris got PR_SYSEXIT!" << endl;
 	    assert(p->save_exitset_ptr != NULL);

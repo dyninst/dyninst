@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.224 2002/10/18 22:41:13 bernat Exp $
+/* $Id: process.h,v 1.225 2002/10/29 22:56:14 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -531,7 +531,7 @@ class process {
   bool existsRPCreadyToLaunch() const;
   bool existsRPCinProgress();
   bool rpcSavesRegs();
-  bool launchRPCifAppropriate(bool wasRunning, bool finishingSysCall);
+  bool launchRPCifAppropriate(bool wasRunning);
      // returns true iff anything was launched.
      // asynchronously launches iff RPCsWaitingToStart.size() > 0 AND
      // if currRunningRPCs.size()==0 (the latter for safety)
@@ -539,11 +539,18 @@ class process {
      // Pass wasRunning as true iff you want the process  to continue after
      // receiving the TRAP signifying completion of the RPC.
 
-  bool isInSyscall() { return inSyscall_; }
-  bool thrInSyscall();
-  void setInSyscall() { inSyscall_ = true; }
-  void clearInSyscall() { inSyscall_ = false; }
+  bool isIRPCwaitingForSyscall() { return isIRPCwaitingForSyscall_; }
+  void setIRPCwaitingForSyscall() { isIRPCwaitingForSyscall_ = true; }
+  void clearIRPCwaitingForSyscall() { isIRPCwaitingForSyscall_ = false; }
 
+  // Next set work on process and all threads
+
+  bool isAnyIRPCwaitingForSyscall();
+  void clearAllIRPCwaitingForSyscall();
+
+  // And a state variable
+  bool wasRunningBeforeSyscall() { return wasRunningBeforeSyscall_; };  
+  
   bool isRunningIRPC() { return runningRPC_; }
   void setRunningIRPC() { runningRPC_ = true; }
   void clearRunningIRPC() { runningRPC_ = false; }
@@ -866,9 +873,9 @@ void saveWorldData(Address address, int size, const void* src);
 
   vectorSet<inferiorRPCtoDo> RPCsWaitingToStart;
 
-  bool inSyscall_;
+  bool isIRPCwaitingForSyscall_;
   bool runningRPC_;
-  bool was_running_before_RPC_syscall_complete;
+  bool wasRunningBeforeSyscall_;
 
   void *save_exitset_ptr; // platform-specific (for now, just solaris;
                           // it's actually a sysset_t*)
