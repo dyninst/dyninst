@@ -1,9 +1,12 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.11  1994/11/03 06:16:12  karavan
-/* status display and where axis added to main window and the look cleaned
-/* up a little bit.  Added option to ResourceDisplayObj class to specify
-/* a parent window for an RDO with the constructor.
+/* Revision 1.12  1994/11/03 06:21:31  karavan
+/* oops!  changed debug flag back to 0
 /*
+ * Revision 1.11  1994/11/03  06:16:12  karavan
+ * status display and where axis added to main window and the look cleaned
+ * up a little bit.  Added option to ResourceDisplayObj class to specify
+ * a parent window for an RDO with the constructor.
+ *
  * Revision 1.10  1994/11/01  05:44:27  karavan
  * changed resource selection process to support multiple focus selection
  * on a single display
@@ -45,7 +48,7 @@
 #ifndef _ui_globals_h
 #define _ui_globals_h
 
-#define UIM_DEBUG 1
+#define UIM_DEBUG 0
 
 #include "dataManager.CLNT.h"
 #include "performanceConsultant.CLNT.h"
