@@ -17,9 +17,13 @@
  */
 
 /* $Log: visualization.h,v $
-/* Revision 1.4  1994/05/11 17:11:10  newhall
-/* changed data values from double to float
+/* Revision 1.5  1994/05/23 20:55:21  newhall
+/* To visi_GridCellHisto class: added deleted flag, SumValue
+/* method function, and fixed AggregateValue method function
 /*
+ * Revision 1.4  1994/05/11  17:11:10  newhall
+ * changed data values from double to float
+ *
  * Revision 1.3  1994/04/13  21:23:15  newhall
  * added routines: GetMetsRes, StopMetRes, NamePhase
  *
@@ -94,9 +98,11 @@ extern void GetMetsRes(char *metrics,  // list of current metrics
 
 //
 // stop data collection for a metric/resource pair
+// arguments are the datagrid indicies associated with the
+// metric and resource to stop
 //
-extern void StopMetRes(int metricId,    // id of metric to stop
-		       int resourceId); // id of resource to stop
+extern void StopMetRes(int metricIndex,    // datagrid index of metric
+		       int resourceIndex); // datagrid index of resource
 
 //
 // define a new phase to paradyn

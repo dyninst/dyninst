@@ -16,9 +16,13 @@
  *
  */
 /* $Log: visiTypes.h,v $
-/* Revision 1.1  1994/05/11 17:11:08  newhall
-/* changed data values from double to float
-/* */
+/* Revision 1.2  1994/05/23 20:55:19  newhall
+/* To visi_GridCellHisto class: added deleted flag, SumValue
+/* method function, and fixed AggregateValue method function
+/*
+ * Revision 1.1  1994/05/11  17:11:08  newhall
+ * changed data values from double to float
+ * */
 
 #include <stdio.h>
 #include <math.h>
@@ -36,7 +40,7 @@
 #define ERROR_STRNCPY     -26
 #define ERROR_INIT        -27
 #define VISI_ERROR_MAX    -27
-#define ERROR              quiet_nan() 
+#define ERROR            ((float) quiet_nan())
 
 //
 // event types associated with events from Paradyn to a visualization
@@ -49,8 +53,8 @@ typedef float sampleType;
 typedef double timeType;
 
 struct metricStruct {
-     char *units;    // how units are measured  i.e. "ms" 
-     char *name;     // for y-axis labeling  
+     char *units;    // how units are measured
+     char *name;     // metric name for graph labeling  
      int     Id;       // unique metric Id
      int     aggregate;  //either SUM or AVE
 };
@@ -58,7 +62,7 @@ typedef struct metricStruct visi_metricType;
 
 
 struct resourceStruct{
-     char *name;     // obj. name for graph labeling
+     char *name;     // resource name for graph labeling
      int    Id;       // unique resource id
 };
 typedef struct resourceStruct visi_resourceType;

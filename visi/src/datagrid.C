@@ -14,12 +14,16 @@
  *
  */
 /* $Log: datagrid.C,v $
-/* Revision 1.5  1994/05/11 17:12:44  newhall
-/* changed data values type from double to float
-/* fixed fold method function to support a folding
-/* at any point in the histogram, rather than only
-/* when the histogram is full
+/* Revision 1.6  1994/05/23 20:56:46  newhall
+/* To visi_GridCellHisto class: added deleted flag, SumValue
+/* method function, and fixed AggregateValue method function
 /*
+ * Revision 1.5  1994/05/11  17:12:44  newhall
+ * changed data values type from double to float
+ * fixed fold method function to support a folding
+ * at any point in the histogram, rather than only
+ * when the histogram is full
+ *
  * Revision 1.4  1994/03/26  04:19:46  newhall
  * changed all floats to double
  * fix problem with null string returned for first resource name
@@ -106,6 +110,7 @@ visi_GridCellHisto::visi_GridCellHisto(int numElements){
      value[i] = ERROR;
    valid      = 1;
  }
+ deleted = 0;
  userdata = NULL;
  size       = numElements;
  lastBucketFilled = -1;

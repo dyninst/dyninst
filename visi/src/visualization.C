@@ -14,9 +14,13 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.6  1994/05/11 17:13:14  newhall
-/* changed data type from double to float
+/* Revision 1.7  1994/05/23 20:56:48  newhall
+/* To visi_GridCellHisto class: added deleted flag, SumValue
+/* method function, and fixed AggregateValue method function
 /*
+ * Revision 1.6  1994/05/11  17:13:14  newhall
+ * changed data type from double to float
+ *
  * Revision 1.5  1994/04/13  21:34:54  newhall
  * added routines: GetMetsRes StopMetRes NamePhase
  *
@@ -135,13 +139,21 @@ void GetMetsRes(char *metrics,
 
 ///////////////////////////////////////////////////////////
 // invokes upcall to paradyn.  Request to stop data for the 
-// metric associated with metricId and resource associated with
-// resourceId
+// metric associated with metricIndex and resource associated with
+// resourceIndex
 ///////////////////////////////////////////////////////////
-void StopMetRes(int metricId,
-		int resourceId){
+void StopMetRes(int metricIndex,
+		int resourceIndex){
 
-  vp->StopMetricResource(metricId,resourceId);
+  if((metricIndex < dataGrid.NumMetrics()) 
+      && (metricIndex >= 0)
+      && (resourceIndex >= 0)
+      && (resourceIndex <dataGrid.NumResources())){
+    dataGrid[metricIndex][resourceIndex].SetDeleted(); 
+    dataGrid[metricIndex][resourceIndex].Invalidate();
+    vp->StopMetricResource(dataGrid.MetricId(metricIndex),
+			   dataGrid.ResourceId(resourceIndex));
+  }
 }
 
 ///////////////////////////////////////////////////////////
@@ -315,6 +327,7 @@ void visualization::AddMetricsResources(metricType_Array metrics,
   else{
     // add elements to existing data grid
     // not supported yet
+    // clear deleted for all existing grid cell elements
   }
   //call callback routine assoc. w/event ADDMETRICSRESOURCES 
   if(eventCallbacks[ADDMETRICSRESOURCES] !=  NULL){

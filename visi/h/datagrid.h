@@ -17,9 +17,13 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.6  1994/05/11 17:11:03  newhall
-/* changed data values from double to float
+/* Revision 1.7  1994/05/23 20:55:16  newhall
+/* To visi_GridCellHisto class: added deleted flag, SumValue
+/* method function, and fixed AggregateValue method function
 /*
+ * Revision 1.6  1994/05/11  17:11:03  newhall
+ * changed data values from double to float
+ *
  * Revision 1.5  1994/04/13  21:22:51  newhall
  * *** empty log message ***
  *
@@ -80,17 +84,23 @@ class Resource{
 ///////////////////////////////////////////////
 // visi_GridCellHisto:  A grid cell element 
 // (histogram) is an instance of this class
+// valid: indicates that the cell contains a histogram
+// deleted: indicates that the cell cannot accept new data values
+// size: number of buckets
+// lastBucketFilled: number of full buckets 
 ////////////////////////////////////////////
+
 class visi_GridCellHisto {
   private:
      int   valid;
      int   size;
      int   lastBucketFilled;  // bucket number of last data value added   
+     int   deleted;   // set on delete cell element, cleared on add new cell elem 
      sampleType *value;
   public: 
      void *userdata;  // to allow visi writer to add info to grid cells
      visi_GridCellHisto(){value = NULL; valid = 0; size = 0; 
-			  userdata = NULL; lastBucketFilled = -1;}
+			  userdata = NULL; lastBucketFilled = -1; deleted = 0;}
      visi_GridCellHisto(int);
      ~visi_GridCellHisto(){delete[] value;}
      int    LastBucketFilled(){return(lastBucketFilled);}
@@ -105,6 +115,9 @@ class visi_GridCellHisto {
 
      int    Size(){return(size);}
      int    Valid(){return(valid);}
+     int    Deleted(){return(deleted);}
+     void   SetDeleted(){deleted = 1;}
+     void   ClearDeleted(){deleted = 0;}
      void   Invalidate(){delete[] value; value = NULL; size = 0; 
 			 valid = 0; lastBucketFilled = -1;}
 
@@ -128,24 +141,40 @@ class visi_GridCellHisto {
        }
      }
 
+     sampleType  SumValue(timeType width){
+       int i;
+       sampleType sum;
+
+        if(value != NULL){
+           for(sum=0.0,i=0; i< size; i++){
+	     if(!isnan(value[i])){
+	       sum += value[i]; 
+	     }
+	   }
+	   return(sum*width);
+	}
+	else{
+	  return(ERROR);
+	}
+     }
+
      sampleType  AggregateValue(int method){
 	int i,num;
 	sampleType sum;
+
         if(value != NULL){
            for(sum=0.0,num=i=0; i< size; i++){
-	     if(value[i] != ERROR){
+	     if(!isnan(value[i])){
 	       sum += value[i]; 
 	       num++;
 	     }
 	   }
-	   if(method==SUM)
-	     return(sum);
-           else if(num != 0){
+
+           if(num != 0){
 	     return(sum/(1.0*num));
 	   }
 	   else{
-	     visi_ErrorHandler(ERROR_AGGREGATE,"divide by zero");
-	     return(ERROR_AGGREGATE);
+	     return(ERROR);
            }
 	}
 	else{
@@ -157,13 +186,18 @@ class visi_GridCellHisto {
      int    AddValue(sampleType x,
 		     int i,
 		     int numElements){
-       /* if this is the first value create a histo cell array */
+        
        int j;
-       if (!valid){
+
+       if (deleted){  // if deleted is set, don't add values
+         return(OK);
+       }
+       if (!valid){ // if this is the first value create a histo cell array 
 	 if(value == NULL)
 	   value = new sampleType[numElements];
 	 size = numElements;
 	 valid = 1;
+	 deleted = 0;
 	 for(j=0;j<size;j++){
 	   value[j] = ERROR;
          }
@@ -231,6 +265,12 @@ class  visi_GridHistoArray {
         else
 	  return(ERROR);
       }
+      sampleType  SumValue(int i,timeType width){
+	if((i>=0)&&(i<size))
+	  return(values[i].SumValue(width));
+        else
+	  return(ERROR);
+      }
 
       visi_GridCellHisto&   operator[](int i){
         if ((i>= 0) && (i < size)){
@@ -283,6 +323,13 @@ class visi_DataGrid {
      sampleType AggregateValue(int i,int j){
        if((i>=0)&&(i<numMetrics))
 	 return(data_values[i].AggregateValue(j,metrics[i].Aggregate())); 
+       else
+	 return(ERROR);
+     }
+
+     sampleType  SumValue(int i,int j){
+       if((i>=0)&&(i<numMetrics))
+	 return(data_values[i].SumValue(j,binWidth)); 
        else
 	 return(ERROR);
      }
