@@ -14,9 +14,15 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.3  1994/04/29 18:57:35  newhall
-/* changed typedefs of structs to deal with g++/gdb bug
+/* Revision 1.4  1994/05/11 17:21:29  newhall
+/* Changes to handle multiple curves on one visualization
+/* and multiple visualizations.  Fixed problems with folding
+/* and resource name string passed to visualization.  Changed
+/* data type from double to float.
 /*
+ * Revision 1.3  1994/04/29  18:57:35  newhall
+ * changed typedefs of structs to deal with g++/gdb bug
+ *
  * Revision 1.2  1994/04/28  22:08:07  newhall
  * test version 2
  *
@@ -52,6 +58,7 @@ struct VISIGlobalsStruct {
   int fd;
   int pid;
   int quit;
+  double bucketWidth;
   List<metricInstance *> *mrlist;  // data and key are metricInstance *
 
 };

@@ -25,13 +25,20 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.2  1994/04/28 22:08:10  newhall
-/* test version 2
+/* Revision 1.3  1994/05/11 17:21:32  newhall
+/* Changes to handle multiple curves on one visualization
+/* and multiple visualizations.  Fixed problems with folding
+/* and resource name string passed to visualization.  Changed
+/* data type from double to float.
 /*
+ * Revision 1.2  1994/04/28  22:08:10  newhall
+ * test version 2
+ *
  * Revision 1.1  1994/04/09  21:23:21  newhall
  * test version
  * */
 #include <signal.h>
+#include <math.h>
 #include "thread/h/thread.h"
 #include "util/h/list.h"
 #include "util/h/rpcUtil.h"
@@ -46,7 +53,9 @@
 #include "dyninstRPC.CLNT.h"
 #include "../DMthread/DMinternals.h"
 
+/*
 #define DEBUG2
+*/
 
 void PrintThreadLocals(){
 
@@ -87,20 +96,23 @@ void PrintThreadLocals(){
 
 }
 
+
 /////////////////////////////////////////////////////////////
-//  VISIthreadDataCallback: Callback routine for DataManager 
-//    newPerfData Upcall
+//  VISIthreadDataHandler: routine to handle data values from 
+//    the datamanger to the visualization  
 //
 //  adds the data value to it's local buffer and if the buffer
 //  is full sends it to the visualization process
 /////////////////////////////////////////////////////////////
-void VISIthreadDataCallback(performanceStream *ps,metricInstance *mi,
-	               timeStamp startTimeStamp,timeStamp endTimeStamp,
-		       sampleValue value){
+void VISIthreadDataHandler(performanceStream *ps,
+			    metricInstance *mi,
+			    int bucketNum,
+			    sampleValue value){
+
+
 
  VISIthreadGlobals *ptr;
  dataValue_Array   temp;
- timeStamp         width;
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in VISIthreadDataCallback"));
@@ -124,18 +136,15 @@ void VISIthreadDataCallback(performanceStream *ps,metricInstance *mi,
 
   ptr->buffer[ptr->bufferSize].metricId = (int)(mi->met);
   ptr->buffer[ptr->bufferSize].resourceId = (int)mi->focus;
-  width = ptr->dmp->getCurrentBucketWidth();
-  ptr->buffer[ptr->bufferSize].bucketNum = (int)(startTimeStamp/width);
+  ptr->buffer[ptr->bufferSize].bucketNum = bucketNum;
   ptr->bufferSize++;
+
+#ifdef DEBUG
+  printf("in VISIthread: bucketNum = %d value = %f\n",bucketNum,value);
+#endif
 
   // if buffer is full, send buffer to visualization
   if(ptr->bufferSize == BUFFERSIZE){
-
-#ifdef DEBUG2
-PARADYN_DEBUG(("VISIthreadDataCallback sending visi_buff:pid = %d fd = %d"
-               ,ptr->pid,ptr->fd)); 
-PrintThreadLocals(); 
-#endif
 
     temp.count = ptr->bufferSize;
     temp.data = ptr->buffer;
@@ -146,12 +155,43 @@ PrintThreadLocals();
   }
 }
 
+/////////////////////////////////////////////////////////////
+//  VISIthreadDataCallback: Callback routine for DataManager 
+//    newPerfData Upcall
+//
+/////////////////////////////////////////////////////////////
+void VISIthreadDataCallback(performanceStream *ps,
+			    metricInstance *mi,
+			    sampleValue *values,
+			    int total,
+			    int first){
+
+ VISIthreadGlobals *ptr;
+ int i;
+
+#ifdef DEBUG2
+  printf("in VISIthreadDataCallback: first = %d total = %d\n",first,total);
+#endif
+  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+    PARADYN_DEBUG(("thr_getspecific in VISIthreadDataCallback"));
+    uiMgr->showError("thr_getspecific in VISIthreadDataCallback");
+    printf("error # :fatal or serious\n");
+  }
+
+  for(i=first; i < (first+total);i++){
+    VISIthreadDataHandler(ps,mi,i,values[i-first]);
+  }
+
+}
+
+
 /////////////////////////////////////////////////////////
 //  VISIthreadnewMetricCallback: callback for dataManager
 //    newMetricDefined Upcall
 //    (not currently implemented)  
 /////////////////////////////////////////////////////////
-void VISIthreadnewMetricCallback(performanceStream *ps,metric *m){
+void VISIthreadnewMetricCallback(performanceStream *ps,
+				 metric *m){
 
  VISIthreadGlobals *ptr;
 
@@ -167,8 +207,10 @@ void VISIthreadnewMetricCallback(performanceStream *ps,metric *m){
 //    newResourceDefined Upcall 
 //    (not currently implemented)  
 //////////////////////////////////////////////////////////
-void VISIthreadnewResourceCallback(performanceStream *ps,resource *parent,
-			      resource *newResource, char *name){
+void VISIthreadnewResourceCallback(performanceStream *ps,
+				   resource *parent,
+			           resource *newResource, 
+				   char *name){
 
  VISIthreadGlobals *ptr;
 
@@ -188,7 +230,8 @@ void VISIthreadnewResourceCallback(performanceStream *ps,resource *parent,
 //  the data buffer to the visualization process process 
 //  before sending Fold msg to visi process  
 ///////////////////////////////////////////////////////
-void VISIthreadFoldCallback(performanceStream *ps,timeStamp width){
+void VISIthreadFoldCallback(performanceStream *ps,
+			timeStamp width){
 
  VISIthreadGlobals *ptr;
  dataValue_Array   temp;
@@ -214,18 +257,23 @@ void VISIthreadFoldCallback(performanceStream *ps,timeStamp width){
     printf("error # : serious\n");
     return;
   }
-  // if buffer is not empty send visualization buffer of data values
-  if(ptr->bufferSize != 0){
-    temp.count = ptr->bufferSize;
-    temp.data = ptr->buffer;
-    ptr->visip->Data(temp);
+  // if new Width is same as old width ignore Fold 
+  if(ptr->bucketWidth != width){
+    // if buffer is not empty send visualization buffer of data values
+    if(ptr->bufferSize != 0){
+      temp.count = ptr->bufferSize;
+      temp.data = ptr->buffer;
+      ptr->visip->Data(temp);
 // TODO: check igen error value after call to see if socket has closed
 
-    ptr->bufferSize = 0;
-  }
-  // call visualization::Fold routine
-  ptr->visip->Fold((double)width);
+      ptr->bufferSize = 0;
+    }
+    ptr->bucketWidth = width;
+    // call visualization::Fold routine
+    ptr->visip->Fold((double)width);
 // TODO: check igen error value after call to see if socket has closed
+
+  }
 
 }
 
@@ -243,14 +291,15 @@ void VISIthreadFoldCallback(performanceStream *ps,timeStamp width){
 //  send each successfully enabled metric and focus to visualization 
 //  process (call visualizationUser::AddMetricsResources)
 ///////////////////////////////////////////////////////////////////
-void VISIthreadchooseMetRes(char **metricNames,int numMetrics,
-		       resourceList* focusChoice){
+void VISIthreadchooseMetRes(char **metricNames,
+			    int numMetrics,
+		            resourceList* focusChoice){
  VISIthreadGlobals *ptr;
  metric *currMetric;
  metricInstance *currMetInst;
  int numEnabled = 0;
  metricInstance *newEnabled[numMetrics];
- int i,found;
+ int i,j,found;
  metricType_Array metrics;
  resourceType_Array resources;
  metricInstance *temp;
@@ -259,7 +308,10 @@ void VISIthreadchooseMetRes(char **metricNames,int numMetrics,
  char **y;
  int totalSize, where;
  metricInfo *temp2;
- char errorString[256];
+ char errorString[128];
+ sampleValue buckets[1000];
+ int howmany,times;
+ double currStartTime;
 
 
   PARADYN_DEBUG(("in VISIthreadchooseMetRes callback: numMetrics = %d focusChoice = %d",numMetrics,focusChoice));
@@ -365,7 +417,7 @@ void VISIthreadchooseMetRes(char **metricNames,int numMetrics,
       metrics.data[i].name = strdup(temp2->name);
       metrics.data[i].units = strdup(temp2->units);
       if(temp2->style == MetStyleEventCounter)
-        metrics.data[i].aggregate = SUM;
+        metrics.data[i].aggregate = AVE;
       else 
         metrics.data[i].aggregate = AVE;
       metrics.data[i].Id = (int)newEnabled[i]->met;
@@ -393,11 +445,29 @@ void VISIthreadchooseMetRes(char **metricNames,int numMetrics,
       }
       where += strlen(y[i]);
     }
+    resources.data[0].name[where] = '\0';
 
     binWidth = ptr->dmp->getCurrentBucketWidth(); 
     numBins = ptr->dmp->getMaxBins();
 
     ptr->visip->AddMetricsResources(metrics,resources,binWidth,numBins);
+
+
+    // get old data bucket values for new metric/resources and
+    // send them to visualization
+
+    for(i=0;i<numEnabled;i++){
+       howmany = ptr->dmp->getSampleValues(newEnabled[i],
+				      buckets,1000,0);
+       // if the current bucket value is valid add it to the data
+       // buffer associated with this visualization
+       printf("howmany = %d\n",howmany);
+       for(j=0;j<howmany;j++){  
+         if(!(isnan(buckets[j]))){
+           VISIthreadDataHandler(ptr->perStream,newEnabled[i],j,buckets[j]);
+        }
+      }
+    } 
 
     free(metrics.data);
     free(resources.data);
@@ -411,8 +481,7 @@ void VISIthreadchooseMetRes(char **metricNames,int numMetrics,
 
 ////////////////////////////////////////////////////////
 //  VISIthreadshowMsgREPLY: callback for User Interface 
-//    Manager showMsgREPLY upcall (not currently implemented)
-///////////////////////////////////////////////////////
+//    Manager showMsgREPLY upcall (not currently implemented) ///////////////////////////////////////////////////////
 void VISIthreadshowMsgREPLY(int userChoice){
 
 
@@ -438,7 +507,8 @@ void VISIthreadshowErrorREPLY(int userChoice){
 // only option), else make enable data collection call to DM for each
 // metric resource pair
 //////////////////////////////////////////////////////////////////////
-void visualizationUser::GetMetricResource(String metric,String resource,
+void visualizationUser::GetMetricResource(String metric,
+					  String resource,
 					  int type){
  VISIthreadGlobals *ptr;
 
@@ -462,7 +532,8 @@ PARADYN_DEBUG(("GetMetricResource post ump->chooseMetricsandResources"));
 //  call to dataManager for the pair, and remove the associated metric
 //  instance from the threads local mrlist
 //////////////////////////////////////////////////////////////////////
-void visualizationUser::StopMetricResource(int metricId,int resourceId){
+void visualizationUser::StopMetricResource(int metricId,
+					   int resourceId){
  VISIthreadGlobals *ptr;
  metricInstance *listItem;
  int found = 0;
@@ -500,7 +571,9 @@ void visualizationUser::StopMetricResource(int metricId,int resourceId){
 //
 //  not currently implemented
 ///////////////////////////////////////////////////////////////////
-void visualizationUser::PhaseName(double begin,double end,String name){
+void visualizationUser::PhaseName(double begin,
+				  double end,
+				  String name){
 
  VISIthreadGlobals *ptr;
 
@@ -532,6 +605,8 @@ void *VISIthreadmain(visi_thread_args *args){
   union dataCallback dataHandlers;
 
 
+  printf("visi thread arg[0]: %s.\n",args->argv[0]);
+
   //initialize global variables
 
   if((globals=(VISIthreadGlobals *)malloc(sizeof(VISIthreadGlobals)))==0){
@@ -556,12 +631,16 @@ void *VISIthreadmain(visi_thread_args *args){
   // start visualization process
   PARADYN_DEBUG(("in visi thread"));
   globals->fd = RPCprocessCreate(&globals->pid, "localhost", "",args->argv[0],args->argv);
+
   if (globals->fd < 0) {
     PARADYN_DEBUG(("Error in process Create"));
+    printf("Error in process Create : serious");
     uiMgr->showError("error in VISIthreadmain: process Create");
     printf("error # : serious");
     globals->quit = 1;
   }
+
+  globals->visip = new visualizationUser(globals->fd,NULL,NULL); 
 
   if(msg_bind(globals->fd,0) != THR_OKAY) {
     PARADYN_DEBUG(("Error in msg_bind(globals->fd)"));
@@ -570,7 +649,7 @@ void *VISIthreadmain(visi_thread_args *args){
     globals->quit = 1;
   }
 
-  globals->visip = new visualizationUser(globals->fd,NULL,NULL); 
+  globals->bucketWidth = globals->dmp->getCurrentBucketWidth(); 
 
   if (thr_setspecific(visiThrd_key, globals) != THR_OKAY) {
     PARADYN_DEBUG(("Error in thr_setspecific"));
@@ -578,6 +657,7 @@ void *VISIthreadmain(visi_thread_args *args){
     printf("error # : serious");
     globals->quit = 1;
   }
+
 
   // set control callback routines 
   callbacks.mFunc = (metricInfoCallback)VISIthreadnewMetricCallback;
@@ -587,8 +667,12 @@ void *VISIthreadmain(visi_thread_args *args){
   PARADYN_DEBUG(("before create performance stream in visithread"));
   // create performance stream
   dataHandlers.sample = (sampleDataCallbackFunc)VISIthreadDataCallback;
-  globals->perStream = globals->dmp->createPerformanceStream(context,
-		   Sample,dataHandlers,callbacks);
+  if((globals->perStream = globals->dmp->createPerformanceStream(context,
+		   Sample,dataHandlers,callbacks)) == NULL){
+    PARADYN_DEBUG(("Error in createPerformanceStream"));
+    uiMgr->showError("error in createPerformanceStream in VISImain");
+    printf("error # : serious");
+  }
 
  
   while(!(globals->quit)){
