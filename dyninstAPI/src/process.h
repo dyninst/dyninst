@@ -80,6 +80,8 @@
 #include "dynamiclinking.h"
 
 extern unsigned activeProcesses; // number of active processes
+   // how about just processVec.size() instead?  At least, this should be made
+   // a (static) member vrble of class process
 
 class resource;
 class instPoint;
@@ -169,7 +171,9 @@ static inline unsigned ipHash(instPoint * const &ip) {
    // assume all addresses are 4-byte aligned
    unsigned result = (unsigned)ip;
    result >>= 2;
-   return result;  // how about %'ing by a huge prime number?
+   return result;
+      // how about %'ing by a huge prime number?  Nah, x % y == x when x < y
+      // so we don't want the number to be huge.
 //  return ((unsigned)ip);
 }
 
@@ -193,6 +197,14 @@ class process {
 #endif
 	  );
      // this is the "normal" ctor
+
+  process(int iPid
+#ifdef SHM_SAMPLING
+	  , key_t theShmSegKey,
+	  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
+#endif
+	  );
+     // this is the "attach" ctor
 
   process(const process &parentProc, int iPid
 #ifdef SHM_SAMPLING
@@ -231,8 +243,11 @@ class process {
 #endif
 
   processState status() const { return status_;}
-  inline void Exited();
-  inline void Stopped();
+  string getStatusAsString() const; // useful for debug printing etc.
+
+  void continueAfterNextStop() { continueAfterNextStop_ = true; }
+  void Exited();
+  void Stopped();
 
   static string programName;
   static vector<string> arg_list;
@@ -322,7 +337,8 @@ class process {
                               unsigned &firstPossibBreakAddr,
                               unsigned &lastPossibleBreakAddr);
 
-  // The parameter syscall is noly used for hpux platform right now
+  // The parameter syscall is only used for hpux platform right now
+  // Can "syscall" be embedded into the opaque type?
   void *getRegisters(bool &syscall);
      // ptrace-GETREGS and ptrace-GETFPREGS.  Result is returned in an opaque type
      // which is allocated with new[]
@@ -330,19 +346,20 @@ class process {
                 void *savedRegs // returned by getRegisters()
                 );
   bool restoreRegisters(void *buffer);
+     // input is the opaque type returned by getRegisters()
 
  public:
   // These member vrbles should be made private!
   int traceLink;		/* pipe to transfer traces data over */
   int ioLink;			/* pipe to transfer stdout/stderr over */
   processState status_;	        /* running, stopped, etc. */
-  // on some platforms we use one heap for text and data so textHeapFree is not
-  // used.
+  bool continueAfterNextStop_;
+
   bool splitHeaps;		/* are the inferior heap split I/D ? */
   inferiorHeap	heaps[2];	/* the heaps text and data */
   resource *rid;		/* handle to resource for this process */
 
-  /* map and inst point to its base tramp */
+  /* map an inst point to its base tramp */
   dictionary_hash<const instPoint*, trampTemplate *> baseMap;	
 
   // the following 3 are used in perfStream.C
@@ -353,7 +370,7 @@ class process {
   time64 wallTimeLastTrampSample;
   time64 timeLastTrampSample;
 
-  int reachedFirstBreak;
+  bool reachedFirstBreak; // should be renamed 'reachedInitialTRAP'
 
   int getPid() const { return pid;}
 
@@ -370,44 +387,37 @@ class process {
   bool continueProc();
   bool pause();
 
-  inline bool dumpCore(const string coreFile);
-  bool detach(const bool paused);
+  bool dumpCore(const string coreFile);
+  bool detach(const bool paused); // why the param?
   bool attach();
   string getProcessStatus() const;
 
   bool continueWithForwardSignal(int sig); // arch-specific implementation
   
-  // instInstanceMapping is used when a process we are tracing forks a child 
-  // process.
-  // The child will have a copy of all instrumentation in the parent.
-  // instInstanceMapping is a mapping of each instInstance of the parent to the
-  // corresponding instInstance of the child.
-  dictionary_hash<instInstance *, instInstance *>instInstanceMapping;
-
   // forkProcess: this function should be called when a process we are tracing
   // forks a child process.
   // This function returns a new process object associated with the child.
-
-  static process *forkProcess(const process *parent, pid_t childPid
+  // It also writes to "map" s.t. for each instInstance in the parent, we have the
+  // corresponding instInstance in the child.
+  static process *forkProcess(const process *parent, pid_t childPid,
+			      dictionary_hash<instInstance*,instInstance*> &map
 #ifdef SHM_SAMPLING
                               ,key_t theKey,
                               void *applAttachedAtPtr
 #endif
-                              , bool childHasInstrumentation = true
+                              , bool childHasInstrumentation
                               );
 
   // get and set info. specifying if this is a dynamic executable
   void setDynamicLinking(){ dynamiclinking = true;}
   bool isDynamicallyLinked() { return (dynamiclinking); }
 
-  bool isInHandleStart() { return (inhandlestart); }
-  void setInHandleStart() { inhandlestart = true; }
-  void clearInHandleStart() { inhandlestart = false; }
-
   // handleStartProcess: this function is called when an appplication 
   // starts executing.  It is used to insert instrumentation necessary
   // to handle dynamic linking
   static bool handleStartProcess(process *pid);
+
+  bool handleStopDueToExecEntry();
 
   // findDynamicLinkingInfo: This routine is called on exit point of 
   // of the exec system call. It checks if the a.out is dynamically linked,
@@ -487,7 +497,7 @@ class process {
   void findSignalHandler();
 
   // continueProcessIfWaiting: if the waiting_for_resources flag
-  // is set then continue the process
+  // is set then continue the process; in any event, clear that flag
   void continueProcessIfWaiting(){
       if(waiting_for_resources){
           continueProc();
@@ -499,17 +509,10 @@ class process {
   //  in handleExec()
   bool wasExeced(){ return execed_;}
 
-  //  receivedMysteryTrap: returns true if paradynd has received a SIGTRAP 
-  //  from this process before it receives a trace record telling it what 
-  //  the SIGTRAP is for (this is a kludge to get rid of a race condition
-  //  that can occur when a process does an exec).
-  bool  receivedMysteryTrap(){ return mysteryTrap_;}
-  void  setMysteryTrap(){ mysteryTrap_ = true;}
-  void  clearMysteryTrap(){ mysteryTrap_ = false;}
-
   void handleExec();
-  bool cleanUpInstrumentation(bool wasRunning);
+  bool cleanUpInstrumentation(bool wasRunning); // called on exit (also exec?)
   bool inExec;
+
   string execFilePath;
 
   int getProcFileDescriptor(){ return proc_fd;}
@@ -569,19 +572,23 @@ class process {
   void processCost(unsigned obsCostLow,
                    unsigned long long wallTime, unsigned long long processTime);
 
-#endif
 
-#ifdef SHM_SAMPLING
 #ifdef sparc_sun_sunos4_1_3
    static user *tryToMapChildUarea(int pid);
 #endif
-#endif
+
+#endif /* shm_sampling */
 
    bool isBootstrappedYet() const {
       return hasBootstrapped;
    }
-   bool tryToReadAndProcessBootstrapInfo();
+   bool extractBootstrapStruct(DYNINST_bootstrapStruct *);
+   bool procStopFromDYNINSTinit();
       // returns true iff processed.  If false is returned, no side effects.
+
+   void startWatchingStopSignals(); // clears 'stopSignalsHandled'
+   bool alreadySeenStopSignal(int status);
+   void markStopSignalAsSeen(int status);
 
 private:
   // Since we don't define these, 'private' makes sure they're not used:
@@ -629,22 +636,19 @@ public:
     hasNewPC = true;
   }
 
-  inline int costAddr()  const { return costAddr_; }  
+  inline int costAddr()  const { return costAddr_; }  // why an integer?
   void getObservedCostAddr();   
 
 private:
   unsigned currentPC_;
   bool hasNewPC;
-  time64 firstRecordTime;
 
   // for processing observed cost (see method processCost())
   unsigned long long cumObsCost; // in cycles
   unsigned lastObsCostLow; // in cycles
 
-  int costAddr_; 
+  int costAddr_;  // why in integer?
   bool execed_;  // true if this process does an exec...set in handleExec
-  bool mysteryTrap_; // true if paradynd receives a trap before a trace record 
-		    // when the trace record tells paradynd the trap's purpose
 
   // deal with system differences for ptrace
   bool writeDataSpace_(void *inTracedProcess, int amount, const void *inSelf);
@@ -662,14 +666,13 @@ private:
   // stops a process
   bool loopUntilStopped();
 
-  // is it ok to attempt a ptrace operation
-  inline bool checkStatus();
+  // returns true iff ok to do a ptrace; false (and prints a warning) if not
+  bool checkStatus();
 
   int proc_fd; // file descriptor for platforms that use /proc file system.
 
   dynamic_linking *dyn;   // platform specific dynamic linking routines & data
-  bool inhandlestart;     // true if the executable is dynamic & initial 
-			  // libraries have not yet been processed 
+
   bool dynamiclinking;   // if true this a.out has a .dynamic section
   vector<shared_object *> *shared_objects;  // list of dynamically linked libs
 
@@ -689,57 +692,13 @@ private:
   // and the next frame there is a leaf function (this occurs when the 
   // current frame is the signal handler)
   bool needToAddALeafFrame(Frame current_frame, Address &leaf_pc);
+
+  unsigned long long stopSignalsHandled;
 };
 
-extern vector<process*> processVec;
-inline process *findProcess(int pid) {
-  unsigned size=processVec.size();
-  for (unsigned u=0; u<size; u++)
-    if (processVec[u] && processVec[u]->getPid() == pid)
-      return processVec[u];
-  return NULL;
-}
-
-inline bool process::checkStatus() {
-  if (status_ == exited) {
-    sprintf(errorLine, "attempt to ptrace exited process %d\n", pid);
-    logLine(errorLine);
-    return(false);
-  } else
-    return true;
-}
-
-inline bool process::dumpCore(const string fileOut) {
-  bool res = dumpCore_(fileOut);
-  if (!res) {
-    return false;
-  }
-  return true;
-}
-
-// getBaseAddress: sets baseAddress to the base address of the 
-// image corresponding to which.  It returns true  if image is mapped
-// in processes address space, otherwise it returns 0
-inline bool process::getBaseAddress(const image *which,u_int &baseAddress){
-
-  if((u_int)(symbols) == (u_int)(which)){
-      baseAddress = 0; 
-      return true;
-  }
-  else if (shared_objects) {  
-      // find shared object corr. to this image and compute correct address
-      for(u_int i=0; i <  shared_objects->size(); i++){ 
-	  if(((*shared_objects)[i])->isMapped()){
-            if(((*shared_objects)[i])->getImageId() == (u_int)which) { 
-	      baseAddress = ((*shared_objects)[i])->getBaseAddress();
-	      return true;
-	  } }
-      }
-  }
-  return false;
-}
-
 process *createProcess(const string file, vector<string> argv, vector<string> envp, const string dir);
+bool attachProcess(int pid);
+
 void handleProcessExit(process *p, int exitStatus);
 
 unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type);
@@ -747,26 +706,6 @@ void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
                   const vector<unsigVecType> &pointsToCheck);
 
 extern resource *machineResource;
-
-/*
- *  The process has exited. Update its status and notify Paradyn.
- */
-inline void process::Exited() {
-  if (status_ != exited) {
-    status_ = exited;
-    tp->processStatus(pid, procExited);
-  }
-}
-
-/*
- * The process was stopped by a signal. Update its status and notify Paradyn.
- */
-inline void process::Stopped() {
-  if (status_ != stopped) {
-    status_ = stopped;
-    tp->processStatus(pid, procPaused);
-  }
-}
 
 class Frame {
   private:
