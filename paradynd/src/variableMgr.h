@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.h,v 1.6 2002/08/31 16:53:45 mikem Exp $
+// $Id: variableMgr.h,v 1.7 2002/10/15 17:12:14 schendel Exp $
 // The variableMgr class is the top-level view of the actual
 // shared, sampled counters and timers. The provides a logical way 
 // to reference the counters and timers (called variables) for creation,
@@ -56,8 +56,8 @@
 #include "common/h/Vector.h"
 #include "paradynd/src/variableMgrTypes.h"
 
-class process;
-class pdThread;
+class pd_process;
+class pd_thread;
 class shmMgr;
 class baseVarTable;
 class threadMetFocusNode_Val;
@@ -71,15 +71,15 @@ class variableMgr {
   vector<baseVarTable *> varTables;
 
   // One variableMgr per process.
-  process *applicProcess;
+  pd_process *applicProcess;
   shmMgr &theShmMgr;
 
   variableMgr(const variableMgr &);             // disallow this
   variableMgr &operator=(const variableMgr &);  // disallow this
  public:
-  variableMgr(process *proc, shmMgr *shmMgr, 
+  variableMgr(pd_process *proc, shmMgr *shmMgr, 
 	      unsigned i_currMaxNumberOfThreads);
-  variableMgr(const variableMgr &parentVarMgr, process *proc,
+  variableMgr(const variableMgr &parentVarMgr, pd_process *proc,
 	      shmMgr *shmMgr_);
   
   ~variableMgr();
@@ -87,7 +87,7 @@ class variableMgr {
   // only used by a MT process
   unsigned getMaxNumberOfThreads() { return maxNumberOfThreads; }
   shmMgr &getShmMgr() { return theShmMgr; }
-  process *getApplicProcess() { return applicProcess; }
+  pd_process *getApplicProcess() { return applicProcess; }
   
   inst_var_index allocateForInstVar(inst_var_type varType, HwEvent* hw);
   
@@ -114,7 +114,7 @@ class variableMgr {
   
   unsigned getCurrentNumberOfThreads();
 
-  void deleteThread(pdThread *thr);
+  void deleteThread(pd_thread *thr);
   void initializeVarsAfterFork();
 };
 

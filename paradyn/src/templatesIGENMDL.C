@@ -88,8 +88,8 @@ template class vector<instPoint*>;
 
 // MDL stuff 
 
-template class vector<process *>;
-template class vector< vector<pdThread *> >;
+template class vector<pd_process *>;
+template class vector< vector<dyn_thread *> >;
 template class vector<const instrDataNode *>;
 template class vector<mdl_var>;
 template class vector<mdl_focus_element>;

@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.9 2002/10/08 22:50:29 bernat Exp $
+// $Id: varInstanceHKs.C,v 1.10 2002/10/15 17:12:12 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/pdThread.h"
+#include "paradynd/src/pd_process.h"
+#include "dyninstAPI/src/dyn_thread.h"
 #include "paradynd/src/threadMetFocusNode.h"
 #include "paradynd/src/varInstanceHKs.h"
 #include "paradynd/src/init.h"
@@ -86,7 +86,8 @@ intCounterHK &intCounterHK::operator=(const intCounterHK &src) {
 #define MEMORY_BARRIER
 #endif
 
-bool intCounterHK::perform(const intCounter *dataValue, process *inferiorProc)
+bool intCounterHK::perform(const intCounter *dataValue, 
+			   pd_process *inferiorProc)
 {
    // returns true iff the process succeeded; i.e., if we were able to grab a
    // consistent value for the intCounter and process without any waiting.
@@ -201,7 +202,7 @@ static rawTime64 calcTimeValueToUse(int count, rawTime64 start,
    return retVal;
 }
 
-bool wallTimerHK::perform(const tTimer *theTimer, process *) {
+bool wallTimerHK::perform(const tTimer *theTimer, pd_process *) {
    // returns true iff the process succeeded; i.e., if we were able to read a
    // consistent value of the tTimer, and process it.  Otherwise, returns
    // false, doesn't process and doesn't wait.
@@ -331,7 +332,8 @@ void processTimerHK::initializeAfterFork(rawType *curElem,
   curElem->total = 0;
 }
 
-bool processTimerHK::perform(const tTimer *theTimer, process *inferiorProc) {
+bool processTimerHK::perform(const tTimer *theTimer, 
+			     pd_process *inferiorProc) {
    // returns true iff the process succeeded; i.e., if we were able to grab
    // the mutex for this tTimer and process without any waiting.  Otherwise,
    // we return false and don't process and don't wait.
@@ -341,7 +343,6 @@ bool processTimerHK::perform(const tTimer *theTimer, process *inferiorProc) {
    if(thrNval == NULL) {
      return true;
    }
-
    // Timer sampling is trickier than counter sampling.  There are more race
    // conditions and other factors to carefully consider.
 
@@ -370,7 +371,7 @@ bool processTimerHK::perform(const tTimer *theTimer, process *inferiorProc) {
 
 #if defined(MT_THREAD)
    virtualTimer *vt = &(inferiorProc->getVirtualTimerBase()[theTimer->pos]);
-   pdThread *thr = inferiorProc->getThreadByPOS(theTimer->pos);
+   dyn_thread *thr = inferiorProc->getThreadByPOS(theTimer->pos);
    rawTime64 inferiorCPUtime ;
    if (vt == (virtualTimer*) -1) {
      inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime(0) : 0;
@@ -385,7 +386,6 @@ bool processTimerHK::perform(const tTimer *theTimer, process *inferiorProc) {
    const rawTime64 inferiorCPUtime = (count>0) ? 
                          inferiorProc->getRawCpuTime(0) : 0;
 #endif 
-
    // This protector read and comparison must happen *after* we obtain the
    // inferior CPU time or thread virtual time, or we have a race condition
    // resulting in lots of annoying timer rollback warnings.  In the long
@@ -395,6 +395,7 @@ bool processTimerHK::perform(const tTimer *theTimer, process *inferiorProc) {
    if (protector1 != protector2) {
       return false;
    }
+
    // Also cheating; see below.
    // the fudge factor is needed only if count > 0.
    const timeStamp currWallTime = getWallTime();
@@ -440,8 +441,8 @@ bool processTimerHK::perform(const tTimer *theTimer, process *inferiorProc) {
      sampleVal_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
      return false;
    }
-   thrNval->updateValue(currWallTime, pdSample(timeValueToUse));
 
+   thrNval->updateValue(currWallTime, pdSample(timeValueToUse));
    return true;
 }
 
@@ -547,7 +548,7 @@ hwTimerHK &hwTimerHK::operator=(const hwTimerHK &src) {
 }
 
 
-bool hwTimerHK::perform(const tHwTimer *theTimer, process *inferiorProc) {
+bool hwTimerHK::perform(const tHwTimer *theTimer, pd_process *inferiorProc) {
 
 
    threadMetFocusNode_Val *thrNval = getThrNodeVal();
@@ -570,7 +571,7 @@ bool hwTimerHK::perform(const tHwTimer *theTimer, process *inferiorProc) {
    }
 
    if (count > 0) {
-      int64_t currValue = inferiorProc->papi->getCurrentHwSample(hwEvent->getIndex());
+      int64_t currValue = inferiorProc->getPapiMgr()->getCurrentHwSample(hwEvent->getIndex());
       //fprintf(stderr, "MRM_DEBUG: catchup HW sample   currValue is %lld, start is %lld, hwCntrIndex is %d\n", currValue, start, hwCntrIndex);
       valueToUse = (currValue - start) + total;
 
@@ -614,8 +615,8 @@ hwCounterHK &hwCounterHK::operator=(const hwCounterHK &src) {
    return *this;
 }
 
-bool hwCounterHK::perform(const tHwCounter *dataValue, process *inferiorProc) {
-
+bool hwCounterHK::perform(const tHwCounter *dataValue, 
+								  pd_process *inferiorProc) {
    threadMetFocusNode_Val *thrNval = getThrNodeVal();
    if(thrNval == NULL) {
      return true;

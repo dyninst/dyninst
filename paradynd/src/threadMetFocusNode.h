@@ -48,6 +48,8 @@
 
 class processMetFocusNode;
 
+class pd_thread;
+
 template<class ParentType> class parentDataRec {
  public:
   ParentType *parent;
@@ -63,7 +65,7 @@ class threadMetFocusNode_Val {
   vector< parentDataRec<processMetFocusNode> > parentsBuf;
   pdSample cumulativeValue;
   bool allAggInfoInitialized;
-  pdThread *pdThr;
+  pd_thread *pdThr;
   int referenceCount;
 
   void updateAllAggInfoInitialized();
@@ -76,7 +78,7 @@ class threadMetFocusNode_Val {
   return string(metricStr + "-" + focusStr);
   }
 
-  threadMetFocusNode_Val(const string &met, const Focus &f, pdThread *pdthr) : 
+  threadMetFocusNode_Val(const string &met, const Focus &f, pd_thread *pdthr) :
     metric_name(met), focus(f), // parentsBuf written to by recordAsParent(),
                                 // called by processMetFocusNode copy construct.
     cumulativeValue(pdSample::Zero()), 
@@ -84,7 +86,7 @@ class threadMetFocusNode_Val {
   { }
 
   threadMetFocusNode_Val(const threadMetFocusNode_Val &par,process *childProc,
-			 pdThread *pdThr);
+			 pd_thread *pdThr);
 
   ~threadMetFocusNode_Val();
 
@@ -99,7 +101,7 @@ class threadMetFocusNode_Val {
   unsigned getThreadPos()const ;
   bool instrInserted();
   bool isReadyForUpdates();
-  process *proc();
+  pd_process *proc();
   void recordAsParent(processMetFocusNode *procNode,
 		      aggComponent *childAggInfo);
   void removeParent(processMetFocusNode *parentNode);
@@ -125,14 +127,14 @@ class threadMetFocusNode : public metricFocusNode {
 
   // copy constructor variation
   threadMetFocusNode(const threadMetFocusNode &par, process *childProc,
-		     pdThread *pdThr);
+		     pd_thread *pdThr);
 
  public:
   static threadMetFocusNode *threadMetFocusNode::newThreadMetFocusNode(
-		   const string &metric_name, const Focus &f, pdThread *pdthr);
+		  const string &metric_name, const Focus &f, pd_thread *pdthr);
   static threadMetFocusNode *threadMetFocusNode::copyThreadMetFocusNode(
-		   const threadMetFocusNode &par, process *childProc, 
-		   pdThread *pdthr);
+		   const threadMetFocusNode &par, pd_process *childProc, 
+		   pd_thread *pdthr);
 
   virtual ~threadMetFocusNode();
   void recordAsParent(processMetFocusNode *procNode, 
@@ -140,7 +142,7 @@ class threadMetFocusNode : public metricFocusNode {
   void print();
   string getMetricName() const { return V.getMetricName(); }
   Focus getFocus() const { return V.getFocus(); }
-  process *proc();
+  pd_process *proc();
   bool instrInserted()     { return V.instrInserted(); }
   bool isReadyForUpdates() { return V.isReadyForUpdates(); }
 

@@ -39,22 +39,22 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.C,v 1.11 2002/10/08 22:50:31 bernat Exp $
+// $Id: variableMgr.C,v 1.12 2002/10/15 17:12:13 schendel Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
 #include "common/h/headers.h"
 #include "paradynd/src/variableMgr.h"
 #include "rtinst/h/rtinst.h" // for time64 and MAX_NUMBER_OF_THREADS
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/pdThread.h"
+#include "paradynd/src/pd_process.h"
+#include "paradynd/src/pd_thread.h"
 #include "paradynd/src/shmMgr.h"
 #include "paradynd/src/varTable.h"
 #include "paradynd/src/varInstanceHKs.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/varInstance.h"
 
-variableMgr::variableMgr(process *proc, shmMgr *shmMgr_, 
+variableMgr::variableMgr(pd_process *proc, shmMgr *shmMgr_, 
 			 unsigned maxNumberOfThreads) : 
   maxNumberOfThreads(maxNumberOfThreads), applicProcess(proc), 
   theShmMgr(*shmMgr_)
@@ -94,7 +94,7 @@ variableMgr::variableMgr(process *proc, shmMgr *shmMgr_,
 }
 
 // Fork constructor
-variableMgr::variableMgr(const variableMgr &par, process *proc,
+variableMgr::variableMgr(const variableMgr &par, pd_process *proc,
 			 shmMgr *shmMgr_) :
   maxNumberOfThreads(par.maxNumberOfThreads),
   applicProcess(proc),
@@ -209,7 +209,7 @@ void variableMgr::forkHasCompleted()
     varTables[iter]->forkHasCompleted();
 }
 
-void variableMgr::deleteThread(pdThread *thr)
+void variableMgr::deleteThread(pd_thread *thr)
 {
   assert(applicProcess->multithread_capable());
   assert(thr);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.36 2002/08/31 16:53:19 mikem Exp $
+// $Id: mdl.h,v 1.37 2002/10/15 17:11:28 schendel Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
@@ -264,7 +264,8 @@ typedef unsigned inst_var_index;
 
 #if defined(PARADYN)
 class process { };
-class pdThread { };
+class pd_process { };
+class dyn_thread { };
 class function_base { };
 class module { };
 class instPoint { };
@@ -279,7 +280,8 @@ class Focus { };
 class Hierarchy { };
 #else
 class process;
-class pdThread;
+class pd_process;
+class dyn_thread;
 class function_base;
 class module;
 class instPoint;

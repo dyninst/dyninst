@@ -42,7 +42,8 @@
 #include "paradynd/src/threadMetFocusNode.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "pdutil/h/pdDebugOstream.h"
-#include "dyninstAPI/src/pdThread.h"
+#include "paradynd/src/pd_thread.h"
+#include "paradynd/src/pd_process.h"
 
 
 extern pdDebug_ostream sampleVal_cerr;
@@ -53,7 +54,7 @@ dictionary_hash<string, threadMetFocusNode_Val*>
 
 
 threadMetFocusNode *threadMetFocusNode::newThreadMetFocusNode(
-		    const string &metric_name, const Focus &f, pdThread *pdthr)
+		   const string &metric_name, const Focus &f, pd_thread *pdthr)
 {
   threadMetFocusNode_Val *nodeVal;
   string key_name = threadMetFocusNode_Val::construct_key_name(metric_name, 
@@ -80,8 +81,8 @@ threadMetFocusNode *threadMetFocusNode::newThreadMetFocusNode(
 }
 
 threadMetFocusNode *threadMetFocusNode::copyThreadMetFocusNode(
-		    const threadMetFocusNode &par, process *childProc,
-		    pdThread *pdThr)
+		    const threadMetFocusNode &par, pd_process *childProc,
+		    pd_thread *pdThr)
 {
   // since the only thing in the thread nodes that we want to copy over is
   // the cumulativeValue we'll use the "create new threadMetFocusNode" method
@@ -99,7 +100,7 @@ threadMetFocusNode *threadMetFocusNode::copyThreadMetFocusNode(
 
 threadMetFocusNode_Val::threadMetFocusNode_Val(
                          const threadMetFocusNode_Val &par, process *childProc,
-			 pdThread *pdthr)
+			 pd_thread *pdthr)
   : metric_name(par.metric_name), 
     focus(adjustFocusForPid(par.focus, childProc->getPid())),
     cumulativeValue(pdSample::Zero()), allAggInfoInitialized(false),
@@ -217,7 +218,7 @@ void threadMetFocusNode_Val::updateWithDeltaValue(timeStamp startTime,
   }
 }
 
-process *threadMetFocusNode_Val::proc() {
+pd_process *threadMetFocusNode_Val::proc() {
   if(parentsBuf.size() > 0) {
     return parentsBuf[0].parent->proc();
   } else
@@ -272,7 +273,7 @@ string threadMetFocusNode_Val::getKeyName() {
   return construct_key_name(metric_name, focus.getName());
 }
 
-process *threadMetFocusNode::proc() {
+pd_process *threadMetFocusNode::proc() {
   assert(parent != NULL);
   return parent->proc();
 }
