@@ -122,55 +122,99 @@ struct spinlock_data_t {
   string spinlockStr;   // this may or may not be used
 };
 
+struct mutex_data_t {
+   string mutexStr;
+};
+
+struct condvar_data_t {
+   string condVarStr;
+};
+
+struct rwlock_data_t {
+   string rwlockStr;
+};
 
 class syncObjHierarchy : public Hierarchy {
   typedef enum { NoSyncObjT, MessageT, BarrierT, 
-		 SemaphoreT, SpinlockT }  sync_obj_type;
+                 SemaphoreT, SpinlockT, MutexT, CondVarT,
+                 RwLockT } sync_obj_type;
 
   sync_obj_type syncObjType;
   message_data_t   messageData;
   barrier_data_t   barrierData;
   semaphore_data_t semaphoreData;
   spinlock_data_t  spinlockData;
+  mutex_data_t     mutexData;
+  condvar_data_t   condVarData;
+  rwlock_data_t    rwlockData;
 
  public:
   syncObjHierarchy(const pdvector<string> &setupInfo);
   string getName() const;
   bool allSync() const { return (syncObjType == NoSyncObjT); }
   bool allMessages() const { 
-    return (syncObjType == MessageT  && 
-	    !communicator_defined()  &&
-	    !tag_defined());
+    return (syncObjType == MessageT  && !communicator_defined()  &&
+            !tag_defined());
   }
   bool allBarriers() const {
-    return (syncObjType == BarrierT  &&
-	    barrierData.barrierStr.length() == 0);
+    return (syncObjType == BarrierT  && barrierData.barrierStr.length() == 0);
   }
   bool allSemaphores() const {
     return (syncObjType == SemaphoreT  &&
-	    semaphoreData.semaphoreStr.length() == 0);
+            semaphoreData.semaphoreStr.length() == 0);
   }
   bool allSpinlocks() const {
-    return (syncObjType == SpinlockT  &&
-	    spinlockData.spinlockStr.length() == 0);
+    return (syncObjType == SpinlockT  && 
+            spinlockData.spinlockStr.length() == 0);
+  }
+  bool allMutexes() const {
+    return (syncObjType == MutexT  && mutexData.mutexStr.length() == 0);
+  }
+  bool allCondVars() const {
+    return (syncObjType == CondVarT  && condVarData.condVarStr.length() == 0);
+  }
+  bool allRwLocks() const {
+    return (syncObjType == RwLockT  && rwlockData.rwlockStr.length() == 0);
   }
 
   string get_communicator() const { 
-    if(syncObjType == MessageT)
-      return messageData.communicator;
-    else
-      return string("");
+     if(syncObjType == MessageT)
+        return messageData.communicator;
+     else
+        return string("");
   }
   string get_tag() const { 
-    if(syncObjType == MessageT)
-      return messageData.tag; 
-    else
-      return string("");
+     if(syncObjType == MessageT)
+        return messageData.tag; 
+     else
+        return string("");
   }
+  string get_mutex() const {
+     if(syncObjType == MutexT)
+        return mutexData.mutexStr;
+     else
+        return string("");
+  }
+  string get_condVar() const {
+     if(syncObjType == CondVarT)
+        return condVarData.condVarStr;
+     else
+        return string("");
+  }
+  string get_rwlock() const {
+     if(syncObjType == RwLockT)
+        return rwlockData.rwlockStr;
+     else
+        return string("");
+  }
+
   bool communicator_defined() const { 
-    return (messageData.communicator.length()>0);
+     return (messageData.communicator.length() > 0);
   }
   bool tag_defined() const { return (messageData.tag.length()>0); }
+  bool mutex_defined() const { return (mutexData.mutexStr.length() > 0); }
+  bool condVar_defined() const { return (condVarData.condVarStr.length() > 0);}
+  bool rwlock_defined() const { return (rwlockData.rwlockStr.length() > 0); }
 
   bool focus_matches(const pdvector<string> &match_path) const;
   pdvector<string> tokenized() const;

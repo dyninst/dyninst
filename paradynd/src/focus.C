@@ -178,23 +178,23 @@ bool codeHierarchy::focus_matches(const pdvector<string> &match_path) const
 
    if(mp_size == 1) {
       if(match_path[0] == "Code") {
-	 if(module_defined() && !function_defined())  
-	    ret = true;
-	 else
-	    ret = false;
+         if(module_defined() && !function_defined())  
+            ret = true;
+         else
+            ret = false;
       } 
    }
    else if(mp_size == 2) {  
       if(match_path[0] == "Code") {
-	 if(match_path[1] == "*") {
-	    if(function_defined())  ret = true;
-	    else    ret = false;
-	 } else { 
-	    ret = (match_path[1] == get_function());
-	 }
+         if(match_path[1] == "*") {
+            if(function_defined())  ret = true;
+            else    ret = false;
+         } else { 
+            ret = (match_path[1] == get_function());
+         }
       } 
    } else {
-     ret = false;  // can't handle match_path of this sort
+      ret = false;  // can't handle match_path of this sort
    }
    //cerr << "        returning " << ret << "\n";
    return ret;
@@ -207,31 +207,50 @@ syncObjHierarchy::syncObjHierarchy(const pdvector<string> &setupInfo) {
       syncObjType = NoSyncObjT;
       return;
    }
-
+   /*
+   for(unsigned i=0; i<setupInfo.size(); i++) {
+      cerr << "  arg[" << i << "]: " << setupInfo[i] << endl;
+   }
+   */
    if(setupInfo[0] == "Barrier") {
       syncObjType = BarrierT;
       if(setupInfo_size >= 2)
-	 barrierData.barrierStr = setupInfo[1];
+         barrierData.barrierStr = setupInfo[1];
       assert(setupInfo_size <= 2);  //changes needed if triggered
    } else if(setupInfo[0] == "Message") {
       syncObjType = MessageT;
       if(setupInfo_size >= 2)
-	 messageData.communicator = setupInfo[1];
-
+         messageData.communicator = setupInfo[1];
+      
       if(setupInfo_size >= 3) {
-	 // I think the [2] element is a tag
-	 messageData.tag     = setupInfo[2];
+         // I think the [2] element is a tag
+         messageData.tag     = setupInfo[2];
       }
       assert(setupInfo_size <= 3);  //changes needed if triggered
    } else if(setupInfo[0] == "Semaphore") {
       syncObjType = SemaphoreT;
       if(setupInfo_size >= 2)
-	 semaphoreData.semaphoreStr = setupInfo[1];
+         semaphoreData.semaphoreStr = setupInfo[1];
       assert(setupInfo_size <= 2);  //changes needed if triggered
    } else if(setupInfo[0] == "SpinLock") {
       syncObjType = SpinlockT;
       if(setupInfo_size >= 2)
-	 spinlockData.spinlockStr = setupInfo[1];
+         spinlockData.spinlockStr = setupInfo[1];
+      assert(setupInfo_size <= 2);  //changes needed if triggered
+   } else if(setupInfo[0] == "Mutex") {
+      syncObjType = MutexT;
+      if(setupInfo_size >= 2)
+         mutexData.mutexStr = setupInfo[1];
+      assert(setupInfo_size <= 2);  //changes needed if triggered
+   } else if(setupInfo[0] == "CondVar") {
+      syncObjType = CondVarT;
+      if(setupInfo_size >= 2)
+         condVarData.condVarStr = setupInfo[1];
+      assert(setupInfo_size <= 2);  //changes needed if triggered
+   } else if(setupInfo[0] == "RwLock") {
+      syncObjType = RwLockT;
+      if(setupInfo_size >= 2)
+         rwlockData.rwlockStr = setupInfo[1];
       assert(setupInfo_size <= 2);  //changes needed if triggered
    } else {
       syncObjType = NoSyncObjT;
@@ -242,29 +261,44 @@ string syncObjHierarchy::getName() const {
    string name = "/SyncObject";
    switch(syncObjType) {
      case NoSyncObjT:
-	break;
+        break;
      case BarrierT:
-	name += "/Barrier";
-	if(barrierData.barrierStr.length())
-	   name += ("/" + barrierData.barrierStr);
-	break;
+        name += "/Barrier";
+        if(barrierData.barrierStr.length())
+           name += ("/" + barrierData.barrierStr);
+        break;
      case MessageT:
-	name += "/Message";
-	if(messageData.communicator.length())
-	   name += ("/" + messageData.communicator);
-	if(messageData.tag.length())
-	   name += ("/" + messageData.tag);
-	break;
+        name += "/Message";
+        if(messageData.communicator.length())
+           name += ("/" + messageData.communicator);
+        if(messageData.tag.length())
+           name += ("/" + messageData.tag);
+        break;
      case SemaphoreT:
-	name += "/Semaphore";
-	if(semaphoreData.semaphoreStr.length())
-	   name += ("/" + semaphoreData.semaphoreStr);
-	break;
+        name += "/Semaphore";
+        if(semaphoreData.semaphoreStr.length())
+           name += ("/" + semaphoreData.semaphoreStr);
+        break;
      case SpinlockT:
-	name += "/SpinLock";
-	if(spinlockData.spinlockStr.length())
-	   name += ("/" + spinlockData.spinlockStr);
-	break;
+        name += "/SpinLock";
+        if(spinlockData.spinlockStr.length())
+           name += ("/" + spinlockData.spinlockStr);
+        break;
+     case MutexT:
+        name += "/Mutex";
+        if(mutexData.mutexStr.length())
+           name += ("/" + mutexData.mutexStr);
+        break;
+     case CondVarT:
+        name += "/CondVar";
+        if(condVarData.condVarStr.length())
+           name += ("/" + condVarData.condVarStr);
+        break;
+     case RwLockT:
+        name += "/RwLock";
+        if(condVarData.condVarStr.length())
+           name += ("/" + condVarData.condVarStr);
+        break;
    }
    return name;
 }
@@ -274,37 +308,55 @@ bool syncObjHierarchy::focus_matches(const pdvector<string> &match_path) const
 {
    unsigned mp_size = match_path.size();
    bool ret = false;
-   //cerr << "        SYNC-heir: " << getName() << "\n";
-   //cerr << "        mp_size: " << mp_size << ", contents: ";
-   //for(unsigned i=0; i<mp_size; i++) {
-   //   cerr << " " << match_path[i] << ",";
-   //}
-   //cerr << "\n";
+/*
+   cerr << "        === focus_matches ===================================\n";
+   cerr << "        SYNC-heir: " << getName() << "\n";
+   cerr << "        mp_size: " << mp_size << endl;
+   for(unsigned i=0; i<mp_size; i++) {
+      cerr << "         mp[" << i << "]: " << match_path[i] << endl;
+   }
+*/
+
    // Currently, only handle constraints on /Code or /SyncObject
    assert(match_path[0] == "Code" || match_path[0] == "SyncObject");
 
    if(mp_size == 1) {
       if(match_path[0] == "SyncObject") {
-	 if(allMessages() || allBarriers() || 
-	    allSemaphores() || allSpinlocks())   ret = true;
-	 else   ret = false;
+         if(allMessages() || allBarriers() || allSemaphores() || 
+            allSpinlocks() || allMutexes() || allCondVars() || allRwLocks())
+            ret = true;
+         else
+            ret = false;
       }
    }
    else if(mp_size == 2) {  
       if(match_path[0] == "SyncObject") {
-	 assert(match_path[1] == "Message");
-	 if(communicator_defined() && !tag_defined())  ret = true;
-	 else ret = false;
+         if(match_path[1] == "Message") {
+            if(communicator_defined() && !tag_defined())  ret = true;
+            else ret = false;
+         }
+         if(match_path[1] == "Mutex") {
+            if(mutex_defined()) ret = true;
+            else ret = false;
+         }
+         if(match_path[1] == "CondVar") {
+            if(condVar_defined()) ret = true;
+            else ret = false;
+         }
+         if(match_path[1] == "RwLock") {
+            if(rwlock_defined()) ret = true;
+            else ret = false;
+         }
       }
    }
    else if(mp_size == 3) {
       assert(match_path[0] == "SyncObject");
       assert(match_path[1] == "Message");
       if(match_path[2] == "*") {
-	 if(tag_defined()) ret = true;
-	 else ret = false;
+         if(tag_defined()) ret = true;
+         else ret = false;
       } else {
-	 ret = (get_tag() == match_path[2]);
+         ret = (get_tag() == match_path[2]);
       }
    }
    //cerr << "        returning " << ret << "\n";
@@ -317,29 +369,44 @@ pdvector<string> syncObjHierarchy::tokenized() const {
    retVec.push_back(string("SyncObject"));
    switch(syncObjType) {
      case NoSyncObjT:
-	break;
+        break;
      case BarrierT:
-	retVec.push_back(string("Barrier"));
-	if(barrierData.barrierStr.length())
-	   retVec.push_back(barrierData.barrierStr);
-	break;
+        retVec.push_back(string("Barrier"));
+        if(barrierData.barrierStr.length())
+           retVec.push_back(barrierData.barrierStr);
+        break;
      case MessageT:
-	retVec.push_back(string("Message"));
-	if(messageData.communicator.length())
-	   retVec.push_back(messageData.communicator);
-	if(messageData.tag.length())
-	   retVec.push_back(messageData.tag);
-	break;
+        retVec.push_back(string("Message"));
+        if(messageData.communicator.length())
+           retVec.push_back(messageData.communicator);
+        if(messageData.tag.length())
+           retVec.push_back(messageData.tag);
+        break;
      case SemaphoreT:
-	retVec.push_back(string("Semaphore"));
-	if(semaphoreData.semaphoreStr.length())
-	   retVec.push_back(semaphoreData.semaphoreStr);
-	break;
+        retVec.push_back(string("Semaphore"));
+        if(semaphoreData.semaphoreStr.length())
+           retVec.push_back(semaphoreData.semaphoreStr);
+        break;
      case SpinlockT:
-	retVec.push_back(string("SpinLock"));
-	if(spinlockData.spinlockStr.length())
-	   retVec.push_back(spinlockData.spinlockStr);
-	break;
+        retVec.push_back(string("SpinLock"));
+        if(spinlockData.spinlockStr.length())
+           retVec.push_back(spinlockData.spinlockStr);
+        break;
+     case MutexT:
+        retVec.push_back(string("Mutex"));
+        if(mutexData.mutexStr.length())
+           retVec.push_back(mutexData.mutexStr);
+        break;
+     case CondVarT:
+        retVec.push_back(string("CondVar"));
+        if(condVarData.condVarStr.length())
+           retVec.push_back(condVarData.condVarStr);
+        break;
+     case RwLockT:
+        retVec.push_back(string("RwLock"));
+        if(rwlockData.rwlockStr.length())
+           retVec.push_back(rwlockData.rwlockStr);
+        break;
    }
    return retVec;
 }
@@ -375,8 +442,8 @@ Focus::Focus(const pdvector<u_int>& ids, bool *errorFlag) :
    for (unsigned i=0; i<ids.size(); i++) {
       resource *r = resource::findResource(ids[i]);
       if(r == NULL) {
-	 (*errorFlag) = true;
-	 return;
+         (*errorFlag) = true;
+         return;
       }
       focusVec += r->names();
    }
@@ -386,19 +453,19 @@ Focus::Focus(const pdvector<u_int>& ids, bool *errorFlag) :
       pdvector<string> &curFocusVec = focusVec[j];
       assert(curFocusVec.size() > 0);  // there must be a heirarchy name
       if(curFocusVec[0] == "Machine") {
-	 curFocusVec.erase(0, 0);
-	 machineInfo = new machineHierarchy(curFocusVec);
+         curFocusVec.erase(0, 0);
+         machineInfo = new machineHierarchy(curFocusVec);
       } else if(curFocusVec[0] == "Code") {      
-	 curFocusVec.erase(0, 0);
-	 codeInfo = new codeHierarchy(curFocusVec);	 
+         curFocusVec.erase(0, 0);
+         codeInfo = new codeHierarchy(curFocusVec);	 
       } else if(curFocusVec[0] == "SyncObject") {
-	 curFocusVec.erase(0, 0);
-	 syncObjInfo = new syncObjHierarchy(curFocusVec);
+         curFocusVec.erase(0, 0);
+         syncObjInfo = new syncObjHierarchy(curFocusVec);
       } else if(curFocusVec[1] == "Memory") {
-	 curFocusVec.erase(0, 0);
-	 memoryInfo = new memoryHierarchy(curFocusVec);
+         curFocusVec.erase(0, 0);
+         memoryInfo = new memoryHierarchy(curFocusVec);
       } else {
-	 assert(false);  // add a new heirarchy type if this is triggered
+         assert(false);  // add a new heirarchy type if this is triggered
       }
    }
 
