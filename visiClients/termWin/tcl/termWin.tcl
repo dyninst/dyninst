@@ -1,11 +1,63 @@
+#
+#  Copyright (c) 1996-2001 Barton P. Miller
+#  
+#  We provide the Paradyn Parallel Performance Tools (below
+#  described as Paradyn") on an AS IS basis, and do not warrant its
+#  validity or performance.  We reserve the right to update, modify,
+#  or discontinue this software at any time.  We shall have no
+#  obligation to supply such updates or modifications or any other
+#  form of support to you.
+#  
+#  This license is for research uses.  For such uses, there is no
+#  charge. We define "research use" to mean you may freely use it
+#  inside your organization for whatever purposes you see fit. But you
+#  may not re-distribute Paradyn or parts of Paradyn, in any form
+#  source or binary (including derivatives), electronic or otherwise,
+#  to any other organization or entity without our permission.
+#  
+#  (for other uses, please contact us at paradyn@cs.wisc.edu)
+#  
+#  All warranties, including without limitation, any warranty of
+#  merchantability or fitness for a particular purpose, are hereby
+#  excluded.
+#  
+#  By your use of Paradyn, you understand and agree that we (or any
+#  other person or entity with proprietary rights in Paradyn) are
+#  under no obligation to provide either maintenance services,
+#  update services, notices of latent defects, or correction of
+#  defects for Paradyn.
+#  
+#  Even if advised of the possibility of such damages, under no
+#  circumstances shall we (or any other person or entity with
+#  proprietary rights in the software licensed hereunder) be liable
+#  to you or any third party for direct, indirect, or consequential
+#  damages of any character regardless of type of action, including,
+#  without limitation, loss of profits, loss of use, loss of good
+#  will, or computer failure or malfunction.  You agree to indemnify
+#  us (and any other person or entity with proprietary rights in the
+#  software licensed hereunder) for any and all liability it may
+#  incur to third parties resulting from your use of Paradyn.
+#
+#
+# $Id: termWin.tcl,v 1.3 2001/06/11 15:21:56 pcroth Exp $
+#
 
-option add *Visi*font *-New*Century*Schoolbook-Bold-R-*-18-*
-option add *Data*font *-Helvetica-*-r-*-12-* 
-option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
-option add *title*font *-New*Century*Schoolbook-Bold-R-*-18-*
-option add *phaseName*font *-New*Century*Schoolbook-Bold-R-*-14-*
-option add *phaseStart*font *-New*Century*Schoolbook-Bold-R-*-14-*
-option add *phaseEnd*font *-New*Century*Schoolbook-Bold-R-*-14-*
+#
+# default resources for TermWin header
+#
+option add *Pdtermwin*Header*headerBackground green4 widgetDefault
+option add *Pdtermwin*Header*headerForeground white widgetDefault
+option add *Pdtermwin*Header*Font "{New Century Schoolbook} 12 bold roman" widgetDefault
+
+#
+# default resources for TermWin text area
+#
+option add *Pdtermwin*TextArea*Font {Courier 10 roman} widgetDefault
+option add *Pdtermwin*TextArea*daemonForeground	red	widgetDefault
+option add *Pdtermwin*TextArea*appForeground black	widgetDefault
+
+
+
 
 proc getWindowWidth {wName} {
    # warning!  This routine will return an old number if an important
@@ -41,84 +93,95 @@ proc getWindowHeight {wName} {
 #  Create the overall frame
 #
 
+frame .termwin -class Pdtermwin
+pack .termwin -side top -fill both -expand true
+
+
 #
 #  Create the title bar, menu bar, and logo at the top
 #
-frame .top
-pack .top -side top -fill x
+frame .termwin.top -class Header
+pack .termwin.top -side top -fill x
 
-frame .top.left 
-pack .top.left -side left -fill both -expand 1
+frame .termwin.top.left
+pack .termwin.top.left -side left -fill both -expand 1
 
-label .top.left.title -relief raised -text "Application Output" \
-      -foreground white -background Green4
+label .termwin.top.left.title -relief raised -text "Application Output" \
+      -foreground [option get .termwin.top headerForeground HeaderForeground] \
+	  -background [option get .termwin.top headerBackground HeaderBackground]
 
-pack .top.left.title -side top -fill both -expand true
+pack .termwin.top.left.title -side top -fill both -expand true
 
 #
 #  Create the menubar as a frame with many menu buttons
 #
-frame .top.left.menubar -class MyMenu -borderwidth 2 -relief raised
-pack .top.left.menubar -side top -fill x
+frame .termwin.top.left.menubar -borderwidth 2 -relief raised
+pack .termwin.top.left.menubar -side top -fill x
 
 #
 #  File menu
 # 
-menubutton .top.left.menubar.file -text "File" -menu .top.left.menubar.file.m
-menu .top.left.menubar.file.m
-.top.left.menubar.file.m add command -label "Save" -command {SaveFile }
-.top.left.menubar.file.m add command -label "Close" -command Shutdown
+menubutton .termwin.top.left.menubar.file -text "File" -menu .termwin.top.left.menubar.file.m
+menu .termwin.top.left.menubar.file.m
+.termwin.top.left.menubar.file.m add command -label "Save..." -command {SaveFile }
+.termwin.top.left.menubar.file.m add command -label "Close" -command Shutdown
 
 #
 #  Option menu
 #
-menubutton .top.left.menubar.option -text "Option" -menu .top.left.menubar.option.m
-menu .top.left.menubar.option.m
-.top.left.menubar.option.m add cascade -label Close -menu .top.left.menubar.option.m.close
-menu .top.left.menubar.option.m.close
-.top.left.menubar.option.m.close add radio -label "On Paradyn Exit" -variable mode -value paradyn -command "close_mode 0"
-.top.left.menubar.option.m.close add radio -label "Persistant" -variable mode -value persistant -command "close_mode 1"
+menubutton .termwin.top.left.menubar.option -text "Option" -menu .termwin.top.left.menubar.option.m
+menu .termwin.top.left.menubar.option.m
+.termwin.top.left.menubar.option.m add cascade -label Close -menu .termwin.top.left.menubar.option.m.close
+menu .termwin.top.left.menubar.option.m.close
+.termwin.top.left.menubar.option.m.close add radio -label "On Paradyn Exit" -variable mode -value paradyn -command "close_mode 0"
+.termwin.top.left.menubar.option.m.close add radio -label "Persistant" -variable mode -value persistant -command "close_mode 1"
 set mode paradyn
 
 #
 #  Help menu
 #
-menubutton .top.left.menubar.help -text "Help" -menu .top.left.menubar.help.m -state disabled
-menu .top.left.menubar.help.m
-.top.left.menubar.help.m add command -label "General" -command "NotImpl"
-.top.left.menubar.help.m add command -label "Context" -command "NotImpl"
-#.top.left.menubar.help.m disable 0
-#.top.left.menubar.help.m disable 1
+menubutton .termwin.top.left.menubar.help -text "Help" -menu .termwin.top.left.menubar.help.m -state disabled
+menu .termwin.top.left.menubar.help.m
+.termwin.top.left.menubar.help.m add command -label "General" -command "NotImpl"
+.termwin.top.left.menubar.help.m add command -label "Context" -command "NotImpl"
+#.termwin.top.left.menubar.help.m disable 0
+#.termwin.top.left.menubar.help.m disable 1
 
 #
 #  Build the menu bar and add to display
 #
-pack .top.left.menubar.file -side left -padx 2
-pack .top.left.menubar.option -side left -padx 2
-pack .top.left.menubar.help -side right 
+pack .termwin.top.left.menubar.file -side left -padx 2
+pack .termwin.top.left.menubar.option -side left -padx 2
+pack .termwin.top.left.menubar.help -side right 
 
-makeLogo .top.logo paradynLogo raised 2 HotPink4
-pack .top.logo -side right
+makeLogo .termwin.top.logo paradynLogo raised 2 HotPink4
+pack .termwin.top.logo -side right
 
-frame .textarea
-pack  .textarea -side top -fill both -expand true
+frame .termwin.textarea -class TextArea
+pack  .termwin.textarea -side top -fill both -expand true
 
-text .textarea.text -borderwidth 2 -width 40 -height 15 -relief sunken \
-	-font { Helvetica 12 } \
-	-yscrollcommand ".textarea.sb set" 
+text .termwin.textarea.text -borderwidth 2 -width 80 -height 24 -relief sunken \
+    -font [option get .termwin.textarea font Font] \
+	-yscrollcommand ".termwin.textarea.sb set"
 
-pack .textarea.text -side left -fill both -expand true
-.textarea.text tag configure paradyn_tag -foreground Red
-.textarea.text tag configure app_tag -foreground Black
+pack .termwin.textarea.text -side left -fill both -expand true
+.termwin.textarea.text tag configure paradyn_tag \
+	-foreground [option get .termwin.textarea daemonForeground DaemonForeground]
+.termwin.textarea.text tag configure app_tag \
+	-foreground [option get .termwin.textarea appForeground AppForeground]
 
-scrollbar .textarea.sb -relief sunken \
-	-command ".textarea.text yview"
-pack .textarea.sb -side right -fill y 
+scrollbar .termwin.textarea.sb -relief sunken \
+	-command ".termwin.textarea.text yview"
+pack .termwin.textarea.sb -side right -fill y 
+
+
+
 
 #
 # display everything
 #
 wm title . "Term Win"
+
 
 #
 #  Helper function for "Close" menu option
@@ -128,8 +191,8 @@ proc Shutdown {} {
 }
 
 proc SaveFile {} {
-  set content [.textarea.text get 1.0 end]
-  set filename [tk_getSaveFile -parent .textarea.text -title "Save to File"]
+  set content [.termwin.textarea.text get 1.0 end]
+  set filename [tk_getSaveFile -parent .termwin.textarea.text -title "Save to File"]
   if {$filename != ""} {
      set fileid [open $filename w+ 0644]
      puts $fileid $content

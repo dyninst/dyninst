@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.2 2001/05/24 18:39:00 wxd Exp $
+// $Id: main.C,v 1.3 2001/06/11 15:21:51 pcroth Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -122,11 +122,11 @@ void print_data(char *buffer,int num, int from_paradynd)
 		return ;
 	char command[2048];
 	if (from_paradynd)
-		sprintf(command,".textarea.text insert end {%.*s} paradyn_tag",num,buffer);
-	else sprintf(command,".textarea.text insert end {%.*s} app_tag",num,buffer);
+		sprintf(command,".termwin.textarea.text insert end {%.*s} paradyn_tag",num,buffer);
+	else sprintf(command,".termwin.textarea.text insert end {%.*s} app_tag",num,buffer);
 	Tcl_Eval(MainInterp,command);
 
-	sprintf(command,".textarea.text yview -pickplace end");
+	sprintf(command,".termwin.textarea.text yview -pickplace end");
 	Tcl_Eval(MainInterp,command);
 }
 
