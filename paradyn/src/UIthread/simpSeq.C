@@ -2,31 +2,31 @@
 // Ariel Tamches
 
 /* $Log: simpSeq.C,v $
-/* Revision 1.1  1995/07/17 04:59:00  tamches
-/* First version of the new where axis
+/* Revision 1.2  1995/09/20 01:19:16  tamches
+/* int --> unsigned in a lot of places
 /*
+ * Revision 1.1  1995/07/17  04:59:00  tamches
+ * First version of the new where axis
+ *
  */
 
 #include <assert.h>
 #include "simpSeq.h"
 
 template <class T>
-simpSeq<T>::simpSeq() {
-   numitems = 0;
-}
-
-template <class T>
-simpSeq<T>::~simpSeq() {}
-
-template <class T>
-int simpSeq<T>::getSize() const {
+unsigned simpSeq<T>::getSize() const {
    return numitems;
 }
 
 template <class T>
-T &simpSeq<T>::getItem(const int index) {
-   assert(0 <= index);
-   assert(0 < numitems);
+T &simpSeq<T>::getItem(unsigned index) {
+   assert(index < numitems);
+   return data[index];
+}
+
+template <class T>
+const T &simpSeq<T>::getItem(unsigned index) const {
+   assert(index < numitems);
    return data[index];
 }
 
@@ -37,14 +37,7 @@ T &simpSeq<T>::getLastItem() {
 }
 
 template <class T>
-const T &simpSeq<T>::getConstItem(const int index) const {
-   assert(0 <= index);
-   assert(0 < numitems);
-   return data[index];
-}
-
-template <class T>
-const T &simpSeq<T>::getConstLastItem() const {
+const T &simpSeq<T>::getLastItem() const {
    assert(numitems > 0);
    return data[numitems-1];
 }
@@ -57,15 +50,13 @@ const T *simpSeq<T>::getEntireSeqQuick() const {
 
 template <class T>
 void simpSeq<T>::append(const T &newItem) {
-   assert(0 <= numitems);
    assert(numitems < 20);
 
    data[numitems++] = newItem; // makes a copy of the item
 }
 
 template <class T>
-void simpSeq<T>::replaceItem(const int index, const T &newItem) {
-   assert(0 <= index);
+void simpSeq<T>::replaceItem(unsigned index, const T &newItem) {
    assert(index < numitems);
    data[index] = newItem;
 }
