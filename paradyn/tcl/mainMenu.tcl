@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.28  1994/11/04 20:10:02  karavan
+# Revision 1.29  1994/11/04 21:03:49  karavan
+# fixed pause button
+#
+# Revision 1.28  1994/11/04  20:10:02  karavan
 # Sent flicker back to the sea where it belongs...
 #
 # Revision 1.27  1994/11/03  22:15:19  tamches
@@ -113,11 +116,11 @@
 
 proc changeApplicState {newVal} {
     if {$newVal} {
-	.buttons.2 configure -state normal
-	.buttons.1 configure -state disabled
+	.parent.buttons.2 configure -state normal
+	.parent.buttons.1 configure -state disabled
     } else {
-	.buttons.2 configure -state disabled
-	.buttons.1 configure -state normal
+	.parent.buttons.2 configure -state disabled
+	.parent.buttons.1 configure -state normal
     }
 }
 
