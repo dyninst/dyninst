@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.503 2004/06/02 20:58:08 legendre Exp $
+// $Id: process.C,v 1.504 2004/07/15 16:36:17 gquinn Exp $
 
 #include <ctype.h>
 
@@ -4040,9 +4040,6 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
     }
 #endif /* BPATCH_LIBRARY */
 
-
-#ifdef BPATCH_LIBRARY
-
     assert(BPatch::bpatch);
     const pdvector<pdmodule *> *modlist = new_obj->getModules();
     if (modlist != NULL) {
@@ -4077,8 +4074,6 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
         }
       }
     }
-    
-#endif /* BPATCH_LIBRARY */
 
     return true;
 }
