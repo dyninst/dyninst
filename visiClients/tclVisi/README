@@ -1,6 +1,9 @@
 #
 # $Log: README,v $
-# Revision 1.1  1994/06/01 17:25:34  rbi
+# Revision 1.2  1994/07/20 21:48:29  rbi
+# Documented Dg commands
+#
+# Revision 1.1  1994/06/01  17:25:34  rbi
 # Initial documentation
 #
 #
@@ -10,12 +13,136 @@ to the visi library.  The visi library is a C++ interface to paradyn
 data (see ../../visi).  
 
 To use tclVisi, a programmer writes a tcl application and makes calls
-to DataGrid (or Dg) procedures.  The Dg procedures allow a tcl
-application to get information about metrics, resources, and data
-values.
+to DataGrid (or Dg) commands.  The Dg commands allow a tcl application
+to get information about metrics, resources, and data values.
+tclVisi, in turn, makes Dg callback commands to the tcl application to
+tell it when configurations have changed and when data is available.
 
 Subdirectories:
   src -- source code for tclVisi
   tcl -- code for tcl applications
   ${PLATFORM} -- platform specific binaries and makefiles
+
+Dg service commands
+-------------------
+
+  tclVisi provides a tcl command called "Dg" that a visi may call to
+get performance information.  "Dg" has several sub-commands, each of
+which returns different information to the visi.  This section
+describes the commands in detail.  Arguments in angle brackets <>
+denote input parameters.
+
+  Dg nummetrics -- this command returns the number of currently defined
+                   metrics.  Metric identifiers (mids) are integers between
+                   0 and [expr [Dg nummetrics]-1]
+
+  Dg metricname <mid> -- returns the name of metric <mid>
+                     An example metric name might be "procedure_calls"
+                   
+  Dg metricunits <mid> -- returns the units of metric <mid>.  
+                      An example metric unit might be "calls/sec"
+
+  Dg numresources -- this command returns the number of currently defined
+                  resources.  Resource identifiers (rids) are integers 
+                  between 0 and [expr [Dg numresources]-1]
+
+  Dg resourcename <rid> -- returns the name of resource <rid>
+       Resource names are given in the full paradyn naming style.  The
+       resource name is defined as exactly one representative from each
+       resource hierarchy.  For example, if the resource hierarchies are
+       defined to be Machine, Process, and Procedure, then the root (or
+       top-level) resource is named <Machine,Process,Procedure>.  The
+       resource indicating procedure "main" on machine "beaufort" would be
+       named <Machine/beaufort,Process,Procedure/main>
+
+  Dg valid <mid> <rid> -- test if a time histogram is valid
+       returns 1 if a time histogram exists for metric <mid> and 
+       resource <rid>.  returns 0 otherwise
+
+  Dg value <mid> <rid> <bucket> -- returns a value from a time histogram
+       This command returns the value in bucket <buck> of the time histogram
+       of metric <mid> measured for resource <rid>.  Every valid
+       <mid>,<rid> corresponds to a different time histogram, and every
+       time histogram consists of an array of buckets numbered 0 to [Dg
+       numbuckets <mid> <rid>].  Each bucket in a time histogram corresponds
+       to a period in time of [Dg binwidth] seconds.  The value in the 
+       bucket is the measured value of the performance metric during the time 
+       period to which the bucket corresponds.  Therefore, if [Dg binwidth] 
+       returns .5 then [Dg value 0 1 20] will return the measured value of 
+       metric 0 for resource 1 for the time period between 10 seconds and 
+       10.5 seconds after the start of execution.
+       
+  Dg sum <mid> <rid> -- returns sum of a time histogram
+       This command returns the sum of all buckets of the time
+       histogram of metric <mid> measured for resource <rid>.
+
+  Dg aggregate <mid> <rid> -- average value of a time histogram
+       This command averages all bucket values in the time histogram
+       of metric <mid> measured for resource <fid>.
+
+  Dg numbins -- number of buckets in time histograms
+       returns the total number of buckets in time histograms.  Every
+       time histogram has the same number of buckets.
+  
+  Dg lastbucket -- last bucket filled in time histograms
+       returns the index of the last bucket filled in the time histograms.
+       Every time histogram is filled at the same rate, so the return 
+       value from this command gives the last bucket filled for all 
+       of the time histograms.
+
+  Dg start <metricname> <resourcename> -- start a new histogram.  
+     this command asks paradyn starts a new histogram of data 
+     corresponding to metric <metricname> and resource <resourcename>.  
+     Currently, <metricname> and <resourcename> are ignored, so make 
+     the call like this:
+
+            Dg start "*" "*"
+
+     Paradyn will ask the user to chooe a metric and a focus, and then 
+     will notify the visi with a call to DgConfigCallback after the user 
+     chooses.
+
+  Dg stop <mid> <rid> -- stop a histogram.
+     this command asks paradyn to stop sending data for the histogram 
+     corresponding to <mid> and <rid>.  After paradyn stops the data, 
+     it will notify the visi with a call to DgConfigCallback.
+
+Dg callback commands
+--------------------
+
+  The Dg callbacks are commands that must be implemented by a visi if
+the visi wants to be notified of important events.  Here, we explain
+when the commands will be called and what information is passed.  The
+behavior of the callback command is left completely to the visi
+writer.
+
+DgConfigCallback -- configurations have changed
+  "Configuration" include the number of resources, the number of
+  metrics, the names of metrics, and the names of resources.  This
+  callback is called if and only if any of these values change.  The visi
+  must call the Dg service routines if it wants to find out exactly
+  what changed.
+
+DgDataCallback <first> <last> -- new data is available
+  This command is executed whenever new data is available.  <first> 
+  indicates the first bucket containing new data and <last> indicates 
+  the last bucket that contains new data.  These new data values are 
+  available in all valid time histograms.  The visi must call Dg service
+  routines if it wants to find the values of the new data.
+
+DgValidCallback <mid> <rid> -- new time histogram is now valid
+  This command is executed when the time histogram for metric <mid> 
+  measured for the resource <rid> is valid.  
+
+DgFoldCallback -- time base has changed
+  When the last buckets of the time histograms have been filled, the time
+  histograms are folded so that the bucket widths are doubled and 
+  only the first half of the histogram is used and the second half can be 
+  filled again.  When this happens, the DgFoldCallback command is called 
+  to notify the visi.  When this command is executed the visi must 
+  assume that all bucket values in all time histograms havee changed,
+  the global bucket width has changed, and the global lastbucket value 
+  has changed.
+
+  
 
