@@ -275,7 +275,7 @@ string* processDirectories(string* fn){
 	}
 	*ret += suffix;
 
-	delete pPath;
+	delete[] pPath;
 	delete fn;
 	return ret;
 }
@@ -816,7 +816,7 @@ void BPatch_module::parseTypes()
 					*currentSourceFile,
 					&currentFileInfo,&currentFuncInfo);
 	     }
-	     delete ptr;
+	     delete[] ptr;
 	     break;
     }
 
