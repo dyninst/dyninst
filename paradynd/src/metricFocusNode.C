@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.203 2001/11/01 17:22:22 schendel Exp $
+// $Id: metricFocusNode.C,v 1.204 2001/11/03 06:08:56 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -2285,7 +2285,7 @@ void mdnContinueCallback(timeStamp timeOfCont) {
   }
 }
 
-void metricDefinitionNode::setStartTime(timeStamp t, bool resetCompStartTime) {
+void metricDefinitionNode::setStartTime(timeStamp t) {
   mdnStartTime = t;
   sampleVal_cerr << "setStartTime for mdn: " << this << " to " << t
 		 << ", type: " << typeStr(getMdnType()) << ", numComp: "
@@ -2293,9 +2293,7 @@ void metricDefinitionNode::setStartTime(timeStamp t, bool resetCompStartTime) {
 		 << samples.size() << "\n"; 
   for(unsigned i = 0; i < aggregator.numComponents(); i++) {
     aggComponent *curComp = aggregator.getComponent(i);
-    if(resetCompStartTime)
-      curComp->resetInitialStartTime(t);
-    else if(! curComp->isInitialStartTimeSet()) {
+    if(! curComp->isInitialStartTimeSet()) {
       // I guess could be set since order of mdn could be AGG-THR-COMP-PRIM
       // so aggComp could be attempted to be initialized twice
       sampleVal_cerr << "            for comp: " << curComp << ", time: " 
@@ -3614,6 +3612,24 @@ void metricDefinitionNode::forwardSimpleValue(timeStamp start, timeStamp end,
   batchSampleData(met_, id_, start, end, value);
 }
 
+bool metricDefinitionNode::isReadyForUpdates() {
+  if(! inserted()) {
+    sampleVal_cerr << "mi " << this << " hasn't been inserted\n";
+    return false;
+  }
+  if(! isStartTimeSet()) {
+    sampleVal_cerr << "mi " << this << " doesn't have an initialized"
+		   << " start time\n";
+    return false;
+  }
+  if(! isInitialActualValueSet()) {
+    sampleVal_cerr << "mi " << this << " doesn't have an initialized"
+		   << " initial actual value\n";
+    return false;
+  }
+  return true;
+}
+
 // takes an actual value as input, as opposed to a change in sample value
 void metricDefinitionNode::updateValue(timeStamp sampleTime, pdSample value)
 {
@@ -3638,11 +3654,71 @@ void metricDefinitionNode::updateValue(timeStamp sampleTime, pdSample value)
   updateWithDeltaValue(uninitializedTime, sampleTime, value);
 }
 
+// will adjust the value of the sample if the referred to mdn wasn't active
+// wholly during the length of the sample
+// returns false if this sample should not be "added" to the mdn
+
+// here's an example that shows why this function is relevant:
+//
+//      18s992ms / 19s192ms     AGG     AGG'  (AGG'-starttime: 19s387ms)
+//   (AGG-starttime: 19s592ms)   |    /  |
+//                               |  /    |
+//      18s992ms / 19s192ms     COMP    COMP'
+//                               |       |
+//                               |       |
+//      un / 19s761ms           PRIM    PRIM'
+//
+//   AGG is a cpu/process metric-focus, AGG' is a cpu/wholeprog metric-focus
+//   added later.  The time before the '/' represents the start-time of the
+//   sample, the time after the '/' represents the sample-time (or end-time)
+//   of the sample.  The "AGG-starttime:" represents the start time of the
+//   mdn set according to mdnContinue.
+//   In the above example, the sample coming out of the COMP's aggregator
+//   did not occur while the AGG' was active, so this sample should be
+//   skipped or not added to AGG'.
+
+bool adjustSampleIfNewMdn(pdSample *sampleVal, timeStamp startTime,
+			  timeStamp sampleTime, timeStamp mdnStartTime) {
+  if(! mdnStartTime.isInitialized()) {
+    sampleVal_cerr << "  skipping sample since startTime- is uninitialized\n";
+    return false;
+  }
+  
+  // the sample did not occur while (but before) the mdn was active
+  if(sampleTime < mdnStartTime) {
+    sampleVal_cerr << "  skipping sample since sample did not occur while"
+		   << " the mdn was active\n";
+    return false;
+  }
+  
+  // interpolate the value of the sample for the time that the mdn was 
+  // active during the length of the sample
+  if(!startTime.isInitialized() || startTime >= mdnStartTime) {
+    // the whole sample occurred while the mdn was active
+    // keep the sampleVal just as it is
+  } else if(startTime < mdnStartTime) {
+    // the sample partially occurred while the mdn was active
+    // ie. startTime < mdnStartTime < sampleTime
+    // we want to determine the amount of the sample within the interval
+      // that this new mdn was active
+    timeLength timeActiveForNewMdn = sampleTime - mdnStartTime;
+    timeLength sampleLen = sampleTime - startTime;
+    assert(sampleLen >= timeActiveForNewMdn);
+    double pcntIntvlActiveForNewMdn = timeActiveForNewMdn / sampleLen;
+    *sampleVal = pcntIntvlActiveForNewMdn * (*sampleVal);
+    sampleVal_cerr << "  using " << pcntIntvlActiveForNewMdn
+		   << ", new val = " << *sampleVal << "\n";
+  }
+  
+  return true;
+}
+
 void metricDefinitionNode::updateWithDeltaValue(timeStamp startTime,
 						timeStamp sampleTime, 
 						pdSample value) {
   sampleVal_cerr << "updateWithDeltaValue() - mdn: " << this << ", " 
 		 << getFullName() //<< ", type: " <<  mdn_type_ 
+		 << "start: " << startTime << ", sampleTime: " << sampleTime
 		 << ", value:" 
 		 << value << ", cumVal: " << cumulativeValue << "\n";
 
@@ -3676,22 +3752,14 @@ void metricDefinitionNode::updateWithDeltaValue(timeStamp startTime,
     if(mdn_type_ == COMP_MDN && curParentMdn.mdn_type_ == THR_LEV)
       continue;
 
-    // This can happen because even if the sample of the application
-    // sent to PRIMITIVE mdn is after the creation of the AGG MDN,
-    // after aggregation, the timeOfSample will move back in time since
-    // aggregation needs to fill an interval.  This sample which could
-    // be earlier in time than the creation time of the new AGG mdn.
-    // In this case we adjust this now AGG mdn start time to be
-    // equal to the slightly earlier interval sample time.
-    if(!curParentMdn.isStartTimeSet() || (startTime.isInitialized() &&
-			       startTime < curParentMdn.getStartTime())) {
-      sampleVal_cerr << "  setInitialTime: " << this << " st: " << startTime 
-		     << "\n";
-      curParentMdn.setStartTime(startTime, true);
-    }
+    pdSample valToPass = value;
+    bool shouldAddSample = adjustSampleIfNewMdn(&valToPass, startTime, 
+				  sampleTime, curParentMdn.getStartTime());
+    if(!shouldAddSample)   continue;
+
     sampleVal_cerr << "  addSamplePt (" << &curComp << ")- " << sampleTime 
-		   << ", val: " << value << "\n";
-    curComp.addSamplePt(sampleTime, value);
+		   << ", val: " << valToPass << "\n";
+    curComp.addSamplePt(sampleTime, valToPass);
 
     curParentMdn.tryAggregation();
     sampleVal_cerr <<"  back in updateWithDeltaValue, finished handling agg#: "
