@@ -3,9 +3,13 @@
 // The scrollbar class for where4tree.h/.C
 
 /* $Log: scrollbar.h,v $
-/* Revision 1.2  1995/09/20 01:18:28  tamches
-/* Some routines didn't need where4TreeConstants
+/* Revision 1.3  1995/10/17 22:06:39  tamches
+/* Removed where4TreeConstants influences; now Tk_3DBorder is
+/* passed directly to draw().
 /*
+ * Revision 1.2  1995/09/20 01:18:28  tamches
+ * Some routines didn't need where4TreeConstants
+ *
  * Revision 1.1  1995/07/17  04:58:58  tamches
  * First version of the new where axis
  *
@@ -15,7 +19,7 @@
 #define _SCROLLBAR_H_
 
 #include <assert.h>
-#include "where4treeConstants.h"
+#include "tkclean.h"
 
 class scrollbar {
  private:
@@ -32,31 +36,36 @@ class scrollbar {
    scrollbar() {pixFirst=0;}
   ~scrollbar() {}
 
-   void draw(const where4TreeConstants &tc,
+   void draw(Tk_Window theTkWindow,
+             Tk_3DBorder border,
              int theDrawable,
-	     const int leftpix,
-	     const int toppix, const int botpix,
-	     const unsigned viewableDataPix,
-	     const unsigned totalFullPix // if no SB were needed
+	     int leftpix,
+	     int toppix, int botpix,
+	     unsigned viewableDataPix,
+	     unsigned totalFullPix // if no SB were needed
 	     ) const;
 
    void invalidate() {pixFirst=-1;}
    void validate()   {if (pixFirst < 0) pixFirst=0;}
    bool isValid() const {return (pixFirst>=0);}
-   int getPixFirst() const {assert(isValid()); return pixFirst;}
-   void setPixFirst(const int newPixFirst) {assert(isValid()); pixFirst = newPixFirst;}
-   void updateForNewBounds(const unsigned actualAvailDataPix,
-			   const unsigned totalFullDataPix);
 
-   void getSliderCoords(const int scrollBarTop, const int ScrollBarBottom,
-			const unsigned viewableDataPix,
-			const unsigned totalDataPix,
+   int  getPixFirst() const {assert(isValid()); return pixFirst;}
+   void setPixFirst(int newPixFirst) {assert(isValid()); pixFirst = newPixFirst;}
+
+   void updateForNewBounds(unsigned actualAvailDataPix,
+			   unsigned totalFullDataPix);
+      // maintain the relation pixFirst+actualAvailDataPix-1 <= totalFullDataPix
+      // (by ensuring pixFirst <= totalFullPix-actualAvailDataPix+1)
+
+   void getSliderCoords(int scrollBarTop, int ScrollBarBottom,
+			unsigned viewableDataPix,
+			unsigned totalDataPix,
 			int &sliderPixTop,
 			int &sliderPixHeight) const;
 
-   int pixFirstFromAbsoluteCoord(const int scrollBarTop, const int scrollBarBottom,
-				 const unsigned totalDataPix,
-				 const int tentativeNewSliderPixTop) const;
+   int pixFirstFromAbsoluteCoord(int scrollBarTop, int scrollBarBottom,
+				 unsigned totalDataPix,
+				 int tentativeNewSliderPixTop) const;
 
    int getArrowPixHeight() const {
       return totalWidth; // static member vrble
