@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.170 2004/04/11 04:52:10 legendre Exp $
+ * $Id: inst-x86.C,v 1.171 2004/04/13 03:03:38 lharris Exp $
  */
 #include <iomanip>
 
@@ -847,7 +847,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                 InstrucIter iter( saddr, funcBegin, owner );
                 instruction ins = iter.getInstruction();
                 iter++;
-                bool foundMaxSwitch = true;
+                bool foundMaxSwitch = false;
                 while( *iter < in[0]->getRelEnd() )
                 {
                     if( iter.getInstruction().type() & IS_JCC )
