@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.346 2002/08/01 19:57:05 cortes Exp $
+// $Id: process.C,v 1.347 2002/08/02 21:30:29 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2773,6 +2773,8 @@ Address process::initSharedData()
   for (i = 0; i < maxNumberOfThreads(); i++) {
     RTargument->pendingIRPCs[i] = (rpcToDo *)((Address) RTsharedData.pendingIRPCs[i] - shmStart);
   }
+  // We want this to be an offset from within the shared memory segment
+  RTargument->pendingIRPCs = (rpcToDo **)((unsigned) RTargument->pendingIRPCs - (unsigned)shmStart);
 
   return (Address) RTargument;
   
