@@ -87,7 +87,7 @@ int Filter::load_FilterFunc( const char *so_file, const char *func,
 TransFilter::TransFilter( unsigned short _filter_id )
     : Filter( _filter_id )
 {
-    trans_filter = ( void ( * )( std::vector < Packet >&,
+    trans_filter = ( void ( * )( const std::vector < Packet >&,
                                  std::vector < Packet >&,
                                  void ** ) )
         FilterFuncById[_filter_id];
@@ -125,13 +125,13 @@ int TransFilter::push_packets( std::vector < Packet >&packets_in,
  *    SyncFilter Class Definition        *
  *============================================*/
 SyncFilter::SyncFilter( unsigned short _filter_id,
-                        std::list < RemoteNode * >&nodes )
+                        const std::list < RemoteNode * >&nodes )
     :    Filter( _filter_id ), downstream_nodes( nodes )
 {
     sync_filter = ( void ( * )
              ( std::vector < Packet >&,
                std::vector < Packet >&,
-               std::list < RemoteNode * >&,
+               const std::list < RemoteNode * >&,
                void ** ) )
         FilterFuncById[_filter_id];
 }

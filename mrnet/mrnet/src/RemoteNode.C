@@ -381,7 +381,7 @@ int RemoteNode::send(Packet& packet)
     return 0;
 }
 
-bool RemoteNode::has_data()
+bool RemoteNode::has_data() const
 {
     pollfd poll_struct;
     poll_struct.fd = sock_fd;

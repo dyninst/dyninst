@@ -5,7 +5,11 @@
 namespace MRN
 {
 
-StreamManager::StreamManager(int sid, std::list <RemoteNode *> &_downstream,
+std::map<unsigned int, StreamManager*> StreamManager::allStreamManagers;
+
+
+StreamManager::StreamManager(int sid, 
+                             const std::list <RemoteNode *> &_downstream,
                              int sync_id, int ds_agg_id, int us_agg_id)
     : stream_id(sid),
       downstream_aggregator( new TransFilter( ds_agg_id ) ),
@@ -14,10 +18,13 @@ StreamManager::StreamManager(int sid, std::list <RemoteNode *> &_downstream,
       upstream_node( NULL ),
       downstream_nodes(_downstream)
 {
+    allStreamManagers[sid] = this;
 }
 
 StreamManager::~StreamManager( )
 {
+    allStreamManagers.erase( stream_id );
+
     delete sync;
     delete downstream_aggregator;
     delete upstream_aggregator;

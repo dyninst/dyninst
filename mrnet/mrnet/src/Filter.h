@@ -37,7 +37,7 @@ class Filter: public Error {
 class TransFilter:public Filter {
  private:
     std::string fmt_str;
-    void ( *trans_filter ) ( std::vector < Packet >&packets_in,
+    void ( *trans_filter ) ( const std::vector < Packet >&packets_in,
                              std::vector < Packet >&packets_out,
                              void ** );
  public:
@@ -53,12 +53,13 @@ class SyncFilter:public Filter {
     std::map < RemoteNode *, std::vector < Packet >*>PacketsByNode;
     void ( *sync_filter ) ( std::vector < Packet >&,
                             std::vector < Packet >&,
-                            std::list < RemoteNode * >&, void ** );
-    std::list < RemoteNode * >downstream_nodes;
+                            const std::list < RemoteNode * >&, void ** );
+    const std::list < RemoteNode * >downstream_nodes;
     pthread_sync fsync;
     
  public:
-    SyncFilter( unsigned short _filter_id, std::list < RemoteNode * >& );
+    SyncFilter( unsigned short _filter_id,
+                const std::list < RemoteNode * >& );
     virtual ~ SyncFilter(  );
     virtual int push_packets( std::vector < Packet >&packets_in,
                               std::vector < Packet >&packets_out );

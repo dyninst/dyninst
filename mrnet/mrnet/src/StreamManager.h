@@ -22,11 +22,18 @@ class StreamManager{
     std::list <RemoteNode *> downstream_nodes;
 
  public:
-    StreamManager(int stream_id, std::list <RemoteNode *> &_downstream,
+    static std::map<unsigned int, StreamManager*> allStreamManagers;
+
+    StreamManager(int stream_id,
+                  const std::list <RemoteNode *> &_downstream,
                   int sync_id, int ds_agg_id, int us_agg_id );
     ~StreamManager();
     int push_packet(Packet&, std::vector<Packet> &,
                     bool going_upstream=true);
+
+    const std::list<RemoteNode*>&
+        get_downstreamNodes( void ) const   { return downstream_nodes; }
+    RemoteNode* get_upstreamNode( void )    { return upstream_node; }
 };
 
 } // namespace MRN

@@ -46,10 +46,10 @@ class RemoteNode:public CommunicationNode, public Error {
     int send(Packet&);
     int flush();
     int recv(std::list <Packet> &); //blocking recv
-    bool has_data();
-    bool is_backend();
-    bool is_internal();
-    bool is_upstream();
+    bool has_data() const;
+    bool is_backend() const;
+    bool is_internal() const;
+    bool is_upstream() const;
 
     int get_sockfd( void ) const              { return sock_fd; }
 
@@ -68,15 +68,15 @@ inline int RemoteNode::recv(std::list <Packet> &packet_list)
     return msg_in.recv(sock_fd, packet_list, this);
 }
 
-inline bool RemoteNode::is_backend(){
+inline bool RemoteNode::is_backend() const {
     return !_is_internal_node;
 }
 
-inline bool RemoteNode::is_internal(){
+inline bool RemoteNode::is_internal() const {
     return _is_internal_node;
 }
 
-inline bool RemoteNode::is_upstream(){
+inline bool RemoteNode::is_upstream() const {
     return _is_upstream;
 }
 

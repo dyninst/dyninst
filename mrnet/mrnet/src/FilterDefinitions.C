@@ -42,7 +42,7 @@ static inline void sum(void *in1, void *in2, void* out, DataType type);
 /*=====================================================*
  *    Default Transformation Filter Definitions        *
  *=====================================================*/
-void tfilter_IntSum( std::vector < Packet >&packets_in,
+void tfilter_IntSum( const std::vector < Packet >&packets_in,
                    std::vector < Packet >&packets_out,
                    void ** /* client data */ )
 {
@@ -53,13 +53,13 @@ void tfilter_IntSum( std::vector < Packet >&packets_in,
         sum += cur_packet[0].get_int32_t( );
     }
     
-    Packet new_packet( packets_in[0].get_Tag( ),
-                       packets_in[0].get_StreamId( ),
+    Packet new_packet( packets_in[0].get_StreamId( ),
+                       packets_in[0].get_Tag( ),
                        "%d", sum );
     packets_out.push_back( new_packet );
 }
 
-void tfilter_Sum( std::vector < Packet >&packets_in,
+void tfilter_Sum( const std::vector < Packet >&packets_in,
 	       std::vector < Packet >&packets_out,
 	       void ** /* client data */ )
 {
@@ -145,7 +145,7 @@ void tfilter_Sum( std::vector < Packet >&packets_in,
     }
 }
 
-void tfilter_Max( std::vector < Packet >&packets_in,
+void tfilter_Max( const std::vector < Packet >&packets_in,
 	       std::vector < Packet >&packets_out,
 	       void ** /* client data */ )
 {
@@ -216,7 +216,7 @@ void tfilter_Max( std::vector < Packet >&packets_in,
     packets_out.push_back( new_packet );
 }
 
-void tfilter_Min( std::vector < Packet >&packets_in,
+void tfilter_Min( const std::vector < Packet >&packets_in,
 	       std::vector < Packet >&packets_out,
 	       void ** /* client data */ )
 {
@@ -287,7 +287,7 @@ void tfilter_Min( std::vector < Packet >&packets_in,
     packets_out.push_back( new_packet );
 }
 
-void tfilter_Avg( std::vector < Packet >&packets_in,
+void tfilter_Avg( const std::vector < Packet >&packets_in,
 	       std::vector < Packet >&packets_out,
 	       void ** /* client data */ )
 {
@@ -363,7 +363,7 @@ void tfilter_Avg( std::vector < Packet >&packets_in,
 
 
 
-void tfilter_ArrayConcat( std::vector < Packet >&packets_in,
+void tfilter_ArrayConcat( const std::vector < Packet >&packets_in,
 			    std::vector < Packet >&packets_out,
 			    void ** /* client data */ )
 {
@@ -455,7 +455,7 @@ void tfilter_ArrayConcat( std::vector < Packet >&packets_in,
     packets_out.push_back( new_packet );
 }
 
-void tfilter_IntEqClass( std::vector < Packet >&packets_in,
+void tfilter_IntEqClass( const std::vector < Packet >&packets_in,
 		      std::vector < Packet >&packets_out,
 		      void ** /* client data */ )
 {
@@ -550,7 +550,7 @@ void tfilter_IntEqClass( std::vector < Packet >&packets_in,
 
 void sfilter_WaitForAll( std::vector < Packet >&packets_in,
                          std::vector < Packet >&packets_out,
-                         std::list < RemoteNode * >&downstream_nodes,
+                         const std::list < RemoteNode * >&downstream_nodes,
                          void **local_storage )
 {
     std::map < RemoteNode *, std::list < Packet >*>*PacketListByNode;
@@ -561,7 +561,7 @@ void sfilter_WaitForAll( std::vector < Packet >&packets_in,
             new std::map < RemoteNode *, std::list < Packet >*>;
         *local_storage = PacketListByNode;
 
-        std::list < RemoteNode * >::iterator iter;
+        std::list < RemoteNode * >::const_iterator iter;
         mrn_printf( 3, MCFL, stderr,
                     "Creating Map of %d downstream_nodes\n",
                     downstream_nodes.size(  ) );
@@ -612,7 +612,8 @@ void sfilter_WaitForAll( std::vector < Packet >&packets_in,
 
 void sfilter_TimeOut( std::vector < Packet >&packets_in,
                       std::vector < Packet >&packets_out,
-                      std::list < RemoteNode * >&, void **local_storage )
+                      const std::list < RemoteNode * >&,
+                      void **local_storage )
 {
 }
 
@@ -660,6 +661,7 @@ static inline void sum(void *in1, void *in2, void* out, DataType type)
   case FLOAT_ARRAY_T:
   case DOUBLE_ARRAY_T:
   case STRING_T:
+  case STRING_ARRAY_T:
   case UNKNOWN_T:
     assert(0);
   }
@@ -709,6 +711,7 @@ static inline void div(void *in1, int in2, void* out, DataType type)
   case FLOAT_ARRAY_T:
   case DOUBLE_ARRAY_T:
   case STRING_T:
+  case STRING_ARRAY_T:
   case UNKNOWN_T:
     assert(0);
   }
@@ -768,6 +771,7 @@ static inline void min(void *in1, void *in2, void* out, DataType type)
   case FLOAT_ARRAY_T:
   case DOUBLE_ARRAY_T:
   case STRING_T:
+  case STRING_ARRAY_T:
   case UNKNOWN_T:
     assert(0);
   }
@@ -827,6 +831,7 @@ static inline void max(void *in1, void *in2, void* out, DataType type)
   case FLOAT_ARRAY_T:
   case DOUBLE_ARRAY_T:
   case STRING_T:
+  case STRING_ARRAY_T:
   case UNKNOWN_T:
     assert(0);
   }

@@ -57,15 +57,15 @@ class Error{
     Error() :MRN_errno(MRN_ENONE) { }
     virtual ~Error() { }
 
-    inline bool good() {
+    inline bool good() const {
         return (MRN_errno == MRN_ENONE);
     }
 
-    inline bool fail() {
+    inline bool fail() const {
         return (MRN_errno != MRN_ENONE);
     }
 
-    inline void perror(const char *str) {
+    inline void perror(const char *str) const {
         fprintf(stderr, "%s: %s\n", str, errors[MRN_errno].msg);
         return;
     }

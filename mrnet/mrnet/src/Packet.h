@@ -48,11 +48,11 @@ class PacketData: public Error{
 
     static bool_t pdr_packet( PDR *, PacketData * );
 
-    int get_Tag(  ) {
+    int get_Tag(  ) const {
         return tag;
     }
 
-    unsigned short get_StreamId(  ) {
+    unsigned short get_StreamId(  ) const {
         return stream_id;
     }
 
@@ -60,11 +60,15 @@ class PacketData: public Error{
         return buf;
     }
 
-    unsigned int get_BufferLen(  ) {
+    const char *get_Buffer(  ) const {
+        return buf;
+    }
+
+    unsigned int get_BufferLen(  ) const {
         return buf_len;
     }
 
-    const char *get_FormatString(  ) {
+    const char *get_FormatString(  ) const {
         return fmt_str;
     }
 
@@ -72,11 +76,15 @@ class PacketData: public Error{
         return inlet_node;
     }
 
+    const RemoteNode * get_InletNode(  ) const {
+        return inlet_node;
+    }
+
     void set_InletNode( RemoteNode * rn ) {
         inlet_node = rn;
     }
 
-    unsigned int get_NumDataElements(  ) {
+    unsigned int get_NumDataElements(  ) const {
         return data_elements.size(  );
     }
 
@@ -84,7 +92,15 @@ class PacketData: public Error{
         return data_elements[i];
     }
 
+    const DataElement & get_DataElement( unsigned int i ) const {
+        return data_elements[i];
+    }
+
     DataElement & operator[] ( unsigned int i ) {
+        return data_elements[i];
+    }
+
+    const DataElement & operator[] ( unsigned int i ) const {
         return data_elements[i];
     }
 };
@@ -158,34 +174,46 @@ class Packet:public Error
         return ret;
     }
 
-    int get_Tag(  ){
+    int get_Tag(  ) const {
         return data.getData().get_Tag();
     }
-    unsigned short get_StreamId(  ){
+    unsigned short get_StreamId(  ) const {
         return data.getData().get_StreamId();
     }
     char *get_Buffer(  ){
         return data.getData().get_Buffer();
     }
-    unsigned int get_BufferLen(  ){
+    const char *get_Buffer(  ) const {
+        return data.getData().get_Buffer();
+    }
+    unsigned int get_BufferLen(  ) const {
         return data.getData().get_BufferLen();
     }
-    const char *get_FormatString(  ){
+    const char *get_FormatString(  ) const {
         return data.getData().get_FormatString();
     }
     RemoteNode * get_InletNode(  ){
         return data.getData().get_InletNode();
     }
+    const RemoteNode * get_InletNode(  ) const {
+        return data.getData().get_InletNode();
+    }
     void set_InletNode( RemoteNode *rn  ){
         return data.getData().set_InletNode( rn );
     }
-    unsigned int get_NumDataElements(  ){
+    unsigned int get_NumDataElements(  ) const {
         return data.getData().get_NumDataElements();
     }
     DataElement & get_DataElement( unsigned int pos ){
         return data.getData()[ pos ];
     }
+    const DataElement & get_DataElement( unsigned int pos ) const {
+        return data.getData()[ pos ];
+    }
     DataElement & operator[] ( unsigned int pos ){
+        return data.getData()[ pos ];
+    }
+    const DataElement & operator[] ( unsigned int pos ) const {
         return data.getData()[ pos ];
     }
 };
