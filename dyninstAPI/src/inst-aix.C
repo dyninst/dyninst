@@ -60,6 +60,7 @@
  *
  */
 
+#include "dyninstP.h" // isApplicationPaused
 #include "os.h"
 #include "metric.h"
 #include "dyninst.h"
@@ -164,7 +165,6 @@ int flushPtrace()
 {
     return(0);
 }
-
 
 /*
  * Define the various classes of library functions to inst. 
