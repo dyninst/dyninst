@@ -4,7 +4,10 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTsparc.c,v $
- * Revision 1.4  1994/07/05 03:25:10  hollings
+ * Revision 1.5  1994/07/14 23:34:08  hollings
+ * added include of kludges.h
+ *
+ * Revision 1.4  1994/07/05  03:25:10  hollings
  * obsereved cost model.
  *
  * Revision 1.3  1994/02/02  00:46:12  hollings
@@ -33,7 +36,9 @@
 #include <assert.h>
 #include <unistd.h>
 #include <kvm.h>
+#include <errno.h>
 
+#include "kludges.h"
 #include "../h/rtinst.h"
 
 int DYNINSTmappedUarea;
