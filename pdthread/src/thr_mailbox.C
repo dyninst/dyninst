@@ -266,36 +266,13 @@ void* thr_mailbox::sock_select_loop(void* which_mailbox) {
 
         if(select_status == -1) {
             perror("select thread");
-        } else if (select_status == 1 && 
-                   FD_ISSET(owner->sock_selector_pipe[0],
-                            sock_visitor.to_populate)) {
-            if(owner->kill_sock_selector) goto done;
-
-            // we've been signaled to add some additional socks to the
-            // wait set; we'll loop around -- first, we'll check will_block
-            // status of bound socks
-
-            monitor->lock();            
-
-            ready_visitor.owner = owner;
-            
-            ready_visitor.populate_from = sock_visitor.to_populate;
-
-            ready_visitor.descs_from = owner->bound_socks;
-            ready_visitor.populate_to = owner->ready_socks;            
-
-            owner->bound_socks->visit(&ready_visitor);
-            monitor->unlock();
-
-            // we don't need to signal that a recv is available
-            // because the put() operation in the visitor does it for us
-
-            continue;
-        } else if(sock_visitor.to_populate != NULL) {
+        } else if(select_status) {
+            // are we waking up because the controller thread wants us to?
             FD_CLR(owner->sock_selector_pipe[0],sock_visitor.to_populate);
             if(owner->kill_sock_selector) goto done;
 
-            monitor->lock();            
+            // get ready to deliver some messages....
+            monitor->lock();
             
             ready_visitor.owner = owner;
 
@@ -393,185 +370,40 @@ thr_mailbox::~thr_mailbox() {
 inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block, 
                                bool do_yank, message** m, unsigned io_first) {
     bool found = false;
-    unsigned message_criteria = 0;
     thread_t actual_sender = 0;
     tag_t actual_type = 0;
-    PDDESC file_sender;
-    PDSOCKET sock_sender;
-	message* msg_from_special = NULL;
 
-    if (*sender != THR_TID_UNSPEC)
-        message_criteria |= SENDER_SPECIFIED;
-
-    if (*type != MSG_TAG_ANY)
-        switch(*type) {
-            case MSG_TAG_FILE:
-                message_criteria |= FILE_WANTED;
-
-                if(message_criteria & SENDER_SPECIFIED) {
-                    file_sender = thr_file(*sender);
-                }
-                
-                break;                
-            case MSG_TAG_SOCKET:
-                message_criteria |= SOCKET_WANTED;
-
-                if(message_criteria & SENDER_SPECIFIED) {
-                    sock_sender = thr_socket(*sender);
-                }
-
-                break;
-            default:
-                message_criteria |= TAG_SPECIFIED;
-        }    
-    
-#if READY
-	// goto unnecessary here - is it going to cause maintenance trouble?
-#endif // READY
+    message* msg_from_special = NULL;
+    match_message_pred criterion(*sender,*type);
 
   find_msg:
+    actual_sender = 0;
+    actual_type = 0;
 
-#if READY
-				// ??? can we make these criterion objects
-				// all derived from the same base class,
-				// do the switch to construct the critera,
-				// then share the "contains" and "if(found)..." logic?
-#endif // READY
-    switch (message_criteria) {
-        case TAG_SPECIFIED + SENDER_SPECIFIED: {
-            sender_and_tag_matches_predicate criterion(*sender, *type);
-            found = messages->contains(&criterion);
+    found = messages->contains(&criterion);
+    actual_sender = criterion.actual_sender;
+    actual_type = criterion.actual_type;
 
-            if(found) {
-#if READY
-				// is it ever the case that do_yank is true but m is NULL?
-				// (I.e., do we ever want to drop a message on the floor?)
-#endif // READY
-                if(do_yank && m) {
-                    *m = messages->yank(&criterion);
-				}
-#if READY
-#else
-				else if( !do_yank &&
-						thrtab::is_io_entity(actual_sender) &&
-						((io_entity*)thrtab::get_entry(actual_sender))->is_special()) {
-					// consume the "message" from our special sender
-					// 
-					// we're telling the caller about input on
-					// their special file, and we expect them to
-					// consume it
-					msg_from_special = messages->yank(&criterion);
-					m = &msg_from_special;
-				}
-#endif // READY
-                goto done;
-            }
-
-            break;
-        }
-
-        case TAG_SPECIFIED + SENDER_UNSPECIFIED: {
-            yank_sender_predicate sender_p(&actual_sender);
-            tag_matches_predicate tag_p(*type);
-            predicate_and<yank_sender_predicate,tag_matches_predicate,message*>
-                criterion(&sender_p,&tag_p);
-            found = messages->contains(&criterion);
-
-            if(found) {
-                if(do_yank && m) {
-                    *m = messages->yank(&criterion);
-				}
-#if READY
-#else
-				else if( !do_yank &&
-						thrtab::is_io_entity(actual_sender) &&
-						((io_entity*)thrtab::get_entry(actual_sender))->is_special()) {
-					// consume the "message" from our special sender
-					// 
-					// we're telling the caller about input on
-					// their special file, and we expect them to
-					// consume it
-					msg_from_special = messages->yank(&criterion);
-					m = &msg_from_special;
-				}
-#endif // READY
-                goto done;
-            }
-
-            break;
-        }
-        
-        case TAG_UNSPECIFIED + SENDER_SPECIFIED: {
-            sender_matches_predicate sender_p(*sender);
-            yank_tag_predicate tag_p(&actual_type);
-            predicate_and<sender_matches_predicate,yank_tag_predicate,message*>
-                criterion(&sender_p,&tag_p);
-            found = messages->contains(&criterion);
-
-            if(found) {
-                if(do_yank && m) {
-                    *m = messages->yank(&criterion);
-				}
-#if READY
-#else
-				else if( !do_yank &&
-						thrtab::is_io_entity(actual_sender) &&
-						((io_entity*)thrtab::get_entry(actual_sender))->is_special()) {
-					// consume the "message" from our special sender
-					// 
-					// we're telling the caller about input on
-					// their special file, and we expect them to
-					// consume it
-					msg_from_special = messages->yank(&criterion);
-					m = &msg_from_special;
-				}
-#endif // READY
-                goto done;
-            }
-
-            break;
-        }
-
-        case TAG_UNSPECIFIED + SENDER_UNSPECIFIED: {
-            yank_sender_predicate sender_p(&actual_sender);
-            yank_tag_predicate tag_p(&actual_type);
-            predicate_and<yank_sender_predicate,yank_tag_predicate,message*> 
-                criterion(&sender_p,&tag_p);
-            found = messages->contains(&criterion);
-
-            // FIXME:  re-write this so that it does a multi-pass check;
-            // checking for message types in the proper order (i.e. 
-            // file,socket,thread if io_first, otherwise thread,file,socket)
-
-            if(found) {
-                if(do_yank && m) {
-                    *m = messages->yank(&criterion);
-				}
-#if READY
-#else
-				else if( !do_yank &&
-						thrtab::is_io_entity(actual_sender) &&
-						((io_entity*)thrtab::get_entry(actual_sender))->is_special()) {
-					// consume the "message" from our special sender
-					// 
-					// we're telling the caller about input on
-					// their special file, and we expect them to
-					// consume it
-					msg_from_special = messages->yank(&criterion);
-					m = &msg_from_special;
-				}
-#endif // READY
-                goto done;
-            }
-            
-            break;
-        }        
-
-        default:
-            assert(false);
-    }
+    // FIXME:  re-write this so that it does a multi-pass check;
+    // checking for message types in the proper order (i.e. 
+    // file,socket,thread if io_first, otherwise thread,file,socket)
     
-    if(!found && do_block) {
+    if(found) {
+        if(do_yank && m) {
+            *m = messages->yank(&criterion);
+        } else if( !do_yank &&
+                 thrtab::is_io_entity(actual_sender) &&
+                 ((io_entity*)thrtab::get_entry(actual_sender))->is_special()) {
+            // consume the "message" from our special sender;
+            // we're telling the caller about input on
+            // their special file, and we expect them to
+            // consume it
+            msg_from_special = messages->yank(&criterion);
+            m = &msg_from_special;
+        }
+
+        goto done;
+    } else if(!found && do_block) {
         monitor->wait(RECV_AVAIL);
         goto find_msg;
     }
@@ -596,16 +428,16 @@ inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block,
         }
     }       
 
-    if(actual_sender)
-        *sender = actual_sender;
-    
-    if(actual_type)
-        *type = actual_type;
+    if(found) {
+        if(actual_sender) *sender = actual_sender;
+        if(actual_type) *type = actual_type;
+    }
     
 	if(msg_from_special != NULL) {
 		// consume the "message" from the special sender
 		delete msg_from_special;
 	}
+
     return found;
 }
 

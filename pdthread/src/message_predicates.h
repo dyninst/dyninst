@@ -1,6 +1,7 @@
 #ifndef __libthread_mailbox_predicates_h__
 #define __libthread_mailbox_predicates_h__
 
+#include "../h/thread.h"
 #include "message.h"
 #include "predicate.h"
 
@@ -167,4 +168,42 @@ class predicate_and {
     }
 };
 
+
+class match_message_pred {
+  private:
+    bool is_tag_specified;
+    bool is_sender_specified;
+    thread_t sender;
+    tag_t tag;
+  public:
+    thread_t actual_sender;
+    tag_t actual_type;
+    
+    match_message_pred(thread_t _sender, tag_t _tag) : 
+            is_tag_specified((bool)_tag), 
+            is_sender_specified((bool)_sender), 
+            sender(_sender), 
+            tag(_tag) { }
+    
+    bool satisfied_by(message* element) {
+        assert(element);
+
+        actual_sender = element->from();
+        actual_type = element->type();
+        
+        if((!is_tag_specified) && (!is_sender_specified)) {
+            return true;
+        } else if(is_tag_specified && is_sender_specified) {
+            return (element->type() == tag) && (element->from() == sender);
+        } else if (is_tag_specified) {
+            return element->type() == tag;
+        } else if (is_sender_specified) {
+            return element->from() == sender;
+        } else {
+            assert(false);
+        }
+    }
+};
+
 #endif
+

@@ -38,13 +38,11 @@ class thr_mailbox : public mailbox {
     dllist<PDSOCKET,dummy_sync> *bound_socks;
 
     dllist<message*,dummy_sync> *messages;
+    dllist<message*,dummy_sync> *sock_messages;
     
     inline bool check_for(thread_t* sender, tag_t* type,
                           bool do_block = false, bool do_yank = false,
-                          message** m = NULL, unsigned io_first = 1);    
-
-    /* make_unready() declares a tid representing a file or socket to no longer be ready */
-    void make_unready(thread_t tid);
+                          message** m = NULL, unsigned io_first = 1);
     
   public:
     thr_mailbox(thread_t owner);
@@ -52,6 +50,9 @@ class thr_mailbox : public mailbox {
 
     /* put() delivers message m into this mailbox */
     virtual int put(message* m);
+
+    /* put_sock() delivers socket message m into this mailbox */
+//    virtual int put_sock(message* m);
 
     /* recv() receives mail from this mailbox into buf;
        see the libthread documentation for the full

@@ -85,7 +85,7 @@ bool thrtab::is_io_entity(thread_t tid) {
     entity* entry = thrtab::entries[tid];
     
     thr_debug_msg(CURRENT_FUNCTION, "requesting is_io_entity at %d, of %p\n", tid, entry);
-    assert(entry);
+    if(!entry) return false;
     item_t entity_type = entry->gettype();
     return entity_type == item_t_file 
 #if defined(i386_unknown_nt4_0)
