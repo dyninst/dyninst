@@ -2,7 +2,11 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.46  1994/11/09 18:39:30  rbi
+ * Revision 1.47  1994/12/21 00:36:41  tamches
+ * Minor change to tunable constant declaration to reflect new tc constructors.
+ * Fewer compiler warnings.
+ *
+ * Revision 1.46  1994/11/09  18:39:30  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.45  1994/11/04  20:13:32  karavan
@@ -188,7 +192,7 @@ double   quiet_nan(int unused);
 #include "util/h/kludges.h"
 #include "../UIthread/Status.h"
 
-tunableBooleanConstant printChangeCollection(FALSE, NULL, developerConstant,
+tunableBooleanConstant printChangeCollection(false, NULL, developerConstant,
     "printChangeCollection", 
     "Print the name of metric/focus when enabled or disabled");
 

@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.55  1994/12/15 07:38:22  markc
+ * Revision 1.56  1994/12/21 00:36:43  tamches
+ * Minor change to tunable constant declaration to reflect new tc constructors.
+ * Fewer compiler warnings.
+ *
+ * Revision 1.55  1994/12/15  07:38:22  markc
  * Initialized count used to track resourceBatch requests.
  *
  * Revision 1.54  1994/11/11  23:06:49  markc
@@ -206,7 +210,7 @@ double   quiet_nan(int unused);
 #include "../pdMain/paradyn.h"
 #include "../UIthread/Status.h"
 
-tunableBooleanConstant printSampleArrival(False, NULL, developerConstant,
+tunableBooleanConstant printSampleArrival(false, NULL, developerConstant,
     "printSampleArrival", 
     "Print out status lines to show the arrival of samples");
 
