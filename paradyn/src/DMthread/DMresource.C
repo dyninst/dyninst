@@ -73,11 +73,11 @@ resource::resource()
 resource::resource(resourceHandle p_handle, 
 		   vector<string>& resource_name,
 		   string& r_name,
-		   string& a, unsigned r_type) 
+		   string& a, unsigned res_type) 
 {
     
     if(!allResources.defines(r_name)){
-        type = r_type;
+        type = res_type;
         name = r_name;
 	res_handle = resources.size();
         parent = p_handle;
