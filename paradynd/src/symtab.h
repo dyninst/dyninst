@@ -10,7 +10,11 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
- * Revision 1.12  1995/02/16 08:54:25  markc
+ * Revision 1.13  1995/02/21 22:03:36  markc
+ * Added slightly better error recovery, with messages!  Paradynd reports back
+ * when it attempts to run an unusable executable.  It no longer aborts.
+ *
+ * Revision 1.12  1995/02/16  08:54:25  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.11  1995/02/16  08:35:00  markc
@@ -324,36 +328,34 @@ private:
   // in several modules
 
   bool newFunc(module *, const string name, const Address addr,
-	       const unsigned tags, bool &err);
+	       const unsigned tags);
 
   void checkAllCallPoints();
 
-  void addInternalSymbol(const string &str, const Address symValue);
+  bool addInternalSymbol(const string &str, const Address symValue);
 
   // creates the module if it does not exist
   module *getOrCreateModule (const string &modName, const Address modAddr);
   module *newModule(const string &name, Address addr);
 
-  void findKnownFunctions(Object &linkedFile, module *lib, module *dyn,
+  bool findKnownFunctions(Object &linkedFile, module *lib, module *dyn,
 			  const bool startB, const Address startAddr,
-			  const bool endB, const Address endAddr, bool &defErr,
+			  const bool endB, const Address endAddr,
+			  const Address b_start, const Address b_end,
 			  vector<Symbol> &mods);
 
   bool addOneFunction(vector<Symbol> &mods, module *lib, module *dyn,
-		      const bool startB, const Address startAddr,
-		      const bool endB, const Address endAddr,
 		      const Symbol &lookUp);
 
-  void addAllFunctions(vector<Symbol> &mods,
+  bool addAllFunctions(vector<Symbol> &mods,
 		       module *lib, module *dyn,
 		       const bool startB, const Address startAddr,
 		       const bool endB, const Address endAddr);
 
   // if useLib = true or the functions' tags signify a library function
   // the function is put in the library module
-  void defineFunction(module *use, const Symbol &sym, const unsigned tags,
-		      bool &err);
-  void defineFunction(module *lib, const Symbol &sym, bool &err,
+  bool defineFunction(module *use, const Symbol &sym, const unsigned tags);
+  bool defineFunction(module *lib, const Symbol &sym,
 		      const string &modName, const Address modAdr);
 
   inline bool isValidAddress(const Address &where) const;
