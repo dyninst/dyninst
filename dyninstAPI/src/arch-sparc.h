@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.28 2001/10/30 21:02:45 gaburici Exp $
+// $Id: arch-sparc.h,v 1.29 2002/01/29 00:19:31 gurari Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -310,7 +310,7 @@ inline bool isCondBranch(const instruction i){
      return false;
 }
 
-inline bool IS_DELAYED_INST(const instruction insn) {
+inline bool isDCTI(const instruction insn) {
   return (insn.call.op == CALLop ||
 	  isInsnType(insn, JMPLmask, JMPLmatch) ||
 	  isInsnType(insn, FBRNCHmask, FBRNCHmatch) ||

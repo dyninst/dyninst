@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.15 2001/11/28 05:44:12 gaburici Exp $
+// $Id: instPoint-sparc.h,v 1.16 2002/01/29 00:19:32 gurari Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
@@ -65,15 +65,13 @@ typedef enum {
 
 class instPoint {
 public:
-  instPoint(pd_Function *f, const instruction &instr, const image *owner,
-	    Address &adr, const bool delayOK,
-	    instPointType ipt);
-  instPoint(pd_Function *f, const instruction &instr, const image *owner,
-            Address &adr, const bool delayOK, instPointType ipt,   
-	    Address &oldAddr);
+
+  instPoint(pd_Function *f, const image *owner, Address &adr, 
+            const bool delayOK, instPointType ipt);
+
   instPoint(pd_Function *f, const instruction instr[], 
             int instrOffset, const image *owner, Address &adr, 
-            bool delayOK, instPointType pointType, Address &oldAddr);
+            bool delayOK, instPointType pointType);
 
   ~instPoint() {  /* TODO */ }
 
@@ -81,14 +79,9 @@ public:
   // until all functions have been seen -- this might be cleaned up
   void set_callee(pd_Function *to) { callee = to; }
 
-  // get instruction at actual inst point (not nec. first instruction, e.g. look
-  //  at entry instrumentation below)....
-  const instruction &insnAtPoint() const { return originalInstruction;}
-  // return instruction directly following originalInstruction (which data member
-  //  that corresponds to may vary - see explanation of various instruction data
-  //  members below)
-  // ALRT ALRT!!!!  FILL IN!!!!
-  const instruction insnAfterPoint() const;
+  const instruction &insnAtPoint() const { return firstInstruction; }
+
+  const instruction insnAfterPoint() const { return secondInstruction; }
 
   const function_base *iPgetFunction() const { return func;      }
   const function_base *iPgetCallee()   const { return callee;    }
@@ -96,19 +89,22 @@ public:
         Address        iPgetAddress()  const { return addr;      }
 
   Address getTargetAddress() {
-      if(!isCallInsn(originalInstruction)) return 0;
-       if (!isInsnType(originalInstruction, CALLmask, CALLmatch)) {
+      if(!isCallInsn(firstInstruction)) return 0;
+       if (!isInsnType(firstInstruction, CALLmask, CALLmatch)) {
 	       return 0;  // can't get target from indirect call instructions
        }
 
-      Address ta = (originalInstruction.call.disp30 << 2); 
+      Address ta = (firstInstruction.call.disp30 << 2); 
       return ( addr+ta ); 
   }
 
+  // formerly "isLeaf()", but the term leaf fn is confusing since people use it
+  // for two different characteristics: 
+  // (1) has no stack frame, 
+  // (2) makes no call.
+  // By renaming the fn, we make clear what it's returning.
+
   bool hasNoStackFrame() const {
-     // formerly "isLeaf()", but the term leaf fn is confusing since people use it
-     // for two different characteristics: (1) has not stack frame, (2) makes no call.
-     // By renaming the fn, we make clear what it's returning.
      assert(func);
      return func->hasNoStackFrame();
   }
@@ -119,62 +115,57 @@ public:
   int Size() {return size;}
 
   // address of 1st instruction to be clobbered by inst point....
-  //  Is this always same as iPgetAddress????
-  Address firstAddress() {return iPgetAddress();}
-  // address of 1st instruction AFTER those clobbered by inst point....
-  Address followingAddress() {return firstAddress() + Size();}
-  
-  // size (in bytes) of a sparc jump instruction 
-  int sizeOfInstrumentation() {return 4;}
+  // NOTE: This is not always the same as insnAddr
+  Address firstAddress() {return addr;}
 
+  // address of 1st instruction AFTER those clobbered by inst point....
+  Address followingAddress() {return addr + Size();}
+  
   bool match(instPoint *p);
 
   // address of the actual instPoint instruction
   int insnAddress() { return insnAddr; }
 
   bool getRelocated() { return relocated_; }
-  void setRelocated() {relocated_ = true;}
+  void setRelocated() { relocated_ = true; }
 
-  // These are the instructions corresponding to different instrumentation
-  // points (the instr point is always the "originalInstruction" instruction,
-  // "addr" has the value of the address of "originalInstruction")
-  // 
-  //  entry point	   entry point leaf	  call site 
-  //  -----------	   ----------------       ---------
-  //  saveInstr		   originalInstruction    originalInstruction	
-  //  originalInstruction  otherInstruction	  delaySlotInsn
-  //  delaySlotInsn 	   delaySlotInsn	  aggregateInsn
-  //  isDelayedInsn 	   isDelayedInsn
-  //  aggregateInsn 
-  // 
-  //  return leaf		return non-leaf
-  //  ----------		---------------
-  //  originalInstruction  	originalInstruction
-  //  otherInstruction		delaySlotInsn
-  //  delaySlotInsn
-  //  inDelaySlotInsn
-  //  extraInsn
-  // 
 
 // TODO: These should all be private
-  Address insnAddr;                   // address of the instPoint
-  Address addr;                       // address of the first insn in the 
-                                      // instPoints footprint 
-  instruction originalInstruction;    // original instruction
-  instruction delaySlotInsn;          // original instruction
-  instruction aggregateInsn;          // aggregate insn
-  instruction otherInstruction;       
-  instruction isDelayedInsn;  
-  instruction inDelaySlotInsn;
-  instruction extraInsn;   	// if 1st instr is conditional branch this is
-			        // previous instruction 
-  instruction saveInsn;         // valid only with nonLeaf function entry 
 
-  bool inDelaySlot;             // Is the instruction in a delay slot
-  bool isDelayed;		// is the instruction a delayed instruction
+  Address insnAddr;   // address of the instruction to be instrumented
+  Address addr;       // address of the first insn in the instPoint's 
+                      // footprint (not counting the prior instructions)
+
+  instruction firstPriorInstruction;   // The three instructions just before
+  instruction secondPriorInstruction;  // the instruction to be instrumented
+  instruction thirdPriorInstruction;
+
+  instruction firstInstruction;        // The instruction to be instrumented
+  instruction secondInstruction;       // and the four instructions that
+  instruction thirdInstruction;        // come after it
+  instruction fourthInstruction;
+  instruction fifthInstruction;
+
+  bool firstPriorIsDCTI;               // indicate whether the named instruction
+  bool secondPriorIsDCTI;              // is a Delayed Control Transfer 
+  bool thirdPriorIsDCTI;               // Instruction
+  bool firstIsDCTI;
+  bool secondIsDCTI;
+  bool thirdIsDCTI;
+
+  bool firstPriorIsAggregate;          // indicate whether the instruction is a
+  bool thirdIsAggregate;               // the aggregate of a call.
+  bool fourthIsAggregate;              // (i.e. when a function returns
+  bool fifthIsAggregate;               //  a structure, the instruction after 
+                                       //  the delay slot of any call to that
+                                       //  function is a byte indicating the
+                                       //  the size of the structure that will
+                                       //  be returned)
+  
+  bool usesPriorInstructions;  // whether prior instructions need to be claimed
+  int  numPriorInstructions;   // how many prior instructions
+
   bool callIndirect;		// is it a call whose target is rt computed ?
-  bool callAggregate;		// calling a func that returns an aggregate
-				// we need to reolcate three insns in this case
   pd_Function *callee;		// what function is called
   pd_Function *func;		// what function we are inst
   bool isBranchOut;             // true if this point is a conditional branch, 
@@ -184,10 +175,9 @@ public:
   int instId;                   // id of inst in this function
   int size;                     // size of multiple instruction sequences
   const image *image_ptr;	// for finding correct image in process
-  bool firstIsConditional;      // 1st instruction is conditional branch
   bool relocated_;	        // true if instPoint is from a relocated func
 
-  bool isLongJump;              // true if it turned out the branch from this 
+  bool needsLongJump;              // true if it turned out the branch from this 
                                 // point to baseTramp needs long jump.   
 
   // VG(11/06/01): there is some common stuff amongst instPoint

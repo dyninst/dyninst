@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-sparc.s,v 1.22 2000/08/02 22:00:24 tikir Exp $ */
+/* $Id: tramp-sparc.s,v 1.23 2002/01/29 00:19:32 gurari Exp $ */
 
 /*
  * trampoline code to get from a code location to an inst. primitive.
@@ -242,6 +242,7 @@ _baseTramp_restorePostInsn:
 	restore
 	.word	RETURN_INSN
 	nop			/* see if this prevents crash jkh 4/4/95 */
+	nop
 	.word	END_TRAMP
 
 

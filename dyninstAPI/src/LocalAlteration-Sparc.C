@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.12 2001/08/31 18:15:23 gurari Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.13 2002/01/29 00:19:31 gurari Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -142,6 +142,7 @@ JmpNopTailCallOptimization::JmpNopTailCallOptimization(pd_Function *f,
 //                                    mov %i5 %o5
 //                                    ret
 //                                    restore
+//                                    nop
 bool JmpNopTailCallOptimization::RewriteFootprint( Address /* oldBaseAdr */, 
                                                    Address &oldAdr, 
                                                    Address newBaseAdr, 
@@ -213,7 +214,11 @@ bool JmpNopTailCallOptimization::RewriteFootprint( Address /* oldBaseAdr */,
     generateJmplInsn(&newInstr[i++], REG_I(7), 8 ,0);
     
     // generate restore operation....
-    genSimpleInsn(&newInstr[i], RESTOREop3, 0, 0, 0);
+    genSimpleInsn(&newInstr[i++], RESTOREop3, 0, 0, 0);
+
+    // generate NOP following call instruction (for instrumentation)
+    //  ....
+    generateNOOP(&newInstr[i++]);
 
     //
     // And modify inout params....
@@ -224,8 +229,8 @@ bool JmpNopTailCallOptimization::RewriteFootprint( Address /* oldBaseAdr */,
     oldOffset += 2;
 
     // newAdr incremented by # of instructions written (curr 18)....
-    newAdr += 18 * sizeof(instruction);
-    newOffset += 18;
+    newAdr += 19 * sizeof(instruction);
+    newOffset += 19;
     return true;
 }
 
@@ -244,8 +249,8 @@ bool JmpNopTailCallOptimization::UpdateExpansions(FunctionExpansionRecord *fer) 
     //  A jump to (before) the nop should go to after the new ret, retsore (17 extra offset)....
     //   ==> code currently assumes this never happens (why branch to a nop)....
     // Jumps that go around the region get an extra offset of the size change 
-    //  (old: 2 instructions, new : 18 instructions)....
-    fer->AddExpansion(beginning_offset + sizeof(instruction), 16 * sizeof(instruction));
+    //  (old: 2 instructions, new : 19 instructions)....
+    fer->AddExpansion(beginning_offset + sizeof(instruction), 17 * sizeof(instruction));
     return true;
 }
 
@@ -262,12 +267,12 @@ bool JmpNopTailCallOptimization::UpdateInstPoints(FunctionExpansionRecord *ips) 
     ips->AddExpansion(beginning_offset + sizeof(instruction), 7 * sizeof(instruction));
     // One more insn of offset is added to make the total # of bytes of offset agree
     //  with the size change....
-    ips->AddExpansion(beginning_offset + 2 * sizeof(instruction), sizeof(instruction));
+    ips->AddExpansion(beginning_offset + 3 * sizeof(instruction), sizeof(instruction));
     return true;
 } 
 
 int JmpNopTailCallOptimization::getShift() const {
-    return 16 * sizeof(instruction);
+    return 17 * sizeof(instruction);
 }
 
 // the number of machine instructions added during the rewriting of the
@@ -310,6 +315,8 @@ CallRestoreTailCallOptimization::CallRestoreTailCallOptimization(
 //                                    mov %i5 %o5
 //                                    ret
 //                                    restore
+//                                    nop
+//
 //   before:          --->             after
 // ---------------------------------------------------
 //                                    add %rs1, reg_or_imm, %rd'
@@ -329,6 +336,7 @@ CallRestoreTailCallOptimization::CallRestoreTailCallOptimization(
 //                                    mov %i5 %o5
 //                                    ret
 //                                    restore
+//                                    nop
 bool CallRestoreTailCallOptimization::RewriteFootprint( 
                                         Address /* oldBaseAdr */, 
                                         Address &oldAdr, 
@@ -443,8 +451,8 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(
         // in the case of a jmpl call, 18 instructions are generated
         // and used to replace origional 2 (call, restore), resulting
         // in a new addition of 16 instructions....
-        newAdr += 18 * sizeof(instruction);
-        newOffset += 18; 
+        newAdr += 19 * sizeof(instruction);
+        newOffset += 19; 
     } else {
         // if the original call was a call to an ADDRESS, then want
         //  to copy the original call.  There is, however, a potential
@@ -461,8 +469,8 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(
             
         // in the case of a "true" call, 17 instructions are generated
         //  + replace origional 2, resulting in addition of 15 instrs.
-        newAdr += 17 * sizeof(instruction);  
-        newOffset += 17; 
+        newAdr += 18 * sizeof(instruction);  
+        newOffset += 18; 
    }
  
     // generate NOP following call instruction (for delay slot)
@@ -483,6 +491,9 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(
     
     // generate restore operation....
     genSimpleInsn(&newInstr[offset++], RESTOREop3, 0, 0, 0);
+
+    // generate NOP following call instruction (for instrumentation)
+    generateNOOP(&newInstr[offset++]);
 
     // alteration covers 2 instructions in original code....
     oldAdr += 2 * sizeof(instruction);
@@ -506,11 +517,11 @@ bool CallRestoreTailCallOptimization::UpdateExpansions(FunctionExpansionRecord *
     assert(jmpl_call || true_call);
     if (true_call) {
         // call ADDR results in 15 extra instructions....
-        fer->AddExpansion(beginning_offset, 15 * sizeof(instruction));
+        fer->AddExpansion(beginning_offset, 16 * sizeof(instruction));
     }
     else if (jmpl_call) {
         // call %reg results in 16 extra instructions....
-        fer->AddExpansion(beginning_offset, 16 * sizeof(instruction));
+        fer->AddExpansion(beginning_offset, 17 * sizeof(instruction));
     }
     return true;
 }
@@ -526,11 +537,15 @@ bool CallRestoreTailCallOptimization::UpdateInstPoints(FunctionExpansionRecord *
         ips->AddExpansion(beginning_offset, 7 * sizeof(instruction));
 	ips->AddExpansion(beginning_offset + sizeof(instruction), 
 			  7 * sizeof(instruction));
-	ips->AddExpansion(beginning_offset + 2 * sizeof(instruction), sizeof(instruction));
+	ips->AddExpansion(beginning_offset + 3 * sizeof(instruction), 
+                          sizeof(instruction));
+
     } else if (jmpl_call) {
         ips->AddExpansion(beginning_offset, 8 * sizeof(instruction));
-        ips->AddExpansion(beginning_offset + sizeof(instruction), 7 * sizeof(instruction));
-	ips->AddExpansion(beginning_offset + 2 * sizeof(instruction), sizeof(instruction));
+        ips->AddExpansion(beginning_offset + sizeof(instruction), 
+                          7 * sizeof(instruction));
+	ips->AddExpansion(beginning_offset + 3 * sizeof(instruction), 
+                          sizeof(instruction));
     } 
     return true;
 }
@@ -538,12 +553,12 @@ bool CallRestoreTailCallOptimization::UpdateInstPoints(FunctionExpansionRecord *
 int CallRestoreTailCallOptimization::getShift() const {
     assert(jmpl_call || true_call);
     if (true_call) {
-        // call ADDR results in 15 extra instructions....
-        return 15 * sizeof(instruction);
+        // call ADDR results in 16 extra instructions....
+        return 16 * sizeof(instruction);
     } else {
         if (jmpl_call) {
-          // call %reg results in 16 extra instructions....
-          return 16 * sizeof(instruction);
+          // call %reg results in 17 extra instructions....
+          return 17 * sizeof(instruction);
 	}
     }
  

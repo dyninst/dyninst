@@ -11,8 +11,6 @@ class LocalAlteration;
 /****************************************************************************/
 /****************************************************************************/
 
-/* Platform independent */
-
 // update the target of relative branches (near jumps for x86) whose
 // destination is outside the function
 
@@ -297,8 +295,8 @@ bool expanded = true;
   mutator = addressOfMachineInsn(&oldInstructions[0]);
 
 #ifdef DEBUG_FUNC_RELOC
-  cerr << " mutator = " << mutator << endl;
-  cerr << " mutatee = " << mutatee << endl;
+  cerr << " mutator = " << hex << mutator << endl;
+  cerr << " mutatee = " << hex << mutatee << endl;
 #endif
 
   // discover which instPoints need to be expaned  
@@ -390,7 +388,7 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
     if(!reloc_info){  
       Address ipAddr = 0;
       proc->getBaseAddress(owner,ipAddr);
-      ipAddr += location -> iPgetAddress();
+      ipAddr += location->iPgetAddress();
       u_int ret = inferiorMalloc(proc, size() + totalSizeChange, textHeap, ipAddr);
       newAdr = ret;
       if(!newAdr) {
@@ -872,13 +870,7 @@ bool combineAlterationSets(LocalAlterationSet *combined_alteration_set,
   assert (combined_alteration_set != NULL);
   assert (alteration_set != NULL);
 
-#ifndef USE_STL_VECTOR
   LocalAlterationSet temp_alteration_set = *combined_alteration_set;
-#else
-  LocalAlterationSet temp_alteration_set;
-  temp_alteration_set = *combined_alteration_set;
-#endif
-
   combined_alteration_set->Flush();
 
 #ifdef DEBUG_FUNC_RELOC 
@@ -1131,7 +1123,6 @@ bool pd_Function::relocateFunction(process *proc,
 #if defined(sparc_sun_solaris2_4)
 	extern void generateBranchOrCall(process* , Address , Address);
         generateBranchOrCall(proc, origAddress, ret);
-
 #else
 	generateBranch(proc, origAddress, ret);
 #endif
@@ -1182,21 +1173,25 @@ void pd_Function::sorted_ips_vector(vector<instPoint*>&fill_in) {
     returns_idx = calls_idx = 0;
 
     // step through funcReturns and calls, popping element off of each and
-    //  looking at iPgetAddress() to see which one to stick onto fill_in next....
+    // looking at insnAddress() to see which one to stick onto fill_in next...
     while (returns_idx < funcReturns.size() || calls_idx < calls.size()) {
         if (returns_idx < funcReturns.size()) {
-	    returns_ip_addr = funcReturns[returns_idx]->iPgetAddress();
+	    returns_ip_addr = funcReturns[returns_idx]->insnAddress();
         } else {
 	    returns_ip_addr = MAX_ADDRESS;
 	}
 	
         if (calls_idx < calls.size()) {
-	    calls_ip_addr = calls[calls_idx]->iPgetAddress();
+	    calls_ip_addr = calls[calls_idx]->insnAddress();
         } else {
 	    calls_ip_addr = MAX_ADDRESS;
 	}
 
 	// 2 inst points at same location????
+        if (returns_ip_addr == calls_ip_addr) {
+          cerr << "return = " << returns_ip_addr << ", "
+               << "call = " << calls_ip_addr << endl;
+	}
 	assert(returns_ip_addr != calls_ip_addr);
 
 	// if next call inst point comes before next return inst point, add
