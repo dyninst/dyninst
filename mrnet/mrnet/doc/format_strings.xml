@@ -1,0 +1,84 @@
+<appendix id="format_strings"><title>MRNET Format Strings</title>
+<para>
+Following  the  % character introducing a conversion there
+may be a number of flag characters. <emphasis>u</emphasis>,
+<emphasis>h</emphasis>, <emphasis>l</emphasis>, and <emphasis>a</emphasis>
+are special modifiers meaning unsigned, short, long and array, respectivley.
+The full set of conversions are:
+</para>
+
+<informaltable frame="top">
+<tgroup cols="2">
+<colspec colname="col2" colnum="2" rowsep="1"/>
+<tbody>
+<row>
+<entry>c</entry><entry>Matches a signed 8-bit character</entry>
+</row>
+<row>
+<entry>uc</entry><entry>Matches a signed 8-bit character</entry>
+</row>
+<row>
+<entry>ac</entry><entry>Matches an array of signed 8-bit characters</entry>
+</row>
+<row>
+<entry>auc</entry><entry>Matches an array of unsigned 8-bit characters</entry>
+</row>
+<row>
+<entry>hd</entry><entry>Matches a signed 16-bit decimal integer</entry>
+</row>
+<row>
+<entry>uhd</entry><entry>Matches an unsigned 16-bit decimal integer</entry>
+</row>
+<row>
+<entry>ahd</entry><entry>Matches an array of signed 16-bit decimal integers</entry>
+</row>
+<row>
+<entry>auhd</entry><entry>Matches an array of unsigned 16-bit decimal integers</entry>
+</row>
+<row>
+<entry>d</entry><entry>Matches a signed 32-bit decimal integer</entry>
+</row>
+<row>
+<entry>ud</entry><entry>Matches an unsigned 32-bit decimal integer</entry>
+</row>
+<row>
+<entry>ad</entry><entry>Matches an array of signed 32-bit decimal integers</entry>
+</row>
+<row>
+<entry>aud</entry><entry>Matches an array of unsigned 32-bit decimal integers</entry>
+</row>
+<row>
+<entry>ld</entry><entry>Matches a signed 64-bit decimal integer</entry>
+</row>
+<row>
+<entry>uld</entry><entry>Matches an unsigned 64-bit decimal integer</entry>
+</row>
+<row>
+<entry>ald</entry><entry>Matches an array of signed 64-bit decimal integers</entry>
+</row>
+<row>
+<entry>auld</entry><entry>Matches an array of unsigned 64-bit decimal integers</entry>
+</row>
+<row>
+<entry>f</entry><entry>Matches a 32-bit floating-point number</entry>
+</row>
+<row>
+<entry>af</entry><entry>Matches an array of 32-bit floating-point numbers</entry>
+</row>
+<row>
+<entry>lf</entry><entry>Matches a 64-bit floating-point number</entry>
+</row>
+<row>
+<entry>alf</entry><entry>Matches an array of 64-bit floating-point numbers</entry>
+</row>
+<row>
+<entry>s</entry><entry>Matches a null-terminated character string.</entry>
+</row>
+<row>
+<entry>as</entry><entry>Matches an array of null-terminated character strings</entry>
+</row>
+</tbody>
+</tgroup>
+</informaltable>
+
+</appendix>

@@ -1,0 +1,52 @@
+<chapter><title>Introduction</title>
+<para>
+MRNet is a customizable, high-throughput communication software system for
+parallel tools with a master/slave architecture. MRNet reduces the cost of these
+tools' activities by incorporating a tree of processes between the tool's
+front-end and back-ends. MRNet uses these internal processes to distribute many
+important tool activities, reducing analysis time and keeping tool front-end
+loads manageable.
+</para>
+
+<para>
+MRNet-based tools send data between front-end and back-ends on logical flows of
+data called streams. MRNet internal processes use filters to synchronize and
+aggregate data sent to the tool's front-end. Using filters to manipulate data in
+parallel as it passes through the network, MRNet can efficiently compute
+averages, sums, and other more complex aggregations on back-end data.
+</para>
+
+<para>
+Several features make MRNet especially well-suited as a general facility for
+building scalable parallel tools:
+<itemizedlist>
+<listitem><emphasis>Flexible organization.</emphasis> MRNet does not dictate
+the organization of MRNet and tool processes. MRNet process organization is
+specified in a configuration file that can specify common network layouts like
+k-ary and k-nomial trees, or custom layouts tailored to the system(s) running
+the tool. For example, MRNet internal processes can be allocated to dedicated
+system nodes or co-located with tool back-end and application processes.
+</listitem>
+
+<listitem><emphasis>Scalable, flexible data aggregation.</emphasis> MRNet's
+built-in filters provide efficient computation of averages, sums, concatenation,
+and other common data reductions. Custom filters can be loaded dynamically into
+the network to perform tool-specific aggregation operations. </listitem>
+
+<listitem><emphasis>High-bandwidth communication.</emphasis> MRNet transfers data
+within the tool system using an efficient, packed binary representation.
+Zero-copy data paths are used whenever possible to reduce the cost of
+transferring data through internal processes.</listitem>
+
+<listitem><emphasis>Scalable multicast</emphasis>. As the number of back-ends
+increases, serialization when sending control requests limits the scalability of
+existing tools. MRNet supports efficient message multicast to reduce the cost of
+issuing control requests from the tool front-end to its back-ends.</listitem>
+
+<listitem><emphasis>Multiple concurrent data channels.</emphasis> MRNet supports
+multiple logical streams of data between tool components. Data aggregation and
+message multicast takes place within the context of a data stream, and multiple
+operations (both upward and downward) can be active simultaneously.</listitem>
+</itemizedlist>
+</para>
+</chapter>

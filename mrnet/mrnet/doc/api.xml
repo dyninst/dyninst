@@ -1,0 +1,352 @@
+<chapter id="mrnet_api"><title>The MRNet C++ API Reference</title>
+
+<para>
+All classes are included in the <varname>MRN</varname> namespace.
+For this discussion, we do not explicitly include reference to the
+namespace; for example, when we reference the class Network, we are
+implying the class MRN::Network.
+</para>
+
+<para>
+In MRNet, there are four top-level classes: Network, EndPoint,
+Communicator, and Stream. The Network class contains primarily
+static methods that allow one to instantiate, and destroy MRNet
+process trees and to query instantiated trees for information.
+Application back-ends are referred to as end-points and are
+encapsulated by objects of type EndPoint. The Communicator
+class is used to reference a group of EndPoints and can be used
+to establish MRNet Streams for unicast, multicast or broadcast
+communications via the MRNet infrastructure.
+The public members of these classes are detailed below.
+</para>
+
+<sect1> <title>Class Network</title>
+<funcsynopsis>
+<funcprototype>
+  <funcdef>static int <function>Network::new_Network</function></funcdef>
+    <paramdef>const char *<parameter>config_file</parameter></paramdef>
+    <paramdef>const char * <parameter>commnode_exe</parameter></paramdef>
+    <paramdef>const char * <parameter>backend_exe</parameter></paramdef>
+</funcprototype>
+<blockquote>
+<function>Network::new_Network</function> is a static method that is used
+to instantiate the MRNet process tree. <varname>config_file</varname> is
+the path to a configuration file that describes the desired process tree
+topology. <varname>commnode_exe</varname> is the path to the mrnet_commnode
+executable that should have been built at installation time, and
+<varname>backend_exe</varname> is the path to the executable to be used
+for the application's back-end processes. When this function returns without
+error, all MRNet internal processes and the application back-end processes
+will have been instantiated using rsh or ssh depending on the setting of
+the environment variable <varname>MRNET_RSH</varname>.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>static void <function>Network::delete_Network</function></funcdef>
+  <void></void>
+</funcprototype>
+<blockquote>
+<function>Network::delete_Network</function> is used to tear down the
+MRNet process tree. When this function is called, each node in the
+MRNet configuration sends a control message to its immediate children
+informing them of the "delete network" request. After delivering this
+message, the process itself terminates. Note: if the application back-ends
+have not already terminated, invoking this method will cause them to
+terminate.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>static void <function>Network::print_error</function></funcdef>
+  <paramdef>const char * <parameter>error_str</parameter></paramdef>
+</funcprototype>
+<blockquote>
+<function>Network::print_error</function> prints a message to stderr
+describing the last error encountered during a MRNet library call. It
+first prints the null-terminated string, <varname>error_str</varname>
+followed by a colon then actual error message followed by a newline.
+</blockquote>
+</funcsynopsis>
+</sect1>
+
+
+<sect1><title>Class Communicator</title>
+<funcsynopsis>
+<funcprototype>
+  <funcdef>static Communicator * <function>Communicator::new_ Communicator</function></funcdef>
+    <void></void>
+</funcprototype>
+<blockquote>
+This function returns a pointer to a new Communicator object. The object
+initially contains <emphasis>no</emphasis> endpoints. Use <function>
+Communicator::add_EndPoint( )</function> to populate the communicator.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>static Communicator * <function>Communicator::new_ Communicator</function></funcdef>
+    <paramdef>Communicator &amp;<parameter>orig_comm</parameter></paramdef>
+</funcprototype>
+<blockquote>
+This function returns a pointer to a new Communicator object that initially
+contains the set of endpoints contained in <varname>orig_comm</varname>.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>static Communicator * <function>Communicator::get_ BroadcastCommunicator</function></funcdef>
+    <void></void>
+</funcprototype>
+<blockquote>
+This function returns a pointer to a default communicator containing all the
+endpoints available in the system. Multiple calls to this function return
+the same pointer to the broadcast communicator object created at network
+instantiation.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>int <function>Communicator::add_EndPoint</function></funcdef>
+    <paramdef>const char * <parameter>hostname</parameter></paramdef>
+    <paramdef>unsigned short <parameter>port</parameter></paramdef>
+</funcprototype>
+<blockquote>
+This function is used to add a new EndPoint object to the set contained
+by the communicator. The original set of endpoints contained by the
+communicator is tested to see if it already contains the potentially
+new endpoint. If so, the function silently returns successfully.
+This function fails if there exists no endpoint defined by
+<varname>hostname</varname>:<varname>port</varname>.
+This function returns 0 on success, -1 on failure.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>int <function>Communicator::add_EndPoint</function></funcdef>
+    <paramdef>EndPoint &amp; <parameter>endpoint</parameter></paramdef>
+</funcprototype>
+<blockquote>
+This function is similar to the <function>add_EndPoint()</function>
+above except that it takes an explicit EndPoint object instead of
+hostname and port parameters. Success and failure conditions are
+exactly as stated above. This function also returns 0 on success and
+-1 on failure.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>unsigned int <function>Communicator::size</function></funcdef>
+    <void></void>
+</funcprototype>
+<blockquote>
+This function returns the number of endpoints contained in the communicator.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>const char * <function>Communicator::get_HostName</function></funcdef>
+    <paramdef>unsigned int <parameter>idx</parameter></paramdef>
+</funcprototype>
+<blockquote>
+This function returns a character string identifying the hostname of the
+endpoint at position <varname>idx</varname> in the set contained by
+the communicator. A return value of NULL signals that <varname>idx></varname>
+is out of range.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>unsigned short <function>Communicator::get_Port</function></funcdef>
+    <paramdef>unsigned int <parameter>idx</parameter></paramdef>
+</funcprototype>
+<blockquote>
+This function returns an unsigned short identifying the connection port of the
+endpoint at position <varname>idx</varname> in the set contained by
+the communicator. A return value of NULL signals that <varname>idx></varname>
+is out of range.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>unsigned int <function>Communicator::get_Id</function></funcdef>
+    <paramdef>unsigned int <parameter>idx</parameter></paramdef>
+</funcprototype>
+<blockquote>
+This function returns an unsigned int that is used by MRNet to uniquely
+identify the endpoint at position <varname>idx</varname> in the set contained by
+the communicator. A return value of NULL signals that <varname>idx></varname>
+is out of range.
+</blockquote>
+</funcsynopsis>
+</sect1>
+
+<sect1><title>Class Stream</title>
+<funcsynopsis>
+<funcprototype>
+  <funcdef>static Stream * <function>Stream::new_Stream</function></funcdef>
+    <paramdef>Communicator *<parameter>comm</parameter></paramdef>
+    <paramdef>unsigned int <parameter>filter_id</parameter></paramdef>
+</funcprototype>
+<blockquote>
+<function>Stream::new_Stream</function> creates a MRNet stream object attached
+to the endpoints specified by the <varname>comm</varname> argument. The
+second argument <varname>filter_id</varname> specifies the filtering operation
+to apply to data flowing upstream from the application back-ends toward the front-end.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>static int <function>Stream::recv</function></funcdef>
+    <paramdef>int *<parameter>tag</parameter></paramdef>
+    <paramdef>void * * <parameter>buf</parameter></paramdef>
+    <paramdef>Stream * * <parameter>stream</parameter></paramdef>
+</funcprototype>
+<blockquote>
+This non-blocking function is used to invoke a stream-anonymous
+receive operation. Any packet available (addressed to any stream)
+will be returned (in roughly FIFO ordering) via the output parameters
+passed in. <varname>tag</varname> will be filled in with the integer
+tag value that was passed by the corresponding <function>Stream::send()
+</function> operation. <varname>buf</varname> is an opaque structure
+that must be passed to the <function>Stream::unpack</function> described
+below. Finally, a pointer to the stream to which the packet was addressed
+will be returned in <varname>stream</varname>. A return value of -1 indicates
+an error, 0 indicates no packets were available, and 1 indicates success.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>static int <function>Stream::unpack</function></funcdef>
+    <paramdef>char *<parameter>buf</parameter></paramdef>
+    <paramdef>const char * <parameter>format_str</parameter></paramdef>
+    <varargs></varargs>
+</funcprototype>
+<blockquote>
+This function operates similarily to C's <function>sscanf</function>. It
+takes a <varname>buf</varname> parameter that was returned by a previous call
+to <function>Stream::recv()</function>. <varname>format_str</varname> is
+a format string describing the datatypes expected in the packet returned by
+<function>Stream::recv()</function> (See <xref linkend="format_strings"></xref>
+for a full description.) On success, <function>Stream::unpack()</function>
+returns 0; on failure, -1.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>int <function>Stream::send</function></funcdef>
+    <paramdef>int <parameter>tag</parameter></paramdef>
+    <paramdef>const char  * <parameter>format_str</parameter></paramdef>
+    <varargs></varargs>
+</funcprototype>
+<blockquote>
+This function invokes a data output operation on the calling stream.
+<varname>tag</varname> is an integer identifier that is expected
+to classify the data in the packet to be transmitted across the stream.
+<varname>format_str</varname> is a format string describing the data
+in the packet (See <xref linkend="format_strings"></xref>
+for a full description.) On success, <function>Stream::send()</function>
+returns 0; on failure, -1.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>int <function>Stream::flush</function></funcdef>
+    <void></void>
+</funcprototype>
+<blockquote>
+This function commits a flush of all packets currently buffered by the stream
+pending an output operation. A successful return indicates that all packets
+on the calling stream have been passed to the operating system kernel for
+network transmission.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>int <function>Stream::recv</function></funcdef>
+    <paramdef>int *<parameter>tag</parameter></paramdef>
+    <paramdef>void * * <parameter>buf</parameter></paramdef>
+</funcprototype>
+<blockquote>
+This non-blocking function is used to invoke a stream-specific
+receive operation. Packets addressed to the calling stream
+will be returned in strictly FIFO ordering via the output parameters
+passed in. <varname>tag</varname> will be filled in with the integer
+tag value that was passed by the corresponding <function>Stream::send()
+</function> operation. <varname>buf</varname> is an opaque structure
+that must be passed to the <function>Stream::unpack</function> described
+below. A return value of -1 indicates
+an error, 0 indicates no packets were available, and 1 indicates success.
+</blockquote>
+</funcsynopsis>
+</sect1>
+
+<!--
+<sect1><title>Class EndPoint</title>
+<para>
+<funcsynopsis>
+<funcprototype>
+  <funcdef>static EndPoint * <function>EndPoint::new_EndPoint</function></funcdef>
+    <paramdef>int<parameter>id</parameter></paramdef>
+    <paramdef>const char * <parameter>hostname</parameter></paramdef>
+    <paramdef>unsigned short  <parameter>port</parameter></paramdef>
+</funcprototype>
+<blockquote>
+<function>EndPoint::new_EndPoint</function> is used to obtain a handle to
+an EndPoint object representing one of the application back-ends.
+</blockquote>
+</funcsynopsis>
+</para>
+
+<para>
+<funcsynopsis>
+<funcprototype>
+  <funcdef>const char * <function>EndPoint::get_HostName</function></funcdef>
+    <void></void>
+</funcprototype>
+<blockquote>
+This function ...
+</blockquote>
+</funcsynopsis>
+</para>
+
+<para>
+<funcsynopsis>
+<funcprototype>
+  <funcdef> unsigned short <function>EndPoint::get_Port</function></funcdef>
+    <void></void>
+</funcprototype>
+<blockquote>
+This function ...
+</blockquote>
+</funcsynopsis>
+</para>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>unsigned int <function>EndPoint::get_Id</function></funcdef>
+    <void></void>
+</funcprototype>
+<blockquote>
+This function ...
+</blockquote>
+</funcsynopsis>
+</sect1>
+-->
+
+</chapter>

@@ -1,0 +1,115 @@
+<chapter><title>Installing and Using MRNet</title>
+<para>
+For this discussion, <varname>$MRNET_ROOT</varname> is the location of the
+top-level directory of the MRNet distribution and
+<varname>$MRNET_ARCH</varname> is a string describing the platform (OS and
+architecture) as discovered by autoconf. For all instructions, it is
+assumed that the current working directory is <varname>$MRNET_ROOT</varname>.
+</para>
+
+<sect1><title>Supported Platforms and Compilers</title>
+<para>
+MRNet has been developed to be highly portable; there is no
+reason why it should not run properly on all common Unix-based
+platforms. This being said, we have successfully built and
+tested MRNet using <application>GCC version 3 compilers</application>
+on the following systems:
+<itemizedlist>
+<listitem>i686-pc-linux-gnu</listitem>
+<listitem>rs6000-ibm-aix5.1.0.0</listitem>
+<listitem>sparc-sun-solaris2.8</listitem>
+</itemizedlist>
+
+We are currently upgrading our build system to allow the use
+of native compilers where appropriate, for instance,
+<application>xlc</application> and <application>xlC</application>
+in AIX environments.
+</para>
+
+</sect1>
+
+<sect1><title>System Requirements</title>
+<para>
+Here we list the third party tools that MRNet uses and needs for
+proper installation:
+
+<itemizedlist>
+<listitem>GNU make</listitem>
+<listitem>flex</listitem>
+<listitem>bison</listitem>
+</itemizedlist>
+</para>
+</sect1>
+
+<sect1><title>Build Configuration</title>
+<para>
+MRNet uses <application>GNU autoconf</application> to discover the
+platform specific configuration parameters. The script that does
+this auto-configuration is called <command>configure</command>.
+<screen>
+<prompt>UNIX></prompt>  <command>./configure --help</command>
+</screen>
+shows all possible options of the command. Below, we display the
+MRNet-specific ones:
+
+<screen>
+<computeroutput>
+===Begin MRNET Compile Options:
+  --with-cc                   Specify C compiler
+  --with-cflags               Set C compiler flags
+                                  - (ONLY USE WITH --with-cc)
+  --with-cxx                  Specify C++ compiler
+  --with-cxxflags             Set C++ compiler flags
+                                  - (ONLY USE WITH --with-cxx)
+  --with-ldflags              Set loader flags
+  --with-libfl                Link line for flex library
+</computeroutput>
+</screen>
+
+For example,
+<screen>
+<prompt>UNIX></prompt> <command>./configure --with-cc=cc --with-cxx=c++ --with-libfl=/usr/local/lib/libfl.a</command>
+</screen>
+
+instructs the configure script to use <command>cc</command> for the C
+compiler, <command>c++</command> for the C++ compiler and
+<filename>/usr/local/lib/libfl.a</filename> as the location of the flex library.
+</para>
+</sect1>
+
+<sect1><title>Compilation and Installation</title>
+<para>
+To build the MRNet toolkit by type:
+<screen>
+<prompt>UNIX></prompt>  <command>make</command>
+</screen>
+After a successful build, the following files will be present:
+<itemizedlist>
+<listitem><filename>$MRNET_ROOT/lib/$MRNET_ARCH/libmrnet.a</filename>: MRNet
+API library</listitem>
+<listitem><filename>$MRNET_ROOT/bin/$MRNET_ARCH/mrnet_commnode</filename>: MRNet
+internal communcation node (used internally)</listitem>
+<listitem><filename>$MRNET_ROOT/bin/$MRNET_ARCH/mrnet_confgen</filename>: MRNet
+topology file generator</listitem>
+<listitem><filename>$MRNET_ROOT/bin/$MRNET_ARCH/*_[FE,BE]</filename>: MRNet test
+front-end and back-end programs</listitem>
+</itemizedlist>
+</para>
+</sect1>
+
+<sect1><title>Bugs, Questions and Comments</title>
+<para>
+MRNet is maintained by Dorian Arnold at the University of Wisconsin.
+Comments and other feedback whether positive or negative are welcome.
+</para>
+
+<para>
+Please report bugs to darnold@cs.wisc.edu.
+</para>
+
+<para>
+The MRNet webpage is http://www.paradyn.org/mrnet/
+</para>
+</sect1>
+
+</chapter>
