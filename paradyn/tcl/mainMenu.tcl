@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.17  1994/10/09 01:15:26  karavan
+# Revision 1.18  1994/10/26 22:54:38  tamches
+# Added tunable constants menu item
+#
+# Revision 1.17  1994/10/09  01:15:26  karavan
 # Implemented new UIM/visithread interface with metrespair data structure
 # and selection of resources directly on the where axis.
 #
@@ -166,6 +169,8 @@ proc drawToolBar {} {
 	    -command ApplicDefn
     .menub.left.men.b1.m add command -label "Start Perf Consultant" \
 	    -command {paradyn shg start}
+    .menub.left.men.b1.m add command -label "Tunable Constants Control" \
+            -command {tunableEntryPoint}
     .menub.left.men.b1.m add command -label "Options Control" \
 	    -state disabled
     menu .menub.left.men.b2.m 
@@ -208,5 +213,3 @@ proc drawToolBar {} {
     InitApplicDefnScreen 
 
 }
-
-
