@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.50 1999/03/03 18:17:02 pcroth Exp $
+// $Id: main.C,v 1.51 1999/09/10 14:29:04 nash Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -174,12 +174,12 @@ main (int argc, char **argv)
 //     tclpanic(interp, "tix_init() failed (perhaps TIX_LIBRARY not set?");
 
   // copy command-line arguments into tcl vrbles argc / argv
-  char *args = Tcl_Merge(argc - 1, (char **) (argv + 1));
+  char *args = Tcl_Merge(argc - 1, (const char **)(argv + 1));
   Tcl_SetVar(interp, "argv", args, TCL_GLOBAL_ONLY);
   Tcl_Free(args);
 
   string argcStr = string(argc - 1);
-  Tcl_SetVar(interp, "argc", (char*)argcStr.string_of(), TCL_GLOBAL_ONLY);
+  Tcl_SetVar(interp, "argc", argcStr.string_of(), TCL_GLOBAL_ONLY);
   Tcl_SetVar(interp, "argv0", argv[0], TCL_GLOBAL_ONLY);
 
   // Here is one tunable constant that is definitely intended to be hard-coded in:

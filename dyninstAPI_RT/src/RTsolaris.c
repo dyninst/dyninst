@@ -140,7 +140,7 @@ int DYNINSTloadLibrary(char *libname)
 {
     if (dlopen(libname, RTLD_NOW | RTLD_GLOBAL) != NULL)
 	return 1;
-    else 
+    else
 	return 0;
 }
 

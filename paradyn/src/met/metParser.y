@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParser.y,v 1.32 1999/06/03 07:16:15 nash Exp $
+// $Id: metParser.y,v 1.33 1999/09/10 14:29:03 nash Exp $
 
 #include "paradyn/src/met/metParse.h"
 #include "util/h/hist.h"
@@ -61,7 +61,7 @@ extern void handle_error();
 %token tREMOTE_SHELL tAUTO_START
 %token tSEMI tFLAVOR tNAME
 %token tRES_LIST tVISI tUSER tDIR tFALSE tTRUE tFORCE tLIMIT
-%token tEXLIB
+%token tEXLIB tNOCASE tREGEX
 %token tT_PROCEDURE tT_MODULE tT_STRING tT_INT tT_FLOAT tTRUE tFALSE tDEFAULT
 %token tFOREACH tLPAREN tRPAREN tLBLOCK tRBLOCK tDOLLAR tAMPERSAND
 %token tMETRIC tUNS tBASE tUNITS tIS tFUNCTION_CALL
@@ -249,12 +249,38 @@ aItem: tCOMMAND tLITERAL tSEMI
 exlibs: tEXLIB exlibItem
 	;
 
-exlibItem: tLITERAL tSEMI 
-	{
+exlibItem: tNOCASE tLITERAL tSEMI
+	    {
+		metParseError = ERR_NO_ERROR;
+		mdl_data::lib_constraints += *$2.sp;
+		mdl_data::lib_constraint_flags += LIB_CONSTRAINT_NOCASE_FLAG;
+	    }
+	| tREGEX tLITERAL tSEMI
+	    {
+		metParseError = ERR_NO_ERROR;
+		mdl_data::lib_constraints += *$2.sp;
+		mdl_data::lib_constraint_flags += LIB_CONSTRAINT_REGEX_FLAG;
+	    }
+	| tNOCASE tREGEX tLITERAL tSEMI
+	    {
+		metParseError = ERR_NO_ERROR;
+		mdl_data::lib_constraints += *$3.sp;
+		mdl_data::lib_constraint_flags += 
+		    LIB_CONSTRAINT_NOCASE_FLAG | LIB_CONSTRAINT_REGEX_FLAG;
+	    }
+	| tREGEX tNOCASE tLITERAL tSEMI
+	    {
+		metParseError = ERR_NO_ERROR;
+		mdl_data::lib_constraints += *$3.sp;
+		mdl_data::lib_constraint_flags += 
+		    LIB_CONSTRAINT_NOCASE_FLAG | LIB_CONSTRAINT_REGEX_FLAG;
+	    }
+	| tLITERAL tSEMI 
+	    {
 		metParseError = ERR_NO_ERROR;
 		mdl_data::lib_constraints += *$1.sp;
-		mdl_data::lib_constraint_flags += LIB_CONSTRAINT_NOCASE_FLAG;
-	}
+		mdl_data::lib_constraint_flags += 0;
+	    }
 	;
 
 tunableConstant: tTUNABLE_CONSTANT tunableItem

@@ -3,13 +3,13 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.33 1999/05/24 17:12:15 cain Exp $
+# $Id: make.module.tmpl,v 1.34 1999/09/10 14:28:56 nash Exp $
 #
 
-CFLAGS		+= $(TCLFRIENDLYWARNINGS)
-#CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) -DPCDEBUG
-CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) 
-TFLAGS		+= $(TCLFRIENDLYWARNINGS)
+CFLAGS		+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
+#CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) $(XFLAGS) -DPCDEBUG
+CXXFLAGS	+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
+TFLAGS		+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
 
 TARGET	      = paradyn
 

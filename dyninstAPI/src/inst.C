@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.71 1999/08/09 05:50:23 csserra Exp $
+// $Id: inst.C,v 1.72 1999/09/10 14:26:28 nash Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -429,52 +429,54 @@ bool trampTemplate::inSavedRegion( Address addr ) {
 
 
 instPoint * findInstPointFromAddress(const process *proc, Address addr) {
-	unsigned u;
+    unsigned u;
 
-	vector<const instPoint*> ips;
-	vector<trampTemplate*> bts;
-	ips = proc->baseMap.keys();
-	bts = proc->baseMap.values();
-	assert( ips.size() == bts.size() );
-	for( u = 0; u < bts.size(); ++u ) {
-		if( bts[u]->inBasetramp( addr ) )
+    vector<const instPoint*> ips;
+    vector<trampTemplate*> bts;
+    ips = proc->baseMap.keys();
+    bts = proc->baseMap.values();
+    assert( ips.size() == bts.size() );
+    for( u = 0; u < bts.size(); ++u ) {
+	if( bts[u]->inBasetramp( addr ) )
+	{
+	    return const_cast<instPoint*>( ips[u] );
+	}
+    }
+
+    vector<point*> allPoints = activePoints.values();
+
+    for( u = 0; u < allPoints.size(); ++u ) {
+	for( instInstance *inst = allPoints[u]->inst; inst; inst = inst->next ) {
+	    if( inst->proc == proc ) {
+		if( ( inst->trampBase <= addr && inst->returnAddr >= addr )
+		    || inst->baseInstance->inBasetramp( addr ) )
 		{
-			return const_cast<instPoint*>( ips[u] );
+		    return inst->location;
 		}
+	    }
 	}
-
-	vector<point*> allPoints = activePoints.values();
-
-	for( u = 0; u < allPoints.size(); ++u ) {
-		for( instInstance *inst = allPoints[u]->inst; inst; inst = inst->next ) {
-  			if( inst->proc == proc ) {
- 			 if( ( inst->trampBase <= addr && inst->returnAddr >= addr )
-  			 || inst->baseInstance->inBasetramp( addr ) )
-			{
-				return inst->location;
-			}
-		}
-		}
-	}
-	return NULL;
+    }
+    return NULL;
 }
 
-trampTemplate * findBaseTramp( const instPoint * ip ) {
-	if( activePoints.defines( ip ) ) {
-		point *p = activePoints[ ip ];
-		if( p != NULL && p->inst != NULL )
-			return p->inst->baseInstance;
-	}
-	return NULL;
+trampTemplate * findBaseTramp( const instPoint * ip, const process *proc ) {
+    if( activePoints.defines( ip ) ) {
+	point *p = activePoints[ ip ];
+	assert( p );
+	for( instInstance *ii = p->inst; ii; ii = ii->next )
+	    if( ii->proc == proc )
+		return ii->baseInstance;
+    }
+    return NULL;
 }
 
 instInstance * findMiniTramps( const instPoint * ip ) {
-	if( activePoints.defines( ip ) ) {
-		point *p = activePoints[ ip ];
-		if( p != NULL )
-			return p->inst;
-	}
-	return NULL;
+    if( activePoints.defines( ip ) ) {
+	point *p = activePoints[ ip ];
+	assert( p );
+	return p->inst;
+    }
+    return NULL;
 }
 
 
@@ -510,9 +512,10 @@ pd_Function *findAddressInFuncsAndTramps(process *p, Address addr,
     
   // look for address in minitramps ("activePoints")
   vector<point *> pts = activePoints.values();
+  instInstance *inst;
   n = pts.size();
   for (unsigned i2 = 0; i2 < n; i2++) {
-    instInstance *inst = pts[i2]->inst;
+    inst = pts[i2]->inst;
     for ( ; inst != NULL; inst = inst->next) {
       if (inst->proc == p) {
 	if (addr >= inst->trampBase && addr <= inst->returnAddr) {

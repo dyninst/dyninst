@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.191 1999/09/09 15:35:45 zhichen Exp $
+// $Id: process.C,v 1.192 1999/09/10 14:26:28 nash Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2748,6 +2748,30 @@ function_base *process::findOneFunctionFromAll(const string &func_name){
 	    }
     } }
     return(0);
+}
+
+// Returns the named symbol from the image or a shared object
+bool process::getSymbolInfo( const string &name, Symbol &ret ) 
+{
+	if(!symbols)
+		abort();
+
+	bool sflag;
+	sflag = symbols->symbol_info( name, ret );
+	if( sflag )
+		return true;
+
+	if( dynamiclinking && shared_objects ) {
+		for( u_int j = 0; j < shared_objects->size(); ++j ) {
+			sflag = ((*shared_objects)[j])->getSymbolInfo( name, ret );
+			if( sflag ) {
+				ret.setAddr( ret.addr() + (*shared_objects)[j]->getBaseAddress() );
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 // findpdFunctionIn: returns the function which contains this address

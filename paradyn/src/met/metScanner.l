@@ -40,7 +40,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * $Id: metScanner.l,v 1.21 1999/05/25 22:35:52 nash Exp $
+ * $Id: metScanner.l,v 1.22 1999/09/10 14:29:03 nash Exp $
  */
 
 #include <stdio.h>
@@ -180,6 +180,8 @@ COMMENT	{SLASH}{SLASH}
 "process"		{ return(tPROCESS); }
 "visi"		{ return(tVISI); }
 "exclude"		{ return(tEXLIB); }
+"noCase"		{ return(tNOCASE); }
+"regex"		{ return(tREGEX); }
 "tunable_constant"	{ return(tTUNABLE_CONSTANT); }
 "command"		{ return(tCOMMAND); }
 "remoteShell"          { return(tREMOTE_SHELL); }

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.50 1999/08/26 20:02:27 hollings Exp $
+ * $Id: inst-x86.C,v 1.51 1999/09/10 14:26:27 nash Exp $
  */
 
 #include <limits.h>
@@ -201,24 +201,26 @@ bool instPoint::triggeredInStackFrame( pd_Function *stack_func, Address stack_pc
     //cerr << " stack_pc = " << (void*)stack_pc << " when = " << (int)when << endl;
 
     if ( addr_ == func_->addr() && stack_func == func_ ) {
-		//cerr << " hit for function entry" << endl;
-		ret = true;
+	//cerr << " hit for function entry" << endl;
+	ret = true;
     } else if ( insnAtPoint_.isCall() ) {
         if ( stack_func == func_ && when == callPreInsn ) {
-			// check if the stack_pc points to the instruction after the call site
-			Address target = addr_ + insnAtPoint_.size();
-			//cerr << " stack_pc should be " << (void*)target;
-			if ( stack_pc == target ) {
-				//cerr << " -- HIT";
-				ret = true;
-			} else {
-				// Check if the stack_pc is from inside this instPoint
-				trampTemplate *bt = findBaseTramp( this );
-				target = bt->baseAddr + bt->emulateInsOffset + insnAtPoint_.size();
-				if( stack_pc == target )
-					ret = true;
-			}
-			//cerr << endl;
+	    // check if the stack_pc points to the instruction after the call site
+	    Address base, target;
+	    proc->getBaseAddress( stack_func->file()->exec(), base );
+	    target = base + addr_ + insnAtPoint_.size();
+	    //cerr << " stack_pc should be " << (void*)target;
+	    if ( stack_pc == target ) {
+		//cerr << " -- HIT";
+		ret = true;
+	    } else {
+		// Check if the stack_pc is from inside this instPoint
+		trampTemplate *bt = findBaseTramp( this, proc );
+		target = bt->baseAddr + bt->emulateInsOffset + insnAtPoint_.size();
+		if( stack_pc == target )
+		    ret = true;
+	    }
+	    //cerr << endl;
         }
     }
 
@@ -233,19 +235,21 @@ bool instPoint::triggeredExitingStackFrame( pd_Function *stack_func, Address sta
 
     if ( insnAtPoint_.isCall() ) {
         if ( stack_func == func_ && when == callPostInsn ) {
-			Address target = addr_ + insnAtPoint_.size();
-			if ( stack_pc == target ) {
-				ret = true;
-			} else {
-				trampTemplate *bt = findBaseTramp( this );
-				target = bt->baseAddr + bt->emulateInsOffset + insnAtPoint_.size();
-				if( stack_pc == target )
-					ret = true;
-			}
+	    Address base, target;
+	    proc->getBaseAddress( stack_func->file()->exec(), base );
+	    target = base + addr_ + insnAtPoint_.size();
+	    if ( stack_pc == target ) {
+		ret = true;
+	    } else {
+		trampTemplate *bt = findBaseTramp( this, proc );
+		target = bt->baseAddr + bt->emulateInsOffset + insnAtPoint_.size();
+		if( stack_pc == target )
+		    ret = true;
+	    }
         }
     } else if ( addr_ != func_->addr() && stack_func == func_ ) {
-		ret = true;
-	}
+	ret = true;
+    }
 
     return ret;
 }
@@ -1055,7 +1059,7 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, Address ba
  *
  */
 
-trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool noCost) 
+trampTemplate *installBaseTramp(const instPoint *location, process *proc, bool noCost) 
 {
    bool aflag;
 /*

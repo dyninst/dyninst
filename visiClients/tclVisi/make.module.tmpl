@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.12 1998/04/01 02:43:33 wylie Exp $
+# $Id: make.module.tmpl,v 1.13 1999/09/10 14:29:29 nash Exp $
 #
 
 TARGET	      = tclVisi
@@ -25,6 +25,10 @@ IFLAGS	     += -I../../../util/h \
 # say, visi/h/visualization.h.  We don't want to force the user to have
 # "visi" checked out in order to compile tclVisi.
 IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I$(BACKUP_CORE); fi )
+
+CFLAGS += $(XFLAGS)
+CXXFLAGS += $(XFLAGS)
+TFLAGS += $(XFLAGS)
 
 LIBS         += -lvisi -lpdutil
 SYSLIBS      += $(TCLTK_LIBS) $(X11_LIB) -lm

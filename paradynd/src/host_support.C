@@ -257,7 +257,7 @@ PDYN_reg_as_hoster()
     return false;
   }
 
-  if (pe = getpwuid(uid))
+  if ( (pe = getpwuid(uid)) != 0 )
     username = STRALLOC(pe->pw_name);
   else {
     PDYN_goodbye("Register hoster: can't getuid()\n");
@@ -310,7 +310,7 @@ bool PDYN_hoster()
 	  fprintf(stderr, "%d. t%x %s so=\"%s\"\n", i,
 		  hp->h_tid, hp->h_login, hp->h_sopts);
 
-	  if (p = CINDEX(hp->h_login, '@'))
+	  if ( (p = CINDEX(hp->h_login, '@')) != 0 )
 	    {
 	      hp->h_name = STRALLOC(p + 1);
 	      *p = 0;
@@ -406,7 +406,7 @@ pl_startup(int num, struct hst **hostlist)
   struct slot *sp, *sp2;
   struct timeval tnow;
   struct timeval tout;
-  struct fd_set rfds;
+  fd_set rfds;
   int nfds;
   int i;
   int n;
@@ -559,7 +559,7 @@ pl_startup(int num, struct hst **hostlist)
 		    sp->s_hst->h_result = STRALLOC("PvmCantStart");
 		  }
 		sp->s_buf[sp->s_len] = 0;
-		if (p = CINDEX(sp->s_buf + sp->s_len - n, '\n'))
+		if ( (p = CINDEX(sp->s_buf + sp->s_len - n, '\n')) != 0 )
 		  {
 		    if (debugmask)
 		      {
@@ -609,7 +609,7 @@ pl_startup(int num, struct hst **hostlist)
 		/*
 		   q = pvmtxt + strlen(pvmtxt);
 		   */
-		while (c = *p++ & 0x7f)
+		while ( (c = *p++ & 0x7f) != 0 )
 		  {
 		    if (isprint(c))
 		      /*

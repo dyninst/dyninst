@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.14 1999/08/09 05:52:33 csserra Exp $
+ * $Id: Object-elf.C,v 1.15 1999/09/10 14:29:16 nash Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1087,9 +1087,11 @@ bool Object::fix_global_symbol_modules_static_stab(
     for (unsigned i = 0; i < stab_nsyms; i++) {
         switch(stabsyms[i].type) {
 	case N_UNDF: /* start of object file */
+/*
 #if !defined(i386_unknown_linux2_0) && !defined(mips_sgi_irix6_4)
 	    assert(stabsyms[i].name == 1);
 #endif
+*/
 	    stabstr_offset = stabstr_nextoffset;
 	    // stabsyms[i].val has the size of the string table of this module.
 	    // We use this value to compute the offset of the next string table.

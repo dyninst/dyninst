@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.13 1998/08/24 19:27:58 wylie Exp $
+# $Id: make.module.tmpl,v 1.14 1999/09/10 14:29:19 nash Exp $
 #
 
 TARGET	      = barChart
@@ -30,6 +30,9 @@ SRCS	     += $(TO_CORE)/paradyn/src/UIthread/tkTools.C \
 
 TCL_SRCS	= $(wildcard ../tcl/*.tcl)
 SRCS		+= $(TCL2C_GEN_SRCS)
+
+CFLAGS += $(XFLAGS)
+CXXFLAGS += $(XFLAGS)
 
 LIBS         += -lvisi -lpdutil 
 SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm

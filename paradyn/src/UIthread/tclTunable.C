@@ -42,7 +42,7 @@
 // tclTunable.C
 // C++ code that provides access to tunable constants from tcl.
 
-/* $Id: tclTunable.C,v 1.15 1999/04/27 16:03:51 nash Exp $ */
+/* $Id: tclTunable.C,v 1.16 1999/09/10 14:29:01 nash Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // atoi()
@@ -134,7 +134,7 @@ char *getBoolAllNames() {
       boolConstantStrings[lcv] = theName.string_of();
    }
 
-   char *resultString = Tcl_Merge(numBoolTunables, (char**)boolConstantStrings);
+   char *resultString = Tcl_Merge(numBoolTunables, (const char**)boolConstantStrings);
    return resultString;
 }
 
@@ -153,7 +153,7 @@ char *getFloatAllNames() {
       floatConstantStrings[lcv] = theName.string_of();
    }
 
-   char *resultString = Tcl_Merge(numFloatTunables, (char**)floatConstantStrings);
+   char *resultString = Tcl_Merge(numFloatTunables, (const char**)floatConstantStrings);
    return resultString;
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.6 1999/03/13 15:23:58 pcroth Exp $
+// $Id: main.C,v 1.7 1999/09/10 14:29:22 nash Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -61,7 +61,7 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 extern "C" const char V_libvisi[];
 Ident V_Vid(V_libvisi,"Paradyn");
 
-extern Dg_Init(Tcl_Interp *interp);
+extern int Dg_Init(Tcl_Interp *interp);
 
 Tcl_Interp *MainInterp;
 

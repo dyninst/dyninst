@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.19 1999/08/09 05:50:25 csserra Exp $
+// $Id: linux.C,v 1.20 1999/09/10 14:26:28 nash Exp $
 
 #include <fstream.h>
 
@@ -78,14 +78,18 @@ extern debug_ostream signal_cerr;
 extern bool isValidAddress(process *proc, Address where);
 extern void generateBreakPoint(instruction &insn);
 
+
 const char DYNINST_LOAD_HIJACK_FUNCTIONS[][15] = {
   "main",
-  "_start",
-  "_init"
+  "_init",
+  "_start"
 };
 const int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 3;
 
 const char DL_OPEN_FUNC_NAME[] = "_dl_open";
+
+const char libc_version_symname[] = "__libc_version";
+
 
 #if defined(PTRACEDEBUG) && !defined(PTRACEDEBUG_ALWAYS)
 static bool debug_ptrace = false;
@@ -114,15 +118,20 @@ struct user_regs_struct
 };
 #endif
 
-/* this table must line up with REGISTER_NAMES */
-/* symbols like 'EAX' come from <sys/reg.h> */
 static int regmap[] = 
 {
+    EBX, ECX, EDX, ESI,
+    EDI, EBP, EAX, DS,
+    ES, FS, GS, ORIG_EAX,
+    EIP, CS, EFL, UESP,
+    SS
+/*
   EAX, ECX, EDX, EBX,
   UESP, EBP, ESI, EDI,
   EIP, EFL, CS, SS,
   DS, ES, FS, GS,
   ORIG_EAX
+*/
 };
 
 #define NUM_REGS (17 /*+ NUM_FREGS*/)
@@ -250,45 +259,25 @@ void *process::getRegisters() {
    // Cycle through all registers, reading each from the
    // process user space with ptrace(PTRACE_PEEKUSER ...
 
-#ifdef PTRACE_GETREGS
-   char *buffer = new char [ GENREGS_STRUCT_SIZE + FPREGS_STRUCT_SIZE ];
-   if( P_ptrace( PTRACE_GETREGS, pid, 0, (int)(buffer) ) )
-   {
-	   perror("process::getRegisters PTRACE_GETREGS" );
-   }
-   //printf( "ORIG_EAX %#.8x\n", *(((int*)buffer)+ORIG_EAX) );
-
-   if( P_ptrace( PTRACE_GETFPREGS, pid, 0, (int)(buffer + GENREGS_STRUCT_SIZE) ) )
-   {
+   char *buf = new char [ GENREGS_STRUCT_SIZE + FPREGS_STRUCT_SIZE ];
+   int error;
+   bool errorFlag = false;
+   error = P_ptrace( PTRACE_GETREGS, pid, 0, (int)(buf) );
+   if( error ) {
+       perror("process::getRegisters PTRACE_GETREGS" );
+       errorFlag = true;
+   } else {
+       error = P_ptrace( PTRACE_GETFPREGS, pid, 0, (int)(buf + GENREGS_STRUCT_SIZE) );
+       if( error ) {
 	   perror("process::getRegisters PTRACE_GETFPREGS" );
+	   errorFlag = true;
+       }
    }
-#else
-   int *buffer = new int[ REGS_INTS ];
-   int regno;
-   Address regaddr;
 
-   for (regno = 0; regno < NUM_REGS; regno++) {
-     regaddr = register_addr (regno);
-     buffer[ regno ] = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
-     if( errno ) {
-       perror("process::getRegisters PTRACE_PEEKUSER");
+   if( errorFlag )
        return NULL;
-     }
-   }
-
-   int baddr = register_addr ( FP0_REGNUM );
-   int eaddr = register_addr ( FP7_REGNUM ) + REGISTER_RAW_SIZE( FP7_REGNUM );
-   int count;
-   for (regaddr = baddr, count = NUM_REGS; regaddr < eaddr; regaddr += sizeof(int), count++ ) {
-     buffer[ count ] = P_ptrace( PTRACE_PEEKUSER, pid, regaddr, 0);
-     if( errno ) {
-       perror("process::getRegisters PTRACE_PEEKUSER fp");
-       return NULL;
-     }
-   }
-#endif
-
-   return (void*)buffer;
+   else
+       return (void*)buf;
 }
 
 static bool changePC(int pid, Address loc) {
@@ -341,7 +330,7 @@ void printStackWalk( process *p ) {
  
 void printRegs( void *save ) {
 	user_regs_struct *regs = (user_regs_struct*)save;
-	inferiorrpc_cerr
+	cerr
 		<< " eax: " << (void*)regs->eax
 		<< " ebx: " << (void*)regs->ebx
 		<< " ecx: " << (void*)regs->ecx
@@ -398,49 +387,22 @@ bool process::restoreRegisters(void *buffer) {
    // Cycle through all registers, writing each from the
    // buffer with ptrace(PTRACE_POKEUSER ...
 
-#ifdef PTRACE_GETREGS
    char *buf = (char*)buffer;
+   bool retVal = true;
 
    if( P_ptrace( PTRACE_SETREGS, pid, 0, (int)(buf) ) )
    {
-	   perror("process::restoreRegisters PTRACE_SETREGS" );
+       perror("process::restoreRegisters PTRACE_SETREGS" );
+       retVal = false;
    }
 
    if( P_ptrace( PTRACE_SETFPREGS, pid, 0, (int)(buf + GENREGS_STRUCT_SIZE) ) )
    {
-	   perror("process::restoreRegisters PTRACE_SETFPREGS" );
+       perror("process::restoreRegisters PTRACE_SETFPREGS" );
+       retVal = false;
    }
-#else
-   int *buf = (int*)buffer;
-   int regno;
-   Address regaddr;
 
-   for (regno = 0; regno < NUM_REGS-1; regno++) {
-     regaddr = register_addr (regno);
-     if( P_ptrace (PTRACE_POKEUSER, pid, regaddr, buf[regno] ) ) {
-       perror("process::restoreRegisters PTRACE_POKEUSER");
-	   fprintf( stderr, "PID %d, reg %d, address %#.8x, value %#.8x\n",
-				pid, regno, regaddr, buf[regno] );
-       return false;
-     }
-   }
-   return true;
-
-   // Cycle through all 20 words making up the 8 fp registers
-   int baddr = register_addr ( FP0_REGNUM );
-   int eaddr = register_addr ( FP7_REGNUM ) + REGISTER_RAW_SIZE( FP7_REGNUM );
-   int count;
-   for (regaddr=baddr, count=NUM_REGS; regaddr<eaddr; regaddr+= sizeof(int), count++ ) {
-     if( P_ptrace (PTRACE_POKEUSER, pid, regaddr, buf[count] ) ) {
-       perror("process::restoreRegisters PTRACE_POKEUSER fp");
-	   fprintf( stderr, "PID %d, fp word %d, address %#.8x, value %#.8x\n",
-				pid, count, regaddr, buf[count] );
-       return false;
-     }
-   }
-#endif
-
-   return true;
+   return retVal;
 }
 
 // getActiveFrame(): populate Frame object using toplevel frame
@@ -715,7 +677,7 @@ void process::handleIfDueToDyninstLib()
   if( isRunning_() )
 	  cerr << "WARNING -- process is running at trap from dlopenDYNINSTlib" << endl;
 
-  delete [] savedRegs;
+  delete [] (int*)savedRegs;
   savedRegs = NULL;
 }
 
@@ -756,6 +718,8 @@ void process::insertTrapAtEntryPointOfMain()
   main_brk_addr = addr;
 }
 
+void emitCallRel32(unsigned disp32, unsigned char *&insn);
+
 bool process::dlopenDYNINSTlib() {
 #if false && defined(PTRACEDEBUG)
   debug_ptrace = true;
@@ -773,25 +737,44 @@ bool process::dlopenDYNINSTlib() {
   int i;
 
   for( i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
-	  bool found = false;
-	  Symbol s;
-	  codeBase = 0;
-	  found = symbols->symbol_info(DYNINST_LOAD_HIJACK_FUNCTIONS[i], s);
-	  if( found )
-		  codeBase = s.addr();
-	  if( codeBase )
-		  break;
+      bool found = false;
+      Symbol s;
+      codeBase = 0;
+      found = symbols->symbol_info(DYNINST_LOAD_HIJACK_FUNCTIONS[i], s);
+      if( found )
+	  codeBase = s.addr();
+      if( codeBase )
+	  break;
   }
 
   if( !codeBase || i >= N_DYNINST_LOAD_HIJACK_FUNCTIONS )
   {
-	  attach_cerr << "Couldn't find a point to insert dlopen call" << endl;
-	  return false;
+      attach_cerr << "Couldn't find a point to insert dlopen call" << endl;
+      return false;
   }
 
   attach_cerr << "Inserting dlopen call in " << DYNINST_LOAD_HIJACK_FUNCTIONS[i] << " at "
       << (void*)codeBase << endl;
   attach_cerr << "Process at " << (void*)getPC( getPid() ) << endl;
+
+  bool libc_21 = false;
+  Symbol libc_vers;
+  if( !getSymbolInfo( libc_version_symname, libc_vers ) ) {
+      cerr << "Couldn't find " << libc_version_symname << ", assuming glibc_2.0.x" << endl;
+  } else {
+      char libc_version[ libc_vers.size() + 1 ];
+      libc_version[ libc_vers.size() ] = '\0';
+      readDataSpace( (void *)libc_vers.addr(), libc_vers.size(), libc_version, true );
+      if( !strncmp( libc_version, "2.1", 3 ) ) {
+	  attach_cerr << "Detected glibc version 2.1, (\"" << libc_version << "\")" << endl;
+	  libc_21 = true;
+      } else if( !strncmp( libc_version, "2.0", 3 ) ) {
+	  attach_cerr << "Detected glibc version 2.0, (\"" << libc_version << "\")" << endl;
+      } else {
+	  cerr << "Found " << libc_version_symname << " = \"" << libc_version
+	       << "\", which doesn't match any known glibc, assuming glibc 2.0" << endl;
+      }
+  }
 
   // Or should this be readText... it seems like they are identical
   // the remaining stuff is thanks to Marcelo's ideas - this is what 
@@ -803,9 +786,10 @@ bool process::dlopenDYNINSTlib() {
   readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
 
   unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
-  vector<AstNode*> dlopenAstArgs(2);
+  vector<AstNode*> dlopenAstArgs( 2 );
 
   unsigned count = 0;
+  Address dyninst_count = 0;
 
   AstNode *dlopenAst;
 
@@ -815,19 +799,48 @@ bool process::dlopenDYNINSTlib() {
   registerSpace *dlopenRegSpace = new registerSpace(deadListSize/sizeof(int), deadList, 0, NULL);
   dlopenRegSpace->resetSpace();
 
-  // we need to make 1 call to dlopen, to load libdyninst.so.1 - nash
+  // we need to make a call to dlopen to open our runtime library
 
-  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void*)0);
-  // library name. We use a scratch value first. We will update this parameter
-  // later, once we determine the offset to find the string - naim
-  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE); // mode
-  dlopenAst = new AstNode(DL_OPEN_FUNC_NAME,dlopenAstArgs);
-  removeAst(dlopenAstArgs[0]);
-  removeAst(dlopenAstArgs[1]);
+  if( !libc_21 ) {
+      dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void*)0);
+      // library name. We use a scratch value first. We will update this parameter
+      // later, once we determine the offset to find the string - naim
+      dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE); // mode
+      dlopenAst = new AstNode(DL_OPEN_FUNC_NAME,dlopenAstArgs);
+      removeAst(dlopenAstArgs[0]);
+      removeAst(dlopenAstArgs[1]);
 
-  Address dyninst_count = 0;
-  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  dyninst_count, true, true);
+      dyninst_count = 0;
+      dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
+			      dyninst_count, true, true);
+  } else {
+      // In glibc 2.1.x, _dl_open is optimized for being an internal wrapper function.
+      // Instead of using the stack, it passes three parameters in EAX, EDX and ECX.
+      // Here we simply make a call with no normal parameters, and below we change
+      // the three registers along with EIP to execute the code.
+      unsigned char *code_ptr = scratchCodeBuffer;
+      Address disp;
+      Address addr;
+      bool err;
+      addr = findInternalAddress(DL_OPEN_FUNC_NAME, false, err);
+      if (err) {
+	  function_base *func = findOneFunction(DL_OPEN_FUNC_NAME);
+	  if (!func) {
+	      ostrstream os(errorLine, 1024, ios::out);
+	      os << "Internal error: unable to find addr of " << DL_OPEN_FUNC_NAME << endl;
+	      logLine(errorLine);
+	      showErrorCallback(80, (const char *) errorLine);
+	      P_abort();
+	  }
+	  addr = func->getAddress(0);
+      }
+
+      disp = addr - ( codeBase + 5 );
+      attach_cerr << DL_OPEN_FUNC_NAME << " @ " << (void*)addr << ", displacement == "
+		  << (void*)disp << endl;
+      emitCallRel32( disp, code_ptr );
+      dyninst_count = 5;
+  }
   writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
   count += dyninst_count;
 
@@ -867,28 +880,32 @@ bool process::dlopenDYNINSTlib() {
 
   assert(count<=BYTES_TO_SAVE);
 
-  count = 0; // reset count
+  if( !libc_21 ) {
+      count = 0; // reset count
 
-  // at this time, we know the offset for the library name, so we fix the
-  // call to dlopen and we just write the code again! This is probably not
-  // very elegant, but it is easy and it works - naim
-  removeAst(dlopenAst); // to avoid leaking memory
-  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
-  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
-  dlopenAst = new AstNode(DL_OPEN_FUNC_NAME,dlopenAstArgs);
-  removeAst(dlopenAstArgs[0]);
-  removeAst(dlopenAstArgs[1]);
-  dyninst_count = 0; // reset count
-  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  dyninst_count, true, true);
-  writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
-  removeAst(dlopenAst);
+      // at this time, we know the offset for the library name, so we fix the
+      // call to dlopen and we just write the code again! This is probably not
+      // very elegant, but it is easy and it works - naim
+      removeAst(dlopenAst); // to avoid leaking memory
+      dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
+      dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
+      dlopenAst = new AstNode(DL_OPEN_FUNC_NAME,dlopenAstArgs);
+      removeAst(dlopenAstArgs[0]);
+      removeAst(dlopenAstArgs[1]);
+      dyninst_count = 0; // reset count
+      dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
+			      dyninst_count, true, true);
+      writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
+      count += dyninst_count;
+      removeAst(dlopenAst);
+  }
 
   // save registers
   savedRegs = getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
   // save the stack frame of _start()
   user_regs_struct *regs = (user_regs_struct*)savedRegs;
+  user_regs_struct new_regs = *regs;
   RegValue theEBP = regs->ebp;
 
   // Under Linux, at the entry point to main, ebp is 0
@@ -910,7 +927,15 @@ bool process::dlopenDYNINSTlib() {
   isLoadingDyninstLib = true;
 
   attach_cerr << "Changing PC to " << (void*)codeBase << endl;
-  if (!changePC(codeBase,savedRegs))
+  new_regs.eip = codeBase;
+
+  if( libc_21 ) {
+      new_regs.eax = dyninstlib_addr;
+      new_regs.edx = DLOPEN_MODE;
+      new_regs.ecx = codeBase;
+  }
+
+  if( !restoreRegisters( (void*)(&new_regs) ) )
   {
 	  logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
 	  assert(0);

@@ -199,14 +199,13 @@ void BPatch_module::parseTypes()
       //   case 160:   //parameter variable -- N_PSYM
     case N_UNDF: /* start of object file */
 	    /* value contains offset of the next string table for next module */
-#if !defined(i386_unknown_linux2_0)
+/*
 	    assert(stabptr[i].name == 1);
-#endif
-
+*/
 	    stabstrs = stabstr_nextoffset;
-	    stabstr_nextoffset = stabstrs + stabptr[i].val;
+	    stabstr_nextoffset = (char*)stabstrs + stabptr[i].val;
 
-            module = &stabstrs[stabptr[i].name];
+            module = (char*)(&stabstrs[stabptr[i].name]);
 	    // printf("    module name %s\n", module);
 	    if (!strcmp(module, mod->fileName().string_of())) {
 		parseActive = true;
@@ -221,7 +220,7 @@ void BPatch_module::parseTypes()
     case N_SO: /* compilation source or file name */
       /* printf("Resetting CURRENT FUNCTION NAME FOR NEXT OBJECT FILE\n");*/
             current_func_name = NULL; // reset for next object file
-            module = &stabstrs[stabptr[i].name];
+            module = (char*)(&stabstrs[stabptr[i].name]);
             break;
 
     case 32:    // Global symbols -- N_GYSM 

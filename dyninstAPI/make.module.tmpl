@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.16 1999/07/16 18:08:15 wylie Exp $
+# $Id: make.module.tmpl,v 1.17 1999/09/10 14:25:33 nash Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -91,6 +91,9 @@ all: $(TARGET3_SO)
 else
 all: $(TARGET)
 endif
+
+BPatch_templates.o: ../src/BPatch_templates.C
+	$(CXX) $(TFLAGS) -c ../src/BPatch_templates.C
 
 templates0.o: ../src/templates0.C
 	$(CXX) $(TFLAGS) -c ../src/templates0.C

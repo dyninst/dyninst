@@ -139,28 +139,39 @@ void DYNINSTtrapHandler(int sig, struct sigcontext uap ) {
 
 int DYNINSTloadLibrary(char *libname)
 {
-	/*
-	 * All of this is necessary because on linux, dlopen is not in libc, but
-	 * in a separate library libdl.  Not all programs are linked with libdl,
-	 * but libc does contain the underlying functions.  This is gross and
-	 * may break with new versions of glibc.  It is based on glibc 2.0.6
-	 */
+    void *res;
 
-	struct link_map *new;
-	char *errstr;
-	int err;
-	
-	void doit (void) {
-		new = _dl_open( libname ?: "", RTLD_NOW | RTLD_GLOBAL );
+    res = dlopen( libname, RTLD_NOW | RTLD_GLOBAL );
+
+    if( res == NULL ) {
+	perror( "DYNINSTloadLibrary -- dlopen" );
+	return 0;  // An error has occurred
+    } else
+	return 1;
+
+    /*
+     * All of this is necessary because on linux, dlopen is not in libc, but
+     * in a separate library libdl.  Not all programs are linked with libdl,
+     * but libc does contain the underlying functions.  This is gross and
+     * may break with new versions of glibc.  It is based on glibc 2.0.6
+     */
+/*
+    struct link_map *new;
+    char *errstr;
+    int err;
+    
+    void doit (void) {
+	new = _dl_open( libname ?: "", RTLD_NOW | RTLD_GLOBAL );
     }
 
-	err = _dl_catch_error( &errstr, doit );
-
-	if( errstr == NULL )
-		return 1;
-	else {
-		fprintf( stderr, errstr );
-		free( errstr );
-		return 0;
-	}
+    err = _dl_catch_error( &errstr, doit );
+    
+    if( errstr == NULL )
+	return 1;
+    else {
+	fprintf( stderr, errstr );
+	free( errstr );
+	return 0;
+    }
+*/
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.51 1999/08/26 20:02:28 hollings Exp $
+// $Id: inst.h,v 1.52 1999/09/10 14:26:28 nash Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -94,7 +94,7 @@ void getAllInstInstancesForProcess(const process *,
 
 instPoint * findInstPointFromAddress(const process *, Address);
 instInstance * findMiniTramps( const instPoint * );
-trampTemplate * findBaseTramp( const instPoint * );
+trampTemplate * findBaseTramp( const instPoint *, const process * );
 
 // findAddressInFuncsAndTramps: returns the function which contains
 // this address.  This checks the a.out image and shared object images

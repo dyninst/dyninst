@@ -65,7 +65,7 @@ byteArray::byteArray(const byteArray& s) {
 }
 
 byteArray::~byteArray() {
-    delete [] bArray_; bArray_ = 0;
+    delete [] (char*)bArray_; bArray_ = 0;
 }
 
 byteArray&
@@ -74,7 +74,7 @@ byteArray::operator=(const byteArray& s) {
         return *this;
     }
 
-    delete [] bArray_; bArray_ = 0;
+    delete [] (char*)bArray_; bArray_ = 0;
 
     len_ = s.len_;
     bArray_ = new char[len_];

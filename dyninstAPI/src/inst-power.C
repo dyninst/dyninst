@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.80 1999/08/26 20:02:23 hollings Exp $
+ * $Id: inst-power.C,v 1.81 1999/09/10 14:26:27 nash Exp $
  */
 
 #include "util/h/headers.h"
@@ -248,23 +248,25 @@ bool instPoint::triggeredInStackFrame( pd_Function *stack_func, Address stack_pc
 */
     if ( ipLoc == ipFuncEntry ) {
         if ( stack_func == func ) {
-			//cerr << " hit for function entry" << endl;
-			ret = true;
+	    //cerr << " hit for function entry" << endl;
+	    ret = true;
         }
     } else if ( ipLoc == ipFuncCallPoint ) {
         if ( stack_func == func && when == callPreInsn ) {
-			// check if the stack_pc points to the instruction after the call site
-			Address target = addr + sizeof(instruction);
-			//cerr << " stack_pc should be " << (void*)target;
-			if ( stack_pc == target ) {
-				//cerr << " -- HIT";
-				ret = true;
-			} else {
-				instPoint *ip = findInstPointFromAddress( proc, stack_pc );
-				if( ip == this )
-					ret = true;
-			}
-			//cerr << endl;
+	    // check if the stack_pc points to the instruction after the call site
+	    Address base, target;
+	    proc->getBaseAddress( stack_func->file()->exec(), base );
+	    target = base + addr + sizeof(instruction);
+	    //cerr << " stack_pc should be " << (void*)target;
+	    if ( stack_pc == target ) {
+		//cerr << " -- HIT";
+		ret = true;
+	    } else {
+		instPoint *ip = findInstPointFromAddress( proc, stack_pc );
+		if( ip == this )
+		    ret = true;
+	    }
+	    //cerr << endl;
         }
     }
 
@@ -279,19 +281,21 @@ bool instPoint::triggeredExitingStackFrame( pd_Function *stack_func, Address sta
 
     if ( ipLoc == ipFuncReturn ) {
         if ( stack_func == func ) {
-			ret = true;
+	    ret = true;
         }
     } else if ( ipLoc == ipFuncCallPoint ) {
         if ( stack_func == func && when == callPostInsn ) {
-			// check if the stack_pc points to the instruction after the call site
-			Address target = addr + sizeof(instruction);
-			if ( stack_pc == target ) {
-				ret = true;
-			} else {
-				instPoint *ip = findInstPointFromAddress( proc, stack_pc );
-				if( ip == this )
-					ret = true;
-			}
+	    // check if the stack_pc points to the instruction after the call site
+	    Address base, target;
+	    proc->getBaseAddress( stack_func->file()->exec(), base );
+	    target = base + addr + sizeof(instruction);
+	    if ( stack_pc == target ) {
+		ret = true;
+	    } else {
+		instPoint *ip = findInstPointFromAddress( proc, stack_pc );
+		if( ip == this )
+		    ret = true;
+	    }
         }
     }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.57 1999/08/26 20:02:24 hollings Exp $
+// $Id: inst-sparc-solaris.C,v 1.58 1999/09/10 14:26:27 nash Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -270,20 +270,23 @@ bool instPoint::triggeredInStackFrame(pd_Function *stack_func, Address stack_pc,
 
     if (ipType == functionEntry) {
         if (stack_func == func) {
-			ret = true;
+	    ret = true;
         }
     } else if (ipType == callSite) {
         if (stack_func == func && when == callPreInsn) {
-			// looking at gdb, sparc-solaris seems to record PC of the 
-			//  call site + 8, as opposed to the PC of the call site.
-			if (stack_pc == addr + 2 * sizeof(instruction)) {
-				ret = true;
-			} else {
-				trampTemplate *bt = findBaseTramp( this );
-				Address target = bt->baseAddr + bt->emulateInsOffset + 2 * sizeof(instruction);
-				if( stack_pc == target )
-					ret = true;
-			}
+	    // looking at gdb, sparc-solaris seems to record PC of the 
+	    //  call site + 8, as opposed to the PC of the call site.
+	    Address base, target;
+	    proc->getBaseAddress( stack_func->file()->exec(), base );
+	    target = base + addr + 2 * sizeof(instruction);
+	    if (stack_pc == target) {
+		ret = true;
+	    } else {
+		trampTemplate *bt = findBaseTramp( this, proc );
+		Address target = bt->baseAddr + bt->emulateInsOffset + 2 * sizeof(instruction);
+		if( stack_pc == target )
+		    ret = true;
+	    }
         }
     }
 
@@ -298,18 +301,21 @@ bool instPoint::triggeredExitingStackFrame(pd_Function *stack_func, Address stac
 
     if (ipType == functionExit) {
         if (stack_func == func) {
-			ret = true;
+	    ret = true;
         }
     } else if (ipType == callSite) {
         if (stack_func == func && when == callPostInsn) {
-			if (stack_pc == addr + 2 * sizeof(instruction)) {
-				ret = true;
-			} else {
-				trampTemplate *bt = findBaseTramp( this );
-				Address target = bt->baseAddr + bt->emulateInsOffset + 2 * sizeof(instruction);
-				if( stack_pc == target )
-					ret = true;
-			}
+	    Address base, target;
+	    proc->getBaseAddress( stack_func->file()->exec(), base );
+	    target = base + addr + 2 * sizeof(instruction);
+	    if (stack_pc == target) {
+		ret = true;
+	    } else {
+		trampTemplate *bt = findBaseTramp( this, proc );
+		Address target = bt->baseAddr + bt->emulateInsOffset + 2 * sizeof(instruction);
+		if( stack_pc == target )
+		    ret = true;
+	    }
         }
     }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.124 1999/07/26 21:47:33 cain Exp $
+// $Id: DMmain.C,v 1.125 1999/09/10 14:28:59 nash Exp $
 
 #include <assert.h>
 extern "C" {
@@ -1201,7 +1201,7 @@ resourceHandle createResource(unsigned res_id, vector<string>& resource_name,
 			// set, then use regexEquiv, passing the NOCASE flag as needed
 
 			if( ( regex && shared_lib_constraints[i].regexEquiv( ret->getName(), checkCase ) )
-				|| ( !regex && shared_lib_constraints[i].wildcardEquiv( ret->getName() ) ) )
+				|| ( !regex && shared_lib_constraints[i].wildcardEquiv( ret->getName(), checkCase ) ) )
 			{
 				ret->setSuppressMagnify();
 #ifdef notdef
@@ -1247,8 +1247,8 @@ resourceHandle createResource(unsigned res_id, vector<string>& resource_name,
 						 ( (libs[i])[0].regexEquiv( parent->getName(), checkCase )) && 
 						 ( (libs[i])[1].regexEquiv( ret->getName(), checkCase )) )
 					|| ( !regex &&
-						 ( (libs[i])[0].wildcardEquiv( parent->getName() )) && 
-						 ( (libs[i])[1].wildcardEquiv( ret->getName() )) ) )
+						 ( (libs[i])[0].wildcardEquiv( parent->getName(), checkCase )) && 
+						 ( (libs[i])[1].wildcardEquiv( ret->getName(), checkCase )) ) )
 				  {
 					  ret->setSuppressMagnify(); 
 #ifdef notdef
