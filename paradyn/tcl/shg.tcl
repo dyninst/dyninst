@@ -3,6 +3,10 @@
 
 #
 # $Log: shg.tcl,v $
+# Revision 1.4  1996/01/09 01:09:00  tamches
+# the label area at the bottom of the shg window can now be 1 or
+# 4 lines in height, depending on the status of the devel mode tc
+#
 # Revision 1.3  1995/11/29 00:21:56  tamches
 # removed refs to PdBitmapDir; we now call makeLogo (pdLogo.C)
 #
@@ -64,6 +68,13 @@ proc resize1Scrollbar {sbname newTotal newVisible} {
    }
 
    $sbname set $newFirst $newLast
+}
+
+proc shgChangeCurrLabelHeight {numlines} {
+   if {[winfo exists .shg.nontop.labelarea.current]} {
+      .shg.nontop.labelarea.current config -height $numlines
+      pack .shg.nontop.labelarea.current -side left -fill both -expand true
+   }
 }
 
 proc shgInitialize {} {
@@ -176,14 +187,15 @@ proc shgInitialize {} {
    frame .shg.nontop.labelarea
    pack  .shg.nontop.labelarea -side top -fill x -expand false
 
-#   label .shg.nontop.labelarea.current -relief sunken -height 1 \
-#	   -font "*-Helvetica-*-r-*-12-*"
-#   pack  .shg.nontop.labelarea.current -side left -fill both -expand false
-
    text .shg.nontop.labelarea.current -relief sunken -height 1 \
 	   -font "*-Helvetica-*-r-*-12-*" \
 	   -wrap none
-   pack .shg.nontop.labelarea.current -side left -fill both -expand true
+   if {[uimpd tclTunable getvaluebyname developerMode]} {
+      set numlines 4
+   } else {
+      set numlines 1
+   }
+   shgChangeCurrLabelHeight $numlines
 
    # -----------------------------------------------------------
 
