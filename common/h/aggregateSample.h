@@ -159,15 +159,15 @@ public:
   // remove a component. The sampleInfo object will be deallocated once
   // its value has been aggregated.
   void removeComponent(sampleInfo *comp) {
-    for (unsigned u = 0; u < parts.size(); u++) {
-      if (parts[u] == comp) {
-        removedParts[u] = true;
+    for (unsigned u1 = 0; u1 < parts.size(); u1++) {
+      if (parts[u1] == comp) {
+        removedParts[u1] = true;
         return;
       }
     }
-    for (unsigned u = 0; u < newParts.size(); u++) {
-      if (newParts[u] == comp) {
-        removedNewParts[u] = true;
+    for (unsigned u2 = 0; u2 < newParts.size(); u2++) {
+      if (newParts[u2] == comp) {
+        removedNewParts[u2] = true;
         return;
       }
     }

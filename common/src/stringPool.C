@@ -42,6 +42,9 @@
 /*
  * 
  * $Log: stringPool.C,v $
+ * Revision 1.10  1996/11/12 17:50:17  mjrg
+ * Removed warnings, changes for compiling with Visual C++ and xlc
+ *
  * Revision 1.9  1996/08/16 21:32:05  tamches
  * updated copyright for release 1.1
  *
@@ -88,7 +91,7 @@ static int hash(const char *ch, int size)
 
     for (; *ch != '\0'; ch++) {
         h = (h << 4) + (*ch);
-        if (g = (h & 0xf0000000)) {
+        if ((g = (h & 0xf0000000))) {
             h = h ^ (g >> 24);
             h = h ^ g;
         }

@@ -198,6 +198,8 @@ Object::loaded_elf(int fd, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& ehdrp,
         return false;
     }
 
+fprintf(stderr, "#### elf machine = %d\n", ehdrp->e_machine);
+
     if ((phdrp = elf32_getphdr(elfp)) == 0) {
         log_elferror(err_func_, "loading pheader");
         return false;
@@ -352,8 +354,8 @@ Object::loaded_elf_obj(int fd, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& ehdrp,
 
 
 static int symbol_compare(const void *x, const void *y) {
-    Symbol *s1 = (Symbol *)x;
-    Symbol *s2 = (Symbol *)y;
+    const Symbol *s1 = (const Symbol *)x;
+    const Symbol *s2 = (const Symbol *)y;
     return (s1->addr() - s2->addr());
 }
 
@@ -697,10 +699,10 @@ Object::load_shared_object() {
   	// and add all the global symbols as functions 
         const char *libname = file_.string_of();
 	// find short name
-	char *last = 0;
+	const char *last = 0;
 	for(u_int i=0; i < file_.length();i++) {
 	    if(libname[i] == '/'){
-	        last = (char *)(&(libname[i]));
+	        last = (const char *)(&(libname[i]));
                 // log_elferror(err_func_, P_strdup(last));
             }
 	}

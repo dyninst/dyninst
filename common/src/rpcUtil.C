@@ -41,6 +41,9 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.44  1996/11/12 17:50:16  mjrg
+ * Removed warnings, changes for compiling with Visual C++ and xlc
+ *
  * Revision 1.43  1996/08/16 21:32:02  tamches
  * updated copyright for release 1.1
  *
@@ -116,7 +119,7 @@ int RPCdefaultXDRWrite(const void* handle, const char *buf, const u_int len)
     } while (ret < 0 && errno == EINTR);
 
     errno = 0;
-    if (ret != len)
+    if (ret != (int)len)
       return(-1);
     else
       return (ret);
@@ -141,7 +144,7 @@ XDRrpc::~XDRrpc()
 //
 // prepare for RPC's to be done/received on the passed fd.
 //
-XDRrpc::XDRrpc(int f, xdr_rd_func readRoutine, xdr_wr_func writeRoutine, const bool nblock)
+XDRrpc::XDRrpc(const int f, xdr_rd_func readRoutine, xdr_wr_func writeRoutine, const bool nblock)
 : xdrs(NULL), fd(f)
 {
     assert(fd >= 0);
@@ -164,7 +167,7 @@ XDRrpc::XDRrpc(const string &machine,
 	       xdr_wr_func writeRoutine,
 	       const vector<string> &arg_list,
 	       const bool nblock,
-	       int wellKnownPortFd)
+	       const int wellKnownPortFd)
 : xdrs(NULL), fd(-1)
 {
     fd = RPCprocessCreate(machine, user, program, arg_list, wellKnownPortFd);
@@ -401,7 +404,7 @@ bool_t xdr_string_pd(XDR *xdrs, string *str)
   // if XDR_FREE, str's memory is freed
   switch (xdrs->x_op) {
   case XDR_ENCODE:
-    if (length = str->length()) {
+    if ((length = str->length())) {
       if (!P_xdr_u_int(xdrs, &length))
 	return FALSE;
       else {
@@ -453,7 +456,7 @@ bool_t xdr_string_pd(XDR *xdrs, string *str)
 // directly exec the command (local).
 //
 
-int execCmd(const string command, const vector<string> &arg_list, int portFd)
+int execCmd(const string command, const vector<string> &arg_list, int /*portFd*/)
 {
   int ret;
   int sv[2];
@@ -532,13 +535,13 @@ int rshCommand(const string hostName, const string userName,
     int ret;
 
     int total = command.length() + 2;
-    for (int i=0; i<arg_list.size(); i++) {
+    for (unsigned i=0; i<arg_list.size(); i++) {
       total += arg_list[i].length() + 2;
     }
 
     string paradyndCommand = command + " ";
 
-    for (int j=0; j < arg_list.size(); j++)
+    for (unsigned j=0; j < arg_list.size(); j++)
         paradyndCommand += arg_list[j] + " ";
 
     // need to rsh to machine and setup io path.
@@ -580,7 +583,7 @@ int rexecCommand(const string hostName, const string userName,
     struct servent *inport;
 
     int total = command.length() + 2;
-    for (int i=0; i<arg_list.size(); i++) {
+    for (unsigned i=0; i<arg_list.size(); i++) {
       total += arg_list[i].length() + 2;
     }
 
@@ -588,7 +591,7 @@ int rexecCommand(const string hostName, const string userName,
     assert(paradyndCommand);
 
     sprintf(paradyndCommand, "%s ", command.string_of());
-    for (int j=0; j<arg_list.size(); j++) {
+    for (unsigned j=0; j<arg_list.size(); j++) {
 	P_strcat(paradyndCommand, arg_list[j].string_of());
 	P_strcat(paradyndCommand, " ");
     }

@@ -173,7 +173,7 @@ int P_listen(int socket, unsigned int n) {
 
 caddr_t P_mmap(caddr_t addr, size_t len, int prot, int flags,
 	       int fd, off_t off) {
-  return (mmap(addr, len, prot, flags, fd, off));}
+  return ((caddr_t)mmap(addr, len, prot, flags, fd, off));}
 
 int P_munmap(caddr_t ca, int i) {return (munmap(ca, i));}
 
@@ -212,9 +212,11 @@ bool_t P_xdr_string(XDR *x, char **c, const u_int maxsize) {
 bool_t P_xdrrec_endofrecord(XDR *x, int now) {return (xdrrec_endofrecord(x, now));}
 bool_t P_xdrrec_skiprecord(XDR*x) { return (xdrrec_skiprecord(x));}
 void P_xdrrec_create(XDR *x, const u_int send_sz, const u_int rec_sz,
-		     caddr_t handle, 
+		     const caddr_t handle, 
 		     xdr_rd_func readit, xdr_wr_func writeit) {
-  xdrrec_create(x, send_sz, rec_sz, handle, readit, writeit);}
+  xdrrec_create(x, send_sz, rec_sz, handle, 
+		(int(*)(void *, char *, int))readit, 
+		(int(*)(void *, char *, int))writeit);}
 
 
 

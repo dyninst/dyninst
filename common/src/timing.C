@@ -46,7 +46,7 @@
 
 double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {
   const double MILLION = 1.0e6;
-  int            i, j;
+  unsigned       i, j;
   double         speed;
   timer stopwatch;
   double max_speed=0;
