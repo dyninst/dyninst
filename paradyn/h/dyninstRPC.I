@@ -75,11 +75,11 @@ $remote dynRPC {
     //   endTimeStamp - ending time of the interval covered by this sample.
     //   value - the value of this sample
     //
-   $upcall $async void sampleDataCallbackFunc(int program, 
-				   int mi,
-				   double startTimeStamp, 
-				   double endTimeStamp, 
-				   double value);
+   $virtual $upcall $async void sampleDataCallbackFunc(int program, 
+						       int mi,
+						       double startTimeStamp, 
+						       double endTimeStamp, 
+						       double value);
 
     //
     // Handler that gets called when a new resource is defined.
@@ -141,6 +141,9 @@ $remote dynRPC {
     //
     // For paradynd's that may get started, but not by paradyn
     // This allows them to report system information
-    $virtual $upcall $async void reportSelf(String machine, String program, int pid);
+    $virtual $upcall $async void reportSelf(String machine, 
+					    String program, 
+					    int pid);
+
     $cmember int my_pid;
 };

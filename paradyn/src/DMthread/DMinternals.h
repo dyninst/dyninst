@@ -3,7 +3,11 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.6  1994/03/20 01:49:47  markc
+ * Revision 1.7  1994/03/21 20:32:47  hollings
+ * Changed the mid to mi mapping to be per paradyn daemon.  This is required
+ * because mids are asigned by the paradynd's, and are not globally unique.
+ *
+ * Revision 1.6  1994/03/20  01:49:47  markc
  * Gave process structure a buffer to allow multiple writers.  Added support
  * to register name of paradyn daemon.  Changed addProcess to return type int.
  *
@@ -62,6 +66,15 @@ class paradynDaemon: public dynRPCUser {
         // "well known" socket for new paradynd's
 	static char **args;
 	static List<paradynDaemon*> allDaemons;
+
+	void paradynDaemon::sampleDataCallbackFunc(int program,
+						   int mid,
+						   double startTimeStamp,
+						   double endTimeStamp,
+						   double value);
+
+	// all active metrics ids for this daemon.
+	HTable<metricInstance*> activeMids;
 };
 
 
@@ -168,12 +181,11 @@ class component {
 	component(paradynDaemon *d, int i, metricInstance *mi) {
 	    daemon = d;
 	    id = i;
-	    allComponents.add(mi, (void *) id);
+	    d->activeMids.add(mi, (void *) id);
 	}
 	~component() {
 	    daemon->disableDataCollection(id);
 	}
-	static HTable<metricInstance*> allComponents;
     private:
 	paradynDaemon *daemon;
 	int id;

@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.8  1994/03/20 01:49:48  markc
+ * Revision 1.9  1994/03/21 20:32:48  hollings
+ * Changed the mid to mi mapping to be per paradyn daemon.  This is required
+ * because mids are asigned by the paradynd's, and are not globally unique.
+ *
+ * Revision 1.8  1994/03/20  01:49:48  markc
  * Gave process structure a buffer to allow multiple writers.  Added support
  * to register name of paradyn daemon.  Changed addProcess to return type int.
  *
@@ -49,7 +53,6 @@ double   quiet_nan(int unused);
 static dataManager *dm;
 stringPool metric::names;
 HTable<metric *> metric::allMetrics;
-HTable<metricInstance*> component::allComponents;
 List<paradynDaemon*> paradynDaemon::allDaemons;
 
 metricInstance *performanceStream::enableDataCollection(resourceList *rl, 
@@ -195,14 +198,23 @@ void dynRPCUser::newMetricCallback(metricInfo info)
 }
 
 void dynRPCUser::sampleDataCallbackFunc(int program,
-				        int mid,
-					double startTimeStamp,
-					double endTimeStamp,
-					double value)
+					   int mid,
+					   double startTimeStamp,
+					   double endTimeStamp,
+					   double value)
+{
+    assert(0 && "Invalid virtual function");
+}
+
+void paradynDaemon::sampleDataCallbackFunc(int program,
+					   int mid,
+					   double startTimeStamp,
+					   double endTimeStamp,
+					   double value)
 {
     metricInstance *mi;
 
-    mi = component::allComponents.find((void*) mid);
+    mi = activeMids.find((void*) mid);
     if (!mi) {
 	printf("ERROR: data for unknown mid: %d\n", mid);
 	exit(-1);
