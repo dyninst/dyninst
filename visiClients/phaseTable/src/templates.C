@@ -41,6 +41,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.7  1997/10/29 03:38:21  tamches
+ * fix to previous commit
+ *
  * Revision 1.6  1997/10/28 20:45:22  tamches
  * update for new dictionary class
  *
@@ -74,7 +77,7 @@ template class vector<PhaseInfo *>;
 template float max(float, float);
 
 #include "util/h/String.h"
-#include "util/src/DictionaryAri.C"
+#include "util/src/Dictionary.C"
 #include "pdLogo.h"
 template class dictionary_hash<string, pdLogo *>;
 template class vector<dictionary_hash<string, pdLogo *>::entry>;
