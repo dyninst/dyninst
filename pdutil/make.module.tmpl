@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.38 2003/10/28 17:39:46 pcroth Exp $
+# $Id: make.module.tmpl,v 1.39 2004/06/21 19:38:51 pcroth Exp $
 #
 
 USES_FLEX       = true
@@ -66,5 +66,8 @@ all: $(TARGET)
 
 # We need to force this dependency because we need the headers
 # but not the .C files from the dyninstRPC igen-generated files.
-mdlScanner.C:   dyninstRPC.xdr.h
+mdlScanner.C:   mdlParser.C dyninstRPC.xdr.h
+
+templates.o:    ../src/templates.C
+	$(CXX) $(TFLAGS) -c $<
 

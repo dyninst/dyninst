@@ -141,6 +141,7 @@ struct sampleInterval {
 // aggComponent won't be deleted, but will stay around so it's values can
 // still be aggregated with it's other sibling aggComponents.
 
+class sampleAggregator;
 
 class aggComponent {
   friend class sampleAggregator;

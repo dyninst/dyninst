@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TclTools.h,v 1.7 2004/03/23 01:12:40 eli Exp $
+// $Id: TclTools.h,v 1.8 2004/06/21 19:38:54 pcroth Exp $
 
 #if !defined(pd_tcl_tools_h)
 #define pd_tcl_tools_h
@@ -55,6 +55,13 @@ void
 SetInterpResult( Tcl_Interp* interp, std::ostringstream& ostr )
 {
 	Tcl_SetObjResult( interp, Tcl_NewStringObj( ostr.str().c_str(), -1 ));
+}
+
+inline
+void
+SetInterpResult( Tcl_Interp* interp, const char* str )
+{
+    Tcl_SetObjResult( interp, Tcl_NewStringObj( str, -1 ) );
 }
 
 #endif // !defined(pd_tcl_tools_h)

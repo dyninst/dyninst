@@ -41,16 +41,20 @@
 
 #include "common/h/std_namesp.h"
 
+#if READY
 #ifndef streamsize
 #define streamsize int
 #endif
+#endif // READY
+
+using std::streamsize;
 
 // airt mean to redirect (and its shorter)
 class airtStreambuf : public std::streambuf {
  public:
   enum { bufferLen = 512 };
 
-  typedef void(*sendStrFuncPtr_t)(const char *, int len);
+  typedef void(*sendStrFuncPtr_t)(const char *, int len, bool);
   airtStreambuf(sendStrFuncPtr_t ptr);
   int sync();
   int underflow();

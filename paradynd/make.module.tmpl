@@ -3,12 +3,16 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.64 2004/05/11 19:01:49 bernat Exp $
+# $Id: make.module.tmpl,v 1.65 2004/06/21 19:38:34 pcroth Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
 CXXFLAGS	     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
 TFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
+
+#CFLAGS         += THROTTLE_RS
+#CXXFLAGS       += THROTTLE_RS
+#KFLAGS         += THROTTLE_RS
 
 #TEMPORARY, FOR DEBUGGING....
 #CXXFLAGS	+= -DDEBUG_CALL_POINTS

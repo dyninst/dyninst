@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.169 2004/03/23 01:12:36 eli Exp $
+// $Id: perfStream.C,v 1.170 2004/06/21 19:38:37 pcroth Exp $
 
 #include "common/h/headers.h"
 #include "rtinst/h/rtinst.h"
@@ -76,6 +76,11 @@
 #include "common/h/Dictionary.h"
 
 //#define TEST_DEL_DEBUG 1
+
+// minimum interval between ReportSelf calls to front-end
+#if defined(THROTTLE_RS)
+#  define THROTTLE_RS_INTERVAL INT32_MAX
+#endif // defined(THROTTLE_RS)
 
 // The following were all defined in process.C (for no particular reason)
 
@@ -190,7 +195,7 @@ void processAppIO(process *curr)
 
 char errorLine[1024];
 
-void logLineN(const char *line, int n) {
+void logLineN(const char *line, int n, bool /* force */) {
     static char fullLine[1024];
     //cerr << "logLineN: " << n << "- " << line << "\n";
     if (strlen(fullLine) + strlen(line) >= 1024) {
@@ -216,20 +221,64 @@ void logLineN(const char *line, int n) {
     }
 }
 
+#if defined(THROTTLE_RS)
+static struct timeval throttleRS_SavedTimestamp;
+
+inline
+double 
+TimevalDiff( struct timeval& begin, struct timeval& end )
+{
+    double dbegin = (double)begin.tv_sec + ((double)begin.tv_usec/1000000);
+    double dend = (double)end.tv_sec + ((double)end.tv_usec/1000000);
+
+    if( dend < dbegin )
+    {
+        dend = dbegin;
+    }
+
+    return (dend - dbegin);
+}
+
+#endif // defined(THROTTLE_RS)
+
 void logLine(const char *line) {
-  logLineN(line, strlen(line));
+  logLineN(line, strlen(line), true);
 }
 
-void statusLineN(const char *line, int n) {
-  //  cerr << "statusLineN: " << n << "- " << line << "\n"; 
-  static char buff[300];
-  if(n>299) n=299;
-  strncpy(buff, line, n+1);
-  tp->reportStatus(buff);
+void statusLineN(const char *line, int n, bool force) {
+
+#if defined(THROTTLE_RS)
+    bool doit = force;
+
+    if( !force )
+    {
+        struct timeval tv;
+
+        gettimeofday( &tv, NULL );
+        if( TimevalDiff( throttleRS_SavedTimestamp, tv ) > THROTTLE_RS_INTERVAL )
+        {
+            doit = true;
+            throttleRS_SavedTimestamp = tv;
+        }
+    }
+
+    if( doit )
+    {
+#endif // defined(THROTTLE_RS)
+
+    //  cerr << "statusLineN: " << n << "- " << line << "\n"; 
+    static char buff[300];
+    if(n>299) n=299;
+    strncpy(buff, line, n+1);
+    tp->reportStatus(buff);
+
+#if defined(THROTTLE_RS)
+    }
+#endif // defined(THROTTLE_RS)
 }
 
-void statusLine(const char *line) {
-  statusLineN(line, strlen(line));
+void statusLine(const char *line, bool force) {
+  statusLineN(line, strlen(line), force);
 }
 
 airtStreambuf logLineStreamBuf(&logLineN);
