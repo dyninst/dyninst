@@ -22,13 +22,14 @@ class StreamImpl: public Stream {
 
   std::list <Packet *> IncomingPacketBuffer;
   unsigned short filter_id;
+  unsigned short sync_id;
   unsigned short stream_id;
   CommunicatorImpl * communicator;
 
  public:
-  StreamImpl(Communicator *, int _filter_id);
+  StreamImpl(Communicator *, int _filter_id, int _sync_id);
   virtual ~StreamImpl();
-  StreamImpl(int stream_id, int * backends=0, int num_backends=-1, int filter_id=-1);
+  StreamImpl(int stream_id, int * backends=0, int num_backends=-1, int filter_id=-1, int sync_id=-1);
   static int recv(int *tag, void **buf, Stream ** stream, bool blocking=true);
   static StreamImpl * get_Stream(int stream_id);
   static void set_ForceNetworkRecv( bool force=true );

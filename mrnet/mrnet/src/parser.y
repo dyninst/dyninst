@@ -43,6 +43,7 @@ config: line config
 	    fprintf(stderr, "Graph's Root/FE is %s:%hd\n",
                        (*iter)->get_HostName().c_str(), (*iter)->get_Port() );
 	  }
+;
 
 line: host ARROW hosts SEMI
         {
@@ -60,6 +61,7 @@ line: host ARROW hosts SEMI
 	  hostlist->clear();
 	}
     | error {fprintf(stderr, "line parse error on line %d\n", linenum-1); YYABORT}
+;
 
 hosts: hosts host
          {
@@ -73,6 +75,7 @@ hosts: hosts host
                    //$1->get_HostName().c_str(), $1->get_Port() );
 	   hostlist->push_back($1);
 	 }
+;
 
 
 host: HOSTNAME COLON PORT
@@ -94,6 +97,7 @@ host: HOSTNAME COLON PORT
 		     //cur_node->get_Port() );
         }
     | error {fprintf(stderr, "host parse error on line %d\n", linenum); YYABORT}
+;
 
 %%
 

@@ -24,13 +24,10 @@ class Network{
         virtual unsigned short get_ParRank( void ) const   = NULL;
     };
 
-  static int new_Network(const char * _filename, 
-                            const char * _commnode,
-                            const char * _backend);
+  static int new_Network(const char * _filename, const char * _backend);
   static int new_NetworkNoBE(const char * _filename,
-                            const char * _commnode,
-                            LeafInfo*** leafInfo,
-                            unsigned int* nLeaves );
+			     LeafInfo*** leafInfo,
+			     unsigned int* nLeaves );
   static int connect_Backends( void );
   static void delete_Network();
 
@@ -73,7 +70,8 @@ class Communicator{
 
 class Stream{
  public:
-  static Stream * new_Stream(Communicator *, int _filter_id);
+  static Stream * new_Stream(Communicator *, int _filter_id,
+			     int _sync_id=SYNC_WAITFORALL);
   static int recv(int *tag, void **buf, Stream ** stream, bool blocking=true);
   static int unpack(char * buf, const char * format_str, ...);
   static void set_BlockingTimeOut(int timeout);

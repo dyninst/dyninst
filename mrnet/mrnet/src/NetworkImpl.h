@@ -65,7 +65,6 @@ public:
 
  private:
   std::string filename;          /* Name of topology configuration file */
-  std::string commnode;          // path to comm_node executable
   std::string application;       /* Name of application to launch */
   std::vector <EndPoint *> * endpoints; //BackEnds addressed by communicator
   static BackEndNode * back_end;
@@ -80,9 +79,7 @@ public:
   static int recv( bool blocking=true );
   static int send(Packet *);
 
-  NetworkImpl(const char * _filename,
-                    const char * _commnode,
-                    const char * _application);
+  NetworkImpl(const char * _filename, const char * _application);
   ~NetworkImpl();
 
     int get_LeafInfo( Network::LeafInfo*** linfo, unsigned int* nLeaves );

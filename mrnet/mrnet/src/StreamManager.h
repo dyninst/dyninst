@@ -17,7 +17,7 @@ class StreamManager{
   std::list <RemoteNode *> downstream_nodes;
 
  public:
-  StreamManager(int stream_id, int filter_id,
+  StreamManager(int stream_id, int filter_id, int sync_id,
 		   std::list <RemoteNode *> &_downstream);
   int push_packet(Packet *, std::list<Packet *> &);
 };

@@ -11,11 +11,8 @@ std::list <NetworkNode *>* hostlist = NULL;
 std::list <NetworkNode *>* potential_root = NULL;
 NetworkGraph* parsed_graph = NULL;
 
-NetworkImpl::NetworkImpl(const char * _filename,
-                                const char * _commnode,
-                                const char * _application)
+NetworkImpl::NetworkImpl(const char * _filename, const char * _application)
   :filename(_filename),
-   commnode(_commnode),
    application( (_application == NULL) ? "" : _application ),
    endpoints( NULL ),
    front_end( NULL )
@@ -72,10 +69,8 @@ NetworkImpl::NetworkImpl(const char * _filename,
   // save the serialized graph string in a variable on the stack,
   // so that we don't build a packet with a pointer into a temporary
   std::string sg_str = sg.get_ByteArray();
-  Packet *packet = new Packet(MRN_NEW_SUBTREE_PROT, "%s%s%s",
-                                    sg_str.c_str(),
-                                    application.c_str(),
-                                    commnode.c_str() );
+  Packet *packet = new Packet(MRN_NEW_SUBTREE_PROT, "%s%s",
+			      sg_str.c_str(), application.c_str() );
   if( front_end->proc_newSubTree( packet )
       == -1){
     MRN_errno = MRN_ENETWORK_FAILURE;

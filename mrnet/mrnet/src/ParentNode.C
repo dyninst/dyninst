@@ -4,6 +4,7 @@
 #include "mrnet/src/ParentNode.h"
 #include "mrnet/src/NetworkGraph.h"
 #include "mrnet/src/utils.h"
+#include "mrnet/src/config.h"
 
 /*====================================================*/
 /*  ParentNode CLASS METHOD DEFINITIONS            */
@@ -238,10 +239,9 @@ int ParentNode::proc_newSubTree(Packet * packet)
 {
   char *byte_array=NULL;
   char *appl=NULL;
-  char *commnode=NULL;
   mrn_printf(3, MCFL, stderr, "In proc_newSubTree()\n");
 
-  if( packet->ExtractArgList("%s%s%s", &byte_array, &appl, &commnode) == -1){
+  if( packet->ExtractArgList("%s%s", &byte_array, &appl) == -1){
     mrn_printf(1, MCFL, stderr, "ExtractArgList() failed\n");
     return -1;
   }
@@ -269,14 +269,13 @@ int ParentNode::proc_newSubTree(Packet * packet)
       //If the cur_child has children launch him
       RemoteNode *cur_node = new RemoteNode(threaded, rootname, rootport);
 
-      cur_node->new_InternalNode(listening_sock_fd,
-                                    hostname, port, config_port, commnode);
+      cur_node->new_InternalNode(listening_sock_fd, hostname, port,
+				 config_port, COMMNODE_EXE);
 
       if(cur_node->good() ){
-        packet = new Packet(MRN_NEW_SUBTREE_PROT, "%s%s%s",
-                               cur_sg->get_ByteArray().c_str(),
-			       application.c_str(),
-                   commnode);
+        packet = new Packet(MRN_NEW_SUBTREE_PROT, "%s%s",
+			    cur_sg->get_ByteArray().c_str(),
+			    application.c_str() );
         if( cur_node->send(packet) == -1 ||
             cur_node->flush() == -1){
           mrn_printf(1, MCFL, stderr, "send/flush failed\n");
@@ -437,7 +436,7 @@ StreamManager *
 ParentNode::proc_newStream(Packet * packet)
 {
   unsigned int i, num_backends;
-  int stream_id, filter_id, *backends;
+  int stream_id, filter_id, sync_id, *backends;
 
   std::list <RemoteNode *> node_set;
 
@@ -446,8 +445,8 @@ ParentNode::proc_newStream(Packet * packet)
   //assert( !StreamImpl::get_Stream(stream_id));
   //register new stream, though not yet needed.
   //new Stream(stream_id, backends, num_backends, filter_id);
-  if( packet->ExtractArgList("%d %ad %d", &stream_id, &backends, &num_backends,
-                             &filter_id) == -1){
+  if( packet->ExtractArgList("%d %ad %d %d", &stream_id, &backends,
+			     &num_backends, &filter_id, &sync_id) == -1){
     mrn_printf(1, MCFL, stderr, "ExtractArgList() failed\n");
     return NULL;
   }
@@ -483,7 +482,7 @@ ParentNode::proc_newStream(Packet * packet)
     }
   }
 
-  StreamManager * stream_mgr = new StreamManager(stream_id, filter_id,
+  StreamManager * stream_mgr = new StreamManager(stream_id, filter_id, sync_id,
 						       node_set);
   if(threaded){ streammanagerbyid_sync.lock(); }
   mrn_printf(3, MCFL, stderr, "DCA: adding stream_mgr(%p) to strmgr[%d]\n",

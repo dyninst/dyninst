@@ -2,14 +2,14 @@
 #include "mrnet/src/StreamImpl.h"
 #include "mrnet/src/utils.h"
 
-StreamManager::StreamManager(int sid, int fid,
+StreamManager::StreamManager(int sid, int fid, int sync_id,
 		   std::list <RemoteNode *> &_downstream)
   : stream_id(sid),
     upstream_node( NULL ),
     downstream_nodes(_downstream)
 {
   aggregator = (Filter *) new Aggregator(fid);
-  sync = (Filter *) new Synchronizer(SYNC_WAITFORALL, downstream_nodes);
+  sync = (Filter *) new Synchronizer(sync_id, downstream_nodes);
 }
 
 int

@@ -8,7 +8,7 @@
 using namespace MRN;
 
 int main(int argc, char **argv){
-  char *topology_file, *application, *commnode_exe;
+  char *topology_file, *application;
   int num_trials;
   Stream * stream_BC;
   int tag;
@@ -16,9 +16,10 @@ int main(int argc, char **argv){
   char * buf=NULL;
   //timer init_timer("FE:NETWORK_INIT"), exp_timer("FE:BROADCAST/REDUCE");
 
-  if(argc !=5){
-    fprintf(stderr, "Usage: %s <num_trials> <topology file> <application exe> "
-                    " <commnode exe>\n", argv[0]);
+  if(argc !=4){
+    fprintf(stderr,
+	    "Usage: %s <num_trials> <topology file> <application exe> ",
+	    argv[0]);
     exit(-1);
   }
 
@@ -26,9 +27,8 @@ int main(int argc, char **argv){
   recv_vals = (float *) malloc(num_trials * sizeof(float));
   topology_file = argv[2];
   application = argv[3];
-  commnode_exe = argv[4];
 
-  if( Network::new_Network(topology_file, application, commnode_exe) == -1){
+  if( Network::new_Network(topology_file, application) == -1){
     fprintf(stderr, "%s: Network Initialization failed\n", argv[0]);
     Network::error_str(argv[0]);
     exit(-1);

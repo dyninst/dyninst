@@ -11,15 +11,15 @@ int main(int argc, char **argv){
   char * buf=NULL;
   timer init_timer("FE:NETWORK_INIT"), exp_timer("FE:BROADCAST/REDUCE");
 
-  if(argc !=4){
+  if(argc !=3){
     fprintf(stderr, 
-            "FFF: Usage: %s <topology file> <commnode exe> <application exe>\n",
+            "FFF: Usage: %s <topology file> <application exe>\n",
             argv[0]);
     exit(-1);
   }
 
   init_timer.start();
-  if( Network::new_Network(argv[1], argv[2], argv[3]) == -1){
+  if( Network::new_Network(argv[1], argv[2]) == -1){
     fprintf(stderr, "FFF: Network Initialization failed\n");
     Network::error_str(argv[0]);
     exit(-1);

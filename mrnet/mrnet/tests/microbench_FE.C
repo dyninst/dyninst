@@ -10,7 +10,7 @@
 using namespace MRN;
 
 int main(int argc, char **argv){
-    char *topology_file, *application, *commnode_exe;
+    char *topology_file, *application;
     int num_exps, num_waves;
     Stream * stream_BC;
     int tag;
@@ -27,9 +27,9 @@ int main(int argc, char **argv){
     double double_val;
     int retval;
     
-    if(argc !=6){
+    if(argc !=5){
         fprintf(stderr, "Usage: %s <num_exps> <num_waves> <topology file>"
-                " <application exe>  <commnode exe>\n", argv[0]);
+                " <application exe>\n", argv[0]);
         exit(-1);
     }
     
@@ -37,7 +37,6 @@ int main(int argc, char **argv){
     num_waves = atoi(argv[2]);
     topology_file = argv[3];
     application = argv[4];
-    commnode_exe = argv[5];
     
     // set the output filename
     sprintf( output_filename, "%s-%d.out", topology_file, getpid() );
@@ -53,7 +52,7 @@ int main(int argc, char **argv){
     red_thru = new double[num_exps];
     
     startup_start.set_time();
-    if( Network::new_Network(topology_file, application, commnode_exe) == -1){
+    if( Network::new_Network(topology_file, application) == -1){
         fprintf(stderr, "%s: Network Initialization failed\n", argv[0]);
         Network::error_str(argv[0]);
         exit(-1);

@@ -12,8 +12,8 @@ unsigned int StreamImpl::next_stream_id=0;
 std::map <unsigned int, StreamImpl *>* StreamImpl::streams = NULL;
 bool StreamImpl::force_network_recv=false;
 
-StreamImpl::StreamImpl(Communicator *_comm, int _filter_id)
-  :filter_id(_filter_id)
+StreamImpl::StreamImpl(Communicator *_comm, int _filter_id, int _sync_id)
+  :filter_id(_filter_id), sync_id(_sync_id)
 {
   communicator = new CommunicatorImpl(*_comm); //copy the comm.
 
@@ -38,9 +38,9 @@ StreamImpl::StreamImpl(Communicator *_comm, int _filter_id)
     }
     _fprintf((stderr, "]\n"));
 
-    Packet * packet = new Packet(MRN_NEW_STREAM_PROT, "%d %ad %d",
+    Packet * packet = new Packet(MRN_NEW_STREAM_PROT, "%d %ad %d %d",
                                        stream_id, backends, endpoints->size(),
-                                       filter_id);
+                                       filter_id, sync_id);
     StreamManager * stream_mgr;
     stream_mgr = Network::network->front_end->proc_newStream(packet);
     Network::network->front_end->send_newStream(packet, stream_mgr);
@@ -48,8 +48,8 @@ StreamImpl::StreamImpl(Communicator *_comm, int _filter_id)
 }
 
 StreamImpl::StreamImpl(int _stream_id, int * backends, int num_backends,
-                     int _filter_id)
-  :filter_id(_filter_id), stream_id(_stream_id)
+                     int _filter_id, int _sync_id)
+  :filter_id(_filter_id), sync_id(_sync_id), stream_id(_stream_id)
 {
     if( StreamImpl::streams == NULL )
     {

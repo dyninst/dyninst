@@ -27,11 +27,9 @@ BackEndNode * Network::back_end = NULL;
 /*===========================================================*/
 /*             Network static function DEFINITIONS        */
 /*===========================================================*/
-int Network::new_Network(const char * _filename,
-                                const char * _commnode,
-                                const char * _application)
+int Network::new_Network(const char * _filename, const char * _application)
 {
-    Network::network = new NetworkImpl(_filename, _commnode, _application);
+    Network::network = new NetworkImpl(_filename, _application);
 
     if( Network::network->fail() ){
         return -1;
@@ -44,14 +42,13 @@ int Network::new_Network(const char * _filename,
 
 
 int Network::new_NetworkNoBE( const char* cfgFileName,
-                                const char* commNodeExe,
-                                Network::LeafInfo*** leafInfo,
-                                unsigned int* nLeaves )
+			      Network::LeafInfo*** leafInfo,
+			      unsigned int* nLeaves )
 {
     int ret = -1;
 
     // build the network
-    Network::network = new NetworkImpl( cfgFileName, commNodeExe, NULL );
+    Network::network = new NetworkImpl( cfgFileName, NULL );
     if( !Network::network->fail() )
     {
         if( (leafInfo != NULL) && (nLeaves != NULL) )
@@ -173,9 +170,9 @@ void Network::error_str(const char *s)
 /*================================================*/
 /*             Stream class DEFINITIONS        */
 /*================================================*/
-Stream * Stream::new_Stream(Communicator *comm, int _filter_id)
+Stream * Stream::new_Stream(Communicator *comm, int _filter_id, int _stream_id)
 {
-  return new StreamImpl(comm, _filter_id);
+  return new StreamImpl(comm, _filter_id, _stream_id);
 }
 
 int Stream::recv(int *tag, void **buf, Stream ** stream, bool blocking)
