@@ -3,7 +3,11 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.21  1994/11/11 10:11:40  markc
+ * Revision 1.22  1994/11/11 10:44:03  markc
+ * Remove non-emergency prints
+ * Changed others to use statusLine
+ *
+ * Revision 1.21  1994/11/11  10:11:40  markc
  * Used correct arg order for RPC_make_arg_list
  *
  * Revision 1.20  1994/11/11  07:04:55  markc
@@ -81,7 +85,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.21 1994/11/11 10:11:40 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.22 1994/11/11 10:44:03 markc Exp $";
 
 #include "util/h/kludges.h"
 #include "os.h"
@@ -181,8 +185,8 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
     char *argv[20];
 
     if (!processMap.defines(fr->ppid)) {
-      sprintf(errorLine, "In forkNodeProcesses, parent id %d unknown\n", fr->ppid);
-      logLine(errorLine);
+      sprintf(errorLine, "In forkNodeProcesses, parent id %d unknown", fr->ppid);
+      statusLine(errorLine);
       return;
     }
     parent = processMap[fr->ppid];
@@ -225,7 +229,8 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 	abort();
     }
     else {			/* parent */
-	printf ("forked child process (pid=%d).\n", childPid);
+	sprintf (errorLine, "forked child process (pid=%d)", childPid);
+	statusLine(errorLine);
     }
 
     /* Mark the cm-process as running now */

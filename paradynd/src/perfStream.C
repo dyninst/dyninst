@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.34 1994/11/10 18:58:15 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.35 1994/11/11 10:44:06 markc Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.34  1994/11/10 18:58:15  jcargill
+ * Revision 1.35  1994/11/11 10:44:06  markc
+ * Remove non-emergency prints
+ * Changed others to use statusLine
+ *
+ * Revision 1.34  1994/11/10  18:58:15  jcargill
  * The "Don't Blame Me Either" commit
  *
  * Revision 1.33  1994/11/09  18:40:31  rbi
@@ -231,7 +235,7 @@ void processAppIO(process *curr)
 
     ret = read(curr->ioLink, lineBuf, sizeof(lineBuf)-1);
     if (ret < 0) {
-        logLine("read error\n");
+        statusLine("read error");
 	exit(-2);
     } else if (ret == 0) {
 	/* end of file */
@@ -273,17 +277,18 @@ void processTraceStream(process *curr)
     char *recordData;
     traceHeader header;
     struct _association *a;
+    char buffer[100];
 
     ret = read(curr->traceLink, &(curr->buffer[curr->bufEnd]), 
 	       sizeof(curr->buffer)-curr->bufEnd);
 
     if (ret < 0) {
-        logLine("read error, exiting");
+        statusLine("read error, exiting");
 	exit(-2);
     } else if (ret == 0) {
 	/* end of file */
-	sprintf(errorLine, "got EOF on link %d\n", curr->traceLink);
-	logLine(errorLine);
+	sprintf(buffer, "got EOF on link %d", curr->traceLink);
+	statusLine(errorLine);
 	curr->traceLink = -1;
 	curr->status = exited;
 	return;
@@ -399,6 +404,7 @@ int handleSigChild(int pid, int status)
 {
     int sig;
     process *curr;
+    char buffer[100];
 
     // ignore signals from unknown processes
     if (!processMap.defines(pid))
@@ -411,8 +417,8 @@ int handleSigChild(int pid, int status)
 	switch (sig) {
 
 	    case SIGTSTP:
-		sprintf(errorLine, "process %d got SIGTSTP\n", pid);
-		logLine(errorLine);
+		sprintf(buffer, "process %d got SIGTSTP", pid);
+		statusLine(errorLine);
 		curr->status = stopped;
 		break;
 
@@ -420,8 +426,8 @@ int handleSigChild(int pid, int status)
 		/* trap at the start of a ptraced process 
 		 *   continue past it.
 		 */
-		sprintf(errorLine, "PID=%d, passed trap at start of program\n", pid);
-		logLine(errorLine);
+		sprintf(buffer, "PID=%d, passed trap at start of program", pid);
+		statusLine(buffer);
 
 		// the process is stopped as a result of the initial SIGTRAP
 		curr->status = stopped;

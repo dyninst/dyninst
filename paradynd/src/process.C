@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.21 1994/11/09 18:40:33 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.22 1994/11/11 10:44:12 markc Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.21  1994/11/09 18:40:33  rbi
+ * Revision 1.22  1994/11/11 10:44:12  markc
+ * Remove non-emergency prints
+ * Changed others to use statusLine
+ *
+ * Revision 1.21  1994/11/09  18:40:33  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.20  1994/11/02  11:15:17  markc
@@ -379,7 +383,7 @@ process *createProcess(char *file, int argvCount, char *argv[],
 #ifdef PARADYND_PVM
 // must use fork, since pvmendtask will do some writing in the address space
     pid = fork();
-    fprintf(stderr, "FORK: pid=%d\n", pid);
+    // fprintf(stderr, "FORK: pid=%d\n", pid);
 #else
     pid = vfork();
 #endif
