@@ -481,7 +481,7 @@ static rNode ImmediateAncestor(rGraph g, rNode node)
   if (node->upSize > 0) return(node->upList[0].dest);
 #ifdef WARNING
   fprintf(stderr, "Warning: ImmediateAncestor() not found quickly\n");
-#endif WARNING
+#endif 
   if (node->row == 0) return(g->row[0].first);
   for (back = node->back; back != NULL; back = node->back) {
     if (!IsDummy(back) && (back->ancestor != NULL)) return(back->ancestor);
@@ -513,7 +513,7 @@ static int AncestorRow(rGraph g, rNode node)
   }
 #ifdef WARNING
   fprintf(stderr, "Warning: AncestorRow() not found quickly\n");
-#endif WARNING
+#endif 
   for (node = ImmediateAncestor(g, node); IsDummy(node); 
     node = ImmediateAncestor(g, node))
     ;  /* find non-dummy ancestor */
