@@ -15,30 +15,32 @@ extern int SOCK_FD;
 
 class thr_mailbox : public mailbox {
 	friend class ready_socks_populator;
+	friend class fd_set_populator;
 
   private:
-    static void* sock_select_loop(void* which_mailbox);
+    int msg_avail_pipe[2];
     
-  protected:
-    pthread_t sock_selector_thread;
 
-    volatile unsigned kill_sock_selector;
-    int* sock_selector_pipe;
-
-    void signal_sock_selector();
-    
-    pthread_sync* sock_monitor;
-    
+	// monitor used to enforce mutual exclusion to the bound socket set
+	// and the ready-to-read socket set
     dllist<PDSOCKET,dummy_sync> *ready_socks;
     dllist<PDSOCKET,dummy_sync> *bound_socks;
 
+    pthread_sync* sock_monitor;
+    
     dllist<message*,dummy_sync> *messages;
     dllist<message*,dummy_sync> *sock_messages;
     
     bool check_for(thread_t* sender, tag_t* type,
                           bool do_block = false, bool do_yank = false,
                           message** m = NULL, unsigned io_first = 1);
+	void wait_for_input( void );
+
+	void raise_msg_avail( void );
+	void clear_msg_avail( void );
     
+	bool is_buffered_special_ready( thread_t* sender, tag_t* type );
+
   public:
     thr_mailbox(thread_t owner);
     virtual ~thr_mailbox();

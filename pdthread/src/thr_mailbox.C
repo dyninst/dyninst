@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/poll.h>
 #include <unistd.h>
 #include "mailbox_defs.h"
 
@@ -22,147 +23,168 @@
 #undef DO_DEBUG_LIBPDTHREAD
 
 
-struct sock_set_populator {
-    fd_set* to_populate;
-    dllist<PDSOCKET,dummy_sync>* already_ready;
-    
-    int count;
+struct fd_set_populator
+{
+	thr_mailbox* mbox;
+    fd_set* fds;
+    int max_fd;				// maximum fd value in the fd_set
 
-    void reset(PDSOCKET selector_fd) {
-        FD_ZERO(to_populate);
-        FD_SET(selector_fd, to_populate);
-        count=selector_fd + 1;
+
+	fd_set_populator( thr_mailbox* mbox_, fd_set* fds_ )
+	  : mbox( mbox_ ),
+		fds( fds_ ),
+		max_fd( 0 )
+	{ }
+
+    void reset(PDSOCKET wakeup_fd)
+	{
+        FD_ZERO(fds);
+        FD_SET(wakeup_fd, fds);
+        max_fd=wakeup_fd + 1;
     }
     
     /* FIXME: using fd_set, not portable to non-unix */
-    void visit(PDSOCKET desc);
+    bool visit(PDSOCKET desc);
 };
 
 
-void sock_set_populator::visit(PDSOCKET desc) {
-	if(!already_ready->contains(desc)) {
+bool
+fd_set_populator::visit(PDSOCKET desc)
+{
+	if(!mbox->ready_socks->contains(desc))
+	{
 		thr_debug_msg(CURRENT_FUNCTION, "ADDING %d to wait set\n", (unsigned)desc);
-		FD_SET(desc, to_populate);
-		if(desc + 1 > count) count = desc + 1;
-	} else {
+
+		FD_SET(desc, fds);
+		if( desc + 1 > max_fd )
+		{
+			max_fd = desc + 1;
+		}
+	}
+	else
+	{
 		thr_debug_msg(CURRENT_FUNCTION, "NOT ADDING %d to wait set\n", (unsigned)desc);
 	}
+
+	return true;	// we always want to continue visiting list items
 }
 
 
 
-struct ready_socks_populator {
-    fd_set* populate_from;
-    thr_mailbox* owner;
+struct ready_socks_populator
+{
+    thr_mailbox* mbox;
+    fd_set* fds;
 
-    dllist<PDSOCKET,dummy_sync>* descs_from;    
+	ready_socks_populator( thr_mailbox* mbox_, fd_set* fdset_ )
+	  : mbox( mbox_ ),
+		fds( fdset_ )
+	{ }
 
-    void visit(PDSOCKET desc);
-	
+    bool visit(PDSOCKET desc);
 };
 
 
-void
+bool
 ready_socks_populator::visit(PDSOCKET desc)
 {
 	io_entity *ie = socket_q::socket_from_desc(desc);
 
 	assert(ie);
 
-	if( !owner->ready_socks->contains(desc) && descs_from->contains(desc) )
+	// bound_socks had better contain desc, because
+	// we are visiting every item in the bound socks set
+	assert( mbox->bound_socks->contains(desc) );
+
+	if( !mbox->ready_socks->contains(desc) )
 	{
-		if (FD_ISSET(desc, populate_from)) {
-			
+		if(FD_ISSET(desc, fds))
+		{
 			thr_debug_msg(CURRENT_FUNCTION, "enqueuing SOCKET message from %d\n", (unsigned)desc);
 
 			message *m = new io_message(ie,ie->self(), MSG_TAG_SOCKET);
 			
-			owner->put_sock(m);
-			owner->ready_socks->put(desc);
+			mbox->put_sock(m);
+			mbox->ready_socks->put(desc);
 		} 
 
 		else {
 			thr_debug_msg(CURRENT_FUNCTION, "NOT enqueuing SOCKET message from %d\n", (unsigned)desc);
 		}
 	}
-
+	return true;	// we always want to continue visiting list items
 }
     
 
 
 
-void* thr_mailbox::sock_select_loop(void* which_mailbox) {
-    thr_mailbox* owner = (thr_mailbox*)which_mailbox;
+void
+thr_mailbox::wait_for_input( void )
+{
+    assert(thr_type(owned_by) == item_t_thread);
 
-    assert(thr_type(owner->owned_by) == item_t_thread);
+    thr_debug_msg(CURRENT_FUNCTION, "ENTERING for mailbox owned by %d\n", owned_by);
 
-    thr_debug_msg(CURRENT_FUNCTION, "ENTERING for mailbox owned by %d\n", owner->owned_by);
+	// allocate a set to hold the sockets that we will check
+	fd_set* socks_to_check = new fd_set;
 
-    fd_set* readable_socks = new fd_set;
-    sock_set_populator sock_visitor;
-    ready_socks_populator ready_visitor;
+	// build a visitor that will populate the set of sockets we will check
+	fd_set_populator select_set_populator( this, socks_to_check );
     
-    pthread_sync* monitor = owner->sock_monitor;
-    sock_visitor.to_populate = readable_socks;
+	bool done = false;
+    while( !done )
+	{
+        thr_debug_msg(CURRENT_FUNCTION, "LOOPING for mailbox owned by %d\n", owned_by);
 
-    while(1) {
-        thr_debug_msg(CURRENT_FUNCTION, "LOOPING for mailbox owned by %d\n", owner->owned_by);
-        int select_status;
-        char buf[256];
-
-        sock_visitor.already_ready = owner->ready_socks;
         
-        if(owner->kill_sock_selector) goto done;
+		// populate the set of sockets we will check for read readiness
+		// start with our "message available" pipe...
+        select_set_populator.reset( msg_avail_pipe[0] );
 
-        sock_visitor.reset(owner->sock_selector_pipe[0]);
+		// ...and add the rest of our bound sockets that have not
+		// already been indicated as "ready-to-read"
+        sock_monitor->lock();
+        bound_socks->visit(&select_set_populator);
+        sock_monitor->unlock();
 
-        monitor->lock();
-        owner->bound_socks->visit(&sock_visitor);
-        monitor->unlock();
 
+        thr_debug_msg(CURRENT_FUNCTION, "SELECTING for mailbox owned by %d; count = %d\n", owned_by, select_set_populator.max_fd);
+        int select_status = select( select_set_populator.max_fd,
+										select_set_populator.fds,
+										NULL,
+										NULL,
+										NULL);	// block until something ready
+        thr_debug_msg(CURRENT_FUNCTION, "SELECT RETURNING for mailbox owned by %d; status = %d\n", owned_by, select_status);
 
-        thr_debug_msg(CURRENT_FUNCTION, "SELECTING for mailbox owned by %d; count = %d\n", owner->owned_by, sock_visitor.count);
-        select_status = 
-            select(sock_visitor.count,sock_visitor.to_populate,NULL,NULL,NULL);
-        thr_debug_msg(CURRENT_FUNCTION, "SELECT RETURNING for mailbox owned by %d; status = %d\n", owner->owned_by, select_status);
-
-        if(FD_ISSET(owner->sock_selector_pipe[0],sock_visitor.to_populate))
-            read(owner->sock_selector_pipe[0],buf,256);
-
-        if(select_status == -1) {
+        if(select_status == -1)
+		{
             perror("select thread");
-        } else if(select_status) {
-            // are we waking up because the controller thread wants us to?
-            FD_CLR(owner->sock_selector_pipe[0],sock_visitor.to_populate);
-            if(owner->kill_sock_selector) goto done;
+        }
+		else if( select_status > 0 )
+		{
+            // check each of our bound sockets to see if they were found
+			// to have data available for reading
+			// if a socket is ready to read, add it to the "ready-to-read" set
+    		ready_socks_populator set_ready_socks_visitor( this,
+													select_set_populator.fds );
+            sock_monitor->lock();
+            bound_socks->visit(&set_ready_socks_visitor);
+            sock_monitor->unlock();
 
-            // get ready to deliver some messages....
-            monitor->lock();
-            
-            ready_visitor.owner = owner;
+			// if we popped out of the select because someone has
+			// put a message into our message queue, we have nothing else
+			// to do here - our caller will notice that there is a message
+			// available in the message queues
+			done = true;
 
-            ready_visitor.populate_from = sock_visitor.to_populate;
-            
-            ready_visitor.descs_from = owner->bound_socks;
-
-            owner->bound_socks->visit(&ready_visitor);
-            monitor->unlock();
-
-            // we don't need to signal that a recv is available
-            // because the put() operation in the visitor does it for us
-            
         } else {
-            //spurious wakeup; lather, rinse, repeat
-            continue;
+			// spurious wakeup - we shouldn't have woken up,
+			// because we have an infinite timeout
+        	thr_debug_msg(CURRENT_FUNCTION, "SELECT spurious wakeup for mailbox owned by %d; status = %d\n", owned_by, select_status);
         }
     }
     
-  done:
-    close(owner->sock_selector_pipe[0]);
-    close(owner->sock_selector_pipe[1]);
-    
-    delete readable_socks;
-    return 0;
+    delete socks_to_check;
 }
 
 thr_mailbox::thr_mailbox(thread_t owner) 
@@ -178,18 +200,9 @@ thr_mailbox::thr_mailbox(thread_t owner)
     bound_socks = new dllist<PDSOCKET,dummy_sync>;
 
     sock_monitor = new pthread_sync();
-    sock_monitor->register_cond(SOCK_AVAIL);
 
-    kill_sock_selector = 0;
-
-    sock_selector_pipe = new int[2];
-
-    int pipe_success = pipe(sock_selector_pipe);
+    int pipe_success = pipe( msg_avail_pipe );
     assert(pipe_success == 0);
-
-    // create sock and fd selector threads
-    pthread_create(&sock_selector_thread, NULL, 
-                   thr_mailbox::sock_select_loop, this);    
 }
 
 thr_mailbox::~thr_mailbox() {
@@ -198,20 +211,85 @@ thr_mailbox::~thr_mailbox() {
     delete ready_socks;
     delete bound_socks;
 
-    kill_sock_selector = 0;
-
-    signal_sock_selector();
-
-    pthread_join(sock_selector_thread, NULL);
-
-    close(sock_selector_pipe[0]);
-    close(sock_selector_pipe[1]);
-
-    delete [] sock_selector_pipe;
+    close( msg_avail_pipe[0] );
+    close( msg_avail_pipe[1] );
 }
 
+
+struct ready_buffered_visitor
+{
+	io_entity* ready_ioe;
+
+	ready_buffered_visitor( void )
+	  : ready_ioe( NULL )
+	{ }
+
+	bool visit( PDSOCKET desc );
+};
+
+
+
+
+// TODO this method of checking for ready buffered entities is not necessarily
+// fair - we always start visiting from the list's beginning
+bool
+ready_buffered_visitor::visit( PDSOCKET desc )
+{
+	bool continueVisiting = true;
+
+	io_entity* ioe = socket_q::socket_from_desc( desc );
+	if( (ioe != NULL) && ioe->is_buffer_ready() )
+	{
+		ready_ioe = ioe;
+		continueVisiting = false;
+	}
+	return continueVisiting;
+}
+
+
+bool
+thr_mailbox::is_buffered_special_ready( thread_t* sender, tag_t* type )
+{
+	bool is_someone_ready = false;
+
+	if( (*type == MSG_TAG_SOCKET) || (*type == MSG_TAG_ANY) )
+	{
+
+		if( *sender != THR_TID_UNSPEC )
+		{
+			// check the given socket to see if it has buffered data available
+			if( thrtab::is_io_entity( *sender ) )
+			{
+				io_entity* ioe = (io_entity*)(thrtab::get_entry( *sender ));
+				is_someone_ready = ioe->is_buffer_ready();
+			}
+		}
+		else
+		{
+			// look for one of our bound socket who has buffered data available
+			ready_buffered_visitor rbv;
+			bound_socks->visit( &rbv );
+			if( rbv.ready_ioe != NULL )
+			{
+				is_someone_ready = true;
+				*sender = rbv.ready_ioe->self();
+			}
+		}
+
+		if( is_someone_ready )
+		{
+			*type = MSG_TAG_SOCKET;
+
+		}
+	}
+	return is_someone_ready;
+}
+
+
+
 bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block, 
-                               bool do_yank, message** m, unsigned io_first) {
+                               bool do_yank, message** m, unsigned io_first)
+{
 
 check_for_again:
     bool found = false;
@@ -222,23 +300,104 @@ check_for_again:
     match_message_pred criterion(*sender,*type);
     dllist<message*,dummy_sync> *yank_from = NULL;
     
-  find_msg:
+find_msg:
     actual_sender = 0;
     actual_type = 0;
 
+monitor->lock();
+
+	// TODO when is the correct place to clear the message available pipe?
+	// do we need to do it on each call?
+	clear_msg_avail();
+
     if(io_first)
-        found = (messages->contains(&criterion) && (yank_from = messages)) ||
-            (sock_messages->contains(&criterion) && (yank_from = sock_messages));
-    else 
-        found = (sock_messages->contains(&criterion) && (yank_from = sock_messages))
-            || (messages->contains(&criterion) && (yank_from = messages));
+	{
+		// check if any buffered special socket has input in its buffer
+		found = is_buffered_special_ready( sender, type );
+		if( found )
+		{
+			// TODO fix this mess
+			criterion.actual_sender = *sender;
+			criterion.actual_type = *type;
+
+			// make sure that if our previous call showed we have data
+			// available, that we don't mistakenly assume that the
+			// data incoming on the underlying socket that was used to
+			// fill the buffer is still available
+			if( sock_messages->contains(&criterion) )
+			{
+				yank_from = sock_messages;
+			}
+		}
+		else
+		{
+			// we have no buffered data, so check whether any
+			// of our bound descriptors are ready to read
+			found = sock_messages->contains(&criterion);
+			if( found )
+			{
+				yank_from = sock_messages;
+			}
+			else 
+			{
+				found = messages->contains(&criterion);
+				if( found )
+				{
+					yank_from = messages;
+				}
+			}
+		}
+	}
+	else
+	{
+		found = (messages->contains(&criterion));
+		if( found )
+		{
+			yank_from = messages;
+		}
+		else
+		{
+			// check if any buffered special socket still has
+			// input to be consumed
+			found = is_buffered_special_ready( sender, type );
+			if( found )
+			{
+				// TODO fix this mess
+				criterion.actual_sender = *sender;
+				criterion.actual_type = *type;
+
+				// make sure that if our previous call showed we have data
+				// available, that we don't mistakenly assume that the
+				// data incoming on the underlying socket that was used to
+				// fill the buffer is still available
+				if( sock_messages->contains(&criterion) )
+				{
+					yank_from = sock_messages;
+				}
+			}
+			else
+			{
+				// we have no buffered data, so check
+				// whether any of our bound descriptors are ready to read
+				found = sock_messages->contains(&criterion);
+				if( found )
+				{
+					yank_from = sock_messages;
+				}
+			}
+		}
+	}
+
+monitor->unlock();
     
     actual_sender = criterion.actual_sender;
     actual_type = criterion.actual_type;
 
     if(found) {
 
-        if(do_yank && m) {
+        if(do_yank && m && (yank_from != NULL) ) {
+
+monitor->lock();
             unsigned oldsize = 
                 yank_from->get_size();
             unsigned newsize;
@@ -249,46 +408,25 @@ check_for_again:
                 yank_from->get_size();
             assert(oldsize == (newsize + 1));
 
-        } else if( !do_yank &&
-                 thrtab::is_io_entity(actual_sender) &&
-                 ((io_entity*)thrtab::get_entry(actual_sender))->is_special()) {
-            // consume the "message" from our special sender;
-            // we're telling the caller about input on
-            // their special file, and we expect them to
-            // consume it
-            unsigned oldsize = 
-                yank_from->get_size();
-            unsigned newsize;
-
-            msg_from_special = yank_from->yank(&criterion);
-            m = &msg_from_special;
-
-            newsize = 
-                yank_from->get_size();
-            assert(oldsize == (newsize + 1));
+monitor->unlock();
 
         }
 
         goto done;
-    } else if(!found && do_block) {
+    }
+	else if(!found && do_block)
+	{
+		// we didn't find a message matching the requested criteria,
+		// and we were asked to block until we can return
         thr_debug_msg(CURRENT_FUNCTION, "blocking; size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
-        monitor->wait(RECV_AVAIL);
+
+		wait_for_input();
+
         goto find_msg;
     }
     
-  done:
+done:
     
-#if READY
-    if(m && *m) {
-        if((*m)->type() == MSG_TAG_SOCKET) {
-            PDSOCKET sock = ((socket_q*)thrtab::get_entry((*m)->from()))->sock;
-            sock_monitor->lock();
-            ready_socks->yank(sock);
-            sock_monitor->unlock();
-            signal_sock_selector();           
-        }
-    }       
-#endif // READY
 
     if(found) {
         if(actual_sender) *sender = actual_sender;
@@ -298,60 +436,6 @@ check_for_again:
 	if(msg_from_special != NULL) {
 		// consume the "message" from the special sender
 		delete msg_from_special;
-	}
-
-	// verify that if this is a message saying data is available,
-	// that data is actually available
-	if( *type == MSG_TAG_SOCKET )
-	{
-#if READY
-		pollfd pfd;
-		pfd.fd = thr_socket( *sender );
-		pfd.events = POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI;
-		pfd.revents = 0;
-
-		int pollret = ::poll( &pfd, 1, 0 );
-		if( pollret == 0 )
-		{
-			// we got a spurious wakeup - go around again
-			fprintf( stderr, "tlib: warning: check_for indicated data available on %d, but poll disagrees\n", pfd.fd );
-
-			// do we return false?
-			// go around again?
-			//   if so, do we clear the ready sock too?
-			clear_ready_sock( pfd.fd );
-			goto check_for_again;
-		}
-		else if( pollret == -1 )
-		{
-			fprintf( stderr, "tlib: warning: check_for poll failed: %d\n", errno );
-		}
-#else
-		fd_set fds;
-		PDSOCKET testsock = thr_socket( *sender );
-		FD_ZERO( &fds );
-		FD_SET( testsock, &fds );
-		struct timeval tv;
-		tv.tv_sec = 0;
-		tv.tv_usec = 0;
-		int selret = select( testsock + 1, &fds, NULL, NULL, &tv );
-		if( selret == 0 )
-		{
-			// we got a spurious wakeup - go around again
-			fprintf( stderr, "tlib: warning: check_for indicated data available on %d, but select disagrees\n", testsock );
-
-			// do we return false?
-			// go around again?
-			//   if so, do we clear the ready sock too?
-			clear_ready_sock( testsock );
-			goto check_for_again;
-		}
-		else if( selret == -1 )
-		{
-			fprintf( stderr, "tlib: warning: check_for poll failed: %d\n", errno );
-		}
-
-#endif // READY
 	}
 
     return found;
@@ -366,9 +450,8 @@ int thr_mailbox::put(message* m) {
     messages->put(m);
 
     assert(messages->get_size() == old_size + 1);
-
+	raise_msg_avail();
     monitor->unlock();
-    monitor->signal(RECV_AVAIL);
 
     return THR_OKAY;
 }
@@ -381,9 +464,8 @@ int thr_mailbox::put_sock(message* m) {
     sock_messages->put(m);
 
     assert(sock_messages->get_size() == (old_size + 1));
-    
+	raise_msg_avail();    
     monitor->unlock();
-    monitor->signal(RECV_AVAIL);
 
     return THR_OKAY;
 }
@@ -391,11 +473,7 @@ int thr_mailbox::put_sock(message* m) {
 int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp) {
     int retval = THR_OKAY;
 
-#if READY
-    signal_sock_selector();
-#endif // READY
-
-    monitor->lock();
+//    monitor->lock();
     thr_debug_msg(CURRENT_FUNCTION, "RECEIVING: size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
     message* to_recv;
     bool did_recv;
@@ -414,29 +492,61 @@ int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp
     delete to_recv;
 
   done:
-    monitor->unlock();
+//    monitor->unlock();
     return retval;
 }
 
-void thr_mailbox::signal_sock_selector() {
+void
+thr_mailbox::raise_msg_avail( void )
+{
     static char s = '0';
-    write(sock_selector_pipe[1], &s, sizeof(char));
+    write( msg_avail_pipe[1], &s, sizeof(char));
 }    
 
-int thr_mailbox::poll(thread_t* from, tag_t* tagp, unsigned block,
-                      unsigned fd_first) { 
-    // FIXME: implement poll_preference
-    //        by passing fd_first to check_for and then implementing 
-    //        poll_preference semantics there
-    
-    signal_sock_selector();
+void
+thr_mailbox::clear_msg_avail( void )
+{
+	pollfd pfd;
 
+	pfd.fd = msg_avail_pipe[0];
+	pfd.events = POLLIN | POLLPRI | POLLRDNORM | POLLRDBAND;
+	pfd.revents = 0;
+
+	bool done = false;
+	while( !done )
+	{
+		int pollret = ::poll( &pfd, 1, 0 );
+		if( pollret == 1 )
+		{
+			// read a chunk
+			static char buf[1024];
+			read( msg_avail_pipe[0], buf, 1024 );
+		}
+		else if( pollret == 0 )
+		{
+			// we've consumed all the data available on the msg wakeup pipe
+			done = true;
+		}
+		else
+		{
+			// there was an error
+    		thr_debug_msg(CURRENT_FUNCTION, "POLL FAILED: %d\n", errno );
+		}
+	}
+}
+
+
+
+int thr_mailbox::poll(thread_t* from, tag_t* tagp, unsigned block,
+                      unsigned fd_first)
+{ 
+//    monitor->lock();
     
-    monitor->lock();
-    
+
     bool found = check_for(from, tagp, (block != 0), false, NULL, fd_first);
 
-    monitor->unlock();
+
+ //   monitor->unlock();
 
     if(found) {
         return THR_OKAY;
@@ -447,17 +557,16 @@ int thr_mailbox::poll(thread_t* from, tag_t* tagp, unsigned block,
 }
 
 void thr_mailbox::bind_sock(PDSOCKET sock, unsigned special, int
-                            (*wb)(void*), void* desc, thread_t* ptid) {
+                            (*wb)(void*), void* desc, thread_t* ptid)
+{
     *ptid = thrtab::create_socket(sock,owned_by,wb,desc,(special != 0));
     sock_monitor->lock();
     bound_socks->put(sock);
     sock_monitor->unlock();
-
-    signal_sock_selector();
 }
 
-bool thr_mailbox::is_sock_bound(PDSOCKET sock) {
-    
+bool thr_mailbox::is_sock_bound(PDSOCKET sock)
+{
     sock_monitor->lock();
     bool ret = bound_socks->contains(sock);
     sock_monitor->unlock();
@@ -474,10 +583,26 @@ void
 thr_mailbox::clear_ready_sock( PDSOCKET sock )
 {
 	sock_monitor->lock();
-	assert( ready_socks->contains(sock) );
-	ready_socks->yank(sock);
+	if( ready_socks->contains(sock) )
+	{
+		ready_socks->yank(sock);
+	}
+
+	// remove any message from our sock_messages list indicating this
+	// socket is ready to read
+	// TODO remove either the ready_socks or sock_messages lists
+	io_entity* ioe = socket_q::socket_from_desc( sock );
+	if( ioe != NULL )
+	{
+		match_message_pred criterion(ioe->self(), MSG_TAG_SOCKET);
+		if( sock_messages->contains(&criterion) )
+		{
+			message* m = sock_messages->yank(&criterion);
+			delete m;
+		}	
+	}
+
 	sock_monitor->unlock();
-	signal_sock_selector();           
 }
 
 

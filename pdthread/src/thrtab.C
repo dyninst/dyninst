@@ -71,6 +71,7 @@ thread_t thrtab::create_socket(PDSOCKET sock, thread_t owner, int
     thread_t new_tid = entries.push_back((entity*)new_socket);
     new_socket->init(new_tid);
     thr_debug_msg(CURRENT_FUNCTION, "creating new socket with tid %d\n", new_tid);
+
     return new_tid;
 }
 

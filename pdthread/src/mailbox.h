@@ -18,6 +18,9 @@ class mailbox {
     
   protected:
     thread_t owned_by;
+
+	// monitor for mutual exclusion to the mailbox message queue(s)
+	// and to signal when a message is available
     pthread_sync* monitor;
     
   public:

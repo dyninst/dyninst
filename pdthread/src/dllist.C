@@ -470,8 +470,9 @@ void dllist<Element,Sync>::visit(Visitor* visitor) {
     node* result = NULL;
     node* current = head;
 
-    while(current) {
-        visitor->visit(current->data);
+	bool continue_visiting = true;
+    while(current && continue_visiting) {
+        continue_visiting = visitor->visit(current->data);
         current = current->next;
     }
 

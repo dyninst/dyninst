@@ -104,7 +104,7 @@ int msg_bind_socket(PDSOCKET s, unsigned special, int (*will_block)(void*), void
 
     thr_mailbox* my_mail = (thr_mailbox*)lwp::get_mailbox();
     thread_t me = thr_self();
-    my_mail->bind_sock(s, special, will_block, (void*)(&s), ptid);
+    my_mail->bind_sock(s, special, will_block, arg, ptid);
 
     assert(my_mail->is_sock_bound(s));
   done:

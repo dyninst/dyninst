@@ -175,6 +175,14 @@ class match_message_pred {
     bool is_sender_specified;
     thread_t sender;
     tag_t tag;
+
+	bool tag_matches( message* msg )
+		{
+			assert( is_tag_specified );
+			return ((msg->type() == tag) ||
+					(tag == MSG_TAG_THREAD) && (msg->type() >= MSG_TAG_USER) );
+		}
+
   public:
     thread_t actual_sender;
     tag_t actual_type;
@@ -191,16 +199,26 @@ class match_message_pred {
         actual_sender = element->from();
         actual_type = element->type();
         
-        if((!is_tag_specified) && (!is_sender_specified)) {
-            return true;
-        } else if(is_tag_specified && is_sender_specified) {
-            return (element->type() == tag) && (element->from() == sender);
-        } else if (is_tag_specified) {
-            return element->type() == tag;
-        } else if (is_sender_specified) {
+		if( is_tag_specified && is_sender_specified )
+		{
+			// both sender and tag were specified - must match both
+            return tag_matches(element) && (element->from() == sender);
+        }
+		else if (is_tag_specified)
+		{
+			// tag was specified but not sender - must match tag
+            return tag_matches(element);
+        }
+		else if (is_sender_specified)
+		{
+			// sender was specified but not tag - must match sender
             return element->from() == sender;
-        } else {
-            assert(false);
+		}
+		else
+		{
+			// neither tag nor sender was specified - everything matches
+			assert( !is_tag_specified && !is_sender_specified );
+            return true;
         }
     }
 };
