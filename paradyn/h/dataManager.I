@@ -2,6 +2,9 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
+ * Revision 1.67  1996/04/07 21:18:31  karavan
+ * added new phaseID argument to enableDataCollection2
+ *
  * Revision 1.66  1996/03/14 14:20:22  naim
  * Batching enable data requests for better performance - naim
  *
@@ -371,7 +374,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 38;
+    $version 39;
 
     //
     // Start a paradyn daemon
@@ -511,6 +514,7 @@ $remote dataManager {
 					   resourceListHandle,
 					   metricHandle, 
 					   phaseType,
+					   unsigned,
 					   unsigned persistent_data,
 					   unsigned persistent_collection);
     //
