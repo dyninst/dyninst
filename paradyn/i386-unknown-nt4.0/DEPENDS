@@ -6,8 +6,7 @@ DMpublic.obj: ../src/DMthread/DMpublic.C dataManager.thread.h \
  ../../util/h/ByteArray.h ../../util/h/Vector.h \
  ../../util/h/vectorSet.h ../../util/h/list.h ../../util/h/sys.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -33,8 +32,7 @@ DMdaemon.obj: ../src/DMthread/DMdaemon.C ../../thread/h/thread.h \
  ../../util/h/ByteArray.h ../../util/h/Vector.h \
  ../../util/h/vectorSet.h ../../util/h/list.h ../../util/h/sys.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -59,8 +57,7 @@ DMmetric.obj: ../src/DMthread/DMmetric.C ../src/DMthread/DMmetric.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/vectorSet.h ../../util/h/list.h dyninstRPC.xdr.h \
  ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -81,8 +78,7 @@ DMmain.obj: ../src/DMthread/DMmain.C ../../thread/h/thread.h \
  dataManager.thread.SRVR.h dataManager.thread.h ../../util/h/rpcUtil.h \
  ../../util/h/ByteArray.h ../../util/h/vectorSet.h ../../util/h/list.h \
  ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -107,8 +103,7 @@ DMperfstream.obj: ../src/DMthread/DMperfstream.C \
  ../../util/h/ByteArray.h ../../util/h/Vector.h \
  ../../util/h/vectorSet.h ../../util/h/list.h dyninstRPC.xdr.h \
  ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -129,8 +124,7 @@ DMresource.obj: ../src/DMthread/DMresource.C dataManager.thread.h \
  ../../util/h/ByteArray.h ../../util/h/Vector.h \
  ../../util/h/vectorSet.h ../../util/h/list.h ../../util/h/sys.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -146,8 +140,7 @@ DMabstractions.obj: ../src/DMthread/DMabstractions.C \
  ../../util/h/ByteArray.h ../../util/h/Vector.h \
  ../../util/h/vectorSet.h ../../util/h/list.h ../../util/h/sys.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -162,9 +155,8 @@ DMcritPath.obj: ../src/DMthread/DMcritPath.C ../../thread/h/thread.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
+ ../../util/h/Dictionary.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h dyninstRPC.xdr.CLNT.h \
@@ -188,9 +180,8 @@ DMphase.obj: ../src/DMthread/DMphase.C ../src/DMthread/DMphase.h \
  ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
  ../src/DMthread/DMinclude.h ../src/DMthread/DMperfstream.h \
  dataManager.thread.h ../../util/h/list.h dyninstRPC.xdr.h \
- ../../util/h/Types.h ../../util/h/aggregation.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h ../../util/h/stringPool.h \
  ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h ../../util/h/stringPool.h \
  ../../util/h/stringDecl.h ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h dataManager.thread.SRVR.h \
@@ -216,8 +207,7 @@ main.obj: ../src/pdMain/main.C ../src/pdMain/../TCthread/tunableConst.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../util/h/rpcUtil.h \
  ../../util/h/ByteArray.h ../../util/h/vectorSet.h ../../util/h/list.h \
  ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -239,9 +229,8 @@ VMmain.obj: ../src/VMthread/VMmain.C ../../thread/h/thread.h \
  UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
  performanceConsultant.thread.h dataManager.thread.h \
  ../../util/h/list.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
+ ../../util/h/Dictionary.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h \
  performanceConsultant.thread.CLNT.h VISIthread.thread.CLNT.h \
@@ -260,7 +249,6 @@ VISIthreadmain.obj: ../src/VISIthread/VISIthreadmain.C \
  VISIthread.thread.h dyninstRPC.xdr.CLNT.h dyninstRPC.xdr.h \
  ../../util/h/Types.h ../../util/h/aggregation.h \
  ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h \
  ../../paradyn/src/DMthread/DMinclude.h VISIthread.thread.SRVR.h \
  ../src/VISIthread/VISIthreadTypes.h VM.thread.CLNT.h VM.thread.h \
  ../../paradyn/src/VMthread/VMinclude.h UI.thread.CLNT.h UI.thread.h \
@@ -286,8 +274,7 @@ VISIthreadpublic.obj: ../src/VISIthread/VISIthreadpublic.C \
  ../../paradyn/src/UIthread/Status.h \
  performanceConsultant.thread.h dataManager.thread.h dyninstRPC.xdr.h \
  ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h dataManager.thread.CLNT.h \
@@ -306,8 +293,7 @@ PCdata.obj: ../src/PCthread/PCdata.C ../src/PCthread/PCintern.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -327,8 +313,7 @@ PCfocus.obj: ../src/PCthread/PCfocus.C ../src/PCthread/PCintern.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -348,8 +333,7 @@ PCsearch.obj: ../src/PCthread/PCsearch.C ../src/PCthread/PCintern.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -373,8 +357,7 @@ PCpublic.obj: ../src/PCthread/PCpublic.C ../src/PCthread/PCintern.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -398,8 +381,7 @@ PCmain.obj: ../src/PCthread/PCmain.C ../src/PCthread/PCintern.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -424,8 +406,7 @@ PCconstants.obj: ../src/PCthread/PCconstants.C \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -446,8 +427,7 @@ PCfilter.obj: ../src/PCthread/PCfilter.C ../src/PCthread/PCfilter.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -469,8 +449,7 @@ PCmetric.obj: ../src/PCthread/PCmetric.C ../src/PCthread/PCintern.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -492,8 +471,7 @@ PCwhy.obj: ../src/PCthread/PCwhy.C ../src/PCthread/PCwhy.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -515,8 +493,7 @@ PCexperiment.obj: ../src/PCthread/PCexperiment.C \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -540,8 +517,7 @@ PCrules.obj: ../src/PCthread/PCrules.C ../src/PCthread/PCintern.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -563,8 +539,7 @@ PCshg.obj: ../src/PCthread/PCshg.C ../src/PCthread/PCintern.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -589,8 +564,7 @@ PCmetricInst.obj: ../src/PCthread/PCmetricInst.C \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -615,8 +589,7 @@ PCcostServer.obj: ../src/PCthread/PCcostServer.C \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -646,8 +619,7 @@ uimpd.tcl.obj: ../src/UIthread/uimpd.tcl.C ../../util/h/odometer.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/vectorSet.h ../../util/h/list.h ../../util/h/sys.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -671,9 +643,8 @@ UImain.obj: ../src/UIthread/UImain.C ../../util/h/headers.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
+ ../../util/h/Dictionary.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h \
@@ -703,9 +674,8 @@ UIpublic.obj: ../src/UIthread/UIpublic.C UI.thread.CLNT.h UI.thread.h \
  ../../util/h/sys.h ../../paradyn/src/UIthread/Status.h \
  performanceConsultant.thread.h dataManager.thread.h \
  ../../util/h/list.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
+ ../../util/h/Dictionary.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h \
  ../../paradyn/src/VMthread/VMinclude.h UI.thread.SRVR.h \
@@ -726,9 +696,8 @@ UIwhere.obj: ../src/UIthread/UIwhere.C ../src/UIthread/UIglobals.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
+ ../../util/h/Dictionary.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h \
@@ -749,9 +718,8 @@ paradyn.tcl.obj: ../src/UIthread/paradyn.tcl.C ../../util/h/headers.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
+ ../../util/h/Dictionary.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h \
@@ -826,8 +794,7 @@ shg.obj: ../src/UIthread/shg.C ../src/UIthread/shg.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/vectorSet.h dataManager.thread.h ../../util/h/list.h \
  ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -845,8 +812,7 @@ shgRootNode.obj: ../src/UIthread/shgRootNode.C ../src/UIthread/shg.h \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/vectorSet.h dataManager.thread.h ../../util/h/list.h \
  ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -862,12 +828,11 @@ shgPhases.obj: ../src/UIthread/shgPhases.C ../../util/h/headers.h \
  ../src/UIthread/shg.h ../../util/h/Dictionary.h \
  performanceConsultant.thread.h ../../util/h/rpcUtil.h \
  ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
- ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
+ ../../util/h/ByteArray.h ../../util/h/vectorSet.h visi.xdr.h \
  dataManager.thread.h ../../util/h/list.h ../../util/h/sys.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
- ../../paradyn/src/DMthread/DMinclude.h \
+ ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/DMthread/DMinclude.h  ../../paradyn/src/met/mdl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h ../src/UIthread/where4tree.h \
  ../src/UIthread/simpSeq.h ../src/UIthread/where4treeConstants.h \
@@ -888,8 +853,7 @@ shgTcl.obj: ../src/UIthread/shgTcl.C ../../util/h/headers.h \
  ../../thread/h/thread.h ../../util/h/pddesc.h \
  ../../util/h/vectorSet.h dataManager.thread.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h ../src/UIthread/shgPhases.h \
@@ -917,8 +881,7 @@ TCmain.obj: ../src/TCthread/TCmain.C ../../thread/h/thread.h \
  ../../util/h/ByteArray.h ../../util/h/Vector.h \
  ../../util/h/vectorSet.h ../../util/h/list.h ../../util/h/sys.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -941,8 +904,7 @@ metMain.obj: ../src/met/metMain.C ../../paradyn/src/met/metParse.h \
  ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
  ../../util/h/Types.h ../../util/h/aggregation.h \
  ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h ../../paradyn/src/met/globals.h \
- ../src/met/../TCthread/tunableConst.h \
+ ../../paradyn/src/met/globals.h ../src/met/../TCthread/tunableConst.h \
  ../../paradyn/src/met/metricExt.h \
  ../../paradyn/src/DMthread/DMinclude.h ../../util/h/sys.h \
  dyninstRPC.xdr.CLNT.h ../../paradyn/src/pdMain/paradyn.h \
@@ -970,7 +932,7 @@ metParser.obj: metParser.C ../../paradyn/src/met/metParse.h \
  ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
  ../../util/h/Types.h ../../util/h/aggregation.h \
  ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h ../../paradyn/src/met/globals.h \
+ ../../paradyn/src/met/globals.h \
  ../../util/h/hist.h ../../util/h/sys.h ../../util/h/makenan.h
 metScanner.obj: metScanner.C y.tab.h ../../paradyn/src/met/metParse.h \
  ../../util/h/machineType.h ../../util/h/Vector.h dyninstRPC.xdr.h \
@@ -981,7 +943,7 @@ metScanner.obj: metScanner.C y.tab.h ../../paradyn/src/met/metParse.h \
  ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
  ../../util/h/Types.h ../../util/h/aggregation.h \
  ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h ../../paradyn/src/met/globals.h
+ ../../paradyn/src/met/globals.h
 metClass.obj: ../src/met/metClass.C ../src/met/metParse.h \
  ../../util/h/machineType.h ../../util/h/Vector.h dyninstRPC.xdr.h \
  ../../util/h/rpcUtil.h ../../util/h/headers.h \
@@ -991,7 +953,7 @@ metClass.obj: ../src/met/metClass.C ../src/met/metParse.h \
  ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
  ../../util/h/Types.h ../../util/h/aggregation.h \
  ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h ../../paradyn/src/met/globals.h
+ ../../paradyn/src/met/globals.h
 templatesIGENMDL.obj: ../src/templatesIGENMDL.C ../../util/h/String.h \
  ../../util/h/debugOstream.h ../../util/h/headers.h \
  ../../util/h/ntHeaders.h ../../util/h/refCounter.h \
@@ -1000,8 +962,7 @@ templatesIGENMDL.obj: ../src/templatesIGENMDL.C ../../util/h/String.h \
  ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
  ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
  ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../paradyn/src/met/metParse.h \
+ ../../paradyn/src/met/mdl.h visi.xdr.h ../../paradyn/src/met/metParse.h \
  ../../util/h/machineType.h ../../paradyn/src/met/globals.h
 templatesDM.obj: ../src/templatesDM.C ../../util/h/list.h \
  ../../util/h/String.h ../../util/h/debugOstream.h \
@@ -1011,9 +972,8 @@ templatesDM.obj: ../src/templatesDM.C ../../util/h/list.h \
  ../../util/h/Dictionary.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
  ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
  ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
- ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h dataManager.thread.h ../../util/h/sys.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h ../../util/h/sys.h \
+ ../../paradyn/src/met/mdl.h visi.xdr.h dataManager.thread.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h dyninstRPC.xdr.CLNT.h \
@@ -1036,9 +996,8 @@ templatesPCV.obj: ../src/templatesPCV.C ../../util/h/list.h \
  ../../util/h/Dictionary.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
  ../../util/h/pdsocket.h ../../thread/h/thread.h ../../util/h/pddesc.h \
  ../../util/h/ByteArray.h ../../util/h/vectorSet.h \
- ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../paradyn/src/PCthread/PCintern.h ../../util/h/sys.h \
+ ../../util/h/Types.h ../../util/h/aggregation.h ../../util/h/sys.h \
+ ../../paradyn/src/met/mdl.h visi.xdr.h ../../paradyn/src/PCthread/PCintern.h \
  ../../paradyn/src/PCthread/../pdMain/paradyn.h \
  dataManager.thread.CLNT.h dataManager.thread.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
@@ -1074,8 +1033,7 @@ templatesUI.obj: ../src/templatesUI.C ../../util/h/list.h \
  ../../paradyn/src/VMthread/VMinclude.h \
  ../src/../src/UIthread/UIglobals.h dataManager.thread.CLNT.h \
  dataManager.thread.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h \
@@ -1107,11 +1065,10 @@ templatesUIWASHG.obj: ../src/templatesUIWASHG.C ../../util/h/Vector.h \
  ../../paradyn/src/UIthread/shgPhases.h \
  ../../paradyn/src/UIthread/shg.h performanceConsultant.thread.h \
  ../../util/h/rpcUtil.h ../../util/h/pdsocket.h \
- ../../thread/h/thread.h ../../util/h/pddesc.h \
+ ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/stringDecl.h \
  ../../util/h/vectorSet.h dataManager.thread.h ../../util/h/list.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../paradyn/src/met/mdl.h visi.xdr.h ../../util/h/stringPool.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h \
  ../../paradyn/src/UIthread/shgConsts.h
@@ -1121,9 +1078,8 @@ mdl.obj: ../src/met/mdl.C dyninstRPC.xdr.CLNT.h dyninstRPC.xdr.h \
  ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
  ../../util/h/debugOstream.h ../../util/h/refCounter.h \
  ../../util/h/ByteArray.h ../../util/h/Vector.h \
- ../../util/h/vectorSet.h ../../util/h/Types.h \
+ ../../util/h/vectorSet.h ../../util/h/Types.h ../../util/h/Dictionary.h \
  ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
  ../../paradyn/src/met/globals.h ../../paradyn/src/met/metricExt.h \
  ../../paradyn/src/DMthread/DMinclude.h ../../util/h/sys.h
 tcl2c.obj: tcl2c.C 
@@ -1135,8 +1091,7 @@ dataManager.thread.obj: dataManager.thread.C dataManager.thread.h \
  ../../util/h/ByteArray.h ../../util/h/Vector.h \
  ../../util/h/vectorSet.h ../../util/h/list.h ../../util/h/sys.h \
  dyninstRPC.xdr.h ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -1150,7 +1105,7 @@ dataManager.thread.CLNT.obj: dataManager.thread.CLNT.C \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
  ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
+ ../../util/h/Dictionary.h \
  visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -1163,9 +1118,8 @@ dataManager.thread.SRVR.obj: dataManager.thread.SRVR.C \
  ../../util/h/refCounter.h ../../util/h/ByteArray.h \
  ../../util/h/Vector.h ../../util/h/vectorSet.h ../../util/h/list.h \
  ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
+ ../../util/h/Dictionary.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h
@@ -1178,8 +1132,7 @@ performanceConsultant.thread.obj: performanceConsultant.thread.C \
  ../../util/h/Vector.h ../../util/h/vectorSet.h dataManager.thread.h \
  ../../util/h/list.h ../../util/h/sys.h dyninstRPC.xdr.h \
  ../../util/h/Types.h ../../util/h/aggregation.h \
- ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h \
- ../../paradynd/src/blizzard_memory.h visi.xdr.h \
+ ../../paradyn/src/met/mdl.h ../../util/h/Dictionary.h visi.xdr.h \
  ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -1194,9 +1147,8 @@ performanceConsultant.thread.CLNT.obj: \
  ../../util/h/ByteArray.h ../../util/h/Vector.h \
  ../../util/h/vectorSet.h dataManager.thread.h ../../util/h/list.h \
  ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
+ ../../util/h/Dictionary.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h
@@ -1210,9 +1162,8 @@ performanceConsultant.thread.SRVR.obj: \
  ../../util/h/ByteArray.h ../../util/h/Vector.h \
  ../../util/h/vectorSet.h dataManager.thread.h ../../util/h/list.h \
  ../../util/h/sys.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
+ ../../util/h/Dictionary.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h
@@ -1222,18 +1173,16 @@ dyninstRPC.xdr.obj: dyninstRPC.xdr.C dyninstRPC.xdr.h \
  ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
  ../../util/h/debugOstream.h ../../util/h/refCounter.h \
  ../../util/h/ByteArray.h ../../util/h/Vector.h \
- ../../util/h/vectorSet.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h
+ ../../util/h/vectorSet.h ../../util/h/Types.h ../../util/h/Dictionary.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h
 dyninstRPC.xdr.CLNT.obj: dyninstRPC.xdr.CLNT.C dyninstRPC.xdr.CLNT.h \
  dyninstRPC.xdr.h ../../util/h/rpcUtil.h ../../util/h/headers.h \
  ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
  ../../thread/h/thread.h ../../util/h/pddesc.h ../../util/h/String.h \
  ../../util/h/debugOstream.h ../../util/h/refCounter.h \
  ../../util/h/ByteArray.h ../../util/h/Vector.h \
- ../../util/h/vectorSet.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h
+ ../../util/h/vectorSet.h ../../util/h/Types.h ../../util/h/Dictionary.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h
 visi.xdr.CLNT.obj: visi.xdr.CLNT.C visi.xdr.CLNT.h visi.xdr.h \
  ../../util/h/rpcUtil.h ../../util/h/headers.h \
  ../../util/h/ntHeaders.h ../../util/h/pdsocket.h \
@@ -1278,9 +1227,8 @@ UI.thread.obj: UI.thread.C UI.thread.h ../../util/h/rpcUtil.h \
  ../../paradyn/src/UIthread/Status.h \
  performanceConsultant.thread.h dataManager.thread.h \
  ../../util/h/list.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
+ ../../util/h/Dictionary.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h \
  ../../paradyn/src/VMthread/VMinclude.h
@@ -1294,9 +1242,8 @@ UI.thread.CLNT.obj: UI.thread.CLNT.C UI.thread.CLNT.h UI.thread.h \
  ../../util/h/sys.h ../../paradyn/src/UIthread/Status.h \
  performanceConsultant.thread.h dataManager.thread.h \
  ../../util/h/list.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
+ ../../util/h/Dictionary.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h \
  ../../paradyn/src/VMthread/VMinclude.h
@@ -1310,9 +1257,8 @@ UI.thread.SRVR.obj: UI.thread.SRVR.C UI.thread.SRVR.h UI.thread.h \
  ../../util/h/sys.h ../../paradyn/src/UIthread/Status.h \
  performanceConsultant.thread.h dataManager.thread.h \
  ../../util/h/list.h dyninstRPC.xdr.h ../../util/h/Types.h \
- ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h \
- ../../util/h/Dictionary.h ../../paradynd/src/blizzard_memory.h \
- visi.xdr.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
+ ../../util/h/aggregation.h ../../paradyn/src/met/mdl.h visi.xdr.h \
+ ../../util/h/Dictionary.h ../../util/h/stringPool.h ../../util/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h \
  ../../paradyn/src/VMthread/VMinclude.h
