@@ -164,6 +164,7 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
   met_(metric_name), focus_(foc),
   flat_name_(cat_name), components(parts),
   aggSample(agg_op),
+  cumulativeValue_float(0.0),
   id_(-1), originalCost_(0.0), proc_(NULL)
 {
   unsigned p_size = parts.size();
@@ -1688,18 +1689,14 @@ void metricDefinitionNode::updateValue(time64 wallTime, int new_cumulative_value
    // updating cumulativeValue_float is much easier than the float version of
    // updateValue():
    cumulativeValue_float = new_cumulative_value;
-   
 
    assert(samples.size() == aggregators.size());
    for (unsigned lcv=0; lcv < samples.size(); lcv++) {
       // call sampleInfo::newValue().  sampleInfo is in the util lib
       // (aggregateSample.h/.C)
-      if (samples[lcv]->firstValueReceived())
+      if (samples[lcv]->firstValueReceived()) {
          samples[lcv]->newValue(sampleTime, delta_value);
-      else {
-         assert(new_cumulative_value == delta_value);
-            // this should be true for the 1st sample
-
+      } else {
          samples[lcv]->firstTimeAndValue(sampleTime, delta_value);
             // formerly startTime()
       }
