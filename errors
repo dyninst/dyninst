@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.16  1994/07/08 21:27:11  jcargill
+# Revision 1.17  1994/07/11 20:47:15  newhall
+# created error #12
+#
+# Revision 1.16  1994/07/08  21:27:11  jcargill
 # Deleted 3 bogus test errors
 #
 # Revision 1.15  1994/07/08  21:23:43  jcargill
@@ -162,4 +165,12 @@ Attempt to call malloc returned an error within a data manager function.
 %S fatal
 %X
 Call to malloc failed within a data manager function.
+%Y
+
+%N 12
+%E malloc failed
+%A vi
+%S serious
+%X
+Call to malloc failed within a visi-thread function
 %Y
