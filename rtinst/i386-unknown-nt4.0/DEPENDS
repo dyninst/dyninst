@@ -1,5 +1,5 @@
 RTfirst.obj: ../src/RTfirst.c
 RTwinnt.obj: ../src/RTwinnt.c ../../rtinst/h/rtinst.h
 RTinst.obj: ../src/RTinst.c ../../rtinst/h/rtinst.h ../../rtinst/h/trace.h \
-  ../../util/h/sys.h
+  ../../pdutil/h/sys.h
 RTend.obj: ../src/RTend.c
