@@ -209,3 +209,8 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 	os << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
 	return os;
 }
+
+void* BPatch_basicBlock::getFunction(){ 
+	return (void*)flowGraph->getFunction(); 
+} 
+

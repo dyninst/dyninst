@@ -61,6 +61,11 @@ private:
 	BPatch_Vector<BPatch_sourceBlock*>* sourceBlocks;
 
 public:
+
+
+	/** this is a BPatch_function* but we cannot see BPatch_function here **/
+	void * getFunction();
+
 	/** method that returns the predecessors of the basic block */
 	void getSources(BPatch_Vector<BPatch_basicBlock*>&);
 

@@ -61,6 +61,9 @@ public:
 	  * without calling this method dominator info is not available
 	  */
 	void fillDominatorInfo();
+
+	/** returns a pointer to the BPatch_function this flowGraph represents */
+	BPatch_function* getFunction(){ return bpFunction; } ; 
 private:
 	/** three colors used in depth first search algorithm */
 	static const int WHITE;
