@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.8 2000/07/18 19:56:44 bernat Exp $ */
+/* $Id: RTheap.c,v 1.9 2000/07/19 21:49:19 bernat Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -119,15 +119,15 @@ static Address heap_alignDown(Address addr, int align)
 static Address
 trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
 {
+  Address try;
   void *result;
-  void *try;
-  try = (void *)beg;
-  while ((unsigned)try + len <= end) {
+  for (try = beg; try + len <= end; try += len)
+    {
     /*
     fprintf(stderr, "Calling mmap(addr = 0x%x, len = 0x%x, prot = 0x%x, flags = 0x%x)\n",
 	    try, len, PROT_READ|PROT_WRITE|PROT_EXEC, DYNINSTheap_mmapFlags);
     */
-    result = mmap(try, len, 
+    result = mmap((void *)try, len, 
 		  PROT_READ|PROT_WRITE|PROT_EXEC,
 		  DYNINSTheap_mmapFlags, 
 		  fd, 
@@ -139,7 +139,6 @@ trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
     
     perror("mmap");
     /* Ugly. Can someone fix this? */
-    try = (void *)((unsigned)try + inc);
   }
   return 0;
 }
