@@ -39,19 +39,26 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: internalMetrics.C,v 1.10 2001/08/23 14:44:12 schendel Exp $
+// $Id: internalMetrics.C,v 1.11 2002/04/05 19:39:19 schendel Exp $
 
 #include "dyninstAPI/src/process.h" // processVec
 #include "internalMetrics.h"
+#include "paradynd/src/init.h"
+#include "paradynd/src/machineMetFocusNode.h"
 
 internalMetric::eachInstance::eachInstance(internalMetric *_parent,
-		     sampleValueFunc f, metricDefinitionNode *n) :
+		     sampleValueFunc f, machineMetFocusNode *n) :
                          parent(_parent), func(f), node(n) { 
+}
+
+int internalMetric::eachInstance::getMetricID() const {
+  assert(node);
+  return node->getMetricID();
 }
 
 void internalMetric::eachInstance::updateValue(timeStamp timeOfSample,
 					       pdSample value) {
-  //cerr << "intM::updateValue- time: " << timeOfSample << "val: " 
+  //  cerr << "intM::updateValue- time: " << timeOfSample << "val: " 
   //   << value << " lastSampleTime: " << lastSampleTime 
   //   << ", inst: " << this << ", mdn: " << node->getFullName() << "\n";
   assert(node);
@@ -76,7 +83,7 @@ void internalMetric::eachInstance::updateValue(timeStamp timeOfSample,
     }
     else assert(0);  // only two initActualValuePolicies so far
 
-    node->setInitialActualValue(initActVal);
+    node->initializeForSampling(getWallTime(), initActVal);
     node->sendInitialActualValue(initActVal);
   } else {
     value -= cumulativeValue;
@@ -111,7 +118,7 @@ void internalMetric::disableInstance(unsigned index) {
    instances.resize(instances.size()-1);
 }
 
-bool internalMetric::disableByMetricDefinitionNode(metricDefinitionNode *diss_me) {
+bool internalMetric::disableByMetricDefinitionNode(machineMetFocusNode *diss_me) {
    for (unsigned index=0; index < instances.size(); index++) {
       if (instances[index].matchMetricDefinitionNode(diss_me)) {
 	 disableInstance(index);
