@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.16 2001/10/30 21:02:37 gaburici Exp $
+# $Id: Makefile,v 1.17 2002/04/05 20:56:15 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -25,7 +25,7 @@ SRCS =		../src/pdwinnt.C \
 		../src/LocalAlteration-x86.C \
 		../src/FunctionExpansionRecord.C \
 		../src/arch-x86.C \
-		../src/AddressHandle-x86.C 
+		../src/InstrucIter-x86.C 
 #		../src/MapSymbols.C 
 # ccw 13 july 2001
 
@@ -37,7 +37,7 @@ OBJS = 		pdwinnt.obj \
 		LocalAlteration.obj \
 		LocalAlteration-x86.obj \
 		FunctionExpansionRecord.obj \
-		AddressHandle-x86.obj 
+		InstrucIter-x86.obj 
 #		MapSymbols.obj 
 # ccw 13 july 2001
 

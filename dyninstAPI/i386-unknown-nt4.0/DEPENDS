@@ -273,7 +273,7 @@ BPatch_flowGraph.obj: ../src/BPatch_flowGraph.C ../../common/h/Types.h \
  ../../common/h/Vector.h ../../common/h/Dictionary.h ../src/util.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/String.h ../src/symtab.h ../src/instPoint.h \
- ../src/instPoint-x86.h ../src/AddressHandle.h \
+ ../src/instPoint-x86.h ../src/InstrucIter.h \
  ../src/LineInformation.h ../../common/h/Pair.h
 dummy.obj: ../src/dummy.C
 api_showerror.obj: ../src/api_showerror.C ../h/BPatch.h \
