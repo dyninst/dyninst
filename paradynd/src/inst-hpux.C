@@ -49,6 +49,9 @@ void initPrimitiveCost()
     // TODO: these values need to be updated - naim (02-13-96)
 
     // these happen async of the rest of the system.
+
+    logLine("HPUX platform\n");
+
     primitiveCosts["DYNINSTalarmExpire"] = 1;
     primitiveCosts["DYNINSTsampleValues"] = 1;
     primitiveCosts["DYNINSTreportTimer"] = 1;
