@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.152 2004/03/25 21:29:38 lharris Exp $
+// $Id: symtab.h,v 1.153 2004/04/01 00:48:21 lharris Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -965,7 +965,12 @@ class image : public codeRange {
    static void removeImage(image *img);
    static void removeImage(const pdstring file);
    static void removeImage(fileDescriptor *desc);
-   
+   void parseStaticCallTargets( pdvector< Address >& callTargets,
+                                pdvector< pd_Function* > *raw_funcs,
+                                pdmodule* mod );
+
+   bool parseFunction( pd_Function* pdf, pdvector< Address >& callTargets,
+                       pdmodule* mod );
    image(fileDescriptor *desc, bool &err, Address newBaseAddr = 0); 
  protected:
    ~image() { /* TODO */ }

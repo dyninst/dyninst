@@ -39,14 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.207 2004/03/25 23:04:02 eli Exp $
+// $Id: symtab.C,v 1.208 2004/04/01 00:48:20 lharris Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
-// TODO - machine independent instruction functions
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -89,6 +88,8 @@ extern bool parseCompilerType(Object *);
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
 pdvector<image*> image::allImages;
+
+int codeBytesSeen = 0;
 
 pdstring function_base::emptyString("");
 
@@ -1975,38 +1976,98 @@ int rawfuncscmp( pd_Function*& pdf1, pd_Function*& pdf2 )
     return 0;
 }
 
+bool image::parseFunction( pd_Function* pdf, pdvector< Address >& callTargets,
+                           pdmodule* mod )
+{
+    
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0) 
+    if (!pdf->findInstPoints( callTargets, this )) 
+    {
+        // function is not instrumentable, add to "bad" pile
+        addNotInstruFunc(pdf, pdf->file());
+        return false; 
+       //continue;
+    }
+#else
+    if( !pdf->findInstPoints( this ) )
+    {
+        addNotInstruFunc( pdf, pdf->file() );
+        return false;
+    }
+    
+#endif
+    
+    else
+    {
+        // then build up the maps & vectors as appropriate
+        
+#ifdef BPATCH_LIBRARY
+        addInstruFunction( pdf, mod, pdf->get_address(), false );
+#else
+        addInstruFunction(pdf, mod, pdf->get_address(),
+                          function_is_excluded(pdf, mod->fileName()));
+#endif
+    }
+    return true;
+}
 
-// buildFunctionMaps() iterates through pd_Functions and constructs demangled names.
-// Demangling was moved here (names used to be demangled as pd_Functions were
-// built) so that language information could be obtained _after_ the functions and modules
-// were built, but before name demangling takes place.  Thus we can use language information
-// during the demangling process.
-//
-// After name demangling is done, each function's inst points are found and the function
-// is classified as either instrumentable or non-instrumentable and filed accordingly 
+void image::parseStaticCallTargets( pdvector< Address >& callTargets,
+                                    pdvector< pd_Function* > *raw_funcs,
+                                    pdmodule* mod )
+{
+    char name[20] = "f";
+    pd_Function* pdf;
+
+    for( unsigned j = 0; j < callTargets.size(); j++ )
+    {
+        if( !isCode( callTargets[ j ] ) )
+            continue;    
+        if( funcsByEntryAddr.defines( callTargets[ j ] ) )
+            continue;
+        
+        sprintf( &name[ 1 ], "%x", callTargets[j] );
+           	    
+        pdf = new pd_Function( name, mod, callTargets[ j ], -1 );
+        pdf->addPrettyName( name );
+        
+        if( parseFunction( pdf, callTargets, mod ) )
+            raw_funcs->push_back( pdf ); 
+    }
+}
+
+
+//buildFunctionMaps() iterates through pd_Functions and constructs demangled 
+//names. Demangling was moved here (names used to be demangled as pd_Functions 
+//were built) so that language information could be obtained _after_ the 
+//functions and modules were built, but before name demangling takes place.  
+//Thus we can use language information during the demangling process.
+//After name demangling is done, each function's inst points are found and 
+//the function is classified as either instrumentable or non-instrumentable 
+//and filed accordingly 
 bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
 {
+    int start = time(0);
     pdvector< Address > callTargets;
     pd_Function *pdf;
     pdmodule *mod = NULL;
-    
     pd_Function *temp = new pd_Function( "nameless", mod, 0, 0 );
     
     unsigned int num_raw_funcs = raw_funcs->size();
     //build a demangled name for each raw (unclassed) function 
-    //found in the parse
-    
-    for (unsigned int i = 0; i < num_raw_funcs; ++i) {
+    for( unsigned int i = 0; i < num_raw_funcs; ++i ) 
+    {
         assert(NULL != (pdf = (*raw_funcs)[i]));
         assert (NULL != (mod = pdf->file()));
         Address addr = pdf->get_address();
-    
         pdstring name = pdf->symTabName();
         pdstring mangled_name = name;
 	
-        // strip scoping information from mangled name before demangling:
+        //strip scoping information from mangled name before demangling:
         const char *p = P_strchr(mangled_name.c_str(), ':');
-        if (p) {
+        if( p ) 
+        {
             unsigned nchars = p - name.c_str();
             mangled_name = pdstring(name.c_str(), nchars);
         }
@@ -2017,98 +2078,109 @@ bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
                                 nativeCompiler, mod->language())) 
             demangled = mangled_name;
         // let the function in on its new name first
-        //  WARNING:  do we need to check for duplicates here???
+        // WARNING:  do we need to check for duplicates here???
         pdf->addPrettyName(demangled);
         
         // check to see that this function is not an alias
         pd_Function *placeholder;
-        if (funcsByEntryAddr.find(addr, placeholder)) {
+        if(funcsByEntryAddr.find(addr, placeholder)) 
+        {
 	    // We have already seen a function at this addr. add a second name
 	    // for this function.  Then delete it
             addMultipleFunctionNames(pdf); 
             
-            //placeholder = new pd_Function( "nameless", mod, 0, 0 );
             (*raw_funcs)[i] = temp;
-            delete pdf;  //TODO put back this delete
+            delete pdf;  
             continue;
         }
         
-        // check to see if function is instrumentable
-        // pdf->setImage( this );
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) 
-    	if (!pdf->findInstPoints( callTargets, this )) {
-            // function is not instrumentable, add to "bad" pile
-            addNotInstruFunc(pdf, pdf->file());
-            continue;
-        }
-#else
-        if( !pdf->findInstPoints( this ) )
-        {
-            addNotInstruFunc( pdf, pdf->file() );
-            continue;
-        }
-        
-#endif
-        
-        // then build up the maps & vectors as appropriate
-        
-#ifdef BPATCH_LIBRARY
-        addInstruFunction(pdf, mod, addr,false);
-#else
-        addInstruFunction(pdf, mod, addr,
-                          function_is_excluded(pdf, mod->fileName()));
-#endif
-        
-    }
-    
-    char name[20] = "f";
-    int num = 0;
-    for( unsigned j = 0; j < callTargets.size(); j++ )
-    {
-        if( !isCode( callTargets[ j ] ) )
-            continue;    
-        if( funcsByEntryAddr.defines( callTargets[ j ] ) )
-            continue;
-        
-        num++;
-        sprintf( &name[ 1 ], "%x", callTargets[j] );
-        pd_Function* new_pdf; 
-   	    
-        new_pdf = new pd_Function( name, mod, callTargets[ j ], -1 );
-        new_pdf->addPrettyName( name );
-        
-               
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) 
-        
-        if( !new_pdf->findInstPoints( callTargets, this ) )
-        {
-            addNotInstruFunc( new_pdf, new_pdf->file() );
-            continue;
-        }
-#endif
-        raw_funcs->push_back( new_pdf );
-        
-        Address addr2 = new_pdf->get_address();
-#ifdef BPATCH_LIBRARY
-        addInstruFunction(new_pdf, mod, addr2,false);
-#else
-        addInstruFunction(new_pdf, mod, addr2,
-                          function_is_excluded(new_pdf, mod->fileName()));
-#endif
-    }
-    
-/******************************************************************************
- //phase 1 - discover functions that have no explicit call site
- //TEMPORARILY REMOVED
- *****************************************************************************/
-        
+        parseFunction( pdf, callTargets, mod );
+    }     
+
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0)    
+    
+    int numIndir = 0;
+    unsigned p = 0;
+
+top:
+    parseStaticCallTargets( callTargets, raw_funcs, mod );
+    callTargets.clear();  
+    
+    VECTOR_SORT( (*raw_funcs), rawfuncscmp );   
+    
+    Address lastPos;
+    lastPos = (*raw_funcs)[0]->get_address() + (*raw_funcs)[0]->get_size();
+
+    unsigned int rawFuncSize = raw_funcs->size();
+    
+    for( ; p + 1 < rawFuncSize; p++ )
+    {
+        pd_Function* func1 = (*raw_funcs)[p];
+        pd_Function* func2 = (*raw_funcs)[p + 1];
+        
+        Address gapStart = func1->get_address() + func1->get_size();
+        Address gapEnd = func2->get_address();
+        Address gap = gapEnd - gapStart;
+        
+        //gap should be big enough to accomodate stack frame setup and 
+        //tear down ( at least 5 bytes )
+
+        //55      push  %ebp
+        //89 35   mov   %esp, %ebp
+        //5d 	  pop   %ebp
+        //c3 	  ret    
+        if( gap >= 5 )
+        {
+            Address pos = gapStart;
+            while( pos < gapEnd && isCode( pos ) )
+            {
+                const unsigned char* instPtr;
+                instPtr = this->getPtrToInstruction( pos );
+                
+                instruction insn;
+                insn.getNextInstruction( instPtr );
+            
+                //look for stack frame setup
+                if( insn.size() == 1 )
+                {
+                    instruction next_insn;
+                    next_insn.getNextInstruction( insn.ptr() + insn.size() );
+                    
+                    const unsigned char *p, *q;
+                    p = insn.ptr();
+                    q = next_insn.ptr();
+                    if( insn.size() == 1
+                        && p[0] == PUSHEBP
+                        && next_insn.size() == 2
+                        && q[0] == 0x89
+                        && q[1] == 0xe5)    
+                       
+                    {
+                        char name[20] = "f";
+                        numIndir++;
+                        sprintf( &name[ 1 ], "%x", pos );
+                        pdf = new pd_Function( name, mod, pos, -1 );
+                        pdf->addPrettyName( name );
+                        if( parseFunction( pdf, callTargets, mod ) )
+                            raw_funcs->push_back( pdf );
+                        
+                        if( callTargets.size() > 0 )
+                        {
+                            for( unsigned r = 0; r < callTargets.size(); r++ )
+                            {
+                                if( callTargets[r] < func1->get_address() )
+                                    p++;
+                            }
+                            goto top; //goto is the devil's construct 
+                        }
+                    }
+                }
+                pos++;
+            }   
+        }
+    }
     //phase 2 - error detection and recovery 
     VECTOR_SORT( (*raw_funcs), rawfuncscmp );
     for( unsigned int k = 0; k + 1 < raw_funcs->size(); k++ )
@@ -2129,9 +2201,9 @@ bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
             Address addr = func2->get_address();
             func1->updateFunctionEnd( addr, this );
         }
-    }
-    
+    }    
 #endif
+
     delete temp;
     return true;
 }
@@ -2329,6 +2401,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
       err = true;
       return;
    }
+   //cerr << "code seen" << codeBytesSeen << endl;
 
    // ALERT ALERT - Calling on both shared_object && !shared_object path.
    //  In origional code, only called in !shared_object case.  Was this 
