@@ -81,7 +81,6 @@ class tsd_t{
  public:
   pthread_t thread_id;
   const char * thread_name;
-  char tmp_filename[256];
 };
 
 //#define _fprintf(X)  ;

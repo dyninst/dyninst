@@ -528,11 +528,22 @@ int mc_printf(const char * file, int line, FILE * fp, const char * format, ...){
   int retval;
   va_list arglist;
 
-  tsd_t * tsd = (tsd_t*)pthread_getspecific(tsd_key);
+
   // basename modifies 1st arg, so copy
-  strncpy(tsd->tmp_filename, file, sizeof(tsd->tmp_filename));
-  fprintf(fp, "%s:%s:%d: ", tsd->thread_name, basename(tsd->tmp_filename),
-          line);
+  char tmp_filename[256];
+  strncpy(tmp_filename, file, sizeof(tmp_filename));
+
+  // get thread name
+  const char* thread_name = NULL;
+  tsd_t * tsd = (tsd_t*)pthread_getspecific(tsd_key);
+  if( tsd != NULL )
+  {
+      thread_name = tsd->thread_name;
+  }
+  fprintf(fp, "%s:%s:%d: ",
+                (thread_name != NULL) ? thread_name : "<noname (tsd NULL)>",
+                basename(tmp_filename),
+                line);
 
   va_start(arglist, format);
   retval = vfprintf(fp, format, arglist);
