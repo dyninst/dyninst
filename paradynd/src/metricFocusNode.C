@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.157 1999/07/08 00:26:23 nash Exp $
+// $Id: metricFocusNode.C,v 1.158 1999/07/19 16:27:28 nash Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -1350,7 +1350,10 @@ void metricDefinitionNode::adjustManuallyTrigger() {
 		//cerr << "metricDefinitionNode::adjustManuallyTrigger() called, flat_name = "
 		//	 << flat_name_.string_of() << "aggregate = false, instRequests.size = "
 		//	 << instRequests.size() << endl;
-
+		assert(proc_); // proc_ should always be correct for non-aggregates
+		const function_base *mainFunc = proc_->getMainFunction();
+		assert(mainFunc); // processes should always have mainFunction defined
+#ifndef OLD_CATCHUP
 	vector<Address> stack_pcs = proc_->walkStack();
 	vector<pd_Function *> stack_funcs = proc_->convertPCsToFuncs(stack_pcs);
 
@@ -1385,9 +1388,6 @@ void metricDefinitionNode::adjustManuallyTrigger() {
 	// Kludge to catch $start.entry and main.entry if the stack walk doesn't 
 	// work for some reason.  Check all the instReqNodes against said functions
 	// and for entry point.
-	assert(proc_); // proc_ should always be correct for non-aggregates
-	const function_base *mainFunc = proc_->getMainFunction();
-	assert(mainFunc); // processes should always have mainFunction defined
 	for( k = 0; k < instRequests.size(); ++k ) {
 		if( instRequests[ k ].Point()->iPgetFunction() == mainFunc
 			&& !instRequests[ k ].anythingToManuallyTrigger() )
@@ -1406,6 +1406,40 @@ void metricDefinitionNode::adjustManuallyTrigger() {
 #endif
 			{
 				//cerr << "AdjustManuallyTrigger -- (main kludge) catch-up needed for "
+				//	 << flat_name_ << " @ " << mainFunc->prettyName() << endl;
+				instRequests[ k ].incrManuallyTrigger();
+			}
+		}
+	}
+#endif // !OLD_CATCHUP
+
+	// This code is a kludge which will catch the case where the WHOLE_PROGRAM metrics
+	// have not been set to manjually trigger by the above code.  Look at the 
+	// component_focus for the "Code" element, and see if there is any contraint.
+	// Then, for each InstReqNode in this MetricDefinitionNode which is at the entry
+	// point of main, and which has not been added to the manuallyTriggerNodes list,
+	// add it to the list.
+	for( j = 0; j < component_focus.size(); ++j )
+	if( component_focus[j][0] == "Code" && ( component_focus[j].size() == 1
+	  || ( component_focus[j].size() == 2 && component_focus[j][1] == "" ) ) )
+	for( k = 0; k < instRequests.size(); ++k ) {
+		if( instRequests[ k ].Point()->iPgetFunction() == mainFunc
+			&& !instRequests[ k ].anythingToManuallyTrigger() )
+		{
+#if defined(mips_sgi_irix6_4)
+			if( instRequests[ k ].Point()->type() == IPT_ENTRY )
+#elif defined(sparc_sun_solaris2_4) || defined(sparc_sun_sunos4_1_3)
+			if( instRequests[ k ].Point()->ipType == functionEntry )
+#elif defined(rs6000_ibm_aix4_1)
+			if( instRequests[ k ].Point()->ipLoc == ipFuncEntry )
+#elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) \
+      || defined(i386_unknown_linux2_0)
+			if( instRequests[ k ].Point()->iPgetAddress() == mainFunc->addr() )
+#else
+#error Check for instPoint type == entry not implemented on this platform
+#endif
+			{
+				//cerr << "AdjustManuallyTrigger -- (WHOLE_PROGRAM kludge) catch-up needed for "
 				//	 << flat_name_ << " @ " << mainFunc->prettyName() << endl;
 				instRequests[ k ].incrManuallyTrigger();
 			}
