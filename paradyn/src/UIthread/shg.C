@@ -4,10 +4,14 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.22  1996/05/01 14:07:57  naim
-/* Multiples changes in UI to make call to requestNodeInfoCallback async.
-/* (UI<->PC) - naim
+/* Revision 1.23  1996/05/01 20:55:55  tamches
+/* added inactivateAll
+/* changed configNode implementation
 /*
+ * Revision 1.22  1996/05/01 14:07:57  naim
+ * Multiples changes in UI to make call to requestNodeInfoCallback async.
+ * (UI<->PC) - naim
+ *
  * Revision 1.21  1996/04/29  21:29:58  tamches
  * fixed a bug in configNode which could fail to properly hide the root node
  * when set to false with hideFalseNodes.
@@ -32,57 +36,6 @@
  * Revision 1.15  1996/03/29 20:51:12  tamches
  * on configNode, check for change in hide-ness is moved before check for
  * true-ness; avoids an assertion failure when expanding a hidden node at times.
- *
- * Revision 1.14  1996/03/08 00:21:39  tamches
- * added support for hidden nodes
- *
- * Revision 1.13  1996/02/15 23:10:34  tamches
- * added proper code for why vs. where axis refinement
- *
- * Revision 1.12  1996/02/11 18:24:16  tamches
- * removed addToStatusDisplay
- *
- * Revision 1.11  1996/02/07 21:50:33  tamches
- * fixed draw() bug that wouldn't properly double-buffer when drawing a
- * blank shg
- *
- * Revision 1.10  1996/02/07 19:08:23  tamches
- * addNode, configNode, and addEdge now take in "isCurrShg" flag, which
- * is in turn passed to rethink_entire_layout
- *
- * Revision 1.9  1996/02/02 18:44:16  tamches
- * Displaying extra information about an shg node has changed from a mouse-move
- * to a middle-click
- *
- * Revision 1.8  1996/02/02 01:08:31  karavan
- * changes to support new PC/UI interface
- *
- * Revision 1.7  1996/01/23 07:02:20  tamches
- * added shadow node features
- *
- * Revision 1.6  1996/01/18 16:24:17  hollings
- * Added extra {}
- *
- * Revision 1.5  1996/01/11  23:41:38  tamches
- * there are now 2 kinds of true nodes; so tests changed accordingly.
- * Also brought the shg test program back to life
- *
- * Revision 1.4  1996/01/09 01:05:34  tamches
- * added thePhaseId member variable
- * added call to perfConsult->getNodeInfo to gather lots of juicy
- * information when displaying it in the shg status line at the bottom
- * of the window (which by the way, has been extended to 4 lines when in
- * developer mode)
- *
- * Revision 1.3  1995/11/19 04:21:50  tamches
- * added an #include of <assert.h> which had been missing, causing
- * problems on RS/6000 compiles.
- *
- * Revision 1.2  1995/11/06 19:28:03  tamches
- * slider mouse motion bug fixes
- *
- * Revision 1.1  1995/10/17 22:07:08  tamches
- * First version of "new search history graph".
  *
  */
 
@@ -116,7 +69,9 @@ GC shg::listboxRayGC;
 int shg::listboxBorderPix = 3;
 int shg::listboxScrollBarWidth = 16;
 
+#ifdef PARADYN
 extern performanceConsultantUser *perfConsult;
+#endif
 
 void shg::initializeStaticsIfNeeded() {
    if (rootItemTk3DBordersByStyle.size() > 0)
@@ -660,8 +615,10 @@ void shg::processMiddleClick(int x, int y) {
 
    // Middle-mouse-click on a node:
    // Make an async request (to the PC) for information about this node
+#ifdef PARADYN
    const shgRootNode &theNode = thePath.getLastPathNode(rootPtr)->getNodeData();
    perfConsult->requestNodeInfo(thePhaseId, theNode.getId());
+#endif
 }
 
 bool shg::processDoubleClick(int x, int y) {
@@ -823,6 +780,22 @@ bool shg::softScrollToEndOfPath(const whereNodePosRawPath &thePath) {
    return false; // placate compiler
 }
 
+bool shg::changeHiddenNodesBase(bool isCurrShg) {
+   // private routine called by the 2 implementations of changeHiddenNodes, below.
+   if (rootPtr==NULL)
+      return false; // nothing changed since shg has no nodes!
+
+   // Now we need to loop thru each node in the dag, rethinking
+   // whether or not it is hidden:
+   if (!recursiveUpdateHiddenNodes(rootPtr))
+      return false; // nothing changed.  Somewhat surprising.
+
+   rootPtr->updateAnything2Draw(consts);
+   rethink_entire_layout(isCurrShg);
+
+   return true;
+}
+
 bool shg::changeHiddenNodes(bool newHideTrue, bool newHideFalse, bool newHideUnknown,
 			    bool newHideNeverSeen, bool newHideActive,
 			    bool newHideInactive, bool newHideShadow,
@@ -842,16 +815,7 @@ bool shg::changeHiddenNodes(bool newHideTrue, bool newHideFalse, bool newHideUnk
    hideInactiveNodes = newHideInactive;
    hideShadowNodes = newHideShadow;
 
-   if (rootPtr==NULL)
-      return false; // nothing changed since shg has no nodes!
-
-   // Now we need to loop thru each node in the dag, rethinking
-   // whether or not it is hidden:
-   if (!recursiveUpdateHiddenNodes(rootPtr))
-      return false; // nothing changed.  Somewhat surprising.
-
-   rethink_entire_layout(isCurrShg);
-   return true;
+   return changeHiddenNodesBase(isCurrShg);
 }
 bool shg::changeHiddenNodes(shg::changeType ct, bool hide, bool isCurrShg) {
    switch (ct) {
@@ -887,14 +851,7 @@ bool shg::changeHiddenNodes(shg::changeType ct, bool hide, bool isCurrShg) {
 	 assert(false);
    }
 
-   if (rootPtr == NULL)
-      return false; // nothing changed; the shg contains (at the moment) no nodes!
-
-   if (!recursiveUpdateHiddenNodes(rootPtr))
-      return false; // nothing changed; somewhat surprising.
-
-   rethink_entire_layout(isCurrShg);
-   return true;
+   return changeHiddenNodesBase(isCurrShg);
 }
 
 bool shg::recursiveUpdateHiddenNodes(where4tree<shgRootNode> *ptr) {
@@ -971,14 +928,32 @@ void shg::addNode(unsigned id, bool iActive, shgRootNode::evaluationState iEvalS
       rethink_entire_layout(isCurrShg);
 }
 
-bool shg::configNode(unsigned id, bool newActive,
-		     shgRootNode::evaluationState newEvalState,
-		     bool isCurrShg) {
-   // returns true iff any changes.  Does not redraw.
-   // Note: a change from "tentatively-true" to (anything else)
-   // will un-expand the node, leading to a massive layout rethinkification.
+shg::configNodeResult shg::configNode(unsigned id, bool newActive,
+				      shgRootNode::evaluationState newEvalState,
+				      bool isCurrShg,
+				      bool rethinkIfNecessary) {
+   // Does not redraw.  Possible return values:
+   // noChanges, benignChanges (a node changed color but didn't expand/unexpand
+   // or hide/unhide), changesInvolvingJustExpandedness, changesInvolvingHideness.
+
+   // Note that a true value of "rethinkIfNecessary" can only lead to a return
+   // value of noChanges or benignChanges, because any "higher" changes would trigger
+   // the necessary rethink(s).
+   //
+   // In practice:
+   // a return value indicating a change in just expandedness means that you should
+   //    call rethink_entire_layout(isCurrShg)
+   // a return value indicating a change in Hideness means that you should
+   //    call rootPtr->updateAnything2Draw(consts)
+   //    and  rethink_entire_layout(isCurrShg)
+
+   // Note: a change from "tentatively-true" to (anything else) will un-expand;
+   //                to "tentatively=true" from (anything else) will expand;
+   //       leading to a massive layout rethinkification.
    // In addition, changing to or from a hidden state will also lead to
-   // layout rethinkification.
+   //    layout rethinkification.
+   // But the rethinking is always suppressed if "rethinkIfNecessary" is false.
+
    // Other changes are more simple -- simply changing the color of a node.
    assert(rootPtr);
 
@@ -1014,7 +989,7 @@ bool shg::configNode(unsigned id, bool newActive,
    }
    
    if (!anyChanges)
-      return false;
+      return noChanges;
 
    // note: if we are changing this to "true (active or not)", we explicitly expand
    // "ptr".  Unfortunately, we need ptr's parent node for that; hence the need
@@ -1024,86 +999,183 @@ bool shg::configNode(unsigned id, bool newActive,
    // Note that we make no effort to alter the expanded-ness of any shadowed nodes.
    // (Is this right?)
 
-   bool rethink_all = false; // so far...
+   bool resultExpandednessChanged = false; // so far
+   bool resultHidenessChanged     = false; // so far
+   bool rethink_layout = false; // so far...
 
+   // Algorithm:
    // If a node becomes un-hidden, we unhide it first.
    // If a node becomes hidden, we hide it last.
-   // In the middle come the possible expansions / un-expansions
+   // In the middle come the possible expansions / un-expansions due to
+   //    changing to/from es_true.
 
-   // set rethink_all to true if some node(s) have become hidden or unhidden.
+   // Algorithm Step 1: If a node becomes un-hidden
    // Note that there's no need to check our shadow children, because the
-   // only trait that may lead to a different hidden-ness is that they're shadow
-   // nodes, and that's not gonna change. (is this right?  I don't think so.)
+   // only trait that may lead to a hidden-ness that differs from us is that
+   // they're shadow nodes, and that trait isn't gonna change.
    assert(oldHidden == !ptr->getNodeData().anything2draw());
    bool new_hidden = state2hidden(newEvalState, newActive,
 				  false); // false --> not shadow node
-
    if (oldHidden != new_hidden && !new_hidden) {
       // The node is going to be un-hidden; let's do that first to avoid
       // an assertion failure.
       ptr->getNodeData().unhide();
 
-      if (rootPtr->updateAnything2Draw(consts))
-         rethink_all = true;
-         // probably a bit more than is needed...
+      if (rethinkIfNecessary) {
+         (void)rootPtr->updateAnything2Draw(consts); // result should be true
+         rethink_layout = true;
+            // probably a bit more than is needed...
+      }
+      else
+	 resultHidenessChanged=true;
    }
 
-   if (newEvalState == shgRootNode::es_true) {
-      // we have changed to true (whether active or not).  Expand.
+   // Algorithm Step 2: Expansion/un-expansion due to change to/from es_true
+   bool autoExpand   = (newEvalState == shgRootNode::es_true);
+   bool autoUnExpand = (oldEvalState == shgRootNode::es_true);
+
+   if (autoExpand || autoUnExpand) {
       where4tree<shgRootNode> *parentPtr = hash2[ptr];
       if (parentPtr == NULL)
-         return false; // either root node or a node which hasn't been addEdge'd in yet
-
-      // the following is unacceptably slow; it must be fixed by using real paths
-      const unsigned numChildren = parentPtr->getNumChildren();
-      for (unsigned childlcv=0; childlcv < numChildren; childlcv++)
-         if (parentPtr->getChildTree(childlcv) == ptr) {
-            parentPtr->explicitlyExpandSubchild(consts, childlcv, true);
-               // true --> force expansion, even if it's a leaf node
-
-            rethink_all = true;
-               // (all we really need to do is rethink all-expanded-children
-	       // dimensions for all ancestors of parentPtr)
-         } 
-
-      assert(rethink_all);
-   }
-   else if (oldEvalState == shgRootNode::es_true) {
-      // It used to be true (active or not), but ain't anymore.  Unexpand.
-      where4tree<shgRootNode> *parentPtr = hash2[ptr];
-      if (parentPtr == NULL)
-         ; // cannot unexpand root node or a node that hasn't been addEdge'd in yet
-           // So we skip the ceremonies (but we don't 'return' because there may be
-           // more to do below w.r.t. hidden-ness)
+         ; // either root node or a node which hasn't been addEdge'd in yet.
+           // So, we skip the ceremonies (but we don't 'return' because there
+           // may be more to do below w.r.t. hide-ness)
       else {
+         // the following is unacceptably slow; it must be fixed by using real paths
          const unsigned numChildren = parentPtr->getNumChildren();
          for (unsigned childlcv=0; childlcv < numChildren; childlcv++)
             if (parentPtr->getChildTree(childlcv) == ptr) {
-               parentPtr->explicitlyUnexpandSubchild(consts, childlcv);
+	       if (autoExpand)
+                  parentPtr->explicitlyExpandSubchild(consts, childlcv, true);
+	             // true --> force expansion, even if it's a leaf node
+	       else
+		  parentPtr->explicitlyUnexpandSubchild(consts, childlcv);
    
-               rethink_all = true;
-                  // (all we really need to do is rethink all-expanded-children
-                  //  dimensions for all ancestors of parentPtr.)
-   	 }
-   
-         assert(rethink_all);
+               if (rethinkIfNecessary)
+		  rethink_layout = true;
+	          // (all we really need to do is rethink all-expanded-children
+   	          // dimensions for all ancestors of parentPtr)
+	       else
+		  resultExpandednessChanged = true;
+
+	       break;
+            } 
+
+         assert(rethink_layout || !rethinkIfNecessary);
       }
    }
-
+  
    if (oldHidden != new_hidden && new_hidden) {
       // The node is going to be hidden; let's do that last to avoid
       // an assertion failure.
       ptr->getNodeData().hidify();
       
-      if (rootPtr->updateAnything2Draw(consts))
-         rethink_all = true;
-         // probably a bit more than is needed...
+      if (rethinkIfNecessary) {
+	 rootPtr->updateAnything2Draw(consts); // result should be true
+         rethink_layout = true;
+            // probably a bit more than is needed...
+      }
+      else
+	 resultHidenessChanged = true;
    }
 
-   if (rethink_all)
+   if (rethink_layout) {
+      assert(rethinkIfNecessary);
+      // If changes involving hideness occurred, they will have been processed,
+      // since rethinkIfNecessary is true.  So right now all we have to do is
+      // handle expansions that have occurred...
       rethink_entire_layout(isCurrShg);
 
-   return true; // changes were made
+      // ...which means there's nothing left for outside code to do but redraw:
+      return benignChanges;
+   }
+   else if (resultHidenessChanged)
+      // the biggest change; user must call rootPtr->updateAnything2Draw(consts) plus
+      // rethink_entire_layout(isCurrShg)
+      return changesInvolvingHideness;
+   else if (resultExpandednessChanged)
+      // user must call rethink_entire_layout(isCurrShg)
+      return changesInvolvingJustExpandedness;
+   else
+      // user doesn't need to do anything before redrawing...
+      return benignChanges;
+}
+
+bool shg::inactivateAll(bool isCurrShg) {
+   // returns true iff any changes.  Does not redraw.
+   // The usual case is just to change fg colors.  However, if we are e.g. hiding
+   // inactive nodes, then a full rethinkification is a possibility.
+
+   bool anyChanges = false; // so far...
+
+   if (rootPtr == NULL)
+      return false;
+
+   // Loop through everything in the main hash table ("hash")
+   // Assume ids start at 0.  But don't assume they aren't skip-numbered
+   // (just to be safe).  If nodes are radically skip-numbered, then this
+   // algorithm will be too slow; a recursive traversal replacement should
+   // be no problem...
+   const unsigned totalNumNodes = hash.size();
+   unsigned numNodesProcessed = 0;
+   unsigned nodeId = 0;
+
+   bool needToRethinkHidden = false; // so far...
+   bool needToRethinkLayout = false; // so far...
+
+   while (numNodesProcessed < totalNumNodes) {
+      if (!hash.defines(nodeId)) {
+	 nodeId++;
+         continue; // no progress made
+      }
+
+      // success
+      where4tree<shgRootNode> *nodePtr = hash[nodeId];
+      assert(hash2.defines(nodePtr));
+         // may be NULL (rootPtr or not yet addEdge'd), but at least it should be there.
+
+      // If this node has been addEdge'd (or is rootPtr), then call configNode.
+      // Otherwise, configNode would just bomb, since it barfs on seeing any node
+      // that hasn't been addEdge'd into the graph yet.  In that case, we configure
+      // manually w/o rethinking.
+      
+      const shgRootNode::evaluationState oldEvalState = nodePtr->getNodeData().getEvalState();
+
+      if (nodePtr == rootPtr || hash2[nodePtr] != NULL) {
+         configNodeResult localResult = configNode(nodeId, false,
+						      // false --> not active
+						   oldEvalState, isCurrShg,
+						   false // don't rethink
+						   );
+	 if (localResult != noChanges)
+	    anyChanges = true;
+
+	 if (localResult == changesInvolvingHideness) {
+	    needToRethinkHidden = true;
+	    needToRethinkLayout = true;
+	 }
+	 else if (localResult == changesInvolvingJustExpandedness)
+	    needToRethinkLayout = true;
+      }
+      else {
+	 // manual job on nodes which haven't yet been addEdge'd into the graph.
+	 (void)nodePtr->getNodeData().configStyle(false, oldEvalState);
+	    // false --> inactivate
+	    // we ignore the return result; even if true, we don't want to redraw
+      }
+
+      nodeId++;
+      numNodesProcessed++;
+   }
+
+   // Now do any deferred rethinkification, etc.:
+   if (needToRethinkHidden)
+      (void)rootPtr->updateAnything2Draw(consts); // result should be true
+
+   if (needToRethinkLayout)
+      rethink_entire_layout(isCurrShg);
+
+   return anyChanges;   
 }
 
 void shg::addEdge(unsigned fromId, unsigned toId,
@@ -1204,6 +1276,7 @@ void shg::addEdge(unsigned fromId, unsigned toId,
    if (rethinkFlag) rethink_entire_layout(isCurrShg);
 }
 
+#ifdef PARADYN
 void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
    // In response to a middle-mouse-click...
 
@@ -1221,16 +1294,13 @@ void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
    assert(hash.defines(nodeId));
    const shgRootNode &theNode = hash[nodeId]->getNodeData();
 
-#ifdef PARADYN
    // shg test program doesn't have a devel mode
    extern bool inDeveloperMode;
    if (inDeveloperMode)
       dataString += string(theNode.getId()) + " ";
-#endif
 
    dataString += theNode.getLongName();
 
-#ifdef PARADYN
    // The igen call isn't implemented in shg test program
    if (inDeveloperMode) {
       dataString += "\n";
@@ -1244,7 +1314,6 @@ void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
 	                                   string(theNodeInfo.endTime) + "\n";
       dataString += string("persistent: ") + (theNodeInfo.persistent ? "true" : "false");
    }
-#endif
 
    commandStr = currItemLabelName + " insert end " + "\"" + dataString + "\"";
    myTclEval(interp, commandStr);
@@ -1252,3 +1321,4 @@ void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
    commandStr = currItemLabelName + " config -state disabled";
    myTclEval(interp, commandStr);
 }
+#endif
