@@ -3,7 +3,8 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: NetUtils.C,v 1.3 2004/06/01 16:34:22 pcroth Exp $
+// $Id: NetUtils.C,v 1.4 2004/06/01 16:57:21 pcroth Exp $
+#include <sstream>
 #include "xplat/Types.h"
 #include "xplat/NetUtils.h"
 
@@ -14,7 +15,7 @@ namespace XPlat
 std::string
 NetUtils::FindNetworkName( void )
 {
-    std::string ipaddr = GetNetworkAddress();
+    std::string ipaddr = GetNetworkAddress().GetString();
     std::string ret;
 
     // do the lookup
@@ -52,6 +53,21 @@ NetUtils::FindHostName( void )
 }
 
 
+// check whether given IPv4 address (in host byte order) is local host
+bool
+NetUtils::IsLocalHost( in_addr_t addr )
+{
+    // do the lookup
+    std::string ipaddr = GetNetworkAddress().GetString();
+    struct hostent* hp = gethostbyname( ipaddr.c_str() );   // just copies addr
+
+    in_addr sin;
+    memcpy( &sin.s_addr, hp->h_addr_list[0], hp->h_length );
+
+    return (htonl(addr) == sin.s_addr);
+}
+
+
 bool
 NetUtils::IsLocalHost( const std::string& host )
 {
@@ -60,7 +76,7 @@ NetUtils::IsLocalHost( const std::string& host )
     if( (host == "") ||
         (host == "localhost") ||
         (host == GetNetworkName()) ||
-        (host == GetNetworkAddress()) )
+        (host == GetNetworkAddress().GetString()) )
     {
         ret = true;
     }
@@ -102,22 +118,61 @@ NetUtils::GetNetworkName( void )
     return cachedName;
 }
 
-std::string
+
+NetUtils::NetworkAddress
 NetUtils::GetNetworkAddress( void )
 {
-    static std::string cachedAddress;
+    static NetUtils::NetworkAddress cachedLocalAddr( ntohl( INADDR_NONE ) );
 
     // check if we've already looked up our network address
-    if( cachedAddress.length() > 0 )
+    if( cachedLocalAddr.GetInAddr() == ntohl( INADDR_NONE ) ) 
     {
-        return cachedAddress;
+        // we didn't have the network address cached - 
+        // look it up
+        cachedLocalAddr = FindNetworkAddress();
+    }
+    return cachedLocalAddr;
+}
+
+
+NetUtils::NetworkAddress
+NetUtils::GetAddressOfHost( std::string host )
+{
+    NetworkAddress ret( INADDR_NONE );
+
+
+    hostent* hp = gethostbyname( host.c_str() );
+    if( hp != NULL )
+    {
+        // we found the address
+        ret = NetworkAddress( ntohl( *(in_addr_t*)(hp->h_addr_list[0]) ) );
     }
 
-    // we didn't have the network address cached - 
-    // look it up
-    cachedAddress = FindNetworkAddress();
-
-    return cachedAddress;
+    return ret;
 }
+
+
+// Note: does not use inet_ntoa or similar functions because they are not
+// necessarily thread safe, or not available on all platforms of interest.
+NetUtils::NetworkAddress::NetworkAddress( in_addr_t inaddr )
+  : iaddr( inaddr )
+{
+    // find the dotted decimal form of the address
+
+    // get address in network byte order
+    in_addr_t nboaddr = htonl( iaddr );
+
+    // access the address as an array of bytes
+    const unsigned char* cp = (const unsigned char*)&nboaddr;
+
+    std::ostringstream astr;
+    astr << (unsigned int)cp[0] 
+        << '.' << (unsigned int)cp[1] 
+        << '.' << (unsigned int)cp[2] 
+        << '.' << (unsigned int)cp[3];
+
+    str = astr.str();
+}
+
 
 } // namespace XPlat

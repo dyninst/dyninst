@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: NetUtils-unix.C,v 1.3 2004/06/01 16:34:22 pcroth Exp $
+// $Id: NetUtils-unix.C,v 1.4 2004/06/01 16:57:21 pcroth Exp $
 #include "xplat/NetUtils.h"
 #include <assert.h>
 #include <unistd.h>
@@ -24,10 +24,11 @@
 namespace XPlat
 {
 
-std::string
+
+NetUtils::NetworkAddress
 NetUtils::FindNetworkAddress( void )
 {
-    std::string ret;
+    NetworkAddress ret( INADDR_ANY );
 
     int sockfd, lastlen, len, firsttime, flags;
     char *buf, *cptr, *ptr, lastname[IFNAMSIZ];
@@ -115,27 +116,22 @@ NetUtils::FindNetworkAddress( void )
         struct sockaddr_in *sinptr = ( struct sockaddr_in * )&ifr->ifr_addr;
         memcpy( &in.s_addr, ( void * )&( sinptr->sin_addr ),
                 sizeof( in.s_addr ) );
-        if( htonl( in.s_addr ) == INADDR_LOOPBACK ) {
+        // in.s_addr is in network byte order, INADDR_LOOPBACK in host order
+        if( ntohl( in.s_addr ) == INADDR_LOOPBACK )
+        {
             //printf("\tIgnoring %s (loopback!)\n", ifr->ifr_name);
             continue;
         }
 
-        char ip_address_buf[32];
-        if( inet_ntop( AF_INET, ( const void * )&in, ip_address_buf,
-                       sizeof( ip_address_buf ) ) == NULL ) {
-            perror( "Failed inet_ntop()" );
-            delete[] buf;
-            return ret;
-        }
-        ret = ip_address_buf;
+        ret = NetworkAddress( ntohl( in.s_addr ) );
         break;
     }
     delete[] buf;
 
-    if( ret.length() == 0 )
+    if( ret.GetInAddr() == INADDR_ANY )
     {
         // we have no interface except loopback
-        ret = "127.0.0.1";
+        ret = NetworkAddress( INADDR_LOOPBACK );
     }
     return ret;
 }
