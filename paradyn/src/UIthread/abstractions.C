@@ -2,10 +2,13 @@
 // Ariel Tamches
 
 /* $Log: abstractions.C,v $
-/* Revision 1.6  1995/10/17 20:50:19  tamches
-/* class abstractions is no longer templated.
-/* Added change().
+/* Revision 1.7  1996/05/30 21:54:26  tamches
+/* removed uses of string::quote
 /*
+ * Revision 1.6  1995/10/17 20:50:19  tamches
+ * class abstractions is no longer templated.
+ * Added change().
+ *
  * Revision 1.5  1995/09/20 01:15:48  tamches
  * minor change; some usages of int --> unsigned
  *
@@ -44,9 +47,9 @@ void abstractions::add(whereAxis *theNewAbstraction,
    }
 
    string commandStr = absMenuName + " add radiobutton -label " +
-                       string::quote + whereAxisName + string::quote +
-                       " -command " + string::quote + "whereAxisChangeAbstraction " +
-		       string(theAbstractions.size()) + string::quote +
+                       "\"" + whereAxisName + "\"" +
+                       " -command " + "\"" + "whereAxisChangeAbstraction " +
+		       string(theAbstractions.size()) + "\"" +
                        " -variable currMenuAbstraction -value " +
                        string(theAbstractions.size());
    myTclEval(interp, commandStr);
@@ -130,7 +133,7 @@ bool abstractions::change(unsigned newindex) {
    commandStr = findName + " delete 0 end";
    myTclEval(interp, commandStr);
 
-   commandStr = findName + " insert 0 " + string::quote + newWas.findString + string::quote;
+   commandStr = findName + " insert 0 " + "\"" + newWas.findString + "\"";
    myTclEval(interp, commandStr);
 
    // Finally, we must be safe and assume that the toplevel window

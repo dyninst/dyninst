@@ -4,10 +4,13 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.20  1996/05/01 20:56:35  tamches
-/* added inactivateEntireSearch
-/* altered use of configNode to correspond w/ new shg syntax
+/* Revision 1.21  1996/05/30 21:54:55  tamches
+/* removed uses of string::quote
 /*
+ * Revision 1.20  1996/05/01 20:56:35  tamches
+ * added inactivateEntireSearch
+ * altered use of configNode to correspond w/ new shg syntax
+ *
  * Revision 1.19  1996/05/01 14:08:01  naim
  * Multiples changes in UI to make call to requestNodeInfoCallback async.
  * (UI<->PC) - naim
@@ -423,9 +426,9 @@ bool shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
    theShgPhases += theStruct;
 
    string commandStr = menuName + " add radiobutton -label " +
-                       string::quote + phaseName + string::quote +
-                       " -command " + string::quote + "shgChangePhase " +
-                       string(phaseId) + string::quote +
+                       "\"" + phaseName + "\"" +
+                       " -command " + "\"" + "shgChangePhase " +
+                       string(phaseId) + "\"" +
                        " -variable currShgPhase -value " +
                        string(phaseId);
    myTclEval(interp, commandStr);
