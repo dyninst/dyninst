@@ -159,6 +159,9 @@ inline string op_to_string(unsigned op) {
     return " || ";
   case MDL_NOT:
     return " ! ";
+  default:
+    assert(false);
+    return ""; // placate compiler
   }
 }
 
