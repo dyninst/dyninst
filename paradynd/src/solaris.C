@@ -51,6 +51,8 @@
 #include <sys/termios.h>
 #include <unistd.h>
 #include "showerror.h"
+#include "util/h/pathName.h" // concat_pathname_components()
+#include "util/h/debugOstream.h"
 
 #include <sys/procfs.h>
 #include <poll.h>
@@ -61,6 +63,14 @@ extern "C" {
 extern int ioctl(int, int, ...);
 extern long sysconf(int);
 };
+
+// The following were defined in process.C
+extern debug_ostream attach_cerr;
+extern debug_ostream inferiorrpc_cerr;
+extern debug_ostream shmsample_cerr;
+extern debug_ostream forkexec_cerr;
+extern debug_ostream metric_cerr;
+extern debug_ostream signal_cerr;
 
 /*
    Define the indices of some registers to be used with pr_reg.
@@ -232,6 +242,80 @@ int process::waitProcs(int *status) {
 }
 
 
+static char *extract_string_ptr(int procfd, char **ptr) {
+   // we want to return *ptr.
+
+   if (-1 == lseek(procfd, (long)ptr, SEEK_SET))
+      assert(false);
+
+   char *result;
+   if (-1 == read(procfd, &result, sizeof(result)))
+      assert(false);
+
+   return result;   
+}
+
+static string extract_string(int procfd, const char *inferiorptr) {
+   // assuming inferiorptr points to a null-terminated string in the inferior
+   // process, extract it and return it.
+
+   if (-1 == lseek(procfd, (long)inferiorptr, SEEK_SET))
+      return "";
+
+   string result;
+   while (true) {
+      char buffer[100];
+      if (-1 == read(procfd, &buffer, 80))
+	 return "";
+      buffer[80] = '\0';
+      result += buffer;
+
+      // was there a '\0' anywhere in chars 0 thru 79?  If so then
+      // we're done
+      for (unsigned lcv=0; lcv < 80; lcv++)
+	 if (buffer[lcv] == '\0') {
+	    //attach_cerr << "extract_string returning " << result << endl;
+	    return result;
+	 }
+   }
+}
+
+void get_ps_stuff(int proc_fd, string &argv0, string &pathenv, string &cwdenv) {
+   // Use ps info to obtain argv[0], PATH, and curr working directory of the
+   // inferior process designated by proc_fd.  Writes to argv0, pathenv, cwdenv.
+
+   prpsinfo the_psinfo;
+   if (-1 == ioctl(proc_fd, PIOCPSINFO, &the_psinfo))
+      assert(false);
+
+   // get argv[0].  It's in the_psinfo.pr_argv[0], but that's a ptr in the inferior
+   // space, so we need to /proc read() it out.  Also, the_psinfo.pr_argv is a char **
+   // not a char* so we even need to /proc read() to get a pointer value.  Ick.
+   char *ptr_to_argv0 = extract_string_ptr(proc_fd, the_psinfo.pr_argv);
+   argv0 = extract_string(proc_fd, ptr_to_argv0);
+
+   // Get the PWD and PATH environment variables from the application.
+   char **envptr = the_psinfo.pr_envp;
+   while (true) {
+      // dereference envptr; check for NULL
+      char *env = extract_string_ptr(proc_fd, envptr);
+      if (env == NULL)
+	 break;
+
+      string env_value = extract_string(proc_fd, env);
+      if (env_value.prefixed_by("PWD=") || env_value.prefixed_by("CWD=")) {
+	 cwdenv = env_value.string_of() + 4; // skip past "PWD=" or "CWD="
+	 attach_cerr << "get_ps_stuff: using PWD value of: " << cwdenv << endl;
+      }
+      else if (env_value.prefixed_by("PATH=")) {
+	 pathenv = env_value.string_of() + 5; // skip past the "PATH="
+	 attach_cerr << "get_ps_stuff: using PATH value of: " << pathenv << endl;
+      }
+
+      envptr++;
+   }
+}
+
 /*
    Open the /proc file correspoding to process pid, 
    set the signals to be caught to be only SIGSTOP and SIGTRAP,
@@ -288,7 +372,26 @@ bool process::attach() {
   }
 
   proc_fd = fd;
+
+  get_ps_stuff(proc_fd, this->argv0, this->pathenv, this->cwdenv);
+
   return true;
+}
+
+bool process::isRunning_() const {
+   // determine if a process is running by doing low-level system checks, as
+   // opposed to checking the 'status_' member vrble.  May assume that attach()
+   // has run, but can't assume anything else.
+   prstatus theStatus;
+   if (-1 == ioctl(proc_fd, PIOCSTATUS, &theStatus)) {
+      perror("process::isRunning_()");
+      assert(false);
+   }
+
+   if (theStatus.pr_flags & PR_STOPPED)
+      return false;
+   else
+      return true;
 }
 
 bool process::attach_() {assert(false);}
@@ -605,12 +708,12 @@ void *process::getRegisters(bool &) {
    return buffer;
 }
 
-bool process::changePC(unsigned addr, void *savedRegs) {
+bool process::changePC(unsigned addr, const void *savedRegs) {
    assert(status_ == stopped);
 
    prgregset_t theIntRegs = *(prgregset_t *)savedRegs; // makes a copy, on purpose
 
-   theIntRegs[R_PC] = addr; // EIP register
+   theIntRegs[R_PC] = addr; // PC (sparc), EIP (x86)
 #ifdef R_nPC  // true for sparc, not for x86
    theIntRegs[R_nPC] = addr + 4;
 #endif
@@ -619,6 +722,36 @@ bool process::changePC(unsigned addr, void *savedRegs) {
       perror("process::changePC PIOCSREG failed");
       if (errno == EBUSY)
 	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
+      return false;
+   }
+
+   return true;
+}
+
+bool process::changePC(unsigned addr) {
+   assert(status_ == stopped); // /proc will require this
+
+   prgregset_t theIntRegs;
+   if (-1 == ioctl(proc_fd, PIOCGREG, &theIntRegs)) {
+      perror("process::changePC PIOCGREG");
+      if (errno == EBUSY) {
+	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
+	 assert(false);
+      }
+      return false;
+   }
+
+   theIntRegs[R_PC] = addr;
+#ifdef R_nPC
+   theIntRegs[R_nPC] = addr + 4;
+#endif
+
+   if (-1 == ioctl(proc_fd, PIOCSREG, &theIntRegs)) {
+      perror("process::changePC PIOCSREG");
+      if (errno == EBUSY) {
+	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
+	 assert(false);
+      }
       return false;
    }
 
@@ -731,3 +864,69 @@ bool process::needToAddALeafFrame(Frame current_frame, Address &leaf_pc){
    return false;
 }
 
+string process::tryToFindExecutable(const string &iprogpath, int pid) {
+   // returns empty string on failure.
+   // Otherwise, returns a full-path-name for the file.  Tries every
+   // trick to determine the full-path-name, even though "progpath" may be
+   // unspecified (empty string).
+   
+   // Remember, we can always return the empty string...no need to
+   // go nuts writing the world's most complex algorithm.
+
+   attach_cerr << "welcome to tryToFindExecutable; progpath=" << iprogpath << ", pid=" << pid << endl;
+
+   const string &progpath = expand_tilde_pathname(iprogpath);
+
+   // Trivial case: if "progpath" is specified and the file exists then nothing needed
+   if (exists_executable(progpath)) {
+      attach_cerr << "tryToFindExecutable succeeded immediately, returning "
+	          << progpath << endl;
+      return progpath;
+   }
+
+   attach_cerr << "tryToFindExecutable failed on filename " << progpath << endl;
+
+   char buffer[128];
+   sprintf(buffer, "/proc/%05d", pid);
+   int procfd = open(buffer, O_RDONLY, 0);
+   if (procfd == -1) {
+      attach_cerr << "tryToFindExecutable failed since open of /proc failed" << endl;
+      return "";
+   }
+   attach_cerr << "tryToFindExecutable: opened /proc okay" << endl;
+
+   string argv0, path, cwd;
+   get_ps_stuff(procfd, argv0, path, cwd);
+
+   // the following routine is implemented in the util lib.
+   string result;
+   if (executableFromArgv0AndPathAndCwd(result, argv0, path, cwd)) {
+      (void)close(procfd);
+      return result;
+   }
+
+   attach_cerr << "tryToFindExecutable: giving up" << endl;
+
+   (void)close(procfd);
+   return "";
+}
+
+unsigned process::read_inferiorRPC_result_register(reg) {
+   prgregset_t theIntRegs;
+   if (-1 == ioctl(proc_fd, PIOCGREG, &theIntRegs)) {
+      perror("process::read_inferiorRPC_result_register PIOCGREG");
+      if (errno == EBUSY) {
+	 cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+	 assert(false);
+      }
+      return 0; // assert(false)?
+   }
+
+   // on x86, the result is always stashed in %EAX; on sparc, it's always %o0.  In
+   // neither case do we need the argument of this fn.
+#ifdef i386_unknown_solaris2_5
+   return theIntRegs[EAX];
+#else
+   return theIntRegs[R_O0];
+#endif
+}
