@@ -16,8 +16,6 @@
 
 #undef COMMNODE_EXE
 
-#undef OUTPUT_LEVEL
-
 //Autoconfigured macros below
 #undef WORDS_BIGENDIAN
 
