@@ -2,10 +2,13 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.5  1994/10/11 21:59:47  tamches
-/* Removed extra StartVisi() bug.
-/* Implemented dataGrid[][].Enabled()
+/* Revision 1.6  1994/11/06 10:24:04  tamches
+/* minor cleanups (especially commenting)
 /*
+ * Revision 1.5  1994/10/11  21:59:47  tamches
+ * Removed extra StartVisi() bug.
+ * Implemented dataGrid[][].Enabled()
+ *
  * Revision 1.4  1994/10/10  23:08:47  tamches
  * preliminary changes on the way to swapping the x and y axes
  *
@@ -34,46 +37,45 @@
 #include "barChartTcl.h"
 #include "barChart.h"
 
-
 void my_visi_callback(void* arg0, int* arg1, long unsigned int* arg2) {
    if (visi_callback() == -1)
       exit(0);
 }
 
 int Dg2AddMetricsCallback(int dummy) {
-  int retval = Tcl_Eval(MainInterp, "DgConfigCallback");
+  const int retval = Tcl_Eval(MainInterp, "DgConfigCallback");
   if (retval == TCL_ERROR)
-     fprintf(stderr, "%s\n", MainInterp->result);
+     cerr << MainInterp->result << endl;
 
-  // if necessary, the tcl program will call xAxisHasChanged and/or yAxisHasChanged, which
-  // are commands we implement in barChart.C.
+  // if necessary, the tcl program will call xAxisHasChanged and/or
+  // yAxisHasChanged, which are commands we implement in barChart.C.
   // We take action then.
 
-  return(retval);
+  return retval;
 }
 
 int Dg2Fold(int dummy) {
-  int retval = Tcl_Eval(MainInterp, "DgFoldCallback");
+  const int retval = Tcl_Eval(MainInterp, "DgFoldCallback");
   if (retval == TCL_ERROR)
-    fprintf(stderr, "%s\n", MainInterp->result);
+     cerr << MainInterp->result << endl;
 
-  return(retval);
+  return retval;
 }
 
 int Dg2InvalidMetricsOrResources(int dummy) {
-  int retval = Tcl_Eval(MainInterp, "DgInvalidCallback");
+  const int retval = Tcl_Eval(MainInterp, "DgInvalidCallback");
   if (retval == TCL_ERROR)
-    fprintf(stderr, "%s\n", MainInterp->result);
+     cerr << MainInterp->result << endl;
 
-  return(retval);
+  return retval;
 }
 
 int Dg2PhaseNameCallback(int dummy) {
-  int retval = Tcl_Eval(MainInterp, "DgPhaseCallback");
+  const int retval = Tcl_Eval(MainInterp, "DgPhaseCallback");
   if (retval == TCL_ERROR)
-    fprintf(stderr, "%s\n", MainInterp->result);
+     cerr << MainInterp->result << endl;
 
-  return(retval);
+  return retval;
 }
 
 #define   AGGREGATE        0
@@ -156,7 +158,7 @@ int Dg_TclCommand(ClientData clientData,
   // entrypoint to the tcl "Dg" command we've installed
   // all the sprintf()'s are rather slow...
 
-  // parse the arguments, using the global variable Dg_Cmds[] to tell what's what.
+  // parse the arguments, using global vrble Dg_Cmds[] to tell what's what.
   int cmdDex = findCommand(interp, argc-1, argv+1);
   if (cmdDex == CMDERROR)
     return TCL_ERROR;
@@ -277,45 +279,36 @@ int Dg2_Init(Tcl_Interp *interp) {
       exit(5);
    }
 
-   // Arrange for my_visi_callback() to be called whenever there is data waiting
-   // to be read off of descriptor "fd".  Extremely important! [tcl book page 357]
-   Tk_CreateFileHandler(fd, TK_READABLE, (Tk_FileProc *) my_visi_callback, 0);
-
    // Register C++ Callback routines with the visi lib when
    // certain events happen.  The most important (performance-wise)
    // is the DATAVALUES callback, which signals the arrival of
    // new barchart data.  We must process this callback very quickly,
    // in order to perturb the system as little as possible.
 
-   if (RegistrationCallback(ADDMETRICSRESOURCES, Dg2AddMetricsCallback) != 0) {
-      cerr << "Dg2_Init() -- couldn't install ADDMETRICSRESOURCES callback with visilib" << endl;
-      exit(5);
-   }
+   if (RegistrationCallback(ADDMETRICSRESOURCES, Dg2AddMetricsCallback) != 0)
+      panic("Dg2_Init() -- couldn't install ADDMETRICSRESOURCES callback");
 
-   if (RegistrationCallback(FOLD, Dg2Fold) != 0) {
-      cerr << "Dg2_Init() -- couldn't install FOLD callback with visilib" << endl;
-      exit(5);
-   }
+   if (RegistrationCallback(FOLD, Dg2Fold) != 0)
+      panic("Dg2_Init() -- couldn't install FOLD callback");
 
-   if (RegistrationCallback(INVALIDMETRICSRESOURCES, Dg2InvalidMetricsOrResources) != 0) {
-      cerr << "Dg2_Init() -- couldn't install INVALID callback with visilib" << endl;
-      exit(5);
-   }
+   if (RegistrationCallback(INVALIDMETRICSRESOURCES, Dg2InvalidMetricsOrResources) != 0)
+      panic("Dg2_Init() -- couldn't install INVALID callback");
 
-   if (RegistrationCallback(PHASENAME, Dg2PhaseNameCallback) != 0) {
-      cerr << "Dg2_Init() -- couldn't install PHASENAME callback with visilib" << endl;
-      exit(5);
-   }
+   if (RegistrationCallback(PHASENAME, Dg2PhaseNameCallback) != 0)
+      panic("Dg2_Init() -- couldn't install PHASENAME callback");
 
-   if (RegistrationCallback(DATAVALUES, Dg2NewDataCallback) != 0) {
-      cerr << "Dg2_Init() -- couldn't install DATAVALUES callback with visilib" << endl;
-      exit(5);
-   }
+   if (RegistrationCallback(DATAVALUES, Dg2NewDataCallback) != 0)
+      panic("Dg2_Init() -- couldn't install DATAVALUES callback");
 
-   // install "Dg" as a new tcl command; Dg_TclCommand() will be invoked when a script
-   // calls Dg.
+   // install "Dg" as a new tcl command; Dg_TclCommand() will be invoked when
+   // a tcl script calls Dg
    Tcl_CreateCommand(interp, "Dg", Dg_TclCommand, 
 		    (ClientData *) NULL,(Tcl_CmdDeleteProc *) NULL);
  
+   // Arrange for my_visi_callback() to be called whenever data is waiting
+   // to be read off of descriptor "fd".  Extremely important! [tcl book
+   // page 357]
+   Tk_CreateFileHandler(fd, TK_READABLE, (Tk_FileProc *) my_visi_callback, 0);
+
    return TCL_OK;
 }
