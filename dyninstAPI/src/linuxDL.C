@@ -347,6 +347,7 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps() {
          }
       }
       f_name[f_amount-1] = '\0';
+
       pdstring obj_name = pdstring(f_name);
 
       sharedobj_cerr << "dynamicLinking::processLinkMaps(): file name of next "
@@ -356,7 +357,8 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps() {
       // kludge: ignore the entry if it has the same name as the
       // executable file...this seems to be the first link-map entry
       if(obj_name != proc->getImage()->file() && 
-         obj_name != proc->getImage()->name()) {
+         obj_name != proc->getImage()->name() &&
+         obj_name != "") {
           
          sharedobj_cerr << "file name doesn't match image, so not ignoring "
                         << "it...firsttime=" << (int)first_time << endl;
