@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.19 2005/02/17 21:10:36 bernat Exp $
+// $Id: frame.h,v 1.20 2005/02/22 22:30:47 tlmiller Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
 
 #include <iostream>
 #include "common/h/Types.h"
+
 class dyn_thread;
 class process;
 class dyn_lwp;
@@ -69,6 +70,12 @@ class Frame {
 	Address pcAddr = 0,
         void * unwindCursor = NULL );
 
+#if defined( DONT_LEAK_FRAME_MEMORY )
+  Frame & operator = ( const Frame & rhs );      
+  ~Frame();
+  Frame( const Frame & f );
+#endif
+  
   bool operator==(const Frame &F) {
     return ((uppermost_ == F.uppermost_) &&
 	    (pc_      == F.pc_) &&
@@ -94,7 +101,7 @@ class Frame {
   bool 	   isInstrumentation() const { return frameType_ == FRAME_instrumentation;}
   codeRange *getRange();
   void setRange (codeRange *range); 
-  friend ostream& operator<<(ostream&s, const Frame &m);
+  friend ostream & operator << ( ostream & s, Frame & m );
 
   bool setPC(Address newpc);
 
@@ -112,23 +119,20 @@ class Frame {
   frameType_t frameType_;
   
  private:
-  bool      uppermost_;
-  Address   pc_;
-  Address   fp_;
-  Address   sp_;     // NOTE: this is not always populated
-  int       pid_;    // Process id 
-  process *proc_;    // We're only valid for a single process anyway
-  dyn_thread *thread_; // user-level thread
-  dyn_lwp  *lwp_;    // kernel-level thread (LWP)
-  Address   saved_fp;// IRIX
-  codeRange *range_; // If we've done a by-address lookup,
-                    // keep it here
-  void *	unwindCursor_; // Linux/ia64.
-
-  Address pcAddr_; // If 0, PC was in a register -- used for overwriting the PC
+  bool			uppermost_;
+  Address		pc_;
+  Address		fp_;
+  Address		sp_;				// NOTE: this is not always populated
+  int			pid_;				// Process id 
+  process *		proc_;				// We're only valid for a single process anyway
+  dyn_thread *	thread_;			// user-level thread
+  dyn_lwp *		lwp_;				// kernel-level thread (LWP)
+  codeRange *	range_;				// If we've done a by-address lookup, keep it here
+                                        
+  Address		saved_fp;			// IRIX
+  void *		unwindCursor_;		// IA-64
+  Address		pcAddr_;			// AIX
   
 };
-
-ostream& operator<<(ostream&s, Frame &m);
 
 #endif

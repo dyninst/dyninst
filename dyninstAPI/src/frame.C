@@ -39,13 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.2 2005/02/21 21:36:22 tlmiller Exp $
+// $Id: frame.C,v 1.3 2005/02/22 22:30:47 tlmiller Exp $
 
 #include <stdio.h>
 #include <iostream>
-#include <ostream>
-#include <iomanip>
-#include <ios>
 #include "process.h"
 #include "dyn_thread.h"
 #include "dyn_lwp.h"
@@ -55,6 +52,47 @@
 #include "trampTemplate.h"
 #include "miniTrampHandle.h"
 #include "frame.h"
+
+#if defined( DONT_LEAK_FRAME_MEMORY )
+#if defined( arch_ia64 )
+
+#include <libunwind.h>
+#include <libunwind-ptrace.h>
+
+Frame & Frame::operator = ( const Frame & rhs ) {
+	memmove( this, & rhs, sizeof( Frame ) );
+	
+	if( this->unwindCursor_ != NULL ) {
+   		this->unwindCursor_ = malloc( sizeof( unw_cursor_t ) );
+   		assert( this->unwindCursor_ != NULL );
+   		memmove( this->unwindCursor_, rhs.unwindCursor_, sizeof( unw_cursor_t ) );
+		}
+		
+	return * this;
+	} /* end operator =() */
+	
+#else
+
+Frame & Frame::operator = ( const Frame & rhs ) {
+	memmove( this, & rhs, sizeof( Frame ) );
+	
+	return * this;
+	} /* end operator =() */
+	
+#endif
+
+/* Invoke operator = to make the right thing happen. */
+Frame( const Frame & f ) {
+	* this = f;
+	} /* end copy constructor */
+
+Frame::~Frame() {
+	if( unwindCursor_ != NULL ) {
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: freeing %p.\n", __FILE__, __LINE__, unwindCursor_ );
+		free( unwindCursor_ );
+		}
+	} /* end ~Frame() */
+#endif
 
 Frame::Frame() : 
   frameType_(FRAME_unset), 
@@ -110,7 +148,7 @@ bool Frame::isLastFrame() const
 
 ostream & operator << ( ostream & s, Frame & f ) {
 	codeRange * range = f.getRange();
-	s << "PC: " << ostream::hex << f.getPC() << " ";
+	s << "PC: 0x" << std::hex << f.getPC() << " ";
 	if( range ) {
 		int_function * func_ptr = range->is_function();
 		trampTemplate * basetramp_ptr = range->is_basetramp();
@@ -131,14 +169,13 @@ ostream & operator << ( ostream & s, Frame & f ) {
 			}
 		}
    
-	s << "FP: " << f.getPC() << " PID: " << f.getPID() << " "; 
+	s << "FP: 0x" << std::hex << f.getFP() << " PID: " << std::dec << f.getPID() << " "; 
 	if( f.getThread() ) {
    		s << "TID: " << f.getThread()->get_tid() << " ";
    		}
    	if( f.getLWP() ) {
    		s << "LWP: " << f.getLWP()->get_lwp_id() << " ";
    		}
-	s << endl;
 	
 	return s;
 	}
