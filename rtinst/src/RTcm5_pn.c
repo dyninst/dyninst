@@ -4,6 +4,11 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
+ * Revision 1.37  1996/03/01 22:29:06  mjrg
+ * Added type to resources.
+ * Added function DYNINSTexit for better support for exit from the application.
+ * Added reporting of sample in DYNINSTinit to avoid loosing sample values.
+ *
  * Revision 1.36  1996/02/15 16:16:38  naim
  * Fixing wall timer. It if goes backwards, then we retry again - naim
  *
@@ -614,6 +619,8 @@ time64 DYNINSTelapsedTime;
 tTimer DYNINSTelapsedCPUTime;
 
 extern float DYNINSTsamplingRate;
+extern void DYNINSTreportSamples();
+void DYNINSTprintCost();
 
 #define NI_BASE       	      (0x20000000)
 #define NI_TIME_A     	      (NI_BASE + 0x0070)
@@ -704,6 +711,9 @@ void DYNINSTinit()
     CMOS_get_time(&DYNINSTelapsedTime);
     DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
 
+    /* report samples here to stablish the initial time of samples. */
+    DYNINSTreportSamples();
+
     DYNINSTinitDone = 1;
 /* printf("DYNINSTinit is called ...\n") ; */
 
@@ -712,6 +722,8 @@ void DYNINSTinit()
 
 void DYNINSTexit()
 {
+  DYNINSTreportSamples();
+  DYNINSTprintCost();
 }
 
 

@@ -662,6 +662,37 @@ DYNINSTreportBaseTramps() {
 }
 
 
+#define N_FP_REGS 33
+
+/************************************************************************
+ * static void DYNINSTreportSamples(void)
+ *
+ * report samples to paradyn daemons. Called by DYNINSTinit, DYNINSTexit,
+ * and DYNINSTalarmExpires.
+************************************************************************/
+static void 
+DYNINSTreportSamples(void) {
+    time64     start_cpu;
+    time64     end_cpu;
+    float      fp_context[N_FP_REGS];
+
+    ++DYNINSTin_sample;
+    saveFPUstate(fp_context);
+    start_cpu = DYNINSTgetCPUtime();
+
+    /* to keep observed cost accurate due to 32-cycle rollover */
+    (void) DYNINSTgetObservedCycles(0);
+
+    DYNINSTsampleValues();
+    DYNINSTreportBaseTramps();
+    DYNINSTflushTrace();
+
+    end_cpu = DYNINSTgetCPUtime();
+    DYNINSTtotalSampleTime += (end_cpu - start_cpu);
+    restoreFPUstate(fp_context);
+    --DYNINSTin_sample;
+}
+
 
 
 
@@ -673,7 +704,7 @@ DYNINSTreportBaseTramps() {
  * should be called directly.
 ************************************************************************/
 
-#define N_FP_REGS 33
+/* #define N_FP_REGS 33 */
 
 volatile int DYNINSTsampleMultiple    = 1;
 static int          DYNINSTnumSampled        = 0;
@@ -681,9 +712,11 @@ static int          DYNINSTtotalAlarmExpires = 0;
 
 void
 DYNINSTalarmExpire(int signo) {
+#ifdef notdef
     time64     start_cpu;
     time64     end_cpu;
     float      fp_context[N_FP_REGS];
+#endif
 
 #ifdef COSTTEST
     time64 startT, endT;
@@ -701,6 +734,8 @@ DYNINSTalarmExpire(int signo) {
     DYNINSTtotalAlarmExpires++;
     if ((++DYNINSTnumSampled % DYNINSTsampleMultiple) == 0) {
 
+      DYNINSTreportSamples();
+#ifdef notdef
         saveFPUstate(fp_context);
         start_cpu = DYNINSTgetCPUtime();
 
@@ -714,6 +749,7 @@ DYNINSTalarmExpire(int signo) {
         end_cpu = DYNINSTgetCPUtime();
         DYNINSTtotalSampleTime += (end_cpu - start_cpu);
         restoreFPUstate(fp_context);
+#endif
     }
 
     DYNINSTin_sample = 0;
@@ -822,20 +858,26 @@ DYNINSTinit(int doskip) {
 
     DYNINSTstartWallTimer(&DYNINSTelapsedTime);
     DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
+
+    DYNINSTreportSamples();
 }
 
 
 
 
+void DYNINSTprintCost(void);
 
 /************************************************************************
  * void DYNINSTexit(void)
  *
- * handle `exit' in the application. current nothing is done.
+ * handle `exit' in the application. 
+ * report samples and print cost.
 ************************************************************************/
 
 void
 DYNINSTexit(void) {
+    DYNINSTreportSamples();
+    DYNINSTprintCost();
 }
 
 
@@ -1054,6 +1096,17 @@ void
 DYNINSTrecordTag(int tag) {
     int i;
 
+    int bytes;
+    int msgtag;
+    int tid;
+/*
+    int bufid = pvm_getrbuf();
+    if (pvm_bufinfo(bufid, &bytes, &msgtag, &tid) < 0) {
+      printf("DYNINSTrecordTag: pvm_bufinfo failed.\n");
+      return;
+    }
+    tag = msgtag;
+*/
     if (DYNINSTtagCount >= DYNINSTtagLimit) return;
 
     for (i=0; i < DYNINSTtagCount; i++) {
@@ -1089,6 +1142,7 @@ DYNINSTreportNewTags(void) {
         memset(&newRes, '\0', sizeof(newRes));
         sprintf(newRes.name, "SyncObject/MsgTag/%d", DYNINSTtags[i]);
         strcpy(newRes.abstraction, "BASE");
+	newRes.type = RES_TYPE_INT;
         DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE, 
             sizeof(struct _newresource), &newRes, 1);
     }

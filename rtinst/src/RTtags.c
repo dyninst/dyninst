@@ -10,6 +10,11 @@
  *   CMMP_send_noblock
  *
  * $Log: RTtags.c,v $
+ * Revision 1.6  1996/03/01 22:29:10  mjrg
+ * Added type to resources.
+ * Added function DYNINSTexit for better support for exit from the application.
+ * Added reporting of sample in DYNINSTinit to avoid loosing sample values.
+ *
  * Revision 1.5  1996/02/15 14:55:48  naim
  * Minor changes to timers and cost model - naim
  *
@@ -93,6 +98,7 @@ void DYNINSTreportNewTags()
 	memset(&newRes, '\0', sizeof(newRes));
 	sprintf(newRes.name, "SyncObject/MsgTag/%d", DYNINSTtags[i]);
 	strcpy(newRes.abstraction, "BASE");
+	newRes.type = RES_TYPE_INT;
 	DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE, 
 	    sizeof(struct _newresource), &newRes, 1);
     }

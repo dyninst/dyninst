@@ -3,6 +3,11 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
+ * Revision 1.27  1996/03/01 22:29:07  mjrg
+ * Added type to resources.
+ * Added function DYNINSTexit for better support for exit from the application.
+ * Added reporting of sample in DYNINSTinit to avoid loosing sample values.
+ *
  * Revision 1.26  1996/02/15 14:55:46  naim
  * Minor changes to timers and cost model - naim
  *
@@ -332,6 +337,34 @@ void DYNINSTreportCost(intCounter *counter)
 #endif 
 }
 
+
+/* This function is called from DYNINSTinit, DYNINSTalarmExpire, and DYNINSTexit,
+   to report samples.
+*/
+void DYNINSTreportSamples() {
+    time64 start, end;
+    float fp_context[33];	/* space to store fp context */
+
+    saveFPUstate(fp_context);
+    start = DYNINSTgetCPUtime();
+
+    /* make sure we call this enough to keep observed cost accurate due to
+       32 cycle rollover */
+    (void) DYNINSTgetObservedCycles(0);
+
+    /* generate actual samples */
+    DYNINSTsampleValues();
+
+    DYNINSTreportBaseTramps();
+
+    DYNINSTflushTrace();
+    end = DYNINSTgetCPUtime();
+    DYNINSTtotalSampleTime += end - start;
+
+    restoreFPUstate(fp_context);
+}
+
+
 /*
  * Call this function to generate a sample when needed.
  *   Exception is the exit from the program which DYNINSTsampleValues should
@@ -340,8 +373,10 @@ void DYNINSTreportCost(intCounter *counter)
  */
 void DYNINSTalarmExpire()
 {
+#ifdef notdef
     time64 start, end;
     float fp_context[33];	/* space to store fp context */
+#endif
 
 #ifdef COSTTEST
     time64 startT, endT;
@@ -365,6 +400,8 @@ void DYNINSTalarmExpire()
     if ((++DYNINSTnumSampled % DYNINSTsampleMultiple) == 0)  
       {
 
+	DYNINSTreportSamples();
+#ifdef notdef
 	saveFPUstate(fp_context);
 	start = DYNINSTgetCPUtime();
 
@@ -382,6 +419,7 @@ void DYNINSTalarmExpire()
 	DYNINSTtotalSampleTime += end - start;
 
 	restoreFPUstate(fp_context);
+#endif
     }
 
     DYNINSTin_sample = 0;

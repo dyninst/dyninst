@@ -1,5 +1,10 @@
 /*
  *  $Log: blz_RTcm5_pn.c,v $
+ *  Revision 1.5  1996/03/01 22:29:11  mjrg
+ *  Added type to resources.
+ *  Added function DYNINSTexit for better support for exit from the application.
+ *  Added reporting of sample in DYNINSTinit to avoid loosing sample values.
+ *
  *  Revision 1.4  1995/12/10 16:37:47  zhichen
  *  Minor cleanup
  *
@@ -112,6 +117,7 @@ void blzDYNINSTinit()
     time64 startNItime;
     extern void DYNINSTalarmExpire();
     extern int DYNINSTsampleMultiple;
+    extern void DYNINSTreportSamples();
 
     /* temporary correction until we can make the CM-5 aggregation code
        perform a max operation in addition to sum - jk 10/19/94 */
@@ -176,6 +182,9 @@ void blzDYNINSTinit()
 
     CMOS_get_time(&DYNINSTelapsedTime);
     DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
+
+    /* report samples here to stablish the initial time of samples. */
+    DYNINSTreportSamples();
 
     DYNINSTinitDone = 1;
 
