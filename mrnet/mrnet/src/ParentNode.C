@@ -84,11 +84,15 @@ int MC_ParentNode::recv_PacketsFromDownStream(std::list<MC_Packet*>& pkt_list )
     {
         MC_RemoteNode* currRemNode = *iter;
         assert( currRemNode != NULL );
-        pfds[i] = currRemNode->get_pollfd();
+        pfds[i].fd = currRemNode->get_sockfd();
+        pfds[i].events = POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI;
+        pfds[i].revents = 0;
     }
+
 
     // check for input on our downstream connections
     int pollret = poll( pfds, npfds, 0 );
+
     if( pollret > 0 )
     {
         // there is input on some connection
@@ -105,7 +109,8 @@ int MC_ParentNode::recv_PacketsFromDownStream(std::list<MC_Packet*>& pkt_list )
         assert( readyNode != NULL );
 
         // receive data from the ready connection
-        if( readyNode->recv( pkt_list ) == -1 )
+        int rret = readyNode->recv( pkt_list );
+        if( rret == -1 )
         {
             ret = -1;
             mc_printf(MCFL, stderr,
@@ -122,6 +127,7 @@ int MC_ParentNode::recv_PacketsFromDownStream(std::list<MC_Packet*>& pkt_list )
 
     mc_printf(MCFL, stderr, "recv_PacketsFromDownStream %s\n",
 	     (ret == 0 ? "succeeded" : "failed") );
+
     return ret;
 }
 
