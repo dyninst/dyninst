@@ -1,11 +1,12 @@
 #
-# $Id: Makefile,v 1.29 2003/04/22 21:46:35 tlmiller Exp $
+# $Id: Makefile,v 1.30 2003/04/24 15:09:23 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 TO_CORE	= 	../../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
+USES_DWARF_DEBUG = true
 
 DEBUG_FLAG = -g
 
