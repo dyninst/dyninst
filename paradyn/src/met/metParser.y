@@ -3,7 +3,10 @@
 
 /*
  * $Log: metParser.y,v $
- * Revision 1.5  1995/05/18 10:58:33  markc
+ * Revision 1.6  1995/05/26 21:51:35  markc
+ * Changed tINT to tUNS.  The scanner does not produce tINT.
+ *
+ * Revision 1.5  1995/05/18  10:58:33  markc
  * mdl
  *
  * Revision 1.4  1995/02/16  08:24:21  markc
@@ -40,7 +43,7 @@ extern void hack_cons_type(vector<string>*);
 extern unsigned hacked_cons_type;
 %}
 
-%token tDAEMON tPROCESS tTUNABLE_CONSTANT tIDENT tINT
+%token tDAEMON tPROCESS tTUNABLE_CONSTANT tIDENT 
 %token tCOMMAND tARGS tHOST tLITERAL tFLOAT tCOMMA
 %token tSEMI tFLAVOR tNAME
 %token tRES_LIST tVISI tUSER tDIR tFALSE tTRUE tFORCE
@@ -137,7 +140,7 @@ vItem: tCOMMAND tLITERAL tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_USER;}
      | tDIR tIDENT tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_DIR;};
-     | tFORCE tINT tSEMI
+     | tFORCE tUNS tSEMI
            { $$.fld.force = $2.i; $$.fld.spec = SET_FORCE;};
 
 processDef: tPROCESS tIDENT processItem {
@@ -178,7 +181,7 @@ tunableConstant: tTUNABLE_CONSTANT tunableItem
 tunableList: 
            | tunableList tunableItem;
 
-tunableItem: tLITERAL tINT tSEMI  {
+tunableItem: tLITERAL tUNS tSEMI  {
                  metParseError = ERR_NO_ERROR;
                  if (!tunableMet::addTunable(*$1.sp, (float) $2.i))
 		   handle_error();
