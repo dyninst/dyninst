@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.73 2003/01/21 17:47:18 bernat Exp $
+// $Id: unix.C,v 1.74 2003/02/04 14:59:32 bernat Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -54,6 +54,7 @@
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/main.h"
+#include "paradynd/src/pd_process.h"
 #endif
 
 // the following are needed for handleSigChild
@@ -336,10 +337,10 @@ bool forkNewProcess(string &file, string dir, pdvector<string> argv,
 	//
 	char* paradynInfo = new char[1024];
 	sprintf(paradynInfo, "PARADYN_MASTER_INFO= ");
-	for (unsigned i=0; i < process::arg_list.size(); i++) {
+	for (unsigned i=0; i < pd_process::arg_list.size(); i++) {
 	    const char *str;
 
-	    str = P_strdup(process::arg_list[i].c_str());
+	    str = P_strdup(pd_process::arg_list[i].c_str());
 	    if (!strcmp(str, "-l1")) {
 		strcat(paradynInfo, "-l0");
 	    } else {
@@ -356,23 +357,24 @@ bool forkNewProcess(string &file, string dir, pdvector<string> argv,
 	  args[ai] = P_strdup(argv[ai].c_str());
 	args[argv.size()] = NULL;
 	P_execvp(file.c_str(), args);
+    fprintf(stderr, "Exec failed\n");
+    
 	sprintf(errorLine, "paradynd: execv failed, errno=%d\n", errno);
 	logLine(errorLine);
-
+    
 	logLine(sys_errlist[errno]);
-{
-	int i=0;
-	while (args[i]) {
-	  sprintf(errorLine, "argv %d = %s\n", i, args[i]);
-	  logLine(errorLine);
-	  i++;
-	}
-}
+    {
+        int i=0;
+        while (args[i]) {
+            sprintf(errorLine, "argv %d = %s\n", i, args[i]);
+            logLine(errorLine);
+            i++;
+        }
+    }
 	P__exit(-1);
 	// not reached
-
+    
 	return false;
-
     } else { // pid == 0 --- error
         sprintf(errorLine, "vfork failed, errno=%d\n", errno);
         logLine(errorLine);
@@ -424,14 +426,8 @@ void checkAndDoExecHandling(process *curr) {
    // BPatch::bpatch->registerExec(curr->thread);
 #endif
       
-   // set reachedFirstBreak to false here, so we execute
-   // the code below, and insert the initial instrumentation
-   // in the new image. (Actually, this is already done by handleExec())
-   curr->reachedFirstBreak = false;
-   
    // Since exec will 'remove' our library, we must redo the whole process
-   curr->reachedVeryFirstTrap = false;
-   curr->clearDyninstLibLoadFlags();
+   curr->setBootstrapState(begun);
    forkexec_cerr <<"About to start exec reconstruction of shared library\n";
    // fall through...
 }
@@ -484,208 +480,87 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
 
    // check to see if trap is due to dlopen or dlcose event
    if(curr->isDynamicallyLinked()){
-      if(curr->handleIfDueToSharedObjectMapping()){
-	 inferiorrpc_cerr << "handle TRAP due to dlopen or dlclose event\n";
+       if(curr->handleIfDueToSharedObjectMapping()){
+           inferiorrpc_cerr << "handle TRAP due to dlopen or dlclose event\n";
 #ifdef DETACH_ON_THE_FLY
-	 if (!wasRunning)
-	    return;
-	 if (curr->needsDetach) {
-	    if (!curr->detachAndContinue())
-	       assert(0);
-	    return;
-	 }         
-	 if (!curr->continueProc()) {
-	    assert(0);
-	 }
+           if (!wasRunning)
+               return;
+           if (curr->needsDetach) {
+               if (!curr->detachAndContinue())
+                   assert(0);
+               return;
+           }         
+           if (wasRunning && !curr->continueProc()) {
+               assert(0);
+           }
 #else
-	 if (wasRunning && !curr->continueProc()) {
-	    assert(0);
-	 }
+           if (!curr->continueProc()) {
+               assert(0);
+           }
 #endif
-	 return;
-      }
-   }
-
-   // this code has to go after we have handle the trap
-   // due to the call to dlopen - naim
-   if (curr->trapDueToDyninstLib()) {
-      //signal_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
-      curr->handleIfDueToDyninstLib();
-      // fall through...
-   }
-#if !defined(BPATCH_LIBRARY)
-   if (curr->trapDueToParadynLib()){
-      //rewrite instructions, just as in DYNINST lib
-      curr->handleIfDueToDyninstLib(); 
-      
-      if(!curr->reachedPARADYNBreakPoint) {
-	 string buffer = string("PID=") + string(pid);
-	 buffer += string(", passed trap at end of load paradyn");
-	 statusLine(buffer.c_str());
-	 // check for DYNINST symbols and initializes the inferiorHeap If
-	 // libdyninst is dynamically linked, this can only be called after
-	 // libdyninst is loaded curr->initDyninstLib();
-	 
-	 curr->reachedPARADYNBreakPoint = true;
-	 
-	 buffer = string("PID=") + string(pid) + 
-	          string(", installing call to pDYNINSTinit()");
-	 statusLine(buffer.c_str());
-	 
-	 //lets pretend like we are attaching....
-	 // Now force DYNINSTinit() to be invoked, via inferiorRPC.
-	 curr->callpDYNINSTinit();
-	 return;
-      }
-      
-   }
-#endif
-   //If the list is not empty, it means some previous
-   //instrumentation has yet need to be finished.
-   if (instWList.size() != 0) {
-      cerr << "instWList is full" << endl;
-      if(curr -> cleanUpInstrumentation(wasRunning)){
-	 inferiorrpc_cerr << "instWList is full, cleanUpInstrumentation\n";
-	 return; // successfully processed the SIGTRAP
-      }
+           return;
+       }
    }
    
+   // Generalizable:
+   // If (addr == trap at end of dlopen code sequence) 
+   //   Clean up code sequence and restore registers
+   //   Call completion callback
+   if (curr->trapDueToDyninstLib()) {
+       string buffer = string("PID=") + string(pid);
+       buffer += string(", loaded dyninst library");
+       statusLine(buffer.c_str());
+      //signal_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
+       
+       curr->loadDYNINSTlibCleanup();
+       curr->setBootstrapState(loadedRT);
+       return;
+   }
+
    if (curr->handleTrapIfDueToRPC()) {
-      inferiorrpc_cerr << "processed RPC response in SIGTRAP" << endl;
-#if !defined(BPATCH_LIBRARY) //ccw 28 apr 2002 
-      if(curr->wasCreatedViaAttach() && curr->finishedDYNINSTinit && 
-	 !curr->paradynLibAlreadyLoaded()) { //ccw 19 apr 2002 
-	 curr->RPCafterDYNINSTinit ++;
-	 //curr->attachProcessParadyn();
-	 //finishedDYNINSTinit = false;
-	 if(curr->RPCafterDYNINSTinit == 2  ){ 
-	    curr->finishedDYNINSTinit = false;
-	    curr->attachProcessParadyn();
-	 }
-      }
-      
-#endif
-      return;
+       inferiorrpc_cerr << "processed RPC response in SIGTRAP" << endl;
+       return;
    }
    
    checkAndDoExecHandling(curr);
 
-   // Now we expect that this TRAP is the initial trap sent when a ptrace'd
-   // process completes startup via exec (or when an exec syscall was
-   // executed in an already-running process).  But we must query
-   // 'reachedFirstBreak' because on machines where we attach/detach on
-   // pause/continue, a TRAP is generated on each pause!
-   
-   if (!curr->reachedVeryFirstTrap) {
-      // we haven't executed main yet, so we can insert a trap
-      // at the entry point of main - naim
-      curr->reachedVeryFirstTrap = true;
-      curr->insertTrapAtEntryPointOfMain();
-      if (!curr->continueProc()) {
-	assert(0);
-      }
-      
-      return;
-   } else {
-      if (curr->trapAtEntryPointOfMain() &&
-	  !curr->dyninstLibAlreadyLoaded() &&
-	  !curr->dyninstLibIsBeingLoaded()) {
-	 curr->handleTrapAtEntryPointOfMain();
-	 if (curr->initSharedObjects()) {
-	    /* initSharedObjects may detect that dyninstlib was
-	       linked into the application */
-	    if (!curr->dyninstLibAlreadyLoaded())
-	       curr->dlopenDYNINSTlib();
-	    
-	    // this will set isLoadingDyninstLib to true - naim
-	 } else {
-	    logLine("WARNING: initSharedObjects failed\n");
-	    assert(0);
-	 }
-	 // at main
-	 if (!curr->continueProc()) {
-	    assert(0);
-	 }
-	 signal_cerr << "Process continued for dlopen" << endl;
-	 return;
-      }
-      // fall through...
+   if (!curr->reachedBootstrapState(begun)) {
+       // We've created the process, but haven't reached main. 
+       // This would be a perfect place to load the dyninst library,
+       // but all the other shared libs aren't initialized yet. 
+       // So we wait for main to be entered before working on the process.
+
+       curr->setBootstrapState(begun);
+       curr->insertTrapAtEntryPointOfMain();
+       string buffer = string("PID=") + string(pid);
+       buffer += string(", attached to process, stepping to main");       
+       statusLine(buffer.c_str());
+       if (!curr->continueProc()) {
+           assert(0);
+       }
+       // Now we wait for the entry point trap to be reached
+       return;
    }
-   if (curr->dyninstLibAlreadyLoaded() &&
-       !curr->dyninstLibIsBeingLoaded()) {
-      // we are ready to handle reachedFirstBreak. The first
-      // condition means that dyninstRT.so.1 has been loaded
-      // already. The second condition makes sure that we have
-      // handle the trap after loading dyninstRT.so.1 and we
-      // have restored the original instructions in the place
-      // we use to call dlopen - naim
-      // process the code below yet - naim
-      ;
-   } else {
-      // if this is not the case, then we are not ready to
-      // process the code below yet - naim
-      string msg = string("Process ") + string(curr->getPid()) +
-	           string(" was unable to load file \"") + 
-	           process::dyninstRT_name + string("\"");
-      showErrorCallback(101, msg);
-      return;
+   else if (curr->trapAtEntryPointOfMain()) {
+       curr->handleTrapAtEntryPointOfMain();
+       curr->setBootstrapState(initialized);
+       return;
    }
 
-   if (!curr->reachedFirstBreak) { //vrble should be renamed 'reachedFirstTrap'
-      string buffer = string("PID=") + string(pid);
-      buffer += string(", passed trap at start of program");
-      statusLine(buffer.c_str());
-      // check for DYNINST symbols and initializes the inferiorHeap
-      // If libdyninst is dynamically linked, this can only be
-      // called after libdyninst is loaded
-      curr->initDyninstLib();
-
-      curr->reachedFirstBreak = true;
-#if !defined(BPATCH_LIBRARY) //ccw 23 apr 2002 
-      curr->reachedPARADYNBreakPoint = false;
-#endif
-
-      buffer = string("PID=") + string(pid) + 
-	       string(", installing call to DYNINSTinit()");
-      statusLine(buffer.c_str());
-      
-      curr->installBootstrapInst();
-
-      // now, let main() and then DYNINSTinit() get invoked.  As it
-      // completes, DYNINSTinit() does a DYNINSTbreakPoint, at which time we
-      // read bootstrap information "sent back" (in a global vrble),
-      // propagate metric instances, do tp->newProgramCallbackFunc(), etc.
-      // inferiorRPC is used to do DYNINSTinit, don't want to continueProc()
-      // because it'll kill the applications.  don't know why this is
-      // so. -Chun.
-      if (!curr->continueProc()) {
-	 cerr << "continueProc after installBootstrapInst() failed, so "
-	      << "DYNINSTinit() isn't being invoked yet, which it should!\n";
-      }
-      else 
-      {
-	 buffer = string("PID=") + string(pid) + 
-	          string(", running DYNINSTinit()...");
-	 statusLine(buffer.c_str());
-      }
-   }
-   else {
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
-      Address pc = getPC( pid );
-      if( linux_orig_sig == SIGTRAP ) {
-	 //signal_cerr << "SIGTRAP not handled for pid " << pid << " at " 
-	 //       << (void*)pc << ", so forwarding back to process\n" << flush;
-	 if( P_ptrace(PTRACE_CONT, pid, 1, SIGTRAP) == -1 )
-	    cerr << "ERROR -- process::handleSigChild forwarding SIGTRAP -- " 
-		 << sys_errlist;
-      } else {
-	 signal_cerr << "Signal " << linux_orig_sig << " not handled for pid " 
-		     << pid << " at " << (void*)pc 
-		     << ", so leaving process in current state\n" << flush;
-      }
-#endif
+   Address pc = getPC( pid );
+   if( linux_orig_sig == SIGTRAP ) {
+       //signal_cerr << "SIGTRAP not handled for pid " << pid << " at " 
+       //       << (void*)pc << ", so forwarding back to process\n" << flush;
+       if( P_ptrace(PTRACE_CONT, pid, 1, SIGTRAP) == -1 )
+           cerr << "ERROR -- process::handleSigChild forwarding SIGTRAP -- " 
+                << sys_errlist;
+   } else {
+       signal_cerr << "Signal " << linux_orig_sig << " not handled for pid " 
+                   << pid << " at " << (void*)pc 
+                   << ", so leaving process in current state\n" << flush;
    }
-
+#endif
    return;
 }
 
@@ -767,107 +642,38 @@ void handleSig_StopAndInt(process *curr, int pid, int dof_fix_ill) {
    int result = 0;
    int stopfromPARADYNinit = 0;
 
-   if(! doingFork) {
-     result = curr->procStopFromDYNINSTinit();
-     assert(result >=0 && result <= 2);
+   if (curr->handleTrapIfDueToRPC()) {
+       inferiorrpc_cerr << "processed RPC response in SIGSTOP\n";
+       // don't want to execute ->Stopped() which changes status line
+       return;
    }
-   
-   if (result != 0) {		
-#if !defined(BPATCH_LIBRARY) //ccw 28 apr 2002 
-      if(!curr->paradynLibAlreadyLoaded()) { //ccw 19 apr 2002 
-	 curr->finishedDYNINSTinit = true;
-      }
-#endif
-      forkexec_cerr << "processed SIGSTOP from DYNINSTinit for pid "
-		    << curr->getPid() << endl << flush;
-      if (result == 1) {
-	 assert(curr->status_ == stopped);
-	 // DYNINSTinit() after normal startup, after fork, or after exec
-	 // syscall was made by a running program; leave paused
-	 // (tp->newProgramCallback() to paradyn will result in the process
-	 // being continued soon enough, assuming the applic was running,
-	 // which is true in all cases except when an applic is just being
-	 // started up).  Fall through (we want the status line to change)
-      } else {
-	 assert(result == 2);
-	 // don't fall through...prog is finishing the inferiorRPC
-	 return;
-      }
-   }
-
-#if !defined(BPATCH_LIBRARY)
-   // needed for fork
-   if(!curr->paradynLibAlreadyLoaded()) {
-      curr->finishedDYNINSTinit = true; 
-   }
-#endif
-
-#if !defined(BPATCH_LIBRARY) // ccw 22 apr 2002 : SPLIT we have just finished pDYNINSTinit
-   // ccw 29 apr 2002 : SPLIT3 added paradynLibAlreadyLoaded() to 
-   // protect linux
-   else if(curr->paradynLibAlreadyLoaded() && 
-	   (result = curr->procStopFrompDYNINSTinit()) != 0 ) { 
-      forkexec_cerr << "processed SIGSTOP from pDYNINSTinit for pid "
-		    << curr->getPid() << endl << flush;
-      stopfromPARADYNinit = 1;
-
-      if (result == 1) {
-	 assert(curr->status_ == stopped);
-	 // DYNINSTinit() after normal startup, after fork, or after exec
-	 // syscall was made by a running program; leave paused
-	 // (tp->newProgramCallback() to paradyn will result in the process
-	 // being continued soon enough, assuming the applic was running,
-	 // which is true in all cases except when an applic is just being
-	 // started up).  Fall through (we want the status line to change)
-      } else {
-	 assert(result == 2);
-	 // don't fall through...prog is finishing the inferiorRPC
-	 return;
-      }
-   }
-#endif
-   else if (curr->handleTrapIfDueToRPC()) {
-      inferiorrpc_cerr << "processed RPC response in SIGSTOP\n";
-      // don't want to execute ->Stopped() which changes status line
-      return;
-   }
-#ifndef BPATCH_LIBRARY
+#if 0
    /* XXX We have to leave this out of the Dyninst API library for now -- the
     * ptrace calls that handleStopDueExecEntry uses cause wait() to re-report
     * the signal that we're currently stopped on, causing an infinite loop.
     * Exec doesn't work with the Dyninst API yet anyway.  - brb 7/4/98 */
    else if (curr->handleStopDueToExecEntry()) {
-      // grabs data from DYNINST_bootstrap_info
-      forkexec_cerr << "fork/exec -- handled stop before exec\n";
-      string buffer = string("process ") + string(curr->getPid())
-	              + " performing exec() syscall...";
-      statusLine(buffer.c_str());
-      
-      // note: status will now be 'running', since handleStopDueToExec() did
-      // a continueProc() to let the exec() syscall go forward.
-      assert(curr->status_ == running);
-      // would neonatal be better? or exited?
-      
-      return; // don't want to change status line in conventional way
+       // grabs data from DYNINST_bootstrap_info
+       forkexec_cerr << "fork/exec -- handled stop before exec\n";
+       string buffer = string("process ") + string(curr->getPid())
+       + " performing exec() syscall...";
+       statusLine(buffer.c_str());
+       
+       // note: status will now be 'running', since handleStopDueToExec() did
+       // a continueProc() to let the exec() syscall go forward.
+       assert(curr->status_ == running);
+       // would neonatal be better? or exited?
+       
+       return; // don't want to change status line in conventional way
    }
 #endif /* BPATCH_LIBRARY */
    else {
-      signal_cerr << "unhandled SIGSTOP for pid " << curr->getPid() 
-		  << " so just leaving process in paused state.\n" 
-		  << flush;
+       signal_cerr << "unhandled SIGSTOP for pid " << curr->getPid() 
+                   << " so just leaving process in paused state.\n" 
+                   << flush;
    }
    curr->status_ = prevStatus; // so Stopped() below won't be a nop
    curr->Stopped();
-#if !defined(BPATCH_LIBRARY)  //ccw 19 apr 2002 : SPLIT
-   if(stopfromPARADYNinit) {
-      curr->continueProc();
-   }
-   if(!curr->paradynLibAlreadyLoaded()) { //ccw 19 apr 2002 : SPLIT
-      curr->dlopenPARADYNlib();
-      curr->continueProc();
-      //break;
-   }
-#endif
    return;
 }
 
@@ -993,8 +799,7 @@ void handleStopStatus(int pid, int status, process *curr) {
 	 if (pc==(Address)curr->rbrkAddr()
 	     || pc==(Address)curr->main_brk_addr
 	     || pc==(Address)curr->dyninstlib_brk_addr
-	     || curr->isAnyIRPCwaitingForSyscall()
-	     || pc==(Address)curr->paradynlib_brk_addr) { //ccw 30 apr 2002 
+	     || curr->isAnyIRPCwaitingForSyscall()) { //ccw 30 apr 2002 
 	    signal_cerr << "Changing SIGILL to SIGTRAP" << endl;
 	    sig = SIGTRAP;
 	 }
