@@ -96,6 +96,13 @@ public:
         API_EXPORT(Int, (addr),
 
         bool,containsAddress,(unsigned long addr));
+	  
+	/** Return true if the given address is within the range of
+	    this loop's basicBlocks or its children */
+	API_EXPORT(Int, (addr),
+		   
+	bool,containsAddressInclusive,(unsigned long addr));
+
 
 	/** BPatch_basicBlockLoop::getBackEdge    */
         /** return the back edge which defines this loop */
@@ -113,7 +120,7 @@ public:
 	/** returns vector of outer contained loops */
         API_EXPORT(Int, (loops),
 
-        bool,getOuterLoops,(BPatch_Vector<BPatch_basicBlockLoop*> &loops));
+	bool,getOuterLoops,(BPatch_Vector<BPatch_basicBlockLoop*> &loops) );
 
 	/** BPatch_basicBlockLoop::getLoopBasicBlocks    */
 	/** returns all basic blocks in the loop */
@@ -176,8 +183,8 @@ private:
 	BPatch_basicBlockLoop(BPatch_edge *, BPatch_flowGraph *);
 
 	/** get either contained or outer loops, determined by outerMostOnly */
-	void getLoops(BPatch_Vector<BPatch_basicBlockLoop*>&, 
-		      bool outerMostOnly);
+	bool getLoops(BPatch_Vector<BPatch_basicBlockLoop*>&, 
+		      bool outerMostOnly) const;
 };
 
 #endif /*_BPatch_basicBlockLoop_h_*/
