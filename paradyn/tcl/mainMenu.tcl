@@ -1,6 +1,11 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
+# Revision 1.41  1995/10/17 22:25:00  tamches
+# "performance consultant" now calls shgInitialize instead of
+# "paradyn shg start global".
+# Added a "Where Axis" item to de-iconify the where axis.
+#
 # Revision 1.40  1995/10/06 19:50:57  naim
 # Minor change to "changeApplicState". Now there are 3 states for the RUN and
 # PAUSE keys: either RUN or PAUSE is enabled and the other one disabled, and
@@ -276,9 +281,12 @@ proc drawToolBar {} {
     .parent.menub.left.men.b1.m add command -label "Define A Process" \
 	    -command DefineProcess
     .parent.menub.left.men.b1.m add command -label "Performance Consultant" \
-	    -command {paradyn shg start global}
+	    -command {set shgHack 1; shgInitialize}
+#	    -command {paradyn shg start global}
     .parent.menub.left.men.b1.m add command -label "Tunable Constants Control" \
             -command {tunableEntryPoint}
+    .parent.menub.left.men.b1.m add command -label "Where Axis" \
+	    -command {wm deiconify .whereAxis}
     .parent.menub.left.men.b1.m add command -label "Options Control" \
 	    -state disabled
 #
