@@ -27,28 +27,15 @@ costMetric::costMetric(const string n,
    }
 
    for(unsigned i2 = 0; i2 < processVec.size(); i2++){
-       components += processVec[i2];
-       //sampleInfo *s = new sampleInfo;
-#ifdef notdef
-       if(combiner_op != -1)
-           s->aggOp = combiner_op;
-       else
-           s->aggOp = agg_;
-#endif
-       sampleInfo *s = aggSample.newComponent();
-       parts += s;
-       lastProcessTime += 0.0; 
-       cumulative_values += 0.0;
+       if((processVec[i2])->status_ != exited){
+           components += processVec[i2];
+           //sampleInfo *s = new sampleInfo;
+           sampleInfo *s = aggSample.newComponent();
+           parts += s;
+           lastProcessTime += 0.0; 
+           cumulative_values += 0.0;
+       }
    }
-#ifdef notdef
-   // how the deamons combine values from diff processes
-   // this may be different from the agg_ param. which tells paradyn
-   // how to combine the values from different daemons processes
-   if(combiner_op != -1)
-       sample.aggOp = combiner_op;
-   else
-       sample.aggOp = agg_;
-#endif
 }
 
 
@@ -75,6 +62,14 @@ bool costMetric::legalToInst(vector< vector<string> >& focus) {
         // we don't enable metrics if there are no process to run
 	return false;
     }
+
+    bool all_exited = true;
+    for(u_int i=0; i < processVec.size(); i++){
+	if((processVec[i])->status_ != exited){
+	    all_exited = false;
+    } }
+    if(all_exited) return false;
+
     switch (focus[resource::machine].size()) {
         case 1: break;
         case 2:
