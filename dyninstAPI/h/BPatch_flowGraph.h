@@ -74,12 +74,12 @@ private:
 	bool isSourceBlockInfoReady;
 
 	/** constructor of the class */
-	BPatch_flowGraph(BPatch_function*);
+	BPatch_flowGraph(BPatch_function*, bool&);
 
 	/** constructor for the class */
-	BPatch_flowGraph(BPatch_image*,char*);
+	BPatch_flowGraph(BPatch_image*,char*, bool&);
 
-	void createBasicBlocks();
+	bool createBasicBlocks();
 
 	void fillLoopInfo(BPatch_Set<BPatch_basicBlock*>**,BPatch_basicBlock**);
 
