@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.133 2003/08/05 21:49:23 hollings Exp $
+// $Id: symtab.h,v 1.134 2003/08/11 11:58:00 tlmiller Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -706,7 +706,13 @@ public:
 #ifndef BPATCH_LIBRARY
     modResource(0),
 #endif
-    exec_(e){
+    exec_(e), 
+
+    allInstrumentableFunctionsByPrettyName( pdstring::hash ),
+    allInstrumentableFunctionsByMangledName( pdstring::hash ),
+    allUninstrumentableFunctionsByPrettyName( pdstring::hash ),
+    allUninstrumentableFunctionsByMangledName( pdstring::hash )  
+  {
 #ifndef BPATCH_LIBRARY
     some_funcs_inited = FALSE;
 #endif
@@ -730,8 +736,9 @@ public:
 
   void updateForFork(process *childProcess, const process *parentProcess);
 
-  pdvector<function_base *> *getFunctions() { return (pdvector<function_base *>*)&funcs;} 
-  pdvector<pd_Function *> *getPD_Functions() { return &funcs; } 
+  pdvector<function_base *> * getFunctions();
+  pdvector<pd_Function *> * getPD_Functions();
+
 #ifndef BPATCH_LIBRARY
   pdvector<function_base *> *getIncludedFunctions();
 #endif
@@ -783,8 +790,9 @@ public:
   image *exec_;                      // what executable it came from 
   lineDict lines_;
   //  list of all found functions in module....
-  pdvector<pd_Function*> funcs;
-  pdvector<pd_Function*> notInstruFuncs;
+  // pdvector<pd_Function*> funcs;
+  // pdvector<pd_Function*> notInstruFuncs;
+
   // added as part of exclude support for statically linked objects.
   //  mcheyny, 970928
   //  list of non-excluded found functions in module....
@@ -793,6 +801,21 @@ public:
   bool some_funcs_inited;
 #endif
   //bool shared_;                      // if image it belongs to is shared lib
+
+public:
+
+  void addInstrumentableFunction( pd_Function * function );
+  void addUninstrumentableFunction( pd_Function * function );
+
+private:
+
+  typedef dictionary_hash< pdstring, pd_Function * >::iterator FunctionsByMangledNameIterator;
+  typedef dictionary_hash< pdstring, pdvector< pd_Function * > * >::iterator FunctionsByPrettyNameIterator;
+  dictionary_hash< pdstring, pdvector< pd_Function * > * > allInstrumentableFunctionsByPrettyName;
+  dictionary_hash< pdstring, pd_Function * > allInstrumentableFunctionsByMangledName;
+  dictionary_hash< pdstring, pdvector< pd_Function * > * > allUninstrumentableFunctionsByPrettyName;
+  dictionary_hash< pdstring, pd_Function * > allUninstrumentableFunctionsByMangledName;
+
 };
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.176 2003/08/05 21:49:23 hollings Exp $
+// $Id: symtab.C,v 1.177 2003/08/11 11:57:59 tlmiller Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -202,42 +202,44 @@ pdmodule *image::newModule(const pdstring &name, const Address addr, supportedLa
 
 
 // TODO -- is this g++ specific
-bool buildDemangledName(const pdstring &mangled, pdstring &use, bool nativeCompiler, 
-			supportedLanguages lang)
+bool buildDemangledName( const pdstring & mangled, pdstring & use, bool nativeCompiler, 
+			supportedLanguages lang )
 {
  /* The C++ demangling function demangles MPI__Allgather (and other MPI__
   * functions with start with A) into the MPI constructor.  In order to
   * prevent this a hack needed to be made, and this seemed the cleanest
   * approach.
   */
-  if(!mangled.prefixed_by("MPI__")) {
-    char *tempName = P_strdup(mangled.c_str());
-    char demangled[1000];
-    //cerr << "build demangled name. language = " << lang <<endl;
-    if ((lang == lang_Fortran || lang == lang_CMFortran || lang == lang_Fortran_with_pretty_debug) 
-	&& tempName[strlen(tempName)-1] == '_') {
-      strcpy(demangled, tempName)[strlen(tempName)-1] = '\0';
-      //cerr << "generating fortran name:  mangled = " << mangled << "demangled = " << demangled << endl;
-      free(tempName);
-      use = demangled;
+
+  if( mangled.prefixed_by( "MPI__" ) ) { 
+    return false;
+    }	  
+
+  /* If it's Fortran, eliminate the trailing underscores, if any. */
+  if( lang == lang_Fortran || lang == lang_CMFortran || lang == lang_Fortran_with_pretty_debug ) {
+    if( mangled[ mangled.length() - 1 ] == '_' ) {
+      char * demangled = strdup( mangled.c_str() );
+      demangled[ mangled.length() - 1 ] = '\0';
+      use = pdstring( demangled );
+
+      free( demangled );
       return true;
-    }
-    
-    int result = P_cplus_demangle(tempName, demangled, 1000, nativeCompiler);
-    
-    if(result==0) {
-      use = demangled;
-      free(tempName);
-      return true;
-    } else {
-      //cerr << __FILE__ << __LINE__ << ":  Cannot demangle " << tempName << endl;
-      free(tempName); 
+      }
+    else {
+      /* There's no point in demangling Fortran names. */
       return false;
-      
-    }
-  }
-  return(false);
-}
+      }
+    } /* end if it's Fortran. */
+
+  /* Try demangling it. */
+  char * demangled = P_cplus_demangle( mangled.c_str(), nativeCompiler );
+  if( demangled == NULL ) { return false; }    
+  
+  use = pdstring( demangled );
+
+  free( demangled );  
+  return true;
+  } /* end buildDemangledName() */
 
 void image::addInstruFunction(pd_Function *func, pdmodule *mod,
 			      const Address addr,
@@ -253,7 +255,7 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
   // any functions whose instrumentation info could be determined 
   //  get added to instrumentableFunctions, and mod->funcs.
   instrumentableFunctions.push_back(func); 
-  mod->funcs.push_back(func);
+  mod->addInstrumentableFunction( func );
 
 #ifndef BPATCH_LIBRARY
   if (excluded) {
@@ -424,8 +426,9 @@ int image::removeFuncFromInstrumentable(pd_Function * /* func */)
 
 
 void image::addNotInstruFunc(pd_Function *func, pdmodule *mod) {
+    /* FIXME: do we not care about prettyname collisions for uninstrumentable functions? */
     notInstruFunctions[func->prettyName()] = func;
-    mod->notInstruFuncs.push_back(func);
+    mod->addUninstrumentableFunction( func );
 }
 
 #ifdef DEBUG_TIME
@@ -741,12 +744,10 @@ bool image::addAllVariables()
      const Symbol &symInfo = symIter.currval();
 
     if (symInfo.type() == Symbol::PDST_OBJECT) {
-       char unmangledName[1000];
-       int result = P_cplus_demangle((char*)mangledName.c_str(), unmangledName,
-                                     1000, nativeCompiler);
-       if(result == 1) {
-          strcpy(unmangledName, mangledName.c_str());
-       }
+       char * unmangledName = P_cplus_demangle( mangledName.c_str(), nativeCompiler );
+ 
+       if( unmangledName == NULL ) { unmangledName = strdup( mangledName.c_str() ); assert( unmangledName != NULL ); }
+
        if (varsByPretty.defines(unmangledName)) {
 	  (*(varsByPretty[unmangledName])).push_back(pdstring(mangledName));
        } else {
@@ -754,6 +755,8 @@ bool image::addAllVariables()
 	  (*varEntry).push_back(pdstring(mangledName));
 	  varsByPretty[unmangledName] = varEntry;
        }
+
+       free( unmangledName );
     }
   }
 
@@ -1001,11 +1004,14 @@ void pdmodule::define() {
   ofstream of(osb, std::ios::app);
 #endif
 
-  unsigned f_size = funcs.size();
-
-  for (unsigned f=0; f<f_size; f++) {
 #ifndef BPATCH_LIBRARY
-    pd_Function *pdf = funcs[f];
+
+  FunctionsByMangledNameIterator iter = allInstrumentableFunctionsByMangledName.begin();
+  FunctionsByMangledNameIterator end = allInstrumentableFunctionsByMangledName.end();
+  
+  for( ; iter != end; ++ iter ) {
+ 
+    pd_Function * pdf = * iter; 
 #ifdef DEBUG_MODS
     of << fileName << ":  " << pdf->prettyName() <<  "  "
         << pdf->addr() << endl;
@@ -1016,10 +1022,10 @@ void pdmodule::define() {
     if (1) {
       // see if we have created module yet.
       if (!modResource) {
-	modResource = resource::newResource(moduleRoot, this,
+        modResource = resource::newResource(moduleRoot, this,
 					    nullString, // abstraction
-					    fileName(), // name
-					  timeStamp::ts1970(), // creation time
+   						fileName(), // name
+						timeStamp::ts1970(), // creation time
 					    pdstring(), // unique-ifier
 					    MDL_T_MODULE,
 					    false);
@@ -1030,34 +1036,31 @@ void pdmodule::define() {
       //between overloaded functions in the paradyn front-end.
       bool useTyped = false;
       pdvector <pd_Function *> *pdfv;
-      char prettyWithTypes[1000];
+      char * prettyWithTypes = NULL;
       if (NULL != (pdfv = exec()->findFuncVectorByPretty(pdf->prettyName()))
           && pdfv->size() > 1) {
-         char *tempName = P_strdup(pdf->symTabName().c_str());
-         int result = P_cplus_demangle(tempName, prettyWithTypes,
-                                       1000, exec()->isNativeCompiler(), true /* include types */ );
-         if (result == 0) {
-            useTyped= true;
-            //add another "pretty name" to the dictionary
-            exec()->addTypedPrettyName(pdf, prettyWithTypes);
-            pdf->addPrettyName(pdstring(prettyWithTypes));
-         }
-         free(tempName);
-      }
+        prettyWithTypes = P_cplus_demangle( pdf->symTabeName(), exec()->isNativeCompiler(), true );
+        if( prettyWithTypes != NULL ) {
+          useTyped = true;
+          exec()->addTypedPrettyName(pdf, prettyWithTypes);
+          pdf->addPrettyName(string(prettyWithTypes));
+          } else {
+          prettyWithTypes = strdup( pdf->prettyName );
+          assert( prettyWithTypes != NULL );
+          }
+        }
 
       pdf->SetFuncResource(resource::newResource(modResource, pdf,
 						 nullString, // abstraction
-						  useTyped ? prettyWithTypes : pdf->prettyName(), 
+						 prettyWithTypes,
 						 timeStamp::ts1970(),
 						 nullString, // uniquifier
 						 MDL_T_PROCEDURE,
-						 false));		   
-      
+						 false );
+      free( prettyWithTypes );
     }
-#endif
   }
 
-#ifndef BPATCH_LIBRARY
   resource::send_now();
 #endif
 }
@@ -1581,6 +1584,7 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
     defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || \
     defined(ia64_unknown_linux2_4) /* Temporary duplication -- TLM. */
+
    // check .stabs section to get language info for modules:
    int stab_nsyms;
    char *stabstr_nextoffset;
@@ -2157,12 +2161,19 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
 
 void pdmodule::updateForFork(process *childProcess, 
 			     const process *parentProcess) {
-  for(unsigned i=0; i<funcs.size(); i++) {
-    funcs[i]->updateForFork(childProcess, parentProcess);
-  }
-  for(unsigned j=0; j<notInstruFuncs.size(); j++) {
-    notInstruFuncs[j]->updateForFork(childProcess, parentProcess);
-  }
+  /* Mangled names are unique, so we don't have to nest our loops. */
+  FunctionsByMangledNameIterator iiter = allInstrumentableFunctionsByMangledName.begin();
+  FunctionsByMangledNameIterator iend = allInstrumentableFunctionsByMangledName.end();
+  for( ; iiter != iend; ++ iiter ) {
+	(*iiter)->updateForFork( childProcess, parentProcess );
+    }
+  
+  FunctionsByMangledNameIterator niter = allUninstrumentableFunctionsByMangledName.begin();
+  FunctionsByMangledNameIterator nend = allUninstrumentableFunctionsByMangledName.end();
+  for( ; niter != nend; ++ niter ) {
+	(*niter)->updateForFork( childProcess, parentProcess );
+	}
+  
 #ifndef BPATCH_LIBRARY
   for(unsigned k=0; k<some_funcs.size(); k++) {
     some_funcs[k]->updateForFork(childProcess, parentProcess);
@@ -2191,163 +2202,213 @@ void pdmodule::checkAllCallPoints() {
 }
 #endif
 
-#define PDMODULE_FIND(name, src, dest, type) {  \
-  for (unsigned int f=0; f<src.size(); f++) {\
-    pdvector<pdstring> funcNames = src[f]->type##NameVector(); \
-    for (unsigned i = 0; i < funcNames.size(); i++) \
-      if (funcNames[i] == name) {\
-	dest->push_back(src[f]); break;}\
-  }}
+pdvector<function_base *> *
+pdmodule::findFunction( const pdstring &name, pdvector<function_base *> * found ) {
+	assert( found != NULL );
+	
+	if( allInstrumentableFunctionsByPrettyName.defines( name ) ) {
+		pdvector< pd_Function * > * prettilyNamedFunctions =
+			allInstrumentableFunctionsByPrettyName.get( name );
+		for( unsigned int i = 0; i < prettilyNamedFunctions->size(); i++ ) {
+			found->push_back( (*prettilyNamedFunctions)[i] );
+			}
+		return found;
+		}
 
-inline pdvector<function_base *> *
-pdmodule::findFunction(const pdstring &name, pdvector<function_base *> *found)
-{
-  // pretty first
-  PDMODULE_FIND(name, funcs, found, pretty)
-  if (found->size()) return found;
+	if( allInstrumentableFunctionsByMangledName.defines( name ) ) {
+		found->push_back( allInstrumentableFunctionsByMangledName.get( name ) );
+		return found;
+		}
+    
+	return NULL;
+	} /* end findFunction() */
 
-  // then mangled
-  PDMODULE_FIND(name, funcs, found, symTab)
-  if (found->size()) return found;
+#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11)
+/* private refactoring functions */
+typedef pdpair< pdstring, pd_Function * > nameFunctionPair;
+typedef pdpair< pdstring, pdvector< pd_Function * > * > nameFunctionListPair;
+void runCompiledRegexOn( regex_t * compiledRegex, pdvector< nameFunctionPair > * nameToFunctionMap, pdvector< function_base * > * found ) {
+	int status = 0;
+	for( unsigned int i = 0; i < nameToFunctionMap->size(); i++ ) {
+		const char * name = (*nameToFunctionMap)[i].first.c_str();
+		status = regexec( compiledRegex, name, 1, NULL, 0 );
+		if( status == REG_NOMATCH ) { continue; }
+		if( status != 0 ) {
+			char errorString[80];
+			regerror( status, compiledRegex, errorString, 80 );
+			fprintf( stderr, "runCompiledRegexOn() regular expression execution error: '%s'\n", errorString ); 
+			return;
+			}
 
-  return NULL;
-}
+		found->push_back( (*nameToFunctionMap)[i].second );
+		}
+	} /* end runCompiledRegexOn() */
+	
+void runCompiledRegexOnList( regex_t * compiledRegex, pdvector< nameFunctionListPair > * nameToFunctionListMap, pdvector< function_base * > * found ) {
+	int status = 0;
+	for( unsigned int i = 0; i < nameToFunctionListMap->size(); i++ ) {
+		const char * name = (*nameToFunctionListMap)[i].first.c_str();
+		status = regexec( compiledRegex, name, 1, NULL, 0 );
+		if( status == REG_NOMATCH ) { continue; }
+		if( status != 0 ) {
+			char errorString[80];
+			regerror( status, compiledRegex, errorString, 80 );
+			fprintf( stderr, "runCompiledRegexOn() regular expression execution error: '%s'\n", errorString ); 
+			return;
+			}
 
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
-//  This big ugly macro performs a regex search of src, and puts matches in dest.
-//  type is either "pretty" or "symTab" and specifies which vectors of
-//  names are used.  This is here because otherwise there'd be a lot of search
-//  functions here with nearly the same code.
-
-#define REGEX_FIND(pat, src, dest, type) { \
-  for (unsigned int i = 0; i < src.size(); ++i) { \
-    pdvector<pdstring> funcNames = src[i]->type##NameVector(); \
-    for (unsigned int j =  0; j <funcNames.size(); ++j) { \
-      int err; \
-      if (0 == (err = regexec( (regex_t *)pat, funcNames[j].c_str(), 1, NULL, 0 ))){ \
-	dest->push_back(src[i]); \
-	break; \
-      } \
-      if (REG_NOMATCH == err) \
-	continue; \
-      char errbuf[80]; \
-      regerror( err, (regex_t *)pat, errbuf, 80 ); \
-      cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl; \
-      return NULL; \
-    } \
-  } }
+		pdvector< pd_Function * > * matchingFunctions = (*nameToFunctionListMap)[i].second;
+		for( unsigned int j = 0; j < matchingFunctions->size(); j++ ) {
+			found->push_back( (*matchingFunctions)[j] );
+			}
+		}
+	} /* end runCompiledRegexOnList() */
 #endif
 
 pdvector<function_base *> *
 pdmodule::findFunctionFromAll(const pdstring &name,
 			      pdvector<function_base *> *found, 
-			      bool regex_case_sensitive) 
-{
-  if (NULL == strpbrk(name.c_str(), REGEX_CHARSET)) {
+			      bool regex_case_sensitive) {	    
+	/* Are we doing a regex search? */
+	if( NULL == strpbrk( name.c_str(), REGEX_CHARSET ) ) {
+		/* Checks pretty and mangled instrumentable function names. */
+		if( NULL != findFunction( name, found ) && found->size() != 0 ) {
+			return found;
+			}
 
-    if (NULL != findFunction(name, found) 
-	&& found->size())
-      return found;
+    	/* Checks pretty and mangled uninstrumentable function names. */
+		if( NULL != findUninstrumentableFunction( name, found ) && found->size() != 0 ) {
+			return found;
+			}
 
-    // could not find in instrumentable, check non-instrumentable
-    PDMODULE_FIND(name, notInstruFuncs, found, pretty);
-    if (found->size()) return found;
-
-    PDMODULE_FIND(name, notInstruFuncs, found, symTab);
-    if (found->size()) return found;
+    	return NULL;
+		}
+	
+	/* We're doing a regular expression search, which is not yet implemented
+	   on Microsoft platforms. */
+#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11)
+	regex_t comp_pat;
+	int err = 0;
+	int cflags = REG_NOSUB | REG_EXTENDED;
   
-    return NULL;
-  }
-
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
-  // regex falls through
-  regex_t comp_pat;
-  int err, cflags = REG_NOSUB | REG_EXTENDED;
+	if( !regex_case_sensitive ) {
+		cflags |= REG_ICASE;
+		}
   
-  if( !regex_case_sensitive )
-    cflags |= REG_ICASE;
-  
-  if (0 != (err = regcomp( &comp_pat, name.c_str(), cflags ))) {
-    char errbuf[80];
-    regerror( err, &comp_pat, errbuf, 80 );
-    cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
-    return NULL;
-  }
+	if (0 != (err = regcomp( &comp_pat, name.c_str(), cflags ) ) ) {
+		char errbuf[80];
+		regerror( err, &comp_pat, errbuf, 80 );
+		cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
+		return NULL;
+		}
 
-  REGEX_FIND(&comp_pat, funcs, found, pretty);
-  if (found->size()) goto regex_done;
+  /* Run the regular expression against, in order:
+     the pretty names of instrumentable functions,
+     the mangled names of instrumentable functions,
+     the pretty names of uninstrumentable functions,
+     and the mangled names of uninstrumentable functions,
+     returning as soon as any regex succceeds.  (Note:
+     this is wrong, but follows the previous semantics.) */
 
-  REGEX_FIND(&comp_pat, funcs, found, symTab);
-  if (found->size()) goto regex_done;
+	pdvector< nameFunctionListPair > instrumentablePrettyPairs = allInstrumentableFunctionsByPrettyName.keysAndValues();
+	runCompiledRegexOnList( & comp_pat, & instrumentablePrettyPairs, found );
+	if( found->size() != 0 ) { regfree( & comp_pat ); return found; }
+	
+	pdvector< nameFunctionPair > instrumentableMangledPairs = allInstrumentableFunctionsByMangledName.keysAndValues();
+	runCompiledRegexOn( & comp_pat, & instrumentableMangledPairs, found );
+	if( found->size() != 0 ) { regfree( & comp_pat ); return found; }
 
-  // no matches found yet, check notInstruFuncs
-
-  REGEX_FIND(&comp_pat, notInstruFuncs, found, pretty);
-  if (found->size()) goto regex_done;
-
-  REGEX_FIND(&comp_pat, notInstruFuncs, found, symTab);
-  if (found->size()) goto regex_done;
-
- regex_done:
-  regfree(&comp_pat);
-  if (found->size()) return found;
+	pdvector< nameFunctionListPair > uninstrumentablePrettyPairs = allUninstrumentableFunctionsByPrettyName.keysAndValues();
+	runCompiledRegexOnList( & comp_pat, & uninstrumentablePrettyPairs, found );
+	if( found->size() != 0 ) { regfree( & comp_pat ); return found; }
+	
+	pdvector< nameFunctionPair > uninstrumentableMangledPairs = allUninstrumentableFunctionsByMangledName.keysAndValues();
+	runCompiledRegexOn( & comp_pat, & uninstrumentableMangledPairs, found );
+	if( found->size() != 0 ) { regfree( & comp_pat ); return found; }
+	
+	regfree( & comp_pat );
 #endif
-  
-  return NULL;
-}
 
-function_base *pdmodule::findFunctionByMangled(const pdstring &name)
+	/* We didn't find anything. */
+	return NULL;
+	} /* end findFunctionFromAll() */
+
+function_base *pdmodule::findFunctionByMangled( const pdstring &name )
 {
-  pdvector<function_base *> found;
-  pdvector<function_base *> *foundp = &found;
-
-  PDMODULE_FIND(name, funcs, foundp, symTab);
-  if (!found.size()) return NULL;
-  if (found.size() > 1) return NULL; // fail if more than one found 
-  return found[0];
-
+  /* By inference from the previous version, we're not interested
+     in the uninstrumentable functions. */
+  if( allInstrumentableFunctionsByMangledName.defines( name ) ) {
+  	return allInstrumentableFunctionsByMangledName.get( name );
+  	}
+  else {
+    return NULL;
+    }
 }
 
 void pdmodule::dumpMangled(char * prefix) 
 {
   cerr << fileName() << "::dumpMangled("<< prefix << "): " << endl;
-  for (unsigned int i = 0; i < funcs.size(); ++i) {
-    if (prefix) {
-      if (!strncmp(funcs[i]->symTabName().c_str(), prefix, strlen(prefix) -1))
-	cerr << funcs[i]->symTabName() << " ";
+  
+  FunctionsByMangledNameIterator iter = allInstrumentableFunctionsByMangledName.begin();
+  FunctionsByMangledNameIterator end = allInstrumentableFunctionsByMangledName.end();
+  
+  for( ; iter != end; ++ iter ) {
+    pd_Function * pdf = *iter;
+    if( prefix ) {
+      if( ! strncmp( pdf->symTabName().c_str(), prefix, strlen( prefix ) ) ) {
+        cerr << pdf->symTabName() << " ";
+        }
       else {
-	//printf("%s is not a prefix of %s\n", prefix, funcs[i]->symTabName().c_str());
+        // printf( "%s is not a prefix of %s\n", prefix, pdf->symTabName().c_str() );
+        }
+      }
+    else {
+      cerr << pdf->symTabName() << " ";
       }
     }
-    else
-      cerr << funcs[i]->symTabName() << " ";
-  }
   cerr << endl;
 }
 
 pdvector<function_base *> *pdmodule::findUninstrumentableFunction(const pdstring &name,
 								 pdvector<function_base *> *found)
 {
-  PDMODULE_FIND(name, notInstruFuncs, found, pretty);
-  return found;
+    /* Check pretty and mangled names uninstrumentable function names. */
+	assert( found != NULL );
+
+	if( allUninstrumentableFunctionsByPrettyName.defines( name ) ) {
+		pdvector< pd_Function * > * prettilyNamedFunctions =
+			allUninstrumentableFunctionsByPrettyName.get( name );
+		for( unsigned int i = 0; i < prettilyNamedFunctions->size(); i++ ) {
+			found->push_back( (*prettilyNamedFunctions)[i] );
+			}
+		return found;
+		}
+
+	if( allUninstrumentableFunctionsByMangledName.defines( name ) ) {
+		found->push_back( allUninstrumentableFunctionsByMangledName.get( name ) );
+		return found;
+		}
+    
+  return NULL;
 }
 
-// remove record of function from internal vector of instrumentable funcs
-// (used when a function needs to be reclassified as non-instrumentable);
-bool pdmodule::removeInstruFunc(pd_Function *pdf)
+bool pdmodule::removeInstruFunc( pd_Function * pdf )
 {
-  bool ret = false;
-  unsigned int i;
+  bool didRemove = allInstrumentableFunctionsByMangledName.defines( pdf->symTabName() );
+  allInstrumentableFunctionsByMangledName.undef( pdf->symTabName() );
 
-  for (i = 0; i < funcs.size(); ++i) {
-    if (funcs[i] == pdf) {
-      funcs[i] = funcs[funcs.size() -1];
-      funcs.pop_back();
-      ret = true;
-      break;
+  if( allInstrumentableFunctionsByPrettyName.defines( pdf->prettyName() ) ) {
+    pdvector< pd_Function * > * prettilyNamedFunctions =
+      allInstrumentableFunctionsByPrettyName.get( pdf->prettyName() );
+    /* Iterate backwards in the unlikely case that we have to remove more than one function. */
+    for( int i = prettilyNamedFunctions->size() - 1; i >= 0; i-- ) {
+      if( strcmp( (*prettilyNamedFunctions)[i]->symTabName().c_str(), pdf->symTabName().c_str() ) == 0 ) {
+        /* Remove it from the vector. */
+        prettilyNamedFunctions->erase( i, i );
+        }
+      }
     }
-  }
-
+    
 #ifndef BPATCH_LIBRARY
   for (i = 0; i < some_funcs.size(); ++i) {
     if (some_funcs[i] == pdf) {
@@ -2357,7 +2418,7 @@ bool pdmodule::removeInstruFunc(pd_Function *pdf)
     }
   }
 #endif
-  return ret;
+  return didRemove;
 }
 #ifdef CHECK_ALL_CALL_POINTS
 void image::checkAllCallPoints() {
@@ -2980,6 +3041,42 @@ bool pdmodule::isShared() const {
   return !exec_->isAOut();
 }
 
+/* Instrumentable-only, by the last version's source. */
+pdvector< function_base * > * pdmodule::getFunctions() {
+    static pdvector< pd_Function * > pleaseDontGoAwayAndLeaveMeHanging;
+    /* Is this going to call the destructor on the previous version? */
+    pleaseDontGoAwayAndLeaveMeHanging = allInstrumentableFunctionsByMangledName.values();
+    /* Warning: hack.  Why doesn't this conversion work normally? */
+    return (pdvector< function_base * > *) & pleaseDontGoAwayAndLeaveMeHanging;
+	} /* end getFunctions() */
+
+void pdmodule::addInstrumentableFunction( pd_Function * function ) {
+	pdvector< pd_Function * > * prettilyNamedFunctions;
+	
+	if( allInstrumentableFunctionsByPrettyName.defines( function->prettyName() ) ) {
+		prettilyNamedFunctions = allInstrumentableFunctionsByPrettyName.get( function->prettyName() );
+		} else {
+		prettilyNamedFunctions = new pdvector< pd_Function * >();
+		}
+	prettilyNamedFunctions->push_back( function );
+	allInstrumentableFunctionsByPrettyName[ function->prettyName() ] = prettilyNamedFunctions;
+			
+	allInstrumentableFunctionsByMangledName[ function->symTabName() ] = function;
+	} /* end addInstrumentableFunction() */
+	
+void pdmodule::addUninstrumentableFunction( pd_Function * function ) {
+	pdvector< pd_Function * > * prettilyNamedFunctions;
+	
+	if( allUninstrumentableFunctionsByPrettyName.defines( function->prettyName() ) ) {
+		prettilyNamedFunctions = allUninstrumentableFunctionsByPrettyName.get( function->prettyName() );
+		} else {
+		prettilyNamedFunctions = new pdvector< pd_Function * >();
+		}
+	prettilyNamedFunctions->push_back( function );
+	allUninstrumentableFunctionsByPrettyName[ function->prettyName() ] = prettilyNamedFunctions;
+
+	allUninstrumentableFunctionsByMangledName[ function->symTabName() ] = function;
+    } /* end addUninstrumentableFunction() */
 
 pdstring* pdmodule::processDirectories(pdstring* fn){
 	if(!fn)
@@ -3076,7 +3173,7 @@ pdmodule::~pdmodule()
 
 // Parses symtab for file and line info. Should not be called before
 // parseTypes. The ptr to lineInformation should be NULL before this is called.
-#if !defined(rs6000_ibm_aix4_1) && !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0) && !defined(i386_unknown_nt4_0)
+#if !defined(rs6000_ibm_aix4_1) && !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0) && !defined(i386_unknown_nt4_0) && !defined( USES_DWARF_DEBUG )
 void pdmodule::parseFileLineInfo(process * proc) 
 {
   int i;
