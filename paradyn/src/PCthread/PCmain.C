@@ -1,3 +1,9 @@
+
+/* $Log: PCmain.C,v $
+/* Revision 1.6  1994/04/06 21:24:10  markc
+/* First log message.
+/* */
+
 #include <assert.h>
 #include <stdlib.h>
 
