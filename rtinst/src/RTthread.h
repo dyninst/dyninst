@@ -41,38 +41,49 @@
 
 #ifndef _RT_THREAD_H_
 #define _RT_THREAD_H_
+
+/* Compatibility layer between pthreads and solaris threads */
+#if defined(rs6000_ibm_aix4_1)
+#include <pthread.h>
+#else /* solaris threads */
+#include <thread.h>
+#include <synch.h>
+
+typedef thread_key_t dyninst_key_t;
+typedef mutex_t dyninst_mutex_t;
+typedef cond_t dyninst_cond_t;
+typedef thread_t dyninst_t;
+typedef rwlock_t dyninst_rwlock_t;
+typedef sema_t dyninst_sema_t;
+#define pthread_setspecific(key,val) thr_setspecific(key, val)
+#define pthread_key_create(key,dest) thr_keycreate(key, dest)
+#define pthread_self() thr_self()
+#define pthread_mutex_lock(mutex) mutex_lock(mutex)
+#define pthread_mutex_unlock(mutex) mutex_unlock(mutex)
+#define pthread_cond_wait(cond, mutex) cond_wait(cond, mutex)
+#define pthread_mutex_init(mutex, arg) mutex_init(mutex, USYNC_PROCESS, arg)
+#define pthread_cond_init(cond, arg) cond_init(cond, USYNC_PROCESS, arg)
+#endif
+
 #include "tc-lock.h"
+#include "rtinst/h/rtinst.h"
+#include "rtinst/h/trace.h"
 
 #define MAX_PENDING_RPC  (20)
 typedef struct rpcToDo_s {
-  int flag ;
-  void (*rpc) (void) ;
+  int flag; /* Indicates when done, and how */
+  void (*rpc) (void); /* Function to run */
   tc_lock_t lock;
 } rpcToDo;
-
-#ifdef rs6000_ibm_aix4_1
-#include <pthread.h>
-#include <semaphore.h>
-typedef pthread_key_t      thread_key_t;
-typedef pthread_mutex_t    mutex_t;
-typedef pthread_cond_t     cond_t;
-typedef pthread_t          thread_t;
-typedef pthread_rwlock_t   rwlock_t;
-typedef sem_t              sema_t;
-#else
-#ifndef _thread_h_thread_h_ /* avoid type clash with  */
-#include <thread.h>
-#endif
-#include <synch.h>
-#endif
 
 typedef struct sharedData_s {
   tTimer virtualTimers[MAX_NUMBER_OF_THREADS] ;
   rpcToDo rpcToDoList [MAX_PENDING_RPC];
   unsigned rpc_indexMax ;
-  mutex_t rpc_mutex ;
-  cond_t  rpc_cv ;
+  pthread_mutex_t rpc_mutex ;
+  pthread_cond_t  rpc_cv ;
   int     rpc_pending ;
+  rpcToDo pendingIRPCs [MAX_NUMBER_OF_THREADS][MAX_PENDING_RPC];
 } RTINSTsharedData ;
 
 extern int  DYNINSTthreadSelf(void);  
@@ -92,4 +103,7 @@ EXTERN_DECLARE_TC_LOCK(DYNINST_traceLock);
 extern void DYNINST_ThreadPInfo(void*, void**, int *, long*, int*, void**/*&resumestate_t*/);
 extern int  DYNINST_ThreadInfo(void**, int *, long*, int*, void** /*&resumestate_t*/);
 
+/* Compatibility: redefine pthread primitives as solaris primitives */
+#if !defined(rs6000_ibm_aix4_1)
+#endif
 #endif

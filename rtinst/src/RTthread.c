@@ -46,6 +46,7 @@
  ************************************************************************/
 
 #ifdef SHM_SAMPLING
+#include "RTthread.h"
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -62,17 +63,16 @@
 #include <math.h>
 
 #include "kludges.h"
-#include "rtinst/h/rtinst.h"
-#include "rtinst/h/trace.h"
 
-#ifdef rs6000_ibm_aix4_1
-#include <pthread.h>
-#else
-#include <thread.h>
-#include <sys/lwp.h>
-#endif
 #include <stdlib.h>
-#include "RTthread.h"
+
+#if !defined(rs6000_ibm_aix4_1)
+void *pthread_getspecific(pthread_key_t key) {
+  void *foo = 0;
+  thr_getspecific(key, &foo);
+  return foo;
+}
+#endif
 
 unsigned          DYNINST_initialize_done=0;
 unsigned          DYNINSTthreadTable[MAX_NUMBER_OF_THREADS][MAX_NUMBER_OF_LEVELS];
@@ -109,17 +109,17 @@ RTINSTsharedData *RTsharedData = NULL ;
 rpcToDo          *DYNINSTthreadRPC = NULL ;
 tTimer           *DYNINST_thr_vtimers = NULL ; /* per-Thread virtual Timers */
 
-static thread_key_t  DYNINST_thread_key ;
+static dyninst_key_t  DYNINST_thread_key ;
 
 /* pointer to thread's tls */
 static void** DYNINSTthreadSpecific[MAX_NUMBER_OF_THREADS] ;
 
 /* To synchronize the rpcThread with the daemon */
-cond_t   *rpc_cv_ptr ;
-mutex_t  *rpc_mutex_ptr ;
+dyninst_cond_t   *rpc_cv_ptr ;
+dyninst_mutex_t  *rpc_mutex_ptr ;
 int      *rpc_pending_ptr ;
 unsigned *rpc_maxIndex_ptr ;
-thread_t  DYNINSTthreadRPC_threadId ;
+dyninst_t  DYNINSTthreadRPC_threadId ;
 
 void DYNINSTthread_init(char *DYNINST_shmSegAttachedPtr) {
   void DYNINST_initialize_RPCthread(void) ;
@@ -385,19 +385,22 @@ static int POS_thread_local[MAX_NUMBER_OF_THREADS] ;
 /* search threadspecific area for pos */
 int _threadPos(int tid, int oldpos) {
   int *pos_p ;
-  thr_getspecific(DYNINST_thread_key, (void**)&pos_p);
+  /*  fprintf(stderr, "_threadPos(%x, %x)\n", tid, oldpos); */
+  pos_p = (int *)pthread_getspecific(DYNINST_thread_key);
   if (pos_p == NULL) {
     int pos = DYNINST_hash_insertPOS(tid, oldpos) ;
+    fprintf(stderr, "new POS == %x\n", pos);
 #ifdef PROFILE_BASETRAMP
     btramp_hash_table++ ;
 #endif
     pos_p = POS_thread_local + pos ;
     *pos_p = pos ;
-    thr_setspecific(DYNINST_thread_key, pos_p) ;
+    pthread_setspecific(DYNINST_thread_key, pos_p) ;
   }
 #ifdef PROFILE_BASETRAMP
   btramp_slow++;
 #endif
+  /*  fprintf(stderr, "Returning value of pos_p, %x\n", *pos_p); */
   return *pos_p  ;
 }
 
@@ -438,6 +441,9 @@ void DYNINST_hash_delete(unsigned k) {
 }
 
 int DYNINST_not_deletedTID(int tid, unsigned pos) {
+  fprintf(stderr, "DYNINST_not_deletedTID:2 tid(%d), pos(%d)\n",
+	  tid, pos);
+  
   if (tid < 0) return 0 ;
   return ( ThreadMap[pos]==tid);
 }
@@ -481,6 +487,9 @@ void report_context_prof(void) {
 }
 #endif
 
+/*
+ * Run from the DYNINSTinit?
+ */
 void DYNINST_initialize_once(void) {
   if (!DYNINST_initialize_done) {
     if (DYNINST_DEAD_LOCK == tc_lock_lock(&DYNINST_initLock))
@@ -490,7 +499,7 @@ void DYNINST_initialize_once(void) {
     DYNINST_initialize_hash(MAX_NUMBER_OF_THREADS);
     DYNINST_initialize_ThreadCreate() ;
     tc_lock_unlock(&DYNINST_initLock);
-    thr_keycreate(&DYNINST_thread_key, DYNINST_dummy_free) ;
+    pthread_key_create(&DYNINST_thread_key, DYNINST_dummy_free) ;
 #ifdef PROFILE_CONTEXT_SWITCH
     DYNINST_initialize_context_prof() ;
 #endif
@@ -507,7 +516,7 @@ void DYNINST_initialize_once_per_process(void) {
     DYNINST_initialize_hash(MAX_NUMBER_OF_THREADS);
     DYNINST_initialize_ThreadCreate() ;
     tc_lock_unlock(&DYNINST_initLock);
-    thr_keycreate(&DYNINST_thread_key, DYNINST_dummy_free) ;
+    pthread_key_create(&DYNINST_thread_key, DYNINST_dummy_free) ;
 #ifdef PROFILE_CONTEXT_SWITCH
     DYNINST_initialize_context_prof() ;
 #endif
@@ -515,17 +524,20 @@ void DYNINST_initialize_once_per_process(void) {
 }
 
 int DYNINSTthreadPosTID(int tid, unsigned pos) {
-  if (tid < 0 || tid != ThreadMap[pos])
+  fprintf(stderr, "DYNINSTthreadPosTID, tid: %d, pos: %d, map contents: %d\n",
+	  tid, pos, ThreadMap[pos]);
+  if (tid < 0 || tid != ThreadMap[pos]) {
+    fprintf(stderr, "SKIPPING\n");
     return -2 ;
-
+  }
   /* called by inferiorRPC, the thread must already been created */
+  fprintf(stderr, "RETURNING %d\n", pos);
   return pos ;
 }
 /*
  * called by inferiorRPC,
  */
 int DYNINSTloopTID(int tid, unsigned pos) {
-  assert(DYNINST_initialize_done==1) ;
   if (tid < 0 || tid != ThreadMap[pos])
      return 1 ;
   return 0 ;
@@ -544,8 +556,10 @@ void DYNINSTthreadRetrieveARGs(void **stackbase, int *tidp,
   long* startpc_p, int* lwpidp, void** resumestate_p) {
   unsigned pos = DYNINSTthreadPosFAST(); /* called in mini tramp */
   assert(pos>=0 && pos <= MAX_NUMBER_OF_THREADS) ;
+  fprintf(stderr, "DYNINSTthreadRetrieveARGs\n");
   DYNINST_ThreadPInfo(*(DYNINSTthreadSpecific[pos]), stackbase, tidp, startpc_p,
  lwpidp, resumestate_p) ;
+  return;
 }
 
 /*
@@ -558,6 +572,8 @@ void DYNINST_ThreadPCreate() {
     long startpc ;
     int lwpid ;
     void* resumestate_p ;
+
+    fprintf(stderr, "DYNINST_ThreadPCreate called\n");
 
     DYNINSTthreadRetrieveARGs(&stackbase, &tid, &startpc, &lwpid, &resumestate_p);
 
@@ -605,7 +621,7 @@ int DYNINST_ThreadUpdate(int flag) {
   long  startpc ;
   int   lwpid ;
   void*  resumestate_p ;
-
+  fprintf(stderr, "DYNINST_ThreadUpdate\n");
   if (DYNINST_ThreadInfo(&stackbase, &tid, &startpc, &lwpid, &resumestate_p)) {
     pos=traceRec.pos=DYNINST_hash_lookup(tid) ;
     while(pos < 0) {
@@ -625,7 +641,7 @@ int DYNINST_ThreadUpdate(int flag) {
       traceRec.start_pc = (unsigned) startpc ;
       traceRec.resumestate_p = resumestate_p ;
       traceRec.context = flag ;
-
+      fprintf(stderr, "Creating initial thread with POS %d\n", pos);
       VIRTUAL_TIMER_MARK_LWPID(DYNINST_thr_vtimers+pos, lwpid) ;
       VIRTUAL_TIMER_MARK_CREATION(DYNINST_thr_vtimers+pos);
       _VirtualTimerStart(DYNINST_thr_vtimers+pos, THREAD_UPDATE) ;
@@ -655,7 +671,7 @@ void DYNINST_ThreadCreate(int pos, int tid) {
   int   lwpid ;
   void*  resumestate_p ;
   extern int pipeOK(void); /* RTposix.c */
-
+  fprintf(stderr, "DYNINST_ThreadCreate\n");
   if (pipeOK() && pos >= 0 && ThreadMap[pos] != tid) {
     if (DYNINST_ThreadInfo(&stackbase, &tid, &startpc, &lwpid, &resumestate_p)) {
       traceThread traceRec ;
@@ -686,6 +702,7 @@ void DYNINST_ThreadCreate(int pos, int tid) {
         1,
         DYNINSTgetWalltime(),
         DYNINSTgetCPUtime());
+      fprintf(stderr, "Trace record generated\n");
     }
   }
 }
@@ -777,54 +794,38 @@ void DEBUG_VIRTUAL_TIMER_START(tTimer *timer, int context) {
 /* This call DO NOT change the LWP_ID of the Virtual Timer */
 
 void _VirtualTimerStart(tTimer *timer, int context){
-  int lwp_id = lwp_self() ;
-  /* assert(timer->protector1 == timer->protector2);  */
+  assert(timer->protector1 == timer->protector2);
   timer->protector1++;
 
   if (timer->vtimer && timer->counter ==0) {
-    if (lwp_id == timer->lwp_id)
-      timer->start = DYNINSTgetCPUtime();
-    else
-      timer->start = DYNINSTgetCPUtime_LWP(timer->lwp_id);
-    timer->counter++;
+    fprintf(stderr, "Calling _LWP with lwp_id %d\n", timer->lwp_id);
+    timer->start = DYNINSTgetCPUtime_LWP(timer->lwp_id);
   }
+  timer->counter++;
 
   timer->protector2++;
-  /* assert(timer->protector1 == timer->protector2); */
+  assert(timer->protector1 == timer->protector2);
 }
 
 void _VirtualTimerStop(tTimer* timer) {
-    if (!timer) { return; }
-
-    /* assert(timer->protector1 == timer->protector2);  */
-    timer->protector1++;
-
-    if (timer->counter == 1) {
-      rawTime64 now;
-      int lwp_id = lwp_self();
-      if (lwp_id != timer->lwp_id) {
-        now = DYNINSTgetCPUtime_LWP(timer->lwp_id);
-      } else {
-        now = DYNINSTgetCPUtime();
-      }
-      if (now < timer->start) {
-        if (lwp_id != timer->lwp_id){
-          now = DYNINSTgetCPUtime_LWP(timer->lwp_id);
-        } else {
-          now = DYNINSTgetCPUtime();
-        }
-        if (now < timer->start) {
-          fprintf(stderr, "WARNING: rtinst, cpu timer rollback. start=%lld, now=%lld, current_lwp=%d, previous_lwp=%d\n",timer->start
-,now,lwp_id,timer->lwp_id);
-          }
-      }
-      if (now >= timer->start) {
-        timer->total += (now - timer->start);
-      }
-      timer->counter--;
+  if (!timer) { return; }
+  
+  assert(timer->protector1 == timer->protector2);
+  timer->protector1++;
+  
+  if (timer->counter == 1) {
+    rawTime64 now;
+    now = DYNINSTgetCPUtime_LWP(timer->lwp_id);
+    if (now < timer->start) {
+      fprintf(stderr, "WARNING: rtinst, cpu timer rollback. start=%lld, now=%lld, previous_lwp=%d\n",
+	      timer->start,now,timer->lwp_id);
     }
-    timer->protector2++;
-    /* assert(timer->protector1 == timer->protector2);  */
+    else
+      timer->total += (now - timer->start);
+  }
+  timer->counter--;
+  timer->protector2++;
+  assert(timer->protector1 == timer->protector2);
 }
 
 
@@ -836,37 +837,54 @@ void DYNINST_VirtualTimerDestroy(tTimer* vt) {
 
 /* CALLED by _thread_start, create and start the Virtual Timer */
 void DYNINST_VirtualTimerCREATE() {
-  int pos = DYNINSTthreadPosFAST() ; /* in mini */
+  int pos;
+  pos = DYNINSTthreadPosFAST() ; 
   if (pos >= 0) {
-    int lwpid = lwp_self() ;
+    int lwpid = pthread_self() ;
     VIRTUAL_TIMER_MARK_LWPID(DYNINST_thr_vtimers+pos, lwpid) ;
     VIRTUAL_TIMER_MARK_CREATION(DYNINST_thr_vtimers+pos);
     _VirtualTimerStart(DYNINST_thr_vtimers+pos, VIRTUAL_TIMER_CREATE) ;
   }
+  else
+    fprintf(stderr, "ILLEGAL POS %d\n", pos);
 }
 
 
 /* CALLED at thread context switches */
-void DYNINST_VirtualTimerStart() {
+void DYNINSTthreadStart() {
+  unsigned i;
   int pos = DYNINSTthreadPosFAST() ; /* in mini */
 #ifdef PROFILE_CONTEXT_SWITCH
-DYNINST_resume++ ;
+  DYNINST_resume++ ;
 #endif
   if (pos >= 0) {
-    int lwpid = lwp_self() ;
+    int lwpid = pthread_self() ;
+    fprintf(stderr, "Thread %d was scheduled on kernel thread %d\n", pthread_self(), thread_self());
 #ifdef PROFILE_CONTEXT_SWITCH
-DYNINST_VirtualTimer_on[pos]++ ;
+    DYNINST_VirtualTimer_on[pos]++ ;
 #endif
     /* Account for thread migration */
     VIRTUAL_TIMER_MARK_LWPID(DYNINST_thr_vtimers+pos, lwpid) ;
     VIRTUAL_TIMER_MARK_CREATION(DYNINST_thr_vtimers+pos);
+    /* Restart the virtual timer */
     _VirtualTimerStart(DYNINST_thr_vtimers+pos, VIRTUAL_TIMER_START) ;
+
+    /* Check to see if there are pending iRPCs to run */
+    for (i = 0; i < MAX_PENDING_RPC; i++)
+      if (RTsharedData->pendingIRPCs[pos][i].flag == 1) { /* Ha! We have an RPC! */
+	fprintf(stderr, "Found an inferior RPC for pos %d, slot %d\n", pos, i);
+	if (RTsharedData->pendingIRPCs[pos][i].rpc)
+	  (*RTsharedData->pendingIRPCs[pos][i].rpc)();
+	fprintf(stderr, "Finished inferior RPC\n");
+	RTsharedData->pendingIRPCs[pos][i].flag = 2;
+      }
   }
 }
 
 /* CALLED at thread context switches */
-void DYNINST_VirtualTimerStop() {
-  int pos = DYNINSTthreadPosFAST() ; /* in mini */
+void DYNINSTthreadStop() {
+  int pos; /* in mini */
+  pos = DYNINSTthreadPosFAST() ; /* in mini */
 #ifdef PROFILE_CONTEXT_SWITCH
 DYNINST_preempt++ ;
 #endif
@@ -874,27 +892,31 @@ DYNINST_preempt++ ;
 #ifdef PROFILE_CONTEXT_SWITCH
 DYNINST_VirtualTimer_off[pos]++ ;
 #endif
+    fprintf(stderr, "Thread %d was descheduled on kernel thread %d\n", pthread_self(), thread_self());
     _VirtualTimerStop(DYNINST_thr_vtimers+pos) ;
   }
+  /*  fprintf(stderr, "DYNINSTVirtualTimerStop_end\n"); */
 }
 
 
 /* getThreadCPUTime */
+/* We're basically "sampling" the per-lwp virtual timer. So
+   use the works: check p1 == p2, check rollbacks, the lot. */
 rawTime64 getThreadCPUTime(tTimer *vt, int *valid) {
   volatile int protector1, protector2;
-  rawTime64 total, start ;
-  int    count, vt_lwp_id;
+  volatile rawTime64 total, start ;
+  volatile int    count, vt_lwp_id;
   tTimer *vtimer ;
 
   if (!vt->vtimer)
     return 0 ;
 
-  protector1 = vt->protector1 ;
+  protector2 = vt->protector2 ;
   count = vt->counter;
   total = vt->total;
   vt_lwp_id = vt->lwp_id;
   start = vt->start ;
-  protector2 = vt->protector2 ;
+  protector1 = vt->protector1 ;
 
   if (protector1 != protector2) {
     *valid = 0 ; /* not a valid value */
@@ -904,118 +926,104 @@ rawTime64 getThreadCPUTime(tTimer *vt, int *valid) {
   *valid = 1 ;
   if (count > 0) {
     unsigned long long now;
-    int lwp_id = lwp_self() ;
-
+    int lwp_id = thread_self() ;
+    
     /* always read the timer of the lwp of the vtimer*/
     /* Since this could be called by inferior RPC */
-    if (lwp_id != vt_lwp_id){
-      now=DYNINSTgetCPUtime_LWP(vt_lwp_id);
-    } else{
-      now=DYNINSTgetCPUtime();
-    }
-
+    now=DYNINSTgetCPUtime_LWP(vt_lwp_id);
     if (now >= start) {
-       return total + (now-start) ;
-    } else  {/* timer goes back try again */
-      if (lwp_id != vt_lwp_id){
-        now=DYNINSTgetCPUtime_LWP(vt_lwp_id);
-      } else{
-        now=DYNINSTgetCPUtime();
-      }
-      if (now >= start) {
-        return total + (now-start) ;
-      } else {
-         fprintf(stderr, "Timer goes back in getThreadCPUTime, lwp_id=%d, lwp_self=%d ...\n",
-          vt_lwp_id, lwp_id) ;
-         return total ;
-      }
+      return total + (now-start) ;
+    } else  {
+      fprintf(stderr, "Timer goes back in getThreadCPUTime, lwp_id=%d, thread_self=%d ...\n",
+	      vt_lwp_id, lwp_id) ;
+      return total ;
     }
-  } else { /* count <= 0 */
+  } else {
     return total ;
   }
 }
 
- /*
- //THREAD TIMER   
- */ 
-/* use the flag in_inferiorRPC to mark that ThreadTimer routine is being called */
-DYNINSTstartThreadTimer(tTimer* timer) {/*called by a thread itself*/
+#define PRINTOUT_TIMER(t)   fprintf(stderr, "Timer (%x): total %lld, start %lld, counter %d, lwp %d, in_RPC %d, vtimer 0x%x, p1 %d, p2 %d\n", (unsigned) t, t->total, t->start, t->counter, t->lwp_id, t->in_inferiorRPC, (unsigned) t->vtimer, t->protector1, t->protector2);
+
+/*
+  //THREAD TIMER   
+*/
+DYNINSTstartThreadTimer(tTimer* timer) {
   rawTime64 start, old_start ;
   tTimer* vt ;
   int lwp_id ;
-  int valid, attempts=0 ;
+  int valid = 0;
 
-  if (!timer || timer->in_inferiorRPC) { return; }
+  fprintf(stderr, "Entry (start) ...\n");
+  PRINTOUT_TIMER(timer);
+
+  assert(timer);
   timer->in_inferiorRPC=1;
-
-  lwp_id = lwp_self();
-  /* assert(timer->protector1 == timer->protector2); */
+  
+  assert(timer->protector1 == timer->protector2);
   timer->protector1++;
 
   if (timer->counter == 0) {
     if (!(timer->vtimer)) {
-      int pos = (int) DYNINSTthreadPosFAST() ; /* in mini */
-      vt = (tTimer*) (timer->vtimer
-         = (struct tTimerRec *)DYNINST_thr_vtimers + pos);
+      int pos;
+      pos = (int) DYNINSTthreadPosFAST() ; /* in mini, so could use POS (maybe) */
+      timer->vtimer = (struct tTimerRec *)DYNINST_thr_vtimers + pos;
+      fprintf(stderr, "POS %d, using timer 0x%x\n", pos, timer->vtimer);
 
       /* start the per-thread virtual timer if needed */
-      if  (vt->vtimer == NULL) {
-         VIRTUAL_TIMER_MARK_CREATION(vt) ;
+      if  (timer->vtimer->vtimer == NULL) {
+	fprintf(stderr, "  VTIMER WAS NULL (%d)\n", timer->protector1);
+	VIRTUAL_TIMER_MARK_CREATION(vt) ;
       }
     }
-
-    vt = (tTimer*) timer->vtimer ;
-    /* a Hack */
-    if ( vt->counter == 0 ) {
+    /* a Hack, for times when we don't catch thread creation (?) */
+    if ( timer->vtimer->counter == 0 ) {
       VIRTUAL_TIMER_MARK_LWPID(vt, lwp_id) ;
       _VirtualTimerStart(vt, THREAD_TIMER_START);
     }
     /* end of a hack */
-
-    old_start = timer->start; /* set by DYNINSTstopThreadTimer */
-    start = timer->start = getThreadCPUTime(vt, &valid);
-    while ((!valid || start < old_start) && ++attempts < 5) {
-      start = timer->start = getThreadCPUTime(vt, &valid);
+    /* We sample the virtual timer, so we may need to retry */
+    while (!valid) {
+      start = getThreadCPUTime((tTimer *)timer->vtimer, &valid);
     }
-    if (start < old_start) {
-      timer->start = old_start ;
-    }
-    timer->counter++;
+    timer->start = start;
   }
+  timer->counter++;
   timer->protector2++;
-  /* assert(timer->protector1 == timer->protector2); */
-  timer->in_inferiorRPC=0;
+
+  fprintf(stderr, "Exit (start)...\n");
+  PRINTOUT_TIMER(timer);
+
+  assert(timer->protector1 == timer->protector2);
 }
 
 void
 DYNINSTstopThreadTimer(tTimer* timer) {/* called by a thread itself*/
-  int valid, attempts=0 ;
 
-  if (!timer || timer->in_inferiorRPC) { return; }
-  timer->in_inferiorRPC=1;
+  fprintf(stderr, "Entry (stop)...\n");
+  PRINTOUT_TIMER(timer);
 
-  while(timer->protector1 != timer->protector2);
+  assert(timer);
+
+  assert(timer->protector1 == timer->protector2);
   timer->protector1++;
 
   if (timer->counter == 1) {
-    tTimer *vt = (tTimer*) timer->vtimer ;
-    rawTime64 now = getThreadCPUTime(vt, &valid);
-
-    if (!valid) {
-      fprintf(stderr, "WARNING: DYNINSTstopThreadTimer,timer0x%x invalid value!\n", timer);
-    } else if (now < timer->start) {
-      fprintf(stderr, "WARNING: DYNINSTstopThreadTimer,timer0x%x rollback, now=%lld, start=%lld\n",
-              timer, now, timer->start) ;
+    int valid = 0;
+    rawTime64 now;
+    while (!valid) 
+      now = getThreadCPUTime((tTimer *)timer->vtimer, &valid);
+    if (now < timer->start) {
+      assert(0 && "Rollback in DYNINSTstopThreadTimer");
     }
-    if (now >= timer->start) {
-      timer->total += (now - timer->start);
-    }
-    timer->start = now; /* just to make sure that, startThreadTimer does not roll back */
-    timer->counter--;
+    timer->total += (now - timer->start);
   }
+  timer->counter--;
   timer->protector2++;
-  /* ALERT! assert(timer->protector1 == timer->protector2); */
-  timer->in_inferiorRPC=0;
+
+  fprintf(stderr, "Exit (stop)...\n");
+  PRINTOUT_TIMER(timer);
+  assert(timer->protector1 == timer->protector2);
 }
 
 /* called before the timer is reused by another Thread */
@@ -1037,6 +1045,13 @@ void DYNINSTdestroyThreadTimer(tTimer* timer) {
 void DYNINSTstartThreadTimer_inferiorRPC(tTimer* timer, int tid, unsigned pos) {
   tTimer *vt ;
   int valid;
+
+  fprintf(stderr, "DYNINSTstartThreadTimer_infRPC (%d, %d, %x, %d, %d, %x)\n", 
+	  (unsigned) tid, (unsigned) pos,
+	  (unsigned) timer, 
+	  (int) timer->in_inferiorRPC,
+	  (unsigned) timer->counter,
+	  (unsigned) timer->vtimer);
 
   if (!timer || timer->in_inferiorRPC)
     return;
@@ -1130,7 +1145,7 @@ int lookup_syncobject(SyncObj* Res[], tc_lock_t L[], int max, unsigned res) {
 SyncObj*    DYNINSTcvRes[MAX_CV_RES] ;
 tc_lock_t DYNINSTcvResLock[MAX_CV_RES] ;
 
-void DYNINSTreportNewCondVar(cond_t* cvp){
+void DYNINSTreportNewCondVar(dyninst_cond_t* cvp){
 
   if (lookup_syncobject(DYNINSTcvRes, DYNINSTcvResLock, MAX_CV_RES, (unsigned) cvp)){
     struct _newresource newRes ;
@@ -1151,7 +1166,7 @@ void DYNINSTreportNewCondVar(cond_t* cvp){
 SyncObj*    DYNINSTmutexRes[MAX_MUTEX_RES] ;
 tc_lock_t DYNINSTmutexResLock[MAX_MUTEX_RES] ;
 
-void DYNINSTreportNewMutex(mutex_t* m){
+void DYNINSTreportNewMutex(dyninst_mutex_t* m){
 
   if (lookup_syncobject(DYNINSTmutexRes, DYNINSTmutexResLock,
       MAX_MUTEX_RES, (unsigned )m)){
@@ -1169,11 +1184,12 @@ void DYNINSTreportNewMutex(mutex_t* m){
 /*-----------------*
  *  rw_lock        *
  *-----------------*/
+
 #define MAX_RWLOCK_RES 20
 SyncObj*    DYNINSTrwlockRes[MAX_RWLOCK_RES] ;
 tc_lock_t DYNINSTrwlockResLock[MAX_RWLOCK_RES] ;
 
-void DYNINSTreportNewRwLock(rwlock_t* p){
+void DYNINSTreportNewRwLock(dyninst_rwlock_t* p){
 
   if (lookup_syncobject(DYNINSTrwlockRes, DYNINSTrwlockResLock, MAX_RWLOCK_RES, (unsigned)p)){
     struct _newresource newRes ;
@@ -1187,7 +1203,6 @@ void DYNINSTreportNewRwLock(rwlock_t* p){
   }
 }
 
-
 /*-----------------*
  *  Semaphore      *
  *-----------------*/
@@ -1195,7 +1210,8 @@ void DYNINSTreportNewRwLock(rwlock_t* p){
 SyncObj*    DYNINSTsemaRes[MAX_SEMA_RES] ;
 tc_lock_t DYNINSTsemaResLock[MAX_SEMA_RES] ;
 
-void DYNINSTreportNewSema(sema_t* p){
+#if !defined(rs6000_ibm_aix4_1)
+void DYNINSTreportNewSema(dyninst_sema_t* p){
 
   if (lookup_syncobject(DYNINSTsemaRes, DYNINSTsemaResLock, MAX_SEMA_RES, (unsigned)p)){
     struct _newresource newRes ;
@@ -1208,6 +1224,7 @@ void DYNINSTreportNewSema(sema_t* p){
                         0,0);
   }
 }
+#endif
 
 void DYNINST_initialize_SyncObj(void) {
   initialize_SyncObj_of_1_kind(DYNINSTcvRes, DYNINSTcvResLock, MAX_CV_RES);
@@ -1217,36 +1234,35 @@ void DYNINST_initialize_SyncObj(void) {
 }
 
 void* DYNINST_RPC_Thread(void * garbage) {
-  fprintf(stderr, "Entering DYNINST_RPC_Thread...\n");
 
   while(1) {
-    mutex_lock(rpc_mutex_ptr);
+    pthread_mutex_lock(rpc_mutex_ptr);
     while (!(*rpc_pending_ptr)) { 
       /* fprintf(stderr, "RPC Thread is Waiting ...\n"); */
-      cond_wait(rpc_cv_ptr, rpc_mutex_ptr);  
+      pthread_cond_wait(rpc_cv_ptr, rpc_mutex_ptr);  
     }
     /* fprintf(stderr, "RPC Thread, Signaled....\n"); */
     DYNINSTthreadCheckRPC2();
     /* fprintf(stderr, "RPC Thread, RPC performed....\n"); */
     *rpc_pending_ptr = 0 ;
-    mutex_unlock(rpc_mutex_ptr);
+    pthread_mutex_unlock(rpc_mutex_ptr);
   }
 }
 
 #ifdef USE_RPC_TO_TRIGGER_RPC
 void* DYNINSTsignalRPCthread(void) {
   int ret;
-  mutex_lock(rpc_mutex_ptr);
+  pthread_mutex_lock(rpc_mutex_ptr);
   (*rpc_pending_ptr) = 1;
-  ret = cond_signal(rpc_cv_ptr);
-  mutex_unlock(rpc_mutex_ptr);
+  ret = pthread_cond_signal(rpc_cv_ptr);
+  pthread_mutex_unlock(rpc_mutex_ptr);
   return (void*) ret;
 }
 #endif
 
 void DYNINSTlaunchRPCthread(void) {
-  mutex_init(rpc_mutex_ptr, USYNC_PROCESS, NULL);
-  cond_init(rpc_cv_ptr, USYNC_PROCESS, NULL);
+  pthread_mutex_init(rpc_mutex_ptr, NULL);
+  pthread_cond_init(rpc_cv_ptr, NULL);
   /* thr_create(NULL, 0, DYNINST_RPC_Thread, NULL, THR_NEW_LWP|THR_BOUND, &DYNINSTthreadRPC_threadId) ; */
 }
 
