@@ -79,7 +79,7 @@ class BPATCH_DLL_EXPORT BPatch_instruction {
   BPatch_instruction(const void *_buffer,
 		     unsigned char _length);
 
-  ~BPatch_instruction() { if (buffer != NULL) delete[] buffer; }
+  virtual ~BPatch_instruction() { if (buffer != NULL) delete[] buffer; }
 
   void getInstruction(unsigned char *&_buffer, unsigned char &_length) {
     _buffer = buffer;
