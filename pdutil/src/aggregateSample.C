@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aggregateSample.C,v 1.21 2000/10/26 17:02:36 schendel Exp $
+// $Id: aggregateSample.C,v 1.22 2000/12/12 21:04:24 schendel Exp $
 
 #include <assert.h>
 #include <math.h>
@@ -101,8 +101,11 @@ void sampleInfo::newValue(timeStamp sampleTime,
     weight = weight_;
 }
 
+char *valueUpdateStyleStr[2] = { "add", "assign" };
 ostream& operator<<(ostream&s, const sampleInfo &info) {
-  s << "[sampleInfo - firstSampleReceived: " << info.firstSampleReceived
+  s << "[sampleInfo - updateStyle: " 
+    << valueUpdateStyleStr[info.valueUpdateStyle] 
+    << ", firstSampleReceived: " << info.firstSampleReceived
     << ", lastSampleStart: " << info.lastSampleStart << ", lastSampleEnd: "
     << info.lastSampleEnd << ", lastSample: " << info.lastSample
     << ", numAgg: " << info.numAggregators << ", wt: " << info.weight << "\n";
@@ -313,7 +316,8 @@ ostream& operator<<(ostream&s, const aggregateSample &ag) {
   const char *aggStr[] = { "aggSum", "aggMin", "aggMax", "aggAvg" };
 
   s << "------------------------------------------------------\n";
-  s << "[aggregateSample - aggOp: " << aggStr[ag.aggOp] << ", lastSampleStart: "
+  s << "[aggregateSample - aggOp: " << aggStr[ag.aggOp]
+    << " doProportionCalc: " << ag.doProportionCalc << ", lastSampleStart: "
     << ag.lastSampleStart << ", lastSampleEnd: " << ag.lastSampleEnd << "\n";
   s << "++ vector<sampleInfo *> parts: ";
 
