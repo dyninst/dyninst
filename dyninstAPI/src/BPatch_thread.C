@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.31 2000/03/12 23:27:14 hollings Exp $
+// $Id: BPatch_thread.C,v 1.32 2000/03/14 22:31:31 tikir Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -51,6 +51,7 @@
 
 #include "BPatch.h"
 #include "BPatch_thread.h"
+#include "LineInformation.h"
 
 
 /*
@@ -1089,6 +1090,56 @@ bool BPatch_thread::loadLibrary(char *libname)
 #endif
 }
 
+/** method that retrieves the line number and file name for a given
+  * address. In failure it returns false. user is responsible to
+  * to supply the buffer to write the file name and has to give the
+  * size of the buffer available. The name of the file will be null
+  * terminated by the program.
+  */
+bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
+		    		   char* fileName,int size)
+{
+#ifdef DEBUG_LINE
+	bool avail = false;
+#endif
+	if(!fileName || (size <= 0)){
+#ifdef DEBUG_LINE
+		cerr << "BPatch_thread::getLineAndFile : ";
+		cerr << "Invalid argument\n";
+#endif
+		return false;
+	}
+	size--;
+	LineInformation* lineInformation = NULL;
+	BPatch_Vector<BPatch_module*>* appModules = image->getModules();
+	for(int i=0;i<appModules->size();i++){
+		lineInformation = (*appModules)[i]->lineInformation;
+		if(!lineInformation)
+			continue;
+#ifdef DEBUG_LINE
+		avail = true;
+#endif
+		for(int j=0;j<lineInformation->sourceFileCount;j++){
+			string* fileN = lineInformation->sourceFileList[j];
+			FileLineInformation* fInfo = 
+				lineInformation->lineInformationList[j];
+			if(fInfo->getLineFromAddr(*fileN,lineNo,addr,true,false)){
+				if(fileN->length() < size)
+					size = fileN->length();
+				strncpy(fileName,fileN->string_of(),size);
+				fileName[size] = '\0';
+				return true;
+			}	
+		}
+	}
+#ifdef DEBUG_LINE
+	if(!avail){
+		cerr << "BPatch_thread::getLineAndFile : ";
+		cerr << "Line information is not available\n";
+	}
+#endif
+	return false;
+}
 
 /***************************************************************************
  * BPatch_snippetHandle

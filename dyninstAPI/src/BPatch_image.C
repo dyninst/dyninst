@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.17 2000/03/12 23:27:14 hollings Exp $
+// $Id: BPatch_image.C,v 1.18 2000/03/14 22:31:29 tikir Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -53,6 +53,7 @@
 #include "BPatch_image.h"
 #include "BPatch_type.h"
 #include "BPatch_collections.h"
+#include "LineInformation.h"
 
 //
 // We made this a seperate class to allow us to only expose a pointer to
@@ -562,4 +563,61 @@ bool BPatch_image::ModuleListExist(){
   else
     return false;
 }
-  
+
+/** method that retrieves the addresses corresponding to a line number
+  * in a file.It returns true in success. If the file is not in the image
+  * or line number is not found it retuns false. In case of exact match is not
+  * asked then the next line number which is greater or equal to the given one
+  * is used
+  */
+//method to get the addresses corresponding to a line number given
+//in case of success it returns true and inserts the addresses in to
+//the vector given. If the file name is not found or the line information
+//is not valid or if the exact match is not found it retuns false.
+//If exact match is not asked then the line number is taken to be the
+//first one greater or equal to the given one.
+bool BPatch_image::getLineToAddr(const char* fileName,unsigned short lineNo,
+				 BPatch_Vector<unsigned long>& buffer,
+				 bool exactMatch)
+{
+	string fName(fileName);
+
+	//first get all modules
+	BPatch_Vector<BPatch_module*>* appModules =  getModules();
+
+	LineInformation* lineInformation;
+	FileLineInformation* fLineInformation = NULL;
+		
+	//in each module try to find the file
+	for(int i=0;i<appModules->size();i++){
+		lineInformation = (*appModules)[i]->lineInformation;
+		if(!lineInformation)
+			continue;
+		fLineInformation = lineInformation->getFileLineInformation(fName);		
+		if(fLineInformation)
+			break;
+	}
+	
+	//if there is no entry for the file is being found then give warning and return
+	if(!fLineInformation){
+#ifdef DEBUG_LINE
+		cerr << "BPatch_image::getLineToAddr : ";
+		cerr << fileName << "/line information  is not found/available in the image\n";
+#endif
+		return false;
+	}
+
+	//get the addresses for the line number
+	BPatch_Set<Address> addresses;
+	if(!fLineInformation->getAddrFromLine(fName,addresses,lineNo,true,exactMatch))
+		return false;
+
+	//then insert the elements to the vector given
+	Address* elements = new Address[addresses.size()];
+	addresses.elements(elements);
+	for(int i=0;i<addresses.size();i++)
+		buffer.push_back(elements[i]);
+	delete[] elements;
+
+	return true;
+}

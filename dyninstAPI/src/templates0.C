@@ -70,6 +70,9 @@
 #pragma implementation "Symbol.h"
 #include "util/h/Symbol.h"
 
+#pragma implementation "BPatch_Set.h"
+#include "BPatch_Set.h"
+
 #include "util/h/String.h"
 
 #include "dyninstAPI/src/symtab.h"
@@ -128,3 +131,8 @@ template class vector<FERNode>;
 template class vector<FERNode*>;
 template class vector<LocalAlteration*>;
 #endif
+
+template struct comparison<unsigned short>;
+template class BPatch_Set<unsigned short>;
+template struct comparison<Address>;
+template class BPatch_Set<Address>;

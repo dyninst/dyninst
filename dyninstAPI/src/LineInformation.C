@@ -1,0 +1,533 @@
+#include <stdlib.h>
+
+#include "dyninstAPI/src/LineInformation.h"
+#include "dyninstAPI/src/util.h"
+
+typedef FileLineInformation::tuple tuple;
+
+//this function implements binary search and returns the found element.
+//besides the found element it returns the next bigger line numbered one
+//The found element is the first same values element in the array in existence
+//of many same values elements.
+//in case it is not found it will RETURN NULL. if the next element
+//is not available it will assign NULL to the reference.
+//the next contains the entry with the first greater line number
+tuple* binarySearchLineFirst(tuple element,tuple* array,int howMany,tuple*& next)
+{
+	int low = 0;
+	int high = howMany-1;
+	int mid;
+	tuple* ret=NULL;
+	do{
+		mid = (low+high)/2;
+		if(element.lineNo < array[mid].lineNo) 
+			high = mid - 1;
+		else if(element.lineNo > array[mid].lineNo)
+			low = mid + 1;
+		else
+			break;
+	}while(low <= high);
+
+	//if found then porepare to return and the next available
+	if(element.lineNo == array[mid].lineNo){
+		int index = mid;
+		for(;(index >= 0)&&(array[index].lineNo == element.lineNo);index--);
+		ret = array+(index+1);
+		index = mid;
+		for(;(index < howMany)&&(array[index].lineNo == element.lineNo);index++);
+		if(index == howMany)
+			next = NULL;
+		else
+			next = array+index;
+	}
+	else if(low == howMany)
+		next = NULL;
+	else
+		next = array+low;
+
+	return ret;
+}
+//this function implements binary search and returns the found element.
+//besides the found element it returns the previous smaller address entry
+//The found element is the first same values element in the array in existence
+//of many same values elements.
+//in case it is not found it will RETURN NULL. if the next element
+//is not available it will assign NULL to the reference.
+//the next contains the entry with the previous smaller address
+tuple* binarySearchAddrFirst(tuple element,tuple* array,int howMany,tuple*& next)
+{
+	int low = 0;
+	int high = howMany-1;
+	int mid;
+	tuple* ret=NULL;
+	do{
+		mid = (low+high)/2;
+		if(element.codeAddress < array[mid].codeAddress) 
+			high = mid - 1;
+		else if(element.codeAddress > array[mid].codeAddress)
+			low = mid + 1;
+		else
+			break;
+	}while(low <= high);
+
+	////if found then porepare to return and the next available
+	if(element.codeAddress == array[mid].codeAddress){
+		int index = mid;
+		for(;(index>=0)&&(array[index].codeAddress == element.codeAddress);index--);
+		ret = array+(index+1);
+		if(index == -1)
+			next = NULL;
+		else{
+			Address addr = array[index].codeAddress;
+			for(;(index>=0) && (array[index].codeAddress == addr);index--);
+			next = array+(index+1);
+		}
+	}
+	else if(high == -1)
+		next = NULL;
+	else{
+		Address addr = array[high].codeAddress;
+		for(;(high >=0) && (array[high].codeAddress == addr);high--);
+		next = array+(high+1);
+	}
+	return ret;
+}
+
+//constructor
+FileLineInformation::FileLineInformation(string fileName)
+	: sourceFileName(fileName),
+	  size(0),
+	  lineToAddr(NULL),
+	  addrToLine(NULL),
+	  functionCount(0),
+	  functionNameList(NULL),
+	  lineInformationList(NULL) {}
+
+//destructor
+FileLineInformation::~FileLineInformation(){
+	delete[] lineToAddr;
+	delete[] addrToLine;
+	for(int i=0;i<functionCount;i++){
+		delete lineInformationList[i];
+		delete functionNameList[i];
+	}
+	delete[] functionNameList;
+	delete[] lineInformationList;
+}
+
+//returns the function info structure
+FileLineInformation::FunctionInfo* 
+FileLineInformation::findFunctionInfo(string functionName){
+	for(int i=0;i<functionCount;i++)
+		if(functionName == *functionNameList[i])
+			return lineInformationList[i];
+	return NULL;
+}
+
+//inserts function wntry to the mapping from function name to its info
+void FileLineInformation::insertFunction(string functionName){
+	FunctionInfo* fInfo = findFunctionInfo(functionName);
+	if(!fInfo){
+		functionNameList = (string**)(functionCount ? 
+			realloc(functionNameList,(functionCount+1)*sizeof(string*)) : 
+			new string*[1]);
+		lineInformationList = (FunctionInfo**)(functionCount ? 
+			realloc(lineInformationList,(functionCount+1)*sizeof(FunctionInfo*)) : 
+			new FunctionInfo*[1]);
+		functionNameList[functionCount] = new string(functionName);
+		lineInformationList[functionCount] = new FunctionInfo;
+		functionCount++;
+	}	
+}
+
+//returns true if the function has an entry in the mapping
+bool FileLineInformation::findFunction(string functionName){
+	FunctionInfo* fInfo = findFunctionInfo(functionName);
+	if(!fInfo) return false;
+	return true;
+}
+
+
+//insert a mapping from line number to address and address to line number
+//to the corresponding structures and updates the records for the function
+//given
+void FileLineInformation::insertLineAddress(string functionName,
+					    unsigned short lineNo,
+					    Address codeAddress)
+{
+
+	FunctionInfo* fInfo = findFunctionInfo(functionName);
+	if(!fInfo){
+		cerr << "FATAL ERROR : Something wrong \n";
+		return;
+	}
+
+	lineToAddr = !lineToAddr ? ((tuple*)malloc(sizeof(tuple))) :
+		     ((tuple*)realloc(lineToAddr,sizeof(tuple)*(size+1)));
+	addrToLine = !addrToLine ? ((tuple*)malloc(sizeof(tuple))) :
+		     ((tuple*)realloc(addrToLine,sizeof(tuple)*(size+1)));
+
+	//since the entries will come in oreder insertion sort is the best sort here
+	//to keep the list sorted and using binary search to find the entries.
+	//insertion sort comes here
+
+	short index1; 
+	for(index1=size-1;index1>=0;index1--)
+		if(lineToAddr[index1].lineNo > lineNo)
+			lineToAddr[index1+1] = lineToAddr[index1];
+		else break;
+	index1++;
+	lineToAddr[index1] = tuple(lineNo,codeAddress);
+
+	short index2; 
+	//insertion sort for code address
+
+	for(index2=size-1;index2>=0;index2--)
+		if(addrToLine[index2].codeAddress > codeAddress)
+			addrToLine[index2+1] = addrToLine[index2];
+		else break;
+	index2++;
+	addrToLine[index2] = tuple(lineNo,codeAddress);
+
+	size++;
+
+	if(!fInfo->validInfo){
+		fInfo->startLinePtr = (unsigned)index1;
+		fInfo->endLinePtr = (unsigned)index1;
+		fInfo->startAddrPtr = (unsigned)index2;
+		fInfo->endAddrPtr = (unsigned)index2;
+		fInfo->validInfo = true;
+		return;
+	}
+
+	if(lineToAddr[fInfo->startLinePtr].lineNo > lineNo)
+		fInfo->startLinePtr = (unsigned)index1;
+	if(lineToAddr[fInfo->endLinePtr].lineNo <= lineNo)
+		fInfo->endLinePtr = (unsigned)index1;
+
+	if(addrToLine[fInfo->startAddrPtr].codeAddress > codeAddress)
+		fInfo->startAddrPtr = (unsigned)index2;
+	if(addrToLine[fInfo->endAddrPtr].codeAddress <= codeAddress)
+		fInfo->endAddrPtr = (unsigned)index2;
+
+}
+ 
+//returns true in case of success, false otherwise.
+//this method finds the line number corresponding to an address.
+//if name of the function is supplied and isFile is false
+//then function level search is being applied. Otherwise file level
+//search is applied. If there are more than 1 line found than
+//the maximum is being returned.
+bool FileLineInformation::getLineFromAddr(string name,unsigned short& lineNo,
+					  Address codeAddress,bool isFile,
+					  bool isExactMatch)
+{
+	BPatch_Set<unsigned short> lines;
+	if(!getLineFromAddr(name,lines,codeAddress,isFile,isExactMatch))
+		return false;
+	lineNo = lines.maximum();
+	return true;
+}
+//returns true in case of success, false otherwise.
+//this method finds the line numbers corresponding to an address.
+//if name of the function is supplied and isFile is false
+//then function level search is being applied. Otherwise file level
+//search is applied. All the line numbers corresponding to the address
+//is returned in a set of addresses.
+bool FileLineInformation::getLineFromAddr(string name,
+				 	  BPatch_Set<unsigned short>& lines,
+					  Address codeAddress,bool isFile,
+					  bool isExactMatch)
+{
+	tuple* beginPtr;
+	tuple* endPtr;
+	int howMany;
+
+	if(!addrToLine)
+		return false;
+	if(isFile){
+		beginPtr = addrToLine;
+		endPtr = (tuple*) (addrToLine+(size-1));
+		howMany = size;
+	}
+	else{
+		FunctionInfo* fInfo = findFunctionInfo(name);
+        	if(!fInfo)
+			return false;
+		if(!fInfo->validInfo)
+			return false;
+		beginPtr = addrToLine+fInfo->startAddrPtr;
+		endPtr = addrToLine+fInfo->endAddrPtr;
+		howMany = fInfo->endAddrPtr-fInfo->startAddrPtr+1;
+	}
+
+	if((codeAddress < beginPtr->codeAddress) || (endPtr->codeAddress < codeAddress))
+		return false;
+
+	tuple toSearch(0,codeAddress);
+	tuple* next=NULL;
+	tuple* ret = binarySearchAddrFirst(toSearch,beginPtr,howMany,next);
+	if(!ret){
+		if(isExactMatch)
+			return false;
+		if(!next)
+			return false;
+		ret = next;
+		codeAddress = ret->codeAddress;
+	}
+	do{
+		lines += ret->lineNo;
+		ret++;
+	}while((ret <= endPtr) && (ret->codeAddress == codeAddress));
+
+	return true;
+}
+
+//method that retuns set of addresses corresponding to a given line number
+//the level of the search is file level if isFile flag is set.
+//If isFile level is not set, it seraches in the given function
+//in case of success it returns true otherwise false
+bool FileLineInformation::getAddrFromLine(string name,
+					  BPatch_Set<Address>& codeAddress,
+					  unsigned short lineNo,bool isFile,
+					  bool isExactMatch)
+{
+	tuple* beginPtr;
+	tuple* endPtr;
+	int howMany;
+
+	if(!lineToAddr)
+		return false;
+	if(isFile){
+		beginPtr = lineToAddr;
+		endPtr = (tuple*) (lineToAddr+(size-1));
+		howMany = size;
+	}
+	else{
+		FunctionInfo* fInfo = findFunctionInfo(name);
+        	if(!fInfo)
+			return false;
+		if(!fInfo->validInfo)
+			return false;
+		beginPtr = lineToAddr+fInfo->startLinePtr;
+		endPtr = lineToAddr+fInfo->endLinePtr;
+		howMany = fInfo->endLinePtr-fInfo->startLinePtr+1;
+	}
+	if(!isFile && 
+	   (lineNo < beginPtr->lineNo) || (endPtr->lineNo < lineNo))
+		return false;
+
+	tuple toSearch(lineNo,0);
+	tuple* next=NULL;
+	tuple* ret = binarySearchLineFirst(toSearch,beginPtr,howMany,next);
+	if(!ret){
+		if(isExactMatch)
+			return false;
+		if(!next)
+			return false;
+		ret = next;
+		lineNo = ret->lineNo;
+	}
+	do{
+		codeAddress += ret->codeAddress;
+		ret++;
+	}while((ret <= endPtr) && (ret->lineNo == lineNo));
+
+	return true;
+}
+
+//temporary function to print info about line information
+void FileLineInformation::print(){
+	cerr << "LINE TO ADDRESS :\n";
+	for(int i=0;i<size;i++)
+		cerr << dec << lineToAddr[i].lineNo << " ----> " << hex << lineToAddr[i].codeAddress << "\n";
+	for(int i=0;i<functionCount;i++){
+		FunctionInfo* funcinfo = lineInformationList[i];
+		cerr << "FUNCTION LINE : " << *functionNameList[i] << " : " ;
+		if(!funcinfo->validInfo)
+			continue;
+		cerr << dec << lineToAddr[funcinfo->startLinePtr].lineNo ;
+		cerr << " --- " << dec << lineToAddr[funcinfo->endLinePtr].lineNo << "\n";
+	}
+	
+}
+
+//constructor whose argument is the name of the module name
+LineInformation::LineInformation(string mName) 
+		: moduleName(mName),
+		  sourceFileCount(0),
+		  sourceFileList(NULL),
+		  lineInformationList(NULL) {}
+
+
+//desctructor
+LineInformation::~LineInformation() {
+	for(int i=0;i<sourceFileCount;i++){
+		delete sourceFileList[i];
+		delete lineInformationList[i];
+	}
+	delete[] sourceFileList;
+	delete[] lineInformationList;
+}
+
+//method to insert entries for the given file name and function name
+//it creates the necessary structures and inserts into the maps
+void LineInformation::insertSourceFileName(string functionName,string fileName)
+{
+	FileLineInformation* fInfo = getFileLineInformation(fileName);
+	if(!fInfo){
+		fInfo = new FileLineInformation(fileName);
+		sourceFileList = (string**)(sourceFileCount ? 
+			realloc(sourceFileList,(sourceFileCount+1)*sizeof(string*)) : 
+			new string*[1]);
+		lineInformationList = (FileLineInformation**)(sourceFileCount ? 
+			realloc(lineInformationList,(sourceFileCount+1)*sizeof(FileLineInformation*)) : 
+			new FileLineInformation*[1]);
+		sourceFileList[sourceFileCount] = new string(fileName);
+		lineInformationList[sourceFileCount] = fInfo;
+		sourceFileCount++;
+	}
+	fInfo->insertFunction(functionName);
+}
+
+//inserts line to address and address to line mapping to the line info
+//object of the given filename. The records for function is also updated
+void LineInformation::insertLineAddress(string functionName,
+					string fileName,
+				        unsigned short lineNo,
+			                Address codeAddress)
+{
+	FileLineInformation* fInfo = getFileLineInformation(fileName);
+	if(!fInfo) return;
+	fInfo->insertLineAddress(functionName,lineNo,codeAddress);
+}
+
+//returns line number corresponding to the the given address
+//if isFile is set the search is file level otherwsie function level.
+bool LineInformation::getLineFromAddr(string name,
+			    	      unsigned short& lineNo,
+				      Address codeAddress,
+				      bool isFile,
+				      bool isExactMatch)
+{
+	FileLineInformation* fInfo = NULL;
+	if(isFile) 
+		fInfo = getFileLineInformation(name);
+	else
+		fInfo = getFunctionLineInformation(name);
+		
+	if(!fInfo) return false;
+	
+	return fInfo->getLineFromAddr(name,lineNo,codeAddress,isFile,isExactMatch);
+}
+
+//returns line number corresponding to the the given address
+//if isFile is set the search is file level otherwsie function level.
+bool LineInformation::getLineFromAddr(string name,
+			    	      BPatch_Set<unsigned short>& lines,
+				      Address codeAddress,
+				      bool isFile,
+				      bool isExactMatch)
+{
+	FileLineInformation* fInfo = NULL;
+	if(isFile) 
+		fInfo = getFileLineInformation(name);
+	else
+		fInfo = getFunctionLineInformation(name);
+		
+	if(!fInfo) return false;
+	
+	return fInfo->getLineFromAddr(name,lines,codeAddress,isFile,isExactMatch);
+}
+
+//returns address corresponding to the the given line 
+//if isFile is set the search is file level otherwsie function level.
+bool LineInformation::getAddrFromLine(string name,
+			    	      BPatch_Set<Address>& codeAddress,
+				      unsigned short lineNo,
+				      bool isFile,
+				      bool isExactMatch)
+{
+	FileLineInformation* fInfo = NULL;
+	if(isFile) 
+		fInfo = getFileLineInformation(name);
+	else
+		fInfo = getFunctionLineInformation(name);
+		
+	if(!fInfo) return false;
+
+	return fInfo->getAddrFromLine(name,codeAddress,lineNo,isFile,isExactMatch);
+}
+
+bool LineInformation::getAddrFromLine(BPatch_Set<Address>& codeAddress,
+				      unsigned short lineNo,
+				      bool isExactMatch)
+{
+	FileLineInformation* fInfo = getFileLineInformation(moduleName);
+	if(!fInfo){ 
+#ifdef DEBUG_LINE
+                cerr << "Module " << moduleName << " is not source file name\n";
+#endif
+		return false;
+	}
+	return fInfo->getAddrFromLine(moduleName,codeAddress,
+				      lineNo,true,isExactMatch);
+}
+
+//returns the line information for the given filename
+FileLineInformation* LineInformation::getFileLineInformation(string fileName){
+	for(int i=0;i<sourceFileCount;i++)
+		if(fileName == *sourceFileList[i])
+			return lineInformationList[i];
+	for(int i=0;i<sourceFileCount;i++){
+		char* name = new char[sourceFileList[i]->length()+1];
+		strncpy(name,sourceFileList[i]->string_of(),
+			sourceFileList[i]->length());
+		name[sourceFileList[i]->length()] = '\0';
+		char* p = strrchr(name,'/');
+		if(!p) {
+			delete[] name;
+			continue;
+		}
+		p++;
+		string sname(p);
+		if(fileName == sname){
+			delete[] name;
+			return lineInformationList[i];
+		}
+		delete[] name;
+	}
+		
+	return NULL;
+} 
+
+//method retuns the file line information object which the function belongs to.
+//if there is no entry than it retuns NULL
+FileLineInformation* 
+LineInformation::getFunctionLineInformation(string functionName){
+	for(int i=0;i<sourceFileCount;i++)
+		if(lineInformationList[i]->findFunction(functionName))
+			return lineInformationList[i];
+	return NULL;
+} 
+
+//method that returns true if function belongs to this object
+//false otherwise
+bool LineInformation::findFunction(string functionName){
+	bool ret = false;
+	for(int i=0;!ret && (i<sourceFileCount);i++)
+		ret = lineInformationList[i]->findFunction(functionName);
+	return ret;
+}
+
+//print the line information kept in the map
+void LineInformation::print(){
+	cerr << "**********************************************\n";
+	cerr << "MODULE : " << moduleName << "\n";  
+	cerr << "**********************************************\n";
+	for(int i=0;i<sourceFileCount;i++){
+		cerr << "FILE : " << *sourceFileList[i] << "\n";
+		lineInformationList[i]->print();
+	}
+}
+

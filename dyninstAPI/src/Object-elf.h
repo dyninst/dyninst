@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.38 2000/02/15 23:53:10 hollings Exp $
+ * $Id: Object-elf.h,v 1.39 2000/03/14 22:31:35 tikir Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -105,6 +105,10 @@ struct stab_entry { // an entry in the stab section
 #define N_SO_CC      4 /* C++ source */
 #define N_SO_FORTRAN 5 /* fortran source */
 #define N_SO_PASCAL  6 /* Pascal source */
+
+//line information data
+#define N_SLINE  0x44 /* line number in text segment */
+#define N_SOL    0x84 /* name of the include file*/
 
 // Symbol descriptors
 // The format of a name is "<name>:<symbol descriptor><rest of name>

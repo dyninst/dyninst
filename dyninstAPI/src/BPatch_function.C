@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.2 2000/03/12 23:27:14 hollings Exp $
+// $Id: BPatch_function.C,v 1.3 2000/03/14 22:31:25 tikir Exp $
 
 #include <string.h>
 #include "symtab.h"
@@ -50,6 +50,7 @@
 #include "BPatch_type.h"
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
+#include "LineInformation.h"
 
 /* XXX Should be in a dyninst API include file (right now in perfStream.h) */
 extern double cyclesPerSecond;
@@ -302,4 +303,52 @@ BPatch_localVar * BPatch_function::findLocalParam(const char * name)
   BPatch_localVar * var = funcParameters->findLocalVar(name);
   return (var);
 
+}
+
+/** method to retrieve addresses for a given line in the function
+  * if the line number is not valid, or if the line info is not available
+  * or if the module does not contain entry for the function then it returns
+  * false. If exact match is not set then the line which is the next
+  * greater or equal will be used.
+  */
+bool BPatch_function::getLineToAddr(unsigned short lineNo,
+                   BPatch_Vector<unsigned long>& buffer,
+                   bool exactMatch)
+{
+
+	//get the line info object and check whether it is available
+	LineInformation* lineInformation = mod->lineInformation;
+	if(!lineInformation){
+#ifdef DEBUG_LINE
+		cerr << "BPatch_function::getLineToAddr : ";
+		cerr << "Line information is not available\n";
+#endif
+		return false;
+	}
+
+	//get the object which contains the function being asked
+	FileLineInformation* fLineInformation = 
+			lineInformation->getFunctionLineInformation(func->prettyName());
+	if(!fLineInformation){
+#ifdef DEBUG_LINE
+		cerr << "BPatch_function::getLineToAddr : ";
+		cerr << func->prettyName() << " is not found in its module\n";
+#endif
+		return false;
+	}
+
+	//retrieve the addresses
+	BPatch_Set<Address> addresses;
+	if(!fLineInformation->getAddrFromLine(func->prettyName(),addresses,
+					      lineNo,false,exactMatch))
+		return false;
+
+	//then insert the elements to the vector given
+	Address* elements = new Address[addresses.size()];
+	addresses.elements(elements);
+	for(int i=0;i<addresses.size();i++)
+		buffer.push_back(elements[i]);
+	delete[] elements;
+	
+	return true;
 }

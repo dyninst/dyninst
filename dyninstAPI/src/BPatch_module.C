@@ -52,6 +52,7 @@
 #include "util/h/String.h"
 #include "BPatch_type.h"    // For BPatch_type related stuff
 #include "BPatch_Vector.h"
+#include "LineInformation.h"
 
 char * current_func_name = NULL;
 
@@ -90,7 +91,7 @@ char *BPatch_module::getName(char *buffer, int length)
 
 
 BPatch_module::BPatch_module(process *_proc, pdmodule *_mod,BPatch_image *_img):
-    proc(_proc), mod(_mod), img(_img), BPfuncs(NULL) 
+    proc(_proc), mod(_mod), img(_img), BPfuncs(NULL),lineInformation(NULL) 
 {
     _srcType = BPatch_sourceModule;
 
@@ -103,8 +104,10 @@ BPatch_module::BPatch_module(process *_proc, pdmodule *_mod,BPatch_image *_img):
     defined(i386_unknown_linux2_0) || \
     defined(i386_unknown_solaris2_5)
 
-    if (BPatch::bpatch->parseDebugInfo()) 
+    if (BPatch::bpatch->parseDebugInfo()){ 
+	lineInformation = new LineInformation(mod->fileName());
 	parseTypes();
+    }
 #endif
 }
 
@@ -116,6 +119,7 @@ BPatch_module::~BPatch_module()
 	delete (*BPfuncs)[f];
     }
     delete BPfuncs;
+    if(lineInformation) delete lineInformation;
 }
 
 /*
@@ -339,6 +343,13 @@ void BPatch_module::parseTypes()
   // with BPatch_functions
   //printf("GETTING PROCEDURES for BPatch_Function VECTOR %x!!!\n", &(this->BPfuncs));
   this->BPfuncs = this->getProcedures();
+
+  //these variables are used to keep track of the source files
+  //and function names being processes at a moment
+
+  string* currentFunctionName = NULL;
+  Address currentFunctionBase = 0;
+  string* currentSourceFile = NULL;
   
 
   for(i=0;i<stab_nsyms;i++){
@@ -349,6 +360,13 @@ void BPatch_module::parseTypes()
 	    // assert(stabptr[i].name == 1);
 	    stabstrs = stabstr_nextoffset;
 	    stabstr_nextoffset = (char*)stabstrs + stabptr[i].val;
+
+	    //N_UNDF is the start of object file. It is time to 
+	    //clean source file name at this moment.
+	    if(currentSourceFile){
+	  	delete currentSourceFile;
+		currentSourceFile = NULL;
+	    }
 	    break;
 
     case N_ENDM: /* end of object file */
@@ -369,13 +387,60 @@ void BPatch_module::parseTypes()
 	    } else {
 		parseActive = false;
 	    }
+
+	    //time to create the source file name to be used
+	    //for latter processing of line information
+	    if(!currentSourceFile)
+		currentSourceFile = new string((char*)(&stabstrs[stabptr[i].name]));
+	    else
+		*currentSourceFile += (char*)(&stabstrs[stabptr[i].name]);
+
             break;
+
+    case N_SOL:
+	    if(currentSourceFile){
+   		char* tmp = new char[currentSourceFile->length()+1];
+                strncpy(tmp,currentSourceFile->string_of(),
+			currentSourceFile->length());
+                tmp[currentSourceFile->length()] = '\0';
+                char* p=strrchr(tmp,'/');
+		if(p) 
+                	*(++p)='\0';
+                delete currentSourceFile;
+                currentSourceFile = new string(tmp);
+                (*currentSourceFile) += (char*)(&stabstrs[stabptr[i].name]);
+                if(currentFunctionName)
+			lineInformation->insertSourceFileName(
+				*currentFunctionName,
+				*currentSourceFile);
+                delete[] tmp;
+            }
+            else{
+                currentSourceFile = new string((char*)(&stabstrs[stabptr[i].name]));
+                if(currentFunctionName)
+			lineInformation->insertSourceFileName(
+					*currentFunctionName,
+  					*currentSourceFile);
+            }
+            break;
+		
+    case N_SLINE:
+	    //if the stab information is a line information
+	    //then insert an entry to the line info object
+	    if(!currentFunctionName) break;
+	    lineInformation->insertLineAddress(
+			*currentFunctionName,*currentSourceFile,
+			stabptr[i].desc,
+			stabptr[i].val+currentFunctionBase);
+	    break;
 
     case 32:    // Global symbols -- N_GYSM 
     case 36:    // functions and text segments -- N_FUN
     case 128:   // typedefs and variables -- N_LSYM
     case 160:   // parameter variable -- N_PSYM 
       char *ptr, *ptr2, *ptr3;
+      int currentEntry;
+      currentEntry = i;
 
       if (!parseActive) break;
 
@@ -402,6 +467,28 @@ void BPatch_module::parseTypes()
 	  fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n",
 	      temp);
       }
+
+      //if it is a function stab then we have to insert an entry 
+      //to initialize the entries in the line information object
+      if(stabptr[currentEntry].type == N_FUN){
+	   char* colonPtr = NULL;
+	   if(currentFunctionName) delete currentFunctionName;
+	   if(!ptr || !(colonPtr = strchr(ptr,':')))
+		currentFunctionName = NULL;
+	   else{
+		char* tmp = new char[colonPtr-ptr+1];
+		strncpy(tmp,ptr,colonPtr-ptr);
+		tmp[colonPtr-ptr] = '\0';
+		currentFunctionName = new string(tmp);
+		currentFunctionBase = (Address)
+			(mod->addr()+stabptr[currentEntry].val);
+		delete[] tmp;		
+		if(currentSourceFile)
+			lineInformation->insertSourceFileName(
+				*currentFunctionName,
+				*currentSourceFile);
+	   }
+      } 
       break;
 
     default:
@@ -435,3 +522,38 @@ void BPatch_module::parseTypes()
 }
 
 #endif
+
+/** method that finds the corresponding addresses for a source line
+  * this methid returns true in sucess, otherwise false.
+  * it can be called to find the exact match or, in case, exact match
+  * does not occur, it will return the address set of the next
+  * greater line. It uses the name of the module as a source file name
+  * 
+  */
+bool BPatch_module::getLineToAddr(unsigned short lineNo,
+				  BPatch_Vector<unsigned long>& buffer,
+		                  bool exactMatch)
+{
+	//if the line information is not created yet return false
+
+	if(!lineInformation){
+#ifdef DEBUG_LINE
+		cerr << "BPatch_module::getLineToAddr : ";
+		cerr << "Line information is not available.\n";
+#endif
+		return false;
+	}
+	
+	//query the line info object to get set of addresses if it exists.
+	BPatch_Set<Address> addresses;
+	if(!lineInformation->getAddrFromLine(addresses,lineNo,exactMatch))
+		return false;
+
+	//then insert the elements to the vector given
+	Address* elements = new Address[addresses.size()];
+	addresses.elements(elements);
+	for(int i=0;i<addresses.size();i++)
+		buffer.push_back(elements[i]);
+	delete[] elements;
+	return true;
+}
