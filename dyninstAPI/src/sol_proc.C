@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.28 2003/05/07 19:10:53 bernat Exp $
+// $Id: sol_proc.C,v 1.29 2003/05/08 23:46:46 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -174,7 +174,11 @@ void OS::osTraceMe(void) {
 bool dyn_lwp::continueWithSignal() {
     long buf[1];
     buf[0] = PCRUN;
-    return (write(ctl_fd(), buf, sizeof(long)) == sizeof(long));
+    if (write(ctl_fd(), buf, sizeof(long)) != sizeof(long)) {
+        perror("Write: PCRUN with signal");
+        return false;
+    }
+    else return true;
 }
 
 bool process::continueWithForwardSignal(int)
