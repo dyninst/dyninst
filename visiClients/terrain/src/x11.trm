@@ -12,6 +12,9 @@
  * x11.trm - coordinate convertion and x argument parsing.
  *
  * $Log: x11.trm,v $
+ * Revision 1.2  1997/05/21 19:15:01  tung
+ * Revised.
+ *
  * Revision 1.1  1997/05/19 01:00:12  tung
  * Eliminate ips dependent library files.
  *
@@ -50,7 +53,10 @@ char X11_command[1024]= "gnuplot_x11 -name gnuplot";
 
 /*   X11_args - scan gnuplot command line for standard X Toolkit options */
 
-X11_args(argc, argv) int argc; char *argv[]; {
+int X11_args(int argc, char *argv[]);
+
+int X11_args(int argc, char *argv[])
+{
    int nx11 = 0, n;
 
    while(++argv, --argc > 0) {

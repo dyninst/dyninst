@@ -34,13 +34,16 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/term.c,v 1.1 1997/05/12 20:15:43 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/term.c,v 1.2 1997/05/21 19:14:58 tung Exp $";
 #endif
 
 /*
  * term.c - misc terminal routines.
  *
  * $Log: term.c,v $
+ * Revision 1.2  1997/05/21 19:14:58  tung
+ * Revised.
+ *
  * Revision 1.1  1997/05/12 20:15:43  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -81,9 +84,7 @@ int unixplot=0;
 #define POINT_TYPES		6
 
 
-do_point(x,y,number)
-int x,y;
-int number;
+int do_point(int x, int y, int number)
 {
 register int htic,vtic;
 register struct termentry *t = &term_tbl[term];
@@ -91,7 +92,7 @@ register struct termentry *t = &term_tbl[term];
      if (number < 0) {		/* do dot */
 	    (*t->move)(x,y);
 	    (*t->vector)(x,y);
-	    return;
+	    return 0;
 	}
 
 	number %= POINT_TYPES;
@@ -157,20 +158,23 @@ register struct termentry *t = &term_tbl[term];
 				(*t->vector)(x+htic,y-vtic);
 				break;
 	}
+return 0;
+
 }
 
 
 /*
  * general point routine
  */
-line_and_point(x,y,number)
-int x,y,number;
+int line_and_point(int x, int y, int number)
 {
 	/* temporary(?) kludge to allow terminals with bad linetypes 
 		to make nice marks */
 
 	(*term_tbl[term].linetype)(NICE_LINE);
 	do_point(x,y,number);
+
+return 0;
 }
 
 /* 
@@ -178,9 +182,7 @@ int x,y,number;
  */
 #define ROOT2 (1.41421)		/* sqrt of 2 */
 
-do_arrow(sx, sy, ex, ey)
-	int sx,sy;			/* start point */
-	int ex, ey;			/* end point (point of arrowhead) */
+int do_arrow(int sx, int sy, int ex, int ey)
 {
     register struct termentry *t = &term_tbl[term];
     int len = (t->h_tic + t->v_tic)/2; /* arrowhead size = avg of tic sizes */
@@ -217,6 +219,7 @@ do_arrow(sx, sy, ex, ey)
 	   (*t->vector)(x,y);
     }
 
+return 0;
 }
 
 
@@ -251,8 +254,9 @@ return FALSE ;	/* can't be done */
 }
 
 
-UNKNOWN_null()
+int UNKNOWN_null()
 {
+   return 0;
 }
 
 
@@ -286,15 +290,12 @@ struct termentry term_tbl[] = {
 
 /* change_term: get terminal number from name and set terminal type */
 /* returns -1 if unknown, -2 if ambiguous, >=0 is terminal number */
-int
-change_term(name, length)
-	char *name;
-	int length;
+int change_term(char* name, int length)
 {
     int i, t = -1;
 
-    for (i = 0; i < TERMCOUNT; i++) {
-	   if (!strncmp(name,term_tbl[i].name,length)) {
+    for (i = 0; (unsigned)i < TERMCOUNT; i++) {
+    if (!strncmp(name,term_tbl[i].name, (unsigned)length)) {
 		  if (t != -1)
 		    return(-2);	/* ambiguous */
 		  t = i;

@@ -44,6 +44,9 @@
  * term.h - header file of term.c
  *
  * $Log: term.h,v $
+ * Revision 1.2  1997/05/21 19:14:59  tung
+ * Revised.
+ *
  * Revision 1.1  1997/05/12 20:15:43  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -56,4 +59,18 @@
  *
  */
 
+#ifndef TERM_H
+#define TERM_H
+
 #define X11         /* X11R4 window system */
+
+int do_point(int x, int y, int number);
+int line_and_point(int x, int y, int number);
+int do_arrow(int sx, int sy, int ex, int ey);
+int null_text_angle();
+int null_justify_text();
+int null_scale();
+int UNKNOWN_null();
+int change_term(char* name, int length);
+
+#endif

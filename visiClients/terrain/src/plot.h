@@ -37,6 +37,9 @@
  * plot.h - data structures and default values of the terrain plot.
  *
  * $Log: plot.h,v $
+ * Revision 1.2  1997/05/21 19:14:55  tung
+ * Revised.
+ *
  * Revision 1.1  1997/05/12 20:15:35  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -45,6 +48,10 @@
  *
  *
  */
+
+
+#ifndef PLOT_H
+#define PLOT_H
 
 #define PROGRAM "G N U P L O T"
 #define PROMPT "gnuplot> "
@@ -381,6 +388,5 @@ extern char *alloc();
 
 
 
-
-
+#endif
 

@@ -21,13 +21,16 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.6 1997/05/21 02:27:30 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.7 1997/05/21 19:15:00 tung Exp $";
 #endif
 
 /*
  * terrain.c - main entry point and x driver.
  *
  * $Log: terrain.c,v $
+ * Revision 1.7  1997/05/21 19:15:00  tung
+ * Revised.
+ *
  * Revision 1.6  1997/05/21 02:27:30  tung
  * Revised.
  *
@@ -56,6 +59,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <math.h>
 #include <assert.h>
@@ -193,14 +197,14 @@ static int get_groupId(const char *axis_label){
 static int add_new_curve(unsigned m, unsigned r)
 {
   struct HistData* hdp = 0;
-  float* data;
-  float zero;
+//  float* data;
+//  float zero;
   char* m_name;
   char* r_name;
   char* p_name;
 
-    if (visi_Enabled(m,r) &&
-       (hdp = (struct HistData *) visi_GetUserData(m,r)) == 0) {
+    if (visi_Enabled((signed)m,(signed)r) &&
+       (hdp = (struct HistData *) visi_GetUserData((signed)m,(signed)r)) == 0) {
 
         hdp = (struct HistData *) malloc(sizeof(struct HistData));
         assert(hdp);
@@ -211,8 +215,8 @@ static int add_new_curve(unsigned m, unsigned r)
         hdp->metric    = m;
         hdp->resource  = r;
 
-        m_name = visi_MetricName(m);
-        r_name = visi_ResourceName(r);
+        m_name = visi_MetricName((signed)m);
+        r_name = visi_ResourceName((signed)r);
 	p_name = visi_GetMyPhaseName();
 
         m_name = (m_name) ? (m_name) : "";
@@ -223,13 +227,13 @@ static int add_new_curve(unsigned m, unsigned r)
         sprintf(hdp->title, "%s <%s>", m_name, r_name);
 
 
-        hdp->groupId = get_groupId(visi_MetricLabel(m));
+        hdp->groupId = get_groupId(visi_MetricLabel((signed)m));
 
         hdp->curve_id = Graph3DAddNewCurve(m_name, r_name, p_name, 
-					   visi_MetricLabel(m),  
+					   visi_MetricLabel((signed)m),  
 					   visi_NumBuckets(), numRes);
 
-        visi_SetUserData(m,r,(void *) hdp);
+        visi_SetUserData((signed)m,(signed)r,(void *) hdp);
 
    }
     
@@ -261,9 +265,9 @@ static void drawData(int is_fold)
          }
             // this curve was previously deleted and now has new data
             // need to add new curve to histogram widget
-         if((hdp = (struct HistData *) visi_GetUserData(m,r)) == 0){
-                add_new_curve(m,r);
-                hdp = (struct HistData *) visi_GetUserData(m,r);
+         if((hdp = (struct HistData *) visi_GetUserData((signed)m,(signed)r)) == 0){
+                add_new_curve((unsigned)m, (unsigned)r);
+                hdp = (struct HistData *) visi_GetUserData((signed)m,(signed)r);
                 assert(hdp);
          }
          
@@ -318,7 +322,7 @@ static int process_datavalues(int parameter)
         visi_showErrorVisiCallback("Please select only one metric for the 3D Histogram.\nOnly one of the metrics selected will be shown.");
 
      if (visi_NumResources() < 2)
-         visi_showErrorVisiCallback("Please select more than one resource for the 3D Histogram.\mNo curve will be shown.");
+         visi_showErrorVisiCallback("Please select more than one resource for the 3D Histogram.\nNo curve will be shown.");
 
      if (visi_NumResources() > 11)
         visi_showErrorVisiCallback("Exceed the maximum number(11) of resources.\nOnly 11 of the resources selected will be shown.");
@@ -358,7 +362,8 @@ static int process_fold(int parameter)
  *   main program - fire up application and callbacks
  *---------------------------------------------------------------------------*/
 
-main(argc, argv) int argc; char *argv[]; {
+int main(int argc, char *argv[])
+{
    float colStep;
 
    XtAppContext app_con;	/* Application context */ 
@@ -366,7 +371,7 @@ main(argc, argv) int argc; char *argv[]; {
 /***********************************************************************************
  ************************* modified section starts *********************************/
  
-   int l, r;
+//   int l, r;
    int fd;
 
    fd = visi_Init();
@@ -508,6 +513,7 @@ main(argc, argv) int argc; char *argv[]; {
 
    XtAppMainLoop(app_con);
 
+   return 0;
 }
 
 /*-----------------------------------------------------------------------------
@@ -608,8 +614,7 @@ init_pixmap()
 *
 *************************************************************************/
 
-X11_vector(x,y)
-unsigned int x,y;
+int X11_vector(unsigned int x, unsigned int y)
 {
       XDrawLine(dpy, win, gc, X(cx), Y(cy), X(x), Y(y));
 
@@ -624,8 +629,7 @@ unsigned int x,y;
 *
 *************************************************************************/
 
-X11_move(x,y)
-unsigned int x,y;
+int X11_move(unsigned int x, unsigned int y)
 {
    cx = x; cy = y;
 }
@@ -638,9 +642,7 @@ unsigned int x,y;
 *
 *************************************************************************/
 
-X11_put_text(x,y,str)
-unsigned int x,y;
-char *str;
+int X11_put_text(unsigned int x, unsigned int y, char *str)
 {
    int sw, sl;
    sl = strlen(str);
@@ -704,13 +706,13 @@ int lt;
             type = LineSolid;
         else {
             type = LineOnOffDash;
-            XSetDashes(dpy, gc, 0, dashes[lt], strlen(dashes[lt]));
+            XSetDashes(dpy, gc, 0, dashes[lt], (unsigned)strlen(dashes[lt]));
         }
         XSetForeground(dpy, gc, colors[lt+1]);
     } else {
         type  = (lt == 0 || lt == 2) ? LineSolid : LineOnOffDash;
 	if (dashes[lt][0])
-	    XSetDashes(dpy, gc, 0, dashes[lt], strlen(dashes[lt]));
+	    XSetDashes(dpy, gc, 0, dashes[lt], (unsigned)strlen(dashes[lt]));
     }
     XSetLineAttributes( dpy,gc, width, type, CapButt, JoinBevel);
 
