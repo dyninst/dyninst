@@ -2,7 +2,10 @@
  * Report statistics about dyninst and data collection.
  *
  * $Log: stats.C,v $
- * Revision 1.4  1994/07/15 04:19:13  hollings
+ * Revision 1.5  1994/07/16 03:38:50  hollings
+ * fixed stats to not devidi by 1meg, fixed negative time problem.
+ *
+ * Revision 1.4  1994/07/15  04:19:13  hollings
  * moved dyninst stats to stats.C
  *
  * Revision 1.3  1994/07/14  23:30:32  hollings
@@ -96,8 +99,7 @@ void printAppStats(struct endStatsRec *stats)
     logLine(errorLine);
     sprintf(errorLine,"Total cpu time of program %f\n", stats->totalCpuTime);
     logLine(errorLine);
-    sprintf(errorLine,"Elapsed wall time of program %f\n",
-	stats->totalWallTime/1000000.0);
+    sprintf(errorLine,"Elapsed wall time of program %f\n",stats->totalWallTime);
     logLine(errorLine);
     sprintf(errorLine,"total data samples %d\n", stats->samplesReported);
     logLine(errorLine);

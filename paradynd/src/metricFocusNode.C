@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.27 1994/07/15 20:22:05 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.28 1994/07/16 03:38:48 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.27  1994/07/15 20:22:05  hollings
+ * Revision 1.28  1994/07/16 03:38:48  hollings
+ * fixed stats to not devidi by 1meg, fixed negative time problem.
+ *
+ * Revision 1.27  1994/07/15  20:22:05  hollings
  * fixed 64 bit record to be 32 bits.
  *
  * Revision 1.26  1994/07/14  23:30:29  hollings
@@ -696,7 +699,10 @@ void metricDefinitionNode::updateValue(time64 wallTime,
      */
     if (inform && ret.valid) {
 	/* invoke call backs */
-	assert(ret.start >= 0.0);
+	// assert(ret.start >= 0.0);
+	// I have no idea where negative time comes from but leave it to
+	// the CM-5 to create it on the first sample -- jkh 7/15/94
+	if (ret.start < 0.0) ret.start = 0.0;
 	assert(ret.end >= 0.0);
 	assert(ret.end >= ret.start);
 	tp->sampleDataCallbackFunc(0, id, ret.start, ret.end, ret.value);
