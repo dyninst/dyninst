@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.31  1995/08/01 02:18:20  newhall
-/* changes to support phase interface
+/* Revision 1.32  1995/08/05 17:09:11  krisna
+/* do not include <memory.h> in C++ programs, use <stdlib.h>
 /*
+ * Revision 1.31  1995/08/01 02:18:20  newhall
+ * changes to support phase interface
+ *
  * Revision 1.30  1995/06/02  20:50:09  newhall
  * made code compatable with new DM interface
  *
@@ -118,7 +121,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <memory.h>
 
 
 #include "thread/h/thread.h"
