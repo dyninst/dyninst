@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.9 2000/02/09 19:44:17 pcroth Exp $
+// $Id: PDGraph.C,v 1.10 2000/02/22 21:17:12 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -1773,7 +1773,7 @@ PDGraph::SetCurveData( CurveID cid,
         // draw new points for the curve...
 
         // ...check if we found a new maximum value so we can rescale...
-        if( curve->GetMaxActiveValue() != group->axis->maxValue )
+        if( curve->GetMaxActiveValue() > group->axis->maxValue )
         {
 			UpdateAxisMaxValue( group->axis, curve->GetMaxActiveValue() );
         }
