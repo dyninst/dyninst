@@ -188,9 +188,12 @@ void DYNINSTstartThreadTimer(tTimer* timer)
    rawTime64 start, old_start ;
    int valid = 0;  
    int i;
-
-
+   
+#if defined(i386_unknown_linux2_0)
+   unsigned index = DYNINSTthreadIndexSLOW(P_thread_self());
+#else
    unsigned index = DYNINSTthreadIndexFAST();
+#endif
    
    if (RTsharedData.indexToThread[index] != P_thread_self()) {
        return;
@@ -226,7 +229,11 @@ void DYNINSTstopThreadTimer(tTimer* timer)
 {
     int i;
 
-    unsigned index = DYNINSTthreadIndexFAST();
+#if defined(i386_unknown_linux2_0)
+   unsigned index = DYNINSTthreadIndexSLOW(P_thread_self());
+#else
+   unsigned index = DYNINSTthreadIndexFAST();
+#endif
     
     if (RTsharedData.indexToThread[index] != P_thread_self()) {
         return;
