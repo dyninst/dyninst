@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-mips.h,v 1.18 2005/01/21 23:44:34 bernat Exp $
+// $Id: instPoint-mips.h,v 1.19 2005/01/24 21:45:04 bernat Exp $
 // MIPS-specific definition of class instPoint
 
 #ifndef _INST_POINT_MIPS_H_
@@ -49,7 +49,7 @@
 #include "common/h/Types.h" // Address
 #include "arch-mips.h"    // instruction
 #include "function.h"
-#include "symtab.c"
+#include "symtab.h"
 
 class process;
 class image;
