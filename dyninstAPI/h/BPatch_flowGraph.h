@@ -11,29 +11,40 @@ class function_base;
 class process;
 class pdmodule;
 
-
-// A class to represent the tree of nested loops and 
-// functions (callees) in the flow graph
-class BPATCH_DLL_EXPORT LoopTreeNode {
+/** A class to represent the tree of nested loops and 
+ *  callees (functions) in the control flow graph.
+ *  @see BPatch_basicBlockLoop
+ *  @see BPatch_flowGraph
+ */
+class BPATCH_DLL_EXPORT BPatch_loopTreeNode {
     friend class BPatch_flowGraph;
 
  public:
+    BPatch_loopTreeNode(BPatch_basicBlockLoop * l): loop(l) {}
+
+    ~BPatch_loopTreeNode();
+
+    /** A loop node contains a single basic block loop. */
     BPatch_basicBlockLoop * loop;
 
-    BPatch_Vector<LoopTreeNode *> children;
+    /** The loop node's nested within this loop. */
+    BPatch_Vector<BPatch_loopTreeNode *> children;
 
+    /** A vector of functions called within the body of this loop (and
+     * not the body of sub loops). */
     BPatch_Vector<function_base *> callees;
 
-
-    LoopTreeNode(BPatch_basicBlockLoop * l): loop(l) {}
-
-    ~LoopTreeNode();
-
+    /** Return true if the given address is within the range of. */
     bool containsAddress(unsigned long addr);
 
-    const char * getFuncName(unsigned int i);
+    /** Return the name of this loop. */
+    const char * name();
+
+    /** Return the function name of the ith callee. */
+    const char * getCalleeName(unsigned int i);
     
-    unsigned int numCallees() { return callees.size(); }
+    /** Return the number of callees contained in this loop's body. */
+    unsigned int numCallees();
 };
 
 
@@ -91,7 +102,7 @@ public:
   void fillPostDominatorInfo();
 
   /** return root of loop hierarchy  */
-  LoopTreeNode * getLoopHierarchy();
+  BPatch_loopTreeNode * getLoopTree();
 
   /** print the loops in this FG to stderr  */
   void printLoops();
@@ -118,7 +129,7 @@ public:
   BPatch_Set<BPatch_basicBlock*> allBlocks;
 
   /** root of the tree of loops */
-  LoopTreeNode * loopRoot;
+  BPatch_loopTreeNode * loopRoot;
   
   /** three colors used in depth first search algorithm */
   static const int WHITE;
@@ -152,6 +163,10 @@ public:
 
   void getLoopsByNestingLevel(BPatch_Vector<BPatch_basicBlockLoop*>&, 
 			      bool outerMostOnly);
+  
+  bool dfsInsertCalleeIntoLoopHierarchy(BPatch_loopTreeNode *node, 
+					function_base *func,
+					unsigned long addr);
 
   void insertCalleeIntoLoopHierarchy(function_base * func, unsigned long addr);
 

@@ -4420,19 +4420,16 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_flowGraph *cfg = func->getCFG();
 
-    cfg->createLoopHierarchy();
-    //cfg->printLoops();
-
     // check that funcs are inserted in the proper places in the loop hierarchy
-    LoopTreeNode *root = cfg->getLoopHierarchy();
+    BPatch_loopTreeNode *root = cfg->getLoopTree();
 
-    LoopTreeNode *firstForLoop  = root->children[0];
+    BPatch_loopTreeNode *firstForLoop  = root->children[0];
 
     // determine which node is the while loop and which is the second
     // for loop, this is platform dependent
 
-    LoopTreeNode *secondForLoop = firstForLoop->children[0];
-    LoopTreeNode *whileLoop     = firstForLoop->children[1];
+    BPatch_loopTreeNode *secondForLoop = firstForLoop->children[0];
+    BPatch_loopTreeNode *whileLoop     = firstForLoop->children[1];
 
     // swap if got wrong
     if (firstForLoop->children[0]->children.size() == 0) {
@@ -4440,7 +4437,7 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 	whileLoop     = firstForLoop->children[0];
     }
 
-    LoopTreeNode *thirdForLoop  = secondForLoop->children[0];
+    BPatch_loopTreeNode *thirdForLoop  = secondForLoop->children[0];
 
     // root loop has 1 child, the outer for loop
     if (1 != root->children.size()) {
@@ -4451,8 +4448,8 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     // call38_1 and call38_7 should be off the root
-    const char * f38_1 = root->getFuncName(0);
-    const char * f38_7 = root->getFuncName(1);
+    const char * f38_1 = root->getCalleeName(0);
+    const char * f38_7 = root->getCalleeName(1);
 
     if (2 != root->numCallees()) {
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
@@ -4486,9 +4483,9 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     // call38_2, call38_4 and call38_6 should be under the outer loop
-    const char * f38_2 = firstForLoop->getFuncName(0);
-    const char * f38_4 = firstForLoop->getFuncName(1);
-    const char * f38_6 = firstForLoop->getFuncName(2);
+    const char * f38_2 = firstForLoop->getCalleeName(0);
+    const char * f38_4 = firstForLoop->getCalleeName(1);
+    const char * f38_6 = firstForLoop->getCalleeName(2);
 
     if (0 != strcmp("funCall38_2",f38_2)) {
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
@@ -4517,7 +4514,7 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    second for loop had %d funcs (%s), should be 0.\n",
 		secondForLoop->numCallees(),
-		secondForLoop->getFuncName(0));
+		secondForLoop->getCalleeName(0));
 	exit(1);
     }
 
@@ -4535,7 +4532,7 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 	exit(1);
     }
 
-    const char * f38_3 = thirdForLoop->getFuncName(0);
+    const char * f38_3 = thirdForLoop->getCalleeName(0);
     if (0 != strcmp("funCall38_3",f38_3)) {
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    expected funCall38_3 not %s.\n",f38_3);
@@ -4556,7 +4553,7 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 	exit(1);
     }
 
-    const char * f38_5 = whileLoop->getFuncName(0);
+    const char * f38_5 = whileLoop->getCalleeName(0);
     if (0 != strcmp("funCall38_5",f38_5)) {
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    expected funCall38_5 not %s.\n",f38_5);

@@ -23,19 +23,33 @@
 #include "BPatch_flowGraph.h"
 
 
-const char * LoopTreeNode::getFuncName(unsigned int i) 
+const char * 
+BPatch_loopTreeNode::getCalleeName(unsigned int i) 
 {
     assert(i < callees.size());
     assert(callees[i] != NULL);
     return callees[i]->prettyName().c_str();
 }
 
-bool LoopTreeNode::containsAddress(unsigned long addr) { 
+const char * 
+BPatch_loopTreeNode::name()
+{
+    assert(loop != NULL);
+    return loop->name();
+}
+
+bool 
+BPatch_loopTreeNode::containsAddress(unsigned long addr) { 
     assert(loop != NULL);
     return loop->containsAddress(addr);
 }
 
-LoopTreeNode::~LoopTreeNode() {
+unsigned int
+BPatch_loopTreeNode::numCallees() { 
+    return callees.size(); 
+}
+
+BPatch_loopTreeNode::~BPatch_loopTreeNode() {
     delete loop;
     for (unsigned int i = 0; i < children.size(); i++)
 	delete children[i];
@@ -68,8 +82,6 @@ BPatch_flowGraph::BPatch_flowGraph(function_base *func,
    }
    
    findAndDeleteUnreachable();
-
-   createLoopHierarchy();
 }
 
 BPatch_flowGraph::~BPatch_flowGraph()
@@ -1413,49 +1425,8 @@ getLoopMinMaxSourceLines(BPatch_basicBlockLoop * loop)
 }
 
 
-
-
-// try to insert func into the appropriate spot in the loop tree based on
-// address ranges. if succesful return true, return false otherwise.
-bool dfsInsertCalleeIntoLoopHierarchy(LoopTreeNode *node, 
-				      function_base *func,
-				      unsigned long addr)
-{
-    // if this node contains func then insert it
-    if ((node->loop != NULL) && node->containsAddress(addr)) {
-	node->callees.push_back(func);
-	return true;
-    }
-
-    // otherwise recur with each of node's children
-    bool success = false;
-
-    for (unsigned int i = 0; i < node->children.size(); i++) 
-	success = success || 
-	    dfsInsertCalleeIntoLoopHierarchy(node->children[i], func, addr);
-    
-    return success;
-}
-
-
 void 
-BPatch_flowGraph::insertCalleeIntoLoopHierarchy(function_base * func,
-						unsigned long addr)
-{
-    assert(loopRoot != NULL);
-
-    // try to insert func into the loop hierarchy
-    bool success = dfsInsertCalleeIntoLoopHierarchy(loopRoot, func, addr);
-
-    // if its not in a loop make it a child of the root
-    if (!success) {
-	loopRoot->callees.push_back(func);
-    }
-}
-
-
-void 
-dfsCreateLoopHierarchy(LoopTreeNode * parent,
+dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,
 		       BPatch_Vector<BPatch_basicBlockLoop *> &loops, 
 		       pdstring level)
 {
@@ -1468,7 +1439,7 @@ dfsCreateLoopHierarchy(LoopTreeNode * parent,
 	loops[i]->setName((pdstring("loop "+clevel)).c_str());
 	
 	// add new tree nodes to parent
-	LoopTreeNode * child = new LoopTreeNode(loops[i]);
+	BPatch_loopTreeNode * child = new BPatch_loopTreeNode(loops[i]);
 	parent->children.push_back(child);
 
 	// recurse with this child's outer loops
@@ -1482,7 +1453,7 @@ dfsCreateLoopHierarchy(LoopTreeNode * parent,
 void 
 BPatch_flowGraph::createLoopHierarchy()
 {
-    loopRoot = new LoopTreeNode(NULL);
+    loopRoot = new BPatch_loopTreeNode(NULL);
     BPatch_Vector<BPatch_basicBlockLoop *> loops;
     getOuterLoops(loops);
     dfsCreateLoopHierarchy(loopRoot, loops, "");
@@ -1505,9 +1476,48 @@ BPatch_flowGraph::createLoopHierarchy()
 }
 
 
-LoopTreeNode * BPatch_flowGraph::getLoopHierarchy() 
+// try to insert func into the appropriate spot in the loop tree based on
+// address ranges. if succesful return true, return false otherwise.
+bool 
+BPatch_flowGraph::dfsInsertCalleeIntoLoopHierarchy(BPatch_loopTreeNode *node, 
+						   function_base *func,
+						   unsigned long addr)
+{
+    // if this node contains func then insert it
+    if ((node->loop != NULL) && node->containsAddress(addr)) {
+	node->callees.push_back(func);
+	return true;
+    }
+
+    // otherwise recur with each of node's children
+    bool success = false;
+
+    for (unsigned int i = 0; i < node->children.size(); i++) 
+	success = success || 
+	    dfsInsertCalleeIntoLoopHierarchy(node->children[i], func, addr);
+    
+    return success;
+}
+
+
+void 
+BPatch_flowGraph::insertCalleeIntoLoopHierarchy(function_base * func,
+						unsigned long addr)
+{
+    // try to insert func into the loop hierarchy
+    bool success = dfsInsertCalleeIntoLoopHierarchy(loopRoot, func, addr);
+
+    // if its not in a loop make it a child of the root
+    if (!success) {
+	loopRoot->callees.push_back(func);
+    }
+}
+
+
+BPatch_loopTreeNode * BPatch_flowGraph::getLoopTree() 
 { 
-    assert(loopRoot != NULL); 
+    if (loopRoot == NULL) 
+	createLoopHierarchy();
     return loopRoot; 
 }
 
@@ -1515,7 +1525,8 @@ LoopTreeNode * BPatch_flowGraph::getLoopHierarchy()
 void 
 BPatch_flowGraph::printLoops()
 {    
-    assert(loopRoot != NULL);
+    if (loopRoot == NULL) 
+	createLoopHierarchy();
 
     BPatch_Vector<BPatch_basicBlockLoop *> loops;
     getLoops(loops);

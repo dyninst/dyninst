@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.138 2003/09/18 01:05:26 jodom Exp $
+// $Id: symtab.h,v 1.139 2003/09/19 04:29:23 eli Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -266,7 +266,7 @@ private:
 class instPoint;
 class BPatch_basicBlockLoop;
 class BPatch_flowGraph;
-class LoopTreeNode;
+class BPatch_loopTreeNode;
 
 
 class pd_Function : public function_base {
@@ -287,7 +287,8 @@ class pd_Function : public function_base {
     void getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop *> &loops, 
 		       process * proc);
 
-    LoopTreeNode * getLoopHierarchy(process * proc);
+    BPatch_loopTreeNode * getLoopTree(process * proc);
+
     void printLoops(process * proc);
 
     bool findInstPoints(const image *owner);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.187 2003/09/18 01:05:26 jodom Exp $
+// $Id: symtab.C,v 1.188 2003/09/19 04:29:22 eli Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2531,11 +2531,11 @@ void pd_Function::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop *> &loops,
 }
 
 
-LoopTreeNode * 
-pd_Function::getLoopHierarchy(process * proc)
+BPatch_loopTreeNode * 
+pd_Function::getLoopTree(process * proc)
 {
    BPatch_flowGraph *fg = getCFG(proc);
-   return fg->getLoopHierarchy();
+   return fg->getLoopTree();
 }
 
 
