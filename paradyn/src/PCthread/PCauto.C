@@ -2,7 +2,11 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.6  1994/05/18 00:48:50  hollings
+ * Revision 1.7  1994/05/18 02:49:26  hollings
+ * Changed the time since last change to use the time of the first sample
+ * arrivial after the change (rather than the time of the change).
+ *
+ * Revision 1.6  1994/05/18  00:48:50  hollings
  * Major changes in the notion of time to wait for a hypothesis.  We now wait
  * until the earlyestLastSample for a metrics used by a hypothesis is at
  * least sufficient observation time after the change was made.
@@ -159,6 +163,7 @@ void autoChangeRefineList()
 {
     int i;
     // float newCost;
+    timeStamp timeLimit;
     float totalCost = 0.0;
     searchHistoryNode *curr;
     extern Boolean PCsearchPaused;

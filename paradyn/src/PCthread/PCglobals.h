@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: PCglobals.h,v $
- * Revision 1.2  1994/04/21 04:55:08  karavan
+ * Revision 1.3  1994/05/18 02:49:27  hollings
+ * Changed the time since last change to use the time of the first sample
+ * arrivial after the change (rather than the time of the change).
+ *
+ * Revision 1.2  1994/04/21  04:55:08  karavan
  * added node and edge style numbers for shg display - klk
  *
  * Revision 1.1  1994/02/02  00:38:14  hollings
@@ -33,7 +37,6 @@ extern int sampleCount;
 
 extern int traceRead;
 extern double bucket_size;
-extern timeStamp timeLimit;
 
 extern Boolean genHist;
 extern applicationContext *context;

@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.7  1994/05/18 00:48:54  hollings
+ * Revision 1.8  1994/05/18 02:49:28  hollings
+ * Changed the time since last change to use the time of the first sample
+ * arrivial after the change (rather than the time of the change).
+ *
+ * Revision 1.7  1994/05/18  00:48:54  hollings
  * Major changes in the notion of time to wait for a hypothesis.  We now wait
  * until the earlyestLastSample for a metrics used by a hypothesis is at
  * least sufficient observation time after the change was made.
@@ -65,7 +69,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.7 1994/05/18 00:48:54 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.8 1994/05/18 02:49:28 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -87,7 +91,7 @@ timeStamp PCcurrentTime;
 int PCautoRefinementLimit;
 stringPool PCmetricStrings;
 int samplesSinceLastChange;
-timeStamp PCearlyestSample;
+timeStamp PCshortestEnableTime;
 timeStamp PClastTestChangeTime;
 Boolean explainationFlag = FALSE;
 
@@ -257,6 +261,7 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
 	if (!val->enabled) {
 	    val->samplesSinceEnable = 0;
 	    val->lastSampleTime = 0.0;
+	    val->enableTime = 0.0;
 	    val->used = TRUE;
 	    val->mi = dataMgr->enableDataCollection(pcStream,val->resList, met);
 	    if (val->mi) {
@@ -409,16 +414,18 @@ int globalMinSampleCount()
 // find the min samples seen for any active datum.
 //
 // 
-timeStamp globalMinSampleTime()
+timeStamp globalMinEnabledTime()
 {
     datum *d;
     datumList curr;
     timeStamp min;
+    timeStamp elapsed;
 
     min = infinity();
     for (curr = miToDatumMap; d = *curr; curr++) {
-	if ((d->enabled) && (d->samplesSinceEnable < min)) {
-	    min = d->lastSampleTime;
+	elapsed = d->lastSampleTime - d->enableTime;
+	if ((d->enabled) && (elapsed < min)) {
+	    min = elapsed;
 	}
     }
     return(min);
@@ -428,16 +435,16 @@ void datum::newSample(timeStamp start, timeStamp end, sampleValue value)
 {
     sample += value;
     samplesSinceEnable++;
+    lastSampleTime = end;
     if (samplesSinceEnable == 1) {
 	// consider the sample enabled only from the time we get the first
 	//   sample.  This removes inst latency, and the fact currentTime is
 	//   trailing edge of the time wavefront.
 	enableTime = start;
     }
-    lastSampleTime = end;
 
     samplesSinceLastChange = globalMinSampleCount();
-    PCearlyestSample = globalMinSampleTime();
+    PCshortestEnableTime = globalMinEnabledTime();
 }
 
 void PCevaluateWorld()
@@ -462,11 +469,12 @@ void PCevaluateWorld()
 	if (PCautoRefinementLimit != 0) {
 	    if (changed) {
 		autoTestRefinements();
-	    } else if (PCearlyestSample > timeLimit) {
+	    } else if (PCshortestEnableTime > sufficientTime.getValue()) {
 		// we have waited sufficient observation time move on.
 		printf("autorefinement timelimit reached at %f\n", 
 		    PCcurrentTime);
 		printf("samplesSinceLastChange = %d\n", samplesSinceLastChange);
+		printf("shortest enable time = %f\n", PCshortestEnableTime);
 		autoTimeLimitExpired();
 	    }
 	} else if (changed) {
