@@ -1,6 +1,12 @@
 # tclTunable.tcl
 
 # $Log: tclTunable.tcl,v $
+# Revision 1.14  1995/10/12 18:34:10  tamches
+# Got rid of boolTunableDescriptionU and floatTunableDescriptionUMM,
+# which were causing mysterious tcl code crashes.  Replaced with the
+# corresponding [uimpd tclTunable ...] calls, which is probably how it
+# should have been all along.
+#
 # Revision 1.13  1995/07/13 03:24:41  tamches
 # some geometry and scrollbar fixes for tk4.0
 #
@@ -294,7 +300,7 @@ proc drawBoolTunable {theName} {
 
    # the following important vrbles are (associative) arrays (indexed by name) of
    # boolean tunable constant descriptions and newvalues.
-   global boolTunableDescriptionU boolTunableNewValues
+   global boolTunableNewValues
 
    set namesWin  .tune.middle.canvas.names.tunable$numTunablesDrawn
    set valuesWin .tune.middle.canvas.values.tunable$numTunablesDrawn
@@ -361,7 +367,7 @@ proc everyChangeCommand {name newValue} {
 
    # the following important vrbles are (associative) arrays (indexed by name) of
    # float tunable constant descriptions and newvalues.
-   global floatTunableDescriptionUMM floatTunableNewValues
+   global floatTunableNewValues
 
    global integerScaleFactor
 
@@ -436,13 +442,13 @@ proc drawFloatTunable {theName leftTickWidth rightTickWidth} {
 
    # the following important vrbles are (associative) arrays (indexed by name) of
    # float tunable constant description/use/min/max and newvalues.
-   global floatTunableDescriptionUMM floatTunableNewValues
+   global floatTunableNewValues
 
-   set tunableDescription [lindex $floatTunableDescriptionUMM($theName) 0]
+   set tunableDescription [uimpd tclTunable getdescription $theName]
 
    # if both 0.0, then as far as we're concerned, there are no min/max values.
-   set tunableMin [lindex $floatTunableDescriptionUMM($theName) 2]
-   set tunableMax [lindex $floatTunableDescriptionUMM($theName) 3]
+   set tunableMin [lindex [uimpd tclTunable getfloatrangebyname $theName] 0]
+   set tunableMax [lindex [uimpd tclTunable getfloatrangebyname $theName] 1]
 
    set namesWin  .tune.middle.canvas.names.tunable$numTunablesDrawn
    set valuesWin .tune.middle.canvas.values.tunable$numTunablesDrawn
@@ -575,8 +581,8 @@ proc drawTunables {newWidth newHeight} {
    global DeveloperModeFlag
    global tunableMinWidth tunableMinHeight
 
-   global boolTunableDescriptionU boolTunableNewValues
-   global floatTunableDescriptionUMM floatTunableNewValues
+   global boolTunableNewValues
+   global floatTunableNewValues
 
    # First, erase old stuff on the screen
    .tune.middle.canvas delete tunableTag
@@ -601,19 +607,20 @@ proc drawTunables {newWidth newHeight} {
    set leftTickWidth 0
    set rightTickWidth 0
    
-   set mySearchId [array startsearch floatTunableDescriptionUMM]
-   set theSize [array size floatTunableDescriptionUMM]
+   set allFloatNames [uimpd tclTunable getfloatallnames]
 
-   while {[array anymore floatTunableDescriptionUMM $mySearchId]} {
-      set theUMM [array nextelement floatTunableDescriptionUMM $mySearchId]
-      
-      set tunableUse [lindex $theUMM 0]
+#   puts stderr "welcome to drawTunables1; allFloatNames=$allFloatNames"
 
+   set numFloats [llength $allFloatNames]
+
+   for {set floatlcv 0} {$floatlcv < $numFloats} {incr floatlcv} {
+      set floatName [lindex $allFloatNames $floatlcv]
+      set tunableUse [uimpd tclTunable getusebyname $floatName]
       if {$tunableUse=="developer" && $DeveloperModeFlag==0} continue
 
-      set tunableMin [lindex $theUMM 1]
-      set tunableMax [lindex $theUMM 2]
-      # if both 0.0, then as far as we're concerned, there are no min/max values.
+      set tunableBounds [uimpd tclTunable getfloatrangebyname $floatName]
+      set tunableMin [lindex $tunableBounds 0]
+      set tunableMax [lindex $tunableBounds 1]
 
       if {$tunableMin!=0 || $tunableMax!=0} {
          set leftTickWidth [max $leftTickWidth [string length $tunableMin]]
@@ -621,19 +628,17 @@ proc drawTunables {newWidth newHeight} {
       }
    }
 
-   array donesearch floatTunableDescriptionUMM $mySearchId
-
    # make two passes---draw all boolean tunables, then all float tunables.
    # (looks nicer on screen that way...)
 
-   set allBoolNames [array names boolTunableDescriptionU]
+   set allBoolNames [uimpd tclTunable getboolallnames]
    set numBoolNames [llength $allBoolNames]
 
    for {set lcv 0} {$lcv < $numBoolNames} {incr lcv} {
       set theName [lindex $allBoolNames $lcv]
 
-      set theDU $boolTunableDescriptionU($theName)
-      set tunableUse [lindex $theDU 1]
+      set theDU [uimpd tclTunable getdescription $theName]
+      set tunableUse [uimpd tclTunable getusebyname $theName]
 
       # If this tunable constant is a "developer" one, and if we
       # are not in developer mode, then skip it.
@@ -641,14 +646,12 @@ proc drawTunables {newWidth newHeight} {
       drawBoolTunable $theName
    }
 
-   set allFloatNames [array names floatTunableDescriptionUMM]
    set numFloatNames [llength $allFloatNames]
 
    for {set lcv 0} {$lcv < $numFloatNames} {incr lcv} {
       set theName [lindex $allFloatNames $lcv]
 
-      set theDUMM $floatTunableDescriptionUMM($theName)
-      set tunableUse [lindex $theDUMM 1]
+      set tunableUse [uimpd tclTunable getusebyname $theName]
 
       if {$tunableUse=="developer" && $DeveloperModeFlag==0} continue
       drawFloatTunable $theName $leftTickWidth $rightTickWidth
@@ -718,12 +721,10 @@ proc rethinkScrollBarRegions {newWidth newHeight} {
 
 proc gatherInitialTunableValues {} {
    # associative array (by name) of description/use
-   global boolTunableDescriptionU
    # associative array (by name) of bool value
    global boolTunableOldValues boolTunableNewValues
 
    # associative array (by name) of description/use/min/max
-   global floatTunableDescriptionUMM
    # associative array (by name) of float value
    global floatTunableOldValues floatTunableNewValues
 
@@ -738,7 +739,6 @@ proc gatherInitialTunableValues {} {
       set theUse         [uimpd tclTunable getusebyname $theName] 
       set theList [list $theDescription $theUse]
 
-      set boolTunableDescriptionU($theName) $theList
       set boolTunableOldValues($theName) [uimpd tclTunable getvaluebyname $theName]
       set boolTunableNewValues($theName) $boolTunableOldValues($theName)
    }
@@ -751,16 +751,6 @@ proc gatherInitialTunableValues {} {
    for {set lcv 0} {$lcv < $numFloatNames} {incr lcv} {
       set theName [lindex $allFloatNames $lcv]
 
-      set theDescription [uimpd tclTunable getdescription $theName]
-      set theUse [uimpd tclTunable getusebyname $theName]
-
-      set theMinMax [uimpd tclTunable getfloatrangebyname $theName]
-      set theMin [lindex $theMinMax 0]
-      set theMax [lindex $theMinMax 1]
-
-      set theList [list $theDescription $theUse $theMin $theMax]
-
-      set floatTunableDescriptionUMM($theName) $theList
       set floatTunableOldValues($theName) [uimpd tclTunable getvaluebyname $theName]
       set floatTunableNewValues($theName) $floatTunableOldValues($theName)
    }
@@ -867,8 +857,6 @@ proc draw1TunableDescription {theName theDescription} {
    global tunableTitleFont
    global tunableDescriptionFont
 
-   global boolTunableDescriptionU floatTunableDescriptionUMM
-
    frame .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn
    pack  .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn \
 	   -side top -fill x -expand false
@@ -907,14 +895,21 @@ proc draw1TunableDescription {theName theDescription} {
 
    set tunableDescriptionsTotalHeight [expr $tunableDescriptionsTotalHeight + [getWindowHeight .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.top.left.label]]
 
+#   puts stderr "welcome to draw1TunableDescription1 for $theName"
+
    message .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.bottom.right.msg \
-	 -width 3i -justify left -text $theDescription \
+	 -width 3i -justify left -text "$theDescription" \
 	 -font $tunableDescriptionFont
+
    pack .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.bottom.right.msg \
 	 -side top -fill x -expand false
          # we don't want extra height after resizing
 
+#   puts stderr "welcome to draw1TunableDescription1.2 for $theName"
+
    set tunableDescriptionsTotalHeight [expr $tunableDescriptionsTotalHeight + [getWindowHeight .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.bottom.right.msg]]
+
+#   puts stderr "welcome to draw1TunableDescription2 for $theName"
 
    .tunableDescriptions.top.canvas create window \
 	      0 $tunableDescriptionsTotalHeight \
@@ -923,6 +918,8 @@ proc draw1TunableDescription {theName theDescription} {
 	      -tag description
 	      
    incr numTunableDescriptionsDrawn
+
+#   puts stderr "welcome to draw1TunableDescription3 for $theName"
 }
 
 proc drawTunableDescriptions {} {
@@ -931,8 +928,6 @@ proc drawTunableDescriptions {} {
    global tunableDescriptionsTotalHeight
    global tunableDescriptionFont
 
-   global boolTunableDescriptionU floatTunableDescriptionUMM
-   
    # delete old stuff...
    .tunableDescriptions.top.canvas delete description
    for {set lcv 0} {$lcv<$numTunableDescriptionsDrawn} {incr lcv} {
@@ -947,8 +942,10 @@ proc drawTunableDescriptions {} {
    set numBoolNames [llength $allBoolNames]
    for {set lcv 0} {$lcv < $numBoolNames} {incr lcv} {
       set theName [lindex $allBoolNames $lcv]
-      set theDescription [lindex $boolTunableDescriptionU($theName) 0]
-      set theUse [lindex $boolTunableDescriptionU($theName) 1]
+
+      set theDescription [uimpd tclTunable getdescription $theName]
+
+      set theUse [uimpd tclTunable getusebyname $theName]
       
       if {$theUse=="developer" && $DeveloperModeFlag==0} continue
 
@@ -958,10 +955,12 @@ proc drawTunableDescriptions {} {
    # Next, draw float descriptions
    set allFloatNames [uimpd tclTunable getfloatallnames]
    set numFloatNames [llength $allFloatNames]
+
    for {set lcv 0} {$lcv < $numFloatNames} {incr lcv} {
       set theName [lindex $allFloatNames $lcv]
-      set theDescription [lindex $floatTunableDescriptionUMM($theName) 0]
-      set theUse [lindex $floatTunableDescriptionUMM($theName) 1]
+      
+      set theDescription [uimpd tclTunable getdescription $theName]
+      set theUse [uimpd tclTunable getusebyname $theName]
       
       if {$theUse=="developer" && $DeveloperModeFlag==0} continue
 
@@ -1060,8 +1059,8 @@ proc tunableExitPoint {} {
    global nextStartY
    global integerScaleFactor
    global DeveloperModeFlag
-   global boolTunableDescriptionU boolTunableOldValues boolTunableNewValues
-   global floatTunableDescriptionUMM floatTunableOldValues floatTunableNewValues
+   global boolTunableOldValues boolTunableNewValues
+   global floatTunableOldValues floatTunableNewValues
    global tunableMinHeight
    global lastVisibleWidth lastVisibleHeight
 
@@ -1072,8 +1071,8 @@ proc tunableExitPoint {} {
       destroy .tunableDescriptions
    }
 
-   unset boolTunableDescriptionU boolTunableOldValues boolTunableNewValues
-   unset floatTunableDescriptionUMM floatTunableOldValues floatTunableNewValues
+   unset boolTunableOldValues boolTunableNewValues
+   unset floatTunableOldValues floatTunableNewValues
    unset numTunablesDrawn nextStartY integerScaleFactor
    unset DeveloperModeFlag tunableMinHeight
    unset lastVisibleWidth lastVisibleHeight
