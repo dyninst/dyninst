@@ -97,16 +97,26 @@ void DYNINST_initialize_once(char *DYNINST_shmSegAttachedPtr) {
     return;
   fprintf(stderr, "DYNINST_init_done...\n");
   if (!DYNINST_initialize_done) {
+    fprintf(stderr, "RTsharedData starts at addr 0x%x\n",
+	    ((char*) DYNINST_shmSegAttachedPtr + 16));
+    RTsharedData = (RTINSTsharedData*)((char*) DYNINST_shmSegAttachedPtr + 16) ;
+    fprintf(stderr, "Setting pos_to_thread to addr 0x%x\n",
+	    (unsigned) DYNINST_pos_to_thread);
+    DYNINST_pos_to_thread = RTsharedData->DYNINSTthreadMap;
+    fprintf(stderr, "Initializing pos list...\n");
     DYNINST_initialize_pos_list();
     DYNINST_initialize_done=1;
+    fprintf(stderr, "Key create...\n");
     P_thread_key_create(&DYNINST_thread_key, NULL /* no destructor */) ;
-    RTsharedData = (RTINSTsharedData*)((char*) DYNINST_shmSegAttachedPtr + 16) ;
     
-    DYNINST_pos_to_thread = RTsharedData->DYNINSTthreadMap;
-
+    fprintf(stderr, "memset...\n");
     memset((char*)&(RTsharedData->virtualTimers), '\0', sizeof(tTimer)*MAX_NUMBER_OF_THREADS) ;    
+    
   }
+  
   tc_lock_unlock(&DYNINST_initLock);
+  fprintf(stderr, "Returning from init once\n");
+  
 }
 
 /*======================================

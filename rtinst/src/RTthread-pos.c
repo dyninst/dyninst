@@ -62,14 +62,18 @@ void DYNINST_initialize_pos_list()
 {
   unsigned i;
   static int init_pos_done = 0;
+  fprintf(stderr, "DYNINST_init_pos_list\n");
   if (init_pos_done) return;
+  fprintf(stderr, "Going for lock\n");
   tc_lock_init(&DYNINST_pos_lock);
+  fprintf(stderr, "Got lock\n");
   for (i = 0; i < MAX_NUMBER_OF_THREADS; i++)
     DYNINST_pos_to_thread[i] = 0;
   /* 0 means a free slot. */
   DYNINST_next_free_pos = 0;
   DYNINST_num_pos_free = MAX_NUMBER_OF_THREADS;
   init_pos_done = 1;
+  fprintf(stderr, "Done initializing\n");
 }
 
 /* 
