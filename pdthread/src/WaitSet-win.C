@@ -116,6 +116,7 @@ WinWaitSet::Wait( void )
                 thr_debug_msg(CURRENT_FUNCTION,
                             "failed to create Event for socket events: %08x\n",
                             WSAGetLastError() );
+                delete[] waitObjs;
                 return WaitError;
             }
 
@@ -128,6 +129,7 @@ WinWaitSet::Wait( void )
                 thr_debug_msg(CURRENT_FUNCTION,
                         "failed to set events of interest on Event: %08x\n",
                         WSAGetLastError() );
+                delete[] waitObjs;
                 return WaitError;
             }
 
@@ -242,6 +244,8 @@ WinWaitSet::Wait( void )
 
             curIdx++;
         }
+
+        delete[] waitObjs;
     }
     return ret;
 }
