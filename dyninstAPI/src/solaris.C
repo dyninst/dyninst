@@ -116,6 +116,7 @@ void OS::osTraceMe(void) {
   premptyset(&exitSet);
   praddset(&exitSet, SYS_exec);
   praddset(&exitSet, SYS_execve);
+
   if (ioctl(fd, PIOCSEXIT, &exitSet) < 0) {
     fprintf(stderr, "osTraceMe: PIOCSEXIT failed: %s\n", sys_errlist[errno]); 
     fflush(stderr);
@@ -320,6 +321,7 @@ void get_ps_stuff(int proc_fd, string &argv0, string &pathenv, string &cwdenv) {
    set the signals to be caught to be only SIGSTOP and SIGTRAP,
    and set the kill-on-last-close and inherit-on-fork flags.
 */
+extern string pd_flavor ;
 bool process::attach() {
   char procName[128];
 
@@ -363,7 +365,13 @@ bool process::attach() {
   // b) turn on inherit-on-fork flag (tracing flags inherited when child forks).
   // c) turn on breakpoint trap pc adjustment (x86 only).
   // Also, any child of this process will stop at the exit of an exec call.
-  long flags = PR_KLC | PR_FORK | PR_BPTADJ;
+
+  //Tempest, do not need to inherit-on-fork
+  long flags ;
+  if(process::pdFlavor == string("cow"))
+  	flags = PR_KLC |  PR_BPTADJ;
+  else
+   	flags = PR_KLC | PR_FORK | PR_BPTADJ;
   if (ioctl (fd, PIOCSET, &flags) < 0) {
     fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
     close(fd);
