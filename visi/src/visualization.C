@@ -14,9 +14,13 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.29  1995/09/18 18:26:06  newhall
-/* updated test subdirectory, added visilib routine GetMetRes()
+/* Revision 1.30  1995/11/02 02:12:51  newhall
+/* added class derived from igen generated visualization class that contains
+/* a handle_error method that won't print an error msg when an error occurs
 /*
+ * Revision 1.29  1995/09/18  18:26:06  newhall
+ * updated test subdirectory, added visilib routine GetMetRes()
+ *
  * Revision 1.28  1995/09/08  19:47:00  krisna
  * stupid way to avoid the for-scope problem
  *
@@ -112,7 +116,7 @@
  * Revision 1.2  1994/03/14  20:28:55  newhall
  * changed visi subdirectory structure
  *  */ 
-#include "visi.xdr.SRVR.h"
+#include "visi/src/visualizationP.h"
 #include "visi/h/visualization.h"
 
 visi_DataGrid  dataGrid;
@@ -146,7 +150,7 @@ int i;
     eventCallbacks[i] = NULL;
   }
 
-  vp = new visualization(0, NULL, NULL, false);
+  vp = new visi_visualization(0);
   fileDesc[0] = 0;
   fileDescCallbacks[0] = visi_callback;
   initDone = 1;
@@ -259,6 +263,8 @@ void StopMetRes(int metricIndex,
     r = dataGrid.ResourceId(resourceIndex);
     if(m && r)
         vp->StopMetricResource(*m,*r);
+    delete m;
+    delete r;
   }
 }
 
@@ -660,4 +666,8 @@ void visualization::PhaseData(vector<T_visi::phase_info> phases){
   if(eventCallbacks[PHASEDATA] !=  NULL){
      eventCallbacks[PHASEDATA](0);
   }
+}
+
+void visi_visualization::handle_error(){
+   exit(-1);
 }
