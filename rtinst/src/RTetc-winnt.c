@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -42,7 +42,7 @@
 /************************************************************************
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  *
- * $Id: RTetc-winnt.c,v 1.13 2002/12/14 16:38:01 schendel Exp $
+ * $Id: RTetc-winnt.c,v 1.14 2003/05/29 20:34:59 pcroth Exp $
  *
  ************************************************************************/
 
@@ -118,7 +118,7 @@ void CALLBACK DYNINSTalarmExpireCallback(UINT id, UINT msg,
 void DYNINST_install_ualarm(unsigned interval) {
   if (timeSetEvent(interval/1000, 100, DYNINSTalarmExpireCallback, 
 		   0, TIME_PERIODIC) == (int)NULL) {
-    printf("DYNINST: unable to create periodic timer\n");
+    fprintf( stderr, "DYNINST: unable to create periodic timer\n");
     abort();
   }
 
@@ -153,11 +153,35 @@ DYNINSTgetCPUtime_sw(void) {
   rawTime64 now, tmp_cpuPrevious=cpuPrevious;
   static HANDLE procHandle;
   HANDLE thrHandle = GetCurrentThread();
-  
-  if(GetThreadTimes(thrHandle, &creatT, &exitT, &kernelT,&userT)==0) {
-    abort();
-    return 0;
-  }
+  DWORD timerTries = 0;
+  DWORD maxTimerTries = 5;
+  DWORD gttRet = 0;
+
+  // Originally, we only called GetThreadTimes once here.
+  // However, we observed that the GetThreadTimes call sometimes failed,
+  // but didn't give us any good indication why.  (GetLastError() returned
+  // strange values like 0xbaadf00d, 0xfeeefeee, and 0xffffffff that are
+  // not documented values for errors.)  Retrying the call has succeeded
+  // in every case we've tried.  To be safe, we allow a small number of
+  // retries in case of failure.
+  // 
+  do
+  {
+      ZeroMemory( &kernelT, sizeof(kernelT) );
+      ZeroMemory( &userT, sizeof(userT) );
+      ZeroMemory( &creatT, sizeof(creatT) );
+      ZeroMemory( &exitT, sizeof(exitT) );
+      
+      gttRet = GetThreadTimes(thrHandle, &creatT, &exitT, &kernelT,&userT);
+      timerTries++;
+    } while( (gttRet == 0) && (timerTries < maxTimerTries) );
+    if( (gttRet == 0) && (timerTries == maxTimerTries) )
+    {
+        fprintf( stderr, "RT: GetThreadTimes failed too many times: %08x\n",
+            GetLastError() );
+        fflush( stderr );
+        abort();
+    }
 
   now = (FILETIME2rawTime64(userT)+FILETIME2rawTime64(kernelT));
 
@@ -231,6 +255,7 @@ DYNINSTgetWalltime_sw(void) {
        */
     now = (rawTime64)time.QuadPart;
   } else {
+    fprintf( stderr, "RT: DYNINSTgetWalltime_sw calling abort\n" );
     abort();
   }
 
@@ -340,7 +365,7 @@ void DYNINSTinitTrace(int daemon_addr) {
 
   DYNINSTtraceFp = connectToDaemon(daemon_addr);
   if (DYNINSTtraceFp == -1) {
-    printf("connectToDaemon failed\n");
+    fprintf(stderr, "connectToDaemon failed\n");
     abort();
   }
 }
