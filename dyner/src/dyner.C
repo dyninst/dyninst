@@ -830,7 +830,6 @@ int condBreak(ClientData, Tcl_Interp *, int argc, char *argv[])
 	BPatch_ifExpr condBreak(*(BPatch_boolExpr *)parse_result, doBreak); 
    	brSnippet = (BPatch_snippet *) &condBreak; 
 	delete parse_result;
-	delete line_buf;
     }
 
     BPatchSnippetHandle *handle =
