@@ -8,7 +8,7 @@ typedef float (*sampleValueFunc)();
 //
 class internalMetric {
   public:
-    internalMetric(char *n, int style, int a, char *units, sampleValueFunc f);
+    internalMetric(const char *n, int style, int a, const char *units, sampleValueFunc f);
     float getValue() {
 	if (func) {
 	    return((func)());
@@ -26,7 +26,7 @@ class internalMetric {
     Boolean enabled() {
 	return(node != NULL);
     }
-    struct _metricRec metRec;
+    metric metRec;
     float value;
     float cumlativeValue;
     sampleValueFunc func;
