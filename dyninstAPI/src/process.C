@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.355 2002/09/11 15:05:19 chadd Exp $
+// $Id: process.C,v 1.356 2002/09/12 19:03:30 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1714,8 +1714,6 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
 #endif
     checkProcStatus();
   } while (!ret.ready); // Loop until callback has fired.
-  fprintf(stderr, "InferiorMallocDynamic returned addr of 0x%x", 
-	  ret.result);
   switch ((int)(Address)ret.result) {
   case 0:
 #ifdef DEBUG
@@ -1790,8 +1788,9 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	   break;
 #if defined(USES_DYNAMIC_INF_HEAP)
 	case 1: // compact free blocks
-	   inferiorFreeCompact(hp);
-	   break;
+	  gcInstrumentation();
+	  inferiorFreeCompact(hp);
+	  break;
 	case 2: // allocate new segment (1MB, constrained)
 	   inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
 	   break;
@@ -7904,8 +7903,6 @@ void process::deleteInstInstance(instInstance *delInst)
   toBeDeleted->oldMini = delInst;
   toBeDeleted->oldBase = NULL;
   pendingGCInstrumentation.push_back(toBeDeleted);
-  // Try to delete now? Why not.
-  gcInstrumentation();
 }
 
 bool process::checkIfInstAlreadyDeleted(instInstance *delInst)
@@ -7926,7 +7923,6 @@ void process::deleteBaseTramp(trampTemplate *baseTramp,
   toBeDeleted->oldMini = NULL;
   toBeDeleted->oldBase = baseTramp;
   pendingGCInstrumentation.push_back(toBeDeleted);
-  gcInstrumentation();
 }
 
 // garbage collect instrumentation
