@@ -61,7 +61,7 @@ dictionary_hash<string, instrCodeNode_Val*>
 
 instrCodeNode_Val::~instrCodeNode_Val() {
   for (unsigned i=0; i<instRequests.size(); i++) {
-    instRequests[i].disable(); // calls deleteInst()
+    instRequests[i].disable(proc()); // calls deleteInst()
   }
 
   if(sampledDataNode != NULL) {
@@ -259,49 +259,57 @@ void instrCodeNode::prepareCatchupInstr(vector<vector<catchupReq *> > &allStackW
 }
 
 bool instrCodeNode::loadInstrIntoApp(pd_Function **func) {
-  // Loop thru "instRequests", an array of instReqNode:
-  // (Here we insert code instrumentation, tramps, etc. via addInstFunc())
-  unsigned int inst_size = V.instRequests.size();
-  //cerr << "instrCodeNode id: " << getID() << " attempted insert of " 
-  //     << inst_size << " instRequests\n";
-  for (unsigned u1=0; u1<inst_size; u1++) {
-    // code executed later (prepareCatchupInstr) may also manually trigger 
-    // the instrumentation via inferiorRPC.
-    returnInstance *retInst=NULL;
-    bool deferredFlag = false;
-    instReqNode *instReq = &V.instRequests[u1];
-    instInstance *mtInst = instReq->loadInstrIntoApp(proc(), 
-						     retInst, &deferredFlag);
-    if (! mtInst) {
+   // Loop thru "instRequests", an array of instReqNode:
+   // (Here we insert code instrumentation, tramps, etc. via addInstFunc())
+   unsigned int inst_size = V.instRequests.size();
+   //cerr << "instrCodeNode id: " << getID() << " attempted insert of " 
+   //     << inst_size << " instRequests\n";
+   for (unsigned u1=0; u1<inst_size; u1++) {
+      // code executed later (prepareCatchupInstr) may also manually trigger 
+      // the instrumentation via inferiorRPC.
+      returnInstance *retInst=NULL;
+      instReqNode *instReq = &V.instRequests[u1];
+
+      instInstance *mtInst;
+      loadMiniTramp_result res = instReq->loadInstrIntoApp(proc(), retInst,
+							   &mtInst);
+
       unmarkAsDeferred();
-      if (deferredFlag == true) {
-	*func = dynamic_cast<pd_Function *>(const_cast<function_base *>(
+      switch(res) {
+	case deferred_res:
+	   *func = dynamic_cast<pd_Function *>(const_cast<function_base *>(
                             instReq->Point()->iPgetFunction()));
-	markAsDeferred();
-	//cerr << "marking " << (void*)this << " " << u1+1 << " / "
-	//     << inst_size << " as deferred\n";
-	//cerr << "deferred on function " << (*func)->prettyName() << "\n";
+	   markAsDeferred();
+	   //cerr << "marking " << (void*)this << " " << u1+1 << " / "
+	   //     << inst_size << " as deferred\n";
+	   //cerr << "deferred on function " << (*func)->prettyName() << "\n";
+	   return false;
+	   break;
+	case failure_res:
+	  //cerr << "instRequest.insertInstr - wasn't successful\n";
+	   //assert (*func != NULL);
+	   return false; // shouldn't we try to undo what's already put in?
+	   break;
+	case success_res:
+	  //cerr << "instrRequest # " << u1+1 << " / " << inst_size
+	  //     << "inserted\n";
+	   // Interesting... it's possible that this minitramp writes to more
+	   // than one variable (data, constraint, "temp" vector)
+	   if(mtInst) {
+	      vector <instrDataNode *> *affectedNodes = V.getDataNodes();
+	      for (unsigned i = 0; i < affectedNodes->size(); i++)
+		 (*affectedNodes)[i]->incRefCount();
+	      mtInst->registerCallback(instrDataNode::decRefCountCallback, 
+				       (void *)affectedNodes);
+	   }
+	   break;
       }
-      else cerr << "instRequest.insertInstr - wasn't successful\n";
-      //assert (*func != NULL);
-      return false; // shouldn't we try to undo what's already put in?
-    } else {
-      V.miniTrampInstances += mtInst;
-      // Interesting... it's possible that this minitramp writes to more than
-      // one variable (data, constraint, "temp" vector)
-      vector <instrDataNode *> *affectedNodes = V.getDataNodes();
-      for (unsigned i = 0; i < affectedNodes->size(); i++)
-	(*affectedNodes)[i]->incRefCount();
-      mtInst->registerCallback(instrDataNode::decRefCountCallback, (void *)affectedNodes);
-      //cerr << "instrRequest # " << u1+1 << " / " << inst_size
-      //     << "inserted\n";
-    }
-    if (retInst) {
-      V.baseTrampInstances += retInst;
-    }
-  }
-  V.instrLoaded_ = true;
-  return true;
+      if (retInst) {
+	 V.baseTrampInstances += retInst;
+      }
+   }
+   V.instrLoaded_ = true;
+   return true;
 }
 
 void instrCodeNode::prepareForSampling(
@@ -335,12 +343,11 @@ bool instrCodeNode::needToWalkStack() {
 
 bool instrCodeNode::insertJumpsToTramps(vector<Frame> stackWalk) {
    if(trampsHookedUp()) return true;
-   
-   vector<instInstance *> &miniTrampInstances = V.getMiniTrampInstances();
-   for(unsigned k=0; k<miniTrampInstances.size(); k++) {
-      hookupMiniTramp(miniTrampInstances[k]);
+
+   for(unsigned k=0; k<V.instRequests.size(); k++) {
+      V.instRequests[k].hookupJumps(proc());
    }
-      
+   
    vector<returnInstance *> &baseTrampInstances = V.getBaseTrampInstances();
    unsigned rsize = baseTrampInstances.size();
    u_int max_index = 0;  // first frame where it is safe to install instr
