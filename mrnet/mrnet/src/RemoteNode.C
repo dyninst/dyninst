@@ -36,12 +36,11 @@ void * RemoteNode::recv_thread_main(void * args)
     char local_port_str[128];
     char remote_port_str[128];
     if( remote_node->is_upstream() ){
-        sprintf(local_port_str, "%d",
-                local_child_node->get_Port());
-        sprintf(remote_port_str, "%d",
-                remote_node->CommunicationNode::id);
+        sprintf(local_port_str, "%d", local_child_node->get_Port());
+        sprintf(remote_port_str, "%d", remote_node->get_Port());
         getHostName(local_hostname, local_child_node->get_HostName() );
         getHostName(remote_hostname, remote_node->get_HostName() );
+
         name = "UPRECV(";
         name += local_hostname;
         name += ":";
@@ -54,11 +53,10 @@ void * RemoteNode::recv_thread_main(void * args)
     }
     else{
         sprintf(local_port_str, "%d", local_parent_node->config_port);
-        sprintf(remote_port_str, "%d",
-                remote_node->CommunicationNode::id);
-
+        sprintf(remote_port_str, "%d", remote_node->get_Port() );
         getHostName(local_hostname, local_parent_node->get_HostName() );
         getHostName(remote_hostname, remote_node->get_HostName() );
+
         name = "DOWNRECV(";
         name += local_hostname;
         name += ":";
@@ -119,10 +117,8 @@ void * RemoteNode::send_thread_main(void * args)
     char remote_port_str[128];
 
     if( remote_node->is_upstream() ){
-        sprintf(local_port_str, "%d",
-                local_child_node->get_Port());
-        sprintf(remote_port_str, "%d",
-                remote_node->CommunicationNode::id);
+        sprintf(local_port_str, "%d", local_child_node->get_Port());
+        sprintf(remote_port_str, "%d", remote_node->get_Port() );
         getHostName(local_hostname, local_child_node->get_HostName() );
         getHostName(remote_hostname, remote_node->get_HostName() );
 
@@ -138,8 +134,7 @@ void * RemoteNode::send_thread_main(void * args)
     }
     else{
         sprintf(local_port_str, "%d", local_parent_node->config_port);
-        sprintf(remote_port_str, "%d",
-                remote_node->CommunicationNode::id);
+        sprintf(remote_port_str, "%d", remote_node->get_Port() );
         getHostName(local_hostname, local_child_node->get_HostName() );
         getHostName(remote_hostname, remote_node->get_HostName() );
 
@@ -186,18 +181,10 @@ void * RemoteNode::send_thread_main(void * args)
     return NULL;
 }
 
-RemoteNode::RemoteNode(bool _threaded, std::string &_hostname,
-                       unsigned short _port)
-    :CommunicationNode(_hostname, _port), threaded(_threaded), sock_fd(0),
-     _is_internal_node(false), _is_upstream(false)
-{
-    msg_out_sync.RegisterCondition(MRN_MESSAGEOUT_NONEMPTY);
-}
 
-RemoteNode::RemoteNode(bool _threaded, std::string &_hostname,
-                       unsigned short _port, unsigned short _id)
-    :CommunicationNode(_hostname, _port, _id), threaded(_threaded), sock_fd(0),
-     _is_internal_node(false), _is_upstream(false)
+RemoteNode::RemoteNode(bool _threaded, std::string &_hostname, Port _port)
+    :CommunicationNode(_hostname, _port), threaded(_threaded), sock_fd(0),
+     _is_internal_node(false), rank( UnknownRank ), _is_upstream(false)
 {
     msg_out_sync.RegisterCondition(MRN_MESSAGEOUT_NONEMPTY);
 }
@@ -261,15 +248,11 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
 
 
 int RemoteNode::new_InternalNode(int listening_sock_fd,
-                                 std::string parent_host,
-                                 unsigned short parent_port,
-                                 unsigned short parent_id,
+                                 std::string parent_host, Port parent_port,
                                  std::string commnode_cmd)
 {
     char parent_port_str[128];
     sprintf(parent_port_str, "%d", parent_port);
-    char parent_id_str[128];
-    sprintf(parent_id_str, "%d", parent_id);
     char port_str[128];
     sprintf(port_str, "%d", port );
 
@@ -284,7 +267,6 @@ int RemoteNode::new_InternalNode(int listening_sock_fd,
     args.push_back(port_str);
     args.push_back(parent_host);
     args.push_back(std::string(parent_port_str));
-    args.push_back(std::string(parent_id_str));
 
     if( XPlat::Process::Create( hostname, commnode_cmd, args ) != 0 ){
         int err = XPlat::Process::GetLastError();
@@ -304,28 +286,27 @@ int RemoteNode::new_InternalNode(int listening_sock_fd,
 
 
 int RemoteNode::new_Application(int listening_sock_fd,
-                                std::string parent_host,
-                                unsigned short parent_port,
-                                unsigned short parent_id, std::string &cmd,
-                                std::vector <std::string> &args){
+                                std::string parent_host, Port parent_port,
+                                Rank be_rank,
+                                std::string &cmd, std::vector <std::string> &args){
 
     mrn_printf(3, MCFL, stderr, "In new_Application(%s:%d,\n"
                "                   cmd: %s)\n",
                hostname.c_str(), port, cmd.c_str());
   
-    char port_str[128];
-    sprintf(port_str, "%d", port );
     char parent_port_str[128];
     sprintf(parent_port_str, "%d", parent_port);
-    char parent_id_str[128];
-    sprintf(parent_id_str, "%d", parent_id);
+    char rank_str[128];
+    sprintf(rank_str, "%d", be_rank );
+
+    std::string parent_nethost;
+    getNetworkName( parent_nethost, parent_host );
 
     // set up arguments for new process
     args.push_back(cmd);
-    args.push_back(std::string(port_str));
-    args.push_back(parent_host);
+    args.push_back(parent_nethost);
     args.push_back(std::string(parent_port_str));
-    args.push_back(std::string(parent_id_str));
+    args.push_back(std::string(rank_str));
 
     if( XPlat::Process::Create( hostname, cmd, args ) != 0 ){
         mrn_printf(1, MCFL, stderr, "XPlat::Process::Create() failed\n"); 
@@ -336,31 +317,113 @@ int RemoteNode::new_Application(int listening_sock_fd,
         return -1;
     }
 
-    // accept the connection
-    sock_fd = getSocketConnection( listening_sock_fd );
-    if( sock_fd == -1 ) {
-        mrn_printf(1, MCFL, stderr, "get_socket_connection() failed\n" );
-        error( ESYSTEM, "accept_Connection(): %s\n", strerror(errno) );
+    // establish connection with the backend
+    // because we created the process and delivered its rank on 
+    // the command line, the back-end should know its own rank.
+    sock_fd = connect_to_backend( listening_sock_fd, &be_rank );
+    if( sock_fd == -1 )
+    {
+        // callee handled the error
         return -1;
     }
+    rank = be_rank;
 
-    // consume the backend id sent from the backend
-    uint32_t idBuf = 0;
-    int rret = ::recv( sock_fd, (char*)&idBuf, 4, 0 );
-    if( rret != 4 ) {
-        mrn_printf(1, MCFL, stderr, "failed to receive id from backend\n" );
-        error( ESYSTEM, "recv(): %s\n", strerror(errno) );
-        return -1;
-    }
-    uint32_t backend_port = ntohl(idBuf);
-    assert( backend_port == port );
-
-    if( accept_Connection( sock_fd, false ) == -1 ){
+    // finalize the connection
+    if( accept_Connection( sock_fd, false ) != 0 ) {
         error( ESYSTEM, "accept_Connection(): %s\n", strerror(errno) );
         return -1;
     }
     return 0;
 }
+
+
+int
+RemoteNode::connect_to_backend( int listening_sock_fd, Rank* rank )
+{
+    assert( rank != NULL );
+
+    // accept the socket connection
+    int sock_fd = getSocketConnection( listening_sock_fd );
+    if( sock_fd == -1 ) {
+        mrn_printf(1, MCFL, stderr, "get_socket_connection() failed\n" );
+        return -1;
+    }
+
+    // do our side of the handshake
+    // receive the back-end's idea of its rank
+    uint32_t netrank = UnknownRank;
+    int rret = ::recv( sock_fd, (char*)&netrank, sizeof(netrank), 0 );
+    if( rret != sizeof(rank) )
+    {
+        mrn_printf(1, MCFL, stderr, "failed to receive rank from back-end\n" );
+        close( sock_fd );
+        sock_fd = -1;
+        return -1;
+    }
+
+    // validate the rank
+    Rank hostrank = ntohl( netrank );
+    if( hostrank == UnknownRank )
+    {
+        // the backend should've known its own rank
+        mrn_printf( 1, MCFL, stderr, "backend handshake failed: unknown rank\n" );
+        close( sock_fd );
+        sock_fd = -1;
+        return -1;
+    }
+    else if( *rank != UnknownRank )
+    {
+        if( *rank != hostrank )
+        {
+            // the back-end told us a rank that was different
+            // from what we were expecting
+            mrn_printf( 1, MCFL, stderr, 
+                "backend handshake failed: unexpected rank\n" );
+            close( sock_fd );
+            sock_fd = -1;
+            return -1;
+        }
+    }
+    else
+    {
+        // just set the rank to what the back-end gave us
+        *rank = hostrank;
+    }
+    assert( *rank == hostrank );
+
+    return sock_fd;
+}
+
+int RemoteNode::connect_to_leaf( Rank myRank )
+{
+    connect();
+    if( fail() ){
+        mrn_printf(1, MCFL, stderr, "connect() failed\n");
+        close( sock_fd );
+        sock_fd = -1;
+        return -1;
+    }
+  
+    // do low-level handshake with our rank
+    uint32_t netrank = htonl( myRank );
+    int sret = ::send( sock_fd, (const char*)&netrank, sizeof(netrank), 0 );
+    if( sret == -1 ) 
+    {
+        mrn_printf(1, MCFL, stderr, 
+            "leaf handshake failed: send failed: %d: %s \n", 
+            errno, strerror(errno) );
+        error( ESYSTEM, "send(): %s\n", strerror( errno ) );
+        close( sock_fd );
+        sock_fd = -1;
+        return -1;
+    }
+
+    return sock_fd;
+}
+
+
+
+
 
 int RemoteNode::send(Packet& packet)
 {
@@ -436,6 +499,6 @@ int RemoteNode::flush()
     return 0;
 }
 
-int RemoteNode::poll_timeout=-1;
+int RemoteNode::poll_timeout=0;
 
 } // namespace MRN

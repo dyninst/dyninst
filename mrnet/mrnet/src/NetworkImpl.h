@@ -27,24 +27,21 @@ class NetworkImpl: public Error {
     class LeafInfoImpl : public Network::LeafInfo {
     private:
         char* host;
-        unsigned short id;
-        unsigned short rank;
+        Port port;
+        Rank rank;
         char* phost;
-        unsigned short pport;
-        unsigned short prank;
+        Port pport;
 
     public:
-        LeafInfoImpl( unsigned short _id, const char* _host,
-                      unsigned short _rank, const char* _phost,
-                      unsigned short _pport, unsigned short _prank );
+        LeafInfoImpl( const char* _host, Port _port, Rank _rank,
+                        const char* _phost, Port _pport );
         virtual ~LeafInfoImpl( void );
       
         virtual const char* get_Host( void ) const      { return host; }
-        virtual unsigned short get_Rank( void ) const   { return rank; }
-        virtual unsigned short get_Id( void ) const   { return id; }
+        virtual Port get_Port( void ) const   { return port; }
+        virtual Rank get_Rank( void ) const   { return rank; }
         virtual const char* get_ParHost( void ) const   { return phost; }
-        virtual unsigned short get_ParPort( void ) const   { return pport; }
-        virtual unsigned short get_ParRank( void ) const   { return prank; }
+        virtual Port get_ParPort( void ) const   { return pport; }
     };
 
  private:
@@ -62,11 +59,13 @@ class NetworkImpl: public Error {
     FrontEndNode * get_FrontEndNode( void ) { return front_end; }
     BackEndNode * get_BackEndNode( void ) { return back_end; }
     
-    int parse_configfile();
+    int parse_configfile( const char* _configBuf = NULL );
 
     /* "Registered" streams */
     static std::map < unsigned int, Stream * >streams;
     static unsigned int cur_stream_idx;
+
+    void InitFE( Network * _network, const char * _config = NULL );
 
  public:
     NetworkGraph * graph;  /* hierarchical DAG of tree nodes */
@@ -76,16 +75,22 @@ class NetworkImpl: public Error {
     static bool is_FrontEnd();
     static bool is_BackEnd();
 
+    // FE constructors
+    // The first takes a configuration from a file named by '_filename',
+    // the second takes its configuration from a buffer in memory.
     NetworkImpl(Network *, const char * _filename, const char * _application);
-    NetworkImpl(Network *, const char *hostname, unsigned int backend_id,
-                const char *phostname, unsigned int pport, unsigned int pid);
+    NetworkImpl(Network *, const char * _config, 
+                    bool unused, const char * _application);
+
+    // BE constructor
+    NetworkImpl(Network *, const char *phostname, Port pport, Rank myrank );
     ~NetworkImpl();
 
     Communicator * get_BroadcastCommunicator(void);
     int recv(int *tag, void **ptr, Stream **stream, bool blocking=true);
     int send(Packet &);
     int recv( bool blocking=true );
-    EndPoint * get_EndPoint(const char * _hostname, unsigned short _port);
+    EndPoint * get_EndPoint(const char * _hostname, Port _port);
 
     int get_LeafInfo( Network::LeafInfo*** linfo, unsigned int* nLeaves );
     int connect_Backends( void );

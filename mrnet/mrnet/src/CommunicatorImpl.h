@@ -34,13 +34,13 @@ class CommunicatorImpl{
 
     const std::vector <EndPoint *> & get_EndPoints() const;
 
-    int add_EndPoint(const char * hostname, unsigned short port);
+    int add_EndPoint(const char * hostname, Port port);
     void add_EndPoint(EndPoint *);
 
     unsigned int size() const;
     const char * get_HostName(int) const; 
-    unsigned short get_Port(int) const;
-    unsigned int get_Id(int) const;
+    Port get_Port(int) const;
+    Rank get_Rank(int) const;
 };
 
 inline void CommunicatorImpl::add_EndPoint(EndPoint * new_endpoint)
@@ -58,14 +58,14 @@ inline const char * CommunicatorImpl::get_HostName(int id) const
     return endpoints[id]->get_HostName();
 }
 
-inline unsigned short CommunicatorImpl::get_Port(int id) const
+inline Port CommunicatorImpl::get_Port(int id) const
 {
     return endpoints[id]->get_Port();
 }
 
-inline unsigned int CommunicatorImpl::get_Id(int id) const
+inline Rank CommunicatorImpl::get_Rank(int id) const
 {
-    return endpoints[id]->get_Id();
+    return endpoints[id]->get_Rank();
 }
 
 inline const std::vector <EndPoint *> & CommunicatorImpl::get_EndPoints() const

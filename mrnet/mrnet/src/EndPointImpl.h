@@ -15,17 +15,17 @@ namespace MRN
 class NetworkNode;
 class EndPointImpl{
  private:
-    unsigned int id;
+    Rank rank;
     std::string hostname;
-    unsigned short port;
+    Port port;
 
  public:
-    EndPointImpl(int _id, const char * _hostname, unsigned short _port);
+    EndPointImpl(Rank _rank, const char * _hostname, Port _port);
     ~EndPointImpl();
     const char * get_HostName()const;
-    unsigned short get_Port()const;
-    unsigned int get_Id()const;
-    bool compare(const char * _hostname, unsigned short _port)const;
+    Port get_Port()const;
+    Rank get_Rank()const;
+    bool compare(const char * _hostname, Port _port)const;
 };
 
 inline const char * EndPointImpl::get_HostName() const
@@ -33,18 +33,17 @@ inline const char * EndPointImpl::get_HostName() const
     return hostname.c_str();
 }
 
-inline unsigned short EndPointImpl::get_Port() const
+inline Port EndPointImpl::get_Port() const
 {
     return port;
 }
 
-inline unsigned int EndPointImpl::get_Id() const
+inline Rank EndPointImpl::get_Rank() const
 {
-    return id;
+    return rank;
 }
 
-inline bool EndPointImpl::compare(const char * _hostnamestr,
-                                  unsigned short _port) const
+inline bool EndPointImpl::compare(const char * _hostnamestr, Port _port) const
 {
     if( ( port == _port ) &&
         ( hostname == _hostnamestr ) ){

@@ -31,16 +31,24 @@ enum ProtocolTags {
 class CommunicationNode {
  protected:
     std::string hostname;
-    unsigned short port;    // MRNet-assigned "port"
-    unsigned short id;      // id, if back-end
+    Port port;    // MRNet-assigned "port"
+#if READY
+    Rank rank;    // back-end rank, if a back-end
+#endif // READY
     
  public:
-    CommunicationNode( std::string & _hostname, unsigned short _port );
-    CommunicationNode( std::string & _hostname, unsigned short _port,
-                       unsigned short _id );
+#if READY
+    CommunicationNode( std::string & _hostname, Port _port,
+                       Rank _rank = UnknownRank );
+#else
+    CommunicationNode( std::string & _hostname, Port _port );
+#endif // READY
     std::string get_HostName( ) const;
-    unsigned short get_Port( ) const;
-    unsigned short get_Id( ) const;
+    Port get_Port( ) const;
+
+#if READY
+    Rank get_Rank( ) const;
+#endif // READY
 };
 
 inline std::string CommunicationNode::get_HostName() const
@@ -48,15 +56,17 @@ inline std::string CommunicationNode::get_HostName() const
     return hostname;
 }
 
-inline unsigned short CommunicationNode::get_Port() const
+inline Port CommunicationNode::get_Port() const
 {
     return port;
 }
 
-inline unsigned short CommunicationNode::get_Id() const
+#if READY
+inline Rank CommunicationNode::get_Rank() const
 {
-    return id;
+    return rank;
 }
+#endif // READY
 
 }                               // namespace MRN
 

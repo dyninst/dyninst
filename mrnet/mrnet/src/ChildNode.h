@@ -20,11 +20,11 @@ class ChildNode: public Error{
 
  private:
     std::string hostname;
-    unsigned short port;
+    Port port;
     bool threaded;
 
  public:
-    ChildNode(bool, std::string, unsigned short);
+    ChildNode(bool, std::string, Port);
     virtual ~ChildNode(void);
     virtual int proc_PacketsFromUpStream(std::list <Packet> &)=0;
     virtual int proc_DataFromUpStream(Packet&)=0;
@@ -35,7 +35,7 @@ class ChildNode: public Error{
     int send_Events( );
 
     std::string get_HostName();
-    unsigned short get_Port();
+    Port get_Port();
 
     int getConnections( int** conns, unsigned int* nConns );
     virtual void error( EventType, const char *, ... );
@@ -62,7 +62,7 @@ inline std::string ChildNode::get_HostName()
   return hostname;
 }
 
-inline unsigned short ChildNode::get_Port()
+inline Port ChildNode::get_Port()
 {
   return port;
 }

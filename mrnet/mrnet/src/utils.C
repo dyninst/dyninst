@@ -31,18 +31,19 @@
 #include "xplat/PathUtils.h"
 #include "xplat/Error.h"
 
+#include "mrnet/MRNet.h"
+
 
 namespace MRN
 {
 
 std::string LocalHostName="";
-unsigned short LocalPort=0;
+Port LocalPort=0;
 
 XPlat::TLSKey tsd_key;
 
 
-int connectHost( int *sock_in, const std::string & hostname,
-                 unsigned short port )
+int connectHost( int *sock_in, const std::string & hostname, Port port )
 {
     int sock = *sock_in;
     struct sockaddr_in server_addr;
@@ -111,10 +112,10 @@ int connectHost( int *sock_in, const std::string & hostname,
     return 0;
 }
 
-int bindPort( int *sock_in, unsigned short *port_in )
+int bindPort( int *sock_in, Port *port_in )
 {
     int sock = *sock_in;
-    unsigned short port = *port_in;
+    Port port = *port_in;
     struct sockaddr_in local_addr;
 
     mrn_printf( 3, MCFL, stderr, "In bind_to_port(sock:%d, port:%d)\n",
@@ -139,7 +140,9 @@ int bindPort( int *sock_in, unsigned short *port_in )
         }
     }
     else {
-        port = 7000;
+        // port = 7000;
+
+        // let the system assign a port
         local_addr.sin_port = htons( port );
         while( bind( sock, (sockaddr*) & local_addr, sizeof( local_addr ) ) ==
                -1 ) {
@@ -176,8 +179,16 @@ int bindPort( int *sock_in, unsigned short *port_in )
     }
 #endif // defined(TCP_NODELAY)
 
+    // determine which port we were actually assigned to
+    if( getPortFromSocket( sock, port_in ) != 0 )
+    {
+        mrn_printf( 1, MCFL, stderr,
+            "failed to obtain port from socket\n" );
+        close( sock );
+        return -1;
+    }
+    
     *sock_in = sock;
-    *port_in = port;
     mrn_printf( 3, MCFL, stderr,
                 "Leaving bind_to_port(). Returning sock:%d, port:%d\n",
                 sock, port );
@@ -218,7 +229,7 @@ int getSocketConnection( int bound_socket )
 }
 
 
-int getPortFromSocket( int sock, unsigned short *port )
+int getPortFromSocket( int sock, Port *port )
 {
     struct sockaddr_in local_addr;
     socklen_t sockaddr_len = sizeof( local_addr );
@@ -229,7 +240,7 @@ int getPortFromSocket( int sock, unsigned short *port )
         return -1;
     }
 
-    *port = local_addr.sin_port;
+    *port = ntohs( local_addr.sin_port );
     return 0;
 }
 

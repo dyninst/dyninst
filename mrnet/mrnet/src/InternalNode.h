@@ -25,9 +25,8 @@ class InternalNode: public ParentNode, public ChildNode,
     virtual int deliverConnectLeavesResponse( Packet& pkt );
 
  public:
-    InternalNode(std::string hostname, unsigned short port,
-                 std::string _phostname, unsigned short _pport,
-                 unsigned short _pid);
+    InternalNode(std::string hostname, Port port,
+                 std::string _phostname, Port _pport);
     virtual ~InternalNode(void);
     void waitLoop();
     int send_newSubTreeReport(bool status);

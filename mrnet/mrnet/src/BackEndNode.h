@@ -18,12 +18,14 @@ namespace MRN
 class BackEndNode: public ChildNode, public CommunicationNode{
  private:
     Network * network;
+    Rank rank;
+
     int proc_newStream( Packet & pkt );
 
  public:
-    BackEndNode(Network *, std::string _hostname, unsigned short _backend_id,
-                std::string _phostname, unsigned short _pport, 
-                unsigned short _pid);
+    BackEndNode(Network * _network, 
+                    std::string _my_hostname, Port _my_port, Rank _my_rank,
+                    std::string _parent_hostname, Port _parent_port);
     virtual ~BackEndNode(void);
     virtual int proc_PacketsFromUpStream(std::list <Packet> &);
     virtual int proc_DataFromUpStream(Packet &);

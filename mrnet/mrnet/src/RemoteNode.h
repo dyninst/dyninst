@@ -25,6 +25,7 @@ class RemoteNode:public CommunicationNode, public Error {
 
     int sock_fd;
     bool _is_internal_node;
+    Rank rank;              // UnknownRank for all but connections to a BE
 
     int accept_Connection( int sock_fd, bool doConnect = true );
 
@@ -37,18 +38,19 @@ class RemoteNode:public CommunicationNode, public Error {
     bool _is_upstream;
     XPlat::Monitor msg_out_sync;
 
-    RemoteNode(bool threaded, std::string &_hostname, unsigned short _port);
-    RemoteNode(bool threaded, std::string &_hostname, unsigned short _port,
-               unsigned short _id);
+    RemoteNode(bool threaded, std::string &_hostname, Port _port );
     int connect();
-    int new_InternalNode(int listening_sock_fd, std::string parent_hostname,
-                         unsigned short parent_port, unsigned short parent_id,
+    int new_InternalNode(int listening_sock_fd,
+                        std::string parent_hostname, Port parent_port,
                          std::string commnode);
     int new_Application(int listening_sock_fd,
-                        std::string parent_hostname,
-                        unsigned short parent_port, unsigned short parent_id,
+                        std::string parent_hostname, Port parent_port,
+                        Rank be_rank,
                         std::string &cmd, std::vector <std::string> &args);
     int accept_Application( int sock_fd );
+
+    static int connect_to_backend( int listening_sock, Rank* rank );
+    int connect_to_leaf( Rank r );
 
     int send(Packet&);
     int flush();
@@ -58,7 +60,9 @@ class RemoteNode:public CommunicationNode, public Error {
     bool is_internal() const;
     bool is_upstream() const;
 
-    int get_sockfd( void ) const              { return sock_fd; }
+    int get_sockfd( void ) const                { return sock_fd; }
+
+    Rank get_Rank( void ) const                 { return rank; }
 
     static void set_BlockingTimeOut( int _timeout );
     static int get_BlockingTimeOut( );

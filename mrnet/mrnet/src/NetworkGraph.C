@@ -3,6 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
+#include <sstream>
 #include <stdio.h>
 
 
@@ -18,8 +19,8 @@ namespace MRN
 /***************************************************
  * NetworkNode
  **************************************************/
-NetworkNode::NetworkNode(char * _hostname, unsigned short _port)
-    :hostname(_hostname), port(_port), _visited(false)
+NetworkNode::NetworkNode(const char * _hostname, Port _port)
+    :hostname(_hostname), port(_port), rank(UnknownRank), _visited(false)
 {
 }
 
@@ -46,7 +47,7 @@ void NetworkGraph::add_Node(NetworkNode* new_node)
     }
 }
 
-NetworkNode * NetworkGraph::find_Node(char * hostname, unsigned short port)
+NetworkNode * NetworkGraph::find_Node(char * hostname, Port port)
 {
     char port_str[128];
     sprintf(port_str, "%d", port);
@@ -83,10 +84,10 @@ void NetworkGraph::preorder_traversal(NetworkNode * node){
 
         if(node->children.size() == 0){
             // Leaf node, just add my name to serial representation and return
-            node->id = next_leaf_id++;
+            node->rank = next_leaf_id++;
             serial_graph.add_BackEnd(node->get_HostName(), node->get_Port(),
-                                     node->id);
-            endpoints.push_back(Network::new_EndPoint( node->id,
+                                     node->rank);
+            endpoints.push_back(Network::new_EndPoint( node->rank,
                                                        node->get_HostName()
                                                        .c_str(),
                                                        node->get_Port()) );
@@ -136,21 +137,23 @@ SerialGraph::SerialGraph()
 {
 }
 
-void SerialGraph::add_BackEnd(std::string hostname, unsigned short port,
-                              unsigned short id)
+void SerialGraph::add_BackEnd(std::string hostname, Port port, Rank rank)
 {
-    char id_str[128], port_str[128];
-    sprintf(id_str, "%d", id);
-    sprintf(port_str, "%d", port);
-    byte_array += hostname + ":" + std::string(port_str) + ":" + std::string(id_str) + " ";
+    std::ostringstream hoststr;
+
+    hoststr << hostname << ":" << port << ":" << rank << " ";
+    byte_array += hoststr.str();
+
     num_nodes++; num_backends++;
 }
 
-void SerialGraph::add_SubTreeRoot(std::string hostname, unsigned short port)
+void SerialGraph::add_SubTreeRoot(std::string hostname, Port port)
 {
-    char port_str[128];
-    sprintf(port_str, "%d", port);
-    byte_array += "[ " + hostname + ":" + std::string(port_str) + " ";
+    std::ostringstream hoststr;
+
+    hoststr << "[ " << hostname << ":" << port << " ";
+    byte_array += hoststr.str();
+
     num_nodes++;
 }
 
@@ -234,10 +237,10 @@ std::string SerialGraph::get_RootName()
     return retval;
 }
 
-unsigned short SerialGraph::get_RootPort()
+Port SerialGraph::get_RootPort()
 {
     int begin, end;
-    unsigned short retval;
+    Port retval;
 
     begin = byte_array.find(':', 2);
     assert( begin != -1);
@@ -250,10 +253,10 @@ unsigned short SerialGraph::get_RootPort()
     return retval;
 }
 
-int SerialGraph::get_Id(){
+Rank SerialGraph::get_Rank(){
     assert(!has_children());
 
-    int retval=0;
+    Rank retval = UnknownRank;
     int begin=0, end=1; //Byte array begins [ xxx ...
 
     //find 2nd ':'
@@ -265,10 +268,10 @@ int SerialGraph::get_Id(){
     begin++;
     end = byte_array.find(' ', begin);
 
-    std::string idstring = byte_array.substr(begin, end-begin);
+    std::string rankstring = byte_array.substr(begin, end-begin);
 
-    retval = atoi(idstring.c_str());
-    //printf(MCFL, stderr, "In get_Id(). byte_array: %s, id: %s, %d\n",
+    retval = atoi(rankstring.c_str());
+    //printf(MCFL, stderr, "In get_Rank(). byte_array: %s, id: %s, %d\n",
     //byte_array.c_str(), idstring.c_str(), retval);
 
     return retval;

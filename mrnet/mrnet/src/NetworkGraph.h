@@ -22,17 +22,17 @@ class NetworkGraph;
 class NetworkNode {
     friend class NetworkGraph;
  private:
-    unsigned int id;
     std::string hostname;
-    unsigned short port;
+    Port port;
+    Rank rank;
     NetworkGraph *network_graph;
     std::vector < NetworkNode * >children;
     bool _visited;
 
  public:
-    NetworkNode( char *_hostname, unsigned short port );
+    NetworkNode( const char *_hostname, Port port );
     std::string get_HostName(  );
-    unsigned short get_Port(  );
+    Port get_Port(  );
     void add_Child( NetworkNode * );
     void visit(  );
     bool visited(  );
@@ -51,18 +51,18 @@ class SerialGraph {
     SerialGraph(  );
     SerialGraph( const char * );
     SerialGraph( std::string );
-    void add_BackEnd( std::string, unsigned short, unsigned short );
-    void add_SubTreeRoot( std::string, unsigned short );
+    void add_BackEnd( std::string, Port, Rank );
+    void add_SubTreeRoot( std::string, Port );
     void end_SubTree(  );
     std::string get_ByteArray(  );
     void print(  );
 
     std::string get_RootName(  );
-    unsigned short get_RootPort(  );
+    Port get_RootPort(  );
     void set_ToFirstChild(  );
     SerialGraph *get_NextChild(  );
     bool has_children(  );
-    int get_Id(  );
+    Rank get_Rank(  );
     unsigned int get_NumNodes(  );
     unsigned int get_NumBackends(  );
 };
@@ -85,7 +85,7 @@ class NetworkGraph: public Error {
     void set_Root( NetworkNode * );
     const std::vector < EndPoint * > & get_EndPoints( );
     NetworkNode *get_Root(  );
-    NetworkNode *find_Node( char *, unsigned short );
+    NetworkNode *find_Node( char *, Port );
     bool has_cycle(  );
     bool fully_connected(  );
     int get_Size(  );
@@ -93,7 +93,7 @@ class NetworkGraph: public Error {
     void add_Node( NetworkNode * );
 };
 
-inline unsigned short NetworkNode::get_Port()
+inline Port NetworkNode::get_Port()
 {
     return port;
 }

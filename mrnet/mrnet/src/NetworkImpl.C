@@ -16,12 +16,18 @@
 #include "mrnet/src/utils.h"
 #include "src/config.h"
 
+#include "xplat/NetUtils.h"
+
 extern FILE *mrnin;
-extern int mrndebug;
 
 namespace MRN
 {
 int mrnparse( );
+
+extern int mrndebug;
+extern const char* mrnBufPtr;
+extern unsigned int mrnBufRemaining;
+
 
 NetworkGraph *NetworkImpl::parsed_graph = NULL;
 bool NetworkImpl::is_backend=false;
@@ -35,10 +41,69 @@ NetworkImpl::NetworkImpl( Network * _network, const char *_filename,
       application( ( _application == NULL ) ? "" : _application ),
       front_end( NULL ), back_end( NULL )
 {
+    InitFE( _network );
+}
+
+
+NetworkImpl::NetworkImpl( Network * _network, const char *_config,
+                          bool unused, const char *_application )
+    : application( ( _application == NULL ) ? "" : _application ),
+      front_end( NULL ), back_end( NULL )
+{
+    InitFE( _network, _config );
+}
+
+
+// BE constructor
+NetworkImpl::NetworkImpl( Network *_network,
+                          const char *_phostname, Port pport,
+                          Rank myrank )         // may be UnknownRank
+{
+    std::string host = XPlat::NetUtils::GetNetworkName();
+    std::string phost( _phostname );
+    Port port = UnknownPort;
+
+    //TLS: setup thread local storage for frontend
+    //I am "BE(host:port)"
+    std::string prettyHost;
+    getHostName( prettyHost, host );
+    char port_str[16];
+    sprintf( port_str, "%u", port );
+    char rank_str[16];
+    sprintf( rank_str, "%u", myrank );
+    std::string name( "BE(" );
+    name += prettyHost;
+    name += ":";
+    name += port_str;
+    name += ":";
+    name += rank_str;
+    name += ")";
+    int status;
+
+    tsd_t *local_data = new tsd_t;
+    local_data->thread_id = XPlat::Thread::GetId(  );
+    local_data->thread_name = strdup( name.c_str(  ) );
+    if( ( status = tsd_key.Set( local_data ) ) != 0 ) {
+        //TODO: add event to notify upstream
+        error(ESYSTEM, "XPlat::TLSKey::Set(): %s\n", strerror( status ) );
+        mrn_printf( 1, MCFL, stderr, "XPlat::TLSKey::Set(): %s\n",
+                    strerror( status ) );
+    }
+
+    back_end = new BackEndNode( _network, host, port, myrank, phost, pport );
+
+    if( back_end->fail() ){
+        error( ESYSTEM, "Failed to initialize via BackEndNode()\n" );
+    }
+    is_backend = true;
+}
+
+void NetworkImpl::InitFE( Network * _network, const char* _config )
+{
     // ensure our variables are set for parsing
     parsed_graph = new NetworkGraph;
 
-    if( parse_configfile( ) == -1 ) {
+    if( parse_configfile( _config ) == -1 ) {
         return;
     }
 
@@ -93,58 +158,30 @@ NetworkImpl::NetworkImpl( Network * _network, const char *_filename,
     }
 
     is_frontend = true;
-    return;
 }
 
-NetworkImpl::NetworkImpl( Network *_network,
-                          const char *_hostname, unsigned int port,
-                          const char *_phostname, unsigned int pport,
-                          unsigned int pid )
-{
-    std::string host( _hostname );
-    std::string phost( _phostname );
-
-    //TLS: setup thread local storage for frontend
-    //I am "BE(host:port)"
-    std::string prettyHost;
-    getHostName( prettyHost, host );
-    char port_str[16];
-    sprintf( port_str, "%u", port );
-    std::string name( "BE(" );
-    name += prettyHost;
-    name += ":";
-    name += port_str;
-    name += ")";
-    int status;
-
-    tsd_t *local_data = new tsd_t;
-    local_data->thread_id = XPlat::Thread::GetId(  );
-    local_data->thread_name = strdup( name.c_str(  ) );
-    if( ( status = tsd_key.Set( local_data ) ) != 0 ) {
-        //TODO: add event to notify upstream
-        error(ESYSTEM, "XPlat::TLSKey::Set(): %s\n", strerror( status ) );
-        mrn_printf( 1, MCFL, stderr, "XPlat::TLSKey::Set(): %s\n",
-                    strerror( status ) );
-    }
-
-    back_end = new BackEndNode( _network, host, port, phost, pport, pid );
-
-    if( back_end->fail() ){
-        error( ESYSTEM, "Failed to initialize via BackEndNode()\n" );
-    }
-    is_backend = true;
-}
-
-int NetworkImpl::parse_configfile(  )
+int NetworkImpl::parse_configfile( const char* cfg )
 {
     // mrndebug=1;
-    mrnin = fopen( filename.c_str(  ), "r" );
-    if( mrnin == NULL ) {
-        mrn_printf( 1, MCFL, stderr, "fopen() failed: %s: %s",
-                    filename.c_str(), strerror( errno ) );
-        error( EBADCONFIG, "fopen() failed: %s: %s", filename.c_str(),
-               strerror( errno ) );
-        return -1;
+
+    if( cfg != NULL )
+    {
+        // set up to parse config from a buffer in memory
+        mrnBufPtr = cfg;
+        mrnBufRemaining = strlen( cfg );
+    }
+    else
+    {
+        // set up to parse config from teh file named by our
+        // 'filename' member variable
+        mrnin = fopen( filename.c_str(  ), "r" );
+        if( mrnin == NULL ) {
+            mrn_printf( 1, MCFL, stderr, "fopen() failed: %s: %s",
+                        filename.c_str(), strerror( errno ) );
+            error( EBADCONFIG, "fopen() failed: %s: %s", filename.c_str(),
+                   strerror( errno ) );
+            return -1;
+        }
     }
 
     if( mrnparse( ) != 0 ) {
@@ -165,8 +202,7 @@ NetworkImpl::~NetworkImpl(  ) {
     is_backend = false;
 }
 
-EndPoint * NetworkImpl::get_EndPoint( const char *_hostname,
-                                      unsigned short _port )
+EndPoint * NetworkImpl::get_EndPoint( const char *_hostname, Port _port )
 {
     unsigned int i;
 
@@ -231,7 +267,7 @@ leafInfoCompare( const Network::LeafInfo * a,
 {
     assert( a != NULL );
     assert( b != NULL );
-    return ( a->get_Id(  ) < b->get_Id(  ) );
+    return ( a->get_Rank(  ) < b->get_Rank(  ) );
 }
 
 
@@ -240,7 +276,7 @@ int NetworkImpl::get_LeafInfo( Network::LeafInfo *** linfo,
 {
     int ret = -1;
 
-    // these should've been checked by our caller
+    // allocate space for the output
     assert( linfo != NULL );
     assert( nLeaves != NULL );
 
@@ -272,40 +308,41 @@ int NetworkImpl::get_LeafInfo( Network::LeafInfo *** linfo,
         if( resp != *Packet::NullPacket ) {
             // we got the response successfully -
             // build the return value from the response packet
-            int *ids = NULL;
-            unsigned int nIds = 0;
             char **hosts = NULL;
             unsigned int nHosts = 0;
+            int *ports = NULL;
+            unsigned int nPorts = 0;
             int *ranks = NULL;
             unsigned int nRanks = 0;
             char **phosts = NULL;
             unsigned int nPHosts = 0;
             int *pports = NULL;
             unsigned int nPPorts = 0;
-            int *pranks = NULL;
-            unsigned int nPRanks = 0;
 
-            int nret = resp.ExtractArgList( "%ad %as %ad %as %ad %ad",
-                                            &ids, &nIds,
+            int nret = resp.ExtractArgList( "%as %ad %ad %as %ad",
                                             &hosts, &nHosts,
+                                            &ports, &nPorts,
                                             &ranks, &nRanks,
                                             &phosts, &nPHosts,
-                                            &pports, &nPPorts,
-                                            &pranks, &nPRanks );
+                                            &pports, &nPPorts );
             if( nret == 0 ) {
                 if( ( nHosts == nRanks ) &&
                     ( nHosts == nPHosts ) &&
-                    ( nHosts == nPPorts ) && ( nHosts == nPRanks ) ) {
+                    ( nHosts == nPPorts ) ) {
+
                     // build un-ordered leaf info vector
                     std::vector < Network::LeafInfo * >linfov;
                     for( unsigned int i = 0; i < nHosts; i++ ) {
+
+                        assert( hosts[i] != NULL );
+                        assert( phosts[i] != NULL );
+
                         Network::LeafInfo * li =
-                            new NetworkImpl::LeafInfoImpl( ids[i],
-                                                           hosts[i],
+                            new NetworkImpl::LeafInfoImpl( hosts[i],
+                                                           ports[i],
                                                            ranks[i],
                                                            phosts[i],
-                                                           pports[i],
-                                                           pranks[i] );
+                                                           pports[i] );
                         linfov.push_back( li );
                     }
 
@@ -472,17 +509,16 @@ get_packet_from_stream_label:
 }
 
 
-NetworkImpl::LeafInfoImpl::LeafInfoImpl( unsigned short _id, const char* _host,
-                                         unsigned short _rank,
-                                         const char* _phost,
-                                         unsigned short _pport,
-                                         unsigned short _prank )
+NetworkImpl::LeafInfoImpl::LeafInfoImpl( const char* _host,
+                                            Port _port,
+                                            Rank _rank,
+                                            const char* _phost,
+                                            Port _pport )
     : host( new char[strlen(_host)+1] ),
-    id( _id ),
+    port( _port ),
     rank( _rank ),
     phost( new char[strlen(_phost)+1] ),
-    pport( _pport ),
-    prank( _prank )
+    pport( _pport )
 {
     strcpy( host, _host );
     strcpy( phost, _phost );

@@ -12,17 +12,19 @@ namespace MRN
 /*===========================================================*/
 /*  CommunicationNode CLASS METHOD DEFINITIONS            */
 /*===========================================================*/
-CommunicationNode::CommunicationNode(std::string &_h, unsigned short _p)
-  : port(_p), id(0)
+#if READY
+CommunicationNode::CommunicationNode(std::string &_h, Port _p,
+                                           Rank _rank)
+  : port(_p), rank(_rank)
 {
     getNetworkName(hostname, _h);
 }
-
-CommunicationNode::CommunicationNode(std::string &_h, unsigned short _p,
-                                           unsigned short _id)
-  : port(_p), id(_id)
+#else
+CommunicationNode::CommunicationNode(std::string &_h, Port _p )
+  : port(_p)
 {
     getNetworkName(hostname, _h);
 }
+#endif // READY
 
 } // namespace MRN

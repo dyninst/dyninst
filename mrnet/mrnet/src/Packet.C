@@ -98,9 +98,21 @@ PacketData::PacketData(const PacketData& p)
 PacketData& PacketData::operator=(const PacketData& p)
 {
     if( this != &p ){
-        if(src) free(src);
-        if(buf) free(buf);
-        if(fmt_str) free(fmt_str);
+        if(src)
+        {
+            free(src);
+            src = NULL;
+        }
+        if(buf)
+        {
+            free(buf);
+            buf = NULL;
+        }
+        if(fmt_str)
+        {
+            free(fmt_str);
+            fmt_str = NULL;
+        }
 
         stream_id = p.stream_id;
         tag = p.tag;
@@ -111,23 +123,15 @@ PacketData& PacketData::operator=(const PacketData& p)
             buf = (char *)malloc( buf_len * sizeof(char) );
             memcpy(buf, p.buf, buf_len);
         }
-        else{
-            buf = NULL;
-        }
 
         if( p.src != NULL ){
             src = strdup(p.src);
-        }
-        else{
-            src = NULL;
         }
 
         if( p.fmt_str != NULL ){
             fmt_str = strdup(p.fmt_str);
         }
-        else{
-            fmt_str = NULL;
-        }
+
         //rather than just copying pointers,
         //create a new pointer and copy element
         for( unsigned int i=0; i<p.data_elements.size(); i++){
@@ -142,12 +146,15 @@ PacketData::~PacketData()
 {
     if( src != NULL ){
         free(src);
+        src = NULL;
     }
     if( buf != NULL ){
         free(buf);
+        buf = NULL;
     }
     if( fmt_str != NULL ){
         free(fmt_str);
+        fmt_str = NULL;
     }
 
     for( unsigned int i=0; i < data_elements.size(); i++ ){

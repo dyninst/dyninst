@@ -15,7 +15,7 @@ namespace MRN
 /*======================================================*/
 
 FrontEndNode::FrontEndNode( Network * _network, std::string _hostname,
-                            unsigned short _port )
+                            Port _port )
     : ParentNode( false, _hostname, _port ),
       CommunicationNode( _hostname, _port ),
       network(_network),
@@ -133,8 +133,8 @@ int FrontEndNode::recv( bool blocking )
 
 
     if( recv_PacketsFromDownStream( packet_list, NULL, blocking ) == -1 ) {
-        mrn_printf( 1, MCFL, stderr,
-                    "recv_packetsfromdownstream() failed\n" );
+        // mrn_printf( 1, MCFL, stderr,
+        //           "recv_packetsfromdownstream() failed\n" );
         return -1;
     }
 
@@ -161,6 +161,7 @@ int FrontEndNode::deliverConnectLeavesResponse( Packet& pkt )
     // (It is assumed that our NetworkImpl is polling us till
     // we have received and stashed this packet.)
     //
+#if READY
     // Note that, if we are the front end *and* the leaf,
     // the packet we're given is the packet that we constructed ourself.
     // The packets we construct ourself have data elements that
@@ -188,6 +189,9 @@ int FrontEndNode::deliverConnectLeavesResponse( Packet& pkt )
         // we can use the packet as it is
         leavesConnectedPacket = pkt;
     }
+#else
+    leavesConnectedPacket = pkt;
+#endif // READY
 
     return 0;
 }
@@ -199,6 +203,7 @@ int FrontEndNode::deliverLeafInfoResponse( Packet& pkt )
     // (It is assumed that our NetworkImpl is polling us till
     // we have received and stashed this packet.)
     //
+#if READY
     // Note that, if we are the front end *and* the leaf,
     // the packet we're given is the packet that we constructed ourself.
     // The packets we construct ourself have data elements that
@@ -231,6 +236,9 @@ int FrontEndNode::deliverLeafInfoResponse( Packet& pkt )
         // we can use the packet as it is
         leafInfoPacket = pkt;
     }
+#else
+    leafInfoPacket = pkt;
+#endif // READY
 
     return 0;
 }

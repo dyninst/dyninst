@@ -25,7 +25,7 @@ class FrontEndNode: public ParentNode, public CommunicationNode{
     virtual int deliverConnectLeavesResponse( Packet& pkt );
 
  public:
-    FrontEndNode(Network *, std::string _hostname, unsigned short _port);
+    FrontEndNode(Network *, std::string _hostname, Port _port);
     virtual ~FrontEndNode(void);
     virtual int proc_PacketsFromDownStream(std::list <Packet> &);
     virtual int proc_DataFromDownStream(Packet&);

@@ -19,7 +19,9 @@ unsigned int StreamImpl::next_stream_id=1;  //id '0' reserved for broadcast
 bool StreamImpl::force_network_recv=false;
 
 StreamImpl::StreamImpl(Network * _network, Communicator *_comm,
-                       int _sync_id, int _ds_filter_id, int _us_filter_id)
+                        int _us_filter_id,
+                        int _sync_id,
+                        int _ds_filter_id )
   : network(_network), ds_filter_id(_ds_filter_id),
     us_filter_id(_us_filter_id),
     sync_id(_sync_id), stream_id( next_stream_id )
@@ -35,8 +37,8 @@ StreamImpl::StreamImpl(Network * _network, Communicator *_comm,
         mrn_printf(4, MCFL, stderr, "Adding backends to stream %d: [ ",
                    stream_id);
         for(i=0; i<endpoints.size(); i++){
-            mrn_printf(4, 0,0, stderr, "%d, ", endpoints[i]->get_Id() );
-            backends[i] = endpoints[i]->get_Id();
+            mrn_printf(4, 0,0, stderr, "%d, ", endpoints[i]->get_Rank() );
+            backends[i] = endpoints[i]->get_Rank();
         }
         mrn_printf(4, 0,0, stderr, "]\n");
 
@@ -51,8 +53,10 @@ StreamImpl::StreamImpl(Network * _network, Communicator *_comm,
 }
     
 StreamImpl::StreamImpl(Network * _network, int _stream_id,
-                       int * backends, int num_backends, int _sync_id,
-                       int _ds_filter_id, int _us_filter_id)
+                       int * backends, int num_backends,
+                       int _us_filter_id,
+                       int _sync_id,
+                       int _ds_filter_id)
   : network(_network),
     ds_filter_id(_ds_filter_id),
     us_filter_id(_us_filter_id),
@@ -116,7 +120,7 @@ int StreamImpl::recv(int *tag, void ** ptr, bool blocking)
         while( IncomingPacketBuffer.size() == 0 ){
             //Loop until we get a packet on this stream's incoming buffer.
             if( network->recv( true ) == -1 ){
-                mrn_printf(1, MCFL, stderr, "Network::recv failed.");
+                // mrn_printf(1, MCFL, stderr, "Network::recv failed.");
             }
         }
         cur_packet = *( IncomingPacketBuffer.begin() );

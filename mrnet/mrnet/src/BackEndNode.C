@@ -17,37 +17,28 @@ namespace MRN
 /*  BackEndNode CLASS METHOD DEFINITIONS            */
 /*=====================================================*/
 
-BackEndNode::BackEndNode(Network * _network, std::string _hostname,
-                         unsigned short _backend_id,
-                         std::string _parent_hostname,
-                         unsigned short _parent_port,
-                         unsigned short _parent_id)
-    :ChildNode(false, _hostname, _backend_id), 
-     CommunicationNode(_hostname, 0, _backend_id),
-     network(_network)
+BackEndNode::BackEndNode(Network * _network, 
+                        std::string _my_hostname, Port _my_port, Rank _my_rank,
+                         std::string _parent_hostname, Port _parent_port)
+    :ChildNode(false, _my_hostname, _my_port), 
+     CommunicationNode(_my_hostname, _my_port),
+     network(_network),
+     rank( _my_rank )
 {
     RemoteNode::local_child_node = this;
     mrn_printf(3, MCFL, stderr, "In BackEndNode() cnstr.\n");
     mrn_printf(4, MCFL, stderr,
-               "host=%s, backendId=%u, parHost=%s, parPort=%u, "
-               "parRank=%u\n",
-               _hostname.c_str(), _backend_id, _parent_hostname.c_str(),
-               _parent_port, _parent_id );
-    upstream_node = new RemoteNode(false, _parent_hostname, _parent_port,
-                                   _parent_id);
-
+               "host=%s, port=%u, rank=%u, parHost=%s, parPort=%u\n",
+               _my_hostname.c_str(), _my_port, rank,
+               _parent_hostname.c_str(), _parent_port );
+    upstream_node = new RemoteNode(false, _parent_hostname, _parent_port);
     upstream_node->_is_upstream = true;
-    upstream_node->connect();
-    if(upstream_node->fail() ){
-        mrn_printf(1, MCFL, stderr, "connect() failed\n");
+
+
+    if( upstream_node->connect_to_leaf( rank ) == -1 )
+    {
+        mrn_printf( 1, MCFL, stderr, "connect_to_leaf() failed\n" );
         return;
-    }
-  
-    // do low-level handshake with our id in the backend id namespace
-    uint32_t idBuf = htonl(id);
-    int sret = ::send( upstream_node->get_sockfd(), (const char*)&idBuf, 4, 0 );
-    if( sret == -1 ) {
-        mrn_printf(1, MCFL, stderr, "send of backend id failed\n");
     }
 
     mrn_printf(3, MCFL, stderr, "Leaving BackEndNode()\n");

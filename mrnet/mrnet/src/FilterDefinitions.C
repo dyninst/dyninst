@@ -14,30 +14,30 @@
 namespace MRN
 {
 
-unsigned short TFILTER_NULL=0;
+FilterId TFILTER_NULL=0;
 const char * TFILTER_NULL_FORMATSTR="";  // "" => "Don't check fmt string"
 
-unsigned short TFILTER_SUM=0;
+FilterId TFILTER_SUM=0;
 const char * TFILTER_SUM_FORMATSTR="";  // "" => "Don't check fmt string"
 
-unsigned short TFILTER_AVG=0;
+FilterId TFILTER_AVG=0;
 const char * TFILTER_AVG_FORMATSTR="";  // "" => "Don't check fmt string"
 
-unsigned short TFILTER_MIN=0;
+FilterId TFILTER_MIN=0;
 const char * TFILTER_MIN_FORMATSTR="";  // "" => "Don't check fmt string"
 
-unsigned short TFILTER_MAX=0;
+FilterId TFILTER_MAX=0;
 const char * TFILTER_MAX_FORMATSTR="";  // "" => "Don't check fmt string"
 
-unsigned short TFILTER_ARRAY_CONCAT=0;
+FilterId TFILTER_ARRAY_CONCAT=0;
 const char * TFILTER_ARRAY_CONCAT_FORMATSTR=""; // "" => "Don't check fmt string"
 
-unsigned short TFILTER_INT_EQ_CLASS=0;
+FilterId TFILTER_INT_EQ_CLASS=0;
 const char * TFILTER_INT_EQ_CLASS_FORMATSTR="%aud %aud %aud";
 
-unsigned short SFILTER_WAITFORALL=0;
-unsigned short SFILTER_DONTWAIT=0;
-unsigned short SFILTER_TIMEOUT=0;
+FilterId SFILTER_WAITFORALL=0;
+FilterId SFILTER_DONTWAIT=0;
+FilterId SFILTER_TIMEOUT=0;
 
 static inline void max(void *in1, void *in2, void* out, DataType type);
 static inline void min(void *in1, void *in2, void* out, DataType type);

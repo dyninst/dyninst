@@ -12,9 +12,8 @@
 namespace MRN
 {
 
-EndPointImpl::EndPointImpl(int _id, const char * _hostname,
-                           unsigned short _port)
-  :id(_id), hostname(_hostname), port(_port)
+EndPointImpl::EndPointImpl(Rank _rank, const char * _hostname, Port _port)
+  :rank(_rank), hostname(_hostname), port(_port)
 {
 }
 

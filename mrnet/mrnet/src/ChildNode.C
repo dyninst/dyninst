@@ -14,7 +14,7 @@ namespace MRN
 /*===================================================*/
 /*  ChildNode CLASS METHOD DEFINITIONS            */
 /*===================================================*/
-ChildNode::ChildNode(bool _threaded, std::string _host, unsigned short _port)
+ChildNode::ChildNode(bool _threaded, std::string _host, Port _port)
     :hostname(_host), port(_port), threaded(_threaded)
 {
 }

@@ -17,7 +17,7 @@ class EventImpl: public Event{
  private:
     EventType type;
     std::string hostname;
-    unsigned short port;
+    Port port;
     std::string description;
     static std::list<EventImpl *> events;
     static std::list<EventImpl *> remote_events;
@@ -56,7 +56,7 @@ class EventImpl: public Event{
     }
 
     EventImpl( EventType t, std::string desc="", std::string h=LocalHostName,
-           unsigned short p=LocalPort )
+           Port p=LocalPort )
         :type(t), hostname(h), port(p), description(desc) {}
 
     virtual ~EventImpl(){}
@@ -69,7 +69,7 @@ class EventImpl: public Event{
         return hostname;
     }
 
-    virtual unsigned short get_Port( ){
+    virtual Port get_Port( ){
         return port;
     }
 

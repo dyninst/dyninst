@@ -37,14 +37,14 @@ class StreamImpl{
 
  public:
     StreamImpl( Network *, Communicator *,
-                int ds_filter_id=TFILTER_NULL,
+                int us_filter_id=TFILTER_NULL,
                 int sync_id=SFILTER_WAITFORALL,
-                int us_filter_id=TFILTER_NULL );
+                int ds_filter_id=TFILTER_NULL );
     StreamImpl( Network *, int stream_id, int *backends = 0,
                 int num_backends = -1,
-                int ds_filter_id=TFILTER_NULL,
+                int us_filter_id=TFILTER_NULL,
                 int sync_id = SFILTER_DONTWAIT,
-                int us_filter_id=TFILTER_NULL );
+                int ds_filter_id=TFILTER_NULL );
     ~StreamImpl( );
     static int recv( int *tag, void **buf, Stream ** stream, bool blocking =
                      true );

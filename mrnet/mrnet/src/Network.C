@@ -26,6 +26,10 @@
 namespace MRN
 {
 
+const Port UnknownPort = (Port)-1;
+const Rank UnknownRank = (Rank)-1;
+
+
 /*===========================================================*/
 /*             Network static function DEFINITIONS        */
 /*===========================================================*/
@@ -40,11 +44,40 @@ Network::Network( const char *cfgFileName, Network::LeafInfo *** leafInfo,
     // build the network
     network = new NetworkImpl( this, cfgFileName, NULL );
     if( !network->fail( ) ) {
-        if( ( leafInfo != NULL ) && ( nLeaves != NULL ) ) {
+        if( (leafInfo != NULL) && (nLeaves != NULL) )
+        {
             network->get_LeafInfo( leafInfo, nLeaves );
         }
-        else {
-            // TODO is this the right error?
+        else
+        {
+            // indicate the error
+            network->error( ESYSTEM, "invalid argument" );
+            network->MRN_errno = MRN_ENETWORK_FAILURE;
+        }
+    }
+}
+
+Network::Network( const char *_configBuf, 
+                    bool unused, const char *_application )
+{
+    network = new NetworkImpl( this, _configBuf, unused, _application );
+}
+
+Network::Network( const char *_configBuf, bool unused,
+                    Network::LeafInfo *** leafInfo, unsigned int *nLeaves )
+{
+    // build the network
+    network = new NetworkImpl( this, _configBuf, unused, NULL );
+    if( !network->fail( ) ) {
+        if( (leafInfo != NULL) && (nLeaves != NULL) )
+        {
+            network->get_LeafInfo( leafInfo, nLeaves );
+        }
+        else
+        {
+            // indicate the error
+            network->error( ESYSTEM, "invalid argument" );
+            network->MRN_errno = MRN_ENETWORK_FAILURE;
         }
     }
 }
@@ -70,22 +103,11 @@ int Network::getConnections( int **conns, unsigned int *nConns )
     return network->getConnections( conns, nConns );
 }
 
-Network::Network( const char *_hostname, const char *_port,
-                  const char *_phostname,
-                  const char *_pport, const char *_pid )
-{
-    unsigned int port( atoi( _port ) );
-    unsigned int pport( atoi( _pport ) );
-    unsigned int pid( atoi( _pid ) );
 
-    network = new NetworkImpl( this, _hostname, port, _phostname, pport, pid );
-}
-
-Network::Network( const char *_hostname, unsigned int port,
-                      const char *_phostname,
-                      unsigned int pport, unsigned int pid )
+// back-end constructors
+Network::Network( const char *_phostname, Port pport, Rank myrank )
 {
-    network = new NetworkImpl( this, _hostname, port, _phostname, pport, pid );
+    network = new NetworkImpl( this, _phostname, pport, myrank );
 }
 
 void Network::error_str( const char *s )
@@ -93,7 +115,6 @@ void Network::error_str( const char *s )
     assert(network);
     network->perror( s );
 }
-
 
 int Network::recv(bool blocking)
 {
@@ -141,14 +162,15 @@ Communicator * Network::new_Communicator( std::vector <EndPoint *> & endpoints )
     return new Communicator( this, endpoints );
 }
 
-EndPoint * Network::new_EndPoint(int id, const char * hostname,
-                                 unsigned short port)
+EndPoint * Network::new_EndPoint(Rank rank, const char * hostname, Port port)
 {
-    return new EndPoint(id, hostname, port);
+    return new EndPoint(rank, hostname, port);
 }
 
-Stream * Network::new_Stream( Communicator *comm, int ds_filter_id,
-                              int sync_id, int us_filter_id)
+Stream * Network::new_Stream( Communicator *comm, 
+                                int us_filter_id,
+                                int sync_id, 
+                                int ds_filter_id)
 {
     assert(network);
     Stream * new_stream = new Stream( this, comm, us_filter_id,
@@ -160,8 +182,10 @@ Stream * Network::new_Stream( Communicator *comm, int ds_filter_id,
 }
 
 Stream * Network::new_Stream( int stream_id, int *backends,
-                              int num_backends, int us_filter_id,
-                              int sync_id, int ds_filter_id)
+                              int num_backends,
+                              int us_filter_id,
+                              int sync_id,
+                              int ds_filter_id)
 {
     assert(network);
     Stream * new_stream = new Stream( this, stream_id, backends,
@@ -253,10 +277,10 @@ Stream::Stream(Network *network, Communicator *comm, int us_filter_id,
 }
 
 Stream::Stream( Network *network, int stream_id, int *backends,
-                int num_backends, int ds_filter_id,
-                int sync_id , int us_filter_id)
+                int num_backends, int us_filter_id,
+                int sync_id , int ds_filter_id)
     : stream( new StreamImpl( network, stream_id, backends, num_backends,
-                              ds_filter_id, sync_id, us_filter_id ) )
+                              us_filter_id, sync_id, ds_filter_id ) )
 {
     mrn_printf(3, MCFL, stderr, "DCA Stream::Stream() has stream %p has streamimp %p\n", this, stream);
 }
@@ -340,7 +364,7 @@ Communicator::Communicator( Network * network,
 {
 }
 
-int Communicator::add_EndPoint(const char * hostname, unsigned short port)
+int Communicator::add_EndPoint(const char * hostname, Port port)
 {
     assert(communicator);
     return communicator->add_EndPoint( hostname, port );
@@ -364,16 +388,16 @@ const char * Communicator::get_HostName( int i ) const
     return communicator->get_HostName( i );
 }
 
-unsigned short Communicator::get_Port( int i ) const
+Port Communicator::get_Port( int i ) const
 {
     assert(communicator);
     return communicator->get_Port( i );
 }
 
-unsigned int Communicator::get_Id( int i ) const
+Rank Communicator::get_Rank( int i ) const
 {
     assert(communicator);
-    return communicator->get_Id( i );
+    return communicator->get_Rank( i );
 }
 
 const std::vector<EndPoint *> & Communicator::get_EndPoints( void ) const
@@ -385,8 +409,8 @@ const std::vector<EndPoint *> & Communicator::get_EndPoints( void ) const
 /*============================================*/
 /*             EndPoint class DEFINITIONS        */
 /*============================================*/
-EndPoint::EndPoint(int id, const char * hostname, unsigned short port)
-    : endpoint(new EndPointImpl( id, hostname, port ) )
+EndPoint::EndPoint(Rank _rank, const char * hostname, Port _port)
+    : endpoint(new EndPointImpl( _rank, hostname, _port ) )
 {
 }
 
@@ -396,7 +420,7 @@ EndPoint::~EndPoint()
     delete endpoint;
 }
 
-bool EndPoint::compare(const char * hostname, unsigned short port)const
+bool EndPoint::compare(const char * hostname, Port port)const
 {
     assert(endpoint);
     return endpoint->compare( hostname, port );
@@ -408,16 +432,16 @@ const char * EndPoint::get_HostName()const
     return endpoint->get_HostName();
 }
 
-unsigned short EndPoint::get_Port()const
+Port EndPoint::get_Port()const
 {
     assert(endpoint);
     return endpoint->get_Port();
 }
 
-unsigned int EndPoint::get_Id()const
+Rank EndPoint::get_Rank()const
 {
     assert(endpoint);
-    return endpoint->get_Id();
+    return endpoint->get_Rank();
 }
 
 
@@ -425,7 +449,7 @@ unsigned int EndPoint::get_Id()const
 /*             Event class DEFINITIONS        */
 /*============================================*/
 Event * Event::new_Event( EventType t, std::string desc,
-                          std::string h, unsigned short p){
+                          std::string h, Port p){
     return new EventImpl( t, desc, h, p );
 }
 

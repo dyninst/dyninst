@@ -16,6 +16,8 @@
 #include "mrnet/src/Message.h"
 #include "mrnet/src/InternalNode.h"
 #include "mrnet/src/utils.h"
+#include "xplat/NetUtils.h"
+
 
 using namespace MRN;
 
@@ -31,7 +33,7 @@ int main(int argc, char **argv)
     BeDaemon();
 
     if(argc != 6){
-        fprintf(stderr, "Usage: %s hostname port phostname pport pid\n",
+        fprintf(stderr, "Usage: %s port phostname pport\n",
                 argv[0]);
         fprintf(stderr, "Called with (%d) args: ", argc);
         for(i=0; i<argc; i++){
@@ -40,11 +42,13 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    std::string hostname(argv[1]);
-    unsigned short port = atoi(argv[2]);
-    std::string parent_hostname(argv[3]);
-    unsigned short parent_port = atol(argv[4]);
-    unsigned short parent_id = atol(argv[5]);
+    // get our own hostname
+    std::string hostname;
+    getNetworkName( hostname, XPlat::NetUtils::GetNetworkName() );
+
+    Port port = atoi(argv[1]);
+    std::string parent_hostname(argv[2]);
+    Port parent_port = atol(argv[3]);
 
     //TLS: setup thread local storage for internal node
     //I am "CommNodeMain(hostname:port)"
@@ -68,8 +72,8 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    comm_node = new InternalNode(hostname, port, parent_hostname,
-                                 parent_port, parent_id);
+    comm_node = new InternalNode(hostname, port,
+                                parent_hostname, parent_port );
 
     comm_node->waitLoop();
 

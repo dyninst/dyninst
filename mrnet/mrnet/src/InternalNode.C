@@ -14,19 +14,18 @@ namespace MRN
 /*======================================================*/
 /*  InternalNode CLASS METHOD DEFINITIONS            */
 /*======================================================*/
-InternalNode::InternalNode( std::string _hostname, unsigned short _port,
-                            std::string _phostname, unsigned short _pport,
-                            unsigned short _pid )
+InternalNode::InternalNode( std::string _hostname, Port _port,
+                            std::string _phostname, Port _pport )
     :ParentNode( true, _hostname, _port ),
      ChildNode( true, _hostname, _port ),
      CommunicationNode( _hostname, _port )
 {
     int retval;
     mrn_printf( 3, MCFL, stderr,
-                "In InternalNode: parent_host: %s, parent_port: %d"
-                " parent_id: %d\n", _phostname.c_str(  ), _pport, _pid );
+                "In InternalNode: parent_host: %s, parent_port: %d\n",
+                _phostname.c_str(  ), _pport );
 
-    upstream_node = new RemoteNode( true, _phostname, _pport, _pid );
+    upstream_node = new RemoteNode( true, _phostname, _pport );
     RemoteNode::local_child_node = this;
     RemoteNode::local_parent_node = this;
 

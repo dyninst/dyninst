@@ -25,24 +25,26 @@
 #include "xplat/TLSKey.h"
 #include "xplat/Thread.h"
 
+#include "mrnet/MRNet.h"
+
 namespace MRN
 {
 
 extern std::string LocalHostName;
-extern unsigned short LocalPort;
+extern Port LocalPort;
 
 int connectHost( int *sock_in,
-                 const std::string & hostname, unsigned short port );
+                 const std::string & hostname, Port port );
 
-int bindPort( int *sock_in, unsigned short *port_in );
+int bindPort( int *sock_in, Port *port_in );
 int getSocketConnection( int bound_socket );
 
 #if READY
 int getSocketPeer( int connected_socket,
-                   std::string & hostname, unsigned short *port );
+                   std::string & hostname, Port *port );
 #endif // READY
 
-int getPortFromSocket( int sock, unsigned short *port );
+int getPortFromSocket( int sock, Port *port );
 
 int getHostName( std::string & out_hostname, const std::string & in_hostname = "" );    // e.g. "foo"
 int getDomainName( std::string & out_hostname, const std::string & in_hostname = "" );  // e.g. "bar.net"

@@ -36,8 +36,7 @@ CommunicatorImpl::~CommunicatorImpl(void)
 {
 }
 
-int CommunicatorImpl::add_EndPoint(const char * _hostname,
-                                   unsigned short _port)
+int CommunicatorImpl::add_EndPoint(const char * _hostname, Port _port)
 {
     EndPoint * new_endpoint = network->get_EndPoint(_hostname, _port);
 

@@ -118,8 +118,13 @@ class PacketData: public Error{
 
 class Packet:public Error
 {
+    friend class Message;
+
  private:
     refCounter< PacketData > data;
+
+    Packet( unsigned int _buf_len, char *_buf )
+        : data( PacketData(_buf_len, _buf) ) {}
 
  public:
     static Packet * NullPacket;
@@ -146,9 +151,6 @@ class Packet:public Error
 
     Packet( unsigned short _stream_id, int _tag, const char *fmt,
             va_list v ) : data( PacketData( _stream_id, _tag, fmt, v) ){}
-
-    Packet( unsigned int _buf_len, char *_buf )
-        : data( PacketData(_buf_len, _buf) ) {}
 
     Packet(const Packet &src): data(src.data) { }
     Packet & operator=(const Packet &src) {

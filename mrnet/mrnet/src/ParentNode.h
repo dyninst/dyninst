@@ -27,8 +27,8 @@ class ParentNode: public Error {
  private:
 
     std::string hostname;
-    unsigned short port;
-    unsigned short config_port;
+    Port port;
+    Port config_port;
     int listening_sock_fd;
 
     bool threaded;
@@ -49,7 +49,7 @@ class ParentNode: public Error {
     XPlat::Monitor subtreereport_sync;
     unsigned int num_descendants, num_descendants_reported;
 
-    std::map < unsigned int, RemoteNode * >ChildNodeByBackendId;
+    std::map < unsigned int, RemoteNode * >ChildNodeByRank;
     XPlat::Mutex childnodebybackendid_sync;
 
     std::map < unsigned int, StreamManager * >StreamManagerById;
@@ -64,7 +64,7 @@ class ParentNode: public Error {
     }
 
  public:
-    ParentNode( bool _threaded, std::string, unsigned short );
+    ParentNode( bool _threaded, std::string, Port );
     virtual ~ ParentNode( void );
 
     virtual int proc_PacketsFromDownStream( std::list < Packet >& ) = 0;
@@ -100,7 +100,7 @@ class ParentNode: public Error {
     int proc_connectLeavesResponse( Packet & );
 
     std::string get_HostName(  );
-    unsigned short get_Port(  );
+    Port get_Port(  );
     int getConnections( int **conns, unsigned int *nConns );
 };
 
@@ -111,7 +111,7 @@ inline std::string ParentNode::get_HostName(  ) {
     return hostname;
 }
 
-inline unsigned short ParentNode::get_Port(  )
+inline Port ParentNode::get_Port(  )
 {
     return port;
 }
