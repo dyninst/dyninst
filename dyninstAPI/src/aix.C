@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.186 2004/04/06 16:37:07 bernat Exp $
+// $Id: aix.C,v 1.187 2004/04/15 20:40:41 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1990,7 +1990,7 @@ fileDescriptor *getExecFileDescriptor(pdstring filename, int &status, bool waitF
         sprintf(tempstr, "/proc/%d/status", pid);
         
         while (!trapped &&
-               (timeout < 100) // 100: arbitrary number
+               (timeout < 10000) // 10 seconds, _should_ be enough
                ) {
             
             // On slower machines (sp3-cw.cs.wisc.edu) we can enter
@@ -2008,7 +2008,11 @@ fileDescriptor *getExecFileDescriptor(pdstring filename, int &status, bool waitF
             timeout++;
             usleep(1000);
         }
-        
+        if (!trapped) {
+            // Hit the timeout, assume failure
+            fprintf(stderr, "Failed to open application /proc status FD\n");
+            return NULL;
+        }
         status = SIGTRAP;
         // Explicitly don't close the FD
     }
