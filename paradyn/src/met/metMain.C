@@ -10,7 +10,10 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.7  1994/09/22 01:22:05  markc
+ * Revision 1.8  1994/09/25 01:55:08  newhall
+ * changed arguments to VMAddNewVisualization
+ *
+ * Revision 1.7  1994/09/22  01:22:05  markc
  * Set default args
  *
  * Revision 1.6  1994/08/22  15:53:23  markc
@@ -198,7 +201,7 @@ static void add_visi(visiMet *the_vm)
   argv = RPCgetArg(argc, the_vm->command);
 
   // the strings created here are used, not copied in the VM
-  vmMgr->VMAddNewVisualization(the_vm->name, argc, argv);
+  vmMgr->VMAddNewVisualization(the_vm->name, argc, argv, 0, NULL, 0);
   while (argv[i])
     delete argv[i++];
   delete [] argv;
