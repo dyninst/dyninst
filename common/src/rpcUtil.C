@@ -1,6 +1,9 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.31  1994/09/22 03:19:52  markc
+ * Revision 1.32  1994/09/27 19:23:05  jcargill
+ * Warning cleanup: prototyped rexec, pushed consts further down
+ *
+ * Revision 1.31  1994/09/22  03:19:52  markc
  * Changes to remove compiler warnings
  *
  * Revision 1.30  1994/09/20  18:23:58  hollings
@@ -135,6 +138,9 @@ int accept(int, struct sockaddr *addr, int *);
 }
 #elif SOLARIS
 #endif
+
+int rexec(char **ahost, u_short inport, const char *user, const char *passwd, 
+	  const char *cmd, int *fd2p);
 
 
 #define RSH_COMMAND	"rsh"
@@ -461,7 +467,7 @@ bool_t xdr_char_PTR(XDR *xdrs, char **str)
 //
 // directly exec the command (local).
 //
-int execCmd(int &pid, char *command, char **arg_list, int portFd)
+int execCmd(int &pid, const char *command, char **arg_list, int portFd)
 {
     int ret;
     int sv[2];
@@ -484,7 +490,7 @@ int execCmd(int &pid, char *command, char **arg_list, int portFd)
 	    ; // not a typo
 
 	  new_al = new char*[al_len+2];
-	  new_al[0] = command;
+	  new_al[0] = strdup (command);
 	  new_al[al_len+1] = 0;
 	  for (i=0; i<al_len; ++i) {
 	    new_al[i+1] = arg_list[i];
@@ -532,8 +538,8 @@ int handleRemoteConnect(int &pid, int fd, int portFd)
 //
 // use rsh to get a remote process started.
 //
-int rshCommand(int &pid, char *hostName, char *userName, char *command, 
-    char **arg_list, int portFd)
+int rshCommand(int &pid, const char *hostName, const char *userName, 
+	       const char *command, char **arg_list, int portFd)
 {
     int total;
     int fd[2];
@@ -582,8 +588,8 @@ int rshCommand(int &pid, char *hostName, char *userName, char *command,
     return(handleRemoteConnect(pid, fd[0], portFd));
 }
 
-int rexecCommand(int &pid, char *hostName, char *userName, char *command, 
-    char **arg_list, int portFd)
+int rexecCommand(int &pid, const char *hostName, const char *userName, 
+		 const char *command, char **arg_list, int portFd)
 {
     int fd;
     int total;
