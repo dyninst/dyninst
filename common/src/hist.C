@@ -16,7 +16,10 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.15  1995/08/01 01:56:32  newhall
+ * Revision 1.16  1995/08/08 03:09:20  newhall
+ * changed initial bin width to 0.2
+ *
+ * Revision 1.15  1995/08/01  01:56:32  newhall
  * fix to how global time is computed
  *
  * Revision 1.14  1995/07/20 22:30:13  rbi
@@ -107,8 +110,8 @@ int Histogram::lastGlobalBin = 0;
 
 int Histogram::numBins = 1000;
 int Histogram::lastGlobalBin = 0;
-timeStamp Histogram::baseBucketSize = 0.1;
-timeStamp Histogram::globalBucketSize = 0.1;
+timeStamp Histogram::baseBucketSize = 0.2;
+timeStamp Histogram::globalBucketSize = 0.2;
 vector<Histogram *> Histogram::allHist;
 
 Histogram::Histogram(metricStyle type, dataCallBack d, foldCallBack f, void *c)
