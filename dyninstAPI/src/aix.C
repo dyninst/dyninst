@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.59 1999/08/20 20:31:16 bernat Exp $
+// $Id: aix.C,v 1.60 1999/09/14 17:14:52 bernat Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -70,21 +70,16 @@
 #include <sys/ptrace.h>
 #include <procinfo.h> // struct procsinfo
 #include <sys/types.h>
-#include <procinfo.h> // struct procsinfo
-#include <sys/types.h> // getprocs()
 
-// getprocs isn't defined for some reason. This gets rid of the
-// compile warning
-
-// NOTE- having this kills the linker, so it's commented out. 
-/*
-int getprocs(struct procsinfo *ProcessBuffer,
-	     int ProcessSize,
- 	     struct fdsinfo *FileBuffer,
-	     int FileSize,
-	     pid_t *IndexPointer,
-	     int Count);
-*/
+/* Getprocs() should be defined in procinfo.h, but it's not */
+extern "C" {
+extern int getprocs(struct procsinfo *ProcessBuffer,
+		    int ProcessSize,
+		    struct fdsinfo *FileBuffer,
+		    int FileSize,
+		    pid_t *IndexPointer,
+		    int Count);
+}
 
 #include "dyninstAPI/src/showerror.h"
 #include "util/h/debugOstream.h"
