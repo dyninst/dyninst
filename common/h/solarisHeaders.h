@@ -60,7 +60,6 @@
 #include <sys/errno.h>
 #include <sys/wait.h>
 #include <signal.h>
-#include <sys/ptrace.h>
 #include <sys/resource.h>
 #include <stdarg.h>
 #include <time.h>
