@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2000/08/19 02:41:44 buck Exp $
+# $Id: Makefile,v 1.10 2000/11/15 22:56:38 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -38,13 +38,13 @@ MUTATEE_OBJ = $(TARGET2:_$(MUTATEE_CC)=.o)
 
 ifeq (xl,$(findstring xl,$(MUTATEE_CC)))
 COMPILER = $(shell strings `which $(MUTATEE_CC)` | grep Compiler | head -1)
-MUTATEE_CFLAGS = $(ARCH_DEF) -bnso -bI:/lib/syscalls.exp -bkeepfile:$(MUTATEE_OBJ)
+MUTATEE_CFLAGS = $(ARCH_DEF) -bkeepfile:$(MUTATEE_OBJ)
 ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
 MUTATEE_CFLAGS += -+
 endif
 else
 COMPILER = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
-MUTATEE_CFLAGS = $(MODCFLAGS) -static -Wl,-bgcbypass:3 
+MUTATEE_CFLAGS = $(MODCFLAGS) -Wl,-bgcbypass:3 
 endif
 
 MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
@@ -52,7 +52,8 @@ MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 $(TARGET2): $(MUTATEE_SRC)
 	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) -Wl,-bnoobjreorder \
 	-Wl,-bE:$(TO_CORE)/$(LIBRARY_DEST)/DYNINSTAPI_RT_EXPORTS \
-	$(MUTATEE_SRC) -o $(TARGET2) $(DYNINSTAPI_RT_LIB)
+	$(MUTATEE_SRC) -o $(TARGET2) \
+	$(DYNINSTAPI_RT_LIB)
 
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.
