@@ -16,9 +16,13 @@
  *
  */
 /* $Log: visiTypes.h,v $
-/* Revision 1.4  1994/07/30 03:26:56  newhall
-/* added new msgTag type ENABLED
+/* Revision 1.5  1994/08/03 20:47:46  newhall
+/* removed event type NEWMETRICSRESOURCES
+/* CVS ----------------------------------------------------------------------
 /*
+ * Revision 1.4  1994/07/30  03:26:56  newhall
+ * added new msgTag type ENABLED
+ *
  * Revision 1.3  1994/07/28  22:23:19  krisna
  * changed definition of ERROR to use NaN(X)
  *
@@ -56,10 +60,12 @@ static double visi_nan = 0;
 // event types associated with events from Paradyn to a visualization
 // DATAVALUES:  a new set of data has arrived in the datagrid
 // INVALIDMETRICSRESOURCES:  a metric resource combination has become invalid
-// ADDMETRICSRESOURCES:  new metric
+// ADDMETRICSRESOURCES:  new metrics have become enabled for a resource
+// PHASENAME:  a new phase has been defined
+// FOLD:  the histogram has folded; binWidth has doubled
 //
 typedef enum {DATAVALUES,INVALIDMETRICSRESOURCES,ADDMETRICSRESOURCES,
-	      NEWMETRICSRESOURCES,PHASENAME,ENABLED,FOLD} msgTag;
+	      PHASENAME,FOLD} msgTag;
 
 
 typedef float sampleType;
