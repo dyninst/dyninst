@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-mips.h,v 1.5 1999/07/13 04:32:54 csserra Exp $
+// $Id: instPoint-mips.h,v 1.6 1999/07/28 19:20:59 nash Exp $
 // MIPS-specific definition of class instPoint
 
 #ifndef _INST_POINT_MIPS_H_
@@ -49,6 +49,8 @@
 #include "util/h/Types.h" // Address
 #include "arch-mips.h"    // instruction
 #include "dyninstAPI/src/symtab.h"       // pd_Function, function_base, image
+
+class process;
 
 typedef Address Offset;
 typedef enum {
@@ -91,7 +93,8 @@ class instPoint {
 #ifndef BPATCH_LIBRARY
   // Used to allow trigering of metrics when their foci appear on the stack when
   //  the metric is inserted.
-  bool triggeredInStackFrame(pd_Function *, Address, callWhen );
+  bool triggeredInStackFrame(pd_Function *, Address, callWhen, process * );
+  bool triggeredExitingStackFrame(pd_Function *, Address, callWhen, process * );
 #endif
 
   instPointType type() const { return ipType_; }

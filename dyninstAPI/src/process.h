@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.114 1999/07/08 00:22:34 nash Exp $
+/* $Id: process.h,v 1.115 1999/07/28 19:21:01 nash Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -754,6 +754,18 @@ class process {
   // This routine checks both the a.out image and any shared object images 
   // for this function
   function_base *findFunctionIn(Address adr);
+
+  // findFunctionInFuncsAndTramps: returns the function which contains
+  // this address.  This checks the a.out image and shared object images
+  // for this function, as well as checking base- and mini-tramps which 
+  // correspond to this function.  If the address was in a tramp, the 
+  // trampTemplate is returned as well.
+  function_base *findAddressInFuncsAndTramps(Address, trampTemplate *&);
+
+  // Correct a vector of PCs for the cases where any PC points to an
+  // address in one of our tramps.  The PC should point to the address
+  // to which the tramp returns
+  void correctStackFuncsForTramps(vector<Address> &, vector<pd_Function *> &);
 
   // Convert a vector of PCs (program counters) to vector of
   //  functions which contain them.  Should return vector

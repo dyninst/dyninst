@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.68 1999/07/07 16:06:46 zhichen Exp $
+// $Id: inst.C,v 1.69 1999/07/28 19:20:59 nash Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -54,9 +54,7 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/showerror.h"
-#ifndef BPATCH_LIBRARY
-#include "dyninstAPI/src/instPoint.h" // needed for callgraph
-#endif
+#include "dyninstAPI/src/instPoint.h"
 
 dictionary_hash <string, unsigned> primitiveCosts(string::hash);
 
@@ -414,6 +412,83 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
     }
 
     return(ret);
+}
+
+bool trampTemplate::inTramp( Address addr ) {
+	return addr >= baseAddr && addr <= ( baseAddr + size );
+}
+
+
+bool trampTemplate::inSavedRegion( Address addr ) {
+	if( !inTramp( addr ) )
+		return false;
+	addr -= baseAddr;
+	return ( addr > (Address)savePreInsOffset && addr <= (Address)restorePreInsOffset )
+		|| ( addr > (Address)savePostInsOffset && addr <= (Address)restorePostInsOffset );
+}
+
+
+instPoint * findInstPointFromAddress(const process *proc, Address addr) {
+	unsigned u;
+
+	vector<const instPoint*> ips;
+	vector<trampTemplate*> bts;
+	ips = proc->baseMap.keys();
+	bts = proc->baseMap.values();
+	assert( ips.size() == bts.size() );
+	for( u = 0; u < bts.size(); ++u ) {
+		if( bts[u]->inTramp( addr ) )
+		{
+			cerr << "found " << (void*)addr << " in "
+				 << ips[u]->iPgetFunction()->prettyName()
+				 << " base " << (void*)bts[u]->baseAddr 
+				 << " - " << (void*)(bts[u]->baseAddr
+									 + (Address)bts[u]->size)
+				 << endl;
+			return const_cast<instPoint*>( ips[u] );
+		}
+	}
+
+	vector<point*> allPoints = activePoints.values();
+
+	for( u = 0; u < allPoints.size(); ++u ) {
+		for( instInstance *inst = allPoints[u]->inst; inst; inst = inst->next ) {
+  			if( inst->proc == proc ) {
+ 			 if( ( inst->trampBase <= addr && inst->returnAddr >= addr )
+  			 || inst->baseInstance->inTramp( addr ) )
+			{
+				cerr << "found " << (void*)addr << " in "
+					 << inst->location->iPgetFunction()->prettyName()
+					 << " inst " << (void*)inst->trampBase
+					 << " - " << (void*)inst->returnAddr
+					 << ", base " << (void*)inst->baseInstance->baseAddr 
+					 << " - " << (void*)(inst->baseInstance->baseAddr
+										 + (Address)inst->baseInstance->size)
+					 << endl;
+				return inst->location;
+			}
+		}
+		}
+	}
+	return NULL;
+}
+
+trampTemplate * findBaseTramp( const instPoint * ip ) {
+	if( activePoints.defines( ip ) ) {
+		point *p = activePoints[ ip ];
+		if( p != NULL && p->inst != NULL )
+			return p->inst->baseInstance;
+	}
+	return NULL;
+}
+
+instInstance * findMiniTramps( const instPoint * ip ) {
+	if( activePoints.defines( ip ) ) {
+		point *p = activePoints[ ip ];
+		if( p != NULL )
+			return p->inst;
+	}
+	return NULL;
 }
 
 //

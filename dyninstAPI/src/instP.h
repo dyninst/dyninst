@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.27 1998/12/25 22:31:58 wylie Exp $
+// $Id: instP.h,v 1.28 1999/07/28 19:20:59 nash Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -68,6 +68,11 @@ class trampTemplate {
     int emulateInsOffset;
     int updateCostOffset;
 
+	int savePreInsOffset;
+	int restorePreInsOffset;
+	int savePostInsOffset;
+	int restorePostInsOffset;
+
     int cost;			/* cost in cycles for this basetramp. */
     Address costAddr;           /* address of cost in this tramp      */
     bool prevInstru;
@@ -76,6 +81,9 @@ class trampTemplate {
     int  postBaseCost;
 
     void updateTrampCost(process *proc, int c);
+
+	bool inTramp( Address addr );
+	bool inSavedRegion( Address addr );
 };
 
 extern trampTemplate baseTemplate;
@@ -106,21 +114,26 @@ class returnInstance {
   public:
     returnInstance() {
 	addr_ = 0;
+	installed = false;
     }
 
     returnInstance(instruction *instSeq, int seqSize, Address addr, int size) 
 		   :instructionSeq(instSeq), instSeqSize(seqSize), 
-		   addr_(addr), size_(size) {};
+		   addr_(addr), size_(size), installed(false) {};
 
     bool checkReturnInstance(const vector<Address> &adr, u_int &index);
     void installReturnInstance(process *proc);
     void addToReturnWaitingList(Address pc, process *proc);
 
-  private: 
+	bool Installed() const { return installed; }
+	Address addr() const { return addr_; }
+
+  private:
     instruction *instructionSeq;     /* instructions to be installed */
     int instSeqSize;
     Address addr_;                  /* beginning address */
-    int size_;                      
+    int size_;
+	bool installed;
 }; 
 
 

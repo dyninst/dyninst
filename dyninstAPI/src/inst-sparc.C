@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.81 1999/07/07 16:05:03 zhichen Exp $
+// $Id: inst-sparc.C,v 1.82 1999/07/28 19:20:58 nash Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -288,6 +288,11 @@ int getPointCost(process *proc, const instPoint *point)
 void initATramp(trampTemplate *thisTemp, instruction *tramp)
 {
     instruction *temp;
+
+	thisTemp->savePreInsOffset = ((Address)baseTramp_savePreInsn - (Address)tramp);
+	thisTemp->restorePreInsOffset = ((Address)baseTramp_restorePreInsn - (Address)tramp);
+	thisTemp->savePostInsOffset = ((Address)baseTramp_savePostInsn - (Address)tramp);
+	thisTemp->restorePostInsOffset = ((Address)baseTramp_restorePostInsn - (Address)tramp);
 
     // TODO - are these offsets always positive?
     thisTemp->trampTemp = (void *) tramp;
@@ -1091,6 +1096,7 @@ bool returnInstance::checkReturnInstance(const vector<Address> &stack, u_int &in
 void returnInstance::installReturnInstance(process *proc) {
     proc->writeTextSpace((caddr_t)addr_, instSeqSize, 
                          (caddr_t) instructionSeq); 
+	installed = true;
 }
 
 void generateBreakPoint(instruction &insn) {

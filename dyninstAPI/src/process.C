@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.185 1999/07/26 21:50:47 cain Exp $
+// $Id: process.C,v 1.186 1999/07/28 19:21:01 nash Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -58,6 +58,7 @@ int pvmendtask();
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/showerror.h"
@@ -424,11 +425,48 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
 #endif
 
 
+void process::correctStackFuncsForTramps( vector<Address> &pcs, vector<pd_Function *> &funcs ) {
+    unsigned i;
+	instPoint *ip;
+	function_base *fn;
+    for(i=0;i<pcs.size();i++) {
+		//if( funcs[ i ] == NULL ) {
+			ip = findInstPointFromAddress(this, pcs[i]);
+			if( ip ) {
+				fn = const_cast<function_base*>( ip->iPgetFunction() );
+				if( fn )
+					funcs[ i ] = dynamic_cast<pd_Function*>( fn );
+			}
+			//}
+	}
+}
+
+
+function_base *process::findAddressInFuncsAndTramps(Address addr, trampTemplate *&bt) {
+	function_base *ret = NULL;
+	bt = NULL;
+
+	ret = findFunctionIn( addr );
+
+	if( !ret ) {
+		instPoint *ip = findInstPointFromAddress(this, addr);
+		if( ip ) {
+			ret = const_cast<function_base*>( ip->iPgetFunction() );
+			bt = findBaseTramp( ip );
+		}
+	}
+
+	return ret;
+}
+
+
 vector<pd_Function *> process::convertPCsToFuncs(vector<Address> pcs) {
     vector <pd_Function *> ret;
     unsigned i;
+	pd_Function *fn;
     for(i=0;i<pcs.size();i++) {
-        ret += (pd_Function *)findFunctionIn(pcs[i]);
+		fn = (pd_Function *)findFunctionIn(pcs[i]);
+        ret += fn;
     }
     return ret;
 }

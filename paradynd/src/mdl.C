@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.75 1999/07/08 00:26:22 nash Exp $
+// $Id: mdl.C,v 1.76 1999/07/28 19:21:32 nash Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -2474,7 +2474,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
 
   // for all of the inst points, insert the predicates and the code itself.
   for (unsigned i = 0; i < points.size(); i++) {
-      mn->addInst(points[i], code, cwhen, corder, 0 );
+      mn->addInst(points[i], code, cwhen, corder );
          // appends an instReqNode to mn's instRequests; actual 
          // instrumentation only
          // takes place when mn->insertInstrumentation() is later called.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-mips.h,v 1.2 1999/05/25 16:38:11 wylie Exp $
+// $Id: inst-mips.h,v 1.3 1999/07/28 19:20:56 nash Exp $
 
 #ifndef INST_MIPS_H
 #define INST_MIPS_H
@@ -55,6 +55,8 @@
 extern registerSpace *regSpace;
 extern Register Dead[];
 extern const unsigned int nDead;
+
+const unsigned int BaseTrampStack = 512;
 
 typedef Register reg;
 void genRtype(instruction *insn, int ops, reg rs, reg rt, reg rd, int sa = 0); 

@@ -85,7 +85,7 @@ bool dynamic_linking::get_ld_info(u_int &addr, char **path, process *proc ){
   ldspec = getenv( "LD_SPECIFY" );
 
   *path = NULL;
-  char buf[80], lbuf[200];
+  char buf[200], lbuf[200];
   sprintf( buf, "/proc/%d/maps", proc->getPid() );
 
   FILE *maps = P_fopen( buf, "r" );
@@ -238,7 +238,7 @@ bool dynamic_linking::get_ld_info(u_int &addr, char **path, process *proc ){
       printf( "/proc/*/maps line: addr = %#.8x, device = %#.4x, inode = %d\n", t_addr, (int)t_device, t_inode );
 #endif
       for( int i=0; i < num_dents; i++ )
-	if( dirents[i]->d_ino == t_inode ) {
+	if( (ino_t)(dirents[i]->d_ino) == t_inode ) {
 	  struct stat t_stat;
 	  addr = t_addr;
 	  *path = new char[ strlen( ldpath ) + strlen( dirents[i]->d_name ) + 2 ];

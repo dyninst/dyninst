@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.47 1999/07/08 00:22:30 nash Exp $
+ * $Id: inst-x86.C,v 1.48 1999/07/28 19:20:58 nash Exp $
  */
 
 #include <limits.h>
@@ -187,7 +187,7 @@ void instPoint::checkInstructions() {
 // For other types of instrumentation, thee inst point is assumed not to
 //  be triggered.
 bool instPoint::triggeredInStackFrame( pd_Function *stack_func, Address stack_pc,
-				      callWhen when ) {
+				      callWhen when, process *proc ) {
     bool ret = false;
 
     //cerr << "instPoint (Addr =  " << (void*)addr_ << " size = " << size()
@@ -211,12 +211,41 @@ bool instPoint::triggeredInStackFrame( pd_Function *stack_func, Address stack_pc
 			if ( stack_pc == target ) {
 				//cerr << " -- HIT";
 				ret = true;
+			} else {
+				// Check if the stack_pc is from inside this instPoint
+				trampTemplate *bt = findBaseTramp( this );
+				target = bt->baseAddr + bt->emulateInsOffset + insnAtPoint_.size();
+				if( stack_pc == target )
+					ret = true;
 			}
 			//cerr << endl;
         }
     }
 
     //cerr << " returning " << ret << endl;
+
+    return ret;
+}
+
+bool instPoint::triggeredExitingStackFrame( pd_Function *stack_func, Address stack_pc,
+				      callWhen when, process *proc ) {
+    bool ret = false;
+
+    if ( insnAtPoint_.isCall() ) {
+        if ( stack_func == func_ && when == callPostInsn ) {
+			Address target = addr_ + insnAtPoint_.size();
+			if ( stack_pc == target ) {
+				ret = true;
+			} else {
+				trampTemplate *bt = findBaseTramp( this );
+				target = bt->baseAddr + bt->emulateInsOffset + insnAtPoint_.size();
+				if( stack_pc == target )
+					ret = true;
+			}
+        }
+    } else if ( addr_ != func_->addr() && stack_func == func_ ) {
+		ret = true;
+	}
 
     return ret;
 }
@@ -1194,6 +1223,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   emitJump(0, insn);
 
   // save registers and create a new stack frame for the tramp
+  ret->savePreInsOffset = insn-code;
   emitSimpleInsn(PUSH_EBP, insn);  // push ebp
   emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp  (2-byte instruction)
   // allocate space for temporaries (virtual registers)
@@ -1221,6 +1251,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   // restore registers
   emitSimpleInsn(POPFD, insn);     // popfd
   emitSimpleInsn(POPAD, insn);     // popad
+  ret->restorePreInsOffset = insn-code;
   emitSimpleInsn(LEAVE, insn);     // leave
 
   // update cost
@@ -1275,6 +1306,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
 
 
   // save registers and create a new stack frame for the tramp
+  ret->savePostInsOffset = insn-code;
   emitSimpleInsn(PUSH_EBP, insn);  // push ebp
   emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp
   // allocate space for temporaries (virtual registers)
@@ -1302,6 +1334,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   // restore registers
   emitSimpleInsn(POPFD, insn);     // popfd
   emitSimpleInsn(POPAD, insn);     // popad
+  ret->restorePostInsOffset = insn-code;
   emitSimpleInsn(LEAVE, insn);     // leave
   
   // emulate the instructions after the point
@@ -2425,6 +2458,7 @@ void returnInstance::installReturnInstance(process *proc) {
     proc->writeTextSpace((void *)addr_, instSeqSize, instructionSeq->ptr());
     delete instructionSeq;
     instructionSeq = 0;
+	installed = true;
 }
 
 void returnInstance::addToReturnWaitingList(Address , process *) {

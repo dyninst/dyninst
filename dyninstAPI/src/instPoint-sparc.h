@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.6 1999/07/08 00:22:31 nash Exp $
+// $Id: instPoint-sparc.h,v 1.7 1999/07/28 19:21:00 nash Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
@@ -48,6 +48,8 @@
 #include "util/h/Types.h" // for "Address" (typedef'd to unsigned)
 #include "dyninstAPI/src/symtab.h"
 #include "arch-sparc.h" // for union type "instruction"
+
+class process;
 
 typedef enum {
     noneType,
@@ -110,7 +112,8 @@ public:
 #ifndef BPATCH_LIBRARY
   // Used to allow trigering of metrics when their foci appear on the stack when
   //  the metric is inserted.
-  bool triggeredInStackFrame(pd_Function *func, Address addr, callWhen when);
+  bool triggeredInStackFrame(pd_Function *func, Address addr, callWhen when, process *);
+  bool triggeredExitingStackFrame(pd_Function *func, Address addr, callWhen when, process *);
 #endif
 
   // address of 1st instruction to be clobbered by inst point....

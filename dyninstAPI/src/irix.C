@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.8 1999/07/13 04:28:19 csserra Exp $
+// $Id: irix.C,v 1.9 1999/07/28 19:21:00 nash Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -52,6 +52,7 @@
 #include "dyninstAPI/src/inst-mips.h"
 #include "dyninstAPI/src/symtab.h" // pd_Function
 #include "dyninstAPI/src/instPoint-mips.h"
+#include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/stats.h" // ptrace{Ops,Bytes}
 #include "util/h/pathName.h" // expand_tilde_pathname, exists_executable
@@ -950,9 +951,16 @@ bool process::getActiveFrame(Address *fp, Address *pc)
   *pc = regs[PROC_REG_PC];
 
   // $fp value (no actual $fp register)
-  pd_Function *fn = (pd_Function *)findFunctionIn(*pc);
+  trampTemplate *tmp = NULL;
+  pd_Function *fn = (pd_Function *)findAddressInFuncsAndTramps(*pc, tmp);
   if (!fn) return false;
   *fp = regs[PROC_REG_SP] + fn->frameSize;
+
+  // If tmp is not NULL, then pc is in either the tramp or a mini-tramp
+  // If it is in a mini-tramp (!tmp->inTramp()), the stack is adjusted, if
+  // not, then check if it is in an adjusted region (tmp->inSavedRegion())
+  if( tmp != NULL && ( !tmp->inTramp( *pc ) || tmp->inSavedRegion( *pc ) ) )
+	  *fp += BaseTrampStack;
 
   return true;
 }
@@ -967,7 +975,8 @@ bool process::readDataFromFrame(Address fp, Address *fp_caller,
   if (fp == 0) return false;
 
   // find callee
-  pd_Function *callee = (pd_Function *)findFunctionIn(*pc);
+  trampTemplate *tmp = NULL;
+  pd_Function *callee = (pd_Function *)findAddressInFuncsAndTramps(*pc, tmp);
   if (!callee) return false;
 
   // find return address ($ra: caller $pc)
@@ -986,6 +995,13 @@ bool process::readDataFromFrame(Address fp, Address *fp_caller,
     pd_Function::regSave_t &ra_save = callee->regSaves[REG_RA];
     if (ra_save.slot == -1) return false;
     Address sp = fp - callee->frameSize;
+
+	// If tmp is not NULL, then pc is in either the tramp or a mini-tramp
+	// If it is in a mini-tramp (!tmp->inTramp()), the stack is adjusted, if
+	// not, then check if it is in an adjusted region (tmp->inSavedRegion())
+	if( tmp != NULL && ( !tmp->inTramp( *pc ) || tmp->inSavedRegion( *pc ) ) )
+		sp -= BaseTrampStack;
+
     Address ra_addr = sp + ra_save.slot;
     // address-in-memory
     if (ra_save.dword) {
@@ -1000,12 +1016,20 @@ bool process::readDataFromFrame(Address fp, Address *fp_caller,
   }
 
   // find caller
-  pd_Function *caller = (pd_Function *)findFunctionIn(ra);
+  tmp = NULL;
+  pd_Function *caller = (pd_Function *)findAddressInFuncsAndTramps(ra, tmp);
   if (!caller) return false;
 
   // return values
   *pc = ra;
   *fp_caller = fp + caller->frameSize;
+
+  // If tmp is not NULL, then pc is in either the tramp or a mini-tramp
+  // If it is in a mini-tramp (!tmp->inTramp()), the stack is adjusted, if
+  // not, then check if it is in an adjusted region (tmp->inSavedRegion())
+  if( tmp != NULL && ( !tmp->inTramp( *pc ) || tmp->inSavedRegion( *pc ) ) )
+	  *fp_caller += BaseTrampStack;
+
   return true;
 }
 

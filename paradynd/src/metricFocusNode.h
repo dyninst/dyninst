@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.57 1999/07/08 00:26:24 nash Exp $ 
+// $Id: metricFocusNode.h,v 1.58 1999/07/28 19:21:34 nash Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -562,13 +562,12 @@ class sampledShmProcTimerReqNode : public dataReqNode {
 
 class instReqNode {
 public:
-  instReqNode(instPoint*, AstNode *, callWhen, callOrder order,
-              int iManuallyTrigger);
+  instReqNode(instPoint*, AstNode *, callWhen, callOrder order);
  ~instReqNode();
 
   instReqNode() {
      // needed by Vector class
-     ast = NULL; point=NULL; instance = NULL; manuallyTrigger = 0;
+     ast = NULL; point=NULL; instance = NULL; rinstance = NULL;
   }
 
   instReqNode(const instReqNode &src) {
@@ -576,8 +575,8 @@ public:
      when = src.when;
      order = src.order;
      instance = src.instance;
+     rinstance = src.rinstance;
      ast = assignAst(src.ast);
-     manuallyTrigger = src.manuallyTrigger;
   }
   instReqNode &operator=(const instReqNode &src) {
      if (this == &src)
@@ -588,7 +587,7 @@ public:
      when = src.when;
      order = src.order;
      instance = src.instance;
-     manuallyTrigger = src.manuallyTrigger;
+     rinstance = src.rinstance;
 
      return *this;
   }
@@ -610,8 +609,8 @@ public:
      // does that.  "map" maps instInstances of the parent to those in the child.
 
   instInstance *getInstance() const { return instance; }
+  returnInstance *getRInstance() const { return rinstance; }
 
-  bool anythingToManuallyTrigger() const {return manuallyTrigger;}
 #if defined(MT_THREAD)
   bool triggerNow(process *theProc, int mid, int thrId);
 #else
@@ -624,7 +623,6 @@ public:
 
   instPoint *Point() {return point;}
   callWhen When() {return when;}
-  void incrManuallyTrigger() {manuallyTrigger++;}
 
 private:
   instPoint	*point;
@@ -632,17 +630,12 @@ private:
   callWhen	when;
   callOrder	order;
   instInstance	*instance; // undefined until insertInstrumentation() calls addInstFunc
+  returnInstance *rinstance;
 
-  // if true, then 'ast' is manually executed (inferiorRPC) when
-  // inserting instrumentation.
-  int manuallyTrigger;
   // Counts the number of rpcs which have successfully completed 
   // for this node.  This is needed because we may need to manually 
   // trigger multiple times for recursive functions.
   int rpcCount;
-#if defined(MT_THREAD)
-  vector<int> manuallyTriggerTIDs;
-#endif
 };
 
 #if defined(MT_THREAD)
@@ -775,8 +768,7 @@ public:
   dataReqNode *addProcessTimer(bool computingCost);
 #endif
   inline void addInst(instPoint *point, AstNode *, callWhen when, 
-                      callOrder o,
-		      int manuallyTrigger);
+                      callOrder o);
 
   // propagate this aggregate mi to a newly started process p (not for processes
   // started via fork or exec, just for those started "normally")
@@ -872,6 +864,8 @@ private:
   vector<instReqNode> instRequests;
   vector<returnInstance *> returnInsts;
 
+  vector<instReqNode *> manuallyTriggerNodes;
+
 //  sampleValue cumulativeValue; // cumulative value for this metric
    sampleValue cumulativeValue_float;
    
@@ -902,11 +896,10 @@ private:
 
 inline void metricDefinitionNode::addInst(instPoint *point, AstNode *ast,
 					  callWhen when,
-					  callOrder o,
-                                          int manuallyTrigger) {
+					  callOrder o) {
   if (!point) return;
 
-  instReqNode temp(point, ast, when, o, manuallyTrigger);
+  instReqNode temp(point, ast, when, o);
   instRequests += temp;
 };
 

@@ -99,6 +99,7 @@ template class  vector<image*>;
 template class  vector<instMapping*>;
 template class  vector<instPoint *>;
 template class  vector<const instPoint *>;
+template class  vector<trampTemplate *>;
 template class  vector<int>;
 template class  vector<instruction>;
 #ifndef BPATCH_LIBRARY

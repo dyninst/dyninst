@@ -1803,16 +1803,20 @@ int getInsnCost(opCode op)
 
 // baseTramp assembly code symbols
 extern "C" void baseTramp();
+extern "C" void baseTramp_savePreInsn();
 extern "C" void baseTramp_skipPreInsn();
 extern "C" void baseTramp_globalPreBranch();
 extern "C" void baseTramp_localPreBranch();
 extern "C" void baseTramp_localPreReturn();
 extern "C" void baseTramp_updateCostInsn();
+extern "C" void baseTramp_restorePreInsn();
 extern "C" void baseTramp_emulateInsn();
 extern "C" void baseTramp_skipPostInsn();
+extern "C" void baseTramp_savePostInsn();
 extern "C" void baseTramp_globalPostBranch();
 extern "C" void baseTramp_localPostBranch();
 extern "C" void baseTramp_localPostReturn();
+extern "C" void baseTramp_restorePostInsn();
 extern "C" void baseTramp_returnInsn();
 extern "C" void baseTramp_endTramp();
 void initTramps()
@@ -1831,6 +1835,8 @@ void initTramps()
     Address off = i - base;
     // note: these should not be made into if..else blocks
     // (some of the label values are the same)
+    if (i == (Address)baseTramp_savePreInsn)
+      baseTemplate.savePreInsOffset = off;
     if (i == (Address)baseTramp_skipPreInsn)
       baseTemplate.skipPreInsOffset = off;
     if (i == (Address)baseTramp_globalPreBranch)
@@ -1841,16 +1847,22 @@ void initTramps()
       baseTemplate.localPreReturnOffset = off;
     if (i == (Address)baseTramp_updateCostInsn)
       baseTemplate.updateCostOffset = off;
+    if (i == (Address)baseTramp_restorePreInsn)
+      baseTemplate.restorePreInsOffset = off;
     if (i == (Address)baseTramp_emulateInsn)
       baseTemplate.emulateInsOffset = off;
     if (i == (Address)baseTramp_skipPostInsn)
       baseTemplate.skipPostInsOffset = off;
+    if (i == (Address)baseTramp_savePostInsn)
+      baseTemplate.savePostInsOffset = off;
     if (i == (Address)baseTramp_globalPostBranch)
       baseTemplate.globalPostOffset = off;
     if (i == (Address)baseTramp_localPostBranch)
       baseTemplate.localPostOffset = off;
     if (i == (Address)baseTramp_localPostReturn)
       baseTemplate.localPostReturnOffset = off;
+    if (i == (Address)baseTramp_restorePostInsn)
+      baseTemplate.restorePostInsOffset = off;
     if (i == (Address)baseTramp_returnInsn)
       baseTemplate.returnInsOffset = off;
   }  
@@ -1942,6 +1954,7 @@ void returnInstance::installReturnInstance(process *p)
   //fprintf(stderr, ">>> returnInstance::installReturnInstance(%0#10x, %i bytes)\n", addr_, instSeqSize);
   p->writeTextSpace((void *)addr_, instSeqSize, instructionSeq);
   //disDataSpace(p, (void *)addr_, 4, "!!! jump to basetramp: ");
+  installed = true;
 }
 
 
@@ -2528,7 +2541,7 @@ void initLibraryFunctions()
 // For other types of instrumentation, thee inst point is assumed not to
 //  be triggered.
 bool instPoint::triggeredInStackFrame( pd_Function *stack_func, Address stack_pc,
-				      callWhen when ) {
+				      callWhen when, process *proc ) {
     bool ret = false;
 /*
     cerr << "instPoint (Addr =  " << (void*)addr_ << " size = " << size_
@@ -2555,12 +2568,40 @@ bool instPoint::triggeredInStackFrame( pd_Function *stack_func, Address stack_pc
 			if ( stack_pc == target ) {
 				//cerr << " -- HIT";
 				ret = true;
+			} else {
+				instPoint *ip = findInstPointFromAddress( proc, stack_pc );
+				if( ip == this )
+					ret = true;
 			}
 			//cerr << endl;
         }
     }
 
     //cerr << " returning " << ret << endl;
+
+    return ret;
+}
+
+bool instPoint::triggeredExitingStackFrame( pd_Function *stack_func, Address stack_pc,
+				      callWhen when, process *proc ) {
+    bool ret = false;
+
+    if ( ipType_ == IPT_EXIT ) {
+        if ( stack_func == func_ ) {
+			ret = true;
+        }
+    } else if ( ipType_ == IPT_CALL ) {
+        if ( stack_func == func_ && when == callPostInsn ) {
+			Address target = addr_ + size_;
+			if ( stack_pc == target ) {
+				ret = true;
+			} else {
+				instPoint *ip = findInstPointFromAddress( proc, stack_pc );
+				if( ip == this )
+					ret = true;
+			}
+        }
+    }
 
     return ret;
 }

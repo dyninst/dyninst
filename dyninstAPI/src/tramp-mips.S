@@ -70,29 +70,37 @@
 
 /* exported symbols */
 .globl baseTramp
+.globl baseTramp_savePreInsn
 .globl baseTramp_skipPreInsn
 .globl baseTramp_globalPreBranch
 .globl baseTramp_localPreBranch
 .globl baseTramp_localPreReturn
 .globl baseTramp_updateCostInsn
+.globl baseTramp_restorePreInsn
 .globl baseTramp_emulateInsn
 .globl baseTramp_skipPostInsn
+.globl baseTramp_savePostInsn
 .globl baseTramp_globalPostBranch
 .globl baseTramp_localPostBranch
 .globl baseTramp_localPostReturn
+.globl baseTramp_restorePostInsn
 .globl baseTramp_returnInsn
 .globl baseTramp_endTramp
 .globl _baseTramp
+.globl _baseTramp_savePreInsn
 .globl _baseTramp_skipPreInsn
 .globl _baseTramp_globalPreBranch
 .globl _baseTramp_localPreBranch
 .globl _baseTramp_localPreReturn
 .globl _baseTramp_updateCostInsn
+.globl _baseTramp_restorePreInsn
 .globl _baseTramp_emulateInsn
 .globl _baseTramp_skipPostInsn
+.globl _baseTramp_savePostInsn
 .globl _baseTramp_globalPostBranch
 .globl _baseTramp_localPostBranch
 .globl _baseTramp_localPostReturn
+.globl _baseTramp_restorePostInsn
 .globl _baseTramp_returnInsn
 .globl _baseTramp_endTramp
 
@@ -102,6 +110,8 @@ baseTramp:
 _baseTramp:	
 
 /* save registers */
+baseTramp_savePreInsn:	
+_baseTramp_savePreInsn:
 	daddiu	$sp,$sp,-512
 	sdc1	 $f0,504($sp)
 	sdc1	 $f1,496($sp)
@@ -278,6 +288,8 @@ _baseTramp_updateCostInsn:
 	ld	 $29, 16($sp)
 	ld	 $30,  8($sp)
 	ld	 $31,  0($sp)
+baseTramp_restorePreInsn:	
+_baseTramp_restorePreInsn:
 	daddiu	$sp,$sp,512
 	
 baseTramp_emulateInsn:	
@@ -293,6 +305,8 @@ _baseTramp_skipPostInsn:
         nop
 
 /* save registers */
+baseTramp_savePostInsn:	
+_baseTramp_savePostInsn:
 	daddiu	$sp,$sp,-512
 	sdc1	 $f0,504($sp)
 	sdc1	 $f1,496($sp)
@@ -443,6 +457,8 @@ _baseTramp_localPostReturn:
 	ld	 $29, 16($sp)
 	ld	 $30,  8($sp)
 	ld	 $31,  0($sp)
+baseTramp_restorePostInsn:	
+_baseTramp_restorePostInsn:
 	daddiu	$sp,$sp,512
 	
 baseTramp_returnInsn:	

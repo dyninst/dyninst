@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.29 1999/07/08 00:22:34 nash Exp $
+// $Id: unix.C,v 1.30 1999/07/28 19:21:02 nash Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -378,7 +378,7 @@ int handleSigChild(int pid, int status)
        return -1;
     }
 
-    //if (curr->status_ == exited) return -1;
+    if (curr->status_ == exited) return -1;
 
     if (WIFSTOPPED(status)) {
 	int sig = WSTOPSIG(status);

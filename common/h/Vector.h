@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Vector.h: resizable vectors.
- * $Id: Vector.h,v 1.7 1999/01/24 00:12:48 wylie Exp $
+ * $Id: Vector.h,v 1.8 1999/07/28 19:21:38 nash Exp $
 ************************************************************************/
 
 
@@ -96,6 +96,8 @@ public:
     DO_INLINE_F unsigned         size ()                                       const;
     DO_INLINE_F void           resize (unsigned);
 
+	DO_INLINE_F vector<T>&     insert (unsigned, const vector<T> &);
+	DO_INLINE_F vector<T>&     insert (unsigned, const T &);
 
     DO_INLINE_F void             sort (int (*)(const void *, const void *));
 
@@ -171,6 +173,42 @@ vector<T>&
 vector<T>::operator+=(const T& v0) {
     resize(sz_+1);
     data_[sz_-1] = v0;
+    return *this;
+}
+
+template<class T>
+DO_INLINE_F
+vector<T>&
+vector<T>::insert(unsigned l, const vector<T>& v) {
+	unsigned osz = sz_, i;
+	resize(osz+v.sz_);
+	if( l > osz )
+		l = osz ;
+	if( osz != 0 ) {
+		for(i = osz-1; i >= l; --i ) {
+			data_[i+v.sz_] = data_[i];
+		}
+	}
+	for(i = l; i < l+v.sz_; ++i ) {
+		data_[i] = v.data_[i-l];
+	}
+    return *this;
+}
+
+template<class T>
+DO_INLINE_F
+vector<T>&
+vector<T>::insert(unsigned l, const T& v0) {
+	unsigned osz = sz_, i;
+	resize(osz+1);
+	if( l > osz )
+		l = osz;
+	if( osz != 0 ) {
+		for(i = osz-1; i >= l; --i ) {
+			data_[i+1] = data_[i];
+		}
+	}
+	data_[l] = v0;
     return *this;
 }
 
@@ -276,6 +314,21 @@ void
 vector<T>::destroy() {
     delete[] data_; data_ = 0;
     sz_ = tsz_ = 0;
+}
+
+template<class T>
+DO_INLINE_P
+bool
+find(const vector<T> &v, const T &v0, unsigned &l) {
+	unsigned i, sz;
+	sz = v.size();
+	for( i = 0; i < sz; ++i ) {
+		if( v[ i ] == v0 ) {
+			l = i;
+			return true;
+		}
+	}
+	return false;
 }
 
 #endif /* !defined(_Vector_h_) */

@@ -61,6 +61,10 @@ _baseTramp:
 	/* should update cost of base tramp here, but we don't have a
 	   register to use!
 	*/
+	.global baseTramp_savePreInsn
+	.global	_baseTramp_savePreInsn
+baseTramp_savePreInsn:
+_baseTramp_savePreInsn:
 	save  %sp, -120, %sp	/* saving registers before jumping to */
 	.word   SKIP_PRE_INSN
 	nop			/* delay slot for jump if there is no inst. */
@@ -110,6 +114,10 @@ _baseTramp:
 	nop
 	nop
 	nop
+	.global baseTramp_restorePreInsn
+	.global	_baseTramp_restorePreInsn
+baseTramp_restorePreInsn:
+_baseTramp_restorePreInsn:
 	restore
 	.word 	EMULATE_INSN
 	nop			/* second instruction if it's leaf */
@@ -121,6 +129,10 @@ _baseTramp:
 	.word   SKIP_POST_INSN
 	nop
 	.word	GLOBAL_POST_BRANCH
+	.global baseTramp_savePostInsn
+	.global	_baseTramp_savePostInsn
+baseTramp_savePostInsn:
+_baseTramp_savePostInsn:
 	save  %sp, -120, %sp	/* saving registers before jumping to */
 	std  %g0, [ %fp + -8 ]	/* to a minitramp		      */
 	std  %g2, [ %fp + -16 ]
@@ -161,6 +173,10 @@ _baseTramp:
 	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
 	ldd  [ %fp + -24 ], %g4
 	ldd  [ %fp + -32 ], %g6
+	.global baseTramp_restorePostInsn
+	.global	_baseTramp_restorePostInsn
+baseTramp_restorePostInsn:
+_baseTramp_restorePostInsn:
 	restore
 	.word	RETURN_INSN
 	nop			/* see if this prevents crash jkh 4/4/95 */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.17 1999/07/19 22:53:17 wylie Exp $
+// $Id: linux.C,v 1.18 1999/07/28 19:21:00 nash Exp $
 
 #include <fstream.h>
 
@@ -138,7 +138,11 @@ static int regmap[] =
 #define REGS_INTS ( REGS_SIZE / INTREGSIZE )
 
 const int GENREGS_STRUCT_SIZE = sizeof( user::regs );
+#ifdef _SYS_USER_H 
 const int FPREGS_STRUCT_SIZE = sizeof( user_fpregs_struct );
+#else
+const int FPREGS_STRUCT_SIZE = sizeof( user_i387_struct );
+#endif
 
 int register_addr (int regno )
 {
@@ -699,7 +703,7 @@ void process::handleIfDueToDyninstLib()
 
   // restore the stack frame of _start()
   user_regs_struct *theIntRegs = (user_regs_struct *)savedRegs;
-  Address theEBP = theIntRegs->ebp;
+  RegValue theEBP = theIntRegs->ebp;
 
   if( !theEBP )
   {
@@ -729,7 +733,8 @@ void process::handleTrapAtEntryPointOfMain()
 
 void process::insertTrapAtEntryPointOfMain()
 {
-  function_base *f_main = findOneFunction("main");
+  function_base *f_main;
+  f_main = findOneFunction("main");
   if (!f_main) {
     // we can't instrument main - naim
     showErrorCallback(108,"main() uninstrumentable");
@@ -738,7 +743,8 @@ void process::insertTrapAtEntryPointOfMain()
     return;
   }
   assert(f_main);
-  Address addr = f_main->addr();
+  Address addr;
+  addr = f_main->addr();
 
   // save original instruction first
   readDataSpace((void *)addr, 2, savedCodeBuffer, true);
@@ -886,7 +892,7 @@ bool process::dlopenDYNINSTlib() {
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
   // save the stack frame of _start()
   user_regs_struct *regs = (user_regs_struct*)savedRegs;
-  Address theEBP = regs->ebp;
+  RegValue theEBP = regs->ebp;
 
   // Under Linux, at the entry point to main, ebp is 0
   // the first thing main usually does is to push ebp and
@@ -1039,7 +1045,7 @@ bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) 
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
 bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
-  return readDataSpace_( inTraced, amount, inSelf );
+  return readDataSpace_( inTraced, amount, const_cast<void*>( inSelf ) );
 }
 #endif
 
@@ -1059,7 +1065,7 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
     fprintf( stderr, "(linux)writeDataSpace_  amount=%d  %#.8x -> %#.8x\n", amount, (int)inSelf, (int)inTraced );
 #endif
   unsigned char buf[sizeof(int)];
-  u_int count, off, addr = (int)inTraced, dat = (int)inSelf;
+  Address count, off, addr = (int)inTraced, dat = (int)inSelf;
 
   off = addr % sizeof(int);
   if( off != 0 || amount < sizeof(int) ) {
@@ -1068,7 +1074,7 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
 	if( errno )
 	{
       char errb[150];
-      sprintf( errb, "process::writeDataSpace_, ptrace( PEEKTXT, %d, %#.8x, &tmp )", getPid(), addr );
+      sprintf( errb, "process::writeDataSpace_, ptrace( PEEKTXT, %d, %#.8lx, &tmp )", getPid(), addr );
       perror( errb );
       return false;
 	}
@@ -1210,7 +1216,7 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
       (int)inSelf % sizeof(int) != 0 )
   {
 	  unsigned char buf[sizeof(int)];
-	  u_int count, off, addr = (int)inTraced, dat = (int)inSelf;
+	  Address count, off, addr = (int)inTraced, dat = (int)inSelf;
 	  bool begin = true;
 
 	  off = addr % sizeof(int);
@@ -1429,10 +1435,8 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) /* const */ {
     assert( tmp );
     assert( 1 == fscanf( tmp, "%*s %*d %*d %*d %d", &uptimeJiffies ) );
     fclose( tmp );
-    realHZ = (int)floor( (double)uptimeJiffies / uptimeReal );
-#ifdef notdef
-    fprintf( stderr, "Determined jiffies/sec as %d\n", realHZ );
-#endif
+    realHZ = (int)floor( (double)uptimeJiffies / uptimeReal + 0.5 );
+    //fprintf( stderr, "Determined jiffies/sec as %d\n", realHZ );
   }
 
   sprintf( buf, "/proc/%d/stat", getPid() );
@@ -1454,7 +1458,7 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) /* const */ {
     /*size_t rsize = */P_read( fd, buf2, bufsize-1 );
 
     if( 2 == sscanf( buf2, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %d %d ", &utime, &stime ) ) {
-      // These numbers are in 'jiffies' or clock ticks.  For now, we
+      // These numbers are in 'jiffies' or timeslices.  For now, we
       // check at the beginning the ratio between the idle seconds in
       // /proc/uptime and the idle jiffies in /proc/stat, and later we can
       // use some kind of gethrvptime for the whole thing. - nash
@@ -1628,8 +1632,8 @@ int getNumberOfCPUs()
 Address process::read_inferiorRPC_result_register(Register /*reg*/) {
    // On x86, the result is always stashed in %EAX
 
-   int raddr = EAX * 4;
-   int eaxval = ptraceKludge::deliverPtrace(this, PTRACE_PEEKUSER, raddr, 0);
+   Address raddr = EAX * 4;
+   Address eaxval = ptraceKludge::deliverPtrace(this, PTRACE_PEEKUSER, raddr, 0);
    if( errno ) {
      perror( "process::read_inferiorRPC_result_register; ptrace PEEKUSER" );
      assert(false);
@@ -1709,7 +1713,7 @@ void print_read_error_info(const relocationEntry entry,
 // it is unlikely to happen in practice.
 bool process::findCallee(instPoint &instr, function_base *&target){
     
-    if((target = (function_base *)instr.iPgetCallee())) {
+    if((target = const_cast<function_base *>(instr.iPgetCallee()))) {
  	return true; // callee already set
     }
 

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.77 1999/07/08 00:22:28 nash Exp $
+ * $Id: inst-power.C,v 1.78 1999/07/28 19:20:56 nash Exp $
  */
 
 #include "util/h/headers.h"
@@ -233,7 +233,7 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
 // For other types of instrumentation, thee inst point is assumed not to
 //  be triggered.
 bool instPoint::triggeredInStackFrame( pd_Function *stack_func, Address stack_pc,
-				      callWhen when ) {
+				      callWhen when, process *proc ) {
     bool ret = false;
 /*
     cerr << "instPoint (Addr =  " << (void*)addr
@@ -259,12 +259,41 @@ bool instPoint::triggeredInStackFrame( pd_Function *stack_func, Address stack_pc
 			if ( stack_pc == target ) {
 				//cerr << " -- HIT";
 				ret = true;
+			} else {
+				instPoint *ip = findInstPointFromAddress( proc, stack_pc );
+				if( ip == this )
+					ret = true;
 			}
 			//cerr << endl;
         }
     }
 
     //cerr << " returning " << ret << endl;
+
+    return ret;
+}
+
+bool instPoint::triggeredExitingStackFrame( pd_Function *stack_func, Address stack_pc,
+				      callWhen when, process *proc ) {
+    bool ret = false;
+
+    if ( ipLoc == ipFuncReturn ) {
+        if ( stack_func == func ) {
+			ret = true;
+        }
+    } else if ( ipLoc == ipFuncCallPoint ) {
+        if ( stack_func == func && when == callPostInsn ) {
+			// check if the stack_pc points to the instruction after the call site
+			Address target = addr + sizeof(instruction);
+			if ( stack_pc == target ) {
+				ret = true;
+			} else {
+				instPoint *ip = findInstPointFromAddress( proc, stack_pc );
+				if( ip == this )
+					ret = true;
+			}
+        }
+    }
 
     return ret;
 }
@@ -552,6 +581,18 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
                 break;
 	    case EMULATE_INSN:
                 thisTemp->emulateInsOffset = ((char*)temp - (char*)tramp);
+                break;
+	    case SAVE_PRE_INSN:
+                thisTemp->savePreInsOffset = ((char*)temp - (char*)tramp);
+                break;
+	    case RESTORE_PRE_INSN:
+                thisTemp->restorePreInsOffset = ((char*)temp - (char*)tramp);
+                break;
+	    case SAVE_POST_INSN:
+                thisTemp->savePostInsOffset = ((char*)temp - (char*)tramp);
+                break;
+	    case RESTORE_POST_INSN:
+                thisTemp->restorePostInsOffset = ((char*)temp - (char*)tramp);
                 break;
   	}	
     }
@@ -2703,6 +2744,7 @@ bool returnInstance::checkReturnInstance(const vector<Address> &/*adr*/,
  
 void returnInstance::installReturnInstance(process *proc) {
     proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t) instructionSeq); 
+	installed = true;
 }
 
 void returnInstance::addToReturnWaitingList(Address , process * ) {

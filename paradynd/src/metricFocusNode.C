@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.158 1999/07/19 16:27:28 nash Exp $
+// $Id: metricFocusNode.C,v 1.159 1999/07/28 19:21:33 nash Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -1299,10 +1299,9 @@ bool metricDefinitionNode::anythingToManuallyTrigger() const {
       return false;
    }
    else {
-      for (unsigned i=0; i < instRequests.size(); i++)
-	 if (instRequests[i].anythingToManuallyTrigger())
-	    return true;
-      return false;
+	   if( manuallyTriggerNodes.size() > 0 )
+		   return true;
+	   return false;
    }
 
    assert(false);
@@ -1330,7 +1329,7 @@ bool metricDefinitionNode::anythingToManuallyTrigger() const {
 //         
 void metricDefinitionNode::adjustManuallyTrigger() {
     vector<instPoint*> instPts;
-    unsigned i, j, k;
+    unsigned i, j, k, l;
     pd_Function *stack_func;
     instPoint *point;
     Address stack_pc;
@@ -1355,7 +1354,11 @@ void metricDefinitionNode::adjustManuallyTrigger() {
 		assert(mainFunc); // processes should always have mainFunction defined
 #ifndef OLD_CATCHUP
 	vector<Address> stack_pcs = proc_->walkStack();
+	if( stack_pcs.size() == 0 )
+		cerr << "WARNING -- process::walkStack returned an empty stack" << endl;
 	vector<pd_Function *> stack_funcs = proc_->convertPCsToFuncs(stack_pcs);
+	proc_->correctStackFuncsForTramps( stack_pcs, stack_funcs );
+	bool badReturnInst = false;
 
 	for(i=0;i<stack_funcs.size();i++) {
 	    stack_func = stack_funcs[i];
@@ -1369,49 +1372,55 @@ void metricDefinitionNode::adjustManuallyTrigger() {
 	    instPts += const_cast<instPoint*>( stack_func->funcEntry(proc_) );
 	    instPts += stack_func->funcCalls(proc_);
 	    instPts += stack_func->funcExits(proc_);
+
+#if !(defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) \
+      || defined(i386_unknown_linux2_0))
+		// If there is a function on the stack with relevant instPoints which we were
+		// not able to install return instances for, we don't want to manually trigger
+		// anything else further on the stack, as it could cause inconsistencies with
+		// metrics which rely on matching pairs of actions. - DAN
+		// **NOTE** we don't do this on x86, because we can always immediately insert
+		// a 'jump' to base tramp via. trap.  In addition, when we use a trap rather
+		// than a branch, the return instance is still NULL, and this code breaks. - DAN
+		for(j=1;j<instPts.size()&&!badReturnInst;j++) {
+			for(k=0;k<instRequests.size();k++) {
+				if( instPts[j] == instRequests[k].Point() ) {
+					if( instRequests[k].getRInstance() != NULL
+						&& !(instRequests[k].getRInstance()->Installed())
+						&& instPts[j]->triggeredExitingStackFrame(stack_func, stack_pc,
+												instRequests[k].When(), proc_ ) )
+					{
+						metric_cerr << "AdjustManuallyTrigger -- Bad return instance in "
+							 << stack_func->prettyName()
+							 << ", not manually triggering the rest of the stack." << endl;
+						badReturnInst = true;
+						break;
+					}
+				}
+			}
+		}
+#endif
+		if( badReturnInst )
+			break;
+
 	    for(j=0;j<instPts.size();j++) {
 	        point = instPts[j];
 		for(k=0;k<instRequests.size();k++) {
 		    if (point == instRequests[k].Point()) {
 		        if (point->triggeredInStackFrame(stack_func, stack_pc, 
-							 instRequests[k].When()))
+							 instRequests[k].When(), proc_ ))
 				{
-					//cerr << "AdjustManuallyTrigger -- catch-up needed for "
-					//	 << flat_name_ << " @ " << stack_func->prettyName() << endl;
-					instRequests[k].incrManuallyTrigger();
+					metric_cerr << "AdjustManuallyTrigger -- catch-up needed for "
+								<< flat_name_ << " @ " << stack_func->prettyName() << endl;
+					manuallyTriggerNodes += &(instRequests[k]);
 				}
 		    }
 		}
 	    }
 	}
 
-	// Kludge to catch $start.entry and main.entry if the stack walk doesn't 
-	// work for some reason.  Check all the instReqNodes against said functions
-	// and for entry point.
-	for( k = 0; k < instRequests.size(); ++k ) {
-		if( instRequests[ k ].Point()->iPgetFunction() == mainFunc
-			&& !instRequests[ k ].anythingToManuallyTrigger() )
-		{
-#if defined(mips_sgi_irix6_4)
-			if( instRequests[ k ].Point()->type() == IPT_ENTRY )
-#elif defined(sparc_sun_solaris2_4) || defined(sparc_sun_sunos4_1_3)
-			if( instRequests[ k ].Point()->ipType == functionEntry )
-#elif defined(rs6000_ibm_aix4_1)
-			if( instRequests[ k ].Point()->ipLoc == ipFuncEntry )
-#elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) \
-      || defined(i386_unknown_linux2_0)
-			if( instRequests[ k ].Point()->iPgetAddress() == mainFunc->addr() )
-#else
-#error Check for instPoint type == entry not implemented on this platform
-#endif
-			{
-				//cerr << "AdjustManuallyTrigger -- (main kludge) catch-up needed for "
-				//	 << flat_name_ << " @ " << mainFunc->prettyName() << endl;
-				instRequests[ k ].incrManuallyTrigger();
-			}
-		}
-	}
 #endif // !OLD_CATCHUP
+
 
 	// This code is a kludge which will catch the case where the WHOLE_PROGRAM metrics
 	// have not been set to manjually trigger by the above code.  Look at the 
@@ -1419,32 +1428,33 @@ void metricDefinitionNode::adjustManuallyTrigger() {
 	// Then, for each InstReqNode in this MetricDefinitionNode which is at the entry
 	// point of main, and which has not been added to the manuallyTriggerNodes list,
 	// add it to the list.
-	for( j = 0; j < component_focus.size(); ++j )
-	if( component_focus[j][0] == "Code" && ( component_focus[j].size() == 1
-	  || ( component_focus[j].size() == 2 && component_focus[j][1] == "" ) ) )
-	for( k = 0; k < instRequests.size(); ++k ) {
-		if( instRequests[ k ].Point()->iPgetFunction() == mainFunc
-			&& !instRequests[ k ].anythingToManuallyTrigger() )
-		{
+		for( j = 0; j < component_focus.size(); ++j )
+		if( component_focus[j][0] == "Code" && ( component_focus[j].size() == 1
+			|| ( component_focus[j].size() == 2 && component_focus[j][1] == "" ) ) )
+		for( k = 0; k < instRequests.size(); ++k ) {
+			if( instRequests[ k ].Point()->iPgetFunction() == mainFunc ) {
+			if( !find( manuallyTriggerNodes, &(instRequests[k]), l ) ) {
 #if defined(mips_sgi_irix6_4)
-			if( instRequests[ k ].Point()->type() == IPT_ENTRY )
+				if( instRequests[ k ].Point()->type() == IPT_ENTRY )
 #elif defined(sparc_sun_solaris2_4) || defined(sparc_sun_sunos4_1_3)
-			if( instRequests[ k ].Point()->ipType == functionEntry )
+				if( instRequests[ k ].Point()->ipType == functionEntry )
 #elif defined(rs6000_ibm_aix4_1)
-			if( instRequests[ k ].Point()->ipLoc == ipFuncEntry )
+				if( instRequests[ k ].Point()->ipLoc == ipFuncEntry )
 #elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) \
       || defined(i386_unknown_linux2_0)
-			if( instRequests[ k ].Point()->iPgetAddress() == mainFunc->addr() )
+				if( instRequests[ k ].Point()->iPgetAddress() == mainFunc->addr() )
 #else
 #error Check for instPoint type == entry not implemented on this platform
 #endif
-			{
-				//cerr << "AdjustManuallyTrigger -- (WHOLE_PROGRAM kludge) catch-up needed for "
-				//	 << flat_name_ << " @ " << mainFunc->prettyName() << endl;
-				instRequests[ k ].incrManuallyTrigger();
+				{
+					metric_cerr << "AdjustManuallyTrigger -- (WHOLE_PROGRAM kludge) catch-up needed for "
+								<< flat_name_ << " @ " << mainFunc->prettyName() << endl;
+					manuallyTriggerNodes.insert( 0, &(instRequests[k]) );
+				}
 			}
 		}
-	}
+		}
+
 	}
 }
 
@@ -1470,36 +1480,38 @@ void metricDefinitionNode::adjustManuallyTrigger() {
 void metricDefinitionNode::manuallyTrigger(int parentMId) {
    assert(anythingToManuallyTrigger());
 
+   bool aggr = true;
+
 #if defined(MT_THREAD)
-   if (aggLevel != PROC_COMP) {
+   if (aggLevel == PROC_COMP)
+	   aggr = false;
 #else
-   if (aggregate_) {
+   if (!aggregate_)
+	   aggr = false;
 #endif
-      for (unsigned i=0; i < components.size(); i++)
-	 if (components[i]->anythingToManuallyTrigger())
-	   components[i]->manuallyTrigger(parentMId);
+
+   if( aggr ) {
+	   for ( unsigned i=0; i < components.size(); ++i )
+		   if (components[i]->anythingToManuallyTrigger())
+			   components[i]->manuallyTrigger(parentMId);
+	   return;
    }
-   else {
-#if defined(MT_THREAD)
-      if (aggLevel == PROC_COMP) {
-	for (unsigned i=0; i < instRequests.size(); i++) {
-	  for (unsigned u=0; u<proc_->threads.size(); u++) {
-	    if (instRequests[i].anythingToManuallyTrigger()) {
-	      if (!instRequests[i].triggerNow(proc(),parentMId, proc_->threads[u]->get_tid())) 
-	        cerr << "manual trigger failed for an inst request for thread"  << endl;
-	    }
-	  }
-	} 
-      }
+
+   for ( unsigned i=0; i < manuallyTriggerNodes.size(); ++i ) {
+#if !defined(MT_THREAD)
+	   if (!manuallyTriggerNodes[i]->triggerNow(proc(),parentMId)) {
+		   cerr << "manual trigger failed for an inst request" << endl;
+	   }
 #else
-      for (unsigned i=0; i < instRequests.size(); i++)
-       if (instRequests[i].anythingToManuallyTrigger()) {
-           if (!instRequests[i].triggerNow(proc(),parentMId)) {
-              cerr << "manual trigger failed for an inst request" << endl;
-           }
-       }
+	   for( unsigned u=0; u < proc()->threads.size(); ++i ) {
+		   if (!manuallyTriggerNodes[i]->triggerNow( proc(), parentMId,
+													proc()->threads[u]->getTid() )) {
+			   cerr << "manual trigger failed for an inst request" << endl;
+		   }
+	   }
 #endif
    }
+   manuallyTriggerNodes.resize( 0 );
 }
 
 #if defined(MT_THREAD)
@@ -1609,9 +1621,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 	   mi->manuallyTrigger(id);
 
 	   if (alreadyRunning) 
-	     theProc->continueProc(); // the continue will trigger our code
-	    else 
-	       ;// the next time the process continues, we'll trigger our code
+	     theProc->continueProc();
 	}
     }
 
@@ -1699,8 +1709,8 @@ bool metricDefinitionNode::insertInstrumentation()
       // Loop thru "instRequests", an array of instReqNode:
       // (Here we insert code instrumentation, tramps, etc. via addInstFunc())
       for (unsigned u1=0; u1<instRequests.size(); u1++) {
-	  // NEW: the following may also manually trigger the instrumentation
-	  // via inferiorRPC.
+	  // code executed later (adjustManuallyTrigger) may also manually trigger 
+	  // the instrumentation via inferiorRPC.
 	  returnInstance *retInst=NULL;
 	  if (!instRequests[u1].insertInstrumentation(proc_, retInst))
 	     return false; // shouldn't we try to undo what's already put in?
@@ -2591,21 +2601,19 @@ void processSample(int /* pid */, traceHeader *h, traceSample *s)
 instReqNode::instReqNode(instPoint *iPoint,
                          AstNode *iAst,
                          callWhen  iWhen,
-                         callOrder o, int iManuallyTrigger) {
+                         callOrder o) {
     point = iPoint;
     when = iWhen;
     order = o;
     instance = NULL; // set when insertInstrumentation() calls addInstFunc()
     ast = assignAst(iAst);
-    manuallyTrigger = iManuallyTrigger;
     assert(point);
 }
 
 instReqNode instReqNode::forkProcess(const instReqNode &parentNode,
 			     const dictionary_hash<instInstance*,instInstance*> &map) {
     instReqNode ret = instReqNode(parentNode.point, parentNode.ast, parentNode.when,
-				  parentNode.order,
-				  false // don't manually trigger
+				  parentNode.order
 				  );
 
     if (!map.find(parentNode.instance, ret.instance)) // writes to ret.instance
@@ -2651,6 +2659,10 @@ bool instReqNode::insertInstrumentation(process *theProc,
 			   false, // false --> don't exclude cost
 			   retInstance);
 
+    //if( !retInstance )
+	//cerr << "addInstFunc returned a NULL retInstance" << endl;
+    rinstance = retInstance;
+
     return (instance != NULL);
 }
 
@@ -2694,18 +2706,13 @@ bool instReqNode::triggerNow(process *theProc, int mid, int thrId) {
 #else
 bool instReqNode::triggerNow(process *theProc, int mid) {
 #endif
-   int i/*, status, pid*/;
-   if(!manuallyTrigger) return false;
-
    bool needToCont = theProc->status() == running;
    if ( !theProc->pause() ) {
 	   cerr << "instReqNode::triggerNow -- pause failed" << endl;
 	   return false;
    }
 
-   // trigger the instrumentation <manuallyTrigger> times - may need to 
-   //  trigger multiple times to account for recursive function calls....
-   for(i=0;i<manuallyTrigger;i++) {
+   // trigger the instrumentation
 #if defined(MT_THREAD)
    for (unsigned i=0;i<manuallyTriggerTIDs.size();i++) {
      if (manuallyTriggerTIDs[i]==thrId) {
@@ -2734,14 +2741,11 @@ bool instReqNode::triggerNow(process *theProc, int mid) {
 			mid);
 #endif
 
-	   rpcCount = 0;
-	   do {
-		   theProc->launchRPCifAppropriate(false, false);
-		   checkProcStatus();
-	   } while ( !rpcCount && theProc->status() != exited );
-   }
-
-   manuallyTrigger = 0;
+   rpcCount = 0;
+   do {
+	   theProc->launchRPCifAppropriate(false, false);
+	   checkProcStatus();
+   } while ( !rpcCount && theProc->status() != exited );
 
    if( needToCont )
 	   theProc->continueProc();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.C,v 1.11 1999/07/07 16:15:03 zhichen Exp $
+// $Id: fastInferiorHeapHKs.C,v 1.12 1999/07/28 19:21:32 nash Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -354,10 +354,6 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    const time64 total = theTimer.total;
    const time64 start = (count > 0) ? theTimer.start : 0; // not needed if count==0
 
-   volatile const int protector1 = theTimer.protector1;
-   if (protector1 != protector2)
-      return false;
-
 #if defined(MT_THREAD)
    const tTimer* vt   = (tTimer*) theTimer.vtimer ;
    unsigned long long inferiorCPUtime ;
@@ -381,6 +377,14 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    const unsigned long long inferiorCPUtime
      = (count>0)?inferiorProc->getInferiorProcessCPUtime(/*theTimer.lwp_id*/):0;
 #endif 
+
+   // This protector read and comparison must happen *after* we obtain the inferior
+   // CPU time or thread virtual time, or we have a race condition resulting in lots
+   // of annoying timer rollback warnings.  In the long run, our data is still 
+   // correct, but individual samples will be bad.
+   volatile const int protector1 = theTimer.protector1;
+   if (protector1 != protector2)
+      return false;
 
    // Also cheating; see below.
    // the fudge factor is needed only if count > 0.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.36 1999/07/07 16:05:41 zhichen Exp $
+// $Id: inst-sparc.h,v 1.37 1999/07/28 19:20:58 nash Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -112,6 +112,10 @@ inline Address ABS(int x) {
 #define REG_G(x) (x)
 
 extern "C" void baseTramp();
+extern "C" void baseTramp_savePreInsn();
+extern "C" void baseTramp_restorePreInsn();
+extern "C" void baseTramp_savePostInsn();
+extern "C" void baseTramp_restorePostInsn();
 extern trampTemplate baseTemplate;
 extern registerSpace *regSpace;
 extern Register deadList[];

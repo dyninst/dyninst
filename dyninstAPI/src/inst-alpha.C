@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.13 1999/06/10 19:14:35 hollings Exp $
+// $Id: inst-alpha.C,v 1.14 1999/07/28 19:20:54 nash Exp $
 
 #include "util/h/headers.h"
 
@@ -716,6 +716,7 @@ void installBaseTramp(instPoint *location,
   words += generate_nop(code+words);
 
   // decrement stack by 16
+  tramp.savePreInsOffset = words*4;
   words += generate_lda(code+words, REG_SP, REG_SP, -16, true);
 
   // push ra onto the stack
@@ -749,6 +750,7 @@ void installBaseTramp(instPoint *location,
   words += generate_load(code+words, REG_GP, REG_SP, 8, dw_quad);
 
   // increment stack by 16
+  tramp.restorePreInsOffset = words*4;
   words += generate_lda(code+words, REG_SP, REG_SP, 16, true);
 
   // *** end code cloned in emitFuncJump ****
@@ -768,6 +770,7 @@ void installBaseTramp(instPoint *location,
   }
 
   // decrement stack by 16
+  tramp.savePostInsOffset = words*4;
   words += generate_lda(code+words, REG_SP, REG_SP, -16, true);
 
   // push ra onto the stack
@@ -798,6 +801,7 @@ void installBaseTramp(instPoint *location,
   words += generate_load(code+words, REG_GP, REG_SP, 8, dw_quad);
 
   // increment stack by 16
+  tramp.restorePostInsOffset = words*4;
   words += generate_lda(code+words, REG_SP, REG_SP, 16, true);
 
   // If the relocated insn is a Jsr or Bsr then 
@@ -1889,6 +1893,7 @@ bool returnInstance::checkReturnInstance(const vector<Address> & /* adr */,
  
 void returnInstance::installReturnInstance(process *proc) {
     proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t) instructionSeq); 
+	installed = true;
 }
 
 void returnInstance::addToReturnWaitingList(Address /* pc */, 

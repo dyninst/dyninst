@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.11 1998/09/02 21:43:55 wylie Exp $
+// $Id: templatesPD.C,v 1.12 1999/07/28 19:21:34 nash Exp $
 
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
@@ -91,6 +91,8 @@ template class vector<mdl_var>;
 
 template class vector<costMetric *>;
 
+template class vector<instReqNode *>;
+template bool find<instReqNode *>(vector<instReqNode *> const &, instReqNode * const &, unsigned int &);
 template class vector<internalMetric::eachInstance>;
 
 template class dictionary_hash <unsigned, cpSample*>;

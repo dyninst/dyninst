@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.54 1999/07/08 00:22:29 nash Exp $
+// $Id: inst-sparc-solaris.C,v 1.55 1999/07/28 19:20:57 nash Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -255,7 +255,7 @@ const instruction instPoint::insnAfterPoint() const {
 // For other types of instrumentation, thee inst point is assumed not to
 //  be triggered.
 bool instPoint::triggeredInStackFrame(pd_Function *stack_func, Address stack_pc,
-				      callWhen when) {
+				      callWhen when, process *proc) {
     bool ret = false;
 
     //cerr << "instPoint (Addr =  " << (void*)addr << " size = " << size << " type = " << ipType 
@@ -278,11 +278,40 @@ bool instPoint::triggeredInStackFrame(pd_Function *stack_func, Address stack_pc,
 			//  call site + 8, as opposed to the PC of the call site.
 			if (stack_pc == addr + 2 * sizeof(instruction)) {
 				ret = true;
+			} else {
+				trampTemplate *bt = findBaseTramp( this );
+				Address target = bt->baseAddr + bt->emulateInsOffset + 2 * sizeof(instruction);
+				if( stack_pc == target )
+					ret = true;
 			}
         }
     }
 
     //cerr << " returning " << ret << endl;
+
+    return ret;
+}
+
+bool instPoint::triggeredExitingStackFrame(pd_Function *stack_func, Address stack_pc,
+				      callWhen when, process *proc) {
+    bool ret = false;
+
+    if (ipType == functionExit) {
+        if (stack_func == func) {
+			ret = true;
+        }
+    } else if (ipType == callSite) {
+        if (stack_func == func && when == callPostInsn) {
+			if (stack_pc == addr + 2 * sizeof(instruction)) {
+				ret = true;
+			} else {
+				trampTemplate *bt = findBaseTramp( this );
+				Address target = bt->baseAddr + bt->emulateInsOffset + 2 * sizeof(instruction);
+				if( stack_pc == target )
+					ret = true;
+			}
+        }
+    }
 
     return ret;
 }

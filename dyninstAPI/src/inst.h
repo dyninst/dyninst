@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.47 1999/07/13 13:55:25 zhichen Exp $
+// $Id: inst.h,v 1.48 1999/07/28 19:20:59 nash Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -52,6 +52,7 @@
 
 class instPoint;
 class instInstance;
+class trampTemplate;
 class process;
 class pd_Function;
 class metricDefinitionNode;
@@ -85,8 +86,16 @@ instInstance *addInstFunc(process *proc,
 			  bool noCost,
 			  returnInstance *&retInstance);
 
+
+/* Utility functions */
+
 void getAllInstInstancesForProcess(const process *,
 				   vector<instInstance*> &);
+
+instPoint * findInstPointFromAddress(const process *, Address);
+instInstance * findMiniTramps( const instPoint * );
+trampTemplate * findBaseTramp( const instPoint * );
+
 
 void copyInstInstances(const process *parent, const process *child,
 	    dictionary_hash<instInstance *, instInstance *> &instInstanceMapping);
