@@ -51,13 +51,13 @@
  * header files.
 ************************************************************************/
 
-#include <util/h/Dictionary.h>
-#include <util/h/String.h>
+#include "util/h/Dictionary.h"
+#include "util/h/String.h"
 // trace data streams
-#include <util/h/ByteArray.h>
-#include <util/h/Symbol.h>
-#include <util/h/Types.h>
-#include <util/h/Vector.h>
+#include "util/h/ByteArray.h"
+#include "util/h/Symbol.h"
+#include "util/h/Types.h"
+#include "util/h/Vector.h"
 #include "util/h/lprintf.h"
 
 // relocation information for calls to functions not in this image
@@ -165,37 +165,37 @@ private:
 #undef HAVE_SPECIFIC_OBJECT
 
 #if defined(hppa1_1_hp_hpux)
-#include <util/h/Object-hpux.h>
+#include "util/h/Object-hpux.h"
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(hppa1_1_hp_hpux) */
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
-#include <util/h/Object-elf32.h>
+#include "util/h/Object-elf32.h"
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(sparc_sun_solaris2_4) */
 
 #if defined(i386_unknown_linux2_0)
-#include <util/h/Object-linux.h>
+#include "util/h/Object-linux.h"
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(i386_unknown_linux2_0) */
 
 #if defined(sparc_sun_sunos4_1_3)
-#include <util/h/Object-bsd.h>
+#include "util/h/Object-bsd.h"
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(sparc_sun_sunos4_1_3) */
 
 #if defined(sparc_tmc_cmost7_3)
-#include <util/h/Object-cm5.h>
+#include "util/h/Object-cm5.h"
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(sparc_tmc_cmost7_3) */
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-#include <util/h/Object-aix.h>
+#include "util/h/Object-aix.h"
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(sparc_tmc_cmost7_3) */
 
 #if defined(i386_unknown_nt4_0)
-#include <util/h/Object-nt.h>
+#include "util/h/Object-nt.h"
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(i386_unknown_nt4_0) */
 
@@ -212,8 +212,19 @@ public:
      SymbolIter (const Object &obj):  si_(obj.symbols_) {}
     ~SymbolIter () {}
 
-    bool  next (string &name, Symbol &sym) { return si_.next(name, sym); } 
     void  reset () { si_.reset(); }
+
+   operator bool() const {
+      return si_;
+   }
+   void operator++(int) { si_++; }
+   
+   const string &currkey() const {
+      return si_.currkey();
+   }
+   const Symbol &currval() const {
+      return si_.currval();
+   }
 
 private:
     dictionary_hash_iter<string, Symbol> si_;
