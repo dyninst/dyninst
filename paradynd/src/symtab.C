@@ -16,6 +16,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
+ * Revision 1.42  1996/07/09 04:07:58  lzheng
+ * add infomation of unwind table entry to assist the stack walking on HPUX
+ *
  * Revision 1.41  1996/04/29 22:18:49  mjrg
  * Added size to functions (get size from symbol table)
  * Use size to define function boundary
@@ -628,7 +631,7 @@ bool image::addOneFunction(vector<Symbol> &mods, module *lib, module *dyn,
   
   string progName = name_ + "_module";
 
-#ifdef sparc_sun_solaris2_4
+#if defined (sparc_sun_solaris2_4) 
   // In solaris there is no address for modules in the symbol table, 
   // so the binary search will not work. The module field in a symbol
   // already has the correct module name for a symbol, if it can be
@@ -840,6 +843,10 @@ image::image(const string &fileName, bool &err)
   dataOffset_ = linkedFile.data_off();
   codeLen_ = linkedFile.code_len();
   dataLen_ = linkedFile.data_len();
+
+#if defined(hppa1_1_hp_hpux)
+  unwind   = linkedFile.unwind;
+#endif
 
   if (!codeLen_ || !linkedFile.code_ptr()) {
     string msg;
