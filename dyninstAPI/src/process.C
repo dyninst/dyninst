@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.423 2003/05/12 21:29:02 bernat Exp $
+// $Id: process.C,v 1.424 2003/05/13 19:55:10 igor Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4339,6 +4339,60 @@ function_base *process::findOnlyOneFunction(resource *func, resource *mod){
 
     return symbols->findOnlyOneFunction(func_name);
 }
+
+bool process::findAllFuncsByName(resource *func, resource *mod, 
+                                 pdvector<function_base *> &res) {
+   
+  pdvector<pd_Function *> *pdfv=NULL;
+  if((!func) || (!mod)) { return 0; }
+    if(func->type() != MDL_T_PROCEDURE) { return 0; }
+    if(mod->type() != MDL_T_MODULE) { return 0; }
+
+    const pdvector<string> &f_names = func->names();
+    const pdvector<string> &m_names = mod->names();
+    string func_name = f_names[f_names.size() -1]; 
+    string mod_name = m_names[m_names.size() -1]; 
+
+    pd_Function *found;
+
+    //cerr << "process::findOneFunction called.  function name = " 
+    //   << func_name.c_str() << endl;
+    
+    // KLUDGE: first search any shared libraries for the module name 
+    //  (there is only one module in each shared library, and that 
+    //  is the library name)
+    if(dynamiclinking && shared_objects){
+        for(u_int j=0; j < shared_objects->size(); j++){
+            module *next = 0;
+            next = ((*shared_objects)[j])->findModule(mod_name,true);
+
+            if(next){
+                if(((*shared_objects)[j])->includeFunctions()){ 
+                  //cerr << "function found in module " << mod_name.c_str() << endl;
+                   if (NULL != (pdfv = ((*shared_objects)[j])->findFuncVectorByPretty(func_name))) {
+                      for (unsigned int i = 0; i < pdfv->size(); ++i) {
+                         res.push_back((*pdfv)[i]);
+                      }
+                      return true;
+                   }
+                }
+                else { 
+                  //cerr << "function found in module " << mod_name.c_str()
+                  //    << " that module excluded" << endl;
+                  return false;
+                } 
+            }
+        }
+    }
+    if (NULL != (pdfv = symbols->findFuncVectorByPretty(func_name))) {
+       for (unsigned int i = 0; i < pdfv->size(); ++i) {
+          res.push_back((*pdfv)[i]);
+       }
+       return true;
+    }
+    return false;
+}
+
 #endif /* BPATCH_LIBRARY */
 
 #ifndef BPATCH_LIBRARY

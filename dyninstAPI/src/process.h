@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.255 2003/05/08 18:12:32 pcroth Exp $
+/* $Id: process.h,v 1.256 2003/05/13 19:55:12 igor Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -927,6 +927,10 @@ void saveWorldData(Address address, int size, const void* src);
   // shared object images for this function.  
   // mcheyney - should return NULL if function is excluded!!!!
   function_base *findOnlyOneFunction(resource *func,resource *mod);
+  
+  //this routine searches for a function in a module.  Note that res is a vector
+  // due to gcc emitting duplicate constructors/destructors
+  bool findAllFuncsByName(resource *func, resource *mod, pdvector<function_base *> &res);
 #endif
 
   typedef struct {
