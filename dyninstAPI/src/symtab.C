@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.129 2001/08/30 19:10:47 hollings Exp $
+// $Id: symtab.C,v 1.130 2001/08/30 21:31:24 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1576,6 +1576,91 @@ pd_Function *image::findFuncByAddr(const Address &addr,
     if ( (addr>=pdf->getAddress(p)) && 
 	 (addr < (pdf->getAddress(p)+pdf->size()))
 	 ) 
+      return pdf;
+  }
+  return NULL; 
+}
+
+pd_Function *image::findFuncByEntryAddr(const Address &addr, 
+					const process */*p*/) const
+{
+  pd_Function *pdf;
+
+  // Quick check of funcsByAddr
+  if (funcsByAddr.find(addr, pdf))
+    return pdf;
+
+  return NULL; 
+}
+
+pd_Function *image::findFuncByRelocAddr(const Address &addr, 
+					const process *p) const
+{
+  pd_Function *pdf;
+
+  // Slow check of funcsByAddr
+  dictionary_hash_iter<Address, pd_Function*> mi(funcsByAddr);
+  Address adr;
+  while (mi.next(adr, pdf)) {
+    if ( (addr>=pdf->getAddress(p)) && 
+	 (addr < (pdf->getAddress(p)+pdf->size()))
+	 )
+      return pdf;
+  }
+
+  // next, look in excludedFunctions...
+  dictionary_hash_iter<string, pd_Function*> ex(excludedFunctions);
+  string str;
+  while (ex.next(str, pdf)) {
+    if ( (addr>=pdf->getAddress(p)) && 
+	 (addr < (pdf->getAddress(p)+pdf->size()))
+	 )
+      return pdf;
+  }
+  
+  dictionary_hash_iter<string, pd_Function *> ni(notInstruFunctions);
+  while (ni.next(str, pdf)) {
+    if ( (addr>=pdf->getAddress(p)) && 
+	 (addr < (pdf->getAddress(p)+pdf->size()))
+	 ) 
+      return pdf;
+  }
+  return NULL; 
+}
+
+pd_Function *image::findFuncByOrigAddr(const Address &addr, 
+				       const process *p) const
+{
+  pd_Function *pdf;
+  
+  // Slow check of funcsByAddr
+  dictionary_hash_iter<Address, pd_Function*> mi(funcsByAddr);
+  Address adr;
+  while (mi.next(adr, pdf)) {
+    if ( p && // getEffectiveAddress asserts p 
+	(addr>=pdf->getEffectiveAddress(p)) &&
+	 (addr<(pdf->getEffectiveAddress(p)+pdf->size()))
+	 )
+      return pdf;
+  }
+
+  // next, look in excludedFunctions...
+  dictionary_hash_iter<string, pd_Function*> ex(excludedFunctions);
+  string str;
+  while (ex.next(str, pdf)) {
+    if ( p &&
+	 (addr>=pdf->getEffectiveAddress(p)) &&
+	 (addr<(pdf->getEffectiveAddress(p)+pdf->size()))
+	 )
+      return pdf;
+  }
+  
+  dictionary_hash_iter<string, pd_Function *> ni(notInstruFunctions);
+  while (ni.next(str, pdf)) {
+    if ( p &&
+	 (addr>=pdf->getEffectiveAddress(p)) &&
+	 (addr<(pdf->getEffectiveAddress(p)+pdf->size()))
+	 )
       return pdf;
   }
   return NULL; 

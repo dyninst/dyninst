@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.96 2001/08/20 19:59:13 bernat Exp $
+// $Id: symtab.h,v 1.97 2001/08/30 21:31:24 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -751,8 +751,13 @@ public:
   // Looks for the name in all lists (inc. excluded and non-instrumentable)
   pd_Function *findOneFunctionFromAll(const string &name);
 
-  // FIXME: auxiliary function to get printouts of the return value
+  // Given an address, do an exhaustive search for that function
   pd_Function *findFuncByAddr(const Address &addr, const process *p = 0) const;
+
+  // Break apart the above
+  pd_Function *findFuncByEntryAddr(const Address &addr, const process *p = 0) const;
+  pd_Function *findFuncByRelocAddr(const Address &addr, const process *p = 0) const;
+  pd_Function *findFuncByOrigAddr(const Address &addr, const process *p = 0) const;
 
   void findModByAddr (const Symbol &lookUp, vector<Symbol> &mods,
 		      string &modName, Address &modAddr, 

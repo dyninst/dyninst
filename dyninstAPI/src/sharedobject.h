@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.22 2001/08/20 22:23:47 bernat Exp $
+// $Id: sharedobject.h,v 1.23 2001/08/30 21:31:23 bernat Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -199,6 +199,17 @@ public:
       return(objs_image->findFuncByAddr(adr, p));
     }
       
+    pd_Function *findFuncByEntryAddr(Address adr, const process *p) {
+      return(objs_image->findFuncByEntryAddr(adr, p));
+    }
+
+    pd_Function *findFuncByRelocAddr(Address adr, const process *p) {
+      return(objs_image->findFuncByRelocAddr(adr, p));
+    }
+
+    pd_Function *findFuncByOrigAddr(Address adr, const process *p) {
+      return(objs_image->findFuncByOrigAddr(adr, p));
+    }
 
 
     //

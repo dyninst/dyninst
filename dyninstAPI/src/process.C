@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.263 2001/08/29 23:25:28 hollings Exp $
+// $Id: process.C,v 1.264 2001/08/30 21:30:22 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4031,6 +4031,16 @@ pd_Function *process::findFunctionIn(Address adr)
 // New addition: keep a vector of functions. Return only the first, but
 // complain if additional are found. 
 
+// We've been having problems with multiple matches. In several cases, a
+// given address both matches the absolute addr of a function and the offset
+// of a function within a module. So instead of calling image::findFuncByAddr,
+// we do it the hard way.
+
+// We've been having problems with multiple matches. In several cases, a
+// given address both matches the absolute addr of a function and the offset
+// of a function within a module. So instead of calling image::findFuncByAddr,
+// we do it the hard way.
+
 pd_Function *process::findFuncByAddr(Address adr)
 {
 
@@ -4038,13 +4048,52 @@ pd_Function *process::findFuncByAddr(Address adr)
   pd_Function *pdf;
   // first check a.out for function symbol
   // Search all functions 
-  pdf = symbols->findFuncByAddr(adr, this);
+  pdf = symbols->findFuncByEntryAddr(adr, this);
+  if (pdf) returned_functions.push_back(pdf);
+  else { // long search
+    pdf = symbols->findFuncByOrigAddr(adr, this);
+    if (pdf) returned_functions.push_back(pdf);
+  }
+
+  // search any shared libraries for the function 
+  if(dynamiclinking && shared_objects){
+    for(u_int j=0; j < shared_objects->size(); j++){
+      pdf = ((*shared_objects)[j])->findFuncByEntryAddr(adr,this);
+      if(pdf){
+	returned_functions.push_back(pdf);
+      }
+      else {
+	pdf = ((*shared_objects)[j])->findFuncByOrigAddr(adr, this);
+	if (pdf) returned_functions.push_back(pdf);
+      }
+
+    }
+  }
+
+  if (returned_functions.size() > 1) { // Got more than one return
+    cerr << "Warning: multiple matches found for address " << adr << endl;
+    for (int i = 0; i < returned_functions.size(); i++)
+      cerr << returned_functions[i]->prettyName() << endl;
+  }
+
+  if (returned_functions.size())
+    return returned_functions[0];
+
+  cerr << "Checking original address" << endl;
+
+  // So we checked by entry points and by absolute addresses, and got no
+  // matches. Check by relocated addresses and (possibly) offsets within
+  // a file.
+
+  // first check a.out for function symbol
+  // Search all functions 
+  pdf = symbols->findFuncByRelocAddr(adr, this);
   if (pdf) returned_functions.push_back(pdf);
 
   // search any shared libraries for the function 
   if(dynamiclinking && shared_objects){
     for(u_int j=0; j < shared_objects->size(); j++){
-      pdf = ((*shared_objects)[j])->findFuncByAddr(adr,this);
+      pdf = ((*shared_objects)[j])->findFuncByRelocAddr(adr,this);
       if(pdf){
 	returned_functions.push_back(pdf);
       }
@@ -4059,6 +4108,7 @@ pd_Function *process::findFuncByAddr(Address adr)
 
   if (returned_functions.size())
     return returned_functions[0];
+
 
   return NULL;
 }
