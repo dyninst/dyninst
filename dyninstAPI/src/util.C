@@ -39,84 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
+/* $Id: util.C,v 1.21 1998/12/25 22:03:17 wylie Exp $
  * util.C - support functions.
- *
- * $Log: util.C,v $
- * Revision 1.20  1998/08/25 19:35:38  buck
- * Initial commit of DEC Alpha port.
- *
- * Revision 1.1.1.5  1997/09/29 00:12:16  buck
- * Import latest changes from Wisconsin into Maryland repository.
- *
- * Revision 1.19  1997/09/28 22:22:35  buck
- * Added some more #ifdef BPATCH_LIBRARYs to eliminate some Dyninst API
- * library dependencies on files in rtinst.
- *
- * Revision 1.18  1997/08/19 19:50:55  naim
- * Adding support to dynamically link libdyninstRT by using dlopen on sparc-
- * solaris - naim
- *
- * Revision 1.17  1997/06/23 17:13:52  tamches
- * some additional hash functions
- *
- * Revision 1.16  1997/04/29 23:16:33  mjrg
- * Changes for WindowsNT port
- * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
- * Changed way paradyn and paradynd generate resource ids
- * Changes to instPoint class in inst-x86.C to reduce size of objects
- * Added initialization for process->threads to fork and attach constructors
- *
- * Revision 1.15  1997/03/18 19:44:32  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- * Revision 1.14  1997/02/26 23:43:10  mjrg
- * First part on WindowsNT port: changes for compiling with Visual C++;
- * moved unix specific code to unix.C
- *
- * Revision 1.13  1997/02/21 20:13:59  naim
- * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
- * out of the ast class. The is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.12  1997/01/27 19:41:18  naim
- * Part of the base instrumentation for supporting multithreaded applications
- * (vectors of counter/timers) implemented for all current platforms +
- * different bug fixes - naim
- *
- * Revision 1.11  1996/10/31 08:54:23  tamches
- * added some time routines
- *
- * Revision 1.10  1996/08/16 21:20:14  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.9  1996/06/01 00:01:48  tamches
- * addrHash replaced by addrHash16
- *
- * Revision 1.8  1996/05/11 23:16:17  tamches
- * added addrHash
- *
- * Revision 1.7  1995/02/16 08:54:28  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.6  1995/02/16  08:35:03  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.5  1994/11/02  11:18:54  markc
- * Remove old malloc wrappers.
- *
- * Revision 1.4  1994/09/22  02:27:37  markc
- * Changed signature to intComp
- *
  */
 
 #include "util/h/headers.h"
@@ -248,12 +172,12 @@ time64 userAndSysTime2uSecs(const timeval &uTime,
 }
 #endif
 
-static unsigned addrHashCommon(unsigned addr) {
+static unsigned addrHashCommon(Address addr) {
    // inspired by hashs of string class
 
    register unsigned result = 5381;
 
-   register unsigned accumulator = addr;
+   register Address accumulator = addr;
    while (accumulator > 0) {
       // We use 3 bits at a time from the address
       result = (result << 4) + result + (accumulator & 0x07);
