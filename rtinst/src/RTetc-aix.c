@@ -20,7 +20,10 @@
  * RTaix.c: clock access functions for aix.
  *
  * $Log: RTetc-aix.c,v $
- * Revision 1.3  1996/02/13 16:21:57  hollings
+ * Revision 1.4  1996/04/06 21:27:50  hollings
+ * Add missing case for system time.
+ *
+ * Revision 1.3  1996/02/13  16:21:57  hollings
  * Fixed timer64 to be time64.
  *
  *
@@ -223,6 +226,10 @@ int DYNINSTgetRusage(int id)
 	    break;
 	case 4: /* context switches */
 	    value = DYNINSTrusagePtr->ru_nvcsw + DYNINSTrusagePtr->ru_nivcsw;
+	    break;
+	case 5: /* system time - in mili-seconds */
+	    value = 1000 * DYNINSTrusagePtr->ru_stime.tv_sec + 
+	                   DYNINSTrusagePtr->ru_stime.tv_usec/1000;
 	    break;
 	default:
 	    value = 0;
