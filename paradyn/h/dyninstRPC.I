@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.80 1999/05/24 17:09:29 cain Exp $
+/* $Id: dyninstRPC.I,v 1.81 1999/07/07 15:55:49 zhichen Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -308,8 +308,10 @@ public:
 		 bool& error);
   ~mdl_constraint();
   bool apply(metricDefinitionNode *mn, dataReqNode *&flag,
-	     vector<string>& resource, process *proc, bool computingCost);
+	     vector<string>& resource, process *proc, pdThread* thr,  bool computingCost);
   bool mk_list(vector<string> &funcs);
+  bool replace();
+  string id();
 
 #ifdef NO_MDL_PRINT
    friend ostream& operator<< (ostream& os, const mdl_constraint& cons) {
@@ -386,6 +388,7 @@ public:
   metricDefinitionNode *apply(vector< vector<string> >&focus, 
 			      string& flat_name,
 	                      vector<process *> procs,
+			      vector< vector<pdThread *> >& threadsVec,
 	                      bool replace_components_if_present,
 			      bool computingCost);
 $ignore
@@ -425,7 +428,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 55;
+    $version 56;
 
     //
     // Define a program to run. 
