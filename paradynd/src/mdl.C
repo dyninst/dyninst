@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: mdl.C,v 1.71 1998/08/16 23:32:46 wylie Exp $
+
 #include <iostream.h>
 #include <stdio.h>
 #include "dyninstRPC.xdr.SRVR.h"
@@ -2705,12 +2707,13 @@ bool mdl_metric_data(const string& met_name, mdl_inst_data& md) {
 // of the excluded functions
 // 
 
-bool T_dyninstRPC::mdl_list_stmt::mk_list(vector<string> &funcs);
-bool T_dyninstRPC::mdl_for_stmt::mk_list(vector<string> &funcs);
-bool T_dyninstRPC::mdl_if_stmt::mk_list(vector<string> &funcs);
-bool T_dyninstRPC::mdl_seq_stmt::mk_list(vector<string> &funcs);
-bool T_dyninstRPC::mdl_instr_stmt::mk_list(vector<string> &funcs);
-bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &funcs);
+// These prototypes seem to confuse egcs, so let's comment them out
+//bool T_dyninstRPC::mdl_list_stmt::mk_list(vector<string> &funcs);
+//bool T_dyninstRPC::mdl_for_stmt::mk_list(vector<string> &funcs);
+//bool T_dyninstRPC::mdl_if_stmt::mk_list(vector<string> &funcs);
+//bool T_dyninstRPC::mdl_seq_stmt::mk_list(vector<string> &funcs);
+//bool T_dyninstRPC::mdl_instr_stmt::mk_list(vector<string> &funcs);
+//bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &funcs);
 
 bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &funcs) 
 {
