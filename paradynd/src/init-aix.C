@@ -1,6 +1,9 @@
 
 /*
  * $Log: init-aix.C,v $
+ * Revision 1.3  1996/03/01 22:31:55  mjrg
+ * Replaced calls at the exit point by a call to DYNINSTexit
+ *
  * Revision 1.2  1995/12/15 22:26:46  mjrg
  * Merged paradynd and paradyndPVM
  * Get module name for functions from symbol table in solaris
@@ -34,14 +37,17 @@ static AstNode cmdArg(Param, (void *) 4);
 static AstNode tidArg(Param, (void *) 0);
 
 bool initOS() {
-  initialRequests += new instMapping("main", "DYNINSTalarmExpire", FUNC_EXIT);
+  // initialRequests += new instMapping("main", "DYNINSTalarmExpire", FUNC_EXIT);
+  initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
 
 #ifdef notdef
   initialRequests += new instMapping("fork", "DYNINSTfork", FUNC_EXIT|FUNC_FULL_ARGS);
 #endif
 
-  initialRequests += new instMapping(EXIT_NAME, "DYNINSTalarmExpire", FUNC_ENTRY);
-  initialRequests += new instMapping(EXIT_NAME, "DYNINSTprintCost", FUNC_ENTRY);
+  // initialRequests += new instMapping(EXIT_NAME, "DYNINSTalarmExpire", FUNC_ENTRY);
+  // initialRequests += new instMapping(EXIT_NAME, "DYNINSTprintCost", FUNC_ENTRY);
+  initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
+
   initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
   initialRequests += new instMapping("DYNINSTsampleValues", "DYNINSTreportNewTags", FUNC_ENTRY);
   initialRequests += new instMapping("rexec", "DYNINSTrexec",
