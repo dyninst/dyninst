@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.C,v 1.14 2002/02/21 21:48:31 bernat Exp $
+// $Id: fastInferiorHeap.C,v 1.15 2002/04/05 19:39:07 schendel Exp $
 
 #include <sys/types.h>
-#include <limits.h>
+#include "common/h/Types.h"
 #include "common/h/headers.h"
 #include "fastInferiorHeap.h"
 #include "rtinst/h/rtinst.h" // for time64
@@ -330,7 +330,8 @@ template <class HK, class RAW>
 void fastInferiorHeap<HK, RAW>::makePendingFree(unsigned ndx,
 						const vector<Address> &trampsUsing) 
 {
-  houseKeeping[ndx].makePendingFree(trampsUsing);
+  //cerr << "in fastInferiourHeap::makePendingFree\n";
+  houseKeeping[ndx].makePendingFree(trampsUsing, inferiorProcess);
   activemap[ndx]=FIHinactive;
 }
 
