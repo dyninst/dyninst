@@ -21,13 +21,16 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.5 1997/05/20 08:29:20 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.6 1997/05/21 02:27:30 tung Exp $";
 #endif
 
 /*
  * terrain.c - main entry point and x driver.
  *
  * $Log: terrain.c,v $
+ * Revision 1.6  1997/05/21 02:27:30  tung
+ * Revised.
+ *
  * Revision 1.5  1997/05/20 08:29:20  tung
  * Revised on resizing the maxZ, change the xlabel and zlabel format.
  *
@@ -223,7 +226,7 @@ static int add_new_curve(unsigned m, unsigned r)
         hdp->groupId = get_groupId(visi_MetricLabel(m));
 
         hdp->curve_id = Graph3DAddNewCurve(m_name, r_name, p_name, 
-					   visi_MetricLabel(m), hdp->groupId, 
+					   visi_MetricLabel(m),  
 					   visi_NumBuckets(), numRes);
 
         visi_SetUserData(m,r,(void *) hdp);
@@ -510,9 +513,13 @@ main(argc, argv) int argc; char *argv[]; {
 /*-----------------------------------------------------------------------------
  *   display - display accumulated commands from inboard driver
  *---------------------------------------------------------------------------*/
+void displayScreen(int action)
+{
+    display(action);
+}
 
-display(action)
-int action;
+
+void display(int action)
 {
    /* clean the screen when ReDisplay the Graph is needed */
    #ifndef MOTIF

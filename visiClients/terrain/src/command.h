@@ -16,6 +16,9 @@
  * command.h - header file of command.c.
  *
  * $Log: command.h,v $
+ * Revision 1.3  1997/05/21 02:27:24  tung
+ * Revised.
+ *
  * Revision 1.2  1997/05/20 22:30:52  tung
  * Change the label position when rotating.
  *
@@ -27,6 +30,9 @@
  *
  *
  */
+
+#ifndef COMMAND_H
+#define COMMAND_H
 
 
 #define SA_INIT     0
@@ -40,7 +46,21 @@
 #define SA_USEMED   8
 #define SA_NOMED    9
 
-extern void plot3drequest(/* int action */);
+
+extern void plot3drequest( int action );
 extern void kill_surface();
 extern int Graph3DAddNewCurve();
 extern void Graph3DSetCurveData();
+
+
+void done(int status);
+int getStartIndex(int ID);
+int checkDecimal(float zmax);
+void copyResName(char* destination, char* source);
+void ReDisplayGraph();
+void ProcessNewSegments(int printIndex);
+
+
+
+
+#endif

@@ -17,7 +17,7 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/form.c,v 1.3 1997/05/20 01:29:23 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/form.c,v 1.4 1997/05/21 02:27:26 tung Exp $";
 #endif
 
 /*
@@ -25,6 +25,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  *          scroll bars and menu routines.
  *
  * $Log: form.c,v $
+ * Revision 1.4  1997/05/21 02:27:26  tung
+ * Revised.
+ *
  * Revision 1.3  1997/05/20 01:29:23  tung
  * put up the paradyn logo.
  *
@@ -74,6 +77,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 #include "plot.h"
 #include "setshow.h"
 #include "command.h"
+#include "form.h"
 #include "terrain.h"
 #include "misc.h"
 #include "visi/h/visualization.h"
@@ -91,10 +95,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 #define INFOH_FORMAT	"From x-z: %3.3f degs"
 #define INFOV_FORMAT	"From top: %3.3f degs"
 
-int quit3d();
-
-int reset_rotate();
-
 
 /* The informtion passed back to the callback handler */
 typedef struct {
@@ -102,16 +102,6 @@ typedef struct {
     int value;
 } rotInfo_t;
 
-void gotJumpV();
-void gotScrollV();
-void gotJumpH();
-void gotScrollH();
-
-int plot_smooth();
-int plot_unsmooth();
-
-int plot_usemed();
-int plot_nomed();
 
 #define SMOOTH_POS 0		/* The location of smooth option in the menu */
 #define MED_POS    1		/* The location of smoothing method in menu */
@@ -163,10 +153,7 @@ static Widget scrollH, scrollV;
 *
 ********************************************************************/
 
-Widget
-createForm(toplevel, h, w)
-Widget toplevel;		/* Who is this form's parent */
-int h, w;			/* How big should the form be initially */
+Widget createForm(Widget toplevel, int h, int w)
 {
     Widget form;
     Widget mainWin, infoH, infoV, titleBar, logo;
@@ -216,7 +203,7 @@ int h, w;			/* How big should the form be initially */
     XtSetArg(arg[i], XtNtop, XtChainTop); i++;
     XtSetArg(arg[i], XtNbottom, XtChainTop); i++;
     XtSetArg(arg[i], XtNresizable, False); i++;
-    logo = XtCreateManagedWidget( "logo", labelWidgetClass, form, arg, i); 
+    logo = XtCreateManagedWidget( "logo", labelWidgetClass, form, arg, (unsigned)i); 
 
     /* Menu bar */
     i = 0;
@@ -232,7 +219,7 @@ int h, w;			/* How big should the form be initially */
     XtSetArg(arg[i], XtNwidth, FORM_W - logo_width - 5);  i++;
     XtSetArg(arg[i], XtNheight, logo_height / 2);  i++;
     XtSetArg(arg[i], XtNborderWidth, 1);  i++;
-    titleBar = XtCreateManagedWidget("titlebar", labelWidgetClass, form, arg, i);
+    titleBar = XtCreateManagedWidget("titlebar", labelWidgetClass, form, arg, (unsigned)i);
 
     /* File Menu*/
     i=0;
@@ -405,11 +392,7 @@ int h, w;			/* How big should the form be initially */
 *
 *********************************************************************/
 
-void
-gotScrollV(scrollbar, client_data, position)
-Widget scrollbar;
-XtPointer client_data;
-XtPointer position;
+void gotScrollV(Widget scrollbar, XtPointer client_data, XtPointer position)
 {
     Arg arg[1];
     static char line[80];
@@ -433,16 +416,12 @@ XtPointer position;
 
         XawScrollbarSetThumb(scrollbar, (180.0 - surface_rot_x)/180.0, -1.0);
 
-        display(SA_JUMP);
+        displayScreen(SA_JUMP);
     }
 }
 
 
-void
-gotJumpV(scrollbar, client_data, position)
-Widget scrollbar;
-XtPointer client_data;
-XtPointer position;
+void gotJumpV(Widget scrollbar, XtPointer client_data, XtPointer position)
 {
     Arg arg[1];
     static char line[80];
@@ -453,16 +432,12 @@ XtPointer position;
     XtSetArg(arg[0], XtNlabel, line);
     XtSetValues((Widget)client_data, arg, (Cardinal)1);
 
-    display(SA_ROTATE);
+    displayScreen(SA_ROTATE);
 }
 
 
 
-void
-gotScrollH(scrollbar, client_data, position)
-Widget scrollbar;
-XtPointer client_data;
-XtPointer position;
+void gotScrollH(Widget scrollbar, XtPointer client_data, XtPointer position)
 {
     Arg arg[1];
     static char line[80];
@@ -481,16 +456,11 @@ XtPointer position;
 
     XawScrollbarSetThumb(scrollbar, surface_rot_z/360.0, -1.0);
 
-    display(SA_JUMP);
+    displayScreen(SA_JUMP);
 }
 
 
-void
-gotJumpH(scrollbar, client_data, position)
-Widget scrollbar;
-XtPointer client_data;
-XtPointer position;
-
+void gotJumpH(Widget scrollbar, XtPointer client_data, XtPointer position)
 {
     Arg arg[1];
     static char line[80];
@@ -501,31 +471,31 @@ XtPointer position;
     XtSetArg(arg[0], XtNlabel, line);
     XtSetValues((Widget)client_data, arg, (Cardinal)1);
 
-    display(SA_ROTATE);
+    displayScreen(SA_ROTATE);
 }
 
 
-plot_smooth()
+void plot_smooth()
 {
    DestroyMenu(viewmenu); 
 
    viewmenu = CreateMenu(viewmenuTitle, VIEWMENU_TITLE, viewSmoothMenu, NULL);
    
-   display(SA_SMOOTH);
+   displayScreen(SA_SMOOTH);
 }
 
-plot_unsmooth()
+void plot_unsmooth()
 {
 
    DestroyMenu(viewmenu);
 
    viewmenu = CreateMenu(viewmenuTitle, VIEWMENU_TITLE, viewRawMenu, NULL);
 
-   display(SA_ROUGH);
+   displayScreen(SA_ROUGH);
 }
 
 
-plot_usemed()
+void plot_usemed()
 {
    DestroyMenu(viewmenu); 
 
@@ -535,11 +505,11 @@ plot_usemed()
    
    viewmenu = CreateMenu(viewmenuTitle, VIEWMENU_TITLE, viewSmoothMenu, NULL);
    
-   display(SA_USEMED);
+   displayScreen(SA_USEMED);
 }
 
 
-plot_nomed()
+void plot_nomed()
 {
 
    DestroyMenu(viewmenu);
@@ -550,15 +520,15 @@ plot_nomed()
 
    viewmenu = CreateMenu(viewmenuTitle, VIEWMENU_TITLE, viewSmoothMenu, NULL);
 
-   display(SA_NOMED);
+   displayScreen(SA_NOMED);
 }
 
-reset_rotate()
+void reset_rotate()
 {
    surface_rot_z = 30.0;
    surface_rot_x = 60.0;
 
    XawScrollbarSetThumb(scrollV, (180.0 - surface_rot_x)/180.0, -1.0);
    XawScrollbarSetThumb(scrollH, surface_rot_z/360.0, -1.0);
-   display(SA_JUMP);
+   displayScreen(SA_JUMP);
 }

@@ -17,13 +17,16 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/colorize.c,v 1.3 1997/05/20 08:29:12 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/colorize.c,v 1.4 1997/05/21 02:27:22 tung Exp $";
 #endif
 
 /*
  * colorize.c - colorize surfaces according to their height.
  *
  * $Log: colorize.c,v $
+ * Revision 1.4  1997/05/21 02:27:22  tung
+ * Revised.
+ *
  * Revision 1.3  1997/05/20 08:29:12  tung
  * Revised on resizing the maxZ, change the xlabel and zlabel format.
  *
@@ -41,9 +44,12 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
    
 #include "misc.h"
+#include "graph3d.h"
 #include "terrain.h"
+#include "colorize.h"
    
 #define TRUE	1
 #define FALSE	0
@@ -67,11 +73,16 @@ struct ticNode_t {
 
 typedef struct ticNode_t *ticLst_t;
 
-ptLst_t findGoUnder();
-ptLst_t findGoAbove();
-ptLst_t makeMidPt();
-ptLst_t copyPt();
-
+void draw_colorPoly();
+void colorPoly(ptLst_t, int);
+void colorize(ptLst_t, ticLst_t);
+void colorizeLayers(ptLst_t, ticLst_t);
+ 
+ptLst_t findGoUnder(ptLst_t, ptLst_t, float);
+ptLst_t findGoAbove(ptLst_t, ptLst_t, float);
+ptLst_t makeMidPt(ptLst_t, float);
+ptLst_t copyPt(ptLst_t);
+void freePtLst(ptLst_t);
 
 extern float zmin, zmax;	/* Max & min points of the graph */
 extern int Ntcolors;		/* Number of colors available */
@@ -88,7 +99,7 @@ static int pix = 0;
 *
 *******************************************************************/
 
-draw_colorPoly(x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4, remap, pix_map)
+void draw_colorPoly(x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4, remap, pix_map)
 float x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4;
 int remap;
 int pix_map;
@@ -193,7 +204,7 @@ int pix_map;
 *********************************************************************/
 
 
-colorPoly(pts, color)
+void colorPoly(pts, color)
 ptLst_t pts;
 int color;
 {
@@ -250,7 +261,7 @@ int color;
 *********************************************************************/
 
 
-colorize(pts, tics)
+void colorize(pts, tics)
 ptLst_t pts;			/* Points of the polygon */
 ticLst_t tics;			/* List of all tics  */
 {
@@ -292,7 +303,7 @@ ticLst_t tics;			/* List of all tics  */
 *********************************************************************/
 
 
-colorizeLayers(pts, tic)
+void colorizeLayers(pts, tic)
 ptLst_t pts;
 ticLst_t tic;
 {
@@ -595,7 +606,7 @@ float z;
 *********************************************************************/
 
 
-freePtLst(pts)
+void freePtLst(pts)
 ptLst_t pts;
 {
    ptLst_t lastPt, curPt;

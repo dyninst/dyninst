@@ -36,13 +36,16 @@
  */     
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.9 1997/05/20 22:30:51 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.10 1997/05/21 02:27:23 tung Exp $";
 #endif
 
 /*
  * command.c - main switchboard of the program.
  *
  * $Log: command.c,v $
+ * Revision 1.10  1997/05/21 02:27:23  tung
+ * Revised.
+ *
  * Revision 1.9  1997/05/20 22:30:51  tung
  * Change the label position when rotating.
  *
@@ -145,7 +148,7 @@ static int change = 0;
 static int is_smooth = 0,	/* Default is no smoothing  */
            is_med = 0;	        /* Default is using mean for smoothing */
 
-
+/*
 void plot3drequest(int action);
 void done(int status);
 int getStartIndex(int ID);
@@ -157,8 +160,7 @@ void ProcessNewSegments(int printIndex);
 void Graph3DSetCurveData();
 int Graph3DAddNewCurve (char* m_name, char* r_name, char* p_name, char* axis_label,
                         int no_points, int no_curves);
-
-
+*/
 
 
 /********************************************************************
@@ -306,8 +308,7 @@ void ReDisplayGraph()
      float minz = thisCurve->z_min;
      float maxz = thisCurve->z_max;
      int count = 1;
-     struct text_label *currentLabel;
-
+	
      /* GNUPlot uses these globle values in graph3d.c.  So set them here */
      zmin = thisCurve->z_min;
      zmax = thisCurve->z_max;
@@ -387,17 +388,17 @@ void ProcessNewSegments(int printIndex)
 
 
 void Graph3DSetCurveData(curveID, firstSample, numSamples, sample, startTime, x_inter,
-			 fold, color_disp, dpy, gc, rv, pixmap, W, H, win)
+                         fold, color_disp, dpy, gc, rv, pixmap, W, H, win)
 int curveID;
 int firstSample;
 int numSamples;
 const float *sample;
-float startTime;    
+float startTime;
 float x_inter;
 int fold;
 int color_disp;
 Display* dpy;
-GC gc;
+GC gc; 
 RValues rv;
 Pixmap pixmap;
 Dimension W;
@@ -622,7 +623,6 @@ int Graph3DAddNewCurve (char* m_name, char* r_name, char* p_name, char* axis_lab
   }
 
   currentLabel->tag = curveID;
-  currentLabel->pos = LEFT;
   currentLabel->y = y_value;
   currentLabel->z = 0;
   currentLabel->next = 0;

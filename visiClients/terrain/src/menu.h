@@ -15,6 +15,9 @@
 
 /*
  * $Log: menu.h,v $
+ * Revision 1.2  1997/05/21 02:27:29  tung
+ * Revised.
+ *
  * Revision 1.1  1997/05/12 20:15:31  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -37,6 +40,11 @@
  * A single item in a menu.
  *
  */
+
+#ifndef MENU_H
+#define MENU_H
+
+
 struct menuItem {
     char *name;
     void (*func)();
@@ -57,7 +65,7 @@ struct menuDefintion {
 
 /* Simple interface to menu code. */
 Widget CreateMenu();
-
+void DestroyMenu(Widget currMenu);
 
 /* more complex interface required to get back widgets for each item or
  *  to set margins.
@@ -69,3 +77,7 @@ Widget CreateAdvancedMenu();
  *
  */
 #define 	MENU_LINE	(char *) 1
+
+
+
+#endif

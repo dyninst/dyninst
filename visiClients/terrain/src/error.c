@@ -17,7 +17,7 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/error.c,v 1.3 1997/05/19 01:00:08 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/error.c,v 1.4 1997/05/21 02:27:24 tung Exp $";
 #endif
 
 /* Modified by Chi-Ting Lam for terrain plot */
@@ -87,6 +87,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 #include <X11/Xmu/Xmu.h>
 
 #include "Xbase.h"		/* For WindowInfo structure */
+#include "miscx.h"
+#include "action.h"
+#include "error.h"
 #include "terrain.h"
 
 #define BUTTONC	3
@@ -96,11 +99,16 @@ char *buttons[BUTTONC] = {
     "Dump Core",
 };
 
-ErrorWrapup(pressed)
-int pressed;
+
+//void ErrorWarpup(int pressed);
+//void popUpMsgs(int title, char *message);
+
+
+
+void ErrorWrapup(int pressed)
 {
     if (pressed == 0)
-	return(0);
+	return;
     else if (pressed == 1)
 	exit(0);
     else 	/* dump core */
@@ -112,16 +120,14 @@ int pressed;
  *
  */
 
-popUpMsgs(title, message)
-int title;
-char *message;
+void popUpMsgs(int title, char *message)
 {
     
     char *ch;
     int lCount;
-    int pressed;
+//    int pressed;
     char *log[10];
-    char line[250];
+//    char line[250];
 
     WindowInfo winInfo;
 
@@ -140,7 +146,7 @@ char *message;
     InitAction(winInfo.x + (winInfo.width>>1),
 	       winInfo.y + (winInfo.height>>1));
  
-    RequestAction(title, NULL, NULL, lCount, log, BUTTONC, buttons, 
-	XtJustifyCenter, ErrorWrapup);
+    RequestAction(title, (int)NULL, (int)NULL, (char*)lCount, log, (char*)BUTTONC,
+                  (struct Logo*)buttons, (struct Logo*)XtJustifyCenter, ErrorWrapup);
 }
 

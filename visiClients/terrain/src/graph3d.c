@@ -37,12 +37,15 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/graph3d.c,v 1.5 1997/05/20 23:11:00 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/graph3d.c,v 1.6 1997/05/21 02:27:27 tung Exp $";
 #endif
 
 /*
  *
  * $Log: graph3d.c,v $
+ * Revision 1.6  1997/05/21 02:27:27  tung
+ * Revised.
+ *
  * Revision 1.5  1997/05/20 23:11:00  tung
  * Revised on changing position when rotating.
  *
@@ -65,22 +68,16 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <assert.h>
 #include "plot.h"
+#include "colorize.h"
 #include "setshow.h"
 #include "terrain.h"
 
 extern char *strcpy(),*strncpy(),*strcat();
 
-static plot3d_impulses();
- plot3d_lines();
-static plot3d_points();
-static plot3d_dots();
-static cntr3d_impulses();
-static cntr3d_lines();
-static cntr3d_points();
-static cntr3d_dots();
 static update_extrema_pts();
 static draw_parametric_grid();
 static draw_non_param_grid();

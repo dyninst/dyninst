@@ -16,6 +16,9 @@
  * form.h - header file of form.c
  *
  * $Log: form.h,v $
+ * Revision 1.2  1997/05/21 02:27:26  tung
+ * Revised.
+ *
  * Revision 1.1  1997/05/12 20:15:27  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -25,4 +28,23 @@
  *
  */
 
-Widget greateForm();
+#ifndef FORM_HEADER
+#define FORM_HEADER
+
+Widget createForm(Widget, int, int);
+int quit3d();
+void gotJumpV(Widget, XtPointer, XtPointer);
+void gotScrollV(Widget, XtPointer, XtPointer);
+void gotJumpH(Widget, XtPointer, XtPointer);
+void gotScrollH(Widget, XtPointer, XtPointer);
+ 
+void plot_smooth();
+void plot_unsmooth();   
+
+void plot_usemed();
+void plot_nomed();
+
+void reset_rotate();
+
+
+#endif

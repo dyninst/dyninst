@@ -17,13 +17,16 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/menu.c,v 1.2 1997/05/19 01:00:09 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/menu.c,v 1.3 1997/05/21 02:27:28 tung Exp $";
 #endif
 
 /*
  * menu.c - menu handler code.
  *
  * $Log: menu.c,v $
+ * Revision 1.3  1997/05/21 02:27:28  tung
+ * Revised.
+ *
  * Revision 1.2  1997/05/19 01:00:09  tung
  * Eliminate ips dependent library files.
  *
@@ -149,8 +152,7 @@ caddr_t cdata;
     return(menu);
 }
 
-DestroyMenu(currMenu)
-Widget currMenu;
+void DestroyMenu(Widget currMenu)
 {
     XtDestroyWidget(currMenu);
 }

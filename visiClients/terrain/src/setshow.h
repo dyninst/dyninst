@@ -37,6 +37,9 @@
  * setshow.h - oheader file of setshow.c
  *
  * $Log: setshow.h,v $
+ * Revision 1.2  1997/05/21 02:27:30  tung
+ * Revised.
+ *
  * Revision 1.1  1997/05/12 20:15:39  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -135,4 +138,4 @@ extern int color_mode;
 
 extern void load_tic_user();
 extern void free_marklist();
-
+extern void changeDecimal();

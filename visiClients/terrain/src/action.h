@@ -16,6 +16,9 @@
  * action.h - Header file for RequestAction Display.
  *
  * $Log: action.h,v $
+ * Revision 1.4  1997/05/21 02:27:21  tung
+ * Revised.
+ *
  * Revision 1.3  1997/05/19 16:03:40  tung
  * Remove unused files.
  *
@@ -61,7 +64,7 @@ struct Logo {
     int w, h;
 };
 
-static void EndActFunc(Widget w, int id, int cdata);
+void EndActFunc(Widget w, int id, int cdata);
 int  RequestAction(int labelc, int buttonc, int justify, char *banner, 
 		   	  char *labels[], char *buttons[], struct Logo *Llogo, 
 			  struct Logo *Rlogo, void (*callBack)());

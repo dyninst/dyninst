@@ -24,6 +24,9 @@
  * terrain.h - header file of terrain.c.
  *
  * $Log: terrain.h,v $
+ * Revision 1.3  1997/05/21 02:27:31  tung
+ * Revised.
+ *
  * Revision 1.2  1997/05/20 08:29:21  tung
  * Revised on resizing the maxZ, change the xlabel and zlabel format.
  *
@@ -57,6 +60,7 @@
 #define LabelBPM XtNbitmap
 #endif
 
+extern void displayScreen();
 extern X11_vector();
 extern X11_move();
 extern X11_put_text();
@@ -68,6 +72,7 @@ extern X11_reset();
 extern X11_graphics();
 extern X11_text();
 extern X11_colorPoly_pixmap();
+
 
 typedef struct {       /* See "X Toolkit Intrinsics Programming Manual"      */
   XFontStruct *font;   /* Nye and O'Reilly, O'Reilly & Associates, pp. 80-85 */
