@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.68 1999/07/29 13:58:43 hollings Exp $
+// $Id: ast.C,v 1.69 1999/08/03 20:28:09 nash Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -1067,7 +1067,8 @@ Address AstNode::generateCode_phase2(process *proc,
 	    }
 	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost);
 	    src2 = rs->allocateRegister(insn, base, noCost);
-	    if (loperand->oType == DataAddr) {
+	    if (loperand->oType == DataAddr )
+	    {
 		addr = (Address) loperand->oValue;
 		assert(addr != 0); // check for NULL
 #ifdef BPATCH_LIBRARY
@@ -1092,6 +1093,7 @@ Address AstNode::generateCode_phase2(process *proc,
 		emitV(storeIndirOp, src1, 0, dest, insn, base, noCost);
 	    } else {
 		// invalid oType passed to store
+		cerr << "invalid oType passed to store: " << (int)loperand->oType << endl;
 		abort();
 	    }
 	    rs->freeRegister(src1);
@@ -1250,10 +1252,10 @@ Address AstNode::generateCode_phase2(process *proc,
 	} else if (oType == ConstantPtr) {
 	    emitVload(loadConstOp, (*(Address *) oValue), dest, dest, 
                         insn, base, noCost);
-	} else if (oType == DataPtr) {
+/*	} else if (oType == DataPtr) {
 	    addr = (Address) oValue;
             assert(addr != 0); // check for NULL
-	    emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
+	    emitVload(loadConstOp, addr, dest, dest, insn, base, noCost); */
 	} else if (oType == DataIndir) {
 	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost);
 	    emitV(loadIndirOp, src, 0, dest, insn, base, noCost); 
@@ -1265,10 +1267,10 @@ Address AstNode::generateCode_phase2(process *proc,
 	} else if (oType == DataId) {
 	    emitVload(loadConstOp, (Address)oValue, dest, dest, 
                         insn, base, noCost);
-	} else if (oType == DataValue) {
+/*	} else if (oType == DataValue) {
 	    addr = (Address) oValue;
 	    assert(addr != 0); // check for NULL
-	    emitVload(loadOp, addr, dest, dest, insn, base, noCost);
+	    emitVload(loadOp, addr, dest, dest, insn, base, noCost); */
 	} else if (oType == ReturnVal) {
             rs->unkeep_register(dest);
 	    rs->freeRegister(dest);
@@ -1425,15 +1427,17 @@ int AstNode::cost() const {
     } else if (type == operandNode) {
 	if (oType == Constant) {
 	    total = getInsnCost(loadConstOp);
-	} else if (oType == DataPtr) {
+/*	} else if (oType == DataPtr) {
 	    total = getInsnCost(loadConstOp);
 	} else if (oType == DataValue) {
-	    total = getInsnCost(loadOp);
+	total = getInsnCost(loadOp); */
 	} else if (oType == DataId) {
 	    total = getInsnCost(loadConstOp);
 	} else if (oType == DataIndir) {
 	    total = getInsnCost(loadIndirOp);
             total += loperand->cost();
+	} else if (oType == DataAddr) {
+	    total = getInsnCost(loadOp);
 	} else if (oType == DataReg) {
 	    total = getInsnCost(loadIndirOp);
 	} else if (oType == Param) {
@@ -1464,12 +1468,12 @@ void AstNode::print() const {
       } else if (oType == ConstantString) {
         sprintf(errorLine, " %s", (char *)oValue);
 	logLine(errorLine) ;
-      } else if (oType == DataPtr) {
+/*      } else if (oType == DataPtr) {
 	sprintf(errorLine, " %d", (int) oValue);
 	logLine(errorLine);
       } else if (oType == DataValue) {
 	sprintf(errorLine, " @%d", (int) oValue);
-	logLine(errorLine);
+	logLine(errorLine); */
       } else if (oType == DataIndir) {
 	logLine(" @[");
         loperand->print();
@@ -1699,7 +1703,7 @@ AstNode *createTimer(const string &func, void *dataPtr,
 {
   AstNode *t0=NULL,*t1=NULL;
 
-  t0 = new AstNode(AstNode::DataPtr, (void *) dataPtr);
+  t0 = new AstNode(AstNode::Constant, (void *) dataPtr);  // This was AstNode::DataPtr
   ast_args += assignAst(t0);
   removeAst(t0);
   t1 = new AstNode(func, ast_args);
@@ -1712,7 +1716,7 @@ AstNode *createCounter(const string &func, void *dataPtr,
 {
    AstNode *t0=NULL, *t1=NULL, *t2=NULL;
 
-   t0 = new AstNode(AstNode::DataValue, (void *)dataPtr);
+   t0 = new AstNode(AstNode::DataAddr, (void *)dataPtr);  // This was AstNode::DataValue
    if (func=="addCounter") {
      t1 = new AstNode(plusOp,t0,ast);
      t2 = new AstNode(storeOp,t0,t1);

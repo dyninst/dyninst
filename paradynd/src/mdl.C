@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.76 1999/07/28 19:21:32 nash Exp $
+// $Id: mdl.C,v 1.77 1999/08/03 20:30:57 nash Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -1966,13 +1966,13 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
           ast = new AstNode(AstNode::DataIndir,tmp_ast);
           removeAst(tmp_ast);
   #else
-          ast = new AstNode(AstNode::DataValue,
+          ast = new AstNode(AstNode::DataAddr,  // was AstNode::DataValue
                     (void*)(drn->getInferiorPtr(global_proc)));
   #endif
 #else
           // Note: getInferiorPtr could return a NULL pointer here if
           // we are just computing cost - naim 2/18/97
-          ast = new AstNode(AstNode::DataValue,
+          ast = new AstNode(AstNode::DataAddr,  // was AstNode::DataValue
                     (void*)(drn->getInferiorPtr()));
 #endif
           return true;
@@ -2006,11 +2006,11 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
                (void *)(drn->getAllocatedIndex()),
                0); // 0 is for intCounter
   #else
-          ast = new AstNode(AstNode::DataPtr,
+          ast = new AstNode(AstNode::Constant,  // was AstNode::DataPtr
             (void*)(drn->getInferiorPtr(global_proc)));
   #endif
 #else
-          ast = new AstNode(AstNode::DataPtr, (void*)(drn->getInferiorPtr()));
+          ast = new AstNode(AstNode::Constant, (void*)(drn->getInferiorPtr()));  // was AstNode::DataPtr
 #endif
           break;
         }
@@ -2428,13 +2428,13 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
   #else
         // Note: getInferiorPtr could return a NULL pointer here if we are
         // just computing cost - naim 2/18/97
-        AstNode *temp1 = new AstNode(AstNode::DataValue, 
+        AstNode *temp1 = new AstNode(AstNode::DataAddr,  // was AstNode::DataValue
 				     (void*)((inFlags[fi])->getInferiorPtr(global_proc)));
   #endif
 #else
         // Note: getInferiorPtr could return a NULL pointer here if we are
         // just computing cost - naim 2/18/97
-        AstNode *temp1 = new AstNode(AstNode::DataValue, 
+        AstNode *temp1 = new AstNode(AstNode::DataAddr,  // was AstNode::DataValue
 				     (void*)((inFlags[fi])->getInferiorPtr()));
 #endif
         // Note: we don't use assignAst on purpose here

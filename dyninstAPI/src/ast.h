@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.39 1999/07/29 13:58:43 hollings Exp $
+// $Id: ast.h,v 1.40 1999/08/03 20:28:09 nash Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -136,7 +136,7 @@ class AstNode {
     public:
         enum nodeType { sequenceNode, opCodeNode, operandNode, callNode };
         enum operandType { Constant, ConstantPtr, ConstantString,
-			   DataValue, DataPtr, 
+			   /*DataValue, DataPtr,*/ 
                            DataId, DataIndir, DataReg,
 			   Param, ReturnVal, DataAddr, FrameAddr,
 			   SharedData};
