@@ -4,9 +4,12 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.2  1995/11/29 00:20:05  tamches
-/* removed some warnings
+/* Revision 1.3  1996/01/09 01:06:43  tamches
+/* changes to reflect moving phase id to shg class
 /*
+ * Revision 1.2  1995/11/29 00:20:05  tamches
+ * removed some warnings
+ *
  * Revision 1.1  1995/10/17 22:08:36  tamches
  * initial version, for the new search history graph
  *
@@ -37,10 +40,10 @@ shgPhases::~shgPhases() {
    currShgPhaseIndex = UINT_MAX;
 }
 
-void shgPhases::add(shg *theNewShg, int phaseID, const string &theNewShgPhaseName) {
+void shgPhases::add(shg *theNewShg, const string &theNewShgPhaseName) {
    shgStruct theStruct;
    theStruct.theShg = theNewShg;
-   theStruct.phaseID = phaseID;
+   //theStruct.phaseID = phaseID;
    theStruct.phaseName = theNewShgPhaseName;
    theStruct.horizSBfirst = theStruct.horizSBlast = 0.0;
    theStruct.vertSBfirst = theStruct.vertSBlast = 0.0;
@@ -57,14 +60,14 @@ void shgPhases::add(shg *theNewShg, int phaseID, const string &theNewShgPhaseNam
    string commandStr = menuName + " add radiobutton -label " +
                        string::quote + theNewShgPhaseName + string::quote +
                        " -command " + string::quote + "shgChangePhase " +
-                       string(phaseID) + string::quote +
+                       string(theNewShg->getPhaseId()) + string::quote +
                        " -variable currShgPhase -value " +
-                       string(phaseID);
+                       string(theNewShg->getPhaseId());
    myTclEval(interp, commandStr);
 
    if (firstShg) {
       currShgPhaseIndex = 0;
-      string commandStr = string("set currShgPhase ") + string(phaseID);
+      string commandStr = string("set currShgPhase ") + string(theNewShg->getPhaseId());
       myTclEval(interp, commandStr);
 
       commandStr = string(".shg.nontop.currphasearea.label2 config -text ") +
@@ -75,7 +78,7 @@ void shgPhases::add(shg *theNewShg, int phaseID, const string &theNewShgPhaseNam
 
 shg &shgPhases::getByID(int phaseID) {
    for (unsigned i=0; i < theShgPhases.size(); i++) {
-      if (theShgPhases[i].phaseID == phaseID)
+      if (theShgPhases[i].getPhaseId() == phaseID)
          return *(theShgPhases[i].theShg);
    }
    assert(false);
@@ -86,14 +89,14 @@ int shgPhases::name2id(const string &phaseName) const {
    // returns -1 if not found
    for (unsigned i=0; i < theShgPhases.size(); i++)
       if (phaseName == theShgPhases[i].phaseName)
-         return theShgPhases[i].phaseID;
+         return theShgPhases[i].getPhaseId();
 
    return -1;
 }
 
 const string &shgPhases::id2name(int id) const {
    for (unsigned lcv=0; lcv < theShgPhases.size(); lcv++)
-      if (theShgPhases[lcv].phaseID == id)
+      if (theShgPhases[lcv].getPhaseId() == id)
          return theShgPhases[lcv].phaseName;
    assert(false);
    abort();
