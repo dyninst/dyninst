@@ -49,6 +49,7 @@
 class processMetFocusNode_Val;
 class threadMetFocusNode_Val;
 
+
 class machineMetFocusNode : public metricFocusNode {
  private:
   bool partsNeedingInitializing;
@@ -64,6 +65,9 @@ class machineMetFocusNode : public metricFocusNode {
   const Focus focus_;
   bool enable;
   bool is_internal_metric;
+
+  // used when instr insertion is deferred
+  metricFocusRequestCallbackInfo *cbi;
 
   bool isBeingDeleted; // We run into a problem where as a side-effect of
                        // deleting a metFocusNode we attempt to delete them all 
@@ -98,11 +102,16 @@ class machineMetFocusNode : public metricFocusNode {
   void updateAggInterval(timeLength width);
   aggregateOp getAggOp() { return aggOp; }
   void forwardSimpleValue(timeStamp, timeStamp, pdSample);
+  void setMetricFocusRequestCallbackInfo(metricFocusRequestCallbackInfo *cbi_)
+  {  cbi = cbi_; }
+  metricFocusRequestCallbackInfo *getMetricFocusRequestCallbackInfo() {
+     return cbi;
+  }
   void sendInitialActualValue(pdSample s);
   bool sentInitialActualValue() {  return _sentInitialActualValue; }
   bool isEnabled() { return enable; }
   void deleteProcNode(processMetFocusNode *procNode);
-  bool insertInstrumentation();
+  instr_insert_result_t insertInstrumentation();
   void initializeForSampling(timeStamp timeOfCont, pdSample initValue);
   bool hasDeferredInstr();
   bool instrInserted();
