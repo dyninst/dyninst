@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.98 2004/03/09 21:36:21 bernat Exp $
+// $Id: BPatch_thread.C,v 1.99 2004/03/11 22:20:29 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -399,10 +399,10 @@ bool BPatch_thread::isStopped()
     assert(BPatch::bpatch);
     BPatch::bpatch->getThreadEvent(false);
     if (statusIsStopped()) {
-	setUnreportedStop(false);
-	return true;
+        setUnreportedStop(false);
+        return true;
     } else
-	return false;
+        return false;
 }
 
 
@@ -1213,9 +1213,6 @@ void BPatch_thread::oneTimeCodeCallbackDispatch(process *theProc,
 	BPatch::bpatch->RPCdoneCallback(theThread, userData, returnValue);
     }
 #endif
-    // The iRPC probably left us with unreported stop bits... clear them
-    // here
-    theThread->setUnreportedStop(false);
 }
 
 
@@ -1268,7 +1265,7 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
         
         void *ret = info->getReturnValue();
         delete info;
-        
+
         if (needToResume) {
             continueExecution();
         }
