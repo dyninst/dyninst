@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.16 1999/08/17 21:50:07 hollings Exp $
+// $Id: pdwinnt.C,v 1.17 1999/11/06 21:40:36 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -573,7 +573,11 @@ int process::waitProcs(int *status) {
     case EXIT_PROCESS_DEBUG_EVENT:
 	p = findProcess(debugEv.dwProcessId);
 	if (p) {
-	    //printf("process %d exited\n", p->getPid());
+            char errorLine[1024];
+            sprintf(errorLine, "Process %d has terminated with code 0x%x\n", 
+                p->getPid(), debugEv.u.ExitProcess.dwExitCode);
+            statusLine(errorLine);
+            logLine(errorLine);
 	    handleProcessExit(p, debugEv.u.ExitProcess.dwExitCode);
 	}
 #ifdef BPATCH_LIBRARY
