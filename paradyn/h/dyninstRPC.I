@@ -100,6 +100,18 @@ struct batch_buffer_entry {
    double value;
    u_int weight;
    bool  internal_met; 
+
+$ignore
+   batch_buffer_entry &operator=(const batch_buffer_entry &src) {
+      mid = src.mid;
+      startTimeStamp = src.startTimeStamp;
+      endTimeStamp = src.endTimeStamp;
+      value = src.value;
+      weight = src.weight;
+      internal_met = src.internal_met;
+      return *this;
+   }
+$ignore
 };
 
 
