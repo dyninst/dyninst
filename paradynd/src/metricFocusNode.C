@@ -14,6 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.60  1995/11/29 00:27:42  tamches
+ * made getCurrentTime less susceptible to roundoff errors
+ * reduced warnings with g++ 2.7.1
+ *
  * Revision 1.59  1995/11/18 18:19:33  krisna
  * const this cannot be put into container of non-consts
  *
@@ -622,14 +626,13 @@ void metricDefinitionNode::forwardSimpleValue(timeStamp start, timeStamp end,
 void metricDefinitionNode::updateValue(time64 wallTime, 
 				       sampleValue value)
 {
-    timeStamp sampleTime;
     sampleInterval ret;
     // extern timeStamp elapsedPauseTime;
 
     // sampleTime = wallTime/ 1000000.0 - elapsedPauseTime;
     // commented out elapsedPauseTime because we don't currently stop CM-5
     // node processes. (brought it back jkh 11/9/93).
-    sampleTime = wallTime / 1000000.0; 
+    timeStamp sampleTime = wallTime / 1000000.0; 
     assert(value >= -0.01);
 
 // TODO mdc
@@ -680,6 +683,7 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 	// assert(ret.start >= 0.0);
 	// I have no idea where negative time comes from but leave it to
 	// the CM-5 to create it on the first sample -- jkh 7/15/94
+        // This has been solved; no sample times will be bad -- zxu
 	if (ret.start < 0.0) ret.start = 0.0;
 	assert(ret.end >= 0.0);
 	assert(ret.end >= ret.start);
@@ -687,7 +691,15 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 	// TODO mdc
 //	assert(ret.start >= (firstRecordTime/ MILLION));
 //	assert(ret.end >= (firstRecordTime/MILLION));
+
+//        double time1 = getCurrentTime(false);
 	tp->sampleDataCallbackFunc(0, id_, ret.start, ret.end, ret.value);
+//        double diffTime = getCurrentTime(false) - time1;
+//        if (diffTime > 0.2) {
+//           char buffer[200];
+//           sprintf(buffer, "metricDefinitionNode::updateValue: igen call took unusually long: %g seconds\n", diffTime);
+//           logLine(buffer);
+//	}
     }
 }
 
@@ -771,11 +783,9 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
 
 void processSample(traceHeader *h, traceSample *s)
 {
-    metricDefinitionNode *mi;
-
-    char errorLine[255];
-
-    if (!midToMiMap.defines(s->id.id)) {
+    unsigned mid = s->id.id;
+    if (!midToMiMap.defines(mid)) {
+      char errorLine[255];
       sprintf(errorLine, "Sample %d not for a valid metric instance\n", 
 	      s->id.id);
       logLine(errorLine);
@@ -783,7 +793,7 @@ void processSample(traceHeader *h, traceSample *s)
       // showErrorCallback(65,(const char *) errorLine);
       return;
     }
-    mi = midToMiMap[s->id.id];
+    metricDefinitionNode *mi = midToMiMap[mid];
 
     //    sprintf(errorLine, "sample id %d at time %8.6f = %f\n", s->id.id, 
     //	((double) *(int*) &h->wall) + (*(((int*) &h->wall)+1))/1000000.0, s->value);
@@ -940,13 +950,15 @@ void dataReqNode::insertInstrumentation(metricDefinitionNode *mi)
 	ret = createCounterInstance();
 	instance = (void *) ret;
 	id = ret->data.id;
-	midToMiMap[id.id] = mi;
+        unsigned mid = id.id;
+	midToMiMap[mid] = mi;
     } else {
 	timerHandle *ret;
 	ret = createTimerInstance();
 	instance = (void *) ret;
 	id = ret->data.id;
-	midToMiMap[id.id] = mi;
+	unsigned mid = id.id;
+	midToMiMap[mid] = mi;
     }
 }
 
@@ -954,9 +966,10 @@ void dataReqNode::disable()
 {
     if (!instance) return;
 
-    if (!midToMiMap.defines(id.id))
+    unsigned mid = id.id;
+    if (!midToMiMap.defines(mid))
       abort();
-    midToMiMap.undef(id.id);
+    midToMiMap.undef(mid);
 
     if (type == TIMER) {
 	freeTimer((timerHandle *) instance);
@@ -1040,7 +1053,7 @@ internalMetric *internalMetric::newInternalMetric(const string n,
   return im;
 }
 
-timeStamp getCurrentTime(bool firstRecordRelative)
+timeStamp xgetCurrentTime(bool firstRecordRelative)
 {
     time64 now;
     timeStamp ret;
@@ -1054,6 +1067,23 @@ timeStamp getCurrentTime(bool firstRecordRelative)
     ret = now/MILLION;
 
     return(ret);
+}
+
+timeStamp getCurrentTime(bool firstRecordRelative)
+{
+    struct timeval tv;
+    assert(gettimeofday(&tv, NULL) == 0); // 0 --> success; -1 --> error
+
+    double seconds_dbl = tv.tv_sec * 1.0;
+    assert(tv.tv_usec < 1000000);
+    double useconds_dbl = tv.tv_usec * 1.0;
+  
+    seconds_dbl += useconds_dbl / 1000000.0;
+
+    if (firstRecordRelative)
+       seconds_dbl -= firstRecordTime;
+
+    return seconds_dbl;    
 }
 
 void reportInternalMetrics()
