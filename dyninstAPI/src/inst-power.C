@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.153 2002/10/14 21:02:17 bernat Exp $
+ * $Id: inst-power.C,v 1.154 2002/10/15 17:11:23 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -972,7 +972,8 @@ unsigned generateMTpreamble(char *insn, Address &base, process *proc)
   // Store POS on the stack
   // Don't use saveReg because we don't want the reg offset calculation
   genImmInsn(tmp_insn, STop, REG_MT_POS, 1, PDYN_MT_POS);
-  tmp_insn++; base += sizeof(instruction);
+  tmp_insn++; 
+  base += sizeof(instruction);
 
   regSpace->resetSpace();
   return returnVal;
