@@ -2,6 +2,9 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
+ * Revision 1.76  1997/01/16 21:55:24  tamches
+ * extra params to attach()
+ *
  * Revision 1.75  1997/01/15 00:04:57  tamches
  * added attach()
  *
@@ -216,8 +219,10 @@ $remote dataManager {
     // Attach is the other way to start a process...newly implemented with v1.2
     bool attach(const char *machine,
 	        const char *user,
-	        const char *daemonName,
-	        const char *pidStr);
+	        const char *dir,
+	        const char *cmd,
+	        const char *pidStr,
+	        const char *daemonName);
 	        
     //
     // Find out if an application has been defined yet.
