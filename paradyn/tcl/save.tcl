@@ -1,5 +1,5 @@
-# $Id: save.tcl,v 1.4 1999/05/19 07:49:41 karavan Exp $
-# this file contains the routines for the "SAVE" button 
+# $Id: save.tcl,v 1.5 1999/06/28 19:12:17 karavan Exp $
+# this file contains the routines for the "EXPORT" button 
 
 proc pdSave {} {
     global saveGlobalData savePhaseData saveResources saveDirectory \
@@ -48,8 +48,8 @@ proc drawSaveMenu {} {
 	    saveMessage saveWindow saveGlobalSearch savePhaseSearch
     set saveWindow .pdsw
     toplevel $saveWindow
-    wm title $saveWindow "Paradyn Save"
-    wm iconname $saveWindow "Paradyn Save"
+    wm title $saveWindow "Paradyn Export"
+    wm iconname $saveWindow "Paradyn Export"
     
     set di $saveWindow.directory
     set wh $saveWindow.what
@@ -60,7 +60,7 @@ proc drawSaveMenu {} {
     pack $wh $di $ex -side top -fill both -padx 2 -pady 5
 
     # save what?
-    label $wh.la -text "Save Paradyn Data" \
+    label $wh.la -text "Export Paradyn Data" \
 	    -foreground white -anchor c \
 	    -font { Times 14 bold } \
 	    -relief raised \
@@ -105,7 +105,7 @@ proc drawSaveMenu {} {
     pack $di.top $di.bot -side top -fill both
 
     #exit
-    mkButtonBar $ex {} retval {{SAVE "pdSave"} \
+    mkButtonBar $ex {} retval {{EXPORT "pdSave"} \
 	    {CLEAR "set saveDirectory \"\""} {CANCEL "destroy .pdsw"} }
 }
 

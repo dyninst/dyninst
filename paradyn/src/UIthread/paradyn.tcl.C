@@ -40,7 +40,7 @@
  */
 
 /* paradyn.tcl.C
-   $Id: paradyn.tcl.C,v 1.87 1999/05/20 21:42:19 pcroth Exp $
+   $Id: paradyn.tcl.C,v 1.88 1999/06/28 19:12:03 karavan Exp $
    This code implements the tcl "paradyn" command.  See the README file for 
    command descriptions.
 */
@@ -941,18 +941,15 @@ int ParadynSaveCmd (ClientData,
   if (argc == 4) {
     if (!strcmp(argv[1], "data")) {
       // "save data [global|phase|all] <dirname>" 
-      char *dirname = new char [strlen(argv[3])+1];
-      strcpy (dirname, argv[3]);
-      cout << "paradyn save " << dirname << " data all" << endl;
       switch (argv[2][0]) {
       case 'a':
-	dataMgr->saveAllData(dirname, All);
+	dataMgr->saveAllData(argv[3], All);
 	break;
       case 'g':
-	dataMgr->saveAllData(dirname, Global);
+	dataMgr->saveAllData(argv[3], Global);
 	break;
       case 'p':
-	dataMgr->saveAllData(dirname, Phase);
+	dataMgr->saveAllData(argv[3], Phase);
 	break;
       default:
 	sprintf(interp->result, 
@@ -962,21 +959,14 @@ int ParadynSaveCmd (ClientData,
       return TCL_OK;
     } else if (!strcmp(argv[1], "resources")) {
       // "save resources all <filename>"
-      char *fname = new char [strlen(argv[3])+1];
-      strcpy (fname, argv[3]);
-      dataMgr->saveAllResources(fname);
-      delete[] fname;
+      dataMgr->saveAllResources(argv[3]);
       return TCL_OK;
     } else if (!strcmp(argv[1], "shg")) {
       // "save shg [global|phase]"
-      char *fname = new char [strlen(argv[3])+1];
-      strcpy (fname, argv[3]);
-      cout << "paradyn save " << argv[2] << fname << " shg" << endl;
       if (!strcmp(argv[2], "phase"))
-        perfConsult->saveSHG(fname, 0);   // save phase shg(s)
+        perfConsult->saveSHG(argv[3], 0);   // save phase shg(s)
       else
-        perfConsult->saveSHG(fname, 1);   // save global shg
-      delete[] fname;
+        perfConsult->saveSHG(argv[3], 1);   // save global shg
       return TCL_OK;
     }
   }
