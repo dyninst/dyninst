@@ -4,14 +4,19 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.2  1995/11/06 19:28:03  tamches
-/* slider mouse motion bug fixes
+/* Revision 1.3  1995/11/19 04:21:50  tamches
+/* added an #include of <assert.h> which had been missing, causing
+/* problems on RS/6000 compiles.
 /*
+ * Revision 1.2  1995/11/06 19:28:03  tamches
+ * slider mouse motion bug fixes
+ *
  * Revision 1.1  1995/10/17 22:07:08  tamches
  * First version of "new search history graph".
  *
  */
 
+#include <assert.h>
 #include "tkTools.h"
 #include "shg.h"
 
