@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 
+#include "xplat/Process.h"
 #include "mrnet/src/ParentNode.h"
 #include "mrnet/src/NetworkGraph.h"
 #include "mrnet/src/utils.h"
@@ -116,7 +117,7 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
         mrn_printf( 1, MCFL, stderr,
                     "PN::recv_PacketsFromDownStream() poll failed\n" );
         fprintf( stderr, "%d: poll failed: %d: %s\n",
-            getpid(), errno, strerror(errno) );
+            XPlat::Process::GetProcessId(), errno, strerror(errno) );
     }
 
     mrn_printf( 3, MCFL, stderr, "PN::recv_PacketsFromDownStream() %s\n",

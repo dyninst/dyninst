@@ -29,6 +29,7 @@
 
 #include "xplat/NetUtils.h"
 #include "xplat/PathUtils.h"
+#include "xplat/SocketUtils.h"
 #include "xplat/Error.h"
 
 #include "mrnet/MRNet.h"
@@ -184,7 +185,7 @@ int bindPort( int *sock_in, Port *port_in )
     {
         mrn_printf( 1, MCFL, stderr,
             "failed to obtain port from socket\n" );
-        close( sock );
+        XPlat::SocketUtils::Close( sock );
         return -1;
     }
     

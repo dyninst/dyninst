@@ -12,6 +12,7 @@
 #include "mrnet/src/utils.h"
 #include "src/config.h"
 #include "xplat/Process.h"
+#include "xplat/SocketUtils.h"
 #include "xplat/Error.h"
 
 namespace MRN
@@ -356,7 +357,7 @@ RemoteNode::connect_to_backend( int listening_sock_fd, Rank* rank )
     if( rret != sizeof(rank) )
     {
         mrn_printf(1, MCFL, stderr, "failed to receive rank from back-end\n" );
-        close( sock_fd );
+        XPlat::SocketUtils::Close( sock_fd );
         sock_fd = -1;
         return -1;
     }
@@ -367,7 +368,7 @@ RemoteNode::connect_to_backend( int listening_sock_fd, Rank* rank )
     {
         // the backend should've known its own rank
         mrn_printf( 1, MCFL, stderr, "backend handshake failed: unknown rank\n" );
-        close( sock_fd );
+        XPlat::SocketUtils::Close( sock_fd );
         sock_fd = -1;
         return -1;
     }
@@ -379,7 +380,7 @@ RemoteNode::connect_to_backend( int listening_sock_fd, Rank* rank )
             // from what we were expecting
             mrn_printf( 1, MCFL, stderr, 
                 "backend handshake failed: unexpected rank\n" );
-            close( sock_fd );
+            XPlat::SocketUtils::Close( sock_fd );
             sock_fd = -1;
             return -1;
         }
@@ -399,7 +400,7 @@ int RemoteNode::connect_to_leaf( Rank myRank )
     connect();
     if( fail() ){
         mrn_printf(1, MCFL, stderr, "connect() failed\n");
-        close( sock_fd );
+        XPlat::SocketUtils::Close( sock_fd );
         sock_fd = -1;
         return -1;
     }
@@ -413,7 +414,7 @@ int RemoteNode::connect_to_leaf( Rank myRank )
             "leaf handshake failed: send failed: %d: %s \n", 
             errno, strerror(errno) );
         error( ESYSTEM, "send(): %s\n", strerror( errno ) );
-        close( sock_fd );
+        XPlat::SocketUtils::Close( sock_fd );
         sock_fd = -1;
         return -1;
     }
