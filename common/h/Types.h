@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.17 2002/04/09 18:04:38 mjbrim Exp $
+ * $Id: Types.h,v 1.18 2002/06/26 21:14:21 schendel Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -83,40 +83,32 @@ WindowsNT    nonexistant
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) /*ccw 20 july 2000 : 29 mar 2001*/
 /* nt -------------------------- */
-typedef __int64 int64_t;
-typedef __int32 int32_t;
-typedef unsigned __int64 uint64_t;
-typedef unsigned __int32 uint32_t;
+   typedef __int64 int64_t;
+   typedef __int32 int32_t;
+   typedef unsigned __int64 uint64_t;
+   typedef unsigned __int32 uint32_t;
 #elif defined(rs6000_ibm_aix4_1) /* aix4.{23} ------------------- */
-#define _ALL_SOURCE
-#include <sys/types.h>     /* if aix4.3, this will include inttypes.h */
-#ifndef _H_INTTYPES        /* for aix4.2 */
-typedef int int32_t;
-typedef long long int64_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long uint64_t;
-#endif
-
+#  define _ALL_SOURCE
+#  include <sys/types.h>     /* if aix4.3, this will include inttypes.h */
+#  ifndef _H_INTTYPES        /* for aix4.2 */
+   typedef int int32_t;
+   typedef long long int64_t;
+   typedef unsigned int uint32_t;
+   typedef unsigned long long uint64_t;
+#  endif
 #elif defined(alpha_dec_osf4_0)  /* osf ------------------------- */
-#ifndef _H_INTTYPES
-typedef int int32_t;
-typedef long int64_t;
-typedef unsigned int uint32_t;
-typedef unsigned long uint64_t;
-#endif
-#else                            /* linux, solaris, irix -------- */
-#ifdef i386_unknown_linux2_0
-#define __STDC_LIMIT_MACROS
-#define __STDC_CONSTANT_MACROS
-#endif
-
-/* Not sure if this is right; why isn't the above using #elif? - TLM */
-#ifdef ia64_unknown_linux2_4
-#define __STDC_LIMIT_MACROS
-#define __STDC_CONSTANT_MACROS
-#endif
-
-#include <inttypes.h>
+#  ifndef _H_INTTYPES
+   typedef int int32_t;
+   typedef long int64_t;
+   typedef unsigned int uint32_t;
+   typedef unsigned long uint64_t;
+#  endif
+#elif defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#  define __STDC_LIMIT_MACROS
+#  define __STDC_CONSTANT_MACROS
+#  include <stdint.h>
+#else                            /* solaris, irix -------- */
+#  include <inttypes.h>
 #endif
 
 
