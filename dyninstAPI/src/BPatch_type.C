@@ -105,7 +105,10 @@ BPatch_typeCollection::~BPatch_typeCollection()
  */
 BPatch_type *BPatch_typeCollection::findType(const char *name)
 {
-    return typesByName[name];
+    if (typesByName.defines(name))
+    	return typesByName[name];
+    else
+	return NULL;
 }
 
 

@@ -238,7 +238,10 @@ int process::waitProcs(int *status) {
 
 #ifdef BPATCH_LIBRARY
      if (fds[curr].revents & POLLHUP) {
-	 ret = waitpid(processVec[curr]->getPid(), status, 0);
+	 do {
+	     ret = waitpid(processVec[curr]->getPid(), status, 0);
+	     assert(ret != 0);
+	 } while ((ret < 0) && (errno == EINTR));
 	 assert(ret > 0);
      } else
 #endif
@@ -452,10 +455,14 @@ bool process::attach() {
 
   //Tempest, do not need to inherit-on-fork
   long flags ;
+#ifdef BPATCH_LIBRARY
+  flags = PR_FORK | PR_BPTADJ;
+#else
   if(process::pdFlavor == string("cow"))
   	flags = PR_KLC |  PR_BPTADJ;
   else
    	flags = PR_KLC | PR_FORK | PR_BPTADJ;
+#endif
   if (ioctl (fd, PIOCSET, &flags) < 0) {
     fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
     close(fd);
@@ -831,11 +838,11 @@ bool process::continueProc_() {
  */
 bool process::terminateProc_()
 {
-    int sig = SIGKILL;
-    if (ioctl(proc_fd, PIOCKILL, &sig) == -1)
+    long flags = PR_KLC;
+    if (ioctl (proc_fd, PIOCSET, &flags) < 0)
 	return false;
-    else
-	return true;
+
+    Exited();
 }
 #endif
 
