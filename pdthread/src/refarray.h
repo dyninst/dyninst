@@ -44,13 +44,14 @@
  * 
  * A refarray is a templated array of references.  It
  * does bounds-checking, is resizable and is optionally 
- * protectable by a newly-allocated or preexisting rwlock.
+ * protectable by a newly-allocated or preexisting lock.
  *
  ***************************************************/
 
 #ifndef __libthread_refarray_h__
 #define __libthread_refarray_h__
-#include "rwlock.h"
+
+#include "xplat/Mutex.h"
 
 namespace pdthr
 {
@@ -59,22 +60,22 @@ template <class REFOBJ>
 class refarray {
   private:
     REFOBJ **items;
-    rwlock *lock;
+    XPlat::Mutex *lock;
     unsigned _size;
     unsigned _last;
     void _resize(REFOBJ* default_value);
     bool destroy_constituents;
-    bool use_rwlock;
+    bool use_lock;
 
   public:
 
-    refarray( bool _use_rwlock=true )
+    refarray( bool _use_lock=true )
       : _size( 1024 ),
         destroy_constituents( false ),
-        lock( new rwlock(rwlock::favor_writers) ),
+        lock( new XPlat::Mutex ),
         items( NULL ),
         _last( 0 ),
-        use_rwlock( _use_rwlock )
+        use_lock( _use_lock )
     {
         items = new REFOBJ*[_size];
         for(unsigned int i = 0; i < this->_size; i++)
@@ -85,19 +86,19 @@ class refarray {
     
 
     refarray(int sz,
-                rwlock *lk,
-                bool _use_rwlock = true,
+                XPlat::Mutex *lk,
+                bool _use_lock = true,
                 REFOBJ* def_value = NULL)
       : _size( sz ),
         lock( lk ),
         destroy_constituents( false ),
         items( NULL ),
         _last( 0 ),
-        use_rwlock( _use_rwlock )
+        use_lock( _use_lock )
     {
         if(!lk)
         {
-            lock = new rwlock();
+            lock = new XPlat::Mutex;
         }
         
         items = new REFOBJ*[_size];
@@ -129,16 +130,16 @@ class refarray {
     inline unsigned capacity() {
         unsigned sz;
 
-        if( use_rwlock )
+        if( use_lock )
         {
-            lock->acquire(rwlock::read);
+            lock->Lock();
         }
 
         sz = _size;
 
-        if( use_rwlock )
+        if( use_lock )
         {
-            lock->release(rwlock::read);
+            lock->Unlock();
         }
 
         return sz;

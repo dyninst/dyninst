@@ -45,7 +45,6 @@
 #include "../h/thread.h"
 #include "refarray.h"
 #include "dllist.C"
-#include "rwlock.h"
 #include "thrtab_entries.h"
 #include "hashtbl.C"
 #include "xplat/Monitor.h"

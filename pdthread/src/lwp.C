@@ -151,8 +151,8 @@ void lwp::start() {
 int lwp::join(thread_t* departed, void** return_val) {
     int retval = THR_OKAY;
     
-    _joined_lk.acquire(rwlock::write);
-    _reaped_lk.acquire(rwlock::write);
+    _joined_lk.Lock();
+    _reaped_lk.Lock();
     
     if(_joined || _reaped) {
         retval = THR_ERR;
@@ -165,8 +165,8 @@ int lwp::join(thread_t* departed, void** return_val) {
             *departed = _self;
     }
 
-    _reaped_lk.release(rwlock::write);
-    _joined_lk.release(rwlock::write);
+    _reaped_lk.Unlock();
+    _joined_lk.Unlock();
     
     return retval;
 }
@@ -247,9 +247,9 @@ void lwp::set_returnval(void* result) {
 unsigned lwp::is_running() {
     unsigned retval;
     
-    _running_lk.acquire(rwlock::read);
+    _running_lk.Lock();
     retval = _running;
-    _running_lk.release(rwlock::read);
+    _running_lk.Unlock();
     
     return retval;
 }
@@ -257,29 +257,29 @@ unsigned lwp::is_running() {
 unsigned lwp::is_completed() {
     unsigned retval;
     
-    _completed_lk.acquire(rwlock::read);
+    _completed_lk.Lock();
     retval = _completed;
-    _completed_lk.release(rwlock::read);
+    _completed_lk.Unlock();
     
     return retval;
 }
 
 void lwp::start_running() {
-    _running_lk.acquire(rwlock::write);
+    _running_lk.Lock();
     _running = 1;
-    _running_lk.release(rwlock::write);
+    _running_lk.Unlock();
 }
 
 void lwp::stop_running() {
-    _running_lk.acquire(rwlock::write);
+    _running_lk.Lock();
     _running = 0;
-    _running_lk.release(rwlock::write);
+    _running_lk.Unlock();
 }
 
 void lwp::complete() {
-    _completed_lk.acquire(rwlock::write);
+    _completed_lk.Lock();
     _completed = 1;
-    _completed_lk.release(rwlock::write);
+    _completed_lk.Unlock();
 }
 
 } // namespace pdthr
