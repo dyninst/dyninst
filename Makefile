@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DynInstAPI) system.
 #
-# $Id: Makefile,v 1.31 1998/09/02 22:03:57 wylie Exp $
+# $Id: Makefile,v 1.32 1999/04/27 16:02:22 nash Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -99,7 +99,10 @@ ifdef DONT_BUILD_DYNINST
 	@echo "Build of DynInstAPI components skipped!"
 endif
 
-world: intro $(Build_list)
+world: intro
+	+for target in $(Build_list); do				\
+	    ( $(MAKE) $$target ) || exit 1;				\
+	done
 	@echo "Build of $(BUILD_ID) complete for $(PLATFORM)!"
 
 # "make Paradyn" and "make dynInstAPI" are also useful and valid build targets!
@@ -107,12 +110,16 @@ world: intro $(Build_list)
 Paradyn ParadynD ParadynFE ParadynVC dynInstAPI basicComps subSystems:
 	@echo "Building $@ ..."
 	@date
-	+for subsystem in $($@); do			\
-	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
-		$(MAKE) -C $$subsystem/$(PLATFORM) all install;	\
-	    else						\
-		true;						\
-	    fi							\
+	+for subsystem in $($@); do				\
+	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then		\
+		if ( $(MAKE) -C $$subsystem/$(PLATFORM) all ); then	\
+		    $(MAKE) -C $$subsystem/$(PLATFORM) install;		\
+		else							\
+		    exit 1;						\
+		fi							\
+	    else							\
+		true;							\
+	    fi								\
 	done
 	@echo "Build of $@ complete."
 	@date
