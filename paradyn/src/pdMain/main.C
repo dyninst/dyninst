@@ -1,7 +1,11 @@
 /* $Log: main.C,v $
-/* Revision 1.1  1994/03/29 20:20:54  karavan
-/* initial version for testing
-/* */
+/* Revision 1.2  1994/04/05 04:36:48  karavan
+/* Changed order of thread initialization to avoid deadlock.  Added global
+/* user variables for data manager, uim, and performance consultant.
+/*
+ * Revision 1.1  1994/03/29  20:20:54  karavan
+ * initial version for testing
+ * */
 
 /*
  * main.C - main routine for paradyn.  
@@ -10,23 +14,38 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-extern "C" {
-#include "thread/h/thread.h"
-}
+
 #include "paradyn.h"
-#include "performanceConsultant.CLNT.h"
+#include "thread/h/thread.h"
 
 extern void *UImain(CLargStruct *clargs);
 extern void *DMmain(int arg);
 extern void *PCmain(int arg);
-
-extern thread_t UIMtid;
-extern thread_t MAINtid;
-extern thread_t PCtid;
-extern thread_t DMtid;
-extern applicationContext *context;
+// extern void *VMmain (int arg);
 
 #define MBUFSIZE 256
+
+thread_t UIMtid;
+thread_t MAINtid;
+thread_t PCtid;
+thread_t DMtid;
+thread_t VMtid;
+
+char UIStack[32768];
+
+applicationContext *context;
+dataManagerUser *dataMgr;
+performanceConsultantUser *perfConsult;
+UIMUser *uiMgr;
+// VMUser  *vmMgr;
+
+
+int eFunction(int errno, char *message)
+{
+    printf("error: %s\b", message);
+    abort();
+    return(-1);
+}
 
 int
 main (int argc, char *argv[])
@@ -43,37 +62,49 @@ main (int argc, char *argv[])
     exit(-1);
   }
 
-  thr_trace_on();
-
 // get tid of parent
   MAINtid = thr_self();
-  printf ("parent = %d", MAINtid);
 
-// values for global message tags
- 
-  MSG_TAG_UIM_READY = 1001;
-  MSG_TAG_DM_READY = 1002;
-  MSG_TAG_VM_READY = 1003;
-  MSG_TAG_PC_READY = 1004;
-  MSG_TAG_ALL_CHILDREN_READY = 1005;
-
-// initialize UIM 
- 
-  clargs.clargc = argc;	
-  clargs.clargv = argv;
-
-  printf ("argc = %d\n", clargs.clargc);
-
-  if (thr_create (NULL, 0, &UImain, &clargs, 0, &UIMtid) == THR_ERR) 
-    exit(1);
-  fprintf (stderr, "UI thread created\n");
-
+     /* initialize the 4 main threads of paradyn: data manager, visi manager,
+        user interface manager, performance consultant */
+  
 // initialize DM
 
   if (thr_create(0, 0, DMmain, (void *) thr_self(), 0, 
 		 (unsigned int *) &DMtid) == THR_ERR)
     exit(1);
   fprintf (stderr, "DM thread created\n");
+
+  msgsize = MBUFSIZE;
+  mtag = MSG_TAG_DM_READY;
+  msg_recv(&mtag, mbuf, &msgsize);
+  msg_send (DMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
+  dataMgr = new dataManagerUser (DMtid);
+  context = dataMgr->createApplicationContext(eFunction);
+
+// initialize UIM 
+ 
+  clargs.clargc = argc;	
+  clargs.clargv = argv;
+
+  if (thr_create (UIStack, sizeof(UIStack), &UImain, &clargs, 0, &UIMtid) == THR_ERR) 
+    exit(1);
+  fprintf (stderr, "UI thread created\n");
+
+  msgsize = MBUFSIZE;
+  mtag = MSG_TAG_UIM_READY;
+  msg_recv(&mtag, mbuf, &msgsize);
+  msg_send (UIMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
+  uiMgr = new UIMUser (UIMtid);
+
+// initialize VM
+/**
+        msgsize = MBUFSIZE;
+	mtag = MSG_TAG_VM_READY;
+        msg_recv(&mtag, mbuf, &msgsize);
+	msg_send (VMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
+	vmMgr = new VMUser (VMtid);
+*/
 
 // initialize PC
 
@@ -82,35 +113,13 @@ main (int argc, char *argv[])
     exit(1);
   fprintf (stderr, "PC thread created\n");
 
-    //get acks from each thread and signal ready 
-/**
-        msgsize = MBUFSIZE;
-	mtag = MSG_TAG_VM_READY;
-        msg_recv(&mtag, mbuf, &msgsize);
-*/
-  msgsize = MBUFSIZE;
-  mtag = MSG_TAG_DM_READY;
-  msg_recv(&mtag, mbuf, &msgsize);
   msgsize = MBUFSIZE;
   mtag = MSG_TAG_PC_READY;
   msg_recv(&mtag, mbuf, &msgsize);
-  
-  msgsize = MBUFSIZE;
-  mtag = MSG_TAG_UIM_READY;
-  msg_recv(&mtag, mbuf, &msgsize);
+  perfConsult = new performanceConsultantUser (PCtid);
+  msg_send (PCtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
 
-  fprintf (stderr, "all ACKS received\n");
-
-/* send ALL_CHILDREN_READY to all child threads */
-
-      msg_send (UIMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
-      msg_send (DMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
-      msg_send (PCtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
-/**
-      msg_send (VMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
-*/
-
-/* wait for UIM thread to exit */
+// wait for UIM thread to exit 
 
   thr_join (UIMtid, NULL, NULL);
 	
