@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.59  1996/02/05 18:51:55  newhall
-/* Change to DM interface: StartPhase and newPhaseCallback
+/* Revision 1.60  1996/02/06 23:10:01  tamches
+/* don't delete newMetRes...
 /*
+ * Revision 1.59  1996/02/05 18:51:55  newhall
+ * Change to DM interface: StartPhase and newPhaseCallback
+ *
  * Revision 1.58  1996/01/31  19:56:18  newhall
  * added comments
  *
@@ -769,7 +772,6 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 	      ERROR_MSG(12,"in VISIthreadchooseMetRes");
 	      ptr->quit = 1;
               delete(retryList);
-              delete(newMetRes);
 	      return 1;
           }
           pairList += matrix;
@@ -794,7 +796,6 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
           PARADYN_DEBUG(("igen: visip->AddMetsRess(): VISIthreadchooseMetRes"));
           ptr->quit = 1;
           delete(retryList);
-          delete(newMetRes);
           return 1;
       }
 
@@ -817,7 +818,6 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
             PARADYN_DEBUG(("igen:visip->BulkDataTransfer():VISIthreadchoose"));
                 ptr->quit = 1;
                 delete(retryList);
-                delete(newMetRes);
                 return 1;
             }
 	    for(int j=bulk_data.size(); j>0; j--){
@@ -849,7 +849,6 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
         ptr->args->remenuFlag = 1;     
         delete(retryList);
       }
-      delete(newMetRes);
       delete(buckets);
   }
   else {
