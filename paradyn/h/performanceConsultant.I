@@ -3,7 +3,11 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
- * Revision 1.8  1994/08/17 17:55:29  markc
+ * Revision 1.9  1994/09/22 00:45:15  markc
+ * Made array declarations explicit
+ * Incremented version number
+ *
+ * Revision 1.8  1994/08/17  17:55:29  markc
  * Incremented version numbers because a new version of igen has been
  * committed.
  *
@@ -37,19 +41,23 @@
 class searchHistoryNode;
 typedef searchHistoryNode *SHNptr;
 
+$remote array int int_Array;
+
+$remote array SHNptr SHNptr_Array;
+
 $remote performanceConsultant {
     $base 6000;
-    $version 3;
+    $version 4;
 
     // for all of the configured tests print their status.
     //  This is intended for debugging only.
     void printTestStatus();
 
     // enumerate all of the refinements.
-    $array SHNptr getWhyRefinements(searchHistoryNode *);
-    $array SHNptr getWhenRefinements(searchHistoryNode *);
-    $array SHNptr getWhereRefinements(searchHistoryNode *);
-    $array SHNptr getAllRefinements(searchHistoryNode *);
+    SHNptr_Array getWhyRefinements(searchHistoryNode *);
+    SHNptr_Array getWhenRefinements(searchHistoryNode *);
+    SHNptr_Array getWhereRefinements(searchHistoryNode *);
+    SHNptr_Array getAllRefinements(searchHistoryNode *);
 
     // return the current refinement node.
     searchHistoryNode *getCurrentRefinement();
@@ -79,7 +87,7 @@ $remote performanceConsultant {
     void createInterval(int, timeStamp, timeStamp, char*);
 
     // This doesn't work yet !!
-    void doRefine($array int ids);
+    void doRefine(int_Array ids);
 
     // Really just setCurrentSHGnode(id of root node).
     $async void resetRefinement();
