@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.61 1998/09/02 21:13:22 wylie Exp $
+// $Id: rpcUtil.C,v 1.62 1999/01/21 20:22:32 wylie Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -238,8 +238,10 @@ static short counter = 0;
 int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
 {
     int ret;
-    int index = 0;
+    unsigned index = 0;
     unsigned header = len;
+
+    //printf("RPCasyncXDRWrite(handle=%p, buf=%p, len=%d)\n", handle, buf, len);
 
     rpcBuffer *rb = new rpcBuffer;
     rb -> fd = (int) handle;
@@ -255,7 +257,7 @@ int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
 
     // Converting to network order
     header = htonl(header);
-//printf(">> header=%x, counter=%x, len=%x\n", header, counter, len);
+    //printf(">> header=%x, counter=%x, len=%x\n", header, counter, len);
     
     P_memcpy(rb -> buf, (char *)&header, sizeof(int));
     P_memcpy(rb -> buf+sizeof(int), buf, len);
@@ -304,7 +306,7 @@ int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
     
     // Delete the items sent out
     unsigned j;
-    for (j = 0; j < (unsigned)index; j++) {
+    for (j = 0; j < index; j++) {
 	delete [] rpcBuffers[j]->buf;
 	delete rpcBuffers[j];
 	rpcBuffers[j] = NULL; // probably unnecessary
@@ -402,6 +404,9 @@ XDRrpc::XDRrpc(const int f, xdr_rd_func readRoutine, xdr_wr_func writeRoutine, c
 {
     assert(fd >= 0);
     xdrs = new XDR;
+#ifdef PURE_BUILD
+    memset(xdrs,'\0',sizeof(XDR));
+#endif
     assert(xdrs);
     if (!readRoutine) {
 	if (nblock == 1) {
@@ -412,7 +417,7 @@ XDRrpc::XDRrpc(const int f, xdr_rd_func readRoutine, xdr_wr_func writeRoutine, c
     }   
     if (!writeRoutine) {
 	if (nblock == 2) {
-	    writeRoutine = (xdr_wr_func)RPCasyncXDRWrite;
+	    writeRoutine = (xdr_wr_func) RPCasyncXDRWrite;
 	} else {    
 	    writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
 	}
@@ -436,6 +441,9 @@ XDRrpc::XDRrpc(const string &machine,
     fd = RPCprocessCreate(machine, user, program, arg_list, wellKnownPortFd);
     if (fd >= 0) {
         xdrs = new XDR;
+#ifdef PURE_BUILD
+        memset(xdrs,'\0',sizeof(XDR));
+#endif
 	if (!readRoutine) {
 	    if (nblock == 1) {
 		readRoutine = (xdr_rd_func) RPCasyncXDRRead;
@@ -638,7 +646,7 @@ XDRrpc::XDRrpc(int family,
 // These xdr functions are not to be called with XDR_FREE
 //
 bool_t xdr_Boolean(XDR *xdrs, bool *bool_val) {
-   u_char i;
+   u_char i='\0';
    bool_t res;
    switch (xdrs->x_op) {
    case XDR_ENCODE:
@@ -681,7 +689,7 @@ bool_t xdr_string_pd(XDR *xdrs, string *str)
     if (!P_xdr_u_int(xdrs, &length))
       return FALSE;
      else if (!length) {
-       *str = (char*) NULL;
+       *str = NULL;
        return TRUE;
      } else {
        char *temp; 
@@ -743,7 +751,7 @@ bool_t xdr_byteArray_pd(XDR *xdrs, byteArray *bArray)
     if (!P_xdr_u_int(xdrs, &length))
       return FALSE;
      else if (!length) {
-       *bArray = byteArray( (char *)NULL , 0);
+       *bArray = byteArray(NULL, 0);
        return TRUE;
      } else {
        char *temp;
