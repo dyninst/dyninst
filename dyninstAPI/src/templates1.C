@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.38 2001/06/12 15:43:33 hollings Exp $
+// $Id: templates1.C,v 1.39 2001/12/18 16:21:18 pcroth Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -144,3 +144,11 @@ template class  vector<dictionary_hash <unsigned long, unsigned long>::entry>;
 template class  dictionary_hash_iter <unsigned long, unsigned long>;
 template class  dictionary_hash <metricDefinitionNode*,metricDefinitionNode*>;
 template class  vector<dictionary_hash <metricDefinitionNode*,metricDefinitionNode*>::entry>;
+
+#if defined(i386_unknown_linux2_0) || \
+	defined(i386_unknown_solaris2_4) || \
+	defined(sparc_sun_solaris2_4) || \
+	defined(mips_sgi_irix_6_4)
+template class vector<pdElfShdr*>;
+#endif
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.43 2001/11/05 18:47:20 zandy Exp $
+ * $Id: Object-elf.h,v 1.44 2001/12/18 16:21:17 pcroth Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -122,6 +122,7 @@ struct stab_entry { // an entry in the stab section
 
 // end of stab declarations
 
+class pdElfShdr;
 
 class Object : public AObject {
  public:
@@ -187,6 +188,9 @@ class Object : public AObject {
   // for both?
   vector<relocationEntry> relocation_table_;
 
+  // all section headers, sorted by address
+  // we use these to do a better job of finding the end of symbols
+  vector<pdElfShdr*> allSectionHdrs;
 
   // populates: file_fd_, file_size_, file_ptr_
   bool mmap_file(const char *file, 

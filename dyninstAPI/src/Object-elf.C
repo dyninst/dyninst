@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.29 2001/11/30 17:58:06 gurari Exp $
+ * $Id: Object-elf.C,v 1.30 2001/12/18 16:21:17 pcroth Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -123,6 +123,27 @@ const char *pdelf_get_shnames(Elf *elfp, bool is64)
   
   return (const char *)shstrdatap->d_buf;
 }
+
+
+
+//
+// SectionHeaderSortFunction
+// 
+// Compare function for use with the Vector<T> sort method.
+//
+static
+int
+SectionHeaderSortFunction( const void* v1, const void* v2 )
+{
+	const pdElfShdr* hdr1 = *(const pdElfShdr* const*)v1;
+	const pdElfShdr* hdr2 = *(const pdElfShdr* const*)v2;
+
+	return hdr1->pd_addr - hdr2->pd_addr;
+}
+
+
+
+
 
 // loaded_elf(): populate elf section pointers
 // for EEL rewritten code, also populate "code_*_" members
@@ -217,12 +238,13 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   Elf_Scn *scnp = NULL;
   while ((scnp = elf_nextscn(elfp, scnp)) != NULL) {
     // ELF section header: wrapper object
-    pdElfShdr pd_shdr(scnp, is_elf64_);
-    pdElfShdr *pd_shdrp = &pd_shdr;
+    pdElfShdr* pd_shdrp = new pdElfShdr(scnp, is_elf64_);
     if (pd_shdrp->err) {
       log_elferror(err_func_, "elf_getshdr");
+	  delete pd_shdrp;
       return false;
     }
+	allSectionHdrs += pd_shdrp;
 
     // resolve section name
     const char *name = (const char *)&shnames[pd_shdrp->pd_name];    
@@ -409,6 +431,10 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
       strscnp = dynstr_scnp;
     }
   }
+
+  // sort the section headers by base address
+  allSectionHdrs.sort( SectionHeaderSortFunction );
+
 #ifndef BPATCH_LIBRARY /* Some objects really don't have all sections. */
   if (!bssaddr || !symscnp || !strscnp) {
     log_elferror(err_func_, "no text/bss/symbol/string section");
@@ -881,19 +907,100 @@ void Object::fix_zero_function_sizes(vector<Symbol> &allsymbols, bool isEEL)
     unsigned u, v, nsymbols;
 
     nsymbols = allsymbols.size();
+	unsigned int u_section_idx = 0;
     for (u=0; u < nsymbols; u++) {
-	//  If function symbol, and size set to 0, or if the
-	//   executable has been EEL rewritten, patch the size
-        //   to the offset of next symbol - offset of this symbol....
-	if (allsymbols[u].type() == Symbol::PDST_FUNCTION
+        //  If function symbol, and size set to 0, or if the
+        //   executable has been EEL rewritten, patch the size
+		//
+		//  Patch the symbol size to the difference between the address
+		//  of this symbol and the next, unless the next symbol is beyond
+		//  the boundary of the section to which this symbol belongs.  In
+		//  that case, set the size to the difference between the section
+		//  end and this symbol.
+		// 
+        if (allsymbols[u].type() == Symbol::PDST_FUNCTION
                && (isEEL || allsymbols[u].size() == 0)) {
-	    v = u+1;
-	    while (v < nsymbols && allsymbols[v].addr() == allsymbols[u].addr())
+
+			// find the section to which allsymbols[u] belongs
+			// (most likely, it is the section to which allsymbols[u-1] 
+			// belonged)
+			// Note that this assumes the section headers vector is sorted
+			// in increasing order
+			//
+			while( u_section_idx < allSectionHdrs.size() )
+			{
+				Address slow = allSectionHdrs[u_section_idx]->pd_addr;
+				Address shi = slow + allSectionHdrs[u_section_idx]->pd_size;
+				if( (allsymbols[u].addr() >= slow) &&
+					(allsymbols[u].addr() <= shi) )
+				{
+					// we found u's section
+					break;
+				}
+
+				// try the next section
+				u_section_idx++;
+			}
+			assert( u_section_idx < allSectionHdrs.size() );
+
+
+			// search for the next symbol after allsymbols[u]
+            v = u+1;
+            while (v < nsymbols && allsymbols[v].addr() == allsymbols[u].addr())
+			{
                 v++;
+			}
+
+			unsigned int symSize = 0;
+			unsigned int v_section_idx = 0;
             if (v < nsymbols) {
-                allsymbols[u].change_size((unsigned)allsymbols[v].addr()
-                                        - (unsigned)allsymbols[u].addr());
+
+				// find the section to which allsymbols[v] belongs
+				// (most likely, it is in the same section as symbol u)
+				// Note that this assumes the section headers vector is
+				// sorted in increasing order
+				while( v_section_idx < allSectionHdrs.size() )
+				{
+					Address slow = allSectionHdrs[v_section_idx]->pd_addr;
+					Address shi = slow + allSectionHdrs[v_section_idx]->pd_size;
+					if( (allsymbols[v].addr() >= slow) &&
+						(allsymbols[v].addr() <= shi) )
+					{
+						// we found v's section
+						break;
+					}
+
+					// try the next section
+					v_section_idx++;
+				}
+				assert( v_section_idx < allSectionHdrs.size() );
+
+				if( u_section_idx == v_section_idx )
+				{
+					// symbol u and symbol v are in the same section
+					// 
+					// take the size of symbol u to be the difference
+					// between their two addresses
+					//
+                    symSize = ((unsigned int)allsymbols[v].addr()) - 
+								(unsigned int)allsymbols[u].addr();
+				}
             }
+			
+			if( (v == nsymbols) || (u_section_idx != v_section_idx) )
+			{
+				// u is the last symbol in its section
+				//
+				// its size is the distance from its address to the
+				// end of its section
+				//
+				symSize = allSectionHdrs[u_section_idx]->pd_addr + 
+							allSectionHdrs[u_section_idx]->pd_size -
+								allsymbols[u].addr();
+			}
+
+			// update the symbol size
+            allsymbols[u].change_size( symSize );
         }
     }
 }
