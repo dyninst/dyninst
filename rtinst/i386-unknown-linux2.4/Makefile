@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.15 2003/02/04 14:59:47 bernat Exp $
+# $Id: Makefile,v 1.16 2003/04/21 19:04:41 willb Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -22,7 +22,7 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 LD		= $(GCC)
-LDFLAGS         += -shared -ldl -Wl,-init -Wl,libparadynRT_init
+LDFLAGS         += -shared -ldl 
 
 # The GNU headers for glibc conflict with RTposix.h
 # CFLAGS		+= -D_SVID_SOURCE

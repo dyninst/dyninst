@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.73 2003/04/11 22:46:48 schendel Exp $
+ * $Id: RTinst.c,v 1.74 2003/04/21 19:04:47 willb Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -741,15 +741,16 @@ BOOL WINAPI DllMain(
 
 #else
 
+
 #ifdef __GNUC
-void libparadynRT_init(void) __attribute__ ((constructor));
+__attribute__ ((constructor)) void libparadynRT_init(void);
 #endif
 
 
 // Unix platforms
 int PARADYNinitCalledOnce=0;
+
 void libparadynRT_init() {
-    
     if(PARADYNinitCalledOnce) return;
     else {
 		if(libparadynRT_init_localparadynPid != -1 &&
