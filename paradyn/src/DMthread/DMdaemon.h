@@ -215,7 +215,7 @@ class paradynDaemon: public dynRPCUser {
 	virtual void cpDataCallbackFunc(int, double, int, double, double);
 
         virtual void endOfDataCollection(int);
-	virtual void resourceInfoCallback(int, vector<string> resource_name,
+	virtual void resourceInfoCallback(unsigned int, vector<string> resource_name,
 		    			  string abstr, u_int type);
         virtual void resourceBatchMode(bool onNow);  
 	void reportResources();
@@ -323,7 +323,7 @@ class paradynDaemon: public dynRPCUser {
         vector<unsigned> disabledMids;
 
         // used to hold responses to resourceInfoCallback
-	vector< vector<string> > newResourcesDefined;
+        vector<u_int> newResourceTempIds;
 	vector<resourceHandle> newResourceHandles;
 	static u_int count;
 

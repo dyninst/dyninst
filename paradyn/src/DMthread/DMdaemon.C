@@ -921,35 +921,33 @@ void paradynDaemon::resourceBatchMode(bool onNow){
 //  reportResources:  send new resource ids to daemon
 //
 void  paradynDaemon::reportResources(){
-    assert(newResourcesDefined.size() == newResourceHandles.size());
-
-    for(u_int i=0; i < newResourceHandles.size(); i++){
-	 resourceInfoResponse(newResourcesDefined[i], newResourceHandles[i]);
-    }
-
+    assert(newResourceTempIds.size() == newResourceHandles.size());
+    resourceInfoResponse(newResourceTempIds, newResourceHandles);
+    newResourceTempIds.resize(0);
     newResourceHandles.resize(0);
-    newResourcesDefined.resize(0);
-    assert(newResourcesDefined.size() == newResourceHandles.size());
-    assert(newResourcesDefined.size() == 0);
 }
 
 //
 // upcall from paradynd reporting new resource
 //
-void paradynDaemon::resourceInfoCallback(int,
+void paradynDaemon::resourceInfoCallback(u_int temporaryId,
 			      vector<string> resource_name,
 		   	      string abstr, u_int type) {
 
-    resourceHandle r = createResource(resource_name, abstr, type);
+    resourceHandle r = createResource(temporaryId, resource_name, abstr, type);
     if(!count){
-        //cerr << "paradyn: got resourceInfoCallback and !count, so sending resourceInfoResponse now" << endl;
-	resourceInfoResponse(resource_name, r);
+      if (r != temporaryId) {
+	vector<u_int>tempIds; vector<u_int>rIds;
+	tempIds += temporaryId; rIds += r;
+	resourceInfoResponse(tempIds, rIds);
+      }
     }
     else {
-        //cerr << "paradyn: got resourceInfoCallback and count, so deferring resourceInfoResponse for now" << endl;
-        newResourcesDefined += resource_name;
-	newResourceHandles += r;
-        assert(newResourcesDefined.size() == newResourceHandles.size());
+        if (r != temporaryId) {
+	  newResourceTempIds += temporaryId;
+	  newResourceHandles += r;
+	  assert(newResourceTempIds.size() == newResourceHandles.size());
+	}
     }
 }
 

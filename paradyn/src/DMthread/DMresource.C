@@ -49,28 +49,40 @@
 #include "DMresource.h"
 #include "paradyn/src/met/metricExt.h"
 
+// Generate a new resource handle. The daemons generate resources id's (handles)
+// in the range 0..INT_MAX. If there are conflicts between the handles generated
+// by two daemons, paradyn generates a new id in the range INT_MAX..UINT_MAX
+inline unsigned newResourceHandle() {
+  static unsigned handles = (unsigned) INT_MAX;
+  return handles++;
+}
+
+
 //
 // used only to construct root.
 //
 resource::resource()
 {
-    string temp = ""; 
+    string temp = "";
+    // make sure this is only used for root
+    assert(allResources.size()==0);
     if(!allResources.defines(temp)){
         name = temp; 
-        res_handle = resources.size();
+	res_handle = 0;
         parent = res_handle; 
         suppressSearch = FALSE;
         suppressChildSearch = FALSE;
 	suppressMagnify = false;
         abstr = NULL;
         resource *res = this;
-        resources += res;
+	resources[res_handle] = res;
         allResources[name] = res;
     }
 }
 
 
 resource::resource(resourceHandle p_handle, 
+		   unsigned tempId,
 		   vector<string>& resource_name,
 		   string& r_name,
 		   string& a, unsigned res_type) 
@@ -79,7 +91,14 @@ resource::resource(resourceHandle p_handle,
     if(!allResources.defines(r_name)){
         type = res_type;
         name = r_name;
-	res_handle = resources.size();
+	// the daemons generate an id for the resource. If there are no
+	// conflicts between this id and the id for other resource, we
+	// can keep the daemon id, otherwise we must generate a new
+	// id.
+	if (resources.defines(tempId))
+	   res_handle = newResourceHandle();
+	else
+	   res_handle = tempId;
         parent = p_handle;
 	fullName = resource_name;
 	resource *p = resources[parent];
@@ -91,19 +110,51 @@ resource::resource(resourceHandle p_handle,
         abstr = AMfind(a.string_of());
 	resource *res = this;
 	allResources[name] = res;
-	resources += res;
+	resources[res_handle] = res;
         p->AddChild(res_handle);
     }
+    else assert(0);
 }
+
+resource::resource(resourceHandle p_handle, 
+		   vector<string>& resource_name,
+		   string& r_name,
+		   string& a, unsigned res_type) 
+{
+    
+    if(!allResources.defines(r_name)){
+        type = res_type;
+        name = r_name;
+	res_handle = string::hash(name);
+	while (resources.defines(res_handle))
+	  res_handle = (res_handle+1) % (unsigned)INT_MAX;
+        parent = p_handle;
+	fullName = resource_name;
+	resource *p = resources[parent];
+	 
+	suppressSearch = p->getSuppressChildren();
+	suppressChildSearch = suppressSearch; // check for suppress
+					      // of parent's children
+	suppressMagnify = false;
+        abstr = AMfind(a.string_of());
+	resource *res = this;
+	allResources[name] = res;
+	resources[res_handle] = res;
+        p->AddChild(res_handle);
+    }
+    else assert(0);
+}
+
 
 resource *resource::handle_to_resource(resourceHandle r_handle) {
      // Note: It would be better if this routine returns a reference, and
      // just asserts if the r_handle is bad.  Why?  Because it seems like
      // noone is checking for a NULL return value anyway!
-     if (r_handle < resources.size()) {
-         return(resources[r_handle]);    
-     }
-     return(NULL);
+     resource *res;
+     if (resources.find(r_handle, res))
+       return res;
+     else
+       return NULL;
 }
 vector<resourceHandle> *resource::getChildren(){
 
@@ -215,21 +266,19 @@ bool resource::sameRoot(resourceHandle other) const {
 }
 
 const char *resource::getName(resourceHandle h){
-
-    if(h < resources.size()){
-        resource *res = resources[h];
-	return(res->getName());
-    }
-    return 0;
+    resource *res;
+    if (resources.find(h, res))
+      return res->getName();
+    else
+      return 0;
 }
 
 const char *resource::getFullName(resourceHandle h){
-
-    if(h < resources.size()){
-        resource *res = resources[h];
-	return(res->getFullName());
-    }
-    return 0;
+    resource *res;
+    if (resources.find(h, res))
+      return res->getFullName();
+    else
+      return 0;
 }
 
 resource *resource::string_to_resource(const string &res) {
@@ -719,9 +768,10 @@ resourceList *resourceList::findRL(const char *name){
 }
 
 void printAllResources() {
-    for(unsigned i=0; i < resource::resources.size(); i++){
+    vector<resource *>allRes = resource::resources.values();
+    for(unsigned i=0; i < allRes.size(); i++){
         cout << "{";
-        (resource::resources[i])->print();
+        (allRes[i])->print();
 	cout << "}" << endl;
     }
 }

@@ -83,10 +83,10 @@ dictionary_hash<metricInstanceHandle,metricInstance *>
 		metricInstance::allMetricInstances(metricInstance::mhash);
 dictionary_hash<perfStreamHandle,performanceStream*>  
 		performanceStream::allStreams(performanceStream::pshash);
-dictionary_hash<string, resource*> resource::allResources(string::hash);
+dictionary_hash<string, resource*> resource::allResources(string::hash, 8192);
 dictionary_hash<string,resourceList *> resourceList::allFoci(string::hash);
 
-vector<resource*> resource::resources;
+dictionary_hash<unsigned, resource*>resource::resources(uiHash);
 vector<string> resource::lib_constraints;
 vector<metric*> metric::metrics;
 vector<paradynDaemon*> paradynDaemon::allDaemons;
@@ -178,9 +178,8 @@ void dynRPCUser::resourceBatchMode(bool onNow)
 //
 // upcalls from remote process.
 //
-void dynRPCUser::resourceInfoCallback(int,
-				      vector<string> resource_name,
-				      string abstr, u_int type) {
+void dynRPCUser::resourceInfoCallback(u_int , vector<string> ,
+				      string , u_int) {
 
 printf("error calling virtual func: dynRPCUser::resourceInfoCallback\n");
 
@@ -900,7 +899,11 @@ void addMetric(T_dyninstRPC::metricInfo &info)
 
 
 // I don't want to parse for '/' more than once, thus the use of a string vector
-resourceHandle createResource(vector<string>& resource_name, string& abstr, unsigned type) {
+resourceHandle createResource(unsigned res_id, vector<string>& resource_name, string& abstr, unsigned type) {
+
+  static const string slashStr = "/";
+  static const string baseStr = "BASE";
+
   resource *parent = NULL;
   unsigned r_size = resource_name.size();
   string p_name;
@@ -914,7 +917,7 @@ resourceHandle createResource(vector<string>& resource_name, string& abstr, unsi
         parent = resource::rootResource; break;
     default:
         for (unsigned ri=0; ri<(r_size-1); ri++) 
-            p_name += string("/") + resource_name[ri];
+            p_name += slashStr + resource_name[ri];
         parent = resource::string_to_resource(p_name);
         assert(parent);
         break;
@@ -925,21 +928,21 @@ resourceHandle createResource(vector<string>& resource_name, string& abstr, unsi
     /* first check to see if the resource has already been defined */
     resource *p = resource::resources[parent->getHandle()];
     string myName = p_name;
-    myName += "/";
+    myName += slashStr;
     myName += resource_name[r_size - 1];
-    resourceHandle *child = p->findChild(myName.string_of());
-    if (child){
-        return(*child); 
-        delete child;
+
+    resource *child;
+    if (resource::allResources.find(myName.string_of(), child)) {
+      return child->getHandle();
     }
 
     // if abstr is not defined then use default abstraction 
     if(!abstr.string_of()){
-        abstr = string("BASE");
+        abstr = baseStr;
     }
 
     /* then create it */
-    resource *ret =  new resource(parent->getHandle(),resource_name,
+    resource *ret =  new resource(parent->getHandle(),res_id, resource_name,
 				  myName,abstr, type);
 
     // check to see if the suppressMagnify option should be set...if

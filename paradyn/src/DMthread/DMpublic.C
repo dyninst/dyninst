@@ -1349,7 +1349,7 @@ resourceHandle dataManager::newResource(resourceHandle parent,
     resource *parent_res = resource::handle_to_resource(parent);
     vector<string> res_name = parent_res->getParts();
     res_name += name;
-    resourceHandle child = createResource(res_name,abs, type);
+    resourceHandle child = createResource(0,res_name,abs, type);
     paradynDaemon::tellDaemonsOfResource(parent_res->getHandle(), 
 			       		 child, 
 			                 name, type);
