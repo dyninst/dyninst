@@ -16,9 +16,12 @@
  */
 
 /* $Log: visi.I,v $
-/* Revision 1.3  1994/05/11 17:11:07  newhall
-/* changed data values from double to float
+/* Revision 1.4  1994/07/30 03:26:18  newhall
+/* added visi interface routines Enabled and BulkDataTransfer
 /*
+# Revision 1.3  1994/05/11  17:11:07  newhall
+# changed data values from double to float
+#
 # Revision 1.2  1994/04/13  21:23:09  newhall
 # *** empty log message ***
 #
@@ -55,23 +58,34 @@ $remote typedef struct{
 
 $remote visualization {
   $base  7000;
-  $version  1;
-  $async void Data($array dataValue data);
+  $version  2;
+  $async void Data($array dataValue data);  
   $async void Fold(double newBucketWidth);
   $async void InvalidMR(int m,int r);
   $async void AddMetricsResources($array metricType,
 				$array resourceType,
 				double,int);
+
   $async void NewMetricsResources($array metricType,
 				$array resourceType);
   $async void Phase(double begin,
 		    double end,
 		    String name);
+
+  $async void Enabled($array int metricIds,  // list of successfully enabled  
+		      int resourceId);       // metrics for a focus
+
+  $async void BulkDataTransfer($array float values,
+			       int metricId,
+			       int resourceId);
+
   $upcall $async void GetMetricResource(String metric,
 					String resource,
 					int type);
+
   $upcall $async void StopMetricResource(int metricId,
 					 int resourceId);
+
   $upcall $async void PhaseName(double begin,
 				double end,
 				String name);
