@@ -96,7 +96,7 @@ mdlClass.obj: ../src/mdlClass.C ../../pdutil/h/mdlParse.h \
   ../../common/h/refCounter.h ../../common/h/Vector.h \
   ../../common/h/language.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
   ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
-  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
+  ../../pdutil/h/ByteArray.h ../../pdutil/h/mdl.h \
   ../../common/h/Dictionary.h ../../common/h/Pair.h \
   ../../pdutil/h/aggregationDefines.h ../../pdutil/h/mdl_data.h
 mdl_data.obj: ../src/mdl_data.C ../../pdutil/h/mdl_data.h dyninstRPC.xdr.h \
@@ -106,7 +106,7 @@ mdl_data.obj: ../src/mdl_data.C ../../pdutil/h/mdl_data.h dyninstRPC.xdr.h \
   ../../common/h/String.h ../../common/h/debugOstream.h \
   ../../common/h/refCounter.h ../../common/h/Vector.h \
   ../../common/h/language.h ../../pdutil/h/ByteArray.h \
-  ../../paradyn/src/met/mdl.h ../../common/h/Dictionary.h \
+  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h \
   ../../common/h/Pair.h ../../pdutil/h/aggregationDefines.h
 mdlParser.obj: mdlParser.C ../../pdutil/h/mdlParse.h \
   ../../common/h/machineType.h ../../common/h/String.h \
@@ -115,7 +115,7 @@ mdlParser.obj: mdlParser.C ../../pdutil/h/mdlParse.h \
   ../../common/h/refCounter.h ../../common/h/Vector.h \
   ../../common/h/language.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
   ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
-  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
+  ../../pdutil/h/ByteArray.h ../../pdutil/h/mdl.h \
   ../../common/h/Dictionary.h ../../common/h/Pair.h \
   ../../pdutil/h/aggregationDefines.h ../../pdutil/h/mdl_data.h \
   ../../pdutil/h/metricStyle.h
@@ -126,7 +126,7 @@ mdlScanner.obj: mdlScanner.C y.tab.h ../../pdutil/h/mdlParse.h \
   ../../common/h/refCounter.h ../../common/h/Vector.h \
   ../../common/h/language.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
   ../../pdutil/h/pdsocket.h ../../pdutil/h/xdr_send_recv.h \
-  ../../pdutil/h/ByteArray.h ../../paradyn/src/met/mdl.h \
+  ../../pdutil/h/ByteArray.h ../../pdutil/h/mdl.h \
   ../../common/h/Dictionary.h ../../common/h/Pair.h \
   ../../pdutil/h/aggregationDefines.h ../../pdutil/h/mdl_data.h
 templates.obj: ../src/templates.C ../../common/h/Vector.h \

@@ -52,7 +52,7 @@
 #include "common/src/Dictionary.C"
 #include "common/src/String.C"
 #include "common/h/Vector.h"
-#include "paradyn/src/met/mdl.h"
+#include "pdutil/h/mdl.h"
 #include "paradynd/src/threadMetFocusNode.h"
 
 class function_base;
