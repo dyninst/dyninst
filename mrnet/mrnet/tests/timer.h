@@ -4,6 +4,8 @@
 #include <sys/time.h>
 #include "mrnet/src/utils.h"
 
+using namespace MRN;
+
 class timer{
  public:
   const char * id_str;
