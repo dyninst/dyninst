@@ -46,7 +46,7 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.C,v 1.6 2001/08/23 14:44:51 schendel Exp $
+// $Id: HistVisi.C,v 1.7 2001/11/07 05:03:25 darnold Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include "common/h/headers.h"
@@ -66,6 +66,7 @@
 #include "visi/h/visualization.h"
 #include "common/h/Vector.h"
 #include "HistVisi.h"
+#include "visiClients/auxiliary/h/Export.h"
 
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm"
@@ -213,6 +214,12 @@ HistVisi::InitUI( void )
         HandleRemoveCB,
         (ClientData)this,
         NULL );
+
+    //Create commands for export functionality
+    Tcl_CreateObjCommand(interp, "get_subscribed_mrpairs",
+		       get_subscribed_mrpairs, NULL, NULL);
+    Tcl_CreateObjCommand(interp, "DoExport", DoExport, NULL, NULL);
+
     if( cmd == NULL )
     {
         ostrstream msgstr;
@@ -277,7 +284,7 @@ HistVisi::InitParadynConnection( void )
     dg->Init( interp );
 
     // set up callback for handling available data on visi socket
-    Tcl_Channel chan = Tcl_MakeTcpClientChannel( (ClientData)sock );
+    chan = Tcl_MakeTcpClientChannel( (ClientData)sock );
     Tcl_CreateChannelHandler( chan,
                                 TCL_READABLE,
                                 (Tcl_FileProc*)HandleParadynInput,
@@ -677,7 +684,7 @@ HistVisi::HandleData( int /* lastBucket */, bool isFold )
 				   nSamples, &(data[firstBucket]));
 	      pair->lastFilledBucket = visi_LastBucketFilled(m,r);
             }
-	    delete data;
+	    delete [] data;
         }
     }
 
@@ -758,6 +765,13 @@ HistVisi::HandleParadynTermination( int )
     if( (ret == TCL_OK) && !keep )
     {
         ret = Tcl_EvalObj( interp, Tcl_NewStringObj( "::RTHist::shutdown", -1 ) );
+    }
+    else
+    {
+      //If we are going to keep the visi open, we must close the tcl_channel
+      //connected to the PDSOCKET to the frontend since the FE is never sending
+      //more messages and Tcl's select call will block forever
+      ret = Tcl_Close( interp, chan);
     }
 
     return ret;

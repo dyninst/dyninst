@@ -46,7 +46,7 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.h,v 1.2 2000/07/05 21:36:49 pcroth Exp $
+// $Id: HistVisi.h,v 1.3 2001/11/07 05:03:26 darnold Exp $
 //---------------------------------------------------------------------------
 #ifndef HISTVISI_H
 #define HISTVISI_H
@@ -117,6 +117,9 @@ private:
     //
     bool    AddMetricResourcePair( int midx, int ridx );
 
+    // chan -- used so that TCL event loop can probe PDSOCKET used by
+    //         visiLib for interactions with the front end
+    Tcl_Channel chan;
 
     // Handle* - respond to the corresponding visi library event
     //
