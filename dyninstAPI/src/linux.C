@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.152 2005/02/09 03:27:47 jaw Exp $
+// $Id: linux.C,v 1.153 2005/02/15 17:43:54 legendre Exp $
 
 #include <fstream>
 
@@ -85,6 +85,10 @@
 #ifdef PAPI
 #include "papi.h"
 #endif
+
+static bool enable_process_control_debug = false;
+#define DEBUG_PC_ENVNAME "DYNINSTAPI_DEBUG_PCONTROL"
+#define pcout if (enable_process_control_debug) cerr
 
 // The following were defined in process.C
 // Shouldn't they be in a header, then? -- TLM
@@ -134,8 +138,6 @@ extern void generateBreakPoint(instruction &insn);
 #if defined(PTRACEDEBUG) && !defined(PTRACEDEBUG_ALWAYS)
 static bool debug_ptrace = false;
 #endif
-
-static int count = 0;
 
 bool dyn_lwp::deliverPtrace(int request, Address addr, Address data) {
    bool needToCont = false;
@@ -574,7 +576,13 @@ static int lwp_kill(int pid, int sig)
 {
   int result = P_tkill(pid, sig);
   if (result == -1 && errno == ENOSYS)
-    result = P_kill(pid, sig);
+  {
+     result = P_kill(pid, sig);
+     pcout << "Sent " << sig << " to " << pid << " via kill\n";
+  }
+  else
+     pcout << "Sent " << sig << " to " << pid << " via tkill\n";
+
   return result;
 }
 
@@ -640,60 +648,63 @@ static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
   pdvector<int> other_lwps;
   unsigned i;
 
-  //fprintf(stderr, "doWaitUntilStopped called on %d (shouldBlock = %d) \n", 
-  //	  pid, (int) shouldBlock);
+  pcout << "doWaitUntilStopped called on " << pid 
+        << " (shouldBlock = " << shouldBlock << ")\n"; 
 
   while (true)
   {
     gotevent = checkForEventLinux(&new_event, pid, shouldBlock, __WALL);
     if (!gotevent)
     {
-      //fprintf(stderr, "Didn't get an event\n");
+       pcout << "\tDidn't get an event\n";
        break;
     }
 
-    //fprintf(stderr, "\twhy = %d, what = %d, lwp = %d\n",
-    //	    new_event.why, new_event.what, new_event.lwp->get_lwp_id());
-
-    if (didProcReceiveSignal(new_event.why) && (new_event.what != SIGSTOP) 
-	|| didProcReceiveInstTrap(new_event.why))
+    pcout << "\twhy = " << new_event.why 
+          << ", what = " << new_event.what 
+          << ", lwp = " << new_event.lwp->get_lwp_id() << endl;
+   
+    if (didProcReceiveSignal(new_event.why) && (new_event.what != SIGSTOP) || 
+        didProcReceiveInstTrap(new_event.why))
     {
       /**
        * We caught a non-SIGTOP signal, let's throw it back.
        **/
-      if (didProcReceiveSignal(new_event.why) && 
-	  new_event.what != SIGILL && new_event.what != SIGTRAP &&
-	  new_event.what != SIGFPE && new_event.what != SIGSEGV &&
-	  new_event.what != SIGBUS)
-      {
-	//We don't actually throw back signals that are caused by 
-	// executing an instruction.  We can just drop these and
-	// let the continueLWP_ re-execute the instruction and cause
-	// it to be rethrown.
-	other_sigs.push_back(new_event.what);
-	other_lwps.push_back(new_event.lwp->get_lwp_id());
-	//fprintf(stderr, "\tpostponing %d\n", new_event.what);
-      }
-      else if (didProcReceiveInstTrap(new_event.why)) {
-	//fprintf(stderr, "Received trap\n");
-	new_event.lwp->changePC(new_event.lwp->getActiveFrame().getPC()-1, 
-				NULL);
-      }
-      else
-      {
-	//fprintf(stderr, "\tdropped %d\n", new_event.what);
-      }
+       if (didProcReceiveSignal(new_event.why) && 
+           new_event.what != SIGILL && new_event.what != SIGTRAP &&
+           new_event.what != SIGFPE && new_event.what != SIGSEGV &&
+           new_event.what != SIGBUS)
+       {
+          //We don't actually throw back signals that are caused by 
+          // executing an instruction.  We can just drop these and
+          // let the continueLWP_ re-execute the instruction and cause
+          // it to be rethrown.
+          other_sigs.push_back(new_event.what);
+          other_lwps.push_back(new_event.lwp->get_lwp_id());
+          pcout << "\tpostponing " << new_event.what << endl;
+       }
+       else if (didProcReceiveInstTrap(new_event.why)) 
+       {
+          pcout << "\tReceived trap\n";
+          new_event.lwp->changePC(new_event.lwp->getActiveFrame().getPC() - 1, 
+                                  NULL);
+       }
+       else
+       {
+          pcout << "\tDropped " << new_event.what << endl;
+       }
 
-      new_event.lwp->continueLWP_(0);
-      new_event.proc->set_lwp_status(new_event.lwp, running);
-      continue;
+       new_event.lwp->continueLWP_(0);
+       new_event.proc->set_lwp_status(new_event.lwp, running);
+       continue;
     }
 
     suppress_conts =  (new_event.proc->getPid() != p->getPid() ||
-		       new_event.why == procSyscallEntry);
+                       didProcEnterSyscall(new_event.why) ||
+                       didProcExitSyscall(new_event.why));
     if (suppress_conts)
     { 
-      //fprintf(stderr, "\tHandled, no suppression\n");
+      pcout << "\tHandled, no suppression\n";
       result = getSH()->handleProcessEvent(new_event);
       continue;
     }
@@ -702,18 +713,18 @@ static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
       p->setSuppressEventConts(true);    
       result = getSH()->handleProcessEvent(new_event);
       p->setSuppressEventConts(false);
-      //fprintf(stderr, "\tHandled, with suppression\n");
+      pcout << "\tHandled, with suppression\n";
     }
 
     if (p->status() == exited)
     {
-      //fprintf(stderr, "\tApp exited\n");
+      pcout << "\tApp exited\n";
       return NULL;
     }
 
     if (didProcReceiveSignal(new_event.why) && (new_event.what == SIGSTOP))
     {
-      //fprintf(stderr, "\tGot my SIGSTOP\n");
+      pcout << "\tGot my SIGSTOP\n";
       stopped_lwp = new_event.lwp;
       break;
     }
@@ -723,7 +734,8 @@ static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
   for (i = 0; i < other_sigs.size(); i++)
   {
     //Throw back the extra signals we caught.
-    //fprintf(stderr, "\tResending %d to %d\n", other_sigs[i], other_lwps[i]);
+     pcout << "\tResending " << other_sigs[i] 
+           << "to " << other_lwps[i] << endl;
     lwp_kill(other_lwps[i], other_sigs[i]);
   }
 
@@ -738,8 +750,9 @@ bool dyn_lwp::removeSigStop()
   return (lwp_kill(get_lwp_id(), SIGCONT) == 0);
 }
 
-
 bool dyn_lwp::continueLWP_(int signalToContinueWith) {
+   pcout << "Continuing LWP " << get_lwp_id() << " with " 
+         << signalToContinueWith << endl;
    // we don't want to operate on the process in this state
    int arg3 = 0;
    int arg4 = 0;
@@ -828,9 +841,14 @@ bool process::continueProc_(int sig)
 bool process::stop_()
 {
   int result;
-  
-  count++;
+  static bool check_should_debug = false;
 
+  if (!check_should_debug)
+  {
+     enable_process_control_debug = (getenv(DEBUG_PC_ENVNAME) != NULL);
+     check_should_debug = true;
+  }
+  
   //Stop the main process
   result = P_kill(getPid(), SIGSTOP);
   if (result == -1) 
@@ -1247,22 +1265,22 @@ bool process::catchupSideEffect( Frame & /* frame */, instReqNode * /* inst */ )
 
 procSyscall_t decodeSyscall(process * /*p*/, procSignalWhat_t what)
 {
-    switch (what) {
-  case SYS_fork:
-      return procSysFork;
-      break;
-  case SYS_exec:
-      return procSysExec;
-      break;
-  case SYS_exit:
-      return procSysExit;
-      break;
-  default:
-      return procSysOther;
-      break;
-    }
-    assert(0);
-    return procSysOther;
+   switch (what) {
+      case SYS_fork:
+         return procSysFork;
+         break;
+      case SYS_exec:
+         return procSysExec;
+         break;
+      case SYS_exit:
+         return procSysExit;
+         break;
+      default:
+         return procSysOther;
+         break;
+   }
+   assert(0);
+   return procSysOther;
 }
 
 bool process::dumpImage( pdstring imageFileName ) {

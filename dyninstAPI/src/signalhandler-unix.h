@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.12 2005/01/11 22:46:37 legendre Exp $
+/* $Id: signalhandler-unix.h,v 1.13 2005/02/15 17:43:55 legendre Exp $
  */
 
 /*
@@ -240,6 +240,14 @@ int handleSyscallExit(const procevent &event);
 
 inline bool didProcReceiveSignal(procSignalWhy_t why) {
     return (why == procSignalled); 
+}
+
+inline bool didProcEnterSyscall(procSignalWhy_t why) {
+   return (why == procSyscallEntry);
+}
+
+inline bool didProcExitSyscall(procSignalWhy_t why) {
+   return (why == procSyscallExit);
 }
 
 inline bool didProcReceiveInstTrap(procSignalWhy_t why) {
