@@ -7,11 +7,12 @@
 #include "performanceConsultant.SRVR.h"
 #include "PCglobals.h"
 #include "PCmetric.h"
+#include "paradyn.h"
 
-extern int rootThread;
 performanceStream *pcStream;
 extern void initResources();
 extern void shgInit();
+extern thread_t MAINtid;
 
 void PCnewData(performanceStream *ps,
 	       metricInstance *mi,
@@ -58,29 +59,32 @@ void PCmain(int arg)
     performanceConsultant *pc;
     union dataCallback dataHandlers;
     struct controlCallback controlHandlers;
+    char PCbuff[64];
+    unsigned int msgSize = 64;
 
     thr_name("PerformanceConsultant");
     // ??? do inits and waits.
-    pc = new performanceConsultant(arg);
 
+    pc = new performanceConsultant(MAINtid);
+
+    msg_send (MAINtid, MSG_TAG_PC_READY, (char *) NULL, 0);
+    tag = MSG_TAG_ALL_CHILDREN_READY;
+    msg_recv (&tag, PCbuff, &msgSize);
     initResources();
-
     controlHandlers.mFunc = PCmetricFunc;
     controlHandlers.rFunc = NULL;
     dataHandlers.sample = (sampleDataCallbackFunc) PCnewData;
     pcStream = dataMgr->createPerformanceStream(context, Sample, 
 	dataHandlers, controlHandlers);
 
-    // now find about of exhisting metrics.
+    // now find about existing metrics.
     mets = dataMgr->getAvailableMetrics(context);
     for (i=0; i < mets.count; i++) {
 	assert(mets.data[i]);
 	met = dataMgr->findMetric(context, mets.data[i]);
 	PCmetricFunc(pcStream, met);
     }
-
     shgInit();
-
     while (1) {
 	tag = MSG_TAG_ANY;
 	from = msg_poll(&tag, TRUE);
