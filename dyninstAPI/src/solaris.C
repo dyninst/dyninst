@@ -395,10 +395,6 @@ bool process::attach() {
 
   sigset_t sigs;
 
-  /*  ALERT ALERT !!!!  Important do NOT commit....  */
-  prfillset(&sigs);
-
-  /*  ****  UNCOMMENT BEFORE COMMIT!!!!    ****
   premptyset(&sigs);
   praddset(&sigs, SIGSTOP);
 
@@ -409,7 +405,6 @@ bool process::attach() {
 #ifdef i386_unknown_solaris2_5
   praddset(&sigs, SIGILL);
 #endif
-  *********************************************/
 
   if (ioctl(fd, PIOCSTRACE, &sigs) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
