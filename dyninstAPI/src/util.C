@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: util.C,v 1.25 2000/10/17 17:42:24 schendel Exp $
+/* $Id: util.C,v 1.26 2003/11/24 17:37:59 schendel Exp $
  * util.C - support functions.
  */
 
@@ -119,7 +119,7 @@ log_printf(const char* fmt, ...) {
 
 void
 pd_log_perror(const char* msg) {
-    sprintf(errorLine, "%s: %s\n", msg, sys_errlist[errno]);
+    sprintf(errorLine, "%s: %s\n", msg, strerror(errno));
     logLine(errorLine);
     // fprintf(stderr, "%s", log_buffer);
 }

@@ -83,6 +83,6 @@ log_printf(void (*pfunc)(const char *), const char* fmt, ...) {
 
 void
 log_perror(void (*pfunc)(const char *), const char* msg) {
-    sprintf(log_buffer, "%s: %s\n", msg, sys_errlist[errno]);
+    sprintf(log_buffer, "%s: %s\n", msg, strerror(errno));
     pfunc(log_buffer);
 }

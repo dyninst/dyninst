@@ -127,7 +127,7 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir) {
     pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
     buffer += pdstring(", ready");
     statusLine(buffer.c_str());
-    
+
     return proc;
 }
 
@@ -214,7 +214,7 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
 {
     if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
        sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.c_str(), 
-               sys_errlist[errno]);
+               strerror(errno));
        logLine(errorLine);
        P__exit(-1);
     }
@@ -909,7 +909,6 @@ bool pd_process::iRPCParadynInit() {
                 NULL, NULL); // Not metric definition
 
     // And force a flush...
-    
     while(!reachedLibState(paradynRTState, libReady)) {
        if(hasExited()) return false;
         launchRPCs(false);

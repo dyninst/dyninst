@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.140 2003/10/22 17:57:01 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.141 2003/11/24 17:38:31 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -771,7 +771,7 @@ static bool execPOE(const pdstring /* &machine*/, const pdstring /* &login */,
                       //IBM POE sets remote directory same as current directory
   if (dir.length() && (P_chdir(dir.c_str()) < 0)) 
     cerr << "cannot chdir to " << dir.c_str() << ": " 
-         << sys_errlist[errno] << endl;
+         << strerror(errno) << endl;
 
   int execRetVal = execvp(s[0], s);
 

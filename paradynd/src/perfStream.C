@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.163 2003/10/22 17:57:04 pcroth Exp $
+// $Id: perfStream.C,v 1.164 2003/11/24 17:38:33 schendel Exp $
 
 #include "common/h/headers.h"
 #include "rtinst/h/rtinst.h"
@@ -163,7 +163,7 @@ void processAppIO(process *curr)
       //cleanUpAndExit(-2);
       pdstring msg = pdstring("Read error on IO stream from PID=") +
          pdstring(curr->getPid()) + pdstring(": ") +
-         pdstring(sys_errlist[errno]) + 
+         pdstring(strerror(errno)) + 
          pdstring("\nNo more data will be received from this process.");
       showErrorCallback(23, msg);
       P_close(curr->ioLink);
@@ -272,7 +272,7 @@ void processTraceStream(process *dproc)
        //cleanUpAndExit(-2);
        pdstring msg = pdstring("Read error on trace stream from PID=") +
           pdstring(dproc->getPid()) + pdstring(": ") +
-          pdstring(sys_errlist[errno]) + 
+          pdstring(strerror(errno)) + 
           pdstring("\nNo more data will be received from this process");
        showErrorCallback(23, msg);
        P_close(dproc->traceLink);
