@@ -63,13 +63,6 @@ class instPoint {
 
  public:
 
-  Address      addr_;    //The address of this instPoint: this is the address
-                         // of the actual point (i.e. a function entry point,
-			 // a call or a return instruction)
-  pd_Function *func_;	 //The function where this instPoint belongs to
-  pd_Function *callee_;	 //If this point is a call, the function being called
-
-
   instPoint(pd_Function *f, const image *, Address adr, instruction inst) {
     addr_   = adr;
     func_   = f;
@@ -170,6 +163,11 @@ class instPoint {
 
 
  private:
+  Address      addr_;    //The address of this instPoint: this is the address
+                         // of the actual point (i.e. a function entry point,
+			 // a call or a return instruction)
+  pd_Function *func_;	 //The function where this instPoint belongs to
+  pd_Function *callee_;	 //If this point is a call, the function being called
 
   Address              jumpAddr_;     //This is the address where we insert the jump.
                                       // It may be an instruction before the point
