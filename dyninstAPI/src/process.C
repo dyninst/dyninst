@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.377 2003/01/06 19:27:02 bernat Exp $
+// $Id: process.C,v 1.378 2003/01/21 17:47:17 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2378,7 +2378,7 @@ process::process(int iPid, image *iSymbols,
    // it doesn't.  Ick.  On solaris, it doesn't.
 
    // note: we don't call getSharedObjects() yet; that happens once DYNINSTinit
-   //       finishes (handleStartProcess)
+   //       finishes (initSharedObjects)
 
 
 #ifndef BPATCH_LIBRARY
@@ -2894,7 +2894,7 @@ bool process::attachProcessParadyn(){
         	a zany user links it into their application, leaving no need
 	        to load it again (in fact, we will probably hang if we try to
 	        load it again).  This is checked in the call to
-        	handleStartProcess */
+        	initSharedObjects */
 
 	     if (!dlopenPARADYNlib()) {
 		return false;
@@ -3015,14 +3015,14 @@ bool attachProcess(const string &progpath, int pid, int afterAttach,
     assert(0);
   }
   
-  theProc->handleStartProcess();
+  theProc->initSharedObjects();
   
   if (!theProc->dyninstLibAlreadyLoaded()) {
     /* Ordinarily, dyninstlib has not been loaded yet.  But sometimes
        a zany user links it into their application, leaving no need
        to load it again (in fact, we will probably hang if we try to
        load it again).  This is checked in the call to
-       handleStartProcess */
+       initSharedObjects() */
     
     if (!theProc->dlopenDYNINSTlib()) {
       return false;
@@ -3935,7 +3935,7 @@ bool process::handleIfDueToSharedObjectMapping(){
 //  If this process is a dynamic executable, then get all its 
 //  shared objects, parse them, and define new instpoints and resources 
 //
-bool process::handleStartProcess(){
+bool process::initSharedObjects(){
 
     // get shared objects, parse them, and define new resources 
     // For WindowsNT we don't call getSharedObjects here, instead
@@ -3944,13 +3944,8 @@ bool process::handleStartProcess(){
     this->getSharedObjects();
 #endif
 
-#ifndef BPATCH_LIBRARY
-    statusLine("building process call graph");
-    this->FillInCallGraphStatic();
-    if(resource::num_outstanding_creates)
-       this->setWaitingForResources();
-#endif
-
+    // No longer do the call graph here, wait for pdyninstinit to
+    // finish.
     return true;
 }
 
@@ -6898,18 +6893,26 @@ void process::handleCompletionOfpDYNINSTinit() {
    // Note: the pointers are all from the POV of the runtime library.
    trampGuardAddr_ = (Address) bs_struct.tramp_guard_base;
 
-   // handleStartProcess gets shared objects, so no need to do it again after a fork.
+   // initSharedObjects gets shared objects, so no need to do it again after a fork.
    // (question: do we need to do this after an exec???)
    if (!calledFromFork) {
-      string str=string("PID=") + string(bs_struct.pid) + ", calling handleStartProcess...";
-      statusLine(str.c_str());
-
+       string str=string("PID=") + string(bs_struct.pid) + ", calling initSharedObjects...";
+       statusLine(str.c_str());
+       
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-      if (!handleStartProcess()) {
-        // reads in shared libraries...can take a while
-        logLine("WARNING: handleStartProcess failed\n");
-      }
+       if (!initSharedObjects()) {
+           // reads in shared libraries...can take a while
+           logLine("WARNING: initSharedObjects failed\n");
+       }
 #endif
+       
+       // We build the call graph post-init for MT correctness. In particular,
+       // we need to know the TID of the main thread (from pdyninstinit) before
+       // we can inform the frontend.
+       statusLine("building process call graph");
+       this->FillInCallGraphStatic();
+       if(resource::num_outstanding_creates)
+           this->setWaitingForResources();
 
       // we decrement the batch mode here; it matches the bump-up in createProcess()
       tp->resourceBatchMode(false);
@@ -7049,16 +7052,16 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
    if (!calledFromFork)
       getObservedCostAddr();
 
-   // handleStartProcess gets shared objects, so no need to do it again after a fork.
+   // initSharedObjects gets shared objects, so no need to do it again after a fork.
    // (question: do we need to do this after an exec???)
    if (!calledFromFork) {
-      string str=string("PID=") + string(bs_record.pid) + ", calling handleStartProcess...";
+      string str=string("PID=") + string(bs_record.pid) + ", calling initSharedObjects...";
       statusLine(str.c_str());
 
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-      if (!handleStartProcess()) {
+      if (!initSharedObjects()) {
         // reads in shared libraries...can take a while
-        logLine("WARNING: handleStartProcess failed\n");
+        logLine("WARNING: initSharedObjects failed\n");
       }
 #endif
 
@@ -7377,8 +7380,15 @@ void process::FillInCallGraphStatic()
   assert(entry_pdf);
   
   CallGraphAddProgramCallback(symbols->file());
+
+  int thr = 0;
+  // MT: forward the ID of the first thread.
+  if (threads.size()) {
+      thr = threads[0]->get_tid();
+  }
+  
   CallGraphSetEntryFuncCallback(symbols->file(), 
-                                entry_pdf->ResourceFullName(), 0);
+                                entry_pdf->ResourceFullName(), thr);
     
   // build call graph for executable
   symbols->FillInCallGraphStatic(this);
@@ -7819,9 +7829,6 @@ void process::updateThread(dyn_thread *thr, int tid,
   //thr->update_start_pc(addr) ;
   thr->update_start_pc(0) ;
   thr->update_start_func(f_main) ;
-
-  /* Need stack. Got pthread debug library. Any questions? */
-  /* Yeah... how do we get a stack base addr? :) */
 
   sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pos=%u, tid=%d, resumestate=0x%x\n", pos,tid, (unsigned) resumestate_p);
   logLine(errorLine);

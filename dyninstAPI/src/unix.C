@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.72 2002/12/20 07:49:59 jaw Exp $
+// $Id: unix.C,v 1.73 2003/01/21 17:47:18 bernat Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -591,15 +591,15 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
 	  !curr->dyninstLibAlreadyLoaded() &&
 	  !curr->dyninstLibIsBeingLoaded()) {
 	 curr->handleTrapAtEntryPointOfMain();
-	 if (curr->handleStartProcess()) {
-	    /* handleStartProcess may detect that dyninstlib was
+	 if (curr->initSharedObjects()) {
+	    /* initSharedObjects may detect that dyninstlib was
 	       linked into the application */
 	    if (!curr->dyninstLibAlreadyLoaded())
 	       curr->dlopenDYNINSTlib();
 	    
 	    // this will set isLoadingDyninstLib to true - naim
 	 } else {
-	    logLine("WARNING: handleStartProcess failed\n");
+	    logLine("WARNING: initSharedObjects failed\n");
 	    assert(0);
 	 }
 	 // at main

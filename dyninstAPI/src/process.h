@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.233 2003/01/06 19:27:02 bernat Exp $
+/* $Id: process.h,v 1.234 2003/01/21 17:47:18 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -975,10 +975,9 @@ void saveWorldData(Address address, int size, const void* src);
   // a dlopen or dlclose event then return true
   bool handleIfDueToSharedObjectMapping();
 
-  // handleStartProcess: this function is called when an appplication 
-  // starts executing.  It is used to insert instrumentation necessary
-  // to handle dynamic linking
-  bool handleStartProcess();
+  // Insert instrumentation necessary to detect shared objects.
+  bool initSharedObjects();
+  
 
 #if !defined(BPATCH_LIBRARY)
   bool handleStopDueToExecEntry();
