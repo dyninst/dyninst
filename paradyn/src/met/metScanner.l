@@ -1,7 +1,10 @@
 %{
 /*
  * $Log: metScanner.l,v $
- * Revision 1.12  1996/04/04 21:55:28  newhall
+ * Revision 1.13  1996/09/26 19:03:27  newhall
+ * added "exclude_lib" mdl option
+ *
+ * Revision 1.12  1996/04/04  21:55:28  newhall
  * added limit option to visi definition
  *
  * Revision 1.11  1996/03/20  17:04:22  mjrg
@@ -207,6 +210,7 @@ i
 "daemon"		{ return(tDAEMON); }
 "process"		{ return(tPROCESS); }
 "visi"		{ return(tVISI); }
+"exclude_lib"		{ return(tEXLIB); }
 "tunable_constant"	{ return(tTUNABLE_CONSTANT); }
 "command"		{ return(tCOMMAND); }
 "host"		{ return(tHOST); }

@@ -41,6 +41,9 @@
 
 /*
  * $Log: metricExt.h,v $
+ * Revision 1.7  1996/09/26 19:03:28  newhall
+ * added "exclude_lib" mdl option
+ *
  * Revision 1.6  1996/08/16 21:12:25  tamches
  * updated copyright for release 1.1
  *
@@ -75,5 +78,7 @@ extern bool mdl_init();
 extern bool mdl_send(dynRPCUser *du);
 extern void mdl_destroy();
 extern bool mdl_apply();
+
+extern bool mdl_get_lib_constraints(vector<string> &);
 
 #endif

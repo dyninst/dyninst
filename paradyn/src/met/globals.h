@@ -50,6 +50,7 @@ public:
   static vector<mdl_focus_element> foci;
   static vector<T_dyninstRPC::mdl_stmt*> stmts;
   static vector<T_dyninstRPC::mdl_constraint*> all_constraints;
+  static vector<string> lib_constraints;
 
   static T_dyninstRPC::mdl_constraint *new_constraint(string id, vector<string> *path,
 					       vector<T_dyninstRPC::mdl_stmt*> *stmts,

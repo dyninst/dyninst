@@ -41,6 +41,9 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.19  1996/09/26 19:03:25  newhall
+ * added "exclude_lib" mdl option
+ *
  * Revision 1.18  1996/08/16 21:12:16  tamches
  * updated copyright for release 1.1
  *
@@ -82,6 +85,7 @@ vector<T_dyninstRPC::mdl_metric*> mdl_data::all_metrics;
 dictionary_hash<unsigned, vector<mdl_type_desc> > mdl_data::fields(ui_hash);
 vector<mdl_focus_element> mdl_data::foci;
 vector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
+vector<string> mdl_data::lib_constraints;
 
 static bool do_operation(mdl_var& ret, mdl_var& left, mdl_var& right, unsigned bin_op);
 
@@ -940,6 +944,12 @@ bool mdl_send(dynRPCUser *remote) {
   remote->send_stmts(&mdl_data::stmts);
   remote->send_constraints(&mdl_data::all_constraints);
   remote->send_metrics(&mdl_data::all_metrics);
+  if(mdl_data::lib_constraints.size()){
+      remote->send_libs(&mdl_data::lib_constraints);
+  }
+  else {
+      remote->send_no_libs();
+  }
 
 #ifdef notdef
   unsigned size = mdl_data::all_metrics.size(), index;
@@ -954,6 +964,15 @@ bool mdl_send(dynRPCUser *remote) {
 
   return true;
 }
+
+
+bool mdl_get_lib_constraints(vector<string> &lc){
+    for(u_int i=0; i < mdl_data::lib_constraints.size(); i++){
+        lc += mdl_data::lib_constraints[i];
+    }
+    return (lc.size()>0);
+}
+
 
 void mdl_destroy() {
   unsigned size = mdl_data::all_constraints.size();

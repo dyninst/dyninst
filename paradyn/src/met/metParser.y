@@ -3,7 +3,10 @@
 
 /*
  * $Log: metParser.y,v $
- * Revision 1.20  1996/04/04 21:55:27  newhall
+ * Revision 1.21  1996/09/26 19:03:26  newhall
+ * added "exclude_lib" mdl option
+ *
+ * Revision 1.20  1996/04/04  21:55:27  newhall
  * added limit option to visi definition
  *
  * Revision 1.19  1996/03/20  17:04:20  mjrg
@@ -108,6 +111,7 @@ extern void handle_error();
 %token tCOMMAND tARGS tHOST tLITERAL tFLOAT tCOMMA
 %token tSEMI tFLAVOR tNAME
 %token tRES_LIST tVISI tUSER tDIR tFALSE tTRUE tFORCE tLIMIT
+%token tEXLIB
 
 %token tT_PROCEDURE tT_MODULE tT_STRING tT_INT tT_FLOAT tTRUE tFALSE tDEFAULT
 %token tFOREACH tLPAREN tRPAREN tLBLOCK tRBLOCK tCOLON tDOLLAR tAMPERSAND
@@ -144,6 +148,7 @@ definition: daemonDef
 	  | tunableConstant
           | resList
 	  | visiDef
+	  | exlibs
 	  | error
           | metric_definition
           | ext_constraint_definition 
@@ -269,6 +274,14 @@ aItem: tCOMMAND tLITERAL tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_USER;}
      | tDIR tLITERAL tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_DIR;};
+
+
+exlibs: tEXLIB exlibItem;
+
+exlibItem: tLITERAL tSEMI {
+		metParseError = ERR_NO_ERROR;
+		mdl_data::lib_constraints += *$1.sp;
+};
 
 tunableConstant: tTUNABLE_CONSTANT tunableItem
                | tTUNABLE_CONSTANT tLBLOCK tunableList tRBLOCK
