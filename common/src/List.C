@@ -42,11 +42,11 @@
 // $Id: list.C,v
 
 #include <iostream.h>
-#include "common/h/Vector.h"
 #include "common/h/list.h"
-#include "dyninstAPI/src/inst.h"
 
-template <class Type> DO_INLINE_F typename List<Type>::node *List<Type>::getLastNode()
+
+template <class DataType, class KeyType> DO_INLINE_F typename 
+ListBase<DataType, KeyType>::node *ListBase<DataType, KeyType>::getLastNode()
 {
   node *lag = NULL;
   node *curNode = head;
@@ -58,26 +58,20 @@ template <class Type> DO_INLINE_F typename List<Type>::node *List<Type>::getLast
   return lag;
 }
 
-template <class Type> void List<Type>::push_front(const Type &data, void *key)
+template <class DataType, class KeyType> void 
+ListBase<DataType, KeyType>::__push_front(DataType &data, 
+					  const KeyType &key)
 {
-   List<Type>::node *ni = new typename List<Type>::node;
-   ni->data = data;
-   ni->key = key;
-   ni->next = head;
+   ListBase<DataType, KeyType>::node *ni = new node(data, key, head);
    head = ni;
 }
 
-template <class Type> void List<Type>::push_front(const Type &data) 
-{ 
-   push_front(data, reinterpret_cast<void*>(const_cast<Type *>(&data))); 
-}
 
-template <class Type> void List<Type>::push_back(const Type &data, void *key)
+template <class DataType, class KeyType> 
+void ListBase<DataType, KeyType>::__push_back(DataType &data, 
+					      const KeyType &key)
 {
-   node *newNode = new node;
-   newNode->data = data;
-   newNode->key  = key;
-   newNode->next = NULL;
+   node *newNode = new node(data, key, NULL);
 
    if(! isEmpty()) {
      node *lastNode = getLastNode();
@@ -87,18 +81,8 @@ template <class Type> void List<Type>::push_back(const Type &data, void *key)
    }
 }
 
-template <class Type> void List<Type>::push_back(const Type &data)
-{ 
-    push_back(data, reinterpret_cast<void*>(const_cast<Type *>(&data)));
-}
-
-
-template <class Type> bool List<Type>::addUnique(Type data) 
-{ 
-    return(addUnique(data, reinterpret_cast<void *>(&data))); 
-}
-
-template <class Type> DO_INLINE_F  void List<Type>::clear()
+template <class DataType, class KeyType>
+void ListBase<DataType, KeyType>::clear()
 {
   node *curr, *nx;
 
@@ -111,13 +95,14 @@ template <class Type> DO_INLINE_F  void List<Type>::clear()
   head = NULL;
 }
 
-template <class Type> DO_INLINE_F  bool List<Type>::remove(void *val)
+template <class DataType, class KeyType>
+bool ListBase<DataType, KeyType>::__remove_with_val(const DataType &dataVal)
 {
     node *lag;
     node *curr;
 
     for (curr=head, lag = NULL; curr; curr=curr->next) {
-	if (curr->data == val) {
+	if (curr->data == dataVal) {
 	    break;
 	}
 	lag = curr;
@@ -136,7 +121,8 @@ template <class Type> DO_INLINE_F  bool List<Type>::remove(void *val)
     }
 }
 
-template <class Type> DO_INLINE_F  bool List<Type>::remove_with_addr(void *key)
+template <class DataType, class KeyType>
+bool ListBase<DataType, KeyType>::__remove_with_key(const KeyType &key)
 {
     node *lag;
     node *curr;
@@ -161,17 +147,32 @@ template <class Type> DO_INLINE_F  bool List<Type>::remove_with_addr(void *key)
     }
 }
 
-template <class Type> DO_INLINE_F bool List<Type>::find(void *data, 
-							Type *saveVal)
+template <class DataType, class KeyType>
+bool ListBase<DataType, KeyType>::__find_with_key(const KeyType &key, 
+						  DataType *saveVal)
 {
    node *curr;
 
    for (curr=head; curr; curr=curr->next) {
-      if (curr->key == data) {
+      if (curr->key == key) {
 	 (*saveVal) = curr->data;
 	 return true;
       }
    }
    return false;
 }
+
+template <class DataType, class KeyType>
+bool ListBase<DataType, KeyType>::__find_with_val(const DataType &dataVal)
+  const {
+   node *curr;
+
+   for (curr=head; curr; curr=curr->next) {
+      if (curr->data == dataVal) {
+	 return true;
+      }
+   }
+   return false;
+}
+
 

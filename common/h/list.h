@@ -45,7 +45,6 @@
 #define LIST_H
 
 #include <iostream.h>
-#include "common/h/Vector.h"
 
 #if !defined(DO_INLINE_P)
 #define DO_INLINE_P
@@ -57,30 +56,34 @@
 
 #define ListHash(ptr, size) (((unsigned int)(ptr) % (unsigned int)(size)))
 
-template <class Type> class List;
+template <class DataType> class List;
+template <class DataType, class KeyType> class ListBase;
 template <class Type> class StringList;
 template <class Type> class HTable;
 
 
-template <class Type> class _list_node {
+template <class DataType, class KeyType> class _list_node {
  public: 
-   friend class List<Type>;
-   friend class StringList<Type>;
-   void		*key;
-   Type		data;
-   _list_node<Type>   *next;
+   friend class ListBase<DataType, KeyType>;
+   friend class StringList<DataType>;
+   const KeyType      key;
+   DataType           data;
+   _list_node<DataType, KeyType>   *next;
 
-   _list_node() : key(NULL), next(NULL) { }
-   explicit _list_node(const _list_node<Type> &from) : key(NULL), 
-      data(from.data), next(NULL) {
+   _list_node() : next(NULL) { }
+   _list_node(DataType &dataA, const KeyType &keyA, 
+	      _list_node<DataType, KeyType> *nextA) : key(keyA), 
+      data(dataA), next(nextA) { }
+   explicit _list_node(const _list_node<DataType, KeyType> &from) :
+      key(from.key), data(from.data), next(NULL) {
       // key and next need to be set after constructor
    }
-   _list_node<Type> *get_next_node() { return next; }
+   _list_node<DataType, KeyType> *get_next_node() { return next; }
 };
 
 
-template <class Type> class _list_iterator {
-  typedef _list_node<Type> node;
+template <class DataType, class KeyType> class _list_iterator {
+  typedef _list_node<DataType, KeyType> node;
   mutable node *cur;
 
   void move_to_next() const {
@@ -93,10 +96,10 @@ template <class Type> class _list_iterator {
   }
   node *getNode() { return cur; }
   // returns undefined result if iterator is the ending iterator
-  Type &operator*() {
+  DataType &operator*() {
     return cur->data;
   }
-  const Type &operator*() const {
+  const DataType &operator*() const {
     return cur->data;
   }
 
@@ -126,19 +129,18 @@ template <class Type> class _list_iterator {
 };
 
 
-template <class Type> class List {
+template <class DataType, class KeyType> class ListBase {
  public:
-   typedef _list_iterator<Type> iterator;
-   typedef const _list_iterator<Type> const_iterator;
-   typedef _list_node<Type> node;
+   typedef _list_iterator<DataType, KeyType> iterator;
+   typedef const _list_iterator<DataType, KeyType> const_iterator;
+   typedef _list_node<DataType, KeyType> node;
 
-   List()  { head = NULL; }
-   List(const List &fromList) {
+   ListBase()  { head = NULL; }
+   ListBase(const ListBase &fromList) {
       node *lastCopiedNode = NULL;
       node *headCopiedNode = NULL;
       for(const node *cur = fromList.head; cur; cur=cur->next) {
 	 node *curCopiedNode = new node(*cur);  // copy constructor
-	 curCopiedNode->key = curCopiedNode;
 	 if(lastCopiedNode)
 	    lastCopiedNode->next = curCopiedNode;
 	 else
@@ -146,45 +148,45 @@ template <class Type> class List {
       }
       head = headCopiedNode;
    }
-   ~List() {
+   ~ListBase() {
       clear();
    }
-   friend ostream &operator<<(ostream &os, List<Type> &data) {
-      List<Type>::iterator curr = data.begin();
-      List<Type>::iterator endMarker = data.end();
+   friend ostream &operator<<(ostream &os, ListBase<DataType, KeyType> &data);
 
-      for(; curr != endMarker; ++curr) {
-	 os << *curr << endl;
-      }
-      return os;
-   }
    // returns the first element
-   Type &front() { return *(begin()); }  
-   const Type &front() const { return *(begin()); }
+   DataType &front() { return *(begin()); }  
+   const DataType &front() const { return *(begin()); }
    
    // returns the last element
-   Type &back() { return getLastNode()->data; }
+   DataType &back() { return getLastNode()->data; }
 
-   void push_front(const Type &data, void *key);
-   void push_front(const Type &data);
-   void push_back(const Type &data, void *key);
-   void push_back(const Type &data);
-   DO_INLINE_F bool addUnique(Type data);
-   bool addUnique(Type data, void *key) {
-      Type temp;
+   void __push_front(DataType &data, const KeyType &key);
+   void __push_back(DataType &data, const KeyType &key);
+   bool __addIfUniqueKey(DataType &data, const KeyType &key) {
+      DataType temp;
     
-      bool foundIt = find(key, &temp);
+      bool foundIt = __find_with_key(key, &temp);
       if (!foundIt) {
-	 push_front(data, key);
+	 __push_front(data, key);
 	 return(true);
       } else {
 	 return(false);
       }
    }
-   DO_INLINE_F bool find(void *key, Type *saveVal);
-   DO_INLINE_F bool remove_with_addr(void *key);
-   DO_INLINE_F bool remove(void *val);
-   DO_INLINE_F void clear();
+   bool __addIfUniqueVal(DataType &data, const KeyType &key) {
+      bool foundIt = __find_with_val(data);
+      if (!foundIt) {
+	 __push_front(data, key);
+	 return(true);
+      } else {
+	 return(false);
+      }
+   }
+   bool __find_with_key(const KeyType &key, DataType *saveVal);
+   bool __find_with_val(const DataType &saveVal) const;
+   bool __remove_with_key(const KeyType &key);
+   bool __remove_with_val(const DataType &val);
+   void clear();
    iterator begin() {
       return iterator(head);
    }
@@ -207,22 +209,12 @@ template <class Type> class List {
       return(c);
    }
    bool isEmpty() { return (head == NULL); }
-   void operator +=(List<Type> mergee) {
-      node *curr;
-      
-      for (curr=mergee.head; curr; curr=curr->next) {
-	 addUnique(curr->data, curr->key);
-      }
-   }
+
    // inserts an item before position at pos
-   void insert(iterator &, Type &) {
+   void insert(iterator &, DataType &) {
       // not implemented yet
    }
-   void getItems(vector<Type> *buf) {
-      for(node *curr=head; curr; curr=curr->next)
-	 (*buf).push_back(curr->data);
-   }
-   void map (void (*map_function)(const Type item)) {
+   void map (void (*map_function)(const DataType item)) {
       const node *temp_ptr = 0;
       
       if (!map_function) return;
@@ -234,6 +226,80 @@ template <class Type> class List {
    node *getLastNode();
 
    node *head;
+};
+
+template <class DataType, class KeyType>
+inline ostream &operator<<(ostream &os, ListBase<DataType, KeyType> &data) {
+   ListBase<DataType, KeyType>::iterator curr = data.begin();
+   ListBase<DataType, KeyType>::iterator endMarker = data.end();
+   
+   for(; curr != endMarker; ++curr) {
+      os << *curr << endl;
+   }
+   return os;
+}
+
+template <class DataType> class List : public ListBase<DataType, void*> {
+   typedef void* KeyType;
+ public:
+   List() : ListBase<DataType, KeyType>() { };
+   List(const List &fromList) : ListBase<DataType, KeyType>(fromList) { }
+   ~List() { }  // ~ListBase will be called
+   friend ostream &operator<<(ostream &os, List<DataType> &data) {
+      return operator<<(os, static_cast<ListBase<DataType, KeyType> >(data));
+   }
+
+   void push_front(DataType &data) {
+      __push_front(data, static_cast<KeyType>(NULL));
+   }
+   void push_back(DataType &data) {
+      __push_back(data, static_cast<KeyType>(NULL));
+   }
+   bool addIfUniqueVal(DataType &data) {
+      return __addIfUniqueVal(data, NULL);
+   }
+   bool find(const DataType &val) const {
+      return __find_with_val(val);
+   }
+   bool remove(const DataType &data) {
+      return __remove_with_val(data);
+   }
+};
+
+
+template <class DataType, class KeyType> class ListWithKey : 
+public ListBase<DataType, KeyType> {
+ public:
+   ListWithKey() : ListBase<DataType, KeyType>() { };
+   ListWithKey(const ListWithKey &fromList) : 
+      ListBase<DataType, KeyType>(fromList) {}
+   ~ListWithKey() { }  // ~ListBase will be called
+   friend ostream &operator<<(ostream &os,ListWithKey<DataType, KeyType> &data)
+   {
+      return operator<<(os, static_cast<ListBase<DataType, KeyType> >(data));
+   }
+
+   void push_front(DataType &data, KeyType &key) {
+      __push_front(data, key);
+   }
+   void push_back(DataType &data, KeyType &key) {
+      __push_back(data, key);
+   }
+   bool addIfUniqueKey(DataType &data, KeyType &key) {
+      return __addIfUniqueKey(data, key);
+   }
+   bool find_with_key(KeyType &key, DataType *saveVal) {
+      return __find_with_key(key, saveVal);
+   }
+   bool find_with_val(const DataType &val) const {
+      return __find_with_val(val);
+   }
+   bool remove_with_key(KeyType &key) {
+      return __remove_with_key(key);
+   }
+   bool remove_with_val(const DataType &data) {
+      return __remove_with_val(data);
+   }
 };
 
 
