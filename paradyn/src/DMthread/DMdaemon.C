@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.92 2000/05/14 18:35:37 mirg Exp $
+ * $Id: DMdaemon.C,v 1.93 2000/07/18 17:09:16 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -77,6 +77,8 @@ extern Tcl_Interp *interp;
 // TEMP this should be part of a class def.
 status_line *DMstatus=NULL;
 status_line *PROCstatus=NULL;
+
+extern debug_ostream sampleVal_cerr;
 
 // This is from met/metMain.C
 void metCheckDaemonProcess( const string & );
@@ -2155,9 +2157,10 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
     aflag=(getEarliestFirstTime()>0);
     assert(aflag);
 
-  // Just for debugging:
-  //fprintf(stderr, "in DMdaemon.C, burst size = %d\n", theBatchBuffer.size()) ;
-
+    
+    sampleVal_cerr << "batchSampleDataCallbackFunc(), burst size: " 
+		   << theBatchBuffer.size() << "   earliestFirstTime: " 
+		   << getEarliestFirstTime() << "\n";
     // Go through every item in the batch buffer we've just received and
     // process it.
     for (unsigned index=0; index < theBatchBuffer.size(); index++) {
@@ -2169,16 +2172,26 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	double value          = entry.value ;
 	u_int  weight	      = entry.weight;
 	//bool   internal_metric = entry.internal_met;
-	startTimeStamp = 
+
+	if (our_print_sample_arrival || sampleVal_cerr.isOn()) {
+	  cerr << "[" << index << "] mid " << mid << "-   from: " 
+	       << startTimeStamp << "  to: " << endTimeStamp << "   val: " 
+	       << value << "  weight: " << weight << "  machine: " 
+	       << machine.string_of() << "\n";
+	}
+
+ 	startTimeStamp = 
 	    this->getAdjustedTime(startTimeStamp) - getEarliestFirstTime();
 	endTimeStamp = 
 	    this->getAdjustedTime(endTimeStamp) - getEarliestFirstTime();
 
-	if (our_print_sample_arrival) {
-	    cout << "mid " << mid << " " << value << " from "
-	         << startTimeStamp << " to " << endTimeStamp 
-		 << " weight " << weight 
-		 << " machine " << machine.string_of() << "\n";
+	sampleVal_cerr << "   after intermediate adjustment-  " << "from: " 
+		       << this->getAdjustedTime(startTimeStamp) << "  to: "
+		       << this->getAdjustedTime(endTimeStamp) << "\n";
+
+	if (our_print_sample_arrival || sampleVal_cerr.isOn()) {
+	  cerr << "    after adjustment-  from: " << startTimeStamp << "  to: "
+	       << endTimeStamp << "  val: " << value << "\n";
 	}
 
         // Okay, the sample is not an error; let's process it.
@@ -2268,6 +2281,9 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	   assert(ret.start >= 0.0);
 	   assert(ret.end >= ret.start);
 	   mi->enabledTime += ret.end - ret.start;
+	   sampleVal_cerr << "calling mi->addInterval- st:" << ret.start 
+			  << "  end: " << ret.end << "  val: " << ret.value 
+			  << "\n";
 	   mi->addInterval(ret.start, ret.end, ret.value, false);
 	}
     } // the main for loop
@@ -2436,6 +2452,7 @@ paradynDaemon::processStatus(int pid, u_int stat) {
 // instance (because the processes have exited).
 void
 paradynDaemon::endOfDataCollection(int mid) {
+  sampleVal_cerr << "endOfDataCollection-  mid: " << mid << "\n";
 
     if(activeMids.defines(mid)){
         metricInstance *mi = activeMids[mid];

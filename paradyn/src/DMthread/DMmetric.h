@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.30 1999/10/03 21:36:23 karavan Exp $ 
+// $Id: DMmetric.h,v 1.31 2000/07/18 17:09:16 schendel Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -312,6 +312,7 @@ class metricInstance {
 
         static metricInstance *getMI(metricInstanceHandle);
 	static metricInstance *find(metricHandle, resourceListHandle);
+	void flushPerfStreams();
         void newCurrDataCollection(metricStyle,dataCallBack,foldCallBack);
         void newGlobalDataCollection(metricStyle,dataCallBack,foldCallBack);
 	void addCurrentUser(perfStreamHandle p); 

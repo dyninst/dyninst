@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.30 1999/10/03 21:36:22 karavan Exp $
+// $Id: DMmetric.C,v 1.31 2000/07/18 17:09:16 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -53,6 +53,8 @@ extern void histFoldCallBack(timeStamp, void*, bool);
 
 // trace data streams
 extern void traceDataCallBack(const void*, int, void*);
+
+extern debug_ostream sampleVal_cerr;
 
 metric::metric(T_dyninstRPC::metricInfo i){
 
@@ -501,6 +503,8 @@ bool metricInstance::addComponent(component *new_comp){
 // and notify clients.
 bool metricInstance::removeComponent(paradynDaemon *daemon) {
     unsigned size = components.size();
+    sampleVal_cerr << "metricInstance::removeComponent-  daemon: " 
+		   << daemon << "  num of components: " << size << "\n";
     for (unsigned u = 0; u < size; u++) {
       if (components[u]->getDaemon() == daemon) {
 	aggSample.removeComponent(components[u]->sample);
@@ -510,6 +514,7 @@ bool metricInstance::removeComponent(paradynDaemon *daemon) {
 	}
 	components.resize(size-1);
 	if (size == 1) {
+	  sampleVal_cerr << "Last component removed- ";
 	  // the last component was removed
 	  // flush aggregate samples
 	  struct sampleInterval ret;
@@ -519,14 +524,48 @@ bool metricInstance::removeComponent(paradynDaemon *daemon) {
 	    assert(ret.start >= 0.0);
 	    assert(ret.end >= ret.start);
 	    enabledTime += ret.end - ret.start;
+	    sampleVal_cerr << " flush aggregation, valid: " << ret.valid 
+			   << "  start: " << ret.start << "  end: " << ret.end 
+			   << "  value: " << ret.value << "\n";
 	    addInterval(ret.start, ret.end, ret.value, false);
 	    ret = aggSample.aggregateValues();
 	  }
+	  if(data) data->flushUnsentBuckets();
+	  if(global_data) global_data->flushUnsentBuckets();
+	  flushPerfStreams();
 	}
 	return true;
       }
     }
     return false;
+}
+
+void metricInstance::flushPerfStreams() {
+    sampleVal_cerr << "flushPerfStreams - \n";
+    unsigned i;
+    for(i=0; i < users.size(); i++){
+        performanceStream *pstr = performanceStream::find(users[i]);
+        if(pstr != NULL) {
+	  sampleVal_cerr << "  flushing (Curr) perfStream  index: " << i 
+			 << "  totalPS: " << users.size() << "  addr: " 
+			 << pstr << "\n";
+	  pstr->flushBuffer();
+	  // flush the VISIthread buffer also 
+	  pstr->signalToFlush();
+	}
+    }
+    for(i=0; i < global_users.size(); i++){
+        performanceStream *pstr = performanceStream::find(global_users[i]);
+        if(pstr != NULL) {
+	  sampleVal_cerr << "  flushing (Glob) perfStream  index: " << i 
+			 << "  totalPS: " << global_users.size() << "  addr: " 
+			 << pstr << "\n";
+	  pstr->flushBuffer();
+	  // flush the VISIthread buffer also 
+	  pstr->signalToFlush();
+	}
+    }
+    sampleVal_cerr << "Leaving flushPerfStreams\n";    
 }
 
 #ifdef notdef
