@@ -63,21 +63,8 @@ void signalAttached(BPatch_thread *appThread, BPatch_image *appImage)
 	exit(-1);
     }
 
-    BPatch_arithExpr setAttached(BPatch_assign, *isAttached,
-				 BPatch_constExpr(1));
-    
-    // Find the point(s) we'll be instrumenting
-    BPatch_Vector<BPatch_point *> *points =
-	appImage->findProcedurePoint("checkIfAttached", BPatch_entry);
-    if (!points) {
-	fprintf(stderr, "*ERROR*: unable to start tests because the entry point to the function \"checkIfAttached\" could not be located\n");
-	exit(-1);
-    }
-
-    if (appThread->insertSnippet(setAttached, *points) == NULL) {
-	fprintf(stderr, "*ERROR*: unable to start tests because the entry point to the function \"checkIfAttached\" could not be instrumented\n");
-	exit(-1);
-    }
+    int yes = 1;
+    isAttached->writeValue(&yes);
 }
 
 
@@ -85,7 +72,7 @@ void signalAttached(BPatch_thread *appThread, BPatch_image *appImage)
 // Create a new process and return its process id.  If process creation 
 // fails, this function returns -1.
 //
-int startNewProcess(char *pathname, char *argv[])
+int startNewProcessForAttach(char *pathname, char *argv[])
 {
 #ifdef i386_unknown_nt4_0
     char child_args[1024];
@@ -96,6 +83,7 @@ int startNewProcess(char *pathname, char *argv[])
 	    strcat(child_args, " ");
 	    strcat(child_args, argv[i]);
 	}	    
+	strcat(child_args, " -attach");
     }
 
     STARTUPINFO si;
@@ -117,14 +105,54 @@ int startNewProcess(char *pathname, char *argv[])
 
     return pi.dwProcessId;
 #else
+    /* Make a pipe that we will use to signal that the mutatee has started. */
+    int fds[2];
+    if (pipe(fds) != 0) {
+	fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
+	exit(-1);
+    }
+
+    /* Create the argv string for the child process. */
+    char fdstr[32];
+    sprintf(fdstr, "%d", fds[1]);
+
+    int i;
+    for (i = 0; argv[i] != NULL; i++) ;
+    char **attach_argv = malloc(sizeof(char *) * (i + 3));
+
+    for (i = 0; argv[i] != NULL; i++)
+	attach_argv[i] = argv[i];
+    attach_argv[i++] = "-attach";
+    attach_argv[i++] = fdstr;
+    attach_argv[i++] = NULL;
+
     int pid = fork();
     if (pid == 0) {
-	// child - so exec 
-	execv(pathname, argv);
-	_exit(-1);
+	// child
+	close(fds[0]); // We don't need the read side
+	execv(pathname, attach_argv);
+	exit(-1);
     } else if (pid < 0) {
 	return -1;
     }
+
+    // parent
+    close(fds[1]);  // We don't need the write side
+
+    // Wait for the child to write to the pipe
+    char ch;
+    if (read(fds[0], &ch, sizeof(char)) != sizeof(char)) {
+	fprintf(stderr, "*ERROR*: Error reading from pipe\n");
+	exit(-1);
+    }
+
+    if (ch != 'T') {
+	fprintf(stderr, "*ERROR*: Child didn't write expected value to pipe.\n");
+	exit(-1);
+    }
+
+    close(fds[0]);  // We're done with the pipe
+
     return pid;
 #endif
 }

@@ -68,25 +68,47 @@ void func11_1()
     /* Does nothing. */
 }
 
+#ifdef i386_unknown_nt4_0
+#define USAGE "Usage: test2.mutatee [-attach] [-verbose]"
+#else
+#define USAGE "Usage: test2.mutatee [-attach <fd>] [-verbose]"
+#endif
+
 void main(int argc, char *argv[])
 {
     int i;
     void *ref;
     int useAttach = FALSE;
+    int pfd;
  
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {
             debugPrint = 1;
         } else if (!strcmp(argv[i], "-attach")) {
             useAttach = TRUE;
+#ifndef i386_unknown_nt4_0
+	    if (++i >= argc) {
+		fprintf(stderr, "%s\n", USAGE);
+		exit(-1);
+	    }
+	    pfd = atoi(argv[i]);
+#endif
         } else {
-            fprintf(stderr, "Usage: test2.mutatee [-attach] [-verbose]\n");
+            fprintf(stderr, "%s\n", USAGE);
             exit(-1);
         }
     }
 
     /* see if we should wait for the attach */
     if (useAttach) {
+#ifndef i386_unknown_nt4_0
+	char ch = 'T';
+	if (write(pfd, &ch, sizeof(char)) != sizeof(char)) {
+	    fprintf(stderr, "*ERROR*: Writing to pipe\n");
+	    exit(-1);
+	}
+	close(pfd);
+#endif
 	printf("Waiting for mutator to attach...\n");
 	while (!checkIfAttached()) ;
 	printf("Mutator attached.  Mutatee continuing.\n");

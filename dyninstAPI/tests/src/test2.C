@@ -121,12 +121,11 @@ BPatch_thread *mutatorMAIN(char *pathname, bool useAttach)
    
     int n = 0;
     child_argv[n++] = pathname;
-    if (useAttach) child_argv[n++] = "-attach";
     if (debugPrint) child_argv[n++] = "-verbose";
     child_argv[n] = NULL;
 
     if (useAttach) {
-	int pid = startNewProcess(pathname, child_argv);
+	int pid = startNewProcessForAttach(pathname, child_argv);
 	if (pid < 0 && !expectErrors) {
 	    printf("*ERROR*: unable to start tests due to error starting mutatee process\n");
 	    exit(-1);
@@ -380,8 +379,7 @@ main(int argc, char *argv[])
     }
 #endif
 
-// #if !defined(rs6000_ibm_aix4_1) && !defined(sparc_sun_sunos4_1_3)
-#if 1
+#if !defined(rs6000_ibm_aix4_1) && !defined(sparc_sun_sunos4_1_3)
     printf("Skipping test #9 (dump image)\n");
     printf("    BPatch_thread::dumpImage not implemented on this platform\n");
 #else

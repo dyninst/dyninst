@@ -842,12 +842,11 @@ void mutatorMAIN(char *pathname, bool useAttach)
    
     int n = 0;
     child_argv[n++] = pathname;
-    if (useAttach) child_argv[n++] = "-attach";
     if (debugPrint) child_argv[n++] = "-verbose";
     child_argv[n] = NULL;
 
     if (useAttach) {
-	int pid = startNewProcess(pathname, child_argv);
+	int pid = startNewProcessForAttach(pathname, child_argv);
 	if (pid < 0) {
 	    printf("*ERROR*: unable to start tests due to error creating mutatee process\n");
 	    exit(-1);

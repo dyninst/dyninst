@@ -638,24 +638,46 @@ void fail7Print(int tCase, int fCase, char *op)
 	printf(" operator %s was not false when it should be\n", op); 
 }
 
+#ifdef i386_unknown_nt4_0
+#define USAGE "Usage: test1 [-attach] [-verbose]"
+#else
+#define USAGE "Usage: test1 [-attach <fd>] [-verbose]"
+#endif
+
 void main(int argc, char *argv[])
 {
     int i;
     int ret17_1;
     int useAttach = FALSE;
+    int pfd;
  
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {
             debugPrint = 1;
         } else if (!strcmp(argv[i], "-attach")) {
             useAttach = TRUE;
+#ifndef i386_unknown_nt4_0
+	    if (++i >= argc) {
+		fprintf(stderr, "%s\n", USAGE);
+		exit(-1);
+	    }
+	    pfd = atoi(argv[i]);
+#endif
         } else {
-            fprintf(stderr, "Usage: test1 [-attach] [-verbose]\n");
+            fprintf(stderr, "%s\n", USAGE);
             exit(-1);
         }
     }
 
     if (useAttach) {
+#ifndef i386_unknown_nt4_0
+	char ch = 'T';
+	if (write(pfd, &ch, sizeof(char)) != sizeof(char)) {
+	    fprintf(stderr, "*ERROR*: Writing to pipe\n");
+	    exit(-1);
+	}
+	close(pfd);
+#endif
 	printf("Waiting for mutator to attach...\n");
     	while (!checkIfAttached()) ;
 	printf("Mutator attached.  Mutatee continuing.\n");

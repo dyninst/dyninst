@@ -7,6 +7,6 @@
 
 void waitUntilStopped(BPatch_thread *appThread, int testnum, char *testname);
 void signalAttached(BPatch_thread *appThread, BPatch_image *appImage);
-int startNewProcess(char *pathname, char *argv[]);
+int startNewProcessForAttach(char *pathname, char *argv[]);
 
 #endif
