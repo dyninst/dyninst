@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.60 2002/08/12 04:21:29 schendel Exp $
+// $Id: BPatch_thread.C,v 1.61 2002/08/29 00:33:27 rchen Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -213,6 +213,11 @@ BPatch_thread::BPatch_thread(char *path, int pid)
 	BPatch::bpatch->getThreadEvent(false);
 	proc->launchRPCifAppropriate(false, false);
     }
+
+#if defined(alpha_dec_osf4_0) 
+    // need to perform this after dyninst Heap is present and happy 
+    proc->getDyn()->setMappingHooks(proc); 
+#endif 
 
     insertVForkInst(this);
 }

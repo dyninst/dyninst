@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.351 2002/08/21 19:42:02 schendel Exp $
+// $Id: process.C,v 1.352 2002/08/29 00:33:26 rchen Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3283,7 +3283,11 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 
 #if defined(alpha_dec_osf4_0)
   // need to perform this after dyninst Heap is present and happy
-  theProc->getDyn()->setMappingHooks(theProc);
+
+    // Actually, we need to perform this after DYNINSTinit() has
+    // been invoked in the mutatee.  So, the following line was
+    // moved to BPatch_thread.C.   RSC 08-26-2002
+  //theProc->getDyn()->setMappingHooks(theProc);
 #endif
   
   return true; // successful
