@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.12 2002/11/02 21:08:38 schendel Exp $
+// $Id: varInstanceHKs.C,v 1.13 2002/11/25 23:52:57 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
 #include "paradynd/src/pd_process.h"
-#include "dyninstAPI/src/dyn_thread.h"
+#include "paradynd/src/pd_thread.h"
 #include "paradynd/src/threadMetFocusNode.h"
 #include "paradynd/src/varInstanceHKs.h"
 #include "paradynd/src/init.h"
@@ -338,13 +338,13 @@ bool processTimerHK::perform(const tTimer *theTimer,
    // returns true iff the process succeeded; i.e., if we were able to grab
    // the mutex for this tTimer and process without any waiting.  Otherwise,
    // we return false and don't process and don't wait.
-
    // If the thread obj hasn't yet been assigned to this dataReqNode, skip
    threadMetFocusNode_Val *thrNval = getThrNodeVal();
 
    if(thrNval == NULL) {
      return true;
    }
+
    // Timer sampling is trickier than counter sampling.  There are more race
    // conditions and other factors to carefully consider.
 
@@ -372,20 +372,29 @@ bool processTimerHK::perform(const tTimer *theTimer,
    const rawTime64 start = (count > 0) ? theTimer->start : 0; // not needed if count==0
 
 #if defined(MT_THREAD)
-   virtualTimer *vt = &(inferiorProc->getVirtualTimerBase()[theTimer->pos]);
-   dyn_thread *thr = inferiorProc->getThreadByPOS(theTimer->pos);
+   virtualTimer *vt = inferiorProc->getVirtualTimer(theTimer->pos);
+   assert(vt != NULL);
+   assert(thrNval->getThread() != NULL);
+   dyn_thread *thr = thrNval->getThread()->get_dyn_thread();
+   assert(thr != NULL);
    rawTime64 inferiorCPUtime ;
    if (vt == (virtualTimer*) -1) {
       inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime(0) : 0;
    } else {
       bool success = true ; // count <=0 should return true
       inferiorCPUtime =(count>0)?thr->getInferiorVtime(vt, success) : 0;
-      if (!success)
+      if (!success) {
          return false ;
+      }
    }
+   if(inferiorCPUtime == -1)  // getRawCpuTime failed (perhaps process ended)
+      return false;
+
 #else   
    const rawTime64 inferiorCPUtime = (count>0) ? 
                          inferiorProc->getRawCpuTime(0) : 0;
+   if(inferiorCPUtime == -1)  // getRawCpuTime failed (perhaps process ended)
+      return false;
 #endif 
    // This protector read and comparison must happen *after* we obtain the
    // inferior CPU time or thread virtual time, or we have a race condition
