@@ -41,6 +41,10 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.23  1997/02/21 20:20:35  naim
+ * Eliminating references to dataReqNode from the ast class - Pre-dyninstAPI
+ * commit - naim
+ *
  * Revision 1.22  1997/01/15 00:14:29  tamches
  * extra bool arg to apply
  *
@@ -206,9 +210,10 @@ bool mdl_data::new_metric(string id, string name, string units,
   }
 }
 
-metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >& ,
-						      string& , vector<process *>,
-						      bool) {
+metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >&,
+						      string& , 
+						      vector<process *>,
+						      bool, bool) {
   mdl_env::push();
   if (!mdl_env::add(id_, true, type_)) return NULL;
   assert(temp_ctr_);
@@ -230,7 +235,7 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >& 
     if ((*constraints_)[u1]->match_path_) {
       // inlined constraint def
       dataReqNode *drn = NULL; vector<string> res;
-      if (!(*constraints_)[u1]->apply(NULL, drn, res, NULL)) {
+      if (!(*constraints_)[u1]->apply(NULL, drn, res, NULL, false)) {
 	return NULL;
       }
     } else {
@@ -314,8 +319,9 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
   }
 }
   
-bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode * , dataReqNode *& ,
-					 vector<string>& , process * ) {
+bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode * , 
+					 dataReqNode *& ,
+					 vector<string>& , process *, bool ) {
   mdl_env::push();
 
   switch (data_type_) {
@@ -925,7 +931,7 @@ bool mdl_apply() {
   for (unsigned u1=0; u1<size; u1++) {
     dataReqNode *drn = NULL;
     vector<string> res;
-    if (mdl_data::all_constraints[u1]->apply(NULL, drn, res, NULL)) {
+    if (mdl_data::all_constraints[u1]->apply(NULL, drn, res, NULL, false)) {
       ok_cons += mdl_data::all_constraints[u1];
       // cout << "constraint defined: " << mdl_data::all_constraints[u1]->id_ << endl;
     } else {
@@ -939,7 +945,7 @@ bool mdl_apply() {
   vector<T_dyninstRPC::mdl_metric*> ok_mets;
   size = mdl_data::all_metrics.size();
   for (unsigned u2=0; u2<size; u2++) {
-    if (mdl_data::all_metrics[u2]->apply(vs, empty, emptyP, false) == (metricDefinitionNode*)1) {
+    if (mdl_data::all_metrics[u2]->apply(vs, empty, emptyP, false, false) == (metricDefinitionNode*)1) {
       ok_mets += mdl_data::all_metrics[u2];
       // cout << "metric defined: " << mdl_data::all_metrics[u2]->id_ << endl;
     } else {
