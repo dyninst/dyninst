@@ -78,6 +78,26 @@ _baseTramp:
 	nop
 	nop
 	nop
+#if defined(MT_THREAD)
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+#endif
 	.word	LOCAL_PRE_BRANCH
 	nop
 	ldd  [ %fp + -8 ], %g0	/* restoring registers after coming   */
@@ -115,6 +135,26 @@ _baseTramp:
 	nop
 	nop
 	nop
+#if defined(MT_THREAD)
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+#endif
 	.word	LOCAL_POST_BRANCH
 	nop
 	ldd  [ %fp + -8 ], %g0	/* restoring registers after coming   */
