@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.19 2003/11/03 19:20:56 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.20 2004/01/23 22:01:13 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -88,14 +88,15 @@ class IA64_instruction {
 		const void * ptr() const;
 		uint32_t size() const { return 16; }
 
-		/* FIXME: is there a good reason that this isn't virtual? */
 		uint64_t getMachineCode() const { return instruction; }
 
-		enum insnType { RETURN, BRANCH_IA, DIRECT_CALL, DIRECT_BRANCH, INDIRECT_CALL, INDIRECT_BRANCH, BRANCH_PREDICT, CHECK, MOVE_FROM_IP, OTHER, INVALID, ALLOC };
+		enum insnType { RETURN, BRANCH_IA, DIRECT_CALL, DIRECT_BRANCH, INDIRECT_CALL, INDIRECT_BRANCH, BRANCH_PREDICT, CHECK, MOVE_FROM_IP, OTHER, INVALID, ALLOC, INTEGER_STORE, INTEGER_LOAD, FP_STORE, FP_LOAD };
 		enum unitType { M, I, F, B, L, X, RESERVED };
 		virtual insnType getType() const;
+		virtual unitType getUnitType() const;
 
 		virtual Address getTargetAddress() const;
+		virtual uint8_t getPredicate() const;
 
 		uint8_t getTemplateID() const { return templateID; }
 		uint8_t getSlotNumber() const { return slotNumber; }
@@ -115,8 +116,10 @@ class IA64_instruction_x : public IA64_instruction {
 		ia64_bundle_t getMachineCode() const { ia64_bundle_t r = { instruction, instruction_x }; return r; }	
 
 		virtual insnType getType() const;
+		virtual unitType getUnitType() const;
 
 		virtual Address getTargetAddress() const;
+		virtual uint8_t getPredicate() const;
 
 	private:
 		uint64_t instruction_x;
@@ -144,7 +147,7 @@ class IA64_bundle {
 		bool setInstruction( IA64_instruction_x &newInst );
 
 		bool hasLongInstruction() { return templateID == 0x05 || templateID == 0x04; }
-		IA64_instruction_x * getLongInstruction();
+		IA64_instruction_x getLongInstruction();
 
 	private:
 		IA64_instruction instruction0;
@@ -156,7 +159,7 @@ class IA64_bundle {
 		ia64_bundle_t myBundle;
 	}; /* end the 128 bit bundle */
 
-typedef IA64_instruction instruction;
+typedef IA64_instruction * instruction;
 
 #include "inst-ia64.h"
 

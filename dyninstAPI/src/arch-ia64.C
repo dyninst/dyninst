@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.21 2003/11/03 19:20:01 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.22 2004/01/23 22:01:12 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -99,7 +99,9 @@
 
 /* for type() */
 #define X3_MASK	MEMORY_X3_MASK
-#define X6_MASK IBRANCH_X6
+#define X6_MASK	IBRANCH_X6
+#define M_MASK	MOVL_I
+#define X_MASK	0x0004000000000000
 
 IA64_instruction::unitType INSTRUCTION_TYPE_ARRAY[(0x20 + 1) * 3] = { 
 	IA64_instruction::M, IA64_instruction::I, IA64_instruction::I,
@@ -158,19 +160,50 @@ const void * IA64_instruction::ptr() const {
 	return NULL;
 	} /* end ptr() */
 
+uint8_t IA64_instruction::getPredicate() const {
+	return (instruction & PREDICATE_MASK) >> ALIGN_RIGHT_SHIFT;
+	} /* end short instruction predication fetch */
+	
+uint8_t IA64_instruction_x::getPredicate() const {
+	return (instruction_x & PREDICATE_MASK) >> ALIGN_RIGHT_SHIFT;
+	} /* end long instruciton predication fetch */        
+
+IA64_instruction::unitType IA64_instruction::getUnitType() const {
+	return INSTRUCTION_TYPE_ARRAY[(templateID * 3) + slotNumber];
+	} /* end getUnitType() */
+	
 IA64_instruction::insnType IA64_instruction::getType() const {
 	/* We'll try to be a little smarter, now, and just look up the unit type. */
-	unitType iUnitType = INSTRUCTION_TYPE_ARRAY[(templateID * 3) + slotNumber];
+	unitType iUnitType = getUnitType();
 
 	uint8_t opCode = (instruction & MAJOR_OPCODE_MASK) >> (ALIGN_RIGHT_SHIFT + 37);
 	uint8_t x6 = (instruction & X6_MASK) >> (ALIGN_RIGHT_SHIFT + 27); // 27 - 32
 	uint8_t x3 = (instruction & X3_MASK) >> (ALIGN_RIGHT_SHIFT + 33); // 33 - 35
+	uint8_t m = (instruction & M_MASK) >> (ALIGN_RIGHT_SHIFT + 36); // 36
+	uint8_t x = (instruction & X_MASK) >> (ALIGN_RIGHT_SHIFT + 27); // 27
 	switch( iUnitType ) {
 		case M:
 			if(	( opCode == 0x01 && x3 == 0x01 ) || 
 				( opCode == 0x01 && x3 == 0x03 ) ||
 				( opCode == 0x00 && x3 >= 0x04 && x3 <= 0x07 ) ) { return CHECK; }
-			if( opCode == 0x01 && x3 == 0x06 ) { return ALLOC; }
+			else if( opCode == 0x01 && x3 == 0x06 ) { return ALLOC; }
+			else if( opCode == 0x04 && ( m == 0x00 || m == 0x01 ) && x == 0x00 && 
+					 ( ( x6 <= 0x17 ) || x6 == 0x1b || ( x6 >= 0x20 && x6 <= 0x2b ) ) ) { return INTEGER_LOAD; }
+			else if( opCode == 0x05 && 
+					 ( ( x6 <= 0x17 ) || x6 == 0x1b || ( x6 >= 0x20 && x6 <= 0x2b ) ) ) { return INTEGER_LOAD; }
+			else if( opCode == 0x04 && m == 0 && x == 0 && ( ( x6 >= 0x30 && x6 <= 0x37 ) || x6 == 0x3b ) ) { return INTEGER_STORE; }
+			else if( opCode == 0x05 && ( ( x6 >= 0x30 && x6 <= 0x37 ) || x6 == 0x3b ) ) { return INTEGER_STORE; }
+			else if( opCode == 0x06 && ( m == 0 || m == 1 ) && x == 0 && 
+					( ( x6 <= 0x0F ) || x6 == 0x1b || ( x6 >= 0x20 && x6 <= 0x27 ) ) ) { return FP_LOAD; }
+			else if( opCode == 0x07 && 
+					( ( x6 <= 0x0F ) || x6 == 0x1b || ( x6 >= 0x20 && x6 <= 0x27 ) ) ) { return FP_LOAD; }
+			else if( opCode == 0x06 && m == 0 && x == 0 && ( ( x6 >= 0x30 && x6 <= 0x33 ) || x6 == 0x3b ) ) { return FP_STORE; }
+			else if( opCode == 0x07 && ( ( x6 >= 0x30 && x6 <= 0x33 ) || x6 == 0x3b ) ) { return FP_STORE; }
+			else if( opCode == 0x06 && x == 1 && ( m == 0x00 || m == 0x01 ) &&
+					( x6 == 0x01 || x6 == 0x02 || x6 == 0x03 || x6 == 0x05 || x6 == 0x06 || x6 == 0x07 || 
+					  x6 == 0x09 || x6 == 0x0A || x6 == 0x0B || x6 == 0x0D || x6 == 0x0E || x6 == 0x0F ||
+					  x6 == 0x21 || x6 == 0x22 || x6 == 0x23 || x6 == 0x25 || x6 == 0x26 || x6 == 0x27 ) ) { return FP_LOAD; }
+			else { return OTHER; }
 			break;
 
 		case I:
@@ -225,6 +258,10 @@ IA64_instruction::insnType IA64_instruction::getType() const {
 	return INVALID;
 	} /* end getType() */
 
+IA64_instruction_x::unitType IA64_instruction_x::getUnitType() const { 
+	return IA64_instruction_x::X;
+	} /* end getUnitType() */
+
 IA64_instruction::insnType IA64_instruction_x::getType() const {
 	/* We know we're a long instruction, so just check the major opcode to see which one. */
 	uint8_t opcode = (instruction_x & MAJOR_OPCODE_MASK) >> (ALIGN_RIGHT_SHIFT + 37);
@@ -275,19 +312,19 @@ IA64_bundle::IA64_bundle( uint64_t lowHalfBundle, uint64_t highHalfBundle ) {
 	myBundle.high = highHalfBundle;
 	} /* end IA64_Bundle() */
 
-IA64_instruction_x * IA64_bundle::getLongInstruction() {
-	longInstruction = IA64_instruction_x( instruction1.getMachineCode(), instruction2.getMachineCode(), 0x05 );
-	return & longInstruction;
+IA64_instruction_x IA64_bundle::getLongInstruction() {
+	longInstruction = IA64_instruction_x( instruction1.getMachineCode(), instruction2.getMachineCode(), templateID );
+	return longInstruction;
 	} /* end getLongInstruction() */
 
 IA64_instruction * IA64_bundle::getInstruction( unsigned int slot ) {
 	if( (slot == 1 || slot == 2) && hasLongInstruction() ) {
-		return getLongInstruction();
+		return new IA64_instruction_x( instruction1.getMachineCode(), instruction2.getMachineCode(), templateID );
 		}
 	switch( slot ) {
-		case 0: return & instruction0;
-		case 1: return & instruction1;
-		case 2: return & instruction2;
+		case 0: return new IA64_instruction( instruction0 );
+		case 1: return new IA64_instruction( instruction1 );
+		case 2: return new IA64_instruction( instruction2 );
 		default: fprintf( stderr, "Request of invalid instruction (%d), aborting.\n", slot ); abort();
 		}
 	} /* end getInstruction() */
@@ -413,13 +450,15 @@ IA64_instruction generateShortConstantInRegister( unsigned int registerN, int im
 	return IA64_instruction( rawInsn );
 	} /* end generateConstantInRegister( imm22 ) */
 
-IA64_instruction_x generateLongConstantInRegister( unsigned int registerN, long long int imm64 ) {
+IA64_instruction_x generateLongConstantInRegister( unsigned int registerN, long long int immediate ) {
+	uint64_t imm64 = (uint64_t)immediate;
 	uint64_t sRegisterN = (uint64_t)registerN;
+	uint64_t signBit = immediate < 0 ? 1 : 0;
 
 	/* movl */
 	uint64_t rawInsnHigh = 0x0000000000000000 | 
 			   ( ((uint64_t)0x06) << (37 + ALIGN_RIGHT_SHIFT)) |
-			   ( (imm64 & RIGHT_IMM_I) << (-63 + 36 + ALIGN_RIGHT_SHIFT)) |
+			   ( (signBit) << (36 + ALIGN_RIGHT_SHIFT)) |
 			   ( (imm64 & RIGHT_IMM9D) << (-7 + 27 + ALIGN_RIGHT_SHIFT)) |
 			   ( (imm64 & RIGHT_IMM5C) << (-16 + 22 + ALIGN_RIGHT_SHIFT)) |
 			   ( (imm64 & RIGHT_IMM_IC) << (-21 + 21 + ALIGN_RIGHT_SHIFT)) |
@@ -510,12 +549,11 @@ Address IA64_instruction::getTargetAddress() const {
 				/* ip-relative branch and call, respectively. */
 				uint64_t imm20b = (instruction >> (13 + ALIGN_RIGHT_SHIFT) ) & RIGHT_IMM20;
 				uint64_t signBit = (instruction >> (26 + ALIGN_RIGHT_SHIFT) ) & 0x1;
-				uint64_t signExt = signBit ? 0xFFFFFFFFFFFFFFFF & (~RIGHT_IMM20) : (~RIGHT_IMM20);
-				return (imm20b | signExt) << 4;
+				return signExtend( signBit, imm20b ) << 4;
 				} break;
 			case 0x01: case 0x00:
 				/* indirect branch and call, respectively. */
-				return 0;
+				assert( 0 );
 				break;
 			default:
 				fprintf( stderr, "getTargetAddress(): unrecognized major opcode, aborting.\n" );
@@ -523,6 +561,7 @@ Address IA64_instruction::getTargetAddress() const {
 				break;
 			} /* end opcode switch */	
 		} else {
+		// /* DEBUG */ fprintf( stderr, "getTargetAddress() returning 0 for indirect branch or call.\n" );
 		return 0;
 		}
 	} /* end getTargetAddress() */
