@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.7  1994/02/25 20:58:10  markc
+ * Revision 1.8  1994/03/01 21:24:50  hollings
+ * removed call to print all metrics.
+ *
+ * Revision 1.7  1994/02/25  20:58:10  markc
  * Added support for storing paradynd's pids.
  *
  * Revision 1.6  1994/02/24  04:36:29  markc
@@ -236,7 +239,6 @@ String_Array applicationContext::getAvailableMetrics()
        names.data[i] = (*cm)->getName();
        assert(names.data[i]);
     }
-    metric::allMetrics.print();
     assert(i==names.count);
     return(names);
 }
