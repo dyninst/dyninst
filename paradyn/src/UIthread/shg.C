@@ -4,10 +4,17 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.3  1995/11/19 04:21:50  tamches
-/* added an #include of <assert.h> which had been missing, causing
-/* problems on RS/6000 compiles.
+/* Revision 1.4  1996/01/09 01:05:34  tamches
+/* added thePhaseId member variable
+/* added call to perfConsult->getNodeInfo to gather lots of juicy
+/* information when displaying it in the shg status line at the bottom
+/* of the window (which by the way, has been extended to 4 lines when in
+/* developer mode)
 /*
+ * Revision 1.3  1995/11/19 04:21:50  tamches
+ * added an #include of <assert.h> which had been missing, causing
+ * problems on RS/6000 compiles.
+ *
  * Revision 1.2  1995/11/06 19:28:03  tamches
  * slider mouse motion bug fixes
  *
@@ -19,6 +26,8 @@
 #include <assert.h>
 #include "tkTools.h"
 #include "shg.h"
+#include "performanceConsultant.thread.h" // for struct shg_node_info
+#include "performanceConsultant.thread.CLNT.h" // for class performanceConsultantUser
 
 XFontStruct *shg::theRootItemFontStruct=NULL;
 XFontStruct *shg::theListboxItemFontStruct=NULL;
@@ -41,12 +50,13 @@ void shg::initializeStaticsIfNeeded() {
    listboxItemGC = consts.listboxTextGC;
 }
 
-shg::shg(Tcl_Interp *iInterp, Tk_Window theTkWindow,
+shg::shg(int iPhaseId, Tcl_Interp *iInterp, Tk_Window theTkWindow,
 	 const string &iHorizSBName, const string &iVertSBName,
 	 const string &iCurrItemLabelName) :
 	    hash(&hashFunc, 32), hash2(&hashFunc2, 32),
 	    consts(iInterp, theTkWindow),
 	    theShgConsts(iInterp, theTkWindow),
+	    thePhaseId(iPhaseId),
 	    horizSBName(iHorizSBName),
 	    vertSBName(iVertSBName),
 	    currItemLabelName(iCurrItemLabelName),
@@ -784,7 +794,9 @@ void shg::addToStatusDisplay(const string &str) {
 void shg::possibleMouseMoveIntoItem(int x, int y) {
    // fill a tk label widget with long name of item under (x,y)
    if (x==lastItemUnderMouseX && y==lastItemUnderMouseY) {
-//      cout << "no x/y changes" << endl;
+      // WARNING: Now that the status line displays more than just the
+      // node's name (it also displays lots of juicy status information
+      // which can _change_ over time), I'm not sure this is right:
       return; // no changes
    }
 
@@ -793,7 +805,11 @@ void shg::possibleMouseMoveIntoItem(int x, int y) {
 
    whereNodeGraphicalPath<shgRootNode> newItemUnderMousePath = point2path(x, y);
    if (newItemUnderMousePath == lastItemUnderMousePath) {
-//      cout << "x/y changes, but the path didn't change" << endl;
+      // cout << "x/y changes, but the path didn't change" << endl;
+
+      // WARNING: Now that the status line displays more than just the
+      // node's name (it also displays lots of juicy status information
+      // which can _change_ over time), I'm not sure this is right:
       return; // no changes to the label
    }
 
@@ -848,7 +864,35 @@ void shg::possibleMouseMoveIntoItem(int x, int y) {
       case whereNodeGraphicalPath<shgRootNode>::Nothing:
          break;
       default: {
-         string commandStr = currItemLabelName + " insert end " + "\"" + newItemUnderMousePath.getLastPathNode(rootPtr)->getNodeData().getLongName() + "\"" ;
+         // Note that we write different stuff if we are in devel mode, so
+         // we need to check the tunable const:
+         extern bool inDeveloperMode;
+         const shgRootNode &theNode = newItemUnderMousePath.getLastPathNode(rootPtr)->getNodeData();
+
+         string dataString;
+         
+         if (inDeveloperMode)
+            dataString += string(theNode.getId()) + " ";
+         dataString += theNode.getLongName();
+         if (inDeveloperMode) {
+            dataString += "\n";
+            // make an igen call to the performance consultant to get more information
+            // about this node:
+            extern performanceConsultantUser *perfConsult;
+            shg_node_info theNodeInfo;
+            assert(perfConsult->getNodeInfo(thePhaseId, theNode.getId(), &theNodeInfo));
+            dataString += "curr concl: ";
+	    dataString += theNodeInfo.currentConclusion ? "true" : "false";
+	    dataString += " made at time ";
+	    dataString += string(theNodeInfo.timeTrueFalse) + "\n";
+	    dataString += string("curr value: ") + string(theNodeInfo.currentValue);
+	    dataString += string(" estim cost: ") + string(theNodeInfo.estimatedCost) + "\n";
+	    dataString += string("time from ") + string(theNodeInfo.startTime) + " to " +
+	                                 string(theNodeInfo.endTime) + "\n";
+	    dataString += string("persistent: ") + (theNodeInfo.persistent ? "true" : "false");
+         }
+
+         string commandStr = currItemLabelName + " insert end " + "\"" + dataString + "\"";
          myTclEval(interp, commandStr);
       }
    }
