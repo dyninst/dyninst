@@ -136,15 +136,11 @@ metricInstance::~metricInstance() {
     for(unsigned i=0; i < components.size(); i++){
         delete (components[i]);    
     }
-    { // TODO remove for g++ version 2.7.0
-    for(unsigned i=0; i < parts.size(); i++){
-        delete (parts[i]);    
+    for(unsigned j=0; j < parts.size(); j++){
+        delete (parts[j]);    
     }
-    }
-    { // TODO remove for g++ version 2.7.0
-    for(unsigned i=0; i < old_data.size(); i++){
-        delete (old_data[i]);    
-    }
+    for(unsigned k=0; k < old_data.size(); k++){
+        delete (old_data[k]);    
     }
     if (data) delete(data);
     if (global_data) delete(global_data);
@@ -198,10 +194,8 @@ void metricInstance::dataDisable(){
         delete (components[i]);  // this disables data collection  
     }
     components.resize(0);
-    { // TODO remove for g++ version 2.7.0
-    for(unsigned i=0; i < parts.size(); i++){
-        delete (parts[i]);    
-    }
+    for(unsigned j=0; j < parts.size(); j++){
+        delete (parts[j]);    
     }
     parts.resize(0);
     enabled = false;

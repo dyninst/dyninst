@@ -2,7 +2,10 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.21  1995/09/05 16:24:19  newhall
+ * Revision 1.22  1995/09/18 18:22:16  newhall
+ * changes to avoid for-scope problem
+ *
+ * Revision 1.21  1995/09/05  16:24:19  newhall
  * added DM interface routines for PC, added resourceList method functions
  *
  * Revision 1.20  1995/08/05  17:08:42  krisna
@@ -189,7 +192,7 @@ class resourceList {
       resourceList(const vector<resourceHandle> &resources); 
       resourceList(const vector<string> &names); 
       bool getNth(int n,resourceHandle *h) {
-	  if(n < elements.size()){
+	  if(n < (int)(elements.size())){
 	      *h = (elements[n])->getHandle();
 	      return TRUE;
           }

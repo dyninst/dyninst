@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.48  1995/09/05 16:24:16  newhall
+ * Revision 1.49  1995/09/18 18:22:12  newhall
+ * changes to avoid for-scope problem
+ *
+ * Revision 1.48  1995/09/05  16:24:16  newhall
  * added DM interface routines for PC, added resourceList method functions
  *
  * Revision 1.47  1995/08/20  03:51:33  newhall
@@ -239,7 +242,7 @@ void histDataCallBack(sampleValue *buckets,
         }
     }
 
-    for(unsigned i=first; i < count; i++){
+    for(int i=first; i < count; i++){
         if(buckets[i] < 0) printf("bucket %d : %f \n",i,buckets[i]);
     }
 }

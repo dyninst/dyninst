@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.43  1995/08/08 03:13:10  newhall
-/* updates due to changes in DM: newPerfData, sampleDataCallbackFunc defs.
+/* Revision 1.44  1995/09/18 18:22:34  newhall
+/* changes to avoid for-scope problem
 /*
+ * Revision 1.43  1995/08/08  03:13:10  newhall
+ * updates due to changes in DM: newPerfData, sampleDataCallbackFunc defs.
+ *
  * Revision 1.42  1995/08/05  17:10:46  krisna
  * use `0' for `NULL'
  *
@@ -177,7 +180,6 @@
 #include <signal.h>
 #include <math.h>
 #include <stdlib.h>
-#include "util/h/list.h"
 #include "util/h/rpcUtil.h"
 #include "util/h/sys.h"
 #include "paradyn/src/VMthread/VMtypes.h"
@@ -551,25 +553,14 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
   int  numEnabled = 0;
   metricInstInfo *newPair = NULL;
   metricInstInfo **newEnabled = new (metricInstInfo *)[newMetRes->size()];
-  unsigned i;
   for(unsigned k=0; k < newMetRes->size(); k++){
       // try to enable this metric/focus pair
-      /*
-      metricHandle m_handle = (*newMetRes)[k].met;
-      for(unsigned blah = 0; blah < (*newMetRes)[k].res.size(); blah++){
-          printf("metric %d   resourceHandle %d: %d\n",
-		 m_handle, blah,(*newMetRes)[k].res[blah]);
-      }
-
-      printf("try to enable res %d met %d\n",(*newMetRes)[k].res[0],
-					     (*newMetRes)[k].met);
-      */
       if((newPair = ptr->dmp->enableDataCollection(ptr->ps_handle,
 			      &((*newMetRes)[k].res), (*newMetRes)[k].met,
 			      ptr->args->phase_type,0,0))){
           // check to see if this pair has already been enabled
           bool found = false;
-	  for(i = 0; i < ptr->mrlist.size(); i++){
+	  for(unsigned i = 0; i < ptr->mrlist.size(); i++){
 	      if((ptr->mrlist[i]->mi_id == newPair->mi_id)){
                   found = true;
 		  break;
@@ -602,15 +593,15 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
       ASSERTTRUE(!ptr->start_up);
       vector<T_visi::visi_matrix> pairList;
       // create a visi_matrix_Array to send to visualization
-      for(i=0; i < numEnabled; i++){
+      for(unsigned l=0; l < numEnabled; l++){
 	  T_visi::visi_matrix matrix;
-          matrix.met.Id = newEnabled[i]->m_id;
-	  matrix.met.name = newEnabled[i]->metric_name; 
-	  matrix.met.units = newEnabled[i]->metric_units;
+          matrix.met.Id = newEnabled[l]->m_id;
+	  matrix.met.name = newEnabled[l]->metric_name; 
+	  matrix.met.units = newEnabled[l]->metric_units;
 	  matrix.met.aggregate = AVE;
-	  matrix.res.Id = newEnabled[i]->r_id;
+	  matrix.res.Id = newEnabled[l]->r_id;
 	  if((matrix.res.name = 
-	      AbbreviatedFocus((char *)newEnabled[i]->focus_name.string_of()))
+	      AbbreviatedFocus((char *)newEnabled[l]->focus_name.string_of()))
 	      ==0){
 	      ERROR_MSG(12,"in VISIthreadchooseMetRes");
 	      ptr->quit = 1;
@@ -620,7 +611,6 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
           }
           pairList += matrix;
       }
-
       // if buffer is not empty send visualization buffer of data values
       vector<T_visi::dataValue>   tempdata;
       if(ptr->bufferSize != 0){
@@ -660,11 +650,11 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
           return 1;
       }
 
-    // get old data bucket values for new metric/resources and
-    // send them to visualization
-    for(i=0;i<numEnabled;i++){
+      // get old data bucket values for new metric/resources and
+      // send them to visualization
+      for(unsigned q=0;q<numEnabled;q++){
         sampleValue buckets[1000];
-        int howmany = ptr->dmp->getSampleValues(newEnabled[i]->mi_id,
+        int howmany = ptr->dmp->getSampleValues(newEnabled[q]->mi_id,
 					    buckets,1000,0,
 					    ptr->args->phase_type);
         // send visi all old data bucket values
@@ -673,8 +663,8 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 	    for (unsigned ve=0; ve<howmany; ve++){
 	      bulk_data += buckets[ve];
             }
-            ptr->visip->BulkDataTransfer(bulk_data, (int)newEnabled[i]->m_id,
-		                        (int)newEnabled[i]->r_id);
+            ptr->visip->BulkDataTransfer(bulk_data, (int)newEnabled[q]->m_id,
+		                        (int)newEnabled[q]->r_id);
             if(ptr->visip->did_error_occur()){
             PARADYN_DEBUG(("igen:visip->BulkDataTransfer():VISIthreadchoose"));
                 ptr->quit = 1;
@@ -686,17 +676,17 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
                bulk_data.resize(bulk_data.size()-1);
 	    }
 	}
-    }
-    // if remenuFlag is set and retry list is not empty
-    // send retry list to UIM to deal with 
-    if((ptr->args->remenuFlag) && (retryList->size())){
+      }
+      // if remenuFlag is set and retry list is not empty
+      // send retry list to UIM to deal with 
+      if((ptr->args->remenuFlag) && (retryList->size())){
         // don't free retryList since it is passed to UI
-    }
-    else { // else ignore, and set remenuFlag
+      }
+      else { // else ignore, and set remenuFlag
         ptr->args->remenuFlag = 1;     
         delete(retryList);
-    }
-    delete(newMetRes);
+      }
+      delete(newMetRes);
   }
   else {
       // if nothing was enabled, and remenuflag is set make remenu request

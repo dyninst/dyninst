@@ -19,7 +19,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include "util/h/sys.h"
-#include "util/h/aggregateSample.h"
 #include "util/h/Vector.h"
 #include "util/h/Dictionary.h"
 #include "util/h/String.h"
@@ -119,7 +118,7 @@ class paradynDaemon: public dynRPCUser {
 					    double, double);
 	virtual void cpDataCallbackFunc(int, double, int, double, double);
 	double getEarliestFirstTime() const { return earliestFirstTime;}
-	static double setEarliestFirstTime(double f){
+	static void setEarliestFirstTime(double f){
             if(!earliestFirstTime) earliestFirstTime = f;
 	}
 
@@ -156,7 +155,7 @@ class paradynDaemon: public dynRPCUser {
         static bool setDefaultArgs(char *&name);
 
         // debugging and daemon info. routines 
-	static void dumpCore(unsigned pid);
+	static void dumpCore(int pid);
 	// TODO: remove these
 	static void printStatus();
         static void printDaemons();

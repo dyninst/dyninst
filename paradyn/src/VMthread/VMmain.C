@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.35  1995/09/08 19:51:27  krisna
-/* stupid way to avoid the for-scope problem
+/* Revision 1.36  1995/09/18 18:22:41  newhall
+/* changes to avoid for-scope problem
 /*
+ * Revision 1.35  1995/09/08  19:51:27  krisna
+ * stupid way to avoid the for-scope problem
+ *
  * Revision 1.34  1995/08/12 22:28:48  newhall
  * Added VM_sequential_init and VM_post_thread_create_init. Changes to VMmain
  *
@@ -331,7 +334,7 @@ int  VM::VMCreateVisi(int remenuFlag,
 		      vector<metric_focus_pair> *matrix){
 
   // get visi process command line to pass to visithread thr_create 
-  if(visiTypeId >= visiList.size()){
+  if(visiTypeId >= (int)visiList.size()){
       PARADYN_DEBUG(("in VM::VMCreateVisi"));
       ERROR_MSG(20,"visi Id out of range in VM::VMCreateVisi");
       return(VMERROR);

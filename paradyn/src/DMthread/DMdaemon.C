@@ -472,12 +472,12 @@ void paradynDaemon::printStatus()
 //    debugging.
 // If pid = -1, all processes will dump core files.
 //
-void paradynDaemon::dumpCore(unsigned pid)
+void paradynDaemon::dumpCore(int pid)
 {
     executable *exec = 0;
     for(unsigned i=0; i < programs.size(); i++){
 	exec = programs[i];
-        if ((exec->pid == pid) || (pid == -1)) {
+        if ((exec->pid == (unsigned)pid) || (pid == -1)) {
 	    exec->controlPath->coreProcess(exec->pid);
 	    printf("found process and coreing it\n");
         }

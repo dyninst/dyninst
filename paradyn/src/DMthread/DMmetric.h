@@ -25,6 +25,7 @@
 #include "util/h/Vector.h"
 #include "util/h/Dictionary.h"
 #include "util/h/String.h"
+#include "util/h/aggregateSample.h"
 #include "DMinclude.h"
 #include "DMdaemon.h"
 

@@ -7,7 +7,10 @@
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.29  1995/09/05 16:24:18  newhall
+ * Revision 1.30  1995/09/18 18:22:14  newhall
+ * changes to avoid for-scope problem
+ *
+ * Revision 1.29  1995/09/05  16:24:18  newhall
  * added DM interface routines for PC, added resourceList method functions
  *
  * Revision 1.28  1995/08/20  03:51:36  newhall
@@ -307,11 +310,9 @@ string DMcreateRLname(const vector<resourceHandle> &res){
     }
     sorted_names.sort(DMresourceListNameCompare);
 
-    { // TODO remove for g++ version 2.7.0
-    for(unsigned i=0; i < (res.size() - 1); i++){
-	temp += sorted_names[i].string_of();
+    for(unsigned j=0; j < (res.size() - 1); j++){
+	temp += sorted_names[j].string_of();
 	temp += ",";
-    }
     }
     if(res.size() > 0){
 	temp += sorted_names[(res.size()-1)].string_of();
@@ -365,9 +366,8 @@ resourceList::resourceList(const vector<string> &names){
         fullName = temp;
         foci += rl;
         // create elements vector 
-	{ // TODO remove for g++ version 2.7.0
-        for(unsigned i=0; i < size; i++){
-	    resource *r = resource::string_to_resource(names[i]);
+        for(unsigned j=0; j < size; j++){
+	    resource *r = resource::string_to_resource(names[j]);
 	    if(r){
 	        elements += r;
 		if(r->getSuppress()){
@@ -375,7 +375,6 @@ resourceList::resourceList(const vector<string> &names){
 		}
 	    }
         } 
-	}
     }
     else {
         printf("ERROR: this resourceList already created: %s\n",temp.string_of());
@@ -430,11 +429,9 @@ vector<resourceListHandle> *resourceList::magnify(resourceHandle rh){
 	    for(unsigned i=0; i < elements.size(); i++){
                 new_focus += (elements[i])->getHandle();
 	    }
-	    { // TODO remove for g++ version 2.7.0
-	    for(unsigned i=0; i < children->size(); i++){
-		new_focus[rIndex] = (*children)[i];
+	    for(unsigned j=0; j < children->size(); j++){
+		new_focus[rIndex] = (*children)[j];
 		*return_list += resourceList::getResourceList(new_focus);
-	    }
 	    }
 	    delete children;
 	    return return_list;
@@ -457,10 +454,8 @@ resourceListHandle *resourceList::constrain(resourceHandle rh){
     }}
     if(rIndex < elements.size()){
 	vector<resourceHandle> new_focus; 
-	{ // TODO remove for g++ version 2.7.0
-	for(unsigned i=0; i < elements.size(); i++){
-            new_focus += (elements[i])->getHandle();
-	}
+	for(unsigned j=0; j < elements.size(); j++){
+            new_focus += (elements[j])->getHandle();
 	}
 	new_focus[rIndex] = rh;
 	resourceListHandle *new_handle = new resourceListHandle;
