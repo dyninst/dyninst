@@ -47,6 +47,7 @@
 #include "paradynd/src/instReqNode.h"
 #include "paradynd/src/focus.h"
 #include "paradynd/src/instrDataNode.h"
+#include "paradynd/src/metricFocusNode.h"
 
 class instrDataNode;
 class Focus;
@@ -137,7 +138,7 @@ class instrCodeNode {
   //bool condMatch(instrCodeNode *mn, vector<dataReqNode*> &data_tuple1,
   //               vector<dataReqNode*> &data_tuple2);
   vector<instReqNode> getInstRequests() { return V.getInstRequests(); }
-  bool loadInstrIntoApp(pd_Function **func);
+  instr_insert_result_t loadInstrIntoApp(pd_Function **func);
   int getID() { return reinterpret_cast<int>(&V); }
   instrCodeNode_Val *getInternalData() { return &V; }
   // should make it private

@@ -357,7 +357,7 @@ void instrCodeNode::prepareCatchupInstr(vector<vector<catchupReq *> > &allStackW
    //oldCatchUp(tid);
 }
 
-bool instrCodeNode::loadInstrIntoApp(pd_Function **func) {
+instr_insert_result_t instrCodeNode::loadInstrIntoApp(pd_Function **func) {
    // Loop thru "instRequests", an array of instReqNode:
    // (Here we insert code instrumentation, tramps, etc. via addInstFunc())
    unsigned int inst_size = V.instRequests.size();
@@ -380,12 +380,12 @@ bool instrCodeNode::loadInstrIntoApp(pd_Function **func) {
 	   //cerr << "marking " << (void*)this << " " << u1+1 << " / "
 	   //     << inst_size << " as deferred\n";
 	   //cerr << "deferred on function " << (*func)->prettyName() << "\n";
-	   return false;
+	   return insert_deferred;
 	   break;
 	case failure_res:
 	   //cerr << "instRequest.insertInstr - wasn't successful\n";
 	   //assert (*func != NULL);
-	   return false; // shouldn't we try to undo what's already put in?
+	   return insert_failure;
 	   break;
 	case success_res:
 	   //cerr << "instrRequest # " << u1+1 << " / " << inst_size
@@ -408,7 +408,7 @@ bool instrCodeNode::loadInstrIntoApp(pd_Function **func) {
       }
    }
    V.instrLoaded_ = true;
-   return true;
+   return insert_success;
 }
 
 void instrCodeNode::prepareForSampling(
