@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.95 2005/03/21 21:22:09 jaw Exp $
+// $Id: BPatch.C,v 1.96 2005/04/01 18:36:45 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -830,6 +830,7 @@ void BPatch::registerNormalExit(BPatch_thread *thread, int exitcode)
   if (thread) { // In error conditions thread is null (never made)
     thread->setExitCode(exitcode);
     thread->setExitedNormally();
+    thread->setUnreportedTermination(true);
     if (exitCallback) {
       //exitCallback(thread, ExitedNormally);
       event_mailbox->executeOrRegisterCallback(exitCallback, thread, ExitedNormally);
@@ -841,6 +842,7 @@ void BPatch::registerSignalExit(BPatch_thread *thread, int signalnum)
 {
   if (thread) {
     thread->setExitedViaSignal(signalnum);
+    thread->setUnreportedTermination(true);
     if (exitCallback) {
       //exitCallback(thread, ExitedViaSignal);
         event_mailbox->executeOrRegisterCallback(exitCallback, thread, ExitedViaSignal);
@@ -1146,11 +1148,11 @@ bool BPatch::havePendingEvent()
  */
 bool BPatch::pollForStatusChangeInt()
 {
-    if (havePendingEvent())
-	return true;
+   if (havePendingEvent())
+      return true;
   
-    // No changes were previously detected, so check for new changes
-    return getThreadEvent(false);
+   // No changes were previously detected, so check for new changes
+   return getThreadEvent(false);
 }
 
 
