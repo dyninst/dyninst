@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.489 2004/04/02 06:34:13 jaw Exp $
+// $Id: process.C,v 1.490 2004/04/06 16:37:15 bernat Exp $
 
 #include <ctype.h>
 
@@ -324,11 +324,9 @@ bool process::walkStackFromFrame(Frame startFrame,
 
   // Do a special check for the vsyscall page
   if (next_pc >= 0xffffffffffffe000 && next_pc < 0xfffffffffffff000) {
-    currentFrame.setLeaf(true);
     fpOld = currentFrame.getSP();
-    // Silently toss this frame - it's in the vsyscall page, and we don't
-    // report that to the user
-
+    
+    /* Suppress this frame; catch-up doesn't need it, and the user shouldn't see it. */
     currentFrame = currentFrame.getCallerFrame(this); 
   }
 #endif
@@ -3957,6 +3955,7 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
     pdstring msg;
 
     if(new_obj->getName().length() == 0) {
+        fprintf(stderr, "Null name on object\n");
         return false;
     }
 
@@ -4158,6 +4157,7 @@ bool process::getSharedObjects() {
 #endif
             // for each element in shared_objects list process the 
             // image file to find new instrumentaiton points
+            fprintf(stderr, "Adding shared objs\n");
             for(u_int j=0; j < shared_objects->size(); j++){
 // 	    pdstring temp2 = pdstring(j);
 // 	    temp2 += pdstring(" ");
@@ -4178,6 +4178,7 @@ bool process::getSharedObjects() {
                     logLine("Error after call to addASharedObject\n");
                 
             }
+            fprintf(stderr, "Done adding\n");
 #ifndef BPATCH_LIBRARY
             tp->resourceBatchMode(false);
 #endif
