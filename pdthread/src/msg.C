@@ -115,10 +115,16 @@ int msg_bind_wmsg(thread_t* tid);
 int msg_unbind(thread_t tid) {
     thr_debug_msg(CURRENT_FUNCTION, "tid = %d\n", tid);
     int ret = THR_OKAY;
+    PDSOCKET to_unbind = thr_socket(tid);
+
+    if (to_unbind == INVALID_PDSOCKET) {
+        ret = THR_ERR;
+        goto done;
+    }
 
     thr_mailbox* my_mail = (thr_mailbox*)lwp::get_mailbox();
     thread_t me = thr_self();
-    my_mail->unbind_sock( thr_socket(tid) );
+    my_mail->unbind_sock( to_unbind );
 
   done:
     thr_debug_msg(CURRENT_FUNCTION, "returning %d\n", ret);
