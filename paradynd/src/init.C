@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.79 2003/10/22 17:57:03 pcroth Exp $
+// $Id: init.C,v 1.80 2004/02/25 04:36:55 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -143,17 +143,18 @@ pdSample computeActiveProcessesProc(const machineMetFocusNode *node) {
 pdSample computePauseTimeMetric(const machineMetFocusNode *) {
     // we don't need to use the machineMetFocusNode
 
-    timeStamp now = getWallTime();
-    if (isInitFirstRecordTime()) {
-	timeLength elapsed = elapsedPauseTime;
-	if (isApplicationPaused())
-	    elapsed += now - startPause;
-
-	assert(elapsed >= timeLength::Zero()); 
-	return pdSample(elapsed);
-    } else {
-	return pdSample(timeLength::Zero());
-    }
+   if (isInitFirstRecordTime()) {
+      timeLength elapsed = elapsedPauseTime;
+      if (isApplicationPaused()) {
+         timeStamp now = getWallTime();
+         elapsed += now - startPause;
+      }
+      
+      assert(elapsed >= timeLength::Zero()); 
+      return pdSample(elapsed);
+   } else {
+      return pdSample(timeLength::Zero());
+   }
 }
 
 pdSample computeNumOfActCounters(const machineMetFocusNode *) {
