@@ -7,7 +7,11 @@
  * list.h - list ADT
  *
  * $Log: list.h,v $
- * Revision 1.17  1994/07/07 03:20:36  markc
+ * Revision 1.18  1994/07/11 23:00:57  jcargill
+ * Fixed bug where added two lists with (+=) operator could result in
+ * duplicate key entries
+ *
+ * Revision 1.17  1994/07/07  03:20:36  markc
  * Added removeAll function to list class.
  * Added machineType headers to specify pvm, cm5, ...
  *
@@ -140,7 +144,7 @@ template <class Type> class List {
 	    ListItem<Type> *curr;
 
 	    for (curr=mergee.head; curr; curr=curr->next) {
-		add(curr->data, curr->key);
+		addUnique(curr->data, curr->key);
 	    }
 	}
 	Type operator ++() { 
