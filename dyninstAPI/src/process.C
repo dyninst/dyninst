@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.520 2005/02/09 03:27:47 jaw Exp $
+// $Id: process.C,v 1.521 2005/02/17 21:10:54 bernat Exp $
 
 #include <ctype.h>
 
@@ -231,51 +231,6 @@ void setLibState(libraryState_t &lib, libraryState_t state) {
     else lib = state;
 }
 
-ostream& operator<<(ostream&s, const Frame &f) {
-   codeRange *range = NULL;
-   if(f.thread_) {
-      process *proc = f.thread_->get_proc();
-      range = proc->findCodeRangeByAddress(f.pc_);
-   }
-   fprintf(stderr, "PC: 0x%lx", f.pc_);
-   if (range) {
-     int_function *func_ptr = range->is_function();
-     trampTemplate *basetramp_ptr = range->is_basetramp();
-     miniTrampHandle *minitramp_ptr = range->is_minitramp();
-     relocatedFuncInfo *reloc_ptr = range->is_relocated_func();
-     
-     if (func_ptr)
-       fprintf(stderr, "(%s)", func_ptr->prettyName().c_str());
-     if (basetramp_ptr)
-       fprintf(stderr, "(BT from %s)", basetramp_ptr->location->pointFunc()->prettyName().c_str());
-     if (minitramp_ptr)
-       fprintf(stderr, "(MT from %s)", minitramp_ptr->baseTramp->location->pointFunc()->prettyName().c_str());
-     if (reloc_ptr)
-       fprintf(stderr, "(%s [RELOCATED])", reloc_ptr->func()->prettyName().c_str());
-   }
-   fprintf(stderr, "FP: 0x%lx, PID: %d",
-	   f.fp_, f.pid_);
-
-    if (f.thread_)
-        fprintf(stderr, ", TID: %d",
-                f.thread_->get_tid());
-    if (f.lwp_)
-        fprintf(stderr, ", LWP: %d",
-                f.lwp_->get_lwp_id());
-    fprintf(stderr,"\n");
-    
-    /*
-    s << ios::hex << "PC: " << f.pc_ << " FP: " << f.fp_
-      << ios::dec << " PID: " << f.pid_;
-  if (f.thread_)
-    s << " TID: " << f.thread_->get_tid();
-  if (f.lwp_)
-    s << " LWP: " << f.lwp_->get_lwp_id();
-    */  
-
-  return s;
-}
-
 /* AIX method defined in aix.C; hijacked for IA-64's GP. */
 #if !defined(rs6000_ibm_aix4_1) && !defined( ia64_unknown_linux2_4 )
 Address process::getTOCoffsetInfo(Address /*dest */)
@@ -347,19 +302,19 @@ bool process::walkStackFromFrame(Frame startFrame,
     fpOld = currentFrame.getSP();
     
     /* Suppress this frame; catch-up doesn't need it, and the user shouldn't see it. */
-    currentFrame = currentFrame.getCallerFrame(this); 
+    currentFrame = currentFrame.getCallerFrame(); 
   }
 #elif defined(arch_x86)
   calcVSyscallFrame(this);
   if (next_pc >= getVsyscallStart() && next_pc < getVsyscallEnd()) {
-     currentFrame = currentFrame.getCallerFrame(this);
+     currentFrame = currentFrame.getCallerFrame();
   }
 #endif
 
 #endif
   // Do special check first time for leaf frames
   // Step through the stack frames
-  while (!currentFrame.isLastFrame(this)) {
+  while (!currentFrame.isLastFrame()) {
     
     // grab the frame pointer
     fpNew = currentFrame.getFP();
@@ -389,7 +344,7 @@ bool process::walkStackFromFrame(Frame startFrame,
     fpOld = fpNew;
     
     stackWalk.push_back(currentFrame);    
-    currentFrame = currentFrame.getCallerFrame(this); 
+    currentFrame = currentFrame.getCallerFrame(); 
   }
   // Clean up after while loop (push end frame)
   stackWalk.push_back(currentFrame);
@@ -5584,30 +5539,26 @@ BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
 BPatch_function *process::findOrCreateBPFunc(int_function* pdfunc,
 					     BPatch_module *bpmod)
 {
-   if (PDFuncToBPFuncMap.defines(pdfunc))
-      return PDFuncToBPFuncMap[pdfunc];
+  if (PDFuncToBPFuncMap.defines(pdfunc)) {
+    return PDFuncToBPFuncMap[pdfunc];
+  }
+  assert(bpatch_thread);
+  
+  // Find the module that contains the function
+  if (bpmod == NULL && pdfunc->pdmod() != NULL) {
+    bpmod = bpatch_thread->getImage()->findModule(pdfunc->pdmod()->fileName().c_str());
+  }
 
-   assert(bpatch_thread);
+  // findModule has a tendency to make new function objects... so
+  // check the map again
+  if (PDFuncToBPFuncMap.defines(pdfunc)) {
+    return PDFuncToBPFuncMap[pdfunc];
+  }
 
-   // Find the module that contains the function
-   if (bpmod == NULL && pdfunc->pdmod() != NULL) {
-      BPatch_Vector<BPatch_module *> &mods =
-         *(bpatch_thread->getImage()->getModules());
-      for (unsigned int i = 0; i < mods.size(); i++) {
-	if (mods[i]->mod == pdfunc->pdmod()) {
-            bpmod = mods[i];
-            break;
-         }
-      }
-      // The BPatch_function may have been created as a side effect
-      // of the above
-      if (PDFuncToBPFuncMap.defines(pdfunc))
-         return PDFuncToBPFuncMap[pdfunc];
-   }
-   
-   BPatch_function *ret = new BPatch_function(this, pdfunc, bpmod);
-   
-   return ret;
+  BPatch_function *ret = new BPatch_function(this, pdfunc, bpmod);
+  // Gets set in the constructor
+  //PDFuncToBPFuncMap[pdfunc] = ret;
+  return ret;
 }
 
 // Add it at the bottom...
@@ -5715,7 +5666,7 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
              walkIter < stackWalk.size();
              walkIter++) {
             Frame frame = stackWalk[walkIter];
-            codeRange *range = findCodeRangeByAddress(frame.getPC());
+            codeRange *range = frame.getRange();
             trampTemplate *basetramp_ptr = range->is_basetramp();
             miniTrampHandle *minitramp_ptr = range->is_minitramp();
                 
