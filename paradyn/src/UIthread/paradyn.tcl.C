@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.43  1995/08/01 02:18:31  newhall
-/* changes to support phase interface
+/* Revision 1.44  1995/08/07 00:01:31  tamches
+/* Added waSetAbstraction, waSelect, and waUnselect
 /*
+ * Revision 1.43  1995/08/01  02:18:31  newhall
+ * changes to support phase interface
+ *
  * Revision 1.42  1995/06/26  19:40:39  tamches
  * Removed references to tunable constant print member function;
  * we now print manually
@@ -166,6 +169,9 @@
 #include "VM.thread.CLNT.h"
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
+#include "abstractions.h"
+#include "whereAxisTcl.h"
+
 #include <assert.h>
 #include <stdlib.h>
 
@@ -682,6 +688,82 @@ int ParadynSHGCmd (ClientData clientData,
   }
 }
 
+extern abstractions<resourceHandle> *theAbstractions;
+int ParadynWaSetAbstraction(ClientData cd, Tcl_Interp *interp,
+			    int argc, char **argv) {
+   if (argc != 2) {
+      cerr << "ParadynWaSetAbstraction: wrong # args" << endl;
+      return TCL_ERROR;
+   }
+   
+   assert(0==strcmp(argv[0], "waSetAbstraction"));
+   string absName = string(argv[1]);
+
+   int menuIndex = theAbstractions->name2index(absName);
+      // -1 if not found
+
+   if (menuIndex == -1) {
+      cout << "paradyn waSetAbstraction: could not change the abstraction to \"" << absName << "\" because it does not (yet?) exist" << endl;
+      return TCL_ERROR;
+   }
+
+   menuIndex++; // tcl menus are base 1 (0 is reserved for tearoff)
+
+   string commandStr = theAbstractions->getAbsMenuName() + " invoke " +
+                       string(menuIndex);
+   cout << "invoking menu item " << menuIndex << endl;
+
+   if (TCL_OK != Tcl_Eval(interp, commandStr.string_of())) {
+      cerr << interp->result << endl;
+      exit(5);
+   }
+
+   return TCL_OK;
+}
+
+int ParadynWaSelectUnselect(Tcl_Interp *interp,
+			    const char *name,
+			    bool selectFlag) {
+   if (!theAbstractions->existsCurrent())
+      return TCL_ERROR;
+
+   const bool found = theAbstractions->getCurrent().
+                      selectUnSelectFromFullPathName(name, selectFlag);
+   if (!found) {
+      if (selectFlag)
+         cout << "paradyn waSelect: ";
+      else
+         cout << "paradyn waUnselect: ";
+      cout << "could not find the item: " << name << endl;
+   }
+   else
+      initiateWhereAxisRedraw(interp, true); // whereAxisTcl.C
+
+   return TCL_OK;
+}
+
+int ParadynWaSelect(ClientData cd, Tcl_Interp *interp,
+		    int argc, char **argv) {
+   if (argc != 2) {
+      cerr << "ParadynWaSelect: too many arguments" << endl;
+      return TCL_ERROR;
+   }
+
+   assert(0==strcmp(argv[0], "waSelect"));
+   return ParadynWaSelectUnselect(interp, argv[1], true);
+}
+
+int ParadynWaUnSelect(ClientData cd, Tcl_Interp *interp,
+		    int argc, char **argv) {
+   if (argc != 2) {
+      cerr << "ParadynWaUnselect: too many arguments" << endl;
+      return TCL_ERROR;
+   }
+
+   assert(0==strcmp(argv[0], "waUnselect"));
+   return ParadynWaSelectUnselect(interp, argv[1], false);
+}
+
 int ParadynSuppressCmd (ClientData clientData,
 		       Tcl_Interp *interp,
 		       int argc,
@@ -720,6 +802,12 @@ int ParadynSuppressCmd (ClientData clientData,
     for (int i = 0; i < argsc; i++) {
       res = dataMgr->findResource (argsv[i]);
       cout << argsv[i];
+
+      if (res == NULL) {
+         cerr << "sorry, data manager could not findResource" << endl;
+         return TCL_ERROR;
+      }
+
       if (suppressInst) {
 	dataMgr->setResourceInstSuppress(*res, true);
       } else {
@@ -822,6 +910,9 @@ static struct cmdTabEntry Pd_Cmds[] = {
   {"shg", ParadynSHGCmd},
   {"suppress", ParadynSuppressCmd},
   {"visi", ParadynVisiCmd},
+  {"waSetAbstraction", ParadynWaSetAbstraction},
+  {"waSelect", ParadynWaSelect},
+  {"waUnselect", ParadynWaUnSelect},
   {NULL, NULL}
 };
 
