@@ -48,6 +48,10 @@ template class pair<unsigned, string*>;
 template class vector< vector<dictionary_hash<unsigned, string *>::hash_pair> >;
 template class vector< dictionary_hash<unsigned, string *>::hash_pair >;
 
+template class dictionary_lite<unsigned, string>;
+template class vector< dictionary_lite<unsigned, string>::hash_pair >;
+template class vector< vector< dictionary_lite<unsigned, string>::hash_pair > >;
+
 /* *************************************
  * UIthread WhereAxis stuff
  */
