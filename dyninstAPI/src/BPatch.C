@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.21 1999/11/01 16:25:32 hollings Exp $
+// $Id: BPatch.C,v 1.22 1999/11/05 23:20:03 paradyn Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -337,7 +337,8 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
 {
     assert(bpatch != NULL);
   
-    if (severity != BPatchInfo)
+        // don't log BPatchWarning or BPatchInfo messages as "errors"
+    if ((severity == BPatchFatal) || (severity == BPatchSerious))
 	bpatch->lastError = number;
 
     if (bpatch->errorHandler != NULL) {
