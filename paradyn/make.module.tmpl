@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.5  1995/02/27 18:32:30  tamches
+# Revision 1.6  1995/03/11 06:02:54  krisna
+# libthread, libutil name change
+#
+# Revision 1.5  1995/02/27  18:32:30  tamches
 # Changes to reflect the new TCthread.
 #
 # Revision 1.4  1995/02/26  02:14:39  newhall
@@ -95,7 +98,7 @@ IGEN_ISRCS    = dataManager.I \
 
 LIBDIR	     += -L/usr/psup/lib
 
-LIBS 	     += -lutil -lthread
+LIBS 	     += -lpdutil -lpdthread
 SYSLIBS	     += -ltk -ltcl -lX11 -lm -lresolv -lfl
 
 all:	$(TARGET) metTester
