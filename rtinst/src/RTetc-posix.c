@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTetc-posix.c,v 1.68 2002/06/17 21:31:18 chadd Exp $
+ * $Id: RTetc-posix.c,v 1.69 2002/06/18 18:54:43 chadd Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -286,7 +286,6 @@ static int connectToDaemon(int paradyndPid) {
 ************************************************************************/
 
 void DYNINSTinitTrace(int daemon_addr) {
-    fprintf(stderr, "<DYNINSTinitTrace %d\n", daemon_addr);
 
   if (daemon_addr == -1) {
     /* this process was started by the paradynd, which set up a pipe on fd 3 */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.333 2002/06/17 21:31:15 chadd Exp $
+// $Id: process.C,v 1.334 2002/06/18 18:54:42 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4187,7 +4187,11 @@ bool process::addASharedObject(shared_object &new_obj){
 #if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     /* If we're not currently trying to load the runtime library,
        check whether this shared object is the runtime lib. */
-    if (!isLoadingDyninstLib
+    if (!isLoadingDyninstLib 
+#if !defined(BPATCH_LIBRARY)
+&& !isLoadingParadynLib //ccw 18 jun 2002
+#endif
+
 	&& (ret = check_rtinst(this, &new_obj))) {
 	 if (ret == 1) {
 	      /* The runtime library has been loaded, but not initialized.
@@ -6993,12 +6997,12 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
       }
    }
 
-   if (!calledFromAttach) {
+   if (!calledFromAttach || !createdViaAttach) {
       str=string("PID=") + string(bs_struct.pid) + ", ready.";
       statusLine(str.c_str());
    }
 
-   if (calledFromAttach && !wasRunning) {
+   if (calledFromAttach && !wasRunning && createdViaAttach) {
       statusLine("application paused");
    }
 
