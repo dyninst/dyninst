@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.43 2000/10/27 23:04:19 zandy Exp $
+// $Id: linux.C,v 1.44 2000/11/16 19:20:19 bernat Exp $
 
 #include <fstream.h>
 
@@ -2127,6 +2127,14 @@ void process::initCpuTimeMgrPlt() {
 			   "DYNINSTgetCPUtime_sw");
 }
 #endif
+
+fileDescriptor *getExecFileDescriptor(string filename,
+				     int &,
+				     bool)
+{
+  fileDescriptor *desc = new fileDescriptor(filename);
+  return desc;
+}
 
 #if defined(USES_DYNAMIC_INF_HEAP)
 static const Address lowest_addr = 0x0;
