@@ -11,6 +11,9 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
+ * Revision 1.21  1996/04/29 03:36:40  tamches
+ * declaration of computePauseTimeMetric now has a param
+ *
  * Revision 1.20  1996/04/26 19:52:11  lzheng
  * Moved prototype of emitFuncCall to ast.h because the function arguments
  * used is changed.
@@ -315,7 +318,7 @@ extern string getProcessStatus(const process *p);
 // expects the symbol name advanced past the underscore
 extern unsigned findTags(const string funcName);
 
-extern float computePauseTimeMetric();
+extern float computePauseTimeMetric(const metricDefinitionNode *);
 
 extern process *nodePseudoProcess;
 
