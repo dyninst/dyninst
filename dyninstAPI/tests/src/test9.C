@@ -1,4 +1,4 @@
-// $Id: test9.C,v 1.8 2004/02/16 16:29:52 chadd Exp $
+// $Id: test9.C,v 1.9 2004/03/11 20:46:03 chadd Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -82,9 +82,9 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
         // conditional reporting of warnings and informational messages
         if (errorPrint) {
             if (level == BPatchInfo)
-              { if (errorPrint > 1) printf("%s\n", params[0]); }
+              { if (errorPrint > 1)fprintf(stderr,"%s\n", params[0]); }
             else
-                printf("%s", params[0]);
+               fprintf(stderr,"%s", params[0]);
         }
     } else {
         // reporting of actual errors
@@ -94,7 +94,7 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
         
         if (num != expectError) {
 	  if(num != 112)
-	    printf("Error #%d (level %d): %s\n", num, level, line);
+	   fprintf(stderr,"Error #%d (level %d): %s\n", num, level, line);
         
             // We consider some errors fatal.
             if (num == 101) {
@@ -157,13 +157,13 @@ void checkCost(BPatch_snippet snippet)
     cost = snippet.getCost();
     dprintf("Snippet cost=%g\n", cost);
     if (cost < 0.0) {
-	printf("*Error*: negative snippet cost\n");
+fprintf(stderr,"*Error*: negative snippet cost\n");
     } else if (cost == 0.0) {
 #if !defined(alpha_dec_osf4_0)
-	printf("*Warning*: zero snippet cost\n");
+fprintf(stderr,"*Warning*: zero snippet cost\n");
 #endif
     } else if (cost > 0.01) {
-	printf("*Error*: snippet cost of %f, exceeds max expected of 0.1",
+fprintf(stderr,"*Error*: snippet cost of %f, exceeds max expected of 0.1",
 	    cost);
     }
 }
@@ -176,7 +176,7 @@ char* saveWorld(BPatch_thread *appThread){
     strcat(mutatedName, "test9_mutated");
     char* dirName = appThread->dumpPatchedImage(mutatedName);
 	if(!dirName){
-		printf("Error: No directory name returned\n");
+	fprintf(stderr,"Error: No directory name returned\n");
 	}
 
 	return dirName;
@@ -211,7 +211,9 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
    int status, died;
  	char *mutatedBinary;
 
+#if defined(rs6000_ibm_aix4_1)	 || defined(rs6000_ibm_aix5_1)	
 	char *aixBinary="dyninst_mutatedBinary";
+#endif
 	char *realfileName;
 
 	realfileName = fileName;
@@ -228,7 +230,7 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 
 	switch((pid=fork())){
 		case -1: 
-			printf("can't fork\n");
+		fprintf(stderr,"can't fork\n");
     	    		exit(-1);
 		case 0 : 
 			//child
@@ -255,7 +257,7 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 	if(WIFEXITED(status)){
 		int exitStatus = WEXITSTATUS(status);
 
-		if(exitStatus == 1){
+		if(exitStatus == 0){
 			return 1;
 		}
 	}else if(WIFSIGNALED(status)){
@@ -293,7 +295,7 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 
 	switch((pid=fork())){
 		case -1: 
-			printf("can't fork\n");
+		fprintf(stderr,"can't fork\n");
     	    		exit(-1);
 		case 0 : 
 			for(int i=0;environ[i]!= '\0';i++){
@@ -320,7 +322,7 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 	if(WIFEXITED(status)){
 		int exitStatus = WEXITSTATUS(status);
 
-		if(exitStatus == 1){
+		if(exitStatus == 0){
 			return 1;
 		}
 	}else if(WIFSIGNALED(status)){
@@ -403,31 +405,93 @@ void instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, c
 
 }
 
+void buildArgs(char** child_argv, char *pathname, int testNo){
+	int n=0;
+
+	child_argv[n++] = pathname;
+	if (debugPrint){
+		child_argv[n++] = const_cast<char*>("-verbose");
+	}
+	child_argv[n++] = const_cast<char*>("-orig"); 
+
+        child_argv[n++] = const_cast<char*>("-run");
+       	char str[5];
+       	sprintf(str, "%d",testNo);
+       	child_argv[n++] = strdup(str);
+	
+	child_argv[n] = NULL;
+
+}
+
+int letOriginalMutateeFinish(BPatch_thread *appThread){
+	/* finish original mutatee to see if it runs */
+	
+	/*fprintf(stderr,"\n************************\n");	
+	fprintf(stderr,"Running the original mutatee\n\n");*/
+	appThread->continueExecution();
+
+	while( !appThread->isTerminated());
+
+	int retVal;
+
+	if(appThread->terminationStatus() == ExitedNormally) {
+		retVal = appThread->getExitCode();
+	} else if(appThread->terminationStatus() == ExitedViaSignal) {
+		int signalNum = appThread->getExitSignal();
+		if (signalNum){
+			fprintf(stderr,"Mutatee exited from signal 0x%x\n", signalNum);
+		}
+	       	retVal = signalNum;
+    	}
+
+
+//	fprintf(stderr,"Original mutatee has terminated\n\************************\n\n");
+
+	return retVal;
+}
+
+
 
 //
 // Start Test Case #1 - (instrument one simple function call and save the world)
 //
-void mutatorTest1(char *pathname, char** child_argv)
+void mutatorTest1(char *pathname)
 {
   char* testName = "instrument one simple function call and save the world";
   int testNo = 1;
  
 #if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)  || defined(rs6000_ibm_aix5_1)	
 
-  BPatch_thread *appThread;
+	char* child_argv[MAX_TEST+5];
+	
+	buildArgs(child_argv, pathname, testNo);
+
+	BPatch_thread *appThread;
 	BPatch_image *appImage;
 
 	createNewProcess(appThread, appImage, pathname, child_argv);
 	
 	instrumentToCallZeroArg(appThread, appImage, "func1_1", "call1_1", testNo, testName);
+
 	char* dirname=saveWorld(appThread);	
 	savedDirectories[testNo] = dirname;
-	passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST1);
 
-	appThread->terminateExecution();
+
+	/* finish original mutatee to see if it runs */
+	int retValue = letOriginalMutateeFinish(appThread);
+	/***********/
+
+	if( retValue == 0){
+	
+		passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST1);
+	}else{
+		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+	}
+
+	//appThread->terminateExecution();
 #else
 	passedTest[testNo] = 1;
-	fprintf(stderr,"Skipped Test %d: not implemented on this platform\n",testNo);
+	fprintf(stderr,"Skipped Test #%d: not implemented on this platform\n",testNo);
 
 #endif	
 }
@@ -435,13 +499,15 @@ void mutatorTest1(char *pathname, char** child_argv)
 //
 // Start Test Case #2 - (instrument many function calls and save the world)
 //
-void mutatorTest2(char *pathname, char** child_argv)
+void mutatorTest2(char *pathname)
 {
 	char* testName = "instrument many function calls and save the world";
 	int testNo = 2;
 		//for(i in 1 to 1000)
 	//	instrument func2_i to call call2_i
 #if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix5_1)	
+	char* child_argv[MAX_TEST+5];
+	buildArgs(child_argv, pathname, testNo);
 
 	char instrumentee[15];
 	char patch[15];
@@ -461,11 +527,20 @@ void mutatorTest2(char *pathname, char** child_argv)
 
 	char * dirname = saveWorld(appThread);
 	savedDirectories[testNo] = dirname;
-	passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST2);
-	appThread->terminateExecution();
+	/* finish original mutatee to see if it runs */
+	int retValue = letOriginalMutateeFinish(appThread);
+	/***********/
+
+	if( retValue == 0){
+	
+		passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST2);
+	}else{
+		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+
+	}
 #else
 	passedTest[testNo] = 1;
-	fprintf(stderr,"Skipped Test %d: not implemented on this platform\n",testNo);
+	fprintf(stderr,"Skipped Test #%d: not implemented on this platform\n",testNo);
 
 #endif
 }
@@ -473,7 +548,7 @@ void mutatorTest2(char *pathname, char** child_argv)
 //
 // Start Test Case #3 - (instrument a function with arguments and save the world)
 //
-void mutatorTest3(char *pathname, char** child_argv)
+void mutatorTest3(char *pathname)
 {
   const char* testName = "four parameter function";
   int testNo = 3;
@@ -485,6 +560,10 @@ void mutatorTest3(char *pathname, char** child_argv)
     // Find the entry point to the procedure "func3_1"
 	BPatch_image *appImage;
 	BPatch_thread *appThread;
+
+	char* child_argv[MAX_TEST+5];
+	buildArgs(child_argv, pathname, testNo);
+
 
 	createNewProcess(appThread, appImage, pathname, child_argv);
 
@@ -562,14 +641,20 @@ void mutatorTest3(char *pathname, char** child_argv)
 
 	char * dirname = saveWorld(appThread);
 	savedDirectories[testNo] = dirname;	
-	appThread->terminateExecution();
+	/* finish original mutatee to see if it runs */
+	int retValue = letOriginalMutateeFinish(appThread);
+	/***********/
 
-	passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST3);
-//	appThread->terminateExecution();
+	if( retValue == 0){
+	
+		passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST3);
+	}else{
+		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+	}
 
 #else
 	passedTest[testNo] = 1;
-	fprintf(stderr,"Skipped Test %d: not implemented on this platform\n",testNo);
+	fprintf(stderr,"Skipped Test #%d: not implemented on this platform\n",testNo);
 
 #endif
 }
@@ -577,7 +662,7 @@ void mutatorTest3(char *pathname, char** child_argv)
 //
 // Start Test Case #4 - (call writeValue and save the world)
 //
-void mutatorTest4(char *pathname, char** child_argv)
+void mutatorTest4(char *pathname)
 {
 	int testNo = 4;
 
@@ -587,6 +672,10 @@ void mutatorTest4(char *pathname, char** child_argv)
 
 	BPatch_image *appImage;
 	BPatch_thread *appThread;
+
+	char* child_argv[MAX_TEST+5];
+	buildArgs(child_argv, pathname, testNo);
+
 
 	createNewProcess(appThread, appImage, pathname, child_argv);
 
@@ -629,14 +718,22 @@ void mutatorTest4(char *pathname, char** child_argv)
     n = 17;
     expr4_1->writeValue(&n,true); //ccw 31 jul 2002
 
+
 	char * dirname = saveWorld(appThread);
 	savedDirectories[testNo]= dirname;
+	/* finish original mutatee to see if it runs */
+	int retValue = letOriginalMutateeFinish(appThread);
+	/***********/
 
-	passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST4);
-	appThread->terminateExecution();
+	if( retValue == 0){
+	
+		passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST4);
+	}else{
+		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+	}
 #else
 	passedTest[testNo] = 1;
-	fprintf(stderr,"Skipped Test %d: not implemented on this platform\n",testNo);
+	fprintf(stderr,"Skipped Test #%d: not implemented on this platform\n",testNo);
 #endif
 
 }
@@ -644,12 +741,16 @@ void mutatorTest4(char *pathname, char** child_argv)
 //
 // Start Test Case #5 - (call loadLibrary and save the world)
 //
-void mutatorTest5(char *pathname, char** child_argv)
+void mutatorTest5(char *pathname)
 {
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1) 
 	int testNo = 5;
 	BPatch_image *appImage;
 	BPatch_thread *appThread;
+
+	char* child_argv[MAX_TEST+5];
+	buildArgs(child_argv, pathname, testNo);
+
 
 	createNewProcess(appThread, appImage, pathname, child_argv);
 	if (! appThread->loadLibrary("libLoadMe.so", true)) {
@@ -657,13 +758,24 @@ void mutatorTest5(char *pathname, char** child_argv)
 	     fprintf(stderr, "  Mutator couldn't load libLoadMe.so into mutatee\n");
 	     exit(1);
 	}
+
 	char * dirname = saveWorld(appThread);
 	savedDirectories[testNo] = dirname;
-	passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST5);
-	appThread->terminateExecution();
+
+	/* finish original mutatee to see if it runs */
+	int retValue = letOriginalMutateeFinish(appThread);
+	/***********/
+
+	if( retValue == 0){
+	
+		passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST5);
+	}else{
+		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+	}
+
 #else
 	passedTest[5]=1;
-	fprintf(stderr,"Skipped Test 5: not implemented on this platform\n");
+	fprintf(stderr,"Skipped Test #5: not implemented on this platform\n");
 #endif
 
 }
@@ -671,7 +783,7 @@ void mutatorTest5(char *pathname, char** child_argv)
 //
 // Start Test Case #6 - (instrument a shared library and save the world)
 //
-void mutatorTest6(char *pathname, char** child_argv)
+void mutatorTest6(char *pathname)
 {
 #if defined(i386_unknown_linux2_0) 	
 //	 defined(sparc_sun_solaris2_4) ||
@@ -680,6 +792,9 @@ void mutatorTest6(char *pathname, char** child_argv)
 	BPatch_image *appImage;
 	BPatch_thread *appThread;
 
+	char* child_argv[MAX_TEST+5];
+	buildArgs(child_argv, pathname, testNo);
+
 	createNewProcess(appThread, appImage, pathname, child_argv);
 
 
@@ -687,14 +802,25 @@ void mutatorTest6(char *pathname, char** child_argv)
 	  each of this functions are in libInstMe.so
 	*/
 	instrumentToCallZeroArg(appThread, appImage, "func6_2", "call6_2", testNo, testName);
+
 	
 	char * dirname = saveWorld(appThread);
 	savedDirectories[testNo]=dirname;
-	passedTest[testNo] = runMutatedBinaryLDLIBRARYPATH(dirname, "test9_mutated", TEST6);
-	appThread->terminateExecution();
+
+	/* finish original mutatee to see if it runs */
+	int retValue = letOriginalMutateeFinish(appThread);
+	/***********/
+
+	if( retValue == 0){
+	
+		passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST6);
+	}else{
+		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+	}
+
 #else
 	passedTest[6]=1;
-	fprintf(stderr,"Skipped Test 6: not implemented on this platform\n");
+	fprintf(stderr,"Skipped Test #6: not implemented on this platform\n");
 #endif
 
 }
@@ -718,35 +844,15 @@ int mutatorMAIN(char *pathname)
     bpatch->registerErrorCallback(errorFunc);
 
     // Start the mutatee
-    printf("Starting \"%s\"\n", pathname);
+   fprintf(stderr,"Starting \"%s\"\n", pathname);
 
-    char* child_argv[MAX_TEST+5];
-
-    int n = 0;
-    child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
-
-    if (runAllTests) {
-        child_argv[n++] = const_cast<char*>("-runall"); // signifies all tests
-    } else {
-        child_argv[n++] = const_cast<char*>("-run");
-        for (unsigned int j=1; j <= MAX_TEST; j++) {
-            if (runTest[j]) {
-        	char str[5];
-        	sprintf(str, "%d", j);
-        	child_argv[n++] = strdup(str);
-            }
-        }
-    }
-
-    child_argv[n] = NULL;
-
-    if (runTest[1]) mutatorTest1(pathname, child_argv);
-    if (runTest[2]) mutatorTest2(pathname, child_argv);
-    if (runTest[3]) mutatorTest3(pathname, child_argv);
-    if (runTest[4]) mutatorTest4(pathname, child_argv);
-    if (runTest[5]) mutatorTest5(pathname, child_argv);
-    if (runTest[6]) mutatorTest6(pathname, child_argv);
+ 
+    if (runTest[1]) mutatorTest1(pathname);
+    if (runTest[2]) mutatorTest2(pathname);
+    if (runTest[3]) mutatorTest3(pathname);
+    if (runTest[4]) mutatorTest4(pathname);
+    if (runTest[5]) mutatorTest5(pathname);
+    if (runTest[6]) mutatorTest6(pathname);
 
     // Start of code to continue the process.  All mutations made
     // above will be in place before the mutatee begins its tests.
@@ -757,8 +863,7 @@ int mutatorMAIN(char *pathname)
 void removeDirectoryAndAllFiles ( char* dirname) {
 
   	DIR* dirPtr = opendir ( dirname);
-	  struct dirent *dirEntry, *result;
-	int err;
+	struct dirent *dirEntry, *result;
 
         if (!dirPtr) {
                 return;
@@ -837,7 +942,7 @@ main(unsigned int argc, char *argv[])
                     if ((testId > 0) && (testId <= MAX_TEST)) {
                         runTest[testId] = false;
                     } else {
-                        printf("invalid test %d requested\n", testId);
+                       fprintf(stderr,"invalid test %d requested\n", testId);
                         exit(-1);
                     }
                 } else {
@@ -856,7 +961,7 @@ main(unsigned int argc, char *argv[])
                     if ((testId > 0) && (testId <= MAX_TEST)) {
                         runTest[testId] = true;
                     } else {
-                        printf("invalid test %d requested\n", testId);
+                       fprintf(stderr,"invalid test %d requested\n", testId);
                         exit(-1);
                     }
                 } else {
@@ -890,11 +995,11 @@ main(unsigned int argc, char *argv[])
     }
 
     if (!runAllTests) {
-        printf("Running Tests: ");
+       fprintf(stderr,"Running Tests: ");
 	for (unsigned int j=1; j <= MAX_TEST; j++) {
-	    if (runTest[j]) printf("%d ", j);
+	    if (runTest[j])fprintf(stderr,"%d ", j);
 	}
-	printf("\n");
+	fprintf(stderr,"\n");
     }
 
     // patch up the default compiler in mutatee name (if necessary)

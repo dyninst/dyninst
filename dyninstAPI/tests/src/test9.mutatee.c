@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test9.mutatee.c,v 1.5 2003/09/12 00:53:52 chadd Exp $ */
+/* $Id: test9.mutatee.c,v 1.6 2004/03/11 20:46:03 chadd Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -39,7 +39,7 @@ int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
 const char Builder_id[]=COMPILER; /* defined on compile line */
 
-
+int originalMutatee = 0;
 int globalVariable1_1 = 0;
 int globalVariable2_1 = 0;
 int globalVariable4_1 = 42;
@@ -60,17 +60,20 @@ void func6_1(){
 
 #if !defined(i386_unknown_linux2_0) 
 	/* !defined(sparc_sun_solaris2_4) && */
-    printf("Skipped test #6 (instrument a shared library and save the world)\n");
-    printf("\t- not implemented on this platform\n");
+   fprintf(stderr,"Skipped test #6 (instrument a shared library and save the world)\n");
+   fprintf(stderr,"\t- not implemented on this platform\n");
     passedTest[6] = TRUE;
 #else
-	
+
 	func6_2(); /*this is in libInstMe.so */
+
 	if(globalVariable6_1 == 22){
-		printf("Passed Test #6 (instrument a shared library and save the world)\n");
+		if( ! originalMutatee){
+			fprintf(stderr,"Passed Test #6 (instrument a shared library and save the world)\n");
+		}
 		passedTest[6] = TRUE;	
 	}else{
-		printf("**Failed Test #6 (instrument a shared library and save the world)\n");
+		fprintf(stderr,"**Failed Test #6 (instrument a shared library and save the world)\n");
 	}
 
 #endif
@@ -12072,8 +12075,8 @@ void call2_1(){
 int func2_1(){
 #if !defined(sparc_sun_solaris2_4) &&  !defined(rs6000_ibm_aix4_1) &&!defined(i386_unknown_linux2_0) &&!defined(rs6000_ibm_aix5_1)
 
-    printf("Skipped test #2 (instrument many simple function calls and save the world)\n");
-    printf("\t- not implemented on this platform\n");
+   fprintf(stderr,"Skipped test #2 (instrument many simple function calls and save the world)\n");
+   fprintf(stderr,"\t- not implemented on this platform\n");
     passedTest[2] = TRUE;
 
 #else
@@ -12083,15 +12086,17 @@ int func2_1(){
 
 		ret = func2_2();
 		if(ret == 1){
-			printf("Passed Test #2 (instrument many simple function calls and save the world)\n");
+			if( ! originalMutatee){
+			fprintf(stderr,"Passed Test #2 (instrument many simple function calls and save the world)\n");
+			}
 			passedTest[2] = TRUE;
 		}else{
-			printf("Failed Test #2 (instrument many simple function calls and save the world)\n");
+		fprintf(stderr,"Failed Test #2 (instrument many simple function calls and save the world)\n");
 		}
 		return ret;
 
 	}else{
-		printf("Failed Test #2 (instrument many simple function calls and save the world)\n");
+	fprintf(stderr,"Failed Test #2 (instrument many simple function calls and save the world)\n");
 		return 0;
 	}
 #endif
@@ -12107,20 +12112,21 @@ void call1_1(){
 int func1_1(){
 #if !defined(sparc_sun_solaris2_4) &&  !defined(rs6000_ibm_aix4_1) &&!defined(i386_unknown_linux2_0) &&!defined(rs6000_ibm_aix5_1)
 
-    printf("Skipped test #1 (instrument one simple function call and save the world)\n");
-    printf("\t- not implemented on this platform\n");
+   fprintf(stderr,"Skipped test #1 (instrument one simple function call and save the world)\n");
+   fprintf(stderr,"\t- not implemented on this platform\n");
     passedTest[1] = TRUE;
 
 #else
 
 	if(globalVariable1_1 == 42) {
-
-		printf("Passed Test #1 (instrument one simple function call and save the world)\n");
+		if( ! originalMutatee){
+		fprintf(stderr,"Passed Test #1 (instrument one simple function call and save the world)\n");
+		}
 		passedTest[1] = TRUE;
 
 		return 1;
 	}else{
-		printf("Failed Test #1 (instrument one simple function call and save the world)\n");
+	fprintf(stderr,"Failed Test #1 (instrument one simple function call and save the world)\n");
 		return 0;
 	}
 #endif
@@ -12136,8 +12142,8 @@ void func3_1() {
 	mutated binary works fine when it is run by hand 
 */
 
-    printf("Skipped test #3 (instrument four parameter function call and save the world)\n");
-    printf("\t- not implemented on this platform\n");
+   fprintf(stderr,"Skipped test #3 (instrument four parameter function call and save the world)\n");
+   fprintf(stderr,"\t- not implemented on this platform\n");
     passedTest[3] = TRUE;
 
 #else
@@ -12152,18 +12158,20 @@ void call3_1(int arg1, int arg2, char *arg3, void *arg4)
 
     if ((arg1 == 1) && (arg2 == 2) && (!strcmp(arg3, "testString3_1")) &&
 	(arg4 == TEST_PTR)) {
-	printf("Passed test #3 (four parameter function)\n");
+	if( ! originalMutatee){
+	fprintf(stderr,"Passed test #3 (four parameter function)\n");
+	}
 	passedTest[3] = TRUE;
     } else {
-	printf("**Failed** test #3 (four parameter function)\n");
+fprintf(stderr,"**Failed** test #3 (four parameter function)\n");
 	if (arg1 != 1)
-	    printf("    arg1 = %d, should be 1\n", arg1);
+	   fprintf(stderr,"    arg1 = %d, should be 1\n", arg1);
 	if (arg2 != 2)
-	    printf("    arg2 = %d, should be 2\n", arg2);
+	   fprintf(stderr,"    arg2 = %d, should be 2\n", arg2);
 	if (strcmp(arg3, "testString3_1"))
-	    printf("    arg3 = %s, should be \"testString3_1\"\n", arg3);
+	   fprintf(stderr,"    arg3 = %s, should be \"testString3_1\"\n", arg3);
 	if (arg4 != TEST_PTR)
-	    printf("    arg4 = 0x%p, should be 0x%p\n", arg4, TEST_PTR);
+	   fprintf(stderr,"    arg4 = 0x%p, should be 0x%p\n", arg4, TEST_PTR);
     }
 }
 
@@ -12178,22 +12186,24 @@ void func4_1()
 	mutated binary works fine when it is run by hand 
 */
 
-    printf("Skipped test #4 (read/write a variable in the mutatee and save the world)\n");
-    printf("\t- not implemented on this platform\n");
+   fprintf(stderr,"Skipped test #4 (read/write a variable in the mutatee and save the world)\n");
+   fprintf(stderr,"\t- not implemented on this platform\n");
     passedTest[4] = TRUE;
 
 #else
 
 
     if (globalVariable4_1 == 17) {
-    	printf("Passed test #4 (read/write a variable in the mutatee)\n");
+		if( ! originalMutatee){
+    		fprintf(stderr,"Passed test #4 (read/write a variable in the mutatee)\n");
+		}
 		passedTest[4] = TRUE;
     } else {
-		printf("**Failed test #4 (read/write a variable in the mutatee)\n");
+	fprintf(stderr,"**Failed test #4 (read/write a variable in the mutatee)\n");
 		if (globalVariable4_1 == 42)
-	    	printf("    globalVariable4_1 still contains 42 (probably it was not written to)\n");
+	    fprintf(stderr,"    globalVariable4_1 still contains 42 (probably it was not written to)\n");
 		else
-		    printf("    globalVariable4_1 contained %d, not 17 as expected\n",
+		   fprintf(stderr,"    globalVariable4_1 contained %d, not 17 as expected\n",
 			    globalVariable4_1);
     }
 #endif
@@ -12202,8 +12212,8 @@ void func4_1()
 void func5_1(){
 #if !defined(sparc_sun_solaris2_4) &&  !defined(i386_unknown_linux2_0) &&!defined(rs6000_ibm_aix4_1)
 
-    printf("Skipped test #5 (use loadLibrary and save the world)\n");
-    printf("\t- not implemented on this platform\n");
+   fprintf(stderr,"Skipped test #5 (use loadLibrary and save the world)\n");
+   fprintf(stderr,"\t- not implemented on this platform\n");
     passedTest[5] = TRUE;
 
 #else
@@ -12238,11 +12248,13 @@ void func5_1(){
 	if(globalVariable5_1 == 99){
 #endif
 		/* init in libLoadMe.so should set globalVariable5_1 */
+		if( ! originalMutatee){
 
-		printf("Passed test #5 (use loadLibrary)\n");
+		fprintf(stderr,"Passed test #5 (use loadLibrary)\n");
+		}
 		passedTest[5] = TRUE;
 	}else{
-		printf("**Failed test #5 (use loadLibrary) %d\n",globalVariable5_1);
+	fprintf(stderr,"**Failed test #5 (use loadLibrary) %d\n",globalVariable5_1);
 	}
 		
 #endif
@@ -12295,6 +12307,9 @@ int main(int iargc, char *argv[])
         } else if (!strcmp(argv[i], "-runall")) {
             dprintf("selecting all tests\n");
             for (j=1; j <= MAX_TEST; j++) runTest[j] = TRUE;
+	}else if (!strcmp(argv[i], "-orig")) {
+		originalMutatee = 1;
+		
         } else if (!strcmp(argv[i], "-run")) {
             for (j=i+1; j < argc; j++) {
                 unsigned int testId;
@@ -12303,7 +12318,7 @@ int main(int iargc, char *argv[])
                         dprintf("selecting test %d\n", testId);
                         runTest[testId] = TRUE;
                     } else {
-                        printf("invalid test %d requested\n", testId);
+                       fprintf(stderr,"invalid test %d requested\n", testId);
                         exit(-1);
                     }
                 } else {
@@ -12312,14 +12327,14 @@ int main(int iargc, char *argv[])
                 }
             }
             i=j-1;
-		} else {
+	} else {
             fprintf(stderr, "%s\n", USAGE);
             exit(-1);
         }
     }
 
     if ((argc==1) || debugPrint)
-        printf("Mutatee %s [%s]:\"%s\"\n", argv[0],
+       fprintf(stderr,"Mutatee %s [%s]:\"%s\"\n", argv[0],
                 mutateeCplusplus ? "C++" : "C", Builder_id);
     if (argc==1) exit(0);
 
@@ -12339,5 +12354,5 @@ int main(int iargc, char *argv[])
 
     fflush(stdout);
     dprintf("Mutatee %s terminating.\n", argv[0]);
-    exit(testsFailed ? 127 :1); /* 1 is success! 127 is failure*/ 
+    exit(testsFailed ? 127 :0); /* 1 is success! 127 is failure*/ 
 }
