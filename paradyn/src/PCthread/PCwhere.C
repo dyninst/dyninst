@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.5  1994/06/14 15:33:59  markc
+ * Revision 1.6  1994/06/14 17:20:39  markc
+ * Modified PCwhere.C to see if the magnification is an ancestor of the
+ * current focus.
+ *
+ * Revision 1.5  1994/06/14  15:33:59  markc
  * Modified moreSpecific test to check for conflicting magnifications, where
  * the magnification has the same base as the current focus, but one is not
  * an ancestor of the other.
@@ -56,7 +60,7 @@
 static volatile char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.5 1994/06/14 15:33:59 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.6 1994/06/14 17:20:39 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -365,6 +369,10 @@ focus *focus::moreSpecific(resource *parm, Boolean &conflicts)
 	if (curr->isDescendent(parm) == TRUE) {
 	  newList->add(parm);
 	  found = TRUE;
+	} else if (parm->isDescendent(curr) == TRUE) {
+          // the current focus is more specific - it will be reused
+	  found = FALSE;
+	  break;
 	} else if (strcmp(curr->getName(), parm->getName()) &&
 		   (curr->sameRoot(parm) == TRUE)) {
 	  // if the resource and param have the same root, but
