@@ -2,10 +2,14 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.9  1995/09/20 01:24:13  tamches
-/* Major cleanification; too many things to enumerate.  no path items
-/* have negative values.  No more uses of graphical paths.
+/* Revision 1.10  1995/10/17 22:15:12  tamches
+/* The templated class has changed from a unique-id class to a
+/* full root-node class.
 /*
+ * Revision 1.9  1995/09/20 01:24:13  tamches
+ * Major cleanification; too many things to enumerate.  no path items
+ * have negative values.  No more uses of graphical paths.
+ *
  * Revision 1.8  1995/09/08  19:51:19  krisna
  * stupid way to avoid the for-scope problem
  *
@@ -69,19 +73,6 @@
 #include "minmax.h"
 #include "where4tree.h"
 
-// Define static member variables:
-// "sorry, not implemented: static data member templates" (g++ 2.6.3), so
-// we resort to this hack:
-
-// template<class USERNODEDATA>
-// int where4tree<USERNODEDATA>::masterlistboxBorderPix = 3;
-
-// template<class USERNODEDATA>
-// int where4tree<USERNODEDATA>::masterlistboxScrollBarWidth = 16;
-
-extern int listboxBorderPix;
-extern int listboxScrollBarWidth;
-
 
 /* *****************************************************************************
  *
@@ -92,26 +83,14 @@ extern int listboxScrollBarWidth;
  * *****************************************************************************
  */
 
-template <class USERNODEDATA>
-void where4tree<USERNODEDATA>::removeListbox() {
+template <class NODEDATA>
+void where4tree<NODEDATA>::removeListbox() {
    listboxPixWidth = listboxFullPixHeight = listboxActualPixHeight = 0;
    theScrollbar.invalidate();
 }
 
-/* *******************************************************************
- *
- * Expensive routine on window resize.  listbox may completely change.
- *
- * New feature: we need to loop through EVERY listbox (ugh) and
- * rethink whether or not it needs a scrollbar (using tc.listboxHeightWhereSBappears)
- * which _may_ change listboxActualHeight and listboxPixWidth.
- * We didn't put this functionality into rethinkAfterResize(), but it pretty
- * much needs to be called by outside code every time it calls rethinkAfterResize()
- * 
- * *******************************************************************
- */
-template <class USERNODEDATA>
-bool where4tree<USERNODEDATA>::rethinkListboxAfterResize1(const where4TreeConstants &tc) {
+template <class NODEDATA>
+bool where4tree<NODEDATA>::rethinkListboxAfterResize1(const where4TreeConstants &tc) {
    // Using listboxFullPixHeight and tc.listboxHeightWhereSBappears
    // (and assuming the latter has changed), rethink scrollbar aspects of listbox.
    // Returns true iff any changes.
@@ -132,29 +111,27 @@ bool where4tree<USERNODEDATA>::rethinkListboxAfterResize1(const where4TreeConsta
          // by the width of a scrollbar, and the listbox actual height is set to
          // listbox full height.
          theScrollbar.invalidate();
-         listboxPixWidth -= listboxScrollBarWidth;
+         listboxPixWidth -= tc.listboxScrollBarWidth;
          listboxActualPixHeight = listboxFullPixHeight;
       }
    else if (!theScrollbar.isValid()) {
       // no SB was up, but one is needed now
       theScrollbar.validate();
-      listboxPixWidth += listboxScrollBarWidth;
+      listboxPixWidth += tc.listboxScrollBarWidth;
       listboxActualPixHeight = tc.listboxHeightWhereSBappears;
    }
    else {
       // An SB was up, and still needs to be up.
       listboxActualPixHeight = tc.listboxHeightWhereSBappears;
-      theScrollbar.updateForNewBounds(
-            listboxActualPixHeight-2*listboxBorderPix,
-            listboxFullPixHeight-2*listboxBorderPix);
+      theScrollbar.updateForNewBounds(listboxActualPixHeight-2*tc.listboxBorderPix,
+				      listboxFullPixHeight-2*tc.listboxBorderPix);
    }
 
    return true; // changes were made
 }
 
-template <class USERNODEDATA>
-bool where4tree<USERNODEDATA>::
-rethinkListboxAfterResize(const where4TreeConstants &tc) {
+template <class NODEDATA>
+bool where4tree<NODEDATA>::rethinkListboxAfterResize(const where4TreeConstants &tc) {
    // Assuming tc.listboxHeightWhereSBappears has changed (presumably due to a window
    // resize), rethink listbox parameters.
    // IMPORTANT: After subtree root A has a child B whose listbox dimensions have
@@ -180,16 +157,17 @@ rethinkListboxAfterResize(const where4TreeConstants &tc) {
    return anyChildrenHaveChanged || weHaveChanged;
 }
 
-template <class USERNODEDATA>
-int where4tree<USERNODEDATA>::scroll_listbox(int deltaYpix) {
+template <class NODEDATA>
+int where4tree<NODEDATA>::scroll_listbox(const where4TreeConstants &tc,
+					 int deltaYpix) {
    // doesn't redraw
    // returns actual scroll amount (perhaps different from deltaYpix due to pinnning)
    assert(theScrollbar.isValid());
 
    const int oldPixFirst = theScrollbar.getPixFirst();
 
-   const int listboxTotalDataPix = listboxFullPixHeight - 2*listboxBorderPix;
-   const int listboxActualDataPixHeight = listboxActualPixHeight - 2*listboxBorderPix;
+   const int listboxTotalDataPix = listboxFullPixHeight - 2*tc.listboxBorderPix;
+   const int listboxActualDataPixHeight = listboxActualPixHeight - 2*tc.listboxBorderPix;
  
    int newPixFirst = oldPixFirst + deltaYpix;
    ipmax(newPixFirst, 0);
@@ -209,19 +187,19 @@ int where4tree<USERNODEDATA>::scroll_listbox(int deltaYpix) {
    return actualDeltaY;
 }
 
-template <class USERNODEDATA>
-bool where4tree<USERNODEDATA>::scroll_listbox(const where4TreeConstants &tc,
-                                              int listboxLeft,
-                                              int listboxTop,
-                                              int deltaYpix) {
+template <class NODEDATA>
+bool where4tree<NODEDATA>::scroll_listbox(const where4TreeConstants &tc,
+					  int listboxLeft,
+					  int listboxTop,
+					  int deltaYpix) {
    // returns true iff any changes made.  Redraws.
-   const int actualDeltaY = scroll_listbox(deltaYpix);
+   const int actualDeltaY = scroll_listbox(tc, deltaYpix);
    if (actualDeltaY == 0)
       return 0;
 
-   const int listboxDataLeft = listboxLeft + listboxBorderPix +
-                               listboxScrollBarWidth;
-   const int listboxDataTop  = listboxTop + listboxBorderPix;
+   const int listboxDataLeft = listboxLeft + tc.listboxBorderPix +
+                               tc.listboxScrollBarWidth;
+   const int listboxDataTop  = listboxTop + tc.listboxBorderPix;
 
    // Under certain conditions, we must resort to one whole draw_listbox()
    // instead of scrolling and doing a partial draw_listbox().  These conditions
@@ -233,7 +211,8 @@ bool where4tree<USERNODEDATA>::scroll_listbox(const where4TreeConstants &tc,
 
    bool redraw_all = false;
 
-   const int listboxActualDataPixHeight = listboxActualPixHeight - 2*listboxBorderPix;
+   const int listboxActualDataPixHeight = listboxActualPixHeight -
+                                          2 * tc.listboxBorderPix;
    if (absDeltaY > listboxActualDataPixHeight)
       // case (2)
       redraw_all = true;
@@ -251,26 +230,26 @@ bool where4tree<USERNODEDATA>::scroll_listbox(const where4TreeConstants &tc,
       redraw_all = true;
 
    if (redraw_all) {
-      draw_listbox(tc, tc.masterWindow,
+      draw_listbox(tc.theTkWindow, tc, Tk_WindowId(tc.theTkWindow),
 		   listboxLeft, listboxTop, -1, -1);
       return true;
    }
 
    // Set clipping s.t. the copy stays within the bounds of the listbox data area.
 
-   const int listboxActualDataPixWidth = listboxPixWidth - 2*listboxBorderPix -
-                                         listboxScrollBarWidth;
+   const int listboxActualDataPixWidth = listboxPixWidth - 2*tc.listboxBorderPix -
+                                         tc.listboxScrollBarWidth;
    XRectangle clipRect = {listboxDataLeft, listboxDataTop,
 			  listboxActualDataPixWidth, listboxActualDataPixHeight};
 
-   XSetClipRectangles(tc.display, tc.listboxBackgroundGC,
+   XSetClipRectangles(tc.display, tc.erasingGC,
 		      0, 0,
 		      &clipRect, 1, YXBanded);
 
    XCopyArea(tc.display,
-             tc.masterWindow, // source drawable
-	     tc.masterWindow, // dest drawable
-	     tc.listboxBackgroundGC, // ???
+             Tk_WindowId(tc.theTkWindow), // source drawable
+	     Tk_WindowId(tc.theTkWindow), // dest drawable
+	     tc.erasingGC, // not many fields of this GC are used; this should do fine
 	     listboxDataLeft, // source leftx
 	     listboxDataTop,  // source topy
 	     listboxActualDataPixWidth,  // width of area to copy
@@ -280,7 +259,7 @@ bool where4tree<USERNODEDATA>::scroll_listbox(const where4TreeConstants &tc,
 	     );
 
    // undo the clipping change:
-   XSetClipMask(tc.display, tc.listboxBackgroundGC, None);
+   XSetClipMask(tc.display, tc.erasingGC, None);
 
    int redrawLbStart; // data y pixel coord relative to top
    if (actualDeltaY < 0)
@@ -292,15 +271,15 @@ bool where4tree<USERNODEDATA>::scroll_listbox(const where4TreeConstants &tc,
       // hole (to redraw) opens up at the bottom.
       redrawLbStart = (listboxActualDataPixHeight - 1) - actualDeltaY + 1;
 
-   draw_listbox(tc, tc.masterWindow,
+   draw_listbox(tc.theTkWindow, tc, Tk_WindowId(tc.theTkWindow),
 		listboxLeft, listboxTop,
 		redrawLbStart, absDeltaY);
 
    return true;
 }
 
-template <class USERNODEDATA>
-void where4tree<USERNODEDATA>::rethink_listbox_dimensions(const where4TreeConstants &tc) {
+template <class NODEDATA>
+void where4tree<NODEDATA>::rethink_listbox_dimensions(const where4TreeConstants &tc) {
    // Recalculates listboxPixWidth, listboxFullPixHeight, listboxActualPixHeight,
    // and theScrollbar.
 
@@ -321,7 +300,7 @@ void where4tree<USERNODEDATA>::rethink_listbox_dimensions(const where4TreeConsta
 
       numItemsInlistbox++;
 
-      ipmax(maxItemWidth, theChildren[childlcv].nameTextWidthIfInListbox);
+      ipmax(maxItemWidth, theChildren[childlcv].theTree->theNodeData.getWidthAsListboxItem());
    }
 
    if (maxItemWidth == 0) {
@@ -334,7 +313,7 @@ void where4tree<USERNODEDATA>::rethink_listbox_dimensions(const where4TreeConsta
    assert(numItemsInlistbox > 0);
 
    // set preliminary width (we may add a scrollbar momentarily...)
-   listboxPixWidth = 2*listboxBorderPix +
+   listboxPixWidth = 2*tc.listboxBorderPix +
                      tc.listboxHorizPadBeforeText +
                      maxItemWidth +
                      tc.listboxHorizPadBeforeTriangle +
@@ -345,18 +324,18 @@ void where4tree<USERNODEDATA>::rethink_listbox_dimensions(const where4TreeConsta
    const int itemHeight = tc.listboxVertPadAboveItem +
                           tc.listboxFontStruct->ascent +
                           tc.listboxVertPadAfterItemBaseline;
-   listboxFullPixHeight = 2*listboxBorderPix +
+   listboxFullPixHeight = 2*tc.listboxBorderPix +
                           numItemsInlistbox * itemHeight;
    
    // Step 3: Is a scrollbar needed?
    if (listboxFullPixHeight >= tc.listboxHeightWhereSBappears) {
-      listboxPixWidth += listboxScrollBarWidth;
+      listboxPixWidth += tc.listboxScrollBarWidth;
       theScrollbar.validate();
       listboxActualPixHeight = tc.listboxHeightWhereSBappears;
 
-      theScrollbar.updateForNewBounds(listboxActualPixHeight - 2*listboxBorderPix,
+      theScrollbar.updateForNewBounds(listboxActualPixHeight - 2*tc.listboxBorderPix,
                                          // actual available data pixels
-                                      listboxFullPixHeight - 2*listboxBorderPix
+                                      listboxFullPixHeight - 2*tc.listboxBorderPix
                                          // total data pixels
                                       );
    }
@@ -367,13 +346,13 @@ void where4tree<USERNODEDATA>::rethink_listbox_dimensions(const where4TreeConsta
    }
 }
 
-template <class USERNODEDATA>
-void where4tree<USERNODEDATA>::drawTriangle(const where4TreeConstants &tc,
-                                            Drawable theDrawable,
-                                            int triangleEndX,
-                                            int currBaseLine) const {
+template <class NODEDATA>
+void where4tree<NODEDATA>::drawTriangle(const where4TreeConstants &tc,
+					Drawable theDrawable,
+					int triangleEndX,
+					int currBaseLine) const {
    // cost is O(XFillPolygon())
-   // This is actually a fairly generic triangle-drawing routine; hence, I made it static.
+   // This is a fairly generic triangle-drawing routine; hence, I made it static.
    const int triangleStartX = triangleEndX - tc.listboxTriangleWidth + 1;
    const int triangleTopY   = currBaseLine - tc.listboxTriangleHeight + 1;
 
@@ -392,16 +371,16 @@ void where4tree<USERNODEDATA>::drawTriangle(const where4TreeConstants &tc,
                 thePoints, 3,
                 Convex, // no two points inside the polygon will
                         // intersect the boundaries when connected
-                CoordModeOrigin
-                );
+                CoordModeOrigin);
 }
 
-template <class USERNODEDATA>
-void where4tree<USERNODEDATA>::draw_listbox(const where4TreeConstants &tc,
-                                            Drawable theDrawable,
-                                            int left, int top,
-                                            int datapart_relative_starty,
-                                            int datapart_relative_height) const {
+template <class NODEDATA>
+void where4tree<NODEDATA>::draw_listbox(Tk_Window theTkWindow,
+					const where4TreeConstants &tc,
+					Drawable theDrawable, // could be offscreen buff
+					int left, int top,
+					int datapart_relative_starty,
+					int datapart_relative_height) const {
    // Assumes a listbox exists.
    // Given (left, top) of listbox area, draw it (incl. sb, if applicable)
    // listboxPixWidth, listboxFullPixHeight, listboxActualPixHeight,
@@ -413,55 +392,55 @@ void where4tree<USERNODEDATA>::draw_listbox(const where4TreeConstants &tc,
    assert(existsANonExplicitlyExpandedChild());
 
    // First, some quick & dirty macroscopic clipping:
-   if (left > Tk_Width(tc.theTkWindow)-1) return; // everything's too far right
+   if (left > Tk_Width(theTkWindow)-1) return; // everything's too far right
    if (left + listboxPixWidth - 1 < 0) return; // everything's too far left
-   if (top > Tk_Height(tc.theTkWindow)-1) return; // everything's too far down
+   if (top > Tk_Height(theTkWindow)-1) return; // everything's too far down
    if (top + listboxActualPixHeight - 1 < 0) return; // everything's too high
 
-   int datapart_starty = top + listboxBorderPix;
+   int datapart_starty = top + tc.listboxBorderPix;
    int datapart_finishy = datapart_starty + listboxActualPixHeight -
-                          2*listboxBorderPix-1;
+                          2*tc.listboxBorderPix-1;
    
    if (datapart_relative_starty != -1 && datapart_relative_height != -1) {
       datapart_starty += datapart_relative_starty;
       datapart_finishy = datapart_starty + datapart_relative_height - 1;
    }
 
-   ipmax(datapart_starty, top + listboxBorderPix);
-   ipmin(datapart_finishy, top + listboxActualPixHeight - 1 - listboxBorderPix);
+   ipmax(datapart_starty, top + tc.listboxBorderPix);
+   ipmin(datapart_finishy, top + listboxActualPixHeight - 1 - tc.listboxBorderPix);
 
    const bool existsScrollBar = theScrollbar.isValid();
    if (existsScrollBar)
-      theScrollbar.draw(tc, theDrawable,
+      theScrollbar.draw(theTkWindow, tc.listboxScrollbarBorderNormal, theDrawable,
                         left, top,
                         top+listboxActualPixHeight-1,
-                        listboxActualPixHeight-2*listboxBorderPix,
+                        listboxActualPixHeight-2*tc.listboxBorderPix,
                            // viewable data pix
-                        listboxFullPixHeight-2*listboxBorderPix
+                        listboxFullPixHeight-2*tc.listboxBorderPix
                            // total data pix
                         );
 
    // Background (total area of lb, excluding sb)
    const int backgroundWidth = listboxPixWidth -
-                               (existsScrollBar ? listboxScrollBarWidth : 0);
+                               (existsScrollBar ? tc.listboxScrollBarWidth : 0);
 
-   const int backgroundLeft = left + (existsScrollBar ? listboxScrollBarWidth : 0);
+   const int backgroundLeft = left + (existsScrollBar ? tc.listboxScrollBarWidth : 0);
 
    // No need to Fill a rectangle; Draw will do just fine.
    // Why?  Because each individual item is drawn with a Fill.
-   Tk_Draw3DRectangle(tc.theTkWindow, theDrawable,
+   Tk_Draw3DRectangle(theTkWindow, theDrawable,
                       tc.listboxBorder,
                       backgroundLeft, top,
                       backgroundWidth, listboxActualPixHeight,
-                      listboxBorderPix,
+                      tc.listboxBorderPix,
                       TK_RELIEF_RIDGE
                       );
 
-   const int itemBoxLeft = backgroundLeft + listboxBorderPix;
+   const int itemBoxLeft = backgroundLeft + tc.listboxBorderPix;
    int currItemBoxTop = top - (existsScrollBar ? theScrollbar.getPixFirst() : 0)
-                            + listboxBorderPix;
+                            + tc.listboxBorderPix;
 
-   const int itemBoxWidth = backgroundWidth - listboxBorderPix * 2;
+   const int itemBoxWidth = backgroundWidth - tc.listboxBorderPix * 2;
    const int itemBoxHeight = tc.listboxVertPadAboveItem +
                              tc.listboxFontStruct->ascent +
                              tc.listboxVertPadAfterItemBaseline;
@@ -481,16 +460,17 @@ void where4tree<USERNODEDATA>::draw_listbox(const where4TreeConstants &tc,
                         itemBoxWidth,
                         datapart_finishy - datapart_starty + 1};
 
-   GC lightGC = Tk_3DBorderGC(tc.theTkWindow, tc.listboxBorder, TK_3D_LIGHT_GC);
-   GC darkGC = Tk_3DBorderGC(tc.theTkWindow, tc.listboxBorder, TK_3D_DARK_GC);
-   GC flatGC = Tk_3DBorderGC(tc.theTkWindow, tc.listboxBorder, TK_3D_FLAT_GC);
+   GC lightGC = Tk_3DBorderGC(theTkWindow, tc.listboxBorder, TK_3D_LIGHT_GC);
+   GC darkGC = Tk_3DBorderGC(theTkWindow, tc.listboxBorder, TK_3D_DARK_GC);
+   GC flatGC = Tk_3DBorderGC(theTkWindow, tc.listboxBorder, TK_3D_FLAT_GC);
 			      
    XSetClipRectangles(tc.display, lightGC, 0, 0, &clipRect, 1, YXBanded);
    XSetClipRectangles(tc.display, darkGC, 0, 0, &clipRect, 1, YXBanded);
    XSetClipRectangles(tc.display, flatGC, 0, 0, &clipRect, 1, YXBanded);
 
-   XSetClipRectangles(tc.display, tc.listboxTextGC, 0, 0, &clipRect, 1, YXBanded);
    XSetClipRectangles(tc.display, tc.listboxTriangleGC, 0, 0, &clipRect, 1, YXBanded);
+
+   NODEDATA::prepareForDrawingListboxItems(tc.theTkWindow, clipRect);
                       
    for (unsigned childlcv=0; childlcv < theChildren.size(); childlcv++) {
       if (theChildren[childlcv].isExplicitlyExpanded)
@@ -507,7 +487,7 @@ void where4tree<USERNODEDATA>::draw_listbox(const where4TreeConstants &tc,
       }
 
       // Change the background
-      Tk_Fill3DRectangle(tc.theTkWindow, theDrawable,
+      Tk_Fill3DRectangle(theTkWindow, theDrawable,
                          tc.listboxBorder,
                          itemBoxLeft,
                          currItemBoxTop,
@@ -515,17 +495,16 @@ void where4tree<USERNODEDATA>::draw_listbox(const where4TreeConstants &tc,
                          itemBoxHeight,
                          1, // looks much better than the usual value of 3
                             // (2 also looks pretty good)
-                         theChildren[childlcv].theTree->theRootNode.getHighlighted() ?
+                         theChildren[childlcv].theTree->getNodeData().getHighlighted() ?
                             highlightedItemRelief : normalItemRelief
                          );
 
-      // Draw this child's name
-      const string &theString = theChildren[childlcv].theTree->getRootName();
-      XDrawString(tc.display, theDrawable,
-                  tc.listboxTextGC,
-                  textLeft, currBaseline,
-		  theString.string_of(), theString.length());
-
+      NODEDATA &theChildNodeData = theChildren[childlcv].theTree->theNodeData;
+      theChildNodeData.drawAsListboxItem(theTkWindow, theDrawable,
+					 itemBoxLeft, currItemBoxTop,
+					 itemBoxWidth, itemBoxHeight,
+					 textLeft, currBaseline);
+					    
       // Draw triangle iff this is non-leaf node
       if (theChildren[childlcv].theTree->getNumChildren() > 0) {
          const int triangleEndX = left + listboxPixWidth -
@@ -536,32 +515,33 @@ void where4tree<USERNODEDATA>::draw_listbox(const where4TreeConstants &tc,
       currBaseline   += itemBoxHeight;
       currItemBoxTop += itemBoxHeight;
 
-      if (currItemBoxTop > Tk_Height(tc.theTkWindow)-1)
+      if (currItemBoxTop > Tk_Height(theTkWindow)-1)
          break; // everything else would be too far down
    }
+
+   NODEDATA::doneDrawingListboxItems(tc.theTkWindow);
 
    // Undo the XSetClipRectangles():
    XSetClipMask(tc.display, flatGC, None);
    XSetClipMask(tc.display, darkGC, None);
    XSetClipMask(tc.display, lightGC, None);
 
-   XSetClipMask(tc.display, tc.listboxTextGC, None);
    XSetClipMask(tc.display, tc.listboxTriangleGC, None);
 }
 
-template <class USERNODEDATA>
-bool where4tree<USERNODEDATA>::
+template <class NODEDATA>
+bool where4tree<NODEDATA>::
 rigListboxScrollbarSliderTopPix(const where4TreeConstants &tc,
-                                const int scrollBarLeft,
+                                int scrollBarLeft,
                                    // only needed if redrawing
-                                const int scrollBarTop,
-                                const int scrollBarBottom,
-                                const int newScrollBarSliderTopPix,
-                                const bool redrawNow) {
+                                int scrollBarTop,
+                                int scrollBarBottom,
+                                int newScrollBarSliderTopPix,
+                                bool redrawNow) {
    // returns true iff any changes were made
 
    const int listboxTotalDataPix = listboxFullPixHeight -
-                                   2*listboxBorderPix;
+                                   2*tc.listboxBorderPix;
 
    const int oldPixFirst = theScrollbar.getPixFirst();
 
@@ -574,7 +554,7 @@ rigListboxScrollbarSliderTopPix(const where4TreeConstants &tc,
       return scroll_listbox(tc, scrollBarLeft, scrollBarTop,
 			    newScrollbarPixFirst - oldPixFirst);
    else
-      return scroll_listbox(newScrollbarPixFirst - oldPixFirst);
+      return scroll_listbox(tc, newScrollbarPixFirst - oldPixFirst);
 }
 
 
@@ -586,8 +566,8 @@ rigListboxScrollbarSliderTopPix(const where4TreeConstants &tc,
  *
  * ****************************************************************************
  */
-template <class USERNODEDATA>
-int where4tree<USERNODEDATA>::
+template <class NODEDATA>
+int where4tree<NODEDATA>::
 horiz_pix_everything_below_root(const where4TreeConstants &tc) const {
    // simply adds up listbox width, all-expanded-children-width, and
    // padding where appropriate.
@@ -600,19 +580,19 @@ horiz_pix_everything_below_root(const where4TreeConstants &tc) const {
    return result;
 }
 
-template <class USERNODEDATA>
-int where4tree<USERNODEDATA>::vert_pix_everything_below_root() const {
+template <class NODEDATA>
+int where4tree<NODEDATA>::vert_pix_everything_below_root() const {
    return max(listboxActualPixHeight, allExpandedChildrenHeightAsDrawn);
 }
 
-template <class USERNODEDATA>
-int where4tree<USERNODEDATA>::entire_width(const where4TreeConstants &tc) const {
-   return max(horiz_pix_everything_below_root(tc), theRootNode.getWidth());
+template <class NODEDATA>
+int where4tree<NODEDATA>::entire_width(const where4TreeConstants &tc) const {
+   return max(horiz_pix_everything_below_root(tc), getNodeData().getWidthAsRoot());
 }
 
-template <class USERNODEDATA>
-int where4tree<USERNODEDATA>::entire_height(const where4TreeConstants &tc) const {
-   int result = theRootNode.getHeight();
+template <class NODEDATA>
+int where4tree<NODEDATA>::entire_height(const where4TreeConstants &tc) const {
+   int result = theNodeData.getHeightAsRoot();
    if (theChildren.size() == 0)
       return result;
 
@@ -628,10 +608,9 @@ int where4tree<USERNODEDATA>::entire_height(const where4TreeConstants &tc) const
  *
  * ****************************************************************************
  */
-template <class USERNODEDATA>
-int where4tree<USERNODEDATA>::
-horiz_offset_to_expanded_child(const where4TreeConstants &tc,
-                               unsigned childIndex) const {
+template <class NODEDATA>
+int where4tree<NODEDATA>::horiz_offset_to_expanded_child(const where4TreeConstants &tc,
+							 unsigned childIndex) const {
    // Gives horiz pixel offset (from the left point of the leftmost item being drawn
    // below the root, which is the leftmost part of the scrollbar of the listbox IF a
    // listbox is up; else from the left point of the leftmost child) to the leftmost
@@ -655,8 +634,8 @@ horiz_offset_to_expanded_child(const where4TreeConstants &tc,
    return result;      
 }
 
-template <class USERNODEDATA>
-int where4tree<USERNODEDATA>::
+template <class NODEDATA>
+int where4tree<NODEDATA>::
 wouldbe_all_expanded_children_width(const where4TreeConstants &tc) const {
    // Call this (fairly) expensive routine only to update
    // "allExpandedChildrenWidthAsDrawn", which speeds up draw().
@@ -693,8 +672,8 @@ wouldbe_all_expanded_children_width(const where4TreeConstants &tc) const {
    return result;
 }
 
-template <class USERNODEDATA>
-int where4tree<USERNODEDATA>::
+template <class NODEDATA>
+int where4tree<NODEDATA>::
 wouldbe_all_expanded_children_height(const where4TreeConstants &tc) const {
    // Call this (fairly) expensive routine only to update
    // "heightOfAllExpandedChildrenAsDrawn", which speeds up draw().
@@ -712,8 +691,8 @@ wouldbe_all_expanded_children_height(const where4TreeConstants &tc) const {
       // no listbox --> everyone's either implicitly or explicitly expanded!
 
    int result = 0;
-   const int numChildren = theChildren.size();
-   for (int childlcv = 0; childlcv < numChildren; childlcv++)
+   const unsigned numChildren = theChildren.size();
+   for (unsigned childlcv = 0; childlcv < numChildren; childlcv++)
       if (allChildrenAreExpanded || theChildren[childlcv].isExplicitlyExpanded)
          ipmax(result, theChildren[childlcv].theTree->entire_height(tc));
 
@@ -721,27 +700,20 @@ wouldbe_all_expanded_children_height(const where4TreeConstants &tc) const {
 }
 
 
-/* *******************************************************************
- *
- * draw() -- the main drawing entrypoint
- *
- * Some crude clipping (based on Tk_Width(tc.theTkWindow), Tk_Height(tc.theTkWindow))
- * is performed automatically.
- *
- * *******************************************************************
- */
-template <class USERNODEDATA>
-void where4tree<USERNODEDATA>::draw(const where4TreeConstants &tc,
-                                    Drawable theDrawable,
-                                    int middlex, int topy,
-				       // describes position of root node
-                                    bool rootOnly, bool listboxOnly) const {
-   const int maxWindowY = Tk_Height(tc.theTkWindow) - 1;
+template <class NODEDATA>
+void where4tree<NODEDATA>::draw(Tk_Window theTkWindow,
+				const where4TreeConstants &tc,
+				Drawable theDrawable,
+				int middlex, int topy,
+				   // describes position of root node
+				bool rootOnly, bool listboxOnly) const {
+   const int maxWindowY = Tk_Height(theTkWindow) - 1;
    if (topy > maxWindowY)
       return; // everything is too far down
 
    if (!listboxOnly)
-      theRootNode.draw(tc, theDrawable, middlex, topy);
+      theNodeData.drawAsRoot(theTkWindow, theDrawable,
+			     middlex, topy);
 
    if (rootOnly || theChildren.size() == 0)
       return; // no children to draw...
@@ -750,7 +722,7 @@ void where4tree<USERNODEDATA>::draw(const where4TreeConstants &tc,
       // a very quick routine
 
    int rayOriginX = middlex;
-   int rayOriginY = topy + theRootNode.getHeight(); // we don't subtract 1
+   int rayOriginY = topy + theNodeData.getHeightAsRoot(); // don't subtract 1
  
    if (rayOriginY > maxWindowY)
       return; // everything else would be too far down
@@ -762,7 +734,7 @@ void where4tree<USERNODEDATA>::draw(const where4TreeConstants &tc,
 //   const unsigned borderPix = 0; // used to be 3
 
 //   const int windowMinX = borderPix;
-//   const int windowMaxX = Tk_Width(tc.theTkWindow) - 1 - borderPix;
+//   const int windowMaxX = Tk_Width(theTkWindow) - 1 - borderPix;
 
    // Draw listbox:
    if (listboxPixWidth > 0) {
@@ -778,11 +750,10 @@ void where4tree<USERNODEDATA>::draw(const where4TreeConstants &tc,
                    childtopypix - 1 // desty
                    );
 
-      draw_listbox(tc, theDrawable,
+      draw_listbox(tc.theTkWindow, tc, theDrawable,
                    currentXpix, // left
                    childtopypix, // top
-                   -1, -1
-                   );
+                   -1, -1);
 
       currentXpix += listboxPixWidth + tc.horizPixlistbox2FirstExpandedChild;
    }
@@ -842,7 +813,7 @@ const int maximus = 32768;
 	 }
                               
          // Recursively draw the subtree
-         theChild->draw(tc, theDrawable,
+         theChild->draw(tc.theTkWindow, tc, theDrawable,
                         subtree_centerx, childtopypix,
                         false, // not root only
                         false // not listbox only
@@ -865,18 +836,29 @@ const int maximus = 32768;
  * *******************************************************************
  */
 
-template <class USERNODEDATA>
-bool where4tree<USERNODEDATA>::
-expandUnexpand1(const where4TreeConstants &tc, int childindex, bool expandFlag,
-		bool rethinkFlag) {
-   // won't expand a leaf node.
+template <class NODEDATA>
+bool where4tree<NODEDATA>::expandUnexpand1(const where4TreeConstants &tc,
+					   unsigned childindex, bool expandFlag,
+					   bool rethinkFlag,
+					   bool force) {
+   // won't expand a leaf node unless "force" is true
+   // NOTE: Expanding a child will require rethinking the all-expanded-children
+   //       dimensions for ALL ancestors of the expandee.  This routine only takes
+   //       care of updating those dimensions for the immediate ancestor (parent)
+   //       of the expandee.  YOU MUST MANUALLY HANDLE THE REST OF THE PATH!
+
    if (theChildren[childindex].isExplicitlyExpanded == expandFlag)
-      return false; // already expanded
+      return false; // nothing would change
 
    // do not expand a leaf node
    if (expandFlag)
-      if (getChildTree(childindex)->theChildren.size() == 0)
+      if (!force && getChildTree(childindex)->theChildren.size() == 0)
          return false;
+      else if (listboxPixWidth == 0) {
+         // Already implicitly expanded.  Just make it explicit.
+         theChildren[childindex].isExplicitlyExpanded = expandFlag;
+         return false;
+      }
 
    theChildren[childindex].isExplicitlyExpanded = expandFlag;
 
@@ -898,30 +880,34 @@ expandUnexpand1(const where4TreeConstants &tc, int childindex, bool expandFlag,
    return true;
 }
 
-template <class USERNODEDATA>
-bool where4tree<USERNODEDATA>::
-explicitlyExpandSubchild(const where4TreeConstants &tc, unsigned childindex) {
+template <class NODEDATA>
+bool where4tree<NODEDATA>::explicitlyExpandSubchild(const where4TreeConstants &tc,
+						    unsigned childindex,
+						    bool force) {
    // returns true iff any changes are made.  Won't expand a leaf node.
-   if (listboxPixWidth == 0)
-      return false; // all children are already expanded
-
-   return expandUnexpand1(tc, childindex, true, true);
+   // NOTE: The same warning of expandUnexpand1() applies -- outside code must
+   //       manually rethink_expanded_children_dimensions() for ALL ancestors of
+   //       the expandee; this routine only handles the immeidate ancestor (parent).
+   return expandUnexpand1(tc, childindex, true, true, force);
 }
 
-template <class USERNODEDATA>
-bool where4tree<USERNODEDATA>::explicitlyUnexpandSubchild(const where4TreeConstants &tc,
-                                                          unsigned childindex) {
+template <class NODEDATA>
+bool where4tree<NODEDATA>::explicitlyUnexpandSubchild(const where4TreeConstants &tc,
+						      unsigned childindex) {
    // returns true iff any changes are made
+   // NOTE: The same warning of expandUnexpand1() applies -- outside code must
+   //       manually rethink_expanded_children_dimensions() for ALL ancestors of
+   //       the expandee; this routine only handles the immeidate ancestor (parent).
 
    const bool allChildrenExpanded = (listboxPixWidth == 0);
    if (!allChildrenExpanded && !theChildren[childindex].isExplicitlyExpanded)
       return false; // this child is already un-expanded
 
-   return expandUnexpand1(tc, childindex, false, true);
+   return expandUnexpand1(tc, childindex, false, true, false);
 }
 
-template <class USERNODEDATA>
-bool where4tree<USERNODEDATA>::expandAllChildren(const where4TreeConstants &tc) {
+template <class NODEDATA>
+bool where4tree<NODEDATA>::expandAllChildren(const where4TreeConstants &tc) {
    // expand _all_ non-leaf children.  Returns true iff any changes...
 
    bool result = false;
@@ -929,7 +915,8 @@ bool where4tree<USERNODEDATA>::expandAllChildren(const where4TreeConstants &tc) 
 
    for (unsigned childlcv=0; childlcv < theChildren.size(); childlcv++) {
       if (expandUnexpand1(tc, childlcv, true, // expand
-			  false // don't rethink listbox dimensions (we'll do it manually)
+			  false, // we'll rethink lb dimensions manually, below
+			  false // don't force expansion of leaf items
 			  ))
          result = true;
       else
@@ -950,8 +937,8 @@ bool where4tree<USERNODEDATA>::expandAllChildren(const where4TreeConstants &tc) 
    return true; // changes were made
 }
 
-template <class USERNODEDATA>
-bool where4tree<USERNODEDATA>::unExpandAllChildren(const where4TreeConstants &tc) {
+template <class NODEDATA>
+bool where4tree<NODEDATA>::unExpandAllChildren(const where4TreeConstants &tc) {
    // returns true iff any changes were made
    for (unsigned childlcv=0; childlcv < theChildren.size(); childlcv++)
       theChildren[childlcv].isExplicitlyExpanded = false;
@@ -968,10 +955,10 @@ bool where4tree<USERNODEDATA>::unExpandAllChildren(const where4TreeConstants &tc
    return true;
 }
 
-template <class USERNODEDATA>
-void where4tree<USERNODEDATA>::rethinkAfterResize(const where4TreeConstants &tc,
-                                                  int horizSpaceToWorkWithThisSubtree) {
-   const int numChildren = theChildren.size();
+template <class NODEDATA>
+void where4tree<NODEDATA>::rethinkAfterResize(const where4TreeConstants &tc,
+					      int horizSpaceToWorkWithThisSubtree) {
+   const unsigned numChildren = theChildren.size();
    if (numChildren == 0)
       return; // what's to rethink?  nothing!  This is a measly leaf node.
 
@@ -986,7 +973,7 @@ void where4tree<USERNODEDATA>::rethinkAfterResize(const where4TreeConstants &tc,
    }
    
    int childrenWidthIfAllExpanded = 0;
-   for (int childlcv=0; childlcv < numChildren; childlcv++)
+   for (unsigned childlcv=0; childlcv < numChildren; childlcv++)
       childrenWidthIfAllExpanded += getChildTree(childlcv)->entire_width(tc) + 
                                     tc.horizPixBetweenChildren;
 
@@ -1013,9 +1000,10 @@ void where4tree<USERNODEDATA>::rethinkAfterResize(const where4TreeConstants &tc,
 }
 
 
-template <class USERNODEDATA>
-int where4tree<USERNODEDATA>::
-point2ItemOneStepScrollbar(int ypix, int scrollbarTop, int scrollbarHeight) const {
+template <class NODEDATA>
+int where4tree<NODEDATA>::point2ItemOneStepScrollbar(const where4TreeConstants &tc,
+						     int ypix, int scrollbarTop,
+						     int scrollbarHeight) const {
    // -3 for a point in listbox scrollbar up-arrow,
    // -4 for point in listbox scrollbar down-arrow,
    // -5 for point in listbox scrollbar pageup-region,
@@ -1037,8 +1025,8 @@ point2ItemOneStepScrollbar(int ypix, int scrollbarTop, int scrollbarHeight) cons
    int sliderPixTop;
    int sliderPixHeight;
    theScrollbar.getSliderCoords(scrollbarTop, scrollbarBottom,
-                                listboxActualPixHeight-2*listboxBorderPix,
-                                listboxFullPixHeight-2*listboxBorderPix,
+                                listboxActualPixHeight-2*tc.listboxBorderPix,
+                                listboxFullPixHeight-2*tc.listboxBorderPix,
                                 sliderPixTop, // filled in
                                 sliderPixHeight // filled in
                                 );
@@ -1052,11 +1040,10 @@ point2ItemOneStepScrollbar(int ypix, int scrollbarTop, int scrollbarHeight) cons
    return -7; // in slider
 }
 
-template <class USERNODEDATA>
-int where4tree<USERNODEDATA>::
-point2ItemOneStep(const where4TreeConstants &tc,
-                  int xpix, int ypix,
-                  int root_centerx, int root_topy) const {
+template <class NODEDATA>
+int where4tree<NODEDATA>::point2ItemOneStep(const where4TreeConstants &tc,
+					    int xpix, int ypix,
+					    int root_centerx, int root_topy) const {
    // returns -1 for a point in root, 0 thru n-1 for point w/in general
    // range of a child subtree [even if child is in a listbox],
    // -2 for a point on nothing,
@@ -1068,7 +1055,7 @@ point2ItemOneStep(const where4TreeConstants &tc,
 
    assert(ypix >= 0 && xpix >= 0);
 
-   const int posRelativeToRoot = theRootNode.pointWithin(xpix, ypix,
+   const int posRelativeToRoot = theNodeData.pointWithinAsRoot(xpix, ypix,
                                                          root_centerx, root_topy);
    if (posRelativeToRoot == 2)
       return -2; // too high
@@ -1079,7 +1066,7 @@ point2ItemOneStep(const where4TreeConstants &tc,
 
    assert(posRelativeToRoot == 3); // below root...check listbox & expanded children
 
-   const int childrenTop = root_topy + theRootNode.getHeight() +
+   const int childrenTop = root_topy + getNodeData().getHeightAsRoot() +
                            tc.vertPixParent2ChildTop;
    if (ypix < childrenTop)
       return -2; // nothing
@@ -1111,8 +1098,8 @@ point2ItemOneStep(const where4TreeConstants &tc,
          if (ypix >= childrenTop && ypix <= listboxBottom) {
             // point is in listbox!  But scrollbar part or data part?
             const bool scrollBarIsUp = theScrollbar.isValid();
-            if (scrollBarIsUp && xpix < currentX + listboxScrollBarWidth)
-               return point2ItemOneStepScrollbar(
+            if (scrollBarIsUp && xpix < currentX + tc.listboxScrollBarWidth)
+               return point2ItemOneStepScrollbar(tc,
                                  ypix, // click point (note that xcoord is not needed)
                                  childrenTop, // scrollbar top
                                  listboxActualPixHeight // scrollbar height
@@ -1121,12 +1108,12 @@ point2ItemOneStep(const where4TreeConstants &tc,
             // Wasn't a click in scrollbar.
             int listboxLocalX = xpix - currentX;
             if (scrollBarIsUp)
-               listboxLocalX -= listboxScrollBarWidth;
-            if (listboxLocalX < listboxBorderPix)
+               listboxLocalX -= tc.listboxScrollBarWidth;
+            if (listboxLocalX < tc.listboxBorderPix)
                return -2; // sorry, you clicked on the left border
                  
             int listboxLocalY = ypix - childrenTop;
-            if (listboxLocalY < listboxBorderPix)
+            if (listboxLocalY < tc.listboxBorderPix)
                return -2; // sorry, you clicked on the top border
 
             if (scrollBarIsUp)
@@ -1134,7 +1121,7 @@ point2ItemOneStep(const where4TreeConstants &tc,
 
             assert(listboxLocalX >= 0);
             assert(listboxLocalX < listboxPixWidth -
-                                   (scrollBarIsUp ? listboxScrollBarWidth : 0));
+                                   (scrollBarIsUp ? tc.listboxScrollBarWidth : 0));
 
             assert(listboxLocalY >= 0);
             assert(listboxLocalY < listboxFullPixHeight);
@@ -1151,8 +1138,8 @@ point2ItemOneStep(const where4TreeConstants &tc,
 
    // Check expanded children (both implicitly- and explicitly- expanded ones)
    const bool allChildrenAreExpanded = (listboxPixWidth == 0);
-   const int numChildren = theChildren.size();
-   for (int childlcv = 0; childlcv < numChildren; childlcv++)
+   const unsigned numChildren = theChildren.size();
+   for (unsigned childlcv = 0; childlcv < numChildren; childlcv++)
       if (allChildrenAreExpanded || theChildren[childlcv].isExplicitlyExpanded) {
          const where4tree *theChild = getChildTree(childlcv);
          const int thisChildEntireWidth = theChild->entire_width(tc);
@@ -1169,9 +1156,9 @@ point2ItemOneStep(const where4TreeConstants &tc,
    return -2;
 }
 
-template <class USERNODEDATA>
-int where4tree<USERNODEDATA>::point2ItemWithinListbox(const where4TreeConstants &tc,
-                                                      int localx, int localy) const {
+template <class NODEDATA>
+int where4tree<NODEDATA>::point2ItemWithinListbox(const where4TreeConstants &tc,
+						  int localx, int localy) const {
    // Given point relative to the data part (not scrollbar part) of the 
    // listbox (may assert that a listbox exists for this subtree and
    // that the provided points lie within its bounds), return index of item
@@ -1201,8 +1188,8 @@ int where4tree<USERNODEDATA>::point2ItemWithinListbox(const where4TreeConstants 
    // If we could find expanded child #i in constant time, then this operation
    // could be made much faster.
 
-   const int numChildren = theChildren.size();
-   for (int childlcv=0; childlcv < numChildren; childlcv++) {
+   const unsigned numChildren = theChildren.size();
+   for (unsigned childlcv=0; childlcv < numChildren; childlcv++) {
       // listbox exists --> _all_ non-explicitly-expanded children are in the listbox.
       if (!theChildren[childlcv].isExplicitlyExpanded)
          if (theRelativeItem == 0)
@@ -1214,12 +1201,12 @@ int where4tree<USERNODEDATA>::point2ItemWithinListbox(const where4TreeConstants 
    return -2; // nothing
 }
 
-template <class USERNODEDATA>
-int where4tree<USERNODEDATA>::string2Path(whereNodePosRawPath &thePath,
-                                          const where4TreeConstants &tc,
-                                          const string &str,
-                                          where4tree *beginSearchFrom,
-					  bool testRootNode) {
+template <class NODEDATA>
+int where4tree<NODEDATA>::string2Path(whereNodePosRawPath &thePath,
+				      const where4TreeConstants &tc,
+				      const string &str,
+				      where4tree *beginSearchFrom,
+				      bool testRootNode) {
    // If not found, thePath is left undefined, and 0 is returned.
    // Otherwise, modifies "thePath" and:
    //    -- returns 1 if no expansions are necessary (can scroll)
@@ -1228,9 +1215,6 @@ int where4tree<USERNODEDATA>::string2Path(whereNodePosRawPath &thePath,
    // Depth first search (dive into listbox children, then expanded ones)
 
    // NOTE: "thePath" must start out initialized as usual...
-
-   unsigned &thisPathItem = thePath.getLastItem();
-   assert(thisPathItem == theChildren.size());
 
    bool match = testRootNode && str.prefix_of(getRootName());
    if (match) {
@@ -1266,13 +1250,13 @@ int where4tree<USERNODEDATA>::string2Path(whereNodePosRawPath &thePath,
             else if (beginSearchFrom != NULL)
                match = false;
 
-         thisPathItem = i;
+         thePath.append(i);
 
          if (match)
             return 1; // found; no exp necessary
 
          where4tree *theChild = getChildTree(i);
-         thePath.append(theChild->theChildren.size());
+
          if (theChild->string2Path(thePath, tc, str, beginSearchFrom, false) != 0)
             return 2; // found; expansion necessary.
          else
@@ -1285,10 +1269,9 @@ int where4tree<USERNODEDATA>::string2Path(whereNodePosRawPath &thePath,
       const bool childIsExpanded = allChildrenExpanded ||
                                    theChildren[j].isExplicitlyExpanded;
       if (childIsExpanded) {
-         thisPathItem = j;
+         thePath.append(j);
 
          where4tree *theChild = getChildTree(j);
-         thePath.append(theChild->theChildren.size());
 
          int result = theChild->string2Path(thePath, tc, str, beginSearchFrom, true);
          if (result == 0)
@@ -1310,13 +1293,11 @@ int where4tree<USERNODEDATA>::string2Path(whereNodePosRawPath &thePath,
  * ********************************************************************
  */
 
-template <class USERNODEDATA>
-int where4tree<USERNODEDATA>::path2lbItemExpand(const where4TreeConstants &tc,
-                                                const whereNodePosRawPath &thePath,
-                                                unsigned pathIndex) {
-   // returns 0 if you tried to expand an already-expanded item,
-   // returns 1 if you tried to expand a leaf listbox item,
-   // returns 2 normally.
+template <class NODEDATA>
+bool where4tree<NODEDATA>::path2lbItemExpand(const where4TreeConstants &tc,
+					     const whereNodePosRawPath &thePath,
+					     unsigned pathIndex) {
+   // returns true iff any changes.
 
    // new feature: whenever a node A is explicitly expanded, so are all of its
    //              ancestors.
@@ -1328,51 +1309,35 @@ int where4tree<USERNODEDATA>::path2lbItemExpand(const where4TreeConstants &tc,
       // recurse...then, if changes were made to a descendant, rethink our
       // child params...
       unsigned childnum = thePath[pathIndex];
-      const int result = theChildren[childnum].theTree->
-                         path2lbItemExpand(tc, thePath, pathIndex+1);
-      if (result==2) {
-         theChildren[childnum].isExplicitlyExpanded = true;
-            // new feature
+      bool anyChanges = getChildTree(childnum)->
+	                path2lbItemExpand(tc, thePath, pathIndex+1);
 
-         // changes were made to a descendant of child #theItem.  We
-         // need to update some of our internal variables.  Why?  Because the
-         // descendant action probably changed some width/height sizes.
+      if (explicitlyExpandSubchild(tc, childnum, false)) // false --> no force
+         anyChanges = true;
+
+      if (anyChanges)
          rethink_all_expanded_children_dimensions(tc);
-      }
 
-      return result;
+      return anyChanges;
    }
 
    assert(pathIndex == pathSize-1);
    unsigned lastItem = thePath.getLastItem();
 
-   // Unhighlight the node
-   theChildren[lastItem].theTree->theRootNode.unhighlight();
+   // Unhighlight the node    [WHY????????]
+   theChildren[lastItem].theTree->getNodeData().unhighlight();
       // doesn't redraw
 
-   // expand --- but wait --- only if the clickee isn't a leaf node
-   if (theChildren[lastItem].theTree->theChildren.size() > 0) {
-      (void)explicitlyExpandSubchild(tc, lastItem);
-      // rethinks listbox dimensions (may no longer need one),
-      // as well as allExpandedChildrenWidthAsDrawn and
-      //            allExpandedChildrenHeightAsDrawn.
-      // we always return true because a change has already
-      // been made: the node has become unhighlighted.
-
-      return 2;
-   }
-   else
-      // a leaf node
-      return 1;
+   return explicitlyExpandSubchild(tc, lastItem, false); // false --> don't force
 }
 
-template <class USERNODEDATA>
-bool where4tree<USERNODEDATA>::expandEntirePath(const where4TreeConstants &tc,
-                                                const whereNodePosRawPath &thePath,
-                                                unsigned index) {
-   // Given a path, forcibly expand out any and all listbox path elements.
-   // Exception: won't expand a listbox item at the very end of the path.
-   // Returns true iff any expansion(s) actually took place.
+template <class NODEDATA>
+bool where4tree<NODEDATA>::expandEntirePath(const where4TreeConstants &tc,
+					    const whereNodePosRawPath &thePath,
+					    unsigned index) {
+   // Save as path2lbItemExpand, except we won't expand a listbox item at the
+   // end of the path -- we just want to "make the entire path visible".
+   // Returns true iff any changes were made
 
    if (thePath.getSize() == 0)
       return false; // we never need to expand the root node
@@ -1393,7 +1358,7 @@ bool where4tree<USERNODEDATA>::expandEntirePath(const where4TreeConstants &tc,
       (void)getChildTree(childindex)->expandEntirePath(tc, thePath, index+1);
          // recurse
 
-      assert(explicitlyExpandSubchild(tc, childindex));
+      assert(explicitlyExpandSubchild(tc, childindex, false)); // false --> don't force
          // rethinks stuff, too (like allExpandedChildrenWidthAsDrawn)
 
       return true; // expansion(s) were made
@@ -1409,39 +1374,10 @@ bool where4tree<USERNODEDATA>::expandEntirePath(const where4TreeConstants &tc,
    }
 }
 
-template <class USERNODEDATA>
-bool where4tree<USERNODEDATA>::
-path2ExpandAllChildren(const where4TreeConstants &tc,
-		       const whereNodePosRawPath &thePath,
-		       unsigned pathIndex) {
-   // returns true iff any changes.
-   // new feature: in general, when we explicitly expand node A, we also
-   //              explicitly expand all of its ancestors.  At first, this seems
-   //              silly (how could we have explicitly expanded A if its ancestors
-   //              were not visible to begin with?)  The key is that the ancestors
-   //              may have been implicitly expanded.
-
-   if (pathIndex < thePath.getSize()) {
-      // recurse...then, if changes were made to a descendant [of course there were;
-      // we're expanding all of its children!], then rethink our child size params...
-      unsigned thisItem = thePath[pathIndex];
-      const bool result = getChildTree(thisItem)->path2ExpandAllChildren
-                                                (tc, thePath, pathIndex+1);
-      if (result) {
-         theChildren[thisItem].isExplicitlyExpanded = true; // new feature
-         rethink_all_expanded_children_dimensions(tc);
-      }
-
-      return result;
-   }
-
-   return expandAllChildren(tc);
-}
-
-template <class USERNODEDATA>
-bool where4tree<USERNODEDATA>::path2lbItemUnexpand(const where4TreeConstants &tc,
-                                                   const whereNodePosRawPath &thePath,
-                                                   unsigned pathIndex) {
+template <class NODEDATA>
+bool where4tree<NODEDATA>::path2lbItemUnexpand(const where4TreeConstants &tc,
+					       const whereNodePosRawPath &thePath,
+					       unsigned pathIndex) {
    // returns true iff any changes were made
    const unsigned pathSize = thePath.getSize();
    if (pathIndex == pathSize-1) {
@@ -1453,7 +1389,7 @@ bool where4tree<USERNODEDATA>::path2lbItemUnexpand(const where4TreeConstants &tc
       getChildTree(childIndex)->unhighlight();
 
       // and un-expand (rethinks listbox size and other layout vrbles)
-      return this->explicitlyUnexpandSubchild(tc, childIndex);
+      return explicitlyUnexpandSubchild(tc, childIndex);
    }
    else {
       // recurse...then, if changes were made to a descendant, rethink our
@@ -1471,12 +1407,44 @@ bool where4tree<USERNODEDATA>::path2lbItemUnexpand(const where4TreeConstants &tc
    }
 }
 
-template <class USERNODEDATA>
-bool where4tree<USERNODEDATA>::
-path2UnExpandAllChildren(const where4TreeConstants &tc,
-			 const whereNodePosRawPath &thePath,
-			 unsigned pathIndex) {
-   // returns true iff any changes were made
+template <class NODEDATA>
+bool where4tree<NODEDATA>::path2ExpandAllChildren(const where4TreeConstants &tc,
+						  const whereNodePosRawPath &thePath,
+						  unsigned pathIndex) {
+   // returns true iff any changes.
+   // new feature: in general, when we explicitly expand node A, we also
+   //              explicitly expand all of its ancestors.  At first, this seems
+   //              silly (how could we have explicitly expanded A if its ancestors
+   //              were not visible to begin with?)  The key is that the ancestors
+   //              may have been implicitly expanded.
+
+   if (pathIndex < thePath.getSize()) {
+      // recurse...then, if changes were made to a descendant [of course there were;
+      // we're expanding all of its children!], then rethink our child size params...
+      unsigned childnum = thePath[pathIndex];
+      bool result = getChildTree(childnum)->path2ExpandAllChildren
+                                                (tc, thePath, pathIndex+1);
+
+      if (explicitlyExpandSubchild(tc, childnum, false)) // don't force
+         result = true;
+      else {
+         // we didn't end up expanding anything; however, we still need
+         // to rethink our all-expanded-width, etc.
+         rethink_all_expanded_children_dimensions(tc);
+         result = true;
+      }
+
+      return result;
+   }
+
+   return expandAllChildren(tc);
+}
+
+template <class NODEDATA>
+bool where4tree<NODEDATA>::path2UnExpandAllChildren(const where4TreeConstants &tc,
+						    const whereNodePosRawPath &thePath,
+						    unsigned pathIndex) {
+   // returns true iff any changes were made.  Doesn't redraw
 
    if (pathIndex < thePath.getSize()) {
       // recurse...then, if changes were made to a descendant [of course there were;
@@ -1502,21 +1470,22 @@ path2UnExpandAllChildren(const where4TreeConstants &tc,
  *
  * ***************************************************************************
  */
-template <class USERNODEDATA>
-void where4tree<USERNODEDATA>::manual_construct() {
+template <class NODEDATA>
+where4tree<NODEDATA>::where4tree(const NODEDATA &iNodeData) :
+                                     theNodeData(iNodeData) {
    // theChildren [] is initialized to empty vector
-
+   
    removeListbox();
-
+   
    allExpandedChildrenWidthAsDrawn  = 0;
    allExpandedChildrenHeightAsDrawn = 0;
       // since all that exists of this subtree is the root, so far.
-
+ 
    numChildrenAddedSinceLastSort = 0;
 }
 
-template <class USERNODEDATA>
-where4tree<USERNODEDATA>::~where4tree() {
+template <class NODEDATA>
+where4tree<NODEDATA>::~where4tree() {
    // the children need explicit deleting
    const unsigned numChildren = theChildren.size();
    for (unsigned childlcv = 0; childlcv < numChildren; childlcv++) {
@@ -1537,23 +1506,22 @@ where4tree<USERNODEDATA>::~where4tree() {
  * ****************************************************************************
  */
 
-template <class USERNODEDATA>
-void where4tree<USERNODEDATA>::addChild(where4tree *theNewChild,
-					bool explicitlyExpanded,
-					const where4TreeConstants &tc,
-					bool rethinkLayoutNow,
-					bool resortNow) {
+template <class NODEDATA>
+void where4tree<NODEDATA>::addChild(where4tree *theNewChild,
+				    bool explicitlyExpanded,
+				    const where4TreeConstants &tc,
+				    bool rethinkLayoutNow,
+				    bool resortNow) {
    // theNewChild _must_ have been created with C++ new -- not negotiable
    // theNewChild _must_ be fully initialized, too.
    // NOTE: In the current implementation, we always put the child into the listbox
    //       unless explicitlyExpanded is true.
+   // NOTE: Even if you pass rethinkLayoutNow as true, we only rethink the listbox
+   //       dimensions and/or the all-expanded-children dimensions, as needed.
+   //       In all likelihood, you'll also need to rethink all-expanded-children
+   //       dimensions for all ancestors of this node; you must do this manually.
 
-   const string &childString = theNewChild->getRootName();
-   const int childTextWidth = XTextWidth(tc.listboxFontStruct,
-                                         childString.string_of(),
-                                         childString.length());
-                                         
-   const childstruct cs={theNewChild, explicitlyExpanded, childTextWidth};
+   const childstruct cs={theNewChild, explicitlyExpanded};
    this->theChildren += cs;
    this->numChildrenAddedSinceLastSort++;
 
@@ -1569,31 +1537,31 @@ void where4tree<USERNODEDATA>::addChild(where4tree *theNewChild,
       this->sortChildren();
 }
 
-template <class USERNODEDATA>
-void where4tree<USERNODEDATA>::doneAddingChildren(const where4TreeConstants &tc) {
+template <class NODEDATA>
+void where4tree<NODEDATA>::doneAddingChildren(const where4TreeConstants &tc,
+					      bool sortNow) {
    // Needed only if you call ::addChild() one or more times with
    // rethinkGraphicsNow==false
    rethink_listbox_dimensions(tc); // expensive; cost is O(numchildren)
 
    rethink_all_expanded_children_dimensions(tc);
 
-   sortChildren();
+   if (sortNow)
+      sortChildren();
 }
 
-template <class USERNODEDATA>
-void where4tree<USERNODEDATA>::
-recursiveDoneAddingChildren(const where4TreeConstants &tc) {
+template <class NODEDATA>
+void where4tree<NODEDATA>::
+recursiveDoneAddingChildren(const where4TreeConstants &tc, bool sortNow) {
    unsigned numChildren = theChildren.size();
-   for (unsigned i=0; i < numChildren; i++) {
-      where4tree *childPtr = getChildTree(i);
-      childPtr->recursiveDoneAddingChildren(tc);
-   }
+   for (unsigned i=0; i < numChildren; i++)
+      getChildTree(i)->recursiveDoneAddingChildren(tc, sortNow);
 
-   doneAddingChildren(tc);
+   doneAddingChildren(tc, sortNow);
 }
 
-template <class USERNODEDATA>
-void where4tree<USERNODEDATA>::sortChildren() {
+template <class NODEDATA>
+void where4tree<NODEDATA>::sortChildren() {
    // Ideal sort is as follows:
    // 1) if only a handful of items have been added since the last
    //    sort (say, <= 10), then use selection sort.
@@ -1612,8 +1580,8 @@ void where4tree<USERNODEDATA>::sortChildren() {
    numChildrenAddedSinceLastSort = 0;
 }
 
-template <class USERNODEDATA>
-bool where4tree<USERNODEDATA>::
+template <class NODEDATA>
+bool where4tree<NODEDATA>::
 selectUnSelectFromFullPathName(const char *name, bool selectFlag) {
    // Use char* instead of string because the string class lacks
    // certain operations such as name++ to strip off 1 character.
@@ -1672,16 +1640,16 @@ selectUnSelectFromFullPathName(const char *name, bool selectFlag) {
    return false;
 }
 
-template <class USERNODEDATA>
-vector<USERNODEDATA> where4tree<USERNODEDATA>::getSelections() const {
+template <class NODEDATA>
+vector<NODEDATA *> where4tree<NODEDATA>::getSelections() const {
    // NOTE: Things would be faster if this function returned void and
-   // takes in a reference to a vector<USERNODEDATA> which is appended to
+   // takes in a reference to a vector<NODEDATA*> which is appended to
    // in-place...
 
-   vector<USERNODEDATA> result; // initially empty
+   vector<NODEDATA *> result; // initially empty
       
-   if (theRootNode.getHighlighted())
-      result += theUserNodeData;
+   if (getNodeData().getHighlighted())
+      result += &getNodeData();
 
    for (unsigned i=0; i < theChildren.size(); i++)
       result += theChildren[i].theTree->getSelections();
@@ -1689,18 +1657,11 @@ vector<USERNODEDATA> where4tree<USERNODEDATA>::getSelections() const {
    return result;
 }
 
-template <class USERNODEDATA>
-void where4tree<USERNODEDATA>::recursiveClearSelections() {
-   theRootNode.unhighlight();
+template <class NODEDATA>
+void where4tree<NODEDATA>::recursiveClearSelections() {
+   theNodeData.unhighlight();
   
    unsigned numChildren = theChildren.size();
    for (unsigned i=0; i < numChildren; i++)
       theChildren[i].theTree->recursiveClearSelections();
 }
-
-//template <class USERNODEDATA>
-//void where4tree<USERNODEDATA>::toggle_highlight(const where4TreeConstants &tc,
-//						int middlex, int topy) {
-//   toggle_highlight();
-//   theRootNode.draw(tc, tc.masterWindow, middlex, topy);
-//}
