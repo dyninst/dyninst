@@ -83,12 +83,23 @@ class fastInferiorHeapMgr {
    static gcResult tryToGarbageCollectShmSeg(key_t keyToTry, unsigned size);
 
  public:
+   // normal constructor:
    fastInferiorHeapMgr(key_t firstKeyToTry, const vector<oneHeapStats> &iHeapStats,
                        pid_t inferiorPid);
-   fastInferiorHeapMgr(void *applicShmSegPtr, key_t theKey,
+
+   // fork constructor:
+   fastInferiorHeapMgr(const fastInferiorHeapMgr &parent,
+                       void *applicShmSegPtr, key_t theKey,
                        const vector<oneHeapStats> &iHeapStats,
                        pid_t inferiorPid);
+
   ~fastInferiorHeapMgr();
+
+   void handleExec();
+      // detach from old segment (and delete it); create new segment & attach
+      // to it...inferior attached at undefined.  Pretty much like a call to the dtor
+      // following by a call to constructor (maybe this should be operator=() for
+      // maximum cuteness)
 
    void registerInferiorAttachedAt(void *iApplicAttachedAt) {
       applicAttachedAt = iApplicAttachedAt;
