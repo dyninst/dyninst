@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.94 2000/07/28 17:21:41 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.95 2000/08/06 23:01:03 wylie Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -674,7 +674,7 @@ static bool startPOE(const string         &machine, const string         &login,
 
 
 bool getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
-                            daemonEntry* de, vector<string>& cmdLineVec, string& programNames)
+              daemonEntry* de, vector<string>& cmdLineVec, string& programNames)
 {
   //  This parsing implemented for mpirun IRIX 6.5, SGI MPI 3.2.0.0
 
@@ -1005,15 +1005,18 @@ static bool execIrixMPI(const string &dir, vector<string>& cmdLineVec)
   
   char **s = new char*[cmdLineVec.size()+1]();
 
-  for ( j = 0; j < cmdLineVec.size(); j++ )
+  for ( j = 0; j < cmdLineVec.size(); j++ ) {
     s[j] = P_strdup(cmdLineVec[j].string_of());
+  }
 
   s[j] = NULL;
   
-  // mpirun cds to "current directory" based on PWD environment variable
-  char* buf = new char[dir.length()+5]();
-  sprintf(buf, "PWD=%s",dir.string_of());
-  putenv(buf);
+  if (dir.length()) {
+      // mpirun cds to "current directory" based on PWD environment variable
+      char* buf = new char[dir.length()+5]();
+      sprintf(buf, "PWD=%s",dir.string_of());
+      putenv(buf);
+  }
 
   int execRetVal = execvp(s[0], s);
 
@@ -1097,7 +1100,7 @@ static bool rshIrixMPI(const string &machine, const string &login,
 }
 
 
-static bool startIrixMPI(const string         &machine, const string         &login,
+static bool startIrixMPI(const string     &machine, const string         &login,
                      const string         &name,    const string         &dir,
                      const vector<string> &argv,    const vector<string>  args,
 		     daemonEntry          *de)
@@ -1115,7 +1118,12 @@ static bool startIrixMPI(const string         &machine, const string         &lo
    {
       string newStatus;
       newStatus = string("program: ") + programNames + " ";
-      newStatus += string("machine: ") + machine + " ";
+      newStatus += string("machine: ");
+      if ( machine.length() )
+         newStatus += machine;
+      else
+         newStatus += "(local_host)";
+      newStatus += " ";
       newStatus += string("user: ");
       if ( login.length() )
          newStatus += login;
