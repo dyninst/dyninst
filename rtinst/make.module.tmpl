@@ -1,10 +1,14 @@
+
 #
 # Common makefile template for rtinst library.  This file is not
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.2  1995/02/16 09:11:29  markc
+# Revision 1.3  1995/02/21 16:27:55  jcargill
+# Changes to new build system so rtinst builds for all archs
+#
+# Revision 1.2  1995/02/16  09:11:29  markc
 # Added support for RTfirst.o and RTend.o which mark the beginning and end
 # of DYNINST code.
 #
@@ -13,25 +17,50 @@
 #
 #
 
+ifndef TARGET
 TARGET	      = libdyninstRT.a
+endif
 ALT_TARGET    = DYNINSTstartCode.o DYNINSTendCode.o
 
-SRCS	     += ../src/RTposix.c ../src/RTend.c
+MODCC         = $(CC)
+MODCFLAGS     = $(CFLAGS)
+
+SRCS	     += ../src/RTend.c
+SRCS2	     += ../src/RTend.c
 
 DYNSRCS	      = ../src/DYNINSTstartCode.c \
 		../src/DYNINSTendCode.c
 
 LIBS	     += /usr/lib/libkvm.a
 
-all: $(TARGET) $(ALT_TARGET)
+all: $(TARGET) $(TARGET2) $(ALT_TARGET)
 
+#
+# override standard link rule; libdyninst is not really a library or a program.
+#
+UNCOMMON_LINK= true
+
+OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
+		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
+		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
+		$(IGEN_GEN_SRCS:%.C=%.o)
+
+$(TARGET): $(OBJS) $(LIBS)
+	$(LD) $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS)
+
+#
 # override standard install rule; provide a default DEST if not already set
-UNCOMMON_INSTALL= true
+#
 ifndef DEST
-DEST		= ../../../lib/$(PLATFORM)
+DEST		= $(TO_CORE)/../lib/$(PLATFORM)
 endif
 
-install: $(DEST)/$(TARGET) $(DEST)/DYNINSTstartCode.o $(DEST)/DYNINSTendCode.o
+UNCOMMON_INSTALL= true
+install: $(DEST)/$(TARGET) $(DEST)/$(TARGET2) $(DEST)/DYNINSTstartCode.o \
+	$(DEST)/DYNINSTendCode.o
+
+$(DEST)/libdyninstRT.a:	libdyninstRT.a
+	cp libdyninstRT.a ../../../lib/$(PLATFORM)
 
 $(DEST)/DYNINSTstartCode.o: DYNINSTstartCode.o
 	cp DYNINSTstartCode.o ../../../lib/$(PLATFORM)
