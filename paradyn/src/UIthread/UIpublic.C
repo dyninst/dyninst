@@ -21,9 +21,13 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.53  1996/04/18 20:46:35  tamches
-/* new DAGaddBatchOfEdges to correspond with PCthread/PCshg.C changes
+/* Revision 1.54  1996/04/19 18:28:17  naim
+/* Adding a procedure that will be called when we want to add a new process,
+/* as it is done using the "paradyn process" command - naim
 /*
+ * Revision 1.53  1996/04/18  20:46:35  tamches
+ * new DAGaddBatchOfEdges to correspond with PCthread/PCshg.C changes
+ *
  * Revision 1.52  1996/04/16 18:37:27  karavan
  * fine-tunification of UI-PC batching code, plus addification of some
  * Ari-like verbification commentification.
@@ -487,4 +491,20 @@ UIM::DAGconfigNode (int dagID, unsigned nodeID, int styleID)
       initiateShgRedraw(interp, true); // interp --> double buffer
 
    return 1;
+}
+
+//
+// This procedure is used when paradyn create a process after 
+// reading a configuration file (using option -f).
+//
+void UIM::ProcessCmd(string *args)
+{
+  string command;
+  command = string("paradyn process ") + (*args);
+  if (Tcl_VarEval(interp,command.string_of(),0)==TCL_ERROR) {
+    string msg = string("Tcl interpreter failed in routine UIM::ProcessCmd: ");
+    msg += string((const char *) interp->result);
+    uiMgr->showError(83, P_strdup(msg.string_of()));
+  }  
+  delete args;
 }

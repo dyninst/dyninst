@@ -10,7 +10,11 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.30  1996/04/04 21:55:24  newhall
+ * Revision 1.31  1996/04/19 18:28:32  naim
+ * Adding a procedure that will be called when we want to add a new process,
+ * as it is done using the "paradyn process" command - naim
+ *
+ * Revision 1.30  1996/04/04  21:55:24  newhall
  * added limit option to visi definition
  *
  * Revision 1.29  1996/04/03  14:25:59  naim
@@ -308,14 +312,42 @@ static void start_process(processMet *the_ps)
     return;
   }
 
-  if(dataMgr->addExecutable(the_ps->host().string_of(), 
-			    the_ps->user().string_of(),
-			    the_ps->daemon().string_of(), 
-			    directory.string_of(),
-			    &argv)) {
-    PDapplicState=appRunning;
-    dataMgr->pauseApplication();
+  string *arguments;
+  arguments = new string;
+  if (the_ps->user().length()) {
+    *arguments += string("-user ");
+    *arguments += the_ps->user();
   }
+  if (the_ps->host().length()) { 
+    *arguments += string(" -machine ");
+    *arguments += the_ps->host();
+  }
+  if (directory.length()) {
+    *arguments += string(" -dir ");
+    *arguments += directory;
+  }
+  if (the_ps->daemon().length()) {
+    *arguments += string(" -daemon ");
+    *arguments += the_ps->daemon();
+  }
+  for (unsigned i=0;i<argv.size();i++) { 
+    *arguments += string(" ");
+    *arguments += argv[i];
+  }
+  uiMgr->ProcessCmd(arguments);
+
+//
+// The code bellow is no longer necessary because we are starting this process
+// in the same way as in the "Define A Process" window - naim
+//
+//  if(dataMgr->addExecutable(the_ps->host().string_of(), 
+//			    the_ps->user().string_of(),
+//			    the_ps->daemon().string_of(), 
+//			    directory.string_of(),
+//			    &argv)) {
+//    PDapplicState=appRunning;
+//    dataMgr->pauseApplication();
+//  }
 }
 
 bool metDoProcess()
