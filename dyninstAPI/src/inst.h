@@ -47,6 +47,11 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
+ * Revision 1.27  1996/10/04 16:12:43  naim
+ * Optimization for code generation (use of immediate operations whenever
+ * possible). This first commit is only for the sparc platform. Other platforms
+ * should follow soon - naim
+ *
  * Revision 1.26  1996/09/13 21:41:59  mjrg
  * Implemented opcode ReturnVal for ast's to get the return value of functions.
  * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
@@ -105,7 +110,7 @@ typedef enum { orderFirstAtPoint, orderLastAtPoint } callOrder;
 class intCounterHandle {
  public:
     intCounterHandle() {
-      proc = NULL; sampler = NULL; counterPtr = NULL;
+      proc = NULL; sampler = NULL; counterPtr = NULL; 
     }
     process *proc;
     intCounter *counterPtr;		/* NOT in our address space !!!! */
@@ -269,6 +274,7 @@ typedef enum { plusOp,
 	       getSysRetValOp,
 	       getParamOp,
 	       getSysParamOp,	   
+               shiftOp,
 	       saveRegOp} opCode;
 
 /*
@@ -276,6 +282,8 @@ typedef enum { plusOp,
  *
  */
 unsigned emit(opCode op, reg src1, reg src2, reg dest, char *insn, unsigned &base);
+unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
+                 unsigned &base);
 //unsigned emitFuncCall(opCode op, registerSpace *rs, char *i,unsigned &base, 
 //		      vector<AstNode> operands, string func, process *proc);
 

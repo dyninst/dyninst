@@ -41,6 +41,11 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.30  1996/10/04 16:12:38  naim
+ * Optimization for code generation (use of immediate operations whenever
+ * possible). This first commit is only for the sparc platform. Other platforms
+ * should follow soon - naim
+ *
  * Revision 1.29  1996/09/13 21:41:57  mjrg
  * Implemented opcode ReturnVal for ast's to get the return value of functions.
  * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
@@ -109,6 +114,7 @@
 #endif
 
 extern registerSpace *regSpace;
+extern bool doNotOverflow(int value);
 
 registerSpace::registerSpace(int deadCount, int *dead, int liveCount, int *live)
 {
@@ -190,6 +196,10 @@ bool registerSpace::isFreeRegister(int reg) {
 void registerSpace::resetSpace() {
     int i;
     for (i=0; i < numRegisters; i++) {
+        if (registers[i].inUse) {
+          sprintf(errorLine,"WARNING: register %d is still in use\n",registers[i].number);
+          logLine(errorLine);
+        }
 	registers[i].inUse = false;
 	registers[i].mustRestore = false;
 	registers[i].needsSaving = registers[i].startsLive;
@@ -438,12 +448,28 @@ int AstNode::generateTramp(process *proc, char *i,
     regSpace->resetSpace();
 
     if (type != opCodeNode || op != noOp) {
+        reg tmp;
 	preamble.generateCode(proc, regSpace, i, count);
-	generateCode(proc, regSpace, i, count);
+	tmp = generateCode(proc, regSpace, i, count);
+        regSpace->freeRegister(tmp);
 	return trailer.generateCode(proc, regSpace, i, count);
     } else {
 	return((unsigned) emit(op, 1, 0, 0, i, count));
     }
+}
+
+bool isPowerOf2(int value, int &result)
+{
+  if (value==1) {
+    result=0;
+    return(true);
+  }
+  if ((value%2)!=0) return(false);
+  if (isPowerOf2(value/2,result)) {
+    result++;
+    return(true);
+  }
+  else return(false);
 }
 
 reg AstNode::generateCode(process *proc,
@@ -463,11 +489,12 @@ reg AstNode::generateCode(process *proc,
 	    src = loperand->generateCode(proc, rs, insn, base);
 	    startInsn = base;
 	    fromAddr = emit(op, src, (reg) 0, (reg) 0, insn, base);
-	    rs->freeRegister(src);
-            (void) roperand->generateCode(proc, rs, insn, base);
+            rs->freeRegister(src);
+            reg tmp = roperand->generateCode(proc, rs, insn, base);
+            rs->freeRegister(tmp);
 	    // call emit again now with correct offset.
 	    (void) emit(op, src, (reg) 0, (reg) ((int)base - (int)fromAddr), 
-		insn, startInsn);
+		        insn, startInsn);
             // sprintf(errorLine,branch forward %d\n", base - fromAddr);
 	} else if (op == storeOp) {
 	    src1 = roperand->generateCode(proc, rs, insn, base);
@@ -488,32 +515,67 @@ reg AstNode::generateCode(process *proc,
 	    costAddr = (proc->symbols)->findInternalAddress("DYNINSTobsCostLow",
 		true, err);
 	    if (err) {
-		logLine("Internal error: unable to find addr of DYNINSTobsCostLow\n");
+//		logLine("Internal error: unable to find addr of DYNINSTobsCostLow\n");
 		showErrorCallback(79, "");
 		P_abort();
 	    }
 	    return((unsigned) emit(op, cost, 0, costAddr, insn, base));
 	} else {
-	    if (loperand) 
-		src = loperand->generateCode(proc, rs, insn, base);
-	    if (roperand)
-	        right_dest = roperand->generateCode(proc, rs, insn, base);
+	    AstNode *left = loperand;
+	    AstNode *right = roperand;
 
-	    // the left operand source register can be reused here
+	    if (left && right) {
+              if (left->type == operandNode && left->oType == Constant) {
+                if (type == opCodeNode) {
+                  if (op == plusOp) {
+                    logLine("plusOp exchange\n");
+  	            AstNode *temp = right;
+	            right = left;
+	            left = temp;
+	          } else if (op == timesOp) {
+                    if (right->type == operandNode) {
+                      if (right->oType != Constant) {
+                        logLine("timesOp exchange 1\n");
+                        AstNode *temp = right;
+	                right = left;
+	                left = temp;
+		      }
+                      else {
+                        int result;
+                        if (!isPowerOf2((int)right->oValue,result) &&
+                             isPowerOf2((int)left->oValue,result))
+                        {
+                          logLine("timesOp exchange 2\n");
+                          AstNode *temp = right;
+	                  right = left;
+	                  left = temp;
+		        }
+		      }
+		    }
+		  }
+	        }
+	      }
+	    }
+
+	    if (left)
+	      src = left->generateCode(proc, rs, insn, base);
+
 	    rs->freeRegister(src);
+	    dest = rs->allocateRegister(insn, base);
 
-#if defined(hppa1_1_hp_hpux)
-              dest = rs->allocateRegister(insn, base);
-#else
-	    if ((right_dest != -1) && rs->readOnlyRegister(right_dest))
-	      dest = rs->allocateRegister(insn, base);
-	    else
-	      dest = right_dest;
-#endif
-
-	    (void) emit(op, src, right_dest, dest, insn, base);
-	    if (dest != right_dest)
-	      rs->freeRegister(right_dest);
+            if (right && (right->type == operandNode) &&
+                (right->oType == Constant) &&
+                doNotOverflow((int)right->oValue) &&
+                (type == opCodeNode))
+	    {
+	      emitImm(op, src, (reg)right->oValue, dest, insn, base);
+	    }
+	    else {
+	      if (right)
+		right_dest = right->generateCode(proc, rs, insn, base);
+              rs->freeRegister(right_dest);
+	      (void) emit(op, src, right_dest, dest, insn, base);
+	    }
 	}
     } else if (type == operandNode) {
 	dest = rs->allocateRegister(insn, base);
@@ -560,8 +622,8 @@ reg AstNode::generateCode(process *proc,
     } else if (type == callNode) {
 	dest = emitFuncCall(callOp, rs, insn, base, operands, callee, proc);
     } else if (type == sequenceNode) {
-	loperand->generateCode(proc, rs, insn, base);
-	return(roperand->generateCode(proc, rs, insn, base));
+	(void) loperand->generateCode(proc, rs, insn, base);
+ 	return(roperand->generateCode(proc, rs, insn, base));
     }
     return(dest);
 }
@@ -589,6 +651,7 @@ string getOpString(opCode op)
 	case noOp: return("nop");
 	case andOp: return("and");
 	case orOp: return("or");
+        case shiftOp: return("shift");
 	default: return("ERROR");
     }
 }
@@ -605,6 +668,8 @@ int AstNode::cost() const {
 	} else if (op == storeOp) {
 	    total += roperand->cost();
 	    total += getInsnCost(op);
+        } else if (op == shiftOp) {
+            total += getInsnCost(op);
 	} else if (op == trampTrailer) {
 	    total = getInsnCost(op);
 	} else if (op == trampPreamble) {
@@ -613,7 +678,7 @@ int AstNode::cost() const {
 	    if (loperand) 
 		total += loperand->cost();
 	    if (roperand) 
-		total += loperand->cost();
+		total += roperand->cost();
 	    total += getInsnCost(op);
 	}
     } else if (type == operandNode) {

@@ -43,6 +43,11 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc-solaris.C,v $
+ * Revision 1.5  1996/10/04 16:12:40  naim
+ * Optimization for code generation (use of immediate operations whenever
+ * possible). This first commit is only for the sparc platform. Other platforms
+ * should follow soon - naim
+ *
  * Revision 1.4  1996/10/04 04:19:52  newhall
  * bug fix to pdFunction::checkCallPoints
  *
@@ -137,6 +142,7 @@
 
 #define perror(a) P_abort();
 
+extern bool isPowerOf2(int value, int &result);
 
 class instPoint {
 public:
@@ -322,6 +328,27 @@ inline void genImmInsn(instruction *insn, int op, reg rs1, int immd, reg rd)
     // 	registerNames[rd]);
 }
 
+inline void genImmRelOp(instruction *insn, int cond, reg rs1,
+		        int immd, reg rd, unsigned &base)
+{
+    // cmp rs1, rs2
+    genImmInsn(insn, SUBop3cc, rs1, immd, 0); insn++;
+    // mov 1, rd
+    genImmInsn(insn, ORop3, 0, 1, rd); insn++;
+
+    // b??,a +2
+    insn->branch.op = 0;
+    insn->branch.cond = cond;
+    insn->branch.op2 = BICCop2;
+    insn->branch.anneal = true;
+    insn->branch.disp22 = 2;
+    insn++;
+
+    // clr rd
+    genSimpleInsn(insn, ORop3, 0, 0, rd); insn++;
+    base += 4 * sizeof(instruction);
+}
+
 inline void genRelOp(instruction *insn, int cond, reg rs1,
 		     reg rs2, reg rd, unsigned &base)
 {
@@ -364,6 +391,30 @@ inline void generateStore(instruction *insn, int rd, int rs1, int offset)
     insn->resti.rs1 = rs1;
     insn->resti.i = 1;
     insn->resti.simm13 = LOW(offset);
+}
+
+// sll rs1,rs2,rd
+inline void generateLShift(instruction *insn, int rs1, int offset, int rd)
+{
+    insn->restix.op = SLLop;
+    insn->restix.op3 = SLLop3;
+    insn->restix.rd = rd;
+    insn->restix.rs1 = rs1;
+    insn->restix.i = 1;
+    insn->restix.x = 0;
+    insn->restix.rs2 = offset;
+}
+
+// sll rs1,rs2,rd
+inline void generateRShift(instruction *insn, int rs1, int offset, int rd)
+{
+    insn->restix.op = SRLop;
+    insn->restix.op3 = SRLop3;
+    insn->restix.rd = rd;
+    insn->restix.rs1 = rs1;
+    insn->restix.i = 1;
+    insn->restix.x = 0;
+    insn->restix.rs2 = offset;
 }
 
 // load [rs1 + offset], rd
@@ -771,8 +822,8 @@ int getPointCost(process *proc, instPoint *point)
     if (proc->baseMap.defines(point)) {
         return(0);
     } else {
-        // 8 cycles for base tramp
-        return(8);
+        // 70 cycles for base tramp (worst case)
+        return(70);
     }
 }
 
@@ -815,7 +866,7 @@ void relocateInstruction(instruction *insn, u_int origAddr, u_int targetAddr,
 //	    ret ,origAddr, targetAddr,insn->branch.disp22,old_offset);
 
 	    instruction insnPlus[3];
-	    genImmInsn(insnPlus, SAVEop3, 14, -112, 14);
+	    genImmInsn(insnPlus, SAVEop3, REG_SP, -112, REG_SP);
 	    generateCallInsn(insnPlus+1, ret+sizeof(instruction), 
 			     origAddr+old_offset);
 	    genSimpleInsn(insnPlus+2, RESTOREop3, 0, 0, 0); 
@@ -877,6 +928,7 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 }
 
 registerSpace *regSpace;
+
 int deadList[] = {16, 17, 18, 19, 20, 21, 22, 23 };
 
 void initTramps()
@@ -1283,7 +1335,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 		u_int e_size = extra_instrs.size();
 		instruction *insn = new instruction[3 + e_size];
 		Address adr = location-> func -> addr();
-		genImmInsn(insn, SAVEop3, 14, -112, 14);
+		genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
 		generateCallInsn(insn+1, adr+baseAddress+4, 
 				 location->func->newAddr);
 		genSimpleInsn(insn+2, RESTOREop3, 0, 0, 0); 
@@ -1394,7 +1446,6 @@ void genImm(process *proc, Address fromAddr,int op, reg rs1, int immd, reg rd)
     proc->writeTextWord((caddr_t)fromAddr, insn.raw);
 }
 
-
 /*
  *  change the target of the branch at fromAddr, to be newAddr.
  */
@@ -1440,7 +1491,6 @@ pdFunction *getFunction(instPoint *point)
 {
     return(point->callee ? point->callee : point->func);
 }
-
 
 unsigned emitFuncCall(opCode op, 
 		      registerSpace *rs,
@@ -1496,6 +1546,97 @@ unsigned emitFuncCall(opCode op,
         return(8);
 }
  
+unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
+                 unsigned &base)
+{
+        instruction *insn = (instruction *) ((void*)&i[base]);
+        int op3=-1;
+        int result;
+	switch (op) {
+	    // integer ops
+	    case plusOp:
+		op3 = ADDop3;
+                genImmInsn(insn, op3, src1, src2, dest);
+		break;
+
+	    case minusOp:
+		op3 = SUBop3;
+                genImmInsn(insn, op3, src1, src2, dest);
+		break;
+
+	    case timesOp:
+		op3 = SMULop3;
+                if (isPowerOf2(src2,result))
+                  generateLShift(insn, src1, (reg)result, dest);           
+                else 
+                  genImmInsn(insn, op3, src1, src2, dest);
+		break;
+
+	    case shiftOp:
+		op3 = SLLop3;
+                generateLShift(insn, src1, src2, dest);           
+		break;
+
+	    case divOp:
+		op3 = SDIVop3;
+                if (isPowerOf2(src2,result))
+                  generateRShift(insn, src1, (reg)result, dest);           
+                else 
+                  genImmInsn(insn, op3, src1, src2, dest);
+		break;
+
+	    // Bool ops
+	    case orOp:
+		op3 = ORop3;
+                genImmInsn(insn, op3, src1, src2, dest);
+		break;
+
+	    case andOp:
+		op3 = ANDop3;
+                genImmInsn(insn, op3, src1, src2, dest);
+		break;
+
+	    // rel ops
+	    // For a particular condition (e.g. <=) we need to use the
+            // the opposite in order to get the right value (e.g. for >=
+            // we need BLTcond) - naim
+	    case eqOp:
+		genImmRelOp(insn, BNEcond, src1, src2, dest, base);
+		return(0);
+		break;
+
+            case neOp:
+                genImmRelOp(insn, BEcond, src1, src2, dest, base);
+                return(0);
+                break;
+
+	    case lessOp:
+                genImmRelOp(insn, BGEcond, src1, src2, dest, base);
+                return(0);
+                break;
+
+            case leOp:
+                genImmRelOp(insn, BGTcond, src1, src2, dest, base);
+                return(0);
+                break;
+
+            case greaterOp:
+                genImmRelOp(insn, BLEcond, src1, src2, dest, base);
+                return(0);
+                break;
+
+            case geOp:
+                genImmRelOp(insn, BLTcond, src1, src2, dest, base);
+                return(0);
+                break;
+
+	    default:
+		abort();
+		break;
+	}
+	base += sizeof(instruction);
+        return(0);
+}
 
 unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 {
@@ -1526,6 +1667,9 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	generateLoad(insn, dest, src1, dest);
 
 	base += sizeof(instruction)*2;
+    } else if (op ==  shiftOp) {
+        generateLShift(insn, src1, src2, dest);
+        base += sizeof(instruction);
     } else if (op ==  storeOp) {
 	insn->sethi.op = FMT2op;
 	insn->sethi.rd = src2;
@@ -1553,7 +1697,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
     } else if (op ==  trampPreamble) {
 #ifdef ndef
         // save and restore are done inthe base tramp now
-        genImmInsn(insn, SAVEop3, 14, -112, 14);
+        genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
 	base += sizeof(instruction);
         insn++;
 
@@ -1767,6 +1911,8 @@ int getInsnCost(opCode op)
     } else if (op ==  loadOp) {
 	// sethi + load single
 	return(1+1);
+    } else if (op ==  shiftOp) {
+	return(1);
     } else if (op ==  storeOp) {
 	// sethi + store single
 	// return(1+3); 
@@ -2665,6 +2811,11 @@ void generateBreakPoint(instruction &insn) {
     insn.raw = BREAK_POINT_INSN;
 }
 
+bool doNotOverflow(int value)
+{
+  if ( (value <= 16383) && (value >= -16384) ) return(true);
+  else return(false);
+}
 
 void instWaitingList::cleanUp(process *proc, Address pc) {
     proc->writeTextSpace((caddr_t)pc, sizeof(relocatedInstruction),
