@@ -51,7 +51,7 @@
 #include "process.h"
 #include "symtab.h"
 #include "instPoint.h"
-
+#include "instP.h"
 
 /*
  * Private constructor
@@ -90,6 +90,7 @@ BPatch_function *BPatch_point::getCalledFunction()
 #endif
 
     function_base *_func;
+    
     if (!proc->findCallee(*point, _func))
     	return NULL;
 
@@ -102,39 +103,65 @@ BPatch_function *BPatch_point::getCalledFunction()
 }
 
 const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets() {
-  pdvector<miniTrampHandle> *mt_buf = new pdvector<miniTrampHandle>;
-  getMiniTrampsAtPoint(proc, point, callPreInsn,  mt_buf);
-  getMiniTrampsAtPoint(proc, point, callPostInsn, mt_buf);
+    pdvector<miniTrampHandle *> mt_buf;
 
-  BPatch_Vector<BPatchSnippetHandle *> snippetVec;
+    trampTemplate *baseTramp = proc->baseMap[point];
 
-  for(unsigned i=0; i<mt_buf->size(); i++) {
-    BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
-    handle->add(&((*mt_buf)[i]));
-    snippetVec.push_back(handle);
-  }
-  return snippetVec;
+    if (baseTramp->pre_minitramps) {
+        List<miniTrampHandle *>::iterator preIter = baseTramp->pre_minitramps->get_begin_iter();
+        List<miniTrampHandle *>::iterator preEnd = baseTramp->pre_minitramps->get_end_iter();
+        for (; preIter != preEnd; preIter++) {
+            mt_buf.push_back(*preIter);
+        }
+    }
+    if (baseTramp->post_minitramps) {
+        List<miniTrampHandle *>::iterator postIter = baseTramp->post_minitramps->get_begin_iter();
+        List<miniTrampHandle *>::iterator postEnd = baseTramp->post_minitramps->get_end_iter();
+        for (; postIter != postEnd; postIter++) {
+            mt_buf.push_back(*postIter);
+        }
+    }
+    
+    BPatch_Vector<BPatchSnippetHandle *> snippetVec;
+    
+    for(unsigned i=0; i<mt_buf.size(); i++) {
+        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
+        handle->add(mt_buf[i]);
+        
+        snippetVec.push_back(handle);
+    }
+    return snippetVec;
 }
 
-const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets(
-                                                    BPatch_callWhen when) {
-  callWhen _when = callPreInsn;
-  if(when == BPatch_callBefore) {
-    _when = callPreInsn;
-  } else if(when == BPatch_callAfter) {
-    _when = callPostInsn;
-  }
-  pdvector<miniTrampHandle> *mt_buf =  new pdvector<miniTrampHandle>;
-  cerr << "point proc pid = " << proc->getPid() << "\n";
-  getMiniTrampsAtPoint(proc, point, _when, mt_buf);
+const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets(BPatch_callWhen when) {
+    pdvector<miniTrampHandle *> mt_buf;
 
-  BPatch_Vector<BPatchSnippetHandle *> snippetVec;
-  for(unsigned i=0; i<mt_buf->size(); i++) {
-    BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
-    handle->add(&((*mt_buf)[i]));
-    snippetVec.push_back(handle);
-  }
-  return snippetVec;
+    trampTemplate *baseTramp = proc->baseMap[point];
+
+    if(when == BPatch_callBefore) {
+        List<miniTrampHandle *>::iterator preIter = baseTramp->pre_minitramps->get_begin_iter();
+        List<miniTrampHandle *>::iterator preEnd = baseTramp->pre_minitramps->get_end_iter();
+        for (; preIter != preEnd; preIter++) {
+            mt_buf.push_back(*preIter);
+        }
+    } else if(when == BPatch_callAfter) {
+        List<miniTrampHandle *>::iterator postIter = baseTramp->post_minitramps->get_begin_iter();
+        List<miniTrampHandle *>::iterator postEnd = baseTramp->post_minitramps->get_end_iter();
+        for (; postIter != postEnd; postIter++) {
+            mt_buf.push_back(*postIter);
+        }
+    }
+
+    BPatch_Vector<BPatchSnippetHandle *> snippetVec;
+    
+    for(unsigned i=0; i<mt_buf.size(); i++) {
+        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
+        handle->add(mt_buf[i]);
+        
+        snippetVec.push_back(handle);
+    }
+
+    return snippetVec;
 }
 
 /*

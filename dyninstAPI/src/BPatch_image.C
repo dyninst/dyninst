@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.48 2003/10/09 07:49:45 jaw Exp $
+// $Id: BPatch_image.C,v 1.49 2003/10/21 17:21:45 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -92,10 +92,12 @@ BPatch_image::BPatch_image(process *_proc) :
  * Construct a BPatch_image.
  */
 BPatch_image::BPatch_image() :
-   proc(NULL), modlist(NULL), defaultNamespacePrefix(NULL)
+        proc(NULL), 
+        defaultNamespacePrefix(NULL),
+        modlist(NULL)
 {
     AddrToVarExpr = new AddrToVarExprHash();
-
+    
     _srcType = BPatch_sourceProgram;
 }
 
@@ -299,69 +301,77 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
  * address	The address that the instrumenation point should refer to.
  */
 BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
-					          BPatch_point** alternative,
-						  BPatch_function* bpf)
+                                                  BPatch_point** alternative,
+                                                  BPatch_function* bpf)
 {
     unsigned i;
 
     /* First look in the list of non-standard instPoints. */
     if (proc->instPointMap.defines((Address)address)) {
-	return proc->instPointMap[(Address)address];
+        return proc->instPointMap[(Address)address];
     }
 
     /* Look in the regular instPoints of the enclosing function. */
-    function_base *func = NULL;
+    pd_Function *func;
     if(bpf)
-	func = bpf->func;
-    else
-	func = proc->findFuncByAddr((Address)address);
-
+        func = (pd_Function *) bpf->func;
+    else {
+        codeRange *range = proc->findCodeRangeByAddress((Address) address);
+        if (!range) {
+            return NULL;
+        }
+        
+        if (!range->function_ptr)
+            // Address doesn't correspond to a function
+            return NULL;
+        func = range->function_ptr;
+    }
+    
     // If it's in an uninstrumentable function, just return an error.
     if ( !func || !((pd_Function*)func)->isInstrumentable()){ 
-	return NULL;
+        return NULL;
     }
 
-    pd_Function* pointFunction = (pd_Function*)func;
     Address pointImageBase = 0;
-    if(!pointFunction || !pointFunction->file())
+    if(!func || !func->file())
 	return NULL;
-    image* pointImage = pointFunction->file()->exec();
+    image* pointImage = func->file()->exec();
     proc->getBaseAddress((const image*)pointImage,pointImageBase);
 
     if (func != NULL) {
-	instPoint *entry = const_cast<instPoint *>(func->funcEntry(NULL));
-	assert(entry);
-	if ((entry->iPgetAddress() == (Address)address) ||
-	    (pointImageBase && 
-	     ((entry->iPgetAddress() + pointImageBase) == (Address)address))) 
-	{
-	    return proc->findOrCreateBPPoint(NULL, entry, BPatch_entry);
-	}
-
-	const pdvector<instPoint*> &exits = func->funcExits(NULL);
-	for (i = 0; i < exits.size(); i++) {
-	    assert(exits[i]);
-	    if ((exits[i]->iPgetAddress() == (Address)address) ||
-	        (pointImageBase && 
-	         ((exits[i]->iPgetAddress() + pointImageBase) == (Address)address))) 
-	    {
-		return proc->findOrCreateBPPoint(NULL, exits[i], BPatch_exit);
-	    }
-	}
-
-	const pdvector<instPoint*> &calls = func->funcCalls(NULL);
-	for (i = 0; i < calls.size(); i++) {
-	    assert(calls[i]);
-	    if ((calls[i]->iPgetAddress() == (Address)address) ||
-	        (pointImageBase && 
-	         ((calls[i]->iPgetAddress() + pointImageBase) == (Address)address))) 
-	    {
-		return proc->findOrCreateBPPoint(NULL, calls[i],
-						 BPatch_subroutine);
-	    }
-	}
+        instPoint *entry = const_cast<instPoint *>(func->funcEntry(NULL));
+        assert(entry);
+        if ((entry->iPgetAddress() == (Address)address) ||
+            (pointImageBase && 
+             ((entry->iPgetAddress() + pointImageBase) == (Address)address))) 
+        {
+            return proc->findOrCreateBPPoint(NULL, entry, BPatch_entry);
+        }
+        
+        const pdvector<instPoint*> &exits = func->funcExits(NULL);
+        for (i = 0; i < exits.size(); i++) {
+            assert(exits[i]);
+            if ((exits[i]->iPgetAddress() == (Address)address) ||
+                (pointImageBase && 
+                 ((exits[i]->iPgetAddress() + pointImageBase) == (Address)address))) 
+            {
+                return proc->findOrCreateBPPoint(NULL, exits[i], BPatch_exit);
+            }
+        }
+        
+        const pdvector<instPoint*> &calls = func->funcCalls(NULL);
+        for (i = 0; i < calls.size(); i++) {
+            assert(calls[i]);
+            if ((calls[i]->iPgetAddress() == (Address)address) ||
+                (pointImageBase && 
+                 ((calls[i]->iPgetAddress() + pointImageBase) == (Address)address))) 
+            {
+                return proc->findOrCreateBPPoint(NULL, calls[i],
+                                                 BPatch_subroutine);
+            }
+        }
     }
-
+    
     if(alternative)
 	*alternative = NULL;
 
