@@ -14,6 +14,9 @@ char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.97  1996/05/11 00:30:08  mjrg
+ * Fixed memory leak in guessCost
+ *
  * Revision 1.96  1996/05/10 22:36:35  naim
  * Bug fix and some improvements passing a reference instead of copying a
  * structure - naim
@@ -525,6 +528,9 @@ float guessCost(string& metric_name, vector<u_int>& focus)
     mi = createMetricInstance(metric_name, focus, false, internal);
     if (!mi) return(0.0);
     cost = mi->cost();
+    // delete the metric instance, if it is not being used 
+    if (!allMIs.defines(mi->getMId()))
+      delete mi;
     return(cost);
 }
 
