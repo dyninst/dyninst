@@ -48,6 +48,8 @@
 #include "xplat/Monitor.h"
 #include "common/h/language.h"
 
+// /* DEBUG */ #include <pthread.h>
+
 namespace pdthr
 {
 
@@ -287,6 +289,7 @@ dllist<Element,Sync>::dllist(list_types::type type)
 
 template<class Element, class Sync>
 dllist<Element,Sync>::~dllist() {
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): locking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
     s->Lock();
     pool_entry* p = free_pool;
 
@@ -297,31 +300,27 @@ dllist<Element,Sync>::~dllist() {
 
         p = temp;
     }
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): unlocking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
     s->Unlock();
 }
 
 template<class Element, class Sync>
 bool dllist<Element,Sync>::empty() {
-   s->Lock();
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): locking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Lock();
     bool retval = size == 0;
-   s->Unlock();
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): unlocking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Unlock();
     return retval;
 }   
 
 template<class Element, class Sync>
 void dllist<Element,Sync>::put(Element e) {
-#if LIBTHREAD_DEBUG == 1
-    fprintf(stderr, "acquiring monitor for dllist %p...\n", this);
-#endif
-   s->Lock();
-#if LIBTHREAD_DEBUG == 1
-    fprintf(stderr, "done acquiring monitor for dllist %p\n", this);
-#endif
+    // /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): locking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Lock();
 
     while(size == MAXIMUM_LIBTHREAD_DLLIST_SIZE) {
-#if LIBTHREAD_DEBUG == 1
-        fprintf(stderr, "put() blocking for dllist %p\n", this);
-#endif
+	   // /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): waiting on %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
        s->WaitOnCondition(DLLIST_FULL);
     }
     
@@ -360,18 +359,12 @@ void dllist<Element,Sync>::put(Element e) {
     }
     size++;
     
-#if LIBTHREAD_DEBUG == 1
-    fprintf(stderr, "releasing monitor for dllist %p...\n", this);
-#endif
     assert(head);
     assert(this->find(e) != NULL);
 
-   s->Unlock();
-#if LIBTHREAD_DEBUG == 1
-    fprintf(stderr, "done releasing monitor for dllist %p\n", this);
-#endif    
-    
-   s->SignalCondition(DLLIST_EMPTY);
+    s->SignalCondition(DLLIST_EMPTY);
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): unlocking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Unlock();
 }
 
 template<class Element, class Sync>
@@ -379,13 +372,11 @@ Element dllist<Element,Sync>::take() {
     Element retval;
     node* tmp;
     
-   s->Lock();
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): locking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Lock();
 
     // ensure that there is an item to take
     while (size == 0) {
-#if LIBTHREAD_DEBUG == 1
-        fprintf(stderr, "take() blocking for dllist %p\n", this);
-#endif        
        s->WaitOnCondition(DLLIST_EMPTY);
     }
     
@@ -405,10 +396,11 @@ Element dllist<Element,Sync>::take() {
 
     size--;
 
-   s->Unlock();
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): signalling %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->SignalCondition(DLLIST_FULL);    
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): unlocking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Unlock();
     
-   s->SignalCondition(DLLIST_FULL);    
-
    return retval;
 }
 
@@ -417,14 +409,12 @@ Element dllist<Element,Sync>::yank(Element e) {
     Element retval;
     node* to_yank;
     
-   s->Lock();
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): locking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Lock();
     
     /* if there's nothing that we want to remove, sleep
        until a new element is placed in the list */
     while((to_yank = this->find(e)) == NULL) {
-#if DLLIST_DEBUG
-        fprintf(stderr, "blocking on yank()\n");
-#endif
        s->WaitOnCondition(DLLIST_EMPTY);
     }
     
@@ -434,7 +424,9 @@ Element dllist<Element,Sync>::yank(Element e) {
 
     size--;
     
-   s->Unlock();
+    s->SignalCondition( DLLIST_FULL );    
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): unlocking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Unlock();
 
     return retval;
 }
@@ -444,15 +436,13 @@ Element dllist<Element,Sync>::yank(predicate<Element>* pred) {
     Element retval;
     node* to_yank;
     
-   s->Lock();
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): locking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Lock();
     
     /* if there's nothing that we want to remove, sleep
        until a new element is placed in the list */
     while((to_yank = this->find(pred)) == NULL) {
-#if DLLIST_DEBUG
-        fprintf(stderr, "blocking on yank()\n");
-#endif
-       s->WaitOnCondition(DLLIST_EMPTY);
+        s->WaitOnCondition(DLLIST_EMPTY);
     }
     
     retval = to_yank->data;
@@ -461,7 +451,9 @@ Element dllist<Element,Sync>::yank(predicate<Element>* pred) {
 
     size--;
 
-   s->Unlock();
+    s->SignalCondition( DLLIST_FULL );    
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): unlocking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Unlock();
     
     return retval;
 }
@@ -470,7 +462,8 @@ template<class Element, class Sync>
 bool dllist<Element,Sync>::yank_nb(Element e, Element* result) {
     node* to_yank;
     
-   s->Lock();
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): locking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Lock();
     
     if((to_yank = this->find(e)) == NULL)
         return false;
@@ -480,7 +473,9 @@ bool dllist<Element,Sync>::yank_nb(Element e, Element* result) {
     
     this->remove(to_yank);
 
-   s->Unlock();
+    s->SignalCondition( DLLIST_FULL );    
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): unlocking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Unlock();
 
     return true;
 }
@@ -489,7 +484,8 @@ template<class Element, class Sync>
 bool dllist<Element,Sync>::yank_nb(predicate<Element>* pred, Element* result) {
     node* to_yank;
     
-   s->Lock();
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): locking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Lock();
     
     if((to_yank = this->find(pred)) == NULL)
         return false;
@@ -499,7 +495,9 @@ bool dllist<Element,Sync>::yank_nb(predicate<Element>* pred, Element* result) {
     
     this->remove(to_yank);
 
-   s->Unlock();
+    s->SignalCondition( DLLIST_FULL );    
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): unlocking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Unlock();
     
     return true;
 }
@@ -507,23 +505,28 @@ bool dllist<Element,Sync>::yank_nb(predicate<Element>* pred, Element* result) {
 template<class Element, class Sync>
 bool dllist<Element,Sync>::contains(predicate<Element>* pred) {
     bool retval;
-   s->Lock();
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): locking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Lock();
     retval = (this->find(pred) != NULL);
-   s->Unlock();
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): unlocking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Unlock();
     return retval;
 }
 
 template<class Element, class Sync>
 bool dllist<Element,Sync>::contains(Element e) {
     bool retval;
-   s->Lock();
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): locking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Lock();
     retval = (this->find(e) != NULL);
-   s->Unlock();
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): unlocking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+    s->Unlock();
     return retval;
 }
 
 template<class Element, class Sync>
 void dllist<Element,Sync>::visit(dllist_visitor<Element>* visitor) {
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): locking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
     s->Lock();
     
     node* result = NULL;
@@ -535,6 +538,7 @@ void dllist<Element,Sync>::visit(dllist_visitor<Element>* visitor) {
         current = current->next;
     }
 
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): unlocking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
     s->Unlock();
 }
 

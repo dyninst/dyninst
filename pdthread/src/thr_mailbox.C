@@ -52,6 +52,8 @@
 #include "xplat/Mutex.h"
 #include "WaitSet.h"
 
+// /* DEBUG */ #include <pthread.h>
+
 #if DO_DEBUG_LIBPDTHREAD_THR_MAILBOX == 1
 #define DO_DEBUG_LIBPDTHREAD 1
 #else
@@ -461,13 +463,13 @@ thr_mailbox::wait_for_input( pollcallback_t pcb )
 
 thr_mailbox::thr_mailbox(thread_t owner) 
   : mailbox(owner),
-    messages( new dllist<message*,DummyMonitor> ),
-    sock_messages( new dllist<message*,DummyMonitor> ),
-    file_messages( new dllist<message*,DummyMonitor> ),
-    bound_socks( new dllist<PdSocket,DummyMonitor> ),
-    ready_socks( new dllist<PdSocket,DummyMonitor> ),
-    bound_files( new dllist<PdFile,DummyMonitor> ),
-    ready_files( new dllist<PdFile,DummyMonitor> )
+    messages( new dllist<message*,XPlat::Monitor> ),
+    sock_messages( new dllist<message*,XPlat::Monitor> ),
+    file_messages( new dllist<message*,XPlat::Monitor> ),
+    bound_socks( new dllist<PdSocket,XPlat::Monitor> ),
+    ready_socks( new dllist<PdSocket,XPlat::Monitor> ),
+    bound_files( new dllist<PdFile,XPlat::Monitor> ),
+    ready_files( new dllist<PdFile,XPlat::Monitor> )
 {
     thr_debug_msg(CURRENT_FUNCTION, "building mailbox for %d\n", owner);
     assert(owned_by == owner);
@@ -539,76 +541,28 @@ thr_mailbox::check_for(thread_t* sender,
     thread_t actual_sender = 0;
     tag_t actual_type = 0;
 
-    message* msg_from_special = NULL;
-    match_message_pred criterion(*sender,*type);
-    dllist<message*,DummyMonitor> *yank_from = NULL;
-    
-find_msg:
-    actual_sender = 0;
-    actual_type = 0;
+    match_message_pred criterion( * sender, * type );
+    dllist<message*,XPlat::Monitor> * yank_from = NULL;
 
-qmutex.Lock();
-
-	    // TODO when is the correct place to clear the message 
-        // available indicator?
+	/* Spin-lock for now.  What we _should_ do is convert
+	   qmutex into a conditional variable raised by put().
+	   
+	   Also note that if one queue receive were ever to block
+	   that no other receiver would be able to receieve, even
+	   on other queues, because we're holding the qmutex lock
+	   when we try a receive. */
+	do {	   
+    	actual_sender = 0;
+	    actual_type = 0;
+	    
+	    qmutex.Lock();
 	    clear_msg_avail();
-
-    if(io_first)
-	{
-		// check if any buffered special socket has input in its buffer
-		found = is_buffered_special_ready( sender, type );
-		if( found )
-		{
-			// TODO fix this mess
-			criterion.actual_sender = *sender;
-			criterion.actual_type = *type;
-
-			// make sure that if our previous call showed we have data
-			// available, that we don't mistakenly assume that the
-			// data incoming on the underlying socket that was used to
-			// fill the buffer is still available
-			if( sock_messages->contains(&criterion) )
-			{
-				yank_from = sock_messages;
-			}
-            else if( file_messages->contains(&criterion) )
-            {
-                yank_from = file_messages;
-            }
-		}
-		else
-		{
-			// we have no buffered data, so check whether any
-			// of our bound descriptors are ready to read
-			if( (found = sock_messages->contains(&criterion)) == true )
-			{
-				yank_from = sock_messages;
-			}
-			else if( (found = file_messages->contains(&criterion)) == true )
-			{
-                yank_from = file_messages;
-            }
-            else if( (found = messages->contains(&criterion)) == true )
-            {
-                yank_from = messages;
-			}
-		}
-	}
-	else
-	{
-		found = (messages->contains(&criterion));
-		if( found )
-		{
-			yank_from = messages;
-		}
-		else
-		{
-			// check if any buffered special socket still has
-			// input to be consumed
+	    
+	    if( io_first ) {
+	    	/* Special case; presumambly to make sure sockets don't time-out. */
 			found = is_buffered_special_ready( sender, type );
-			if( found )
-			{
-				// TODO fix this mess
+
+			if( found ) {
 				criterion.actual_sender = *sender;
 				criterion.actual_type = *type;
 
@@ -616,123 +570,110 @@ qmutex.Lock();
 				// available, that we don't mistakenly assume that the
 				// data incoming on the underlying socket that was used to
 				// fill the buffer is still available
-				if( (found = sock_messages->contains(&criterion)) == true )
-				{
+				if( sock_messages->contains( & criterion ) ) {
 					yank_from = sock_messages;
-				}
-                else if( (found = file_messages->contains(&criterion)) == true )
-                {
-                    yank_from = file_messages;
-                }
-			}
-			else
-			{
-				// we have no buffered data, so check
-				// whether any of our bound descriptors are ready to read
-				if( (found = sock_messages->contains(&criterion)) == true )
-				{
+					}
+	            else if( file_messages->contains( & criterion ) ) {
+	                yank_from = file_messages;
+		            }
+				} /* end if we didn't find any buffered data */
+			else {
+				// we have no buffered data, so check whether any
+				// of our bound descriptors are ready to read
+				if( (found = sock_messages->contains( & criterion )) == true ) {
 					yank_from = sock_messages;
+					}
+				else if( (found = file_messages->contains( & criterion )) == true ) {
+	                yank_from = file_messages;
+    		        }
+            	else if( (found = messages->contains( & criterion )) == true ) {
+	                yank_from = messages;
+					}
+				} /* end if we have no buffered data */
+			} /* end if we're checking I/O first */
+		else {
+			found = ( messages->contains( & criterion ) );
+			if( found ) {
+				yank_from = messages;
 				}
-                else if( (found = file_messages->contains(&criterion)) == true )
-                {
-                    yank_from = file_messages;
-                }
+			else {
+				// check if any buffered special socket still has
+				// input to be consumed
+				found = is_buffered_special_ready( sender, type );
+				if( found ) {
+					criterion.actual_sender = *sender;
+					criterion.actual_type = *type;
+
+					// make sure that if our previous call showed we have data
+					// available, that we don't mistakenly assume that the
+					// data incoming on the underlying socket that was used to
+					// fill the buffer is still available
+					if( (found = sock_messages->contains( & criterion )) == true ) {
+						yank_from = sock_messages;
+						}
+        	        else if( (found = file_messages->contains( & criterion )) == true ) {
+	                    yank_from = file_messages;
+    		            }
+					} /* end if we found buffered data */
+				else {
+					// we have no buffered data, so check
+					// whether any of our bound descriptors are ready to read
+					if( (found = sock_messages->contains( & criterion )) == true ) {
+						yank_from = sock_messages;
+						}
+    	            else if( (found = file_messages->contains( & criterion )) == true ) {
+	                    yank_from = file_messages;
+		                }
+					} /* end if we did not find buffered data */
+				} /* end if we didn't find non-I/O data. */
+			} /* end if we're not checking I/O first */
+
+	    actual_sender = criterion.actual_sender;
+	    actual_type = criterion.actual_type;
+
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: found = %d, do_yank = %d, m = %p, yank_from = %p (%d)\n", __FILE__, __LINE__, found, do_yank, m, yank_from, pthread_self() );
+		if( found ) {
+	    	if( do_yank && m != NULL && yank_from != NULL ) {
+    	        * m = yank_from->yank(&criterion);
+				}
+			qmutex.Unlock();
+			break;
 			}
+			
+		qmutex.Unlock();
+		
+		if( ! found && do_block ) {
+			thr_debug_msg(CURRENT_FUNCTION, "blocking; size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
+			wait_for_input( pcb );
+			}
+		} while( do_block );
+    
+	if( found ) {
+		if( actual_sender ) { * sender = actual_sender; }
+        if( actual_type ) { * type = actual_type; }
 		}
-	}
-
-    qmutex.Unlock();
     
-    actual_sender = criterion.actual_sender;
-    actual_type = criterion.actual_type;
-
-    if(found) {
-
-        if(do_yank && m && (yank_from != NULL) ) {
-
-qmutex.Lock();
-
-            unsigned int oldsize = yank_from->get_size();
-
-            *m = yank_from->yank(&criterion);
-
-            unsigned int newsize = yank_from->get_size();
-            assert(oldsize == (newsize + 1));
-
-qmutex.Unlock();
-
-        }
-
-        goto done;
-    }
-	else if(!found && do_block)
-	{
-		// we didn't find a message matching the requested criteria,
-		// and we were asked to block until we can return
-        thr_debug_msg(CURRENT_FUNCTION, "blocking; size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
-
-		wait_for_input( pcb );
-
-        goto find_msg;
-    }
-    
-done:
-    
-    if(found) {
-        if(actual_sender) *sender = actual_sender;
-        if(actual_type) *type = actual_type;
-    }
-    
-	if(msg_from_special != NULL) {
-		// consume the "message" from the special sender
-		delete msg_from_special;
-	}
-
     return found;
-}
+	} /* end check_for() */
 
 
 int thr_mailbox::put(message* m) {
-    qmutex.Lock();
-    
-    unsigned old_size = messages->get_size();
-    
     messages->put(m);
-
-    assert(messages->get_size() == old_size + 1);
 	raise_msg_avail();
-    qmutex.Unlock();
-
     return THR_OKAY;
 }
 
 int thr_mailbox::put_sock(message* m) {
-    qmutex.Lock();
-
-    unsigned old_size = sock_messages->get_size();
-
     sock_messages->put(m);
-
-    assert(sock_messages->get_size() == (old_size + 1));
     raise_msg_avail();    
-    qmutex.Unlock();
-
     return THR_OKAY;
 }
 
 int
 thr_mailbox::put_file(message* m)
 {
-    qmutex.Lock();
-
-    unsigned old_size = file_messages->get_size();
-
     file_messages->put(m);
-
-    assert(file_messages->get_size() == (old_size + 1));
     raise_msg_avail();    
-    qmutex.Unlock();
-
     return THR_OKAY;
 }
 
@@ -741,7 +682,6 @@ int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp
     int retval = THR_OKAY;
     COLLECT_MEASUREMENT(THR_MSG_TIMER_START);
         
-//    qmutex.Lock();
     thr_debug_msg(CURRENT_FUNCTION, "RECEIVING: size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
 
     message* to_recv = NULL;
@@ -759,7 +699,6 @@ int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp
     delete to_recv;
 
   done:
-//    qmutex.Unlock();
     COLLECT_MEASUREMENT(THR_MSG_TIMER_STOP);
 
     return retval;
@@ -770,7 +709,6 @@ int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void** buf) {
     int retval = THR_OKAY;
     COLLECT_MEASUREMENT(THR_MSG_TIMER_START);
         
-//    qmutex.Lock();
     thr_debug_msg(CURRENT_FUNCTION, "RECEIVING: size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
 
     message* to_recv = NULL;
@@ -788,7 +726,6 @@ int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void** buf) {
     delete to_recv;
 
 done:
-//    qmutex.Unlock();
     COLLECT_MEASUREMENT(THR_MSG_TIMER_STOP);
 
     return retval;
@@ -799,14 +736,9 @@ done:
 int thr_mailbox::poll(thread_t* from, tag_t* tagp, unsigned block,
                       unsigned fd_first, pollcallback_t pcb)
 { 
-//    qmutex.Lock();
-    
     COLLECT_MEASUREMENT(THR_MSG_TIMER_START);
 
     bool found = check_for(from, tagp, (block != 0), false, NULL, fd_first);
-
-
- //   qmutex.Unlock();
 
     COLLECT_MEASUREMENT(THR_MSG_TIMER_STOP);
 

@@ -48,7 +48,7 @@
 #include "refarray.C"
 #include "dllist.C"
 #include "predicate.h"
-#include "DummyMonitor.h"
+#include "xplat/Monitor.h"
 
 
 namespace pdthr
@@ -66,19 +66,19 @@ class thr_mailbox : public mailbox
 private:
     // sets of bound sockets, ready-to-read sockets, and a mutex 
     // for access control
-    dllist<PdSocket,DummyMonitor>* bound_socks;
-    dllist<PdSocket,DummyMonitor>* ready_socks;
+    dllist<PdSocket,XPlat::Monitor>* bound_socks;
+    dllist<PdSocket,XPlat::Monitor>* ready_socks;
     XPlat::Mutex sockq_mutex;
 
     // sets of bound files, ready-to-read files, and a mutex 
     // for access control
-    dllist<PdFile,DummyMonitor>* bound_files;
-    dllist<PdFile,DummyMonitor>* ready_files;
+    dllist<PdFile,XPlat::Monitor>* bound_files;
+    dllist<PdFile,XPlat::Monitor>* ready_files;
     XPlat::Mutex fileq_mutex;
     
-    dllist<message*,DummyMonitor>* messages;
-    dllist<message*,DummyMonitor>* sock_messages;
-    dllist<message*,DummyMonitor>* file_messages;
+    dllist<message*,XPlat::Monitor>* messages;
+    dllist<message*,XPlat::Monitor>* sock_messages;
+    dllist<message*,XPlat::Monitor>* file_messages;
     
     bool check_for(thread_t* sender, tag_t* type,
                           bool do_block = false, bool do_yank = false,

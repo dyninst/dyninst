@@ -132,6 +132,7 @@ int msg_send(thread_t tid, tag_t tag, void* buf, unsigned size) {
             assert (recipient);
         }
         
+        // /* DEBUG */ fprintf( stderr, "%s[%d]: sending to mailbox %p\n", __FILE__, __LINE__, recipient );
         ret = recipient->put(m);
     }
 
@@ -145,6 +146,7 @@ int msg_poll(thread_t* tid, tag_t* tag, unsigned block, pollcallback_t pcb) {
     thr_debug_msg(CURRENT_FUNCTION, "tid = %d, tag = %d, block = %d\n", *tid, *tag, block);
 
     mailbox* mbox = lwp::get_mailbox();
+    // /* DEBUG */ fprintf( stderr, "%s[%d]: msg_poll() polling mbox %p\n", __FILE__, __LINE__, mbox );
     int ret = mbox->poll(tid, tag, block, 0, pcb);
 
     thr_debug_msg(CURRENT_FUNCTION, "returning %d; tid = %d, tag = %d\n", ret, *tid, *tag);
