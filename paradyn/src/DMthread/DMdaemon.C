@@ -514,6 +514,150 @@ paradynDaemon *paradynDaemon::machineName2Daemon(const string &theMachineName) {
    return 0; // failure; this machine name isn't known!
 }
 
+//Tempest
+static int startBlzApp(const string &machine,
+                        const string &login,
+                        const string &name,
+                        const string &dir,
+                        const vector<string> &argv)
+{
+        //int firstPVM = 1 ;                   // "-v"   1
+        //int  flag = 2;                       // "-l"   2
+        // flavor == "-z"   cow
+        string localhost ;                     // "-m"   gethostname
+        int  port = dataManager::dm->socket ;  // "-p"   dataManager::sock_fd
+
+        char temp[256], *p ;
+        gethostname(temp, 32);
+        if((p = strchr(temp, '.'))) *p = '\0' ;
+        localhost += temp ;
+
+        int from = 1, to = 4 ;
+        int time= 20, nodes = 4;
+        string   application ;
+        string   directory ;
+        bool     use_range = false ;
+
+        //parse the application commandline
+        for(unsigned i=0; i<argv.size(); i++)
+        {
+                if(strncmp(argv[i].string_of(), "-nodes", 6)==0)
+                        sscanf(argv[i].string_of(), "-nodes%d", &nodes) ;
+                else if(strncmp(argv[i].string_of(), "-range", 6)==0){
+                        sscanf(argv[i].string_of(), "-range%d:%d", &from, &to) ;
+                        use_range = true ;
+                }
+                else if(strncmp(argv[i].string_of(), "-time", 5)==0)
+                        sscanf(argv[i].string_of(), "-time%d", &time) ;
+                else {
+                        if(application.length() > 0)
+                                application += " " ;
+                        application += argv[i] ;
+                }
+
+        }
+
+        // get the directory
+        strcpy(temp, application.string_of()) ;
+        printf("application = [%s]\n", application.string_of()) ;
+        if((p = strchr(temp, ' ')))
+                *p = '\0' ;
+        else if((p = strchr(temp, '<')))
+                *p = '\0' ;
+        else if((p = strchr(temp, '>')))
+                *p = '\0' ;
+        p = strrchr(temp, '/') ; *p = '\0' ;
+        directory += temp ;
+        printf("directory=[%s]\n", directory.string_of()) ;
+
+        //make the scripts
+        string cpScript, pnScript ;
+        cpScript = directory + "/PD_ctrl_script" ;
+        pnScript = directory + "/PD_node_script" ;
+
+        //make  the serverscript
+        FILE *fp = fopen(cpScript.string_of(), "w") ;
+        fprintf(fp, "#!/bin/csh\n") ;
+        fprintf(fp, "crsh all %s\n", pnScript.string_of()) ;
+        fclose(fp) ;
+        system("chmod +x PD_ctrl_script") ;
+
+        //make the pn_script
+        fp = fopen(pnScript.string_of(), "w") ;
+        fprintf (fp, "#!/bin/csh\n") ;
+        fprintf (fp, "setenv LAM_CONFIG /p/wwt/myrinet/configs/lam.conf.master\n") ;
+        fprintf (fp, "cd %s\n", directory.string_of()) ;
+        //paradynd -p36622 -mgoofy -l1 -v1 -zcow -runme ....
+        fprintf (fp, "paradynd -p%d -m%s -l0 -v1 -zcow -runme %s\n",
+                     port,
+                     localhost.string_of(),
+                     application.string_of()) ;
+        fclose  (fp) ;
+        system("chmod +x PD_node_script") ;
+
+        //fork it
+        int shellPid ;
+        int ret ;
+        sprintf(temp, "%d", time) ;
+        string timeFrame  ; timeFrame += temp ;
+
+        string nodeRange ;
+        if(use_range) {
+                char sfrom[64], sto[64] ;
+                sprintf(sfrom, "%d", from) ;
+                sprintf(sto, "%d", to) ;
+                nodeRange += "-range ";
+                nodeRange += sfrom ;
+                nodeRange +=  ":" ;
+                nodeRange += sto ;
+        } else
+        {
+                sprintf(temp, "%d", nodes) ;
+                nodeRange += "-nodes " ;
+                nodeRange += temp ;
+        }
+
+        if(use_range)
+           sprintf(temp, "Starting job on nodes %d-%d, for %d minutes\n", from, to, time)
+;
+        else
+           sprintf(temp, "Starting job on %d nodes, for %d minutes\n", nodes, time) ;
+        uiMgr->updateStatus(DMstatus,P_strdup(temp));
+        shellPid = vfork() ;
+        if(shellPid == 0)
+        {
+                if(login.length())
+                {
+                 ret = execlp("rsh", "rsh", machine.string_of(), "-l",
+                        login.string_of(), "-n",
+                        "/p/cow/bin/crun", cpScript.string_of() ,
+                        "-capture",
+                        "-contig",
+                        "-time",   timeFrame.string_of(),
+                        nodeRange.string_of(),
+                        NULL);
+
+                } else
+                {
+                 ret = execlp("rsh", "rsh", machine.string_of(), "-n",
+                        "/p/cow/bin/crun", cpScript.string_of() ,
+                        "-capture",
+                        "-contig",
+                        "-time",   timeFrame.string_of(),
+                        nodeRange.string_of(),
+                        NULL);
+                }
+                fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
+                _exit(-1) ;
+        } else if( shellPid > 0)
+                ;
+        else    return false; // error situation
+
+        return true ;
+}
+
+
+
 // TODO: fix this
 //
 // add a new executable (binary) to a program.
@@ -530,6 +674,13 @@ bool paradynDaemon::newExecutable(const string &machine,
   if (! PROCstatus)
       PROCstatus = new status_line("Processes");
 
+  //------------------
+  //Added to start blizzard application, Tempest
+
+  daemonEntry *def = findEntry(machine, name) ;
+  if(def->getFlavorString() == "cow")
+        return startBlzApp(machine, login, name, dir, argv) ;
+  //------------
   paradynDaemon *daemon;
   if ((daemon=getDaemonHelper(machine, login, name)) == (paradynDaemon*) NULL)
       return false;
