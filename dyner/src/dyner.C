@@ -384,6 +384,21 @@ int help(ClientData, Tcl_Interp *, int argc, char **argv)
 	printf("     variables in the target program. Local variables and parameters are\n");
 	printf("     searched in the <function>.\n");
     }
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+
+	LIMIT_TO("saveStart"){
+		printf("saveStart - Call saveStart before 'save' to begin marking instrumentation\n");
+		printf("	to be saved to the mutated binary. This must be called before save is\n");
+		printf("	called.  Only instrumentation inserted after saveStart is called will be\n");
+		printf("	saved in the mutated binary.\n");
+	}
+	LIMIT_TO("save"){
+		printf("save <file name> - Save the currently loaded mutatee and its mutations to the\n");
+		printf("	file <file name>.  Call 'saveStart' before 'save' to begin marking \n");
+		printf("	instrumentation to be saved to the mutated binary\n");
+	} 
+#endif
+
     return TCL_OK;
 }
 
@@ -713,6 +728,38 @@ int killApp(ClientData, Tcl_Interp *, int, char **)
 
     return TCL_OK;
 }
+
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+
+bool saveWorldStart =false;
+
+int saveStart(ClientData, Tcl_Interp *, int argc, char **argv){
+
+	if (!haveApp()) return TCL_ERROR;
+
+
+	saveWorldStart=true;
+	appThread->startSaveWorld();
+	return TCL_OK;
+
+}
+
+int saveWorld(ClientData, Tcl_Interp *, int argc, char **argv){
+	if(argc != 2){
+		printf(" Usage: save <filename>\n");
+		return TCL_ERROR;
+	}
+	if(!saveWorldStart){
+		printf("Call saveStart before issuing instrumentation to save\n");
+		return TCL_ERROR;
+	}
+	char* directoryName = appThread->dumpPatchedImage(argv[1]);
+	printf(" saved in %s \n", directoryName);
+	delete [] directoryName;
+	
+	return TCL_OK;
+}
+#endif
 
 extern BPatch_snippet *parse_result;
 int condBreak(ClientData, Tcl_Interp *, int argc, char *argv[])
@@ -2455,6 +2502,11 @@ int Tcl_AppInit(Tcl_Interp *interp)
     Tcl_CreateCommand(interp, "listinst", listInstrument, NULL, NULL);
     Tcl_CreateCommand(interp, "deleteinst", deleteInstrument, NULL, NULL);
     Tcl_CreateCommand(interp, "debugparse", debugParse, NULL, NULL);
+
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+	Tcl_CreateCommand(interp, "save", saveWorld, NULL, NULL);
+	Tcl_CreateCommand(interp, "saveStart", saveStart, NULL, NULL);
+#endif
 
     Tcl_AllowExceptions(interp);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.119 2003/01/03 21:57:30 bernat Exp $
+// $Id: aix.C,v 1.120 2003/01/31 18:55:41 chadd Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -83,6 +83,11 @@
 #include "common/h/timing.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/instReqNode.h"
+#endif
+
+#if defined(BPATCH_LIBRARY)
+#include "writeBackXCOFF.h"
+#include "addLibraryXCOFF.h"
 #endif
 
 #ifdef USES_PMAPI
@@ -2288,6 +2293,490 @@ bool process::get_exit_syscalls(pstatus_t *status,
     }
     
     return true;
+}
+
+#endif
+
+#if defined(BPATCH_LIBRARY)
+#define DEBUG_MSG 0 
+#define _DEBUG_MSG 0
+void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches){
+	int startPage, stopPage;
+	imageUpdate *patch;
+	//this function now returns only ONE section that is loadable.
+	int pageSize = getpagesize();
+
+	imageUpdate *curr, *next;
+	bool foundDup=true;
+	unsigned int j;
+
+	VECTOR_SORT(imagePatches, imageUpdateSort);
+
+	while(foundDup){
+		foundDup = false;
+		j =0;
+	        while(imagePatches[j]->address==0 && j < imagePatches.size()){
+       	        	j++;
+        	}
+		curr = imagePatches[j];
+
+		for(j++;j<imagePatches.size();j++){
+			next = imagePatches[j];		
+			if(curr->address == next->address){
+				//duplicate
+				//find which is bigger and save that one.
+				if(curr->size > next->size){
+					next->address=0;
+				}else{
+					curr->address=0;
+					curr=next;
+				}
+				foundDup =true;
+			}else{
+				curr=next;
+			}
+
+		}
+		VECTOR_SORT(imagePatches, imageUpdateSort);
+	}
+
+
+	for(unsigned int i=0;i<imagePatches.size();i++){
+		if(imagePatches[i]->address!=0){
+			imagePatches[i]->startPage = imagePatches[i]->address- imagePatches[i]->address%pageSize;
+			imagePatches[i]->stopPage = imagePatches[i]->address + imagePatches[i]->size- 
+					(imagePatches[i]->address + imagePatches[i]->size )%pageSize;
+
+		}
+	}
+
+	foundDup = true;
+
+	while(foundDup){
+		foundDup = false;
+                j =0;
+                while(imagePatches[j]->address==0 && j < imagePatches.size()){
+                        j++;
+                }
+		imagePatches.erase(0,j-1);
+		j=0;
+		for(;j<imagePatches.size()-1;j++){
+			if(imagePatches[j]->stopPage > imagePatches[j+1]->startPage){
+				foundDup = true;
+				if(imagePatches[j]->stopPage > imagePatches[j+1]->stopPage){
+					imagePatches[j+1]->address = 0;	
+				}else{
+
+					imagePatches[j]->size = (imagePatches[j+1]->address + imagePatches[j+1]->size) -
+						imagePatches[j]->address;
+					imagePatches[j+1]->address = 0; 
+					imagePatches[j]->stopPage = imagePatches[j]->address + imagePatches[j]->size-
+                                        	(imagePatches[j]->address + imagePatches[j]->size )%pageSize;		
+				}
+			}  
+		}
+		VECTOR_SORT(imagePatches, imageUpdateSort);
+	}
+
+	unsigned int k=0;
+
+	while(imagePatches[k]->address==0 && k < imagePatches.size()){
+	        k++;
+        }
+
+	startPage = imagePatches[k]->startPage;
+	stopPage = imagePatches[imagePatches.size()-1]->stopPage;
+	int startIndex=k, stopIndex=imagePatches.size()-1;
+	/*if(DEBUG_MSG){
+		printf("COMPACTING....\n");	
+		printf("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
+	}
+	patch = new imageUpdate;
+        patch->address = imagePatches[startIndex]->address;
+        patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address +
+                                   imagePatches[stopIndex]->size;
+        newPatches.push_back(patch);
+	if(DEBUG_MSG){
+		printf(" COMPACTED: %x --> %x \n", patch->address, patch->size);
+	}*/
+	bool finished = false;
+	if(_DEBUG_MSG){
+		printf("COMPACTING....\n");	
+		printf("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
+	}
+	for(;k<imagePatches.size();k++){
+		if(imagePatches[k]->address!=0){
+			if(_DEBUG_MSG){
+				printf("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
+					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
+			}
+			if(imagePatches[k]->startPage <= stopPage){
+				stopIndex = k;
+				stopPage = imagePatches[k]->stopPage;
+			}else{
+
+				patch = new imageUpdate;
+				patch->address = imagePatches[startIndex]->address;
+				patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address + 
+						imagePatches[stopIndex]->size;
+				newPatches.push_back(patch);
+				if(_DEBUG_MSG){
+					printf(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
+						patch->address, patch->size, startPage,  stopPage);
+				}
+				finished = true;
+				//was k+1	
+				if(k < imagePatches.size()){
+					while(imagePatches[k]->address==0 && k < imagePatches.size()){
+						k++;
+					}
+					startIndex = k;
+					stopIndex = k;
+					startPage = imagePatches[k]->startPage;
+					stopPage  = imagePatches[k]->stopPage;
+					finished = false;
+					if(k == imagePatches.size()){
+						finished = true;
+					}
+				} 
+			}
+		}
+
+	}
+
+	if(!finished){
+		patch = new imageUpdate;
+                patch->address = imagePatches[startIndex]->address;
+                patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address +
+                                   imagePatches[stopIndex]->size;
+                newPatches.push_back(patch);
+		if(_DEBUG_MSG){
+			printf(" COMPACTED: %x --> %x \n", patch->address, patch->size);
+			fflush(stdout);
+		}
+	}	
+
+	
+}
+
+void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches){
+
+	int startPage, stopPage;
+	imageUpdate *patch;
+
+	int pageSize = getpagesize();
+
+	imageUpdate *curr, *next;
+	bool foundDup=true;
+	unsigned int j;
+
+	VECTOR_SORT(imagePatches, imageUpdateSort);
+
+	while(foundDup){
+		foundDup = false;
+		j =0;
+	        while(imagePatches[j]->address==0 && j < imagePatches.size()){
+       	        	j++;
+        	}
+		curr = imagePatches[j];
+
+		for(j++;j<imagePatches.size();j++){
+			next = imagePatches[j];		
+			if(curr->address == next->address){
+				//duplicate
+				//find which is bigger and save that one.
+				if(curr->size > next->size){
+					next->address=0;
+				}else{
+					curr->address=0;
+					curr=next;
+				}
+				foundDup =true;
+			}else{
+				curr=next;
+			}
+
+		}
+		VECTOR_SORT(imagePatches, imageUpdateSort);
+	}
+	if(DEBUG_MSG){
+		printf(" SORT 1 %d \n", imagePatches.size());
+	
+		for(unsigned int kk=0;kk<imagePatches.size();kk++){
+			printf("%d address 0x%x  size 0x%x \n",kk, imagePatches[kk]->address, imagePatches[kk]->size);
+		}
+		fflush(stdout);
+	}
+
+	unsigned int endAddr;
+	for(unsigned int i=0;i<imagePatches.size();i++){
+		if(imagePatches[i]->address!=0){
+			imagePatches[i]->startPage = imagePatches[i]->address- (imagePatches[i]->address%pageSize);
+				
+			endAddr = imagePatches[i]->address + imagePatches[i]->size;
+			imagePatches[i]->stopPage =  endAddr - (endAddr % pageSize);
+
+			if(DEBUG_MSG){
+				printf("%d address %x end addr %x : start page %x stop page %x \n",
+					i,imagePatches[i]->address ,imagePatches[i]->address + imagePatches[i]->size,
+					imagePatches[i]->startPage, imagePatches[i]->stopPage);
+			}
+		}
+	
+	}
+	foundDup = true;
+
+	while(foundDup){
+		foundDup = false;
+                j =0;
+                while(imagePatches[j]->address==0 && j < imagePatches.size()){
+                        j++;
+                }
+		//imagePatches.erase(0,j-1); //is it correct to erase here? 
+		//j = 0;
+		for(;j<imagePatches.size()-1;j++){ 
+			if(imagePatches[j]->address!=0 && imagePatches[j]->stopPage >= imagePatches[j+1]->startPage){
+				foundDup = true;
+				if(imagePatches[j]->stopPage > imagePatches[j+1]->stopPage){
+					imagePatches[j+1]->address = 0;	
+				}else{
+					imagePatches[j]->size = (imagePatches[j+1]->address + imagePatches[j+1]->size) -
+						imagePatches[j]->address;
+					imagePatches[j+1]->address = 0; 
+					endAddr = imagePatches[j]->address + imagePatches[j]->size;
+					imagePatches[j]->stopPage =  endAddr - (endAddr % pageSize);
+				}
+			}  
+		}
+		VECTOR_SORT(imagePatches, imageUpdateSort);
+	}
+
+	unsigned int k=0;
+
+	if(DEBUG_MSG){
+		printf(" SORT 3 %d \n", imagePatches.size());
+
+		for(unsigned int kk=0;kk<imagePatches.size();kk++){
+			printf("%d address 0x%x  size 0x%x \n",kk, imagePatches[kk]->address, imagePatches[kk]->size);
+		}
+		fflush(stdout);
+	}
+	while(imagePatches[k]->address==0 && k < imagePatches.size()){
+	        k++;
+        }
+
+	startPage = imagePatches[k]->startPage;
+	stopPage = imagePatches[k]->stopPage;
+	int startIndex=k, stopIndex=k;
+	bool finished = false;
+	if(DEBUG_MSG){
+		printf("COMPACTING....\n");	
+		printf("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
+	}
+	for(;k<imagePatches.size();k++){
+		if(imagePatches[k]->address!=0){
+			if(DEBUG_MSG){
+				printf("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
+					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
+			}
+			if(imagePatches[k]->startPage <= stopPage){
+				stopIndex = k;
+				stopPage = imagePatches[k]->stopPage;
+			}else{
+
+				patch = new imageUpdate;
+				patch->address = imagePatches[startIndex]->address;
+				patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address + 
+						imagePatches[stopIndex]->size;
+				newPatches.push_back(patch);
+				if(DEBUG_MSG){
+					printf(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
+						patch->address, patch->size, startPage,  stopPage);
+				}
+				finished = true;
+				//was k+1	
+				if(k < imagePatches.size()){
+					while(imagePatches[k]->address==0 && k < imagePatches.size()){
+						k++;
+					}
+					startIndex = k;
+					stopIndex = k;
+					startPage = imagePatches[k]->startPage;
+					stopPage  = imagePatches[k]->stopPage;
+					finished = false;
+					if(k == imagePatches.size()){
+						finished = true;
+					}
+				} 
+			}
+		}
+
+	}
+
+	if(!finished){
+		patch = new imageUpdate;
+                patch->address = imagePatches[startIndex]->address;
+                patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address +
+                                   imagePatches[stopIndex]->size;
+                newPatches.push_back(patch);
+		if(DEBUG_MSG){
+			printf(" COMPACTED: %x --> %x \n", patch->address, patch->size);
+			fflush(stdout);
+		}
+	}	
+	
+}
+
+
+void process::addLib(char* lname){
+
+	BPatch_thread *appThread = thread;
+	BPatch_image *appImage = thread->getImage();
+
+    BPatch_Vector<BPatch_point *> *mainFunc;
+
+	bool isTrampRecursive = BPatch::bpatch->isTrampRecursive();
+    BPatch::bpatch->setTrampRecursive( true ); //ccw 31 jan 2003
+
+	BPatch_function *mainFuncPtr = 	appImage->findFunction("main");
+	if( mainFuncPtr == NULL){
+		fprintf(stderr,"Unable to find function \"main\". Save the world will fail.\n");
+		return;
+	}
+
+	mainFunc = mainFuncPtr->findPoint(BPatch_entry);
+
+    if (!mainFunc || ((*mainFunc).size() == 0)) {
+	fprintf(stderr, "    Unable to find entry point to \"main.\"\n");
+	exit(1);
+    }
+
+    BPatch_function *dlopen_func;
+
+    dlopen_func = appImage->findFunction("dlopen");
+
+    if (dlopen_func == NULL) {
+	fprintf(stderr, "Unable to find function \"dlopen\"\n");
+	exit(1);
+    }
+
+    BPatch_Vector<BPatch_snippet *> dlopen_args;
+    BPatch_constExpr nameArg(lname);
+    BPatch_constExpr rtldArg(4);
+
+    dlopen_args.push_back(&nameArg);
+    dlopen_args.push_back(&rtldArg);
+
+    BPatch_funcCallExpr dlopenExpr(*dlopen_func, dlopen_args);
+
+	//printf(" inserting DLOPEN(%s)\n",lname);
+	requestTextMiniTramp = 1;
+		
+    appThread->insertSnippet(dlopenExpr, *mainFunc, BPatch_callBefore, BPatch_firstSnippet);
+	requestTextMiniTramp = 0;
+
+	BPatch::bpatch->setTrampRecursive( isTrampRecursive ); //ccw 31 jan 2003
+}
+
+
+//save world
+char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
+
+	writeBackXCOFF *newXCOFF;
+	//addLibrary *addLibraryXCOFF;
+	//char name[50];	
+	pdvector<imageUpdate*> compactedUpdates;
+	pdvector<imageUpdate*> compactedHighmemUpdates;
+	void *data;//, *paddedData;
+	//Address guardFlagAddr;
+	char *directoryName = 0;
+
+	if(!collectSaveWorldData){
+		BPatch_reportError(BPatchSerious,122,"dumpPatchedImage: BPatch_thread::startSaveWorld() not called.  No mutated binary saved\n");
+		return NULL;
+	}
+
+	directoryName = saveWorldFindDirectory();
+	if(!directoryName){
+		return NULL;
+	}
+	strcat(directoryName, "/");
+
+
+	//at this point build an ast to call dlopen("libdyninstAPI_RT.so.1",);
+	//and insert it at the entry point of main.
+
+	addLib("libdyninstAPI_RT.so.1");
+
+	
+#ifndef USE_STL_VECTOR
+	imageUpdates.sort(imageUpdateSort);// imageUpdate::mysort ); 
+#else
+	sort(imageUpdates.begin(), imageUpdates.end(), imageUpdateOrderingRelation());
+#endif
+
+	compactLoadableSections(imageUpdates,compactedUpdates);
+
+#ifndef USE_STL_VECTOR
+	highmemUpdates.sort( imageUpdateSort);
+#else
+	sort(highmemUpdates.begin(), highmemUpdates.end(), imageUpdateOrderingRelation());
+#endif
+	compactSections(highmemUpdates, compactedHighmemUpdates);
+
+	imageFileName = "dyninst_mutatedBinary";
+	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.c_str())+1];
+        strcpy(fullName, directoryName);
+        strcat(fullName, (char*)imageFileName.c_str());
+
+	newXCOFF = new writeBackXCOFF( ( char*) getImage()->file().c_str(), fullName /*"/tmp/dyninstMutatee"*/ );
+
+	newXCOFF->registerProcess(this);
+	//int sectionsAdded = 0;
+	//unsigned int newSize, nextPage, paddedDiff;
+	//unsigned int pageSize = getpagesize();
+
+
+	//This adds the LOADABLE HEAP TRAMP sections
+	//AIX/XCOFF NOTES:
+	//On AIX we allocate the heap tramps in two locations:
+	//on the heap (0x20000000) and around the text section (0x10000000)
+	//The os loader will ONLY load ONE text section, ONE data section and
+	//ONE bss section. We cannot (from within the mutated binary)
+	//muck with addresses in the range 0x10000000 - 0x1fffffff so to reload
+	//these tramps we MUST expand the text section and tack these on the
+	//end.  THIS WILL INCREASE THE FILE SIZE BY A HUGE AMOUNT.  The file
+	//size will increase by (sizeof(text section) + sizeof(tramps) + (gap between text section and tramps))
+	//the gap may be quite large 
+
+	//SO we do NOT do what we do on the other platforms, ie work around the
+	//heap with the compactedUpdates. we just expand the text section and 
+	//tack 'em on the end.
+
+	assert(compactedUpdates.size() < 2);
+	(char*) data = new char[compactedUpdates[0]->size];
+	readDataSpace((void*) compactedUpdates[0]->address, compactedUpdates[0]->size, data, true);	
+
+	newXCOFF->attachToText(compactedUpdates[0]->address,compactedUpdates[0]->size, (char*)data);
+
+	saveWorldCreateHighMemSections(compactedHighmemUpdates, highmemUpdates, (void*) newXCOFF);
+
+        saveWorldCreateDataSections((void*)newXCOFF);
+
+	newXCOFF->createXCOFF();
+	newXCOFF->outputXCOFF();
+/*
+	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.c_str())+1];
+        strcpy(fullName, directoryName);
+        strcat(fullName, (char*)imageFileName.c_str());
+
+        addLibraryXCOFF= new addLibrary(fullName, "/tmp/dyninstMutatee", "libdyninstAPI_RT.so.1");
+
+	addLibraryXCOFF->outputXCOFF();
+*/
+        delete [] fullName;
+
+	return directoryName;
 }
 
 #endif

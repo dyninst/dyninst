@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.102 2002/12/20 07:49:57 jaw Exp $
+// $Id: inst.C,v 1.103 2003/01/31 18:55:42 chadd Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -378,8 +378,28 @@ loadMiniTramp_result loadMiniTramp(instInstance *mtInfo, process *proc,
    near_ = mtInfo->baseInstance->baseAddr;
 #endif
    bool err = false;
-   mtInfo->trampBase = proc->inferiorMalloc(count, htype, near_, &err);
-   
+
+	//ccw 30 jul 2002 
+	//the following allows the aix inferiorMalloc to
+	//work nicely with save the world.  If we request
+	//a minitramp to be in the text section (requestTextMiniTramp)
+	//then the given params are ignored and we request as such.
+	//
+	//more importantly, if we are attaching to a series of minitramps
+	//that have been allocated in the text heap then request this
+	//one to be in the text heap as well.
+	//
+	//otherwise just use the arguments given
+#if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
+	if(proc->requestTextMiniTramp || ( (near_ < 0x20000000) && (near_ > 0x0)) ){ 
+		mtInfo->trampBase = proc->inferiorMalloc(count,anyHeap/* htype*/, 0x10000000 /*near_*/, &err);
+	}else{
+		mtInfo->trampBase = proc->inferiorMalloc(count,htype,near_, &err);
+	}   
+#else
+	mtInfo->trampBase = proc->inferiorMalloc(count,htype,near_, &err);
+#endif
+
    //fprintf(stderr, "Got %d bytes at 0x%x\n", count, (*mtInfo)->trampBase);
    
    if (err) {

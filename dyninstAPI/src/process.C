@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.379 2003/01/24 22:53:35 zandy Exp $
+// $Id: process.C,v 1.380 2003/01/31 18:55:42 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -77,6 +77,8 @@ int pvmendtask();
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 #include "dyninstAPI/src/writeBackElf.h"
 #include "dyninstAPI/src/saveSharedLibrary.h" 
+#elif defined(rs6000_ibm_aix4_1)
+#include "dyninstAPI/src/writeBackXCOFF.h"
 #endif
 
 #else
@@ -966,19 +968,28 @@ bool process::isInSignalHandler(Address addr)
  */
 void process::saveWorldData(Address address, int size, const void* src){
 #ifdef BPATCH_LIBRARY
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
-	dataUpdate *newData = new dataUpdate;
-	newData->address= address;
-	newData->size = size;
-	newData->value = new char[size];
-	memcpy(newData->value, src, size);
-	dataUpdates.push_back(newData);
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+	if(collectSaveWorldData){  //ccw 16 jul 2002 : NEW LINE
+		dataUpdate *newData = new dataUpdate;
+		newData->address= address;
+		newData->size = size;
+		newData->value = new char[size];
+		memcpy(newData->value, src, size);
+		dataUpdates.push_back(newData);
+	}
+#else /* Get rid of annoying warnings */
+//#if !defined(rs6000_ibm_aix4_1)
+	Address tempaddr = address;
+	int tempsize = size;
+	const void *bob = src;
+//#endif
 #endif
 #endif
 }
 
 #ifdef BPATCH_LIBRARY
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  || defined(rs6000_ibm_aix4_1)
+/* || defined(rs6000_ibm_aix4_1)*/
 
 char* process::saveWorldFindDirectory(){
 
@@ -1019,7 +1030,9 @@ char* process::saveWorldFindDirectory(){
 	return directoryName;
 
 }
+#endif
 
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  
 unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, 
                                  unsigned int &dyninst_SharedLibrariesSize, 
                                  char* directoryName, unsigned int &count) {
@@ -1171,7 +1184,9 @@ char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibraries
 
 	return dyninst_SharedLibrariesData;
 }
+#endif
 
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  || defined(rs6000_ibm_aix4_1)
 void process::saveWorldCreateHighMemSections(
                         pdvector<imageUpdate*> &compactedHighmemUpdates, 
                         pdvector<imageUpdate*> &highmem_updates,
@@ -1186,13 +1201,18 @@ void process::saveWorldCreateHighMemSections(
    int startIndex, stopIndex;
    void *data;
    char name[50];
-   writeBackElf *newElf = (writeBackElf*) ptr;
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+	writeBackElf *newFile = (writeBackElf*) ptr;
+#elif defined(rs6000_ibm_aix4_1)
+	writeBackXCOFF *newFile = (writeBackXCOFF*) ptr;
+#endif
+
    readDataSpace((void*) guardFlagAddr, sizeof(unsigned int),
                  (void*) &trampGuardValue, true);
    
    writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int),
                   (void*) &numberUpdates);
-        
+
    for(unsigned int j=0; j<compactedHighmemUpdates.size(); j++) {
       //the layout of dyninstAPIhighmem_%08x is:
       //pageData
@@ -1214,20 +1234,20 @@ void process::saveWorldCreateHighMemSections(
       startIndex = -1;
       stopIndex = -1;
       
-			
       for(unsigned index = 0;index < highmem_updates.size(); index++){
          //here we ignore anything with an address of zero.
          //these can be safely deleted in writeBackElf
          if( highmem_updates[index]->address && 
              startPage <= highmem_updates[index]->address &&
-             highmem_updates[index]->address  < (startPage + compactedHighmemUpdates[j]->size)){
+             highmem_updates[index]->address  < (startPage + pageSize /*compactedHighmemUpdates[j]->sizei*/)){
             numberUpdates ++;
             stopIndex = index;
             if(startIndex == -1){
                startIndex = index;
             }
-            //printf(" HighMemUpdates address 0x%x \n", highmem_updates[index]->address );
+           //printf(" HighMemUpdates address 0x%x \n", highmem_updates[index]->address );
          }
+	//printf(" high mem updates: 0x%x", highmem_updates[index]->address);
       }
       unsigned int dataSize = compactedHighmemUpdates[j]->size + 
          sizeof(unsigned int) + 
@@ -1257,9 +1277,13 @@ void process::saveWorldCreateHighMemSections(
       memcpy(dataPtr, &numberUpdates, sizeof(unsigned int));
       //printf(" NUMBER OF UPDATES 0x%x\n\n",numberUpdates);
       sprintf(name,"dyninstAPIhighmem_%08x",j);
-
-      newElf->addSection(compactedHighmemUpdates[j]->address,data, dataSize,
-                         name, false);
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+      newFile->addSection(compactedHighmemUpdates[j]->address,data ,dataSize,name,false);
+#elif defined(rs6000_ibm_aix4_1)
+	  sprintf(name, "dyH_%03x",j);
+      newFile->addSection(&(name[0]), compactedHighmemUpdates[j]->address,compactedHighmemUpdates[j]->address,
+		dataSize, (char*) data );
+#endif
       
       //lastCompactedUpdateAddress = compactedHighmemUpdates[j]->address+1;
       delete [] (char*) data;
@@ -1270,7 +1294,11 @@ void process::saveWorldCreateHighMemSections(
 
 void process::saveWorldCreateDataSections(void* ptr){
 
-	writeBackElf *newElf = (writeBackElf*)ptr;
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+	writeBackElf *newFile = (writeBackElf*) ptr;
+#elif defined(rs6000_ibm_aix4_1)
+	writeBackXCOFF *newFile = (writeBackXCOFF*) ptr;
+#endif
 
 	char *dataUpdatesData;
 	int sizeofDataUpdatesData=0;
@@ -1297,12 +1325,22 @@ void process::saveWorldCreateDataSections(void* ptr){
 		*(int*) ptr=0;
 		ptr += sizeof(int);
 		*(unsigned int*) ptr=0;
-		newElf->addSection(0/*lastCompactedUpdateAddress*/, dataUpdatesData, 
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+		newFile->addSection(0/*lastCompactedUpdateAddress*/, dataUpdatesData, 
 			sizeofDataUpdatesData + (sizeof(int) + sizeof(Address)), "dyninstAPI_data", false);
+#elif defined(rs6000_ibm_aix4_1)
+		newFile->addSection("dyn_dat", 0/*lastCompactedUpdateAddress*/,0,
+			sizeofDataUpdatesData + (sizeof(int) + sizeof(Address)), (char*) dataUpdatesData);
+
+#endif
+
 		delete [] (char*) dataUpdatesData;
 	}
 
 }
+#endif
+
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) 
 
 void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002 
 
@@ -1706,6 +1744,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 #endif
       }
       freeIndex = findFreeIndex(size, type, lo, hi);
+//	printf("  type %x",type);
    }
    
    // adjust active and free lists
@@ -1738,13 +1777,19 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
    // imageUpdate(h->addr,size)
    
 #ifdef BPATCH_LIBRARY
-#if defined(sparc_sun_solaris2_4 ) || defined(i386_unknown_linux2_0)
+//	if( h->addr > 0xd0000000){
+//		printf(" \n ALLOCATION: %lx %lx ntry: %d\n", h->addr, size,ntry);
+//		fflush(stdout);
+//	}
+#if defined(sparc_sun_solaris2_4 ) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
    if(collectSaveWorldData){
       
 #if defined(sparc_sun_solaris2_4)
       if(h->addr < 0xF0000000)
 #elif defined(i386_unknown_linux2_0)
       if(h->addr < 0x40000000)
+#elif defined(rs6000_ibm_aix4_1)
+	if(h->addr < 0x20000000)
 #endif	
       {
 	 imageUpdate *imagePatch=new imageUpdate; 
@@ -1752,10 +1797,10 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	 imagePatch->size = size;
 	 imageUpdates.push_back(imagePatch);
 	 //totalSizeAlloc += size;
-	 //	printf(" PUSHBACK %x %x --- %x\n", imagePatch->address, imagePatch->size, totalSizeAlloc); 		
+	 //printf(" PUSHBACK %x %x --- \n", imagePatch->address, imagePatch->size); 		
       } else {
 	 //	totalSizeAlloc += size;
-	 //	printf(" HIGHMEM UPDATE %x %x %x\n", h->addr, size,totalSizeAlloc);
+	 //printf(" HIGHMEM UPDATE %x %x \n", h->addr, size);
 	 imageUpdate *imagePatch=new imageUpdate;
 	 imagePatch->address = h->addr;
 	 imagePatch->size = size;
@@ -1972,6 +2017,12 @@ process::process(int iPid, image *iImage, int iTraceLink
   pid(iPid), // needed in fastInferiorHeap ctors below
   lwps(CThash),
   procHandle_(0)
+#if !defined(BPATCH_LIBRARY)
+  ,previous(0)
+#endif
+#if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
+ ,requestTextMiniTramp(0) //ccw 30 jul 2002
+#endif
 {
 
 #ifdef DETACH_ON_THE_FLY
@@ -2166,6 +2217,13 @@ process::process(int iPid, image *iSymbols,
   pid(iPid),
   lwps(CThash),
   procHandle_(0)
+#if !defined(BPATCH_LIBRARY)  && defined(i386_unknown_nt4_0)
+  ,previous(0) //ccw 8 jun 2002
+#endif
+#if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
+ ,requestTextMiniTramp(0) //ccw 30 jul 2002
+#endif
+
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -2449,6 +2507,12 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
   installedMiniTramps_afterPt(parentProc.installedMiniTramps_afterPt),
   lwps(CThash),
   procHandle_(0)
+#ifdef SHM_SAMPLING
+  ,previous(0)
+#endif
+#if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
+ ,requestTextMiniTramp(0) //ccw 30 jul 2002
+#endif
 {
 #ifdef DETACH_ON_THE_FLY
    haveDetached = 0;
@@ -6174,6 +6238,7 @@ bool process::handleTrapIfDueToRPC() {
 }
     
 
+BPatchSnippetHandle *handle; //ccw 17 jul 2002
 
 //ccw 19 apr 2002 : SPLIT
 //this function calls DYNINSTinit in either the DYNINST or PARADYN
@@ -6243,14 +6308,20 @@ void process::installBootstrapInst() {
             return;
        }
 #endif
-       miniTrampHandle mtHandle;
-       assert(addInstFunc(&mtHandle, this, func_entry, ast, callPreInsn,
+	handle= new BPatchSnippetHandle(this); //ccw 17 jul 2002
+	
+
+       miniTrampHandle *mtHandle= new miniTrampHandle; //ccw 17 jul 2002
+       assert(addInstFunc(mtHandle, this, func_entry, ast, callPreInsn, //ccw 17 jul 2002
 			  orderFirstAtPoint,
 			  true, // true --> tramp code not update the cost
 			  true // Don't care about recursion --it's DYNINSTinit
 			  )
 	      == success_res);
        // returns an "instInstance", which we ignore (but should we?)
+
+	handle->add(mtHandle); //ccw 17 jul 2002
+
        removeAst(ast);
        attach_cerr << "wrote call to DYNINSTinit to entry of main" << endl;
     } else {
@@ -6508,6 +6579,16 @@ int process::procStopFromDYNINSTinit() {
       // want to wait until the inferiorRPC (thru which DYNINSTinit is being run)
       // completes.
       handleCompletionOfDYNINSTinit(false);
+
+	// ccw 17 jul 2002 : DELETE THE SNIPPET THAT CALLED DYNINSTinit
+	//handle 
+#if defined(rs6000_ibm_aix4_1)
+	if(collectSaveWorldData){	
+		thread->deleteSnippet(handle);	
+	}
+	// ccw 17 jul 2002
+#endif
+
       return 1;
    }
    else {
@@ -6516,6 +6597,16 @@ int process::procStopFromDYNINSTinit() {
 	   //DllMain so an RPC is never launched....
 	handleCompletionOfDYNINSTinit(true);  
 #else
+
+
+	// ccw 17 jul 2002 : DELETE THE SNIPPET THAT CALLED DYNINSTinit
+	//handle 
+#if defined(rs6000_ibm_aix4_1)
+	if(collectSaveWorldData){	
+		thread->deleteSnippet(handle);	
+	}
+	// ccw 17 jul 2002
+#endif
       if (!continueProc())
          assert(false);
 #endif

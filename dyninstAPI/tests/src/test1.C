@@ -1944,7 +1944,7 @@ void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     n = 17;
-    expr18_1->writeValue(&n);
+    expr18_1->writeValue(&n,true); //ccw 31 jul 2002
 }
 
 void test19_oneTimeCodeCallback(BPatch_thread *thread,
@@ -2837,7 +2837,7 @@ void mutatorTest27(BPatch_thread *, BPatch_image *appImage)
     expectError = DYNINST_NO_ERROR;
 
     int n = 1;
-    expr27_1->writeValue(&n);
+    expr27_1->writeValue(&n, true); //ccw 31 jul 2002
 #endif
 }
 
@@ -3037,7 +3037,7 @@ void mutatorTest29(BPatch_thread *, BPatch_image *appImage)
     expectError = DYNINST_NO_ERROR;
 
     int n = 1;
-    expr29_1->writeValue(&n);
+    expr29_1->writeValue(&n,true); //ccw 31 jul 2002
 }
 
 //
@@ -4052,7 +4052,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
 	fprintf(stderr, "Unable to run test program.\n");
 	exit(1);
     }
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
     /* this is only supported on sparc solaris  and linux*/
 	/* this call tells the process to collect data for the 
 	save the world functionality
@@ -4154,6 +4154,8 @@ int mutatorMAIN(char *pathname, bool useAttach)
     if( runTest[ 34 ] ) mutatorTest34( appThread, appImage );
 
     if( runTest[ 35 ] ) mutatorTest35( appThread, appImage );
+
+
     
     /* the following bit of code saves the mutatee in its mutated state to the
 	file "originalmutateename"_mutated
@@ -4176,7 +4178,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
 	work.
 */
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
     /* this is only supported on sparc solaris and linux*/
 
     	if( saveWorld ) {
@@ -4254,7 +4256,7 @@ main(unsigned int argc, char *argv[])
         if (strncmp(argv[i], "-v++", 4) == 0)   errorPrint++;
 	if (strncmp(argv[i], "-verbose", 2) == 0) {
 	    debugPrint = 1;
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
 	}else if (!strcmp(argv[i], "-saveworld")) {
 		saveWorld = 1;
 #endif
@@ -4322,7 +4324,7 @@ main(unsigned int argc, char *argv[])
 #if defined(mips_sgi_irix6_4)
 		    "[-n32] "
 #endif
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
 		    "[-saveworld] "
 #endif 
                     "[-mutatee <test1.mutatee>] "

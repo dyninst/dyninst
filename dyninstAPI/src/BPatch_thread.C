@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.70 2003/01/03 06:59:57 jaw Exp $
+// $Id: BPatch_thread.C,v 1.71 2003/01/31 18:55:41 chadd Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -563,7 +563,7 @@ bool BPatch_thread::dumpCore(const char *file, bool terminate)
  */
 char* BPatch_thread::dumpPatchedImage(const char* file){ //ccw 28 oct 2001
 
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0) && !defined(rs6000_ibm_aix4_1)
 	return NULL;
 #else
     bool was_stopped;

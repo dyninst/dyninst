@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.44 2003/01/02 19:51:10 schendel Exp $
+# $Id: make.module.tmpl,v 1.45 2003/01/31 18:55:41 chadd Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -82,9 +82,6 @@ SRCS	     +=	../src/BPatch.C \
 		../src/util.C \
 		../src/sharedobject.C \
 		../src/LineInformation.C \
-		../src/writeBackElf.C \
-		../src/addLibrary.C \
-		../src/saveSharedLibrary.C \
 		../../common/src/Dictionary.C \
 		../../common/src/Ident.C \
 		../../common/src/String.C \

@@ -3,7 +3,7 @@
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
 
-/* $Id: imageUpdate.h,v 1.4 2003/01/02 19:51:35 schendel Exp $ */
+/* $Id: imageUpdate.h,v 1.5 2003/01/31 18:55:42 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY)
 
@@ -18,11 +18,12 @@
 
 
 class imageUpdate{
- public:
 
-	unsigned int address;
-	unsigned int size;
-	int startPage, stopPage;
+        public:
+
+        unsigned int address;
+        unsigned int size;
+        unsigned int startPage, stopPage; //ccw 13 july 2002 : fix for AIX 
 
 	imageUpdate(){
 		address =0;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.235 2003/01/28 16:23:19 schendel Exp $
+/* $Id: process.h,v 1.236 2003/01/31 18:55:42 chadd Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -454,7 +454,7 @@ class process {
   bool setProcfsFlags();
   bool dumpImage(string outFile);
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
   char* dumpPatchedImage(string outFile);//ccw 28 oct 2001
 #else
   char* dumpPatchedImage(string outFile) { return NULL; } 
@@ -598,7 +598,8 @@ class process {
 void saveWorldData(Address address, int size, const void* src);
 
 #ifdef BPATCH_LIBRARY
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+
   pdvector<imageUpdate*> imageUpdates;//ccw 28 oct 2001
   pdvector<imageUpdate*> highmemUpdates;//ccw 20 nov 2001
   pdvector<dataUpdate*>  dataUpdates;//ccw 26 nov 2001
@@ -616,7 +617,12 @@ void saveWorldData(Address address, int size, const void* src);
 	void saveWorldCreateDataSections(void* ptr);
 	void saveWorldAddSharedLibs(void *ptr);//ccw 14 may 2002
 	void saveWorldloadLibrary(string tmp){ loadLibraryUpdates.push_back(tmp); };
-	
+
+#if defined(rs6000_ibm_aix4_1)
+	void addLib(char *lname);//ccw 30 jul 2002
+	int requestTextMiniTramp; //ccw 20 jul 2002
+#endif
+
 #endif
 #endif
 #if defined(i386_unknown_nt4_0) 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.29 2002/10/08 22:50:23 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.30 2003/01/31 18:55:43 chadd Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -110,9 +110,16 @@ static void initFPU()
 int libdyninstAPI_RT_DLL_localCause=-1, libdyninstAPI_RT_DLL_localPid=-1; /*ccw 2 may 2001*/
 #endif
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) 
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+int isMutatedExec = 0;
+#endif
+/*
 extern int isElfFile;
 #endif
+#if  defined(rs6000_ibm_aix4_1)
+extern int isXCOFFfile;
+#endif
+*/
 
 /*
  * The Dyninst API arranges for this function to be called at the entry to
@@ -121,16 +128,20 @@ extern int isElfFile;
 void DYNINSTinit(int cause, int pid)
 {
     int calledByFork = 0, calledByAttach = 0;
-	int isRestart=0;
 
     initFPU();
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
 	/* this checks to see if this is a restart or a
 	  	normal attach  ccw 19 nov 2001*/
-	isRestart = isElfFile;
-
-	if(isRestart){
+	
+/* 
+	isElfFile;
+#else
+	isXCOFFfile;
+#endif
+*/
+	if(isMutatedExec){
 		fflush(stdout);
 		cause = 9;
 	}
@@ -164,7 +175,7 @@ void DYNINSTinit(int cause, int pid)
 #ifndef i386_unknown_nt4_0 /*ccw 13 june 2001*/
 
 #ifndef mips_unknown_ce2_11 
-	if(isRestart==0){ /*ccw 19 nov 2001 */
+	if(isMutatedExec==0){ /*ccw 19 nov 2001 */
 	   DYNINSTbreakPoint();
 	}
 #else

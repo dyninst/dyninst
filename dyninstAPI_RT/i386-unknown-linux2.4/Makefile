@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2002/07/31 22:06:46 bernat Exp $
+# $Id: Makefile,v 1.10 2003/01/31 18:55:43 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -30,7 +30,8 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTsig.c \
 		   ../src/RTheap.c \
                    ../src/RTheap-linux.c \
-		   ../src/RTmutatedBinary.c
+		   ../src/RTmutatedBinary.c \
+			../src/RTmutatedBinary_ELF.c
 
 #CFLAGS += -DDEBUG_PRINT_RT    # enable debug/trace messages from library
 

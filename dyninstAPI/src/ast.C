@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.121 2003/01/23 17:55:49 tlmiller Exp $
+// $Id: ast.C,v 1.122 2003/01/31 18:55:41 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1670,7 +1670,18 @@ Address AstNode::generateCode_phase2(process *proc,
 	  // XXX This is for the string type.  If/when we fix the string type
 	  // to make it less of a hack, we'll need to change this.
 	  len = strlen((char *)oValue) + 1;
+
+#if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1) //ccw 30 jul 2002
+		if(proc->requestTextMiniTramp){
+			bool mallocFlag;
+			addr = (Address) proc->inferiorMalloc(len, textHeap, 0x10000000, &mallocFlag); //textheap
+		}else{	
+			addr = (Address) proc->inferiorMalloc(len, dataHeap); //dataheap
+		}
+#else
 	  addr = (Address) proc->inferiorMalloc(len, dataHeap); //dataheap
+#endif
+
 	  if (!proc->writeDataSpace((char *)addr, len, (char *)oValue))
 	    perror("ast.C(1351): writing string value");
 	  emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
