@@ -39,12 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
+/* $Id: process.h,v 1.102 1998/12/25 22:12:17 wylie Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
  *   ptrace updates are applied to the text space.
- *
  */
 
 #ifndef PROCESS_H
@@ -102,7 +101,7 @@ class BPatch_thread;
 typedef enum { neonatal, running, stopped, exited } processState;
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
 typedef enum { textHeap=0, dataHeap=1 } inferiorHeapType;
-typedef vector<unsigned> unsigVecType;
+typedef vector<Address> addrVecType;
 
 const int LOAD_DYNINST_BUF_SIZE = 64;
 
@@ -115,7 +114,7 @@ class heapItem {
     addr = h->addr; length = h->length; status = h->status;
   }
   Address addr;
-  int length;
+  unsigned length;
   heapStatus status;
 };
 
@@ -125,7 +124,9 @@ class heapItem {
 class disabledItem {
  public:
   disabledItem() { pointer = 0; }
-  disabledItem(unsigned iPointer, inferiorHeapType iHeapType, const vector<unsigVecType> &iPoints) : pointsToCheck(iPoints) {
+  disabledItem(Address iPointer, inferiorHeapType iHeapType, 
+	       const vector<addrVecType> &iPoints) 
+    : pointsToCheck(iPoints) {
      pointer = iPointer;
      whichHeap = iHeapType;
   }
@@ -143,15 +144,15 @@ class disabledItem {
      return *this;
   }
   
-  unsigned getPointer() const {return pointer;}
+  Address getPointer() const {return pointer;}
   inferiorHeapType getHeapType() const {return whichHeap;}
-  const vector<unsigVecType> &getPointsToCheck() const {return pointsToCheck;}
-  vector<unsigVecType> &getPointsToCheck() {return pointsToCheck;}
+  const vector<addrVecType> &getPointsToCheck() const {return pointsToCheck;}
+  vector<addrVecType> &getPointsToCheck() {return pointsToCheck;}
 
  private:
-  unsigned pointer;			// address in heap
+  Address pointer;			// address in heap
   inferiorHeapType whichHeap;		// which heap is it in
-  vector<unsigVecType> pointsToCheck;	// range of addrs to check
+  vector<addrVecType> pointsToCheck;	// range of addrs to check
 };
 
 
@@ -227,6 +228,11 @@ static inline unsigned instInstanceHash(instInstance * const &inst) {
 
 class Frame;
 
+
+// inferior RPC callback function type
+typedef void(*inferiorRPCcallbackFunc)(process *p, void *data, void *result);
+
+
 class process {
  friend class ptraceKludge;
 #ifdef BPATCH_LIBRARY
@@ -277,8 +283,8 @@ class process {
   // 
   // getActiveFrame and readDataFromFrame are platform dependant
   //
-  bool getActiveFrame(int *fp, int *pc);
-  bool readDataFromFrame(int currentFP, int *previousFP, int *rtn, 
+  bool getActiveFrame(Address *fp, Address *pc);
+  bool readDataFromFrame(Address currentFP, Address *previousFP, Address *rtn, 
 			 bool uppermost=false);
 
 
@@ -329,7 +335,7 @@ class process {
   void updateActiveCT(bool flag, CTelementType type);
   void cleanRPCreadyToLaunch(int mid);
   void postRPCtoDo(AstNode *, bool noCost,
-		   void (*)(process *, void *, unsigned), void *, int);
+		   inferiorRPCcallbackFunc, void *data, int);
   bool existsRPCreadyToLaunch() const;
   bool existsRPCinProgress() const;
   bool launchRPCifAppropriate(bool wasRunning, bool finishingSysCall);
@@ -378,14 +384,14 @@ class process {
 #endif
 
   bool writeDataSpace(void *inTracedProcess,
-		      int amount, const void *inSelf);
-  bool readDataSpace(const void *inTracedProcess, int amount,
+		      u_int amount, const void *inSelf);
+  bool readDataSpace(const void *inTracedProcess, u_int amount,
 		     void *inSelf, bool displayErrMsg);
 
-  bool writeTextSpace(void *inTracedProcess, int amount, const void *inSelf);
+  bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
   bool writeTextWord(caddr_t inTracedProcess, int data);
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
-  bool readTextSpace(const void *inTracedProcess, int amount,
+  bool readTextSpace(const void *inTracedProcess, u_int amount,
 		     const void *inSelf);
 #endif
   bool continueProc();
@@ -467,7 +473,7 @@ class process {
 
      AstNode *action;
      bool noCost; // if true, cost model isn't updated by generated code.
-     void (*callbackFunc)(process *, void *userData, unsigned result);
+     inferiorRPCcallbackFunc callbackFunc;
      void *userData;
      int mid;
   };
@@ -485,7 +491,7 @@ class process {
      // easy to do...just do one inferiorRPC with a sequenceNode AST! (neat, eh?)
      // (Admittedly, that does confuse the semantics of callback functions.  So
      // the official line remains: only 1 inferior RPC per process can be ongoing.)
-     void (*callbackFunc)(process *, void *userData, unsigned result);
+     inferiorRPCcallbackFunc callbackFunc;
      void *userData;
      
      void *savedRegs; // crucial!
@@ -498,11 +504,11 @@ class process {
         // location of the TRAP or ILL which marks point where paradynd should grab the
 	// result register.  Undefined if no callback fn.
      Address justAfter_stopForResultAddr; // undefined if no callback fn.
-     reg resultRegister; // undefined if no callback fn.
+     Register resultRegister; // undefined if no callback fn.
 
-     unsigned resultValue; // undefined until we stop-for-result, at which time we
-                           // fill this in.  The callback fn (which takes in this value)
-			   // isn't invoked until breakAddr (the final break)
+     void *resultValue; // undefined until we stop-for-result, at which time we
+                        // fill this in.  The callback fn (which takes in this value)
+			// isn't invoked until breakAddr (the final break)
 
      Address breakAddr;
         // location of the TRAP or ILL insn which marks the end of the inferiorRPC
@@ -516,19 +522,19 @@ class process {
   // 
 
   // The follwing 5 routines are implemented in an arch-specific .C file
-  bool emitInferiorRPCheader(void *, Address&base);
-  bool emitInferiorRPCtrailer(void *, Address &base,
-                              Address &breakOffset,
+  bool emitInferiorRPCheader(void *, unsigned &baseBytes);
+  bool emitInferiorRPCtrailer(void *, unsigned &baseBytes,
+                              unsigned &breakOffset,
 			      bool stopForResult,
-			      Address &stopForResultOffset,
-			      Address &justAfter_stopForResultOffset);
+			      unsigned &stopForResultOffset,
+			      unsigned &justAfter_stopForResultOffset);
 
   Address createRPCtempTramp(AstNode *action,
 			      bool noCost, bool careAboutResult,
-			      Address  &breakAddr,
+			      Address &breakAddr,
 			      Address &stopForResultAddr,
 			      Address &justAfter_stopForResultAddr,
-			      reg &resultReg);
+			      Register &resultReg);
 
   void *getRegisters();
      // ptrace-GETREGS and ptrace-GETFPREGS (or /proc PIOCGREG and PIOCGFPREG).
@@ -544,14 +550,15 @@ class process {
      // input is the opaque type returned by getRegisters()
 
   bool set_breakpoint_for_syscall_completion();
-  unsigned read_inferiorRPC_result_register(reg);
+  Address read_inferiorRPC_result_register(Register);
 
  public:
 
 #if defined(USES_LIBDYNINSTRT_SO)
-  unsigned dyninstlib_brk_addr;
-  unsigned main_brk_addr;
-  unsigned rbrkAddr() { assert(dyn); return dyn->get_r_brk_addr(); }
+  Address get_dlopen_addr() const;
+  Address dyninstlib_brk_addr;
+  Address main_brk_addr;
+  Address rbrkAddr() { assert(dyn); return dyn->get_r_brk_addr(); }
   bool dlopenDYNINSTlib();
   bool trapDueToDyninstLib();
   bool trapAtEntryPointOfMain();
@@ -599,10 +606,6 @@ class process {
   bool handleStartProcess();
 
   bool handleStopDueToExecEntry();
-
-#if defined(USES_LIBDYNINSTRT_SO)
-  unsigned get_dlopen_addr() const;
-#endif
 
   // getSharedObjects: This routine is called before main() to get and
   // process all shared objects that have been mapped into the process's
@@ -764,8 +767,8 @@ class process {
      void *result = inferiorHeapMgr.getObsCostAddrInApplicSpace();
      return result;
   }
-  unsigned *getObsCostLowAddrInParadyndSpace() {
-     unsigned *result = inferiorHeapMgr.getObsCostAddrInParadyndSpace();
+  void *getObsCostLowAddrInParadyndSpace() {
+     void *result = inferiorHeapMgr.getObsCostAddrInParadyndSpace();
      return result;
   }
   void processCost(unsigned obsCostLow,
@@ -789,7 +792,7 @@ class process {
    void handleCompletionOfDYNINSTinit(bool fromAttach);
       // called by above routine.  Reads bs_record from applic, takes action.
 
-   static void DYNINSTinitCompletionCallback(process *, void *, unsigned);
+   static void DYNINSTinitCompletionCallback(process *, void *data, void *ret);
       // inferiorRPC callback routine.
 
 private:
@@ -850,23 +853,23 @@ public:
   trampTableEntry trampTable[TRAMPTABLESZ];
   unsigned trampTableItems;
 
-  unsigned currentPC() {
-    int pc, fp;
+  Address currentPC() {
+    Address pc, fp;
     if (hasNewPC)
       return currentPC_;
     else if (getActiveFrame(&fp, &pc)) {
-      currentPC_ = (unsigned) pc;
+      currentPC_ = pc;
       return currentPC_;
     }
     else abort();
     return 0;
   }
-  void setNewPC(unsigned newPC) {
+  void setNewPC(Address newPC) {
     currentPC_ = newPC;
     hasNewPC = true;
   }
 
-  inline int costAddr()  const { return costAddr_; }  // why an integer?
+  inline Address costAddr()  const { return costAddr_; }
   void getObservedCostAddr();   
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
@@ -888,24 +891,24 @@ private:
   bool wasRunningWhenAttached;
   bool needToContinueAfterDYNINSTinit;
 
-  unsigned currentPC_;
+  Address currentPC_;
   bool hasNewPC;
 
   // for processing observed cost (see method processCost())
   int64 cumObsCost; // in cycles
   unsigned lastObsCostLow; // in cycles
 
-  int costAddr_;  // why an integer?
+  Address costAddr_;
   bool execed_;  // true if this process does an exec...set in handleExec
 
   // deal with system differences for ptrace
-  bool writeDataSpace_(void *inTracedProcess, int amount, const void *inSelf);
-  bool readDataSpace_(const void *inTracedProcess, int amount, void *inSelf);
+  bool writeDataSpace_(void *inTracedProcess, u_int amount, const void *inSelf);
+  bool readDataSpace_(const void *inTracedProcess, u_int amount, void *inSelf);
 
   bool writeTextWord_(caddr_t inTracedProcess, int data);
-  bool writeTextSpace_(void *inTracedProcess, int amount, const void *inSelf);
+  bool writeTextSpace_(void *inTracedProcess, u_int amount, const void *inSelf);
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
-  bool readTextSpace_(void *inTracedProcess, int amount, const void *inSelf);
+  bool readTextSpace_(void *inTracedProcess, u_int amount, const void *inSelf);
 #endif
   bool pause_();
   bool continueProc_();
@@ -1019,29 +1022,29 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 
 void handleProcessExit(process *p, int exitStatus);
 
-Address inferiorMalloc(process *proc, int size, inferiorHeapType type);
-void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
-                  const vector<unsigVecType> &pointsToCheck);
+Address inferiorMalloc(process *proc, unsigned size, inferiorHeapType type);
+void inferiorFree(process *proc, Address pointer, inferiorHeapType type,
+                  const vector<addrVecType> &pointsToCheck);
 
 extern resource *machineResource;
 
 class Frame {
   private:
-    int frame_;
-    int pc_;
+    Address frame_;
+    Address pc_;
     bool uppermostFrame;
 
   public:
     Frame(process *);
        // formerly getActiveStackFrameInfo
 
-    Frame(int theFrame, int thePc, bool theUppermost) {
+    Frame(Address theFrame, Address thePc, bool theUppermost) {
        frame_ = theFrame; pc_ = thePc;
        uppermostFrame = theUppermost;
     }
 
-    int getPC() const { return pc_; }
-    int getFramePtr(){ return frame_;}
+    Address getPC() const { return pc_; }
+    Address getFramePtr(){ return frame_;}
     bool isLastFrame() const { 
 	if ((pc_ == 0)||(frame_ == 0))
 	    return(true);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.158 1998/09/15 04:16:04 buck Exp $
+// $Id: process.C,v 1.159 1998/12/25 22:12:19 wylie Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -77,7 +77,7 @@ int pvmendtask();
 #endif
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
-extern void generateMTpreamble(char *insn, unsigned &base, process *proc);
+extern void generateMTpreamble(char *insn, Address &base, process *proc);
 #endif
 
 #include "util/h/debugOstream.h"
@@ -186,8 +186,8 @@ Frame Frame::getPreviousStackFrameInfo(process *proc) const {
       return fake_frame; 
    }
 
-   int fp = frame_;
-   int rtn = pc_;
+   Address fp = frame_;
+   Address rtn = pc_;
 
    Frame result(0, 0, false);
    if (proc->readDataFromFrame(frame_, &fp, &rtn, uppermostFrame)) {
@@ -233,7 +233,7 @@ vector<Address> process::walkStack(bool noPause)
           sig_addr = signal_handler->getAddress(this);
       }
       sig_size = signal_handler->size();
-      // printf("signal_handler = %s size = %d addr = 0x%x\n",
+      // printf("signal_handler = %s size = %d addr = 0x%lx\n",
       //     (signal_handler->prettyName()).string_of(),sig_size,sig_addr);
   }
 
@@ -282,7 +282,7 @@ vector<Address> process::walkStack(bool noPause)
         // however, the heap management occasionally deletes such items
         // so it's now no longer const'd
 bool isFreeOK(process *proc, disabledItem &disItem, vector<Address> &pcs) {
-  const unsigned disItemPointer = disItem.getPointer();
+  const Address disItemPointer = disItem.getPointer();
   const inferiorHeapType disItemHeap = disItem.getHeapType();
 
 #if defined(hppa1_1_hp_hpux)
@@ -291,8 +291,8 @@ bool isFreeOK(process *proc, disabledItem &disItem, vector<Address> &pcs) {
 
   heapItem *ptr=NULL;
   if (!proc->heaps[disItemHeap].heapActive.find(disItemPointer, ptr)) {
-    sprintf(errorLine,"Warning: attempt to free not defined heap entry "
-                      "%x (pid=%d, heapActive.size()=%d)\n", 
+    sprintf(errorLine,"Warning: attempt to free undefined heap entry "
+                      "0x%lx (pid=%d, heapActive.size()=%d)\n", 
         disItemPointer, proc->getPid(), 
         proc->heaps[disItemHeap].heapActive.size());
     logLine(errorLine);
@@ -302,23 +302,23 @@ bool isFreeOK(process *proc, disabledItem &disItem, vector<Address> &pcs) {
   assert(ptr);
 
 #ifdef FREEDEBUG1
-  sprintf(errorLine, "isFreeOK  called on 0x%x\n", ptr->addr);
+  sprintf(errorLine, "isFreeOK  called on 0x%lx\n", ptr->addr);
   logLine(errorLine);
 #endif
 
   // the following can't be const; we're sometimes gonna change it
-  vector<unsigVecType> &disItemPoints = disItem.getPointsToCheck(); 
+  vector<addrVecType> &disItemPoints = disItem.getPointsToCheck(); 
 
   const unsigned disItemNumPoints = disItemPoints.size();
 
   for (unsigned int j=0;j<disItemNumPoints;j++) {
     for (unsigned int k=0;k<disItemPoints[j].size();k++) {
-      unsigned pointer = disItemPoints[j][k];
+      Address pointer = disItemPoints[j][k];
 #ifdef FREEDEBUG_ON
       if (disItemHeap == dataHeap)
-        sprintf(errorLine, "checking DATA pointer 0x%x\n", pointer);
+        sprintf(errorLine, "checking DATA pointer 0x%lx\n", pointer);
       else
-        sprintf(errorLine, "checking TEXT pointer 0x%x\n", pointer);
+        sprintf(errorLine, "checking TEXT pointer 0x%lx\n", pointer);
       logLine(errorLine);
 #endif
 
@@ -329,7 +329,7 @@ bool isFreeOK(process *proc, disabledItem &disItem, vector<Address> &pcs) {
       heapItem *np=NULL;
       if (!heapActivePart.find(pointer, np)) { // fills in "np" if found
 #ifdef FREEDEBUG1
-	    sprintf(errorLine, "something freed addr 0x%x from us\n", pointer);
+	    sprintf(errorLine, "something freed addr 0x%lx from us\n", pointer);
 	    logLine(errorLine);
 #endif
         
@@ -351,7 +351,8 @@ bool isFreeOK(process *proc, disabledItem &disItem, vector<Address> &pcs) {
         {
 
 #ifdef FREEDEBUG_ON
-          sprintf(errorLine,"*** TEST *** IN isFreeOK: (1) we found 0x%x in our inst. range!\n",ptr->addr);
+          sprintf(errorLine,"*** TEST *** IN isFreeOK: (1) "
+                "we found 0x%lx in our inst. range!\n",ptr->addr);
           logLine(errorLine);
 #endif
 
@@ -365,7 +366,8 @@ bool isFreeOK(process *proc, disabledItem &disItem, vector<Address> &pcs) {
           {
 
 #ifdef FREEDEBUG_ON
-    sprintf(errorLine,"*** TEST *** IN isFreeOK: (2) we found 0x%x in our inst. range!\n", ptr->addr);
+    sprintf(errorLine,"*** TEST *** IN isFreeOK: (2) "
+                "we found 0x%lx in our inst. range!\n", ptr->addr);
     logLine(errorLine);
 #endif
 
@@ -435,7 +437,8 @@ void inferiorFreeCompact(inferiorHeap *hp)
     for (j=i+1;j<hp->disabledList.size();j++) {
       if ( (hp->disabledList[i]).getPointer() == 
            (hp->disabledList[j]).getPointer() ) {
-        sprintf(errorLine,"***** ERROR: address 0x%x appears more than once\n",(hp->disabledList[j]).getPointer());
+        sprintf(errorLine,"***** ERROR: address 0x%lx appears more than once\n",
+		(hp->disabledList[j]).getPointer());
         logLine(errorLine);
       }
     }
@@ -484,15 +487,19 @@ void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
     disabledItem &item = (*disList)[i];
     if (isFreeOK(proc,item,pcs)) {
       heapItem *np=NULL;
-      unsigned pointer = item.getPointer();
+      const Address pointer = item.getPointer();
       if (!hp->heapActive.find(pointer,np)) {
-        showErrorCallback(96,"");
+        sprintf(errorLine,"Attempt to free undefined heap entry 0x%lx\n",
+                pointer);
+        logLine(errorLine);
+        showErrorCallback(96, (const char*)errorLine);
         return;
       }
       assert(np);
 
       if (np->status != HEAPallocated) {
-        sprintf(errorLine,"Attempt to free already freed heap entry %x\n", pointer);
+        sprintf(errorLine,"Attempt to free already freed heap entry 0x%lx\n",
+                pointer);
         logLine(errorLine);
         showErrorCallback(67, (const char *)errorLine); 
         return;
@@ -503,7 +510,7 @@ void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
       hp->heapActive.undef(pointer);
 
 #ifdef FREEDEBUG_ON
-   sprintf(errorLine,"inferiorFreeDefered: deleting 0x%x from heap\n",pointer);
+   sprintf(errorLine,"inferiorFreeDefered: deleting 0x%lx from heap\n",pointer);
    logLine(errorLine);
 #endif
 
@@ -601,7 +608,10 @@ inferiorHeap::inferiorHeap(const inferiorHeap &src):
 void printHeapFree(process *proc, inferiorHeap *hp, int size)
 {
   for (unsigned i=0; i < hp->heapFree.size(); i++) {
-    sprintf(errorLine,"***** (pid=%d) i=%d, addr=%d, length=%d, heapFree.size()=%d, size=%d\n",proc->getPid(),i,(hp->heapFree[i])->addr,(hp->heapFree[i])->length,hp->heapFree.size(),size); 
+    sprintf(errorLine,"***** (pid=%d) i=%d, addr=0x%lx, length=%d, " 
+	    "heapFree.size()=%d, size=%d\n", proc->getPid(), i, 
+	    (hp->heapFree[i])->addr, (hp->heapFree[i])->length, 
+	    hp->heapFree.size(), size); 
     logLine(errorLine);
   }
 }
@@ -631,7 +641,7 @@ bool findFreeIndex(inferiorHeap *hp, int size, unsigned *index)
   return(foundFree);
 }  
 
-Address inferiorMalloc(process *proc, int size, inferiorHeapType type)
+Address inferiorMalloc(process *proc, unsigned size, inferiorHeapType type)
 {
     inferiorHeap *hp;
     heapItem *np=NULL, *newEntry = NULL;
@@ -667,7 +677,8 @@ Address inferiorMalloc(process *proc, int size, inferiorHeapType type)
       printHeapFree(proc,hp,size);
 #endif
 
-      sprintf(errorLine, "***** Inferior heap overflow: %d bytes freed, %d bytes requested\n", hp->freed, size);
+      sprintf(errorLine, "***** Inferior heap overflow: "
+                "%d bytes freed, %d bytes requested\n", hp->freed, size);
       logLine(errorLine);
       showErrorCallback(66, (const char *) errorLine);
 #if defined(BPATCH_LIBRARY)
@@ -714,16 +725,19 @@ Address inferiorMalloc(process *proc, int size, inferiorHeapType type)
     return(np->addr);
 }
 
-void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
-                  const vector<unsigVecType> &pointsToCheck)
+void inferiorFree(process *proc, Address pointer, inferiorHeapType type,
+                  const vector<addrVecType> &pointsToCheck)
 {
     inferiorHeapType which = (type == textHeap && proc->splitHeaps) ? textHeap : dataHeap;
     inferiorHeap *hp = &proc->heaps[which];
     heapItem *np=NULL;
 
     if (!hp->heapActive.find(pointer, np)) {
-      showErrorCallback(96,"");
-      return;
+        sprintf(errorLine,"Attempt to free undefined heap entry 0x%lx\n",
+                pointer);
+        logLine(errorLine);
+        showErrorCallback(96, (const char*)errorLine);
+        return;
     }
     assert(np);
 
@@ -732,7 +746,8 @@ void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
 #ifdef FREEDEBUG
     for (unsigned i=0;i<hp->disabledList.size();i++) {
       if (hp->disabledList[i].getPointer() == pointer) {
-        sprintf(errorLine,"***** ERROR, pointer 0x%x already defined in disabledList\n",pointer);
+        sprintf(errorLine,"***** ERROR, pointer 0x%lx "
+		"already defined in disabledList\n", pointer);
         logLine(errorLine);
       }
     }
@@ -745,7 +760,7 @@ void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
     sprintf(errorLine,"==> TEST <== In inferiorFree: disabledList has %d items, %d bytes, and FREE_WATERMARK is %d\n",hp->disabledList.size(),hp->disabledListTotalMem,FREE_WATERMARK);
     logLine(errorLine);
     for (unsigned i=0; i < hp->disabledList.size(); i++) {
-	sprintf(errorLine, "   %x is on list\n", hp->disabledList[i].pointer);
+	sprintf(errorLine,"   0x%lx is on list\n", hp->disabledList[i].pointer);
 	logLine(errorLine);
     }
 #endif
@@ -845,11 +860,11 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
 ) :
-		savedRegs(NULL),
              baseMap(ipHash), 
 #ifdef BPATCH_LIBRARY
 	     instPointMap(hash_address),
 #endif
+	     savedRegs(NULL),
 	     pid(iPid) // needed in fastInferiorHeap ctors below
 #ifdef SHM_SAMPLING
              ,previous(0),
@@ -866,6 +881,11 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     // the next two variables are used only if libdyninstRT is dynamically linked
     hasLoadedDyninstLib = false;
     isLoadingDyninstLib = false;
+
+#if defined(USES_LIBDYNINSTRT_SO)
+    dyninstlib_brk_addr = 0;
+    main_brk_addr = 0;
+#endif
 
     reachedFirstBreak = false; // haven't yet seen first trap
     reachedVeryFirstTrap = false;
@@ -948,7 +968,9 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 
    // attach to the child process (machine-specific implementation)
    if (!attach()) { // error check?
-      showErrorCallback(26, ""); // unable-to-attach
+      string msg = string("Warning: unable to attach to specified process :")
+	           + string(pid);
+      showErrorCallback(26, msg.string_of());
    }
 }
 
@@ -965,12 +987,12 @@ process::process(int iPid, image *iSymbols,
 		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
 		 ) :
-		savedRegs(NULL),
-		 baseMap(ipHash),
+		baseMap(ipHash),
 #ifdef BPATCH_LIBRARY
-		 instPointMap(hash_address),
+		instPointMap(hash_address),
 #endif
-		 pid(iPid)
+		savedRegs(NULL),
+		pid(iPid)
 #ifdef SHM_SAMPLING
              ,previous(0),
 	     inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
@@ -982,6 +1004,11 @@ process::process(int iPid, image *iSymbols,
 {
    RPCs_waiting_for_syscall_to_complete = false;
    save_exitset_ptr = NULL;
+
+#if defined(USES_LIBDYNINSTRT_SO)
+    dyninstlib_brk_addr = 0;
+    main_brk_addr = 0;
+#endif
 
    hasBootstrapped = false;
    reachedFirstBreak = true; // the initial trap of program entry was passed long ago...
@@ -1063,7 +1090,9 @@ process::process(int iPid, image *iSymbols,
    // Note that solaris in particular seems able to attach even if the process
    // is running.
    if (!attach()) {
-      showErrorCallback(26, ""); // unable-to-attach
+      string msg = string("Warning: unable to attach to specified process: ")
+	           + string(pid);
+      showErrorCallback(26, msg.string_of());
       success = false;
       return;
    }
@@ -1120,17 +1149,16 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
 		 ) :
-		savedRegs(NULL),
-                     baseMap(ipHash) // could change to baseMap(parentProc.baseMap)
+  baseMap(ipHash), // could change to baseMap(parentProc.baseMap)
 #ifdef BPATCH_LIBRARY
-	    	     ,instPointMap(hash_address)
+  instPointMap(hash_address),
 #endif
+  savedRegs(NULL)
 #ifdef SHM_SAMPLING
-                     ,previous(0),
-		     inferiorHeapMgr(parentProc.inferiorHeapMgr, 
-				      applShmSegPtr,
-				      theShmKey, iShmHeapStats, iPid)
-                     ,theSuperTable(parentProc.getTable(),this)
+  ,previous(0),
+  inferiorHeapMgr(parentProc.inferiorHeapMgr, applShmSegPtr, 
+		  theShmKey, iShmHeapStats, iPid),
+  theSuperTable(parentProc.getTable(), this)
 #endif
 {
     // This is the "fork" ctor
@@ -1179,6 +1207,11 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     
     bufStart = 0;
     bufEnd = 0;
+
+#if defined(USES_LIBDYNINSTRT_SO)
+    dyninstlib_brk_addr = 0;
+    main_brk_addr = 0;
+#endif
 
     reachedFirstBreak = true; // initial TRAP has (long since) been reached
     reachedVeryFirstTrap = true;
@@ -1327,8 +1360,8 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
     }
 #endif /* BPATCH_LIBRARY */
 
-    int traceLink;
-    int ioLink;
+    int traceLink = -1;
+    int ioLink = -1;
     int pid;
     int tid;
     int procHandle;
@@ -1454,9 +1487,9 @@ tp->resourceBatchMode(true);
 }
 
 
-void process::DYNINSTinitCompletionCallback(process *theProc,
+void process::DYNINSTinitCompletionCallback(process* theProc,
 					    void* userData, // user data
-					    unsigned // return value from DYNINSTinit
+					    void* /*ret*/ // return value from DYNINSTinit
 					    ) {
    attach_cerr << "Welcome to DYNINSTinitCompletionCallback" << endl;
    if (NULL != userData && 0==strcmp((char*)userData, "viaCreateProcess"))
@@ -1664,7 +1697,7 @@ bool process::doMajorShmSample(time64 theWallTime) {
    const time64 theProcTime = getInferiorProcessCPUtime();
 
    // Now sample the observed cost.
-   unsigned *costAddr = this->getObsCostLowAddrInParadyndSpace();
+   Address *costAddr = (Address*)this->getObsCostLowAddrInParadyndSpace();
    const unsigned theCost = *costAddr; // WARNING: shouldn't we be using a mutex?!
 
    this->processCost(theCost, theWallTime, theProcTime);
@@ -1687,7 +1720,11 @@ bool process::doMinorShmSample() {
 extern void removeFromMetricInstances(process *);
 extern void disableAllInternalMetrics();
 
-void handleProcessExit(process *proc, int exitStatus) {
+void handleProcessExit(process *proc, int 
+#ifdef PARADYND_PVM
+                exitStatus
+#endif
+        ) {
   if (proc->status() == exited)
     return;
 
@@ -1863,7 +1900,7 @@ void process::processCost(unsigned obsCostLow,
 /*
  * Copy data from controller process to the named process.
  */
-bool process::writeDataSpace(void *inTracedProcess, int size,
+bool process::writeDataSpace(void *inTracedProcess, unsigned size,
 			     const void *inSelf) {
   bool needToCont = false;
 
@@ -1877,7 +1914,11 @@ bool process::writeDataSpace(void *inTracedProcess, int size,
   }
 
   if (status_ != stopped && status_ != neonatal) {
-    showErrorCallback(38, "Internal paradynd error in process::writeDataSpace");
+    sprintf(errorLine, "Internal error: "
+                "Unexpected process state %d in process::writeDataSpace",
+                (int)status_);
+    logLine(errorLine);
+    showErrorCallback(39, errorLine);
     return false;
   }
 
@@ -1894,7 +1935,7 @@ bool process::writeDataSpace(void *inTracedProcess, int size,
   return true;
 }
 
-bool process::readDataSpace(const void *inTracedProcess, int size,
+bool process::readDataSpace(const void *inTracedProcess, unsigned size,
 			    void *inSelf, bool displayErrMsg) {
   bool needToCont = false;
 
@@ -1911,9 +1952,11 @@ bool process::readDataSpace(const void *inTracedProcess, int size,
   }
 
   if (status_ != stopped && status_ != neonatal) {
-    showErrorCallback(38, "Internal paradynd error in process::readDataSpace");
-    sprintf(errorLine, "Internal paradynd error in process::readDataSpace");
+    sprintf(errorLine, "Internal error: "
+                "Unexpected process state %d in process::readDataSpace",
+                (int)status_);
     logLine(errorLine);
+    showErrorCallback(39, errorLine);
     return false;
   }
 
@@ -1955,10 +1998,10 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
   }
 
   if (status_ != stopped && status_ != neonatal) {
-    string msg = string("Internal paradynd error in process::writeTextWord")
-               + string((int)status_);
-    showErrorCallback(38, msg);
-    //showErrorCallback(38, "Internal paradynd error in process::writeTextWord");
+    sprintf(errorLine, "Internal error: "
+                "Unexpected process state %d in process::writeTextWord",
+                (int)status_);
+    showErrorCallback(39, errorLine);
     return false;
   }
 
@@ -1984,7 +2027,8 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
 
 }
 
-bool process::writeTextSpace(void *inTracedProcess, int amount, const void *inSelf) {
+bool process::writeTextSpace(void *inTracedProcess, u_int amount, 
+                             const void *inSelf) {
   bool needToCont = false;
 
   if (status_ == exited)
@@ -1997,10 +2041,10 @@ bool process::writeTextSpace(void *inTracedProcess, int amount, const void *inSe
   }
 
   if (status_ != stopped && status_ != neonatal) {
-    string msg = string("Internal paradynd error in process::writeTextSpace")
-               + string((int)status_);
-    showErrorCallback(38, msg);
-    //showErrorCallback(38, "Internal paradynd error in process::writeTextSpace");
+    sprintf(errorLine, "Internal error: "
+                "Unexpected process state %d in process::writeTextSpace",
+                (int)status_);
+    showErrorCallback(39, errorLine);
     return false;
   }
 
@@ -2026,7 +2070,7 @@ bool process::writeTextSpace(void *inTracedProcess, int amount, const void *inSe
 }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
-bool process::readTextSpace(const void *inTracedProcess, int amount,
+bool process::readTextSpace(const void *inTracedProcess, u_int amount,
 			    const void *inSelf)
 {
   bool needToCont = false;
@@ -2041,11 +2085,14 @@ bool process::readTextSpace(const void *inTracedProcess, int amount,
   }
 
   if (status_ != stopped && status_ != neonatal) {
-    showErrorCallback(38, "Internal paradynd error in process::readTextSpace");
+    sprintf(errorLine, "Internal error: "
+                "Unexpected process state %d in process::readTextSpace",
+                (int)status_);
+    showErrorCallback(39, errorLine);
     return false;
   }
 
-  bool res = readTextSpace_((void *)inTracedProcess, amount, inSelf);
+  bool res = readTextSpace_(const_cast<void*>(inTracedProcess), amount, inSelf);
   if (!res) {
     string msg;
     msg=string("System error: unable to read from process data space:")
@@ -2199,11 +2246,11 @@ bool process::addASharedObject(shared_object &new_obj){
     // created for this process, then the functions and modules from this
     // shared object need to be added to those lists 
     if(all_modules){
-        *all_modules += *((vector<module *> *)(new_obj.getModules())); 
+        *all_modules += *((const vector<module *> *)(new_obj.getModules())); 
     }
     if(all_functions){
-	vector<function_base *> *normal_funcs = (vector<function_base *> *)
-			(new_obj.getAllFunctions());
+      vector<function_base *> *normal_funcs = (vector<function_base *> *)
+		const_cast< vector<pd_Function *> *>(new_obj.getAllFunctions());
         *all_functions += *normal_funcs; 
 	normal_funcs = 0;
     }
@@ -2240,7 +2287,7 @@ bool process::addASharedObject(shared_object &new_obj){
     //  shared objects have ONLY 1 module.
     if(new_obj.includeFunctions()){
         if(some_modules) {
-            *some_modules += *((vector<module *> *)(new_obj.getModules())); 
+            *some_modules += *((const vector<module *> *)(new_obj.getModules()));
         }
         if(some_functions) {
 	    // gets only functions not excluded by mdl "exclude_node" option
@@ -2581,7 +2628,8 @@ vector<function_base *> *process::getAllFunctions(){
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
 	   vector<function_base *> *funcs = (vector<function_base *> *) 
-			(((*shared_objects)[j])->getAllFunctions());
+        		const_cast< vector<pd_Function *> *>
+                        (((*shared_objects)[j])->getAllFunctions());
 	   if(funcs){
 	       *all_functions += *funcs; 
 	   }
@@ -2600,12 +2648,12 @@ vector<module *> *process::getAllModules(){
 
     // else create the list of all modules
     all_modules = new vector<module *>;
-    *all_modules += *((vector<module *> *)(&(symbols->getAllModules())));
+    *all_modules += *((const vector<module *> *)(&(symbols->getAllModules())));
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-	   vector<module *> *mods = 
-		(vector<module *> *)(((*shared_objects)[j])->getModules());
+	   const vector<module *> *mods = (const vector<module *> *)
+		        (((*shared_objects)[j])->getModules());
 	   if(mods) {
 	       *all_modules += *mods; 
            }
@@ -2668,12 +2716,12 @@ vector<module *> *process::getIncludedModules(){
 
     // else create the list of all modules
     some_modules = new vector<module *>;
-    *some_modules += *((vector<module *> *)(&(symbols->getIncludedModules())));
+    *some_modules += *((const vector<module *> *)(&(symbols->getIncludedModules())));
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
 	    if(((*shared_objects)[j])->includeFunctions()){
-	       vector<module *> *mods = (vector<module *> *) 
+	       const vector<module *> *mods = (const vector<module *> *) 
 			(((*shared_objects)[j])->getModules());
 	       if(mods) {
 	           *some_modules += *mods; 
@@ -2681,7 +2729,7 @@ vector<module *> *process::getIncludedModules(){
 	   }
     } } 
 
-    //cerr << "some_modules newlyu created, returning it:" << endl;
+    //cerr << "some_modules newly created, returning it:" << endl;
     //print_module_vector_by_short_name(string("  "),
     //    (vector<pdmodule*>*)some_modules);
     return some_modules;
@@ -2691,7 +2739,7 @@ vector<module *> *process::getIncludedModules(){
 // getBaseAddress: sets baseAddress to the base address of the 
 // image corresponding to which.  It returns true  if image is mapped
 // in processes address space, otherwise it returns 0
-bool process::getBaseAddress(const image *which,Address &baseAddress) const {
+bool process::getBaseAddress(const image *which, Address &baseAddress) const {
 
   if((Address)(symbols) == (Address)(which)){
       baseAddress = 0; 
@@ -2791,7 +2839,10 @@ bool process::continueProc() {
   if (status_ == exited) return false;
 
   if (status_ != stopped && status_ != neonatal) {
-    showErrorCallback(38, "Internal paradynd error in process::continueProc");
+    sprintf(errorLine, "Internal error: "
+                "Unexpected process state %d in process::contineProc",
+                (int)status_);
+    showErrorCallback(39, errorLine);
     return false;
   }
 
@@ -3015,7 +3066,7 @@ void process::cleanRPCreadyToLaunch(int mid)
 }
 
 void process::postRPCtoDo(AstNode *action, bool noCost,
-			  void (*callbackFunc)(process *, void *, unsigned),
+			  inferiorRPCcallbackFunc callbackFunc,
 			  void *userData,
 			  int mid) {
    // posts an RPC, but does NOT make any effort to launch it.
@@ -3237,7 +3288,7 @@ Address process::createRPCtempTramp(AstNode *action,
 				     Address &breakAddr,
 				     Address &stopForResultAddr,
 				     Address &justAfter_stopForResultAddr,
-				     reg &resultReg) {
+				     Register &resultReg) {
 
    // Returns addr of temp tramp, which was allocated in the inferior heap.
    // You must free it yourself when done.
@@ -3256,22 +3307,22 @@ Address process::createRPCtempTramp(AstNode *action,
    extern registerSpace *regSpace;
    regSpace->resetSpace();
 
-   Address count = 0;
+   unsigned count = 0; // number of bytes required for RPCtempTramp
 
    // The following is implemented in an arch-specific source file...
    if (!emitInferiorRPCheader(insnBuffer, count)) {
       // a fancy dialog box is probably called for here...
       cerr << "createRPCtempTramp failed because emitInferiorRPCheader failed." << endl;
-      return NULL;
+      return 0;
    }
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
-   generateMTpreamble((char*)insnBuffer,count,this);
+   generateMTpreamble((char*)insnBuffer,(Address&)count,this);
 #endif
 
-   resultReg = action->generateCode(this, regSpace,
+   resultReg = (Register)action->generateCode(this, regSpace,
 				    (char*)insnBuffer,
-				    count, noCost, true);
+				    (Address&)count, noCost, true);
 
    if (!shouldStopForResult) {
       regSpace->freeRegister(resultReg);
@@ -3282,20 +3333,20 @@ Address process::createRPCtempTramp(AstNode *action,
    // Now, the trailer (restore, TRAP, illegal)
    // (the following is implemented in an arch-specific source file...)
 
-   Address breakOffset, stopForResultOffset, justAfter_stopForResultOffset;
+   unsigned breakOffset, stopForResultOffset, justAfter_stopForResultOffset;
    if (!emitInferiorRPCtrailer(insnBuffer, count,
-			       breakOffset, shouldStopForResult, stopForResultOffset,
-			       justAfter_stopForResultOffset)) {
+		       breakOffset, shouldStopForResult, stopForResultOffset,
+		       justAfter_stopForResultOffset)) {
       // last 4 args except shouldStopForResult are modified by the call
       cerr << "createRPCtempTramp failed because emitInferiorRPCtrailer failed." << endl;
-      return NULL;
+      return 0;
    }
 
    Address tempTrampBase = inferiorMalloc(this, count, textHeap);
    assert(tempTrampBase);
 
 
-   breakAddr                   = tempTrampBase + breakOffset;
+   breakAddr                      = tempTrampBase + breakOffset;
    if (shouldStopForResult) {
       stopForResultAddr           = tempTrampBase + stopForResultOffset;
       justAfter_stopForResultAddr = tempTrampBase + justAfter_stopForResultOffset;
@@ -3312,7 +3363,7 @@ Address process::createRPCtempTramp(AstNode *action,
 		    << (void*)(tempTrampBase + count - 1) << endl;
 
 #if defined(MT_DEBUG)
-   sprintf(errorLine,"********>>>>> tempTrampBase = 0x%x\n",tempTrampBase);
+   sprintf(errorLine,"********>>>>> tempTrampBase = 0x%lx\n",tempTrampBase);
    logLine(errorLine);
 #endif
 
@@ -3321,7 +3372,7 @@ Address process::createRPCtempTramp(AstNode *action,
    if (!writeDataSpace((void*)tempTrampBase, count, insnBuffer)) {
       // should put up a nice error dialog window
       cerr << "createRPCtempTramp failed because writeDataSpace failed" << endl;
-      return NULL;
+      return 0;
    }
 
    extern int trampBytes; // stats.h
@@ -3336,17 +3387,17 @@ Address process::createRPCtempTramp(AstNode *action,
    if (!writeDataSpace((void*)tempTrampBase,sizeof(instruction),temp_insn)) {
      // should put up a nice error dialog window
       cerr << "createRPCtempTramp failed because writeDataSpace failed" << endl;
-      return NULL;
+      return 0;
    }
    if (!writeDataSpace((void*)(tempTrampBase+4),sizeof(instruction),temp_insn)) {
      // should put up a nice error dialog window
       cerr << "createRPCtempTramp failed because writeDataSpace failed" << endl;
-      return NULL;
+      return 0;
    }
    if (!writeDataSpace((void*)(tempTrampBase+8),sizeof(instruction),temp_insn)) {
      // should put up a nice error dialog window
       cerr << "createRPCtempTramp failed because writeDataSpace failed" << endl;
-      return NULL;
+      return 0;
    }
 #endif
    /* END */
@@ -3411,12 +3462,12 @@ bool process::handleTrapIfDueToRPC() {
       assert(theStruct.callbackFunc != NULL);
         // must be a callback to ever see this match_type
 
-      const unsigned returnValue = read_inferiorRPC_result_register(theStruct.resultRegister);
+      Address returnValue = read_inferiorRPC_result_register(theStruct.resultRegister);
 
       extern registerSpace *regSpace;
       regSpace->freeRegister(theStruct.resultRegister);
 
-      theStruct.resultValue = returnValue;
+      theStruct.resultValue = (void *)returnValue;
 
       // we don't remove the RPC from 'currRunningRPCs', since it's not yet done.
       // we continue the process...but not quite at the PC where we left off, since
@@ -3458,7 +3509,7 @@ bool process::handleTrapIfDueToRPC() {
    delete [] theStruct.savedRegs;
 
    // step 2) delete temp tramp
-   vector< vector<unsigned> > pointsToCheck;
+   vector<addrVecType> pointsToCheck;
       // blank on purpose; deletion is safe to take place even right now
    inferiorFree(this, theStruct.firstInstrAddr, textHeap, pointsToCheck);
 
@@ -3553,7 +3604,7 @@ void process::installBootstrapInst() {
 #else
    function_base *func = getMainFunction();
    assert(func);
-   instPoint *func_entry = (instPoint *)func->funcEntry(this);
+   instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
    addInstFunc(this, func_entry, ast, callPreInsn,
 	       orderFirstAtPoint,
 	       true // true --> don't try to have tramp code update the cost
@@ -3591,7 +3642,7 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
       }
 
       if (req->where & FUNC_ENTRY) {
-	 instPoint *func_entry = (instPoint *)func->funcEntry(this);
+	 instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
 	 (void)addInstFunc(this, func_entry, ast,
 			   callPreInsn, orderLastAtPoint, false);
 
@@ -3738,8 +3789,10 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
      wasRunning = status_ == running;
    (void)pause();
 
-   const bool calledFromFork   = (bs_record.event == 2);
+#ifndef BPATCH_LIBRARY
    const bool calledFromExec   = (bs_record.event == 1 && execed_);
+#endif
+   const bool calledFromFork   = (bs_record.event == 2);
    const bool calledFromAttach = fromAttach || bs_record.event == 3;
    if (calledFromAttach)
       assert(createdViaAttach);
@@ -3868,12 +3921,13 @@ void process::getObservedCostAddr() {
     bool err;
     costAddr_ = findInternalAddress("DYNINSTobsCostLow", true, err);
     if (err) {
-	logLine("Internal error: unable to find addr of DYNINSTobsCostLow\n");
-	showErrorCallback(79, "");
+	sprintf(errorLine,"Internal error: unable to find addr of DYNINSTobsCostLow\n");
+        logLine(errorLine);
+	showErrorCallback(79,errorLine);
 	P_abort();
     }
 #else
-    costAddr_ = (int)getObsCostLowAddrInApplicSpace();
+    costAddr_ = (Address)getObsCostLowAddrInApplicSpace();
 #endif
 }
 
@@ -3983,7 +4037,7 @@ bool process::saveOriginalInstructions(Address addr, int size) {
 
     beforeMutationList.insertHead(addr, size, data);
 
-    delete data;
+    delete[] data;
     
     return true;
 }
@@ -4001,10 +4055,10 @@ bool process::writeMutationList(mutationList &list) {
     }
 
     if (status_ != stopped && status_ != neonatal) {
-	string msg =
-	    string("Internal paradynd error in process::writeMutationList") +
-	    string((int)status_);
-	showErrorCallback(38, msg); // XXX Should get its own error code
+        sprintf(errorLine, "Internal error: "
+                "Unexpected process state %d in process::writeMutationList",
+                (int)status_);
+	showErrorCallback(39, errorLine);
 	return false;
     }
 
