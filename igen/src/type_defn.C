@@ -248,9 +248,9 @@ bool type_defn::gen_class(const string, ofstream &out_stream) {
       if (has_kids())
 	out_stream << "virtual ";
       if( ! Options::shortnames() )
-	out_stream << "class_ids getId() { return " << unqual_id() << ";}\n";
+	out_stream << "class_ids getId() const { return " << unqual_id() << ";}\n";
       else
-	out_stream << Options::type_prefix() << "class_ids getId() { return " 
+	out_stream << Options::type_prefix() << "class_ids getId() const { return " 
 		   << Options::type_prefix() << unqual_id() << ";}\n";
    }
 
