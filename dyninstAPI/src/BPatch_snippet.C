@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.47 2003/03/14 19:02:48 rchen Exp $
+// $Id: BPatch_snippet.C,v 1.48 2003/04/18 22:35:22 tlmiller Exp $
 
 #define BPATCH_FILE
 
@@ -882,11 +882,14 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
 	AstNode *fieldExpr = new AstNode(AstNode::DataIndir, addrExpr);
 
         // VG(03/02/02): What about setting the base address??? Here we go:
-	newVar = new BPatch_variableExpr(const_cast<char *> (field->getName()),
-	    proc, fieldExpr, const_cast<BPatch_type *>(field->_type),
+	if( field->_type != NULL ) {
+		newVar = new BPatch_variableExpr(const_cast<char *> (field->getName()),
+			    proc, fieldExpr, const_cast<BPatch_type *>(field->_type),
                                          (char*)address + offset);
-
-	retList->push_back(newVar);
+		retList->push_back(newVar);
+		} else {
+		fprintf( stderr, "Warning: not returning field '%s' with NULL type.\n", field->getName() );
+		}
     }
 
     return retList;
