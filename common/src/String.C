@@ -3,8 +3,6 @@
 #include <assert.h>
 #include "util/h/String.h"
 
-string string::quote="\"";
-
 string::string()
     : str_(0), len_(0), key_(0) {
 }
