@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.13 2002/12/14 16:37:56 schendel Exp $
+/* $Id: shmMgr.C,v 1.14 2003/02/04 14:59:43 bernat Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -140,25 +140,37 @@ static unsigned align(unsigned num, unsigned alignmentFactor) {
   return retnum;
 }
 
-Address shmMgr::malloc(unsigned size) {
+Address shmMgr::malloc(unsigned size, bool align /*= true*/) {
   //  fprintf(stderr, "Allocating size %d\n", size);
-  if (freespace < size)
-    return 0;
-  num_allocated++;
-  // Next, check to see if this size matches any of the preallocated
-  // chunks
-  for (unsigned i = 0; i < prealloc.size(); i++) {
-     if ((size == prealloc[i]->size_) &&
-         (prealloc[i]->oneAvailable()))
-        return prealloc[i]->malloc();
-  }
-  
-  // Grump. Nothing available.. so do it the hard way
-  // Cheesed, again
-  Address retAddr = highWaterMark;
-  highWaterMark += size;
-  freespace -= size;
-  return retAddr;
+    if (freespace < size)
+        return 0;
+    num_allocated++;
+    // Next, check to see if this size matches any of the preallocated
+    // chunks
+    for (unsigned i = 0; i < prealloc.size(); i++) {
+        if ((size == prealloc[i]->size_) &&
+            (prealloc[i]->oneAvailable())) {
+            Address ret = prealloc[i]->malloc();
+            fprintf(stderr, "Returning preallocated address 0x%x\n",
+                    ret);
+            return ret;
+        }
+        
+    }
+    
+    // Grump. Nothing available.. so do it the hard way
+    // Cheesed, again
+    Address retAddr = highWaterMark;
+    Address oldWaterMark = highWaterMark;
+    highWaterMark += size;
+    
+    if (retAddr % size) {
+        retAddr += size - (retAddr % size);
+        highWaterMark = retAddr + size;
+    }
+    
+    freespace -= (highWaterMark - oldWaterMark);
+    return retAddr;
 }
 
 void shmMgr::free(Address addr) 
@@ -184,14 +196,16 @@ void shmMgr::free(Address addr)
 
 void shmMgr::preMalloc(unsigned size, unsigned num)
 {
-  //  fprintf(stderr, "Preallocating %d of size %d\n", num, size);
-  Address baseAddr = this->malloc(num*size);
-  if (!baseAddr) return;
-  Address offset = baseAddr - 
-                          reinterpret_cast<Address>(getBaseAddrInDaemon());
-  shmMgrPreallocInternal *new_prealloc = 
-    new shmMgrPreallocInternal(size, num, baseAddr, offset);
-  prealloc.push_back(new_prealloc);
+    fprintf(stderr, "Preallocating %d of size %d\n", num, size);
+    Address baseAddr = this->malloc((num+1)*size, false); // We'll align
+    // We allocate an extra for purposes of alignment -- we should align on
+    // a <size> boundary
+    if (!baseAddr) return;
+    baseAddr += size - (baseAddr % size);
+    
+    Address offset = baseAddr - reinterpret_cast<Address>(getBaseAddrInDaemon());
+    shmMgrPreallocInternal *new_prealloc = new shmMgrPreallocInternal(size, num, baseAddr, offset);
+    prealloc.push_back(new_prealloc);
 }
 
 shmMgrPreallocInternal::shmMgrPreallocInternal(unsigned size, unsigned num, 

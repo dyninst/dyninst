@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.h,v 1.8 2002/12/20 07:50:07 jaw Exp $
+/* $Id: shmMgr.h,v 1.9 2003/02/04 14:59:44 bernat Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -120,10 +120,12 @@ class shmMgr {
   unsigned getHeapTotalNumBytes() const { return shmSize; }
   unsigned memAllocated() { return highWaterMark; }
   void *getAddressInApplic(void *addressInDaemon) {
-    unsigned offset = reinterpret_cast<Address>(addressInDaemon) - 
-                      baseAddrInDaemon;
-    Address retAddr = baseAddrInApplic + offset;
-    return reinterpret_cast<void*>(retAddr);
+      unsigned offset = reinterpret_cast<Address>(addressInDaemon) - 
+      baseAddrInDaemon;
+      Address retAddr = baseAddrInApplic + offset;
+      fprintf(stderr, "Address is daemon: 0x%x. Application: 0x%x\n",
+              (int) addressInDaemon, (int) retAddr);
+      return reinterpret_cast<void*>(retAddr);
   }
 
   void *applicAddrToDaemonAddr(void *addressInApplic) {
@@ -154,7 +156,7 @@ class shmMgr {
     baseAddrInApplic = reinterpret_cast<Address>(applicAttachedAt);
   }
 
-  Address malloc(unsigned size);
+  Address malloc(unsigned size, bool align = true);
   void free(Address addr);
 
   void handleExec() { }
