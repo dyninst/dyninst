@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.46 2003/04/02 07:12:24 jaw Exp $
+ * $Id: Object-elf.C,v 1.47 2003/04/14 15:59:17 jodom Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1197,7 +1197,8 @@ void Object::override_weak_symbols(pdvector<Symbol> &allsymbols) {
 	    }
 	    // looks like may possibly need to patch size of symbol i
 	    //  based on start of symbol i + 1????
-	    else if (next_start > allsymbols[i+1].addr()) {
+	    else if (next_start > allsymbols[i+1].addr() && 
+                     allsymbols[i].addr() != allsymbols[i+1].addr()) {
 	        next_size = allsymbols[i+1].addr() - allsymbols[i].addr();
 		allsymbols[i].change_size(next_size);
 		  //cerr << " (type 2) changing symbol size of symbol "
