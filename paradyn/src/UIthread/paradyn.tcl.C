@@ -5,12 +5,15 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.50  1995/10/30 23:07:07  naim
-/* Minor fix: eliminating error message from status_line destructor by relocating
-/* object declarations to a better place in the code. "static" declarations were
-/* also changed to global declarations, so we use "new" the first time were we
-/* reference them - naim
+/* Revision 1.51  1995/11/03 21:19:55  naim
+/* Adding paradyn exit command - naim
 /*
+ * Revision 1.50  1995/10/30  23:07:07  naim
+ * Minor fix: eliminating error message from status_line destructor by relocating
+ * object declarations to a better place in the code. "static" declarations were
+ * also changed to global declarations, so we use "new" the first time were we
+ * reference them - naim
+ *
  * Revision 1.49  1995/10/17  20:54:56  tamches
  * class abstractions is no longer templated
  *
@@ -216,7 +219,6 @@ int ParadynPauseCmd(ClientData clientData,
   dataMgr->pauseApplication();
   return TCL_OK;
 }
-
 
 int ParadynContCmd(ClientData clientData, 
 		Tcl_Interp *interp, 
@@ -999,6 +1001,14 @@ int ParadynVisiCmd (ClientData clientData,
   return TCL_OK;
 }
 
+int ParadynExitCmd (ClientData clientData,
+		    Tcl_Interp *interp,
+		    int argc,
+	            char *argv[])
+{
+  exit(0);
+}
+
 static struct cmdTabEntry Pd_Cmds[] = {
   {"pause", ParadynPauseCmd},
   {"cont", ParadynContCmd},
@@ -1022,6 +1032,7 @@ static struct cmdTabEntry Pd_Cmds[] = {
   {"waSetAbstraction", ParadynWaSetAbstraction},
   {"waSelect", ParadynWaSelect},
   {"waUnselect", ParadynWaUnSelect},
+  {"exit",ParadynExitCmd},
   {NULL, NULL}
 };
 
