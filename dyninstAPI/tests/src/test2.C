@@ -316,13 +316,17 @@ main(int argc, char *argv[])
 
     // now start a real program
     gotError = false;
-    ret = mutatorMAIN(MUTATEE_NAME, false);
+    ret = mutatorMAIN(MUTATEE_NAME, useAttach);
     if (!ret || gotError) {
 	printf("*ERROR*: unable to create handle for executable\n");
 	failed = true;
     }
 
     BPatch_image *img = ret->getImage();
+
+    // Signal the child that we've attached
+    if ( useAttach )
+		signalAttached( ret, img );
 
     gotError = false;
     BPatch_function *func = img->findFunction("NoSuchFunction");
@@ -341,7 +345,7 @@ main(int argc, char *argv[])
 
     ret->continueExecution();
 
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) && !defined(i386_unknown_linux2_0)
     printf("Skipping test #6 (load a dynamically linked library from the mutatee)\n");
     printf("    feature not implemented on this platform\n");
 
@@ -432,7 +436,7 @@ main(int argc, char *argv[])
     }
 #endif
 
-#if !defined(rs6000_ibm_aix4_1) && !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
+#if !defined(rs6000_ibm_aix4_1) && !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0)
     printf("Skipping test #10 (dump image)\n");
     printf("    BPatch_thread::dumpImage not implemented on this platform\n");
 #else

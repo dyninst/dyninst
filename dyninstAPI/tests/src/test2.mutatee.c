@@ -14,7 +14,7 @@
 #include <windows.h>
 #endif
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
 #include <dlfcn.h>
 #endif
 
@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 	printf("Mutator attached.  Mutatee continuing.\n");
     }
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
     /* now use the dlopen interface to force an object to load. */
     ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW | RTLD_GLOBAL);
     if (!ref) {
