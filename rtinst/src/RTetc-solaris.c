@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,8 +40,8 @@
  */
 
 /************************************************************************
- * RTsolaris.c: clock access functions for solaris-2.
- * $Id: RTetc-solaris.c,v 1.34 2000/03/23 01:25:20 wylie Exp $
+ * clock access functions for solaris-2.
+ * $Id: RTetc-solaris.c,v 1.35 2000/08/08 15:25:52 wylie Exp $
  ************************************************************************/
 
 #include <signal.h>
@@ -65,6 +65,7 @@ extern void perror(const char *);
 
 extern void DYNINSTheap_setbounds();  /* RTheap-solaris.c */
 
+
 /************************************************************************
  * symbolic constants.
 ************************************************************************/
@@ -77,8 +78,9 @@ static const double MILLION       = 1.0e6;
 
 static int procfd = -1;
 
-void DYNINSTgetCPUtimeInitialize(void) {
-   /* This stuff is done just once */
+/* PARADYNos_init formerly "void DYNINSTgetCPUtimeInitialize(void)" */
+void PARADYNos_init(int calledByFork, int calledByAttach) {
+   /* This must be done once for each process (including forked) children */
    char str[20];
    sprintf(str, "/proc/%d", (int)getpid());
    /* have to use syscall here for applications that have their own
@@ -88,44 +90,10 @@ void DYNINSTgetCPUtimeInitialize(void) {
    */
    procfd = syscall(SYS_open,str, O_RDONLY);
    if (procfd < 0) {
-      fprintf(stderr, "open of /proc failed in DYNINSTgetCPUtimeInitialize\n");
+      fprintf(stderr, "open of /proc failed in PARADYNos_init\n");
       perror("open");
       abort();
    }
-}
-
-
-/************************************************************************
- * void DYNINSTos_init(void)
- *
- * os initialization function---currently null.
-************************************************************************/
-
-void
-DYNINSTos_init(int calledByFork, int calledByAttach) {
-
-    /*
-       Install trap handler.
-       This is currently being used only on the x86 platform.
-    */
-#ifdef i386_unknown_solaris2_5
-    void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap);
-    struct sigaction act;
-    act.sa_handler = DYNINSTtrapHandler;
-    act.sa_flags = 0;
-    sigfillset(&act.sa_mask);
-    if (sigaction(SIGTRAP, &act, 0) != 0) {
-        perror("sigaction(SIGTRAP)");
-	assert(0);
-	abort();
-    }
-#endif
-
-    DYNINSTheap_setbounds();
-
-    /* It is necessary to call DYNINSTgetCPUtimeInitialize here to make sure
-       that it is called again for a child process during a fork - naim */
-    DYNINSTgetCPUtimeInitialize();
 }
 
 
@@ -274,9 +242,9 @@ DYNINSTgetCPUtime_LWP(int lwp_id) {
   return(now);  
 }
 
-/*static int MaxRollbackReport = 0; /* don't report any rollbacks! */
-/*static int MaxRollbackReport = 1; /* only report 1st rollback */
-static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
+/*static int MaxRollbackReport = 0; /* don't report any rollbacks!*/
+static int MaxRollbackReport = 1; /* only report 1st rollback */
+/*static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
 
 time64
 DYNINSTgetCPUtime(void) {
@@ -345,93 +313,3 @@ DYNINSTgetWalltime(void) {
 
   return now;
 }
-
-/****************************************************************************
-   The trap handler. Currently being used only on x86 platform.
-
-   Traps are used when we can't insert a jump at a point. The trap
-   handler looks up the address of the base tramp for the point that
-   uses the trap, and set the pc to this base tramp.
-   The paradynd is responsible for updating the tramp table when it
-   inserts instrumentation.
-*****************************************************************************/
-
-#ifdef i386_unknown_solaris2_5
-trampTableEntry DYNINSTtrampTable[TRAMPTABLESZ];
-unsigned DYNINSTtotalTraps = 0;
-
-static unsigned lookup(unsigned key) {
-    unsigned u;
-    unsigned k;
-    for (u = HASH1(key); 1; u = (u + HASH2(key)) % TRAMPTABLESZ) {
-      k = DYNINSTtrampTable[u].key;
-      if (k == 0)
-        return 0;
-      else if (k == key)
-        return DYNINSTtrampTable[u].val;
-    }
-    /* not reached */
-}
-
-void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap) {
-    unsigned pc = uap->uc_mcontext.gregs[PC];
-    unsigned nextpc;
-
-    /* If we're in the process of running an inferior RPC, we'll
-       ignore the trap here and have the daemon rerun the trap
-       instruction when the inferior rpc is done.  Because the default
-       behavior is for the daemon to reset the PC to it's previous
-       value and the PC is still at the trap instruction, we don't
-       need to make any additional adjustments to the PC in the
-       daemon.
-
-       This is used only on x86 platforms, so if multithreading is
-       ever extended to x86 platforms, then perhaps this would need to
-       be modified for that.  */
-
-    if(curRPC.runningInferiorRPC == 1) {
-      /* If the current PC is somewhere in the RPC then it's a trap that
-	 occurred just before the RPC and is just now getting delivered.
-	 That is we want to ignore it here and regenerate it later. */
-      if(curRPC.begRPCAddr <= pc && pc <= curRPC.endRPCAddr) {
-      /* If a previous trap didn't get handled on this next irpc (assumes one 
-	 trap per irpc) then we have a bug, a trap didn't get regenerated */
-	assert(trapNotHandled==0);
-	trapNotHandled = 1; 
-	return;
-      }
-      else  ;   /* a trap occurred as a result of a function call within the */ 
-	        /* irpc, these traps we want to handle */
-    }
-    else { /* not in an irpc */
-      if(trapNotHandled == 1) {
-	/* Ok good, the trap got regenerated.
-	   Check to make sure that this trap is the one corresponding to the one
-	   that needs to get regenerated.
-	*/
-	assert(pcAtLastIRPC == pc);
-	trapNotHandled = 0;
-	/* we'll then continue to process the trap */
-      }
-    }
-    nextpc = lookup(pc);
-
-    if (!nextpc) {
-      /* kludge: maybe the PC was not automatically adjusted after the trap */
-      /* this happens for a forked process */
-      pc--;
-      nextpc = lookup(pc);
-    }
-
-    if (nextpc) {
-      uap->uc_mcontext.gregs[PC] = nextpc;
-    } else {
-      assert(0);
-      abort();
-    }
-    DYNINSTtotalTraps++;
-}
-#endif
-
-
-

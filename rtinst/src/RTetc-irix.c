@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998 Barton P. Miller
+ * Copyright (c) 1998-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-irix.c,v 1.6 2000/03/23 01:25:20 wylie Exp $ */
+/* $Id: RTetc-irix.c,v 1.7 2000/08/08 15:25:52 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -116,14 +116,14 @@ float DYNINSTos_cyclesPerSecond(void)
 char       DYNINSTos_wallCtr_use = 0;
 static int ctr_procFd            = -1;
 
-void DYNINSTos_init(int calledByFork, int calledByAttach)
+void PARADYNos_init(int calledByFork, int calledByAttach)
 {
   char fname[128];
-  /*fprintf(stderr, "*** DYNINSTos_init()\n");*/
+  RTprintf("*** PARADYNos_init()\n");
   sprintf(fname, "/proc/%i", getpid());
   /* TODO: avoid conflict with alternate versions of open() - necessary? */
   if ((ctr_procFd = open(fname, O_RDONLY)) == -1) {
-    perror("DYNINSTinitCPUtime - open()");
+    perror("PARADYNos_init - open()");
     abort();
   }  
 }

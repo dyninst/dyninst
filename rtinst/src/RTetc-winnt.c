@@ -42,7 +42,7 @@
 /************************************************************************
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  *
- * $Id: RTetc-winnt.c,v 1.6 2000/03/23 01:25:20 wylie Exp $
+ * $Id: RTetc-winnt.c,v 1.7 2000/08/08 15:25:52 wylie Exp $
  *
  ************************************************************************/
 
@@ -57,25 +57,19 @@
 #include "rtinst/h/trace.h"
 #include "rtinst/h/rtinst.h"
 
-#ifdef CONTROLLER_FD
-#undef CONTROLLER_FD
-static HANDLE CONTROLLER_FD;
-#endif
-
 static HANDLE DYNINSTprocHandle;
 
 
-
-/************************************************************************
- * void DYNINSTbreakPoint(void)
- *
- * stop oneself.
-************************************************************************/
+void PARADYNos_init(int calledByFork, int calledByAttach) {
+  RTprintf("PARADYNos_init(%d,%d)\n", calledByFork, calledByAttach);
+  DYNINSTprocHandle = GetCurrentProcess();
+}
 
 void
-DYNINSTbreakPoint(void) {
-  /* TODO: how do we stop all threads? */
-  DebugBreak();
+PARADYNbreakPoint(void) {
+  DYNINSTbreakPoint();
+  /* On other (posix) platforms, we follow with DYNINSTgenerateTraceRecord
+     but curiously not here. */
 }
 
 unsigned DYNINSTgetCurrentThreadId() {
@@ -298,15 +292,6 @@ static void printSysError(unsigned errNo) {
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		buf, 1000, NULL);
   printf("*** System error [%d]: %s\n", errNo, buf);
-}
-
-void DYNINSTos_init(int calledFromFork, int calledFromAttach, int paradyndAddr) {
-  HANDLE h;
-  unsigned ioCookie = 0x33333333;
-  unsigned pid = GetCurrentProcessId();
-  unsigned ppid = paradyndAddr;
-  DYNINSTprocHandle = GetCurrentProcess();
-
 }
 
 

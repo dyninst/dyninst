@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTetc-osf.c,v 1.1 2000/06/14 22:28:46 paradyn Exp $
+ * $Id: RTetc-osf.c,v 1.2 2000/08/08 15:25:52 wylie Exp $
  * RTosf.c: mutatee-side library function specific to OSF
 ************************************************************************/
 
@@ -55,14 +55,6 @@
 
 static const double NANO_PER_USEC   = 1.0e3;
 static const long int MILLION       = 1000000;
-
-/* The alpha does not have a divide instruction */
-/* Division is emulated in software */
-
-int divide(int a,int b)
-{
-  return (a/b);
-}
 
 static unsigned long long div1000(unsigned long long in) {
    /* Divides by 1000 without an integer division instruction or library call,
@@ -159,7 +151,7 @@ static unsigned long long mulMillion(unsigned long long in) {
 
 static int ctr_procFd = -1;
 
-void DYNINSTos_init(int calledByFork, int calledByAttach)
+void PARADYNos_init(int calledByFork, int calledByAttach)
 {
   char fname[128];
   sprintf(fname, "/proc/%i", getpid());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.21 2000/07/27 14:09:49 bernat Exp $
+ * $Id: RTetc-aix.c,v 1.22 2000/08/08 15:25:52 wylie Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -83,13 +83,13 @@ static const double NANO_PER_USEC   = 1.0e3;
 static const long int MILLION       = 1000000;
 
 /************************************************************************
- * void DYNINSTos_init(void)
+ * void PARADYNos_init
  *
- * os initialization function---currently null.
-************************************************************************/
+ * OS initialization function---currently null.
+ ************************************************************************/
 
 void
-DYNINSTos_init(int calledByFork, int calledByAttach) {
+PARADYNos_init(int calledByFork, int calledByAttach) {
 }
 
 /*static int MaxRollbackReport = 0;*/ /* don't report any rollbacks! */
