@@ -1,0 +1,1 @@
+phaseTable.exe *.[hC] DEPENDS V_phaseTable.c

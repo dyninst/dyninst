@@ -1,0 +1,49 @@
+#
+# Common makefile template for phaseTable.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Id: nmake.module.tmpl,v 1.1 1999/03/12 23:10:04 pcroth Exp $
+#
+
+TARGET	= phaseTable.exe
+
+IFLAGS	= $(IFLAGS) -I../../../paradyn/src/UIthread
+
+
+TCL_SRCS	= ../tcl/phasetbl.tcl
+PD_SRCS	= ../../../paradyn/src/UIthread/pdLogo.C \
+		../../../paradyn/src/UIthread/tkTools.C \
+		../../../paradyn/src/UIthread/minmax.C
+MY_SRCS	= ../src/templates.C \
+		../src/main.C \
+		../src/main-nt.C
+TV_SRCS	= ../../tclVisi/src/DGclient.C
+SRCS	= $(SRCS) $(PD_SRCS) $(MY_SRCS) $(TV_SRCS) $(TCL2C_GEN_SRCS)
+
+
+PD_TMPO	= $(PD_SRCS:../../../paradyn/src/UIthread/=)
+MY_TMPO	= $(MY_SRCS:../src/=)
+TV_TMPO	= $(TV_SRCS:../../tclVisi/src/=)
+OBJS	= $(OBJS) \
+		$(PD_TMPO:.C=.obj) \
+		$(MY_TMPO:.C=.obj) \
+		$(TV_TMPO:.C=.obj) \
+		$(TCL2C_GEN_SRCS:.C=.obj)
+
+
+LIBS	= $(LIBS) libvisi.lib libpdutil.lib
+SYSLIBS	= $(SYSLIBS) $(TCLTK_LIBS) $(X11_LIB) $(RPC_LIB)
+
+all: $(TARGET)
+
+$(TCL2C_GEN_SRCS): $(TCL_SRCS)
+	$(PERL) $(TCL2C) $** > $@
+
+{$(TO_CORE)\paradyn\src\UIthread}.C{}.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+{..\..\tclVisi\src}.C{}.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+

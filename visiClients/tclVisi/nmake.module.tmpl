@@ -1,0 +1,38 @@
+#
+# Common makefile template for tclVisi.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Id: nmake.module.tmpl,v 1.1 1999/03/12 23:14:23 pcroth Exp $
+#
+
+TARGET	= tclVisi.exe
+
+
+IFLAGS	= $(IFLAGS) -I../../../paradyn/src/UIthread
+
+
+PD_SRCS	= ../../../paradyn/src/UIthread/pdLogo.C \
+		../../../paradyn/src/UIthread/tkTools.C \
+		../../../paradyn/src/UIthread/minmax.C
+MY_SRCS	= ../src/tclVisi.C \
+		../src/templates.C \
+		../src/DGclient.C \
+		../src/main-nt.C
+SRCS	= $(SRCS) $(PD_SRCS) $(MY_SRCS)
+	
+
+PD_TMPO	= $(PD_SRCS:../../../paradyn/src/UIthread/=)
+MY_TMPO	= $(MY_SRCS:../src/=)
+OBJS	= $(PD_TMPO:.C=.obj) $(MY_TMPO:.C=.obj)
+
+
+LIBS	= libvisi.lib libpdutil.lib
+SYSLIBS	= $(SYSLIBS) $(TCLTK_LIBS) $(X11_LIB) $(RPC_LIB)
+
+all: $(TARGET)
+
+{..\..\..\paradyn\src\UIthread}.C{}.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+
