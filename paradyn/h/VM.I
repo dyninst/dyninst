@@ -1,4 +1,4 @@
-/* $Id: VM.I,v 1.21 2001/04/25 18:40:41 wxd Exp $ */
+/* $Id: VM.I,v 1.22 2001/05/08 15:23:18 pcroth Exp $ */
 
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "common/h/Vector.h"
@@ -13,7 +13,7 @@ typedef struct VM_activeVisiInfo {
 $remote VM{
 
   $base 5000;
-  $version 14;
+  $version 15;
 
   // returns a list of information about active visualizations
   // the client is responsible for freeing the space associated with
