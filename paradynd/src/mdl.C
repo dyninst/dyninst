@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.164 2005/01/18 00:52:02 eli Exp $
+// $Id: mdl.C,v 1.165 2005/01/20 15:31:11 legendre Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -2661,8 +2661,8 @@ static bool do_trailing_resources(const pdvector<pdstring>& resource_,
         case MDL_T_LOOP: {
            // find the resource corresponding to the loop's function
            pdvector<pdstring> rvec;
-           for (unsigned j=0; j < resPath.size()-1; j++)
-              rvec += resPath[j];
+           for (unsigned k=0; k < resPath.size()-1; k++)
+              rvec += resPath[k];
 
            resource *fresource = resource::findResource(rvec);
 
