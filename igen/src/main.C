@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.29  1994/08/22 16:07:03  markc
+ * Revision 1.30  1994/08/22 20:06:32  markc
+ * Stopped generating inline functions that are not used for threads.
+ *
+ * Revision 1.29  1994/08/22  16:07:03  markc
  * Moved inline functions used for bundling from header files to .SRVR. and
  * .CLNT. .C files to decrease compiler warnings.
  *
@@ -351,7 +354,8 @@ int main(int argc, char *argv[])
 	  dot_c << "#include \"" << protoFile << "h\"\n";
 	}
 
-	buildFlagHeaders(dot_c);
+	if (generatePVM || generateXDR)
+	  buildFlagHeaders(dot_c);
 
 	if (generatePVM)
 	  buildPVMfilters();
