@@ -19,7 +19,10 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.10  1994/06/22 22:58:17  hollings
+ * Revision 1.11  1994/07/14 23:49:48  hollings
+ * added batch mode for SHG, fixed the sort function to use beenTrue.
+ *
+ * Revision 1.10  1994/06/22  22:58:17  hollings
  * Compiler warnings and copyrights.
  *
  * Revision 1.9  1994/06/12  22:40:46  karavan
@@ -87,7 +90,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.10 1994/06/22 22:58:17 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.11 1994/07/14 23:49:48 hollings Exp $";
 #endif
 
 #include <stdlib.h>
@@ -109,6 +112,8 @@ tunableConstant predictedCostLimit(0.25, 0.0, 1.0, NULL, "predictedCostLimit",
 searchHistoryNode *PCbaseSHGNode;
 extern int PCautoRefinementLimit;
 extern searchHistoryNodeList BuildAllRefinements(searchHistoryNode *of);
+
+extern int UIM_BatchMode;
 
 int CompareOptions(const void *left, const void *right)
 {
@@ -149,7 +154,18 @@ int CompareOptions(const void *left, const void *right)
 	    return(1);
 	if (b->where == PCbaseSHGNode->where)
 	    return(-1);
-	// use strcmp to ensure a unique ordering.
+
+
+	// both on where, if one is been true and the other hasn't use it.
+	if (a->getBeenTrue() != b->getBeenTrue()) {
+	    if (a->getBeenTrue()) {
+		return(-1);
+	    } else {
+		return(1);
+	    }
+	}
+
+	// final tie breaker, use strcmp to ensure a unique ordering.
 	return(strcmp(a->where->getName(), b->where->getName()));
     } else {
 	return(0);
@@ -200,15 +216,31 @@ void autoSelectRefinements()
 void autoChangeRefineList()
 {
     int i;
+    float newCost;
     char msgBuf[128];
-    // float newCost;
     timeStamp timeLimit;
     float totalCost = 0.0;
     searchHistoryNode *curr;
+    static float batchCost = 0.0;
     extern Boolean PCsearchPaused;
     extern tunableConstant sufficientTime;
 
     if (printNodes) printf("TRYING: ");
+
+    UIM_BatchMode++;
+    totalCost = dataMgr->getCurrentHybridCost(context);
+
+    if (currentRefinementBase) {
+	// some number of tests just expired.
+	totalCost -= batchCost;
+
+	if (totalCost < 0.0) {
+	    // The estimated cost of the last batch was way too high!!!
+	    totalCost = 0.0;
+	}
+    }
+
+    batchCost = 0.0;
     for (i =currentRefinementBase; 
 	 totalCost < predictedCostLimit.getValue(); i++) {
 	if (i >= currentRefinementBase + maxEval.getValue()) {
@@ -219,20 +251,24 @@ void autoChangeRefineList()
 	if (i >= refineCount) break;
 	if (printNodes) printf("%d ", refinementOptions[i]->nodeId);
 	curr = refinementOptions[i];
-	// newCost = curr->cost(); 
-	// totalCost += newCost;
+
+	newCost = curr->cost(); 
+
+	batchCost += newCost;
+	totalCost += newCost;
+
 	curr->changeActive(TRUE);
     }
-    currentRefinementLimit = i;
+    UIM_BatchMode--;
 
+    currentRefinementLimit = i;
     if (printNodes) printf("\n");
 
     // see if there was any thing to test.
     if (currentRefinementBase >= refineCount) {
 	dataMgr->pauseApplication(context);
-/***
-	uiMgr->updateStatusDisplay(1, "all refinements considered...application paused\n");
-*/
+	PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY, 
+	    "all refinements considered...application paused\n");
 	// prevent any further auto refinement.
 	PCautoRefinementLimit = 0;
 	PCsearchPaused = TRUE;
@@ -242,12 +278,6 @@ void autoChangeRefineList()
 
     configureTests();
     timeLimit = PCcurrentTime + sufficientTime.getValue();
-    sprintf (msgBuf, "setting autorefinement timelimit to %f\n", timeLimit);
-/***
-    uiMgr->updateStatusDisplay(1, msgBuf);
-*/
-    // see if the new ones are true already.
-    // (void) autoTestRefinements();
 }
 
 void autoTimeLimitExpired()
@@ -255,11 +285,14 @@ void autoTimeLimitExpired()
     int i;
 
     if (printNodes) printf("GIVING UP ON: ");
+
+    UIM_BatchMode++;
     for (i=currentRefinementBase; i <= currentRefinementLimit; i++) {
 	if (i >= refineCount) break;
 	if (printNodes) printf("%d ",  refinementOptions[i]->nodeId);
 	refinementOptions[i]->changeActive(FALSE);
     }
+    UIM_BatchMode--;
     if (printNodes) printf("\n");
 
     currentRefinementBase = currentRefinementLimit+1;

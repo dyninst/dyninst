@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.21  1994/06/29 02:56:19  hollings
+ * Revision 1.22  1994/07/14 23:49:49  hollings
+ * added batch mode for SHG, fixed the sort function to use beenTrue.
+ *
+ * Revision 1.21  1994/06/29  02:56:19  hollings
  * AFS path changes?  I am not sure why this changed.
  *
  * Revision 1.20  1994/06/22  22:58:18  hollings
@@ -140,7 +143,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.21 1994/06/29 02:56:19 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.22 1994/07/14 23:49:49 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -613,6 +616,7 @@ Boolean doScan()
 
 int PCpathMax;
 int PCpathDepth;
+extern int UIM_BatchMode;
 extern int PCsearchPaused;
 extern int PCautoRefinementLimit;
 searchHistoryNode **PCrefinementPath;
@@ -662,10 +666,12 @@ Boolean verifyPreviousRefinements()
 	   "The bottleneck we were refining changed\nThe bottleneck was:");
 	  defaultExplanation(PCrefinementPath[i]);			       	   
 	    // disable all nodes.
+	    UIM_BatchMode++;
 	    for (currNode = allSHGNodes; curr = *currNode; currNode++) {
 		curr->changeTested(FALSE);
 		curr->changeActive(FALSE);
 	    }
+	    UIM_BatchMode--;
 
 	    // Find the last point down the PCrefinementPath that has all
 	    // previous nodes true.
