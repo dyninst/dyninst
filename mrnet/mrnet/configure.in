@@ -139,7 +139,7 @@ dnl *** FLEX LIBRARY ***
 AC_LANG(C++)
 
 if test "$FLEX_LIBDIR" = "" ; then
-    AC_CHECK_LIB(fl, [yywrap], [], [AC_MSG_ERROR(Can't find flex library libfl. Must specify with --with-libfl)])
+    AC_CHECK_LIB(fl, [yywrap], [], [AC_MSG_ERROR(Can't find flex library libfl. Must specify proper directory with --with-libfldir)])
 else
     LIBS_HOLD=$LIBS
     LIBS="-L$FLEX_LIBDIR"
