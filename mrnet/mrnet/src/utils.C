@@ -32,7 +32,7 @@
 
 //LOOPBACK_IP used for hack to detect loopback interface
 //            must pay attention to endian-ness
-#if defined(sparc_sun_solaris2_4)
+#if defined(solaris)
 #include <sys/sockio.h>         //only for solaris
 #define LOOPBACK_IP 2130706433
 #else
@@ -514,7 +514,7 @@ int getNetworkName( std::string & network_name, const std::string & in_hostname 
     memcpy( ( void * )( &in.s_addr ), ( void * )( hp->h_addr_list[0] ),
             hp->h_length );
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_nt4_0)
+#if defined(solaris) || defined(i386_unknown_nt4_0)
     hp = gethostbyaddr( ( const char * )&in, sizeof( in ), AF_INET );
 #else
     hp = gethostbyaddr( ( void * )&in, sizeof( in ), AF_INET );
