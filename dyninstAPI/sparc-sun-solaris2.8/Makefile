@@ -1,11 +1,12 @@
 #
-# $Id: Makefile,v 1.12 2003/04/18 22:35:32 tlmiller Exp $
+# $Id: Makefile,v 1.13 2003/05/10 23:52:54 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 #USES_LIBERTY = true
-NO_OPT_FLAG = true
+#NO_OPT_FLAG = true
+#DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything
@@ -45,12 +46,6 @@ CFLAGS		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -I/usr/local/stow/bind-8.2.2.p
 CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -DUSES_ELF32_ONLY  -I/usr/local/stow/bind-8.2.2.p5/include/
 #CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -O0 -DUSES_ELF32_ONLY  -I/usr/local/stow/bind-8.2.2.p5/include/
 TFLAGS		+= -DUSES_ELF32_ONLY 
-
-MYFLAGS		+= -g
-CXXFLAGS	+= $(MYFLAGS)
-CFLAGS		+= $(MYFLAGS)
-TFLAGS		+= $(MYFLAGS)
-
 
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS 		+= -g

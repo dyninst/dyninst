@@ -1,17 +1,17 @@
 #
-# $Id: Makefile,v 1.16 2003/04/22 21:46:34 tlmiller Exp $
+# $Id: Makefile,v 1.17 2003/05/10 23:52:53 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 #USES_SHM_SAMPLING = true
 #USES_PAPI = true
-DEBUG_FLAG = -g
+#DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 
 # For debugging.
-NO_OPT_FLAG = true
+#NO_OPT_FLAG = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
