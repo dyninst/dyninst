@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.7 1999/12/17 16:22:33 pcroth Exp $
+// $Id: PDGraph.C,v 1.8 2000/01/21 22:57:39 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -1708,7 +1708,7 @@ PDGraph::AddCurve( const char* metricName,
         << Tk_PathName( legendWin ) << " "  // legend window name
         << nCurves - 1 << " "               // curve index within legend
         << cid << " "                       // curve ID (note - not the same as index)
-        << '\"' << curve->GetName() << "\" "    // curve metric name
+        << '{' << curve->GetName() << "} "    // curve metric name
         << '\"' << Tk_NameOfColor( curve->GetLineSpec().color ) << "\" " // curve line color
         << '\"' << curve->GetLineSpec().stippleName << '\"'     // curve line stipple
         << ends;
