@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.63 2005/02/09 03:27:44 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.64 2005/02/17 21:10:28 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -149,7 +149,7 @@ AstNode *generateArrayRef(const BPatch_snippet &lOperand,
     const BPatch_typeArray *arrayType = dynamic_cast<const BPatch_typeArray *>(lOperand.ast->getType());
     if (!arrayType) {
 	BPatch_reportError(BPatchSerious, 109,
-	       "array reference has not type information, or array reference to non-array type");
+	       "array reference has no type information, or array reference to non-array type");
 	return NULL;
     }
 
@@ -168,9 +168,10 @@ AstNode *generateArrayRef(const BPatch_snippet &lOperand,
     BPatch_type *indexType = const_cast<BPatch_type *>(rOperand.ast->getType());
     if (!indexType) {
         char err_buf[512];
-        sprintf(err_buf, "%s[%d]:  %s %s\n", __FILE__, __LINE__,
-             "Warning:  cannot ascertain type of index parameter is of integral type, ",
-             "This is not a failure... but be warned that type-checking has failed. "); 
+        sprintf(err_buf, "%s[%d]:  %s %s\n",
+		__FILE__, __LINE__,
+		"Warning:  cannot ascertain type of index parameter is of integral type, ",
+		"This is not a failure... but be warned that type-checking has failed. ");
         BPatch_reportError(BPatchWarning, 109, err_buf);
       
     }
