@@ -95,6 +95,14 @@ size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE) {
   return (write(FILEDES, BUFFER, SIZE));}
 int P_chdir(const char *path) { return (chdir(path)); }
 
+int P_putenv(const char *str) { return putenv(str); }
+
+/* SYSTEM-V shared memory */
+int P_shmget(key_t thekey, int size, int flags) { return shmget(thekey, size, flags); }
+void *P_shmat(int shmid, void *addr, int flags) { return shmat(shmid, addr, flags); }
+int P_shmdt(void *addr) { return shmdt(addr); }
+int P_shmctl(int shmid, int cmd, struct shmid_ds *buf) { return shmctl(shmid, cmd, buf); }
+
 /* ANSI */
 void P_exit (int STATUS) { exit(STATUS);}
 int P_fflush(FILE *stream) {return (fflush(stream));}
