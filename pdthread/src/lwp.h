@@ -109,14 +109,14 @@ class lwp : public entity {
         _reaped_lk(rwlock::favor_writers)
         {
 #ifdef DO_LIBPDTHREAD_MEASUREMENTS
-            perf_data.num_lock_acquires = 0;
-            perf_data.num_lock_blocks = 0;
-            perf_data.lock_contention_time = 0;
-            perf_data.lock_timer_start = 0;
+            _perf_data.num_lock_acquires = 0;
+            _perf_data.num_lock_blocks = 0;
+            _perf_data.lock_contention_time = 0;
+            _perf_data.lock_timer_start = 0;
 
-            perf_data.num_msg_ops = 0;
-            perf_data.msg_time = 0;
-            perf_data.msg_timer_start = 0;
+            _perf_data.num_msg_ops = 0;
+            _perf_data.msg_time = 0;
+            _perf_data.msg_timer_start = 0;
 #endif /* DO_LIBPDTHREAD_MEASUREMENTS */
         }
     
@@ -141,6 +141,11 @@ class lwp : public entity {
     static lwp *get_main(thread_t tid=1);
     const char* get_name();
     static const char* name(const char* new_name = NULL);
+
+#if DO_LIBPDTHREAD_MEASUREMENTS == 1
+    static thr_perf_data_t* get_perf_data();
+#endif /* DO_LIBPDTHREAD_MEASUREMENTS == 1 */
+    
 }; /* end of class lwp */
 
 #endif

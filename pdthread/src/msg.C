@@ -19,6 +19,37 @@
 
 #undef DO_DEBUG_LIBPDTHREAD
 
+#if DO_LIBPDTHREAD_MEASUREMENTS == 1
+
+#include <time.h>
+#include <unistd.h>
+#include <string.h>
+
+long long to_from_table[128][128];
+unsigned t_f_table_init = 0;
+
+#endif
+
+void msg_dump_stats() {
+#if DO_LIBPDTHREAD_MEASUREMENTS == 1
+    time_t current_time = time(NULL);
+    char outfilename[256];
+    FILE* out_FILE;
+    snprintf(outfilename, 255, "msg-stats-%d.txt", current_time);
+    
+    out_FILE = fopen(outfilename, "w+");
+    
+    for(int i = 0; i < 128; i++) {
+        for(int j = 0; j < 128; j++) {
+            fprintf(out_FILE, "%llu,", to_from_table[i][j]);
+        }
+        fprintf(out_FILE, "\n");
+        fflush(out_FILE);
+    }
+    
+    fclose(out_FILE);
+#endif /* DO_LIBPDTHREAD_MEASUREMENTS == 1 */
+}
 
 int msg_send(thread_t tid, tag_t tag, void* buf, unsigned size) {
     COLLECT_MEASUREMENT(THR_MSG_SEND);
@@ -27,6 +58,20 @@ int msg_send(thread_t tid, tag_t tag, void* buf, unsigned size) {
 
     thread_t sender = lwp::get_self();
     int ret;
+
+#if DO_LIBPDTHREAD_MEASUREMENTS == 1
+
+    if(t_f_table_init == 0) {
+        for(int i = 0; i < 128; i++)
+            for(int j = 0; j < 128; j++)
+                to_from_table[i][j] == 0;
+        t_f_table_init = 1;
+    }
+
+    if(sender < 128 && tid < 128)
+        to_from_table[tid][sender]++;
+
+#endif /* DO_LIBPDTHREAD_MEASUREMENTS == 1 */
     
     if(!thrtab::is_valid(tid)) {
         ret = THR_ERR;

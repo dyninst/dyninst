@@ -31,7 +31,6 @@
 
 #undef DO_DEBUG_LIBPDTHREAD
 
-
 struct fd_set_populator
 {
 	thr_mailbox* mbox;
@@ -253,7 +252,7 @@ thr_mailbox::thr_mailbox(thread_t owner)
     ready_socks = new dllist<PDSOCKET,dummy_sync>;
     bound_socks = new dllist<PDSOCKET,dummy_sync>;
 
-    sock_monitor = new pthread_sync();
+    sock_monitor = new pthread_sync("socket monitor for thread mailbox");
 
     int pipe_success = pipe( msg_avail_pipe );
     assert(pipe_success == 0);

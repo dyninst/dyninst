@@ -55,7 +55,7 @@ void mailbox::register_mbox(thread_t owner, mailbox* which) {
 mailbox::mailbox(thread_t owner) {
     owned_by = owner;
     mailbox::register_mbox(owner, this); 
-    monitor = new pthread_sync();
+    monitor = new pthread_sync("main mailbox monitor");
     monitor->register_cond(RECV_AVAIL);
 }
 

@@ -11,12 +11,7 @@ pthread_key_t lwp::mailbox_key;
 
 #ifdef DO_LIBPDTHREAD_MEASUREMENTS
 
-pthread_key_t lwp::num_lock_acquires_key;
-pthread_key_t lwp::num_lock_blocks_key;
-pthread_key_t lwp::lock_contention_time_key;
-
-pthread_key_t lwp::num_msg_ops_key;
-pthread_key_t lwp::msg_time_key;
+pthread_key_t lwp::perf_data_key;
 
 #endif /* DO_LIBPDTHREAD_MEASUREMENTS */
 
@@ -73,7 +68,7 @@ void lwp::set_tsd_keys_for(lwp* whom) {
 
 #ifdef DO_LIBPDTHREAD_MEASUREMENTS
     
-    pthread_setspecific(&lwp::perf_data_key, (void*)(&whom->_perf_data));
+    pthread_setspecific(lwp::perf_data_key, (void*)(&whom->_perf_data));
 
 #endif /* DO_LIBPDTHREAD_MEASUREMENTS */
 
@@ -129,7 +124,6 @@ int lwp::join(thread_t* departed, void** return_val) {
     
 lwp* lwp::get_lwp() {
     return (lwp*)pthread_getspecific(lwp::lwp_key);
-
 }
 
 
@@ -177,6 +171,14 @@ thread_t lwp::get_self() {
 mailbox* lwp::get_mailbox() {
     return (mailbox*)pthread_getspecific(lwp::mailbox_key);
 }
+
+
+
+#if DO_LIBPDTHREAD_MEASUREMENTS == 1
+thr_perf_data_t* lwp::get_perf_data() {
+    return (thr_perf_data_t*)pthread_getspecific(lwp::perf_data_key);
+}
+#endif /* DO_LIBPDTHREAD_MEASUREMENTS == 1 */
 
 
 

@@ -35,6 +35,9 @@ class thrtab {
     static bool is_valid(thread_t tid) {
         return entries[tid] != NULL;
     }
+    static unsigned size() {
+        return entries.capacity();
+    }
     static bool is_io_entity(thread_t tid);
     static void register_joinable(thread_t tid);
     static void unregister_joinable(thread_t tid);

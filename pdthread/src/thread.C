@@ -5,6 +5,8 @@
 #include "thrtab.h"
 #include <assert.h>
 
+#include "pthread_sync.h"
+
 #include <sys/time.h>
 
 #if DO_DEBUG_LIBPDTHREAD_THREAD == 1
@@ -20,14 +22,71 @@
 
 #if DO_LIBPDTHREAD_MEASUREMENTS
 
+void msg_dump_stats();
+
+#include "hashtbl.C"
+
+class thr_stats_registry {
+  private:
+    static hashtbl<thread_t, const char*, pthread_sync> thread_names;
+    static hashtbl<thread_t, thr_perf_data_t*, pthread_sync> thread_stats;
+  public:
+    static void register_thread(thread_t tid, const char* thr_name, thr_perf_data_t* perf_data);
+    static void dump_all_stats();
+};
+
+hashtbl<thread_t, const char*, pthread_sync> thr_stats_registry::thread_names;
+hashtbl<thread_t, thr_perf_data_t*, pthread_sync> thr_stats_registry::thread_stats;
+
+void thr_stats_registry::register_thread(thread_t tid, const char* thr_name, thr_perf_data_t* perf_data) {
+    thread_names.put(tid, thr_name);
+    thread_stats.put(tid, perf_data);
+}
+
+void thr_stats_registry::dump_all_stats() {
+    const char* current_name;
+    thr_perf_data_t* current_perf;
+    int i, max = thrtab::size();
+
+    char out_file_name[256];
+    FILE* out_FILE;
+
+    snprintf(out_file_name, 255, "thread-stats-for-%d.txt\0", getpid());
+
+    out_FILE = fopen(out_file_name, "w+");
+    
+    fprintf(out_FILE, "id,lck acq,lck blk,blk tm,msg ops,msg tm,name\n");
+
+    for (i = 0; i < max; i++) {
+        current_name = thread_names.get(i);
+        current_perf = thread_stats.get(i);
+        if(current_name && current_perf) {
+            fprintf(out_FILE, "%d,", i);
+            fprintf(out_FILE, "%llu,", current_perf->num_lock_acquires);
+            fprintf(out_FILE, "%llu,", current_perf->num_lock_blocks);
+            fprintf(out_FILE, "%llu,", current_perf->lock_contention_time);
+            fprintf(out_FILE, "%llu,", current_perf->num_msg_ops);
+            fprintf(out_FILE, "%llu,", current_perf->msg_time);
+            fprintf(out_FILE, "%s\n", current_name);
+            fflush(out_FILE);            
+        }
+    }
+    
+    fclose(out_FILE);
+
+    msg_dump_stats();
+}
+    
 long long thr_get_vtime() {
     long long retval;
 #if defined (i386_unknown_linux2_0)
 #define THR_GET_VTIME_DEFINED 1
-#warning libthread: no thr_get_vtime for linux yet; timer numbers will be nonsense
-    // FIXME:  do rdtsc implementation
-    static long long blah = 0;
-    retval = blah++;
+#warning libthread: no thr_get_vtime for linux yet; timer numbers will be imprecise
+    // FIXME:  do rdtsc or otherwise more precise implementation
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    
+    retval = (tv.tv_sec * 1000000) + tv.tv_usec;
     
 #endif
 
@@ -38,33 +97,36 @@ long long thr_get_vtime() {
 
 #if defined (rs6000_ibm_aix4_1)
 #define THR_GET_VTIME_DEFINED 1
-#warning libthread: no thr_get_vtime for aix yet; timer numbers will be nonsense
+#warning libthread: no thr_get_vtime for aix yet; timer numbers will be imprecise
     // FIXME: do big perfctr implementation
-    static long long blah = 0;
-    retval = blah++;
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    
+    retval = (tv.tv_sec * 1000000) + tv.tv_usec;
+
 #endif 
 
 #ifndef THR_GET_VTIME_DEFINED
 #warning libthread: no thr_get_vtime for your platform, please edit pdthread/src/thread.C and add one
-#warning libthread: using lame gettimeofday() based timer; horribly inaccurate
+#warning libthread: using lame gettimeofday() based timer; horribly imprecise
 
     struct timeval tv;
     gettimeofday(&tv, NULL);
     
-    retval = (tv.tv_sec * 1000000) + tv.usec;
+    retval = (tv.tv_sec * 1000000) + tv.tv_usec;
     
 #endif
 
     return retval;
 }
 
-void thr_collect_measurement(int op) {
+void thr_collect_measurements(int op) {
     thr_perf_data_t* perf_data;
     unsigned long long current_time;
 
     current_time = thr_get_vtime();
 
-    perf_data = pthread_getspecific(lwp::perf_data_key);
+    perf_data = lwp::get_perf_data();
 
     switch (op) {
         case THR_LOCK_ACQ:
@@ -92,6 +154,8 @@ void thr_collect_measurement(int op) {
             break;
     }
 }
+
+void thr_dump_stats_for_thread(const char* thr_name, thr_perf_data_t* perf_data);
 
 #endif /* DO_LIBPDTHREAD_MEASUREMENTS */
 
@@ -169,6 +233,28 @@ void thr_yield(void) {
 static void thr_really_do_exit(lwp* the_thread, void* result) {
     thr_debug_msg(CURRENT_FUNCTION, "");    
 
+#if DO_LIBPDTHREAD_MEASUREMENTS == 1
+
+    thr_stats_registry::register_thread(thr_self(), lwp::name(), lwp::get_perf_data());
+
+#if 0
+    char outfile[256], summary[256];
+    thr_perf_data_t *perf_data = lwp::get_perf_data();
+    FILE* out_file;
+
+    
+    out_file = fopen(outfile, "w+");
+    
+    fprintf(out_file, "number of lock acquires:  %d\n", perf_data->num_lock_acquires);
+    fprintf(out_file, "number of lock blocks:  %d\n", perf_data->num_lock_blocks);
+    fprintf(out_file, "lock contention time:  %d\n", perf_data->lock_contention_time);
+    fprintf(out_file, "number of message ops:  %d\n", perf_data->num_msg_ops);
+    fprintf(out_file, "message op time:  %d\n", perf_data->msg_time);
+
+    fclose(out_file);
+#endif /* 0 */
+#endif /* DO_LIBPDTHREAD_MEASUREMENTS == 1 */
+
     the_thread->stop_running();
     the_thread->complete();
     the_thread->set_returnval(result);
@@ -204,3 +290,14 @@ int thr_getspecific(thread_key_t key, void** datap) {
     return THR_OKAY;
 }
 
+void thr_library_cleanup(void) {
+
+#if DO_LIBPDTHREAD_MEASUREMENTS == 1
+
+    // currently, only cleanup task is dumping stats for monitors and threads
+    sync_registry::dump_all_sync_stats();
+    thr_stats_registry::dump_all_stats();
+
+#endif
+
+}

@@ -220,6 +220,8 @@ void	clear_ready_sock( PDSOCKET sock );
   thread performance measurement collection/display types/functions/constants
 */
 
+void thr_library_cleanup(void);
+    
 #if !defined(i386_unknown_nt4_0)
     
 struct thr_perf_data_t {
@@ -234,8 +236,7 @@ struct thr_perf_data_t {
     unsigned long long msg_timer_start;
 };
 
-void thr_collect_measurement (void);
-void thr_dump_measurements_to_file(const char* filename);
+void thr_collect_measurements (int);
     
 #define THR_LOCK_ACQ 0
 #define THR_LOCK_BLOCK 1
@@ -252,7 +253,6 @@ void thr_dump_measurements_to_file(const char* filename);
 #else
 #define COLLECT_MEASUREMENT(x) while(0)
 #endif
-
 
 #endif /* NT */
 

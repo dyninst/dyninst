@@ -3,7 +3,7 @@
 #include <unistd.h>
 #endif
 
-hashtbl<PDDESC,file_q*,pthread_sync> file_q::file_registry;
+hashtbl<PDDESC,file_q*,pthread_sync> file_q::file_registry("PDDESC","file_q*","file_registry");
 
 file_q::file_q(PDDESC the_fd, thread_t owned_by, int (*will_block_func)(void*), void* desc, bool is_special)
         : io_entity(owned_by, will_block_func, desc, is_special), fd(the_fd) {

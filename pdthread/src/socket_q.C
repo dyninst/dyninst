@@ -1,6 +1,6 @@
 #include "thrtab_entries.h"
 
-hashtbl<PDSOCKET,socket_q*,pthread_sync> socket_q::socket_registry;
+hashtbl<PDSOCKET,socket_q*,pthread_sync> socket_q::socket_registry("PDSOCKET","socket_q*","socket_registry");
 
 socket_q::socket_q(PDSOCKET the_sock, thread_t owned_by, 
                    int (*will_block_func)(void*), void* desc, bool is_special)

@@ -17,7 +17,7 @@
 #undef DO_DEBUG_LIBPDTHREAD
 
 refarray<entity,1> thrtab::entries;
-hashtbl<entity*,thread_t,pthread_sync> thrtab::entity_registry;
+hashtbl<entity*,thread_t,pthread_sync> thrtab::entity_registry("entity*","thread_t","entity_registry");
 
 dllist<thread_t,pthread_sync> thrtab::joinables(list_types::fifo);
 

@@ -3,9 +3,8 @@
 
 #define HASHTBL_SIZE 512
 
-#ifdef HASH_DEBUG
 #include <stdio.h>
-#endif
+#include <string.h>
 
 #include "hash.h"
 
@@ -25,13 +24,25 @@ struct pair {
     pair<key_t,value_t>* cleanup_next;
 };
 
+
 template<class key_t, class value_t, class monitor_t>
 class hashtbl {
   private:
+    static const char* hashtbl_name(const char* kt, const char* vt, const char* c) {
+        const char* format = "monitor_for_hashtbl_key_t-%s_value_t-%s_%s";
+        int len = strlen(format) + strlen(kt) + strlen(vt) + strlen(c) + 1;
+        char* retval = (char*)malloc(len);
+        snprintf(retval, len, format, kt, vt, c);
+        return (const char *)retval;
+    }
+
+
     pair<key_t,value_t>** entries;
     pair<key_t,value_t>* cleanup_list;
+    const char* h_name;
     monitor_t monitor;
     int (*compare_func)(const key_t*,const key_t*);
+
 
     inline unsigned long 
     hashval(key_t key) { return hash((ub1*)&key, sizeof(key)) % HASHTBL_SIZE; }
@@ -50,12 +61,14 @@ class hashtbl {
     }
 
   public:
-    hashtbl() {
+    hashtbl(const char* key_name="key_t", const char* value_name="value_t", const char* comment="") 
+            : h_name(hashtbl_name(key_name, value_name, comment)), monitor(h_name) {
         entries = new pair<key_t,value_t>* [HASHTBL_SIZE];
         for(int i = 0; i < HASHTBL_SIZE; i++)
             entries[i] = NULL;
         compare_func = NULL;
         cleanup_list = NULL;
+        
     }
 
     hashtbl(int (*comparator)(const key_t*,const key_t*)) {
