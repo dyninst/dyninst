@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: templatesPD.C,v 1.9 1998/08/26 14:35:08 wylie Exp $
+
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
 
@@ -63,41 +65,51 @@
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/internalMetrics.h"
 
-template class  dictionary_hash <unsigned, vector<mdl_type_desc> >;
-template class  vector<dictionary_hash <unsigned, vector<mdl_type_desc> >::entry>;
+template class dictionary_hash <unsigned, vector<mdl_type_desc> >;
+template class vector<dictionary_hash <unsigned, vector<mdl_type_desc> >::entry>;
 
-template class  vector<functionName*>;
+template class vector<functionName*>;
 
-template class  vector<T_dyninstRPC::buf_struct*>;
-template class  vector<T_dyninstRPC::mdl_constraint *>;
-template class  vector<T_dyninstRPC::mdl_expr *>;
-template class  vector<T_dyninstRPC::mdl_icode *>;
-template class  vector<T_dyninstRPC::mdl_metric *>;
-template class  vector<T_dyninstRPC::mdl_stmt *>;
-template class  vector<T_dyninstRPC::metricInfo>;
-template class  vector<T_dyninstRPC::focusStruct>;
-template class  vector<dataReqNode*>;
-template class  vector<sampleInfo*>;
+template class vector<T_dyninstRPC::buf_struct*>;
+template class vector<T_dyninstRPC::mdl_constraint *>;
+template class vector<T_dyninstRPC::mdl_expr *>;
+template class vector<T_dyninstRPC::mdl_icode *>;
+template class vector<T_dyninstRPC::mdl_metric *>;
+template class vector<T_dyninstRPC::mdl_stmt *>;
+template class vector<T_dyninstRPC::metricInfo>;
+template class vector<T_dyninstRPC::focusStruct>;
+template class vector<dataReqNode*>;
+template class vector<sampleInfo*>;
 
-template class  vector<instReqNode>;
+template class vector<instReqNode>;
 
-template class  vector<internalMetric*>;
+template class vector<internalMetric*>;
 
-template class  vector<mdl_focus_element>;
-template class  vector<mdl_type_desc>;
-template class  vector<mdl_var>;
+template class vector<mdl_focus_element>;
+template class vector<mdl_type_desc>;
+template class vector<mdl_var>;
 
-template class  vector<costMetric *>;
+template class vector<costMetric *>;
 
-template class  vector<internalMetric::eachInstance>;
+template class vector<internalMetric::eachInstance>;
 
-template class  dictionary_hash <unsigned, cpSample*>;
-template class  vector<dictionary_hash <unsigned, cpSample*>::entry>;
+template class dictionary_hash <unsigned, cpSample*>;
+template class vector<dictionary_hash <unsigned, cpSample*>::entry>;
 
-template class  refCounter<string_ll>;
+template class refCounter<string_ll>;
 
 template class dictionary_hash<string, Symbol>;
 template class vector<dictionary_hash<string, Symbol>::entry>;
 
 template class dictionary_hash<string, string>;
 template class vector<dictionary_hash<string, string>::entry>;
+
+template class vector<dictionary_hash<unsigned int, unsigned int>::entry>;
+template class vector<dictionary_hash<unsigned int, unsigned int>::entry>;
+template class vector<dictionary_hash<unsigned int, resource *>::entry>;
+
+#if defined(rs6000_ibm_aix4_1)
+template class vector<dictionary_hash<string, vector<string> *>::entry>;
+#endif
+
+
