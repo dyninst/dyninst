@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.9 2004/02/07 18:33:58 schendel Exp $
+/* $Id: signalhandler.h,v 1.10 2004/03/11 22:20:39 bernat Exp $
  */
 
 /*
@@ -80,7 +80,8 @@ class signalHandler {
    signalHandler() { }
 
    // checks for process events and handles any events that were found
-   void checkForAndHandleProcessEvents(bool block);
+   // Returns whatever it doesn't know how to handle
+   pdvector <procevent *> checkForAndHandleProcessEvents(bool block);
 
    // checkForProcessEvents: check whether there is an event on any process
    // we're debugging. If one is found decode it and return.  Returns true if
@@ -89,7 +90,8 @@ class signalHandler {
                               int wait_arg, bool block);
 
    // handles process events, unlocks locked processes, deletes proc events
-   void handleProcessEvents(pdvector<procevent *> &foundEvents);
+   // Returns events it doesn't know what to do with
+   pdvector <procevent *> handleProcessEvents(pdvector<procevent *> &foundEvents);
    int handleProcessEvent(const procevent &event);
 };
 

@@ -53,21 +53,28 @@ signalHandler *getSH() {
    return global_sh;
 }
 
-void signalHandler::checkForAndHandleProcessEvents(bool block) {
+pdvector <procevent *> signalHandler::checkForAndHandleProcessEvents(bool block) {
    pdvector<procevent *> foundEvents;
    bool res = checkForProcessEvents(&foundEvents, -1, block);
    if(res) {
-      handleProcessEvents(foundEvents);
+       return handleProcessEvents(foundEvents);
    }
+   return foundEvents;
 }
 
-void signalHandler::handleProcessEvents(pdvector<procevent *> &foundEvents) {
-   for(unsigned i=0; i<foundEvents.size(); i++) {
-      procevent *ev = foundEvents[i];
-      if(!handleProcessEvent(*ev))
-         fprintf(stderr, "handleProcessEvent failed!\n");
-      delete ev;
-   }
+pdvector <procevent *> signalHandler::handleProcessEvents(pdvector<procevent *> &foundEvents) {
+    for(unsigned i=0; i<foundEvents.size(); i++) {
+        procevent *ev = foundEvents[i];
+        if (handleProcessEvent(*ev)) {
+            // Remove this element from the vector
+            delete ev;
+            foundEvents[i] = foundEvents[foundEvents.size() - 1];
+            foundEvents.resize(foundEvents.size()-1);
+            // And back up the iterator
+            i--;
+        }
+    }
+    return foundEvents;
 }
 
 
