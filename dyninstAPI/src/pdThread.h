@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdThread.h,v 1.9 2001/02/01 01:10:02 schendel Exp $
+// $Id: pdThread.h,v 1.10 2001/03/06 15:45:16 pcroth Exp $
 
 #ifndef _PDTHREAD_H_
 #define _PDTHREAD_H_
@@ -62,10 +62,11 @@ class pdThread {
       stack_addr(0),
       start_pc(0),
       start_func(NULL),
-      rid(NULL)
+      rid(NULL),
 #ifndef BPATCH_LIBRARY
-      ,previous(0)
+      previous(0),
 #endif
+      pending_tramp_addr( NULL )
     { 
       proc = pproc; 
       ppid = pproc->getPid();
@@ -78,10 +79,11 @@ class pdThread {
       stack_addr(0),
       start_pc(0),
       start_func(NULL),
-      rid(NULL)
+      rid(NULL),
 #ifndef BPATCH_LIBRARY
-      ,previous(0)
+      previous(0),
 #endif
+      pending_tramp_addr( NULL )
     {
       proc = proc_;
       ppid = proc_->getPid();
@@ -94,10 +96,11 @@ class pdThread {
       stack_addr(0),
       start_pc(0),
       start_func(NULL),
-      rid(NULL)
+      rid(NULL),
 #ifndef BPATCH_LIBRARY
-      ,previous(0)
+      previous(0),
 #endif
+      pending_tramp_addr( NULL )
     {
       assert(pproc);
       proc = pproc;
@@ -118,6 +121,7 @@ class pdThread {
 #ifndef BPATCH_LIBRARY
       previous = 0;
 #endif
+      pending_tramp_addr = NULL;
     }
     ~pdThread() {
 #if defined(MT_THREAD)
@@ -150,6 +154,10 @@ class pdThread {
     void update_start_pc     (unsigned start_pc_)   { start_pc=start_pc_; }
     void update_start_func   (function_base *pdf)   { start_func=pdf; }
     void update_resumestate_p(void* resumestate_p_) { resumestate_p=resumestate_p_; }
+
+	Address get_pending_tramp_addr( void ) const	{ return pending_tramp_addr; }
+	void set_pending_tramp_addr( Address a )	{ pending_tramp_addr = a; }
+
 ///
   private:
     int tid;
@@ -167,6 +175,9 @@ class pdThread {
 #ifndef BPATCH_LIBRARY
     rawTime64 previous;
 #endif
+    Address pending_tramp_addr;	// address of pending instrumentation
+								// currently used on NT only
+
 };
 
 #endif

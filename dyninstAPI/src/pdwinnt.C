@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.29 2001/02/23 15:19:23 pcroth Exp $
+// $Id: pdwinnt.C,v 1.30 2001/03/06 15:45:16 pcroth Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -674,23 +674,60 @@ int process::waitProcs(int *status) {
 		}
 	    }
 	    if (trampAddr) {
-		// this is a trap from an instrumentation point
-		// change the PC to the address of the base tramp
+		    // this is a trap from an instrumentation point
 
-		for (unsigned i = 0; i < p->threads.size(); i++) {
-		    if ((unsigned)p->threads[i]->get_tid()==debugEv.dwThreadId) {
-			HANDLE thrH = (HANDLE)p->threads[i]->get_handle();
+            // find the current thread
+            pdThread* currThread = NULL;
+		    for(unsigned int i = 0; i < p->threads.size(); i++)
+            {
+		        if ((unsigned)p->threads[i]->get_tid() == debugEv.dwThreadId)
+                {
+                    currThread = p->threads[i];
+                    break;
+                }
+            }
+            assert( currThread != NULL );
+
+            // Due to a race between the processing of trap debug events
+            // and the desire to run an inferior RPC, it is possible that
+            // we hit the trap, set ourselves up to run an inferior RPC,
+            // and then processed the trap notification.  If this happens,
+            // we don't end up running *any* of the inferior RPC code.
+            //
+            // We can tell that this is what's happened based on the
+            // thread's Eip - if it doesn't match the ExceptionAddress, we
+            // know that we had tried to reset the Eip to execute an inferior
+            // RPC.  In that case, we leave the Eip alone here, which means
+            // the inferior RPC code will execute when we continue the thread.
+            // We have to remember that we need to execute this instrumentation
+            // once the inferior RPC is done, however.
+            // 
 			CONTEXT cont;
 			cont.ContextFlags = CONTEXT_FULL;
-			if (!GetThreadContext(thrH, &cont))
-			    assert(0);
-			cont.Eip = trampAddr;
-			if (!SetThreadContext(thrH, &cont))
-			    assert(0);
-		    }
-		}
+			if( !GetThreadContext( (HANDLE)currThread->get_handle(), &cont ) )
+            {
+			    assert(false);
+            }
+            if( debugEv.u.Exception.ExceptionRecord.ExceptionAddress == (PVOID)(cont.Eip - 1) )
+            {
+                // The Eip indicates we've just executed a trap instruction
+                // reset the Eip to the address of the base tramp
+                cont.Eip = trampAddr;
+                if( !SetThreadContext( (HANDLE)currThread->get_handle(), &cont ) )
+                {
+                    assert( false );
+                }
+            }
+            else
+            {
+                // We leave the Eip alone, since we've set it to execute 
+                // at inferior RPC code.  However, we need to remember that
+                // we should execute the base tramp once the inferiorRPC is
+                // completed.
+                currThread->set_pending_tramp_addr( trampAddr );
+            }
 
-		break;
+		    break;
 	    }
 
 	    // If it is not from an instrumentation point,
@@ -730,17 +767,61 @@ int process::waitProcs(int *status) {
 	    //printf("Illegal instruction\n");
 	    p->pause_();
 	    p->status_ = stopped;
-	    if (p->handleTrapIfDueToRPC()) {
-		// handleTrapIfDueToRPC calls continueProc()
-		break;
+	    if( p->handleTrapIfDueToRPC() )
+        {
+		    // handleTrapIfDueToRPC calls continueProc()
+            // however, under Windows NT, it doesn't actually 
+            // continue the thread until the ContinueDbgEvent call is made
+
+            // We take advantage of this fact to ensure that any
+            // pending instrumentation is executed.  (I.e., instrumentation
+            // put off so we could be sure to execute inferior RPC code is
+            // now executed.)
+            if( p->currRunningRPCs.size() == 0 )
+            {
+                // we finished the inferior RPC, so we can now execute
+                // any pending instrumentation
+
+                // find the current thread
+                pdThread* currThread = NULL;
+                for( unsigned int i = 0; i < p->threads.size(); i++ )
+                {
+		            if ((unsigned)p->threads[i]->get_tid() == debugEv.dwThreadId)
+                    {
+                        currThread = p->threads[i];
+                        break;
+                    }
+                }
+                assert( currThread != NULL );
+
+                Address pendingTrampAddr = currThread->get_pending_tramp_addr();
+                if( pendingTrampAddr != NULL )
+                {
+                    // reset the Eip to the pending instrumentation
+                    CONTEXT ctxt;
+                    ctxt.ContextFlags = CONTEXT_FULL;
+                    if( !GetThreadContext( (HANDLE)currThread->get_handle(), &ctxt ) )
+                    {
+                        assert( false );
+                    }
+                    ctxt.Eip = pendingTrampAddr;
+                    if( !SetThreadContext( (HANDLE)currThread->get_handle(), &ctxt ) )
+                    {
+                        assert( false );
+                    }
+                    currThread->set_pending_tramp_addr( NULL );
+                }
+            }
+		    break;
 	    }
 	    p->status_ = running;
 	    p->continueProc_();
 	    ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
 			       DBG_EXCEPTION_NOT_HANDLED);
 	    return 0;
+
 	case EXCEPTION_ACCESS_VIOLATION:
-	    printf("Access violation exception, %d, addr = %x\n", 
+	    printf("Access violation exception, %d, addr = %08x\n", 
 		   debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
 		   debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
 	    dumpMem(p, debugEv.u.Exception.ExceptionRecord.ExceptionAddress, 32);
