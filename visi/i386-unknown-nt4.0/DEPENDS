@@ -3,7 +3,8 @@ templates.obj: ../src/templates.C ../../common/h/Vector.h \
  ../../visi/h/visiTypes.h ../../pdutil/h/makenan.h \
  ../../pdutil/h/ByteArray.h ../../common/h/headers.h \
  ../../common/h/solarisHeaders.h ../../common/h/String.h \
- ../../common/h/debugOstream.h ../../common/h/refCounter.h
+ ../../common/h/debugOstream.h ../../common/h/refCounter.h \
+ visi.xdr.h
 datagrid.obj: ../src/datagrid.C ../../visi/src/datagridP.h \
  ../../visi/src/visiTypesP.h ../../visi/h/visiTypes.h \
  ../../pdutil/h/makenan.h ../../pdutil/h/ByteArray.h \
