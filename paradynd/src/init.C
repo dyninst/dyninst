@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.25  1996/02/09 23:53:39  naim
+ * Revision 1.26  1996/02/10 21:01:42  naim
+ * Changing name of metric number_of_nodes by number_of_cpus - naim
+ *
+ * Revision 1.25  1996/02/09  23:53:39  naim
  * Adding new internal metric number_of_nodes - naim
  *
  * Revision 1.24  1996/02/02  14:31:25  naim
@@ -104,7 +107,7 @@ internalMetric *totalPredictedCost= NULL;
 internalMetric *smooth_obs_cost = NULL;
 internalMetric *observed_cost = NULL;
 internalMetric *bucket_width = NULL;
-internalMetric *number_of_nodes = NULL;
+internalMetric *number_of_cpus = NULL;
 
 vector<instMapping*> initialRequests;
 vector<sym_data> syms_to_find;
@@ -154,7 +157,7 @@ bool init() {
 						   true,
 						   Sampled);
 
-  number_of_nodes = internalMetric::newInternalMetric("number_of_nodes", 
+  number_of_cpus = internalMetric::newInternalMetric("number_of_cpus", 
 						   EventCounter,
 						   aggSum,
 						   "nodes",

@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.74  1996/02/09 23:53:43  naim
+ * Revision 1.75  1996/02/10 21:01:47  naim
+ * Changing name of metric number_of_nodes by number_of_cpus - naim
+ *
+ * Revision 1.74  1996/02/09  23:53:43  naim
  * Adding new internal metric number_of_nodes - naim
  *
  * Revision 1.73  1996/02/09  23:34:44  mjrg
@@ -1427,7 +1430,7 @@ void reportInternalMetrics()
           value = (end - start) * processVec.size();
         } else if (imp->name() == "bucket_width") {
 	  value = (end - start)*(imp->value);
-        } else if (imp->name() == "number_of_nodes") {
+        } else if (imp->name() == "number_of_cpus") {
           value = (end - start)* getNumberOfNodes();
         } else if (imp->style() == EventCounter) {
           value = imp->getValue();

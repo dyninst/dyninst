@@ -4,7 +4,10 @@
 
 /*
  * $Log: init.h,v $
- * Revision 1.14  1996/02/09 23:53:40  naim
+ * Revision 1.15  1996/02/10 21:01:44  naim
+ * Changing name of metric number_of_nodes by number_of_cpus - naim
+ *
+ * Revision 1.14  1996/02/09  23:53:40  naim
  * Adding new internal metric number_of_nodes - naim
  *
  * Revision 1.13  1996/02/02  14:31:27  naim
@@ -67,7 +70,7 @@ extern internalMetric *totalPredictedCost;
 extern internalMetric *observed_cost;
 extern internalMetric *smooth_obs_cost;
 extern internalMetric *bucket_width;
-extern internalMetric *number_of_nodes;
+extern internalMetric *number_of_cpus;
 
 extern bool init();
 extern bool initOS();
