@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.35 1994/08/08 20:13:43 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.36 1994/08/17 16:43:32 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.35  1994/08/08 20:13:43  hollings
+ * Revision 1.36  1994/08/17 16:43:32  markc
+ * Removed early return from metricDefinitionNode::insertInstrumentation which
+ * prevented instrumentation from being inserted if the application was
+ * running when the request was made.
+ *
+ * Revision 1.35  1994/08/08  20:13:43  hollings
  * Added suppress instrumentation command.
  *
  * Revision 1.34  1994/08/02  18:22:55  hollings
@@ -591,7 +596,6 @@ Boolean metricDefinitionNode::insertInstrumentation()
     if (!isApplicationPaused()) {
 	pauseAllProcesses();
 	needToCont = TRUE;
-	return(NULL);
     }
 
     inserted = True;
