@@ -1,10 +1,15 @@
 // barChart.h
 
 /* $Log: barChart.h,v $
-/* Revision 1.5  1994/10/11 22:02:48  tamches
-/* added validMetrics and validResources arrays to avoid
-/* drawing bars of deleted resources
+/* Revision 1.6  1994/10/13 00:51:03  tamches
+/* Removed xoffsets and widths while implementing
+/* sorting and bug-fixing deletion of resources.
+/* double-buffer is now the only drawing option
 /*
+ * Revision 1.5  1994/10/11  22:02:48  tamches
+ * added validMetrics and validResources arrays to avoid
+ * drawing bars of deleted resources
+ *
  * Revision 1.4  1994/10/10  23:08:39  tamches
  * preliminary changes on the way to swapping the x and y axes
  *
@@ -25,11 +30,13 @@
 #include <array2d.h>
 
 typedef dynamic1dArray<bool>   dynamic1dArrayBool;
-typedef dynamic2dArray<bool>   dynamic2dArrayBool;
+typedef dynamic1dArray<int>    dynamic1dArrayInt;
 typedef dynamic1dArray<double> dynamic1dArrayDouble;
+typedef dynamic1dArray<XColor *> dynamic1dArrayXColor;
+
+typedef dynamic2dArray<bool>   dynamic2dArrayBool;
 typedef dynamic2dArray<int>    dynamic2dArrayInt;
 typedef dynamic2dArray<double> dynamic2dArrayDouble;
-typedef dynamic1dArray<XColor *> dynamic1dArrayXColor;
 
 class BarChart {
  private:
@@ -43,7 +50,7 @@ class BarChart {
       // set when wid becomes non-zero (which is unfortunately not
       // until the tk packer is run on theWindow)
    Window  wid; // low-level window id used in Xlib drawing calls
-   int     borderPix;
+   int     borderPix; // in pixels
    int     currScrollOffset; // in pixels
    int     width, height, isMapped;
    Display *display; // low-level display structure used in Xlib drawing calls
@@ -68,23 +75,28 @@ class BarChart {
    dynamic2dArrayInt prevBarHeights;
 
    int numMetrics, numResources;
+   int numValidMetrics, numValidResources; // how many are enabled by visi lib (as opposed to deleted)
+
+   dynamic1dArrayInt indirectResources;
    dynamic1dArrayBool validMetrics, validResources;
       // which metrics and resources are valid and should be drawn?
 
-   dynamic2dArrayInt barXoffsets;
-      // array [metric][rsrc] of pixel x-offsets for each bar
-   dynamic2dArrayInt barWidths;
-      // array [metric][rsrc] of pixel widths for each bar
+   int totalResourceWidth; // same as tcl vrble "currResourceWidth"
+   int fullResourceWidth; // 90% of totalResourceWidth
+   int resourceBorderWidth;
+   int individualResourceWidth; // fullResourceWidth / numMetrics
+
    dynamic2dArrayInt barHeights;
       // array [metric][rsrc] of pixel height for each bar.  This
       // changes quite often (every time new data arrives) and
       // needs to be saved for the case of expose events...
    dynamic2dArrayDouble barValues;
       // array [metric][rsrc] of numerical (not pixel) bar values
+      // the basis for barHeights[][]
    dynamic1dArrayDouble metricCurrMaxVals;
       // array [metric] of the current y-axis high value for each metric.
       // When new data comes in that is higher than this, I give the command
-      // to rethink the y axis.
+      // to rethink the metrics axis.
 
   private:
    bool TryFirstGoodWid();
@@ -93,8 +105,6 @@ class BarChart {
    void lowLevelDrawBars();
       // sets up lowestLevelDrawBars() to be called the next time tk is idle.
    void lowestLevelDrawBarsDoubleBuffer();
-   void lowestLevelDrawBarsNoFlicker();
-   void lowestLevelDrawBarsFlicker();
 
    static void lowestLevelDrawBars(ClientData ignore);
       // assuming the barHeights[][] have changed, redraw bars
@@ -129,7 +139,8 @@ class BarChart {
   ~BarChart();
 
    void processFirstGoodWid();
-   void changeDoubleBuffering(bool doubleBuffer, bool noFlicker);
+   void changeDoubleBuffering(const bool doubleBuffer,
+			      const bool noFlicker);
 
    void processResizeWindow(const int newWidth, const int newHeight);
    void processExposeWindow();
@@ -140,13 +151,14 @@ class BarChart {
       // dataGrid[][].  (If visi had provided more fine-grained callbacks than
       // ADDMETRICSRESOURCES, such a crude routine would not be necessary.)
       // When done, redraws.
+   void rethinkIndirectResources(); // needed to implement sorting
 
    void processNewData(const int newBucketIndex);
       // assuming new data has arrived at the given bucket index for all
       // metric/rsrc pairs, read the new information from dataGrid[][],
       // update barHeights[][] accordingly, and call lowLevelDrawBars()
 
-   void processNewScrollPosition(int newPos);
+   void processNewScrollPosition(const int newPos);
    void rethinkDataFormat();
 };
 
