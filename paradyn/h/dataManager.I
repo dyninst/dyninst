@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.71  1996/04/30 18:57:37  newhall
+ * Revision 1.72  1996/05/01 18:06:31  newhall
+ * added param to predicted cost routines
+ *
+ * Revision 1.71  1996/04/30  18:57:37  newhall
  * changes to enableDataCollection calls and upcalls
  *
  * Revision 1.70  1996/04/22  17:56:40  newhall
@@ -373,10 +376,12 @@ typedef void (*newPhaseCallback)(perfStreamHandle handle,
  *   m_handle - the metricHandle assoc. with the request
  *   rl_handle - the resourceListHandle assoc. with the request 
  *   cost     - the cost of enabling the metric/focus pair
+ *   clientId - the identifier passed by the calling thread
  */
 typedef void (*predDataCostCallbackFunc)(metricHandle m_handle,
 					 resourceListHandle rl_handle,
-					 float cost);
+					 float cost,
+					 u_int clientId);
 
 /*
  * Handler that gets called when there is a response to an enableData request 
@@ -404,7 +409,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 43;
+    $version 44;
 
     //
     // Start a paradyn daemon
@@ -621,7 +626,8 @@ $remote dataManager {
     //
     $async void getPredictedDataCost(perfStreamHandle,
 				     metricHandle,
-				     resourceListHandle);
+				     resourceListHandle,
+				     u_int);
 
     // 
     // Histogram/timebase information
@@ -868,7 +874,8 @@ $remote dataManager {
     $upcall $async void predictedDataCost(predDataCostCallbackFunc func,
 				     metricHandle m_handle,
 				     resourceListHandle rl_handle, 
-				     float cost);
+				     float cost,
+				     u_int clientId);
     
     //
     // response to enableDataRequest call
