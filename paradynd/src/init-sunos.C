@@ -41,6 +41,9 @@
 
 /*
  * $Log: init-sunos.C,v $
+ * Revision 1.19  1997/07/14 20:43:23  naim
+ * Fixing problem with fork on x86 - naim
+ *
  * Revision 1.18  1997/05/07 19:01:55  naim
  * Getting rid of old support for threads and turning it off until the new
  * version is finished. Additionally, new superTable, baseTable and superVector
@@ -135,11 +138,16 @@ bool initOS() {
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
   if(process::pdFlavor != string("cow"))
   {
+#if defined(i386_unknown_solaris2_5)
+  	initialRequests += new instMapping("_fork", "DYNINSTfork", 
+				     FUNC_EXIT|FUNC_ARG, retVal);
+#else
   	initialRequests += new instMapping("fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
 
-  	initialRequests += new instMapping("_libc_fork", "DYNINSTfork", 
+      	initialRequests += new instMapping("_libc_fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
+#endif
   }
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
   initialRequests += new instMapping("MY_thr_create", "DYNINSTthreadCreate", 
