@@ -57,7 +57,7 @@ public:
     bool isCompatible(const BPatch_type &otype);
 };
 
-
+#ifdef BPATCH_LIBRARY
 class BPatch_typeCollection {
     dictionary_hash<string, BPatch_type *> typesByName;
 public:
@@ -67,5 +67,6 @@ public:
     BPatch_type	*findType(const char *name);
     void	addType(BPatch_type *type);
 };
+#endif
 
 #endif /* _BPatch_type_h_ */

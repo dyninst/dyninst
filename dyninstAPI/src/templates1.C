@@ -139,6 +139,9 @@ template class vector<fastInferiorHeapMgr::oneHeapStats>;
 
 /* ***************************************************************************** */
 
+
+#ifdef BPATCH_LIBRARY
 template class dictionary_hash<string, BPatch_type *>;
 
 template class dictionary_hash_iter<string, BPatch_type *>;
+#endif
