@@ -2,6 +2,7 @@
 #define __libthread_dllist_C__
 
 #include <assert.h>
+#include <stdio.h>
 #include "predicate.h"
 #include "pthread_sync.h"
 

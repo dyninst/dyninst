@@ -14,35 +14,28 @@
 extern int SOCK_FD;
 
 class thr_mailbox : public mailbox {
+	friend class ready_socks_populator;
+
   private:
-    static void* fds_select_loop(void* which_mailbox);    
     static void* sock_select_loop(void* which_mailbox);
     
   protected:
-    pthread_t fd_selector_thread;
     pthread_t sock_selector_thread;
 
-    volatile unsigned kill_fd_selector;
     volatile unsigned kill_sock_selector;
-    int* fds_selector_pipe;
     int* sock_selector_pipe;
 
-    void signal_fd_selector();
     void signal_sock_selector();
     
-    pthread_sync* fds_monitor;
     pthread_sync* sock_monitor;
     
-    dllist<PDDESC,dummy_sync> *ready_fds;
-    dllist<PDDESC,dummy_sync> *bound_fds;
-
     dllist<PDSOCKET,dummy_sync> *ready_socks;
     dllist<PDSOCKET,dummy_sync> *bound_socks;
 
     dllist<message*,dummy_sync> *messages;
     dllist<message*,dummy_sync> *sock_messages;
     
-    inline bool check_for(thread_t* sender, tag_t* type,
+    bool check_for(thread_t* sender, tag_t* type,
                           bool do_block = false, bool do_yank = false,
                           message** m = NULL, unsigned io_first = 1);
     
@@ -64,10 +57,11 @@ class thr_mailbox : public mailbox {
     /* poll() checks for suitable available messages */
     virtual int poll(thread_t* from, tag_t* tagp, unsigned block, unsigned fd_first=0);
 
-    void bind_fd(PDDESC fd, unsigned special, int (*wb)(void*), void* desc, thread_t* ptid);
     void bind_sock(PDSOCKET s, unsigned special, int (*wb)(void*), void* desc, thread_t* ptid);
 
     bool is_sock_bound(PDSOCKET s);
+
+	void clear_ready_sock( PDSOCKET sock );
 };
 #endif
 
