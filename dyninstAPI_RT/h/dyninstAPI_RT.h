@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.22 2005/02/25 07:04:47 jaw Exp $
+ * $Id: dyninstAPI_RT.h,v 1.23 2005/03/17 23:26:43 bernat Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -112,6 +112,8 @@ struct trampTableEntryStruct {
 };
 
 #endif
+
+typedef enum {DSE_undefined, DSE_forkEntry, DSE_forkExit, DSE_execEntry, DSE_execExit, DSE_exitEntry, DSE_loadLibrary} DYNINST_synch_event_t;
 
 struct rpcInfoStruct {
   int runningInferiorRPC;  /* 1 running irpc, 0 not running */

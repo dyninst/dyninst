@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.42 2005/03/17 15:35:10 jodom Exp $ */
+/* $Id: RTcommon.c,v 1.43 2005/03/17 23:26:44 bernat Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -107,16 +107,12 @@ int DYNINSTdebugPrintRT = 0;
 /* One some platforms we can tell when a fork or exec
    is occurring through system-provided events. On
    others we do it ourselves.
-   0: No event
-   1: Called at entry to fork
-   2: Called at exit of fork
-   3: Called at entry to exec
-   4: Called at "exit" of exec
-   5: Called at entry to exit
+   Enumerated type defined in header file
 */
-int DYNINST_instSyscallState = 0;
+DYNINST_synch_event_t DYNINST_synch_event_id = DSE_undefined;
+
 /* And storage for the syscall's arguments (if needed) */
-void *DYNINST_instSyscallArg1;
+void *DYNINST_synch_event_arg1;
 
 int DYNINST_mutatorPid = -1;
 
@@ -276,13 +272,13 @@ int DYNINSTreturnZero()
 /* Used to instrument (and report) the entry of fork */
 void DYNINST_instForkEntry() {
     /* Set the state so the mutator knows what's up */
-    DYNINST_instSyscallState = 1;
-    DYNINST_instSyscallArg1 = NULL;
+    DYNINST_synch_event_id = DSE_forkEntry;
+    DYNINST_synch_event_arg1 = NULL;
     /* Stop ourselves */
     DYNINSTbreakPoint();
     /* Once the stop completes, clean up */
-    DYNINST_instSyscallState = 0;
-    DYNINST_instSyscallArg1 = NULL;
+    DYNINST_synch_event_id = DSE_undefined;
+    DYNINST_synch_event_arg1 = NULL;
 }
 
        
@@ -290,52 +286,64 @@ void DYNINST_instForkEntry() {
 void DYNINST_instForkExit(void *arg1) {
     /* Set the state so the mutator knows what's up */
     
-    DYNINST_instSyscallState = 2;
-    DYNINST_instSyscallArg1 = arg1;
+    DYNINST_synch_event_id = DSE_forkExit;
+    DYNINST_synch_event_arg1 = arg1;
     /* Stop ourselves */
     DYNINSTbreakPoint();
     /* Once the stop completes, clean up */
-    DYNINST_instSyscallState = 0;
-    DYNINST_instSyscallArg1 = NULL;
+    DYNINST_synch_event_id = DSE_undefined;
+    DYNINST_synch_event_arg1 = NULL;
 }
 
        
 /* Used to instrument (and report) the entry of exec */
 void DYNINST_instExecEntry(void *arg1) {
     /* Set the state so the mutator knows what's up */
-    DYNINST_instSyscallState = 3;
-    DYNINST_instSyscallArg1 = arg1;
+    DYNINST_synch_event_id = DSE_execEntry;
+    DYNINST_synch_event_arg1 = arg1;
     /* Stop ourselves */
     DYNINSTbreakPoint();
     /* Once the stop completes, clean up */
-    DYNINST_instSyscallState = 0;
-    DYNINST_instSyscallArg1 = NULL;
+    DYNINST_synch_event_id = DSE_undefined;
+    DYNINST_synch_event_arg1 = NULL;
 }
 
        
 /* Used to instrument (and report) the exit of exec */
 void DYNINST_instExecExit(void *arg1) {
     /* Set the state so the mutator knows what's up */
-    DYNINST_instSyscallState = 4;
-    DYNINST_instSyscallArg1 = arg1;
+    DYNINST_synch_event_id = DSE_execExit;
+    DYNINST_synch_event_arg1 = arg1;
     /* Stop ourselves */
     DYNINSTbreakPoint();
     /* Once the stop completes, clean up */
-    DYNINST_instSyscallState = 0;
-    DYNINST_instSyscallArg1 = NULL;
+    DYNINST_synch_event_id = DSE_undefined;
+    DYNINST_synch_event_arg1 = NULL;
 }
 
        
 /* Used to instrument (and report) the entry of exit */
 void DYNINST_instExitEntry(void *arg1) {
     /* Set the state so the mutator knows what's up */
-    DYNINST_instSyscallState = 5;
-    DYNINST_instSyscallArg1 = arg1;
+    DYNINST_synch_event_id = DSE_exitEntry;
+    DYNINST_synch_event_arg1 = arg1;
     /* Stop ourselves */
     DYNINSTbreakPoint();
     /* Once the stop completes, clean up */
-    DYNINST_instSyscallState = 0;
-    DYNINST_instSyscallArg1 = NULL;
+    DYNINST_synch_event_id = DSE_undefined;
+    DYNINST_synch_event_arg1 = NULL;
+}
+
+/* Used to instrument (and report) the entry of exit */
+void DYNINST_instLoadLibrary(void *arg1) {
+    /* Set the state so the mutator knows what's up */
+    DYNINST_synch_event_id = DSE_loadLibrary;
+    DYNINST_synch_event_arg1 = arg1;
+    /* Stop ourselves */
+    DYNINSTbreakPoint();
+    /* Once the stop completes, clean up */
+    DYNINST_synch_event_id = DSE_undefined;
+    DYNINST_synch_event_arg1 = NULL;
 }
 
 void DYNINSTunlock_spinlock(dyninst_spinlock *mut)
