@@ -332,7 +332,9 @@ float getPointFrequency(instPoint *point)
       if (func->isLibTag()) {
 	return(100);
       } else {
-	return(250);
+        // Changing this value from 250 to 100 because predictedCost was
+        // too high - naim 07/18/96
+	return(100);
       }
     } else {
       return (funcFrequencyTable[func->prettyName()]);

@@ -26,6 +26,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst-hppa.C,v 1
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.14  1996/07/18 19:48:35  naim
+ * Changing the "frequency" value from 250 to 100 - naim
+ *
  * Revision 1.13  1996/07/09 04:19:26  lzheng
  * Implemented the multiple exit and relocation of conditional branch
  * instruction on HPUX
@@ -654,7 +657,9 @@ float getPointFrequency(instPoint *point)
       if (func->isLibTag()) {
 	return(100);
       } else {
-	return(250);
+        // Changing this value from 250 to 100 because predictedCost was
+        // too high - naim 07/18/96
+	return(100);
       }
     } else {
       return (funcFrequencyTable[func->prettyName()]);
