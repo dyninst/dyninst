@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.207 2000/03/04 01:25:21 zandy Exp $
+// $Id: process.C,v 1.208 2000/03/06 16:46:53 paradyn Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -307,7 +307,7 @@ vector<Address> process::walkStack(bool noPause)
       Address fpNew = currentFrame.getFP();
       // successive frame pointers might be the same (e.g. leaf functions)
       if (fpOld > fpNew) {
-	// not moving up stack
+        // not moving up stack
         if (!noPause && needToCont && !continueProc())
           cerr << "walkStack: continueProc failed" << endl;
         vector<Address> ev; // empty vector
@@ -323,15 +323,15 @@ vector<Address> process::walkStack(bool noPause)
       pcs += next_pc;
       // is this pc in the signal_handler function?
       if(signal_handler && (next_pc >= sig_addr)
-	  && (next_pc < (sig_addr+sig_size))){
-	  // check to see if a leaf function was executing when the signal
-	  // handler was called.  If so, then an extra frame should be added
-	  // for the leaf function...the call to getCallerFrame
-	  // will get the function that called the leaf function
-	  Address leaf_pc = 0;
-	  if(this->needToAddALeafFrame(currentFrame,leaf_pc)){
+          && (next_pc < (sig_addr+sig_size))){
+          // check to see if a leaf function was executing when the signal
+          // handler was called.  If so, then an extra frame should be added
+          // for the leaf function...the call to getCallerFrame
+          // will get the function that called the leaf function
+          Address leaf_pc = 0;
+          if(this->needToAddALeafFrame(currentFrame,leaf_pc)){
               pcs += leaf_pc;
-	  }
+          }
       }
       currentFrame = currentFrame.getCallerFrame(this); 
     }
@@ -370,16 +370,16 @@ void process::walkAStack(int /*id*/,
       fps += fpOld ;
       // is this pc in the signal_handler function?
       if(signal_handler && (next_pc >= sig_addr)
-	    && (next_pc < (sig_addr+sig_size))){
-	    // check to see if a leaf function was executing when the signal
-	    // handler was called.  If so, then an extra frame should be added
-	    // for the leaf function...the call to getCallerFrame
-	    // will get the function that called the leaf function
-	    Address leaf_pc = 0;
-	    if(this->needToAddALeafFrame(currentFrame,leaf_pc)){
+            && (next_pc < (sig_addr+sig_size))){
+            // check to see if a leaf function was executing when the signal
+            // handler was called.  If so, then an extra frame should be added
+            // for the leaf function...the call to getCallerFrame
+            // will get the function that called the leaf function
+            Address leaf_pc = 0;
+            if(this->needToAddALeafFrame(currentFrame,leaf_pc)){
                 pcs += leaf_pc;
-		fps += fpOld ;
-	    }
+                fps += fpOld ;
+            }
       }
       currentFrame = currentFrame.getCallerFrame(this); 
     }
@@ -434,11 +434,11 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
         int lwp_id = IDs[i] ;
         Address fp, pc;
         if (getLWPFrame(lwp_id, &fp, &pc)) {
-	  Frame currentFrame(lwp_id, fp, pc, true);
+          Frame currentFrame(lwp_id, fp, pc, true);
           walkAStack(lwp_id, currentFrame, sig_addr, sig_size, pcs, fps);
-	  result += pcs ;
-	  lwp_stack_hi += fps[fps.size()-1];
-	  lwp_stack_lo += fps[0];
+          result += pcs ;
+          lwp_stack_hi += fps[fps.size()-1];
+          lwp_stack_lo += fps[0];
         }
         i++ ;
       }
@@ -461,11 +461,11 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
       bool active = false ;
       for (unsigned j=0; j< lwp_stack_lo.size(); j++) {
         if (stack_lo >= lwp_stack_lo[j] && stack_lo <= lwp_stack_hi[j]){
-	  active = true;
-	  break;
+          active = true;
+          break;
         }
       }
-	
+        
       if (!active) {
         walkAStack(i, currentFrame, sig_addr, sig_size, pcs, fps);
         result += pcs ;
@@ -488,7 +488,7 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
 #endif
 
 void process::correctStackFuncsForTramps(vector<Address> &pcs, 
-					 vector<pd_Function *> &funcs)
+                                         vector<pd_Function *> &funcs)
 {
   unsigned i;
   instPoint *ip;
@@ -499,8 +499,8 @@ void process::correctStackFuncsForTramps(vector<Address> &pcs,
     if( ip ) {
       fn = const_cast<function_base*>( ip->iPgetFunction() );
       if( fn )
-	// funcs[ i ] = dynamic_cast<pd_Function*>( fn );
-	funcs[ i ] = (pd_Function *) fn;
+        // funcs[ i ] = dynamic_cast<pd_Function*>( fn );
+        funcs[ i ] = (pd_Function *) fn;
     }
     //}
   }
@@ -510,9 +510,9 @@ void process::correctStackFuncsForTramps(vector<Address> &pcs,
 vector<pd_Function *> process::convertPCsToFuncs(vector<Address> pcs) {
     vector <pd_Function *> ret;
     unsigned i;
-	pd_Function *fn;
+        pd_Function *fn;
     for(i=0;i<pcs.size();i++) {
-		fn = (pd_Function *)findFunctionIn(pcs[i]);
+                fn = (pd_Function *)findFunctionIn(pcs[i]);
         ret += fn;
     }
     return ret;
@@ -538,9 +538,9 @@ bool isFreeOK(process *proc, disabledItem &dis, vector<Address> &pcs)
   heapItem *ptr = NULL;
   if (!hp->heapActive.find(disPointer, ptr)) {
     sprintf(errorLine,"Warning: attempt to free undefined heap entry "
-	    "0x%p (pid=%d, heapActive.size()=%d)\n", 
-	    (void*)disPointer, proc->getPid(), 
-	    hp->heapActive.size());
+            "0x%p (pid=%d, heapActive.size()=%d)\n", 
+            (void*)disPointer, proc->getPid(), 
+            hp->heapActive.size());
     logLine(errorLine);
     return false;
   }
@@ -556,26 +556,26 @@ bool isFreeOK(process *proc, disabledItem &dis, vector<Address> &pcs)
     
     for (unsigned j = 0; j < points.size(); j++) {
       for (unsigned k = 0; k < points[j].size(); k++) {
-	Address predStart = points[j][k]; // start of predecessor code block
-	heapItem *pred = NULL;
-	if (!hp->heapActive.find(predStart, pred)) {
-	  // predecessor code already freed: remove from list
-	  int size = points[j].size();
-	  points[j][k] = points[j][size-1];
-	  points[j].resize(size-1);
-	  k--; // move index back to account for resize()
-	  continue;
-	}
-	assert(pred);
+        Address predStart = points[j][k]; // start of predecessor code block
+        heapItem *pred = NULL;
+        if (!hp->heapActive.find(predStart, pred)) {
+          // predecessor code already freed: remove from list
+          int size = points[j].size();
+          points[j][k] = points[j][size-1];
+          points[j].resize(size-1);
+          k--; // move index back to account for resize()
+          continue;
+        }
+        assert(pred);
 
-	// Condition 2: current block is subset of predecessor block ???
-	if ((ptr->addr >= pred->addr) && (ptr->addr <= pred->addr + pred->length)) {
-	  return false;
-	}
-	// Condition 3: PC is inside predecessor block
-	if ((pc >= pred->addr) && (pc <= pred->addr + pred->length)) {
-	  return false;     
-	}
+        // Condition 2: current block is subset of predecessor block ???
+        if ((ptr->addr >= pred->addr) && (ptr->addr <= pred->addr + pred->length)) {
+          return false;
+        }
+        // Condition 3: PC is inside predecessor block
+        if ((pc >= pred->addr) && (pc <= pred->addr + pred->length)) {
+          return false;     
+        }
       }
     }
   }
@@ -612,7 +612,7 @@ void inferiorFreeCompact(inferiorHeap *hp)
     assert(h1->length != 0);
     assert(h1->addr + h1->length <= h2->addr);
     if (h1->addr + h1->length == h2->addr
-	&& h1->type == h2->type) {
+        && h1->type == h2->type) {
       h2->addr = h1->addr;
       h2->length = h1->length + h2->length;
       h1->length = 0;
@@ -628,9 +628,9 @@ void inferiorFreeCompact(inferiorHeap *hp)
     for (i = 0; i < end; i++) {
       heapItem *h1 = freeList[i];
       if (h1->length != 0) {
-	cleanList += h1;
+        cleanList += h1;
       } else {
-	delete h1;
+        delete h1;
       }
     }
     assert(cleanList.size() == nbuf);
@@ -725,9 +725,9 @@ void process::initInferiorHeap()
       heapAddr = findInternalAddress(INFERIOR_HEAP_BASE, true, err);
       assert(heapAddr);
       hp->bufferPool += new heapItem(heapAddr, staticHeapSize - LOWMEM_HEAP_SIZE,
-				     dataHeap, false);
+                                     dataHeap, false);
       hp->bufferPool += new heapItem(heapAddr + staticHeapSize - LOWMEM_HEAP_SIZE,
-				     LOWMEM_HEAP_SIZE, lowmemHeap, false);
+                                     LOWMEM_HEAP_SIZE, lowmemHeap, false);
       heapAddr = findInternalAddress("DYNINSTtext", true, err);
       assert(heapAddr);
       hp->bufferPool += new heapItem(heapAddr, staticHeapSize, textHeap, false);
@@ -735,9 +735,9 @@ void process::initInferiorHeap()
       heapAddr = findInternalAddress(INFERIOR_HEAP_BASE, true, err);
       assert(heapAddr);
       hp->bufferPool += new heapItem(heapAddr, staticHeapSize - LOWMEM_HEAP_SIZE,
-				     anyHeap, false);
+                                     anyHeap, false);
       hp->bufferPool += new heapItem(heapAddr + staticHeapSize - LOWMEM_HEAP_SIZE,
-				     LOWMEM_HEAP_SIZE, lowmemHeap, false);
+                                     LOWMEM_HEAP_SIZE, lowmemHeap, false);
     }
   }
 
@@ -799,13 +799,13 @@ int findFreeIndex(process *p, unsigned size, int type, Address lo, Address hi)
     heapItem *h = freeList[i];
     // check if free block matches allocation constraints
     if (h->type & type &&
-	h->addr >= lo &&
-	h->addr + size - 1 <= hi &&
-	h->length >= size) 
+        h->addr >= lo &&
+        h->addr + size - 1 <= hi &&
+        h->length >= size) 
       {
-	if (best == -1) best = i;
-	// check for better match
-	if (h->length < freeList[best]->length) best = i;
+        if (best == -1) best = i;
+        // check for better match
+        if (h->length < freeList[best]->length) best = i;
       } 
   }
   return best;
@@ -858,7 +858,8 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
   imd_rpc_ret ret = { false, NULL };
   /* set lowmem to ensure there is space for inferior malloc */
 #if defined(MT_THREAD)
-  p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1, -1, false, true);
+  p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1, true,
+                                                            -1, false);
 #else
   p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1, true);
 #endif
@@ -899,7 +900,7 @@ const Address ADDRESS_HI = ((Address)~((Address)0));
 #endif
 
 Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type, 
-		       Address near_, bool *err)
+                       Address near_, bool *err)
 {
   inferiorHeap *hp = &p->heap;
   if (err) *err = false;
@@ -967,7 +968,7 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
       
     default: // error - out of memory
       sprintf(errorLine, "***** Inferior heap overflow: %d bytes "
-	      "freed, %d bytes requested\n", hp->freed, size);
+              "freed, %d bytes requested\n", hp->freed, size);
       logLine(errorLine);
       showErrorCallback(66, (const char *) errorLine);    
 #if defined(BPATCH_LIBRARY)
@@ -1008,7 +1009,7 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
 }
 
 void inferiorFree(process *p, Address block, 
-		  const vector<addrVecType> &pointsToCheck)
+                  const vector<addrVecType> &pointsToCheck)
 {
   inferiorHeap *hp = &p->heap;
 
@@ -1083,28 +1084,28 @@ bool process::initDyninstLib() {
 
 process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #ifdef SHM_SAMPLING
-		 , key_t theShmKey,
-		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
+                 , key_t theShmKey,
+                 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
 ) :
              baseMap(ipHash), 
 #ifdef BPATCH_LIBRARY
-	     instPointMap(hash_address),
+             instPointMap(hash_address),
 #endif
-	     trampGuardFlagAddr(0),
-	     savedRegs(NULL),
-	     pid(iPid) // needed in fastInferiorHeap ctors below
+             trampGuardFlagAddr(0),
+             savedRegs(NULL),
+             pid(iPid) // needed in fastInferiorHeap ctors below
 #if defined(SHM_SAMPLING)
              ,previous(0),
-	     inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
+             inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
              theSuperTable(this,
-		        iShmHeapStats[0].maxNumElems,
-		        iShmHeapStats[1].maxNumElems,
+                        iShmHeapStats[0].maxNumElems,
+                        iShmHeapStats[1].maxNumElems,
 #if defined(MT_THREAD)  
-		        iShmHeapStats[2].maxNumElems,
-			MAX_NUMBER_OF_THREADS/4)
+                        iShmHeapStats[2].maxNumElems,
+                        MAX_NUMBER_OF_THREADS/4)
 #else
-		        iShmHeapStats[2].maxNumElems)
+                        iShmHeapStats[2].maxNumElems)
 #endif
 #endif
 {
@@ -1133,7 +1134,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     reachedFirstBreak = false; // haven't yet seen first trap
     reachedVeryFirstTrap = false;
     createdViaAttach = false;
-	createdViaFork = false;
+        createdViaFork = false;
     needToContinueAfterDYNINSTinit = false;  //Wait for press of "RUN" button
 
     symbols = iImage;
@@ -1147,14 +1148,14 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #ifndef BPATCH_LIBRARY
     string buffer = string(pid) + string("_") + getHostName();
     rid = resource::newResource(processResource, // parent
-				(void*)this, // handle
-				nullString, // abstraction
-				iImage->name(), // process name
-				0.0, // creation time
-				buffer, // unique name (?)
-				MDL_T_STRING, // mdl type (?)
-				true
-				);
+                                (void*)this, // handle
+                                nullString, // abstraction
+                                iImage->name(), // process name
+                                0.0, // creation time
+                                buffer, // unique name (?)
+                                MDL_T_STRING, // mdl type (?)
+                                true
+                                );
 #endif
 
     parent = NULL;
@@ -1202,11 +1203,11 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
    splitHeaps = false;
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
-	// XXXX - move this to a machine dependant place.
+        // XXXX - move this to a machine dependant place.
 
-	// create a seperate text heap.
-	//initInferiorHeap(true);
-	splitHeaps = true;
+        // create a seperate text heap.
+        //initInferiorHeap(true);
+        splitHeaps = true;
 #endif
 #if defined(alpha_dec_osf4_0)
    changedPCvalue = 0;
@@ -1221,7 +1222,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
    // attach to the child process (machine-specific implementation)
    if (!attach()) { // error check?
       string msg = string("Warning: unable to attach to specified process :")
-	           + string(pid);
+                   + string(pid);
       showErrorCallback(26, msg.string_of());
    }
 }
@@ -1231,31 +1232,31 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 // process. 
 //
 process::process(int iPid, image *iSymbols,
-		 int afterAttach, // 1 --> pause, 2 --> run, 0 --> leave as is
-		 bool &success
+                 int afterAttach, // 1 --> pause, 2 --> run, 0 --> leave as is
+                 bool &success
 #ifdef SHM_SAMPLING
-		 , key_t theShmKey,
-		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
+                 , key_t theShmKey,
+                 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
-		 ) :
-		baseMap(ipHash),
+                 ) :
+                baseMap(ipHash),
 #ifdef BPATCH_LIBRARY
-		instPointMap(hash_address),
+                instPointMap(hash_address),
 #endif
-		trampGuardFlagAddr(0),
-		savedRegs(NULL),
-		pid(iPid)
+                trampGuardFlagAddr(0),
+                savedRegs(NULL),
+                pid(iPid)
 #ifdef SHM_SAMPLING
              ,previous(0),
-	     inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
+             inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
              theSuperTable(this,
-			   iShmHeapStats[0].maxNumElems,
-			   iShmHeapStats[1].maxNumElems,
+                           iShmHeapStats[0].maxNumElems,
+                           iShmHeapStats[1].maxNumElems,
 #if defined(MT_THREAD)
-			   iShmHeapStats[2].maxNumElems,
-			   MAX_NUMBER_OF_THREADS/4)
+                           iShmHeapStats[2].maxNumElems,
+                           MAX_NUMBER_OF_THREADS/4)
 #else
-			   iShmHeapStats[2].maxNumElems)
+                           iShmHeapStats[2].maxNumElems)
 #endif
 #endif
 {
@@ -1287,7 +1288,7 @@ process::process(int iPid, image *iSymbols,
 
    if ( process::pdFlavor == "mpi" && osName.prefixed_by("IRIX") )
    {
-      needToContinueAfterDYNINSTinit = false;  //Wait for press of "RUN" button		
+      needToContinueAfterDYNINSTinit = false;  //Wait for press of "RUN" button         
       reachedFirstBreak = false; // haven't yet seen first trap
       createdViaAttach = false;
    }
@@ -1317,14 +1318,14 @@ process::process(int iPid, image *iSymbols,
 #ifndef BPATCH_LIBRARY
     string buffer = string(pid) + string("_") + getHostName();
     rid = resource::newResource(processResource, // parent
-				(void*)this, // handle
-				nullString, // abstraction
-				symbols->name(),
-				0.0, // creation time
-				buffer, // unique name (?)
-				MDL_T_STRING, // mdl type (?)
-				true
-				);
+                                (void*)this, // handle
+                                nullString, // abstraction
+                                symbols->name(),
+                                0.0, // creation time
+                                buffer, // unique name (?)
+                                MDL_T_STRING, // mdl type (?)
+                                true
+                                );
 #endif
 
     parent = NULL;
@@ -1359,11 +1360,11 @@ process::process(int iPid, image *iSymbols,
     splitHeaps = false;
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
-	// XXXX - move this to a machine dependant place.
+        // XXXX - move this to a machine dependant place.
 
-	// create a seperate text heap.
-	//initInferiorHeap(true);
-	splitHeaps = true;
+        // create a seperate text heap.
+        //initInferiorHeap(true);
+        splitHeaps = true;
 #endif
 
 #if defined(alpha_dec_osf4_0)
@@ -1386,7 +1387,7 @@ process::process(int iPid, image *iSymbols,
    // is running.
    if (!attach()) {
       string msg = string("Warning: unable to attach to specified process: ")
-	           + string(pid);
+                   + string(pid);
       showErrorCallback(26, msg.string_of());
       success = false;
       return;
@@ -1417,7 +1418,7 @@ process::process(int iPid, image *iSymbols,
 
 #ifdef i386_unknown_nt4_0 // Except we still pause on NT.
     if (!pause())
-	assert(false);
+        assert(false);
 #endif
 
    if (afterAttach == 0)
@@ -1448,11 +1449,11 @@ process::process(int iPid, image *iSymbols,
 
 process::process(const process &parentProc, int iPid, int iTrace_fd
 #ifdef SHM_SAMPLING
-		 ,key_t theShmKey,
-		 void *applShmSegPtr,
-		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
+                 ,key_t theShmKey,
+                 void *applShmSegPtr,
+                 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
-		 ) :
+                 ) :
   baseMap(ipHash), // could change to baseMap(parentProc.baseMap)
 #ifdef BPATCH_LIBRARY
   instPointMap(hash_address),
@@ -1462,7 +1463,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #ifdef SHM_SAMPLING
   ,previous(0),
   inferiorHeapMgr(parentProc.inferiorHeapMgr, applShmSegPtr, 
-		  theShmKey, iShmHeapStats, iPid),
+                  theShmKey, iShmHeapStats, iPid),
   theSuperTable(parentProc.getTable(), this)
 #endif
 {
@@ -1489,7 +1490,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     hasLoadedDyninstLib = false; // TODO: is this the right value?
     isLoadingDyninstLib = false;
 
-	createdViaFork = true;
+        createdViaFork = true;
     createdViaAttach = parentProc.createdViaAttach;
     wasRunningWhenAttached = true;
     needToContinueAfterDYNINSTinit = true;
@@ -1511,14 +1512,14 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #ifndef BPATCH_LIBRARY
     string buffer = string(pid) + string("_") + getHostName();
     rid = resource::newResource(processResource, // parent
-				(void*)this, // handle
-				nullString, // abstraction
-				parentProc.symbols->name(),
-				0.0, // creation time
-				buffer, // unique name (?)
-				MDL_T_STRING, // mdl type (?)
-				true
-				);
+                                (void*)this, // handle
+                                nullString, // abstraction
+                                parentProc.symbols->name(),
+                                0.0, // creation time
+                                buffer, // unique name (?)
+                                MDL_T_STRING, // mdl type (?)
+                                true
+                                );
 #endif
 
     parent = &parentProc;
@@ -1566,8 +1567,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     if (parentProc.shared_objects) {
       shared_objects = new vector<shared_object*>;
       for (unsigned u1 = 0; u1 < parentProc.shared_objects->size(); u1++){
-	*shared_objects += 
-		new shared_object(*(*parentProc.shared_objects)[u1]);
+        *shared_objects += 
+                new shared_object(*(*parentProc.shared_objects)[u1]);
       }
     }
 
@@ -1575,28 +1576,28 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     if (parentProc.all_functions) {
       all_functions = new vector<function_base *>;
       for (unsigned u2 = 0; u2 < parentProc.all_functions->size(); u2++)
-	*all_functions += (*parentProc.all_functions)[u2];
+        *all_functions += (*parentProc.all_functions)[u2];
     }
 
     all_modules = 0;
     if (parentProc.all_modules) {
       all_modules = new vector<module *>;
       for (unsigned u3 = 0; u3 < parentProc.all_modules->size(); u3++)
-	*all_modules += (*parentProc.all_modules)[u3];
+        *all_modules += (*parentProc.all_modules)[u3];
     }
 
     some_modules = 0;
     if (parentProc.some_modules) {
       some_modules = new vector<module *>;
       for (unsigned u4 = 0; u4 < parentProc.some_modules->size(); u4++)
-	*some_modules += (*parentProc.some_modules)[u4];
+        *some_modules += (*parentProc.some_modules)[u4];
     }
     
     some_functions = 0;
     if (parentProc.some_functions) {
       some_functions = new vector<function_base *>;
       for (unsigned u5 = 0; u5 < parentProc.some_functions->size(); u5++)
-	*some_functions += (*parentProc.some_functions)[u5];
+        *some_functions += (*parentProc.some_functions)[u5];
     }
 
     waiting_for_resources = false;
@@ -1627,9 +1628,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
    }
 
    if( isRunning_() )
-	   status_ = running;
+           status_ = running;
    else
-	   status_ = stopped;
+           status_ = stopped;
    // would neonatal be more appropriate?  Nah, we've reached the first trap
 }
 
@@ -1653,10 +1654,10 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
 
 
 extern bool forkNewProcess(string file, string dir, vector<string> argv, 
-		    vector<string>envp, string inputFile, string outputFile,
-		    int &traceLink, int &ioLink, 
-		    int &pid, int &tid, 
-		    int &procHandle, int &thrHandle);
+                    vector<string>envp, string inputFile, string outputFile,
+                    int &traceLink, int &ioLink, 
+                    int &pid, int &tid, 
+                    int &procHandle, int &thrHandle);
 
 /*
  * Create a new instance of the named process.  Read the symbols and start
@@ -1678,20 +1679,20 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
     string inputFile;
     for (unsigned i1=0; i1<argv.size(); i1++) {
       if (argv[i1] == "<") {
-	inputFile = argv[i1+1];
-	for (unsigned j=i1+2, k=i1; j<argv.size(); j++, k++)
-	  argv[k] = argv[j];
-	argv.resize(argv.size()-2);
+        inputFile = argv[i1+1];
+        for (unsigned j=i1+2, k=i1; j<argv.size(); j++, k++)
+          argv[k] = argv[j];
+        argv.resize(argv.size()-2);
       }
     }
     // TODO -- this assumes no more than 1 of each "<", ">"
     string outputFile;
     for (unsigned i2=0; i2<argv.size(); i2++) {
       if (argv[i2] == ">") {
-	outputFile = argv[i2+1];
-	for (unsigned j=i2+2, k=i2; j<argv.size(); j++, k++)
-	  argv[k] = argv[j];
-	argv.resize(argv.size()-2);
+        outputFile = argv[i2+1];
+        for (unsigned j=i2+2, k=i2; j<argv.size(); j++, k++)
+          argv[k] = argv[j];
+        argv.resize(argv.size()-2);
       }
     }
 #endif /* BPATCH_LIBRARY */
@@ -1704,7 +1705,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
     int thrHandle;
 
     if (!forkNewProcess(file, dir, argv, envp, inputFile, outputFile,
-		   traceLink, ioLink, pid, tid, procHandle, thrHandle)) {
+                   traceLink, ioLink, pid, tid, procHandle, thrHandle)) {
       // forkNewProcess is resposible for displaying error messages
       return NULL;
     }
@@ -1717,12 +1718,12 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 #endif
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-	extern bool establishBaseAddrs(int pid, int &status, bool waitForTrap);
-	int status;
+        extern bool establishBaseAddrs(int pid, int &status, bool waitForTrap);
+        int status;
 
-	if (!establishBaseAddrs(pid, status, true)) {
-	    return(NULL);
-	}
+        if (!establishBaseAddrs(pid, status, true)) {
+            return(NULL);
+        }
 #endif
 
 #ifndef BPATCH_LIBRARY
@@ -1733,54 +1734,54 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 tp->resourceBatchMode(true);
 #endif /* BPATCH_LIBRARY */
 
-	image *img = image::parseImage(file);
-	if (!img) {
-	    // For better error reporting, two failure return values would be useful
-	    // One for simple error like because-file-not-because
-	    // Another for serious errors like found-but-parsing-failed (internal error;
-	    //    please report to paradyn@cs.wisc.edu)
+        image *img = image::parseImage(file);
+        if (!img) {
+            // For better error reporting, two failure return values would be useful
+            // One for simple error like because-file-not-because
+            // Another for serious errors like found-but-parsing-failed (internal error;
+            //    please report to paradyn@cs.wisc.edu)
 
-	    string msg = string("Unable to parse image: ") + file;
-	    showErrorCallback(68, msg.string_of());
-	    // destroy child process
-	    OS::osKill(pid);
-	    return(NULL);
-	}
+            string msg = string("Unable to parse image: ") + file;
+            showErrorCallback(68, msg.string_of());
+            // destroy child process
+            OS::osKill(pid);
+            return(NULL);
+        }
 
-	/* parent */
-	statusLine("initializing process data structures");
+        /* parent */
+        statusLine("initializing process data structures");
 
 #ifdef SHM_SAMPLING
-	vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
-	theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
-	theShmHeapStats[0].maxNumElems  = numIntCounters;
+        vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
+        theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
+        theShmHeapStats[0].maxNumElems  = numIntCounters;
 
-	theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
-	theShmHeapStats[1].maxNumElems  = numWallTimers;
+        theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
+        theShmHeapStats[1].maxNumElems  = numWallTimers;
 
-	theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
-	theShmHeapStats[2].maxNumElems  = numProcTimers;
+        theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
+        theShmHeapStats[2].maxNumElems  = numProcTimers;
 #endif
 
-	process *ret = new process(pid, img, traceLink, ioLink
+        process *ret = new process(pid, img, traceLink, ioLink
 #ifdef SHM_SAMPLING
-				   , 7000, // shm seg key to try first
-				   theShmHeapStats
+                                   , 7000, // shm seg key to try first
+                                   theShmHeapStats
 #endif
-				   );
-	   // change this to a ctor that takes in more args
+                                   );
+           // change this to a ctor that takes in more args
 
-	assert(ret);
+        assert(ret);
 
-	processVec += ret;
-	activeProcesses++;
+        processVec += ret;
+        activeProcesses++;
 
 #ifndef BPATCH_LIBRARY
-	if (!costMetric::addProcessToAll(ret))
-	   assert(false);
+        if (!costMetric::addProcessToAll(ret))
+           assert(false);
 #endif
         // find the signal handler function
-	ret->findSignalHandler(); // should this be in the ctor?
+        ret->findSignalHandler(); // should this be in the ctor?
 
         // initializing vector of threads - thread[0] is really the 
         // same process
@@ -1804,16 +1805,16 @@ tp->resourceBatchMode(true);
         ret->numOfActWallTimers_is=0;
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-	// XXXX - this is a hack since establishBaseAddrs needed to wait for
-	//    the TRAP signal.
-	// We really need to move most of the above code (esp parse image)
-	//    to the TRAP signal handler.  The problem is that we don't
-	//    know the base addresses until we get the load info via ptrace.
-	//    In general it is even harder, since dynamic libs can be loaded
-	//    at any time.
-	extern int handleSigChild(int pid, int status);
+        // XXXX - this is a hack since establishBaseAddrs needed to wait for
+        //    the TRAP signal.
+        // We really need to move most of the above code (esp parse image)
+        //    to the TRAP signal handler.  The problem is that we don't
+        //    know the base addresses until we get the load info via ptrace.
+        //    In general it is even harder, since dynamic libs can be loaded
+        //    at any time.
+        extern int handleSigChild(int pid, int status);
 
-	(void) handleSigChild(pid, status);
+        (void) handleSigChild(pid, status);
 #endif
     return ret;
 
@@ -1821,9 +1822,9 @@ tp->resourceBatchMode(true);
 
 
 void process::DYNINSTinitCompletionCallback(process* theProc,
-					    void* userData, // user data
-					    void* /*ret*/ // return value from DYNINSTinit
-					    ) {
+                                            void* userData, // user data
+                                            void* /*ret*/ // return value from DYNINSTinit
+                                            ) {
    attach_cerr << "Welcome to DYNINSTinitCompletionCallback" << endl;
    if (NULL != userData && 0==strcmp((char*)userData, "viaCreateProcess"))
      theProc->handleCompletionOfDYNINSTinit(false);
@@ -1834,9 +1835,9 @@ void process::DYNINSTinitCompletionCallback(process* theProc,
 
 bool attachProcess(const string &progpath, int pid, int afterAttach
 #ifdef BPATCH_LIBRARY
-		   , process *&newProcess
+                   , process *&newProcess
 #endif
-		   ) {
+                   ) {
    // implementation of dynRPC::attach() (the igen call)
    // This is meant to be "the other way" to start a process (competes w/ createProcess)
 
@@ -1896,10 +1897,10 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
    bool success=false;
    process *theProc = new process(pid, theImage, afterAttach, success
 #ifdef SHM_SAMPLING
-				  ,7000, // shm seg key to try first
-				  theShmHeapStats
-#endif				  
-				  );
+                                  ,7000, // shm seg key to try first
+                                  theShmHeapStats
+#endif                            
+                                  );
    assert(theProc);
    if (!success) {
        // XXX Do we need to do something to get rid of theImage, too?
@@ -1965,12 +1966,12 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 
 #ifdef SHM_SAMPLING
    the_args[0] = new AstNode(AstNode::Constant,
-			     (void*)(theProc->getShmKeyUsed()));
+                             (void*)(theProc->getShmKeyUsed()));
    attach_cerr << theProc->getShmKeyUsed() << endl;
 
    const unsigned shmHeapTotalNumBytes = theProc->getShmHeapTotalNumBytes();
    the_args[1] = new AstNode(AstNode::Constant,
-			     (void*)shmHeapTotalNumBytes);
+                             (void*)shmHeapTotalNumBytes);
    attach_cerr << shmHeapTotalNumBytes << endl;;
 #else
    // 2 dummy args when not shm sampling -- just make sure they're not both -1, which
@@ -2002,16 +2003,20 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 #endif
       for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
 
-   theProc->postRPCtoDo(the_ast,
-			true, // true --> don't try to update cost yet
-			process::DYNINSTinitCompletionCallback, // callback routine
-			NULL, // user data
 #if defined(MT_THREAD)
-			-1,   // we use -1 if this is not metric definition - naim
-			-1,
-			false);  // NOT thread specific
+   theProc->postRPCtoDo(the_ast,
+                        true, // true --> don't try to update cost yet
+                        process::DYNINSTinitCompletionCallback, // callback
+                        NULL, // user data
+                        -1,   // we use -1 if this is not metric definition
+                        -1,
+                        false);  // NOT thread specific
 #else
-                        -1);  // we use -1 if this is not metric definition - naim
+   theProc->postRPCtoDo(the_ast,
+                        true, // true --> don't try to update cost yet
+                        process::DYNINSTinitCompletionCallback, // callback
+                        NULL, // user data
+                        -1);  // we use -1 if this is not metric definition
 #endif
       // the rpc will be launched with a call to launchRPCifAppropriate()
       // in the main loop (perfStream.C).
@@ -2043,7 +2048,7 @@ bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach) {
    //  the master MPI app process/daemon (which is started by
    //  mpirun), but since we haven't passed main yet, we want to
    //  add a breakpoint at main and call DYNINSTinit then.
-	
+        
    string fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
    if (!fullPathToExecutable.length())
       return false;
@@ -2076,10 +2081,10 @@ bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach) {
    bool success=false;
    process *theProc = new process(pid, theImage, afterAttach, success
 #ifdef SHM_SAMPLING
-				  ,7000, // shm seg key to try first
-				  theShmHeapStats
-#endif				  
-				  );
+                                  ,7000, // shm seg key to try first
+                                  theShmHeapStats
+#endif                            
+                                  );
    assert(theProc);
    if (!success) {
        delete theProc;
@@ -2171,7 +2176,7 @@ void handleProcessExit(process *proc, int exitStatus) {
 //  for (unsigned lcv=0; lcv < processVec.size(); lcv++)
 //     if (processVec[lcv] == proc) {
 //        delete proc; // destructor removes shm segments...
-//	processVec[lcv] = NULL;
+//      processVec[lcv] = NULL;
 //     }
 }
 
@@ -2190,13 +2195,13 @@ void handleProcessExit(process *proc, int exitStatus) {
    (actually, childHasInstr is obsoleted by aix's completeTheFork() routine)
 */
 process *process::forkProcess(const process *theParent, pid_t childPid,
-		      dictionary_hash<instInstance*,instInstance*> &map, // gets filled in
-		      int iTrace_fd
+                      dictionary_hash<instInstance*,instInstance*> &map, // gets filled in
+                      int iTrace_fd
 #ifdef SHM_SAMPLING
-			      ,key_t theKey,
-			      void *applAttachedPtr
+                              ,key_t theKey,
+                              void *applAttachedPtr
 #endif
-			      ) {
+                              ) {
 #ifdef SHM_SAMPLING
     vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
     theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
@@ -2214,11 +2219,11 @@ process *process::forkProcess(const process *theParent, pid_t childPid,
     // Call the "fork" ctor:
     process *ret = new process(*theParent, (int)childPid, iTrace_fd
 #ifdef SHM_SAMPLING
-			       , theKey,
-			       applAttachedPtr,
-			       theShmHeapStats
+                               , theKey,
+                               applAttachedPtr,
+                               theShmHeapStats
 #endif
-			       );
+                               );
     assert(ret);
 
     forkexec_cerr << "paradynd fork ctor has completed ok...child pid is " << ret->getPid() << endl;
@@ -2256,8 +2261,8 @@ process *process::forkProcess(const process *theParent, pid_t childPid,
 
 #ifdef SHM_SAMPLING
 void process::processCost(unsigned obsCostLow,
-			  time64 wallTime,
-			  time64 processTime) {
+                          time64 wallTime,
+                          time64 processTime) {
    // wallTime and processTime should compare to DYNINSTgetWallTime() and
    // DYNINSTgetCPUtime().
 
@@ -2312,7 +2317,7 @@ void process::processCost(unsigned obsCostLow,
 
     // update smooth observed cost
     smooth_obs_cost->updateSmoothValue(this,observedCostSecs,
-				       newSampleTime,newProcessTime);
+                                       newSampleTime,newProcessTime);
 }
 #endif
 
@@ -2320,7 +2325,7 @@ void process::processCost(unsigned obsCostLow,
  * Copy data from controller process to the named process.
  */
 bool process::writeDataSpace(void *inTracedProcess, unsigned size,
-			     const void *inSelf) {
+                             const void *inSelf) {
   bool needToCont = false;
 
   if (status_ == exited)
@@ -2344,7 +2349,7 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
   bool res = writeDataSpace_(inTracedProcess, size, inSelf);
   if (!res) {
     string msg = string("System error: unable to write to process data space:")
-	           + string(sys_errlist[errno]);
+                   + string(sys_errlist[errno]);
     showErrorCallback(38, msg);
     return false;
   }
@@ -2355,7 +2360,7 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
 }
 
 bool process::readDataSpace(const void *inTracedProcess, unsigned size,
-			    void *inSelf, bool displayErrMsg) {
+                            void *inSelf, bool displayErrMsg) {
   bool needToCont = false;
 
   if (status_ == exited)
@@ -2397,7 +2402,7 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
     needToCont = this->continueProc();
     if (!needToCont) {
         sprintf(errorLine, "warning : readDataSpace, needToCont FALSE, returning FALSE\n");
-	logLine(errorLine);
+        logLine(errorLine);
     }
     return needToCont;
   }
@@ -2428,7 +2433,7 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
   if (!isAddrInHeap((Address)inTracedProcess)) {
     if (!saveOriginalInstructions((Address)inTracedProcess, sizeof(int)))
-	return false;
+        return false;
     afterMutationList.insertTail((Address)inTracedProcess, sizeof(int), &data);
   }
 #endif
@@ -2436,7 +2441,7 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
   bool res = writeTextWord_(inTracedProcess, data);
   if (!res) {
     string msg = string("System error: unable to write to process text word:")
-	           + string(sys_errlist[errno]);
+                   + string(sys_errlist[errno]);
     showErrorCallback(38, msg);
     return false;
   }
@@ -2471,7 +2476,7 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
   if (!isAddrInHeap((Address)inTracedProcess)) {
     if (!saveOriginalInstructions((Address)inTracedProcess, amount))
-	return false;
+        return false;
     afterMutationList.insertTail((Address)inTracedProcess, amount, inSelf);
   }
 #endif
@@ -2479,7 +2484,7 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
   bool res = writeTextSpace_(inTracedProcess, amount, inSelf);
   if (!res) {
     string msg = string("System error: unable to write to process text space:")
-	           + string(sys_errlist[errno]);
+                   + string(sys_errlist[errno]);
     showErrorCallback(38, msg);
     return false;
   }
@@ -2491,7 +2496,7 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
 bool process::readTextSpace(const void *inTracedProcess, u_int amount,
-			    const void *inSelf)
+                            const void *inSelf)
 {
   bool needToCont = false;
 
@@ -2570,7 +2575,7 @@ bool process::handleIfDueToSharedObjectMapping(){
   u_int change_type = 0;
   bool error_occured = false;
   bool ok = dyn->handleIfDueToSharedObjectMapping(this,&changed_objects,
-						  change_type,error_occured);
+                                                  change_type,error_occured);
 
   // if this trap was due to dlopen or dlclose, and if something changed
   // then figure out how it changed and either add or remove shared objects
@@ -2579,61 +2584,61 @@ bool process::handleIfDueToSharedObjectMapping(){
       // if something was added then call process::addASharedObject with
       // each element in the vector of changed_objects
       if((change_type == SHAREDOBJECT_ADDED) && changed_objects) {
-	  for(u_int i=0; i < changed_objects->size(); i++) {
+          for(u_int i=0; i < changed_objects->size(); i++) {
              // TODO: currently we aren't handling dlopen because  
-	     // we don't have the code in place to modify existing metrics
-	     // This is what we really want to do:
+             // we don't have the code in place to modify existing metrics
+             // This is what we really want to do:
 #ifndef BPATCH_LIBRARY
-	     string temp_g = string("/p/paradyn/development/zhichen/java/java1.1.6/javasrc/build/lib/sparc/native_threads/libawt_g.so");
-	     if (((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB")) /*|| ((*changed_objects)[i])->getName() == temp_g*/) 
-	     {
+             string temp_g = string("/p/paradyn/development/zhichen/java/java1.1.6/javasrc/build/lib/sparc/native_threads/libawt_g.so");
+             if (((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB")) /*|| ((*changed_objects)[i])->getName() == temp_g*/) 
+             {
 #endif
-	       if(addASharedObject(*((*changed_objects)[i]))){
-		 *shared_objects += (*changed_objects)[i];
-		 hasLoadedDyninstLib = true;
-		 isLoadingDyninstLib = false;
-	       } else {
-		 //logLine("Error after call to addASharedObject\n");
-		 delete (*changed_objects)[i];
-	       }
+               if(addASharedObject(*((*changed_objects)[i]))){
+                 *shared_objects += (*changed_objects)[i];
+                 hasLoadedDyninstLib = true;
+                 isLoadingDyninstLib = false;
+               } else {
+                 //logLine("Error after call to addASharedObject\n");
+                 delete (*changed_objects)[i];
+               }
 /* // not used
 #ifdef MT_THREAD // ALERT: the following is thread package specific
-	       bool err ;
+               bool err ;
                if (!DYNINST_allthreads_p) {
-		 DYNINST_allthreads_p = findInternalAddress("DYNINST_allthreads_p",true,err) ;
+                 DYNINST_allthreads_p = findInternalAddress("DYNINST_allthreads_p",true,err) ;
                }
-	       if (!allthreads) {
-		 allthreads = findInternalAddress("_allthreads",true,err);
-	       }
+               if (!allthreads) {
+                 allthreads = findInternalAddress("_allthreads",true,err);
+               }
 
-	       if (allthreads && DYNINST_allthreads_p) {
-		  if (!writeDataSpace((caddr_t) DYNINST_allthreads_p, sizeof(void*), (caddr_t) &allthreads) ) {
-		    cerr << "write _allthreads failed! " << endl ;
-		  }
-		  cerr << "DYNINST_allthreads_p=" << DYNINST_allthreads_p
-		       << ", allthreads=" << allthreads << endl ;
-	       }
+               if (allthreads && DYNINST_allthreads_p) {
+                  if (!writeDataSpace((caddr_t) DYNINST_allthreads_p, sizeof(void*), (caddr_t) &allthreads) ) {
+                    cerr << "write _allthreads failed! " << endl ;
+                  }
+                  cerr << "DYNINST_allthreads_p=" << DYNINST_allthreads_p
+                       << ", allthreads=" << allthreads << endl ;
+               }
 #endif//MT_THREAD
 */
 #ifndef BPATCH_LIBRARY
-	     } else {
-	       // for now, just delete shared_objects to avoid memory leeks
-	       delete (*changed_objects)[i];
-	     }
+             } else {
+               // for now, just delete shared_objects to avoid memory leeks
+               delete (*changed_objects)[i];
+             }
 #endif
-	  }
-	  delete changed_objects;
+          }
+          delete changed_objects;
       } 
       else if((change_type == SHAREDOBJECT_REMOVED) && (changed_objects)) { 
           // TODO: handle this case
           // if something was removed then call process::removeASharedObject
           // with each element in the vector of changed_objects
 
-	  // for now, just delete shared_objects to avoid memory leeks
-	  for(u_int i=0; i < changed_objects->size(); i++){
-	      delete (*changed_objects)[i];
-	  }
-	  delete changed_objects;
+          // for now, just delete shared_objects to avoid memory leeks
+          for(u_int i=0; i < changed_objects->size(); i++){
+              delete (*changed_objects)[i];
+          }
+          delete changed_objects;
       }
 
       // TODO: add support for adding or removing new code resource once the 
@@ -2679,7 +2684,7 @@ bool process::addASharedObject(shared_object &new_obj){
     image *img = image::parseImage(new_obj.getName(),new_obj.getBaseAddress());
     if(!img){
         //logLine("error parsing image in addASharedObject\n");
-	return false;
+        return false;
     }
     new_obj.addImage(img);
     // TODO: check for "is_elf64" consistency (Object)
@@ -2692,9 +2697,9 @@ bool process::addASharedObject(shared_object &new_obj){
     }
     if(all_functions){
       vector<function_base *> *normal_funcs = (vector<function_base *> *)
-		const_cast< vector<pd_Function *> *>(new_obj.getAllFunctions());
+                const_cast< vector<pd_Function *> *>(new_obj.getAllFunctions());
         *all_functions += *normal_funcs; 
-	normal_funcs = 0;
+        normal_funcs = 0;
     }
 
     // if the signal handler function has not yet been found search for it
@@ -2708,17 +2713,17 @@ bool process::addASharedObject(shared_object &new_obj){
     vector<string> lib_constraints;
     if(mdl_get_lib_constraints(lib_constraints)){
         for(u_int j=0; j < lib_constraints.size(); j++){
-	   char *where = 0; 
-	   // if the lib constraint is not of the form "module/function" and
-	   // if it is contained in the name of this object, then exclude
-	   // this shared object
-	   char *obj_name = P_strdup(new_obj.getName().string_of());
-	   char *lib_name = P_strdup(lib_constraints[j].string_of());
+           char *where = 0; 
+           // if the lib constraint is not of the form "module/function" and
+           // if it is contained in the name of this object, then exclude
+           // this shared object
+           char *obj_name = P_strdup(new_obj.getName().string_of());
+           char *lib_name = P_strdup(lib_constraints[j].string_of());
            if(obj_name && lib_name && (where=P_strstr(obj_name, lib_name))){
-	      new_obj.changeIncludeFuncs(false); 
+              new_obj.changeIncludeFuncs(false); 
            }
-	   if(lib_name) free(lib_name);
-	   if(obj_name) free(obj_name);
+           if(lib_name) free(lib_name);
+           if(obj_name) free(obj_name);
         }
     }
 
@@ -2732,9 +2737,9 @@ bool process::addASharedObject(shared_object &new_obj){
             *some_modules += *((const vector<module *> *)(new_obj.getModules()));
         }
         if(some_functions) {
-	    // gets only functions not excluded by mdl "exclude_node" option
-	    *some_functions += 
-		*((vector<function_base *> *)(new_obj.getSomeFunctions()));
+            // gets only functions not excluded by mdl "exclude_node" option
+            *some_functions += 
+                *((vector<function_base *> *)(new_obj.getSomeFunctions()));
         }
     }
 #endif /* BPATCH_LIBRARY */
@@ -2746,33 +2751,33 @@ bool process::addASharedObject(shared_object &new_obj){
     const vector<pdmodule *> *modlist = new_obj.getModules();
     if (modlist != NULL) {
       for (unsigned i = 0; i < modlist->size(); i++) {
-	pdmodule *curr = (*modlist)[i];
-	string name = curr->fileName();
+        pdmodule *curr = (*modlist)[i];
+        string name = curr->fileName();
 
-	BPatch_thread *thread = BPatch::bpatch->getThreadByPid(pid);
-	if(!thread)
-	  continue;  //There is no BPatch_thread yet, so nothing else to do
-	// this occurs in the attach case - jdd 6/30/99
-	
-	BPatch_image *image = thread->getImage();
-	assert(image);
+        BPatch_thread *thread = BPatch::bpatch->getThreadByPid(pid);
+        if(!thread)
+          continue;  //There is no BPatch_thread yet, so nothing else to do
+        // this occurs in the attach case - jdd 6/30/99
+        
+        BPatch_image *image = thread->getImage();
+        assert(image);
 
-	BPatch_module *bpmod = NULL;
-	if ((name != "DYN_MODULE") && (name != "LIBRARY_MODULE")) {
-	  if( image->ModuleListExist() )
-	    bpmod = new BPatch_module(this, curr);
-	}
-	// add to module list
-	if( bpmod){
-	  //cout<<"Module: "<<name<<" in Process.C"<<endl;
-	  image->addModuleIfExist(bpmod);
-	}
+        BPatch_module *bpmod = NULL;
+        if ((name != "DYN_MODULE") && (name != "LIBRARY_MODULE")) {
+          if( image->ModuleListExist() )
+            bpmod = new BPatch_module(this, curr);
+        }
+        // add to module list
+        if( bpmod){
+          //cout<<"Module: "<<name<<" in Process.C"<<endl;
+          image->addModuleIfExist(bpmod);
+        }
 
-	// XXX - jkh Add the BPatch_funcs here
+        // XXX - jkh Add the BPatch_funcs here
 
-	if (BPatch::bpatch->dynLibraryCallback) {
-	  BPatch::bpatch->dynLibraryCallback(thread, bpmod, true);
-	}
+        if (BPatch::bpatch->dynLibraryCallback) {
+          BPatch::bpatch->dynLibraryCallback(thread, bpmod, true);
+        }
       }
     }
     
@@ -2795,31 +2800,31 @@ bool process::getSharedObjects() {
 
     shared_objects = dyn->getSharedObjects(this); 
     if(shared_objects){
-	statusLine("parsing shared object files");
+        statusLine("parsing shared object files");
 
 #ifndef BPATCH_LIBRARY
         tp->resourceBatchMode(true);
 #endif
-	// for each element in shared_objects list process the 
-	// image file to find new instrumentaiton points
-	for(u_int j=0; j < shared_objects->size(); j++){
-	    //string temp2 = string(j);
-	    //temp2 += string(" ");
-	    //temp2 += string("the shared obj, addr: ");
-	    //temp2 += string(((*shared_objects)[j])->getBaseAddress());
-	    //temp2 += string(" name: ");
-	    //temp2 += string(((*shared_objects)[j])->getName());
-	    //temp2 += string("\n");
-	    //logLine(P_strdup(temp2.string_of()));
-	    if(!addASharedObject(*((*shared_objects)[j]))){
-	      //logLine("Error after call to addASharedObject\n");
-	    }
-	}
+        // for each element in shared_objects list process the 
+        // image file to find new instrumentaiton points
+        for(u_int j=0; j < shared_objects->size(); j++){
+            //string temp2 = string(j);
+            //temp2 += string(" ");
+            //temp2 += string("the shared obj, addr: ");
+            //temp2 += string(((*shared_objects)[j])->getBaseAddress());
+            //temp2 += string(" name: ");
+            //temp2 += string(((*shared_objects)[j])->getName());
+            //temp2 += string("\n");
+            //logLine(P_strdup(temp2.string_of()));
+            if(!addASharedObject(*((*shared_objects)[j]))){
+              //logLine("Error after call to addASharedObject\n");
+            }
+        }
 
 #ifndef BPATCH_LIBRARY
-	tp->resourceBatchMode(false);
+        tp->resourceBatchMode(false);
 #endif
-	return true;
+        return true;
     }
     // else this a.out does not have a .dynamic section
     dynamiclinking = false;
@@ -2853,19 +2858,19 @@ function_base *process::findOneFunction(resource *func,resource *mod){
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
             module *next = 0;
-	    next = ((*shared_objects)[j])->findModule(mod_name,true);
-	    if(next){
-	        if(((*shared_objects)[j])->includeFunctions()){	
-		  //cerr << "function found in module " << mod_name.string_of() << endl;
-	            return(((*shared_objects)[j])->findOneFunction(func_name,
-								   true));
-		} 
-		else { 
-		  //cerr << "function found in module " << mod_name.string_of()
-		  //    << " that module excluded" << endl;
-		  return 0;
-		} 
-	    }
+            next = ((*shared_objects)[j])->findModule(mod_name,true);
+            if(next){
+                if(((*shared_objects)[j])->includeFunctions()){ 
+                  //cerr << "function found in module " << mod_name.string_of() << endl;
+                    return(((*shared_objects)[j])->findOneFunction(func_name,
+                                                                   true));
+                } 
+                else { 
+                  //cerr << "function found in module " << mod_name.string_of()
+                  //    << " that module excluded" << endl;
+                  return 0;
+                } 
+            }
         }
     }
 
@@ -2889,14 +2894,14 @@ vector<function_base *> *process::getIncludedFunctions(module *mod) {
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
             module *next = 0;
-	    next = ((*shared_objects)[j])->findModule(mod->fileName(), true);
-	    if(next){
-	        if(((*shared_objects)[j])->includeFunctions()){	
-	            return((vector<function_base *> *)
-			   ((*shared_objects)[j])->getSomeFunctions());
-		} 
-		else { return 0;} 
-	    }
+            next = ((*shared_objects)[j])->findModule(mod->fileName(), true);
+            if(next){
+                if(((*shared_objects)[j])->includeFunctions()){ 
+                    return((vector<function_base *> *)
+                           ((*shared_objects)[j])->getSomeFunctions());
+                } 
+                else { return 0;} 
+            }
         }
     }
 
@@ -2925,10 +2930,10 @@ function_base *process::findOneFunction(const string &func_name){
     // search any shared libraries for the file name 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-	    pdf = ((*shared_objects)[j])->findOneFunction(func_name,false);
-	    if(pdf){
-	        return(pdf);
-	    }
+            pdf = ((*shared_objects)[j])->findOneFunction(func_name,false);
+            if(pdf){
+                return(pdf);
+            }
     } }
     return(0);
 }
@@ -2945,10 +2950,10 @@ function_base *process::findOneFunctionFromAll(const string &func_name){
     // search any shared libraries for the file name 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-	    pdf=((*shared_objects)[j])->findOneFunctionFromAll(func_name,false);
-	    if(pdf){
-	        return(pdf);
-	    }
+            pdf=((*shared_objects)[j])->findOneFunctionFromAll(func_name,false);
+            if(pdf){
+                return(pdf);
+            }
     } }
     return(0);
 }
@@ -2956,25 +2961,25 @@ function_base *process::findOneFunctionFromAll(const string &func_name){
 // Returns the named symbol from the image or a shared object
 bool process::getSymbolInfo( const string &name, Symbol &ret ) 
 {
-	if(!symbols)
-		abort();
+        if(!symbols)
+                abort();
 
-	bool sflag;
-	sflag = symbols->symbol_info( name, ret );
-	if( sflag )
-		return true;
+        bool sflag;
+        sflag = symbols->symbol_info( name, ret );
+        if( sflag )
+                return true;
 
-	if( dynamiclinking && shared_objects ) {
-		for( u_int j = 0; j < shared_objects->size(); ++j ) {
-			sflag = ((*shared_objects)[j])->getSymbolInfo( name, ret );
-			if( sflag ) {
-				ret.setAddr( ret.addr() + (*shared_objects)[j]->getBaseAddress() );
-				return true;
-			}
-		}
-	}
+        if( dynamiclinking && shared_objects ) {
+                for( u_int j = 0; j < shared_objects->size(); ++j ) {
+                        sflag = ((*shared_objects)[j])->getSymbolInfo( name, ret );
+                        if( sflag ) {
+                                ret.setAddr( ret.addr() + (*shared_objects)[j]->getBaseAddress() );
+                                return true;
+                        }
+                }
+        }
 
-	return false;
+        return false;
 }
 
 // findpdFunctionIn: returns the function which contains this address
@@ -2992,11 +2997,11 @@ pd_Function *process::findpdFunctionIn(Address adr) {
     // search any shared libraries for the function 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-	  pdf = ((*shared_objects)[j])->findFunctionInInstAndUnInst(adr,this);
-	  if(pdf){
-	    return(pdf);	  
-	  }
-	}
+          pdf = ((*shared_objects)[j])->findFunctionInInstAndUnInst(adr,this);
+          if(pdf){
+            return(pdf);          
+          }
+        }
     }
 
     if(!all_functions) getAllFunctions();
@@ -3005,12 +3010,12 @@ pd_Function *process::findpdFunctionIn(Address adr) {
     // to  a function that was relocated in the heap
     if(all_functions){
         for(u_int j=0; j < all_functions->size(); j++){
-	    Address func_adr = ((*all_functions)[j])->getAddress(this);
+            Address func_adr = ((*all_functions)[j])->getAddress(this);
             if((adr>=func_adr) && 
-		(adr<=(((*all_functions)[j])->size()+func_adr))){
-		// yes, this is very bad, but too bad
-	        return((pd_Function*)((*all_functions)[j]));
-	    }
+                (adr<=(((*all_functions)[j])->size()+func_adr))){
+                // yes, this is very bad, but too bad
+                return((pd_Function*)((*all_functions)[j]));
+            }
         }
     }
     return(0);
@@ -3027,10 +3032,10 @@ function_base *process::findFunctionIn(Address adr){
     // search any shared libraries for the function 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-	    pdf = ((*shared_objects)[j])->findFunctionIn(adr,this);
-	    if(pdf){
-	        return(pdf);
-	    }
+            pdf = ((*shared_objects)[j])->findFunctionIn(adr,this);
+            if(pdf){
+                return(pdf);
+            }
     } }
 
     if(!all_functions) getAllFunctions();
@@ -3039,18 +3044,18 @@ function_base *process::findFunctionIn(Address adr){
     // to  a function that was relocated in the heap
     if(all_functions){
         for(u_int j=0; j < all_functions->size(); j++){
-	    Address func_adr = ((*all_functions)[j])->getAddress(this);
+            Address func_adr = ((*all_functions)[j])->getAddress(this);
             if((adr>=func_adr) && 
-		(adr<=(((*all_functions)[j])->size()+func_adr))){
-	        return((*all_functions)[j]);
-	    }
+                (adr<=(((*all_functions)[j])->size()+func_adr))){
+                return((*all_functions)[j]);
+            }
         }
     }
     return(0);
 }
-	
+        
 
-	
+        
 // findModule: returns the module associated with mod_name 
 // this routine checks both the a.out image and any shared object
 // images for this resource
@@ -3064,11 +3069,11 @@ module *process::findModule(const string &mod_name,bool check_excluded){
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
             module *next = ((*shared_objects)[j])->findModule(mod_name,
-			      check_excluded);
-	    if(next) {
-	        return(next);
+                              check_excluded);
+            if(next) {
+                return(next);
             }
-	}
+        }
     }
 
     // check a.out for function symbol
@@ -3093,9 +3098,9 @@ bool process::getSymbolInfo(const string &name, Symbol &info,
     // next check shared objects
     if(dynamiclinking && shared_objects) {
       for(u_int j=0; j < shared_objects->size(); j++) {
-	    if(((*shared_objects)[j])->getSymbolInfo(name,info)) {
-	        return getBaseAddress(((*shared_objects)[j])->getImage(), baseAddr); 
-	    }
+            if(((*shared_objects)[j])->getSymbolInfo(name,info)) {
+                return getBaseAddress(((*shared_objects)[j])->getImage(), baseAddr); 
+            }
       }
     }
 
@@ -3110,23 +3115,23 @@ vector<function_base *> *process::getAllFunctions(){
 
     // if this list has already been created, return it
     if(all_functions) 
-	return all_functions;
+        return all_functions;
 
     // else create the list of all functions
     all_functions = new vector<function_base *>;
     const vector<function_base *> &blah = 
-		    (vector<function_base *> &)(symbols->getAllFunctions());
+                    (vector<function_base *> &)(symbols->getAllFunctions());
     *all_functions += blah;
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-	   vector<function_base *> *funcs = (vector<function_base *> *) 
-        		const_cast< vector<pd_Function *> *>
+           vector<function_base *> *funcs = (vector<function_base *> *) 
+                        const_cast< vector<pd_Function *> *>
                         (((*shared_objects)[j])->getAllFunctions());
-	   if(funcs){
-	       *all_functions += *funcs; 
-	   }
-	}
+           if(funcs){
+               *all_functions += *funcs; 
+           }
+        }
     }
     return all_functions;
 }
@@ -3145,10 +3150,10 @@ vector<module *> *process::getAllModules(){
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-	   const vector<module *> *mods = (const vector<module *> *)
-		        (((*shared_objects)[j])->getModules());
-	   if(mods) {
-	       *all_modules += *mods; 
+           const vector<module *> *mods = (const vector<module *> *)
+                        (((*shared_objects)[j])->getModules());
+           if(mods) {
+               *all_modules += *mods; 
            }
     } } 
     return all_modules;
@@ -3160,15 +3165,15 @@ vector<module *> *process::getAllModules(){
 // TODO: what to do about duplicate function names?
 vector<function_base *> *process::getIncludedFunctions(){
     //cerr << "process " << programName << " :: getIncludedFunctions() called"
-    //	 << endl;
+    //   << endl;
     // if this list has already been created, return it
     if(some_functions) 
-	return some_functions;
+        return some_functions;
 
     // else create the list of all functions
     some_functions = new vector<function_base *>;
     const vector<function_base *> &incl_funcs = 
-	(vector<function_base *> &)(symbols->getIncludedFunctions());
+        (vector<function_base *> &)(symbols->getIncludedFunctions());
         *some_functions += incl_funcs;
 
     //cerr << " (process::getIncludedFunctions), about to add incl_funcs to some_functions, incl_funcs = " << endl;
@@ -3176,14 +3181,14 @@ vector<function_base *> *process::getIncludedFunctions(){
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-	    if(((*shared_objects)[j])->includeFunctions()){
-		// kludge: can't assign a vector<derived_class *> to 
-		// a vector<base_class *> so recast
-	        vector<function_base *> *funcs = (vector<function_base *> *)
-			(((*shared_objects)[j])->getSomeFunctions());
-	        if(funcs) { 
-	            *some_functions += (*funcs); 
-		} 
+            if(((*shared_objects)[j])->includeFunctions()){
+                // kludge: can't assign a vector<derived_class *> to 
+                // a vector<base_class *> so recast
+                vector<function_base *> *funcs = (vector<function_base *> *)
+                        (((*shared_objects)[j])->getSomeFunctions());
+                if(funcs) { 
+                    *some_functions += (*funcs); 
+                } 
             } 
     } } 
 
@@ -3213,13 +3218,13 @@ vector<module *> *process::getIncludedModules(){
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-	    if(((*shared_objects)[j])->includeFunctions()){
-	       const vector<module *> *mods = (const vector<module *> *) 
-			(((*shared_objects)[j])->getModules());
-	       if(mods) {
-	           *some_modules += *mods; 
+            if(((*shared_objects)[j])->includeFunctions()){
+               const vector<module *> *mods = (const vector<module *> *) 
+                        (((*shared_objects)[j])->getModules());
+               if(mods) {
+                   *some_modules += *mods; 
                }
-	   }
+           }
     } } 
 
     //cerr << "some_modules newly created, returning it:" << endl;
@@ -3241,11 +3246,11 @@ bool process::getBaseAddress(const image *which, Address &baseAddress) const {
   else if (shared_objects) {  
       // find shared object corr. to this image and compute correct address
       for(unsigned j=0; j < shared_objects->size(); j++){ 
-	  if(((*shared_objects)[j])->isMapped()){
+          if(((*shared_objects)[j])->isMapped()){
             if(((*shared_objects)[j])->getImage() == which) { 
-	      baseAddress = ((*shared_objects)[j])->getBaseAddress();
-	      return true;
-	  } }
+              baseAddress = ((*shared_objects)[j])->getBaseAddress();
+              return true;
+          } }
       }
   }
   return false;
@@ -3261,12 +3266,12 @@ void process::findSignalHandler(){
         // first check a.out for signal handler function
         signal_handler = symbols->findOneFunction(SIGNAL_HANDLER);
 
-	// search any shared libraries for signal handler function
+        // search any shared libraries for signal handler function
         if(!signal_handler && dynamiclinking && shared_objects) { 
-	    for(u_int j=0;(j < shared_objects->size()) && !signal_handler; j++){
-	        signal_handler = 
-		      ((*shared_objects)[j])->findOneFunction(SIGNAL_HANDLER,false);
-	} }
+            for(u_int j=0;(j < shared_objects->size()) && !signal_handler; j++){
+                signal_handler = 
+                      ((*shared_objects)[j])->findOneFunction(SIGNAL_HANDLER,false);
+        } }
     }
 }
 
@@ -3313,8 +3318,8 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
          err = false;
          return baseAddr;
        } else {
-	 err = true;
-	 return 0;
+         err = true;
+         return 0;
        }
        // replace above with tighter code below
        //err = (baseAddr != 0);
@@ -3417,7 +3422,7 @@ void process::handleExec() {
     // could still have pointers
     dynamiclinking = false;
     dyn = 0; // AHEM.  LEAKED MEMORY!  not if the parent still has a pointer
-	     // to this dynamic_linking object.
+             // to this dynamic_linking object.
     dyn = new dynamic_linking;
     if(shared_objects){
         for(u_int j=0; j< shared_objects->size(); j++){
@@ -3476,7 +3481,7 @@ void process::handleExec() {
     // add some sort of reference count to these classes so that they can
     // be deleted
     symbols = img; // AHEM!  LEAKED MEMORY!!! ...not if parent has ptr to 
-		   // previous image
+                   // previous image
 
     // see if new image contains the signal handler function
     this->findSignalHandler();
@@ -3536,19 +3541,19 @@ bool process::cleanUpInstrumentation(bool wasRunning) {
     u_int i=0;
     bool found = false;
     while(!done){
-	//process *p = (instWList[i])->which_proc;
+        //process *p = (instWList[i])->which_proc;
         if(((instWList[i])->pc_ == pc) && ((instWList[i])->which_proc == this)){
-	    (instWList[i])->cleanUp(this,pc);
-	    u_int last = instWList.size()-1;
-	    delete (instWList[i]);
-	    instWList[i] = instWList[last];
-	    instWList.resize(last);
-	    found = true;
-	}
-	else {
-	    i++;
-	}
-	if(i >= instWList.size()) done = true;
+            (instWList[i])->cleanUp(this,pc);
+            u_int last = instWList.size()-1;
+            delete (instWList[i]);
+            instWList[i] = instWList[last];
+            instWList.resize(last);
+            found = true;
+        }
+        else {
+            i++;
+        }
+        if(i >= instWList.size()) done = true;
     }
     if(found && wasRunning) continueProc();
     return found;
@@ -3570,17 +3575,22 @@ void process::cleanRPCreadyToLaunch(int mid)
   }
 }
 
-void process::postRPCtoDo(AstNode *action, bool noCost,
-			  inferiorRPCcallbackFunc callbackFunc,
-			  void *userData,
 #if defined(MT_THREAD)
-			  int mid, 
-			  int thrId,
-			  bool isSAFE) {
+void process::postRPCtoDo(AstNode *action, bool noCost,
+                          inferiorRPCcallbackFunc callbackFunc,
+                          void *userData,
+                          int mid, 
+                          bool lowmem,
+                          int thrId,
+                          bool isSAFE)
 #else
-	                  int mid,
-			  bool lowmem) {
+void process::postRPCtoDo(AstNode *action, bool noCost,
+                          inferiorRPCcallbackFunc callbackFunc,
+                          void *userData,
+                          int mid,
+                          bool lowmem)
 #endif
+{
    // posts an RPC, but does NOT make any effort to launch it.
    inferiorRPCtoDo theStruct;
    theStruct.action = action;
@@ -3592,8 +3602,8 @@ void process::postRPCtoDo(AstNode *action, bool noCost,
 
 #if defined(MT_THREAD)
    theStruct.thrId = thrId;
-   theStruct.isSafeRPC = isSAFE ;
-   if (pd_debug_infrpc )
+   theStruct.isSafeRPC = isSAFE;
+   if (pd_debug_infrpc)
      cerr <<"posting "<<(isSAFE? "SAFE":"")<<"inferiorRPC for tid"<<thrId<<endl;
 #endif
    RPCsWaitingToStart += theStruct;
@@ -3634,15 +3644,15 @@ bool process::need_to_wait(void) {
         return true ;
       } 
        else {
-	if (DYNINSTthreadRPC) {
-	  unsigned freeSlot = 0 ;
-	  for (unsigned j=0; j<MAX_PENDING_RPC; j++) {
-	    if (DYNINSTthreadRPC[j].flag ==0)
-	      freeSlot ++ ;
-	  }
-	  if (freeSlot == 0)
-	    return true ;
-	} 
+        if (DYNINSTthreadRPC) {
+          unsigned freeSlot = 0 ;
+          for (unsigned j=0; j<MAX_PENDING_RPC; j++) {
+            if (DYNINSTthreadRPC[j].flag ==0)
+              freeSlot ++ ;
+          }
+          if (freeSlot == 0)
+            return true ;
+        } 
       }//else
   }
   return false ;
@@ -3688,11 +3698,11 @@ void signalRPCthread(process *p) {
 #endif 
 
 //
-// this should work for both threaded and ono-threaded case
+// this should work for both threaded and non-threaded case
 //
 bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
-   // asynchronously launches an inferiorRPC iff RPCsWaitingToStart.size() > 0 AND
-   // if currRunningRPCs.size()==0 (the latter for safety)
+   // asynchronously launches an inferiorRPC iff RPCsWaitingToStart.size() > 0
+   // AND if currRunningRPCs.size()==0 (the latter for safety)
 
 #if defined(MT_THREAD)
    handleDoneSAFEinferiorRPC();
@@ -3725,7 +3735,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    // 2) Get a copy of the registers...store them away
    // 3) create temp trampoline: save, action, restore, trap, illegal
    //    (the illegal is just ot be sure that the trap never returns)
-   // 4) set the PC and nPC regs to addr of temp tramp                 | not for SAFErpc
+   // 4) set the PC and nPC regs to addr of temp tramp   || NB: not for SAFErpc!
    // 5) Continue the process...go back to the main loop (SIGTRAP will 
    //    eventually be delivered)
 
@@ -3742,7 +3752,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
      if (!finishingSysCall && RPCs_waiting_for_syscall_to_complete) {
 #ifndef i386_unknown_linux2_0
 #ifndef MT_THREAD
-	    assert(executingSystemCall());
+            assert(executingSystemCall());
 #endif
 #endif
         return false;
@@ -3764,56 +3774,59 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 #endif
      if (!finishingSysCall && executingSystemCall()) {
         if (RPCs_waiting_for_syscall_to_complete) {
-	   inferiorrpc_cerr << "launchRPCifAppropriate: still waiting for syscall to "
-	                    << "complete" << endl;
-	   if (wasRunning) {
- 	      inferiorrpc_cerr << "launchRPC: continuing so syscall may complete" << endl;
-	      (void)continueProc();
-	   }
-	   else
-	      inferiorrpc_cerr << "launchRPC: sorry not continuing (problem?)" << endl;
-	 return false;
+           inferiorrpc_cerr << "launchRPCifAppropriate: "
+                            << "still waiting for syscall to complete" << endl;
+           if (wasRunning) {
+              inferiorrpc_cerr << "launchRPC: "
+                               << "continuing so syscall may complete" << endl;
+              (void)continueProc();
+           }
+           else
+              inferiorrpc_cerr << "launchRPC: sorry not continuing (problem?)"
+                               << endl;
+         return false;
         }
 
         // don't do the inferior rpc until the system call finishes.  Determine
-        // which system call is in the way, and set a breakpoint at its exit point
-        // so we know when it's safe to launch the RPC.  Platform-specific
+        // which system call is in the way, and set a breakpoint at its exit
+        // point so we know when it's safe to launch the RPC.  Platform-specific
         // details:
 
-        inferiorrpc_cerr << "launchRPCifAppropriate: within a system call" << endl;
+        inferiorrpc_cerr << "launchRPCifAppropriate: within a system call"
+                        << endl;
 
       if (!set_breakpoint_for_syscall_completion()) {
-	 // sorry, this platform can't set a breakpoint at the system call
- 	 // completion point.  In such a case, we keep polling executingSystemCall()
-	 // inefficiently.
-	  if (wasRunning)
-	    (void)continueProc();
+         // sorry, this platform can't set a breakpoint at the system call
+         // completion point.  In such cases, keep polling executingSystemCall()
+         // inefficiently.
+          if (wasRunning)
+            (void)continueProc();
 
-	  inferiorrpc_cerr << "launchRPCifAppropriate: couldn't set bkpt for "
-	                  << "syscall completion; will just poll." << endl;
-	  return false;
+          inferiorrpc_cerr << "launchRPCifAppropriate: couldn't set bkpt for "
+                          << "syscall completion; will just poll." << endl;
+          return false;
        }
 
-       inferiorrpc_cerr << "launchRPCifAppropriate: set bkpt for syscall completion"
-	               << endl;
+       inferiorrpc_cerr << "launchRPCifAppropriate: "
+                        << "set bkpt for syscall completion" << endl;
 
        // a SIGTRAP will get delivered when the RPC is ready to go.  Until then,
-       // mark the rpc as deferred.  Setting this flag prevents us from executing
+       // mark the rpc as deferred.  Setting this flag prevents executing
        // this code too many times.
 
       RPCs_waiting_for_syscall_to_complete = true;
-	  was_running_before_RPC_syscall_complete = wasRunning;
+          was_running_before_RPC_syscall_complete = wasRunning;
 
       //if (wasRunning)
-	  (void)continueProc();
+          (void)continueProc();
 
       return false;
    }
 
-   if( finishingSysCall )
-	   clear_breakpoint_for_syscall_completion();
+   if (finishingSysCall)
+           clear_breakpoint_for_syscall_completion();
 
-   // Okay, we're not in the middle of a system call, so we can fire off the rpc now!
+   // We're not in the middle of a system call, so we can fire off the rpc now!
    if (RPCs_waiting_for_syscall_to_complete)
       // not any more
       RPCs_waiting_for_syscall_to_complete = false;
@@ -3821,22 +3834,23 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
       theSavedRegs = getRegisters(); // machine-specific implementation
       // result is allocated via new[]; we'll delete[] it later.
       // return value of NULL indicates total failure.
-      // return value of (void *)-1 indicates that the state of the machine isn't quite
-      //    ready for an inferiorRPC, and that we should try again 'later'.  In
-      //    particular, we must handle the (void *)-1 case very gracefully (i.e., leave
-      //    the vrble 'RPCsWaitingToStart' untouched).
+      // return value of (void *)-1 indicates that the state of the machine
+      //    isn't quite ready for an inferiorRPC, and that we should try again
+      //    'later'.  In particular, we must handle the (void *)-1 case very
+      //     gracefully (i.e., leave the vrble 'RPCsWaitingToStart' untouched).
 
      if (theSavedRegs == (void *)-1) {
        inferiorrpc_cerr << "launchRPCifAppropriate: deferring" << endl;
        if (wasRunning)
-	 (void)continueProc();
+         (void)continueProc();
        return false;
      }
 
      if (theSavedRegs == NULL) {
-       cerr << "launchRPCifAppropriate failed because getRegisters() failed" << endl;
+       cerr << "launchRPCifAppropriate failed because getRegisters() failed"
+            << endl;
        if (wasRunning)
-	 (void)continueProc();
+         (void)continueProc();
        return false;
      }
 #if defined(MT_THREAD)
@@ -3844,7 +3858,8 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 #endif
 
    if (!wasRunning)
-     inferiorrpc_cerr << "NOTE: launchIfAppropriate: wasRunning==false!!" << endl;
+     inferiorrpc_cerr << "NOTE: launchIfAppropriate: wasRunning==false!!"
+                      << endl;
 
    // Now it is safe to remove the first from the vector
    RPCsWaitingToStart.removeOne();
@@ -3862,34 +3877,41 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    } else 
 #endif
    if( finishingSysCall )
-	   inProgStruct.wasRunning = was_running_before_RPC_syscall_complete;
+           inProgStruct.wasRunning = was_running_before_RPC_syscall_complete;
    else
-	   inProgStruct.wasRunning = wasRunning;
+           inProgStruct.wasRunning = wasRunning;
 
       // If finishing up a system call, current state is paused, but we want to
       // set wasRunning to true so that it'll continue when the inferiorRPC
       // completes.  Sorry for the kludge.
-   Address tempTrampBase = createRPCtempTramp(todo.action,
-					       todo.noCost,
-					       inProgStruct.callbackFunc != NULL,
-					       inProgStruct.breakAddr,
-					       inProgStruct.stopForResultAddr,
-					       inProgStruct.justAfter_stopForResultAddr,
 #if defined(MT_THREAD)
-					       inProgStruct.resultRegister,
-					       todo.thrId,
-					       todo.isSafeRPC,
-					       todo.lowmem);
+   Address tempTrampBase = createRPCtempTramp(todo.action,
+                               todo.noCost,
+                               inProgStruct.callbackFunc != NULL,
+                               inProgStruct.breakAddr,
+                               inProgStruct.stopForResultAddr,
+                               inProgStruct.justAfter_stopForResultAddr,
+                               inProgStruct.resultRegister,
+                               todo.lowmem,
+                               todo.thrId,
+                               todo.isSafeRPC);
 #else
-					       inProgStruct.resultRegister,
-					       todo.lowmem);
+   Address tempTrampBase = createRPCtempTramp(todo.action,
+                               todo.noCost,
+                               inProgStruct.callbackFunc != NULL,
+                               inProgStruct.breakAddr,
+                               inProgStruct.stopForResultAddr,
+                               inProgStruct.justAfter_stopForResultAddr,
+                               inProgStruct.resultRegister,
+                               todo.lowmem);
 #endif
       // the last 4 args are written to
 
    if (tempTrampBase == 0) {
-      cerr << "launchRPCifAppropriate failed because createRPCtempTramp failed" << endl;
+      cerr << "launchRPCifAppropriate failed because createRPCtempTramp failed"
+           << endl;
       if (wasRunning)
-	 (void)continueProc();
+         (void)continueProc();
       return false;
    }
    assert(tempTrampBase);
@@ -3908,7 +3930,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
      if (!changePC(tempTrampBase, theSavedRegs)) {
         cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
         if (wasRunning)
-	  (void)continueProc();
+          (void)continueProc();
         return false;
      }
 
@@ -3935,22 +3957,28 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    return true; // success
 }
 
-Address process::createRPCtempTramp(AstNode *action,
-				     bool noCost,
-				     bool shouldStopForResult,
-				     Address &breakAddr,
-				     Address &stopForResultAddr,
-				     Address &justAfter_stopForResultAddr,
 #if defined(MT_THREAD)
-				     Register &resultReg,
-				     int thrId,
-				     bool isSAFE,
-                                     bool lowmem) {
-#else
+Address process::createRPCtempTramp(AstNode *action,
+                                     bool noCost,
+                                     bool shouldStopForResult,
+                                     Address &breakAddr,
+                                     Address &stopForResultAddr,
+                                     Address &justAfter_stopForResultAddr,
                                      Register &resultReg,
-                                     bool lowmem) {
+                                     bool lowmem,
+                                     int thrId,
+                                     bool isSAFE)
+#else
+Address process::createRPCtempTramp(AstNode *action,
+                                     bool noCost,
+                                     bool shouldStopForResult,
+                                     Address &breakAddr,
+                                     Address &stopForResultAddr,
+                                     Address &justAfter_stopForResultAddr,
+                                     Register &resultReg,
+                                     bool lowmem)
 #endif
-
+{
    // Returns addr of temp tramp, which was allocated in the inferior heap.
    // You must free it yourself when done.
 
@@ -3964,7 +3992,7 @@ Address process::createRPCtempTramp(AstNode *action,
 
    unsigned char insnBuffer[4096];
 
-   initTramps(); // initializes "regSpace", but only the 1st time it gets called...
+   initTramps(); // initializes "regSpace", but only the 1st time called
    extern registerSpace *regSpace;
    regSpace->resetSpace();
 
@@ -3973,7 +4001,8 @@ Address process::createRPCtempTramp(AstNode *action,
    // The following is implemented in an arch-specific source file...
    if (!emitInferiorRPCheader(insnBuffer, count)) {
       // a fancy dialog box is probably called for here...
-      cerr << "createRPCtempTramp failed because emitInferiorRPCheader failed." << endl;
+      cerr << "createRPCtempTramp failed because emitInferiorRPCheader failed."
+           << endl;
       return 0;
    }
 
@@ -3983,8 +4012,8 @@ Address process::createRPCtempTramp(AstNode *action,
      unsigned pos = 0;
      for (unsigned u=0; u<threads.size(); u++) {
        if (thrId == threads[u]->get_tid()) {
-	 pos = threads[u]->get_pos();
-	 break;
+         pos = threads[u]->get_pos();
+         break;
        }
      }
 
@@ -3998,7 +4027,7 @@ Address process::createRPCtempTramp(AstNode *action,
      function_base* DYNINSTstartThreadTimer_inferiorRPC = 
        findOneFunction(string("DYNINSTstartThreadTimer_inferiorRPC"));
      action->replaceFuncInAst(DYNINSTstartThreadTimer, 
-			      DYNINSTstartThreadTimer_inferiorRPC, param, 1);
+                              DYNINSTstartThreadTimer_inferiorRPC, param, 1);
 
      // replace DYNINSTthreadPos with DYNINSTthreadPosTID
      function_base* DYNINST_not_deleted =
@@ -4006,7 +4035,7 @@ Address process::createRPCtempTramp(AstNode *action,
      function_base* DYNINST_not_deletedTID =
        findOneFunction(string("DYNINST_not_deletedTID"));
      action->replaceFuncInAst(DYNINST_not_deleted, 
-			      DYNINST_not_deletedTID, param, 0);
+                              DYNINST_not_deletedTID, param, 0);
   
      // replace DYNINSTloop with DYNINSTloopTID
      function_base* DYNINSTloop =
@@ -4014,7 +4043,7 @@ Address process::createRPCtempTramp(AstNode *action,
      function_base* DYNINSTloopTID =
        findOneFunction(string("DYNINSTloopTID"));
      action->replaceFuncInAst(DYNINSTloop, 
-			    DYNINSTloopTID, param, 0);
+                            DYNINSTloopTID, param, 0);
 
      for (unsigned i=0; i<param.size(); i++) removeAst(param[i]) ;
 
@@ -4024,13 +4053,14 @@ Address process::createRPCtempTramp(AstNode *action,
      action->generateCode(this, regSpace, (char*) tmp, cnt, noCost, true) ;
      regSpace->resetSpace();
 
-     generateRPCpreamble((char*)insnBuffer,count,this,(cnt)+7*sizeof(instruction),thrId, pos);
+     generateRPCpreamble((char*)insnBuffer,count,this,
+                         (cnt)+7*sizeof(instruction), thrId, pos);
    }
 #endif 
 
    resultReg = (Register)action->generateCode(this, regSpace,
-				    (char*)insnBuffer,
-				    count, noCost, true);
+                                    (char*)insnBuffer,
+                                    count, noCost, true);
 
    if (!shouldStopForResult) {
       regSpace->freeRegister(resultReg);
@@ -4043,9 +4073,9 @@ Address process::createRPCtempTramp(AstNode *action,
 
    unsigned breakOffset, stopForResultOffset, justAfter_stopForResultOffset;
    if (!emitInferiorRPCtrailer(insnBuffer, count,
-		       breakOffset, shouldStopForResult, stopForResultOffset,
+                       breakOffset, shouldStopForResult, stopForResultOffset,
 #if defined(MT_THREAD)
-		       justAfter_stopForResultOffset, isSAFE)) {
+                       justAfter_stopForResultOffset, isSAFE)) {
 #else
                        justAfter_stopForResultOffset)) {
 #endif
@@ -4057,7 +4087,7 @@ Address process::createRPCtempTramp(AstNode *action,
    Address tempTrampBase;
    if (lowmem)
        /* lowmemHeap should always have free space, so this will not
-	  require a recursive inferior RPC. */
+          require a recursive inferior RPC. */
        tempTrampBase = inferiorMalloc(this, count, lowmemHeap);
    else
        /* May cause another inferior RPC to dynamically allocate a new heap
@@ -4077,10 +4107,10 @@ Address process::createRPCtempTramp(AstNode *action,
    if (pd_debug_infrpc)
       cerr << "createRPCtempTramp: temp tramp base=" << (void*)tempTrampBase
            << ", stopForResultAddr=" << (void*)stopForResultAddr
-	   << ", justAfter_stopForResultAddr=" << (void*)justAfter_stopForResultAddr
-	   << ", breakAddr=" << (void*)breakAddr
-	   << ", count=" << count << " so end addr="
-	   << (void*)(tempTrampBase + count - 1) << endl;
+           << ", justAfter_stopForResultAddr=" << (void*)justAfter_stopForResultAddr
+           << ", breakAddr=" << (void*)breakAddr
+           << ", count=" << count << " so end addr="
+           << (void*)(tempTrampBase + count - 1) << endl;
 
 
    /* Now, write to the tempTramp, in the inferior addr's data space
@@ -4130,21 +4160,21 @@ bool process::handleDoneSAFEinferiorRPC(void) {
   if (DYNINSTthreadRPC) { 
     for (unsigned d=0; d< MAX_PENDING_RPC; d++) {
       if (DYNINSTthreadRPC[d].flag ==2) { //done execute
-	//
-	unsigned cookie = (unsigned) (DYNINSTthreadRPC[d].rpc);
+        //
+        unsigned cookie = (unsigned) (DYNINSTthreadRPC[d].rpc);
         if (cookie == 0) {
-	  cerr << " a weird condition occurred in handleDoneSAFEinferiorRPC ..." << endl;
-	  continue ;
+          cerr << " a weird condition occurred in handleDoneSAFEinferiorRPC ..." << endl;
+          continue ;
         }
 
         for (unsigned k=0; k < currRunningRPCs.size(); k++) {
           if (currRunningRPCs[k].firstInstrAddr == cookie) {
             inferiorRPCinProgress &theStruct = currRunningRPCs[k];
 
-	    if (pd_debug_infrpc) {
-	      sprintf(errorLine, "find completed SAFE rpc, cookie=0x%x", cookie);
-	      cerr << errorLine << endl;
-	    }
+            if (pd_debug_infrpc) {
+              sprintf(errorLine, "find completed SAFE rpc, cookie=0x%x", cookie);
+              cerr << errorLine << endl;
+            }
 
             // step 1) restore registers: not needed for SAFE RPC
 
@@ -4158,7 +4188,7 @@ bool process::handleDoneSAFEinferiorRPC(void) {
             inferiorFree(this, theStruct.firstInstrAddr, pointsToCheck);
 
             // step 3) pause process, if appropriate
-	    //if (!theStruct.wasRunning && status() == running) {
+            //if (!theStruct.wasRunning && status() == running) {
             //  cerr << "SAFE RPC completion: pause " << endl;
             //  if (!pause()) {
             //    cerr << "RPC completion: pause failed" << endl;
@@ -4168,12 +4198,12 @@ bool process::handleDoneSAFEinferiorRPC(void) {
             // step 4) invoke user callback, if any
             if (theStruct.callbackFunc) {
                theStruct.callbackFunc(this, theStruct.userData, theStruct.resultValue);
-	    }
+            }
             currRunningRPCs.removeByIndex(k);
-	    break; //break the for()
+            break; //break the for()
           }
         }
-	//
+        //
         DYNINSTthreadRPC[d].rpc = 0 ; //make it free again
         DYNINSTthreadRPC[d].flag = 0 ; //make it free again
       }
@@ -4226,34 +4256,36 @@ bool process::handleTrapIfDueToRPC() {
       bool find_match = false;
       for (the_index=0; the_index<currRunningRPCs.size(); the_index++) {
          if ((Address)framePC == currRunningRPCs[the_index].breakAddr) {
-	   // we've got a match!
-	   match_type = 2;
-	   find_match = true;
-	   break;
+           // we've got a match!
+           match_type = 2;
+           find_match = true;
+           break;
          }
          else if (currRunningRPCs[the_index].callbackFunc != NULL &&
-	         ((Address)framePC == currRunningRPCs[the_index].stopForResultAddr)) {
-	   match_type = 1;
-	   find_match = true;
-	   break;
+                 ((Address)framePC == currRunningRPCs[the_index].stopForResultAddr)) {
+           match_type = 1;
+           find_match = true;
+           break;
          }
       }
 
       if (find_match) {
-	sprintf(errorLine, "handleTrapIfDueToRPC found matching RPC, pc =0x%x, match_type=%d, the_index=%u", 
-	  framePC, match_type, the_index);
+        sprintf(errorLine, "handleTrapIfDueToRPC found matching RPC, "
+                "pc=%s, match_type=%d, the_index=%u", 
+                Address_str(framePC), match_type, the_index);
         if (pd_debug_infrpc)
-	  cerr << errorLine << endl;
-	break;
+          cerr << errorLine << endl;
+        break;
       }
 
       if (theFrame.isLastFrame()) {
-	 // well, we've gone as far as we can, with no match.
+         // well, we've gone as far as we can, with no match.
           if (pd_debug_infrpc) {
-            sprintf(errorLine, "handleTrapIfDuetoRPC, cannot find match for PC=0x%x", framePC);
+            sprintf(errorLine, "handleTrapIfDuetoRPC, "
+                "cannot find match for PC=%s", Address_str(framePC));
             cerr << errorLine << endl;
           }
-	 return false;
+         return false;
       }
 
       // else, backtrace 1 more level
@@ -4270,23 +4302,23 @@ bool process::handleTrapIfDueToRPC() {
 
       inferiorrpc_cerr << "Welcome to handleTrapIfDueToRPC match type 1" << endl;
       if (pd_debug_infrpc) 
-	cerr << "Welcome to handleTrapIfDueToRPC match type 1 (grab the result)" << endl;
+        cerr << "Welcome to handleTrapIfDueToRPC match type 1 (grab the result)" << endl;
 
       assert(theStruct.callbackFunc != NULL);
         // must be a callback to ever see this match_type
 
       //  In the case where the resultRegister is the Null_Register, we can assume that
-	  //  the return value will be ignored and can be set to 0.  This happens in some cases when
-	  //  catch-up instrumentation is being executed: there isn't a result value that we are
-	  //  interested in, but we call a callback function anyway.
+          //  the return value will be ignored and can be set to 0.  This happens in some cases when
+          //  catch-up instrumentation is being executed: there isn't a result value that we are
+          //  interested in, but we call a callback function anyway.
       Address returnValue = 0;
 
-	  if ( theStruct.resultRegister != Null_Register )
-	  {
-      	returnValue = read_inferiorRPC_result_register(theStruct.resultRegister);
-      	extern registerSpace *regSpace;
-      	regSpace->freeRegister(theStruct.resultRegister);
-	  }
+          if ( theStruct.resultRegister != Null_Register )
+          {
+        returnValue = read_inferiorRPC_result_register(theStruct.resultRegister);
+        extern registerSpace *regSpace;
+        regSpace->freeRegister(theStruct.resultRegister);
+          }
 
       theStruct.resultValue = (void *)returnValue;
 
@@ -4295,7 +4327,7 @@ bool process::handleTrapIfDueToRPC() {
       // that will just re-do the trap!  Instead, we need to continue at the location
       // of the next instruction.
       if (!changePC(theStruct.justAfter_stopForResultAddr))
-	    assert(false);
+            assert(false);
 
       if (!continueProc())
           cerr << "RPC getting result: continueProc failed" << endl;
@@ -4333,7 +4365,7 @@ bool process::handleTrapIfDueToRPC() {
       inferiorrpc_cerr << "end of rpc -- continuing process, since it had been running" << endl;
 
       if (!continueProc()) {
-		  cerr << "RPC completion: continueProc failed" << endl;
+                  cerr << "RPC completion: continueProc failed" << endl;
       }
    }
    else
@@ -4433,7 +4465,7 @@ void process::installBootstrapInst() {
                );   
        // returns an "instInstance", which we ignore (but should we?)
        removeAst(ast);
-	   attach_cerr << "wrote call to DYNINSTinit to entry of main" << endl;
+           attach_cerr << "wrote call to DYNINSTinit to entry of main" << endl;
     } else {
        printf("no main function, skipping DYNINSTinit\n");
        hasBootstrapped = true;
@@ -4451,17 +4483,17 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 
       function_base *func = findOneFunction(req->func);
       if (!func)
-	 continue;  // probably should have a flag telling us whether errors should
-	            // be silently handled or not
+         continue;  // probably should have a flag telling us whether errors should
+                    // be silently handled or not
       metric_cerr << "Found " << req->func << endl;
 
       AstNode *ast;
       if ((req->where & FUNC_ARG) && req->args.size()>0) {
         ast = new AstNode(req->inst, req->args);
 
-	// Why does the below removeAst cause a seg fault in some cases?
-	// My consistent error seems to have something to do with recursive
-	//  removeAst calls for an invalid roperand.  This may be related
+        // Why does the below removeAst cause a seg fault in some cases?
+        // My consistent error seems to have something to do with recursive
+        //  removeAst calls for an invalid roperand.  This may be related
         //  to paradynd handling multiple processes with IRIX MPI.
 
 #ifndef BPATCH_LIBRARY
@@ -4469,33 +4501,33 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 #endif
             for (unsigned i=0; i<req->args.size(); i++) removeAst(req->args[i]) ;
       } else {
-	AstNode *tmp = new AstNode(AstNode::Constant, (void*)0);
-	ast = new AstNode(req->inst, tmp);
-	removeAst(tmp);
+        AstNode *tmp = new AstNode(AstNode::Constant, (void*)0);
+        ast = new AstNode(req->inst, tmp);
+        removeAst(tmp);
       }
       if (req->where & FUNC_EXIT) {
-	 const vector<instPoint*> func_rets = func->funcExits(this);
-	 for (unsigned j=0; j < func_rets.size(); j++)
-	    (void)addInstFunc(this, func_rets[j], ast,
-			      req->when, req->order, false, false);
+         const vector<instPoint*> func_rets = func->funcExits(this);
+         for (unsigned j=0; j < func_rets.size(); j++)
+            (void)addInstFunc(this, func_rets[j], ast,
+                              req->when, req->order, false, false);
 
       }
 
       if (req->where & FUNC_ENTRY) {
-	 instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
-	 (void)addInstFunc(this, func_entry, ast,
-			   req->when, req->order, false, false);
+         instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
+         (void)addInstFunc(this, func_entry, ast,
+                           req->when, req->order, false, false);
 
       }
 
       if (req->where & FUNC_CALL) {
-	 vector<instPoint*> func_calls = func->funcCalls(this);
-	 if (func_calls.size() == 0)
-	    continue;
+         vector<instPoint*> func_calls = func->funcCalls(this);
+         if (func_calls.size() == 0)
+            continue;
 
-	 for (unsigned j=0; j < func_calls.size(); j++)
-	    (void)addInstFunc(this, func_calls[j], ast,
-			      req->when, req->order, false, false);
+         for (unsigned j=0; j < func_calls.size(); j++)
+            (void)addInstFunc(this, func_calls[j], ast,
+                              req->when, req->order, false, false);
 
       }
 
@@ -4544,7 +4576,7 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
     Address val_a = (unsigned)bs_record->appl_attachedAtPtr.words.hi;
     void *val_p = (void *)val_a;
     bs_record->appl_attachedAtPtr.ptr = val_p;
-    fprintf(stderr, "    0x%016lx ptr *\n", bs_record->appl_attachedAtPtr.ptr);
+    fprintf(stderr, "    %p ptr *\n", bs_record->appl_attachedAtPtr.ptr);
   }
 #endif /* SHM_SAMPLING */
   
@@ -4638,7 +4670,7 @@ int process::procStopFromDYNINSTinit() {
    }
    else {
       if (!continueProc())
-	 assert(false);
+         assert(false);
       return 2;
    }
 }
@@ -4695,8 +4727,8 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 
 #if !defined(USES_LIBDYNINSTRT_SO) || defined(i386_unknown_nt4_0)
       if (!handleStartProcess()) {
-	// reads in shared libraries...can take a while
-	logLine("WARNING: handleStartProcess failed\n");
+        // reads in shared libraries...can take a while
+        logLine("WARNING: handleStartProcess failed\n");
       }
 #endif
 
@@ -4722,18 +4754,18 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
          // propagate any metric that is already enabled to the new process.
          // For a forked process, this isn't needed because handleFork() has its own
          // special propagation algorithm (it propagates every aggregate mi having the
-	 // parent as a component, except for aggregate mi's whose focus is specifically
-	 // refined to the parent).
-	 vector<metricDefinitionNode *> MIs = allMIs.values();
-	 for (unsigned j = 0; j < MIs.size(); j++) {
-	    MIs[j]->propagateToNewProcess(this);
-	    // change to a process:: method which takes in the metricDefinitionNode
-	 }
+         // parent as a component, except for aggregate mi's whose focus is specifically
+         // refined to the parent).
+         vector<metricDefinitionNode *> MIs = allMIs.values();
+         for (unsigned j = 0; j < MIs.size(); j++) {
+            MIs[j]->propagateToNewProcess(this);
+            // change to a process:: method which takes in the metricDefinitionNode
+         }
       }
       else {
          // exec propagates in its own, special way that differs from a new process.
-	 // (propagate all mi's that make sense in the new process)
-	 metricDefinitionNode::handleExec(this);
+         // (propagate all mi's that make sense in the new process)
+         metricDefinitionNode::handleExec(this);
       }
 #endif
 
@@ -4752,7 +4784,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
       // paradyn; otherwise, prepare for an assert fail.
 
       if (!::firstRecordTime)
-	 ::firstRecordTime = currWallTime;
+         ::firstRecordTime = currWallTime;
    }
 #endif
 
@@ -4760,9 +4792,9 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 
 #ifndef BPATCH_LIBRARY
    tp->newProgramCallbackFunc(bs_record.pid, this->arg_list, 
-			      machineResource->part_name(),
-			      calledFromExec,
-			      wasRunning);
+                              machineResource->part_name(),
+                              calledFromExec,
+                              wasRunning);
       // in paradyn, this will call paradynDaemon::addRunningProgram().
       // If the state of the application as a whole is 'running' paradyn will
       // soon issue an igen call to us that'll continue this process.
@@ -4777,11 +4809,11 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
       process *parentProcess = findProcess(bs_record.ppid);
       if (parentProcess) {
          if (parentProcess->status() == stopped) {
-	    if (!parentProcess->continueProc())
-	       assert(false);
-	 }
-	 else
-	    parentProcess->continueAfterNextStop();
+            if (!parentProcess->continueProc())
+               assert(false);
+         }
+         else
+            parentProcess->continueAfterNextStop();
       }
    }
 
@@ -4804,10 +4836,10 @@ void process::getObservedCostAddr() {
     bool err;
     costAddr_ = findInternalAddress("DYNINSTobsCostLow", true, err);
     if (err) {
-	sprintf(errorLine,"Internal error: unable to find addr of DYNINSTobsCostLow\n");
+        sprintf(errorLine,"Internal error: unable to find addr of DYNINSTobsCostLow\n");
         logLine(errorLine);
-	showErrorCallback(79,errorLine);
-	P_abort();
+        showErrorCallback(79,errorLine);
+        P_abort();
     }
 #else
     costAddr_ = (Address)getObsCostLowAddrInApplicSpace();
@@ -4919,7 +4951,7 @@ bool process::saveOriginalInstructions(Address addr, int size) {
     assert(data);
 
     if (!readTextSpace((const void *)addr, size, data))
-	return false;
+        return false;
 
     beforeMutationList.insertHead(addr, size, data);
 
@@ -4932,41 +4964,41 @@ bool process::writeMutationList(mutationList &list) {
     bool needToCont = false;
 
     if (status_ == exited)
-	return false;
+        return false;
 
     if (status_ == running) {
-	needToCont = true;
-	if (! pause())
-	    return false;
+        needToCont = true;
+        if (! pause())
+            return false;
     }
 
     if (status_ != stopped && status_ != neonatal) {
         sprintf(errorLine, "Internal error: "
                 "Unexpected process state %d in process::writeMutationList",
                 (int)status_);
-	showErrorCallback(39, errorLine);
-	return false;
+        showErrorCallback(39, errorLine);
+        return false;
     }
 
     mutationRecord *mr = list.getHead();
 
     while (mr != NULL) {
-	bool res = writeTextSpace_((void *)mr->addr, mr->size, mr->data);
-	if (!res) {
-	    // XXX Should we do something special when an error occurs, since
-	    //     it could leave the process with only some mutations
-	    //     installed?
-	    string msg =
-		string("System error: unable to write to process text space: ")
-		+ string(sys_errlist[errno]);
-	    showErrorCallback(38, msg); // XXX Own error number?
-	    return false;
-	}
-	mr = mr->next;
+        bool res = writeTextSpace_((void *)mr->addr, mr->size, mr->data);
+        if (!res) {
+            // XXX Should we do something special when an error occurs, since
+            //     it could leave the process with only some mutations
+            //     installed?
+            string msg =
+                string("System error: unable to write to process text space: ")
+                + string(sys_errlist[errno]);
+            showErrorCallback(38, msg); // XXX Own error number?
+            return false;
+        }
+        mr = mr->next;
     }
 
     if (needToCont)
-	return this->continueProc();
+        return this->continueProc();
     return true;
 }
 
@@ -4998,9 +5030,9 @@ mutationList::~mutationList() {
     mutationRecord *p = head;
 
     while (p != NULL) {
-	mutationRecord *n = p->next;
-	delete p;
-	p = n;
+        mutationRecord *n = p->next;
+        delete p;
+        p = n;
     }
 }
 
@@ -5011,9 +5043,9 @@ void mutationList::insertHead(Address addr, int size, const void *data) {
 
     n->next = head;
     if (head == NULL)
-    	tail = n;
+        tail = n;
     else
-    	head->prev = n;
+        head->prev = n;
     head = n;
 }
 
@@ -5024,9 +5056,9 @@ void mutationList::insertTail(Address addr, int size, const void *data) {
 
     n->prev = tail;
     if (tail == NULL)
-    	head = n;
+        head = n;
     else
-    	tail->next = n;
+        tail->next = n;
     tail = n;
 }
 #endif /* BPATCH_SET_MUTATIONS_ACTIVE */
@@ -5082,7 +5114,7 @@ void process::FillInCallGraphStatic()
   
   CallGraphAddProgramCallback(symbols->file());
   CallGraphSetEntryFuncCallback(symbols->file(), 
-				entry_pdf->ResourceFullName());
+                                entry_pdf->ResourceFullName());
     
   // build call graph for executable
   symbols->FillInCallGraphStatic(this);
@@ -5129,9 +5161,9 @@ void process::MonitorDynamicCallSites(string function_name){
   for(i = 0; i < callPoints.size(); i++){
     if(!findCallee(*(callPoints[i]),temp)){
       if(!MonitorCallSite(callPoints[i])){
-	fprintf(stderr, 
-	     "ERROR in daemon, unable to monitorCallSite for function :%s\n",
-	     function_name.string_of());
+        fprintf(stderr, 
+             "ERROR in daemon, unable to monitorCallSite for function :%s\n",
+             function_name.string_of());
       }
     }
   }

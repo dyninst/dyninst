@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.128 2000/03/04 01:25:21 zandy Exp $
+/* $Id: process.h,v 1.129 2000/03/06 16:46:54 paradyn Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -98,13 +98,13 @@ extern timeStamp elapsedStackwalkTime;
 extern bool      stackwalking;
 
 #define BEGIN_STACKWALK                      \
-{  					     \
+{                                            \
   startStackwalk = getCurrentTime(false);    \
   stackwalking = true;                       \
 }
 
 #define END_STACKWALK                                                  \
-{     								       \
+{                                                                      \
      stackwalking = false;                                             \
      if (startStackwalk > 0.0)                                         \
        elapsedStackwalkTime += (getCurrentTime(false)-startStackwalk); \
@@ -127,7 +127,8 @@ class BPatch_thread;
 
 typedef enum { neonatal, running, stopped, exited } processState;
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
-typedef enum { textHeap=0x01, dataHeap=0x02, anyHeap=0x33, lowmemHeap=0x40 } inferiorHeapType;
+typedef enum { textHeap=0x01, dataHeap=0x02, anyHeap=0x33, lowmemHeap=0x40 }
+        inferiorHeapType;
 typedef vector<Address> addrVecType;
 
 const int LOAD_DYNINST_BUF_SIZE = 256;
@@ -137,7 +138,7 @@ class heapItem {
   heapItem() : 
     addr(0), length(0), type(anyHeap), dynamic(true), status(HEAPfree) {}
   heapItem(Address a, int n, inferiorHeapType t, 
-	   bool d = true, heapStatus s = HEAPfree) :
+           bool d = true, heapStatus s = HEAPfree) :
     addr(a), length(n), type(t), dynamic(d), status(s) {}
   heapItem(const heapItem *h) :
     addr(h->addr), length(h->length), type(h->type), 
@@ -171,7 +172,8 @@ class disabledItem {
   disabledItem(heapItem *h, const vector<addrVecType> &preds) :
     block(h), pointsToCheck(preds) {}
   // TODO: unused?
-  disabledItem(Address ip, inferiorHeapType iht, const vector<addrVecType> &ipts) :
+  disabledItem(Address ip, inferiorHeapType iht,
+               const vector<addrVecType> &ipts) :
     block(ip, 0, iht), pointsToCheck(ipts) { 
     fprintf(stderr, "error: unused disabledItem ctor\n");
     assert(0);
@@ -202,14 +204,14 @@ class inferiorHeap {
   inferiorHeap(): heapActive(addrHash16) {
       freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
   }
-  inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy of src.
-                                          // used on fork.
+  inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy
+                                          // of src (used on fork)
   dictionary_hash<Address, heapItem*> heapActive; // active part of heap 
-  vector<heapItem*> heapFree;  		// free block of data inferior heap 
-  vector<disabledItem> disabledList;	// items waiting to be freed.
-  int disabledListTotalMem;		// total size of item waiting to free
-  int totalFreeMemAvailable;		// total free memory in the heap
-  int freed;				// total reclaimed (over time)
+  vector<heapItem*> heapFree;           // free block of data inferior heap 
+  vector<disabledItem> disabledList;    // items waiting to be freed.
+  int disabledListTotalMem;             // total size of item waiting to free
+  int totalFreeMemAvailable;            // total free memory in the heap
+  int freed;                            // total reclaimed (over time)
 
   vector<heapItem *> bufferPool;        // distributed heap segments -- csserra
 };
@@ -220,9 +222,9 @@ public:
     mutationRecord *next;
     mutationRecord *prev;
 
-    Address	addr;
-    int		size;
-    void	*data;
+    Address     addr;
+    int         size;
+    void        *data;
 
     mutationRecord(Address _addr, int _size, const void *_data);
     ~mutationRecord();
@@ -230,8 +232,8 @@ public:
 
 class mutationList {
 private:
-    mutationRecord	*head;
-    mutationRecord	*tail;
+    mutationRecord      *head;
+    mutationRecord      *tail;
 public:
     mutationList() : head(NULL), tail(NULL) {};
     ~mutationList();
@@ -344,35 +346,35 @@ class process {
 
   process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #ifdef SHM_SAMPLING
-	  , key_t theShmSegKey,
-	  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
+          , key_t theShmSegKey,
+          const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
-	  );
+          );
      // this is the "normal" ctor
 
   process(int iPid, image *iSymbols,
           int afterAttach, // 1 --> pause, 2 --> run, 0 --> leave as is
-	  bool& success 
+          bool& success 
 #ifdef SHM_SAMPLING
-	  , key_t theShmSegKey,
-	  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
+          , key_t theShmSegKey,
+          const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
-	  );
+          );
      // this is the "attach" ctor
 
   process(const process &parentProc, int iPid, int iTrace_fd
 #ifdef SHM_SAMPLING
-	  , key_t theShmSegKey,
-	  void *applShmSegPtr,
-	  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
+          , key_t theShmSegKey,
+          void *applShmSegPtr,
+          const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
-	  );
+          );
      // this is the "fork" ctor
 
 #ifdef SHM_SAMPLING
   void registerInferiorAttachedSegs(void *inferiorAttachedAtPtr);
-     // Where the inferior attached was left undefined in the constructor;
-     // this routine fills it in (tells paradynd where, in the inferior proc's addr
+     // Where the inferior attached was left undefined in the constructor; this
+     // routine fills it in (tells paradynd where, in the inferior proc's addr
      // space, the shm seg was attached.  The attaching was done in DYNINSTinit)
 #endif
 
@@ -380,19 +382,20 @@ class process {
 #if defined(MT_THREAD)  
   // Walk threads stacks
   vector<vector<Address> > walkAllStack(bool noPause=false);
-  void walkAStack(int, Frame, Address sig_addr, u_int sig_size, vector<Address>&pcs, vector<Address>&fps);
+  void walkAStack(int, Frame, Address sig_addr, u_int sig_size,
+                  vector<Address>&pcs, vector<Address>&fps);
   bool getLWPIDs(int **IDs_p); //caller should do a "delete [] *IDs_p"
   bool getLWPFrame(int lwp_id, Address *fp, Address *pc);
   bool readDataFromLWPFrame(int lwp_id, 
                          Address currentFP, 
-			 Address *previousFP, 
-			 Address *rtn, 
-			 bool uppermost=false);
+                         Address *previousFP, 
+                         Address *rtn, 
+                         bool uppermost=false);
 
   bool readDataFromThreadFrame(Address currentFP, 
-			 Address *previousFP, 
-			 Address *rtn, 
-			 bool uppermost=false);
+                         Address *previousFP, 
+                         Address *rtn, 
+                         bool uppermost=false);
   bool getActiveFrame(Address *fp, Address *pc, int *lwpid);
 
   // Notify daemon of threads
@@ -403,7 +406,8 @@ class process {
     unsigned start_pc, 
     void* resumestate_p, 
     bool);
-  void updateThread(pdThread *thr, int tid, unsigned pos, void* resumestate_p, resource* rid) ;
+  void updateThread(pdThread *thr, int tid, unsigned pos, void* resumestate_p,
+                    resource* rid) ;
   void updateThread(
     pdThread *thr, 
     int tid, 
@@ -419,11 +423,12 @@ class process {
 
 #ifdef SHM_SAMPLING
   time64 getInferiorProcessCPUtime(int lwp_id=-1);
-     // returns user+sys time from the u or proc area of the inferior process, which in
-     // turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
-     // to obtain it (solaris).  It is hoped that the implementation would not have to
-     // pause the inferior process (and then unpause it) in order to obtain the result,
-     // since pausing and unpausing are extremely slow (I've seen ~70ms).
+     // returns user+sys time from the u or proc area of the inferior process,
+     // which in turn is presumably obtained by mmapping it (sunos) or by using
+     // a /proc ioctl to obtain it (solaris).  It is hoped that the
+     // implementation would not have to pause the inferior process (and then
+     // unpause it) in order to obtain the result, since pausing and unpausing
+     // are extremely slow (I've seen ~70ms).
 #endif
 
   processState status() const { return status_;}
@@ -431,18 +436,19 @@ class process {
   string getStatusAsString() const; // useful for debug printing etc.
 
   bool checkContinueAfterStop() {
-	  if( continueAfterNextStop_ ) {
-		  continueAfterNextStop_ = false;
-		  return true;
-	  }
-	  return false;
+          if( continueAfterNextStop_ ) {
+                  continueAfterNextStop_ = false;
+                  return true;
+          }
+          return false;
   }
-		  
+                  
   void continueAfterNextStop() { continueAfterNextStop_ = true; }
   void Exited();
   void Stopped();
 
-  bool findInternalSymbol(const string &name, bool warn, internalSym &ret_sym) const;
+  bool findInternalSymbol(const string &name, bool warn, internalSym &ret_sym)
+         const;
 
   Address findInternalAddress(const string &name, bool warn, bool &err) const;
 
@@ -470,7 +476,8 @@ class process {
 
   bool dyninstLibAlreadyLoaded() { return hasLoadedDyninstLib; }
   bool dyninstLibIsBeingLoaded() { return isLoadingDyninstLib; }
-  void clearDyninstLibLoadFlags() { hasLoadedDyninstLib = isLoadingDyninstLib = false; }
+  void clearDyninstLibLoadFlags() {
+        hasLoadedDyninstLib = isLoadingDyninstLib = false; }
   unsigned numOfActCounters_is;
   unsigned numOfActProcTimers_is;
   unsigned numOfActWallTimers_is;
@@ -481,11 +488,13 @@ class process {
   bool deferredContinueProc;
   void updateActiveCT(bool flag, CTelementType type);
   void cleanRPCreadyToLaunch(int mid);
-  void postRPCtoDo(AstNode *, bool noCost,
 #if defined(MT_THREAD)
-		   inferiorRPCcallbackFunc, void *data, int, int, bool, bool lowmem=false);
+  void postRPCtoDo(AstNode *, bool noCost,
+                   inferiorRPCcallbackFunc, void *data, int, bool lowmem=false,
+                   int thrId=(-1), bool isSAFE=false);
 #else
-                   inferiorRPCcallbackFunc, void *data, int, bool lowmem = false);
+  void postRPCtoDo(AstNode *, bool noCost,
+                   inferiorRPCcallbackFunc, void *data, int, bool lowmem=false);
 #endif
   bool existsRPCreadyToLaunch() const;
   bool existsRPCinProgress() const;
@@ -504,9 +513,10 @@ class process {
   }
 
   bool handleTrapIfDueToRPC();
-     // look for curr PC reg value in 'trapInstrAddr' of 'currRunningRPCs'.  Return
-     // true iff found.  Also, if true is being returned, then additionally does
-     // a 'launchRPCifAppropriate' to fire off the next waiting RPC, if any.
+     // look for curr PC reg value in 'trapInstrAddr' of 'currRunningRPCs'.
+     // Return true iff found.  Also, if true is being returned, then
+     // additionally does a 'launchRPCifAppropriate' to fire off the next
+     // waiting RPC, if any.
   bool changePC(Address addr);
 
 
@@ -525,24 +535,24 @@ class process {
   bool isAddrInHeap(Address addr) 
     {
       for (unsigned i = 0; i < heap.bufferPool.size(); i++) {
-	heapItem *seg = heap.bufferPool[i];
-	if (addr >= seg->addr && addr < seg->addr + seg->length)
-	  return true;
+        heapItem *seg = heap.bufferPool[i];
+        if (addr >= seg->addr && addr < seg->addr + seg->length)
+          return true;
       }
       return false;
     }
 #endif
 
   bool writeDataSpace(void *inTracedProcess,
-		      u_int amount, const void *inSelf);
+                      u_int amount, const void *inSelf);
   bool readDataSpace(const void *inTracedProcess, u_int amount,
-		     void *inSelf, bool displayErrMsg);
+                     void *inSelf, bool displayErrMsg);
 
   bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
   bool writeTextWord(caddr_t inTracedProcess, int data);
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
   bool readTextSpace(const void *inTracedProcess, u_int amount,
-		     const void *inSelf);
+                     const void *inSelf);
 #endif
   bool continueProc();
 #ifdef BPATCH_LIBRARY
@@ -577,17 +587,17 @@ class process {
 #endif
 
   // the following 2 vrbles probably belong in a different class:
-  static string programName; // the name of paradynd (more specifically, its argv[0])
+  static string programName; // the name of paradynd (specifically, argv[0])
   static vector<string> arg_list; // the arguments of paradynd
   static string pdFlavor ;
 
 
   // These member vrbles should be made private!
-  int traceLink;		/* pipe to transfer traces data over */
-  int ioLink;			/* pipe to transfer stdout/stderr over */
+  int traceLink;                /* pipe to transfer traces data over */
+  int ioLink;                   /* pipe to transfer stdout/stderr over */
   int exitCode_;                /* termination status code */
-  processState status_;	        /* running, stopped, etc. */
-  vector<pdThread *> threads;	/* threads belonging to this process */
+  processState status_;         /* running, stopped, etc. */
+  vector<pdThread *> threads;   /* threads belonging to this process */
 #if defined(MT_THREAD) 
   hashTable *threadMap;         /* mapping table for tid->superTable */
   Address DYNINST_allthreads_p ;  /* in libRTinst  */
@@ -604,10 +614,10 @@ class process {
 #endif//MT_THREAD 
   bool continueAfterNextStop_;
 
-  resource *rid;		/* handle to resource for this process */
+  resource *rid;                /* handle to resource for this process */
 
   /* map an inst point to its base tramp */
-  dictionary_hash<const instPoint*, trampTemplate *> baseMap;	
+  dictionary_hash<const instPoint*, trampTemplate *> baseMap;   
 
 #ifdef BPATCH_LIBRARY
   /* map an address to an instPoint (that's not at entry, call or exit) */
@@ -629,7 +639,7 @@ class process {
 
   // inferior heap management
  public:
-  bool splitHeaps;		/* are there separate code/data heaps? */
+  bool splitHeaps;              /* are there separate code/data heaps? */
   inferiorHeap heap;            /* the heap */
 
   //
@@ -644,9 +654,9 @@ class process {
 #endif
   struct inferiorRPCtoDo {
      // This structure keeps track of an inferiorRPC that we will start sometime
-     // in the (presumably near) future.  There is a different structure for RPCs
-     // which have been launched and which we're waiting to finish.  Don't confuse
-     // the two.
+     // in the (presumably near) future.  There's a different structure for RPCs
+     // which have been launched and which we're waiting to finish.
+     // Don't confuse the two!
 
      AstNode *action;
      bool noCost; // if true, cost model isn't updated by generated code.
@@ -657,8 +667,8 @@ class process {
 #if defined(MT_THREAD)
      int thrId;
      bool isSafeRPC; // launch it as safe RPC or regular RPC
-		     // if DYNINSTinit, we launch it as regular RPC
-		     // otherwise launch it as MT RPC
+                     // if DYNINSTinit, we launch it as regular RPC
+                     // otherwise launch it as MT RPC
 #endif
   };
 
@@ -666,20 +676,20 @@ class process {
   bool RPCs_waiting_for_syscall_to_complete;
   bool was_running_before_RPC_syscall_complete;
   void *save_exitset_ptr; // platform-specific (for now, just solaris;
-			  // it's actually a sysset_t*)
+                          // it's actually a sysset_t*)
  
   // Trampoline guard location
   unsigned long trampGuardFlagAddr;
-					       
+                                               
   struct inferiorRPCinProgress {
-     // This structure keeps track of an inferiorRPC that has been launched and
-     // for which we're waiting to complete.  Don't confuse with 'inferiorRPCtoDo',
+     // This structure keeps track of a launched inferiorRPC which we're
+     // waiting to complete.  Don't confuse with 'inferiorRPCtoDo', 
      // which is more of a wait queue of RPCs to start launching.
-     // Also note: It's only safe for 1 RPC to be in progress at a time.
-     // If you _really_ want to launch multiple RPCs at the same time, it's actually
-     // easy to do...just do one inferiorRPC with a sequenceNode AST! (neat, eh?)
-     // (Admittedly, that does confuse the semantics of callback functions.  So
-     // the official line remains: only 1 inferior RPC per process can be ongoing.)
+     // Also note: It's only safe for 1 (one) RPC to be in progress at a time.
+     // If you _really_ want to launch multiple RPCs at the same time, it's
+     // actually easy to do...just do one inferiorRPC with a sequenceNode AST!
+     // (Admittedly, that confuses the semantics of callback functions.  So the
+     // official line remains: only 1 inferior RPC per process can be ongoing.)
      inferiorRPCcallbackFunc callbackFunc;
      void *userData;
      
@@ -690,17 +700,17 @@ class process {
      Address firstInstrAddr; // start location of temp tramp
 
      Address stopForResultAddr;
-        // location of the TRAP or ILL which marks point where paradynd should grab the
-	// result register.  Undefined if no callback fn.
+        // location of TRAP or ILL which marks point where paradynd should grab
+        // the result register.  Undefined if no callback fn.
      Address justAfter_stopForResultAddr; // undefined if no callback fn.
      Register resultRegister; // undefined if no callback fn.
 
      void *resultValue; // undefined until we stop-for-result, at which time we
-                        // fill this in.  The callback fn (which takes in this value)
-			// isn't invoked until breakAddr (the final break)
+                        // fill this in.  callback fn (which takes this value)
+                        // isn't invoked until breakAddr (the final break)
 
      Address breakAddr;
-        // location of the TRAP or ILL insn which marks the end of the inferiorRPC
+        // location of TRAP or ILL insn which marks the end of the inferiorRPC
 #if defined(MT_THREAD)
      bool isSafeRPC ;
 #endif
@@ -716,24 +726,34 @@ class process {
   bool need_to_wait(void) ;
   // The follwing 5 routines are implemented in an arch-specific .C file
   bool emitInferiorRPCheader(void *, Address &baseBytes);
+#if defined(MT_THREAD)
   bool emitInferiorRPCtrailer(void *, Address &baseBytes,
                               unsigned &breakOffset,
-			      bool stopForResult,
-			      unsigned &stopForResultOffset,
-#if defined(MT_THREAD)
-			      unsigned &justAfter_stopForResultOffset, 
-			      bool isMT=false);
+                              bool stopForResult,
+                              unsigned &stopForResultOffset,
+                              unsigned &justAfter_stopForResultOffset, 
+                              bool isMT=false);
 #else
+  bool emitInferiorRPCtrailer(void *, Address &baseBytes,
+                              unsigned &breakOffset,
+                              bool stopForResult,
+                              unsigned &stopForResultOffset,
                               unsigned &justAfter_stopForResultOffset);
 #endif
-  Address createRPCtempTramp(AstNode *action,
-			      bool noCost, bool careAboutResult,
-			      Address &breakAddr,
-			      Address &stopForResultAddr,
-			      Address &justAfter_stopForResultAddr,
 #if defined(MT_THREAD)
-			      Register &resultReg, int thrId, bool isMT=false, bool lowmem=false);
+  Address createRPCtempTramp(AstNode *action,
+                              bool noCost, bool careAboutResult,
+                              Address &breakAddr,
+                              Address &stopForResultAddr,
+                              Address &justAfter_stopForResultAddr,
+                              Register &resultReg, bool lowmem=false,
+                              int thrId=(-1), bool isMT=false);
 #else
+  Address createRPCtempTramp(AstNode *action,
+                              bool noCost, bool careAboutResult,
+                              Address &breakAddr,
+                              Address &stopForResultAddr,
+                              Address &justAfter_stopForResultAddr,
                               Register &resultReg, bool lowmem=false);
 #endif
   void *getRegisters();
@@ -785,16 +805,19 @@ class process {
   // forkProcess: this function should be called when a process we are tracing
   // forks a child process.
   // This function returns a new process object associated with the child.
-  // It also writes to "map" s.t. for each instInstance in the parent, we have the
-  // corresponding instInstance in the child.
-  static process *forkProcess(const process *parent, pid_t childPid,
-			      dictionary_hash<instInstance*,instInstance*> &map,
-			      int iTrace_fd
+  // It also writes to "map" s.t. for each instInstance in the parent, we have
+  // the corresponding instInstance in the child.
 #ifdef SHM_SAMPLING
-                              ,key_t theKey,
-                              void *applAttachedAtPtr
+  static process *forkProcess(const process *parent, pid_t childPid,
+                              dictionary_hash<instInstance*,instInstance*> &map,
+                              int iTrace_fd,
+                              key_t theKey,
+                              void *applAttachedAtPtr);
+#else
+  static process *forkProcess(const process *parent, pid_t childPid,
+                              dictionary_hash<instInstance*,instInstance*> &map,
+                              int iTrace_fd);
 #endif
-                              );
 
   // get and set info. specifying if this is a dynamic executable
   void setDynamicLinking(){ dynamiclinking = true;}
@@ -845,7 +868,7 @@ class process {
   // for this function
   function_base *findOneFunction(const string &func_name);
 
-  // findOneFunctionFromAll: returns the function associated with function "func_name"
+  // findOneFunctionFromAll: returns function associated with "func_name"
   // This routine checks both the a.out image and any shared object images 
   // for this function
   function_base *findOneFunctionFromAll(const string &func_name);
@@ -910,15 +933,15 @@ class process {
   // If the function has not yet been bound, then "target" is set to the
   // function_base associated with the name of the target function (this is
   // obtained by the PLT and relocation entries in the image), and the instPoint
-  // callee is not set.  If the callee function cannot be found, (ex. function
+  // callee is not set.  If the callee function cannot be found, (e.g. function
   // pointers, or other indirect calls), it returns false.
   // Returns false on error (ex. process doesn't contain this instPoint).
   bool findCallee(instPoint &instr, function_base *&target);
 
 #ifndef BPATCH_LIBRARY
   bool SearchRelocationEntries(const image *owner, instPoint &instr,
-			       function_base *&target,
-			       Address target_addr, Address base_addr);
+                               function_base *&target,
+                               Address target_addr, Address base_addr);
 #endif
   // these routines are for testing, setting, and clearing the 
   // waiting_for_resources flag, if this flag is true a process is not 
@@ -1036,14 +1059,12 @@ private:
   bool hasBootstrapped;
      // set to true when we get callback from inferiorRPC call to DYNINSTinit
 
-  // the following two variables are used when libdyninstRT is dynamically linked
-  // which currently is done only on the Windows NT platform.
+  // following two variables are used when libdyninstRT is dynamically linked
   // On other platforms the values are undefined
   bool hasLoadedDyninstLib; // true iff dyninstlib has been loaded already
   bool isLoadingDyninstLib; // true iff we are currently loading dyninst lib
   
-  // the next two variables are used when we are loading dyninstlib -- currently
-  // Windows NT only
+  // the next two variables are used when we are loading dyninstlib
   // They are used by the special inferior RPC that makes the call to load the
   // library -- we use a special inferior RPC because the regular RPC assumes
   // that the inferior heap already exists, which is not true if libdyninstRT
@@ -1052,9 +1073,9 @@ private:
   void *savedRegs;
 
 
-  const process *parent;	/* parent of this process */
-  image *symbols;		/* information related to the process */
-  int pid;			/* id of this process */
+  const process *parent;        /* parent of this process */
+  image *symbols;               /* information related to the process */
+  int pid;                      /* id of this process */
 
 #ifdef SHM_SAMPLING
   time64 previous; // This is being used to avoid time going backwards in
@@ -1132,8 +1153,8 @@ private:
   // and have an inherit_tracing_state flag -- DAN
   bool createdViaFork;
 
-  // the following 2 are defined only if 'createdViaAttach' is true; action is taken
-  // on these vrbles once DYNINSTinit completes.
+  // the following 2 are defined only if 'createdViaAttach' is true; action is
+  // taken on these vrbles once DYNINSTinit completes.
 
   bool wasRunningWhenAttached;
   bool needToContinueAfterDYNINSTinit;
@@ -1168,7 +1189,7 @@ private:
 #ifdef BPATCH_LIBRARY
   bool API_detach_(const bool cont); // XXX Should eventually replace detach_()
 #endif
-  bool attach_(); // low-level attach; called by attach() (formerly OS::osAttach())
+  bool attach_(); // low-level attach; called by attach() (was OS::osAttach())
   bool stop_(); // formerly OS::osStop
 
   // stops a process
@@ -1203,7 +1224,7 @@ private:
   pd_Function *signal_handler;  // signal handler function (for stack walking)
 
   function_base *mainFunction;  // the main function for this process,
-                              // this is usually, but not always, main
+                              // this is usually, but not always, "main"
                                  
 
   // needToAddALeafFrame: returns true if the between the current frame 
@@ -1216,7 +1237,7 @@ private:
   // specified by entry and base_addr.  If it has been bound, then the callee 
   // function is returned in "target_pdf", else it returns false. 
   bool hasBeenBound(const relocationEntry entry, pd_Function *&target_pdf, 
-		    Address base_addr) ;
+                    Address base_addr) ;
 
   // findpdFunctionIn: returns the function which contains this address
   // This routine checks both the a.out image and any shared object images 
@@ -1224,17 +1245,18 @@ private:
   pd_Function *findpdFunctionIn(Address adr);
 
   bool isRunning_() const;
-     // needed to initialize the 'wasRunningWhenAttached' member vrble.  Determines
-     // whether the process is running by doing a low-level OS check, not by checking
-     // member vrbles like status_.  May assume that process::attach() has already run,
-     // but can't assume anything else.  May barf with a not-yet-implemented error on a
-     // given platform if the platform doesn't yet support attaching to a running process.
-     // But there's no reason why we shouldn't be able to implement this on any platform;
-     // after all, the output from the "ps" command can be used (T --> return false,
-     // S or R --> return true, other --> return ?)
+     // needed to initialize the 'wasRunningWhenAttached' member vrble. 
+     // Determines whether the process is running by doing a low-level OS
+     // check, not by checking member vrbles like status_.  May assume that
+     // process::attach() has already run, but can't assume anything else.
+     // May barf with a not-yet-implemented error on a given platform if the
+     // platform doesn't yet support attaching to a running process. But
+     // there's no reason why we shouldn't be able to implement this on any
+     // platform; after all, the output from the "ps" command can be used
+     // (T --> return false, S or R --> return true, other --> return ?)
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
-   mutationList	beforeMutationList, afterMutationList;
+   mutationList beforeMutationList, afterMutationList;
 
    bool saveOriginalInstructions(Address addr, int size);
    bool writeMutationList(mutationList &list);
@@ -1247,8 +1269,7 @@ private:
    // to avoid platform-dependent initialization in process ctor.)
    bool stoppedInSyscall;  
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
-   // These variables are meaningful only when `stoppedInSyscall' is
-   // true.
+   // These variables are meaningful only when `stoppedInSyscall' is true.
    int stoppedSyscall;     // The number of the interrupted syscall
    prgregset_t syscallreg; // Registers during sleeping syscall
                            // (note we do not save FP registers)
@@ -1261,11 +1282,11 @@ private:
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
  || defined(mips_sgi_irix6_4)
-   // some very useful items gathered from /proc (initialized in attach() [solaris.C],
-   // as soon as /proc fd is opened)
+   // some very useful items gathered from /proc as soon as /proc fd is opened)
+   // (initialized in attach() [solaris.C],
    string argv0; // argv[0] of program, at the time it started up
    string pathenv; // path env var of program, at the time it started up
-   string cwdenv; // curr working directory of program, at the time it started up
+   string cwdenv; // curr working directory of program, at the time it started
 
 //   string fullPathToExecutable_;
       // very useful, especially on attach (need this to parse the symbol table)
@@ -1285,12 +1306,13 @@ void inferiorMallocAlign(unsigned &size);
 #endif /* USES_DYNAMIC_INF_HEAP */
 
 Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type=anyHeap,
-		       Address near_=0, bool *err=NULL);
+                       Address near_=0, bool *err=NULL);
 void inferiorFree(process *p, Address item, const vector<addrVecType> &);
 process *createProcess(const string file, vector<string> argv, 
-		       vector<string> envp, const string dir);
+                       vector<string> envp, const string dir);
 #ifdef BPATCH_LIBRARY
-bool attachProcess(const string &progpath, int pid, int afterAttach, process *&newProcess);
+bool attachProcess(const string &progpath, int pid, int afterAttach,
+                   process *&newProcess);
 #else
 bool attachProcess(const string &progpath, int pid, int afterAttach);
 #endif
