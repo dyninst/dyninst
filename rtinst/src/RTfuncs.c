@@ -3,7 +3,10 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.24  1996/02/01 17:47:57  naim
+ * Revision 1.25  1996/02/13 21:36:24  naim
+ * Minor change related to the cost model for the CM-5 - naim
+ *
+ * Revision 1.24  1996/02/01  17:47:57  naim
  * Fixing some problems related to timers and race conditions. I also tried to
  * make a more standard definition of certain procedures (e.g. reportTimer)
  * across all platforms - naim
@@ -241,8 +244,16 @@ void DYNINSTreportBaseTramps()
 
     sample.slotsExecuted = 0;
 
-    sample.obsCostIdeal = ((double) DYNINSTgetObservedCycles(1)) *
-	(DYNINSTcyclesToUsec / 1000000.0);
+    //
+    // Adding the cost corresponding to the alarm when it goes off.
+    // This value includes the time spent inside the routine (DYNINSTtotal-
+    // sampleTime) plus the time spent during the context switch (106 usecs
+    // for monona, CM-5)
+    //
+
+    sample.obsCostIdeal  = ((((double) DYNINSTgetObservedCycles(1) *
+                              (double)DYNINSTcyclesToUsec) + 
+                             DYNINSTtotalSampleTime + 106) / 1000000.0);
 
     currentCPU = DYNINSTgetCPUtime();
     currentWall = DYNINSTgetWallTime();
