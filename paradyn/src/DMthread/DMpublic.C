@@ -4,6 +4,9 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
+ * Revision 1.65  1996/02/02 02:13:55  karavan
+ * changed dataManager::magnify() to return struct like magnify2()
+ *
  * Revision 1.64  1996/01/29 00:55:00  newhall
  * Chaged clearPersistentData so that histograms (and possibly metricInstances)
  * with no data collection are deleted.  Changed metricInstanceHandles and
@@ -762,8 +765,8 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
 // each child of resource rh with the remaining resources that make up rlh
 // if the resource rh is a component of the focus rlh, otherwise it returns 0
 //
-vector<resourceListHandle> *dataManager::magnify(resourceHandle rh, 
-						 resourceListHandle rlh){
+vector<rlNameId> *dataManager::magnify(resourceHandle rh, 
+				       resourceListHandle rlh){
 
     resourceList *rl = resourceList::getFocus(rlh);
     if(rl){
