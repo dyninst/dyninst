@@ -78,7 +78,7 @@ inst-winnt.obj: ../../dyninstAPI/src/inst-x86.C \
  dyninstRPC.xdr.SRVR.h dyninstRPC.xdr.h ../../util/h/rpcUtil.h \
  ../../paradyn/src/met/mdl.h \
  ../../paradynd/src/pvm_support.h ../../paradynd/src/perfStream.h \
- ../../paradynd/src/context.h \
+ ../../paradynd/src/context.h
 inst-x86.obj: ../../dyninstAPI/src/inst-x86.C ../../util/h/headers.h \
  ../../util/h/ntHeaders.h ../../rtinst/h/rtinst.h \
  ../../dyninstAPI/src/symtab.h ../../util/h/Pair.h \
