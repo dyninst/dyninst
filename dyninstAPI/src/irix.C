@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.12 1999/12/06 22:49:31 chambrea Exp $
+// $Id: irix.C,v 1.13 1999/12/22 22:03:34 wylie Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -137,7 +137,8 @@ void print_proc_pc(int fd)
 
 bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf)
 {
-  //fprintf(stderr, ">>> process::readDataSpace_(0x%016lx)\n", inTraced);
+  //fprintf(stderr, ">>> process::readDataSpace_(%d@0x%016lx)\n", 
+  //        nbytes, inTraced);
   ptraceOps++; 
   ptraceBytes += nbytes;
 
@@ -152,6 +153,10 @@ bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf)
     if ((last = read(proc_fd, dst + nbytes - left, left)) == -1) {
       perror("process::readDataSpace_(read)");
       return false;
+    } else if (last == 0) {
+      fprintf(stderr,"process::readDataSpace_(read=%d@0x%016lx,left=%d/%d\n",
+              last,inTraced,left,nbytes);
+      return false;
     }
   }
   return true;
@@ -159,7 +164,8 @@ bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf)
 
 bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
 {
-  //fprintf(stderr, ">>> process::writeDataSpace_(0x%08x: %i bytes)\n", inTraced, nbytes);
+  //fprintf(stderr, ">>> process::writeDataSpace_(%d@0x%016lx)\n", 
+  //        nbytes, inTraced);
   ptraceOps++; 
   ptraceBytes += nbytes;
 
