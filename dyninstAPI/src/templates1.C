@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.48 2002/12/20 07:49:59 jaw Exp $
+//$Id: templates1.C,v 1.49 2003/01/02 19:51:29 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -55,7 +55,7 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/sharedobject.h"
-#include "common/h/list.h"
+#include "common/h/List.h"
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
 
 class dyn_lwp;
@@ -93,7 +93,7 @@ template class  dictionary_hash <unsigned, dyn_lwp *>;
 template class  pdvector<dictionary_hash <unsigned, dyn_lwp *>::entry>;
 template class  dictionary_hash_iter <unsigned, dyn_lwp *>;
 
-#include "common/src/list.C"
+#include "common/src/List.C"
 template class  List<instInstance*>;
 template class  ListBase<instInstance*, void*>;
 template class  dictionary_hash <const instPoint *, trampTemplate *>;

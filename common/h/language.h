@@ -39,60 +39,25 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: installed_miniTramps_list.h,v 1.2 2003/01/02 19:51:25 schendel Exp $
 
-#ifndef INSTALLED_MINITRAMPS_LIST_H
-#define INSTALLED_MINITRAMPS_LIST_H
+// $Id: language.h,v
 
-#include "common/h/List.h"
-#include "dyninstAPI/src/instP.h"
+// Put C++ language specific code in here
 
-class instInstance;
+#ifndef __LANGUAGE__
+#define __LANGUAGE__
 
-class installed_miniTramps_list {
-  List<instInstance *> mt_list;
+#if ! defined( TYPENAME )
 
- public:
-  installed_miniTramps_list() { }
-  explicit installed_miniTramps_list(const installed_miniTramps_list &fromList)
-    : mt_list(fromList.mt_list) { 
-  }
-  
-  unsigned numMiniTramps() { 
-    return (mt_list.isEmpty() ? 0 : mt_list.count());
-  }
-  // be careful, because these any references to these objects could be
-  // invalid if addMiniTramp is called between your getFirstMT/getLastMT call
-  // and your use of the instInstance.  The installedMiniTramps... dictionary
-  // of instPoint to installedMiniTramps_list may copy and delete this
-  // installed_miniTramps_list when it expands it's internal data.
-  instInstance *getFirstMT() {
-    if(mt_list.isEmpty()) { return NULL; }
-    return *(mt_list.begin());
-  }
-  instInstance *getLastMT();
+#if defined( __GNUC__ )
+#define TYPENAME typename
+#elif defined(__SUNPRO_CC)
+#define TYPENAME typename
+#else  // other compilers may not support the typename keyword yet
+#define TYPENAME
+#endif
 
-  List<instInstance*>::iterator get_begin_iter() {
-    return mt_list.begin();
-  }
-  List<instInstance*>::const_iterator get_begin_iter() const {
-    return mt_list.begin();
-  }
-
-  List<instInstance*>::iterator get_end_iter() {
-    return mt_list.end();
-  }
-  List<instInstance*>::const_iterator get_end_iter() const {
-    return mt_list.end();
-  }
-
-  void addMiniTramp(callOrder order, instInstance *inst);
-
-  void deleteMiniTramp(instInstance *inst);
-  void clear() {
-    mt_list.clear();
-  }
-};
+#endif
 
 
 

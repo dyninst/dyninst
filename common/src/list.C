@@ -42,7 +42,7 @@
 // $Id: list.C,v
 
 #include <iostream.h>
-#include "common/h/list.h"
+#include "common/h/List.h"
 
 
 template <class DataType, class KeyType> DO_INLINE_F typename 

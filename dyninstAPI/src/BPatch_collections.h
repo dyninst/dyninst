@@ -45,7 +45,7 @@
 #include "BPatch_type.h"     //type and localVar
 #include "common/h/String.h"
 #include "common/h/Dictionary.h"
-#include "common/h/list.h"
+#include "common/h/List.h"
 
 
 /*
