@@ -2,7 +2,12 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
- * Revision 1.5  1994/09/30 21:03:07  newhall
+ * Revision 1.6  1994/11/08 00:20:26  tamches
+ * removed blt-ish influences
+ * sped up processing of new data callbacks
+ * very close now to dg2.C of barchart
+ *
+ * Revision 1.5  1994/09/30  21:03:07  newhall
  * removed call to StartVisi
  *
  * Revision 1.4  1994/09/25  02:07:47  newhall
@@ -19,144 +24,67 @@
  *
  */
 #include <stdlib.h>
+#include <iostream.h>
 #include <tcl.h>
 #include <tk.h>
 #include "../../../visi/h/visualization.h"
 
-extern "C" {
-  int Blt_GraphElement(Tcl_Interp *interp, char *pathName, char *elemName, 
-		       int numValues, double *valueArr);
-}
-
 extern Tcl_Interp *MainInterp;
 
-int Dg_Add(int dummy) {
-  int retval;
-
-  retval = Tcl_Eval(MainInterp, "DgConfigCallback");
-  if (retval == TCL_ERROR) {
-    fprintf(stderr, "%s\n", MainInterp->result);
-  }
-  return(retval);
+void my_visi_callback(void* arg0, int* arg1, long unsigned int* arg2) {
+    if (-1 == visi_callback())
+       exit(1);
 }
 
-int Dg_Data(int dummy) {
-  int retval = TCL_OK, thislast = -1;
-  static LastBucket = 0;
-  char cmd[256];
+int Dg_Add(int dummy) {
+   // Gets called by visi lib when it detects new METRICS and/or RESOURCES
 
-  /* 
-   *  Simulate valid callback
-   */
-  for (unsigned m = 0; m < dataGrid.NumMetrics(); m++) {
-    for (unsigned r = 0; r < dataGrid.NumResources(); r++) {
-      if(dataGrid[m][r].Valid){
-	if (! dataGrid[m][r].userdata) {
-	  sprintf(cmd,"DgValidCallback %d %d", m, r);
-	  retval = Tcl_Eval(MainInterp, cmd);
-	  if (retval == TCL_ERROR) {
-	    fprintf(stderr, "%s\n", MainInterp->result);
-	  }
-	  dataGrid[m][r].userdata = (void *) malloc(sizeof (int));
-	  *((int *) dataGrid[m][r].userdata) = 1;
-	}
-	if (thislast < 0) {
-	  thislast = dataGrid[m][r].LastBucketFilled();
-	}
-      }
-    }
-  }
+   const int retval = Tcl_Eval(MainInterp, "DgConfigCallback");
+   if (retval == TCL_ERROR)
+      cerr << MainInterp->result << endl;
 
-  /*
-   *  Send range to tcl
-   */
-  if (thislast < LastBucket) {
-    LastBucket = thislast-1;
-  }
-  if (thislast >= 0) {
-    sprintf(cmd,"DgDataCallback %d %d", LastBucket+1, thislast);
-    retval = Tcl_Eval(MainInterp, cmd);
-    if (retval == TCL_ERROR) {
-      fprintf(stderr, "%s\n", MainInterp->result);
-    }
-    LastBucket = thislast;
-  }
+   return retval;
+}
 
-  return(retval);
+int Dg_Data(int lastBucket) {
+   // New data has arrived.
+   // We are passed the bucket number.  We can grab data for all current
+   // metric/resource pairs and do something.
+
+   // Here, we just invoke the tcl script "DgDataCallback", passing lastBucket
+
+   char buffer[100];
+   sprintf(buffer, "DgDataCallback %d", lastBucket);
+   const int retval = Tcl_Eval(MainInterp, buffer);
+   if (retval == TCL_ERROR)
+      cerr << MainInterp->result << endl;
+
+   return retval;
 }
 
 int Dg_Fold(int dummy) {
-  int retval;
+   const int retval=Tcl_Eval(MainInterp, "DgFoldCallback");
+   if (retval == TCL_ERROR)
+      cerr << MainInterp->result << endl;
 
-  retval = Tcl_Eval(MainInterp, "DgFoldCallback");
-  if (retval == TCL_ERROR) {
-    fprintf(stderr, "%s\n", MainInterp->result);
-  }
-  return(retval);
+   return retval;
 }
 
 int Dg_Invalid(int dummy) {
-  int retval;
+   const int retval=Tcl_Eval(MainInterp, "DgInvalidCallback");
+   if (retval == TCL_ERROR)
+      cerr << MainInterp->result << endl;
 
-  retval = Tcl_Eval(MainInterp, "DgInvalidCallback");
-  if (retval == TCL_ERROR) {
-    fprintf(stderr, "%s\n", MainInterp->result);
-  }
-  return(retval);
+   return retval;
 }
 
 int Dg_Phase(int dummy) {
-  int retval;
+   const int retval=Tcl_Eval(MainInterp, "DgPhaseCallback");
+   if (retval == TCL_ERROR)
+      cerr << MainInterp->result << endl;
 
-  retval = Tcl_Eval(MainInterp, "DgPhaseCallback");
-  if (retval == TCL_ERROR) {
-    fprintf(stderr, "%s\n", MainInterp->result);
-  }
-  return(retval);
+  return retval;
 }
-
-int Dg_GraphElem(Tcl_Interp *interp, char *path, char *elem, int mid, int rid) 
-{
-  static double *coords = NULL;
-  double *cptr, bwid;
-  float *vals, *vptr;
-  int numb, b;
-
-  /* Allocate an array for the coords */
-  if (coords == NULL) {
-    numb = dataGrid.NumBins();
-    coords = (double *) malloc(sizeof(double) * numb * 2);
-    if (!coords) {
-      sprintf(interp->result, "Dg_GraphElem: Could not allocate coords\n");
-      return TCL_ERROR;
-    }
-  }    
-
-  /* Binwidth and numbuckets give us the t coords */
-  numb = dataGrid[mid][rid].LastBucketFilled()+1;
-  bwid = dataGrid.BinWidth();
-
-  /* Get the data values */
-  vals = dataGrid[mid][rid].Value();
-
-  /* Fill the array */
-  cptr = coords;  
-  vptr = vals;
-  for (b = 0; b < numb; b++) {
-    *cptr++ = b*bwid;
-    if (isnan(*vptr)) {
-      *cptr = 0.0;
-    } else {
-      *cptr = (double) *vptr;
-    }
-    cptr++;
-    vptr++;
-  }
-
-  /* Give it to BLT */
-  return(Blt_GraphElement(interp, path, elem, numb*2, coords));
-}
-
 
 #define   AGGREGATE        0
 #define   BINWIDTH         1
@@ -172,24 +100,22 @@ int Dg_GraphElem(Tcl_Interp *interp, char *path, char *elem, int mid, int rid)
 #define   STOPSTREAM       11
 #define   DGSUM            12
 #define   DGVALID          13
-#define   VALUE            14
-#define   CMDERROR         15
-#define   LASTBUCKET       16
-#define   BLTGRAPHELEM     17
+#define   DGENABLED        14
+#define   VALUE            15
+#define   CMDERROR         16
+#define   LASTBUCKET       17
 #define   FIRSTBUCKET      18
 
-struct cmdTabEntry 
-{
-  char *cmdname;
-  int index;
-  int numargs;
+struct cmdTabEntry {
+   char *cmdname;
+   int index;
+   int numargs;
 };
 
 static struct cmdTabEntry Dg_Cmds[] = {
   {"aggregate",    AGGREGATE,       2},
   {"binwidth",     BINWIDTH,        0},
-  {"bltgraphelem", BLTGRAPHELEM,    4},
-  {"firstbucket",  FIRSTBUCKET,      2},
+  {"firstbucket",  FIRSTBUCKET,     2},
   {"foldmethod",   FOLDMETHOD,      2},
   {"lastbucket",   LASTBUCKET,      2},
   {"metricname",   METRICNAME,      1},
@@ -203,24 +129,22 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"stop",         STOPSTREAM,      2},
   {"sum",          DGSUM,           2},
   {"valid",        DGVALID,         2},
+  {"enabled",      DGENABLED,       2},
   {"value",        VALUE,           3},
   {NULL,           CMDERROR,        0}
 };
 
-static int findCommand(Tcl_Interp *interp, 
-		       int argc, 
-		       char *argv[])
-{
-  struct cmdTabEntry *C;
-
+int findCommand(Tcl_Interp *interp, 
+		int argc, char *argv[]) {
   if (argc == 0) {
     sprintf(interp->result, "USAGE: Dg <option> [args...]\n");
     return CMDERROR;
   }
-  for (C = Dg_Cmds; C->cmdname; C++) {
+  for (cmdTabEntry *C = Dg_Cmds; C->cmdname; C++) {
     if (strcmp(argv[0], C->cmdname) == 0) {
       if ((argc-1) == C->numargs) 
-	return C->index;
+	return C->index; // successful parsing
+
       sprintf(interp->result, 
 	      "%s: wrong number of args (%d). Should be %d\n",
 	      argv[0], argc-1, C->numargs);
@@ -233,16 +157,14 @@ static int findCommand(Tcl_Interp *interp,
 }
 
 int Dg_TclCommand(ClientData clientData,
-	       Tcl_Interp *interp, 
-	       int argc, 
-	       char *argv[])
-{
-  int cmdDex, m, r, buck;
+		  Tcl_Interp *interp, 
+		  int argc, 
+		  char *argv[]) {
+  const int cmdDex = findCommand(interp, argc-1, argv+1);
+  if (cmdDex == CMDERROR)
+     return TCL_ERROR;
 
-  cmdDex = findCommand(interp, argc-1, argv+1);
-  if (cmdDex == CMDERROR) {
-    return TCL_ERROR;
-  }
+  int m, r, buck;
 
   switch(cmdDex) {
   case AGGREGATE:   
@@ -254,11 +176,6 @@ int Dg_TclCommand(ClientData clientData,
   case BINWIDTH:     
     sprintf(interp->result, "%g", dataGrid.BinWidth());
     return TCL_OK;
-
-  case BLTGRAPHELEM:     
-    m = atoi(argv[2]);
-    r = atoi(argv[3]);
-    return (Dg_GraphElem(interp, argv[4], argv[5], m, r));
 
   case FIRSTBUCKET:
     m = atoi(argv[2]);
@@ -310,7 +227,9 @@ int Dg_TclCommand(ClientData clientData,
 
   case STARTSTREAM:       
     // GetMetsRes(argv[2], argv[3], 0); 
-    GetMetsRes((char *)NULL,0, 0); 
+//    GetMetsRes((char *)NULL,0, 0); 
+    GetMetsRes(argv[2], atoi(argv[3]), 0); // 0-->histogram (1-->scalar)
+                                           // argv[3] is num
     return TCL_OK;
 
   case STOPSTREAM:
@@ -331,6 +250,12 @@ int Dg_TclCommand(ClientData clientData,
     sprintf(interp->result, "%d", dataGrid.Valid(m,r));
     return TCL_OK;
 
+  case DGENABLED:
+    m = atoi(argv[2]);
+    r = atoi(argv[3]);
+    sprintf(interp->result, "%d", dataGrid[m][r].Enabled());
+    return TCL_OK;
+
   case VALUE:       
     m = atoi(argv[2]);
     r = atoi(argv[3]);
@@ -343,42 +268,25 @@ int Dg_TclCommand(ClientData clientData,
   return TCL_ERROR;
 }
 
-static void
-my_visi_callback(void* arg0, int* arg1, long unsigned int* arg2)
-{
-    int ret;
+int Dg_Init(Tcl_Interp *interp) {
+   int fd=VisiInit();
+   if (fd < 0) {
+      cerr << "tclVisi: could not initialize visilib" << endl;
+      exit(-1);
+   }
 
-    ret = visi_callback();
-    if (ret == -1) exit(0);
-}
-
-int 
-Dg_Init(Tcl_Interp *interp)
-{
-  int fd;
-
-  /* Initialize visualization module */
-  if((fd = VisiInit()) < 0){
-    exit(-1);
-  }
   (void) RegistrationCallback(ADDMETRICSRESOURCES,Dg_Add); 
   (void) RegistrationCallback(DATAVALUES,Dg_Data); 
   (void) RegistrationCallback(FOLD,Dg_Fold); 
   (void) RegistrationCallback(INVALIDMETRICSRESOURCES,Dg_Invalid);
   (void) RegistrationCallback(PHASENAME,Dg_Phase);
-  {
-    /* char *vargv[3];*/
-    /* vargv[0] = "foo";*/
-    /* vargv[1] = "cpu";*/
-    /* vargv[2] = "Procedure Process Machine SyncObject";*/
-
-    /* (void) StartVisi(3,vargv);*/
-    /* (void) StartVisi(0,NULL); */ 
-  }
 
   Tcl_CreateCommand(interp, "Dg", Dg_TclCommand, 
 		    (ClientData *) NULL,(Tcl_CmdDeleteProc *) NULL);
  
+  // Arrange for my_visi_callback() to be called whenever data is waiting
+  // to be read off of descriptor "fd".  Extremely important! [tcl book
+  // page 357]
   Tk_CreateFileHandler(fd, TK_READABLE, (Tk_FileProc *) my_visi_callback, 0);
 
   return TCL_OK;
