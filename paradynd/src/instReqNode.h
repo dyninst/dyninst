@@ -50,6 +50,7 @@
 class instPoint;
 class AstNode;
 
+class instrDataNode;
 class instReqNode;
 
 class catchupReq {
@@ -62,7 +63,6 @@ class catchupReq {
     for (unsigned i = 0; i < src.reqNodes.size(); i++)
       reqNodes.push_back(src.reqNodes[i]);
   }
-
 
   vector<instReqNode *> reqNodes;
   Frame        frame;
@@ -78,17 +78,25 @@ class instReqNode {
     trampsHookedUp(false), rinstance(NULL) {
     // needed by Vector class
   }
-  
-  instReqNode(const instReqNode &src) {
-    point = src.point;
-    when = src.when;
-    order = src.order;
-    rinstance = src.rinstance;
-    ast = assignAst(src.ast);
-    loadedIntoApp = src.loadedIntoApp;
-    mtHandle = src.mtHandle;
-    trampsHookedUp = src.trampsHookedUp;
+
+  // normal copy constructor, used eg. in vector<instReqNode> expansion
+  instReqNode(const instReqNode &par) : 
+    point(par.point), ast(assignAst(par.ast)), when(par.when), 
+    order(par.order), loadedIntoApp(par.loadedIntoApp), mtHandle(par.mtHandle),
+    trampsHookedUp(par.trampsHookedUp), rinstance(par.rinstance), 
+    rpcCount(par.rpcCount)
+  { }
+
+  // special copy constructor used for fork handling
+  instReqNode(const instReqNode &par, process *childProc) : 
+    point(par.point), ast(assignAst(par.ast)), when(par.when), 
+    order(par.order), loadedIntoApp(par.loadedIntoApp), 
+    trampsHookedUp(par.trampsHookedUp), rinstance(par.rinstance), 
+    rpcCount(par.rpcCount)
+  {
+    assert(getInheritedMiniTramp(&par.mtHandle, &mtHandle, childProc));
   }
+
   instReqNode &operator=(const instReqNode &src) {
     if (this == &src)
       return *this;
@@ -106,28 +114,14 @@ class instReqNode {
   }
 
   loadMiniTramp_result loadInstrIntoApp(process *theProc, 
-					returnInstance *&retInstance,
-					instInstance **mtInst);
+					returnInstance *&retInstance);
   void hookupJumps(process *proc);  
-
   void disable(process *proc);
-
   timeLength cost(process *theProc) const;
-  
-  static instReqNode forkProcess(const instReqNode &parent,
-                         const dictionary_hash<instInstance*,instInstance*> &);
-  // should become a copy-ctor...or at least, a non-static member fn.
-  
-  bool unFork(process *proc, 
-	      dictionary_hash<instInstance*, instInstance*> &map) const;
-  // The fork syscall duplicates all trampolines from the parent into the
-  // child. For those mi's which we don't want to propagate to the child,
-  // this creates a problem.  We need to remove instrumentation code from the
-  // child.  This routine does that.  "map" maps instInstances of the parent
-  // to those in the child.
-
   returnInstance *getRInstance() const { return rinstance; }
-  
+  void setAffectedDataNodes(instInstanceFreeCallback cb, 
+		            vector<instrDataNode *> *affectedNodes); 
+
   bool postCatchupRPC(process *theProc, Frame &triggeredFrame, int mid);
   static void catchupRPCCallbackDispatch(process * /*theProc*/,
 					 void *userData, void *returnValue)
