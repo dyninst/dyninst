@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.10 2002/10/15 17:12:12 schendel Exp $
+// $Id: varInstanceHKs.C,v 1.11 2002/10/28 04:54:49 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -173,6 +173,7 @@ static rawTime64 calcTimeValueToUse(int count, rawTime64 start,
   sampleVal_cerr << "calcTimeValueToUse-  count:" << count << ", start: " 
 		 << start << ", total: " << total 
 		 << ", currentTime: " << currentTime;
+
    rawTime64 retVal = 0;
    if (count == 0) {
       // inactive timer; the easy case; just report total.
@@ -340,6 +341,7 @@ bool processTimerHK::perform(const tTimer *theTimer,
 
    // If the thread obj hasn't yet been assigned to this dataReqNode, skip
    threadMetFocusNode_Val *thrNval = getThrNodeVal();
+
    if(thrNval == NULL) {
      return true;
    }
@@ -411,28 +413,25 @@ bool processTimerHK::perform(const tTimer *theTimer,
    timeLength timeValueToUse=inferiorProc->units2timeLength(rawTimeValueToUse);
    sampleVal_cerr << "raw-total: " << total << ", timeValToUse: " 
 		  << timeValueToUse << "\n";
-   
+
    // Check for rollback; update lastTimeValueUsed (the two go hand in hand)
    // cerr <<"lastTimeValueUsed="<< lastTimeValueUsed << endl ;
    if (timeValueToUse < lastTimeValueUsed) {
-#if  !defined(MT_THREAD)
-   // Timer could roll back if the per-thread virtual timer is reused by
-   // another thread, to avoid this to happen, we should reuse them with a
-   // least recently used strategy.  See DYNINST_hash_delete in RTinst.c
+      // Timer could roll back if the per-thread virtual timer is reused by
+      // another thread, to avoid this to happen, we should reuse them with a
+      // least recently used strategy.  See DYNINST_hash_delete in RTinst.c
+      //ct_showTrace("daemon os cpu-timer history");
+      //vt_showTrace("daemon vtimer history");
       const char bell = ' '; //07;
       cerr << "processTimerHK::perform(): process timer rollback (" 
 	   << timeValueToUse << "," << lastTimeValueUsed << ")" 
 	   << bell << endl;
       cerr << "timer was " << (count > 0 ? "active" : "inactive") 
-	   << ", start=" << start
-	   << ", total=" << total
-	   << ", inferiorCPUtime=" << inferiorCPUtime
-	   << endl;
+	   << ", start=" << start << ", total=" << total
+	   << ", inferiorCPUtime=" << inferiorCPUtime << endl;
 
-#endif
       timeValueToUse = lastTimeValueUsed;
-
-//      assert(false);
+      // assert(false);
    }
    else
       lastTimeValueUsed = timeValueToUse;
