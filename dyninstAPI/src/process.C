@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.278 2001/11/06 21:29:08 bernat Exp $
+// $Id: process.C,v 1.279 2001/12/06 19:59:17 zandy Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -6431,11 +6431,9 @@ void process::getObservedCostAddr() {
 }
 
 bool process::checkStatus() {
-  if (status_ == exited) {
-    sprintf(errorLine, "attempt to ptrace exited process %d\n", pid);
-    logLine(errorLine);
+  if (status_ == exited)
     return(false);
-  } else
+  else
     return true;
 }
 
