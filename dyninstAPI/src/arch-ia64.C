@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.33 2004/07/01 20:11:46 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.34 2004/07/23 20:38:57 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -669,8 +669,14 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 		Address absoluteAddress = pdf->allocs[i] + pdf->get_address() + baseAddress;
 		// /* DEBUG */ fprintf( stderr, "%s[%d]: absolute address of alloc: 0x%lx (in function starting at 0x%lx)\n", __FILE__, __LINE__, absoluteAddress, pdf->get_address() + baseAddress );
 		BPatch_basicBlock * currentAlloc = findBasicBlockInCFG( absoluteAddress, cfg );
-		assert( currentAlloc != NULL );
 		
+		/* The old parser uses the frequently-incorrect symbol table size information,
+		   so we can get allocs in unreachable basic blocks.  Since they're unreachable, 
+		   the CFG doesn't create them and we can't find them.  */
+		if( currentAlloc == NULL ) { continue; }
+		/* Switch back to me when the new parser arrives. */
+		// assert( currentAlloc != NULL );
+				
 		/* Generically, these should be functors from sets to sets. */
 		currentAlloc->setDataFlowGen( currentAlloc );
 		currentAlloc->setDataFlowKill( currentAlloc );
