@@ -10,7 +10,10 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.25  1995/12/15 22:30:04  mjrg
+ * Revision 1.26  1996/02/16 16:33:37  naim
+ * Checking error conditions in PCL file - naim
+ *
+ * Revision 1.25  1995/12/15  22:30:04  mjrg
  * Merged paradynd and paradyndPVM
  * Get module name for functions from symbol table in solaris
  * Fixed code generation for multiple instrumentation statements
@@ -278,7 +281,15 @@ bool metDoVisi()
 static void start_process(processMet *the_ps)
 {
   vector<string> argv;
-  assert(RPCgetArg(argv, the_ps->command().string_of()));
+
+  if (the_ps->command().length())
+    assert(RPCgetArg(argv, the_ps->command().string_of()));
+  else {
+    string msg;
+    msg = string("Process \"") + the_ps->name() + 
+	  string("\": command line is missing in PCL file.");
+    uiMgr->showError(89,P_strdup(msg.string_of()));
+  }
 
   if(dataMgr->addExecutable(the_ps->host().string_of(), 
 			    the_ps->user().string_of(),

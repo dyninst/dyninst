@@ -167,8 +167,17 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
   
     // find a matching entry in the dicitionary, and start it
     daemonEntry *def = findEntry(machine, name);
-    if (!def) 
+    if (!def) {
+	if (name.length()) {
+	  string msg;
+	  msg = string("Paradyn daemon \"") + name + string("\" not defined.");
+	  uiMgr->showError(90,P_strdup(msg.string_of()));
+        }
+	else {
+	  uiMgr->showError(91,"Paradyn daemon is missing in PCL file.");
+        }
 	return ((paradynDaemon*) 0);
+    }
 
     string m = machine; 
     // fill in machine name if emtpy
