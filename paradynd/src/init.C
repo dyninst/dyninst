@@ -1,6 +1,10 @@
 
 /*
  * $Log: init.C,v $
+ * Revision 1.31  1996/04/29 03:34:10  tamches
+ * added activeProcessesProc
+ * changed declaration of active_processes internal metric
+ *
  * Revision 1.30  1996/03/01 22:35:54  mjrg
  * Added a type to resources.
  * Changes to the MDL to handle the resource hierarchy better.
@@ -132,6 +136,29 @@ int numberOfCPUs;
 vector<instMapping*> initialRequests;
 vector<sym_data> syms_to_find;
 
+float activeProcessesProc(const metricDefinitionNode *node) {
+   const vector< vector<string> > &theFocus = node->getFocus();
+
+   // Now let's take a look at the /Process hierarchy of the focus.
+   // If there's a non-trivial refinement, then we obviously return
+   // 1, since the focus refers to a single process.
+   if (theFocus[resource::process].size() > 1)
+      return 1.0;
+
+   // Okay, if we've gotten this far, then the focus does _not_ refer
+   // to a specific process.  So, at most, it can refer to a specific
+   // machine.  Now, we only know how many processes there are for
+   // us (this machine).  Indeed, if there's a specific machine in the
+   // focus, and it's not us, then we're sunk --- we have no idea how
+   // many processes there are on another paradynd.  Luckily, this
+   // will never happen.
+   // So, if we reach this point, we just return the total number of
+   // processes on this machine.
+   extern unsigned activeProcesses; // process.C (same as processVec.size())
+   return activeProcesses * 1.0;
+}
+
+
 // In Elmer Fudd voice: "Be vewwwey vewwey careful!"
 
 bool init() {
@@ -145,8 +172,6 @@ bool init() {
 					  0.0, "", MDL_T_STRING);
   processResource = resource::newResource(rootResource, NULL, nullString,
 					  "Process", 0.0, "", MDL_T_STRING);
-//  moduleRoot = resource::newResource(rootResource, NULL, nullString,
-//				     "Procedure", 0.0, "");
   moduleRoot = resource::newResource(rootResource, NULL, nullString,
 				     "Code", 0.0, "", MDL_T_STRING);
   syncRoot = resource::newResource(rootResource, NULL, nullString, 
@@ -167,6 +192,14 @@ bool init() {
   obs_cost_preds.procedure = pred_invalid;
   obs_cost_preds.process = pred_null;
   obs_cost_preds.sync = pred_invalid;
+
+  // Allow active_processes to be enabled for (1) whole program (of course)
+  // but also (2) a given machine and (3) a given process.
+  im_pred_struct active_procs_preds;
+  active_procs_preds.machine = pred_null;
+  active_procs_preds.procedure = pred_invalid;
+  active_procs_preds.process = pred_null;
+  active_procs_preds.sync = pred_invalid;
 
   bucket_width = internalMetric::newInternalMetric("bucket_width", 
 						   EventCounter,
@@ -227,8 +260,8 @@ bool init() {
 						  EventCounter,
 						  aggSum,
 						  "operations",
-						  NULL,
-						  obs_cost_preds,
+						  activeProcessesProc,
+						  active_procs_preds,
 						  false,
 						  Sampled);
 
