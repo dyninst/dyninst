@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.101 2003/04/22 21:55:06 mjbrim Exp $
+// $Id: linux.C,v 1.102 2003/04/24 20:57:15 darnold Exp $
 
 #include <fstream.h>
 
@@ -139,10 +139,15 @@ static bool debug_ptrace = false;
 bool ptraceKludge::haltProcess(process *p) {
   bool wasStopped = (p->status() == stopped);
   if (p->status() != neonatal && !wasStopped) {
+    p->pause();
+/*
     if (!p->loopUntilStopped()) {
       assert(0);
     }
-  }  return wasStopped;
+*/
+  }
+  
+  return wasStopped;
 }
 
 void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
@@ -153,13 +158,13 @@ void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
   // Choose either one of the following methods to continue a process.
   // The choice must be consistent with that in process::continueProc_ and stop_
 
-  fprintf(stderr, "ptK_: Continuing process at 0x%x\n",
-          getPC(p->getPid()));  
-
+  p->continueProc();
+/*
   if (P_ptrace(PTRACE_CONT, p->pid, 1, SIGCONT) == -1) {
       perror("error in continueProcess");
       assert(0);
   }
+*/
 }
 
 bool ptraceKludge::deliverPtrace(process *p, int req, Address addr,
@@ -185,13 +190,15 @@ int ptraceKludge::deliverPtraceReturn(process *p, int req, Address addr,
 				 Address data ) {
   bool halted = true;
 
-  if (req != PTRACE_DETACH)
-     halted = haltProcess(p);
+  if (req != PTRACE_DETACH){
+	halted = haltProcess(p);
+  }
 
   int ret = P_ptrace(req, p->getPid(), addr, data);
 
-  if (req != PTRACE_DETACH)
-     continueProcess(p, halted);
+  if (req != PTRACE_DETACH){
+	continueProcess(p, halted);
+  }
 
   return ret;
 }
