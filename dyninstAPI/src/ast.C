@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.146 2005/02/22 22:53:39 legendre Exp $
+// $Id: ast.C,v 1.147 2005/02/23 18:26:06 gquinn Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -294,12 +294,13 @@ void registerSpace::resetSpace() {
 
 void registerSpace::resetClobbers()
 {
-  for (u_int i=0; i < numRegisters; i++)
+  u_int i;
+  for (i=0; i < numRegisters; i++)
     {
       registers[i].beenClobbered = false;
     }
 
-  for (u_int i=0; i < numFPRegisters; i++)
+  for (i=0; i < numFPRegisters; i++)
     {
       fpRegisters[i].beenClobbered = false;
     }
