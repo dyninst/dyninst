@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.217 2000/03/22 01:26:59 mihai Exp $
+// $Id: process.C,v 1.218 2000/04/07 15:07:23 pcroth Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4902,21 +4902,27 @@ bool process::handleTrapIfDueToRPC() {
 
    inferiorrpc_cerr << "handleTrapIfDueToRPC match type 2 -- about to do callbackFunc, if any" << endl;
 
-   if (theStruct.callbackFunc)
-      theStruct.callbackFunc(this, theStruct.userData, theStruct.resultValue);
 
-   inferiorrpc_cerr << "handleTrapIfDueToRPC match type 2 -- done with callbackFunc, if any" << endl;
+   // save enough information to call the callback function, if needed
+   inferiorRPCcallbackFunc cb = theStruct.callbackFunc;
+   void* userData = theStruct.userData;
+   void* resultValue = theStruct.resultValue;
 
-   // This is ridiculous.  Allocated in process::getRegisters as char *
-   // except, of course, on NT, returned as a void *, and cast back to void *
-   // whenever it is deleted, except, of course, on NT.  If there was any
-   // struct more in need of a constructor and destructor, this would be it.  
+   // release the RPC struct
 #if defined(i386_unknown_nt4_0)
    delete    theStruct.savedRegs;       // not an array on WindowsNT
 #else
    delete [] static_cast<char *>(theStruct.savedRegs);
 #endif
    currRunningRPCs.removeByIndex(the_index);
+
+   // call the callback function if needed
+   if( cb != NULL )
+   {
+      (*cb)(this, userData, resultValue);
+   }
+
+   inferiorrpc_cerr << "handleTrapIfDueToRPC match type 2 -- done with callbackFunc, if any" << endl;
 
    return true;
 }
