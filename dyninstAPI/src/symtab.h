@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.125 2003/04/17 20:55:55 jaw Exp $
+// $Id: symtab.h,v 1.126 2003/04/18 22:35:36 tlmiller Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -862,6 +862,9 @@ public:
 
   // Find the vector of functions associated with a (demangled) name
   pdvector <pd_Function *> *findFuncVectorByPretty(const string &name);
+  pdvector <pd_Function *> *findFuncVectorByMangled(const string &name);
+  pdvector <pd_Function *> *findFuncVectorByNotInstru(const string &name);
+
   // Find the vector of functions determined by a filter function
   pdvector <pd_Function *> *findFuncVectorByPretty(functionNameSieve_t bpsieve, 
 						   void *user_data, 
@@ -1005,29 +1008,6 @@ public:
  
   private:
 
-  // Call tree:
-  //
-  // AddOneFunction:
-  //    Gets/Creates a module name ("DEFAULT_MODULE")
-  //    newFunc
-  // newFunc
-  //    new pd_Function()
-  //    if (problem determining instr)
-  //      addNotInstruFunction
-  //    else
-  //      addInstruFunction
-  //        function_is_excluded (MDL exclusion via "exclude <mod>/<func>", BUT NOT "exclude <mod>)
-  // addInstruFunction
-  //   if (excluded) [from above]
-  //     add to excludedFunctions (hash)
-  //   else
-  //     add to includedFunctions
-  //     add to funcsByAddr
-  //     add to funcsByPretty (if not already in there)
-  //     add to funcsByMangled (if not already in there)
-  // addNotInstruFunction
-  //   add to notInstruFunctions (by pretty name)
-
   // Add a function to (if excluded) excluded list, otherwise to includedFunctions,
   // funcsByAddr, funcsByPretty, funcsByMangled
   void addInstruFunction(pd_Function *func, pdmodule *mod,
@@ -1039,10 +1019,6 @@ public:
   // Add a function which could not be instrumented.  Sticks it in
   // notInstruFuncs (list)
   void addNotInstruFunc(pd_Function *func, pdmodule *mod);
-
-  // Determines if a function is instrumentable, and calls add(Not)InstruFunction
-  // pd_Function *newFunc(pdmodule *, const string &name, const Address addr, 
-  //	       const unsigned size);
 
   pd_Function *makeOneFunction(pdvector<Symbol> &mods,
 			       const Symbol &lookUp);

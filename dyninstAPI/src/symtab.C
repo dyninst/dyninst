@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.162 2003/04/17 21:41:20 pcroth Exp $
+// $Id: symtab.C,v 1.163 2003/04/18 22:35:37 tlmiller Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -683,7 +683,9 @@ bool image::addAllVariables()
 /* Eventually we'll have to do this on all platforms (because we'll retrieve
  * the type information here).
  */
-#if defined(i386_unknown_nt4_0)  || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+#if defined( i386_unknown_nt4_0 ) ||\
+    defined( mips_unknown_ce2_11 ) ||\
+    defined( i386_unknown_linux2_4 )
 
 #if defined(TIMED_PARSE)
   struct timeval starttime;
