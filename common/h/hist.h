@@ -54,7 +54,10 @@ class Histogram {
 	timeStamp getBucketWidth(){ return(bucketWidth);}
 	void setActive(){ active = true;}
 	void clearActive(){ active = false;}
+	void setFoldOnInactive(){fold_on_inactive = true;}
+	void clearFoldOnInactive(){fold_on_inactive = false;}
 	bool isActive(){ return active;}
+	bool foldOnInactive(){ return fold_on_inactive;}
 	void addInterval(timeStamp start, timeStamp end, 
 	    sampleValue value, bool smooth);
 	void addPoint(timeStamp start, sampleValue value) {
@@ -93,6 +96,7 @@ class Histogram {
 	timeStamp bucketWidth;		// bucket width of this histogram 
 	timeStamp startTime;		// not all histograms start at time 0
 	bool active;			// if clear, don't add values 
+	bool fold_on_inactive;		// if set, fold inactive histograms 
 
 	histType storageType;	
 	bool smooth;		/* prevent values greater than binWidth */

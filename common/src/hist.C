@@ -16,7 +16,11 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.16  1995/08/08 03:09:20  newhall
+ * Revision 1.17  1995/08/20 03:34:29  newhall
+ * added fold_on_inactive flag
+ * fixed scope problems assoc. with for loop variables
+ *
+ * Revision 1.16  1995/08/08  03:09:20  newhall
  * changed initial bin width to 0.2
  *
  * Revision 1.15  1995/08/01  01:56:32  newhall
@@ -128,6 +132,7 @@ Histogram::Histogram(metricStyle type, dataCallBack d, foldCallBack f, void *c)
     foldFunc = f;
     cData = c;
     active = true;
+    fold_on_inactive = false;
     bucketWidth = globalBucketSize; 
     total_time = bucketWidth*numBins;
     startTime = 0.0;
@@ -168,12 +173,14 @@ Histogram::Histogram(timeStamp start, metricStyle type, dataCallBack d,
     foldFunc = f;
     cData = c;
     active = true;
+    fold_on_inactive = false;
     startTime = start;
 
     // compute bucketwidth based on start time
     timeStamp minBucketWidth = 
 	    ((lastGlobalBin*globalBucketSize)  - startTime) / numBins;    
-    for(timeStamp i = baseBucketSize; i < minBucketWidth; i *= 2.0) ; 
+    timeStamp i = baseBucketSize;
+    for(; i < minBucketWidth; i *= 2.0) ; 
     bucketWidth = i; 
     total_time = startTime + bucketWidth*numBins;
 }
@@ -196,7 +203,8 @@ Histogram::Histogram(Bin *buckets,
 Histogram::~Histogram(){
 
     // remove from allHist
-    for(unsigned i=0; i < allHist.size(); i++){
+    unsigned i=0;
+    for(; i < allHist.size(); i++){
         if(allHist[i] == this){
 	    break;
         }
@@ -305,12 +313,14 @@ void Histogram::foldAllHist()
 
     // fold all histograms with the same time base
     for(unsigned i = 0; i < allHist.size(); i++){
-	if(((allHist[i])->startTime == startTime) 
-	   && (allHist[i])->active){
+	if(((allHist[i])->startTime == startTime)  // has same base time and 
+	   && ((allHist[i])->active                // either, histogram active
+	   || (allHist[i])->fold_on_inactive)){    // or fold on inactive set 
 	    (allHist[i])->bucketWidth *= 2.0;
 	    if((allHist[i])->storageType == HistBucket){
                 Bin *bins = (allHist[i])->dataPtr.buckets;
-		for(unsigned j=0; j < numBins/2; j++){
+		unsigned j=0;
+		for(; j < numBins/2; j++){
                     bins[j] = (bins[j*2] + bins[j*2+1]) / 2.0;
 		}
 	        (allHist[i])->lastBin = j - 1; 
