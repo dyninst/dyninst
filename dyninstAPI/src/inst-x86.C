@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.99 2001/12/20 04:28:52 buck Exp $
+ * $Id: inst-x86.C,v 1.100 2002/02/13 20:30:47 gurari Exp $
  */
 
 #include <iomanip.h>
@@ -2913,6 +2913,7 @@ bool process::emitInferiorRPCheader(void *void_insnPtr, Address &baseBytes) {
    emitSimpleInsn(PUSHAD, insnPtr);
    emitSimpleInsn(PUSH_EBP, insnPtr);
    emitMovRegToReg(EBP, ESP, insnPtr);
+
    // allocate space for temporaries (virtual registers)
    emitOpRegImm(5, ESP, 128, insnPtr); // sub esp, 128
 
@@ -2925,10 +2926,15 @@ bool process::emitInferiorRPCtrailer(void *void_insnPtr, Address &baseBytes,
 				     unsigned &breakOffset,
 				     bool shouldStopForResult,
 				     unsigned &stopForResultOffset,
-				     unsigned &justAfter_stopForResultOffset) {
+				     unsigned &justAfter_stopForResultOffset,
+                                     int /* thrId */,
+                                     bool /* isMT */) {
+
    unsigned char *insnPtr = (unsigned char *)void_insnPtr;
-      // unsigned char * is the most natural to work with on x86, since instructions
-      // are always an integral # of bytes.  Besides, it makes the following line easy:
+
+   // unsigned char * is the most natural to work with on x86, since 
+   // instructions are always an integral # of bytes.  Besides, it makes 
+   // the following line easy:
    insnPtr += baseBytes; // start off in the right spot
 
    if (shouldStopForResult) {

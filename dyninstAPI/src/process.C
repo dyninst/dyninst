@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.297 2002/02/12 18:05:29 gurari Exp $
+// $Id: process.C,v 1.298 2002/02/13 20:30:47 gurari Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -86,8 +86,11 @@ int pvmendtask();
 #include "common/h/int64iostream.h"
 #endif
 
+#ifndef BPATCH_LIBRARY
+extern void generateRPCpreamble(char *insn, Address &base, process *proc, 
+                                unsigned offset, int tid, unsigned pos);
+#endif
 #if defined(SHM_SAMPLING) && defined(MT_THREAD) //inst-sparc.C
-extern void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offset, int tid, unsigned pos);
 extern void generateMTpreamble(char *insn, Address &base, process *proc);
 #ifdef rs6000_ibm_aix4_1
 #include <sys/pthdebug.h>
@@ -1518,16 +1521,13 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
   removeAst(args[0]);
   removeAst(args[1]);
   removeAst(args[2]);
+
   // issue RPC and wait for result
   imd_rpc_ret ret = { false, NULL };
+
   /* set lowmem to ensure there is space for inferior malloc */
-#if defined(MT_THREAD)
-  p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1, 
-		 -1, // don't care about thread
-		 false, true);
-#else
   p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1, true);
-#endif
+
   extern void checkProcStatus();
   do {
 #ifdef DETACH_ON_THE_FLY
@@ -2922,21 +2922,13 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 #endif
       for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
 
-#if defined(MT_THREAD)
    theProc->postRPCtoDo(the_ast,
                         true, // true --> don't try to update cost yet
                         process::DYNINSTinitCompletionCallback, // callback
                         NULL, // user data
-                        -1,   // we use -1 if this is not metric definition
-                        -1,
-                        false);  // NOT thread specific
-#else
-   theProc->postRPCtoDo(the_ast,
-                        true, // true --> don't try to update cost yet
-                        process::DYNINSTinitCompletionCallback, // callback
-                        NULL, // user data
-                        -1);  // we use -1 if this is not metric definition
-#endif
+                        -1);   // we use -1 if this is not metric definition
+
+
       // the rpc will be launched with a call to launchRPCifAppropriate()
       // in the main loop (perfStream.C).
       // DYNINSTinit() ends with a DYNINSTbreakPoint(), so we pick up
@@ -5064,12 +5056,15 @@ bool process::cleanUpInstrumentation(bool wasRunning) {
 void process::cleanRPCreadyToLaunch(int mid) 
 {
   vectorSet<inferiorRPCtoDo> tmpRPCsWaitingToStart;
+
   while (RPCsWaitingToStart.size() > 0) {
     inferiorRPCtoDo currElem = RPCsWaitingToStart.removeOne();
-    if (currElem.mid == mid)
-      break;
-    else
-      tmpRPCsWaitingToStart += currElem;
+
+    if (currElem.mid == mid) {
+        break;
+    } else {
+        tmpRPCsWaitingToStart += currElem;
+    }
   }
   // reconstruct RPCsWaitingToStart
   while (tmpRPCsWaitingToStart.size() > 0) {
@@ -5077,7 +5072,6 @@ void process::cleanRPCreadyToLaunch(int mid)
   }
 }
 
-#if defined(MT_THREAD)
 void process::postRPCtoDo(AstNode *action, bool noCost,
                           inferiorRPCcallbackFunc callbackFunc,
                           void *userData,
@@ -5085,35 +5079,21 @@ void process::postRPCtoDo(AstNode *action, bool noCost,
                           int thrId,
                           bool isSAFE,
                           bool lowmem)
-#else
-void process::postRPCtoDo(AstNode *action, bool noCost,
-                          inferiorRPCcallbackFunc callbackFunc,
-                          void *userData,
-                          int mid,
-                          bool lowmem)
-#endif
 {
    // posts an RPC, but does NOT make any effort to launch it.
    inferiorRPCtoDo theStruct;
+
    theStruct.action = action;
    theStruct.noCost = noCost;
    theStruct.callbackFunc = callbackFunc;
    theStruct.userData = userData;
    theStruct.mid = mid;
    theStruct.lowmem = lowmem;
-
-#if defined(MT_THREAD)
    theStruct.thrId = thrId;
    theStruct.isSafeRPC = isSAFE;
-   if (pd_debug_infrpc)
-     cerr <<"posting "<<(isSAFE? "SAFE":"")<<"inferiorRPC for tid"<<thrId<<endl;
-#endif
+
    RPCsWaitingToStart += theStruct;
    
-   // PARADYND_DEBUG_INFRPC
-   //
-   if ( pd_debug_infrpc )
-     cerr << "postRPCtoDo is called" << endl;
 }
 
 bool process::existsRPCreadyToLaunch() const {
@@ -5281,14 +5261,16 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    }
 
    void *theSavedRegs ;
+
    // If we're in the middle of a system call, then it's not safe to launch
    // an inferiorRPC on most platforms.  On some platforms, it's safe, but the
-   // actual launching won't take place until the system call finishes.  In such
-   // cases it's a good idea to set a breakpoint for when the sys call exits
-   // (using /proc PIOCSEXIT), and launch the inferiorRPC then.
-#if defined(MT_THREAD)
-   if (!todo.isSafeRPC) {
-#endif
+   // actual launching won't take place until the system call finishes.  In 
+   // such cases it's a good idea to set a breakpoint for when the sys call 
+   // exits (using /proc PIOCSEXIT), and launch the inferiorRPC then.
+
+   // if non threaded, or threaded and not safe RPC
+   if ( (todo.thrId != -1) || !todo.isSafeRPC) {
+
      if (!finishingSysCall && executingSystemCall()) {
         if (RPCs_waiting_for_syscall_to_complete) {
            inferiorrpc_cerr << "launchRPCifAppropriate: "
@@ -5370,9 +5352,8 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
          (void)continueProc();
        return false;
      }
-#if defined(MT_THREAD)
-   }// if (!isSafeRPC)
-#endif
+   }
+
 
    if (!wasRunning)
      inferiorrpc_cerr << "NOTE: launchIfAppropriate: wasRunning==false!!"
@@ -5387,23 +5368,24 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    inProgStruct.callbackFunc = todo.callbackFunc;
    inProgStruct.userData = todo.userData;
    inProgStruct.savedRegs = theSavedRegs;
+
 #if defined(MT_THREAD)
    inProgStruct.isSafeRPC = todo.isSafeRPC;
    if (todo.isSafeRPC) {
-      inProgStruct.wasRunning = wasRunning ;
+     inProgStruct.wasRunning = wasRunning ;
    } else 
 #endif
-   if( finishingSysCall )
-           inProgStruct.wasRunning = was_running_before_RPC_syscall_complete;
-   else
-           inProgStruct.wasRunning = wasRunning;
+
+   if( finishingSysCall ) {
+       inProgStruct.wasRunning = was_running_before_RPC_syscall_complete;
+   } else {
+       inProgStruct.wasRunning = wasRunning;
+   }
 
 
-
-      // If finishing up a system call, current state is paused, but we want to
-      // set wasRunning to true so that it'll continue when the inferiorRPC
-      // completes.  Sorry for the kludge.
-#if defined(MT_THREAD)
+   // If finishing up a system call, current state is paused, but we want to
+   // set wasRunning to true so that it'll continue when the inferiorRPC
+   // completes.  Sorry for the kludge.
    Address tempTrampBase = createRPCtempTramp(todo.action,
                                todo.noCost,
                                inProgStruct.callbackFunc != NULL,
@@ -5414,17 +5396,6 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
                                todo.lowmem,
                                todo.thrId,
                                todo.isSafeRPC);
-#else
-   Address tempTrampBase = createRPCtempTramp(todo.action,
-                               todo.noCost,
-                               inProgStruct.callbackFunc != NULL,
-                               inProgStruct.breakAddr,
-                               inProgStruct.stopForResultAddr,
-                               inProgStruct.justAfter_stopForResultAddr,
-                               inProgStruct.resultRegister,
-                               todo.lowmem);
-#endif
-      // the last 4 args are written to
 
    if (tempTrampBase == 0) {
       cerr << "launchRPCifAppropriate failed because createRPCtempTramp failed"
@@ -5437,11 +5408,12 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 
    inProgStruct.firstInstrAddr = tempTrampBase;
 
-#ifdef MT_THREAD
-   if (todo.thrId > 0)
+#ifndef BPATCH_LIBRARY
+   if (todo.thrId > 0) {
      inProgStruct.lwp = findLWPbyPthread(todo.thrId);
-   else
+   } else {
      inProgStruct.lwp = (unsigned) -1;
+   }
 #endif
 
    currRunningRPCs += inProgStruct;
@@ -5513,7 +5485,6 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    return true; // success
 }
 
-#if defined(MT_THREAD)
 Address process::createRPCtempTramp(AstNode *action,
                                      bool noCost,
                                      bool shouldStopForResult,
@@ -5524,16 +5495,6 @@ Address process::createRPCtempTramp(AstNode *action,
                                      bool lowmem,
                                      int thrId,
                                      bool isSAFE)
-#else
-Address process::createRPCtempTramp(AstNode *action,
-                                     bool noCost,
-                                     bool shouldStopForResult,
-                                     Address &breakAddr,
-                                     Address &stopForResultAddr,
-                                     Address &justAfter_stopForResultAddr,
-                                     Register &resultReg,
-                                     bool lowmem)
-#endif
 {
    // Returns addr of temp tramp, which was allocated in the inferior heap.
    // You must free it yourself when done.
@@ -5562,10 +5523,13 @@ Address process::createRPCtempTramp(AstNode *action,
       return 0;
    }
 
+
 #if defined(MT_THREAD)
+
+   // Use -1 since 0 may be a valid pthread id, and -1 is equivalent to
+   // "no thread" for Paradyn purposes.
    if (thrId != -1) {
-     // Use -1 since 0 may be a valid pthread id, and -1 is equivalent to
-     // "no thread" for Paradyn purposes.
+
      unsigned pos = (unsigned) -1;
      for (unsigned u=0; u<threads.size(); u++) {
        // Find our hashed version of the thread ID
@@ -5575,10 +5539,9 @@ Address process::createRPCtempTramp(AstNode *action,
        }
      }
 
-     //
      vector<AstNode* > param ;
-     param +=  new  AstNode(AstNode::Constant,(void *) thrId) ;
-     param +=  new  AstNode(AstNode::Constant,(void *) pos);
+     param.push_back( new AstNode(AstNode::Constant,(void *) thrId) );
+     param.push_back( new AstNode(AstNode::Constant,(void *) pos) );
 
      // If we're starting a (thread) timer, start it for the 
      // thread we're acting as
@@ -5619,7 +5582,7 @@ Address process::createRPCtempTramp(AstNode *action,
      generateRPCpreamble((char*)insnBuffer,count,this,
                          (cnt)+7*sizeof(instruction), thrId, pos);
    }
-#endif 
+#endif
 
    resultReg = (Register)action->generateCode(this, regSpace,
                                     (char*)insnBuffer,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.181 2002/02/12 23:50:30 schendel Exp $
+/* $Id: process.h,v 1.182 2002/02/13 20:30:48 gurari Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -348,7 +348,7 @@ class Frame {
     /* platform-independent methods */
 
     // process cconstructor (toplevel frame, particular LWP)
-    // Non-threaded applications assume LWP = 0.
+    // Non-threaded applications assume LWP id = 0.
     Frame(process *, unsigned = 0);
 
     // default ctor (zero frame)
@@ -583,16 +583,13 @@ class process {
   bool deferredContinueProc;
   void updateActiveCT(bool flag, CTelementType type);
   void cleanRPCreadyToLaunch(int mid);
-#if defined(MT_THREAD)
+
   void postRPCtoDo(AstNode *, bool noCost,
                    inferiorRPCcallbackFunc, void *data, int, 
                    int thrId=(-1), 
 		   bool isSAFE=false,
 		   bool lowmem=false);
-#else
-  void postRPCtoDo(AstNode *, bool noCost,
-                   inferiorRPCcallbackFunc, void *data, int, bool lowmem=false);
-#endif
+
   bool existsRPCreadyToLaunch() const;
   bool existsRPCinProgress() const;
   bool launchRPCifAppropriate(bool wasRunning, bool finishingSysCall);
@@ -871,11 +868,12 @@ class process {
   unsigned char savedStackFrame[BYTES_TO_SAVE];
 #endif
 #endif
+
+  // This structure keeps track of an inferiorRPC that we will start sometime
+  // in the (presumably near) future.  There's a different structure for RPCs
+  // which have been launched and which we're waiting to finish.
+  // Don't confuse the two!
   struct inferiorRPCtoDo {
-     // This structure keeps track of an inferiorRPC that we will start sometime
-     // in the (presumably near) future.  There's a different structure for RPCs
-     // which have been launched and which we're waiting to finish.
-     // Don't confuse the two!
 
      AstNode *action;
      bool noCost; // if true, cost model isn't updated by generated code.
@@ -883,12 +881,10 @@ class process {
      void *userData;
      int mid;
      bool lowmem; /* set to true when the inferior is low on memory */
-#if defined(MT_THREAD)
-     int thrId;
+     int thrId;      // -1 for no threads 
      bool isSafeRPC; // launch it as safe RPC or regular RPC
                      // if DYNINSTinit, we launch it as regular RPC
                      // otherwise launch it as MT RPC
-#endif
   };
 
   int abortSyscall();
@@ -929,12 +925,14 @@ class process {
                         // fill this in.  callback fn (which takes this value)
                         // isn't invoked until breakAddr (the final break)
 
-     Address breakAddr;
-        // location of TRAP or ILL insn which marks the end of the inferiorRPC
+     Address breakAddr; // location of TRAP or ILL insn which 
+                        // marks the end of the inferiorRPC
+
 #if defined(MT_THREAD)
      bool isSafeRPC ;
 #endif
-    unsigned lwp; // Target the RPC to a specific kernel thread?
+
+     unsigned lwp; // Target the RPC to a specific kernel thread?
   };
   vectorSet<inferiorRPCinProgress> currRunningRPCs;
       // see para above for reason why this 'vector' can have at most 1 elem!
@@ -947,21 +945,15 @@ class process {
   bool need_to_wait(void) ;
   // The follwing 5 routines are implemented in an arch-specific .C file
   bool emitInferiorRPCheader(void *, Address &baseBytes);
-#if defined(MT_THREAD)
+
   bool emitInferiorRPCtrailer(void *, Address &baseBytes,
                               unsigned &breakOffset,
                               bool stopForResult,
                               unsigned &stopForResultOffset,
-                              unsigned &justAfter_stopForResultOffset, 
+                              unsigned &justAfter_stopForResultOffset,
+                              int thrId=(-1),
                               bool isMT=false);
-#else
-  bool emitInferiorRPCtrailer(void *, Address &baseBytes,
-                              unsigned &breakOffset,
-                              bool stopForResult,
-                              unsigned &stopForResultOffset,
-                              unsigned &justAfter_stopForResultOffset);
-#endif
-#if defined(MT_THREAD)
+
   Address createRPCtempTramp(AstNode *action,
                               bool noCost, bool careAboutResult,
                               Address &breakAddr,
@@ -969,14 +961,7 @@ class process {
                               Address &justAfter_stopForResultAddr,
                               Register &resultReg, bool lowmem=false,
                               int thrId=(-1), bool isMT=false);
-#else
-  Address createRPCtempTramp(AstNode *action,
-                              bool noCost, bool careAboutResult,
-                              Address &breakAddr,
-                              Address &stopForResultAddr,
-                              Address &justAfter_stopForResultAddr,
-                              Register &resultReg, bool lowmem=false);
-#endif
+
   void *getRegisters();
      // ptrace-GETREGS and ptrace-GETFPREGS (or /proc PIOCGREG and PIOCGFPREG).
      // Result is returned in an opaque type which is allocated with new[]
@@ -984,7 +969,7 @@ class process {
   bool changePC(Address addr,
                 const void *savedRegs // returned by getRegisters()
                 );
-#if defined(MT_THREAD)
+
 #if defined(rs6000_ibm_aix4_1)
  public:
   int findLWPbyPthread(int tid);
@@ -996,7 +981,7 @@ class process {
   int findLWPbyPthread(int tid) { return tid; }
  private:
 #endif
-#endif
+
 
   bool executingSystemCall();
 

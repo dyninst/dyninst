@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.112 2002/01/29 00:19:32 gurari Exp $
+// $Id: inst-sparc.C,v 1.113 2002/02/13 20:30:47 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -836,6 +836,7 @@ void initTramps()
 /****************************************************************************/
 /****************************************************************************/
 
+#ifndef BPATCH_LIBRARY
 #if defined(MT_THREAD)
 //
 // For multithreaded applications and shared memory sampling, this routine 
@@ -894,6 +895,7 @@ void generateMTpreamble(char *insn, Address &base, process *proc)
   (void) emitV(orOp, src, 0, REG_MT, insn, base, false);
   regSpace->freeRegister(src);
 }
+#endif
 
 /****************************************************************************/
 /****************************************************************************/
@@ -909,8 +911,8 @@ void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offs
 
   if (tid != -1)  {
     vector<AstNode *> param;
-    param += new AstNode(AstNode::Constant,(void *)tid);
-    param += new AstNode(AstNode::Constant,(void *)pos);
+    param.push_back( new AstNode(AstNode::Constant,(void *)tid) );
+    param.push_back( new AstNode(AstNode::Constant,(void *)pos) );
     t1 = new AstNode("DYNINSTthreadPosTID", param);
     for (unsigned i=0; i<param.size(); i++) 
       removeAst(param[i]) ;
@@ -1111,12 +1113,10 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
                                      unsigned &breakOffset,
                                      bool stopForResult,
                                      unsigned &stopForResultOffset,
-#if defined(MT_THREAD)
 				     unsigned &justAfter_stopForResultOffset,
+                                     int thrId,
 				     bool isSafeRPC) {
-#else
-                                     unsigned &justAfter_stopForResultOffset) {
-#endif
+
    // Sequence: restore, trap, illegal
 
    instruction *insn = (instruction *)insnPtr;
@@ -1130,20 +1130,26 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
       justAfter_stopForResultOffset = baseInstruc * sizeof(instruction);
    }
 
-#if defined(MT_THREAD)
-   if (isSafeRPC) //ret instruction
-     genImmInsn(&insn[baseInstruc++], JMPLop3, REG_I(7), 0x08, REG_G(0)) ;
-#endif
+
+   // Add ret for threaded
+   if (thrId != -1) {
+     if (isSafeRPC) { 
+       //ret instruction
+       genImmInsn(&insn[baseInstruc++], JMPLop3, REG_I(7), 0x08, REG_G(0)) ;
+     }
+   }
+
    genSimpleInsn(&insn[baseInstruc++], RESTOREop3, 0, 0, 0);
 
-   // Now that the inferior has executed the 'restore' instruction, the %in and
-   // %local registers have been restored.  We mustn't modify them after this point!!
-   // (reminder: the %in and %local registers aren't saved and set with ptrace
-   //  GETREGS/SETREGS call)
+   // Now that the inferior has executed the 'restore' instruction, the %in 
+   // and %local registers have been restored.  We mustn't modify them after
+   // this point!! (reminder: the %in and %local registers aren't saved and 
+   // set with ptrace GETREGS/SETREGS call)
 
-#if defined(MT_THREAD)
-   if (!isSafeRPC) {
-#endif
+
+   // If non-threaded, or if threaded and not safe RPC
+   if ( (thrId != -1) || !isSafeRPC) {
+
      // Trap instruction:
      genBreakpointTrap(&insn[baseInstruc]); // ta 1
      breakOffset = baseInstruc * sizeof(instruction);
@@ -1151,9 +1157,8 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 
      // And just to make sure that we don't continue from the trap:
      genUnimplementedInsn(&insn[baseInstruc++]); // UNIMP 0
-#if defined(MT_THREAD)
    }
-#endif
+
    baseBytes = baseInstruc * sizeof(instruction); // convert back
 
    return true; // success

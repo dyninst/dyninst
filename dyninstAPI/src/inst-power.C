@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.119 2002/01/30 20:24:44 bernat Exp $
+ * $Id: inst-power.C,v 1.120 2002/02/13 20:30:47 gurari Exp $
  */
 
 #include "common/h/headers.h"
@@ -1250,13 +1250,11 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 				     unsigned &breakOffset,
 				     bool stopForResult,
 				     unsigned &stopForResultOffset,
-#if defined(MT_THREAD)
                                      unsigned &justAfter_stopForResultOffset,
+                                     int /* thrId */,
                                      bool isSafeRPC) {
-#else
-                                     unsigned &justAfter_stopForResultOffset) {
-#endif
-  // The sequence we want is: (restore), trap, illegal,
+
+   // The sequence we want is: (restore), trap, illegal,
    // where (restore) undoes anything done in emitInferiorRPCheader(), above.
 
    instruction *insn = (instruction *)insnPtr;
