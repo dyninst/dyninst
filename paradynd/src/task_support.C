@@ -17,12 +17,17 @@
 
 
 /* $Log: task_support.C,v $
-/* Revision 1.1  1995/12/15 22:27:06  mjrg
-/* Merged paradynd and paradyndPVM
-/* Get module name for functions from symbol table in solaris
-/* Fixed code generation for multiple instrumentation statements
-/* Changed syntax of MDL resource lists
+/* Revision 1.2  1996/02/09 22:13:55  mjrg
+/* metric inheritance now works in all cases
+/* paradynd now always reports to paradyn when a process is ready to run
+/* fixed aggregation to handle first samples and addition of new components
 /*
+ * Revision 1.1  1995/12/15 22:27:06  mjrg
+ * Merged paradynd and paradyndPVM
+ * Get module name for functions from symbol table in solaris
+ * Fixed code generation for multiple instrumentation statements
+ * Changed syntax of MDL resource lists
+ *
  * Revision 1.17  1995/11/22 00:04:27  mjrg
  * Updates for paradyndPVM on solaris
  * Fixed problem with wrong daemon getting connection to paradyn
@@ -306,7 +311,7 @@ PDYN_startProcess()
     pvm_send(0x80000000, SM_TASKX);
   } else {
     task_new (tid, pid);
-    PDYND_report_to_paradyn (pid, argc, argv);
+    // PDYND_report_to_paradyn (pid, argc, argv);
   }
   
   // TODO -- does this still hold ?

@@ -51,8 +51,15 @@ static void fixArg(char *&argToFix)
 }
 */
 
-// called when a program is started external to paradyn and
-// must inform paradyn that it exists
+
+static appState applicationState = appPaused; // status of the application.
+
+
+// Called whenever a program is ready to run (both programs started by paradyn
+// and programs forked by other programs).
+// The new program inherits all enabled metrics, and if the application is 
+// running the new program must run too.
+// 
 bool paradynDaemon::addRunningProgram (int pid,
 				       const vector<string> &argv,
 				       paradynDaemon *daemon)
@@ -61,54 +68,11 @@ bool paradynDaemon::addRunningProgram (int pid,
     programs += exec;
     ++procRunning;
 
-    // the new program inherint all metrics that are currently enabled
+    daemon->propagateMetrics(daemon);
 
-    vector<metricInstanceHandle> allMIHs = metricInstance::allMetricInstances.keys();
-    for (unsigned i = 0; i < allMIHs.size(); i++) {
-      metricInstance *mi = metricInstance::getMI(allMIHs[i]);
-     
-      if (mi->isEnabled()) {
-
-	// first we must find if the daemon already has this metric enabled for
-	// some process. In this case, we don't need to do anything, the
-	// daemon will do the propagation by itself.
-	bool found = false;
-	for (unsigned j = 0; j < mi->components.size(); j++) {
-	  if (mi->components[j]->getDaemon() == daemon) {
-	    found = true;
-	    break;
-	  }
-	}
-	if (!found) {
-	  resourceListHandle r_handle = mi->getFocusHandle();
-	  metricHandle m_handle = mi->getMetricHandle();
-	  resourceList *rl = resourceList::getFocus(r_handle);
-	  metric *m = metric::getMetric(m_handle);
-
-	  vector<u_int> vs;
-	  assert(rl->convertToIDList(vs));
-
-	  int id = daemon->enableDataCollection(vs, (const char *) m->getName(), mi->id);
-
-	  if (id > 0 && !daemon->did_error_occur()) {
-	    component *comp = new component(daemon, id, mi);
-	    if (mi->addComponent(comp)) {
-	      // This is temporary, until aggregateSample is fixed.
-	      comp->sample.firstSampleReceived = true;
-	      comp->sample.lastSampleEnd = mi->sample.lastSampleEnd;
-	      comp->sample.lastSample = 0.0;
-	      mi->addPart(&comp->sample);
-	    }
-	    else {
-	      cout << "internal error in paradynDaemon::addRunningProgram" << endl;
-	      abort();
-	    }
-	  }
-	}
-      }
+    if (applicationState == appRunning) {
+      daemon->continueProcess(pid);
     }
-
-    // start the program
 
     return true;
 }
@@ -421,10 +385,11 @@ bool paradynDaemon::newExecutable(const string &machine,
       // TODO
       sprintf (tmp_buf, "%sPID=%d ", tmp_buf, pid);
       PROCstatus->message(tmp_buf);
-
+#ifdef notdef
       executable *exec = new executable(pid, argv, daemon);
       paradynDaemon::programs += exec;
       ++procRunning;
+#endif
       return (true);
   } else {
       return(false);
@@ -456,6 +421,7 @@ bool paradynDaemon::pauseAll()
     }
     // tell perf streams about change.
     performanceStream::notifyAllChange(appPaused);
+    applicationState = appPaused;
     return(true);
 }
 
@@ -495,6 +461,7 @@ bool paradynDaemon::continueAll()
     }
     // tell perf streams about change.
     performanceStream::notifyAllChange(appRunning);
+    applicationState = appRunning;
     return(true);
 }
 
@@ -667,6 +634,60 @@ bool paradynDaemon::enableData(resourceListHandle r_handle,
         mi->setEnabled();	
     }
     return foundOne;
+}
+
+// propagateMetrics:
+// called when a new process is started, to propagate all enabled metrics to
+// the new process.
+// Metrics are propagated only if the new process is the only process running 
+// on a daemon (this is why we don't need the pid here). If there are already
+// other processes running on a daemon, than it is up to the daemon to do the
+// propagation (we can't do it here because the daemon has to do the aggregation).
+// Calling this function has no effect if there are no metrics enabled.
+void paradynDaemon::propagateMetrics(paradynDaemon *daemon) {
+
+    vector<metricInstanceHandle> allMIHs = metricInstance::allMetricInstances.keys();
+
+    for (unsigned i = 0; i < allMIHs.size(); i++) {
+
+      metricInstance *mi = metricInstance::getMI(allMIHs[i]);
+     
+      if (mi->isEnabled()) {
+
+	// first we must find if the daemon already has this metric enabled for
+	// some process. In this case, we don't need to do anything, the
+	// daemon will do the propagation by itself.
+	bool found = false;
+	for (unsigned j = 0; j < mi->components.size(); j++) {
+	  if (mi->components[j]->getDaemon() == daemon) {
+	    found = true;
+	    break;
+	  }
+	}
+	if (!found) {
+	  resourceListHandle r_handle = mi->getFocusHandle();
+	  metricHandle m_handle = mi->getMetricHandle();
+	  resourceList *rl = resourceList::getFocus(r_handle);
+	  metric *m = metric::getMetric(m_handle);
+
+	  vector<u_int> vs;
+	  assert(rl->convertToIDList(vs));
+
+	  int id = daemon->enableDataCollection(vs, (const char *) m->getName(), mi->id);
+
+	  if (id > 0 && !daemon->did_error_occur()) {
+	    component *comp = new component(daemon, id, mi);
+	    if (mi->addComponent(comp)) {
+	      mi->addPart(&comp->sample);
+	    }
+	    else {
+	      cout << "internal error in paradynDaemon::addRunningProgram" << endl;
+	      abort();
+	    }
+	  }
+	}
+      }
+    }
 }
 
 
@@ -901,10 +922,15 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	   // update the sampleInfo value associated with 
 	   // the daemon that sent the value 
 	   //
-	   ret = part->sample.newValue(endTimeStamp, value);
+	   if (part->sample.firstValueReceived()) {
+	     ret = part->sample.newValue(endTimeStamp, value);
+	   }
+	   else {
+	     ret = part->sample.firstValue(startTimeStamp, endTimeStamp, value);
+	   }
 	}
 
-        //
+	//
 	// update the metric instance sample value if there is a new
 	// interval with data for all parts, otherwise this routine
 	// returns false for ret.valid and the data cannot be bucketed
@@ -913,13 +939,13 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	// newValue will aggregate the parts according to mi's aggOp
 	//
 	if(internal_metric){  // each part has same weight
-    	    ret = mi->sample.newValue(mi->parts, endTimeStamp, value);
+    	   ret = mi->sample.newValue(mi->parts, endTimeStamp, value);
 
 	}
 	else {  // each part is weighted by the num processes per daemon
-    	    ret = mi->sample.newValue(mi->parts, mi->num_procs_per_part,
+    	   ret = mi->sample.newValue(mi->parts, mi->num_procs_per_part,
 				  endTimeStamp, value);
-        }
+	}
 
 	if (ret.valid) {  // there is new data from all components 
 	   assert(ret.end >= 0.0);

@@ -14,6 +14,11 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.72  1996/02/09 22:13:49  mjrg
+ * metric inheritance now works in all cases
+ * paradynd now always reports to paradyn when a process is ready to run
+ * fixed aggregation to handle first samples and addition of new components
+ *
  * Revision 1.71  1996/02/08 23:03:38  newhall
  * fixed Ave. aggregation for CM5 daemons, Max and Min don't work, but are
  * approximated by ave rather than sum
@@ -437,7 +442,8 @@ metricDefinitionNode::metricDefinitionNode(string& metric_name,
     metricDefinitionNode *t = (metricDefinitionNode *) this;
     mi->aggregators += t;
     // parts[u]->aggregators += this;
-    valueList.add(&parts[u]->sample);
+    //valueList.add(&parts[u]->sample);
+    valueList += &parts[u]->sample;
   }
 }
 
@@ -552,10 +558,9 @@ void metricDefinitionNode::propagateMetricInstance(process *p) {
 
     components += mi->components[0];
     mi->components[0]->aggregators[0] = this;
-    valueList.add(&mi->components[0]->sample);
-    mi->components[0]->sample.firstSampleReceived = true;
-    mi->components[0]->sample.lastSampleEnd = sample.lastSampleEnd;
-    mi->components[0]->sample.lastSample = 0.0;
+    //valueList.add(&mi->components[0]->sample);
+    valueList += &mi->components[0]->sample;
+
     if (!internal)
       mi->components[0]->insertInstrumentation();
 
@@ -572,6 +577,9 @@ void metricDefinitionNode::propagateMetricInstance(process *p) {
 int startCollecting(string& metric_name, vector<u_int>& focus, int id) 
 {
     // TODO -- why is this here?
+    // If CMMDhostless is true, this daemon is running a CM5 application,
+    // and it should not enable any metrics. Only the CM5 node daemon 
+    // will enable metrics for the application.
     if (CMMDhostless == true) return(-1);
 
     static int MICount=0;
@@ -584,7 +592,6 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id)
 
     metricDefinitionNode *mi = createMetricInstance(metric_name, focus,
                                                     true, internal);
-    
     if (!mi) return(-1);
     mi->id_ = ++MICount;
     allMIs[mi->id_] = mi;
@@ -629,6 +636,8 @@ bool metricDefinitionNode::insertInstrumentation()
         for (unsigned u=0; u<c_size; u++)
           components[u]->insertInstrumentation();
     } else {
+      if (proc_->status() == exited)
+	return false;
       unsigned size = data.size();
       for (unsigned u=0; u<size; u++)
         data[u]->insertInstrumentation(this);
@@ -842,7 +851,17 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     // necessary to have an special case for SampledFunction.
     //
 
-    ret = sample.newValue(valueList, sampleTime, value);
+    assert(valueList.size() == 0);
+    // ret = sample.newValue(valueList, sampleTime, value);
+    if (sample.firstValueReceived()) {
+      ret = sample.newValue(valueList, sampleTime, value);
+    }
+    else {
+      // this is the first sample. Since we don't have the start time for this
+      // sample, we have to loose it, but we set the start time here. 
+      ret = sample.startTime(sampleTime);
+      sample.value = value;
+    }
 //    if (!ret.valid && inform_) {
 //       sprintf(errorLine, "Invalid for %s:%d at %f, val=%f, inform=%d\n",
 //            met->info.name.string_of(), id_, sampleTime-(firstRecordTime/MILLION),
@@ -875,7 +894,7 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 //        double time1 = getCurrentTime(false);
 
         batchSampleData(0, id_, ret.start, ret.end, ret.value,
-			valueList.count(),false);
+			valueList.size(),false);
 
 //        double diffTime = getCurrentTime(false) - time1;
 //        if (diffTime > 0.2) {
@@ -915,7 +934,17 @@ void metricDefinitionNode::updateCM5AggValue(time64 wallTime,
       }
     } 
 
-    ret = sample.newValue(valueList, sampleTime, value);
+    // ret = sample.newValue(valueList, sampleTime, value);
+    assert(valueList.size() == 0);
+    if (sample.firstValueReceived()) {
+      ret = sample.newValue(sampleTime, value);
+    }
+    else {
+      // this is the first sample. Since we don't have the start time for this
+      // sample, we have to loose it, but we set the start time here. 
+      ret = sample.startTime(sampleTime);
+      sample.value = value;
+    }
 
     unsigned a_size = aggregators.size();
     for (unsigned a=0; a<a_size; a++) {
@@ -936,7 +965,7 @@ void metricDefinitionNode::updateCM5AggValue(time64 wallTime,
         assert(ret.end >= 0.0);
         assert(ret.end >= ret.start);
         batchSampleData(0, id_, ret.start, ret.end, ret.value,
-			valueList.count(),false);
+			valueList.size(),false);
     }
 }
 
@@ -953,7 +982,7 @@ void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
         assert(ret.end >= (firstRecordTime/MILLION));
 
         batchSampleData(0, id_, ret.start, ret.end, ret.value,
-			valueList.count(),false);
+			valueList.size(),false);
     }
 }
 

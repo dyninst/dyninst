@@ -7,6 +7,11 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.26  1996/02/09 22:13:51  mjrg
+ * metric inheritance now works in all cases
+ * paradynd now always reports to paradyn when a process is ready to run
+ * fixed aggregation to handle first samples and addition of new components
+ *
  * Revision 1.25  1996/02/08 23:03:41  newhall
  * fixed Ave. aggregation for CM5 daemons, Max and Min don't work, but are
  * approximated by ave rather than sum
@@ -269,7 +274,7 @@ private:
   // which metricDefinitionNode depend on this value.
   vector<metricDefinitionNode*>   aggregators;	
 
-  List<sampleInfo*>	valueList;	// actual data for comp.
+  vector<sampleInfo*>	valueList;	// actual data for comp.
   sampleInfo sample;
   int id_;				// unique id for this one 
   float originalCost_;

@@ -7,6 +7,11 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
+ * Revision 1.53  1996/02/09 22:13:53  mjrg
+ * metric inheritance now works in all cases
+ * paradynd now always reports to paradyn when a process is ready to run
+ * fixed aggregation to handle first samples and addition of new components
+ *
  * Revision 1.52  1996/01/29 22:09:34  mjrg
  * Added metric propagation when new processes start
  * Adjust time to account for clock differences between machines
@@ -379,7 +384,7 @@ void processTraceStream(process *curr)
 	  string buffer = string("Process ") + string(curr->pid);
 	  buffer += string(" has exited unexpectedly");
 	  statusLine(P_strdup(buffer.string_of()));
-	  showErrorCallback(11, P_strdup(buffer.string_of()));
+//	  showErrorCallback(11, P_strdup(buffer.string_of()));
 	  curr->Exited();
 	}
 	curr->traceLink = -1;
@@ -547,6 +552,15 @@ int handleSigChild(int pid, int status)
 		    statusLine(P_strdup(buffer.string_of()));
 		    installDefaultInst(curr, initialRequests);
 		    curr->reachedFirstBreak = 1;
+
+                    // propagate any metric that is already enabled to the new
+                    // process
+                    vector<metricDefinitionNode *> MIs = allMIs.values();
+                    for (unsigned j = 0; j < MIs.size(); j++) {
+			MIs[j]->propagateMetricInstance(curr);
+		    }
+
+#ifdef notdef
 		    if (! curr->stopAtFirstBreak) {
 		      // don't stop here when processes are spawned by other processes
 		      if (!OS::osForwardSignal(pid,0)) {
@@ -554,15 +568,11 @@ int handleSigChild(int pid, int status)
 		      }
 		      curr->status_ = running;
 		      statusLine("application running");
-
-                      // propagate any metric that is already enabled to the new
-                      // process
-                      vector<metricDefinitionNode *> MIs = allMIs.values();
-                      for (unsigned j = 0; j < MIs.size(); j++) {
-			MIs[j]->propagateMetricInstance(curr);
-		      }
-
 		    }
+		    else { // process is stopped
+		      curr->status_ = stopped;
+		    }
+#endif
 
                     if (CMMDhostless) {
 		       // This is a cm5 process and we must run it so it can start
@@ -577,6 +587,9 @@ int handleSigChild(int pid, int status)
 		       // the node daemon is ready.
 		       curr->waitingForNodeDaemon = true;
 		    }
+
+		    tp->newProgramCallbackFunc(pid, curr->arg_list, 
+					       machineResource->part_name());
 
 		}
 #ifdef notdef
@@ -669,7 +682,9 @@ int handleSigChild(int pid, int status)
 	}
     } else if (WIFEXITED(status)) {
 #ifdef PARADYND_PVM
-		PDYN_reportSIGCHLD (pid, WEXITSTATUS(status));
+      if (pvm_running) {
+	        PDYN_reportSIGCHLD (pid, WEXITSTATUS(status));
+	}
 #endif
 	sprintf(errorLine, "Process %d has terminated\n", curr->pid);
 	logLine(errorLine);

@@ -225,5 +225,8 @@ class paradynDaemon: public dynRPCUser {
 				               const string &name);
         static daemonEntry *findEntry (const string &machine, 
 				       const string &name);
+
+        void propagateMetrics(paradynDaemon *daemon);
+
 };
 #endif

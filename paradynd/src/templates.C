@@ -5,6 +5,11 @@
 
 /* 
  * $Log: templates.C,v $
+ * Revision 1.26  1996/02/09 22:13:57  mjrg
+ * metric inheritance now works in all cases
+ * paradynd now always reports to paradyn when a process is ready to run
+ * fixed aggregation to handle first samples and addition of new components
+ *
  * Revision 1.25  1996/01/18 16:32:01  hollings
  * Added a bunch of definitions for Aix.
  *
@@ -184,7 +189,8 @@ template class vector<T_dyninstRPC::batch_buffer_entry>;
 #include "internalMetrics.h"
 #include "util/h/Object.h"
 
-template class  List<sampleInfo*>;
+//template class  List<sampleInfo*>;
+template class vector<sampleInfo*>;
 
 //template class  queue<T_dyninstRPC::buf_struct*>;
 

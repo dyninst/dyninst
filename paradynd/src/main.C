@@ -2,6 +2,11 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.41  1996/02/09 22:13:43  mjrg
+ * metric inheritance now works in all cases
+ * paradynd now always reports to paradyn when a process is ready to run
+ * fixed aggregation to handle first samples and addition of new components
+ *
  * Revision 1.40  1996/01/29 22:09:23  mjrg
  * Added metric propagation when new processes start
  * Adjust time to account for clock differences between machines
@@ -403,6 +408,7 @@ int main(int argc, char *argv[])
     controllerMainLoop(true);
 }
 
+#ifdef notdef
 #ifdef PARADYND_PVM
 
 bool
@@ -417,4 +423,4 @@ PDYND_report_to_paradyn (int pid, int argc, char **argv)
     return true;
 }
 #endif
-
+#endif
