@@ -1503,6 +1503,23 @@ static void process_whenBothForkTrapsReceived() {
                  << endl;
 }
 
+     //////////////////////////////////////////////////////////////////////////
+     //Restore the base trampolines after they have been cleared by an AIX load
+     //
+void resurrectBaseTramps(process *p)
+{
+  if (! p) return;
+
+  vector<instInstance*> allInstInstances;             //Get all mini trampolines
+  getAllInstInstancesForProcess(p, allInstInstances);
+
+  extern void findAndReinstallBaseTramps(process *, vector<instInstance*> &);
+  findAndReinstallBaseTramps(p, allInstInstances);
+
+  extern void reattachMiniTramps(process *, vector<instInstance*> &);
+  reattachMiniTramps(p, allInstInstances);
+}
+
 
 bool handleAIXsigTraps(int pid, int status) {
     process *curr = findProcess(pid); // NULL for child of a fork
@@ -1512,11 +1529,13 @@ bool handleAIXsigTraps(int pid, int status) {
  
     if (WIFSTOPPED(status) && (WSTOPSIG(status)==SIGTRAP)
 	&& ((status & 0x7f) == W_SLWTED)) {
-      // process is stopped on a load, ignore this SIGTRAP 
+      //Process is stopped on a load.  AIX has reloaded the process image and
+      //   the text segment heap has been cleared.
       if (curr) {
 	curr->status_ = stopped;
         fprintf(stderr, "Got load SIGTRAP from pid %d, PC=%x\n", pid,
 	                curr->currentPC());
+        resurrectBaseTramps(curr);            //Restore base trampolines
 	curr->continueProc();
       }
       return true;

@@ -740,13 +740,16 @@ void generateMTpreamble(char *insn, unsigned &base, process *proc)
  *
  */
 trampTemplate *installBaseTramp(instPoint *location, process *proc,
-                                unsigned exitTrampAddr = 0) 
+                                unsigned exitTrampAddr = 0,
+				unsigned baseAddr = 0)
 {
     unsigned currAddr;
     instruction *code;
     instruction *temp;
+    unsigned     isReinstall = baseAddr; //Reinstalling base trampoline
 
-    unsigned baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
+    if (! isReinstall) 
+      baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
     code = new instruction[baseTemplate.size / sizeof(instruction)];
     memcpy((char *) code, (char*) baseTemplate.trampTemp, baseTemplate.size);
     // bcopy(baseTemplate.trampTemp, code, baseTemplate.size);
@@ -890,6 +893,8 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
 
     free(code);
 
+    if (isReinstall) return NULL;
+
     trampTemplate *baseInst = new trampTemplate;
     *baseInst = baseTemplate;
     baseInst->baseAddr = baseAddr;
@@ -907,6 +912,58 @@ void generateNoOp(process *proc, int addr)
 
     proc->writeTextWord((caddr_t)addr, insn.raw);
 }
+
+
+
+     //////////////////////////////////////////////////////////////////////////
+     //Returns `true' if a correct base trampoline exists; `false' otherwise
+     //
+bool baseTrampExists(process  *p,         //Process to check into
+		     unsigned  baseAddr)  //Address at which to start checking
+{
+  if ((! p) || (! baseAddr)) return false;
+
+  int data = ptrace(PT_READ_I, p->getPid(), (int *)baseAddr, 0, 0);
+  if ((data == 0) || (data == -1))        //Bad instruction or ptrace error
+    return false;
+  else
+    return true;
+}
+
+     //////////////////////////////////////////////////////////////////////////
+     //Given a process and a vector of instInstance's, reinstall all the base
+     //  trampolines that have been damaged.
+     //
+void findAndReinstallBaseTramps(process               *p, 
+				vector<instInstance*> &allInstInstances)
+{
+  if (! p) return;
+
+  for (unsigned u = 0; u < allInstInstances.size(); u++) {
+    if (allInstInstances[u]->prevAtPoint) continue;   //Not first at inst point
+    if (baseTrampExists(p, allInstInstances[u]->baseInstance->baseAddr))
+      continue;
+
+    instPoint *ip = allInstInstances[u]->location;
+    if ((ip->ipLoc == ipFuncEntry) || (ip->ipLoc == ipFuncReturn)) {
+      instPoint     *rp = ip->iPgetFunction()->funcExits(p)[0]; //Return point
+      trampTemplate *rt = p->baseMap[rp];                       //Return tramp
+      installBaseTramp(rp, p, 0, rt->baseAddr);
+
+      instPoint     *ep = ip->iPgetFunction()->funcEntry(p);    //Entry point
+      trampTemplate *et = p->baseMap[ep];                       //Entry tramp
+      installBaseTramp(ep, p, rt->baseAddr, et->baseAddr);
+
+      generateBranch(p, ep->iPgetAddress(), et->baseAddr);
+    }
+    else {
+      installBaseTramp(ip, p, 0, allInstInstances[u]->baseInstance->baseAddr);
+      generateBranch(p, ip->iPgetAddress(),
+		        allInstInstances[u]->baseInstance->baseAddr);
+    }
+  }
+}
+
 
 
 trampTemplate *findAndInstallBaseTramp(process *proc, 
@@ -960,6 +1017,37 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
       
     return(ret);
 }
+
+
+     //////////////////////////////////////////////////////////////////////////
+     //Given a process and a vector of instInstance's, reconstruct 
+     //  1.  branches from base trampolines to their mini trampolines
+     //  2.  base trampoline instructions that update cost
+     //
+void reattachMiniTramps(process              *p,
+			vector<instInstance*> &allInstInstances)
+{
+  if (! p) return;
+
+  for (unsigned u = 0; u < allInstInstances.size(); u++) {
+    if (allInstInstances[u]->prevAtPoint) continue;   //Not first at inst point
+
+    unsigned skipAddr = allInstInstances[u]->baseInstance->baseAddr;
+    if (allInstInstances[u]->when == callPreInsn)
+      skipAddr += allInstInstances[u]->baseInstance->skipPreInsOffset;
+    else
+      skipAddr += allInstInstances[u]->baseInstance->skipPostInsOffset;
+    generateNoOp(p, skipAddr);                //Clear "skip" branch
+                                              //Restore branch from base tramp
+    extern int getBaseBranchAddr(process *, instInstance *);
+    resetBRL(p, getBaseBranchAddr(p, allInstInstances[u]),
+		allInstInstances[u]->trampBase);
+                                              //Restore update cost instructions
+    allInstInstances[u]->baseInstance->updateTrampCost(p, 0);
+  }
+}
+
+
 
 /*
  * Install a single tramp.
