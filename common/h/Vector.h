@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Vector.h: resizable vectors.
- * $Id: Vector.h,v 1.12 2001/07/30 22:28:04 gurari Exp $
+ * $Id: Vector.h,v 1.13 2001/08/20 19:58:25 bernat Exp $
 ************************************************************************/
 
 
@@ -72,13 +72,13 @@ extern "C" {
 typedef int (*qsort_cmpfunc_t)(const void *, const void *);
 }
 
-#define VECTOR_APPEND(l1, l2) 	{ for (int _i=0; _i < (l2).size(); _i++) (l1).push_back((l2)[_i]); }
+#define VECTOR_APPEND(l1, l2) 	{ for (unsigned int _i=0; _i < (l2).size(); _i++) (l1).push_back((l2)[_i]); }
 #define VECTOR_SORT(l1, f) 	qsort((l1).begin(),(l1).size(),sizeof((l1).front()), (qsort_cmpfunc_t) f);
 /* #define VECTOR_SORT(l1, f) 	stable_sort((l1).begin(),(l1).end(),f); */
 
 #else
 
-#define VECTOR_APPEND(l1, l2) 	{ for (int _i=0; _i < (l2).size(); _i++) (l1).push_back((l2)[_i]); }
+#define VECTOR_APPEND(l1, l2) 	{ for (unsigned int _i=0; _i < (l2).size(); _i++) (l1).push_back((l2)[_i]); }
 #define VECTOR_SORT(l1, f) 	l1.sort((qsort_cmpfunc_t)f);
 
 
