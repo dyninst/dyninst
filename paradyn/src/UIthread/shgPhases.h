@@ -4,15 +4,23 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.h,v $
-/* Revision 1.5  1996/02/02 18:50:26  tamches
-/* better multiple phase support
-/* currSearching, everSearched flags are new
-/* shgStruct constructor is new
-/* new cleaner pc->ui igen-corresponding routines: defineNewSearch,
-/* activateSearch, pauseSearch, resumeSearch, addNode, addEdge,
-/* configNode, addToStatusDisplay
-/* removed add()
+/* Revision 1.6  1996/02/07 19:11:26  tamches
+/* former globals currInstalledAltMoveHandler, ignoreNextShgAltMove,
+/* shgAltAnchorX/Y added
+/* getCurrent() made private
+/* added draw, resize, single/middle/doubleClick, scrollPosition, and
+/* altPress/Release routines.
+/* activateSearch --> activateCurrSearch(); similar for pause, resume
 /*
+ * Revision 1.5  1996/02/02 18:50:26  tamches
+ * better multiple phase support
+ * currSearching, everSearched flags are new
+ * shgStruct constructor is new
+ * new cleaner pc->ui igen-corresponding routines: defineNewSearch,
+ * activateSearch, pauseSearch, resumeSearch, addNode, addEdge,
+ * configNode, addToStatusDisplay
+ * removed add()
+ *
  * Revision 1.4  1996/01/23 07:04:44  tamches
  * clarified interface to change()
  *
@@ -39,6 +47,7 @@
 
 #include "tcl.h"
 #include "tk.h"
+#include "tkTools.h"
 
 #include "shg.h"
 
@@ -76,8 +85,8 @@ class shgPhases {
          assert(theNewShg);
 
          this->theShg = theNewShg;
-         this->horizSBfirst = this->horizSBlast = 0.0;
-         this->vertSBfirst = this->vertSBlast = 0.0;
+         this->horizSBfirst = this->vertSBfirst = 0.0;
+         this->horizSBlast = this->vertSBlast = 1.0;
          this->currSearching = false;
          this->everSearched = false;
       }
@@ -116,10 +125,18 @@ class shgPhases {
 
    string menuName, horizSBName, vertSBName, currItemLabelName;
 
+   bool currInstalledAltMoveHandler;
+   bool ignoreNextShgAltMove;
+   int shgAltAnchorX;
+   int shgAltAnchorY;
+
    shg &getByID(int phaseID);
    shgStruct &getByIDLL(int phaseID);
    bool changeLL(unsigned newIndex);
       // returns true iff any changes
+
+   shg &getCurrent();
+   const shg &getCurrent() const;
 
  public:
 
@@ -129,7 +146,7 @@ class shgPhases {
              Tcl_Interp *iInterp, Tk_Window iTkWindow);
   ~shgPhases();
 
-   Tk_Window getTkWindow() {return theTkWindow;} // needed for XWarpPointer
+//   Tk_Window getTkWindow() {return theTkWindow;} // needed for XWarpPointer
 //   const string &getMenuName() const {return menuName;}
    const string &getHorizSBName() const {return horizSBName;}
    const string &getVertSBName() const {return vertSBName;}
@@ -146,8 +163,6 @@ class shgPhases {
 
    bool existsCurrent() const {return currShgPhaseIndex < theShgPhases.size();}
    bool existsById(int phaseId) const;
-   shg &getCurrent();
-   const shg &getCurrent() const;
    int getCurrentId() const {
       assert(existsCurrent());
       return theShgPhases[currShgPhaseIndex].getPhaseId();
@@ -155,12 +170,26 @@ class shgPhases {
 
    void resizeEverything();
 
+   void draw(bool doubleBuffer, bool isXsynchOn) const;
+
+   bool resize();
+
+   void processSingleClick(int x, int y);
+   void processMiddleClick(int x, int y);
+   bool processDoubleClick(int x, int y);
+
+   bool newVertScrollPosition(int argc, char **argv);
+   bool newHorizScrollPosition(int argc, char **argv);
+
+   bool altPress(int x, int y);
+   void altRelease();
+
    void defineNewSearch(int phaseId, const string &phaseName);
-   bool activateSearch(int phaseId);
+   bool activateCurrSearch();
       // returns true iff search successfully started
-   bool pauseSearch(int phaseId);
+   bool pauseCurrSearch();
       // returns true iff search successfully paused
-   bool resumeSearch(int phaseId);
+   bool resumeCurrSearch();
       // returns true iff search successfully resumed
 
    bool addNode(int phaseId, unsigned nodeId,
