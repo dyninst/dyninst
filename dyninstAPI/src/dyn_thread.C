@@ -219,6 +219,7 @@ Frame dyn_thread::getActiveFrame()
 bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
 {
    updateLWP();
+   assert(lwp);
    return lwp->walkStack(stackWalk);
 }
 
