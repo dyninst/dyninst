@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.86 2001/11/28 05:44:12 gaburici Exp $
+// $Id: inst.C,v 1.87 2001/12/06 20:57:48 schendel Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -335,7 +335,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 
     /* VG(11/06/01): Added location, needed by effective address AST node */
     ret->returnAddr = ast->generateTramp(proc, (const instPoint *)location,
-					 (char *)insn, count, trampCost, noCost);
+				      (char *)insn, count, &trampCost, noCost);
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
     // The ast node might be shared, so remove the changes made to
