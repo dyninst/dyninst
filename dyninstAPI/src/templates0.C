@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.30 2002/05/04 21:47:23 schendel Exp $
+// $Id: templates0.C,v 1.31 2002/05/10 18:37:43 schendel Exp $
 // Generate all the templates in one file.
 
 /*
@@ -93,7 +93,6 @@ template class  vector<Frame*>;
 template class  vector<vector<Frame> >;
 template class  vector<vector<Frame*> >;
 
-
 template class  vector<Symbol>;
 template class  vector<float>;
 template class  vector<heapItem*>;
@@ -105,7 +104,8 @@ template class  vector<trampTemplate *>;
 template class  vector<int>;
 template class  vector<instruction>;
 #ifndef BPATCH_LIBRARY
-template class  vector<metricDefinitionNode *>;
+class processMetFocusNode;
+
 template class  vector<machineMetFocusNode *>;
 template class  vector<processMetFocusNode *>;
 template class  vector<instrCodeNode *>;
