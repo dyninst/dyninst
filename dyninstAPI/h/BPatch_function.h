@@ -78,17 +78,6 @@ class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj {
     void *getBaseAddrRelative() const;
     BPatch_point* createMemInstPoint(void *addr, BPatch_memoryAccess* ma);
 
-    // VG(02/19/02): FIXME: update this somehow on relocation
-#if defined(i386_unknown_linux2_0) ||\
- defined(i386_unknown_solaris2_5) ||\
- defined(i386_unknown_nt4_0) ||\
- defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-
-  // needed to workaround gcc 3.0.2 problem (bug?)
-  typedef const unsigned char* InstrucPos;
-
-#endif
-
 public:
     virtual	~BPatch_function();
 
