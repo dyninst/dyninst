@@ -44,6 +44,9 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.27  1997/06/23 17:06:09  tamches
+ * opCode moved into this file
+ *
  * Revision 1.26  1997/05/07 19:02:55  naim
  * Getting rid of old support for threads and turning it off until the new
  * version is finished. Additionally, new superTable, baseTable and superVector
@@ -83,54 +86,6 @@
  * (vectors of counter/timers) implemented for all current platforms +
  * different bug fixes - naim
  *
- * Revision 1.19  1996/11/14 14:26:58  naim
- * Changing AstNodes back to pointers to improve performance - naim
- *
- * Revision 1.18  1996/11/11 01:44:56  lzheng
- * Moved the instructions which is used to caculate the observed cost
- * from the miniTramps to baseTramp
- *
- * Revision 1.17  1996/10/31 08:36:11  tamches
- * the shm-sampling commit; added noCost param to several fns
- *
- * Revision 1.16  1996/09/13 21:41:56  mjrg
- * Implemented opcode ReturnVal for ast's to get the return value of functions.
- * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
- * Removed architecture dependencies from inst.C.
- * Changed code to allow base tramps of variable size.
- *
- * Revision 1.15  1996/08/20 19:06:29  lzheng
- * Implementation of moving multiple instructions sequence
- * and splitting the instrumentation into two phases
- *
- * Revision 1.14  1996/08/16 21:18:16  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.13  1996/04/26 20:04:32  lzheng
- * Moved the defination of emitFuncCall from inst.h to here.
- *
- * Revision 1.12  1996/03/25 20:20:06  tamches
- * the reduce-mem-leaks-in-paradynd commit
- *
- * Revision 1.11  1996/03/20 17:02:42  mjrg
- * Added multiple arguments to calls.
- * Instrument pvm_send instead of pvm_recv to get tags.
- *
- * Revision 1.10  1995/08/24 15:03:45  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.9  1995/05/18  10:29:58  markc
- * Added new opcode DataAddr
- *
- * Revision 1.8  1995/03/10  19:29:13  hollings
- * Added code to include base tramp cost in first mini-tramp.
- *
  */
 
 //
@@ -139,15 +94,48 @@
 //
 
 #include <stdio.h>
-#include "dyninstAPI/src/inst.h"
 #include "util/h/Vector.h"
 #include "util/h/Dictionary.h"
 #include "util/h/String.h"
+
+class process;
+class instPoint;
 
 class BPatch_type;
 
 // a register.
 typedef int reg;
+
+typedef enum { plusOp,
+               minusOp,
+               timesOp,
+               divOp,
+               lessOp,
+               leOp,
+               greaterOp,
+               geOp,
+               eqOp,
+               neOp,
+               loadOp,           
+               loadConstOp,
+               storeOp,
+	       storeMemOp,
+	       loadMemOp,
+               ifOp,
+	       callOp,
+	       trampPreamble,
+	       trampTrailer,
+	       noOp,
+	       orOp,
+	       andOp,
+	       getRetValOp,
+	       getSysRetValOp,
+	       getParamOp,
+	       getSysParamOp,	   
+	       loadIndirOp,
+	       storeIndirOp,
+	       saveRegOp,
+	       updateCostOp } opCode;
 
 class registerSlot {
  public:
