@@ -42,7 +42,7 @@
 /************************************************************************
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  *
- * $Id: RTetc-winnt.c,v 1.11 2002/11/07 22:16:15 bernat Exp $
+ * $Id: RTetc-winnt.c,v 1.12 2002/11/13 16:27:03 bernat Exp $
  *
  ************************************************************************/
 
@@ -149,7 +149,7 @@ DYNINSTgetCPUtime_sw(void) {
   static int cpuRollbackOccurred=0;
   rawTime64 now, tmp_cpuPrevious=cpuPrevious;
   static HANDLE procHandle;
-  HANDLE thrHandle = getCurrentThread();
+  HANDLE thrHandle = GetCurrentThread();
   
   if(GetThreadTimes(thrHandle, &creatT, &exitT, &kernelT,&userT)==0) {
     abort();
