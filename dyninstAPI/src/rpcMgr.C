@@ -53,14 +53,15 @@ void rpcLwp::postIRPC(inferiorRPCtoDo todo)
 
 bool rpcLwp::readyIRPC() const
 {
-    // If we're running an RPC, we're not ready to start one
-    if (isRunningIRPC()) {
-        return false;
-    }
-    if (thrRPCsWaitingToStart.size() == 0 && activeRPC==NULL) {
-        return false;
-    }
-    return true;
+   // If we're running an RPC, we're not ready to start one
+   if (isRunningIRPC()) {
+      return false;
+   }
+   if (thrRPCsWaitingToStart.size() == 0) {
+      // it's possible for activeRPC to exist and have state irpcNotRunning 
+      return false;
+   }
+   return true;
 }
 
 // wasRunning: once the RPC is finished, leave process paused (false) or running (true)
@@ -191,7 +192,8 @@ irpcLaunchState_t rpcLwp::launchPendingIRPC() {
 
 bool rpcLwp::isRunningIRPC() const {
    return (getActiveRPCState() == irpcRunning ||
-           getActiveRPCState() == irpcWaitingForTrap);
+           getActiveRPCState() == irpcWaitingForTrap ||
+           getActiveRPCState() == irpcNotReadyForIRPC);
 }
 
 bool rpcLwp::isWaitingForTrap() const {
