@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.89 2003/04/17 20:46:30 pcroth Exp $ */
+/* $Id: context.C,v 1.90 2003/04/18 21:26:28 zandy Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -503,8 +503,10 @@ void processNewTSConnection(int tracesocket_fd) {
 
 void paradyn_handleProcessExit(process *proc, int exitStatus) {
    pd_process *pd_proc = getProcMgr().find_pd_process(proc);
-   if(pd_proc)
+   if(pd_proc) {
       pd_proc->handleExit(exitStatus);
+      getProcMgr().removeProcess(pd_proc);
+   }
 }
 
 bool allThreadCreatesReceived(process *proc, unsigned num_expected) {
