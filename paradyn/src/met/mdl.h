@@ -185,6 +185,8 @@ inline string instr_req_to_string(unsigned type, string obj) {
   case MDL_STOP_PROC_TIMER:
     return (string("stopProcTimer(") + obj + "); ");
   }
+  assert(0);
+  return(NULL);
 }
 
 inline string op_to_string(unsigned op) {
