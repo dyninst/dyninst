@@ -43,6 +43,11 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc-solaris.C,v $
+ * Revision 1.6  1996/10/15 20:11:05  newhall
+ * fix to relocating functions with a call instruction immediately following
+ * the save instruction, don't instrument functions with retl instruction and
+ * a call instruction, fix to get io and sync metrics to work correctly
+ *
  * Revision 1.5  1996/10/04 16:12:40  naim
  * Optimization for code generation (use of immediate operations whenever
  * possible). This first commit is only for the sparc platform. Other platforms
@@ -574,19 +579,6 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
 	  delaySlotInsn.raw = owner->get_instruction(addr+4);
 	  size += 2*sizeof(instruction);
       }
-
-      //if (owner->isValidAddress(addr-4)) {
-      //	  instruction iplus1;
-      //	  iplus1.raw = owner->get_instruction(addr-4);
-      //	  if (IS_DELAYED_INST(iplus1) && !delayOK) {
-	      // ostrstream os(errorLine, 1024, ios::out);
-	      // os << "** inst point " << func->file->fullName << "/"
-	      //  << func->prettyName() << " at addr " << addr <<
-	      //	" in a delay slot\n";
-	      // logLine(errorLine);
-      //	      inDelaySlot = true;
-      //	  }
-      //}
   }
 
   // When the function is a leaf function
@@ -2027,6 +2019,8 @@ bool pdFunction::findInstPoints(const image *owner) {
    // which will be treat differently. 
    isTrap = false;
    not_relocating = false;
+   bool func_entry_found = false;
+
    for ( ; adr1 < addr() + size(); adr1 += 4) {
        instr.raw = owner->get_instruction(adr1);
 
@@ -2040,13 +2034,15 @@ bool pdFunction::findInstPoints(const image *owner) {
 	   return findInstPoints(owner, addr(), 0);
        } 
 
-#if defined(sparc_sun_solaris2_4)
        // TODO: This is a hacking for the solaris(solaris2.5 actually)
        // We will relocate that function if the function has been 
        // tail-call optimazed.
        // (Actully, the reason of this is that the system calls like 
        //  read, write, etc have the tail-call optimazation to call
        //  the _read, _write etc. which contain the TRAP instruction 
+       //  This is only done if libc is statically linked...if the
+       //  libTag is set, otherwise we instrument read and _read
+       //  both for the dynamically linked case
        if (isLibTag()) {
 	   if (isCallInsn(instr)) {
 	       instruction nexti; 
@@ -2062,15 +2058,15 @@ bool pdFunction::findInstPoints(const image *owner) {
 	       }
 	   }   
        }
-#endif
 
        // The function Entry is defined as the first SAVE instruction plus
        // the instructions after this.
        // ( The first instruction for the nonleaf function is not 
        //   necessarily a SAVE instruction. ) 
-       if (isInsnType(instr, SAVEmask, SAVEmatch)) {
-	     
+       if (isInsnType(instr, SAVEmask, SAVEmatch) && !func_entry_found) {
+
 	   leaf = false;
+	   func_entry_found = true;
 	   funcEntry_ = new instPoint(this, instr, owner, adr1, true, leaf, 
 				      functionEntry);
 	   adr = adr1;
@@ -2226,12 +2222,14 @@ bool pdFunction::checkInstPoints(const image *owner) {
     instruction instr;
     Address adr = addr();
 
+    bool retl_inst = false;
     // Check if there's any branch instruction jump to the middle
     // of the instruction sequence in the function entry point
     // and function exit point.
     for ( ; adr < addr() + size(); adr += sizeof(instruction)) {
 
 	instr.raw = owner->get_instruction(adr);
+	if(isInsnType(instr, RETLmask, RETLmatch)) retl_inst = true;
 
 	if (isInsnType(instr, BRNCHmask, BRNCHmatch)||
 	    isInsnType(instr, FBRNCHmask, FBRNCHmatch)) {
@@ -2256,6 +2254,14 @@ bool pdFunction::checkInstPoints(const image *owner) {
 		}
 	    }
 	}
+    }
+
+    // if there is a retl instruction and we don't think this is a leaf
+    // function then this is a way messed up function...well, at least we
+    // we can't deal with this...the only example I can find is _cerror
+    // and _cerror64 in libc.so.1
+    if(retl_inst && !leaf){
+	 return false;
     }
 
     // check that no instrumentation points could overlap
@@ -2573,9 +2579,21 @@ bool pdFunction::findNewInstPoints(const image *owner,
 	    point-> isDelayed = true;
 	    *funcReturns[retId++] = *point;
        } else {
-	 // define a call point
-	 // this may update address - sparc - aggregate return value
-	 // want to skip instructions
+	 // if the second instruction in the function is a call instruction
+         // then this cannot go in the delay slot of the branch to the
+         // base tramp, so add a noop between first and second instructions
+	 // in the relocated function (check out write in libc.so.1 for
+	 // and example of this):
+	 //
+	 //     save  %sp, -96, %sp             brach to base tramp
+	 //     call  0x73b70                   nop
+	 //                                     call 0x73b70
+	 if(adr == (addr()+4)){
+	     newInstr[i+1] = instr;
+	     generateNOOP(&newInstr[i]);
+	     i++;
+	     newAdr += 4;
+	 }
 
 	 // if this is a call to an address within the same function, then
 	 // we need to set the 07 register to have the same value as it
@@ -2691,11 +2709,11 @@ bool pdFunction::relocateFunction(process *proc, instPoint *location,
     }   
 
     //Allocate the heap for the function to be relocated
-    ret = inferiorMalloc(globalProc, size()+28, textHeap);
+    ret = inferiorMalloc(globalProc, size()+32, textHeap);
     newAddr = ret;
 
     findNewInstPoints(location->image_ptr, ret, proc, extra_instrs);
-    proc->writeDataSpace((caddr_t)ret, size()+28,(caddr_t) newInstr);
+    proc->writeDataSpace((caddr_t)ret, size()+32,(caddr_t) newInstr);
     return true;
 }
 
