@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.28  1994/09/13 20:48:39  karavan
+# Revision 1.29  1994/09/13 20:50:58  karavan
+# created error #23
+#
+# Revision 1.28  1994/09/13  20:48:39  karavan
 # created error #22
 #
 # Revision 1.27  1994/09/13  20:44:06  karavan
@@ -285,6 +288,15 @@ this error needs to be diagnosed.
 %Y
 
 %N 22
+%E Tcl Command Failure
+%A ui
+%S fatal
+%X
+The tcl interpreter has failed unexpectedly.  This is a fatal error; 
+this error needs to be diagnosed.
+%Y
+
+%N 23
 %E Tcl Command Failure
 %A ui
 %S fatal
