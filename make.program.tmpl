@@ -5,6 +5,9 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.program.tmpl,v $
+# Revision 1.9  1996/01/05 19:52:09  tamches
+# igen --> $(IGEN)
+#
 # Revision 1.8  1995/11/29 00:14:12  tamches
 # added -cache-dir=/tmp option to purify so we don't run out of disk space
 # while purify works.  Added quantify; added qpt.
@@ -140,10 +143,10 @@ endif
 	$(LEX) -t $(LFLAGS) $< > $@
 
 %.xdr.C %.xdr.CLNT.C %.xdr.CLNT.h %.xdr.SRVR.C %.xdr.SRVR.h %.xdr.h: %.I
-	igen -xdr $(ICFLAGS) $<
+	$(IGEN) -xdr $(ICFLAGS) $<
 
 %.thread.C %.thread.CLNT.h %.thread.SRVR.h %.thread.h: %.I
-	igen -thread $(ICFLAGS) $<
+	$(IGEN) -thread $(ICFLAGS) $<
 
 #
 # include the dependencies.

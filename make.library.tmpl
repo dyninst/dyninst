@@ -5,6 +5,9 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.library.tmpl,v $
+# Revision 1.7  1996/01/05 19:51:52  tamches
+# igen --> $(IGEN)
+#
 # Revision 1.6  1995/08/24 15:00:54  hollings
 # AIX/SP-2 port (including option for split instruction/data heaps)
 # Tracing of rexec (correctly spawns a paradynd if needed)
@@ -137,10 +140,10 @@ pure:
 #
 
 %.xdr.C %.xdr.CLNT.C %.xdr.CLNT.h %.xdr.SRVR.C %.xdr.SRVR.h %.xdr.h: %.I
-	igen -xdr $(ICFLAGS) $<
+	$(IGEN) -xdr $(ICFLAGS) $<
 
 %.thread.C %.thread.CLNT.h %.thread.SRVR.h %.thread.h: %.I
-	igen -thread $(ICFLAGS) $<
+	$(IGEN) -thread $(ICFLAGS) $<
 
 
 #
