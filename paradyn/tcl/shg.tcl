@@ -3,6 +3,9 @@
 
 #
 # $Log: shg.tcl,v $
+# Revision 1.13  1996/03/08 00:24:42  tamches
+# added 2d entry point
+#
 # Revision 1.12  1996/02/15 23:04:52  tamches
 # shgInitialize puts up error 88 if an appl hasn't been defined yet.
 # shg key now contains entries for why vs. where axis refinements.
@@ -263,6 +266,9 @@ proc shgClickOnPause {} {
 # ####################################################################
 
 proc shgInitialize {iDeveloperMode iDrawKey iDrawTips} {
+   # paradyn's entry point should be here; the shg test program
+   # will call shgInitialize2 directly, since the paradyn command (next line)
+   # would bomb it
    if {![paradyn applicationDefined]} {
       # No application has been started yet!!!
       # Put up an error dialog:
@@ -270,6 +276,10 @@ proc shgInitialize {iDeveloperMode iDrawKey iDrawTips} {
       return
    }
 
+   return [shgInitialize2 $iDeveloperMode $iDrawKey $iDrawTips]
+}
+
+proc shgInitialize2 {iDeveloperMode iDrawKey iDrawTips} {
    if {[winfo exists .shg]} {
 #      puts stderr "(shg window already exists; not creating)"
       wm deiconify .shg
