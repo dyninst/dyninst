@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.64 2003/01/15 17:16:54 willb Exp $
+// $Id: main.C,v 1.65 2003/02/04 15:21:33 willb Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -309,6 +309,9 @@ main (int argc, char **argv)
 
   thr_join (UIMtid, NULL, NULL);
 
+
+#if DO_LIBTHREAD_MEASUREMENTS
+#if !defined(i386_unknown_nt4_0)
 // tell the other threads to exit
 
   msg_send (DMtid, MSG_TAG_DO_EXIT_CLEANLY, (char *) NULL, 0);
@@ -322,6 +325,8 @@ main (int argc, char **argv)
   thr_join (PCtid, NULL, NULL);
 
   thr_library_cleanup();
+#endif // !defined(i386_unknown_nt4_0)
+#endif DO_LIBTHREAD_MEASUREMENTS
   
 #if !defined(i386_unknown_nt4_0)
   mpichUnlinkWrappers();
