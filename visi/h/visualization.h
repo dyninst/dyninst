@@ -17,9 +17,13 @@
  */
 
 /* $Log: visualization.h,v $
-/* Revision 1.12  1995/12/15 20:15:12  naim
-/* Adding call back function to display error messages from visis - naim
+/* Revision 1.13  1995/12/18 17:22:02  naim
+/* Adding function showErrorVisiCallback to display error messages from
+/* visis - naim
 /*
+ * Revision 1.12  1995/12/15  20:15:12  naim
+ * Adding call back function to display error messages from visis - naim
+ *
  * Revision 1.11  1995/09/18  18:26:00  newhall
  * updated test subdirectory, added visilib routine GetMetRes()
  *
@@ -66,6 +70,7 @@
 
 #define FILETABLESIZE  64
 #define EVENTSIZE      FOLD+1
+#define MAXSTRINGSIZE  16*1024
 
 //
 // global variables assoc. with histo datagrid
@@ -175,7 +180,7 @@ extern int RegistrationCallback(msgTag event,int (*callBack)(int));
 //
 // request to Paradyn to display error message
 //
-extern void showErrorVisiCallback(int code, string msg);
+extern void showErrorVisiCallback(string msg);
 
 //
 // main loop provided by paradyn (not currently supported)

@@ -14,9 +14,13 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.35  1995/12/15 20:15:24  naim
-/* Adding call back function to display error messages from visis - naim
+/* Revision 1.36  1995/12/18 17:22:07  naim
+/* Adding function showErrorVisiCallback to display error messages from
+/* visis - naim
 /*
+ * Revision 1.35  1995/12/15  20:15:24  naim
+ * Adding call back function to display error messages from visis - naim
+ *
  * Revision 1.34  1995/11/17  17:28:40  newhall
  * added normalized member to Metric class which specifies units type
  * added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
@@ -211,9 +215,17 @@ void QuitVisi(){
 //
 // call back to Paradyn to display error message
 //
-void showErrorVisiCallback(int code, string msg)
+void showErrorVisiCallback(string msg)
 {
-  vp->showError(code,msg);
+  int string_size;
+  string_size = (msg.length())*sizeof(char);
+  if (string_size < MAXSTRINGSIZE)
+    vp->showError(87,msg);
+  else {
+    string errmsg;
+    errmsg = string("Internal Error: error message has exceeded maximum length of ") + string(MAXSTRINGSIZE) + string(" bytes. Please, make your error message shorter.");
+    vp->showError(87,errmsg);
+  }
 }  
 
 ///////////////////////////////////////////////////////////
