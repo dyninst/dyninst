@@ -7,14 +7,22 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.6 1994/05/12 22:24:08 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.7 1994/05/31 18:06:25 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-pvm.C,v $
- * Revision 1.6  1994/05/12 22:24:08  markc
+ * Revision 1.7  1994/05/31 18:06:25  markc
+ * Reordered predicate definitions.  Procedure preds must appear before sync object
+ * preds to enable conditions to be tested in the correct order.  Now, the condition
+ * variable that is set in a focus procedure is used as the trigger for a sync
+ * object procedure.  In the past, the order was reversed.  Since all sync object
+ * procedures are called from focus procedures, the "if" was always false when
+ * a focus consisted of a specific procedure and specific msg tag.
+ *
+ * Revision 1.6  1994/05/12  22:24:08  markc
  * Fixed instrumentation for createMsgBytesSentMetric.
  *
  * Revision 1.5  1994/04/18  15:54:41  markc
@@ -392,9 +400,9 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
 
     data = mn->addIntCounter(0, False);
 
-    // TODO why a 2 here?
-    // (== param2, iTag)
-    tagTest = new AstNode(eqOp, new AstNode(Param, (void *) 2),
+    // NOTE - this is 1 since paramters are numbered starting with
+    // 0.
+    tagTest = new AstNode(eqOp, new AstNode(Param, (void *) 1),
 				new AstNode(Constant, (void *) iTag));
 
     filterNode = createIf(tagTest, createPrimitiveCall("addCounter", data, 1));
@@ -552,6 +560,9 @@ AstNode *perProcedureCalls(metricDefinitionNode *mn,
 
 
 resourcePredicate cpuTimePredicates[] = {
+  { "/Procedure",	
+    replaceBase,		
+    (createPredicateFunc) perProcedureCPUTime },
   { "/SyncObject/MsgTag",	
     invalidPredicate,		
     (createPredicateFunc) NULL },
@@ -564,13 +575,13 @@ resourcePredicate cpuTimePredicates[] = {
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
-  { "/Procedure",	
-    replaceBase,		
-    (createPredicateFunc) perProcedureCPUTime },
   { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
 resourcePredicate wallTimePredicates[] = {
+  { "/Process",	
+    nullPredicate,		
+    (createPredicateFunc) NULL },
   { "/SyncObject/MsgTag",	
     simplePredicate,		
     (createPredicateFunc) defaultMSGTagPredicate },
@@ -583,13 +594,13 @@ resourcePredicate wallTimePredicates[] = {
   { "/Machine",	
     nullPredicate,		
     (createPredicateFunc) NULL },
-  { "/Process",	
-    nullPredicate,		
-    (createPredicateFunc) NULL },
   { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
 resourcePredicate procCallsPredicates[] = {
+  { "/Procedure",	
+    replaceBase,		
+    (createPredicateFunc) perProcedureCalls },
   { "/SyncObject",	
     invalidPredicate,		
     (createPredicateFunc) NULL },
@@ -599,18 +610,18 @@ resourcePredicate procCallsPredicates[] = {
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
-  { "/Procedure",	
-    replaceBase,		
-    (createPredicateFunc) perProcedureCalls },
   { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
 resourcePredicate msgPredicates[] = {
+ { "/Procedure",
+   simplePredicate,	
+   (createPredicateFunc) defaultProcedurePredicate },
   { "/SyncObject/MsgTag",	
     simplePredicate,		
     (createPredicateFunc) defaultMSGTagPredicate },
   { "/SyncObject",	
-    invalidPredicate,		
+    nullPredicate,
     (createPredicateFunc) NULL },
   { "/Machine",	
     nullPredicate,		
@@ -618,13 +629,13 @@ resourcePredicate msgPredicates[] = {
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
- { "/Procedure",
-   simplePredicate,	
-   (createPredicateFunc) defaultProcedurePredicate },
  { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
 resourcePredicate defaultPredicates[] = {
+ { "/Procedure",
+   simplePredicate,	
+   (createPredicateFunc) defaultProcedurePredicate },
   { "/SyncObject/MsgTag",	
     simplePredicate,		
     (createPredicateFunc) defaultMSGTagPredicate },
@@ -637,13 +648,13 @@ resourcePredicate defaultPredicates[] = {
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
- { "/Procedure",
-   simplePredicate,	
-   (createPredicateFunc) defaultProcedurePredicate },
  { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
 resourcePredicate globalOnlyPredicates[] = {
+ { "/Procedure",
+   simplePredicate,	
+   (createPredicateFunc) NULL },
   { "/SyncObject/MsgTag",	
     simplePredicate,		
     (createPredicateFunc) NULL },
@@ -656,9 +667,6 @@ resourcePredicate globalOnlyPredicates[] = {
   { "/Process",	
     nullPredicate,		
     (createPredicateFunc) NULL },
- { "/Procedure",
-   simplePredicate,	
-   (createPredicateFunc) NULL },
  { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
@@ -688,10 +696,10 @@ struct _metricRec DYNINSTallMetrics[] = {
       { (createMetricFunc) createMsgBytesRecv, defaultPredicates },
     },
     { { "sync_ops", EventCounter, "Ops/sec" },
-      { (createMetricFunc) createSyncOps, defaultPredicates },
+      { (createMetricFunc) createSyncOps, msgPredicates },
     },
     { { "sync_wait", EventCounter, "# Waiting" },
-      { (createMetricFunc) createSyncWait, defaultPredicates },
+      { (createMetricFunc) createSyncWait, msgPredicates },
     },
     { { "pause_time", SampledFunction, "# Paused" },
       { (createMetricFunc) createPauseTime, globalOnlyPredicates },
@@ -699,3 +707,11 @@ struct _metricRec DYNINSTallMetrics[] = {
 };
 
 int metricCount = sizeof(DYNINSTallMetrics)/sizeof(DYNINSTallMetrics[0]);
+
+
+
+
+
+
+
+
