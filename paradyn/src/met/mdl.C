@@ -41,6 +41,9 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.30  1997/06/27 18:21:20  tamches
+ * removed some warnings
+ *
  * Revision 1.29  1997/06/24 19:57:25  tamches
  * dummy mk_list()
  *
@@ -1174,10 +1177,10 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val, mdl_var& right_val, un
   return false;
 }
 
-bool T_dyninstRPC::mdl_list_stmt::mk_list(vector<string> &funcs) {}
-bool T_dyninstRPC::mdl_for_stmt::mk_list(vector<string> &funcs) {}
-bool T_dyninstRPC::mdl_if_stmt::mk_list(vector<string> &funcs) {}
-bool T_dyninstRPC::mdl_seq_stmt::mk_list(vector<string> &funcs) {}
-bool T_dyninstRPC::mdl_instr_stmt::mk_list(vector<string> &funcs) {}
-bool T_dyninstRPC::mdl_constraint::mk_list(vector<string> &funcs) {}
-bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &funcs) {}
+bool T_dyninstRPC::mdl_list_stmt::mk_list(vector<string> &) {}
+bool T_dyninstRPC::mdl_for_stmt::mk_list(vector<string> &) {}
+bool T_dyninstRPC::mdl_if_stmt::mk_list(vector<string> &) {}
+bool T_dyninstRPC::mdl_seq_stmt::mk_list(vector<string> &) {}
+bool T_dyninstRPC::mdl_instr_stmt::mk_list(vector<string> &) {}
+bool T_dyninstRPC::mdl_constraint::mk_list(vector<string> &) {}
+bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &) {}
