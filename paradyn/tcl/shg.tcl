@@ -3,6 +3,10 @@
 
 #
 # $Log: shg.tcl,v $
+# Revision 1.2  1995/11/20 04:06:02  tamches
+# fixed activeBackground/activeForeground colors that were making for ugly
+# menu highlighting.
+#
 # Revision 1.1  1995/10/17 22:25:14  tamches
 # First version of new search history graph
 #
@@ -65,11 +69,14 @@ proc shgInitialize {} {
    if {[winfo exists .shg]} {
 #      puts stderr "(shg window already exists; not creating)"
       wm deiconify .shg
+      raise .shg
       return
    }
 
    toplevel .shg -class "Shg"
    option add *shg*Background grey
+   option add *shg*activeBackground LightGrey
+   option add *shg*activeForeground black
    wm protocol .shg WM_DELETE_WINDOW {wm iconify .shg}
 
    # area for title, menubar, logo
@@ -80,7 +87,7 @@ proc shgInitialize {} {
    pack  .shg.titlearea.right -side right -fill y -expand false
 
    global PdBitmapDir
-   label .shg.titlearea.right.logo -bitmap @$PdBitmapDir/logo.xbm -foreground #b3331e1b53c7 -relief raised
+   label .shg.titlearea.right.logo -bitmap @$PdBitmapDir/logo.xbm -foreground mediumseagreen -relief raised
    pack  .shg.titlearea.right.logo -side top
 
 #   mkLogo .shg.titlearea.right.logo top
@@ -89,10 +96,10 @@ proc shgInitialize {} {
    pack  .shg.titlearea.left -side left -fill both -expand true
 
    label .shg.titlearea.left.title -text "The Performance Consultant" \
-	   -foreground white \
+	   -foreground white -anchor c \
            -font *-New*Century*Schoolbook-Bold-R-*-14-* \
 	   -relief raised \
-	   -background limegreen
+	   -background mediumseagreen
    pack  .shg.titlearea.left.title -side top -fill both -expand true
 
    # area for menubar:
@@ -214,7 +221,7 @@ proc shgInitialize {} {
    # -----------------------------------------------------------
 
    label .shg.nontop.tip0 -relief groove \
-	   -text "Uninstrumented" \
+	   -text "Uninstrumented" -anchor c \
 	   -font "*-Helvetica-*-r-*-12-*" \
 	   -background "#e9fbb57aa3c9"
               # yuck --ari
@@ -222,7 +229,7 @@ proc shgInitialize {} {
    pack   .shg.nontop.tip0 -side top -fill both -expand false
 
    label .shg.nontop.tip1 -relief groove \
-	   -text "Instrumented; no decision yet" \
+	   -text "Instrumented; no decision yet" -anchor c \
 	   -font "*-Helvetica-*-r-*-12-*" \
 	   -background "#ffffbba5bba5"
                 # yuck --ari
@@ -230,7 +237,7 @@ proc shgInitialize {} {
    pack   .shg.nontop.tip1 -side top -fill both -expand false
 
    label .shg.nontop.tip2 -relief groove \
-	   -text "Instrumented; believed true" \
+	   -text "Instrumented; believed true" -anchor c \
 	   -font "*-Helvetica-*-r-*-12-*" \
 	   -background "#acbff48ff6c8"
                 # yuck --ari
@@ -240,7 +247,7 @@ proc shgInitialize {} {
    pack   .shg.nontop.tip2 -side top -fill both -expand false
 
    label .shg.nontop.tip3 -relief groove \
-	   -text "Uninstrumented; believed false" \
+	   -text "Uninstrumented; believed false" -anchor c \
 	   -font "*-Helvetica-*-r-*-12-*" \
 	   -background "#cc85d5c2777d" 
                 # yuck --ari
@@ -250,7 +257,7 @@ proc shgInitialize {} {
    pack   .shg.nontop.tip3 -side top -fill both -expand false
 
    label .shg.nontop.tip4 -relief sunken \
-           -text "Hold down Alt and move the mouse to scroll freely" \
+           -text "Hold down Alt and move the mouse to scroll freely" -anchor c \
            -font "*-Helvetica-*-r-*-12-*"
    pack  .shg.nontop.tip4 -side top -fill both -expand false
 
