@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.52 2002/03/19 22:57:20 jaw Exp $
+// $Id: BPatch_thread.C,v 1.53 2002/04/18 19:39:37 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1113,8 +1113,8 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
 		      BPatch_thread::oneTimeCodeCallbackDispatch, // Callback
 		      NULL, // User data
 		      -1,   // This isn't a metric definition - we shouldn't
-		      -1,   // really have this parameter in the API.
-		      false, 
+		      NULL, // No particular thread (yet),
+		      0,    // Same -- no kernel thread
                       false);  
 
     waitingForOneTimeCode = true;
