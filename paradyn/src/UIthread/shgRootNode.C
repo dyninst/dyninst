@@ -2,9 +2,12 @@
 // Ariel Tamches
 
 /* $Log: shgRootNode.C,v $
-/* Revision 1.1  1995/10/17 22:08:53  tamches
-/* initial version, for the new search history graph
+/* Revision 1.2  1996/01/11 23:42:40  tamches
+/* there are now 6 node styles
 /*
+ * Revision 1.1  1995/10/17 22:08:53  tamches
+ * initial version, for the new search history graph
+ *
  */
 
 #include "shg.h"
@@ -41,10 +44,9 @@ bool shgRootNode::configStyle(style newStyle) {
    // returns true iff any changes.  Does not redraw.
    if (theStyle == newStyle)
       return false;
-   else {
-      theStyle = newStyle;
-      return true;
-   }
+
+   theStyle = newStyle;
+   return true;
 }
 
 void shgRootNode::drawAsRoot(Tk_Window theTkWindow,
@@ -95,7 +97,7 @@ void shgRootNode::prepareForDrawingListboxItems(Tk_Window theTkWindow,
 		      shg::getListboxItemGC(),
 		      0, 0, &listboxBounds, 1, YXBanded);
 
-   for (unsigned theStyle=Uninstrumented; theStyle <= TestedFalse; theStyle++) {
+   for (unsigned theStyle=InactiveUnknown; theStyle <= InactiveTrue; theStyle++) {
       Tk_3DBorder thisStyleTk3DBorder = shg::getListboxItemTk3DBorder((style)theStyle);
 
       XSetClipRectangles(Tk_Display(theTkWindow),
@@ -113,7 +115,7 @@ void shgRootNode::prepareForDrawingListboxItems(Tk_Window theTkWindow,
 void shgRootNode::doneDrawingListboxItems(Tk_Window theTkWindow) {
    XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(), None);
 
-   for (unsigned theStyle=Uninstrumented; theStyle <= TestedFalse; theStyle++) {
+   for (unsigned theStyle=InactiveUnknown; theStyle <= InactiveTrue; theStyle++) {
       Tk_3DBorder thisStyleTk3DBorder = shg::getListboxItemTk3DBorder((style)theStyle);
 
       XSetClipMask(Tk_Display(theTkWindow),
