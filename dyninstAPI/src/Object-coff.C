@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.18 2003/07/15 22:43:45 schendel Exp $
+// $Id: Object-coff.C,v 1.19 2003/09/18 01:05:26 jodom Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -609,6 +609,13 @@ void Object::load_object(bool sharedLibrary) {
         log_perror(err_func_, "close");
     }
     free(file);
+
+    // COFF doesn't have segments, so the entire code/data sections are valid
+
+    code_vldS_ = code_off_;
+    code_vldE_ = code_off_ + code_len_ * sizeof(Word);
+    data_vldS_ = data_off_;
+    data_vldE_ = data_off_ + code_len_ * sizeof(Word);
 }
 
 

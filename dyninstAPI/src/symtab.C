@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.186 2003/09/11 22:00:24 eli Exp $
+// $Id: symtab.C,v 1.187 2003/09/18 01:05:26 jodom Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2017,6 +2017,11 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   dataOffset_ = linkedFile.data_off();
   codeLen_ = linkedFile.code_len();
   dataLen_ = linkedFile.data_len();
+  codeValidStart_ = linkedFile.code_vldS();
+  codeValidEnd_ = linkedFile.code_vldE();
+  dataValidStart_ = linkedFile.data_vldS();
+  dataValidEnd_ = linkedFile.data_vldE();
+
     
   // if unable to parse object file (somehow??), try to
   //  notify luser/calling process + return....    

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.29 2003/07/15 22:43:51 schendel Exp $
+// $Id: Object-xcoff.C,v 1.30 2003/09/18 01:05:26 jodom Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -894,6 +894,11 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
    // Set the table of contents offset
    toc_offset_ = toc_offset;
    
+   code_vldS_ = code_off_;
+   code_vldE_ = code_off_ + code_len_;
+   data_vldS_ = data_off_;
+   data_vldE_ = data_off_ + data_len_;
+
  cleanup:
 
    if (sectHdr) free(sectHdr);

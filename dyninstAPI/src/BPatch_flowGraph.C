@@ -382,7 +382,8 @@ bool BPatch_flowGraph::createBasicBlocks()
 
          for (int i=0; i < possTargets.size(); i++) {
             taddr = telements[i];
-            if ((baddr <= taddr) && (taddr < maddr) && 
+            if (proc->getImage()->isAllocedAddress(taddr) &&
+		(baddr <= taddr) && (taddr < maddr) && 
                 !leaders.contains(taddr)) {
                leaders += taddr;
                leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
@@ -537,13 +538,15 @@ bool BPatch_flowGraph::createBasicBlocks()
 
                for (int j=0; j < possTargets.size(); j++) {
                   taddr = telements[j];
-                  if ((baddr <= taddr) && (taddr < maddr)) {
-                     bb->targets += leaderToBlock[taddr];
-                     leaderToBlock[taddr]->sources += bb;
-                  }
-                  else {
-                     exitBlock += bb;
-                  }
+		  if (proc->getImage()->isAllocedAddress(taddr)) {
+		    if ((baddr <= taddr) && (taddr < maddr)) {
+		      bb->targets += leaderToBlock[taddr];
+		      leaderToBlock[taddr]->sources += bb;
+		    }
+		    else {
+		      exitBlock += bb;
+		    }
+		  }
                }
                delete[] telements;
 

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.44 2003/09/05 16:27:35 schendel Exp $
+ * $Id: Object.h,v 1.45 2003/09/18 01:05:26 jodom Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -162,6 +162,11 @@ public:
     Address           data_off () const { return data_off_; }
     Address           data_len () const { return data_len_; }
 
+    Address           code_vldS () const { return code_vldS_; }
+    Address           code_vldE () const { return code_vldE_; }
+    Address           data_vldS () const { return data_vldS_; }
+    Address           data_vldE () const { return data_vldE_; }
+
     int getAddressWidth() const { return addressWidth_nbytes; }
 
     virtual  bool   needs_function_binding()  const;
@@ -216,6 +221,12 @@ protected:
     Word*   data_ptr_;
     Address data_off_;
     Address data_len_;
+
+    Address code_vldS_;
+    Address code_vldE_;
+
+    Address data_vldS_;
+    Address data_vldE_;
 
     Address loader_off_; //only used on aix right now.  could be
     Address loader_len_; //needed on other platforms in the future

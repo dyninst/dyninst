@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.55 2003/08/11 15:40:26 hollings Exp $
+ * $Id: Object-elf.C,v 1.56 2003/09/18 01:05:26 jodom Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -708,6 +708,12 @@ void Object::load_object()
     data_ptr_ = 0;
     data_off_ = 0;
     data_len_ = 0;
+
+    // initialize "valid" regions of code and data segments
+    code_vldS_ = (Address) -1;
+    code_vldE_ = 0;
+    data_vldS_ = (Address) -1;
+    data_vldE_ = 0;
       
     // And attempt to parse the ELF data structures in the file....
     // EEL, added one more parameter
@@ -730,6 +736,8 @@ void Object::load_object()
       log_printf(err_func_, "no data segment\n");
       goto cleanup;
     }
+
+    get_valid_memory_areas(elfp);
     
     // find symbol and string data
     Elf_Data* symdatap = elf_getdata(symscnp, 0);
@@ -837,6 +845,12 @@ void Object::load_shared_object()
     Elf_Scn*    dynsym_scnp = 0;
     Elf_Scn*    dynstr_scnp = 0;
 
+    // initialize "valid" regions of code and data segments
+    code_vldS_ = (Address) -1;
+    code_vldE_ = 0;
+    data_vldS_ = (Address) -1;
+    data_vldE_ = 0;
+
     if (!loaded_elf(did_elf, elfp, txtaddr,
 		    bssaddr, symscnp, strscnp, stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
 		    rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp)) 
@@ -846,6 +860,9 @@ void Object::load_shared_object()
 
     // find code and data segments....
     find_code_and_data(elfp, txtaddr, bssaddr);
+
+    get_valid_memory_areas(elfp);
+    
 
     Elf_Data *symdatap = elf_getdata(symscnp, 0);
     Elf_Data *strdatap = elf_getdata(strscnp, 0);
@@ -2002,6 +2019,61 @@ Address Object::getPltSlot(pdstring funcName) const{
 	}
 	return offset;	
 
+}
+
+//
+// get_valid_memory_areas - get ranges of code/data segments that have
+//                       sections mapped to them
+//
+
+void Object::get_valid_memory_areas(Elf *elfp) {
+
+  Elf_Scn *scn = NULL;
+
+  if (is_elf64_) {
+#ifndef USES_ELF32_ONLY
+    while ((scn = elf_nextscn(elfp, scn)) != NULL) {
+      Elf64_Shdr *shdrp = elf64_getshdr(scn);
+
+      if (shdrp->sh_flags & SHF_ALLOC) { // This section is in memory
+	if (code_off_ <= shdrp->sh_addr &&
+	    shdrp->sh_addr <= code_off_ + code_len_ * sizeof(Word)) {
+	  if (shdrp->sh_addr < code_vldS_)
+	    code_vldS_ = shdrp->sh_addr;
+	  if (shdrp->sh_addr + shdrp->sh_size > code_vldE_)
+	    code_vldE_ = shdrp->sh_addr + shdrp->sh_size;
+	} else if (data_off_ <= shdrp->sh_addr &&
+		   shdrp->sh_addr <= data_off_ + data_len_ * sizeof(Word)) {
+	  if (shdrp->sh_addr < data_vldS_)
+	    data_vldS_ = shdrp->sh_addr;
+	  if (shdrp->sh_addr + shdrp->sh_size > data_vldE_)
+	    data_vldE_ = shdrp->sh_addr + shdrp->sh_size;
+	}
+      }	
+    }
+#endif
+  } else { // 32-bit ELF
+    while ((scn = elf_nextscn(elfp, scn)) != NULL) {
+      Elf32_Shdr *shdrp = elf32_getshdr(scn);
+      
+      if (shdrp->sh_flags & SHF_ALLOC) { // This section is in memory
+	if (code_off_ <= shdrp->sh_addr &&
+	    shdrp->sh_addr <= code_off_ + code_len_ * sizeof(Word)) {
+	  if (shdrp->sh_addr < code_vldS_)
+	    code_vldS_ = shdrp->sh_addr;
+	  if (shdrp->sh_addr + shdrp->sh_size > code_vldE_)
+	    code_vldE_ = shdrp->sh_addr + shdrp->sh_size;
+	} else if (data_off_ <= shdrp->sh_addr &&
+		   shdrp->sh_addr <= data_off_ + data_len_ * sizeof(Word)) {
+	  if (shdrp->sh_addr < data_vldS_)
+	    data_vldS_ = shdrp->sh_addr;
+	  if (shdrp->sh_addr + shdrp->sh_size > data_vldE_)
+	    data_vldE_ = shdrp->sh_addr + shdrp->sh_size;
+	}
+      }	
+      
+    }
+  }
 }
 
 //

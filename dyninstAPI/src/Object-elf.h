@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.55 2003/07/29 00:32:34 eli Exp $
+ * $Id: Object-elf.h,v 1.56 2003/09/18 01:05:26 jodom Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -268,6 +268,8 @@ class Object : public AObject {
        dictionary_hash<pdstring, Symbol> &global_symbols, Elf *elfp);
   void fix_global_symbol_unknowns_static(
        dictionary_hash<pdstring, Symbol> &global_symbols);
+
+  void get_valid_memory_areas(Elf *elfp);
 
 #if defined(mips_sgi_irix6_4)
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.137 2003/09/17 17:06:27 eli Exp $
+// $Id: symtab.h,v 1.138 2003/09/18 01:05:26 jodom Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -1037,6 +1037,10 @@ public:
   Address dataOffset() { return dataOffset_;}
   Address dataLength() { return (dataLen_ << 2);} 
   Address codeLength() { return (codeLen_ << 2);} 
+  Address codeValidStart() { return codeValidStart_; }
+  Address codeValidEnd() { return codeValidEnd_; }
+  Address dataValidStart() { return dataValidStart_; }
+  Address dataValidEnd() { return dataValidEnd_; }
   const Object &getObject() const { return linkedFile; }
 
   Object &getObjectNC() { return linkedFile; } //ccw 27 july 2000 : this is a TERRIBLE hack : 29 mar 2001
@@ -1053,6 +1057,9 @@ public:
   inline bool isCode(const Address &where) const;
   inline bool isData(const Address &where) const;
   inline bool isValidAddress(const Address &where) const;
+  inline bool isAllocedCode(const Address &where) const;
+  inline bool isAllocedData(const Address &where) const;
+  inline bool isAllocedAddress(const Address &where) const;
   inline const Word get_instruction(Address adr) const;
   inline const unsigned char *getPtrToInstruction(Address adr) const;
 
@@ -1161,6 +1168,11 @@ public:
   unsigned codeLen_;
   Address dataOffset_;
   unsigned dataLen_;
+
+  Address codeValidStart_;
+  Address codeValidEnd_;
+  Address dataValidStart_;
+  Address dataValidEnd_;
 
   bool is_libdyninstRT;
 #if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
@@ -1329,6 +1341,10 @@ inline bool image::isValidAddress(const Address &where) const{
   return (isAligned(where) && (isCode(where) || isData(where)));
 }
 
+inline bool image::isAllocedAddress(const Address &where) const{
+  return (isAligned(where) && (isAllocedCode(where) || isAllocedData(where)));
+}
+
 inline bool image::isCode(const Address &where)  const{
   return (linkedFile.code_ptr() && 
 	  (where >= codeOffset_) && (where < (codeOffset_+(codeLen_<<2))));
@@ -1337,6 +1353,16 @@ inline bool image::isCode(const Address &where)  const{
 inline bool image::isData(const Address &where)  const{
    return (linkedFile.data_ptr() && 
 	  (where >= dataOffset_) && (where < (dataOffset_+(dataLen_<<2))));
+}
+
+inline bool image::isAllocedCode(const Address &where)  const{
+  return (linkedFile.code_ptr() && 
+	  (where >= codeValidStart_) && (where < codeValidEnd_));
+}
+
+inline bool image::isAllocedData(const Address &where)  const{
+   return (linkedFile.data_ptr() && 
+	  (where >= dataValidStart_) && (where < dataValidEnd_));
 }
 
 inline bool image::symbol_info(const pdstring& symbol_name, Symbol &ret_sym) {
