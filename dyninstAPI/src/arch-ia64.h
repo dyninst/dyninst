@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.17 2003/08/11 11:57:56 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.18 2003/09/23 17:28:50 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -97,9 +97,9 @@ class IA64_instruction {
 
 		virtual Address getTargetAddress() const;
 
-		uint8_t getTemplateID() { return templateID; }
-		uint8_t getSlotNumber() { return slotNumber; }
-		const IA64_bundle * getMyBundle() { return myBundle; }
+		uint8_t getTemplateID() const { return templateID; }
+		uint8_t getSlotNumber() const { return slotNumber; }
+		const IA64_bundle * getMyBundle() const { return myBundle; }
 
 	protected:
 		const IA64_bundle * myBundle;
@@ -138,9 +138,9 @@ class IA64_bundle {
 		const ia64_bundle_t * getMachineCodePtr() const { return & myBundle; }
 
 		uint8_t getTemplateID() { return templateID; }
-		IA64_instruction getInstruction0() { return instruction0; }
-		IA64_instruction getInstruction1() { return instruction1; }
-		IA64_instruction getInstruction2() { return instruction2; }
+		IA64_instruction getInstruction0() const { return instruction0; }
+		IA64_instruction getInstruction1() const { return instruction1; }
+		IA64_instruction getInstruction2() const { return instruction2; }
 		IA64_instruction * getInstruction( unsigned int slot );
 
 		bool setInstruction( IA64_instruction &newInst );
@@ -236,6 +236,8 @@ IA64_instruction generateRegisterToFloatMove( Register source, Register destinat
 IA64_instruction generateFloatToRegisterMove( Register source, Register destination );
 IA64_instruction generateFixedPointMultiply( Register destination, Register lhs, Register rhs );
 
+IA64_instruction generateShortImmediateBranch( int64_t target25 );
+
 #include "ast.h"
 IA64_instruction generateComparison( opCode op, Register destination, Register lhs, Register rhs );
 IA64_instruction generateArithmetic( opCode op, Register destination, Register lhs, Register rhs );
@@ -269,12 +271,14 @@ const uint8_t MIIstop = 0x01;
 const uint8_t MLXstop = 0x05;
 const uint8_t MMIstop = 0x09;
 const uint8_t MstopMIstop = 0x0B;
+const uint8_t BBBstop = 0x17;
 const uint8_t MMBstop = 0x19;
 const uint8_t MFIstop = 0x0D;
 
 /* (left-aligned) Machine code. */
 const uint64_t NOP_I = 0x0004000000000000;
 const uint64_t NOP_M = 0x0004000000000000;
+const uint64_t NOP_B = 0x2000000000000000;
 const uint64_t TRAP_M = 0x0000800000000000;
 const uint64_t TRAP_I = 0x0000800000000000;
 
