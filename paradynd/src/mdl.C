@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.131 2003/04/24 14:28:53 bernat Exp $
+// $Id: mdl.C,v 1.132 2003/04/24 19:43:43 zandy Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -505,12 +505,14 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
       }
       else {
          if (fbv.size() > 1) {
+#ifdef FIXME_AFTER_4
             string msg =
                string("WARNING:  found ") + string(fbv.size()) + 
                string(" records of function '") + string("_pthread_body") + 
                string("'") + string(".  Using the first.");
             //showErrorCallback(95, msg);
             cerr << msg << endl;
+#endif
          }
          pdf = fbv[0];
       }
@@ -527,12 +529,14 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
       }
       else {
          if (fbv.size() > 1) {
+#ifdef FIXME_AFTER_4
             string msg = string("WARNING:  found ") + string(fbv.size()) +
                          string(" records of function '") +
                          string("_thread_start") + string("'") +
                          string(".  Using the first.");
             //showErrorCallback(95, msg);
             cerr << msg << endl;;
+#endif
          }
          pdf = fbv[0];
       }
@@ -567,11 +571,13 @@ static bool update_environment(pd_process *proc) {
    
    proc->findAllFuncsByName(string(EXIT_NAME), *exit_func_buf); // JAW 04-03
    if (exit_func_buf->size() > 1) {
+#ifdef FIXME_AFTER_4
       string msg = string("WARNING:  found ") + string(exit_func_buf->size()) +
                    string(" records of function '") + string(EXIT_NAME) +
                    string("'") + string(".  Using the first.(2)");
       //showErrorCallback(95, msg);
       cerr << msg << endl;      
+#endif
       
       // findAllFuncs found more than one function, clear all but one
       pdf = (*exit_func_buf)[0];
@@ -589,11 +595,13 @@ static bool update_environment(pd_process *proc) {
    }
    else {
       if (fbv.size() > 1) {
+#ifdef FIXME_AFTER_4
          string msg = string("WARNING:  found ") + string(fbv.size()) +
                       string(" records of function '") +string("pthread_exit")+
                       string("'") + string(".  Using the first.");
          //showErrorCallback(95, msg);
          cerr << msg << endl;;      
+#endif
       }
       pdf = fbv[0];
    }
@@ -603,18 +611,22 @@ static bool update_environment(pd_process *proc) {
    pdf = NULL;
    
    if (!proc->findAllFuncsByName("thr_exit", fbv)) {
+#ifdef FIXME_AFTER_4
       string msg = string("unable to find procedure '") + string("thr_exit") +
                    string("'");
       //showErrorCallback(95, msg);
       cerr << msg << endl;;      
+#endif
    }
    else {
       if (fbv.size() > 1) {
+#ifdef FIXME_AFTER_4
          string msg = string("WARNING:  found ") + string(fbv.size()) +
                       string(" records of function '") + string("thr_exit") +
                       string("'") + string(".  Using the first.");
          //showErrorCallback(95, msg);
          cerr << msg << endl;      
+#endif
       }
       pdf = fbv[0];
    }
