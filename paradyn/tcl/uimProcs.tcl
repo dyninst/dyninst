@@ -1,5 +1,11 @@
 # utilities for UIM tcl functions
 # $Log: uimProcs.tcl,v $
+# Revision 1.13  1996/02/21 22:35:58  tamches
+# created mkDialogWindowTitle
+# revamped showError to eliminate duplicates (when empty-string 2d
+# arg is passed) while generally displaying multiple errors in the
+# same window
+#
 # Revision 1.12  1995/12/28 21:52:17  tamches
 # error dialog box now puts its information in a scrollable, resizable
 # text widget instead of a non-scrollable, non-resizable message widget
@@ -96,15 +102,25 @@ proc mkDialogWindow {w} {
     return $w
 }
 
-proc explError {errorCode oldwin} {
-    
+proc mkDialogWindowTitle {w theTitle} {
+    catch {destroy $w}
+    toplevel $w -class Dialog -bd 0
+    wm title $w $theTitle
+    wm iconname $w $theTitle
+    wm geometry $w +425+300
+    grab $w
+    focus $w
+    return $w
+}
+
+proc explError {errorCode} {
     global pdError
     set w .error2$errorCode
 
     #lookup errorCode, get explanation
     set etext [lindex $pdError($errorCode) 3]
 
-    mkDialogWindow $w
+    mkDialogWindowTitle $w "Paradyn Error Explanation"
     $w configure -bg red
     frame $w.out 
     pack $w.out -padx 5 -pady 5
@@ -148,72 +164,111 @@ proc showErrorHistory {} {
 #
 proc showError {errorCode errorStr} {
     global pdError pdErrorHistory
-    global PdBitmapDir
-    set buttonfg red
-    set buttonbg white
+    global numErrorsShown
+    global whichDefaultErrorsShown
+
+    set w .paradynErrorWindow
+    set windowOpened [winfo exists $w]
+    if {!$windowOpened} {
+       if {[array exists whichDefaultErrorsShown]} {
+	  unset whichDefaultErrorsShown
+       }
+    }
+
+    # If "errorStr" is empty and whichDefaultErrorsShown() says that a
+    # default msg for this error code is already up, then we do nothing
+    if {$errorStr == ""} {
+       if {[array exists whichDefaultErrorsShown]} {
+          if {[llength [array get whichDefaultErrorsShown $errorCode]]!=0} {
+             return
+	  }
+       }
+    }
+    set whichDefaultErrorsShown($errorCode) true
+   
     set retval [catch {set errRec $pdError($errorCode)}]
-#    puts "showError $retval"
+
     if {$retval == 1} {
 	set errorStr "No entry in error database for this error code."
 	set etype serious
     } else {
 	set etype [lindex $errRec 2]
 	if {$errorStr == ""} {
+	    # No error string was passed in to this routine, so use
+            # the default one located in the database.
 	    set errorStr [lindex $errRec 0]
 	}
     }
+
     
-    # the main error window
-    set w .error$errorCode
-    mkDialogWindow $w
-    $w configure -bg red
-    frame $w.out -class "Paradyn.Error" 
-    pack $w.out -padx 5 -pady 5 -fill both -expand true
+    # If the main error window isn't already opened, then open it.
+    set theText $w.out.mid.msg
 
-    # Error screen header: bitmap, title and Error Number
-    frame $w.out.top
-    pack $w.out.top -padx 5 -pady 5 -fill both -expand false
+    if {!$windowOpened} {
+       set numErrorsShown 0
+       
+       mkDialogWindowTitle $w "Paradyn Error Window"
+       $w configure -bg red
+       frame $w.out -class "Paradyn.Error" 
+       pack $w.out -padx 5 -pady 5 -fill both -expand true
 
-    makeLogo $w.out.top.exclaim dont flat 0 red
+       # Error screen header: bitmap, title and Error Number
+       frame $w.out.top
+       pack $w.out.top -padx 5 -pady 5 -fill both -expand false
 
-    ## **** don't forget to use class for this font!!!!
-    label $w.out.top.title -text "Paradyn Message \#\ $errorCode" \
-	    -anchor center \
-	    -fg red -font "-Adobe-times-bold-r-normal--*-120*"
-    pack $w.out.top.exclaim $w.out.top.title -side left -pady 5 -padx 10
+       # specific error message text
+       frame $w.out.mid
+       pack $w.out.mid -expand yes -fill both  -padx 5
 
-    # specific error message text
-    frame $w.out.mid
-    pack $w.out.mid -expand yes -fill both  -padx 5
+       scrollbar $w.out.mid.msgsb -orient vertical -command "$w.out.mid.msg yview" \
+   	    -background lightgray -activebackground lightgray
+       pack $w.out.mid.msgsb -side right -fill y -expand false
 
-#    message $w.out.mid.msg -width 300 -text $errorStr -relief groove \
-#	-borderwidth 2
+       text $theText -wrap word \
+   	    -yscrollcommand "$w.out.mid.msgsb set" \
+   	    -height 8 -width 50
+       pack $theText -fill both -expand true
 
-    scrollbar $w.out.mid.msgsb -orient vertical -command "$w.out.mid.msg yview" \
-	    -background lightgray -activebackground lightgray
-    pack $w.out.mid.msgsb -side right -fill y -expand false
-
-    text $w.out.mid.msg -wrap word \
-	    -yscrollcommand "$w.out.mid.msgsb set" \
-	    -height 8 -width 50
-    pack $w.out.mid.msg -fill both -expand true
-
-    $w.out.mid.msg insert end $errorStr
-
-    label $w.out.eclass -text "Message Category: $etype" -anchor center
-    pack $w.out.eclass -side top -pady 5
-
-    # option buttons 
-    frame $w.out.buttons 
-    mkButtonBar $w.out.buttons {} retval {{CONTINUE ""} \
-	    {EXPLAIN ""} \
+       # option buttons 
+       frame $w.out.buttons 
+       mkButtonBar $w.out.buttons {} retval {{CONTINUE ""} \
 	    {EXIT PARADYN "destroy ."} }
 
-    $w.out.buttons.3 configure -command "errorExit $w"
-    $w.out.buttons.2 configure -command "explError $errorCode $w"
-    $w.out.buttons.1 configure -command "destroy $w"
-    pack $w.out.buttons -fill both -padx 5 -expand false
+       $w.out.buttons.2 configure -command "errorExit $w"
+       $w.out.buttons.1 configure -command "destroy $w"
+       pack $w.out.buttons -fill both -padx 5 -expand false
 
+       $theText tag configure categoryTag -font "*-Helvetica-*-r-*-12-*"
+       $theText tag configure errorPrefixTag -foreground red -font \
+	       "-*-times-bold-r-normal--*-120*"
+    } else {
+       #puts stderr "window already up"
+       #flush stderr
+
+       # Since the window is already up, at least one error is already
+       # being shown.  Hence, we want to insert a newline now to put some vertical
+       # space between us and the error above us
+       $theText insert end "\n"
+    }
+
+    incr numErrorsShown
+
+    # Now insert the information for this specific error code:
+    makeLogo $w.logo$numErrorsShown dont flat 0 red
+    $theText window create end -padx 5 -pady 5 -window $w.logo$numErrorsShown
+
+    $theText insert end "Paradyn message #$errorCode" errorPrefixTag
+    $theText insert end "  (category: $etype) " categoryTag
+
+    button $w.explain$numErrorsShown -text "Explain..." \
+	    -command "explError $errorCode" \
+	    -font "*-Helvetica-*-r-*-12-*" \
+	    -relief groove
+    $theText window create end -padx 5 -pady 5 -window $w.explain$numErrorsShown
+    $theText insert end "\n"
+
+    $theText insert end "$errorStr\n"
+    
     # add this error to error history list
     lappend pdErrorHistory [list $errorCode $errorStr]
 }
@@ -224,7 +279,7 @@ proc showError {errorCode errorStr} {
 proc errorExit {oldwin} {
     set w .exerror
 
-    mkDialogWindow $w
+    mkDialogWindowTitle $w "Exit Paradyn"
     $w configure -bg red
     label $w.l -text "Generate Core File (Y/N)?"
     frame $w.buttons
