@@ -44,7 +44,6 @@ class performanceStream {
 			  controlCallback cc, int tid); 
 	~performanceStream();
 
-	// TODO remove this
 	void setSampleRate(timeStamp rate) { sampleRate = rate; }
 
 	void callSampleFunc(metricInstanceHandle, sampleValue*, int, int);
@@ -71,9 +70,6 @@ class performanceStream {
 	static vector<bool>     nextId;
 	// dictionary rather than vector since perfStreams can be destroyed
 	static dictionary_hash<perfStreamHandle,performanceStream*> allStreams;
-
-	// TODO these should go
 	timeStamp               sampleRate;     /* sample sampleRate usec */
-
 };
 #endif

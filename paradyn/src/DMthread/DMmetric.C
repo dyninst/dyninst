@@ -19,6 +19,8 @@ extern "C" {
 }
 #include "DMmetric.h"
 
+extern void histDataCallBack(sampleValue*, timeStamp, int, int, void*);
+extern void histFoldCallBack(timeStamp, void*, timeStamp);
 
 metric::metric(T_dyninstRPC::metricInfo i){
 
@@ -131,7 +133,8 @@ metricInstance::metricInstance(resourceListHandle rl,
 }
 
 metricInstance::~metricInstance() {
-    for(unsigned i=0; i < components.size(); i++){
+    unsigned i=0;
+    for(; i < components.size(); i++){
         delete (components[i]);    
     }
     for(i=0; i < parts.size(); i++){
@@ -145,6 +148,20 @@ metricInstance::~metricInstance() {
     nextId[id] = false;
     // remove metricInstace from list of allMetricsInstances
     allMetricInstances.undef(id);
+}
+
+int metricInstance::getArchiveValues(sampleValue *buckets,int numOfBuckets,
+				    int first,phaseHandle phase_id){
+
+    // find histogram associated with phase_id
+    for(unsigned i = 0; i < old_data.size(); i++){
+        if((old_data[i])->phaseId == phase_id){
+	    if((old_data[i])->data)
+                return((old_data[i])->data->getBuckets(buckets,
+						       numOfBuckets,first));
+	}
+    }
+    return -1;
 }
 
 int metricInstance::getSampleValues(sampleValue *buckets,int numOfBuckets,
@@ -174,7 +191,8 @@ void metricInstance::dataDisable(){
     
     assert(!users.size());
     assert(!global_users.size());
-    for(unsigned i=0; i < components.size(); i++){
+    unsigned i=0;
+    for(; i < components.size(); i++){
         delete (components[i]);  // this disables data collection  
     }
     components.resize(0);
@@ -183,6 +201,8 @@ void metricInstance::dataDisable(){
     }
     parts.resize(0);
     enabled = false;
+    // if data is persistent this must be cleared 
+    sample.firstSampleReceived = false;  
     assert(!components.size());
     assert(!parts.size());
 }
@@ -211,8 +231,6 @@ void metricInstance::removeGlobalUser(perfStreamHandle ps){
 	    assert(global_users.size() < size);
 	    return;
     } }
-
-
 }
 
 void metricInstance::deleteCurrHistogram(){
@@ -256,7 +274,7 @@ bool metricInstance::addPart(sampleInfo *new_part){
 }
 
 // stops currentPhase data collection for all metricInstances
-void metricInstance::stopAllCurrentDataCollection() {
+void metricInstance::stopAllCurrentDataCollection(phaseHandle last_phase_id) {
 
     dictionary_hash_iter<metricInstanceHandle,metricInstance *> 
 			allMI(allMetricInstances);
@@ -271,8 +289,16 @@ void metricInstance::stopAllCurrentDataCollection() {
 
         // if persistent data archive curr histogram
 	if(mi->isDataPersistent()){
-            // TODO: add this  
-	    cout << "    ERROR: data is persistent" << endl;
+	    if (mi->data) {
+	        mi->data->clearActive();
+	        mi->data->clearFoldOnInactive();
+	        ArchiveType *temp = new ArchiveType;
+	        temp->data = mi->data;
+	        temp->phaseId = last_phase_id; 
+	        mi->old_data += temp;
+	        mi->data = 0;
+	        temp = 0; 
+	    }
 	}
 	else { // else delete curr histogram
             mi->deleteCurrHistogram();
@@ -283,17 +309,18 @@ void metricInstance::stopAllCurrentDataCollection() {
 	    // really disable data collection 
 	    if((mi->isEnabled()) && (!mi->globalUsersCount())) { 
 		// disable MI data collection 
-		// paradynDaemon::disableData(mi);
 		mi->dataDisable();
 		if(!(mi->isDataPersistent())){
-		    mi->deleteCurrHistogram();
+		    // mi->deleteCurrHistogram();  // TODO: should this be here?
 		    delete(mi);
 		}
             }
 	}
 	else { // else, create new curr histogram with empty curr users list
-            // TODO: add this  
-	    cout << "    ERROR:collection is persistent" << endl;
+	    metric *m = metric::getMetric(mi->met);
+	    mi->newCurrDataCollection(m->getStyle(),
+				      histDataCallBack,
+				      histFoldCallBack);
 	}
     }
 }
@@ -321,7 +348,12 @@ void metricInstance::newGlobalDataCollection(metricStyle style,
 					     dataCallBack dcb, 
 					     foldCallBack fcb) {
 
-    if (global_data) return;  // histogram has already been created
+    // histogram has already been created
+    if (global_data) {
+	global_data->setActive();
+	global_data->clearFoldOnInactive();
+	return;  
+    }
     // call constructor for start time 0.0 
     global_data = new Histogram(style, dcb, fcb, this);
 }
@@ -330,8 +362,12 @@ void metricInstance::newCurrDataCollection(metricStyle style,
 					   dataCallBack dcb, 
 					   foldCallBack fcb) {
 
-    if (data) return;  // histogram has already been created
-
+    // histogram has already been created
+    if (data) {
+	data->setActive();
+	data->clearFoldOnInactive();
+        return;  
+    }
     // create new histogram
     timeStamp start_time = phaseInfo::GetLastPhaseStart();
     if(start_time == 0.0) {

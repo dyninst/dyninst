@@ -82,7 +82,6 @@ bool paradynDaemon::addDaemon (int new_fd)
   for (unsigned u=0; u<size; u++)
       addMetric(info[u]);
 
-  // TODO - do I need the pid for this ?
   // The pid is reported later in an upcall
   return (true);
 }
@@ -307,9 +306,6 @@ void paradynDaemon::printPrograms()
 //
 vector<string> *paradynDaemon::getAvailableDaemons()
 {
-    // TODO -- casting stringHandle to char*
-    // TODO -- memory leak ?
-
     vector<string> *names = new vector<string>;
 
     daemonEntry *entry;
@@ -751,6 +747,7 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
 	char msg[80];
 	// TODO -- data may be in transit when the disable request is made
 	sprintf(msg, "ERROR?:data for disabled mid: %d", mid);
+	cout << "ERROR?:data for disabled mid: " <<  mid << endl;
 	DMstatus->message(msg);
 	return;
       } else {

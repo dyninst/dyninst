@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.70  1995/08/18 21:47:46  mjrg
+ * Revision 1.71  1995/08/20 03:37:07  newhall
+ * changed parameters to DM_sequential_init
+ * added persistent data and persistent collection flags
+ *
+ * Revision 1.70  1995/08/18  21:47:46  mjrg
  * uncommented defineDaemon
  *
  * Removed calls to metDoTunable, metDoDaemon, and metDoProcess from
@@ -378,39 +382,6 @@ void dynRPCUser::resourceBatchMode(bool onNow)
 void dynRPCUser::resourceInfoCallback(int program,
 				      vector<string> resource_name,
 				      string abstr) {
-#ifdef n_def
-    resourceHandle p_handle;
-    if(!resource::string_to_handle(parentString,&p_handle))
-       p_handle = 0;
-    string res = parentString += string("/"); 
-    res += newResource;
-
-    // TEMP: until this routine is called with vector of strings for new res
-    // create a vector of strings
-    vector<string> temp;
-    char word[255];  
-    const char *full_name = res.string_of();
-    unsigned j=0;
-    word[0] = '/';
-    string next;
-    for(unsigned i=1; i < res.length(); i++){
-        if(full_name[i] == '/'){
-          word[i] = '\0'; 
-	  next = &word[j];
-	  temp += next; 
-	  j = i+1; 
-	}
-	else{
-            word[i] = full_name[i];
-	}
-    }
-    word[i] = '\0'; 
-    next = &word[j];
-    temp += next;
-
-    createResource(p_handle,temp,res,abstr);
-#endif
-
     resourceHandle r = createResource(resource_name, abstr);
     resourceInfoResponse(resource_name, r);
 }
@@ -557,9 +528,10 @@ void DM_eFunction(int errno, char *message)
     abort();
 }
 
-int dataManager::DM_sequential_init(init_struct* init){
+
+int dataManager::DM_sequential_init(const char* met_file){
    // parse PDL file
-   string fname = init->met_file;
+   string fname = met_file;
    return(metMain(fname)); 
 }
 
@@ -585,7 +557,6 @@ int dataManager::DM_post_thread_create_init(int tid) {
     msg_send (MAINtid, MSG_TAG_DM_READY, (char *) NULL, 0);
     unsigned int tag = MSG_TAG_ALL_CHILDREN_READY;
     msg_recv (&tag, DMbuff, &msgSize);
-
     return 1;
 }
 

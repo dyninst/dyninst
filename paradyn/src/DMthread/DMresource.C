@@ -7,7 +7,11 @@
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.26  1995/08/08 03:10:08  newhall
+ * Revision 1.27  1995/08/20 03:37:15  newhall
+ * changed parameters to DM_sequential_init
+ * added persistent data and persistent collection flags
+ *
+ * Revision 1.26  1995/08/08  03:10:08  newhall
  * bug fix to DMresourceListNameCompare
  * changed newPerfData and sampleDataCallbackFunc definitions
  *
@@ -121,7 +125,8 @@ char *resource::createname(vector<string>& res_name){
 
   char *tempName = new char[255];
   unsigned j = 0;
-  for(unsigned i=0; i < res_name.size()-1;i++){
+  unsigned i = 0;
+  for(; i < res_name.size()-1;i++){
       sprintf(&(tempName[j]), "%s/", res_name[i].string_of());
       j += res_name[i].length()+1;
   }
@@ -318,7 +323,8 @@ string DMcreateRLname(const vector<resourceHandle> &res){
 
     vector <string> sorted_names;
 
-    for(unsigned i=0; i < res.size(); i++){
+    unsigned i=0;
+    for(; i < res.size(); i++){
 	next = resource::handle_to_resource(res[i]);
 	sorted_names += next->getFullName();
     }
@@ -361,7 +367,8 @@ resourceList::resourceList(const vector<string> &names){
     // create a unique name
     unsigned size = names.size();
     string temp;
-    for(unsigned i=0; i < size; i++){
+    unsigned i=0;
+    for(; i < size; i++){
        temp += names[i]; 
        if(i < (size-1)){
 	   temp += ",";
@@ -386,10 +393,8 @@ resourceList::resourceList(const vector<string> &names){
 
 void resourceList::print()
 {
-    int i;
-
     printf("{");
-    for (i=0; i < elements.size(); i++) {
+    for (unsigned i=0; i < elements.size(); i++) {
 	if (i) printf(" ");
 	printf("{");
 	elements[i]->print();

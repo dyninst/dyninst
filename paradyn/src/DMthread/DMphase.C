@@ -42,38 +42,12 @@ void phaseInfo::setLastEndTime(timeStamp stop_time){
    }
 }
 
-#ifdef n_def
 void phaseInfo::startPhase(timeStamp start_Time, const string &name){
-    // update the histogram data structs assoc with each MI
-    // return a start time for the phase
-
-    // create a new phaseInfo object 
-    timeStamp bin_width = (Histogram::getGlobalBucketWidth());
-    timeStamp start_time = Histogram::currentTime();
-    // set the end time for the curr. phase
-    phaseInfo::setLastEndTime(start_time);
-    phaseInfo *p = new phaseInfo(start_time, (timeStamp)-1.0, bin_width, name);
-    // invoke newPhaseCallback for all perf. streams
-    dictionary_hash_iter<perfStreamHandle,performanceStream*>
-			allS(performanceStream::allStreams);
-     perfStreamHandle h;
-     performanceStream *ps;
-     while(allS.next(h,ps)){
-         ps->callPhaseFunc(*p);
-     }
-     p = 0;
-}	
-#endif
-
-void phaseInfo::startPhase(timeStamp start_Time, const string &name){
-
-    // disable all currPhase data collection if persistent_collection flag
-    // clear, and remove all currPhase data if persistent_data flag clear
-    metricInstance::stopAllCurrentDataCollection();
 
     // TODO: change sampling rate (???)  if this is changed on fold
     // events (it is not currently) it should be changed here as well 
 
+    phaseHandle lastId =  phaseInfo::CurrentPhaseHandle();
     // create a new phaseInfo object 
     timeStamp bin_width = (Histogram::getMinBucketWidth());
     timeStamp start_time = Histogram::currentTime();
@@ -86,6 +60,10 @@ void phaseInfo::startPhase(timeStamp start_Time, const string &name){
     // update MI's current phase info 
     metricInstance::setPhaseId(p->GetPhaseHandle());
     metricInstance::SetCurrWidth(bin_width);
+
+    // disable all currPhase data collection if persistent_collection flag
+    // clear, and remove all currPhase data if persistent_data flag clear
+    metricInstance::stopAllCurrentDataCollection(lastId);
 
     // invoke newPhaseCallback for all perf. streams
     dictionary_hash_iter<perfStreamHandle,performanceStream*>

@@ -140,6 +140,7 @@ class metricInstance {
 	int currUsersCount(){return(users.size());}
 	int globalUsersCount(){return(global_users.size());}
 	int getSampleValues(sampleValue*, int, int, phaseType);
+	int getArchiveValues(sampleValue*, int, int, phaseHandle);
 
         static unsigned  mhash(const metricInstanceHandle &val){
 	    return((unsigned)val);
@@ -174,7 +175,7 @@ class metricInstance {
 	static void SetCurrWidth(timeStamp nw){curr_bucket_width = nw;}
 	static phaseHandle GetCurrPhaseId(){return(curr_phase_id);}
 	static void setPhaseId(phaseHandle ph){curr_phase_id = ph;}
-	static void stopAllCurrentDataCollection();
+	static void stopAllCurrentDataCollection(phaseHandle);
 
     private:
 	metricHandle met;
