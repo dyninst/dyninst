@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.3 1999/06/18 23:50:44 wylie Exp $
+// $Id: test3.C,v 1.4 1999/06/20 03:38:28 wylie Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -21,6 +21,7 @@
 #ifdef i386_unknown_nt4_0
 #include <windows.h>
 #include <winbase.h>
+#define unlink _unlink
 #else
 #include <unistd.h>
 #endif
@@ -216,11 +217,13 @@ int readResult(int pid)
     sprintf(filename, "test3.out.%d", pid);
     fp = fopen(filename, "r");
     if (!fp) {
-	printf("ERROR: unable to pase output file %s\n", filename);
+	printf("ERROR: unable to open output file %s\n", filename);
 	return -1;
     }
     fscanf(fp, "%d\n", &ret);
     fclose(fp);
+    // don't need the file any longer so delete it now
+    unlink(filename);
 
     return ret;
 }
@@ -275,8 +278,8 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
 
     if ((ret1 != 1) || (ret2 != 2)) {
 	printf("**Failed** test case #2\n");
-	if (ret1 != 1) printf("    first process produced %d, not 1\n", ret1);
-	if (ret2 != 1) printf("    first process produced %d, not 2\n", ret2);
+	if (ret1 != 1) printf("    1st process produced %d, not 1\n", ret1);
+	if (ret2 != 2) printf("    2nd process produced %d, not 2\n", ret2);
     } else {
 	printf("Passed Test #2\n");
 	passedTest[2] = true;
