@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.program.tmpl,v 1.27 2004/10/19 01:23:41 pack Exp $
+# $Id: make.program.tmpl,v 1.28 2005/03/07 21:19:56 legendre Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -115,7 +115,7 @@ endif
 	touch DEPENDS
 	$(MAKE) $(IGEN_GEN_SRCS)
 	$(MAKE) $(SRCS)
-	$(MODCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) $(filter %.C,$(IGEN_GEN_SRCS)) > DEPENDS
+	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) $(filter %.C,$(IGEN_GEN_SRCS)) > DEPENDS
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS) $(IGEN_SRCS) $(NOPED_SRCS)
 else
 ifdef EXPLICIT_DEPENDS
@@ -125,7 +125,7 @@ DEPENDS: $(SRCS)
 endif
 	touch DEPENDS
 	$(MAKE) $(SRCS)
-	$(MODCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
+	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
 
 ifdef IBM_BPATCH_COMPAT 
 ifeq (aix,$(findstring aix,$(PLATFORM)))

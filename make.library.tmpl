@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.library.tmpl,v 1.27 2005/02/09 03:27:42 jaw Exp $
+# $Id: make.library.tmpl,v 1.28 2005/03/07 21:19:55 legendre Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -156,7 +156,7 @@ endif
 	touch DEPENDS
 	$(MAKE) $(IGEN_GEN_SRCS)
 	$(MAKE) $(SRCS)
-	$(DEPCXX) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) $(filter %.C,$(IGEN_GEN_SRCS)) > DEPENDS
+	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) $(filter %.C,$(IGEN_GEN_SRCS)) > DEPENDS
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS) $(IGEN_SRCS) $(NOPED_SRCS)
 else
 ifdef EXPLICIT_DEPENDS
