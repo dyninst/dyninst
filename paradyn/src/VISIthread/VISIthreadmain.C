@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.61  1996/02/07 18:51:02  tamches
-/* oops;undid the changes of previous version.
+/* Revision 1.62  1996/02/13 06:24:41  newhall
+/* removed assert stmts that shouldn't have been there.
 /*
+ * Revision 1.61  1996/02/07  18:51:02  tamches
+ * oops;undid the changes of previous version.
+ *
  * Revision 1.60  1996/02/06 23:10:01  tamches
  * don't delete newMetRes...
  *
@@ -341,7 +344,7 @@ void VISIthreadDataHandler(metricInstanceHandle mi,
       PARADYN_DEBUG(("buffer_next_insert_index out of range: VISIthreadDataCallback")); 
       ERROR_MSG(16,"buffer_next_insert_index out of range: VISIthreadDataCallback");
       ptr->quit = 1;
-      assert(0);
+      return;  // don't put an assert here
   }
 
   // find metricInstInfo for this metricInstanceHandle
@@ -484,8 +487,7 @@ void VISIthreadFoldCallback(perfStreamHandle,
      PARADYN_DEBUG(("buffer_next_insert_index out of range: VISIthreadFoldCallback")); 
      ERROR_MSG(16,"buffer_next_insert_index out of range: VISIthreadFoldCallback");
      ptr->quit = 1;
-     assert(0);
-     return;
+     return; // don't put an assert here 
   }
 
 #ifdef DEBUG3
