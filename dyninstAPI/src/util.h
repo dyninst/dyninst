@@ -7,6 +7,9 @@
  * util.h - support functions.
  *
  * $Log: util.h,v $
+ * Revision 1.11  1996/06/01 00:01:18  tamches
+ * addrHash --> addrHash16
+ *
  * Revision 1.10  1996/05/11 23:16:07  tamches
  * added addrHash
  *
@@ -64,7 +67,7 @@ inline unsigned uiHash(const unsigned &val) {
   return val % 23;
 }
 
-unsigned addrHash(const unsigned &addr);
+unsigned addrHash16(const unsigned &addr);
 
 inline unsigned intHash(const int &val) {
   return val;
