@@ -505,7 +505,13 @@ bool interface_spec::gen_client_verify(ofstream &out_stream) const {
       << " expected\" << endl;";
     out_stream << "cerr << \" Found Protocol \" << proto << \" version \" << tag << endl;";
     out_stream << "set_err_state(igen_proto_err);\n";
-    out_stream << "handle_error();\nexit(-1); return false;\n}\n";
+
+    //out_stream << "handle_error();\nexit(-1); return false;\n}\n";
+    out_stream << "handle_error(); return false;\n}\n";
+       // removed the exit(-1) so the caller can look at errorCondition flag
+       // and do the polite thing.  Of course this raises a danger; the caller
+       // must not forget to check! --ari 03/96
+
     out_stream << "return true;\n}\n";
   }
   return true;
