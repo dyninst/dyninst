@@ -1,8 +1,11 @@
 /* $Log: main.C,v $
-/* Revision 1.9  1994/07/19 23:52:58  markc
-/* Moved "include "metricExt.h"" to main.C from paradyn.h to remove false
-/* dependencies.
+/* Revision 1.10  1994/07/28 22:31:42  krisna
+/* proper prototypes and starting code for thread main functions
 /*
+ * Revision 1.9  1994/07/19  23:52:58  markc
+ * Moved "include "metricExt.h"" to main.C from paradyn.h to remove false
+ * dependencies.
+ *
  * Revision 1.8  1994/07/07  03:26:24  markc
  * Added calls to parser routines.
  *
@@ -44,10 +47,10 @@
 #include "thread/h/thread.h"
 #include "paradyn/src/met/metricExt.h"
 
-extern void *UImain(CLargStruct *clargs);
-extern void *DMmain(int arg);
-extern void *PCmain(int arg);
-extern void *VMmain (int arg);
+extern void *UImain(void *);
+extern void *DMmain(void *);
+extern void *PCmain(void *);
+extern void *VMmain (void *);
 
 #define MBUFSIZE 256
 #define DEBUGBUFSIZE	4096
@@ -96,7 +99,7 @@ int
 main (int argc, char *argv[])
 {
 
-  CLargStruct clargs;
+  CLargStruct* clargs;
   char mbuf[MBUFSIZE];
   unsigned int msgsize;
   tag_t mtag;
@@ -136,7 +139,7 @@ main (int argc, char *argv[])
   
 // initialize DM
 
-  if (thr_create(0, 0, DMmain, (void *) thr_self(), 0, 
+  if (thr_create(0, 0, DMmain, (void *) &MAINtid, 0, 
 		 (unsigned int *) &DMtid) == THR_ERR)
     exit(1);
   fprintf (stderr, "DM thread created\n");
@@ -150,10 +153,15 @@ main (int argc, char *argv[])
 
 // initialize UIM 
  
-  clargs.clargc = argc;	
-  clargs.clargv = argv;
+  if ((clargs = (CLargStruct *) malloc(sizeof(CLargStruct))) == 0) {
+    perror("malloc(ClargsStruct)");
+    return -1;
+  }
+  clargs->clargc = argc;	
+  clargs->clargv = argv; // this is still dangerous, argv lives on
+			 // main's stack
 
-  if (thr_create (UIStack, sizeof(UIStack), &UImain, &clargs, 0, &UIMtid) == THR_ERR) 
+  if (thr_create (UIStack, sizeof(UIStack), &UImain, (void *) clargs, 0, &UIMtid) == THR_ERR) 
     exit(1);
   fprintf (stderr, "UI thread created\n");
 
@@ -166,7 +174,7 @@ main (int argc, char *argv[])
 
 // initialize PC
 
-  if (thr_create(0, 0, PCmain, (void*) thr_self(), 0, 
+  if (thr_create(0, 0, PCmain, (void*) &MAINtid, 0, 
 		 (unsigned int *) &PCtid) == THR_ERR)
     exit(1);
   fprintf (stderr, "PC thread created\n");
@@ -178,7 +186,7 @@ main (int argc, char *argv[])
   perfConsult = new performanceConsultantUser (PCtid);
 
 // initialize VM
-  if (thr_create(0, 0, VMmain, (void*) thr_self(), 0, 
+  if (thr_create(0, 0, VMmain, (void *) &MAINtid, 0, 
 		 (unsigned int *) &VMtid) == THR_ERR)
     exit(1);
 
