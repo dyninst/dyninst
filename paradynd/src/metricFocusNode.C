@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.191 2001/07/23 15:40:12 gurari Exp $
+// $Id: metricFocusNode.C,v 1.192 2001/07/30 22:27:21 gurari Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -1881,7 +1881,8 @@ void metricDefinitionNode::oldCatchUp() {
 			    << "(WHOLE_PROGRAM kludge) catch-up needed for "
 			    << flat_name_ << " @ " << mainFunc->prettyName() << endl;
               }
-	      manuallyTriggerNodes.insert( 0, &(instRequests[k]) );
+	      //manuallyTriggerNodes.insert( 0, &(instRequests[k]) );
+	      manuallyTriggerNodes.push_back( &(instRequests[k]) );
 	    }
 	  }
 	}
