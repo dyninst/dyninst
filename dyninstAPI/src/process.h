@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.271 2003/09/19 19:45:35 pcroth Exp $
+/* $Id: process.h,v 1.272 2003/10/07 19:06:09 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1007,16 +1007,25 @@ class process {
   
   dyn_thread *getThread(unsigned tid);
   dyn_lwp *getLWP(unsigned lwp_id);
-  dyn_lwp *getDefaultLWP() const;
 
-  void overrideDefaultLWP(dyn_lwp *lwp);
-  dyn_lwp *saved_default_lwp;
-  void restoreDefaultLWP();
+  // This lwp which is associated with the process has different attributes
+  // on different systems.  On AIX and Solaris multithreaded, this lwp is a
+  // representative lwp which controls the whole process.  A wait on this
+  // will watch for a signal received on any thread in the process.  On
+  // linux, this lwp is the initial lwp created.  Ptrace's and waits on this
+  // lwp generally are not applicable to the process as a whole.  For
+  // single-threaded applications, the process lwp controls the process.
+  dyn_lwp *getProcessLWP() const;
+
+  void overrideProcessLWP(dyn_lwp *lwp);
+  dyn_lwp *saved_process_lwp;
+  void restoreProcessLWP();
   
+  dyn_lwp *createProcessLWP() {
+     return createLWP(0);
+  }
+
   dyn_lwp *createLWP(unsigned lwp_id);
-#if defined(mips_unknown_ce2_11) || defined(i386_unknown_nt4_0)
-  dyn_lwp *createLWP(unsigned lwp_id, int index, handleT fd);
-#endif
 
   void deleteLWP(dyn_lwp *lwp_to_delete);
 
@@ -1194,7 +1203,6 @@ private:
   bool osDumpImage(const pdstring &imageFileName,  pid_t pid, Address codeOff);
   bool detach_();
   bool API_detach_(const bool cont); // XXX Should eventually replace detach_()
-  bool attach_(); // low-level attach; called by attach() (was OS::osAttach())
   bool stop_(); // formerly OS::osStop
 
   // stops a process
@@ -1209,14 +1217,6 @@ private:
   dictionary_hash<unsigned, dyn_lwp *> lwps;
 
   pdvector<dyn_thread *> threads;   /* threads belonging to this process */
-  handleT getProcessHandle() const { return procHandle_; }
-  void setProcessHandle( handleT h ) { procHandle_ = h; }
-  handleT as_fd() const     { return as_fd_; }
-  handleT auxv_fd() const    { return auxv_fd_; }
-  handleT map_fd() const    { return map_fd_; }
-  handleT ps_fd() const     { return ps_fd_; }
-  handleT status_fd() const { return status_fd_; }
-  handleT usage_fd() const  { return usage_fd_; }
 
 #if defined(sparc_sun_solaris2_4) || defined(AIX_PROC)
   bool get_status(pstatus_t *) const;
@@ -1228,19 +1228,6 @@ private:
 #endif  
   
   private:
-  handleT procHandle_; // Process-specific, as opposed to thread-specific,
-                       // handle. Currently used by NT
-  handleT as_fd_; // Process memory image (/proc)
-  handleT auxv_fd_;
-  handleT map_fd_;
-  handleT status_fd_; // Status (/proc)
-  handleT ps_fd_; // ps (/proc)
-  handleT usage_fd_;
-
-#if defined(AIX_PROC)
-  void reopen_fds(); // Re-open whatever FDs might need to be
-#endif
-  
   // TODO: public access functions. The NT handler needs direct access
   // to this (or a NT-compatible handleIfDueToSharedObjectMapping)
   public:
