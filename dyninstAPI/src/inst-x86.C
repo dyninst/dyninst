@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.174 2004/05/11 19:01:40 bernat Exp $
+ * $Id: inst-x86.C,v 1.175 2004/05/21 14:14:38 legendre Exp $
  */
 #include <iomanip>
 
@@ -482,7 +482,7 @@ void pd_Function::canFuncBeRelocated( bool& canBeRelocated )
 #endif
     
     //jump table inside this function. 
-    if (prettyName() == "__libc_fork" || prettyName() == "__libc_start_main") 
+    if (prettyName() == "__libc_start_main") 
     {
         canBeRelocated = false;
     }
@@ -1556,7 +1556,7 @@ void generateBranch(process *proc, Address fromAddr, Address newAddr)
    generated at the instrumentation point. */
 unsigned generateBranchToTramp(process *proc, const instPoint *point, 
 			       Address baseAddr, Address imageBaseAddr,
-			       unsigned char *insn, bool &deferred)
+			       unsigned char *insn, bool &deferred, bool allowTrap)
 {
    /* There are three ways to get to the base tramp:
       1. Ordinary 5-byte jump instruction.
@@ -1595,8 +1595,11 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
     
       trampTemplate *entryBase =
          findOrInstallBaseTramp(proc, nonConstEntry,
-                                retInstance, false, false, deferred);
-      assert(entryBase);
+                                retInstance, false, false, deferred,
+                                allowTrap);
+      if (!entryBase)
+         return 0;
+
       if (retInstance) {
          retInstance->installReturnInstance(proc);
       }
@@ -1606,6 +1609,16 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
       wrote = 2;
    }
    else { /* Trap */
+      if (!allowTrap)
+      {
+#ifdef INST_TRAP_DEBUG
+         cerr << "Tried to insert trap in function " 
+              << point->pointFunc()->prettyName() << " @"
+              << (void*)point->pointAddr() << ", but traps were disallowed" 
+              << endl;            
+#endif
+         return 0;
+      }
 #ifdef INST_TRAP_DEBUG
       cerr << "Warning: unable to insert jump in function " 
            << point->pointFunc()->prettyName() << " @"
@@ -1818,7 +1831,6 @@ void generateMTpreamble(char *insn, Address &base, process *proc) {
    AstNode *threadPOS;
    pdvector<AstNode *> dummy;
    Register src = Null_Register;
-   Address temp = base;
    // registers cleanup
    regSpace->resetSpace();
 
@@ -2390,7 +2402,8 @@ trampTemplate* findOrInstallBaseTramp(process *proc,
 				       returnInstance *&retInstance,
 				       bool trampRecursiveDesired,
 				       bool noCost,
-                                       bool &deferred)
+                   bool &deferred,
+                   bool allowTrap)
 {
    //=======================================================================
    // DUPLICATE CODE IN inst-sparc-solaris.C in findOrInstallBaseTramp
@@ -2461,7 +2474,8 @@ trampTemplate* findOrInstallBaseTramp(process *proc,
    unsigned char *insn = new unsigned char[JUMP_REL32_SZ];
 
    unsigned size = generateBranchToTramp(proc, location, ret->baseAddr, 
-                                         imageBaseAddr, insn, deferred);
+                                         imageBaseAddr, insn, deferred,
+                                         allowTrap);
    if (size == 0) {
       return NULL;
    }
@@ -4056,7 +4070,7 @@ bool process::MonitorCallSite(instPoint *callSite){
               func = new AstNode("DYNINSTRegisterCallee", the_args);
               miniTrampHandle *mtHandle;
               addInstFunc(this, mtHandle, callSite, func, callPreInsn,
-                          orderFirstAtPoint, true,false);
+                          orderFirstAtPoint, true, false, true);
               break;
            }
         case REGISTER_INDIRECT:
@@ -4070,7 +4084,7 @@ bool process::MonitorCallSite(instPoint *callSite){
               func = new AstNode("DYNINSTRegisterCallee", the_args);
               miniTrampHandle *mtHandle;
               addInstFunc(this, mtHandle, callSite, func, callPreInsn,
-                          orderFirstAtPoint, true,false);
+                          orderFirstAtPoint, true, false, true);
               break;
            }
         case REGISTER_INDIRECT_DISPLACED:
@@ -4088,7 +4102,7 @@ bool process::MonitorCallSite(instPoint *callSite){
               func = new AstNode("DYNINSTRegisterCallee", the_args);
               miniTrampHandle *mtHandle;
               addInstFunc(this, mtHandle, callSite, func, callPreInsn,
-                          orderFirstAtPoint, true,false);
+                          orderFirstAtPoint, true, false, true);
               break;
            }
         case DISPLACED: 
@@ -4101,7 +4115,7 @@ bool process::MonitorCallSite(instPoint *callSite){
               func = new AstNode("DYNINSTRegisterCallee", the_args);
               miniTrampHandle *mtHandle;
               addInstFunc(this, mtHandle, callSite, func, callPreInsn,
-                          orderFirstAtPoint, true, false);
+                          orderFirstAtPoint, true, false, true);
               break;
            }
         case SIB:
@@ -4144,7 +4158,7 @@ bool process::MonitorCallSite(instPoint *callSite){
                     func = new AstNode("DYNINSTRegisterCallee", the_args);
                     miniTrampHandle *mtHandle;
                     addInstFunc(this, mtHandle, callSite, func, callPreInsn,
-                                orderFirstAtPoint, true, false);
+                                orderFirstAtPoint, true, false, true);
                  }
                  else {
                     AstNode *scale_factor
@@ -4169,7 +4183,7 @@ bool process::MonitorCallSite(instPoint *callSite){
                     func = new AstNode("DYNINSTRegisterCallee", the_args);
                     miniTrampHandle *mtHandle;	    
                     addInstFunc(this, mtHandle, callSite, func, callPreInsn,
-                                orderFirstAtPoint, true,false);
+                                orderFirstAtPoint, true, false, true);
                  }
               }
               else { //We do not use a scaled index. 
@@ -4191,7 +4205,7 @@ bool process::MonitorCallSite(instPoint *callSite){
                  func = new AstNode("DYNINSTRegisterCallee", the_args);
                  miniTrampHandle *mtHandle;
                  addInstFunc(this, mtHandle, callSite, func, callPreInsn,
-                             orderFirstAtPoint, true, false);
+                             orderFirstAtPoint, true, false, true);
               }
            }
            break;
@@ -5430,7 +5444,7 @@ bool pd_Function::PA_attachGeneralRewrites(
                                    Address baseAddress, Address firstAddress,
                                    instruction* loadedCode,
                                    unsigned numInstructions, 
-                                   int /* codeSize */ )
+                                   int codeSize)
 {
 #ifdef DEBUG_FUNC_RELOC
    cerr << "pd_Function::PA_attachGeneralRewrites" << endl;
@@ -5556,7 +5570,7 @@ bool pd_Function::PA_attachGeneralRewrites(
 	  << "Adding fallthrough LocalAlteration at offset " 
 	  << offset << " of " << prettyName() << endl;
 #endif
-     Fallthrough *fall = new Fallthrough(this, offset);
+     Fallthrough *fall = new Fallthrough(this, codeSize);
      temp_alteration_set->AddAlteration(fall);
    }
    else
