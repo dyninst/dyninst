@@ -1,9 +1,13 @@
 // barChart.h
 
 /* $Log: barChart.h,v $
-/* Revision 1.4  1994/10/10 23:08:39  tamches
-/* preliminary changes on the way to swapping the x and y axes
+/* Revision 1.5  1994/10/11 22:02:48  tamches
+/* added validMetrics and validResources arrays to avoid
+/* drawing bars of deleted resources
 /*
+ * Revision 1.4  1994/10/10  23:08:39  tamches
+ * preliminary changes on the way to swapping the x and y axes
+ *
  * Revision 1.3  1994/10/10  14:36:14  tamches
  * fixed some resizing bugs
  *
@@ -20,12 +24,17 @@
 
 #include <array2d.h>
 
+typedef dynamic1dArray<bool>   dynamic1dArrayBool;
+typedef dynamic2dArray<bool>   dynamic2dArrayBool;
 typedef dynamic1dArray<double> dynamic1dArrayDouble;
 typedef dynamic2dArray<int>    dynamic2dArrayInt;
 typedef dynamic2dArray<double> dynamic2dArrayDouble;
 typedef dynamic1dArray<XColor *> dynamic1dArrayXColor;
 
 class BarChart {
+ private:
+   static bool currentlyInstalledLowLevelDrawBars;
+
  private:
    char *theWindowName; // in tk-style; e.g. ".a.b.c"
    Tk_Window theWindow;
@@ -59,6 +68,9 @@ class BarChart {
    dynamic2dArrayInt prevBarHeights;
 
    int numMetrics, numResources;
+   dynamic1dArrayBool validMetrics, validResources;
+      // which metrics and resources are valid and should be drawn?
+
    dynamic2dArrayInt barXoffsets;
       // array [metric][rsrc] of pixel x-offsets for each bar
    dynamic2dArrayInt barWidths;
@@ -93,6 +105,8 @@ class BarChart {
 
    void ClearScreen();
    void ResetPrevBarHeights();
+
+   void rethinkValidMetricsAndResources();
 
    void RethinkMetricColors();
       // assuming metrics have change, rethink "metricColors" array
