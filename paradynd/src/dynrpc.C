@@ -43,6 +43,9 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.54  1996/10/31 08:40:07  tamches
+ * changed sampleMultiple from a ptr; removed some warnings
+ *
  * Revision 1.53  1996/10/03 22:12:04  mjrg
  * Removed multiple stop/continues when inserting instrumentation
  * Fixed bug on process termination
@@ -338,7 +341,7 @@ void dynRPC::setSampleRate(double sampleInterval)
     //           bucket_width was added.
     // In metric.C, we work around the problem by putting in a kludge for reporting
     // the internal metric bucket_width; we simply ignore the value stored in the
-    // internalMetrics class and instead return the exterm float "sampleInterval" --ari
+    // internalMetrics class and instead return the extern float "sampleInterval" --ari
     //
     // We keep the following code because it's harmless; but remember, it's also
     // not really being used at this time:
@@ -346,9 +349,12 @@ void dynRPC::setSampleRate(double sampleInterval)
        bucket_width->getEnabledInstance(0).setValue(sampleInterval);
 
     if(sampleInterval != currSamplingRate){
-         int *sample_multiple = new int; 
-	*sample_multiple = 
-	    (int)(((sampleInterval)*ONEMILLION)/BASESAMPLEINTERVAL);
+         int sample_multiple = (int)((sampleInterval*ONEMILLION)/BASESAMPLEINTERVAL);
+
+//	 char buffer[200];
+//	 sprintf(buffer, "ari fold; sampleInterval=%g so sample_multiple now %d\n",
+//		 sampleInterval, *sample_multiple);
+//	 logLine(buffer);
          
 #ifdef sparc_tmc_cmost7_3 
 	int number_of_jobs = getNumberOfJobs() ;
@@ -368,18 +374,20 @@ void dynRPC::setSampleRate(double sampleInterval)
 	for (unsigned u=0; u<p_size; u++){
 	  if (processVec[u]->status() != exited) {
             internalSym *ret_sym = 0; 
-            if(!(ret_sym = processVec[u]->symbols->findInternalSymbol(
-				"DYNINSTsampleMultiple",true))){
+            if(!(ret_sym = processVec[u]->findInternalSymbol("DYNINSTsampleMultiple",
+							     true))){
                 sprintf(errorLine, "error2 in dynRPC::setSampleRate\n");
                 logLine(errorLine);
 		P_abort();
 	    }
 	    Address addr = ret_sym->getAddr();
             processVec[u]->writeDataSpace((caddr_t)addr,sizeof(int),
-					  (caddr_t)sample_multiple);
+					  (caddr_t)&sample_multiple);
 	  }
         }
+
         currSamplingRate = sampleInterval;
+	cerr << "dynrpc: currSamplingRate set to " << currSamplingRate << endl;
     }
     return;
 }
@@ -472,4 +480,3 @@ int dynRPC::addExecutable(vector<string> argv, string dir)
 double dynRPC::getTime() {
   return getCurrentTime(false);
 }
-
