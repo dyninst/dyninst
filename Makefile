@@ -5,7 +5,7 @@
 #
 
 
-subsystems	= util rtinst thread paradyn paradynd paradyndSIM igen
+subsystems	= util rtinst thread paradyn paradynd paradyndSIM igen bininst
 
 all clean install:
 	for subsystem in $(subsystems); do 			\
