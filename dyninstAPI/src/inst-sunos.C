@@ -43,6 +43,9 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
+ * Revision 1.46  1997/07/01 16:53:14  tamches
+ * added define of NULL
+ *
  * Revision 1.45  1997/03/18 19:44:17  buck
  * first commit of dyninst library.  Also includes:
  * 	moving templates from paradynd to dyninstAPI
@@ -100,6 +103,10 @@
  * Added search for executables in a given directory.
  *
  */
+
+#ifndef NULL
+#define NULL 0
+#endif
 
 #include "dyninstAPI/src/dyninstP.h" // isApplicationPaused()
 #include "dyninstAPI/src/os.h"
