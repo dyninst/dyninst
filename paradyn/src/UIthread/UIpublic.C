@@ -30,9 +30,14 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.14  1994/09/25 01:54:10  newhall
-/* updated to support changes in VM, and UI interface
+/* Revision 1.15  1994/10/09 01:24:49  karavan
+/* A large number of changes related to the new UIM/visiThread metric&resource
+/* selection interface and also to direct selection of resources on the
+/* Where axis.
 /*
+ * Revision 1.14  1994/09/25  01:54:10  newhall
+ * updated to support changes in VM, and UI interface
+ *
  * Revision 1.13  1994/09/22  01:16:53  markc
  * Added const to char* arg in UIM::showError()
  *
@@ -95,8 +100,13 @@ class statusDisplayObject;
       */
 dag *ActiveDags[MAXNUMACTIVEDAGS];
 Tcl_HashTable shgNamesTbl;   /* store full pathname for SHG nodes */
- 
+List<resHierarchy *> whereAxesTbl;  /* one record per abstraction */
 extern void initSHGStyles();
+extern dag *baseWhere;
+ /* globals for metric resource selection */
+List<metrespair *> uim_VisiSelections;
+int uim_VisiSelectionsSize;
+String_Array uim_AvailMets;
 
 void 
 UIMUser::chooseMenuItemREPLY(chooseMenuItemCBFunc cb, int userChoice)
@@ -105,7 +115,7 @@ UIMUser::chooseMenuItemREPLY(chooseMenuItemCBFunc cb, int userChoice)
 }
 
 void 
-UIMUser::msgChoice(showMsgCBFunc cb,int userChoice)
+UIMUser::msgChoice(showMsgCBFunc cb, int userChoice)
 {
   (cb) (userChoice);
 }
@@ -357,7 +367,6 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 {
   char *ml;
   int retVal;
-  String_Array availMets;
   char ctr[16];
   UIMReplyRec *reply;
   Tcl_HashEntry *entryPtr;
@@ -381,12 +390,17 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   }
 
      // initialize metric menu 
-  availMets = dataMgr->getAvailableMetrics(context);
+  uim_AvailMets = dataMgr->getAvailableMetrics(context);
 
-  ml = Tcl_Merge (availMets.count, availMets.data);
+  ml = Tcl_Merge (uim_AvailMets.count, uim_AvailMets.data);
   ml = Tcl_SetVar (interp, "metList", ml, 0);
-  sprintf (ctr, "%d", availMets.count);
+  sprintf (ctr, "%d", uim_AvailMets.count);
   Tcl_SetVar (interp, "metCount", ctr, 0);
+
+  // set global tcl variable to list of currently defined where axes
+  /** just the base for now */
+  Tcl_SetVar (interp, "CurrentWhereAxes", baseWhere->getCanvasName(), 
+	      TCL_APPEND_VALUE | TCL_LIST_ELEMENT);
 
       // tcl proc draws window & gets metrics and resources from user 
   sprintf (ctr, "%d", UIMMsgTokenID);
@@ -481,9 +495,9 @@ UIM::DAGaddNode(int dagID, int nodeID, int styleID,
   
   dagName = ActiveDags[dagID];
   if (flags)
-    retVal = dagName->CreateNode (nodeID, 1, "root", styleID);
+    retVal = dagName->CreateNode (nodeID, 1, "root", styleID, (void *)NULL);
   else 
-    retVal = dagName->CreateNode (nodeID, 0, label, styleID);
+    retVal = dagName->CreateNode (nodeID, 0, label, styleID, (void *)NULL);
 
   if (retVal != AOK)
     printf ("ERROR in UIM::DAGaddNode\n");

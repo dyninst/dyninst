@@ -1,7 +1,12 @@
 /* $Log: UImain.C,v $
-/* Revision 1.29  1994/09/30 19:18:28  rbi
-/* Abstraction interface change.
+/* Revision 1.30  1994/10/09 01:24:47  karavan
+/* A large number of changes related to the new UIM/visiThread metric&resource
+/* selection interface and also to direct selection of resources on the
+/* Where axis.
 /*
+ * Revision 1.29  1994/09/30  19:18:28  rbi
+ * Abstraction interface change.
+ *
  * Revision 1.28  1994/09/05  20:04:49  jcargill
  * Fixed read-before-write of thread stack data (spotted by purify)
  *
@@ -158,6 +163,7 @@ extern "C" {
 }
 
 #include "../DMthread/DMresource.h"
+#include "dataManager.h"
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
 #include "UIglobals.h" 
@@ -184,7 +190,8 @@ List<metricInstance*>     uim_enabled;
 performanceStream         *uim_defaultStream;
 UIM                       *uim_server;
 int uim_maxError;
-
+int uim_ResourceSelectionStatus;
+List<resourceList *> uim_CurrentResourceSelections;
 int UIM_BatchMode = 0;
 Tcl_HashTable UIMMsgReplyTbl;
 Tcl_HashTable UIMwhereDagTbl;
@@ -265,7 +272,8 @@ void reaper()
     }
 }
 
-/* This callback function invoked by dataManager whenever a new 
+/* 
+   This callback function invoked by dataManager whenever a new 
    resource has been defined.  Maintains where axis display.
 */
 void controlFunc (performanceStream *ps , 
@@ -281,10 +289,10 @@ void controlFunc (performanceStream *ps ,
   nodeID = (int) Tk_GetUid(name);
   label = strrchr(name, '/'); label++; 
   if (parent == uim_rootRes) {
-    baseWhere->CreateNode (nodeID, 1, label, 1); 
+    baseWhere->CreateNode (nodeID, 1, label, 1, (void *)newResource); 
   }
   else {
-    baseWhere->CreateNode (nodeID, 0, label, 1);
+    baseWhere->CreateNode (nodeID, 0, label, 1, (void *)newResource);
     parname = parent->getFullName();
     baseWhere->AddEdge ((int) Tk_GetUid((char *) parname), nodeID, 1);
   }
@@ -319,65 +327,81 @@ applicStateChanged (performanceStream*, appState state)
     PDapplicState = state;
 }
 
-int addDefaultWhereStyles (dag *where)
-{
-  if (where->AddNStyle (1, "#c99e5f54dcab", "black", NULL,
-			    "-*-Times-Bold-R-Normal--*-80-*", 
-//		      "-Adobe-times-medium-r-normal--*-80*",
-//			"*-courier-medium-r-normal--*-80-*",
-			    "black", 'r', 1.0) != AOK) {
-    printf ("Error adding WHERE node style\n");
-    return 0;
-  }
-  if (where->AddEStyle(1, 0, 0, 0, 0, NULL, "#c99e5f54dcab", 'b', 2.0)
-      != AOK) {
-    printf ("Error adding WHERE edge style\n");
-    return 0;
-  }
-  return 1;
-}
-/*
-int addDefaultWhereBindings (dag *where, int token)
-{
-  char tcommand[100];
-  sprintf (tcommand, "all <1> {updateCurrentSelection %s %d}", 
-	   where->getCanvasName(), token);
-  if (where->addTkBinding (tcommand)) 
-    return 1;
-  else
-    return 0;
-}  
-*/
-
-int addDefaultWhereBindings (dag *where, int token)
-{
-  char tcommand[100];
-  sprintf (tcommand, "all <1> {updateCurrentSelection %s %d}", 
-	   where->getCanvasName(), token);
-  where->addTkBinding (tcommand); 
-  sprintf (tcommand, "all <3> {hideCurrentSelection %s %d}", 
-	   where->getCanvasName(), token);
-  where->addTkBinding (tcommand);
-  return 1;
-}  
-
-int initWhereAxis (dag *wheredag, char *aName, char *title) 
+int initWhereAxis (dag *wheredag, int abs) 
 {
   int token;
   char tcommand[100];
 
   token = getDagToken ();
-  sprintf (tcommand, "initWHERE %d %s {%s}", token, aName, title);
-  if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR)
-    printf ("NOWHERE:: %s\n", interp->result);
-  wheredag->createDisplay (aName);
   ActiveDags[token] = wheredag;
-  if (addDefaultWhereBindings (wheredag, token))
-    return 1;
-  else
-    return 0;
+
+  if (abs == 0) {
+    sprintf (tcommand, "initWHERE %d .where {Paradyn Base Where Axis} 0", 
+	     token);
+    if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR) {
+      printf ("NOWHERE:: %s\n", interp->result);
+      return -1;
+    }
+
+    wheredag->createDisplay (".where");
+  } else {
+    /** need to add getname function here for abs */
+    sprintf (tcommand, "initWHERE %d .whereX {Paradyn Abstraction Axis} 1", 
+	     token);
+    if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR) {
+      printf ("NOWHERE:: %s\n", interp->result);
+      return -1;
+    }
+    wheredag->createDisplay (".whereX");
+  }
+
+  sprintf (tcommand, "addDefaultWhereSettings %s %d",
+	   wheredag->getCanvasName(), token);
+  if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR) {
+    printf ("ERROR ADDING Where Bindings %s\n", interp->result);
+    return -1;
+  }
+
+  return token;
 }
-    
+
+void initResourceHierarchy (int abs)
+{
+  int retVal;
+  resHierarchy *newRec;
+  controlCallback controlFuncs;
+  dataCallback dataFunc;
+  
+  controlFuncs.rFunc = controlFunc;
+  controlFuncs.mFunc = NULL;
+  controlFuncs.fFunc = NULL;
+  controlFuncs.sFunc = applicStateChanged;
+  controlFuncs.bFunc = resourceBatchChanged;
+  dataFunc.sample = NULL;
+  uim_defaultStream = dataMgr->createPerformanceStream(context, Sample,
+						       dataFunc, controlFuncs);
+  dataMgr->enableResourceCreationNotification(uim_defaultStream, 
+					      uim_rootRes);
+  baseWhere = new dag (interp);
+
+  // display the where axis 
+  retVal = initWhereAxis (baseWhere, 0);
+  if (retVal < 0) {
+    printf ("Unable to initialize base where axis\n");
+    thr_exit(0);
+  }
+
+  // create record for whereAxesTbl
+  newRec = (resHierarchy *) malloc (sizeof (resHierarchy));
+  newRec->abs = abs;
+  newRec->resDag = baseWhere;
+  newRec->wname = ".where";
+  newRec->status = DISPLAYED;
+
+  whereAxesTbl.add (newRec, (void *) newRec->abs);
+  
+}
+
 /*
  *----------------------------------------------------------------------
  *
@@ -409,10 +433,7 @@ UImain(void* vargs)
     int retVal;
     unsigned msgSize = 0;
     char UIMbuff[UIMBUFFSIZE];
-    controlCallback controlFuncs;
-    dataCallback dataFunc;
     char *temp;
-    char *newres;
 
     interp = Tcl_CreateInterp();
 #ifdef TCL_MEM_DEBUG
@@ -569,22 +590,12 @@ UImain(void* vargs)
 
     uim_rootRes = dataMgr->getRootResource();
     if (!uim_rootRes) abort();
-    // newres = uim_rootRes->getFullName();
-    // printf ("root resource: %s\n", newres);
-    controlFuncs.rFunc = controlFunc;
-    controlFuncs.mFunc = NULL;
-    controlFuncs.fFunc = NULL;
-    controlFuncs.sFunc = applicStateChanged;
-    controlFuncs.bFunc = resourceBatchChanged;
-    dataFunc.sample = NULL;
-    uim_defaultStream = dataMgr->createPerformanceStream(context, Sample, 
-        dataFunc, controlFuncs);
-    dataMgr->enableResourceCreationNotification(uim_defaultStream, uim_rootRes);
-   // display the where axis 
-    baseWhere = new dag (interp);
-    retVal = initWhereAxis (baseWhere, ".baseWA", "Paradyn Base Where Axis");
-    if (!addDefaultWhereStyles (baseWhere))
-      printf ("trouble in defaultwherestyle paradise\n");
+
+    uim_ResourceSelectionStatus = 0;    // no selection in progress
+    Tcl_LinkVar (interp, "resourceSelectionStatus", 
+		 (char *) &uim_ResourceSelectionStatus, TCL_LINK_INT);    
+
+    initResourceHierarchy(0);
 
 /********************************
  *    Main Loop for UIM thread.  

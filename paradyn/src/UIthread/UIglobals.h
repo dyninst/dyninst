@@ -1,7 +1,12 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.7  1994/08/01 20:24:37  karavan
-/* new version of dag; new dag support commands
+/* Revision 1.8  1994/10/09 01:24:45  karavan
+/* A large number of changes related to the new UIM/visiThread metric&resource
+/* selection interface and also to direct selection of resources on the
+/* Where axis.
 /*
+ * Revision 1.7  1994/08/01  20:24:37  karavan
+ * new version of dag; new dag support commands
+ *
  * Revision 1.6  1994/07/07  15:54:49  jcargill
  * Commit for Karen; added extern defns for UIM_BatchMode & uim_maxError
  *
@@ -36,7 +41,19 @@ extern "C" {
 #define UIMBUFFSIZE 256
 #define MAXNUMACTIVEDAGS 20
 
+#define DISPLAYED 0
+#define ICONIFIED 1
+#define INACTIVE 2
+
 class dag;
+
+struct resHierarchy
+{
+  int abs;
+  dag *resDag;
+  char *wname;
+  int status;
+};
 
 struct cmdTabEntry 
 {
@@ -63,5 +80,12 @@ extern int UIM_BatchMode;
 extern int uim_maxError;
 extern dag *baseWhere;
 extern dag *ActiveDags[MAXNUMACTIVEDAGS];
+extern List<resHierarchy *> whereAxesTbl;  /* one record per abstraction */
+extern int uim_ResourceSelectionStatus;
+extern List<resourceList *> uim_CurrentResourceSelections;
+extern List<metrespair *> uim_VisiSelections;
+extern int uim_VisiSelectionsSize;
+extern String_Array uim_AvailMets;
+extern resourceList *uim_SelectedFocus;
 
 #endif
