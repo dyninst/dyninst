@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.51 2004/03/23 01:12:01 eli Exp $
+// $Id: aixDL.C,v 1.52 2004/04/02 06:34:11 jaw Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -173,7 +173,7 @@ pdvector <shared_object *> *dynamic_linking::processLinkMaps()
                                    pid, false);
 
 #ifdef DEBUG
-            fprintf(stderr, "Adding %s:%s with textorg %llx and dataorg %llx\n",
+            bperr( "Adding %s:%s with textorg %llx and dataorg %llx\n",
                     objname, objname+strlen(objname)+1,
                     mapEntry.pr_vaddr,
                     next.pr_vaddr);

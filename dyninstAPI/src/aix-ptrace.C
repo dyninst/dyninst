@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.19 2004/03/23 01:12:00 eli Exp $
+// $Id: aix-ptrace.C,v 1.20 2004/04/02 06:34:11 jaw Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -128,8 +128,8 @@ Frame dyn_lwp::getActiveFrame()
       bool kernel_mode = false;
       if (P_ptrace(PTT_READ_SPRS, lwp_id_, (int *)&spr_contents, 0, 0) == -1) {
          if (errno != EPERM) { // EPERM == thread in kernel mode, not to worry
-            perror("----------Error getting IAR in getActiveFrame");
-            fprintf(stderr, "dyn_lwp of 0x%x with lwp %d\n", (unsigned) this,
+            bperr("----------Error getting IAR in getActiveFrame");
+            bperr( "dyn_lwp of 0x%x with lwp %d\n", (unsigned) this,
                     lwp_id_);
          }
          else
@@ -428,7 +428,7 @@ bool dyn_lwp::changePC(Address loc, struct dyn_saved_regs *)
          return false;
       }
       if (spr_doublecheck.pt_iar != loc) {
-          fprintf(stderr, "Doublecheck failed! PC at 0x%x instead of 0x%x!\n",
+          bperr( "Doublecheck failed! PC at 0x%x instead of 0x%x!\n",
                   (int)spr_doublecheck.pt_iar, (int)loc);
       }
       
@@ -797,9 +797,8 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
    if(! deliverPtrace(PT_WRITE_BLOCK, inTraced, amount,
                       const_cast<void*>(inSelf)))
    {
-      fprintf(stderr, "Write of %d bytes from 0x%x to 0x%x\n",
+      bperr( "Write of %d bytes from 0x%x to 0x%x\n",
               amount, (int)inSelf, (int)inTraced);
-      perror("Failed write2");
       while(1);
       
     return false;
@@ -885,7 +884,7 @@ bool dyn_lwp::waitUntilStopped() {
       }
       else {
          if(!getSH()->handleProcessEvent(*ev))
-            fprintf(stderr, "handleProcessEvent failed!\n");
+            bperr( "handleProcessEvent failed!\n");
          delete ev;
          // if handleProcessEvent left the proc stopped, continue
          // it so we that we will get the SIGSTOP signal we sent the proc
@@ -933,28 +932,28 @@ bool process::dumpImage(pdstring outFile) {
     int num_thrds = getthrds(pid, thrd_buf, sizeof(struct thrdsinfo),
 			     0, 1);
     if (num_thrds == -1) {
-        fprintf(stderr, "%d ", errno);
-      perror("getting TID");
+        bperr( "%d ", errno);
+      bperr("getting TID");
     }
     else
-      fprintf(stderr, "%d threads currently running\n", num_thrds);
+      bperr( "%d threads currently running\n", num_thrds);
     int kernel_thread = thrd_buf[0].ti_tid;
     int gpr_contents[32];
     ptrace(PTT_READ_GPRS, kernel_thread,
 	   gpr_contents, 0, 0);
-    fprintf(stderr, "Register contents:\n");
+    bperr( "Register contents:\n");
     for (i = 0; i < 32; i++)
-      fprintf(stderr, "%d: %x\n", i, gpr_contents[i]);
+      bperr( "%d: %x\n", i, gpr_contents[i]);
     
     struct ptsprs spr_contents;
     ptrace(PTT_READ_SPRS, kernel_thread,
 	   (int *)&spr_contents, 0, 0);
     
-    fprintf(stderr, "IAR: %x\n", spr_contents.pt_iar);
-    fprintf(stderr, "LR: %x\n", spr_contents.pt_lr);
-    fprintf(stderr, "CR: %x\n", spr_contents.pt_cr);
-    fprintf(stderr, "CTR: %x\n", spr_contents.pt_ctr);
-    fprintf(stderr, "MSR: %x\n", spr_contents.pt_msr);
+    bperr( "IAR: %x\n", spr_contents.pt_iar);
+    bperr( "LR: %x\n", spr_contents.pt_lr);
+    bperr( "CR: %x\n", spr_contents.pt_cr);
+    bperr( "CTR: %x\n", spr_contents.pt_ctr);
+    bperr( "MSR: %x\n", spr_contents.pt_msr);
 
     // And get and print the chunk of memory around the error
     int memory[32];
@@ -1554,7 +1553,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
                   proc->getRepresentativeLWP()->getRegisters(&regs);
                   if (proc->previousSignalAddr() == regs.gprs[3]) {
                       if (!in_trap_loop) {
-                          fprintf(stderr, "Spinning to handle multiple traps caused by null library loads...\n");
+                          bperr( "Spinning to handle multiple traps caused by null library loads...\n");
                           in_trap_loop = true;
                       }
                       
@@ -1581,7 +1580,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
                       }
                   }
                   else if (in_trap_loop) {
-                      fprintf(stderr, "Finished spinning, returning to normal processing.\n");
+                      bperr("Finished spinning, returning to normal processing.\n");
                       in_trap_loop = false;
                   }
                   proc->setPreviousSignalAddr(regs.gprs[3]); 
@@ -1652,7 +1651,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
             }
         }
         else {
-            fprintf(stderr, "Unknown status 0x%x for process %d\n",
+            bperr( "Unknown status 0x%x for process %d\n",
                     status, result);
         }
         

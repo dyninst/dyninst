@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.21 2004/03/23 01:12:02 eli Exp $
+ * $Id: dyn_lwp.C,v 1.22 2004/04/02 06:34:12 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -107,7 +107,7 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   cached_regs(NULL),
   isRunningIRPC(false), is_attached_(false)
 {
-    fprintf(stderr, "LWP copy constructor\n");
+    bperr( "LWP copy constructor\n");
 }
 
 dyn_lwp::~dyn_lwp()
@@ -275,7 +275,7 @@ bool dyn_lwp::setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
     assert(executingSystemCall());
     if (trappedSyscall_) {
         // Can't set trap twice
-        fprintf(stderr, "Error: syscall already trapped on LWP %d\n",
+        bperr( "Error: syscall already trapped on LWP %d\n",
                 get_lwp_id());
         return false;
     }

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.164 2004/04/01 00:48:22 lharris Exp $
+ * $Id: inst-x86.C,v 1.165 2004/04/02 06:34:12 jaw Exp $
  */
 
 #include <iomanip>
@@ -207,7 +207,7 @@ void instPoint::checkInstructions() {
          currAddr -= (*insnBeforePt_)[u].size();
          if (getOwner()->isJumpTarget(currAddr)) {
             // must remove instruction from point
-            // fprintf(stderr,"check instructions point 0x%lx, jmp to 0x%lx\n",
+            // bperr("check instructions point 0x%lx, jmp to 0x%lx\n",
             //                addr,currAddr);
             break;
          }
@@ -511,7 +511,7 @@ bool checkEntry( instruction insn, Address adr, image* owner )
         //instPoint *p = new instPoint(this, owner, adr, functionEntr, insn);
         //calls += p;
         //points[npoints++] = point_(p, numInsns, CallPt);
-        //fprintf(stderr,"Function %s, call at entry point\n", 
+        //bperr("Function %s, call at entry point\n", 
         //prettyName().c_str());
         return false;
     }
@@ -2003,7 +2003,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 
       // CONSIDER BELOW IN VIEW OF MT
       if (currentPC == origAddr) {
-         //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
+         //bperr("changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
          lwp_to_use->changePC(currAddr, NULL);
       }
 
@@ -2046,7 +2046,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       origAddr = location->pointAddr() + imageBaseAddr;
       if (currentPC == origAddr &&
           currentPC != (location->jumpAddr() + imageBaseAddr)) {
-         //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
+         //bperr( "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
          lwp_to_use->changePC(currAddr, NULL);
       }
 
@@ -2156,7 +2156,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       origAddr = location->pointAddr() + imageBaseAddr;
       if (currentPC == origAddr &&
           currentPC != (location->jumpAddr() + imageBaseAddr)) {
-         //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
+         //bperr("changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
          lwp_to_use->changePC(currAddr, NULL);
       }
 
@@ -2251,7 +2251,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
               location->insnAtPoint().size();
    for (u = 0; u < location->insnsAfter(); u++) {
       if (currentPC == origAddr) {
-         //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
+         //bperr( "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
          lwp_to_use->changePC(currAddr, NULL);
       }
       unsigned newSize = relocateInstruction(location->insnAfterPt(u), 
@@ -2272,7 +2272,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 #endif
    
    if ((insn-code) != trampSize) {
-       fprintf(stderr, "Warning: written size (%d) != allocated size (%d)\n",
+       bperr( "Warning: written size (%d) != allocated size (%d)\n",
                insn-code, trampSize);
        assert(0);
    }
@@ -2811,7 +2811,7 @@ void emitCallRel32(unsigned disp32, unsigned char *&insn) {
 // set dest=1 if src1 op src2, otherwise dest = 0
 void emitRelOp(unsigned op, Register dest, Register src1, Register src2,
                unsigned char *&insn) {
-   //fprintf(stderr,"Relop dest = %d, src1 = %d, src2 = %d\n",
+   //bperr("Relop dest = %d, src1 = %d, src2 = %d\n",
    //        dest, src1, src2);
    emitOpRegReg(0x29, ECX, ECX, insn);           // clear ECX
    emitMovRMToReg(EAX, EBP, -(src1*4), insn);    // mov eax, -(src1*4)[ebp]
@@ -2835,7 +2835,7 @@ void emitRelOp(unsigned op, Register dest, Register src1, Register src2,
 // set dest=1 if src1 op src2imm, otherwise dest = 0
 void emitRelOpImm(unsigned op, Register dest, Register src1, int src2imm,
                   unsigned char *&insn) {
-   //fprintf(stderr,"Relop dest = %d, src1 = %d, src2 = %d\n",
+   //bperr("Relop dest = %d, src1 = %d, src2 = %d\n",
    //        dest, src1, src2);
    emitOpRegReg(0x29, ECX, ECX, insn);           // clear ECX
    emitMovRMToReg(EAX, EBP, -(src1*4), insn);    // mov eax, -(src1*4)[ebp]
@@ -2931,7 +2931,7 @@ Register emitFuncCall(opCode op,
 Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 	     char *ibuf, Address &base, bool /*noCost*/)
 {
-   //fprintf(stderr,"emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
+   //bperr("emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
    unsigned char *insn = (unsigned char *) (&ibuf[base]);
    unsigned char *first = insn;
@@ -2978,7 +2978,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
                char *ibuf, Address &base, bool /*noCost*/,
                const instPoint *location, bool /*for_multithreaded*/)
 {
-    //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
+    //bperr("emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
     unsigned char *insn = (unsigned char *) (&ibuf[base]);
     unsigned char *first = insn;
@@ -3031,7 +3031,7 @@ static inline void emitLEA(Register base, Register index, unsigned int scale,
 static inline void emitSHL(Register dest, unsigned char pos,
                            unsigned char *&insn)
 {
-  //fprintf(stderr, "Emiting SHL\n");
+  //bperr( "Emiting SHL\n");
   *insn++ = 0xC1;
   *insn++ = makeModRMbyte(3 /* rm gives register */,
                           4 /* opcode ext. */, dest);
@@ -3052,7 +3052,7 @@ void emitJmpMC(int condition, int offset, char* baseInsn, Address &base)
    unsigned char *insn = (unsigned char *) (&baseInsn[base]);
    unsigned char *first = insn;
 
-   //fprintf(stderr, "OC: %x, NC: %x\n", condition, condition ^ 0x01);
+   //bperr("OC: %x, NC: %x\n", condition, condition ^ 0x01);
    condition ^= 0x01; // flip last bit to negate the tttn condition
    
    emitMovRMToReg(EAX, EBP, SAVED_EFLAGS_OFFSET, insn); // mov eax, offset[ebp]
@@ -3098,7 +3098,7 @@ void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 
    // assuming 32-bit addressing (for now)
 
-   //fprintf(stderr, "ASLOAD: ra=%d rb=%d sc=%d imm=%d\n", ra, rb, sc, imm);
+   //bperr( "ASLOAD: ra=%d rb=%d sc=%d imm=%d\n", ra, rb, sc, imm);
 
    if(havera)
       restoreGPRtoGPR(ra, EAX, insn);        // mov eax, [saved_ra]
@@ -3138,7 +3138,7 @@ void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
    if(rb >= IA32_EMULATE) {
       // TODO: firewall code to ensure that direction is up
       bool neg = false;
-      //fprintf(stderr, "!!!In case rb >= IA32_EMULATE!!!\n");
+      //bperr( "!!!In case rb >= IA32_EMULATE!!!\n");
       switch(rb) {
         case IA32_NESCAS:
            neg = true;
@@ -3217,7 +3217,7 @@ void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
       }
    }
    else if(rb > -1) {
-      //fprintf(stderr, "!!!In case rb > -1!!!\n");
+      //bperr( "!!!In case rb > -1!!!\n");
       // TODO: 16-bit pseudoregisters
       assert(rb < 8); 
       restoreGPRtoGPR(rb, EAX, insn);        // mov eax, [saved_rb]
@@ -3343,7 +3343,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
              const instPoint * /* location */, process * /* proc */,
              registerSpace * /* rs */ )
 {
-   //fprintf(stderr, "emitV(op=%d,src1=%d,src2=%d,dest=%d)\n", op, src1,
+   //bperr( "emitV(op=%d,src1=%d,src2=%d,dest=%d)\n", op, src1,
    //        src2, dest);
 
    assert ((op!=branchOp) && (op!=ifOp) &&
@@ -3732,12 +3732,12 @@ void initDefaultPointFrequencyTable()
     if (!fp) {
         return;
     } else {
-        printf("found freq.input file\n");
+        bperr("found freq.input file\n");
     }
     while (!feof(fp)) {
         fscanf(fp, "%s %f\n", name, &value);
         funcFrequencyTable[name] = (int) value;
-        printf("adding %s %f\n", name, value);
+        bperr("adding %s %f\n", name, value);
     }
     fclose(fp);
 }
@@ -3804,7 +3804,7 @@ bool returnInstance::checkReturnInstance(const pdvector<pdvector<Frame> >&stackW
          if ((stackWalks[walk_iter][i].getPC() > addr_) && 
              (stackWalks[walk_iter][i].getPC() < addr_+size_)) 
          {
-            fprintf(stderr, "PC at 0x%lx (thread %d, frame %d) conflicts"
+            bperr( "PC at 0x%lx (thread %d, frame %d) conflicts"
                     " with inst point 0x%lx\n",
                     stackWalks[walk_iter][i].getPC(), walk_iter, i, addr_);
             return false;

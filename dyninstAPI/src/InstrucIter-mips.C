@@ -331,7 +331,7 @@ bool InstrucIter::isACallInstruction()
         i.regimm.opr == BGEZALLopr ||
         i.regimm.opr == BLTZALopr ||
         i.regimm.opr == BLTZALLopr) {
-      fprintf(stderr, "Conditional branch and link found!!!\n");
+      bperr( "Conditional branch and link found!!!\n");
       return true;
     }
   }
@@ -407,7 +407,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
     ah--;
 
 #ifdef DEBUG_FINDTARGET_2
-	printf("** Checking indirect jump at 0x%p.\n",
+	bperr("** Checking indirect jump at 0x%p.\n",
 		(void *)origAddr);
 #endif
 
@@ -417,7 +417,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
     int jumpReg = i.rtype.rs;
 
 #ifdef DEBUG_FINDTARGET_2
-    printf("jumpReg = %s ($%d)\n", reg_names_book[jumpReg], jumpReg);
+    bperr("jumpReg = %s ($%d)\n", reg_names_book[jumpReg], jumpReg);
 #endif
 
     int jumpSrcReg    = -1;
@@ -444,17 +444,17 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
 
     if (jumpSrcReg == -1) {
 #ifdef DEBUG_FINDTARGET
-	printf("** Can't find possible targets for indirect jump at 0x%p!\n",
+	bperr("** Can't find possible targets for indirect jump at 0x%p!\n",
 		(void *)origAddr);
-	printf("   There was no lw or ld instruction before jump.\n");
+	bperr("   There was no lw or ld instruction before jump.\n");
 #endif
 	return;
     }
 
 #ifdef DEBUG_FINDTARGET_2
-    printf("Jump source register: %s ($%d)\n",
+    bperr("Jump source register: %s ($%d)\n",
 	    reg_names_book[jumpSrcReg], jumpSrcReg);
-    printf("  Jump source offset: %d\n", jumpSrcOffset);
+    bperr("  Jump source offset: %d\n", jumpSrcOffset);
 #endif
 
     unsigned int regMask = 1 << jumpSrcReg;
@@ -483,12 +483,12 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
 	     (i.itype.rs == REG_AT && i.itype.rt != REG_AT))) {
 #ifdef DEBUG_FINDTARGET_2
 	    if (i.itype.rs == REG_GP)
-		printf("Load from GP");
+		bperr("Load from GP");
 	    else if (i.itype.rs == REG_AT)
-		printf("Load from AT");
+		bperr("Load from AT");
 	    else
-		printf("Load from ??");
-	    printf(" at 0x%p\n", *ah);
+		bperr("Load from ??");
+	    bperr(" at 0x%p\n", *ah);
 #endif
 	    baseReg      = i.itype.rt;
 	    baseOffset   = i.itype.simm16;
@@ -501,9 +501,9 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
 		   ((regMask & (1 << i.itype.rt)) != 0) &&
 		   (i.itype.rs == REG_SP)) {
 #ifdef DEBUG_FINDTARGET_2
-	    printf("0x%08p: Removing %s ($%d) from set,\n",
+	    bperr("0x%08p: Removing %s ($%d) from set,\n",
 		    *ah, reg_names_book[i.itype.rt], i.itype.rt);
-	    printf("  and adding stack location %d\n", (int)i.itype.simm16);
+	    bperr("  and adding stack location %d\n", (int)i.itype.simm16);
 #endif
 	    stackLocations.insert(i.itype.simm16);
 	    regMask &= ~(1 << (i.itype.rt));
@@ -512,9 +512,9 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
 		   (i.itype.rs == REG_SP) &&
 		   (stackLocations.contains(i.itype.simm16))) {
 #ifdef DEBUG_FINDTARGET_2
-	    printf("0x%08p: Adding %s ($%d) to set,\n",
+	    bperr("0x%08p: Adding %s ($%d) to set,\n",
 		    *ah, reg_names_book[i.itype.rt], i.itype.rt);
-	    printf("  and removing stack location %d\n", (int)i.itype.simm16);
+	    bperr("  and removing stack location %d\n", (int)i.itype.simm16);
 #endif
 	    stackLocations.remove(i.itype.simm16);
 	    regMask |= 1 << i.rtype.rt;
@@ -524,7 +524,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
 		    isInsnType(i, DADDUmask, DADDUmatch)) &&
 		   ((regMask & (1 << i.rtype.rd)) != 0)) {
 #ifdef DEBUG_FINDTARGET_2
-	    printf("0x%08p: Adding %s ($%d) and %s ($%d) to set.\n",
+	    bperr("0x%08p: Adding %s ($%d) and %s ($%d) to set.\n",
 		    *ah,
 		    reg_names_book[i.itype.rs], i.itype.rs,
 		    reg_names_book[i.itype.rt], i.rtype.rt);
@@ -534,7 +534,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
 		   !isInsnType(i, ADDIUmask, ADDIUmatch) &&
 		   !isInsnType(i, DADDIUmask, DADDIUmatch)) {
 #ifdef DEBUG_FINDTARGET_2
-	    printf("0x%08p: Removing %s ($%d) from set.\n",
+	    bperr("0x%08p: Removing %s ($%d) from set.\n",
 		    *ah, reg_names_book[tmpReg], tmpReg);
 #endif
 	    regMask &= ~(1 << tmpReg);
@@ -543,9 +543,9 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
 
     if (baseReg == -1) {
 #ifdef DEBUG_FINDTARGET
-	printf("** Can't find possible targets for indirect jump at 0x%p!\n",
+	bperr("** Can't find possible targets for indirect jump at 0x%p!\n",
 		(void *)origAddr);
-	printf("   Couldn't find load relative to GP or AT.\n");
+	bperr("   Couldn't find load relative to GP or AT.\n");
 #endif
 #ifdef DEBUG_FINDTARGET_2
 	exit(1);
@@ -554,7 +554,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
     }
 
 #ifdef DEBUG_FINDTARGET_2
-    printf("        Base register is: %s ($%d)\n", 
+    bperr("        Base register is: %s ($%d)\n", 
 	    reg_names_book[baseReg], baseReg);
 #endif
 
@@ -575,7 +575,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
     }
 
 #ifdef DEBUG_FINDTARGET_2
-    printf("               Offset is: %d\n", offset);
+    bperr("               Offset is: %d\n", offset);
 #endif
 
     const Object &elf = ah.getImage()->getObject();
@@ -595,7 +595,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
     addr += elf.get_base_addr();
 
 #ifdef DEBUG_FINDTARGET_2
-    printf("Address of table is: 0x%p\n", (void *)addr);
+    bperr("Address of table is: 0x%p\n", (void *)addr);
 #endif
 
     for (;;) {
@@ -609,25 +609,25 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
 	}
 	if (!ah.containsAddress(target)) {
 #ifdef DEBUG_FINDTARGET_2
-	    printf("Not an entry: 0x%p\n", (void *)target);
+	    bperr("Not an entry: 0x%p\n", (void *)target);
 #endif
 	    break;
 	}
 #ifdef DEBUG_FINDTARGET_2
-	printf("Entry: 0x%p\n", (void *)target);
+	bperr("Entry: 0x%p\n", (void *)target);
 #endif
 	result += target;
     }
 
 #if DEBUG_FINDTARGET
     if (result.size() == 0) {
-	printf("** Can't find possible targets for indirect jump at 0x%p!\n",
+	bperr("** Can't find possible targets for indirect jump at 0x%p!\n",
 		(void *)origAddr);
 #ifdef DEBUG_FINDTARGET_2
 	exit(1);
 #endif
     } else if (result.size() == 1) {
-	printf("** Found only one entry in table for indirect jump at 0x%p!\n",
+	bperr("** Found only one entry in table for indirect jump at 0x%p!\n",
 		(void *)origAddr);
 #ifdef DEBUG_FINDTARGET_2
 	exit(1);

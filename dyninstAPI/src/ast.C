@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.137 2004/03/23 01:12:02 eli Exp $
+// $Id: ast.C,v 1.138 2004/04/02 06:34:12 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -169,7 +169,7 @@ void registerSpace::freeRegister(Register reg)
 	    registers[i].refCount--;
 #if defined(ia64_unknown_linux2_4)
 		if( registers[i].refCount < 0 ) {
-			fprintf( stderr, "Freed free register!\n" );
+			bperr( "Freed free register!\n" );
 			registers[i].refCount = 0;
 			}
 #endif
@@ -1287,7 +1287,7 @@ Address AstNode::generateCode_phase2(process *proc,
                  rs->freeRegister(tmp);
               }
               else {
-                 fprintf(stderr, "Invalid oType passed to store: %d (0x%x). Op is %d (0x%x)\n",
+                 bpfatal( "Invalid oType passed to store: %d (0x%x). Op is %d (0x%x)\n",
                          (int)loperand->oType, (unsigned)loperand->oType,
                          (int)loperand->op, (unsigned) loperand->op);
                  cerr << "dataValue " << DataValue << " dataPtr " << DataPtr << " dataId " << DataId << endl;
@@ -1571,20 +1571,20 @@ Address AstNode::generateCode_phase2(process *proc,
            assert(location);
            ma = location->getBPatch_point()->getMemoryAccess();
            if(!ma) {
-              fprintf(stderr, "Memory access information not available at this point.\n");
-              fprintf(stderr, "Make sure you create the point in a way that generates it.\n");
-              fprintf(stderr, "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
+              bpfatal( "Memory access information not available at this point.\n");
+              bpfatal( "Make sure you create the point in a way that generates it.\n");
+              bpfatal( "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
               assert(0);
            }
            if(whichMA >= ma->getNumberOfAccesses()) {
-              fprintf(stderr, "Attempt to instrument non-existent memory access number.\n");
-              fprintf(stderr, "Consider using filterPoints()...\n");
+              bpfatal( "Attempt to instrument non-existent memory access number.\n");
+              bpfatal( "Consider using filterPoints()...\n");
               assert(0);
            }
            start = ma->getStartAddr(whichMA);
            emitASload(start, dest, insn, base, noCost);
 #else
-           fprintf(stderr, "Effective address feature not supported w/o BPatch!\n");
+           bpfatal( "Effective address feature not supported w/o BPatch!\n");
            assert(0);
 #endif
            break;
@@ -1594,20 +1594,20 @@ Address AstNode::generateCode_phase2(process *proc,
            assert(location);
            ma = location->getBPatch_point()->getMemoryAccess();
            if(!ma) {
-              fprintf(stderr, "Memory access information not available at this point.\n");
-              fprintf(stderr, "Make sure you create the point in a way that generates it.\n");
-              fprintf(stderr, "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
+              bpfatal( "Memory access information not available at this point.\n");
+              bpfatal("Make sure you create the point in a way that generates it.\n");
+              bpfatal( "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
               assert(0);
            }
            if(whichMA >= ma->getNumberOfAccesses()) {
-              fprintf(stderr, "Attempt to instrument non-existent memory access number.\n");
-              fprintf(stderr, "Consider using filterPoints()...\n");
+              bpfatal( "Attempt to instrument non-existent memory access number.\n");
+              bpfatal( "Consider using filterPoints()...\n");
               assert(0);
            }
            count = ma->getByteCount(whichMA);
            emitCSload(count, dest, insn, base, noCost);
 #else
-           fprintf(stderr, "Byte count feature not supported w/o BPatch!\n");
+           bpfatal( "Byte count feature not supported w/o BPatch!\n");
            assert(0);
 #endif
            break;
@@ -1827,11 +1827,11 @@ int AstNode::costHelper(enum CostStyleType costStyle) const {
 void AstNode::print() const {
   if (this) {
 #if defined(ASTDEBUG)
-    fprintf(stderr,"{%d}", referenceCount) ;
+    bpfatal("{%d}", referenceCount) ;
 #endif
     if (type == operandNode) {
       if (oType == Constant) {
-	fprintf(stderr," %d", (int)(Address) oValue);
+	fprintf(stderr,"%d", (int)(Address) oValue);
       } else if (oType == ConstantString) {
         fprintf(stderr," %s", (char *)oValue);
       } else if (oType == OffsetConstant) {  // a newly added type for recognizing offset for locating variables

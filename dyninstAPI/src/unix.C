@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.122 2004/03/23 01:12:11 eli Exp $
+// $Id: unix.C,v 1.123 2004/04/02 06:34:15 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -298,9 +298,8 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv,
 
 
       if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
-         sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.c_str(), 
+         bpfatal("cannot chdir to '%s': %s\n", dir.c_str(), 
                  strerror(errno));
-         logLine(errorLine);
          P__exit(-1);
       }
 #endif
@@ -612,7 +611,7 @@ int handleSigCritical(const procevent &event) {
                << (int) event.what << ")" << endl << std::flush;
 
 #ifdef DEBUG
-   fprintf(stderr, "Process %d dying on signal %d\n", proc->getPid(), event.what);
+   bperr("Process %d dying on signal %d\n", proc->getPid(), event.what);
    
    for (unsigned thr_iter = 0; thr_iter <  proc->threads.size(); thr_iter++) {
        dyn_lwp *lwp = proc->threads[thr_iter]->get_lwp();
@@ -620,26 +619,23 @@ int handleSigCritical(const procevent &event) {
            pdvector<Frame> stackWalk;
            lwp->walkStack(stackWalk);
            
-           fprintf(stderr, "TID: %d, LWP: %d\n",
+           bperr( "TID: %d, LWP: %d\n",
                    proc->threads[thr_iter]->get_tid(),
                    lwp->get_lwp_id());
 #if defined(sparc_sun_solaris2_4)
            lwpstatus status;
            lwp->get_status(&status);
-           fprintf(stderr, "why: %d, what: %d\n",
+           bperr( "why: %d, what: %d\n",
                    status.pr_why, 
                    status.pr_what);
 #endif
        
            for (unsigned j = 0; j < stackWalk.size(); j++) {
-               fprintf(stderr, "PC: 0x%x (0x%x)   ", stackWalk[j].getPC(),
-                       stackWalk[j].getFP());
                pd_Function *func = proc->findFuncByAddr(stackWalk[j].getPC());
-               if (func)
-                   fprintf(stderr, "%s", func->prettyName().c_str());
-               fprintf(stderr, "\n");
+               bperr( "PC: 0x%x (0x%x)  %s", stackWalk[j].getPC(),
+                       stackWalk[j].getFP() , func ? func->prettyName().c_str() : "no func");
            }
-           fprintf(stderr, "\n\n\n");
+           bperr( "\n\n");
        }
    }
    

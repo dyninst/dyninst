@@ -183,7 +183,7 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet {
     process		*proc;
     void		*address;
     int			size;
-    BPatch_point	*scope;
+    BPatch_point	*scope; // NULL scope implies that this var is global
 public:
 // The following functions are for internal use by the library only:
     BPatch_variableExpr(char *name, process *in_process, void *in_address,

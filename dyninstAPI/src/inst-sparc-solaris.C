@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.149 2004/03/23 01:12:04 eli Exp $
+// $Id: inst-sparc-solaris.C,v 1.150 2004/04/02 06:34:12 jaw Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -381,7 +381,7 @@ trampTemplate * installBaseTramp( instPoint * & location,
    }
    
    //     if(location->dontUseCall)
-   //       fprintf(stderr, "dontUseCall@%p\n", ipAddr);
+   //       bperr("dontUseCall@%p\n", ipAddr);
    
    // VG(4/25/2002): refuse installation if call is needed, but not safe
    if(location->needsLongJump && location->dontUseCall) {
@@ -866,11 +866,11 @@ trampTemplate * installBaseTramp( instPoint * & location,
       }
    }
    /*
-     fprintf(stderr, "------------\n");
+     bperr( "------------\n");
      for (int i = 0; i < (current_template->size/4); i++)
-     fprintf(stderr, "0x%x,\n", code[i].raw);
-     fprintf(stderr, "------------\n");
-     fprintf(stderr, "\n\n\n");
+     bperr( "0x%x,\n", code[i].raw);
+     bperr( "------------\n");
+     bperr( "\n\n\n");
    */
 
    // TODO cast
@@ -1325,7 +1325,7 @@ Register emitFuncCall(opCode op,
    for (unsigned u=0; u<srcs.size(); u++){
       if (u >= 5) {
          pdstring msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
-         fprintf(stderr, msg.c_str());
+         bperr( msg.c_str());
          showErrorCallback(94,msg);
          cleanUpAndExit(-1);
       }
@@ -1359,7 +1359,7 @@ Register emitFuncCall(opCode op,
 Address emitA(opCode op, Register src1, Register /*src2*/, Register dest, 
               char *i, Address &base, bool /*noCost*/)
 {
-    //fprintf(stderr,"emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
+    //bperr("emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
     instruction *insn = (instruction *) ((void*)&i[base]);
 
@@ -1451,7 +1451,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
                char *i, Address &base, bool /*noCost*/,
                const instPoint * /* location */, bool for_multithreaded)
 {
-    //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=XX)\n",op,src1);
+    //bperr("emitR(op=%d,src1=%d,src2=XX,dest=XX)\n",op,src1);
 
    instruction *insn = (instruction *) ((void*)&i[base]);
 
@@ -1923,7 +1923,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
               const instPoint * /* location */, process * /* proc */,
               registerSpace * /* rs */ )
 {
-    //fprintf(stderr,"emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
+    //bperr("emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
 
     assert ((op!=branchOp) && (op!=ifOp) && 
             (op!=trampTrailer) && (op!=trampPreamble));         // !emitA

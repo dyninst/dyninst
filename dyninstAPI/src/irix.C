@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.79 2004/03/23 01:12:05 eli Exp $
+// $Id: irix.C,v 1.80 2004/04/02 06:34:13 jaw Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -114,27 +114,27 @@ void print_proc_flags(int fd)
 {
   prstatus stat;
   ioctl(fd, PIOCSTATUS, &stat);
-  fprintf(stderr, "flags: ");
+  bperr( "flags: ");
 
-  if (stat.pr_flags & PR_STOPPED) fprintf(stderr, "PR_STOPPED ");
-  if (stat.pr_flags & PR_ISTOP) fprintf(stderr, "PR_ISTOP ");
-  if (stat.pr_flags & PR_DSTOP) fprintf(stderr, "PR_DSTOP ");
-  if (stat.pr_flags & PR_STEP) fprintf(stderr, "PR_STEP ");
-  if (stat.pr_flags & PR_ASLEEP) fprintf(stderr, "PR_ASLEEP ");
-  if (stat.pr_flags & PR_PCINVAL) fprintf(stderr, "PR_PCINVAL ");
-  //if (stat.pr_flags & PR_ISSYS) fprintf(stderr, "PR_ISSYS ");
-  if (stat.pr_flags & PR_FORK) fprintf(stderr, "PR_FORK ");
-  if (stat.pr_flags & PR_RLC) fprintf(stderr, "PR_RLC ");
-  if (stat.pr_flags & PR_KLC) fprintf(stderr, "PR_KLC ");
-  if (stat.pr_flags & PR_PTRACE) fprintf(stderr, "PR_PTRACE ");
+  if (stat.pr_flags & PR_STOPPED) bperr( "PR_STOPPED ");
+  if (stat.pr_flags & PR_ISTOP) bperr( "PR_ISTOP ");
+  if (stat.pr_flags & PR_DSTOP) bperr( "PR_DSTOP ");
+  if (stat.pr_flags & PR_STEP) bperr( "PR_STEP ");
+  if (stat.pr_flags & PR_ASLEEP) bperr( "PR_ASLEEP ");
+  if (stat.pr_flags & PR_PCINVAL) bperr( "PR_PCINVAL ");
+  //if (stat.pr_flags & PR_ISSYS) bperr( "PR_ISSYS ");
+  if (stat.pr_flags & PR_FORK) bperr( "PR_FORK ");
+  if (stat.pr_flags & PR_RLC) bperr( "PR_RLC ");
+  if (stat.pr_flags & PR_KLC) bperr( "PR_KLC ");
+  if (stat.pr_flags & PR_PTRACE) bperr( "PR_PTRACE ");
 
-  if (stat.pr_flags & PR_ISKTHREAD) fprintf(stderr, "PR_ISKTHREAD ");
-  if (stat.pr_flags & PR_JOINTSTOP) fprintf(stderr, "PR_JOINTSTOP ");
-  if (stat.pr_flags & PR_JOINTPOLL) fprintf(stderr, "PR_JOINTPOLL ");
-  if (stat.pr_flags & PR_RETURN) fprintf(stderr, "PR_RETURN ");
-  if (stat.pr_flags & PR_CKF) fprintf(stderr, "PR_CKF ");
+  if (stat.pr_flags & PR_ISKTHREAD) bperr( "PR_ISKTHREAD ");
+  if (stat.pr_flags & PR_JOINTSTOP) bperr( "PR_JOINTSTOP ");
+  if (stat.pr_flags & PR_JOINTPOLL) bperr( "PR_JOINTPOLL ");
+  if (stat.pr_flags & PR_RETURN) bperr( "PR_RETURN ");
+  if (stat.pr_flags & PR_CKF) bperr( "PR_CKF ");
 
-  fprintf(stderr, "\n");
+  bperr( "\n");
 }
 
 void print_proc_regs(int fd)
@@ -147,10 +147,10 @@ void print_proc_regs(int fd)
   char buf[32];
   for (int i = 0; i < 32; i++) {
     sprintf(buf, "$%s", reg_names[i]);
-    fprintf(stderr, "%5s: %#10x %s", buf, (unsigned)regs[i],
+    bperr( "%5s: %#10x %s", buf, (unsigned)regs[i],
 	    (i % 4 == 3) ? ("\n") : (","));
   }
-  fprintf(stderr, "%5s: %#10x\n", "$pc", (unsigned)regs[CTX_EPC]);
+  bperr( "%5s: %#10x\n", "$pc", (unsigned)regs[CTX_EPC]);
 }
 
 void print_proc_pc(int fd)
@@ -160,12 +160,12 @@ void print_proc_pc(int fd)
     perror("ioctl(PIOCGREG)");
     return;
   }
-  fprintf(stderr, "%5s: %#10x\n", "$pc", (unsigned)regs[CTX_EPC]);
+  bperr( "%5s: %#10x\n", "$pc", (unsigned)regs[CTX_EPC]);
 }
 
 bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf)
 {
-   //fprintf(stderr, ">>> process::readDataSpace_(%d@0x%016lx)\n", 
+   //bperr( ">>> process::readDataSpace_(%d@0x%016lx)\n", 
    //        nbytes, inTraced);
    ptraceOps++; 
    ptraceBytes += nbytes;
@@ -184,7 +184,7 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf)
          perror("process::readDataSpace_(read)");
          return false;
       } else if (last == 0) {
-         fprintf(stderr, "process::readDataSpace_(read=%d@0x%016lx,"
+         bperr( "process::readDataSpace_(read=%d@0x%016lx,"
                  "left=%d/%d\n", last, inTraced, left, nbytes);
          return false;
       }
@@ -194,7 +194,7 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf)
 
 bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
 {
-   //fprintf(stderr, ">>> process::writeDataSpace_(%d@0x%016lx)\n", 
+   //bperr( ">>> process::writeDataSpace_(%d@0x%016lx)\n", 
    //        nbytes, inTraced);
    ptraceOps++; 
    ptraceBytes += nbytes;
@@ -219,20 +219,20 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
 
 bool dyn_lwp::writeTextWord(caddr_t inTraced, int data)
 {
-   //fprintf(stderr, ">>> process::writeTextWord_()\n");
+   //bperr( ">>> process::writeTextWord_()\n");
    return writeDataSpace(inTraced, INSN_SIZE, &data);
 }
 
 bool dyn_lwp::writeTextSpace(void *inTraced, u_int amount, const void *inSelf)
 {
-   //fprintf(stderr, ">>> process::writeTextSpace_()\n");
+   //bperr( ">>> process::writeTextSpace_()\n");
    return writeDataSpace(inTraced, amount, inSelf);
 }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
 bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf)
 {
-   //fprintf(stderr, ">>> process::readTextSpace_()\n");
+   //bperr( ">>> process::readTextSpace_()\n");
    return readDataSpace(inTraced, amount, (void *)inSelf);
 }
 #endif
@@ -302,7 +302,7 @@ bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 
 bool process::isRunning_() const
 {
-  //fprintf(stderr, ">>> process::isRunning_()\n");
+  //bperr( ">>> process::isRunning_()\n");
   prstatus status;
   if (ioctl(getRepresentativeLWP()->get_fd(), PIOCSTATUS, &status) == -1) {
     perror("process::isRunning_()");
@@ -319,10 +319,10 @@ void OS::osTraceMe(void)
 {
   char procName[128];
   sprintf(procName,"/proc/%05d", (int)getpid());
-  //fprintf(stderr, ">>> OS::osTraceMe(%s)\n", procName);
+  //bperr( ">>> OS::osTraceMe(%s)\n", procName);
   int fd = P_open(procName, O_RDWR, 0);
   if (fd < 0) {
-    fprintf(stderr, "osTraceMe: open failed: %s\n", sys_errlist[errno]); 
+    bperr( "osTraceMe: open failed: %s\n", sys_errlist[errno]); 
     fflush(stderr);
     P__exit(-1); // must use _exit here.
   }
@@ -333,7 +333,7 @@ void OS::osTraceMe(void)
   /* reset "run-on-last-close" flag */
   long flags = PR_RLC;
   if (ioctl(fd, PIOCRESET, &flags) < 0) {
-    fprintf(stderr, "osTraceMe: PIOCRESET failed: %s\n", sys_errlist[errno]); 
+    bperr( "osTraceMe: PIOCRESET failed: %s\n", sys_errlist[errno]); 
     fflush(stderr);
     P__exit(-1); // must use _exit here.
   };
@@ -343,7 +343,7 @@ void OS::osTraceMe(void)
   premptyset(&exitSet);
   (void)praddset(&exitSet, SYS_execve);
   if (ioctl(fd, PIOCSEXIT, &exitSet) < 0) {
-    fprintf(stderr, "osTraceMe: PIOCSEXIT failed: %s\n", sys_errlist[errno]); 
+    bperr( "osTraceMe: PIOCSEXIT failed: %s\n", sys_errlist[errno]); 
     fflush(stderr);
     P__exit(-1); // must use _exit here.
   }
@@ -436,7 +436,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
 
     if (selected_fds == 0) {
         for (unsigned u = 0; u < processVec.size(); u++) {
-            //printf("checking %d\n", processVec[u]->getPid());
+            //bperr("checking %d\n", processVec[u]->getPid());
             if (processVec[u] && 
                 (processVec[u]->status() == running || 
                  processVec[u]->status() == neonatal)) {
@@ -472,7 +472,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
         
         if (selected_fds <= 0) {
             if (selected_fds < 0) {
-                fprintf(stderr, "decodeProcessEvent: poll failed: %s\n", sys_errlist[errno]);
+                bperr( "decodeProcessEvent: poll failed: %s\n", sys_errlist[errno]);
                 selected_fds = 0;
             }
             return false;
@@ -571,7 +571,7 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith)
    
    if (!(stat.pr_flags & (PR_STOPPED | PR_ISTOP))) {
       // not stopped
-      fprintf(stderr, "continueProc_(): process not stopped\n");
+      bperr( "continueProc_(): process not stopped\n");
       print_proc_flags(get_fd());
       return false;
    }
@@ -596,7 +596,7 @@ bool process::heapIsOk(const pdvector<sym_data>&findUs)
 {
   if (!(mainFunction = findOnlyOneFunction("main")) &&
       !(mainFunction = findOnlyOneFunction("_main"))) {
-    fprintf(stderr, "process::heapIsOk(): failed to find \"main\"\n");
+    bperr( "process::heapIsOk(): failed to find \"main\"\n");
     return false;
   }
 
@@ -605,7 +605,7 @@ bool process::heapIsOk(const pdvector<sym_data>&findUs)
     /*
     Address addr = lookup_fn(this, name);
     if (!addr && findUs[i].must_find) {
-      fprintf(stderr, "process::heapIsOk(): failed to find \"%s\"\n", name.c_str());
+      bperr( "process::heapIsOk(): failed to find \"%s\"\n", name.c_str());
       return false;
     }
     */
@@ -667,7 +667,7 @@ void process::inferiorMallocAlign(unsigned &size)
 
 bool dyn_lwp::stop_()
 {
-  //fprintf(stderr, ">>> process::pause_()\n");
+  //bperr( ">>> process::pause_()\n");
   ptraceOps++; 
   ptraceOtherOps++;
 
@@ -694,7 +694,7 @@ int getNumberOfCPUs()
 {
   // see sysmp(2) man page
   int ret = sysmp(MP_NPROCS);
-  //fprintf(stderr, ">>> getNumberOfCPUs(%i)\n", ret);
+  //bperr( ">>> getNumberOfCPUs(%i)\n", ret);
   return ret;
 }
 
@@ -831,7 +831,7 @@ int dyn_lwp::hasReachedSyscallTrap() {
 
 bool process::dumpCore_(const pdstring coreFile)
 {
-  //fprintf(stderr, ">>> process::dumpCore_()\n");
+  //bperr( ">>> process::dumpCore_()\n");
   bool ret;
 #ifdef BPATCH_LIBRARY
   ret = dumpImage(coreFile);
@@ -863,12 +863,12 @@ bool process::terminateProc_()
 
 pdstring process::tryToFindExecutable(const pdstring &progpath, int /*pid*/)
 {
-  //fprintf(stderr, ">>> process::tryToFindExecutable(%s)\n", progpath.c_str());
+  //bperr( ">>> process::tryToFindExecutable(%s)\n", progpath.c_str());
   pdstring ret = "";
   
   // attempt #1: expand_tilde_pathname()
   ret = expand_tilde_pathname(progpath);
-  //fprintf(stderr, "  expand_tilde => \"%s\"\n", ret.c_str());
+  //bperr( "  expand_tilde => \"%s\"\n", ret.c_str());
   if (exists_executable(ret)) return ret;
   
   // TODO: any other way to find executable?
@@ -891,7 +891,7 @@ bool process::dumpImage() {
   sprintf(buf, "image.%d", pid);
   pdstring outFile = buf;
 #endif
-  //fprintf(stderr, "!!! process::dumpImage(%s)\n", outFile.c_str());
+  //bperr( "!!! process::dumpImage(%s)\n", outFile.c_str());
   
   // copy and open file
   image *img = getImage();
@@ -1014,7 +1014,7 @@ bool process::setProcessFlags()
 
     dyn_lwp *replwp = getRepresentativeLWP();    
     if (ioctl(replwp->get_fd(), PIOCSET, &flags) < 0) {
-        fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
+        bperr( "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
         return false;
     }
     
@@ -1137,7 +1137,7 @@ Frame Frame::getCallerFrame(process *p) const
 
     // calculate runtime address of callee fn
     if (!callee) {
-        fprintf(stderr, "!!! <0x%016lx:???> unknown callee\n", pc_);
+        bperr( "!!! <0x%016lx:???> unknown callee\n", pc_);
         return Frame(); // zero frame
     }
 
@@ -1210,7 +1210,7 @@ Frame Frame::getCallerFrame(process *p) const
               // debug
               if (callee->prettyName() != "main" &&
               callee->prettyName() != "__start")
-              fprintf(stderr, "!!! <0x%016lx:\"%s\"> $ra not saved\n",
+              bperr( "!!! <0x%016lx:\"%s\"> $ra not saved\n",
               pc_adj, callee->prettyName().c_str());
             */
             // $ra cannot be found (error)
@@ -1244,13 +1244,13 @@ Frame Frame::getCallerFrame(process *p) const
         fp_addr = fp_native + fp_save.slot;
         fp2 = readAddressInMemory(p, fp_addr, fp_save.dword);
         sprintf(fp_debug, "[$fp - %i]", -fp_save.slot);
-        //fprintf(stderr, "  read fp_saved_native at %x from fp_native %x and slot %d\n", fp_addr, fp_native, fp_save.slot);
+        //bperr( "  read fp_saved_native at %x from fp_native %x and slot %d\n", fp_addr, fp_native, fp_save.slot);
     } else if (bt && fp_saved_bt) {
         // $ra saved in basetramp frame
         fp_addr = fp_bt + bt_fp_slot;
         fp2 = readAddressInMemory(p, fp_addr, true);
         sprintf(fp_debug, "[$fp - %i]", -bt_fp_slot);
-        //fprintf(stderr, "  read fp_saved_bt at %x from fp_native %x and slot %d\n", fp_addr, fp_bt, bt_fp_slot);
+        //bperr( "  read fp_saved_bt at %x from fp_native %x and slot %d\n", fp_addr, fp_bt, bt_fp_slot);
     } else {
         // $fp not saved in any frame
         // pass up callee $fp
@@ -1312,7 +1312,7 @@ Frame Frame::getCallerFrame(process *p) const
 
 
 void OS::osDisconnect(void) {
-  //fprintf(stderr, ">>> osDisconnect()\n");
+  //bperr( ">>> osDisconnect()\n");
   int fd = open("/dev/tty", O_RDONLY);
   ioctl(fd, TIOCNOTTY, NULL); 
   P_close(fd);
@@ -1342,7 +1342,7 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
 /* return unit: nsecs */
 rawTime64 dyn_lwp::getRawCpuTime_sw()
 {
-  //fprintf(stderr, ">>> getInferiorProcessCPUtime()\n");
+  //bperr( ">>> getInferiorProcessCPUtime()\n");
   rawTime64 ret;
   
   /*
@@ -1546,7 +1546,7 @@ bool process::trapDueToDyninstLib()
 {
   Address pc = getRepresentativeLWP()->getActiveFrame().getPC();
   bool ret = (pc == dyninstlib_brk_addr);
-  //if (ret) fprintf(stderr, ">>> process::trapDueToDyninstLib()\n");
+  //if (ret) bperr( ">>> process::trapDueToDyninstLib()\n");
   return ret;
 }
 
@@ -1554,7 +1554,7 @@ bool process::trapAtEntryPointOfMain(Address)
 {
   Address pc = getRepresentativeLWP()->getActiveFrame().getPC();
   bool ret = (pc == main_brk_addr);
-  //if (ret) fprintf(stderr, ">>> process::trapAtEntryPointOfMain(true)\n");
+  //if (ret) bperr( ">>> process::trapAtEntryPointOfMain(true)\n");
   return ret;
 }
 
@@ -1642,7 +1642,7 @@ bool process::getDyninstRTLibName() {
 
 bool process::loadDYNINSTlib()
 {
-  //fprintf(stderr, ">>> loadDYNINSTlib()\n");
+  //bperr( ">>> loadDYNINSTlib()\n");
 
   // use "_start" as scratch buffer to invoke dlopen() on DYNINST
   Address baseAddr = lookup_fn(this, "_start");
@@ -1701,9 +1701,9 @@ bool process::loadDYNINSTlib()
 
   // debug
   /*
-  fprintf(stderr, "inferior dlopen code: (%i bytes)\n", bufSize);
+  bperr( "inferior dlopen code: (%i bytes)\n", bufSize);
   dis(buf, baseAddr);
-  fprintf(stderr, "%0#10x      \"%s\"\n", baseAddr + libStart, buf + libStart);
+  bperr( "%0#10x      \"%s\"\n", baseAddr + libStart, buf + libStart);
   for (int i = codeStart; i < bufSize; i += INSN_SIZE) {
     dis(buf + i, baseAddr + i);
   }
@@ -1718,9 +1718,9 @@ bool process::loadDYNINSTlib()
 
   // write inferior dlopen code and set PC
   assert(bufSize <= BYTES_TO_SAVE);
-  //fprintf(stderr, "writing %i bytes to <0x%08x:_start>, $pc = 0x%08x\n",
+  //bperr( "writing %i bytes to <0x%08x:_start>, $pc = 0x%08x\n",
   //bufSize, baseAddr, codeAddr);
-  //fprintf(stderr, ">>> loadDYNINSTlib <0x%08x(_start): %i insns>\n",
+  //bperr( ">>> loadDYNINSTlib <0x%08x(_start): %i insns>\n",
   //baseAddr, bufSize/INSN_SIZE);
   writeDataSpace((void *)baseAddr, bufSize, (void *)buf);
   bool ret = getRepresentativeLWP()->changePC(codeAddr, savedRegs);
@@ -1728,7 +1728,7 @@ bool process::loadDYNINSTlib()
 
   // debug
   /*
-  fprintf(stderr, "inferior dlopen code: (%i bytes)\n", bufSize - codeStart);
+  bperr( "inferior dlopen code: (%i bytes)\n", bufSize - codeStart);
   disDataSpace(this, (void *)(baseAddr + codeStart), 
 	       (bufSize - codeStart) / INSN_SIZE, "  ");
   */

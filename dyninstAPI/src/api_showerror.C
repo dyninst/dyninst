@@ -39,9 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.10 2004/03/23 01:12:01 eli Exp $
+// $Id: api_showerror.C,v 1.11 2004/04/02 06:34:11 jaw Exp $
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <assert.h>
 #include "BPatch.h"
 #include "dyninstAPI/src/showerror.h"
@@ -69,4 +70,77 @@ void statusLine(char const *line)
 {
     BPatch::reportError(BPatchInfo, 0, line);
 }
+
+//  bpfatal, bpsevere, bpwarn, and bpinfo are intended as drop-in 
+//  replacements for printf.
+
+int bpfatal(const char *format ...)
+{
+  if (NULL == format) return -1;
+
+  char errbuf[1024];
+
+  va_list va;
+  va_start(va, format);
+  vsprintf(errbuf, format, va);
+  va_end(va);
+
+  BPatch::reportError(BPatchFatal, 0, errbuf);
+
+  return 0;
+}
+
+int bperr(const char *format ...)
+{
+  if (NULL == format) return -1;
+
+  char errbuf[1024];
+
+  va_list va;
+  va_start(va, format);
+  vsprintf(errbuf, format, va);
+  va_end(va);
+
+  char syserr[128];
+  if (errno) {
+   sprintf(syserr, " [%d: %s]", errno, strerror(errno));
+   strcat(errbuf, syserr);
+  }
+  BPatch::reportError(BPatchSerious, 0, errbuf);
+
+  return 0;
+}
+
+int bpwarn(const char *format ...)
+{
+  if (NULL == format) return -1;
+
+  char errbuf[1024];
+
+  va_list va;
+  va_start(va, format);
+  vsprintf(errbuf, format, va);
+  va_end(va);
+
+  BPatch::reportError(BPatchWarning, 0, errbuf);
+
+  return 0;
+}
+
+int bpinfo(const char *format ...)
+{
+  if (NULL == format) return -1;
+
+  char errbuf[1024];
+
+  va_list va;
+  va_start(va, format);
+  vsprintf(errbuf, format, va);
+  va_end(va);
+
+  BPatch::reportError(BPatchInfo, 0, errbuf);
+
+  return 0;
+}
+
 #endif

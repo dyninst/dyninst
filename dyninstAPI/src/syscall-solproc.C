@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-solproc.C,v 1.3 2004/03/23 01:12:10 eli Exp $
+// $Id: syscall-solproc.C,v 1.4 2004/04/02 06:34:15 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -305,7 +305,7 @@ bool syscallNotification::removePostFork() {
 
 bool syscallNotification::removePreExec() {
     if (!preExecInst) {
-        fprintf(stderr, "Tracing never installed\n");
+        bperr("Tracing never installed\n");
         return false;
     }
     

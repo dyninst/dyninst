@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: addLibraryLinux.C,v 1.12 2004/03/23 19:10:50 eli Exp $ */
+/* $Id: addLibraryLinux.C,v 1.13 2004/04/02 06:34:11 jaw Exp $ */
 
 #if defined(i386_unknown_linux2_0)
 
 #include "addLibraryLinux.h"
+#include "util.h"
 
 /* 
  * This class will add a library to an existing Linux ELF binary
@@ -289,17 +290,17 @@ int addLibrary::writeNewElf(char* filename, char* libname){
 	//if((newFd = open(filename,  O_WRONLY|O_CREAT|O_TRUNC )) ==-1){
 	//S_IRWXU is not defined in gcc < 3.0
         if((newFd = creat(filename,0x1c0 /*S_IRWXU*/)) == -1) { 
-                printf("cannot creat: %s %d\n",filename,errno);
+                bperr("cannot creat: %s %d\n",filename,errno);
                 switch(errno){
                 case EACCES:
-                        printf("EACCESS \n");
+                        bperr("EACCESS \n");
                         break;
                 }
                 return -1;
         }
 
         if((newElf = elf_begin(newFd, ELF_C_WRITE, NULL)) == NULL){
-		printf(" elf_begin failed for newElf");
+		bperr(" elf_begin failed for newElf");
 		return -1;
         }
 

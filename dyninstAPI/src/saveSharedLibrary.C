@@ -40,28 +40,29 @@
  */
 
 #include "saveSharedLibrary.h"
+#include "util.h"
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 
 void saveSharedLibrary::openElf(){
 	elf_version(EV_CURRENT);
 	if((oldfd = open(soObject.getpathname(), O_RDONLY)) == -1){
-		printf("cannot open Old SO: %s\n",soObject.getpathname());
+		bpfatal("cannot open Old SO: %s\n",soObject.getpathname());
 		perror(" FAIL ");
 		exit(1);
 	}
 	if((oldElf = elf_begin(oldfd, ELF_C_READ, NULL)) ==NULL){
-		printf("cannot open ELF %s \n", soObject.getpathname());
+		bpfatal("cannot open ELF %s \n", soObject.getpathname());
 		exit(1);
 	}
 
 	if((newfd = (creat(newpathname, 0x1c0)))==-1){
-		printf("cannot open new SO : %s\n",newpathname);
+		bpfatal("cannot open new SO : %s\n",newpathname);
 		perror(" FAIL ");
 		exit(1);
 	}
 	if((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) ==NULL){
-		printf("cannot open ELF %s \n", newpathname);
+		bpfatal("cannot open ELF %s \n", newpathname);
 		exit(1);
 	}
 }
@@ -74,7 +75,7 @@ void saveSharedLibrary::copyElf(){
 	Elf_Data *strdata, *newdata, *olddata;
 
         if(!(newEhdr = elf32_newehdr(newElf))){
-		printf("newEhdr failed\n");
+		bpfatal("newEhdr failed\n");
 		exit(1);
         }
 
@@ -82,14 +83,14 @@ void saveSharedLibrary::copyElf(){
         if (((ehdr = elf32_getehdr(oldElf)) != NULL)){ 
              if((scn = elf_getscn(oldElf, ehdr->e_shstrndx)) != NULL){
        		      if((strdata = elf_getdata(scn, NULL)) == NULL){
-				printf(" Failed obtaining .shstrtab data buffer \n");
+				bpfatal(" Failed obtaining .shstrtab data buffer \n");
 				exit(1);
 			}
 		}else{
-			printf(" FAILED obtaining .shstrtab scn\n");		
+			bpfatal(" FAILED obtaining .shstrtab scn\n");		
 		}
 	}else{
-		printf(" FAILED obtaining .shstrtab ehdr\n");
+		bpfatal(" FAILED obtaining .shstrtab ehdr\n");
 	}
 	memcpy(newEhdr, ehdr, sizeof(Elf32_Ehdr));
 

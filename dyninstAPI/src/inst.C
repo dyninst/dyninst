@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.119 2004/03/31 04:09:21 tikir Exp $
+// $Id: inst.C,v 1.120 2004/04/02 06:34:13 jaw Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -250,7 +250,7 @@ loadMiniTramp_result addInstFunc(process *proc, miniTrampHandle * &mtHandle,
    if(res == success_res) {
        hookupMiniTramp(proc, mtHandle, order);
    } else {
-       fprintf(stderr, "Failed to install minitramp\n");
+       bperr( "Failed to install minitramp\n");
        assert(mtHandle == NULL);
    }
    if (retInstance) {
@@ -298,7 +298,7 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
    if (!mtHandle->baseTramp) 
    {
        delete mtHandle;
-       fprintf(stderr, "No base tramp!\n");
+       bperr( "No base tramp!\n");
        mtHandle = NULL;
 
        if(deferred) return deferred_res;
@@ -347,7 +347,7 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
 #if defined(DEBUG)
    cerr << endl << endl << endl << "mini tramp: " << endl;
    for (unsigned i = 0; i < count/4; i++)
-      fprintf(stderr, "0x%x,\n", insn[i]);
+      bperr( "0x%x,\n", insn[i]);
 #endif
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
    // The ast node might be shared, so remove the changes made to
@@ -431,7 +431,7 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
    mtHandle->miniTrampBase = proc->inferiorMalloc(count,htype,near_, &err);
 #endif
    
-    //fprintf(stderr, "Got %d bytes at 0x%x, near 0x%x\n", count, mtHandle->trampBase, near_);
+    //bperr( "Got %d bytes at 0x%x, near 0x%x\n", count, mtHandle->trampBase, near_);
    
     if (err) {
         cerr << "Returning inst.C: failed allocate" << endl;
@@ -488,7 +488,7 @@ void hookupMiniTramp(process *proc, miniTrampHandle *&mtHandle,
     if (mtList->numMiniTramps() == 1) {
         // jump from the minitramp back to the basetramp
         Address toAddr = mtHandle->getBaseReturnAddr();
-        //fprintf(stderr, "1-  Branch from 0x%x to 0x%x\n",
+        //bperr( "1-  Branch from 0x%x to 0x%x\n",
         //mtHandle->returnAddr, toAddr);
 #if defined(rs6000_ibm_aix4_1)
         // Jump to link register
@@ -501,7 +501,7 @@ void hookupMiniTramp(process *proc, miniTrampHandle *&mtHandle,
         
         // jump from the base tramp to the minitramp
         Address fromAddr = mtHandle->getBaseBranchAddr();
-        //fprintf(stderr, "1-  Branch from 0x%x to 0x%x\n",
+        //bperr( "1-  Branch from 0x%x to 0x%x\n",
         //fromAddr, mtHandle->miniTrampBase);
 #if defined(rs6000_ibm_aix4_1)
         resetBRL(proc, fromAddr, mtHandle->miniTrampBase);
@@ -514,7 +514,7 @@ void hookupMiniTramp(process *proc, miniTrampHandle *&mtHandle,
         //activeSlots->value += 1.0;
     } else if (order == orderLastAtPoint) {
         /* patch previous tramp to call us rather than return */
-        //fprintf(stderr, "2-  Branch from 0x%x to 0x%x\n",
+        //bperr( "2-  Branch from 0x%x to 0x%x\n",
         //lastAtPoint->returnAddr, mtHandle->miniTrampBase);
         
 #if defined(sparc_sun_solaris2_4)
@@ -525,7 +525,7 @@ void hookupMiniTramp(process *proc, miniTrampHandle *&mtHandle,
         
         // jump from the minitramp to the basetramp
         Address toAddr = mtHandle->getBaseReturnAddr();
-        //fprintf(stderr, "2-  Branch from 0x%x to 0x%x\n",
+        //bperr( "2-  Branch from 0x%x to 0x%x\n",
         //mtHandle->returnAddr, toAddr);
 #if defined(rs6000_ibm_aix4_1)
         resetBR(proc, mtHandle->returnAddr);
@@ -536,7 +536,7 @@ void hookupMiniTramp(process *proc, miniTrampHandle *&mtHandle,
 #endif
     } else if(order == orderFirstAtPoint) {
         /* branch to the old first one */
-        //fprintf(stderr, "3- Branch from 0x%x to 0x%x\n",
+        //bperr( "3- Branch from 0x%x to 0x%x\n",
         //      mtHandle->returnAddr, firstAtPoint->miniTrampBase);
         
 #if defined(sparc_sun_solaris2_4)
@@ -547,7 +547,7 @@ void hookupMiniTramp(process *proc, miniTrampHandle *&mtHandle,
         
         /* base tramp branches to us */
         Address fromAddr = mtHandle->getBaseBranchAddr();
-        //fprintf(stderr, "3-  Branch from 0x%x to 0x%x\n",
+        //bperr( "3-  Branch from 0x%x to 0x%x\n",
         //fromAddr, mtHandle->miniTrampBase);
 #if defined(rs6000_ibm_aix4_1)
         resetBRL(proc, fromAddr, mtHandle->miniTrampBase);

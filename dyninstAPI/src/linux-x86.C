@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.47 2004/03/23 01:12:05 eli Exp $
+// $Id: linux-x86.C,v 1.48 2004/04/02 06:34:13 jaw Exp $
 
 #include <fstream>
 
@@ -924,7 +924,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 				NULL== strstr(sh_obj->getName().c_str(),"ld-linux.so") && 
 				NULL==strstr(sh_obj->getName().c_str(),"libc")){ //ccw 24 jul 2003
 
-				//fprintf(stderr," mutatedSharedObjectsIndex %d %s\n", mutatedSharedObjectsIndex,sh_obj->getName().c_str() ); //ccw 8 mar 2004
+				//bperr(" mutatedSharedObjectsIndex %d %s\n", mutatedSharedObjectsIndex,sh_obj->getName().c_str() ); //ccw 8 mar 2004
 				memcpy(  & ( mutatedSharedObjects[mutatedSharedObjectsIndex]),
 					sh_obj->getName().c_str(),
 					strlen(sh_obj->getName().c_str())+1);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.35 2004/03/23 01:12:09 eli Exp $
+// $Id: solarisDL.C,v 1.36 2004/04/02 06:34:15 jaw Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -72,7 +72,7 @@ bool dynamic_linking::initialize() {
     pdstring dyn_str = pdstring("DYNAMIC");
     internalSym dyn_sym;
 	if( ! proc->findInternalSymbol( dyn_str, true, dyn_sym ) ) { 
-        fprintf(stderr, "Failed to find string DYNAMIC\n");
+        bperr( "Failed to find string DYNAMIC\n");
         return false; 
     }
 
@@ -106,7 +106,7 @@ bool dynamic_linking::initialize() {
     }
 
     if (!(this->find_dlopen(ld_fd,ld_base))) {
-        fprintf(stderr, "WARNING: we didn't find dlopen in ld.so.1\n");
+        bperr( "WARNING: we didn't find dlopen in ld.so.1\n");
     }
 
     close(ld_fd);
@@ -283,7 +283,7 @@ pdvector<shared_object *> *dynamic_linking::processLinkMaps() {
    r_debug debug_elm;
    if(!proc->readDataSpace((caddr_t)(r_debug_addr),
                         sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
-      // printf("read d_ptr_addr failed r_debug_addr = 0x%lx\n",r_debug_addr);
+      // bperr("read d_ptr_addr failed r_debug_addr = 0x%lx\n",r_debug_addr);
       return 0;
    }
 
@@ -371,7 +371,7 @@ pdvector<Address> *dynamic_linking::getLinkMapAddrs() {
     r_debug debug_elm;
     if(!proc->readDataSpace((caddr_t)(r_debug_addr),
         sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
-        // printf("read d_ptr_addr failed r_debug_addr = 0x%lx\n",r_debug_addr);
+        // bperr("read d_ptr_addr failed r_debug_addr = 0x%lx\n",r_debug_addr);
         return 0;
     }
 
@@ -391,7 +391,7 @@ pdvector<Address> *dynamic_linking::getLinkMapAddrs() {
 	    (*link_addresses).push_back(link_elm.l_addr); 
 	}
 	else {
-	    // printf("first link map addr 0x%x\n",link_elm.l_addr);
+	    // bperr("first link map addr 0x%x\n",link_elm.l_addr);
 	}
 
 	first_time = false;
@@ -411,7 +411,7 @@ pdvector<shared_object *> *dynamic_linking::getNewSharedObjects(pdvector<Address
    r_debug debug_elm;
    if(!proc->readDataSpace((caddr_t)(r_debug_addr),
                         sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
-      // printf("read d_ptr_addr failed r_debug_addr = 0x%lx\n",r_debug_addr);
+      // bperr("read d_ptr_addr failed r_debug_addr = 0x%lx\n",r_debug_addr);
       error_occured = true;
       return 0;
    }
@@ -596,7 +596,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*> 
       r_debug debug_elm;
       if(!proc->readDataSpace((caddr_t)(r_debug_addr),
                               sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
-          // printf("read failed r_debug_addr = 0x%x\n",r_debug_addr);
+          // bperr("read failed r_debug_addr = 0x%x\n",r_debug_addr);
           error_occured = true;
           return true;
       }
@@ -625,7 +625,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*> 
                strcpy(tmpStr, chobj->getName().c_str());
                if( !strstr(tmpStr, "libdyninstAPI_RT.so") && 
                    !strstr(tmpStr, "libelf.so")){
-                  //printf(" dlopen: %s \n", tmpStr);
+                  //bperr(" dlopen: %s \n", tmpStr);
                   chobj->openedWithdlopen();
                }
                setlowestSObaseaddr(chobj->getBaseAddress());
@@ -655,7 +655,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*> 
           Address o7reg = regs.theIntRegs[R_O7];
           o7reg += 2*sizeof(instruction);
           if(!(brk_lwp->changePC(o7reg, NULL))) {
-              // printf("error in changePC handleIfDueToSharedObjectMapping\n");
+              // bperr("error in changePC handleIfDueToSharedObjectMapping\n");
               error_occured = true;
               return true;
           }
@@ -682,7 +682,7 @@ bool dynamic_linking::installTracing()
     r_debug debug_elm;
     if(!proc->readDataSpace((caddr_t)(r_debug_addr),
                             sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
-        // printf("read d_ptr_addr failed r_debug_addr = 0x%lx\n",r_debug_addr);
+        // bperr("read d_ptr_addr failed r_debug_addr = 0x%lx\n",r_debug_addr);
         return 0;
     }
 

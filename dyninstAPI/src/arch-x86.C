@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.21 2004/03/25 21:29:34 lharris Exp $
+// $Id: arch-x86.C,v 1.22 2004/04/02 06:34:12 jaw Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -957,7 +957,7 @@ unsigned get_instruction2(const unsigned char* addr, unsigned &insnType)
 	insnType |= REL_D;
     }
     //assert(desc->name);
-    //printf("%s ", desc->name);
+    //bperr("%s ", desc->name);
     nextb += doOperands(desc->operands, operandSzAttr, addrSzAttr, Mod, RM, SIB);
     break;
 
@@ -968,7 +968,7 @@ unsigned get_instruction2(const unsigned char* addr, unsigned &insnType)
     insnType = desc->insnType;
     descAux = &groupMap[code][Reg];
     //assert(descAux->name);
-    //printf("%s ", descAux->name);
+    //bperr("%s ", descAux->name);
     nextb += doOperands(desc->operands, operandSzAttr, addrSzAttr, Mod, RM, SIB);
     break;
 
@@ -983,13 +983,13 @@ unsigned get_instruction2(const unsigned char* addr, unsigned &insnType)
     descAux = &groupMap[code][Reg];
     insnType = descAux->insnType;
     //assert(descAux->name);
-    //printf("%s ", descAux->name);
+    //bperr("%s ", descAux->name);
     nextb += doOperands(descAux->operands, operandSzAttr, addrSzAttr, Mod, RM, SIB);
     break;
 
   case coprocEsc:
     insnType = 0;
-    //fprintf(stderr,"FP instruction %x\n", nextb);
+    //bperr("FP instruction %x\n", nextb);
     if (ModRMbyte <= 0xBF) {
       nextb += doModRMOperand(addrSzAttr, Mod, RM, SIB);
     }

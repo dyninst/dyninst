@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.75 2004/03/23 01:12:03 eli Exp $
+// $Id: inst-alpha.C,v 1.76 2004/04/02 06:34:12 jaw Exp $
 
 #include "common/h/headers.h"
 
@@ -1186,7 +1186,7 @@ generate_tramp_preamble(instruction *insn, Address src1,
 Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 	     char *i, Address &base, bool /*noCost*/) {
 
-  //fprintf(stderr,"emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
+  //bperr("emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
@@ -1229,7 +1229,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
                char *i, Address &base, bool /*noCost*/,
                const instPoint * /* location */, bool for_multithreaded) {
 
-  //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
+  //bperr("emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
@@ -1462,7 +1462,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 	     const instPoint * /* location */, process * /* proc */,
 	     registerSpace * /* rs */ )
 {
-  //fprintf(stderr,"emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
+  //bperr("emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
 
     assert ((op!=branchOp) && (op!=ifOp) && 
             (op!=trampTrailer) && (op!=trampPreamble));         // !emitA
@@ -1575,12 +1575,12 @@ void initDefaultPointFrequencyTable()
     if (!fp) {
         return;
     } else {
-        printf("found freq.input file\n");
+        bperr("found freq.input file\n");
     }
     while (!feof(fp)) {
         fscanf(fp, "%s %f\n", name, &value);
         funcFrequencyTable[name] = (int) value;
-        printf("adding %s %f\n", name, value);
+        bperr("adding %s %f\n", name, value);
     }
     fclose(fp);
 }
@@ -1852,7 +1852,7 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
   
    for (unsigned long i=0; i<find_us.size(); i++) {
       addr = findInternalAddress(find_us[i].name, false, err);
-      //printf("looking for %s\n", find_us[i].name.c_str());
+      //bperr("looking for %s\n", find_us[i].name.c_str());
       if (err) {
          pdstring msg;
          msg = pdstring("Cannot find ") + str + pdstring(". Exiting");

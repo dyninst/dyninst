@@ -1740,7 +1740,7 @@ BPatch_flowGraph::createLoopHierarchy()
 	    insertCalleeIntoLoopHierarchy(f, instPs[i]->pointAddr());
 	}
 	else {
-	    //fprintf( stderr, "BPatch_flowGraph::createLoopHierarchy "
+	    //bperr( "BPatch_flowGraph::createLoopHierarchy "
             //"couldn't find callee by inst point.\n");
 	}
     }
@@ -1799,7 +1799,7 @@ BPatch_flowGraph::dfsPrintLoops(BPatch_loopTreeNode *n) {
   if (n->loop != NULL) {
       pdpair<u_short, u_short> mm = getLoopMinMaxSourceLines(n->loop);
       
-      fprintf(stderr, "%s (source %d-%d)\n", n->name(), mm.first, mm.second);
+      bperr( "%s (source %d-%d)\n", n->name(), mm.first, mm.second);
   }
 
   for (unsigned int i = 0; i < n->children.size(); i++) {

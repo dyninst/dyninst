@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.196 2004/03/23 01:12:03 eli Exp $
+ * $Id: inst-power.C,v 1.197 2004/04/02 06:34:12 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -135,10 +135,10 @@ dictionary_hash<pdstring, unsigned> funcFrequencyTable(pdstring::hash);
 inline void generateBranchInsn(instruction *insn, int offset)
 {
     if (ABS(offset) > MAX_BRANCH) {
-      fprintf(stderr, "Error: attempted a branch of 0x%x\n", offset);
+      bperr( "Error: attempted a branch of 0x%x\n", offset);
 	logLine("a branch too far\n");
 	showErrorCallback(52, "Internal error: branch too far");
-	fprintf(stderr, "Attempted to make a branch of offset %x\n", offset);
+	bperr( "Attempted to make a branch of offset %x\n", offset);
 	while (1) ;
 	return;	
     }
@@ -406,13 +406,13 @@ void initDefaultPointFrequencyTable()
     // try to read file.
     fp = fopen("freq.input", "r");
     if (!fp) {
-	printf("no freq.input file\n");
+	bperr("no freq.input file\n");
 	return;
     }
     while (!feof(fp)) {
 	fscanf(fp, "%s %f\n", name, &value);
 	funcFrequencyTable[name] = (int) value;
-	printf("adding %s %f\n", name, value);
+	bperr("adding %s %f\n", name, value);
     }
     fclose(fp);
 #endif
@@ -930,7 +930,7 @@ static void saveRegister(instruction *&insn, Address &base, Register reg,
 			 int offset)
 {
   genImmInsn(insn, STop, reg, 1, offset + reg*GPRSIZE);
-  //  fprintf(stderr, "Saving reg %d at 0x%x off the stack\n", reg, offset + reg*GPRSIZE);
+  //  bperr("Saving reg %d at 0x%x off the stack\n", reg, offset + reg*GPRSIZE);
   insn++;
   base += sizeof(instruction);
 }
@@ -941,7 +941,7 @@ static void restoreRegister(instruction *&insn, Address &base, Register reg,
 			    int dest, int offset)
 {
   genImmInsn(insn, Lop, dest, 1, offset + reg*GPRSIZE);
-  //fprintf(stderr, "Loading reg %d (into reg %d) at 0x%x off the stack\n", 
+  //bperr( "Loading reg %d (into reg %d) at 0x%x off the stack\n", 
   //  reg, dest, offset + reg*GPRSIZE);
   insn++;
   base += sizeof(instruction);
@@ -957,7 +957,7 @@ static void saveFPRegister(instruction *&insn, Address &base, Register reg,
 		    int offset)
 {
   genImmInsn(insn, STFDop, reg, 1, offset + reg*FPRSIZE);
-  //fprintf(stderr, "Saving FP reg %d at 0x%x off the stack\n", 
+  //bperr( "Saving FP reg %d at 0x%x off the stack\n", 
   //  reg, offset + reg*FPRSIZE);
   insn++;
   base += sizeof(instruction);
@@ -967,7 +967,7 @@ static void restoreFPRegister(instruction *&insn, Address &base, Register reg,
 			      int dest, int offset)
 {
   genImmInsn(insn, LFDop, dest, 1, offset + reg*FPRSIZE);
-  //  fprintf(stderr, "Loading FP reg %d (into %d) at 0x%x off the stack\n", 
+  //  bperr("Loading FP reg %d (into %d) at 0x%x off the stack\n", 
   //  reg, dest, offset + reg*FPRSIZE);
   insn++;
   base += sizeof(instruction);
@@ -1290,18 +1290,18 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // Put in the function stomping at the beginning
   switch (location->getPointType()) {
   case functionExit:
-    //fprintf(stderr, "Base tramp at function entry\n");
+    //bperr( "Base tramp at function entry\n");
     loadOrigLR(insn, currAddr);
     break;
   case functionEntry:
-    //fprintf(stderr, "Base tramp at function exit\n");
+    //bperr( "Base tramp at function exit\n");
     stompLRForExit(insn, currAddr, exitTrampAddr);
     break;
   case otherPoint:
-    //fprintf(stderr, "Base tramp at arbitrary point\n");
+    //bperr( "Base tramp at arbitrary point\n");
     break;
   case callSite:
-      //fprintf(stderr, "Base tramp at function call\n");
+      //bperr( "Base tramp at function call\n");
     break;
  default:
      assert(0);
@@ -1725,13 +1725,13 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // bad here because we don't have a fallback position
   if (DISTANCE(location->absPointAddr(proc), baseAddr) > MAX_BRANCH)
     {
-      fprintf(stderr, "Instrumentation point %x too far from tramp location %x, trying to instrument function %s\n",
+      bperr( "Instrumentation point %x too far from tramp location %x, trying to instrument function %s\n",
 	      (unsigned) location->absPointAddr(proc), (unsigned) baseAddr,
               location->pointFunc()->prettyName().c_str());
-      fprintf(stderr, "If this is a library function or the instrumentation point address begins with 0xd...\n");
-      fprintf(stderr, "please ensure that the text instrumentation library (libDyninstText.a) is compiled and\n");
-      fprintf(stderr, "in one of the directories contained in the LIBPATH environment variable. If it is not,\n");
-      fprintf(stderr, "contact paradyn@cs.wisc.edu for further assistance.\n");
+      bperr( "If this is a library function or the instrumentation point address begins with 0xd...\n");
+      bperr( "please ensure that the text instrumentation library (libDyninstText.a) is compiled and\n");
+      bperr( "in one of the directories contained in the LIBPATH environment variable. If it is not,\n");
+      bperr( "contact paradyn@cs.wisc.edu for further assistance.\n");
       
       delete theTemplate;
       return NULL;
@@ -1756,34 +1756,34 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     generateBranchInsn(temp, location->absPointAddr(proc) + sizeof(instruction)
                        - (baseAddr + theTemplate->returnInsOffset));
     /*
-    fprintf(stderr, "Installing jump at 0%x, offset 0x%x, going to 0x%x\n",
+    bperr( "Installing jump at 0%x, offset 0x%x, going to 0x%x\n",
 	    (baseAddr + theTemplate->returnInsOffset), 
 	    location->absPointAddr(proc) - (baseAddr + theTemplate->returnInsOffset),
 	    location->absPointAddr(proc));
     */
   }
 #if defined(DEBUG)
-  fprintf(stderr, "------------\n");
+  bperr( "------------\n");
   for (int i = 0; i < (theTemplate->size/4); i++)
-    fprintf(stderr, "0x%x,\n", tramp[i].raw);
-  fprintf(stderr, "------------\n");
-  fprintf(stderr, "\n\n\n");
-  fprintf(stderr, "Dumping template: localPre %d, preReturn %d, localPost %d, postReturn %d\n",
+    bperr( "0x%x,\n", tramp[i].raw);
+  bperr( "------------\n");
+  bperr( "\n\n\n");
+  bperr( "Dumping template: localPre %d, preReturn %d, localPost %d, postReturn %d\n",
 	  theTemplate->localPreOffset, theTemplate->localPreReturnOffset, 
 	  theTemplate->localPostOffset, theTemplate->localPostReturnOffset);
-  fprintf(stderr, "returnIns %d, skipPre %d, skipPost %d, emulate %d, updateCost %d\n",
+  bperr( "returnIns %d, skipPre %d, skipPost %d, emulate %d, updateCost %d\n",
 	  theTemplate->returnInsOffset, theTemplate->skipPreInsOffset, theTemplate->skipPostInsOffset,
 	  theTemplate->emulateInsOffset,theTemplate->updateCostOffset);
-  fprintf(stderr, "savePre %d, restorePre %d, savePost %d, restorePost %d, guardPre %d, guardPost %d\n",
+  bperr("savePre %d, restorePre %d, savePost %d, restorePost %d, guardPre %d, guardPost %d\n",
 	  theTemplate->savePreInsOffset, theTemplate->restorePreInsOffset, theTemplate->savePostInsOffset, theTemplate->restorePostInsOffset, theTemplate->recursiveGuardPreJumpOffset,
 	  theTemplate->recursiveGuardPostJumpOffset);
-  fprintf(stderr, "baseAddr = 0x%x\n", theTemplate->baseAddr);
+  bperr( "baseAddr = 0x%x\n", theTemplate->baseAddr);
 #endif
 
   // TODO cast
   proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) tramp);
 /*  
-  fprintf(stderr, "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
+  bperr( "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
           baseAddr, baseAddr+theTemplate->size, location->absPointAddr(proc), 
           location->pointFunc()->prettyName().c_str());
 */
@@ -1913,7 +1913,7 @@ void installTramp(miniTrampHandle *mtHandle, process *proc,
     // Kill the skip instructions
     if (mtHandle->when == callPreInsn) {
         if (bT->prevInstru == false) {
-            //fprintf(stderr, "Base addr %x, skipPre %x\n",
+            //bperr( "Base addr %x, skipPre %x\n",
             //  bT->baseAddr,
             //  bT->skipPreInsOffset);
             atAddr = bT->baseAddr + bT->skipPreInsOffset;
@@ -2059,7 +2059,7 @@ pd_Function* getFunction(instPoint *point)
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
                  char *i, Address &base, bool noCost)
 {
-        //fprintf(stderr,"emitImm(op=%d,src=%d,src2imm=%d,dest=%d)\n",
+        //bperr("emitImm(op=%d,src=%d,src2imm=%d,dest=%d)\n",
         //        op, src1, src2imm, dest);
         instruction *insn = (instruction *) ((void*)&i[base]);
         int iop=-1;
@@ -2210,7 +2210,7 @@ Register emitFuncCall(opCode /* ocode */,
    for (unsigned u = 0; u < operands.size(); u++) {
       if (operands[u]->getSize() == 8) {
          // What does this do?
-         fprintf(stderr, "in weird code\n");
+         bperr( "in weird code\n");
          Register dummyReg = rs->allocateRegister(iPtr, base, noCost);
          srcs.push_back(dummyReg);
          instruction *insn = (instruction *) ((void*)&iPtr[base]);
@@ -2219,7 +2219,7 @@ Register emitFuncCall(opCode /* ocode */,
       }
       srcs.push_back(operands[u]->generateCode_phase2(proc, rs, iPtr, base, 
                                                       false, ifForks, location));
-      //fprintf(stderr, "Generated operand %d, base %d\n", u, base);
+      //bperr( "Generated operand %d, base %d\n", u, base);
    }
   
    // generateCode can shift the instruction pointer, so reset insn
@@ -2292,7 +2292,7 @@ Register emitFuncCall(opCode /* ocode */,
             //    place to save this, but we must save it!!!.  Should
             //    find a place to push this on the stack - jkh 7/31/95
             pdstring msg = "Too many registers required for MDL expression\n";
-            fprintf(stderr, msg.c_str());
+            bpfatal( msg.c_str());
             showErrorCallback(94,msg);
             cleanUpAndExit(-1);
          }
@@ -2305,7 +2305,7 @@ Register emitFuncCall(opCode /* ocode */,
       // the stack, -- sec 3/1/97
       pdstring msg = "Too many arguments to function call in instrumentation code:"
          " only 8 arguments can (currently) be passed on the POWER architecture.\n";
-      fprintf(stderr, msg.c_str());
+      bperr( msg.c_str());
       showErrorCallback(94,msg);
       cleanUpAndExit(-1);
    }
@@ -2385,7 +2385,7 @@ Register emitFuncCall(opCode /* ocode */,
    /*
      insn = (instruction *) iPtr;
      for (unsigned foo = initBase/4; foo < base/4; foo++)
-     fprintf(stderr, "0x%x,\n", insn[foo].raw);
+     bperr( "0x%x,\n", insn[foo].raw);
    */  
    // return value is the register with the return value from the called function
 
@@ -2396,7 +2396,7 @@ Register emitFuncCall(opCode /* ocode */,
 Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 	      char *baseInsn, Address &base, bool /*noCost*/)
 {
-    //fprintf(stderr,"emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
+    //bperr("emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
     // TODO cast
     instruction *insn = (instruction *) ((void*)&baseInsn[base]);
@@ -2470,7 +2470,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
                char *baseInsn, Address &base, bool /*noCost*/,
                const instPoint * /* location */, bool /*for_MT*/)
 {
-    //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
+    //bperr("emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
     // TODO cast
     instruction *insn = (instruction *) ((void*)&baseInsn[base]);
@@ -2549,10 +2549,10 @@ static inline void restoreGPRtoGPR(instruction *&insn, Address &base,
   else if((reg == 0) || ((reg >= 3) && (reg <=12)))
     genImmInsn(insn, Lop, dest, 1, TRAMP_GPR_OFFSET + reg*GPRSIZE);
   else {
-    fprintf(stderr, "GPR %d should not be restored...", reg);
+    bperr( "GPR %d should not be restored...", reg);
     assert(0);
   }
-  //fprintf(stderr, "Loading reg %d (into reg %d) at 0x%x off the stack\n", 
+  //bperr( "Loading reg %d (into reg %d) at 0x%x off the stack\n", 
   //  reg, dest, offset + reg*GPRSIZE);
   insn++;
   base += sizeof(instruction);
@@ -2610,7 +2610,7 @@ static inline void emitAddOriginal(Register src, Register acc,
     // This writes at insn, and updates insn and base.
 
     if(src == POWER_XER2531) { // hack for XER_25:31
-      //fprintf(stderr, "XER_25:31\n");
+      //bperr( "XER_25:31\n");
       restoreXERtoGPR(insn, base, temp);
       moveGPR2531toGPR(insn, base, temp, temp);
     }
@@ -2891,7 +2891,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
               const instPoint * /* location */, process * /* proc */,
               registerSpace * /* rs */ )
 {
-    //fprintf(stderr,"emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest)
+    //bperr("emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest)
 ;
 
     assert ((op!=branchOp) && (op!=ifOp) && 
@@ -3018,8 +3018,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 
             default:
                 // internal error, invalid op.
-                fprintf(stderr, "Invalid op passed to emit, instOp = %d\n", 
-                        instOp);
+                bperr( "Invalid op passed to emit, instOp = %d\n", instOp);
                 assert(0 && "Invalid op passed to emit");
                 break;
         }
@@ -3608,7 +3607,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
            (callee_addr > 0xdfffffff)))
       {
           if (callee_addr != 0) { // unexpected -- where is this function call? Print it out.
-              fprintf(stderr, "Skipping illegal address 0x%x in function %s\n",
+              bperr( "Skipping illegal address 0x%x in function %s\n",
                       (unsigned) callee_addr, caller->prettyName().c_str());
           }
           return false;
@@ -3627,7 +3626,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
           return true;
       }
       else
-          fprintf(stderr, "Couldn't find target function for address 0x%x, jump at 0x%x\n",
+          bperr( "Couldn't find target function for address 0x%x, jump at 0x%x\n",
                   (unsigned) callee_addr,
                   (unsigned) instr.absPointAddr(this));
   }
@@ -3754,7 +3753,7 @@ bool process::MonitorCallSite(instPoint *callSite){
   {
       if (i.xlform.xo == BCLRxop) // BLR (bclr)
       {
-          //fprintf(stderr, "Branch target is the link register\n");
+          //bperr( "Branch target is the link register\n");
           branch_target = REG_LR;
       }
       else if (i.xlform.xo == BCCTRxop)
@@ -3763,7 +3762,7 @@ bool process::MonitorCallSite(instPoint *callSite){
           // sites. They're currently registered when the static call
           // graph is built (Paradyn), after all objects have been read
           // and parsed.
-          //fprintf(stderr, "Branch target is the count register\n");
+          //bperr( "Branch target is the count register\n");
           branch_target = REG_CTR;
       }
       else
@@ -3802,7 +3801,7 @@ bool process::MonitorCallSite(instPoint *callSite){
   {
       cerr << "MonitorCallSite: Unknown opcode " << i.xlform.op << endl; 
       cerr << "opcode extension: " << i.xlform.xo << endl;
-      fprintf(stderr, "Address is 0x%x, insn 0x%x\n", 
+      bperr( "Address is 0x%x, insn 0x%x\n", 
               (unsigned) callSite->absPointAddr(this), 
               (unsigned) i.raw);
       return false;

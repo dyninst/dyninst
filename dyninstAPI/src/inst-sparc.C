@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.156 2004/03/30 21:01:20 tikir Exp $
+// $Id: inst-sparc.C,v 1.157 2004/04/02 06:34:12 jaw Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -698,12 +698,12 @@ void initDefaultPointFrequencyTable()
     if (!fp) {
         return;
     } else {
-        printf("found freq.input file\n");
+        bperr("found freq.input file\n");
     }
     while (!feof(fp)) {
         fscanf(fp, "%s %f\n", name, &value);
         funcFrequencyTable[name] = (int) value;
-        printf("adding %s %f\n", name, value);
+        bperr("adding %s %f\n", name, value);
     }
     fclose(fp);
 }
@@ -1921,7 +1921,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 	return NULL;
     }
 
-    //fprintf(stderr, "Called for %p\n", address);
+    //bperr "Called for %p\n", address);
 
     curr_addr = (Address)address;
 
@@ -2057,7 +2057,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 
     bool decrement = false;
     if ((Address)address > func->getEffectiveAddress(proc)) {
-		//fprintf(stderr, "Wierd1=true@%p\n", address);
+		//bperr( "Wierd1=true@%p\n", address);
 		instruction prevInstr;
 		proc->readTextSpace((char *)address - INSN_SIZE,
 			    sizeof(instruction),
@@ -2070,7 +2070,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 				return NULL;
 			}
 			if(!(isV9ISA() && isUBA(prevInstr))) {
-				fprintf(stderr, "decrement=true@%p\n", address);
+				bperr( "decrement=true@%p\n", address);
 				decrement = true;
 			}
 		}
@@ -2078,14 +2078,14 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 
     if (((Address)address + INSN_SIZE) < 
 			(func->getEffectiveAddress(proc) + func->get_size())) {
-		//fprintf(stderr, "Wierd2=true@%p\n", address); 
+		//bperr( "Wierd2=true@%p\n", address); 
 
 		instruction nextInstr;
 		proc->readTextSpace((char *)address + INSN_SIZE,
 							sizeof(instruction),
 							&nextInstr.raw);
 
-        //fprintf(stderr, "next@%lx->%x\n", (Address)address + INSN_SIZE, nextInstr.raw);
+        //bperr "next@%lx->%x\n", (Address)address + INSN_SIZE, nextInstr.raw);
         // VG(4/24/2002): If we're on v9 and the next instruction is a DCTI, 
         // then we cannot use a call.
         // TODO: There rare case where it is trap was not dealt with...
@@ -2098,7 +2098,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 				if(isV9ISA())
 					dontUseCallHere=true;
 				else{
-					//fprintf(stderr, "failes @ %p\n", address);
+					//bperr( "failes @ %p\n", address);
 					BPatch_reportError(BPatchSerious, 118,"point uninstrumentable (2)");
 					return NULL;
 				}

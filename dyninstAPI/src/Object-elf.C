@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.65 2004/03/31 20:37:17 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.66 2004/04/02 06:34:11 jaw Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -548,7 +548,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   }
 #endif
 
-  //if (is_elf64_) fprintf(stderr, ">>> 64-bit loaded_elf() successful\n");
+  //if (is_elf64_) bperr( ">>> 64-bit loaded_elf() successful\n");
   return true;
 }
 
@@ -570,10 +570,10 @@ const char *Object::got_entry_name(Address entry_raddr) const
   int index_got = (is_elf64_) 
     ? (entry_goff / sizeof(Elf64_Got))
     : (entry_goff / sizeof(Elf32_Got));
-  //fprintf(stderr, "    .got index #%i\n", index_got);
+  //bperr( "    .got index #%i\n", index_got);
   if (index_got < got_zero_index_) return NULL; // local GOT entry
   int index_dynsym = (index_got - got_zero_index_) + dynsym_zero_index_;
-  //fprintf(stderr, "    .dynsym index #%i\n", index_dynsym);
+  //bperr( "    .dynsym index #%i\n", index_dynsym);
 
   // find symbol name
   const char *dynstrs = (const char *)(dynstr_ptr);
@@ -591,7 +591,7 @@ const char *Object::got_entry_name(Address entry_raddr) const
 
   }
 
-  //fprintf(stderr, ">>> got_entry_name(0x%016lx): \"%s\"\n", entry_raddr, ret);
+  //bperr( ">>> got_entry_name(0x%016lx): \"%s\"\n", entry_raddr, ret);
   return ret;
 }
 
@@ -747,11 +747,11 @@ void Object::load_object()
     // find code and data segments....
     find_code_and_data(elfp, txtaddr, bssaddr);
     if (!code_ptr_ || !code_len_) {
-      log_printf(err_func_, "no text segment\n");
+      bpfatal( "no text segment\n");
       goto cleanup;
     }
     if (!data_ptr_ || !data_len_) {
-      log_printf(err_func_, "no data segment\n");
+      bpfatal( "no data segment\n");
       goto cleanup;
     }
 
@@ -1468,8 +1468,7 @@ void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr userData)
 {
   void (*errFunc)(const char *) = (void (*)(const char *))userData;
   char *dwarf_msg = dwarf_errmsg(error);
-  if (errFunc != NULL)
-    log_printf(errFunc, "DWARF error: %s", dwarf_msg);
+  bperr( "DWARF error: %s", dwarf_msg);
 }
 
 Dwarf_Signed declFileNo = 0;
@@ -1592,7 +1591,7 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 							status = dwarf_lowpc( siblingDie, & lowPC, NULL );
 							assert( status == DW_DLV_OK );
 
-							// fprintf( stderr, "Found function with pretty name '%s' inlined-not-declared at 0x%lx in module '%s'\n", dieName, (unsigned long)lowPC, useModuleName.c_str() );
+							// bperr( "Found function with pretty name '%s' inlined-not-declared at 0x%lx in module '%s'\n", dieName, (unsigned long)lowPC, useModuleName.c_str() );
 							if( symbolNamesByAddr.defines( lowPC ) ) {
 								pdstring symName = symbolNamesByAddr.get( lowPC );
 								if( symbols.defines( symName ) ) {
@@ -1627,7 +1626,7 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 						assert( status == DW_DLV_OK );
 
 						useModuleName = declFileNoToName[ fileNo - 1];
-						// fprintf( stderr, "Assuming declared-not-inlined function '%s' to be in module '%s'.\n", dieName, useModuleName.c_str() );
+						// bperr( "Assuming declared-not-inlined function '%s' to be in module '%s'.\n", dieName, useModuleName.c_str() );
 						} /* end if we have declaration file listed */
 					else {
 						/* This should never happen, but there's not much
@@ -1777,7 +1776,7 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf *elfp)
 	assert( status != DW_DLV_ERROR );
 	
 	if( status == DW_DLV_NO_ENTRY ) {
-		fprintf( stderr, "Unable to determine modules (%s): no source file information available.\n", moduleName.c_str() );
+		bperr( "Unable to determine modules (%s): no source file information available.\n", moduleName.c_str() );
 		}
 
 	Dwarf_Addr modLowPC = 0;
@@ -1860,7 +1859,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp, Elf_Scn* s
 
     bool is_fortran = false;  // is the current module fortran code?
     for (unsigned i = 0; i < stab_nsyms; i++) {
-	// printf("parsing #%d, %s\n", stabsyms[i].type, &stabstrs[stabstr_offset+stabsyms[i].name]);
+	// bperr("parsing #%d, %s\n", stabsyms[i].type, &stabstrs[stabstr_offset+stabsyms[i].name]);
         switch(stabsyms[i].type) {
 	case N_UNDF: /* start of object file */
 /*
@@ -1895,7 +1894,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp, Elf_Scn* s
 	    // we must extract the name and descriptor from the string
           {
 	    const char *p = &stabstrs[stabstr_offset+stabsyms[i].name];
-	    // printf("got %d type, str = %s\n", stabsyms[i].type, p);
+	    // bperr("got %d type, str = %s\n", stabsyms[i].type, p);
             if ((stabsyms[i].type==N_FUN) && (strlen(p)==0)) {
                 // GNU CC 2.8 and higher associate a null-named function
                 // entry with the end of a function.  Just skip it.
@@ -1942,7 +1941,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp, Elf_Scn* s
             }
 	    const char *q = strchr(p,':');
 	    if (q == 0) {
-		// printf(stderr, "Unrecognized stab format: %s\n", p);
+		// bperr( "Unrecognized stab format: %s\n", p);
 		// Happens with the Solaris native compiler (.xstabs entries?)
 		break;
 	    }
@@ -1972,7 +1971,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp, Elf_Scn* s
 	    }
 	    else {
 		if (!symbolNamesByAddr.defines(entryAddr)) {
-		    fprintf(stderr, "fix_global_symbol_modules_static_stab "
+		    bperr( "fix_global_symbol_modules_static_stab "
 			    "can't find address 0x%lx\n", entryAddr);
 		    break;
 		}
@@ -2094,7 +2093,7 @@ void Object::find_code_and_data(Elf *elfp,
     code_off_ -= base_addr;
     data_off_ -= base_addr;
 #endif
-    //if (is_elf64_) fprintf(stderr, ">>> 64-bit find_code_and_data() successful\n");
+    //if (is_elf64_) bperr( ">>> 64-bit find_code_and_data() successful\n");
 }
 
 const char *Object::elf_vaddr_to_ptr(Address vaddr) const
@@ -2189,7 +2188,7 @@ Object::~Object() {
 
 void Object::log_elferror(void (*pfunc)(const char *), const char* msg) {
     const char* err = elf_errmsg(elf_errno());
-    log_printf(pfunc, "%s: %s\n", msg, err ? err : "(bad elf error)");
+    bperr( "%s: %s\n", msg, err ? err : "(bad elf error)");
 }
 
 inline bool Object::get_func_binding_table(pdvector<relocationEntry> &fbt) const {
@@ -2330,7 +2329,7 @@ bool parseCompilerType(Object *objPtr)
 	(void **) &stabstr_nextoffset);
 
   for(int i=0;i<stab_nsyms;i++){
-    // if (stabstrs) printf("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
+    // if (stabstrs) bperr("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
     switch(stabptr[i].type){
 
     case N_UNDF: /* start of object file */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.43 2004/03/23 01:11:56 eli Exp $
+// $Id: BPatch_function.C,v 1.44 2004/04/02 06:34:10 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -340,7 +340,7 @@ BPatch_point* createInstPointForMemAccess(process *proc,
   // VG(09/17/01): This seems the right fuction to update all data structures
   // Trouble is that updating these should be platfrom independent, while this
   // function also does platform dependent stuff...
-  //fprintf(stderr, "memcreat@%p\n", addr);
+  //bperr( "memcreat@%p\n", addr);
   BPatch_point *p = createInstructionInstPoint(proc, (void*) addr, alternative);
   if(p)
     p->memacc = ma;
@@ -409,7 +409,7 @@ BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
     bool skip = false;
 
     if(findLoads && ma->hasALoad()) {
-      //fprintf(stderr, "LD[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
+      //bperr( "LD[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
       //      ++xx, addr, inst, imm, ra, rb, cnt);
 #ifdef rs6000_ibm_aix4_1
       BPatch_point* p = bpf->createMemInstPoint((void *)addr, ma);
@@ -422,7 +422,7 @@ BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
     }
 
     if(findStores && !skip && ma->hasAStore()) {
-      //fprintf(stderr, "ST[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
+      //bperr( "ST[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
       //      ++xx, addr, inst, imm, ra, rb, cnt);
 #ifdef rs6000_ibm_aix4_1
       BPatch_point* p = bpf->createMemInstPoint((void *)addr, ma);
@@ -435,7 +435,7 @@ BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
     }
 
     if(findPrefetch && !skip && ma->hasAPrefetch_NP()) {
-      //fprintf(stderr, "PF[%d]: [%x -> %x], %d(%d)(%d) #%d %%%d\n",
+      //bperr( "PF[%d]: [%x -> %x], %d(%d)(%d) #%d %%%d\n",
       //      ++xx, addr, inst, imm, ra, rb, cnt, fcn);
       // XXX this leaks...
 #ifdef rs6000_ibm_aix4_1

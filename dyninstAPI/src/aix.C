@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.184 2004/03/23 01:12:00 eli Exp $
+// $Id: aix.C,v 1.185 2004/04/02 06:34:11 jaw Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -274,10 +274,10 @@ Frame Frame::getCallerFrame(process *p) const
       ret.fp_ = thisStackFrame.oldFp;
   }
 #ifdef DEBUG_STACKWALK
-  fprintf(stderr, "PC %x, FP %x\n", ret.pc_, ret.fp_);
+  bperr( "PC %x, FP %x\n", ret.pc_, ret.fp_);
   pd_Function *stack_fn = p->findAddressInFuncsAndTramps(ret.pc_);
   if (stack_fn)
-      fprintf(stderr, "   func %s\n", stack_fn->prettyName().c_str());
+      bperr( "   func %s\n", stack_fn->prettyName().c_str());
   
 #endif
 
@@ -293,61 +293,61 @@ void decodeInstr(unsigned instr_raw) {
 
   switch(instr.generic.op) {
   case Bop:
-    fprintf(stderr, "Branch (abs=%d, link=%d) to 0x%x\n",
+    bperr( "Branch (abs=%d, link=%d) to 0x%x\n",
 	    instr.iform.aa, instr.iform.lk, instr.iform.li);
     break;
   case CMPIop:
-    fprintf(stderr, "CMPI reg(%d), 0x%x\n",
+    bperr( "CMPI reg(%d), 0x%x\n",
 	    instr.dform.ra, instr.dform.d_or_si);
     break;
   case SIop:
-    fprintf(stderr, "SI src(%d), tgt(%d), 0x%x\n",
+    bperr( "SI src(%d), tgt(%d), 0x%x\n",
 	    instr.dform.ra, instr.dform.rt, instr.dform.d_or_si);
     break;
   case CALop:
-    fprintf(stderr, "CAL src(%d), tgt(%d), 0x%x\n",
+    bperr( "CAL src(%d), tgt(%d), 0x%x\n",
 	    instr.dform.ra, instr.dform.rt, instr.dform.d_or_si);
     break;
   case CAUop:
-    fprintf(stderr, "CAU src(%d), tgt(%d), 0x%x\n",
+    bperr( "CAU src(%d), tgt(%d), 0x%x\n",
 	    instr.dform.ra, instr.dform.rt, instr.dform.d_or_si);
     break;
   case ORILop:
-    fprintf(stderr, "ORIL src(%d), tgt(%d), 0x%x\n",
+    bperr( "ORIL src(%d), tgt(%d), 0x%x\n",
 	    instr.dform.rt, instr.dform.ra, instr.dform.d_or_si);
     break;
   case ANDILop:
-    fprintf(stderr, "CAU src(%d), tgt(%d), 0x%x\n",
+    bperr( "CAU src(%d), tgt(%d), 0x%x\n",
 	    instr.dform.rt, instr.dform.ra, instr.dform.d_or_si);
     break;
   case Lop:
-    fprintf(stderr, "L src(%d)+0x%x, tgt(%d)\n",
+    bperr( "L src(%d)+0x%x, tgt(%d)\n",
 	    instr.dform.ra, instr.dform.d_or_si, instr.dform.rt);
     break;
   case STop:
-    fprintf(stderr, "L src(%d), tgt(%d)+0x%x\n",
+    bperr( "L src(%d), tgt(%d)+0x%x\n",
 	    instr.dform.rt, instr.dform.ra, instr.dform.d_or_si);
     break;
   case BCop:
-    fprintf(stderr, "BC op(0x%x), CR bit(0x%x), abs(%d), link(%d), tgt(0x%x)\n",
+    bperr( "BC op(0x%x), CR bit(0x%x), abs(%d), link(%d), tgt(0x%x)\n",
 	    instr.bform.bo, instr.bform.bi, instr.bform.aa, instr.bform.lk, instr.bform.bd);
     break;
   case BCLRop:
     switch (instr.xform.xo) {
     case BCLRxop:
-      fprintf(stderr, "BCLR op(0x%x), bit(0x%x), link(%d)\n",
+      bperr( "BCLR op(0x%x), bit(0x%x), link(%d)\n",
 	      instr.xform.rt, instr.xform.ra, instr.xform.rc);
       break;
     default:
-      fprintf(stderr, "%x\n", instr.raw);
+      bperr( "%x\n", instr.raw);
       break;
     }
     break;
   case 0:
-    fprintf(stderr, "NULL INSTRUCTION\n");
+    bperr( "NULL INSTRUCTION\n");
     break;
   default:
-    fprintf(stderr, "Unknown instr with opcode %d\n",
+    bperr( "Unknown instr with opcode %d\n",
 	    instr.generic.op);
 
     break;
@@ -466,7 +466,7 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
    if (ret) {
       if(!proc_->hasExited()) {
          pm_error("dyn_lwp::getRawCpuTime_hw: pm_get_data_thread", ret);
-         fprintf(stderr, "Attempted pm_get_data(%d, %d, %d)\n",
+         bperr( "Attempted pm_get_data(%d, %d, %d)\n",
 		 proc_->getPid(), lwp_id_, lwp_to_use);
       }
       return -1;
@@ -731,13 +731,13 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
           dyn_saved_regs regs;
           bool status = lwp->getRegisters(&regs);
           if (!status) {
-              fprintf(stderr, "Failure to get registers in catchupSideEffect\n");
+              bperr( "Failure to get registers in catchupSideEffect\n");
               return false;
           }
           oldReturnAddr = regs.theIntRegs.__lr;
           regs.theIntRegs.__lr = exitTrampAddr;
           if (!lwp->restoreRegisters(regs)) {
-              fprintf(stderr, "Failure to restore registers in catchupSideEffect\n");
+              bperr( "Failure to restore registers in catchupSideEffect\n");
               return false;
           }
 #else
@@ -763,7 +763,7 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
           dyn_saved_regs regs;
           bool status = getRepresentativeLWP()->getRegisters(&regs);
           if (!status) {
-              fprintf(stderr, "Failure to get registers in catchupSideEffect\n");
+              bperr("Failure to get registers in catchupSideEffect\n");
               return false;
           }
           oldReturnAddr = regs.theIntRegs.__lr;
@@ -903,8 +903,8 @@ void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imag
 	stopPage = imagePatches[imagePatches.size()-1]->stopPage;
 	int startIndex=k, stopIndex=imagePatches.size()-1;
 	/*if(DEBUG_MSG){
-		printf("COMPACTING....\n");	
-		printf("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
+		bperr("COMPACTING....\n");	
+		bperr("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
 	}
 	patch = new imageUpdate;
         patch->address = imagePatches[startIndex]->address;
@@ -912,17 +912,17 @@ void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imag
                                    imagePatches[stopIndex]->size;
         newPatches.push_back(patch);
 	if(DEBUG_MSG){
-		printf(" COMPACTED: %x --> %x \n", patch->address, patch->size);
+		bperr(" COMPACTED: %x --> %x \n", patch->address, patch->size);
 	}*/
 	bool finished = false;
 	if(_DEBUG_MSG){
-		printf("COMPACTING....\n");	
-		printf("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
+		bperr("COMPACTING....\n");	
+		bperr("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
 	}
 	for(;k<imagePatches.size();k++){
 		if(imagePatches[k]->address!=0){
 			if(_DEBUG_MSG){
-				printf("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
+				bperr("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
 					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
 			}
 			if(imagePatches[k]->startPage <= (unsigned int)stopPage){
@@ -936,7 +936,7 @@ void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imag
 						imagePatches[stopIndex]->size;
 				newPatches.push_back(patch);
 				if(_DEBUG_MSG){
-					printf(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
+					bperr(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
 						patch->address, patch->size, startPage,  stopPage);
 				}
 				finished = true;
@@ -966,7 +966,7 @@ void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imag
                                    imagePatches[stopIndex]->size;
                 newPatches.push_back(patch);
 		if(_DEBUG_MSG){
-			printf(" COMPACTED: %x --> %x \n", patch->address, patch->size);
+			bperr(" COMPACTED: %x --> %x \n", patch->address, patch->size);
 			fflush(stdout);
 		}
 	}	
@@ -1015,10 +1015,10 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 		VECTOR_SORT(imagePatches, imageUpdateSort);
 	}
 	if(DEBUG_MSG){
-		printf(" SORT 1 %d \n", imagePatches.size());
+		bperr(" SORT 1 %d \n", imagePatches.size());
 	
 		for(unsigned int kk=0;kk<imagePatches.size();kk++){
-			printf("%d address 0x%x  size 0x%x \n",kk, imagePatches[kk]->address, imagePatches[kk]->size);
+			bperr("%d address 0x%x  size 0x%x \n",kk, imagePatches[kk]->address, imagePatches[kk]->size);
 		}
 		fflush(stdout);
 	}
@@ -1032,7 +1032,7 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 			imagePatches[i]->stopPage =  endAddr - (endAddr % pageSize);
 
 			if(DEBUG_MSG){
-				printf("%d address %x end addr %x : start page %x stop page %x \n",
+				bperr("%d address %x end addr %x : start page %x stop page %x \n",
 					i,imagePatches[i]->address ,imagePatches[i]->address + imagePatches[i]->size,
 					imagePatches[i]->startPage, imagePatches[i]->stopPage);
 			}
@@ -1069,10 +1069,10 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 	unsigned int k=0;
 
 	if(DEBUG_MSG){
-		printf(" SORT 3 %d \n", imagePatches.size());
+		bperr(" SORT 3 %d \n", imagePatches.size());
 
 		for(unsigned int kk=0;kk<imagePatches.size();kk++){
-			printf("%d address 0x%x  size 0x%x \n",kk, imagePatches[kk]->address, imagePatches[kk]->size);
+			bperr("%d address 0x%x  size 0x%x \n",kk, imagePatches[kk]->address, imagePatches[kk]->size);
 		}
 		fflush(stdout);
 	}
@@ -1085,13 +1085,13 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 	int startIndex=k, stopIndex=k;
 	bool finished = false;
 	if(DEBUG_MSG){
-		printf("COMPACTING....\n");	
-		printf("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
+		bperr("COMPACTING....\n");	
+		bperr("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
 	}
 	for(;k<imagePatches.size();k++){
 		if(imagePatches[k]->address!=0){
 			if(DEBUG_MSG){
-				printf("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
+				bperr("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
 					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
 			}
 			if(imagePatches[k]->startPage <= (unsigned int) stopPage){
@@ -1105,7 +1105,7 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 						imagePatches[stopIndex]->size;
 				newPatches.push_back(patch);
 				if(DEBUG_MSG){
-					printf(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
+					bperr(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
 						patch->address, patch->size, startPage,  stopPage);
 				}
 				finished = true;
@@ -1135,8 +1135,7 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
                                    imagePatches[stopIndex]->size;
                 newPatches.push_back(patch);
 		if(DEBUG_MSG){
-			printf(" COMPACTED: %x --> %x \n", patch->address, patch->size);
-			fflush(stdout);
+			bperr(" COMPACTED: %x --> %x \n", patch->address, patch->size);
 		}
 	}	
 	
@@ -1154,7 +1153,7 @@ void process::addLib(char* lname){
     BPatch::bpatch->setTrampRecursive( true ); //ccw 31 jan 2003
     BPatch_Vector<BPatch_function *> bpfv;
     if (NULL == appImage->findFunction("main", bpfv) || !bpfv.size()) { 
-      fprintf(stderr,"Unable to find function \"main\". Save the world will fail.\n");
+      bperr("Unable to find function \"main\". Save the world will fail.\n");
       return;
    }
 
@@ -1162,13 +1161,13 @@ void process::addLib(char* lname){
    mainFunc = mainFuncPtr->findPoint(BPatch_entry);
     
    if (!mainFunc || ((*mainFunc).size() == 0)) {
-      fprintf(stderr, "    Unable to find entry point to \"main.\"\n");
+      bperr( "    Unable to find entry point to \"main.\"\n");
       exit(1);
    }
 
    bpfv.clear();
    if (NULL == appImage->findFunction("dlopen", bpfv) || !bpfv.size()) {
-      fprintf(stderr,"Unable to find function \"dlopen\". Save the world will fail.\n");
+      bperr("Unable to find function \"dlopen\". Save the world will fail.\n");
       return;
    }
    BPatch_function *dlopen_func = bpfv[0];
@@ -1182,7 +1181,7 @@ void process::addLib(char* lname){
    
    BPatch_funcCallExpr dlopenExpr(*dlopen_func, dlopen_args);
    
-	//printf(" inserting DLOPEN(%s)\n",lname);
+	//bperr(" inserting DLOPEN(%s)\n",lname);
 	requestTextMiniTramp = 1;
    
    appThread->insertSnippet(dlopenExpr, *mainFunc, BPatch_callBefore,

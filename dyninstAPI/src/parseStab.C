@@ -48,6 +48,7 @@
 #include "BPatch_module.h"
 #include "BPatch_collections.h"
 #include "showerror.h"
+#include "util.h"
 #include "Object.h" // For looking up compiler type
 
 extern char *current_func_name;
@@ -215,7 +216,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	ID = parseSymDesc(stabstr, cnt);
 	
-	//printf("Variable: %s  Type ID: %d, file ID %d \n",name, ID, file_ID);
+	//bperr("Variable: %s  Type ID: %d, file ID %d \n",name, ID, file_ID);
 	if (stabstr[cnt] == '=') {
 	  /* More Stuff to parse, call parseTypeDef */
 	  stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name, ID);
@@ -228,14 +229,14 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	      char modName[100];
 	      mod->getName(modName, 99);
-	      printf("%s[%d] Can't find function %s in module %s\n", __FILE__, __LINE__,
+	      bperr("%s[%d] Can't find function %s in module %s\n", __FILE__, __LINE__,
 		     current_mangled_func_name, modName);
-	      printf("Unable to add %s to local variable list in %s\n",
+	      bperr("Unable to add %s to local variable list in %s\n",
 		     name,current_func_name);
 	  } else {
 	      locVar = new BPatch_localVar(name, ptrType, linenum, framePtr);
 	      if (!ptrType) {
-		//printf("adding local var with missing type %s, type = %d\n",
+		//bperr("adding local var with missing type %s, type = %d\n",
 		//      name, ID);
 	      }
 	      current_func->localVariables->addLocalVar( locVar);
@@ -246,7 +247,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	  
 	  locVar = new BPatch_localVar(name, ptrType, linenum, framePtr);
 	  if (!ptrType) {
-	    //printf("adding local var with missing type %s, type = %d\n",
+	    //bperr("adding local var with missing type %s, type = %d\n",
 	    //	     name, ID);
 	  }
 	  current_func->localVariables->addLocalVar( locVar);
@@ -277,7 +278,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  scopeName = getIdentifier(stabstr, cnt);
 
 		  if (stabstr[cnt]) {
-		      fprintf(stderr, "Extra: %s\n", &stabstr[cnt]);
+		      bperr("Extra: %s\n", &stabstr[cnt]);
 		  }
 	      }
 
@@ -291,14 +292,14 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  } else {
 		    if (bpfv.size() > 1) 
 		      // warn if we find more than one function with current_func_name
-		      printf("%s[%d]:  WARNING: found %d functions with name %s, using the first",
+		      bperr("%s[%d]:  WARNING: found %d functions with name %s, using the first",
 			     __FILE__, __LINE__, bpfv.size(), name);
 		    fp = bpfv[0];
 		    // set return type.
 		    fp->setReturnType(ptrType);
 		  }
 	      } else {
-		  printf("%s is an embedded function in %s\n",name, scopeName);
+		  bperr("%s is an embedded function in %s\n",name, scopeName);
 	      }
 
 	      // skip to end - SunPro Compilers output extra info here - jkh 6/9/3
@@ -360,16 +361,15 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      /* Get variable type number */
 	      symdescID = parseTypeUse(mod, stabstr, cnt, name);
 	      if (stabstr[cnt]) {
-		  fprintf(stderr, "\tMore to parse - global var %s\n", &stabstr[cnt]);
-		  fprintf(stderr, "\tFull String: %s\n", stabstr);
+		  bperr( "\tMore to parse - global var %s\n", &stabstr[cnt]);
+		  bperr( "\tFull String: %s\n", stabstr);
 	      }
 	      // lookup symbol and set type
 	      BPatch_type *BPtype;
       
 	      BPtype = mod->moduleTypes->findOrCreateType(symdescID);
 	      if (!BPtype) {
-		  fprintf(stderr, 
-		      "ERROR: unable to find type #%d for variable %s\n", 
+		      bperr("ERROR: unable to find type #%d for variable %s\n", 
 		       symdescID, name);
 	      } else {
 		  /** XXXX - should add local too here **/
@@ -391,8 +391,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  // parameter type information, not used for now
 		  cnt = strlen(stabstr);
 	      } else if (stabstr[cnt]) {
-		  fprintf(stderr, "\tMore to parse func param %s\n", &stabstr[cnt]);
-		  fprintf(stderr, "\tFull String: %s\n", stabstr);
+		  bperr( "\tMore to parse func param %s\n", &stabstr[cnt]);
+		  bperr( "\tFull String: %s\n", stabstr);
 	      }
 
 	      ptrType = mod->moduleTypes->findOrCreateType(symdescID);
@@ -416,7 +416,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	      ptrType = parseConstantUse(mod, stabstr, cnt);
 	      if (stabstr[cnt])
-		printf("Parsing Error More constant info to Parse!!: %s\n",
+		bperr("Parsing Error More constant info to Parse!!: %s\n",
 		    &(stabstr[cnt]));
 
 	      if (!ptrType) ptrType = BPatch::bpatch->type_Untyped;
@@ -448,7 +448,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 #ifdef notdef
 	      /* often have rNN=*yy - what is this ? jkh 11/30/00 */
 	      if (stabstr[cnt])
-		printf("Parsing Error More register info to Parse!!: %s\n",
+		bperr("Parsing Error More register info to Parse!!: %s\n",
 		    &(stabstr[cnt]));
 #endif
 	      break;
@@ -474,8 +474,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	      BPtype = mod->moduleTypes->findOrCreateType(symdescID);
 	      if (!BPtype) {
-		  fprintf(stderr, 
-		      "ERROR: unable to find type #%d for variable %s\n", 
+		      bperr("ERROR: unable to find type #%d for variable %s\n", 
 		       symdescID, name);
 	      } else {
 		  BPatch_image *img = (BPatch_image *) mod->getObjParent();
@@ -485,7 +484,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      }
 
 	      if (stabstr[cnt])
-		printf("Parsing Error More Global Static info to Parse!!: %s\n",
+		bperr("Parsing Error More Global Static info to Parse!!: %s\n",
 		       &(stabstr[cnt]));
 	      break;
 	  }
@@ -504,8 +503,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		cnt = 0;
 		// AIX seems to append an semi at the end of these
 		if (stabstr[0] && strcmp(stabstr, ";")) {
-		    fprintf(stderr, "\tMore to parse creating type %s\n", stabstr);
-		  fprintf(stderr, "\tFull String: %s\n", oldStr);
+		    bperr("\tMore to parse creating type %s\n", stabstr);
+		  bperr( "\tFull String: %s\n", oldStr);
 		}
 	      } else {
 		//Create BPatch_type defined as a pre-exisitng type.
@@ -524,7 +523,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  // parse as a normal typedef
 		  parseStabString(mod, linenum, &stabstr[cnt+1], framePtr);
 	      } else {
-	          fprintf(stderr, "Unknown type seen %s\n", stabstr);
+	          bperr("Unknown type seen %s\n", stabstr);
 	      }
 	      break;
 
@@ -533,7 +532,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	      if (stabstr[cnt] == 't') {
 		  //C++ struct  tag "T" and type def "t"
-		  //printf("SKipping C++ Identifier t of Tt\n");
+		  //bperr("SKipping C++ Identifier t of Tt\n");
 		  cnt++;  //skip it
 	      }
 
@@ -546,8 +545,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  stabstr = parseTypeDef(mod,(&stabstr[cnt+1]),name,symdescID);
 		  cnt = 0;
 		  if (stabstr[0]) {
-		      fprintf(stderr, "\tMore to parse aggregate type %s\n", (&stabstr[cnt]));
-		  fprintf(stderr, "\tFull String: %s\n", stabstr);
+		      bperr( "\tMore to parse aggregate type %s\n", (&stabstr[cnt]));
+		  bperr("\tFull String: %s\n", stabstr);
 		  }
 	      } else {
 		  //Create BPatch_type defined as a pre-exisitng type.
@@ -560,18 +559,17 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	  case 'V':/* Local Static Variable (common block vars too) */
 	      cnt++; /*move past the 'V'*/
 
-	      // printf("parsing 'v' type of %s\n", stabstr);
+	      // bperr("parsing 'v' type of %s\n", stabstr);
 	      /* Get variable type number */
 	      symdescID = parseTypeUse(mod, stabstr, cnt, name);
 	      if (stabstr[cnt]) {
-		  fprintf(stderr, "\tMore to parse local static %s\n", &stabstr[cnt]);
-		  fprintf(stderr, "\tFull String: %s\n", stabstr);
+		  bperr( "\tMore to parse local static %s\n", &stabstr[cnt]);
+		  bperr( "\tFull String: %s\n", stabstr);
 	      }
 	      // lookup symbol and set type
 	      BPtype = mod->moduleTypes->findOrCreateType(symdescID);
 	      if (!BPtype) {
-		  fprintf(stderr, 
-		      "ERROR: unable to find type #%d for variable %s\n", 
+		      bperr("ERROR: unable to find type #%d for variable %s\n", 
 		       symdescID, name);
 		  break;
 	      }
@@ -599,7 +597,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 			  if (((start2 >= start1) && (start2 < end1)) ||
 			      ((start1 >= start2) && (start1 < end2))) {
 			      /* common block aliasing detected */
-			      printf("WARN: EQUIVALENCE used in %s: %s and %s\n",
+			      bpwarn("WARN: EQUIVALENCE used in %s: %s and %s\n",
 				  current_func_name, name, (*fields)[i]->getName());
 			      found = true;
 			      break;
@@ -613,7 +611,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      } else {
 		  // put it into the local variable scope
 		if (!current_func) {
-		  printf("Unable to add %s to local variable list in %s\n",
+		  bperr("Unable to add %s to local variable list in %s\n",
 			 name,current_func_name);
 		} else {
 		  locVar = new BPatch_localVar(name, BPtype, linenum, 
@@ -635,8 +633,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	    break;
 
 	  default:
-	      fprintf(stderr, "Unknown symbol descriptor: %c\n", stabstr[cnt]);
-	      fprintf(stderr, " : %s\n", stabstr);
+	      bperr( "Unknown symbol descriptor: %c\n", stabstr[cnt]);
+	      bperr( " : %s\n", stabstr);
       }   
     }
     return(&stabstr[cnt]);
@@ -735,7 +733,7 @@ char * getIdentifier( char *stabstr, int &cnt, bool stopOnSpace ) {
 					i++;
 					}
 				else if( brCnt ) {
-					fprintf( stderr, "Failed to find identifier in stabstring '%s;\n", stabstr );
+					bperr( "Failed to find identifier in stabstring '%s;\n", stabstr );
 					idChar = false;
 					}
 				else {
@@ -806,7 +804,7 @@ static char *parseCrossRef(BPatch_typeCollection *moduleTypes,const char *name,
 	// Add to typeCollection
 	if(newType) { newType = moduleTypes->addOrUpdateType(newType); }
 	if(!newType) {
-	  printf(" Can't Allocate new type ");
+	  bperr(" Can't Allocate new type ");
 	  exit(-1);
 	}
       }
@@ -841,7 +839,7 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, const char *name,
 
     cnt ++;
     if (stabstr[cnt] != 'r') {
-	printf("unknown array definition seen %s\n", &stabstr[cnt]);
+	bperr("unknown array definition seen %s\n", &stabstr[cnt]);
 	return(NULL);
     }
 
@@ -887,14 +885,14 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, const char *name,
 	    cnt = temp-stabstr;
 	    if (stabstr[cnt] == ':') {
 		//C++ stuff
-		//printf("Skipping C++ rest of array def:  %s\n",name );
+		//bperr("Skipping C++ rest of array def:  %s\n",name );
 		while (stabstr[cnt] != ';') cnt++;
 	    }
 	}
 	ptrType = mod->moduleTypes->findOrCreateType(elementType);
     }
 
-    // fprintf(stderr, "Symbol Desriptor: %s Descriptor ID: %d Type: %d, Low Bound: %d, Hi Bound: %d,\n", symdesc, symdescID, elementType, lowbound, hibound);
+    //  bperr("Symbol Desriptor: %s Descriptor ID: %d Type: %d, Low Bound: %d, Hi Bound: %d,\n", symdesc, symdescID, elementType, lowbound, hibound);
 
 
     if (ptrType) {
@@ -905,12 +903,12 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, const char *name,
 	    // Add to Collection
 	    newType = mod->moduleTypes->addOrUpdateType(newType);
 	} else {
-	    fprintf(stderr, " Could not create newType Array\n");
+	    bperr( " Could not create newType Array\n");
 	    exit(-1);
 	}
     }
 	    
-    // fprintf(stderr, "parsed array def to %d, remaining %s\n", cnt, &stabstr[cnt]);
+    // bperr( "parsed array def to %d, remaining %s\n", cnt, &stabstr[cnt]);
     return (newType);
 }
 
@@ -936,7 +934,7 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
     // range index type - not used
     (void) parseSymDesc(stabstr, cnt);
 
-    // printf("\tSymbol Descriptor: %c and Value: %d\n",tmpchar, symdescID);
+    // bperr("\tSymbol Descriptor: %c and Value: %d\n",tmpchar, symdescID);
 
     cnt++; /* Discarding the ';' */
     if (stabstr[cnt] == '-' ) cnt++;
@@ -991,8 +989,8 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
     if( stabstr[cnt] == ';')
       cnt++;
     if( stabstr[cnt] ) {
-      fprintf(stderr, "ERROR: More to parse in type-r- %s\n", &(stabstr[cnt]));
-		  fprintf(stderr, "\tFull String: %s\n", stabstr);
+      bperr( "ERROR: More to parse in type-r- %s\n", &(stabstr[cnt]));
+		  bperr( "\tFull String: %s\n", stabstr);
     }
     
     return(&(stabstr[cnt]));
@@ -1019,7 +1017,7 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
     // range index type - not used
     (void) parseSymDesc(stabstr, cnt);
 
-    // printf("\tSymbol Descriptor: %c and Value: %d\n",tmpchar, symdescID);
+    // bperr("\tSymbol Descriptor: %c and Value: %d\n",tmpchar, symdescID);
 
     cnt++; /* Discarding the ';' */
     if (stabstr[cnt] == '-' ) cnt++;
@@ -1053,7 +1051,7 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
 	/* Error copying upper range */
 	exit(1);
       hi[i] = '\0';
-      // printf("\tLower limit: %s and Upper limit: %s\n", low, hi);
+      // bperr("\tLower limit: %s and Upper limit: %s\n", low, hi);
       //Create new type
       BPatch_type *newType = new BPatch_type( name, ID, typdescr, low, hi);
       //Add to Collection
@@ -1081,13 +1079,13 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
       j = atol(temp);
       free(temp);
       if(j == 0){
-	// printf("\tSize of Type : %d bytes\n",size);
+	// bperr("\tSize of Type : %d bytes\n",size);
 	//Create new type
 	BPatch_type *newType = new BPatch_type( name, ID, typdescr, size);
 	//Add to Collection
 	newType = mod->moduleTypes->addOrUpdateType(newType);
       } else {
-	// printf("Type RANGE: ERROR!!\n");
+	// bperr("Type RANGE: ERROR!!\n");
       }	
     }
     cnt = cnt + i;
@@ -1096,7 +1094,7 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
 #ifdef notdef
     // ranges can now be used as part of an inline typdef
     if( stabstr[cnt] ) {
-      fprintf(stderr, "ERROR: More to parse in type-r- %s\n", &(stabstr[cnt]));
+      bperr( "ERROR: More to parse in type-r- %s\n", &(stabstr[cnt]));
     }
 #endif
     
@@ -1173,7 +1171,7 @@ static void parseAttrType(BPatch_module *mod, const char *name,
       
       BPatch_type *newType = new BPatch_type(name, ID, typdescr, size/8, ptrType);
       if(!newType) {
-	    printf(" Can't Allocate new type ");
+	    bperr(" Can't Allocate new type ");
 	    exit(-1);
       }
 
@@ -1188,13 +1186,13 @@ static void parseAttrType(BPatch_module *mod, const char *name,
       newType = mod->moduleTypes->addOrUpdateType(newType);
 
       if (stabstr[cnt]) {
-	  printf("More Type Attribute to Parse: %s ID %d : %s\n", name,
+	  bperr("More Type Attribute to Parse: %s ID %d : %s\n", name,
 	       ID, &(stabstr[cnt]));
-	  printf("got type = %d\n", type);
-	  printf("full string = %s\n", stabstr);
+	  bperr("got type = %d\n", type);
+	  bperr("full string = %s\n", stabstr);
       }
     } else {
-	//printf(" Unable to parse Type Attribute: %s ID %d : %s\n", 
+	//bperr(" Unable to parse Type Attribute: %s ID %d : %s\n", 
 	// name,ID, &(stabstr[cnt]));
     }
 }
@@ -1220,7 +1218,7 @@ static char *parseRefType(BPatch_module *mod, const char *name,
     if(newType) {
 	newType = mod->moduleTypes->addOrUpdateType(newType);
     } else {
-        printf(" Can't Allocate new type ");
+        bperr(" Can't Allocate new type ");
         exit(-1);
     }
     
@@ -1236,7 +1234,7 @@ void addBaseClassToClass(BPatch_module *mod, int baseID, BPatch_type *newType, i
     //Find base class
     BPatch_type *baseCl = mod->moduleTypes->findType(baseID);
     if( ! baseCl ) {
-	fprintf(stderr, "can't find class %d\n", baseID);
+	bperr( "can't find class %d\n", baseID);
 	baseCl = mod->moduleTypes->findOrCreateType( baseID );
 	baseCl->setDataClass( BPatch_dataStructure );
 	newType->addField( "{superclass}", BPatch_dataStructure, baseCl, -1, BPatch_visUnknown );
@@ -1274,8 +1272,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 
 
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-      fprintf(stderr, "%s[%d]:  inside parseFieldList\n", __FILE__, __LINE__);
-      fflush(NULL);
+      bperr( "%s[%d]:  inside parseFieldList\n", __FILE__, __LINE__);
 #endif
 
     if (stabstr[cnt] == '!') {
@@ -1413,7 +1410,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 				}
 			} //While 1
 			if (!stabstr[cnt]) {
-			    printf("error got to end of %s\n", stabstr);
+			    bperr("error got to end of %s\n", stabstr);
 			}
 		}
 		else {
@@ -1437,14 +1434,13 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 	}
 
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-	fprintf(stderr, "%s[%d]:  asserting last char of stabstr == ';':  stabstr = %s\n", 
+	bperr( "%s[%d]:  asserting last char of stabstr == ';':  stabstr = %s\n", 
 		__FILE__, __LINE__, stabstr);
-	fflush(NULL);
 #endif
 	
 	if (stabstr[cnt] == ';') // jaw 03/15/02-- major kludge here for DPCL compat
 	  cnt++;  // needs further examination
-	// printf("\tType: %d, Starting Offset: %d (bits), Size: %d (bits)\n", comptype, beg_offset, size);
+	// bperr("\tType: %d, Starting Offset: %d (bits), Size: %d (bits)\n", comptype, beg_offset, size);
 	// Add struct field to type
 	BPatch_type *fieldType = mod->moduleTypes->findOrCreateType( comptype );
 	if (fieldType == NULL) {
@@ -1456,10 +1452,10 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 	    newType->addField(compname, typedescr, fieldType,
 			    beg_offset, size);
 	} else {
-	    // fprintf( stderr, "Adding field '%s' to type '%s' @ 0x%x\n", compname, newType->getName(), newType );
+	    // bperr( "Adding field '%s' to type '%s' @ 0x%x\n", compname, newType->getName(), newType );
 	    newType->addField(compname, typedescr, fieldType,
 			    beg_offset, size, _vis);
-	    //printf("Adding Component with VISIBILITY STRUCT\n");
+	    //bperr("Adding Component with VISIBILITY STRUCT\n");
 	}
     }
 
@@ -1469,7 +1465,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
     } else if (stabstr[cnt] == '\0') {
 	return &stabstr[cnt];
     } else {
-	printf("invalid stab record: %s\n", &stabstr[cnt]);
+	bperr("invalid stab record: %s\n", &stabstr[cnt]);
 	abort();
     }
 }
@@ -1524,7 +1520,7 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 	    break;
 
 	default:
-	    fprintf(stderr, "ERROR: Unrecognized C++ str = %s\n", stabstr);
+	    bperr( "ERROR: Unrecognized C++ str = %s\n", stabstr);
 	    cnt = strlen(stabstr);
 	    return(&(stabstr[cnt]));
 	    break;
@@ -1661,14 +1657,13 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
     cnt = i = j = k = 0;
   
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-    fprintf(stderr, "%s[%d]:  inside parseTypeDef, stabstr = %s\n", __FILE__, __LINE__, 
+    bperr( "%s[%d]:  inside parseTypeDef, stabstr = %s\n", __FILE__, __LINE__, 
 	    (stabstr == NULL) ? "NULL" : stabstr);
-    fflush(NULL);
 #endif
 
     assert (stabstr[0] != '=');
 
-    // fprintf(stderr, "parsing %s\n", stabstr);
+    // bperr( "parsing %s\n", stabstr);
     if (isSymId(stabstr[0])) {
 	typdescr = BPatch_dataScalar;
 	type = parseSymDesc(stabstr, cnt);
@@ -1677,7 +1672,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 	    newType = new BPatch_type( name, ID, typdescr, type);
 	    if (newType) { newType = mod->moduleTypes->addOrUpdateType(newType); }
 	    if(!newType) {
-	      printf(" Can't Allocate newType ");
+	      bpfatal(" Can't Allocate newType ");
 	      exit(-1);
 	    }
 	} else if (stabstr[cnt] == '=') {
@@ -1698,7 +1693,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 	    newType = new BPatch_type( name, ID, typdescr, oldType);
 	    if(newType) { newType = mod->moduleTypes->addOrUpdateType(newType); }
 	    if(!newType) {
-	        printf(" Can't Allocate newType ");
+	        bpfatal(" Can't Allocate newType ");
 	        exit(-1);
 	    }
 	}
@@ -1722,7 +1717,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 	    // Add to typeCollection
 	    if(newType) { newType = mod->moduleTypes->addOrUpdateType(newType); }
 	    if(!newType) {
-		printf(" Can't Allocate new type ");
+		bpfatal(" Can't Allocate new type ");
 		exit(-1);
 	    }
 
@@ -1770,7 +1765,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 
 		int baseType = parseSymDesc(stabstr, cnt);
 		if (baseType != -2 || (stabstr[cnt] != ';')) {
-		    printf("unexpected non character array %s\n", stabstr);
+		    bperr("unexpected non character array %s\n", stabstr);
 		} else {
 		    cnt++; // skip ';'
 		    int size;
@@ -1858,9 +1853,8 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 		cnt++; /* skip colon */
 
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-		fprintf(stderr, "%s[%d]:  before parseSymDesc -- enumerated type \n", 
+		bperr( "%s[%d]:  before parseSymDesc -- enumerated type \n", 
 			__FILE__, __LINE__);
-		fflush(NULL);
 #endif		  
 		value = parseSymDesc(stabstr, cnt);
 
@@ -1910,9 +1904,8 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 	    //add to type collection
 	    newType = mod->moduleTypes->addOrUpdateType(newType);
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-	    fprintf(stderr, "%s[%d]:  before parseFieldList -- strlen(&stabstr[%d]) =%d \n", 
+	    bperr( "%s[%d]:  before parseFieldList -- strlen(&stabstr[%d]) =%d \n", 
 		    __FILE__, __LINE__, cnt, strlen(&stabstr[cnt]));
-	    fflush(NULL);
 #endif
 	    return parseFieldList(mod, newType, &stabstr[cnt], false);
 
@@ -1952,7 +1945,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 	    break;
 
 	default:
-	    fprintf(stderr, "ERROR: Unrecognized str = %s\n", &stabstr[cnt]);
+	    bperr( "ERROR: Unrecognized str = %s\n", &stabstr[cnt]);
 	    //	    return NULL;
 	    // Null probably isn't the right choice here.
 	    cnt = strlen(stabstr);
@@ -1982,7 +1975,7 @@ static BPatch_type *parseConstantUse(BPatch_module *mod, char *stabstr, int &cnt
     } else if (stabstr[cnt] == 'r') {
 	ret = mod->moduleTypes->findType("double");
     } else {
-	printf("unknown constant type %s\n", &stabstr[cnt]);
+	bperr("unknown constant type %s\n", &stabstr[cnt]);
 	ret = NULL;
     }
 

@@ -468,14 +468,14 @@ void BPatch_module::parseTypes()
 	      nmPtr = &stabstr[sym->n_offset-2];
 	  }
 #ifdef notdef
-	  printf("using nmPtr = %s\n", nmPtr);
-	  printf("got n_offset = (%d) %s\n", sym->n_offset, &stabstr[sym->n_offset]);
+	  bperr("using nmPtr = %s\n", nmPtr);
+	  bperr("got n_offset = (%d) %s\n", sym->n_offset, &stabstr[sym->n_offset]);
 	  if (sym->n_offset>=2) 
-	      printf("got n_offset-2 = %s\n", &stabstr[sym->n_offset-2]);
+	      bperr("got n_offset-2 = %s\n", &stabstr[sym->n_offset-2]);
 	  if (sym->n_offset>=3) 
-	      printf("got n_offset-3 = %x\n", stabstr[sym->n_offset-3]);
+	      bperr("got n_offset-3 = %x\n", stabstr[sym->n_offset-3]);
 	  if (sym->n_offset>=4) 
-	      printf("got n_offset-4 = %x\n", stabstr[sym->n_offset-4]);
+	      bperr("got n_offset-4 = %x\n", stabstr[sym->n_offset-4]);
 #endif
       } else {
 	  // names 8 or less chars on inline, not in stabstr
@@ -509,7 +509,7 @@ void BPatch_module::parseTypes()
 	      
 	      commonBlockVar = progam->findVariable(commonBlockName);
 	      if (!commonBlockVar) {
-		  printf("unable to find variable %s\n", commonBlockName);
+		  bperr("unable to find variable %s\n", commonBlockName);
 	      } else {
 		  commonBlock = 
 		      const_cast<BPatch_type *> (commonBlockVar->getType());
@@ -528,7 +528,7 @@ void BPatch_module::parseTypes()
 	      // copy this set of fields
 	    BPatch_Vector<BPatch_function *> bpmv;
    	    if (NULL == findFunction(funcName, bpmv) || !bpmv.size()) {
-	      fprintf(stderr,"unable to locate current function %s\n", funcName);
+	      bperr("unable to locate current function %s\n", funcName);
 	      } else {
 		BPatch_function *func = bpmv[0];
 		commonBlock->endCommonBlock(func, commonBlockVar->getBaseAddr());
@@ -564,7 +564,7 @@ void BPatch_module::parseTypes()
 
 	      BPatch_variableExpr *staticBlockVar = progam->findVariable(staticName);
 	      if (!staticBlockVar) {
-		  printf("unable to find static block %s\n", staticName);
+		  bperr("unable to find static block %s\n", staticName);
 		  staticBlockBaseAddr = 0;
 	      } else {
 		  staticBlockBaseAddr = (Address) staticBlockVar->getBaseAddr();
@@ -694,7 +694,7 @@ void BPatch_module::parseStabTypes()
       break;
 
     case N_SO: /* compilation source or file name */
-      /* printf("Resetting CURRENT FUNCTION NAME FOR NEXT OBJECT FILE\n");*/
+      /* bperr("Resetting CURRENT FUNCTION NAME FOR NEXT OBJECT FILE\n");*/
 #ifdef TIMED_PARSE
       src_count++;
       gettimeofday(&t1, NULL);
@@ -848,7 +848,7 @@ void BPatch_module::parseStabTypes()
 	BPatch_image *progam = (BPatch_image *) getObjParent();
 	commonBlockVar = progam->findVariable(commonBlockName);
 	if (!commonBlockVar) {
-	  printf("unable to find variable %s\n", commonBlockName);
+	  bperr("unable to find variable %s\n", commonBlockName);
 	} else {
 	  commonBlock = const_cast<BPatch_type *> (commonBlockVar->getType());
 	  if (commonBlock->getDataClass() != BPatch_dataCommon) {
@@ -870,11 +870,11 @@ void BPatch_module::parseStabTypes()
 	
 	assert(currentFunctionName);
 	if (NULL == findFunction(currentFunctionName->c_str(), bpfv) || !bpfv.size()) {
-	  fprintf(stderr,"unable to locate current function %s\n", currentFunctionName->c_str());
+	  bperr("unable to locate current function %s\n", currentFunctionName->c_str());
 	} else {
 	  if (bpfv.size() > 1) {
 	    // warn if we find more than one function with this name
-	    printf("%s[%d]:  WARNING: found %d funcs matching name %s, using the first\n",
+	    bperr("%s[%d]:  WARNING: found %d funcs matching name %s, using the first\n",
 		   __FILE__, __LINE__, bpfv.size(), currentFunctionName->c_str());
 	  }
 	  
@@ -918,7 +918,7 @@ void BPatch_module::parseStabTypes()
 	  // XXX - memory leak on multiple cont. lines
 	}
 	
-	// printf("stab #%d = %s\n", i, ptr);
+	// bperr("stab #%d = %s\n", i, ptr);
 	// may be nothing to parse - XXX  jdd 5/13/99
 	if (nativeCompiler)
 	  temp = parseStabString(this, mostRecentLinenum, (char *)ptr, stabptr[i].val, commonBlock);
@@ -926,9 +926,9 @@ void BPatch_module::parseStabTypes()
 	  temp = parseStabString(this, stabptr[i].desc, (char *)ptr, stabptr[i].val, commonBlock);
 	if (temp && *temp) {
 	  //Error parsing the stabstr, return should be \0
-	  fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n",
+	  bperr( "Stab string parsing ERROR!! More to parse: %s\n",
 		  temp);
-	  fprintf(stderr, "  symbol: %s\n", ptr);
+	  bperr( "  symbol: %s\n", ptr);
 	}
 	
 #ifdef TIMED_PARSE

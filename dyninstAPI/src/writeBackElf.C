@@ -40,7 +40,7 @@
  */
 
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.C,v 1.21 2004/03/23 19:11:03 eli Exp $ */
+/* $Id: writeBackElf.C,v 1.22 2004/04/02 06:34:15 jaw Exp $ */
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 
@@ -58,12 +58,11 @@ writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName,
 									int debugOutputFlag) {
 
 	if((oldfd = open(oldElfName, O_RDONLY)) == -1){
-		printf(" OLDELF_OPEN_FAIL %s",oldElfName);
-		fflush(stdout);		
+		bperr(" OLDELF_OPEN_FAIL %s",oldElfName);
 		return;
 	}
 	if((newfd = (creat(newElfName, 0x1c0)))==-1){
-		//printf("NEWELF_OPEN_FAIL %s", newElfName);
+		//bperr("NEWELF_OPEN_FAIL %s", newElfName);
 		char *fileName = new char[strlen(newElfName)+1+3];
 		for(int i=0;newfd == -1 && i<100;i++){
 			sprintf(fileName, "%s%d",newElfName,i);
@@ -71,7 +70,7 @@ writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName,
 		}
 		fflush(stdout);
 		if(newfd == -1){
-			printf("NEWELF_OPEN_FAIL %s. clean up /tmp/dyninstMutatee*\n",
+			bperr("NEWELF_OPEN_FAIL %s. clean up /tmp/dyninstMutatee*\n",
 					 newElfName);
 			return; 
 		}
@@ -80,16 +79,16 @@ writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName,
 
 	if(elf_version(EV_CURRENT) == EV_NONE){
 
-		printf(" elf_version failed!\n");
+		bpfatal(" elf_version failed!\n");
 	} 
 	if ((oldElf = elf_begin(oldfd, ELF_C_READ, NULL)) == NULL){
-		printf("OLDELF_BEGIN_FAIL");
+		bperr("OLDELF_BEGIN_FAIL");
                 fflush(stdout);
 		return;
 	}
 	if((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) == NULL){
 		elf_end(oldElf);
-		printf("NEWELF_BEGIN_FAIL");
+		bperr("NEWELF_BEGIN_FAIL");
 		fflush(stdout);
 		return;
 	}
@@ -175,7 +174,7 @@ int writeBackElf::addSection(unsigned int addr, void *data,
 	memcpy(newSection->name, name, strlen(name)+1);
 	newSection->nameIndx = 0;
 	if(DEBUG_MSG){
-		printf(" ADDED SECTION: %x %x\n", newSection->vaddr,
+		bpinfo(" ADDED SECTION: %x %x\n", newSection->vaddr,
 				 *(unsigned int*)newSection->data);
 	}
 	return ++newSectionsSize;
@@ -215,7 +214,7 @@ void writeBackElf::driver(){
 
 	ehdr = elf32_getehdr(oldElf);
 	if(!(newEhdr = elf32_newehdr(newElf))){
-		printf("newEhdr failed\n");
+		bperr("newEhdr failed\n");
 		exit(1);
 	}
 
@@ -223,14 +222,14 @@ void writeBackElf::driver(){
 	if (((ehdr = elf32_getehdr(oldElf)) != NULL)){ 
 		if((scn = elf_getscn(oldElf, ehdr->e_shstrndx)) != NULL){
 			if((data = elf_getdata(scn, NULL)) == NULL){
-				printf(" Failed obtaining .shstrtab data buffer \n");
+				bperr(" Failed obtaining .shstrtab data buffer \n");
 				exit(1);
 			}
 		}else{
-			printf(" FAILED obtaining .shstrtab scn\n");		
+			bperr(" FAILED obtaining .shstrtab scn\n");		
 		}
 	}else{
-		printf(" FAILED obtaining .shstrtab ehdr\n");
+		bperr(" FAILED obtaining .shstrtab ehdr\n");
 	}
 	memcpy(newEhdr, ehdr, sizeof(Elf32_Ehdr));
 
@@ -331,14 +330,14 @@ void writeBackElf::parseOldElf(){
 	if (((ehdr = elf32_getehdr(oldElf)) != NULL)){
 		if((scn = elf_getscn(oldElf, ehdr->e_shstrndx)) != NULL){
 			if((data = elf_getdata(scn, NULL)) == NULL){
-				printf(" Failed obtaining .shstrtab data buffer \n");
+				bperr(" Failed obtaining .shstrtab data buffer \n");
 				exit(1);
 			}
 		}else{
-			printf(" FAILED obtaining .shstrtab scn\n");
+			bperr(" FAILED obtaining .shstrtab scn\n");
 		}
 	}else{
-		printf(" FAILED obtaining .shstrtab ehdr\n");
+		bperr(" FAILED obtaining .shstrtab ehdr\n");
 	}
 	
 	
@@ -347,7 +346,7 @@ void writeBackElf::parseOldElf(){
 	if (((ehdr = elf32_getehdr(oldElf)) == NULL) ||
 		 ((scn = elf_getscn(oldElf, ehdr->e_shstrndx)) == NULL) ||
 		 ((data = elf_getdata(scn, NULL)) == NULL)){
-		printf(" Failed obtaining .shstrtab data buffer \n");
+		bpfatal(" Failed obtaining .shstrtab data buffer \n");
 		exit(1);
 	}
 	
@@ -421,7 +420,7 @@ void writeBackElf::createSections(){
 
 	for(;i<newSectionsSize;i++){
 		if(DEBUG_MSG){
-			printf("ADDING SECTION");
+			bpinfo("ADDING SECTION");
 		}
 		newScn = elf_newscn(newElf);
 		newsh = elf32_getshdr(newScn);
@@ -447,7 +446,7 @@ void writeBackElf::createSections(){
 		memcpy((char*) newdata->d_buf, (char*) newSections[i].data, newdata->d_size);
 		elf_update(newElf, ELF_C_NULL);
 		if(DEBUG_MSG){
-			printf("ADDED: size %lx Addr %lx size %x data; %x\n",newsh->sh_size, newsh->sh_addr,
+			bpinfo("ADDED: size %lx Addr %lx size %x data; %x\n",newsh->sh_size, newsh->sh_addr,
 					 newdata->d_size,*(unsigned int*) newdata->d_buf);
 		}
 	}
@@ -587,8 +586,8 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 	stopPage = imagePatches[imagePatches.size()-1]->stopPage;
 	int startIndex=k, stopIndex=imagePatches.size()-1;
 	/*if(DEBUG_MSG){
-		printf("COMPACTING....\n");	
-		printf("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
+		bpinfo("COMPACTING....\n");	
+		bpinfo("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
 	}
 	patch = new imageUpdate;
         patch->address = imagePatches[startIndex]->address;
@@ -596,17 +595,17 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
                                    imagePatches[stopIndex]->size;
         newPatches.push_back(patch);
 	if(DEBUG_MSG){
-		printf(" COMPACTED: %x --> %x \n", patch->address, patch->size);
+		bperr(" COMPACTED: %x --> %x \n", patch->address, patch->size);
 	}*/
 	bool finished = false;
 	if(DEBUG_MSG){
-		printf("COMPACTING....\n");	
-		printf("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
+		bperr("COMPACTING....\n");	
+		bperr("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
 	}
 	for(;k<imagePatches.size();k++){
 		if(imagePatches[k]->address!=0){
 			if(DEBUG_MSG){
-				printf("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
+				bperr("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
 						 imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
 			}
 			if(imagePatches[k]->startPage <= (unsigned int) stopPage){
@@ -620,7 +619,7 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 						imagePatches[stopIndex]->size;
 				newPatches.push_back(patch);
 				if(DEBUG_MSG){
-					printf(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
+					bperr(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
 							 patch->address, patch->size, startPage,  stopPage);
 				}
 				finished = true;
@@ -650,8 +649,7 @@ void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches,
 			imagePatches[stopIndex]->size;
 		newPatches.push_back(patch);
 		if(DEBUG_MSG){
-			printf(" COMPACTED: %x --> %x \n", patch->address, patch->size);
-			fflush(stdout);
+			bperr(" COMPACTED: %x --> %x \n", patch->address, patch->size);
 		}
 	}	
 
@@ -702,10 +700,10 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 		VECTOR_SORT(imagePatches, imageUpdateSort);
 	}
 	if(DEBUG_MSG){
-		printf(" SORT 1\n");
+		bperr(" SORT 1\n");
 	
 		for(unsigned int kk=0;kk<imagePatches.size();kk++){
-			printf(" address 0x%x  size 0x%x \n", imagePatches[kk]->address, imagePatches[kk]->size);
+			bperr(" address 0x%x  size 0x%x \n", imagePatches[kk]->address, imagePatches[kk]->size);
 		}
 		fflush(stdout);
 	}
@@ -719,7 +717,7 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 			imagePatches[i]->stopPage =  end_addr - (end_addr % pageSize);
 
 			if(DEBUG_MSG){
-				printf(" address %x end addr %x : start page %x stop page %x \n",
+				bperr(" address %x end addr %x : start page %x stop page %x \n",
 						 imagePatches[i]->address,
 						 imagePatches[i]->address + imagePatches[i]->size,
 						 imagePatches[i]->startPage, imagePatches[i]->stopPage);
@@ -757,10 +755,10 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 	unsigned int k=0;
 
 	if(DEBUG_MSG){
-		printf(" SORT 3\n");
+		bperr(" SORT 3\n");
 
 		for(unsigned int kk=0;kk<imagePatches.size();kk++){
-			printf(" address 0x%x  size 0x%x \n", imagePatches[kk]->address, imagePatches[kk]->size);
+			bperr(" address 0x%x  size 0x%x \n", imagePatches[kk]->address, imagePatches[kk]->size);
 		}
 		fflush(stdout);
 	}
@@ -773,13 +771,13 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 	int startIndex=k, stopIndex=k;
 	bool finished = false;
 	if(DEBUG_MSG){
-		printf("COMPACTING....\n");	
-		printf("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
+		bperr("COMPACTING....\n");	
+		bperr("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
 	}
 	for(;k<imagePatches.size();k++){
 		if(imagePatches[k]->address!=0){
 			if(DEBUG_MSG){
-				printf("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
+				bperr("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
 						 imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
 			}
 			if(imagePatches[k]->startPage <= (unsigned int) stopPage){
@@ -793,7 +791,7 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 						imagePatches[stopIndex]->size;
 				newPatches.push_back(patch);
 				if(DEBUG_MSG){
-					printf(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
+					bperr(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
 							 patch->address, patch->size, startPage,  stopPage);
 				}
 				finished = true;
@@ -823,8 +821,7 @@ void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvecto
 			imagePatches[stopIndex]->size;
 		newPatches.push_back(patch);
 		if(DEBUG_MSG){
-			printf(" COMPACTED: %x --> %x \n", patch->address, patch->size);
-			fflush(stdout);
+			bperr(" COMPACTED: %x --> %x \n", patch->address, patch->size);
 		}
 	}	
 	

@@ -136,7 +136,7 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, char ** b
 			} break;
 
 		default:
-			fprintf( stderr, "Invalid bound form 0x%x\n", boundForm );
+			bperr( "Invalid bound form 0x%x\n", boundForm );
 			* boundString = "{invalid bound form}";
 			return false;
 			break;
@@ -228,7 +228,7 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, char ** loBound
 
 	BPatch_type * rangeType = new BPatch_type( subrangeName, subrangeOffset, BPatchSymTypeRange, * loBound, * hiBound );
 	assert( rangeType != NULL );
-	// fprintf( stderr, "Adding range type '%s' (%lu) [%s, %s]\n", subrangeName, (unsigned long)subrangeOffset, * loBound, * hiBound );
+	// bperr( "Adding range type '%s' (%lu) [%s, %s]\n", subrangeName, (unsigned long)subrangeOffset, * loBound, * hiBound );
 	rangeType = module->moduleTypes->addOrUpdateType( rangeType );
 	if( dwarvenName == DW_DLV_OK ) { dwarf_dealloc( dbg, subrangeName, DW_DLA_STRING ); }
 	} /* end parseSubRangeDIE() */
@@ -276,7 +276,7 @@ BPatch_type * parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, BP
 		innermostType->setLow( loBound );
 		innermostType->setHigh( hiBound );
 		setArraySize( innermostType, loBound, hiBound );
-		// fprintf( stderr, "Adding inner-most type %lu\n", (unsigned long) dieOffset );
+		// bperr( "Adding inner-most type %lu\n", (unsigned long) dieOffset );
 		innermostType = module->moduleTypes->addOrUpdateType( innermostType );
 		return innermostType;
 		} /* end base-case of recursion. */
@@ -289,7 +289,7 @@ BPatch_type * parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, BP
 	outerType->setHigh( hiBound );
 	setArraySize( outerType, loBound, hiBound );
 	assert( outerType != NULL );
-	// fprintf( stderr, "Adding inner type %lu\n", (unsigned long) dieOffset );
+	// bperr( "Adding inner type %lu\n", (unsigned long) dieOffset );
 	outerType = module->moduleTypes->addOrUpdateType( outerType );
 
 	dwarf_dealloc( dbg, nextSibling, DW_DLA_DIE );
@@ -307,7 +307,7 @@ void deallocateLocationList( Dwarf_Debug & dbg, Dwarf_Locdesc * locationList, Dw
 void dumpLocListAddrRanges( Dwarf_Locdesc * locationList, Dwarf_Signed listLength ) {
 	for( int i = 0; i < listLength; i++ ) {
 		Dwarf_Locdesc location = locationList[i];
-		fprintf( stderr, "0x%lx to 0x%lx; ", (Address)location.ld_lopc, (Address)location.ld_hipc );
+		fprintf(stderr, "0x%lx to 0x%lx; ", (Address)location.ld_lopc, (Address)location.ld_hipc );
 		}
 	fprintf( stderr, "\n" );
 	} /* end dumpLocListAddrRanges */
@@ -381,7 +381,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 	for( unsigned int i = 0; i < location.ld_cents; i++ ) {
 		/* Handle the literals w/o 32 case statements. */
 		if( DW_OP_lit0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_lit31 ) {
-			// fprintf( stderr, "Pushing named constant: %d\n", locations[i].lr_atom - DW_OP_lit0 );
+			// bperr( "Pushing named constant: %d\n", locations[i].lr_atom - DW_OP_lit0 );
 			opStack.push( locations[i].lr_atom - DW_OP_lit0 );
 			continue;
 			}
@@ -393,7 +393,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 			case DW_OP_const4u:
 			case DW_OP_const8u:
 			case DW_OP_constu:
-				// fprintf( stderr, "Pushing constant %lu\n", (unsigned long)locations[i].lr_number );
+				// bperr( "Pushing constant %lu\n", (unsigned long)locations[i].lr_number );
 				opStack.push( (Dwarf_Unsigned)locations[i].lr_number );
 				break;
 
@@ -402,7 +402,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 			case DW_OP_const4s:
 			case DW_OP_const8s:
 			case DW_OP_consts:
-				// fprintf( stderr, "Pushing constant %ld\n", (signed long)(locations[i].lr_number) );
+				// bperr( "Pushing constant %ld\n", (signed long)(locations[i].lr_number) );
 				opStack.push( (Dwarf_Signed)(locations[i].lr_number) );
 				break;
 
@@ -597,7 +597,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 
 			case DW_OP_piece:
 				/* For multi-part variables, which we don't handle. */
-				fprintf( stderr, "Warning: dyninst does not handle multi-part variables.\n" );
+				bperr( "Warning: dyninst does not handle multi-part variables.\n" );
 				break;
 
 			case DW_OP_nop:
@@ -605,13 +605,13 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 
 			default:
 				/* FIXME: register names for formal parameters in libstdc++? */
-				// fprintf( stderr, "Unrecognized or non-static location opcode 0x%x, aborting.\n", locations[i].lr_atom );
+				// bperr("Unrecognized or non-static location opcode 0x%x, aborting.\n", locations[i].lr_atom );
 				return false;
 			} /* end operand switch */
 		} /* end iteration over Dwarf_Loc entries. */
 
 	/* The top of the stack is the computed location. */
-	// fprintf( stderr, "Location decoded: %ld\n", opStack.top() );
+	// bperr( "Location decoded: %ld\n", opStack.top() );
 	* offset = opStack.top();
 	
 	/* decode successful */
@@ -667,7 +667,7 @@ void dumpAttributeList( Dwarf_Die dieEntry, Dwarf_Debug & dbg ) {
 	status = dwarf_attrlist( dieEntry, & attributeList, & attributeCount, NULL );
 	assert( status != DW_DLV_ERROR );
 
-	fprintf( stderr, "DIE %s has attributes:", entryName );
+	bperr( "DIE %s has attributes:", entryName );
 	for( int i = 0; i < attributeCount; i++ ) {
 		Dwarf_Half whatAttr = 0;
 		status = dwarf_whatattr( attributeList[i], & whatAttr, NULL );
@@ -694,7 +694,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 	Dwarf_Off dieOffset;
 	status = dwarf_dieoffset( dieEntry, & dieOffset, NULL );
 	assert( status == DW_DLV_OK );
-	// fprintf( stderr, "Considering DIE at %lu with tag 0x%x\n", (unsigned long)dieOffset, dieTag );
+	// bperr( "Considering DIE at %lu with tag 0x%x\n", (unsigned long)dieOffset, dieTag );
 
 	/* If this entry is a function, common block, or structure (class),
 	   its children will be in its scope, rather than its
@@ -763,7 +763,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			if( functionName == NULL ) {
 				/* I'm not even sure what an anonymous function _means_,
 				   but we sure can't do anything with it. */
-				// fprintf( stderr, "Warning: anonymous function (type %lu).\n", (unsigned long)dieOffset );
+				// bperr( "Warning: anonymous function (type %lu).\n", (unsigned long)dieOffset );
 
 				/* Don't parse the children, since we can't add them. */
 				parsedChild = true;
@@ -786,7 +786,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				break;
 				}
 			else if( functions.size() > 1 ) {
-				// fprintf( stderr, "Warning: found more than one function '%s', unable to do anything reasonable.\n", functionName );
+				// bperr( "Warning: found more than one function '%s', unable to do anything reasonable.\n", functionName );
 
 				/* Don't parse the children, since we can't add them. */
 				parsedChild = true;
@@ -907,7 +907,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			} break;
 
 		case DW_TAG_constant: {
-			fprintf( stderr, "Warning: dyninst ignores named constant entries.\n" );
+			bperr( "Warning: dyninst ignores named constant entries.\n" );
 			} break;
 		
 		/* It's worth noting that a variable may have a constant value.  Since,
@@ -1184,7 +1184,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			currentFunction->funcParameters->addLocalVar( newParameter );
 			currentFunction->addParam( parameterName, parameterType, parameterLineNo, parameterOffset );
 			
-			// /* DEBUG */ fprintf( stderr, "Added formal parameter '%s' (at FP + %ld) of type %p from line %lu.\n", parameterName, parameterOffset, parameterType, (unsigned long)parameterLineNo );
+			// /* DEBUG */ bperr( "Added formal parameter '%s' (at FP + %ld) of type %p from line %lu.\n", parameterName, parameterOffset, parameterType, (unsigned long)parameterLineNo );
 			} break;
 
 		case DW_TAG_base_type: {
@@ -1210,7 +1210,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			assert( baseType != NULL );
 
 			/* Add the basic type to our collection. */
-			// fprintf( stderr, "Adding base type '%s' (%lu) of size %lu\n\n", typeName, (unsigned long)dieOffset, (unsigned long)byteSize );
+			// bperr( "Adding base type '%s' (%lu) of size %lu\n\n", typeName, (unsigned long)dieOffset, (unsigned long)byteSize );
 			baseType = module->moduleTypes->addOrUpdateType( baseType );
 			
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
@@ -1251,7 +1251,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				}
 
 			/* Add the typedef to our collection. */
-			// fprintf( stderr, "Adding typedef: '%s' as %lu (pointing to %lu)\n", definedName, (unsigned long)dieOffset, (unsigned long)typeOffset );
+			// bperr( "Adding typedef: '%s' as %lu (pointing to %lu)\n", definedName, (unsigned long)dieOffset, (unsigned long)typeOffset );
 			BPatch_type * typedefType = new BPatch_type( definedName, dieOffset, BPatch_typeDefine, referencedType );
 			typedefType = module->moduleTypes->addOrUpdateType( typedefType );
 
@@ -1296,7 +1296,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			arrayType->setLow( baseArrayType->getLow() );
 			arrayType->setHigh( baseArrayType->getHigh() );
 			setArraySize( arrayType, baseArrayType->getLow(), baseArrayType->getHigh() );
-			// fprintf( stderr, "Adding array type '%s' (%lu) [%s, %s] @ %p\n", arrayName, (unsigned long)dieOffset, baseArrayType->getLow(), baseArrayType->getHigh(), arrayType );
+			// bperr( "Adding array type '%s' (%lu) [%s, %s] @ %p\n", arrayName, (unsigned long)dieOffset, baseArrayType->getLow(), baseArrayType->getHigh(), arrayType );
 			arrayType = module->moduleTypes->addOrUpdateType( arrayType );
 
 			/* Don't parse the children again. */
@@ -1356,7 +1356,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 					case DW_ACCESS_protected: visibility = BPatch_protected; break;
 					case DW_ACCESS_private: visibility = BPatch_private; break;
 					default:
-						fprintf( stderr, "Uknown visibility, ignoring.\n" );
+						bperr( "Uknown visibility, ignoring.\n" );
 						break;
 					} /* end visibility switch */
 
@@ -1396,7 +1396,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			
 			BPatch_type * containingType = new BPatch_type( typeName, dieOffset, bpdc, typeSize );
 			assert( containingType != NULL );
-			// fprintf( stderr, "Adding structure, union, or class type '%s' (%lu)\n", typeName, (unsigned long)dieOffset );
+			// bperr( "Adding structure, union, or class type '%s' (%lu)\n", typeName, (unsigned long)dieOffset );
 			containingType = module->moduleTypes->addOrUpdateType( containingType );
 			newEnclosure = containingType;
 			
@@ -1421,7 +1421,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				dwarf_dealloc( dbg, valueAttr, DW_DLA_ATTR );
 				}
 
-			// fprintf( stderr, "Adding enum '%s' (%ld) to enumeration '%s' (%d)\n", enumName, (signed long)enumValue, currentEnclosure->getName(), currentEnclosure->getID() );
+			// bperr( "Adding enum '%s' (%ld) to enumeration '%s' (%d)\n", enumName, (signed long)enumValue, currentEnclosure->getName(), currentEnclosure->getID() );
 			currentEnclosure->addField( enumName, BPatch_dataScalar, enumValue );
 
 			dwarf_dealloc( dbg, enumName, DW_DLA_STRING );
@@ -1469,7 +1469,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			
 			assert( isFrameRelative == false );
 
-			// fprintf( stderr, "Adding member to enclosure '%s' (%d): '%s' with type %lu at %ld and size %d\n", currentEnclosure->getName(), currentEnclosure->getID(), memberName, (unsigned long)typeOffset, memberOffset, memberType->getSize() );
+			// bperr( "Adding member to enclosure '%s' (%d): '%s' with type %lu at %ld and size %d\n", currentEnclosure->getName(), currentEnclosure->getID(), memberName, (unsigned long)typeOffset, memberOffset, memberType->getSize() );
 
 			/* DWARF stores offsets in bytes unless the member is a bit field.
 			   Correct memberOffset as indicated.  Also, memberSize is in bytes
@@ -1507,7 +1507,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				memberSize *= 8;
 				} /* end if not a bit field member. */
 
-			// fprintf( stderr, "Adding member '%s' to enclosure '%s'\n", memberName, currentEnclosure->getName() );
+			// bperr( "Adding member '%s' to enclosure '%s'\n", memberName, currentEnclosure->getName() );
 			currentEnclosure->addField( memberName, memberType->getDataClass(), memberType, memberOffset, memberSize );
 
 			dwarf_dealloc( dbg, memberName, DW_DLA_STRING );
@@ -1548,7 +1548,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			BPatch_type * modifierType = new BPatch_type( typeName, dieOffset, BPatch_typeAttrib, typeSize, typeModified, dieTag );
 			assert( modifierType != NULL );
-			// fprintf( stderr, "Adding modifier type '%s' (%lu) modifying (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
+			// bperr( "Adding modifier type '%s' (%lu) modifying (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
 			modifierType = module->moduleTypes->addOrUpdateType( modifierType );
 
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
@@ -1590,7 +1590,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			BPatch_type * indirectType = new BPatch_type( typeName, dieOffset, BPatch_dataPointer, typePointedTo );
 			assert( indirectType != NULL );
-			// fprintf( stderr, "Adding indirect type '%s' (%lu) pointing to (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
+			// bperr( "Adding indirect type '%s' (%lu) pointing to (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
 			indirectType = module->moduleTypes->addOrUpdateType( indirectType );
 
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
@@ -1602,7 +1602,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* We don't support this (FORTRAN) type. */
 		default:
 			/* Nothing of interest. */
-			// fprintf( stderr, "Entry %lu with tag 0x%x ignored.\n", (unsigned long)dieOffset, dieTag );
+			// bperr( "Entry %lu with tag 0x%x ignored.\n", (unsigned long)dieOffset, dieTag );
 			break;
 		} /* end dieTag switch */
 
@@ -1636,7 +1636,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
 
 void BPatch_module::parseDwarfTypes() {
-    // fprintf( stderr, "Parsing module '%s'\n", mod->fileName().c_str() );
+    // bperr( "Parsing module '%s'\n", mod->fileName().c_str() );
 
 	/* Get the Object object. */
 	image * moduleImage = mod->exec();
@@ -1645,7 +1645,7 @@ void BPatch_module::parseDwarfTypes() {
 
 	/* Start the dwarven debugging. */
 	const char * fileName = moduleObject.getFileName();
-	// fprintf( stderr, "Parsing object '%s'\n", fileName );
+	// bperr( "Parsing object '%s'\n", fileName );
 
 	Dwarf_Debug dbg;
 
@@ -1677,7 +1677,7 @@ void BPatch_module::parseDwarfTypes() {
 			assert( moduleName != NULL );
 			}
 		assert( status != DW_DLV_ERROR );
-		// fprintf( stderr, "%s[%d]: Considering compilation unit '%s'\n", 
+		// bperr( "%s[%d]: Considering compilation unit '%s'\n", 
 		//	 __FILE__, __LINE__, moduleName );
 
 		/* Set the language, if any. */
@@ -1745,7 +1745,7 @@ void BPatch_module::parseDwarfTypes() {
 				bptype->setDataClass( bptype->getConstituentType()->getDataClass() );
 				}
 			else {
-				fprintf( stderr, "Warning: type information may be incomplete (#%d).\n", bptype->getID() );
+				bperr("Warning: type information may be incomplete (#%d).\n", bptype->getID() );
 				}
 			} /* end if the datatype is unknown. */
 		} /* end iteration over moduleTypes */
@@ -1812,7 +1812,7 @@ void *parseVsyscallPage(char *buffer, unsigned dso_size, process *p)
 	   &eh_frame->cie_element_count, &eh_frame->fde_data,
 	   &eh_frame->fde_element_count, &err);				 
    if (iresult != DW_DLV_OK) {
-	 fprintf(stderr, "Couldn't get fde list\n");
+	 bperr( "Couldn't get fde list\n");
 	 goto err_handler;   
    }
    

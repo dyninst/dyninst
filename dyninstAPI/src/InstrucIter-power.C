@@ -218,7 +218,7 @@ void initOpCodeInfo()
 
   xopCodes[STFIWXxop]	= new opCodeInfo(4, 1);
 
-  //fprintf(stderr, "POWER opcode info initialized.\n");
+  //bperr( "POWER opcode info initialized.\n");
 }
 
 

@@ -516,10 +516,10 @@ Address rpcMgr::createRPCImage(AstNode *action,
    /* Now, write to the tempTramp, in the inferior addr's data space
       (all tramps are allocated in data space) */
    /*
-     fprintf(stderr, "IRPC:\n");
+     bperr( "IRPC:\n");
      for (unsigned i = 0; i < count/4; i++)
-     fprintf(stderr, "0x%x\n", ((int *)insnBuffer)[i]);
-     fprintf(stderr, "\n\n\n\n\n");
+     bperr( "0x%x\n", ((int *)insnBuffer)[i]);
+     bperr("\n\n\n\n\n");
    */
    if (!proc_->writeDataSpace((void*)tempTrampBase, count, insnBuffer)) {
       // should put up a nice error dialog window

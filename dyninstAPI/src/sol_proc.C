@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.50 2004/03/24 23:30:12 bernat Exp $
+// $Id: sol_proc.C,v 1.51 2004/04/02 06:34:15 jaw Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -178,12 +178,12 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
   Address pc;  // PC at which we are trying to continue
   // Check the current status
   if (!get_status(&status)) {
-      fprintf(stderr, "Failed to get LWP status\n");
+      bperr( "Failed to get LWP status\n");
       return false;
   }
 
   if ((0==status.pr_flags & PR_STOPPED) && (0==status.pr_flags & PR_ISTOP)) {
-      fprintf(stderr, "LWP not stopped\n");
+      bperr( "LWP not stopped\n");
       return false;
   }
 
@@ -1117,7 +1117,7 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 			result = sh_obj->isinText((Address) inTraced);
 		}
 		if( result  ){
-         /*	printf(" write at %lx in %s amount %x insn: %x \n", 
+         /*	bperr(" write at %lx in %s amount %x insn: %x \n", 
 				(off_t)inTraced, sh_obj->getName().c_str(), amount,
             *(unsigned int*) inSelf);
             */	
@@ -1148,7 +1148,7 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) {
 
     if(pread64(as_fd(), inSelf, amount, loc) != (int)amount) {
         perror("readDataSpace");
-        fprintf(stderr, "From 0x%x (mutator) to 0x%x (mutatee), %d bytes\n",
+        bperr( "From 0x%x (mutator) to 0x%x (mutatee), %d bytes\n",
                 (int)inSelf, (int)inTraced, amount);
         return false;
     }
@@ -1225,7 +1225,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
     if (trappedSyscall) {
         // That was easy...
         trappedSyscall->refcount++;
-        //fprintf(stderr, "Bumping refcount for syscall %d to %d\n",
+        //bperr( "Bumping refcount for syscall %d to %d\n",
         //        (int)trappedSyscall->syscall_id, trappedSyscall->refcount);
         return trappedSyscall;
     }
@@ -1239,7 +1239,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
         trappedSyscall->refcount = 1;
         trappedSyscall->syscall_id = (int) syscall;
 
-        //fprintf(stderr, "  trapping syscall %d for 1st time (%d)\n",
+        //bperr( "  trapping syscall %d for 1st time (%d)\n",
         //       (int)trappedSyscall->syscall_id, trappedSyscall->refcount);
         
 #if defined(AIX_PROC) 
@@ -1282,7 +1282,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
         praddsysset(cur_syscalls, trappedSyscall->syscall_id);
         if (!set_exit_syscalls(cur_syscalls)) return false;
         
-        //fprintf(stderr, "PCSexit for %d, orig %d\n", 
+        //bperr("PCSexit for %d, orig %d\n", 
         //trappedSyscall->syscall_id, trappedSyscall->orig_setting);
 #endif
         // Insert into the list of trapped syscalls
@@ -1301,7 +1301,7 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
 
     trappedSyscall->refcount--;
     if (trappedSyscall->refcount > 0) {
-        //fprintf(stderr, "Refcount on syscall %d reduced to %d\n",
+        //bperr( "Refcount on syscall %d reduced to %d\n",
         //        (int)trappedSyscall->syscall_id,
         //        trappedSyscall->refcount);
         return true;
@@ -1341,7 +1341,7 @@ Address dyn_lwp::getCurrentSyscall() {
     // Return the system call we're currently in
     lwpstatus_t status;
     if (!get_status(&status)) {
-        fprintf(stderr, "Failed to get status\n");
+        bperr( "Failed to get status\n");
         return 0;
     }
 #if defined(AIX_PROC)
@@ -1382,7 +1382,7 @@ int dyn_lwp::hasReachedSyscallTrap() {
     // Get the status of the LWP
     lwpstatus_t status;
     if (!get_status(&status)) {
-        fprintf(stderr, "Failed to get thread status\n");
+        bperr( "Failed to get thread status\n");
         return 0;
     }
     

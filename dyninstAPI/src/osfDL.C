@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.39 2004/03/23 01:12:06 eli Exp $
+// $Id: osfDL.C,v 1.40 2004/04/02 06:34:13 jaw Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -132,7 +132,7 @@ bool dynamic_linking::initialize() {
     bool found = proc->findInternalSymbol(dyn_str, false, dyn_sym);
     if (!found) {
 	// static, nothing to do.
-        printf("program is statically linked\n");
+        bpinfo("program is statically linked\n");
         return false;
     }
 
@@ -186,27 +186,27 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects() {
 	long offset = regions[0].mapaddr - regions[0].vaddr;
 #ifdef notdef
 	if (offset) {
-	    fprintf(stderr, "*** shared lib at non-default offset **: ");
-	    fprintf(stderr, "    %s\n", obj_name.c_str());
-	    fprintf(stderr, "    offset = %ld\n", offset);
+	    bperr("*** shared lib at non-default offset **: ");
+	    bperr("    %s\n", obj_name.c_str());
+	    bperr("    offset = %ld\n", offset);
 	} else {
-	    fprintf(stderr, "*** shared lib **: ");
-	    fprintf(stderr, "    %s\n", obj_name.c_str());
-	    fprintf(stderr, "    at = %ld\n", regions[0].mapaddr);
+	    bperr("*** shared lib **: ");
+	    bperr("    %s\n", obj_name.c_str());
+	    bperr("    at = %ld\n", regions[0].mapaddr);
 	}
 #endif
 
 	for (int i=0; i < module.nregions; i++) {
 	    long newoffset = regions[i].mapaddr - regions[i].vaddr;
 	    if (newoffset != offset) {
-		fprintf(stderr, "shared lib regions have different offsets\n");
+		bperr( "shared lib regions have different offsets\n");
 	    }
 	    regions[i].name = (long unsigned) readDataString(proc,
 		(void *) regions[i].name);
-	    // printf("  region %d (%s) ", i, regions[i].name);
-	    // printf("addr = %lx, ", regions[i].vaddr);
-	    // printf("mapped at = %lx, ", regions[i].mapaddr);
-	    // printf("size = %x\n", regions[i].size);
+	    // bperr("  region %d (%s) ", i, regions[i].name);
+	    // bperr("addr = %lx, ", regions[i].vaddr);
+	    // bperr("mapped at = %lx, ", regions[i].mapaddr);
+	    // bperr("size = %x\n", regions[i].size);
 	}
 	if(obj_name != proc->getImage()->file() &&
 	   obj_name != proc->getImage()->name()) {
@@ -358,7 +358,7 @@ static void dumpMap(int proc_fd)
   ret = ioctl(proc_fd, PIOCNMAP, &numMaps);
   assert(ret == 0);
 
-  printf("%d segments mapped\n", numMaps);
+  bperr("%d segments mapped\n", numMaps);
 
   maps = (prmap_t *) calloc(sizeof(prmap_t), numMaps+1);
 
@@ -366,14 +366,13 @@ static void dumpMap(int proc_fd)
   assert(ret == 0);
 
   for (int i = 0; i < numMaps; i++) {
-        printf("map %d:\n", i);
-        printf("    start: %lx\n", maps[i].pr_vaddr);
-        printf("    size: %lx\n", maps[i].pr_size);
-        printf("    protection: ");
-        if (maps[i].pr_mflags & MA_READ) printf("READ ");
-        if (maps[i].pr_mflags & MA_WRITE) printf("WRITE ");
-        if (maps[i].pr_mflags & MA_EXEC) printf("EXEC ");
-        printf("\n");
+        bperr("map %d:\n", i);
+        bperr("    start: %lx\n", maps[i].pr_vaddr);
+        bperr("    size: %lx\n", maps[i].pr_size);
+        bperr("    protection: ");
+        if (maps[i].pr_mflags & MA_READ) bperr("READ ");
+        if (maps[i].pr_mflags & MA_WRITE) bperr("WRITE ");
+        if (maps[i].pr_mflags & MA_EXEC) bperr("EXEC ");
   }
 }
 #endif

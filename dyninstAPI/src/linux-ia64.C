@@ -103,7 +103,7 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs)
 	regs->restorePredicateRegistersFromStack =
 	   needToHandleSyscall( proc_, &regs->pcMayHaveRewound );
 
-	// /* DEBUG */ fprintf( stderr, "-*- dyn_lwp::getRegisters()\n" );
+	// /* DEBUG */ bperr( "-*- dyn_lwp::getRegisters()\n" );
 	return true;
 }
 
@@ -181,7 +181,7 @@ bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs )
 		assert( P_ptrace( PTRACE_POKEUSER, proc_->getPid(), PT_PR, (Address) & predicateRegisters ) != -1 );
 		} /* end predicate register restoration. */
 
-	// /* DEBUG */ fprintf( stderr, "-*- dyn_lwp::restoreRegisters()\n" );
+	// /* DEBUG */ bperr( "-*- dyn_lwp::restoreRegisters()\n" );
     return true;
 }
 
@@ -220,7 +220,7 @@ bool process::handleTrapAtEntryPointOfMain() {
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, this );
 	iAddr.writeMyBundleFrom( savedCodeBuffer );
 
-	// /* DEBUG */ fprintf( stderr, "* Handled trap at entry point of main().\n" );
+	// /* DEBUG */ bperr( "* Handled trap at entry point of main().\n" );
 	return true;
 } /* end handleTrapAtEntryPointOfMain() */
 
@@ -247,7 +247,7 @@ bool process::insertTrapAtEntryPointOfMain() {
 	iAddr.replaceBundleWith( generateTrapBundle() );
 	
 	main_brk_addr = addr;
-	// /* DEBUG */ fprintf( stderr, "* Inserted trap at entry point of main() : 0x%lx.\n", main_brk_addr );
+	// /* DEBUG */ bperr( "* Inserted trap at entry point of main() : 0x%lx.\n", main_brk_addr );
 	return true;
 } /* end insertTrapAtEntryPointOfMain() */
 
@@ -348,12 +348,12 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 	status = unw_step( unwindCursor );
   
 	if( status == -UNW_ENOINFO ) {
-	  	// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): no unwind information available for this frame (ip = 0x%lx, sp = 0x%lx, tp = 0x%lx), unable to acquire frame pointer.  (Probably an inferior RPC.)\n", pid, ip, sp, tp );
+	  	// /* DEBUG */ bperr( "createFrameFromUnwindCursor(pid = %d): no unwind information available for this frame (ip = 0x%lx, sp = 0x%lx, tp = 0x%lx), unable to acquire frame pointer.  (Probably an inferior RPC.)\n", pid, ip, sp, tp );
 		isUppermost = true;
 		}
 	else if( status == 0 ) {
 	  	/* This is the uppermost frame. */
-	  	// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(): unwind information indicates that this is the uppermost frame.\n" );
+	  	// /* DEBUG */ bperr( "createFrameFromUnwindCursor(): unwind information indicates that this is the uppermost frame.\n" );
 	  	isUppermost = true;
 	  	}
 	else if( status > 0 ) {
@@ -623,7 +623,7 @@ bool process::loadDYNINSTlibCleanup() {
 #include <trampTemplate.h>	
 #include <instPoint.h>
 Frame Frame::getCallerFrame( process * proc ) const {
-	// /* DEBUG */ fprintf( stderr, "getCallerFrame(): getting caller's frame (ip = 0x%lx, fp = 0x%lx, sp = 0x%lx).\n", getPC(), getFP(), getSP() );
+	// /* DEBUG */ bperr( "getCallerFrame(): getting caller's frame (ip = 0x%lx, fp = 0x%lx, sp = 0x%lx).\n", getPC(), getFP(), getSP() );
 
 	int status = 0;
 
@@ -786,11 +786,11 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     
     trappedSyscall->refcount--;
     if (trappedSyscall->refcount > 0) {
-        fprintf(stderr, "Syscall still has refcount %d\n", 
+        bperr( "Syscall still has refcount %d\n", 
                 trappedSyscall->refcount);
         return true;
     }
-    fprintf(stderr, "Removing trapped syscall at %ld\n",
+    bperr( "Removing trapped syscall at %ld\n",
             trappedSyscall->syscall_id);
     if (!writeDataSpace((void *)getPC(pid), 16, trappedSyscall->saved_insn))
         return false;

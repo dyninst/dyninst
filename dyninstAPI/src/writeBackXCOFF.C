@@ -64,7 +64,7 @@ int writeBackXCOFF::loadFile(XCOFF* file){
 	file->fd = open( file->name, O_RDONLY);
 
 	if( file->fd == -1 ){
-		printf(" error opening: %s \n", file->name);
+		bperr(" error opening: %s \n", file->name);
 		return 0;
 	}
 
@@ -73,7 +73,7 @@ int writeBackXCOFF::loadFile(XCOFF* file){
 	int statRet = fstat(file->fd, &statInfo);	
 	
 	if( statRet == -1) {
-		printf(" no stats found for %s \n", file->name);
+		bperr(" no stats found for %s \n", file->name);
 		close(file->fd);
 		return -1;
 	}
@@ -98,7 +98,7 @@ void writeBackXCOFF::parseXCOFF(XCOFF *file){
 	file->XCOFFhdr = (struct xcoffhdr*) file->buffer;
 
 	if(file->XCOFFhdr->filehdr.f_magic != 0x01DF ){
-		printf(" %s is not a 32XCOFF file\n", file->name);
+		bperr(" %s is not a 32XCOFF file\n", file->name);
 		file->opened = false;
 	}
 
@@ -127,7 +127,7 @@ writeBackXCOFF::writeBackXCOFF(char* oldFileName, char* newFileName,bool &error,
 	oldFile.opened = true;
 	error = false; 
 	if( !ret ){
-		printf(" Error: %s not opened properly\n",oldFile.name);
+		bperr(" Error: %s not opened properly\n",oldFile.name);
 		oldFile.opened = false;
 		error = true;
 	}
@@ -228,7 +228,7 @@ unsigned int calcOffsets(XCOFF* newFile, XCOFF* oldFile, unsigned int newTextSiz
 	unsigned int offSet = lastDataByte - (oldFile->sechdr[numbSecs-1].s_scnptr +oldFile->sechdr[numbSecs-1].s_size );
 	unsigned int lastByte;
 
-	//printf( " DIFFERENCE:  0x%x = 0x%x - 0x%x\n", offSet, lastDataByte, (oldFile->sechdr[numbSecs-1].s_scnptr +oldFile->sechdr[numbSecs-1].s_size ));
+	//bpinfo( " DIFFERENCE:  0x%x = 0x%x - 0x%x\n", offSet, lastDataByte, (oldFile->sechdr[numbSecs-1].s_scnptr +oldFile->sechdr[numbSecs-1].s_size ));
 
 	shdr = newFile->sechdr;
 	for(int i=0;i<numbSecs;i++, shdr++){
@@ -372,7 +372,7 @@ bool writeBackXCOFF::createXCOFF(){
 
 
 	//totalSize = oldFile.filesize +  newTextSize - OldXCOFFhdr->aouthdr.o_tsize + newDataSize;
-	//printf("\n\n trueDataStart %x  trueTextStart %x newTextSIZE: %x  textEND: %x\n\n", trueDataStart, trueTextStart,newTextSize, trueTextStart+newTextSize);
+	//bpinfo("\n\n trueDataStart %x  trueTextStart %x newTextSIZE: %x  textEND: %x\n\n", trueDataStart, trueTextStart,newTextSize, trueTextStart+newTextSize);
 /*
 
 	//allocate memory
@@ -447,7 +447,7 @@ bool writeBackXCOFF::createXCOFF(){
 
 
 	if(!newFileCurrent){
-		printf(" ERROR! NO SYMBOL TABLE FOUND!\n");
+		bperr(" ERROR! NO SYMBOL TABLE FOUND!\n");
 		//assert(0);
 	}
 
@@ -537,7 +537,7 @@ struct scnhdr *writeBackXCOFF::addSectionHeader(char *newFileCurrent, char* name
 	if(strlen(name) < 8){
 		strcpy(shdr->s_name, name);
 	}else{
-		printf(" name %s is too long!\n", name);
+		bperr(" name %s is too long!\n", name);
 	}
 	shdr->s_paddr = paddr;
 	shdr->s_vaddr = vaddr;
@@ -669,14 +669,14 @@ bool writeBackXCOFF::outputXCOFF(){
 	newFile.fd = open(newFile.name, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IXUSR);
 
 	if(newFile.fd == -1){
-		printf(" Opening %s for writing failed\n", newFile.name);
+		bperr(" Opening %s for writing failed\n", newFile.name);
 		return false;
 	}
 
 
 	//memcpy(buf, hdr, fileSize + loaderSecSize);	
 	if(debugFlag){
-		printf(" WRITING %x bytes to %s \n", newFile.filesize, newFile.name);
+		bpinfo(" WRITING %x bytes to %s \n", newFile.filesize, newFile.name);
 	}
 	write(newFile.fd, (void*) newFile.buffer, newFile.filesize);
 

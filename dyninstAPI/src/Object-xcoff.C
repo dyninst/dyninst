@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.35 2004/03/28 03:37:46 jodom Exp $
+// $Id: Object-xcoff.C,v 1.36 2004/04/02 06:34:11 jaw Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -422,7 +422,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
    
    if (hdr.f_magic != 0x1df)
      {
-       fprintf(stderr, "Possible problem, magic number is %x, should be %x\n",
+       bperr( "Possible problem, magic number is %x, should be %x\n",
 	       hdr.f_magic, 0x1df);
      }
 
@@ -526,10 +526,10 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
      PARSE_AOUT_DIE("Reading text segment", 49);
 
 #ifdef DEBUG
-   fprintf(stderr, "text_org_ = %x, scnptr = %x, text_start = %x\n",
+   bperr( "text_org_ = %x, scnptr = %x, text_start = %x\n",
 	   (unsigned) text_org_, sectHdr[aout.o_sntext-1].s_scnptr, 
 	   (unsigned) aout.text_start);
-   fprintf(stderr, "Code pointer: %x, reloc: %x, offset: %x, length: %x\n",
+   bperr( "Code pointer: %x, reloc: %x, offset: %x, length: %x\n",
 	   (unsigned) code_ptr_, (unsigned) text_reloc,
 	   (unsigned) code_off_, (unsigned) code_len_);
 #endif
@@ -565,10 +565,10 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
        }
 
 #ifdef DEBUG
-     fprintf(stderr, "data_org_ = %x, data_start = %x\n",
+     bperr( "data_org_ = %x, data_start = %x\n",
 	     (unsigned) data_org_, 
 	     (unsigned) aout.data_start);
-     fprintf(stderr, "Data pointer: %x, reloc: %x\n",
+     bperr( "Data pointer: %x, reloc: %x\n",
 	     (unsigned) data_ptr_, (unsigned) data_reloc_);
 #endif
      if (!read_from_mem(pid_, roundup4(data_org_),
@@ -592,7 +592,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
    }
    
 #ifdef DEBUG
-   fprintf(stderr, "data_org_ = %x, scnptr = %x, data_start = %x\n",
+   bperr("data_org_ = %x, scnptr = %x, data_start = %x\n",
 	   (unsigned) data_org_, sectHdr[aout.o_sndata-1].s_scnptr, 
 	   (unsigned) aout.data_start);
 #endif
@@ -600,7 +600,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
    data_len_ = aout.dsize;
 
 #ifdef DEBUG
-   fprintf(stderr, "Data pointer: %x, reloc: %x, offset: %x, length: %x\n",
+   bperr( "Data pointer: %x, reloc: %x, offset: %x, length: %x\n",
 	   (unsigned) data_ptr_, (unsigned) data_reloc_, 
 	   (unsigned) data_off_, (unsigned) data_len_);
 #endif
@@ -790,7 +790,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
        // the above and use this:
        // Symbol sym(name, modName, type, linkage, value, false);
 #ifdef DEBUG
-       fprintf(stderr, "Added symbol %s at addr 0x%x, size 0x%x, module %s\n",
+       bperr("Added symbol %s at addr 0x%x, size 0x%x, module %s\n",
                name.c_str(), value, size, modName.c_str());
 #endif
        
@@ -1008,7 +1008,7 @@ void Object::load_archive(int fd, bool is_aout, Address baseAddr)
       parse_aout(fd, archive->aout_offset, is_aout, baseAddr);
     }
   else
-    fprintf(stderr, "Member name %s not found in archive %s!\n",
+    bperr( "Member name %s not found in archive %s!\n",
 	    member_.c_str(), file_.c_str());
   return;
 }
@@ -1053,7 +1053,7 @@ void Object::load_object(bool is_aout, Address baseAddr)
       parse_aout(fd, 0, is_aout, baseAddr);
     else 
       //parse_aout_64(fd, 0);
-      fprintf(stderr, "Don't handle 64 bit files yet");
+      bperr( "Don't handle 64 bit files yet");
   }
   else if (magic_number[0] == '<') // archive of some sort
     load_archive(fd, is_aout, baseAddr);
@@ -1194,12 +1194,12 @@ bool parseCompilerType(Object *objPtr)
 		//   it's the IBM compiler
 		//
 		if (!strncmp("IBM VisualAge C++", compilerName, strlen("IBM VisualAge C++"))) {
-		    // fprintf(stderr, "compiler is IBM C++\n");
+		    // bperr( "compiler is IBM C++\n");
 		    return true;
 		}
    	   }
        }
     }
-    // fprintf(stderr, "compiler is GNU\n");
+    // bperr("compiler is GNU\n");
     return false;
 }

@@ -49,6 +49,7 @@
 #include "BPatch_module.h"
 #include "BPatch_collections.h"
 #include "LineInformation.h"
+#include "util.h"
 #include <ldfcn.h>  // *** GCC 3.x bug: (Short explanation)
 		    // <ldfcn.h> must be included after "BPatch.h"
 
@@ -294,7 +295,7 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
     //
     ldptr = ldopen(exeName, NULL);
     if (!ldptr) {
-	fprintf(stdout, "Error opening %s\n", exeName);
+	bperr( "Error opening %s\n", exeName);
 	// Print an error message here.
 	return;
     }
@@ -308,7 +309,7 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
     symtab = SYMTAB(ldptr);
     if (!symtab) {
 	// Print an error message here.
-	// fprintf(stderr, "%s has no symbol table.\n", argv[1]);
+	// bperr( "%s has no symbol table.\n", argv[1]);
 	ldaclose(ldptr);
 	return;
     }
@@ -372,7 +373,7 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
 		char *temp = parseStabString(mod, 0, (char *)symbol.name.c_str(), value);
 		if (*temp) {
 		    // Error parsing the stabstr, return should be \0
-		    fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n", temp);
+		    bperr("Stab string parsing ERROR!! More to parse: %s\n", temp);
 		}
 		break;
 	    }
@@ -515,8 +516,8 @@ void FindLineInfo(LDFILE *ldptr, eCoffParseInfo &info,
     //
     unsigned char *lineInfo = (unsigned char *)malloc(info.symtab->hdr.cbLine);
     if (!lineInfo) {
-	fprintf(stderr, "*** WARNING: Cannot read line information ");
-	fprintf(stderr, "for file %s: Malloc error.\n", fileName.c_str());
+	bperr( "*** WARNING: Cannot read line information ");
+	bperr( "for file %s: Malloc error.\n", fileName.c_str());
 	return;
     }
     int numleft = info.symtab->hdr.cbLine;
@@ -680,8 +681,7 @@ BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
 	mod->moduleTypes->addType(newType);
 
     if (!newType) {
-	fprintf(stdout, "*** Error processing symbol %s\n", symbol.name.c_str());
-	fflush(stdout);
+	bperr( "*** Error processing symbol %s\n", symbol.name.c_str());
     }
 
     return newType;

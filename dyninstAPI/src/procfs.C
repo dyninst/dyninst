@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.36 2004/03/23 01:12:08 eli Exp $
+// $Id: procfs.C,v 1.37 2004/04/02 06:34:15 jaw Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -83,7 +83,7 @@ void OS::osTraceMe(void) {
   sprintf(procName,"/proc/%05d", (int)getpid());
   int fd = P_open(procName, O_RDWR, 0);
   if (fd < 0) {
-    fprintf(stderr, "osTraceMe: open failed: %s\n", sys_errlist[errno]); 
+    bperr( "osTraceMe: open failed: %s\n", sys_errlist[errno]); 
     fflush(stderr);
     P__exit(-1); // must use _exit here.
   }
@@ -213,7 +213,7 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
    }
 
    if (ioctl(get_fd(), PIOCRUN, arg3) == -1) {
-      fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n",
+      bperr( "continueProc_: PIOCRUN failed: %s\n",
               sys_errlist[errno]);
       return false;
    }
@@ -444,7 +444,7 @@ bool dyn_lwp::writeDataSpace(void *inTracedProcess, u_int amount,
 
    if (ret != (off_t)inTracedProcess) {
       perror("lseek");
-      fprintf(stderr, "   target address %lx\n", inTracedProcess);
+      bperr( "   target address %lx\n", inTracedProcess);
       return false;
    }
    return (write(get_fd(), inSelf, amount) == (int)amount);
@@ -471,10 +471,10 @@ bool dyn_lwp::readDataSpace(const void *inTracedProcess, u_int amount,
 
    if (ret != (off_t)inTracedProcess) {
       perror("lseek");
-      fprintf(stderr, "   target address %lx\n", inTracedProcess);
-      fprintf(stderr, "lseek(%d,%lx,%d)\n", get_fd(), inTracedProcess,
+      bperr( "   target address %lx\n", inTracedProcess);
+      bperr( "lseek(%d,%lx,%d)\n", get_fd(), inTracedProcess,
               SEEK_SET); 
-      fprintf(stderr, "The return address: %lx\n",ret); 
+      bperr( "The return address: %lx\n",ret); 
 #ifdef DEBUG
       if (errno == EBADF)
       {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.78 2004/03/23 01:11:56 eli Exp $
+// $Id: BPatch.C,v 1.79 2004/04/02 06:34:10 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -870,9 +870,9 @@ bool BPatch::getThreadEventOnly(bool block)
        BPatch_thread *thread = getThreadByPid(proc->getPid(), &exists);
        if (thread == NULL) {
            if (exists) {
-               fprintf(stderr, "Warning: event on an existing thread, but can't find thread handle\n");
+               bperr("Warning: event on an existing thread, but can't find thread handle\n");
            } else {
-               fprintf(stderr, "Warning - wait returned status of an unknown process (%d)\n",
+               bperr( "Warning - wait returned status of an unknown process (%d)\n",
                        proc->getPid());
            }
        }
@@ -893,7 +893,7 @@ bool BPatch::getThreadEventOnly(bool block)
                }
            }
            else {
-               fprintf(stderr, "Unhandled event (why %d, what %d) on process %d\n",
+               bperr( "Unhandled event (why %d, what %d) on process %d\n",
                        why, what, proc->getPid());
                thread->setUnreportedStop(true);
            }

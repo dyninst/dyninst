@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia32.C,v 1.14 2004/03/29 21:28:27 jodom Exp $
+// $Id: arch-ia32.C,v 1.15 2004/04/02 06:34:11 jaw Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -52,6 +52,7 @@
 #include <stdio.h>
 #include "common/h/Types.h"
 #include "arch-ia32.h"
+#include "util.h"
 
 // tables and pseudotables
 enum {
@@ -2114,7 +2115,7 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
         instruct.mac[1].sizehack = shREPNECMPS;
         break;
       default:
-        fprintf(stderr, "IA32 DECODER: unexpected repnz prefix ignored...\n");
+        bperr( "IA32 DECODER: unexpected repnz prefix ignored...\n");
       }
       break;
     case PREFIX_REP:
@@ -2131,14 +2132,14 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
         instruct.mac[1].sizehack = shREP;
         break;
       default:
-        fprintf(stderr, "IA32 DECODER: unexpected rep prefix ignored...\n");
+        bperr( "IA32 DECODER: unexpected rep prefix ignored...\n");
       }
       break;
     case 0:
     case PREFIX_LOCK:
       break;
     default:
-      fprintf(stderr, "IA32 WARNING: unknown type 0 prefix!\n");
+      bperr( "IA32 WARNING: unknown type 0 prefix!\n");
       break;
     }
   }
@@ -2337,10 +2338,10 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
   ++addr;
 
   if(addrSzAttr == 1) { // 16-bit, cannot have SIB
-    //fprintf(stderr, "16bit addr!\n");
+    //bperr( "16bit addr!\n");
     switch(mod) {
     case 0:
-      //fprintf(stderr, "16bit addr - case 0, rm = %d!\n", rm);
+      //bperr( "16bit addr - case 0, rm = %d!\n", rm);
       if(macadr)
         switch (rm) {
         case 0: // [BX+SI]
@@ -2364,7 +2365,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
         case 6: { // disp16
           const short int *pdisp16 = (const short int*)addr;
           //disp16 = (short)addr[0] + ((short)addr[1]) << 8;
-          //fprintf(stderr, "16bit addr - case6!\n");
+          //bperr( "16bit addr - case6!\n");
           macadr->set16(-1, -1, *pdisp16);
           break; }
         case 7:
@@ -2373,7 +2374,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
         }
       return rm==6 ? wordSzB : 0;
     case 1:
-      //fprintf(stderr, "16bit addr - case1!\n");
+      //bperr( "16bit addr - case1!\n");
       if(macadr) {
         const char *pdisp8 = (const char*)addr;
         switch (rm) {
@@ -2405,7 +2406,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
       }
       return byteSzB;
     case 2:
-      //fprintf(stderr, "16bit addr - case2!\n");
+      //bperr( "16bit addr - case2!\n");
       if(macadr) {
         const short int *pdisp16 = (const short int*)addr;
         switch (rm) {
@@ -2646,7 +2647,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
       case am_A: /* address = segment + offset (word or dword) */
         nib += wordSzB;
         if(mac)
-          fprintf(stderr, "IA32: segment selector ignored [am_A].\n");
+          bperr( "IA32: segment selector ignored [am_A].\n");
       case am_O: /* operand offset */
         nib += wordSzB * addrSzAttr;
         if(mac) {
@@ -2785,7 +2786,7 @@ ia32_prefixes& ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pr
     ++addr;
   }
   
-  //printf("Got %d prefixes\n", pref.count);
+  //bperr(("Got %d prefixes\n", pref.count);
   return pref;
 }
 

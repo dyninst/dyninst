@@ -43,11 +43,12 @@
 // Since the author of this file chose to use tabs instead of spaces
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
-/* $Id: addLibrary.C,v 1.14 2004/03/23 19:10:48 eli Exp $ */
+/* $Id: addLibrary.C,v 1.15 2004/04/02 06:34:11 jaw Exp $ */
 
 
 #if defined(sparc_sun_solaris2_4)
 #include "addLibrary.h"
+#include "util.h"
 #define BASEADDR 0x10000
 
 
@@ -316,17 +317,17 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 	//if((newFd = open(filename,  O_WRONLY|O_CREAT|O_TRUNC )) ==-1){
 	//S_IRWXU is not defined in gcc < 3.0
         if((newFd = creat(filename,0x1c0 /*S_IRWXU*/)) == -1) { 
-                printf("cannot creat: %s %d\n",filename,errno);
+                bperr("cannot creat: %s %d\n",filename,errno);
                 switch(errno){
                 case EACCES:
-                        printf("EACCESS \n");
+                        bperr("EACCESS \n");
                         break;
                 }
                 return -1;
         }
 
         if((newElf = elf_begin(newFd, ELF_C_WRITE, NULL)) == NULL){
-		printf(" elf_begin failed for newElf");
+		bperr(" elf_begin failed for newElf");
 		return -1;
         }
 
@@ -359,12 +360,12 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 	hashIndex = findSection(".hash");
 
 	if( dynsymIndex == -1 || dynstrIndex == -1 ){
-		printf(" Dynamic symbol table missing...cannot save world\n");
+		bperr(" Dynamic symbol table missing...cannot save world\n");
 		return 0;
 	}
 
 	if( hashIndex == -1 ){
-		printf(" Hash table not found...cannot save world\n");
+		bperr(" Hash table not found...cannot save world\n");
 		return 0;
 	}
 

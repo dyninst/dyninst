@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.136 2004/03/23 01:12:06 eli Exp $
+// $Id: linux.C,v 1.137 2004/04/02 06:34:13 jaw Exp $
 
 #include <fstream>
 
@@ -782,7 +782,7 @@ void dyn_lwp::realLWP_detach_() {
     cerr <<"Detaching..." << endl;
     ptraceOps++;
     ptraceOtherOps++;
-    fprintf(stderr, "%d\n", deliverPtrace(PTRACE_DETACH, 1, SIGCONT));
+    bperr( "%d\n", deliverPtrace(PTRACE_DETACH, 1, SIGCONT));
     
     return;
 }

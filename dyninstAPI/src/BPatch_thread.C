@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.102 2004/03/23 01:11:56 eli Exp $
+// $Id: BPatch_thread.C,v 1.103 2004/04/02 06:34:11 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -109,13 +109,13 @@ static void insertVForkInst(BPatch_thread *thread)
     BPatch_Vector<BPatch_function *>  dyninst_vforks;
     if (NULL == appImage->findFunction("DYNINSTvfork", dyninst_vforks) || 
 	!dyninst_vforks.size()) {
-      fprintf(stderr, "%s[%d]:  FATAL  : findFunction(`DYNINSTvfork`, ...), "
+      bpfatal( "%s[%d]:  FATAL  : findFunction(`DYNINSTvfork`, ...), "
 	      "no DYNINSTvfork found!\n", __FILE__, __LINE__);
       return;
     }
     
     if (dyninst_vforks.size() > 1)
-      fprintf(stderr, "%s[%d]:  SERIOUS  : found %d functions called 'DYNINSTvfork' "
+      bperr("%s[%d]:  SERIOUS  : found %d functions called 'DYNINSTvfork' "
 	      "in image, might be picking the wrong one\n", __FILE__, __LINE__, 
 	      dyninst_vforks.size());
 
@@ -123,14 +123,14 @@ static void insertVForkInst(BPatch_thread *thread)
 
     BPatch_Vector<BPatch_function *>  vforks;
     if (NULL == appImage->findFunction("vfork", vforks) || !vforks.size()) {
-      fprintf(stderr, "%s[%d]:  FATAL  : findFunction(`vfork`, ...), no vfork found!\n",
+      bpfatal( "%s[%d]:  FATAL  : findFunction(`vfork`, ...), no vfork found!\n",
 	      __FILE__, __LINE__);
       return;
     }
     
     if (vforks.size() > 1)
       // we should really go through the modules and make sure we have the right one here -- JAW
-      fprintf(stderr, "%s[%d]:  SERIOUS  : found %d functions called 'vfork' in image, "
+      bperr( "%s[%d]:  SERIOUS  : found %d functions called 'vfork' in image, "
 	      "might be picking the wrong one\n", __FILE__, __LINE__, vforks.size());
     
     BPatch_function *one_vfork = vforks[0];
@@ -145,7 +145,7 @@ static void insertVForkInst(BPatch_thread *thread)
 
 	BPatch_snippet *ret = new BPatch_funcCallExpr(*vforkFunc, args);
 	if (!ret) {
-	    printf("error creating function\n");
+	    bperr("error creating function\n");
 	    return;
 	}
 
@@ -1209,7 +1209,7 @@ void BPatch_thread::oneTimeCodeCallbackDispatch(process *theProc,
 
 #ifdef IBM_BPATCH_COMPAT
     if (BPatch::bpatch->RPCdoneCallback) {
-	printf("invoking IBM thread callback function\n");
+	bperr("invoking IBM thread callback function\n");
 	BPatch::bpatch->RPCdoneCallback(theThread, userData, returnValue);
     }
 #endif
@@ -1356,7 +1356,7 @@ bool BPatch_thread::loadLibrary(const char *libname, bool reload)
 bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 		    		   char* fileName,int size)
 {
-	// /* DEBUG */ fprintf( stderr, "Looking for addr 0x%lx.\n", addr );
+	// /* DEBUG */ bperr( "Looking for addr 0x%lx.\n", addr );
 
 	if(!fileName || (size <= 0)){
 		return false;
@@ -1367,7 +1367,7 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 	for(unsigned int i=0;i<appModules->size();i++){
 		lineInformation = (*appModules)[i]->getLineInformation();
 		if(!lineInformation) {
-		  // /* DEBUG */ fprintf( stderr, "No line information for module %d\n", i );
+		  // /* DEBUG */ bperr( "No line information for module %d\n", i );
 		  cerr << __FILE__ << __LINE__ << ": found NULL lineInformation "<< endl;
 		  continue;
 		}
@@ -1379,22 +1379,22 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 		
 		for(int j=0;j<lineInformation->getSourceFileCount();j++){
 			pdstring* fileN = lineInformation->sourceFileList[j];
-			// /* DEBUG */ fprintf( stderr, "Looking for information on source file '%s'.\n", fileN->c_str() );
+			// /* DEBUG */ bperr( "Looking for information on source file '%s'.\n", fileN->c_str() );
 			FileLineInformation* fInfo = 
 				lineInformation->lineInformationList[j];
 			if (!fInfo) {
-			  // /* DEBUG */ fprintf( stderr, "No information available on source file '%s'.\n", fileN->c_str() );
+			  // /* DEBUG */ bperr( "No information available on source file '%s'.\n", fileN->c_str() );
 			  cerr << "found NULL FileLineInformation! "<< endl;
 			  continue;
 			}
 			
 			if( ! fInfo->getLineFromAddr( * fileN, tempLineNo, addr, true, false, & inexactitude ) ) { continue; }
-			// /* DEBUG */ fprintf( stderr, "%s: %d (0x%lx)\n", fileN->c_str(), tempLineNo, inexactitude );
+			// /* DEBUG */ bperr( "%s: %d (0x%lx)\n", fileN->c_str(), tempLineNo, inexactitude );
 
 			/* If the match got better, record its inexactitude, lineNo, and name as
 			   our best match. */
 			if( inexactitude < leastInexactitude ) {
-				// /* DEBUG */ fprintf( stderr, "Inexactitude decreased: 0x%lx\n", inexactitude );
+				// /* DEBUG */ bperr( "Inexactitude decreased: 0x%lx\n", inexactitude );
 				leastInexactitude = inexactitude;
 				lineNo = tempLineNo;
 				
@@ -1408,7 +1408,7 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 			/* If the match is perfect, we're done; don't bother to iterate over the
 			   rest of the files. */
 			if( inexactitude == 0 ) {
-				// /* DEBUG */ fprintf( stderr, "Found perfect match.\n" );
+				// /* DEBUG */ bperr( "Found perfect match.\n" );
 				return true;
 				}
 			} /* end by-file iteraition */
@@ -1523,7 +1523,7 @@ bool BPatch_thread::addSharedObject(const char *name, const unsigned long loadad
   //  in IBM's code, this is a wrapper for _BPatch_thread->addSharedObject (linux)
   // which is in turn a wrapper for creating a new ibmBpatchElf32Reader(name, addr)
   //
-  fprintf(stderr, "%s[%d]: inside addSharedObject(%s, %lu), which is not properly implemented\n"
+  bperr( "%s[%d]: inside addSharedObject(%s, %lu), which is not properly implemented\n"
 	  "using loadLibrary(char* = %s)\n",
 	  __FILE__, __LINE__, name, loadaddr, name);
 

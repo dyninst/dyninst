@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: util.C,v 1.27 2004/03/23 01:12:11 eli Exp $
+/* $Id: util.C,v 1.28 2004/04/02 06:34:15 jaw Exp $
  * util.C - support functions.
  */
 
@@ -104,18 +104,6 @@ unsigned addrHash16(const Address &iaddr) {
    // nothing to an even hash distribution)
    return addrHashCommon(iaddr >> 4);
 }
-
-#ifdef notdef
-void
-log_printf(const char* fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    vsprintf(errorLine, fmt, ap);
-    va_end(ap);
-    logLine(errorLine);
-    // printf("%s", log_buffer);
-}
-#endif
 
 void
 pd_log_perror(const char* msg) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.18 2004/03/23 01:12:01 eli Exp $
+// $Id: aixMT.C,v 1.19 2004/04/02 06:34:11 jaw Exp $
 
 //#include <sys/pthdebug.h> // Pthread debug library, disabled
 #include "dyninstAPI/src/dyn_thread.h"
@@ -72,25 +72,25 @@ Frame dyn_thread::getActiveFrameMT() {
     // process object holds a pointer to the appropriate thread session
     session_ptr = proc->get_pthdb_session();
     
-    fprintf(stderr, "pthread debug session update for getActiveFrame\n");
+    bperr( "pthread debug session update for getActiveFrame\n");
     ret = pthdb_session_update(*session_ptr);
-    if (ret) fprintf(stderr, "update: returned %d\n", ret);
+    if (ret) bperr( "update: returned %d\n", ret);
     
     pthdb_pthread_t pthreadp;
     pthread_t pthread = (unsigned) -1;
     
     ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_FIRST);
-    if (ret) fprintf(stderr, "Getting first pthread data structure failed: %d\n", ret);
+    if (ret) bperr( "Getting first pthread data structure failed: %d\n", ret);
     
     ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);
-    if (ret) fprintf(stderr, "pthread translation failed: %d\n", ret); 
+    if (ret) bperr( "pthread translation failed: %d\n", ret); 
     
     while (pthread != (unsigned) get_tid()) {
       ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_NEXT);
-      if (ret) fprintf(stderr, "next pthread: returned %d\n", ret);
+      if (ret) bperr( "next pthread: returned %d\n", ret);
       ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);
       if (ret) {
-	fprintf(stderr, "check pthread: returned %d\n", ret);
+	bperr("check pthread: returned %d\n", ret);
 	return Frame();
       }
     }
@@ -100,7 +100,7 @@ Frame dyn_thread::getActiveFrameMT() {
     if (!ret)
       {
 	// Succeeded in call
-	fprintf(stderr, "Pthread is suspended at IAR 0x%x and SP 0x%x\n",
+	bperr("Pthread is suspended at IAR 0x%x and SP 0x%x\n",
 		(unsigned) context.iar, (unsigned) context.gpr[1]);
 	newFrame = Frame(context.iar, context.gpr[1], 
 			 proc->getPid(), this, 0, true);
@@ -112,7 +112,7 @@ Frame dyn_thread::getActiveFrameMT() {
 	assert(0 && "Process running but virtualTimer incorrect");
       }
 #endif
-    fprintf(stderr, "Error: attempt to get frame info for non-scheduled thread\n");
+    bperr( "Error: attempt to get frame info for non-scheduled thread\n");
   }
   return newFrame;
 }

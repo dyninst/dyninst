@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.488 2004/03/31 20:37:22 tlmiller Exp $
+// $Id: process.C,v 1.489 2004/04/02 06:34:13 jaw Exp $
 
 #include <ctype.h>
 
@@ -304,7 +304,9 @@ Address process::getTOCoffsetInfo(Address dest)
 bool process::walkStackFromFrame(Frame startFrame,
 				 pdvector<Frame> &stackWalk)
 {
+#if defined(ia64_unknown_linux2_4)
   Address next_pc = 0;
+#endif
   Address fpOld   = 0;
   Address fpNew   = 0;
 
@@ -624,7 +626,7 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
 bool process::isInSignalHandler(Address addr)
 {
 #if defined(os_linux) && defined(arch_x86)
-  for (int i = 0; i < signal_restore.size(); i++)
+  for (unsigned int i = 0; i < signal_restore.size(); i++)
   {
     if (addr == signal_restore[i])
       return true;
@@ -795,7 +797,7 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
             BPatch_reportError(BPatchWarning,123,"dumpPatchedImage: dlopen used by the mutatee, this may cause the mutated binary to fail\n");
             dlopenUsed = true;
          }			
-         //printf(" %s is DIRTY!\n", sh_obj->getName().c_str());
+         //bperr(" %s is DIRTY!\n", sh_obj->getName().c_str());
         
 
          if( sh_obj->isDirty()){ 
@@ -888,12 +890,12 @@ char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibraries
 		sh_obj = (*shared_objects)[i];
 
 		memcpy((void*) ptr, sh_obj->getName().c_str(), strlen(sh_obj->getName().c_str())+1);
-		//printf(" %s : ", ptr);
+		//bperr(" %s : ", ptr);
 		ptr += strlen(sh_obj->getName().c_str())+1;
 
 		unsigned int baseAddr = sh_obj->getBaseAddress();
 		memcpy( (void*)ptr, &baseAddr, sizeof(unsigned int));
-		//printf(" 0x%x \n", *(unsigned int*) ptr);
+		//bperr(" 0x%x \n", *(unsigned int*) ptr);
 		ptr += sizeof(unsigned int);
 	}
        	memset( (void*)ptr, '\0' , 1);
@@ -964,15 +966,15 @@ void process::saveWorldCreateHighMemSections(
             if(startIndex == -1){
                startIndex = index;
             }
-           //printf(" HighMemUpdates address 0x%x \n", highmem_updates[index]->address );
+           //bperr(" HighMemUpdates address 0x%x \n", highmem_updates[index]->address );
          }
-	//printf(" high mem updates: 0x%x", highmem_updates[index]->address);
+	//bperr(" high mem updates: 0x%x", highmem_updates[index]->address);
       }
       unsigned int dataSize = compactedHighmemUpdates[j]->size + 
          sizeof(unsigned int) + 
          (2*(stopIndex - startIndex + 1) /*numberUpdates*/ * sizeof(unsigned int));
 
-	//printf("DATASIZE: %x : %x + 4 + ( 2*(%x - %x +1) * 4)\n", dataSize, compactedHighmemUpdates[j]->size, stopIndex, startIndex);
+	//bperr("DATASIZE: %x : %x + 4 + ( 2*(%x - %x +1) * 4)\n", dataSize, compactedHighmemUpdates[j]->size, stopIndex, startIndex);
       
       data = new char[dataSize];
       
@@ -993,7 +995,7 @@ void process::saveWorldCreateHighMemSections(
          memcpy(dataPtr, &highmem_updates[index]->size, sizeof(unsigned int));
 
          dataPtr++;
-         //printf("%d J %d ADDRESS: 0x%x SIZE 0x%x\n",index, j,
+         //bperr("%d J %d ADDRESS: 0x%x SIZE 0x%x\n",index, j,
          //highmem_updates[index]->address, highmem_updates[index]->size);
 
 	
@@ -1001,7 +1003,7 @@ void process::saveWorldCreateHighMemSections(
       //fill in number of updates
       memcpy(dataPtr, &numberUpdates, sizeof(unsigned int));
 
-      //printf(" NUMBER OF UPDATES 0x%x  %d %x\n\n",numberUpdates,dataSize,dataSize);
+      //bperr(" NUMBER OF UPDATES 0x%x  %d %x\n\n",numberUpdates,dataSize,dataSize);
       sprintf(name,"dyninstAPIhighmem_%08x",j);
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
       newFile->addSection(compactedHighmemUpdates[j]->address,data ,dataSize,name,false);
@@ -1044,7 +1046,7 @@ void process::saveWorldCreateDataSections(void* ptr){
 			ptr+=sizeof(Address);
 			memcpy(ptr, dataUpdates[k]->value, dataUpdates[k]->size);
 			ptr+=dataUpdates[k]->size;
-			//printf(" DATA UPDATE : from: %x to %x , value %x\n", dataUpdates[k]->address,
+			//bperr(" DATA UPDATE : from: %x to %x , value %x\n", dataUpdates[k]->address,
 		//	dataUpdates[k]->address+ dataUpdates[k]->size, (unsigned int) dataUpdates[k]->value);
 
 		}
@@ -1084,12 +1086,12 @@ void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002
 	dataSize++;
 	data = new char[dataSize];
 	dataptr = data;
-	/*fprintf(stderr," dataSize: %d\n", dataSize);*/
+	/*bperr(" dataSize: %d\n", dataSize);*/
 
 	for(unsigned j=0;j<loadLibraryUpdates.size();j++){
 		memcpy( dataptr, loadLibraryUpdates[j].c_str(), loadLibraryUpdates[j].length()); 
 
-		/*fprintf(stderr,"SAVING: %s %d\n", dataptr,dataSize);*/
+		/*bperr("SAVING: %s %d\n", dataptr,dataSize);*/
 		dataptr += loadLibraryUpdates[j].length();
 		*dataptr = '\0';
 		dataptr++; 
@@ -1481,7 +1483,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 #endif
       }
       freeIndex = findFreeIndex(size, type, lo, hi);
-//	printf("  type %x",type);
+//	bperr("  type %x",type);
    }
 
    // adjust active and free lists
@@ -1516,7 +1518,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
    
 #ifdef BPATCH_LIBRARY
 //	if( h->addr > 0xd0000000){
-//		printf(" \n ALLOCATION: %lx %lx ntry: %d\n", h->addr, size,ntry);
+//		bperr(" \n ALLOCATION: %lx %lx ntry: %d\n", h->addr, size,ntry);
 //		fflush(stdout);
 //	}
 #if defined(sparc_sun_solaris2_4 ) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
@@ -1535,15 +1537,15 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	 imagePatch->size = size;
 	 imageUpdates.push_back(imagePatch);
 	 //totalSizeAlloc += size;
-	 //printf(" PUSHBACK %x %x --- \n", imagePatch->address, imagePatch->size); 		
+	 //bperr(" PUSHBACK %x %x --- \n", imagePatch->address, imagePatch->size); 		
       } else {
 	 //	totalSizeAlloc += size;
-	 //printf(" HIGHMEM UPDATE %x %x \n", h->addr, size);
+	 //bperr(" HIGHMEM UPDATE %x %x \n", h->addr, size);
 	 imageUpdate *imagePatch=new imageUpdate;
 	 imagePatch->address = h->addr;
 	 imagePatch->size = size;
 	 highmemUpdates.push_back(imagePatch);
-	 //printf(" PUSHBACK %x %x\n", imagePatch->address, imagePatch->size);
+	 //bperr(" PUSHBACK %x %x\n", imagePatch->address, imagePatch->size);
       }
       //fflush(stdout);
    }
@@ -2869,7 +2871,7 @@ bool process::loadDyninstLib() {
     initTrampGuard();
     extern pdvector<sym_data> syms_to_find;
     if (!heapIsOk(syms_to_find)) {
-        fprintf(stderr, "heap not okay\n");
+        bperr( "heap not okay\n");
         return false;
     }
     
@@ -3722,7 +3724,7 @@ void process::clearCachedRegister() {
 bool process::pause() {
 
     if (!isAttached()) {
-        fprintf(stderr, "Warning: pause attempted on non-attached process\n");
+        bperr( "Warning: pause attempted on non-attached process\n");
         return false;
     }
     
@@ -3791,7 +3793,7 @@ bool process::pause() {
 // a dlopen or dlclose event then return true
 bool process::handleIfDueToSharedObjectMapping(){
    if(!dyn) { 
-       fprintf(stderr, "No dyn object, returning false\n");
+       bperr( "No dyn object, returning false\n");
        return false;
    }
    pdvector<shared_object *> *changed_objects = 0;
@@ -3962,7 +3964,7 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
     
     if(!img){
         //logLine("error parsing image in addASharedObject\n");
-        fprintf(stderr, "No image: failed parse\n");
+        bperr( "No image: failed parse\n");
         return false;
     }
 
@@ -4677,7 +4679,7 @@ codeRange *process::findCodeRangeByAddress(Address addr) {
       }
       if (inImage > (img->get_address() + img->get_size())) {
          /*
-           fprintf(stderr, "Warning: addr 0x%x not in code range (closest: shobj from 0x%x to 0x%x\n",
+           bperr( "Warning: addr 0x%x not in code range (closest: shobj from 0x%x to 0x%x\n",
            addr, img->codeOffset() +
            range->sharedobject_ptr->getBaseAddress(),
            img->codeOffset()+img->codeLength() +
@@ -4972,7 +4974,7 @@ bool process::getBaseAddress(const image *which, Address &baseAddress) const {
       }
   }
   else {
-      fprintf(stderr, "shared_objects not defined\n");
+      bperr( "shared_objects not defined\n");
   }
   
   return false;
@@ -5111,8 +5113,7 @@ Address process::findInternalAddress(const pdstring &name, bool warn, bool &err)
 
 bool process::continueProc(int signalToContinueWith) {
     if (!isAttached()) {
-        fprintf(stderr, "Warning: continue attempted on non-attached process\n");
-        
+        bpwarn( "Warning: continue attempted on non-attached process\n");
         return false;
     }
     
@@ -6241,7 +6242,7 @@ dyn_thread *process::createThread(
   bool /*bySelf*/)
 {
   dyn_thread *thr;
-  //fprintf(stderr, "Received notice of new thread.... tid %d, pos %d, stackbase 0x%x, startpc 0x%x\n", tid, pos, stackbase, startpc);
+  //bperr( "Received notice of new thread.... tid %d, pos %d, stackbase 0x%x, startpc 0x%x\n", tid, pos, stackbase, startpc);
   // creating new thread
   thr = new dyn_thread(this, tid, pos, NULL);
   threads += thr;

@@ -216,7 +216,7 @@ BPatch_type * BPatch_typeCollection::addOrUpdateType( BPatch_type * type ) {
     } else {
 #if defined( USES_DWARF_DEBUG )
         /* Replace the existing type wholesale. */
-        // fprintf( stderr, "Updating existing type '%s' %d at %p with %p\n", type->getName(), type->getID(), existingType, type );
+        // bperr( "Updating existing type '%s' %d at %p with %p\n", type->getName(), type->getID(), existingType, type );
 	memmove( existingType, type, sizeof( BPatch_type ) );
 #else
 	/* Merge the type information. */

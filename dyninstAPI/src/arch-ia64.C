@@ -41,13 +41,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.29 2004/03/23 01:12:01 eli Exp $
+// $Id: arch-ia64.C,v 1.30 2004/04/02 06:34:11 jaw Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "dyninstAPI/src/arch-ia64.h"
+#include "util.h"
 
 #define TEMPLATE_MASK		0x000000000000001F	/* bits 00 - 04 */
 #define INSTRUCTION0_MASK	0x00003FFFFFFFFFE0	/* bits 05 - 45 */
@@ -312,7 +313,7 @@ IA64_bundle::IA64_bundle( uint8_t templateID, const IA64_instruction & instructi
 
 /* This handles the MLX template/long instructions. */
 IA64_bundle::IA64_bundle( uint8_t templateID, const IA64_instruction & instruction0, const IA64_instruction_x & instructionLX ) {
-	if( templateID != MLXstop && templateID != MLX ) { fprintf( stderr, "Attempting to generate a bundle with a long instruction without using the MLX template, aborting.\n" ); abort(); }
+	if( templateID != MLXstop && templateID != MLX ) { bpfatal( "Attempting to generate a bundle with a long instruction without using the MLX template, aborting.\n" ); abort(); }
 
 	* this = IA64_bundle( templateID, instruction0, instructionLX.getMachineCode().low, instructionLX.getMachineCode().high );
 	} /* end IA64_bundle() */
@@ -355,7 +356,7 @@ IA64_instruction * IA64_bundle::getInstruction( unsigned int slot ) {
 		case 0: return new IA64_instruction( instruction0 );
 		case 1: return new IA64_instruction( instruction1 );
 		case 2: return new IA64_instruction( instruction2 );
-		default: fprintf( stderr, "Request of invalid instruction (%d), aborting.\n", slot ); abort();
+		default: bpfatal("Request of invalid instruction (%d), aborting.\n", slot ); abort();
 		}
 	} /* end getInstruction() */
 
@@ -587,12 +588,12 @@ Address IA64_instruction::getTargetAddress() const {
 				assert( 0 );
 				break;
 			default:
-				fprintf( stderr, "getTargetAddress(): unrecognized major opcode, aborting.\n" );
+				bpfatal( "getTargetAddress(): unrecognized major opcode, aborting.\n" );
 				abort();
 				break;
 			} /* end opcode switch */	
 		} else {
-		// /* DEBUG */ fprintf( stderr, "getTargetAddress() returning 0 for indirect branch or call.\n" );
+		// /* DEBUG */ bperr( "getTargetAddress() returning 0 for indirect branch or call.\n" );
 		return 0;
 		}
 	} /* end getTargetAddress() */
@@ -738,7 +739,7 @@ IA64_instruction generateArithmetic( opCode op, Register destination, Register l
 		case andOp: x4 = 3; x2b = 0; break;
 		case orOp: x4 = 3; x2b = 2; break;
 		default:
-			fprintf( stderr, "generateArithmetic() did not recognize opcode %d, aborting.\n", op );
+			bpfatal( "generateArithmetic() did not recognize opcode %d, aborting.\n", op );
 			abort();
 			break;
 		} /* end op switch */
@@ -826,7 +827,7 @@ IA64_instruction generateRegisterStoreImmediate( Register address, Register sour
 		case 4: sizeSpec = 0x32; break;
 		case 8: sizeSpec = 0x33; break;
 		default:
-			fprintf( stderr, "Illegal size %d, aborting.\n", size );
+			bpfatal( "Illegal size %d, aborting.\n", size );
 			assert( 0 );
 			break;
 		} /* end sizeSpec determiner */
@@ -857,7 +858,7 @@ IA64_instruction generateRegisterLoad( Register destination, Register address, i
 		case 4: sizeSpec = 0x02; break;
 		case 8: sizeSpec = 0x03; break;
 		default:
-			fprintf( stderr, "Illegal size %d, aborting.\n", size );
+			bpfatal( "Illegal size %d, aborting.\n", size );
 			assert( 0 );
 			break;
 		} /* end sizeSpec determiner */
@@ -885,7 +886,7 @@ IA64_instruction generateRegisterLoadImmediate( Register destination, Register a
 		case 4: sizeSpec = 0x02; break;
 		case 8: sizeSpec = 0x03; break;
 		default:
-			fprintf( stderr, "Illegal size %d, aborting.\n", size );
+			bpfatal( "Illegal size %d, aborting.\n", size );
 			assert( 0 );
 			break;
 		} /* end sizeSpec determiner */
@@ -1008,7 +1009,7 @@ IA64_instruction generateComparison( opCode op, Register destination, Register l
 			break;
 
 		default:
-			fprintf( stderr, "Unrecognized op %d in generateComparison(), aborting.\n", op );
+			bpfatal( "Unrecognized op %d in generateComparison(), aborting.\n", op );
 			abort();
 		} /* end op switch */
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_init.C,v 1.16 2004/03/23 01:11:56 eli Exp $
+// $Id: BPatch_init.C,v 1.17 2004/04/02 06:34:10 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -56,6 +56,32 @@ int numberOfCPUs_;
 pdvector<instMapping*> initialRequests;
 
 pdvector<sym_data> syms_to_find;
+char *lvl_str(BPatchErrorLevel lvl)
+{
+  switch(lvl) {
+    case BPatchFatal: return "FATAL";
+    case BPatchSerious: return "SERIOUS";
+    case BPatchWarning: return "WARN";
+    case BPatchInfo: return "INFO";
+  };
+  return "BAD ERR CODE";
+}
+void defaultErrorFunc(BPatchErrorLevel level, int num, const char **params)
+{
+    char line[256];
+
+    if ((level == BPatchWarning) || (level == BPatchInfo)) {
+         // ignore low level errors/warnings in the default reporter
+         return;
+    }
+
+    const char *msg = BPatch::bpatch->getEnglishErrorString(num);
+    BPatch::bpatch->formatErrorString(line, sizeof(line), msg, params);
+
+    if (num != -1) {
+       fprintf(stderr,"%s #%d: %s\n", lvl_str(level),num, line);
+    }
+}
 
 bool dyninstAPI_init() {
 
@@ -87,6 +113,8 @@ bool dyninstAPI_init() {
   initialRequests.push_back(new instMapping(sigactionF, "DYNINSTresetSigHandler",
                                      FUNC_EXIT|FUNC_ARG, argList));
 #endif
+  BPatch::bpatch->registerErrorCallback(defaultErrorFunc);
+  bpinfo("installed default error reporting function");
 
   return true;
 }

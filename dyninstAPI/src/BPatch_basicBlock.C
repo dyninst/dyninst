@@ -393,7 +393,7 @@ unsigned long BPatch_basicBlock::getStartAddress() const
      image *img = flowGraph->getModule()->exec();
                                                                                
      if (!proc->getBaseAddress(img, imgBaseAddr)) {
-        fprintf(stdout /* ? */, "getBaseAddress error\n");
+        bperr( "getBaseAddress error\n");
         abort();
      }
 #endif

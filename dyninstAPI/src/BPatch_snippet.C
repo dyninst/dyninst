@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.55 2004/03/23 01:11:56 eli Exp $
+// $Id: BPatch_snippet.C,v 1.56 2004/04/02 06:34:11 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -516,12 +516,12 @@ BPatch_constExpr::BPatch_constExpr(long long value)
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
     BPatch_type *type = BPatch::bpatch->stdTypes->findType("long long");
-    printf("size of const expr type long long is %d\n", type->getSize());
+    bperr("size of const expr type long long is %d\n", type->getSize());
 
     assert(type != NULL);
 
     ast->setType(type);
-    printf("generating long long constant\n");
+    bperr("generating long long constant\n");
     fflush(stdout);
 }
 
@@ -897,6 +897,13 @@ BPatch_variableExpr::BPatch_variableExpr(process *in_process,
  */
 bool BPatch_variableExpr::readValue(void *dst)
 {
+  if (scope) {
+    char msg[256];
+    sprintf(msg, "variable %s is not a global variable, cannot read using readValue()",name);
+    BPatch_reportError(BPatchWarning, 109,msg);
+    return false;
+  }
+
     if (size) {
 	proc->readDataSpace(address, size, dst, true);
 	return true;
@@ -918,6 +925,13 @@ bool BPatch_variableExpr::readValue(void *dst)
  */
 void BPatch_variableExpr::readValue(void *dst, int len)
 {
+  if (scope) {
+    char msg[256];
+    sprintf(msg, "variable %s is not a global variable, cannot read using readValue()",name);
+    BPatch_reportError(BPatchWarning, 109,msg);
+    return;
+  }
+
     proc->readDataSpace(address, len, dst, true);
 }
 
@@ -934,6 +948,13 @@ void BPatch_variableExpr::readValue(void *dst, int len)
  */
 bool BPatch_variableExpr::writeValue(const void *src, bool saveWorld)
 {
+  if (scope) {
+    char msg[256];
+    sprintf(msg, "variable %s is not a global variable, cannot write",name);
+    BPatch_reportError(BPatchWarning, 109,msg);
+    return false;
+  }
+
     if (size) {
 	proc->writeDataSpace(address, size, src);
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
@@ -959,6 +980,13 @@ bool BPatch_variableExpr::writeValue(const void *src, bool saveWorld)
  */
 void BPatch_variableExpr::writeValue(const void *src, int len, bool saveWorld)
 {
+  if (scope) {
+    char msg[256];
+    sprintf(msg, "variable %s is not a global variable, cannot write",name);
+    BPatch_reportError(BPatchWarning, 109,msg);
+    return;
+  }
+
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
     if(saveWorld) { //ccw 26 nov 2001
 	proc->saveWorldData((Address) address,len,src);
@@ -1008,7 +1036,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
                                          (char*)address + offset);
 		retList->push_back(newVar);
 		} else {
-		fprintf( stderr, "Warning: not returning field '%s' with NULL type.\n", field->getName() );
+		bperr( "Warning: not returning field '%s' with NULL type.\n", field->getName() );
 		}
     }
 

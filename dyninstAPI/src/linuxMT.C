@@ -58,8 +58,7 @@ Frame dyn_thread::getActiveFrameMT() {
 					   lwpFrame.getPID(), this, lwp, true);
    }
    else {
-	  fprintf(stderr,
-			  "Error: attempt to get frame info for non-scheduled thread\n");
+	  bperr("Error: attempt to get frame info for non-scheduled thread\n");
    }
    return newFrame;
 }

@@ -795,13 +795,13 @@ bool FileLineInformation::getLineFromAddr( pdstring name, unsigned short & lineN
 	
 	/* Prefer exact matches. */
 	if( getLineFromAddr( name, lines, codeAddress, isFile, true, inexactitude ) ) {
-		// /* DEBUG */ fprintf( stderr, "Located exact match for 0x%lx at %d\n", codeAddress, lines.maximum() );
+		// /* DEBUG */ bperr( "Located exact match for 0x%lx at %d\n", codeAddress, lines.maximum() );
 		lineNo = lines.maximum();
 		return true;
 		}
 		
 	if( ! isExactMatch && getLineFromAddr( name, lines, codeAddress, isFile, false, inexactitude ) ) {
-		// /* DEBUG */ fprintf( stderr, "Located sloppy match for 0x%lx at %d, off by 0x%lx\n", codeAddress, lines.maximum(), ((inexactitude != NULL) ? (* inexactitude) : -1) );
+		// /* DEBUG */ bperr( "Located sloppy match for 0x%lx at %d, off by 0x%lx\n", codeAddress, lines.maximum(), ((inexactitude != NULL) ? (* inexactitude) : -1) );
 		lineNo = lines.maximum();
 		return true;
 		}
@@ -1319,7 +1319,7 @@ FileLineInformation* LineInformation::getFileLineInformation(pdstring fileName){
 #ifdef DEBUG_LINE_INFO
 void FileLineInformation::dump(FILE *f,   pdstring *modName)
 {
-  fprintf(f, "FileLineInformation for module: %s\n", modName);
+  bperr( "FileLineInformation for module: %s\n", modName);
   dumpFunctionInfo(f);
   dumpAddrToLine(f);
   dumpLineToAddr(f);

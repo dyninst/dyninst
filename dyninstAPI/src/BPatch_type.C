@@ -53,10 +53,10 @@
 
 /* Intended only for classes. */
 bool BPatch_type::merge( BPatch_type * other ) {
-	// fprintf( stderr, "Merging 0x%x and 0x%x\n", this, other );
+	// bperr( "Merging 0x%x and 0x%x\n", this, other );
 
 	if( this->ID != other->ID ) {
-		fprintf( stderr, "Ignoring attempt to merge dissimilar types.\n" );
+		bperr( "Ignoring attempt to merge dissimilar types.\n" );
 		return false;
 		}
 
@@ -720,28 +720,28 @@ BPatch_Vector<BPatch_field *> * BPatch_type::getComponents() {
         }
     if ((type_ == BPatch_dataStructure) || 
 	(type_ == BPatch_dataTypeClass) || (type_ == BPatch_dataUnion)) {
-	// fprintf( stderr, "Getting the %d components of '%s' at 0x%x\n", fieldList.size(), getName(), this );
+	// bperr "Getting the %d components of '%s' at 0x%x\n", fieldList.size(), getName(), this );
 	/* Iterate over the field list.  Recursively (replace)
 	   '{superclass}' with the superclass's non-private fields. */
 	/* FIXME: this is gonna be slow; some sort of flag should be added so we only do this once. */
 	BPatch_Vector< BPatch_field * > * newFieldList = new BPatch_Vector< BPatch_field * >();
 	for( unsigned int i = 0; i < fieldList.size(); i++ ) {
 		BPatch_field * currentField = fieldList[i];
-		// fprintf( stderr, "Considering field '%s'\n", currentField->getName() );
+		// bperr( "Considering field '%s'\n", currentField->getName() );
 		if( strcmp( currentField->getName(), "{superclass}" ) == 0 ) {
 			/* Note that this is a recursive call.  However, because
 			   the class-graph is acyclic (Stroustrup SpecialEd pg 308),
 			   we're OK. */
-			// fprintf( stderr, "Found superclass '%s'...\n", currentField->getType()->getName() );
+			// bperr( "Found superclass '%s'...\n", currentField->getType()->getName() );
 			BPatch_Vector<BPatch_field *> * superClassFields = currentField->getType()->getComponents();
-			// fprintf( stderr, "Superclass has %d components.\n", superClassFields->size() );
+			// bperr( "Superclass has %d components.\n", superClassFields->size() );
 			/* FIXME: do we also need to consider the visibility of the superclass itself? */
 			/* FIXME: visibility can also be described on a per-name basis in the
 			   subclass.  We have now way to convey this information currently, but I'm not
 			   sure that it matters for our purposes... */
 			for( unsigned int i = 0; i < superClassFields->size(); i++ ) {
 				BPatch_field * currentSuperField = (*superClassFields)[i];
-				// fprintf( stderr, "Considering superfield '%s'\n", currentSuperField->getName() );
+				// bperr( "Considering superfield '%s'\n", currentSuperField->getName() );
 				if( currentSuperField->getVisibility() != BPatch_private ) {
 					newFieldList->push_back( currentSuperField );
 					}
@@ -1125,10 +1125,9 @@ void BPatch_type::addField(const char * _fieldname, BPatch_dataClass _typeDes,
   } 
   
   if (!( this->size > 0 || ( (_typeDes == BPatch_dataMethod || _typeDes == BPatch_dataUnknownType ) && this->size >= 0) ) ) {
-  	fprintf( stderr, "Invalid size: this->size = %d, _nsize = %d", this->size, _nsize );
-  	if( _typeDes == BPatch_dataMethod ) { fprintf( stderr, ", and the field is a data method" ); }
-  	if( _typeDes == BPatch_dataUnknownType ) { fprintf( stderr, ", and the field is an unknown type" ); }
-  	fprintf( stderr, ".\n" );
+  	bperr( "Invalid size: this->size = %d, _nsize = %d", this->size, _nsize );
+  	if( _typeDes == BPatch_dataMethod ) { bperr( " ... the field is a data method" ); }
+  	if( _typeDes == BPatch_dataUnknownType ) { bperr( " ... the field is an unknown type" ); }
   	}
 
   // Create Field for struct or union
@@ -1211,7 +1210,7 @@ BPatch_field::BPatch_field(const char * fName, BPatch_dataClass _typeDes,
   _type = NULL;
   offset = size = 0;
   vis = BPatch_visUnknown;
-  // printf("adding field %s\n", fName);
+  // bperr("adding field %s\n", fName);
 
 }
 
@@ -1232,7 +1231,7 @@ BPatch_field::BPatch_field(const char * fName, BPatch_dataClass _typeDes,
   _type = NULL;
   offset = size = 0;
   vis = _vis;
-  // printf("adding field %s\n", fName);
+  // bperr("adding field %s\n", fName);
 
 }
 

@@ -128,7 +128,7 @@ bool dynamic_linking::get_ld_info(Address &addr, char **path){
     struct stat t_stat;
     if( stat( ldspec, &t_stat ) ) {
       perror( "dynamic_linking::get_ld_info -> stat(...)" );
-      fprintf( stderr, "Error calling stat(...) on file in LD_SPECIFY, ignoring\n" );
+      bperr( "Error calling stat(...) on file in LD_SPECIFY, ignoring\n" );
       ldspec = NULL;
     } else {
       // Pack the inode and file name into a dirent and the path into ldpath
@@ -240,10 +240,10 @@ bool dynamic_linking::get_ld_info(Address &addr, char **path){
     perror( "dynamic_linking::get_ld_info -> fgets (unexpected)" );
     break;
   case 2:
-    fprintf( stderr, "ERROR -- parsing /proc/*/maps, unexpected format?\n" );
+    bperr("ERROR -- parsing /proc/*/maps, unexpected format?\n" );
     break;
   case 3:
-    fprintf( stderr, "ERROR -- unexpected missing file name\n" );
+    bperr( "ERROR -- unexpected missing file name\n" );
   default:;
   }
 
@@ -661,7 +661,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*> 
       r_debug debug_elm;
       if(!proc->readDataSpace((caddr_t)(r_debug_addr),
                               sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
-          // printf("read failed r_debug_addr = 0x%x\n",r_debug_addr);
+          // bperr("read failed r_debug_addr = 0x%x\n",r_debug_addr);
           error_occured = true;
           return true;
       }
@@ -716,7 +716,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*> 
         Address ret_addr;
         if(!proc->readDataSpace((caddr_t)sp, sizeof(Address),
                                 (caddr_t)&ret_addr, true)) {
-            // printf("read failed sp = 0x%x\n", sp);
+            // bperr("read failed sp = 0x%x\n", sp);
             error_occured = true;
             return true;
         }
@@ -753,7 +753,7 @@ bool dynamic_linking::installTracing()
     r_debug debug_elm;
     if(!proc->readDataSpace((caddr_t)(r_debug_addr),
                          sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
-        fprintf(stderr, "Failed data read\n");
+        bperr( "Failed data read\n");
         return 0;
     }
     Address breakAddr = debug_elm.r_brk;
@@ -764,7 +764,7 @@ bool dynamic_linking::installTracing()
 	   indirection. */
     if(! proc->readDataSpace( (void *)breakAddr, 8, (void *)&breakAddr, true ) )
     {
-        fprintf( stderr, "Failed to read breakAddr_.\n" );
+        bperr( "Failed to read breakAddr_.\n" );
         return 0;
     }
 #endif

@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.21 2004/03/23 01:11:59 eli Exp $
+// $Id: Object-coff.C,v 1.22 2004/04/02 06:34:11 jaw Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/Object-coff.h"
+#include "util.h"
 #include <cmplrs/demangle_string.h>  // For native C++ (cxx) name demangling.
 
 bool GCC_COMPILED=false; //Used to detect compiler type. True if mutatee is 
@@ -245,16 +246,16 @@ void Object::load_object(bool sharedLibrary) {
         if (!(ldptr = ldopen(file, ldptr))) {
             log_perror(err_func_, file);
 	    success = false;
-	    printf("failed open\n");
+	    bperr("failed open\n");
 	    free(file);
 	    return;
         }
         did_open = true;
 
 	if (TYPE(ldptr) != ALPHAMAGIC) {
-	    log_printf(err_func_, "%s is not an alpha executable\n", file);
+	    bperr( "%s is not an alpha executable\n", file);
 	    success = false;
-	    printf("failed magic region\n");
+	    bperr("failed magic region\n");
 	    ldclose(ldptr);
 	    free(file);
 	    return;
@@ -280,7 +281,7 @@ void Object::load_object(bool sharedLibrary) {
 	      code_off_ = (Address) secthead.s_vaddr;
 	      if (!obj_read_section(secthead, ldptr, buffer)) {
 		success = false;
-		printf("failed text region\n");
+		bperr("failed text region\n");
 		ldclose(ldptr);
 		free(file);
 		return;
@@ -293,7 +294,7 @@ void Object::load_object(bool sharedLibrary) {
 		all_dex[K_D_INDEX] = true;
 		all_disk[K_D_INDEX] = secthead.s_scnptr;
 	      } else {
-		printf("failed data region\n");
+		bperr("failed data region\n");
 		success = false;
 		ldclose(ldptr);
 		free(file);
@@ -354,7 +355,7 @@ void Object::load_object(bool sharedLibrary) {
 	    }
 	  } else {
 	    success = false;
-	    printf("failed header region\n");
+	    bperr("failed header region\n");
 	    ldclose(ldptr);
 	    free(file);
 	    return;
@@ -364,7 +365,7 @@ void Object::load_object(bool sharedLibrary) {
 
 	if (!text_read) { 
 	  success = false;
-	  printf("failed text region\n");
+	  bperr("failed text region\n");
 	  ldclose(ldptr);
 	  free(file);
 	  return;
@@ -377,7 +378,7 @@ void Object::load_object(bool sharedLibrary) {
 	    if (!find_data_region(all_addr, all_size, all_disk,
                                   data_len_, data_off_)) {
 	      success = false;
-	      printf("failed find data region\n");
+	      bperr("failed find data region\n");
 	      ldclose(ldptr);
 	      free(file);
 	      return;
@@ -390,7 +391,7 @@ void Object::load_object(bool sharedLibrary) {
 	if (!read_data_region(all_addr, all_size, all_disk,
 			      data_len_, data_off_, buffer, ldptr)) {
 	  success = false;
-          printf("failed read data region\n");
+          bperr("failed read data region\n");
 	  ldclose(ldptr);
 	  free(file);
 	  return;
@@ -399,7 +400,7 @@ void Object::load_object(bool sharedLibrary) {
         // Check for the symbol table
 	if (!(sym_tab_ptr = PSYMTAB(ldptr))) {
 	    success = false;
-            printf("failed check for symbol table - object may be strip'd!\n");
+            bperr("failed check for symbol table - object may be strip'd!\n");
 	    ldclose(ldptr);
 	    free(file);
 	    return;
@@ -409,14 +410,14 @@ void Object::load_object(bool sharedLibrary) {
 	sym_hdr = SYMHEADER(ldptr);
 	if (sym_hdr.magic != magicSym) {
 	    success = false;
-            printf("failed check for magic symbol\n");
+            bperr("failed check for magic symbol\n");
 	    ldclose(ldptr);
 	    free(file);
 	    return;
         }
 	if (!(sym_tab_ptr = SYMTAB(ldptr))) {
 	    success = false;
-            printf("failed read symbol table\n");
+            bperr("failed read symbol table\n");
 	    ldclose(ldptr);
 	    free(file);
 	    return;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.53 2004/03/23 01:11:56 eli Exp $
+// $Id: BPatch_image.C,v 1.54 2004/04/02 06:34:10 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -176,7 +176,7 @@ BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const
     type = mod->moduleTypes->globalVarsByName[name];
     assert(type);
     if (!proc->getSymbolInfo(name, syminfo)) {
-	printf("unable to find variable %s\n", name);
+	bperr("unable to find variable %s\n", name);
     }
     BPatch_variableExpr *var = AddrToVarExpr->hash[syminfo.addr()];
     if (!var) {
@@ -662,7 +662,7 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name, bool showError
     BPatch_type *type = NULL;
     for (unsigned int m = 0; m < mods->size(); m++) {
 	BPatch_module *module = (*mods)[m];
-	//printf("The moduleType address is : %x\n", &(module->moduleTypes));
+	//bperr("The moduleType address is : %x\n", &(module->moduleTypes));
 	type = module->moduleTypes->findVariableType(name);
 	if (type) break;
     }
@@ -728,7 +728,7 @@ BPatch_variableExpr *BPatch_image::findVariable(BPatch_point &scp,
 	memmove( scopedName, mangledName, strlen( mangledName ) );
 	memmove( scopedName + strlen( mangledName ), name, strlen( name ) );
 	scopedName[ strlen( mangledName ) + strlen( name ) ] = '\0';
-	fprintf( stderr, "Searching for scoped name '%s'\n", scopedName );
+	bperr( "Searching for scoped name '%s'\n", scopedName );
 	gsVar = findVariable( scopedName ); 
         }
       }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.209 2004/04/01 18:54:15 lharris Exp $
+// $Id: symtab.C,v 1.210 2004/04/02 06:34:15 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -648,7 +648,7 @@ bool image::addAllFunctions(pdvector<Symbol> &mods,
               + pdstring(tempBuffer);
               statusLine(msg.c_str());
               showErrorCallback(29, msg);
-              fprintf(stderr, "Whoops\n");
+              bperr( "Whoops\n");
               
               return false;
           }      
@@ -657,7 +657,7 @@ bool image::addAllFunctions(pdvector<Symbol> &mods,
           raw_funcs->push_back(main_pdf);
       }
       else {
-          fprintf(stderr, "Type not function!\n");
+          bperr( "Type not function!\n");
       }
       
   }
@@ -1887,30 +1887,25 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
       if (file->pfd->csym && modname.length()) {
          switch (file->pfd->lang) {
            case langAssembler:
-              //		fprintf(stderr, "Setting %s to 'lang_Assembly'\n", modname.c_str());
               (*mod_langs)[modname] = lang_Assembly;
               break;
 
            case langC:
            case langStdc:
-              //		fprintf(stderr, "Setting %s to 'lang_C'\n", modname.c_str());
               (*mod_langs)[modname] = lang_C;
               break;
 
            case langCxx:
            case langDECCxx:
-              //		fprintf(stderr, "Setting %s to 'lang_CPlusPlus'\n", modname.c_str());
               (*mod_langs)[modname] = lang_CPlusPlus;
               break;
 
            case langFortran:
            case langFortran90:
-              //		fprintf(stderr, "Setting %s to 'lang_Fortran'\n", modname.c_str());
               (*mod_langs)[modname] = lang_Fortran;
               break;
 
            default:
-              //		fprintf(stderr, "Setting %s to 'lang_Unknown'\n", modname.c_str());
               (*mod_langs)[modname] = lang_Unknown;
          }
 
@@ -2296,7 +2291,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
       showErrorCallback(27, msg); 
 #endif
 #endif
-      fprintf(stderr, "Error parsing\n");
+      bperr( "Error parsing\n");
       
       return; 
    }
@@ -2519,7 +2514,7 @@ void runCompiledRegexOn( regex_t * compiledRegex, pdvector< nameFunctionPair > *
 		if( status != 0 ) {
 			char errorString[80];
 			regerror( status, compiledRegex, errorString, 80 );
-			fprintf( stderr, "runCompiledRegexOn() regular expression execution error: '%s'\n", errorString ); 
+			bperr("runCompiledRegexOn() regular expression execution error: '%s'\n", errorString ); 
 			return;
 			}
 
@@ -2536,7 +2531,7 @@ void runCompiledRegexOnList( regex_t * compiledRegex, pdvector< nameFunctionList
 		if( status != 0 ) {
 			char errorString[80];
 			regerror( status, compiledRegex, errorString, 80 );
-			fprintf( stderr, "runCompiledRegexOn() regular expression execution error: '%s'\n", errorString ); 
+			bperr("runCompiledRegexOn() regular expression execution error: '%s'\n", errorString ); 
 			return;
 			}
 
@@ -2642,7 +2637,7 @@ void pdmodule::dumpMangled(char * prefix)
         cerr << pdf->symTabName() << " ";
         }
       else {
-        // printf( "%s is not a prefix of %s\n", prefix, pdf->symTabName().c_str() );
+        // bperr( "%s is not a prefix of %s\n", prefix, pdf->symTabName().c_str() );
         }
       }
     else {
@@ -3014,8 +3009,7 @@ pd_Function *image::findFuncByEntry(const Address &entry) const {
 pdvector <pd_Function *> *image::findFuncVectorByPretty(const pdstring &name)
 {
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-  fprintf(stderr, "%s[%d]:  inside findFuncVectorByPretty\n", __FILE__, __LINE__);
-  fflush(NULL);
+  bperr( "%s[%d]:  inside findFuncVectorByPretty\n", __FILE__, __LINE__);
 #endif
   if (funcsByPretty.defines(name))
     return funcsByPretty[name];
@@ -3563,7 +3557,7 @@ parseFileLineInfo(process * proc)
   FileLineInformation* currentFileInfo = NULL;
 
   for(i=0;i<stab_nsyms;i++){
-    // if (stabstrs) printf("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
+    // if (stabstrs) bperr("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
     switch(stabptr[i].type){
 
     case N_UNDF: /* start of object file */
@@ -3585,7 +3579,7 @@ parseFileLineInfo(process * proc)
 	    break;
 
     case N_SO: /* compilation source or file name */
-      /* printf("Resetting CURRENT FUNCTION NAME FOR NEXT OBJECT FILE\n");*/
+      /* bperr("Resetting CURRENT FUNCTION NAME FOR NEXT OBJECT FILE\n");*/
 #ifdef TIMED_PARSE
       src_count++;
       gettimeofday(&t1, NULL);
@@ -3852,7 +3846,7 @@ pdmodule::parseLineInformation(process* proc,
 		SYMENT *bfsym = (SYMENT*)(((unsigned)sym)+SYMESZ);
 
 		if (bfsym->n_sclass != C_FCN) {
-		    printf("unable to process line info for %s\n", symbolName);
+		    bperr("unable to process line info for %s\n", symbolName);
 		    return;
 		}
 
@@ -4076,15 +4070,15 @@ void pdmodule::parseFileLineInfo( process * /*proc*/ ) {
 			status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
 			assert( status == DW_DLV_OK );
 			
-			// fprintf( stderr, "0x%llx = %llu in '%s'\n", lineAddr, lineNo, lineSource );
+			// bperr( "0x%llx = %llu in '%s'\n", lineAddr, lineNo, lineSource );
 			
 			pd_Function * newFunction = moduleImage->findFuncByEntry(lineAddr);
 			if( newFunction != NULL ) {
 				currentFunctionName = newFunction->symTabName();
-				// fprintf( stderr, "Adding function '%s' to file '%s'\n", currentFunctionName.c_str(), lineSource );
+				// bperr( "Adding function '%s' to file '%s'\n", currentFunctionName.c_str(), lineSource );
 				lineInformation->insertSourceFileName( currentFunctionName, lineSource );
 				}
-			// fprintf( stderr, "Adding line %llu at %llx to function '%s' in file '%s'\n", lineNo, lineAddr, currentFunctionName.c_str(), lineSource );
+			// bperr( "Adding line %llu at %llx to function '%s' in file '%s'\n", lineNo, lineAddr, currentFunctionName.c_str(), lineSource );
 			lineInformation->insertLineAddress( currentFunctionName, lineSource, lineNo, lineAddr );
 			
 			/* Free the line source. */

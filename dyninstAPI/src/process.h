@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.293 2004/03/31 20:37:23 tlmiller Exp $
+/* $Id: process.h,v 1.294 2004/04/02 06:34:15 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -197,7 +197,7 @@ class disabledItem {
   disabledItem(Address ip, inferiorHeapType iht,
                const pdvector<addrVecType> &ipts) :
     block(ip, 0, iht), pointsToCheck(ipts) { 
-    fprintf(stderr, "error: unused disabledItem ctor\n");
+    bperr( "error: unused disabledItem ctor\n");
     assert(0);
   }
   disabledItem &operator=(const disabledItem &src) {

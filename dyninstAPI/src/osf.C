@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.65 2004/03/23 01:12:06 eli Exp $
+// $Id: osf.C,v 1.66 2004/04/02 06:34:13 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -225,7 +225,7 @@ bool process::setProcessFlags()
 
   dyn_lwp *replwp = getRepresentativeLWP();
   if (ioctl(replwp->get_fd(), PIOCSET, &flags) < 0) {
-    fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
+    bperr( "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
     return false;
   }
 
@@ -420,7 +420,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
 
     if (selected_fds == 0) {
         for (unsigned u = 0; u < processVec.size(); u++) {
-            //printf("checking %d\n", processVec[u]->getPid());
+            //bperr("checking %d\n", processVec[u]->getPid());
             if (processVec[u] && 
                 (processVec[u]->status() == running || 
                  processVec[u]->status() == neonatal)) {
@@ -461,7 +461,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
         }
         if (selected_fds <= 0) {
             if (selected_fds < 0) {
-                fprintf(stderr, "decodeProcessEvent: poll failed: %s\n",
+                bperr( "decodeProcessEvent: poll failed: %s\n",
                         sys_errlist[errno]);
                 selected_fds = 0;
             }
@@ -556,7 +556,7 @@ Frame Frame::getCallerFrame(process *p) const
           if (currFunc && currFunc->frame_size) {
               ret.fp_ = theIntRegs.regs[SP_REGNUM] + currFunc->frame_size;  
               ret.sp_ = theIntRegs.regs[SP_REGNUM];
-              //printf(" %s fp=%lx\n",currFunc->prettyName().c_str(), ret.fp_);
+              //bperr(" %s fp=%lx\n",currFunc->prettyName().c_str(), ret.fp_);
           } else {
               ret.fp_ = 0;
               sprintf(errorLine, "pc %lx, not in a known function\n", ret.pc_);
@@ -568,7 +568,7 @@ Frame Frame::getCallerFrame(process *p) const
       }
   } else {
       if (!p->readDataSpace((void *)sp_, sizeof(Address), values, false)){
-          printf("error reading frame at %lx\n", fp_);
+          bperr("error reading frame at %lx\n", fp_);
           return Frame(); // zero frame
       } else {
           // (*sp_) = RA
@@ -579,7 +579,7 @@ Frame Frame::getCallerFrame(process *p) const
           if (currFunc && currFunc->frame_size) {
               ret.sp_ = fp_;		/* current stack pointer is old fp */
               ret.fp_ = fp_ + currFunc->frame_size;  
-              //printf(" %s fp=%lx\n",currFunc->prettyName().c_str(), ret.fp_);
+              //bperr(" %s fp=%lx\n",currFunc->prettyName().c_str(), ret.fp_);
           } else {
               sprintf(errorLine, "pc %lx, not in a known function\n", ret.pc_);
               logLine(errorLine);
@@ -592,7 +592,7 @@ Frame Frame::getCallerFrame(process *p) const
 
 bool process::dumpCore_(const pdstring coreFile) 
 {
-  //fprintf(stderr, ">>> process::dumpCore_()\n");
+  //bperr( ">>> process::dumpCore_()\n");
   bool ret;
 #ifdef BPATCH_LIBRARY
   ret = dumpImage(coreFile);
@@ -636,7 +636,7 @@ pdstring process::tryToFindExecutable(const pdstring &progpath, int pid)
        return commandName;
    }
 
-   printf("access to  %s failed \n", commandName);
+   bperr("access to  %s failed \n", commandName);
    attach_cerr << "tryToFindExecutable: giving up" << endl;
 
    (void)close(procfd);
@@ -715,7 +715,7 @@ bool process::dumpImage()
      }
      
      if (TYPE(ldptr) != ALPHAMAGIC) {
-       printf("%s is not an alpha executable\n", outFile.c_str());
+       bperr("%s is not an alpha executable\n", outFile.c_str());
        exit(-1);
      }
      // Read the text and data sections
@@ -769,8 +769,8 @@ bool process::dumpImage()
        if (lseek(replwp->get_fd(),(off_t)(baseAddr + i), SEEK_SET) !=
            (long)(baseAddr + i))
        {
-          fprintf(stderr,"Error_:%s\n",sys_errlist[errno]);
-          fprintf(stderr,"[%d] Couldn't lseek to the designated point\n",i);
+          bperr("Error_:%s\n",sys_errlist[errno]);
+          bperr("[%d] Couldn't lseek to the designated point\n",i);
        }
        read(replwp->get_fd(),buffer,length);
        write(ofd, buffer, length);
@@ -918,8 +918,8 @@ bool process::trapDueToDyninstLib()
   //pc = Frame(this).getPC();
   pc = getRepresentativeLWP()->getActiveFrame().getPC();
 
-  // printf("testing for trap at entry to DyninstLib, current pc = 0x%lx\n",pc);
-  // printf("    breakpoint addr = 0x%lx\n", dyninstlib_brk_addr);
+  // bperr("testing for trap at entry to DyninstLib, current pc = 0x%lx\n",pc);
+  // bperr("    breakpoint addr = 0x%lx\n", dyninstlib_brk_addr);
 
   bool ret = (pc == dyninstlib_brk_addr);
 
@@ -991,19 +991,19 @@ void osfWaitProc(int fd)
 	 return;
     }
 #ifdef DEBUG
-    printf("status = %d\n", status.pr_why);
+    bperr("status = %d\n", status.pr_why);
     if (status.pr_flags & PR_STOPPED) {
         if (status.pr_why == PR_SIGNALLED) {
-            printf("stopped for signal %d\n", status.pr_what);
+            bperr("stopped for signal %d\n", status.pr_what);
         } else if (status.pr_why == PR_FAULTED) {
-            printf("stopped for fault %d\n", status.pr_what);
+            bperr("stopped for fault %d\n", status.pr_what);
         } else if (status.pr_why == PR_SYSEXIT) {
-            printf("stopped for exist system call %d\n", status.pr_what);
+            bperr("stopped for exist system call %d\n", status.pr_what);
         } else {
-            printf("stopped for pr+why = %d\n", status.pr_why);
+            bperr("stopped for pr+why = %d\n", status.pr_why);
         }
     } else {
-        printf("process is *not* stopped\n");
+        bperr("process is *not* stopped\n");
     }
 #endif
 }
@@ -1084,10 +1084,10 @@ bool process::trapAtEntryPointOfMain(Address)
   //pc = Frame(this).getPC();
   pc = getRepresentativeLWP()->getActiveFrame().getPC();
 
-  // printf("testing for trap at enttry to main, current pc = %lx\n", pc);
+  // bperr("testing for trap at enttry to main, current pc = %lx\n", pc);
 
   bool ret = (pc == main_brk_addr);
-  // if (ret) fprintf(stderr, ">>> process::trapAtEntryPointOfMain()\n");
+  // if (ret) bperr( ">>> process::trapAtEntryPointOfMain()\n");
   return ret;
 }
 
@@ -1158,7 +1158,7 @@ bool process::getDyninstRTLibName() {
 
 bool process::loadDYNINSTlib()
 {
-    //fprintf(stderr, ">>> process::loadDYNINSTlib()\n");
+    //bperr( ">>> process::loadDYNINSTlib()\n");
 
   // use "_start" as scratch buffer to invoke dlopen() on DYNINST
   bool err;
@@ -1239,9 +1239,9 @@ bool process::loadDYNINSTlib()
 
   // step 4: write inferior dlopen code and set PC
   assert(bufSize <= BYTES_TO_SAVE);
-  // fprintf(stderr, "writing %ld bytes to <0x%08lx:_start>, $pc = 0x%lx\n",
+  // bperr( "writing %ld bytes to <0x%08lx:_start>, $pc = 0x%lx\n",
       // bufSize, baseAddr, codeAddr);
-  // fprintf(stderr, ">>> loadDYNINSTlib <0x%lx(_start): %ld insns>\n",
+  // bperr( ">>> loadDYNINSTlib <0x%lx(_start): %ld insns>\n",
       // baseAddr, bufSize/INSN_SIZE);
   writeDataSpace((void *)baseAddr, bufSize, (void *)buf);
   bool ret = getRepresentativeLWP()->changePC(codeAddr, savedRegs);

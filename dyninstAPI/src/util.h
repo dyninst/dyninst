@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: util.h,v 1.28 2004/03/23 01:12:11 eli Exp $
+// $Id: util.h,v 1.29 2004/04/02 06:34:15 jaw Exp $
 
 #ifndef UTIL_H
 #define UTIL_H
@@ -63,6 +63,10 @@ const timeStamp &getFirstRecordTime();
 extern void logLine(const char *line);
 extern void statusLine(const char *line);
 extern char errorLine[];
+extern int bpfatal(const char *format ...);
+extern int bperr(const char *format ...);
+extern int bpwarn(const char *format ...);
+extern int bpinfo(const char *format ...);
 
 inline unsigned uiHash(const unsigned &val) {
   return val;
