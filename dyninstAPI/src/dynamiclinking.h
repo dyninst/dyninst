@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.h,v 1.10 2004/03/05 16:51:24 bernat Exp $
+// $Id: dynamiclinking.h,v 1.11 2004/03/08 19:04:11 bernat Exp $
 
 #if !defined(dynamic_linking_h)
 #define dynamic_linking_h
@@ -72,6 +72,10 @@ class sharedLibHook {
     // Remove the hook
     ~sharedLibHook();
 
+    // Fork constructor
+    sharedLibHook(process *p,
+                  sharedLibHook *h);
+        
     bool reachedBreakAddr(Address b) const {return (b == breakAddr_); };
     sharedLibHookType eventType() const { return type_; };
     

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.1 2004/03/05 16:51:25 bernat Exp $
+// $Id: dynamiclinking.C,v 1.2 2004/03/08 19:04:11 bernat Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -48,13 +48,45 @@
 
 dynamic_linking::dynamic_linking(process *p): proc(p), dynlinked(false),
                                               dlopen_addr(0), 
-                                              force_library_load(false), lowestSObaseaddr(0),
-                                              dlopenUsed(false) {}
+                                              force_library_load(false), 
+                                              lowestSObaseaddr(0),
+                                              dlopenUsed(false) 
+{ 
+    fprintf(stderr, "New dynamic linking constructed\n");
+}
 
 dynamic_linking::dynamic_linking(process *p,
-                                 dynamic_linking *d) {
-    // FORK constructor: TODO
+                                 dynamic_linking *d): proc(p),
+                                                      dynlinked(d->dynlinked),
+                                                      dlopen_addr(d->dlopen_addr),
+                                                      force_library_load(d->force_library_load),
+                                                      lowestSObaseaddr(d->lowestSObaseaddr),
+                                                      dlopenUsed(d->dlopenUsed)
+{
+#if defined(os_linux)
+    r_debug_addr = d->r_debug_addr;
+    r_brk_target_addr = d->r_brk_target_addr;
+    r_state = d->r_state;
+#endif
+#if defined(os_solaris)
+    r_debug_addr = d->r_debug_addr;
+    r_state = d->r_state;
+#endif
+#if defined(os_irix)
+    libc_obj= d->libc_obj;
+    for (unsigned j = 0; j < d->rld_map.size(); j++) {
+        pdElfObjInfo *obj = d->rld_map[i];
+        pdElfObjInfo *newobj = new pdElfObjInfo(*obj);
+        rld_map.push_back(newobj);
+    }
+    
+#endif
+    for (unsigned i = 0; i < d->sharedLibHooks_.size(); i++) {
+        sharedLibHooks_.push_back(new sharedLibHook(proc,
+                                                    d->sharedLibHooks_[i]));
+    }
 }
+
 
 dynamic_linking::~dynamic_linking() {
     uninstallTracing();
@@ -76,3 +108,12 @@ sharedLibHook *dynamic_linking::reachedLibHook(Address a) {
             return sharedLibHooks_[i];
     return NULL;
 }
+
+sharedLibHook::sharedLibHook(process *p, sharedLibHook *h) {
+    proc_ = p;
+    type_ = h->type_;
+    breakAddr_ = h->breakAddr_;
+    memcpy(h->saved_, saved_, SLH_SAVE_BUFFER_SIZE);
+}
+
+     
