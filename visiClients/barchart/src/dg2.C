@@ -2,9 +2,12 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.7  1995/02/26 02:01:48  newhall
-/* added callback functions for new visiLib phase info.
+/* Revision 1.8  1995/08/06 22:11:48  tamches
+/* removed some warnings by using myTclEval
 /*
+ * Revision 1.7  1995/02/26  02:01:48  newhall
+ * added callback functions for new visiLib phase info.
+ *
  * Revision 1.6  1994/11/06  10:24:04  tamches
  * minor cleanups (especially commenting)
  *
@@ -33,8 +36,10 @@
 
 #include <stdlib.h> // exit()
 #include <iostream.h>
-#include <tcl.h>
-#include <tk.h>
+
+#include "tclclean.h"
+#include "tkclean.h"
+
 #include "dg2.h"
 #include "visi/h/visualization.h"
 #include "barChartTcl.h"
@@ -45,40 +50,36 @@ void my_visi_callback(void* arg0, int* arg1, long unsigned int* arg2) {
       exit(0);
 }
 
+void myTclEval(Tcl_Interp *interp, const char *cmd) {
+   if (TCL_OK != Tcl_Eval(interp, cmd)) {
+      cerr << interp->result << endl;
+      exit(5);
+   }
+}
+
 int Dg2AddMetricsCallback(int dummy) {
-  const int retval = Tcl_Eval(MainInterp, "DgConfigCallback");
-  if (retval == TCL_ERROR)
-     cerr << MainInterp->result << endl;
+   myTclEval(MainInterp, "DgConfigCallback");
 
-  // if necessary, the tcl program will call xAxisHasChanged and/or
-  // yAxisHasChanged, which are commands we implement in barChart.C.
-  // We take action then.
+   // if necessary, the tcl program will call xAxisHasChanged and/or
+   // yAxisHasChanged, which are commands we implement in barChart.C.
+   // We take action then.
 
-  return retval;
+   return TCL_OK;
 }
 
 int Dg2Fold(int dummy) {
-  const int retval = Tcl_Eval(MainInterp, "DgFoldCallback");
-  if (retval == TCL_ERROR)
-     cerr << MainInterp->result << endl;
-
-  return retval;
+   myTclEval(MainInterp, "DgFoldCallback");
+   return TCL_OK;
 }
 
 int Dg2InvalidMetricsOrResources(int dummy) {
-  const int retval = Tcl_Eval(MainInterp, "DgInvalidCallback");
-  if (retval == TCL_ERROR)
-     cerr << MainInterp->result << endl;
-
-  return retval;
+   myTclEval(MainInterp, "DgInvalidCallback");
+   return TCL_OK;
 }
 
 int Dg2PhaseNameCallback(int dummy) {
-  const int retval = Tcl_Eval(MainInterp, "DgPhaseCallback");
-  if (retval == TCL_ERROR)
-     cerr << MainInterp->result << endl;
-
-  return retval;
+   myTclEval(MainInterp, "DgPhaseCallback");
+   return TCL_OK;
 }
 
 #define   AGGREGATE        0
@@ -102,7 +103,7 @@ int Dg2PhaseNameCallback(int dummy) {
 #define   FIRSTBUCKET      18
 
 struct cmdTabEntry {
-   char *cmdname;
+   const char *cmdname;
    int index;
    int numargs;
 };
