@@ -257,9 +257,9 @@ metricInstance *metricInstance::find(metricHandle mh, resourceListHandle rh){
 
 bool metricInstance::addComponent(component *new_comp){
 
-    int new_id =  new_comp->getId();
+    paradynDaemon *new_daemon =  new_comp->getDaemon();
     for (unsigned i=0; i < components.size(); i++){
-        if((components[i])->getId() == new_id) return false;
+         if((components[i])->getDaemon() == new_daemon) return false;
     }
     components += new_comp;
     return true;

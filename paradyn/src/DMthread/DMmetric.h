@@ -52,6 +52,8 @@ class component {
             daemon->activeMids.undef((unsigned)id);
 	}
 	int getId(){return(id);}
+        paradynDaemon *getDaemon() { return(daemon); }
+
     private:
 	sampleInfo sample;
 	paradynDaemon *daemon;
