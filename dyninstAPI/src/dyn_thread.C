@@ -141,6 +141,10 @@ rawTime64 dyn_thread::getInferiorVtime(virtualTimer *vTimer,
   if (count > 0) {
      // pos_junk = get_pos();
      now = proc->getRawCpuTime(vTimer->lwp);
+     if(now == -1) {// error code
+        success = false;
+        return 0;
+     }
      // pos_junk = 101;
      ret = total + (now - start);    
   } else {
@@ -168,7 +172,7 @@ bool dyn_thread::updateLWP()
   int lwp_id;
   if (lwp) lwp_id = lwp->get_lwp();
   else lwp_id = 0;
-  int vt_lwp = proc->shmMetaData->getVirtualTimer(pos).lwp;
+  int vt_lwp = proc->shmMetaData->getVirtualTimer(pos)->lwp;
 
   if (vt_lwp < 0) {
     lwp = NULL; // Not currently scheduled
