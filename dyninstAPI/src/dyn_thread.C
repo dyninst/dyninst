@@ -83,6 +83,13 @@ bool dyn_thread::updateLWP()
 {
   return true;
 }
+
+Frame dyn_thread::getActiveFrameMT()
+{
+    Frame dummy;
+
+    return dummy;
+}
 #endif
   
 // MT version lives in the <os>MT.C files, and can do things like

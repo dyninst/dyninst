@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.159 2003/06/24 19:41:18 schendel Exp $
+// $Id: aix.C,v 1.160 2003/06/29 19:55:49 hollings Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1347,11 +1347,16 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 
 // should use demangle.h here, but header is badly broken on AIX 5.1
 typedef void *Name;
+typedef enum { VirtualName, MemberVar, Function, MemberFunction, Class,
+	       Special, Long } NameKind;
 typedef enum { RegularNames = 0x1, ClassNames = 0x2, SpecialNames = 0x4,
                ParameterText = 0x8, QualifierText = 0x10 } DemanglingOptions;
 
 Name *(*P_native_demangle)(char *, char **, unsigned long);
 char *(*P_functionName)(Name *);
+char *(*P_varName)(Name *);
+char *(*P_text)(Name *);
+NameKind (*P_kind)(Name *);
 
 void loadNativeDemangler() 
 {
@@ -1362,10 +1367,32 @@ void loadNativeDemangler()
    void *hDemangler = dlopen("libdemangle.so.1", RTLD_LAZY|RTLD_MEMBER);
    if (hDemangler != NULL) {
       P_native_demangle = (Name*(*)(char*, char**, long unsigned int)) dlsym(hDemangler, "demangle");
+      if (!P_native_demangle) 
+	  BPatch_reportError(BPatchSerious,122,
+	      "unable to locate function demangle in libdemangle.so.1\n");
+
       P_functionName = (char*(*)(Name*)) dlsym(hDemangler, "functionName");
+      if (!P_functionName) 
+	  BPatch_reportError(BPatchSerious,122,
+	      "unable to locate function functionName in libdemangle.so.1\n");
+
+      P_varName = (char*(*)(Name*)) dlsym(hDemangler, "varName");
+      if (!P_varName) 
+	  BPatch_reportError(BPatchSerious,122,
+	      "unable to locate function varName in libdemangle.so.1\n");
+
+      P_kind = (NameKind(*)(Name*)) dlsym(hDemangler, "kind");
+      if (!P_kind) 
+	  BPatch_reportError(BPatchSerious,122,
+	      "unable to locate function kind in libdemangle.so.1\n");
+
+      P_text = (char*(*)(Name*)) dlsym(hDemangler, "text");
+      if (!P_text) 
+	  BPatch_reportError(BPatchSerious,122,
+	      "unable to locate function text in libdemangle.so.1\n");
    } else {
 #if defined(BPATCH_LIBRARY)
-      BPatch_reportError(BPatchSerious,122,"unable to load external demangler libdemangle.so.1\n");
+      BPatch_reportError(BPatchSerious,122,"unable to load xlC external demangler libdemangle.so.1\n");
 #else
       cerr << "unable to load external demangler libdemangle.so.1\n";
 #endif
@@ -1378,6 +1405,8 @@ extern void dedemangle( const char * demangled, char * dedemangled );
 #define DMGL_PARAMS      (1 << 0)       /* Include function args */
 #define DMGL_ANSI        (1 << 1)       /* Include const, volatile, etc */
 
+NameKind kind;
+
 int P_cplus_demangle(const char *symbol, char *prototype, size_t size, bool nativeCompiler, bool includeTypes) 
 {
    if( !nativeCompiler || P_native_demangle == NULL) {
@@ -1385,21 +1414,34 @@ int P_cplus_demangle(const char *symbol, char *prototype, size_t size, bool nati
                                         includeTypes ? DMGL_PARAMS|DMGL_ANSI :  0);
         if(demangled_sym==NULL || strlen(demangled_sym) >= size)
             return 1;
-        if (!includeTypes)
+        if (!includeTypes) {
             dedemangle( demangled_sym, prototype );
-        else
+        } else
             strncpy(prototype, demangled_sym,size);
         free(demangled_sym);
         return 0;
    } else {
 	// use Native demangler
+	char demangled_sym[1000];
 	Name *name;
-	char *demangled_sym;
-        name = (P_native_demangle)(const_cast<char*>(symbol), (char **) &demangled_sym, RegularNames); 
-	if (name) {
-	    strncpy(prototype, (P_functionName)(name), size);
+	char *rest;
+
+	if (!P_native_demangle || !P_functionName || !P_kind || !P_varName) {
+	    return 1;
+	}
+
+        char *tempName = strdup(symbol);
+        name = (P_native_demangle)(tempName, (char **) &rest, RegularNames|ClassNames|SpecialNames|ParameterText|QualifierText); 
+	if (name && ((int ) name != -1)) {
+	    strncpy(demangled_sym, (P_text)(name), size);
+	    if (!includeTypes) {
+		dedemangle( demangled_sym, prototype );
+	    } else
+		strncpy(prototype, demangled_sym,size);
+	    free(tempName);
 	    return 0;
 	} else {
+	    free(tempName);
  	    return 1;
 	}
    }

@@ -719,9 +719,13 @@ char *getIdentifier(char *stabstr, int &cnt, bool stopOnSpace)
     int i = 0;
     char *ret;
     int brCnt = 0;
+    int limit;
     bool idChar = true;
 
+    limit = strlen(&stabstr[cnt]) + 1;
+
     while(idChar) {
+	assert(i < limit);
 	switch(stabstr[cnt+i]) {
 	case '<':
 	case '(':
@@ -744,7 +748,7 @@ char *getIdentifier(char *stabstr, int &cnt, bool stopOnSpace)
 	case ':':
 	case ',':
 	case ';':
-		if (brCnt)
+		if (brCnt && stabstr[cnt+i])
 			i++;
 		else
 			idChar = false;
@@ -755,14 +759,18 @@ char *getIdentifier(char *stabstr, int &cnt, bool stopOnSpace)
 	}
     }
 
-    ret = (char *) malloc(i+1);
-    assert(ret);
+    if (i) {
+	ret = (char *) malloc(i+1);
+	assert(ret);
 
-    strncpy(ret, &stabstr[cnt], i);
-    ret[i] = '\0';
-    cnt += i;
+	strncpy(ret, &stabstr[cnt], i);
+	ret[i] = '\0';
+	cnt += i;
 
-    return ret;
+	return ret;
+    } else {
+	return NULL;
+    }
 }
 
 //
@@ -1372,7 +1380,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 		beg_offset = 0;
 		size = 0;
 		if (typedescr == BPatch_dataMethod) {
-			while(1) {
+			while(stabstr[cnt]) {
 				//Mangling of arguments
 				while(stabstr[cnt] != ';') cnt++;
 
@@ -1581,39 +1589,49 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
     stabstr = parseFieldList(mod, newType, &stabstr[cnt], sunStyle);
     cnt = 0;
 
-    // parse member functions
-    cnt++;
-    while (stabstr[cnt] && (stabstr[cnt] != ';')) {
-	char *funcName = getIdentifier(stabstr, cnt, true);
+    if (stabstr[0]) {
+	// parse member functions
+	cnt++;
+	while (stabstr[cnt] && (stabstr[cnt] != ';')) {
+	    printf("    looking for identifier at %s\n", &stabstr[cnt]);
+	    char *funcName = getIdentifier(stabstr, cnt, true);
 
-	funcName++;	// skip ppp-code
+	    if (!funcName) break;
 
-	if (*funcName == '-') funcName++; // it's a pure vitual
+	    funcName++;	// skip ppp-code
 
-	while (isdigit(*funcName)) funcName++; // skip virtual function index
-	funcName++;
+	    if (*funcName == '-') funcName++; // it's a pure vitual
 
-	char *name = (char *) malloc(1000 * sizeof(char));
-	char *className = strdup(currentRawSymbolName);
-	className[3] = 'c';
-	className[strlen(className)-1] = '\0';	// remove tailing "_"
-	string methodName = string(className) + string(funcName) + string("_");
-	if (!P_cplus_demangle(methodName.c_str(), name, 1000, 
-	    mod->isNativeCompiler())) {
-	    funcName = strrchr(name, ':');
-	    if (funcName) {
-	       funcName++;
-	    } else {
-	       funcName = name;
-	    }
-	} 
-	// should include position for virtual methods
-	BPatch_type *fieldType = mod->moduleTypes->findType("void");
-	newType->addField(funcName, BPatch_dataMethod, fieldType, 0, 0);
+	    while (isdigit(*funcName)) funcName++; // skip virtual function index
+	    funcName++;
 
-	free(name);
-	free(className);
-	if (stabstr[cnt] == ' ') cnt++;
+	    char *methodName = (char *) malloc(1000 * sizeof(char));
+	    char *name = (char *) malloc(1000 * sizeof(char));
+	    char *className = strdup(currentRawSymbolName);
+	    className[3] = 'c';
+	    className[strlen(className)-1] = '\0';	// remove tailing "_"
+
+	    assert(name && methodName);
+	    sprintf(methodName, "%s%s_", className, funcName);
+	    printf("    got method %s\n", methodName);
+	    if (!P_cplus_demangle(methodName, name, 1000, mod->isNativeCompiler())) {
+		funcName = strrchr(name, ':');
+		if (funcName) {
+		   funcName++;
+		} else {
+		   funcName = name;
+		}
+	    } 
+	    // should include position for virtual methods
+	    printf("    got funcNam %s\n", funcName);
+	    BPatch_type *fieldType = mod->moduleTypes->findType("void");
+	    newType->addField(funcName, BPatch_dataMethod, fieldType, 0, 0);
+
+	    free(name);
+	    free(className);
+	    free(methodName);
+	    if (stabstr[cnt] == ' ') cnt++;
+	}
     }
 
     cnt = strlen(stabstr);
