@@ -82,6 +82,8 @@ public:
 
     BPatch_type	*findType(const char *name);
     BPatch_type	*findType(const int & ID);
+    BPatch_type *findTypeLocal(const char *name);
+    BPatch_type *findTypeLocal(const int &ID);
     void	addType(BPatch_type *type);
     void        addGlobalVariable(const char *name, BPatch_type *type)
       {globalVarsByName[name] = type;}
@@ -95,7 +97,8 @@ public:
     BPatch_type * addOrUpdateType( BPatch_type * type );
 
     BPatch_type *findVariableType(const char *name);
-   
+    
+    void clearNumberedTypes();
 };
 
 /*

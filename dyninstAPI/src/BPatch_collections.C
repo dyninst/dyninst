@@ -163,6 +163,17 @@ BPatch_typeCollection::~BPatch_typeCollection()
   while (gi.next(name, type))
     delete type;
 #endif
+
+  for (dictionary_hash_iter<int, BPatch_type *> it = typesByID.begin();
+       it != typesByID.end();
+       it ++) {
+     (*it)->decrRefCount();
+  }
+  for (dictionary_hash_iter<pdstring, BPatch_type *> it2 = typesByName.begin();
+       it2 != typesByName.end();
+       it2 ++) {
+     (*it2)->decrRefCount();
+  }
   
 }
 
@@ -181,9 +192,30 @@ BPatch_type *BPatch_typeCollection::findType(const char *name)
 {
     if (typesByName.defines(name))
     	return typesByName[name];
-    else
-	return (BPatch_type *)NULL;
+    else {
+       if (BPatch::bpatch && BPatch::bpatch->builtInTypes)
+          return BPatch::bpatch->builtInTypes->findBuiltInType(name);
+       else
+          return NULL;
+    }
 }
+
+BPatch_type *BPatch_typeCollection::findTypeLocal(const char *name)
+{
+   if (typesByName.defines(name))
+      return typesByName[name];
+   else
+      return NULL;
+}
+
+BPatch_type *BPatch_typeCollection::findTypeLocal(const int &ID)
+{
+   if (typesByID.defines(ID))
+      return typesByID[ID];
+   else
+      return NULL;
+}
+
 
 BPatch_type * BPatch_typeCollection::findOrCreateType( const int & ID ) {
     if( typesByID.defines(ID) ) { return typesByID[ID]; }
@@ -195,7 +227,7 @@ BPatch_type * BPatch_typeCollection::findOrCreateType( const int & ID ) {
 
     if( returnType == NULL ) {
         /* Create a placeholder type. */
-        returnType = new BPatch_type( NULL, ID, BPatch_dataUnknownType, 0 );
+        returnType = BPatch_type::createPlaceholder(ID);
 	assert( returnType != NULL );
 
         /* Having created the type, add it. */
@@ -206,29 +238,50 @@ BPatch_type * BPatch_typeCollection::findOrCreateType( const int & ID ) {
 } /* end findOrCreateType() */
 
 BPatch_type * BPatch_typeCollection::addOrUpdateType( BPatch_type * type ) {
-    BPatch_type * existingType = findType( type->getID() );
+    BPatch_type * existingType = findTypeLocal( type->getID() );
     if( existingType == NULL ) {
         if( type->getName() != NULL ) {
             typesByName[ type->getName() ] = type;
+            type->incrRefCount();
         }
         typesByID[ type->getID() ] = type;
+        type->incrRefCount();
         return type;
     } else {
-#if defined( USES_DWARF_DEBUG )
+        /* Multiple inclusions of the same object file can result
+           in us parsing the same module types repeatedly. GCC does this
+           with some of its internal routines */
+        if (*existingType == *type) {
+           return existingType;
+        }
+#ifdef notdef
+	//#if defined( USES_DWARF_DEBUG )
         /* Replace the existing type wholesale. */
         // bperr( "Updating existing type '%s' %d at %p with %p\n", type->getName(), type->getID(), existingType, type );
 	memmove( existingType, type, sizeof( BPatch_type ) );
 #else
-	/* Merge the type information. */
-	if (!existingType->merge( type )) {
-	  /* If we can't merge, replace wholesale */
-	  typesByID[ type->getID() ] = type;
-	}
-
+        if (existingType->getDataClass() == BPatch_dataUnknownType) {
+           typesByID[type->getID()] = type;
+           existingType->decrRefCount();
+           existingType = type;
+           type->incrRefCount();
+        } else {
+           /* Merge the type information. */
+           existingType->merge(type);
+        }
 #endif
     /* The type may have gained a name. */
-    if( existingType->getName() != NULL ) {
-        typesByName[ existingType->getName() ] = existingType;
+    if( existingType->getName() != NULL) {
+       if (typesByName.defines(existingType->getName())) {
+          if (typesByName[ existingType->getName() ] != existingType) {
+             typesByName[ existingType->getName() ]->decrRefCount();
+             typesByName[ existingType->getName() ] = existingType;
+             existingType->incrRefCount();
+          }
+       } else {
+          typesByName[ existingType->getName() ] = existingType;
+          existingType->incrRefCount();
+       }
     }
 
     /* Tell the parser to update its type pointer. */
@@ -277,8 +330,10 @@ BPatch_type *BPatch_typeCollection::findVariableType(const char *name)
  */
 void BPatch_typeCollection::addType(BPatch_type *type)
 {
-  if(type->getName() != NULL) //Type could have no name.
+  if(type->getName() != NULL) { //Type could have no name.
     typesByName[type->getName()] = type;
+    type->incrRefCount();
+  }
 
   //Types can share the same ID for typedef, thus not adding types with
   //same ID to the collection
@@ -286,6 +341,16 @@ void BPatch_typeCollection::addType(BPatch_type *type)
   // XXX - Fortran seems to restart type numbers for each subroutine
   // if(!(this->findType(type->getID())))
        typesByID[type->getID()] = type;
+  type->incrRefCount();
+}
+
+void BPatch_typeCollection::clearNumberedTypes() {
+   for (dictionary_hash_iter<int, BPatch_type *> it = typesByID.begin();
+        it != typesByID.end();
+        it ++) {
+      (*it)->decrRefCount();
+   }
+   typesByID.clear();
 }
 
 
@@ -321,10 +386,10 @@ BPatch_builtInTypeCollection::~BPatch_builtInTypeCollection()
 
     // delete builtInTypesByName collection
     while (bit.next(name, type))
-	delete type;
+	type->decrRefCount();
     // delete builtInTypesByID collection
     while (bitid.next(id, type))
-	delete type;
+	type->decrRefCount();
 }
 
 
@@ -356,10 +421,13 @@ BPatch_type *BPatch_builtInTypeCollection::findBuiltInType(const int & ID)
 
 void BPatch_builtInTypeCollection::addBuiltInType(BPatch_type *type)
 {
-  if(type->getName() != NULL) //Type could have no name.
+  if(type->getName() != NULL) { //Type could have no name.
     builtInTypesByName[type->getName()] = type;
+    type->incrRefCount();
+  }
   //All built-in types have unique IDs so far jdd 4/21/99
   builtInTypesByID[type->getID()] = type;
+  type->incrRefCount();
 }
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.19 2004/03/23 01:11:57 eli Exp $
+// $Id: CodeView.C,v 1.20 2004/07/21 22:46:20 jodom Exp $
 
 #include <assert.h>
 
@@ -50,6 +50,7 @@
 #include "common/h/Vector.h"
 #include "dyninstAPI/src/CodeView.h"
 #include "dyninstAPI/src/NTTypes.h"
+#include "dyninstAPI/src/BPatch_typePrivate.h"
 
 
 //---------------------------------------------------------------------------
@@ -626,7 +627,7 @@ CodeView::Symbols::CreatePrimitiveType(DWORD index)
 	switch(index) {
 	case T_NOTYPE: //Regarded as void
  	case T_VOID:
-		lastType = new BPatch_type("void", -11, BPatch_built_inType, 0);
+		lastType = new BPatch_typeScalar(index, 0, "void");
 		break;
 	case T_PVOID:
 	case T_PFVOID:
@@ -634,12 +635,12 @@ CodeView::Symbols::CreatePrimitiveType(DWORD index)
 	case T_32PVOID:
 	case T_32PFVOID:
 	case T_64PVOID:
-		lastType = new BPatch_type("void", -11, BPatch_built_inType, 0);
-		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		lastType = new BPatch_typeScalar(T_VOID, 0, "void");
+		lastType = new BPatch_typePointer(index, lastType, "");
 		break;
 	case T_CHAR:
 	case T_RCHAR:
-		lastType = new BPatch_type("char", -2, BPatch_built_inType, 1);
+		lastType = new BPatch_typeScalar(index, 1, "char");
 		break;
 	case T_PCHAR:
 	case T_PFCHAR:
@@ -653,11 +654,11 @@ CodeView::Symbols::CreatePrimitiveType(DWORD index)
 	case T_32PRCHAR:
 	case T_32PFRCHAR:
 	case T_64PRCHAR:
-		lastType = new BPatch_type("char", -2, BPatch_built_inType, 1);
-		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		lastType = new BPatch_typeScalar(T_CHAR, 1, "char");
+		lastType = new BPatch_typePointer(index, lastType, "");
                 break;
 	case T_UCHAR:
-		lastType = new BPatch_type("unsigned char", -5, BPatch_built_inType, 1);
+		lastType = new BPatch_typeScalar(index, 1, "unsigned char");
 		break;
 	case T_PUCHAR:
 	case T_PFUCHAR:
@@ -665,12 +666,12 @@ CodeView::Symbols::CreatePrimitiveType(DWORD index)
 	case T_32PUCHAR:
 	case T_32PFUCHAR:
 	case T_64PUCHAR:
-		lastType = new BPatch_type("unsigned char", -5, BPatch_built_inType, 1);
-		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		lastType = new BPatch_typeScalar(T_UCHAR, 1, "unsigned char");
+		lastType = new BPatch_typePointer(index, lastType, "");
                 break;
 	case T_SHORT:
 	case T_INT2:
-		lastType = new BPatch_type("short", -3, BPatch_built_inType, 2);
+		lastType = new BPatch_typeScalar(index, 2, "short");
 		break;
 	case T_PINT2:
 	case T_PFINT2:
@@ -684,12 +685,12 @@ CodeView::Symbols::CreatePrimitiveType(DWORD index)
 	case T_32PSHORT:
 	case T_32PFSHORT:
 	case T_64PSHORT:
-		lastType = new BPatch_type("short", -3, BPatch_built_inType, 2);
-		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		lastType = new BPatch_typeScalar(T_SHORT, 2, "short");
+		lastType = new BPatch_typePointer(index, lastType, "");
 		break;
  	case T_USHORT:
 	case T_UINT2:
-		lastType = new BPatch_type("unsigned short", -7, BPatch_built_inType, 2);
+		lastType = new BPatch_typeScalar(index, 2, "unsigned short");
 		break;
 	case T_PUINT2:
 	case T_PFUINT2:
@@ -703,11 +704,11 @@ CodeView::Symbols::CreatePrimitiveType(DWORD index)
 	case T_32PUSHORT:
 	case T_32PFUSHORT:
 	case T_64PUSHORT:
-		lastType = new BPatch_type("unsigned short", -7, BPatch_built_inType, 2);
-		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		lastType = new BPatch_typeScalar(T_USHORT, 2, "unsigned short");
+		lastType = new BPatch_typePointer(index, lastType, "");
 		break;
  	case T_INT4:
-		lastType = new BPatch_type("int", -1, BPatch_built_inType, 4);
+		lastType = new BPatch_typeScalar(index, 4, "int");
 		break;
 	case T_PINT4:
 	case T_PFINT4:
@@ -715,11 +716,11 @@ CodeView::Symbols::CreatePrimitiveType(DWORD index)
 	case T_32PINT4:
 	case T_32PFINT4:
 	case T_64PINT4:
-		lastType = new BPatch_type("int", -1, BPatch_built_inType, 4);
-		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		lastType = new BPatch_typeScalar(T_INT4, 4, "int");
+		lastType = new BPatch_typePointer(index, lastType, "");
 		break;
  	case T_UINT4:
-		lastType = new BPatch_type("unsigned int", -8, BPatch_built_inType, 4);
+		lastType = new BPatch_typeScalar(index, 4, "unsigned int");
 		break;
 	case T_PUINT4:
 	case T_PFUINT4:
@@ -727,11 +728,11 @@ CodeView::Symbols::CreatePrimitiveType(DWORD index)
 	case T_32PUINT4:
 	case T_32PFUINT4:
 	case T_64PUINT4:
-		lastType = new BPatch_type("unsigned int", -8, BPatch_built_inType, 4);
-		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		lastType = new BPatch_typeScalar(T_UINT4, 4, "unsigned int");
+		lastType = new BPatch_typePointer(index, lastType, "");
 		break;
  	case T_LONG:
-		lastType = new BPatch_type("long", -4, BPatch_built_inType, sizeof(long));
+		lastType = new BPatch_typeScalar(index, sizeof(long), "long");
 		break;
 	case T_PLONG:
 	case T_PFLONG:
@@ -739,12 +740,11 @@ CodeView::Symbols::CreatePrimitiveType(DWORD index)
 	case T_32PLONG:
 	case T_32PFLONG:
 	case T_64PLONG:
-		lastType = new BPatch_type("long", -4, BPatch_built_inType, sizeof(long));
-		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		lastType = new BPatch_typeScalar(T_LONG, sizeof(long), "long");
+		lastType = new BPatch_typePointer(index, lastType, "");
 		break;
  	case T_ULONG:
-		lastType = new BPatch_type("unsigned long", -10, BPatch_built_inType, 
-								sizeof(unsigned long));
+		lastType = new BPatch_typeScalar(index, sizeof(unsigned long), "unsigned long");
 		break;
 	case T_PULONG:
 	case T_PFULONG:
@@ -752,13 +752,11 @@ CodeView::Symbols::CreatePrimitiveType(DWORD index)
 	case T_32PULONG:
 	case T_32PFULONG:
 	case T_64PULONG:
-		lastType = new BPatch_type("unsigned long", -10, BPatch_built_inType, 
-								sizeof(unsigned long));
-		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		lastType = new BPatch_typeScalar(T_ULONG, sizeof(unsigned long), "unsigned long");
+		lastType = new BPatch_typePointer(index, lastType, "");
 		break;
  	case T_REAL32:
-		lastType = new BPatch_type("float", -12, BPatch_built_inType, 
-									sizeof(float));
+		lastType = new BPatch_typeScalar(index, sizeof(float), "float");
 		break;
 	case T_PREAL32:
 	case T_PFREAL32:
@@ -766,27 +764,23 @@ CodeView::Symbols::CreatePrimitiveType(DWORD index)
 	case T_32PREAL32:
 	case T_32PFREAL32:
 	case T_64PREAL32:
-		lastType = new BPatch_type("float", -12, BPatch_built_inType,
-									sizeof(float));
-		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		lastType = new BPatch_typeScalar(T_REAL32, sizeof(float), "float");
+		lastType = new BPatch_typePointer(index, lastType, "");
 		break;
  	case T_REAL64:
-		lastType = new BPatch_type("double", -13, BPatch_built_inType, 
-									sizeof(double));
-		break;
+		lastType = new BPatch_typeScalar(index, sizeof(double), "double");		break;
 	case T_PREAL64:
 	case T_PFREAL64:
 	case T_PHREAL64:
 	case T_32PREAL64:
 	case T_32PFREAL64:
 	case T_64PREAL64:
-		lastType = new BPatch_type("double", -13, BPatch_built_inType, 
-									sizeof(double));
-		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+                lastType = new BPatch_typeScalar(T_REAL64, sizeof(double), "double");
+		lastType = new BPatch_typePointer(index, lastType, "");
 		break;
  	case T_INT8:
  	case T_UINT8:
-		lastType = new BPatch_type("long long", -32, BPatch_built_inType, 8);
+		lastType = new BPatch_typeScalar(index, sizeof(LONGLONG), "long long");
 		break;
 	case T_PINT8:
 	case T_PUINT8:
@@ -800,12 +794,11 @@ CodeView::Symbols::CreatePrimitiveType(DWORD index)
 	case T_32PFUINT8:
 	case T_64PINT8:
 	case T_64PUINT8:
-		lastType = new BPatch_type("long long", -32, BPatch_built_inType, 8);
-		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		lastType = new BPatch_typeScalar(T_INT8, sizeof(LONGLONG), "long long");
+		lastType = new BPatch_typePointer(index, lastType, "");
 		break;
 	case T_REAL80:
-		lastType = new BPatch_type("long double", -14, BPatch_built_inType, 
-								sizeof(long double));
+		lastType = new BPatch_typeScalar(index, sizeof(long double), "long double");
 		break;
 	case T_PREAL80:
 	case T_PFREAL80:
@@ -813,9 +806,8 @@ CodeView::Symbols::CreatePrimitiveType(DWORD index)
 	case T_32PREAL80:
 	case T_32PFREAL80:
 	case T_64PREAL80:
-		lastType = new BPatch_type("long double", -14, BPatch_built_inType,
-								sizeof(long double));
-		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		lastType = new BPatch_typeScalar(T_REAL80, sizeof(long double), "long double");
+		lastType = new BPatch_typePointer(index, lastType, "");
 		break;
 	default:
 		lastType = NULL;
@@ -879,7 +871,7 @@ CodeView::Symbols::FindFields(BPatch_module *mod, BPatch_type *mainType, int cou
 			if (memberType == NULL)
 				memberType = mod->moduleTypes->findType("void");
 
-			mainType->addField(fname, BPatch_scalar, memberType, foffset*8, 
+			dynamic_cast<BPatch_fieldListType *>(mainType)->addField(fname, BPatch_scalar, memberType, foffset*8, 
 						memberType->getSize(), 
 						AccessType(((LFMember *)ptr)->attribute) );
 
@@ -903,7 +895,7 @@ CodeView::Symbols::FindFields(BPatch_module *mod, BPatch_type *mainType, int cou
 
 			strncpy(fname, &name[1], (int)name[0]);
 			fname[(int)name[0]] = '\0';
-			mainType->addField(name, BPatch_scalar, fvalue);
+			dynamic_cast<BPatch_fieldListType *>(mainType)->addField(name, fvalue);
 
 			// printf("Field %d is LF_ENUMERATE %s\n", i, fname);
 
@@ -942,7 +934,7 @@ CodeView::Symbols::FindFields(BPatch_module *mod, BPatch_type *mainType, int cou
 					if (field->getVisibility() == BPatch_private)
 						continue; //Can not add this member
 
-					mainType->addField(field->getName(),
+					dynamic_cast<BPatch_fieldListType *>(mainType)->addField(field->getName(),
 						field->getTypeDesc(),
 						field->getType(),
 						foffset*8 + field->getOffset(),
@@ -972,7 +964,7 @@ CodeView::Symbols::FindFields(BPatch_module *mod, BPatch_type *mainType, int cou
 			if (memberType == NULL)
 				memberType = mod->moduleTypes->findType("void");
 
-			mainType->addField(fname, BPatch_dataMethod, memberType, 0, 0);
+			dynamic_cast<BPatch_fieldListType *>(mainType)->addField(fname, BPatch_dataMethod, memberType, 0, 0);
 
 			// printf("Field %d is LF_ONEMETHOD %s\n", i, fname);
 
@@ -984,7 +976,7 @@ CodeView::Symbols::FindFields(BPatch_module *mod, BPatch_type *mainType, int cou
 						(int)((LFMethod *)ptr)->name[0]);
 			fname[(int)((LFMethod *)ptr)->name[0]] = '\0';
 			memberType = mod->moduleTypes->findType("void");
-			mainType->addField(fname, BPatch_dataMethod, memberType, 0, 0);
+			dynamic_cast<BPatch_fieldListType *>(mainType)->addField(fname, BPatch_dataMethod, memberType, 0, 0);
 			ptr = (unsigned char *)((LFMethod *)ptr)->name + 
 						(int)((LFMethod *)ptr)->name[0] + 1;
 
@@ -1078,7 +1070,6 @@ CodeView::Symbols::ExploreType(BPatch_module *mod, DWORD index,
 		newType = CreatePrimitiveType(index);
 		//Add type definition
 		if (newType) {
-			newType->setID(index);
 			mod->moduleTypes->addType(newType);
 		}
 		return newType;
@@ -1098,7 +1089,7 @@ CodeView::Symbols::ExploreType(BPatch_module *mod, DWORD index,
 		lastType = ExploreType(mod, ((LFPointer *)trec)->type,
 							pTypeBase, startAddr);
 		if (lastType)
-			newType = new BPatch_type("", -1, BPatch_pointer, lastType);
+                        newType = new BPatch_typePointer(index, lastType, "");
 		break;
 	case LF_ARRAY:
 		lastType = ExploreType(mod, ((LFArray *)trec)->elemtype,
@@ -1121,8 +1112,7 @@ CodeView::Symbols::ExploreType(BPatch_module *mod, DWORD index,
 			typeName[(int)arrName[0]] = '\0';
 				
 			int high = arrLen / lastType->getSize();
-			newType = new BPatch_type(typeName, -1, BPatch_array, lastType, 
-							0, high-1);
+			newType = new BPatch_typeArray(index, lastType, 0, high-1, typeName);
 		}
 		break;
 	case LF_CLASS:
@@ -1142,12 +1132,12 @@ CodeView::Symbols::ExploreType(BPatch_module *mod, DWORD index,
 		}
 		strncpy(typeName, &className[1], (int)className[0]);
 		typeName[(int)className[0]] = '\0';
-				
+                /*				
 		if (trec->leaf == LF_CLASS)
 			newType = new BPatch_type(typeName, -1, BPatch_dataTypeClass, classLen);
 		else
-			newType = new BPatch_type(typeName, -1, BPatch_dataStructure,
-									classLen);
+                */
+			newType = new BPatch_typeStruct(index, typeName);
 		// printf("Name of the structure %s\n", typeName);
 		FindFields(mod, newType, ((LFClass *)trec)->count, 
 					((LFClass *)trec)->field, pTypeBase, startAddr);
@@ -1170,7 +1160,7 @@ CodeView::Symbols::ExploreType(BPatch_module *mod, DWORD index,
 		strncpy(typeName, &unionName[1], (int)unionName[0]);
 		typeName[(int)unionName[0]] = '\0';
 				
-		newType = new BPatch_type(typeName, -1, BPatch_union, unionLen);
+		newType = new BPatch_typeUnion(index, typeName);
 		FindFields(mod, newType, ((LFClass *)trec)->count,
 				((LFClass *)trec)->field, pTypeBase, startAddr);
 		break;
@@ -1181,7 +1171,7 @@ CodeView::Symbols::ExploreType(BPatch_module *mod, DWORD index,
 						(int)((LFEnum *)trec)->name[0]);
 		typeName[(int)((LFEnum *)trec)->name[0]] = '\0';
 
-		newType = new BPatch_type(typeName, -1, BPatch_enumerated);
+		newType = new BPatch_typeEnum(index, typeName);
 		FindFields(mod, newType, ((LFEnum *)trec)->count,
 				((LFEnum *)trec)->fList, pTypeBase, startAddr);
 		break;
@@ -1193,7 +1183,6 @@ CodeView::Symbols::ExploreType(BPatch_module *mod, DWORD index,
 	if (!newType)
 		return NULL;
 
-	newType->setID(index);
 	mod->moduleTypes->addType(newType);
 	return(newType);
 }

@@ -49,7 +49,7 @@
 #include "libdwarf.h"
 
 #include "BPatch_module.h"
-#include "BPatch_type.h"
+#include "BPatch_typePrivate.h"
 #include "BPatch_collections.h"
 #include "BPatch_function.h"
 #include "BPatch_image.h"
@@ -225,7 +225,7 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, char ** loBound
 	status = dwarf_dieoffset( subrangeDIE, & subrangeOffset, NULL );
 	assert( status != DW_DLV_ERROR );
 
-	BPatch_type * rangeType = new BPatch_type( subrangeName, subrangeOffset, BPatchSymTypeRange, * loBound, * hiBound );
+	BPatch_type * rangeType = new BPatch_typeRange( (int) subrangeOffset, 0, *loBound, *hiBound, subrangeName);
 	assert( rangeType != NULL );
 	// bperr( "Adding range type '%s' (%lu) [%s, %s]\n", subrangeName, (unsigned long)subrangeOffset, * loBound, * hiBound );
 	rangeType = module->moduleTypes->addOrUpdateType( rangeType );
@@ -239,6 +239,7 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, char ** loBound
 
    FIXME? when bounds are enumerations, let the size be the
    the number of elements in the enumeration. */
+/*
 void setArraySize( BPatch_type * arrayType, const char * loBound, const char * hiBound ) {
 	char * endPtr = NULL;
 	long longLoBound = strtol( loBound, &endPtr, 0 );
@@ -248,9 +249,11 @@ void setArraySize( BPatch_type * arrayType, const char * loBound, const char * h
 
 	long longCount = longHiBound - longLoBound + 1;
 	arrayType->setSize( longCount * arrayType->getConstituentType()->getSize() );
-	} /* end setArraySize() */
+	}
+*/ /* end setArraySize() */
 
 BPatch_type * parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, BPatch_type * elementType, BPatch_module * module ) {
+    char buf[32];
 	/* Get the (negative) typeID for this range/subarray. */
 	Dwarf_Off dieOffset;
 	int status = dwarf_dieoffset( range, & dieOffset, NULL );
@@ -266,15 +269,16 @@ BPatch_type * parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, BP
 	status = dwarf_siblingof( dbg, range, & nextSibling, NULL );
 	assert( status != DW_DLV_ERROR );
 
+	snprintf(buf, 31, "__array%d", dieOffset);
+
 	if( status == DW_DLV_NO_ENTRY ) {
 		/* Terminate the recursion by building an array type out of the elemental type.
 		   Use the negative dieOffset to avoid conflicts with the range type created
 		   by parseSubRangeDIE(). */
-		BPatch_type * innermostType = new BPatch_type( NULL, (-1) * dieOffset, BPatch_dataArray, elementType, 0, 0 );
+	   // N.B.  I'm going to ignore the type id, and just create an anonymous type here
+	   BPatch_type * innermostType = new BPatch_typeArray( elementType, atoi(loBound), atoi(hiBound), buf);
 		assert( innermostType != NULL );
-		innermostType->setLow( loBound );
-		innermostType->setHigh( hiBound );
-		setArraySize( innermostType, loBound, hiBound );
+		//		setArraySize( innermostType, loBound, hiBound );
 		// bperr( "Adding inner-most type %lu\n", (unsigned long) dieOffset );
 		innermostType = module->moduleTypes->addOrUpdateType( innermostType );
 		return innermostType;
@@ -283,10 +287,9 @@ BPatch_type * parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, BP
 	/* If it does, build this array type out of the array type returned from the next recusion. */
 	BPatch_type * innerType = parseMultiDimensionalArray( dbg, nextSibling, elementType, module );
 	assert( innerType != NULL );
-	BPatch_type * outerType = new BPatch_type( NULL, (-1) * dieOffset, BPatch_dataArray, innerType, 0, 0 );
-	outerType->setLow( loBound );
-	outerType->setHigh( hiBound );
-	setArraySize( outerType, loBound, hiBound );
+	// same here - type id ignored    jmo
+	BPatch_type * outerType = new BPatch_typeArray( innerType, atoi(loBound), atoi(hiBound), buf);
+	//	setArraySize( outerType, loBound, hiBound );
 	assert( outerType != NULL );
 	// bperr( "Adding inner type %lu\n", (unsigned long) dieOffset );
 	outerType = module->moduleTypes->addOrUpdateType( outerType );
@@ -684,9 +687,9 @@ void dumpAttributeList( Dwarf_Die dieEntry, Dwarf_Debug & dbg ) {
 bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			BPatch_module * module, 
 			BPatch_function * currentFunction = NULL,
-			BPatch_type * currentCommonBlock = NULL,
-			BPatch_type * currentEnclosure = NULL ) {
-			
+			BPatch_typeCommon * currentCommonBlock = NULL,
+			BPatch_fieldListType * currentEnclosure = NULL ) {
+
 	Dwarf_Half dieTag;
 	int status = dwarf_tag( dieEntry, & dieTag, NULL );
 	assert( status == DW_DLV_OK );
@@ -700,8 +703,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 	   its children will be in its scope, rather than its
 	   enclosing scope. */
 	BPatch_function * newFunction = currentFunction;
-	BPatch_type * newCommonBlock = currentCommonBlock;
-	BPatch_type * newEnclosure = currentEnclosure;
+	BPatch_typeCommon * newCommonBlock = currentCommonBlock;
+	BPatch_fieldListType * newEnclosure = currentEnclosure;
 
 	bool parsedChild = false;
 	/* Is this is an entry we're interested in? */
@@ -833,12 +836,6 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			BPatch_type * returnType = NULL;
 			if( status == DW_DLV_NO_ENTRY ) { 
 				returnType = module->moduleTypes->findType( "void" );
-				if( returnType == NULL ) {
-					/* Go ahead and create a void type. */
-					returnType = new BPatch_type( "void", 0, BPatch_built_inType, 0 );
-					assert( returnType != NULL );
-					returnType = module->moduleTypes->addOrUpdateType( returnType );
-					}
 				newFunction->setReturnType( returnType );
 				} /* end if the return type is void */
 			else {
@@ -895,17 +892,16 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				} /* end if there might be a pre-existing type */
 
 			if( commonBlockType == NULL || commonBlockType->getDataClass() == BPatch_dataCommon ) {
-				commonBlockType = new BPatch_type( commonBlockName, false );
+				commonBlockType = new BPatch_typeCommon( dieOffset, commonBlockName );
 				assert( commonBlockType != NULL );
 				commonBlockVar->setType( commonBlockType );
 				module->moduleTypes->addGlobalVariable( commonBlockName, commonBlockType );
-				commonBlockType->setDataClass( BPatch_dataCommon );
 				} /* end if we re-define the type. */
 
 			dwarf_dealloc( dbg, commonBlockName, DW_DLA_STRING );
 
 			/* This node's children are in the common block. */
-			newCommonBlock = commonBlockType;
+			newCommonBlock = dynamic_cast<BPatch_typeCommon*>(commonBlockType);
 			newCommonBlock->beginCommonBlock();
 			} break;
 
@@ -1209,7 +1205,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* Generate the appropriate built-in type; since there's no
 			   reliable way to distinguish between a built-in and a scalar,
 			   we don't bother to try. */
-			BPatch_type * baseType = new BPatch_type( typeName, dieOffset, BPatch_dataBuilt_inType, byteSize );
+			BPatch_type * baseType = new BPatch_typeScalar( dieOffset, byteSize, typeName);
 			assert( baseType != NULL );
 
 			/* Add the basic type to our collection. */
@@ -1235,13 +1231,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				   So instead of ignoring this entry, point it to the void type.  (This is also more
 				   in line with our handling of absent DW_AT_type tags everywhere else.) */
                 referencedType = module->moduleTypes->findType( "void" );
-                if( referencedType == NULL ) {
-                    /* Go ahead and create a void type. */
-                    referencedType = new BPatch_type( "void", 0, BPatch_built_inType, 0 );
-                    assert( referencedType != NULL );
-                    referencedType = module->moduleTypes->addOrUpdateType( referencedType );
-				    }
-				}
+			    }
 			else {
 				Dwarf_Off typeOffset;
 				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
@@ -1255,7 +1245,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			/* Add the typedef to our collection. */
 			// bperr( "Adding typedef: '%s' as %lu (pointing to %lu)\n", definedName, (unsigned long)dieOffset, (unsigned long)typeOffset );
-			BPatch_type * typedefType = new BPatch_type( definedName, dieOffset, BPatch_typeDefine, referencedType );
+		  	BPatch_type * typedefType = new BPatch_typeTypedef( dieOffset, referencedType, definedName);
 			typedefType = module->moduleTypes->addOrUpdateType( typedefType );
 
 			/* Sanity check: typedefs should not have children. */
@@ -1293,12 +1283,13 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			/* The baseArrayType is an anonymous type with its own typeID.  Extract
 			   the information and add an array type for this DIE. */
-			BPatch_type * arrayType = new BPatch_type( arrayName, dieOffset, 
-				BPatch_dataArray, baseArrayType->getConstituentType(), 0, 0 );
+			BPatch_type * arrayType = new BPatch_typeArray( dieOffset,
+															baseArrayType->getConstituentType(), 
+															atoi(baseArrayType->getLow()),
+															atoi(baseArrayType->getHigh()), 
+															arrayName);
 			assert( arrayType != NULL );
-			arrayType->setLow( baseArrayType->getLow() );
-			arrayType->setHigh( baseArrayType->getHigh() );
-			setArraySize( arrayType, baseArrayType->getLow(), baseArrayType->getHigh() );
+			//			setArraySize( arrayType, baseArrayType->getLow(), baseArrayType->getHigh() );
 			// bperr( "Adding array type '%s' (%lu) [%s, %s] @ %p\n", arrayName, (unsigned long)dieOffset, baseArrayType->getLow(), baseArrayType->getHigh(), arrayType );
 			arrayType = module->moduleTypes->addOrUpdateType( arrayType );
 
@@ -1320,9 +1311,9 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			status = dwarf_diename( dieEntry, & typeName, NULL );
 			assert( status != DW_DLV_ERROR );
 
-			BPatch_type * enumerationType = new BPatch_type( typeName, dieOffset, BPatch_dataEnumerated );
+			BPatch_fieldListType * enumerationType = new BPatch_typeEnum( dieOffset, typeName);
 			assert( enumerationType != NULL );
-			enumerationType = module->moduleTypes->addOrUpdateType( enumerationType );
+			enumerationType = dynamic_cast<BPatch_fieldListType *>(module->moduleTypes->addOrUpdateType( enumerationType ));
 			newEnclosure = enumerationType;
 
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
@@ -1390,17 +1381,22 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				dwarf_dealloc( dbg, sizeAttr, DW_DLA_ATTR );
 				}
 
-			BPatch_dataClass bpdc = BPatch_unknownType;
+			BPatch_fieldListType * containingType = NULL;
 			switch ( dieTag ) {
-				case DW_TAG_structure_type: bpdc = BPatch_dataStructure; break;
-				case DW_TAG_union_type: bpdc = BPatch_dataUnion; break;
-				case DW_TAG_class_type: bpdc = BPatch_dataStructure; break;
+				case DW_TAG_structure_type: 
+				case DW_TAG_class_type: 
+				   containingType = new BPatch_typeStruct( dieOffset,
+														   typeName);
+				   break;
+				case DW_TAG_union_type: 
+				   containingType = new BPatch_typeUnion( dieOffset, 
+														  typeName);
+				   break;
 				}
 			
-			BPatch_type * containingType = new BPatch_type( typeName, dieOffset, bpdc, typeSize );
 			assert( containingType != NULL );
 			// bperr( "Adding structure, union, or class type '%s' (%lu)\n", typeName, (unsigned long)dieOffset );
-			containingType = module->moduleTypes->addOrUpdateType( containingType );
+			containingType = dynamic_cast<BPatch_fieldListType *>(module->moduleTypes->addOrUpdateType( containingType ));
 			newEnclosure = containingType;
 			
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
@@ -1425,7 +1421,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				}
 
 			// bperr( "Adding enum '%s' (%ld) to enumeration '%s' (%d)\n", enumName, (signed long)enumValue, currentEnclosure->getName(), currentEnclosure->getID() );
-			currentEnclosure->addField( enumName, BPatch_dataScalar, enumValue );
+			currentEnclosure->addField( enumName, enumValue );
 
 			dwarf_dealloc( dbg, enumName, DW_DLA_STRING );
 			} break;
@@ -1535,13 +1531,6 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			if( status == DW_DLV_NO_ENTRY ) {
 				/* Presumably, a pointer or reference to void. */
 				typeModified = module->moduleTypes->findType( "void" );
-				if( typeModified == NULL ) {
-					/* Go ahead and create a void type. */
-					typeModified = new BPatch_type( "void", 0, BPatch_built_inType, 0 );
-					assert( typeModified != NULL );
-					typeModified = module->moduleTypes->addOrUpdateType( typeModified );
-					typeSize = 0;
-					}
 				} else {			
 				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
 				assert( status == DW_DLV_OK );
@@ -1551,11 +1540,13 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 				} /* end if typeModified is not void */
 
-			BPatch_type * modifierType = new BPatch_type( typeName, dieOffset, BPatch_typeAttrib, typeSize, typeModified, dieTag );
+			// I'm taking out the type qualifiers for right now
+
+//			BPatch_type * modifierType = new BPatch_type( typeName, dieOffset, BPatch_typeAttrib, typeSize, typeModified, dieTag );
+			BPatch_type * modifierType = new BPatch_typeTypedef(dieOffset, typeModified, typeName);
 			assert( modifierType != NULL );
 			// bperr( "Adding modifier type '%s' (%lu) modifying (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
 			modifierType = module->moduleTypes->addOrUpdateType( modifierType );
-
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
 			} break;
 
@@ -1579,12 +1570,6 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			if( status == DW_DLV_NO_ENTRY ) {
 				/* Presumably, a pointer or reference to void. */
 				typePointedTo = module->moduleTypes->findType( "void" );
-				if( typePointedTo == NULL ) {
-					/* Go ahead and create a void type. */
-					typePointedTo = new BPatch_type( "void", 0, BPatch_built_inType, 0 );
-					assert( typePointedTo != NULL );
-					typePointedTo = module->moduleTypes->addOrUpdateType( typePointedTo );
-					}
 				} else {			
 				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
 				assert( status == DW_DLV_OK );
@@ -1593,7 +1578,22 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 				} /* end if typePointedTo is not void */
 
-			BPatch_type * indirectType = new BPatch_type( typeName, dieOffset, BPatch_dataPointer, typePointedTo );
+			BPatch_type * indirectType;
+			switch ( dieTag ) {
+			case DW_TAG_subroutine_type:
+			   indirectType = new BPatch_typeFunction(dieOffset, typePointedTo, typeName);
+			   break;
+			case DW_TAG_ptr_to_member_type:
+			case DW_TAG_pointer_type:
+			   indirectType = new BPatch_typePointer(dieOffset, typePointedTo, typeName);
+			   break;
+			case DW_TAG_reference_type:
+			   indirectType = new BPatch_typeRef(dieOffset, typePointedTo, typeName);
+			   break;
+			}
+
+
+
 			assert( indirectType != NULL );
 			// bperr( "Adding indirect type '%s' (%lu) pointing to (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
 			indirectType = module->moduleTypes->addOrUpdateType( indirectType );
@@ -1653,6 +1653,13 @@ void BPatch_module::parseDwarfTypes() {
 	if( fileToTypesMap.defines( fileName ) ) {
 		// /* DEBUG */ fprintf( stderr, "%s[%d]: found cache for file '%s' (module '%s')\n", __FILE__, __LINE__, fileName, moduleFileName );
 		this->moduleTypes = fileToTypesMap[ fileName ];
+
+		if (BPfuncs != NULL) {
+		   for (unsigned int i = 0; i < BPfuncs->size(); i++) {
+			  (*BPfuncs)[i]->fixupUnknown(this);
+		   }
+		}
+
 		return;
 		}
 
@@ -1743,22 +1750,42 @@ void BPatch_module::parseDwarfTypes() {
 	/* Run a sanity check. */
 	assert (moduleTypes);
 
+	/* This may not be necessary anymore
 	int tid;
 	BPatch_type * bptype;
 	dictionary_hash_iter<int, BPatch_type *> titer( moduleTypes->typesByID );
 	while( titer.next( tid, bptype ) ){
 		if( bptype->getDataClass() == BPatch_dataUnknownType ) {
 			if( bptype->getConstituentType() != NULL ) {
-				/* Forward-referenced typedef's have unknown dataClasses but non-NULL
-				   constituents.  Correct their dataClass and move on. */
+				// Forward-referenced typedef's have unknown dataClasses but non-NULL
+				//   constituents.  Correct their dataClass and move on.
 				bptype->setDataClass( bptype->getConstituentType()->getDataClass() );
 				}
 			else {
 				fprintf( stderr, "Warning: type information may be incomplete (#%d).\n", bptype->getID() );
 				}
-			} /* end if the datatype is unknown. */
-		} /* end iteration over moduleTypes */
-		
+			} // end if the datatype is unknown.
+		} // end iteration over moduleTypes
+	*/
+
+	// Well, yes it is, but we'll do it differently
+
+	// Fix type list
+
+	int tid;
+	BPatch_type * bptype;
+	dictionary_hash_iter<int, BPatch_type *> titer( moduleTypes->typesByID );
+	while (titer.next( tid, bptype ))
+	   bptype->fixupUnknowns(this);
+
+	// Fix pointers to types in functions
+
+	if (BPfuncs != NULL) {
+	   for (unsigned int i = 0; i < BPfuncs->size(); i++) {
+		  (*BPfuncs)[i]->fixupUnknown(this);
+	   }
+	}
+
 	/* Cache the parsed debug information. */
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: caching parse results for object '%s'\n", __FILE__, __LINE__, fileName );
 	fileToTypesMap[ fileName ] = this->moduleTypes;

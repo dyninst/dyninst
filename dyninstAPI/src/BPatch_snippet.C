@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.58 2004/04/20 01:27:54 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.59 2004/07/21 22:46:20 jodom Exp $
 
 #define BPATCH_FILE
 
@@ -51,7 +51,7 @@
 
 #include "BPatch.h"
 #include "BPatch_snippet.h"
-#include "BPatch_type.h"
+#include "BPatch_typePrivate.h"
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
 #include "common/h/Time.h"
@@ -133,18 +133,14 @@ AstNode *generateArrayRef(const BPatch_snippet &lOperand,
     if (!lOperand.ast || !rOperand.ast) {
 	return NULL;
     }
-    BPatch_type *arrayType = const_cast<BPatch_type *>(lOperand.ast->getType());
+    const BPatch_typeArray *arrayType = dynamic_cast<const BPatch_typeArray *>(lOperand.ast->getType());
     if (!arrayType) {
 	BPatch_reportError(BPatchSerious, 109,
-	       "array reference has not type information");
+	       "array reference has not type information, or array reference to non-array type");
 	return NULL;
     }
-    if (arrayType->getDataClass() != BPatch_dataArray) {
-	BPatch_reportError(BPatchSerious, 109,
-	       "array reference to non-array type");
-	return NULL;
-    }
-    BPatch_type *elementType = arrayType->getConstituentType();
+
+    const BPatch_type *elementType = arrayType->getConstituentType();
 
     assert(elementType);
     int elementSize = elementType->getSize();
@@ -183,15 +179,10 @@ AstNode *generateFieldRef(const BPatch_snippet &lOperand,
     if (!lOperand.ast || !rOperand.ast) {
 	return NULL;
     }
-    BPatch_type *structType = const_cast<BPatch_type *>(lOperand.ast->getType());
+    const BPatch_typeStruct *structType = dynamic_cast<const BPatch_typeStruct *>(lOperand.ast->getType());
     if (!structType) {
 	BPatch_reportError(BPatchSerious, 109,
-	       "structure reference has no type information");
-	return NULL;
-    }
-    if (structType->getDataClass() != BPatch_dataStructure) {
-	BPatch_reportError(BPatchSerious, 109,
-	       "structure reference to non-structure type");
+	       "structure reference has no type information, or structure reference to non-structure type");
 	return NULL;
     }
 
@@ -206,7 +197,7 @@ AstNode *generateFieldRef(const BPatch_snippet &lOperand,
 	return NULL;
     }
 
-    BPatch_Vector<BPatch_field *> *fields;
+    const BPatch_Vector<BPatch_field *> *fields;
     BPatch_field *field;
 
     // check that the name of the right operand is a field of the left operand
@@ -363,7 +354,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_unOp op,
 	if (!type || (type->getDataClass() != BPatch_dataPointer)) {
 	    ast->setType(BPatch::bpatch->stdTypes->findType("int"));
 	} else {
-	    ast->setType(type->getConstituentType());
+	    ast->setType(dynamic_cast<BPatch_typePointer *>(type)->getConstituentType());
 	}
 	break;
       }
@@ -1026,14 +1017,12 @@ bool BPatch_variableExpr::writeValue(const void *src, int len, bool saveWorld)
  */
 BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
 {
-    BPatch_type *type;
-    BPatch_Vector<BPatch_field *> *fields;
+    const BPatch_fieldListInterface *type;
+    const BPatch_Vector<BPatch_field *> *fields;
     BPatch_Vector<BPatch_variableExpr *> *retList;
 
-    type = const_cast<BPatch_type *>(getType());
-    if ((type->getDataClass() != BPatch_dataStructure) && 
-	(type->getDataClass() != BPatch_dataUnion) &&
-	(type->getDataClass() != BPatch_dataTypeClass)) {
+    type = dynamic_cast<BPatch_fieldListInterface *>(getType());
+    if (type == NULL) {
 	return NULL;
     }
 
@@ -1041,6 +1030,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
     assert(retList);
 
     fields = type->getComponents();
+    if (fields == NULL) return NULL;
     for (unsigned int i=0; i < fields->size(); i++) {
 
 	BPatch_field *field = (*fields)[i];

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.45 2004/04/20 01:27:54 jaw Exp $
+// $Id: BPatch_function.C,v 1.46 2004/07/21 22:46:20 jodom Exp $
 
 #define BPATCH_FILE
 
@@ -736,3 +736,16 @@ bool BPatch_function::isInstrumentable()
 bool BPatch_function::isSharedLib() const {
   return mod->isSharedLib();
 } 
+
+void BPatch_function::fixupUnknown(BPatch_module *module) {
+   if (retType != NULL && retType->getDataClass() == BPatch_dataUnknownType) 
+      retType = module->moduleTypes->findType(retType->getID());
+
+   for (unsigned int i = 0; i < params.size(); i++)
+      params[i]->fixupUnknown(module);
+   if (localVariables != NULL) {
+      BPatch_Vector<BPatch_localVar *> *vars = localVariables->getAllVars();
+      for (unsigned int i = 0; i < vars->size(); i++)
+         (*vars)[i]->fixupUnknown(module);
+   }
+}

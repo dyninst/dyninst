@@ -52,7 +52,7 @@
 #include "BPatch_snippet.h" // For BPatch_function; remove if we move it
 #include "BPatch_collections.h"
 #include "common/h/String.h"
-#include "BPatch_type.h"    // For BPatch_type related stuff
+#include "BPatch_typePrivate.h"    // For BPatch_type related stuff
 #include "BPatch_Vector.h"
 
 #if defined(TIMED_PARSE)
@@ -367,7 +367,7 @@ void BPatch_module::dumpMangled(char * prefix)
 }
 
 extern char *parseStabString(BPatch_module *, int linenum, char *str, 
-	int fPtr, BPatch_type *commonBlock = NULL);
+	int fPtr, BPatch_typeCommon *commonBlock = NULL);
 
 
 #if defined(rs6000_ibm_aix4_1)
@@ -393,7 +393,7 @@ void BPatch_module::parseTypes()
     char* funcName = NULL;
     Address staticBlockBaseAddr;
     unsigned long linesfdptr;
-    BPatch_type *commonBlock = NULL;
+    BPatch_typeCommon *commonBlock = NULL;
     BPatch_variableExpr *commonBlockVar;
     pdstring* currentSourceFile = NULL;
 
@@ -456,6 +456,8 @@ void BPatch_module::parseTypes()
 
 	 if (!strcmp(moduleName, mod->fileName().c_str())) {
 		parseActive = true;
+                // Clear out old types
+                moduleTypes->clearNumberedTypes();
 	 } else {
 		parseActive = false;
 	 }
@@ -524,14 +526,12 @@ void BPatch_module::parseTypes()
 		  bperr("unable to find variable %s\n", commonBlockName);
 	      } else {
 		  commonBlock = 
-		      const_cast<BPatch_type *> (commonBlockVar->getType());
-		  if (commonBlock->getDataClass() != BPatch_dataCommon) {
+		      dynamic_cast<BPatch_typeCommon *>(const_cast<BPatch_type *> (commonBlockVar->getType()));
+		  if (commonBlock == NULL) {
 		      // its still the null type, create a new one for it
-		      commonBlock = new BPatch_type(commonBlockName, false);
+		      commonBlock = new BPatch_typeCommon(commonBlockName);
 		      commonBlockVar->setType(commonBlock);
 		      moduleTypes->addGlobalVariable(commonBlockName, commonBlock);
-
-		      commonBlock->setDataClass(BPatch_dataCommon);
 		  }
 		  // reset field list
 		  commonBlock->beginCommonBlock();
@@ -621,6 +621,8 @@ void BPatch_module::parseTypes()
    assert( moduleImage != NULL );
    const Object & moduleObject = moduleImage->getObject();	
 
+   this->BPfuncs = this->getProcedures();
+  
    if (moduleObject.hasStabInfo()) { 
       parseStabTypes(); 
    }
@@ -652,7 +654,7 @@ void BPatch_module::parseStabTypes()
   Address currentFunctionBase = 0;
   BPatch_variableExpr *commonBlockVar = NULL;
  char *commonBlockName;
-  BPatch_type *commonBlock = NULL;
+  BPatch_typeCommon *commonBlock = NULL;
  int mostRecentLinenum = 0;
 
 #if defined(TIMED_PARSE)
@@ -666,8 +668,6 @@ void BPatch_module::parseStabTypes()
   double fun_dur = 0;
   struct timeval t1, t2;
 #endif
-
-  this->BPfuncs = this->getProcedures();
 
   imgPtr = mod->exec();
 
@@ -726,6 +726,7 @@ void BPatch_module::parseStabTypes()
 
       if (!strcmp(modName, mod->fileName().c_str())) {
 	parseActive = true;
+        moduleTypes->clearNumberedTypes();
 	BPatch_language lang;
 	// language should be set in the constructor, this is probably redundant
 	switch (stabptr[i].desc) {
@@ -804,15 +805,6 @@ void BPatch_module::parseStabTypes()
 	strncpy(tmp,ptr,colonPtr-ptr);
 	tmp[colonPtr-ptr] = '\0';
 	currentFunctionName = new pdstring(tmp);
-      }
-
-      if(!ptr || !(colonPtr = strchr(ptr,':')))
-	currentFunctionName = NULL;
-      else {
-	char* tmp = new char[colonPtr-ptr+1];
-	strncpy(tmp,ptr,colonPtr-ptr);
-	tmp[colonPtr-ptr] = '\0';
-	currentFunctionName = new pdstring(tmp);
 
 	currentFunctionBase = 0;
 	Symbol info;
@@ -862,14 +854,12 @@ void BPatch_module::parseStabTypes()
 	if (!commonBlockVar) {
 	  bperr("unable to find variable %s\n", commonBlockName);
 	} else {
-	  commonBlock = const_cast<BPatch_type *> (commonBlockVar->getType());
-	  if (commonBlock->getDataClass() != BPatch_dataCommon) {
+	  commonBlock = dynamic_cast<BPatch_typeCommon *>(const_cast<BPatch_type *> (commonBlockVar->getType()));
+	  if (commonBlock == NULL) {
 	    // its still the null type, create a new one for it
-	    commonBlock = new BPatch_type(commonBlockName, false);
+	    commonBlock = new BPatch_typeCommon(commonBlockName);
 	    commonBlockVar->setType(commonBlock);
 	    moduleTypes->addGlobalVariable(commonBlockName, commonBlock);
-	    
-	    commonBlock->setDataClass(BPatch_dataCommon);
 	  }
 	  // reset field list
 	  commonBlock->beginCommonBlock();

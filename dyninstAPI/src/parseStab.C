@@ -47,6 +47,7 @@
 #include "BPatch.h"
 #include "BPatch_module.h"
 #include "BPatch_collections.h"
+#include "BPatch_typePrivate.h"
 #include "showerror.h"
 #include "util.h"
 #include "Object.h" // For looking up compiler type
@@ -59,7 +60,7 @@ extern BPatch_function *current_func;
 static int parseSymDesc(char *stabstr, int &cnt);
 static BPatch_type *parseConstantUse(BPatch_module*, char *stabstr, int &cnt);
 static char *parseTypeDef(BPatch_module*, char *stabstr, 
-                          const char *name, int ID);
+                          const char *name, int ID, unsigned int sizeHint = 0);
 static int parseTypeUse(BPatch_module*, char *&stabstr, int &cnt,
                         const char *name);
 static inline bool isSymId(char ch);
@@ -178,7 +179,7 @@ BPatch_function *mangledNameMatchKLUDGE(char *pretty, char *mangled,
 // <paramList> = | <typeUse>;<paramList> 
 //
 char *parseStabString(BPatch_module *mod, int linenum, char *stabstr, 
-		      int framePtr, BPatch_type *commonBlock = NULL)
+		      int framePtr, BPatch_typeCommon *commonBlock = NULL)
 {
 
     int cnt;
@@ -193,7 +194,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
     /* get type or variable name */
     char * mangledname = getIdentifier( stabstr, cnt );
-	if( mangledname == NULL ) { mangledname = ""; }
+	if( mangledname == NULL ) { mangledname = strdup(""); }
 
     currentRawSymbolName = mangledname;
     char * name = P_cplus_demangle( mangledname, mod->isNativeCompiler() );
@@ -260,8 +261,12 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      char *lfuncName=NULL;
 	      cnt++;
 
-	      current_func_name = name;
-	      current_mangled_func_name = mangledname;
+              if (current_func_name != NULL)
+                 free(current_func_name);
+	      current_func_name = strdup(name);
+              if (current_mangled_func_name != NULL)
+                 free(current_mangled_func_name);
+	      current_mangled_func_name = strdup(mangledname);
 
 	      funcReturnID = parseTypeUse(mod, stabstr, cnt, name);
       
@@ -289,6 +294,10 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  if (NULL == mod->findFunction( name, bpfv ) || !bpfv.size()) {
 		    showInfoCallback(pdstring("missing local function ") +
 				     pdstring(name) + "\n");
+                    // It's very possible that we might not find a function
+                    // that's a weak reference, and defined in multiple places
+                    // as we only store an object from the last definition
+                    fp = NULL;
 		  } else {
 		    if (bpfv.size() > 1) {
 		      // warn if we find more than one function with current_func_name
@@ -307,6 +316,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  bperr("%s is an embedded function in %s\n",name, scopeName);
 	      }
 
+              current_func = fp;
 	      // skip to end - SunPro Compilers output extra info here - jkh 6/9/3
 	      cnt = strlen(stabstr);
 
@@ -318,8 +328,12 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	      funcReturnID = parseTypeUse(mod, stabstr, cnt, name);
 
-	      current_func_name = name;
-	      current_mangled_func_name = mangledname;
+              if (current_func_name != NULL)
+                 free(current_func_name);
+	      current_func_name = strdup(name);
+              if (current_mangled_func_name != NULL)
+                 free(current_mangled_func_name);
+	      current_mangled_func_name = strdup(mangledname);
 
 	      //
 	      // For SunPro compilers there may be a parameter list after 
@@ -350,7 +364,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		strncpy(prefix, current_mangled_func_name, 4);
 		prefix[4] = '\0';
 		// mod->dumpMangled(prefix);
-		return(&stabstr[cnt]);
+                break;
 		}
 	      }
 
@@ -466,25 +480,27 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	      // lookup symbol and set type
 	      BPatch_type *BPtype;
-      
+
+              char *nameTrailer;
 	      if (strchr(name, '.')) {
 		  char *defaultNameSpace;
 
 		  defaultNameSpace = strdup(name);
-		  name = strchr(defaultNameSpace, '.');
-		  *name = '\0';
+		  nameTrailer = strchr(defaultNameSpace, '.');
+		  *nameTrailer = '\0';
 		  mod->setDefaultNamespacePrefix(defaultNameSpace);
-		  name++;
-	      }
+		  nameTrailer++;
+	      } else
+                 nameTrailer = name;
 
 	      BPtype = mod->moduleTypes->findOrCreateType(symdescID);
 	      if (!BPtype) {
 		      bperr("ERROR: unable to find type #%d for variable %s\n", 
-		       symdescID, name);
+		       symdescID, nameTrailer);
 	      } else {
 		  BPatch_image *img = (BPatch_image *) mod->getObjParent();
-		  if (img->findVariable(name,false)) {
-		      mod->moduleTypes->addGlobalVariable(name, BPtype);
+		  if (img->findVariable(nameTrailer,false)) {
+		      mod->moduleTypes->addGlobalVariable(nameTrailer, BPtype);
 		  }
 	      }
 
@@ -516,10 +532,11 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		ptrType = mod->moduleTypes->findOrCreateType(symdescID);
 		if (!ptrType)
 		  ptrType = BPatch::bpatch->type_Untyped;
-		newType = new BPatch_type(name, symdescID, ptrType);
+                newType = new BPatch_typeTypedef(symdescID, ptrType, name);
 		if (newType) {
-		    newType = mod->moduleTypes->addOrUpdateType(newType);
+		    mod->moduleTypes->addOrUpdateType(newType);
 		}
+                newType->decrRefCount();
 	      }
 	      break;
     
@@ -543,7 +560,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	      /* get type reference */
 	      symdescID = parseSymDesc(stabstr, cnt);
-    
+
 	      //Create BPatch_type.
 	      if (stabstr[cnt] == '=') {
 		  /* More Stuff to parse, call parseTypeDef */
@@ -555,7 +572,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  }
 	      } else {
 		  //Create BPatch_type defined as a pre-exisitng type.
-		  newType = new BPatch_type(name, symdescID);
+		  newType = BPatch_type::createPlaceholder(symdescID, name);
 		  if (newType) { newType = mod->moduleTypes->addOrUpdateType(newType); }
 	      }
 
@@ -585,7 +602,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		     define only the member they care about
 		  */
 		  bool found = false;
-		  BPatch_Vector<BPatch_field *> *fields;
+		  const BPatch_Vector<BPatch_field *> *fields;
 
 		  fields = commonBlock->getComponents();
 		  if (fields) {
@@ -634,6 +651,24 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	    break;
 
 	  case 'Y':	// C++ specific stuff
+             cnt++; // Skip past the 'Y'
+             if (stabstr[cnt] == 'I') {
+               /* Template instantiation */
+                cnt++; // skip past the I;
+                if (stabstr[cnt] == 'f') /* Template function */ {
+                   while (stabstr[cnt] != '@') cnt++;
+                   cnt++; // Skip past '@'
+                   cnt++; // Skip past ';'
+                   cnt++; // Skip past ';'
+                   while (stabstr[cnt] != ':') cnt++;
+                   // Create fake stab string that cuts out template garbage
+                   char *dupstring = strdup(stabstr);
+                   strcpy(dupstring, mangledname);
+                   strcat(dupstring, stabstr+cnt);
+                   parseStabString(mod, linenum, dupstring, framePtr, commonBlock);
+                   free(dupstring);
+                }
+             } 
 	    cnt = strlen(stabstr);
 	    break;
 
@@ -642,6 +677,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      bperr( " : %s\n", stabstr);
       }   
     }
+    free(name);
+    free(mangledname);
     return(&stabstr[cnt]);
 } /* end of parseStabString */
 
@@ -732,6 +769,12 @@ char * getIdentifier( char *stabstr, int &cnt, bool stopOnSpace ) {
 			case ':':
 			case ',':
 			case ';':
+                                /* Handle case of '::' */
+                                if ( stabstr[ cnt + i ] == ':' && stabstr[ cnt + i + 1 ] == ':' &&
+                                     (stabstr[ cnt + i + 2 ] == '_' || isalpha(stabstr[ cnt + i + 2 ])) ) {
+                                   i+=3;
+                                   break;
+                                }
 				/* If we're inside a bracket and we haven't reached
 				   the end of the string, continue. */
 				if( brCnt != 0 && stabstr[ cnt + i ] != '\0' ) {
@@ -763,6 +806,36 @@ char * getIdentifier( char *stabstr, int &cnt, bool stopOnSpace ) {
 	} /* end getIdentifier() */
 
 //
+// getFieldName
+//
+// A simplified version of getIdentifier, it only cares about finding a ':'
+//
+
+char * getFieldName( char *stabstr, int &cnt) {
+   int i = 0;
+   bool idChar = true;
+
+   while ( idChar ) {
+      switch( stabstr[ cnt + i ] ) {
+      case ':':
+         idChar = false;
+         break;
+      default:
+         i++;
+      }
+   }
+
+   char * identifier = (char *) malloc(i + 1);
+   assert(identifier);
+
+   strncpy(identifier, &stabstr[cnt], i);
+   identifier[i] = '\0';
+   cnt += i;
+
+   return identifier;
+}
+
+//
 // Parse a use of a type.  
 //
 //	<typeUse> = <symDesc> | <symDesc>=<typeDef>
@@ -789,30 +862,39 @@ static char *parseCrossRef(BPatch_typeCollection *moduleTypes,const char *name,
                            int ID, char *stabstr, int &cnt)
 {
     char *temp;
-    BPatch_type *newType;
-    BPatch_dataClass typdescr = BPatch_dataPointer;
+    BPatch_type *newType, *newType2;
+    char xreftype;
     cnt++; /* skip 'x'*/
 
     if ((stabstr[cnt] == 's') || 	// struct 
 	(stabstr[cnt] == 'u') ||	// union
         (stabstr[cnt] == 'e')) {	// enum
-      cnt++;
+      xreftype = stabstr[cnt++];
 
       temp = getIdentifier(stabstr, cnt);
       cnt++; /*skip ':' */
 
       // Find type that this one points to.
       BPatch_type *ptrType = moduleTypes->findType(temp);
-      if (ptrType) {
-	//Create a new B_type that points to a structure
-	newType = new BPatch_type(name, ID, typdescr, ptrType);
+      if (!ptrType) {
+         // This type name hasn't been seen before.  Create the
+         // skeleton for it, and we'll update it later when we actually see
+         // it
+         if (xreftype == 'e') {
+            newType = new BPatch_typeEnum(ID, temp);
+         } else if (xreftype == 'u') {
+            newType = new BPatch_typeUnion(ID, temp);
+         } else {
+            newType = new BPatch_typeStruct(ID, temp);
+         }
 	// Add to typeCollection
-	if(newType) { newType = moduleTypes->addOrUpdateType(newType); }
-	if(!newType) {
+	if(newType) { newType2 = moduleTypes->addOrUpdateType(newType); }
+	if(!newType2) {
 	  bperr(" Can't Allocate new type ");
 	  exit(-1);
-	}
-      }
+	} else
+          newType->decrRefCount();
+      }         
     } else {
       /* don't know what it is?? */
       
@@ -829,12 +911,12 @@ static char *parseCrossRef(BPatch_typeCollection *moduleTypes,const char *name,
 // 		   ar<symDesc>;<symDesc>;<symDesc>;<arrayDef>
 //
 static BPatch_type *parseArrayDef(BPatch_module *mod, const char *name,
-		     int ID, char *&stabstr, int &cnt)
+		     int ID, char *&stabstr, int &cnt, unsigned int sizeHint)
 {
     char *symdesc;
     int symdescID;
     int elementType;
-    BPatch_type *newType = NULL;
+    BPatch_type *newType = NULL, *newType2 = NULL;
     BPatch_type *ptrType = NULL;
     int lowbound, hibound;
 
@@ -864,9 +946,10 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, const char *name,
 	hibound = 0;
 	cnt++;
     } else if (stabstr[cnt] == 'T') {
-	/* Fortran runtime bound array - T0 is the form */
+	/* Fortran runtime bound array - Txx is the form (xx=digits)*/
 	hibound = 0;
-	cnt += 2;
+        cnt++;
+        while (isdigit(stabstr[cnt])) cnt++;
     } else {
 	hibound = parseSymDesc(stabstr, cnt);
     }
@@ -877,7 +960,7 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, const char *name,
     if (stabstr[cnt] == 'a') {
 	/* multi dimensional array - Fortran style */
 	/* it has no valid id, so we give it a known duplicate */
-	ptrType = parseArrayDef(mod, name, 0, stabstr, cnt);
+	ptrType = parseArrayDef(mod, name, 0, stabstr, cnt, sizeHint);
     } else { 
 	if (stabstr[cnt] == '=') {
 	    /* multi dimensional array */
@@ -902,11 +985,11 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, const char *name,
 
     if (ptrType) {
 	// Create new type - field in a struct or union
-	newType = new BPatch_type(name, ID, BPatch_dataArray, ptrType,
-				 lowbound, hibound);
+        newType = new BPatch_typeArray(ID, ptrType, lowbound, hibound, name, sizeHint);
 	if (newType) {
 	    // Add to Collection
-	    newType = mod->moduleTypes->addOrUpdateType(newType);
+	    newType2 = mod->moduleTypes->addOrUpdateType(newType);
+            newType->decrRefCount();
 	} else {
 	    bperr( " Could not create newType Array\n");
 	    exit(-1);
@@ -914,7 +997,55 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, const char *name,
     }
 	    
     // bperr( "parsed array def to %d, remaining %s\n", cnt, &stabstr[cnt]);
-    return (newType);
+    return (newType2);
+}
+
+int guessSize(const char *low, const char *hi) {
+#ifdef i386_unknown_nt4_0
+   LONGLONG l, h;
+#else
+   long long l, h;
+#endif
+
+   if (low[0] == '0')
+      sscanf(low, "%llo", &l);
+   else
+      sscanf(low, "%lld", &l);
+   if (hi[0] == '0')
+      sscanf(hi, "%llo", &h);
+   else
+      sscanf(hi, "%lld", &h);
+
+   /*   
+   if (( low[0]=='-' && l < -2147483648LL )
+       || ( l > || ( h > 2147483647LL))
+      return 8;
+   else if (( l < -32768 ) || ( h > 32767 ))
+      return 4;
+   else if (( l < -128 ) || ( h > 127 ))
+      return 2;
+   else
+      return 1;
+   */
+   if (l < 0) { // Must be signed
+      if (l < -2147483648LL || h > 0x7fffffffLL)
+         return 8;
+      else if (l < 0xffff8000 || h > 0x7fff)
+         return 4;
+      else if (l < 0xffffff80 || h > 0x7f)
+         return 2;
+      else
+         return 1;
+   } else {
+      if (h > 0xffffffffLL)
+         return 8;
+      else if (h > 0xffff)
+         return 4;
+      else if (h > 0xff)
+         return 2;
+      else
+         return 1;
+   }
 }
 
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* temporary duplication - TLM */
@@ -924,10 +1055,11 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, const char *name,
 //	<rangeType> = r<typeNum>;<low>;<high>;
 //
 static char *parseRangeType(BPatch_module *mod, const char *name, int ID, 
-                            char *stabstr)
+                            char *stabstr, unsigned int sizeHint = 0)
 {
-    int cnt, i;
+    int cnt, i, symdescID;
     //int sign = 1;
+    BPatch_type *baseType;
 
     cnt = i = 0;
 
@@ -937,15 +1069,20 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
     BPatch_dataClass typdescr = BPatchSymTypeRange;
 
     // range index type - not used
-    (void) parseSymDesc(stabstr, cnt);
+    symdescID = parseSymDesc(stabstr, cnt);
+
+    baseType = mod->moduleTypes->findType(symdescID);
 
     // bperr("\tSymbol Descriptor: %c and Value: %d\n",tmpchar, symdescID);
 
     cnt++; /* Discarding the ';' */
-    if (stabstr[cnt] == '-' ) cnt++;
+    i=0;
+    if (stabstr[cnt] == '-' ) {
+       i++;
+    }
 
     /* Getting type range or size */
-    i=0;
+
     while (isdigit(stabstr[cnt+i])) i++;
 
     char *low = (char *)malloc(sizeof(char)*(i+1));
@@ -957,7 +1094,7 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
     cnt = cnt + i + 1; /* Discard other Semicolon */
     i = 0;
     if((stabstr[cnt]) == '-') {
-	i++; /* discard '-' for (long) unsigned int */
+        i++; /* discard '-' for (long) unsigned int */
     }
     //Find high bound
     while (isdigit(stabstr[cnt+i])) i++;
@@ -974,16 +1111,22 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
   	int size = atol(low);
 
 	//Create new type
-	BPatch_type *newType = new BPatch_type( name, ID, typdescr, size);
+	BPatch_type *newType = new BPatch_typeScalar(ID, size, name);
 	//Add to Collection
-	newType = mod->moduleTypes->addOrUpdateType(newType);
+	mod->moduleTypes->addOrUpdateType(newType);
+        newType->decrRefCount();
     }
     else {
 	//Range
         //Create new type
-        BPatch_type *newType = new BPatch_type( name, ID, typdescr, low, hi);
+        BPatch_type *newType;
+        if (baseType == NULL)
+           newType = new BPatch_typeRange(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), low, hi, name);
+        else
+           newType = new BPatch_typeRange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), low, hi, name);
         //Add to Collection
-        newType = mod->moduleTypes->addOrUpdateType(newType);
+        mod->moduleTypes->addOrUpdateType(newType);
+        newType->decrRefCount();
     }
 
     free(low);
@@ -1008,9 +1151,11 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
 //	<rangeType> = r<typeNum>;<low>;<high>;
 //
 static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
-                            char *stabstr)
+                            char *stabstr, unsigned int sizeHint = 0)
 {
-    int cnt, i;
+    int cnt, i, symdescID;
+    BPatch_type *baseType;
+    BPatch_type *newType, *newType2;
 
     cnt = i = 0;
 
@@ -1019,16 +1164,20 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
 
     BPatch_dataClass typdescr = BPatchSymTypeRange;
 
-    // range index type - not used
-    (void) parseSymDesc(stabstr, cnt);
+    // range index type
+    symdescID = parseSymDesc(stabstr, cnt);
+
+    baseType = mod->moduleTypes->findType(symdescID);
 
     // bperr("\tSymbol Descriptor: %c and Value: %d\n",tmpchar, symdescID);
 
     cnt++; /* Discarding the ';' */
-    if (stabstr[cnt] == '-' ) cnt++;
+    i=0;
+    if (stabstr[cnt] == '-' ) {
+       i++;
+    }
 
     /* Getting type range or size */
-    i=0;
     while (isdigit(stabstr[cnt+i])) i++;
 
     char *temp = (char *)malloc(sizeof(char)*(i+1));
@@ -1038,61 +1187,62 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
     temp[i] = '\0';
     int j = atol(temp);
     
+    char *low = temp;
+    cnt = cnt + i + 1; /* Discard other Semicolon */
+    i = 0;
+    if((stabstr[cnt]) == '-') {
+       i++; /* discard '-' for (long) unsigned int */
+    }
+    
+    while(isdigit(stabstr[cnt+i])){
+       i++;
+    }
+    char *hi = (char *)malloc(sizeof(char)*(i+1));
+    if(!strncpy(hi, &(stabstr[cnt]), i))
+       /* Error copying upper range */
+       exit(1);
+    hi[i] = '\0';
+
     if( j <= 0 ){
       /* range */
-      char *low = temp;
-      temp = NULL;
       
-      cnt = cnt + i + 1; /* Discard other Semicolon */
-      i = 0;
-      if((stabstr[cnt]) == '-')
-	i++; /* discard '-' for (long) unsigned int */
-      
-      while(isdigit(stabstr[cnt+i])){
-	i++;
-      }
-      char *hi = (char *)malloc(sizeof(char)*(i+1));
-      if(!strncpy(hi, &(stabstr[cnt]), i))
-	/* Error copying upper range */
-	exit(1);
-      hi[i] = '\0';
       // bperr("\tLower limit: %s and Upper limit: %s\n", low, hi);
       //Create new type
-      BPatch_type *newType = new BPatch_type( name, ID, typdescr, low, hi);
+      if (baseType == NULL)
+         newType = new BPatch_typeRange(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), low, hi, name);
+      else
+         newType = new BPatch_typeRange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), low, hi, name);
       //Add to Collection
-      newType = mod->moduleTypes->addOrUpdateType(newType);
+      newType2 = mod->moduleTypes->addOrUpdateType(newType);
+      newType->decrRefCount();
 
-      free(low);
-      free(hi);
-      hi=low=NULL;
-      
     } else if( j > 0){
-      /*size */
-      int size = (int)j;
-      
-      cnt = cnt + i + 1; /* Discard other Semicolon */
-      i = 0;
-      while(isdigit(stabstr[cnt+i])){
-	i++;
-      }
-      temp = (char *)malloc(sizeof(char)*(i+1));
-      if(!strncpy(temp, &(stabstr[cnt]), i))
-	/* Error copying Zero  */
-	exit(1);
-      temp[i] = '\0';
-      
-      j = atol(temp);
-      free(temp);
+      j = atol(hi);
       if(j == 0){
+        /*size */
+        int size = (int)j;
+
 	// bperr("\tSize of Type : %d bytes\n",size);
 	//Create new type
-	BPatch_type *newType = new BPatch_type( name, ID, typdescr, size);
+
+        newType = new BPatch_typeScalar(ID, size, name);
 	//Add to Collection
-	newType = mod->moduleTypes->addOrUpdateType(newType);
+	newType2 = mod->moduleTypes->addOrUpdateType(newType);
+        newType->decrRefCount();
       } else {
+        /* range */
 	// bperr("Type RANGE: ERROR!!\n");
+        if (baseType == NULL)
+           newType = new BPatch_typeRange(ID, sizeHint ? sizeHint / 8 : sizeof(long), low, hi, name);
+        else
+           newType = new BPatch_typeRange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), low, hi, name);
+	newType2 = mod->moduleTypes->addOrUpdateType(newType);
+        newType->decrRefCount();
       }	
     }
+    free(low);
+    free(hi);
+
     cnt = cnt + i;
     if( stabstr[cnt] == ';')
       cnt++;
@@ -1113,6 +1263,39 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
 //  <attrType> = @s<int>;(<int>,<int>)
 //  <attrType> = @s<int>;r(<int>,<int>);<int>;<int>;
 //
+
+//
+//   This may in fact be much simpler than first anticipated
+//   AIX stabs use attributes only as hints, and dbx only
+//   understands @s (size) and @P (packed) types.  We only 
+//   parse the size attribute, and should be able to get away
+//   with simply passing the remainder to the rest of our parser
+//
+static char *parseAttrType(BPatch_module *mod, const char *name,
+			 int ID, char *stabstr, int &cnt)
+{
+    assert(stabstr[cnt] == '@');
+    cnt++; // skip the @
+   
+    if (stabstr[cnt] == 's') {
+      cnt++;
+      
+      int size = parseSymDesc(stabstr, cnt);
+      cnt++;  // skip ';'
+
+      char *newstr =  parseTypeDef(mod, stabstr+cnt, name, ID, size);
+      if (newstr[0] == ';')
+         return newstr+1;
+      else
+         return newstr;
+    } else {
+	//bperr(" Unable to parse Type Attribute: %s ID %d : %s\n", 
+	// name,ID, &(stabstr[cnt]));
+       while (stabstr[cnt] != ';') cnt++;
+       return parseTypeDef(mod, stabstr+cnt, name, ID);
+    }
+}
+/*
 static void parseAttrType(BPatch_module *mod, const char *name,
 			 int ID, char *stabstr, int &cnt)
 {
@@ -1123,7 +1306,7 @@ static void parseAttrType(BPatch_module *mod, const char *name,
     BPatch_dataClass typdescr = BPatch_dataTypeAttrib;
 
     assert(stabstr[cnt] == '@');
-    cnt++; /* skip the @ */
+    cnt++; // skip the @
 
     if (stabstr[cnt] == 's') {
       cnt++;
@@ -1188,7 +1371,8 @@ static void parseAttrType(BPatch_module *mod, const char *name,
       }
 
       // Add type to collection
-      newType = mod->moduleTypes->addOrUpdateType(newType);
+      newType2 = mod->moduleTypes->addOrUpdateType(newType);
+      newType->decrRefCount();
 
       if (stabstr[cnt]) {
 	  bperr("More Type Attribute to Parse: %s ID %d : %s\n", name,
@@ -1201,7 +1385,7 @@ static void parseAttrType(BPatch_module *mod, const char *name,
 	// name,ID, &(stabstr[cnt]));
     }
 }
-
+*/
 //
 //  <refType> = &<typeUse>
 //
@@ -1218,10 +1402,12 @@ static char *parseRefType(BPatch_module *mod, const char *name,
     BPatch_type *ptrType = mod->moduleTypes->findOrCreateType(refID);
     if (!ptrType) ptrType = BPatch::bpatch->type_Untyped;
     
-    BPatch_type *newType = new BPatch_type(name, ID, BPatch_dataPointer, ptrType);
+    BPatch_type *newType = new BPatch_typeRef(ID, ptrType, name);
+
     // Add to typeCollection
     if(newType) {
-	newType = mod->moduleTypes->addOrUpdateType(newType);
+	mod->moduleTypes->addOrUpdateType(newType);
+        newType->decrRefCount();
     } else {
         bperr(" Can't Allocate new type ");
         exit(-1);
@@ -1233,23 +1419,25 @@ static char *parseRefType(BPatch_module *mod, const char *name,
 //
 // Given a base class and a new type, add all visible fields to the new class
 //
-void addBaseClassToClass(BPatch_module *mod, int baseID, BPatch_type *newType, int offset)
+void addBaseClassToClass(BPatch_module *mod, int baseID, BPatch_fieldListType *newType, int offset)
 {
 
     //Find base class
-    BPatch_type *baseCl = mod->moduleTypes->findType(baseID);
+    BPatch_fieldListType *baseCl = dynamic_cast<BPatch_fieldListType *>(mod->moduleTypes->findType(baseID));
     if( ! baseCl ) {
 	bperr( "can't find class %d\n", baseID);
-	baseCl = mod->moduleTypes->findOrCreateType( baseID );
-	baseCl->setDataClass( BPatch_dataStructure );
-	newType->addField( "{superclass}", BPatch_dataStructure, baseCl, -1, BPatch_visUnknown );
+        baseCl = new BPatch_typeStruct(baseID);
+        BPatch_fieldListType *baseCl2 = dynamic_cast<BPatch_typeStruct *>(mod->moduleTypes->addOrUpdateType( baseCl ));
+	newType->addField( "{superclass}", BPatch_dataStructure, baseCl2, -1, BPatch_visUnknown );
+        baseCl->decrRefCount();
 	return;
     }
 
     newType->addField( "{superclass}", BPatch_dataStructure, baseCl, -1, BPatch_visUnknown );
 
     //Get field descriptions of the base type
-    BPatch_Vector<BPatch_field *> *baseClFields = baseCl->getComponents();
+    /*
+    const BPatch_Vector<BPatch_field *> *baseClFields = baseCl->getComponents();
     for (unsigned int fieldNum=0; fieldNum < baseClFields->size(); fieldNum++) {
 	BPatch_field *field = (*baseClFields)[fieldNum];
 
@@ -1258,13 +1446,14 @@ void addBaseClassToClass(BPatch_module *mod, int baseID, BPatch_type *newType, i
 
 	newType->addField(field->getName(), field->getTypeDesc(), field->getType(), field->getOffset()+offset, field->getVisibility());
     }
+    */
 }
 
 //
 // parse a list of fields.
 //    Format is [A|B|C-M|N|O][c][G]<fieldName>:<type-desc>;offset;size;
 //
-static char *parseFieldList(BPatch_module *mod, BPatch_type *newType, 
+static char *parseFieldList(BPatch_module *mod, BPatch_fieldListType *newType, 
 			    char *stabstr, bool sunCPlusPlus)
 {
     int cnt = 0;
@@ -1290,6 +1479,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 	int baseClNum = atoi(getIdentifier(stabstr, cnt));
 	cnt++; //Skip ','
 
+        BPatch_typeStruct *newStructType = dynamic_cast<BPatch_typeStruct *>(newType);
 	//Skip information for each base class
 	for(int i=0; i<baseClNum; ++i) {
 		//Skip virtual inheritance flag, base visibility flag and base offset
@@ -1301,7 +1491,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 
 		cnt++; //Skip ';'
 
-		addBaseClassToClass(mod, baseID, newType, 0);
+		addBaseClassToClass(mod, baseID, newStructType, 0);
 	}
      }
 
@@ -1321,7 +1511,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 	    cnt += 2;
 	}
 
-	compname = getIdentifier(stabstr, cnt);
+	compname = getFieldName(stabstr, cnt);
 /*
 	if (strlen(compname) == 0) {
 		//Something wrong! Most probably unhandled C++ type
@@ -1462,7 +1652,10 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 			    beg_offset, size, _vis);
 	    //bperr("Adding Component with VISIBILITY STRUCT\n");
 	}
-    }
+
+        free(compname);
+     }
+
 
     // should end with a ';'
     if (stabstr[cnt] == ';') {
@@ -1490,7 +1683,7 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
     bool sunStyle = true;
     bool nestedType = false;
     BPatch_dataClass typdescr;
-    BPatch_type * newType = NULL;
+    BPatch_fieldListType * newType = NULL, *newType2 = NULL;
 
     assert(stabstr[0] == 'Y');
     cnt = 1;
@@ -1554,9 +1747,22 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
     }
 
     //Create new type
-    newType = new BPatch_type(name, ID, typdescr, structsize);
+    switch (typdescr) {
+    case BPatch_dataTypeClass:
+       newType = new BPatch_typeStruct(ID, name);
+       break;
+    case BPatch_dataStructure:
+       newType = new BPatch_typeStruct(ID, name);
+       break;
+    case BPatch_dataUnion:
+       newType = new BPatch_typeUnion(ID, name);
+       break;
+    default:
+       assert(0);
+    }
     //add to type collection
-    newType = mod->moduleTypes->addOrUpdateType(newType);
+    newType2 = dynamic_cast<BPatch_fieldListType *>(mod->moduleTypes->addOrUpdateType(newType));
+    newType->decrRefCount();
 
     if (sunStyle) {
 	cnt++;
@@ -1569,14 +1775,14 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 
 	    // Find base class type identifier
 	    int baseID = parseSymDesc(stabstr, cnt);
-	    addBaseClassToClass(mod, baseID, newType, offset);
+	    addBaseClassToClass(mod, baseID, newType2, offset);
 	}
 
 	cnt++;	// skip ;
     }
 
     // parse dataMembers
-    stabstr = parseFieldList(mod, newType, &stabstr[cnt], sunStyle);
+    stabstr = parseFieldList(mod, newType2, &stabstr[cnt], sunStyle);
     cnt = 0;
 
     if (stabstr[0]) {
@@ -1605,7 +1811,7 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 
 	    // should include position for virtual methods
 	    BPatch_type *fieldType = mod->moduleTypes->findType("void");
-	    newType->addField(funcName, BPatch_dataMethod, fieldType, 0, 0);
+	    newType2->addField(funcName, BPatch_dataMethod, fieldType, 0, 0);
 
 	    free(name);
 	    free(className);
@@ -1643,13 +1849,13 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 // It adds the typeDef to the type definition with the name name, and id ID.
 //
 static char *parseTypeDef(BPatch_module *mod, char *stabstr, 
-                          const char *name, int ID)
+                          const char *name, int ID, unsigned int sizeHint)
 {
 
-    BPatch_type * newType = NULL;
+    BPatch_type * newType = NULL, *newType2 = NULL;
+    BPatch_fieldListType * newFieldType = NULL, *newFieldType2 = NULL;
     BPatch_type * ptrType = NULL;
   
-    char * temp=NULL;
     char * compsymdesc=NULL;
   
     BPatch_dataClass typdescr;
@@ -1674,12 +1880,17 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 	type = parseSymDesc(stabstr, cnt);
 	 	    
 	if (ID == type) {
-	    newType = new BPatch_type( name, ID, typdescr, type);
-	    if (newType) { newType = mod->moduleTypes->addOrUpdateType(newType); }
-	    if(!newType) {
+            // Type:tFOO = FOO
+            // as far as I can tell, this only happens when defining an empty
+            // type (i.e. void)
+
+            newType = new BPatch_typeScalar(ID, 0, name);
+	    if (newType) { newType2 = mod->moduleTypes->addOrUpdateType(newType); }
+	    if(!newType2) {
 	      bpfatal(" Can't Allocate newType ");
 	      exit(-1);
-	    }
+	    } else
+               newType->decrRefCount();
 	} else if (stabstr[cnt] == '=') {
 	    // XXX - in the new type t(0,1)=(0,2)=s... is possible
 	    // 	     skip the second id for now -- jkh 3/21/99
@@ -1689,18 +1900,23 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 	    
 	    oldType = mod->moduleTypes->findOrCreateType(type);
 	    if(!oldType) oldType = BPatch::bpatch->type_Untyped;
-	    newType = new BPatch_type( name, ID, typdescr, oldType);
-	    if (newType) { newType = mod->moduleTypes->addOrUpdateType(newType); }
+            newType = new BPatch_typeTypedef(ID, oldType, name, sizeHint);
+	    if (newType) {
+               mod->moduleTypes->addOrUpdateType(newType);
+               newType->decrRefCount();
+            }
+            
 	} else {
 	    BPatch_type *oldType;
 	    
 	    oldType = mod->moduleTypes->findOrCreateType(type);
-	    newType = new BPatch_type( name, ID, typdescr, oldType);
-	    if(newType) { newType = mod->moduleTypes->addOrUpdateType(newType); }
-	    if(!newType) {
+            newType = new BPatch_typeTypedef(ID, oldType, name, sizeHint);
+	    if(newType) { newType2 = mod->moduleTypes->addOrUpdateType(newType); }
+	    if(!newType2) {
 	        bpfatal(" Can't Allocate newType ");
 	        exit(-1);
-	    }
+	    } else
+               newType->decrRefCount();
 	}
     } else {
       switch (stabstr[0]) {
@@ -1709,7 +1925,6 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 	    break;
 	     
 	  case '*':
-	    typdescr = BPatch_dataPointer;
 	    /* pointer to another type */
 	    cnt++;
 	    ptrID = parseTypeUse(mod, stabstr, cnt, NULL);
@@ -1718,35 +1933,58 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 	    ptrType = mod->moduleTypes->findOrCreateType(ptrID);
 	    if (!ptrType) ptrType = BPatch::bpatch->type_Untyped;
 
-	    newType = new BPatch_type(NULL, ID, BPatch_dataPointer, ptrType);
+            newType = new BPatch_typePointer(ID, ptrType);
 	    // Add to typeCollection
-	    if(newType) { newType = mod->moduleTypes->addOrUpdateType(newType); }
-	    if(!newType) {
+	    if(newType) { newType2 = mod->moduleTypes->addOrUpdateType(newType); }
+	    if(!newType2) {
 		bpfatal(" Can't Allocate new type ");
 		exit(-1);
-	    }
+	    } else
+               newType->decrRefCount();
 
 	    return(&(stabstr[cnt]));
 	    break;
 
 	  case 'a':
-	      (void) parseArrayDef(mod, name, ID, stabstr, cnt);
+	      (void) parseArrayDef(mod, name, ID, stabstr, cnt, sizeHint);
 	      return (&stabstr[cnt]);
 	      break;
 
-          case 'g':  // We really should user parameter types (JMO && JKH)
+          case 'g':  
 	        /* function with return type and prototype */
 
 		// g<typeUse>[<typeUse>]*#
 		typdescr = BPatch_dataFunction;
 
-		cnt++; /* skip the f */
+		cnt++; /* skip the g */
 	        type = parseTypeUse(mod, stabstr, cnt, name);
+                ptrType = mod->moduleTypes->findOrCreateType(type);
 
-		while ((stabstr[cnt] != '#') &&  (stabstr[cnt])) {
-		    int paramType;
-		    paramType = parseTypeUse(mod, stabstr, cnt, name);
-		}
+                {
+                   BPatch_typeFunction *newFunction = 
+                      new BPatch_typeFunction(ID, ptrType, name);
+                   BPatch_typeFunction *newFunction2 = NULL;
+                   
+                   if (newFunction) { 
+                      newFunction2 = dynamic_cast<BPatch_typeFunction*>(mod->moduleTypes->addOrUpdateType(newFunction)); 
+		      newFunction->decrRefCount();
+                   }
+                   if (!newFunction2) {
+                      bpfatal(" Can't Allocate new type ");
+                      exit(-1);
+                   }
+                   int curOffset = 0;
+                   unsigned int paramNum = 0;
+                   char buffer[32];
+                   while ((stabstr[cnt] != '#') &&  (stabstr[cnt])) {
+                      int paramType;
+                      paramType = parseTypeUse(mod, stabstr, cnt, name);
+                      newType = mod->moduleTypes->findOrCreateType(paramType);
+                      snprintf(buffer, 31, "param%u", paramNum++);                    
+                      newFunction2->addField(buffer, newType->getDataClass(), newType, curOffset, newType->getSize());
+                      curOffset += newType->getSize();
+                   }
+                }
 
 		// skip #
 		if (stabstr[cnt] == '#') cnt++;
@@ -1758,6 +1996,15 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 
 		cnt++; /* skip the f */
 	        type = parseTypeUse(mod, stabstr, cnt, name);
+                ptrType = mod->moduleTypes->findOrCreateType(type);
+
+                newType = new BPatch_typeFunction(ID, ptrType, name);
+		if (newType) { newType2 = mod->moduleTypes->addOrUpdateType(newType); }
+		if (!newType2) {
+		  bpfatal(" Can't Allocate new type ");
+		  exit(-1);
+		} else
+                   newType->decrRefCount();
 
 		// skip to end - SunPro Compilers output extra info here - jkh 6/9/3
 		cnt = strlen(stabstr);
@@ -1783,9 +2030,9 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 		      size = parseSymDesc(stabstr, cnt);
 
 		    ptrType = mod->moduleTypes->findOrCreateType(baseType);
-		    newType = new BPatch_type(name, ID, BPatch_dataArray, ptrType,
-			1, size);
-		    newType = mod->moduleTypes->addOrUpdateType(newType);
+                    newType = new BPatch_typeArray(ID, ptrType, 1, size, name);
+		    mod->moduleTypes->addOrUpdateType(newType);
+                    newType->decrRefCount();
 		}
 		break;
 
@@ -1798,8 +2045,9 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 
 		int bytes = parseSymDesc(stabstr, cnt);
 
-		newType = new BPatch_type(name, ID, BPatch_dataBuilt_inType, bytes);
-		newType = mod->moduleTypes->addOrUpdateType(newType);
+                newType = new BPatch_typeScalar(ID, bytes, name);
+		mod->moduleTypes->addOrUpdateType(newType);
+                newType->decrRefCount();
 
 		if (stabstr[cnt] == ';') cnt++;	// skip the final ';'
 
@@ -1811,16 +2059,18 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 
 	  case 'b': {
 		// builtin type b  - signed char-flag width; offset; nbits
-		typdescr = BPatch_dataBuilt_inType;
 		int limit = strlen(&stabstr[cnt]);
 
 		// skip to width
-		while (stabstr[cnt+i] != ';' && (i < limit)) i++;	
+		while (!isdigit(stabstr[cnt+i]) && (i < limit)) i++;	
 		if (i >= limit) return(&(stabstr[cnt]));
 
+                cnt += i;
+                int size = parseSymDesc(stabstr,cnt);
+                cnt -= i;
 		i++;	// skip the ';'
 
-		// skip to offset
+		// skip to bits
 		while (stabstr[cnt+i] != ';' && (i < limit)) i++;	
 		if (i >= limit) return(&(stabstr[cnt]));
 		i++;
@@ -1830,17 +2080,17 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 		
 		if (stabstr[cnt]) cnt++;	// skip the final ';'
 
-		newType = new BPatch_type(name, ID, BPatch_dataBuilt_inType, 
-		    nbits/8);
+                newType = new BPatch_typeScalar(ID, size, name);
 		//Add to Collection
-		newType = mod->moduleTypes->addOrUpdateType(newType);
+		mod->moduleTypes->addOrUpdateType(newType);
+                newType->decrRefCount();
 
 		return &stabstr[cnt];
 		break;
 	    }
 
 	case 'r': 		// range type
-	    return parseRangeType(mod, name, ID, stabstr);
+	    return parseRangeType(mod, name, ID, stabstr, sizeHint);
 	    break;
 
 	case 'e':		// Enumerated type
@@ -1848,9 +2098,10 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 	    cnt++; 	/* skip the 'e' */
 
 	    // Create new Enum type
-	    newType = new BPatch_type(name, ID, typdescr);
+	    newFieldType = new BPatch_typeEnum(ID, name);
 	    // Add type to collection
-	    newType = mod->moduleTypes->addOrUpdateType(newType);
+	    newFieldType2 = dynamic_cast<BPatch_fieldListType *>(mod->moduleTypes->addOrUpdateType(newFieldType));
+            newFieldType->decrRefCount();
 		
 	    while (stabstr[cnt]) {
 		/* Get enum component value */
@@ -1864,11 +2115,10 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 		value = parseSymDesc(stabstr, cnt);
 
 		// add enum field to type
-		newType->addField(compsymdesc, BPatch_dataScalar, value);
+		newFieldType2->addField(compsymdesc, value);
 		  
-		free(temp);
 		free(compsymdesc);
-		temp = compsymdesc = NULL;
+		compsymdesc = NULL;
 
 		cnt++; /* skip trailing comma */
 		if ((stabstr[cnt]) == ';') cnt++; /* End of enum stab record */
@@ -1876,7 +2126,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 	    break;
 	    
         case '@':  // type attribute, defines size and type (negative num)
-	    parseAttrType(mod, name, ID, stabstr, cnt);
+	    return parseAttrType(mod, name, ID, stabstr, cnt);
 	    break;
 
         case '&': //XXX- Need to complete, may be more to parse jdd 4/22/99
@@ -1905,14 +2155,21 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 	    structsize = parseSymDesc(stabstr, cnt);
 	    
 	    //Create new type
-	    newType = new BPatch_type(name, ID, typdescr, structsize);
+            if (typdescr == BPatch_dataStructure)
+               newFieldType = new BPatch_typeStruct(ID, name);
+            else
+               newFieldType = new BPatch_typeUnion(ID, name);
 	    //add to type collection
-	    newType = mod->moduleTypes->addOrUpdateType(newType);
+	    newFieldType2 = dynamic_cast<BPatch_fieldListType *>(mod->moduleTypes->addOrUpdateType(newFieldType));
+            newFieldType->decrRefCount();
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
 	    bperr( "%s[%d]:  before parseFieldList -- strlen(&stabstr[%d]) =%d \n", 
 		    __FILE__, __LINE__, cnt, strlen(&stabstr[cnt]));
 #endif
-	    return parseFieldList(mod, newType, &stabstr[cnt], false);
+            {
+	    char *ret = parseFieldList(mod, newFieldType2, &stabstr[cnt], false);
+            return ret;
+            }
 
 	    break;
 
@@ -1979,6 +2236,8 @@ static BPatch_type *parseConstantUse(BPatch_module *mod, char *stabstr, int &cnt
 	ret = mod->moduleTypes->findType("integer*4");
     } else if (stabstr[cnt] == 'r') {
 	ret = mod->moduleTypes->findType("double");
+    } else if (stabstr[cnt] == 's') {
+        ret = mod->moduleTypes->findType("char *");
     } else {
 	bperr("unknown constant type %s\n", &stabstr[cnt]);
 	ret = NULL;

@@ -49,6 +49,7 @@
 #include "BPatch_module.h"
 #include "BPatch_collections.h"
 #include "LineInformation.h"
+#include "BPatch_typePrivate.h"
 #include "util.h"
 #include <ldfcn.h>  // *** GCC 3.x bug: (Short explanation)
 		    // <ldfcn.h> must be included after "BPatch.h"
@@ -72,7 +73,7 @@
 // Main functions needed to parse stab strings.
 extern char *current_func_name;
 extern char *parseStabString(BPatch_module *, int linenum, char *str,
-			     int fPtr, BPatch_type *commonBlock = NULL);
+			     int fPtr, BPatch_typeCommon *commonBlock = NULL);
 
 typedef union {
     pEXTR ext;
@@ -669,7 +670,7 @@ BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
 	newType = eCoffHandleTIR(mod, symbol, true);
 
 	if (newType)
-	    newType = new BPatch_type(name.c_str(), id, newType);
+	    newType = new BPatch_typeTypedef(id, newType, name.c_str());
 	break;
 
     default:
@@ -700,6 +701,8 @@ BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
 	width = eCoffHandleWidth(symbol, false);
     }
 
+    result = NULL;
+
     switch(currTIR->ti.bt) {
 
     case btEnum:
@@ -718,8 +721,7 @@ BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
 	remoteSymbol.clear(true);
 
 	eCoffHandleRange(symbol, low, high, currTIR->ti.bt == btRange_64);
-	result = new BPatch_type(symbol.name.c_str(), symbol.id(), BPatchSymTypeRange,
-				 low.c_str(), high.c_str());
+        result = new BPatch_typeRange(symbol.id(), subType->getSize(), low.c_str(), high.c_str(), symbol.name.c_str());
 	break;
 
     case btTypedef:
@@ -729,7 +731,7 @@ BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
 	remoteSymbol.clear(true);
 
 	if (subType)
-	    result = new BPatch_type(name.c_str(), symbol.id(), subType);
+	    result = new BPatch_typeTypedef(symbol.id(), subType, name.c_str());
 	break;
 
     case btIndirect:
@@ -743,10 +745,10 @@ BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
 
     case btProc:
 	remoteSymbol = eCoffHandleRNDX(symbol);
-	remoteSymbol.clear(true);
-
-	// Not clear that this is the correct behavior.
-	result = new BPatch_type(symbol.name.c_str(), symbol.id(), BPatch_dataFunction);
+        remoteSymbol.aux++; // Skip over isym
+        result = new BPatch_typeFunction(symbol.id(), 
+                                         eCoffHandleTIR(mod, remoteSymbol, true),
+                                         symbol.name.c_str());
 	break;
 
     case btSet:
@@ -773,87 +775,48 @@ BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
 
     case btNil: // Regarded as void
     case btVoid:
-	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -11, BPatch_built_inType, 0);
-	else 
-	    result = new BPatch_type("void", -11, BPatch_built_inType, 0);
+       result = mod->moduleTypes->findType("void");
 	break;
 
     case btChar:
-	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -2, BPatch_built_inType, 1);
-	else
-	    result = new BPatch_type("char", -2, BPatch_built_inType, 1);
+       result = mod->moduleTypes->findType("char");
 	break;
 
     case btUChar:
-	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -5, BPatch_built_inType, 1);
-	else
-	    result = new BPatch_type("unsigned char", -5, BPatch_built_inType, 1);
+       result = mod->moduleTypes->findType("unsigned char");
 	break;
 
     case btShort:
-	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -3, BPatch_built_inType, 2);
-	else
-	    result = new BPatch_type("short", -3, BPatch_built_inType, 2);
+       result = mod->moduleTypes->findType("short");
 	break;
 
     case btUShort:
-	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -7, BPatch_built_inType, 2);
-	else
-	    result = new BPatch_type("unsigned short", -7, BPatch_built_inType, 2);
+       result = mod->moduleTypes->findType("unsigned short");
 	break;
 
     case btInt32:
- // case btInt: Same as btInt32
-	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -1, BPatch_built_inType, 4);
-	else
-	    result = new BPatch_type("int", -1, BPatch_built_inType, 4);
+       result = mod->moduleTypes->findType("int");
 	break;
 
     case btUInt32:
- // case btUInt: Same as btUInt32
-	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -8, BPatch_built_inType, 4);
-	else
-	    result = new BPatch_type("unsigned int", -8, BPatch_built_inType, 4);
+       result = mod->moduleTypes->findType("unsigned int");
 	break;
 
     case btLong32:
-	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -4, BPatch_built_inType, 4);
-	else
-	    result = new BPatch_type("long", -4, BPatch_built_inType, 4);
+       // Treat 32-bit longs as ints
+       result = mod->moduleTypes->findType("int");
 	break;
 
     case btULong32:
-	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -10, BPatch_built_inType,
-				     sizeof(unsigned long));
-	else
-	    result = new BPatch_type("unsigned long", -10, BPatch_built_inType,
-				     sizeof(unsigned long));
+       result = mod->moduleTypes->findType("unsigned int");
 	break;
 
     case btFloat:
-	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -12, BPatch_built_inType, sizeof(float));
-	else
-	    result = new BPatch_type("float", -12, BPatch_built_inType,
-				     sizeof(float));
+       result = mod->moduleTypes->findType("float");
 	break;
 
     case btDouble:
-	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -13, BPatch_built_inType,
-				     sizeof(double));
-	else
-	    result = new BPatch_type("double", -13, BPatch_built_inType,
-				     sizeof(double));
+       result = mod->moduleTypes->findType("double");
 	break;
 
     case btLong64:
@@ -861,10 +824,7 @@ BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
     case btLongLong64:
  // case btLongLong: Same as btLongLong64
     case btInt64:
-	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -32, BPatch_built_inType, 8);
-	else
-	    result = new BPatch_type("long long", -32, BPatch_built_inType, 8);
+       result = mod->moduleTypes->findType("long long");
 	break;
 
     case btULong64:
@@ -872,28 +832,16 @@ BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
     case btULongLong64:
  // case btULongLong: Same as btULongLong64
     case btUInt64:
-	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -33, BPatch_built_inType, 8);
-	else
-	    result = new BPatch_type("unsigned long long", -33,
-				     BPatch_built_inType, 8);
+       result = mod->moduleTypes->findType("unsigned long long");
 	break;
 
     case btLDouble:
-	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -14, BPatch_built_inType,
-				     sizeof(long double));
-	else
-	    result = new BPatch_type("long double", -14, BPatch_built_inType,
-				     sizeof(long double));
+       result = mod->moduleTypes->findType("long double");
 	break;
 
     case btInt8:
     case btUInt8:
-	if (typeDef)
-	    result = new BPatch_type(symbol.name.c_str(), -27, BPatch_built_inType, 1);
-	else
-	    result = new BPatch_type("integer*1", -27, BPatch_built_inType, 1);
+       result = mod->moduleTypes->findType("integer*1");
 	break;
 
     default:
@@ -937,16 +885,16 @@ BPatch_type *eCoffHandleTQ(eCoffSymbol &symbol, BPatch_type *prevType, unsigned 
 
     switch (tq) {
     case tqProc:
-	newType = new BPatch_type(symbol.name.c_str(), symbol.id(), BPatch_dataPointer, prevType);
+       newType = new BPatch_typeFunction(symbol.id(), prevType, symbol.name.c_str());
 	break;
 
     case tqRef:
-	newType = new BPatch_type(symbol.name.c_str(), symbol.id(), BPatch_reference, prevType);
+       newType = new BPatch_typeRef(symbol.id(), prevType, symbol.name.c_str());
 	break;
 
     case tqPtr:
     case tqFar: // Ptr type qualifier
-	newType = new BPatch_type(symbol.name.c_str(), symbol.id(), BPatch_pointer, prevType);
+       newType = new BPatch_typePointer(symbol.id(), prevType, symbol.name.c_str());
 	break;
 
     case tqArray:
@@ -961,7 +909,7 @@ BPatch_type *eCoffHandleTQ(eCoffSymbol &symbol, BPatch_type *prevType, unsigned 
 	// Parse (but ignore) width.
 	eCoffHandleWidth(symbol, tq == tqArray_64);
 
-	newType = new BPatch_type(symbol.name.c_str(), -1, BPatch_array, prevType, low, high);
+        newType = new BPatch_typeArray(symbol.id(), prevType, low, high, symbol.name.c_str());
 	break;
 
     case tqVol:		// Volitile
@@ -1153,7 +1101,7 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
    if (skip) {
       if (symbol.sym->st == stTag) ++symbol;
       symbol = symbol.sym->index - 1;
-      return result;
+      return NULL;
    }
 
    // Determine data class.
@@ -1161,10 +1109,23 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
 
       // C++ structure, union, or enumeration.
       switch (symbol.aux->ti.bt) {
-        case btStruct:	dataType = BPatch_structure; break;
-        case btUnion:	dataType = BPatch_union; break;
-        case btEnum:	dataType = BPatch_enumerated; break;
-        case btClass:	dataType = BPatch_typeClass; break;
+        case btStruct:
+           dataType = BPatch_structure;
+           result = new BPatch_typeStruct(symbol.id(), symbol.name.c_str());
+           break;
+        case btUnion:
+           dataType = BPatch_union;
+           result = new BPatch_typeUnion(symbol.id(), symbol.name.c_str());
+           break;
+        case btEnum:
+           dataType = BPatch_enumerated;
+           result = new BPatch_typeEnum(symbol.id(), symbol.name.c_str());
+           break;
+        case btClass:
+           dataType = BPatch_typeClass;
+           // For now
+           result = new BPatch_typeStruct(symbol.id(), symbol.name.c_str());
+           break;
       }
       if (dataType != BPatch_unknownType)
          isKnown = true;
@@ -1176,6 +1137,7 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
 
       // Fortran common block.
       dataType = BPatch_dataCommon;
+      result = new BPatch_typeCommon(symbol.id(), symbol.name.c_str());      
       isKnown = true;
 
    } else {
@@ -1185,10 +1147,15 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
       dataType = BPatch_enumerated;
    }
 
+   /*
    result = new BPatch_type(symbol.name.c_str(), symbol.id(),
                             dataType, symbol.sym->value);
+   */
+
+   // Horrid hack to recreate type later.  I hate you ECOFF
 
    if (!isKnown) {
+      result = new BPatch_typeStruct(symbol.id(), symbol.name.c_str());           
       isEnum = true;
       isStruct = false;
    }
@@ -1211,14 +1178,14 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
          field = eCoffHandleTIR(mod, symbol);
          if (field) {
             // Adding a struct/union member
-            result->addField(fieldName.c_str(), field->getDataClass(), field,
+            dynamic_cast<BPatch_fieldListType*>(result)->addField(fieldName.c_str(), field->getDataClass(), field,
                              fieldOffset, field->getSize(), BPatch_visUnknown);
             if (fieldOffset > 0) isStruct = true;
             isEnum = false;
 
          } else
             // Adding an enum member
-            result->addField(fieldName.c_str(), BPatch_scalar, symbol.sym->value,
+            dynamic_cast<BPatch_fieldListType*>(result)->addField(fieldName.c_str(), BPatch_scalar, symbol.sym->value,
                              BPatch_visUnknown);
       }
       if (symbol.sym->st == stProc && symbol.sym->sc == scInfo)
@@ -1226,8 +1193,28 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
 
       ++symbol;
    }
-   if (!isKnown && !isEnum)
-      result->setDataClass(isStruct ? BPatch_structure : BPatch_union);
+
+   if (!isKnown && !isStruct) {
+      BPatch_fieldListType *tempType;
+      if (isEnum)
+         tempType = new BPatch_typeEnum(symbol.id(), symbol.name.c_str());
+      else
+         tempType = new BPatch_typeUnion(symbol.id(), symbol.name.c_str());
+
+      BPatch_Vector<BPatch_field *> *fields = dynamic_cast<BPatch_fieldListType*>(result)->getComponents();
+      for (unsigned int i = 0; i < fields->size(); i++) {
+         BPatch_field *bpfield = (*fields)[i];
+         if (isEnum)
+            tempType->addField(bpfield->getName(), BPatch_scalar, bpfield->getValue(),
+                               BPatch_visUnknown);
+         else
+            tempType->addField(bpfield->getName(), bpfield->getTypeDesc(), 
+                               bpfield->getType(), bpfield->getOffset(), 
+                               bpfield->getSize(), BPatch_visUnknown);
+      }
+      result->decrRefCount();
+      result = tempType;
+   }
 
    return result;
 }

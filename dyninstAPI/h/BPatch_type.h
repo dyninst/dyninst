@@ -76,7 +76,6 @@ typedef enum {BPatch_dataScalar,
 	      BPatch_dataReferance, 
 	      BPatch_dataFunction,
 	      BPatch_dataTypeAttrib,
-	      BPatch_dataBuilt_inType,
 	      BPatch_dataReference,
 	      BPatch_dataUnknownType,
 	      BPatchSymTypeRange,
@@ -84,7 +83,8 @@ typedef enum {BPatch_dataScalar,
 	      BPatch_dataCommon,
 	      BPatch_dataPrimitive,
 	      BPatch_dataTypeNumber,
-	      BPatch_dataTypeDefine
+	      BPatch_dataTypeDefine,
+              BPatch_dataNullType
 } BPatch_dataClass;
 
 
@@ -97,7 +97,6 @@ typedef enum {BPatch_dataScalar,
 #define BPatch_pointer	BPatch_dataPointer 
 #define BPatch_reference	BPatch_dataReferance 
 #define BPatch_typeAttrib	BPatch_dataTypeAttrib
-#define BPatch_built_inType  	BPatch_dataBuilt_inType
 #define BPatch_unknownType	BPatch_dataUnknownType
 #define BPatch_typeDefine	BPatch_dataTypeDefine
 
@@ -114,7 +113,6 @@ typedef enum {BPatch_dataScalar,
  * BPatch_dataPointer - pointer type- gnu sun-'*'
  * BPatch_dataReferance - referance type- gnu sun-'*'
  * BPatch_dataTypeAttrib - type attribute (C++)- gnu sun- '@'
- * BPatch_dataBuilt_inType - built-in type -- gdb doc ->negative type number
  * BPatch_dataReference - C++ reference to another type- gnu sun- '&'
  * BPatch_dataMethod - C++ class method
  */
@@ -134,6 +132,7 @@ typedef enum {BPatch_private, BPatch_protected, BPatch_public,
 
 class BPatch_type;
 class BPatch_function;
+class BPatch_module;
 
 /*
  * A BPatch_field is equivalent to a field in a enum, struct, or union.
@@ -156,6 +155,8 @@ class BPATCH_DLL_EXPORT BPatch_field {
 
   /* Method vars */
   
+private:
+  void copy(BPatch_field &);
 public:
   
   // Enum constructor
@@ -170,8 +171,11 @@ public:
   BPatch_field(const char * fName,  BPatch_dataClass _typeDes, 
 	       BPatch_type *suType, int suOffset, int suSize,
 	       BPatch_visibility _vis);
+  BPatch_field(BPatch_field &);
+  ~BPatch_field();
   
-  
+  BPatch_field &operator=(BPatch_field &);
+  bool operator==(const BPatch_field &ofield) const;
 			      
   const char *getName() { return fieldname; } 
   BPatch_type *getType() { return _type; }
@@ -181,6 +185,7 @@ public:
   BPatch_dataClass getTypeDesc() { return typeDes; }
   int getSize() { return size; }
   int getOffset() { return offset; }
+  void fixupUnknown(BPatch_module *);
 }; 
 
 //
@@ -188,7 +193,7 @@ public:
 //   version of the common block.
 //
 class BPATCH_DLL_EXPORT BPatch_cblock {
-   friend class BPatch_type;
+   friend class BPatch_typeCommon;
 
 private:
   // the list of fields
@@ -200,120 +205,65 @@ private:
 public:
   BPatch_Vector<BPatch_field *> *getComponents() { return &fieldList; }
   BPatch_Vector<BPatch_function *> *getFunctions() { return &functions; }
+  void fixupUnknowns(BPatch_module *);
 };
 
 class BPATCH_DLL_EXPORT BPatch_type {
-private:
-  bool	        nullType;
+protected:
   char		*name;
   int           ID;                /* unique ID of type */
-  int           size;              /* size of type */
-  char		*low;              /* lower bound */
-  char          *hi;               /* upper bound */
-  int           modifierType;      /* which kind of modifier? */
+  unsigned int  size;              /* size of type */
   
   BPatch_dataClass   type_;
-  BPatch_type 	*ptr;               /* pointer to other type (for ptrs, arrays) */
-
-  /* For enums, structs and union components */
-  BPatch_Vector<BPatch_field *> fieldList;
 
   /* For common blocks */
-  BPatch_Vector<BPatch_cblock *> *cblocks;
-  
-public:
-// Start Internal Functions
-  BPatch_type();
 
-  bool merge( BPatch_type * other );
-  
-  BPatch_type(const char *_name, bool _nullType = false);
-  /* Enum constructor */
-  BPatch_type(const char *_name, int _ID,  BPatch_dataClass _type);
-  /* Struct, union, range(size), reference(void) constructor and
-     Built-in type constructor-negative type numbers defined by gdb doc */
-  BPatch_type(const char *_name, int _ID, BPatch_dataClass _type, int _size);
-  /* Pointer (internal) constructor */
-  BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
-	      BPatch_type * _ptr);
-  /* Range (lower and uper bound) constructor */
-  BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
-	      const char * _low, const char * _hi);
-  /* Array Constructor */
-  BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
-	      BPatch_type * _ptr, long int _low, long int _hi);
-  /* Pre-existing type--typedef */
-  BPatch_type(const char *_name, int _ID, BPatch_type * _ptr);
-  /* defining a type in terms of a builtin type (Type Attribute) */
-  BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
-	      int _size, BPatch_type * _ptr, int _modifierType = 0 );
+  static int USER_BPATCH_TYPE_ID;
 
-   /* Add field for Enum */
-  void addField(const char * _fieldname,  BPatch_dataClass _typeDes, int value);
-  /* Add field for C++(has visibility) Enum */
-  void addField(const char * _fieldname,  BPatch_dataClass _typeDes, int value,
-		BPatch_visibility _vis);
-  /* Add field for struct or union */
-  void addField(const char * _fieldname,  BPatch_dataClass _typeDes, 
-      BPatch_type *_type, int _offset, int _size);
-  /* Add field for C++(has visibility) struct or union */
-  void addField(const char * _fieldname,  BPatch_dataClass _typeDes, 
-      BPatch_type *_type, int _offset, int _size, BPatch_visibility _vis);
-  
- void beginCommonBlock();
- void endCommonBlock(BPatch_function *, void *baseAddr);
+  // INTERNAL DATA MEMBERS
 
- // END Internal Functions
+  unsigned int refCount;
 
-      
- // Constructors for USER DEFINED BPatch_types
-  /* Enum constructor */
-  BPatch_type(const char *_name, BPatch_dataClass _type);
-  /* Struct, union, range(size), reference(void) constructor and
-     Built-in type constructor-negative type numbers defined by gdb doc */
-  BPatch_type(const char *_name, BPatch_dataClass _type, int _size);
-  /* Pointer (internal) constructor */
-  BPatch_type(const char *_name, BPatch_type * _ptr, int size_);
-  /* Range (lower and uper bound) constructor */
-  BPatch_type(const char *_name, BPatch_dataClass _type,
-	      const char * _low, const char * _hi);
-  /* Array Constructor */
-  BPatch_type(const char *_name, BPatch_dataClass _type,
-	      BPatch_type * _ptr, long int _low, long int _hi);
-  /* Pre-existing type--typedef */
-  BPatch_type(const char *_name, BPatch_type * _ptr);
-  /* defining a type in terms of a builtin type (Type Attribute) */
-  BPatch_type(const char *_name, BPatch_dataClass _type, int _size,
-	      BPatch_type * _ptr, int _modifierType = 0);
-			    
+ protected:
+  virtual void updateSize() {}
   // Simple Destructor
-  ~BPatch_type();
+  virtual ~BPatch_type();
+public:
+  BPatch_type(const char *name = NULL, int _ID = 0, BPatch_dataClass = BPatch_dataNullType);
 
-  int  getID(){ return ID;}
-  void setID(int typeId) { ID = typeId; }
-  void setDataClass(BPatch_dataClass p1) { type_ = p1; }
+  virtual void merge( BPatch_type * /* other */ ) { assert(0); }
 
-  int getSize() const { return size; };
-  void setSize(int i) { size = i; }
-  const char *getName() { return name; }
+  virtual bool operator==(const BPatch_type &) const;
+
+  // A few convenience functions
+
+  static BPatch_type *createFake(const char *_name);
+  /* Placeholder for real type, to be filled in later */
+  static BPatch_type *createPlaceholder(int _ID, const char *_name = NULL) { return new BPatch_type(_name, _ID, BPatch_dataUnknownType); }
+
+  int  getID() const { return ID;}
+
+  unsigned int getSize() const { if (!size) const_cast<BPatch_type *>(this)->updateSize(); return size; }
+  const char *getName() const { return name; }
 
 #ifdef IBM_BPATCH_COMPAT
-  char *getName(char *buffer, int max); 
-  BPatch_dataClass type() { return type_; }
+  char *getName(char *buffer, int max) const; 
+  BPatch_dataClass type() const { return type_; }
 #endif
+  virtual const char *getLow() const { return NULL; }
+  virtual const char *getHigh() const { return NULL; }
+  virtual BPatch_Vector<BPatch_field *> * getComponents() const { return NULL; }
+  BPatch_dataClass getDataClass() const { return type_; }
+  virtual bool isCompatible(const BPatch_type * /* otype */) const { return true; }
+  virtual BPatch_type *getConstituentType() const { return NULL; }
+  virtual BPatch_Vector<BPatch_cblock *> *getCblocks() const { return NULL; }
 
-  void setLow(const char *cPtr);
-  void setHigh(const char *cPtr);
-  const char *getLow() { return low; }
-  const char *getHigh() { return hi; }
+  // INTERNAL METHODS
 
-  BPatch_type *getConstituentType() { return ptr; }
-  bool isCompatible(BPatch_type *otype);
-  BPatch_dataClass getDataClass() { return type_; }
-  BPatch_Vector<BPatch_field *> *getComponents();
-  BPatch_Vector<BPatch_cblock *> *getCblocks() { return cblocks; }
+  void incrRefCount() { ++refCount; }
+  void decrRefCount() { assert(refCount > 0); if (!--refCount) delete this; }
+  virtual void fixupUnknowns(BPatch_module *) { }
 };
-
 
 //
 // This class stores information about local variables.
@@ -349,6 +299,7 @@ public:
   int 		getFrameRelative() { return frameRelative; }
   int 		getSc()		 { return storageClass; }
   
+  void fixupUnknown(BPatch_module *);
 };
 
 #endif /* _BPatch_type_h_ */

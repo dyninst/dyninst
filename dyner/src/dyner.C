@@ -1019,7 +1019,7 @@ void printPtr( BPatch_type * type )
     printPtr( type->getConstituentType() );
     printf("*");
   }
-  else if((type->getDataClass() == BPatch_scalar)||(type->getDataClass() == BPatch_built_inType)||
+  else if((type->getDataClass() == BPatch_scalar)||
 	(type->getDataClass() == BPatchSymTypeRange)){
     printf("%s ", type->getName());
   }
@@ -1801,7 +1801,6 @@ int whatisFunc(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
     if(retType)
       switch(retType->getDataClass()){
       case BPatch_scalar:
-      case BPatch_built_inType:
       case BPatchSymTypeRange:
 	printf("%s",retType->getName() );
 	break;
@@ -1952,7 +1951,6 @@ int whatisType(ClientData cd, Tcl_Interp *interp, int argc, TCLCONST char *argv[
       break;
       
     case BPatch_scalar:
-    case BPatch_built_inType:
       printf("    %s is a scalar of size %d\n",argv[1],type->getSize());
       break;
       
@@ -2083,7 +2081,6 @@ int whatisVar(ClientData cd, Tcl_Interp *interp, int argc, TCLCONST char *argv[]
       }
       break;
     case BPatch_scalar:
-    case BPatch_built_inType:
       printf("    %s is a scalar of size %d\n",argv[1],type->getSize());
       break;
       

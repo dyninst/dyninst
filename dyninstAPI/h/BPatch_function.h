@@ -141,6 +141,8 @@ public:
 
     bool isSharedLib() const;
 
+    void fixupUnknown(BPatch_module *);
+
 #ifdef IBM_BPATCH_COMPAT
     virtual bool getLineNumbers(unsigned int &start, unsigned int &end);
 
