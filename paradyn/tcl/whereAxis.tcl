@@ -3,6 +3,10 @@
 
 #
 # $Log: whereAxis.tcl,v $
+# Revision 1.7  1996/01/11 00:54:46  tamches
+# removed resize1ScrollBar (moved to generic.tcl)
+# removed iconify menu
+#
 # Revision 1.6  1995/11/20 04:07:38  tamches
 # fixed activeBackground and activeForeground colors which had made for
 # ugly menu highlighting.
@@ -29,62 +33,6 @@
 #
 #
 
-proc resize1Scrollbar {sbname newTotal newVisible} {
-   # This is a nice n' generic routine  --ari
-   # However, it is (currently) only called from C++ code.  If this
-   # situation doesn't change, then we might want to just
-   # zap this and turn it into C++ code...
-
-   # 'newTotal' and 'newVisible' are tentative values;
-   # We use them to calculate 'newFirst' and 'newLast'.
-   # We make an effort to keep 'newFirst' as close as possible to 'oldFirst'.
-
-   set oldConfig [$sbname get]
-   set oldFirst  [lindex $oldConfig 0]
-   set oldLast   [lindex $oldConfig 1]
-#   puts stderr "oldFirst=$oldFirst; oldLast=$oldLast"
-
-   if {$newVisible < $newTotal} {
-      # The usual case: not everything fits
-      set fracVisible [expr 1.0 * $newVisible / $newTotal]
-#      puts stderr "newVisible=$newVisible; newTotal=$newTotal; fracVisible=$fracVisible"
-
-      set newFirst $oldFirst
-      set newLast [expr $newFirst + $fracVisible]
-
-#      puts stderr "tentative newFirst=$newFirst; newLast=$newLast"
-     
-      if {$newLast > 1.0} {
-         set theOverflow [expr $newLast - 1.0]
-#         puts stderr "resize1Scrollbar: would overflow by fraction of $theOverflow; moving newFirst back"
-         set newFirst [expr $oldFirst - $theOverflow]
-         set newLast  [expr $newFirst + $fracVisible]
-      } else {
-#         puts stderr "resize1Scrollbar: yea, we were able to keep newFirst unchanged at $newFirst"
-      }
-   } else {
-      # the unusual case: everything fits (visible >= total)
-      set newFirst 0.0
-      set newLast  1.0
-   }
-
-   if {$newFirst < 0} {
-      # This is an assertion failure
-      puts stderr "resize1Scrollbar warning: newFirst is $newFirst"
-   }
-   if {$newLast > 1} {
-      # This is an assertion failure
-      puts stderr "resize1Scrollbar warning: newLast is $newLast"
-   }
-  
-   $sbname set $newFirst $newLast
-}
-
-# ##################################################################
-
-#proc whereAxisShowSelections {} {
-#}
-
 # ##################################################################
 
 proc whereAxisInitialize {} {
@@ -101,16 +49,9 @@ proc whereAxisInitialize {} {
    frame .whereAxis.top.mbar -borderwidth 2 -relief raised
    pack  .whereAxis.top.mbar -side top -fill both -expand false
    
-   menubutton .whereAxis.top.mbar.file -text Window -menu .whereAxis.top.mbar.file.m
-   menu .whereAxis.top.mbar.file.m -selectcolor cornflowerblue
-   .whereAxis.top.mbar.file.m add command -label "Iconify" -command "wm iconify .whereAxis"
-#   .whereAxis.top.mbar.file.m add command -label "DrawTips" -command "whereAxisDrawTips"
-#   .whereAxis.top.mbar.file.m add command -label "EraseTips" -command "whereAxisEraseTips"
-   
    menubutton .whereAxis.top.mbar.sel -text Selections -menu .whereAxis.top.mbar.sel.m
    menu .whereAxis.top.mbar.sel.m -selectcolor cornflowerblue
    .whereAxis.top.mbar.sel.m add command -label "Clear" -command whereAxisClearSelections
-#   .whereAxis.top.mbar.sel.m add command -label "Show" -command whereAxisShowSelections
    
    menubutton .whereAxis.top.mbar.nav -text Navigate -menu .whereAxis.top.mbar.nav.m
    menu .whereAxis.top.mbar.nav.m -selectcolor cornflowerblue
@@ -118,7 +59,7 @@ proc whereAxisInitialize {} {
    menubutton .whereAxis.top.mbar.abs -text Abstraction -menu .whereAxis.top.mbar.abs.m
    menu .whereAxis.top.mbar.abs.m -selectcolor cornflowerblue
    
-   pack .whereAxis.top.mbar.file .whereAxis.top.mbar.sel .whereAxis.top.mbar.nav .whereAxis.top.mbar.abs -side left -padx 4
+   pack .whereAxis.top.mbar.sel .whereAxis.top.mbar.nav .whereAxis.top.mbar.abs -side left -padx 4
    
    # -----------------------------------------------------------
    
