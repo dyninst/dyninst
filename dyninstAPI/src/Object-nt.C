@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.31 2005/03/07 05:10:00 lharris Exp $
+// $Id: Object-nt.C,v 1.32 2005/03/15 23:19:15 tlmiller Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -140,39 +140,39 @@ Object::Module::FindFile( pdstring name )
 
 
 void
-Object::File::DefineSymbols( dictionary_hash<pdstring,::Symbol>& allSyms,
+Object::File::DefineSymbols( dictionary_hash<pdstring, pdvector< ::Symbol > >& allSyms,
                                 const pdstring& modName ) const
 {
     for( pdvector<Object::Symbol*>::const_iterator iter = syms.begin();
         iter != syms.end();
         iter++ )
     {
-        const Object::Symbol* curSym = *iter;
+        const Object::Symbol* curSym = * iter;
         assert( curSym != NULL );
-
+        
         curSym->DefineSymbol( allSyms, modName );
     }
 }
 
 
 void
-Object::Symbol::DefineSymbol( dictionary_hash<pdstring,::Symbol>& allSyms,
+Object::Symbol::DefineSymbol( dictionary_hash<pdstring, pdvector< ::Symbol > >& allSyms,
                                 const pdstring& modName ) const
 {
-    allSyms[GetName()] = ::Symbol( GetName(),
+    allSyms[GetName()].push_back( ::Symbol( GetName(),
         modName,
         (::Symbol::SymbolType)GetType(),
 		(::Symbol::SymbolLinkage)GetLinkage(),
         (Address)GetAddr(),
         false,
-		GetSize());
+		GetSize()) );
 }
 
 
 
 void
 Object::Module::DefineSymbols( const Object* obj,
-                                dictionary_hash<pdstring,::Symbol>& syms ) const
+                                dictionary_hash<pdstring, pdvector< ::Symbol > > & syms ) const
 {
     // define Paradyn/dyninst modules and symbols
     if( !isDll )
@@ -186,12 +186,12 @@ Object::Module::DefineSymbols( const Object* obj,
             assert( curFile != NULL );
 
             // add a Symbol for the file
-            syms[curFile->GetName()] = ::Symbol( curFile->GetName(),
+            syms[curFile->GetName()].push_back( ::Symbol( curFile->GetName(),
                 "",
                 ::Symbol::PDST_MODULE,
                 ::Symbol::SL_GLOBAL,
                 obj->code_off(),        // TODO use real base of symbols for file
-                false );                // TODO also pass size
+                false ) );                // TODO also pass size
 
             // add symbols for each of the file's symbols
             curFile->DefineSymbols( syms, curFile->GetName() );
@@ -201,13 +201,13 @@ Object::Module::DefineSymbols( const Object* obj,
     {
         // we represent a DLL
         // add one Symbol for the entire module
-        syms[name] = ::Symbol( name,
+        syms[name].push_back( ::Symbol( name,
             "",
             ::Symbol::PDST_MODULE,
             ::Symbol::SL_GLOBAL,
             obj->code_off(),
             false,
-            obj->code_len() * sizeof(Word) );
+            obj->code_len() * sizeof(Word) ) );
 
         // add symbols for each of the module's symbols
         for( pdvector<Object::File*>::const_iterator iter = files.begin();
@@ -638,13 +638,13 @@ Object::ParseDebugInfo( void )
         }
 
         //make up a symbol for default module too
-        symbols_["DEFAULT_MODULE"] = ::Symbol( "DEFAULT_MODULE",
+        symbols_["DEFAULT_MODULE"].push_back( ::Symbol( "DEFAULT_MODULE",
                                             "DEFAULT_MODULE",
                                             ::Symbol::PDST_MODULE,
                                             ::Symbol::SL_GLOBAL,
                                             code_off(),
                                             0,
-                                            0);
+                                            0) );
 
         //main seems to always be the third to last call in 
         //mainCRTStartup
@@ -654,20 +654,20 @@ Object::ParseDebugInfo( void )
         ::Symbol mainSym( "main", "DEFAULT_MODULE", ::Symbol::PDST_FUNCTION,
                        ::Symbol::SL_GLOBAL, mainAddr, 0, UINT_MAX );
 
-        symbols_[ "main" ] = mainSym;
+        symbols_[ "main" ].push_back( mainSym );
 
         //make up a func name for the start of the text section
         ::Symbol sSym( "__wStart", "DEFAULT_MODULE",::Symbol::PDST_FUNCTION,
                        ::Symbol::SL_GLOBAL, code_off_, 0, UINT_MAX );
     
-        symbols_[ "__wStart" ] = sSym;
+        symbols_[ "__wStart" ].push_back( sSym );
         
         //make up one for the end of the text section
         ::Symbol fSym( "__wfini", "DEFAULT_MODULE",::Symbol::PDST_FUNCTION,
                        ::Symbol::SL_GLOBAL, code_off_ + code_len_, 
                        0, UINT_MAX );
          
-        symbols_[ "__wfini" ] = fSym;
+        symbols_[ "__wfini" ].push_back( fSym );
          
     }
     
