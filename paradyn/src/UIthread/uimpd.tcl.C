@@ -3,9 +3,14 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.13  1994/11/02 23:30:05  karavan
-/* added showError command for error access from within tcl code
+/* Revision 1.14  1994/11/07 00:34:09  karavan
+/* Added default node to root for each subtree if number of user selections
+/* is 0 within that subtree.  This change plus elimination of default clearing
+/* of the axis on the screen (mets.tcl) implements new selection semantics.
 /*
+ * Revision 1.13  1994/11/02  23:30:05  karavan
+ * added showError command for error access from within tcl code
+ *
  * Revision 1.12  1994/11/01  05:44:26  karavan
  * changed resource selection process to support multiple focus selection
  * on a single display
@@ -271,9 +276,12 @@ int processVisiSelectionCmd(ClientData clientData,
     getSubtreeSelections (currDag, me, selection);
     // if no selections highlighted, go back to menu stage
     if (selection->getCount() == 0) {
-      /*** delete resourceLists here!!! */
+      /* add this back for auto-clear version
       sprintf (interp->result, "%d", 0);
       return TCL_OK;
+      */
+      // if nothing selected in entire subtree, use root as default
+      selection->add ((resource *) me->aObject); 
     }
     allSelections.add(selection);
     total++;
