@@ -2,7 +2,7 @@
  * Copyright (c) 1996-2002 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -39,80 +39,33 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.2 2003/03/08 04:20:56 bernat Exp $
+/* $Id: signalhandler.h,v 1.3 2003/03/10 23:15:37 bernat Exp $
+ */
+
+/*
+ * This file describes the entry points to the signal handling
+ * routines. This is meant to provide a single interface to bother
+ * the varied UNIX-style handlers and the NT debug event system.
+ * Further platform-specific details can be found in the
+ * signalhandler-unix.h and signalhandler-winnt.h files.
  */
 
 #ifndef _SIGNAL_HANDLER_H
 #define _SIGNAL_HANDLER_H
 
-#if defined(mips_sgi_irix6_4)
-#include <sys/procfs.h>
-#elif defined(alpha_dec_osf4_0)
-#include <sys/procfs.h>
-#elif defined(sparc_sun_solaris2_4)
-#include <procfs.h>
+#if defined(i386_unknown_nt4_0)
+#include "dyninstAPI/src/signalhandler-winnt.h"
+#else
+#include "dyninstAPI/src/signalhandler-unix.h"
 #endif
+
 class process;
 
-/*
- * Enumerated types of "why" -- why we received a process event
+/* Included from the unix/NT file:
+ * procSignalWhy_t: What event
+ * procSignalWhat_t: Which signal in particular
+ * procSignalInfo_t: Any information required by the handler
  */
-
-// Global list: from /proc and waitpid both
-// Process exited normally (WIFEXITED)
-// Process exited on a signal (WIFSIGNALED)
-// Process was signalled (WIFSTOPPED/PR_SIGNALLED)
-// Process entering traced syscall (PR_SYSENTRY)
-// Process exiting traced syscall (PR_SYSEXIT)
-// Process stopped via request (PR_REQUESTED)
-// PR_FAULTED, PR_JOBCONTROL, and PR_SUSPENDED are not caught
-
-typedef enum {
-    procExitedNormally,
-    procExitedViaSignal,
-    procSignalled,
-    procSyscallEntry,
-    procSyscallExit,
-    procRequested,
-    // NT-o-rama
-    procThreadCreate,
-    procProcessCreate,
-    procThreadExit,
-    procDllLoad,
-    procUndefined
-} procSignalWhy_t;
-
-/*
- * What:
- *  procExited: exit code
- *  procExitedViaSignal: uncaught signal
- *  procSignalled: signal
- *  procSyscallEntry: system call
- *  procSyscallExit: system call
- *  procRequested: not defined
- */
-
-#if !defined(i386_unknown_nt4_0)
-typedef unsigned int procSignalWhat_t;
-#else
-typedef DEBUG_EVENT procSignalWhat_t;
-#endif
-
-// Enumerated types of system calls we have particular
-// reponses for. Used to convert a large if-then tree
-// to a switch statement.
-typedef enum {
-    procSysFork,
-    procSysExec,
-    procSysExit,
-    procSysLoad,
-    procSysOther
-} procSyscall_t;
-
-procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall);
-
-
-// Functions which do things to signals
 
 // The new checkProcStatus()
 // Does all work internally. 
@@ -134,39 +87,14 @@ void decodeAndHandleProcessEvent(bool block);
 process *decodeProcessEvent(int pid,
                             procSignalWhy_t &why,
                             procSignalWhat_t &what,
-                            int &retval,
+                            procSignalInfo_t &info,
                             bool block);
-
-// waitPid status -> what/why format
-typedef int waitPidStatus_t;
-int decodeWaitPidStatus(process *proc,
-                        waitPidStatus_t status,
-                        procSignalWhy_t &why,
-                        procSignalWhat_t &what);
-
-// proc decode
-// There are two possible types of data structures:
-#if defined(sparc_sun_solaris2_4)
-typedef lwpstatus_t procProcStatus_t;
-#elif defined(mips_sgi_irix6_4) || defined(alpha_dec_osf4_0)
-typedef prstatus_t procProcStatus_t;
-#else
-// No /proc, dummy function
-typedef int procProcStatus_t;
-#endif
-
-int decodeProcStatus(process *proc,
-                     procProcStatus_t status,
-                     procSignalWhy_t &why,
-                     procSignalWhat_t &what,
-                     int &retval);
-
 
 // Takes the data above and performs whatever handling is necessary
 int handleProcessEvent(process *proc,
                        procSignalWhy_t why,
                        procSignalWhat_t what,
-                       int retval);
+                       procSignalInfo_t info);
 
 #endif
 
