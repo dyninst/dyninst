@@ -86,6 +86,11 @@ public:
 
     std::vector<MC_Network::LeafInfo*> get_LeafInfo( void );
     int connect_Backends( void );
+
+    int getConnections( int** conns, unsigned int* nConns )
+        {
+            return front_end->getConnections( conns, nConns );
+        }
 };
 
 #endif /* mrnet_H */

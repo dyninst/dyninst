@@ -116,15 +116,44 @@ void MC_Network::delete_Network()
   delete MC_Network::network;
 }
 
+
+int
+MC_Network::getConnections( int** conns, unsigned int* nConns )
+{
+    int ret = 0;
+
+    if( MC_Network::network != NULL )
+    {
+        ret = MC_Network::network->getConnections( conns, nConns );
+    }
+    else
+    {
+        ret = MC_Network::back_end->getConnections( conns, nConns );
+        assert( (ret != 0) || (*nConns == 1) );
+    }
+
+    return ret;
+} 
+
+
+
 int MC_Network::init_Backend(const char *_hostname, const char *_port,
                              const char *_phostname,
                              const char *_pport, const char *_pid)
 {
+    unsigned int port(atoi(_port));
+    unsigned int pport(atoi(_pport));
+    unsigned int pid(atoi(_pid));
+
+    return init_Backend(_hostname, port, _phostname, pport, pid );
+}
+
+int MC_Network::init_Backend(const char *_hostname, unsigned int port,
+                             const char *_phostname,
+                             unsigned int pport, unsigned int pid)
+{
   std::string host(_hostname);
-  unsigned short port(atoi(_port));
   std::string phost(_phostname);
-  unsigned short pport(atoi(_pport));
-  unsigned short pid(atoi(_pid));
 
   //TLS: setup thread local storage for frontend
   //I am "BE(host:port)"

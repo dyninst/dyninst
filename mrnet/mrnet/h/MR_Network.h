@@ -34,6 +34,9 @@ class MC_Network{
   static int init_Backend(const char *hostname, const char *port,
                           const char *phostname, const char *pport,
                           const char *pid);
+  static int init_Backend(const char *hostname, unsigned int backend_id,
+                          const char *phostname, unsigned int pport,
+                          unsigned int pid);
   static int getConnections( int** conns, unsigned int* nConns );
   static void error_str(const char *);
 

@@ -27,6 +27,8 @@ class MC_ChildNode{
 
   std::string get_HostName();
   unsigned short get_Port();
+
+  int getConnections( int** conns, unsigned int* nConns );
 };
 
 #endif /* __mc_childnode_h */

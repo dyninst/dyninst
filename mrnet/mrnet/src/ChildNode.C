@@ -39,3 +39,22 @@ unsigned short MC_ChildNode::get_Port()
 {
   return port;
 }
+
+int
+MC_ChildNode::getConnections( int** conns, unsigned int* nConns )
+{
+    int ret = 0;
+
+    if( (conns != NULL) && (nConns != NULL) )
+    {
+        *nConns = 1;
+        *conns = new int[*nConns];
+        (*conns)[0] = upstream_node->get_sockfd();
+    }
+    else
+    {
+        ret = -1;
+    }
+    return ret;
+}
+
