@@ -6,9 +6,12 @@
 // abstractions.
 
 /* $Log: abstractions.h,v $
-/* Revision 1.7  1996/01/11 04:39:34  tamches
-/* added whole program kludge for getCurrAbstractionSelections
+/* Revision 1.8  1996/01/23 06:59:04  tamches
+/* corrected path to include of String.h
 /*
+ * Revision 1.7  1996/01/11 04:39:34  tamches
+ * added whole program kludge for getCurrAbstractionSelections
+ *
  * Revision 1.6  1995/10/17 20:51:06  tamches
  * class abstractions is no longer templated.
  * class whereAxis is no longer templated either.
@@ -38,16 +41,16 @@
 
 #include <limits.h>
 
-#include "tclclean.h"
-#include "tkclean.h"
-
-#include "String.h"
+#include "tcl.h"
+#include "tk.h"
 
 #ifndef PARADYN
 // The test program has "correct" -I paths already set
 #include "Vector.h"
+#include "String.h"
 #else
 #include "util/h/Vector.h"
+#include "util/h/String.h"
 #endif
 
 #include "whereAxis.h"
