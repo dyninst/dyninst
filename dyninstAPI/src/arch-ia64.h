@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.4 2002/06/20 21:00:44 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.5 2002/06/21 17:50:13 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -86,7 +86,7 @@ class IA64_instruction {
 
 		uint64_t getMachineCode() { return instruction; }	
 
-	private:
+	protected:
 		IA64_bundle * myBundle;
 
 		uint64_t instruction;
@@ -102,9 +102,9 @@ class IA64_instruction_x : public IA64_instruction {
 	friend class IA64_bundle;
 
 	public:
-		IA64_Instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0, IA65_bundle * mybl = 0 );
+		IA64_instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0, IA64_bundle * mybl = 0 );
 
-		ia64_bundle_t getMachineCode() { return ia64_bundle_t( instruction, instruction_x ); }	
+		ia64_bundle_t getMachineCode() { ia64_bundle_t r = { instruction, instruction_x }; return r; }	
 
 	private:
 		uint64_t instruction_x;
@@ -117,7 +117,7 @@ class IA64_bundle {
 		IA64_bundle( uint8_t templateID, uint64_t instruction0, uint64_t instruction1, uint64_t instruction2 );
 		IA64_bundle( uint8_t templateID, IA64_instruction & instruction0, IA64_instruction instruction1, IA64_instruction instruction2 );
 		IA64_bundle( ia64_bundle_t rawBundle );
-		IA64_bundle( uint8_t templateID, IA64_instruction & instruction0, IA64_instruction & instructionLX );
+		IA64_bundle( uint8_t templateID, IA64_instruction & instruction0, IA64_instruction_x & instructionLX );
 
 		ia64_bundle_t getMyBundle() const { return myBundle; }
 
@@ -175,7 +175,7 @@ int addressOfMachineInsn( instruction * insn );
 /* Required by linux-ia64.C */
 IA64_instruction generateAlteredAlloc( InsnAddr & allocAddr, int deltaLocal, int deltaOutput, int deltaRotate );
 IA64_instruction generateShortConstantInRegister( unsigned int registerN, int imm22 );
-IA64_instruction generateLongConstantInRegister( unsigned int registerN, long long int imm64 );
-IA64_instruction generateLongBranchTo( long long int displacement64 );
+IA64_instruction_x generateLongConstantInRegister( unsigned int registerN, long long int imm64 );
+IA64_instruction_x generateLongBranchTo( long long int displacement64 );
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.4 2002/06/20 21:00:44 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.5 2002/06/21 17:50:13 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -77,8 +77,9 @@
 
 #define ALIGN_RIGHT_SHIFT 23
 
-/* NOTE: for the IA64_bundle constructor to work, the 
-IA64_instruction_x::IA64_Instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0, IA65_bundle * mybl = 0 ) {
+/* NOTE: for the IA64_bundle constructor to work, the individual
+	instruction 'halves' should left-aligned as if they were independent instructions. */
+IA64_instruction_x::IA64_instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0, IA64_bundle * mybl = 0 ) {
 	instruction = lowHalf;
 	instruction_x = highHalf;
 	templateID = templ;
@@ -191,12 +192,12 @@ IA64_instruction generateShortConstantInRegister( unsigned int registerN, int im
 	return IA64_instruction( rawInsn );
 	} /* end generateConstantInRegister( imm22 ) */
 
-IA64_instruction generateLongConstantInRegister( unsigned int registerN, long long int imm64 ) {
+IA64_instruction_x generateLongConstantInRegister( unsigned int registerN, long long int imm64 ) {
 	/* FIXME */
 	return 0;
 	} /* end generateConstantInRegister( imm64 ) */
 
-IA64_instruction generateLongBranchTo( long long int displacement64 ) {
+IA64_instruction_x generateLongBranchTo( long long int displacement64 ) {
 	long long int displacement60 = displacement64 >> 4;
 
 	/* FIXME */
