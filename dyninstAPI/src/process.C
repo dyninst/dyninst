@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.261 2001/08/20 19:59:10 bernat Exp $
+// $Id: process.C,v 1.262 2001/08/23 14:43:22 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -253,30 +253,6 @@ Address process::getTOCoffsetInfo(Address /*dest */)
 }
 #endif
 
-//
-// Internal metric stackwalk_time
-//
-#ifndef BPATCH_LIBRARY
-timeStamp startStackwalk = timeStamp::ts1970();
-timeLength elapsedStackwalkTime = timeLength::Zero();
-bool      stackwalking=false;
-
-pdSample computeStackwalkTimeMetric(const metricDefinitionNode *) {
-    // we don't need to use the metricDefinitionNode
-    if (isInitFirstRecordTime()) {
-        timeLength elapsed = elapsedStackwalkTime;
-        if (stackwalking) {
-          timeStamp now = getWallTime();
-          elapsed += now - startStackwalk;
-        }
-        assert(elapsed >= timeLength::Zero());
-        return pdSample(elapsed);
-    } else {
-        return pdSample(timeLength::Zero());
-    }
-}
-#endif
-
 #if defined(mips_unknown_ce2_11) //ccw 6 feb 2001 : 29 mar 2001
 //ccw 6 feb 2001 : windows CE does not have the NT walkStack function
 //so we use this one.
@@ -335,14 +311,14 @@ vector<Address> process::walkStack(bool noPause)
   bool needToCont = noPause ? false : (status() == running);
 
 #ifndef BPATCH_LIBRARY
-  BEGIN_STACKWALK;
+  startTimingStackwalk();
 #endif
 
   if (!noPause && !pause()) {
      // pause failed...give up
      cerr << "walkStack: pause failed" << endl;
 #ifndef BPATCH_LIBRARY
-     END_STACKWALK;
+     stopTimingStackwalk();
 #endif
      return pcs;
   }
@@ -373,7 +349,7 @@ vector<Address> process::walkStack(bool noPause)
           cerr << "walkStack: continueProc failed" << endl;
         vector<Address> ev; // empty vector
 #ifndef BPATCH_LIBRARY
-        END_STACKWALK;
+        stopTimingStackwalk();
 #endif
         return ev;
       }
@@ -406,7 +382,7 @@ vector<Address> process::walkStack(bool noPause)
   }  
 
 #ifndef BPATCH_LIBRARY
-  END_STACKWALK;
+  stopTimingStackwalk();
 #endif
   return(pcs);
 }
@@ -455,14 +431,14 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
   bool needToCont = noPause ? false : (status() == running);
  
 #ifndef BPATCH_LIBRARY
-  BEGIN_STACKWALK;
+  startTimingStackwalk();
 #endif
 
   if (!noPause && !pause()) {
      // pause failed...give up
      cerr << "walkAllStack: pause failed" << endl;
 #ifndef BPATCH_LIBRARY
-     END_STACKWALK;
+     stopTimingStackwalk();
 #endif
      return result;
   }
@@ -541,7 +517,7 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
   }  
      
 #ifndef BPATCH_LIBRARY
-  END_STACKWALK;
+  stopTimingStackwalk();
 #endif
   return(result);
 }
@@ -1700,6 +1676,7 @@ process::process(int iPid, image *iImage, int iTraceLink
                         iShmHeapStats[2].maxNumElems)
 #endif
 #endif
+             ,callBeforeContinue(NULL)
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -1876,6 +1853,7 @@ process::process(int iPid, image *iSymbols,
                            iShmHeapStats[2].maxNumElems)
 #endif
 #endif
+             ,callBeforeContinue(NULL)
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -2127,6 +2105,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
                   theShmKey, iShmHeapStats, iPid),
   theSuperTable(parentProc.getTable(), this)
 #endif
+  ,callBeforeContinue(parentProc.callBeforeContinue)
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -2831,7 +2810,6 @@ bool process::doMajorShmSample(timeStamp theWallTime) {
    // Now sample the observed cost.
    unsigned *costAddr = (unsigned *)this->getObsCostLowAddrInParadyndSpace();
    const unsigned theCost = *costAddr; // WARNING: shouldn't we be using a mutex?!
-
    this->processCost(theCost, theWallTime, theProcTime);
 
    return result;
@@ -3014,9 +2992,10 @@ void process::processCost(unsigned obsCostLow,
   sampleVal_cerr << "processCost- tempPredCost: " << tempPredCost << "\n";
   newPredCost += pdSample(tempPredCost.getI(timeUnit::ns()));
   sampleVal_cerr << "processCost- tempPredCost: " << newPredCost << "\n";
-  totalPredictedCost->updateValue(this, newPredCost, wallTime, processTime);
+  totalPredictedCost->updateValue(this, wallTime, newPredCost, processTime);
   // update observed cost
-  observed_cost->updateValue(this,pdSample(observedCost),wallTime,processTime);
+  pdSample sObsCost(observedCost);
+  observed_cost->updateValue(this, wallTime, sObsCost, processTime);
 }
 #endif
 
@@ -3569,7 +3548,8 @@ bool process::addASharedObject(shared_object &new_obj){
     // created for this process, then the functions and modules from this
     // shared object need to be added to those lists 
     if(all_modules){
-        VECTOR_APPEND(*all_modules, *((vector<module *> *)(new_obj.getModules()))); 
+      vector<module *> *vptr = const_cast< vector<module *> *>(reinterpret_cast< const vector<module *> *>(new_obj.getModules()));
+      VECTOR_APPEND(*all_modules, *vptr);
     }
     if(all_functions){
       vector<function_base *> *normal_funcs = (vector<function_base *> *)
@@ -4389,8 +4369,23 @@ bool process::continueProc() {
     showErrorCallback(39, errorLine);
     return false;
   }
+#ifndef BPATCH_LIBRARY
+  timeStamp initStartTime = getWallTime();
+#endif
 
   bool res = continueProc_();
+
+#ifndef BPATCH_LIBRARY
+#if !defined(rs6000_ibm_aix4_1)
+  // on AIX there's a hack in createProcess (handleSigChild) that's causing
+  // continueProc to be called before the variable below has a chance to
+  // be set
+  assert(callBeforeContinue != NULL);  // capturing metric initial start time
+                                       // requires that we make this callback
+#endif
+  if(callBeforeContinue!=NULL)
+    (*callBeforeContinue)(initStartTime);
+#endif
 
   if (!res) {
     showErrorCallback(38, "System error: can't continue process");
@@ -6129,9 +6124,10 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
       // If the state of the application as a whole is 'running' paradyn will
       // soon issue an igen call to us that'll continue this process.
 
-   if (!calledFromExec)
-      tp->firstSampleCallback(getPid(), currWallTime.getD(timeUnit::sec(), 
-	                                                  timeBase::bStd()));
+   if (!calledFromExec) {
+      tp->setDaemonStartTime(getPid(), currWallTime.getD(timeUnit::sec(), 
+							 timeBase::bStd()));
+   }
    // verify that the wall and cpu timer levels chosen by the daemon
    // are available in the rt library
    verifyTimerLevels();
@@ -6632,14 +6628,13 @@ BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
     return instPointMap[addr];
   } else {
     if (bpfunc == NULL) {
-      if (PDFuncToBPFuncMap.defines((function_base*)ip->iPgetFunction())) {
-  	bpfunc = PDFuncToBPFuncMap[(function_base*)ip->iPgetFunction()];
+      function_base *fbptr = const_cast<function_base*>(ip->iPgetFunction());
+      if (PDFuncToBPFuncMap.defines(fbptr)) {
+  	bpfunc = PDFuncToBPFuncMap[fbptr];
       } else {
 	// XXX Should create with correct module, but we dont' know it --
 	//     it doesn't seem to be used anywhere anyway?
-	bpfunc = new BPatch_function(this,
-				     (function_base*)ip->iPgetFunction(),
-				     NULL);
+	bpfunc = new BPatch_function(this, fbptr, NULL);
       }
     }
 
