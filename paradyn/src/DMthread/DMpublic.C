@@ -4,6 +4,9 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
+ * Revision 1.73  1996/04/07 21:21:36  karavan
+ * added check for valid phase in enableDataCollection2
+ *
  * Revision 1.72  1996/03/14 14:22:02  naim
  * Batching enable data requests for better performance - naim
  *
@@ -854,12 +857,20 @@ vector<metricInstInfo *>
 // same as other enableDataCollection routine, except takes focus handle
 // argument and returns metricInstanceHandle on successful enable 
 //
-metricInstanceHandle *dataManager::enableDataCollection2(perfStreamHandle ps,
-						resourceListHandle rlh,
-						metricHandle mh,
-						phaseType pType,
-						unsigned persistent_data,
-						unsigned persistent_collection){
+metricInstanceHandle 
+*dataManager::enableDataCollection2(perfStreamHandle ps,
+				    resourceListHandle rlh,
+				    metricHandle mh,
+				    phaseType pType,
+				    unsigned pID,
+				    unsigned persistent_data,
+				    unsigned persistent_collection)
+{
+  // it is possible for enable requests and new phase callbacks to cross,
+  // so if this is a current phase request, we need to make sure its still
+  // the current phase
+  if ((pType == CurrentPhase) && (pID != phaseInfo::CurrentPhaseHandle()))
+    return NULL;
 
     metricInstance *mi = DMenableData(ps,mh,rlh,pType,persistent_data,
 				      persistent_collection);
