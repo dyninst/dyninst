@@ -6,9 +6,7 @@
 	.globl	.DYNINSTthreadIndexFAST
 DYNINSTthreadIndexFAST:
 .DYNINSTthreadIndexFAST:
-	l	3,0(1)
-	l	3,112(3)
-	l	0, 0(0)	
+	mr	3,12
 	br	
 	.globl	DYNINSTthreadContext
 	.globl	.DYNINSTthreadContext
