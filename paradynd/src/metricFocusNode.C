@@ -14,6 +14,10 @@ char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.90  1996/04/29 03:41:29  tamches
+ * overhaul of how internal metrics are used, to correspond to the
+ * greatly updated internalMetrics class
+ *
  * Revision 1.89  1996/04/25 22:45:13  hollings
  * Fixed a bug with $globalId on metric inherit.
  *
@@ -29,374 +33,6 @@ char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  *
  * Revision 1.85  1996/03/25  20:23:01  tamches
  * the reduce-mem-leaks-in-paradynd commit
- *
- * Revision 1.84  1996/03/12 20:48:26  mjrg
- * Improved handling of process termination
- * New version of aggregateSample to support adding and removing components
- * dynamically
- * Added error messages
- *
- * Revision 1.83  1996/03/06 20:09:47  naim
- * Yet another minor change - naim
- *
- * Revision 1.82  1996/03/06  19:59:25  naim
- * Minor fix - naim
- *
- * Revision 1.81  1996/03/06  19:32:49  naim
- * Minor change to fix internal metric numberOfCPUs on the CM-5 - naim
- *
- * Revision 1.80  1996/02/22  23:41:43  newhall
- * removed getCurrentSmoothObsCost, and fix to costMetric::updateSmoothValue
- *
- * Revision 1.79  1996/02/21  19:30:38  naim
- * Minor changes to getNumberOfCPUs (CM-5): using CMMD_partition_size() - naim
- *
- * Revision 1.78  1996/02/21  15:46:19  naim
- * Fixing problem with numberOfCPUs for the CM-5 - naim
- *
- * Revision 1.77  1996/02/13  06:17:31  newhall
- * changes to how cost metrics are computed. added a new costMetric class.
- *
- * Revision 1.76  1996/02/12  16:46:15  naim
- * Updating the way we compute number_of_cpus. On solaris we will return the
- * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
- * which should be equal to the number of cpus - naim
- *
- * Revision 1.75  1996/02/10  21:01:47  naim
- * Changing name of metric number_of_nodes by number_of_cpus - naim
- *
- * Revision 1.74  1996/02/09  23:53:43  naim
- * Adding new internal metric number_of_nodes - naim
- *
- * Revision 1.73  1996/02/09  23:34:44  mjrg
- * put back a line that has been accidentally deleted
- *
- * Revision 1.72  1996/02/09 22:13:49  mjrg
- * metric inheritance now works in all cases
- * paradynd now always reports to paradyn when a process is ready to run
- * fixed aggregation to handle first samples and addition of new components
- *
- * Revision 1.71  1996/02/08 23:03:38  newhall
- * fixed Ave. aggregation for CM5 daemons, Max and Min don't work, but are
- * approximated by ave rather than sum
- *
- * Revision 1.70  1996/02/02  14:31:33  naim
- * Eliminating old definition for observed cost - naim
- *
- * Revision 1.69  1996/02/01  17:42:30  naim
- * Redefining smooth_obs_cost, fixing some bugs related to internal metrics
- * and adding a new definition for observed_cost - naim
- *
- * Revision 1.68  1996/01/31  19:49:56  newhall
- * changes to do average aggregation correctly
- *
- * Revision 1.67  1996/01/29  22:09:30  mjrg
- * Added metric propagation when new processes start
- * Adjust time to account for clock differences between machines
- * Daemons don't enable internal metrics when they are not running any processes
- * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
- * the application stops only after it starts the CM5 daemon)
- *
- * Revision 1.66  1996/01/29 20:16:32  newhall
- * added enum type "daemon_MetUnitsType" for internal metric definition
- * changed bucketWidth internal metric to EventCounter
- *
- * Revision 1.65  1995/12/28  23:42:29  zhichen
- * Added buffering to the paradynd --> paradyn interface
- * calls to tp->sampleDataCallbackFunc replaced with calls to the
- * local routine batchSampleData() which in turn occasionally calls
- * the new igen routine tp->batchSampleDataCallbackFunc().
- * Related buffer variables (theBatchBuffer, batch_buffer_next,
- * BURST_HAS_COMPLETED) are new.
- *
- * Revision 1.64  1995/12/20 23:48:43  mjrg
- * Stopped delivery of values from internal metrics when the application is paused.
- *
- * Revision 1.63  1995/12/18 23:27:04  newhall
- * changed metric's units type to have one of three values (normalized,
- * unnormalized, or sampled)
- *
- * Revision 1.62  1995/12/15 14:40:54  naim
- * Changing "hybrid_cost" by "smooth_obs_cost" - naim
- *
- * Revision 1.61  1995/11/30  16:55:04  naim
- * Fixing bug related to SampledFunction for internal metrics - naim
- *
- * Revision 1.60  1995/11/29  00:27:42  tamches
- * made getCurrentTime less susceptible to roundoff errors
- * reduced warnings with g++ 2.7.1
- *
- * Revision 1.59  1995/11/18 18:19:33  krisna
- * const this cannot be put into container of non-consts
- *
- * Revision 1.58  1995/11/17 17:24:31  newhall
- * support for MDL "unitsType" option, added normalized member to metric class
- *
- * Revision 1.57  1995/11/13  14:54:12  naim
- * Adding "mode" option to the Metric Description Language to allow specificacion
- * of developer mode for metrics (default mode is "normal") - naim
- *
- * Revision 1.56  1995/10/16  13:56:34  naim
- * Eliminating error message 65. It seems to be not necessary - naim
- *
- * Revision 1.55  1995/10/04  18:52:47  krisna
- * for-loop-scope change
- *
- * Revision 1.54  1995/09/26 20:17:50  naim
- * Adding error messages using showErrorCallback function for paradynd
- *
- * Revision 1.53  1995/08/24  15:04:18  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.52  1995/05/18  10:38:42  markc
- * Removed class metric
- *
- * Revision 1.51  1995/03/10  19:33:54  hollings
- * Fixed several aspects realted to the cost model:
- *     track the cost of the base tramp not just mini-tramps
- *     correctly handle inst cost greater than an imm format on sparc
- *     print starts at end of pvm apps.
- *     added option to read a file with more accurate data for predicted cost.
- *
- * Revision 1.50  1995/02/26  22:46:45  markc
- * Commented code that needs to be reexamined.
- *
- * Revision 1.49  1995/02/16  08:53:42  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.48  1995/02/16  08:33:45  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.47  1995/01/30  17:32:10  jcargill
- * changes for gcc-2.6.3; intCounter was both a typedef and an enum constant
- *
- * Revision 1.46  1994/11/11  10:17:47  jcargill
- * "Fixed" pause_time definition for CM5
- *
- * Revision 1.45  1994/11/11  05:11:06  markc
- * Turned off print message when internal metrics are enbled.
- *
- * Revision 1.44  1994/11/10  21:03:42  markc
- * metricValue gets intialized to 0.
- *
- * Revision 1.43  1994/11/10  18:58:06  jcargill
- * The "Don't Blame Me Either" commit
- *
- * Revision 1.42  1994/11/09  18:40:14  rbi
- * the "Don't Blame Me" commit
- *
- * Revision 1.41  1994/11/02  11:10:59  markc
- * Attempted to clean up metric instrumentation requests with classes.
- * Removed string handles.
- *
- * Revision 1.40  1994/09/30  19:47:09  rbi
- * Basic instrumentation for CMFortran
- *
- * Revision 1.39  1994/09/22  02:13:35  markc
- * cast args to memset
- * cast stringHandles for string functions
- * change *allocs to news
- *
- * Revision 1.38  1994/09/20  18:18:28  hollings
- * added code to use actual clock speed for cost model numbers.
- *
- * Revision 1.37  1994/09/05  20:33:34  jcargill
- * Bug fix:  enabling certain metrics could cause no instrumentation to be
- * inserted, but still return a mid; this hosed the PC
- *
- * Revision 1.36  1994/08/17  16:43:32  markc
- * Removed early return from metricDefinitionNode::insertInstrumentation which
- * prevented instrumentation from being inserted if the application was
- * running when the request was made.
- *
- * Revision 1.35  1994/08/08  20:13:43  hollings
- * Added suppress instrumentation command.
- *
- * Revision 1.34  1994/08/02  18:22:55  hollings
- * Changed comparison for samples going backwards to use a ratio rather than
- * an absolute fudge factor.  This is required due to floating point rounding
- * errors on large numbers.
- *
- * Revision 1.33  1994/07/28  22:40:42  krisna
- * changed definitions/declarations of xalloc functions to conform to alloc.
- *
- * Revision 1.32  1994/07/26  19:58:35  hollings
- * added CMMDhostless variable.
- *
- * Revision 1.31  1994/07/22  19:20:12  hollings
- * moved computePauseTimeMetric to machine specific area.
- *
- * Revision 1.30  1994/07/21  01:34:19  hollings
- * Fixed to skip over null point and ast nodes for addInst calls.
- *
- * Revision 1.29  1994/07/20  18:21:55  rbi
- * Removed annoying printf
- *
- * Revision 1.28  1994/07/16  03:38:48  hollings
- * fixed stats to not devidi by 1meg, fixed negative time problem.
- *
- * Revision 1.27  1994/07/15  20:22:05  hollings
- * fixed 64 bit record to be 32 bits.
- *
- * Revision 1.26  1994/07/14  23:30:29  hollings
- * Hybrid cost model added.
- *
- * Revision 1.25  1994/07/14  14:39:17  jcargill
- * Removed call to flushPtrace
- *
- * Revision 1.24  1994/07/12  20:13:58  jcargill
- * Fixed logLine for printing out samples w/64 bit time
- *
- * Revision 1.23  1994/07/05  03:26:09  hollings
- * observed cost model
- *
- * Revision 1.22  1994/07/02  01:46:41  markc
- * Use aggregation operator defines from util/h/aggregation.h
- * Changed average aggregations to summations.
- *
- * Revision 1.21  1994/06/29  02:52:36  hollings
- * Added metricDefs-common.{C,h}
- * Added module level performance data
- * cleanedup types of inferrior addresses instrumentation defintions
- * added firewalls for large branch displacements due to text+data over 2meg.
- * assorted bug fixes.
- *
- * Revision 1.20  1994/06/27  18:56:56  hollings
- * removed printfs.  Now use logLine so it works in the remote case.
- * added internalMetric class.
- * added extra paramter to metric info for aggregation.
- *
- * Revision 1.19  1994/06/22  01:43:16  markc
- * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed 
- * process.C reference to proc->status to use proc->heap->status.
- *
- * Revision 1.18  1994/06/02  23:27:57  markc
- * Replaced references to igen generated class to a new class derived from
- * this class to implement error handling for igen code.
- *
- * Revision 1.17  1994/05/31  19:53:50  markc
- * Fixed pause time bug which was causing negative values to be reported.  The
- * fix involved adding an extra test in computePauseTimeMetric that did not
- * begin reporting pause times until firstSampleReceived is true.
- *
- * Revision 1.16  1994/05/31  19:16:17  markc
- * Commented out assert test for elapsed.
- *
- * Revision 1.15  1994/05/31  18:14:18  markc
- * Modified check for covered less than rather than not equal.  This is a short
- * term fix.
- *
- * Revision 1.14  1994/05/03  05:07:24  markc
- * Removed comment on pauseMetric for paradyndPVM.
- *
- * Revision 1.13  1994/04/15  15:37:34  jcargill
- * Removed duplicate definition of pauseTimeNode; used initialized version
- *
- * Revision 1.12  1994/04/13  16:48:10  hollings
- * fixed pause_time to work with multiple processes/node.
- *
- * Revision 1.11  1994/04/13  03:09:00  markc
- * Turned off pause_metric reporting for paradyndPVM because the metricDefNode is
- * not setup properly.  Updated inst-pvm.C and metricDefs-pvm.C to reflect changes
- * in cm5 versions.
- *
- * Revision 1.10  1994/04/12  15:29:20  hollings
- * Added samplingRate as a global set by an RPC call to control sampling
- * rates.
- *
- * Revision 1.9  1994/04/11  23:25:22  hollings
- * Added pause_time metric.
- *
- * Revision 1.8  1994/04/07  00:37:53  markc
- * Checked for NULL metric instance returned from createMetricInstance.
- *
- * Revision 1.7  1994/04/01  20:06:42  hollings
- * Added ability to start remote paradynd's
- *
- * Revision 1.6  1994/03/26  19:31:36  hollings
- * Changed sample time to be consistant.
- *
- * Revision 1.5  1994/03/24  16:41:59  hollings
- * Moved sample aggregation to lib/util (so paradyn could use it).
- *
- * Revision 1.4  1994/03/01  21:23:58  hollings
- * removed unused now variable.
- *
- * Revision 1.3  1994/02/24  04:32:34  markc
- * Changed header files to reflect igen changes.  main.C does not look at the number of command line arguments now.
- *
- * Revision 1.2  1994/02/01  18:46:52  hollings
- * Changes for adding perfConsult thread.
- *
- * Revision 1.1  1994/01/27  20:31:28  hollings
- * Iinital version of paradynd speaking dynRPC igend protocol.
- *
- * Revision 1.17  1994/01/20  17:47:16  hollings
- * moved getMetricValue to this file.
- *
- * Revision 1.16  1993/12/15  21:02:42  hollings
- * added PVM support.
- *
- * Revision 1.15  1993/12/13  19:55:16  hollings
- * counter operations.
- *
- * Revision 1.14  1993/10/19  15:27:54  hollings
- * AST based mini-tramp code generator.
- *
- * Revision 1.13  1993/10/07  19:42:43  jcargill
- * Added true combines for global instrumentation
- *
- * Revision 1.12  1993/10/01  21:29:41  hollings
- * Added resource discovery and filters.
- *
- * Revision 1.11  1993/09/03  18:36:16  hollings
- * removed extra printfs.
- *
- * Revision 1.10  1993/09/03  16:01:56  hollings
- * removed extra printf.
- *
- * Revision 1.9  1993/09/03  15:45:51  hollings
- * eat the first sample from an aggregate to get a good start interval time.
- *
- * Revision 1.8  1993/08/20  22:00:51  hollings
- * added getMetricValue for controller.
- * moved insertInstrumentation for predicates to before pred users.
- *
- * Revision 1.7  1993/08/16  16:24:50  hollings
- * commented out elapsedPauseTime because of CM-5 problems with node processes.
- * removed many debugging printfs.
- *
- * Revision 1.6  1993/08/11  01:52:12  hollings
- * chages for new build before use mode.
- *
- * Revision 1.5  1993/07/13  18:28:30  hollings
- * new include file syntax.
- *
- * Revision 1.4  1993/06/24  16:18:06  hollings
- * global fixes.
- *
- * Revision 1.3  1993/06/22  19:00:01  hollings
- * global inst state.
- *
- * Revision 1.2  1993/06/08  20:14:34  hollings
- * state prior to bc net ptrace replacement.
- *
- * Revision 1.1  1993/03/19  22:45:45  hollings
- * Initial revision
- *
  *
  */
 
@@ -458,17 +94,22 @@ vector<internalMetric*> internalMetric::allInternalMetrics;
 bool mdl_internal_metric_data(string& metric_name, mdl_inst_data& result) {
   unsigned size = internalMetric::allInternalMetrics.size();
   for (unsigned u=0; u<size; u++) {
-    if (internalMetric::allInternalMetrics[u]->name() == metric_name) {
-      result.aggregate = internalMetric::allInternalMetrics[u]->aggregate();
-      result.style = internalMetric::allInternalMetrics[u]->style();
+    internalMetric *theIMetric = internalMetric::allInternalMetrics[u];
+    if (theIMetric->name() == metric_name) {
+      result.aggregate = theIMetric->aggregate();
+      result.style = theIMetric->style();
       return true;
-  } }
+    }
+  }
+
   for (unsigned u2=0; u2< costMetric::allCostMetrics.size(); u2++) {
     if (costMetric::allCostMetrics[u2]->name() == metric_name) {
       result.aggregate = costMetric::allCostMetrics[u2]->aggregate();
       result.style = costMetric::allCostMetrics[u2]->style();
       return true;
-  } }
+    }
+  }
+
   return (mdl_metric_data(metric_name, result));
 }
 
@@ -542,25 +183,48 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
                                        string& metric_name, string& flat_name,
                                        bool enable, bool& matched)
 {
+  // called by createMetricInstance, below.
   matched = false;
   metricDefinitionNode *mn = 0; 
 
   // check to see if this is an internal metric
   unsigned im_size = internalMetric::allInternalMetrics.size();
   for (unsigned im_index=0; im_index<im_size; im_index++){
-    if (internalMetric::allInternalMetrics[im_index]->name() == metric_name) {
+    internalMetric *theIMetric = internalMetric::allInternalMetrics[im_index];
+    if (theIMetric->name() == metric_name) {
       matched = true;
-      if (!enable) return NULL;
-      internalMetric *im = internalMetric::allInternalMetrics[im_index];
-      if (!im->legalToInst(canon_focus)) return NULL;
+      if (!enable)
+	 return NULL;
+
+      if (!theIMetric->legalToInst(canon_focus)) {
+	 cout << "Sorry, illegal to instrument internal metric " << metric_name << " with focus of:" << endl;
+	 for (unsigned hier=0; hier < canon_focus.size(); hier++) {
+	    const vector<string> &thisHierStr = canon_focus[hier];
+
+	    for (unsigned part=0; part < thisHierStr.size(); part++) {
+	       cout << "/" << thisHierStr[part];
+	    }
+
+	    if (hier < canon_focus.size()-1)
+               cout << ",";
+         }
+	 cout << endl;
+
+         return NULL;
+      }
+
       mn = new metricDefinitionNode(NULL, metric_name, canon_focus, 
-                                    flat_name, im->aggregate());
-      im->enable(mn);
+                                    flat_name, theIMetric->aggregate());
+      assert(mn);
+
+      theIMetric->enableNewInstance(mn);
       return(mn);
-  } }
+    }
+  }
+
   // check to see if this is a cost metric
-  for(unsigned i=0; i < costMetric::allCostMetrics.size(); i++){
-      if(costMetric::allCostMetrics[i]->name() == metric_name){
+  for (unsigned i=0; i < costMetric::allCostMetrics.size(); i++){
+     if(costMetric::allCostMetrics[i]->name() == metric_name){
 	  matched = true;
 	  if (!enable) return 0;
 	  costMetric *nc = costMetric::allCostMetrics[i];
@@ -571,8 +235,10 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
           nc->enable(mn); 
 	  return(mn);
 
-  }}
-  return 0;
+     }
+  }
+
+  return NULL;
 }
 
 /*
@@ -594,7 +260,6 @@ metricDefinitionNode *createMetricInstance(string& metric_name, vector<u_int>& f
 
     // first see if it is already defined.
     dictionary_hash_iter<unsigned, metricDefinitionNode*> mdi(allMIs);
-    unsigned u;
 
     vector< vector<string> > string_foc;
     if (!resource::foc_to_strings(string_foc, focus)) return NULL;
@@ -603,6 +268,7 @@ metricDefinitionNode *createMetricInstance(string& metric_name, vector<u_int>& f
     string flat_name(metric_name);
 
     unsigned cf_size = canon_focus.size();
+    unsigned u;
     for (u=0; u<cf_size; u++) {
       unsigned v_size = canon_focus[u].size();
       for (unsigned v=0; v<v_size; v++) 
@@ -750,7 +416,10 @@ void removeFromMetricInstances(process *proc) {
     costMetric::removeProcessFromAll(proc);
 }
 
-
+// startCollecting is a friend of metricDefinitionNode; can it be
+// made a member function of metricDefinitionNode instead?
+// Especially since it clearly is an integral part of the class;
+// in particular, it sets the crucial vrble "id_"
 int startCollecting(string& metric_name, vector<u_int>& focus, int id) 
 {
     // TODO -- why is this here?
@@ -769,7 +438,9 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id)
     metricDefinitionNode *mi = createMetricInstance(metric_name, focus,
                                                     true, internal);
     if (!mi) return(-1);
+
     mi->id_ = id;
+
     allMIs[mi->id_] = mi;
 
     float cost = mi->cost();
@@ -854,12 +525,14 @@ void metricDefinitionNode::disable()
     // check for internal metrics
 
     unsigned ai_size = internalMetric::allInternalMetrics.size();
-    for (unsigned u=0; u<ai_size; u++)
-      if (internalMetric::allInternalMetrics[u]->node == this) {
-        internalMetric::allInternalMetrics[u]->disable();
+    for (unsigned u=0; u<ai_size; u++) {
+      internalMetric *theIMetric = internalMetric::allInternalMetrics[u];
+      if (theIMetric->disableByMetricDefinitionNode(this)) {
+	// Shouldn't the following line be commented out for the release?
         logLine("disabled internal metric\n");
         return;
       }
+    }
 
     // check for cost metrics
     for (unsigned i=0; i<costMetric::allCostMetrics.size(); i++){
@@ -1498,78 +1171,6 @@ dataReqNode::~dataReqNode()
     instance = NULL;
 }
 
-bool internalMetric::legalToInst(vector< vector<string> >& focus) {
-
-  if (!processVec.size()) {
-    // we don't enable internal metrics if there are no process to run
-    return false;
-  }
-  switch (focus[resource::machine].size()) {
-  case 1: break;
-  case 2:
-    switch(pred.machine) {
-    case pred_invalid: return false;
-    case pred_null: break;
-    default: return false;
-    }
-  default: return false;
-  }
-  switch (focus[resource::procedure].size()) {
-  case 1: break;
-  case 2:
-  case 3:
-    switch(pred.procedure) {
-    case pred_invalid: return false;
-    case pred_null: break;
-    default: return false;
-    }
-  default: return false;
-  }
-  switch (focus[resource::process].size()) {
-  case 1: break;
-  case 2:
-    switch(pred.process) {
-    case pred_invalid: return false;
-    case pred_null: break;
-    default: return false;
-    }
-  default: return false;
-  }
-  switch (focus[resource::sync_object].size()) {
-  case 1: break;
-  case 2:
-  case 3:
-    switch(pred.sync) {
-    case pred_invalid: return false;
-    case pred_null: break;
-    default: return false;
-    }
-  default: return false;
-  }
-  return true;
-}
-
-internalMetric *internalMetric::newInternalMetric(const string n,
-                                                  metricStyle style,
-                                                  int a, 
-                                                  const string units, 
-                                                  sampleValueFunc f,
-                                                  im_pred_struct& im_pred,
-                                                  bool developerMode,
-                                                  daemon_MetUnitsType unitstype) {
-  internalMetric *im = new internalMetric(n, style, a, units, f, im_pred,
-                                          developerMode, unitstype);
-  assert(im);
-  unsigned size = allInternalMetrics.size();
-  for (unsigned u=0; u<size; u++)
-    if (allInternalMetrics[u]->name() == n) {
-      allInternalMetrics[u] = im;
-      return im;
-    }
-  allInternalMetrics += im;
-  return im;
-}
-
 #ifdef notdef
 timeStamp xgetCurrentTime(bool firstRecordRelative)
 {
@@ -1629,38 +1230,51 @@ void reportInternalMetrics()
     end = now;
 
     // TODO -- clean me up, please
-    unsigned ai_size = internalMetric::allInternalMetrics.size();
-    for (unsigned u=0; u<ai_size; u++)
-      if (internalMetric::allInternalMetrics[u]->enabled()) {
-        internalMetric *imp = internalMetric::allInternalMetrics[u];
 
-        if (imp->name() == "active_processes") {
-	  value = (end - start) * activeProcesses;
-        } else if (imp->name() == "bucket_width") {
-	  value = (end - start)*(imp->value);
-        } else if (imp->name() == "number_of_cpus") {
+    unsigned ai_size = internalMetric::allInternalMetrics.size();
+    for (unsigned u=0; u<ai_size; u++) {
+      internalMetric *theIMetric = internalMetric::allInternalMetrics[u];
+      // Loop thru all enabled instances of this internal metric...
+
+      for (unsigned v=0; v < theIMetric->num_enabled_instances(); v++) {
+	internalMetric::eachInstance &theInstance = theIMetric->getEnabledInstance(v);
+           // not "const" since bumpCumulativeValueBy() may be called
+
+        if (theIMetric->name() == "active_processes") {
+	  //value = (end - start) * activeProcesses;
+	  value = (end - start) * theInstance.getValue();
+        } else if (theIMetric->name() == "bucket_width") {
+	  value = (end - start)* theInstance.getValue();
+        } else if (theIMetric->name() == "number_of_cpus") {
 #ifdef sparc_tmc_cmost7_3
 	  value = (end - start) * getNumberOfCPUs();
 #else
           value = (end - start) * numberOfCPUs;
 #endif
-        } else if (imp->style() == EventCounter) {
-          value = imp->getValue();
+        } else if (theIMetric->style() == EventCounter) {
+          value = theInstance.getValue();
           // assert((value + 0.0001)  >= imp->cumulativeValue);
-          value -= imp->cumulativeValue;
-          imp->cumulativeValue += value;
-        } else if (imp->style() == SampledFunction) {
-          value = imp->getValue();
+          value -= theInstance.getCumulativeValue();
+          theInstance.bumpCumulativeValueBy(value);
+        } else if (theIMetric->style() == SampledFunction) {
+          value = theInstance.getValue();
         }
-        imp->node->forwardSimpleValue(start, end, value,1,true);
+
+	theInstance.report(start, end, value);
+	   // calls metricDefinitionNode->forwardSimpleValue()
       }
+    }
 }
 
 void disableAllInternalMetrics() {
     for (unsigned u=0; u < internalMetric::allInternalMetrics.size(); u++) {
-      if (internalMetric::allInternalMetrics[u]->enabled()) {
-	tp->endOfDataCollection(internalMetric::allInternalMetrics[u]->node->getMId());
-        internalMetric::allInternalMetrics[u]->disable();
+      internalMetric *theIMetric = internalMetric::allInternalMetrics[u];
+
+      // Now loop thru all the enabled instances of this internal metric...
+      while (theIMetric->num_enabled_instances() > 0) {
+ 	internalMetric::eachInstance &theInstance = theIMetric->getEnabledInstance(0);
+	tp->endOfDataCollection(theInstance.getMId());
+	theIMetric->disableInstance(0);
       }
     }  
 }
