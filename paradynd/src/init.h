@@ -4,7 +4,10 @@
 
 /*
  * $Log: init.h,v $
- * Revision 1.10  1995/12/15 14:40:52  naim
+ * Revision 1.11  1995/12/18 15:03:09  naim
+ * Eliminating all "daemon" metrics - naim
+ *
+ * Revision 1.10  1995/12/15  14:40:52  naim
  * Changing "hybrid_cost" by "smooth_obs_cost" - naim
  *
  * Revision 1.9  1995/11/30  22:01:11  naim
@@ -53,21 +56,6 @@ extern internalMetric *pauseTime;
 extern internalMetric *totalPredictedCost;
 extern internalMetric *observed_cost;
 extern internalMetric *smooth_obs_cost;
-
-extern internalMetric *cpu_daemon;
-extern internalMetric *sys_daemon;
-
-extern internalMetric *minflt_daemon;
-extern internalMetric *majflt_daemon;
-extern internalMetric *swap_daemon;
-extern internalMetric *io_in_daemon;
-extern internalMetric *io_out_daemon;
-extern internalMetric *msg_send_daemon;
-extern internalMetric *msg_recv_daemon;
-extern internalMetric *sigs_daemon;
-extern internalMetric *vol_csw_daemon;
-extern internalMetric *inv_csw_daemon;
-
 extern internalMetric *bucket_width;
 
 extern bool init();
