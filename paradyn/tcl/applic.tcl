@@ -1,36 +1,5 @@
 #applic.tcl
 # window to get application choices from user
-# $Log: applic.tcl,v $
-# Revision 1.20  1997/01/16 21:58:31  tamches
-# added "dir" and "command" boxes to attach dialog box
-#
-# Revision 1.19  1997/01/15 00:14:58  tamches
-# added attach
-#
-# Revision 1.18  1995/10/30 23:28:21  naim
-# Chaning "Machine" by "Host" - naim
-#
-# Revision 1.17  1995/10/05  04:16:46  karavan
-# added error handling for empty command name
-#
-# Revision 1.16  1995/09/26  20:31:08  naim
-# Eliminating error message "eval [list uimpd showError 25 $result]". The idea
-# here is to display a more precise error message if there is an error during
-# process creation
-#
-# Revision 1.15  1995/09/18  22:39:49  mjrg
-# added directory command.
-#
-# Revision 1.14  1995/07/19  23:01:16  tamches
-# Commented out TAB-key bindings to move between entries on the
-# start process dialog, because these bindings are provided
-# automagically in tk4.0
-#
-# Revision 1.13  1995/07/03  03:26:53  karavan
-# Changed default for user to blank, workaround for nonstandard rsh in use
-# in the CS department.
-#
-#
 
 #
 #  Process definitions depend on several global variables.
@@ -112,7 +81,7 @@ proc AttachProcess {} {
 #  
   frame $D.user -border 2
   pack $D.user -side top -expand yes -fill x
-  label $D.user.lbl -text "User: " -anchor e -width 12
+  label $D.user.lbl -text "User: " -anchor e -width 14
   pack $D.user.lbl -side left -expand false
   entry $D.user.ent -width 50 -textvariable applicUser -relief sunken
   pack  $D.user.ent -side right -fill x -expand true
@@ -120,22 +89,23 @@ proc AttachProcess {} {
 
   frame $D.machine -border 2
   pack $D.machine -side top -expand yes -fill x
-  label $D.machine.lbl -text "Host: " -anchor e -width 12
+  label $D.machine.lbl -text "Host: " -anchor e -width 14
   pack $D.machine.lbl -side left -expand false
   entry $D.machine.ent -width 50 -textvariable applicMachine -relief sunken
   pack $D.machine.ent -side right -fill x -expand true
   bind $D.machine.ent <Return> "$B.1 invoke"
 
-  # Does a directory entry make any sense for attach???  Definitely, if we have
-  # to enter a file name.
-  frame $D.directory -border 2
-  pack  $D.directory -side top -expand yes -fill x
-  label $D.directory.lbl -text "Directory: " -anchor e -width 12
-  pack  $D.directory.lbl -side left -expand false
-  entry $D.directory.ent -width 50 -textvariable applicDir -relief sunken
-  pack  $D.directory.ent -side right -fill x -expand true
-  bind  $D.directory.ent <Return> "$B.1 invoke"
-  
+  # Does a directory entry make any sense for attach???  Probably not...it's only
+  # useful in the non-attach case to remove the need to use full-path-names for
+  # arguments, input files, etc.  Here, we don't use that.
+
+#  frame $D.directory -border 2
+#  pack  $D.directory -side top -expand yes -fill x
+#  label $D.directory.lbl -text "Directory: " -anchor e -width 14
+#  pack  $D.directory.lbl -side left -expand false
+#  entry $D.directory.ent -width 50 -textvariable applicDir -relief sunken
+#  pack  $D.directory.ent -side right -fill x -expand true
+#  bind  $D.directory.ent <Return> "$B.1 invoke"
 
   frame $D.command -border 2
   pack  $D.command -side top -fill x -expand false
@@ -143,7 +113,7 @@ proc AttachProcess {} {
   pack  $D.command.entry -side right -fill x -expand true
   bind  $D.command.entry <Return> "$B.1 invoke"
 
-  label $D.command.label -text "Command: " -anchor e -width 12
+  label $D.command.label -text "Executable file: " -anchor e -width 14
   pack  $D.command.label -side left -expand false
   
 
@@ -153,13 +123,13 @@ proc AttachProcess {} {
   pack  $D.pid.entry -side right -fill x -expand true
   bind  $D.pid.entry <Return> "$B.1 invoke"
 
-  label $D.pid.label -text "Pid: " -anchor e -width 12
+  label $D.pid.label -text "Pid: " -anchor e -width 14
   pack  $D.pid.label -side left -expand false
-  
+
 
   set daemons [paradyn daemons]
   frame $D.daemon -border 2
-  label $D.daemon.lbl -text "Daemon: " -anchor e -width 12
+  label $D.daemon.lbl -text "Daemon: " -anchor e -width 14
   pack $D.daemon -side top -expand yes -fill x
   pack $D.daemon.lbl -side left -expand no -fill x
   foreach d $daemons {
@@ -170,9 +140,60 @@ proc AttachProcess {} {
   $D.daemon.$applicDaemon invoke
 
 
+  # user interface tips:
+  frame $D.tips
+  pack  $D.tips -side top -fill x
+
+  frame $D.tips.1
+  pack  $D.tips.1 -side top -fill x
+
+  label $D.tips.1.label -text "Entering a pid is mandatory." \
+	  -font "*-Helvetica-*-r-*-12-*" -justify left
+  pack  $D.tips.1.label -side left
+
+  frame $D.tips.2
+  pack  $D.tips.2 -side top -fill x
+  
+  label $D.tips.2.label \
+	  -text "Enter the full path to the executable in 'Executable file'. It will be used just to parse the symbol table.\nParadyn tries to determine this information automatically, so you can usually leave 'Executable file' blank." \
+	  -font "*-Helvetica-*-r-*-12-*" -justify left
+  pack  $D.tips.2.label -side left -fill x
+
+
+
+  frame $D.run -border 2
+  pack  $D.run -side top -fill x
+
+  label $D.run.label -text "After attaching: " -justify left \
+	  -font "*-Helvetica-*-r-*-12-*"
+  pack  $D.run.label -side left
+
+  global afterAttaching
+  set afterAttaching 0
+
+  frame $D.run.fr
+  pack  $D.run.fr -ipady 2 -pady 4 -side left -fill x -expand true
+
+  radiobutton $D.run.fr.1 -text "Pause application" -variable afterAttaching -value 1 \
+	  -justify left -relief groove -highlightthickness 0 \
+	  -font "*-Helvetica-*-r-*-12-*"
+  pack $D.run.fr.1 -side left -fill x -expand true
+
+  radiobutton $D.run.fr.2 -text "Run application" -variable afterAttaching -value 2 \
+	  -justify left -relief groove -highlightthickness 0 \
+	  -font "*-Helvetica-*-r-*-12-*"
+  pack $D.run.fr.2 -side left -fill x -expand true
+
+  radiobutton $D.run.fr.3 -text "Leave as is" -variable afterAttaching -value 0 \
+	  -justify left -relief groove -highlightthickness 0 \
+	  -font "*-Helvetica-*-r-*-12-*"
+  pack $D.run.fr.3 -side left -fill x -expand true
+
+
+
   mkButtonBar $B {} retVal \
   {{"ATTACH" {AcceptAttachDefn $applicUser $applicMachine \
-	  $applicDir $applicCommand $applicPid $applicDaemon}} \
+	  $applicCommand $applicPid $applicDaemon $afterAttaching}} \
   {"CANCEL" {destroy .attachDefn}}}
 
   focus $D.machine.ent
@@ -243,7 +264,7 @@ proc DefineProcess {} {
   frame $D.directory -border 2
   label $D.directory.lbl -text "Directory: " -anchor e -width 12
   entry $D.directory.ent -width 50 -textvariable applicDir -relief sunken
-  bind $D.directory.ent <Return> "$B.1 invoke"
+ bind $D.directory.ent <Return> "$B.1 invoke"
   pack $D.directory -side top -expand yes -fill x
   pack $D.directory.lbl $D.directory.ent -side left -expand yes -fill x
   
@@ -327,19 +348,15 @@ proc AcceptNewApplicDefn {user machine daemon directory cmd} {
   }
 }
 
-proc AcceptAttachDefn {user machine dir cmd pid daemon} {
+proc AcceptAttachDefn {user machine cmd pid daemon afterAttach} {
   set W .attachDefn
 
-  if {[string length $cmd] == 0} {
-      # user forgot to enter a program name; ring bell
+  if {[string length $cmd] == 0 && [string length $pid] == 0} {
+      # must enter at least one of (cmd, pid); ring bell
       puts "\a"
       return
   }
-  if {[string length $pid] == 0} {
-      # user forgot to enter a pid; ring bell
-      puts "\a"
-      return
-  }
+
   set pcmd [list paradyn attach]
 
   if {[string length $user] > 0} {
@@ -350,21 +367,26 @@ proc AcceptAttachDefn {user machine dir cmd pid daemon} {
     lappend pcmd "-machine" $machine
   }
 
-  if {[string length $dir] > 0} {
-    lappend pcmd "-dir" $dir
+  if {[string length $cmd] > 0} {
+     lappend pcmd "-command" $cmd
   }
 
-  lappend pcmd "-command" $cmd
+  if {[string length $pid] > 0} {
+     lappend pcmd "-pid" $pid
+  }
 
-  lappend pcmd "-pid" $pid
- 
   if {[string length $daemon] > 0} {
     lappend pcmd "-daemon" $daemon
   }
 
+  if {[string length $afterAttach]} {
+    lappend pcmd "-afterattach" $afterAttach
+    # 0 --> leave as is; 1 --> pause; 2 --> run
+  }
+
   destroy $W
 
-puts stderr $pcmd
+#puts stderr $pcmd
 
   # Now execute it!
   set retval [catch $pcmd result]
