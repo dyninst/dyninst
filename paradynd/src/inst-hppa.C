@@ -1,0 +1,884 @@
+/*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ *
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
+
+#ifndef lint
+static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
+  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
+  Tia Newhall, Mark Callaghan.  All rights reserved.";
+
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-hppa.C,v 1.1 1995/11/29 18:47:46 krisna Exp $";
+#endif
+
+/*
+ * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
+ *
+ * $Log: inst-hppa.C,v $
+ * Revision 1.1  1995/11/29 18:47:46  krisna
+ * hpux/hppa instrumentation code
+ *
+ */
+
+#include "util/h/headers.h"
+
+#include "rtinst/h/rtinst.h"
+#include "symtab.h"
+#include "process.h"
+#include "inst.h"
+#include "instP.h"
+#include "inst-hppa.h"
+#include "arch-hppa.h"
+#include "ast.h"
+#include "util.h"
+#include "internalMetrics.h"
+#include "stats.h"
+#include "os.h"
+#include "showerror.h"
+
+#define perror(a) P_abort();
+
+#define ABS(x)		((x) > 0 ? x : -x)
+#define MAX_BRANCH      ((0x1<<18)+8) /* 17-signed bits, lshift by 2, +8 */
+
+unsigned getMaxBranch() {
+  return MAX_BRANCH;
+}
+
+const char *registerNames[] =
+    { "r0",  "r1",  "r2",  "r3",  "r4",  "r5",  "r6",  "r7",
+      "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15",
+      "r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23",
+      "r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31" };
+
+dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
+
+/* not called at all, why is this here
+string getStrOp(int op)
+{
+    switch (op) {
+	case ADDop:	return("add");
+	case ANDop:	return("and");
+	case BLop:	return("bl");
+	case COMBTop:	return("combt");
+	case LDILop:	return("ldil");
+	case LDOop:	return("ldo");
+	case LDWop:	return("ldw");
+	case ORop:	return("or");
+	case STWop:	return("stw");
+	case SUBop:	return("sub");
+
+	default: 	return("???");
+    }
+}
+*/
+
+inline int w_w1_w2_to_offset(unsigned w, unsigned w1, unsigned w2) {
+    assemble_w_w1_w2 x;
+    x.raw = (w == 0) ? (0) : (~0); // sign extend the offset
+
+    x.w_w1_w2.w = w;
+    x.w_w1_w2.w1 = w1;
+    x.w_w1_w2.w2 = w2;
+
+    return ((x.raw << 2) + 8);
+}
+
+inline assemble_w_w1_w2 offset_to_w_w1_w2(int offset) {
+    if (ABS(offset) > MAX_BRANCH) {
+	logLine("a branch too far\n");
+	showErrorCallback(52, "");
+	abort();
+    }
+
+    offset -= 8;  /* 8 always added to branch */
+    offset >>= 2; /* undo lshift */
+
+    assemble_w_w1_w2 ret;
+    ret.raw = offset;
+    return ret;
+}
+
+inline void generateBranchInsn(instruction *insn, int offset)
+{
+    assemble_w_w1_w2 x = offset_to_w_w1_w2(offset);
+
+    insn->raw = 0;
+    insn->bi.op = BLop;
+    insn->bi.r2_p_b_t = 0;
+    insn->bi.r1_im5_w1_x = x.w_w1_w2.w1;
+    insn->bi.c_s_ext3 = BLext;
+    insn->bi.w1_w2 = x.w_w1_w2.w2;
+    insn->bi.n = 1;
+    insn->bi.w = x.w_w1_w2.w;
+
+    // logLine("ba,a %x\n", offset);
+}
+
+inline void generateCompareBranch(instruction* insn, reg rs1, reg rs2,
+  int offset) {
+    offset -= 8; /* 8 always added to branch */
+    offset >>= 2; /* undo the lshift of assembly */
+    unsigned w = (offset % 2); /* pull out the w1,w bits */
+    unsigned w1 = offset >> 1;
+
+    insn->raw = 0;
+    insn->bi.op = COMBTop;
+    insn->bi.r2_p_b_t = rs2;
+    insn->bi.r1_im5_w1_x = rs1;
+    insn->bi.c_s_ext3 = COMCLR_EQ_C;
+    insn->bi.w1_w2 = w1;
+    insn->bi.n = 0;
+    insn->bi.w = w;
+}
+
+inline void genArithLogInsn(instruction *insn, unsigned op, unsigned ext7,
+    reg rs1, reg rs2, reg rd)
+{
+    insn->raw = 0;
+    insn->ci.al.op = op;
+    insn->ci.al.r2 = rs2;
+    insn->ci.al.r1 = rs1;
+    insn->ci.al.ext7 = ext7;
+    insn->ci.al.t = rd;
+
+    // logLine("%s %%%s,%%%s,%%%s\n", getStrOp(op), registerNames[rs1],
+    // 	registerNames[rs2], registerNames[rd]);
+}
+
+inline void generateNOOP(instruction *insn)
+{
+    // or 0,0,0
+    genArithLogInsn(insn, ORop, ORext7, 0, 0, 0);
+
+    // logLine("nop\n");
+}
+
+inline void genCmpOp(instruction *insn, unsigned cond, unsigned flow,
+    reg rs1, reg rs2, reg rd)
+{
+    insn->raw = 0;
+    insn->ci.al.op = COMCLRop;
+    insn->ci.al.r2 = rs2;
+    insn->ci.al.r1 = rs1;
+    insn->ci.al.c = cond;
+    insn->ci.al.f = flow;
+    insn->ci.al.ext7 = COMCLRext7;
+    insn->ci.al.t = rd;
+}
+
+inline void generateLoadConst(instruction *insn, int src1, int dest,
+  unsigned& base) {
+      const unsigned MAX_IMM21 = 0x1fffff;
+      if (ABS(src1) > MAX_IMM21) {
+	insn->raw = 0;
+	insn->li.op = LDILop;
+	insn->li.tr = dest;
+	insn->li.im21 = ((src1 >> 11) & 0x1fffff);
+	insn++;
+
+	insn->raw = 0;
+	insn->mr.ls.op = LDOop;
+	insn->mr.ls.b = dest;
+	insn->mr.ls.tr = dest;
+	insn->mr.ls.s = 0;
+	insn->mr.ls.im14 = src1 & 0x7ff;
+
+	base += 2*sizeof(instruction);
+      }
+      else {
+	insn->raw = 0;
+	insn->mr.ls.op = LDOop;
+	insn->mr.ls.b = 0;
+	insn->mr.ls.tr = dest;
+	insn->mr.ls.s = 0;
+	insn->mr.ls.im14 = src1 & 0x7ff;
+
+	base += sizeof(instruction);
+      }
+}
+
+inline void generateLoad(instruction *insn, reg src, reg dest)
+{
+    insn->raw = 0;
+    insn->mr.ls.op = LDWop;
+    insn->mr.ls.b = src;
+    insn->mr.ls.tr = dest;
+    insn->mr.ls.s = 0;
+    insn->mr.ls.im14 = 0;
+}
+
+inline void generateStore(instruction *insn, int rd, int rs1)
+{
+    insn->raw = 0;
+    insn->mr.ls.op = STWop;
+    insn->mr.ls.b = rs1;
+    insn->mr.ls.tr = rd;
+    insn->mr.ls.s = 0;
+    insn->mr.ls.im14 = 0;
+}
+
+instPoint::instPoint(pdFunction *f, const instruction &instr,
+		     const image *owner, Address adr,
+		     bool delayOK)
+: addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
+  callIndirect(false), callAggregate(false), callee(NULL), func(f)
+{
+  // why is the following code not in power
+
+  delaySlotInsn.raw = owner->get_instruction(adr+4);
+  aggregateInsn.raw = owner->get_instruction(adr+8);
+
+  if (IS_DELAYED_INST(instr))
+    isDelayed = true;
+
+  if (owner->isValidAddress(adr-4)) {
+    instruction iplus1;
+    iplus1.raw = owner->get_instruction(adr-4);
+    if (IS_DELAYED_INST(iplus1) && !delayOK) {
+      // ostrstream os(errorLine, 1024, ios::out);
+      // os << "** inst point " << func->file->fullName << "/"
+      //  << func->prettyName() << " at addr " << addr <<
+      //	" in a delay slot\n";
+      // logLine(errorLine);
+      inDelaySlot = true;
+    }
+  }
+}
+
+// Determine if the called function is a "library" function or a "user" function
+// This cannot be done until all of the functions have been seen, verified, and
+// classified
+//
+void pdFunction::checkCallPoints() {
+  int i;
+  instPoint *p;
+  Address loc_addr;
+
+  vector<instPoint*> non_lib;
+
+  for (i=0; i<calls.size(); ++i) {
+    /* check to see where we are calling */
+    p = calls[i];
+    assert(p);
+
+    if (!isCallInsn(p->originalInstruction)) {
+	logLine("what is a non-call (jump) doing in set of calls\n");
+	continue;
+    }
+
+    if (isInsnType(p->originalInstruction, CALLmask, CALLmatch)) {
+      // Direct call
+      int offset = w_w1_w2_to_offset(p->originalInstruction.bi.w,
+      		p->originalInstruction.bi.r1_im5_w1_x,
+      		p->originalInstruction.bi.w1_w2);
+      loc_addr = p->addr + offset;
+      pdFunction *pdf = (file_->exec())->findFunction(loc_addr);
+      if (pdf && !pdf->isLibTag()) {
+	p->callee = pdf;
+	non_lib += p;
+      } else {
+	delete p;
+      }
+    } else {
+      // Indirect call -- be conservative, assume it is a call to
+      // an unnamed user function
+      assert(!p->callee); assert(p->callIndirect);
+      p->callee = NULL;
+      non_lib += p;
+    }
+  }
+  calls = non_lib;
+}
+
+// TODO we cannot find the called function by address at this point in time
+// because the called function may not have been seen.
+//
+Address pdFunction::newCallPoint(const Address adr, const instruction instr,
+				 const image *owner, bool &err)
+{
+    Address ret=adr;
+    instPoint *point;
+    bool err = true;
+
+    point = new instPoint(this, instr, owner, adr, false);
+
+    if (!isCallInsn(instr)) {
+	logLine("what is a non-call (jump) doing in newCallPoint\n");
+	assert(0);
+    }
+
+    if (!isInsnType(instr, CALLmask, CALLmatch)) {
+      point->callIndirect = true;
+      point->callee = NULL;
+    } else
+      point->callIndirect = false;
+
+    point->callAggregate = false;
+
+    calls += point;
+    err = false;
+    return ret;
+}
+
+void initDefaultPointFrequencyTable()
+{
+    funcFrequencyTable[EXIT_NAME] = 1;
+
+#ifdef notdef
+    FILE *fp;
+    float value;
+    char name[512];
+
+    funcFrequencyTable["main"] = 1;
+    funcFrequencyTable["DYNINSTsampleValues"] = 1;
+    // try to read file.
+    fp = fopen("freq.input", "r");
+    if (!fp) {
+        return;
+    } else {
+        printf("found freq.input file\n");
+    }
+    while (!feof(fp)) {
+        fscanf(fp, "%s %f\n", name, &value);
+        funcFrequencyTable[name] = (int) value;
+        printf("adding %s %f\n", name, value);
+    }
+    fclose(fp);
+#endif
+}
+
+/*
+ * Get an etimate of the frequency for the passed instPoint.
+ *    This is not (always) the same as the function that contains the point.
+ *
+ *  The function is selected as follows:
+ *
+ *  If the point is an entry or an exit return the function name.
+ *  If the point is a call and the callee can be determined, return the called
+ *     function.
+ *  else return the funcation containing the point.
+ *
+ *  WARNING: This code contins arbitray values for func frequency (both user
+ *     and system).  This should be refined over time.
+ *
+ * Using 1000 calls sec to be one SD from the mean for most FPSPEC apps.
+ *	-- jkh 6/24/94
+ *
+ */
+float getPointFrequency(instPoint *point)
+{
+
+    pdFunction *func;
+
+    if (point->callee)
+        func = point->callee;
+    else
+        func = point->func;
+
+    if (!funcFrequencyTable.defines(func->prettyName())) {
+      if (func->isLibTag()) {
+	return(100);
+      } else {
+	return(250);
+      }
+    } else {
+      return (funcFrequencyTable[func->prettyName()]);
+    }
+}
+
+//
+// return cost in cycles of executing at this point.  This is the cost
+//   of the base tramp if it is the first at this point or 0 otherwise.
+//
+int getPointCost(process *proc, instPoint *point)
+{
+    if (proc->baseMap.defines(point)) {
+        return(0);
+    } else {
+        // 8 cycles for base tramp
+        return(8);
+    }
+}
+
+/*
+ * Given and instruction, relocate it to a new address, patching up
+ *   any relative addressing that is present.
+ *
+ * There are 6 types of unconditional branches
+ * and 8 types of conditional branches on the PA-RISC.
+ *
+ * Most of the unconditional branches are base/index relative
+ * and cannot (need not?) be relocated.  However, most of the
+ * conditional branches can be relocated since they are PC relative.
+ *
+ * The simple solution is that for the instrumentation points we
+ * can handle (procedure entry, procedure exit, and procedure
+ * call), only certain types of branches can occur.  If anything
+ * else occurs in these places, the compiler is screwed.
+ *
+ */
+void relocateInstruction(instruction *insn, int origAddr, int targetAddr)
+{
+    int newOffset;
+
+    // make sure that GATE, BE, BLE are not allowed
+    if ((isInsnType(*insn, GATEmask, GATEmatch))
+	|| (isInsnType(*insn, BEmask, BEmatch))
+	|| (isInsnType(*insn, BLEmask, BLEmatch))) {
+	logLine("one of GATE, BE, BLE instruction called\n");
+	abort();
+    }
+    else if (isInsnType(*insn, CALLmask, CALLmatch)) {
+      int oldOffset = w_w1_w2_to_offset(insn->bi.w,
+			insn->bi.r1_im5_w1_x,
+			insn->bi.w1_w2);
+      newOffset = origAddr  - targetAddr + oldOffset;
+      assemble_w_w1_w2 x = offset_to_w_w1_w2(newOffset);
+      insn->bi.w = x.w_w1_w2.w;
+      insn->bi.r1_im5_w1_x = x.w_w1_w2.w1;
+      insn->bi.w1_w2 = x.w_w1_w2.w2;
+    }
+
+    /* The rest of the instructions should be fine as is */
+}
+
+trampTemplate baseTemplate;
+
+extern "C" void baseTramp();
+
+void initATramp(trampTemplate *thisTemp, instruction *tramp)
+{
+    instruction *temp;
+
+    // TODO - are these offset always positive?
+    thisTemp->trampTemp = (void *) tramp;
+    for (temp = tramp; temp->raw != END_TRAMP; temp++) {
+	switch (temp->raw) {
+	    case LOCAL_PRE_BRANCH:
+		thisTemp->localPreOffset = ((void*)temp - (void*)tramp);
+		break;
+	    case GLOBAL_PRE_BRANCH:
+		thisTemp->globalPreOffset = ((void*)temp - (void*)tramp);
+		break;
+	    case LOCAL_POST_BRANCH:
+		thisTemp->localPostOffset = ((void*)temp - (void*)tramp);
+		break;
+	    case GLOBAL_POST_BRANCH:
+		thisTemp->globalPostOffset = ((void*)temp - (void*)tramp);
+		break;
+  	}
+    }
+    thisTemp->size = (int) temp - (int) tramp;
+}
+
+registerSpace *regSpace;
+
+// return values come via r28, r29; these should be dead at call point
+int deadRegList[] = { 28, 29 };
+
+// r23, r24 are call arguments
+int liveRegList[] = { 1, 19, 20, 21, 22, 25, 26, 31, 23, 24 };
+    // all are caller save registers
+
+void initTramps()
+{
+    static bool inited=false;
+
+    if (inited) return;
+    inited = true;
+
+    initATramp(&baseTemplate, (instruction *) baseTramp);
+
+    regSpace = new registerSpace(sizeof(deadRegList)/sizeof(int), deadRegList,
+	sizeof(liveRegList)/sizeof(int), liveRegList);
+}
+
+/*
+ * Install a base tramp -- fill calls with nop's for now.
+ *
+ */
+void installBaseTramp(unsigned baseAddr,
+		      instPoint *location,
+		      process *proc)
+{
+    unsigned currAddr;
+    instruction *code;
+    instruction *temp;
+
+    code = new instruction[baseTemplate.size];
+    memcpy((char *) code, (char*) baseTemplate.trampTemp, baseTemplate.size);
+    // bcopy(baseTemplate.trampTemp, code, baseTemplate.size);
+
+    for (temp = code, currAddr = baseAddr;
+	(currAddr - baseAddr) < baseTemplate.size;
+	temp++, currAddr += sizeof(instruction)) {
+	if (temp->raw == EMULATE_INSN) {
+	    *temp = location->originalInstruction;
+	    relocateInstruction(temp, location->addr, currAddr);
+	    if (location->isDelayed) {
+		/* copy delay slot instruction into tramp instance */
+		*(temp+1) = location->delaySlotInsn;
+	    }
+	} else if (temp->raw == RETURN_INSN) {
+	    int disp = location->addr + sizeof(instruction) - currAddr;
+	    if (location->isDelayed) {
+		disp += sizeof(instruction);
+	    }
+	    generateBranchInsn(temp, disp);
+	} else if ((temp->raw == LOCAL_PRE_BRANCH) ||
+		   (temp->raw == GLOBAL_PRE_BRANCH) ||
+		   (temp->raw == LOCAL_POST_BRANCH) ||
+		   (temp->raw == GLOBAL_POST_BRANCH)) {
+	    /* fill with no-op */
+	    generateNOOP(temp);
+	}
+    }
+    // TODO cast
+    proc->writeDataSpace((caddr_t)baseAddr, baseTemplate.size, (caddr_t) code);
+
+    free(code);
+}
+
+void generateNoOp(process *proc, int addr)
+{
+    instruction insn;
+
+    generateNOOP(&insn);
+    proc->writeTextWord((caddr_t)addr, insn.raw);
+}
+
+
+unsigned findAndInstallBaseTramp(process *proc,
+				 instPoint *location)
+{
+    unsigned ret;
+    process *globalProc;
+
+    globalProc = proc;
+    if (!globalProc->baseMap.defines(location)) {
+	ret = inferiorMalloc(globalProc, baseTemplate.size, textHeap);
+	installBaseTramp(ret, location, globalProc);
+	generateBranch(globalProc, location->addr, (int) ret);
+	globalProc->baseMap[location] = ret;
+    } else {
+        ret = globalProc->baseMap[location];
+    }
+
+    return(ret);
+}
+
+/*
+ * Install a single tramp.
+ *
+ */
+void installTramp(instInstance *inst, char *code, int codeSize)
+{
+    totalMiniTramps++;
+    insnGenerated += codeSize/sizeof(int);
+
+    // TODO cast
+    (inst->proc)->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
+}
+
+/*
+ * change the insn at addr to be a branch to newAddr.
+ *   Used to add multiple tramps to a point.
+ */
+void generateBranch(process *proc, unsigned fromAddr, unsigned newAddr)
+{
+    int disp;
+    instruction insn;
+
+    disp = newAddr-fromAddr;
+    generateBranchInsn(&insn, disp);
+
+    // TODO cast
+    proc->writeTextWord((caddr_t)fromAddr, insn.raw);
+}
+
+int callsTrackedFuncP(instPoint *point)
+{
+    if (point->callIndirect) {
+#ifdef notdef
+        // TODO this won't compile now
+	// it's rare to call a library function as a parameter.
+        sprintf(errorLine, "*** Warning call indirect\n from %s %s (addr %d)\n",
+            point->func->file->fullName, point->func->prettyName, point->addr);
+	logLine(errorLine);
+#endif
+        return(true);
+    } else {
+	if (point->callee && !(point->callee->isLibTag())) {
+	    return(true);
+	} else {
+	    return(false);
+	}
+    }
+}
+
+/*
+ * return the function asociated with a point.
+ *
+ *     If the point is a funcation call, and we know the function being called,
+ *          then we use that.  Otherwise it is the function that contains the
+ *          point.
+ *
+ *   This is done to return a better idea of which function we are using.
+ */
+pdFunction *getFunction(instPoint *point)
+{
+    return(point->callee ? point->callee : point->func);
+}
+
+unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
+{
+    // TODO cast
+    instruction *insn = (instruction *) ((void*)&i[base]);
+
+    if (op == loadConstOp) {
+      generateLoadConst(insn, src1, dest, base);
+    } else if (op ==  loadOp) {
+	generateLoadConst(insn, src1, dest, base);
+        instruction *insn = (instruction *) ((void*)&i[base]);
+
+	generateLoad(insn, dest, dest);
+	base += sizeof(instruction);
+    } else if (op ==  storeOp) {
+	generateLoadConst(insn, dest, src2, base);
+        instruction *insn = (instruction *) ((void*)&i[base]);
+
+	generateStore(insn, src1, dest);
+	base += sizeof(instruction);
+    } else if (op ==  ifOp) {
+	generateCompareBranch(insn, src1, 0, dest); insn++;
+	generateNOOP(insn);
+	base += sizeof(instruction)*2;
+	return(base - sizeof(instruction)); // whatever this means??
+    } else if (op ==  callOp) {
+	// abort for now
+	logLine("callOp in emit, cannot generate for now\n");
+	abort();
+
+	// save all caller-save registers
+	// set up 2 arg registers
+	// call
+	// restore all caller-save registers
+	// return reg which has result i.e. r28
+
+//	if (src1 > 0) {
+//	    genSimpleInsn(insn, ORop3, 0, src1, 8); insn++;
+//	    base += sizeof(instruction);
+//	}
+//	if (src2 > 0) {
+//	    genSimpleInsn(insn, ORop3, 0, src2, 9); insn++;
+//	    base += sizeof(instruction);
+//	}
+//	/* ??? - should really set up correct # of args */
+//	// clr i2
+//	genSimpleInsn(insn, ORop3, 0, 0, 10); insn++;
+//	base += sizeof(instruction);
+//
+//	// clr i3
+//	genSimpleInsn(insn, ORop3, 0, 0, 11); insn++;
+//	base += sizeof(instruction);
+//
+//
+//	generateSetHi(insn, dest, 13); insn++;
+//	genImmInsn(insn, JMPLop3, 13, LOW(dest), 15); insn++;
+//	generateNOOP(insn);
+//
+//	base += 3 * sizeof(instruction);
+//
+//	// return value is the register with the return value from the
+//	//   function.
+//	// This needs to be %o0 since it is back in the callers scope.
+//	return(8);
+
+    } else if (op ==  trampPreamble) {
+	// generate code to update observed cost, but we have no cost model
+
+    } else if (op ==  trampTrailer) {
+	// restore any saved registers, but we never save them
+	// dest is in words of offset and generateBranchInsn is bytes offset
+	generateBranchInsn(insn, dest << 2);
+	base += sizeof(instruction);
+	insn++;
+
+        generateNOOP(insn);
+        insn++;
+        base += sizeof(instruction);
+
+	return(base -  2 * sizeof(instruction));
+
+    } else if (op == noOp) {
+	generateNOOP(insn);
+	base += sizeof(instruction);
+
+    } else if (op == getParamOp) {
+	// first 4 params are in reg r23, r24, r25, r26
+	if (src1 <= 4) {
+ 	    return (src1+23);
+	}
+	abort();
+    } else if (op == saveRegOp) {
+	// should never be called for this platform.
+	abort();
+    } else {
+      unsigned aop = 0;
+      unsigned ext7 = 0;
+	switch (op) {
+	    // integer ops
+	    case plusOp:
+		aop = ADDop;
+		ext7 = ADDext7;
+		break;
+
+	    case minusOp:
+		aop = SUBop;
+		ext7 = SUBext7;
+		break;
+
+	    // Bool ops
+	    case orOp:
+		aop = ORop;
+		ext7 = ORext7;
+		break;
+
+	    case andOp:
+		aop = ANDop;
+		ext7 = ANDext7;
+		break;
+
+	    // rel ops
+	    case eqOp:
+		genCmpOp(insn, COMCLR_EQ_C, COMCLR_EQ_F, src1, src2, dest);
+		base += sizeof(instruction);
+		return(0);
+		break;
+
+            case neOp:
+                genCmpOp(insn, COMCLR_NE_C, COMCLR_NE_F, src1, src2, dest);
+		base += sizeof(instruction);
+                return(0);
+                break;
+
+	    case timesOp:
+		// emulated via "floating point!" multiply
+	    case divOp:
+		// emulated via millicode
+	    case lessOp:
+	    case greaterOp:
+	    case leOp:
+	    case geOp:
+		abort();
+		break;
+
+	    default:
+		abort();
+		break;
+	}
+	genArithLogInsn(insn, aop, ext7, src1, src2, dest);
+	base += sizeof(instruction);
+      }
+    return(0);
+}
+
+//
+// someone needs to work out the cost model for pa-risc
+//
+int getInsnCost(opCode op)
+{
+    return 0; // simple cost model
+}
+
+bool isReturnInsn(const instruction instr)
+{
+    // all returns are of the form
+    //   bv,n 0(%r2)
+    //   bv   0(%r2)
+    // inter-space jumps/returns are ignored
+    if (isInsnType(instr, RETmask, RETmatch)) {
+	return true;
+    }
+    return false;
+}
+
+
+// The exact semantics of the heap are processor specific.
+//
+// find all DYNINST symbols that are data symbols
+//
+bool image::heapIsOk(const vector<sym_data> &find_us) {
+  Address curr, instHeapEnd;
+  Symbol sym;
+  string str;
+
+  for (unsigned i=0; i<find_us.size(); i++) {
+    str = find_us[i].name;
+    if (!linkedFile.get_symbol(str, sym)) {
+      string str1 = string("_") + str.string_of();
+      if (!linkedFile.get_symbol(str1, sym) && find_us[i].must_find) {
+	string msg;
+        msg = string("Cannot find ") + str + string(". Exiting");
+	statusLine(msg.string_of());
+	showErrorCallback(50, msg);
+	return false;
+      }
+    }
+    addInternalSymbol(str, sym.addr());
+  }
+
+  string ghb = GLOBAL_HEAP_BASE;
+  if (!linkedFile.get_symbol(ghb, sym)) {
+    ghb = U_GLOBAL_HEAP_BASE;
+    if (!linkedFile.get_symbol(ghb, sym)) {
+      string msg;
+      msg = string("Cannot find ") + str + string(". Exiting");
+      statusLine(msg.string_of());
+      showErrorCallback(50, msg);
+      return false;
+    }
+  }
+  instHeapEnd = sym.addr();
+  addInternalSymbol(ghb, instHeapEnd);
+  ghb = INFERIOR_HEAP_BASE;
+
+  if (!linkedFile.get_symbol(ghb, sym)) {
+    ghb = UINFERIOR_HEAP_BASE;
+    if (!linkedFile.get_symbol(ghb, sym)) {
+      string msg;
+      msg = string("Cannot find ") + str + string(". Cannot use this application");
+      statusLine(msg.string_of());
+      showErrorCallback(50, msg);
+      return false;
+    }
+  }
+  curr = sym.addr();
+  addInternalSymbol(ghb, curr);
+  if (curr > instHeapEnd) instHeapEnd = curr;
+
+  // check that we can get to our heap.
+  if (instHeapEnd > getMaxBranch()) {
+    logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
+    sprintf(errorLine, "    heap ends at %x\n", instHeapEnd);
+    logLine(errorLine);
+    return false;
+  } else if (instHeapEnd + SYN_INST_BUF_SIZE > getMaxBranch()) {
+    logLine("WARNING: Program text + data could be too big for dyninst\n");
+    showErrorCallback(54, "");
+    return false;
+  }
+  return true;
+}
