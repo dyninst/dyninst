@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.8 1994/06/27 21:23:31 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.9 1994/07/14 23:45:31 hollings Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.8  1994/06/27 21:23:31  rbi
+ * Revision 1.9  1994/07/14 23:45:31  hollings
+ * Changed printf of resource to be TCL list like.
+ *
+ * Revision 1.8  1994/06/27  21:23:31  rbi
  * Abstraction-specific resources and mapping info
  *
  * Revision 1.7  1994/06/17  00:11:55  hollings
@@ -89,7 +92,10 @@ resource::resource(resource *p, char *newResource, abstractionType at)
 
 void resource::print()
 {
-    printf("%s", fullName);
+    if (parent) {
+	parent->print();
+    }
+    printf("%s ", name);
 }
 
 /*
@@ -141,14 +147,16 @@ void resourceList::print()
 {
     int i;
 
-    printf("<");
+    printf("{");
     lock();
     for (i=0; i < count; i++) {
-	if (i) printf(",");
+	if (i) printf(" ");
+	printf("{");
 	elements[i]->print();
+	printf("}");
     }
     unlock();
-    printf(">");
+    printf("}");
 }
 
 resource *resourceList::find(char *name) 
@@ -222,7 +230,9 @@ void printAllResources()
     HTable<resource*> curr;
 
     for (curr=  resource::allResources; *curr; curr++) {
+	printf("{");
         (*curr)->print();
+	printf("}");
         printf("\n");
     }
 }
