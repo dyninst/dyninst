@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.73 1999/01/21 23:22:13 wylie Exp $
+// $Id: mdl.C,v 1.74 1999/07/07 16:19:52 zhichen Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -54,6 +54,7 @@
 #include "paradynd/src/mdld.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/pdThread.h"
 #include "util/h/debugOstream.h"
 #include "paradynd/src/blizzard_memory.h"
 #include "dyninstAPI/src/instPoint.h" // new...for class instPoint
@@ -304,7 +305,13 @@ static bool other_machine_specified(vector< vector<string> > &focus,
 
 static void add_processes(vector< vector<string> > &focus,
 				 vector<process*> procs,
+#if defined(MT_THREAD)
+			  vector<process*> &ip,
+			  vector< vector<pdThread *> >& threadsVec,
+			  vector< vector<pdThread *> >& instThreadsVec) {
+#else
 				 vector<process*> &ip) {
+#endif
   assert(focus[resource::process][0] == "Process");
   unsigned pi, ps;
 
@@ -313,21 +320,62 @@ static void add_processes(vector< vector<string> > &focus,
   switch(focus[resource::process].size()) {
   case 1:
     ip = procs;
+#if defined(MT_THREAD)
+    instThreadsVec = threadsVec;
+#endif
     break;
   case 2:
-#if defined(MT_THREAD)
-  case 3:
-#endif
     ps = procs.size();
     for (pi=0; pi<ps; pi++)
       if (procs[pi]->rid->part_name() == focus[resource::process][1]) {
 	ip += procs[pi];
 	break;
       }
+#if defined(MT_THREAD)
+    for (pi=0; pi<ip.size(); pi++) {
+      instThreadsVec += ip[pi]->threads;
+    }
+#endif
     break;
+#if defined(MT_THREAD)
+  case 3:
+    ps = threadsVec.size();
+    for (pi=0; pi<ps; pi++) {
+      vector<pdThread *> tmpThrVec; 
+      if (procs[pi]->rid->part_name() == focus[resource::process][1]) {
+	ip += procs[pi];
+	for (unsigned ti=0; ti<threadsVec[pi].size(); ti++) {
+	  pdThread *thr;
+	  thr = (threadsVec[pi])[ti];
+	  if (thr && thr->get_rid()) {
+	    if (thr->get_rid()->part_name() == focus[resource::process][2]) {
+	      tmpThrVec += thr;
+	      break;
+	    }
+	  }
+	}
+      }
+      if (tmpThrVec.size() > 0) instThreadsVec += tmpThrVec;
+    }
+    break;
+#endif
   default:
     assert(0);
   }
+#if defined(TEST_DEL_DEBUG)
+  sprintf(errorLine,"--> instThreadsVec.size()=%d\n",instThreadsVec.size());
+  logLine(errorLine);
+  for (unsigned i=0;i<instThreadsVec.size();i++) {
+    sprintf(errorLine,"--> instThreadsVec[%d].size()=%d\n",i,(instThreadsVec[i]).size());
+    logLine(errorLine);
+    for (unsigned j=0;j<(instThreadsVec[i]).size();j++) {
+      pdThread *thr;
+      thr = (instThreadsVec[i])[j];
+      sprintf(errorLine,"--> thread %d has been selected\n",thr->get_tid());
+      logLine(errorLine);
+    }
+  }
+#endif
 }
 
 static bool focus_matches(vector<string>& focus, vector<string> *match_path) {
@@ -484,28 +532,49 @@ static bool update_environment(process *proc) {
 
 dataReqNode *create_data_object(unsigned mdl_data_type,
 				metricDefinitionNode *mn,
+#if defined(MT_THREAD)
+				bool computingCost,
+				pdThread *thr) {
+#else
 				bool computingCost) {
+#endif
   switch (mdl_data_type) {
   case MDL_T_COUNTER:
+#if defined(MT_THREAD)
+    return (mn->addSampledIntCounter(thr, 0, computingCost));
+#else
     return (mn->addSampledIntCounter(0, computingCost));
+#endif
 
   case MDL_T_WALL_TIMER:
+#if defined(MT_THREAD)
+    return (mn->addWallTimer(computingCost, thr));
+#else
     return (mn->addWallTimer(computingCost));
+#endif
 
   case MDL_T_PROC_TIMER:
+#if defined(MT_THREAD)
+    return (mn->addProcessTimer(computingCost, thr));
+#else
     return (mn->addProcessTimer(computingCost));
+#endif
 
   case MDL_T_NONE:
     // just to keep mdl apply allocate a dummy un-sampled counter.
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+#if defined(SHM_SAMPLING)
     // "true" means that we are going to create a sampled int counter but
     // we are *not* going to sample it, because it is just a temporary
     // counter - naim 4/22/97
     // By default, the last parameter is false - naim 4/23/97
+#if defined(MT_THREAD)
+    return (mn->addSampledIntCounter(thr, 0, computingCost, true));
+#else
     return (mn->addSampledIntCounter(0, computingCost, true));
+#endif //MT_THREAD
 #else
     return (mn->addUnSampledIntCounter(0, computingCost));
-#endif
+#endif //SHM_SAMPLING
 
   default:
     assert(0);
@@ -514,6 +583,7 @@ dataReqNode *create_data_object(unsigned mdl_data_type,
 }
 
 
+#if !defined(MT_THREAD)
 metricDefinitionNode *
 apply_to_process(process *proc, 
 		 string& id, string& name,
@@ -572,21 +642,21 @@ apply_to_process(process *proc,
        if (replace_component) {
 	  // fry old entry...
 	  metric_cerr << "apply_to_process: found " << component_flat_name
-	              << " but continuing anyway since replace_component flag set"
+		      << " but continuing anyway since replace_component flag set"
 		      << endl;
 	  // note that we don't call 'delete'.
 	  allMIComponents.undef(component_flat_name);
        }
        else {
 	 metric_cerr << "mdl apply_to_process: found component for "
-	             << component_flat_name << "...reusing it" << endl;
+		     << component_flat_name << "...reusing it" << endl;
 
 	 return existingMI;
        }
     }
     else
        metric_cerr << "MDL: creating new component mi since flatname "
-	           << component_flat_name << " doesn't exist" << endl;
+		   << component_flat_name << " doesn't exist" << endl;
 
     // If the component exists, then we've either already returned, or fried it.
     assert(!allMIComponents.defines(component_flat_name));
@@ -609,7 +679,7 @@ apply_to_process(process *proc,
     if (temp_ctr) {
       unsigned tc_size = temp_ctr->size();
       for (unsigned tc=0; tc<tc_size; tc++) {
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+#if defined(SHM_SAMPLING) 
         // "true" means that we are going to create a sampled int counter but
         // we are *not* going to sample it, because it is just a temporary
         // counter - naim 4/22/97
@@ -630,7 +700,7 @@ apply_to_process(process *proc,
 	// TODO -- cache these created flags
 	dataReqNode *flag = NULL;
 	// The following calls mdl_constraint::apply():
-	if (!flag_cons[fs]->apply(mn, flag, focus[flag_dex[fs]], proc, computingCost)) {
+	if (!flag_cons[fs]->apply(mn, flag, focus[flag_dex[fs]], proc, (pdThread*) NULL, computingCost)) {
           if (!computingCost) mn->cleanup_drn();
           delete mn;
 	  return NULL;
@@ -643,9 +713,9 @@ apply_to_process(process *proc,
 
     if (base_use) {
       dataReqNode *flag = NULL;
-      if (!base_use->apply(mn, flag, focus[base_dex], proc, computingCost)) {
+      if (!base_use->apply(mn, flag, focus[base_dex], proc, (pdThread*) NULL, computingCost)) {
         metric_cerr << "base_use->apply()" << endl;
-	if (!computingCost) mn->cleanup_drn();  
+	if (!computingCost) mn->cleanup_drn(); 
         delete mn;
 	return NULL;
       }
@@ -655,7 +725,7 @@ apply_to_process(process *proc,
       for (unsigned u=0; u<size; u++) {
 	if (!(*stmts)[u]->apply(mn, flags)) { // virtual fn call depending on stmt type
           metric_cerr << "apply failed!" << endl;
-	  if (!computingCost) mn->cleanup_drn();  
+	  if (!computingCost) mn->cleanup_drn();
 	  delete mn;
 	  return NULL;
 	}
@@ -671,8 +741,309 @@ apply_to_process(process *proc,
 
     return mn;
 }
+#else // !defined(MT_THREAD)
+
+metricDefinitionNode *allocateData_and_generateCode(
+                 metricDefinitionNode* mn,
+                 pdThread* thr,
+                 process *proc,
+                 string& id,
+                 vector< vector<string> >& focus,
+                 unsigned& type,
+                 vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
+                 T_dyninstRPC::mdl_constraint *base_use,
+                 vector<T_dyninstRPC::mdl_stmt*> *stmts,
+                 vector<unsigned>& flag_dex,
+                 unsigned& base_dex,
+                 vector<string> *temp_ctr,
+                 bool computingCost) {
+
+  dataReqNode *the_node = create_data_object(type, mn, computingCost, thr);
+  assert(the_node);
+
+  mdl_env::set(the_node, id);
+
+  // Create the temporary counters 
+  if (temp_ctr) {
+    unsigned tc_size = temp_ctr->size();
+    for (unsigned tc=0; tc<tc_size; tc++) {
+      dataReqNode *temp_node=mn->addSampledIntCounter(thr,0,computingCost ,true);
+      mdl_env::set(temp_node, (*temp_ctr)[tc]);
+    }
+  }
+
+  unsigned flag_size = flag_cons.size(); // could be zero
+  vector<dataReqNode*> flags;
+  metric_cerr << "there are " << flag_size << " flags (constraints)" << endl;
+
+  for (unsigned fs=0; fs<flag_size; fs++) {
+     dataReqNode *flag = NULL;
+     // The following calls mdl_constraint::apply():
+     if (!flag_cons[fs]->apply(mn, flag, focus[flag_dex[fs]], proc, thr, computingCost)) {
+       if (!computingCost) mn->cleanup_drn();
+       delete mn;
+       return NULL;
+     }
+     assert(flag);
+     flags += flag;
+     metric_cerr << "Applied constraint for " << flag_cons[fs]->id_ << endl;
+  }
+
+  if (base_use) {
+    dataReqNode *flag = NULL;
+    //mdl_constraint::apply()
+    metric_cerr << "base_use" <<endl ;
+    if (!base_use->apply(mn, flag, focus[base_dex], proc, thr, computingCost)) {
+       if (!computingCost) mn->cleanup_drn();
+       delete mn;
+       return NULL;
+    }
+  } else {
+     metric_cerr << "!base_use" << endl ;
+     unsigned size = stmts->size();
+     for (unsigned u=0; u<size; u++) {
+        if (!(*stmts)[u]->apply(mn, flags)) { // virtual fn call depending on stmt type
+           if (!computingCost) mn->cleanup_drn();
+           delete mn;
+           return NULL;
+        }
+     }
+  }
+
+  if (!mn->nonNull()) {
+     if (!computingCost) mn->cleanup_drn();
+     delete mn;
+     return NULL;
+  }
+  return mn;
+} 
+
+extern dictionary_hash <unsigned, metricDefinitionNode*> midToMiMap;//metric.C
+
+metricDefinitionNode *
+apply_to_process(process *proc,
+                 string& id, string& name,
+                 vector< vector<string> >& focus,
+                 unsigned& agg_op,
+                 unsigned& type,
+                 vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
+                 T_dyninstRPC::mdl_constraint *base_use,
+                 vector<T_dyninstRPC::mdl_stmt*> *stmts,
+                 vector<unsigned>& flag_dex,
+                 unsigned& base_dex,
+                 vector<string> *temp_ctr,
+                 bool replace_component,
+                 bool computingCost) {
+
+    metric_cerr << "apply_to_process()" << endl;
+
+    if (!update_environment(proc)) return NULL;
+
+    // compute the flat_name for this component: the machine and process
+    // are always defined for the component, even if they are not defined
+    // for the aggregate metric.
+    vector< vector<string> > component_focus(focus); // they start off equal
+    vector <metricDefinitionNode *> parts;
+    vector <metricDefinitionNode *> newParts;
+
+    int thrSelected = -1;
+    int processIdx = -1;
+    string component_flat_name(name);
+    for (unsigned u1 = 0; u1 < focus.size(); u1++) {
+      if (focus[u1][0] == "Process") {
+        processIdx = u1;
+        component_flat_name += focus[u1][0] + proc->rid->part_name();
+
+        if (focus[u1].size() == 1) 
+           // there was no refinement to a specific process...but the component
+           // focus must have such a refinement.
+           component_focus[u1] += proc->rid->part_name();
+
+        // This maeans that a thread was selected - naim
+        if (focus[u1].size() == 3) {
+          thrSelected = u1;
+          for (unsigned u2 = 2; u2 < focus[u1].size(); u2++)
+            component_flat_name += focus[u1][u2];
+        }
+      }
+      else if (focus[u1][0] == "Machine") {
+        component_flat_name += focus[u1][0] + machineResource->part_name();
+        if (focus[u1].size() == 1) 
+          // there was no refinement to a specific machine...but the component focus
+          // must have such a refinement.
+          component_focus[u1] += machineResource->part_name();
+      }
+      else {
+        for (unsigned u2 = 0; u2 < focus[u1].size(); u2++)
+          component_flat_name += focus[u1][u2];
+      }
+    }
+
+    // now assert that focus2flatname(component_focus) equals component_flat_name
+    extern string metricAndCanonFocus2FlatName(const string &met, const vector< vector<string> > &focus);
+    assert(component_flat_name == metricAndCanonFocus2FlatName(name, component_focus));
+
+    // STEP 0: create or retreve  the mn for the selection: selected_mn;
+    // STEP 1: create or retrieve the mn for the proc     : proc_mn;
+    //      if selected_mn is not proc_mn, make proc_mn to be a component of selected_mn
+
+    // STEP 2: create or retrieve the mns for each thread : thr_mn;
+    // STEP 3: create or retrieve the mns for al the threads
+    // STEP 4 : allocate data and generate code
+
+    metricDefinitionNode *proc_mn = NULL ;
+    string proc_component_flat_name(name);
+
+    // STEP 0 create or retrieve the selected_mn
+    metricDefinitionNode *selected_mn;
+    const bool alreadyThere = allMIComponents.find(component_flat_name, selected_mn);
+    if (alreadyThere) {
+       if (replace_component) {
+          // fry old entry...
+          metric_cerr << "apply_to_process: found " << component_flat_name
+                      << " but continuing anyway since replace_component flag se. " 
+                      << (computingCost? "compute cost only!" : "") << endl;
+          // note that we don't call 'delete'.
+          allMIComponents.undef(component_flat_name);
+       }
+       else {
+         metric_cerr << "mdl apply_to_process: found component for "
+                     << component_flat_name << "...reusing it. "
+                     << (computingCost? "compute cost only!" : "") << endl;
+
+         if (-1 != thrSelected && 0 == selected_mn->getComponents().size()) {
+           // restore original values for focus, component focus and flat name
+           unsigned pSize ;
+           pSize = component_focus[processIdx].size()-1;
+           component_focus[processIdx].resize(pSize);
+           pSize = focus[processIdx].size()-1;
+           focus[processIdx].resize(pSize);
+           proc_component_flat_name = metricAndCanonFocus2FlatName(name,component_focus);
+           if (!allMIComponents.find(proc_component_flat_name,proc_mn))  {
+	     cerr << "cannot find " << proc_component_flat_name.string_of()<< endl ;
+	     assert (0); 
+	   }
+	   selected_mn->addPart(proc_mn);
+	 }
+         return selected_mn;
+       }
+    }
+    else
+       metric_cerr << "MDL: creating new component mi since flatname "
+                   << component_flat_name << " doesn't exist. "
+                   << (computingCost? "compute cost only!" : "") << endl;
+
+    // If the component exists, then we've either already returned, or fried it.
+    assert(!allMIComponents.defines(component_flat_name));
+ 
+    // create the selected_mn
+    AGG_LEVEL agg_level = ((thrSelected == -1) ? PROC_COMP : THR_COMP);
+    selected_mn = new metricDefinitionNode(proc, name, focus, component_focus,
+		      component_flat_name, agg_op, agg_level);
+    allMIComponents[component_flat_name] = selected_mn;
+    if (thrSelected != -1) 
+      newParts += selected_mn;
+    else if (!computingCost) // do not add to this list if only computes cost
+      proc->allMIComponentsWithThreads += selected_mn;
+    
+    // STEP 1: create the proc_mn
+    unsigned pSize ;
+    if (thrSelected != -1) {
+      // restore original values for focus, component focus and flat name
+      pSize = component_focus[processIdx].size()-1;
+      component_focus[processIdx].resize(pSize);
+      pSize = focus[processIdx].size()-1;
+      focus[processIdx].resize(pSize);
+    }
+
+
+    proc_component_flat_name = metricAndCanonFocus2FlatName(name,component_focus);
+
+    if (!allMIComponents.find(proc_component_flat_name,proc_mn)) { 
+      proc_mn=new metricDefinitionNode(proc,name,focus,
+            component_focus,proc_component_flat_name,agg_op,PROC_COMP);
+      assert(proc_mn);
+      allMIComponents[proc_component_flat_name] = proc_mn;
+      proc->allMIComponentsWithThreads += proc_mn;
+    }
+    // memoizing stuff
+    proc_mn->temp_ctr_thr      = temp_ctr;
+    proc_mn->flag_cons_thr     = flag_cons ;
+    proc_mn->base_use_thr      = base_use ;
+    proc_mn->computingCost_thr = computingCost;
+    proc_mn->type_thr          = type;
+
+    // Make the proc_mn a component of selected_mn, if selected_mn corresponds to a thread
+    if (thrSelected != -1) 
+      selected_mn->addPart(proc_mn) ;
+
+    // STEP 3: create or retrieve the mns for al the threads
+    string thr_component_flat_name(name);
+    metricDefinitionNode* thr_mn;
+    vector <pdThread *>& allThr = proc->threads ;
+
+    for (unsigned i=0;i<allThr.size();i++) {
+      if (allThr[i] != NULL) {
+        string thrName;
+        thrName = string("thr_") + allThr[i]->get_tid()
+           + string("{") + string(allThr[i]->get_start_func()->prettyName().string_of())+string("}"); 
+        if (i==0) {
+          component_focus[processIdx] += thrName;
+          focus[processIdx] += thrName;
+        } else {
+          pSize = component_focus[processIdx].size()-1;
+          component_focus[processIdx][pSize] = thrName;
+          pSize = focus[processIdx].size()-1;
+          focus[processIdx][pSize] = thrName;
+        }
+        thr_component_flat_name = metricAndCanonFocus2FlatName(name,component_focus);
+        if (!allMIComponents.find(thr_component_flat_name,thr_mn)) { // thread level
+            thr_mn=new metricDefinitionNode(proc,name,focus,component_focus,thr_component_flat_name,agg_op,THR_COMP);
+            assert(thr_mn);
+            allMIComponents[thr_component_flat_name] = thr_mn;
+            newParts += thr_mn;
+            metric_cerr << "+++++++ construct thr_mn <" 
+	       <<thr_component_flat_name.string_of()
+               << ">, " << (computingCost?"compute cost only!":"") << endl;
+        }  
+        assert(thr_mn);
+        parts += thr_mn;
+      }
+    }
+
+    // Add thr_mns to proc_mn->components
+    proc_mn->addParts(newParts);
+
+    //STEP 4 : allocate data and generate code
+    assert(allThr.size()==parts.size());
+    for (unsigned i=0; i<allThr.size(); i++) {
+       pdThread *thr = allThr[i];
+       thr_mn = parts[i];
+
+       if (thr_mn->needData()||computingCost) {
+         if (!computingCost)  
+           thr_mn->needData() = false ;
+
+         if (! (allocateData_and_generateCode(thr_mn, thr, proc, id, focus, type, flag_cons,
+                 base_use, stmts, flag_dex, base_dex, temp_ctr, computingCost)) ) 
+           return NULL ;
+
+	 // cleanup the instRequests in thr_mn, and copy it to proc_mn
+         proc_mn->duplicateInst(thr_mn); ;
+       } 
+    }
+
+    //now we assert
+    assert(-1 == thrSelected || selected_mn->getComponents().size()==1);
+
+    return selected_mn;
+}
+#endif // !defined(MT_THREAD)
 
 static bool apply_to_process_list(vector<process*>& instProcess,
+#if defined(MT_THREAD)
+				  vector< vector<pdThread *> >& threadsVec,
+#endif
 				  vector<metricDefinitionNode*>& parts,
 				  string& id, string& name,
 				  vector< vector<string> >& focus,
@@ -711,6 +1082,13 @@ static bool apply_to_process_list(vector<process*>& instProcess,
     process *proc = instProcess[p]; assert(proc);
     global_proc = proc;     // TODO -- global
 
+#if defined(MT_THREAD)
+    //check that this vector of threads corresponds to this process
+    assert(p<threadsVec.size());
+    vector<pdThread *> thrForThisProc = threadsVec[p];
+    for (unsigned i=0;i<thrForThisProc.size();i++) 
+      assert(thrForThisProc[i]->get_proc() == proc);
+#endif
     // skip neonatal and exited processes.
     if (proc->status() == exited || proc->status() == neonatal) continue;
 
@@ -757,6 +1135,7 @@ vector<string>global_excluded_funcs;
 metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &focus,
 					              string& flat_name,
 					              vector<process *> procs,
+						      vector< vector<pdThread *> >& threadsVec,
 					              bool replace_components_if_present,
 					              bool computingCost) {
   // TODO -- check to see if this is active ?
@@ -789,9 +1168,16 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
 
   if (other_machine_specified(focus, machine)) return NULL;
   vector<process*> instProcess;
+#if defined(MT_THREAD)
+  vector< vector<pdThread *> > instThreadsVec;
+  add_processes(focus, procs, instProcess, threadsVec, instThreadsVec);
+
+  if (!instProcess.size() || !instThreadsVec.size()) return NULL;
+#else
   add_processes(focus, procs, instProcess);
 
   if (!instProcess.size()) return NULL;
+#endif
 
   // build the list of constraints to use
   vector<T_dyninstRPC::mdl_constraint*> flag_cons;
@@ -831,7 +1217,11 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
 
   // build the instrumentation request
   vector<metricDefinitionNode*> parts; // one per process
+#if defined(MT_THREAD)
+  if (!apply_to_process_list(instProcess, instThreadsVec, parts, id_, name_, focus,
+#else
   if (!apply_to_process_list(instProcess, parts, id_, name_, focus,
+#endif
 			     agg_op_, type_, flag_cons, base_used,
 			     stmts_, flag_dex, base_dex, temp_ctr_,
 			     replace_components_if_present,
@@ -841,9 +1231,10 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
   // construct aggregate for the metric instance parts
   metricDefinitionNode *ret = NULL;
 
-  if (parts.size())
+  if (parts.size()) {
     // create aggregate mi, containing the process components "parts"
     ret = new metricDefinitionNode(name_, focus, flat_name, parts, agg_op_);
+  }
 
   metric_cerr << "apply of " << name_ << " ok" << endl;
   mdl_env::pop();
@@ -957,7 +1348,7 @@ static bool do_trailing_resources(vector<string>& resource_,
 bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
 					 dataReqNode *&flag,
 					 vector<string>& resource,
-					 process *proc, bool computingCost) {
+					 process *proc, pdThread* thr, bool computingCost) {
   metric_cerr << "T_dyninstRPC::mdl_constraint::apply()" << endl;
   assert(mn);
   switch (data_type_) {
@@ -973,18 +1364,25 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
   if (!replace_) {
     // create the counter used as a flag
     mdl_env::add(id_, false, MDL_T_DRN);
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+#if defined(SHM_SAMPLING) 
     // "true" means that we are going to create a sampled int counter but
     // we are *not* going to sample it, because it is just a temporary
     // counter - naim 4/22/97
     // By default, the last parameter is false - naim 4/23/97
+#if defined(MT_THREAD)
+    dataReqNode *drn = mn->addSampledIntCounter(thr,0,computingCost,true);
+#else
     dataReqNode *drn = mn->addSampledIntCounter(0,computingCost,true);
+#endif
 #else
     dataReqNode *drn = mn->addUnSampledIntCounter(0,computingCost);
 #endif
     // this flag will construct a predicate for the metric -- have to return it
     flag = drn;
     assert(drn);
+#if defined(MT_THREAD)
+    if (mn->installed()) midToMiMap[drn->getSampleId()] = mn ; 
+#endif
     mdl_env::set(drn, id_);
   }
 
@@ -1009,6 +1407,14 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
   mdl_env::pop();
   if (wasRunning) global_proc->continueProc();
   return(true);
+}
+
+bool T_dyninstRPC::mdl_constraint::replace() {
+  return replace_ ;
+}
+
+string T_dyninstRPC::mdl_constraint::id() {
+  return id_ ;
 }
 
 T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id, 
@@ -1338,7 +1744,12 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
     case MDL_EXPR_FUNC:
     {
       if (var_ == "startWallTimer" || var_ == "stopWallTimer"
+#if defined(MT_THREAD)
+      || var_ == "startProcessTimer" || var_ == "stopProcessTimer"
+      || var_ == "startProcessTimer_lwp" || var_ == "destroyProcessTimer")
+#else
       || var_ == "startProcessTimer" || var_ == "stopProcessTimer")
+#endif
       {
         if (!args_) return false;
         unsigned size = args_->size();
@@ -1358,6 +1769,12 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
           timer_func = START_PROC_TIMER;
         else if (var_ == "stopProcessTimer")
           timer_func = STOP_PROC_TIMER;
+#if defined(MT_THREAD)
+        else if (var_ == "startProcessTimer_lwp")
+          timer_func = START_PROC_TIMER_LWP;
+	else if (var_ == "destroyProcessTimer")
+	  timer_func = DESTROY_PROC_TIMER;
+#endif
 
         vector<AstNode *> ast_args;
 
@@ -1542,7 +1959,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
 #if defined(SHM_SAMPLING)
   #if defined(MT_THREAD)
           AstNode *tmp_ast;
-          tmp_ast = computeAddress((void*)(drn->getAllocatedLevel()),
+          tmp_ast = computeTheAddress((void*)(drn->getAllocatedLevel()),
                        (void *)(drn->getAllocatedIndex()),
                        0); // 0 is for intCounter
           // First we get the address, and now we get the value...
@@ -1585,7 +2002,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
           assert (get_drn.get(drn));
 #if defined(SHM_SAMPLING)
   #if defined(MT_THREAD)
-          ast = computeAddress((void *)(drn->getAllocatedLevel()),
+          ast = computeTheAddress((void *)(drn->getAllocatedLevel()),
                (void *)(drn->getAllocatedIndex()),
                0); // 0 is for intCounter
   #else
@@ -1696,7 +2113,12 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
     case MDL_EXPR_FUNC:
     {
       if (var_ == "startWallTimer" || var_ == "stopWallTimer"
+#if defined(MT_THREAD)
+      || var_ == "startProcessTimer" || var_ == "stopProcessTimer"
+      || var_ == "startProcessTimer_lwp")
+#else
       || var_ == "startProcessTimer" || var_ == "stopProcessTimer")
+#endif
       {
         // this mdl_v_expr::apply() is for expressions outside
         // instrumentation blocks.  these timer functions are not
@@ -2000,7 +2422,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
 #if defined(SHM_SAMPLING)
   #if defined(MT_THREAD)
         AstNode *tmp_ast;
-        tmp_ast = computeAddress((void *)((inFlags[fi])->getAllocatedLevel()),(void *)((inFlags[fi])->getAllocatedIndex()), 0); // 0 is for intCounter
+        tmp_ast = computeTheAddress((void *)((inFlags[fi])->getAllocatedLevel()),(void *)((inFlags[fi])->getAllocatedIndex()), 0); // 0 is for intCounter
         AstNode *temp1 = new AstNode(AstNode::DataIndir,tmp_ast);
         removeAst(tmp_ast);
   #else
@@ -2116,6 +2538,7 @@ metricDefinitionNode *mdl_do(vector< vector<string> >& canon_focus,
                              string& met_name,
 			     string& flat_name,
 			     vector<process *> procs,
+			     vector< vector<pdThread *> >& threadsVec,
 			     bool replace_components_if_present,
 			     bool computingCost) {
   currentMetric = met_name;
@@ -2124,6 +2547,7 @@ metricDefinitionNode *mdl_do(vector< vector<string> >& canon_focus,
   for (unsigned u=0; u<size; u++) {
     if (mdl_data::all_metrics[u]->name_ == met_name) {
       return (mdl_data::all_metrics[u]->apply(canon_focus, flat_name, procs,
+					      threadsVec,
 					      replace_components_if_present,
 					      computingCost));
          // calls mdl_metric::apply()

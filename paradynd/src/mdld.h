@@ -41,6 +41,12 @@
 
 /*
  * $Log: mdld.h,v $
+ * Revision 1.11  1999/07/07 16:19:53  zhichen
+ * extra parameter to mdl_do
+ * changes to add_processes
+ *            create_data_object
+ *            apply_to_process, ...
+ *
  * Revision 1.10  1997/06/07 21:00:22  newhall
  * replaced exclude_func and exclude_lib with exclude_node
  *
@@ -103,6 +109,7 @@ extern bool mdl_metric_data(const string&, mdl_inst_data&);
 extern metricDefinitionNode *mdl_do(vector< vector<string> >& canon_focus,
 				    string& metric_name, string& flat_name,
 				    vector<process *> procs,
+				    vector< vector<pdThread *> >& threadsVec,
 				    bool, bool);
 extern bool mdl_can_do(string& metric_name);
 
