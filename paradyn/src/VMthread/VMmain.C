@@ -1,7 +1,27 @@
-/* $Log: VMmain.C,v $
-/* Revision 1.2  1994/04/10 19:07:22  newhall
-/* *** empty log message ***
+
 /*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
+
+/* $Log: VMmain.C,v $
+/* Revision 1.3  1994/04/28 22:08:34  newhall
+/* test version 2
+/*
+ * Revision 1.2  1994/04/10  19:07:22  newhall
+ * *** empty log message ***
+ *
  * Revision 1.1  1994/04/09  21:23:47  newhall
  * test version
  * */
@@ -13,11 +33,6 @@
 #include "VMtypes.h"
 #include "../pdMain/paradyn.h"
 
-#define DEBUG
-
-
-
-// static VMvisiList      visiList;
 static int      currNumActiveVisis = 0;
 thread_key_t visiThrd_key;
 List<VMactiveVisi *>  activeVisis; 
@@ -58,17 +73,15 @@ VM_visiInfo_Array VM::VMAvailableVisis(){
   int i;
   VMvisis *temp2;
 
-#ifdef DEBUG
-  printf("in VMAvailableVisis");
-#endif
+  PARADYN_DEBUG(("in VMAvailableVisis"));
   temp.count = visiList.count();
   temp.data  = (VM_visiInfo *)malloc(sizeof(VM_visiInfo)*temp.count); 
   visiList.setCurrent();
   for(i=0; i < temp.count; i++){
-    temp.data[i].visiTypeId = i;
     temp2 = visiList.getCurrent();
+    temp.data[i].visiTypeId = temp2->Id;
     if(temp2 != 0)
-      temp.data[i].name = strdup(temp2->argv[0]);
+      temp.data[i].name = strdup(temp2->name);
     visiList.advanceCurrent();
   }
   return(temp);
@@ -105,6 +118,7 @@ int id;
     return(VMERROR_MALLOC);
   }
   temp->argc = argc;
+  temp->Id = id;
 
   visiList.add(temp,(void *)id);
 
@@ -155,15 +169,14 @@ void VM::VMDestroyVisi(int visiThreadId){
 VMactiveVisi *temp;
 int ok;
 
-printf("in VM::VMDestroyVisi:  visiThreadId = %d\n",visiThreadId);
-printf("in VM::VMDestroyVisi:  currNumActiveVisis = %d\n",currNumActiveVisis);
+  PARADYN_DEBUG(("VM::VMDestroyVisi: visiThreadId = %d",visiThreadId));
+  PARADYN_DEBUG(("currNumActiveVisis = %d",currNumActiveVisis));
 
   // call visithread Kill_Visi routine (visithread will call thr_exit())
   if((temp = activeVisis.find((void *)visiThreadId)) != NULL){ 
      temp->visip->VISIKillVisi(); 
-     printf("blahb albhalhblahlkdjf\n");
   }
-printf("in VM::VMDestroyVisi: after temp->visip->VISIKillVisi\n"); 
+  PARADYN_DEBUG(("VM::VMDestroyVisi: after temp->visip->VISIKillVisi"));
 
   // remove entry from active visi table 
   if((activeVisis.remove((void *)visiThreadId)) == FALSE){
@@ -171,9 +184,7 @@ printf("in VM::VMDestroyVisi: after temp->visip->VISIKillVisi\n");
   }
   else{
     // call destructor for visip 
-printf("in VM::VMDestroyVisi: before call to delete(temp->visip)\n"); 
     delete(temp->visip);
-printf("in VM::VMDestroyVisi: after call to delete(temp->visip)\n"); 
     currNumActiveVisis--;
   }
 }
@@ -213,6 +224,9 @@ void *VMmain(int arg){
   tag_t mtag;
   int   retVal;
   unsigned msgSize;
+#ifdef DEBUG
+  VMvisis *tempvisi;
+#endif
 
   thr_name("Visualization Manager");
   VMtid = thr_self();
@@ -228,7 +242,7 @@ void *VMmain(int arg){
   // for visilist need info. from config. file on visualization info.
   if ((fd = fopen("/usr/home/paradyn/development/newhall/core/paradyn/src/VMthread/VMconfig.file","r")) == NULL){
      // call error routine from UIM
-     fprintf(stderr,"error in VMmain opening VMconfig.file\n");
+     PARADYN_DEBUG(("error in VMmain opening VMconfig.file"));
   }
   else {
    fscanf(fd,"%d",&num);   
@@ -243,24 +257,47 @@ void *VMmain(int arg){
 	}
 	else{
 
+	  fscanf(fd,"%s",temp);
+	  tempvals->name = strdup(temp);
+
           for(j=0;j<num2;j++){
 	    fscanf(fd,"%s",temp);
 	    tempvals->argv[j] = strdup(temp);
 	  }
           tempvals->argv[j++] = 0;
+	  tempvals->argc = num2;
+	  tempvals->Id   = i;
 
-/*
+#ifdef DEBUG
 	  printf("\nvisi %d:\n",i);
 	  for(j=0;j<num2;j++){
            printf("arg %d: %s\n",j,tempvals->argv[j]); 
 	  }
-*/
+         printf("adding visi %d to the visi List\n",i);
+#endif
 
           visiList.add(tempvals,(void *)i);
 	}
       } // else
     } // for
   }
+
+
+#ifdef DEBUG
+visiList.setCurrent();
+for(i=0;i<visiList.count();i++){
+  tempvisi = visiList.getCurrent();
+  printf("tempvisi %d: id = %d name = %s args = %d argv[0] = %s\n",i,
+  tempvisi->Id,tempvisi->name, tempvisi->argc,tempvisi->argv[0]);
+  visiList.advanceCurrent();
+}
+for(i=0;i<visiList.count();i++){
+  if((tempvisi = visiList.find((void *)i)) != 0){
+     printf("visi %d: id = %d name = %s args = %d argv[0] = %s\n",i,
+     tempvisi->Id,tempvisi->name,tempvisi->argc,tempvisi->argv[0]);
+  }
+}
+#endif
 
   vmp = new VM(MAINtid);
 
@@ -269,18 +306,10 @@ void *VMmain(int arg){
   mtag   = MSG_TAG_ALL_CHILDREN_READY;
   retVal = msg_recv (&mtag, VMbuff, &msgSize);
 
-/*  TESTING
-  ump = new UIMUser(UIMtid);
-  pcp = new performanceConsultantUser(PCtid);
-
-*/
-
   ump = uiMgr;
   pcp = perfConsult;
 
-#ifdef DEBUG
-	fprintf(stderr,"before loop in VMmain\n");
-#endif
+  PARADYN_DEBUG(("before loop in VMmain"));
   while(1){
     found = 0;
     tag = MSG_TAG_ANY;
