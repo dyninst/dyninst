@@ -10,7 +10,11 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.14  1995/02/16 08:24:18  markc
+ * Revision 1.15  1995/02/27 18:59:02  tamches
+ * The use of tunable constants has changed to reflect the new
+ * "tunableConstantRegistry" class and the new TCthread.
+ *
+ * Revision 1.14  1995/02/16  08:24:18  markc
  * Changed Boolean to bool.
  * Changed calls to igen functions to use strings/vectors rather than
  * char*'s/arrays
@@ -53,7 +57,7 @@
  */
 
 #include "paradyn/src/met/metParse.h"
-#include "util/h/tunableConst.h"
+#include "../TCthread/tunableConst.h"
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -270,24 +274,45 @@ int metDoProcess()
 
 void set_tunable (tunableMet *the_ts)
 {
-  tunableConstant *curr = tunableConstant::findTunableConstant(the_ts->name);
-  if (curr == NULL)
+  if (!tunableConstantRegistry::existsTunableConstant(the_ts->name))
      return;
 
-  if ((curr->getType() == tunableFloat) && !the_ts->useBvalue) {
-    tunableFloatConstant *fConst = (tunableFloatConstant*) curr;
-    if (!fConst->setValue(the_ts->Fvalue)) {
-      ; // error
-    }
-  } else if ((curr->getType() == tunableBoolean) && the_ts->useBvalue) {
-    tunableBooleanConstant *bConst = (tunableBooleanConstant*) curr;
-    if (!bConst->setValue((bool)the_ts->Bvalue)) {
-       ; // error 
-    }
-  } else {
-    ;
-    // unknown tunableConst type or type mismatch
+  if (tunableConstantRegistry::getTunableConstantType(the_ts->name) == tunableBoolean) {
+     if (!the_ts->useBvalue) {
+        // type mismatch?
+        return;
+     }
+
+     tunableConstantRegistry::setBoolTunableConstant(the_ts->name, (bool)the_ts->Bvalue);
   }
+  else {
+     if (the_ts->useBvalue) {
+        // type mismatch?
+        return;
+     }
+
+     tunableConstantRegistry::setFloatTunableConstant(the_ts->name, the_ts->Fvalue);
+  }
+  
+//  tunableConstant *curr = tunableConstant::findTunableConstant(the_ts->name);
+//  if (curr == NULL)
+//     return;
+//
+//  if ((curr->getType() == tunableFloat) && !the_ts->useBvalue) {
+//    tunableFloatConstant *fConst = (tunableFloatConstant*) curr;
+//    if (!fConst->setValue(the_ts->Fvalue)) {
+//      ; // error
+//    }
+//  } else if ((curr->getType() == tunableBoolean) && the_ts->useBvalue) {
+//    tunableBooleanConstant *bConst = (tunableBooleanConstant*) curr;
+//    if (!bConst->setValue((Boolean)the_ts->Bvalue)) {
+//       ; // error 
+//    }
+//  } else {
+//    ;
+//    // unknown tunableConst type or type mismatch
+//  }
+
 }
 
 int metDoTunable()
