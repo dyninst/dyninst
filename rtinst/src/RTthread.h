@@ -69,7 +69,7 @@
 
 void _VirtualTimerStart(virtualTimer *timer, int context);
 void _VirtualTimerStop(virtualTimer *timer);
-void DYNINST_VirtualTimerDestroy(virtualTimer *timer);
+void _VirtualTimerDestroy(virtualTimer *timer);
 unsigned PARADYNgetFD(unsigned lwp);
 
 rawTime64 getThreadCPUTime(unsigned pos, int *valid);
