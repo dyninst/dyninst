@@ -60,55 +60,62 @@
  * class string
 ************************************************************************/
 
-class string {
+class string_ll {
 public:
-     string ();
-     string (const char *);
-     string (const char *, unsigned n); // just copy the first n chars
-     string (const string &);
-     string (int);      // convert int to its string representation
-     string (long);      // convert int to its string representation
-     string (unsigned); // convert unsigned to its string representation
-     string (unsigned long); // convert unsigned to its string representation
-     string (float);    // convert float to its string representation
-     string (double);   // convert double to its string representation
-    ~string ();
+     string_ll ();
+     string_ll (const char *);
+     string_ll (const char *, unsigned n); // just copy the first n chars
+     string_ll (const string_ll &);
+     string_ll (int);      // convert int to its string_ll representation
+     string_ll (long);      // convert int to its string_ll representation
+     string_ll (unsigned); // convert unsigned to its string_ll representation
+     string_ll (unsigned long); // convert unsigned to its string_ll representation
+     string_ll (float);    // convert float to its string_ll representation
+     string_ll (double);   // convert double to its string_ll representation
+    ~string_ll ();
 
-    string& operator= (const char *);
-    string& operator= (const string &);
-    string& operator+= (const string &);
-    string  operator+ (const string &) const;
+    string_ll& operator= (const char *);
+    string_ll& operator= (const string_ll &);
+    string_ll& operator+= (const string_ll &);
+    string_ll& operator+= (const char *);
+    string_ll  operator+ (const string_ll &) const;
+    string_ll  operator+ (const char *) const;
 
-    bool operator== (const string &) const;
+    bool operator== (const string_ll &) const;
     bool operator== (const char *ptr) const {
        // This routine exists as an optimization; doesn't need to create a temporary
        // instance of "string" for "ptr"; hence, doesn't call string::string(char *)
        // which calls new[].
        return STREQ(ptr, str_);
     }
-    bool operator!= (const string &) const;
-    bool operator<  (const string &s) const {return STRLT(str_, s.str_);}
-    bool operator<= (const string &) const;
-    bool operator>  (const string &s) const {return STRGT(str_, s.str_);}
-    bool operator>= (const string &) const;
+    bool operator!= (const string_ll &) const;
+    bool operator<  (const string_ll &s) const {return STRLT(str_, s.str_);}
+    bool operator<= (const string_ll &) const;
+    bool operator>  (const string_ll &s) const {return STRGT(str_, s.str_);}
+    bool operator>= (const string_ll &) const;
 
     bool prefix_of (const char *, unsigned) const;
     bool prefix_of (const char *s)          const {return prefix_of(s, STRLEN(s));};
-    bool prefix_of (const string &)         const;
+    bool prefix_of (const string_ll &)         const;
 
     bool prefixed_by (const char *, unsigned) const;
     bool prefixed_by (const char *s)          const {return prefixed_by(s, STRLEN(s));};
-    bool prefixed_by (const string &)         const;
+    bool prefixed_by (const string_ll &)         const;
 
     const char*   string_of () const {return str_;}
     unsigned         length () const {return len_;}
 
-    friend ostream& operator<< (ostream &os, const string &s);
-    friend debug_ostream& operator<< (debug_ostream &os, const string &s);
+    friend ostream& operator<< (ostream &os, const string_ll &s);
+    friend debug_ostream& operator<< (debug_ostream &os, const string_ll &s);
 
-    static unsigned       hash (const string &s) {return s.key_;}
+    static unsigned       hash (const string_ll &s) {
+       s.updateKeyIfNeeded(); return s.key_;
+    }
 
 private:
+    void updateKeyIfNeeded() const {if (0==key_) updateKey(); }
+    void updateKey() const {if (str_) key_ = hashs(str_);}
+
     static unsigned      hashs (const char *);
 
     static unsigned     STRLEN (const char *);
@@ -124,7 +131,153 @@ private:
 
     char*    str_;
     unsigned len_;
-    unsigned key_;
+    mutable unsigned key_;
+};
+
+#include "util/h/refCounter.h"
+
+class string {
+ private:
+   refCounter<string_ll> data;
+
+ public:
+   string() : data(string_ll()) {}
+
+//   string(const char *str) : data(string_ll(str)) {}
+   string(const char *str) : data(string_ll()) {
+      string_ll &me = data.getData();
+      me = str;
+   }
+
+   string(const char *str, unsigned n) : data(string_ll(str,n)) {}
+
+   string(const string& src) : data(src.data) {}
+   string(int i) : data(string_ll(i)) {}
+   string(long l) : data(string_ll(l)) {}
+   string(unsigned u) : data(string_ll(u)) {}
+   string(unsigned long ul) : data(string_ll(ul)) {}
+   string(float f) : data(string_ll(f)) {}
+   string(double d) : data(string_ll(d)) {}
+  ~string() {}
+
+   string& operator=(const char *str) {
+      string_ll new_str_ll(str);
+      refCounter<string_ll> newRefCtr(new_str_ll);
+      
+      data = newRefCtr;
+      return *this;
+   }
+   string& operator=(const string &src) {
+      data = src.data;
+      return *this;
+   }
+
+   string& operator+=(const string &addme) {
+      string_ll newstr = data.getData() + addme.data.getData();
+      data = newstr;
+      return *this;
+   }
+
+   string& operator+=(const char *str) {
+      string_ll newstr = data.getData() + str;
+      data = newstr;
+      return *this;
+   }
+
+   string operator+(const string &src) const {
+      string result = *this;
+      return (result += src);
+   }
+   string operator+(const char *src) const {
+      string result = *this;
+      return (result += src);
+   }
+
+   bool operator==(const string &src) const {
+      const string_ll &me = data.getData();
+      const string_ll &them = src.data.getData();
+      return (me == them);
+   }
+   bool operator==(const char *ptr) const {
+      const string_ll &me = data.getData();
+      return (me == ptr);
+   }
+   bool operator!=(const string &src) const {
+      const string_ll &me = data.getData();
+      const string_ll &them = src.data.getData();
+      return (me != them);
+   }
+   bool operator<(const string &src) const {
+      const string_ll &me = data.getData();
+      const string_ll &them = src.data.getData();
+      return (me < them);
+   }
+   bool operator<=(const string &src) const {
+      const string_ll &me = data.getData();
+      const string_ll &them = src.data.getData();
+      return (me <= them);
+   }
+   bool operator>(const string &src) const {
+      const string_ll &me = data.getData();
+      const string_ll &them = src.data.getData();
+      return (me > them);
+   }
+   bool operator>=(const string &src) const {
+      const string_ll &me = data.getData();
+      const string_ll &them = src.data.getData();
+      return (me >= them);
+   }
+   bool prefix_of(const char *str, unsigned n) const {
+      const string_ll &me = data.getData();
+      return (me.prefix_of(str, n));
+   }
+   bool prefix_of(const char *str) const {
+      const string_ll &me = data.getData();
+      return (me.prefix_of(str));
+   }
+   bool prefix_of(const string &src) const {
+      const string_ll &me = data.getData();
+      const string_ll &them = src.data.getData();
+      return (me.prefix_of(them));
+   }
+
+   bool prefixed_by(const char *str, unsigned n) const {
+      const string_ll &me = data.getData();
+      return (me.prefixed_by(str, n));
+   }
+   bool prefixed_by(const char *str) const {
+      const string_ll &me = data.getData();
+      return (me.prefixed_by(str));
+   }
+   bool prefixed_by(const string &src) const {
+      const string_ll &me = data.getData();
+      const string_ll &them = src.data.getData();
+      return (me.prefixed_by(them));
+   }
+
+   const char *string_of() const {
+      const string_ll &me = data.getData();
+      return me.string_of();
+   }
+
+   unsigned length() const {
+      const string_ll &me = data.getData();
+      return me.length();
+   }
+
+   friend ostream& operator<<(ostream &os, const string &s) {
+      const string_ll &it = s.data.getData();
+      return (os << it);
+   }
+   friend debug_ostream& operator<<(debug_ostream &os, const string &s) {
+      const string_ll &it = s.data.getData();
+      return (os << it);
+   }
+
+   static unsigned hash(const string &s) {
+      const string_ll &it = s.data.getData();
+      return (string_ll::hash(it));
+   }
 };
 
 #endif /* !defined(_String_h_) */
