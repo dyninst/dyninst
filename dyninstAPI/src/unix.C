@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.134 2005/02/24 10:17:22 rchen Exp $
+// $Id: unix.C,v 1.135 2005/03/04 17:46:13 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -146,21 +146,11 @@ extern unsigned enable_pd_sharedobj_debug;
  *   procHandle: handle for new process (needed by WindowsNT)
  *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
-#ifdef BPATCH_LIBRARY
-bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> *argv, 
-		    pdvector<pdstring> *envp,
-                    pdstring /*inputFile*/, pdstring /*outputFile*/,
-                    int & /*traceLink*/, 
-                    int &pid, int & /*tid*/, 
-                    int & /*procHandle*/, int & /*thrHandle*/, 
-                    int stdin_fd, int , int )
-#else
 bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> *argv, 
 		    pdvector<pdstring> *envp,
                     pdstring inputFile, pdstring outputFile, int &traceLink,
                     int &pid, int & /*tid*/, int & /*procHandle*/,
-                    int & /*thrHandle*/, int stdin_fd, int stdout_fd, int)
-#endif
+                    int & /*thrHandle*/, int stdin_fd, int stdout_fd, int stderr_fd)
 {
 #ifndef BPATCH_LIBRARY
    // Strange, but using socketpair here doesn't seem to work OK on SunOS.
@@ -333,11 +323,13 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> *argv,
       }
 #endif
 
+#if defined (BPATCH_LIBRARY)
+      // Should unify with (fancier) Paradyn handling
       /* see if we should use alternate file decriptors */
       if (stdin_fd != 0) dup2(stdin_fd, 0);
-      //removed for output redirection
-      //if (stdout_fd != 1) dup2(stdout_fd, 1);
-      //if (stderr_fd != 2) dup2(stderr_fd, 2);
+      if (stdout_fd != 1) dup2(stdout_fd, 1);
+      if (stderr_fd != 2) dup2(stderr_fd, 2);
+#endif
 
 #ifdef BPATCH_LIBRARY
       // define our own session id so we don't get the mutators signals
@@ -988,12 +980,15 @@ int handleSyscallExit(const procevent &event) {
 int signalHandler::handleProcessEvent(const procevent &event) {
    process *proc = event.proc;
    assert(proc);
-
-/*
+   /*
    cerr << "handleProcessEvent, pid: " << proc->getPid() << ", why: "
         << event.why << ", what: " << event.what << ", lwps: "
         << event.lwp->get_lwp_id() << endl;
-*/
+
+   Frame activeFrame = event.lwp->getActiveFrame();
+   cerr << "Event active frame: " << activeFrame << endl;
+   */
+
    int ret = 0;
    if(proc->hasExited()) {
        // Yeah, this was handled... ;)
