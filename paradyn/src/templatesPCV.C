@@ -35,7 +35,8 @@
 #include "paradyn/src/PCthread/PCcostServer.h"
 #include "UI.thread.h"
 
-template class vector<ffstr>;
+template class vector<ff>;
+template class vector<mfpair>;
 template class vector<costServerRec>;
 template class vector<uiSHGrequest>;
 template class vector<dataSubscriber*>;
@@ -44,7 +45,6 @@ template class vector<filter*>;
 template class vector<PCMetInfo*>;
 template class vector<PCmetric*>;
 template class vector<PCMRec>;
-template class vector<PCMRec*>;
 template class vector<inPort>;
 template class vector<searchHistoryNode*>;
 template class vector<hypothesis*>;
@@ -63,13 +63,10 @@ template class PriorityQueue<unsigned, searchHistoryNode*>;
 template ostream &operator<<(ostream &, PriorityQueue<unsigned, searchHistoryNode*> &);
 template class vector<PriorityQueue<unsigned, searchHistoryNode*>::pair>;
 
-template class pair<unsigned, filter*>;
-template class dictionary<unsigned, filter*>;
-template class vector< pair< unsigned, filter*> >;
-template class vector<dictionary_hash<unsigned, filter*>::hash_pair>;
-template class vector< vector< dictionary_hash<unsigned, filter*>::hash_pair> >;
-template class dictionary_hash<unsigned, filter*>;
-
+template class dictionary_lite<unsigned, filter*>;
+template class vector< dictionary_lite<unsigned, filter*> :: hash_pair >;
+template class vector< vector< dictionary_lite<unsigned, filter*>::hash_pair> >;
+ 
 template class pair<unsigned, searchHistoryNode*>;
 template class dictionary<unsigned, searchHistoryNode*>;
 template class vector< pair<unsigned, searchHistoryNode*> >;
