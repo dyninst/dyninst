@@ -278,13 +278,14 @@ bool instrCodeNode::loadInstrIntoApp(pd_Function **func) {
     // the instrumentation via inferiorRPC.
     returnInstance *retInst=NULL;
     bool deferredFlag = false;
-    instInstance *mtInst = V.instRequests[u1].loadInstrIntoApp(proc(), 
+    instReqNode *instReq = &V.instRequests[u1];
+    instInstance *mtInst = instReq->loadInstrIntoApp(proc(), 
 						     retInst, &deferredFlag);
     if (! mtInst) {
       unmarkAsDeferred();
       if (deferredFlag == true) {
 	*func = dynamic_cast<pd_Function *>(const_cast<function_base *>(
-                            V.instRequests[u1].Point()->iPgetFunction()));
+                            instReq->Point()->iPgetFunction()));
 	markAsDeferred();
 	//cerr << "marking " << (void*)this << " " << u1+1 << " / "
 	//     << inst_size << " as deferred\n";
