@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.338 2002/07/02 21:07:17 tlmiller Exp $
+// $Id: process.C,v 1.339 2002/07/03 22:18:38 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1567,22 +1567,18 @@ void process::initInferiorHeap()
 
 bool process::initTrampGuard()
 {
-  // The runtime lib has a variable called DYNINST_tramp_guard
-  // that acts as a flag determining whether or not it is safe
-  // to enter instrumentation code. Basically, when we enter 
-  // a base tramp first check to see if the flag is set. If
-  // so, we skip instrumentation. If not, we set the flag and 
-  // continue.
-  // MT_THREAD: addr points to a vector, one per POS
-  // Set after this is called: trampGuardAddr_
-  // Returns: true on success, false on failure (can be asserted against).
+  // We allocate space for an integer flag (PARADYN: for each thread)
+  // in the inferior heap. This is then used by the base tramp guard code.
+  // So: allocate sizeof(unsigned)*MAX_NUMBER_OF_THREADS, set all to 1 (default value)
   
-  const string vrbleName = "DYNINST_tramp_guard";
-  internalSym sym;
-  bool flag = findInternalSymbol(vrbleName, true, sym);
-  assert(flag);
-  trampGuardAddr_ = sym.getAddr();
-  //fprintf(stderr, "Found tramp guard at addr %x\n", (unsigned) trampGuardAddr_);
+  bool err = false;
+  unsigned initArray[MAX_NUMBER_OF_THREADS];
+  for (unsigned i = 0; i < MAX_NUMBER_OF_THREADS; i++)
+    initArray[i] = 1;
+  trampGuardAddr_ = inferiorMalloc(sizeof(unsigned)*MAX_NUMBER_OF_THREADS,
+				   dataHeap);
+  writeDataSpace((void *)trampGuardAddr_, sizeof(unsigned)*MAX_NUMBER_OF_THREADS,
+		 (void *)initArray);
   return true;
 }
   
@@ -1970,6 +1966,7 @@ bool process::initDyninstLib() {
 #endif
 
   initInferiorHeap();
+  // This must be done after the inferior heap is initialized
   initTrampGuard();
   extern vector<sym_data> syms_to_find;
   if (!heapIsOk(syms_to_find))
@@ -2001,6 +1998,7 @@ bool process::initDyninstLib() {
    }
 #endif
 #endif 
+
   return true;
 }
 
@@ -2138,7 +2136,8 @@ process::process(int iPid, image *iImage, int iTraceLink
     deferredContinueProc = false;
 
 #ifndef BPATCH_LIBRARY
-    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
+    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152, sizeof(RTsharedData_t));
+    RTsharedData = (RTsharedData_t *)theSharedMemMgr->getBaseAddrInDaemon();
     theVariableMgr = new variableMgr(this, theSharedMemMgr, 
 #if defined(MT_THREAD)
 				     MAX_NUMBER_OF_THREADS
@@ -2146,9 +2145,6 @@ process::process(int iPid, image *iImage, int iTraceLink
 				     1
 #endif
 				     );
-#if defined(MT_THREAD)
-    threadMap = new hashTable(MAX_NUMBER_OF_THREADS, MAX_NUMBER_OF_THREADS, 0);
-#endif
     initCpuTimeMgr();
 
     string buff = string(pid); // + string("_") + getHostName();
@@ -2348,7 +2344,8 @@ process::process(int iPid, image *iSymbols,
     deferredContinueProc = false;
     
 #ifndef BPATCH_LIBRARY
-    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
+    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152, sizeof(RTsharedData_t));
+    RTsharedData = (RTsharedData_t *)theSharedMemMgr->getBaseAddrInDaemon();
     theVariableMgr = new variableMgr(this, theSharedMemMgr, 
 #if defined(MT_THREAD)
 				     MAX_NUMBER_OF_THREADS
@@ -2356,9 +2353,6 @@ process::process(int iPid, image *iSymbols,
 				     1
 #endif
 				     );
-#if defined(MT_THREAD)
-    threadMap = new hashTable(MAX_NUMBER_OF_THREADS, MAX_NUMBER_OF_THREADS, 0);
-#endif
     initCpuTimeMgr();
     
     string buff = string(pid); // + string("_") + getHostName();
@@ -2617,7 +2611,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     copyOverInstInstanceObjects(&installedMiniTramps_afterPt);
 
 #ifndef BPATCH_LIBRARY
-    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
+    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152, sizeof(RTsharedData_t));
+    RTsharedData = (RTsharedData_t *)theSharedMemMgr->getBaseAddrInDaemon();
     theVariableMgr = new variableMgr(this, theSharedMemMgr, 
 #if defined(MT_THREAD)
 				     MAX_NUMBER_OF_THREADS
@@ -2625,9 +2620,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 				     1
 #endif
 				     );
-#if defined(MT_THREAD)
-    threadMap = new hashTable(MAX_NUMBER_OF_THREADS, MAX_NUMBER_OF_THREADS, 0);
-#endif
     initCpuTimeMgr();
 
     string buff = string(pid); // + string("_") + getHostName();
