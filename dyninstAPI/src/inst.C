@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.109 2003/07/31 19:01:24 schendel Exp $
+// $Id: inst.C,v 1.110 2003/08/03 04:20:23 pcroth Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -266,8 +266,7 @@ loadMiniTramp_result addInstFunc(miniTrampHandle *mtHandle_save, process *proc,
    // delete retInstance; 
    // safe if NULL (may have been alloc'd by findAndInstallBaseTramp)
 
-   installed_miniTramps_list *mtList;
-   proc->getMiniTrampList(mtHandle.location, when, &mtList);
+   (void)proc->getMiniTrampList(mtHandle.location, when);
    (*mtHandle_save) = mtHandle;
    return res;
 }
@@ -381,8 +380,11 @@ loadMiniTramp_result loadMiniTramp(instInstance *mtInfo, process *proc,
    // On AIX, the branch from base to mini is limitless --
    // we use a register branch. Mini to mini is limited.
    // So cluster the minis in their own space.
-   installed_miniTramps_list *mtList;
-   proc->getMiniTrampList(location, when, &mtList);
+   installed_miniTramps_list *mtList = proc->getMiniTrampList(location, when );
+   if( mtList == NULL )
+   {
+        proc->newMiniTrampList(location, when, &mtList);
+   }
 
    if (mtList->numMiniTramps() == 0) // We are the only mini in the chain
        // Arbitrary address in the text heap
@@ -455,10 +457,10 @@ void hookupMiniTramp(process *proc, const miniTrampHandle &mtHandle,
    instInstance *firstAtPoint = NULL;
    instInstance *lastAtPoint = NULL;
    instInstance *inst = mtHandle.inst;
-   installed_miniTramps_list *mtList = NULL;
    const callWhen &when = mtHandle.when;
 
-   proc->getMiniTrampList(mtHandle.location, when, &mtList);
+   installed_miniTramps_list *mtList = 
+        proc->getMiniTrampList(mtHandle.location, when);
 
    if(mtList == NULL) {
       proc->newMiniTrampList(mtHandle.location, when, &mtList);
@@ -540,8 +542,8 @@ bool trampTemplate::inSavedRegion( Address addr ) {
 }
 
 trampTemplate *findBaseTramp(const instPoint * ip, const process *proc) {
-   const installed_miniTramps_list *mtListBef;
-   proc->getMiniTrampList(ip, callPreInsn, &mtListBef);
+   const installed_miniTramps_list *mtListBef = 
+        proc->getMiniTrampList(ip, callPreInsn);
    
    if(mtListBef != NULL) {
       const List<instInstance*>::iterator curMT = mtListBef->get_begin_iter();
@@ -553,8 +555,8 @@ trampTemplate *findBaseTramp(const instPoint * ip, const process *proc) {
       }
    }
 
-   const installed_miniTramps_list *mtListAft;
-   proc->getMiniTrampList(ip, callPostInsn, &mtListAft);
+   const installed_miniTramps_list *mtListAft =
+        proc->getMiniTrampList(ip, callPostInsn);
 
    if(mtListAft != NULL) {
       const List<instInstance*>::iterator curMT = mtListAft->get_begin_iter();
@@ -571,8 +573,8 @@ trampTemplate *findBaseTramp(const instPoint * ip, const process *proc) {
 
 void getMiniTrampsAtPoint(process *proc, instPoint *loc, callWhen when,
 			  pdvector<miniTrampHandle> *mt_buf) {
-  installed_miniTramps_list *mtList = NULL;
-  proc->getMiniTrampList(loc, when, &mtList);
+  installed_miniTramps_list *mtList = 
+        proc->getMiniTrampList(loc, when);
   if(mtList == NULL) {
      return;  // no minitramps found for this point
   }
@@ -595,8 +597,12 @@ void getMiniTrampsAtPoint(process *proc, instPoint *loc, callWhen when,
 // in the given parentProc
 bool getInheritedMiniTramp(const miniTrampHandle *parentMT, 
 			   miniTrampHandle *childMT, process *childProc) {
-  installed_miniTramps_list *mtList = NULL;
-  childProc->getMiniTrampList(parentMT->location, parentMT->when,  &mtList);
+  installed_miniTramps_list *mtList = 
+        childProc->getMiniTrampList(parentMT->location, parentMT->when);
+  if( mtList == NULL )
+  {
+    childProc->newMiniTrampList(parentMT->location, parentMT->when,  &mtList);
+  }
 
   List<instInstance*>::iterator curMT = mtList->get_begin_iter();
   List<instInstance*>::iterator endMT = mtList->get_end_iter();	 
@@ -627,8 +633,7 @@ pdvector<Address> getTrampAddressesAtPoint(process *proc, const instPoint *loc,
 {
    pdvector<Address> pointsToCheck;
    
-   installed_miniTramps_list *mtList = NULL;
-   proc->getMiniTrampList(loc, when,  &mtList);
+   installed_miniTramps_list *mtList = proc->getMiniTrampList(loc, when);
 
    if(mtList != NULL && mtList->numMiniTramps()>0) {
       List<instInstance*>::iterator curMT = mtList->get_begin_iter();
@@ -674,9 +679,9 @@ pdvector<Address> getTrampAddressesAtPoint(process *proc, const instPoint *loc,
 // or already deleted
 bool deleteInst(process *proc, const miniTrampHandle &mtHandle)
 {
-   installed_miniTramps_list *mtList;
    callWhen when = mtHandle.when;
-   proc->getMiniTrampList(mtHandle.location, when, &mtList);
+   installed_miniTramps_list *mtList =
+        proc->getMiniTrampList(mtHandle.location, when);
    if(mtList == NULL) {
       //cerr << "in inst.C: location is NOT defined" << endl;
       return false;

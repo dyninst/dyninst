@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.62 2003/07/15 22:44:19 schendel Exp $
+// $Id: irix.C,v 1.63 2003/08/03 04:20:23 pcroth Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1340,8 +1340,7 @@ bool findWhen(callWhen *saveWhen, process *proc, const instPoint *loc,
       callWhen curWhen;
       if(i==0)      curWhen = callPreInsn;
       else if(i==1) curWhen = callPostInsn;
-      installed_miniTramps_list *mtList;
-      proc->getMiniTrampList(loc, curWhen, &mtList);
+      installed_miniTramps_list *mtList = proc->getMiniTrampList(loc, curWhen);
       if(mtList == NULL)  continue;
       
       List<instInstance*>::iterator curMT = mtList->get_begin_iter();

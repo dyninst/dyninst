@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.443 2003/07/31 19:00:43 schendel Exp $
+// $Id: process.C,v 1.444 2003/08/03 04:20:24 pcroth Exp $
 
 #include <ctype.h>
 
@@ -537,8 +537,11 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame &frame,
       }
       else //  pc is in a mini-tramp
       {
-	installed_miniTramps_list *mtList;
-	getMiniTrampList(currentIp, when, &mtList);
+	installed_miniTramps_list* mtList = getMiniTrampList(currentIp, when);
+    if( mtList == NULL )
+    {
+        newMiniTrampList( currentIp, when, &mtList );
+    }
 	List<instInstance*>::iterator curMT = mtList->get_begin_iter();
 	List<instInstance*>::iterator endMT = mtList->get_end_iter();	 
 
@@ -5065,61 +5068,68 @@ void process::getMiniTrampLists(pdvector<mtListInfo> *vecBuf) {
   }
 }
 
-void process::getMiniTrampList(const instPoint *loc, callWhen when,
-			       installed_miniTramps_list **mtList) {
-  // creates an empty installed_miniTramps_list if doesn't already exist
-  switch(when) {
-    case callPreInsn: {
-      dictionary_hash<const instPoint *, installed_miniTramps_list*>::iterator
-	lst = installedMiniTramps_beforePt.find(loc);
 
-      if(lst == installedMiniTramps_beforePt.end())
-	(*mtList) = NULL;
-      else
-	(*mtList) = lst.currval();
-
-      break;
-    }
-    case callPostInsn: {
-      dictionary_hash<const instPoint *, installed_miniTramps_list*>::iterator
-	lst = installedMiniTramps_afterPt.find(loc);
-      if(lst == installedMiniTramps_afterPt.end())
-	(*mtList) = NULL;
-      else
-	(*mtList) = lst.currval();
-      break;
-    }
-    default:
-      assert(false);
-  }
-}
-
-void process::getMiniTrampList(const instPoint *loc, callWhen when,
-			       const installed_miniTramps_list **mtList) const 
+installed_miniTramps_list*
+process::getMiniTrampList(const instPoint *loc, callWhen when)
 {
+  installed_miniTramps_list* ret = NULL;
+
   // doesn't create an empty installed_miniTramps_list if doesn't already exist
   switch(when) {
     case callPreInsn: {
       dictionary_hash<const instPoint *, installed_miniTramps_list*>::iterator
-	lst = installedMiniTramps_beforePt.find(loc);
-      if(lst == installedMiniTramps_beforePt.end())
-	(*mtList) = NULL;
-      else
-	(*mtList) = lst.currval();
+        lst = installedMiniTramps_beforePt.find(loc);
+
+      if(lst != installedMiniTramps_beforePt.end())
+        ret = lst.currval();
+
       break;
     }
     case callPostInsn: {
       dictionary_hash<const instPoint *, installed_miniTramps_list*>::iterator
-	lst = installedMiniTramps_afterPt.find(loc);
-      if(lst == installedMiniTramps_afterPt.end())
-	(*mtList) = NULL;
-      else
-	(*mtList) = lst.currval();
+        lst = installedMiniTramps_afterPt.find(loc);
+
+      if(lst != installedMiniTramps_afterPt.end())
+        ret = lst.currval();
+
       break;
     }
     default:
       assert(false);
   }
+  return ret;
+}
+
+
+const installed_miniTramps_list*
+process::getMiniTrampList(const instPoint *loc, callWhen when ) const
+{
+  const installed_miniTramps_list* ret = NULL;
+
+  // doesn't create an empty installed_miniTramps_list if doesn't already exist
+  switch(when) {
+    case callPreInsn: {
+      dictionary_hash<const instPoint *, installed_miniTramps_list*>::iterator
+        lst = installedMiniTramps_beforePt.find(loc);
+
+      if(lst != installedMiniTramps_beforePt.end())
+        ret = lst.currval();
+
+      break;
+    }
+    case callPostInsn: {
+      dictionary_hash<const instPoint *, installed_miniTramps_list*>::iterator
+        lst = installedMiniTramps_afterPt.find(loc);
+
+      if(lst != installedMiniTramps_afterPt.end())
+        ret = lst.currval();
+
+      break;
+    }
+    default:
+      assert(false);
+  }
+  return ret;
 }
 
 void process::removeMiniTrampList(const instPoint *loc, callWhen when) {

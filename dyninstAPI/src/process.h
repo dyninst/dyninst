@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.267 2003/07/31 19:01:27 schendel Exp $
+/* $Id: process.h,v 1.268 2003/08/03 04:20:24 pcroth Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -829,11 +829,11 @@ void saveWorldData(Address address, int size, const void* src);
   void newMiniTrampList(const instPoint *loc, callWhen when,
 			installed_miniTramps_list **mtList);
   
-  void getMiniTrampList(const instPoint *loc, callWhen when, 
-			installed_miniTramps_list **mtList);
+  installed_miniTramps_list* getMiniTrampList(const instPoint *loc,
+                                                callWhen when );
 
-  void getMiniTrampList(const instPoint *loc, callWhen when, 
-			const installed_miniTramps_list **mtList) const;
+  const installed_miniTramps_list* getMiniTrampList(const instPoint *loc,
+                                                callWhen when ) const;
 
   void removeMiniTrampList(const instPoint *loc, callWhen when);
 
