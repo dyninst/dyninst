@@ -44,6 +44,10 @@
 
 /*
  * $Log: as-power.h,v $
+ * Revision 1.6  1997/02/18 21:13:36  sec
+ * Added a label, UPDATE_LR, used in tramp-power.S for the code which will
+ * update the link register.
+ *
  * Revision 1.5  1997/01/27 19:40:35  naim
  * Part of the base instrumentation for supporting multithreaded applications
  * (vectors of counter/timers) implemented for all current platforms +
@@ -78,6 +82,8 @@
  *   its top 6 bits as 0 is invalid (technically UNIMP?).
  *
  */
+
+#define UPDATE_LR       0x5
 
 /* place to put the ba,a insn to return to main code */
 #define END_TRAMP	0x1
