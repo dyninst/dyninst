@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.77  1995/10/19 22:41:57  mjrg
+ * Revision 1.78  1995/11/03 00:05:21  newhall
+ * second part of sampling rate change
+ *
+ * Revision 1.77  1995/10/19  22:41:57  mjrg
  * Added callback function for paradynd's to report change in status of application.
  * Added Exited status for applications.
  * Removed breakpoints from CM5 applications.
@@ -356,7 +359,8 @@ u_int metricInstance::num_global_hists = 0;
 
 double paradynDaemon::earliestFirstTime = 0;
 
-void DMchangeSampleRate(float rate); //callback routine for TC "samplingRate"
+// TODO: remove
+// void DMchangeSampleRate(float rate); 
 void newSampleRate(float rate);
 
 //
@@ -697,6 +701,8 @@ void *DMmain(void* varg)
 	      NULL, // callback
 	      developerConstant);
 
+// TODO remove this
+#ifdef ndef
     // Now for the float TC "samplingRate"
     tunableFloatConstantDeclarator sampR ("samplingRate",
 	      "how often to sample intermediate performance data (in seconds)",
@@ -706,6 +712,7 @@ void *DMmain(void* varg)
 	      DMchangeSampleRate, // callback
 	      userConstant);
 
+#endif
 
     int tid; memcpy((void*)&tid,varg, sizeof(int));
     dataManager::DM_post_thread_create_init(tid);
@@ -889,17 +896,8 @@ void newSampleRate(float rate)
     paradynDaemon *pd = NULL;
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i]; 
-        // cout << " in newSampleRate: before call to daemons rate = " 
-	//      << rate << endl; 
-	// TODO: uncomment this to change sampling rate
-	// pd->setSampleRate(rate);
+	pd->setSampleRate(rate);
     }
-}
-
-// sampling rate should not be a tunable constant, so changing the tunable 
-// constant does nothing. ha!
-void DMchangeSampleRate(float rate){
-    
 }
 
 #ifdef ndef

@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.50  1995/10/13 22:06:52  newhall
+ * Revision 1.51  1995/11/03 00:05:25  newhall
+ * second part of sampling rate change
+ *
+ * Revision 1.50  1995/10/13  22:06:52  newhall
  * Added code to change sampling rate as bucket width changes (this is not
  * completely implemented in daemon code yet, so now it has no effect).
  * Purify fixes.  Added phaseType parameter to sampleDataCallbackFunc
@@ -624,7 +627,6 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
     if(!mi->isEnabled()) return;
 
     u_int num_curr_users = mi->currUsersCount();
-    u_int num_global_users = mi->globalUsersCount();
 
     // remove user from appropriate list
     if (type == CurrentPhase) {

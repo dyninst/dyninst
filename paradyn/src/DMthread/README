@@ -57,7 +57,7 @@ new phase:  if persistent_data flag is set, then the current histogram is
 
 (III) Phase Interface 
 ---------------------
-phases are non-overlapping sequential contiguous time spans within an
+phases are non-overlapping contiguous sequential time spans within an
 applications execution.
 
 data collection
