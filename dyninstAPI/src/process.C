@@ -731,6 +731,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     some_modules = 0;
     some_functions = 0;
     waiting_for_resources = false;
+    signal_handler = 0;
 
 #ifdef SHM_SAMPLING
 #ifdef sparc_sun_sunos4_1_3
@@ -847,6 +848,7 @@ process::process(const process &parentProc, int iPid
     some_modules = 0;
     some_functions = 0;
     waiting_for_resources = false;
+    signal_handler = 0;
 
 #ifdef SHM_SAMPLING
 #ifdef sparc_sun_sunos4_1_3
@@ -1909,6 +1911,7 @@ vector<module *> *process::getIncludedModules(){
 // Otherwise, the signal handler function has already been found
 void process::findSignalHandler(){
 
+    if(SIGNAL_HANDLER == 0) return;
     if(!signal_handler) { 
         // first check a.out for signal handler function
         signal_handler = symbols->findOneFunction(SIGNAL_HANDLER);
