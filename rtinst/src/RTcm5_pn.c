@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.35  1996/02/15 14:55:42  naim
+ * Revision 1.36  1996/02/15 16:16:38  naim
+ * Fixing wall timer. It if goes backwards, then we retry again - naim
+ *
+ * Revision 1.35  1996/02/15  14:55:42  naim
  * Minor changes to timers and cost model - naim
  *
  * Revision 1.34  1996/02/01  22:09:34  naim
@@ -250,11 +253,14 @@ retry:
 
 inline time64 getProcessTime()
 {
-/*    int high; */
     time64 ret;
     timeParts end;
     time64 ni_end;
     static time64 previous=0;
+
+/* TEST code
+    int nretries=0;
+*/ 
 
 retry:
     timerBuffer.sync = 1;
@@ -273,9 +279,12 @@ retry:
     if (ret < 0) goto retry;
 
     if (ret<previous) {
-      printf("RTcm5_pn: wall time going backwards\n");
+/* TEST code
+      printf("RTcm5_pn: PROCESS time going backwards\n");
       printf("current = %f, previous = %f\n",(double)ret,(double)previous);
-      printf("retrying...\n");
+      nretries++;
+      printf("retrying (%d)...\n",nretries);
+*/
       goto retry;
     }
     previous=ret;
@@ -299,6 +308,10 @@ inline time64 getWallTime()
     timeParts end;
     static time64 previous=0;
 
+/* TEST code
+    int nretries=0;
+*/
+
 retry:
     timerBuffer.sync = 1;
     end.parts.high = timerBuffer.high;
@@ -310,9 +323,12 @@ retry:
     /* if (end.parts.high != timerBuffer.high) goto retry;     */
 
     if (end.value < previous) {
-      printf("RTcm5_pn: wall time going backwards\n");
-      printf("current = %f, previous = %f\n",(double)end.value,(double)previous);
-      printf("retrying...\n");
+/* TEST code
+      printf("RTcm5_pn: WALL time going backwards\n");
+      printf("current=%f, previous=%f\n",(double)end.value,(double)previous);
+      nretries++;
+      printf("retrying (%d)...\n",nretries);
+*/
       goto retry;
     }
     previous = end.value;
