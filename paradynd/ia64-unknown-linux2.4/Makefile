@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2004/07/23 20:39:08 tlmiller Exp $
+# $Id: Makefile,v 1.7 2004/11/30 21:10:53 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -75,7 +75,7 @@ LIBS	+=	-Wl,-static -lelf -Wl,-call_shared
 else
 LIBS	+=	-lelf
 endif
-LIBS	+= -L$(LIBUNWIND_LIB) -Wl,-Bstatic -lunwind -Wl,-Bdynamic
+LIBS	+= -L$(LIBUNWIND_LIB) -lunwind-ptrace -lunwind -lunwind-ia64
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
