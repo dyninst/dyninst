@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.132 2005/03/07 21:18:59 bernat Exp $
+// $Id: main.C,v 1.133 2005/03/07 21:36:21 mjbrim Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -277,7 +277,7 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
 //which MPI implementation is used.
 void RPC_do_environment_work(pdstring pd_flavor, pdstring MPI_impl){
   if(pd_flavor == "mpi"){
-    char * temp = (char *)malloc((10 + MPI_impl.length())*sizeof(char)) ;
+    char * temp = (char *)malloc((strlen("PARADYN_MPI=") + MPI_impl.length())*sizeof(char)) ;
     sprintf(temp, "PARADYN_MPI=%s",MPI_impl.c_str());
     //cerr<<"temp is "<<temp<<endl;
     putenv(temp);
@@ -549,7 +549,7 @@ main( int argc, char* argv[] )
          cleanUpAndExit(-1);
       }
    }
-   
+
 #if !defined(i386_unknown_nt4_0)
    extern PDSOCKET connect_Svr(pdstring machine,int port);
    PDSOCKET stdout_fd=INVALID_PDSOCKET;
@@ -557,6 +557,7 @@ main( int argc, char* argv[] )
       cleanUpAndExit(-1);
    if (write(stdout_fd,"from_paradynd\n",strlen("from_paradynd\n")) <= 0)
       cleanUpAndExit(-1);
+
    //for MPICH2  - MPICH2 mpd selects on the stdout fd
    //of its children. If it is closed then EOF is detected by select.  MPICH2
    //mpd begins a shutdown sequence if it detects EOF on the fd.
@@ -576,11 +577,13 @@ main( int argc, char* argv[] )
                              pd_known_socket_portnum, pd_flag, 0,
                              pd_machine, true);
 #endif 
-    RPC_do_environment_work(pd_flavor, MPI_impl);
+
+   RPC_do_environment_work(pd_flavor, MPI_impl);
 
    assert(aflag);
    pdstring flav_arg(pdstring("-z")+ pd_flavor);
-   pd_process::arg_list += flav_arg;
+   pd_process::arg_list.push_back(flav_arg);
+
    machine_name = getNetworkName();
    
    //
@@ -601,6 +604,7 @@ main( int argc, char* argv[] )
    }
    // Okay, argNum is the command line argument which is "-runme" - skip it
    argNum++;
+
    // Copy everything from argNum to < argc
    // this is the command that is to be issued
    for (unsigned int i = argNum; i < (unsigned int)argc; i++)
@@ -608,8 +612,6 @@ main( int argc, char* argv[] )
       newProcCmdLine += argv[i];
    }
    // note - newProcCmdLine could be empty here, if the -runme flag is not given
-   
-
    // There are several ways that we might have been started.
    // We need to connect to Paradyn differently depending on which 
    // method was used.
