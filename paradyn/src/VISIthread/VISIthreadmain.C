@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.29  1994/09/30 21:21:14  newhall
-/* purify related fixes
+/* Revision 1.30  1994/10/10 02:51:15  newhall
+/* purify fixes, fixes to support new metric/focus choices
 /*
+ * Revision 1.29  1994/09/30  21:21:14  newhall
+ * purify related fixes
+ *
  * Revision 1.28  1994/09/30  19:18:45  rbi
  * Abstraction interface change.
  *
@@ -139,6 +142,10 @@
 	 uiMgr->showError(s1,s2); \
 	 printf("error# %d: %s\n",s1,s2); 
 
+/*
+#define DEBUG3
+*/
+
 char *AbbreviatedFocus(char *);
 char *GetResourceName(resourceList *);
 
@@ -164,6 +171,10 @@ void VISIthreadDataHandler(performanceStream *ps,
 
  VISIthreadGlobals *ptr;
  dataValue_Array   temp;
+#ifdef DEBUG3
+ char	**blah;
+ int           count,i;
+#endif
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in VISIthreadDataCallback"));
@@ -197,6 +208,15 @@ void VISIthreadDataHandler(performanceStream *ps,
 #ifdef DEBUG3
 if((bucketNum % 100) == 0){ 
   fprintf(stderr,"VISIthread %d: bucketNum = %d value = %f metric = %d resource = %d\n", thr_self(),bucketNum,value,(int)(mi->met),ptr->buffer[ptr->bufferSize].resourceId);
+  blah = mi->focus->convertToStringList();
+  count = mi->focus->getCount();
+  if(count){
+     for(i=0; i < count; i++)
+     fprintf(stderr,"resourceName = %s\n", blah[i]); 
+  }
+  else{
+     fprintf(stderr,"resourceName = NULL\n"); 
+  }
 }
 #endif
 
@@ -434,8 +454,6 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
 
   // check for invalid reply  ==> user picked "Cancel" menu option
   if((numElements <= 0) || (newMetRes == NULL)){
-    PARADYN_DEBUG(("no metric and resource in VISIthreadchooseMetRes"));
-    ERROR_MSG(17,"Incomplete metric/focus list:VISIthreadchooseMetRes");
     if(ptr->start_up){
       ptr->quit = 1;
     }
@@ -513,8 +531,8 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
 	pairList.data[i].met.name = strdup(temp2->name); 
 	pairList.data[i].met.units = strdup(temp2->units);
 	pairList.data[i].met.aggregate = AVE;
-	pairList.data[i].res.Id =  (int)key;
-	if((pairList.data[i].res.name =  
+	pairList.data[i].res.Id = (int)newEnabled[i]->focus->getCanonicalName();
+	if((pairList.data[i].res.name =   
 	    AbbreviatedFocus(GetResourceName(newEnabled[i]->focus))) == NULL){
             ERROR_MSG(12,"in VISIthreadchooseMetRes");
 	    ptr->quit = 1;
@@ -789,6 +807,7 @@ void *VISIthreadmain(void *vargs){
   for (walk= *globals->mrlist; listItem= *walk; ++walk) {
       globals->dmp->disableDataCollection(globals->perStream, listItem);
   }
+  globals->mrlist->removeAll();
 
   /*
   for (walk= *globals->mrlist; listItem= *walk; ++walk) {
@@ -815,16 +834,20 @@ void *VISIthreadmain(void *vargs){
   PARADYN_DEBUG(("after notify VM of thread died"));
 
   // unbind file descriptor associated with visualization
-  if(msg_unbind(globals->fd) == THR_ERR){
-      PARADYN_DEBUG(("Error in msg_unbind(globals->fd)"));
-      ERROR_MSG(14,"Error in VISIthreadmain: msg_unbind");
+  if(globals->start_up){
+      if(msg_unbind(globals->fd) == THR_ERR){
+          PARADYN_DEBUG(("Error in msg_unbind(globals->fd)"));
+          ERROR_MSG(14,"Error in VISIthreadmain: msg_unbind");
+      }
+      delete globals->visip;
   }
 
   delete globals->mrlist;
-  delete globals->visip;
 
   PARADYN_DEBUG(("leaving visithread main"));
-  thr_exit(0);
+  thr_exit((void *)0);
+
+  return((void *)0);
 }
 
 
