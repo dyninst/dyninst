@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.9 2000/03/17 21:56:18 schendel Exp $ */
+/* $Id: RTcommon.c,v 1.10 2000/07/27 14:05:47 bernat Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -62,8 +62,9 @@ unsigned int DYNINSThasInitialized = 0; /* 0 : has not initialized
 
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 
-double DYNINSTdata[SYN_INST_BUF_SIZE/sizeof(double)];
 double DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(double)];
+double DYNINSTstaticHeap_32K_lowmemHeap_1[32*1024/sizeof(double)];
+double DYNINSTstaticHeap_4M_anyHeap_1[4*1024*1024/sizeof(double)];
 
 /* Written to by daemon just before launching an inferior RPC */
 rpcInfo curRPC = { 0, 0, 0 };
