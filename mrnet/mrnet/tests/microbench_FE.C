@@ -7,6 +7,7 @@
 #include <string>
 #include <unistd.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "mrnet/MRNet.h"
 #include "mrnet/tests/timer.h"

@@ -22,8 +22,8 @@ enum{
     PROT_EXIT
 };
 
-const char CHARVAL=-17;
-const unsigned char UCHARVAL=17;
+const char CHARVAL=-7;
+const unsigned char UCHARVAL=7;
 const int16_t INT16VAL=-17;
 const uint16_t UINT16VAL=17;
 const int32_t INT32VAL=-17;

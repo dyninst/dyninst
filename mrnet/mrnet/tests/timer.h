@@ -42,7 +42,7 @@ class mb_time{
     double d;
     void set_timeval_from_double() {
         //char tmp[128];
-        assert(d != -1);
+        assert((long)d != -1);
         tv.tv_sec = (long)d;
         tv.tv_usec = (long)((d - ((double)tv.tv_sec)) * 1000000);
         //sprintf(tmp, "%lf", d);
@@ -74,19 +74,19 @@ class mb_time{
         d = -1.0;  //only set on demand for efficiency
     }
     void get_time(double *_d){
-        if(d != -1.0){
+        if( (long)d != -1){
             set_double_from_timeval();
         }
         *_d = d;
     }
     double get_double_time(){
-        if(d == -1.0){
+        if( (long)d == -1){
             set_double_from_timeval();
         }
         return d;
     }
     void get_time(struct timeval *_tv){
-        if(tv.tv_sec == -1.0){
+        if( (long)tv.tv_sec == -1){
             set_timeval_from_double();
         }
         *_tv = tv;
@@ -98,7 +98,7 @@ class mb_time{
         return retval; 
     }
     void operator-=(double _d){
-        if(d == -1){
+        if( (long)d == -1){
             set_double_from_timeval();
         }
         d -= _d;

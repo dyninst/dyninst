@@ -19,8 +19,6 @@ int test_CountOddsAndEvensFilter(  Network *, const char * so_file );
 
 int main(int argc, char **argv)
 {
-    char dummy;
-
     if( argc != 4 ){
         fprintf(stderr, "Usage: %s <shared_object file> <topology file> "
                 "<backend_exe>\n", argv[0]);
@@ -33,9 +31,7 @@ int main(int argc, char **argv)
     fprintf(stderr,"MRNet C++ Interface *Dynamic Filter* Test Suite\n"
             "--------------------------------------\n"
             "This test suite performs tests that exercise\n"
-            "MRNet's \"Filter Loading\" functionality.\n"
-            "Press <enter> to start the testing...\n");
-    scanf("%c",&dummy);
+            "MRNet's \"Filter Loading\" functionality.\n");
 
     test = new Test("MRNet Dynamic Filter Test");
     Network * network = new Network( topology_file, backend_exe );
@@ -55,6 +51,21 @@ int main(int argc, char **argv)
     //because it is the one that instructs the backends to exit.
     test_CountOddsAndEvensFilter( network, so_file );
   
+    Communicator * comm_BC = network->get_BroadcastCommunicator( );
+    Stream * stream = network->new_Stream(comm_BC, TFILTER_NULL, SFILTER_WAITFORALL);
+
+    if(stream->send(PROT_EXIT, "") == -1){
+        fprintf(stderr, "stream->send(\"PROT_EXIT\") failed\n");
+        network->error_str(argv[0]);
+        return -1;
+    }
+
+    if(stream->flush() == -1){
+        fprintf(stderr, "stream->flush() failed\n");
+        network->error_str(argv[0]);
+        return -1;
+    }
+
     delete network;
 
     test->end_Test();
@@ -170,18 +181,6 @@ int test_CountOddsAndEvensFilter( Network * network, const char * so_file )
         sprintf(tmp_buf, "num_odds = %d; num_evens = %d\n",
                 num_odds, num_evens);
         test->print(tmp_buf, testname);
-    }
-
-    if(stream->send(PROT_EXIT, "") == -1){
-        test->print("stream::send(exit) failure\n");
-        test->end_SubTest(testname, FAILURE);
-        return -1;
-    }
-
-    if(stream->flush() == -1){
-        test->print("stream::flush() failure\n");
-        test->end_SubTest(testname, FAILURE);
-        return -1;
     }
 
     test->end_SubTest(testname, SUCCESS);

@@ -21,7 +21,6 @@ int test_array(Network *, Stream *, bool anonymous, bool block, DataType type);
 int main(int argc, char **argv)
 {
     Stream * stream_BC;
-    char dummy;
 
     if( argc !=3 ){
         fprintf(stderr, 
@@ -35,10 +34,8 @@ int main(int argc, char **argv)
             " ##########################################\n\n"
             "   This test suite performs many tests that exercise\n"
             " MRNet's basic functionality. These tests use all MRNet\n"
-            " data types, and the popular functions in the interface.\n\n"
-            " Press <enter> to start the testing ...\n");
-
-    scanf("%c",&dummy);
+            " data types, and the popular functions in the interface.\n\n");
+    fflush( stdout );
 
     test = new Test( "MRNet Basic Test", stdout );
 

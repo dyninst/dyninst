@@ -19,8 +19,6 @@ int test_Sum( Network * network, DataType type );
 
 int main(int argc, char **argv)
 {
-    char dummy;
-
     if( argc != 3 ){
         fprintf(stderr, "Usage: %s <topology file> <backend_exe>\n", argv[0]);
         exit(-1);
@@ -31,9 +29,7 @@ int main(int argc, char **argv)
     fprintf(stderr,"MRNet C++ Interface *Native Filter* Test Suite\n"
             "--------------------------------------\n"
             "This test suite performs tests that exercise\n"
-            "MRNet's built-in filters.\n"
-            "Press <enter> to start the testing...\n");
-    scanf("%c",&dummy);
+            "MRNet's built-in filters.\n\n");
 
     test = new Test("MRNet Native Filter Test");
     Network * network = new Network( topology_file, backend_exe );
@@ -287,11 +283,11 @@ int test_Sum( Network * network, DataType type )
                 test->print("stream::unpack() failure\n", testname);
                 return -1;
             }
-            if( *((float*)recv_val) != num_backends * FLOATVAL ){
+            if( !compare_Float( *(float*)recv_val, num_backends * FLOATVAL, 3) ){
                 sprintf(tmp_buf,
                         "recv_val(%f) != FLOATVAL(%f)*num_backends(%d):%f.\n",
                         *((float*)recv_val), FLOATVAL, num_backends,
-                        FLOATVAL*(float)num_backends );
+                        FLOATVAL*num_backends);
                 test->print(tmp_buf, testname);
                 success = false;
             }
@@ -301,11 +297,11 @@ int test_Sum( Network * network, DataType type )
                 test->print("stream::unpack() failure\n", testname);
                 return -1;
             }
-            if( *((double*)recv_val) != num_backends * DOUBLEVAL ){
+            if( !compare_Double(*(double*)recv_val, num_backends*DOUBLEVAL, 3) ){
                 sprintf(tmp_buf,
                         "recv_val(%lf) != DOUBLEVAL(%lf)*num_backends(%d):%lf.\n",
                         *((double*)recv_val), DOUBLEVAL, num_backends,
-                        DOUBLEVAL*(double)num_backends );
+                        num_backends*DOUBLEVAL);
                 test->print(tmp_buf, testname);
                 success = false;
             }

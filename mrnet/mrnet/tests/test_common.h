@@ -12,6 +12,10 @@
 
 
 namespace MRN_test{
+
+bool compare_Float(float f1, float f2, int sig);
+bool compare_Double(double f1, double f2, int sig);
+
 class Timer{
  public:
     struct timeval tv_start, tv_end;

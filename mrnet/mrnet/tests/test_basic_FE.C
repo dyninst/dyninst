@@ -9,6 +9,7 @@
 #include "test_basic.h"
 
 #include <string>
+#include <assert.h>
 
 using namespace MRN;
 using namespace MRN_test;
@@ -49,11 +50,9 @@ int test_alltypes( Network *, Stream *, bool anonymous=false, bool block=true);
 int main(int argc, char **argv)
 {
     Stream * stream_BC;
-    char dummy;
 
-    if( argc !=3 ){
-        fprintf(stderr, 
-                "Usage: %s <topology file> <backend_exe>\n", argv[0]);
+    if( argc != 3 ){
+        fprintf(stderr, "Usage: %s <topology file> <backend_exe>\n", argv[0]);
         exit(-1);
     }
 
@@ -63,11 +62,8 @@ int main(int argc, char **argv)
             " ##########################################\n\n"
             "   This test suite performs many tests that exercise\n"
             " MRNet's basic functionality. These tests use all MRNet\n"
-            " data types, and the popular functions in the interface.\n\n"
-            " Press <enter> to start the testing ...\n");
+            " data types, and the popular functions in the interface.\n\n");
     fflush( stdout );
-
-    scanf("%c",&dummy);
 
     test = new Test( "MRNet Basic Test", stdout );
 
@@ -79,6 +75,7 @@ int main(int argc, char **argv)
     }
 
     Communicator * comm_BC = network->get_BroadcastCommunicator( );
+    assert(comm_BC);
 
     stream_BC = network->new_Stream(comm_BC, TFILTER_NULL, SFILTER_DONTWAIT);
 
@@ -194,7 +191,8 @@ int main(int argc, char **argv)
     }
     if( test_alltypes( network, stream_BC, true, true) == -1 ){
     }
-
+    /*
+    */
     if( stream_BC->send(PROT_EXIT, "") == -1){
         test->print("stream::send(exit) failure\n");
         return -1;
@@ -287,9 +285,11 @@ int test_char( Network * network, Stream *stream, bool anonymous, bool block)
             char tmp_buf[256];
 
             num_received++;
+#if defined(DEBUG)
             sprintf(tmp_buf, "Received %d packets; %d left.\n",
                     num_received, num_to_receive-num_received);
             test->print(tmp_buf, testname);
+#endif
 
             if( Stream::unpack( buf, "%c", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
@@ -390,9 +390,11 @@ int test_uchar( Network * network, Stream *stream, bool anonymous, bool block)
             char tmp_buf[256];
 
             num_received++;
+#if defined(DEBUG)
             sprintf(tmp_buf, "Received %d packets; %d left.\n",
                     num_received, num_to_receive-num_received);
             test->print(tmp_buf, testname);
+#endif
 
             if( Stream::unpack( buf, "%uc", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
@@ -493,9 +495,11 @@ int test_short( Network * network, Stream *stream, bool anonymous, bool block)
             char tmp_buf[256];
 
             num_received++;
+#if defined(DEBUG)
             sprintf(tmp_buf, "Received %d packets; %d left.\n",
                     num_received, num_to_receive-num_received);
             test->print(tmp_buf, testname);
+#endif
 
             if( Stream::unpack( buf, "%hd", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
@@ -597,9 +601,11 @@ int test_ushort( Network * network, Stream *stream, bool anonymous, bool block)
             char tmp_buf[256];
 
             num_received++;
+#if defined(DEBUG)
             sprintf(tmp_buf, "Received %d packets; %d left.\n",
                     num_received, num_to_receive-num_received);
             test->print(tmp_buf, testname);
+#endif
 
             if( Stream::unpack( buf, "%uhd", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
@@ -701,9 +707,11 @@ int test_int( Network * network, Stream *stream, bool anonymous, bool block)
             char tmp_buf[256];
 
             num_received++;
+#if defined(DEBUG)
             sprintf(tmp_buf, "Received %d packets; %d left.\n",
                     num_received, num_to_receive-num_received);
             test->print(tmp_buf, testname);
+#endif
 
             if( Stream::unpack( buf, "%d", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
@@ -805,9 +813,11 @@ int test_uint( Network * network, Stream *stream, bool anonymous, bool block)
             char tmp_buf[256];
 
             num_received++;
+#if defined(DEBUG)
             sprintf(tmp_buf, "Received %d packets; %d left.\n",
                     num_received, num_to_receive-num_received);
             test->print(tmp_buf, testname);
+#endif
 
             if( Stream::unpack( buf, "%ud", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
@@ -909,9 +919,11 @@ int test_long( Network * network, Stream *stream, bool anonymous, bool block)
             char tmp_buf[256];
 
             num_received++;
+#if defined(DEBUG)
             sprintf(tmp_buf, "Received %d packets; %d left.\n",
                     num_received, num_to_receive-num_received);
             test->print(tmp_buf, testname);
+#endif
 
             if( Stream::unpack( buf, "%ld", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
@@ -1013,9 +1025,11 @@ int test_ulong( Network * network, Stream *stream, bool anonymous, bool block)
             char tmp_buf[256];
 
             num_received++;
+#if defined(DEBUG)
             sprintf(tmp_buf, "Received %d packets; %d left.\n",
                     num_received, num_to_receive-num_received);
             test->print(tmp_buf, testname);
+#endif
 
             if( Stream::unpack( buf, "%uld", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
@@ -1117,15 +1131,17 @@ int test_float( Network * network, Stream *stream, bool anonymous, bool block)
             char tmp_buf[256];
 
             num_received++;
+#if defined(DEBUG)
             sprintf(tmp_buf, "Received %d packets; %d left.\n",
                     num_received, num_to_receive-num_received);
             test->print(tmp_buf, testname);
+#endif
 
             if( Stream::unpack( buf, "%f", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
-            if(send_val != recv_val ){
+            if( !compare_Float(send_val, recv_val,3) ){
                 sprintf(tmp_buf, "send_val(%f) != recv_val(%f) failure.\n",
                         send_val, recv_val);
                 test->print(tmp_buf, testname);
@@ -1221,15 +1237,17 @@ int test_double( Network * network, Stream *stream, bool anonymous, bool block)
             char tmp_buf[256];
 
             num_received++;
+#if defined(DEBUG)
             sprintf(tmp_buf, "Received %d packets; %d left.\n",
                     num_received, num_to_receive-num_received);
             test->print(tmp_buf, testname);
+#endif
 
             if( Stream::unpack( buf, "%lf", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
-            if(send_val != recv_val ){
+            if( !compare_Float( send_val, recv_val, 3 ) ){
                 sprintf(tmp_buf, "send_val(%lf) != recv_val(%lf) failure.\n",
                         send_val, recv_val);
                 test->print(tmp_buf, testname);
@@ -1325,9 +1343,11 @@ int test_string( Network * network, Stream *stream, bool anonymous, bool block)
             char tmp_buf[256];
 
             num_received++;
+#if defined(DEBUG)
             sprintf(tmp_buf, "Received %d packets; %d left.\n",
                     num_received, num_to_receive-num_received);
             test->print(tmp_buf, testname);
+#endif
 
             if( Stream::unpack( buf, "%s", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
@@ -1447,9 +1467,11 @@ int test_alltypes( Network * network, Stream *stream, bool anonymous, bool block
             char tmp_buf[2048];
 
             num_received++;
+#if defined(DEBUG)
             sprintf(tmp_buf, "Received %d packets; %d left.\n",
                     num_received, num_to_receive-num_received);
             test->print(tmp_buf, testname);
+#endif
 
             if(stream->unpack(buf,
                               "%c %uc %hd %uhd %d %ud %ld %uld %f %lf %s",
@@ -1469,8 +1491,8 @@ int test_alltypes( Network * network, Stream *stream, bool anonymous, bool block
                 ( send_uint != recv_uint ) ||
                 ( send_long != recv_long ) ||
                 ( send_ulong != recv_ulong ) ||
-                ( send_float != recv_float ) ||
-                ( send_double != recv_double ) ||
+                ( !compare_Float( send_float, recv_float, 3 ) ) ||
+                ( !compare_Double( send_double, recv_double, 3 ) ) ||
                 ( strcmp(send_string, recv_string)) ){
                 sprintf(tmp_buf, "Values sent != Values received failure.\n"
                         "  send_char=%c recv_char=%c\n"

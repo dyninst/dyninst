@@ -7,7 +7,26 @@
 #include "mrnet/tests/timer.h"
 
 #include <stdio.h>
+#include <math.h>
 using namespace MRN_test;
+
+bool MRN_test::compare_Float(float f1, float f2, int sig)
+{
+    if( fabs(f1 - f2) > pow(10, sig * -1) ) {
+        return false;
+    }
+
+    return true;
+}
+
+bool MRN_test::compare_Double(double f1, double f2, int sig)
+{
+    if( fabs(f1 - f2) > pow(10, sig * -1) ) {
+        return false;
+    }
+
+    return true;
+}
 
 Test::SubTest::SubTest(const std::string & subtest_name, FILE *f)
     :name(subtest_name), fout(f), status(NOTRUN)
@@ -74,8 +93,13 @@ void Test::end_Test( )
 {
     timer.end();
 
-    fprintf(fout, "Test %s Complete. There were %d failures\n",
-            name.c_str(), num_failures);
+    if( num_failures == 0 ){
+        fprintf(fout, "Test %s Complete. All tests passed.\n", name.c_str() );
+    }
+    else{
+        fprintf(fout, "Test %s Complete. There were %d failures\n",
+                name.c_str(), num_failures);
+    }
 
     if( num_failures ){
         std::map<std::string, SubTest*>::iterator iter;
