@@ -39,93 +39,43 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef INSTR_THR_DATA_NODE
-#define INSTR_THR_DATA_NODE
+#ifndef INSTR_DATA_NODE
+#define INSTR_DATA_NODE
 
 #include "paradynd/src/metric.h"
 
-class dataReqNode;
 class instrCodeNode_Val;
+class pdThread;
 
-
-class instrThrDataNode {
+class instrDataNode {
  private:
-  dataReqNode *sampledDataReq;
-  dataReqNode *constraintDataReq;
-  vector<dataReqNode*> tempCtrDataRequests;
-  instrCodeNode_Val *parentNode;
+  process *proc;
+  inst_var_type varType;
+  inst_var_index varIndex;
+  
   bool thrNodeClientSet;
   bool dontInsertData_;
 
   /* unique id for a counter or timer */
   static int counterId;
 
-  dataReqNode *makeIntCounter(inst_var_index index, pdThread *thr, 
-			      rawTime64 initialValue);
  protected:
-  virtual ~instrThrDataNode(); // use disableAndDelete() to delete
+  virtual ~instrDataNode(); // use disableAndDelete() to delete
 
  public:
   static int incrementCounterId() {  return ++counterId;  }
   // styles are enumerated in aggregation.h
-  instrThrDataNode(instrCodeNode_Val *_parentNode, bool arg_dontInsertData);
+  instrDataNode(process *proc_, unsigned type, inst_var_index var_index, 
+		bool arg_dontInsertData);
 
-  vector<dataReqNode *> getDataRequests();
-  unsigned numDataRequests() const { 
-    return tempCtrDataRequests.size() + ((sampledDataReq!=NULL)? 1:0)
-                                      + ((constraintDataReq!=NULL)? 1:0);
-  }
   bool dontInsertData() { return dontInsertData_; }
-  bool nonNull() const { return (numDataRequests() > 0); }
-  void disableAndDelete(vector< vector<Address> > pointsToCheck);
-  const dataReqNode *getConstraintDRN() const { return constraintDataReq; }
-  void cleanup_drn();
-  instrCodeNode_Val *getParent() {
-    return parentNode;
-  }
-  process *proc();
+  Address getInferiorPtr() const;
   void print();
-  void startSampling(threadMetFocusNode_Val *thrClient);
-  void stopSampling();
-
-  // --- Counters -------------
-  dataReqNode *createSampledCounter(inst_var_index index, pdThread *thr, 
-				    rawTime64 initialValue);
-  dataReqNode *createConstraintCounter(inst_var_index index, pdThread *thr, 
-				       rawTime64 initialValue);
-  dataReqNode *createTemporaryCounter(inst_var_index index, pdThread *thr, 
-				      rawTime64 initialValue);
-
-  // --- Wall Timers ----------
-  dataReqNode *createWallTimer(inst_var_index index, pdThread *thr);
-
-  // --- Process Timers -------
-  dataReqNode *createProcessTimer(inst_var_index index, pdThread *thr);
-
-  virtual int getThreadID() const = 0;
+  void startSampling(unsigned thrPos, threadMetFocusNode_Val *thrClient);
+  void stopSampling(unsigned thrPos);
+  void disableAndDelete(vector< vector<Address> > pointsToCheck);
 };
 
-class collectInstrThrDataNode : public instrThrDataNode {
- protected:
-  ~collectInstrThrDataNode();  // use disableAndDelete() to delete
- public:
-  enum { collectThreadID = -1 };
-  collectInstrThrDataNode(instrCodeNode *_parentNode, 
-			  bool arg_dontInsertData);
-  int getThreadID() const { return collectThreadID; }
-};
-
-class indivInstrThrDataNode : public instrThrDataNode {
- private:
-  pdThread *thrObj;
- protected:
-  ~indivInstrThrDataNode();  // use disableAndDelete() to delete
- public:
-  indivInstrThrDataNode(instrCodeNode *_parentNode, 
-			bool arg_dontInsertData, pdThread *thrObj_);
-  int getThreadID() const;
-  pdThread *getThreadObj() { return thrObj; }
-};
 
 
 #endif
