@@ -4335,7 +4335,7 @@ void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
 	    // did we insert the snippet?
 	    if (han == NULL) {
 		fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
-		fprintf(stderr,"   Unable to insert snippet at loop %s.\n", i);
+		fprintf(stderr,"   Unable to insert snippet at loop %d.\n", i);
 	    }
 	}
 
