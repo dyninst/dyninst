@@ -4,6 +4,9 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.28  1996/05/02 19:51:39  karavan
+# added new cost server class, two new files, PCcostServer.C and PCcostServer.h
+#
 # Revision 1.27  1996/02/27 17:30:40  karavan
 # removed PC debug printing flag
 #
@@ -137,6 +140,7 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/PCthread/PCrules.C \
 		../src/PCthread/PCshg.C \
 		../src/PCthread/PCmetricInst.C \
+		../src/PCthread/PCcostServer.C \
 		../src/UIthread/tclTunable.C \
 		../src/UIthread/Status.C \
 		../src/UIthread/uimpd.tcl.C \
