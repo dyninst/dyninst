@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.212 2000/03/12 23:27:15 hollings Exp $
+// $Id: process.C,v 1.213 2000/03/17 14:18:29 zhichen Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -852,8 +852,7 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
   imd_rpc_ret ret = { false, NULL };
   /* set lowmem to ensure there is space for inferior malloc */
 #if defined(MT_THREAD)
-  p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1, true,
-                                                            -1, false);
+  p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1, -1, false, true);
 #else
   p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1, true);
 #endif
