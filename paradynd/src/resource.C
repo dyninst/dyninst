@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.10 1994/09/22 02:24:46 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.11 1994/11/02 11:16:57 markc Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
- * Revision 1.10  1994/09/22 02:24:46  markc
+ * Revision 1.11  1994/11/02 11:16:57  markc
+ * REplaced container classes.
+ *
+ * Revision 1.10  1994/09/22  02:24:46  markc
  * cast stringHandles
  *
  * Revision 1.9  1994/08/08  20:13:46  hollings
@@ -60,28 +63,28 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
-extern "C" {
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-}
+#include "util/h/kludges.h"
+
 
 #include "symtab.h"
 #include "process.h"
 #include "dyninstP.h"
 #include "util.h"
 #include "comm.h"
+#include "util/h/String.h"
+#include "util/h/Dictionary.h"
+#include <strstream.h>
+#include "main.h"
 
-extern pdRPC *tp;
-HTable <resource*> allResources;
+dictionary_hash<string, resource*> allResources(string::hash);
 
 /*
  * handle the notification of resource creation and deletion.
  *
  */
 
-resource rootNode(False);
-
+// TODO - this is ugly - move to init
+resource rootNode(true);
 resource *rootResource = &rootNode;
 
 resourceListRec *getRootResources()
@@ -89,7 +92,7 @@ resourceListRec *getRootResources()
     return(rootResource->children);
 }
 
-stringHandle getResourceName(resource *r)
+string getResourceName(resource *r)
 {
     return(r->info.name);
 }
@@ -130,7 +133,7 @@ resourceListRec *createResourceList()
     return(ret);
 }
 
-Boolean addResourceList(resourceListRec *rl, resource *r)
+bool addResourceList(resourceListRec *rl, resource *r)
 {
     if (rl->count == rl->maxItems) {
 	rl->maxItems += 10;
@@ -149,48 +152,51 @@ Boolean addResourceList(resourceListRec *rl, resource *r)
     }
     rl->elements[rl->count] = r;
     rl->count++;
-    return(True);
+    return(true);
 }
 
-Boolean initResourceRoot;
+bool initResourceRoot = false;
 
 resource *newResource(resource *parent, 
 		      void *handle,
-		      stringHandle abstraction, 
-		      const char *name, 
+		      const string abstraction, 
+		      const string name,
 		      timeStamp creation,
-		      Boolean unique)
+		      bool unique)
 {
     int c;
     resource *ret;
     resource **curr;
-    char tempName[255];
-    stringHandle nameHandle;
-    char *uName=0;
+    string uName;
+
+    assert (!(name == (char*) NULL));
+
+    char *out, *out1;
+    ostrstream os, os1;
+
+    os << name << ends;
+    out = os.str();
+
+    if (parent->info.fullName == (char*) NULL)
+      out1 = (char*) NULL;
+    else {
+      os1 << parent->info.fullName << ends;
+      out1 = os1.str();
+    }
 
     if (unique) {
       // ask paradyn for unqiue name.
-      uName = tp->getUniqueResource(0, (char*)parent->info.fullName, (char*)name);
-      nameHandle = pool.findAndAdd(uName);
-      delete uName;
+      uName = tp->getUniqueResource(0, out1, out);
     } else
-      nameHandle = pool.findAndAdd(name);
+      uName = name;
 
-    if (!initResourceRoot) {
-	initResourceRoot = True;
-	rootNode.info.name = pool.findAndAdd("");
-	rootNode.info.fullName = pool.findAndAdd("");
-	rootNode.info.creation = 0.0;
-	rootNode.parent = NULL;
-	rootNode.handle = NULL;
-	rootNode.children = NULL;
-    }
+    delete out;
 
-    /* first check to see if the resource has already been defined */
+    /* first check to see if the resource has already been.defines */
     if (parent->children) {
 	for (curr=parent->children->elements, c=0;
 	     c < parent->children->count; c++) {
-	     if (curr[c]->info.name == nameHandle) {
+	     if (curr[c]->info.name == uName) {
 		 return(curr[c]);
 	     }
 	}
@@ -198,39 +204,56 @@ resource *newResource(resource *parent,
 	parent->children = new resourceListRec;
     }
 
-    ret = new resource;
+    ret = new resource(false);
     ret->parent = parent;
     ret->handle = handle;
+    
+    ostrstream os2;
+    if (out1)
+      os2 << out1 << '/' << uName << ends;
+    else
+      os2 << '/' << uName << ends;
 
-    sprintf(tempName, "%s/%s", (char*)parent->info.fullName, (char*)nameHandle);
-    ret->info.fullName = pool.findAndAdd(tempName);
-    ret->info.name = nameHandle;
+    char *tn = os2.str();
+    ret->info.fullName = tn;
+    delete tn;
+    ret->info.name = uName;
     ret->info.abstraction = abstraction;
 
     ret->info.creation = creation;
 
     addResourceList(parent->children, ret);
-    allResources.add(ret, (void *) ret->info.fullName);
+    allResources[ret->info.fullName] = ret;
+
+    ostrstream a2, a3;
+    char *c2, *c3;
+
+    a2 << ret->info.name << ends;
+    c2 = a2.str();
+
+    if (ret->info.abstraction == (char*) NULL)
+      c3 = (char*) NULL;
+    else {
+      a3 << ret->info.abstraction << ends;
+      c3 = a3.str();
+    }
 
     /* call notification upcall */
-    tp->resourceInfoCallback(0, (char*)parent->info.fullName, (char*)ret->info.name, 
- 	 (char*)ret->info.name, (char*)ret->info.abstraction);
+    tp->resourceInfoCallback(0, out1, c2, c2, c3);
+    delete out1; delete c2; delete c3;
 
     return(ret);
 }
 
-resource *findChildResource(resource *parent, char *name)
+resource *findChildResource(resource *parent, const string name)
 {
     int c;
-    stringHandle iName;
     resource **curr;
-
-    iName = pool.findAndAdd(name);
 
     if (!parent || !parent->children) return(NULL);
     for (curr=parent->children->elements, c=0;
 	 c < parent->children->count; c++) {
-	 if (curr[c]->info.name == iName) {
+	 if (curr[c]->info.name == name) {
 	     return(curr[c]);
 	 }
     }
@@ -243,7 +266,8 @@ void printResources(resource *r)
     resource **curr;
 
     if (r) {
-	sprintf(errorLine, "%s", (char*)r->info.fullName);
+        ostrstream os(errorLine, 1024, ios::out);
+	os << r->info.fullName << ends;
 	logLine(errorLine);
 	if (r->children) {
 	    for (curr=r->children->elements, c=0;
@@ -260,7 +284,9 @@ void printResourceList(resourceListRec *rl)
 
     logLine("<");
     for (i=0; i < rl->count; i++) {
-	logLine((char*)rl->elements[i]->info.fullName);
+        ostrstream os(errorLine, 1024, ios::out);
+	os << rl->elements[i]->info.fullName << ends;
+	logLine(errorLine);
 	if (i!= rl->count-1) logLine(",");
     }
     logLine(">");
@@ -270,16 +296,16 @@ void printResourceList(resourceListRec *rl)
  * Convinence function.
  *
  */
-Boolean isResourceDescendent(resource *parent, resource *child)
+bool isResourceDescendent(resource *parent, resource *child)
 {
     while (child) {
         if (child == parent) {
-            return(True);
+            return(true);
         } else {
             child = getResourceParent(child);
         }
     }
-    return(False);
+    return(false);
 }
 
 //
@@ -293,37 +319,36 @@ Boolean isResourceDescendent(resource *parent, resource *child)
 resourceListRec *findFocus(int count, char **data)
 {
     int i;
-    stringHandle iName;
     resource *res;
     resourceListRec *rl;
-    char *iChar;
+    bool def;
 
     rl = createResourceList();
+
     for (i=0; i < count; i++) {
-	iName = pool.findAndAdd(data[i]);
-	res = allResources.find(iName);
-	if (!res && (strchr((char*)iName, '/') == strrchr((char*)iName, '/'))) {
-	    iChar = (char*) iName;
-	    iChar++;
-	    res = newResource(rootResource, NULL, NULL, iChar, 0.0, FALSE);
-	} else if (!res) {
-	    return(NULL);
-	}
-	addResourceList(rl, res);
+      def = allResources.defines(data[i]);
+      if (!def && (strchr(data[i], '/') == strrchr(data[i], '/'))) {
+	char *pl = data[i] + 1;
+	res = newResource(rootResource, NULL, nullString, pl, 0.0, false);	
+      } else if (!def) {
+	return(NULL);
+      } else
+	res = allResources[data[i]];
+
+      addResourceList(rl, res);
     }
     return(rl);
 }
 
-resource *findResource(const char *name)
+resource *findResource(const string name)
 {
-    stringHandle iName;
-    resource *res;
-
-    if (*name == '\0') {
-	return(rootResource);
-    } else {
-	iName = pool.findAndAdd(name);
-	res = allResources.find(iName);
-	return(res);
-    }
+  // TODO does this work?
+  if (name == (char*)NULL) {
+    return(rootResource);
+  } else {
+    if (allResources.defines(name))
+      return (allResources[name]);
+    else
+      return (rootResource);
+  }
 }
