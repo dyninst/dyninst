@@ -9,6 +9,7 @@
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Pair.h"
+#include "common/h/String.h"
 
 #include "util.h"
 #include "process.h"
@@ -126,65 +127,91 @@ BPatch_flowGraph::getExitBasicBlock(BPatch_Vector<BPatch_basicBlock*>& nbb)
 // grap. It retuns a set. And if ther is no loop then it returns empty
 // set. not NULL. 
 void 
+BPatch_flowGraph::getLoopsByNestingLevel(
+			     BPatch_Vector<BPatch_basicBlockLoop*>& lbb,
+			     bool outerMostOnly)
+{
+    int i;
+    
+    if (!loops) {
+	loops = new BPatch_Set<BPatch_basicBlockLoop*>;
+      
+	fillDominatorInfo();
+      
+	// mapping from basic block to set of basic blocks as back edges
+	BPatch_Set<BPatch_basicBlock*>** backEdges = 
+	    new BPatch_Set<BPatch_basicBlock*>* [allBlocks.size()];
+      
+	for (i=0; i < allBlocks.size(); i++)
+	    backEdges[i] = NULL;
+      
+	// using dfs we find the back edeges which define the
+	// natural loop
+	findBackEdges(backEdges);
+
+	// a map from basic block number to basic block pointer
+	// which will be used to get the basic block pointer
+	// from its number from the map. I am using this way
+	// as I do not want to include dictionary_hash in include files
+	// or use other class(empty) to get around this problem.
+	// this does not give any drawback for efficency or space.
+      
+	BPatch_basicBlock** bnoToBBptr =
+	    new BPatch_basicBlock*[allBlocks.size()];
+
+	BPatch_basicBlock** elements =
+	    new BPatch_basicBlock*[allBlocks.size()];
+
+	allBlocks.elements(elements);
+
+	for (i=0; i < allBlocks.size(); i++)
+	    bnoToBBptr[elements[i]->blockNumber] = elements[i];
+
+	delete[] elements;
+      
+	// now using the map find the basic blocks inside the loops
+	fillLoopInfo(backEdges, bnoToBBptr);
+
+	for (i=0; i < allBlocks.size(); i++)
+	    delete backEdges[i];
+
+	delete[] backEdges;
+	delete[] bnoToBBptr;
+    }
+
+    BPatch_basicBlockLoop** lelements = 
+	new BPatch_basicBlockLoop* [loops->size()];
+   
+    loops->elements(lelements);
+   
+    for (i=0; i < loops->size(); i++)
+	// if we are only getting the outermost loops
+	if (outerMostOnly) {
+	    // if this loop has no parent then it is outermost
+	    if (NULL == lelements[i]->parent) {
+		lbb.push_back(lelements[i]);
+	    }
+	}
+        else {
+	    lbb.push_back(lelements[i]);
+	}
+
+    delete[] lelements;
+}
+
+
+// get all the loops in this flow graph
+void 
 BPatch_flowGraph::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 {
-  int i;
-    
-   if (!loops) {
-      loops = new BPatch_Set<BPatch_basicBlockLoop*>;
-      
-      fillDominatorInfo();
-      
-      // mapping from basic block to set of basic blocks as back edges
-      BPatch_Set<BPatch_basicBlock*>** backEdges = 
-         new BPatch_Set<BPatch_basicBlock*>* [allBlocks.size()];
-      
-      for (i=0; i < allBlocks.size(); i++)
-         backEdges[i] = NULL;
-      
-      // using dfs we find the back edeges which define the
-      // natural loop
-      findBackEdges(backEdges);
+    getLoopsByNestingLevel(lbb, false);
+}
 
-      // a map from basic block number to basic block pointer
-      // which will be used to get the basic block pointer
-      // from its number from the map. I am using this way
-      // as I do not want to include dictionary_hash in include files
-      // or use other class(empty) to get around this problem.
-      // this does not give any drawback for efficency or space.
-      
-      BPatch_basicBlock** bnoToBBptr =
-         new BPatch_basicBlock*[allBlocks.size()];
-
-      BPatch_basicBlock** elements =
-         new BPatch_basicBlock*[allBlocks.size()];
-
-      allBlocks.elements(elements);
-
-      for (i=0; i < allBlocks.size(); i++)
-         bnoToBBptr[elements[i]->blockNumber] = elements[i];
-
-      delete[] elements;
-      
-      //now using the map find the basic blocks inside the loops
-      fillLoopInfo(backEdges, bnoToBBptr);
-
-      for (i=0; i < allBlocks.size(); i++)
-         delete backEdges[i];
-
-      delete[] backEdges;
-      delete[] bnoToBBptr;
-   }
-
-   BPatch_basicBlockLoop** lelements = 
-      new BPatch_basicBlockLoop* [loops->size()];
-   
-   loops->elements(lelements);
-   
-   for (i=0; i < loops->size(); i++)
-      lbb.push_back(lelements[i]);
-        
-   delete[] lelements;
+// get the outermost loops in this flow graph
+void 
+BPatch_flowGraph::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
+{
+    getLoopsByNestingLevel(lbb, true);
 }
 
 //this is the main method to create the basic blocks and the
@@ -1025,60 +1052,71 @@ void BPatch_flowGraph::fillDominatorInfo(){
 
 
 
-//method that finds the unreachable basic blocks and then deletes
-//the structures allocated for that block. If the argument is 
-//NULL then it deletes unreachable code. 
+// method that finds the unreachable basic blocks and then deletes
+// the structures allocated for that block. If the argument is 
+// NULL then it deletes unreachable code. 
 void BPatch_flowGraph::findBackEdges(BPatch_Set<BPatch_basicBlock*>** backEdges)
 {
-	int i;
-	int* bbToColor = new int[allBlocks.size()];
-	for(i=0;i<allBlocks.size();i++)
-		bbToColor[i] = WHITE;
+    int i;
+    int* bbToColor = new int[allBlocks.size()];
+
+    for (i=0; i < allBlocks.size(); i++)
+	bbToColor[i] = WHITE;
 	
-	//a dfs based back edge discovery
-	BPatch_basicBlock** elements = 
-		new BPatch_basicBlock*[entryBlock.size()];
-	entryBlock.elements(elements);
-	for(i=0;i<entryBlock.size();i++)
-		if(bbToColor[elements[i]->blockNumber] == WHITE)
-			dfsVisit(elements[i],bbToColor,backEdges);
-	delete[] elements;
-	delete[] bbToColor;
+    //a dfs based back edge discovery
+    BPatch_basicBlock** elements = 
+	new BPatch_basicBlock*[entryBlock.size()];
+
+    entryBlock.elements(elements);
+
+    for (i=0; i < entryBlock.size(); i++)
+	if (bbToColor[elements[i]->blockNumber] == WHITE)
+	    dfsVisit(elements[i], bbToColor, backEdges);
+
+    delete[] elements;
+    delete[] bbToColor;
 }
 
-//method that implements the depth first visit operation
+// method that implements the depth first visit operation
 void BPatch_flowGraph::dfsVisit(BPatch_basicBlock* bb,
 			        int* bbToColor,
 				BPatch_Set<BPatch_basicBlock*>** backEdges,
 				int* which,
 				BPatch_basicBlock** order)
 {
-	if(order) order[(*which)++] = bb;	
-	bbToColor[bb->blockNumber] = GRAY;
-	BPatch_basicBlock** elements =  
-			new BPatch_basicBlock*[bb->targets.size()];
-	bb->targets.elements(elements);
-	for(int i=0;i<bb->targets.size();i++)
-		if(bbToColor[elements[i]->blockNumber] == WHITE)
-			dfsVisit(elements[i],bbToColor,backEdges,which,order);
-		else if(backEdges && 
-			(bbToColor[elements[i]->blockNumber] == GRAY))
-		{
-			BPatch_Set<BPatch_basicBlock*>* newSet = backEdges[bb->blockNumber];
-			if(!newSet){
-				newSet = new BPatch_Set<BPatch_basicBlock*>;
-				backEdges[bb->blockNumber] = newSet;
-			}
-			newSet->insert(elements[i]);
-		}
-	bbToColor[bb->blockNumber] = BLACK;
-	delete[] elements;
+    if (order) order[(*which)++] = bb;	
+
+    bbToColor[bb->blockNumber] = GRAY;
+
+    BPatch_basicBlock** elements =  
+	new BPatch_basicBlock*[bb->targets.size()];
+
+    bb->targets.elements(elements);
+
+    for (int i=0; i < bb->targets.size(); i++) {
+	if (bbToColor[elements[i]->blockNumber] == WHITE) {
+	    dfsVisit(elements[i], bbToColor, backEdges, which, order);
+	}
+	else if (backEdges && (bbToColor[elements[i]->blockNumber] == GRAY)) {
+	    BPatch_Set<BPatch_basicBlock*>* newSet = backEdges[bb->blockNumber];
+	    if (!newSet) {
+		newSet = new BPatch_Set<BPatch_basicBlock*>;
+		backEdges[bb->blockNumber] = newSet;
+	    }
+	    newSet->insert(elements[i]);
+	}
+    }
+
+    bbToColor[bb->blockNumber] = BLACK;
+    delete[] elements;
 }
+
 
 typedef struct SortTuple{
 	Address address;
 	BPatch_basicBlock* bb;
 }SortTuple;
+
 
 extern "C" int tupleSort(const void* arg1,const void* arg2){
    if(((const SortTuple*)arg1)->address > ((const SortTuple*)arg2)->address)
@@ -1160,133 +1198,155 @@ void BPatch_flowGraph::findAndDeleteUnreachable()
         delete[] elements;
 }
 
-//this method is used find the basic blocks contained by the loop
-//defined by a backedge. The tail of the backedge is the starting point and
-//the predecessors of the tail is inserted as a member of the loop.
-//then the predecessors of the newly inserted blocks are also inserted
-//until the head of the backedge is in the set(reached).
+// this method is used to find the basic blocks contained by the loop
+// defined by a backedge. The tail of the backedge is the starting point and
+// the predecessors of the tail is inserted as a member of the loop.
+// then the predecessors of the newly inserted blocks are also inserted
+// until the head of the backedge is in the set(reached).
 
 void BPatch_flowGraph::findBBForBackEdge(
 			BPatch_basicBlock* from,
 			BPatch_basicBlock* to,
 		        BPatch_Set<BPatch_basicBlock*>& bbSet)
 {
-typedef struct STACK {
+    typedef struct STACK {
 	unsigned size;
 	int top;
 	BPatch_basicBlock** data;
-
+	
 	STACK() : size(0),top(-1),data(NULL) {}
 	~STACK() { free(data); }
 	bool empty() { return (top < 0); }
 	void push(BPatch_basicBlock* b) {
-		if(!size) 
-		    data = (BPatch_basicBlock**) malloc(
-				sizeof(BPatch_basicBlock*)*(++size));
-		else if(top == ((int)size-1))
-		    data = (BPatch_basicBlock**)realloc(
-				data,sizeof(BPatch_basicBlock*)*(++size));
+	    if (!size) 
+		data = (BPatch_basicBlock**) malloc( sizeof(BPatch_basicBlock*)*(++size));
+	    else if(top == ((int)size-1))
+		data = (BPatch_basicBlock**)realloc( data,sizeof(BPatch_basicBlock*)*(++size));
 		top++;
 		data[top] = b;
 	}
 	BPatch_basicBlock* pop() {
-		if(empty()) return NULL;
-		return data[top--];
+	    if(empty()) return NULL;
+	    return data[top--];
 	}
-} STACK;
+    } STACK;
+    
+    STACK* stack = new STACK;
 
-	STACK* stack = new STACK;
+    bbSet += to;
 
-	bbSet += to;
-	if(!bbSet.contains(from)){
-		bbSet += from;
-		stack->push(from);
-	}
-	while(!stack->empty()){
-		BPatch_basicBlock* bb = stack->pop();
-		BPatch_basicBlock** elements = 
-			new BPatch_basicBlock*[bb->sources.size()];
-		bb->sources.elements(elements);
-		for(int i=0;i<bb->sources.size();i++)
-			if(!bbSet.contains(elements[i])){
-				bbSet += elements[i];
-				stack->push(elements[i]);
-			}
-		delete[] elements;
-	}
-	delete stack;
+    if (!bbSet.contains(from)) {
+	bbSet += from;
+	stack->push(from);
+    }
+
+    while (!stack->empty()) {
+	BPatch_basicBlock* bb = stack->pop();
+
+	BPatch_basicBlock** elements = 
+	    new BPatch_basicBlock*[bb->sources.size()];
+	bb->sources.elements(elements);
+
+	for(int i=0; i < bb->sources.size(); i++)
+	    if (!bbSet.contains(elements[i])) {
+		bbSet += elements[i];
+		stack->push(elements[i]);
+	    }
+
+	delete[] elements;
+    }
+    delete stack;
 }
 
-//this method find all loops in the control flow graph.
-//The loops are defined by backedges and the backedge defines
-//a loop if the head of the backedge dominates the tail of the backedge.
-//Then after finding all loops then the basic blocks in the loops
-//are found and the nesting structure of the loops are found and the
-//relevant fields of the loops are filled by the information discovered.
+// this method find all loops in the control flow graph.
+// The loops are defined by backedges and the backedge defines
+// a loop if the head of the backedge dominates the tail of the backedge.
+// Then after finding all loops then the basic blocks in the loops
+// are found and the nesting structure of the loops are found and the
+// relevant fields of the loops are filled by the information discovered.
 void BPatch_flowGraph::fillLoopInfo(BPatch_Set<BPatch_basicBlock*>** backEdges,
 				    BPatch_basicBlock** bToP)
 {
-	//for each back edge find the dominator relationship and if the
-	//head basic block dominates the tail then find the loop basic blocks
+    // for each back edge find the dominator relationship and if the
+    // head basic block dominates the tail then find the loop basic blocks
 
-	for(int bNo=0;bNo<allBlocks.size();bNo++){
-		if(!backEdges[bNo])
-			continue;
+    for (int bNo=0; bNo < allBlocks.size(); bNo++) {
+	if (!backEdges[bNo])
+	    continue;
 
-		BPatch_Set<BPatch_basicBlock*>* toBlocks = backEdges[bNo];
-		BPatch_basicBlock* bbFrom = bToP[bNo];
-		BPatch_basicBlock** elements = 
-			new BPatch_basicBlock*[toBlocks->size()];
-		toBlocks->elements(elements);
-		for(int i=0;i<toBlocks->size();i++){
-			BPatch_basicBlock* bbTo = elements[i];
-			if(bbTo->dominates(bbFrom)){
-				//then check whether
-				//it dominates the current
-				//basic block. If so then
-				//it defines a loop. Otherwise
-				//there is no regular loop
-				//create the loop
-				BPatch_basicBlockLoop* l = 
-					new BPatch_basicBlockLoop(bbTo);
+	BPatch_Set<BPatch_basicBlock*>* toBlocks = backEdges[bNo];
 
-				//initialize some fields of the
-				//loop object
-				l->backEdges += bbFrom;
-				(*loops) += l;
+	BPatch_basicBlock* bbFrom = bToP[bNo];
 
-				//find all basic blocks in the
-				//loop and keep a map used
-				//to find the nest structure 
-				findBBForBackEdge(bbFrom,bbTo,l->basicBlocks);
-			}
-		}
-		delete[] elements;
+	BPatch_basicBlock** elements = 
+	    new BPatch_basicBlock*[toBlocks->size()];
+
+	toBlocks->elements(elements);
+
+	for (int i=0; i < toBlocks->size(); i++) {
+	    BPatch_basicBlock* bbTo = elements[i];
+
+	    if (bbTo->dominates(bbFrom)) {
+		// then check whether it dominates the current basic block. 
+		// If so then it defines a loop. Otherwise there is no regular
+		// loop. create the loop
+		BPatch_basicBlockLoop* l = 
+		    new BPatch_basicBlockLoop(bbTo);
+
+		// initialize some fields of the loop object
+		l->backEdges += bbFrom;
+		(*loops) += l;
+
+		// find all basic blocks in the loop and keep a map used
+		// to find the nest structure 
+		findBBForBackEdge(bbFrom, bbTo, l->basicBlocks);
+	    }
 	}
+	delete[] elements;
+    }
 
-	//create two iterators on the elements of the map which is from
-	//loop object to the set of basic blocks
-	//for each loop object pair check whether one is subset of the
-	//other. That is the set of basic blocks in the loop. If one is
-	//subset of the other one then the smaller one is nested in the
-	//bigger one so insert the smaller one to the containedLoops 
-	//field of the loop object.
+    // create two iterators on the elements of the map which is from
+    // loop object to the set of basic blocks
+    // for each loop object pair check whether one is subset of the
+    // other. That is the set of basic blocks in the loop. If one is
+    // subset of the other one then the smaller one is nested in the
+    // bigger one so insert the smaller one to the containedLoops 
+    // field of the loop object.
 
-	BPatch_basicBlockLoop** it = 
-			new BPatch_basicBlockLoop*[loops->size()];
-	loops->elements(it);
-	for(int i=0;i<loops->size();i++)
-		for(int j=0;j<loops->size();j++)
-			if(i != j){
-				BPatch_basicBlockLoop* l1 = it[i];
-				BPatch_basicBlockLoop* l2 = it[j];
-				BPatch_Set<BPatch_basicBlock*> diff(l1->basicBlocks);
-				diff -= l2->basicBlocks;
-				if(diff.empty())
-					l2->containedLoops += l1;
-			}
-	delete[] it;
+    BPatch_basicBlockLoop** allLoops = 
+	new BPatch_basicBlockLoop*[loops->size()];
+
+    loops->elements(allLoops);
+
+    for (int i=0; i < loops->size(); i++)
+	for (int j=0; j < loops->size(); j++)
+	    if (i != j) {
+		BPatch_basicBlockLoop* l1 = allLoops[i];
+		BPatch_basicBlockLoop* l2 = allLoops[j];
+
+		BPatch_Set<BPatch_basicBlock*> diff(l1->basicBlocks);
+		diff -= l2->basicBlocks;
+
+		if (diff.empty()) {
+		    l2->containedLoops += l1;
+
+		    // if l1's parent has not yet been set
+		    if (NULL == l1->parent) {
+			l1->parent = l2;
+		    }
+		    // or if l2 is a more direct ancestor of l1 than l1's 
+		    // current parent (eventually l2 will be l1's parent).
+		    // this is needed because we can't assume the order of
+		    // the loops in the BPatch_set loops is sequential.
+		    else if (l2->hasAncestor(l1->parent)) {
+			l1->parent = l2;
+		    }
+		}
+	    }
+
+    delete[] allLoops;
 }
+
 
 //print method
 ostream&
@@ -1320,36 +1380,59 @@ operator<<(ostream& os,BPatch_flowGraph& fg){
 }
 
 
-void 
-BPatch_flowGraph::printLoopSourceRanges(BPatch_Vector<BPatch_basicBlockLoop *>
-					loops)
+// return a pair of the min and max source lines for this loop
+pdpair<u_short, u_short> 
+getLoopMinMaxSourceLines(BPatch_basicBlockLoop * loop) 
 {
-    fprintf( stderr, " %d loop(s):\n", loops.size());
-  
-    for (unsigned int i = 0; i < loops.size (); i++) {
-	BPatch_Vector<BPatch_basicBlock*> blocks;
-	loops[i]->getLoopBasicBlocks(blocks);
+    BPatch_Vector<BPatch_basicBlock*> blocks;
+    loop->getLoopBasicBlocks(blocks);
 	
-	BPatch_Vector<unsigned short> lines;
+    BPatch_Vector<u_short> lines;
 	
-	for (unsigned int j = 0; j < blocks.size (); j++) {
-	    BPatch_Vector<BPatch_sourceBlock*> sourceBlocks;
-	    blocks[j]->getSourceBlocks(sourceBlocks);
-	    
-	    for (unsigned int k = 0; k < sourceBlocks.size (); k++) {
-		BPatch_Vector<unsigned short> sourceLines;
-		sourceBlocks[k]->getSourceLines(sourceLines);
-		for (unsigned int l = 0; l < sourceLines.size(); l++) 
-		    lines.push_back(sourceLines[l]);
-	    }
+    for (u_int j = 0; j < blocks.size (); j++) {
+	BPatch_Vector<BPatch_sourceBlock*> sourceBlocks;
+	blocks[j]->getSourceBlocks(sourceBlocks);
+	
+	for (u_int k = 0; k < sourceBlocks.size (); k++) {
+	    BPatch_Vector<u_short> sourceLines;
+	    sourceBlocks[k]->getSourceLines(sourceLines);
+	    for (u_int l = 0; l < sourceLines.size(); l++) 
+		lines.push_back(sourceLines[l]);
 	}
-	
-	pdpair<unsigned short, unsigned short> mm = 
-	  min_max_pdpair<unsigned short>(lines);
-
-	fprintf( stderr, "  loop %d (source %d-%d)\n", i, mm.first, mm.second); 
     }
 
-    fprintf( stderr, "\n");
+    pdpair<u_short, u_short> mm = min_max_pdpair<u_short>(lines);
+
+    return mm;
 }
 
+
+void 
+dfsPrintLoops(BPatch_Vector<BPatch_basicBlockLoop *> loops, 
+				pdstring level)
+{
+    for (u_int i = 0; i < loops.size (); i++) {
+	// loop name is hierarchical level
+	pdstring clevel = (level != "") ? level + "." + pdstring(i+1)
+	    : pdstring(i+1);
+
+
+	// print this loops source lines
+	pdpair<u_short, u_short> mm = getLoopMinMaxSourceLines(loops[i]);
+
+	fprintf( stderr, "loop %s (source %d-%d)\n", 
+		 clevel.c_str(), mm.first, mm.second); 
+	
+	// recurse
+ 	BPatch_Vector<BPatch_basicBlockLoop*> outerLoops;
+	loops[i]->getOuterLoops(outerLoops);
+	dfsPrintLoops(outerLoops, clevel);
+    }
+}
+
+
+void 
+BPatch_flowGraph::printLoops(BPatch_Vector<BPatch_basicBlockLoop *> loops)
+{
+    dfsPrintLoops(loops, "");
+}
