@@ -43,6 +43,9 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.18  1997/05/16 22:02:27  mjrg
+ * Fixed problem with instrumentation of conditional jumps
+ *
  * Revision 1.17  1997/05/07 19:03:12  naim
  * Getting rid of old support for threads and turning it off until the new
  * version is finished. Additionally, new superTable, baseTable and superVector
@@ -487,7 +490,7 @@ bool pd_Function::findInstPoints(const image *i_owner) {
 // XXXXX kludge: these functions are called by DYNINSTgetCPUtime, 
 // they can't be instrumented or we would have an infinite loop
 if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
-    || prettyName() == "GetProcessTimes@20")
+    || prettyName() == "GetProcessTimes")
   return false;
 
    point_ *points = new point_[size()];
@@ -587,7 +590,6 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 	 funcReturns += p;
 	 points[npoints++] = point_(p, numInsns, ReturnPt);
        } 
-
      } else if (insn.isReturn()) {
        instPoint *p = new instPoint(this, owner, adr, insn);
        funcReturns += p;
@@ -627,6 +629,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 	 break;
      }
    }
+
 
    // add extra instructions to the points that need it.
    unsigned lastPointEnd = 0;
@@ -682,7 +685,6 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 
    return true;
 }
-
 
 
 /*
@@ -768,8 +770,10 @@ unsigned relocateInstruction(instruction insn,
     }
   }
   else if (insnType & REL_W) {
-    /* Skip prefix. The only valid prefix here is operand size. */
+    /* Skip prefixes */
     if (insnType & PREFIX_OPR)
+      origInsn++;
+    if (insnType & PREFIX_SEG)
       origInsn++;
     /* opcode is unchanged, just relocate the displacement */
     if (*origInsn == (unsigned char)0x0F)
@@ -780,12 +784,21 @@ unsigned relocateInstruction(instruction insn,
     *((int *)newInsn) = newDisp;
     newInsn += sizeof(int);
   } else if (insnType & REL_D) {
+    // Skip prefixes
+    unsigned nPrefixes = 0;
+    if (insnType & PREFIX_OPR)
+      nPrefixes++;
+    if (insnType & PREFIX_SEG)
+      nPrefixes++;
+    for (unsigned u = 0; u < nPrefixes; u++)
+      *newInsn++ = *origInsn++;
+
     /* opcode is unchanged, just relocate the displacement */
     if (*origInsn == 0x0F)
       *newInsn++ = *origInsn++;
     *newInsn++ = *origInsn++;
     oldDisp = *((const int *)origInsn);
-    newDisp = (origAddr + 5) + oldDisp - (newAddr + 5);
+    newDisp = (origAddr + insnSz) + oldDisp - (newAddr + insnSz);
     *((int *)newInsn) = newDisp;
     newInsn += sizeof(int);
   }
@@ -797,6 +810,72 @@ unsigned relocateInstruction(instruction insn,
 
   return (newInsn - first);
 }
+
+
+/*
+ * Relocate a conditional jump and change the target to newTarget.
+ * The new target must be within 128 bytes from the new address
+ * Size of instruction is unchanged.
+ * Returns the old target
+ */
+unsigned changeConditionalJump(instruction insn,
+			 int origAddr, int newAddr, int newTargetAddr,
+			 unsigned char *&newInsn)
+{
+
+  const unsigned char *origInsn = insn.ptr();
+  unsigned insnType = insn.type();
+  unsigned insnSz = insn.size();
+
+  int oldDisp;
+  int newDisp;
+
+  if (insnType & REL_B) {
+    /* one byte opcode followed by displacement */
+    /* opcode is unchanged */
+    assert(insnSz==2);
+    *newInsn++ = *origInsn++;
+    oldDisp = (int)*(const char *)origInsn;
+    newDisp = newTargetAddr - (newAddr + insnSz);
+    *newInsn++ = (char)newDisp;
+  }
+  else if (insnType & REL_W) {
+    /* Skip prefixes */
+    if (insnType & PREFIX_OPR)
+      *newInsn++ = *origInsn++;
+    if (insnType & PREFIX_SEG)
+      *newInsn++ = *origInsn++;
+
+    assert(*origInsn==0x0F);
+    *newInsn++ = *origInsn++; // copy the 0x0F
+    *newInsn++ = *origInsn++; // second opcode byte
+
+    oldDisp = *((const short *)origInsn);
+    newDisp = newTargetAddr - (newAddr + insnSz);
+    *((short *)newInsn) = (short)newDisp;
+    newInsn += sizeof(short);
+  }
+  else if (insnType & REL_D) {
+    // Skip prefixes
+    if (insnType & PREFIX_OPR)
+      *newInsn++ = *origInsn++;
+    if (insnType & PREFIX_SEG)
+      *newInsn++ = *origInsn++;
+
+    assert(*origInsn==0x0F);
+    *newInsn++ = *origInsn++; // copy the 0x0F
+    *newInsn++ = *origInsn++; // second opcode byte
+
+    oldDisp = *((const int *)origInsn);
+    newDisp = newTargetAddr - (newAddr + insnSz);
+    *((int *)newInsn) = (int)newDisp;
+    newInsn += sizeof(int);
+  }
+
+  return (origAddr+insnSz+oldDisp);
+}
+
+
 
 unsigned getRelocatedInstructionSz(instruction insn)
 {
@@ -1065,6 +1144,8 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   unsigned u;
   trampTemplate *ret = new trampTemplate;
   ret->trampTemp = 0;
+  unsigned jccTarget = 0; // used when the instruction at the point is a cond. jump
+  unsigned auxJumpOffset = 0;
 
   // check instructions at this point to find how many instructions 
   // we should relocate
@@ -1081,7 +1162,10 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   for (u = 0; u < location->insnsBefore(); u++) {
     trampSize += getRelocatedInstructionSz(location->insnBeforePt(u));
   }
-  trampSize += getRelocatedInstructionSz(location->insnAtPoint());
+  if (location->insnAtPoint().type() & IS_JCC)
+    trampSize += location->insnAtPoint().size() + 2 * JUMP_SZ;
+  else
+    trampSize += getRelocatedInstructionSz(location->insnAtPoint());
   for (u = 0; u < location->insnsAfter(); u++) {
     trampSize += getRelocatedInstructionSz(location->insnAfterPt(u));
   }
@@ -1131,6 +1215,45 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
     assert(aflag);
     currAddr += newSize;
     origAddr += location->insnBeforePt(u).size();
+  }
+
+
+  /***
+    If the instruction at the point is a conditional jump, we relocate it to
+    the top of the base tramp, and change the code so that the tramp is executed
+    only if the branch is taken.
+
+    e.g.
+     L1:  jne target
+     L2:  ...
+
+    becomes
+
+          jne T1
+	  jmp T2
+	  jne
+     T1:  ...
+
+     T2:  relocated instructions after point
+
+     then later at the base tramp, at the point where we relocate the instruction
+     at the point, we insert a jump to target
+  ***/
+  if (location->insnAtPoint().type() & IS_JCC) {
+     currAddr = baseAddr + (insn - code);
+     assert(origAddr == location->address() + imageBaseAddr);
+     origAddr = location->address() + imageBaseAddr;
+     if (currentPC == origAddr) {
+       fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
+       proc->setNewPC(currAddr);
+     }
+
+     jccTarget = changeConditionalJump(location->insnAtPoint(), origAddr, currAddr,
+				       currAddr+location->insnAtPoint().size()+5, insn);
+     currAddr += location->insnAtPoint().size();
+     auxJumpOffset = insn-code;
+     emitJump(0, insn);
+     origAddr += location->insnAtPoint().size();
   }
 
   // pre branches
@@ -1185,29 +1308,38 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
         emitSimpleInsn(0x90, insn); // NOP
   }
 
-  // emulate the instruction at the point 
-  ret->emulateInsOffset = insn-code;
-  currAddr = baseAddr + (insn - code);
-  if (origAddr != location->address()+imageBaseAddr) {
-    printf(">>>> %x %x \n", origAddr, location->address());
-  }
-  assert(origAddr == location->address() + imageBaseAddr);
-  origAddr = location->address() + imageBaseAddr;
-  if (currentPC == origAddr) {
-    fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
-    proc->setNewPC(currAddr);
-  }
-  unsigned newSize = relocateInstruction(location->insnAtPoint(), origAddr, currAddr, insn);
-  aflag=(newSize == getRelocatedInstructionSz(location->insnAtPoint()));
-  assert(aflag);
-  currAddr += newSize;
-  origAddr += location->insnAtPoint().size();
+   
+  if (!(location->insnAtPoint().type() & IS_JCC)) {
+    // emulate the instruction at the point 
+    ret->emulateInsOffset = insn-code;
+    currAddr = baseAddr + (insn - code);
+    assert(origAddr == location->address() + imageBaseAddr);
+    origAddr = location->address() + imageBaseAddr;
+    if (currentPC == origAddr) {
+      //fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
+      proc->setNewPC(currAddr);
+    }
 
+    unsigned newSize = relocateInstruction(location->insnAtPoint(), origAddr, currAddr, insn);
+    aflag=(newSize == getRelocatedInstructionSz(location->insnAtPoint()));
+    assert(aflag);
+    currAddr += newSize;
+    origAddr += location->insnAtPoint().size();
+  } else {
+    // instruction at point is a conditional jump. 
+    // The instruction was relocated to the beggining of the tramp (see comments above)
+    // We must generate a jump to the original target here
+    assert(jccTarget > 0);
+    currAddr = baseAddr + (insn - code);
+    emitJump(jccTarget+imageBaseAddr-(currAddr+JUMP_SZ), insn);
+    currAddr += JUMP_SZ;
+  }
 
   // post branches
   // skip post instrumentation
   ret->skipPostInsOffset = insn-code;
   emitJump(0, insn);
+
 
   // save registers and create a new stack frame for the tramp
   emitSimpleInsn(PUSH_EBP, insn);  // push ebp
@@ -1267,6 +1399,11 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   emitJump(ret->updateCostOffset - (ret->skipPreInsOffset+JUMP_SZ), ip);
   ip = code + ret->skipPostInsOffset;
   emitJump(ret->returnInsOffset - (ret->skipPostInsOffset+JUMP_SZ), ip);
+
+  if (auxJumpOffset > 0) {
+    ip = code + auxJumpOffset;
+    emitJump(ret->returnInsOffset - (auxJumpOffset+JUMP_SZ), ip);
+  }
   
   // put the tramp in the application space
   proc->writeDataSpace((caddr_t)baseAddr, insn-code, (caddr_t) code);
