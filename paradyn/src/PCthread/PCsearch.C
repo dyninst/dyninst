@@ -20,6 +20,9 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.6  1996/02/27 18:19:40  karavan
+ * small fix to temporary cost method
+ *
  * Revision 1.5  1996/02/22 18:27:00  karavan
  * changed GUI node styles from #defines to enum
  *
@@ -185,7 +188,7 @@ PCsearch::newData(metricInstanceHandle m_handle, sampleValue value,
 
   // if this piece of data has caused certain status changes, we may start 
   // new experiments now.
-  if (runQUpdateNeeded) {
+  if (runQUpdateNeeded && (!SearchQueue.empty())) {
     searchHistoryNode *curr;
     bool result;
 
@@ -196,7 +199,7 @@ PCsearch::newData(metricInstanceHandle m_handle, sampleValue value,
     float searchCostThreshold = performanceConsultant::predictedCostLimit; 
     // we're using number of experiments only until observed cost is 
     // straightened out
-    float tmpCurrentSearchCost = PCnumActiveExperiments;
+    int tmpCurrentSearchCost = PCnumActiveExperiments;
     while ((!SearchQueue.empty()) && 
 	   (tmpCurrentSearchCost < searchCostThreshold)) {
       curr = SearchQueue.peek_first_data();
@@ -213,6 +216,8 @@ PCsearch::newData(metricInstanceHandle m_handle, sampleValue value,
       }
       SearchQueue.delete_first();
     }
+    PCnumActiveExperiments = tmpCurrentSearchCost;
+    runQUpdateNeeded = false;
   }
 }
 
