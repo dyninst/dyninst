@@ -3,9 +3,12 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.28  1996/02/01 01:35:33  tamches
-/* suppressed duplicate of "Whole Program" which was sometimes being generated
+/* Revision 1.29  1996/02/01 01:39:23  tamches
+/* oops, fixed a minor vrble name misspelling
 /*
+ * Revision 1.28  1996/02/01 01:35:33  tamches
+ * suppressed duplicate of "Whole Program" which was sometimes being generated
+ *
  * Revision 1.27  1996/01/30 23:04:01  tamches
  * removed include to obsolete file shgDisplay.h
  *
@@ -242,7 +245,7 @@ vector<numlist> parseSelections(vector<numlist> &theHierarchy,
 	    addedEquivOfWholeProgram = (theFocus[hier] == wholeProgramFocus[hier]);
       }
 
-      if (!addedEquivalentOfWholeProgram)
+      if (!addedEquivOfWholeProgram)
          result += theFocus;
 //      else
 //         cout << "Suppressing duplicate of whole program" << endl;
