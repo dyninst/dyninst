@@ -14,7 +14,7 @@
 #include "mrnet/src/CommunicatorImpl.h"
 #include "mrnet/src/StreamImpl.h"
 #include "mrnet/src/utils.h"
-#include "mrnet/src/config.h"
+#include "src/config.h"
 
 #include "xplat/NetUtils.h"
 
