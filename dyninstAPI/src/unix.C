@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.108 2003/10/22 16:01:00 schendel Exp $
+// $Id: unix.C,v 1.109 2003/11/24 17:37:58 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -168,7 +168,7 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv,
    if (r) {
       // P_perror("socketpair");
       pdstring msg = pdstring("Unable to create trace pipe for program '") + file +
-         pdstring("': ") + pdstring(sys_errlist[errno]);
+         pdstring("': ") + pdstring(strerror(errno));
       showErrorCallback(68, msg);
       return false;
    }
@@ -196,13 +196,7 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv,
    //
     
    errno = 0;
-#if (defined(BPATCH_LIBRARY) && !defined(alpha_dec_osf4_0))
-   // must use fork, since pvmendtask will do some writing in the address space
    pid = fork();
-   // fprintf(stderr, "FORK: pid=%d\n", pid);
-#else
-   pid = vfork();
-#endif
 
    if (pid != 0) {
 
@@ -223,7 +217,7 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv,
 #endif
          {
             sprintf(errorLine, "Unable to start %s: %s\n", file.c_str(), 
-                    sys_errlist[errno]);
+                    strerror(errno));
             logLine(errorLine);
             showErrorCallback(68, (const char *) errorLine);
             return false;
@@ -305,7 +299,7 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv,
 
       if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
          sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.c_str(), 
-                 sys_errlist[errno]);
+                 strerror(errno));
          logLine(errorLine);
          P__exit(-1);
       }
@@ -357,7 +351,7 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv,
       if (errno != 0) {
          sprintf(errorLine, "ptrace error, exiting, errno=%d\n", errno);
          logLine(errorLine);
-         logLine(sys_errlist[errno]);
+         logLine(strerror(errno));
          showErrorCallback(69, pdstring("Internal error: ") + 
 	                        pdstring((const char *) errorLine)); 
          P__exit(-1);   // double underscores are correct
@@ -392,7 +386,7 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv,
       sprintf(errorLine, "paradynd: execv failed, errno=%d\n", errno);
       logLine(errorLine);
     
-      logLine(sys_errlist[errno]);
+      logLine(strerror(errno));
       {
          int i=0;
          while (args[i]) {
@@ -489,12 +483,13 @@ int handleSigTrap(process *proc, procSignalInfo_t /*info*/) {
     // as well.
     signal_cerr << "welcome to SIGTRAP for pid " << proc->getPid()
                 << " status =" << proc->getStatusAsString() << endl;
+
 /////////////////////////////////////////
 // Init section
 /////////////////////////////////////////
     
     if (!proc->reachedBootstrapState(bootstrapped)) {
-        
+
         if (!proc->reachedBootstrapState(begun)) {
             // We've created the process, but haven't reached main. 
             // This would be a perfect place to load the dyninst library,
@@ -1102,6 +1097,7 @@ int handleProcessEvent(process *proc,
      default:
         assert(0 && "Undefined");
    }
+
    return ret;
 }
 
