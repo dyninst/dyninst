@@ -6,7 +6,12 @@
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
  * $Log: inst-power.C,v $
- * Revision 1.5  1995/12/11 15:06:43  naim
+ * Revision 1.6  1995/12/19 01:04:48  hollings
+ * Moved the implementation of registerSpace::readOnlyRegister to processor
+ *   specific files (since it is).
+ * Fixed a bug in Power relOps cases.
+ *
+ * Revision 1.5  1995/12/11  15:06:43  naim
  * Implementing >, >=, < and <= operators - naim
  *
  * Revision 1.4  1995/12/10  23:21:09  hollings
@@ -109,9 +114,6 @@ inline void generateNOOP(instruction *insn)
 inline void genRelOp(instruction *insn, int cond, int mode, reg rs1,
 		     reg rs2, reg rd, unsigned &base)
 {
-    // li rd, 1
-    genImmInsn(insn, ADDISop, rd, 0, 1);
-
     // cmp rs1, rs2
     insn->raw = 0;
     insn->xform.op = XFPop;
@@ -120,6 +122,10 @@ inline void genRelOp(instruction *insn, int cond, int mode, reg rs1,
     insn->xform.ra = rs1;
     insn->xform.rb = rs2;
     insn->xform.xo = CMPxop;
+    insn++;
+
+    // li rd, 1
+    genImmInsn(insn, ADDISop, rd, 0, 1);
     insn++;
 
     // b??,a +2
@@ -1000,4 +1006,13 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
   addInternalSymbol(hd, instHeapStart);
 
   return true;
+}
+
+//
+// This is specific to some processors that have info in registers that we
+//   can read, but should not write.
+//   POWER has no such registers.
+//
+bool registerSpace::readOnlyRegister(reg reg_number) {
+  return false;
 }

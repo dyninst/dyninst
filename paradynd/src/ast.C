@@ -1,7 +1,12 @@
 
 /* 
  * $Log: ast.C,v $
- * Revision 1.18  1995/09/26 20:33:02  naim
+ * Revision 1.19  1995/12/19 01:04:44  hollings
+ * Moved the implementation of registerSpace::readOnlyRegister to processor
+ *   specific files (since it is).
+ * Fixed a bug in Power relOps cases.
+ *
+ * Revision 1.18  1995/09/26  20:33:02  naim
  * Adding error messages using function showErrorCallback for paradynd
  *
  * Revision 1.17  1995/08/24  15:03:44  hollings
@@ -106,17 +111,6 @@ registerSpace::registerSpace(int deadCount, int *dead, int liveCount, int *live)
 	registers[i+deadCount].startsLive = true;
     }
 }
-
-// Certain registers (i0-i7 on a SPARC) may be available to be read
-// as an operand, but cannot be written.  
-// THIS IS SPARC SPECIFIC
-bool registerSpace::readOnlyRegister(reg reg_number) {
-  if ((reg_number < 16) || (reg_number > 23)) 
-    return true;
-  else
-    return false;
-}
-
 
 reg registerSpace::allocateRegister(char *insn, unsigned &base) 
 {

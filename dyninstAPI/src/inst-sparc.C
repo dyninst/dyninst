@@ -19,14 +19,19 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.31 1995/12/11 15:06:46 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.32 1995/12/19 01:04:50 hollings Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.31  1995/12/11 15:06:46  naim
+ * Revision 1.32  1995/12/19 01:04:50  hollings
+ * Moved the implementation of registerSpace::readOnlyRegister to processor
+ *   specific files (since it is).
+ * Fixed a bug in Power relOps cases.
+ *
+ * Revision 1.31  1995/12/11  15:06:46  naim
  * Implementing >, >=, < and <= operators - naim
  *
  * Revision 1.30  1995/11/29  18:43:42  krisna
@@ -1180,4 +1185,13 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
     return false;
   }
   return true;
+}
+
+// Certain registers (i0-i7 on a SPARC) may be available to be read
+// as an operand, but cannot be written.
+bool registerSpace::readOnlyRegister(reg reg_number) {
+  if ((reg_number < 16) || (reg_number > 23))
+      return true;
+  else
+      return false;
 }

@@ -19,14 +19,19 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-hppa.C,v 1.2 1995/11/30 15:13:40 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-hppa.C,v 1.3 1995/12/19 01:04:46 hollings Exp $";
 #endif
 
 /*
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
- * Revision 1.2  1995/11/30 15:13:40  krisna
+ * Revision 1.3  1995/12/19 01:04:46  hollings
+ * Moved the implementation of registerSpace::readOnlyRegister to processor
+ *   specific files (since it is).
+ * Fixed a bug in Power relOps cases.
+ *
+ * Revision 1.2  1995/11/30  15:13:40  krisna
  * added call to matherr in main.C
  * added code templates for callOp in inst-hppa.C
  *
@@ -884,4 +889,13 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
     return false;
   }
   return true;
+}
+
+//
+// This is specific to some processors that have info in registers that we
+//   can read, but should not write.
+//   HPPA has no such registers.
+//
+bool registerSpace::readOnlyRegister(reg reg_number) {
+  return false;
 }
