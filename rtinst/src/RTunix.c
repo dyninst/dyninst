@@ -3,7 +3,12 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.16  1994/08/02 18:18:57  hollings
+ * Revision 1.17  1994/08/17 17:16:45  markc
+ * Increased the size of the lastValue and lastTime arrays.  lastValue is
+ * referenced by the timer id, which can be greater than 200.  There should
+ * be some way of enforcing a limit between paradynd and rtinst.
+ *
+ * Revision 1.16  1994/08/02  18:18:57  hollings
  * added code to save/restore FP state on entry/exit to signal handle
  * (really jcargill, but commited by hollings).
  *
@@ -431,8 +436,8 @@ void DYNINSTflushTrace()
     if (DYNINSTtraceFp) fflush(DYNINSTtraceFp);
 }
 
-time64 lastValue[200];
-double lastTime[200];
+time64 lastValue[500];
+double lastTime[500];
 
 void DYNINSTreportTimer(tTimer *timer)
 {
