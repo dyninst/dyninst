@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.113 2002/07/25 19:22:26 willb Exp $
+ * $Id: DMdaemon.C,v 1.114 2002/08/24 20:40:05 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -137,7 +137,14 @@ void DM_enableType::updateAny(vector<metricInstance *> &completed_mis,
    } }
 }
 
-
+const string daemonEntry::getRemoteShellString() const {
+   if(remote_shell.length() > 0) {
+      return remote_shell;
+   } else {
+      const char *rshCmd = getRshCommand();
+      return string(rshCmd);
+   }
+}
 
 // Called whenever a program is ready to run (both programs started by paradyn
 // and programs forked by other programs). QUESTION: What about when a program does
@@ -652,11 +659,9 @@ static bool rshPOE(const string         &machine, const string         &login,
   string pathResult;
   string path = getenv("PATH");
 
-  //  create rsh command
-  if ( de->getRemoteShellString().length() > 0 )
-    s[0] = strdup(de->getRemoteShell());
-  else
-    s[0] = strdup("rsh");
+  string remoteShell = de->getRemoteShellString();
+  assert(remoteShell.length() > 0);
+  s[0] = strdup(remoteShell.c_str());
 
   s[1] = strdup(machine.c_str());
   s[2] = (login.length()) ? strdup("-l"):              strdup("");
@@ -1097,10 +1102,9 @@ static bool rshIrixMPI(const string &machine, const string &login,
   unsigned int i;
   
   //  create rsh command
-  if ( de->getRemoteShellString().length() > 0 )
-    s[0] = strdup(de->getRemoteShell());
-  else
-    s[0] = strdup("rsh");
+  string remoteShell = de->getRemoteShellString();
+  assert(remoteShell.length() > 0);
+  s[0] = strdup(remoteShell.c_str());
 
   s[1] = strdup(machine.c_str());
   s[2] = (login.length()) ? strdup("-l"):              strdup("");
@@ -1425,7 +1429,7 @@ bool mpichCreateWrapper(const string& machine,
 
 			// ...build the command string...
 			string cmd;
-			cmd += de->getRemoteShell();
+			cmd += de->getRemoteShellString();
 			cmd += " ";
 			cmd += machine;			// name of the remote system
 			cmd += " cat - \">\" ";
@@ -1461,7 +1465,7 @@ bool mpichCreateWrapper(const string& machine,
 		if( copySucceeded )
 		{
 			// keep info around till later about script that needs to be removed
-			paradynDaemon::wrappers += paradynDaemon::MPICHWrapperInfo( script, machine, de->getRemoteShell() );
+			paradynDaemon::wrappers += paradynDaemon::MPICHWrapperInfo( script, machine, de->getRemoteShellString() );
 		}
 		if( !copySucceeded )
 		{
@@ -1482,12 +1486,9 @@ void mpichRemote(const string &machine, const string &login,
 		 vector<string> &params)
 {
 	string rsh = de->getRemoteShellString();
+	assert(rsh.length() > 0);
+	appendParsedString(params, rsh);
 
-	if (rsh.length() > 0) {
-		appendParsedString(params, rsh);
-	} else {
-		params += string("rsh");
-	}
 	if (login.length() != 0) {
 		params += string("-l");
 		params += login;
@@ -1699,12 +1700,12 @@ bool paradynDaemon::newExecutable(const string &machineArg,
       return false;
    }
 
-    if (!machine.length()) {
+   if (!machine.length()) {
       if (default_host.length()) {
-	string m = getNetworkName(default_host);
-	machine = m;
+	 string m = getNetworkName(default_host);
+	 machine = m;
       }
-    }
+   }
 
    if ( def->getFlavorString() == "mpi" )
    {
@@ -1729,16 +1730,15 @@ bool paradynDaemon::newExecutable(const string &machineArg,
       }
       else
       {
-          // get OS name through remote uname
-          
+          // get OS name through remote uname	 
           char comm[256];
           FILE* commStream;
           string remoteShell;
 
           remoteShell = def->getRemoteShellString();
-
+	  assert(remoteShell.length() > 0);
           sprintf(comm, "%s%s%s %s uname -s", 
-                  remoteShell.length() ? remoteShell.c_str() : "rsh",
+                  remoteShell.c_str(),
                   login.length() ? " -l " : "",
                   login.length() ? login.c_str() : "",
                   machine.c_str());
