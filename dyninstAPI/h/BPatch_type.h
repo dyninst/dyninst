@@ -44,7 +44,7 @@
 
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
-#include <string.h>
+#include <string.h>	
 
 typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
 	      BPatchSymStaticLocalVar, BPatchSymStaticGlobal,
@@ -83,7 +83,8 @@ typedef enum {BPatch_dataScalar,
 	      BPatch_dataMethod,
 	      BPatch_dataCommon,
 	      BPatch_dataPrimitive,
-	      BPatch_dataTypeNumber
+	      BPatch_dataTypeNumber,
+	      BPatch_dataTypeDefine
 } BPatch_dataClass;
 
 
@@ -98,6 +99,7 @@ typedef enum {BPatch_dataScalar,
 #define BPatch_typeAttrib	BPatch_dataTypeAttrib
 #define BPatch_built_inType  	BPatch_dataBuilt_inType
 #define BPatch_unknownType	BPatch_dataUnknownType
+#define BPatch_typeDefine	BPatch_dataTypeDefine
 
 /*
  * Type Descriptors:
@@ -206,8 +208,9 @@ private:
   char		*name;
   int           ID;                /* unique ID of type */
   int           size;              /* size of type */
-  char		*low;               /* lower bound */
-  char          *hi;                /* upper bound */
+  char		*low;              /* lower bound */
+  char          *hi;               /* upper bound */
+  int           modifierType;      /* which kind of modifier? */
   
   BPatch_dataClass   type_;
   BPatch_type 	*ptr;               /* pointer to other type (for ptrs, arrays) */
@@ -221,6 +224,8 @@ private:
 public:
 // Start Internal Functions
   BPatch_type();
+
+  void merge( BPatch_type * other );
   
   BPatch_type(const char *_name, bool _nullType = false);
   /* Enum constructor */
@@ -241,7 +246,7 @@ public:
   BPatch_type(const char *_name, int _ID, BPatch_type * _ptr);
   /* defining a type in terms of a builtin type (Type Attribute) */
   BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
-	      int _size, BPatch_type * _ptr);
+	      int _size, BPatch_type * _ptr, int _modifierType = 0 );
 
    /* Add field for Enum */
   void addField(const char * _fieldname,  BPatch_dataClass _typeDes, int value);
@@ -279,7 +284,7 @@ public:
   BPatch_type(const char *_name, BPatch_type * _ptr);
   /* defining a type in terms of a builtin type (Type Attribute) */
   BPatch_type(const char *_name, BPatch_dataClass _type, int _size,
-	      BPatch_type * _ptr);
+	      BPatch_type * _ptr, int _modifierType = 0);
 			    
   // Simple Destructor
   ~BPatch_type();
@@ -289,6 +294,7 @@ public:
   void setDataClass(BPatch_dataClass p1) { type_ = p1; }
 
   int getSize() const { return size; };
+  void setSize(int i) { size = i; }
   const char *getName() { return name; }
 
 #ifdef IBM_BPATCH_COMPAT
@@ -304,8 +310,7 @@ public:
   BPatch_type *getConstituentType() { return ptr; }
   bool isCompatible(BPatch_type *otype);
   BPatch_dataClass getDataClass() { return type_; }
-  BPatch_Vector<BPatch_field *> *getComponents() { 
-      return &fieldList; }
+  BPatch_Vector<BPatch_field *> *getComponents();
   BPatch_Vector<BPatch_cblock *> *getCblocks() { return cblocks; }
 };
 
