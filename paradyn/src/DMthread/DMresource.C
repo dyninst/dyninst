@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.53 1999/12/17 16:24:54 pcroth Exp $
+// $Id: DMresource.C,v 1.54 2000/01/06 20:19:27 cain Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -546,7 +546,8 @@ bool resourceList::convertToIDList(resourceListHandle rh,
 // This routine returns a list of foci which are the result of combining
 // each child of resource rh with the remaining resources that make up the
 // focus, otherwise it returns 0
-vector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type){
+vector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type,
+					resource *currentPath){
     vector<resourceHandle> *children;
     vector<rlNameId> *return_list;
 
@@ -588,13 +589,19 @@ vector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type){
 	    //Call Graph magnification requests should not return functions
 	    //that are in excluded libraries.
 	    if(type == CallGraphSearch){
+	      assert(currentPath != NULL);
 	      resourceHandle parent_handle = child_res->getParent();
 	      resource *parent = resource::handle_to_resource(parent_handle);
+	      assert(parent);
 	      if(!parent->isMagnifySuppressed()){
-		new_focus[rIndex] = (*children)[j];
-		temp.id = resourceList::getResourceList(new_focus);
-		temp.res_name = resource::getName((*children)[j]);
-		*return_list += temp;
+		//Only return resources that are descendents of the current
+		//path
+		if(currentPath->isDescendent((*children)[j])){
+		  new_focus[rIndex] = (*children)[j];
+		  temp.id = resourceList::getResourceList(new_focus);
+		  temp.res_name = resource::getName((*children)[j]);
+		  *return_list += temp;
+		}
 	      }
 	    }
 	    else{
@@ -660,7 +667,7 @@ vector<resourceListHandle> *resourceList::magnify(magnifyType type){
 // each child of one of the resources with the remaining resource components of
 // the focus. this is iterated over all resources in the focus.
 // returns 0 if all resources in the focus have no children
-vector<rlNameId> *resourceList::magnify(magnifyType type){
+/*vector<rlNameId> *resourceList::magnify(magnifyType type){
     
     vector<rlNameId> *return_list = new vector<rlNameId>;
     for(unsigned i=0; i < elements.size(); i++){
@@ -680,7 +687,7 @@ vector<rlNameId> *resourceList::magnify(magnifyType type){
     // -matt
     delete return_list;
     return NULL;
-}
+    }*/
 
 
 const char *resourceList::getName(resourceListHandle rh){

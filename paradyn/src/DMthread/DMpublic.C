@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.114 1999/12/01 14:41:43 zhichen Exp $
+// $Id: DMpublic.C,v 1.115 2000/01/06 20:19:28 cain Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -543,7 +543,7 @@ void dataManager::enableDataRequest(perfStreamHandle ps_handle,
 			            u_int persistent_data,
 		                    u_int persistent_collection,
 				    u_int phase_persistent_data){
-
+  
     if((type == CurrentPhase) && (phaseId != phaseInfo::CurrentPhaseHandle())){
 	// send enable failed response to calling thread
 	vector<metricInstInfo> *response = 
@@ -765,15 +765,18 @@ void dataManager::disableDataAndClearPersistentData(perfStreamHandle ps_handle,
 // if the resource rh is a component of the focus rlh, otherwise it returns 0
 //
 vector<rlNameId> *dataManager::magnify(resourceHandle rh, 
-				       resourceListHandle rlh, magnifyType m){
+				       resourceListHandle rlh, 
+				       magnifyType m,
+				       resourceHandle currentSearchPath){
   
 #ifdef PCDEBUG
   printf("Call made to datamanager:magnify, which is calling resourceList::magnify(rh, CallGraphSearch)\n");
 #endif
 
     resourceList *rl = resourceList::getFocus(rlh);
+    resource *res = resource::handle_to_resource(currentSearchPath);
     if(rl){
-      return(rl->magnify(rh, m));
+      return(rl->magnify(rh, m, res));
     }
     return 0;
 }

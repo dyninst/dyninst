@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.h,v 1.42 1999/06/04 16:05:39 cain Exp $
+// $Id: DMresource.h,v 1.43 2000/01/06 20:19:28 cain Exp $
 
 #ifndef DMresource_H 
 #define DMresource_H
@@ -137,7 +137,7 @@ class resource {
 	}
 	return false;
     }
-
+    static resource *handle_to_resource(resourceHandle);
   protected:
     resource();
     resource(resourceHandle p_handle,
@@ -173,7 +173,6 @@ class resource {
     static bool func_constraints_built;
     static bool lib_constraints_built;
 
-    static resource *handle_to_resource(resourceHandle);
     static resource *string_to_resource(const string &);
 };
 
@@ -211,7 +210,8 @@ class resourceList {
       // Therefore, when something which handles non-standard magnification
       //  types for a resource hierarchy which it does not handle, it
       //  should NOT crash, but rather should return an empty resource list....
-      vector<rlNameId> *magnify(resourceHandle rh, magnifyType type);
+      vector<rlNameId> *magnify(resourceHandle rh, magnifyType type, 
+				resource *currentPath);
       vector<rlNameId> *magnify(magnifyType type);
       resourceListHandle *constrain(resourceHandle);
 

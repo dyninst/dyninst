@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.94 1999/12/01 14:41:18 zhichen Exp $
+ * $Id: dataManager.I,v 1.95 2000/01/06 20:19:18 cain Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -352,11 +352,13 @@ $remote dataManager {
     //
     // This routine returns a list of foci which are the result of combining
     // each child of resource rh with the remaining resources that make up rlh
-    // if the resource rh is a component of the focus rlh, otherwise returns 0
+    // that are in the currentSearchPath if the resource rh is a 
+    // component of the focus rlh, otherwise returns 0
     //
     vector<rlNameId> *magnify(resourceHandle rh, 
 			      resourceListHandle rlh,
-                              magnifyType m);
+                              magnifyType m,
+			      resourceHandle currentSearchPath);
 
     //
     // if resource rh is a decendent of a component of the focus, return a new
