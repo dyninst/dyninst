@@ -1,7 +1,10 @@
 /*
  *
  * $Log: DYNINSTstartCode.c,v $
- * Revision 1.1  1993/07/02 21:49:35  hollings
+ * Revision 1.2  1994/02/02 00:46:10  hollings
+ * Changes to make it compile with the new tree.
+ *
+ * Revision 1.1  1993/07/02  21:49:35  hollings
  * Initial revision
  *
  *
@@ -12,6 +15,6 @@
  *   of a program's execution.
  *
  */
-DYNINSTstartUserCode()
+void DYNINSTstartUserCode()
 {
 }

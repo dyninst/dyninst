@@ -4,7 +4,10 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTsparc.c,v $
- * Revision 1.2  1993/12/13 19:47:52  hollings
+ * Revision 1.3  1994/02/02 00:46:12  hollings
+ * Changes to make it compile with the new tree.
+ *
+ * Revision 1.2  1993/12/13  19:47:52  hollings
  * corrected rindex parameter error
  *
  * Revision 1.1  1993/08/26  19:43:28  hollings
@@ -25,6 +28,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <unistd.h>
 #include <kvm.h>
 
 int DYNINSTmappedUarea;

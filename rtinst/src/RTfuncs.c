@@ -3,7 +3,10 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.5  1993/12/13 19:47:29  hollings
+ * Revision 1.6  1994/02/02 00:46:11  hollings
+ * Changes to make it compile with the new tree.
+ *
+ * Revision 1.5  1993/12/13  19:47:29  hollings
  * support for DYNINSTsampleMultiple.
  *
  * Revision 1.4  1993/10/19  15:29:58  hollings
@@ -21,19 +24,20 @@
  *
  */
 #include <sys/signal.h>
+#include <stdio.h>
 
 /*
  * Now our include files.
  *
  */
-#include <h/trace.h>
-#include <h/rtinst.h>
+#include "rtinst/h/trace.h"
+#include "rtinst/h/rtinst.h"
 
 /* This marks the end of user code in the text file. */
 /* This is to prevent system libraries with symbols compiled into them
  *    from adding extranious material to our inst. environment.
  */
-DYNINSTendUserCode()
+void DYNINSTendUserCode()
 {
 }
 

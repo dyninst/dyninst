@@ -3,7 +3,10 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.4  1993/12/13 19:48:12  hollings
+ * Revision 1.5  1994/02/02 00:46:14  hollings
+ * Changes to make it compile with the new tree.
+ *
+ * Revision 1.4  1993/12/13  19:48:12  hollings
  * force records to be word aligned.
  *
  * Revision 1.3  1993/10/19  15:29:58  hollings
@@ -26,15 +29,22 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <nlist.h>
+#include <unistd.h>
 
-#include <h/rtinst.h>
-#include <h/trace.h>
+#include "rtinst/h/rtinst.h"
+#include "rtinst/h/trace.h"
 
 #define MILLION	1000000
 extern int DYNINSTmappedUarea;
 extern int *_p_1, *_p_2;
 
-time64 inline DYNINSTgetUserTime()
+/*
+ * Missing stuff.
+ *
+ */
+extern int getrusage(int who, struct rusage *rusage);
+
+inline time64 DYNINSTgetUserTime()
 {
     int first;
     time64 now;
@@ -186,7 +196,6 @@ void DYNINSTinit(int skipBreakpoint)
     int val;
     int sigs;
     char *interval;
-    struct timeval tv;
     struct sigvec alarmVector;
     struct sigvec pauseVector;
     extern void DYNINSTsampleValues();
@@ -303,9 +312,7 @@ double lastTime[200];
 
 void DYNINSTreportTimer(tTimer *timer)
 {
-    int i,j;
     time64 now;
-    double value;
     time64 total;
     struct rusage ru;
     struct timeval tv;
@@ -343,7 +350,7 @@ void DYNINSTreportTimer(tTimer *timer)
     /* printf("raw sample %d = %f\n", sample.id.id, sample.value); */
 }
 
-DYNINSTfork(void *arg, int pid)
+void DYNINSTfork(void *arg, int pid)
 {
     int sid = 0;
     traceFork forkRec;
