@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.99 2000/10/17 17:27:45 schendel Exp $
+ * $Id: dataManager.I,v 1.100 2000/11/03 01:21:25 zandy Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -154,7 +154,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 55;
+    $version 56;
 
     //
     // Start a paradyn daemon
@@ -240,11 +240,6 @@ $remote dataManager {
     // Continue a paused application.
     //
     bool continueApplication();
-
-    //
-    // Continue a paused process in an application.
-    //
-    bool continueProcess(int pid);
 
     //
     // Disconnect the tool from the process.
