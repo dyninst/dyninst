@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.17 2003/12/08 19:03:35 schendel Exp $
+ * $Id: dyn_lwp.C,v 1.18 2004/01/19 21:53:40 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -113,17 +113,22 @@ dyn_lwp::~dyn_lwp()
 }
 
 // TODO is this safe here ?
-bool dyn_lwp::continueLWP() {
+bool dyn_lwp::continueLWP(int signalToContinueWith) {
    if(status_ == running) {
       return true;
    }
 
-   bool ret = continueLWP_();
+   bool ret = continueLWP_(signalToContinueWith);
    if(ret == false) {
       perror("continueProc_()");
    }
 
-   proc()->set_lwp_status(this, running);
+#if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
+   // no SIGSTOP on Windows, and also no such thing as continuing with signal
+   if (signalToContinueWith != SIGSTOP)
+#endif
+      proc()->set_lwp_status(this, running);
+
    return true;
 }
 
@@ -231,13 +236,17 @@ bool dyn_lwp::setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
                 get_lwp_id());
         return false;
     }
-    
+
     Address syscallInfo = getCurrentSyscall(aixHACK);
+    if(syscallInfo == 0) return false;
     
     trappedSyscall_ = proc()->trapSyscallExitInternal(syscallInfo);
-    
+
+    assert(trappedSyscallCallback_ == NULL);
+    assert(trappedSyscallData_ == NULL);
     trappedSyscallCallback_ = callback;
     trappedSyscallData_ = data;
+
     return (trappedSyscall_ != NULL);
 }
 
