@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.145 2005/02/17 02:16:21 rutar Exp $
+// $Id: ast.C,v 1.146 2005/02/22 22:53:39 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -247,18 +247,19 @@ void registerSpace::incRefCount(Register reg)
 }
 
 void registerSpace::copyInfo(registerSpace *rs) {
+  u_int i;
   rs->registers = new registerSlot[numRegisters];
   rs->fpRegisters = new registerSlot[numFPRegisters];
   rs->numRegisters = numRegisters;
   rs->numFPRegisters = numFPRegisters;
   
-  for (u_int i=0; i < numRegisters; i++)
+  for (i=0; i < numRegisters; i++)
     {
       rs->registers[i].beenClobbered = registers[i].beenClobbered;
       rs->registers[i].number = registers[i].number;
     }
 
-  for (u_int i=0; i < numFPRegisters; i++)
+  for (i=0; i < numFPRegisters; i++)
     {
       rs->fpRegisters[i].beenClobbered = fpRegisters[i].beenClobbered;
       rs->fpRegisters[i].number = fpRegisters[i].number;
