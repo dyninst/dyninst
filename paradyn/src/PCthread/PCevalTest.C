@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.15  1994/05/31 18:43:03  markc
+ * Revision 1.16  1994/05/31 19:11:41  hollings
+ * Changes to permit direct access to resources and resourceLists.
+ *
+ * Revision 1.15  1994/05/31  18:43:03  markc
  * Commented out computation of compensation factor due to pause time.  This
  * value is not within 0 and 1, but it should be.  This is a short term fix
  * until pause time is reported properly.
@@ -98,7 +101,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.15 1994/05/31 18:43:03 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.16 1994/05/31 19:11:41 hollings Exp $";
 #endif
 
 
@@ -106,6 +109,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <stdlib.h>
 #include <assert.h>
 
+#include "../DMthread/DMresource.h"
 #include "PCwhy.h"
 #include "PCwhere.h"
 #include "PCwhen.h"
@@ -234,9 +238,9 @@ void testValue::addHint(focus *f, char* message)
     int limit;
     resource *res;
 
-    limit = dataMgr->getResourceCount(f->data);
+    limit = f->data ? f->data->getCount() : 0;
     for (i=0; i < limit; i++) {
-	res = dataMgr->getNthResource(f->data, i);
+	res = f->data->getNth(i);
 	addHint(res, message);
     }
 }
@@ -252,7 +256,7 @@ void testValue::addHint(resource *res, char* message)
 	    if (!hints) hints = new(hintList);
 	    hints->add(f, message);
 	}
-	res = dataMgr->getResourceParent(res);
+	res = res->getParent();
     }
 }
 

@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.15  1994/05/26 20:57:16  karavan
-/* added tcl variable for location of bitmap files.
+/* Revision 1.16  1994/05/31 19:11:47  hollings
+/* Changes to permit direct access to resources and resourceLists.
 /*
+ * Revision 1.15  1994/05/26  20:57:16  karavan
+ * added tcl variable for location of bitmap files.
+ *
  * Revision 1.14  1994/05/23  01:59:31  karavan
  * added callbacks for resource notification and state change notification.
  *
@@ -97,6 +100,8 @@ extern "C" {
   #include "tcl.h"
   #include "tk.h"
 }
+
+#include "../DMthread/DMresource.h"
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
 #include "UIglobals.h" 
@@ -233,7 +238,7 @@ void controlFunc (performanceStream *ps ,
     if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
       printf ("WHEREaddNodeError: %s\n", interp->result);
     }
-    parname = dataMgr->getResourceName(parent);
+    parname = parent->getFullName();
     sprintf (tcommand, "$WHEREname.d01 addEdge %d %d -style %d",
 	     (int) Tk_GetUid(parname), nodeID, 1);
     if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
@@ -443,7 +448,7 @@ UImain(CLargStruct *clargs)
    // subscribe to DM new resource notification service
 
     uim_rootRes = dataMgr->getRootResource();
-    newres = dataMgr->getResourceName (uim_rootRes);
+    newres = uim_rootRes->getFullName();
     printf ("root resource: %s\n", newres);
     controlFuncs.rFunc = controlFunc;
     controlFuncs.mFunc = NULL;

@@ -5,10 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.15  1994/05/26 21:26:10  karavan
-/* corrected return value for Process command, to return TCL_ERROR if call
-/* to Add_Executable fails.
+/* Revision 1.16  1994/05/31 19:11:49  hollings
+/* Changes to permit direct access to resources and resourceLists.
 /*
+ * Revision 1.15  1994/05/26  21:26:10  karavan
+ * corrected return value for Process command, to return TCL_ERROR if call
+ * to Add_Executable fails.
+ *
  * Revision 1.14  1994/05/18  00:50:12  hollings
  * added pid argument to core command.
  *
@@ -56,6 +59,8 @@
 extern "C" {
  #include "tcl.h"
 }
+
+#include "../DMthread/DMresource.h"
 #include "util/h/tunableConst.h"
 #include "VM.CLNT.h"
 #include "thread/h/thread.h"
@@ -118,22 +123,22 @@ int ParadynResourcesCmd(ClientData clientData,
   char *name;
 
   parent = uim_rootRes;
-  resList = dataMgr->getResourceChildren(parent);
+  resList = parent->getChildren();
 
-  count = dataMgr->getResourceCount(resList);
+  count = resList->getCount();
 
   for (i = 0; i < count; i++) {
-    parent = dataMgr->getNthResource(resList, i);
+    parent = resList->getNth(i);
 
-    name = dataMgr->getResourceName(parent);
+    name = parent->getFullName();
     Tcl_AppendElement(interp, name);
 
-    children = dataMgr->getResourceChildren(parent);
-    count2 = dataMgr->getResourceCount(children);
+    children = parent->getChildren();
+    count2 = children->getCount();
 
     for (j = 0; j < count2; j++) {
-      child = dataMgr->getNthResource(children, j);
-      name = dataMgr->getResourceName(child);
+      child = children->getNth(j);
+      name = child->getFullName();
       Tcl_AppendElement(interp, name);
     }
   }
@@ -319,8 +324,8 @@ resourceList *build_resource_list (Tcl_Interp *interp, char *list)
   resource *parent, *child;
   int res, el;
 
-printf("list is %s\n",list);
-  ret = dataMgr->createResourceList();
+  printf("list is %s\n",list);
+  ret = new resourceList;
 
   if (Tcl_SplitList(interp, list, &argc1, &argv1) != TCL_OK) {
     printf("Could not split list '%s'", list);
@@ -334,7 +339,7 @@ printf("list is %s\n",list);
     }
     parent = uim_rootRes;
     for (el = 0; el < argc2; el++) {
-      child = dataMgr->findChildResource (parent, argv2[el]);
+      child = parent->findChild(argv2[el]);
       if (!child) {
 	printf ("Resource %s (child of %s) not defined\n", argv2[el], 
 		((el == 0) ? "/" : argv2[el-1]) );
@@ -342,7 +347,7 @@ printf("list is %s\n",list);
       }
       parent = child;
     }
-    dataMgr->addResourceList(ret, child);
+    ret->add(child);
     free(argv2);
   }
 
@@ -417,7 +422,7 @@ int ParadynEnableCmd (ClientData clientData,
   }
 
   // DEBUG
-  name = dataMgr->getResourceListName (resList);
+  name = resList->getCanonicalName();
   printf ("enable request for %s\n", name);
   delete(name);
 

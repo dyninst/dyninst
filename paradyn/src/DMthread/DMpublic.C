@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.15  1994/05/10 03:57:38  hollings
+ * Revision 1.16  1994/05/31 19:11:33  hollings
+ * Changes to permit direct access to resources and resourceLists.
+ *
+ * Revision 1.15  1994/05/10  03:57:38  hollings
  * Changed data upcall to return array of buckets.
  *
  * Revision 1.14  1994/05/09  20:56:22  hollings
@@ -160,63 +163,6 @@ resource *dataManager::getRootResource()
     return(resource::rootResource);
 }
 
-char *dataManager::getResourceName(resource *r)
-{
-    return(r->getFullName());
-}
-
-resource *dataManager::getResourceParent(resource *r)
-{
-    return(r->parent);
-}
-
-resourceList *dataManager::getResourceChildren(resource *r)
-{
-    return(&r->children);
-}
-
-Boolean dataManager::isResourceDescendent(resource *parent, resource *child)
-{
-    return(parent->isDescendent(child));
-}
-
-resource *dataManager::findChildResource(resource *parent, char *name)
-{
-    if (parent) {
-	return(parent->getChildren()->find(name));
-    } else {
-	return(NULL);
-    }
-}
-
-int dataManager::getResourceCount(resourceList *rl)
-{
-    return(rl ? rl->getCount(): 0);
-}
-
-resource *dataManager::getNthResource(resourceList *rl, int n)
-{
-    return(rl->getNth(n));
-}
-
-resourceList *dataManager::createResourceList()
-{
-    resourceList *ret;
-
-    ret = new resourceList;
-    return(ret);
-}
-
-void dataManager::addResourceList(resourceList *rl, resource *r)
-{
-    rl->add(r);
-}
-
-char *dataManager::getResourceListName(resourceList *rl)
-{
-    return(strdup(rl->getCanonicalName()));
-}
-
 metricInstance *dataManager::enableDataCollection(performanceStream *ps,
 						  resourceList *rl,
 						  metric *m)
@@ -227,7 +173,7 @@ metricInstance *dataManager::enableDataCollection(performanceStream *ps,
 void dataManager::disableDataCollection(performanceStream *ps, 
 					metricInstance *mi)
 {
-    ps->disableDataCollection(mi);
+    if (mi) ps->disableDataCollection(mi);
 }
 
 void dataManager::enableResourceCreationNotification(performanceStream *ps, 
@@ -295,12 +241,7 @@ int dataManager::getSampleValues(metricInstance *mi,
 
 void dataManager::printResources()
 {
-    HTable<resource*> curr;
-
-    for (curr=  resource::allResources; *curr; curr++) {
-	(*curr)->print();
-	printf("\n");
-    }
+    printResources();
 }
 
 void dataManager::printStatus(applicationContext *appl)

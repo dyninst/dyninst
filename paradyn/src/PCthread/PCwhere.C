@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.3  1994/02/09 22:35:49  hollings
+ * Revision 1.4  1994/05/31 19:11:42  hollings
+ * Changes to permit direct access to resources and resourceLists.
+ *
+ * Revision 1.3  1994/02/09  22:35:49  hollings
  * fixed pointers refs that pur caught.
  *
  * Revision 1.2  1994/02/03  23:27:05  hollings
@@ -48,7 +51,7 @@
 static volatile char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.3 1994/02/09 22:35:49 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.4 1994/05/31 19:11:42 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -56,6 +59,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <assert.h>
 #include <string.h>
 
+#include "../DMthread/DMresource.h"
 #include "PCwhere.h"
 #include "PCglobals.h"
 
@@ -65,10 +69,10 @@ int focus::operator =(focus f)
     int limit;
     void *ret;
 
-    data = dataMgr->createResourceList();
-    limit = dataMgr->getResourceCount(f.data);
+    data = new resourceList;
+    limit = f.data->getCount();
     for (i=0; i < limit; i++) {
-	dataMgr->addResourceList(data, dataMgr->getNthResource(f.data, i));
+	data->add(f.data->getNth(i));
     }
     return((int)ret);
 }
@@ -91,15 +95,16 @@ void focus::updateName()
     int i;
     int limit;
     char **names;
+    resource *res;
     char temp[256];
 
     strcpy(temp, "<");
     if (data) {
-	limit = dataMgr->getResourceCount(data);
+	limit = data->getCount();
 	names = (char **) malloc(sizeof(char *) * limit);
 	for (i=0; i < limit; i++) {
-	    // ??? should this be the full name???
-	    names[i] = dataMgr->getResourceName(dataMgr->getNthResource(data, i));
+	    res = data->getNth(i);
+	    names[i] = res->getFullName();
 	}
 	/* make sure we get a canocial form by sorting the name */
 	qsort((char *) names, limit, sizeof(char *), strCompare);
@@ -115,7 +120,7 @@ void focus::updateName()
 
 focus::focus()
 {
-    data = dataMgr->createResourceList();
+    data = new resourceList;
     name = NULL;
 }
 
@@ -206,18 +211,18 @@ focusList focus::magnify(resource *param)
 	count = 1;
     } else {
 	// for each known focus cell.
-	c = dataMgr->getResourceChildren(param);
-	oLimit = dataMgr->getResourceCount(c);
+	c = param->getChildren();
+	oLimit = c->getCount();
 	for (count = 0; count < oLimit; count++) {
-	    fc = dataMgr->getNthResource(c, count);
-	    resList = dataMgr->createResourceList();
-	    iLimit = dataMgr->getResourceCount(data);
+	    fc = c->getNth(count);
+	    resList = new resourceList;
+	    iLimit = data->getCount();
 	    for (inner=0; inner < iLimit; inner++) {
-		tc = dataMgr->getNthResource(data, inner);
-		if (dataMgr->isResourceDescendent(tc, fc)) {
-		    dataMgr->addResourceList(resList, fc);
+		tc = data->getNth(inner);
+		if (tc->isDescendent(fc)) {
+		    resList->add(fc);
 		} else {
-		    dataMgr->addResourceList(resList, tc);
+		    resList->add(tc);
 		}
 	    }
 	    // generate a new name for it.
@@ -247,6 +252,7 @@ focusList focus::enumerateRefinements()
     focus *f;
     int limit;
     int i, j, k;
+    resource *res;
     int childCount;
     focus *realFocus;
     focusList returnList;
@@ -254,18 +260,19 @@ focusList focus::enumerateRefinements()
     resourceList *destList;
 
 
-    limit = dataMgr->getResourceCount(data);
+    limit = data->getCount();
     for (i=0; i < limit; i++) {
-	children = dataMgr->getResourceChildren(dataMgr->getNthResource(data, i));
-	childCount = dataMgr->getResourceCount(children);
+	res = data->getNth(i);
+	children = res->getChildren();
+	childCount = children->getCount();
 	for (j=0; j < childCount; j++) {
-	    destList = dataMgr->createResourceList();
+	    destList = new resourceList;
 	    f = new focus(destList);
 	    for (k=0; k < limit; k++) {
 		if (k == i) {
-		    dataMgr->addResourceList(destList, dataMgr->getNthResource(children, j));
+		    destList->add(children->getNth(j));
 		} else {
-		    dataMgr->addResourceList(destList, dataMgr->getNthResource(data, k));
+		    destList->add(data->getNth(k));
 		}
 	    }
 
@@ -302,14 +309,14 @@ focus *focus::constrain(resource *param)
 
     found = FALSE;
     ret = NULL;
-    newCellList = dataMgr->createResourceList();
-    for (i=0; i < dataMgr->getResourceCount(data); i++) {
-	curr = dataMgr->getNthResource(data, i);
-	if (dataMgr->isResourceDescendent(curr, param) == TRUE) {
-	    dataMgr->addResourceList(newCellList, param);
+    newCellList = new resourceList;
+    for (i=0; i < data->getCount(); i++) {
+	curr = data->getNth(i);
+	if (curr->isDescendent(param) == TRUE) {
+	    newCellList->add(param);
 	    found = TRUE;
 	} else {
-	    dataMgr->addResourceList(newCellList, curr);
+	    newCellList->add(curr);
 	}
     }
     if (found) {
@@ -340,16 +347,16 @@ focus *focus::moreSpecific(resource *parm)
     resourceList *newList;
 
     assert(data);
-    limit = dataMgr->getResourceCount(data);
-    newList = dataMgr->createResourceList();
+    limit = data->getCount();
+    newList = new resourceList;
     found = FALSE;
     for (i=0; i < limit; i++) {
-	curr = dataMgr->getNthResource(data, i);
-	if (dataMgr->isResourceDescendent(curr, parm) == TRUE) {
-	    dataMgr->addResourceList(newList, parm);
+	curr = data->getNth(i);
+	if (curr->isDescendent(parm) == TRUE) {
+	    newList->add(parm);
 	    found = TRUE;
 	} else {
-	    dataMgr->addResourceList(newList, curr);
+	    newList->add(curr);
 	}
     }
     if (found) {

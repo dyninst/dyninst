@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.3 1994/04/18 22:28:33 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.4 1994/05/31 19:11:34 hollings Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.3  1994/04/18 22:28:33  hollings
+ * Revision 1.4  1994/05/31 19:11:34  hollings
+ * Changes to permit direct access to resources and resourceLists.
+ *
+ * Revision 1.3  1994/04/18  22:28:33  hollings
  * Changes to create a canonical form of a resource list.
  *
  * Revision 1.2  1994/02/03  23:26:59  hollings
@@ -93,23 +96,31 @@ void resourceList::print()
     int i;
 
     printf("<");
+    lock();
     for (i=0; i < count; i++) {
 	if (i) printf(",");
 	elements[i]->print();
     }
+    unlock();
     printf(">");
 }
 
 resource *resourceList::find(char *name) 
 {
     int i;
+    resource *ret;
 
     name = resource::names.findAndAdd(name);
 
-    for (i=0; i < count; i++) {
-	if (elements[i]->name == name) return(elements[i]);
+    lock();
+    for (i=0, ret = NULL; i < count; i++) {
+	if (elements[i]->name == name) {
+	    ret = elements[i];
+	    break;
+	}
     }
-    return(NULL);
+    unlock();
+    return(ret);
 }
 
 char ** resourceList::convertToStringList() 
@@ -117,10 +128,12 @@ char ** resourceList::convertToStringList()
     int i;
     char **temp;
 
+    lock();
     temp = (char **) malloc(sizeof(char *) * count);
     for (i=0; i < count; i++) {
 	temp[i] = elements[i]->fullName;
     }
+    unlock();
     return(temp);
 }
 
@@ -132,24 +145,38 @@ char *resourceList::getCanonicalName()
     char **temp;
     extern int strCompare(char **a, char **b);
 
-    if (fullName) return(fullName);
+    lock();
+    if (!fullName) {
+	temp = (char **) malloc(sizeof(char *) * count);
+	for (i=0; i < count; i++) {
+	    temp[i] = elements[i]->fullName;
+	}
+	qsort(temp, count, sizeof(char *), strCompare);
 
-    temp = convertToStringList();
-    qsort(temp, count, sizeof(char *), strCompare);
+	total = 2;
+	for (i=0; i < count; i++) total += strlen(temp[i])+2;
 
-    total = 2;
-    for (i=0; i < count; i++) total += strlen(temp[i])+2;
+	tempName = new(char[total]);
+	strcpy(tempName, "<");
+	for (i=0; i < count; i++) {
+	    if (i) strcat(tempName, ",");
+	    strcat(tempName, temp[i]);
+	}
+	strcat(tempName, ">");
 
-    tempName = new(char[total]);
-    strcpy(tempName, "<");
-    for (i=0; i < count; i++) {
-	if (i) strcat(tempName, ",");
-	strcat(tempName, temp[i]);
+	fullName = names.findAndAdd(tempName);
+	delete(tempName);
     }
-    strcat(tempName, ">");
-
-    fullName = names.findAndAdd(tempName);
-    delete(tempName);
-
+    unlock();
     return(fullName);
+}
+
+void printResources()
+{
+    HTable<resource*> curr;
+
+    for (curr=  resource::allResources; *curr; curr++) {
+        (*curr)->print();
+        printf("\n");
+    }
 }
