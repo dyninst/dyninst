@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-linux.C,v 1.6 2004/04/01 23:06:29 tlmiller Exp $
+// $Id: syscall-linux.C,v 1.7 2004/05/21 14:14:51 legendre Exp $
 
 #if defined( arch_x86 )
 #define FORK_FUNC "__libc_fork"
@@ -158,6 +158,7 @@ bool syscallNotification::installPostFork() {
                                    FUNC_EXIT|FUNC_ARG,
                                    returnVal);
     postForkInst->dontUseTrampGuard();
+    postForkInst->canUseTrap(false);
     removeAst(returnVal);
 
     pdvector<instMapping *> instReqs;

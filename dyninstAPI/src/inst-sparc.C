@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.157 2004/04/02 06:34:12 jaw Exp $
+// $Id: inst-sparc.C,v 1.158 2004/05/21 14:14:46 legendre Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1683,7 +1683,7 @@ bool process::MonitorCallSite(instPoint *callSite){
 				the_args);
     miniTrampHandle *mtHandle;
     addInstFunc(this, mtHandle, callSite, func, callPreInsn,
-                orderFirstAtPoint, true, false);
+                orderFirstAtPoint, true, false, true);
   }
   else if(isTrueCallInsn(callSite->firstInstruction)){
     //True call destinations are always statically determinable.

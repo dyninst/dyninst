@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.201 2004/04/20 23:33:21 mirg Exp $
+ * $Id: inst-power.C,v 1.202 2004/05/21 14:14:44 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -1846,7 +1846,8 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
                                       returnInstance *&retInstance,
                                       bool trampRecursiveDesired,
                                       bool /*noCost*/,
-                                      bool& /*deferred*/)
+                                      bool& /*deferred*/,
+                                      bool allowTrap)
 {
   trampTemplate *ret = NULL;
   retInstance = NULL;
@@ -3803,7 +3804,8 @@ bool process::MonitorCallSite(instPoint *callSite){
       addInstFunc(this, mtHandle, callSite, func, callPreInsn,
                   orderFirstAtPoint,
                   true,                        /* noCost flag   */
-                  false);                      /* trampRecursiveDesired flag */
+                  false,                       /* trampRecursiveDesired flag */
+                  true);                       /* allowTrap */
       return true;
   }
   else if (i.xlform.op == Bop) {

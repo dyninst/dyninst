@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.151 2004/05/11 20:41:26 legendre Exp $
+// $Id: inst-sparc-solaris.C,v 1.152 2004/05/21 14:14:45 legendre Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -910,7 +910,8 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
                                        returnInstance *&retInstance,
                                        bool trampRecursionDesired,
                                       bool /*noCost*/, 
-                                       bool &deferred)
+                                       bool &deferred,
+                                      bool allowTrap)
 {
    //=======================================================================
    // DUPLICATE CODE IN inst-x86.C in findOrInstallBaseTramp

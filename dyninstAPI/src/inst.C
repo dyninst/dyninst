@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.121 2004/05/11 19:01:41 bernat Exp $
+// $Id: inst.C,v 1.122 2004/05/21 14:14:47 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -239,13 +239,14 @@ loadMiniTramp_result addInstFunc(process *proc, miniTrampHandle * &mtHandle,
                                  AstNode *&ast, // ast may change (sysFlag stuff)
                                  callWhen when, callOrder order,
                                  bool noCost,
-                                 bool trampRecursiveDesired)
+                                 bool trampRecursiveDesired,
+                                 bool allowTrap)
 {
    returnInstance *retInstance = NULL;
    // describes how to jmp to the base tramp
    loadMiniTramp_result res = loadMiniTramp(mtHandle, proc, location, ast, 
                                             when, order, noCost, retInstance,
-                                            trampRecursiveDesired);
+                                            trampRecursiveDesired, allowTrap);
    
    if(res == success_res) {
        hookupMiniTramp(proc, mtHandle, order);
@@ -279,7 +280,8 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
                                    callOrder,
 #endif
                                    bool noCost, returnInstance *&retInstance,
-                                   bool trampRecursiveDesired)
+                                   bool trampRecursiveDesired,
+                                   bool allowTrap)
 {
    // retInstance gets filled in with info on how to jmp to the base tramp
    // (the call to findAndInstallBaseTramp doesn't do that)
@@ -294,7 +296,7 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
    // This fills in the baseTramp member of location
    mtHandle->baseTramp = findOrInstallBaseTramp(proc, location, 
                                                 retInstance, trampRecursiveDesired,
-                                                noCost, deferred);
+                                                noCost, deferred, allowTrap);
    if (!mtHandle->baseTramp) 
    {
        delete mtHandle;

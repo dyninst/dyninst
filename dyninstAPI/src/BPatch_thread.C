@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.107 2004/04/20 23:33:41 mirg Exp $
+// $Id: BPatch_thread.C,v 1.108 2004/05/21 14:14:39 legendre Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -909,10 +909,11 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
 #endif
                                            
 #if defined(rs6000_ibm_aix4_1) || defined(rs6000_ibm_aix5_1)
-                                           (isMain ? true :BPatch::bpatch->isTrampRecursive())
+                                           (isMain ? true :BPatch::bpatch->isTrampRecursive()),
 #else
-                                           BPatch::bpatch->isTrampRecursive()
+                                           BPatch::bpatch->isTrampRecursive(),
 #endif
+                                           true
                                            );
     
     if(res == success_res) {

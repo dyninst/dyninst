@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.43 2004/03/23 01:12:05 eli Exp $
+// $Id: instP.h,v 1.44 2004/05/21 14:14:49 legendre Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -132,7 +132,9 @@ extern trampTemplate *findOrInstallBaseTramp(process *proc,
                                              returnInstance *&retInstance,
                                              bool trampRecursiveDesired,
                                              bool noCost,
-                                             bool &deferred);
+                                             bool &deferred,
+                                             bool allowTrap);
+
 extern void installTramp(miniTrampHandle *mtHandle, process *proc, char *code, 
                          int codeSize);
 extern void modifyTrampReturn(process*, Address returnAddr, Address newReturnTo);

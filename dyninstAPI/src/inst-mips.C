@@ -3921,7 +3921,8 @@ trampTemplate *findOrInstallBaseTramp(process *p,
 				       returnInstance *&retInst,
 				       bool trampRecursiveDesired,
 				       bool /*noCost*/,
-                                       bool& /*deferred*/)
+                   bool& /*deferred*/,
+                   bool /*allowTrap*/)
 {
   TRACE_B( "findOrInstallBaseTramp" );
 
@@ -4596,7 +4597,8 @@ bool process::MonitorCallSite(instPoint *callSite){
     addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
 		orderFirstAtPoint,
 		true,                          /* noCost flag                */
-		false);                        /* trampRecursiveDesired flag */
+		false,                         /* trampRecursiveDesired flag */
+      true,                          /* allowTrap */
   }
   else
     {

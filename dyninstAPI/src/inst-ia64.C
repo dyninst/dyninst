@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.55 2004/05/18 18:19:58 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.56 2004/05/21 14:14:42 legendre Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -2748,7 +2748,7 @@ Address installMultiTramp(instPoint * & location, process *proc)
 trampTemplate * findOrInstallBaseTramp( process * proc, instPoint * & location,
 					returnInstance * & retInstance,
 					bool trampRecursiveDesired,
-					bool noCost, bool & deferred ) {
+					bool noCost, bool & deferred, bool /*allowTrap*/ ) {
 	/* TODO: handle if trampRecursiveDesired; handle if noCast, handle if deferred. */
  
 	/* proc->baseMap is in the relevant variable here; check to see if the given

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.84 2004/03/23 01:12:05 eli Exp $
+// $Id: inst.h,v 1.85 2004/05/21 14:14:48 legendre Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -92,7 +92,8 @@ loadMiniTramp_result addInstFunc(process *proc,
                                  callWhen when,
                                  callOrder order,
                                  bool noCost,
-                                 bool trampRecursionDesired);
+                                 bool trampRecursionDesired,
+                                 bool allowTrap);
 
 // writes to (*mtInfo)
 loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle,
@@ -101,7 +102,8 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle,
                                    AstNode *&ast, // the ast could be changed 
                                    callWhen when, callOrder order, bool noCost,
                                    returnInstance *&retInstance,
-                                   bool trampRecursiveDesired = false);
+                                   bool trampRecursiveDesired = false,
+                                   bool allowTramp = true);
 
 void hookupMiniTramp(process *proc,
                      miniTrampHandle *&mtHandle,
@@ -147,20 +149,20 @@ public:
   instMapping(const pdstring f, const pdstring i, const int w, 
 	      callWhen wn, callOrder o, AstNode *a=NULL)
      : func(f), inst(i), where(w), when(wn), order(o), useTrampGuard(true),
-     mt_only(false) {
+     mt_only(false), allow_trap(false) {
     if(a) args.push_back(assignAst(a));
   }
 
   instMapping(const pdstring f, const pdstring i, const int w, AstNode *a=NULL)
      : func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint),
-       useTrampGuard(true), mt_only(false) {
+       useTrampGuard(true), mt_only(false), allow_trap(false) {
     if(a) args.push_back(assignAst(a));
   }
 
   instMapping(const pdstring f, const pdstring i, const int w, 
               pdvector<AstNode*> &aList) :
      func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint),
-     useTrampGuard(true), mt_only(false) {
+     useTrampGuard(true), mt_only(false), allow_trap(false) {
     for(unsigned u=0; u < aList.size(); u++) {
       if(aList[u]) args.push_back(assignAst(aList[u]));
     }
@@ -178,6 +180,7 @@ public:
 public:
   void dontUseTrampGuard() { useTrampGuard = false; }
   void markAs_MTonly() { mt_only = true; }
+  void canUseTrap(bool t) { allow_trap = t; }
   bool is_MTonly() { return mt_only; }
 
   pdstring func;                 /* function to instrument */
@@ -188,6 +191,7 @@ public:
   pdvector<AstNode *> args;      /* what to pass as arg0 ... n */
   bool useTrampGuard;
   bool mt_only;
+  bool allow_trap;
   pdvector<miniTrampHandle *> mtHandles;
   // AstNode *arg;            /* what to pass as arg0 */
 };

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.501 2004/05/12 22:37:50 legendre Exp $
+// $Id: process.C,v 1.502 2004/05/21 14:14:50 legendre Exp $
 
 #include <ctype.h>
 
@@ -5509,10 +5509,10 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
                // We ignore the mtHandle return, which is okay -- it's
                // also stored with the base tramp. 
                loadMiniTramp_result opResult = addInstFunc(this,
-                                                           mtHandle,
-                                                           func_ret, ast,
-                                                           req->when, req->order, false, 
-                                                           (!req->useTrampGuard));
+                                                   mtHandle, func_ret, ast,
+                                                   req->when, req->order, false, 
+                                                   (!req->useTrampGuard),
+                                                   req->allow_trap);
                assert( opResult == success_res );
                req->mtHandles.push_back(mtHandle);
             }
@@ -5523,9 +5523,10 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
             instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
             miniTrampHandle *mtHandle;
             loadMiniTramp_result opResult = addInstFunc(this, mtHandle,
-                                                        func_entry, ast,
-                                                        req->when, req->order, false,
-                                                        (!req->useTrampGuard));
+                                                    func_entry, ast,
+                                                    req->when, req->order, false,
+                                                    (!req->useTrampGuard),
+                                                    req->allow_trap);
             assert( opResult == success_res );
             req->mtHandles.push_back(mtHandle);
          }
@@ -5540,7 +5541,8 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
                loadMiniTramp_result opResult = addInstFunc(this, mtHandle,
                                                 func_calls[j], ast,
                                                 req->when, req->order, false, 
-                                                (!req->useTrampGuard));
+                                                (!req->useTrampGuard),
+                                                req->allow_trap);
                assert( opResult == success_res);
                req->mtHandles.push_back(mtHandle);
             }

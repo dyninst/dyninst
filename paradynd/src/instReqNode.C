@@ -118,8 +118,8 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
                     point, ast, when, order,
                     false, // false --> don't exclude cost
                     retInstance,
-                    trampRecursiveDesired
-                    );
+                    trampRecursiveDesired,
+                    true);
    if(theProc->hasExited()) {
       res = failure_res;
    }

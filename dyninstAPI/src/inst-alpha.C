@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.76 2004/04/02 06:34:12 jaw Exp $
+// $Id: inst-alpha.C,v 1.77 2004/05/21 14:14:41 legendre Exp $
 
 #include "common/h/headers.h"
 
@@ -1593,7 +1593,8 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
 				       returnInstance *&retInstance, 
 				       bool /*trampRecursiveDesired*/,
 				       bool /* noCost */,
-                                       bool& /*deferred*/)
+                   bool& /*deferred*/,
+                   bool /*allowTrap*/)
 {
   trampTemplate *ret;
   process *globalProc;
