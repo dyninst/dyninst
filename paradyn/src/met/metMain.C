@@ -10,6 +10,10 @@
 
 /*
  * $Log: metMain.C,v $
+ * Revision 1.23  1995/11/03 18:33:51  tamches
+ * changed Paradynrc_NEW to paradyn.rc and
+ * .Paradynrc_NEW to .paradyn.rc
+ *
  * Revision 1.22  1995/10/13 19:37:35  naim
  * Minor change for handling PAUSE and RUN buttons when a process is created
  * from a MDL file - naim
@@ -146,21 +150,27 @@ bool metMain(string &userFile)
 
   mdl_init();
  
+  const string rcFileExtensionName="paradyn.rc";
+     // formerly Paradynrc_NEW --ari
+
   proot = getenv("PARADYN_ROOT");
   if (proot) {
-    fname = string(proot) + "/Paradynrc_NEW";
+    fname = string(proot) + "/" + rcFileExtensionName;
     yy1 = open_N_parse(fname);
   } else {
+    // note: we should use getwd() instead --ari
+    // (although it's not standard C in the sense that it's not
+    //  in the K & R book's appendix)
     cwd = getenv("PWD");
     if (cwd) {
-      fname = string(cwd) + "/Paradynrc_NEW";
+      fname = string(cwd) + "/" + rcFileExtensionName;
       yy1 = open_N_parse(fname);
     } else yy1 = -1;
   }
 
   home = getenv("HOME");
   if (home) {
-    fname = string(home) + "/.Paradynrc_NEW";
+    fname = string(home) + "/." + rcFileExtensionName;
     yy2 = open_N_parse(fname);
   } else yy2 = -1;
 
