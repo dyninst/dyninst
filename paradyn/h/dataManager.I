@@ -2,7 +2,11 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.73  1996/05/02 19:52:15  karavan
+ * Revision 1.74  1996/05/06 17:14:02  newhall
+ * added disableDataAndClearPersistentData, and added phase_persistent_data flag
+ * to enableDataRequest routines
+ *
+ * Revision 1.73  1996/05/02  19:52:15  karavan
  * removed obsolete parameters from predicted cost callback defn
  *
  * Revision 1.72  1996/05/01 18:06:31  newhall
@@ -526,7 +530,10 @@ $remote dataManager {
     // request_Id - identifier passed by calling thread  
     // type - which phase type to enable data for
     // phaseId - the identifier of the phase for which data is requested
-    // persistent_data, persistent_collection - flags for data collection 
+    // persistent_data - if set data is not distroyed on last disable 
+    // persistent_collection - if set data collection isn't stoped on disable 
+    // phase_persistent_data - like persistent_data, but only valid for curr
+    //                         phase
     //
     $async void enableDataRequest(perfStreamHandle ps_handle,
                                   vector<metric_focus_pair> *request,
@@ -534,7 +541,8 @@ $remote dataManager {
 				  phaseType type,
 				  u_int phaseId,
 				  u_int persistent_data,
-				  u_int persistent_collection);
+				  u_int persistent_collection,
+				  u_int phase_persistent_data);
 
     //
     // same as enableDataRequest, but with diff type request
@@ -545,7 +553,8 @@ $remote dataManager {
 				   phaseType type,
 				   u_int phaseId,
 				   u_int persistent_data,
-				   u_int persistent_collection);
+				   u_int persistent_collection,
+				   u_int phase_persistent_data);
 
 
     //
@@ -558,6 +567,20 @@ $remote dataManager {
 			              metricInstanceHandle,
 			              phaseType);
 
+    //
+    // stop collecting data for the named metricInstance and clear the
+    // persistent data flag(s) before disabling
+    // ps_handle - a handle returned by createPerformanceStream
+    // mi_handle - a metricInstance returned by enableDataCollection.
+    // p_type - specifies either global or current phase data
+    // clear_persistent_data - if true, clear persistent_data flag
+    // clear_phase_persistent_data - if true, clear phase_persistent_data flag
+    //
+    $async void disableDataAndClearPersistentData(perfStreamHandle ps_handle,
+					 metricInstanceHandle mi_handle,
+					 phaseType p_type,
+					 bool clear_persistent_data,
+					 bool clear_phase_persistent_data);
     //
     // This routine returns a list of foci which are the result of combining
     // each child of resource rh with the remaining resources that make up rlh
@@ -617,6 +640,10 @@ $remote dataManager {
     // change the persistent_data flag value for the assoc. MI
     //
     $async void setPersistentData(metricInstanceHandle);
+
+    // 
+    // this clears both persistent_data and phase_persistent_data flags of MI
+    // 
     $async void clearPersistentData(metricInstanceHandle);
 
     //
