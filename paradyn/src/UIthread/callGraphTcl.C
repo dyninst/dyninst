@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphTcl.C,v 1.3 1999/07/13 16:50:26 cain Exp $
+// $Id: callGraphTcl.C,v 1.4 1999/07/13 17:13:53 pcroth Exp $
 
 //CallGraphTcl.C: this file contains all of the tcl routines necessary
 //to control the callGraph. These are all modified versions of the functions
@@ -240,6 +240,22 @@ void initiateCallGraphRedraw(Tcl_Interp *, bool doubleBuffer) {
   callGraphDrawWhenIdle.install((ClientData)doubleBuffer);
 }
 
+int
+callGraphDestroyCommand(ClientData, Tcl_Interp*,
+						int, char** )
+{
+	if( !haveSeenFirstGoodCallGraphWid )
+	{
+		return TCL_OK;
+	}
+
+	// clean up data owned by the call graph window
+	delete theCallGraphPrograms;
+	theCallGraphPrograms = NULL;
+
+	return TCL_OK;
+}
+
 
 void CGdeleteDummyProc(ClientData) {}
 void installCallGraphCommands(Tcl_Interp *interp){
@@ -280,6 +296,8 @@ void installCallGraphCommands(Tcl_Interp *interp){
 		    callGraphShowFullPathCommand, NULL, CGdeleteDummyProc);
   Tcl_CreateCommand(interp,"callGraphHideFullPath", 
 		    callGraphHideFullPathCommand, NULL, CGdeleteDummyProc);
+  Tcl_CreateCommand(interp,"callGraphDestroyHook",
+            callGraphDestroyCommand, NULL, CGdeleteDummyProc);
 }
 
 
@@ -298,4 +316,5 @@ void unInstallCallGraphCommands(Tcl_Interp *interp) {
   Tcl_DeleteCommand(interp, "callGraphFindHook");
   Tcl_DeleteCommand(interp, "callGraphShowFullPath");
   Tcl_DeleteCommand(interp, "callGraphHideFullPath");
+  Tcl_DeleteCommand(interp, "callGraphDestroyCommand");
 }

@@ -44,7 +44,7 @@
 
 // Implementations of new commands and tk bindings related to the search history graph.
 
-/* $Id: shgTcl.C,v 1.14 1999/04/27 16:03:50 nash Exp $ */
+/* $Id: shgTcl.C,v 1.15 1999/07/13 17:13:54 pcroth Exp $ */
 
 #include "util/h/headers.h"
 #include "tkTools.h"
@@ -68,7 +68,7 @@ extern performanceConsultantUser *perfConsult;
 // we don't want to construct it until the shg window is created.
 // Why?  Because the constructor assumes the shg window and certain
 // subwindows exist.
-shgPhases *theShgPhases;
+shgPhases *theShgPhases = NULL;
 
 extern bool haveSeenFirstGoodShgWid; // main.C
 extern bool tryFirstGoodShgWid(Tcl_Interp *, Tk_Window); // main.C
@@ -313,6 +313,8 @@ int shgSearchCommand(ClientData, Tcl_Interp *interp, int, char **) {
    // was successfully started.
 
 #ifdef PARADYN
+	assert( theShgPhases != NULL );
+
    // the shg test program does not "really" do a search
    setResultBool(interp, theShgPhases->activateCurrSearch());
 #else
@@ -349,6 +351,19 @@ int shgResumeCommand(ClientData, Tcl_Interp *interp, int, char **) {
 
    return TCL_OK;
 }
+
+int shgDestroyCommand(ClientData,
+                      Tcl_Interp*,
+                      int, char** )
+{
+    // release resources that should be released by the
+    // time we destroy the GUI
+    delete theShgPhases;
+    theShgPhases = NULL;
+
+    return TCL_OK;
+}
+
 
 /* ******************************************************************** */
 
@@ -415,6 +430,8 @@ void installShgCommands(Tcl_Interp *interp) {
 		     NULL, shgDeleteDummyProc);
    Tcl_CreateCommand(interp, "shgResumeCommand", shgResumeCommand,
 		     NULL, shgDeleteDummyProc);
+   Tcl_CreateCommand(interp, "shgDestroyHook", shgDestroyCommand,
+		     NULL, shgDeleteDummyProc);
 }
 
 void unInstallShgCommands(Tcl_Interp *interp) {
@@ -437,6 +454,7 @@ void unInstallShgCommands(Tcl_Interp *interp) {
    Tcl_DeleteCommand(interp, "shgSearchCommand");
    Tcl_DeleteCommand(interp, "shgPauseCommand");
    Tcl_DeleteCommand(interp, "shgResumeCommand");
+   Tcl_DeleteCommand(interp, "shgDestroyHook");
 }
 
 void shgDevelModeChange(Tcl_Interp *interp, bool inDevelMode) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphConsts.C,v 1.2 1999/06/29 15:52:52 cain Exp $
+// $Id: callGraphConsts.C,v 1.3 1999/07/13 17:13:53 pcroth Exp $
 
 
 #include "callGraphConsts.h"
@@ -108,7 +108,9 @@ callGraphConsts::callGraphConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
 
 callGraphConsts::~callGraphConsts() {
   Tk_FreeFont(rootItemFontStruct);
+  Tk_FreeFont(rootItemItalicFontStruct);
   Tk_FreeFont(listboxItemFontStruct);
+  Tk_FreeFont(listboxItemItalicFontStruct);
 
   Tk_FreeColor(textColor);
 

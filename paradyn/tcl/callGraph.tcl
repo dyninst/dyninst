@@ -1,5 +1,5 @@
 #This is used to create the actual call graph window. 
-# $Id: callGraph.tcl,v 1.2 1999/07/13 16:51:00 cain Exp $
+# $Id: callGraph.tcl,v 1.3 1999/07/13 17:13:59 pcroth Exp $
 
 proc callGraphChangeCurrLabelHeight {numlines} {
    if {[winfo exists .callGraph.nontop.labelarea.current]} {
@@ -124,7 +124,11 @@ proc callGraphInitialize2 {} {
    bind  .callGraph.nontop.find.entry <Return> {callGraphFindHook [.callGraph.nontop.find.entry get]}
    
    # -----------------------------------------------------------
-   
+
+   # we need notification when the window is to be destroyed so
+   # we can release the fonts it uses
+   bind .callGraph.titlearea <Destroy> +{callGraphDestroyHook}
+
    bind .callGraph.nontop.main.all <Configure> {callGraphConfigureHook}
    bind .callGraph.nontop.main.all <Expose>    {callGraphExposeHook %c}
    bind .callGraph.nontop.main.all <Button-1>  {callGraphSingleClickHook %x %y}

@@ -1,4 +1,4 @@
-# $Id: shg.tcl,v 1.16 1998/03/03 23:09:51 wylie Exp $
+# $Id: shg.tcl,v 1.17 1999/07/13 17:13:59 pcroth Exp $
 
 proc shgChangeCurrLabelHeight {numlines} {
    if {[winfo exists .shg.nontop.labelarea.current]} {
@@ -391,4 +391,6 @@ proc shgInitialize2 {iDeveloperMode iDrawKey iDrawTips} {
 #   bind .shg.nontop.main.all <Control-Double-Button-1> {shgCtrlDoubleClickHook %x %y}
    bind .shg.nontop.main.all <Alt-Motion> {shgAltPressHook %x %y}
    bind .shg.nontop.main.all <Motion> {shgAltReleaseHook}
+
+   bind .shg <Destroy> +{shgDestroyHook}
 }
