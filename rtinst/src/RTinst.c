@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.38 2000/08/18 20:59:06 zandy Exp $
+ * $Id: RTinst.c,v 1.39 2000/08/18 21:08:53 zandy Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -1132,6 +1132,14 @@ void forkexec_printf(const char *fmt, ...) {
 
 #if !defined(i386_unknown_nt4_0)
  
+static void
+breakpoint_for_fork()
+{
+     int sample;
+     kill(getpid(), SIGSTOP);
+     DYNINSTgenerateTraceRecord(0, TR_SYNC, 0, &sample, 0, 0.0, 0.0);
+}
+
 void
 DYNINSTfork(int pid) {
     forkexec_printf("DYNINSTfork -- WELCOME -- called with pid = %d\n", pid);
@@ -1148,8 +1156,7 @@ DYNINSTfork(int pid) {
 	  bad thing.  --ari */
 
        forkexec_printf("DYNINSTfork parent; about to PARADYNbreakPoint\n");
-
-       kill(getpid(), SIGSTOP);
+       breakpoint_for_fork();
     } else if (pid == 0) {
        /* we are the child process */
 	int pid = getpid();
@@ -1209,7 +1216,7 @@ DYNINSTfork(int pid) {
                         " now doing PARADYNbreakPoint() to wait"
                         " for paradynd to initialize me.\n", (int)getpid());
 
-	kill(getpid(), SIGSTOP);
+	breakpoint_for_fork();
 
 	forkexec_printf("dyninst-fork child past PARADYNbreakPoint()"
                         " ...calling DYNINSTinit(-1,-1)\n");
