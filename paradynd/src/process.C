@@ -292,7 +292,7 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
         {
 
 #ifdef FREEDEBUG_ON
-          sprintf(errorLine,"*** TEST *** (pid=%d) IN isFreeOK: (1) we found 0x%x in our inst. range!\n",proc->pid,ptr->addr);
+          sprintf(errorLine,"*** TEST *** IN isFreeOK: (1) we found 0x%x in our inst. range!\n",ptr->addr);
           logLine(errorLine);
 #endif
 
@@ -306,7 +306,7 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
           {
 
 #ifdef FREEDEBUG_ON
-    sprintf(errorLine,"*** TEST *** (pid=%d) IN isFreeOK: (2) we found 0x%x in our inst. range!\n",proc->pid,ptr->addr);
+    sprintf(errorLine,"*** TEST *** IN isFreeOK: (2) we found 0x%x in our inst. range!\n", ptr->addr);
     logLine(errorLine);
 #endif
 
@@ -317,7 +317,7 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
           {
 
 #ifdef FREEDEBUG_ON
-    sprintf(errorLine,"*** TEST *** (pid=%d) IN isFreeOK: (3) we found PC in our inst. range!\n",proc->pid);
+    sprintf(errorLine,"*** TEST *** IN isFreeOK: (3) we found PC in our inst. range!\n");
     logLine(errorLine);
 #endif
 
@@ -1828,7 +1828,7 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
 
   bool res = writeTextWord_(inTracedProcess, data);
   if (!res) {
-    string msg = string("System error: unable to write to process data space:")
+    string msg = string("System error: unable to write to process text word:")
 	           + string(sys_errlist[errno]);
     showErrorCallback(38, msg);
     return false;
@@ -1862,7 +1862,7 @@ bool process::writeTextSpace(void *inTracedProcess, int amount, const void *inSe
 
   bool res = writeTextSpace_(inTracedProcess, amount, inSelf);
   if (!res) {
-    string msg = string("System error: unable to write to process data space:")
+    string msg = string("System error: unable to write to process text space:")
 	           + string(sys_errlist[errno]);
     showErrorCallback(38, msg);
     return false;
@@ -2533,6 +2533,7 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
    }
 
    bool syscall = false;
+
    void *theSavedRegs = getRegisters(syscall); // machine-specific implementation
       // result is allocated via new[]; we'll delete[] it later.
       // return value of NULL indicates total failure.
@@ -2592,6 +2593,8 @@ return false;
    assert(currRunningRPCs.empty()); // since it's unsafe to run > 1 at a time
    currRunningRPCs += inProgStruct;
 
+   // cerr << "Changing pc and exec.." << endl;
+
    // change the PC and nPC registers to the addr of the temp tramp
 #if defined(hppa1_1_hp_hpux)
    if (syscall) {
@@ -2636,6 +2639,8 @@ return false;
 	   return false;
        }
 #endif
+
+   // cerr << "Finished...." << endl;
 
    if (!continueProc()) {
       cerr << "launchRPCifAppropriate: continueProc() failed" << endl;
@@ -2734,10 +2739,6 @@ bool process::handleTrapIfDueToRPC() {
    // signals.
    Frame theFrame(this);
    while (true) {
-      if (theFrame.isLastFrame())
-	 // well, we've gone as far as we can, with no match.
-	 return false;
-
       // do we have a match?
       const int framePC = theFrame.getPC();
       if ((unsigned)framePC >= currRunningRPCs[0].firstPossibleBreakAddr &&
@@ -2746,20 +2747,27 @@ bool process::handleTrapIfDueToRPC() {
 	 break;
       }
 
+      if (theFrame.isLastFrame())
+	 // well, we've gone as far as we can, with no match.
+	 return false;
+
       // else, backtrace 1 more level
       theFrame = theFrame.getPreviousStackFrameInfo(this);
    }
 
-   // Okay, we have a match.
-   inferiorRPCinProgress theStruct = currRunningRPCs.removeByIndex(0);
-//   assert(theStruct.trapInstrAddr == currPCreg);
+   inferiorRPCinProgress theStruct = currRunningRPCs[0];
 
    // step 1) restore registers:
    if (!restoreRegisters(theStruct.savedRegs)) {
       cerr << "handleTrapIfDueToRPC failed because restoreRegisters failed" << endl;
       assert(false);
    }
+   // Okay, we have a match.
+   currRunningRPCs.removeByIndex(0);
+
+//   assert(theStruct.trapInstrAddr == currPCreg);
    delete [] theStruct.savedRegs;
+
 
    // step 2) delete temp tramp
    vector< vector<unsigned> > pointsToCheck;
@@ -2808,7 +2816,9 @@ void process::installBootstrapInst() {
    the_args[2] = new AstNode(AstNode::Constant, (void*)-1);
 
    AstNode *ast = new AstNode("DYNINSTinit", the_args);
-   for (unsigned i=0;i<the_args.size();i++) removeAst(the_args[i]);
+   for (unsigned j=0; j<the_args.size(); j++) {
+       removeAst(the_args[j]);
+   }
 
    pdFunction *func = findOneFunction("main");
    assert(func);
@@ -2842,8 +2852,8 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 
       if (req->where & FUNC_EXIT) {
 	 const vector<instPoint*> func_rets = func->funcExits(this);
-	 for (unsigned i=0; i < func_rets.size(); i++)
-	    (void)addInstFunc(this, func_rets[i], ast,
+	 for (unsigned j=0; j < func_rets.size(); j++)
+	    (void)addInstFunc(this, func_rets[j], ast,
 			      callPreInsn, orderLastAtPoint, false);
 
       }
@@ -2860,8 +2870,8 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 	 if (func_calls.size() == 0)
 	    continue;
 
-	 for (unsigned i=0; i < func_calls.size(); i++)
-	    (void)addInstFunc(this, func_calls[i], ast,
+	 for (unsigned j=0; j < func_calls.size(); j++)
+	    (void)addInstFunc(this, func_calls[j], ast,
 			      callPreInsn, orderLastAtPoint, false);
 
       }
@@ -2950,6 +2960,7 @@ bool process::procStopFromDYNINSTinit() {
    forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; got rec" << endl;
 
    string str=string("PID=") + string(bs_record.pid) + ", receiving bootstrap info...";
+
    statusLine(str.string_of());
 
    assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
