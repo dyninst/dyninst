@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.69 2003/12/18 17:15:31 schendel Exp $
+// $Id: BPatch.C,v 1.70 2004/01/19 21:53:39 schendel Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -653,12 +653,12 @@ void BPatch::registerForkedThread(int parentPid, int childPid, process *proc)
  * proc			lower lever handle to process specific stuff
  *
  */
-void BPatch::registerForkingThread(int forkingPid, process *proc)
+void BPatch::registerForkingThread(int forkingPid, process * /*proc*/)
 {
     BPatch_thread *forking = info->threadsByPid[forkingPid];
     // Wouldn't this be the same as proc->thread?
     assert(forking);
-    
+
     if (preForkCallback) {
         preForkCallback(forking, NULL);
     }
@@ -683,22 +683,23 @@ void BPatch::registerExec(BPatch_thread *thread)
     }
 }
 
-
-/*
- * BPatch::registerExit
- *
- * Register a process that has just done an exit call.
- *
- * thread	thread that has just performed the exec
- * code		the exit status code
- *
- */
-void BPatch::registerExit(BPatch_thread *thread, int code)
+void BPatch::registerNormalExit(BPatch_thread *thread, int exitcode)
 {
+    thread->setExitCode(exitcode);
+    thread->setExitedNormally();
     if (exitCallback) {
-        exitCallback(thread, code);
+        exitCallback(thread, ExitedNormally);
     }
 }
+
+void BPatch::registerSignalExit(BPatch_thread *thread, int signalnum)
+{
+    thread->setExitedViaSignal(signalnum);
+    if (exitCallback) {
+        exitCallback(thread, ExitedViaSignal);
+    }
+}
+
 
 
 /*
@@ -846,59 +847,60 @@ bool BPatch::getThreadEvent(bool block)
 bool BPatch::getThreadEventOnly(bool block)
 {
    bool	result = false;
-   procSignalWhy_t why;
-   procSignalWhat_t what;
-   procSignalInfo_t info;
-   process *proc;
 
-   dyn_lwp *selectedLWP;
-   if ( (proc = decodeProcessEvent(&selectedLWP, -1, why, what, info, block))
-        != NULL)
-   {
-       // There's been a change in a child process
-       result = true;
-       // Since we found something, we don't want to block anymore
-       block = false;
-       
-       bool exists;
-       BPatch_thread *thread = getThreadByPid(proc->getPid(), &exists);
-       if (thread == NULL) {
-           if (exists) {
-               if (didProcExit(why) || didProcExitOnSignal(why))
-                   unRegisterThread(proc->getPid());
-           } else {
-               fprintf(stderr, "Warning - wait returned status of an unknown process (%d)\n",
-                       proc->getPid());
-           }
-       }
-       if (thread != NULL) {
-           if (didProcReceiveSignal(why)) {
-               thread->lastSignal = what;
-               thread->setUnreportedStop(true);
-           }
-           else if (didProcExitOnSignal(why)) {
-               thread->lastSignal = what;
-               thread->setUnreportedTermination(true);
-           }
-           else if (didProcExit(why)) {
-               thread->proc->exitCode_ = what;
-               thread->exitCode = thread->proc->exitCode();
-               thread->lastSignal = 0; /* XXX Make into some constant */
-               thread->setUnreportedTermination(true);
-           }
-       }
-       
-       // Do standard handling
-       processState prevState = thread->proc->status();
-       handleProcessEvent(proc, selectedLWP, why, what, info);
-
-       // In the case where we trap on exit(), we're only updating the
-       // exit code of the process.  Propagate this to the thread.
-
-       if (!didProcExit(why) && proc->status() == exited && prevState != exited) {
-	 thread->exitCode = thread->proc->exitCode();
-       }
+   pdvector<procevent *> foundEvents;
+   bool res = getSH()->checkForProcessEvents(&foundEvents, -1, block);
+   if(!res) {
+       return false;
    }
+
+   getSH()->beginEventHandling(foundEvents.size());
+
+   for(unsigned i=0; i<foundEvents.size(); i++)
+   {
+      procevent *cur_event = foundEvents[i];
+      process *proc = cur_event->proc;
+      procSignalWhy_t why   = cur_event->why;
+      procSignalWhat_t what = cur_event->what;
+
+      // There's been a change in a child process
+      result = true;
+      // Since we found something, we don't want to block anymore
+      block = false;
+       
+      bool exists;
+      BPatch_thread *thread = getThreadByPid(proc->getPid(), &exists);
+      if (thread == NULL) {
+         if (exists) {
+            if (didProcExit(why) || didProcExitOnSignal(why))
+               unRegisterThread(proc->getPid());
+         } else {
+            fprintf(stderr, "Warning - wait returned status of an unknown process (%d)\n",
+                    proc->getPid());
+         }
+      }
+      if (thread != NULL) {
+         if (didProcReceiveSignal(why)) {
+            thread->lastSignal = what;
+            thread->setUnreportedStop(true);
+         }
+         else if (didProcExitOnSignal(why)) {
+            thread->lastSignal = what;
+            thread->setUnreportedTermination(true);
+         }
+         else if (didProcExit(why)) {
+            thread->setExitedNormally();
+            thread->lastSignal = 0; /* XXX Make into some constant */
+            thread->setUnreportedTermination(true);
+         }
+      }
+       
+      // Do standard handling
+      getSH()->handleProcessEventKeepLocked(*cur_event);
+      delete cur_event;
+   }
+
+   getSH()->continueLockedProcesses();
    return result;
 }
 
@@ -1279,15 +1281,14 @@ void setLogging_NP(BPatchLoggingCallback, int)
 void BPatch::launchDeferredOneTimeCode()
 {
     for (unsigned int p = 0; p < processVec.size(); p++) {
-	process *proc = processVec[p];
+        process *proc = processVec[p];
 
-	if (proc == NULL)
-	    continue;
+        if (proc == NULL)
+            continue;
+        
+        if (proc->status() == exited || proc->status() == neonatal)
+            continue;
 
-	if (proc->status() == exited || proc->status() == neonatal)
-	    continue;
-
-	proc->getRpcMgr()->launchRPCs(proc->status() == running);
-    
+        proc->getRpcMgr()->launchRPCs(proc->status() == running);        
     }
 }
