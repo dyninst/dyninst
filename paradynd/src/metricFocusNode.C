@@ -1362,7 +1362,9 @@ void metricDefinitionNode::disable()
 	      break;
 	    }
 	  }
-	  assert(m->aggregators.size() == aggr_size-1);
+	  if (aggr_size!=0) {
+            assert(m->aggregators.size() == aggr_size-1);
+	  }
 	  // disable component only if it is not being shared
 	  if (aggr_size == 1) {
 	    m->disable();
