@@ -41,6 +41,9 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.58  1998/02/02 23:12:07  wylie
+ * Conditional use of NT-specific WSAETIMEDOUT instead of ETIMEDOUT timeout error.
+ *
  * Revision 1.57  1998/01/30 18:29:56  ssuen
  * Fixed front-end memory leak.  Paradynds retry if connection with front-end
  * fails.
@@ -683,7 +686,12 @@ XDRrpc::XDRrpc(int family,
   //  Paradyn at the same time, so we keep retrying the connect().
   errno = 0;
   while (P_connect(fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
-    if (errno != ETIMEDOUT) { fd = -1; return; } 
+#if defined(i386_unknown_nt4_0)
+    if (errno != WSAETIMEDOUT)
+#else
+    if (errno != ETIMEDOUT)
+#endif
+        { fd = -1; return; } 
     close(fd);
     if ((fd = P_socket(family, type, 0)) < 0) { fd = -1; return; }
     errno = 0;
