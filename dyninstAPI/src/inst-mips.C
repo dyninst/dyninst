@@ -5107,3 +5107,12 @@ createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
 {
 
 }
+
+bool registerSpace::clobberRegister(Register reg) 
+{
+  return false;
+}
+
+unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
+{
+}

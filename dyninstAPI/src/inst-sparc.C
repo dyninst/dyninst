@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.160 2005/01/11 22:47:09 legendre Exp $
+// $Id: inst-sparc.C,v 1.161 2005/01/17 20:10:28 rutar Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2304,3 +2304,11 @@ createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
 
 }
 
+bool registerSpace::clobberRegister(Register reg) 
+{
+  return false;
+}
+
+unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
+{
+}

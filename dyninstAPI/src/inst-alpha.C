@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.79 2005/01/11 22:47:05 legendre Exp $
+// $Id: inst-alpha.C,v 1.80 2005/01/17 20:10:27 rutar Exp $
 
 #include "common/h/headers.h"
 
@@ -2303,4 +2303,13 @@ void
 createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
 {
 
+}
+
+bool registerSpace::clobberRegister(Register reg) 
+{
+  return false;
+}
+
+unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
+{
 }

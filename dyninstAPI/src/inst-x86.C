@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.183 2005/01/11 22:47:10 legendre Exp $
+ * $Id: inst-x86.C,v 1.184 2005/01/17 20:10:28 rutar Exp $
  */
 #include <iomanip>
 
@@ -6384,4 +6384,13 @@ bool function_base::setReturnValue(process *p, int val)
 
    size = ((unsigned) cur) - (unsigned) buffer;
    return p->writeTextSpace((void *) addr, size, buffer);
+}
+
+bool registerSpace::clobberRegister(Register reg) 
+{
+  return false;
+}
+
+unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
+{
 }

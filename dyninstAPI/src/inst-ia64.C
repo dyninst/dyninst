@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.64 2005/01/11 22:47:06 legendre Exp $
+ * $Id: inst-ia64.C,v 1.65 2005/01/17 20:10:27 rutar Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -4060,6 +4060,16 @@ void
 createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
 {
 
+}
+
+
+bool registerSpace::clobberRegister(Register reg) 
+{
+  return false;
+}
+
+unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
+{
 }
 
 #if ! defined( BPATCH_LIBRARY )
