@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.27 1999/06/18 21:44:43 hollings Exp $
+// $Id: unix.C,v 1.28 1999/07/07 16:11:54 zhichen Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -462,6 +462,7 @@ int handleSigChild(int pid, int status)
 		      if (wasRunning && !curr->continueProc()) {
 			assert(0);
 		      }
+		      inferiorrpc_cerr << "handle TRAP due to dlopen or dlclose event" <<endl;
 		      break;
 		    }
 		}
@@ -481,6 +482,7 @@ int handleSigChild(int pid, int status)
 		if (instWList.size() != 0) {
 			cerr << "instWList is full" << endl;
 		    if(curr -> cleanUpInstrumentation(wasRunning)){
+		        inferiorrpc_cerr << "instWList is full, cleanUpInstrumentation" << endl;
 		        break; // successfully processed the SIGTRAP
                     }
 		}
@@ -575,6 +577,7 @@ int handleSigChild(int pid, int status)
 		  // have restored the original instructions in the place
 		  // we use to call dlopen - naim
 		  // process the code below yet - naim
+		    signal_cerr << "dyninstLibAlreadyLoaded && !dyninstLibIsBeingLoaded..." << endl;
 		} else {
 		  // if this is not the case, then we are not ready to
 		  // process the code below yet - naim
@@ -602,7 +605,7 @@ int handleSigChild(int pid, int status)
 
 		   curr->reachedFirstBreak = true;
 
-		   buffer=string("PID=") + string(pid) + ", installing call to DYNINSTinit()";
+		   buffer=string("PID=") + string(pid) + string(", installing call to DYNINSTinit()");
 		   statusLine(buffer.string_of());
 
 		   curr->installBootstrapInst();
@@ -619,12 +622,12 @@ int handleSigChild(int pid, int status)
 		   }
 		   else 
 		   {
-		      buffer=string("PID=") + string(pid) + ", running DYNINSTinit()...";
+		      buffer=string("PID=") + string(pid) + string(", running DYNINSTinit()...");
 		      statusLine(buffer.string_of());
 		   }
 		}
 		else {
-#ifdef i386_unknown_linux2_0
+#if defined(i386_unknown_linux2_0) 
 			Address pc = getPC( pid );
 			if( orig_sig == SIGTRAP )
 			{
