@@ -1,6 +1,9 @@
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.6  1996/02/11 21:23:45  tamches
+# Revision 1.7  1996/11/26 16:10:40  naim
+# Implementation of cross-compiler (sparc-solaris,x86-solaris)->rs6000 - naim
+#
+# Revision 1.6  1996/02/11  21:23:45  tamches
 # TCL2C invoked via perl
 #
 # Revision 1.5  1995/12/27 08:29:59  tamches
@@ -57,6 +60,10 @@ SRCS		+= $(TCL2C_GEN_SRCS)
 #LIBDIR		+= -L/s/X11/lib
 LIBS         += -lvisi -lpdutil 
 SYSLIBS	     += -ltk -ltcl -lX11 -lm
+
+ifdef CROSSCOMPILER
+SYSLIBS		+= -lstdc++
+endif
 
 all:	$(TARGET)
 

@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.9  1996/02/23 17:50:34  tamches
+# Revision 1.10  1996/11/26 16:10:42  naim
+# Implementation of cross-compiler (sparc-solaris,x86-solaris)->rs6000 - naim
+#
+# Revision 1.9  1996/02/23  17:50:34  tamches
 # now don't need to have visilib checked out to compile tclVisi
 #
 # Revision 1.8  1996/01/17 18:32:29  newhall
@@ -57,6 +60,9 @@ IFLAGS	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ""; else echo -I/p/parady
 LIBS         += -lvisi -lhist -lpdutil 
 SYSLIBS      += -ltk -ltcl -lX11 -lm
 
+ifdef CROSSCOMPILER
+SYSLIBS		+= -lstdc++
+endif
 
 all: $(TARGET)
 

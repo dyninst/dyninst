@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.10  1996/02/07 15:33:01  mjrg
+# Revision 1.11  1996/11/26 16:10:34  naim
+# Implementation of cross-compiler (sparc-solaris,x86-solaris)->rs6000 - naim
+#
+# Revision 1.10  1996/02/07  15:33:01  mjrg
 # use perl to invoke tcl2c to avoid problems on HP.
 #
 # Revision 1.9  1996/01/10 02:22:03  tamches
@@ -67,6 +70,10 @@ SRCS		+= $(TCL2C_GEN_SRCS)
 
 LIBS         += -lvisi -lpdutil 
 SYSLIBS	     += -ltk -ltcl -lX11 -lm
+
+ifdef CROSSCOMPILER
+SYSLIBS		+= -lstdc++
+endif
 
 all:	$(TARGET)
 
