@@ -1,8 +1,12 @@
 /* $Log: UImain.C,v $
-/* Revision 1.48  1995/07/24 21:30:40  tamches
-/* added a useful status line for the ui (when it's receiving where axis
-/* data)
+/* Revision 1.49  1995/08/04 19:13:55  tamches
+/* Added a status line for 'rethinking' after receiving data (whethere batch
+/* mode or not)
 /*
+ * Revision 1.48  1995/07/24  21:30:40  tamches
+ * added a useful status line for the ui (when it's receiving where axis
+ * data)
+ *
  * Revision 1.47  1995/07/18  19:14:29  krisna
  * changes to convert Tcl sources to C
  *
@@ -333,6 +337,8 @@ void resourceBatchChanged(perfStreamHandle handle, batchMode mode)
       if (UIM_BatchMode == 0) {
          // Batch mode is done with.  We need to update the where axis'
          // spatial graphications...
+         ui_status->message("Rethinking after batch mode");
+
          extern abstractions<resourceHandle> *theAbstractions;
          assert(theAbstractions);
 

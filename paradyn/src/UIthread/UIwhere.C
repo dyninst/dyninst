@@ -3,9 +3,13 @@
  * code related to displaying the where axes lives here
  */
 /* $Log: UIwhere.C,v $
-/* Revision 1.12  1995/07/24 21:31:30  tamches
-/* removed some obsolete code related to the old where axis
+/* Revision 1.13  1995/08/04 19:13:56  tamches
+/* Added a status line for 'rethinking' after receiving data (whethere batch
+/* mode or not)
 /*
+ * Revision 1.12  1995/07/24  21:31:30  tamches
+ * removed some obsolete code related to the old where axis
+ *
  * Revision 1.11  1995/07/17  05:07:33  tamches
  * Drastic changes related to the new where axis...most of the good stuff
  * is now in different files.
@@ -111,14 +115,17 @@ void resourceAddedCB (perfStreamHandle handle,
 
   theWhereAxis.addItem(nameLastPart, parent, newResource,
 		       false, // don't rethink graphics
-		       !inBatchMode // re-sort only if not in batch mode
+		       false // don't resort (if not in batch mode, code below
+		             // will do that, so don't worry)
 		       );
 
   if (!inBatchMode) {
+     ui_status->message("Rethinking after a non-batch receive");
+
      theWhereAxis.recursiveDoneAddingChildren();
      theWhereAxis.resize(true);
         // super-expensive operation...rethinks EVERY node's
-        // listbox & children dimensions.  Actually, think only needs
+        // listbox & children dimensions.  Actually, this only needs
         // to be done for the just-added node and all its ancestors.
      initiateWhereAxisRedraw(interp, true);
 
