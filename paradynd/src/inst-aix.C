@@ -69,12 +69,6 @@ void initPrimitiveCost()
     /* Need to add code here to collect values for other machines */
 
     // these happen async of the rest of the system.
-    primitiveCosts["DYNINSTalarmExpire"] = 1;
-    primitiveCosts["DYNINSTsampleValues"] = 1;
-    primitiveCosts["DYNINSTreportTimer"] = 1;
-    primitiveCosts["DYNINSTreportCounter"] = 1;
-    primitiveCosts["DYNINSTreportCost"] = 1;
-    primitiveCosts["DYNINSTreportNewTags"] = 1;
     primitiveCosts["DYNINSTprintCost"] = 1;
 
     // this doesn't really take any time
@@ -87,15 +81,43 @@ void initPrimitiveCost()
     // 240 ns
     primitiveCosts["DYNINSTincrementCounter"] = 16;
     // 240 ns
-    primitiveCosts["DYNINSTdecrementCounter"] = 16;
+    //primitiveCosts["DYNINSTdecrementCounter"] = 16;
+
     // 0.8 usec * 66 mhz (measured on a POWER-2 RS600)
-    primitiveCosts["DYNINSTstartWallTimer"] = 53;
+    //primitiveCosts["DYNINSTstartWallTimer"] = 53;
     // 1.0 usec * 66 mhz (measured on a POWER-2 RS600)
-    primitiveCosts["DYNINSTstopWallTimer"] = 66;
+    //primitiveCosts["DYNINSTstopWallTimer"] = 66;
     // 2.4 usec * 66 Mhz (measured on a POWER-2 RS600)
-    primitiveCosts["DYNINSTstartProcessTimer"] = 160;
+    //primitiveCosts["DYNINSTstartProcessTimer"] = 160;
     // 4.8 usec * 66 Mhz (measured on a POWER-2 RS600)
-    primitiveCosts["DYNINSTstopProcessTimer"] = 317;
+    //primitiveCosts["DYNINSTstopProcessTimer"] = 317;
+
+    logLine("IBM platform\n");
+    // Updated calculation of the cost for the following procedures.
+    // Clock rate = 64 Mhz (rs6000) - naim
+    // NOTE: These measurements may need some tune up (02-09-96) - naim
+    // 1.5 usecs * 64 Mhz  
+    primitiveCosts["DYNINSTstartWallTimer"] = 96;
+    // 3.01 usecs * 64 Mhz
+    primitiveCosts["DYNINSTstopWallTimer"] = 192;
+    // 10.09 usecs * 64 Mhz
+    primitiveCosts["DYNINSTstartProcessTimer"] = 645;
+    // 20.28 usecs * 64 Mhz
+    primitiveCosts["DYNINSTstopProcessTimer"] = 1297;    
+
+    // These happen async of the rest of the system.
+    // 33.74 usecs * 64 Mhz
+    primitiveCosts["DYNINSTalarmExpire"] = 2159;
+    // 0.38 usecs * 64 Mhz
+    primitiveCosts["DYNINSTsampleValues"] = 24;
+    // 11.52 usecs * 64 Mhz
+    primitiveCosts["DYNINSTreportTimer"] = 737;
+    // 1.14 usecs * 64 Mhz
+    primitiveCosts["DYNINSTreportCounter"] = 72;
+    // 2.07 usecs * 64 Mhz
+    primitiveCosts["DYNINSTreportCost"] = 131;
+    // 0.66 usecs * 64 Mhz
+    primitiveCosts["DYNINSTreportNewTags"] = 42;
 }
 
 int flushPtrace()

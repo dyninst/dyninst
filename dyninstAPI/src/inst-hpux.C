@@ -46,6 +46,8 @@ void initPrimitiveCost()
 {
     /* Need to add code here to collect values for other machines */
 
+    // TODO: these values need to be updated - naim (02-13-96)
+
     // these happen async of the rest of the system.
     primitiveCosts["DYNINSTalarmExpire"] = 1;
     primitiveCosts["DYNINSTsampleValues"] = 1;

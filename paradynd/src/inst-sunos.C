@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.36  1996/02/12 16:43:35  naim
+ * Revision 1.37  1996/02/13 21:37:45  naim
+ * Minor changes related to cost model - naim
+ *
+ * Revision 1.36  1996/02/12  16:43:35  naim
  * Minor change to cost model - naim
  *
  * Revision 1.35  1996/02/09  23:54:10  naim
@@ -248,35 +251,6 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTreportCost"] = 156;
     // 1.03 usecs * 37.04 Mhz
     primitiveCosts["DYNINSTreportNewTags"] = 38;
-#elif hppa1_1_hp_hpux
-    logLine("HP platform - costs not implemented yet\n");
-#elif rs6000_ibm_aix3_2
-    logLine("IBM platform\n");
-    // Updated calculation of the cost for the following procedures.
-    // Clock rate = 64 Mhz (rs6000) - naim
-    // NOTE: These measurements may need some tune up (02-09-96) - naim
-    // 1.5 usecs * 64 Mhz  
-    primitiveCosts["DYNINSTstartWallTimer"] = 96;
-    // 3.01 usecs * 64 Mhz
-    primitiveCosts["DYNINSTstopWallTimer"] = 192;
-    // 10.09 usecs * 64 Mhz
-    primitiveCosts["DYNINSTstartProcessTimer"] = 645;
-    // 20.28 usecs * 64 Mhz
-    primitiveCosts["DYNINSTstopProcessTimer"] = 1297;    
-
-    // These happen async of the rest of the system.
-    // 33.74 usecs * 64 Mhz
-    primitiveCosts["DYNINSTalarmExpire"] = 2159;
-    // 0.38 usecs * 64 Mhz
-    primitiveCosts["DYNINSTsampleValues"] = 24;
-    // 11.52 usecs * 64 Mhz
-    primitiveCosts["DYNINSTreportTimer"] = 737;
-    // 1.14 usecs * 64 Mhz
-    primitiveCosts["DYNINSTreportCounter"] = 72;
-    // 2.07 usecs * 64 Mhz
-    primitiveCosts["DYNINSTreportCost"] = 131;
-    // 0.66 usecs * 64 Mhz
-    primitiveCosts["DYNINSTreportNewTags"] = 42;
 #else
     logLine("SunOS platform\n");   
     // sparc_sun_sunos4_1_3 - default
