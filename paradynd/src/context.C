@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.61 2000/03/12 22:25:17 wylie Exp $ */
+/* $Id: context.C,v 1.62 2000/03/12 23:31:01 hollings Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -233,7 +233,7 @@ void forkProcess(int pid, int ppid, int trace_fd
 }
 
 int addProcess(vector<string> &argv, vector<string> &envp, string dir) {
-    process *proc = createProcess(argv[0], argv, envp, dir);
+    process *proc = createProcess(argv[0], argv, envp, dir, 0, 1, 2);
 
     if (proc) {
       return(proc->getPid());
