@@ -204,6 +204,7 @@ void refarray<REFOBJ,USE_RWLOCK>::_resize(REFOBJ* default_value) {
     if (new_size > _size) {
         delete [] this->items;
         this->items = new_items;
+        _size = new_size;
     } else {
             /* someone has usurped this resize request from us; we
                don't need to copy over our pointers */
