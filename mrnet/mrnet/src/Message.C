@@ -541,6 +541,18 @@ bool_t MC_Packet::pdr_packet(PDR * pdrs, MC_Packet * pkt){
       retval = pdr_wrapstring(pdrs, (char**)&(cur_elem->val.p));
       break;
 
+    case STRING_ARRAY_T:
+        if( pdrs->p_op == PDR_DECODE )
+        {
+            cur_elem->val.p = NULL;
+        }
+        retval = pdr_array( pdrs, (char**)(&cur_elem->val.p),
+                                    &(cur_elem->array_len),
+                                    INT32_MAX,
+                                    sizeof(char*),
+                                    (pdrproc_t)pdr_wrapstring );
+        break;
+
     }
     if(!retval){
       mc_printf(MCFL, stderr, "pdr_xxx() failed for elem[%d] of type %d\n",
@@ -646,6 +658,7 @@ int MC_Packet::ArgList2DataElementArray(va_list arg_list)
     case UINT64_ARRAY_T:
     case FLOAT_ARRAY_T:
     case DOUBLE_ARRAY_T:
+    case STRING_ARRAY_T:
       cur_elem->val.p = (void *)va_arg(arg_list, void *);
       cur_elem->array_len = (unsigned int)va_arg(arg_list, unsigned int);
       break;
@@ -741,6 +754,7 @@ void MC_Packet::DataElementArray2ArgList(va_list arg_list)
     case UINT64_ARRAY_T:
     case FLOAT_ARRAY_T:
     case DOUBLE_ARRAY_T:
+    case STRING_ARRAY_T:
       tmp_ptr = (void *)va_arg(arg_list, void **);
       *((void **)tmp_ptr) = cur_elem->val.p;
       tmp_ptr = (void *)va_arg(arg_list, int *);
@@ -819,6 +833,8 @@ MC_DataTypes Fmt2Type(const char * cur_fmt)
     return DOUBLE_ARRAY_T;
   else if( !strcmp(cur_fmt, "s") )
     return STRING_T;
+  else if( !strcmp(cur_fmt, "as") )
+    return STRING_ARRAY_T;
   else
     return UNKNOWN_T;
 }
