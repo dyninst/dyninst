@@ -102,12 +102,17 @@ inline unsigned ABS(int x) {
 #define REG_SP          14
 #define REG_FP          30
 
+// some macros for helping code which contains register symbolic 
+//  names....
+#define REG_I(x) (x + 24)
+#define REG_O(x) (x + 8)
+
 extern "C" void baseTramp();
 extern trampTemplate baseTemplate;
 extern registerSpace *regSpace;
 extern int deadList[];
 
-#define NEW_INSTR_ARRAY_LEN 1024
+#define NEW_INSTR_ARRAY_LEN 8192
 extern instruction newInstr[NEW_INSTR_ARRAY_LEN];
 
 // amount of expansion for relocated functions....
