@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.110 2003/10/21 17:22:21 bernat Exp $
+// $Id: pdwinnt.C,v 1.111 2003/10/22 16:00:52 schendel Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -283,12 +283,13 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
        ADDRESS patchedAddrPC;
        instPoint* ip = NULL;
        function_base* fp = NULL;
+       dyn_lwp *replwp = getRepresentativeLWP();
        
        // set defaults for return address and PC
        patchedAddrReturn = saved_sf.AddrReturn;
        patchedAddrPC = saved_sf.AddrPC;
        
-       handleT procHandle = getProcessLWP()->getProcessHandle();
+       handleT procHandle = replwp->getProcessHandle();
        
        // try to step through the stack using the current information
        walked = walkStackFrame((HANDLE)procHandle, hThread, &sf);
@@ -321,9 +322,8 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
           }
           
           // retry the stack step
-          walked = 
-             walkStackFrame((HANDLE)getProcessLWP()->getProcessHandle(),
-                            hThread, &sf);
+          walked = walkStackFrame((HANDLE)replwp->getProcessHandle(),
+                                  hThread, &sf);
        }
        
        if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) ) {
@@ -347,7 +347,7 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
           sf.AddrReturn = patchedAddrReturn;
 
           // retry the stack step
-          walked = walkStackFrame((HANDLE)getProcessLWP()->getProcessHandle(),
+          walked = walkStackFrame((HANDLE)getRepresentativeLWP()->getProcessHandle(),
                                   hThread, &sf);
        }
        
@@ -361,7 +361,7 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
           sf.AddrPC = patchedAddrPC;
           
           // retry the stack step
-          walked = walkStackFrame((HANDLE)getProcessLWP()->getProcessHandle(),
+          walked = walkStackFrame((HANDLE)replwp->getProcessHandle(),
                                   hThread, &sf);
        }
        
@@ -711,9 +711,20 @@ DWORD handleException(process *proc, procSignalWhat_t what, procSignalInfo_t inf
     return ret;
 }
 
+dyn_lwp *process::createRepresentativeLWP() {
+   // I'm not sure if the initial lwp should be in the real_lwps array.  Is
+   // this lwp more like a representative lwp or more like the linux initial
+   // lwp?
+
+   // don't register the representativeLWP in the real_lwps since it's not a
+   // true lwp
+   representativeLWP = createFictionalLWP(0);
+   return representativeLWP;
+}
+
 // Thread creation
 DWORD handleThreadCreate(process *proc, procSignalInfo_t info) {
-   dyn_lwp *l = proc->createLWP(info.dwThreadId);
+   dyn_lwp *l = proc->createFictionalLWP(info.dwThreadId);
    l->setFileHandle(info.u.CreateThread.hThread);
    l->attach();
    dyn_thread *t = new dyn_thread(proc, info.dwThreadId, // thread ID
@@ -729,7 +740,7 @@ DWORD handleProcessCreate(process *proc, procSignalInfo_t info) {
    if(! proc)
       return DBG_CONTINUE;
 
-   dyn_lwp *rep_lwp = proc->getProcessLWP();
+   dyn_lwp *rep_lwp = proc->getRepresentativeLWP();
    assert(rep_lwp);  // the process based lwp should already be set
 
    if(! rep_lwp->isFileHandleSet()) {
@@ -833,7 +844,7 @@ DWORD handleDllLoad(process *proc, procSignalInfo_t info) {
     // obtain the name of the DLL
     pdstring imageName = GetLoadedDllImageName( proc, info );
     
-    handleT procHandle = proc->getProcessLWP()->getProcessHandle();
+    handleT procHandle = proc->getRepresentativeLWP()->getProcessHandle();
 
     fileDescriptor* desc =
        new fileDescriptor_Win(imageName, (HANDLE)procHandle,
@@ -938,8 +949,8 @@ int handleProcessEvent(process *proc,
     // Due to NT's odd method, we have to call pause_
     // directly (a call to pause returns without doing anything
     // pre-initialization)
-    proc->pause_();
-    proc->status_ = stopped;
+    proc->getRepresentativeLWP()->stop_();
+    proc->set_status(stopped);
 
     switch(why) {
   case procException:
@@ -981,12 +992,13 @@ int handleProcessEvent(process *proc,
     return (ret == DBG_CONTINUE);
 }
 
-// Decode only, _NO_ process state changes!
-process *decodeProcessEvent(int pid,
-                            procSignalWhy_t &why,
-                            procSignalWhat_t &what,
-                            procSignalInfo_t &info,
-                            bool block) {
+// the pertinantLWP and wait_options are ignored on Solaris, AIX
+
+process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg, 
+                            procSignalWhy_t &why, procSignalWhat_t &what,
+                            procSignalInfo_t &info, bool block,
+                            int wait_options)
+{
     process *proc;
     
     // We wait for 1 millisecond here. On the Unix platforms, the wait
@@ -1062,8 +1074,9 @@ void decodeAndHandleProcessEvent(bool block) {
     procSignalWhat_t what;
     procSignalInfo_t info;
     process *proc;
-    
-    proc = decodeProcessEvent(-1, why, what, info, block);
+    dyn_lwp *selectedLWP;
+
+    proc = decodeProcessEvent(&selectedLWP, -1, why, what, info, block, 0);
     if (!proc) return;
     handleProcessEvent(proc, why, what, info);
 }
@@ -1086,26 +1099,19 @@ bool process::installSyscallTracing()
 }
 
 /* continue a process that is stopped */
-bool process::continueProc_() {
-   for (unsigned u = 0; u < threads.size(); u++) {
-      unsigned count = 0;
-
-      if (threads[u]->get_lwp()) {
+bool dyn_lwp::continueLWP_() {
+   unsigned count = 0;
 #ifdef mips_unknown_ce2_11 //ccw 10 feb 2001 : 29 mar 2001
-         count = BPatch::bpatch->rDevice->RemoteResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
+   count = BPatch::bpatch->rDevice->RemoteResumeThread((HANDLE)get_fd());
 #else
-         count = ResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
+   count = ResumeThread((HANDLE)get_fd());
 #endif
-      }
       
-      if (count == 0xFFFFFFFF) {
-          fprintf(stderr, "Failed to continue process\n");
-          
-         printSysError(GetLastError());
-         return false;
-      }
-   }
-   return true;
+   if (count == 0xFFFFFFFF) {
+      printSysError(GetLastError());
+      return false;
+   } else
+      return true;
 }
 
 
@@ -1123,32 +1129,21 @@ bool process::terminateProc_()
 /*
    pause a process that is running
 */
-bool process::pause_() {
-    for (unsigned u = 0; u < threads.size(); u++) {
-        unsigned count = 0;
-        if (threads[u]->get_lwp()) {
-            
+bool dyn_lwp::stop_() {
+   unsigned count = 0;
 #ifdef mips_unknown_ce2_11 //ccw 10 feb 2001 : 29 mar 2001
-            count = BPatch::bpatch->rDevice->RemoteSuspendThread((HANDLE)threads[u]->get_lwp()->get_fd());
+   count = BPatch::bpatch->rDevice->RemoteSuspendThread((HANDLE)get_fd());
 #else            
-            count = SuspendThread((HANDLE)threads[u]->get_lwp()->get_fd());
+   count = SuspendThread((HANDLE)get_fd());
 #endif
-        }
-        if (count == 0xFFFFFFFF) {
-            // printf("pause_: %d\n", threads[u]->get_tid());
-            // printSysError(GetLastError());
-            return false;
-        } 
-    }
-    return true;
+   if (count == 0xFFFFFFFF) {
+      // printf("pause_: %d\n", threads[u]->get_tid());
+      // printSysError(GetLastError());
+      return false;
+   }  else
+      return true;
 }
 
-/*
-   close the file descriptor for the file associated with a process
-*/
-bool process::detach_() {
-   return false;
-}
 
 /*
    detach from thr process, continuing its execution if the parameter "cont"
@@ -1175,7 +1170,8 @@ bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) 
 }
 
 bool process::flushInstructionCache_(void *baseAddr, size_t size){ //ccw 25 june 2001
-	return FlushInstructionCache((HANDLE)getProcessLWP()->getProcessHandle(),
+   dyn_lwp *replwp = getRepresentativeLWP();
+	return FlushInstructionCache((HANDLE)replwp->getProcessHandle(),
                                 baseAddr, size);
 }
 
@@ -1188,7 +1184,7 @@ bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
 bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
     DWORD nbytes;
 
-    handleT procHandle = getProcessLWP()->getProcessHandle();
+    handleT procHandle = getRepresentativeLWP()->getProcessHandle();
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
     bool res = BPatch::bpatch->rDevice->RemoteWriteProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
 				  (LPVOID)inSelf, (DWORD)amount, &nbytes);
@@ -1203,7 +1199,7 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
 
 bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
     DWORD nbytes;
-    handleT procHandle = getProcessLWP()->getProcessHandle();
+    handleT procHandle = getRepresentativeLWP()->getProcessHandle();
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
     bool res = BPatch::bpatch->rDevice->RemoteReadProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
 				 (LPVOID)inSelf, (DWORD)amount, &nbytes);
@@ -1218,8 +1214,13 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
     return res && (nbytes == amount);
 }
 
+bool dyn_lwp::waitUntilStopped() {
+   return true;
+}
 
-bool process::loopUntilStopped() { assert(0); return false; }
+bool process::waitUntilStopped() {
+   return true;
+}
 
 int getNumberOfCPUs() {
     SYSTEM_INFO info;
@@ -2151,12 +2152,12 @@ static pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
 	return ret;
 }
 
-bool dyn_lwp::threadLWP_attach_() {
+bool dyn_lwp::realLWP_attach_() {
    //assert( false && "threads not yet supported on Windows");
    return false;
 }
 
-bool dyn_lwp::processLWP_attach_() {
+bool dyn_lwp::representativeLWP_attach_() {
    if(proc_->createdViaAttach) {
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
       if (!BPatch::bpatch->rDevice->RemoteDebugActiveProcess(getPid()))
@@ -2188,7 +2189,13 @@ bool dyn_lwp::processLWP_attach_() {
    return true;
 }
 
-void dyn_lwp::detach_()
+void dyn_lwp::realLWP_detach_()
+{
+   assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
+   return;
+}
+
+void dyn_lwp::representativeLWP_detach_()
 {
    assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
    return;
@@ -2258,7 +2265,7 @@ bool process::handleTrapAtEntryPointOfMain()
     flushInstructionCache_((void *)main_brk_addr, sizeof(unsigned char));
 
     // And bump the PC back
-    getProcessLWP()->changePC(main_brk_addr, NULL);
+    getRepresentativeLWP()->changePC(main_brk_addr, NULL);
 
     // Don't trap here accidentally
     main_brk_addr = 0;
@@ -2395,8 +2402,8 @@ bool process::loadDYNINSTlib()
     dyninstlib_brk_addr = codeBase + offsetToTrap;
 #endif
 
-    savedRegs = getProcessLWP()->getRegisters();
-    getProcessLWP()->changePC(codeBase + instructionOffset, NULL);
+    savedRegs = getRepresentativeLWP()->getRegisters();
+    getRepresentativeLWP()->changePC(codeBase + instructionOffset, NULL);
     
     setBootstrapState(loadingRT);
     return true;
@@ -2419,7 +2426,7 @@ bool process::trapDueToDyninstLib()
 bool process::loadDYNINSTlibCleanup()
 {
     // First things first: 
-    getProcessLWP()->restoreRegisters(savedRegs);
+    getRepresentativeLWP()->restoreRegisters(savedRegs);
     delete savedRegs;
 
     writeDataSpace((void *)getImage()->codeOffset(),
