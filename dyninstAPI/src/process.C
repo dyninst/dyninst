@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.492 2004/04/07 20:20:31 bernat Exp $
+// $Id: process.C,v 1.493 2004/04/08 21:15:45 legendre Exp $
 
 #include <ctype.h>
 
@@ -1764,11 +1764,12 @@ process::process(int iPid, image *iImage, int iTraceLink
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
  requestTextMiniTramp(0), //ccw 30 jul 2002
 #endif
-  baseMap(ipHash),
   bpatch_thread( NULL ),
+  baseMap(ipHash),
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
   trampTrapMapping(addrHash4),
+  suppressCont_(false),
   loadLibraryCallbacks_(pdstring::hash),
   cached_result(not_cached),
 #ifndef BPATCH_LIBRARY
@@ -1952,6 +1953,7 @@ process::process(int iPid, image *iSymbols,
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
   trampTrapMapping(addrHash4),
+  suppressCont_(false),
   loadLibraryCallbacks_(pdstring::hash),
   cached_result(not_cached),
 #ifndef BPATCH_LIBRARY
@@ -2155,6 +2157,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
   trampTrapMapping(parentProc.trampTrapMapping),
+  suppressCont_(false),
   loadLibraryCallbacks_(pdstring::hash),
   cached_result(parentProc.cached_result),
 #ifndef BPATCH_LIBRARY
@@ -3497,7 +3500,6 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
 
    if (!isAttached()) return false;
 
-
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
       stopped_lwp = stop_an_lwp(&needToCont);
@@ -3740,7 +3742,7 @@ bool process::pause() {
         bperr( "Warning: pause attempted on non-attached process\n");
         return false;
     }
-    
+      
    // The only remaining combination is: status==running but haven't yet
    // reached first break.  We never want to pause before reaching the first
    // break (trap, actually).  But should we be returning true or false in
@@ -3777,16 +3779,27 @@ bool process::pause() {
       return true;
    }
 
-   if(IndependentLwpControl()) {
-      pdvector<dyn_thread *>::iterator iter = threads.begin();
-
-      while(iter != threads.end()) {
-         dyn_thread *thr = *(iter);
-         dyn_lwp *lwp = thr->get_lwp();
-         assert(lwp);
-         lwp->pauseLWP(true);
-         iter++;
-      }
+   if(IndependentLwpControl()) {      
+     setSuppressEventConts(true);
+     pdvector<dyn_thread *>::iterator iter = threads.begin();
+     while(iter != threads.end()) {
+       dyn_thread *thr = *(iter);
+       dyn_lwp *lwp = thr->get_lwp();
+       assert(lwp);
+       lwp->pauseLWP(true);
+       iter++;
+     }
+     setSuppressEventConts(false);
+     iter = threads.begin();
+     while(iter != threads.end()) {
+       dyn_lwp *lwp = (*iter)->get_lwp();
+       //       while (lwp->isRunning());
+       /*       {
+	 sleep(1);
+	 assert(!lwp->isRunning());
+	 }*/
+       iter++;
+     }
    } else {
       assert(status_ == running);      
       bool res = getRepresentativeLWP()->pauseLWP(true);
@@ -5130,28 +5143,27 @@ bool process::continueProc(int signalToContinueWith) {
         bpwarn( "Warning: continue attempted on non-attached process\n");
         return false;
     }
-    
-   if (status_ == running) {
-      return true;
-   }
+
+    if (suppressEventConts())
+    {
+      return false;
+    }
 
    if(IndependentLwpControl()) {
       pdvector<dyn_thread *>::iterator iter = threads.begin();
-
       while(iter != threads.end()) {
          dyn_thread *thr = *(iter);
          dyn_lwp *lwp = thr->get_lwp();
          
-         if(lwp)  {// the thread might not be scheduled
+          if(lwp && lwp->status() != running)  {// the thread might not be scheduled
             lwp->continueLWP(signalToContinueWith);
-         }
+	       }
 
          iter++;
       }
    } else {
-      //if (status_ == running)
-      //return true;
-      
+      if (status_ == running)
+	return true;
       bool res = getRepresentativeLWP()->continueLWP(signalToContinueWith);
       if (!res) {
          showErrorCallback(38, "System error: can't continue process");
