@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.69 2000/08/22 01:12:38 paradyn Exp $
+ * $Id: inst-x86.C,v 1.70 2000/09/21 20:14:02 zandy Exp $
  */
 
 #include <iomanip.h>
@@ -220,58 +220,78 @@ void instPoint::checkInstructions() {
 #endif
 }
 
+/* PT is an instrumentation point.  ENTRY is the entry point for the
+   same function, and EXITS are the exit instrumentation points for
+   the function.  Returns true if this function supports an extra slot
+   and PT can use it. */
+static bool
+_canUseExtraSlot(const instPoint *pt, const instPoint *entry,
+		 const vector<instPoint*> &exits)
+{
+     if (entry->size() < 2*JUMP_SZ)
+	  return false;
+
+     // We get 10 bytes for the entry points, instead of the usual five,
+     // so that we have space for an extra jump. We can then insert a
+     // jump to the basetramp in the second slot of the base tramp
+     // and use a short 2-byte jump from the point to the second jump.
+     // We adopt the following rule: Only one point in the function
+     // can use the indirect jump, and this is the first return point
+     // with a size that is less than five bytes
+     bool canUse = false;
+     for (unsigned u = 0; u < exits.size(); u++)
+	  if (exits[u] == pt) {
+	       canUse = true;
+	       break;
+	  } else if (exits[u]->size() < JUMP_SZ)
+	       return false;
+     if (!canUse)
+	  return false;
+
+     /* The entry has a slot, the point can be used for a slot,
+	now see if the point can reach the slot. */
+     int displacement = entry->jumpAddr() + 5 - pt->jumpAddr();
+     assert(displacement < 0);
+     if (pt->size() >= 2 && (displacement-2) > SCHAR_MIN)
+	  return true;
+     else
+	  return false;
+}
 
 /*
    Returns true if we can use the extra slot for a jump at the entry point
-   to insert a jump to a base tramp at this point.
- */
-bool instPoint::canUseExtraSlot(process *proc) const {
-  // We get 10 bytes for the entry points, instead of the usual five,
-  // so that we have space for an extra jump. We can then insert a
-  // jump to the basetramp in the second slot of the base tramp
-  // and use a short 2-byte jump from the point to the second jump.
-  // We adopt the following rule: Only one point in the function
-  // can use the indirect jump, and this is the first return point
-  // with a size that is less than five bytes
-  vector<instPoint *>fReturns = func()->funcExits(proc);
-
-  // first check if this point can use the extra slot in the entry point
-  bool canUse = false;
-  for (unsigned u = 0; u < fReturns.size(); u++) {
-    if (fReturns[u] == this) {
-      canUse = true;
-      break;
-    } else if (fReturns[u]->size() < JUMP_SZ)
-      break;
-  }
-
-  return canUse;
+   to insert a jump to a base tramp at this point.  */
+bool instPoint::canUseExtraSlot(process *proc) const
+{
+     return _canUseExtraSlot(this,
+			     func()->funcEntry(proc),
+			     func()->funcExits(proc));
 }
 
-bool instPoint::usesTrap(process *proc)
+/* ENTRY and EXITS are the entry and exit points of a function.  PT
+   must be a point in the same function.  Return true if PT requires a
+   trap to instrument. */
+static bool
+_usesTrap(const instPoint *pt,
+	  const instPoint *entry,
+	  const vector<instPoint*> &exits)
 {
-  checkInstructions();
-
-  if (size() < JUMP_REL32_SZ) {
-    if (canUseExtraSlot(proc)) {
-      const instPoint *entry = func()->funcEntry(proc);
-#ifdef DONT_MAKE_BASETRAMP_FOR_TRAP
-      if (proc->baseMap.defines(entry) && entry->size() >= 2*JUMP_SZ) {
-#else
-      const_cast<instPoint *>(entry)->checkInstructions();
-      if (entry->size() >= 2*JUMP_SZ) {
-#endif /* DONT_MAKE_BASETRAMP_FOR_TRAP */
-        // actual displacement needs to subtract size of instruction (2 bytes)
-        int displacement = entry->address() + 5 - jumpAddr();
-        assert(displacement < 0);
-        if (size() >= 2 && (displacement-2) > SCHAR_MIN) {
+     /* If this point is big enough to hold a 32-bit jump to any
+	basetramp, it doesn't need a trap. */
+     if (pt->size() >= JUMP_REL32_SZ)
 	  return false;
-        }
-      }
-    }
-    return true;
-  }
-  return false;
+
+     /* If it can use the extra slot, it doesn't need a trap. */
+     if (_canUseExtraSlot(pt, entry, exits))
+	  return false;
+
+     /* Otherwise it needs a trap. */
+     return true;
+}
+
+bool instPoint::usesTrap(process *proc) const
+{
+     return _usesTrap(this, func()->funcEntry(proc), func()->funcExits(proc));
 }
 
 /**************************************************************
@@ -570,15 +590,26 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
      lastPointEnd = index;
      // add instructions after the point
      if (type == ReturnPt && p->address() == funcEnd-1) {
-       /* Consume extra space following unaligned rets */
-       unsigned i;
-       unsigned num_extra = (funcEnd % 4) ? (4 - (funcEnd % 4)) : 0;
-       for (i = index+1; i < num_extra + index+1; i++) {
-  	    instruction insn((const unsigned char*)"\x90", 0, 1); /* NOP */
-	    p->addInstrAfterPt(insn);
-	    thisPointEnd = i;
-       }
-       for (unsigned u1 = i; u1 < index+JUMP_SZ-1 && u1 < numInsns; u1++) {
+
+       /* If an instrumentation point at the end of the function does
+          not end on a 4-byte boundary, we claim the bytes up to the
+          next 4-byte boundary as "bonus bytes" for the point, since
+          the next function will (should) begin at or past the
+          boundary.  We tried 8 byte boundaries and found some
+          functions did not begin on 8-byte aligned addresses, so 8 is
+          unsafe. */
+       unsigned bonus;
+#ifndef i386_unknown_nt4_0
+       bonus = (funcEnd % 4) ? (4 - (funcEnd % 4)) : 0;
+#else
+       /* Unfortunately, the Visual C++ compiler generates functions
+	  that begin at unaligned boundaries, so forget this scheme on
+	  NT. */
+       bonus = 0;
+#endif /* i386_unknown_nt4_0 */
+       p->setBonusBytes(bonus);
+       unsigned u1;
+       for (u1 = index+1 + bonus; u1 < index+JUMP_SZ-1 && u1 < numInsns; u1++) {
 	 if (allInstr[u1].isNop() || *(allInstr[u1].ptr()) == 0xCC) {
 	   p->addInstrAfterPt(allInstr[u1]);
 	   thisPointEnd = u1;
@@ -614,19 +645,18 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
      }
    }
 
+   for (u = 0; u < npoints; u++)
+	points[u].point->checkInstructions();
+
 #ifdef DETACH_ON_THE_FLY
    /* On Linux, trap-based instrumentation points must have at least
-      two bytes. */
+      two bytes.  Make the function uninstrumentable if we find an 
+      trap-based inst point that is too small. */
    for (u = 0; u < npoints; u++) {
 	instPoint *p = points[u].point;
-	if (p->size() < 2) {
-	     /* FIXME: We assume this test is sufficient to find trap
-		points.  Existing code to determine if a point really
-		needs a trap requires a proc handle (it probably
-		should not).  Does this test exclude points that may
-		not really need traps? */
-	     delete points;
-	     delete allInstr;
+        if (_usesTrap(p, funcEntry_, funcReturns) && p->size() < 2) {
+	     delete [] points;
+	     delete [] allInstr;
 	     return false;
 	}
    }
@@ -952,59 +982,41 @@ bool insertInTrampTable(process *proc, unsigned key, unsigned val) {
 #endif
 }
 
-// generate a jump to a base tramp or a trap
-// return the size of the instruction generated
+/* Generate a jump to a base tramp. Return the size of the instruction
+   generated at the instrumentation point. */
 unsigned generateBranchToTramp(process *proc, const instPoint *point, 
-                Address baseAddr, Address imageBaseAddr, unsigned char *insn)
+			       Address baseAddr, Address imageBaseAddr,
+			       unsigned char *insn)
 {
-  if (point->size() < JUMP_REL32_SZ) {
+     /* There are three ways to get to the base tramp:
+	1. Ordinary 5-byte jump instruction.
+	2. 2-byte jump to the extra slot in the entry point
+	3. Trap instruction.
+     */
+	
+     /* Ordinary 5-byte jump */
+     if (point->size() >= JUMP_REL32_SZ) {
+	  // replace instructions at point with jump to base tramp
+	  emitJump(baseAddr - (point->jumpAddr() + imageBaseAddr + JUMP_REL32_SZ), insn);
+	  return JUMP_REL32_SZ;
+     } 
 
-    // the point is not big enough for a jump
-    // First, check if we can use an indirection with the entry point
-    // if that is not possible, we must use a trap
-    pd_Function *f = point->func();
-    if (point->canUseExtraSlot(proc)) {
-      const instPoint *the_entry = f->funcEntry(proc);
-#ifdef INST_TRAP_DEBUG
-      cerr << "Extra slot available in the entry point of " << f->prettyName()
-           << " with " << the_entry->size() 
-           << " bytes @" << (void*)the_entry->iPgetAddress() << endl;
-      cerr << "Exit jump @" << (void*)point->jumpAddr() 
-           << " in point @" << (void*)point->iPgetAddress()
-           << " with size " << point->size() << " bytes" << endl;
-#endif
-#ifdef DONT_MAKE_BASETRAMP_FOR_TRAP
-      if (proc->baseMap.defines(the_entry) && the_entry->size() >= 2*JUMP_SZ) {
-	assert(point->jumpAddr() > the_entry->address());
-	// actual displacement needs to subtract size of instruction (2 bytes)
-	int displacement = the_entry->address() + 5 - point->jumpAddr();
-	assert(displacement < 0);
-	if (point->size() >= 2 && (displacement-2) > SCHAR_MIN) {
-#ifdef INST_TRAP_DEBUG
-          cerr << "Using extra slot in entry of " << f->prettyName() 
-               << " to avoid need for trap @" << (void*)point->address() << endl;
-#endif
-	  generateBranch(proc, the_entry->address()+5, baseAddr);
-	  *insn++ = 0xEB;
-	  *insn++ = (char)(displacement-2);
-	  return 2;
-	}
-      }
-#else /* DONT_MAKE_BASETRAMP_FOR_TRAP */
-      const_cast<instPoint *>(the_entry)->checkInstructions();
-      if (the_entry->size() >= 2*JUMP_SZ) {
-	assert(point->jumpAddr() > the_entry->address());
-	// actual displacement needs to subtract size of instruction (2 bytes)
-	int displacement = the_entry->address() + 5 - point->jumpAddr();
-	assert(displacement < 0);
-	if (point->size() >= 2 && (displacement-2) > SCHAR_MIN) {
+     /* Extra slot */
+     if (point->canUseExtraSlot(proc)) {
+	  pd_Function *f = point->func();
+	  const instPoint *the_entry = f->funcEntry(proc);
+
+	  int displacement = the_entry->jumpAddr() + 5 - point->jumpAddr();
+	  assert(displacement < 0);
+	  assert((displacement-2) > SCHAR_MIN);
+	  assert(point->size() >= 2);
 #ifdef INST_TRAP_DEBUG
           cerr << "Using extra slot in entry of " << f->prettyName()
                << " to avoid need for trap @" << (void*)point->address() << endl;
 #endif
-	  returnInstance *retInstance;
+
 	  instPoint *nonConstEntry = const_cast<instPoint *>(the_entry);
-	  // XXX Is making the noCost parameter always false okay here?
+	  returnInstance *retInstance;
 	  trampTemplate *entryBase =
 	      findAndInstallBaseTramp(proc, nonConstEntry,
 				      retInstance, false, false);
@@ -1012,45 +1024,35 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
 	  if (retInstance) {
 	      retInstance->installReturnInstance(proc);
 	  }
-	  generateBranch(proc, the_entry->address()+imageBaseAddr+5, baseAddr);
+	  generateBranch(proc, the_entry->jumpAddr()+imageBaseAddr+5, baseAddr);
 	  *insn++ = 0xEB;
 	  *insn++ = (char)(displacement-2);
 	  return 2;
-	}
-      }
-#endif /* DONT_MAKE_BASETRAMP_FOR_TRAP */
-    }
+     } 
 
-    // must use trap!
+     /* Trap */
 #ifdef INST_TRAP_DEBUG
-    cerr << "Warning: unable to insert jump in function " 
-         << point->func()->prettyName() << " @" << (void*)point->address()
-         << ". Using trap!" << endl;
+     cerr << "Warning: unable to insert jump in function " 
+	  << point->func()->prettyName() << " @" << (void*)point->address()
+	  << ". Using trap!" << endl;
 #endif
-
-    if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr, baseAddr))
-      return 0;
-
-    *insn++ = 0xCC;
-    
+     if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr, baseAddr))
+	  return 0;
+     *insn++ = 0xCC;
+     
 #ifdef DETACH_ON_THE_FLY
-    /* On Linux, we need two trap instructions.  Usually the first
-       works.  But sometimes the trap signal gets lost when we attach
-       to the process as it executes a trap.  Control falls through to
-       the next instruction.  Execution of the second trap is certain. */
-    if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr+1, baseAddr))
-      return 0;
-    *insn = 0xCC;
-    return 2;
-#else
-    return 1;
-#endif
-
-  } else {
-    // replace instructions at point with jump to base tramp
-    emitJump(baseAddr - (point->jumpAddr() + imageBaseAddr + JUMP_REL32_SZ), insn);
-    return JUMP_REL32_SZ;
-  }
+     /* On Linux, we need two trap instructions.  Usually the first
+	works.  But sometimes the trap signal gets lost when we attach
+	to the process as it executes a trap.  Control falls through to
+	the next instruction.  Execution of the second trap is certain. */
+     assert(point->size() >= 2);
+     if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr+1, baseAddr))
+	  return 0;
+     *insn = 0xCC;
+     return 2;
+#else  /* DETACH_ON_THE_FLY */
+     return 1;
+#endif /* DETACH_ON_THE_FLY */
 }
 
 /****************************************************************************/
@@ -1235,10 +1237,6 @@ trampTemplate *installBaseTramp( const instPoint *location,
 
   unsigned jccTarget = 0; // used when the instruction at the point is a cond. jump
   unsigned auxJumpOffset = 0;
-
-  // check instructions at this point to find how many instructions 
-  // we should relocate
-  const_cast<instPoint*>(location)->checkInstructions();
 
   // compute the tramp size
   // if there are any changes to the tramp, the size must be updated.
@@ -2666,12 +2664,10 @@ float getPointFrequency(instPoint *point)
 //
 int getPointCost(process *proc, const instPoint *point)
 {
-    const_cast<instPoint*>(point)->checkInstructions();
-
     if (proc->baseMap.defines(point)) {
         return(0);
     } else {
-        if (point->size() == 1)
+        if (point->usesTrap(proc))
 	  return 9000; // estimated number of cycles for traps
         else
 	  return(83);

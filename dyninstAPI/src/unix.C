@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.46 2000/09/01 17:04:36 bernat Exp $
+// $Id: unix.C,v 1.47 2000/09/21 20:14:06 zandy Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -585,11 +585,8 @@ int handleSigChild(int pid, int status)
 		// to make sure that uses of SIGTRAPs do not conflict.
 
 	        signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid()
-			    << " status =" << curr->getStatusAsString() << endl;
-#if 0
-		/* FIXME: ZANDY: test2 fails when this line is compiled. */
+			    << " status =" << curr->getStatusAsString() << endl
 			    << " pc = " << curr->currentPC() << endl;
-#endif
 #ifdef DETACH_ON_THE_FLY
 		const bool wasRunning = (curr->status() == running) || curr->juststopped;
 #else
@@ -834,10 +831,10 @@ int handleSigChild(int pid, int status)
 		   // the following routines expect (and assert) this status.
 
 #ifdef DETACH_ON_THE_FLY
-		/* FIXME: During rtinst initialization for
-		   attachProcess, we convert an RPC trap into a STOP.
-		   We catch it here, otherwise procStopFromDYNINSTinit
-		   will mishandle it. */
+		/* During rtinst initialization for attachProcess, we
+		   convert an RPC trap into a STOP.  We catch it here,
+		   otherwise procStopFromDYNINSTinit will mishandle
+		   it. */
  	        if (curr->handleTrapIfDueToRPC()) {
 		     inferiorrpc_cerr << "processed RPC response in SIGSTOP!" << endl; cerr.flush();
 		     break; // we don't forward the signal -- on purpose

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.39 2000/08/18 20:10:50 zandy Exp $
+// $Id: linux.C,v 1.40 2000/09/21 20:14:06 zandy Exp $
 
 #include <fstream.h>
 
@@ -435,15 +435,7 @@ bool process::stop_() {
      if (haveDetached)
 	  return reattach(); /* will stop the process */
 #endif
-#if 0
-     /* FIXME: We used to do the ptrace for detach/attach, instead of
-	kill, but it doesn't seem to be necessary (we tested it).
-	Remove this comment at commit time if there's been no
-	change. */
-     return (P_ptrace(PTRACE_CONT, getPid(), 1, SIGSTOP));
-#else
      return (P_kill(getPid(), SIGSTOP) != -1); 
-#endif
 }
 
 bool process::continueWithForwardSignal(int sig) {
@@ -561,6 +553,9 @@ static void sigill_handler(int sig, siginfo_t *si, void *unused)
 {
      process *p;
 
+     unused = 0; /* Suppress compiler warning of unused parameter */
+
+     assert(sig == 33);
      /* Determine the process that sent the signal.  On Linux (at
 	least upto 2.2), we can only obtain this with the real-time
 	signals, those numbered 33 or higher. */
@@ -590,26 +585,21 @@ static void sigill_handler(int sig, siginfo_t *si, void *unused)
 
 void initDetachOnTheFly()
 {
-     /* FIXME: This is a hack to prevent this from being called every
-	time a new process is created in Dyninst.  We need an init()
-	function that is called when the Dyninst API library is
-	loaded.  In Paradyn this will only be called once. */
-     static int already_installed = 0;
-
      struct sigaction act;
      act.sa_handler = NULL;
      act.sa_sigaction = sigill_handler;
      sigemptyset(&act.sa_mask);
      act.sa_flags = SA_SIGINFO;
-     /* FIXME: Linux 2.2, bless its open-sourced little heart, does
+     /* We need siginfo values to determine the pid of the signal
+	sender.  Linux 2.2, bless its open-sourced little heart, does
 	not provide siginfo values for non-realtime (<= 32) signals,
 	although it will let you register a siginfo handler for them.
-	FIXME: Are there names for the realtime signals? */
+	There are apparently no predefined names for the realtime
+	signals so we just use their integer value. */
      if (0 > sigaction(33, &act, NULL)) {
 	  perror("SIG33 sigaction");
 	  assert(0);
      }
-     already_installed = 1;
 }
 
 /* Returns true if we are detached from process PID.  This is global
@@ -650,9 +640,6 @@ int process::detach()
 	  goto out;
      }
      res = P_ptrace(PTRACE_DETACH, pid, 0, 0);
-     /* FIXME: We should use the assert, but that breaks */
-     if (0 > res)
-	  goto out;
      assert(res >= 0);
      this->haveDetached = true;
      this->juststopped = false;
@@ -687,10 +674,7 @@ int process::reattach()
 	  goto out;
      }
      res = P_ptrace(PTRACE_ATTACH, pid, 0, 0);
-     /* FIXME: This should never happen, but it currently does when
-	the test suite exits.  Fix that, and then make this an assert. */
-     if (0 > res)
-	  goto out;
+     assert(res >= 0);
      /* Every attach must be followed by a wait to consume the stop event */
      res = waitpid(pid, 0, 0);
      assert(res >= 0);
@@ -700,7 +684,7 @@ int process::reattach()
      ret = 1;
 out:
 #if 0
-     fprintf(stderr, "ZANDY: reattach EXIT (%s)\n", ret == 1 ? "success" : "failure");
+     fprintf(stderr, "DEBUG: reattach EXIT (%s)\n", ret == 1 ? "success" : "failure");
 #endif
      sigprocmask(SIG_SETMASK, &old, NULL);
      return ret;
@@ -800,7 +784,7 @@ int process::waitProcs(int *status) {
 		  process *curr = findProcess( result );
 		  if (!curr->dyninstLibAlreadyLoaded() && curr->wasCreatedViaAttach())
 		  {
-		       /* FIXME: I don't think any of this code is executed. */
+		       /* FIXME: Is any of this code ever executed? */
 			  // make sure we are stopped in the eyes of paradynd - naim
 			  bool wasRunning = (curr->status() == running);
 			  if (curr->status() != stopped)
@@ -1046,10 +1030,10 @@ bool process::dlopenDYNINSTlib() {
       << (void*)codeBase << endl;
   attach_cerr << "Process at " << (void*)getPC( getPid() ) << endl;
 
-  bool libc_21 = false;
+  bool libc_21 = true;
   Symbol libc_vers;
   if( !getSymbolInfo( libc_version_symname, libc_vers ) ) {
-      cerr << "Couldn't find " << libc_version_symname << ", assuming glibc_2.0.x" << endl;
+      cerr << "Couldn't find " << libc_version_symname << ", assuming glibc_2.1.x" << endl;
   } else {
       char libc_version[ libc_vers.size() + 1 ];
       libc_version[ libc_vers.size() ] = '\0';
@@ -1059,9 +1043,10 @@ bool process::dlopenDYNINSTlib() {
 	  libc_21 = true;
       } else if( !strncmp( libc_version, "2.0", 3 ) ) {
 	  attach_cerr << "Detected glibc version 2.0, (\"" << libc_version << "\")" << endl;
+	  libc_21 = false;
       } else {
 	  cerr << "Found " << libc_version_symname << " = \"" << libc_version
-	       << "\", which doesn't match any known glibc, assuming glibc 2.0" << endl;
+	       << "\", which doesn't match any known glibc, assuming glibc 2.1" << endl;
       }
   }
 

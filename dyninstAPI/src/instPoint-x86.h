@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.7 2000/08/22 01:12:38 paradyn Exp $
+// $Id: instPoint-x86.h,v 1.8 2000/09/21 20:14:05 zandy Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -67,6 +67,7 @@ class instPoint {
     insnAtPoint_  = inst;
     insnBeforePt_ = 0;
     insnAfterPt_  = 0;
+    bonusBytes_   = 0;
   };
 
   ~instPoint() {
@@ -130,7 +131,16 @@ class instPoint {
       tSize += (*insnBeforePt_)[u1].size();
     for (unsigned u2 = 0; u2 < insnsAfter(); u2++)
       tSize += (*insnAfterPt_)[u2].size();
+    tSize += bonusbytes();
     return tSize;
+  }
+
+  void setBonusBytes(unsigned num) {
+       bonusBytes_ = num;
+  }
+
+  unsigned bonusbytes() const {
+       return bonusBytes_;
   }
 
   // check for jumps to instructions before and/or after this point, and discard
@@ -168,7 +178,7 @@ class instPoint {
   // all functions have been seen -- this might be cleaned up
   void set_callee(pd_Function * to) { callee_ = to;  }
 
-  bool usesTrap(process *proc);
+  bool usesTrap(process *proc) const;
   bool canUseExtraSlot(process *proc) const;
 
  private:
@@ -183,7 +193,8 @@ class instPoint {
   instruction          insnAtPoint_;  //The instruction at this point
   vector<instruction> *insnBeforePt_; //Additional instructions before the point
   vector<instruction> *insnAfterPt_;  //Additional instructions after the point
-
+  unsigned            bonusBytes_;    //Additional bytes after function for points
+                                      //at end of function.
 };
 
 #endif
