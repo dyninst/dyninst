@@ -4,7 +4,10 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTsparc.c,v $
- * Revision 1.1  1993/08/26 19:43:28  hollings
+ * Revision 1.2  1993/12/13 19:47:52  hollings
+ * corrected rindex parameter error
+ *
+ * Revision 1.1  1993/08/26  19:43:28  hollings
  * Initial revision
  *
  * Revision 1.1  1993/07/02  21:49:35  hollings
@@ -51,7 +54,7 @@ caddr_t DYNINSTprobeUarea()
      if (!u) return(0);
 
      kvm_getcmd(kd, p, u, &args, NULL);
-     if (cmd = (char *) rindex(args[0], "/")) {
+     if (cmd = (char *) rindex(args[0], '/')) {
 	 cmd++;
      } else {
 	 cmd = args[0];
