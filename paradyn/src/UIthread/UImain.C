@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.72  1996/02/07 19:04:37  tamches
-/* added deferred-phase-adding features
+/* Revision 1.73  1996/02/07 21:46:38  tamches
+/* defineNewSearch returns bool flag
 /*
+ * Revision 1.72  1996/02/07 19:04:37  tamches
+ * added deferred-phase-adding features
+ *
  * Revision 1.71  1996/02/05 18:51:47  newhall
  * Change to DM interface: StartPhase and newPhaseCallback
  *
@@ -255,10 +258,9 @@ void ui_newPhaseDetected(perfStreamHandle,
    }
    else {
       cout << "ui_newPhaseDetected: adding the phase now" << endl;
-      theShgPhases->defineNewSearch(ph+1, name);
       perfConsult->newSearch(CurrentPhase);
-
-      initiateShgRedraw(interp, true);
+      if (theShgPhases->defineNewSearch(ph+1, name))
+         initiateShgRedraw(interp, true);
    }
 }
 
