@@ -1,26 +1,109 @@
 .\"
 .\" $Log: rpcUtil.1,v $
-.\" Revision 1.1  1994/02/24 07:04:57  markc
-.\" Man page for librpcUtil.a
+.\" Revision 1.2  1994/02/24 07:56:34  markc
+.\" Added more comments.
 .\"
 .\"
 .TH RPCUTIL 1L PARADYN "\\n(mo/\\n(dy/19\\n(yr"
 .SH NAME
 rpcUtil \- Support Library
-.SH SYNOPSIS
-.B rpcUtil
 .SH DESCRIPTION
 .PP
-This library provides utility functions.  It provides:
+This library provides utility functions.  It provides a list class, a hash table class, and functions to support client-server communications using XDR/pvm/threads.
+.SH "LIST CLASS SYNOPSIS"
+.B template <class Type> class List {
 .br
-A list class.
-A hash table class.
-Functions to support client-server communications using XDR/pvm/threads.
-.SH "LIST CLASS"
+.B	public:
+.br
+.B	List();
+.br
+.B	int  empty();
+.br
+.B	friend ostream &operator<<(ostream&, List<Type>&);
+.br
+.B	void print();
+.br
+.B	void add(Type data, void *key);
+.br
+.B	void add(Type data);
+.br
+.B	Boolean addUnique(Type data);
+.br
+.B	Boolean addUnique(Type data, void *key);
+.br
+.B	Type find(void *key);
+.br
+.B	Boolean remove(void *key);
+.br
+.B	int count();
+.br
+.B	Type operator *();
+.br
+.B	void operator +=(List<Type> mergee);
+.br
+.B	Type operator ++();
+.br
+.B	void map (void (*map_function)(const Type item));
+.br
+.B	void setCurrent();
+.br
+.B	const Type getCurrent();
+.br
+.B	const Type next();
+.br
+.B	void advanceCurrent();
+.br
+.B	protected:
+.br
+.B	ListItem<Type>	*head;
+.br
+.B	ListItem<Type>  *current;
+.br
+};
+.br
+.SH "HASH TABLE CLASS SYNOPSIS"
 .PP
-.SH "HASH TABLE CLASS"
-.PP
-.SH LIBRARY CALLS
+.B template <class Type> class HTable {
+.br
+.B    public:
+.br
+.B	friend ostream &operator<<(ostream&, HTable<Type>&);
+.br
+.B	void print();
+.br
+.B	HTable(Type data);
+.br
+.B	void add(Type data, void *key);
+.br
+.B	HTable(); 
+.br
+.B	Boolean addUnique(Type data, void *key);
+.br
+.B	Type find(void *key);
+.br
+.B	Boolean remove(void *key);
+.br
+.B	Type operator =(HTable<Type> arg);
+.br
+.B	Type operator *();
+.br
+.B	Type operator ++();
+.br
+.B	int count();
+.br
+.B	private:
+.br
+.B	List<Type> **table;
+.br
+.B	List<Type> currList;
+.br
+.B	int currHid;
+.br
+.B	int tableSize;
+.br
+};
+.br
+.SH "LIBRARY SYNOPSIS"
 .TP 8
 .B int RPCprocessCreate (pid, host, User, command, args)
 .br
@@ -80,6 +163,12 @@ Functions to support client-server communications using XDR/pvm/threads.
 .br
 .B int fd;
 
+.SH "LIST CLASS DESCRIPTION"
+.PP
+.SH "HASH TABLE DESCRIPTION"
+.PP
+.SH "LIBRARY DESCRIPTION"
+.PP
 .SH "SEE ALSO"
 Paradyn(1).
 .SH COPYRIGHT
