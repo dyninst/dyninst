@@ -5,9 +5,15 @@
  *    appropriate inferior process via ptrace calls.
  *
  * $Log: tramp-sparc.s,v $
- * Revision 1.2  1994/07/05 03:26:20  hollings
- * observed cost model
+ * Revision 1.3  1994/07/06 00:35:45  hollings
+ * Added code to handle SPARC ABI aggregate return type calling convention
+ * of using the instruction after the call's delay slot to indicate aggregate
+ * size.  We treat this as an extra delay slot and relocate it to the
+ * base tramp as needed.
  *
+# Revision 1.2  1994/07/05  03:26:20  hollings
+# observed cost model
+#
 # Revision 1.1  1994/01/27  20:31:47  hollings
 # Iinital version of paradynd speaking dynRPC igend protocol.
 #
@@ -52,10 +58,11 @@ _baseTramp:
 	.word	GLOBAL_PRE_BRANCH
 	.word	LOCAL_PRE_BRANCH
 	.word 	EMULATE_INSN
-	nop
+	nop			/* delay slot */
+	nop			/* extra nop for aggregate size */
 	.word	GLOBAL_POST_BRANCH
 	.word	LOCAL_POST_BRANCH
 	add %g5, 1, %g5		/* g5 counts the number of slots executed */
-	add %g7, 7, %g7		/* cost of base tramp from nop to return */
+	add %g7, 0xa, %g7	/* cost of base tramp from nop to return */
 	.word	RETURN_INSN
 	.word	END_TRAMP

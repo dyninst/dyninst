@@ -19,14 +19,20 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.7 1994/07/05 03:26:03 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.8 1994/07/06 00:35:44 hollings Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.7  1994/07/05 03:26:03  hollings
+ * Revision 1.8  1994/07/06 00:35:44  hollings
+ * Added code to handle SPARC ABI aggregate return type calling convention
+ * of using the instruction after the call's delay slot to indicate aggregate
+ * size.  We treat this as an extra delay slot and relocate it to the
+ * base tramp as needed.
+ *
+ * Revision 1.7  1994/07/05  03:26:03  hollings
  * observed cost model
  *
  * Revision 1.6  1994/06/30  18:01:35  jcargill
@@ -202,10 +208,14 @@ struct instPointRec {
     int addr;                   /* address of inst point */
     instruction originalInstruction;    /* original instruction */
     instruction delaySlotInsn;  /* original instruction */
+    instruction aggregateInsn;  /* aggregate insn */
     int inDelaySlot;            /* Is the instruction in a dealy slot */
     int isDelayed;		/* is the instruction a delayed instruction */
     int callsUserFunc;		/* is it a call to a user function */
     int callIndirect;		/* is it a call whose target is rt computed ? */
+    int callAggregate;		/* calling a func that returns an aggregate
+				   we need to reolcate three insns in this case
+				 */
     function *callee;		/* what function is called */
     function *func;		/* what function we are inst */
 };
@@ -423,6 +433,7 @@ void defineInstPoint(function *func, instPoint *point, instruction *code,
     point->addr = (codeIndex+offset)<<2;
     point->originalInstruction = code[codeIndex];
     point->delaySlotInsn = code[codeIndex+1];
+    point->aggregateInsn = code[codeIndex+2];
     point->isDelayed = 0;
     if (IS_DELAYED_INST(code[codeIndex])) {
 	 point->isDelayed = 1;
@@ -466,6 +477,15 @@ void newCallPoint(function *func, instruction *code, int codeIndex, int offset)
 	point->callIndirect = 1;
 	point->callee = NULL;
     }
+
+    // check for aggregate type being returned 
+    // this is marked by insn after call's delay solt being an
+    //   invalid insn.  We treat this as an extra delay slot and
+    //   relocate it to base tramps as needed.
+    if (!IS_VALID_INSN(code[codeIndex+2])) {
+	point->callAggregate = 1;
+    }
+
     func->calls[func->callCount++] = point;
 }
 
@@ -547,10 +567,19 @@ void locateInstPoints(function *func, void *codeV, int offset, int calls)
 	    func->funcReturn = (instPoint *) xcalloc(sizeof(instPoint), 1);
 	    defineInstPoint(func, func->funcReturn, code, codeIndex, 
 		offset,FALSE);
+	    if ((code[codeIndex].resti.simm13 != 8) &&
+	        (code[codeIndex].resti.simm13 != 12)) {
+		logLine("*** FATAL Error:");
+		sprintf(errorLine, " unsupported return at %x\n", 
+		    func->funcReturn->addr);
+		logLine(errorLine);
+		abort();
+	    }
 	} else if (isInsn(code[codeIndex], CALLmask, CALLmatch) ||
 		   isInsn(code[codeIndex], CALLImask, CALLImatch)) {
 	    if (calls) {
 		newCallPoint(func, code, codeIndex, offset);
+
 	    }
 	}
 	codeIndex++;
@@ -695,11 +724,19 @@ void installBaseTramp(int baseAddr,
 		/* copy delay slot instruction into tramp instance */
 		*(temp+1) = location->delaySlotInsn;
 	    }
+	    if (location->callAggregate) {
+		/* copy invalid insn with aggregate size in it */
+		*(temp+2) = location->aggregateInsn;
+	    }
 	} else if (temp->raw == RETURN_INSN) {
 	    generateBranchInsn(temp, 
 		(location->addr+sizeof(instruction) - currAddr));
 	    if (location->isDelayed) {
 		/* skip the delay slot instruction */
+		temp->branch.disp22 += 1;
+	    }
+	    if (location->callAggregate) {
+		/* skip the aggregate size slot */
 		temp->branch.disp22 += 1;
 	    }
 	} else if ((temp->raw == LOCAL_PRE_BRANCH) ||
@@ -1036,6 +1073,8 @@ int getInsnCost(opCode op)
 
 	// noop
 	count += 1;
+
+	return(count);
     } else if (op ==  trampPreamble) {
 	// save %o6, -112, %o6
 	// add %g6, <cost>, %d6
