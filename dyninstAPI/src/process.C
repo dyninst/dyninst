@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.292 2002/02/05 17:01:38 chadd Exp $
+// $Id: process.C,v 1.293 2002/02/05 17:09:43 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1704,10 +1704,6 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
 	// create imageUpdate here:
 	// imageUpdate(h->addr,size)
 #ifdef BPATCH_LIBRARY
-#if defined(i386_unknown_linux2_2)
-	printf(" ALLOCATED MEMORY AT: %x , %d bytes\n", h->addr, size);
-#endif
-
 #ifdef sparc_sun_solaris2_4 
 	if(h->addr < 0xF0000000){
 		imageUpdate *imagePatch=new imageUpdate; 
