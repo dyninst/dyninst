@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.37 2001/06/12 15:43:58 hollings Exp $
+# $Id: make.module.tmpl,v 1.38 2002/04/05 19:38:54 schendel Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -28,6 +28,13 @@ SRCS	     += ../src/association.C \
 		../../dyninstAPI/src/inst.C \
 		../src/main.C \
 		../src/metric.C \
+		../src/machineMetFocusNode.C \
+		../src/processMetFocusNode.C \
+		../src/threadMetFocusNode.C \
+		../src/instrCodeNode.C \
+		../src/instrThrDataNode.C \
+		../src/dataReqNode.C \
+		../src/instReqNode.C \
 		../src/internalMetrics.C \
 		../src/costmetrics.C \
 		../src/metricDefs-critPath.C \
