@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.36 1996/01/29 22:09:19 mjrg Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.37 1996/02/13 06:17:20 newhall Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.36  1996/01/29 22:09:19  mjrg
+ * Revision 1.37  1996/02/13 06:17:20  newhall
+ * changes to how cost metrics are computed. added a new costMetric class.
+ *
+ * Revision 1.36  1996/01/29  22:09:19  mjrg
  * Added metric propagation when new processes start
  * Adjust time to account for clock differences between machines
  * Daemons don't enable internal metrics when they are not running any processes
@@ -208,6 +211,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "perfStream.h"
 #include "os.h"
 #include "showerror.h"
+#include "costmetrics.h"
 
 /*
  * find out if we have an application defined

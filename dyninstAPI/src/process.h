@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.26  1995/12/15 14:40:58  naim
+ * Revision 1.27  1996/02/13 06:17:36  newhall
+ * changes to how cost metrics are computed. added a new costMetric class.
+ *
+ * Revision 1.26  1995/12/15  14:40:58  naim
  * Changing "hybrid_cost" by "smooth_obs_cost" - naim
  *
  * Revision 1.25  1995/11/29  18:45:24  krisna
@@ -163,29 +166,6 @@ class heapItem {
   heapStatus status;
 }; 
 
-#define HIST_LIMIT      6
-
-class costC {
- public:
-    costC() {
-      currentHist=0; lastObservedCost = 0.0; totalPredictedCost=0.0;
-      currentPredictedCost=0.0; timeLastTrampSample = 0; smoothObsCost = 0.0;
-      wallTimeLastTrampSample = 0;
-      int i;
-      for (i=0; i<HIST_LIMIT; ++i)
-	past[i] = 0.0;
-    }
-    float smoothObsCost;
-    int currentHist;
-    float lastObservedCost;
-    float past[HIST_LIMIT];
-    float totalPredictedCost;
-    float currentPredictedCost;
-    time64 timeLastTrampSample;
-    time64 wallTimeLastTrampSample;
-};
-
-
 //
 // read a C/C++ book to find out the difference
 // between:
@@ -239,7 +219,8 @@ friend class ptraceKludge;
   char buffer[2048];
   int bufStart;
   int bufEnd;
-  costC theCost;
+  time64 wallTimeLastTrampSample;
+  time64 timeLastTrampSample;
   float pauseTime;		/* only used on the CM-5 version for now 
 				   jkh 7/21/94 */
   int freed;

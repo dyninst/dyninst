@@ -4,7 +4,10 @@
 
 /*
  * $Log: init.h,v $
- * Revision 1.16  1996/02/12 16:46:12  naim
+ * Revision 1.17  1996/02/13 06:17:29  newhall
+ * changes to how cost metrics are computed. added a new costMetric class.
+ *
+ * Revision 1.16  1996/02/12  16:46:12  naim
  * Updating the way we compute number_of_cpus. On solaris we will return the
  * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
  * which should be equal to the number of cpus - naim
@@ -66,16 +69,18 @@
 
 #include "metric.h"
 #include "internalMetrics.h"
+#include "costmetrics.h"
 #include "inst.h"
 #include "process.h"
 
 extern internalMetric *activeProcs;
-extern internalMetric *pauseTime;
-extern internalMetric *totalPredictedCost;
-extern internalMetric *observed_cost;
-extern internalMetric *smooth_obs_cost;
 extern internalMetric *bucket_width;
 extern internalMetric *number_of_cpus;
+
+extern internalMetric *pauseTime;
+extern costMetric *totalPredictedCost;
+extern costMetric *observed_cost;
+extern costMetric *smooth_obs_cost;
 
 extern bool init();
 extern bool initOS();

@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.28  1996/02/12 20:07:13  naim
+ * Revision 1.29  1996/02/13 06:17:28  newhall
+ * changes to how cost metrics are computed. added a new costMetric class.
+ *
+ * Revision 1.28  1996/02/12  20:07:13  naim
  * Making number_of_cpus a regular metric - naim
  *
  * Revision 1.27  1996/02/12  16:46:11  naim
@@ -103,6 +106,7 @@
 
 #include "metric.h"
 #include "internalMetrics.h"
+#include "costmetrics.h"
 #include "inst.h"
 #include "init.h"
 #include "resource.h"
@@ -111,11 +115,12 @@ extern pdRPC *tp;
 extern int getNumberOfCPUs();
 
 internalMetric *activeProcs = NULL;
-internalMetric *pauseTime = NULL;
-internalMetric *totalPredictedCost= NULL;
-internalMetric *smooth_obs_cost = NULL;
-internalMetric *observed_cost = NULL;
 internalMetric *bucket_width = NULL;
+
+internalMetric *pauseTime = NULL;
+costMetric *totalPredictedCost= NULL;
+costMetric *smooth_obs_cost = NULL;
+costMetric *observed_cost = NULL;
 internalMetric *number_of_cpus = NULL;
 
 int numberOfCPUs;
@@ -177,41 +182,42 @@ bool init() {
 						   false,
 						   Sampled);
 
-  totalPredictedCost = internalMetric::newInternalMetric("predicted_cost",
-							 EventCounter,
-					                 aggMax,	
-							 "CPUs",
-							 NULL,
-							 default_im_preds,
-							 false, 
-							 Normalized);
-
-  smooth_obs_cost = internalMetric::newInternalMetric("smooth_obs_cost", 
-						      EventCounter,
-						      aggMax,
-						      "CPUs",
-						      NULL,
-						      obs_cost_preds,
-						      true,
-						      Normalized);
-
-  observed_cost = internalMetric::newInternalMetric("observed_cost",
-						   EventCounter,
-						   aggMax,
-						   "CPUs",
-						   NULL,
-						   obs_cost_preds,
-						   false,
-						   Normalized);
-
-   pauseTime = internalMetric::newInternalMetric("pause_time",
+  totalPredictedCost = costMetric::newCostMetric("predicted_cost",
 						 EventCounter,
-						 aggMax,
+					         aggSum,	
 						 "CPUs",
-						 computePauseTimeMetric,
 						 default_im_preds,
-						 false,
-						 Normalized);
+						 false, 
+						 Normalized,
+						 aggSum);
+
+  smooth_obs_cost = costMetric::newCostMetric("smooth_obs_cost", 
+					      EventCounter,
+					      aggSum,
+					      "CPUs",
+					      obs_cost_preds,
+					      true,
+					      Normalized,
+					      aggSum);
+
+  observed_cost = costMetric::newCostMetric("observed_cost",
+					   EventCounter,
+					   aggSum,
+					   "CPUs",
+					   obs_cost_preds,
+					   false,
+					   Normalized,
+					   aggSum);
+
+ pauseTime = internalMetric::newInternalMetric("pause_time",
+					       EventCounter,
+					       aggMax,
+					       "CPUs",
+					       computePauseTimeMetric,
+					       default_im_preds,
+					       false,
+					       Normalized);
+
 
   activeProcs = internalMetric::newInternalMetric("active_processes",
 						  EventCounter,

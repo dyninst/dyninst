@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.32  1996/01/29 22:09:22  mjrg
+ * Revision 1.33  1996/02/13 06:17:27  newhall
+ * changes to how cost metrics are computed. added a new costMetric class.
+ *
+ * Revision 1.32  1996/01/29  22:09:22  mjrg
  * Added metric propagation when new processes start
  * Adjust time to account for clock differences between machines
  * Daemons don't enable internal metrics when they are not running any processes
@@ -170,6 +173,7 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
 #include "resource.h"
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/init.h"
+#include "paradynd/src/costmetrics.h"
 #include "showerror.h"
 #include "util/h/sys.h" 
 
@@ -214,7 +218,8 @@ vector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void) {
   unsigned size = internalMetric::allInternalMetrics.size();
   for (unsigned u=0; u<size; u++)
     metInfo += internalMetric::allInternalMetrics[u]->getInfo();
-
+  for (unsigned u2=0; u2< costMetric::allCostMetrics.size(); u2++)
+    metInfo += costMetric::allCostMetrics[u2]->getInfo();
   mdl_get_info(metInfo);
   return(metInfo);
 }

@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.76  1996/02/12 16:46:15  naim
+ * Revision 1.77  1996/02/13 06:17:31  newhall
+ * changes to how cost metrics are computed. added a new costMetric class.
+ *
+ * Revision 1.76  1996/02/12  16:46:15  naim
  * Updating the way we compute number_of_cpus. On solaris we will return the
  * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
  * which should be equal to the number of cpus - naim
@@ -384,6 +387,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
 #include "util/h/Timer.h"
 #include "paradynd/src/mdld.h"
 #include "showerror.h"
+#include "costmetrics.h"
+
+extern int getNumberOfNodes();
 
 double currentPredictedCost = 0.0;
 double currentSmoothObsValue= 0.0;
@@ -403,12 +409,18 @@ vector<internalMetric*> internalMetric::allInternalMetrics;
 
 bool mdl_internal_metric_data(string& metric_name, mdl_inst_data& result) {
   unsigned size = internalMetric::allInternalMetrics.size();
-  for (unsigned u=0; u<size; u++) 
+  for (unsigned u=0; u<size; u++) {
     if (internalMetric::allInternalMetrics[u]->name() == metric_name) {
       result.aggregate = internalMetric::allInternalMetrics[u]->aggregate();
       result.style = internalMetric::allInternalMetrics[u]->style();
       return true;
-    }
+  } }
+  for (unsigned u2=0; u2< costMetric::allCostMetrics.size(); u2++) {
+    if (costMetric::allCostMetrics[u2]->name() == metric_name) {
+      result.aggregate = costMetric::allCostMetrics[u2]->aggregate();
+      result.style = costMetric::allCostMetrics[u2]->style();
+      return true;
+  } }
   return (mdl_metric_data(metric_name, result));
 }
 
@@ -470,20 +482,36 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
                                        bool enable, bool& matched)
 {
   matched = false;
+  metricDefinitionNode *mn = 0; 
+
+  // check to see if this is an internal metric
   unsigned im_size = internalMetric::allInternalMetrics.size();
-  for (unsigned im_index=0; im_index<im_size; im_index++)
+  for (unsigned im_index=0; im_index<im_size; im_index++){
     if (internalMetric::allInternalMetrics[im_index]->name() == metric_name) {
       matched = true;
       if (!enable) return NULL;
       internalMetric *im = internalMetric::allInternalMetrics[im_index];
       if (!im->legalToInst(canon_focus)) return NULL;
-      metricDefinitionNode *mn = new metricDefinitionNode(NULL, metric_name,
-                                                          canon_focus, 
-                                                          flat_name, im->aggregate());
+      mn = new metricDefinitionNode(NULL, metric_name, canon_focus, 
+                                    flat_name, im->aggregate());
       im->enable(mn);
       return(mn);
-    }
-  return NULL;
+  } }
+  // check to see if this is a cost metric
+  for(unsigned i=0; i < costMetric::allCostMetrics.size(); i++){
+      if(costMetric::allCostMetrics[i]->name() == metric_name){
+	  matched = true;
+	  if (!enable) return 0;
+	  costMetric *nc = costMetric::allCostMetrics[i];
+	  if (!nc->legalToInst(canon_focus)) return 0;
+	  mn = new metricDefinitionNode(NULL, metric_name, canon_focus,
+					flat_name, nc->aggregate());
+
+          nc->enable(mn); 
+	  return(mn);
+
+  }}
+  return 0;
 }
 
 /*
@@ -694,6 +722,14 @@ void metricDefinitionNode::disable()
         logLine("disabled internal metric\n");
         return;
       }
+
+    // check for cost metrics
+    for (unsigned i=0; i<costMetric::allCostMetrics.size(); i++){
+      if (costMetric::allCostMetrics[i]->node == this) {
+        costMetric::allCostMetrics[i]->disable();
+        logLine("disabled cost metric\n");
+        return;
+    }}
 
     if (!inserted_) return;
 
@@ -1000,76 +1036,42 @@ void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
     }
 }
 
+//
+// Costs are now reported to paradyn like other metrics (ie. we are not
+// calling reportInternalMetrics to deliver cost values, instead we wait
+// until we have received a new interval of cost data from each process)
+// note: this only works for the CM5 because all cost metrics are sumed
+// at the daemons and at paradyn 
+//
 void processCost(process *proc, traceHeader *h, costUpdate *s)
 {
-    int i;
-    double unInstTime;
+    timeStamp newSampleTime = (h->wall / 1000000.0);
+    timeStamp newProcessTime = (h->process / 1000000.0);
 
-    if (proc->theCost.wallTimeLastTrampSample) {
-        proc->pauseTime = s->pauseTime;
-/*          ((h->wall - proc->theCost.wallTimeLastTrampSample)/1000000.0); */
-    }
-    proc->theCost.wallTimeLastTrampSample = h->wall;
+    //  kludge for CM5 pauseTime computation
+    proc->pauseTime = s->pauseTime;
 
-    // should really compute this on a per process basis.
-    proc->theCost.currentPredictedCost = currentPredictedCost;
+    timeStamp lastProcessTime = 
+			totalPredictedCost->getLastSampleProcessTime(proc); 
 
-    // update totalPredicted cost.
-    // Need to multiply by the share of the un-inst time to get pred cost
-    //   for the interval.
-    //   timWOinst = TwInst/(1 + predCost);
-    //
-    unInstTime = ((h->process - proc->theCost.timeLastTrampSample)/1000000.0)/
-        (1 + proc->theCost.currentPredictedCost);
-    proc->theCost.totalPredictedCost += proc->theCost.currentPredictedCost *
-            unInstTime;
-    proc->theCost.timeLastTrampSample = h->process;
+    // find the portion of uninstrumented time for this interval
+    double unInstTime = ((newProcessTime - lastProcessTime) 
+			 / (1+currentPredictedCost));
 
-    //
-    // New definition for observed_cost
-    //
-    observed_cost->value=s->obsCostIdeal;
+    // update predicted cost
+    // note: currentPredictedCost is the same for all processes 
+    //       this should be changed to be computed on a per process basis
+    sampleValue newPredCost = totalPredictedCost->getCumulativeValue(proc);
+    newPredCost += (float)(currentPredictedCost*unInstTime); 
+    totalPredictedCost->updateValue(proc,newPredCost,
+				    newSampleTime,newProcessTime);
+    // update observed cost 
+    observed_cost->updateValue(proc,s->obsCostIdeal,
+			       newSampleTime,newProcessTime);
 
-    //
-    // build circular buffer of recent values.
-    //
-    proc->theCost.past[proc->theCost.currentHist] = s->obsCostIdeal;
-    if (++proc->theCost.currentHist == HIST_LIMIT) proc->theCost.currentHist=0;
-
-    // now compute current value of "smooth cost";
-    int c_count=0;
-    for (i=0, proc->theCost.smoothObsCost = 0.0; i < HIST_LIMIT; i++) {
-      if (proc->theCost.past[i] != 0.0) {
-        c_count++;
-        proc->theCost.smoothObsCost += proc->theCost.past[i];
-      }
-    }
-    proc->theCost.smoothObsCost /= c_count;
-
-    currentSmoothObsValue = 0.0;
-    unsigned size = processVec.size();
-    for (unsigned u=0; u<size; u++) {
-      if (processVec[u]->theCost.smoothObsCost > currentSmoothObsValue) {
-        currentSmoothObsValue = processVec[u]->theCost.smoothObsCost;
-      }
-    }
-    smooth_obs_cost->value = currentSmoothObsValue;
-
-    //
-    // update total predicted cost.
-    //
-    totalPredictedCost->value = 0.0;
-    for (unsigned u1=0; u1<size; u1++) {
-      if (processVec[u1]->theCost.totalPredictedCost > 
-          totalPredictedCost->value) {
-        totalPredictedCost->value = processVec[u1]->theCost.totalPredictedCost;
-      }
-    }
-    // char buffer[200];
-    // sprintf(buffer, "processCosts: processVec.size = %d TPC = %f OC = %f\n",
-    // 	    processVec.size(),totalPredictedCost->value,observed_cost->value);
-    //   logLine(buffer);
-
+    // update smooth observed cost
+    smooth_obs_cost->updateSmoothValue(proc,s->obsCostIdeal,
+				 newSampleTime,newProcessTime);
     return;
 }
 

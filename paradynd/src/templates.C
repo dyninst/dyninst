@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.26  1996/02/09 22:13:57  mjrg
+ * Revision 1.27  1996/02/13 06:17:37  newhall
+ * changes to how cost metrics are computed. added a new costMetric class.
+ *
+ * Revision 1.26  1996/02/09  22:13:57  mjrg
  * metric inheritance now works in all cases
  * paradynd now always reports to paradyn when a process is ready to run
  * fixed aggregation to handle first samples and addition of new components
@@ -184,6 +187,7 @@ template class vector<T_dyninstRPC::batch_buffer_entry>;
 #include "instP.h"
 #include "dyninstP.h"
 #include "metric.h"
+#include "costmetrics.h"
 #include "ast.h"
 #include "util.h"
 #include "internalMetrics.h"
@@ -224,6 +228,9 @@ template class  vector<sym_data>;
 template class  vector<unsigned>;
 template class  vector<vector<string> >;
 template class  vector<watch_data>;
+template class  vector<costMetric *>;
+template class  vector<sampleValue>;
+template class  vector<double>;
 
 template class  dictionary<unsigned int, vector<mdl_type_desc> >;
 template class  dictionary<unsigned int, _cpSample *>;

@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.2
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.32  1995/12/15 22:26:57  mjrg
+ * Revision 1.33  1996/02/13 06:17:34  newhall
+ * changes to how cost metrics are computed. added a new costMetric class.
+ *
+ * Revision 1.32  1995/12/15  22:26:57  mjrg
  * Merged paradynd and paradyndPVM
  * Get module name for functions from symbol table in solaris
  * Fixed code generation for multiple instrumentation statements
@@ -185,6 +188,7 @@ int pvmendtask();
 #include "dyninstP.h"
 #include "os.h"
 #include "showerror.h"
+#include "costmetrics.h"
 
 vector<process*> processVec;
 string process::programName;
@@ -375,6 +379,7 @@ process *allocateProcess(int pid, const string name)
 
     ret = new process;
     processVec += ret;
+    if(!costMetric::addProcessToAll(ret)) assert(0);
 
     ret->pid = pid;
 
