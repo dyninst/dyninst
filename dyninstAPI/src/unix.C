@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.30 1999/07/28 19:21:02 nash Exp $
+// $Id: unix.C,v 1.31 1999/11/06 21:38:53 wylie Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -824,10 +824,10 @@ int handleSigChild(int pid, int status)
 //            PDYN_reportSIGCHLD (pid, WEXITSTATUS(status));
 //	}
 #endif
-	sprintf(errorLine, "Process %d has terminated\n", curr->getPid());
+	sprintf(errorLine, "Process %d has terminated with code 0x%x\n", 
+                curr->getPid(), WEXITSTATUS(status));
 	statusLine(errorLine);
 	logLine(errorLine);
-
         handleProcessExit(curr, WEXITSTATUS(status));
     } else if (WIFSIGNALED(status)) {
 	sprintf(errorLine, "process %d has terminated on signal %d\n", curr->getPid(), WTERMSIG(status));
