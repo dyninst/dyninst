@@ -105,13 +105,13 @@ BPatch_function *mangledNameMatchKLUDGE(char *pretty, char *mangled,
 {
 
   BPatch_Vector<BPatch_function *> bpfv;
-  if ((NULL == mod->findFunction(pretty, bpfv, true)) || !bpfv.size()) {
-    // cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot find " << pretty << endl;
+  if ((NULL == mod->findFunction(pretty, bpfv, false, false, true)) || !bpfv.size()) {
+    cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot find " << pretty << endl;
     return NULL;  // no pretty name hits, expecting multiple
   }
 
   //cerr << __FILE__ << __LINE__ << ":  mangledNameMatchKLUDGE: language = " 
-  //     << mod->getLanguageStr() << endl;
+  //<< mod->getLanguageStr() << endl;
   if (BPatch_f90_demangled_stabstr == mod->getLanguage()) {
       // debug function symbols are presented in "demangled" style.
       if (bpfv.size() == 1)
