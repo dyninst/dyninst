@@ -68,6 +68,15 @@ extern "C" {
 #include "paradynd/src/mdld.h"
 #include "showerror.h"
 #include "main.h"
+#include "util/h/debugOstream.h"
+
+// The following were defined in process.C
+extern debug_ostream attach_cerr;
+extern debug_ostream inferiorrpc_cerr;
+extern debug_ostream shmsample_cerr;
+extern debug_ostream forkexec_cerr;
+extern debug_ostream metric_cerr;
+extern debug_ostream signal_cerr;
 
 void createResource(int pid, traceHeader *header, struct _newresource *r);
 
@@ -121,6 +130,11 @@ void logLine(const char *line)
     static char fullLine[1024];
 
     strcat(fullLine, line);
+       // Ack!  Possible overflow!  Possible bug!
+       // If you put a '\n' at the end of every string passed to a call
+       // to logLine (and the string is < 1000 chars) then you'll be okay.
+       // Otherwise, watch out!
+
     if (fullLine[strlen(fullLine)-1] == '\n') {
 	tp->applicationIO(0, strlen(fullLine), fullLine);
 	fullLine[0] = '\0';
@@ -136,6 +150,9 @@ void statusLine(const char *line)
 // buffering routine to flush (to paradyn); otherwise, it would flush
 // only when the buffer was full, hurting response time.
 extern bool BURST_HAS_COMPLETED;
+
+extern vector<process*> processVec;
+extern process* findProcess(int); // should become a static method of class process
 
 // Read trace data from process curr.
 void processTraceStream(process *curr)
@@ -228,17 +245,6 @@ void processTraceStream(process *curr)
 	}
 
 	switch (header.type) {
-	    case TR_FORK:
-	        // a TR_FORK is generated when a process forks.
-	        // This is used on all platforms, except AIX where the fork
-	        // must be handled in a different way.
-	        // On AIX, we handle the fork case when we get a SIGTRAP
-	        // from the forked process.
-#ifndef rs6000_ibm_aix4_1
-		forkProcess((traceFork *) ((void*)recordData));
-#endif
-		break;
-
 	    case TR_NEW_RESOURCE:
 //		cerr << "paradynd: received a new resource from pid " << curr->getPid() << "; processing now" << endl;
 		createResource(curr->getPid(), &header, (struct _newresource *) ((void*)recordData));
@@ -252,10 +258,12 @@ void processTraceStream(process *curr)
 
 #ifndef SHM_SAMPLING
 	    case TR_SAMPLE:
+		//metric_cerr << "got something from pid " << curr->getPid() << endl;
+
 		// sprintf(errorLine, "Got data from process %d\n", curr->pid);
 		// logLine(errorLine);
 //		assert(curr->getFirstRecordTime());
-		processSample(&header, (traceSample *) ((void*)recordData));
+		processSample(curr->getPid(), &header, (traceSample *) ((void*)recordData));
 		   // in metric.C
 		firstSampleReceived = true;
 		break;
@@ -283,53 +291,6 @@ void processTraceStream(process *curr)
 		// critical path sample
 		extern void processCP(process *, traceHeader *, cpSample *);
 		processCP(curr, &header, (cpSample *) recordData);
-		break;
-
-	    case TR_EXEC:
-		{ 
-		  // cerr << "in TR_EXEC\n";
-		  traceExec *execData = (traceExec *) recordData;
-		  if (execData->pid == curr->getPid()) {
-		    curr->inExec = true;
-		    curr->execFilePath = string(execData->path);
-		  }
-		  else {
-		    sprintf(errorLine, "Received inconsistent trace data from process %d", curr->getPid());
-		    showErrorCallback(37, (const char *) errorLine);
-		  }
-
-		  // kludge: this process has received a SIGTRAP that it 
-		  // didn't know how to handle...we are assuming that this
-		  // SIGTRAP was from the exec
-		  if(curr->receivedMysteryTrap()){
-		    // the process has executed a succesful exec, and is now
-		    // stopped at the exit of the exec call.
-		    // cerr << "TR_EXEC: processing the mysteryTrap case!\n";
-		    curr->handleExec();
-		    curr->inExec = false;
-		    tp->resourceBatchMode(true);
-		    curr->clearMysteryTrap();
-
-	            // cerr << "!reachedFirstBreak" << endl;
-		    string buffer = string("passed trap at start of program");
-		    statusLine(buffer.string_of());
-		    curr->clearMysteryTrap();
-
-		    curr->reachedFirstBreak = true;
-		    buffer=string("installing call to DYNINSTinit()");
-		    statusLine(buffer.string_of());
-		    installBootstrapInst(curr);
-		    if (!curr->continueProc()) {
-		      // cerr << "continueProc after installBootstrapInst() "
-	              //      << "failed, so DYNINSTinit() isn't being invoked "
-		      //      << "yet, which it should!" << endl;
-		    }
-		    else {
-		      buffer=string("running DYNINSTinit()...");
-		      statusLine(buffer.string_of());
-		    }
-		  }
-		}
 		break;
 
 	    case TR_EXEC_FAILED:
@@ -368,9 +329,8 @@ void doDeferredRPCs() {
       bool wasLaunched = proc->launchRPCifAppropriate(proc->status() == running);
       // do we need to do anything with 'wasLaunched'?
       if (wasLaunched) {
-#ifdef INFERIOR_RPC_DEBUG
-	 cerr << "launched an inferior RPC" << endl; cerr.flush();
-#endif
+	 inferiorrpc_cerr << "launched an inferior RPC";
+	 inferiorrpc_cerr << endl;
       }
    }
 }
@@ -391,7 +351,15 @@ int handleSigChild(int pid, int status)
 
     // ignore signals from unknown processes
     process *curr = findProcess(pid);
-    if (!curr) return -1;
+    if (!curr) {
+       forkexec_cerr << "handleSigChild pid " << pid << " is an unknown process." << endl;
+       forkexec_cerr << "WIFSTOPPED=" << (WIFSTOPPED(status) ? "true" : "false");
+       if (WIFSTOPPED(status)) {
+	  forkexec_cerr << "WSTOPSIG=" << WSTOPSIG(status);
+       }
+       forkexec_cerr << endl << flush;
+       return -1;
+    }
 
     if (WIFSTOPPED(status)) {
 	int sig = WSTOPSIG(status);
@@ -409,71 +377,78 @@ int handleSigChild(int pid, int status)
 		// started up.  Several have been added.  We must be careful
 		// to make sure that uses of SIGTRAPs do not conflict.
 
-	        // cerr << "welcome to SIGTRAP" << endl;
-
+	        signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid() << endl;
 		const bool wasRunning = (curr->status() == running);
 		curr->status_ = stopped; // probably was 'neonatal'
 
-		curr->setMysteryTrap();
-		    
 		//If the list is not empty, it means some previous
 		//instrumentation has yet need to be finished.
 		if (instWList.size() != 0) {
 	            // cerr << "instWList is full" << endl;
 		    if(curr -> cleanUpInstrumentation(wasRunning)){
-			curr->clearMysteryTrap();
 		        break; // successfully processed the SIGTRAP
                     }
 		}
 
 		if (curr->handleTrapIfDueToRPC()) {
-	            //cerr << "processed RPC response in SIGTRAP" << endl;
-		   //logLine("processed RPC response in SIGTRAP\n");
-		   curr->clearMysteryTrap();
+		   inferiorrpc_cerr << "processed RPC response in SIGTRAP" << endl;
 		   break;
 		}
-		    
+
 		if (curr->inExec) {
 		   // the process has executed a succesful exec, and is now
 		   // stopped at the exit of the exec call.
-		   cerr << "SIGTRAP: processing the handleExec case!" << endl;
-		   // call handleExec to clean our internal data structures
-		   // handleExec does not insert instrumentation in the new image
+
+		   forkexec_cerr << "SIGTRAP: inExec is true, so doing process::handleExec()!" << endl;
+		   string buffer = string("process ") + string(curr->getPid()) +
+		                   " has performed exec() syscall";
+		   statusLine(buffer.string_of());
+
+		   // call handleExec to clean our internal data structures, reparse
+		   // symbol table.  handleExec does not insert instrumentation or do
+		   // any propagation.  Why not?  Because it wouldn't be safe -- the
+		   // process hasn't yet been bootstrapped (run DYNINST, etc.)  Only
+		   // when we get the breakpoint at the end of DYNINSTinit() is it safe
+		   // to insert instrumentation and allocate timers & counters...
 		   curr->handleExec();
-		   curr->inExec = false;
+
 		   // need to start resourceBatchMode here because we will call
 		   //  tryToReadAndProcessBootstrapInfo which
 		   // calls tp->resourceBatchMode(false)
 		   tp->resourceBatchMode(true);
+
 		   // set reachedFirstBreak to false here, so we execute
 		   // the code below, and insert the initial instrumentation
-		   // in the new image.
+		   // in the new image. (Actually, this is already done by handleExec())
 		   curr->reachedFirstBreak = false;
-		   curr->clearMysteryTrap();
+
+		   // fall through...
 		}
 
-                // Now we expect that the TRAP is due to the fact that a TRAP
-                // is always generated when a ptraced process starts up.
-                // But we must query 'reachedFirstBreak' because on machines where
-                // we use ptrace detach (on continuing), a TRAP is generated on a
-                // pause.
-		if (!curr->reachedFirstBreak) {
+                // Now we expect that this TRAP is the initial trap sent when a ptrace'd
+		// process completes startup via exec (or when an exec syscall was
+		// executed in an already-running process).
+                // But we must query 'reachedFirstBreak' because on machines where we
+		// attach/detach on pause/continue, a TRAP is generated on each pause!
+		if (!curr->reachedFirstBreak) { // vrble should be renamed 'reachedFirstTrap'
 	           // cerr << "!reachedFirstBreak" << endl;
 		   string buffer = string("PID=") + string(pid);
 		   buffer += string(", passed trap at start of program");
 		   statusLine(buffer.string_of());
-		   curr->clearMysteryTrap();
+
+//		   (void)(curr->findDynamicLinkingInfo()); // SHOULD THIS BE HERE???
+
 		   curr->reachedFirstBreak = true;
 
 		   buffer=string("PID=") + string(pid) + ", installing call to DYNINSTinit()";
 		   statusLine(buffer.string_of());
 
-		   installBootstrapInst(curr);
+		   installBootstrapInst(curr); // should become a class process method
 			
-		   // now, let main() and then DYNINSTinit() get invoked.  DYNINST will
-                   // send us back a TR_INFERIOR_BOOTSTRAPPED record; at that time we
-		   // can safely propagate metric instances, do
-		   // tp->newProgramCallbackFunc(), etc.
+		   // now, let main() and then DYNINSTinit() get invoked.  As it
+		   // completes, DYNINSTinit() does a DYNINSTbreakPoint, at which time
+		   // we read bootstrap information "sent back" (in a global vrble),
+		   // propagate metric instances, do tp->newProgramCallbackFunc(), etc.
 		   if (!curr->continueProc()) {
 		      cerr << "continueProc after installBootstrapInst() failed, so DYNINSTinit() isn't being invoked yet, which it should!" << endl;
 		   }
@@ -482,74 +457,72 @@ int handleSigChild(int pid, int status)
 		      statusLine(buffer.string_of());
 		   }
 		}
+		else {
+		   forkexec_cerr << "SIGTRAP not handled for pid " << pid << " so just leaving process in stopped state" << endl << flush;
+		}
 
 		break;
 	    }
 
 	    case SIGSTOP:
 	    case SIGINT: {
-	        //logLine("welcome to SIGSTOP/SIGINT\n");
-		// cerr << "SIGSTOP/SIGINT\n" << endl;
-		const bool wasRunning = (curr->status_ == running);
-		const bool wasNeonatal = (curr->status_ == neonatal);
+	        signal_cerr << "welcome to SIGSTOP/SIGINT for proc pid " << curr->getPid() << endl;
+
+		const processState prevStatus = curr->status_;
+		// assert(prevStatus != stopped); (bombs on sunos and AIX, when lots of spurious sigstops are delivered)
+
 		curr->status_ = stopped;
+		   // the following routines expect (and assert) this status.
 
-		if (curr->tryToReadAndProcessBootstrapInfo()) {
-		   // grab data from DYNINST_bootstrap_info
-		   tp->processStatus(curr->getPid(), procPaused);
-		   //logLine("read & processed bootstrap in SIGSTOP\n");
-		   // cerr << "read & processed bootstrap in SIGSTOP\n";
-		   break;
+		if (curr->procStopFromDYNINSTinit()) {
+		   // grabs data from DYNINST_bootstrap_info
+		   assert(curr->status_ == stopped);
+		     // DYNINSTinit() after normal startup, after fork, or after exec
+		     // syscall was made by a running program; leave paused
+		     // (tp->newProgramCallback() to paradyn will result in the process
+		     // being continued soon enough, assuming the applic was running,
+		     // which is true in all cases except when an applic is just being
+		     // started up).  Fall through (we want the status line to change)
+
+		   forkexec_cerr << "processed SIGSTOP from DYNINSTinit for pid " << curr->getPid() << endl << flush;
+		}
+		else if (curr->handleTrapIfDueToRPC()) {
+		   inferiorrpc_cerr << "processed RPC response in SIGSTOP" << endl;
+		   break; // don't want to execute ->Stopped() which changes status line
+		}
+		else if (curr->handleStopDueToExecEntry()) {
+		   // grabs data from DYNINST_bootstrap_info
+		   forkexec_cerr << "fork/exec -- handled stop before exec" << endl;
+		   string buffer = string("process ") + string(curr->getPid()) +
+		                   " performing exec() syscall...";
+		   statusLine(buffer.string_of());
+
+		   // note: status will now be 'running', since handleStopDueToExec()
+		   // did a continueProc() to let the exec() syscall go forward.
+		   assert(curr->status_ == running);
+		      // would neonatal be better? or exited?
+
+		   break; // don't want to change status line in conventional way
+		}
+		else {
+		   forkexec_cerr << "unhandled SIGSTOP for pid " << curr->getPid() << " so just leaving process in paused state." << endl << flush;
 		}
 
-		if (curr->handleTrapIfDueToRPC()) {
-		   //logLine("processed RPC response in SIGSTOP\n");
-		   // cerr << "processed RPC response in SIGSTOP\n";
-		   break;
-		}
-
-		if(curr->isInHandleStart()){
-		    if(wasRunning) {
-			// if there are no outstanding resource creation
-			// responses, then continue process, otherwise wait
-			if(!resource::num_outstanding_creates){
-			    cerr << "SIGSTOP: inHandleStart=true, was running, so doing continueProc() now" << endl;
-			    curr->continueProc();
-                        }
-			else {
-			    cerr << "SIGSTOP: inHandleStart=true, wasn't running, so doing curr->setWaitingForResources()" << endl; // does this ever happen?
-			    curr->setWaitingForResources();
-			}
-		    }
-		    curr->clearInHandleStart();
-		    break;
-		}
-
-		if (curr->reachedFirstBreak == false && wasNeonatal) {
-		  // forked process
-		  cerr << "paradynd SIGSTOP or SIGINT: it's a fork!" << endl;
-		  curr->reachedFirstBreak = true;
-		  curr->status_ = stopped;
-		  metricDefinitionNode::handleFork(curr->getParent(), curr);
-		  tp->newProgramCallbackFunc(pid, curr->arg_list,
-					     machineResource->part_name());
-		  break;
-		}
-
+		curr->status_ = prevStatus; // so Stopped() below won't be a nop
 		curr->Stopped();
-		curr->reachedFirstBreak = true; // probably not needed; should already be true
+
+		curr->reachedFirstBreak = true;
+		   // probably not needed; should already be true
 
 		break;
 	    }
 
 	    case SIGILL:
-	       //cerr << "welcome to SIGILL" << endl; cerr.flush();
+	       signal_cerr << "welcome to SIGILL" << endl << flush;
 	       curr->status_ = stopped;
 
 	       if (curr->handleTrapIfDueToRPC()) {
-#ifdef INFERIOR_RPC_DEBUG
-		  cerr << "processed RPC response in SIGILL" << endl; cerr.flush();
-#endif
+		  inferiorrpc_cerr << "processed RPC response in SIGILL" << endl; cerr.flush();
 
 		  break; // we don't forward the signal -- on purpose
 	       }
@@ -559,8 +532,9 @@ int handleSigChild(int pid, int status)
 
 	    case SIGIOT:
 	    case SIGBUS:
-//		 printf("caught signal, dying...  (sig=%d)\n", 
-//		       WSTOPSIG(status)); fflush(stdout);
+		signal_cerr << "caught signal, dying...  (sig="
+                            << WSTOPSIG(status) << ")" << endl << flush;
+
 		curr->status_ = stopped;
 		curr->dumpImage();
 
@@ -569,7 +543,7 @@ int handleSigChild(int pid, int status)
 		// ???
 		// should really log this to the error reporting system.
 		// jkh - 6/25/96
-		// now forward it to the process.
+		// now forward it to the process, who will proceed to core dump.
 		curr->continueWithForwardSignal(WSTOPSIG(status));
 		break;
 
@@ -703,50 +677,43 @@ static void checkAndDoShmSampling(unsigned long long &pollTimeUSecs) {
       // or processes that are in the middle of an inferiorRPC (we like for
       // inferiorRPCs to finish up quickly).
       if (theProc->status_ != running) {
-	 //cerr << "(-" << theProc->status_ << "-)";
+	 //shmsample_cerr << "(-" << theProc->getStatusAsString() << "-)";
 	 continue;
       }
       else if (!theProc->isBootstrappedYet()) {
-	 //cerr << "(-*-)" << endl;
+	 //shmsample_cerr << "(-*-)" << endl;
 	 continue;
       }
       else if (theProc->existsRPCinProgress()) {
-	 //cerr << "(-~-)" << endl;
+	 //shmsample_cerr << "(-~-)" << endl;
 	 continue;
       }
 
       if (doMajorSample) {
+	 //shmsample_cerr << "(-Y-)" << endl;
+
 	 if (!theProc->doMajorShmSample(currWallTime)) {
 	    // The major sample didn't complete all of its work, so we
 	    // schedule a minor sample for sometime in the near future
 	    // (before the next major sample)
 
-#ifdef SHM_SAMPLING_DEBUG
-	    cerr << "a minor sample will be needed" << endl;
-	    cerr.flush();
-#endif
+	    shmsample_cerr << "a minor sample will be needed" << endl;
 
 	    forNextTimeDoMinorSample = true;
 	 }
       }
       else if (doMinorSample) {
-#ifdef SHM_SAMPLING_DEBUG
-	 cerr << "trying needed minor sample..."; cerr.flush();
-#endif
+	 shmsample_cerr << "trying needed minor sample..."; cerr.flush();
 
 	 if (!theProc->doMinorShmSample()) {
 	    // The minor sample didn't complete all of its work, so
 	    // schedule another one.
 	    forNextTimeDoMinorSample = true;
 
-#ifdef SHM_SAMPLING_DEBUG
-	    cerr << "it failed" << endl; cerr.flush();
-#endif
+	    shmsample_cerr << "it failed" << endl; cerr.flush();
 	 }
 	 else {
-#ifdef SHM_SAMPLING_DEBUG
-	    cerr << "it succeeded" << endl; cerr.flush();
-#endif
+	    shmsample_cerr << "it succeeded" << endl; cerr.flush();
 	 }
       }
    } // loop thru the processes
@@ -806,6 +773,19 @@ static void checkAndDoShmSampling(unsigned long long &pollTimeUSecs) {
 }
 #endif
 
+void doSignals() {
+   /* check for status change on inferior processes, or the arrival of
+      a signal. */
+
+   int wait_status;
+   int wait_pid = process::waitProcs(&wait_status);
+   if (wait_pid > 0) {
+      if (handleSigChild(wait_pid, wait_status) < 0) {
+	 cerr << "handleSigChild failed for pid " << wait_pid << endl;
+      }
+   }
+}
+
 /*
  * Wait for a data from one of the inferiors or a request to come in.
  *
@@ -838,6 +818,8 @@ void controllerMainLoop(bool check_buffer_first)
 //    cerr << "doing controllerMainLoop..." << endl;
 
     while (1) {
+//        doSignals();
+
 	FD_ZERO(&readSet);
 	FD_ZERO(&errorSet);
 	width = 0;
@@ -942,26 +924,111 @@ void controllerMainLoop(bool check_buffer_first)
 	      // to get a connection for the trace stream. 
 	      // Accept the connection.
 
-	      cerr << "getting new connection from a forked process..." << endl; cerr.flush();
+	      string str = string("getting new connection from forked process");
+	      statusLine(str.string_of());
 
-	      int fd = RPC_getConnect(traceSocket_fd);
+	      forkexec_cerr << "getting new connection from a forked process..." << endl;
+
+	      int fd = RPC_getConnect(traceSocket_fd); // accept()
                  // will become traceLink of the new process
 	      assert(fd >= 0);
 
+	      str = string("receiving data from forked process...");
+	      statusLine(str.string_of());
+
+	      forkexec_cerr << "got the new connection from forked process...now waiting for pid to be sent" << endl;
+
 	      int pid;
-	      if (sizeof(pid) != read(fd, &pid, sizeof(pid))) {
+	      if (sizeof(pid) != read(fd, &pid, sizeof(pid)))
 		 assert(false);
+
+	      int ppid;
+	      if (sizeof(ppid) != read(fd, &ppid, sizeof(ppid)))
+		 assert(false);
+
+#ifdef SHM_SAMPLING
+	      key_t theKey;
+	      if (sizeof(theKey) != read(fd, &theKey, sizeof(theKey)))
+		 assert(false);
+
+	      void *applAttachedAtPtr;
+	      if (sizeof(applAttachedAtPtr) != read(fd, &applAttachedAtPtr, sizeof(applAttachedAtPtr)))
+		 assert(false);
+#endif
+
+	      str = string("processing fork()...new pid=") + string(pid);
+	      statusLine(str.string_of());
+
+	      forkexec_cerr << "Connected to process pid " << pid << "; now performing the fork" << endl;
+
+	      // The following call will:
+	      // 1) call the fork-ctor
+	      // 2) call metricDefinitionNode::handleFork()
+	      // 3) continue the parent process, who has been paused since the entry
+	      //    of DYNINSTfork(), in the interests of preventing race conditions
+	      //    when copying state to the child process.
+	      bool childHasInstr = true; // even for AIX, thanks to completeTheFork()
+
+	      forkProcess(pid, ppid,
+#ifdef SHM_SAMPLING
+			  theKey, applAttachedAtPtr,
+#endif
+			  childHasInstr);
+
+	      process *curr = findProcess(pid);
+	      assert(curr);
+
+	      curr->traceLink = fd;
+
+	      /* Now continue the process, so that it may run DYNINSTinit().
+	         As DYNINSTinit() completes, there's a DYNINSTbreakPoint(), so
+		 we can expect a SIGSTOP soon... */
+
+	      forkexec_cerr << "paradynd continuing child proc pid " << curr->getPid() << " so it may run DYNINSTinit" << endl;
+
+	      str = string("running DYNINSTinit() for fork child pid=") + string(pid);
+	      statusLine(str.string_of());
+
+	      if (!curr->continueProc())
+		 assert(false);
+
+	      int wait_status;
+	      int wait_result = waitpid(curr->getPid(), &wait_status, WNOHANG);
+	      if (wait_result > 0) {
+		 forkexec_cerr << "post-DYNINSTinit: a signal!" << endl;
+                 bool was_stopped = WIFSTOPPED(wait_status);
+                 forkexec_cerr << "WIFSTOPPED: " << (was_stopped ? "true" : "false") << endl;
+                 if (was_stopped) {
+                    int sig = WSTOPSIG(wait_status);
+                    forkexec_cerr << "signo: " << sig << endl;
+
+		    if (sig == 5)  { // sigtrap
+#ifdef rs6000_ibm_aix4_1
+		       // HACK to compensate for AIX goofiness: as soon as we
+		       // call continueProc() above (and not before!), a SIGTRAP
+		       // appears to materialize out of thin air, stopping the
+		       // child process.  Thus, DYNINSTinit() won't run unless we issue
+		       // an explicit continue.
+		       // (Actually, there may be a semi-legit explanation.  It seems
+		       // that on non-solaris platforms, including sunos and aix,
+		       // if a sigstop is sent and not handled -- i.e. we just leave
+		       // the application in a paused state, without continuing -- then
+		       // the sigstop will be sent over and over again, nonstop, until
+		       // the application is continued.  So perhaps the sigtrap we see
+		       // now was present all along, but we never knew it because
+		       // waitpid in the main loop kept returning sigstops.  --ari)
+
+		       curr->status_ = stopped;
+		       assert(curr->status() == stopped);
+
+		       if (!curr->continueProc())
+			  assert(false);
+#endif
+		    }
+		 }
+
+                 forkexec_cerr << flush;
 	      }
-
-	      fprintf(stderr, "Connected to process %d\n", pid);
-
-	      // the process structure should have already been created
-	      // when the parent of the fork sent paradynd a TR_FORK
-	      // trace record.
-	      process *p = findProcess(pid);
-	      assert(p);
-
-	      p->traceLink = fd;
 	    }
 
             unsigned p_size = processVec.size();
@@ -1044,28 +1111,13 @@ void controllerMainLoop(bool check_buffer_first)
 	}
 #endif
 
-//	processArchDependentTraceStream();
-
 #ifndef SHM_SAMPLING
-	// the ifdef is here because when shm sampling, reportInternalMetrics is already done.
+	// the ifdef is here because when shm sampling, reportInternalMetrics is
+	// already done.
 	reportInternalMetrics(false);
 #endif
 
-	/* check for status change on inferior processes, or the arrival of
-	   a signal. */
-	int status;
-	int pid = process::waitProcs(&status);
-	if (pid > 0)
-	    if (handleSigChild(pid, status) < 0) {
-	       // perhaps the process has died, and had its structures cleaned
-               // up (and its entry in processVec[] deallocated and then set to NULL); that
-	       // could explain this.  So perhaps we should not report this to the user?
-	       // On the other hand...some times it could be a real error which should
-	       // be reported.  How to differentiate those two cases?
-	       string buffer=string("handleSigChild failed for pid ") +
-		 string(pid) + " (not found?)\n";
-	       logLine(buffer.string_of());
-	    }
+	doSignals();
     }
 }
 
