@@ -41,6 +41,10 @@
 
 /*
  * $Log: init-aix.C,v $
+ * Revision 1.12  1997/04/17 19:44:18  sec
+ * Did some automatic instrumented of the MPI collective calls, to make sure
+ * the message groups and tags are recorded.
+ *
  * Revision 1.11  1997/03/29 02:07:52  sec
  * Adding instrumentation of MPI functions
  *
@@ -111,8 +115,24 @@ static AstNode tidArg(AstNode::Param, (void *) 0);
 static AstNode mpiNormTagArg(AstNode::Param, (void *) 4);
 static AstNode mpiNormCommArg(AstNode::Param, (void *) 5);
 static AstNode mpiSRSendTagArg(AstNode::Param, (void *) 4);
-static AstNode mpiSRRecvTagArg(AstNode::Param, (void *) 9);
 static AstNode mpiSRCommArg(AstNode::Param, (void *) 10);
+static AstNode mpiSRRSendTagArg(AstNode::Param, (void *) 4);
+static AstNode mpiSRRCommArg(AstNode::Param, (void *) 7);
+
+static AstNode mpiBcastCommArg(AstNode::Param, (void *) 4);
+static AstNode mpiAlltoallCommArg(AstNode::Param, (void *) 6);
+static AstNode mpiAlltoallvCommArg(AstNode::Param, (void *) 8);
+static AstNode mpiGatherCommArg(AstNode::Param, (void *) 7);
+static AstNode mpiGathervCommArg(AstNode::Param, (void *) 8);
+static AstNode mpiAllgatherCommArg(AstNode::Param, (void *) 6);
+static AstNode mpiAllgathervCommArg(AstNode::Param, (void *) 7);
+static AstNode mpiReduceCommArg(AstNode::Param, (void *) 6);
+static AstNode mpiAllreduceCommArg(AstNode::Param, (void *) 5);
+static AstNode mpiReduceScatterCommArg(AstNode::Param, (void *) 5);
+static AstNode mpiScatterCommArg(AstNode::Param, (void *) 7);
+static AstNode mpiScattervCommArg(AstNode::Param, (void *) 8);
+static AstNode mpiScanCommArg(AstNode::Param, (void *) 5);
+
 
 bool initOS()
 {
@@ -158,7 +178,6 @@ bool initOS()
   argList[1] = &mpiNormCommArg;
   initialRequests += new instMapping("MPI__Send", "DYNINSTrecordTagAndGroup",
 				     FUNC_ENTRY|FUNC_ARG, argList);
-
   initialRequests += new instMapping("MPI__Bsend", "DYNINSTrecordTagAndGroup",
 				     FUNC_ENTRY|FUNC_ARG, argList);
   initialRequests += new instMapping("MPI__Ssend", "DYNINSTrecordTagAndGroup",
@@ -169,15 +188,39 @@ bool initOS()
 				     FUNC_ENTRY|FUNC_ARG, argList);
   argList[0] = &mpiSRSendTagArg;
   argList[1] = &mpiSRCommArg;
-  initialRequests += new instMapping("MPI__Sendrecv",
+  initialRequests += new instMapping("MPI__Sendrecv", "DYNINSTrecordTagAndGroup",
+				     FUNC_ENTRY|FUNC_ARG, argList);
+  argList[0] = &mpiSRRSendTagArg;
+  argList[1] = &mpiSRRCommArg;
+  initialRequests += new instMapping("MPI__Sendrecv_replace",
 				     "DYNINSTrecordTagAndGroup",
 				     FUNC_ENTRY|FUNC_ARG, argList);
-  argList[0] = &mpiSRRecvTagArg;
-  argList[1] = &mpiSRCommArg;
-  initialRequests += new instMapping("MPI__Sendrecv",
-				     "DYNINSTrecordTagAndGroup",
-				     FUNC_ENTRY|FUNC_ARG, argList);
-  // Sendrecv replace
+  initialRequests += new instMapping("MPI__Bcast", "DYNINSTrecordGroup",
+				     FUNC_ENTRY|FUNC_ARG, &mpiBcastCommArg);
+  initialRequests += new instMapping("MPI__Alltoall", "DYNINSTrecordGroup",
+				     FUNC_ENTRY|FUNC_ARG, &mpiAlltoallCommArg);
+  initialRequests += new instMapping("MPI__Alltoallv", "DYNINSTrecordGroup",
+				     FUNC_ENTRY|FUNC_ARG, &mpiAlltoallvCommArg);
+  initialRequests += new instMapping("MPI__Gather", "DYNINSTrecordGroup",
+				     FUNC_ENTRY|FUNC_ARG, &mpiGatherCommArg);
+  initialRequests += new instMapping("MPI__Gatherv", "DYNINSTrecordGroup",
+				     FUNC_ENTRY|FUNC_ARG, &mpiGathervCommArg);
+  initialRequests += new instMapping("MPI__Allgather", "DYNINSTrecordGroup",
+				     FUNC_ENTRY|FUNC_ARG, &mpiAllgatherCommArg);
+  initialRequests += new instMapping("MPI__Allgatherv", "DYNINSTrecordGroup",
+				     FUNC_ENTRY|FUNC_ARG, &mpiAllgathervCommArg);
+  initialRequests += new instMapping("MPI__Reduce", "DYNINSTrecordGroup",
+				     FUNC_ENTRY|FUNC_ARG, &mpiReduceCommArg);
+  initialRequests += new instMapping("MPI__Allreduce", "DYNINSTrecordGroup",
+				     FUNC_ENTRY|FUNC_ARG, &mpiAllreduceCommArg);
+  initialRequests += new instMapping("MPI__Reduce_scatter", "DYNINSTrecordGroup",
+				     FUNC_ENTRY|FUNC_ARG, &mpiReduceScatterCommArg);
+  initialRequests += new instMapping("MPI__Scatter", "DYNINSTrecordGroup",
+				     FUNC_ENTRY|FUNC_ARG, &mpiScatterCommArg);
+  initialRequests += new instMapping("MPI__Scatterv", "DYNINSTrecordGroup",
+				     FUNC_ENTRY|FUNC_ARG, &mpiScattervCommArg);
+  initialRequests += new instMapping("MPI__Scan", "DYNINSTrecordGroup",
+				     FUNC_ENTRY|FUNC_ARG, &mpiScanCommArg);
 
 #ifdef PARADYND_PVM
   char *doPiggy;
