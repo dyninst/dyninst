@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.3 2000/03/04 01:26:22 zandy Exp $
+ * $Id: dyninstAPI_RT.h,v 1.4 2000/03/17 21:56:05 schendel Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -118,6 +118,17 @@ struct trampTableEntryStruct {
 };
 
 #endif
+
+struct rpcInfoStruct {
+  int runningInferiorRPC;  /* 1 running irpc, 0 not running */
+  unsigned begRPCAddr;
+  unsigned endRPCAddr;
+};
+typedef struct rpcInfoStruct rpcInfo;
+extern rpcInfo curRPC;
+extern unsigned pcAtLastIRPC;
+extern int trapNotHandled;  /* 1 a trap hasn't been handled, 0 traps handled */
+
 
 #endif /* !defined(__ASSEMBLER__) */
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.8 2000/03/12 23:30:16 hollings Exp $ */
+/* $Id: RTcommon.c,v 1.9 2000/03/17 21:56:18 schendel Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -64,6 +64,13 @@ struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 
 double DYNINSTdata[SYN_INST_BUF_SIZE/sizeof(double)];
 double DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(double)];
+
+/* Written to by daemon just before launching an inferior RPC */
+rpcInfo curRPC = { 0, 0, 0 };
+unsigned pcAtLastIRPC;  /* just used to check for errors */
+/* 1 = a trap was ignored and needs to be regenerated
+   0 = there is not a trap that hasn't been processed */
+int trapNotHandled = 0;
 
 /*
  * The Dyninst API arranges for this function to be called at the entry to

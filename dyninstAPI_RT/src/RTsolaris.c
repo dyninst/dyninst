@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.10 2000/03/04 01:29:22 zandy Exp $
+ * $Id: RTsolaris.c,v 1.11 2000/03/17 21:56:19 schendel Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -120,7 +120,49 @@ static unsigned lookup(unsigned key) {
 
 void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap) {
     unsigned pc = uap->uc_mcontext.gregs[PC];
-    unsigned nextpc = lookup(pc);
+    unsigned nextpc;
+
+    /* If we're in the process of running an inferior RPC, we'll
+       ignore the trap here and have the daemon rerun the trap
+       instruction when the inferior rpc is done.  Because the default
+       behavior is for the daemon to reset the PC to it's previous
+       value and the PC is still at the trap instruction, we don't
+       need to make any additional adjustments to the PC in the
+       daemon.
+
+       This is used only on x86 platforms, so if multithreading is
+       ever extended to x86 platforms, then perhaps this would need to
+       be modified for that.  */
+
+    if(curRPC.runningInferiorRPC == 1) {
+      /* If the current PC is somewhere in the RPC then it's a trap that
+	 occurred just before the RPC and is just now getting delivered.
+	 That is we want to ignore it here and regenerate it later. */
+      if(curRPC.begRPCAddr <= pc && pc <= curRPC.endRPCAddr) {
+      /* If a previous trap didn't get handled on this next irpc (assumes one 
+	 trap per irpc) then we have a bug, a trap didn't get regenerated */
+	/* printf("trapHandler, begRPCAddr: %x, pc: %x, endRPCAddr: %x\n",
+	   curRPC.begRPCAddr, pc, curRPC.endRPCAddr);
+	*/
+	assert(trapNotHandled==0);
+	trapNotHandled = 1; 
+	return;
+      }
+      else  ;   /* a trap occurred as a result of a function call within the */ 
+	        /* irpc, these traps we want to handle */
+    }
+    else { /* not in an irpc */
+      if(trapNotHandled == 1) {
+	/* Ok good, the trap got regenerated.
+	   Check to make sure that this trap is the one corresponding to the one
+	   that needs to get regenerated.
+	*/
+	assert(pcAtLastIRPC == pc);
+	trapNotHandled = 0;
+	/* we'll then continue to process the trap */
+      }
+    }
+    nextpc = lookup(pc);
 
     if (!nextpc) {
       /* kludge: maybe the PC was not automatically adjusted after the trap */
