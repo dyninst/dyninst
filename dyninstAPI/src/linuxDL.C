@@ -522,7 +522,9 @@ bool dynamic_linking::initialize() {
 	if( ! (rDebugSym.type() == Symbol::PDST_OBJECT) ) { return 0; }
 
     // Set r_debug_addr
-	r_debug_addr = rDebugSym.addr() + ld_base;
+   r_debug_addr = rDebugSym.addr();
+   if (!ldsoOne.getLoadAddress())
+       r_debug_addr += ld_base;
 	assert( r_debug_addr );
 
 	/* Set dlopen_addr ("_dl_map_object"/STT_FUNC); apparently it's OK if this fails. */
