@@ -43,6 +43,9 @@
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.108  1996/10/20 20:18:16  mjrg
+ * small change to assertions
+ *
  * Revision 1.107  1996/10/03 22:12:01  mjrg
  * Removed multiple stop/continues when inserting instrumentation
  * Fixed bug on process termination
@@ -917,7 +920,7 @@ void metricDefinitionNode::forwardSimpleValue(timeStamp start, timeStamp end,
 				       bool internal_met)
 {
   // TODO mdc
-    assert(start >= (firstRecordTime/MILLION));
+    assert(start + 0.000001 >= (firstRecordTime/MILLION));
     assert(end >= (firstRecordTime/MILLION));
     assert(end > start);
 
@@ -984,7 +987,7 @@ void metricDefinitionNode::updateAggregateComponent()
     ret = aggSample.aggregateValues();
     if (ret.valid) {
         assert(ret.end > ret.start);
-        assert(ret.start >= (firstRecordTime/MILLION));
+        assert(ret.start + 0.000001 >= (firstRecordTime/MILLION));
         assert(ret.end >= (firstRecordTime/MILLION));
 	batchSampleData(0, id_, ret.start, ret.end, ret.value,
 			aggSample.numComponents(),false);
