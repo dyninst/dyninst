@@ -41,6 +41,9 @@
 
 /*
  * $Log: arch.h,v $
+ * Revision 1.9  1997/12/01 02:28:38  tung
+ * For Linux/X86 Platform
+ *
  * Revision 1.8  1997/02/26 23:42:47  mjrg
  * First part on WindowsNT port: changes for compiling with Visual C++;
  * moved unix specific code to unix.C
@@ -81,7 +84,7 @@
 #include "arch-power.h"
 #endif
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
 #include "arch-x86.h"
 #endif
 
