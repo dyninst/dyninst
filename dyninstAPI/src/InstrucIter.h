@@ -144,14 +144,12 @@ public:
       currentAddress((Address) (useRelativeAddr ?
                                 (void *)func->get_address() :
                                 (void *)func->getEffectiveAddress(proc)))
+    {
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0)
-    {
         instPtr = mod->exec()->getPtrToInstruction( func->get_address() );
         insn.getNextInstruction( instPtr );
-#else
-    {
 #endif
     }
         
@@ -161,14 +159,12 @@ public:
        baseAddress( bpBasicBlock->startAddress ),
        range( bpBasicBlock->size() ),
        currentAddress(bpBasicBlock->startAddress)
+    {
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0)
-    {
         instPtr =addressImage->getPtrToInstruction(bpBasicBlock->startAddress);
         insn.getNextInstruction( instPtr ); 
-#else
-    {
 #endif
     }
 
@@ -182,14 +178,12 @@ public:
         baseAddress(ii.baseAddress),
         range(ii.range),
         currentAddress(ii.currentAddress)
+    {
 #if defined(i386_unknown_linux2_0) ||\
      defined(i386_unknown_solaris2_5) ||\
      defined(i386_unknown_nt4_0)    
-    {
         instPtr = ii.addressImage->getPtrToInstruction( ii.baseAddress );
         insn.getNextInstruction( instPtr );
-#else
-    {
 #endif
     }
 
@@ -197,16 +191,12 @@ public:
     InstrucIter( Address addr, Address base,  image* img, 
                  bool useRelativeAddr = true ) :
         currentAddress( addr )
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0)
     {
+#if defined(arch_x86)
         addressImage = img;
         baseAddress = base;
         instPtr = img->getPtrToInstruction( addr );
         insn.getNextInstruction( instPtr );        
-#else
-    {
 #endif   
     }
 
