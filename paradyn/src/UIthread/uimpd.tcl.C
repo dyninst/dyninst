@@ -3,10 +3,13 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.12  1994/11/01 05:44:26  karavan
-/* changed resource selection process to support multiple focus selection
-/* on a single display
+/* Revision 1.13  1994/11/02 23:30:05  karavan
+/* added showError command for error access from within tcl code
 /*
+ * Revision 1.12  1994/11/01  05:44:26  karavan
+ * changed resource selection process to support multiple focus selection
+ * on a single display
+ *
  * Revision 1.11  1994/10/26  23:14:09  tamches
  * Added tclTunable sub-command to command uimpd (see tclTunable.h and .C)
  *
@@ -659,6 +662,19 @@ int switchRDOdagCmd (ClientData clientData,
   return TCL_OK;
 }
 
+/*
+ * argv[1] = error number
+ * argv[2] = error string
+ */
+int showErrorCmd (ClientData clientData, 
+                Tcl_Interp *interp, 
+                int argc, 
+                char *argv[])
+{
+  int code = atoi(argv[1]);
+  uim_server->showError (code, argv[2]);
+  return TCL_OK;
+}
 
 
 struct cmdTabEntry uimpd_Cmds[] = {
@@ -677,6 +693,7 @@ struct cmdTabEntry uimpd_Cmds[] = {
   {"clearResourceSelection", clearResourceSelectionCmd},
   {"switchRDOdag", switchRDOdagCmd},
   {"tclTunable", TclTunableCommand},
+  {"showError", showErrorCmd},
   { NULL, NULL}
 };
 
