@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.30 2003/02/04 14:59:24 bernat Exp $
+// $Id: aixDL.C,v 1.31 2003/02/18 21:04:51 buck Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -76,11 +76,12 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
   // First things first, get a list of all loader info structures.
   int pid;
   int ret;
-  struct ld_info *ptr;
+  struct ld_info *ld_info_array, *ptr;
   struct stat ld_stat;
   static bool did_ptrace_multi = false;
   // We hope that we don't get more than 1024 libraries loaded.
-  ptr = (struct ld_info *) malloc (1024*sizeof(*ptr));
+  ld_info_array = (struct ld_info *) malloc (1024*sizeof(*ptr));
+  ptr = ld_info_array;
   pid = p->getPid();
   /* It seems that AIX has some timing problems and
      when the user stack grows, the kernel doesn't update the stack info in time
@@ -97,6 +98,7 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
     fprintf(stderr, "For process %d\n", pid);
     statusLine("Unable to get loader info about process, application aborted");
     showErrorCallback(43, "Unable to get loader info about process, application aborted");
+    free(ld_info_array);
     return 0;
   }
 
@@ -118,10 +120,12 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
   if (!ptr->ldinfo_next)
     {
       // Non-shared object, return 0
+      free(ld_info_array);
       return 0;
     }
 
   // Skip the first element, which appears to be the executable file.
+  close(ptr->ldinfo_fd);
   ptr = (struct ld_info *)(ptr->ldinfo_next + (char *)ptr);
 
   // We want to fill in this pdvector.
@@ -185,7 +189,7 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
   p->setDynamicLinking();
   dynlinked = true;
 
-  free(ptr);
+  free(ld_info_array);
   return result;
 
 }
