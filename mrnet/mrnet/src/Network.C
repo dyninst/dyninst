@@ -338,6 +338,12 @@ unsigned int Stream::get_NumEndPoints()const
     return stream->get_NumEndPoints();
 }
 
+Communicator* Stream::get_Communicator()const
+{
+    assert ( stream );
+    return stream->get_Communicator();
+}
+
 unsigned int Stream::get_Id()const
 {
     assert( stream );
