@@ -320,7 +320,7 @@ class pd_process {
                                             thr, lwp);
    }
    
-   bool triggeredInStackFrame(Frame frame, instPoint *point,
+   bool triggeredInStackFrame(Frame &frame, instPoint *point,
                               callWhen when, callOrder order) {
       process *llproc = dyninst_process->lowlevel_process();
       return llproc->triggeredInStackFrame(frame, point, when, order);
