@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.502 2004/05/21 14:14:50 legendre Exp $
+// $Id: process.C,v 1.503 2004/06/02 20:58:08 legendre Exp $
 
 #include <ctype.h>
 
@@ -6087,9 +6087,9 @@ dyn_thread *process::createThread(
   //bperr( "Received notice of new thread.... tid %d, pos %d, stackbase 0x%x, startpc 0x%x\n", tid, pos, stackbase, startpc);
   // creating new thread
   thr = new dyn_thread(this, tid, pos, NULL);
-  threads += thr;
 
   thr->update_lwp(getLWP(lwp));
+  threads += thr;
   thr->update_resumestate_p(resumestate_p);
   function_base *pdf ;
 
