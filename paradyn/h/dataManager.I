@@ -2,7 +2,11 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.15  1994/05/31 19:07:46  hollings
+ * Revision 1.16  1994/06/14 15:17:25  markc
+ * Added new argument (aggregationOperator) to enableDataCollection.  This
+ * tells the data manager how to aggregate a metric (sum, max, min, avg).
+ *
+ * Revision 1.15  1994/05/31  19:07:46  hollings
  * Changes to make access to resources and resourceLists direct not via
  * the dataManager thread.
  *
@@ -58,6 +62,7 @@
 #include "rtinst/h/trace.h"
 #include "util/h/hist.h"
 #include "dyninstRPC.h"
+#include "util/h/aggregation.h"
 
 /* one or more program working together */
 class applicationContext;	
@@ -268,10 +273,11 @@ $remote dataManager {
     // performanceStream 	- a stream returned by createPerformanceStream
     // resourceList		- a list of resources
     // metric		- what metric to collect data for
-    //
+    // aggOp            - how the data should be aggregated (sum, avg, ...)
     metricInstance *enableDataCollection(performanceStream*,
 					 resourceList*,
-					 metric*);
+					 metric*,
+					 aggregation aggOp);
 
     //
     // stop collecting data for the named metricInstance.
