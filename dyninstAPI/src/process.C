@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.275 2001/11/02 19:28:39 bernat Exp $
+// $Id: process.C,v 1.276 2001/11/06 00:30:27 gurari Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3371,8 +3371,8 @@ bool process::handleIfDueToSharedObjectMapping(){
 	    // library
 #if !defined(BPATCH_LIBRARY) && !defined(rs6000_ibm_aix4_1)
 	    //if (((*changed_objects)[i])->getImage()->isDyninstRTLib())
-	    if (((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB")))
-	    {
+	    if (((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB")) || ((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB_MT")))
+	      {
 #endif
                if(addASharedObject(*((*changed_objects)[i]))){
                  (*shared_objects).push_back((*changed_objects)[i]);

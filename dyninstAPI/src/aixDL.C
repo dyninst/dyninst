@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.12 2001/10/24 21:24:54 bernat Exp $
+// $Id: aixDL.C,v 1.13 2001/11/06 00:30:17 gurari Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -472,7 +472,11 @@ bool getRTLibraryName(string &dyninstName, int pid)
 #ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
   const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
 #else
+#ifdef MT_THREAD
+  const char DyninstEnvVar[]="PARADYN_LIB_MT";
+#else
   const char DyninstEnvVar[]="PARADYN_LIB";
+#endif MT_THREAD
 #endif
 
   if (dyninstName.length()) {

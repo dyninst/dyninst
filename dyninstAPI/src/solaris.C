@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.102 2001/10/11 23:58:10 schendel Exp $
+// $Id: solaris.C,v 1.103 2001/11/06 00:30:27 gurari Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1030,7 +1030,11 @@ bool process::dlopenDYNINSTlib() {
 #ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
   const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
 #else
+#ifdef MT_THREAD
+  const char DyninstEnvVar[]="PARADYN_LIB_MT";
+#else
   const char DyninstEnvVar[]="PARADYN_LIB";
+#endif MT_THREAD
 #endif
 
   if (dyninstName.length()) {
