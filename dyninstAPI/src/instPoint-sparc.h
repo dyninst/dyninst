@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.7 1999/07/28 19:21:00 nash Exp $
+// $Id: instPoint-sparc.h,v 1.8 2000/03/20 22:56:15 chambrea Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
@@ -108,13 +108,6 @@ public:
   // offset (in bytes) from beginning of function at which the FIRST 
   //  instruction of the inst point in located....
   int Size() {return size;}
-
-#ifndef BPATCH_LIBRARY
-  // Used to allow trigering of metrics when their foci appear on the stack when
-  //  the metric is inserted.
-  bool triggeredInStackFrame(pd_Function *func, Address addr, callWhen when, process *);
-  bool triggeredExitingStackFrame(pd_Function *func, Address addr, callWhen when, process *);
-#endif
 
   // address of 1st instruction to be clobbered by inst point....
   //  Is this always same as iPgetAddress????

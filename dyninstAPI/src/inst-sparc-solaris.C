@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.64 2000/03/15 17:41:29 pcroth Exp $
+// $Id: inst-sparc-solaris.C,v 1.65 2000/03/20 22:56:14 chambrea Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -246,83 +246,6 @@ const instruction instPoint::insnAfterPoint() const {
     return delaySlotInsn;
 }
 
-#ifndef BPATCH_LIBRARY
-// Would inst point *this have been triggered in the specified stack frame?
-// For entry instrumentation, the inst point is assumed to be triggered
-//  once for every time the function it applies to appears on the stack.
-// For call site instrumentation, the inst point is assumed to be triggered
-//  when the function to which apoplies appears on the stack only if the 
-//  return pc in that function is directloy after the call site.
-// For other types of instrumentation, thee inst point is assumed not to
-//  be triggered.
-bool instPoint::triggeredInStackFrame(pd_Function *stack_func, Address stack_pc,
-				      callWhen when, process *proc) {
-    bool ret = false;
-
-    //cerr << "instPoint (Addr =  " << (void*)addr << " size = " << size << " type = " << ipType 
-    //     << " func->name = " << func->prettyName() << ")" << endl;
-    //cerr << " triggeredInStackFrame called, stack_func = ";
-    //if (stack_func != NULL) { 
-	//	cerr << stack_func->prettyName(); 
-    //} else {
-    //    cerr << "<null-function>";
-    //}
-    //cerr << " stack_pc = " << (void*)stack_pc << " when = " << when << endl;
-
-    if (ipType == functionEntry) {
-        if (stack_func == func) {
-	    ret = true;
-        }
-    } else if (ipType == callSite) {
-        if (stack_func == func && when == callPreInsn) {
-	    // looking at gdb, sparc-solaris seems to record PC of the 
-	    //  call site + 8, as opposed to the PC of the call site.
-	    Address base, target;
-	    proc->getBaseAddress( stack_func->file()->exec(), base );
-	    target = base + addr + 2 * sizeof(instruction);
-	    if (stack_pc == target) {
-		ret = true;
-	    } else {
-		trampTemplate *bt = findBaseTramp( this, proc );
-		Address target = bt->baseAddr + bt->emulateInsOffset + 2 * sizeof(instruction);
-		if( stack_pc == target )
-		    ret = true;
-	    }
-        }
-    }
-
-    //cerr << " returning " << ret << endl;
-
-    return ret;
-}
-
-bool instPoint::triggeredExitingStackFrame(pd_Function *stack_func, Address stack_pc,
-				      callWhen when, process *proc) {
-    bool ret = false;
-
-    if (ipType == functionExit) {
-        if (stack_func == func) {
-	    ret = true;
-        }
-    } else if (ipType == callSite) {
-        if (stack_func == func && when == callPostInsn) {
-	    Address base, target;
-	    proc->getBaseAddress( stack_func->file()->exec(), base );
-	    target = base + addr + 2 * sizeof(instruction);
-	    if (stack_pc == target) {
-		ret = true;
-	    } else {
-		trampTemplate *bt = findBaseTramp( this, proc );
-		Address target = bt->baseAddr + bt->emulateInsOffset + 2 * sizeof(instruction);
-		if( stack_pc == target )
-		    ret = true;
-	    }
-        }
-    }
-
-    return ret;
-}
-#endif
 
    void AstNode::sysFlag(instPoint *location)
 {

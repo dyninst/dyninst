@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-power.h,v 1.5 1999/07/28 19:21:00 nash Exp $
+// $Id: instPoint-power.h,v 1.6 2000/03/20 22:56:15 chambrea Exp $
 
 #ifndef _INST_POINT_POWER_H_
 #define _INST_POINT_POWER_H_
@@ -65,13 +65,6 @@ public:
   const image         *iPgetOwner()    const { 
     return (func) ? ( (func->file()) ? func->file()->exec() : NULL ) : NULL; }
         Address        iPgetAddress()  const { return addr;   }
-
-#ifndef BPATCH_LIBRARY
-  // Used to allow trigering of metrics when their foci appear on the stack when
-  //  the metric is inserted.
-  bool triggeredInStackFrame(pd_Function *func, Address addr, callWhen when, process *);
-  bool triggeredExitingStackFrame(pd_Function *func, Address addr, callWhen when, process *);
-#endif
 
   Address addr;                   /* address of inst point */
   instruction originalInstruction;    /* original instruction */

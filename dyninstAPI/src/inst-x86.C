@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.55 2000/03/16 22:39:22 cain Exp $
+ * $Id: inst-x86.C,v 1.56 2000/03/20 22:56:14 chambrea Exp $
  */
 
 #include <limits.h>
@@ -184,84 +184,6 @@ void instPoint::checkInstructions() {
   }
 #endif
 }
-
-#ifndef BPATCH_LIBRARY
-// Would inst point *this have been triggered in the specified stack frame?
-// For entry instrumentation, the inst point is assumed to be triggered
-//  once for every time the function it applies to appears on the stack.
-// For call site instrumentation, the inst point is assumed to be triggered
-//  when the function to which apoplies appears on the stack only if the 
-//  return pc in that function is directloy after the call site.
-// For other types of instrumentation, thee inst point is assumed not to
-//  be triggered.
-bool instPoint::triggeredInStackFrame( pd_Function *stack_func, Address stack_pc,
-				      callWhen when, process *proc ) {
-    bool ret = false;
-
-    //cerr << "instPoint (Addr =  " << (void*)addr_ << " size = " << size()
-    //     << " func->name = " << func_->prettyName() << ")" << endl;
-    //cerr << " triggeredInStackFrame called, stack_func = ";
-    //if ( stack_func != NULL ) { 
-	//	cerr << stack_func->prettyName(); 
-    //} else {
-    //    cerr << "<null-function>";
-    //}
-    //cerr << " stack_pc = " << (void*)stack_pc << " when = " << (int)when << endl;
-
-    if ( addr_ == func_->addr() && stack_func == func_ ) {
-	//cerr << " hit for function entry" << endl;
-	ret = true;
-    } else if ( insnAtPoint_.isCall() ) {
-        if ( stack_func == func_ && when == callPreInsn ) {
-	    // check if the stack_pc points to the instruction after the call site
-	    Address base, target;
-	    proc->getBaseAddress( stack_func->file()->exec(), base );
-	    target = base + addr_ + insnAtPoint_.size();
-	    //cerr << " stack_pc should be " << (void*)target;
-	    if ( stack_pc == target ) {
-		//cerr << " -- HIT";
-		ret = true;
-	    } else {
-		// Check if the stack_pc is from inside this instPoint
-		trampTemplate *bt = findBaseTramp( this, proc );
-		target = bt->baseAddr + bt->emulateInsOffset + insnAtPoint_.size();
-		if( stack_pc == target )
-		    ret = true;
-	    }
-	    //cerr << endl;
-        }
-    }
-
-    //cerr << " returning " << ret << endl;
-
-    return ret;
-}
-
-bool instPoint::triggeredExitingStackFrame( pd_Function *stack_func, Address stack_pc,
-				      callWhen when, process *proc ) {
-    bool ret = false;
-
-    if ( insnAtPoint_.isCall() ) {
-        if ( stack_func == func_ && when == callPostInsn ) {
-	    Address base, target;
-	    proc->getBaseAddress( stack_func->file()->exec(), base );
-	    target = base + addr_ + insnAtPoint_.size();
-	    if ( stack_pc == target ) {
-		ret = true;
-	    } else {
-		trampTemplate *bt = findBaseTramp( this, proc );
-		target = bt->baseAddr + bt->emulateInsOffset + insnAtPoint_.size();
-		if( stack_pc == target )
-		    ret = true;
-	    }
-        }
-    } else if ( addr_ != func_->addr() && stack_func == func_ ) {
-	ret = true;
-    }
-
-    return ret;
-}
-#endif
 
 
 #ifdef BPATCH_LIBRARY
