@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.10 2001/05/23 18:01:02 gurari Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.11 2001/06/11 15:51:10 gurari Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -722,8 +722,8 @@ bool RetlSetO7::RewriteFootprint(Address /* oldBaseAdr */,
     generateSetHi(&newInstr[newOffset], oldAdr, REG_O(7));
     // write 
     //  or, %07, low order 10 bits of adr, %07
-    genImmInsn(&newInstr[newOffset+1], ORop3, REG_O(7), 
-               LOW10(oldAdr + 2*sizeof(instruction)), REG_O(7));
+    genImmInsn(&newInstr[newOffset+1], ORop3, REG_O(7), LOW10(oldAdr), 
+                                                             REG_O(7));
 
     // write branch to skip over first rewritten delay slot instruction
     generateBranchInsn(&newInstr[newOffset+2], 3*sizeof(instruction));
