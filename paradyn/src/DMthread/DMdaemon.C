@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.85 1999/12/17 16:24:53 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.86 2000/01/21 20:34:32 bernat Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -1235,11 +1235,11 @@ bool paradynDaemon::newExecutable(const string &machine,
       {
          return(startIrixMPI(machine, login, name, dir, argv, args, def));
       }
-      else if ( os == "AIX" )
+      else if ( os.prefixed_by ("AIX") )
          return(startPOE(machine, login, name, dir, argv, args, def)); // AIX POE version
       else
       {
-         string message = "Paradyn does not yet support MPI on OS " + os;
+         string message = "Paradyn does not yet support MPI on OS " + os + ".";
          
          uiMgr->showError(113, strdup(message.string_of()));
          return false;
