@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.library.tmpl,v 1.13 1999/05/21 17:35:41 wylie Exp $
+# $Id: make.library.tmpl,v 1.14 1999/05/29 23:43:13 wylie Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -44,6 +44,16 @@ $(TARGET2): $(OBJS2)
 	$(AR) crv $(TARGET2) $(VOUCHER2).o $(OBJS2)
 	$(RANLIB) $(TARGET2)
 endif  # TARGET2
+
+ifdef TARGET3_SO
+XTARGET3= $(basename $(basename $(TARGET3_SO)))
+VOUCHER3= V_$(XTARGET3)
+
+$(TARGET3_SO): $(OBJS)
+	@$(RM) $(TARGET3_SO)
+	@$(MAKE) $(VOUCHER3)
+	$(CC) $(LDFLAGS) -o $(TARGET3_SO) $(VOUCHER3).o $(OBJS) $(LIBS)
+endif  # TARGET3_SO
 endif  # UNCOMMON_LINK
 
 ifndef DEST
@@ -54,14 +64,25 @@ echo:
 	echo $(OBJS)
 
 clean:
-	$(RM) *.o *.[hC] *.a $(TARGET) *.so*
+	$(RM) *.o *.[hC] *.a *.so* $(TARGET)
 
 ifndef UNCOMMON_INSTALL
+
+ifndef TARGET3_SO
 install: $(DEST)/$(TARGET)
 
 $(DEST)/$(TARGET):  $(TARGET)
 	-$(CP) $(TARGET) $(DEST)
 	$(RANLIB) $(DEST)/$(TARGET)
+
+else
+
+install: $(DEST)/$(TARGET3_SO)
+
+$(DEST)/$(TARGET3_SO): $(TARGET3_SO)
+	-$(CP) $(TARGET3_SO) $(DEST)
+
+endif
 
 #
 # definition for secondary library
