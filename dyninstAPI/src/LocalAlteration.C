@@ -39,8 +39,8 @@ void LocalAlterationSet::AddAlteration(LocalAlteration *a) {
 
 int order_peephole_alteration_ptrs(const void *a, const void *b) {
     const LocalAlteration *p1, *p2;
-    p1 = (LocalAlteration *)a;
-    p2 = (LocalAlteration *)b;
+    p1 = (const LocalAlteration *)a;
+    p2 = (const LocalAlteration *)b;
     return (p1 - p2);
 }
 
