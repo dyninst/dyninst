@@ -58,7 +58,7 @@ class pd_module {
    pdmodule *get_dyn_module() const { return dyn_module; }
 
    pdstring fileName() const;
-   void FillInCallGraphStatic(process *proc, bool printLoops);
+   void FillInCallGraphStatic(process *proc);
 };
 
 
