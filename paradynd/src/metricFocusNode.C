@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.160 1999/08/09 05:42:13 csserra Exp $
+// $Id: metricFocusNode.C,v 1.161 1999/08/30 16:02:30 zhichen Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -874,7 +874,7 @@ void removeFromMetricInstances(process *proc) {
 #if defined(MT_THREAD)
 //
 // reUseIndex only works at the presence of an aggregator.
-// We always need a dummy aggregator for threads metrics, and it will be 
+// We always need a dummy aggregator for threads metrics, and it is 
 // implemented in mdl.C apply_to_process
 //
 void metricDefinitionNode::reUseIndexAndLevel(unsigned &p_allocatedIndex, 
@@ -882,10 +882,16 @@ void metricDefinitionNode::reUseIndexAndLevel(unsigned &p_allocatedIndex,
 {
   p_allocatedIndex = UINT_MAX;
   p_allocatedLevel = UINT_MAX;
-  if (aggregators.size()>0 && aggregators[0]!=NULL) {
-    metricDefinitionNode *proc_mn = aggregators[0];
-    assert(proc_mn->aggLevel == PROC_COMP);
+  unsigned agg_size = aggregators.size();
 
+  metricDefinitionNode *proc_mn = NULL;
+  for (unsigned uu=0; uu < agg_size; uu++)
+    if (aggregators[uu]->aggLevel == PROC_COMP) {
+      proc_mn = aggregators[uu];
+      break;
+    }
+
+  if (proc_mn != NULL) {
     unsigned c_size = proc_mn->components.size();
     for (unsigned i=0;i<c_size;i++) {
       if (proc_mn->components[i] != this) {
@@ -1337,7 +1343,12 @@ void metricDefinitionNode::adjustManuallyTrigger()
   
   // aggregate metricDefinitionNode - decide whether to manually trigger 
   //  instrumentation corresponding to each component node individually.
-  if (aggregate_) {
+#if defined(MT_THREAD)
+  if (aggLevel == AGG_COMP)
+#else
+  if (aggregate_) 
+#endif
+  {
     //cerr << "metricDefinitionNode::adjustManuallyTrigger() called, flat_name = "
     // << flat_name_.string_of() << endl;
     //cerr << " (metricDefinitionNode::adjustManuallyTrigger()) aggregate = true" << endl;
@@ -1504,12 +1515,14 @@ void metricDefinitionNode::manuallyTrigger(int parentMId) {
 		   cerr << "manual trigger failed for an inst request" << endl;
 	   }
 #else
-	   for( unsigned u=0; u < proc()->threads.size(); ++i ) {
+	   if (aggLevel == PROC_COMP) {
+	       for( unsigned u=0; u < proc()->threads.size(); ++u ) {
 		   if (!manuallyTriggerNodes[i]->triggerNow( proc(), parentMId,
-													proc()->threads[u]->getTid() )) {
+			proc()->threads[u]->get_tid() )) {
 			   cerr << "manual trigger failed for an inst request" << endl;
 		   }
-	   }
+	       }
+           }
 #endif
    }
    manuallyTriggerNodes.resize( 0 );
@@ -1519,7 +1532,8 @@ void metricDefinitionNode::manuallyTrigger(int parentMId) {
 void metricDefinitionNode::propagateId(int id) {
   if (aggLevel != THR_COMP) {
     for (unsigned i=0;i<components.size();i++) 
-      components[i]->propagateId(id);
+      if (components[i])
+        components[i]->propagateId(id);
   }
   if (id_ == -1) id_ = id;
 }
@@ -2006,10 +2020,6 @@ void metricDefinitionNode::disable()
         return;
     }}
 
-    //sprintf(errorLine, "%s::disable, aggLevel=%d,  inserted_=%d, aggregators=%d", 
-    //	 flat_name_.string_of(), aggLevel, inserted_, aggregators.size());
-    //metric_cerr << errorLine << endl ;
-
     if (!inserted_) return;
 
 #if defined(MT_THREAD)
@@ -2091,7 +2101,7 @@ void metricDefinitionNode::disable()
       }
 
       if (aggLevel == THR_COMP) {
-	if (components.size() == 1) {
+	if (components.size() == 1 && components[0] != NULL) {
           metricDefinitionNode *m = components[0];
           unsigned aggr_size = m->aggregators.size();
           assert(aggr_size == m->samples.size());
@@ -2104,16 +2114,13 @@ void metricDefinitionNode::disable()
               break;
             }
           }
-          if (aggr_size!=0)  {
-	    sprintf(errorLine, "aggr_size=%d, m->aggregators.size()=%d", aggr_size, m->aggregators.size());
-	    cerr << errorLine << endl;
-            //assert(m->aggregators.size() == aggr_size-1);
-	  }
+          // if (aggr_size!=0) 
+          //   assert(m->aggregators.size() == aggr_size-1);
           // disable component only if it is not being shared
           if (aggr_size == 1) m->disable();
 	} 
 
-	if (disable)
+	if (disable) {
 #endif
         for (unsigned u=0; u<dataRequests.size(); u++) {
           unsigned mid = dataRequests[u]->getSampleId();
@@ -2122,7 +2129,7 @@ void metricDefinitionNode::disable()
           midToMiMap.undef(mid);
         }
 #if defined(MT_THREAD)
-      }
+      }}
 #endif
     }
 }

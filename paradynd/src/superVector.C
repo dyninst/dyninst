@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.C,v 1.5 1999/07/07 16:22:22 zhichen Exp $
+// $Id: superVector.C,v 1.6 1999/08/30 16:02:33 zhichen Exp $
 
 #include <sys/types.h>
 #include <limits.h>
@@ -710,7 +710,7 @@ bool superVector<HK, RAW>::alloc(unsigned thr_pos, const RAW &iValue,
       garbageCollect(PCs);
       if (firstFreeIndex == UINT_MAX) {
          // oh no; inferior heap is still full!  Garbage collection has failed.
-	 //cout << "fastInferiorHeap alloc: heap is full and garbage collection FAILED" << endl;
+	 cerr << "fastInferiorHeap alloc: heap is full and garbage collection FAILED" << endl;
          return false; // failure
        }
      }
@@ -718,12 +718,7 @@ bool superVector<HK, RAW>::alloc(unsigned thr_pos, const RAW &iValue,
      assert(firstFreeIndex < statemap.size());
 
      allocatedIndex = firstFreeIndex; // allocatedIndex is a ref param
-     if (statemap[allocatedIndex] != FIHfree) {
-       cerr << "statemap[" << allocatedIndex << "]=" << statemap[allocatedIndex]<<endl ;
-       // This is a weird situation that I haven't find the cause yet
-       updateFreeIndex = false;
-       //assert(statemap[allocatedIndex] == FIHfree);
-     }
+     assert(statemap[allocatedIndex] == FIHfree);
    } else {
      updateFreeIndex = false;
    }
@@ -746,20 +741,15 @@ bool superVector<HK, RAW>::alloc(unsigned thr_pos, const RAW &iValue,
    assert(theSuperVector[idx] != NULL);
    // baseAddrInApplic: reset to NULL since applic isn't attached any more
    // (it needs to re-run DYNINSTinit)
-#if defined(TEST_DEL_DEBUG)
-   sprintf(errorLine,"=====> allocating counter/timer for idx=%d, addr-pd=0x%x, sizeof counter/timer=%d\n",idx,theSuperVector[idx]->getBaseAddrInParadynd() + allocatedIndex,sizeof(RAW));
-   logLine(errorLine);
-#endif
 
    RAW *destRawPtr = theSuperVector[idx]->getBaseAddrInParadynd() + allocatedIndex; 
    *destRawPtr = iValue; // RAW::operator=(const RAW &) if defined, else a bit copy
 
    if (doNotSample==false) {
 #if defined(TEST_DEL_DEBUG)
-     sprintf(errorLine,"=====> setting activemap[%d]=ACTIVE, theSuperVector[%d]\n",allocatedIndex,idx);
-     logLine(errorLine);
+     sprintf(errorLine,"=====> setting activemap[%d]=ACTIVE, theSuperVector[%d]",allocatedIndex,idx);
+     cerr << errorLine << endl;
 #endif
-     //theSuperVector[idx]->set_houseKeeping(allocatedIndex, iHKValue);
      theSuperVector[idx]->set_activemap(allocatedIndex, FIHactive);
    }
 #if defined(TEST_DEL_DEBUG)
@@ -768,7 +758,7 @@ bool superVector<HK, RAW>::alloc(unsigned thr_pos, const RAW &iValue,
   //used to be inside
   theSuperVector[idx]->set_houseKeeping(allocatedIndex, iHKValue);
 
-   if (updateFreeIndex) {
+  if (updateFreeIndex) {
      // update firstFreeIndex to point to next free entry; UINT_MAX if full
      unsigned numberOfIter = 0;
      firstFreeIndex++; 
@@ -787,18 +777,18 @@ bool superVector<HK, RAW>::alloc(unsigned thr_pos, const RAW &iValue,
        firstFreeIndex = UINT_MAX;
        //cout << "fastInferiorHeap alloc: alloc succeeded but now full" << endl;
      }
-   }
+  }
 
-   // sampling set: add to permanent; no need to add to current
-   // note: because allocatedIndex is not necessarily larger than all of the current
-   //       entries in permanentSamplingSet[] (non-increasing allocation indexes can
-   //       happen all the time, once holes are introduced into the statemap due to
-   //       deallocation & garbage collection), we reconstruct the set from scratch;
-   //       it's the only easy way to maintain our invariant that the permanent
-   //       sampling set is sorted.
-   const unsigned oldPermanentSamplingSetSize = theSuperVector[idx]->getPermanentSamplingSetSize();
-   theSuperVector[idx]->reconstructPermanentSamplingSet(statemap);
-   if (updateFreeIndex) {
+  // sampling set: add to permanent; no need to add to current
+  // note: because allocatedIndex is not necessarily larger than all of the current
+  //       entries in permanentSamplingSet[] (non-increasing allocation indexes can
+  //       happen all the time, once holes are introduced into the statemap due to
+  //       deallocation & garbage collection), we reconstruct the set from scratch;
+  //       it's the only easy way to maintain our invariant that the permanent
+  //       sampling set is sorted.
+  const unsigned oldPermanentSamplingSetSize = theSuperVector[idx]->getPermanentSamplingSetSize();
+  theSuperVector[idx]->reconstructPermanentSamplingSet(statemap);
+  if (updateFreeIndex) {
      if (doNotSample) {
        assert(theSuperVector[idx]->getPermanentSamplingSetSize() == oldPermanentSamplingSetSize);
      } else {
@@ -812,9 +802,9 @@ bool superVector<HK, RAW>::alloc(unsigned thr_pos, const RAW &iValue,
        }
        assert(theSuperVector[idx]->getPermanentSamplingSetSize() == oldPermanentSamplingSetSize + 1);
      }
-   }
+  }
 
-   return true;
+  return true;
 }
 
 template <class HK, class RAW>
@@ -822,9 +812,6 @@ void superVector<HK, RAW>::makePendingFree(unsigned pd_pos,
 					   unsigned ndx,
 					   const vector<Address> &trampsUsing)
 {
-   sprintf(errorLine, "makePendingFree(pd_pos=%u, index=%u", pd_pos, ndx);
-   cerr << errorLine << endl;
-
    bool oldEqualsPermanent = false;
    enum states sm_ndx = statemap[ndx];
    if (sm_ndx == FIHallocatedButDoNotSample || sm_ndx == FIHpendingfree) 
@@ -843,7 +830,6 @@ void superVector<HK, RAW>::makePendingFree(unsigned pd_pos,
    assert(pd_pos < theSuperVector.size());
    assert(theSuperVector[pd_pos] != NULL);
    theSuperVector[pd_pos]->makePendingFree(ndx,trampsUsing);
-   //theSuperVector[pd_pos]->set_activemap(ndx, FIHinactive); 
 
    bool updatemap=true;
    for (unsigned i=0; i<inferiorProcess->threads.size(); i++) {
@@ -856,7 +842,7 @@ void superVector<HK, RAW>::makePendingFree(unsigned pd_pos,
    }
    if (updatemap) {
      statemap[ndx] = FIHpendingfree;
-     sprintf(errorLine, "pd_pos=%u, statemap[%u]=FIHpendingfree", pd_pos, ndx);
+     sprintf(errorLine, "----- pd_pos=%u, statemap[%u]=FIHpendingfree", pd_pos, ndx);
      cerr << errorLine << endl ;
    }
    // firstFreeIndex doesn't change
@@ -874,8 +860,6 @@ void superVector<HK, RAW>::makePendingFree(unsigned pd_pos,
    theSuperVector[pd_pos]->clearPermanentSamplingSet();
    for (unsigned lcv=0; lcv < statemap.size(); lcv++) {
      if (statemap[lcv] == FIHallocated) {
-       sprintf(errorLine, "addToPermanentSamplingSet(pd_pos=%u, lcv=%d)", pd_pos, lcv);
-       cerr << errorLine << endl ;
        theSuperVector[pd_pos]->addToPermanentSamplingSet(lcv);
      }
    }

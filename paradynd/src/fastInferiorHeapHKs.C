@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.C,v 1.12 1999/07/28 19:21:32 nash Exp $
+// $Id: fastInferiorHeapHKs.C,v 1.13 1999/08/30 16:02:30 zhichen Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -437,6 +437,7 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
 	   << " not found in midToMiMap so dropping sample of val " 
 	   << (double)timeValueToUse / normalize << " for mi " 
 	   << (void*)mi << " proc pid " << inferiorProc->getPid() << endl;
+      assert(0);
       return true; // is this right?
    }
    assert(theMi == this->mi); // verify our new code is working right

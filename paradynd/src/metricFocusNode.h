@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.58 1999/07/28 19:21:34 nash Exp $ 
+// $Id: metricFocusNode.h,v 1.59 1999/08/30 16:02:32 zhichen Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -636,10 +636,13 @@ private:
   // for this node.  This is needed because we may need to manually 
   // trigger multiple times for recursive functions.
   int rpcCount;
+#if defined(MT_THREAD)
+  vector<int> manuallyTriggerTIDs;
+#endif
 };
 
 #if defined(MT_THREAD)
-typedef enum {AGG_COMP, PROC_COMP, THR_COMP, DELETED_COMP} AGG_LEVEL;
+typedef enum {AGG_COMP, PROC_COMP, THR_COMP} AGG_LEVEL;
 #endif
 
 /*

@@ -41,6 +41,9 @@
 
 /*
  * $Log: debugger.C,v $
+ * Revision 1.19  1999/08/30 16:02:29  zhichen
+ * Fixed bugs introduced to thread-aware daemon
+ *
  * Revision 1.18  1998/04/22 02:37:26  buck
  * Moved showerror.h from paradynd directory to dyninstAPI directory.
  *
@@ -149,3 +152,8 @@ void changeDefaultProcess(int pid)
 //    if (!defaultProcess) changeDefaultThread(0);
 //    return(defaultProcess);
 //}
+
+extern void dummy (void) {
+  cerr << "dummy"<< endl ;
+}
+

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.h,v 1.9 1999/07/07 16:14:32 zhichen Exp $
+// $Id: fastInferiorHeapHKs.h,v 1.10 1999/08/30 16:02:30 zhichen Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -93,6 +93,9 @@ class genericHK {
       // (i.e. the current inferior process PC, the PC of its caller, then its
       // caller, etc etc.).  GC will succeed iff none of these PC values fall within
       // any "trampsUsingMe", previously passed to makePendingFree().
+
+   // Needed for debugging only
+   metricDefinitionNode* getMi() { return mi; }
 };
 
 /* ******************************************************************************* */

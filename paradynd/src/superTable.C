@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.C,v 1.4 1999/07/07 16:22:21 zhichen Exp $
+// $Id: superTable.C,v 1.5 1999/08/30 16:02:32 zhichen Exp $
 // The superTable class consists of an array of baseTable elements (superVectors)
 // and it represents the ThreadTable in paradynd. For more info, please look at
 // the .h file for this class. 
@@ -151,11 +151,11 @@ bool superTable::allocIntCounter(const intCounter &iRawValue,
 #if defined(MT_THREAD)
 #if defined(TEST_DEL_DEBUG)
   if (allocatedIndex != UINT_MAX && allocatedLevel!=UINT_MAX) {
-    sprintf(errorLine,"=====> in allocIntCounter, re-using index=%d, level=%d\n",allocatedIndex,allocatedLevel);
+    sprintf(errorLine,"=====> in allocIntCounter, re-using index=%d, level=%d",allocatedIndex,allocatedLevel);
   } else {
-    sprintf(errorLine,"=====> in allocIntCounter, not-reusing index and level\n");
+    sprintf(errorLine,"=====> in allocIntCounter, not-reusing index and level");
   }
-  logLine(errorLine);
+  cerr << errorLine << endl;;
 #endif
 
   if (!theIntCounterSuperTable->alloc(thr_pos, iRawValue,iHouseKeepingValue,
@@ -197,11 +197,11 @@ bool superTable::allocWallTimer(const tTimer &iRawValue,
 #if defined(MT_THREAD)
 #if defined(TEST_DEL_DEBUG)
   if (allocatedIndex != UINT_MAX && allocatedLevel!=UINT_MAX) {
-    sprintf(errorLine,"=====> in allocWallTimer, re-using index=%d, level=%d\n",allocatedIndex,allocatedLevel);
+    sprintf(errorLine,"=====> in allocWallTimer, re-using index=%d, level=%d",allocatedIndex,allocatedLevel);
   } else {
-    sprintf(errorLine,"=====> in allocWallTimer, not-reusing index and level\n");
+    sprintf(errorLine,"=====> in allocWallTimer, not-reusing index and level");
   }
-  logLine(errorLine);
+  cerr << errorLine <<endl;;
 #endif
   if (!theWallTimerSuperTable->alloc(thr_pos,iRawValue,iHouseKeepingValue, allocatedIndex,
 #else
@@ -237,11 +237,11 @@ bool superTable::allocProcTimer(const tTimer &iRawValue,
 #if defined(MT_THREAD)
 #if defined(TEST_DEL_DEBUG)
   if (allocatedIndex != UINT_MAX && allocatedLevel!=UINT_MAX) {
-    sprintf(errorLine,"=====> in allocProcTimer, re-using index=%d, level=%d\n",allocatedIndex,allocatedLevel);
+    sprintf(errorLine,"=====> in allocProcTimer, re-using index=%d, level=%d",allocatedIndex,allocatedLevel);
   } else {
-    sprintf(errorLine,"=====> in allocProcTimer, not-reusing index and level\n");
+    sprintf(errorLine,"=====> in allocProcTimer, not-reusing index and level");
   }
-  logLine(errorLine);
+  cerr << errorLine << endl;
 #endif
   if (!theProcTimerSuperTable->alloc(thr_pos,iRawValue,iHouseKeepingValue, allocatedIndex,
 #else
