@@ -1258,7 +1258,9 @@ void Object::load_object()
 		if (name.prefixed_by(".")) {
 		    // XXXX - Hack to make names match assumptions of symtab.C
 		    char temp[512];
-		    sprintf(temp, "_%s", &name.string_of()[1]);
+		    //sprintf(temp, "_%s", &name.string_of()[1]);
+		    //Just skip the "."
+		    sprintf(temp, "%s", &name.string_of()[1]);
 		    name = string(temp);
 		} else if (type == Symbol::PDST_FUNCTION) {
 		    // text segment without a leady . is a toc item
