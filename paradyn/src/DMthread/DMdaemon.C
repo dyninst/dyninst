@@ -34,7 +34,7 @@ double   quiet_nan();
 #include "paradyn/src/UIthread/Status.h"
 #include "DMmetric.h"
 #include "paradyn/src/met/metricExt.h"
-#include "util/h/time.h"
+#include "util/h/Time.h"
 
 // TEMP this should be part of a class def.
 status_line *DMstatus=NULL;
