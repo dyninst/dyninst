@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.112 2002/10/31 00:01:06 bernat Exp $
+// $Id: aix.C,v 1.113 2002/11/02 21:08:36 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -87,6 +87,7 @@
 
 #ifdef USES_PMAPI
 #include <pmapi.h>
+#include "rtinst/h/rthwctr-aix.h"
 #endif
 
 /* Getprocs() should be defined in procinfo.h, but it's not */
@@ -1728,66 +1729,6 @@ Address process::getTOCoffsetInfo(Address dest)
 }
 #endif
 
-#ifdef USES_PMAPI
-
-// THIS CODE MUST DUPLICATE THE CODE IN RTetc-aix.c !!!!!
-// We need to figure out a better way to share the data, too.
-
-#define MAX_EVENTS	2
-#define CMPL_INDEX	0
-#define CYC_INDEX	1
-
-/* Event 1: instructions completed (per kernel thread)
-   Event 2: total machine cycles completed */
-
-char *pdyn_search_evs[MAX_EVENTS] = {"PM_INST_CMPL", "PM_CYC"};
-int pdyn_counter_mapping[MAX_EVENTS];
-pm_prog_t pdyn_pm_prog;
-pm_info_t pinfo;
-
-/* 
-   Given a list of (string) events, try and get a mapping for them. We
-   use this because we know what events we want, but not (necessarily) the 
-   mapping.
-
-   So when this is done, you can get event foo by asking for 
-   event.mappings[# of foo]
-*/
-
-int
-pdyn_search_cpi(pm_info_t *myinfo, int evs[], int mappings[])
-{
-  int             s_index, pmc, ev, found = 0;
-  pm_events_t     *wevp;
-  
-  for (pmc = 0; pmc < myinfo->maxpmcs; pmc++)
-    evs[pmc] = -1;
-  for (pmc = 0; pmc < MAX_EVENTS; pmc++)
-    mappings[pmc] = -1;
-  
-  for (s_index = 0; s_index < MAX_EVENTS; s_index++) {
-    found = 0;
-    for (pmc = 0; pmc < myinfo->maxpmcs; pmc++) {
-      wevp = myinfo->list_events[pmc];
-      for (ev = 0; ev < myinfo->maxevents[pmc]; ev++, wevp++) {
-	if ((evs[pmc] == -1) && 
-	    (strcmp(pdyn_search_evs[s_index], wevp->short_name) == 0)) {
-	  evs[pmc] = wevp->event_id;
-	  mappings[s_index] = pmc;
-	  break;
-	}
-      }
-      if (mappings[s_index] != -1) break;
-    }
-  }
-  for (pmc = 0; pmc < MAX_EVENTS; pmc++)
-    if (mappings[pmc] == -1)
-      return -1;
-  return(0);
-}
-
-#endif
-
 #if !defined(BPATCH_LIBRARY)
 
 /*
@@ -1865,78 +1806,68 @@ extern unsigned pos_junk;
 rawTime64 dyn_lwp::getRawCpuTime_hw() 
 {
 #ifdef USES_PMAPI
-  // Hardware method, using the PMAPI
-  int ret;
+   // Hardware method, using the PMAPI
+   int ret;
+
+   static bool need_init = true;
+   if(need_init) {
+      pm_info_t pinfo;
+      ret = pm_init(PM_VERIFIED | PM_CAVEAT | PM_UNVERIFIED, &pinfo);
+      if (ret) pm_error("PARADYNos_init: pm_init", ret);
+      need_init = false;
+   }
+
+   int lwp_to_use;
+   if (lwp_ > 0) 
+      lwp_to_use = lwp_;
+   else {
+      /* If we need to get the data for the entire process (ie. lwp_ == 0)
+         then we need to the pm_get_data_group function requires any
+         lwp in the group, so we'll grab the lwp of any active thread in the
+         process */
+      struct thrdsinfo thrd_buf[10]; // max 10 threads
+      getthrds(proc_->getPid(), thrd_buf, sizeof(struct thrdsinfo), 0, 1);
+      lwp_to_use = thrd_buf[0].ti_tid;
+   }
   
-  // This gets us the list of counters the inferior proc is
-  // using. The right way to do it would be to share the array
-  // pdyn_counter_mapping between the daemon and the rt library.
-  
-  static int need_init = 1;
+   // PM counters are only valid when the process is paused. 
+   bool needToCont = (proc_->status() == running);
+   if(proc_->status() == running) {
+      proc_->pause();
+   }
 
-  if (need_init) {
-    
-    ret = pm_init(PM_VERIFIED | PM_CAVEAT | PM_UNVERIFIED, &pinfo);
-    if (ret) pm_error("PARADYNos_init: pm_init", ret);
-    
-    if (pdyn_search_cpi(&pinfo, pdyn_pm_prog.events, pdyn_counter_mapping))
-      fprintf(stderr, "Mapping failed for pm events\n");
-    
-    /* Count both user and kernel instructions */
-    pdyn_pm_prog.mode.w = 0;
-    pdyn_pm_prog.mode.b.user = 1;
-    pdyn_pm_prog.mode.b.kernel = 1;
-    /* Count for an entire process group. Catch all threads concurrently */
-    pdyn_pm_prog.mode.b.process = 1;    
-    need_init = 0;
-  }
+   pm_data_t data;
+   if(lwp_ > 0) 
+      ret = pm_get_data_thread(proc_->getPid(), lwp_to_use, &data);
+   else   // lwp == 0, means get data for the entire process (ie. all lwps)
+      ret = pm_get_data_group(proc_->getPid(), lwp_to_use, &data);
+   if (ret) {    
+      pm_error("dyn_lwp::getRawCpuTime_hw: pm_get_data_thread", ret);
+      fprintf(stderr, "Attempted pm_get_data_thread(%d, %d, %d)\n"
+              "this is 0x%x\n", proc_->getPid(), lwp_, lwp_to_use);
+   }
+   rawTime64 result = data.accu[get_hwctr_binding(PM_CYC_EVENT)];
 
-  pm_data_t data;
-  rawTime64 result;
-  int thr;
-  if (lwp_ > 0) 
-    thr = lwp_;
-  else {
-    // Arbitrarily (for now) pick the first thread in the list
-    // We need to get the lwp_id for the running thread. 
-    struct thrdsinfo thrd_buf[10]; // max 10 threads
-    getthrds(proc_->getPid(), thrd_buf, sizeof(struct thrdsinfo),
-	     0, 1);
-    thr = thrd_buf[0].ti_tid;
-  }
-  
-  // PM counters are only valid when the process is paused. 
-  bool needToCont = (proc_->status() == running);
-  if(proc_->status() == running) {
-    proc_->pause();
-  }
-  // For the entire process group
-  ret = pm_get_data_thread(proc_->getPid(), thr, &data);
-  // Continue the process
-  if(needToCont) {
-    proc_->continueProc();
-  }
-  if (ret) {
-    
-    pm_error("dyn_lwp::getRawCpuTime_hw: pm_get_data_thread", ret);
-    fprintf(stderr, "Attempted pm_get_data_thread(%d, %d, 0x%x), this is 0x%x\n",
-	    proc_->getPid(), thr, &data, (unsigned) this);
-  }
-  result = data.accu[pdyn_counter_mapping[CYC_INDEX]];
+   // Continue the process
+   if(needToCont) {
+      proc_->continueProc();
+   }
 
-  //if(pos_junk != 101)
-  //  ct_record(pos_junk, result, hw_previous_, lwp_, thr);
+   //if(pos_junk != 101)
+   //  ct_record(pos_junk, result, hw_previous_, lwp_, lwp_to_use);
 
-  if (result < hw_previous_) {
-    logLine("********* time going backwards in paradynd **********\n");
-    result = hw_previous_;
-  }
-  else 
-    hw_previous_ = result;
+   if(result < hw_previous_) {
+      cerr << "rollback in dyn_lwp::getRawCpuTime_hw, lwp_to_use: " 
+           << lwp_to_use << ", lwp: " << lwp_ << ", result: " << result 
+           << ", previous result: " << hw_previous_ << "\n";
+      result = hw_previous_;
+   }
+   else 
+      hw_previous_ = result;
 
-  return result;
+   return result;
 #else
-  return 0;
+   return 0;
 #endif
 }
 
