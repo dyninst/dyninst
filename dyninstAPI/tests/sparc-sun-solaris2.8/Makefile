@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.8 2001/10/26 22:45:32 hollings Exp $
+# $Id: Makefile,v 1.9 2001/10/29 04:15:03 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -26,8 +26,16 @@ CFLAGS += -g -DUSES_DYNAMIC_INF_HEAP
 SYSLIBS += -lelf -g -lstdc++ 
 
 MUTATEE_FFLAGS += -g -Dsparc_sun_solaris2_4 -xs
-MUTATEE_FLINKFLAGS += -g -ldl -lgcc -L/usr/imports/gcc-2.95.2/lib/gcc-lib/sparc-sun-solaris2.6/2.95.2 \
-	-L /usr/local/stow/gcc-2.95.3/lib/gcc-lib/sparc-sun-solaris2.7/2.95.3
+
+#the _ALT PATH is in case the gcc library can't be found in the first path
+ifdef GCC_2_95
+LIBGCCLOC = /p/paradyn/packages/gcc-2.95.3/lib/gcc-lib/PLATFORM/2.95.3
+LIBGCCLOC_ALT = /usr/local/stow/gcc-2.95.3/lib/gcc-lib/sparc-sun-solaris2.7/2.95.3
+else
+LIBGCCLOC = /p/paradyn/packages/gcc-3/gcc-3.0.1/lib/gcc-lib/PLATFORM/3.0.1
+LIBGCCLOC_ALT = /usr/local/stow/gcc-2.95.3/lib/gcc-lib/sparc-sun-solaris2.7/2.95.3
+endif
+MUTATEE_FLINKFLAGS += -g -ldl -lgcc -L$(LIBGCCLOC) -L$(LIBGCCLOC_ALT)
 
 GNU_CC = gcc
 
@@ -92,7 +100,7 @@ $(FORTRAN_BASE)_$(NATIVE_FC).o:
 	-$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F
 
 $(FORTRAN_BASE)C_$(NATIVE_FC).o:
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) -fno-implicit-templates -W -Wall -fno-squangle -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(TARGET2:_$(NATIVE_FC)=)FortC.c 
+	$(MUTATEE_CC) $(MUTATEE_CFLAGS) -fno-implicit-templates -W -Wall $(FORT_SQGL_FLAG) -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(TARGET2:_$(NATIVE_FC)=).c
 
 else
 $(TARGET2):  $(MUTATEE_SRC)

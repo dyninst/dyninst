@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.20 2001/10/26 22:45:32 hollings Exp $
+# $Id: Makefile,v 1.21 2001/10/29 04:15:02 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -21,9 +21,16 @@ CXXFLAGS += -DUSES_DYNAMIC_INF_HEAP -g
 CFLAGS += -DUSES_DYNAMIC_INF_HEAP -g
 
 MUTATEE_FFLAGS += -U -WF,-Drs6000_ibm_aix4_1 -qnolm -qfixed -w -g
-LIBGCCLOC = /s/gcc-2.95.3/lib/gcc-lib/powerpc-ibm-aix4.3.3.0/2.95.3
-LIBGCCLOC = /usr/local/lib/gcc-lib/powerpc-ibm-aix4.3.2.0/2.95.3
-MUTATEE_FLINKFLAGS += -g -bgcbypass:3 -ldl -lgcc -L$(LIBGCCLOC)
+
+#the _ALT PATH is in case the gcc library can't be found in the first path
+ifdef GCC_2_95
+LIBGCCLOC = /p/paradyn/packages/gcc-2.95.3/lib/gcc-lib/PLATFORM/2.95.3
+LIBGCCLOC_ALT = /usr/local/lib/gcc-lib/powerpc-ibm-aix4.3.2.0/2.95.3
+else
+LIBGCCLOC = /p/paradyn/packages/gcc-3/gcc-3.0.1/lib/gcc-lib/PLATFORM/3.0.1
+LIBGCCLOC_ALT = /usr/local/lib/gcc-lib/powerpc-ibm-aix4.3.2.0/2.95.3
+endif
+MUTATEE_FLINKFLAGS += -g -bgcbypass:3 -ldl -lgcc -L$(LIBGCCLOC) -L$(LIBGCCLOC_ALT)
 
 NATIVE_CC = xlc
 NATIVE_CXX = xlC
@@ -80,12 +87,12 @@ FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
 
 $(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o
 	-$(NATIVE_FC) $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
- 
+
 $(FORTRAN_BASE)_$(NATIVE_FC).o: ../src/$(FORTRAN_BASE).F
 	-$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F
- 
+
 $(FORTRAN_BASE)C_$(NATIVE_FC).o: ../src/$(TARGET2:_$(NATIVE_FC)=).c
-	-$(MUTATEE_CC) $(filter-out -Wl$(COMMA)-bgcbypass:3, $(MUTATEE_CFLAGS)) -fno-implicit-templates -W -Wall -fno-squangle -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(FORTRAN_BASE)C.c
+	-$(MUTATEE_CC) $(filter-out -Wl$(COMMA)-bgcbypass:3, $(MUTATEE_CFLAGS)) -fno-implicit-templates -W -Wall $(FORT_SQGL_FLAG) -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(TARGET2:_$(NATIVE_FC)=).c
 else
 $(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
 	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) -Wl,-bnoobjreorder \
