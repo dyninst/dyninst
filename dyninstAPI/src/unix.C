@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.111 2003/12/18 17:15:36 schendel Exp $
+// $Id: unix.C,v 1.112 2004/01/19 21:53:56 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -417,79 +417,60 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv,
 // Turn the return result of waitpid into something we can use
 int decodeWaitPidStatus(process * /*p*/,
                         procWaitpidStatus_t status,
-                        procSignalWhy_t &why,
-                        procSignalWhat_t &what) {
+                        procSignalWhy_t *why,
+                        procSignalWhat_t *what) {
     // Big if-then-else tree
     if (WIFEXITED(status)) {
-        why = procExitedNormally;
-        what = WEXITSTATUS(status);
+        (*why) = procExitedNormally;
+        (*what) = WEXITSTATUS(status);
         return 1;
     } 
     else if (WIFSIGNALED(status)) {
-        why = procExitedViaSignal;
-        what = WTERMSIG(status);
+        (*why) = procExitedViaSignal;
+        (*what) = WTERMSIG(status);
         return 1;
     }
     else if (WIFSTOPPED(status)) {
-        why = procSignalled;
-        what = WSTOPSIG(status);
+        (*why) = procSignalled;
+        (*what) = WSTOPSIG(status);
         return 1;
     }
     else {
-        why = procUndefined;
-        what = 0;
+        (*why) = procUndefined;
+        (*what) = 0;
         return 0;
     }
     return 0;
 }
 
-int forwardSigToProcess(process *proc, 
-                        procSignalWhat_t what,
-                        procSignalInfo_t /*info*/) {
-#if (defined(POWER_DEBUG) || defined(HP_DEBUG)) && \
-    (defined(rs6000_ibm_aix4_1) || defined(hppa1_1_hp_hpux))
-    // In this way, we will detach from the application and we
-    // will be able to attach again using gdb - naim
-    if (what==SIGSEGV) {
-#if defined(rs6000_ibm_aix4_1)
-        if (ptrace(PT_DETACH,proc->getPid(),(int *) 1, SIGSTOP, NULL) == -1)
-#else
-        if (ptrace(PT_DETACH,proc->getPid(), 1, SIGSTOP, NULL) == -1)
-#endif
-        {
-            
-            logLine("ptrace error\n");
-            return 0;
-        }
-    }
-#endif
+int forwardSigToProcess(const procevent &event) {
+    process *proc = event.proc;
+
     // Pass the signal along to the child
-    if (!proc->continueWithForwardSignal(what)) {
-        cerr << "Couldn't forward signal " << what << endl;
+
+    if (!proc->continueProc(event.what)) {
+        cerr << "Couldn't forward signal " << event.what << endl;
         logLine("error  in forwarding  signal\n");
         showErrorCallback(38, "Error  in forwarding  signal");
         return 0;
         //P_abort();
     } 
-    if (what != SIGSTOP) {
-	    proc->set_status(running);
-    }
     return 1;
 }
 
-int handleSigTrap(process *proc, procSignalInfo_t /*info*/) {
+int handleSigTrap(const procevent &event) {
+    process *proc = event.proc;
     // SIGTRAP is our workhorse. It's used to stop the process at a specific
     // address, notify the mutator/daemon of an event, and a few other things
     // as well.
     signal_cerr << "welcome to SIGTRAP for pid " << proc->getPid()
                 << " status =" << proc->getStatusAsString() << endl;
 
-/////////////////////////////////////////
-// Init section
-/////////////////////////////////////////
-    
+    /////////////////////////////////////////
+    // Init section
+    /////////////////////////////////////////
+   
     if (!proc->reachedBootstrapState(bootstrapped)) {
-
         if (!proc->reachedBootstrapState(begun)) {
             // We've created the process, but haven't reached main. 
             // This would be a perfect place to load the dyninst library,
@@ -506,11 +487,14 @@ int handleSigTrap(process *proc, procSignalInfo_t /*info*/) {
             } else {
                 // We couldn't insert the trap... so detach from the process
                 // and let it run. 
-                cerr << "ERROR: couldn't insert at entry of main, instrumenting process" << endl;
+                cerr << "ERROR: couldn't insert at entry of main, "
+                     << "instrumenting process" << endl;
                 cerr << "is impossible" << endl;
-                // We should actually delete any mention of this process... including
-                // (for Paradyn) removing it from the frontend.
-                proc->handleProcessExit(0);
+                // We should actually delete any mention of this
+                // process... including (for Paradyn) removing it from the
+                // frontend.
+                proc->triggerNormalExitCallback(0);
+                proc->handleProcessExit();
                 proc->continueProc();
             }
             // Now we wait for the entry point trap to be reached
@@ -522,6 +506,8 @@ int handleSigTrap(process *proc, procSignalInfo_t /*info*/) {
             proc->setBootstrapState(initialized);
             // If we're in an exec, this is when we know it is actually finished
             if (proc->wasExeced()) {
+                // special case where can't wait to continue process
+                getSH()->continueLockedProcesses();
                 proc->loadDyninstLib();
             }
             
@@ -579,7 +565,7 @@ int handleSigTrap(process *proc, procSignalInfo_t /*info*/) {
     // and so it is special-cased here.
 #if defined(i386_unknown_linux2_0)
     if (proc->nextTrapIsExec) {
-        return handleExecExit(proc, 0);
+        return handleExecExit(event);
     }
 #endif
 
@@ -589,9 +575,9 @@ int handleSigTrap(process *proc, procSignalInfo_t /*info*/) {
     // As a last resort on AIX, we check to see if this is the
     // cause of the SIGTRAP before we give up.
     if(proc->nextTrapIsFork){
-	    proc->continueProc();
-	    proc->nextTrapIsFork = false;
-        return 1;
+       proc->continueProc();
+       proc->nextTrapIsFork = false;
+       return 1;
     }
 #endif
 
@@ -601,35 +587,49 @@ int handleSigTrap(process *proc, procSignalInfo_t /*info*/) {
         return 1;
     }
 
-    // Okay... on AIX we get spurious traps, IE the instruction at the
-    // PC is _not_ a trap instruction. Until I can figure out _why_ this
-    // is, we'll hand-check and see whether to ignore a trap.
-#if defined(AIX_PROC)
-    lwpstatus_t status;
-    proc->getRepresentativeLWP()->get_status(&status);
+    // Okay... on AIX and Solaris we get spurious traps, IE the instruction
+    // at the PC is _not_ a trap instruction. Until I can figure out _why_
+    // this is, we'll hand-check and see whether to ignore a trap.
+    bool real_trap = true;
+#if defined(AIX_PROC) || defined(sparc_sun_solaris2_4) 
+    real_trap = false;
+    for(unsigned i=0; i<event.lwps.size(); i++) {
+       dyn_lwp *instigating_lwp = event.lwps[i];
+       lwpstatus_t status;
+
+       instigating_lwp->get_status(&status);
     
-    instruction foo;
-    proc->readDataSpace((void *)status.pr_reg.__iar, 
-                        sizeof(instruction),
-                        (void *)&foo, false);
-    if (foo.raw != BREAK_POINT_INSN) {
-        proc->continueProc();
-        return 1;
+       instruction foo;
+#if defined(AIX_PROC) 
+       proc->readDataSpace((void *)status.pr_reg.__iar, 
+                           sizeof(instruction),
+                           (void *)&foo, false);
+#elif defined(sparc_sun_solaris2_4)
+       proc->readDataSpace((void *)status.pr_reg[R_PC], 
+                           sizeof(instruction),
+                           (void *)&foo, false);
+#endif
+       if (foo.raw == BREAK_POINT_INSN) {
+          real_trap = true;
+       }
     }
 #endif
+
+#if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
+    real_trap = false;
+#endif
+
+    if(! real_trap) {
+       proc->continueProc();
+       return 1;
+    }
+
     return 0;
 }
 
 // Needs to be fleshed out
-int handleSigStopNInt(process *proc,
-#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)
-                      dyn_lwp *relevantLWP,
-                      procSignalWhat_t what,
-#else
-                      dyn_lwp *,
-                      procSignalWhat_t,
-#endif
-                      procSignalInfo_t /*info*/) {
+int handleSigStopNInt(const procevent &event) {
+   process *proc = event.proc;
    signal_cerr << "welcome to SIGSTOP/SIGINT for proc pid " << proc->getPid() 
                << endl;
 
@@ -650,11 +650,13 @@ int handleSigStopNInt(process *proc,
 // AIX, Linux MT fix: we get extra SIGTRAPS. Remove with proc, etc. etc.
 #if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)
    if(proc->multithread_capable()) {
-      if( what == SIGSTOP )
+      if( event.what == SIGSTOP )
       {
-         if(process::IndependentLwpControl())  // eg. linux
-            relevantLWP->continueLWP();
-         else {
+         if(process::IndependentLwpControl()) { // eg. linux
+            for(unsigned i=0; i<event.lwps.size(); i++) {
+               event.lwps[i]->continueLWP();
+            }
+         } else {
             // we saw an unexpected SIGSTOP, continue the process
             proc->continueProc();
          }
@@ -665,34 +667,13 @@ int handleSigStopNInt(process *proc,
    return 1;
 }
 
-int handleSigCritical(process *proc, procSignalWhat_t what, procSignalInfo_t info) {
-#if (defined(POWER_DEBUG) || defined(HP_DEBUG)) && (defined(rs6000_ibm_aix4_1) || defined(hppa1_1_hp_hpux))
-    // In this way, we will detach from the application and we
-    // will be able to attach again using gdb. We need to send
-    // a kill -ILL pid signal to the application in order to
-    // get here - naim
-#if defined(rs6000_ibm_aix4_1)
-   {
-      sprintf(errorLine, "***** Detaching from process %d "
-	      ", ready for debugging...\n",
-	      pid);
-      logLine(errorLine);
-   }
-   if (ptrace(PT_DETACH, proc->getPid(),(int *) 1, SIGSTOP, NULL) == -1)
-#else
-   if (ptrace(PT_DETACH, proc->getPid(), 1, SIGSTOP, NULL) == -1)
-#endif
-   {
-       logLine("ptrace error\n");
-       return 0;
-   }
-#endif
-
+int handleSigCritical(const procevent &event) {
+   process *proc = event.proc;
    signal_cerr << "caught signal, dying...  (sig="
-               << (int) what << ")" << endl << std::flush;
+               << (int) event.what << ")" << endl << std::flush;
 
 #ifdef DEBUG
-   fprintf(stderr, "Process dying on signal %d\n", what);
+   fprintf(stderr, "Process dying on signal %d\n", event.what);
    
    for (unsigned thr_iter = 0; thr_iter <  proc->threads.size(); thr_iter++) {
        dyn_lwp *lwp = proc->threads[thr_iter]->get_lwp();
@@ -725,76 +706,76 @@ int handleSigCritical(process *proc, procSignalWhat_t what, procSignalInfo_t inf
    
 #endif
    proc->dumpImage("imagefile");
-   
-   forwardSigToProcess(proc, what, info);   
+
+   forwardSigToProcess(event);
    return 1;
 }
 
-
-int handleSignal(process *proc, dyn_lwp *relevantLWP, procSignalWhat_t what, 
-                 procSignalInfo_t info) {
+int handleSignal(const procevent &event) {
+   process *proc = event.proc;
    int ret = 0;
     
-   switch(what) {
- case SIGTRAP:
-     // Big one's up top. We use traps for most of our process control
-     ret = handleSigTrap(proc, info);
+   switch(event.what) {
+     case SIGTRAP:
+        // Big one's up top. We use traps for most of our process control
+        ret = handleSigTrap(event);
 
 #if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
-	//after we have handled a trap on AIX, be sure we reset the
-	//nextTrapIsFork flag. This flag may be reset in handleSigTrap 
-	//on AIX 4.x  It will not be reset in that function on AIX 5.
-	//
-	//This is probably unnecessary.  nextTrapIsFork is only checked
-	//in handleSigTrap as a last resort, if any other SIGTRAP is
-	//expected that will be handled first (correctly).  This only
-	//causes a problem if the mutatee is trying to send itself a 
-	//SIGTRAP. If this flag is still set dyninst will just eat the
-	//trap rather than passing it back to the mutatee.
-	proc->nextTrapIsFork = false; 
+        //after we have handled a trap on AIX, be sure we reset the
+        //nextTrapIsFork flag. This flag may be reset in handleSigTrap 
+        //on AIX 4.x  It will not be reset in that function on AIX 5.
+        //
+        //This is probably unnecessary.  nextTrapIsFork is only checked
+        //in handleSigTrap as a last resort, if any other SIGTRAP is
+        //expected that will be handled first (correctly).  This only
+        //causes a problem if the mutatee is trying to send itself a 
+        //SIGTRAP. If this flag is still set dyninst will just eat the
+        //trap rather than passing it back to the mutatee.
+        proc->nextTrapIsFork = false; 
 #endif
-
-     break;
+        
+        break;
 #if defined(USE_IRIX_FIXES)
- case SIGEMT:
+     case SIGEMT:
 #endif
- case SIGSTOP:
- case SIGINT:
-     ret = handleSigStopNInt(proc, relevantLWP, what, info);
+     case SIGSTOP:
+     case SIGINT:
+        ret = handleSigStopNInt(event);
      break;
- case SIGILL: 
-     // x86 uses SIGILL for various purposes
-    if (proc->getRpcMgr()->handleSignalIfDueToIRPC()) {
-       ret = 1;
-    } else {
-       ret = handleSigCritical(proc, what, info);
-    }
-     break;
-     
- case SIGCHLD:
-     // Ignore
-     ret = 1;
-     proc->continueProc();
-     break;
-     // Else fall through
- case SIGIOT:
- case SIGBUS:
- case SIGSEGV:
-     ret = handleSigCritical(proc, what, info);
-     break;
- case SIGCONT:
-     // Should inform the mutator/daemon that the process is running
- case SIGALRM:
- case SIGUSR1:
- case SIGUSR2:
- case SIGVTALRM:
- default:
-     ret = 0;
-     break;
+     case SIGILL: 
+        // x86 uses SIGILL for various purposes
+        if (proc->getRpcMgr()->handleSignalIfDueToIRPC()) {
+           ret = 1;
+        } else {
+           ret = handleSigCritical(event);
+        }
+        break;
+        
+     case SIGCHLD:
+        // Ignore
+        ret = 1;
+        proc->continueProc();
+        break;
+        // Else fall through
+     case SIGIOT:
+     case SIGBUS:
+     case SIGSEGV:
+        ret = handleSigCritical(event);
+        break;
+     case SIGCONT:
+        // Should inform the mutator/daemon that the process is running
+     case SIGALRM:
+     case SIGUSR1:
+     case SIGUSR2:
+     case SIGVTALRM:
+     default:
+        ret = 0;
+        break;
    }
+
    if (!ret) {
-       // Signal was not handled
-       ret = forwardSigToProcess(proc, what, info);
+      // Signal was not handled
+      ret = forwardSigToProcess(event);
    }
    return ret;
 }
@@ -806,8 +787,8 @@ int handleSignal(process *proc, dyn_lwp *relevantLWP, procSignalWhat_t what,
 // Most of our syscall handling code is shared on all platforms.
 // Unfortunately, there's that 5% difference...
 
-int handleForkEntry(process *proc, procSignalInfo_t /*info*/) {
-    proc->handleForkEntry();
+int handleForkEntry(const procevent &event) {
+    event.proc->handleForkEntry();
     return 1;
 }
 
@@ -815,24 +796,24 @@ int handleForkEntry(process *proc, procSignalInfo_t /*info*/) {
 // doing a (for i in $path; do exec $i/<progname>
 // This means that the entry will be called multiple times
 // until the exec call gets the path right.
-int handleExecEntry(process *proc, procSignalInfo_t info) {
-    proc->handleExecEntry((char *)info);
+int handleExecEntry(const procevent &event) {
+    event.proc->handleExecEntry((char *)event.info);
     return 1;
 }
 
-int handleSyscallEntry(process *proc, procSignalWhat_t what, 
-                       procSignalInfo_t info) {
-   procSyscall_t syscall = decodeSyscall(proc, what);
+int handleSyscallEntry(const procevent &event) {
+   process *proc = event.proc;
+   procSyscall_t syscall = decodeSyscall(proc, event.what);
    int ret = 0;
    switch (syscall) {
      case procSysFork:
-        ret = handleForkEntry(proc, info);
+        ret = handleForkEntry(event);
         break;
      case procSysExec:
-        ret = handleExecEntry(proc, info);
+        ret = handleExecEntry(event);
         break;
      case procSysExit:
-        proc->handleProcessExit(info);
+        proc->triggerNormalExitCallback(event.info);
         ret = 1;
         break;
      default:
@@ -847,11 +828,12 @@ int handleSyscallEntry(process *proc, procSignalWhat_t what,
 }
 
 /* Only dyninst for now... paradyn should use this soon */
-int handleForkExit(process *proc, procSignalInfo_t info) {
+int handleForkExit(const procevent &event) {
+    process *proc = event.proc;
     proc->nextTrapIsFork = false;
     // Fork handler time
     extern pdvector<process*> processVec;
-    int childPid = info;
+    int childPid = event.info;
 
     if (childPid == getpid()) {
         // this is a special case where the normal createProcess code
@@ -923,9 +905,11 @@ int handleForkExit(process *proc, procSignalInfo_t info) {
     return 1;
 }
 
-int handleExecExit(process *proc, procSignalInfo_t info) {
+// the alwaysdosomething argument is to maintain some strange old code
+int handleExecExit(const procevent &event) {
+    process *proc = event.proc;
     proc->nextTrapIsExec = false;
-    if (info == -1) {
+    if((int)event.info == -1) {
         // Failed exec, do nothing
         return 1;
     }
@@ -984,48 +968,51 @@ int handleExecExit(process *proc, procSignalInfo_t info) {
         proc->setBootstrapState(begun);
         if (!proc->insertTrapAtEntryPointOfMain()) {
             proc->continueProc();
-            // We should actually delete any mention of this process... including
-            // (for Paradyn) removing it from the frontend.
-            proc->handleProcessExit(0);
+            // We should actually delete any mention of this
+            // process... including (for Paradyn) removing it from the
+            // frontend.
+            proc->triggerNormalExitCallback(0);
+            proc->handleProcessExit();
         }
-        else proc->continueProc();
+        else {
+           proc->continueProc();
+        }
     }
     return 1;
 }
 
-int handleLoadExit(process *proc, procSignalInfo_t /*info*/) {
+int handleLoadExit(const procevent &event) {
     // AIX: for 4.3.2 and later, load no longer causes the 
     // reinitialization of the process text space, and as
     // such we don't need to fix base tramps.
-    proc->handleIfDueToSharedObjectMapping();
+    event.proc->handleIfDueToSharedObjectMapping();
     return 1;
 }
 
 
-int handleSyscallExit(process *proc,
-                      procSignalWhat_t what,
-                      procSignalInfo_t info) {
-    procSyscall_t syscall = decodeSyscall(proc, what);
+int handleSyscallExit(const procevent &event) {
+    process *proc = event.proc;
+    procSyscall_t syscall = decodeSyscall(proc, event.what);
     int ret = 0;
     
     // Check to see if a thread we were waiting for exited a
     // syscall
-    int wasHandled = proc->handleSyscallExit(what);
+    int wasHandled = proc->handleSyscallExit(event.what);
 
     // Fall through no matter what since some syscalls have their
     // own handlers.
     switch(syscall) {
-  case procSysFork:
-      ret = handleForkExit(proc, info);
-      break;
-  case procSysExec:
-      ret = handleExecExit(proc, info);
-      break;
-  case procSysLoad:
-      ret = handleLoadExit(proc, info);
-      break;
-  default:
-        break;
+      case procSysFork:
+         ret = handleForkExit(event);
+         break;
+      case procSysExec:
+         ret = handleExecExit(event);
+         break;
+      case procSysLoad:
+         ret = handleLoadExit(event);
+         break;
+      default:
+         break;
     }
 
 #if defined(rs6000_ibm_aix4_1)
@@ -1045,55 +1032,68 @@ int handleSyscallExit(process *proc,
         return 0;
 }
 
-int handleProcessEvent(process *proc,
-                       dyn_lwp *relevantLWP,
-                       procSignalWhy_t why,
-                       procSignalWhat_t what,
-                       procSignalInfo_t info) {
+int signalHandler::handleProcessEventInternal(const procevent &event) {
+   process *proc = event.proc;
+   assert(proc);
+
+   /*
+   cerr << "handleProcessEvent, pid: " << proc->getPid() << ", why: "
+        << event.why << ", what: " << event.what << ", lwps: ";
+
+   for(unsigned i=0; i<event.lwps.size(); i++) {
+      if(i>0) cerr << ", ";
+      cerr << event.lwps[i]->get_lwp_id();
+   }
+   cerr << endl;
+   */
+
    int ret = 0;
    if(proc->hasExited()) {
        return 1;
    }
 
    // One big switch statement
-   switch(why) {
+   switch(event.why) {
       // First the platform-independent stuff
       // (/proc and waitpid)
      case procExitedNormally:
         sprintf(errorLine, "Process %d has terminated with code 0x%x\n", 
-                proc->getPid(), what);
+                proc->getPid(), event.what);
         statusLine(errorLine);
         logLine(errorLine);
-        proc->handleProcessExit(what);
+        // triggerNormalExitCallback function gets called from event
+        // triggered by exit() entry
+        proc->handleProcessExit();
         ret = 1;
         break;
      case procExitedViaSignal:
         sprintf(errorLine, "process %d has terminated on signal %d\n", 
-                proc->getPid(), what);
+                proc->getPid(), event.what);
         logLine(errorLine);
         statusLine(errorLine);
         printDyninstStats();
-        proc->handleProcessExit(what);
+        proc->triggerSignalExitCallback(event.what);  
+        proc->handleProcessExit();
         ret = 1;
         break;
      case procSignalled:
      case procInstPointTrap:
      case procForkSigChild:
-        ret = handleSignal(proc, relevantLWP, what, info);
+        ret = handleSignal(event);
         if (!ret)
-            cerr << "handleSignal failed! " << what << endl;
+            cerr << "handleSignal failed! " << event.what << endl;
         break;
         // Now the /proc only
         // AIX clones some of these (because of fork/exec/load notification)
      case procSyscallEntry:
-        ret = handleSyscallEntry(proc, what, info);
+        ret = handleSyscallEntry(event);
         if (!ret)
             cerr << "handleSyscallEntry failed!" << endl;
         break;
      case procSyscallExit:
-        ret = handleSyscallExit(proc, what, info);
+        ret = handleSyscallExit(event);
         if (!ret)
-            cerr << "handlesyscallExit failed! " << what <<  endl;
+            cerr << "handlesyscallExit failed! " << event.what <<  endl;
         break;
      case procSuspended:
         proc->continueProc();   // ignoring this signal
@@ -1109,22 +1109,8 @@ int handleProcessEvent(process *proc,
    return ret;
 }
 
-void decodeAndHandleProcessEvent (bool block) {
-    procSignalWhy_t why;
-    procSignalWhat_t what;
-    procSignalInfo_t info;
-    process *proc;
-    dyn_lwp *selectedLWP;
 
-    proc = decodeProcessEvent(&selectedLWP, -1, why, what, info, block);
 
-    if (!proc) {
-       return;
-    }
-
-    if (!handleProcessEvent(proc, selectedLWP, why, what, info)) 
-        fprintf(stderr, "handleProcessEvent failed!\n");
-}
 
 
 bool  OS::osKill(int pid) {
