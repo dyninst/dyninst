@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.27 2004/03/15 18:46:00 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.28 2004/03/16 18:20:40 schendel Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -608,7 +608,7 @@ Address IA64_instruction_x::getTargetAddress() const {
 #include "instPoint-ia64.h"
 bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace, Register * deadRegisterList ) {
 	/* Handy for the second two cases. */
-	Address fnEntryOffset = location->pointFunc()->addr();
+	Address fnEntryOffset = location->pointFunc()->get_address();
 	Address fnEntryAddress = (Address)location->getOwner()->getPtrToInstruction( fnEntryOffset );
 	assert( fnEntryAddress % 16 == 0 );
 	const ia64_bundle_t * rawBundlePointer = (const ia64_bundle_t *) fnEntryAddress;

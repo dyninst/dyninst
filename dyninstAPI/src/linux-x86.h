@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.h,v 1.3 2002/11/14 20:26:28 bernat Exp $
+// $Id: linux-x86.h,v 1.4 2004/03/16 18:20:47 schendel Exp $
 
 #if !(defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4))
 #error "invalid architecture-os inclusion"
@@ -53,8 +53,6 @@
 #include "sys/user.h"
 
 /* For linuxDL.C */
-Address getSP( int pid );
-bool changeSP( int pid, Address loc );
 instruction generateTrapInstruction();
 
 

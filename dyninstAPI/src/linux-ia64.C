@@ -33,11 +33,6 @@ Address getSP( int /* pid */ ) {
 	return 0;
 	} /* end getSP */
 
-bool changeSP( int /* pid */, Address /* loc */ ) {
-	assert( 0 );
-	return false;
-	} /* end changeSP */
-
 /* Required by linux.C */
 void generateBreakPoint( instruction & insn ) {
 	assert( 0 );
@@ -186,7 +181,7 @@ bool process::handleTrapAtEntryPointOfMain() {
 	assert( f_main );
 
 	/* Replace the original code. */
-	Address addr = f_main->addr();	
+	Address addr = f_main->get_address();	
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, this );
 	iAddr.writeMyBundleFrom( savedCodeBuffer );
 
@@ -211,7 +206,7 @@ bool process::insertTrapAtEntryPointOfMain() {
 	assert( f_main );
 	
 	/* Save the original code and replace it with a trap bundle. */
-	Address addr = f_main->addr();
+	Address addr = f_main->get_address();
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, this );
 	iAddr.saveMyBundleTo( savedCodeBuffer );
 	iAddr.replaceBundleWith( generateTrapBundle() );

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.13 2004/03/15 18:46:02 tlmiller Exp $
+// $Id: frame.h,v 1.14 2004/03/16 18:20:41 schendel Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -49,7 +49,7 @@
 class dyn_thread;
 class process;
 class dyn_lwp;
-struct codeRange;
+class codeRange;
 
 class Frame {
  public:

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.121 2004/03/11 22:22:15 bernat Exp $
+// $Id: pdwinnt.C,v 1.122 2004/03/16 18:20:48 schendel Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -166,7 +166,7 @@ void dumpMem(process *p, void * addr, unsigned nbytes) {
         printf("Function %s, addr=0x%lx, sz=%d\n", 
                 f->prettyName().c_str(),
                 f->getAddress(p),
-                f->size());
+                f->get_size());
     }
     p->readDataSpace((void *)((unsigned)addr-32), nbytes, buf, true);
     printf("## 0x%lx:\n", (unsigned)addr-32);
@@ -311,7 +311,7 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
        	    // the address of the function itself rather than
        	    // trying to do the much more difficult task of finding
        	    // the original address of the relocated instruction
-       	    patchedAddrReturn.Offset = fp->addr();
+       	    patchedAddrReturn.Offset = fp->get_address();
        	    sf.AddrReturn = patchedAddrReturn;
           }
           
@@ -333,7 +333,7 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
        	    // the address of the function itself rather than
        	    // trying to do the much more difficult task of finding
        	    // the original address of the relocated instruction
-       	    patchedAddrPC.Offset = fp->addr();
+       	    patchedAddrPC.Offset = fp->get_address();
        	    sf.AddrPC = patchedAddrPC;
           }
           
@@ -2240,7 +2240,7 @@ bool process::insertTrapAtEntryPointOfMain() {
         }
         
     }
-    main_brk_addr = mainFunc->addr();
+    main_brk_addr = mainFunc->get_address();
     
     readDataSpace((void*) (main_brk_addr), BYTES_TO_SAVE, (void*)savedCodeBuffer, false);
     

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.77 2004/03/12 19:44:24 bernat Exp $
+// $Id: irix.C,v 1.78 2004/03/16 18:20:45 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1125,12 +1125,12 @@ Frame Frame::getCallerFrame(process *p) const
         return Frame();
     }
     
-    trampTemplate *bt = range->basetramp_ptr;
-    miniTrampHandle  *mt = range->minitramp_ptr;
+    trampTemplate *bt = range->is_basetramp();
+    miniTrampHandle  *mt = range->is_minitramp();
     const instPoint     *ip = NULL;
     if (mt) bt = mt->baseTramp;
     if (bt) ip = bt->location;
-    pd_Function *callee = range->function_ptr;
+    pd_Function *callee = range->is_pd_Function();
     Address pc_off;
     if (!callee && ip)
         callee = (pd_Function *) ip->pointFunc();
@@ -1222,12 +1222,12 @@ Frame Frame::getCallerFrame(process *p) const
     instPoint *ip2 = NULL;
     trampTemplate *bt2 = NULL;
     miniTrampHandle *mt2 = NULL;
-    pd_Function *caller;
+    pd_Function *caller = NULL;
     range = p->findCodeRangeByAddress(ra);
     if (range) {
-        mt2 = range->minitramp_ptr;
-        bt2 = range->basetramp_ptr;
-        caller = range->function_ptr;
+        mt2 = range->is_minitramp();
+        bt2 = range->is_basetramp();
+        caller = range->is_pd_Function();
     }
     if (mt2) bt2 = mt2->baseTramp;
     if (bt2) ip2 = (instPoint *) bt2->location;

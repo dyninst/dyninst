@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.73 2004/02/25 04:36:18 schendel Exp $
+// $Id: inst-alpha.C,v 1.74 2004/03/16 18:20:42 schendel Exp $
 
 #include "common/h/headers.h"
 
@@ -639,8 +639,8 @@ trampTemplate *installBaseTramp(instPoint *location,
   }
 
   assert(fun_save && fun_restore);
-  Address dyn_save = fun_save->addr() + baseAddr;
-  Address dyn_restore = fun_restore->addr() + baseAddr;
+  Address dyn_save = fun_save->get_address() + baseAddr;
+  Address dyn_restore = fun_restore->get_address() + baseAddr;
 
   // Pre branch
   instruction *skipPreBranch = &code[words];
@@ -808,7 +808,7 @@ void emitSaveConservative(process *proc, char *code, Address &offset)
   proc->getSymbolInfo("DYNINSTsave_temp", info, baseAddr);
   assert(fun_save);
 
-  Address dyn_save = fun_save->addr() + baseAddr;
+  Address dyn_save = fun_save->get_address() + baseAddr;
 
   // decrement stack by 16
   count += generate_lda(&insn[count], REG_SP, REG_SP, -16, true);
@@ -848,7 +848,7 @@ void emitRestoreConservative(process *proc, char *code, Address &offset)
   proc->getSymbolInfo("DYNINSTsave_temp", info, baseAddr);
   assert(fun_restore);
 
-  Address dyn_restore = fun_restore->addr() + baseAddr;
+  Address dyn_restore = fun_restore->get_address() + baseAddr;
 
   // Call to DYNINSTrestore_temp
   int remainder;
@@ -1097,8 +1097,8 @@ generate_call_code(instruction *insn, Address src1, Address src2, Address dest,
   function_base *fun_save = proc->findOnlyOneFunction("DYNINSTsave_misc");
   function_base *fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_misc");
   assert(fun_save && fun_restore);
-  Address dyn_save = fun_save->addr() + baseAddr;
-  Address dyn_restore = fun_restore->addr() + baseAddr;
+  Address dyn_save = fun_save->get_address() + baseAddr;
+  Address dyn_restore = fun_restore->get_address() + baseAddr;
 
   // save the current values in v0, a0..a5, pv, at, gp
   // Call to DYNINSTsave_misc
@@ -1699,7 +1699,7 @@ bool isCallInsn(const instruction i) {
 
 bool pd_Function::findInstPoints(const image *owner) 
 {  
-   Address adr = addr();
+   Address adr = get_address();
    instruction instr;
    instruction instr2;
    long gpValue;	// gp needs signed operations
@@ -1939,8 +1939,8 @@ emitFuncCall(opCode /* op */,
       function_base *fun_save = proc->findOnlyOneFunction("DYNINSTsave_misc");
       function_base *fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_misc");
       assert(fun_save && fun_restore);
-      dyn_save = fun_save->addr();
-      dyn_restore = fun_restore->addr();
+      dyn_save = fun_save->get_address();
+      dyn_restore = fun_restore->get_address();
 
       Symbol info;
       Address baseAddr;
@@ -2083,7 +2083,8 @@ bool process::replaceFunctionCall(const instPoint *point,
       generate_branch(&newInsn, REG_RA, 0, OP_BR);
       
    } else {			// Replace with a new call instruction
-      generateBSR(&newInsn, newFunc->addr()+sizeof(instruction)-point->pointAddr());
+      generateBSR(&newInsn, newFunc->get_address() + sizeof(instruction)
+                  - point->pointAddr());
    }
    
    writeTextSpace((caddr_t)point->pointAddr(), sizeof(instruction), &newInsn);
@@ -2144,7 +2145,7 @@ void emitFuncJump(opCode op,
     function_base *fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_temp");
     proc->getSymbolInfo("DYNINSTrestore_temp", info, baseAddr);
     assert(fun_restore);
-    Address dyn_restore = fun_restore->addr() + baseAddr;
+    Address dyn_restore = fun_restore->get_address() + baseAddr;
 
     callAbsolute(insn, count, dyn_restore);
 

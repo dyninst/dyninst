@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.48 2004/03/15 18:46:03 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.49 2004/03/16 18:20:43 schendel Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -436,7 +436,7 @@ bool pd_Function::findInstPoints( const image * i_owner ) {
 	Address addr = (Address)i_owner->getPtrToInstruction( getAddress( 0 ) );
 
 	IA64_iterator iAddr( addr );
-	Address lastI = addr + size();
+	Address lastI = addr + get_size();
 	Address addressDelta = getAddress( 0 ) - addr;
 
 	/* Generate an instPoint for the function entry. */
@@ -1212,7 +1212,7 @@ bool process::replaceFunctionCall( const instPoint * point, const function_base 
 			/* The SCRAG says that b0 is the return register, but there's no gaurantee of this.
 			   If we have problems, we can decode the call instruction. */
 			uint8_t branchRegister = 0;
-			int64_t callOffset = function->addr() - (allocatedAddress + (offset * 16));
+			int64_t callOffset = function->get_address() - (allocatedAddress + (offset * 16));
 
 			IA64_instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
 			toInsert = IA64_bundle( MLXstop, memoryNOP, callToFunction );
@@ -1230,7 +1230,7 @@ bool process::replaceFunctionCall( const instPoint * point, const function_base 
 				/* The SCRAG says that b0 is the return register, but there's no gaurantee of this.
 				   If we have problems, we can decode the call instruction. */
 				uint8_t branchRegister = 0;
-				int64_t callOffset = function->addr() - (allocatedAddress + (offset * 16));
+				int64_t callOffset = function->get_address() - (allocatedAddress + (offset * 16));
 
 				IA64_instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
 				toInsert = IA64_bundle( MLXstop, memoryNOP, callToFunction );
@@ -1249,7 +1249,7 @@ bool process::replaceFunctionCall( const instPoint * point, const function_base 
 				/* The SCRAG says that b0 is the return register, but there's no gaurantee of this.
 				   If we have problems, we can decode the call instruction. */
 				uint8_t branchRegister = 0;
-				int64_t callOffset = function->addr() - (allocatedAddress + (offset * 16));
+				int64_t callOffset = function->get_address() - (allocatedAddress + (offset * 16));
 
 				IA64_instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
 				toInsert = IA64_bundle( MLXstop, memoryNOP, callToFunction );
@@ -1267,7 +1267,7 @@ bool process::replaceFunctionCall( const instPoint * point, const function_base 
 				/* The SCRAG says that b0 is the return register, but there's no gaurantee of this.
 				   If we have problems, we can decode the call instruction. */
 				uint8_t branchRegister = 0;
-				int64_t callOffset = function->addr() - (allocatedAddress + (offset * 16));
+				int64_t callOffset = function->get_address() - (allocatedAddress + (offset * 16));
 
 				IA64_instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
 				toInsert = IA64_bundle( MLXstop, memoryNOP, callToFunction );
@@ -1776,7 +1776,7 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 	Address mutatorAddress = (Address) location->getOwner()->getPtrToInstruction( functionBase->getAddress( NULL ) ) ;
 
 	IA64_iterator iAddr( mutatorAddress );
-	Address lastI = mutatorAddress + functionBase->size();
+	Address lastI = mutatorAddress + functionBase->get_size();
 	// /* DEBUG */ fprintf( stderr, "Mutator claims to have mutatee machine code from 0x%lx to 0x%lx\n", mutatorAddress, lastI );
 	// /* DEBUG */ fprintf( stderr, "(claims to be function '%s')\n", functionBase->symTabName().c_str() );
 

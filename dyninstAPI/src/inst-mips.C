@@ -410,7 +410,7 @@ void print_function(pd_Function *f)
   fprintf(stderr, "0x%016lx: %s (%i insns):\n", 
 	  f->getAddress(0), 
 	  f->prettyName().c_str(), 
-	  f->size() / (int)INSN_SIZE);
+	  f->get_size() / (int)INSN_SIZE);
 
   pdvector<instPoint*> t;
   t.push_back(const_cast<instPoint*>(f->funcEntry(0)));
@@ -608,7 +608,7 @@ Address lookup_fn(process *p, const pdstring &f)
   fprintf(stderr, "uninstrumentable: %s (%0#10x: %i insns) - %s\n", \
 	  prettyName().c_str(), \
 	  file_->exec()->getObject().get_base_addr() + getAddress(0), \
-	  size() / INSN_SIZE, \
+	  get_size() / INSN_SIZE, \
 	  str)
 #else
 #define UNINSTR(str)
@@ -620,7 +620,7 @@ bool pd_Function::findInstPoints(const image *owner) {
   //fprintf(stderr, "\n>>> pd_Function::findInstPoints()\n");
   //fprintf(stderr, "%0#10x: %s(%u insns):\n", 
   //getAddress(0), prettyName().c_str(), size() / INSN_SIZE);
-  if (size() == 0) {
+  if (get_size() == 0) {
     UNINSTR("zero length");
 
     TRACE_E( "pd_Function::findInstPoints" );
@@ -634,7 +634,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 
   // parse instPoints
   Address start = getAddress(0);
-  Address end = start + size();
+  Address end = start + get_size();
   Offset off;
   instruction insn;
 
@@ -778,7 +778,7 @@ static void print_saved_registers(pd_Function *fn, const pdvector<pdvector<int> 
     fprintf(stderr, "*** %s (0x%016lx: %i insns): stack frame\n",
 	    fn->prettyName().c_str(), 
 	    fn->getAddress(0), 
-	    fn->size() / (int)INSN_SIZE);
+	    fn->get_size() / (int)INSN_SIZE);
     pdvector<int> locals;
     for (unsigned i = 0; i < slots.size(); i++) {
       if (slots[i].size() > 0) {
@@ -860,7 +860,7 @@ int
 
   // parse insns relevant to stack frame
   Address start = getAddress(0);
-  Address end = start + size();
+  Address end = start + get_size();
   Offset off;
   instruction insn;
   Address fn_addr = owner->getObject().get_base_addr() + getAddress(0);
@@ -1239,7 +1239,7 @@ void pd_Function::checkCallPoints()
         pd_Function *tgt_fn = file_->exec()->findFuncByEntry(tgt_addr);
         ip->setCallee(tgt_fn); // possibly NULL
         // NOTE: (target == fnStart) => optimized recursive call
-        if (!tgt_fn && tgt_addr > fnStart && tgt_addr < fnStart + size()) {
+        if (!tgt_fn && tgt_addr > fnStart && tgt_addr < fnStart + get_size()) {
             // target is inside same function (i.e. branch)
             delete ip;
             continue;
@@ -5022,7 +5022,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
    }
 
    if ((Address)address + INSN_SIZE <
-       func->getEffectiveAddress(proc) + func->size()) {
+       func->getEffectiveAddress(proc) + func->get_size()) {
       instruction nextInstr;
       proc->readTextSpace((char *)address + INSN_SIZE,
                           sizeof(instruction),
