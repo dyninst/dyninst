@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aggregateSample.C,v 1.20 2000/10/17 17:42:47 schendel Exp $
+// $Id: aggregateSample.C,v 1.21 2000/10/26 17:02:36 schendel Exp $
 
 #include <assert.h>
 #include <math.h>
-
+#include <iostream.h>
 #include "pdutil/h/aggregateSample.h"
-
 #include "pdutil/h/pdDebugOstream.h"
+
 
 #ifdef AGGREGATE_DEBUG
 pdDebug_ostream aggu_cerr(cerr, true);
@@ -89,7 +89,14 @@ void sampleInfo::newValue(timeStamp sampleTime,
     assert(sampleTime >= lastSampleEnd);
 
     // used when it's a component of an aggregate.
-    lastSample += newVal;
+    switch(valueUpdateStyle) {
+    case add:
+      lastSample += newVal;
+      break;
+    case assign:
+      lastSample = newVal;
+      break;
+    }
     lastSampleEnd = sampleTime;
     weight = weight_;
 }
@@ -238,16 +245,21 @@ struct sampleInterval aggregateSample::aggregateValues() {
             for (unsigned u = 0; u < parts.size(); u++) {
                 // assert(earlyestTime >= parts[u]->lastSampleStart);
 
-                double fract = (earlyestTime - lastSampleEnd)/
-                    (parts[u]->lastSampleEnd - parts[u]->lastSampleStart);
-                pdSample component = parts[u]->lastSample * fract;
+	        double fract;
+                pdSample component;
+                if(doProportionCalc) {
+		  fract = (earlyestTime - lastSampleEnd)/
+		    (parts[u]->lastSampleEnd - parts[u]->lastSampleStart);
+		  assert(fract > 0.0);
+		  assert(fract <= 1.0);
+		  component = parts[u]->lastSample * fract;
+		  parts[u]->lastSample -= component;
+                } else {
+	          component = parts[u]->lastSample;
+                }
 
-                assert(fract > 0.0);
-                assert(fract <= 1.0);
 		//assert(component >= -0.01);
 		assert(component >= pdSample::Zero());
-
-                parts[u]->lastSample -= component;
 
                 // each list entry comes from a separate reporter
                 switch (aggOp)
@@ -331,4 +343,14 @@ ostream& operator<<(ostream&s, const aggregateSample &ag) {
   s << "------------------------------------------------------\n";
 
   return s;
+}
+
+metricAggInfo metAggInfo;
+
+void metricAggInfo::init() {
+  aggSample_doProportionCalc[EventCounter] = true;
+  sampleInfo_updateStyle[EventCounter] = sampleInfo::add;
+
+  aggSample_doProportionCalc[SampledFunction] = true;
+  sampleInfo_updateStyle[SampledFunction] = sampleInfo::assign;
 }

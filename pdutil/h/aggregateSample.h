@@ -88,11 +88,13 @@ class sampleInfo {
 
     // constructor and destructor are private. 
     // They should only be used by class aggregateSample.
+    typedef enum { add, assign } updateStyle;
 
 private:
 
-    sampleInfo() : lastSampleStart(timeStamp::ts1970()), 
-      lastSampleEnd(timeStamp::ts1970()), lastSample(0) {
+    sampleInfo(updateStyle style) : lastSampleStart(timeStamp::ts1970()), 
+      lastSampleEnd(timeStamp::ts1970()), lastSample(0), 
+      valueUpdateStyle(style) {
         firstSampleReceived = false;
 	weight = 1;
         numAggregators = 0;
@@ -110,6 +112,7 @@ private:
        lastSample = src.lastSample;
        weight = src.weight;
        numAggregators = src.numAggregators;
+       valueUpdateStyle = src.valueUpdateStyle;
        return *this;
     }
 
@@ -119,6 +122,8 @@ private:
     pdSample    lastSample;             // what was the last sample increment
     unsigned numAggregators;            // number of aggregateSample this is a part of
     unsigned weight;                    // weight of this sample
+    updateStyle valueUpdateStyle;       // should the sampleInfo be updated
+                                        // with an addition or assignment
 
     friend ostream& operator<<(ostream&s, const sampleInfo &info);
 };
@@ -132,7 +137,8 @@ ostream& operator<<(ostream&s, const sampleInfo &info);
 class aggregateSample {
 
 public:
-  aggregateSample(int aggregateOp) : lastSampleStart(timeStamp::ts1970()),
+  aggregateSample(int aggregateOp, bool proportionCalc) : 
+    doProportionCalc(proportionCalc), lastSampleStart(timeStamp::ts1970()), 
     lastSampleEnd(timeStamp::ts1970()) {
     assert(aggregateOp == aggSum || aggregateOp == aggAvg || aggregateOp == aggMin
 	   || aggregateOp == aggMax);
@@ -149,8 +155,8 @@ public:
         delete parts[u];
   }
 
-  sampleInfo *newComponent() {
-    sampleInfo *comp = new sampleInfo();
+  sampleInfo *newComponent(sampleInfo::updateStyle st) {
+    sampleInfo *comp = new sampleInfo(st);
     addComponent(comp);
     return comp;
   }
@@ -192,6 +198,9 @@ public:
 private:
 
   int aggOp;                        // the aggregate operator (sum, avg, min, max)
+  bool doProportionCalc;            // if set, will combine the proportion
+                                    // of the sample value that is within the 
+                                    // aggregated interval
   timeStamp lastSampleStart;        // start time of last sample
   timeStamp lastSampleEnd;          // end time of last sample
   vector<sampleInfo *> parts;       // the parts that are being aggregated.
@@ -211,6 +220,29 @@ private:
 };
 
 ostream& operator<<(ostream&s, const aggregateSample &ag);
+
+
+
+class metricAggInfo {
+  enum { numMetricStyles = 2 };
+
+  bool aggSample_doProportionCalc[numMetricStyles];
+  sampleInfo::updateStyle sampleInfo_updateStyle[numMetricStyles];
+
+ public:
+  metricAggInfo() {
+    init();
+  }
+  void init();
+  bool get_proportionCalc(metricStyle s) {
+    return aggSample_doProportionCalc[s];
+  }
+  sampleInfo::updateStyle get_updateStyle(metricStyle s) {
+    return sampleInfo_updateStyle[s];
+  }
+};
+
+extern metricAggInfo metAggInfo;
 
 
 #endif
