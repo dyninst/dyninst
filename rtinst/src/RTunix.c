@@ -3,7 +3,10 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.23  1995/05/18 11:08:28  markc
+ * Revision 1.24  1995/10/19 22:44:45  mjrg
+ * Removed breakpoint from DYNINSTinit.
+ *
+ * Revision 1.23  1995/05/18  11:08:28  markc
  * added guard prevent timer start-stop during alarm handler
  * added version number
  *
@@ -394,8 +397,8 @@ void DYNINSTinit(int skipBreakpoint)
      * pause the process and wait for additional info.
      *
      */
-    printf("Time at main %f\n", ((float) DYNINSTgetCPUtime())/1000000.0);
-    if (!skipBreakpoint) DYNINSTbreakPoint();
+    /* printf("Time at main %f\n", ((float) DYNINSTgetCPUtime())/1000000.0); */
+    /* if (!skipBreakpoint) DYNINSTbreakPoint(); */
 
     DYNINSTstartWallTimer(&DYNINSTelapsedTime);
     DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
