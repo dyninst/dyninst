@@ -19,14 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.13 1994/07/28 22:40:38 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.14 1994/08/08 20:13:37 hollings Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.13  1994/07/28 22:40:38  krisna
+ * Revision 1.14  1994/08/08 20:13:37  hollings
+ * Added suppress instrumentation command.
+ *
+ * Revision 1.13  1994/07/28  22:40:38  krisna
  * changed definitions/declarations of xalloc functions to conform to alloc.
  *
  * Revision 1.12  1994/07/26  19:57:31  hollings
@@ -150,7 +153,6 @@ struct instPointRec {
     instruction aggregateInsn;  /* aggregate insn */
     int inDelaySlot;            /* Is the instruction in a dealy slot */
     int isDelayed;		/* is the instruction a delayed instruction */
-    int callsUserFunc;		/* is it a call to a user function */
     int callIndirect;		/* is it a call whose target is rt computed ? */
     int callAggregate;		/* calling a func that returns an aggregate
 				   we need to reolcate three insns in this case
@@ -315,15 +317,11 @@ void newCallPoint(function *func, instruction *code, int codeIndex, int offset)
     point = (instPoint*) xcalloc(1, sizeof(instPoint));
     defineInstPoint(func, point, code, codeIndex, offset, FALSE);
 
-    point->callsUserFunc = 0;
     /* check to see where we are calling */
     if (isInsn(code[codeIndex], CALLmask, CALLmatch)) {
 	point->callIndirect = 0;
 	addr = (caddr_t) point->addr + (code[codeIndex].call.disp30 << 2);
 	point->callee = findFunctionByAddr(func->file->exec, addr);
-	if (point->callee && !(point->callee->tag & TAG_LIB_FUNC)) {
-	    point->callsUserFunc = 1;
-	}
     } else {
 	point->callIndirect = 1;
 	point->callee = NULL;
@@ -684,18 +682,22 @@ void generateBranch(process *proc, int fromAddr, int newAddr)
     }
 }
 
-int callsUserFuncP(instPoint *point)
+int callsTrackedFuncP(instPoint *point)
 {
     if (point->callIndirect) {
 #ifdef notdef
-	// it's rate to call a library function as a parameter.
+	// it's rare to call a library function as a parameter.
         sprintf(errorLine, "*** Warning call indirect\n from %s %s (addr %d)\n",
             point->func->file->fullName, point->func->prettyName, point->addr);
 	logLine(errorLine);
 #endif
-        return(1);
+        return(TRUE);
     } else {
-        return(point->callsUserFunc);
+	if (point->callee && !(point->callee->tag & TAG_LIB_FUNC)) {
+	    return(TRUE);
+	} else {
+	    return(FALSE);
+	}
     }
 }
 

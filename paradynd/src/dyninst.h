@@ -7,7 +7,10 @@
  * dyninst.h - exported interface to instrumentation.
  *
  * $Log: dyninst.h,v $
- * Revision 1.9  1994/06/27 21:28:08  rbi
+ * Revision 1.10  1994/08/08 20:13:34  hollings
+ * Added suppress instrumentation command.
+ *
+ * Revision 1.9  1994/06/27  21:28:08  rbi
  * Abstraction-specific resources and mapping info
  *
  * Revision 1.8  1994/05/18  00:52:26  hollings
@@ -66,7 +69,7 @@
 typedef double timeStamp;		
 
 /* something that data can be collected for */
-typedef struct _resourceRec *resource;		
+typedef class resourceRec *resource;		
 
 /* descriptive information about a resource */
 struct _resourceInfo {
@@ -79,6 +82,27 @@ typedef struct _resourceInfo resourceInfo;
 
 /* list of resources */
 typedef struct _resourceListRec *resourceList;		
+
+class resourceRec {
+    public:
+	char *getName()	{ return(info.name); }
+	resourceRec(Boolean full = True) {
+	    if (full) {
+		parent = NULL;
+		handle = NULL;
+		children = NULL;
+		info.name = "";
+		info.fullName = "";
+		info.creation = 0.0;
+		suppressed = False;
+	    }
+	};
+	Boolean suppressed;		/* don't collect data about this */
+	resource parent;		/* parent of this resource */
+	void *handle;		/* handle to resource specific data */
+	resourceList children;	/* children of this resource */
+	resourceInfo info;
+};
 
 /* a metric */
 typedef struct _metricRec *metric;			

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.8 1994/07/28 22:40:45 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.9 1994/08/08 20:13:46 hollings Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
- * Revision 1.8  1994/07/28 22:40:45  krisna
+ * Revision 1.9  1994/08/08 20:13:46  hollings
+ * Added suppress instrumentation command.
+ *
+ * Revision 1.8  1994/07/28  22:40:45  krisna
  * changed definitions/declarations of xalloc functions to conform to alloc.
  *
  * Revision 1.7  1994/06/27  21:28:20  rbi
@@ -71,7 +74,7 @@ HTable <resource>	allResources;
  *
  */
 
-_resourceRec rootNode(False);
+resourceRec rootNode(False);
 
 resource rootResource = &rootNode;
 
@@ -188,7 +191,7 @@ resource newResource(resource parent,
 	    xcalloc(1, sizeof(struct _resourceListRec));
     }
 
-    ret = new(_resourceRec);
+    ret = new(resourceRec);
     ret->parent = parent;
     ret->handle = handle;
 

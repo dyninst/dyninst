@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.5  1994/08/02 18:25:09  hollings
+ * Revision 1.6  1994/08/08 20:13:48  hollings
+ * Added suppress instrumentation command.
+ *
+ * Revision 1.5  1994/08/02  18:25:09  hollings
  * fixed modules to use list template for lists of functions.
  *
  * Revision 1.4  1994/07/26  20:02:09  hollings
@@ -51,7 +54,7 @@ typedef List<internalMetric *>;
 
 typedef HTable<metricDefinitionNode *>;
 typedef HTable<_metricRec *>;
-typedef HTable<_resourceRec *>;
+typedef HTable<resourceRec *>;
 typedef HTable<_resourceListRec *>;
 
 typedef HTable<pointRec *>;

@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.5 1994/07/28 22:40:36 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.6 1994/08/08 20:13:36 hollings Exp $";
 #endif
 
 
@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.5  1994/07/28 22:40:36  krisna
+ * Revision 1.6  1994/08/08 20:13:36  hollings
+ * Added suppress instrumentation command.
+ *
+ * Revision 1.5  1994/07/28  22:40:36  krisna
  * changed definitions/declarations of xalloc functions to conform to alloc.
  *
  * Revision 1.4  1994/07/26  19:56:42  hollings
@@ -172,6 +175,28 @@ void dynRPC::disableDataCollection(int mid)
 
 #include <sys/time.h>
 #include <sys/resource.h>
+
+Boolean dynRPC::setTracking(String target, Boolean mode)
+{
+    resource res;
+    extern resource moduleRoot;
+    extern resource findResource(char*);
+    extern void changeLibFlag(resource, Boolean);
+
+    res = findResource(target);
+    if (res) {
+	if (isResourceDescendent(moduleRoot, res)) {
+	    changeLibFlag(res, mode);
+	    res->suppressed = True;
+	    return(True);
+	} else {
+	    // un-supported resource hierarchy.
+	    return(False);
+	}
+    } else {
+	return(False);
+    }
+}
 
 int dynRPC::enableDataCollection(String_Array foucsString,String metric)
 {

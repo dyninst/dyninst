@@ -19,12 +19,15 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.5 1994/08/02 18:23:43 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.6 1994/08/08 20:13:45 hollings Exp $";
 #endif
 
 /*
  * $Log: metricDefs-common.C,v $
- * Revision 1.5  1994/08/02 18:23:43  hollings
+ * Revision 1.6  1994/08/08 20:13:45  hollings
+ * Added suppress instrumentation command.
+ *
+ * Revision 1.5  1994/08/02  18:23:43  hollings
  * changed module lists to use new lists.
  *
  * Revision 1.4  1994/07/26  20:00:28  hollings
@@ -87,7 +90,7 @@ void createDefaultFuncPred(metricDefinitionNode *mn,
 
     for (; func; func=func->sibling) {
 	for (i = 0; i < func->callCount; i++) {
-	    if (callsUserFuncP(func->calls[i])) {
+	    if (callsTrackedFuncP(func->calls[i])) {
 		mn->addInst(func->calls[i], leaveNode,
 		    callPreInsn, orderLastAtPoint);
 		mn->addInst(func->calls[i], enterNode,
@@ -332,7 +335,7 @@ void perProcedureWallTime(metricDefinitionNode *mn,
 
     for (; func; func=func->sibling) {
 	for (i = 0; i < func->callCount; i++) {
-	    if (callsUserFuncP(func->calls[i])) {
+	    if (callsTrackedFuncP(func->calls[i])) {
 		mn->addInst(func->calls[i], stopNode,
 		    callPreInsn, orderLastAtPoint);
 
@@ -403,7 +406,7 @@ AstNode *perProcedureCPUTime(metricDefinitionNode *mn,
 
     for (; func; func=func->sibling) {
 	for (i = 0; i < func->callCount; i++) {
-	    if (callsUserFuncP(func->calls[i])) {
+	    if (callsTrackedFuncP(func->calls[i])) {
 		mn->addInst(func->calls[i], stopNode,
 		    callPreInsn, orderFirstAtPoint);
 		

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.34 1994/08/02 18:22:55 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.35 1994/08/08 20:13:43 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.34  1994/08/02 18:22:55  hollings
+ * Revision 1.35  1994/08/08 20:13:43  hollings
+ * Added suppress instrumentation command.
+ *
+ * Revision 1.34  1994/08/02  18:22:55  hollings
  * Changed comparison for samples going backwards to use a ratio rather than
  * an absolute fudge factor.  This is required due to floating point rounding
  * errors on large numbers.
@@ -314,6 +317,11 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
     for (pred = curr->definition.predicates; pred->namePrefix; pred++) {
 	for (i=0; i < l->count; i++) {
 	    r = l->elements[i];
+
+	    if (r->suppressed) {
+		// should not collect info about this.
+		return(NULL);
+	    }
 
 	    /* test predicate for this resource */
 	    if (!strncmp(pred->namePrefix, r->parent->info.fullName, 

@@ -8,7 +8,10 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
- * Revision 1.5  1994/07/28 22:40:41  krisna
+ * Revision 1.6  1994/08/08 20:13:39  hollings
+ * Added suppress instrumentation command.
+ *
+ * Revision 1.5  1994/07/28  22:40:41  krisna
  * changed definitions/declarations of xalloc functions to conform to alloc.
  *
  * Revision 1.4  1994/07/20  23:23:38  hollings
@@ -127,11 +130,12 @@ float getTimerValue(timerHandle *timer);
 void freeTimer(timerHandle*);
 
 /*
- * Test if the inst point is for a call to a user function (as opposed to
- *   a library function.
- *
+ * Test if the inst point is for a call to a tahracked function (as opposed to
+ *   a function that has been either implictly or explictly suppressed from
+ *   instrumentation (i.e. library functions or user suppression of user 
+ *   functions).
  */
-int callsUserFuncP(instPoint *);
+int callsTrackedFuncP(instPoint *);
 
 /* return the function asociated with a point. */
 function *getFunction(instPoint *point);

@@ -9,7 +9,10 @@
  *   include this file.
  *
  * $Log: dyninstP.h,v $
- * Revision 1.2  1994/02/01 18:46:51  hollings
+ * Revision 1.3  1994/08/08 20:13:35  hollings
+ * Added suppress instrumentation command.
+ *
+ * Revision 1.2  1994/02/01  18:46:51  hollings
  * Changes for adding perfConsult thread.
  *
  * Revision 1.1  1994/01/27  20:31:18  hollings
@@ -52,24 +55,6 @@ class executableRec {
 	executableRec *next;
 	FILE *controlPath;
 	process *proc;	/* for directly connected processes */
-};
-
-class _resourceRec {
-    public:
-	_resourceRec(Boolean full = True) {
-	    if (full) {
-		parent = NULL;
-		handle = NULL;
-		children = NULL;
-		info.name = "";
-		info.fullName = "";
-		info.creation = 0.0;
-	    }
-	};
-	resource parent;		/* parent of this resource */
-	void *handle;		/* handle to resource specific data */
-	resourceList children;	/* children of this resource */
-	resourceInfo info;
 };
 
 class _resourceListRec {

@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.10 1994/08/02 18:25:07 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.11 1994/08/08 20:13:47 hollings Exp $";
 #endif
 
 /*
@@ -16,7 +16,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.10  1994/08/02 18:25:07  hollings
+ * Revision 1.11  1994/08/08 20:13:47  hollings
+ * Added suppress instrumentation command.
+ *
+ * Revision 1.10  1994/08/02  18:25:07  hollings
  * fixed modules to use list template for lists of functions.
  *
  * Revision 1.9  1994/07/28  22:40:48  krisna
@@ -90,6 +93,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "symtab.h"
 #include "util.h"
 
+resource moduleRoot;
 extern "C" char *cplus_demangle(char *, int);
 static image *allImages;
 stringPool pool;
@@ -266,7 +270,6 @@ image *parseImage(char *file, int offset)
     Boolean status;
     function *func;
     caddr_t endUserAddr;
-    resource moduleRoot;
     List<function*> curr;
     resource modResource;
     caddr_t startUserAddr;
@@ -479,6 +482,37 @@ void mapLines(module *mod)
 	    if (func->addr <= (caddr_t) mod->lines.addr[j]) {
 		func->line = j;
 		break;
+	    }
+	}
+    }
+}
+
+void changeLibFlag(resource res, Boolean setSuppress)
+{
+    image *ret;
+    module *mod;
+    function *func;
+    List<function*> curr;
+
+    for (ret=allImages; ret; ret = ret->next) {
+	mod = findModule(ret, res->getName());
+	if (mod) {
+	    // suppress all procedures.
+	    for (curr = mod->funcs; func = *curr; curr++) {
+		if (setSuppress) {
+		    func->tag |= TAG_LIB_FUNC;
+		} else {
+		    func->tag &= ~TAG_LIB_FUNC;
+		}
+	    }
+	} else {
+	    func = findFunction(ret, res->getName());
+	    if (func) {
+		if (setSuppress) {
+		    func->tag |= TAG_LIB_FUNC;
+		} else {
+		    func->tag &= ~TAG_LIB_FUNC;
+		}
 	    }
 	}
     }
