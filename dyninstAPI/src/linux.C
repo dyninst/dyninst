@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.48 2001/08/20 19:59:09 bernat Exp $
+// $Id: linux.C,v 1.49 2001/08/23 14:43:18 schendel Exp $
 
 #include <fstream.h>
 
@@ -69,6 +69,7 @@
 #ifndef BPATCH_LIBRARY
 #include "common/h/Time.h"
 #include "common/h/timing.h"
+#include "paradynd/src/init.h"
 #endif
 
 #ifdef HRTIME
@@ -725,6 +726,11 @@ int process::detachAndContinue()
 {
      int ret = false;
 
+#ifndef BPATCH_LIBRARY
+     timeStamp notValidSentinal = timeStamp::ts1800();
+     timeStamp initialStartTime;
+#endif
+
      if (status_ == exited)
 	  goto out;
 
@@ -735,15 +741,29 @@ int process::detachAndContinue()
 	  showErrorCallback(39, errorLine);
 	  goto out;
      }
-
+     
+#ifndef BPATCH_LIBRARY
+     initialStartTime = getWallTime();
+#endif
+     // Vic says continuing is a side effect of detaching
      if (! this->detach()) {
 	  showErrorCallback(38, "System error: can't continue process");
+#ifndef BPATCH_LIBRARY
+	  initialStartTime = notValidSentinal;
+#endif
 	  goto out;
      }
 
      ret = true;
      status_ = running;
 out:
+#ifndef BPATCH_LIBRARY
+     if(callBeforeContinue != NULL && 
+	initialStartTime.isInitialized() && 
+	initialStartTime != notValidSentinal) {
+       (*callBeforeContinue)(initialStartTime);
+     }
+#endif
      return ret;
 }
 
@@ -2166,7 +2186,7 @@ fileDescriptor *getExecFileDescriptor(string filename,
 #if defined(USES_DYNAMIC_INF_HEAP)
 static const Address lowest_addr = 0x0;
 void inferiorMallocConstraints(Address near, Address &lo, Address &hi,
-			       inferiorHeapType type)
+			       inferiorHeapType /* type */ )
 {
   if (near)
     {
