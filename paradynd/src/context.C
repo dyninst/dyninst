@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.7 1994/05/18 00:52:23 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.8 1994/05/31 18:11:50 markc Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.7  1994/05/18 00:52:23  hollings
+ * Revision 1.8  1994/05/31 18:11:50  markc
+ * Initialized v global values used to compute pause time.  Added pvm
+ * specific default instrumentation.
+ *
+ * Revision 1.7  1994/05/18  00:52:23  hollings
  * added ability to gather IO from application processes and forward it to
  * the paradyn proces.
  *
@@ -118,6 +122,26 @@ Boolean applicationDefined()
     }
 }
 
+// NOTE - the tagArg integer (1 for pvm and 2 for cm5) is the parameter
+//        number starting with 0.  
+#ifdef PARADYND_PVM
+// PVM stuff
+// pvm puts the tag in the second position pvm_recv(tid, TAG)
+static AstNode tagArg(Param, (void *) 1);
+
+instMaping initialRequests[] = {
+  { "pvm_send", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
+  { "pvm_recv", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
+  { "main", "DYNINSTsampleValues", FUNC_EXIT },
+  { "main", "DYNINSTinit", FUNC_ENTRY },
+  { "exit", "DYNINSTsampleValues", FUNC_ENTRY },
+  { "exit", "DYNINSTbreakPoint", FUNC_ENTRY },
+  { "DYNINSTsampleValues", "DYNINSTreportNewTags", FUNC_ENTRY },
+  { NULL, NULL, 0, NULL },
+};
+
+#else
+// cm5 stuff
 static AstNode tagArg(Param, (void *) 2);
 
 instMaping initialRequests[] = {
@@ -140,6 +164,7 @@ instMaping initialRequests[] = {
     { "CMMP_receive_async", "DYNINSTrecordTag", FUNC_ENTRY|FUNC_ARG, &tagArg },
     { NULL, NULL, 0, NULL },
 };
+#endif
 
 void forkProcess(traceHeader *hr, traceFork *fr)
 {
@@ -234,14 +259,14 @@ Boolean startApplication()
     return(False);
 }
 
-timeStamp endPause;
-timeStamp startPause;
-Boolean applicationPaused;
+timeStamp endPause = 0.0;
+timeStamp startPause = 0.0;
+Boolean applicationPaused = FALSE;
 extern Boolean firstSampleReceived;
 
 // total processor time the application has been paused.
 // so for a multi-processor system this should be processor * time.
-timeStamp elapsedPauseTime;
+timeStamp elapsedPauseTime = 0.0;
 
 Boolean markApplicationPaused()
 {
