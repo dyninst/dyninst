@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test3.mutatee.c,v 1.9 1999/11/11 17:38:40 wylie Exp $ */
+/* $Id: test3.mutatee.c,v 1.10 2000/04/24 02:33:19 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#ifdef i386_unknown_nt4_0
+#if defined(i386_unknown_nt4_0) && !defined(__GNUC__)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <process.h>
