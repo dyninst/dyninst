@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.98 2001/04/16 18:47:39 tikir Exp $
+// $Id: inst-sparc.C,v 1.99 2001/05/04 21:22:43 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -91,7 +91,8 @@ int deadListSize = sizeof(deadList);
 instPoint::instPoint(pd_Function *f, const instruction &instr, 
                      const image *owner, Address &adr, bool delayOK, 
                      instPointType pointType, Address &oldAddr)
-: addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
+: insnAddr(adr), addr(adr), originalInstruction(instr), 
+  inDelaySlot(false), isDelayed(false),
   callIndirect(false), callAggregate(false), callee(NULL), func(f), 
   ipType(pointType), image_ptr(owner), firstIsConditional(false), 
   relocated_(false), isLongJump(false)

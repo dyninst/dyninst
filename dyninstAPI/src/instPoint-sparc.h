@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.11 2001/02/20 21:36:37 gurari Exp $
+// $Id: instPoint-sparc.h,v 1.12 2001/05/04 21:22:44 gurari Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
@@ -119,6 +119,9 @@ public:
   // size (in bytes) of a sparc jump instruction 
   int sizeOfInstrumentation() {return 4;}
 
+  // address of the actual instPoint instruction
+  int insnAddress() { return insnAddr; }
+
   bool getRelocated() { return relocated_; }
   void setRelocated() {relocated_ = true;}
 
@@ -144,7 +147,9 @@ public:
   // 
 
 // TODO: These should all be private
-  Address addr;                       // address of inst point
+  Address insnAddr;                   // address of the instPoint
+  Address addr;                       // address of the first insn in the 
+                                      // instPoints footprint 
   instruction originalInstruction;    // original instruction
   instruction delaySlotInsn;          // original instruction
   instruction aggregateInsn;          // aggregate insn

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.75 2001/05/02 21:38:06 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.76 2001/05/04 21:22:42 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -82,7 +82,8 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
 		     const image *owner, Address &adr,
 		     bool delayOK,
 		     instPointType pointType)
-: addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
+: insnAddr(adr), addr(adr), originalInstruction(instr), 
+  inDelaySlot(false), isDelayed(false),
   callIndirect(false), callAggregate(false), callee(NULL), 
   func(f),
   ipType(pointType), image_ptr(owner), firstIsConditional(false),
@@ -2621,6 +2622,7 @@ bool pd_Function::checkInstPoints(const image *owner) {
 
                   // function can be instrumented if we relocate it
                   isTrap = true; 
+                  relocatable_ = true;
 	    } }
 
 	    for (u_int i = 0; i < funcReturns.size(); i++) {
@@ -2634,8 +2636,8 @@ bool pd_Function::checkInstPoints(const image *owner) {
 		      //return false;
 
                       // function can be instrumented if we relocate it
-                      isTrap = true; 
-
+                      isTrap = true;
+                      relocatable_ = true; 
 		} }
 	    }
 	}
@@ -2659,8 +2661,8 @@ bool pd_Function::checkInstPoints(const image *owner) {
 	  //return false;
 
           // function can be instrumented if we relocate it 
-          isTrap = true; 
-
+          isTrap = true;
+          relocatable_ = true; 
         }
 	if(i >= 1){ // check if return points overlap
 	    Address prev_exit = funcReturns[i-1]->addr+funcReturns[i-1]->size;  
@@ -2672,7 +2674,7 @@ bool pd_Function::checkInstPoints(const image *owner) {
 
               // function can be instrumented if we relocate it 
               isTrap = true; 
-
+              relocatable_ = true;
 	    } 
 	}
     }
@@ -3057,7 +3059,7 @@ bool pd_Function::PA_attachGeneralRewrites(
 bool pd_Function::PA_attachOverlappingInstPoints(
 		        LocalAlterationSet *p, Address /* baseAddress */, 
                         Address /* firstAddress */,
-	                instruction loadedCode[], int codeSize) {
+	                instruction loadedCode[], int /* codeSize */) {
 
     instruction instr, nexti;
 
@@ -3143,10 +3145,11 @@ bool pd_Function::PA_attachOverlappingInstPoints(
 	    //  1 is located in the delay slot of the other - it will NOT
 	    //  break up the 2 inst points in that case....
 
- 	    int offset = (this_inst_point->iPgetAddress() - getAddress(0)) +
- 	                 sizeof(instruction); 
- 	    offset = moveOutOfDelaySlot(offset, loadedCode, codeSize) - 
-                     sizeof(instruction);
+ 	    int offset = (this_inst_point->insnAddress() - getAddress(0));
+            
+            if (IS_DELAYED_INST(loadedCode[offset/sizeof(instruction)])) {
+              offset += sizeof(instruction);
+            } 
  	    InsertNops *nops = new InsertNops(this, offset, overlap);
  	    p->AddAlteration(nops);
 
