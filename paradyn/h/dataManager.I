@@ -2,7 +2,12 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.29  1994/08/22 16:01:21  markc
+ * Revision 1.30  1994/09/22 00:43:30  markc
+ * Added "const" for char* args to addExecutable()
+ * Made String_Array declaration explicit
+ * Incremented version number
+ *
+ * Revision 1.29  1994/08/22  16:01:21  markc
  * Remove my_pid which duplicated a class member
  * Add daemon dictionary calls to dataManager interface.
  *
@@ -121,6 +126,8 @@ class performanceStream;
 /* something that data can be collected for */
 class resource;		
 
+$remote array char* String_Array;
+
 /* descriptive information about a resource */
 typedef struct {
     char *name;			/* name of actual resource */
@@ -232,7 +239,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 15;
+    $version 16;
 
     //
     // Create an applicationContext (an application to be studied)
@@ -260,11 +267,11 @@ $remote dataManager {
     //            as null, anything else will be assumed to be a
     //            valid string.
     Boolean defineDaemon (applicationContext *app,
-	                  char *command,
-	                  char *dir,
-	                  char *login,
-                          char *name,
-	                  char *machine,
+	                  const char *command,
+	                  const char *dir,
+	                  const char *login,
+                          const char *name,
+	                  const char *machine,
                           int flavor);
 
     //
@@ -427,7 +434,7 @@ $remote dataManager {
 
     resource *newResource(applicationContext *app,
      			  resource *parent, 
-     			  char *name);
+     			  const char *name);
 
     //
     // don't search the SHG for this node.
@@ -443,7 +450,7 @@ $remote dataManager {
 
     // Get the static config. information for the passed applicationContext.
     //
-    $array String getAvailableMetrics(applicationContext*);
+    String_Array getAvailableMetrics(applicationContext*);
 
     //
     // looks for a specifc metric instance in an application context.
