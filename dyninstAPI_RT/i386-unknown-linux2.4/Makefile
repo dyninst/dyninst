@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2000/07/13 18:00:46 zandy Exp $
+# $Id: Makefile,v 1.5 2000/08/08 15:04:51 wylie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -21,7 +21,7 @@ CFLAGS		+= -O2
 ifdef USES_LIBDYNINSTRT_SO
 CC              = gcc
 LD              = gcc
-CFLAGS          = -I. -I../.. -Di386_unknown_linux2_0 -g -Dexternal_templates -fpic
+CFLAGS          = -I. -I../.. -Di386_unknown_linux2_0 -g -fpic
 LDFLAGS         = -shared -ldl
 endif
 
@@ -29,8 +29,11 @@ ASFLAGS         =
 
 SRCS		+= ../src/RTposix.c \
 		   ../src/RTlinux.c \
+        	   ../src/RTsig.c \
 		   ../src/RTheap.c \
                    ../src/RTheap-linux.c
+
+#CFLAGS += -DDEBUG_PRINT_RT    # enable debug/trace messages from library
 
 ifdef DETACH_ON_THE_FLY
 CFLAGS += -DDETACH_ON_THE_FLY
