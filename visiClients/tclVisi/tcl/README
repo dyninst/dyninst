@@ -1,6 +1,9 @@
 #
 # $Log: README,v $
-# Revision 1.5  1995/02/26 02:02:22  newhall
+# Revision 1.6  1995/11/29 00:51:02  tamches
+# added to tableVisi
+#
+# Revision 1.5  1995/02/26  02:02:22  newhall
 # added callback functions for new visiLib phase info.
 # added new phase table visi
 #
@@ -24,6 +27,7 @@ tabVis.tcl -- Tabular display of paradyn data.  tabVis displays
              performance data for all requested resources and metrics.  
              Users may control the behavior and appearance of the table 
              with menu selections. 
+		** OBSOLETED by /p/paradyn/core/visiClients/tableVisi **
              
 barChart.tcl -- Bar chart display of paradyn data.  Currently limited
                 to a single metric, but may have several resources.
