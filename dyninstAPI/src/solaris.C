@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.89 2000/03/22 20:32:43 mihai Exp $
+// $Id: solaris.C,v 1.90 2000/04/20 22:48:28 mirg Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -821,7 +821,7 @@ bool process::attach() {
   //Tempest, do not need to inherit-on-fork
   long flags ;
 
-  if(process::pdFlavor == string("cow"))
+  if(process::pdFlavor == string("cow") || process::pdFlavor == string("mpi"))
   	flags = PR_KLC |  PR_BPTADJ;
   else
    	flags = PR_KLC | PR_FORK | PR_BPTADJ;
