@@ -106,7 +106,10 @@ public:
 						   BPatch_Vector<BPatch_function *> & funcs,
 						   bool notify_on_failure=true,
 						   bool regex_case_sensitive=true);
-
+    // FIXME: This (undocumented) method only works for function entry addresses.
+    BPatch_Vector<BPatch_function *> *findFunctionByAddress(void *addr,
+							    BPatch_Vector<BPatch_function *> &funcs,
+							    bool notify_on_failure = true);
 
     BPatch_function *findFunctionByMangled(const char * mangled_name);
     BPatch_Vector<BPatch_function *> *findUninstrumentableFunction(const char *name,

@@ -297,6 +297,38 @@ BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> &
   return & funcs;
 }
 
+/* The implementation of this function is incomplete.
+ * Eventually, it should accept any address and return the BPatch_functions
+ * which contain that address.
+ *
+ * For now, it only works on entry addresses.
+ */
+
+BPatch_Vector<BPatch_function *> *
+BPatch_module::findFunctionByAddress(void *addr, BPatch_Vector<BPatch_function *> &funcs,
+				     bool notify_on_failure)
+{
+  pd_Function *pdfunc = NULL;
+  BPatch_function *bpfunc = NULL;
+
+  pdfunc = mod->exec()->findFuncByEntry((Address)addr);
+  if (!pdfunc) {
+    if (notify_on_failure) {
+      pdstring msg = pdstring("Module: Unable to find function: ") + pdstring((Address)addr);
+      BPatch_reportError(BPatchSerious, 100, msg.c_str());
+    }
+    return NULL;
+  }
+
+  bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
+  if (bpfunc) {
+    funcs.push_back(bpfunc);
+    if (!proc->PDFuncToBPFuncMap.defines(pdfunc))
+      this->BPfuncs->push_back(bpfunc);
+  }
+  return &funcs;
+}
+
 BPatch_Vector<BPatch_function *> *
 BPatch_module::findUninstrumentableFunction(const char *name, 
 					    BPatch_Vector<BPatch_function *> & funcs)
