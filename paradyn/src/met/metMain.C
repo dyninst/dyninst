@@ -14,7 +14,10 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.1  1994/07/07 03:25:25  markc
+ * Revision 1.2  1994/07/07 13:10:41  markc
+ * Turned off debugging printfs.
+ *
+ * Revision 1.1  1994/07/07  03:25:25  markc
  * Configuration language parser.
  *
  */
@@ -171,7 +174,7 @@ int metProcess (processStruct ps)
       new_ps->daemon  = ps.daemon;
       new_ps->flavor = ps.flavor;
       globalProcess.add(new_ps);
-      dumpProcess(ps);
+      // dumpProcess(ps);
       return 0;
     }
 }
@@ -212,7 +215,7 @@ int metVisi(visiStruct vs)
       new_vs->args = vs.args;
       new_vs->host = convert_local(vs.host);
       globalVisi.add(new_vs);
-      dumpVisi(vs);
+      // dumpVisi(vs);
       return 0;
     }
 }
@@ -240,7 +243,7 @@ int metTunable (char *name, float value)
       ts->name = name;
       ts->value = value;
       globalTunable.add(ts);
-      dumpTunable(name, value);
+      // dumpTunable(name, value);
       return 0;
     }
 }
@@ -273,7 +276,7 @@ int metDaemon (daemonStruct ds)
       new_ds->host = convert_local(ds.host);
       new_ds->flavor = ds.flavor;
       globalDaemon.add(new_ds);
-      dumpDaemon(ds);
+      // dumpDaemon(ds);
       return 0;
     }
 }
@@ -285,14 +288,14 @@ int metDoDaemon()
 
   for (dl = globalDaemon; the_ds = *dl; dl++)
     {
-      dumpDaemon(*the_ds);
+      // dumpDaemon(*the_ds);
       if (dataMgr->addDaemon(context, the_ds->host, (char *) 0,
 			     the_ds->command))
-	printf("Start daemon %s on %s succeeded\n", the_ds->command,
-	       the_ds->host);
+	; //printf("Start daemon %s on %s succeeded\n", the_ds->command,
+	   //    the_ds->host);
       else
-	printf("Start daemon %s on %s failed\n", the_ds->command,
-	       the_ds->host);
+	; //printf("Start daemon %s on %s failed\n", the_ds->command,
+	   //    the_ds->host);
     }
   return 0;
 }
@@ -318,7 +321,7 @@ int metDoVisi()
 	  argv[i] = strdup(val);
 	  i++;
 	}
-      dumpVisi(*the_vs);
+      // dumpVisi(*the_vs);
       vmMgr->VMAddNewVisualization(the_vs->name, argc, argv);
       for (i=0; i<argc; ++i)
        if (argv[i]) delete argv[i];
@@ -348,14 +351,14 @@ int metDoProcess()
 	  argv[i] = strdup(val);
 	  i++;
 	}
-      dumpProcess(*the_ps);
+      // dumpProcess(*the_ps);
       if (dataMgr->addExecutable(context, the_ps->host, (char*) 0,
 				 the_ps->daemon, argc, argv))
-	printf("Start process %s succeeded on %s\n", the_ps->command,
-	       the_ps->host);
+	; // printf("Start process %s succeeded on %s\n", the_ps->command,
+	   //    the_ps->host);
       else
-	printf("Start process %s failed on %s\n", the_ps->command,
-	       the_ps->host);
+	; //printf("Start process %s failed on %s\n", the_ps->command,
+	   //    the_ps->host);
       
       for (i=0; i<argc; ++i)
        if (argv[i]) delete argv[i];
@@ -383,10 +386,10 @@ int metDoTunable()
       if (curr)
 	{
 	  if (!curr->setValue(the_ts->value))
-	    printf("Can't set value of tunable constant\n");
+	    ; // printf("Can't set value of tunable constant\n");
 	  else
-	    printf("Set Tunable Constant: %s = %f\n", the_ts->name,
-		   the_ts->value);
+	    ; //printf("Set Tunable Constant: %s = %f\n", the_ts->name,
+	//	   the_ts->value);
 	}
     }
   return 0;
