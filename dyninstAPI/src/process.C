@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.231 2000/08/08 15:41:41 wylie Exp $
+// $Id: process.C,v 1.232 2000/08/09 17:00:25 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2157,7 +2157,7 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
 #endif
 
 
-extern bool forkNewProcess(string file, string dir, vector<string> argv, 
+extern bool forkNewProcess(string &file, string dir, vector<string> argv, 
 		    vector<string>envp, string inputFile, string outputFile,
 		    int &traceLink, int &ioLink, 
 		    int &pid, int &tid, 
@@ -2245,6 +2245,18 @@ tp->resourceBatchMode(true);
 #endif /* BPATCH_LIBRARY */
 
         image *img = image::parseImage(file);
+#if defined(rs6000_ibm_aix4_1)
+	// At this point, we can blow away the inc. linked version
+	// of the file, and restore the file name to the original.
+	// Hope this works :)
+	/*
+	cerr << "Deleting file " << file << endl;
+	unlink(file.string_of());
+	file = File;
+	if (!file.prefixed_by("/") && dir.length() > 0)
+	  file = dir + "/" + file;
+	*/
+#endif
         if (!img) {
             // For better error reporting, two failure return values would be
             // useful.  One for simple error like because-file-not-because.
