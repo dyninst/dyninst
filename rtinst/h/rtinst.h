@@ -107,6 +107,6 @@ void DYNINSTgenerateTraceRecord(traceStream destination,
  *
  *  This should be a power of two to reduce paging and chacing shifts.
  */
-#define SYN_INST_BUF_SIZE	1024*512
+#define SYN_INST_BUF_SIZE	2*1024*1024
 
 #endif
