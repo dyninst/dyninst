@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.10  1994/04/27 22:55:01  hollings
+ * Revision 1.11  1994/05/02 20:38:09  hollings
+ * added pause search mode, and cleanedup global variable naming.
+ *
+ * Revision 1.10  1994/04/27  22:55:01  hollings
  * Merged refine auto and search.
  *
  * Revision 1.9  1994/04/21  04:56:46  karavan
@@ -77,7 +80,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.10 1994/04/27 22:55:01 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.11 1994/05/02 20:38:09 hollings Exp $";
 #endif
 
 
@@ -376,7 +379,7 @@ Boolean evalTests()
 		printf("evaluate ");
 		r->t->print();
 		r->f->print();
-		printf(" at time %f\n", currentTime);
+		printf(" at time %f\n", PCcurrentTime);
 	    }
 	    if (r->state.status == TRUE) {
 		hysteresis = 1.0 - hysteresisRange.getValue();
@@ -398,10 +401,10 @@ Boolean evalTests()
 		r->t->print();
 		r->f->print();
 		r->at->print(-1);
-		printf(" at time %f\n", currentTime);
-		printf("false from %f to %f\n", r->time, currentTime);
+		printf(" at time %f\n", PCcurrentTime);
+		printf("false from %f to %f\n", r->time, PCcurrentTime);
 	    }
-	    r->time = currentTime;
+	    r->time = PCcurrentTime;
 	    ret = TRUE;
 	} else if (r->state.status != previousStatus) {
 	    if (printTestResults) {
@@ -409,10 +412,10 @@ Boolean evalTests()
 		r->t->print();
 		r->f->print();
 		r->at->print(-1);
-		printf(" at time %f\n", currentTime);
-		printf("true from %f to %f\n", r->time, currentTime);
+		printf(" at time %f\n", PCcurrentTime);
+		printf("true from %f to %f\n", r->time, PCcurrentTime);
 	    }
-	    r->time = currentTime;
+	    r->time = PCcurrentTime;
 	    ret = TRUE;
 	}
     }
@@ -482,7 +485,7 @@ Boolean doScan()
     searchHistoryNode *shgNode;
     searchHistoryNodeList curr;
 
-    if (currentTime >= whenAxis.end) return(False);
+    if (PCcurrentTime >= whenAxis.end) return(False);
 
     shgStateChanged = FALSE;
     change = evalTests();
@@ -503,7 +506,7 @@ Boolean doScan()
 		if (printNodes) {
 		    printf("SHG Node %d ", shgNode->nodeId);
 		    if (ret == TRUE) {
-			printf(" TRUE at time %f\n", currentTime);
+			printf(" TRUE at time %f\n", PCcurrentTime);
 			if (shgNode->hints) {
 			    for (currHint = *shgNode->hints; 
 				 *currHint; 
@@ -512,7 +515,7 @@ Boolean doScan()
 			    }
 			}
 		    } else {
-			printf(" FALSE at time %f\n", currentTime);
+			printf(" FALSE at time %f\n", PCcurrentTime);
 		    }
 		}
 		if (ret == FALSE) {
@@ -526,10 +529,11 @@ Boolean doScan()
     return(shgStateChanged);
 }
 
-int pathMax;
-int pathDepth;
-extern int autoRefinementLimit;
-searchHistoryNode **refinementPath;
+int PCpathMax;
+int PCpathDepth;
+extern int PCsearchPaused;
+extern int PCautoRefinementLimit;
+searchHistoryNode **PCrefinementPath;
 extern void defaultExplanation(searchHistoryNode *explainee);
 
 void setCurrentRefinement(searchHistoryNode *curr)
@@ -538,27 +542,27 @@ void setCurrentRefinement(searchHistoryNode *curr)
 
     if (curr == SearchHistoryGraph) {
 	// reseting search.
-	pathDepth = 0;
+	PCpathDepth = 0;
     }
 
     // check for cycles in refinement path.
-    for (i=0; i < pathDepth; i++) {
-       assert(refinementPath[i] != curr);
+    for (i=0; i < PCpathDepth; i++) {
+       assert(PCrefinementPath[i] != curr);
     }
 
     currentSHGNode = curr;
 
     // push old currentSHGNode on refinement path.
-    if (!refinementPath) {
-	pathMax = 10;
-	refinementPath = (searchHistoryNode **)
-	    calloc(pathMax, sizeof(searchHistoryNode*));
-    } else if (pathMax == pathDepth) {
-	pathMax += 10;
-	refinementPath = (searchHistoryNode **)
-	    realloc(refinementPath, pathMax * sizeof(searchHistoryNode*));
+    if (!PCrefinementPath) {
+	PCpathMax = 10;
+	PCrefinementPath = (searchHistoryNode **)
+	    calloc(PCpathMax, sizeof(searchHistoryNode*));
+    } else if (PCpathMax == PCpathDepth) {
+	PCpathMax += 10;
+	PCrefinementPath = (searchHistoryNode **)
+	    realloc(PCrefinementPath, PCpathMax * sizeof(searchHistoryNode*));
     }
-    refinementPath[pathDepth++] = curr;
+    PCrefinementPath[PCpathDepth++] = curr;
 }
 
 Boolean verifyPreviousRefinements()
@@ -568,30 +572,30 @@ Boolean verifyPreviousRefinements()
     searchHistoryNodeList currNode;
 
     // verify that the refinement path we took is still true;
-    for (i=0; i < pathDepth; i++) {
-	if (refinementPath[i]->status != TRUE) {
+    for (i=0; i < PCpathDepth; i++) {
+	if (PCrefinementPath[i]->status != TRUE) {
 	    // pauseApplication(context);
 
 	    printf("The bottleneck we were refining changed\n");
 	    printf("The bottleneck was:");
-	    defaultExplanation(refinementPath[i]);
+	    defaultExplanation(PCrefinementPath[i]);
 
 	    // disable all nodes.
 	    for (currNode = allSHGNodes; curr = *currNode; currNode++) {
 		curr->changeActive(FALSE);
 	    }
 
-	    // Find the last point down the refinementPath that has all
+	    // Find the last point down the PCrefinementPath that has all
 	    // previous nodes true.
 	    SearchHistoryGraph->changeActive(TRUE);
 	    currentSHGNode = SearchHistoryGraph;
-	    for (i=0; i < pathDepth; i++) {
-		if (refinementPath[i]->status == TRUE) {
-		    currentSHGNode = refinementPath[i];
+	    for (i=0; i < PCpathDepth; i++) {
+		if (PCrefinementPath[i]->status == TRUE) {
+		    currentSHGNode = PCrefinementPath[i];
 		    currentSHGNode->changeActive(TRUE);
 		} else {
 		    // the current one is not true so stop marking.
-		    pathDepth = i;
+		    PCpathDepth = i;
 		    break;
 		}
 	    }
@@ -602,7 +606,7 @@ Boolean verifyPreviousRefinements()
 	    }
 
 	    // prevent any further auto refinement.
-	    // autoRefinementLimit = 0;
+	    // PCautoRefinementLimit = 0;
 
 	    printf("The search has been reset to the bottleneck\n    ");
 	    defaultExplanation(currentSHGNode);
@@ -625,7 +629,7 @@ void performanceConsultant::search(Boolean stopOnChange, int limit)
 	printf("must specify application to run first\n");
 	return;
     }
-    currentTime = 0.0;
+    PCcurrentTime = 0.0;
     if (currentTestResults) 
 	delete(currentTestResults); 
     currentTestResults = NULL;
@@ -638,11 +642,17 @@ void performanceConsultant::search(Boolean stopOnChange, int limit)
 
     // refine one step now and then let it go.
     printf("setting limit to %d\n", limit);
-    autoRefinementLimit = limit;
+    PCsearchPaused = FALSE;
+    PCautoRefinementLimit = limit;
     autoSelectRefinements();
     dataMgr->continueApplication(context);
 }
 
+void performanceConsultant::pauseSearch()
+{
+     PCsearchPaused = TRUE;
+     PCautoRefinementLimit = 0; 
+}
 
 //
 // returns 0 if able to set it.
@@ -670,8 +680,8 @@ int performanceConsultant::setCurrentSHGnode(int node)
 	printf("Node %d is not true \n", node);
 	return(-1);
     }
-    for (i=0; i < pathDepth; i++) {
-        if (refinementPath[i]->status != TRUE) {
+    for (i=0; i < PCpathDepth; i++) {
+        if (PCrefinementPath[i]->status != TRUE) {
             printf("search history graph ancestor not true\n");
             printf("paradyn Error #9\n");
             return(-1);

@@ -2,7 +2,10 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.4  1994/04/27 22:54:59  hollings
+ * Revision 1.5  1994/05/02 20:38:08  hollings
+ * added pause search mode, and cleanedup global variable naming.
+ *
+ * Revision 1.4  1994/04/27  22:54:59  hollings
  * Merged refine auto and search.
  *
  * Revision 1.3  1994/03/01  21:25:08  hollings
@@ -55,8 +58,9 @@
 // 25% to start
 tunableConstant predictedCostLimit(0.25, 0.0, 1.0, NULL, "predictedCostLimit",
   "Max. allowable perturbation of the application.");
-searchHistoryNode *baseSHGNode;
-extern int autoRefinementLimit;
+
+searchHistoryNode *PCbaseSHGNode;
+extern int PCautoRefinementLimit;
 extern searchHistoryNodeList BuildAllRefinements(searchHistoryNode *of);
 
 int CompareOptions(const void *left, const void *right)
@@ -67,8 +71,8 @@ int CompareOptions(const void *left, const void *right)
     searchHistoryNode *b = *(searchHistoryNode**) right;
 
     // first use hints.
-    if (baseSHGNode->hints) {
-	hl = *baseSHGNode->hints;
+    if (PCbaseSHGNode->hints) {
+	hl = *PCbaseSHGNode->hints;
 	for (;h = *hl; (void ) hl++) {
 	    if (a->why == h->why) {
 		return(-1);
@@ -86,17 +90,17 @@ int CompareOptions(const void *left, const void *right)
 	return(0);
     }
     // next use why before where.
-    if ((a->why != baseSHGNode->why) || (b->why !=  baseSHGNode->why)) {
-	if (a->why == baseSHGNode->why)
+    if ((a->why != PCbaseSHGNode->why) || (b->why !=  PCbaseSHGNode->why)) {
+	if (a->why == PCbaseSHGNode->why)
 	    return(1);
-	if (b->why == baseSHGNode->why)
+	if (b->why == PCbaseSHGNode->why)
 	    return(-1);
 	return(strcmp(a->why->name, b->why->name));
-    } else if ((a->where != baseSHGNode->where) || 
-	       (b->where != baseSHGNode->where)) {
-	if (a->where == baseSHGNode->where)
+    } else if ((a->where != PCbaseSHGNode->where) || 
+	       (b->where != PCbaseSHGNode->where)) {
+	if (a->where == PCbaseSHGNode->where)
 	    return(1);
-	if (b->where == baseSHGNode->where)
+	if (b->where == PCbaseSHGNode->where)
 	    return(-1);
 	// use strcmp to ensure a unique ordering.
 	return(strcmp(a->where->getName(), b->where->getName()));
@@ -138,7 +142,7 @@ void autoSelectRefinements()
     }
 
     // order the options list.
-    baseSHGNode = currentSHGNode;
+    PCbaseSHGNode = currentSHGNode;
     qsort(refinementOptions, refineCount, sizeof(searchHistoryNode*), 
 	CompareOptions);
 
@@ -177,13 +181,13 @@ void autoChangeRefineList()
 	printf("all refinements considered...application paused\n");
 
 	// prevent any further auto refinement.
-	autoRefinementLimit = 0;
+	PCautoRefinementLimit = 0;
 
 	return;
     }
 
     configureTests();
-    timeLimit = currentTime + sufficientTime.getValue();
+    timeLimit = PCcurrentTime + sufficientTime.getValue();
     printf("setting autorefinement timelimit to %f\n", timeLimit);
 
     // see if the new ones are true already.
@@ -232,7 +236,7 @@ Boolean autoTestRefinements()
 	    refinementOptions = NULL;
 
 	    // we made a refinement decrement counter.
-	    autoRefinementLimit--;
+	    PCautoRefinementLimit--;
 
 	    // advance to next refinement canidate list.
 	    autoSelectRefinements();

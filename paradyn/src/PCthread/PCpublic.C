@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.5  1994/04/27 22:55:03  hollings
+ * Revision 1.6  1994/05/02 20:38:13  hollings
+ * added pause search mode, and cleanedup global variable naming.
+ *
+ * Revision 1.5  1994/04/27  22:55:03  hollings
  * Merged refine auto and search.
  *
  * Revision 1.4  1994/04/21  04:56:04  karavan
@@ -58,7 +61,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.5 1994/04/27 22:55:03 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.6 1994/05/02 20:38:13 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -290,6 +293,11 @@ searchHistoryNode *performanceConsultant::getCurrentRefinement()
     return(currentSHGNode);
 }
 
+int performanceConsultant::getCurrentNodeId()
+{
+    return(currentSHGNode->nodeId);
+}
+
 void performanceConsultant::printSHGList()
 {
     searchHistoryNodeList curr;
@@ -327,6 +335,7 @@ void performanceConsultant::doRefine(int_Array ids)
 	}
     }
 }
+
 void performanceConsultant::resetRefinement()
 {
     searchHistoryNode *curr;

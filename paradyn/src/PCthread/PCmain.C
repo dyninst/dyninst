@@ -1,8 +1,11 @@
 
 /* $Log: PCmain.C,v $
-/* Revision 1.7  1994/04/21 05:00:10  karavan
-/* added global SHGid for visual display.
+/* Revision 1.8  1994/05/02 20:38:10  hollings
+/* added pause search mode, and cleanedup global variable naming.
 /*
+ * Revision 1.7  1994/04/21  05:00:10  karavan
+ * added global SHGid for visual display.
+ *
  * Revision 1.6  1994/04/06  21:24:10  markc
  * First log message.
  * */
@@ -48,9 +51,9 @@ void PCmetricFunc(performanceStream *ps, metric *met)
 {
     char *name;
     PCmetric *pcMet;
-    extern stringPool metricStrings;
+    extern stringPool PCmetricStrings;
 
-    name = metricStrings.findAndAdd(dataMgr->getMetricName(met));
+    name = PCmetricStrings.findAndAdd(dataMgr->getMetricName(met));
     pcMet = (PCmetric *) allMetrics.find(name);
     if (!pcMet) {
         printf("WARNING performance consultant has no use for %s\n", name);

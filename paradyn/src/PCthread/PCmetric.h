@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.3  1994/04/12 15:32:48  hollings
+ * Revision 1.4  1994/05/02 20:38:12  hollings
+ * added pause search mode, and cleanedup global variable naming.
+ *
+ * Revision 1.3  1994/04/12  15:32:48  hollings
  * generalized hysteresis into a normalization constant to cover pause,
  * contention, and ignored bottlenekcks too.
  *
@@ -70,7 +73,7 @@ enum calcType { CalcSum, CalcNormalize };
 enum warningLevel { wNever, wOnce, wAlways };
 
 extern warningLevel noDataWarning;
-extern timeStamp currentTime;
+extern timeStamp PCcurrentTime;
 
 class datum {
     public:
@@ -152,16 +155,16 @@ class PCmetric {
 
 	//
 	sampleValue avg(focusList fl) { 
-	     return avg(fl, currentInterval->start, currentTime); 
+	     return avg(fl, currentInterval->start, PCcurrentTime); 
 	}
 	sampleValue min(focusList fl) { 
-	    return avg(fl, currentInterval->start, currentTime); 
+	    return avg(fl, currentInterval->start, PCcurrentTime); 
 	}
 	sampleValue max(focusList fl) { 
-	    return avg(fl, currentInterval->start, currentTime); 
+	    return avg(fl, currentInterval->start, PCcurrentTime); 
 	}
 	sampleValue sum(focusList fl) { 
-	    return avg(fl, currentInterval->start, currentTime); 
+	    return avg(fl, currentInterval->start, PCcurrentTime); 
 	}
     private:
 	char *name;

@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.6  1994/04/13 01:37:07  markc
+ * Revision 1.7  1994/05/02 20:38:14  hollings
+ * added pause search mode, and cleanedup global variable naming.
+ *
+ * Revision 1.6  1994/04/13  01:37:07  markc
  * Added ifdef print statements to see hypothesis checks.
  *
  * Revision 1.5  1994/04/12  15:32:49  hollings
@@ -52,7 +55,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.6 1994/04/13 01:37:07 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.7 1994/05/02 20:38:14 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -535,7 +538,7 @@ void defaultExplanation(searchHistoryNode *explainee)
 	printf("***** NO HYPOTHESIS *******\n");
     }
     explainee->where->print();
-    printf("at %f\n", currentTime);
+    printf("at %f\n", PCcurrentTime);
 
 }
 

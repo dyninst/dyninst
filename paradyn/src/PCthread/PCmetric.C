@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.5  1994/04/12 15:32:47  hollings
+ * Revision 1.6  1994/05/02 20:38:11  hollings
+ * added pause search mode, and cleanedup global variable naming.
+ *
+ * Revision 1.5  1994/04/12  15:32:47  hollings
  * generalized hysteresis into a normalization constant to cover pause,
  * contention, and ignored bottlenekcks too.
  *
@@ -57,7 +60,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.5 1994/04/12 15:32:47 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.6 1994/05/02 20:38:11 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -73,10 +76,11 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 tunableConstant sufficientTime(6.0, 0.0, 1000.0, NULL, "sufficientTime",
   "How long to wait (in seconds) before we can concule a hypothesis is false.");
 
-int totalHistograms;
-timeStamp currentTime;
-int autoRefinementLimit;
-stringPool metricStrings;
+int PCsearchPaused;
+// int totalHistograms;
+timeStamp PCcurrentTime;
+int PCautoRefinementLimit;
+stringPool PCmetricStrings;
 int samplesSinceLastChange;
 timeStamp lastTestChageTime;
 Boolean explainationFlag = FALSE;
@@ -99,7 +103,7 @@ extern Boolean doAutoRefinement(searchHistoryNode *, int);
 
 PCmetric::PCmetric(char *id)
 {
-    name = metricStrings.findAndAdd(id);
+    name = PCmetricStrings.findAndAdd(id);
     aggregationOperator = Sum;
     calc = CalcNormalize;
     allMetrics.add(this, name);
@@ -107,7 +111,7 @@ PCmetric::PCmetric(char *id)
 
 PCmetric::PCmetric(char *id, aggregation ag, calcType c)
 {
-    name = metricStrings.findAndAdd(id);
+    name = PCmetricStrings.findAndAdd(id);
     aggregationOperator = ag;
     calc = c;
     allMetrics.add(this, name);
@@ -122,8 +126,8 @@ sampleValue PCmetric::value()
 {
     timeStamp end;
 
-    end = currentTime;
-    return(value(currentFocus, (timeStamp) currentTime, end)); 
+    end = PCcurrentTime;
+    return(value(currentFocus, (timeStamp) PCcurrentTime, end)); 
 }
 
 /* ARGSUSED */
@@ -133,8 +137,8 @@ sampleValue PCmetric::value(focus *f)
 
     if (!f) return(0.0);
 
-    end = currentTime;
-    return(value(f, (timeStamp) currentTime, end));
+    end = PCcurrentTime;
+    return(value(f, (timeStamp) PCcurrentTime, end));
 }
 
 /* ARGSUSED */
@@ -154,8 +158,8 @@ sampleValue PCmetric::value(focusList fList)
 {
     timeStamp end;
 
-    end = currentTime;
-    return(value(fList, (timeStamp) currentTime, end));
+    end = PCcurrentTime;
+    return(value(fList, (timeStamp) PCcurrentTime, end));
 }
 
 /* ARGSUSED */
@@ -226,7 +230,7 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
     datum *val;
     extern void printCurrentFocus();
 
-    lastTestChageTime = currentTime;
+    lastTestChageTime = PCcurrentTime;
 
     // find the current sample for the given focus.
     val = findDatum(f);
@@ -251,7 +255,7 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
 	val->refCount++;
 	if (!val->enabled) {
 	    val->samplesSinceEnable = 0;
-	    val->enableTime = currentTime;
+	    val->enableTime = PCcurrentTime;
 	    val->used = TRUE;
 	    val->mi = dataMgr->enableDataCollection(pcStream,val->resList, met);
 	    if (val->mi) {
@@ -420,22 +424,29 @@ void datum::newSample(timeStamp start, timeStamp end, sampleValue value)
     samplesSinceLastChange = globalMinSampleCount();
 
     //
+    // see that we are actively searching before trying to eval tests!
+    //
+    if (PCsearchPaused) {
+	return;
+    }
+
+    //
     // wait minObservationTime between calls to eval.
     //
-    if (end > currentTime + minObservationTime.getValue()) {
-	currentTime = end;
+    if (end > PCcurrentTime + minObservationTime.getValue()) {
+	PCcurrentTime = end;
 
-	if (currentTime < lastTestChageTime + minObservationTime.getValue()) 
+	if (PCcurrentTime < lastTestChageTime + minObservationTime.getValue()) 
 	    return;
 
 	/* try to evaluate a test */
 	changed = doScan();
-	if (autoRefinementLimit != 0) {
+	if (PCautoRefinementLimit != 0) {
 	    if (changed) {
 		autoTestRefinements();
-	    } else if (currentTime > timeLimit) {
+	    } else if (PCcurrentTime > timeLimit) {
 		// we have waited sufficient observation time move on.
-		printf("autorefinement timelimit reached at %f\n", currentTime);
+		printf("autorefinement timelimit reached at %f\n", PCcurrentTime);
 		printf("samplesSinceLastChange = %d\n", samplesSinceLastChange);
 		autoTimeLimitExpired();
 	    }
@@ -458,7 +469,7 @@ PCmetric *findMetric(char *name)
 {
     char *id;
 
-    id = metricStrings.findAndAdd(name);
+    id = PCmetricStrings.findAndAdd(name);
     return(allMetrics.find(id));
 }
 
