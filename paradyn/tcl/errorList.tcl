@@ -1,7 +1,10 @@
 
 #
 # $Log: errorList.tcl,v $
-# Revision 1.22  1996/03/22 22:03:29  tamches
+# Revision 1.23  1996/04/03 14:29:20  naim
+# Adding error number 96 - naim
+#
+# Revision 1.22  1996/03/22  22:03:29  tamches
 # added dynRPC version mismatch as possible explanations to errors 14 and 84.
 #
 # Revision 1.21  1996/03/20 17:04:36  mjrg
@@ -811,4 +814,11 @@ tables.
 }
 }
 
-set numPdErrors 95
+set pdError(96) {
+{Internal error: attempt to free non-defined heap entry.}
+{paradynd}
+{serious error}
+{Internal error. Please, report this error to paradyn@cs.wisc.edu}
+}
+
+set numPdErrors 96
