@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.68 1999/08/09 05:50:31 csserra Exp $
+// $Id: symtab.h,v 1.69 1999/11/09 19:20:06 cain Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -570,6 +570,14 @@ public:
   // functions in search.
   pd_Function *findFunction(const Address &addr,
     bool find_if_excluded = FALSE);
+
+  //Same as findFunction, only it correctly compares the address against
+  //the relocated addresses of relocated functions, rather than their
+  //pre-relocation function.
+  //This function is only necessary because the modification 
+  //findFunctionIn to use effective addresses results in strange
+  //bugs popping up in IRIX.
+  pd_Function *findPossiblyRelocatedFunctionIn(const Address &addr,const process *p) const;
 
   // return NULL if function is excluded!!!!
   pd_Function *findOneFunction(const string &name);

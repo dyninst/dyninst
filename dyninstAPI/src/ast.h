@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.41 1999/08/26 20:02:21 hollings Exp $
+// $Id: ast.h,v 1.42 1999/11/09 19:20:04 cain Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -139,7 +139,7 @@ class AstNode {
 			   /*DataValue, DataPtr,*/ 
                            DataId, DataIndir, DataReg,
 			   Param, ReturnVal, DataAddr, FrameAddr,
-			   SharedData};
+			   SharedData, PreviousStackFrameDataReg};
 
         AstNode(); // mdl.C
 	AstNode(const string &func, AstNode *l, AstNode *r);
@@ -252,6 +252,12 @@ AstNode *createTimer(const string &func, void *,
 Register emitFuncCall(opCode op, registerSpace *rs, char *i, Address &base, 
 		      const vector<AstNode *> &operands, const string &func,
 		      process *proc, bool noCost, const function_base *funcbase);
+void emitLoadPreviousStackFrameRegister(Address register_num,
+					Register dest,
+					char *insn,
+					Address &base,
+					int size,
+					bool noCost);
 void emitFuncJump(opCode op, char *i, Address &base,
 		  const function_base *func, process *proc);
 

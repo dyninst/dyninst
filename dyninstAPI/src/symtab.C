@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.103 1999/11/05 23:17:44 wylie Exp $
+// $Id: symtab.C,v 1.104 1999/11/09 19:20:06 cain Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,6 +48,7 @@
 // TODO - machine independent instruction functions
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/arch.h"
+#include "dyninstAPI/src/instPoint.h"
 #include "util/h/Object.h"
 #include <fstream.h>
 #include "dyninstAPI/src/util.h"
@@ -195,7 +196,7 @@ bool image::newFunc(pdmodule *mod, const string &name, const Address addr,
     showErrorCallback(34, "Error function without module");
     return false;
   }
-
+  
   string mangled_name = name;
   const char *p = P_strchr(name.string_of(), ':');
   if (p) {
@@ -208,7 +209,7 @@ bool image::newFunc(pdmodule *mod, const string &name, const Address addr,
     demangled = mangled_name;
 
   bool err=false;
-
+  
   func = new pd_Function(name, demangled, mod, addr, size, tag, this, err);
   assert(func);
   //cout << name << " pretty: " << demangled << " addr :" << addr <<endl;
@@ -246,7 +247,6 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
     } else {
         includedFunctions += func;
 	funcsByAddr[addr] = func;
-
 	if (!funcsByPretty.find(func->prettyName(), funcsByPrettyEntry)) {
             funcsByPrettyEntry = new vector<pd_Function*>;
             funcsByPretty[func->prettyName()] = funcsByPrettyEntry;
@@ -645,7 +645,41 @@ pd_Function *image::findFunctionInInstAndUnInst(const Address &addr,const proces
 
   return NULL; 
 }
+
+//This function is identical to FindFunctionIn(), only it
+//determines the relocated address of functions that have
+//been relocated, rather than their prelocation address.
+pd_Function *image::findPossiblyRelocatedFunctionIn(const Address &addr,const process *p) const 
+{
+  pd_Function *pdf;
+
+  // first, look in funcsByAddr - should contain instrumentable non-
+  //  excluded functions....
+  dictionary_hash_iter<Address, pd_Function*> mi(funcsByAddr);
+  Address adr;
+  while (mi.next(adr, pdf)) {
+    if ((addr>=pdf->getEffectiveAddress(p))&&(addr<(pdf->getEffectiveAddress(p)+pdf->size())))
+      return pdf;
+  }
+
+  // next, look in excludedFunctions...
+  dictionary_hash_iter<string, pd_Function*> ex(excludedFunctions);
+  string str;
+  while (ex.next(str, pdf)) {
+    if ((addr>=pdf->getEffectiveAddress(p))&&(addr<(pdf->getEffectiveAddress(p)+pdf->size()))) 
+      return pdf;
+  }
+  
+  dictionary_hash_iter<string, pd_Function *> ni(notInstruFunctions);
+  while (ni.next(str, pdf)) {
+    if ((addr>=pdf->getEffectiveAddress(p))&&(addr<(pdf->getEffectiveAddress(p)+pdf->size()))) 
+      return pdf;
+  }
+  
+  return NULL; 
+}
  
+
 pd_Function *image::findFunctionIn(const Address &addr,const process *p) const 
 {
   pd_Function *pdf;
@@ -655,8 +689,9 @@ pd_Function *image::findFunctionIn(const Address &addr,const process *p) const
   dictionary_hash_iter<Address, pd_Function*> mi(funcsByAddr);
   Address adr;
   while (mi.next(adr, pdf)) {
-    if ((addr>=pdf->getAddress(p))&&(addr<(pdf->getAddress(p)+pdf->size()))) 
+    if ((addr>=pdf->getAddress(p))&&(addr<(pdf->getAddress(p)+pdf->size()))){
       return pdf;
+    }
   }
   
   // next, look in excludedFunctions...
@@ -823,12 +858,15 @@ void image::FillInCallGraphStatic(process *proc)
   string pds;
   pdmodule *mod;
   dictionary_hash_iter<string, pdmodule*> mi(modsByFileName);
+  string buffer;
 
   // define call graph relations for all non-excluded modules.
   while (mi.next(pds, mod)){
+    buffer = "building call graph module: " +
+      mod->fileName();
+    statusLine(buffer.string_of());
     mod->FillInCallGraphStatic(proc);
   }
-
   // also define call graph relations for all excluded modules.
   //  Call graph gets information about both included and excluded 
   //  modules and functions, and allows the DM and PC to decide whether
@@ -836,6 +874,9 @@ void image::FillInCallGraphStatic(process *proc)
   //  included or excluded....
   for(i=0;i<excludedMods.size();i++) {
     mod = excludedMods[i];
+    buffer = "building call graph module: " +
+      mod->fileName();
+    statusLine(buffer.string_of());
     mod->FillInCallGraphStatic(proc);
   }
 }
@@ -948,14 +989,14 @@ void pdmodule::FillInCallGraphStatic(process *proc) {
   resource *r , *callee_as_resource;
   string callee_full_name;
   vector <string>callees_as_strings;
-  unsigned f, g, f_size = funcs.size();
+  vector <instPoint*> callPoints; 
+  unsigned f, g,i, f_size = funcs.size();
   
   string resource_full_name;
   
-  //vector <instPoint*> callPoints;
-  
   // for each INSTRUMENTABLE function in the module (including excluded 
   //  functions, but NOT uninstrumentable ones)....
+  
   for (f=0;f<f_size;f++) {
     pdf = funcs[f];
     
@@ -974,7 +1015,6 @@ void pdmodule::FillInCallGraphStatic(process *proc) {
     // get list of statically determined call destinations from pdf,
     //  using the process info to help fill in calls througb PLT
     //  entries....
-    
     pdf->getStaticCallees(proc, callees); 
     
     // and convert them into a list of resources....
@@ -982,26 +1022,19 @@ void pdmodule::FillInCallGraphStatic(process *proc) {
       callee = callees[g];
       assert(callee);
       
-      if (callee->FuncResourceSet() == false) {
-	//cerr << " WARNING (finding call graph children of function "
-	//<< resource_full_name.string_of() 
-	//<< " ) : callee function: " << endl 
-	//<< "\t" << callee->prettyName().string_of() 
-	//<< " never registered as resource " 
-	//<< " (function probably uninstrumentable) "
-	//<< " not including link in call graph"
-	//<< endl;
-      }
-      else {
+      //if the funcResource is not set, then the function must be
+      //uninstrumentable, so we don't want to notify the front end
+      //of its existence
+      if(callee->FuncResourceSet()){
 	callee_full_name = callee->ResourceFullName();
 	
 	// if callee->funcResource has been set, then it should have 
 	//  been registered as a resource.... 
 	callee_as_resource = resource::findResource(callee_full_name);
 	assert(callee_as_resource);
-	
 	callees_as_strings += callee_full_name;
-      }
+	}
+      
     }//end for
     
     // register that callee_resources holds list of resource*s 
@@ -1010,6 +1043,16 @@ void pdmodule::FillInCallGraphStatic(process *proc) {
     AddCallGraphNodeCallback(exe_name, resource_full_name);
     AddCallGraphStaticChildrenCallback(exe_name, resource_full_name,
 				       callees_as_strings);
+
+    //Locate the dynamic call sites within the function, and notify 
+    //the front end as to their existence
+    callPoints = pdf->funcCalls(proc);
+    for(i = 0; i < callPoints.size(); i++){
+      if(proc->isDynamicCallSite(callPoints[i])){
+	tp->CallGraphAddDynamicCallSiteCallback(exe_name, resource_full_name);
+	break;
+      }
+    }
   }
 }
 #endif // ndef BPATCH_LIBRARY

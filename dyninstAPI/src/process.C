@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.195 1999/11/06 21:40:04 wylie Exp $
+// $Id: process.C,v 1.196 1999/11/09 19:20:04 cain Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2466,7 +2466,6 @@ bool process::handleStartProcess(){
 #ifndef BPATCH_LIBRARY
     statusLine("building process call graph");
     this->FillInCallGraphStatic();
-
     if(resource::num_outstanding_creates)
        this->setWaitingForResources();
 #endif
@@ -4180,8 +4179,9 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 			      req->when, req->order, false);
 
       }
+
       removeAst(ast);
-   }
+}
 }
 
 bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
@@ -4757,11 +4757,54 @@ void process::FillInCallGraphStatic()
   // build call graph for module containing entry point
   // ("main" is not always defined in the executable)
   image *main_img = entry_pdf->file()->exec();
-  if (main_img != symbols) {
+  if (main_img != symbols) 
     main_img->FillInCallGraphStatic(this);
-  }
+
   // TODO: build call graph for all shared objects?
   CallGraphFillDone(symbols->file());
 
 }
+
+void process::MonitorDynamicCallSites(string function_name){
+  resource *r, *p;
+  pdmodule *mod;
+  r = resource::findResource(function_name);
+  assert(r);
+  p = r->parent();
+  assert(p);
+  mod = symbols->findModule(p->name());
+  if(!mod){
+    //Must be the weird case where main() isn't in the executable
+    pd_Function *entry_pdf = (pd_Function *)findOneFunction("main");
+    assert(entry_pdf);
+    image *main_img = entry_pdf->file()->exec();
+    assert(main_img);
+    mod = main_img->findModule(p->name());
+  }
+  assert(mod);
+  
+  function_base *func, *temp;
+  func = mod->findFunction(r->name());
+  assert(func);
+
+  //Should I just be using a resource::handle here instead of going through
+  //all of this crap to find a pointer to the function???
+  string exe_name = getImage()->file();
+  vector<instPoint*> callPoints;
+  callPoints = func->funcCalls(this);
+  
+  unsigned i;
+  for(i = 0; i < callPoints.size(); i++){
+    if(!findCallee(*(callPoints[i]),temp)){
+      if(!MonitorCallSite(callPoints[i])){
+	fprintf(stderr, 
+	     "ERROR in daemon, unable to monitorCallSite for function :%s\n",
+	     function_name.string_of());
+      }
+    }
+  }
+}
 #endif
+
+
+

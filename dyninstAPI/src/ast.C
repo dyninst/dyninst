@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.73 1999/11/09 17:06:15 hollings Exp $
+// $Id: ast.C,v 1.74 1999/11/09 19:20:04 cain Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -1272,11 +1272,16 @@ Address AstNode::generateCode_phase2(process *proc,
 #endif
 	    emitV(loadIndirOp, src, 0, dest, insn, base, noCost, size); 
             rs->freeRegister(src);
-	} else if (oType == DataReg) {
+	} 
+	else if (oType == DataReg) {
             rs->unkeep_register(dest);
             rs->freeRegister(dest);
             dest = (Address)oValue;
-	} else if (oType == DataId) {
+	} 
+	else if(oType == PreviousStackFrameDataReg)
+	  emitLoadPreviousStackFrameRegister((Address) oValue, dest,insn,base,
+					     size, noCost);
+	else if (oType == DataId) {
 	    emitVload(loadConstOp, (Address)oValue, dest, dest, 
                         insn, base, noCost);
 /*	} else if (oType == DataValue) {
