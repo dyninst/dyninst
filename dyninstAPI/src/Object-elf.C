@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.79 2004/08/23 19:08:19 legendre Exp $
+ * $Id: Object-elf.C,v 1.80 2005/01/11 22:44:57 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -1593,6 +1593,9 @@ static void insertUniqdSymbol(const Symbol &sym,
 
 void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr /*userData*/)
 {
+  if (error == NULL)
+    return;
+
   char *dwarf_msg = dwarf_errmsg(error);
   bperr( "DWARF error: %s", dwarf_msg);
 }
@@ -2336,6 +2339,8 @@ bool Object::getCatchBlock(ExceptionBlock &b, Address addr,
    int min = 0;
    int max = catch_addrs_.size();
    int cur = -1, last_cur;
+
+   return false;
 
    if (max == 0)
       return false;
