@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.122 2003/04/10 19:39:48 schendel Exp $
+// $Id: symtab.h,v 1.123 2003/04/10 22:46:59 jodom Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -802,7 +802,15 @@ public:
    static void removeImage(fileDescriptor *desc);
    
   image(fileDescriptor *desc, bool &err, Address newBaseAddr = 0); 
+ protected:
   ~image() { /* TODO */ }
+ public:
+  image *clone() { refCount++; return this; }
+  int destroy() {
+    if (!--refCount)
+      delete this; 
+    return refCount; 
+  }
 
   // Check the list of symbols returned by the parser, return
   // name/addr pair
@@ -1128,7 +1136,7 @@ public:
   // Variables indexed by pretty (non-mangled) name
   dictionary_hash <string, pdvector<string>*> varsByPretty;
  
-
+  int refCount;
 };
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.158 2003/04/04 18:19:47 pcroth Exp $
+// $Id: symtab.C,v 1.159 2003/04/10 22:46:59 jodom Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1471,7 +1471,8 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   notInstruFunctions(string::hash),
   modsByFileName(string::hash),
   modsByFullName(string::hash),
-  varsByPretty(string::hash)
+  varsByPretty(string::hash),
+  refCount(1)
 {
   err = false;
   sharedobj_cerr << "image::image for file name="

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.403 2003/04/09 22:05:05 schendel Exp $
+// $Id: process.C,v 1.404 2003/04/10 22:46:59 jodom Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2456,7 +2456,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
    wasRunningWhenAttached_ = true;
    needToContinueAfterDYNINSTinit = true;
 
-   symbols = parentProc.symbols; //shouldn't a reference count also be bumped?
+   symbols = parentProc.symbols->clone();
    symbols->updateForFork(this, &parentProc);
    mainFunction = parentProc.mainFunction;
 
@@ -5514,11 +5514,9 @@ void process::handleExecExit() {
     }
 
     // delete proc->symbols ???  No, the image can be shared by more
-    // than one process...images and instPoints can not be deleted...TODO
-    // add some sort of reference count to these classes so that they can
-    // be deleted
-   image::removeImage(symbols);
-   delete symbols;
+    // than one process...images and instPoints can not be deleted...
+   if (!symbols->destroy())
+     image::removeImage(symbols);
    
     symbols = img;
 
