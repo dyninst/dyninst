@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.401 2003/04/02 07:12:25 jaw Exp $
+// $Id: process.C,v 1.402 2003/04/04 21:55:49 willb Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2749,6 +2749,21 @@ process *createProcess(const string File, pdvector<string> argv,
     // Ignored except on NT (where we modify in forkNewProcess, and ignore the result???)
     int procHandle_temp;
     int thrHandle_temp;
+
+#ifndef BPATCH_LIBRARY
+
+    struct stat file_stat;
+    int stat_result;
+
+    stat_result = stat(file.c_str(), &file_stat);
+    
+    if(stat_result == -1) {
+        string msg = string("Can't read executable file ") + file + (": ") + strerror(errno);
+        showErrorCallback(68, msg.c_str());
+        return(NULL);
+    }
+
+#endif
     
     if (!forkNewProcess(file, dir, argv, envp, inputFile, outputFile,
 		   traceLink, pid, tid, procHandle_temp, thrHandle_temp,
