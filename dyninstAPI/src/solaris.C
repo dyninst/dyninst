@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.72 1999/07/07 16:09:28 zhichen Exp $
+// $Id: solaris.C,v 1.73 1999/07/19 22:58:04 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -920,6 +920,8 @@ bool process::continueProc_() {
   prstatus_t stat;
 
 #ifdef PURE_BUILD
+  // explicitly initialize "flags" struct (to pacify Purify)
+  memset(&flags, '\0', sizeof(flags));
   // explicitly initialize "stat" struct (to pacify Purify)
   // (at least initialize those components which we actually use)
   stat.pr_flags = 0x0000;
