@@ -5,9 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.59  1995/12/08 05:50:05  tamches
-/* removed some warnings
+/* Revision 1.60  1996/01/08 22:09:40  tamches
+/* added "paradyn shg getNodeInfo <id>" command, which calls
+/* the (not yet implemented) perfConsult->getNodeInfo(id) igen call.
 /*
+ * Revision 1.59  1995/12/08 05:50:05  tamches
+ * removed some warnings
+ *
  * Revision 1.58  1995/12/01 06:39:18  tamches
  * removed some warnings
  *
@@ -860,6 +864,7 @@ int ParadynSHGCmd (ClientData,
   int node;
 
   if (argc == 2 && !strcmp(argv[1], "get")) {
+    // return the current shg node (is such a thing obsolete? --ari)
     node = perfConsult->getCurrentNodeId();
     sprintf(interp->result, "%d", node);
     return(TCL_OK);
@@ -870,6 +875,7 @@ int ParadynSHGCmd (ClientData,
   } else if (argc == 3 && 
 	     !strcmp(argv[1], "set") && 
 	     (node = atoi(argv[2]) > 0)) {
+    // set the current shg node (is such a thing obsolete? --ari)
     sprintf(interp->result, "%d", perfConsult->setCurrentSHGnode(node));
     return TCL_OK;
   } else if (argc == 3 && !strcmp(argv[1], "start")) {
@@ -878,11 +884,54 @@ int ParadynSHGCmd (ClientData,
     else 
       perfConsult->newSearch(CurrentPhase);
     return TCL_OK;
+  } else if (argc == 3 && 0==strcmp(argv[1], "getNodeInfo")) {
+    int node = atoi(argv[2]);
+    // make igen call to the PC now:
+    shg_node_info theNodeInfo;
+    bool success = perfConsult->getNodeInfo(node, &theNodeInfo);
+    if (!success) {
+       cerr << "paradyn shg getNodeInfo failure...probably bad node id" << endl;
+       cerr << "the node id was: " << node << endl;
+       return TCL_ERROR;
+    }
+    // Now we need to break up the return value into a tcl "structure"
+    // The only thing I can think of is to use a tcl list as a tuple.
+    // We'll use Tcl_Merge towards this end.  This is ugly because
+    // Tcl_Merge declares that the result must be deallocated using free.
+    // It's also ugly because we have to go to the effort of converting
+    // everything to strings without leaking memory.  Blech.
+    char *strings[9];
+    strings[0] = theNodeInfo.why.string_of();
+    strings[1] = theNodeInfo.where.string_of();
+    strings[2] = theNodeInfo.currentConclusion ? "true" : "false";
+    char timeTrueFalseBuffer[80];
+    strings[3] = timeTrueFalseBuffer;
+    sprintf(timeTrueFalseBuffer, "%g", theNodeInfo.timeTrueFalse);
+    char currentValueBuffer[80];
+    strings[4] = currentValueBuffer;
+    sprintf(currentValueBuffer, "%g", theNodeInfo.currentValue);
+    char startTimeBuffer[80];
+    strings[5] = startTimeBuffer;
+    sprintf(startTimeBuffer, "%g", theNodeInfo.startTime);
+    char endTimeBuffer[80];
+    strings[6] = endTimeBuffer;
+    sprintf(endTimeBuffer, "%g", theNodeInfo.endTime);
+    char estimatedCostBuffer[80];
+    strings[7] = estimatedCostBuffer;
+    sprintf(estimatedCostBuffer, "%g", theNodeInfo.estimatedCost);
+    strings[8] = theNodeInfo.persistent ? "true" : "false";
+    
+    char *result = Tcl_Merge(9, strings);
+    strcpy(interp->result, result);
+    free(result); // yuck
+
+    return TCL_OK;    
   } else {
-    printf("Usage: paradyn shg set <int>\n");
-    printf("       paradyn shg get\n");
-    printf("       paradyn shg reset\n");
-    printf("       paradyn shg start <current|global>\n");
+    cout << "Usage: paradyn shg set <int>" << endl;
+    cout << "       paradyn shg get" << endl;
+    cout << "       paradyn shg reset" << endl;
+    cout << "       paradyn shg start <current|global>" << endl;
+    cout << "       paradyn shg getNodeInfo <int>" << endl;
     return TCL_ERROR;
   }
 }
