@@ -55,13 +55,27 @@ BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_flowGraph *fg)
     : flowGraph(fg), parent(NULL) {}
 
 BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_edge *be, 
-                                             BPatch_flowGraph *fg) 
+					     BPatch_flowGraph *fg) 
     : backEdge(be), flowGraph(fg), parent(NULL) {}
 
 bool BPatch_basicBlockLoop::containsAddressInt(unsigned long addr)
 {
     BPatch_Vector<BPatch_basicBlock*> blks;
     getLoopBasicBlocksExclusive(blks);
+
+    for(unsigned i = 0; i < blks.size(); i++) {
+	if (addr >= blks[i]->getStartAddress() &&
+	    addr < blks[i]->getStartAddress() + blks[i]->size() ) 
+	    return true;
+    }
+
+    return false;
+}
+
+bool BPatch_basicBlockLoop::containsAddressInclusiveInt(unsigned long addr)
+{
+    BPatch_Vector<BPatch_basicBlock*> blks;
+    getLoopBasicBlocks(blks);
 
     for(unsigned i = 0; i < blks.size(); i++) {
 	if (addr >= blks[i]->getStartAddress() &&
@@ -90,9 +104,9 @@ BPatch_basicBlockLoop::hasAncestorInt(BPatch_basicBlockLoop* l) {
 }
 
 
-void 
+bool
 BPatch_basicBlockLoop::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& nls, 
-			        bool outerMostOnly)
+				bool outerMostOnly) const
 {
     BPatch_basicBlockLoop** elements = 
 	new BPatch_basicBlockLoop* [containedLoops.size()];
@@ -112,35 +126,34 @@ BPatch_basicBlockLoop::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& nls,
     }
 
     delete[] elements;
+    return true;
 }
 
 //method that returns the nested loops inside the loop. It returns a set
 //of basicBlockLoop that are contained. It might be useful to add nest 
 //as a field of this class but it seems it is not necessary at this point
-bool 
+bool
 BPatch_basicBlockLoop::getContainedLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& nls)
 {
-    getLoops(nls, false);
-    return true;
+  return getLoops(nls, false);
 }
 
 // get the outermost loops nested under this loop
 bool 
 BPatch_basicBlockLoop::getOuterLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& nls)
 {
-    getLoops(nls, true);
-    return true;
+  return getLoops(nls, true);
 }
 
 //returns the basic blocks in the loop
-bool BPatch_basicBlockLoop::getLoopBasicBlocksInt(BPatch_Vector<BPatch_basicBlock*>& bbs){
-	BPatch_basicBlock** elements = 
-			new BPatch_basicBlock*[basicBlocks.size()];
-	basicBlocks.elements(elements);
-	for(unsigned i=0;i<basicBlocks.size();i++)
-		bbs.push_back(elements[i]);
-	delete[] elements;
-	return true;
+bool BPatch_basicBlockLoop::getLoopBasicBlocksInt(BPatch_Vector<BPatch_basicBlock*>& bbs) {
+  BPatch_basicBlock** elements = 
+    new BPatch_basicBlock*[basicBlocks.size()];
+  basicBlocks.elements(elements);
+  for(unsigned i=0;i<basicBlocks.size();i++)
+    bbs.push_back(elements[i]);
+  delete[] elements;
+  return true;
 }
 
 
