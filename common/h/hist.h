@@ -52,13 +52,13 @@ class Histogram {
 		return((timeStamp)(lastGlobalBin*bucketSize)); 
 	}
 	static int numBins;		/* max bins to use */
+	static timeStamp bucketSize;	/* width of a bucket */
     private:
 	void foldAllHist();
 	void convertToBins();
 	void bucketValue(timeStamp start, timeStamp end, 
 		sampleValue value, Boolean smooth);
 
-	static timeStamp bucketSize;	/* width of a bucket */
 	static timeStamp total_time;	/* numBins * bucketSize */
 	static int lastGlobalBin;	/* global point we have data from */
 	static Histogram *allHist;	/* linked list of all histograms */
