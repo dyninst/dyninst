@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.424 2003/05/13 19:55:10 igor Exp $
+// $Id: process.C,v 1.425 2003/05/14 16:52:06 mjbrim Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -7001,9 +7001,9 @@ void process::deleteThread(int tid)
       getRpcMgr()->deleteThread(thr);
 
       delete thr;    
-      sprintf(errorLine,"----- deleting thread, tid=%d, threads.size()=%d\n",
-              tid, threads.size());
-      logLine(errorLine);
+      //sprintf(errorLine,"----- deleting thread, tid=%d, threads.size()=%d\n",
+      //        tid, threads.size());
+      //logLine(errorLine);
 
       threads.erase(iter);
    }
