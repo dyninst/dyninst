@@ -81,7 +81,7 @@ debug_ostream &debug_ostream::operator<<(unsigned i) {
    return *this;
 }
 
-#if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
+#if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0) && !defined(ia64_unknown_linux2_4)
 debug_ostream &debug_ostream::operator<<(long l) {
    if (on)
       actual_ostream << l;
