@@ -39,87 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: resource.h,v
+
 #ifndef RESOURCE_HDR
 #define RESOURCE_HDR
-
-/*
- * $Log: resource.h,v $
- * Revision 1.15  2002/05/09 21:42:55  schendel
- * improve handling of focus in daemon  - - - - - - - - - - - - - - - - - -
- * add header file that should have been there, was previously being included
- *    by files which were including resource.h;
- * fixed findResource(unsigned) argument, because it wasn't getting called
- *    appropriately
- *
- * Revision 1.14  2000/10/17 17:42:38  schendel
- * Update of the sample value pipeline with changes in pdutil, paradynd, rtinst,
- * dyninstAPI_RT, and dyninstAPI.  The sample value and general time types have
- * been reimplemented with 64 bit integer types.  A framework has also been
- * added that allows either a hardware (HW) level time retrieval function or a
- * software (SW) level time retrieval function to be selected at run time.  This
- * commit supplies SW level timers for all of the platforms and also a HW level
- * timer on irix.  Changed so time samples in the rtinst library are in native
- * time units and time unit conversion is done in the daemon.  Restructured the
- * use of wall time, cpu time, cycle rate, instrumentation cost, and other uses
- * of time to use new general time classes.
- *
- * Revision 1.13  2000/03/06 21:41:25  zhichen
- * Moved /Process hierarchy to /Machine hierarchy.
- *
- * Revision 1.12  1997/06/27 18:15:08  tamches
- * new param to newResource.  send_now() is new.
- *
- * Revision 1.11  1997/04/29 23:17:45  mjrg
- * Changes for WindowsNT port
- * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
- * Changed way paradyn and paradynd generate resource ids
- * Changes to instPoint class in inst-x86.C to reduce size of objects
- * Added initialization for process->threads to fork and attach constructors
- *
- * Revision 1.10  1997/04/14 20:07:31  zhichen
- * Added
- * 	enum index { machine, procedure, sync_object, memory};
- *         resource *memoryRoot; // shared-memory resource
- *         resource *memoryResource; // shared-memory resource
- *         resource *resource::newResource_ncb(...)
- * changed
- * 	void resource::make_canonical...)
- *
- * Revision 1.9  1997/03/18 19:45:59  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- * Revision 1.8  1997/01/15 00:29:51  tamches
- * added uses of dictionary find() method.  Added some const.
- *
- * Revision 1.7  1996/09/26 18:59:13  newhall
- * added support for instrumenting dynamic executables on sparc-solaris
- * platform
- *
- * Revision 1.6  1996/08/16 21:19:47  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1996/06/01 00:03:29  tamches
- * const and refs added in appropriate place to enhance speed and
- * compile-time error checking.
- *
- * Revision 1.4  1996/03/01 22:35:58  mjrg
- * Added a type to resources.
- * Changes to the MDL to handle the resource hierarchy better.
- *
- * Revision 1.3  1995/11/29 18:45:25  krisna
- * added inlines for compiler. added templates
- *
- * Revision 1.2  1995/05/18 10:41:51  markc
- * Cache global ids supplied by paradyn
- * have a canonical form for the resource list
- *
- * Revision 1.1  1994/11/01  16:58:10  markc
- * Prototypes
- *
- */
 
 #include "common/h/Time.h"
 #include "common/h/Dictionary.h"
