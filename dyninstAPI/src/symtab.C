@@ -176,16 +176,17 @@ bool image::newFunc(pdmodule *mod, const string name, const Address addr,
   funcsByAddr[addr] = func;
   mod->funcs += func;
 
-  if (!funcsByPretty.defines(func->prettyName())) {
-    vector<pd_Function*> *a1 = new vector<pd_Function*>;
-    funcsByPretty[func->prettyName()] = a1;      
+  vector<pd_Function*> *funcsByPrettyEntry;
+  if (!funcsByPretty.find(func->prettyName(), funcsByPrettyEntry)) {
+    funcsByPrettyEntry = new vector<pd_Function*>;
+    funcsByPretty[func->prettyName()] = funcsByPrettyEntry;
   }
 
   // several functions may have the same demangled name, and each one
   // will appear in a different module
-  vector<pd_Function*> *ap = funcsByPretty[func->prettyName()];
-  assert(ap);
-  (*ap) += func;
+//  vector<pdFunction*> *ap = funcsByPretty[func->prettyName()];
+  assert(funcsByPrettyEntry);
+  (*funcsByPrettyEntry) += func;
   return true;
 }
 
@@ -919,21 +920,21 @@ int symCompare(const void *s1, const void *s2) {
 }
 
 
-unsigned addrHash(const unsigned &addr) {
+unsigned int_addrHash(const unsigned &addr) {
   return addr;
 }
 
 // Please note that this is now machine independent-almost.  Let us keep it that way
 // 
 image::image(const string &fileName, bool &err)
-:   funcsByAddr(uiHash),
+:   funcsByAddr(addrHash4),
     modsByFileName(string::hash),
     modsByFullName(string::hash),
     file_(fileName),
     linkedFile(fileName, pd_log_perror),
     iSymsMap(string::hash),
     funcsByPretty(string::hash),
-    knownJumpTargets(addrHash, 8192)
+    knownJumpTargets(int_addrHash, 8192)
 {
 sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
 
@@ -1016,9 +1017,10 @@ sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
   while (symIter.next(symString, lookUp)) {
 
     if (lookUp.type() == Symbol::PDST_MODULE) {
-      const char *str = (lookUp.name()).string_of();
+      const string &lookUpName = lookUp.name();
+      const char *str = lookUpName.string_of();
       assert(str);
-      int ln = P_strlen(str);
+      int ln = lookUpName.length();
 
       // directory definition -- ignored for now
       if (str[ln-1] != '/')
@@ -1064,8 +1066,9 @@ sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
   vector<pd_Function*> temp_vec;
   unsigned f_size = mdlLib.size(), index;
   for (index=0; index<f_size; index++) {
-    if (!addr_dict.defines((unsigned)mdlLib[index]->getAddress(0))) {
-      addr_dict[(unsigned)mdlLib[index]->getAddress(0)] = 1;
+    const unsigned the_address = (unsigned)mdlLib[index]->getAddress(0);
+    if (!addr_dict.defines(the_address)) {
+      addr_dict[the_address] = 1;
       temp_vec += mdlLib[index];
     }
   }
@@ -1073,8 +1076,9 @@ sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
   temp_vec.resize(0); addr_dict.clear();
   f_size = mdlNormal.size();
   for (index=0; index<f_size; index++) {
-    if (!addr_dict.defines((unsigned)mdlNormal[index]->getAddress(0))) {
-      addr_dict[(unsigned)mdlNormal[index]->getAddress(0)] = 1;
+    const unsigned the_address = (unsigned)mdlNormal[index]->getAddress(0);
+    if (!addr_dict.defines(the_address)) {
+      addr_dict[the_address] = 1;
       temp_vec += mdlNormal[index];
     }
   }
@@ -1085,14 +1089,14 @@ sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
 // load a shared object
 //
 image::image(const string &fileName, u_int baseAddr, bool &err)
-:   funcsByAddr(uiHash),
+:   funcsByAddr(addrHash4),
     modsByFileName(string::hash),
     modsByFullName(string::hash),
     file_(fileName),
     linkedFile(fileName, baseAddr,pd_log_perror),
     iSymsMap(string::hash),
     funcsByPretty(string::hash),
-    knownJumpTargets(addrHash, 8192)
+    knownJumpTargets(int_addrHash, 8192)
 {
 sharedobj_cerr << "welcome to image::image for shared obj; file name=" << file_ << endl;
 
@@ -1200,8 +1204,9 @@ sharedobj_cerr << "welcome to image::image for shared obj; file name=" << file_ 
   vector<pd_Function*> temp_vec;
   unsigned f_size = mdlLib.size(), index;
   for (index=0; index<f_size; index++) {
-    if (!addr_dict.defines((unsigned)mdlLib[index]->getAddress(0))) {
-      addr_dict[(unsigned)mdlLib[index]->getAddress(0)] = 1;
+    const unsigned the_address = (unsigned)mdlLib[index]->getAddress(0);
+    if (!addr_dict.defines(the_address)) {
+      addr_dict[the_address] = 1;
       temp_vec += mdlLib[index];
     }
   }
@@ -1209,8 +1214,9 @@ sharedobj_cerr << "welcome to image::image for shared obj; file name=" << file_ 
   temp_vec.resize(0); addr_dict.clear();
   f_size = mdlNormal.size();
   for (index=0; index<f_size; index++) {
-    if (!addr_dict.defines((unsigned)mdlNormal[index]->getAddress(0))) {
-      addr_dict[(unsigned)mdlNormal[index]->getAddress(0)] = 1;
+    const unsigned the_address = (unsigned)mdlNormal[index]->getAddress(0);
+    if (!addr_dict.defines(the_address)) {
+      addr_dict[the_address] = 1;
       temp_vec += mdlNormal[index];
     }
   }
@@ -1301,7 +1307,7 @@ bool image::defineFunction(pdmodule *libModule, const Symbol &sym,
 //
 // Note - this must define funcEntry and funcReturn
 // 
-pd_Function::pd_Function(const string symbol, const string &pretty, 
+pd_Function::pd_Function(const string &symbol, const string &pretty, 
 		       pdmodule *f, Address adr, const unsigned size, 
 		       const unsigned tg, const image *owner, bool &err) : 
   function_base(symbol, pretty, adr, size,tg),
