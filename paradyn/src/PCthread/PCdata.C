@@ -20,6 +20,19 @@
  * dataSubscriber and dataProvider base classes
  *
  * $Log: PCdata.C,v $
+ * Revision 1.4  1996/05/06 04:34:57  karavan
+ * Bug fix for asynchronous predicted cost changes.
+ *
+ * added new function find() to template classes dictionary_hash and
+ * dictionary_lite.
+ *
+ * changed filteredDataServer::DataFilters to dictionary_lite
+ *
+ * changed normalized hypotheses to use activeProcesses:cf rather than
+ * activeProcesses:tlf
+ *
+ * code cleanup
+ *
  * Revision 1.3  1996/05/02 19:46:26  karavan
  * changed predicted data cost to be fully asynchronous within the pc.
  *
@@ -49,10 +62,7 @@
 dataProvider::dataProvider() : 
 estimatedCost(0.0), numConsumers(0) 
 {
-  allConsumers.resize(initialConsumerListSize);
-  unsigned size = allConsumers.size();
-  for (unsigned i = 0; i < size; i++) 
-    allConsumers[i] = NULL;
+ ;
 }
 
 dataProvider::~dataProvider()
@@ -94,7 +104,8 @@ dataProvider::addConsumer(dataSubscriber *consumer)
   // first check for open slot in existing consumers array
   // we don't care about order or indexed lookup for consumers cause 
   // there's so few per filter
-  for (unsigned i = 0; i < allConsumers.size(); i++) {
+  unsigned sz = allConsumers.size();
+  for (unsigned i = 0; i < sz; i++) {
     if (allConsumers[i] == NULL) {
       allConsumers[i] = consumer;
       added = true;
@@ -103,12 +114,7 @@ dataProvider::addConsumer(dataSubscriber *consumer)
   }
   if (!added) {
     // grow array to open up more slots then use one
-    unsigned oldsize = allConsumers.size();
-    allConsumers.resize(oldsize * 2);
-    allConsumers[oldsize] = consumer;
-    unsigned newsize = allConsumers.size();
-    for (unsigned k = oldsize+1; k < newsize; k++)
-      allConsumers[k] = NULL;
+    allConsumers += consumer;
   }
   numConsumers++;
 }

@@ -20,6 +20,19 @@
  * The PCmetricInst class and the PCmetricInstServer methods.
  * 
  * $Log: PCmetricInst.C,v $
+ * Revision 1.10  1996/05/06 04:35:16  karavan
+ * Bug fix for asynchronous predicted cost changes.
+ *
+ * added new function find() to template classes dictionary_hash and
+ * dictionary_lite.
+ *
+ * changed filteredDataServer::DataFilters to dictionary_lite
+ *
+ * changed normalized hypotheses to use activeProcesses:cf rather than
+ * activeProcesses:tlf
+ *
+ * code cleanup
+ *
  * Revision 1.9  1996/05/02 19:46:41  karavan
  * changed predicted data cost to be fully asynchronous within the pc.
  *
@@ -148,7 +161,6 @@ numCostEstimates(0), startTime(-1), endTime(0.0),
 totalTime (0.0), AllDataReady(0), DataStatus(0), AllCurrentValues(NULL), 
 TimesAligned(0), active(false), costFlag(*err), db(db)
 {
-  *err = false;
   assert (pcMet);
 
   // how many met-foc pairs for this PCmetric?
@@ -185,13 +197,13 @@ TimesAligned(0), active(false), costFlag(*err), db(db)
 
 //  if (pcMet->setup != NULL)
 //    pcMet->setup(foc);
-  getEstimatedCost();
 }
 
 void
 PCmetricInst::getEstimatedCost()
 {
-  for (int i = 0; i < numInPorts; i++) {
+  unsigned sz = AllData.size();
+  for (unsigned i = 0; i < sz; i++) {
     costServer::getPredictedCost(AllData[i].met, AllData[i].foc, this);
   }
 }
@@ -441,6 +453,7 @@ PCmetricInstServer::~PCmetricInstServer ()
   delete datasource;
 }
 
+/*
 PCmetInstHandle 
 PCmetricInstServer::addPersistentMI (PCmetric *pcm,
 				     focus f,
@@ -449,10 +462,10 @@ PCmetricInstServer::addPersistentMI (PCmetric *pcm,
   PCmetricInst *newsub = NULL;
   // PCmetric instance may already exist
   
-  PCMRec *curr;
+  PCMRec *curr, newkid;
   unsigned sz = AllData.size();
   for (unsigned i = 0; i < sz; i++) {
-    curr = AllData[i];
+    curr = &(AllData[i]);
     if ((curr->f == f) && (curr->pcm == pcm)) {
       newsub = curr->pcmi;
       break;
@@ -460,14 +473,15 @@ PCmetricInstServer::addPersistentMI (PCmetric *pcm,
   }
   if (newsub == NULL) {
     newsub = new PCmetricInst(pcm, f, datasource, errFlag);
-    curr = new PCMRec;
-    curr->pcm = pcm;
-    curr->f = f;
-    curr->pcmi = newsub;
+
+    newkid.pcm = pcm;
+    newkid.f = f;
+    newkid.pcmi = newsub;
     AllData += curr;
   }
   return (PCmetInstHandle) newsub;
 }
+*/
 
 PCmetInstHandle 
 PCmetricInstServer::addSubscription(dataSubscriber *sub,
@@ -478,23 +492,23 @@ PCmetricInstServer::addSubscription(dataSubscriber *sub,
   PCmetricInst *newsub = NULL;
   // PCmetric instance may already exist
 
-  for (unsigned i = 0; i < AllData.size(); i++) {
-    if (((AllData[i])->f == f) && ((AllData[i])->pcm == pcm)) {
-      newsub = (AllData[i])->pcmi;
+  unsigned sz = AllData.size();
+  for (unsigned i = 0; i < sz; i++) {
+    if (((AllData[i]).f == f) && ((AllData[i]).pcm == pcm)) {
+      newsub = (AllData[i]).pcmi;
       break;
     }
   }
   if (newsub == NULL) {
     newsub = new PCmetricInst(pcm, f, datasource, errFlag);
-    if (*errFlag)
-      return 0;
-    PCMRec *tmpRec = new PCMRec;
-    tmpRec->pcm = pcm;
-    tmpRec->f = f;
-    tmpRec->pcmi = newsub;
+    PCMRec tmpRec;
+    tmpRec.pcm = pcm;
+    tmpRec.f = f;
+    tmpRec.pcmi = newsub;
     AllData += tmpRec;
   }
   newsub->addConsumer(sub);
+  newsub->getEstimatedCost();
   return (PCmetInstHandle) newsub;
 }
 

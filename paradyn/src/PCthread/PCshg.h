@@ -20,6 +20,19 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.25  1996/05/06 04:35:29  karavan
+ * Bug fix for asynchronous predicted cost changes.
+ *
+ * added new function find() to template classes dictionary_hash and
+ * dictionary_lite.
+ *
+ * changed filteredDataServer::DataFilters to dictionary_lite
+ *
+ * changed normalized hypotheses to use activeProcesses:cf rather than
+ * activeProcesses:tlf
+ *
+ * code cleanup
+ *
  * Revision 1.24  1996/05/02 19:46:54  karavan
  * changed predicted data cost to be fully asynchronous within the pc.
  *
@@ -221,7 +234,7 @@ class searchHistoryGraph {
   void flushUIbuffer();
  private:
   vector<searchHistoryNode*> Nodes;
-  static unsigned uhash (unsigned& val) {return (unsigned) (val % 20);} 
+  static unsigned uhash (unsigned& val) {return (unsigned) (val % 19);} 
   dictionary_hash<unsigned, searchHistoryNode*> NodeIndex;
   dictionary_hash<focus, vector<searchHistoryNode*>*> NodesByFocus;
   searchHistoryNode *root;

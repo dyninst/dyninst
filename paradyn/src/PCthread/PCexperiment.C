@@ -20,6 +20,19 @@
  * The experiment class methods.
  * 
  * $Log: PCexperiment.C,v $
+ * Revision 1.8  1996/05/06 04:35:04  karavan
+ * Bug fix for asynchronous predicted cost changes.
+ *
+ * added new function find() to template classes dictionary_hash and
+ * dictionary_lite.
+ *
+ * changed filteredDataServer::DataFilters to dictionary_lite
+ *
+ * changed normalized hypotheses to use activeProcesses:cf rather than
+ * activeProcesses:tlf
+ *
+ * code cleanup
+ *
  * Revision 1.7  1996/05/02 19:46:29  karavan
  * changed predicted data cost to be fully asynchronous within the pc.
  *
@@ -240,8 +253,9 @@ currentValue(0.0), startTime(-1), endTime(0), minObservationFlag(false)
   assert (db);
   bool errf = false;
   // **here, need to check if pause_time if so, set flag to true instead
-  pcmih = db->addSubscription ((PCmetSubscriber)this, why->getPcMet(amFlag), 
-	     	       where, &errf);
+  PCmetric *mymet = why->getPcMet(amFlag);
+  assert (mymet);
+  pcmih = db->addSubscription ((PCmetSubscriber)this, mymet, where, &errf);
   // error here if pcmetric couldn't be enabled 
   *err = ((pcmih == NULL) || errf);
   if (*err) return;

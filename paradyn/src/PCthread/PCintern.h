@@ -20,6 +20,19 @@
  * Included by PC modules only
  *  
  * $Log: PCintern.h,v $
+ * Revision 1.8  1996/05/06 04:35:11  karavan
+ * Bug fix for asynchronous predicted cost changes.
+ *
+ * added new function find() to template classes dictionary_hash and
+ * dictionary_lite.
+ *
+ * changed filteredDataServer::DataFilters to dictionary_lite
+ *
+ * changed normalized hypotheses to use activeProcesses:cf rather than
+ * activeProcesses:tlf
+ *
+ * code cleanup
+ *
  * Revision 1.7  1996/05/02 19:46:36  karavan
  * changed predicted data cost to be fully asynchronous within the pc.
  *
@@ -131,17 +144,7 @@ class costServer;
 
 extern whyAxis *PCWhyAxis;
 extern hypothesis *const topLevelHypothesis;
-extern bool PChyposDefined;
 extern const unsigned GlobalPhaseID;
-
-struct pcglobals {
-  bool PChyposDefined;
-  hypothesis * topLevelHypothesis;
-  whyAxis *PCWhyAxis;
-  focus topLevelFocus;
-};
-
-extern struct pcglobals perfConsultant;
 
 #endif
 

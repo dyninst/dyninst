@@ -21,6 +21,19 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.h,v $
+ * Revision 1.6  1996/05/06 04:35:10  karavan
+ * Bug fix for asynchronous predicted cost changes.
+ *
+ * added new function find() to template classes dictionary_hash and
+ * dictionary_lite.
+ *
+ * changed filteredDataServer::DataFilters to dictionary_lite
+ *
+ * changed normalized hypotheses to use activeProcesses:cf rather than
+ * activeProcesses:tlf
+ *
+ * code cleanup
+ *
  * Revision 1.5  1996/05/02 19:46:35  karavan
  * changed predicted data cost to be fully asynchronous within the pc.
  *
@@ -182,14 +195,24 @@ public:
   // all processing for a fresh hunk of raw data
   void newData(sampleValue newVal, timeStamp start, timeStamp end);
 };
-  
+
+class filterIndex;
+class mfpair {
+  friend class filterIndex;
+ private:
+  metricInstanceHandle m;
+  filter *f;
+};
+
 //**
 const unsigned NumMetrics = 25;
-struct ffstr {
+class filteredDataServer;
+class ff {
+  friend class filteredDataServer;
+private:
   focus f;
   fdsDataID mih;
 };
-typedef struct ffstr ff;
 
 // contains variable number of filters; maintains subscribers to each
 // filter; new subscription -> dm->enable() request and add filter; 
@@ -227,7 +250,7 @@ public:
   unsigned dmPhaseID;
   // starting interval size we never go below this
   timeStamp minGranularity;
-  dictionary_hash<fdsDataID, filter*>DataFilters;
+  dictionary_lite<fdsDataID, filter*>DataFilters;
   vector<ff> miIndex [NumMetrics];
   vector<filter*> AllDataFilters;
 };

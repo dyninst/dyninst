@@ -21,6 +21,19 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.19  1996/05/06 04:35:07  karavan
+ * Bug fix for asynchronous predicted cost changes.
+ *
+ * added new function find() to template classes dictionary_hash and
+ * dictionary_lite.
+ *
+ * changed filteredDataServer::DataFilters to dictionary_lite
+ *
+ * changed normalized hypotheses to use activeProcesses:cf rather than
+ * activeProcesses:tlf
+ *
+ * code cleanup
+ *
  * Revision 1.18  1996/05/02 19:46:33  karavan
  * changed predicted data cost to be fully asynchronous within the pc.
  *
@@ -581,13 +594,14 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
   double t1,t2;
   t1=TESTgetTime(); 
 #endif
-  vector<ff> *currMetric = &(miIndex[mh]);
+
   bool found = false;
-  for (unsigned i = 0; i < currMetric->size(); i++)
-    if ((*currMetric)[i].f == f) {
-      index = (*currMetric)[i].mih;
-      found = true;
-      subfilter = DataFilters[index];
+  unsigned sz = (miIndex[mh]).size();
+  for (unsigned i = 0; i < sz; i++)
+    if ((miIndex[mh])[i].f == f) {
+      index = (miIndex[mh])[i].mih;
+      found = DataFilters.find(index, subfilter);
+      if (!found) break;
       if (flag) subfilter->setcostFlag();
       break;
     }
@@ -651,23 +665,23 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
 {
   // find filter by subID
   int subsLeft;
-  if (DataFilters.defines((unsigned)subID)) { 
-    subsLeft = DataFilters[(unsigned)subID]->rmConsumer(sub);
-    if (subsLeft == 0) {
+  filter *curr;
+  bool fndflag = DataFilters.find((unsigned)subID, curr);
+  if (!fndflag) return;
+  subsLeft = curr->rmConsumer(sub);
+  if (subsLeft == 0) {
 #ifdef MYPCDEBUG
-      double t1,t2;
-      t1=TESTgetTime();
+    double t1,t2;
+    t1=TESTgetTime();
 #endif
-      dataMgr->clearPersistentData(subID);
-      dataMgr->disableDataCollection (performanceConsultant::pstream, subID, phType);
-    }
+    dataMgr->clearPersistentData(subID);
+    dataMgr->disableDataCollection (performanceConsultant::pstream, subID, phType);
 #ifdef MYPCDEBUG
-      t2=TESTgetTime();
-      if ((t2-t1) > 1.0) 
-	printf("==> TEST <== PCfilter 2, disableDataCollection took %5.2f secs\n",t2-t1); 
+    t2=TESTgetTime();
+    if ((t2-t1) > 1.0) 
+      printf("==> TEST <== PCfilter 2, disableDataCollection took %5.2f secs\n",t2-t1); 
 #endif
   }
-
 #ifdef PCDEBUG
   // debug printing
   if (performanceConsultant::printDataCollection) {
@@ -679,14 +693,16 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
 
 void
 filteredDataServer::newData (metricInstanceHandle mih, 
-				 sampleValue value, 
-				 int bucketNumber)
+			     sampleValue value, 
+			     int bucketNumber)
 {
-  if ( DataFilters.defines ((fdsDataID) mih)) {
+  filter *curr;
+  bool fndflag = DataFilters.find((fdsDataID)mih, curr);
+  if (fndflag) {
     // convert data to start and end based on bin
     timeStamp start = currentBinSize * bucketNumber;
     timeStamp end = currentBinSize * (bucketNumber + 1);
-    DataFilters[(fdsDataID) mih]-> newData(value, start, end);
+    curr->newData(value, start, end);
   } 
 
 #ifdef PCDEBUG
@@ -696,3 +712,6 @@ filteredDataServer::newData (metricInstanceHandle mih,
 #endif
 
 }
+
+
+

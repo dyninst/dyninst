@@ -21,6 +21,19 @@
  *  be parsed from a configuration file.
  *
  * $Log: PCrules.C,v $
+ * Revision 1.35  1996/05/06 04:35:23  karavan
+ * Bug fix for asynchronous predicted cost changes.
+ *
+ * added new function find() to template classes dictionary_hash and
+ * dictionary_lite.
+ *
+ * changed filteredDataServer::DataFilters to dictionary_lite
+ *
+ * changed normalized hypotheses to use activeProcesses:cf rather than
+ * activeProcesses:tlf
+ *
+ * code cleanup
+ *
  * Revision 1.34  1996/04/30 06:27:05  karavan
  * change PC pause function so cost-related metric instances aren't disabled
  * if another phase is running.
@@ -147,7 +160,7 @@ void initPCmetrics()
   specs2[0].whichFocus = cf;
   specs2[0].ft = averaging;
   specs2[1].mname = "active_processes";
-  specs2[1].whichFocus = tlf;
+  specs2[1].whichFocus = cf;
   specs2[1].ft = averaging;
   temp = new PCmetric ("NormalizedCPUtime", specs2, 2, NULL, 
 		       DivideEval, 1);
@@ -165,7 +178,7 @@ void initPCmetrics()
   specs2[0].whichFocus = cf;
   specs2[0].ft = averaging;
   specs2[1].mname = "active_processes";
-  specs2[1].whichFocus = tlf;
+  specs2[1].whichFocus = cf;
   specs2[1].ft = averaging;
   temp = new PCmetric ("NormSyncToCPURatio", specs2, 2, NULL, DivideEval, 1);
   if (performanceConsultant::printSearchChanges)

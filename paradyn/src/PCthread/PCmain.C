@@ -16,20 +16,33 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.59  1996/05/02 19:46:39  karavan
-/* changed predicted data cost to be fully asynchronous within the pc.
+/* Revision 1.60  1996/05/06 04:35:14  karavan
+/* Bug fix for asynchronous predicted cost changes.
 /*
-/* added predicted cost server which caches predicted cost values, minimizing
-/* the number of calls to the data manager.
+/* added new function find() to template classes dictionary_hash and
+/* dictionary_lite.
 /*
-/* added new batch version of ui->DAGconfigNode
+/* changed filteredDataServer::DataFilters to dictionary_lite
 /*
-/* added hysteresis factor to cost threshold
+/* changed normalized hypotheses to use activeProcesses:cf rather than
+/* activeProcesses:tlf
 /*
-/* eliminated calls to dm->enable wherever possible
+/* code cleanup
 /*
-/* general cleanup
-/*
+ * Revision 1.59  1996/05/02 19:46:39  karavan
+ * changed predicted data cost to be fully asynchronous within the pc.
+ *
+ * added predicted cost server which caches predicted cost values, minimizing
+ * the number of calls to the data manager.
+ *
+ * added new batch version of ui->DAGconfigNode
+ *
+ * added hysteresis factor to cost threshold
+ *
+ * eliminated calls to dm->enable wherever possible
+ *
+ * general cleanup
+ *
  * Revision 1.58  1996/05/01 18:11:45  newhall
  * fixed some purify errors, added clientId parameter to predicted cost calls
  *
@@ -167,15 +180,8 @@ filteredDataServer *performanceConsultant::currentRawDataServer = NULL;
 PCmetricInstServer *performanceConsultant::globalPCMetricServer = NULL;
 perfStreamHandle performanceConsultant::pstream = 0;
 metricHandle performanceConsultant::normalMetric = 0;
-costServer cs;
-
-//**
-struct pcglobals perfConsultant = {
-  false, 
-  (hypothesis *) NULL,
-  (whyAxis *) NULL,
-  0
-  };
+bool performanceConsultant::PChyposDefined = false;
+//costServer cs;
 
 
 // filteredDataServers use the bin width to interpret performance stream data 
@@ -188,7 +194,7 @@ void PCfold(perfStreamHandle,
   // in which case we don't want to do anything at all.  (bin size is 
   // properly initialized when each search is created.)   
   filteredDataServer *rawInput;
-  if (PChyposDefined) { 
+  if (performanceConsultant::PChyposDefined) { 
     if (phase_type == GlobalPhase)
       rawInput = performanceConsultant::globalRawDataServer;
     else
@@ -268,7 +274,7 @@ void PCphase (perfStreamHandle,
 	      phaseHandle phase,
 	      timeStamp begin, 
 	      timeStamp,             // for future use only
-	      float bucketwidth,
+	      float,                 // we get bucketwidth later
 	      bool searchFlag,       
 	      bool)            // used by UI only
 {
@@ -280,7 +286,7 @@ void PCphase (perfStreamHandle,
 #endif
   // Guard here against case that no search has ever been initialized, 
   // in which case we don't want to do anything.
-  if (PChyposDefined) {
+  if (performanceConsultant::PChyposDefined) {
     PCsearch::updateCurrentPhase(phase+1, begin);
   }
   // we always keep track of the current phase, cause we never know when 
@@ -327,9 +333,6 @@ void PCmain(void* varg)
     unsigned int tag;
     char PCbuff[64];
     unsigned int msgSize = 64;
-
-    // initialize globals
-    perfConsultant.PChyposDefined = false;
 
     // define all tunable constants used by the performance Consultant
     // tunable constants must be defined here in the sequential section

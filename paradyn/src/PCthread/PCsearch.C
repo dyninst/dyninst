@@ -20,6 +20,19 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.13  1996/05/06 04:35:27  karavan
+ * Bug fix for asynchronous predicted cost changes.
+ *
+ * added new function find() to template classes dictionary_hash and
+ * dictionary_lite.
+ *
+ * changed filteredDataServer::DataFilters to dictionary_lite
+ *
+ * changed normalized hypotheses to use activeProcesses:cf rather than
+ * activeProcesses:tlf
+ *
+ * code cleanup
+ *
  * Revision 1.12  1996/05/02 19:46:48  karavan
  * changed predicted data cost to be fully asynchronous within the pc.
  *
@@ -120,7 +133,7 @@ extern void initPChypos();
 extern void initPCmetrics();
 extern sampleValue DivideEval (focus, sampleValue *data, int dataSize);
 
-unsigned int PCunhash (const unsigned &val) {return (val >> 2);} 
+unsigned int PCunhash (const unsigned &val) {return (val >> 3);} 
 
 unsigned PCsearch::PCactiveCurrentPhase = 0;  // init to undefined
 dictionary_hash<unsigned, PCsearch*> PCsearch::AllPCSearches(PCunhash);
@@ -131,7 +144,6 @@ int PCsearch::numActiveExperiments = 0;
 bool PCsearch::GlobalSearchPaused = false;
 bool PCsearch::CurrentSearchPaused = false;
 costModule *PCsearch::costTracker = NULL;
-bool PChyposDefined = false;
 
 //** this is currently being studied!!
 const float costFudge = 0.2;
@@ -228,6 +240,7 @@ PCsearch::initCostTracker ()
   PCmetricInstServer *miserve = new PCmetricInstServer (GlobalPhase);
   costTracker->costFilter = 
     miserve->addSubscription(costTracker, pcm, topLevelFocus, &err);
+  assert(costTracker->costFilter);
   costTracker->costFilter->activate();
 }
 
@@ -253,10 +266,10 @@ PCsearch::addSearch(unsigned phaseID)
   }
 
   // if this is first search, initialize all PC metrics and hypotheses
-  if (!PChyposDefined) {
+  if (!performanceConsultant::PChyposDefined) {
     initPCmetrics();
     initPChypos();
-    PChyposDefined = true;
+    performanceConsultant::PChyposDefined = true;
     initCostTracker();
   }
 

@@ -20,6 +20,19 @@
  * The PCmetricInst class and the PCmetricInstServer class.
  * 
  * $Log: PCmetricInst.h,v $
+ * Revision 1.7  1996/05/06 04:35:18  karavan
+ * Bug fix for asynchronous predicted cost changes.
+ *
+ * added new function find() to template classes dictionary_hash and
+ * dictionary_lite.
+ *
+ * changed filteredDataServer::DataFilters to dictionary_lite
+ *
+ * changed normalized hypotheses to use activeProcesses:cf rather than
+ * activeProcesses:tlf
+ *
+ * code cleanup
+ *
  * Revision 1.6  1996/05/02 19:46:44  karavan
  * changed predicted data cost to be fully asynchronous within the pc.
  *
@@ -136,6 +149,8 @@ public:
       if (numCostEstimates == numInPorts)
 	sendUpdatedEstimatedCost(costDiff);
     }
+  void addSubscription(dataSubscriber *sub) 
+    { addConsumer(sub); }
 private:
   bool alignTimes();
   void setDataReady(int portNum);
@@ -179,6 +194,7 @@ class PCmetricInstServer {
 				  PCmetric *pcm,
 				  focus f,
 				  bool *errFlag);
+
   void endSubscription(dataSubscriber *sub, PCmetInstHandle id);
   // data
   PCmetInstHandle addPersistentMI (PCmetric *pcm,
@@ -189,7 +205,7 @@ class PCmetricInstServer {
   void resubscribeAllRawData()
     { datasource->resubscribeAllData(); }
  private:
-  vector<PCMRec*> AllData;
+  vector<PCMRec> AllData;
   filteredDataServer *datasource;
 };
 

@@ -21,6 +21,19 @@
  * PC thread interface functions
  *
  * $Log: PCpublic.C,v $
+ * Revision 1.36  1996/05/06 04:35:20  karavan
+ * Bug fix for asynchronous predicted cost changes.
+ *
+ * added new function find() to template classes dictionary_hash and
+ * dictionary_lite.
+ *
+ * changed filteredDataServer::DataFilters to dictionary_lite
+ *
+ * changed normalized hypotheses to use activeProcesses:cf rather than
+ * activeProcesses:tlf
+ *
+ * code cleanup
+ *
  * Revision 1.35  1996/05/02 19:46:46  karavan
  * changed predicted data cost to be fully asynchronous within the pc.
  *
@@ -85,7 +98,7 @@ performanceConsultant::activateSearch(unsigned phaseID)
       performanceConsultant::DMcurrentPhaseToken = phaseID-1;
     }
     // initialize known/base resources and top level focus once only
-    if (!PChyposDefined) {
+    if (!performanceConsultant::PChyposDefined) {
       initResources();
       // this is used to normalize data throughout the PC
       metricHandle *tmpmh = dataMgr->findMetric("pause_time");
@@ -119,7 +132,7 @@ performanceConsultant::pauseSearch(unsigned phaseID)
 // placeholder for the future.
 //
 void
-performanceConsultant::endSearch(unsigned phaseID)
+performanceConsultant::endSearch(unsigned)
 {
 #ifdef PCDEBUG
   cout << "end search requested for phaseID = " << phaseID << endl;
