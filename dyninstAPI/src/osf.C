@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.33 2002/07/25 22:46:44 bernat Exp $
+// $Id: osf.C,v 1.34 2002/08/05 14:54:56 rchen Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -130,7 +130,7 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 }
 
 Address process::readRegister(unsigned /*lwp*/, Register /*reg*/)
-  
+{  
   gregset_t theIntRegs;
   if (-1 == ioctl(proc_fd, PIOCGREG, &theIntRegs)) {
     perror("process::readRegister PIOCGREG");
@@ -458,7 +458,8 @@ int process::waitProcs(int *status)
 			 // exit of a system call.
 		         process *p = processVec[curr];
 
-			 if (p->RPCs_waiting_for_syscall_to_complete) {
+//			 if (p->RPCs_waiting_for_syscall_to_complete) {
+			 if (p->isInSyscall()) {
 			    // reset PIOCSEXIT mask
 			    // inferiorrpc_cerr << "solaris got PR_SYSEXIT!" << endl;
 			    printf("in RPCs_waiting_for_syscall_to_complete\n");
