@@ -43,6 +43,8 @@
 #include "RTthread.h"
 #include <assert.h>
 #include <stdio.h>
+#include "RTcompat.h"
+
 
 void DEBUG_VIRTUAL_TIMER_START(virtualTimer *timer, int context) {
   switch(context) {
@@ -78,7 +80,7 @@ void DEBUG_VIRTUAL_TIMER_START(virtualTimer *timer, int context) {
 void _VirtualTimerStart(virtualTimer *timer, int context){
   assert(timer->protector1 == timer->protector2);
   timer->protector1++;
-  
+
   if (timer->counter ==0) {
     timer->lwp = P_lwp_self();
     timer->rt_fd = PARADYNgetFD(timer->lwp);
@@ -86,10 +88,11 @@ void _VirtualTimerStart(virtualTimer *timer, int context){
     timer->rt_previous = timer->start;
   }
   timer->counter++;
-  
+
   timer->protector2++;
 
-  fprintf(stderr, "vtimer_start at addr 0x%x, lwp is %d\n", timer, timer->lwp);
+  /* fprintf(stderr, "vtimer_start at addr 0x%x, lwp is %d\n", timer,
+     timer->lwp); */
 
   assert(timer->protector1 == timer->protector2);
 }
@@ -99,7 +102,6 @@ void _VirtualTimerStop(virtualTimer* timer) {
   
   assert(timer->protector1 == timer->protector2);
   timer->protector1++;
-  
   if (timer->counter == 1) {
     rawTime64 now;
     now = DYNINSTgetCPUtime_LWP(timer->lwp, timer->rt_fd);
@@ -159,7 +161,9 @@ rawTime64 getThreadCPUTime(unsigned pos, int *valid) {
 	      now, vt->rt_previous);
       now = vt->rt_previous;
     }
-    else vt->rt_previous = now;
+    else {
+       vt->rt_previous = now;
+    }
 
     if (now >= start) {
       return total + (now-start) ;
@@ -179,60 +183,69 @@ rawTime64 getThreadCPUTime(unsigned pos, int *valid) {
 */
 void DYNINSTstartThreadTimer(tTimer* timer)
 {
-  rawTime64 start, old_start ;
-  int valid = 0;  
-  int i;
-  unsigned pos = DYNINSTthreadPosSLOW(P_thread_self()) ; /* in mini, so could use POS (maybe) */
-  fprintf(stderr, "DYNINSTstartThreadTimer, timer 0x%x, tid %d, lwp %d, pos %d\n",
-	  timer, P_thread_self(), P_lwp_self(), pos);
-  if (!timer)
-    i = *((int *)0); /* abort() occasionally doesn't leave good stack traces */
+   rawTime64 start, old_start ;
+   int valid = 0;  
+   int i;
 
-  assert(timer->protector1 == timer->protector2);
-  timer->protector1++;
-
-  if (timer->counter == 0) {
-    if (!(timer->pos)) { /* No POS associated with this timer yet */
-      /* POS could be set in the daemon, which would make this all much easier */
-      timer->pos = pos;
-      fprintf(stderr, "Setting timer POS to %d, tid %d\n", timer->pos, P_thread_self());
-    }
-    /* We sample the virtual timer, so we may need to retry */
-    while (!valid) {
-      start = getThreadCPUTime(timer->pos, &valid);
-    }
-    timer->start = start;
-  }
-  timer->counter++;
-  timer->protector2++;
-  PRINTOUT_TIMER(timer);
-  assert(timer->protector1 == timer->protector2);
+   /* in mini, so could use POS (maybe) */
+   unsigned pos = DYNINSTthreadPosSLOW(P_thread_self()) ; 
+   /* fprintf(stderr, "DYNINSTstartThreadTimer, timer 0x%x, tid %d, lwp %d, "
+              "pos %d\n", timer, P_thread_self(), P_lwp_self(), pos); */
+   
+   if(!timer)
+      i = *((int *)0); /* abort() sometimes doesn't leave good stack traces */
+   
+   assert(timer->protector1 == timer->protector2);
+   timer->protector1++;
+   MEMORY_BARRIER;
+   if (timer->counter == 0) {
+      if (!(timer->pos)) { /* No POS associated with this timer yet */
+         /* POS could be set in daemon, which would make this much easier */
+         timer->pos = pos;
+         /* fprintf(stderr, "Setting timer POS to %d, tid %d\n", timer->pos, 
+                    P_thread_self()); */
+      }
+      /* We sample the virtual timer, so we may need to retry */
+      while (!valid) {
+         start = getThreadCPUTime(timer->pos, &valid);
+      }
+      timer->start = start;
+   }
+   timer->counter++;
+   MEMORY_BARRIER;
+   timer->protector2++;
+   /* PRINTOUT_TIMER(timer); */
+   assert(timer->protector1 == timer->protector2);
 }
 
 void DYNINSTstopThreadTimer(tTimer* timer)
 {
-  int i;
-  if (!timer)
-    i = *((int *)0);
-  assert(timer->protector1 == timer->protector2);
-  timer->protector1++;
+   int i;
+   if (!timer)
+      i = *((int *)0);
 
-  if (timer->counter == 1) {
-    int valid = 0;
-    rawTime64 now;
-    while (!valid) 
-      now = getThreadCPUTime(timer->pos, &valid);
-    if (now < timer->start) {
-      fprintf(stderr, "%lld < %lld\n", now, timer->start);
-      assert(0 && "Rollback in DYNINSTstopThreadTimer");
-    }
-    timer->total += (now - timer->start);
-  }
-  
-  timer->counter--; 
-  timer->protector2++;
+   assert(timer->protector1 == timer->protector2);
+   timer->protector1++;
+   MEMORY_BARRIER;
+   if (timer->counter == 1) {
+      int valid = 0;
+      rawTime64 now;
 
-  PRINTOUT_TIMER(timer);
-  assert(timer->protector1 == timer->protector2);
+      while (!valid) {
+         now = getThreadCPUTime(timer->pos, &valid);
+      }
+      if (now < timer->start) {
+         fprintf(stderr, "%lld < %lld\n", now, timer->start);
+         assert(0 && "Rollback in DYNINSTstopThreadTimer");
+      }
+      timer->total += (now - timer->start);
+   }
+   
+   timer->counter--; 
+   MEMORY_BARRIER;
+   timer->protector2++;
+   
+   /* PRINTOUT_TIMER(timer); */
+   assert(timer->protector1 == timer->protector2);
 }
 
