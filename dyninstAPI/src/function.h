@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.4 2005/02/03 23:45:27 bernat Exp $
+// $Id: function.h,v 1.5 2005/02/17 21:10:49 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -299,6 +299,7 @@ class int_function : public codeRange {
    /* Redefining to handle relocation */
    Address getAddress(const process *p) const;
    Address getEffectiveAddress(const process *p) const;
+   Address getSize(const process *p) const;
    instPoint *funcEntry(const process *p) const;
    const pdvector<instPoint *> &funcExits(const process *p) const;
    const pdvector<instPoint *> &funcArbitraryPoints(const process *p) const;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.C,v 1.6 2005/02/15 17:43:53 legendre Exp $
+// $Id: function.C,v 1.7 2005/02/17 21:10:48 bernat Exp $
 
 #include "function.h"
 #include "BPatch_flowGraph.h"
@@ -132,7 +132,6 @@ void int_function::changeModule(pdmodule *mod) {
   // Called from buildFunctionLists, so we aren't entered in any 
   // module-level data structures. If this changes, UPDATE THE
   // FUNCTION.
-
   mod_ = mod;
 }
 
@@ -169,6 +168,7 @@ BPatch_flowGraph *
 int_function::getCFG(process * proc)
 {
   assert(parsed_);
+
   if (!flowGraph) { 
        bool valid;
        flowGraph = new BPatch_flowGraph(this, proc, pdmod(), valid);
@@ -255,6 +255,20 @@ Address int_function::getEffectiveAddress(const process *p) const {
      }
      return base + get_address();
 }
+
+// passing in a value of 0 for p will return the original size
+// otherwise, if the process is relocated it will return the new size
+Address int_function::getSize(const process *p) const{
+  assert(parsed_);
+  if(p && needs_relocation_) { 
+    for(u_int i=0; i < relocatedByProcess.size(); i++){
+      if(relocatedByProcess[i] &&
+	 (relocatedByProcess[i])->getProcess() == p)
+	return (relocatedByProcess[i])->get_size();
+    } }
+  return get_size();
+}
+
 
 instPoint *int_function::funcEntry(const process *p) const {
   assert(parsed_);
