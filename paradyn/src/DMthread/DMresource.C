@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.12 1994/08/05 16:04:00 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.13 1994/09/22 00:57:16 markc Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.12  1994/08/05 16:04:00  hollings
+ * Revision 1.13  1994/09/22 00:57:16  markc
+ * Entered stringHandles into stringPool rather than assigning from const char *
+ * Added casts to remove compiler warnings
+ *
+ * Revision 1.12  1994/08/05  16:04:00  hollings
  * more consistant use of stringHandle vs. char *.
  *
  * Revision 1.11  1994/07/28  22:31:09  krisna
@@ -76,8 +80,8 @@ stringPool resourceList::names;
 //
 resource::resource()
 {
-    name = "";
-    fullName = "";
+    name = names.findAndAdd("");
+    fullName = names.findAndAdd("");
     parent = NULL;
     suppressSearch = FALSE;
 }
@@ -92,7 +96,7 @@ resource::resource(resource *p, char *newResource, abstractionType at)
 
     parent = p;
 
-    sprintf(tempName, "%s/%s", p->fullName, iName);
+    sprintf(tempName, "%s/%s", (char*)p->fullName, (char*)iName);
     fullName = names.findAndAdd(tempName);
     allResources.add(this, (void *) fullName);
     name = iName;
@@ -109,7 +113,7 @@ void resource::print()
     if (parent) {
 	parent->print();
     }
-    printf("%s ", name);
+    printf("%s ", (char*)name);
 }
 
 /*
@@ -136,21 +140,18 @@ Boolean resource::isDescendent(resource *child)
  */
 Boolean resource::sameRoot(resource *other)
 {
-  resource *myBase, *otherBase, *temp;
+  resource *myBase=0, *otherBase=0, *temp;
 
   temp = this;
-  while (temp->parent)
-    {
-      myBase = temp;
-      temp = temp->parent;
-    }
+  while (temp->parent) {
+    myBase = temp;
+    temp = temp->parent;
+  }
   temp = other;
-  while (temp->parent)
-    {
-      otherBase = temp;
-      temp = temp->parent;
-    }
-
+  while (temp->parent) {
+    otherBase = temp;
+    temp = temp->parent;
+  }
   if (myBase == otherBase)
     return TRUE;
   else
@@ -173,7 +174,7 @@ void resourceList::print()
     printf("}");
 }
 
-resource *resourceList::find(char *name) 
+resource *resourceList::find(const char *name) 
 {
     int i;
     resource *ret;
@@ -207,10 +208,8 @@ stringHandle *resourceList::convertToStringList()
 }
 
 static int stringCompare(const void* p1, const void* p2) {
-    extern int strCompare(char** a, char** b);
-    char** q1 = (char **) p1;
-    char** q2 = (char **) p2;
-    return strCompare(q1, q2);
+    extern int strCompare(const char** a, const char** b);
+    return (strCompare((const char**) p1, (const char**) p2));
 }
 
 stringHandle resourceList::getCanonicalName()
@@ -250,7 +249,7 @@ void printAllResources()
 {
     HTable<resource*> curr;
 
-    for (curr=  resource::allResources; *curr; curr++) {
+    for (curr=  resource::allResources; *curr; ++curr) {
 	printf("{");
         (*curr)->print();
 	printf("}");
