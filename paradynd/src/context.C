@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.105 2003/07/29 20:12:47 schendel Exp $ */
+/* $Id: context.C,v 1.106 2003/09/05 16:28:16 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -207,7 +207,7 @@ void updateThreadId(traceThread *fr) {
    assert(thr);
    pdstring buffer;
    resource *rid;
-   process *dynproc = pdproc->get_dyn_process();
+   process *dynproc = pdproc->get_dyn_process()->lowlevel_process();
    if(fr->context == FLAG_ATTACH) {
       dynproc->updateThread(thr, fr->tid, fr->index, 
 			    fr->stack_addr, fr->start_pc, fr->resumestate_p);
@@ -252,7 +252,7 @@ void deleteThread(traceThread *fr)
 
     // deleting thread
     pdproc->removeThread(fr->tid);
-    pdproc->get_dyn_process()->deleteThread(fr->tid);
+    pdproc->get_dyn_process()->lowlevel_process()->deleteThread(fr->tid);
     // deleting resource id
     // how do we delete a resource id? - naim
 }
@@ -263,8 +263,7 @@ unsigned instInstancePtrHash(instInstance * const &ptr) {
    return addrHash16(addr); // util.h
 }
 
-void pd_execCallback(process *proc) {
-   pd_process *pd_proc = getProcMgr().find_pd_process(proc);
+void pd_execCallback(pd_process *pd_proc) {
    if (!pd_proc) {
       logLine("Error in pd_execCallback: could not find pd_process\n");
       return;
@@ -506,21 +505,6 @@ void processNewTSConnection(int tracesocket_fd) {
    statusLine("ready");
 }
 
-// The below vector is a kludge put in as a "safer" method of handling this
-// issue just before the release.  After the release, this method shouldn't
-// be used.  We're using this to delete the pd_process when Paradyn exits.
-// The better appoach would be to delete the pd_process when the process
-// actually exits, as we find out in paradyn_handleProcessExit.  We don't
-// have opportunity so close to the release to flush out any bugs related to
-// this, so that's why we're deleting all pd_processes when Paradyn exits.
-void paradyn_handleProcessExit(process *proc, int exitStatus) {
-   pd_process *pd_proc = getProcMgr().find_pd_process(proc);
-   if(pd_proc) {
-      pd_proc->handleExit(exitStatus);
-      getProcMgr().exitedProcess(pd_proc);
-   }
-}
-
 bool allThreadCreatesReceived(process *proc, unsigned num_expected) {
    unsigned num_thrs = proc->threads.size();
    unsigned invalid_creates = proc->numInvalidThrCreateMsgs();
@@ -691,38 +675,6 @@ void MT_lwp_setup(process *parentDynProc, process *childDynProc) {
    initMT_AfterFork(childDynProc);
 }
 
-void paradyn_forkCallback(process *parentDynProc, 
-                          void * /*parentDynProcData*/,
-                          process *childDynProc) {
-   assert(childDynProc->status() == stopped);
-
-   if(childDynProc->multithread_capable())
-      MT_lwp_setup(parentDynProc, childDynProc);
-
-   childDynProc->setParadynBootstrap();
-   assert(childDynProc->status() == stopped);
-
-   pd_process *parentProc = 
-      getProcMgr().find_pd_process(parentDynProc->getPid());
-   if (!parentProc) {
-      logLine("Error in forkProcess: could not find parent process\n");
-      return;
-   }
-
-   pd_process *childProc = new pd_process(*parentProc, childDynProc);
-   getProcMgr().addProcess(childProc);
-
-   childProc->initAfterFork(parentProc);
-   metricFocusNode::handleFork(parentProc, childProc);
-
-   childDynProc->registerPostExecCallback(pd_process::paradynPostExecDispatch,
-                                          (void *)childProc);
-   childDynProc->registerPostForkCallback(paradyn_forkCallback,
-                                          (void *)childProc);
-   if (childProc->status() == stopped)
-       childProc->continueProc();
-   // parent process will get continued by unix.C/handleSyscallExit
-}
 
 
 
