@@ -5,7 +5,11 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.22  1995/12/18 23:31:21  tamches
+ * Revision 1.23  1995/12/28 23:44:39  zhichen
+ * added 2 new instantiations related to the new paradynd->>paradyn
+ * batching code.
+ *
+ * Revision 1.22  1995/12/18  23:31:21  tamches
  * wrapped blizzard-specific templates in an ifdef
  *
  * Revision 1.21  1995/12/16 00:21:26  tamches
@@ -155,6 +159,9 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_constr
 template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric*>**,
 					   bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
 					   T_dyninstRPC::mdl_metric**);
+// added for batchSampleDataCallbackFunc
+template bool T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *);
+T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *);
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
