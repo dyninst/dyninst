@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.69 2002/10/08 22:50:12 bernat Exp $
+// $Id: unix.C,v 1.70 2002/10/29 22:56:18 bernat Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -412,24 +412,18 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
    
    // Check to see if the TRAP is due to a system call exit which
    // we were waiting for, in order to launch an inferior rpc safely.
-   if (curr->isInSyscall()) {
-      inferiorrpc_cerr << "got SIGTRAP indicating syscall completion!"
-		       << endl;
-      if (curr->launchRPCifAppropriate(false, // not running
-				       true   // finishing a syscall
-				       )) {
-	 inferiorrpc_cerr << "syscall completion: rpc launched ok, as expected"
-			  << endl;
-      } else {
-	 inferiorrpc_cerr << "syscall completion: failed to launch rpc\n";
-	 if (!curr->continueProc()) {
-	    sprintf(errorLine, "WARNING: failed to continue process with "
-		    "pid=%d\n",curr->getPid());
-	    logLine(errorLine);
-	 }
-      curr->clearInSyscall();      
-      }
-      return;
+   if (curr->isAnyIRPCwaitingForSyscall()) {
+       // We figure the trap means the syscall completed. If
+       // this isn't the case, launchRPC... will re-set the trap.
+       inferiorrpc_cerr << "got SIGTRAP indicating syscall completion!"
+                        << endl;
+       // Clear the status bits and reset the TRAP to the original instruction
+       curr->clearAllIRPCwaitingForSyscall();
+       if (curr->launchRPCifAppropriate(curr->wasRunningBeforeSyscall())) { // not running
+           inferiorrpc_cerr << "syscall completion: rpc launched ok, as expected"
+                            << endl;
+           return;
+       }
    }
    
    // check to see if trap is due to dlopen or dlcose event
@@ -934,7 +928,7 @@ int handleSigAlarm(process *curr) {
    // that DYNINSTin_sample is set and so bails out!!!)  Ick.
    if (curr->existsRPCreadyToLaunch()) {
       curr->status_ = stopped;
-      (void)curr->launchRPCifAppropriate(true, false);
+      (void)curr->launchRPCifAppropriate(true);
       return 1; // sure, we lose the SIGALARM, but so what.
    }
    else { }  // no break, on purpose
@@ -943,6 +937,7 @@ int handleSigAlarm(process *curr) {
       
 void handleStopStatus(int pid, int status, process *curr) {
    int sig = WSTOPSIG(status);
+   
    int linux_orig_sig = -1;
 #if defined( i386_unknown_linux2_0 ) || defined( ia64_unknown_linux2_4 )
    linux_orig_sig = sig;
@@ -978,7 +973,7 @@ void handleStopStatus(int pid, int status, process *curr) {
 	 if (pc==(Address)curr->rbrkAddr()
 	     || pc==(Address)curr->main_brk_addr
 	     || pc==(Address)curr->dyninstlib_brk_addr
-	     || curr->isInSyscall()
+	     || curr->isAnyIRPCwaitingForSyscall()
 	     || pc==(Address)curr->paradynlib_brk_addr) { //ccw 30 apr 2002 
 	    signal_cerr << "Changing SIGILL to SIGTRAP" << endl;
 	    sig = SIGTRAP;
@@ -1110,7 +1105,7 @@ int handleSigChild(int pid, int status)
    }
    if (WIFSTOPPED(status))
    {
-      handleStopStatus(pid, status, curr);
+       handleStopStatus(pid, status, curr);
    } 
    else if (WIFEXITED(status)) {
       sprintf(errorLine, "Process %d has terminated with code 0x%x\n", 
@@ -1144,8 +1139,8 @@ void checkProcStatus() {
    int wait_status;
    int wait_pid = process::waitProcs(&wait_status);
     if (wait_pid > 0) {
-      if (handleSigChild(wait_pid, wait_status) < 0) {
-	 cerr << "handleSigChild failed for pid " << wait_pid << endl;
+        if (handleSigChild(wait_pid, wait_status) < 0) {
+            cerr << "handleSigChild failed for pid " << wait_pid << endl;
       }
    }
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.369 2002/10/28 04:54:02 schendel Exp $
+// $Id: process.C,v 1.370 2002/10/29 22:56:17 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -877,7 +877,7 @@ bool process::getInfHeapList(vector<heapDescriptor> &infHeaps)
 }
 
 bool process::getInfHeapList(const image *theImage, // okay, boring name
-			     vector<heapDescriptor> &infHeaps)
+                             vector<heapDescriptor> &infHeaps)
 {
 
   // First we get the list of symbols we're interested in, then
@@ -897,86 +897,79 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
     // Some platforms preface with an underscore
     foundHeap = theImage->findInternalByPrefix(string("_DYNINSTstaticHeap"),
 					       heapSymbols);
-
   // The address in the symbol isn't necessarily absolute
   getBaseAddress(theImage, baseAddr);
   for (u_int j = 0; j < heapSymbols.size(); j++)
     {
-      // The string layout is: DYNINSTstaticHeap_size_type_unique
-      // Can't allocate a variable-size array on NT, so malloc
-      // that sucker
-      char *temp_str = (char *)malloc(strlen(heapSymbols[j].name().c_str())+1);
-      strcpy(temp_str, heapSymbols[j].name().c_str());
-      char *garbage_str = strtok(temp_str, "_"); // Don't care about beginning
-      assert(!strcmp("DYNINSTstaticHeap", garbage_str));
-      // Name is as is.
-      // If address is zero, then skip (error condition)
-      if (heapSymbols[j].addr() == 0)
-	{
-	  cerr << "Skipping heap " << heapSymbols[j].name().c_str()
-	       << "with address 0" << endl;
-	  continue;
-	}
-      // Size needs to be parsed out (second item)
-      // Just to make life difficult, the heap can have an optional
-      // trailing letter (k,K,m,M,g,G) which indicates that it's in
-      // kilobytes, megabytes, or gigabytes. Why gigs? I was bored.
-      char *heap_size_str = strtok(NULL, "_"); // Second element, null-terminated
-      unsigned heap_size = (unsigned) atol(heap_size_str);
-      if (heap_size == 0)
-	/* Zero size or error, either way this makes no sense for a heap */
-	{
-	  free(temp_str);
-	  continue;
-	}
-      switch (heap_size_str[strlen(heap_size_str)-1])
-	{
-	case 'g':
-	case 'G':
-	  heap_size *= 1024;
-	case 'm':
-	case 'M':
-	  heap_size *= 1024;
-	case 'k':
-	case 'K':
-	  heap_size *= 1024;
-	default:
-	  break;
-	}
-
-      // Type needs to be parsed out. Can someone clean this up?
-      inferiorHeapType heap_type;
-      char *heap_type_str = strtok(NULL, "_");
-
-      if (!strcmp(heap_type_str, "anyHeap"))
-	heap_type = anyHeap;
-      else if (!strcmp(heap_type_str, "lowmemHeap"))
-	heap_type = lowmemHeap;
-      else if (!strcmp(heap_type_str, "dataHeap"))
-	heap_type = dataHeap;
-      else if (!strcmp(heap_type_str, "textHeap"))
-	heap_type = textHeap;
-      else
-	{
-	  cerr << "Unknown heap string " << heap_type_str << " read from file!" << endl;
-	  free(temp_str);
-	  continue;
-	}
-
-      infHeaps.push_back(heapDescriptor(heapSymbols[j].name(),
+        // The string layout is: DYNINSTstaticHeap_size_type_unique
+        // Can't allocate a variable-size array on NT, so malloc
+        // that sucker
+        char *temp_str = (char *)malloc(strlen(heapSymbols[j].name().c_str())+1);
+        strcpy(temp_str, heapSymbols[j].name().c_str());
+        char *garbage_str = strtok(temp_str, "_"); // Don't care about beginning
+        assert(!strcmp("DYNINSTstaticHeap", garbage_str));
+        // Name is as is.
+        // If address is zero, then skip (error condition)
+        if (heapSymbols[j].addr() == 0)
+        {
+            cerr << "Skipping heap " << heapSymbols[j].name().c_str()
+                 << "with address 0" << endl;
+            continue;
+        }
+        // Size needs to be parsed out (second item)
+        // Just to make life difficult, the heap can have an optional
+        // trailing letter (k,K,m,M,g,G) which indicates that it's in
+        // kilobytes, megabytes, or gigabytes. Why gigs? I was bored.
+        char *heap_size_str = strtok(NULL, "_"); // Second element, null-terminated
+        unsigned heap_size = (unsigned) atol(heap_size_str);
+        if (heap_size == 0)
+            /* Zero size or error, either way this makes no sense for a heap */
+        {
+            free(temp_str);
+            continue;
+        }
+        switch (heap_size_str[strlen(heap_size_str)-1])
+        {
+      case 'g':
+      case 'G':
+          heap_size *= 1024;
+      case 'm':
+      case 'M':
+          heap_size *= 1024;
+      case 'k':
+      case 'K':
+          heap_size *= 1024;
+      default:
+          break;
+        }
+        
+        // Type needs to be parsed out. Can someone clean this up?
+        inferiorHeapType heap_type;
+        char *heap_type_str = strtok(NULL, "_");
+        
+        if (!strcmp(heap_type_str, "anyHeap"))
+            heap_type = anyHeap;
+        else if (!strcmp(heap_type_str, "lowmemHeap"))
+            heap_type = lowmemHeap;
+        else if (!strcmp(heap_type_str, "dataHeap"))
+            heap_type = dataHeap;
+        else if (!strcmp(heap_type_str, "textHeap"))
+            heap_type = textHeap;
+        else
+        {
+            cerr << "Unknown heap string " << heap_type_str << " read from file!" << endl;
+            free(temp_str);
+            continue;
+        }
+        
+        infHeaps.push_back(heapDescriptor(heapSymbols[j].name(),
 #ifdef mips_unknown_ce2_11 //ccw 13 apr 2001
-				 heapSymbols[j].addr(), 
+                                          heapSymbols[j].addr(), 
 #else
-				 heapSymbols[j].addr()+baseAddr, 
+                                          heapSymbols[j].addr()+baseAddr, 
 #endif
-				 heap_size, heap_type));
-#ifdef DEBUG
-      fprintf(stderr, "Added heap %s at %x to %x\n",
-	      heapSymbols[j].name().c_str(), 
-	      heapSymbols[j].addr()+baseAddr,
-	      heapSymbols[j].addr()+baseAddr+heap_size);
-#endif /* DEBUG */
-      free(temp_str);
+                                          heap_size, heap_type));
+        free(temp_str);
     }
   return foundHeap;
 }
@@ -1361,14 +1354,14 @@ void process::addInferiorHeap(const image *theImage)
   if (getInfHeapList(theImage, infHeaps))
     {
       /* Add the vector to the inferior heap structure */
-      for (u_int j=0; j < infHeaps.size(); j++)
-	{
-	  heapItem *h = new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
-				      infHeaps[j].type(), false);
-	  heap.bufferPool.push_back(h);
-	  heapItem *h2 = new heapItem(h);
-	  heap.heapFree.push_back(h2);
-	}
+        for (u_int j=0; j < infHeaps.size(); j++)
+        {
+            heapItem *h = new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
+                                        infHeaps[j].type(), false);
+            heap.bufferPool.push_back(h);
+            heapItem *h2 = new heapItem(h);
+            heap.heapFree.push_back(h2);
+        }
     }
 }
 
@@ -1595,9 +1588,9 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   extern void checkProcStatus();
   do {
 #ifdef DETACH_ON_THE_FLY
-    launchRPCifAppropriate((status()==running || juststopped), false);
+    launchRPCifAppropriate((status()==running || juststopped));
 #else
-    launchRPCifAppropriate((status()==running), false);
+    launchRPCifAppropriate((status()==running));
 #endif
     checkProcStatus();
   } while (!ret.ready); // Loop until callback has fired.
@@ -2131,7 +2124,7 @@ process::process(int iPid, image *iImage, int iTraceLink
    resetForkTrapData();
 #endif
 
-   inSyscall_ = false;
+   isIRPCwaitingForSyscall_ = false;
    runningRPC_ = false;
    // attach to the child process (machine-specific implementation)
    if (!attach()) { // error check?
@@ -2202,7 +2195,7 @@ process::process(int iPid, image *iSymbols,
 #endif /* DETACH_ON_THE_FLY */
 
 
-   inSyscall_ = false;
+   isIRPCwaitingForSyscall_ = false;
    runningRPC_ = false;
    save_exitset_ptr = NULL;
 
@@ -2483,7 +2476,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #endif /* DETACH_ON_THE_FLY */
 
     // This is the "fork" ctor
-    inSyscall_= false;
+    isIRPCwaitingForSyscall_= false;
     runningRPC_ = false;
     save_exitset_ptr = NULL;
 
@@ -5497,12 +5490,22 @@ dyn_thread *process::STdyn_thread() {
   return threads[0];
 }
 
-bool process::thrInSyscall()
+bool process::isAnyIRPCwaitingForSyscall() 
 {
-  for (unsigned i = 0; i < threads.size(); i++)
-    if (threads[i]->isInSyscall())
-      return true;
-  return false;
+    if (isIRPCwaitingForSyscall())
+        return true;
+    for (unsigned i = 0; i < threads.size(); i++)
+        if (threads[i]->isIRPCwaitingForSyscall())
+            return true;
+    return false;
+}
+
+void process::clearAllIRPCwaitingForSyscall()
+{
+    clear_breakpoint_for_syscall_completion();
+    clearIRPCwaitingForSyscall();
+    for (unsigned i = 0; i < threads.size(); i++)
+        threads[i]->clearIRPCwaitingForSyscall();
 }
 
 // Get a list of all RPCs ready to run
@@ -5517,13 +5520,16 @@ bool process::getReadyRPCs(vectorSet<inferiorRPCtoDo> &readyRPCs)
     {
       inferiorRPCtoDo *thr_todo;
       if (threads[i]->isRunningIRPC())
-	continue;
+          continue;
+      if (threads[i]->isIRPCwaitingForSyscall())
+          continue;
       if (threads[i]->readyIRPC())
-	readyRPCs += threads[i]->peekIRPC();
+          readyRPCs += threads[i]->peekIRPC();
     }
   // For both: ST this will always be true
   if (readyRPCs.empty()) {
-    if (!isRunningIRPC() && !RPCsWaitingToStart.empty()) {
+    if (!isRunningIRPC() && !RPCsWaitingToStart.empty()
+        && !isIRPCwaitingForSyscall()) {
       readyRPCs += RPCsWaitingToStart[0];
     }
   }
@@ -5542,7 +5548,7 @@ bool process::rpcSavesRegs()
 //
 // this should work for both threaded and non-threaded case
 //
-bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
+bool process::launchRPCifAppropriate(bool wasRunning) {
 
    // Here's an interesting problem I've discovered... when we go to pause the 
    // process, we might try and handle a trap due to an inferior RPC because
@@ -5585,43 +5591,26 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
          }
       }
     
-      // SYSCALL CHECK
-      if (todo.thr) {
-         if (finishingSysCall) {
-            clear_breakpoint_for_syscall_completion();
-            todo.thr->clearInSyscall();
-         }
-         if (todo.thr->isInSyscall() && !finishingSysCall) {
-            continue;
-         }
-        
-         if (todo.lwp->executingSystemCall()) {
+    // SYSCALL CHECK
+    if (todo.thr) {
+        if (todo.lwp->executingSystemCall()) {
             // Ah, crud. We're in a system call, so no work is possible.
             if (set_breakpoint_for_syscall_completion()) { // Great when it works, 
-               // Only set inSyscall if we can set a breakpoint at the exit.
-               // Otherwise we have to spin until the syscall is completed.
-               todo.thr->setInSyscall();
+                todo.thr->setIRPCwaitingForSyscall();
             }
             thrInSyscall = true;
-            was_running_before_RPC_syscall_complete = wasRunning;
+            wasRunningBeforeSyscall_ = wasRunning;
             cerr << "Warning: thread running on LWP " << todo.lwp->get_lwp() 
-                 << " is in a system call and requires an inferior RPC. Waiting for system call to complete." << endl;
+                 << " is in a system call and requires an inferior RPC. Waiting for system call to complete." << getPid() << endl;
             continue;
-         }
-      }
-      else {
-         if (finishingSysCall) {
-            clearInSyscall();
-            clear_breakpoint_for_syscall_completion();
-         }
-         if (isInSyscall() && !finishingSysCall) {
-            continue;
-         }
-         if (getDefaultLWP()->executingSystemCall()) {
+        }
+    }
+    else {
+        if (getDefaultLWP()->executingSystemCall()) {
             if (set_breakpoint_for_syscall_completion()) {
-               setInSyscall();
+                setIRPCwaitingForSyscall();
             }
-            was_running_before_RPC_syscall_complete = wasRunning;
+            wasRunningBeforeSyscall_ = wasRunning;
             thrInSyscall = true;
             cerr << "Warning: The program is in a system call and requires an inferior RPC. Waiting for system call to complete." << endl;
             continue;
@@ -5677,13 +5666,8 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
       inProgress.savedRegs = theSavedRegs;
       inProgress.seq_num = todo.seq_num;
 
+    inProgress.wasRunning = wasRunning;
 
-
-      if( finishingSysCall ) {
-         inProgress.wasRunning = was_running_before_RPC_syscall_complete;
-      } else {
-         inProgress.wasRunning = wasRunning;
-      }
     
       // If finishing up a system call, current state is paused, but we want to
       // set wasRunning to true so that it'll continue when the inferiorRPC
@@ -5747,13 +5731,14 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    // thrRunningRPC = false, thrInSyscall = true   : wasRunning
 
 
-   if (thrRunningRPC) {
+  if (thrRunningRPC) {
       if (!continueProc()) return false;
-   }
-   else if (wasRunning || thrInSyscall) {
+    
+  }
+  else if (wasRunning || thrInSyscall) {
       if (!continueProc()) return false;
-   }
-   return true; // success
+  }
+  return true; // success
 }
 
 void generateMTpreamble(char *, Address &, process *);
@@ -7747,7 +7732,6 @@ dyn_lwp *process::getLWP(unsigned lwp)
   if (lwps.find(lwp, foundLWP)) {
     return foundLWP;
   }
-  fprintf(stderr, "Didn't find lwp %d, creating\n", lwp);
   foundLWP = new dyn_lwp(lwp, this);
   if (!foundLWP->openFD()) {
     delete foundLWP;
