@@ -19,7 +19,7 @@
  * 
  * All warranties, including without limitation, any warranty of
  * merchantability or fitness for a particular purpose, are hereby
- * excluded.
+ * excluded
  * 
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.64 2000/02/15 23:48:00 hollings Exp $
+// $Id: aix.C,v 1.65 2000/03/02 20:54:05 bernat Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -51,6 +51,8 @@
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/instP.h" // class instInstance
 #include "util/h/pathName.h"
+
+#include <procinfo.h>
 
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -754,7 +756,40 @@ bool process::isRunning_() const {
    // opposed to checking the 'status_' member vrble.  May assume that attach()
    // has run, but can't assume anything else.
 
-   assert(false); // not yet implemented!   
+  // Here's the plan: use getprocs() to get process info.
+  // Constant for the number of processes wanted in info
+  const unsigned int numProcsWanted = 1;
+  struct procsinfo procInfoBuf[numProcsWanted];
+  struct fdsinfo fdsInfoBuf[numProcsWanted];
+  int numProcsReturned;
+  // The pid sent to getProcs() is modified, so make a copy
+  pid_t wantedPid = pid; 
+  // We really don't need to recalculate the size of the structures
+  // every call through here. The compiler should optimize these
+  // to constants.
+  const int sizeProcInfo = sizeof(struct procsinfo);
+  const int sizeFdsInfo = sizeof(struct fdsinfo);
+
+  numProcsReturned = getprocs(procInfoBuf,
+			      sizeProcInfo,
+			      fdsInfoBuf,
+			      sizeFdsInfo,
+			      &wantedPid,
+			      numProcsWanted);
+
+  if (numProcsReturned == -1) // We have an error
+    perror("Failure in isRunning_");
+
+  // This is list of possible values for pi_state (from sys/proc.h)
+  //#define SNONE           0               /* slot is available    */
+  //#define SIDL            4               /* process is created   */
+  //#define SZOMB           5               /* process is dying     */ 
+  //#define SSTOP           6               /* process is stopped   */
+  //#define SACTIVE         7               /* process is active    */
+  //#define SSWAP           8               /* process is swapped   */
+  // We use SACTIVE
+
+  return (procInfoBuf[0].pi_state == SACTIVE);
 }
 
 // TODO is this safe here ?
