@@ -593,6 +593,7 @@ void BPatch_module::parseTypes()
   string* currentFunctionName = NULL;
   Address currentFunctionBase = 0;
   string* currentSourceFile = NULL;
+  string* absoluteDirectory = NULL;
   
 
   for(i=0;i<stab_nsyms;i++){
@@ -609,6 +610,8 @@ void BPatch_module::parseTypes()
 	    if(currentSourceFile){
 	  	delete currentSourceFile;
 		currentSourceFile = NULL;
+		delete absoluteDirectory;
+		absoluteDirectory = NULL;
 	    }
 	    break;
 
@@ -633,11 +636,15 @@ void BPatch_module::parseTypes()
 
 	    //time to create the source file name to be used
 	    //for latter processing of line information
-	    if(!currentSourceFile)
+	    if(!currentSourceFile){
 		currentSourceFile = new string(&stabstrs[stabptr[i].name]);
+	    	absoluteDirectory = new string(*currentSourceFile);
+	    }
 	    else if(!strlen(&stabstrs[stabptr[i].name])){
 		delete currentSourceFile;
 		currentSourceFile = NULL;
+		delete absoluteDirectory;
+		absoluteDirectory = NULL;
 	    }
 	    else
 		*currentSourceFile += &stabstrs[stabptr[i].name];
@@ -646,21 +653,15 @@ void BPatch_module::parseTypes()
             break;
 
     case N_SOL:
-	    if(currentSourceFile){
+	    if(absoluteDirectory){
 	        const char* newSuffix = &stabstrs[stabptr[i].name];
 		if(newSuffix[0] == '/'){
 			delete currentSourceFile;
 			currentSourceFile = new string;
 		}
 		else{
-   			char* tmp = new char[currentSourceFile->length()+1];
-                	strncpy(tmp,currentSourceFile->string_of(),
-				currentSourceFile->length());
-                	tmp[currentSourceFile->length()] = '\0';
-			if(strstr(tmp,&stabstrs[stabptr[i].name])){
-				delete[] tmp;
-				break;
-			}
+   			char* tmp = new char[absoluteDirectory->length()+1];
+                	strcpy(tmp,absoluteDirectory->string_of());
                 	char* p=strrchr(tmp,'/');
 			if(p) 
                 		*(++p)='\0';
