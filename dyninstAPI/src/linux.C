@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.16 1999/07/08 00:22:31 nash Exp $
+// $Id: linux.C,v 1.17 1999/07/19 22:53:17 wylie Exp $
 
 #include <fstream.h>
 
@@ -732,7 +732,7 @@ void process::insertTrapAtEntryPointOfMain()
   function_base *f_main = findOneFunction("main");
   if (!f_main) {
     // we can't instrument main - naim
-    showErrorCallback(108,"");
+    showErrorCallback(108,"main() uninstrumentable");
     extern void cleanUpAndExit(int);
     cleanUpAndExit(-1); 
     return;
