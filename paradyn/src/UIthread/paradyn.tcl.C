@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.23  1994/08/05 16:04:28  hollings
-/* more consistant use of stringHandle vs. char *.
+/* Revision 1.24  1994/08/08 20:15:25  hollings
+/* added suppress instrumentation command.
 /*
+ * Revision 1.23  1994/08/05  16:04:28  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
  * Revision 1.22  1994/08/03  19:10:25  hollings
  * split tunable constant into boolean and float types.
  *
@@ -615,16 +618,27 @@ int ParadynSuppressCmd (ClientData clientData,
     int limit;
     resource *r;
     stringHandle name;
+    Boolean suppressInst;
     resourceList *resList;
 
-    if (argc != 2) {
-	printf("Usage: paradyn suppress <resource list>\n");
+    if (argc != 3) {
+	printf("Usage: paradyn suppress <search|inst> <resource list>\n");
 	return TCL_ERROR;
     }
-    resList = build_resource_list (interp, argv[1]);
+    resList = build_resource_list (interp, argv[2]);
     if (resList == NULL) {
       sprintf (interp->result, "unable to build resource list for %s",
 	       argv[2]);
+      return TCL_ERROR;
+    }
+
+    if (!strcmp(argv[1], "search")) {
+	suppressInst = False;
+    } else if (!strcmp(argv[1], "inst")) {
+	suppressInst = True;
+    } else {
+	sprintf (interp->result, "suppress option (%s) not search or inst",
+	    argv[1]);
       return TCL_ERROR;
     }
 
@@ -634,7 +648,11 @@ int ParadynSuppressCmd (ClientData clientData,
 	name = r->getName();
 	printf ("suppress request for %s\n", name);
 
-	dataMgr->setResourceSuppress(context, r, TRUE);
+	if (suppressInst) {
+	    dataMgr->setResourceInstSuppress(context, r, TRUE);
+	} else {
+	    dataMgr->setResourceSearchSuppress(context, r, TRUE);
+	}
     }
     return TCL_OK;
 }

@@ -16,7 +16,10 @@
 
 /*
  * $Log: dyninstRPC.I,v $
- * Revision 1.17  1994/07/20 16:30:40  hollings
+ * Revision 1.18  1994/08/08 20:14:56  hollings
+ * added suppress instrumentation command.
+ *
+ * Revision 1.17  1994/07/20  16:30:40  hollings
  * added resourceBatchMode
  *
  * Revision 1.16  1994/07/14  23:44:29  hollings
@@ -62,7 +65,7 @@ int createDaemon(String machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 14;
+    $version 15;
 
     //
     // Define a program to run. 
@@ -168,6 +171,14 @@ $remote dynRPC {
     $upcall $async void newMetricCallback(metricInfo info); 
 
     void setSampleRate(double sampleInterval);
+
+    //
+    // tell dyninst to ignore this resource for instrumentation.
+    //    Currently this only applies to programs, modules, and procedures.
+    //    False - suppress
+    //    True - enable
+    //
+    Boolean setTracking(String resource, Boolean);
 
     //
     // Routines to control data collection on a performanceStream.

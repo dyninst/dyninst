@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.24  1994/08/05 16:03:46  hollings
+ * Revision 1.25  1994/08/08 20:14:54  hollings
+ * added suppress instrumentation command.
+ *
+ * Revision 1.24  1994/08/05  16:03:46  hollings
  * more consistant use of stringHandle vs. char *.
  *
  * Revision 1.23  1994/07/25  14:56:19  hollings
@@ -215,7 +218,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 11;
+    $version 12;
 
     //
     // Create an applicationContext (an application to be studied)
@@ -375,7 +378,16 @@ $remote dataManager {
      			  resource *parent, 
      			  char *name);
 
-    void setResourceSuppress(applicationContext *app,
+    //
+    // don't search the SHG for this node.
+    //
+    void setResourceSearchSuppress(applicationContext *app,
+			     resource *res, Boolean newValue);
+
+    //
+    // consider this resource a black box (applies to modules/procedures now).
+    //
+    void setResourceInstSuppress(applicationContext *app,
 			     resource *res, Boolean newValue);
 
     // Get the static config. information for the passed applicationContext.

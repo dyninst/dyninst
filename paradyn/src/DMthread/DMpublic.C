@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.25  1994/08/05 16:03:59  hollings
+ * Revision 1.26  1994/08/08 20:15:20  hollings
+ * added suppress instrumentation command.
+ *
+ * Revision 1.25  1994/08/05  16:03:59  hollings
  * more consistant use of stringHandle vs. char *.
  *
  * Revision 1.24  1994/07/25  14:55:37  hollings
@@ -112,10 +115,16 @@ applicationContext *dataManager::createApplicationContext(errorHandler foo)
   return appContext;
 }
 
-void dataManager::setResourceSuppress(applicationContext *app,
+void dataManager::setResourceSearchSuppress(applicationContext *app,
 				      resource *res, Boolean newValue)
 {
     if (res) res->setSuppress(newValue);
+}
+
+void dataManager::setResourceInstSuppress(applicationContext *app,
+				      resource *res, Boolean newValue)
+{
+    if (res) app->setInstSuppress(res, newValue);
 }
 
 Boolean dataManager::addDaemon(applicationContext *app,

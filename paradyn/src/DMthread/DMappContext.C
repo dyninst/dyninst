@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.36  1994/08/05 16:03:55  hollings
+ * Revision 1.37  1994/08/08 20:15:17  hollings
+ * added suppress instrumentation command.
+ *
+ * Revision 1.36  1994/08/05  16:03:55  hollings
  * more consistant use of stringHandle vs. char *.
  *
  * Revision 1.35  1994/08/03  19:06:23  hollings
@@ -530,6 +533,19 @@ metric *applicationContext::findMetric(char *name)
 
     iName = metric::names.findAndAdd(name);
     return(metric::allMetrics.find(iName));
+}
+
+Boolean applicationContext::setInstSuppress(resource *res, Boolean newValue)
+{
+    Boolean ret;
+    paradynDaemon *daemon;
+    List<paradynDaemon*> curr;
+
+    ret = FALSE;
+    for (curr = daemons; daemon = *curr; curr++) {
+	ret |= daemon->setTracking(res->getFullName(), newValue);
+    }
+    return(ret);
 }
 
 //
