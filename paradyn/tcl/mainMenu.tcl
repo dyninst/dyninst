@@ -1,6 +1,11 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
+# Revision 1.44  1995/11/09 02:13:27  tamches
+# some general cleanup, such as removing references to tk_menuBar
+# (obsolete in tk4.0), and removing old code that had until now been
+# commented out.
+#
 # Revision 1.43  1995/11/06 02:56:07  tamches
 # removed ugly borderwidth for .parent.menub, .parent.status, and
 # .parent.buttons
@@ -238,18 +243,13 @@ proc drawToolBar {} {
     }
     option add *TopMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
 
-#    bind Entry <2> { %W insert insert [selection get] }
-
-#    wm minsize . 400 300
+    # the paradyn main window can be resized horizontally but not vertically:
     wm resizable . 1 0
 
     frame .parent 
-#    frame .parent.menub -relief raised -borderwidth 2
     frame .parent.menub -relief raised
-#    frame .parent.status  -relief raised -borderwidth 4
     frame .parent.status
     frame .parent.main
-#    frame .parent.buttons -relief raised -borderwidth 4 -height 20
     frame .parent.buttons -relief raised -height 20
     mkButtonBar .parent.buttons {} retval {{RUN "paradyn cont"} \
 	    {PAUSE "paradyn pause"} {SAVE ""} \
@@ -320,8 +320,7 @@ proc drawToolBar {} {
 #	    -file mwhere.ps -pageheight 3.0i"
 
     set mb .parent.menub.left.men
-#    tk_menuBar $mb $mb.b1 $mb.b2 $mb.b3 $mb.b4 $mb.b5 $mb.b6
-    tk_menuBar $mb $mb.b0 $mb.b1 $mb.b5 $mb.b6
+#    tk_menuBar $mb $mb.b0 $mb.b1 $mb.b5 $mb.b6
 
     wm title . "Paradyn"
 
@@ -335,7 +334,6 @@ proc drawToolBar {} {
     pack .parent.menub.left -side left -fill both -expand 1
     mkLogo .parent.menub.logobox right
 
-#    pack .parent.menub.left.title .parent.menub.left.men -side top -fill both -expand 1
     pack .parent.menub.left.title -side top -fill both -expand true
     pack .parent.menub.left.men -side top -fill x -expand false
 
@@ -344,12 +342,4 @@ proc drawToolBar {} {
     pack .parent.status -side bottom -fill x -expand 0
 
     pack .parent -fill both -expand 1
-
-    # read in error file
-
-#
-# not needed any more since errorList will be converted and sourced
-#
-#   uplevel #0 {source "$PdBitmapDir/errorList.tcl"}
 }
-
