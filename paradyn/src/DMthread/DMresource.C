@@ -7,14 +7,20 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.5 1994/06/02 16:08:17 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.6 1994/06/14 15:25:03 markc Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.5  1994/06/02 16:08:17  hollings
+ * Revision 1.6  1994/06/14 15:25:03  markc
+ * Added new call (sameRoot) to the resource class.  This call is used to
+ * determine if two resources have the same parent but are not in an
+ * ancestor-descendant relationship.  Such a relationship implies a conflict
+ * in the two foci.
+ *
+ * Revision 1.5  1994/06/02  16:08:17  hollings
  * fixed duplicate naming problem for printResources.
  *
  * Revision 1.4  1994/05/31  19:11:34  hollings
@@ -92,6 +98,35 @@ Boolean resource::isDescendent(resource *child)
         }
     }
     return(FALSE);
+}
+
+/*
+ * Do the two resources have the same base?
+ * Note, since the there is a common root for all nodes,
+ * the test for a common base checks the node below the
+ * common root.
+ */
+Boolean resource::sameRoot(resource *other)
+{
+  resource *myBase, *otherBase, *temp;
+
+  temp = this;
+  while (temp->parent)
+    {
+      myBase = temp;
+      temp = temp->parent;
+    }
+  temp = other;
+  while (temp->parent)
+    {
+      otherBase = temp;
+      temp = temp->parent;
+    }
+
+  if (myBase == otherBase)
+    return TRUE;
+  else
+    return FALSE;
 }
 
 void resourceList::print()

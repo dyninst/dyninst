@@ -2,7 +2,13 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.4  1994/06/02 16:08:18  hollings
+ * Revision 1.5  1994/06/14 15:25:03  markc
+ * Added new call (sameRoot) to the resource class.  This call is used to
+ * determine if two resources have the same parent but are not in an
+ * ancestor-descendant relationship.  Such a relationship implies a conflict
+ * in the two foci.
+ *
+ * Revision 1.4  1994/06/02  16:08:18  hollings
  * fixed duplicate naming problem for printResources.
  *
  * Revision 1.3  1994/05/31  19:11:35  hollings
@@ -102,6 +108,7 @@ class resource {
     resource *findChild(char *name) { return(children.find(name)); }
     int match(char *ptr) { return(ptr == name); }
     Boolean isDescendent(resource *child);
+    Boolean sameRoot(resource *child);
     void print();
     resource *getParent()	{ return(parent); }
     static resource *rootResource;
