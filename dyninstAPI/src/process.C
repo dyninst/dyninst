@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.506 2004/08/13 19:33:22 legendre Exp $
+// $Id: process.C,v 1.507 2004/08/14 20:39:44 legendre Exp $
 
 #include <ctype.h>
 
@@ -3693,6 +3693,7 @@ bool process::stop_()
       logLine(errorLine);
       return false;
    }
+   return true;
 }
 #endif
 
