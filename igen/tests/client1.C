@@ -1,6 +1,6 @@
 #include <unistd.h>
 #include <assert.h>
-#include "test1.h"
+#include "test1.CLNT.h"
 
 String str1 = "A Test String with server words in it";
 String str2 = "Different String";

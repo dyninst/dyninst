@@ -1,6 +1,7 @@
+#include <rpc/xdr.h>
 #include <unistd.h>
 #include <assert.h>
-#include "test2.CLNT.h"
+#include "testPVM.CLNT.h"
 
 String str1 = "A Test String with server words in it";
 String str2 = "Different String";
@@ -8,23 +9,23 @@ String str2 = "Different String";
 int numbers[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 int_Array vect;
 
-extern void *serverMainFunc(void *);
-
 main()
 {
     int i;
     int fd;
     int eid;
-    int tid;
     int total;
     intStruct is;
     testUser *remote;
 
-    // do a thread create???
-    thr_create(0, 0, serverMainFunc, (void *) thr_self(), (unsigned int) 0, 
-	(unsigned int *) &tid);
-
-    remote = new testUser(tid);
+    remote = new testUser(NULL, "serverPVM", NULL, 0);
+    // remote = new testUser();
+    
+    if (remote->get_error() == -1)
+      {
+	printf ("client could not get parent id \n");
+	exit(0);
+      }
 
     remote->nullNull();
 
@@ -47,18 +48,16 @@ main()
     }
     assert(remote->sumVector(vect) == total);
 
-    // This causes deadlock now.  I am not sure if it should be fixed though.
-    //   This has to due with the way procedures wait for data.
-    //   hollings 1/18/94
-    // remote->triggerSyncUpcall(42);
+    remote->triggerSyncUpcall(42);
 
     remote->triggerAsyncUpcall(-10);
 
-    for (i=0; i < 10000; i++) {
-	remote->add(1, 0);
+    for (i=0; i < 500; i++) {
+	remote->add(1, i);
     }
-
-    printf("ThreadPC test1 passed\n");
+    printf("RPC test1 passed\n");
+    delete (remote);
+    pvm_exit();
 }
 
 void testUser::syncUpcall(int val)

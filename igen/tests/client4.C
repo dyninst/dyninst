@@ -1,6 +1,7 @@
+#include <rpc/xdr.h>
 #include <unistd.h>
 #include <assert.h>
-#include "test2.CLNT.h"
+#include "test4.CLNT.h"
 
 String str1 = "A Test String with server words in it";
 String str2 = "Different String";
@@ -8,7 +9,7 @@ String str2 = "Different String";
 int numbers[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 int_Array vect;
 
-extern void *serverMainFunc(void *);
+extern void serverMainFunc(int);
 
 main()
 {
@@ -21,8 +22,7 @@ main()
     testUser *remote;
 
     // do a thread create???
-    thr_create(0, 0, serverMainFunc, (void *) thr_self(), (unsigned int) 0, 
-	(unsigned int *) &tid);
+    thr_create(0, 0, serverMainFunc, thr_self(), 0, (unsigned int *) &tid);
 
     remote = new testUser(tid);
 
@@ -59,6 +59,7 @@ main()
     }
 
     printf("ThreadPC test1 passed\n");
+    delete (remote);
 }
 
 void testUser::syncUpcall(int val)

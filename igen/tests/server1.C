@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "test1.h"
+#include "test1.SRVR.h"
 
 main(int argc, char *argv[])
 {

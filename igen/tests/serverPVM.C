@@ -1,22 +1,41 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "test2.SRVR.h"
+#include "testPVM.SRVR.h"
 
-void *serverMainFunc(void *parentId)
+main(int argc, char *argv[])
 {
-    int fd;
-    int eid;
-    int ret;
-    test *tp;
+  int flag;
+  int ret;
+  int started = 0;
+  test *tp;
+  char *where = NULL;
+  char *program = NULL;
+  
+  if (argc < 2)
+    started = 1;
 
-    tp = new test((int) parentId);
+  program = argv[1];
+  if (argc == 3)
+    {
+      where = argv[2];
+      flag = 1;
+    }
+  else
+    flag = 0;
 
-    // now go into main loop
-    while(1) {
-	ret = tp->mainLoop();	
-	if (ret < 0) {
-	    // assume the client has exited, and leave.
-	    exit(-1);
+  if (started)
+    tp = new test();
+  else
+    tp = new test(where, program, NULL, flag);
+
+  // now go into main loop
+  while(1)
+    {
+      ret = tp->mainLoop();	
+      if (ret < 0)
+	{
+	  // assume the client has exited, and leave.
+	  exit(-1);
 	}
     }
 }

@@ -1,15 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "test2.SRVR.h"
+#include "test4.SRVR.h"
 
-void *serverMainFunc(void *parentId)
+void serverMainFunc(int parentId)
 {
     int fd;
     int eid;
     int ret;
     test *tp;
 
-    tp = new test((int) parentId);
+    tp = new test(parentId);
 
     // now go into main loop
     while(1) {

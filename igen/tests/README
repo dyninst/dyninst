@@ -1,0 +1,60 @@
+
+The following tests show the use of igen for each of the transport 
+mechanisms.
+
+
+/////////////////////////////
+XDR tests:
+
+client1/server1
+	started by - typing "client1"
+	igen template - test1.I
+	socket connection - socket pair
+	the client starts the server using RPCprocessCreate
+
+client3/server3
+	started by - typing "client1"
+	igen template - test3.I
+	socket connection - socket pair
+	the client starts the server using RPCprocessCreate
+
+xdrc_pvm/server_xdr
+	started by - typing "server_xdr"
+	igen template - xdr_link.I
+	socket connection - socket pair for first client/server conneciton
+    	                  - internet domain socket for rest
+	note - pvmd3 must be running for this program to work
+	the server starts a local client using RPCprocessCreate
+        the local client queries the pvm virtual machine and starts
+        xdrc_pvm on each machine in the virtual machine.  Due to 
+        problems with Kerberos, this is only starting xdrc_pvm on the
+        local machine.  The xdrc_pvm's started by the local client
+        connect to the server via the "well known port" that is passed
+        in on the command line.
+/////////////////////////////
+
+
+
+////////////////////////////
+THREAD tests:
+
+program2
+	started by - typing "program2"
+	igen template - test2.I
+
+program4
+	started by - typing "program4"
+	igen template - test4.I
+/////////////////////////////
+
+
+
+////////////////////////////
+PVM tests:
+
+clientPVM/serverPVM
+	started by - typing "clientPVM"
+	igen template - testPVM.I
+	connection - pvm between client/server
+	note - pvmd3 must be running for this program to work
+////////////////////////////

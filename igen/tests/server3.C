@@ -1,15 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "test2.SRVR.h"
+#include "test3.SRVR.h"
+#include <string.h>
 
-void *serverMainFunc(void *parentId)
+main(int argc, char *argv[])
 {
     int fd;
     int eid;
     int ret;
-    test *tp;
+    test *tp = 0;
 
-    tp = new test((int) parentId);
+    if (argc == 1) {
+	fd = 0;
+    } else {
+	printf("remote start not supported\n");
+	exit(-1);
+    }
+    tp = new test(0, NULL, NULL);
 
     // now go into main loop
     while(1) {
@@ -84,4 +91,12 @@ void test::triggerSyncUpcall(int val)
 void test::triggerAsyncUpcall(int val)
 {
     asyncUpcall(val);
+}
+
+sStruct test::msTest(sStruct input)
+{
+    sStruct ret;
+    ret.computer = 1;
+    ret.name = strdup("happy");
+    return ret;
 }

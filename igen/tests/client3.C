@@ -1,6 +1,11 @@
+extern "C" {
+#include <rpc/xdr.h>
+}
+
 #include <unistd.h>
 #include <assert.h>
-#include "test2.CLNT.h"
+#include "test3.CLNT.h"
+#include <string.h>
 
 String str1 = "A Test String with server words in it";
 String str2 = "Different String";
@@ -8,23 +13,25 @@ String str2 = "Different String";
 int numbers[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 int_Array vect;
 
-extern void *serverMainFunc(void *);
-
 main()
 {
+    sStruct Sret, Ssend;
     int i;
     int fd;
     int eid;
-    int tid;
     int total;
     intStruct is;
-    testUser *remote;
+    testUser *remote = 0;
 
-    // do a thread create???
-    thr_create(0, 0, serverMainFunc, (void *) thr_self(), (unsigned int) 0, 
-	(unsigned int *) &tid);
+    is.style = 5;
+    fd = RPCprocessCreate(&eid, "localhost", "", "server3");
+    if (fd < 0) {
+	perror("process Create");
+	exit(-1);
+    }
 
-    remote = new testUser(tid);
+    remote = new testUser(fd, NULL, NULL);
+
 
     remote->nullNull();
 
@@ -40,6 +47,12 @@ main()
     assert(remote->add(1, 1) == 2);
     assert(remote->add(-1, -13) == -14);
 
+    Ssend.computer = 2;
+    Ssend.name = strdup("happy");
+    Sret = remote->msTest(Ssend);
+    free(Sret.name);
+    free(Ssend.name);
+
     vect.count = sizeof(numbers)/sizeof(int);
     vect.data = numbers;
     for (i=0, total = 0; i < vect.count; i++) {
@@ -47,18 +60,15 @@ main()
     }
     assert(remote->sumVector(vect) == total);
 
-    // This causes deadlock now.  I am not sure if it should be fixed though.
-    //   This has to due with the way procedures wait for data.
-    //   hollings 1/18/94
-    // remote->triggerSyncUpcall(42);
+    remote->triggerSyncUpcall(42);
 
     remote->triggerAsyncUpcall(-10);
 
     for (i=0; i < 10000; i++) {
-	remote->add(1, 0);
+	remote->add(1, i);
     }
-
-    printf("ThreadPC test1 passed\n");
+    printf("RPC test1 passed\n");
+    delete (remote);
 }
 
 void testUser::syncUpcall(int val)
