@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.21 2003/04/16 21:07:09 bernat Exp $
+// $Id: sol_proc.C,v 1.22 2003/04/20 01:00:14 schendel Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -492,11 +492,43 @@ struct dyn_saved_regs *dyn_lwp::getRegisters()
     return regs;
 }
 
-void doneWithLwp(process *, unsigned /*rpc_id*/, void * /* data*/, 
-                 void * /* result*/) {
-   //int lwp_id = (int)data;
-   //cerr << "doneWithLwp - lwp_id: " << lwp_id << ", result: "
-   //     << result << ", rpc_id: " << rpc_id << endl;
+struct lwprequest_info {
+public:
+   lwprequest_info() : lwp_id(0), rpc_id(0), 
+                       completed(false), cancelled(false) 
+   { }
+   unsigned lwp_id;
+   unsigned rpc_id;
+   bool completed;
+   bool cancelled;
+};
+
+template class pdvector<lwprequest_info*>;
+
+pdvector<lwprequest_info*> rpcReqBuf;
+
+void doneWithLwp(process *, unsigned rpc_id, void *data, void *result_arg) {
+   int lwp_id = (int)data;
+   int result = (int)result_arg;
+
+   if(result == 1)
+      return;  // successful
+
+   // else, failure, mark as rpc cancelled ...
+   // mark lwp initialization rpc as cancelled if when running, got tid of 0.
+   // these lwps appear to not be the normal ones in the program but some
+   // special lwps used by the thread library;
+   pdvector<lwprequest_info*>::iterator iter = rpcReqBuf.begin();
+   bool any_active = false;
+
+   while(iter != rpcReqBuf.end()) {
+      lwprequest_info *rpcReq = (*iter);
+      if(rpcReq->rpc_id == rpc_id) {
+         rpcReq->cancelled = true;
+         rpcReq->completed = false;
+      }
+      iter++;
+   }      
 }
 
 // inferior RPC callback function type
@@ -510,12 +542,8 @@ unsigned recognize_lwp(process *proc, int lwp_id) {
    pdvector<AstNode *> ast_args;
    AstNode *ast = new AstNode("DYNINSTregister_running_thread", ast_args);
 
-   return proc->getRpcMgr()->postRPCtoDo(ast, true, 
-                                         doneWithLwp, 
-                                         (void *)lwp_id, -1,
-                                         false,
-                                         NULL, 
-                                         lwp);
+   return proc->getRpcMgr()->postRPCtoDo(ast, true, doneWithLwp,
+                                         (void *)lwp_id, false, NULL, lwp);
 }
 
 void determineLWPs(int pid, pdvector<unsigned> *all_lwps) {
@@ -533,19 +561,6 @@ void determineLWPs(int pid, pdvector<unsigned> *all_lwps) {
    closedir(dirhandle);
 }
 
-struct lwprequest_info {
-public:
-   lwprequest_info() : lwp_id(0), rpc_id(0), 
-                       completed(false), cancelled(false) 
-   { }
-   unsigned lwp_id;
-   unsigned rpc_id;
-   bool completed;
-   bool cancelled;
-};
-
-template class pdvector<lwprequest_info*>;
-
 bool anyRpcsActive(process *proc, pdvector<lwprequest_info*> *rpcReqBuf) {
    pdvector<lwprequest_info*>::iterator iter = (*rpcReqBuf).begin();
    bool any_active = false;
@@ -559,6 +574,21 @@ bool anyRpcsActive(process *proc, pdvector<lwprequest_info*> *rpcReqBuf) {
 
       int rpc_id = rpcReq->rpc_id;
       irpcState_t rpc_state = proc->getRpcMgr()->getRPCState(rpc_id);
+      /*
+      cerr << "  req: " << rpcReq->rpc_id << ", lwp: " << rpcReq->lwp_id
+           << ", state: ";
+      if(rpc_state == irpcNotValid) 
+         cerr << "irpcNotValid\n";
+      else if(rpc_state == irpcNotRunning)
+         cerr << "irpcNotRunning\n";
+      else if(rpc_state == irpcRunning)
+         cerr << "irpcRunning\n";
+      else if(rpc_state == irpcWaitingForSignal)
+         cerr << "irpcWaitingForSignal\n";
+      else if(rpc_state == irpcNotReadyForIRPC)
+         cerr << "irpcNotReadyForIRPC\n";
+      */
+
       if(rpc_state == irpcWaitingForSignal) {
           proc->getRpcMgr()->cancelRPC(rpc_id);
           rpcReq->cancelled = true;
@@ -578,7 +608,7 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
    pdvector<unsigned> found_lwps;
    determineLWPs(getPid(), &found_lwps);
 
-   pdvector<lwprequest_info*> rpcReqBuf;
+   rpcReqBuf.clear();
    for(unsigned i=0; i<found_lwps.size(); i++) {
       unsigned lwp_id = found_lwps[i];
       unsigned rpc_id = recognize_lwp(this, lwp_id);
@@ -1446,6 +1476,58 @@ int decodeProcStatus(process *,
    return 1;
 }
 
+int showProcStatus(lwpstatus_t status)
+{
+   switch (status.pr_why) {
+     case PR_SIGNALLED:
+        cerr << "PR_SIGNALED, what: " << (int)status.pr_what << endl;
+        break;
+     case PR_SYSENTRY:
+        cerr << "PR_SYSENTRY, what: " << (int)status.pr_what << endl;
+        break;
+     case PR_SYSEXIT:
+        cerr << "PR_SYSEXIT, what: " << (int)status.pr_what << endl;
+        break;
+     case PR_REQUESTED:
+        cerr << "PR_REQUESTED\n";
+        break;
+     case PR_SUSPENDED:
+        // I'm seeing this state at times with a forking multi-threaded
+        // child process, currently handling by just continuing the process
+        cerr << "PR_SUSPENDED\n";
+        break;
+     case PR_JOBCONTROL:
+     case PR_FAULTED:
+     default:
+        cerr << "OTHER\n";
+        assert(0);
+        break;
+   }
+   return 1;
+}
+
+void findLWPStoppedFromForkExit(process *currProcess) {
+   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(currProcess->lwps);
+   dyn_lwp *lwp;
+   unsigned index;
+       
+   while (lwp_iter.next(index, lwp)) {
+      // we don't want the representative lwp but the specific one
+      if(lwp->get_lwp_id() == 0)
+         continue;
+
+      lwpstatus_t procstatus;
+      bool res = lwp->get_status(&procstatus);
+      if(res == false)
+         continue;
+
+      if(procstatus.pr_why == PR_SYSEXIT && procstatus.pr_what == 2) {
+         currProcess->setLWPStoppedFromForkExit(lwp->get_lwp_id());
+      }
+   }
+}
+
+
 // Get and decode a signal for a process
 // We poll /proc for process events, and so it's possible that
 // we'll get multiple hits. In this case we return one and queue
@@ -1546,6 +1628,10 @@ process *decodeProcessEvent(int pid,
               procstatus.pr_flags & PR_ISTOP) {
              if(!decodeProcStatus(currProcess, procstatus, why, what, info))
                 return NULL;
+             if(why == PR_SYSEXIT && what == 2 &&
+                            currProcess->multithread_ready()) {
+                findLWPStoppedFromForkExit(currProcess);
+             }
           }
        }
        else {
