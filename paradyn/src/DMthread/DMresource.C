@@ -7,7 +7,10 @@
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.23  1995/07/15 03:34:53  karavan
+ * Revision 1.24  1995/07/20 22:34:22  rbi
+ * fixed descendancy evaluation bug
+ *
+ * Revision 1.23  1995/07/15  03:34:53  karavan
  * fixed "paradyn suppress searchChildren" command by checking for parent's
  * suppress value in resource constructor.
  *
@@ -210,16 +213,28 @@ bool resource::string_to_handle(string res,resourceHandle *h){
 }
 
 /*
- * Convinence function.
+ * Convenience function with too many es
  *
  */
-bool resource::isDescendent(resourceHandle child)
+bool resource::isDescendent(resourceHandle child_handle)
 {
-    for(unsigned i=0; i < children.size(); i++){
-        if(child == children[i])
-	    return(TRUE);
+    resourceHandle root_handle = rootResource->getHandle();
+    resourceHandle this_handle = getHandle();
+
+    if (child_handle == this_handle) {
+      return FALSE;
     }
-    return(FALSE);
+    if (this_handle == root_handle) {
+      return TRUE;
+    }
+    while (child_handle != root_handle) {
+        if (child_handle == this_handle) {
+	  return TRUE;
+        } else {
+            child_handle = handle_to_resource(child_handle)->getParent();
+        }
+    }
+    return FALSE;
 }
 
 /*
