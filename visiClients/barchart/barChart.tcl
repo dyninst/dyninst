@@ -2,6 +2,12 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
+#  Revision 1.28  1996/01/10 21:09:41  tamches
+#  added metric2units
+#  MetricMinValues and MetricMaxValues are now indexed by unit name
+#  Metric Unit Names are now displayed
+#  All metric max values for a given unit are kept the same
+#
 #  Revision 1.27  1996/01/10 19:35:35  tamches
 #  metric units are now displayed along with their names
 #
@@ -50,6 +56,20 @@
 # 3) too much flickering on resize
 # 4) No room for scrollbar unless needed
 # ######################################################
+
+proc metric2units {mindex} {
+   global DataFormat
+   if {$DataFormat=="Instantaneous"} {
+      return [Dg metricunits $mindex]
+   } elseif {$DataFormat=="Average"} {
+      return [Dg metricaveunits $mindex]
+   } elseif {$DataFormat=="Sum"} {
+      return [Dg metricsumunits $mindex]
+   } else {
+      puts stderr "barChart: metric2units: unknown Dataformat: $DataFormat"
+      return "unknown"
+   }
+}
 
 proc init_barchart_window {} {
    option add *Data*font *-Helvetica-*-r-*-12-*
@@ -321,8 +341,6 @@ proc Initialize {} {
    global numMetricLabelsDrawn
    global validMetrics
 
-   global metricMinValues metricMaxValues
-
    global metricsLabelFont resourceNameFont
    global prevLeftSectionWidth
 
@@ -352,11 +370,15 @@ proc Initialize {} {
    set numMetricsDrawn 0
    set numMetricLabelsDrawn 0
 
+   global metricMinValues metricMaxValues
    for {set metriclcv 0} {$metriclcv < $numMetrics} {incr metriclcv} {
       set validMetrics($metriclcv) [isMetricValid $metriclcv]
 
-      set metricMinValues($metriclcv) 0.0
-      set metricMaxValues($metriclcv) 1.0
+      set theUnits [metric2units $metriclcv]
+      if {[llength [array get metricMaxValues $theUnits]] == 0} {
+         set metricMinValues($theUnits) 0.0
+         set metricMaxValues($theUnits) 1.0
+      }
    }
 
    set numValidResources 0
@@ -381,7 +403,6 @@ proc Initialize {} {
   set metricsLabelFont *-Helvetica-*-r-*-12-*
 #   set resourceNameFont "7x13bold"
 #   set metricsLabelFont "7x13bold"
-
 
    # launch our C++ barchart code
    # launchBarChart $W.body.barCanvas doublebuffer noflicker $numMetrics $numResources 0
@@ -644,12 +665,23 @@ proc drawResourcesAxis {windowHeight} {
 # ProcessNewMetricMax {metricid newMaxVal}
 # Called from barChart.C when y-axis overflow is detected
 proc processNewMetricMax {mindex newmaxval} {
-   global metricMinValues metricMaxValues
+   global metricMaxValues
    global W
 
-   set metricMaxValues($mindex) $newmaxval
+   # New feature: all metrics with the same units-name should always have
+   # the same maximum value.  So, metricMaxValues is indexed by units-name,
+   # instead of the metric-id.
+   set unitsName [metric2units $mindex]
+   if {[llength [array get metricMaxValues $unitsName]] == 0} {
+      puts stderr "processNewMetricMax warning: have never seen units-name $unitsName"
+      set metricMaxValues($unitsName) $newmaxval
+      return
+   }
 
-   drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
+   if {$newmaxval > $metricMaxValues($unitsName)} {
+      set metricMaxValues($unitsName) $newmaxval
+      drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
+   }
 }
 
 # drawMetricsAxis windwidth
@@ -665,7 +697,6 @@ proc drawMetricsAxis {metricsAxisWidth} {
    global validMetrics
 
    global metricUnitTypes
-   global metricMinValues metricMaxValues
    global metricsLabelFont
 
    set keyWindow $W.left.metricsKey
@@ -690,11 +721,14 @@ proc drawMetricsAxis {metricsAxisWidth} {
    set labelDrawnCount 0
    set numMetricsDrawn 0
 
+   global metricMinValues metricMaxValues
+
    set numMetrics [Dg nummetrics]
    for {set metriclcv 0} {$metriclcv<$numMetrics} {incr metriclcv} {
       if {!$validMetrics($metriclcv)} continue
+      set unitsName [metric2units $metriclcv]
 
-      set numericalStep [expr (1.0 * $metricMaxValues($metriclcv)-$metricMinValues($metriclcv)) / ($numticks-1)]
+      set numericalStep [expr (1.0 * $metricMaxValues($unitsName)-$metricMinValues($unitsName)) / ($numticks-1)]
 
       # draw horiz line for this metric; color-coded for the metric
       set theMetricColor [getMetricColorName $metriclcv]
@@ -712,7 +746,7 @@ proc drawMetricsAxis {metricsAxisWidth} {
                     -tag metricsAxisTag -fill $theMetricColor \
 		    -width 2
 
-         set labelText [expr $metricMinValues($metriclcv) + $ticklcv * $numericalStep]
+         set labelText [expr $metricMinValues($unitsName) + $ticklcv * $numericalStep]
 
          if {$ticklcv==0} {
             set theAnchor nw
@@ -742,7 +776,7 @@ proc drawMetricsAxis {metricsAxisWidth} {
               $top -tag metricsAxisTag -fill $theMetricColor \
 	      -width 2
       set theText [Dg metricname $metriclcv]
-      set theUnitsText [Dg metricunits $metriclcv]
+      set theUnitsText [metric2units $metriclcv]
       label $keyWindow.key$numMetricsDrawn -text "$theText ($theUnitsText)" \
               -font $metricsLabelFont \
 	      -foreground $theMetricColor
@@ -974,7 +1008,6 @@ proc DgConfigCallback {} {
    global W
 
    global validMetrics
-   global metricMinValues metricMaxValues
 
    global numValidResources
    global validResources
@@ -985,14 +1018,18 @@ proc DgConfigCallback {} {
    # the next line must remain up here or else calls to isMetricValid will be wrong!
    set numResources [Dg numresources]
 
+   global metricMinValues metricMaxValues
    for {set metriclcv 0} {$metriclcv < $numMetrics} {incr metriclcv} {
       set validMetrics($metriclcv) [isMetricValid $metriclcv]
 
-      # note -- the following 2 lines are very dubious for already-existing
-      #         resources (i.e. we should try to stick with the initial
-      #         values)
-      set metricMinValues($metriclcv) 0.0
-      set metricMaxValues($metriclcv) 1.0
+      # If no metric with these units have been seen before, create a
+      # new entry in metricMinValues, metricMaxValues
+      set theUnits [metric2units $metriclcv]
+
+      if {[llength [array get metricMaxValues $theUnits]] == 0} {
+         set metricMinValues($theUnits) 0.0
+         set metricMaxValues($theUnits) 1.0
+      }
    }
 
    set numValidResources 0
@@ -1130,8 +1167,14 @@ proc rethinkDataFormat {} {
    # reset metrics-axis min & max values
    set numMetrics [Dg nummetrics]
    for {set metriclcv 0} {$metriclcv < $numMetrics} {incr metriclcv} {
-      set metricMinValues($metriclcv) 0.0
-      set metricMaxValues($metriclcv) 1.0
+      set theUnits [metric2units $metriclcv]
+
+      # If these units haven't been seen before, create a new entry
+      # in metricMinValues/metricMaxValues
+      if {[llength [array get metricMaxValues $theUnits]]==0} {
+         set metricMinValues($theUnits) 0.0
+         set metricMaxValues($theUnits) 1.0
+      }
    }
 
    # inform our C++ code that the data format has changed
