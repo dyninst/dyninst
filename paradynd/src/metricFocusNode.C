@@ -43,6 +43,10 @@
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.104  1996/08/20 19:04:22  lzheng
+ * Implementation of moving multiple instructions sequence and splitting
+ * the instrumentation into two phases
+ *
  * Revision 1.103  1996/08/16 21:19:21  tamches
  * updated copyright for release 1.1
  *
@@ -155,7 +159,8 @@ metricDefinitionNode::metricDefinitionNode(process *p, string& met_name,
                                            string& cat_name, int agg_style)
 : aggregate_(false), 
   aggOp(agg_style), // CM5 metrics need aggOp to be set
-  inserted_(false), met_(met_name), focus_(foc), flat_name_(cat_name),
+  inserted_(false), installed_(false), met_(met_name), focus_(foc), 
+  flat_name_(cat_name),
   aggSample(0),
   cumulativeValue(0.0), samples(0),
   id_(-1), originalCost_(0.0), inform_(false), proc_(p)
@@ -185,7 +190,8 @@ metricDefinitionNode::metricDefinitionNode(string& metric_name,
                                            string& cat_name, 
                                            vector<metricDefinitionNode*>& parts,
 					   int agg_op)
-: aggregate_(true), aggOp(agg_op), inserted_(false), met_(metric_name), focus_(foc),
+: aggregate_(true), aggOp(agg_op), inserted_(false),  installed_(false),
+  met_(metric_name), focus_(foc),
   flat_name_(cat_name), components(parts),
   aggSample(agg_op),
   id_(-1), originalCost_(0.0), inform_(false), proc_(NULL)
@@ -502,7 +508,10 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id)
     mi->originalCost_ = cost;
 
     currentPredictedCost += cost;
-    if (!internal) mi->insertInstrumentation();
+    if (!internal) {
+	mi->insertInstrumentation();
+	mi->checkAndInstallInstrumentation();
+    }
     metResPairsEnabled++;
     return(mi->id_);
 }
@@ -549,11 +558,65 @@ bool metricDefinitionNode::insertInstrumentation()
       unsigned size = data.size();
       for (unsigned u=0; u<size; u++)
         if (!(data[u]->insertInstrumentation(this))) return(false);
-      for (unsigned u1=0; u1<requests.size(); u1++)
-        requests[u1].insertInstrumentation();
+      for (unsigned u1=0; u1<requests.size(); u1++) {
+	  returnInstance *retInst;
+	  requests[u1].insertInstrumentation(retInst);
+	  if (retInst) returnInsts += retInst;
+      }
       if (needToCont) proc_->continueProc();
     }
     //if (needToCont) continueAllProcesses();
+    return(true);
+}
+
+bool metricDefinitionNode::checkAndInstallInstrumentation() {
+
+    int fp;
+    int pc;
+    Frame frame;
+    instruction insn;
+    instruction insnTrap;
+
+    insnTrap.raw = BREAK_POINT_INSN;
+    bool needToCont = false;
+
+    if (installed_) return(true);
+
+    installed_ = true;
+
+    if (aggregate_) {
+        unsigned c_size = components.size();
+        for (unsigned u=0; u<c_size; u++)
+            components[u]->checkAndInstallInstrumentation();
+    } else {
+        needToCont = proc_->status() == running;
+        bool res = proc_->pause();
+        if (!res)
+            return false;
+
+        frame.getActiveStackFrameInfo(proc_);
+        pc = frame.getPC();
+
+        int rsize = returnInsts.size();
+        for (unsigned u=0; u<rsize; u++) {
+
+            bool installSafe = returnInsts[u] -> checkReturnInstance(pc); 
+	    
+            if (installSafe) {
+                returnInsts[u] -> installReturnInstance(proc_);
+            } else {
+                frame = frame.getPreviousStackFrameInfo(proc_);// more work here
+                pc = frame.getPC();                            // for funcEntry.
+
+                proc_->readDataSpace((caddr_t)pc, sizeof(insn), (char *)&insn, true);
+                proc_->writeTextWord((caddr_t)pc, insnTrap.raw);
+
+                returnInsts[u] -> addToReturnWaitingList(insn, pc);
+            }
+        }
+
+        if (needToCont) proc_->continueProc();
+    }
     return(true);
 }
 
@@ -941,9 +1004,9 @@ instReqNode instReqNode::forkProcess(const instReqNode &parent, process *child) 
 }
 
 
-bool instReqNode::insertInstrumentation()
+bool instReqNode::insertInstrumentation(returnInstance *&retInstance)
 {
-    instance = addInstFunc(proc, point, ast, when, order);
+    instance = addInstFunc(proc, point, ast, when, order, retInstance);
     if (instance) return(true);
     return(false);
 }
