@@ -287,9 +287,9 @@ bool init() {
   // be found when we call heapIsOk, so we don't want to set must_find 
   // to true here
   sd.name = EXIT_NAME; sd.must_find = false; syms_to_find += sd;
-  sd.name = "main"; sd.must_find = true; syms_to_find += sd;
 
-  // sd.name = "_PROCEDURE_LINKAGE_TABLE_"; sd.must_find = true; syms_to_find += sd;
+  // The main function is platform dependent, and it is not always 'main'
+  //sd.name = "main"; sd.must_find = true; syms_to_find += sd;
 
   numberOfCPUs = getNumberOfCPUs();
 

@@ -62,13 +62,6 @@ extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
 extern debug_ostream metric_cerr;
 
-#ifdef paradyndCM5_blizzard
-// START_NAME corresponds some routine with $start of your mdl
-// Usually, main is what you want; blizzard needs something different
-#define START_NAME "init_blk_acc" 
-#else
-#define START_NAME "main"
-#endif
 
 // Some global variables used to print error messages:
 string currentMetric;  // name of the metric that is being processed.
@@ -401,7 +394,7 @@ static bool update_environment(process *proc, bool get_all) {
   }
 
   vname = "$start";
-  pdf = proc->findOneFunction(string(START_NAME));
+  pdf = proc->getMainFunction();
   if (!pdf) return false;
 
   vname = "$start";
