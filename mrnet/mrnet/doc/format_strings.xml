@@ -81,4 +81,5 @@ The full set of conversions are:
 </tgroup>
 </informaltable>
 
+<note>All array format specifiers, "a*", require an extra <emphasis>implicit</emphasis> length parameter of type <type>unsigned int</type> to be specified. E.g., send("%d %af", integer_val, float_array_pointer, float_array_length)</note>
 </appendix>

@@ -1,28 +1,34 @@
 <chapter><title>Installing and Using MRNet</title>
 <para>
-For this discussion, <varname>$MRNET_ROOT</varname> is the location of the
+For this discussion, <envar>$MRNET_ROOT</envar> is the location of the
 top-level directory of the MRNet distribution and
-<varname>$MRNET_ARCH</varname> is a string describing the platform (OS and
-architecture) as discovered by autoconf. For all instructions, it is
-assumed that the current working directory is <varname>$MRNET_ROOT</varname>.
+<envar>$MRNET_ARCH</envar> is a string describing the platform (OS and
+architecture) as discovered by autoconf. For the installation instructions, it is
+assumed that the current working directory is <envar>$MRNET_ROOT</envar>.
 </para>
+
+
+<note>We now provide pre-compiled binaries of the MRNet code for those
+who do not wish to compile the source code</note>
 
 <sect1><title>Supported Platforms and Compilers</title>
 <para>
-MRNet has been developed to be highly portable; there is no
-reason why it should not run properly on all common Unix-based
-platforms. This being said, we have successfully built and
-tested MRNet using <application>GCC version 3 compilers</application>
+MRNet has been developed to be highly portable; we expect it to run properly
+on all common Unix-based as well as Microsoft Windows platforms. This being said, we have successfully
+built and
+tested MRNet using <application>GCC version 3.3 compilers</application>
 on the following systems:
 <itemizedlist>
 <listitem>i686-pc-linux-gnu</listitem>
+<listitem>ia64-unknown-linux</listitem>
 <listitem>rs6000-ibm-aix5.1.0.0</listitem>
 <listitem>sparc-sun-solaris2.8</listitem>
+<listitem>sparc-sun-solaris2.9</listitem>
+<listitem>i386-unknown-nt4.0 (built with MS Visual Studio 6)</listitem>
 </itemizedlist>
 
-We are currently upgrading our build system to allow the use
-of native compilers where appropriate, for instance,
-<application>xlc</application> and <application>xlC</application>
+Our build system attempts to native system compilers where appropriate, for
+instance, <application>xlc</application> and <application>xlC</application>
 in AIX environments.
 </para>
 
@@ -54,15 +60,14 @@ MRNet-specific ones:
 
 <screen>
 <computeroutput>
-  --with-libfl                Link line for flex library
-  --with-outputlevel          output level (0=>off, *1=>error*, 2=>info, 3=>lo-debug, 4=>mid-debug, 5=>hi-debug)
+  --with-libfldir                Directory containing flex library
 </computeroutput>
 </screen>
 
 <command>./configure</command> without any options should give reasonable
 results, but the user may specify certain options. For example,
 <screen>
-<prompt>UNIX></prompt> <command>./configure CXX=g++ CXXFLAGS=-O3 -with-outputlevel=5 --with-libfl=/usr/local/lib/libfl.a</command>
+<prompt>UNIX></prompt> <command>./configure CXX=g++ CXXFLAGS=-O3 --with-libfldir=/usr/local/lib</command>
 </screen>
 
 instructs the configure script to use <command>g++</command> for the C++
@@ -81,15 +86,38 @@ After a successful build, the following files will be present:
 <itemizedlist>
 <listitem><filename>$MRNET_ROOT/lib/$MRNET_ARCH/libmrnet.a</filename>: MRNet
 API library</listitem>
+<listitem><filename>$MRNET_ROOT/lib/$MRNET_ARCH/libxplat.a</filename>: A library that exports platform dependent routines to MRNet</listitem>
 <listitem><filename>$MRNET_ROOT/bin/$MRNET_ARCH/mrnet_commnode</filename>: MRNet
-internal communcation node (used internally)</listitem>
+internal communcation node</listitem>
+</itemizedlist>
+
+Typing:
+<screen>
+<prompt>UNIX></prompt>  <command>make mrnet_tests</command>
+</screen>
+builds the mrnet test files. In addition to those files above, you will also generate:
+<itemizedlist>
 <listitem><filename>$MRNET_ROOT/bin/$MRNET_ARCH/mrnet_topgen</filename>: MRNet
 topology file generator</listitem>
-<listitem><filename>$MRNET_ROOT/bin/$MRNET_ARCH/*_[FE,BE]</filename>: MRNet test
-front-end and back-end programs</listitem>
+<listitem><filename>$MRNET_ROOT/bin/$MRNET_ARCH/*_[FE,BE]</filename>: MRNet test front-end and back-end programs</listitem>
+<listitem><filename>$MRNET_ROOT/lib/$MRNET_ARCH/test_DynamicFilters.so</filename>: Shared object used in tests of dynamic filter loading.</listitem>
+<listitem><filename>$MRNET_ROOT/bin/$MRNET_ARCH/mrnet_tests.sh</filename>: A shell script that runs the test programs and checks for errors in an automated fashion.</listitem>
 </itemizedlist>
 </para>
 </sect1>
+
+<sect1><title>Testing the Code</title>
+The shell script, <application>mrnet_tests.sh</application> is placed in the
+binary directory with the other executables during the building of the MRNet
+tests as described above. This script can be used to run the MRNet test
+programs and check their output for errors. The script is used as follows:
+<screen>
+<prompt>UNIX></prompt> <command>mrnet_tests.sh [ -l | -r &lt;hostfile&gt; | -a &lt;hostfile&gt; | -f &lt;sharedobject&gt;</command>
+</screen>
+</sect1>
+The <option>-l</option> flag is used to run all tests using only topologies that create processes on the local machine. The <option>-r</option> flag runs tests using remote machines specified in the file whose name immediately follows this flag. To run test both locally and remotely, use the <option>-a</option> flag and specify a hostfile to use. To run the programs that test MRNet's ability to dynamically load filters, you must specify the absolute location of the shared object <filename>test_DynamicFilters.so</filename> produced when the tests were built.
+
+<note>To successfully run all tests, the location of the MRNet binaries must be in the user's <envar>$PATH</envar>. For testing dynamic filters, the filesystem containing the shared object must be available to all the host machines participating in the test.</note>
 
 <sect1><title>Bugs, Questions and Comments</title>
 <para>

@@ -1,2 +1,135 @@
 <appendix id="example"><title>A Complete MRNet Example</title>
+<example><title>A Complete MRNet Front-End</title>
+<programlisting>
+#include "mrnet/MRNet.h"
+
+using namespace MRN;
+
+int main( int argc, char **argv )
+{
+	const char * dummy_argv=NULL;
+    int num_packets=10;
+    unsigned int num_packets_to_recv=0;
+
+    if( argc != 3 ){
+        fprintf(stderr, "Usage: %s &lt;topology file&gt; &lt;backend_exe&gt;\n", argv[0]);
+        exit(-1);
+    }
+
+    set_OutputLevel(1);
+
+    Network * net = new Network( argv[1], argv[2], &amp;dummy_argv );
+    if( net-&gt;fail() ){
+        net-&gt;error_str(argv[0]);
+        exit(-1);
+    }
+
+    MRN::Stream * stream =
+        net-&gt;new_Stream( net-&gt;get_BroadcastCommunicator(),
+                         MRN::TFILTER_NULL,
+                         MRN::SFILTER_DONTWAIT );
+
+    stream-&gt;send( 7777, "%d", num_packets );
+    stream-&gt;flush();
+
+    //each backend will send num_packets packets ...
+    num_packets_to_recv =
+        net-&gt;get_BroadcastCommunicator()-&gt;size() * num_packets;
+
+    while( num_packets_to_recv &gt; 0 ){
+        int retval, tag, recv_val;
+        Packet *packet;
+
+        //blocking receive ...
+        if( stream-&gt;recv(&amp;tag, &amp;packet, true) == -1 )
+            return -1;
+
+        if( Stream::unpack( packet, "%d", &amp;recv_val ) == -1 )
+            return -1;
+
+        num_packets_to_recv--;
+    }
+
+    return 0;
+}
+</programlisting>
+</example>
+
+<example><title>A Complete MRNet Back-End</title>
+<programlisting>
+#include "mrnet/MRNet.h"
+
+using namespace MRN;
+
+int main( int argc, char** argv ){
+    Stream * stream;
+    Packet * packet=NULL;
+    int tag;
+    int num_packets, sleep_time;
+
+    set_OutputLevel(1);
+
+    if( argc != 4 ){
+        fprintf(stderr, "usage: %s parent_hostname parent_port my_rank\n", argv[0]);
+        exit( -1 );
+    }
+
+    const char* parHostname = argv[argc-3];
+    Port parPort = (Port)strtoul( argv[argc-2], NULL, 10 );
+    Rank myRank = (Rank)strtoul( argv[argc-1], NULL, 10 );
+    Network * net = new Network( parHostname, parPort, myRank );
+    if( net-&gt;fail() )
+        return -1;
+
+    if( net-&gt;recv( &amp;tag, &amp;packet, &amp;stream ) != 1)
+        return -1;
+
+    assert( tag == 7777 );
+
+    Stream::unpack( packet, "%d", &amp;num_packets );
+
+    for( unsigned int i=0; i&lt;num_packets; i++ ){
+        if( stream-&gt;send( tag, "%d", rand() ) == -1 )
+            return -1;
+        if( stream-&gt;flush( ) == -1 )
+            return -1;
+    }
+
+    return 0;
+}
+</programlisting>
+</example>
+
+<example><title>A MRNet Topology File</title>
+<programlisting>
+nutmeg:0 => c01:0 c02:0 c03:0 c04:0 ;
+
+c03:0 => c05:0 ;
+
+c04:0 => c06:0 c07:0 c08:0 c09:0 ;
+
+c08:0 => c10:0 ;
+
+c09:0 => c11:0 ;
+
+#       nutmeg
+#          |
+#          |
+#       -------
+#       /|   |\
+#      / |   | \
+#     /  |   |  \
+#    /   |   |   \
+#  c01  c02  c03  c04
+#             |    |
+#            c05   |
+#               -------
+#              / |   | \
+#             /  |   |  \
+#            /   |   |   \
+#          c06  c07 c08  c09
+#                    |    |
+#                   c10  c11 
+</programlisting>
+</example>
 </appendix>

@@ -1,18 +1,27 @@
 <chapter><title>MRNet Components and Abstractions</title>
 <para>
-MRNet has two main types of components: <filename>libmrnet.a</filename>, a
+The MRNet distribution has two main components: <filename>libmrnet.a</filename>, a
 library that is linked into a tool's front-end and back-end components, and
-<filename>mrnet_commnode</filename>, a program that runs on intermediate nodes
+<application>mrnet_commnode</application>, a program that runs on intermediate nodes
 interposed between the application front-end and back-ends. <filename>libmrnet.a
 </filename> exports an API (See <xref linkend="mrnet_api"></xref>) that enables
 I/O interaction between the front-end and groups of back-ends via MRNet. The
-primary purpose of <filename>mrnet_comm</filename> is to distribute data
+primary purpose of <application>mrnet_commnode</application> is to distribute data
 processing functionality across multiple computer hosts and to implement
 efficient and scalable group communications. The following sub-sections describe
 the lower-level components of the MRNet API in more detail.
 </para>
 
-<sect1><title>MRNet Communicators</title>
+<sect1><title>EndPoints</title>
+<para>
+An MRNet end-point represents a tool or application process or node. In
+particular, they represent the back-end processes in the system. The front-end
+can communicate in a unicast or multicast fashion with one or more of these
+end-points as described below.
+</para>
+</sect1>
+
+<sect1><title>Communicators</title>
 <para>
 MRNet uses communicators to represent groups of network end-points. Like
 communicators in MPI, MRNet communicators provide a handle that identifies a
@@ -26,7 +35,7 @@ directly via MRNet.
 </para>
 </sect1>
 
-<sect1><title>MRNet Streams</title>
+<sect1><title>Streams</title>
 <para>
 A stream is a logical channel that connects the front-end to the end-points of a
 communicator. All tool-level communication via MRNet must use these streams.
@@ -42,7 +51,7 @@ describe arrays of integers and floats.
 </para>
 </sect1>
 
-<sect1><title>MRNet Filters</title>
+<sect1><title>Filters</title>
 <para>
 Data Aggregation is the process of merging multiple input data packets and
 transforming them into one or more output packets. Though it is not necessary

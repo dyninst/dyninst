@@ -24,59 +24,68 @@ container for groups of end-points, and streams are used to send data to the
 end-points in a communicator.
 </para>
 
-<figure id="fe_code"><title>MRNet Front-end Sample Code</title>
+<example id="fe_code"><title>MRNet Front-end Sample Code</title>
 <programlisting>
    front_end_main(){
-1.   MR_Network * net;
-2.   MR_Communicator * comm;
-3.   MR_Stream * stream;
-4.   float result;
-5.   net = new MR_Network(config_file);
-6.   comm = net->get_broadcast_communicator( );
-7.   stream = new MR_Stream(comm, FMAX_FIL);
-8.   stream->send("%d", FLOAT_MAX_INIT);
-9.   stream->recv("%f", result);
+1.   Network * net;
+2.   Communicator * comm;
+3.   Stream * stream;
+4.   Packet *packet;
+5.   float result;
+
+6.   net = new Network(config_file, backend_exe, backend_argv);
+
+7.   comm = net->get_broadcast_communicator( );
+
+8.   stream = net->new_Stream(comm, FMAX_FIL);
+9.   stream->send(tag, "%d", FLOAT_MAX_INIT);
+
+10.   stream->recv(&amp;tag, &amp;Packet)
+
+11.  Network::unpack(Packet, "%f", result);
    }
 </programlisting>
-</figure>
+</example>
 
 <para>
 A simplified version of code from an example tool front-end is shown in
 <xref linkend="fe_code"></xref>. In the front-end code, after some variable
-definitions in lines 1-4, in line 5, an instance of the MRNet network is created
-using the topology specification in config_file. In line 6, the newly created
+definitions in lines 1-5, in line 6, an instance of the MRNet network is created
+using the topology specification in config_file. In line 7, the newly created
 network object is queried for an auto-generated broadcast communicator that
-contains all available end-points. In line 7, this communicator is used to
+contains all available end-points. In line 8, this communicator is used to
 established a stream for which the MRNet internal processes will use a filter
 that finds the
 maximum floating point data value of the data sent upstream. The front-end then
 might send one or more initialization messages to the backends; in our example
-code on line 9, we broadcast an integer initializer and await the single
-floating point value result.
+code on line 9, we broadcast an integer initializer; the tag parameter is meant to be an application specific value specifying the nature of the message being transmitted. After the send operation, the front-end performs a blocking recv. This call returns a tag and a packet. Finally, line 11 calls unpack to deserialize the floating point value result from the packet data structure.
 </para>
 
-<figure id="be_code"><title>MRNet Back-end Sample Code</title>
+<example id="be_code"><title>MRNet Back-end Sample Code</title>
 <programlisting>
    back_end_main(){
-1.   MR_Stream * stream;
-2.   int val;
-3.   MR_Network::init_backend( );
-4.   MR_Stream::recv("%d", &amp;val, &amp;stream);
-5.   if(val == FLOAT_MAX_INIT){
-6.      stream->send("%f", rand_float);
+1.   Stream * stream;
+2.   Packet * packet;
+3.   int val, tag;
+
+4.   Network * net = new Network( );
+
+5.   net->recv(&amp;tag, &amp;packet, &amp;stream);
+6.   Network::unpack(packet, "%d", &amp;val );
+
+7.   if( val == FLOAT_MAX_INIT ){
+8.      stream->send("%f", rand_float);
      }
    }
 </programlisting>
-</figure>
+</example>
 
 <para>
 <xref linkend="be_code"></xref> shows the code for the back-end that 
 reciprocates the actions of the front-end. Each tool back-end
-first connects to the appropriate internal process, via the init_backend call
-in line 3. While the front-end makes a stream-specific recv call, the back-ends
-make a stream-anonymous recv that returns the integer sent by the front-end
-along with a stream object representing the stream that the front-end has
-established. Finally, each back-end sends a scalar floating point value
+first connects to the appropriate internal process, via the backend's version of the network constructor, <function>Network::Network()</function>
+in line 4. While the front-end makes a stream-specific recv call, the back-ends
+make a stream-anonymous recv that returns the tag sent by the front-end, the packet containing the actual data sent, and a stream object representing the stream that the front-end has established. Finally, each back-end sends a scalar floating point value
 upstream toward the front-end.
 </para>
 

@@ -3,56 +3,69 @@
 <para>
 All classes are included in the <varname>MRN</varname> namespace.
 For this discussion, we do not explicitly include reference to the
-namespace; for example, when we reference the class Network, we are
-implying the class MRN::Network.
+namespace; for example, when we reference the <classname>class Network</classname>, we are
+implying the <classname>class MRN::Network</classname>.
 </para>
 
 <para>
-In MRNet, there are four top-level classes: Network, EndPoint,
-Communicator, and Stream. The Network class contains primarily
+In MRNet, there are five top-level classes: <classname>Network</classname>,
+<classname>EndPoint</classname>, <classname>Communicator</classname>,
+<classname>Stream</classname>, and <classname>Event</classname>.
+The Network class contains primarily
 static methods that allow one to instantiate, and destroy MRNet
 process trees and to query instantiated trees for information.
 Application back-ends are referred to as end-points and are
 encapsulated by objects of type EndPoint. The Communicator
 class is used to reference a group of EndPoints and can be used
 to establish MRNet Streams for unicast, multicast or broadcast
-communications via the MRNet infrastructure.
+communications via the MRNet infrastructure. The Event class represents
+the interface used by MRNet to report errors and other events of interest
+to the user level. (This feature is in development mode.)
 The public members of these classes are detailed below.
 </para>
 
 <sect1> <title>Class Network</title>
 <funcsynopsis>
 <funcprototype>
-  <funcdef>static int <function>Network::new_Network</function></funcdef>
-    <paramdef>const char *<parameter>config_file</parameter></paramdef>
-    <paramdef>const char * <parameter>commnode_exe</parameter></paramdef>
-    <paramdef>const char * <parameter>backend_exe</parameter></paramdef>
+  <funcdef>void <function>Network::Network</function></funcdef>
+    <paramdef>const char *<parameter>iconfig_filename</parameter></paramdef>
+    <paramdef>const char * <parameter>ibackend_exe</parameter></paramdef>
+    <paramdef>const char ** <parameter>iargv</parameter></paramdef>
 </funcprototype>
 <blockquote>
-<function>Network::new_Network</function> is a static method that is used
-to instantiate the MRNet process tree. <varname>config_file</varname> is
+<para>
+<function>Network::Network()</function> is a constructor method that is used
+to instantiate the MRNet process tree. <varname>iconfig_filename</varname> is
 the path to a configuration file that describes the desired process tree
-topology. <varname>commnode_exe</varname> is the path to the mrnet_commnode
-executable that should have been built at installation time, and
-<varname>backend_exe</varname> is the path to the executable to be used
-for the application's back-end processes. When this function returns without
+topology. <varname>ibackend_exe</varname> is the path to the executable to be
+used
+for the application's back-end processes. Finally, <varname>iargv</varname> is
+a null terminated list of arguments to pass to the back-end application upon
+creation.
+</para>
+
+<para>
+When this function returns without
 error, all MRNet internal processes and the application back-end processes
 will have been instantiated using rsh or ssh depending on the setting of
-the environment variable <varname>MRNET_RSH</varname>.
+the environment variable <varname>MRNET_RSH</varname>. Error conditions may
+be determined via the functions <function>Network::fail()</function>.
+
 <note>If it is necessary to run the <command>rsh</command> with a utility
 like <command>runauth </command> to non-interactively authenticate the
 unattended remote process, that command may be specified using the
 <varname>MRNET_RUNAUTH</varname> environment variable.</note>
+</para>
 </blockquote>
 </funcsynopsis>
 
 <funcsynopsis>
 <funcprototype>
-  <funcdef>static void <function>Network::delete_Network</function></funcdef>
+  <funcdef>void <function>Network::~Network</function></funcdef>
   <void></void>
 </funcprototype>
 <blockquote>
-<function>Network::delete_Network</function> is used to tear down the
+<function>Network::~Network</function> is used to tear down the
 MRNet process tree. When this function is called, each node in the
 MRNet configuration sends a control message to its immediate children
 informing them of the "delete network" request. After delivering this
@@ -64,23 +77,105 @@ terminate.
 
 <funcsynopsis>
 <funcprototype>
-  <funcdef>static void <function>Network::print_error</function></funcdef>
-  <paramdef>const char * <parameter>error_str</parameter></paramdef>
+  <funcdef>int <function>Network::recv</function></funcdef>
+    <paramdef>int *<parameter>otag</parameter></paramdef>
+    <paramdef>Packet * * <parameter>opacket</parameter></paramdef>
+    <paramdef>Stream * * <parameter>ostream</parameter></paramdef>
+    <paramdef>bool <parameter>iblocking = true</parameter></paramdef>
 </funcprototype>
 <blockquote>
-<function>Network::print_error</function> prints a message to stderr
-describing the last error encountered during a MRNet library call. It
-first prints the null-terminated string, <varname>error_str</varname>
-followed by a colon then actual error message followed by a newline.
+This function is used to invoke a stream-anonymous
+receive operation. Any packet available (addressed to any stream)
+will be returned (in roughly FIFO ordering) via the output parameters
+passed in. <varname>otag</varname> will be filled in with the integer
+tag value that was passed by the corresponding <function>Stream::send()
+</function> operation. <varname>opacket</varname> is the packet that was
+received and must be passed to the <function>Stream::unpack</function>
+described below for deserialization of the data contents. A pointer to the stream to which the packet was addressed
+will be returned in <varname>ostream</varname>. <varname>iblocking</varname>
+is used signal whether this call should block or return if data is not
+immediately available; it defaults to a blocking call.
+A return value of -1 indicates
+an error, 0 indicates no packets were available, and 1 indicates success.
 </blockquote>
 </funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>void <function>Network::print_error</function></funcdef>
+  <paramdef>const char * <parameter>error_msg</parameter></paramdef>
+</funcprototype>
+<blockquote>
+<function>Network::print_error()</function> prints a message to stderr
+describing the last error encountered during a MRNet library call. It
+first prints the null-terminated string, <varname>error_msg</varname>
+followed by a colon then the actual error message followed by a newline.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>bool <function>Network::fail</function></funcdef>
+  <void></void>
+</funcprototype>
+<blockquote>
+<function>Network::fail()</function> returns true if the network has experienced
+a failure condition and false otherwise.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>bool <function>Network::good</function></funcdef>
+  <void></void>
+</funcprototype>
+<blockquote>
+<function>Network::good()</function> returns false if the network has experienced
+a failure condition and true otherwise.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>void <function>Network::get_SocketFd</function></funcdef>
+  <paramdef>int ** <parameter>ofd_array</parameter></paramdef>
+  <paramdef>int * <parameter>ofd_array_size</parameter></paramdef>
+</funcprototype>
+<blockquote>
+<function>Network::get_SocketFd()</function> is used to notify an application of
+all the file descriptors MRNet is using for network communication. This version
+of the function is expected to be called from front-end applications and
+returns an array of size <varname>ofd_array_size</varname> entries in the
+output array <varname>ofd_array</varname>.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>int <function>Network::get_SocketFd</function></funcdef>
+  <void></void>
+</funcprototype>
+<blockquote>
+<function>Network::get_SocketFd()</function> is used to notify an application of
+all the file descriptors MRNet is using for network communication. This version
+of the function is expected to be called from the back-end applications and
+returns the single filedescriptor MRNet uses to connect the back-end to its
+upstream parent.
+</blockquote>
+</funcsynopsis>
+
 </sect1>
 
 
 <sect1><title>Class Communicator</title>
+<para>
+Instances of communicators are network specific, so their creation methods
+are functions of an instantiated MRNet network object.
+</para>
+
 <funcsynopsis>
 <funcprototype>
-  <funcdef>static Communicator * <function>Communicator::new_ Communicator</function></funcdef>
+  <funcdef>Communicator * <function>Network::new_ Communicator</function></funcdef>
     <void></void>
 </funcprototype>
 <blockquote>
@@ -92,25 +187,36 @@ Communicator::add_EndPoint( )</function> to populate the communicator.
 
 <funcsynopsis>
 <funcprototype>
-  <funcdef>static Communicator * <function>Communicator::new_ Communicator</function></funcdef>
-    <paramdef>Communicator &amp;<parameter>orig_comm</parameter></paramdef>
+  <funcdef>Communicator * <function>Network::new_ Communicator</function></funcdef>
+    <paramdef>Communicator &amp;<parameter>icomm</parameter></paramdef>
 </funcprototype>
 <blockquote>
 This function returns a pointer to a new Communicator object that initially
-contains the set of endpoints contained in <varname>orig_comm</varname>.
+contains the set of endpoints contained in <varname>icomm</varname>.
 </blockquote>
 </funcsynopsis>
 
 <funcsynopsis>
 <funcprototype>
-  <funcdef>static Communicator * <function>Communicator::get_ BroadcastCommunicator</function></funcdef>
+  <funcdef>Communicator * <function>Network::new_ Communicator</function></funcdef>
+    <paramdef>std::vector &lt;EndPoint *&gt; &amp;<parameter>iendpoints</parameter></paramdef>
+</funcprototype>
+<blockquote>
+This function returns a pointer to a new Communicator object that initially
+contains the set of endpoints contained in <varname>iendpoints</varname>.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>Communicator * <function>Network::get_ BroadcastCommunicator</function></funcdef>
     <void></void>
 </funcprototype>
 <blockquote>
 This function returns a pointer to a default communicator containing all the
 endpoints available in the system. Multiple calls to this function return
 the same pointer to the broadcast communicator object created at network
-instantiation.
+instantiation. This object should not be deleted.
 </blockquote>
 </funcsynopsis>
 
@@ -195,57 +301,39 @@ is out of range.
 </funcsynopsis>
 </sect1>
 
-<sect1><title>Class Stream</title>
+<sect1 id="sect:stream_api"><title>Class Stream</title>
+<para>
+Instances of streams are network specific, so their creation methods
+are functions of an instantiated MRNet network object.
+</para>
+
 <funcsynopsis>
 <funcprototype>
-  <funcdef>static Stream * <function>Stream::new_Stream</function></funcdef>
+  <funcdef>Stream * <function>Network::new_Stream</function></funcdef>
     <paramdef>Communicator *<parameter>comm</parameter></paramdef>
-    <paramdef>unsigned int <parameter>filter_id</parameter></paramdef>
+    <paramdef>int <parameter>iupstream_tfilter_id = TFILTER_NULL</parameter></paramdef>
+    <paramdef>int <parameter>iupstream_sfilter_id = SFILTER_WAITFORALL</parameter></paramdef>
+    <paramdef>int <parameter>idownstream_tfilter_id = TFILTER_NULL</parameter></paramdef>
 </funcprototype>
 <blockquote>
-<function>Stream::new_Stream</function> creates a MRNet stream object attached
+<function>Network::new_Stream()</function> creates a MRNet stream object
+attached
 to the endpoints specified by the <varname>comm</varname> argument. The
-second argument <varname>filter_id</varname> specifies the filtering operation
-to apply to data flowing upstream from the application back-ends toward the front-end.
+second argument <varname>iupstream_tfilter_id</varname> specifies the
+transformation filter to apply to data flowing upstream from the application back-ends toward the front-end; the default value is the "Null Filter".
+<varname>iupstream_sfilter_id</varname> specifies
+the synchronization filter to apply to upstream packets; the default value is the "Wait-for-all". <varname>idownstream_tfilter_id</varname> allows the user to specify a filter to apply to downstream data flows; the default value is the "Null Filter". For a complete discussion of MRNet Filters, see <xref linkend="sect:filter_api"></xref>
 </blockquote>
 </funcsynopsis>
 
 <funcsynopsis>
 <funcprototype>
-  <funcdef>static int <function>Stream::recv</function></funcdef>
-    <paramdef>int *<parameter>tag</parameter></paramdef>
-    <paramdef>void * * <parameter>buf</parameter></paramdef>
-    <paramdef>Stream * * <parameter>stream</parameter></paramdef>
+  <funcdef>Stream * <function>Network::get_Stream</function></funcdef>
+    <paramdef>int<parameter>iid</parameter></paramdef>
 </funcprototype>
 <blockquote>
-This non-blocking function is used to invoke a stream-anonymous
-receive operation. Any packet available (addressed to any stream)
-will be returned (in roughly FIFO ordering) via the output parameters
-passed in. <varname>tag</varname> will be filled in with the integer
-tag value that was passed by the corresponding <function>Stream::send()
-</function> operation. <varname>buf</varname> is an opaque structure
-that must be passed to the <function>Stream::unpack</function> described
-below. Finally, a pointer to the stream to which the packet was addressed
-will be returned in <varname>stream</varname>. A return value of -1 indicates
-an error, 0 indicates no packets were available, and 1 indicates success.
-</blockquote>
-</funcsynopsis>
-
-<funcsynopsis>
-<funcprototype>
-  <funcdef>static int <function>Stream::unpack</function></funcdef>
-    <paramdef>char *<parameter>buf</parameter></paramdef>
-    <paramdef>const char * <parameter>format_str</parameter></paramdef>
-    <varargs></varargs>
-</funcprototype>
-<blockquote>
-This function operates similarily to C's <function>sscanf</function>. It
-takes a <varname>buf</varname> parameter that was returned by a previous call
-to <function>Stream::recv()</function>. <varname>format_str</varname> is
-a format string describing the datatypes expected in the packet returned by
-<function>Stream::recv()</function> (See <xref linkend="format_strings"></xref>
-for a full description.) On success, <function>Stream::unpack()</function>
-returns 0; on failure, -1.
+<function>Network::get_Stream()</function> returns the stream identified by
+<varname>iid</varname> or -1 on failure.
 </blockquote>
 </funcsynopsis>
 
@@ -269,6 +357,46 @@ returns 0; on failure, -1.
 
 <funcsynopsis>
 <funcprototype>
+  <funcdef>int <function>Stream::recv</function></funcdef>
+    <paramdef>int *<parameter>otag</parameter></paramdef>
+    <paramdef>Packet * * <parameter>opacket</parameter></paramdef>
+    <paramdef>bool <parameter>iblocking = true</parameter></paramdef>
+</funcprototype>
+<blockquote>
+<function>Stream::recv()</function> invokes a stream-specific
+receive operation. Packets addressed to the calling stream
+will be returned in strictly FIFO ordering via the output parameters
+passed in. <varname>otag</varname> will be filled in with the integer
+tag value that was passed by the corresponding <function>Stream::send()
+</function> operation. <varname>opacket</varname> is the recieved Packet
+that must be passed to the <function>Stream::unpack</function> for
+deserialization of its data elements. <varname>iblocking</varname> determines
+whether the recv call should block or return if data is not immediately
+available; it defaults to a blocking call. A return value of -1 indicates
+an error, 0 indicates no packets were available, and 1 indicates success.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>static int <function>Stream::unpack</function></funcdef>
+    <paramdef>Packet *<parameter>ipacket</parameter></paramdef>
+    <paramdef>const char * <parameter>iformat_str</parameter></paramdef>
+    <varargs></varargs>
+</funcprototype>
+<blockquote>
+This function operates similarily to C's <function>sscanf</function>. It
+takes a packet, <varname>ipacket</varname>, that was returned by a previous call
+to <function>Stream::recv()</function>. <varname>iformat_str</varname> is
+a format string describing the datatypes expected in the packet returned by
+<function>Stream::recv()</function> (See <xref linkend="format_strings"></xref>
+for a full description.) On success, <function>Stream::unpack()</function>
+returns 0; on failure, -1.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
   <funcdef>int <function>Stream::flush</function></funcdef>
     <void></void>
 </funcprototype>
@@ -279,30 +407,132 @@ on the calling stream have been passed to the operating system kernel for
 network transmission.
 </blockquote>
 </funcsynopsis>
+</sect1>
 
+<sect1 id="sect:filter_api"><title>MRNet Filters</title>
 <funcsynopsis>
 <funcprototype>
-  <funcdef>int <function>Stream::recv</function></funcdef>
-    <paramdef>int *<parameter>tag</parameter></paramdef>
-    <paramdef>void * * <parameter>buf</parameter></paramdef>
+  <funcdef>int <function>Network::load_FilterFunc</function></funcdef>
+    <paramdef>const char *<parameter>iso_file</parameter></paramdef>
+    <paramdef>const char * <parameter>ifunc</parameter></paramdef>
+    <paramdef>bool <parameter>iis_transformation_filter=true</parameter></paramdef>
 </funcprototype>
-<blockquote>
-This non-blocking function is used to invoke a stream-specific
-receive operation. Packets addressed to the calling stream
-will be returned in strictly FIFO ordering via the output parameters
-passed in. <varname>tag</varname> will be filled in with the integer
-tag value that was passed by the corresponding <function>Stream::send()
-</function> operation. <varname>buf</varname> is an opaque structure
-that must be passed to the <function>Stream::unpack</function> described
-below. A return value of -1 indicates
-an error, 0 indicates no packets were available, and 1 indicates success.
-</blockquote>
+<para>
+This method, used for loading new filter operations into the network
+is conveniently similar to the conventional <function>dlopen()
+</function> facilities for opening a shared object and dynamically
+loading symbols defined within. 
+<varname>iso_file</varname> is the path to a shared object file that contains
+the filter function to be loaded and <varname>ifunc</varname> is the name of the
+function to be loaded. The last parameter <varname>iis_transformation_filter
+</varname> defaults to true and can usually be omitted since the common case
+is to load transformation, not synchronization, filters. Additionally,
+the shared object file must contain a <type>const char *</type> symbol named
+by the string formed by the concatenation of the filter function name and
+the suffix "_format_string". For instance, if the filter function is named
+<varname>my_filter_func</varname>, the shared object must define a symbol
+<type>const char *</type><varname>my_filter_func_format_string</varname>.
+The value of this string will be the MRNet format string describing the
+format of data that the filter can operate on. A value of <literal>""</literal>
+ denotes that the filter can operate on data of arbitrary type.
+</para>
+
+<para>
+On success, <function>Network::load_FilterFunc()</function> returns the id
+of the newly loaded filter which may be used in subsequent calls to
+<function>Network::new_Stream()</function>. A value of -1 is returned
+on failure.
+</para>
 </funcsynopsis>
+
+<sect2><title>Defining an MRNet Filter</title>
+<para>
+To properly demonstrate MRNet filters, we must discuss MRNet's packet
+abstraction in more detail. A packet encapsulates a chunk of formatted
+data, usually created as the result of a <function>Stream::send()</function>
+call. Let's say a packet was created using the format string
+<literal>"%s %d"</literal> describing a null-terminated string, followed
+by a 32-bit integer, the packet is said to contain 2 data elements, of
+those types respectively. In the packet class, the <varname>operator[]</varname> is overloaded so that <varname>packet[i]</varname> conveniently returns the
+i<superscript>th</superscript> data element in the packet. Furthermore,
+the data element abstraction contains accessor functions to return proper
+data values. In the above example, packet[0].get_string() returns the value
+of the string in the packet and packet[1].get_int32_t() returns the value of
+the integer that represents the second data element. It is the filter
+developers responsibility to properly define the format of the data
+expected by and determine how to access respective elements.
+
+<xref linkend="data_elements"></xref> contains the full listings of data types
+and accessor functions available to MRNet filter functions.
+</para>
+
+<para>
+A filter function has the following signature
+<funcsynopsis>
+<funcprototype>
+  <funcdef>void <function>filter_name</function></funcdef>
+    <paramdef>std::vector&lt;Packet&gt; &amp; <parameter>ipackets_in</parameter></paramdef>
+    <paramdef>std::vector&lt;Packet&gt; &amp; <parameter>ipackets_out</parameter></paramdef>
+    <paramdef>void **<parameter>ilocal_storage</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+<varname>ipackets_in</varname> is the reference to a vector of packets serving
+as input to the filter function. <varname>ipackets_out</varname> is the
+reference to a vector into which output packets should be placed.
+<varname>ilocal_storage</varname> may be used to define and maintain
+filter-instance specific state.
+</para>
+
+<para>
+For each filter function defined in a shared object file, there must be a
+<type>const char *</type> symbol named
+by the string formed by the concatenation of the filter function name and
+the suffix "_format_string". For instance, if the filter function is named
+<varname>my_filter_func</varname>, the shared object must define a symbol
+<type>const char *</type><varname>my_filter_func_format_string</varname>.
+The value of this string will be the MRNet format string describing the
+format of data that the filter can operate on. A value of <literal>""</literal>
+ denotes that the filter can operate on data of arbitrary value.
+</para>
+</sect2>
+
+<sect2><title>Creating and Using MRNet Filter Shared Object Files</title>
+<para>
+This topic currently pertains to usage with the GNU C++ compiler
+only. We will update the topic to discuss using other compilers
+as well.
+</para>
+
+<para>
+Since we use the C facility <function>dlopen()</function> to dynamically
+load new filter functions, all symbols to be exported this way must be
+"extern C'd". That is, the symbol definitions must fall with the statements
+
+<programlisting>
+extern "C"{
+</programlisting>
+and 
+<programlisting>
+}
+</programlisting>
+
+The file that contains the filter functions and format strings may be
+compiled with the GNU compiler options <literal>"-fPIC -shared -rdynamic"
+</literal> to produce a valid shared object.
+</para>
+
+<para>
+A front-end that will dynamically load filters must be built
+with the GNU compiler options <literal>"-Wl,-E"</literal> to notify the linker
+export global symbols externally.
+</para>
+
+</sect2>
 </sect1>
 
 <sect1><title>Class Event</title>
 <para>
-Currently, MRNet has a primitive asynchronous error notification based
+Currently, MRNet has primitive support for  asynchronous error notification based
 on events. Whenever errors, failures, or other significant events take
 place at internal or back-end nodes, an event is propagated toward the
 front-end. This event is placed in a queue which the user can access

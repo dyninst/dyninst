@@ -1,7 +1,7 @@
 <chapter><title>Introduction</title>
 <para>
 MRNet is a customizable, high-throughput communication software system for
-parallel tools with a master/slave architecture. MRNet reduces the cost of these
+parallel tools and applications with a master/slave architecture. MRNet reduces the cost of these
 tools' activities by incorporating a tree of processes between the tool's
 front-end and back-ends. MRNet uses these internal processes to distribute many
 important tool activities, reducing analysis time and keeping tool front-end
