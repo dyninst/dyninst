@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.10 2002/05/13 19:52:48 mjbrim Exp $
+// $Id: CallGraph.C,v 1.11 2002/10/28 04:54:11 schendel Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
@@ -48,6 +48,10 @@
 #include "common/h/Types.h" // Address
 
 inline unsigned intHash(const int &val) {
+  return val;
+}
+
+inline unsigned unsignedHash(const unsigned &val) {
   return val;
 }
 
@@ -99,8 +103,8 @@ int CallGraph::name2id(string exe_name){
 
 CallGraph::CallGraph(string exe_name) : 
     children(hash_dummy), parents(hash_dummy), visited(hash_dummy),
-    instrumented_call_sites(hash_dummy),
-    executableAndPathName(exe_name)
+    instrumented_call_sites(hash_dummy), tid_to_start_func(unsignedHash),
+    entryFunction(NULL), executableAndPathName(exe_name)
 {
   resourceHandle h;
   program_id = last_id_issued;
@@ -124,8 +128,8 @@ CallGraph::CallGraph(string exe_name) :
 CallGraph::CallGraph(string exe_name, 
 		     resource *nroot) : 
   children(hash_dummy), parents(hash_dummy), visited(hash_dummy), 
-  instrumented_call_sites(hash_dummy),
-  executableAndPathName(exe_name)
+  instrumented_call_sites(hash_dummy), tid_to_start_func(unsignedHash),
+  entryFunction(NULL), executableAndPathName(exe_name)
 {
   program_id = last_id_issued;
   last_id_issued++;
@@ -195,16 +199,12 @@ int CallGraph::SetChildren(resource *r, const vector <resource *>rchildren) {
     return (int)u;
 }
 
-int CallGraph::SetChild(resource *p, resource *c) {
+int CallGraph::AddChild(resource *parent, resource *child) {
     // assert (p previously seen by call graph) 
-    assert(children.defines(p) && parents.defines(p));
-    // assert (p had no previously defined children)
-    //Don't add duplicate children to this resource
-    if(children[p].size() != 0)
-      return 0;
-    AddResource(c);
-    children[p] += c;
-    parents[c] += p;
+    assert(children.defines(parent) && parents.defines(parent));
+    AddResource(child);
+    children[parent] += child;
+    parents[child] += parent;
     return 1;
 }
 
@@ -274,18 +274,34 @@ void CallGraph::AddDynamicCallSite(resource *parent){
   dynamic_call_sites+= parent;
 }
 
-void CallGraph::SetEntryFunc(resource *r) {
+void CallGraph::SetEntryFunc(resource *r, unsigned tid) {
     assert(r != NULL);
     assert(r->getType() == MDL_T_PROCEDURE);
     
-    entryFunction = r;
+    if(entryFunction == NULL)
+       entryFunction = r;
     // The first request to magnify results in a refinement from /Code.
     // However, /Code is not a function, and is thus not known to the call
     //  graph.  Instead, the request to magnify /Code should return a single
     //  function - the entry function....
-    AddResource(entryFunction);
+    AddResource(r);
 
-    SetChild(rootResource, entryFunction);
+    if(! isStartFunction(r->getHandle()))  // add if it's not already there
+       AddChild(rootResource, r);
+
+    if(tid_to_start_func.defines(tid)) {
+       assert(tid_to_start_func[tid] = r->getHandle());
+    }
+    tid_to_start_func[tid] = r->getHandle();
+}
+
+bool CallGraph::isStartFunction(resourceHandle rh) {
+   vector<resourceHandle> *entryFuncs = getChildren(rootResource);
+   for(unsigned i=0; i<entryFuncs->size(); i++) {
+      if((*entryFuncs)[i] == rh) return true;
+   }
+   delete entryFuncs;
+   return false;
 }
 
 CallGraph *CallGraph::FindCallGraph(string exe_name) {
@@ -382,6 +398,7 @@ void CallGraph::addChildrenToDisplay(resource *parent,
     }
   }
 }
+
 vector <resourceHandle> *CallGraph::getChildren(resource *rh) {
     unsigned i;
     vector <resourceHandle> *ret;
