@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.216 2002/02/11 22:02:46 tlmiller Exp $
+// $Id: metricFocusNode.C,v 1.217 2002/02/12 23:50:26 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -88,7 +88,6 @@ extern pdDebug_ostream sampleVal_cerr;
 
 extern unsigned inferiorMemAvailable;
 extern vector<Address> getAllTrampsAtPoint(instInstance *instance);
-static unsigned internalMetricCounterId = 0;
 
 void flush_batch_buffer();
 void batchSampleData(string metname, int mid, timeStamp startTimeStamp, 
@@ -96,21 +95,6 @@ void batchSampleData(string metname, int mid, timeStamp startTimeStamp,
 		     bool internal_metric);
 
 timeLength currentPredictedCost = timeLength::Zero();
-
-dictionary_hash <unsigned, metricDefinitionNode*> drnIdToMdnMap(uiHash);
-// maps low-level counter-ids to metricDefinitionNodes
-
-void recordDRN2MDN_Mapping(dataReqNode *drnode, metricDefinitionNode *mdn) {
-  unsigned drnId = drnode->getSampleId();
-  //cerr << "mapping drnId: " << drnId << ", to mdn: " << mdn << ", mid: "
-  //   << mdn->getMId() << "\n";
-  if (drnIdToMdnMap.defines(drnId)) {
-    assert(drnIdToMdnMap[drnId] == mdn);
-  }
-  else {
-    drnIdToMdnMap[drnId] = mdn;
-  }
-}
 
 unsigned mdnHash(const metricDefinitionNode *&mdn) {
   return ((unsigned)(Address)mdn) >> 2; // assume all addrs are 4-byte aligned
@@ -121,7 +105,6 @@ unsigned componentMdnPtrHash(metricDefinitionNode * const &ptr) {
   // maybe assert that "ptr" isn't for an aggregate mi
   return string::hash(ptr->getFullName());
 }
-
 
 dictionary_hash<unsigned, metricDefinitionNode*> allMIs(uiHash);
 dictionary_hash<string, metricDefinitionNode*> allMIComponents(string::hash);
@@ -308,16 +291,6 @@ processMetFocusNode::processMetFocusNode(process *p,const string& metric_name,
 {
 }
 
-threadMetFocusNode::threadMetFocusNode(process *p, const string& metric_name, 
-                       const vector< vector<string> >& foc,
-                       const vector< vector<string> >& component_foc,
-                       const string& component_flat_name, 
-		       aggregateOp agg_op)
-  : metricDefinitionNode(p, metric_name, foc, component_foc,
-			 component_flat_name, agg_op, THR_LEV)
-{ 
-}
-
 sampleMetFocusNode::sampleMetFocusNode(process *p, const string& metric_name, 
                        const vector< vector<string> >& foc,
                        const vector< vector<string> >& component_foc,
@@ -328,6 +301,45 @@ sampleMetFocusNode::sampleMetFocusNode(process *p, const string& metric_name,
 {
 }
 
+threadMetFocusNode::threadMetFocusNode(process *p, const string& metric_name, 
+                       const vector< vector<string> >& foc,
+                       const vector< vector<string> >& component_foc,
+                       const string& component_flat_name, 
+		       aggregateOp agg_op)
+  : metricDefinitionNode(p, metric_name, foc, component_foc,
+			 component_flat_name, agg_op, THR_LEV)
+{ 
+}
+
+collectThreadMetFocusNode::collectThreadMetFocusNode(process *p, 
+		       const string& metric_name, 
+                       const vector< vector<string> >& foc,
+                       const vector< vector<string> >& component_foc,
+                       const string& component_flat_name, 
+		       aggregateOp agg_op)
+  : threadMetFocusNode(p, metric_name, foc, component_foc,
+			 component_flat_name, agg_op)
+{ 
+}
+
+indivThreadMetFocusNode::indivThreadMetFocusNode(process *p, 
+		       const string& metric_name, 
+                       const vector< vector<string> >& foc,
+                       const vector< vector<string> >& component_foc,
+                       const string& component_flat_name, 
+		       aggregateOp agg_op)
+  : threadMetFocusNode(p, metric_name, foc, component_foc,
+		       component_flat_name, agg_op)
+{ 
+}
+
+const char *typeStr(int i) {
+  static const char* typeName[] = { "AGG", "COMP", "PRIM", "THR" };  
+  if(! (i>=0 && i<=3))
+    cerr << "i == " << i << "\n";
+  assert(i>=0 && i<=3);
+  return typeName[i];
+}
 
 // check for "special" metrics that are computed directly by paradynd 
 // if a cost of an internal metric is asked for, enable=false
@@ -1237,7 +1249,7 @@ void removeFromMetricInstances(process *proc) {
 // We always need a dummy aggregator for threads metrics, and it is 
 // implemented in mdl.C apply_to_process
 //
-void metricDefinitionNode::reUseIndexAndLevel(unsigned &p_allocatedIndex, 
+void threadMetFocusNode::reUseIndexAndLevel(unsigned &p_allocatedIndex, 
 					    unsigned &p_allocatedLevel)
 {
   p_allocatedIndex = UINT_MAX;
@@ -1246,33 +1258,32 @@ void metricDefinitionNode::reUseIndexAndLevel(unsigned &p_allocatedIndex,
 
   assert(mdn_type_ == THR_LEV);
 
-  metricDefinitionNode *proc_mn = NULL;
+  sampleMetFocusNode *prim_mn = NULL;
   for (unsigned uu=0; uu < agg_size; uu++)
-    if (aggregators[uu]->mdn_type_ == PRIM_MDN) {  // now proc_prim has those thr_lev as components
-      proc_mn = aggregators[uu];
+    if (aggregators[uu]->getMdnType() == PRIM_MDN) {
+      prim_mn = dynamic_cast<sampleMetFocusNode*>(aggregators[uu]);
       break;
     }
 
-  if (proc_mn != NULL) {
-    unsigned c_size = proc_mn->components.size();
-    for (unsigned i=0;i<c_size;i++) {
-      if (proc_mn->components[i] != this) {
+  if (prim_mn != NULL) {
+    vector<metricDefinitionNode *> comps = prim_mn->getComponents();
+    unsigned c_size = comps.size();
+    for (unsigned i=0; i<c_size; i++) {
+      threadMetFocusNode *curThrNode = 
+	dynamic_cast<threadMetFocusNode*>(comps[i]);
+
+      if (curThrNode != this) {
 	dataReqNode *p_dataRequest;
 	// Assume for all metrics, data are allocated in the same order
 	// we get the one that was created the earliest
-#if defined(TEST_DEL_DEBUG)
-	sprintf(errorLine, "proc_mn->dataRequests.size=%d, this->dataRequests.size=%d",
-		proc_mn->components[i]->dataRequests.size(),
-		this->dataRequests.size());
-        cerr << errorLine << endl ;
-#endif
 
-	if (proc_mn->components[i]->dataRequests.size()>this->dataRequests.size()) {
-	  p_dataRequest = proc_mn->components[i]->dataRequests[this->dataRequests.size()];
+	if (curThrNode->dataRequests.size() > this->dataRequests.size()) {
+	  p_dataRequest = curThrNode->dataRequests[this->dataRequests.size()];
 	  p_allocatedIndex = p_dataRequest->getAllocatedIndex();
 	  p_allocatedLevel = p_dataRequest->getAllocatedLevel();
 #if defined(TEST_DEL_DEBUG)
-	  sprintf(errorLine,"=====> re-using level=%d, index=%d\n",p_allocatedLevel,p_allocatedIndex);
+	  sprintf(errorLine,"=====> re-using level=%d, index=%d\n",
+		  p_allocatedLevel, p_allocatedIndex);
 	  cerr << errorLine << endl;
 #endif
 	  break;
@@ -1287,9 +1298,10 @@ void metricDefinitionNode::reUseIndexAndLevel(unsigned &p_allocatedIndex,
 int metricDefinitionNode::counterId=0;
 
 #if defined(MT_THREAD)
-dataReqNode *metricDefinitionNode::addSampledIntCounter(pdThread *thr, rawTime64 initialValue,
+dataReqNode *threadMetFocusNode::addSampledIntCounter(pdThread *thr, 
+						      rawTime64 initialValue,
 #else
-dataReqNode *metricDefinitionNode::addSampledIntCounter(rawTime64 initialValue,
+dataReqNode *threadMetFocusNode::addSampledIntCounter(rawTime64 initialValue,
 #endif
                                                         bool computingCost,
 							bool doNotSample)
@@ -1301,76 +1313,72 @@ dataReqNode *metricDefinitionNode::addSampledIntCounter(rawTime64 initialValue,
    unsigned p_allocatedIndex, p_allocatedLevel;
    reUseIndexAndLevel(p_allocatedIndex, p_allocatedLevel);
    result = new sampledShmIntCounterReqNode(thr, initialValue,
-					    metricDefinitionNode::counterId,
+                                            incrementCounterId(),
                                             this, computingCost, doNotSample,
 					    p_allocatedIndex,p_allocatedLevel);
 #else
    result = new sampledShmIntCounterReqNode(initialValue,
-                                            metricDefinitionNode::counterId,
+                                            incrementCounterId(),
                                             this, computingCost, doNotSample);
 #endif //MT_THREAD
       // implicit conversion to base class
 
    assert(result);
    
-   metricDefinitionNode::counterId++;
    proc_->numOfActCounters_is++;
 
-   internalMetricCounterId = metricDefinitionNode::counterId;
-
    dataRequests += result;
    return result;
 }
 
 #if defined(MT_THREAD)
-dataReqNode *metricDefinitionNode::addWallTimer(bool computingCost, pdThread *thr) {
+dataReqNode *threadMetFocusNode::addWallTimer(bool computingCost, 
+					      pdThread *thr) {
 #else
-dataReqNode *metricDefinitionNode::addWallTimer(bool computingCost) {
+dataReqNode *threadMetFocusNode::addWallTimer(bool computingCost) {
 #endif
    dataReqNode *result = NULL;
 
 #if defined(MT_THREAD)
    unsigned p_allocatedIndex, p_allocatedLevel;
    reUseIndexAndLevel(p_allocatedIndex, p_allocatedLevel);
-   result = new sampledShmWallTimerReqNode(thr, metricDefinitionNode::counterId, this, computingCost, p_allocatedIndex, p_allocatedLevel);
+   result = new sampledShmWallTimerReqNode(thr, incrementCounterId(), this, 
+			    computingCost, p_allocatedIndex, p_allocatedLevel);
       // implicit conversion to base class
 #else
-   result = new sampledShmWallTimerReqNode(metricDefinitionNode::counterId, this, computingCost);
+   result = new sampledShmWallTimerReqNode(incrementCounterId(), this, 
+					   computingCost);
 #endif //MT_THREAD
 
    assert(result);
-
-   metricDefinitionNode::counterId++;
    proc_->numOfActWallTimers_is++;
 
-   internalMetricCounterId = metricDefinitionNode::counterId;
-
    dataRequests += result;
    return result;
 }
 
 #if defined(MT_THREAD)
-dataReqNode *metricDefinitionNode::addProcessTimer(bool computingCost, pdThread *thr) {
+dataReqNode *threadMetFocusNode::addProcessTimer(bool computingCost, 
+						 pdThread *thr) {
 #else
-dataReqNode *metricDefinitionNode::addProcessTimer(bool computingCost) {
+dataReqNode *threadMetFocusNode::addProcessTimer(bool computingCost) {
 #endif
    dataReqNode *result = NULL;
 
 #if defined(MT_THREAD)
    unsigned p_allocatedIndex, p_allocatedLevel;
    reUseIndexAndLevel(p_allocatedIndex, p_allocatedLevel);
-   result = new sampledShmProcTimerReqNode(thr, metricDefinitionNode::counterId, this, computingCost, p_allocatedIndex, p_allocatedLevel);
+   result = new sampledShmProcTimerReqNode(thr, incrementCounterId(), this, 
+			    computingCost, p_allocatedIndex, p_allocatedLevel);
       // implicit conversion to base class
 #else
-   result = new sampledShmProcTimerReqNode(metricDefinitionNode::counterId, this, computingCost);
+   result = new sampledShmProcTimerReqNode(incrementCounterId(), this, 
+					   computingCost);
 #endif //MT_THREAD
 
    assert(result);
 
-   metricDefinitionNode::counterId++;
    proc_->numOfActProcTimers_is++;
-
-   internalMetricCounterId = metricDefinitionNode::counterId;
 
    dataRequests += result;
    return result;
@@ -1404,7 +1412,6 @@ dataReqNode *metricDefinitionNode::addProcessTimer(bool computingCost) {
 
 metricDefinitionNode *metricDefinitionNode::forkProcess(process *child,
 			const dictionary_hash<instInstance*,instInstance*> &map) const {
-
     // The "focus_" member vrble stays the same, because it was always for the
     // metric as a whole, and not for some component.
     //
@@ -1458,20 +1465,25 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *child,
 			 aggregateOp(aggOp));
     assert(mi);
 
-    metricDefinitionNode::counterId++;
+    incrementCounterId();
 
     forkexec_cerr << "metricDefinitionNode::forkProcess -- component flat name for parent is " << flat_name_ << "; for child is " << mi->flat_name_ << endl;
-
-    internalMetricCounterId = metricDefinitionNode::counterId;
 
     // not attempt to register all names
     assert(! isKeyDef_processMetFocusBuf(newComponentFlatName));
     setVal_processMetFocusBuf(newComponentFlatName, mi);
 
+    /*
     // Duplicate the dataReqNodes:
+    // If it's going to duplicate the dataReqNodes, these are members only of
+    // the threadMetFocusNode.  So it would have to go through all of mi's
+    // threadMetFocusNodes and duplicate all of it's data request nodes.
+    // Then I suppose it would assign those duplicated dataRequestNodes to be
+    // used by this metricDefinitionNode's threadMetFocusNodes.
+
     for (unsigned u1 = 0; u1 < dataRequests.size(); u1++) {
        // must add to drnIdToMdnMap[] before dup() to avoid some assert fails
-       const int newCounterId = metricDefinitionNode::counterId++;
+       const int newCounterId = incrementCounterId();
           // no relation to mi->getMId();
        forkexec_cerr << "forked dataReqNode going into drnIdToMdnMap with id " << newCounterId << endl;
        assert(!drnIdToMdnMap.defines(newCounterId));
@@ -1492,7 +1504,7 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *child,
     }
 
     mi->inserted_ = true;
-
+    */
     return static_cast<metricDefinitionNode*>(mi);
 }
 
@@ -1517,8 +1529,9 @@ bool metricDefinitionNode::unFork(dictionary_hash<instInstance*, instInstance*> 
    // ones instrument DYNINSTsampleValues.
 
    bool result = true;
+   /*
    unsigned lcv;
-
+   // Needs to be implemented
    if (unForkInstRequests)
       for (lcv=0; lcv < instRequests.size(); lcv++)
          if (!instRequests[lcv].unFork(map))
@@ -1529,6 +1542,7 @@ bool metricDefinitionNode::unFork(dictionary_hash<instInstance*, instInstance*> 
          if (!dataRequests[lcv]->unFork(map))
 	    result = false; // failure
 
+   */
    return result;
 }
 
@@ -1918,7 +1932,7 @@ void sampleMetFocusNode::adjustManuallyTrigger(vector<Address> stack_pcs,
 }
 
 
-void metricDefinitionNode::oldCatchUp(int tid) {
+void sampleMetFocusNode::oldCatchUp(int tid) {
 
   unsigned j, k;
 
@@ -1991,20 +2005,20 @@ void metricDefinitionNode::adjustManuallyTrigger0(int tid)
     for (i=0; i < components.size(); i++) {
       components[i]->adjustManuallyTrigger0(tid);
     }
-  } 
-  // non-aggregate:
-  else {
-    assert(mdn_type_ == PRIM_MDN);
-    
-    // This code is a kludge which will catch the case where the WHOLE_PROGRAM metrics
-    // have not been set to manjually trigger by the above code.  Look at the 
-    // component_focus for the "Code" element, and see if there is any contraint.
-    // Then, for each InstReqNode in this MetricDefinitionNode which is at the entry
-    // point of main, and which has not been added to the manuallyTriggerNodes list,
-    // add it to the list.
-
-    oldCatchUp(tid);
+  } else {
+    assert(false);
   }
+}
+
+void sampleMetFocusNode::adjustManuallyTrigger0(int tid) {
+  // This code is a kludge which will catch the case where the WHOLE_PROGRAM
+  // metrics have not been set to manjually trigger by the above code.  Look
+  // at the component_focus for the "Code" element, and see if there is any
+  // contraint.  Then, for each InstReqNode in this MetricDefinitionNode
+  // which is at the entry point of main, and which has not been added to the
+  // manuallyTriggerNodes list, add it to the list.
+
+  oldCatchUp(tid);
 }
 #endif 
  
@@ -2077,7 +2091,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
     mdl_env::set(id, vname);
 
     machineMetFocusNode *mi = createMetricInstance(metric_name, focus,
-                                                    true, internal);
+						   true, internal);
 
     // calls mdl_do()
 
@@ -2150,7 +2164,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
         for (unsigned i=0; i < mi->components.size(); i++) {
             metricDefinitionNode *comp = mi->components[i];
 
-	    if (comp->inserted() && comp->installed()) {
+	    if (comp->instrInserted() && comp->installed()) {
 	      alreadyThere[i] = true;
 	    }
 	}
@@ -2288,7 +2302,8 @@ timeLength guessCost(string& metric_name, vector<u_int>& focus) {
     // called by dynrpc.C (getPredictedDataCost())
 
     bool internal;
-    metricDefinitionNode *mi = createMetricInstance(metric_name, focus, false, internal);
+    machineMetFocusNode *mi = createMetricInstance(metric_name, focus, false, 
+						   internal);
 
     if (!mi) {
        metric_cerr << "guessCost returning 0.0 since createMetricInstance failed" << endl;
@@ -2307,17 +2322,10 @@ timeLength guessCost(string& metric_name, vector<u_int>& focus) {
 	mi->removeComponent(mi->components[u]);
       }
       mi->components.resize(0);
-
       delete mi;
     }
 
     return cost;
-}
-
-const char *typeStr(int i) {
-  const char* typeName[] = { "AGG", "COMP", "PRIM", "THR" };  
-  assert(i>=0 && i<=3);
-  return typeName[i];
 }
 
 ostream& operator<<(ostream&s, const metricDefinitionNode &m) {
@@ -2381,11 +2389,11 @@ void mdnContinueCallback(timeStamp timeOfCont) {
   for (; iter; iter++) {
     metricDefinitionNode *mdn = iter.currval();
     sampleVal_cerr << "mdnContinueCallback: comparing mdn: " << mdn 
-		   << ", inserted: " << mdn->inserted()
+		   << ", inserted: " << mdn->instrInserted()
 		   << ", partsNeedingInit: " 
 		   << mdn->childrenMdnNeedingInitializing()
     		   << ", type: " << typeStr(mdn->getMdnType()) << "\n";
-    if(! mdn->inserted())   // only want to setup initialization times
+    if(! mdn->instrInserted())   // only want to setup initialization times
       continue;               // if the instrumentation code has been inserted
     if(! mdn->isStartTimeSet())
       mdn->setStartTime(timeOfCont);
@@ -2505,31 +2513,74 @@ void metricDefinitionNode::updateAllAggInterval(timeLength width) {
   }
 }
 
+bool sampleMetFocusNode::insertInstrumentation(pd_Function **func) {
+  // Loop thru "dataRequests", an array of (ptrs to) dataReqNode: Here we
+  // allocate ctrs/timers in the inferior heap but don't stick in any code,
+  // except (if appropriate) that we'll instrument the application's
+  // alarm-handler when not shm sampling.
+  //unsigned size = dataRequests.size();
+  //for (u=0; u<size; u++) {
+  // the following allocs an object in inferior heap and arranges for it to
+  // be alarm sampled, if appropriate.  Note: this is not necessary anymore
+  // because we are allocating the space when the constructor for dataReqNode
+  // is called. This was done for the dyninstAPI - naim 2/18/97
+  //if (!dataRequests[u]->insertInstrumentation(proc_, this))
+  //  return false; // shouldn't we try to undo what's already put in?
+  //}
+  
+  // Loop thru "instRequests", an array of instReqNode:
+  // (Here we insert code instrumentation, tramps, etc. via addInstFunc())
+  unsigned int inst_size = instRequests.size();
+
+  for (unsigned u1=0; u1<inst_size; u1++) {
+    // code executed later (adjustManuallyTrigger) may also manually trigger 
+    // the instrumentation via inferiorRPC.
+    returnInstance *retInst=NULL;
+    bool deferredFlag = false;
+    if (!instRequests[u1].insertInstrumentation(proc_, retInst, 
+						&deferredFlag)) {
+      unmarkAsDeferred();
+      if (deferredFlag == true) {
+	*func = dynamic_cast<pd_Function *>(const_cast<function_base *>(
+                            instRequests[u1].Point()->iPgetFunction()));
+	markAsDeferred();
+      }
+
+      //assert (*func != NULL);
+      return false; // shouldn't we try to undo what's already put in?
+    }
+    if (retInst) {
+      returnInsts += retInst;
+    }
+  }
+  inserted_ = true;
+  return true;
+}
+
 bool metricDefinitionNode::insertInstrumentation(pd_Function **func)
 {
-  // cerr << "mdn: " << this << ", insertInstrum, type: " 
-  // << typeStr(getMdnType()) << "), mid: " << getMId() << ", inserted: " 
-  // << inserted_ << "\n";
-  // returns true iff successful
-    if (inserted_) {
-       return true;
-    }
-    unsigned u, u1;
-
-    if(isTopLevelMDN()) {
+   // cerr << "mdn: " << this << ", insertInstrum, type: " 
+   // << typeStr(getMdnType()) << "), mid: " << getMId() << ", inserted: " 
+   // << inserted_ << "\n";
+   // returns true iff successful
+   if (instrInserted()) {
+      return true;
+   }
+   
+   if(isTopLevelMDN()) {
       unsigned c_size = components.size();
       bool aCompFailedToInsert = false;
-      for (u=0; u<c_size; u++)
-	if (!components[u]->insertInstrumentation(func)) {
-          //assert (*func != NULL);
-	  aCompFailedToInsert = true;
-	}
+      for (unsigned u=0; u<c_size; u++)
+	 if (!components[u]->insertInstrumentation(func)) {
+	    //assert (*func != NULL);
+	    aCompFailedToInsert = true;
+	 }
       if(aCompFailedToInsert) return false;
       inserted_ = true;
-    }
-    else if (mdn_type_ == COMP_MDN) 
-    { // similar to agg case
-
+   }
+   else if (mdn_type_ == COMP_MDN) 
+   { // similar to agg case
+      
       // PAUSE inferior process ONCE FOR ALL PRIMITIVES
       bool needToCont = proc_->status() == running;
 #ifdef DETACH_ON_THE_FLY
@@ -2538,292 +2589,207 @@ bool metricDefinitionNode::insertInstrumentation(pd_Function **func)
       bool res = proc_->pause();
 #endif
       if (!res) {
-	cerr << "returning since pause failed\n";
-	return false;
+	 cerr << "returning since pause failed\n";
+	 return false;
       }
-
+      
       unsigned c_size = components.size();
       // mark remaining prim. components as deferred if we come upon
       // one deferred component
       bool aCompWasDeferred = false;
-      for (u1=0; u1<c_size; u1++) {
-	metricDefinitionNode *thisComp = components[u1];
-        thisComp->unmarkAsDeferred();
-        if(aCompWasDeferred == true)
-	  thisComp->markAsDeferred();
-	else {
-	  if (!thisComp->insertInstrumentation(func)) {
-	    //assert (*func != NULL);
-	    if(thisComp->hasDeferredInstr()) {
-	      aCompWasDeferred = true;
+      for (unsigned u1=0; u1<c_size; u1++) {
+	 sampleMetFocusNode *primNode = 
+	    dynamic_cast<sampleMetFocusNode*>(components[u1]);
+	 primNode->unmarkAsDeferred();
+	 if(aCompWasDeferred == true)
+	    primNode->markAsDeferred();
+	 else {
+	    if (!primNode->insertInstrumentation(func)) {
+	       //assert (*func != NULL);
+	       if(primNode->hasDeferredInstr()) {
+		  aCompWasDeferred = true;
+	       }
 	    }
-	  }
-	}
+	 }
       }
       if(aCompWasDeferred) {
-	return false;
+	 return false;
       }
       inserted_ = true;
       if (needToCont) {
 #ifdef DETACH_ON_THE_FLY
-	proc_->detachAndContinue();
+	 proc_->detachAndContinue();
 #else
-	proc_->continueProc();
+	 proc_->continueProc();
 #endif
       }      
-    }
-    else {
-
-#if defined(MT_THREAD)
-      assert((mdn_type_ == PRIM_MDN) || (mdn_type_ == THR_LEV));
-      if (mdn_type_ == PRIM_MDN)
-	assert(dataRequests.size() == 0);
-      if (mdn_type_ == THR_LEV)
-	assert(instRequests.size() == 0);
-#else
-      assert(mdn_type_ == PRIM_MDN);
-#endif
-#if defined(TEST_DEL_DEBUG)
-      sprintf(errorLine,"=====> insertInstrumentation, dataRequests=%d, instRequests=%d\n",dataRequests.size(),instRequests.size());
-      logLine(errorLine);
-#endif
-
-      // Loop thru "dataRequests", an array of (ptrs to) dataReqNode:
-      // Here we allocate ctrs/timers in the inferior heap but don't
-      // stick in any code, except (if appropriate) that we'll instrument the
-      // application's alarm-handler when not shm sampling.
-      //unsigned size = dataRequests.size();
-      //for (u=0; u<size; u++) {
-        // the following allocs an object in inferior heap and arranges for
-        // it to be alarm sampled, if appropriate.
-        // Note: this is not necessary anymore because we are allocating the
-        // space when the constructor for dataReqNode is called. This was
-        // done for the dyninstAPI - naim 2/18/97
-        //if (!dataRequests[u]->insertInstrumentation(proc_, this))
-        //  return false; // shouldn't we try to undo what's already put in?
-        //}
-
-      // Loop thru "instRequests", an array of instReqNode:
-      // (Here we insert code instrumentation, tramps, etc. via addInstFunc())
-      unsigned int inst_size = instRequests.size();
-
-      for (u1=0; u1<inst_size; u1++) {
-	  // code executed later (adjustManuallyTrigger) may also manually trigger 
-	  // the instrumentation via inferiorRPC.
-	  returnInstance *retInst=NULL;
-	  bool deferredFlag = false;
-	  if (!instRequests[u1].insertInstrumentation(proc_, retInst, 
-                                                      &deferredFlag)) {
-            unmarkAsDeferred();
-            if (deferredFlag == true) {
-	      *func = dynamic_cast<pd_Function *>(
-                       const_cast<function_base *>(
-                       instRequests[u1].Point()->iPgetFunction()));
-	      markAsDeferred();
-	    }
-
-            //assert (*func != NULL);
-	    return false; // shouldn't we try to undo what's already put in?
-	  }
-	  if (retInst) {
-	    returnInsts += retInst;
-	  }
-      }
-      inserted_ = true;
-#if defined(MT_THREAD)
-      unsigned c_size = components.size();
-      for (u=0; u<c_size; u++)
-	if (!components[u]->insertInstrumentation(func)) {
-	  return false; // shouldn't we try to undo what's already put in?
-	}
-#endif
-    }
-    return(true);
+   }
+   else {
+      // shouldn't get a PRIM or THR metFocus here
+      assert(false);
+   }
+   return(true);
 }
 
-// this function checks if we need to do stack walk
-// if all returnInstance's overwrite only 1 instruction, no stack walk necessary
+bool metricDefinitionNode::instrInserted(void) {
+  bool isSpecialHangingThrType = (getMdnType()==THR_LEV && 
+				  components.size()>0 &&
+				  components[0]->getMdnType()!=COMP_MDN);
+  if(getMdnType() == THR_LEV && !isSpecialHangingThrType) {
+    // the code for a THR_LEV node has been inserted if the instr code
+    // contained within it's parent PRIM mdn has been inserted
+    sampleMetFocusNode *prim = NULL;
+    for(unsigned i=0; i<aggregators.size(); i++) {
+      if(aggregators[i]->getMdnType() == PRIM_MDN) {
+	prim = dynamic_cast<sampleMetFocusNode*>(aggregators[i]);
+      }
+    }
+    assert(prim != NULL);
+    return prim->instrInserted();
+  }
+  return inserted_;
+}
+
+
+bool sampleMetFocusNode::needToWalkStack() const {
+   for (unsigned u1=0; u1<returnInsts.size(); u1++) {
+      if (returnInsts[u1]->needToWalkStack())
+	 return true;
+   }
+   return false;
+}
+
+// this function checks if we need to do stack walk.  If all returnInstance's
+// overwrite only 1 instruction, no stack walk necessary
 bool metricDefinitionNode::needToWalkStack() const
 {
-  assert(COMP_MDN == mdn_type_ || PRIM_MDN == mdn_type_);
-  if (COMP_MDN == mdn_type_)
-  {
-    for (unsigned u=0; u<components.size(); u++)
-      if (components[u]->needToWalkStack())
+  assert(COMP_MDN == mdn_type_);
+  for (unsigned u=0; u<components.size(); u++) {
+     sampleMetFocusNode *primNode = 
+	dynamic_cast<sampleMetFocusNode*>(components[u]);
+     if (primNode->needToWalkStack())
 	return true;
   }
-  else {
-    assert(PRIM_MDN == mdn_type_);
-
-    for (unsigned u1=0; u1<returnInsts.size(); u1++) {
-      if (returnInsts[u1]->needToWalkStack())
-	return true;
-    }
-  }
-
   return false;
 }
 
 
 bool metricDefinitionNode::checkAndInstallInstrumentation() {
-   // Patch up the application to make it jump to the base trampoline(s) of this
-   // metric.  (The base trampoline and mini-tramps have already been installed
-   // in the inferior heap).  We must first check to see if it's safe to install by
-   // doing a stack walk, and determining if anything on it overlaps with any of our
-   // desired jumps to base tramps.
-   // The key variable is "returnsInsts", which was created for us when the base
-   // tramp(s) were created.  Essentially, it contains the details of how we'll jump
-   // to the base tramp (where in the code to patch, how many instructions, the
-   // instructions themselves).
-   // Note that it seems this routine is misnamed: it's not instrumentation that needs
-   // to be installed (the base & mini tramps are already in place); it's just the
-   // last step that is still needed: the jump to the base tramp.
-   // If one or more can't be added, then a TRAP insn is inserted in the closest
-   // common safe return point along the stack walk, and some structures are appended
-   // to the process' "wait list", which is then checked when a TRAP signal arrives.
-   // At that time, the jump to the base tramp is finally done.  WARNING: It seems to
-   // me that such code isn't thread-safe...just because one thread hits the TRAP,
-   // there may still be other threads that are unsafe.  It seems to me that we should
-   // be doing this check again when a TRAP arrives...but for each thread (right now,
-   // there's no stack walk for other threads).  --ari
+   // Patch up the application to make it jump to the base trampoline(s) of
+   // this metric.  (The base trampoline and mini-tramps have already been
+   // installed in the inferior heap).  We must first check to see if it's
+   // safe to install by doing a stack walk, and determining if anything on
+   // it overlaps with any of our desired jumps to base tramps.  The key
+   // variable is "returnsInsts", which was created for us when the base
+   // tramp(s) were created.  Essentially, it contains the details of how
+   // we'll jump to the base tramp (where in the code to patch, how many
+   // instructions, the instructions themselves).  Note that it seems this
+   // routine is misnamed: it's not instrumentation that needs to be
+   // installed (the base & mini tramps are already in place); it's just the
+   // last step that is still needed: the jump to the base tramp.  If one or
+   // more can't be added, then a TRAP insn is inserted in the closest common
+   // safe return point along the stack walk, and some structures are
+   // appended to the process' "wait list", which is then checked when a TRAP
+   // signal arrives.  At that time, the jump to the base tramp is finally
+   // done.  WARNING: It seems to me that such code isn't thread-safe...just
+   // because one thread hits the TRAP, there may still be other threads that
+   // are unsafe.  It seems to me that we should be doing this check again
+   // when a TRAP arrives...but for each thread (right now, there's no stack
+   // walk for other threads).  --ari
  
-    bool needToCont = false;
+   bool needToCont = false;
 
-    if (installed_) return(true);
+   if (installed_) return(true);
 
-    installed_ = true;
+   installed_ = true;
 
 #if defined(MT_THREAD)
-    if ((mdn_type_ == AGG_MDN) || (mdn_type_ == THR_LEV)) { //if (mdn_type_ != THR_LEV)
+   //if (mdn_type_ != THR_LEV)
+   if((mdn_type_ == AGG_MDN) || (mdn_type_ == THR_LEV))
 #else
-    if (mdn_type_ == AGG_MDN) {
+   if(mdn_type_ == AGG_MDN)
 #endif
+   {
       unsigned c_size = components.size();
       for (unsigned u1=0; u1<c_size; u1++)
-	components[u1]->checkAndInstallInstrumentation();
+	 components[u1]->checkAndInstallInstrumentation();
       // why no checking of the return value?
-    }
-    else if (mdn_type_ == COMP_MDN) {
-
+   }
+   else if (mdn_type_ == COMP_MDN) {
+	 
       // pause once for all primitives for this component
       needToCont = proc_->status() == running;
 #ifdef DETACH_ON_THE_FLY
-      if (!proc_->reattachAndPause()) {
+      if (!proc_->reattachAndPause())
 #else
-      if (!proc_->pause()) {
+      if (!proc_->pause())
 #endif
-	cerr << "checkAndInstallInstrumentation -- pause failed" << endl; cerr.flush();
-	return false;
+      {
+	 cerr << "checkAndInstallInstrumentation -- pause failed" <<endl;
+	 cerr.flush();
+	 return false;
       }
-
+      
       // only overwrite 1 instruction on power arch (2 on mips arch)
       // always safe to instrument without stack walk
       if (!needToWalkStack()) {
-	// NO stack walk necessary
+	 // NO stack walk necessary
+	 
+	 vector<Address> pc;  // empty
+	 unsigned c_size = components.size();
+	 
+	 for (unsigned u=0; u<c_size; u++) {
+	    sampleMetFocusNode *primnode =
+	       dynamic_cast<sampleMetFocusNode*>(components[u]);
+	    primnode->checkAndInstallInstrumentation(pc);
+	    // why no checking of the return value?
+	 }
 
-	vector<Address> pc;  // empty
-	unsigned c_size = components.size();
-
-	for (unsigned u=0; u<c_size; u++)
-	  components[u]->checkAndInstallInstrumentation(pc);
-	// why no checking of the return value?
       }
       else {
-	// stack walk necessary, do stack walk only ONCE for all primitives
-
-        // NOTE: walkStack should walk all the threads' staks! It doesn't do
-	// that right now... naim 1/28/98
-	vector<Address> pc = proc_->walkStack();
-	   // ndx 0 is where the pc is now; ndx 1 is the call site;
-	   // ndx 2 is the call site's call site, etc...
-
-	// for(u_int i=0; i < pc.size(); i++){
-	//     printf("frame %d: pc = 0x%x\n",i,pc[i]);
-	// }
-
+	 // stack walk necessary, do stack walk only ONCE for all
+	 // primitives
+	 // NOTE: walkStack should walk all the threads' staks! It
+	 // doesn't do that right now... naim 1/28/98
+	 vector<Address> pc = proc_->walkStack();
+	 // ndx 0 is where the pc is now; ndx 1 is the call site;
+	 // ndx 2 is the call site's call site, etc...
+	 
+	 // for(u_int i=0; i < pc.size(); i++){
+	 //     printf("frame %d: pc = 0x%x\n",i,pc[i]);
+	 // }
 #ifdef WALK_ALL_STACKS
-	//
-	// We do stack walk conservatively, stacks include all LWP stacks, and
-	// stacks for all user-level threads
-	//
-	vector<vector<Address> > pc_s = proc_->walkAllStack();
-	for (unsigned i=0; i< pc_s.size(); i++) {
-	  vector<Address>& pc = pc_s[i];
-	  for (unsigned j=0; j<pc.size(); j++) {
-	    Address a = pc[j] ;
-
-	    if (a) {
-	      function_base *func = proc_->findFuncByAddr(a);
-	      if (func) {
-	         sprintf(errorLine, "[%d] <0x%lx> %s\n", 
-		   i, a, func->prettyName().string_of());
-		 logLine(errorLine);
-	      }
-	    }
-	  }
-	}
-	unsigned rsize = returnInsts.size();
-	for (unsigned u=0; u<rsize; u++) {
-	  bool delay_install = false ;
-	  unsigned pc_s_size = pc_s.size();
-	  vector<u_int> max_index(pc_s_size) ;
-
-	  //walk staks of all threads (kernel or user-level)
-	  for (unsigned i=0; i<pc_s_size; i++) {
-	    vector<Address>& pc = pc_s[i];
-	    max_index[i] = 0 ;
-	    u_int index=0 ;
-	    bool installSafe = returnInsts[u]->checkReturnInstance(pc,index);
-	    if (!installSafe && index > max_index[i]) {
-	      max_index[i] = index;
-	      delay_install = true ;
-	    }
-	  }
-
-	  if (!delay_install) {
-	    //it is safe to install only when all threads are safe to install
-	    //returnInsts[u] -> installReturnInstance(proc_);
-	    sprintf(errorLine, "returnInsts[%u] -> installReturnInstance(proc_)\n", u);
-	    logLine(errorLine);
-	  } else {
-	    //put traps everywhere
-	    for (unsigned j=0; j<pc_s_size; j++) {
-	      //returnInsts[u]->addToReturnWaitingList(pc2, proc_);
-	      sprintf(errorLine, "returnInsts[%u]->addToReturnWaitingList(pc, proc_)\n", u);
-	      logLine(errorLine);
-	    }
-	  }
-	}
+	 // deleted
 #endif  // WALK_ALL_STACKS
-	///////////////////////
-
-	unsigned c_size = components.size();
-	for (unsigned u2=0; u2<c_size; u2++)
-	  components[u2]->checkAndInstallInstrumentation(pc);
-	// why no checking of the return value?
-
+	 
+	 unsigned c_size = components.size();
+	 for (unsigned u2=0; u2<c_size; u2++) {
+	    sampleMetFocusNode *primnode =
+	       dynamic_cast<sampleMetFocusNode*>(components[u2]);
+	    primnode->checkAndInstallInstrumentation(pc);
+	 // why no checking of the return value?
+	 }
+	 
       } // else of needToWalkStack();
 
       if (needToCont) {
 #ifdef DETATCH_ON_THE_FLY
-	proc_->detachAndContinue();
+	 proc_->detachAndContinue();
 #else
-	proc_->continueProc();
+	 proc_->continueProc();
 #endif
       }
-    }
-    else
+   }
+   else
       metric_cerr << " ### checkAndInstall: prim type, should call the other checkAndInstall! " << endl;
+   
+   return true;
+}  
 
-    return true;
-}
-
-bool metricDefinitionNode::checkAndInstallInstrumentation(vector<Address>& pc) {
+bool sampleMetFocusNode::checkAndInstallInstrumentation(vector<Address>& pc) {
     if (installed_) return(true);
 
     installed_ = true;
-
-    assert(mdn_type_ == PRIM_MDN);
 
     unsigned rsize = returnInsts.size();
     u_int max_index = 0;  // first frame where it is safe to install instr
@@ -2878,64 +2844,130 @@ bool metricDefinitionNode::checkAndInstallInstrumentation(vector<Address>& pc) {
 
 #if defined(MT_THREAD)
     for (unsigned u=0; u<components.size(); u++) {
-      assert(THR_LEV == components[u]->mdn_type_);
-      if (!components[u]->installed_)
-	components[u]->installed_ = true;
+      assert(THR_LEV == components[u]->getMdnType());
+      if (!components[u]->installed())
+	components[u]->setInstalled(true);
     }
 #endif
 
     return(true);
 }
 
+timeLength sampleMetFocusNode::cost() const {
+   timeLength ret = timeLength::Zero();
+  if (1 < aggregators.size())
+    return ret;
 
-timeLength metricDefinitionNode::cost() const
-{
-  timeLength ret = timeLength::Zero();
+  // if (originalCost_ > ret)  // > 0, already computed
+  // ret = originalCost_;
+  // else {
+  for (unsigned u2=0; u2<instRequests.size(); u2++)
+    ret += instRequests[u2].cost(proc_);
+  // originalCost_ = ret;
+  //}
+  return ret;
+}
+
+timeLength metricDefinitionNode::cost() const {
+   timeLength ret = timeLength::Zero();
 #if defined(MT_THREAD)
-  if (AGG_MDN == mdn_type_ || THR_LEV == mdn_type_) {
-    if (THR_LEV == mdn_type_ && 2 < aggregators.size())   // 1 of them for thr_lev's proc_prim
-      return ret;
+   if (AGG_MDN == mdn_type_ || THR_LEV == mdn_type_)
 #else
-  if (AGG_MDN == mdn_type_) {
+   if (AGG_MDN == mdn_type_)
 #endif
-    unsigned c_size = components.size();
-    for (unsigned u=0; u<c_size; u++) {
-      timeLength nc = components[u]->cost();
-      if (nc > ret) ret = nc;
-    }
-  }
-  else 
-    if (COMP_MDN == mdn_type_) {
+   {
+#if defined(MT_THREAD)
+      if (THR_LEV == mdn_type_ && 2 < aggregators.size())   // 1 of them for thr_lev's proc_prim
+	 return ret;
+#endif
+      unsigned c_size = components.size();
+      for (unsigned u=0; u<c_size; u++) {
+	 timeLength nc = components[u]->cost();
+	 if (nc > ret) ret = nc;
+      }
+   }
+   else if (COMP_MDN == mdn_type_) {
       if (1 < aggregators.size())
-	return ret;
-
+	 return ret;
+    
       unsigned c_size = components.size();
       for (unsigned u1=0; u1<c_size; u1++) {
-	ret += components[u1]->cost();
+	 ret += components[u1]->cost();
       }
-    }
-    else {
-      assert(PRIM_MDN == mdn_type_);
-      if (1 < aggregators.size())
-	return ret;
+   }
 
-      // if (originalCost_ > ret)  // > 0, already computed
-      // ret = originalCost_;
-      // else {
-      for (unsigned u2=0; u2<instRequests.size(); u2++)
-	ret += instRequests[u2].cost(proc_);
-      // originalCost_ = ret;
-      //}
-    }
+   return(ret);
+}
 
-  return(ret);
+int metricDefinitionNode::unhookParent(metricDefinitionNode *parent) {
+   unsigned aggr_size = aggregators.size();
+   assert(aggr_size == samples.size());
+   
+   int u1 = -1;
+   for (u1=0; u1<static_cast<int>(aggr_size); u1++) {
+      if (aggregators[u1] == parent) {
+	 aggregators.erase(u1);
+	 samples.erase(u1);
+	 break;
+      }
+   }// for u1
+   return u1;
 }
 
 #if !defined(MT_THREAD)
+void threadMetFocusNode::disable(vector<addrVecType> pointsToCheck) {
+  for (unsigned u=0; u<dataRequests.size(); u++) {
+    dataRequests[u]->getSampleId();
+    dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
+  }
+}
+
+void sampleMetFocusNode::disable() {
+  static pdDebug_ostream discerr(cerr, false);
+  if (numParents() == 0)
+    inserted_ = false;
+
+  assert(aggregators.size() == 0);
+  // start over with the points to check, since collecting this list
+  // for this PRIM_MDN's children thread nodes  
+  vector<addrVecType> pointsToCheck;
+  for (unsigned u1=0; u1<instRequests.size(); u1++) {
+    addrVecType pointsForThisRequest =
+      getAllTrampsAtPoint(instRequests[u1].getInstance());
+    pointsToCheck += pointsForThisRequest;
+    
+    instRequests[u1].disable(pointsForThisRequest); // calls deleteInst()
+  }
+  if (isKeyDef_sampleMetFocusBuf(flat_name_))
+    undefKey_sampleMetFocusBuf(flat_name_);
+
+  /* disable components of aggregate metrics */
+  for (int u=(int)components.size()-1; u>=0; u--) {
+    threadMetFocusNode *thrnode = 
+      dynamic_cast<threadMetFocusNode*>(components[u]);
+    
+    thrnode->unhookParent(this);
+
+    // disable component only if it is not being shared
+    if (thrnode->numParents() == 0) {
+      thrnode->disable(pointsToCheck);
+      
+      discerr << "  deleting " << typeStr(thrnode->getMdnType())
+	      << ", addr: " << (void*)thrnode << " [" << (void*)this << "]\n";
+      delete thrnode; // @@
+      discerr << "  done deleting " << ", addr: " << (void*)thrnode 
+	      << " [" << (void*)this << "]\n";
+    }
+    components.erase(u);
+  }
+}
+
 void metricDefinitionNode::disable()
 {
-  //cerr << "mdn::disable- " << this << "(" << typeStr(getMdnType()) << "), "
-  //   << ", mid: " << getMId() << "\n";
+  static pdDebug_ostream discerr(cerr, false);
+  discerr << "mdn::disable- " << this << "(" << typeStr(getMdnType()) << "), "
+	  << ", mid: " << getMId() << ", addr: [" << (void*)this
+	  << "], " << getFullName() << "\n";
 
   // check for internal metrics
   unsigned ai_size = internalMetric::allInternalMetrics.size();
@@ -2955,48 +2987,34 @@ void metricDefinitionNode::disable()
       return;
     }
   }
-  //cerr << "hasDeferredInstr: " << hasDeferredInstr() << ", inserted_: "
-  // << inserted_ << "\n";
 
-  if(!hasDeferredInstr())
-    if (!inserted_) {
-      //cerr << "returning since !inserted, (only for non-deferred instr)\n";
+  if(!hasDeferredInstr() && getMdnType()==AGG_MDN)
+    if (! instrInserted()) {
+      discerr << "returning since !inserted, (only for non-deferred instr) ["
+	      << (void*)this << "]\n";
       return;
     }
 
-  if (aggregators.size() == 0)
+  if (numParents() == 0)
     inserted_ = false;
 
-  unsigned u, u1;
-
-  if ((mdn_type_ == AGG_MDN) || (mdn_type_ == COMP_MDN)) {
+  if((mdn_type_ == AGG_MDN) || (mdn_type_ == COMP_MDN)) 
+  {
     /* disable components of aggregate metrics */
-    for (u=0; u<components.size(); u++) {
-      metricDefinitionNode *m = components[u];
-
-      unsigned aggr_size = m->aggregators.size();
-      assert(aggr_size == m->samples.size());
-
-      for (u1=0; u1 < aggr_size; u1++) {
-	if (m->aggregators[u1] == this) {
-	  m->aggregators[u1] = m->aggregators[aggr_size-1];
-	  m->aggregators.resize(aggr_size-1);
-	  m->samples[u1] = m->samples[aggr_size-1];
-	  m->samples.resize(aggr_size-1);
-
-	  break;
-	}
-      }// for u1
-      
-      if (aggr_size!=0) {
-	assert(m->aggregators.size() == aggr_size-1);
-      }
+    for (int u=(int)components.size()-1; u>=0; u--) {
+      metricDefinitionNode *comp = components[u];
+      comp->unhookParent(this);
 
       // disable component only if it is not being shared
-      if (aggr_size == 1) {
-	m->disable();
-	delete m; // @@
+      if(comp->numParents() == 0) {
+	comp->disable();
+	discerr << "  deleting " << typeStr(comp->getMdnType())
+		<< ", addr: " << (void*)comp << " [" << (void*)this << "]\n";
+	delete comp; // @@
+	discerr << "  done deleting " << ", addr: " << (void*)comp 
+		<< " [" << (void*)this << "]\n";
       }
+      components.erase(u);
     }
     // we DON'T UNDEF this aggregate mdn from allMIs here, it's UNDEFed 
     // and deleted in disableDataCollection (dynrpc.C) which calls this func
@@ -3005,7 +3023,6 @@ void metricDefinitionNode::disable()
     // should be here and should be ok (but check) to UNDEF here
     // because it only has name equivalence (hashed by name)
 
-    components.resize(0);
     if (COMP_MDN == mdn_type_) {
       if (isKeyDef_processMetFocusBuf(flat_name_)) {
 	// "proc_" is coded in flat_name_
@@ -3013,230 +3030,123 @@ void metricDefinitionNode::disable()
       }
     }
   }
-  else {
-    assert(mdn_type_ == PRIM_MDN);
-    assert(aggregators.size() == 0);
-    vector<addrVecType> pointsToCheck;
-
-    for (u1=0; u1<instRequests.size(); u1++) {
-      addrVecType pointsForThisRequest =
-	getAllTrampsAtPoint(instRequests[u1].getInstance());
-
-      pointsToCheck += pointsForThisRequest;
-
-      instRequests[u1].disable(pointsForThisRequest); // calls deleteInst()
-    }
-
-    for (u=0; u<dataRequests.size(); u++) {
-      unsigned drnId = dataRequests[u]->getSampleId();
-      dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
-      if(!hasDeferredInstr())  {
-	assert(drnIdToMdnMap.defines(drnId));
-      }
-      drnIdToMdnMap.undef(drnId);
-    }
-
-    if (PRIM_MDN == mdn_type_) {
-      if (isKeyDef_sampleMetFocusBuf(flat_name_))
-	undefKey_sampleMetFocusBuf(flat_name_);
-    }
-  }
 }
 
 #else
-// first call always for agg_lev mi's, the agg_lev mi will be deleted (in dynrpc.C)
-// also need to undef allmiprimitives.
+void threadMetFocusNode::disable(vector<addrVecType> pointsToCheck) {
+   bool disable = false ;
+   if (numParents()==0) {
+      disable = true ;
+      inserted_ = false;  // the only place to set "inserted_" to false
+   }
+   
+   // if disable == false (aggregators size == 1, for proc_prim), delete
+   // from agg_lev 
+   // if disable == true (aggregators size == 0), delete from proc_prim
+   
+   // first case, delete from agg_lev
+   
+   if (disable) {
+      for (unsigned u=0; u<dataRequests.size(); u++) {
+	 dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
+      }
+   }
+}
+
+void sampleMetFocusNode::disable() {
+  vector<addrVecType> pointsToCheck;
+    
+  for (unsigned u1=0; u1<instRequests.size(); u1++) {
+    addrVecType pointsForThisRequest =
+      getAllTrampsAtPoint(instRequests[u1].getInstance());
+    
+    pointsToCheck += pointsForThisRequest;
+    
+    instRequests[u1].disable(pointsForThisRequest); // calls deleteInst()
+  }
+  
+  for (unsigned u=0; u<components.size(); u++) {
+    threadMetFocusNode *thrnode = 
+       dynamic_cast<threadMetFocusNode*>(components[u]);
+    thrnode->unhookParent(this);
+
+    if (thrnode->numParents() == 0) {
+      thrnode->disable(pointsToCheck);
+    }
+  }//for u
+  
+  components.resize(0);
+  thr_names.resize(0);
+  if (isKeyDef_sampleMetFocusBuf(flat_name_)) { // THIS IS IMPORTANT
+    metric_cerr << " UNDEF " << flat_name_ << " in allMIPrimitives " << endl;
+    undefKey_sampleMetFocusBuf(flat_name_);
+  }
+}
+
+// first call always for agg_lev mi's, the agg_lev mi will be deleted (in
+// dynrpc.C) also need to undef allmiprimitives.
 void metricDefinitionNode::disable()
 {
-  // check for internal metrics
-  unsigned ai_size = internalMetric::allInternalMetrics.size();
-  for (unsigned t=0; t<ai_size; t++) {
-    internalMetric *theIMetric = internalMetric::allInternalMetrics[t];
-    if (theIMetric->disableByMetricDefinitionNode(this)) {
-      //logLine("disabled internal metric\n");
-      return;
-    }
-  }
-
-  // check for cost metrics
-  for (unsigned i=0; i<costMetric::allCostMetrics.size(); i++){
-    if (costMetric::allCostMetrics[i]->node == this) {
-      costMetric::allCostMetrics[i]->disable();
-      //logLine("disabled cost metric\n");
-      return;
-    }
-  }
-
-  if(!hasDeferredInstr())
-    if (!inserted_) {
-      //cerr << "returning since !inserted, (only for non-deferred instr)\n";
-      return;
-    }
-
-  bool disable = false ;
-  if (aggregators.size()==0) {
-    disable = true ;
-    inserted_ = false;  // the only place to set "inserted_" to false
-  }
-
-
-  if (mdn_type_ == AGG_MDN) {  // case 1: AGG_MDN
-    /* disable components of aggregate metrics */
-    for (unsigned u=0; u<components.size(); u++) {
-      metricDefinitionNode *m = components[u];
-
-      unsigned aggr_size = m->aggregators.size();
-      assert(aggr_size == m->samples.size());
-
-      for (unsigned u1=0; u1 < aggr_size; u1++) {
-	if (m->aggregators[u1] == this) {
-	  m->aggregators[u1] = m->aggregators[aggr_size-1];
-	  m->aggregators.resize(aggr_size-1);
-	  m->samples[u1] = m->samples[aggr_size-1];
-	  m->samples.resize(aggr_size-1);
-
-	  if (COMP_MDN == m->mdn_type_) {  // NEED TO UNDEF HERE
-	    m->rmCompFlatName(u1);
-	  }
-
-	  break;
-	}
-      }//for u1
-
-      if (aggr_size!=0) {
-	assert(m->aggregators.size() == aggr_size-1);
+   // check for internal metrics
+   unsigned ai_size = internalMetric::allInternalMetrics.size();
+   for (unsigned t=0; t<ai_size; t++) {
+      internalMetric *theIMetric = internalMetric::allInternalMetrics[t];
+      if (theIMetric->disableByMetricDefinitionNode(this)) {
+	 //logLine("disabled internal metric\n");
+	 return;
       }
-      // disable component only if it is not being shared
-      if (aggr_size == 1) {
-	m->disable();
+   }
+   
+   // check for cost metrics
+   for (unsigned i=0; i<costMetric::allCostMetrics.size(); i++){
+      if (costMetric::allCostMetrics[i]->node == this) {
+	 costMetric::allCostMetrics[i]->disable();
+	 //logLine("disabled cost metric\n");
+	 return;
       }
-
-      // the above has removed the AGG_MDN from m's aggregators list
-      // in the case that m is THR_LEV, we want to do the following
-      if ( THR_LEV == m->mdn_type_ && 
-	   // AGG_MDN == mdn_type_    && 
-	   2       == aggr_size )  // one for this agg_lev mi, one for its proc_prim
-	m->disable();
-    }//for u
-    components.resize(0);
-  }
-
-  else {
-    if (mdn_type_ == COMP_MDN) {  // case 2: COMP_MDN
-      assert(0 == instRequests.size());
-
+   }
+   
+   if(!hasDeferredInstr())
+      if (!inserted_) {  // should change to instrInserted() ?
+	 //cerr <<"returning since !inserted, (only for non-deferred instr)\n";
+	 return;
+      }
+   
+   if (mdn_type_ == AGG_MDN || mdn_type_ == THR_LEV) {  // case 1: AGG_MDN
+      /* disable components of aggregate metrics */
       for (unsigned u=0; u<components.size(); u++) {
-	metricDefinitionNode *m = components[u];
+	 metricDefinitionNode *m = components[u];
+	 int matchIndex = m->unhookParent(this);
+	 assert(matchIndex != -1);
+	 if (COMP_MDN == m->mdn_type_) {  // NEED TO UNDEF HERE
+	    m->rmCompFlatName(static_cast<unsigned>(matchIndex));
+	 }
+	 
+	 // disable component only if it is not being shared
+	 if (m->numParents() == 0) {
+	    m->disable();
+	 }
 
-	unsigned aggr_size = m->aggregators.size();
-	assert(aggr_size == m->samples.size());
-
-	assert(0 == m->comp_flat_names.size());  // m is proc_prim
-
-	for (unsigned u1=0; u1 < aggr_size; u1++) {
-	  if (m->aggregators[u1] == this) {
-	    m->aggregators[u1] = m->aggregators[aggr_size-1];
-	    m->aggregators.resize(aggr_size-1);
-	    m->samples[u1] = m->samples[aggr_size-1];
-	    m->samples.resize(aggr_size-1);
-
-	    break;
-	  }
-	}//for u1
-	if (aggr_size == 1) 
-	  m->disable();
+	 // the above has removed the AGG_MDN from m's aggregators list
+	 // in the case that m is THR_LEV, we want to do the following
+	 if (THR_LEV==m->mdn_type_ && m->numParents()==1)  
+	    // one for this agg_lev mi, one for its proc_prim
+	    m->disable();
       }//for u
       components.resize(0);
-    }
-
-    if (mdn_type_ == PRIM_MDN) {  // case 3: PRIM_MDN
-      vector<addrVecType> pointsToCheck;
-
-      for (unsigned u1=0; u1<instRequests.size(); u1++) {
-	addrVecType pointsForThisRequest =
-	  getAllTrampsAtPoint(instRequests[u1].getInstance());
-
-	pointsToCheck += pointsForThisRequest;
-
-	instRequests[u1].disable(pointsForThisRequest); // calls deleteInst()
-      }
-
+   }
+   else if (mdn_type_ == COMP_MDN) {  // case 2: COMP_MDN
       for (unsigned u=0; u<components.size(); u++) {
-	metricDefinitionNode *m = components[u];
+	 metricDefinitionNode *m = components[u];
 
-	unsigned aggr_size = m->aggregators.size();
-	assert(aggr_size == m->samples.size());
-
-	assert(0 == m->comp_flat_names.size());  // m is thr_lev
-
-	for (unsigned u1=0; u1 < aggr_size; u1++) {
-	  if (m->aggregators[u1] == this) {
-	    m->aggregators[u1] = m->aggregators[aggr_size-1];
-	    m->aggregators.resize(aggr_size-1);
-	    m->samples[u1] = m->samples[aggr_size-1];
-	    m->samples.resize(aggr_size-1);
-
-	    break;
-	  }
-	}// for u1
-	if (aggr_size == 1) 
-	  m->disable();
+	 m->unhookParent(this);
+	 
+	 assert(0 == m->comp_flat_names.size());  // m is proc_prim
+	 if (m->numParents() == 0) 
+	    m->disable();
       }//for u
-
       components.resize(0);
-      thr_names.resize(0);
-      if (isKeyDef_sampleMetFocusBuf(flat_name_)) { // THIS IS IMPORTANT
-	metric_cerr << " UNDEF " << flat_name_ << " in allMIPrimitives " << endl;
-	undefKey_sampleMetFocusBuf(flat_name_);
-      }
-    }
-
-    if (mdn_type_ == THR_LEV) {  // case 4: THR_LEV
-      // if disable == false (aggregators size == 1, for proc_prim), delete from agg_lev
-      // if disable == true (aggregators size == 0), delete from proc_prim
-
-      // first case, delete from agg_lev
-      if (components.size() == 1 && components[0] != NULL) {
-	metricDefinitionNode *m = components[0];
-
-	unsigned aggr_size = m->aggregators.size();
-	assert(aggr_size == m->samples.size());
-
-	for (unsigned u1=0; u1 < aggr_size; u1++) {
-	  if (m->aggregators[u1] == this) {
-	    m->aggregators[u1] = m->aggregators[aggr_size-1];
-	    m->aggregators.resize(aggr_size-1);
-	    m->samples[u1] = m->samples[aggr_size-1];
-	    m->samples.resize(aggr_size-1);
-
-	    if (COMP_MDN == m->mdn_type_) {  // NEED TO UNDEF HERE
-	      m->rmCompFlatName(u1);
-	    }
-
-	    break;
-	  }
-	}// for u1
-
-	components.resize(0);  // newly added, this thr_lev will be deleted from proc_prim later
-
-	// disable component only if it is not being shared
-	if (aggr_size == 1)
-	  m->disable();
-      }
-
-      if (disable) {
-	// assert(components.size() == 0);
-	vector<addrVecType> pointsToCheck;
-
-	for (unsigned u=0; u<dataRequests.size(); u++) {
-	  unsigned drnId = dataRequests[u]->getSampleId();
-	  dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
-	  if(!hasDeferredInstr())  assert(drnIdToMdnMap.defines(drnId));
-	  drnIdToMdnMap.undef(drnId);
-	}
-      }
-    }
-  }
+   }
 }
 #endif
 
@@ -3272,7 +3182,6 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
 	comp->removeComponent(comp->components[u]);
       }
       (comp->components).resize(0);
-
       delete comp;
       return;
     }
@@ -3313,7 +3222,6 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
       if (PRIM_MDN == comp->mdn_type_)
 	if (isKeyDef_sampleMetFocusBuf(comp->flat_name_))
 	  undefKey_sampleMetFocusBuf(comp->flat_name_);
-
       delete comp;
       return;
     }
@@ -3370,7 +3278,6 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
         comp->removeComponent(comp->components[u]);
       }
       (comp->components).resize(0);
-
       delete comp;
       return;
     }
@@ -3410,66 +3317,24 @@ void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
       if (PRIM_MDN == comp->mdn_type_)
 	if (isKeyDef_sampleMetFocusBuf(comp->flat_name_))
 	  undefKey_sampleMetFocusBuf(comp->flat_name_);
-
       delete comp;
       return;
     }
 #endif
 }
 
-
-metricDefinitionNode::~metricDefinitionNode()  // call removeComponent before delete
-{
-  //cerr << "~mdn - " << this << ", type: " << typeStr(this->getMdnType())
-  //   << ", numAggr: " << aggregators.size() << ", numComp: "
-  //   << ", numComp: " << components.size() << "\n";
-
-#if defined(MT_THREAD)
-  
-  // sprintf(errorLine, "delete 0x%x:%s: mid=%d, mdn_type_=%d", this, flat_name_.string_of(), id_, mdn_type_);
-  // metric_cerr << errorLine << endl;
-    
-  // aggregators and components should have already been removed --- TO REMOVE
-  assert(0 == aggregators.size());
-  assert(0 == components.size());
-
-  // call "removeComponent" for all components before calling destructor
-
-  // TO UNDEF from allMIPrimitives -- taken care of in removeComponent?
-  // if (allMIComponents.defines(flat_name_) && this==allMIComponents[flat_name_])
-  // allMIComponents.undef(flat_name_);
+threadMetFocusNode::~threadMetFocusNode() {
   for (unsigned u2=0; u2<dataRequests.size(); u2++) {
     delete dataRequests[u2];
   }
   dataRequests.resize(0);
+}
 
-#else
-  
-  /* delete components of aggregate metrics */
-  /*
-  unsigned c_size = components.size();
-  for (unsigned u=0; u<c_size; u++)
-    if (components[u] != NULL) {
-      if (mdn_type_ == AGG_MDN) {
-	removeComponent(components[u]);
-      }
-      else if (mdn_type_ == COMP_MDN) {
-	removePrimitive(components[u]);
-      }
-    }
-  components.resize(0);
-  */
-
+// call removeComponent before delete
+metricDefinitionNode::~metricDefinitionNode()  
+{
   assert(0 == aggregators.size());
   assert(0 == components.size());
-
-  // should all be taken care of in removeComponent (or disable)
-  // (removeComponent is going to call removePrimitive) (modified above)
-  for (unsigned u2=0; u2<dataRequests.size(); u2++) 
-    delete dataRequests[u2];
-  dataRequests.resize(0);
-#endif
-  
 }
 
 processMetFocusNode::~processMetFocusNode() {
@@ -3486,44 +3351,21 @@ processMetFocusNode::~processMetFocusNode() {
 #endif
 }
 
-#if defined(MT_THREAD)
-void metricDefinitionNode::cleanup_drn()
-{
-  unsigned u;
-  // we assume that it is safe to delete a dataReqNode at this point, 
-  // otherwise, we would need to do something similar as in the disable
-  // method for metricDefinitionNode - naim
-  if (mdn_type_ == PRIM_MDN) {
-    for (u=0; u<components.size(); u++) {
-      components[u]->cleanup_drn();
-    }
-  }
-  else if (mdn_type_ == THR_LEV) {
+void sampleMetFocusNode::cleanup_drn() {
+   for (unsigned u=0; u<components.size(); u++) {
+      threadMetFocusNode *thrNode = 
+	 dynamic_cast<threadMetFocusNode*>(components[u]);
+      thrNode->cleanup_drn();
+   }
+}
+
+void threadMetFocusNode::cleanup_drn() {
     vector<addrVecType> pointsToCheck;
-    for (u=0; u<dataRequests.size(); u++) {
+    for (unsigned u=0; u<dataRequests.size(); u++) {
       metric_cerr << " clean " << u << "th data request " << endl;
       dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
-    }
-  }
-  else {
-    assert(0);
-  }
+    }   
 }
-#else
-void metricDefinitionNode::cleanup_drn()
-{
-  assert(mdn_type_ == PRIM_MDN);
-
-  // we assume that it is safe to delete a dataReqNode at this point, 
-  // otherwise, we would need to do something similar as in the disable
-  // method for metricDefinitionNode - naim
-  vector<addrVecType> pointsToCheck;
-  for (unsigned u=0; u<dataRequests.size(); u++) {
-    dataRequests[u]->disable(proc_, pointsToCheck); // deinstrument
-  }
-}
-#endif
-
 
 // NOTE: This stuff (flush_batch_buffer() and batchSampleData()) belongs
 //       in perfStream.C; this is an inappropriate file.
@@ -3734,8 +3576,8 @@ void metricDefinitionNode::forwardSimpleValue(timeStamp start, timeStamp end,
   batchSampleData(met_, id_, start, end, value);
 }
 
-bool metricDefinitionNode::isReadyForUpdates() {
-  if(! inserted()) {
+bool threadMetFocusNode::isReadyForUpdates() {
+  if(! instrInserted()) {
     sampleVal_cerr << "mi " << this << " hasn't been inserted\n";
     return false;
   }
@@ -3753,10 +3595,10 @@ bool metricDefinitionNode::isReadyForUpdates() {
 }
 
 // takes an actual value as input, as opposed to a change in sample value
-void metricDefinitionNode::updateValue(timeStamp sampleTime, pdSample value)
+void threadMetFocusNode::updateValue(timeStamp sampleTime, pdSample value)
 {
   assert(value >= pdSample::Zero());
-
+ 
   sampleVal_cerr << "updateValue() - mdn: " << this << ", " 
 		 << getFullName() << "value: " << value << ", cumVal: " 
 		 << cumulativeValue << "\n";
@@ -3840,11 +3682,11 @@ void metricDefinitionNode::updateWithDeltaValue(timeStamp startTime,
 						timeStamp sampleTime, 
 						pdSample value) {
   sampleVal_cerr << "updateWithDeltaValue() - mdn: " << this << ", " 
-		 << getFullName() //<< ", type: " <<  mdn_type_ 
+		 << getFullName() //<< ", type: " << typeStr(getMdnType())
 		 << "start: " << startTime << ", sampleTime: " << sampleTime
 		 << ", value:" 
 		 << value << ", cumVal: " << cumulativeValue << "\n";
-
+  
   if(isTopLevelMDN()) {
     assert(startTime.isInitialized());
     sampleVal_cerr << "Batching st: " << startTime << ", end: " << sampleTime 
@@ -3854,6 +3696,10 @@ void metricDefinitionNode::updateWithDeltaValue(timeStamp startTime,
   }
 
   unsigned numAggregators = aggregators.size();
+  if(numAggregators != samples.size()) {
+    cerr << "type: " << typeStr(getMdnType()) << ", numAgg: " << numAggregators
+	 << ", numSamples: " << samples.size() << "\n";
+  }
   assert(numAggregators == samples.size());
   //cerr << "  numAggregators: " << numAggregators << "\n";
   for (unsigned u = 0; u < numAggregators; u++) {
@@ -4132,22 +3978,19 @@ int sampledShmIntCounterReqNode::getThreadId() const {
 #endif
 
 #if defined(MT_THREAD)
-sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(pdThread *thr,
-							 rawTime64 iValue, 
-							 int iCounterId, 
-							 metricDefinitionNode *iMi,
-							 bool computingCost,
-							 bool doNotSample,
-							 unsigned p_allocatedIndex,
-							 unsigned p_allocatedLevel) :
+sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(
+                                pdThread *thr, rawTime64 iValue, 
+				int iCounterId, threadMetFocusNode *thrmf,
+				bool computingCost, bool doNotSample,
+				unsigned p_allocatedIndex,
+				unsigned p_allocatedLevel)
 #else
-sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(rawTime64 iValue, 
-                                                    int iCounterId, 
-                                                    metricDefinitionNode *iMi,
-                                                    bool computingCost,
-                                                    bool doNotSample) :
+sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(
+				rawTime64 iValue, int iCounterId, 
+				threadMetFocusNode *thrmf, bool computingCost,
+				bool doNotSample)
 #endif
-                                                         dataReqNode() {
+{
    theSampleId = iCounterId;
    initialValue = iValue;
 #if defined(MT_THREAD)
@@ -4168,9 +4011,9 @@ sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(rawTime64 iValue,
    if (!computingCost) {
      bool isOk=false;
 #if defined(MT_THREAD)
-     isOk = insertInstrumentation(thr, iMi->proc(), iMi, doNotSample);
+     isOk = insertShmVar(thr, thrmf->proc(), thrmf, doNotSample);
 #else
-     isOk = insertInstrumentation(iMi->proc(), iMi, doNotSample);
+     isOk = insertShmVar(thrmf->proc(), thrmf, doNotSample);
 #endif
      assert(isOk); 
    }
@@ -4178,8 +4021,9 @@ sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(rawTime64 iValue,
 
 sampledShmIntCounterReqNode::
 sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &src,
-			    process *childProc, metricDefinitionNode *mi,
-			    int iCounterId, const process *parentProc) {
+			    process *childProc, threadMetFocusNode *thrmf,
+			    int iCounterId, const process *parentProc)
+{
    // a dup() routine (call after a fork())
    // Assumes that "childProc" has been copied already (e.g., the shm seg was copied).
 
@@ -4212,41 +4056,40 @@ sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &src,
    }
 
    // write HK for this intCounter:
-   // Note: we don't assert anything about mi->getMId(), because that id has no
-   // relation to the ids we work with (theSampleId).  In fact, we (the sampling code)
-   // just don't ever care what mi->getMId() is.
+   // Note: we don't assert anything about thrmf->getMId(), because that id
+   // has no relation to the ids we work with (theSampleId).  In fact, we
+   // (the sampling code) just don't ever care what thrmf->getMId() is.
    assert(theSampleId >= 0);
-   assert(drnIdToMdnMap.defines(theSampleId));
-   assert(drnIdToMdnMap[theSampleId] == mi);
-   intCounterHK iHKValue(theSampleId, mi);
+   intCounterHK iHKValue(theSampleId, thrmf);
 
       // the mi differs from the mi of the parent; theSampleId differs too.
-   theTable.initializeHKAfterForkIntCounter(allocatedIndex, allocatedLevel, iHKValue);
-
+   theTable.initializeHKAfterForkIntCounter(allocatedIndex, allocatedLevel, 
+					    iHKValue);
    position_=0;
 }
 
 dataReqNode *
-sampledShmIntCounterReqNode::dup(process *childProc,
-				 metricDefinitionNode *mi,
-				 int iCounterId,
-				 const dictionary_hash<instInstance*,instInstance*> &
-				 ) const {
+sampledShmIntCounterReqNode::dup(process *childProc, threadMetFocusNode *thrmf,
+			         int iCounterId,
+	                  const dictionary_hash<instInstance*,instInstance*> &)
+  const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
    sampledShmIntCounterReqNode *tmp;
-   tmp = new sampledShmIntCounterReqNode(*this, childProc, mi, iCounterId, childProc->getParent());
+   tmp = new sampledShmIntCounterReqNode(*this, childProc, thrmf, iCounterId,
+					 childProc->getParent());
       // fork ctor
 
    return tmp;
 }
 
 #if defined(MT_THREAD)
-bool sampledShmIntCounterReqNode::insertInstrumentation(pdThread *thr, process *theProc,
+bool sampledShmIntCounterReqNode::insertShmVar(pdThread *thr, process *theProc,
 #else
-bool sampledShmIntCounterReqNode::insertInstrumentation(process *theProc,
+bool sampledShmIntCounterReqNode::insertShmVar(process *theProc,
 #endif
-							metricDefinitionNode *iMi, bool doNotSample) {
+				  threadMetFocusNode *thrmf, bool doNotSample)
+{
    // Remember counterPtr is NULL until this routine gets called.
    // WARNING: there will be an assert failure if the applic hasn't yet attached to the
    //          shm segment!!!
@@ -4256,7 +4099,7 @@ bool sampledShmIntCounterReqNode::insertInstrumentation(process *theProc,
    iValue.id.id = this->theSampleId;
    iValue.value = this->initialValue;
 
-   intCounterHK iHKValue(this->theSampleId, iMi);
+   intCounterHK iHKValue(this->theSampleId, thrmf);
 
    superTable &theTable = theProc->getTable();
 #if defined(MT_THREAD)
@@ -4272,147 +4115,48 @@ bool sampledShmIntCounterReqNode::insertInstrumentation(process *theProc,
    if (!theTable.allocIntCounter(iValue, iHKValue, this->allocatedIndex, this->allocatedLevel, doNotSample))
      return false;  // failure
 #endif
-
    return true; // success
 }
 
 void sampledShmIntCounterReqNode::disable(process *theProc,
-					  const vector<addrVecType> &pointsToCheck) {
-   // We used to remove the sample id from drnIdToMdnMap here but now the caller is
-   // responsible for that.
+				    const vector<addrVecType> &pointsToCheck) {
+  superTable &theTable = theProc->getTable();
 
-   superTable &theTable = theProc->getTable();
-
-   // Remove from inferior heap; make sure we won't be sampled any more:
-   vector<Address> trampsMaybeUsing;
-   for (unsigned pointlcv=0; pointlcv < pointsToCheck.size(); pointlcv++)
-      for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); tramplcv++)
-	 trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
+  // Remove from inferior heap; make sure we won't be sampled any more:
+  vector<Address> trampsMaybeUsing;
+  for (unsigned pointlcv=0; pointlcv < pointsToCheck.size(); pointlcv++)
+    for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); 
+	 tramplcv++) {
+      trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
+    }
 
 #if defined(MT_THREAD)
-   theTable.makePendingFree(thr_,0,allocatedIndex,allocatedLevel,trampsMaybeUsing);
-   if (theProc->numOfActCounters_is>0) theProc->numOfActCounters_is--;
+  theTable.makePendingFree(thr_, 0, allocatedIndex, allocatedLevel,
+			   trampsMaybeUsing);
+  if (theProc->numOfActCounters_is>0) theProc->numOfActCounters_is--;
 #else
-   theTable.makePendingFree(0,allocatedIndex,allocatedLevel,trampsMaybeUsing);
+  theTable.makePendingFree(0,allocatedIndex,allocatedLevel,trampsMaybeUsing);
 #endif
 }
 
 /* ************************************************************************* */
 
-nonSampledIntCounterReqNode::nonSampledIntCounterReqNode(rawTime64 iValue, 
-                                                    int iCounterId,
-                                                    metricDefinitionNode *iMi, 
-                                                    bool computingCost) :
-                                                    dataReqNode() {
-   theSampleId = iCounterId;
-   initialValue = iValue;
-
-   // The following fields are NULL until insertInstrumentation()
-   counterPtr = NULL;
-
-   if (!computingCost) {
-     bool isOk=false;
 #if defined(MT_THREAD)
-     isOk = insertInstrumentation(NULL, iMi->proc(), iMi);
+sampledShmWallTimerReqNode::sampledShmWallTimerReqNode(
+                                pdThread *thr, int iCounterId,
+				threadMetFocusNode *thrmf, bool computingCost,
+				unsigned p_allocatedIndex,
+				unsigned p_allocatedLevel)
+{
 #else
-     isOk = insertInstrumentation(iMi->proc(), iMi);
-#endif
-     assert(isOk && counterPtr!=NULL); 
-   }
-}
-
-nonSampledIntCounterReqNode::
-nonSampledIntCounterReqNode(const nonSampledIntCounterReqNode &src,
-			    process *childProc, metricDefinitionNode *,
-			    int iCounterId) {
-   // a dup() routine (call after a fork())
-   counterPtr = src.counterPtr; // assumes addr spaces have been dup()d.
-   initialValue = src.initialValue;
-   theSampleId = iCounterId;
- 
-   intCounter temp;
-   temp.id.id = this->theSampleId;
-   temp.value = this->initialValue;
-   writeToInferiorHeap(childProc, temp);
-}
-
-dataReqNode *
-nonSampledIntCounterReqNode::dup(process *childProc,
-				 metricDefinitionNode *mi,
-				 int iCounterId,
-				 const dictionary_hash<instInstance*,instInstance*> &
-				 ) const {
-   // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
-
-   nonSampledIntCounterReqNode *tmp;
-   tmp = new nonSampledIntCounterReqNode(*this, childProc, mi, iCounterId);
-      // fork ctor
-
-   return tmp;
-}
-
-#if defined(MT_THREAD)
-bool nonSampledIntCounterReqNode::insertInstrumentation(pdThread *, process *theProc,
-#else
-bool nonSampledIntCounterReqNode::insertInstrumentation(process *theProc,
-#endif
-							metricDefinitionNode *,
-							bool) {
-   // Remember counterPtr is NULL until this routine gets called.
-   counterPtr = (intCounter*)inferiorMalloc(theProc, sizeof(intCounter), dataHeap);
-   if (counterPtr == NULL)
-      return false; // failure!
-
-   // initialize the intCounter in the inferior heap
-   intCounter temp;
-#ifdef PURE_BUILD
-   // explicitly initialize "theUsage" struct (to pacify Purify)
-   memset(&temp, '\0', sizeof(intCounter));
-#endif
-   temp.id.id = this->theSampleId;
-   temp.value = this->initialValue;
-
-   writeToInferiorHeap(theProc, temp);
-
-   return true; // success
-}
-
-void nonSampledIntCounterReqNode::disable(process *theProc,
-					  const vector<addrVecType> &pointsToCheck) {
-   // We used to remove the sample id from drnIdToMdnMap here but now the caller is
-   // responsible for that.
-
-   // Deallocate space for intCounter in the inferior heap:
-   assert(counterPtr != NULL);
-   inferiorFree(theProc, (Address)counterPtr, pointsToCheck);
-}
-
-void nonSampledIntCounterReqNode::writeToInferiorHeap(process *theProc,
-						      const intCounter &dataSrc) const {
-   // using the contents of "dataSrc", write to the inferior heap at loc
-   // "counterPtr" via proc->writeDataSpace()
-   assert(counterPtr);
-   theProc->writeDataSpace(counterPtr, sizeof(intCounter), &dataSrc);
-}
-
-/* ****************************************************************** */
-
-#if defined(MT_THREAD)
-sampledShmWallTimerReqNode::sampledShmWallTimerReqNode(pdThread *thr,
-						       int iCounterId,
-						       metricDefinitionNode *iMi,
-						       bool computingCost,
-						       unsigned p_allocatedIndex,
-						       unsigned p_allocatedLevel) : dataReqNode() {
-#else
-sampledShmWallTimerReqNode::sampledShmWallTimerReqNode(int iCounterId,
-                                                    metricDefinitionNode *iMi,
-                                                    bool computingCost) :
-                                                     dataReqNode() {
+sampledShmWallTimerReqNode::sampledShmWallTimerReqNode(
+                                int iCounterId, threadMetFocusNode *thrmf,
+				bool computingCost)
+{
 #endif
    theSampleId = iCounterId;
 
-   // The following fields are NULL until insertInstrumentation():
+   // The following fields are NULL until insertShmVar():
 #if defined(MT_THREAD)
    thr_ = thr;
    allocatedIndex = p_allocatedIndex;
@@ -4425,11 +4169,11 @@ sampledShmWallTimerReqNode::sampledShmWallTimerReqNode(int iCounterId,
    position_=0;
 
    if (!computingCost) {
-     bool isOk=false;
+     bool isOk = false;
 #if defined(MT_THREAD)
-     isOk = insertInstrumentation(thr, iMi->proc(), iMi);
+     isOk = insertShmVar(thr, thrmf->proc(), thrmf);
 #else
-     isOk = insertInstrumentation(iMi->proc(), iMi);
+     isOk = insertShmVar(thrmf->proc(), thrmf);
 #endif
      assert(isOk); 
    }
@@ -4438,18 +4182,20 @@ sampledShmWallTimerReqNode::sampledShmWallTimerReqNode(int iCounterId,
 sampledShmWallTimerReqNode::
 sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src,
 			   process *childProc,
-			   metricDefinitionNode *mi,
-			   int iCounterId, const process *parentProc) {
+			   threadMetFocusNode *thrmf,
+			   int iCounterId, const process *parentProc)
+{
    // a dup()-like routine; call after a fork().
    // Assumes that the "childProc" has been duplicated already
 
-   // Note that the index w/in the inferior heap remains the same, so setting the new
-   // inferiorTimerPtr isn't too hard.  Actually, it's trivial, since other code
-   // ensures that the new shm segment is placed in exactly the same virtual mem loc
-   // as the previous one.
+   // Note that the index w/in the inferior heap remains the same, so setting
+   // the new inferiorTimerPtr isn't too hard.  Actually, it's trivial, since
+   // other code ensures that the new shm segment is placed in exactly the
+   // same virtual mem loc as the previous one.
    //
-   // Note that the fastInferiorHeap class's fork ctor will have already copied the
-   // actual data; we need to fill in new meta-data (new houseKeeping entries).
+   // Note that the fastInferiorHeap class's fork ctor will have already
+   // copied the actual data; we need to fill in new meta-data (new
+   // houseKeeping entries).
 
    allocatedIndex = src.allocatedIndex;
    allocatedLevel = src.allocatedLevel;
@@ -4490,41 +4236,42 @@ sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src,
         localTimerPtr->start = getRawWallTime();
    }
 
-   // write new HK for this tTimer:
-   // Note: we don't assert anything about mi->getMId(), because that id has no
-   // relation to the ids we work with (theSampleId).  In fact, we (the sampling code)
-   // just don't ever care what mi->getMId() is.
+   // write new HK for this tTimer: 
+   // Note: we don't assert anything about thrmf->getMId(), because that id
+   // has no relation to the ids we work with (theSampleId).  In fact, we
+   // (the sampling code) just don't ever care what thrmf->getMId() is.
    assert(theSampleId >= 0);
-   assert(drnIdToMdnMap.defines(theSampleId));
-   assert(drnIdToMdnMap[theSampleId] == mi);
-   wallTimerHK iHKValue(theSampleId, mi, timeLength::Zero()); 
+   wallTimerHK iHKValue(theSampleId, thrmf, timeLength::Zero()); 
       // the mi should differ from the mi of the parent; theSampleId differs too.
-   theTable.initializeHKAfterForkWallTimer(allocatedIndex, allocatedLevel, iHKValue);
+   theTable.initializeHKAfterForkWallTimer(allocatedIndex, allocatedLevel, 
+					   iHKValue);
 
    position_=0;
 }
 
 dataReqNode *
 sampledShmWallTimerReqNode::dup(process *childProc,
-				metricDefinitionNode *mi,
+				threadMetFocusNode *thrmf,
 				int iCounterId,
 				const dictionary_hash<instInstance*,instInstance*> &
 				) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
    sampledShmWallTimerReqNode *tmp;
-   tmp = new sampledShmWallTimerReqNode(*this, childProc, mi, iCounterId, childProc->getParent());
+   tmp = new sampledShmWallTimerReqNode(*this, childProc, thrmf, iCounterId,
+					childProc->getParent());
       // fork constructor
 
    return tmp;
 }
 
 #if defined(MT_THREAD)
-bool sampledShmWallTimerReqNode::insertInstrumentation(pdThread *thr, process *theProc,
+bool sampledShmWallTimerReqNode::insertShmVar(pdThread *thr, process *theProc,
 #else
-bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
+bool sampledShmWallTimerReqNode::insertShmVar(process *theProc,
 #endif
-						       metricDefinitionNode *iMi, bool) {
+					       threadMetFocusNode *thrmf, bool)
+{
    // Remember inferiorTimerPtr is NULL until this routine gets called.
    // WARNING: there will be an assert failure if the applic hasn't yet attached to the
    //          shm segment!!!
@@ -4534,7 +4281,7 @@ bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
    P_memset(&iValue, '\0', sizeof(tTimer));
    iValue.id.id = this->theSampleId;
 
-   wallTimerHK iHKValue(this->theSampleId, iMi, timeLength::Zero());
+   wallTimerHK iHKValue(this->theSampleId, thrmf, timeLength::Zero());
 
    superTable &theTable = theProc->getTable();
 
@@ -4546,9 +4293,11 @@ bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
 #endif
 
 #if defined(MT_THREAD)
-   if (!theTable.allocWallTimer(thr_pos, iValue, iHKValue, this->allocatedIndex, this->allocatedLevel))
+   if (!theTable.allocWallTimer(thr_pos, iValue, iHKValue, 
+				this->allocatedIndex, this->allocatedLevel))
 #else
-   if (!theTable.allocWallTimer(iValue, iHKValue, this->allocatedIndex, this->allocatedLevel))
+   if (!theTable.allocWallTimer(iValue, iHKValue, this->allocatedIndex, 
+				this->allocatedLevel))
 #endif
       return false; // failure
 
@@ -4556,23 +4305,23 @@ bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
 }
 
 void sampledShmWallTimerReqNode::disable(process *theProc,
-					 const vector<addrVecType> &pointsToCheck) {
-   // We used to remove the sample id from drnIdToMdnMap here but now the caller is
-   // responsible for that.
-
-   superTable &theTable = theProc->getTable();
-
-   // Remove from inferior heap; make sure we won't be sampled any more:
-   vector<Address> trampsMaybeUsing;
-   for (unsigned pointlcv=0; pointlcv < pointsToCheck.size(); pointlcv++)
-      for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); tramplcv++)
-         trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
+				    const vector<addrVecType> &pointsToCheck) {
+  superTable &theTable = theProc->getTable();
+  
+  // Remove from inferior heap; make sure we won't be sampled any more:
+  vector<Address> trampsMaybeUsing;
+  for (unsigned pointlcv=0; pointlcv < pointsToCheck.size(); pointlcv++)
+    for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); 
+	 tramplcv++) {
+      trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
+    }
 
 #if defined(MT_THREAD)
-   theTable.makePendingFree(thr_,1,allocatedIndex,allocatedLevel,trampsMaybeUsing);
-   if (theProc->numOfActWallTimers_is>0) theProc->numOfActWallTimers_is--;
+  theTable.makePendingFree(thr_, 1, allocatedIndex, allocatedLevel,
+			   trampsMaybeUsing);
+  if (theProc->numOfActWallTimers_is>0) theProc->numOfActWallTimers_is--;
 #else
-   theTable.makePendingFree(1,allocatedIndex,allocatedLevel,trampsMaybeUsing);
+  theTable.makePendingFree(1,allocatedIndex,allocatedLevel,trampsMaybeUsing);
 #endif
 }
 
@@ -4586,17 +4335,15 @@ int sampledShmProcTimerReqNode::getThreadId() const {
 #endif
 
 #if defined(MT_THREAD)
-sampledShmProcTimerReqNode::sampledShmProcTimerReqNode(pdThread *thr,
-						       int iCounterId,
-						       metricDefinitionNode *iMi,
-						       bool computingCost,
-						       unsigned p_allocatedIndex,
-						       unsigned p_allocatedLevel) : dataReqNode() {
+sampledShmProcTimerReqNode::sampledShmProcTimerReqNode(
+                              pdThread *thr, int iCounterId,
+			      threadMetFocusNode *thrmf, bool computingCost,
+			      unsigned p_allocatedIndex,
+			      unsigned p_allocatedLevel) {
 #else
-sampledShmProcTimerReqNode::sampledShmProcTimerReqNode(int iCounterId,
-                                                    metricDefinitionNode *iMi,
-                                                    bool computingCost) :
-                                                     dataReqNode() {
+sampledShmProcTimerReqNode::sampledShmProcTimerReqNode(
+			      int iCounterId, threadMetFocusNode *thrmf,
+			      bool computingCost) {
 #endif
    theSampleId = iCounterId;
 
@@ -4615,9 +4362,9 @@ sampledShmProcTimerReqNode::sampledShmProcTimerReqNode(int iCounterId,
    if (!computingCost) {
      bool isOk=false;
 #if defined(MT_THREAD)
-     isOk = insertInstrumentation(thr, iMi->proc(), iMi);
+     isOk = insertShmVar(thr, thrmf->proc(), thrmf);
 #else
-     isOk = insertInstrumentation(iMi->proc(), iMi);
+     isOk = insertShmVar(thrmf->proc(), thrmf);
 #endif
      assert(isOk); 
    }
@@ -4626,18 +4373,20 @@ sampledShmProcTimerReqNode::sampledShmProcTimerReqNode(int iCounterId,
 sampledShmProcTimerReqNode::
 sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src,
 			   process *childProc,
-			   metricDefinitionNode *mi,
-			   int iCounterId, const process *parentProc) {
+			   threadMetFocusNode *thrmf,
+			   int iCounterId, const process *parentProc)
+{
    // a dup()-like routine; call after a fork()
    // Assumes that the "childProc" has been duplicated already
 
-   // Note that the index w/in the inferior heap remains the same, so setting the new
-   // inferiorTimerPtr isn't too hard.  Actually, it's trivial, since other code
-   // ensures that the new shm segment is placed in exactly the same virtual mem loc
-   // as the previous one.
+   // Note that the index w/in the inferior heap remains the same, so setting
+   // the new inferiorTimerPtr isn't too hard.  Actually, it's trivial, since
+   // other code ensures that the new shm segment is placed in exactly the
+   // same virtual mem loc as the previous one.
    //
-   // Note that the fastInferiorHeap class's fork ctor will have already copied the
-   // actual data; we need to fill in new meta-data (new houseKeeping entries).
+   // Note that the fastInferiorHeap class's fork ctor will have already
+   // copied the actual data; we need to fill in new meta-data (new
+   // houseKeeping entries).
 
    allocatedIndex = src.allocatedIndex;
    allocatedLevel = src.allocatedLevel;
@@ -4683,40 +4432,41 @@ sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src,
    }
 
    // Write new HK for this tTimer:
-   // Note: we don't assert anything about mi->getMId(), because that id has no
-   // relation to the ids we work with (theSampleId).  In fact, we (the sampling code)
-   // just don't ever care what mi->getMId() is.
+
+   // Note: we don't assert anything about thrmf->getMId(), because that id
+   // has no relation to the ids we work with (theSampleId).  In fact, we
+   // (the sampling code) just don't ever care what thrmf->getMId() is.
    assert(theSampleId >= 0);
-   assert(drnIdToMdnMap.defines(theSampleId));
-   assert(drnIdToMdnMap[theSampleId] == mi);
-   processTimerHK iHKValue(theSampleId, mi, timeLength::Zero());
+   processTimerHK iHKValue(theSampleId, thrmf, timeLength::Zero());
       // the mi differs from the mi of the parent; theSampleId differs too.
-   theTable.initializeHKAfterForkProcTimer(allocatedIndex, allocatedLevel, iHKValue);
+   theTable.initializeHKAfterForkProcTimer(allocatedIndex, allocatedLevel, 
+					   iHKValue);
 
    position_=0;
 }
 
-dataReqNode *
-sampledShmProcTimerReqNode::dup(process *childProc,
-				metricDefinitionNode *mi,
-				int iCounterId,
-				const dictionary_hash<instInstance*,instInstance*> &
-				) const {
+dataReqNode *sampledShmProcTimerReqNode::dup(
+                 process *childProc, threadMetFocusNode *thrmf, int iCounterId,
+		 const dictionary_hash<instInstance*,instInstance*> &) const
+{
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
    sampledShmProcTimerReqNode *tmp;
-   tmp = new sampledShmProcTimerReqNode(*this, childProc, mi, iCounterId, childProc->getParent());
+   tmp = new sampledShmProcTimerReqNode(*this, childProc, thrmf, iCounterId, 
+					childProc->getParent());
       // fork constructor
 
    return tmp;
 }
 
 #if defined(MT_THREAD)
-bool sampledShmProcTimerReqNode::insertInstrumentation(pdThread *thr, process *theProc,
+bool sampledShmProcTimerReqNode::insertShmVar(pdThread *thr, process *theProc,
 #else
-bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
+bool sampledShmProcTimerReqNode::insertShmVar(
+				         process *theProc,
 #endif
-						       metricDefinitionNode *iMi, bool) {
+				         threadMetFocusNode *thrmf, bool)
+{
    // Remember inferiorTimerPtr is NULL until this routine gets called.
    // WARNING: there will be an assert failure if the applic hasn't yet attached to the
    //          shm segment!!!
@@ -4726,7 +4476,7 @@ bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
    P_memset(&iValue, '\0', sizeof(tTimer));
    iValue.id.id = this->theSampleId;
 
-   processTimerHK iHKValue(this->theSampleId, iMi, timeLength::Zero());
+   processTimerHK iHKValue(this->theSampleId, thrmf, timeLength::Zero());
 
    superTable &theTable = theProc->getTable();
 #if defined(MT_THREAD)
@@ -4737,9 +4487,11 @@ bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
 #endif
 
 #if defined(MT_THREAD)
-   if (!theTable.allocProcTimer(thr_pos, iValue, iHKValue, this->allocatedIndex,this->allocatedLevel))
+   if (!theTable.allocProcTimer(thr_pos, iValue, iHKValue, 
+				this->allocatedIndex, this->allocatedLevel))
 #else
-   if (!theTable.allocProcTimer(iValue, iHKValue, this->allocatedIndex,this->allocatedLevel))
+   if (!theTable.allocProcTimer(iValue, iHKValue, this->allocatedIndex,
+				this->allocatedLevel))
 #endif
       return false; // failure
 
@@ -4747,23 +4499,23 @@ bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
 }
 
 void sampledShmProcTimerReqNode::disable(process *theProc,
-					 const vector<addrVecType> &pointsToCheck) {
-   // We used to remove the sample id from drnIdToMdnMap here but now the caller is
-   // responsible for that.
-
-   superTable &theTable = theProc->getTable();
-
-   // Remove from inferior heap; make sure we won't be sampled any more:
-   vector<Address> trampsMaybeUsing;
-   for (unsigned pointlcv=0; pointlcv < pointsToCheck.size(); pointlcv++)
-      for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); tramplcv++)
-         trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
+				    const vector<addrVecType> &pointsToCheck) {
+  superTable &theTable = theProc->getTable();
+  
+  // Remove from inferior heap; make sure we won't be sampled any more:
+  vector<Address> trampsMaybeUsing;
+  for (unsigned pointlcv=0; pointlcv < pointsToCheck.size(); pointlcv++)
+    for (unsigned tramplcv=0; tramplcv < pointsToCheck[pointlcv].size(); 
+	 tramplcv++) {
+      trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
+    }
 
 #if defined(MT_THREAD)
-   theTable.makePendingFree(thr_,2,allocatedIndex,allocatedLevel,trampsMaybeUsing);
-   if (theProc->numOfActProcTimers_is>0) theProc->numOfActProcTimers_is--;
+  theTable.makePendingFree(thr_, 2, allocatedIndex, allocatedLevel,
+			   trampsMaybeUsing);
+  if (theProc->numOfActProcTimers_is>0) theProc->numOfActProcTimers_is--;
 #else
-   theTable.makePendingFree(2,allocatedIndex,allocatedLevel,trampsMaybeUsing);
+  theTable.makePendingFree(2,allocatedIndex,allocatedLevel,trampsMaybeUsing);
 #endif
 }
 
@@ -4893,26 +4645,6 @@ void metricDefinitionNode::addParts(vector<threadMetFocusNode*>& parts)
   mdnContinueCallback(getWallTime());
 }
 
-void metricDefinitionNode::duplicateInst(metricDefinitionNode *mn1, 
-					 metricDefinitionNode *mn2)
-{
-  if (mn1 != NULL && mn2 != NULL) {
-    if (mn1->getMdnType() == PRIM_MDN && mn2->getMdnType() == PRIM_MDN) {
-      mn2->instRequests = mn1->instRequests;
-    }
-  }
-}
-
-void metricDefinitionNode::duplicateInst(metricDefinitionNode *mn) {
-  if (instRequests.size() == 0)
-     instRequests = mn->instRequests;
-  else // @@
-     assert(mn->instRequests.size() == 0);
-
-  mn->instRequests.resize(0);
-}
-
-
 void processMetFocusNode::addThread(pdThread *thr)
 {
   int tid;
@@ -4941,22 +4673,6 @@ void processMetFocusNode::addThread(pdThread *thr)
     // << component_flat_name_thr.string_of() << endl ;
     return;
   }
-
-  
-  /*
-#if defined(TEST_DEL_DEBUG)
-  logLine("=====> checking level of all dataRequests for this mdn\n");
-  for (unsigned j=0;j<components.size();j++) {
-    vector<dataReqNode *> mydataRequests = components[j]->dataRequests;
-    sprintf(errorLine,"=====> checking component %d\n",j);
-    logLine(errorLine);
-    for (unsigned i=0;i<mydataRequests.size();i++) {
-      sprintf(errorLine,"=====> dataRequests[%d], level=%d, index=%d\n",i,mydataRequests[i]->getAllocatedLevel(),mydataRequests[i]->getAllocatedIndex());
-      logLine(errorLine);
-    }
-  }
-#endif
-  */
 
   // component hasn't been defined previously. If it has, then we will have
   // reused it - naim
@@ -5017,9 +4733,7 @@ void processMetFocusNode::addThread(pdThread *thr)
 	thr_mn->setInserted(true);
 	thr_mn->setInstalled(true);
 
-	dataReqNode* temp_node = thr_mn->addSampledIntCounter(thr,0,computingCost_thr,true) ; // should be false?
-	recordDRN2MDN_Mapping(temp_node, 
-			      static_cast<metricDefinitionNode*>(thr_mn));
+	thr_mn->addSampledIntCounter(thr, 0, computingCost_thr, true) ; // should be false?
       }
     }
   }
@@ -5060,12 +4774,9 @@ void processMetFocusNode::addThread(pdThread *thr)
   thr_mn->setInstalled(true);
 
   // Create the timer, counter for this thread
-  extern dataReqNode *create_data_object(unsigned, metricDefinitionNode *,
+  extern dataReqNode *create_data_object(unsigned, threadMetFocusNode *,
 					 bool, pdThread *);
-  dataReqNode *the_node = create_data_object(type_thr, 
-                             static_cast<metricDefinitionNode*>(thr_mn), 
-					     computingCost_thr, thr);
-  recordDRN2MDN_Mapping(the_node, static_cast<metricDefinitionNode*>(thr_mn));
+  create_data_object(type_thr, thr_mn, computingCost_thr, thr);
 
   // Create the temporary counters - are these useful
   if (temp_ctr_thr) {
@@ -5075,9 +4786,7 @@ void processMetFocusNode::addThread(pdThread *thr)
       // we are *not* going to sample it, because it is just a temporary
       // counter - naim 4/22/97
       // By default, the last parameter is false - naim 4/23/97
-      dataReqNode *temp_node=thr_mn->addSampledIntCounter(thr,0,computingCost_thr,true);
-      recordDRN2MDN_Mapping(temp_node, static_cast<metricDefinitionNode*>(
-								 thr_mn));
+      thr_mn->addSampledIntCounter(thr, 0, computingCost_thr, true);
     }
   }
 
@@ -5178,7 +4887,9 @@ Address sampledShmIntCounterReqNode::getInferiorPtr(process *proc) const {
     // this routine will dissapear because we can't compute the address
     // of the counter/timer without knowing the thread id - naim 3/17/97
     //
-    if (allocatedIndex == UINT_MAX || allocatedLevel == UINT_MAX) return(0);
+    if (allocatedIndex == UINT_MAX || allocatedLevel == UINT_MAX) {
+      return 0;
+    }    
     assert(proc != NULL);
     superTable &theTable = proc->getTable();
     // we assume there is only one thread
@@ -5192,7 +4903,9 @@ Address sampledShmWallTimerReqNode::getInferiorPtr(process *proc) const {
     // this routine will dissapear because we can't compute the address
     // of the counter/timer without knowing the thread id - naim 3/17/97
     //
-    if (allocatedIndex == UINT_MAX || allocatedLevel == UINT_MAX) return(0);
+    if (allocatedIndex == UINT_MAX || allocatedLevel == UINT_MAX) {
+      return 0;
+    }
     assert(proc != NULL);
     superTable &theTable = proc->getTable();
     // we assume there is only one thread
@@ -5206,7 +4919,9 @@ Address sampledShmProcTimerReqNode::getInferiorPtr(process *proc) const {
     // this routine will dissapear because we can't compute the address
     // of the counter/timer without knowing the thread id - naim 3/17/97
     //
-    if (allocatedIndex == UINT_MAX || allocatedLevel == UINT_MAX) return(0);
+    if (allocatedIndex == UINT_MAX || allocatedLevel == UINT_MAX) {
+      return 0;
+    }
     assert(proc != NULL);
     superTable &theTable = proc->getTable();
     // we assume there is only one thread
@@ -5609,51 +5324,17 @@ sampleMetFocusNode* sampleMetFocusNode::matchInMIPrimitives() {
 // assume constraint variable is always the first in primitive
 dataReqNode* metricDefinitionNode::getFlagDRN(void) 
 { 
-#if defined(MT_THREAD)
   assert(mdn_type_ == PRIM_MDN);
   assert(components.size() > 0);
-  assert(components[0]->dataRequests.size() > 0);
-  return components[0]->dataRequests[0];
-#else
-  assert(mdn_type_ == PRIM_MDN); 
-  assert(dataRequests.size() > 0); 
-  return dataRequests[0]; 
-#endif
+  threadMetFocusNode *thrNode = 
+     dynamic_cast<threadMetFocusNode*>(components[0]);
+  vector<dataReqNode *> dataReqs = thrNode->getDataRequests();
+  assert(dataReqs.size() > 0);
+  return dataReqs[0];
 }
 
-bool toDeletePrimitiveMDN(
-#if !defined(MT_THREAD)
-  metricDefinitionNode *prim
-#endif
-  )
-{
-#if defined(MT_THREAD)
-  return false;
-#else
-  assert(prim->mdn_type_ == PRIM_MDN);
-  // not used by any component mdn, and no actual instrumentation yet
-  // but dataRequests are allocated and should be deallocated
-  assert(prim->aggregators.size() == 0);
-  assert(prim->samples.size() == 0);
-
-  vector<addrVecType> pointsToCheck;
-  for (unsigned i=0; i<prim->dataRequests.size(); i++) {
-    // should be correct
-    prim->dataRequests[i]->disable(prim->proc_, pointsToCheck);  // deinstrument
-  }
-
-  for (unsigned j=0; j<prim->instRequests.size(); j++) {
-    assert(prim->instRequests[j].getInstance() == NULL);
-    removeAst(prim->instRequests[j].ast);
-  }
-
-  return true;
-#endif
-}
-
-void metricDefinitionNode::addInst(instPoint *point, AstNode *ast,
-					  callWhen when,
-					  callOrder o)
+void sampleMetFocusNode::addInst(instPoint *point, AstNode *ast,
+				 callWhen when, callOrder o)
 {
   if (!point) return;
 
@@ -5661,21 +5342,13 @@ void metricDefinitionNode::addInst(instPoint *point, AstNode *ast,
   instRequests += temp;
 }
 
-vector<dataReqNode *> metricDefinitionNode::getDataRequests()
+vector<dataReqNode *> sampleMetFocusNode::getDataRequests()
 {
-#if defined(MT_THREAD)
-  if (PRIM_MDN == mdn_type_) {
-    assert(0 < components.size());
-    return components[0]->dataRequests;
-  }
-  else if (mdn_type_ == THR_LEV)
-    return dataRequests;
-  else
-    assert(0);
-#else
-  assert(PRIM_MDN == mdn_type_);
-  return dataRequests;
-#endif
+   vector<metricDefinitionNode *> comps = getComponents();
+   assert(0 < comps.size());
+   threadMetFocusNode *thrNode =
+     dynamic_cast<threadMetFocusNode*>(comps[0]);
+   return thrNode->getDataRequests();
 }
 
 defInst::defInst(string& metric_name, vector<u_int>& focus, int id, 
