@@ -39,14 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.88 2001/06/20 20:33:34 schendel Exp $
+/* $Id: dyninstRPC.I,v 1.89 2001/08/23 14:43:32 schendel Exp $
  */
 
 #define MetStyleEventCounter	0
 #define MetStyleSampledFunction	1
 
 #include "common/h/Types.h"
-#include "pdutil/h/aggregation.h"
 #include "paradyn/src/met/mdl.h"
 
 $remote
@@ -55,17 +54,12 @@ struct batch_buffer_entry {
    double startTimeStamp;
    double endTimeStamp;
    double value;
-   u_int weight;
-   bool  internal_met; 
-
 $ignore
    batch_buffer_entry &operator=(const batch_buffer_entry &src) {
       mid = src.mid;
       startTimeStamp = src.startTimeStamp;
       endTimeStamp = src.endTimeStamp;
       value = src.value;
-      weight = src.weight;
-      internal_met = src.internal_met;
       return *this;
    }
 $ignore
@@ -530,11 +524,22 @@ $remote dynRPC {
                                                       double share);
 
    // 
-   // Handler that reports the initial time for which a daemon reports a sample
+   // Handler that reports the initial time that the daemon started the
+   // the first process.  Called after DYNINSTinit completed.
    // The earliest (absolute) initial time will become the base time (0)
    //
-   $virtual $upcall $async void firstSampleCallback(int program,
-                                                    double time);
+   $virtual $upcall $async void setDaemonStartTime(int program,
+                                                   double startTime);
+
+   // 
+   // Handler that reports the initial actual value the metric with id mid.
+   // Used to reconstruct the actual value of mid at any point.  Done
+   // by integrating across the change in sample values and then adding
+   // the initial actual value.
+   //
+   $virtual $upcall $async void setInitialActualValueFE(int mid,
+                                                        double initActualVal);
+
 
     //
     // Handler that gets called when a new resource is defined.
