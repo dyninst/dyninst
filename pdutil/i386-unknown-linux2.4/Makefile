@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2000/05/31 18:33:25 schendel Exp $
+# $Id: Makefile,v 1.3 2000/07/18 17:02:34 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -29,6 +29,7 @@ OBJS     += linuxKludges.o \
 
 # no support for elf64_XXX() functions
 CXXFLAGS += -DUSES_ELF32_ONLY
+#CXXFLAGS += -DHIST_DEBUG
 CFLAGS   += -DUSES_ELF32_ONLY
 
 linuxKludges.o: ../src/linuxKludges.C

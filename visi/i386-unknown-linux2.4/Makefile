@@ -1,5 +1,8 @@
 #
 # $Log: Makefile,v $
+# Revision 1.2  2000/07/18 17:02:42  schendel
+# add optional flag to turn on printing of sample value trace lines
+#
 # Revision 1.1  2000/03/31 01:59:59  wylie
 # Platform migration
 #
@@ -22,6 +25,7 @@ DO_INLINE_ALL		= true
 include ../../make.config 
 
 # Now make any necessary architecture specific changes to variables:
+#CXXFLAGS	+=  -DSAMPLEVALUE_DEBUG
 
 # none 
 

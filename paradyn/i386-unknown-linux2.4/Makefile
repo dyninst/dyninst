@@ -1,5 +1,8 @@
 #
 # $Log: Makefile,v $
+# Revision 1.2  2000/07/18 17:02:25  schendel
+# add optional flag to turn on printing of sample value trace lines
+#
 # Revision 1.1  2000/03/31 01:59:06  wylie
 # Platform migration
 #
@@ -25,6 +28,7 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 CFLAGS		+=  -DSHG_ADD_ON_EVAL
 CXXFLAGS	+=  -DSHG_ADD_ON_EVAL
+#CXXFLAGS	+=  -DSAMPLEVALUE_DEBUG
 TFLAGS		+=  -DSHG_ADD_ON_EVAL
 SYSLIBS		+=  -ldl
 #SYSLIBS		+= -lresolv -lsocket -lnsl

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2000/05/31 18:33:26 schendel Exp $
+# $Id: Makefile,v 1.3 2000/07/18 17:02:40 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -11,6 +11,8 @@ DO_INLINE_ALL           = true
 # in the paradyn tree.
 
 include ../../make.config 
+
+#CXXFLAGS        +=  -DHIST_DEBUG
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
