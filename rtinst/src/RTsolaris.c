@@ -368,6 +368,14 @@ static unsigned lookup(unsigned key) {
 void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap) {
     unsigned pc = uap->uc_mcontext.gregs[PC];
     unsigned nextpc = lookup(pc);
+
+    if (!nextpc) {
+      /* kludge: maybe the PC was not automatically adjusted after the trap */
+      /* this happens for a forked process */
+      pc--;
+      nextpc = lookup(pc);
+    }
+
     if (nextpc) {
       uap->uc_mcontext.gregs[PC] = nextpc;
     } else {

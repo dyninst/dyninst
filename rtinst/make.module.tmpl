@@ -6,6 +6,11 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.10  1997/02/26 23:52:05  mjrg
+# First part of WindowsNT port: divided RTposix.c into two files,
+# RTinst.c which has all platform independent code and RTposix.c with
+# unix specific code
+#
 # Revision 1.9  1996/10/31 08:03:00  tamches
 # the shm-sampling commit
 #
@@ -52,7 +57,7 @@ endif
 MODCC         = $(CC)
 MODCFLAGS     = $(CFLAGS)
 
-SRCS	     += ../src/RTend.c
+SRCS	     += ../src/RTinst.c ../src/RTend.c
 SRCS2	     += ../src/RTend.c
 
 DYNSRCS	      = ../src/DYNINSTstartCode.c \
