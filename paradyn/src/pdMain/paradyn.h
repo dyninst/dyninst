@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.h,v 1.23 2003/09/05 19:22:55 pcroth Exp $ */
+/* $Id: paradyn.h,v 1.24 2003/11/14 20:59:47 pcroth Exp $ */
 
 /* some global definitions for main.C */
 
@@ -108,7 +108,7 @@ struct UIThreadArgs
 {
     pdstring progName;
     int argc;
-    char* argv[];
+    char** argv;
 
     UIThreadArgs( const char* _progName )
       : progName( _progName )
