@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.17  1994/10/25 22:08:08  hollings
+ * Revision 1.18  1994/11/11 10:46:34  markc
+ * Used status line to print status
+ *
+ * Revision 1.17  1994/10/25  22:08:08  hollings
  * changed print member functions to ostream operators.
  *
  * Fixed lots of small issues related to the cost model for the
@@ -120,7 +123,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.17 1994/10/25 22:08:08 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.18 1994/11/11 10:46:34 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -482,7 +485,9 @@ void printStats()
 	    if (d->used) count++;
 	}
     }
-    printf("%d metric/focus pairs used\n", count);
+    char buffer[100];
+    sprintf(buffer, "%d metric/focus pairs used\n", count);
+    PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY, buffer);
 }
 
 

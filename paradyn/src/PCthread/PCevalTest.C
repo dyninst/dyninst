@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.31  1994/11/09 18:39:40  rbi
+ * Revision 1.32  1994/11/11 10:46:26  markc
+ * Used status line to print status
+ *
+ * Revision 1.31  1994/11/09  18:39:40  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.30  1994/11/04  13:02:46  markc
@@ -187,7 +190,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.31 1994/11/09 18:39:40 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.32 1994/11/11 10:46:26 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -903,10 +906,13 @@ void performanceConsultant::search(Boolean stopOnChange, int limit)
     PClastTestChangeTime = PCcurrentTime;
     PCstartTransTime = PCcurrentTime;
     samplesSinceLastChange = 0;
-    cout << "Setting PCstartTransTime = " << PCstartTransTime << "\n";
+    char buffer[100];
+    sprintf(buffer, "Setting PC start search time to %f\n", PCstartTransTime);
+    PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY, buffer);
     if (!dataMgr->applicationDefined(context)) {
-	printf("must specify application to run first\n");
-	return;
+      PCstatusDisplay->updateStatusDisplay(PC_STATUSDISPLAY,
+					   "must specify application to run first\n");
+      return;
     }
     if (currentTestResults) 
 	delete(currentTestResults); 
