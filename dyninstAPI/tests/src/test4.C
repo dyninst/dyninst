@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4.C,v 1.25 2004/04/20 01:27:55 jaw Exp $
+// $Id: test4.C,v 1.26 2005/01/18 18:34:22 bernat Exp $
 //
 
 #include <stdio.h>
@@ -133,6 +133,7 @@ BPatch_thread *test4Parent;
 
 void forkFunc(BPatch_thread *parent, BPatch_thread *child)
 {
+  dprintf("forkFunc called with parent %p, child %p\n", parent, child);
     BPatch_image *appImage;
     BPatch_Vector<BPatch_function *> bpfv;
     BPatch_Vector<BPatch_snippet *> nullArgs;
@@ -247,6 +248,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
 
 void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
 {
+  dprintf("exitFunc called\n");
     // Read out the values of the variables.
     int exitCode = thread->getExitCode();
 
@@ -462,30 +464,39 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
 
 void contAndWaitForAllThreads(BPatch_thread *appThread)
 {
-   mythreads[threadCount++] = appThread;
+  dprintf("Thread %d is pointer %p\n", threadCount, appThread);
+  mythreads[threadCount++] = appThread;
    appThread->continueExecution();
 
    while (1) {
       int i;
+      dprintf("Checking %d threads for terminated status\n", threadCount);
       for (i=0; i < threadCount; i++) {
-         if (!mythreads[i]->isTerminated()) {
+	if (!mythreads[i]->isTerminated()) {
+	  dprintf("Thread %d is not terminated\n", i);
             break;
          }
       }
 
       // see if all exited
-      if (i== threadCount) break;
+      if (i== threadCount) {
+	dprintf("All threads terminated\n");
+	break;
+      }
 
       bpatch->waitForStatusChange();
+
       for (i=0; i < threadCount; i++) {
          if (mythreads[i]->isStopped()) {
+	   dprintf("Thread %d marked stopped, continuing\n", i);
             mythreads[i]->continueExecution();
          }
       }
    }
    
+   dprintf("All threads terminated, deleting\n");
    for (int i=0; i < threadCount; i++) {
-      delete mythreads[i];
+     delete mythreads[i];
    }
    threadCount = 0;
 }
@@ -514,6 +525,7 @@ void mutatorTest1(char *pathname)
     printf("Starting \"%s\"\n", pathname);
 
     BPatch_thread *appThread = bpatch->createProcess(pathname, child_argv,NULL);
+    dprintf("Test 1: using thread %p\n", appThread);
     if (appThread == NULL) {
 	fprintf(stderr, "Unable to run test program.\n");
 	exit(1);
@@ -536,7 +548,7 @@ void mutatorTest2(char *pathname)
     int n = 0;
     const char *child_argv[MAX_TEST+5];
 	
-    dprintf("in mutatorTest2\n");
+    dprintf("\n\n\n\nin mutatorTest2\n");
 
     inTest = 2;
     child_argv[n++] = pathname;
@@ -550,13 +562,14 @@ void mutatorTest2(char *pathname)
     printf("Starting \"%s\"\n", pathname);
 
     BPatch_thread *appThread = bpatch->createProcess(pathname, child_argv,NULL);
+    dprintf("Process %p created", appThread);
     if (appThread == NULL) {
 	fprintf(stderr, "Unable to run test program.\n");
 	exit(1);
     }
 
     contAndWaitForAllThreads(appThread);
-
+    fprintf(stderr, "Finished with test2\n");
     inTest = 0;
 #endif
 }

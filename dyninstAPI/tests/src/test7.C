@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test7.C,v 1.15 2004/04/20 01:27:55 jaw Exp $
+// $Id: test7.C,v 1.16 2005/01/18 18:34:23 bernat Exp $
 //
 
 #include <stdio.h>
@@ -1216,6 +1216,8 @@ void mutatorMAIN(char *pathname)
            !childThread->isTerminated()) {
         bpatch->waitForStatusChange();
     }
+    delete parentThread;
+    delete childThread;
     showFinalResults();
     exit(0);
 }

@@ -5138,6 +5138,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
 
        retVal = signalNum;
     }
+    delete appThread;
 
     dprintf("Done.\n");
     return retVal;

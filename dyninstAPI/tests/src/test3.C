@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.33 2004/04/20 01:27:55 jaw Exp $
+// $Id: test3.C,v 1.34 2005/01/18 18:34:21 bernat Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -333,6 +333,7 @@ void mutatorTest1(char *pathname, BPatch *bpatch)
         int signalNum = appThread[n]->getExitSignal();
         dprintf("Terminated mutatee [%d] from signal 0x%x\n", n, signalNum);
         numTerminated++;
+	delete appThread[n];
     }
 
     if (numTerminated == Mutatees) {
@@ -396,6 +397,7 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
                                 signalNum);
                 }
                 terminated[n]=true;
+		delete appThread[n];
                 numTerminated++;
             }
     }
@@ -562,7 +564,8 @@ void mutatorTest3(char *pathname, BPatch *bpatch)
                         dprintf("Mutatee %d exited from signal 0x%d\n", n,
                                 signalNum);
                 }
-                terminated[n]=true;
+                delete appThread[n];
+		terminated[n]=true;
                 numTerminated++;
             }
     }
@@ -631,6 +634,7 @@ void mutatorTest4(char *pathname, BPatch *bpatch)
            if (signalNum || debugPrint)
                dprintf("Mutatee %d exited from signal 0x%d\n", n, signalNum);
         }
+	delete appThread;
     }
 
     printf("Passed Test #4 (sequential multiple-process management - exit)\n");
@@ -681,6 +685,7 @@ void mutatorTest5(char *pathname, BPatch *bpatch)
            if (signalNum || debugPrint)
                dprintf("Mutatee %d exited from signal 0x%d\n", n, signalNum);
         }
+	delete appThread;
     }
 
     printf("Passed Test #5 (sequential multiple-process management - abort)\n");
