@@ -40,7 +40,7 @@
  */
 
 //
-// igen and MDL templates
+// Igen and MDL templates
 //
 
 
@@ -61,6 +61,8 @@
 #pragma implementation "termWin.xdr.h"
 #include "termWin.xdr.h"
 #endif // !defined(i386_unknown_nt4_0)
+
+template class refCounter<string_ll>;
 
 /* ***********************************
  * met stuff
@@ -84,85 +86,6 @@ template class vector<function_base*>;
 template class vector<module*>;
 template class vector<instPoint*>;
 
-// Igen - dyninstRPC stuff
-
-template class vector<T_dyninstRPC::buf_struct*>;
-template class vector<string>;
-template class vector<T_dyninstRPC::mdl_expr*>;
-template class vector<T_dyninstRPC::mdl_stmt*>;
-template class vector<T_dyninstRPC::mdl_icode*>;
-template class vector<T_dyninstRPC::mdl_constraint*>;
-template class vector<T_dyninstRPC::metricInfo>;
-template class vector<T_dyninstRPC::focusStruct>;
-template class vector<T_dyninstRPC::mdl_metric*>;
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<string>*, 
-	bool_t (*)(XDR*, string*), string*);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_expr*>*,
-	bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**), T_dyninstRPC::mdl_expr**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<u_int>*, 
-	bool_t (*)(XDR*, u_int*), u_int*);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<int>*, 
-	bool_t (*)(XDR*, int*), int*);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_stmt*>*,
-	bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**), T_dyninstRPC::mdl_stmt**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_icode*>*,
-	bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**), T_dyninstRPC::mdl_icode**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, 
-	vector<T_dyninstRPC::mdl_constraint*>*, 
-	bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**), 
-	T_dyninstRPC::mdl_constraint**);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::metricInfo>*,
-	bool_t (*)(XDR*, T_dyninstRPC::metricInfo*), T_dyninstRPC::metricInfo*);
-
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::focusStruct>*,
-	bool_t (*)(XDR*, T_dyninstRPC::focusStruct*), T_dyninstRPC::focusStruct*);
-
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_metric*>*,
- 	bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**), 
-	T_dyninstRPC::mdl_metric**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<string>**, 
-	bool_t (*)(XDR*, string*), string*);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
-	vector<T_dyninstRPC::mdl_expr*>**, 
-	bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**), T_dyninstRPC::mdl_expr**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
-	vector<u_int>**, bool_t (*)(XDR*, u_int*), u_int*);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
-	vector<int>**, bool_t (*)(XDR*, int*), int*);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
-	vector<T_dyninstRPC::mdl_stmt*>**, 
-	bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**), 
-	T_dyninstRPC::mdl_stmt**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
-	vector<T_dyninstRPC::mdl_icode*>**, 
-	bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**), 
-	T_dyninstRPC::mdl_icode**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
-	vector<T_dyninstRPC::mdl_constraint*>**, 
-	bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**), 
-	T_dyninstRPC::mdl_constraint**);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
-	vector<T_dyninstRPC::metricInfo>**, 
-	bool_t (*)(XDR*, T_dyninstRPC::metricInfo*), 
-	T_dyninstRPC::metricInfo*);
-
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
-	vector<T_dyninstRPC::focusStruct>**, 
-	bool_t (*)(XDR*, T_dyninstRPC::focusStruct*), 
-	T_dyninstRPC::focusStruct*);
-
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
-	vector<T_dyninstRPC::resourceInfoCallbackStruct>**, 
-	bool_t (*)(XDR*, T_dyninstRPC::resourceInfoCallbackStruct*), 
-	T_dyninstRPC::resourceInfoCallbackStruct*);
-
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, 
-	vector<T_dyninstRPC::mdl_metric*>**, 
-	bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**), 
-	T_dyninstRPC::mdl_metric**);
-
-
-template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::resourceInfoCallbackStruct> *, int (*)(XDR *, T_dyninstRPC::resourceInfoCallbackStruct *), T_dyninstRPC::resourceInfoCallbackStruct *);
 
 // MDL stuff 
 
@@ -173,49 +96,42 @@ template class vector<const dataReqNode *>;
 template class vector<mdl_var>;
 template class vector<mdl_focus_element>;
 template class vector<mdl_type_desc>;
-
+template class vector< vector< mdl_type_desc > >;
 template class dictionary_hash<unsigned, vector<mdl_type_desc> >;
 template class vector<dictionary_hash<unsigned, vector<mdl_type_desc> >::entry>;
-template class vector< vector< mdl_type_desc > >;
+
+// Igen - dyninstRPC stuff
+// no longer need to instantiate here, now done in dyninstRPC.xdr.temp.C
+// except for these which are needed only for nt builds
+
+#if defined(i386_unknown_nt4_0)
+template bool writerfn_noMethod<int>(struct XDR *, const int);
+template bool writerfn_noMethod<unsigned>(struct XDR *, const unsigned);
+template bool writerfn_noMethod<string>(struct XDR *, const string);
+template bool writerfn_noMethod<T_dyninstRPC::mdl_expr *>(struct XDR *, T_dyninstRPC::mdl_expr * const);
+template bool writerfn_noMethod<T_dyninstRPC::mdl_stmt *>(struct XDR *, T_dyninstRPC::mdl_stmt * const);
+template bool writerfn_noMethod<T_dyninstRPC::mdl_icode *>(struct XDR *, T_dyninstRPC::mdl_icode * const);
+template bool writerfn_noMethod<T_dyninstRPC::mdl_constraint *>(struct XDR *, T_dyninstRPC::mdl_constraint * const);
+template bool writerfn_noMethod<T_dyninstRPC::mdl_metric *>(struct XDR *, T_dyninstRPC::mdl_metric * const);
+template bool writerfn_noMethod<T_dyninstRPC::batch_buffer_entry>(struct XDR *, const T_dyninstRPC::batch_buffer_entry);
+template bool writerfn_noMethod<T_dyninstRPC::trace_batch_buffer_entry>(struct XDR *, const T_dyninstRPC::trace_batch_buffer_entry);
+template bool writerfn_noMethod<T_dyninstRPC::focusStruct>(struct XDR *, const T_dyninstRPC::focusStruct);
+#endif
 
 // Igen - visi stuff
+// no longer need to instantiate here, now done in visi.xdr.temp.C
+// except for these which are needed only for nt builds
 
-template class vector<T_visi::buf_struct*>;
-template class vector<T_visi::dataValue>;
-template class vector<T_visi::visi_matrix>;
-template class vector<T_visi::phase_info>;
-template class vector<float>;
-// trace data streams
-template class vector<T_visi::traceDataValue>;
-template bool_t T_visi_P_xdr_stl(XDR*, vector<string>*, 
-	bool_t (*)(XDR*, string*), string*);
-template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::dataValue>*, 
-	bool_t (*)(XDR*, T_visi::dataValue*), T_visi::dataValue*);
-template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::visi_matrix>*,
-	bool_t (*)(XDR*, T_visi::visi_matrix*), T_visi::visi_matrix*);
-template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::phase_info>*, 
-	bool_t (*)(XDR*, T_visi::phase_info*), T_visi::phase_info*);
-template bool_t T_visi_P_xdr_stl(XDR*, vector<float>*, 
-	bool_t (*)(XDR*, float*), float*);
-template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::traceDataValue>*,
-        bool_t (*)(XDR*, T_visi::traceDataValue*), T_visi::traceDataValue*);
-template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<string>**, 
-	bool_t (*)(XDR*, string*), string*);
-template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::dataValue>**, 
-	bool_t (*)(XDR*, T_visi::dataValue*), T_visi::dataValue*);
-template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::visi_matrix>**,
-	bool_t (*)(XDR*, T_visi::visi_matrix*), T_visi::visi_matrix*);
-template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::phase_info>**, 
-	bool_t (*)(XDR*, T_visi::phase_info*), T_visi::phase_info*);
-template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<float>**, 
-	bool_t (*)(XDR*, float*), float*);
-template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::traceDataValue>**,
-        bool_t (*)(XDR*, T_visi::traceDataValue*), T_visi::traceDataValue*);
-
+#if defined(i386_unknown_nt4_0)
+template bool writerfn_noMethod<float>(struct XDR *, const float);
+template bool writerfn_noMethod<T_visi::dataValue>(struct XDR *, const T_visi::dataValue);
+template bool writerfn_noMethod<T_visi::traceDataValue>(struct XDR *, const T_visi::traceDataValue);
+template bool writerfn_noMethod<T_visi::visi_matrix>(struct XDR *, const T_visi::visi_matrix);
+template bool writerfn_noMethod<T_visi::phase_info>(struct XDR *, const T_visi::phase_info);
+#endif
 
 #if !defined(i386_unknown_nt4_0)
 // termWin igen interface template instantiations
 template class vector<T_termWin::buf_struct*>;
 #endif // !defined(i386_unknown_nt4_0)
 
-template class refCounter<string_ll>;

@@ -43,5 +43,11 @@
 #include "common/h/Vector.h"
 #include "visi/src/datagridP.h"
 
-
 template class vector<PhaseInfo *>;
+
+#if defined(i386_unknown_nt4_0)
+#include "visi.xdr.h"
+#include "pdutil/h/xdr_send_recv.h"
+template bool writerfn_noMethod<float>(struct XDR *, const float);
+template bool writerfn_noMethod<T_visi::visi_matrix>(struct XDR *, const T_visi::visi_matrix);
+#endif
