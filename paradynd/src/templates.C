@@ -5,6 +5,9 @@
 
 /* 
  * $Log: templates.C,v $
+ * Revision 1.22  1995/12/18 23:31:21  tamches
+ * wrapped blizzard-specific templates in an ifdef
+ *
  * Revision 1.21  1995/12/16 00:21:26  tamches
  * added a template needed by blizzard
  *
@@ -98,8 +101,8 @@
 #pragma implementation "list.h"
 #include "util/h/list.h"
 
-#pragma implementation "Queue.h"
-#include "util/h/Queue.h"
+//#pragma implementation "Queue.h"
+//#include "util/h/Queue.h"
 
 #pragma implementation "dyninstRPC.xdr.h"
 #include "dyninstRPC.xdr.h"
@@ -169,7 +172,7 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric
 
 template class  List<sampleInfo*>;
 
-template class  queue<T_dyninstRPC::buf_struct*>;
+//template class  queue<T_dyninstRPC::buf_struct*>;
 
 template class  vector<Symbol*>;
 template class  vector<Symbol>;
@@ -235,6 +238,7 @@ template class  dictionary_hash_iter <unsigned, heapItem*>;
 template class  dictionary_hash_iter <unsigned, metricDefinitionNode*>;
 template class  dictionary_hash_iter <unsigned, pdFunction*>;
 
+#ifdef paradyndCM5_blizzard
 //=============================added by zxu for sampleNodes
 #include "util/h/sys.h"
 #include "rtinst/h/trace.h"
@@ -250,3 +254,4 @@ template class dictionary_hash <unsigned, traceHeaderVec *>  ;
 template class dictionary_hash_iter<unsigned, sampleVec *> ;
 template class dictionary_hash_iter<unsigned, per_mid_buffer *> ;
 template class dictionary_hash<unsigned, per_mid_buffer *>;
+#endif
