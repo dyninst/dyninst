@@ -41,6 +41,9 @@
 
 /*
  * $Log: init-sunos.C,v $
+ * Revision 1.12  1996/10/31 08:44:32  tamches
+ * in initOS(), main no longer calls DYNINSTinit
+ *
  * Revision 1.11  1996/09/26 18:58:32  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -89,13 +92,16 @@
 #include "os.h"
 
 // NOTE - the tagArg integer number starting with 0.  
-static AstNode tagArg(Param, (void *) 1);
-static AstNode cmdArg(Param, (void *) 4);
-static AstNode tidArg(Param, (void *) 0);
+static AstNode tagArg(AstNode::Param, (void *) 1);
+static AstNode cmdArg(AstNode::Param, (void *) 4);
+static AstNode tidArg(AstNode::Param, (void *) 0);
 
 bool initOS() {
 
-  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
+//  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
+// (obsoleted by installBootstrapInst() --ari)
+
+
   initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
 
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
@@ -106,12 +112,14 @@ bool initOS() {
 				     FUNC_ENTRY|FUNC_ARG, &tidArg);
   initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
 
+#ifndef SHM_SAMPLING
   initialRequests += new instMapping("DYNINSTsampleValues", "DYNINSTreportNewTags",
 				 FUNC_ENTRY);
+#endif
+
   initialRequests += new instMapping("rexec", "DYNINSTrexec",
 				 FUNC_ENTRY|FUNC_ARG, &cmdArg);
 //   initialRequests += new instMapping("PROCEDURE_LINKAGE_TABLE","DYNINSTdynlinker",FUNC_ENTRY);
-  initialRequests += new instMapping("main","DYNINSTstart", FUNC_ENTRY);
 
 
 #ifdef PARADYND_PVM
