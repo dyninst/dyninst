@@ -39,11 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.158 2003/10/21 17:22:23 bernat Exp $
+// $Id: solaris.C,v 1.159 2003/10/22 16:00:59 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
-#include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/stats.h"
@@ -687,12 +686,13 @@ bool process::loadDYNINSTlib() {
   dyninst_count = 0; // reset count
   dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
 			  dyninst_count, true, true);
-  writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
+  writeDataSpace((void *)(codeBase+count), dyninst_count,
+                 (char *)scratchCodeBuffer);
   removeAst(dlopenAst);
   count += dyninst_count;
 
   // save registers
-  savedRegs = getProcessLWP()->getRegisters();
+  savedRegs = getRepresentativeLWP()->getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
 
 #if defined(i386_unknown_solaris2_5)
@@ -709,7 +709,7 @@ bool process::loadDYNINSTlib() {
     assert(0);
   }
 #endif
-  if (!getProcessLWP()->changePC(codeBase, NULL)) {
+  if (!getRepresentativeLWP()->changePC(codeBase, NULL)) {
     logLine("WARNING: changePC failed in loadDYNINSTlib\n");
     assert(0);
   }
@@ -737,10 +737,12 @@ bool process::loadDYNINSTlibCleanup()
   }
   Address codeBase = _startfn->getEffectiveAddress(this);
   assert(codeBase);
-  if (!writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer)) return false;
+  if (!writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer))
+     return false;
 
   // restore registers
-  if (!getProcessLWP()->restoreRegisters(savedRegs)) return false;
+  if (!getRepresentativeLWP()->restoreRegisters(savedRegs))
+     return false;
   delete savedRegs;
   savedRegs = NULL;
   return true;
@@ -754,8 +756,6 @@ Address process::get_dlopen_addr() const {
   else 
     return(0);
 }
-
-bool process::stop_() {assert(false); return(false);}
 
 fileDescriptor *getExecFileDescriptor(pdstring filename, int &, bool)
 {
@@ -794,11 +794,6 @@ bool process::dumpCore_(const pdstring coreName)
   attach();
 
   return false;
-}
-
-bool process::loopUntilStopped() {
-  assert(0);
-  return(false);
 }
 
 int getNumberOfCPUs()
@@ -840,7 +835,7 @@ Frame Frame::getCallerFrame(process *p) const
             else if (thread_)
                cerr << "Not implemented yet" << endl;
             else {
-               regs = p->getProcessLWP()->getRegisters();
+               regs = p->getRepresentativeLWP()->getRegisters();
                ret.pc_ = regs->theIntRegs[R_O7] + 8;
                ret.fp_ = fp_;
                delete regs;
