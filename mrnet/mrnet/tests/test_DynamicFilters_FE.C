@@ -8,6 +8,7 @@
 #include "test_DynamicFilters.h"
 
 #include <string>
+#include <assert.h>
 
 using namespace MRN;
 using namespace MRN_test;
