@@ -2,7 +2,10 @@
  * Report statistics about dyninst and data collection.
  *
  * $Log: stats.C,v $
- * Revision 1.11  1994/09/22 02:25:13  markc
+ * Revision 1.12  1994/11/02 11:19:41  markc
+ * Removed compiler warnings.
+ *
+ * Revision 1.11  1994/09/22  02:25:13  markc
  * Change names of resource classes
  *
  * Revision 1.10  1994/09/20  18:18:31  hollings
@@ -55,30 +58,30 @@
 #include "ast.h"
 #include "util.h"
 #include "internalMetrics.h"
+#include "dynrpc.h"
+#include "init.h"
 
-int trampBytes;
-int pointsUsed;
-int samplesDelivered;
-int insnGenerated;
-int totalMiniTramps;
-int metResPairsEnabled;
-double timeCostLastChanged;
-HTable<resourceListRec*> fociUsed;
-HTable<metric*> metricsUsed;
-extern internalMetric totalPredictedCost;
-int ptraceOtherOps, ptraceOps, ptraceBytes;
-
-
-
-time64 totalInstTime;
+int trampBytes = 0;
+int pointsUsed=0;
+int samplesDelivered=0;
+int insnGenerated = 0;
+int totalMiniTramps=0;
+int metResPairsEnabled=0;
+double timeCostLastChanged=0;
+// HTable<resourceListRec*> fociUsed;
+// HTable<metric*> metricsUsed;
+int metricsUsed = 0;
+int fociUsed = 0;
+int ptraceOtherOps=0, ptraceOps=0, ptraceBytes=0;
+time64 totalInstTime = 0;
 
 void printDyninstStats()
 {
     float now;
 
-    now = getCurrentTime(FALSE);
+    now = getCurrentTime(false);
     sprintf(errorLine, "    totalPredictedCost = %f\n", 
-	totalPredictedCost.getValue());
+	totalPredictedCost->getValue());
     logLine(errorLine);
 
     sprintf(errorLine, "    %d total points used\n", pointsUsed);
@@ -87,9 +90,9 @@ void printDyninstStats()
     logLine(errorLine);
     sprintf(errorLine, "    %d metric/resource pairs enabled\n",metResPairsEnabled);
     logLine(errorLine);
-    sprintf(errorLine, "    %d metrics used\n", metricsUsed.count());
+    sprintf(errorLine, "    %d metrics used\n", metricsUsed);
     logLine(errorLine);
-    sprintf(errorLine, "    %d foci used\n", fociUsed.count());
+    sprintf(errorLine, "    %d foci used\n", fociUsed);
     logLine(errorLine);
     sprintf(errorLine, "    %d tramp bytes\n", trampBytes);
     logLine(errorLine);
