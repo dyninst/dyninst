@@ -14,10 +14,14 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.37  1995/12/18 23:22:05  newhall
-/* changed metric units type so that it can have one of 3 values (normalized,
-/* unnormalized or sampled)
+/* Revision 1.38  1996/01/05 20:02:43  newhall
+/* changed parameters to showErrorVisiCallback, so that visilib users are
+/* not forced into using our string class
 /*
+ * Revision 1.37  1995/12/18 23:22:05  newhall
+ * changed metric units type so that it can have one of 3 values (normalized,
+ * unnormalized or sampled)
+ *
  * Revision 1.36  1995/12/18 17:22:07  naim
  * Adding function showErrorVisiCallback to display error messages from
  * visis - naim
@@ -219,12 +223,13 @@ void QuitVisi(){
 //
 // call back to Paradyn to display error message
 //
-void showErrorVisiCallback(string msg)
+void showErrorVisiCallback(const char *msg)
 {
   int string_size;
-  string_size = (msg.length())*sizeof(char);
+  string new_msg = msg; 
+  string_size = (new_msg.length())*sizeof(char);
   if (string_size < MAXSTRINGSIZE)
-    vp->showError(87,msg);
+    vp->showError(87,new_msg);
   else {
     string errmsg;
     errmsg = string("Internal Error: error message has exceeded maximum length of ") + string(MAXSTRINGSIZE) + string(" bytes. Please, make your error message shorter.");

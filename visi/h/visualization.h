@@ -17,9 +17,13 @@
  */
 
 /* $Log: visualization.h,v $
-/* Revision 1.15  1995/12/20 20:19:31  newhall
-/* removed matherr.h
+/* Revision 1.16  1996/01/05 20:02:28  newhall
+/* changed parameters to showErrorVisiCallback, so that visilib users are
+/* not forced into using our string class
 /*
+ * Revision 1.15  1995/12/20 20:19:31  newhall
+ * removed matherr.h
+ *
  * Revision 1.14  1995/12/20 18:35:02  newhall
  * including matherr.h so that it does not need to be included by visis
  *
@@ -187,7 +191,7 @@ extern int RegistrationCallback(msgTag event,int (*callBack)(int));
 //
 // request to Paradyn to display error message
 //
-extern void showErrorVisiCallback(string msg);
+extern void showErrorVisiCallback(const char *msg);
 
 //
 // main loop provided by paradyn (not currently supported)
