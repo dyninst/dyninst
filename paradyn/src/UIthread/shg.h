@@ -4,9 +4,13 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.9  1996/03/08 00:21:20  tamches
-/* added support for hidden nodes
+/* Revision 1.10  1996/03/10 23:20:51  hollings
+/* Mad sure all assert statements were in { } blocks.  odd compiler problem
+/* for AIX or UMD.
 /*
+ * Revision 1.9  1996/03/08  00:21:20  tamches
+ * added support for hidden nodes
+ *
  * Revision 1.8  1996/02/15 23:10:01  tamches
  * added proper support for why vs. where axis refinement
  *
@@ -217,24 +221,26 @@ class shg {
       return listboxItemTk3DBordersByStyle[styleIndex];
    }
    static GC getGCforListboxRay(shgRootNode::refinement theRefinement) {
-      if (theRefinement == shgRootNode::ref_undefined)
+      if (theRefinement == shgRootNode::ref_undefined) {
          assert("undefined refinement" && false);
-      else if (theRefinement == shgRootNode::ref_why)
+      } else if (theRefinement == shgRootNode::ref_why)
          return whyRefinementRayGC;
       else if (theRefinement == shgRootNode::ref_where)
          return whereRefinementRayGC;
-      else
+      else {
          assert("unknown refinement" && false);
+      }
    }
    static GC getGCforNonListboxRay(shgRootNode::refinement theRefinement) {
-      if (theRefinement == shgRootNode::ref_undefined)
+      if (theRefinement == shgRootNode::ref_undefined) {
          assert("undefined refinement" && false);
-      else if (theRefinement == shgRootNode::ref_why)
+      } else if (theRefinement == shgRootNode::ref_why)
          return whyRefinementRayGC;
       else if (theRefinement == shgRootNode::ref_where)
          return whereRefinementRayGC;
-      else
+      else {
          assert("unknown refinement" && false);
+      }
    }
 
    shg(int phaseId,
