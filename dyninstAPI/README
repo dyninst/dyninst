@@ -35,15 +35,15 @@ libdyninstAPI_RT.so.1 (on Windows NT, libdyninstAPI_RT.dll).  If you have
 correctly set the DYNINST_ROOT and PLATFORM environment variables, then the
 proper pathname is:
 
-    $DYNINST_ROOT/lib/$PLATFORM/libdyninstAPI_RT.so.1
+    $DYNINST_ROOT/$PLATFORM/lib/libdyninstAPI_RT.so.1
 
 On Windows NT, you may instead simply put the directory
-%DYNINST_ROOT%/lib/%PLATFORM% in your path.
+%DYNINST_ROOT%/%PLATFORM%/lib in your path.
 
-On Unix-based systems, you will also need to add $DYNINST_ROOT/lib/$PLATFORM
+On Unix-based systems, you will also need to add $DYNINST_ROOT/$PLATFORM/lib
 to your LD_LIBRARY_PATH environment variable (LIBPATH on AIX,
 LD_LIBRARY64_PATH on Irix).  On Windows NT, you will instead need to add
-%DYNINST_ROOT%/lib/%PLATFORM% to your PATH environment variable.  This is so
+%DYNINST_ROOT%/%PLATFORM%/lib to your PATH environment variable.  This is so
 %that mutator applications can be linked dynamically with the Dyninst library.
 
 Notes on Using Dyninst with Linux
