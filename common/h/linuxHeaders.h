@@ -175,7 +175,7 @@ inline unsigned long int P_strtoul(const char *STRING, char **TAILPTR, int BASE)
   return (strtoul(STRING, TAILPTR, BASE));}
 
 /* BSD */
-inline int P_accept (int SOCK, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
+inline int P_accept (int SOCK, struct sockaddr *ADDR, socklen_t *LENGTH_PTR) {
   return (accept(SOCK, ADDR, LENGTH_PTR));}
 inline int P_bind(int socket, struct sockaddr *addr, size_t len) {
   return (bind(socket, addr, len));}
@@ -189,7 +189,7 @@ inline struct hostent * P_gethostbyname (const char *NAME) {
    return (getrusage(i, ru));} */
 inline struct servent * P_getservbyname (const char *NAME, const char *PROTO) {
   return (getservbyname(NAME, PROTO));}
-inline int P_getsockname (int SOCKET, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
+inline int P_getsockname (int SOCKET, struct sockaddr *ADDR, socklen_t *LENGTH_PTR) {
   return (getsockname(SOCKET, ADDR, LENGTH_PTR));}
 inline int P_getsockopt(int s, int level, int optname, void *optval, int *optlen) {
    return getsockopt(s, level, optname, (char*)optval, (unsigned int*)optlen);
