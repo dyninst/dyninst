@@ -1,22 +1,51 @@
 /*
- * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
- *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
- *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * Copyright (c) 1996 Barton P. Miller
  * 
- * This software is furnished under the condition that it may not be
- * provided or otherwise made available to, or used by, any other
- * person, except as provided for by the terms of applicable license
- * agreements.  No title to or ownership of the software is hereby
- * transferred.  The name of the principals may not be used in any
- * advertising or publicity related to this software without specific,
- * written prior authorization.  Any use of this software must include
- * the above copyright notice.
- *
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
+
 /* $Log: VMmain.C,v $
-/* Revision 1.40  1996/04/04 21:50:13  newhall
-/* added mi_limit to VMAddNewVisualization
+/* Revision 1.41  1996/08/16 21:09:24  tamches
+/* updated copyright for release 1.1
 /*
+ * Revision 1.40  1996/04/04 21:50:13  newhall
+ * added mi_limit to VMAddNewVisualization
+ *
  * Revision 1.39  1996/01/05 20:01:12  newhall
  * removed warnings
  *
@@ -29,118 +58,8 @@
  * Revision 1.36  1995/09/18  18:22:41  newhall
  * changes to avoid for-scope problem
  *
- * Revision 1.35  1995/09/08  19:51:27  krisna
- * stupid way to avoid the for-scope problem
- *
- * Revision 1.34  1995/08/12 22:28:48  newhall
- * Added VM_sequential_init and VM_post_thread_create_init. Changes to VMmain
- *
- * Revision 1.33  1995/08/11  21:51:39  newhall
- * added calls to VMmain to get initial set of visis from parsed PDL entries
- *
- * Revision 1.32  1995/08/01  02:18:50  newhall
- * changes to support phase interface
- *
- * Revision 1.31  1995/06/02  20:55:10  newhall
- * made code compatable with new DM interface
- * replaced List templates  with STL templates
- *
- * Revision 1.29  1995/02/16  08:23:18  markc
- * Changed Boolean to bool.
- * Changed wait loop code for igen messages
- *
- * Revision 1.28  1995/02/07  21:55:11  newhall
- * modified VMCreateVisi to get value for forceProcessStart from either
- * the caller or the visi table
- *
- * Revision 1.27  1995/01/26  17:59:17  jcargill
- * Changed igen-generated include files to new naming convention; fixed
- * some bugs compiling with gcc-2.6.3.
- *
- * Revision 1.26  1994/11/04  06:41:31  newhall
- * removed printfs
- *
- * Revision 1.25  1994/11/04  03:59:30  karavan
- * Removed status line displays
- *
- * Revision 1.24  1994/11/03  21:35:15  krisna
- * status lines for active visis.
- *
- * Revision 1.23  1994/10/10  02:51:52  newhall
- * purify fixes
- *
- * Revision 1.22  1994/09/30  21:20:10  newhall
- * added interface function VMStringToMetResPair
- * changed parameters to VMCreateVisi to take list of metrespair
- *
- * Revision 1.21  1994/09/25  01:53:03  newhall
- * updated to support the changes to the  visi, UI and VM interfaces having
- * to do with a new representation of metric/focus lists as a list of
- * metric/focus pairs.
- *
- * Revision 1.20  1994/09/22  01:21:32  markc
- * access tid using getTid() method
- *
- * Revision 1.19  1994/09/05  20:05:36  jcargill
- * Fixed read-before-write of thread stack data (spotted by purify)
- *
- * Revision 1.18  1994/08/17  01:44:55  markc
- * Correction, recommitted incorrect file, this should be the correct one.
- * Adds strdups to VMAddNewVisualization.
- *
- * Revision 1.17  1994/08/17  01:09:03  markc
- * VMAddNewVisualization now strdup's the strings passed to it.
- *
- * Revision 1.16  1994/08/16  16:35:53  markc
- * Removed uses of old string iterators.  Added new VMAddNewVisualization function to support config language.
- *
- * Revision 1.15  1994/08/13  20:54:26  newhall
- * visi_thread_args def. changed
- * VMCreateVisi arguments changed
- *
- * Revision 1.14  1994/08/01  17:20:32  newhall
- * bug fixes to VMVisiDied and VMCreateVisi
- *
- * Revision 1.13  1994/07/28  22:33:07  krisna
- * proper starting sequence for VMmain thread
- *
- * Revision 1.12  1994/07/12  17:03:50  newhall
- * added error handling
- *
- * Revision 1.11  1994/07/07  17:28:00  newhall
- * fixed compile warnings
- *
- * Revision 1.10  1994/07/07  03:27:00  markc
- * Removed reading of configuration file, which is now supported by the
- * configuration language.
- *
- * Revision 1.9  1994/06/29  02:56:47  hollings
- * AFS path changes
- *
- * Revision 1.8  1994/05/22  16:40:58  newhall
- * *** empty log message ***
- *
- * Revision 1.7  1994/05/22  01:58:53  newhall
- * fixed problem with thr_create arguments in VMCreateVisi
- *
- * Revision 1.6  1994/05/11  21:32:26  newhall
- * changed location of VMconfig.file
- *
- * Revision 1.5  1994/05/11  17:28:25  newhall
- * test version 3
- *
- * Revision 1.4  1994/05/09  21:16:53  hollings
- * added PARADYNCONFIG environment varaible for local spec. of visualizations.
- *
- * Revision 1.3  1994/04/28  22:08:34  newhall
- * test version 2
- *
- * Revision 1.2  1994/04/10  19:07:22  newhall
- * *** empty log message ***
- *
- * Revision 1.1  1994/04/09  21:23:47  newhall
- * test version
- * */
+ */
+
 #include "thread/h/thread.h"
 #include "VM.thread.SRVR.h"
 #include "UI.thread.CLNT.h"

@@ -1,17 +1,42 @@
 /*
- * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
- *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
- *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * Copyright (c) 1996 Barton P. Miller
  * 
- * This software is furnished under the condition that it may not be
- * provided or otherwise made available to, or used by, any other
- * person, except as provided for by the terms of applicable license
- * agreements.  No title to or ownership of the software is hereby
- * transferred.  The name of the principals may not be used in any
- * advertising or publicity related to this software without specific,
- * written prior authorization.  Any use of this software must include
- * the above copyright notice.
- *
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
 
 /*
@@ -21,6 +46,9 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.h,v $
+ * Revision 1.11  1996/08/16 21:03:27  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.10  1996/07/26 07:28:12  karavan
  * bug fix: eliminated race condition from data subscription code.  Changed
  * data structures used as indices in class filteredDataServer.  Obsoleted

@@ -1,3 +1,43 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
 
 /* metMain contains the functions that are called by the parser to support the
  * configuration language.  The functions are:
@@ -10,6 +50,9 @@
 
 /*
  * $Log: metMain.C,v $
+ * Revision 1.32  1996/08/16 21:12:21  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.31  1996/04/19 18:28:32  naim
  * Adding a procedure that will be called when we want to add a new process,
  * as it is done using the "paradyn process" command - naim
@@ -38,81 +81,6 @@
  * Revision 1.24  1995/11/13 14:58:36  naim
  * Adding "mode" option to the Metric Description Language to allow specificacion
  * of developer mode for metrics (default mode is "normal") - naim
- *
- * Revision 1.23  1995/11/03  18:33:51  tamches
- * changed Paradynrc_NEW to paradyn.rc and
- * .Paradynrc_NEW to .paradyn.rc
- *
- * Revision 1.22  1995/10/13 19:37:35  naim
- * Minor change for handling PAUSE and RUN buttons when a process is created
- * from a MDL file - naim
- *
- * Revision 1.21  1995/09/18  22:35:22  mjrg
- * Added directory command.
- * Removed host and user from daemon declaration.
- * Changed host and directory fields to string.
- *
- * Revision 1.20  1995/08/18  21:59:07  mjrg
- * Added calls to metDoDaemon, metDoProcess, metDoTunable.
- *
- * Revision 1.19  1995/08/11  21:50:55  newhall
- * removed calls to metDoDaemon,metDoVisi,metDoProcess,metDoTunable from metMain
- * added metVisiSize, and metgetVisi functions
- *
- * Revision 1.18  1995/06/02  20:49:01  newhall
- * made code compatable with new DM interface
- * fixed problem with force option in visiDef
- * fixed hpux link errors
- *
- * Revision 1.17  1995/05/18  10:58:29  markc
- * mdl
- *
- * Revision 1.16  1995/03/30  15:32:37  jcargill
- * Fixed a minor UMR purify turned up
- *
- * Revision 1.15  1995/02/27  18:59:02  tamches
- * The use of tunable constants has changed to reflect the new
- * "tunableConstantRegistry" class and the new TCthread.
- *
- * Revision 1.14  1995/02/16  08:24:18  markc
- * Changed Boolean to bool.
- * Changed calls to igen functions to use strings/vectors rather than
- * char*'s/arrays
- *
- * Revision 1.13  1995/02/07  21:59:52  newhall
- * added a force option to the visualization definition, this specifies
- * if the visi should be started before metric/focus menuing
- * removed compiler warnings
- *
- * Revision 1.12  1994/12/21  07:38:43  tamches
- * Removed uses of tunableConstant::allConstants, which became a private
- * class variable.
- *
- * Revision 1.11  1994/12/21  05:50:15  tamches
- * Used the new tunableConstant::findTunableConstant() instead of
- * manually tinkering with tunable constant internal vrbles, which
- * is no longer allowed.
- *
- * Revision 1.10  1994/11/03  02:46:47  krisna
- * removed bare prototype for gethostname
- *
- * Revision 1.9  1994/10/10  02:52:51  newhall
- * removed the default visi: HISTOGRAM_REALTIME
- *
- * Revision 1.8  1994/09/25  01:55:08  newhall
- * changed arguments to VMAddNewVisualization
- *
- * Revision 1.7  1994/09/22  01:22:05  markc
- * Set default args
- *
- * Revision 1.6  1994/08/22  15:53:23  markc
- * Config language version 2.
- *
- * Revision 1.2  1994/07/07  13:10:41  markc
- * Turned off debugging printfs.
- *
- * Revision 1.1  1994/07/07  03:25:25  markc
- * Configuration language parser.
  *
  */
 

@@ -1,17 +1,42 @@
 /*
- * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
- *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
- *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * Copyright (c) 1996 Barton P. Miller
  * 
- * This software is furnished under the condition that it may not be
- * provided or otherwise made available to, or used by, any other
- * person, except as provided for by the terms of applicable license
- * agreements.  No title to or ownership of the software is hereby
- * transferred.  The name of the principals may not be used in any
- * advertising or publicity related to this software without specific,
- * written prior authorization.  Any use of this software must include
- * the above copyright notice.
- *
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
 
 /*
@@ -20,6 +45,9 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.31  1996/08/16 21:03:46  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.30  1996/08/16 07:07:53  karavan
  * minor code cleanup
  *
@@ -86,55 +114,6 @@
  * changed costTracker:  we now use min of active Processes and number of
  * cpus, instead of just number of cpus; also now we average only across
  * time intervals rather than cumulative average.
- *
- * Revision 1.22  1996/04/18 20:43:19  tamches
- * uiRequestBuff no longer a pointer; numUIrequests no longer needed
- *
- * Revision 1.21  1996/04/16 18:36:14  karavan
- * BUG FIX.
- *
- * Revision 1.20  1996/04/14 03:21:16  karavan
- * bug fix:  added size member to shg class for use in UI batching.
- *
- * Revision 1.19  1996/04/13 04:42:32  karavan
- * better implementation of batching for new edge requests to UI shg display
- *
- * changed type returned from datamgr->magnify and datamgr->magnify2
- *
- * Revision 1.18  1996/04/07 21:29:46  karavan
- * split up search ready queue into two, one global one current, and moved to
- * round robin queue removal.
- *
- * eliminated startSearch(), combined functionality into activateSearch().  All
- * search requests are for a specific phase id.
- *
- * changed dataMgr->enableDataCollection2 to take phaseID argument, with needed
- * changes internal to PC to track phaseID, to avoid enable requests being handled
- * for incorrect current phase.
- *
- * added update of display when phase ends, so all nodes changed to inactive display
- * style.
- *
- * Revision 1.17  1996/03/18 07:13:11  karavan
- * Switched over to cost model for controlling extent of search.
- *
- * Added new TC PCcollectInstrTimings.
- *
- * Revision 1.16  1996/02/22 18:28:43  karavan
- * changed debug print calls from dataMgr->getFocusName to
- * dataMgr->getFocusNameFromHandle
- *
- * changed GUI node styles from #defines to enum
- *
- * added searchHistoryGraph::updateDisplayedStatus()
- *
- * Revision 1.15  1996/02/09 05:31:43  karavan
- * changes to support multiple per-phase searches
- *
- * added true full name for search nodes.
- *
- * Revision 1.14  1996/02/02 02:07:35  karavan
- * A baby Performance Consultant is born!
  *
  */
 

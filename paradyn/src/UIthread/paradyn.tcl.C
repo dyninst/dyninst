@@ -1,13 +1,58 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
 /* paradyn.tcl.C
 
    This code implements the tcl "paradyn" command.  See the README file for 
    command descriptions.
 
 */
+
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.72  1996/05/06 17:17:59  newhall
-/* changed call to enableDataRequest
+/* Revision 1.73  1996/08/16 21:06:59  tamches
+/* updated copyright for release 1.1
 /*
+ * Revision 1.72  1996/05/06 17:17:59  newhall
+ * changed call to enableDataRequest
+ *
  * Revision 1.71  1996/05/06  13:45:13  naim
  * Fixing problem with continueProc - naim
  *
@@ -31,231 +76,6 @@
  *
  * Revision 1.65  1996/02/16  20:11:58  tamches
  * paradynProcessCmd now calls expand_tilde_pathname
- *
- * Revision 1.64  1996/02/15 22:46:02  tamches
- * added applicationDefined
- *
- * Revision 1.63  1996/02/02 01:01:32  karavan
- * Changes to support the new PC/UI interface
- *
- * Revision 1.62  1996/01/09 01:39:57  tamches
- * added phaseId argument to paradyn shg getNodeInfo
- *
- * Revision 1.61  1996/01/09 01:03:36  tamches
- * extra error checking in "paradyn shg getNodeInfo"
- *
- * Revision 1.60  1996/01/08 22:09:40  tamches
- * added "paradyn shg getNodeInfo <id>" command, which calls
- * the (not yet implemented) perfConsult->getNodeInfo(id) igen call.
- *
- * Revision 1.59  1995/12/08 05:50:05  tamches
- * removed some warnings
- *
- * Revision 1.58  1995/12/01 06:39:18  tamches
- * removed some warnings
- *
- * Revision 1.57  1995/11/28 15:49:36  naim
- * Adding boolean parameter to getAvailableMetric - naim
- *
- * Revision 1.56  1995/11/08  06:25:22  tamches
- * removed some warnings
- *
- * Revision 1.55  1995/11/08 05:11:10  tamches
- * no longer prints a msg when a tunable constant value is changed
- *
- * Revision 1.54  1995/11/07 03:11:31  tamches
- * allowed blank directory names in paradynProcessCmd, fixing a bug of last commit
- *
- * Revision 1.53  1995/11/07 01:31:45  tamches
- * directory names in the "start a process" dialog box can now begin
- * with ~ or ~some-user-name.  This solution was modeled after
- * Tcl_TildeSubst (in the tcl source code)
- *
- * Revision 1.52  1995/11/06 19:27:17  tamches
- * removed a lot of warnings under g++ 2.7.0
- *
- * Revision 1.51  1995/11/03 21:19:55  naim
- * Adding paradyn exit command - naim
- *
- * Revision 1.50  1995/10/30  23:07:07  naim
- * Minor fix: eliminating error message from status_line destructor by relocating
- * object declarations to a better place in the code. "static" declarations were
- * also changed to global declarations, so we use "new" the first time were we
- * reference them - naim
- *
- * Revision 1.49  1995/10/17  20:54:56  tamches
- * class abstractions is no longer templated
- *
- * Revision 1.48  1995/10/13 19:37:26  naim
- * Minor change for handling PAUSE and RUN buttons when a process is created
- * from a MDL file - naim
- *
- * Revision 1.47  1995/10/06  19:53:32  naim
- * Fixing bug: pressing RUN while defining a process produces a core dump. Now,
- * the RUN and PAUSE keys are disabled while a process is being defined - naim
- *
- * Revision 1.46  1995/10/05  04:33:07  karavan
- * changes to paradyn search and paradyn shg commands to support new igen
- * interface.
- * deleted commented obsolete code.
- *
- * Revision 1.45  1995/09/18  22:32:45  mjrg
- * Added directory command.
- *
- * Revision 1.44  1995/08/07  00:01:31  tamches
- * Added waSetAbstraction, waSelect, and waUnselect
- *
- * Revision 1.43  1995/08/01  02:18:31  newhall
- * changes to support phase interface
- *
- * Revision 1.42  1995/06/26  19:40:39  tamches
- * Removed references to tunable constant print member function;
- * we now print manually
- *
- * Revision 1.41  1995/06/02  20:50:43  newhall
- * made code compatable with new DM interface
- *
- * Revision 1.40  1995/02/27  18:56:48  tamches
- * Changes to reflect the new TCthread.
- *
- * Revision 1.39  1995/02/16  08:20:52  markc
- * Changed Boolean to bool
- * Changed wait loop code for igen messages
- *
- * Revision 1.38  1995/02/07  21:52:54  newhall
- * changed parameters to VMCreateVisi call
- *
- * Revision 1.37  1995/01/26  17:59:04  jcargill
- * Changed igen-generated include files to new naming convention; fixed
- * some bugs compiling with gcc-2.6.3.
- *
- * Revision 1.36  1994/12/21  07:39:51  tamches
- * Removed uses of tunableConstant::allConstants, which became a private
- * class variable.
- *
- * Revision 1.35  1994/12/21  00:43:14  tamches
- * used the new findTunableConstant() method function, instead of doing it
- * by looking into tc's data members (which is no longer allowed).
- *
- * Revision 1.34  1994/11/11  15:12:35  rbi
- * causing serious illness to debugging printf()
- *
- * Revision 1.33  1994/11/10  17:35:57  rbi
- * physical illness and possible death in the family
- *
- * Revision 1.32  1994/11/07  08:25:14  jcargill
- * Added ability to suppress search on children of a resource, rather than
- * the resource itself.
- *
- * Revision 1.31  1994/11/04  16:29:08  rbi
- * Added paradyn daemon command
- *
- * Revision 1.30  1994/11/03  20:25:08  krisna
- * added status_lines for application name and application status
- *
- * Revision 1.29  1994/11/01  05:42:35  karavan
- * some minor performance and warning fixes
- *
- * Revision 1.28  1994/09/25  01:54:12  newhall
- * updated to support changes in VM, and UI interface
- *
- * Revision 1.27  1994/09/22  01:17:53  markc
- * Cast stringHandles to char*s in printf statements
- *
- * Revision 1.26  1994/08/22  15:55:29  markc
- * Added extra argument to addExecutable call.
- *
- * Revision 1.25  1994/08/13  20:55:33  newhall
- * changed call to VMCreateVisi
- *
- * Revision 1.24  1994/08/08  20:15:25  hollings
- * added suppress instrumentation command.
- *
- * Revision 1.23  1994/08/05  16:04:28  hollings
- * more consistant use of stringHandle vs. char *.
- *
- * Revision 1.22  1994/08/03  19:10:25  hollings
- * split tunable constant into boolean and float types.
- *
- * Revision 1.21  1994/07/25  14:58:15  hollings
- * added suppress resource option.
- *
- * Revision 1.20  1994/07/07  03:27:36  markc
- * Changed expected result of call to dataMgr->addExecutable
- *
- * Revision 1.19  1994/07/03  05:00:24  karavan
- * bug fix: removed call to delete name returned from getCanonicalName()
- *
- * Revision 1.18  1994/07/02  01:44:13  markc
- * Removed aggregation operator from enableDataCollection call.
- *
- * Revision 1.17  1994/06/14  15:20:17  markc
- * Added extra arg to enableDataCollection call.  This is probably temporaray
- * since the data manager or configuration language will specify this info.
- *
- * Revision 1.16  1994/05/31  19:11:49  hollings
- * Changes to permit direct access to resources and resourceLists.
- *
- * Revision 1.15  1994/05/26  21:26:10  karavan
- * corrected return value for Process command, to return TCL_ERROR if call
- * to Add_Executable fails.
- *
- * Revision 1.14  1994/05/18  00:50:12  hollings
- * added pid argument to core command.
- *
- * Revision 1.13  1994/05/12  23:34:16  hollings
- * made path to paradyn.h relative.
- *
- * Revision 1.12  1994/05/09  20:59:27  hollings
- * Changed paradyn shg start to clearSHG not init it.
- *
- * Revision 1.11  1994/05/06  06:40:06  karavan
- * added shg start command
- *
- * Revision 1.10  1994/05/05  02:13:29  karavan
- * moved CmdTabEntry definition from paradyn.tcl.C to UIglobals.h
- *
- * Revision 1.9  1994/05/02  20:38:31  hollings
- * added search pause command and shg commands.
- *
- * Revision 1.8  1994/04/27  22:55:09  hollings
- * Merged refine auto and search.
- *
- * Revision 1.7  1994/04/21  23:24:51  hollings
- * added process command.
- *
- * Revision 1.6  1994/04/19  22:09:14  rbi
- * Added new tcl commands and updated "enable" to return met id
- *
- * Revision 1.5  1994/04/10  19:12:12  newhall
- * added visi command
- *
- * Revision 1.4  1994/04/09  18:37:20  hollings
- * Fixed paramter to tunable constant to work.
- *
- * Revision 1.3  1994/04/06  22:40:15  markc
- * Included assert.h.
- *
- * Revision 1.2  1994/04/05  23:49:25  rbi
- * Fixed a bunch of tcl related stuff.
- *
- * Revision 1.1  1994/04/05  04:42:38  karavan
- * initial version of UI thread code and tcl paradyn command
- * */
-
-/*
- * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
- *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
- *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
- * 
- * This software is furnished under the condition that it may not be
- * provided or otherwise made available to, or used by, any other
- * person, except as provided for by the terms of applicable license
- * agreements.  No title to or ownership of the software is hereby
- * transferred.  The name of the principals may not be used in any
- * advertising or publicity related to this software without specific,
- * written prior authorization.  Any use of this software must include
- * the above copyright notice.
  *
  */
 

@@ -1,29 +1,57 @@
 /*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
+/*
  * UIpublic.C : exported services of the User Interface Manager thread 
  *              of Paradyn
  *
  */
  
-/*
- * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
- *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
- *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
- * 
- * This software is furnished under the condition that it may not be
- * provided or otherwise made available to, or used by, any other
- * person, except as provided for by the terms of applicable license
- * agreements.  No title to or ownership of the software is hereby
- * transferred.  The name of the principals may not be used in any
- * advertising or publicity related to this software without specific,
- * written prior authorization.  Any use of this software must include
- * the above copyright notice.
- *
- */
-
 /* $Log: UIpublic.C,v $
-/* Revision 1.57  1996/05/07 18:05:56  newhall
-/* added threadExiting routine
+/* Revision 1.58  1996/08/16 21:06:48  tamches
+/* updated copyright for release 1.1
 /*
+ * Revision 1.57  1996/05/07 18:05:56  newhall
+ * added threadExiting routine
+ *
  * Revision 1.56  1996/05/01  20:54:20  tamches
  * added DAGinactivateEntireSearch
  *
@@ -53,58 +81,7 @@
  * data manager, the UI is notified by the performance consultant.  This prevents
  * a race condition.
  *
- * Revision 1.48  1996/04/01 22:42:14  tamches
- * added UI_all_metric_names, UI_all_metrics_set_yet
- * removed uim_AvailMets etc.
- * new params in call to getMetsAndRes
- *
- * Revision 1.47  1996/03/08 00:15:53  tamches
- * where appropriate, some more showError() calls pass empty string as 2d arg
- *
- * Revision 1.46  1996/02/23 22:10:01  naim
- * Adding igen call to display status line (fixes a deadlock situation) - naim
- *
- * Revision 1.45  1996/02/21  22:28:10  tamches
- * correct handling of blank 2d arg to showError
- *
- * Revision 1.44  1996/02/15 23:08:02  tamches
- * added correct support for why vs. where axis refinement in the shg
- *
- * Revision 1.43  1996/02/11 18:22:48  tamches
- * internal cleanup; more tk window names parameterized
- *
- * Revision 1.42  1996/02/07 21:46:57  tamches
- * defineNewSearch returns bool
- *
- * Revision 1.41  1996/02/07 19:06:13  tamches
- * initSHG gone
- * root node now TopLevelHypothesis instead of Whole Program
- * deferred phase adding features
- *
- * Revision 1.40  1996/02/02 18:42:17  tamches
- * Global search initialized when the shg window is
- * UIM::initShg should now be unused
- * new cleaner shgPhases routines corresponding to the PC-->UI igen calls
- *
- * Revision 1.39  1996/02/02 01:01:28  karavan
- * Changes to support the new PC/UI interface
- *
- * Revision 1.38  1996/01/30 23:04:22  tamches
- * removed include to obsolete file shgDisplay.h
- *
- * Revision 1.37  1996/01/23 06:56:42  tamches
- * uim_VisiSelections no longer a ptr
- * int2style reworked for 7 styles
- * new "label" arg for DAGaddEdge (for shadow nodes)
- *
- * Revision 1.36  1996/01/11 23:40:41  tamches
- * int2style now handles 6 styles instead of 4
- *
- * Revision 1.35  1996/01/09 00:46:52  tamches
- * added phaseID argument in call to "new shg"; removed it from call to
- * theShgPhases->add
- *
- * */
+ */
 
 #include <stdio.h>
 #include <string.h>

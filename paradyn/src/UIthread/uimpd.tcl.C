@@ -1,11 +1,56 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
 /* uimpd.C
    this file contains implementation of "uimpd" tcl command.  This command
    is used internally by the UIM.
 */
+
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.34  1996/05/07 18:06:00  newhall
-/* added threadExiting routine
+/* Revision 1.35  1996/08/16 21:07:31  tamches
+/* updated copyright for release 1.1
 /*
+ * Revision 1.34  1996/05/07 18:06:00  newhall
+ * added threadExiting routine
+ *
  * Revision 1.33  1996/04/01  22:31:47  tamches
  * refs to uim_AvailMets etc. gone
  * added UI_all_metric_names, UI_all_metrics_set_yet
@@ -20,111 +65,8 @@
  * Revision 1.30  1996/02/02 01:01:36  karavan
  * Changes to support the new PC/UI interface
  *
- * Revision 1.29  1996/02/01 01:39:23  tamches
- * oops, fixed a minor vrble name misspelling
  *
- * Revision 1.28  1996/02/01 01:35:33  tamches
- * suppressed duplicate of "Whole Program" which was sometimes being generated
- *
- * Revision 1.27  1996/01/30 23:04:01  tamches
- * removed include to obsolete file shgDisplay.h
- *
- * Revision 1.26  1996/01/23 07:11:25  tamches
- * uim_VisiSelections no longer a ptr
- *
- * Revision 1.25  1996/01/11 04:43:04  tamches
- * replaced parseSelections - memory leaks gone, runs more efficiently,
- * and doesn't add spurious metric/focus pairs when Whole Program is chosen
- * Changed processVisiSelection to use the new parseSelections and to reduce
- * memory leaks
- *
- * Revision 1.24  1995/11/08 06:26:11  tamches
- * removed some warnings
- *
- * Revision 1.23  1995/11/06 02:35:05  tamches
- * removed some warnings w/g++2.7
- *
- * Revision 1.22  1995/10/17 22:12:24  tamches
- * commented out closeDAGCmd, addEStyleCmd, addNStyleCmd,
- * refineSHGCmd, hideSubgraphCmd, showAllNodesCmd, shgShortExplainCmd,
- * highlightNodeCmd, and unhighlightNodeCmd.  These things were either
- * obsoleted for the new shg or (as in the case of refine) haven't
- * been implemented yet.
- *
- * Revision 1.21  1995/10/13 22:08:07  newhall
- * added call to dataManager::getResourceLabelName
- *
- * Revision 1.20  1995/10/05  04:35:06  karavan
- * changes to support search display changes including igen interfaces and
- * paradyn search and paradyn shg commands.
- * removed obsolete and commented code.
- *
- * Revision 1.19  1995/09/08  19:51:16  krisna
- * stupid way to avoid the for-scope problem
- *
- * Revision 1.18  1995/08/01 02:18:33  newhall
- * changes to support phase interface
- *
- * Revision 1.17  1995/07/17 05:09:06  tamches
- * Many changes related to the new where axis.  Some code was
- * no longer needed and hence commented out.  Other code unrelated
- * to the where axis was left alone.  But nothing much was added to
- * this file
- *
- * Revision 1.16  1995/06/11  22:59:47  karavan
- * changed error handling for new node type.
- *
- * Revision 1.15  1995/06/02  20:50:44  newhall
- * made code compatable with new DM interface
- *
- * Revision 1.14  1994/11/07  00:34:09  karavan
- * Added default node to root for each subtree if number of user selections
- * is 0 within that subtree.  This change plus elimination of default clearing
- * of the axis on the screen (mets.tcl) implements new selection semantics.
- *
- * Revision 1.13  1994/11/02  23:30:05  karavan
- * added showError command for error access from within tcl code
- *
- * Revision 1.12  1994/11/01  05:44:26  karavan
- * changed resource selection process to support multiple focus selection
- * on a single display
- *
- * Revision 1.11  1994/10/26  23:14:09  tamches
- * Added tclTunable sub-command to command uimpd (see tclTunable.h and .C)
- *
- * Revision 1.10  1994/10/25  17:57:37  karavan
- * added Resource Display Objects, which support display of multiple resource
- * abstractions.
- *
- * Revision 1.9  1994/10/09  02:28:07  karavan
- * Many updates related to the switch to the new UIM/visiThread resource/metric
- * selection interface, and to resource selection directly on the nodes.
- *
- * Revision 1.8  1994/09/25  01:54:14  newhall
- * updated to support changes in VM, and UI interface
- *
- * Revision 1.7  1994/09/24  01:10:00  rbi
- * Added #include of stdlib.h to get correct prototype for atof()
- * and thereby fix the SHG display bug.
- *
- * Revision 1.6  1994/09/22  01:17:26  markc
- * Added const to char* for args in compare function
- *
- * Revision 1.5  1994/09/21  15:35:24  karavan
- * added addNStyle and addEStyle commands
- *
- * Revision 1.4  1994/08/01  20:24:42  karavan
- * new version of dag; new dag support commands
- *
- * Revision 1.3  1994/05/12  23:34:18  hollings
- * made path to paradyn.h relative.
- *
- * Revision 1.2  1994/05/07  23:26:48  karavan
- * added short explanation feature to shg.
- *
- * Revision 1.1  1994/05/05  19:54:03  karavan
- * initial version.
- * */
+ */
  
 #include <stdlib.h>
 #include "tcl.h"
