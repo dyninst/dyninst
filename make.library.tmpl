@@ -5,7 +5,10 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.library.tmpl,v $
-# Revision 1.7  1996/01/05 19:51:52  tamches
+# Revision 1.8  1996/11/26 16:02:19  naim
+# Implementation of cross-compiler (sparc-solaris,x86-solaris)->rs6000 - naim
+#
+# Revision 1.7  1996/01/05  19:51:52  tamches
 # igen --> $(IGEN)
 #
 # Revision 1.6  1995/08/24 15:00:54  hollings
@@ -49,13 +52,13 @@ OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 ifndef UNCOMMON_LINK
 $(TARGET): $(OBJS)
 	@rm -f $(TARGET)
-	ar crv $(TARGET) $(OBJS)
+	$(AR) crv $(TARGET) $(OBJS)
 	$(RANLIB) $(TARGET)
 
 ifdef TARGET2
 $(TARGET2): $(OBJS2)
 	@rm -f $(TARGET2)
-	ar crv $(TARGET2) $(OBJS2)
+	$(AR) crv $(TARGET2) $(OBJS2)
 	$(RANLIB) $(TARGET2)
 endif  # TARGET2
 endif  # UNCOMMON_LINK
@@ -132,7 +135,6 @@ endif
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
 
 pure:
-
 
 
 #

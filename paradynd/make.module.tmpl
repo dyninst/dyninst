@@ -62,8 +62,8 @@ SRCS	     +=	../src/pvm_support.C \
 		../src/task_support.C \
 		../src/templatesPVM.C
 
-CXXFLAGS     +=	-DPARADYND_PVM
-LIBS	     +=	-lpvm3
+CXXFLAGS	+= -DPARADYND_PVM
+LIBS		+= -lpvm3
 
 endif
 
@@ -81,7 +81,12 @@ IGEN_GEN_SRCS = dyninstRPC.xdr.SRVR.C \
 IGEN_ISRCS    = dyninstRPC.I
 
 LIBS		+= -lpdutil
-SYSLIBS		+= -liberty
+
+ifdef CROSSCOMPILER
+SYSLIBS		+= -liberty -lg++ -lstdc++ -lm
+else
+SYSLIBS         += -liberty
+endif
 
 IFLAGS       += -I../$(PLATFORM) -I../src
 

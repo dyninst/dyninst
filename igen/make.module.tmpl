@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.5  1995/12/26 22:58:59  zhichen
+# Revision 1.6  1996/11/26 16:02:29  naim
+# Implementation of cross-compiler (sparc-solaris,x86-solaris)->rs6000 - naim
+#
+# Revision 1.5  1995/12/26  22:58:59  zhichen
 # Moved -lfl to syslibs
 #
 # Revision 1.4  1995/05/18  11:13:50  markc
@@ -33,6 +36,11 @@ SRCS 	     += ../src/main.C \
 
 LIBS 	     += -lpdutil
 SYSLIBS	     += -lfl
+
+ifdef CROSSCOMPILER
+SYSLIBS      += -lstdc++
+endif
+
 CXXFLAGS       += $(USEFULWARNINGS) 
 
 all:	$(TARGET)

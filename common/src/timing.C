@@ -41,7 +41,11 @@
 
 
 #include "util/h/Timer.h"
+#if defined(rs6000_ibm_aix4_1)
+#define NOPS_4  asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0")
+#else
 #define NOPS_4  asm("nop"); asm("nop"); asm("nop"); asm("nop")
+#endif
 #define NOPS_16 NOPS_4; NOPS_4; NOPS_4; NOPS_4
 
 double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {

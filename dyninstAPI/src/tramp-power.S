@@ -50,6 +50,10 @@
  */
 #include "as-power.h"
 
+#if defined(rs6000_ibm_aix4_1)
+#define nop oril 0,0,0
+#endif
+
 /*
  * This is the base where a tramp jumps off.
  *
