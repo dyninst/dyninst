@@ -39,7 +39,7 @@
 # incur to third parties resulting from your use of Paradyn.
 #
 
-# $Id: shg.tcl,v 1.22 2004/03/23 19:12:14 eli Exp $
+# $Id: shg.tcl,v 1.23 2005/03/14 23:07:08 mjbrim Exp $
 
 proc shgChangeCurrLabelHeight {numlines} {
    if {[winfo exists .shg.nontop.labelarea.current]} {
@@ -178,12 +178,14 @@ proc shgDrawKey {} {
 
    label $rightLabels.key2 -relief groove \
 	   -text "instrumented; shadow node" \
+           -font {helvetica 10 {bold italic}} \
 	   -foreground ivory \
 	   -background gray
    pack  $rightLabels.key2 -side top -fill x
 
    label $rightLabels.key3 -relief groove \
 	   -text "uninstrumented; shadow node" \
+           -font {helvetica 10 {bold italic}} \
 	   -foreground black \
 	   -background gray
    pack  $rightLabels.key3 -side top -fill x
