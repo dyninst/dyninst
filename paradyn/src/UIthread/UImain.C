@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.107 2003/05/27 03:30:26 schendel Exp $
+// $Id: UImain.C,v 1.108 2003/05/28 22:17:03 bernat Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -445,6 +445,8 @@ void *UImain(void*) {
 		develModeCallback,
 		userConstant);
 
+    // See comment in VISIthread/VISIthreadmain.C
+#if 0
 	tunableConstantRegistry::createFloatTunableConstant
 		("EnableRequestPacketSize",
 		 "Enable request packet size",
@@ -453,6 +455,7 @@ void *UImain(void*) {
 		 10.0, // initial value
 		 1.0, // min
 		 100.0); // max
+#endif
 
 	// initialize tunable constants
     tunableBooleanConstantDeclarator tcWaShowTips("showWhereAxisTips",
