@@ -16,20 +16,24 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.55  1996/04/30 06:26:55  karavan
-/* change PC pause function so cost-related metric instances aren't disabled
-/* if another phase is running.
+/* Revision 1.56  1996/04/30 18:56:59  newhall
+/* changes to support the asynchrounous enable data calls to the DM
+/* this code contains a kludge to make the PC wait for the DM's async response
 /*
-/* fixed bug in search node activation code.
-/*
-/* added change to treat activeProcesses metric differently in all PCmetrics
-/* in which it is used; checks for refinement along process hierarchy and
-/* if there is one, uses value "1" instead of enabling activeProcesses metric.
-/*
-/* changed costTracker:  we now use min of active Processes and number of
-/* cpus, instead of just number of cpus; also now we average only across
-/* time intervals rather than cumulative average.
-/*
+ * Revision 1.55  1996/04/30  06:26:55  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.54  1996/04/22 17:59:24  newhall
  * added comments, minor change to getPredictedDataCostAsync
  *
@@ -171,8 +175,18 @@ void PCfold(perfStreamHandle,
 // the call to getPredictedDataCost is handled in a truely asynchronous
 // manner, then this routine should contain the code to handle the upcall
 // from the DM
-void PCpredData(metricHandle,resourceListHandle,float){
-    // cout << "PCpredData: THIS SHOULD NEVER EXECUTE" << endl;
+void PCpredData(metricHandle ,resourceListHandle ,float ){
+    cout << "PCpredData: THIS SHOULD NEVER EXECUTE" << endl;
+}
+// Currently this routine never executes because of a kludge 
+// that receives the response message from the DM before a call to this
+// routine is made.  This routine must still be registered with the DM on
+// createPerformanceStream, otherwise the DM will not send the response
+// message.  If the PC is changed so that the call to getPredictedDataCost
+// is handled in a truely asynchronous manner, then this routine should
+// contain the code to handle the upcall from the DM
+void PCenableDataCallback(vector<metricInstInfo> *,  u_int){
+    cout << "PCenableDataCallback: THIS SHOULD NEVER EXECUTE" << endl;
 }
 //
 // here's the kludge for above...
@@ -318,11 +332,17 @@ void PCmain(void* varg)
     memset(&controlHandlers, '\0', sizeof(controlHandlers));
     controlHandlers.fFunc = PCfold;
     controlHandlers.pFunc = PCphase;
+
     // The PC has to register a callback routine for predictedDataCost callbacks
     // even though there is a kludge in the PC to receive the msg before the
     // callback routine is called (PCpredData will never execute).  This is 
     // to maintain consistency in how the DM handles all callback functions.
     controlHandlers.cFunc = PCpredData;
+
+    // The PC has to register a callback routine for enableDataRequest callbacks
+    // even though there is a kludge in the PC to receive the msg before the
+    // callback routine is called (PCnewDataCallback will never execute).  
+    controlHandlers.eFunc  = PCenableDataCallback;
     dataHandlers.sample = PCnewDataCallback;
     filteredDataServer::initPStoken(dataMgr->createPerformanceStream(Sample,
 					       dataHandlers, controlHandlers));

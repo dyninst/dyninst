@@ -21,7 +21,11 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
- * Revision 1.12  1996/04/30 06:26:49  karavan
+ * Revision 1.13  1996/04/30 18:56:57  newhall
+ * changes to support the asynchrounous enable data calls to the DM
+ * this code contains a kludge to make the PC wait for the DM's async response
+ *
+ * Revision 1.12  1996/04/30  06:26:49  karavan
  * change PC pause function so cost-related metric instances aren't disabled
  * if another phase is running.
  *
@@ -409,10 +413,50 @@ filteredDataServer::resubscribeAllData()
 	t1=TESTgetTime(); 
       }
 #endif
-      curr = dataMgr->enableDataCollection2(filteredDataServer::pstream, 
-					    AllDataFilters[i]->getFocus(), 
-					    AllDataFilters[i]->getMetric(),
-					    phType, dmPhaseID, 1, 0);
+      
+      vector<metricRLType> *request = new vector<metricRLType>;
+      metricRLType request_entry(AllDataFilters[i]->getMetric(),
+		                 AllDataFilters[i]->getFocus());
+      *request += request_entry;
+      assert(request->size() == 1);
+      // make async request to enable data
+      dataMgr->enableDataRequest2(filteredDataServer::pstream,request,
+				  0,phType,dmPhaseID,1,0);
+
+      // KLUDGE wait for DM's async response
+      bool ready=false;
+      vector<metricInstInfo> *response;
+      // wait for response from DM
+      while(!ready){
+	  T_dataManager::msg_buf buffer;
+	  T_dataManager::message_tags waitTag;
+	  tag_t tag = T_dataManager::enableDataCallback_REQ;
+	  int from = msg_poll(&tag, true);
+	  assert(from != THR_ERR);
+	  if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
+	      waitTag = dataMgr->waitLoop(true,
+			(T_dataManager::message_tags)tag,&buffer);
+              if(waitTag == T_dataManager::enableDataCallback_REQ){
+		  ready = true;
+		  response = buffer.enableDataCallback_call.response;
+		  buffer.enableDataCallback_call.response = 0;
+	      }
+	      else {
+		  cout << "error PC wait data enable resp:tag invalid" << endl;
+		  assert(0);
+	      }
+	  }
+	  else{
+	      cout << "error PC wait data enable resp:tag invalid" << endl;
+	      assert(0);
+	  }
+      } // while(!ready)
+      curr = 0;
+      // if this MI was successfully enabled
+      if(response && (*response)[0].successfully_enabled) {
+	  curr = new metricInstanceHandle;
+	  *curr = (*response)[0].mi_id; 
+      }
 
 #ifdef PCDEBUG
       // -------------------------- PCDEBUG ------------------
@@ -482,8 +526,51 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
     t1=TESTgetTime(); 
   }
 #endif
-  index = dataMgr->enableDataCollection2 (filteredDataServer::pstream, 
-					  f, mh, phType, dmPhaseID, 1, 0);
+
+      vector<metricRLType> *request = new vector<metricRLType>;
+      metricRLType request_entry(mh,f);
+      *request += request_entry;
+      assert(request->size() == 1);
+      // make async request to enable data
+      dataMgr->enableDataRequest2(filteredDataServer::pstream,request,
+				  0,phType,dmPhaseID,1,0);
+
+      // KLUDGE wait for DM's async response
+      bool ready=false;
+      vector<metricInstInfo> *response;
+
+      // wait for response from DM
+      while(!ready){
+	  T_dataManager::msg_buf buffer;
+	  T_dataManager::message_tags waitTag;
+	  tag_t tag = T_dataManager::enableDataCallback_REQ;
+	  int from = msg_poll(&tag, true);
+	  assert(from != THR_ERR);
+	  if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
+	      waitTag = dataMgr->waitLoop(true,
+			(T_dataManager::message_tags)tag,&buffer);
+              if(waitTag == T_dataManager::enableDataCallback_REQ){
+		  ready = true;
+		  response = buffer.enableDataCallback_call.response;
+		  buffer.enableDataCallback_call.response = 0;
+	      }
+	      else {
+		  cout << "error PC wait data enable resp:tag invalid" << endl;
+		  assert(0);
+	      }
+	  }
+	  else{
+	      cout << "error PC wait data enable resp:tag invalid" << endl;
+	      assert(0);
+	  }
+      } // while(!ready)
+      index = 0;
+      // if this MI was successfully enabled
+      if(response && (*response)[0].successfully_enabled) {
+	  index = new metricInstanceHandle;
+	  *index = (*response)[0].mi_id; 
+      }
+
 #ifdef PCDEBUG
   if (performanceConsultant::collectInstrTimings) {
     t2=TESTgetTime();
