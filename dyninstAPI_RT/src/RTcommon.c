@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.31 2003/02/04 14:59:36 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.32 2003/02/10 16:45:59 bernat Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -106,6 +106,10 @@ static void initFPU()
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
 int isMutatedExec = 0;
+#else
+void RTmutatedBinary_init() {
+    return;
+}
 #endif
 
 /*
