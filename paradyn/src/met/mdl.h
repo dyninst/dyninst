@@ -40,18 +40,19 @@
 #define MDL_T_WALL_TIMER 40
 #define MDL_T_PROCESS 41
 #define MDL_T_DRN     42
-#define MDL_T_SCALAR_END 42
+#define MDL_T_COUNTER_PTR 43
+#define MDL_T_SCALAR_END 43
 
-#define MDL_T_LIST_BASE 43
-#define MDL_T_LIST_INT 43
-#define MDL_T_LIST_FLOAT 44
-#define MDL_T_LIST_STRING 45
-#define MDL_T_LIST_PROCEDURE 46
-#define MDL_T_LIST_MODULE 47
-#define MDL_T_LIST_POINT 48
-#define MDL_T_LIST_END 48
+#define MDL_T_LIST_BASE 53
+#define MDL_T_LIST_INT 53
+#define MDL_T_LIST_FLOAT 54
+#define MDL_T_LIST_STRING 55
+#define MDL_T_LIST_PROCEDURE 56
+#define MDL_T_LIST_MODULE 57
+#define MDL_T_LIST_POINT 58
+#define MDL_T_LIST_END 58
 
-#define MDL_T_NONE 50
+#define MDL_T_NONE 59
 
 #define MDL_PREPEND 60
 #define MDL_APPEND  61

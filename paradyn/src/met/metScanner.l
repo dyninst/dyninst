@@ -1,6 +1,9 @@
 %{
 /*
  * $Log: metScanner.l,v $
+ * Revision 1.11  1996/03/20 17:04:22  mjrg
+ * Changed mdl to support calls with multiple arguments.
+ *
  * Revision 1.10  1995/12/18 23:22:14  newhall
  * changed metric units type so that it can have one of 3 values (normalized,
  * unnormalized or sampled)
@@ -113,6 +116,7 @@ IDENT	{DOLLAR}?{ALPHA}({ALPHA}|{DIGIT}|_)*
 COMMENT	{SLASH}{SLASH}
 %%
 i
+"&"             { return(tAMPERSAND);}
 "$"		{ return(tDOLLAR);}
 "="		{ return(tASSIGN);}
 "+"		{ return(tPLUS);}

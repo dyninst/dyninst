@@ -3,6 +3,9 @@
 
 /*
  * $Log: metParser.y,v $
+ * Revision 1.19  1996/03/20 17:04:20  mjrg
+ * Changed mdl to support calls with multiple arguments.
+ *
  * Revision 1.18  1996/03/01 22:49:16  mjrg
  * Added type to resources.
  * Changes to the MDL to support the resource hierarchy.
@@ -104,7 +107,7 @@ extern void handle_error();
 %token tRES_LIST tVISI tUSER tDIR tFALSE tTRUE tFORCE
 
 %token tT_PROCEDURE tT_MODULE tT_STRING tT_INT tT_FLOAT tTRUE tFALSE tDEFAULT
-%token tFOREACH tLPAREN tRPAREN tLBLOCK tRBLOCK tCOLON tDOLLAR
+%token tFOREACH tLPAREN tRPAREN tLBLOCK tRBLOCK tCOLON tDOLLAR tAMPERSAND
 %token tMETRIC tUNS tBASE tNAME tUNITS tBASE tIS tFUNCTION_CALL
 %token tCOUNTER tAGG tAVG tSUM tMIN tMAX tDOT tW_TIME tP_TIME
 %token tAPPEND tPREPEND tDERIVED tIF tREPLACE tCONSTRAINT tCONSTRAINED
@@ -354,7 +357,6 @@ position: tAPPEND { $$.u = MDL_APPEND; }
 
 instr_expr: instr_rand {
   $$.expr.rand1 = $1.rand; $$.expr.bin_op = MDL_T_NONE;
-  $$.expr.rand2.str = NULL; $$.expr.rand2.str2 = NULL;
 } | instr_rand instr_op instr_rand {
   $$.expr.rand1 = $1.rand; $$.expr.rand2 = $3.rand; $$.expr.bin_op = $2.u;
 };
@@ -366,74 +368,48 @@ instr_op: tLT       { $$.u = MDL_LT; }
         | tEQ       { $$.u = MDL_EQ; }
         | tNE       { $$.u = MDL_NE; };
 
-// TODO -- note the type for constraints is not known yet
-// It could be known, but I am delaying the processing until apply is called
+instr_rands: instr_rands tCOMMA instr_rand {
+  $$.pars = $1.pars;
+  (*($$.pars)) += $3.rand;
+} | instr_rand {
+  $$.pars = new vector<T_dyninstRPC::mdl_instr_rand *>;
+  (*($$.pars)) += $1.rand;
+};
+
 instr_rand: tIDENT                       {
                                            if (*$1.sp == "$constraint") {
-					     string msg;
-#ifdef notdef
-					     if (!hack_in_cons) {
-					       msg = string("Error: using $constraint as a variable outside of constraint definition\n");  
-					       yyerror(P_strdup(msg.string_of()));
-					       exit(-1);
-					     } else if (hacked_cons_type != MDL_T_INT) {
-					       string msg;
-					       msg = string("Error: using $constraint with non-integer type in instrumentation expression\n");
-					       yyerror(P_strdup(msg.string_of()));
-					       exit(-1);
-					     }
-#endif
-					     $$.rand.type = MDL_T_INT;
-					     $$.rand.str = new string("$constraint");
-					     $$.rand.str2 = new string("s");
+					     $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_INT, string("$constraint"));
 					   } else {
-					     $$.rand.type = MDL_T_COUNTER;
-					     $$.rand.str = $1.sp;
-					     $$.rand.str2 = new string("s");
+					     $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_COUNTER, *$1.sp);
 					   }
 					 }
-          | tUNS                         { $$.rand.type = MDL_T_INT; $$.rand.arg = $1.u;
-					   $$.rand.str = new string("s");
-					   $$.rand.str2 = new string("s"); }
-          | tARG tLSQUARE tUNS tRSQUARE  { $$.rand.type = MDL_ARG; $$.rand.arg = $3.u;
-					   $$.rand.str = new string("s");
-					   $$.rand.str2 = new string("s"); }
-          | tRETURN                      { $$.rand.type = MDL_RETURN; $$.rand.arg = 0;
-					   $$.rand.str = new string("s"); 
-					   $$.rand.str2 = new string("s"); }
+          | tAMPERSAND tIDENT            { $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_COUNTER_PTR, *$2.sp); }
+          | tUNS                         { $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_INT, $1.u); }
+          | tARG tLSQUARE tUNS tRSQUARE  { $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_ARG, $3.u); }
+          | tRETURN                      { $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_RETURN); }
           | tREAD_SYMBOL tLPAREN tLITERAL tRPAREN {
-	                                   $$.rand.type = MDL_READ_SYMBOL; $$.rand.arg = 0;
-					   $$.rand.str = $3.sp;
-					   $$.rand.str2 = new string("s"); }
+	                                   $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_READ_SYMBOL, *$3.sp); }
           | tREAD_ADDRESS tLPAREN tUNS tRPAREN {
-                                           $$.rand.type = MDL_READ_ADDRESS;
-					   $$.rand.arg = $3.u;
-					   $$.rand.str = new string("s");
-					   $$.rand.str2 = new string("s"); }
-          | tFUNCTION_CALL tLPAREN tLITERAL tCOMMA tUNS tRPAREN  {
-	                                   $$.rand.type = MDL_CALL_FUNC;
-					   $$.rand.str = $3.sp; $$.rand.arg = $5.u;
-					   $$.rand.str2 = new string("s"); }
-          | tFUNCTION_CALL tLPAREN tLITERAL tCOMMA tIDENT tRPAREN  {
-	                                   $$.rand.type = MDL_CALL_FUNC;
-					   $$.rand.str = $3.sp; $$.rand.arg = $5.u;
-					   $$.rand.str2 = $5.sp;
-					 };
+	                                   $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_READ_ADDRESS, $3.u); }
+          | tFUNCTION_CALL tLPAREN tLITERAL tRPAREN {
+	                                   $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_CALL_FUNC, *$3.sp); }
+          | tFUNCTION_CALL tLPAREN tLITERAL tCOMMA instr_rands tRPAREN {
+	                                   $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_CALL_FUNC, *$3.sp, *$5.pars); }
+          | tIDENT tLPAREN instr_rands tRPAREN {
+	                                   $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_CALL_FUNC, *$1.sp, *$3.pars); }
+          | tIDENT tLPAREN tRPAREN {
+                                           $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_CALL_FUNC, *$1.sp); }
 
-// TODO -- allow the function call to be passed $arg
 
 instr_req: tSET_COUNTER tLPAREN tIDENT tCOMMA instr_rand tRPAREN tSEMI {
-  $$.instr_req = new T_dyninstRPC::mdl_instr_req($5.rand.type, $5.rand.arg, *$5.rand.str,
-						 *$5.rand.str2, MDL_SET_COUNTER, *$3.sp);
-  delete $3.sp; delete $5.rand.str; delete $5.rand.str2;
+  $$.instr_req = new T_dyninstRPC::mdl_instr_req($5.rand, MDL_SET_COUNTER, *$3.sp);
+  delete $3.sp;
 } | tADD_COUNTER tLPAREN tIDENT tCOMMA instr_rand tRPAREN tSEMI {
-  $$.instr_req = new T_dyninstRPC::mdl_instr_req($5.rand.type, $5.rand.arg, *$5.rand.str,
-						 *$5.rand.str2, MDL_ADD_COUNTER, *$3.sp);
-  delete $3.sp; delete $5.rand.str; delete $5.rand.str2;
+  $$.instr_req = new T_dyninstRPC::mdl_instr_req($5.rand, MDL_ADD_COUNTER, *$3.sp);
+  delete $3.sp;
 } | tSUB_COUNTER tLPAREN tIDENT tCOMMA instr_rand tRPAREN tSEMI {
-  $$.instr_req = new T_dyninstRPC::mdl_instr_req($5.rand.type, $5.rand.arg, *$5.rand.str,
-						 *$5.rand.str2, MDL_SUB_COUNTER, *$3.sp);
-  delete $3.sp; delete $5.rand.str; delete $5.rand.str2;
+  $$.instr_req = new T_dyninstRPC::mdl_instr_req($5.rand, MDL_SUB_COUNTER, *$3.sp);
+  delete $3.sp;
 } | tSTART_PROC_TIMER tLPAREN tIDENT tRPAREN tSEMI { 
   $$.instr_req = new T_dyninstRPC::mdl_instr_req(MDL_START_PROC_TIMER, *$3.sp);
   delete $3.sp; 
@@ -446,25 +422,19 @@ instr_req: tSET_COUNTER tLPAREN tIDENT tCOMMA instr_rand tRPAREN tSEMI {
 } | tSTOP_WALL_TIMER tLPAREN tIDENT tRPAREN tSEMI {
   $$.instr_req = new T_dyninstRPC::mdl_instr_req(MDL_STOP_WALL_TIMER, *$3.sp);
   delete $3.sp; 
-} | tIDENT tLPAREN instr_rand tRPAREN tSEMI {
-  $$.instr_req = new T_dyninstRPC::mdl_instr_req($3.rand.type, $3.rand.arg, *$3.rand.str,
-						 *$3.rand.str2, MDL_CALL_FUNC, *$1.sp);
-  delete $1.sp; delete $3.rand.str; delete $3.rand.str2;
-};
+} | instr_rand tSEMI {
+  if ($1.rand->type_ == MDL_CALL_FUNC)
+    $$.instr_req = new T_dyninstRPC::mdl_instr_req(MDL_CALL_FUNC, $1.rand);
+  else
+    yyerror("Illegal instrumentation request");
+}    
+
 
 instr_code: tIF tLPAREN instr_expr tRPAREN instr_req {
-  $$.i_code = new T_dyninstRPC::mdl_icode($3.expr.rand1.type, $3.expr.rand1.arg,
-					  *$3.expr.rand1.str,
-					  $3.expr.rand2.type, $3.expr.rand2.arg,
-					  *$3.expr.rand2.str,
+  $$.i_code = new T_dyninstRPC::mdl_icode($3.expr.rand1, $3.expr.rand2,
 					  $3.expr.bin_op, true, $5.instr_req);
-  delete $3.expr.rand1.str; delete $3.expr.rand2.str; 
-  delete $3.expr.rand1.str2; delete $3.expr.rand2.str2; 
 } | instr_req {
-  string empty;
-  $$.i_code = new T_dyninstRPC::mdl_icode(0, 0, empty,
-					  0, 0, empty,
-					  0, false, $1.instr_req);
+  $$.i_code = new T_dyninstRPC::mdl_icode(0, 0, 0, false, $1.instr_req);
 };
 
 instr_code_list:                   { $$.icode_v = new vector<T_dyninstRPC::mdl_icode*>; }

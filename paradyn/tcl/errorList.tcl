@@ -1,6 +1,9 @@
 
 #
 # $Log: errorList.tcl,v $
+# Revision 1.21  1996/03/20 17:04:36  mjrg
+# Changed mdl to support calls with multiple arguments.
+#
 # Revision 1.20  1996/03/12 20:41:19  mjrg
 # Improved handling of process termination.
 # New version of aggregateSample to support adding and removing components
@@ -781,4 +784,25 @@ focus selection from the where axis.
 }
 }
 
-set numPdErrors 93 
+set pdError(94) {
+{Too many arguments to function call in instrumentation code.}
+{paradynd}
+{serious error}
+{An instrumentation request includes a function call with too many arguments.
+The maximum number of arguments that can be passed to a function is platform 
+dependent.
+}
+}
+
+set pdError(95) {
+{Unable to find symbol for metric definition.}
+{paradynd}
+{information}
+{Paradyn could not enable a metric because the metric definition has a 
+function call or tries to read the value of a symbol with readSymbol, 
+but paradyn could not find the symbol in the application symbol
+tables.
+}
+}
+
+set numPdErrors 95

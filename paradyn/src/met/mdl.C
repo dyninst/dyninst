@@ -1,6 +1,9 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.16  1996/03/20 17:04:16  mjrg
+ * Changed mdl to support calls with multiple arguments.
+ *
  * Revision 1.15  1996/03/09 19:53:16  hollings
  * Fixed a call to apply that was passing NULL where a vector was expected.
  *
@@ -34,7 +37,6 @@ dictionary_hash<unsigned, vector<mdl_type_desc> > mdl_data::fields(ui_hash);
 vector<mdl_focus_element> mdl_data::foci;
 vector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
 
-static bool do_instr_rand(u_int arg_type, u_int arg_val, string& arg_name, string& a2);
 static bool do_operation(mdl_var& ret, mdl_var& left, mdl_var& right, unsigned bin_op);
 
 
@@ -302,15 +304,74 @@ T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id, vector<string>
     return cons;
 }
 
-T_dyninstRPC::mdl_instr_req::mdl_instr_req(u_int a_type, u_int a_val, string a_name,
-					   string a_name_2, u_int type, string obj_name)
-: arg_type_(a_type), arg_val_(a_val), arg_name_(a_name), arg_name_2_(a_name_2),
-  type_(type), timer_counter_name_(obj_name) { }
+
+T_dyninstRPC::mdl_rand::mdl_rand() {}
+
+T_dyninstRPC::mdl_instr_rand::mdl_instr_rand() {}
+
+T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type)
+: type_(type), val_(0), name_(""), args_(0) {}
+
+T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type, u_int val)
+: type_(type), val_(val), name_(""), args_(0) {}
+
+T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type, string name)
+: type_(type), val_(0), name_(name), args_(0) {}
+
+T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type, string name, vector<mdl_instr_rand *>args)
+: type_(type), val_(0), name_(name) {
+  for (unsigned u = 0; u < args.size(); u++)
+    args_ += args[u];
+}
+
+T_dyninstRPC::mdl_instr_rand::~mdl_instr_rand() { } 
+
+
+bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&) {
+  AstNode *ast;
+  switch (type_) {
+  case MDL_T_INT:
+    break;
+  case MDL_ARG:
+    // TODO -- check arg_ that is used as register index
+    // Check the legality of this -- or allow to be used anywhere ?
+    break;
+  case MDL_RETURN:
+    break;
+  case MDL_READ_SYMBOL:
+    break;
+  case MDL_READ_ADDRESS:
+    break;
+  case MDL_CALL_FUNC:
+    for (unsigned u = 0; u < args_.size(); u++)
+      if (!args_[u]->apply(ast))
+	return false;
+    break;
+  case MDL_T_COUNTER:
+    break;
+  case MDL_T_COUNTER_PTR:
+    break;
+  default:
+    cout << "invalid operand\n";
+    return false;
+  }
+  return true;
+}
+
+
+T_dyninstRPC::mdl_instr_req::mdl_instr_req() { }
+
+T_dyninstRPC::mdl_instr_req::mdl_instr_req(T_dyninstRPC::mdl_instr_rand *rand,
+					   u_int type, string obj_name)
+: type_(type), rand_(rand), timer_counter_name_(obj_name) { }
 
 T_dyninstRPC::mdl_instr_req::mdl_instr_req(u_int type, string obj_name)
-: type_(type), timer_counter_name_(obj_name) { }
+: type_(type), rand_(0), timer_counter_name_(obj_name) { }
 
-T_dyninstRPC::mdl_instr_req::mdl_instr_req() : type_(0) { }
+T_dyninstRPC::mdl_instr_req::mdl_instr_req(u_int type,
+					   T_dyninstRPC::mdl_instr_rand *rand)
+: type_(type), rand_(rand), timer_counter_name_("") { }
+
 T_dyninstRPC::mdl_instr_req::~mdl_instr_req() { }
 
 //
@@ -319,15 +380,16 @@ T_dyninstRPC::mdl_instr_req::~mdl_instr_req() { }
 // XXXX   silently deletes metrics from considuration.  Debugging MDL is almost
 // XXXX   impossible.  jkh 7/6/95.
 //
-bool T_dyninstRPC::mdl_instr_req::apply(AstNode *& , AstNode * ) {
+bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&, AstNode * ) {
+  AstNode *ast;
   switch (type_) {
   case MDL_SET_COUNTER:
   case MDL_ADD_COUNTER:
   case MDL_SUB_COUNTER:
   case MDL_CALL_FUNC:
-  case MDL_CALL_FUNC_COUNTER:
-    // handle instr_rand
-    if (!do_instr_rand(arg_type_, arg_val_, arg_name_, arg_name_2_)) return false;
+    if (!rand_->apply(ast))
+      return false;
+    break;
   }
 
   // skip all this crude for a function call, must check at runtime in
@@ -343,7 +405,6 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode *& , AstNode * ) {
   case MDL_SUB_COUNTER:
   // should not have a timer as the first argument here. - jkh 7/6/95.
   // case MDL_CALL_FUNC:
-  case MDL_CALL_FUNC_COUNTER:
     if (timer.type() != MDL_T_COUNTER) return false;
     break;
   case MDL_START_WALL_TIMER:
@@ -418,25 +479,25 @@ bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode * ,
   return (mdl_env::add(id_, false, list_type));
 }
 
-T_dyninstRPC::mdl_icode::mdl_icode() { }
-T_dyninstRPC::mdl_icode::mdl_icode(u_int iop1, u_int ival1, string str1,
-				   u_int iop2, u_int ival2, string str2,
+T_dyninstRPC::mdl_icode::mdl_icode() {}
+T_dyninstRPC::mdl_icode::mdl_icode(T_dyninstRPC::mdl_instr_rand *iop1,
+				   T_dyninstRPC::mdl_instr_rand *iop2,
 				   u_int bin_op, bool use_if,
 				   T_dyninstRPC::mdl_instr_req *ireq)
-: if_op1_(iop1), if_val1_(ival1), if_str1_(str1),
-  if_op2_(iop2), if_val2_(ival2), if_str2_(str2),
+: if_op1_(iop1),
+  if_op2_(iop2),
   bin_op_(bin_op), use_if_(use_if), req_(ireq) { }
 T_dyninstRPC::mdl_icode::~mdl_icode() { delete req_; }
 
 bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn) {
+  AstNode *ast;
   if (!req_) return false;
   if (use_if_) {
     string empty;
-    if (!do_instr_rand(if_op1_, if_val1_, if_str1_, empty)) return false;
-
+    if (!if_op1_->apply(ast)) return false;
     switch (bin_op_) {
     case MDL_LT:  case MDL_GT:  case MDL_LE:  case MDL_GE:  case MDL_EQ:  case MDL_NE:
-      if (!do_instr_rand(if_op2_, if_val2_, if_str2_, empty)) return false;
+      if (!if_op2_->apply(ast)) return false;
       break;
     case MDL_T_NONE:
       break;
@@ -962,66 +1023,3 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val, mdl_var& right_val, un
   return false;
 }
 
-bool do_instr_rand(u_int arg_type, u_int , string& , string& ) {
-  switch (arg_type) {
-  case MDL_T_INT:
-    break;
-  case MDL_ARG:
-    // TODO -- check arg_ that is used as register index
-    // Check the legality of this -- or allow to be used anywhere ?
-    break;
-  case MDL_RETURN:
-    break;
-  case MDL_READ_SYMBOL:
-    break;
-  case MDL_READ_ADDRESS:
-    break;
-  case MDL_CALL_FUNC:
-    break;
-  case MDL_CALL_FUNC_COUNTER:
-    break;
-  case MDL_T_COUNTER:
-    break;
-  default:
-    cout << "invalid operand\n";
-    return false;
-  }
-  return true;
-}
-
-#ifdef notdef
-void hack_cons_type(vector<string> *str_vec) {
-  hack_in_cons = true;
-  hacked_cons_type = MDL_T_NONE;
-  unsigned size = str_vec->size();
-  if (!size || (size==1)) {
-    hack_in_cons = false; return;
-  }
-//  if ((*str_vec)[0] == "Procedure") {
-  if ((*str_vec)[0] == "Code") {
-    switch (size) {
-    case 2:
-      hacked_cons_type = MDL_T_MODULE;
-      break;
-    case 3:
-      hacked_cons_type = MDL_T_PROCEDURE;
-      break;
-    default:
-      hack_in_cons = false;
-    }
-  } else if ((*str_vec)[0] == "SyncObject") {
-    switch (size) {
-    case 1:
-      hacked_cons_type = MDL_T_STRING;
-    case 2:
-      if ((*str_vec)[1] == "MsgTag") {
-	hacked_cons_type = MDL_T_INT;
-      }
-      break;
-    default:
-      hack_in_cons = false;
-    }
-  } else 
-    hack_in_cons = false;
-}
-#endif

@@ -177,12 +177,35 @@ $ignore
 };
 
 $remote
-class mdl_instr_req {
-  u_int arg_type_;
-  u_int arg_val_;
-  string arg_name_;
-  string arg_name_2_;
+abstract class mdl_rand {
+$ignore
+public:
+  virtual ~mdl_rand() {}
+  virtual bool apply(AstNode *&) = 0;
+$ignore
+};
+
+$remote
+class mdl_instr_rand: mdl_rand {
   u_int type_;
+  u_int val_;
+  string name_;
+  vector<T_dyninstRPC::mdl_rand *> args_;
+$ignore
+public:
+  mdl_instr_rand(u_int type);
+  mdl_instr_rand(u_int type, u_int val);
+  mdl_instr_rand(u_int type, string name);
+  mdl_instr_rand(u_int type, string name, vector<T_dyninstRPC::mdl_instr_rand *>args);
+  ~mdl_instr_rand();
+  virtual bool apply(AstNode *&);
+$ignore
+};
+
+$remote
+class mdl_instr_req {
+  u_int type_;
+  T_dyninstRPC::mdl_instr_rand *rand_;
   string timer_counter_name_;
 
 $ignore
@@ -190,9 +213,11 @@ public:
   // start and stop timers, read symbol
   mdl_instr_req(u_int type, string name);
 
-  // for counters, call_func
-  mdl_instr_req(u_int arg_type, u_int arg_val, string arg_name, string arg_name_2,
-		u_int type, string obj_name);
+  // for counters
+  mdl_instr_req(T_dyninstRPC::mdl_instr_rand *arg, u_int type, string obj_name);
+
+  // for calls
+  mdl_instr_req(u_int type, T_dyninstRPC::mdl_instr_rand *rand);
 
   ~mdl_instr_req();
    bool apply(AstNode *&mn, AstNode *pred);
@@ -201,22 +226,15 @@ $ignore
 
 $remote
 class mdl_icode {
-  u_int if_op1_;
-  u_int if_val1_;
-  string if_str1_;
-
-  u_int if_op2_;
-  u_int if_val2_;
-  string if_str2_;
-
+  T_dyninstRPC::mdl_instr_rand *if_op1_;
+  T_dyninstRPC::mdl_instr_rand *if_op2_;
   u_int bin_op_;
   bool use_if_;
   mdl_instr_req *req_;
 
 $ignore
 public:
-  mdl_icode(u_int iop1, u_int ival1, string str1,
-	    u_int iop2, u_int ival2, string str2,
+  mdl_icode(T_dyninstRPC::mdl_instr_rand *iop1, T_dyninstRPC::mdl_instr_rand *iop2,
 	    u_int bop, bool use, T_dyninstRPC::mdl_instr_req *r);
   ~mdl_icode();
    bool apply(AstNode *&mn);
@@ -453,7 +471,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 35;
+    $version 36;
 
     //
     // Define a program to run. 

@@ -1,6 +1,9 @@
 
 /*
  * $Log: metParse.h,v $
+ * Revision 1.11  1996/03/20 17:04:19  mjrg
+ * Changed mdl to support calls with multiple arguments.
+ *
  * Revision 1.10  1995/12/18 23:22:11  newhall
  * changed metric units type so that it can have one of 3 values (normalized,
  * unnormalized or sampled)
@@ -238,16 +241,9 @@ class tunableMet;
 extern metError metParseError;
 extern const char *metParseError_list[6];
 
-typedef struct iop_struct {
-  unsigned type;
-  unsigned arg;
-  string *str;
-  string *str2;
-} iop_struct;
-
 typedef struct ie_struct {
-  iop_struct rand1;
-  iop_struct rand2;
+  T_dyninstRPC::mdl_instr_rand *rand1;
+  T_dyninstRPC::mdl_instr_rand *rand2;
   unsigned bin_op;
 } ie_struct;
 
@@ -281,7 +277,9 @@ struct parseStack {
   visiMet *vm;
   vector<string> *vs;
   ie_struct expr;
-  iop_struct rand;
+  T_dyninstRPC::mdl_instr_rand *rand;
+//  iop_struct rand;
+  vector<T_dyninstRPC::mdl_instr_rand *> *pars;
   T_dyninstRPC::mdl_instr_req *instr_req;
   vector <T_dyninstRPC::mdl_icode*> *icode_v;
   T_dyninstRPC::mdl_stmt *m_stmt;
