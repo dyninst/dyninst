@@ -10,10 +10,14 @@
 #include "process.h"
 #include "dyn_lwp.h"
 
+/* For emitInferiorRPC*(). */
+#include "rpcMgr.h"
+
 #include <sys/ptrace.h>
 #include <asm/ptrace.h>
 #include <asm/ptrace_offsets.h>
 #include <dlfcn.h>			// DLOPEN_MODE
+
 
 extern unsigned enable_pd_inferior_rpc_debug;
 
@@ -330,9 +334,7 @@ void printBinary( unsigned long long word, int start = 0, int end = 63 ) {
         } /* end printBinary() */
 
 /* FIXME: this almost certainly NOT the Right Place to keep this. */
-Address savedProcessGP;
-Address savedReturnAddress;
-Address savedPFS;
+Address savedPC;
 
 bool process::getDyninstRTLibName() {
     if (dyninstRT_name.length() == 0) {
@@ -357,13 +359,17 @@ bool process::getDyninstRTLibName() {
     return true;
 }
 
+extern registerSpace * regSpace;
 bool process::loadDYNINSTlib() {
-	/* Look for a function we can hijack to forcibly load dyninstapi_rt. */
+	/* Look for a function we can hijack to forcibly load dyninstapi_rt. 
+	   This is effectively an inferior RPC with the caveat that we're
+	   overwriting code instead of allocating memory from the RT heap. 
+	   (So 'hijack' doesn't mean quite what you might think.) */
 	Address entry = findFunctionToHijack(symbols, this);	// We can avoid using InsnAddr because we know 
 															// that function entry points are aligned.
 	if( !entry ) { return false; }
         
-	/* FIXME: Check the glibc version.  If it's not 2.2.x, die. */
+	/* FIXME: Check the glibc version.  If it's not appropriate, die. */
 
 	/* Fetch the name of the run-time library. */
 	const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
@@ -379,7 +385,7 @@ bool process::loadDYNINSTlib() {
 			} /* end if enviromental variable not found */
 		} /* end enviromental variable extraction */
 
-	/* Locate the entry point to dlopen. */
+	/* Locate the entry point to _dl_open(). */
 	bool err; Address dlopenAddr = findInternalAddress( "_dl_open", true, err );
 	assert( dlopenAddr );
 
@@ -387,113 +393,106 @@ bool process::loadDYNINSTlib() {
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
 	iAddr.saveBundlesTo( savedCodeBuffer, sizeof(savedCodeBuffer) / 16 );
 
-	/* Save the current GP. */
-	errno = 0;
-	pid_t pid = getPid();
-	savedProcessGP = P_ptrace( PTRACE_PEEKUSER, pid, PT_R1, 0 );
-	assert( ! errno );
+	/* Save the current PC. */
+	savedPC = getPC( pid );	
 
-	/* Save the current return address. */
-	savedReturnAddress = P_ptrace( PTRACE_PEEKUSER, pid, PT_B0, 0 );
-	assert( ! errno );
-
-	/* Save the current AR pfs. */
-	savedPFS = P_ptrace( PTRACE_PEEKUSER, pid, PT_AR_PFS, 0 );
-	assert( ! errno );
-
-	/* Write _dl_open()'s GP. */
-	Address dlopenGP = getTOCoffsetInfo( dlopenAddr );
-	assert( dlopenGP );
-	assert( P_ptrace( PTRACE_POKEUSER, pid, PT_R1, dlopenGP ) != -1 );
-
-	/* Write the string into the target's address space.
-	   We can't do the smart thing and write the name-string to
-	   shared memory, because dyninst doesn't currently _allocate_
-	   shared memory.  So we'll write it to the text space and hope
-	   that the function is long enough that we don't accidentally 
-	   write over something important. */
-
-	// FIXME: DLOPEN_CALL_LENGTH should come from the code generator.  See below.
-	iAddr.writeStringAtOffset( DLOPEN_CALL_LENGTH + 1, dyninstRT_name.c_str(), dyninstRT_name.length() );
-
-	/* Insert a function call.  The first argument should be a pointer
-	   to the string we just wrote; the second DLOPEN_MODE; and the   
-	   the third the return address of the current frame,
-	   that is, the location of the SIGILL-generating bundle we'll use
-	   to handleIfDueToDyninstLib() and restore the original code.  */
-
-	/* FIXME: replace with a call to the code generator once it's working? */
-	IA64_bundle dlopenCallBundles[DLOPEN_CALL_LENGTH];
+	/* _dl_open() takes three arguments: a pointer to the library name,
+	   the DLOPEN_MODE, and the return address of the current frame
+	   (that is, the location of the SIGILL-generating bundle we'll use
+	   to handleIfDueToDyninstLib()).  We construct the first here. */
+	   
+	/* Write the string to entry, and then move the PC to the next bundle. */
+	iAddr.writeStringAtOffset( 0, dyninstRT_name.c_str(), dyninstRT_name.length() );
+	Address firstInstruction = entry + dyninstRT_name.length();
+	firstInstruction -= (firstInstruction % 16);
+	firstInstruction += 0x10;
+	Address stringAddress = entry;
 	
-	/* We need three output registers. */
-	InsnAddr allocAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
-
-	IA64_instruction integerNOP( NOP_I );
-	uint64_t allocatedLocal, allocatedOutput, allocatedRotate;
-	assert( extractAllocatedRegisters( * allocAddr, & allocatedLocal, & allocatedOutput, & allocatedRotate ) );
-	Register out0 = allocatedLocal + allocatedOutput + 32;
-	Register out1 = out0 + 1; Register out2 = out1 + 1;
-
-	/* Generate a register space for the base tramp 'by hand.' */
-	Register deadRegisterList[3];
-	deadRegisterList[0] = out0;
-	deadRegisterList[1] = out1;
-	deadRegisterList[2] = out2;
-	registerSpace fnCallRegisterSpace( 3, deadRegisterList, 0, NULL );
-	IA64_instruction alteredAlloc = generateAllocInstructionFor( & fnCallRegisterSpace, 0, 3, 0 );
-
-	/* Generate the necessary instructions. */
-	IA64_instruction_x setStringPointer = generateLongConstantInRegister( out0, entry + ((DLOPEN_CALL_LENGTH + 1) * 16) );
-	IA64_instruction setMode = generateShortConstantInRegister( out1, DLOPEN_MODE );
-	IA64_instruction_x setReturnPointer = generateLongConstantInRegister( out2, entry + (DLOPEN_CALL_LENGTH * 16) );
-	IA64_instruction memoryNOP( NOP_M );
-	IA64_instruction_x branchLong = generateLongCallTo( dlopenAddr - (entry + (16 * (DLOPEN_CALL_LENGTH - 1))), 0 );
-
-	/* Bundle and insert them. */
-	dlopenCallBundles[0] = IA64_bundle( MIIstop, alteredAlloc, integerNOP, integerNOP );
-	dlopenCallBundles[1] = IA64_bundle( MLXstop, memoryNOP, setStringPointer );
-	dlopenCallBundles[2] = IA64_bundle( MLXstop, setMode, setReturnPointer );
-	dlopenCallBundles[3] = IA64_bundle( MLXstop, memoryNOP, branchLong );
-	iAddr.replaceBundlesWith( dlopenCallBundles, DLOPEN_CALL_LENGTH );
-
-	/* Generate SIGILL when _dl_open() returns. */
-	InsnAddr sigAddr = InsnAddr::generateFromAlignedDataAddress( entry + ((DLOPEN_CALL_LENGTH) * 16), this );
-	sigAddr.replaceBundleWith( generateTrapBundle() );
+	/* Now that we know where the code will start, move the PC there. */
+	changePC( pid, firstInstruction );
+	
+	/* At this point, we use the generic iRPC headers and trailers
+	   around the call to _dl_open.  (Note that pre-1.35 versions
+	   of this file had a simpler mechanism well-suited to boot-
+	   strapping a new port.  The current complexity is to handle
+	   the attach() case, where we don't know if execution was stopped
+	   at the entry the entry point to a function. */
+	
+	Address offset = 0;
+	ia64_bundle_t callBundles[ CODE_BUFFER_SIZE ];
+	Address maxOffset = (CODE_BUFFER_SIZE - 1) * sizeof( ia64_bundle_t );
+	bool ok = theRpcMgr->emitInferiorRPCheader( callBundles, offset );
+	assert( ok );
+	assert( offset < maxOffset );
+	
+	/* Generate the call to _dl_open with a large dummy constant as the
+	   the third argument to make sure we generate the same size code the second
+	   time around, with the correct "return address." (dyninstlib_brk_addr) */
+	pdvector< AstNode * > dlOpenArguments( 3 );
+	AstNode * dlOpenCall;
+	
+	dlOpenArguments[ 0 ] = new AstNode( AstNode::Constant, (void *)stringAddress );
+	dlOpenArguments[ 1 ] = new AstNode( AstNode::Constant, (void *)DLOPEN_MODE );
+	dlOpenArguments[ 2 ] = new AstNode( AstNode::Constant, (void *)0xFFFFFFFFFFFFFFFF );
+	dlOpenCall = new AstNode( "_dl_open", dlOpenArguments );
+	
+	/* Remember where we originally generated the call. */
+	Address originalOffset = offset;
+	
+	/* emitInferiorRPCheader() configures (the global) registerSpace for us. */
+	dlOpenCall->generateCode( this, regSpace, (char *)(& callBundles), offset, true, true );
+	
+	unsigned breakOffset, resultOffset, justAfterResultOffset;
+	ok = theRpcMgr->emitInferiorRPCtrailer( callBundles, offset, breakOffset, false, resultOffset, justAfterResultOffset );
+	assert( ok );
+	assert( offset < maxOffset );
 
 	/* Let everyone else know that we're expecting a SIGILL. */
-	dyninstlib_brk_addr = entry + ((DLOPEN_CALL_LENGTH) * 16);
+	dyninstlib_brk_addr = firstInstruction + breakOffset;
+
+	/* Clean up the reference counts before regenerating. */
+	removeAst( dlOpenCall );
+	removeAst( dlOpenArguments[ 2 ] );
+	
+	dlOpenArguments[ 2 ] = new AstNode( AstNode::Constant, (void *)dyninstlib_brk_addr );
+	dlOpenCall = new AstNode( "_dl_open", dlOpenArguments );
+	
+	/* Regenerate the call at the same original location with the correct constants. */
+	dlOpenCall->generateCode( this, regSpace, (char *)(& callBundles), originalOffset, true, true );
+
+	/* Clean up the reference counting. */
+	removeAst( dlOpenCall );
+	removeAst( dlOpenArguments[ 0 ] );
+	removeAst( dlOpenArguments[ 1 ] );
+	removeAst( dlOpenArguments[ 2 ] );
+
+	/* Write the call into the mutatee. */
+	InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( firstInstruction, this );
+	jAddr.writeBundlesFrom( (unsigned char *)(& callBundles), offset / 16 );
 
 	/* Let them know we're working on it. */
 	setBootstrapState( loadingRT );
 
-	/* We finished successfully. */
-	// /* DEBUG */ fprintf( stderr, "* Hijacked function at 0x%lx to force DYNINSTLIB loading, installed SIGILL at 0x%lx\n", entry, dyninstlib_brk_addr );
 	return true;
 	} /* end dlopenDYNINSTlib() */
 
 bool process::loadDYNINSTlibCleanup() {
 	/* We function did we hijack? */
-	Address entry = findFunctionToHijack(symbols, this);	// We can avoid using InsnAddr because we know 
-								// that function entry points are aligned.
-	if( !entry ) { assert( 0 ); }		
+	Address entry = findFunctionToHijack( symbols, this );	// We can avoid using InsnAddr because we know 
+															// that function entry points are aligned.
+	if( !entry ) { assert( 0 ); }
 
 	/* Restore the function we hijacked. */
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
 	iAddr.writeBundlesFrom( savedCodeBuffer, sizeof(savedCodeBuffer) / 16 );
 
-	/* Restore the GP, return address, and AR pfs. */
-	pid_t pid = getPid();
-	assert( P_ptrace( PTRACE_POKEUSER, pid, PT_R1, savedProcessGP ) != -1 );
-	assert( P_ptrace( PTRACE_POKEUSER, pid, PT_B0, savedReturnAddress ) != -1 );
-	assert( P_ptrace( PTRACE_POKEUSER, pid, PT_AR_PFS, savedPFS ) != -1 );
-
 	/* DYNINSTlib is finished loading; handle it. */
 	dyn->handleDYNINSTlibLoad( this );
 
-	/* Continue execution at the entry point. */
-	changePC( pid, entry );
+	/* Continue execution at the correct point. */
+	pid_t pid = getPid();
+	changePC( pid, savedPC );
 
-	// /* DEBUG */ fprintf( stderr, "* Handled trap due to dyninstLib.\n" );
 	return true;
 	} /* end loadDYNINSTlibCleanup() */
 
