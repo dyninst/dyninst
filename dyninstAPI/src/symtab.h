@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.145 2004/02/28 00:26:36 schendel Exp $
+// $Id: symtab.h,v 1.146 2004/03/10 20:25:24 eli Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -722,7 +722,7 @@ class module {
    // findFunctionFromAll(const pdstring &name,
    //		  pdvector<function_base *> *found) = 0;
 		
-   virtual void define() = 0;    // defines module to paradyn
+   virtual void define(process *proc) = 0;    // defines module to paradyn
    virtual pdvector<function_base *> *getFunctions() = 0;
 
 #ifndef BPATCH_LIBRARY
@@ -773,7 +773,7 @@ class pdmodule: public module {
    //    --  if we can do this on-the-fly
    void checkAllCallPoints();
 #endif
-   void define();    // defines module to paradyn
+   void define(process *proc);    // defines module to paradyn
 
    void updateForFork(process *childProcess, const process *parentProcess);
 
@@ -1025,7 +1025,7 @@ class image {
                        const pdstring &defName);
 
    // report modules to paradyn
-   void defineModules();
+   void defineModules(process *proc);
   
    //Add an extra pretty name to a known function (needed for handling
    //overloaded functions in paradyn)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.478 2004/03/09 17:44:55 chadd Exp $
+// $Id: process.C,v 1.479 2004/03/10 20:25:21 eli Exp $
 
 #include <ctype.h>
 
@@ -2533,6 +2533,9 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> argv,
 			       );
     // change this to a ctor that takes in more args
     assert(theProc);
+
+    img->defineModules(theProc);
+
 #ifdef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
     //the MIPS instruction generator needs the Gp register value to
     //correctly calculate the jumps.  In order to get it there it needs
@@ -3175,6 +3178,8 @@ bool AttachToCreatedProcess(int pid,const pdstring &progpath)
                                    );
 
     assert(ret);
+
+    img->defineModules(ret);
 
 #ifdef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
 
@@ -3938,6 +3943,9 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
         fprintf(stderr, "No image: failed parse\n");
         return false;
     }
+
+    img->defineModules(this);
+
     new_obj->addImage(img);
 
     // TODO: check for "is_elf64" consistency (Object)
@@ -5456,6 +5464,8 @@ void process::handleExecExit() {
           // err..what if we had attached?  Wouldn't a detach be appropriate in this case?
        return;
     }
+
+   img->defineModules(this);
 
     // delete proc->symbols ???  No, the image can be shared by more
     // than one process...images and instPoints can not be deleted...

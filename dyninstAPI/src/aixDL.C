@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.48 2004/03/05 16:51:23 bernat Exp $
+// $Id: aixDL.C,v 1.49 2004/03/10 20:25:19 eli Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -92,6 +92,7 @@ bool dynamic_linking::installTracing() {
     else {
         image *libc_image = image::parseImage(libc_desc, libc_desc->addr());
         assert(libc_image);
+        libc_image->defineModules(proc);
         loadFuncs = libc_image->findFuncVectorByPretty(pdstring("load1"));
     }
     assert(loadFuncs);
