@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.27 2003/03/29 03:27:53 hollings Exp $
+# $Id: Makefile,v 1.28 2003/04/18 22:35:33 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -7,7 +7,7 @@ TO_CORE	= 	../../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
 
-DEBUG_FLAG = -gstabs+
+DEBUG_FLAG = -g
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -25,6 +25,7 @@ MUTATEE_FLINKFLAGS += -g -ldl
 SYSLIBS += -lelf -ldl
 M_GXX = g++
 M_GCC = gcc
+
 # there is no "native" or OS-provided compiler for Linux!
 # we use the Portland Group compilers, as that's what we've currently got
 # (in future we probably also want to test with the KAI/Intel compilers)
@@ -37,7 +38,7 @@ NATIVE_FC = g77
 COMMA=,
 
 MINI_PLATFORM = x86
-TEST6_ASFLAGS = -f elf -l test6LS-x86.lst -dPLATFORM=$(PLATFORM)
+TEST6_ASFLAGS = -f elf -dPLATFORM=$(PLATFORM)
 TEST6_ASSUFFIX = asm
 
 # Include the module-specific Makefile, which defines everything about
@@ -54,7 +55,8 @@ else
 COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 endif
 
-MUTATEE_CFLAGS = -g $(ARCH_DEF)
+# As a test, don't include debug information in the mutatees.
+MUTATEE_CFLAGS = $(ARCH_DEF)
 
 EMPTY:=
 BLANK:=$(EMPTY) $(EMPTY)
@@ -68,7 +70,7 @@ ifeq ($(NATIVE_FC), $(MUTATEE_FC))
 COMPILER = g77
 endif
 
-MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
+MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"' -g
 
 ifdef DETACH_ON_THE_FLY
 MUTATEE_CFLAGS += -DDETACH_ON_THE_FLY
@@ -78,7 +80,7 @@ ifeq (test1,$(findstring test1,$(TARGET2)))
 # test1.mutatee loads libtestA.so & libtestB.so for tests 21 & 22
 # and these libraries need access to global variables in test1.mutatee
 #MUTATEE_CFLAGS += -rdynamic
-MUTATEE_CFLAGS += -Wl,-export-dynamic
+MUTATEE_CFLAGS += -g -Wl,-export-dynamic
 endif
 
 ifeq ($(NATIVE_FC), $(MUTATEE_FC))
@@ -103,11 +105,13 @@ ifeq (test1,$(findstring test1,$(TARGET2)))
 MUTATEE_SRC	+=	../src/call35_1_x86_linux.s
 endif
 
+# (remove debug information for testing)
 libtestA.o:
-	$(CC) -g -fpic -c ../src/libtestA.c
+	$(CC) -fpic -c ../src/libtestA.c
 
+# (remove debug information for testing)
 libtestB.o:
-	$(CC) -g -fpic -c ../src/libtestB.c
+	$(CC) -fpic -c ../src/libtestB.c
 
 libtestA.so: libtestA.o
 	$(CC) -shared -o libtestA.so libtestA.o
@@ -119,6 +123,4 @@ libtestB.so: libtestB.o
 # common targets like "clean", "install", etc.
 
 include $(TO_CORE)/make.program.tmpl
-
-
 
