@@ -51,8 +51,10 @@ extern char *current_func_name;
 // Forward references for parsing routines
 static int parseSymDesc(char *stabstr, int &cnt);
 static BPatch_type *parseConstantUse(BPatch_module*, char *stabstr, int &cnt);
-static char *parseTypeDef(BPatch_module*, char *stabstr, char *name, int ID);
-static int parseTypeUse(BPatch_module*, char *&stabstr, int &cnt, char *name);
+static char *parseTypeDef(BPatch_module*, char *stabstr, 
+                          const char *name, int ID);
+static int parseTypeUse(BPatch_module*, char *&stabstr, int &cnt,
+                        const char *name);
 static inline bool isSymId(char ch);
 static char *getIdentifier(char *stabstr, int &cnt);
 
@@ -236,17 +238,17 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      fp = mod->findFunction( name );
 	      if (!fp) {
 		  // for FORTRAN look with trailing _
-		  char tempName[strlen(name)+2];
-		  sprintf(tempName, "%s_", name);
+                 char *tempName = new char[strlen(name)+2];
+                 sprintf(tempName, "%s_", name);
 
-		  // this leaks tempName XXXX 
-		  current_func_name = strdup(tempName);
+                 current_func_name = strdup(tempName);
 
-		  fp = mod->findFunction(tempName);
-		  if (!fp) {
-		      showInfoCallback(string("missing local function ") + 
-			  string(name));
-		  }
+                 fp = mod->findFunction(tempName);
+                 delete[] tempName;
+                 if (!fp) {
+                    showInfoCallback(string("missing local function ") + 
+                                     string(name));
+                 }
 	      }
 
 	      if (fp) {
@@ -643,7 +645,8 @@ char *getIdentifier(char *stabstr, int &cnt)
 //
 //	<typeUse> = <symDesc> | <symDesc>=<typeDef>
 //
-static int parseTypeUse(BPatch_module *mod,char *&stabstr, int &cnt, char *name)
+static int parseTypeUse(BPatch_module *mod,char *&stabstr, int &cnt, 
+                        const char *name)
 {
     int ret = parseSymDesc(stabstr, cnt);
 
@@ -660,8 +663,8 @@ static int parseTypeUse(BPatch_module *mod,char *&stabstr, int &cnt, char *name)
 //
 //	<crossRef>	= [s|u|e]<ident>
 //
-static char *parseCrossRef(BPatch_typeCollection *moduleTypes, char *name,
-		    int ID, char *stabstr, int &cnt)
+static char *parseCrossRef(BPatch_typeCollection *moduleTypes,const char *name,
+                           int ID, char *stabstr, int &cnt)
 {
     char *temp;
     BPatch_type *newType;
@@ -704,7 +707,7 @@ static char *parseCrossRef(BPatch_typeCollection *moduleTypes, char *name,
 // 	arrayDef = ar<symDesc>;<symDesc>;<symDesc>;<symDesc> |
 // 		   ar<symDesc>;<symDesc>;<symDesc>;<arrayDef>
 //
-static BPatch_type *parseArrayDef(BPatch_module *mod, char *name,
+static BPatch_type *parseArrayDef(BPatch_module *mod, const char *name,
 		     int ID, char *stabstr, int &cnt)
 {
     char *symdesc;
@@ -798,7 +801,8 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, char *name,
 //
 //	<rangeType> = r<typeNum>;<low>;<high>;
 //
-static char *parseRangeType(BPatch_module *mod,char *name,int ID, char *stabstr)
+static char *parseRangeType(BPatch_module *mod, const char *name, int ID, 
+                            char *stabstr)
 {
     int cnt, i;
     //int sign = 1;
@@ -881,7 +885,8 @@ static char *parseRangeType(BPatch_module *mod,char *name,int ID, char *stabstr)
 //
 //	<rangeType> = r<typeNum>;<low>;<high>;
 //
-static char *parseRangeType(BPatch_module *mod,char *name,int ID, char *stabstr)
+static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
+                            char *stabstr)
 {
     int cnt, i;
 
@@ -983,7 +988,7 @@ static char *parseRangeType(BPatch_module *mod,char *name,int ID, char *stabstr)
 //  <attrType> = @s<int>;(<int>,<int>)
 //  <attrType> = @s<int>;r(<int>,<int>);<int>;<int>;
 //
-static void parseAttrType(BPatch_module *mod, char *name,
+static void parseAttrType(BPatch_module *mod, const char *name,
 			 int ID, char *stabstr, int &cnt)
 {
     bool includesRange = false;
@@ -1075,7 +1080,7 @@ static void parseAttrType(BPatch_module *mod, char *name,
 //
 //  <refType> = &<typeUse>
 //
-static char *parseRefType(BPatch_module *mod, char *name,
+static char *parseRefType(BPatch_module *mod, const char *name,
 		   int ID, char *stabstr, int &cnt)
 {
     /* reference to another type */
@@ -1354,7 +1359,8 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 //
 // It adds the typeDef to the type definition with the name name, and id ID.
 //
-static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
+static char *parseTypeDef(BPatch_module *mod, char *stabstr, 
+                          const char *name, int ID)
 {
 
     BPatch_type * newType = NULL;
@@ -1628,7 +1634,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 
 	default:
 	    fprintf(stderr, "ERROR: Unrecognized str = %s\n", &stabstr[cnt]);
-	    return "";
+	    return NULL;
 	    break;
       }
     }
