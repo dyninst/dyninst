@@ -14,7 +14,11 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.65  1995/12/28 23:42:29  zhichen
+ * Revision 1.66  1996/01/29 20:16:32  newhall
+ * added enum type "daemon_MetUnitsType" for internal metric definition
+ * changed bucketWidth internal metric to EventCounter
+ *
+ * Revision 1.65  1995/12/28  23:42:29  zhichen
  * Added buffering to the paradynd --> paradyn interface
  * calls to tp->sampleDataCallbackFunc replaced with calls to the
  * local routine batchSampleData() which in turn occasionally calls
@@ -1137,7 +1141,7 @@ internalMetric *internalMetric::newInternalMetric(const string n,
                                                   sampleValueFunc f,
                                                   im_pred_struct& im_pred,
                                                   bool developerMode,
-                                                  int unitstype) {
+                                                  daemon_MetUnitsType unitstype) {
   internalMetric *im = new internalMetric(n, style, a, units, f, im_pred,
                                           developerMode, unitstype);
   assert(im);
@@ -1215,6 +1219,8 @@ void reportInternalMetrics()
 
         if (imp->name() == "active_processes") {
           value = (end - start) * processVec.size();
+        } else if (imp->name() == "bucket_width") {
+	  value = (end - start)*(imp->value);
         } else if (imp->style() == EventCounter) {
           value = imp->getValue();
           assert(value + 0.0001 >= imp->cumulativeValue);

@@ -1,7 +1,11 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.21  1995/12/27 20:16:41  naim
+ * Revision 1.22  1996/01/29 20:16:29  newhall
+ * added enum type "daemon_MetUnitsType" for internal metric definition
+ * changed bucketWidth internal metric to EventCounter
+ *
+ * Revision 1.21  1995/12/27  20:16:41  naim
  * Minor change to internal metric definition - naim
  *
  * Revision 1.20  1995/12/19  20:18:43  newhall
@@ -131,13 +135,13 @@ bool init() {
   obs_cost_preds.sync = pred_invalid;
 
   bucket_width = internalMetric::newInternalMetric("bucket_width", 
-						   SampledFunction,
+						   EventCounter,
 						   aggMax,
 						   "seconds",
 						   NULL,
 						   default_im_preds,
 						   true,
-						   2);
+						   Sampled);
 
   totalPredictedCost = internalMetric::newInternalMetric("predicted_cost",
 							 EventCounter,
@@ -146,7 +150,7 @@ bool init() {
 							 NULL,
 							 default_im_preds,
 							 false, 
-							 1);
+							 Normalized);
 
   smooth_obs_cost = internalMetric::newInternalMetric("smooth_obs_cost", 
 						      SampledFunction,
@@ -155,7 +159,7 @@ bool init() {
 						      NULL,
 						      default_im_preds,
 						      true,
-						      2);
+						      Sampled);
 
   observed_cost = internalMetric::newInternalMetric("observed_cost",
 						   EventCounter,
@@ -164,7 +168,7 @@ bool init() {
 						   NULL,
 						   default_im_preds,
 						   false,
-						   1);
+						   Normalized);
 
    pauseTime = internalMetric::newInternalMetric("pause_time",
 						 EventCounter,
@@ -173,7 +177,7 @@ bool init() {
 						 computePauseTimeMetric,
 						 default_im_preds,
 						 false,
-						 1);
+						 Normalized);
 
   activeProcs = internalMetric::newInternalMetric("active_processes",
 						  EventCounter,
@@ -182,7 +186,7 @@ bool init() {
 						  NULL,
 						  obs_cost_preds,
 						  false,
-						  0);
+						  UnNormalized);
 
   sym_data sd;
   sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;

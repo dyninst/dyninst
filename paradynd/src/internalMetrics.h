@@ -4,7 +4,11 @@
 
 /*
  * $Log: internalMetrics.h,v $
- * Revision 1.12  1995/12/18 23:26:59  newhall
+ * Revision 1.13  1996/01/29 20:16:30  newhall
+ * added enum type "daemon_MetUnitsType" for internal metric definition
+ * changed bucketWidth internal metric to EventCounter
+ *
+ * Revision 1.12  1995/12/18  23:26:59  newhall
  * changed metric's units type to have one of three values (normalized,
  * unnormalized, or sampled)
  *
@@ -34,6 +38,8 @@
 
 typedef float (*sampleValueFunc)();
 
+typedef enum {UnNormalized, Normalized, Sampled} daemon_MetUnitsType;
+
 //
 // Metrics that are internal to a paradyn daemon.
 //
@@ -43,7 +49,7 @@ class internalMetric {
  public:
   internalMetric(const string n, metricStyle style, int a, const string units,
 		 sampleValueFunc f, im_pred_struct& im_preds, 
-		 bool developermode, int unitstype) 
+		 bool developermode, daemon_MetUnitsType unitstype) 
     : value(0.0), cumulativeValue(0.0), func(f), node(NULL), name_(n), 
       agg_(a), style_(style), units_(units), pred(im_preds), 
       developermode_(developermode), unitstype_(unitstype) { }
@@ -62,7 +68,7 @@ class internalMetric {
 					   sampleValueFunc f, 
 					   im_pred_struct& preds,
 					   bool developerMode,
-					   int unitstype);
+					   daemon_MetUnitsType unitstype);
   float value;
   float cumulativeValue;
   sampleValueFunc func;
@@ -74,7 +80,10 @@ class internalMetric {
     ret.name = name_; ret.style = style_;
     ret.aggregate = agg_; ret.units = units_;
     ret.developerMode = developermode_;
-    ret.unitstype = unitstype_;
+    ret.unitstype = 0;
+    if(unitstype_ == UnNormalized) ret.unitstype = 0;
+    else if (unitstype_ == Normalized) ret.unitstype = 1; 
+    else if (unitstype_ == Sampled) ret.unitstype = 2; 
     return ret;
   }
   bool legalToInst(vector< vector<string> >& focus);
@@ -86,7 +95,7 @@ private:
   string units_;
   im_pred_struct pred;
   bool developermode_;
-  int unitstype_;
+  daemon_MetUnitsType unitstype_;
 };
 
 inline float internalMetric::getValue() {
