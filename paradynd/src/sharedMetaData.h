@@ -57,7 +57,6 @@ class sharedMetaData {
   unsigned *inferior_pid;
   unsigned *daemon_pid;
   unsigned *observed_cost;
-  unsigned *trampGuards;
   /* MT */
   tTimer *virtualTimers;
   unsigned *posToThread;
@@ -88,7 +87,7 @@ class sharedMetaData {
   sharedMetaData(const sharedMetaData &par) : 
     maxThreads(par.maxThreads), cookie(par.cookie),
     inferior_pid(par.inferior_pid), daemon_pid(par.daemon_pid),
-    observed_cost(par.observed_cost), trampGuards(par.trampGuards),
+    observed_cost(par.observed_cost), 
     virtualTimers(par.virtualTimers), posToThread(par.posToThread),
     rpcPtrBufferSize(par.rpcPtrBufferSize), malloced(par.malloced), 
     curBaseAddr(par.curBaseAddr)
@@ -101,7 +100,6 @@ class sharedMetaData {
   }
 
   unsigned *getObservedCost() { return observed_cost; }
-  unsigned *getTrampGuards() { return trampGuards; }
   tTimer *getVirtualTimers() { return virtualTimers; }
   tTimer &getVirtualTimer(int pos) { return virtualTimers[pos]; }
   unsigned getPosToThread(int pos) const { return posToThread[pos]; }

@@ -54,8 +54,6 @@ void sharedMetaData::mallocInShm(shmMgr &theShmMgr) {
 				    theShmMgr.malloc(sizeof(unsigned)));
   observed_cost= reinterpret_cast<unsigned *>(
 				    theShmMgr.malloc(sizeof(unsigned)));
-  trampGuards  = reinterpret_cast<unsigned *>(
-			    theShmMgr.malloc(sizeof(unsigned) * maxThreads));
   /* MT */
   virtualTimers= reinterpret_cast<tTimer *>(
 			    theShmMgr.malloc(sizeof(unsigned) * maxThreads));
@@ -76,9 +74,6 @@ void sharedMetaData::initialize(unsigned cookie_a, int dmnPid, int appPid) {
   *inferior_pid = appPid;
   *daemon_pid = dmnPid;
   *observed_cost = 0;
-  for(unsigned i=0; i < maxThreads; i++) {
-    trampGuards[i] = 1;
-  }
 }
 
 void sharedMetaData::initializeForkedProc(unsigned cookie_a, int appPid) {
@@ -86,10 +81,6 @@ void sharedMetaData::initializeForkedProc(unsigned cookie_a, int appPid) {
   *inferior_pid = appPid;
   // *daemon_pid ... value copied from parent is fine
   *observed_cost = 0;
-  ///we want to inherit the current values of the trampGuards in the parent
-  //for(unsigned i=0; i < maxThreads; i++) {
-  //  trampGuards[i] = 1;
-  //}  
 }				  
 
 void sharedMetaData::adjustToNewBaseAddr(Address newBaseAddr) {
@@ -105,9 +96,6 @@ void sharedMetaData::adjustToNewBaseAddr(Address newBaseAddr) {
                   newBaseAddr);
   observed_cost = reinterpret_cast<unsigned *>(
 	         (reinterpret_cast<Address>(observed_cost) - curBaseAddr) + 
-                  newBaseAddr);
-  trampGuards = reinterpret_cast<unsigned *>(
-	         (reinterpret_cast<Address>(trampGuards) - curBaseAddr) + 
                   newBaseAddr);
   virtualTimers = reinterpret_cast<tTimer *>(
 	         (reinterpret_cast<Address>(virtualTimers) - curBaseAddr) + 
@@ -134,8 +122,6 @@ void sharedMetaData::saveOffsetsIntoRTstructure(RTsharedData_t *RTdata) {
   RTdata->observed_cost = reinterpret_cast<unsigned *>(
                      reinterpret_cast<Address>(observed_cost) - curBaseAddr);
   cerr << "saving obsCost offset = " << RTdata->observed_cost << "\n";
-  RTdata->trampGuards = reinterpret_cast<unsigned *>(
-		     reinterpret_cast<Address>(trampGuards) - curBaseAddr);
   RTdata->virtualTimers = reinterpret_cast<tTimer *>(
                      reinterpret_cast<Address>(virtualTimers) - curBaseAddr);
   cerr << "saving vTimer offset = " << RTdata->virtualTimers << "\n";
