@@ -12,21 +12,6 @@ that test the API functions.  These programs are useful as examples of how
 to use the API.  See the README file in that directory for how to run or
 rebuild them.
 
-Building the Dyninst API from source
-------------------------------------
-
-If you downloaded the source distribution of this package, you can build the
-Dyninst API libraries by running "make" in the core directory (one level up
-from where this README file is located).  However, note the steps below
-which must be taken to set up your environment before you do so.  The
-top-level makefile contains directives for compiling the Paradyn parallel
-performance tool, from which the Dyninst API was derived.  If you have
-downloaded only the Dyninst API, you will see a number of messages about
-missing directories.  These directories are needed only for making Paradyn,
-so you should ignore these messages.  If you downloaded the entire Paradyn
-distribution, you can make only the API libraries by running "make
-dynInstAPI" in the core directory.
-
 Setting up the environment
 --------------------------
 
@@ -53,6 +38,21 @@ PLATFORM environment variables, then the proper pathname is:
 
 On Windows NT, you should put the directory %DYNINST_ROOT%/lib/%PLATFORM% in
 your path.
+
+Building the Dyninst API from source
+------------------------------------
+
+If you downloaded the source distribution of this package, you can build the
+Dyninst API libraries by running "make" in the core directory (one level up
+from where this README file is located).  However, note the steps below
+which must be taken to set up your environment before you do so.  The
+top-level makefile contains directives for compiling the Paradyn parallel
+performance tool, from which the Dyninst API was derived.  If you have
+downloaded only the Dyninst API, you will see a number of messages about
+missing directories.  These directories are needed only for making Paradyn,
+so you should ignore these messages.  If you downloaded the entire Paradyn
+distribution, you can make only the API libraries by running "make
+dynInstAPI" in the core directory.
 
 Building the library on Windows NT
 ----------------------------------
