@@ -4,7 +4,11 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.42  1996/05/16 22:20:36  mjrg
+ * Revision 1.43  1996/06/27 14:34:57  naim
+ * Preventing race condition in DYNINSTgenerateTraceRecord (change made by Xu
+ * and commited by Oscar) - naim
+ *
+ * Revision 1.42  1996/05/16  22:20:36  mjrg
  * commented out a debugging message
  *
  * Revision 1.41  1996/04/09 22:20:53  newhall
@@ -783,8 +787,15 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     int count;
     char buffer[1024];
     traceHeader header;
+    static unsigned inDYNINSTgenerateTraceRecord = 0;
 
-    if (!DYNINSTinitDone) return;
+    if (inDYNINSTgenerateTraceRecord) return;
+    inDYNINSTgenerateTraceRecord = 1;
+
+    if (!DYNINSTinitDone) {
+      inDYNINSTgenerateTraceRecord = 0;
+      return;
+    }
 
     header.wall = wall_time;
     header.process = process_time;
@@ -805,6 +816,7 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     count += length;
 
     TRACE(buffer, count);
+    inDYNINSTgenerateTraceRecord = 0;
 }
 
 void DYNINSTbreakPoint(int arg)

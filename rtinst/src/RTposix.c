@@ -546,11 +546,16 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     void *eventData, int flush,time64 wall_time,time64 process_time) {
     int             ret;
     static unsigned pipe_gone = 0;
+    static unsigned inDYNINSTgenerateTraceRecord = 0;
     traceHeader     header;
     int             count;
     char            buffer[1024];
 
+    if (inDYNINSTgenerateTraceRecord) return;
+    inDYNINSTgenerateTraceRecord = 1;
+
     if (pipe_gone) {
+        inDYNINSTgenerateTraceRecord = 0;
         return;
     }
 
@@ -596,6 +601,7 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
         pipe_gone = 1;
     }
     if (flush) DYNINSTflushTrace();
+    inDYNINSTgenerateTraceRecord = 0;
 }
 
 

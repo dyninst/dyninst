@@ -3,7 +3,11 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.31  1996/05/08 23:56:52  mjrg
+ * Revision 1.32  1996/06/27 14:35:03  naim
+ * Preventing race condition in DYNINSTgenerateTraceRecord (change made by Xu
+ * and commited by Oscar) - naim
+ *
+ * Revision 1.31  1996/05/08  23:56:52  mjrg
  * added support for handling fork and exec in the application
  *
  * Revision 1.30  1996/04/09 22:20:56  newhall
@@ -510,10 +514,17 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     int ret;
     int count;
     char buffer[1024];
+    static unsigned inDYNINSTgenerateTraceRecord = 0;
     traceHeader header;
     struct timeval tv;
 
-    if (pipeGone) return;
+    if (inDYNINSTgenerateTraceRecord) return;
+    inDYNINSTgenerateTraceRecord = 1;
+
+    if (pipeGone) {
+      inDYNINSTgenerateTraceRecord = 0;
+      return;
+    } 
 
 #ifdef ndef
     gettimeofday(&tv, NULL);
@@ -567,6 +578,7 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     }
     if (flush)
        DYNINSTflushTrace();
+    inDYNINSTgenerateTraceRecord = 0;
 }
 
 
