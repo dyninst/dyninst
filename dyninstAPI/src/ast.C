@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.138 2004/04/02 06:34:12 jaw Exp $
+// $Id: ast.C,v 1.139 2004/05/11 19:01:39 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1314,32 +1314,7 @@ Address AstNode::generateCode_phase2(process *proc,
          //int cost = noCost ? 0 : (int) loperand->oValue;
          Address costAddr = 0; // for now... (won't change if noCost is set)
          loperand->decUseCount(rs);
-#ifdef BPATCH_LIBRARY
-         bool err;
-         costAddr = proc->findInternalAddress("DYNINSTobsCostLow", true, err);
-         if (err) {
-            pdstring msg = pdstring("Internal error: "
-                                "unable to find addr of DYNINSTobsCostLow\n");
-            showErrorCallback(79, msg.c_str());
-            P_abort();
-         }
-#else
-         // if we have not yet loaded PARADYN do this the old DYNINST way
-         if( !proc->isParadynBootstrapped()  ){ //ccw 19 apr 2002 : SPLIT 
-            bool err;
-            costAddr = proc->findInternalAddress("DYNINSTobsCostLow", true, err);
-            if (err) {
-               pdstring msg = pdstring("Internal error: "
-                                   "unable to find addr of DYNINSTobsCostLow\n");
-               showErrorCallback(79, msg.c_str());
-               P_abort();
-            }
-         }else{ //ccw 19 apr 2002 : SPLIT 
-	
-            if (!noCost)
-               costAddr = (Address)proc->getObsCostLowAddrInApplicSpace();
-         }
-#endif
+         costAddr = proc->getObservedCostAddr();
          return emitA(op, 0, 0, 0, insn, base, noCost);
 #endif
       } else if (op == funcJumpOp) {
@@ -1906,7 +1881,7 @@ AstNode *createIf(AstNode *expression, AstNode *action, process *proc)
     // we want.
     // Each if statement will be constructed by createIf().    
     int costOfIfBody = action->minCost();
-    void *globalObsCostVar = proc->getObsCostLowAddrInApplicSpace();
+    void *globalObsCostVar = (void *)proc->getObservedCostAddr();
     AstNode *globCostVar = new AstNode(AstNode::DataAddr, globalObsCostVar);
     AstNode *addCostConst = new AstNode(AstNode::Constant, 
 					(void *)costOfIfBody);

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.173 2004/04/14 21:42:25 pcroth Exp $
+ * $Id: inst-x86.C,v 1.174 2004/05/11 19:01:40 bernat Exp $
  */
 #include <iomanip>
 
@@ -1974,15 +1974,8 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 
    Address costAddr = 0; // for now...
    if (!noCost) {
-#ifdef SHM_SAMPLING
-      costAddr = (Address)proc->getObsCostLowAddrInApplicSpace();
-      assert(costAddr);
-#else
-      // get address of DYNINSTobsCostLow to update observed cost
-      bool err = false;
-      costAddr = proc->findInternalAddress("DYNINSTobsCostLow", true, err);
-      assert(costAddr && !err);
-#endif
+       costAddr = proc->getObservedCostAddr();
+       assert(costAddr);
    }
 
    // PC FIXUP
