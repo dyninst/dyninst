@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8.C,v 1.10 2004/04/06 16:37:20 bernat Exp $
+// $Id: test8.C,v 1.11 2004/04/06 21:47:25 legendre Exp $
 //
 
 #include <stdio.h>
@@ -258,9 +258,6 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 #if !defined(rs6000_ibm_aix4_1)
 	{ false, false, BPatch_frameNormal, NULL },
 #endif
-#if defined(os_linux) && defined(arch_x86)
-	{ true,  true, BPatch_frameNormal, "__kill" },
-#endif
 #if !defined(i386_unknown_nt4_0)
 	{ true,  false, BPatch_frameNormal, "stop_process_" },
 #endif
@@ -295,9 +292,6 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 #if !defined(rs6000_ibm_aix4_1)
 	{ false, false, BPatch_frameNormal, NULL },
 #endif	
-#if defined(os_linux) && defined(arch_x86)
-	{ true,  true, BPatch_frameNormal, "__kill" },
-#endif
 	{ true,  false, BPatch_frameNormal, "stop_process_" },
 	{ true,  false, BPatch_frameNormal, "func2_4" },
 	{ true,  false, BPatch_frameNormal, "sigalrm_handler" },
@@ -353,7 +347,7 @@ void mutatorTest3( BPatch_thread * appThread, BPatch_image * appImage ) {
 #else
 		{ true, false, BPatch_frameNormal, "kill" },	
 #endif
-#if ! defined( os_windows ) && ! defined( arch_x86 )
+#if ! defined( os_windows )
 		/* Windows/x86's stop_process_() calls DebugBreak(); it's 
 		   apparently normal to lose this frame. */
 		{ true, false, BPatch_frameNormal, "stop_process_" },
@@ -420,14 +414,14 @@ void mutatorTest3( BPatch_thread * appThread, BPatch_image * appImage ) {
 		fprintf( stderr, "end of stack walk.\n" );
 		} /* end single-step iterator */
 #endif /* defined( DEBUG ) */		
-						
+
 	/* After inserting the instrumentation, let it be called. */
 	appThread->continueExecution();
 	  
 	/* Wait for the mutatee to stop because of the instrumentation we just inserted. */
     waitUntilStopped( bpatch, appThread, 1, "getCallStack through instrumentation (entry)" );
 
-	passedTest[3] = true;
+    passedTest[3] = true;
     if(	checkStack(	appThread, correct_frame_info,
 					sizeof(correct_frame_info)/sizeof(frameInfo_t),
 					3, "getCallStack through instrumentation (entry)" ) ) {
@@ -462,6 +456,7 @@ void mutatorTest3( BPatch_thread * appThread, BPatch_image * appImage ) {
 
 	/* Return the mutatee to its normal state. */
 	appThread->continueExecution();	
+
 #endif
 	} /* end mutatorTest3() */
 
