@@ -101,11 +101,13 @@
 extern int socket(int, int, int);
 extern int connect(int, struct sockaddr *, int);
 extern int fwrite(void *, int, int, FILE *);
+extern int setvbuf(FILE *, char *, int, int);
+#ifdef SHM_SAMPLING
 extern int shmget(key_t, unsigned, unsigned);
 extern void *shmat(int, void *, int);
-extern int shmdt(void *);
-extern int shmctl(int, int, struct shmid_ds*);
-extern int setvbuf(FILE *, char *, int, int);
+extern int shmdt(void*);
+extern int shmctl(int, int, struct shmid_ds *);
+#endif
 #endif
 
 #include "util/h/spinMutex_cintf.h"
@@ -115,8 +117,7 @@ extern int setvbuf(FILE *, char *, int, int);
 ************************************************************************/
 
 #ifndef SHM_SAMPLING
-/* static int DYNINSTin_sample = 0; */
-int DYNINSTin_sample = 0;
+static int DYNINSTin_sample = 0;
 #endif
 
 /************************************************************************
@@ -199,17 +200,30 @@ DYNINSTstartProcessTimer(VOLATILE_PROC_TIMER tTimer* timer) {
     startT=DYNINSTgetCPUtime();
 #endif
 
-    /* Wait until paradynd isn't sampling this particular timer */
-    while (!spinMutex_tryToGrab(&timer->theSpinner))
-       ;
+/* For shared-mem sampling only: bump protector1, do work, then bump protector2 */
+#ifdef SHM_SAMPLING
+    assert(timer->protector1 == timer->protector2);
+    timer->protector1++;
+    /* How about some kind of inline asm that flushes writes when the architecture
+       is using some kind of relaxed multiprocessor consistency? */
+#endif
 
+    /* Note that among the data vrbles, counter is incremented last; in particular, after
+       start has been written.  This avoids a nasty little race condition in sampling where
+       count is 1 yet start is undefined (or using an old value) when read, which usually
+       leads to a rollback.  --ari */
     if (timer->counter == 0) {
         timer->start     = DYNINSTgetCPUtime();
-        timer->normalize = MILLION;
     }
     timer->counter++;
 
-    spinMutex_release(&timer->theSpinner);
+#ifdef SHM_SAMPLING
+    timer->protector2++; /* alternatively, timer->protector2 = timer->protector1 */
+    assert(timer->protector1 == timer->protector2);
+#else
+    timer->normalize = MILLION; /* I think this vrble is obsolete & can be removed */
+#endif
+
 
 #ifdef COSTTEST
     endT=DYNINSTgetCPUtime();
@@ -248,17 +262,31 @@ DYNINSTstopProcessTimer(VOLATILE_PROC_TIMER tTimer* timer) {
     startT=DYNINSTgetCPUtime();
 #endif
 
+#ifdef SHM_SAMPLING
+    assert(timer->protector1 == timer->protector2);
+    timer->protector1++;
 
-    /* Wait until paradynd isn't sampling this particular timer */
-    while (!spinMutex_tryToGrab(&timer->theSpinner))
-       ;
+    if (timer->counter == 0)
+       ; /* a strange condition; shouldn't happen.  Should we make it an assert fail? */
+    else {
+       if (timer->counter == 1) {
+          const time64 now = DYNINSTgetCPUtime();
+          timer->total += (now - timer->start);
 
-    if (!timer->counter) {
-        spinMutex_release(&timer->theSpinner);
-        return;
+          if (now < timer->start) {
+	     fprintf(stderr, "rtinst: cpu timer rollback.\n");
+	     abort();
+	  }
+       }
+       timer->counter--;
     }
 
-    if (timer->counter == 1) {
+    timer->protector2++; /* alternatively, timer->protector2=timer->protector1 */
+    assert(timer->protector1 == timer->protector2);
+#else
+    if (timer->counter == 0)
+       ; /* should we make this an assert fail? */
+    else if (timer->counter == 1) {
         time64 now = DYNINSTgetCPUtime();
 
         timer->snapShot = timer->total + (now - timer->start);
@@ -283,8 +311,6 @@ DYNINSTstopProcessTimer(VOLATILE_PROC_TIMER tTimer* timer) {
                    (double)timer->start, (double)now);
             printf("process timer rollback\n"); fflush(stdout);
 
-	    spinMutex_release(&timer->theSpinner);
-
             abort();
         }
         timer->counter = 0;
@@ -293,8 +319,7 @@ DYNINSTstopProcessTimer(VOLATILE_PROC_TIMER tTimer* timer) {
     else {
       timer->counter--;
     }
-
-    spinMutex_release(&timer->theSpinner);
+#endif
 
 #ifdef COSTTEST
     endT=DYNINSTgetCPUtime();
@@ -334,17 +359,26 @@ DYNINSTstartWallTimer(tTimer* timer) {
     startT=DYNINSTgetCPUtime();
 #endif
 
-    /* Wait until paradynd isn't sampling this particular timer */
-    while (!spinMutex_tryToGrab(&timer->theSpinner))
-       ;
+#ifdef SHM_SAMPLING
+    assert(timer->protector1 == timer->protector2);
+    timer->protector1++;
+#endif
 
+    /* Note that among the data vrbles, counter is incremented last; in particular,
+       after start has been written.  This avoids a nasty little race condition in
+       sampling where count is 1 yet start is undefined (or using an old value) when
+       read, which usually leads to a rollback.  --ari */
     if (timer->counter == 0) {
         timer->start     = DYNINSTgetWalltime();
-        timer->normalize = MILLION;
     }
     timer->counter++;
 
-    spinMutex_release(&timer->theSpinner);
+#ifdef SHM_SAMPLING
+    timer->protector2++; /* or, timer->protector2 = timer->protector1 */
+    assert(timer->protector1 == timer->protector2);
+#else
+    timer->normalize = MILLION; /* I think this vrble is obsolete & can be removed */
+#endif
 
 #ifdef COSTTEST
     endT=DYNINSTgetCPUtime();
@@ -386,16 +420,29 @@ DYNINSTstopWallTimer(VOLATILE_WALL_TIMER tTimer* timer) {
     startT=DYNINSTgetCPUtime();
 #endif
 
-    /* Wait until paradynd isn't sampling this particular timer */
-    while (!spinMutex_tryToGrab(&timer->theSpinner))
-       ;
+#ifdef SHM_SAMPLING
+    assert(timer->protector1 == timer->protector2);
+    timer->protector1++;
 
-    if (!timer->counter) {
-       spinMutex_release(&timer->theSpinner);
-       return;
+    if (timer->counter == 0)
+       ; /* a strange condition; should we make it an assert fail? */
+    else if (--timer->counter == 0) {
+       const time64 now = DYNINSTgetWalltime();
+
+       timer->total += (now - timer->start);
+
+       if (now < timer->start) {
+	  fprintf(stderr, "rtinst wall timer rollback.\n");
+	  abort();
+       }
     }
-
-    if (timer->counter == 1) {
+    
+    timer->protector2++; /* or, timer->protector2 = timer->protector1 */
+    assert(timer->protector1 == timer->protector2);
+#else
+    if (timer->counter == 0)
+       ; /* a strange condition; should we make it an assert fail? */
+    else if (timer->counter == 1) {
         time64 now = DYNINSTgetWalltime();
 
         timer->snapShot = now - timer->start + timer->total;
@@ -406,8 +453,6 @@ DYNINSTstopWallTimer(VOLATILE_WALL_TIMER tTimer* timer) {
          * at this point (before timer->mutex=1), then time will go backwards 
          * the next time a sample is take (if the {wall,process} timer has not
          * been restarted).
-	 *
-	 * TODO: can all this be simplified when SHM_SAMPLING?
          */
         timer->total    = DYNINSTgetWalltime() - timer->start + timer->total;
         if (now < timer->start) {
@@ -418,8 +463,6 @@ DYNINSTstopWallTimer(VOLATILE_WALL_TIMER tTimer* timer) {
             printf("wall timer rollback\n"); 
             fflush(stdout);
 
-	    spinMutex_release(&timer->theSpinner);
-
             abort();
         }
         timer->counter  = 0;
@@ -428,8 +471,7 @@ DYNINSTstopWallTimer(VOLATILE_WALL_TIMER tTimer* timer) {
     else {
         timer->counter--;
     }
-
-    spinMutex_release(&timer->theSpinner);
+#endif
 
 #ifdef COSTTEST
     endT=DYNINSTgetCPUtime();
@@ -660,7 +702,6 @@ void
 DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 			   void *eventData, int flush,
 			   time64 wall_time, time64 process_time) {
-    /* struct iovec theVec; */
     int             ret;
     static unsigned pipe_gone = 0;
     static unsigned inDYNINSTgenerateTraceRecord = 0;
@@ -951,9 +992,6 @@ void *shm_attach(int shmid) {
 }
 
 void shm_detach(void *shmSegPtr) {
-   /* somewhat surprisingly (to me at least), the arg to shmdt() isn't the
-      shm seg id (result of shm_create()) but rather the result of shmat().
-      I guess in that sense at least it's nice & symmetrical. */
    (void)shmdt(shmSegPtr);
 }
 #endif
@@ -991,12 +1029,13 @@ DYNINSTinit(int theKey, int shmSegNumBytes) {
     const char*      interval;
 #endif
 
+#ifdef SHM_SAMPLING_DEBUG
    char thehostname[80];
+   extern int gethostname(char*,int);
 
    (void)gethostname(thehostname, 80);
    thehostname[79] = '\0';
 
-#ifdef SHM_SAMPLING_DEBUG
    fprintf(stderr, "WELCOME to DYNINSTinit (%s, pid=%d), args are %d and %d\n",
            thehostname, (int)getpid(), theKey, shmSegNumBytes);
    fflush(stderr);
@@ -1009,8 +1048,23 @@ DYNINSTinit(int theKey, int shmSegNumBytes) {
    
        /* note: error checking needs to be beefed up here: */
    
-       the_shmSegShmId = shm_create(theKey, shmSegNumBytes);
-       the_shmSegAttachedPtr = shm_attach(the_shmSegShmId);
+       the_shmSegShmId = shm_create(theKey, shmSegNumBytes); /* -1 on error */
+       if (the_shmSegShmId == -1) {
+          /* note: in theory, when we get a shm error on startup, it would be nice
+                   to automatically "downshift" into the SIGALRM non-shm-sampling
+                   code.  Not yet implemented. */
+          fprintf(stderr, "DYNINSTinit failed because shm_create failed.\n");
+          fprintf(stderr, "DYNINST program startup failed...exiting program now.\n");
+          exit(5);
+       }
+
+       the_shmSegAttachedPtr = shm_attach(the_shmSegShmId); /* NULL on error */
+       if (the_shmSegAttachedPtr == NULL) {
+          /* see above note... */
+          fprintf(stderr, "DYNINSTinit failed because shm_attach failed.\n");
+          fprintf(stderr, "DYNINST program startup failed...exiting program now.\n");
+          exit(5);
+       }
    }
 #endif
 
@@ -1177,7 +1231,6 @@ DYNINSTexit(void) {
 #ifndef SHM_SAMPLING
 void
 DYNINSTreportTimer(tTimer *timer) {
-    time64 now = 0;
     time64 total;
     traceSample sample;
 
@@ -1190,18 +1243,22 @@ DYNINSTreportTimer(tTimer *timer) {
     time64 wall_time = DYNINSTgetWalltime();
     if (timer->mutex) {
         total = timer->snapShot;
+	//printf("id %d using snapshot value of %f\n", timer->id.id, (double)total);
     }
     else if (timer->counter) {
         /* timer is running */
+        time64 now;
         if (timer->type == processTime) {
             now = process_time;
         } else {
             now = wall_time;
         }
         total = now - timer->start + timer->total;
+	//printf("id %d using added-to-total value of %f\n", timer->id.id, (double)total);
     }
     else {
         total = timer->total;
+	//printf("using %d total value of %f\n", timer->id.id, (double)total);
     }
 
     if (total < timer->lastValue) {
@@ -1218,11 +1275,11 @@ DYNINSTreportTimer(tTimer *timer) {
         } else {
             printf("timer was inactive\n");
         }
-        printf("mutex=%d, counter=%d, sampled=%d, snapShot=%f\n",
-            (int) timer->mutex, (int) timer->counter, (int) timer->sampled,
+        printf("mutex=%d, counter=%d, snapShot=%f\n",
+            (int) timer->mutex, (int) timer->counter,
             (double) timer->snapShot);
-        printf("now = %f, start = %f, total = %f\n",
-            (double) now, (double) timer->start, (double) timer->total);
+        printf("start = %f, total = %f\n",
+	       (double) timer->start, (double) timer->total);
         fflush(stdout);
         abort();
     }
