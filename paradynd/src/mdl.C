@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.118 2002/10/28 04:54:31 schendel Exp $
+// $Id: mdl.C,v 1.119 2002/11/25 23:52:47 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -447,23 +447,15 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
    pd_process *proc = codeNode->proc();
 
    if(proc->multithread_ready()) {
-      threadMgr::thrIter itr = proc->thrMgr().begin();
-      while(itr != proc->thrMgr().end()) {
-         pd_thread *thr = *itr++;
-	 
-	 //pdf = proc->getMainFunction();
-	 function_base* start_func = thr->get_start_func();
-	 if (!start_func) continue;
-	 string start_func_str = start_func->prettyName();
-	 if(codeNode->handledThrStartFunc(start_func_str))  continue;
-	 codeNode->markAsHandledThrStartFunc(start_func_str);
-	 
-	 (*start_func_buf).push_back(start_func);
-      }
-   } else {
-      function_base *pdf = proc->getMainFunction();      
-      (*start_func_buf).push_back(pdf);      
+      function_base *pdf = proc->findOneFunction("_pthread_body");
+      if(pdf)  (*start_func_buf).push_back(pdf);
+
+      pdf = proc->findOneFunction("_thread_start");
+      if(pdf)  (*start_func_buf).push_back(pdf);
    }
+
+   function_base *pdf = proc->getMainFunction();      
+   (*start_func_buf).push_back(pdf);      
       
    string vname = "$start";
    // change this to MDL_T_LIST_PROCEDURE
@@ -649,7 +641,7 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
    return true;
 }
 
-void createThreadNodes(processMetFocusNode **procNode_arg,
+bool createThreadNodes(processMetFocusNode **procNode_arg,
 		       const string &metname, 
 		       const Focus &no_thr_focus,
 		       const Focus &full_focus) 
@@ -671,7 +663,8 @@ void createThreadNodes(processMetFocusNode **procNode_arg,
 	 Focus focus_with_thr = no_thr_focus;
 	 threadMgr::thrIter itr = proc->beginThr();
 	 while(itr != proc->endThrMark()) {
-	    pd_thread *thr = *itr++;
+	    pd_thread *thr = *itr;
+            itr++;
 	    string thrName = string("thr_") + string(thr->get_tid()) + "{" + 
 	                      thr->get_start_func()->prettyName() + "}";
 	    focus_with_thr.set_thread(thrName);
@@ -681,6 +674,7 @@ void createThreadNodes(processMetFocusNode **procNode_arg,
 	 }
       } else {
 	 pd_thread *selThr = proc->thrMgr().find_pd_thread(thrSelected);
+         if(selThr == NULL) return false;
 	 threadMetFocusNode *thrNode = 
 	    threadMetFocusNode::newThreadMetFocusNode(metname, full_focus,
 						      selThr);
@@ -689,8 +683,9 @@ void createThreadNodes(processMetFocusNode **procNode_arg,
    }
 
    for(unsigned k=0; k<threadNodeBuf.size(); k++) {
-      procNode->addPart(threadNodeBuf[k]);
+      procNode->addThrMetFocusNode(threadNodeBuf[k]);
    }
+   return true;
 }
 
 // Creates the process and primitive metricFocusNodes, as well as mdn's 
@@ -742,7 +737,8 @@ apply_to_process(pd_process *proc,
    if(ret == false) {
       return NULL;
    }
-   createThreadNodes(&procNode, name, no_thr_focus, full_focus);
+   if(createThreadNodes(&procNode, name, no_thr_focus, full_focus) == false)
+      return NULL;
 
    return procNode;
 }
@@ -1300,15 +1296,6 @@ T_dyninstRPC::mdl_v_expr::~mdl_v_expr()
     delete args_;
   }
   delete left_; delete right_;
-}
-
-bool T_dyninstRPC::mdl_v_expr::isThreadStartPoint() { 
-   if(type_ == MDL_EXPR_DOT) {
-      return left_->isThreadStartPoint();
-   } else if(type_ == MDL_EXPR_VAR) {
-      if(var_ == string("$start"))  return true;
-   }
-   return false;
 }
 
 bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
@@ -2066,11 +2053,6 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode *mn,
     return false; // no instrumentation code to put in!
   }
 
-  bool refersToStartThreadPoint = false;
-
-  if(point_expr_->isThreadStartPoint())
-     refersToStartThreadPoint = true;
-
   mdl_var pointsVar(false);
   if (!point_expr_->apply(pointsVar)) { // process the 'point(s)' e.g. "$start.entry"
     return false;
@@ -2154,13 +2136,14 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode *mn,
 	  break;
       default: assert(0);
   }
+  
 
   // for all of the inst points, insert the predicates and the code itself.
   for (unsigned i = 0; i < points.size(); i++) {
-      mn->addInst(points[i], code, cwhen, corder, refersToStartThreadPoint);
-         // appends an instReqNode to mn's instRequests; actual 
-         // instrumentation only
-         // takes place when mn->loadInstrIntoApp() is later called.
+     mn->addInst(points[i], code, cwhen, corder);
+     // appends an instReqNode to mn's instRequests; actual 
+     // instrumentation only
+     // takes place when mn->loadInstrIntoApp() is later called.
   }
 
   removeAst(code); 
@@ -2717,8 +2700,9 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
              {
                 for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
                    function_base *pdf = (*func_buf_ptr)[i];
-                   instPoint *entryPt = 
-                      const_cast<instPoint *>(pdf->funcEntry(global_proc->get_dyn_process()));
+                   instPoint *entryPt;
+                   entryPt = const_cast<instPoint *>(pdf->funcEntry(
+                                             global_proc->get_dyn_process()));
                    (*inst_point_buf).push_back(entryPt);
                 }
                 if(! ret.set(inst_point_buf))
