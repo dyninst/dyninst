@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.365 2002/10/15 17:11:21 schendel Exp $
+// $Id: process.C,v 1.366 2002/10/15 20:32:36 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5470,6 +5470,9 @@ void process::postRPCtoDo(AstNode *action, bool noCost,
   else {
     RPCsWaitingToStart += theStruct;   
   }
+  //fprintf(stderr, "Posted RPC with sequence num %d, thr %x, lwp %x\n",
+  //      theStruct.seq_num, theStruct.thr, theStruct.lwp);
+  
 }
 
 bool process::existsRPCreadyToLaunch() const {
@@ -5511,7 +5514,6 @@ bool process::thrInSyscall()
 
 bool process::getReadyRPCs(vectorSet<inferiorRPCtoDo> &readyRPCs)
 {
-#if defined(MT_THREAD)
   // Okay... the one thing I haven't thought about yet is how to get
   // a non-specific RPC to actually go. Hrm... guess I can do the
   // "If there's nothing else available" trick
@@ -5523,7 +5525,6 @@ bool process::getReadyRPCs(vectorSet<inferiorRPCtoDo> &readyRPCs)
       if (threads[i]->readyIRPC())
 	readyRPCs += threads[i]->peekIRPC();
     }
-#endif
   // For both: ST this will always be true
   if (readyRPCs.empty()) {
     if (!isRunningIRPC() && !RPCsWaitingToStart.empty()) {
@@ -5561,6 +5562,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
   if (!getReadyRPCs(readyRPCs)) {
     return false; // Either no RPCs to run, or RPCs are currently running
   }
+  
   if (status_ == exited)
     {
       inferiorrpc_cerr << "Inferior process exited!" << endl;
@@ -5570,7 +5572,6 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
   if (status_ == neonatal)
     // not sure if this should be some kind of error...is the inferior ready
     // to execute inferior RPCs??? For now, we'll allow it.
-    fprintf(stderr, "Warning: process is neonatal in iRPC\n"); 
 
   if (!pause()) {
     cerr << "launchRPCifAppropriate failed because pause failed" << endl;
@@ -5586,54 +5587,55 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
       dyn_lwp *currLWP = todo.thr->get_lwp();
       if (!todo.lwp) todo.lwp = currLWP;
       else if (todo.lwp && (currLWP != todo.lwp)) {
-	cerr << "Warning: original LWP " << todo.lwp << " and current LWP "
-	     << currLWP << " are not equal! Using current." << endl;
-	todo.lwp = currLWP;
+          cerr << "Warning: original LWP " << todo.lwp << " and current LWP "
+               << currLWP << " are not equal! Using current." << endl;
+          todo.lwp = currLWP;
       }
     }
-
+    
     // SYSCALL CHECK
     if (todo.thr) {
-      if (finishingSysCall) {
-	clear_breakpoint_for_syscall_completion();
-	todo.thr->clearInSyscall();
-      }
-      if (todo.thr->isInSyscall() && !finishingSysCall) {
-	continue;
-      }
-
-      if (todo.lwp->executingSystemCall()) {
-	// Ah, crud. We're in a system call, so no work is possible.
-	if (set_breakpoint_for_syscall_completion()) { // Great when it works, 
-	  // Only set inSyscall if we can set a breakpoint at the exit.
-	  // Otherwise we have to spin until the syscall is completed.
-	  todo.thr->setInSyscall();
-	}
-	thrInSyscall = true;
-	was_running_before_RPC_syscall_complete = wasRunning;
-	cerr << "Warning: thread running on LWP " << todo.lwp->get_lwp() 
-	     << " is in a system call and requires an inferior RPC. Waiting for system call to complete." << endl;
-	continue;
-      }
+        if (finishingSysCall) {
+            clear_breakpoint_for_syscall_completion();
+            todo.thr->clearInSyscall();
+        }
+        if (todo.thr->isInSyscall() && !finishingSysCall) {
+            continue;
+        }
+        
+        if (todo.lwp->executingSystemCall()) {
+            // Ah, crud. We're in a system call, so no work is possible.
+            if (set_breakpoint_for_syscall_completion()) { // Great when it works, 
+                // Only set inSyscall if we can set a breakpoint at the exit.
+                // Otherwise we have to spin until the syscall is completed.
+                todo.thr->setInSyscall();
+            }
+            thrInSyscall = true;
+            was_running_before_RPC_syscall_complete = wasRunning;
+            cerr << "Warning: thread running on LWP " << todo.lwp->get_lwp() 
+                 << " is in a system call and requires an inferior RPC. Waiting for system call to complete." << endl;
+            continue;
+        }
     }
     else {
-      if (finishingSysCall) {
-	clearInSyscall();
-	clear_breakpoint_for_syscall_completion();
-      }
-      if (isInSyscall() && !finishingSysCall) {
-	continue;
-      }
-      if (getDefaultLWP()->executingSystemCall()) {
-	if (set_breakpoint_for_syscall_completion()) {
-	  setInSyscall();
-	}
-	was_running_before_RPC_syscall_complete = wasRunning;
-	thrInSyscall = true;
-	cerr << "Warning: The program is in a system call and requires an inferior RPC. Waiting for system call to complete." << endl;
-	continue;
-      }
+        if (finishingSysCall) {
+            clearInSyscall();
+            clear_breakpoint_for_syscall_completion();
+        }
+        if (isInSyscall() && !finishingSysCall) {
+            continue;
+        }
+        if (getDefaultLWP()->executingSystemCall()) {
+            if (set_breakpoint_for_syscall_completion()) {
+                setInSyscall();
+            }
+            was_running_before_RPC_syscall_complete = wasRunning;
+            thrInSyscall = true;
+            cerr << "Warning: The program is in a system call and requires an inferior RPC. Waiting for system call to complete." << endl;
+            continue;
+        }
     }
+    
     // Is currently running check
     if (todo.thr) {
       if (todo.thr->isRunningIRPC())
@@ -5671,13 +5673,11 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
     inProgress.lwp = todo.lwp;
 
     if (!inProgress.thr) {
-      if (multithread_ready()) {
-	for (unsigned i = 0; i < threads.size(); i++)
-	  if (!threads[i]->isRunningIRPC()) {
-	    inProgress.thr = threads[i];
-	    inProgress.lwp = threads[i]->get_lwp();
-	  }
-      }
+        for (unsigned i = 0; i < threads.size(); i++)
+            if (!threads[i]->isRunningIRPC()) {
+                inProgress.thr = threads[i];
+                inProgress.lwp = threads[i]->get_lwp();
+            }
     }
     // Copy over data
     inProgress.callbackFunc = todo.callbackFunc;
@@ -6871,6 +6871,9 @@ void process::pDYNINSTinitCompletionCallback(process* theProc,
 
 
 void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
+
+   PARADYNhasBootstrapped = true; // now, shm sampling may safely take place.
+
    // 'event' values: (1) DYNINSTinit was started normally via paradynd
    // or via exec, (2) called from fork, (3) called from attach.
    inferiorrpc_cerr << "handleCompletionOfpDYNINSTinit..." << endl ;
@@ -6957,8 +6960,6 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
 
       forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; done propagate mi's" << endl;
    }
-
-   PARADYNhasBootstrapped = true; // now, shm sampling may safely take place.
 
    string str=string("PID=") + string(bs_struct.pid) + ", executing new-prog callback...";
    statusLine(str.c_str());

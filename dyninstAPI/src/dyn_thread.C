@@ -125,6 +125,12 @@ bool dyn_thread::updateLWP()
 Frame dyn_thread::getActiveFrame()
 {
   updateLWP();
+  Frame lwpFrame = lwp->getActiveFrame();  
+  return Frame(lwpFrame.getPC(), lwpFrame.getFP(),
+               lwpFrame.getSP(), lwpFrame.getPID(),
+               this, lwpFrame.getLWP(),
+               true);
+  
   return lwp->getActiveFrame();
 }
 #endif
