@@ -4,10 +4,14 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.19  1996/04/16 18:37:31  karavan
-/* fine-tunification of UI-PC batching code, plus addification of some
-/* Ari-like verbification commentification.
+/* Revision 1.20  1996/04/18 23:26:31  tamches
+/* fixed an assert failure that was happening when hideFalseNodes was on
+/* and when a node changed from true to false
 /*
+ * Revision 1.19  1996/04/16 18:37:31  karavan
+ * fine-tunification of UI-PC batching code, plus addification of some
+ * Ari-like verbification commentification.
+ *
  * Revision 1.18  1996/04/13 04:39:46  karavan
  * better implementation of batching for edge requests
  *
@@ -1051,30 +1055,30 @@ bool shg::configNode(unsigned id, bool newActive,
    // somewhat of a hack; a solution eliminating the need for "hash2" would save memory.
 
    // Note that we make no effort to alter the expanded-ness of any shadowed nodes.
+   // (Is this right?)
 
    bool rethink_all = false; // so far...
 
-   // Perhaps some node(s) have become hidden or unhidden.  We must handle this case first.
-   // Why?  Here's an example.  Say a node is hidden because it's false.  Then it gets set
-   // to true.  The code for true will try to un-expand the node, but that code will get
-   // an assertion failure because it doesn't want to expand (or unexpand) anything hidden!
-   // So the bottom line is that we have to rethink whether or not the hide-ness of a node
-   // should change FIRST.
+   // If a node becomes un-hidden, we unhide it first.
+   // If a node becomes hidden, we hide it last.
+   // In the middle come the possible expansions / un-expansions
 
-   // set rethink_all to true if some node(s) have become hidden or unhidden
+   // set rethink_all to true if some node(s) have become hidden or unhidden.
    // Note that there's no need to check our shadow children, because the
    // only trait that may lead to a different hidden-ness is that they're shadow
-   // nodes, and that's not gonna change.
+   // nodes, and that's not gonna change. (is this right?  I don't think so.)
    assert(oldHidden == !ptr->getNodeData().anything2draw());
    bool new_hidden = state2hidden(newEvalState, newActive,
 				  false); // false --> not shadow node
-   if (oldHidden != new_hidden) {
-      if (new_hidden)
-	 ptr->getNodeData().hidify();
-      else
-	 ptr->getNodeData().unhide();
 
-      rethink_all = rootPtr->updateAnything2Draw(consts); // probably a bit more than is needed...
+   if (oldHidden != new_hidden && !new_hidden) {
+      // The node is going to be un-hidden; let's do that first to avoid
+      // an assertion failure.
+      ptr->getNodeData().unhide();
+
+      if (rootPtr->updateAnything2Draw(consts))
+         rethink_all = true;
+         // probably a bit more than is needed...
    }
 
    if (newEvalState == shgRootNode::es_true) {
@@ -1114,6 +1118,16 @@ bool shg::configNode(unsigned id, bool newActive,
 	 }
 
       assert(rethink_all);
+   }
+
+   if (oldHidden != new_hidden && new_hidden) {
+      // The node is going to be hidden; let's do that last to avoid
+      // an assertion failure.
+      ptr->getNodeData().hidify();
+      
+      if (rootPtr->updateAnything2Draw(consts))
+         rethink_all = true;
+         // probably a bit more than is needed...
    }
 
    if (rethink_all)
