@@ -27,12 +27,12 @@ const char* BPatch_basicBlockLoop::name() {
 
 bool BPatch_basicBlockLoop::containsAddress(unsigned long addr)
 {
-    BPatch_Vector<BPatch_basicBlock*> blocks;
-    getLoopBasicBlocks(blocks);
+    BPatch_Vector<BPatch_basicBlock*> blks;
+    getLoopBasicBlocksExclusive(blks);
 
-    for(unsigned int i = 0; i < blocks.size(); i++) {
-	if (addr >= blocks[i]->getStartAddress() &&
-	    addr <= blocks[i]->getEndAddress()) 
+    for(unsigned int i = 0; i < blks.size(); i++) {
+	if (addr >= blks[i]->getStartAddress() &&
+	    addr <= blks[i]->getEndAddress()) 
 	    return true;
     }
 
@@ -122,6 +122,7 @@ void BPatch_basicBlockLoop::getLoopBasicBlocksExclusive(BPatch_Vector<BPatch_bas
     // remove the blocks in each contained loop
     BPatch_Vector<BPatch_basicBlockLoop*> contLoops;
     getContainedLoops(contLoops);
+
     for (unsigned int i = 0; i < contLoops.size(); i++) {
 	allBlocks -= contLoops[i]->basicBlocks;
     }
