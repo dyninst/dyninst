@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.39 2000/08/04 19:49:52 hollings Exp $
+// $Id: test2.C,v 1.40 2000/08/07 00:49:06 wylie Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -50,7 +50,6 @@ bool expectErrors = false;
 bool gotError = false;
 
 int mutateeCplusplus = 0;
-bool runAllTests = true;
 const unsigned int MAX_TEST = 14;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
@@ -567,14 +566,12 @@ BPatch_thread *mutatorMAIN(char *pathname)
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = "-verbose";
 
-    if (!runAllTests) {
-        child_argv[n++] = "-run";
-        for (unsigned int j=0; j <= MAX_TEST; j++) {
-            if (runTest[j]) {
-                char str[5];
-                sprintf(str, "%d", j);
-                child_argv[n++] = strdup(str);
-            }
+    child_argv[n++] = "-run";
+    for (unsigned int j=0; j <= MAX_TEST; j++) {
+        if (runTest[j]) {
+            char str[5];
+            sprintf(str, "%d", j);
+            child_argv[n++] = strdup(str);
         }
     }
 
@@ -675,7 +672,6 @@ main(unsigned int argc, char *argv[])
 	    useAttach = true;
         } else if (!strcmp(argv[i], "-skip")) {
             unsigned int j;
-            runAllTests = false;
             for (j=i+1; j < argc; j++) {
                 unsigned int testId;
                 if ((testId = atoi(argv[j]))) {
@@ -693,7 +689,6 @@ main(unsigned int argc, char *argv[])
             i=j-1;
         } else if (!strcmp(argv[i], "-run")) {
             unsigned int j;
-            runAllTests = false;
             for (j=0; j <= MAX_TEST; j++) runTest[j] = false;
             for (j=i+1; j < argc; j++) {
                 unsigned int testId;
@@ -818,7 +813,7 @@ main(unsigned int argc, char *argv[])
     int pid = ret->getPid();
 
 #ifndef i386_unknown_nt4_0 /* Not yet implemented on NT. */
-    // detach from the process.
+    dprintf("Detaching from process %d (leaving it running).\n", pid);
     ret->detach(true);
 #else
     printf("[Process detach not yet implemented.]\n");
@@ -828,14 +823,16 @@ main(unsigned int argc, char *argv[])
 #ifdef i386_unknown_nt4_0
     HANDLE h = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
     if (h != NULL) {
+        dprintf("Killing mutatee process %d.\n", pid);
 	TerminateProcess(h, 0);
 	CloseHandle(h);
     }
 #else
     int kret;
 
-    // Alpha seems to take to kills to work - jkh 3/13/00
+    // Alpha seems to take two kills to work - jkh 3/13/00
     while (1) {
+        dprintf("Killing mutatee process %d.\n", pid);
 	kret = kill(pid, SIGKILL);
 	if (kret) {
 	    if (errno == ESRCH) {
@@ -848,8 +845,8 @@ main(unsigned int argc, char *argv[])
 	kret = waitpid(pid, NULL, WNOHANG);
 	if (kret == pid) break;
     }
-
 #endif
+    dprintf("Mutatee process %d killed.\n", pid);
 
     delete (ret);
 
@@ -864,13 +861,9 @@ main(unsigned int argc, char *argv[])
     }
 
     if (!testsFailed) {
-	if (runAllTests) {
-	    printf("All tests passed\n");
-	} else {
-	    printf("All requested tests passed\n");
-	}
+        printf("All tests passed\n");
     } else {
-	printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
+        printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
     }
 
     return (testsFailed ? 127 : 0);
