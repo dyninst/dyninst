@@ -59,22 +59,19 @@ IA64_bundle generateTrapBundle() {
  * pt_regs only, but only syscalls are that well behaved.
  * We must support running arbitrary code.
  */
-dyn_saved_regs *dyn_lwp::getRegisters()
+bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs)
 {
 	/* (Almost) All the state preservation is done mutatee-side,
 	   except for the syscall handler's predicate registers,
 	   so we don't need to anything except the PC. */
-	dyn_saved_regs * result = NULL;
-	result = (dyn_saved_regs *)malloc( sizeof( dyn_saved_regs ) );
-	assert( result != NULL );
-
 	errno = 0;
-	result->pc = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IIP, 0 );
+	regs->pc = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IIP, 0 );
 	assert( ! errno );
-	result->restorePredicateRegistersFromStack = needToHandleSyscall( proc_, & result->pcMayHaveRewound );
+	regs->restorePredicateRegistersFromStack =
+	   needToHandleSyscall( proc_, &regs->pcMayHaveRewound );
 
 	// /* DEBUG */ fprintf( stderr, "-*- dyn_lwp::getRegisters()\n" );
-	return result;
+	return true;
 }
 
 bool changePC( int pid, Address loc ) { 
@@ -87,7 +84,7 @@ bool changePC( int pid, Address loc ) {
 	} /* end changePC() */
 
 bool dyn_lwp::changePC( Address loc, dyn_saved_regs * regs ) {
-	if( regs != NULL ) { restoreRegisters( regs ); }
+	if( regs != NULL ) { restoreRegisters( *regs ); }
 
 	return ::changePC( proc_->getPid(), loc );
 	} /* end changePC() */
@@ -102,17 +99,20 @@ bool dyn_lwp::executingSystemCall() {
 	return false;
 	} /* end executingSystemCall() */
 
-bool dyn_lwp::restoreRegisters( dyn_saved_regs *regs )
+bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs )
 {
 	/* Restore the PC. */
-	if( ! regs->pcMayHaveRewound ) {
-		changePC( regs->pc, NULL );
+	if( ! regs.pcMayHaveRewound ) {
+		changePC( regs.pc, NULL );
 		}
 	else {
-		/* The flag could have only been set if the ipsr.ri at construction-(and therefore run-)time
-		   ispr.ri was 0.  If it's 0 after the syscall trailer completes, then there we were not in a syscall
-		   and the original regs->pc is correct.  If it's 2, then we really want the last instruction of the
-		   _previous_ bundle and need to adjust the PC.  Otherwise, we abort because of system corruption. */
+		/* The flag could have only been set if the ipsr.ri at
+		   construction-(and therefore run-)time ispr.ri was 0.  If it's 0
+		   after the syscall trailer completes, then there we were not in a
+		   syscall and the original regs->pc is correct.  If it's 2, then we
+		   really want the last instruction of the _previous_ bundle and need
+		   to adjust the PC.  Otherwise, we abort because of system
+		   corruption. */
         errno = 0;
 		uint64_t ipsr = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IPSR, 0 );
 		assert( ! errno );
@@ -122,13 +122,13 @@ bool dyn_lwp::restoreRegisters( dyn_saved_regs *regs )
 		
 		switch( ipsr_ri ) {
 			case 0:
-				changePC( regs->pc, NULL );
+				changePC( regs.pc, NULL );
 				break;
 			case 1:
 				assert( 0 );
 				break;
 			case 2:
-				changePC( regs->pc - 0x10, NULL );
+				changePC( regs.pc - 0x10, NULL );
 				break;
 			default:
 				assert( 0 );
@@ -136,7 +136,7 @@ bool dyn_lwp::restoreRegisters( dyn_saved_regs *regs )
 			} /* end ispr_ri switch */
 		}
 
-	if( regs->restorePredicateRegistersFromStack ) {
+	if( regs.restorePredicateRegistersFromStack ) {
 		errno = 0;
 		Address stackPointer = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_R12, 0 );
 		assert( ! errno );

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.40 2004/01/19 21:53:42 schendel Exp $
+// $Id: linux-x86.C,v 1.41 2004/02/07 18:34:07 schendel Exp $
 
 #include <fstream>
 
@@ -181,11 +181,9 @@ const int FPREGS_STRUCT_SIZE = sizeof( user_i387_struct );
 
 /* ********************************************************************** */
 
-struct dyn_saved_regs *dyn_lwp::getRegisters() {
+bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {
    // Cycle through all registers, reading each from the
    // process user space with ptrace(PTRACE_PEEKUSER ...
-   struct dyn_saved_regs *regs = new dyn_saved_regs();
-    
    int error;
    bool errorFlag = false;
    assert(get_lwp_id() != 0);
@@ -202,9 +200,9 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
    }
    
    if( errorFlag )
-      return NULL;
+      return false;
    else
-      return regs;
+      return true;
 }
 
 bool dyn_lwp::changePC(Address loc,
@@ -267,20 +265,20 @@ bool dyn_lwp::executingSystemCall()
   return false;
 }
 
-bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
+bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) {
    // Cycle through all registers, writing each from the
    // buffer with ptrace(PTRACE_POKEUSER ...
 
    bool retVal = true;
    
    assert(get_lwp_id() != 0);
-   if( P_ptrace( PTRACE_SETREGS, get_lwp_id(), 0,(int)&(regs->gprs) ) )
+   if( P_ptrace( PTRACE_SETREGS, get_lwp_id(), 0,(int)&(regs.gprs) ) )
    {
       perror("dyn_lwp::restoreRegisters PTRACE_SETREGS" );
       retVal = false;
    }
    
-   if( P_ptrace( PTRACE_SETFPREGS, get_lwp_id(), 0, (int)&(regs->fprs)))
+   if( P_ptrace( PTRACE_SETFPREGS, get_lwp_id(), 0, (int)&(regs.fprs)))
    {
       perror("dyn_lwp::restoreRegisters PTRACE_SETFPREGS" );
       retVal = false;
@@ -364,7 +362,8 @@ bool process::loadDYNINSTlibCleanup()
      lwp_to_use = getRepresentativeLWP();
   
   // restore registers
-  lwp_to_use->restoreRegisters(savedRegs); 
+  assert(savedRegs != NULL);
+  lwp_to_use->restoreRegisters(*savedRegs);
 
   // restore the stack frame of _start()
   user_regs_struct *theIntRegs = (user_regs_struct *)savedRegs;
@@ -383,7 +382,7 @@ bool process::loadDYNINSTlibCleanup()
   if( isRunning_() )
 	  cerr << "WARNING -- process is running at trap from dlopenDYNINSTlib" << endl;
 
-  delete [] (char *) savedRegs;
+  delete savedRegs;
   savedRegs = NULL;
   return true;
 }
@@ -1008,9 +1007,10 @@ bool process::loadDYNINSTlib() {
   else
      lwp_to_use = getRepresentativeLWP();
 
-  savedRegs = lwp_to_use->getRegisters();
+  savedRegs = new dyn_saved_regs;
+  bool status = lwp_to_use->getRegisters(savedRegs);
 
-  assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
+  assert((status!=false) && (savedRegs!=(void *)-1));
   // save the stack frame of _start()
   struct dyn_saved_regs new_regs;
   memcpy(&new_regs, savedRegs, sizeof(struct dyn_saved_regs));
@@ -1062,7 +1062,7 @@ bool process::loadDYNINSTlib() {
           reg_ptr->ecx = codeBase;
       }
 
-      if(! lwp_to_use->restoreRegisters(&new_regs) )
+      if(! lwp_to_use->restoreRegisters(new_regs) )
       {
           logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
           assert(0);

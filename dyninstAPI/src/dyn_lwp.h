@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.25 2004/01/19 21:54:04 schendel Exp $
+ * $Id: dyn_lwp.h,v 1.26 2004/02/07 18:34:04 schendel Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -89,6 +89,9 @@ class papiMgr;
 
 class dyn_lwp
 {
+  bool getRegisters_(struct dyn_saved_regs *regs);
+  bool restoreRegisters_(const struct dyn_saved_regs &regs);
+
  public:
   // default constructor
   dyn_lwp();
@@ -97,10 +100,17 @@ class dyn_lwp
 
   ~dyn_lwp();       // we only want process::deleteLWP to do this
 
+  void clearCachedRegister() {
+     if(cached_regs) {
+        delete cached_regs;
+        cached_regs = NULL;
+     }
+  }
+
   // Returns a struct used by changePC/restoreRegisters
-  struct dyn_saved_regs *getRegisters();
+  bool getRegisters(struct dyn_saved_regs *regs);
   // Sets register file to values retrieved by getRegisters
-  bool restoreRegisters(struct dyn_saved_regs *regs);			
+  bool restoreRegisters(const struct dyn_saved_regs &regs);
   // Changes PC to the given address. If regs is non-NULL,
   // sets register values as above (restoreRegisters), then changes PC
   bool changePC(Address addr, struct dyn_saved_regs *regs);
@@ -332,6 +342,8 @@ class dyn_lwp
   // Callback to be made when the syscall exits
   syscallTrapCallbackLWP_t trappedSyscallCallback_;
   void *trappedSyscallData_;
+
+  struct dyn_saved_regs *cached_regs;  
   
   // When we run an inferior RPC we cache the stackwalk of the
   // process and return that if anyone asks for a stack walk

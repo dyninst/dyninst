@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.32 2004/01/19 21:54:06 schendel Exp $
+// $Id: procfs.C,v 1.33 2004/02/07 18:34:08 schendel Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -140,7 +140,7 @@ bool process::isRunning_() const {
    return lwp_isRunning_(getRepresentativeLWP()->get_fd());
 }
 
-bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) 
+bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) 
 {
 #ifdef __alpha 
    prstatus info;
@@ -152,7 +152,7 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs)
    }
    errno = 0;
 #endif
-   if (ioctl(fd_, PIOCSREG, &(regs->theIntRegs)) == -1) {
+   if (ioctl(fd_, PIOCSREG, &(regs.theIntRegs)) == -1) {
       logLine("dyn_lwp::restoreRegisters PIOCSREG failed");
       if (errno == EBUSY) {
          cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
@@ -161,7 +161,7 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs)
       return false;
    }
 
-   if (ioctl(fd_, PIOCSFPREG, &(regs->theFpRegs)) == -1) {
+   if (ioctl(fd_, PIOCSFPREG, &(regs.theFpRegs)) == -1) {
       logLine("dyn_lwp::restoreRegisters PIOCSFPREG failed");
       if (errno == EBUSY) {
          cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
@@ -251,35 +251,35 @@ bool dyn_lwp::stop_() {
   return 1;
 }
 
-struct dyn_saved_regs *dyn_lwp::getRegisters() {
-    struct dyn_saved_regs *regs = new dyn_saved_regs();
-    
+bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {
    if (ioctl(fd_, PIOCGREG, &(regs->theIntRegs)) == -1) {
       perror("dyn_lwp::getRegisters PIOCGREG");
       if (errno == EBUSY) {
-         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
-	 assert(false);
-      }
-
-      return NULL;
+         cerr << "It appears that the process was not stopped in the eyes "
+              << "of /proc" << endl;
+         assert(false);
+      }      
+      return false;
    }
-
+   
    if (ioctl(fd_, PIOCGFPREG, &(regs->theFpRegs)) == -1) {
       perror("dyn_lwp::getRegisters PIOCGFPREG");
       if (errno == EBUSY)
-         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+         cerr << "It appears that the process was not stopped in the eyes "
+              << "of /proc" << endl;
       else if (errno == EINVAL)
-	 // what to do in this case?  Probably shouldn't even do a print, right?
-	 // And it certainly shouldn't be an error, right?
-	 cerr << "It appears that this machine doesn't have floating-point instructions" << endl;
-
-      return NULL;
+         // what to do in this case?  Probably shouldn't even do a print,
+         // right?  And it certainly shouldn't be an error, right?
+         cerr << "It appears that this machine doesn't have floating-point "
+              << "instructions" << endl;      
+      return false;
    }
-   return regs;
+
+   return true;
 }
 
 // PC is changed when we continue the process
-bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *savedRegs) 
+bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs * /*savedRegs*/) 
 {
    changedPCvalue = addr;
    return true;

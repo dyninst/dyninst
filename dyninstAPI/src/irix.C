@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.71 2004/01/19 21:53:41 schendel Exp $
+// $Id: irix.C,v 1.72 2004/02/07 18:34:05 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -236,34 +236,32 @@ bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf)
 }
 #endif
 
-struct dyn_saved_regs *dyn_lwp::getRegisters() 
+bool dyn_lwp::getRegisters(struct dyn_saved_regs *regs) 
 {
-    struct dyn_saved_regs *regs = new dyn_saved_regs();
-    
-  if (ioctl(fd_, PIOCGREG, &(regs->intRegs)) == -1) {
-    perror("dyn_lwp::getRegisters(PIOCGREG)");
-    assert(errno != EBUSY); // procfs thinks the process is active
-    return NULL;
-  }
-
-  if (ioctl(fd_, PIOCGFPREG, &(regs->fpRegs)) == -1) {
-    perror("dyn_lwp::getRegisters(PIOCGFPREG)");
-    assert(errno != EBUSY);  // procfs thinks the process is active
-    assert(errno != EINVAL); // no floating-point hardware
-    return NULL;
-  }
-  
-  return regs;
+   if (ioctl(fd_, PIOCGREG, &(regs->intRegs)) == -1) {
+      perror("dyn_lwp::getRegisters(PIOCGREG)");
+      assert(errno != EBUSY); // procfs thinks the process is active
+      return false;
+   }
+   
+   if (ioctl(fd_, PIOCGFPREG, &(regs->fpRegs)) == -1) {
+      perror("dyn_lwp::getRegisters(PIOCGFPREG)");
+      assert(errno != EBUSY);  // procfs thinks the process is active
+      assert(errno != EINVAL); // no floating-point hardware
+      return false;
+   }
+   
+   return true;
 }
 
-bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs)
+bool dyn_lwp::restoreRegisters(const struct dyn_saved_regs &regs)
 {
-  if (ioctl(fd_, PIOCSREG, &(regs->intRegs)) == -1) {
+  if (ioctl(fd_, PIOCSREG, &(regs.intRegs)) == -1) {
     perror("dyn_lwp::restoreRegisters(PIOCSREG)");
     assert(errno != EBUSY); // procfs thinks the process is active
     return false;
   }  
-  if (ioctl(fd_, PIOCSFPREG, &(regs->fpRegs)) == -1) {
+  if (ioctl(fd_, PIOCSFPREG, &(regs.fpRegs)) == -1) {
     perror("dyn_lwp::restoreRegisters(PIOCSFPREG)");
     assert(errno != EBUSY);  // procfs thinks the process is active
     assert(errno != EINVAL); // no floating-point hardware
@@ -541,6 +539,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
     if (currProcess) {
         procevent *new_event = new procevent;
         new_event->proc = currProcess;
+        new_event->lwp  = currProcess->getRepresentativeLWP();
         new_event->why  = why;
         new_event->what = what;
         new_event->info = info;

@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.18 2004/01/19 21:53:40 schendel Exp $
+ * $Id: dyn_lwp.C,v 1.19 2004/02/07 18:34:03 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -64,6 +64,7 @@ dyn_lwp::dyn_lwp() :
   postsyscallpc_(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
+  cached_regs(NULL),
   isRunningIRPC(false), is_attached_(false)  
 {
 };
@@ -83,6 +84,7 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   postsyscallpc_(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
+  cached_regs(NULL),
   isRunningIRPC(false), is_attached_(false)
 {
 }
@@ -102,6 +104,7 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   postsyscallpc_(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
+  cached_regs(NULL),
   isRunningIRPC(false), is_attached_(false)
 {
     fprintf(stderr, "LWP copy constructor\n");
@@ -116,6 +119,17 @@ dyn_lwp::~dyn_lwp()
 bool dyn_lwp::continueLWP(int signalToContinueWith) {
    if(status_ == running) {
       return true;
+   }
+
+   // the saved cached register can be cleared since continuing
+   if(this == proc()->getRepresentativeLWP())
+      proc()->clearCachedRegister();
+   else
+      clearCachedRegister();
+
+   if(cached_regs != NULL) {
+      delete cached_regs;
+      cached_regs = NULL;
    }
 
    bool ret = continueLWP_(signalToContinueWith);
@@ -220,6 +234,36 @@ void dyn_lwp::detach() {
 
 int dyn_lwp::getPid() const {
    return proc_->getPid();
+}
+
+bool dyn_lwp::getRegisters(struct dyn_saved_regs *regs) {
+   if(cached_regs == NULL) {
+      bool result = getRegisters_(regs);
+      if(cached_regs == NULL) {
+         cached_regs = new dyn_saved_regs;
+         memcpy(cached_regs, regs, sizeof(struct dyn_saved_regs));
+      }
+      return result;
+   } else {
+      memcpy(regs, cached_regs, sizeof(struct dyn_saved_regs));
+      return true;
+   }
+}
+
+bool dyn_lwp::restoreRegisters(const struct dyn_saved_regs &regs) {
+   if(cached_regs != NULL) {
+      delete cached_regs;
+      cached_regs = NULL;
+   }
+   cached_regs = new dyn_saved_regs();
+   memcpy(cached_regs, &regs, sizeof(struct dyn_saved_regs));
+
+   bool res = restoreRegisters_(regs);
+   if(! res) {
+      delete cached_regs;
+   }
+
+   return res;
 }
 
 // Find out some info about the system call we're waiting on,
