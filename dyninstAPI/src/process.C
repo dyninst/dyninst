@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.240 2001/02/01 01:10:29 schendel Exp $
+// $Id: process.C,v 1.241 2001/02/09 20:37:49 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -96,6 +96,7 @@ debug_ostream attach_cerr(cerr, true);
 #else
 debug_ostream attach_cerr(cerr, false);
 #endif
+
 
 #ifdef INFERIOR_RPC_DEBUG
 debug_ostream inferiorrpc_cerr(cerr, true);
@@ -1923,6 +1924,30 @@ process::process(int iPid, image *iSymbols,
       success = false;
       return;
    }
+
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+   // Now that we're attached, we can reparse the image with correct
+   // settings. TODO: get a correct symbols, and blow away the old one.
+   int status = pid;
+   fileDescriptor *desc = getExecFileDescriptor(symbols->name(), status, false);
+   if (!desc) {
+      string msg = string("Warning: unable to parse to specified process: ")
+                   + string(pid);
+      showErrorCallback(26, msg.string_of());
+      success = false;
+      return;
+   }
+   image *theImage = image::parseImage(desc);
+   if (theImage == NULL) {
+      string msg = string("Warning: unable to parse to specified process: ")
+                   + string(pid);
+      showErrorCallback(26, msg.string_of());
+      success = false;
+      return;
+   }
+   // this doesn't leak, since the old theImage was deleted. 
+   symbols = theImage;
+#endif
 
 #if defined(mips_sgi_irix6_4) && !defined(BPATCH_LIBRARY)
    if ( process::pdFlavor == "mpi" && osName.prefixed_by("IRIX") )
@@ -4698,7 +4723,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
           (void)continueProc();
         return false;
      }
-
+   
    /* Flag in app is set when running irpc.  Used by app to ignore traps
       which are delivered before or during the irpc.  Also set beginning
       and ending addresses of irpc.
@@ -4879,7 +4904,7 @@ Address process::createRPCtempTramp(AstNode *action,
      {
        /* May cause another inferior RPC to dynamically allocate a new heap
           in the inferior. */
-       tempTrampBase = inferiorMalloc(this, count, textHeap);
+       tempTrampBase = inferiorMalloc(this, count, anyHeap);
      }
    assert(tempTrampBase);
 
@@ -5389,6 +5414,7 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
    metric_cerr << "process::installInstrRequests*" << requests.size() << endl;
 #endif
    for (unsigned lcv=0; lcv < requests.size(); lcv++) {
+
       instMapping *req = requests[lcv];
 
       function_base *func = findOneFunction(req->func);

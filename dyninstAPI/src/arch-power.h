@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.16 2000/12/15 00:33:34 bernat Exp $
+// $Id: arch-power.h,v 1.17 2001/02/09 20:37:48 bernat Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -144,6 +144,7 @@ union instructUnion {
     struct xfxform xfxform;
     struct xflform xflform;
     struct mform  mform;
+    struct genericform generic;
     unsigned int  raw;
 };
 

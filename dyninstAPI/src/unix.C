@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.51 2000/11/15 22:56:11 bernat Exp $
+// $Id: unix.C,v 1.52 2001/02/09 20:37:51 bernat Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -182,9 +182,8 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
     // But first, check to see if we've already linked the dyninst library.
     // I'm being lazy here. Initialize an object (class Object), which
     // reads in the process info. Then look up a Dyninst symbol.
-    cerr << "Checking for prelinked runtime library... ";
     //if (seeIfRTLinked(file))
-    if (1)
+    if (1) // This isn't working quite right
       cerr << "Found" << endl;
     else
       {
@@ -233,7 +232,7 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 	    // Second string: file.string_of()
 	    // Third string: the runtime library path, so get it.
 	    {
-	      char link_string[] = "ld -o %s %s %s -bpT:0x10000000 -bpD:0x20000000 -bnso -btextro -bexpall -lc -bI:/lib/syscalls.exp";
+	      char link_string[] = "ld -o %s %s %s -bpT:0x10000000 -bpD:0x20000000 -btextro -bexpall -lc";
 #ifdef BPATCH_LIBRARY 
 	      const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
 #else
@@ -587,7 +586,6 @@ int handleSigChild(int pid, int status)
 		// The original use was to detect when a ptraced process had
 		// started up.  Several have been added.  We must be careful
 		// to make sure that uses of SIGTRAPs do not conflict.
-
 #ifndef rs6000_ibm_aix4_1
 	        signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid()
 			    << " status =" << curr->getStatusAsString()

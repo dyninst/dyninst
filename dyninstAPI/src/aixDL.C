@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.1 2000/11/16 01:33:15 bernat Exp $
+// $Id: aixDL.C,v 1.2 2001/02/09 20:37:48 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -86,10 +86,21 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
     return false;
   }
 
+  // turn on 'multiprocess debugging', which allows ptracing of both the
+  // parent and child after a fork.  In particular, both parent & child will
+  // TRAP after a fork.  Also, a process will TRAP after an exec (after the
+  // new image has loaded but before it has started to execute at all).
+  // Note that turning on multiprocess debugging enables two new values to be
+  // returned by wait(): W_SEWTED and W_SFWTED, which indicate stops during
+  // execution of exec and fork, respectively.
+  // Should do this in loadSharedObjects
+  // Note: this can also get called when we incrementally find a shared object.
+  // So? :)
+  ptrace(PT_MULTI, pid, 0, 1, 0);
+
   if (!ptr->ldinfo_next)
     {
       // Non-shared object, return 0
-      cerr << "No shared objects found" << endl;
       return 0;
     }
 
@@ -151,6 +162,116 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 
 }
 
-bool dynamic_linking::handleIfDueToSharedObjectMapping(process *, vector<shared_object *> **,
-				      u_int &, bool &){ return false;}
+// handleIfDueToSharedObjectMapping: returns true if the trap was caused
+// by a change to the link maps
+// p - process we're dealing with
+// changed_objects -- set to list of new objects
+// change_type -- set to 1 if added, 2 if removed
+// error_occurred -- duh
+// return value: true if there was a change to the link map,
+// false otherwise
+bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
+						       vector<shared_object *> **changed_objects,
+						       u_int &change_type, 
+						       bool &error_occurred) {
+  // Well, this is easy, ain't it?
+  // List of current shared objects
+  vector <shared_object *> *curr_list = p->sharedObjects();
+  // List of new shared objects (since we cache parsed objects, we
+  // can go overboard safely)
+  vector <shared_object *> *new_list = getSharedObjects(p);
+
+  error_occurred = false; // Boy, we're optimistic.
+  change_type = 0; // Assume no change
+
+  // I've seen behavior where curr_list should be null, but instead has zero size
+  if (!curr_list || (curr_list->size() == 0)) {
+    change_type = 0;
+    return false;
+  }
+
+  // Check to see if something was returned by getSharedObjects
+  // They all went away? That's odd
+  if (!new_list) {
+    error_occurred = true;
+    change_type = 2;
+    return false;
+  }
+
+  if (new_list->size() == curr_list->size())
+    change_type = 0;
+  else if (new_list->size() > curr_list->size())
+    change_type = 1; // Something added
+  else
+    change_type = 2; // Something removed
+
+
+  *changed_objects = new(vector<shared_object *>);
+
+  // if change_type is add, figure out what is new
+  if (change_type == 1) {
+    // Compare the two lists, and stick anything new on
+    // the added_list vector (should only be one, but be general)
+    bool found_object = false;
+    for (u_int i = 0; i < new_list->size(); i++) {
+      for (u_int j = 0; j < curr_list->size(); j++) {
+	// Check for equality -- file descriptor equality, nothing
+	// else is good enough.
+	shared_object *sh1 = (*new_list)[i];
+	shared_object *sh2 = (*curr_list)[j];
+	fileDescriptor *fd1 = sh1->getFileDesc();
+	fileDescriptor *fd2 = sh2->getFileDesc();
+
+	if (*fd1 == *fd2) {
+	  found_object = true;
+	  break;
+	}
+      }
+      // So if found_object is true, we don't care. Set it to false and loop. Otherwise,
+      // add this to the new list of objects
+      if (!found_object) {
+	(**changed_objects) += ((*new_list)[i]);
+      }
+      else found_object = false; // reset
+    }
+  }
+  else if (change_type == 2) {
+    // Compare the two lists, and stick anything deleted on
+    // the removed_list vector (should only be one, but be general)
+    bool found_object = false;
+    // Yes, this almost identical to the previous case. The for loops
+    // are reversed, but that's it. Basically, find items in the larger
+    // list that aren't in the smaller. 
+    for (u_int j = 0; j < curr_list->size(); j++) {
+      for (u_int i = 0; i < new_list->size(); i++) {
+	// Check for equality -- file descriptor equality, nothing
+	// else is good enough.
+	shared_object *sh1 = (*new_list)[i];
+	shared_object *sh2 = (*curr_list)[j];
+	fileDescriptor *fd1 = sh1->getFileDesc();
+	fileDescriptor *fd2 = sh2->getFileDesc();
+	
+	if (*fd1 == *fd2) {
+	  found_object = true;
+	  break;
+	}
+      }
+      // So if found_object is true, we don't care. Set it to false and loop. Otherwise,
+      // add this to the new list of objects
+      if (!found_object) {
+	(**changed_objects) += ((*new_list)[j]);
+      }
+      else found_object = false; // reset
+    }
+  }
+  
+  // Check to see that there is something in the new list
+  if ((*changed_objects)->size() == 0) {
+    change_type = 0; // no change after all
+    delete changed_objects; // Save memory
+    changed_objects = 0;
+    return false;
+  }
+  return true;
+}
 

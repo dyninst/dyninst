@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.73 2000/11/21 20:23:59 bernat Exp $
+// $Id: aix.C,v 1.74 2001/02/09 20:37:47 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -71,6 +71,7 @@
 #include <sys/ptrace.h>
 #include <procinfo.h> // struct procsinfo
 #include <sys/types.h>
+#include <signal.h>
 
 /* Getprocs() should be defined in procinfo.h, but it's not */
 extern "C" {
@@ -80,6 +81,7 @@ extern int getprocs(struct procsinfo *ProcessBuffer,
 		    int FileSize,
 		    pid_t *IndexPointer,
 		    int Count);
+extern int getthrds(pid_t, struct thrdsinfo *, int, tid_t, int);
 }
 
 #include "dyninstAPI/src/showerror.h"
@@ -183,6 +185,78 @@ Frame Frame::getCallerFrameNormal(process *p) const
 
   return Frame(); // zero frame
 }
+
+void decodeInstr(unsigned instr_raw) {
+  // Decode an instruction. Fun, eh?
+  union instructUnion instr;
+  instr.raw = instr_raw;
+
+  switch(instr.generic.op) {
+  case Bop:
+    fprintf(stderr, "Branch (abs=%d, link=%d) to 0x%x\n",
+	    instr.iform.aa, instr.iform.lk, instr.iform.li);
+    break;
+  case CMPIop:
+    fprintf(stderr, "CMPI reg(%d), 0x%x\n",
+	    instr.dform.ra, instr.dform.d_or_si);
+    break;
+  case SIop:
+    fprintf(stderr, "SI src(%d), tgt(%d), 0x%x\n",
+	    instr.dform.ra, instr.dform.rt, instr.dform.d_or_si);
+    break;
+  case CALop:
+    fprintf(stderr, "CAL src(%d), tgt(%d), 0x%x\n",
+	    instr.dform.ra, instr.dform.rt, instr.dform.d_or_si);
+    break;
+  case CAUop:
+    fprintf(stderr, "CAU src(%d), tgt(%d), 0x%x\n",
+	    instr.dform.ra, instr.dform.rt, instr.dform.d_or_si);
+    break;
+  case ORILop:
+    fprintf(stderr, "ORIL src(%d), tgt(%d), 0x%x\n",
+	    instr.dform.rt, instr.dform.ra, instr.dform.d_or_si);
+    break;
+  case ANDILop:
+    fprintf(stderr, "CAU src(%d), tgt(%d), 0x%x\n",
+	    instr.dform.rt, instr.dform.ra, instr.dform.d_or_si);
+    break;
+  case Lop:
+    fprintf(stderr, "L src(%d)+0x%x, tgt(%d)\n",
+	    instr.dform.ra, instr.dform.d_or_si, instr.dform.rt);
+    break;
+  case STop:
+    fprintf(stderr, "L src(%d), tgt(%d)+0x%x\n",
+	    instr.dform.rt, instr.dform.ra, instr.dform.d_or_si);
+    break;
+  case BCop:
+    fprintf(stderr, "BC op(0x%x), CR bit(0x%x), abs(%d), link(%d), tgt(0x%x)\n",
+	    instr.bform.bo, instr.bform.bi, instr.bform.aa, instr.bform.lk, instr.bform.bd);
+    break;
+  case BCLRop:
+    switch (instr.xform.xo) {
+    case BCLRxop:
+      fprintf(stderr, "BCLR op(0x%x), bit(0x%x), link(%d)\n",
+	      instr.xform.rt, instr.xform.ra, instr.xform.rc);
+      break;
+    default:
+      fprintf(stderr, "Unknown instruction (%d, 0x%x, 0x%x, 0x%x, %d, 0x%x)\n",
+	      instr.xform.op, instr.xform.rt, instr.xform.ra, instr.xform.rb,
+	      instr.xform.xo, instr.xform.rc);
+      break;
+    }
+    break;
+  case 0:
+    fprintf(stderr, "NULL INSTRUCTION\n");
+    break;
+  default:
+    fprintf(stderr, "Unknown instr with opcode %d\n",
+	    instr.generic.op);
+
+    break;
+  }
+  return;
+}      
+
 
 void *process::getRegisters() {
    // assumes the process is stopped (ptrace requires it)
@@ -904,6 +978,15 @@ bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
 }
 #endif
 
+/* Note:
+ * Writes are not forced to be synchronous with instruction fetch on the
+ * PowerPC architecture. So this means that if we write to memory and then
+ * try to execute those instructions, our writes may not have propagated
+ * through. I've seen this happen with inferiorRPCs, and occasionally with
+ * base/mini tramps, though less often. So we're going to explicitly
+ * flush. Ref: PowerPC architecture, "PowerPC virtual environment arch",
+ * p344
+ */
 bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
   if (!checkStatus()) 
     return false;
@@ -920,8 +1003,17 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
   }
 
   ptraceOps++;
-  return ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced,
-			     amount, const_cast<void*>(inSelf));
+  if (!ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced,
+				   amount, const_cast<void*>(inSelf)))
+    return false;
+  
+  /* Sleep for a short amount of time, allowing writes to propagate
+     The proper way to do this would be to flush the data cache and
+     ensure the icache is correct, but we don't do that yet.
+  */
+  usleep(36000);
+
+  return true;
 }
 
 bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
@@ -1024,6 +1116,75 @@ bool process::dumpImage() {
     struct scnhdr *sectHdr;
     bool needsCont = false;
     struct ld_info info[64];
+
+    // Added 19JAN01, various debug items
+    // Get the kernel thread ID for the currently running
+    // process
+    /*
+    struct thrdsinfo thrd_buf[10]; // max 10 threads
+    fprintf(stderr, "%d %p %d\n", 
+	    pid, thrd_buf, sizeof(struct thrdsinfo));
+    int num_thrds = getthrds(pid, thrd_buf, sizeof(struct thrdsinfo),
+			     0, 1);
+    if (num_thrds == -1) {
+      fprintf(stderr, "%d ", errno);
+      perror("getting TID");
+    }
+    else
+      fprintf(stderr, "%d threads currently running\n", num_thrds);
+    int kernel_thread = thrd_buf[0].ti_tid;
+    int gpr_contents[32];
+    ptrace(PTT_READ_GPRS, kernel_thread,
+	   gpr_contents, 0, 0);
+    fprintf(stderr, "Register contents:\n");
+    for (i = 0; i < 32; i++)
+      fprintf(stderr, "%d: %x\n", i, gpr_contents[i]);
+    
+    struct ptsprs spr_contents;
+    ptrace(PTT_READ_SPRS, kernel_thread,
+	   (int *)&spr_contents, 0, 0);
+    
+    fprintf(stderr, "IAR: %x\n", spr_contents.pt_iar);
+    fprintf(stderr, "LR: %x\n", spr_contents.pt_lr);
+    fprintf(stderr, "CR: %x\n", spr_contents.pt_cr);
+    fprintf(stderr, "CTR: %x\n", spr_contents.pt_ctr);
+    fprintf(stderr, "MSR: %x\n", spr_contents.pt_msr);
+    */
+    /*
+    // And get and print the chunk of memory around the error
+    int memory[32];
+    ptrace(PT_READ_BLOCK, pid, (int *)spr_contents.pt_iar-64,
+	   4*32, memory);
+    for (i = 0; i < 32; i++) {
+      fprintf(stderr, "%x ", (spr_contents.pt_iar-64) + i*4);
+      decodeInstr(memory[i]);
+    }
+    */
+
+    // Print the stack from register 1 to 0x30000000
+    /*
+    int instr_temp;
+    for (i = gpr_contents[1]; i < 0x30000000; i += 4) {
+      if (ptrace(PT_READ_BLOCK, pid, (int *)i, 4, &instr_temp) == -1)
+	perror("Failed to read stack!");
+      fprintf(stderr, "0x%x: 0x%x", i, instr_temp);
+      if ((instr_temp > 0x10000000) && (instr_temp < 0x20000000)) {
+	pd_Function *func = symbols->findFunctionIn((Address) instr_temp, this);
+	fprintf(stderr, ":  %s", (func->prettyName()).string_of());
+      }
+      if ((instr_temp > 0xd0000000) && (instr_temp < 0xe0000000)) {
+	pd_Function *func;
+	if (shared_objects)
+	  for(u_int j=0; j < shared_objects->size(); j++) {
+	    const image *img = ((*shared_objects)[j])->getImage();
+	    func = img->findFunctionIn((Address) instr_temp, this);
+	    if (func)
+	      fprintf(stderr, ":   %s", (func->prettyName()).string_of());
+	  }
+      }
+      fprintf(stderr, "\n");
+    }
+    */
 
     ifd = open(imageFileName.string_of(), O_RDONLY, 0);
     if (ifd < 0) {
@@ -1168,20 +1329,23 @@ fileDescriptor *getExecFileDescriptor(string filename,
 		 (int *) ptr, 1024 * sizeof(struct ld_info), (int *)ptr);
 
     if (ret != 0) {
-      perror("failed to get loader information about process");
+      // Two possible problems here -- one, the process didn't exist. We
+      // need to handle this. Second, we haven't attached yet. Work around
+      if (0) { // Proc doesn't exist
+	return NULL;
+      }
+      else {
+	ptr->ldinfo_textorg = (void *) -1; // illegal flag value
+	ptr->ldinfo_dataorg = (void *) -1; // illegal flag value
+	// attempt to continue and patch up later
+      }	
+      /*
+	perror("failed to get loader information about process");
 	statusLine("Unable to get loader info about process, application aborted");
 	showErrorCallback(43, "Unable to get loader info about process, application aborted");
 	return NULL;
+      */
     }
-
-    // turn on 'multiprocess debugging', which allows ptracing of both the
-    // parent and child after a fork.  In particular, both parent & child will
-    // TRAP after a fork.  Also, a process will TRAP after an exec (after the
-    // new image has loaded but before it has started to execute at all).
-    // Note that turning on multiprocess debugging enables two new values to be
-    // returned by wait(): W_SEWTED and W_SFWTED, which indicate stops during
-    // execution of exec and fork, respectively.
-    ptrace(PT_MULTI, pid, 0, 1, 0);
 
     // Set up and return the file descriptor. In this case we actually
     // return a fileDescriptor_AIX type (text/data org value, pid)
@@ -1302,8 +1466,12 @@ bool handleAIXsigTraps(int pid, int status) {
       if (curr) {
 	curr->status_ = stopped;
         //fprintf(stderr, "Got load SIGTRAP from pid %d, PC=%x\n", pid,
-	//                curr->currentPC());
+	//curr->currentPC());
         resurrectBaseTramps(curr);            //Restore base trampolines
+	// We've loaded a library. Handle it as a dlopen(), basically
+	// Actually, handle it exactly like a dlopen. 
+	curr->handleIfDueToSharedObjectMapping(); 
+
 	curr->continueProc();
       }
       return true;

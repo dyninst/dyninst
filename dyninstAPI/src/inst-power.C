@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.97 2000/11/15 22:56:06 bernat Exp $
+ * $Id: inst-power.C,v 1.98 2001/02/09 20:37:48 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1145,8 +1145,11 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 	proc->setTrampGuardFlagAddr(trampGuardFlagAddr);
       }
     if (! isReinstall) 
-      baseAddr = inferiorMalloc(proc, theTemplate->size, textHeap, location->addr);
+      baseAddr = inferiorMalloc(proc, theTemplate->size, anyHeap, location->addr);
     // InferiorMalloc can ignore our "hints" when necessary, but that's bad here.
+    //fprintf(stderr, "Installing a base tramp at %x, jumping from %s(%x)\n",
+    //baseAddr, location->func->prettyName().string_of(), location->addr);
+    
     if (DISTANCE(location->addr, baseAddr) > MAX_BRANCH)
       {
 	fprintf(stderr, "Instrumentation point %x too far from tramp location %x\n",
@@ -3269,7 +3272,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
       // We need to find what object the callee TOC entry is defined in. This will be the
       // same place we find the function, later.
       Address callee_addr = 0;
-      const image *callee_img;
+      const image *callee_img = NULL;
       if ( (callee_addr = symbols->get_instruction(callee_TOC_entry) ))
 	callee_img = symbols;
       else
@@ -3286,18 +3289,21 @@ bool process::findCallee(instPoint &instr, function_base *&target){
       if (!callee_img) return false;
       // callee_addr: address of function called, contained in image callee_img
       // Sanity check on callee_addr
-      if ((callee_addr < 0x20000000) ||
-	  (callee_addr > 0xdfffffff))
+      if (
+	  ((callee_addr < 0x20000000) ||
+	   (callee_addr > 0xdfffffff)))
 	{
-	  fprintf(stderr, "Skipping illegal address 0x%x in function %s\n",
-		  callee_addr, caller->prettyName().string_of());
+	  if (callee_addr != 0) { // unexpected -- where is this function call? Print it out.
+	    fprintf(stderr, "Skipping illegal address 0x%x in function %s\n",
+		    (unsigned) callee_addr, caller->prettyName().string_of());
+	  }
 	  return false;
 	}
 
       // Again, by definition, the function is not in owner. Loop through all 
       // images to find it.
       pd_Function *pdf = 0;
-      if (pdf = callee_img->findFunctionInInstAndUnInst(callee_addr, this))
+      if ( (pdf = callee_img->findFunctionInInstAndUnInst(callee_addr, this) ))
 	{
 	  target = pdf;
 	  instr.set_callee(pdf);
@@ -3305,7 +3311,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 	}
       else
 	fprintf(stderr, "Couldn't find target function for address 0x%x\n",
-		callee_addr);
+		(unsigned) callee_addr);
     }
   // Todo
   target = 0;
@@ -3375,8 +3381,6 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 {
   // Offset if needed
   int offset;
-  // Pointer to instruction space if needed
-  instruction *temp = (instruction *) ((void*)&insn[base]);
   // We need values to define special registers.
   switch ( (int) register_num)
     {
@@ -3388,7 +3392,6 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 	      base, noCost);
       // Load LR into register dest
       emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
-      fprintf(stderr, "Emitted a load LR into %d, base %x insn\n", dest, base);
       break;
     case REG_CTR:
       // CTR is saved down the stack
@@ -3398,7 +3401,6 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 	      base, noCost);
       // Load LR into register dest
       emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
-      fprintf(stderr, "Emitted a load CTR into %d, base %x insn\n", dest, base);
       break;
     default:
       cerr << "Fallthrough in emitLoadPreviousStackFrameRegister" << endl;
@@ -3486,8 +3488,6 @@ bool process::MonitorCallSite(instPoint *callSite){
  */
 BPatch_point *createInstructionInstPoint(process *proc, void *address)
 {
-    int i;
-
     function_base *func = proc->findFunctionIn((Address)address);
 
     if (!isAligned((Address)address))
@@ -3517,10 +3517,10 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
  */
 int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 {
-    if (maxSize >= sizeof(instruction))
-        memcpy(insns, &point->originalInstruction.raw, sizeof(instruction));
-
-    return sizeof(instruction);
+  if ((unsigned) maxSize >= (unsigned) sizeof(instruction))
+      memcpy(insns, &point->originalInstruction.raw, sizeof(instruction));
+  
+  return sizeof(instruction);
 }
 
 #endif

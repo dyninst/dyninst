@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.1 2000/11/21 20:23:59 bernat Exp $
+ * $Id: Object-xcoff.h,v 1.2 2001/02/09 20:37:47 bernat Exp $
 ************************************************************************/
 
 
@@ -94,7 +94,6 @@ class fileDescriptor_AIX : public fileDescriptor {
   const string &member() const { return member_; }
   Address data() const { return data_; }
   unsigned pid() const { return pid_; }
-
  private:
   string member_;
   Address data_;

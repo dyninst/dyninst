@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.2 2000/12/05 05:30:15 hollings Exp $
+// $Id: Object-xcoff.C,v 1.3 2001/02/09 20:37:47 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -79,6 +79,7 @@
 
 #include "dyninstAPI/src/showerror.h"
 #include "common/h/debugOstream.h"
+#include "arch-power.h"
 
 //
 // Seek to the desired offset and read the passed length of the file
@@ -272,7 +273,6 @@ void Object::parse_aout(int fd, int offset)
    // all these vrble declarations need to be up here due to the gotos,
    // which mustn't cross vrble initializations.  Too bad.
    long i,j;
-   int err;
    int cnt;
    string name;
    unsigned value;
@@ -394,9 +394,14 @@ void Object::parse_aout(int fd, int offset)
    // text_reloc: that + value will get you a cup of coffee... the location in
    //               memory where that file's instructions start.
    //           = "text relocation value" = text_org + scnptr - text_start
-   text_reloc = text_org_ + sectHdr[aout.o_sntext-1].s_scnptr - aout.text_start;
-   // code_off_ is the value in memory such that code_ptr[x] == code_off_ + x
-   code_off_ = text_org_ + sectHdr[aout.o_sntext-1].s_scnptr;
+   if (text_org_ != (unsigned) -1) { // -1 == illegal flag value, assume 0
+     text_reloc = text_org_ + sectHdr[aout.o_sntext-1].s_scnptr - aout.text_start;
+     // code_off_ is the value in memory such that code_ptr[x] == code_off_ + x
+     code_off_ = text_org_ + sectHdr[aout.o_sntext-1].s_scnptr;
+   }
+   else {
+     text_reloc = 0; code_off_ = 0; // set to illegal
+   }
    code_len_ = aout.tsize;
    if (!seekAndRead(fd, roundup4(sectHdr[aout.o_sntext-1].s_scnptr) + offset,
 		    (void **) &code_ptr_, aout.tsize, true))
@@ -412,36 +417,45 @@ void Object::parse_aout(int fd, int offset)
 #endif
 
    // data_reloc = "relocation value" = data_org_ - aout.data_start
-   data_reloc = data_org_ - aout.data_start;
-
-   // We're forced to get the data segment through ptrace. While
-   // some of the shared libraries are accessible from both the 
-   // mutator and mutatee, all of them are not necessarily mapped. 
-   data_ptr_ = (Word *)malloc(aout.dsize);
-   ptrace_amount = aout.dsize;
-   in_self = (char *)data_ptr_;
-   // I've seen the data_org_ value start on a halfword-aligned boundary.
-   // Since the first two bytes don't matter that I can tell, we round
-   // to word alignment
-   in_traced = (char *)(roundup4(data_org_));
-   // Maximum ptrace block = 1k
-   for (ptrace_amount = aout.dsize ; ptrace_amount > 1024; ptrace_amount -= 1024)
-     {
-       if (ptrace(PT_READ_BLOCK, pid_, (int *)in_traced,
-		  1024, (int *)in_self) == -1)
+   if (data_org_ != (unsigned) -1) {
+     data_reloc = data_org_ - aout.data_start;
+     // We're forced to get the data segment through ptrace. While
+     // some of the shared libraries are accessible from both the 
+     // mutator and mutatee, all of them are not necessarily mapped. 
+     // Not to mention, things like the table of contents (TOC) are
+     // filled in at load time. Oy.
+     data_ptr_ = (Word *)malloc(aout.dsize);
+     ptrace_amount = aout.dsize;
+     in_self = (char *)data_ptr_;
+     // I've seen the data_org_ value start on a halfword-aligned boundary.
+     // Since the first two bytes don't matter that I can tell, we round
+     // to word alignment
+     in_traced = (char *)(roundup4(data_org_));
+     // Maximum ptrace block = 1k
+     for (ptrace_amount = aout.dsize ; 
+	  ptrace_amount > 1024 ; 
+	  ptrace_amount -= 1024)
+       {
+	 if (ptrace(PT_READ_BLOCK, pid_, (int *)in_traced,
+		    1024, (int *)in_self) == -1)
 	   PARSE_AOUT_DIE("Reading data segment", 49);
-
-       in_self += 1024;
-       in_traced += 1024;
-     }
-   if (ptrace(PT_READ_BLOCK, pid_, (int *)in_traced,
-	      ptrace_amount, (int *)in_self) == -1)
-     PARSE_AOUT_DIE("Reading data segment", 49);
-
-   // data_off_ is the value subtracted from an (absolute) address to
-   // give an offset into the mutator's copy of the data
-   data_off_ = data_org_;
-
+	 
+	 in_self += 1024;
+	 in_traced += 1024;
+       }
+     if (ptrace(PT_READ_BLOCK, pid_, (int *)in_traced,
+		ptrace_amount, (int *)in_self) == -1)
+       PARSE_AOUT_DIE("Reading data segment", 49);
+     
+     // data_off_ is the value subtracted from an (absolute) address to
+     // give an offset into the mutator's copy of the data
+     data_off_ = data_org_;
+   }
+   else {
+     data_reloc = 0;
+     data_off_ = 0;
+   }
+   
 #ifdef notdef
    fprintf(stderr, "data_org_ = %x, scnptr = %x, data_start = %x\n",
 	   (unsigned) data_org_, sectHdr[aout.o_sndata-1].s_scnptr, 
@@ -488,6 +502,11 @@ void Object::parse_aout(int fd, int offset)
        nlines_ = 0;
        linesfdptr_ = 0;
      }
+
+   // At this point, check to see if our memory (*_org_) values are
+   // valid. If not, break -- there's only so much you can do, and
+   // reading blind into memory doesn't count.
+   if (text_org_ == (unsigned) -1) goto cleanup;
 
    // Now the symbol table itself:
    for (i=0; i < hdr.f_nsyms; i++) {
@@ -558,8 +577,17 @@ void Object::parse_aout(int fd, int offset)
        if (type == Symbol::PDST_FUNCTION) {
 	 // Find address of inst relative to code_ptr_, instead of code_off_
 	 Word *inst = (Word *)((char *)code_ptr_ + value - code_off_);
-	 while (inst[size] != 0) size++;
-	 size *= sizeof(Word);
+	 // If the instruction we got is a unconditional branch, flag it.
+	 // I've seen that in some MPI functions as a poor man's aliasing
+	 instruction instr;
+	 instr.raw = inst[0];
+	 if ((instr.iform.op == Bop) &&
+	     (instr.iform.lk == 0))
+	   size = 4; // Unconditional branch at the start of the func, no link
+	 else {
+	   while (inst[size] != 0) size++;
+	   size *= sizeof(Word);
+	 }
        }
 
        // AIX linkage code appears as a function. Since we don't remove it from
@@ -568,6 +596,41 @@ void Object::parse_aout(int fd, int offset)
        // Module glink.s is renamed to Global_Linkage below
        if (modName == "Global_Linkage")
 	 name += "_linkage";
+
+       // Another hack -- if we get one of the MPI_Send type functions,
+       // skip it. We get duplicates, and expect the second of the two.
+       // Is this stupid or what? 
+       // Okay, fine. Get rid of this when symtab.C is fixed.
+       if (
+	   (name == "MPI_Send") ||
+	   (name == "MPI_Bsend") ||
+	   (name == "MPI_Ssend") ||
+	   (name == "MPI_Isend") ||
+	   (name == "MPI_Issend") ||
+	   (name == "MPI_Recv") ||
+	   (name == "MPI_Irecv") ||
+	   (name == "MPI_Sendrecv") ||
+	   (name == "MPI_Sendrecv_replace") ||
+	   (name == "MPI_Probe") ||
+	   (name == "MPI_Wait") ||
+	   (name == "MPI_Waitany") ||
+	   (name == "MPI_Waitall") ||
+	   (name == "MPI_Waitsome") ||
+	   (name == "MPI_Barrier") ||
+	   (name == "MPI_Bcast") ||
+	   (name == "MPI_Alltoall") ||
+	   (name == "MPI_Alltoallv") ||
+	   (name == "MPI_Gather") ||
+	   (name == "MPI_Gatherv") ||
+	   (name == "MPI_Allgather") ||
+	   (name == "MPI_Allgatherv") ||
+	   (name == "MPI_Reduce") ||
+	   (name == "MPI_Allreduce") ||
+	   (name == "MPI_Reduce_scatter") ||
+	   (name == "MPI_Scatter") ||
+	   (name == "MPI_Scatterv") ||
+	   (name == "MPI_Scan"))
+	 continue;
 
        Symbol sym(name, modName, type, linkage, value, false, size);
        
@@ -682,7 +745,7 @@ void Object::parse_aout(int fd, int offset)
 void Object::load_archive(int fd)
 {
   Archive *archive;
-  
+
   // Determine archive type
   lseek(fd, 0, SEEK_SET);
   char magic_number[SAIAMAG];
@@ -699,17 +762,21 @@ void Object::load_archive(int fd)
   if (archive->read_arhdr())
     PARSE_AR_DIE("Reading file header", 49);
 
+  bool found = false;
+
   while (archive->next_offset != 0)
     {
       if (archive->read_mbrhdr())
 	PARSE_AR_DIE("Reading member header", 49);
-      
+
       if (!strncmp(archive->member_name, 
-		  member_.string_of(), 
-		  archive->member_len - 1))
-	  break; // Got the right one
+		   member_.string_of(), 
+		   archive->member_len - 1)) {
+	found = true;
+	break; // Got the right one
+      }
     }
-  if (archive->next_offset) // found the right member
+  if (found) // found the right member
     {
       // At this point, we should be able to read the a.out 
       // file header. 
@@ -835,7 +902,6 @@ Object::Object(fileDescriptor *desc, void (*err_func)(const char *))
 
 Object::~Object() 
 {
-  fprintf(stderr, "Deleting object 'cause we're done with it\n");
   // Cleanup memory, otherwise we'll have mega-leaks.
   if (code_ptr_) free(code_ptr_);
   if (data_ptr_) free(data_ptr_);

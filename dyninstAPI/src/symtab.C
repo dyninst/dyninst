@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.113 2000/11/15 22:56:10 bernat Exp $
+// $Id: symtab.C,v 1.114 2001/02/09 20:37:50 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -297,10 +297,12 @@ image *image::parseImage(fileDescriptor *desc)
    */
   unsigned numImages = allImages.size();
 
+  // AIX: it's possible that we're reparsing a file with better information
+  // about it. If so, yank the old one out of the images vector -- replace
+  // it, basically.
   for (unsigned u=0; u<numImages; u++)
     if ((*desc) == *(allImages[u]->desc()))
       return allImages[u];
-  
   /*
    * load the symbol table. (This is the a.out format specific routine).
    */
@@ -319,8 +321,23 @@ image *image::parseImage(fileDescriptor *desc)
     return NULL;
   }
 
+  bool beenReplaced = false;
+#ifdef rs6000_ibm_aix4_1 
+  // On AIX, we might have a "stub" image instead of the
+  // actual image we want. So we check to see if we do,
+  // and if so copy over the list. In normal practice,
+  // the stub will be the first and only entry.
+  for (unsigned i=0; i<numImages; i++)
+    if (allImages[i]->desc()->addr() == -1) {
+      image *imageTemp = allImages[i];
+      allImages[i]=ret;
+      beenReplaced = true;
+      delete imageTemp;
+  }
   // Add to master image list.
-  image::allImages += ret;
+#endif
+  if (beenReplaced == false) // short-circuit on non-AIX
+    image::allImages += ret;
 
   // define all modules.
 #ifndef BPATCH_LIBRARY
@@ -1495,6 +1512,7 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
   // find the real functions -- those with the correct type in the symbol table
   for(SymbolIter symIter3(linkedFile);symIter3;symIter3++) { 
     const Symbol &lookUp = symIter3.currval();
+    
     if (funcsByAddr.defines(lookUp.addr())) {
       // This function has been defined
       ;
@@ -1504,7 +1522,7 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
 	char tempBuffer[40];
 	sprintf(tempBuffer,"0x%lx",lookUp.addr());
 	msg = string("Function ") + lookUp.name() + string(" has bad address ")
-	    + string(tempBuffer);
+	  + string(tempBuffer);
 	statusLine(msg.string_of());
 	showErrorCallback(29, msg);
 	return false;
@@ -1816,9 +1834,9 @@ void image::initialize(const string &fileName, bool &err,
         if (tmods[loop].addr() == 0) num_zeros++;
         if ((loop+1 < tmods.size()) && 
 	        (tmods[loop].addr() == tmods[loop+1].addr())) {
-            if (!tmods[loop].kludge())
+	  if (!tmods[loop].kludge())
 	        tmods[loop+1] = tmods[loop];
-        } 
+	} 
 	else
           uniq += tmods[loop];
     }
