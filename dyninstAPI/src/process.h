@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.237 2003/02/04 14:59:18 bernat Exp $
+/* $Id: process.h,v 1.238 2003/02/21 20:06:03 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -428,18 +428,6 @@ class process {
   bool hasExited() { return (status_ == exited); }
   void Stopped();
 
-#ifdef DETACH_ON_THE_FLY
-  bool haveDetached;
-  bool juststopped;
-  bool needsDetach;
-  int pendingSig;
-  int detach();
-  int reattach();
-  int reattachAndPause();
-  int detachAndContinue();
-  bool specialDetachOnFlyContinue();
-#endif /* DETACH_ON_THE_FLY */
-
   bool findInternalSymbol(const string &name, bool warn, internalSym &ret_sym)
          const;
 
@@ -490,53 +478,64 @@ class process {
   void updateActiveCT(bool flag, CTelementType type);
   void cleanRPCreadyToLaunch(int mid);
 
+  ///////////////////////////////////////////////////////////////////////
+  /// RPC Code
+  ///////////////////////////////////////////////////////////////////////    
+  
+  bool rpcSavesRegs();
+
+  /// Whole process
+  
   void postRPCtoDo(AstNode *, bool noCost,
                    inferiorRPCcallbackFunc, void *data, int, 
                    dyn_thread *thr, dyn_lwp *lwp,
 						 bool lowmem=false);
 
-  bool getReadyRPCs(vectorSet<inferiorRPCtoDo> &readyRPCs);
+  // Take a process-wide RPC and run it on a particular
+  // thread (MT-only)
+  bool distributeRPCsOverThreads();
 
-  bool existsRPCreadyToLaunch() const;
-  bool existsRPCinProgress();
-  bool rpcSavesRegs();
-  bool launchRPCifAppropriate(bool wasRunning);
-     // returns true iff anything was launched.
-     // asynchronously launches iff RPCsWaitingToStart.size() > 0 AND
-     // if currRunningRPCs.size()==0 (the latter for safety)
-     // If we're gonna launch, then we'll stop the process (a necessity).
-     // Pass wasRunning as true iff you want the process  to continue after
-     // receiving the TRAP signifying completion of the RPC.
-
-  bool isIRPCwaitingForSyscall() { return isIRPCwaitingForSyscall_; }
-  void setIRPCwaitingForSyscall() { isIRPCwaitingForSyscall_ = true; }
-  void clearIRPCwaitingForSyscall() { isIRPCwaitingForSyscall_ = false; }
-
-  // Next set work on process and all threads
-
-  bool isAnyIRPCwaitingForSyscall();
-  void clearAllIRPCwaitingForSyscall();
-
-  // And a state variable
-  bool wasRunningBeforeSyscall() { return wasRunningBeforeSyscall_; };  
+  // Find if there is a ready RPC anywhere in the process
+  bool existsRPCPending() const;
+  // Find if any thread is running an RPC
+  bool existsRPCinProgress() const;
+  // Find out if any thread expects a syscall to finish
+  bool existsRPCWaitingForSyscall() const;
   
-  bool isRunningIRPC() { return runningRPC_; }
-  void setRunningIRPC() { runningRPC_ = true; }
-  void clearRunningIRPC() { runningRPC_ = false; }
+  // Launch all RPCs ready to go
+  bool launchRPCs(bool wasRunning);
 
+  // Handle a trap due to an IRPC
+  bool handleTrapIfDueToRPC();
+
+  /// Non-MT (dyn_thread equivalence)
+
+  bool readyIRPC() const;
+  bool isRunningIRPC() const;
+  
+  irpcLaunchState_t launchProcessIRPC(bool wasRunning);
+  irpcLaunchState_t launchPendingIRPC();
+
+  // True if we're waiting for a syscall to complete
+  bool isIRPCwaitingForSyscall() const { return irpcState_ == irpcWaitingForTrap; }
+
+  // Store state for a pending IRPC
+  bool wasRunningBeforeSyscall() { return wasRunningBeforeSyscall_; };  
+
+  // Handle completing IRPCs
+  Address getIRPCRetValAddr();
+  bool handleRetValIRPC();
+  Address getIRPCFinishedAddr();
+  bool handleCompletedIRPC();
+
+/////////////////////////////////////////////////////////////////
+
+  
   void SendAppIRPCInfo(int runningRPC, unsigned begRPC, unsigned endRPC);
   void SendAppIRPCInfo(Address curPC);
 #ifdef INFERIOR_RPC_DEBUG
   void CheckAppTrapIRPCInfo();
 #endif
-  // we have to clean them manually once they are done
-  bool handleDoneinferiorRPC(void);
-  bool handleTrapIfDueToRPC();
-
-  // look for curr PC reg value in 'trapInstrAddr' of 'currRunningRPCs'.
-  // Return true iff found.  Also, if true is being returned, then
-  // additionally does a 'launchRPCifAppropriate' to fire off the next
-  // waiting RPC, if any.
 
   bool getCurrPCVector(pdvector <Address> &currPCs);
 
@@ -848,9 +847,8 @@ void saveWorldData(Address address, int size, const void* src);
   // Don't confuse the two!
 
   vectorSet<inferiorRPCtoDo> RPCsWaitingToStart;
-
-  bool isIRPCwaitingForSyscall_;
-  bool runningRPC_;
+  irpcState_t irpcState_;
+  
   bool wasRunningBeforeSyscall_;
 #if defined(sparc_sun_solaris2_4)
   sysset_t *save_exitset_ptr;
@@ -889,7 +887,7 @@ void saveWorldData(Address address, int size, const void* src);
                               bool isFunclet);
 
  private:
-
+  int number_of_threads_in_breakpoint;
   bool set_breakpoint_for_syscall_completion();
 
  public:
@@ -1077,6 +1075,10 @@ void saveWorldData(Address address, int size, const void* src);
     return false;
   }
 
+  // Placeholder function to handle the split between
+  // Paradyn and Dyninst IRPC-wise
+  bool thr_IRPC();
+    
   unsigned maxNumberOfThreads() {
 #if defined(MT_THREAD)
     return MAX_NUMBER_OF_THREADS;
