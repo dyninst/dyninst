@@ -39,12 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: BPatch_templates.C,v 1.5 1999/06/17 21:52:53 wylie Exp $
+
 #include <sys/types.h>
 
+#if !defined(i386_unknown_nt4_0)
 #pragma implementation "BPatch_Vector.h"
+#endif
 #include "BPatch_Vector.h"
 
+#if !defined(i386_unknown_nt4_0)
 #pragma implementation "refCounter.h"
+#endif
 #include "util/h/refCounter.h"
 #include "util/h/String.h"
 
@@ -63,4 +69,4 @@ template class BPatch_Vector<BPatch_thread *>;
 template class BPatch_Vector<BPatch_module *>;
 template class BPatch_Vector<instInstance *>;
 
-template class  refCounter<string_ll>;
+//template class  refCounter<string_ll>;
