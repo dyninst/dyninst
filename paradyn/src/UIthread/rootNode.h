@@ -44,7 +44,7 @@
 // C++ class for the root node of subtrees declared in where4tree.h
 // Basically, this file exists just to make where4tree.h that much shorter.
 
-/* $Id: rootNode.h,v 1.9 2000/07/28 17:22:06 pcroth Exp $ */
+/* $Id: rootNode.h,v 1.10 2002/11/25 23:52:34 schendel Exp $ */
 
 #ifndef _ROOTNODE_H_
 #define _ROOTNODE_H_
@@ -72,6 +72,7 @@ class whereAxisRootNode {
 
    string name; // name of the root of this subtree
    bool highlighted;
+   bool retired;
 
    int pixWidthAsRoot, pixHeightAsRoot;
    int pixWidthAsListboxItem;
@@ -91,6 +92,7 @@ class whereAxisRootNode {
    whereAxisRootNode(const whereAxisRootNode &src)  : name(src.name) {
       uniqueId = src.uniqueId;
       highlighted = src.highlighted;
+      retired = src.retired;
       pixWidthAsRoot = src.pixWidthAsRoot;
       pixHeightAsRoot = src.pixHeightAsRoot;
       pixWidthAsListboxItem = src.pixWidthAsListboxItem;
@@ -144,10 +146,30 @@ class whereAxisRootNode {
       // 4 -- no, point is west of root (but not north or south of root)
       // 5 -- no, point is east of root (but not north or south or root)
 
+   // Can be used in where4tree to determine whether or not to draw item.
+   // Needs to be done if tunable constant whereAxisHideRetiredRes is chosen.
+   bool shouldHide() const { return is_retired(); }
+
    // The following 3 routines don't redraw:
-   void highlight() {highlighted=true;}
-   void unhighlight() {highlighted=false;}
-   void toggle_highlight() {highlighted = !highlighted;}
+   void highlight() {
+      if(is_retired()) return;  // can't be selected if it no longer exists
+      highlighted = true;
+   }
+   void unhighlight() {
+      highlighted = false;
+   }
+   void toggle_highlight() {
+      if(is_retired() && highlighted == false)
+         return;
+
+      highlighted = !highlighted;
+   }
+
+   void mark_as_retired()  { 
+      unhighlight();  // can't be selected if it no longer exists
+      retired = true;
+   }
+   bool is_retired() const { return retired; }
 };
 
 #endif
