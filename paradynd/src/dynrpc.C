@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.42  1996/04/18 22:02:39  naim
+ * Revision 1.43  1996/04/21 21:42:02  newhall
+ * changes to getPredictedDataCost and getPredictedDataCostCallback
+ *
+ * Revision 1.42  1996/04/18  22:02:39  naim
  * Changes to make getPredictedDataCost asynchronous - naim
  *
  * Revision 1.41  1996/04/03  14:27:37  naim
@@ -253,12 +256,17 @@ vector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void) {
   return(metInfo);
 }
 
-void dynRPC::getPredictedDataCost(vector<u_int> focus, string metName)
+void dynRPC::getPredictedDataCost(u_int id,
+				  u_int req_id,
+				  vector<u_int> focus, 
+				  string metName)
 {
     if (!metName.length()) 
-      getPredictedDataCostCallback(0.0);
-    else
-      getPredictedDataCostCallback(guessCost(metName, focus));
+      getPredictedDataCostCallback(id, req_id, 0.0);
+    else{
+      float cost = guessCost(metName, focus);
+      getPredictedDataCostCallback(id, req_id, cost);
+    }
 }
 
 void dynRPC::disableDataCollection(int mid)
@@ -320,7 +328,7 @@ void dynRPC::enableDataCollection(vector<u_int> focus, string met,
     totalInstTime.start();
     id = startCollecting(met, focus, gid);
     totalInstTime.stop();
-    // cout << "Enabled " << met << " = " << id << endl;
+    // cout << "Enabled " << met.string_of() << " = " << id << endl;
     enableDataCallback(daemon_id, id);
 }
 
