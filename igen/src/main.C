@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.22  1994/04/06 21:28:45  markc
+ * Revision 1.23  1994/04/07 19:03:33  markc
+ * Fixed bug for async client calls with threads.  Removed msg_recv.
+ *
+ * Revision 1.22  1994/04/06  21:28:45  markc
  * Added constructor for client side of xdr based code.
  *
  * Revision 1.21  1994/04/01  04:57:50  markc
@@ -913,7 +916,7 @@ void remoteFunc::genThreadStub(char *className)
 	    spec->getName(), name);
     }
     printf("    assert(__val__ == THR_OKAY);\n");
-    if (upcall != asyncUpcall) {
+    if ((upcall != asyncUpcall) && (upcall != notUpcallAsync)) {
 	printf("    __tag__ = %s_%s_RESP;\n", spec->getName(), name);
 	if (strcmp(retType, "void")) {
 	    printf("    __len__ = sizeof(%s);\n", retVar);
