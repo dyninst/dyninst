@@ -156,6 +156,25 @@ typedef struct thread_sol28_s {
         int             flag; 
 } thread_sol28;
 
+/* Thread structure for libthread sparc-solaris2.8 */
+typedef struct {
+        int     sp;
+        int     pc;
+} rs_sol28patch;
+
+typedef struct thread_sol28patch_s {
+   char            dontcare[20];
+   caddr_t         thread_stack;    
+   size_t          thread_stacksize;
+   char            dontcare2[8];
+   rs_sol28patch   t_resumestate;
+   char            dontcare3[24];
+   void            (*start_pc)();    
+   thread_t        thread_id;     
+   lwpid_t         lwp_id;
+} thread_sol28patch;
+
+
 typedef struct thread_sol29_s {
     void *t_resumestate; /* 0xff2775a8 */
     int dontcare1;   /* 0xff2775a8 */
@@ -180,6 +199,7 @@ typedef struct thread_sol29_s {
 #define LIBTHR_SOL27   2
 #define LIBTHR_SOL28   3
 #define LIBTHR_SOL29   4
+#define LIBTHR_SOL28PATCH   5
 
 int which(void *tls) {
   static int w = 0;
@@ -189,6 +209,9 @@ int which(void *tls) {
 
   if ( ((thread_sol29*)tls)->thread_id == tid) {
       w = LIBTHR_SOL29;
+  }  
+  if ( ((thread_sol28patch*)tls)->thread_id == tid) {
+      w = LIBTHR_SOL28PATCH;
   }  
   if ( ((thread_sol28*)tls)->thread_id == tid) {
     w = LIBTHR_SOL28;
@@ -225,7 +248,16 @@ void DYNINST_ThreadPInfo(void* tls, void** stkbase, int* tid, long *pc, int* lwp
       *rs = &(ptr->t_resumestate);
       break;
   }
-  
+
+  case LIBTHR_SOL28PATCH: {
+      thread_sol28patch *ptr = (thread_sol28patch *) tls ;
+      *stkbase = (void*) (ptr->thread_stack);
+      *tid = (int) ptr->thread_id ;
+      *pc = (long) ptr->start_pc ;
+      *lwp = (int) ptr->lwp_id ;
+      *rs = &(ptr->t_resumestate);
+      break;
+  }  
   case LIBTHR_SOL28: {
       thread_sol28 *ptr = (thread_sol28 *) tls ;
       *stkbase = (void*) (ptr->thread_stack);
