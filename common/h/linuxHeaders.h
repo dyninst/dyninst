@@ -225,6 +225,7 @@ inline int P_ptrace(int req, pid_t pid, int addr, int data) {
 #else 
 /* Very ugly */
 
+#if 0
 /* This is helpful for debugging calls to P_ptrace */
 static char *
 pt_req(int req)
@@ -262,6 +263,7 @@ pt_req(int req)
 	  return "PTRACE_???";
      }
 }
+#endif
 
 extern bool haveDetachedFromProcess(int pid);
 
@@ -269,13 +271,6 @@ inline int P_ptrace(int req, pid_t pid, int addr, int data) {
      if (haveDetachedFromProcess(pid) && req != PTRACE_ATTACH) {
 	  /* We should never issue ptrace commands while detached. */
 	  assert(0);
-#if 0
-	  if (req == PTRACE_CONT) {
-	       /* Ignore SIGCONT request, zap the rest. */
-	       assert(data == 0 || data == SIGCONT);
-	       return 0;
-	  }
-#endif
      }
   return (ptrace((enum __ptrace_request)req, pid, addr, data));
 }
