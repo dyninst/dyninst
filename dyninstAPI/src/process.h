@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.239 2003/02/28 22:13:45 bernat Exp $
+/* $Id: process.h,v 1.240 2003/03/02 22:03:30 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -139,6 +139,8 @@ class dyn_thread;
 class image;
 class instPoint;
 class dyn_lwp;
+
+class rpcMgr;
 
 #ifdef BPATCH_LIBRARY
 class BPatch_thread;
@@ -477,6 +479,27 @@ class process {
 
   bool deferredContinueProc;
   void updateActiveCT(bool flag, CTelementType type);
+
+  rpcMgr *theRpcMgr;
+
+  rpcMgr *getRpcMgr() const { return theRpcMgr; }
+
+  void postRPCtoDo(AstNode *, bool noCost,
+                   inferiorRPCcallbackFunc, void *data, int, 
+                   dyn_thread *thr, dyn_lwp *lwp,
+						 bool lowmem=false);
+
+  bool launchRPCs(bool wasRunning);
+
+  bool existsRPCPending() const;
+  bool existsRPCinProgress() const;
+  bool existsRPCWaitingForSyscall() const;
+  void cleanRPCreadyToLaunch(int mid);
+
+  bool handleTrapIfDueToRPC();
+
+#ifdef notdef
+
   void cleanRPCreadyToLaunch(int mid);
 
   ///////////////////////////////////////////////////////////////////////
@@ -530,7 +553,7 @@ class process {
   bool handleCompletedIRPC();
 
 /////////////////////////////////////////////////////////////////
-
+#endif
   
   void SendAppIRPCInfo(int runningRPC, unsigned begRPC, unsigned endRPC);
   void SendAppIRPCInfo(Address curPC);
@@ -842,17 +865,6 @@ void saveWorldData(Address address, int size, const void* src);
   unsigned char savedStackFrame[BYTES_TO_SAVE];
 #endif
 
-  // This structure keeps track of an inferiorRPC that we will start sometime
-  // in the (presumably near) future.  There's a different structure for RPCs
-  // which have been launched and which we're waiting to finish.
-  // Don't confuse the two!
-
-  vectorSet<inferiorRPCtoDo> RPCsWaitingToStart;
-  irpcState_t irpcState_;
-
-  inferiorRPCinProgress currRunningIRPC;
-
-  bool wasRunningBeforeSyscall_;
 
 /////////////////////////////////////////////////////////////////
 //  System call trap tracking
@@ -891,14 +903,6 @@ void saveWorldData(Address address, int size, const void* src);
 
   bool need_to_wait(void) ;
   // The follwing 5 routines are implemented in an arch-specific .C file
-  bool emitInferiorRPCheader(void *, Address &baseBytes, bool isFunclet);
-
-  bool emitInferiorRPCtrailer(void *, Address &baseBytes,
-                              unsigned &breakOffset,
-                              bool stopForResult,
-                              unsigned &stopForResultOffset,
-                              unsigned &justAfter_stopForResultOffset,
-                              bool isFunclet);
 
  public:
 
@@ -1082,10 +1086,6 @@ void saveWorldData(Address address, int size, const void* src);
 #endif
     return false;
   }
-
-  // Placeholder function to handle the split between
-  // Paradyn and Dyninst IRPC-wise
-  bool thr_IRPC();
     
   unsigned maxNumberOfThreads() {
 #if defined(MT_THREAD)

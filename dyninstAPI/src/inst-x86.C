@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.119 2003/02/28 22:13:43 bernat Exp $
+ * $Id: inst-x86.C,v 1.120 2003/03/02 22:03:26 schendel Exp $
  */
 
 #include <iomanip.h>
@@ -68,6 +68,7 @@
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/instPoint.h" // includes instPoint-x86.h
 #include "dyninstAPI/src/instP.h" // class returnInstance
+#include "dyninstAPI/src/rpcMgr.h"
 
 // for function relocation
 #include "dyninstAPI/src/func-reloc.h" 
@@ -3195,7 +3196,7 @@ void instWaitingList::cleanUp(process *, Address ) {
 
 /* ***************************************************** */
 
-bool process::emitInferiorRPCheader(void *void_insnPtr, Address &baseBytes, bool /*isFunclet*/) 
+bool rpcMgr::emitInferiorRPCheader(void *void_insnPtr, Address &baseBytes, bool /*isFunclet*/) 
 {
    unsigned char *insnPtr = (unsigned char *)void_insnPtr;
    unsigned char *origInsnPtr = insnPtr;
@@ -3220,12 +3221,12 @@ bool process::emitInferiorRPCheader(void *void_insnPtr, Address &baseBytes, bool
    return true;
 }
 
-bool process::emitInferiorRPCtrailer(void *void_insnPtr, Address &baseBytes,
-				     unsigned &breakOffset,
-				     bool shouldStopForResult,
-				     unsigned &stopForResultOffset,
-				     unsigned &justAfter_stopForResultOffset,
-				     bool /*isFunclet*/)
+bool rpcMgr::emitInferiorRPCtrailer(void *void_insnPtr, Address &baseBytes,
+                                    unsigned &breakOffset,
+                                    bool shouldStopForResult,
+                                    unsigned &stopForResultOffset,
+                                    unsigned &justAfter_stopForResultOffset,
+                                    bool /*isFunclet*/)
 {
    unsigned char *insnPtr = (unsigned char *)void_insnPtr;
 

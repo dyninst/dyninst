@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.41 2003/02/28 22:13:35 bernat Exp $
+// $Id: osf.C,v 1.42 2003/03/02 22:03:27 schendel Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -64,6 +64,7 @@
 #include <sys/fault.h>
 
 #include "common/h/osfKludges.h"
+#include "dyninstAPI/src/rpcMgr.h"
 
 #define V0_REGNUM 0	/* retval from integer funcs */
 #define PC_REGNUM 31
@@ -81,16 +82,16 @@ int getNumberOfCPUs()
 }
 
 
-bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes, bool) {
+bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes, bool) {
 
   extern void emitSaveConservative(process *, char *, Address &baseBytes);
 
-  emitSaveConservative(this, (char *) insnPtr, baseBytes);
+  emitSaveConservative(proc, (char *) insnPtr, baseBytes);
 
   return true;
 }
 
-bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
+bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 				     unsigned &breakOffset,
 				     bool stopForResult,
 				     unsigned &stopForResultOffset,
@@ -105,7 +106,7 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
   extern void generateBreakPoint(instruction &);
   extern void emitRestoreConservative(process *, char *, Address &baseBytes);
 
-  emitRestoreConservative(this, (char *) insnPtr, baseBytes);
+  emitRestoreConservative(proc, (char *) insnPtr, baseBytes);
 
   if (stopForResult) {
     generateBreakPoint(insn[baseInstruc]);

@@ -39,12 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.135 2003/02/28 22:13:42 bernat Exp $
+// $Id: inst-sparc.C,v 1.136 2003/03/02 22:03:25 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
 
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
+
+#include "dyninstAPI/src/rpcMgr.h"
 
 /****************************************************************************/
 /****************************************************************************/
@@ -1069,7 +1071,8 @@ pd_Function *getFunction(instPoint *point)
 /****************************************************************************/
 /****************************************************************************/
 
-bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes, bool /*isFunclet*/) 
+bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes,
+                                   bool /*isFunclet*/) 
 {
    instruction *insn = (instruction *)insnPtr;
    Address baseInstruc = baseBytes / sizeof(instruction);
@@ -1085,12 +1088,11 @@ bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes, bool /*is
 /****************************************************************************/
 /****************************************************************************/
 
-bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
-                                     unsigned &breakOffset,
-                                     bool stopForResult,
-                                     unsigned &stopForResultOffset,
-				     unsigned &justAfter_stopForResultOffset,
-				     bool isFunclet)
+bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
+                                    unsigned &breakOffset, bool stopForResult,
+                                    unsigned &stopForResultOffset,
+                                    unsigned &justAfter_stopForResultOffset,
+                                    bool isFunclet)
 {
 
    // Sequence: restore, trap, illegal

@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.23 2003/02/26 21:27:45 schendel Exp $
+ * $Id: inst-ia64.C,v 1.24 2003/03/02 22:03:22 schendel Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -77,6 +77,8 @@
 // for function relocation
 #include "dyninstAPI/src/func-reloc.h" 
 #include "dyninstAPI/src/LocalAlteration.h"
+
+#include "dyninstAPI/src/rpcMgr.h"
 
 /* Required by process, ast .C, et al */
 registerSpace * regSpace;
@@ -677,7 +679,7 @@ int getInsnCost( opCode op ) {
 	} /* end getInsnCost() */
 
 /* Required by process.C */
-bool process::emitInferiorRPCtrailer( void * void_insnPtr, Address & baseBytes,
+bool rpcMgr::emitInferiorRPCtrailer( void * void_insnPtr, Address & baseBytes,
 			unsigned & breakOffset, bool shouldStopForResult,
 			unsigned & stopForResultOffset,
 			unsigned & justAfter_stopForResultOffset,
@@ -1213,7 +1215,7 @@ fprintf( stderr, "Generating return instance from 0x%lx to 0x%lx\n", returnFrom,
 bool pd_Function::isNearBranchInsn( const instruction insn ) { assert( 0 ); return false; }
 
 /* Required by process.C */
-bool process::emitInferiorRPCheader( void * insnPtr, Address & baseBytes, bool isFunclet ) {
+bool rpcMgr::emitInferiorRPCheader( void * insnPtr, Address & baseBytes, bool isFunclet ) {
 		
 
 	assert(0); return false;

@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.25 2002/10/15 17:11:06 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.26 2003/03/02 22:03:18 schendel Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -51,6 +51,7 @@ SRCS	     = $(SRCS) BPatch.C \
 		process.C \
 		dyn_thread.C \
 		dyn_lwp.C \
+      rpcMgr.C \
 		installed_miniTramps_list.C \
 		stats.C \
 		symtab.C \
@@ -99,6 +100,7 @@ OBJS         = $(OBJS) BPatch.obj \
 		process.obj \
 		dyn_thread.obj \
 		dyn_lwp.obj \
+      rpcMgr.obj \
 		installed_miniTramps_list.obj \
 		stats.obj \
 		symtab.obj \

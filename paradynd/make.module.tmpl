@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.50 2002/10/15 17:11:29 schendel Exp $
+# $Id: make.module.tmpl,v 1.51 2003/03/02 22:03:33 schendel Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -44,6 +44,7 @@ SRCS	     += ../src/association.C \
 		../../dyninstAPI/src/dyn_lwp.C \
 		../../dyninstAPI/src/installed_miniTramps_list.C \
 		../../dyninstAPI/src/dyn_thread.C \
+		../../dyninstAPI/src/rpcMgr.C \
 		../src/resource.C \
 		../../dyninstAPI/src/stats.C \
 		../../dyninstAPI/src/symtab.C \

@@ -41,6 +41,7 @@
 
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/dyn_lwp.h"
+#include "dyninstAPI/src/rpcMgr.h"
 
 /*
 // Useful for debugging.  Keeps a history of last VT_MAXRECS of virtual
@@ -294,7 +295,7 @@ irpcLaunchState_t dyn_thread::launchThreadIRPC(bool wasRunning)
 
     struct dyn_saved_regs *theSavedRegs = NULL;
     // Some platforms save daemon-side, some save process-side (on the stack)
-    if (proc->rpcSavesRegs()) {
+    if (proc->getRpcMgr()->rpcSavesRegs()) {
         theSavedRegs = lwp->getRegisters();
         if (theSavedRegs == (struct dyn_saved_regs *)-1) {
             // Should only happen if we're in a syscall, which is 
@@ -317,17 +318,18 @@ irpcLaunchState_t dyn_thread::launchThreadIRPC(bool wasRunning)
     
     thrCurrRunningRPC.wasRunning = wasRunning;
     
-    Address RPCImage = proc->createRPCImage(todo.action, // AST tree
-                                            todo.noCost,
-                                            (thrCurrRunningRPC.callbackFunc != NULL), // Callback?
-                                            thrCurrRunningRPC.breakAddr, // Fills in 
-                                            thrCurrRunningRPC.stopForResultAddr,
-                                            thrCurrRunningRPC.justAfter_stopForResultAddr,
-                                            thrCurrRunningRPC.resultRegister,
-                                            todo.lowmem, // Where to allocate
-                                            this, // Thread
-                                            lwp,
-                                            false); // Unused: create in function form
+    Address RPCImage =
+       proc->getRpcMgr()->createRPCImage(todo.action, // AST tree
+                                         todo.noCost,
+                                         (thrCurrRunningRPC.callbackFunc != NULL), // Callback?
+                                         thrCurrRunningRPC.breakAddr, // Fills in 
+                                         thrCurrRunningRPC.stopForResultAddr,
+                                         thrCurrRunningRPC.justAfter_stopForResultAddr,
+                                         thrCurrRunningRPC.resultRegister,
+                                         todo.lowmem, // Where to allocate
+                                         this, // Thread
+                                         lwp,
+                                         false); // Unused: create in function form
 
     if (RPCImage == 0) {
         cerr << "launchRPC failed, couldn't create image" << endl;

@@ -148,8 +148,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	    } else {
 	        locVar = new BPatch_localVar(name, ptrType, linenum, framePtr);
 		if (!ptrType) {
-		  printf("adding local var with missing type %s, type = %d\n",
-		      name, ID);
+         //printf("adding local var with missing type %s, type = %d\n",
+         //       name, ID);
 		}
 	        fp->localVariables->addLocalVar( locVar);
 	    }
@@ -166,8 +166,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	  } else {
 	      locVar = new BPatch_localVar(name, ptrType, linenum, framePtr);
 	      if (!ptrType) {
-		  printf("adding local var with missing type %s, type = %d\n",
-		      name, ID);
+            //printf("adding local var with missing type %s, type = %d\n",
+		      //       name, ID);
 	      }
 	      fp->localVariables->addLocalVar( locVar);
 	  }
@@ -519,8 +519,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		      printf("Unable to add %s to local variable list in %s\n",
 		          name,current_func_name);
 		  } else {
-		      printf("adding local variable %s at %x\n",
-			name, framePtr);
+           //printf("adding local variable %s at %x\n",
+           //       name, framePtr);
 		      locVar = new BPatch_localVar(name, BPtype, linenum, 
 			  framePtr, 5, false);
 		      fp->localVariables->addLocalVar( locVar);

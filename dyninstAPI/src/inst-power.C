@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.158 2003/02/26 21:27:47 schendel Exp $
+ * $Id: inst-power.C,v 1.159 2003/03/02 22:03:24 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -65,6 +65,8 @@
 #include "dyninstAPI/src/instPoint.h" // class instPoint
 #include "dyninstAPI/src/showerror.h"
 #include "common/h/debugOstream.h"
+
+#include "dyninstAPI/src/rpcMgr.h"
 
 #include <strstream.h>
 
@@ -1854,7 +1856,8 @@ void generateIllegalInsn(instruction &insn) { // instP.h
 }
 
 
-bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes, bool isFunclet) 
+bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes,
+                                   bool isFunclet) 
 {
   instruction *tmp = (instruction *)insnPtr;
   // A miracle of casting...
@@ -1870,12 +1873,12 @@ bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes, bool isFu
 }
 
 
-bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
-                                     unsigned &breakOffset,
-                                     bool stopForResult,
-                                     unsigned &stopForResultOffset,
-                                     unsigned &justAfter_stopForResultOffset,
-                                     bool isFunclet) {
+bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
+                                    unsigned &breakOffset,
+                                    bool stopForResult,
+                                    unsigned &stopForResultOffset,
+                                    unsigned &justAfter_stopForResultOffset,
+                                    bool isFunclet) {
 
   // The sequence we want is: (restore), trap, illegal,
   // where (restore) undoes anything done in emitInferiorRPCheader(), above.

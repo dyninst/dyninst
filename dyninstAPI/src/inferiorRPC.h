@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inferiorRPC.h,v 1.5 2003/02/21 20:05:57 bernat Exp $
+/* $Id: inferiorRPC.h,v 1.6 2003/03/02 22:03:21 schendel Exp $
  */
 
 #ifndef _INFERIOR_RPC_H_
@@ -54,16 +54,18 @@ class dyn_lwp;
 struct dyn_saved_regs;
 
 // RPC state enumerated type
-typedef enum { irpcNotValid, irpcNotRunning, irpcRunning, irpcWaitingForTrap, irpcNotReadyForIRPC } irpcState_t;
+typedef enum { irpcNotValid, irpcNotRunning, irpcRunning, irpcWaitingForTrap,
+               irpcNotReadyForIRPC } irpcState_t;
 
 // RPC launch return type
-typedef enum { irpcNoIRPC, irpcStarted, irpcAgain, irpcTrapSet, irpcError } irpcLaunchState_t;
+typedef enum { irpcNoIRPC, irpcStarted, irpcAgain, irpcTrapSet, 
+               irpcError } irpcLaunchState_t;
 
 // inferior RPC callback function type
 typedef void(*inferiorRPCcallbackFunc)(process *p, void *data, void *result);
 
-struct inferiorRPCtoDo {
-  
+
+struct inferiorRPCtoDo {  
   AstNode *action;
   bool noCost; // if true, cost model isn't updated by generated code.
   inferiorRPCcallbackFunc callbackFunc;
@@ -76,6 +78,8 @@ struct inferiorRPCtoDo {
   // if DYNINSTinit, we launch it as regular RPC
   // otherwise launch it as MT RPC
 };
+
+
 struct inferiorRPCinProgress {
   // This structure keeps track of a launched inferiorRPC which we're
   // waiting to complete.  Don't confuse with 'inferiorRPCtoDo', 
@@ -114,5 +118,7 @@ struct inferiorRPCinProgress {
   dyn_lwp *lwp;      // Target the RPC to a specific kernel thread?
   unsigned seq_num;
 };
+
+
 
 #endif

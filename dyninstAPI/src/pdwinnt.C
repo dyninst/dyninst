@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.76 2003/02/28 22:13:36 bernat Exp $
+// $Id: pdwinnt.C,v 1.77 2003/03/02 22:03:28 schendel Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -63,6 +63,8 @@
 #include "BPatch_thread.h"
 #include "nt_signal_emul.h"
 #endif
+
+#include "dyninstAPI/src/rpcMgr.h"
 
 // prototypes of functions used in this file
 static string GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev );
@@ -790,7 +792,7 @@ int process::waitProcs(int *status) {
 	      // pending instrumentation is executed.  (I.e., instrumentation
 	      // put off so we could be sure to execute inferior RPC code is
 	      // now executed.)
-	      if( !p->isRunningIRPC() )	{
+	      if( !p->getRpcMgr()->isRunningIRPC() )	{
               // we finished the inferior RPC, so we can now execute
               // any pending instrumentation
               

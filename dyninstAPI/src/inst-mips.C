@@ -66,6 +66,8 @@
 #include "dyninstAPI/src/dyninstP.h"  // isApplicationPaused()
 #endif
 
+#include "dyninstAPI/src/rpcMgr.h"
+
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -244,8 +246,8 @@ char * selected_for_trace[] = { "",
 				"print_saved_registers",
 				"print_sequence",
 				"process::MonitorCallSite",
-				"process::emitInferiorRPCheader",
-				"process::emitInferiorRPCtrailer",
+				"rpcMgr::emitInferiorRPCheader",
+				"rpcMgr::emitInferiorRPCtrailer",
 				// "process::findCallee",
 				"process::getProcessStatus",
 				// "process::isDynamicCallSite",
@@ -2799,11 +2801,12 @@ void emitImm(opCode op, Register src, RegValue imm, Register dst,
 /****************************************************************************/
 /****************************************************************************/
 
-bool process::emitInferiorRPCheader(void *code_, Address &base, bool /*isFunclet*/)
+bool rpcMgr::emitInferiorRPCheader(void *code_, Address &base, 
+                                   bool /*isFunclet*/)
 {
-  TRACE_B( "process::emitInferiorRPCheader" );
+  TRACE_B( "rpcMgr::emitInferiorRPCheader" );
 
-  //fprintf(stderr, ">>> process::emitInferiorRPCheader()\n");
+  //fprintf(stderr, ">>> rpcMgr::emitInferiorRPCheader()\n");
   char *code = (char *)code_;
   instruction *insn = (instruction *)(code + base);
 
@@ -2816,7 +2819,7 @@ bool process::emitInferiorRPCheader(void *code_, Address &base, bool /*isFunclet
 #endif
   base += INSN_SIZE;
 
-  TRACE_E( "process::emitInferiorRPCheader" );
+  TRACE_E( "rpcMgr::emitInferiorRPCheader" );
 
   return true;
 }
@@ -2826,16 +2829,16 @@ bool process::emitInferiorRPCheader(void *code_, Address &base, bool /*isFunclet
 /****************************************************************************/
 
 // TODO: should offset parameters be Address's?
-bool process::emitInferiorRPCtrailer(void *code_, Address &baseBytes,
+bool rpcMgr::emitInferiorRPCtrailer(void *code_, Address &baseBytes,
 				     unsigned &breakOffset,
 				     bool stopForResult,
 				     unsigned &stopForResultOffset,
 				     unsigned &justAfter_stopForResultOffset,
                                      bool /* isFunclet */)
 {
-  TRACE_B( "process::emitInferiorRPCtrailer" );
+  TRACE_B( "rpcMgr::emitInferiorRPCtrailer" );
 
-  //fprintf(stderr, ">>> process::emitInferiorRPCtrailer()\n");
+  //fprintf(stderr, ">>> rpcMgr::emitInferiorRPCtrailer()\n");
   char *code = (char *)code_;
 
   // optional code for grabbing RPC result
@@ -2864,7 +2867,7 @@ bool process::emitInferiorRPCtrailer(void *code_, Address &baseBytes,
   genIll(insn+2);
   baseBytes += INSN_SIZE;
 
-  TRACE_E( "process::emitInferiorRPCtrailer" );
+  TRACE_E( "rpcMgr::emitInferiorRPCtrailer" );
 
   return true;
 }
