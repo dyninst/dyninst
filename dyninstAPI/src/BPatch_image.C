@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.62 2004/10/07 00:45:56 jaw Exp $
+// $Id: BPatch_image.C,v 1.63 2004/12/02 00:57:03 tlmiller Exp $
 
 #define BPATCH_FILE
 
@@ -180,7 +180,7 @@ BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const
     }
     BPatch_variableExpr *var = AddrToVarExpr->hash[syminfo.addr()];
     if (!var) {
-	var = new BPatch_variableExpr( const_cast<char *>(name), appThread, 
+	var = new BPatch_variableExpr( const_cast<char *>(name), appThread,
 	    (void *)syminfo.addr(), (const BPatch_type *) type);
 	AddrToVarExpr->hash[syminfo.addr()] = var;
     }
@@ -257,8 +257,12 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules() {
 		pdmodule * currentModule = (pdmodule *) ((* pdModules)[i]);
 		pdvector< function_base * > * currentFunctions = currentModule->getFunctions();
 		for( unsigned int j = 0; j < currentFunctions->size(); j++ ) {
-			/* The constructor will register the bpf with proc's map. */
-			new BPatch_function( proc, (* currentFunctions)[j], NULL );
+			/* The constructor will try to register the bpf with proc's map,
+			   so check first.  This happens when, for instance, when we parse libunwind
+			   during BPatch_thread creation. */
+			if( ! proc->PDFuncToBPFuncMap.defines( (* currentFunctions)[j] ) ) {
+				new BPatch_function( proc, (* currentFunctions)[j], NULL );
+				}
 			} /* end iteration over functions in modules */
 		} /* end initial iteration over modules */
 	
