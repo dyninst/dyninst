@@ -1,7 +1,12 @@
 /* $Log: UImain.C,v $
-/* Revision 1.35  1994/11/03 02:44:58  krisna
-/* status lines are now added into paradyn.
+/* Revision 1.36  1994/11/03 06:16:14  karavan
+/* status display and where axis added to main window and the look cleaned
+/* up a little bit.  Added option to ResourceDisplayObj class to specify
+/* a parent window for an RDO with the constructor.
 /*
+ * Revision 1.35  1994/11/03  02:44:58  krisna
+ * status lines are now added into paradyn.
+ *
  * Revision 1.34  1994/11/02  04:42:55  karavan
  * cleanup for new handling of commandline arguments
  *
@@ -342,7 +347,7 @@ UImain(void* vargs)
     if (synchronize) {
 	XSynchronize(Tk_Display(mainWindow), True);
     }
-    Tk_GeometryRequest(mainWindow, 200, 200);
+    Tk_GeometryRequest(mainWindow, 600, 600);
 
     Tk_SetClass(mainWindow, "Paradyn");
     

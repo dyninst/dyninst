@@ -1,8 +1,13 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.10  1994/11/01 05:44:27  karavan
-/* changed resource selection process to support multiple focus selection
-/* on a single display
+/* Revision 1.11  1994/11/03 06:16:12  karavan
+/* status display and where axis added to main window and the look cleaned
+/* up a little bit.  Added option to ResourceDisplayObj class to specify
+/* a parent window for an RDO with the constructor.
 /*
+ * Revision 1.10  1994/11/01  05:44:27  karavan
+ * changed resource selection process to support multiple focus selection
+ * on a single display
+ *
  * Revision 1.9  1994/10/25  17:57:31  karavan
  * added Resource Display Objects, which support display of multiple resource
  * abstractions.
@@ -40,7 +45,7 @@
 #ifndef _ui_globals_h
 #define _ui_globals_h
 
-#define UIM_DEBUG 0
+#define UIM_DEBUG 1
 
 #include "dataManager.CLNT.h"
 #include "performanceConsultant.CLNT.h"
@@ -68,7 +73,7 @@ class resourceDisplayObj {
   int getSize () {return numdags;}
   dag *getTopDag() {return topdag;}
   resourceDisplayObj (int baseflag, int &success);
-  resourceDisplayObj (char *pwin);
+  resourceDisplayObj (int baseflag, int &success, char *pwin);
   resourceDisplayObj copy (char *pwin);
   void addResource (resource *newres, resource *parent, char *name, 
 		    stringHandle abs);
@@ -95,6 +100,7 @@ class resourceDisplayObj {
   List<dag *> dags;
   static List<resourceDisplayObj *> allRDOs;
   static int rdoCount;
+  char tbuf[300];
 };
 
 struct cmdTabEntry 

@@ -3,10 +3,15 @@
  * code related to displaying the where axes lives here
  */
 /* $Log: UIwhere.C,v $
-/* Revision 1.2  1994/11/01 05:44:24  karavan
-/* changed resource selection process to support multiple focus selection
-/* on a single display
+/* Revision 1.3  1994/11/03 06:16:16  karavan
+/* status display and where axis added to main window and the look cleaned
+/* up a little bit.  Added option to ResourceDisplayObj class to specify
+/* a parent window for an RDO with the constructor.
 /*
+ * Revision 1.2  1994/11/01  05:44:24  karavan
+ * changed resource selection process to support multiple focus selection
+ * on a single display
+ *
  * Revision 1.1  1994/10/25  17:58:43  karavan
  * Added support for Resource Display Objects, which display multiple resource
  * Abstractions
@@ -135,13 +140,27 @@ resourceDisplayObj::addAbstraction (stringHandle newabs)
   return newdag;
 }
 
-resourceDisplayObj::resourceDisplayObj (char *pwin)
+resourceDisplayObj::resourceDisplayObj (int baseflag, int &success, char *pwin)
 {
-  numdags = 0;
-  strncpy(parentwin, pwin, 14);
-  // if stat = DISPLAYED, map this display to the screen
-
-  allRDOs.add(this);
+  numdags = 0;	
+  status = DISPLAYED;	
+  topdag = NULL;
+  base = baseflag;
+  token = rdoCount;
+  rdoCount++;
+  sprintf (parentwin, "%s", pwin);
+  printf ("%s\n", parentwin);
+  sprintf (tbuf, "initRDO %d %s {Paradyn Where Axis Display} 0",
+	   token, parentwin);
+  printf ("%s\n", tbuf);
+  if (Tcl_VarEval (interp, tbuf, 0) == TCL_ERROR) {
+    sprintf (tbuf, "Can't initialize RDO: %s", interp->result);
+    uim_server->showError(26, tbuf);
+    success = 0; 
+  } else {
+    allRDOs.add(this, (void *)token);
+    success = 1;
+  }
 }
 
 resourceDisplayObj::resourceDisplayObj (int baseflag, int &success) 
@@ -150,20 +169,20 @@ resourceDisplayObj::resourceDisplayObj (int baseflag, int &success)
   status = DISPLAYED;	
   topdag = NULL;
   base = baseflag;
-  char tcommand[250];
   token = rdoCount;
   rdoCount++;
   sprintf (parentwin, ".where%d", token);
 
-  sprintf (tcommand, "initRDO %d %s {Paradyn Where Axis Display}",
+  sprintf (tbuf, "initRDO %d %s {Paradyn Where Axis Display} 1",
 	   token, parentwin);
-  if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR) {
-    printf ("NORDO:: %s\n", interp->result);
+  if (Tcl_VarEval (interp, tbuf, 0) == TCL_ERROR) {
+    sprintf (tbuf, "Can't initialize RDO: %s", interp->result);
+    uim_server->showError(26, tbuf);
     success = 0; 
   } else {
     allRDOs.add(this, (void *)token);
+    success = 1;
   }
-  success = 1;
 }
 
 /* 
@@ -209,7 +228,6 @@ resourceDisplayObj::cycle (char *oldab)
   stringHandle *firstab;
   stringHandle *newab = NULL;
   dag *newdag;
-  char tcommand[250];
 
   // if there's only one dag, do nothing
   if (numdags <= 1)
@@ -240,20 +258,20 @@ resourceDisplayObj::cycle (char *oldab)
   if (newtoken < 0)
     return 0;
   // change displayed dag to newdag
-  sprintf (tcommand, "unmapRDOdag %s %s", parentwin, (char *)oldab);
+  sprintf (tbuf, "unmapRDOdag %s %s", parentwin, (char *)oldab);
 #if UIM_DEBUG
-  printf ("%s\n", tcommand);
+  printf ("%s\n", tbuf);
 #endif
-  if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR) {
+  if (Tcl_VarEval (interp, tbuf, 0) == TCL_ERROR) {
     printf ("CANTUNMAPDAG:: %s\n", interp->result);
     return 0; 
   }
-  sprintf (tcommand, "mapRDOdag %d %d %s %s", token, newtoken,
+  sprintf (tbuf, "mapRDOdag %d %d %s %s", token, newtoken,
 	   parentwin, (char *)newab);
 #if UIM_DEBUG
-  printf ("%s\n", tcommand);
+  printf ("%s\n", tbuf);
 #endif
-  if (Tcl_VarEval (interp, tcommand, 0) == TCL_ERROR) {
+  if (Tcl_VarEval (interp, tbuf, 0) == TCL_ERROR) {
     printf ("CANTMAPDAG:: %s\n", interp->result);
     return 0;
   } 
@@ -305,7 +323,7 @@ int initMainWhereDisplay ()
 {
   resourceDisplayObj *newRec;
   int alliswell = 0;
-  newRec = new resourceDisplayObj(1, alliswell);
+  newRec = new resourceDisplayObj(1, alliswell, ".where");
   if (!alliswell) {
     //handle error in constructor
 #if UIM_DEBUG
