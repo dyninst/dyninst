@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.program.tmpl,v 1.16 1999/05/21 17:35:41 wylie Exp $
+# $Id: make.program.tmpl,v 1.17 1999/05/29 23:43:45 wylie Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -30,14 +30,14 @@ OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o)
 
 ifndef UNCOMMON_LINK
-$(TARGET): $(OBJS) $(LIBS)
+$(TARGET): $(OBJS)
 	@$(MAKE) $(VOUCHER)
 	$(MODCC) -o $(TARGET) $(LDFLAGS) $(VOUCHER).o $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
 endif
 
 ifndef UNCOMMON_LINK
 # The user may set APP_PURE_OPTIONS for application-specific purify options
-pure: $(OBJS) $(LIBS)
+pure: $(OBJS)
 	@$(MAKE) $(VOUCHER)
 	purify $(APP_PURE_OPTIONS) -cache-dir=/tmp \
 		-$(MODCC) -collector=$(COLLECTOR) $(MODCC) -o $(TARGET) \
@@ -45,7 +45,7 @@ pure: $(OBJS) $(LIBS)
 endif
 
 ifndef UNCOMMON_LINK
-quantify: $(OBJS) $(LIBS)
+quantify: $(OBJS)
 	@$(MAKE) $(VOUCHER)
 	quantify -cache-dir=/tmp \
                 -$(MODCC) -collector=$(COLLECTOR) $(MODCC) -o $(TARGET) \
@@ -53,7 +53,7 @@ quantify: $(OBJS) $(LIBS)
 endif
 
 ifndef UNCOMMON_LINK
-qpt: $(OBJS) $(LIBS)
+qpt: $(OBJS)
 	@$(MAKE) $(VOUCHER)
 	$(MODCC) -Xlinker -Bstatic -o $(TARGET) \
                 $(LDFLAGS) $(VOUCHER).o $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS) \
