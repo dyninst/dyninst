@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.23 2000/04/24 03:19:36 wylie Exp $
+# $Id: make.module.tmpl,v 1.24 2000/04/24 15:06:53 wylie Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -124,12 +124,12 @@ endif
 # (currently only implemented on SPARC/Solaris and Alpha/Tru64)
 ifeq (test1,$(findstring test1,$(TARGET2)))
 ifdef USES_MUTATEE_LIBS
-MUTLIBS=$(USES_MUTATEE_LIBS)
+MUTLIBS=$(MUTATEE_LIBS)
 endif
 endif
 # test2.mutatee uses dlopen to force a dynamic object load
 ifeq (test2,$(findstring test2,$(TARGET2)))
-MUTLIBS=$(USES_MUTATEE_LIBS)
+MUTLIBS=$(MUTATEE_LIBS)
 endif
 
 UNCOMMON_INSTALL=true

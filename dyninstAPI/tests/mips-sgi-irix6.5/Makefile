@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2000/04/24 03:51:08 wylie Exp $
+# $Id: Makefile,v 1.4 2000/04/24 15:07:01 wylie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -26,6 +26,7 @@ NATIVE_CXX	= CC
 include ../make.module.tmpl
 
 MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
+MUTATEE_LIBS = -ldl
 
 ifeq ($(MUTATEE_CC),$(NATIVE_CC)) 
 MABI = -
