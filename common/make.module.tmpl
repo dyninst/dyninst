@@ -3,6 +3,9 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
+# $Id: make.module.tmpl,v 1.24 1998/04/06 04:16:26 wylie Exp $
+#
+
 TARGET	      = libpdutil.a
 
 SRCS	     += ../src/String.C \
@@ -15,6 +18,7 @@ SRCS	     += ../src/String.C \
 		../src/hist.C \
 		../src/timing.C \
 		../src/Timer.C \
+		../src/Ident.C \
 		../src/makenan.C \
 		../src/pathName.C \
 		../src/Object.C \
