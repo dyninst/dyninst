@@ -3,7 +3,10 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.2  1993/08/26 19:43:58  hollings
+ * Revision 1.3  1993/10/01 18:15:53  hollings
+ * Added filtering and resource discovery.
+ *
+ * Revision 1.2  1993/08/26  19:43:58  hollings
  * new include syntax.
  *
  * Revision 1.1  1993/07/02  21:49:35  hollings
@@ -44,6 +47,11 @@ void DYNINSTdecrementCounter(intCounter *counter)
     counter->value--;
 }
 
+void DYNINSTclearCounter(intCounter *counter)
+{
+    counter->value = 0;
+}
+
 void DYNINSTreportCounter(intCounter *counter)
 {
     traceSample sample;
@@ -77,6 +85,17 @@ void DYNINSTcallReturn(int arg)
 void DYNINSTexitPrint(int arg)
 {
     printf("exit %d\n", arg);
+}
+
+/*
+ * For testing filter code.
+ *
+ */
+void DYNINSTtoyFilter(filterArgs *filt, parameters *params)
+{
+    if (filt->filterData == params->arg1) {
+	filt->toCall(filt->callData, params);
+    }
 }
 
 /*

@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.4  1993/09/02 22:09:38  hollings
+ * Revision 1.5  1993/10/01 18:15:53  hollings
+ * Added filtering and resource discovery.
+ *
+ * Revision 1.4  1993/09/02  22:09:38  hollings
  * fixed race condition caused be no re-trying sampling of process time.
  *
  * Revision 1.3  1993/08/26  23:07:34  hollings
@@ -58,36 +61,8 @@
 #define NI_CLK_USEC 33
 #define MILLION 1000000
 
-void DYNINSTstartWallTimer(tTimer *timer)
-{
-    if (timer->trigger && (!timer->trigger->value)) return;
-    if (timer->counter == 0) {
-	 CMOS_get_time(&timer->start);
-	 timer->normalize = NI_CLK_USEC * MILLION;
-    }
-    /* this must be last to prevent race conditions with the sampler */
-    timer->counter++;
-}
 
-void DYNINSTstopWallTimer(tTimer *timer)
-{
-    time64 now;
-
-    if (timer->trigger && (timer->trigger->value <= 0)) return;
-    if (!timer->counter) return;
-
-    if (timer->counter == 1) {
-	 CMOS_get_time(&now);
-	 timer->snapShot = timer->total + now - timer->start;
-	 timer->mutex = 1;
-	 timer->counter = 0;
-	 timer->total = timer->snapShot;
-	 timer->mutex = 0;
-    } else {
-	timer->counter--;
-    }
-}
-
+#ifdef notdef
 time64 inline getProcessTime()
 {
     time64 end;
@@ -101,17 +76,96 @@ retry:
     if (ni_end != ni2) goto retry;
     return(end-ni_end);
 }
+#endif
 
+struct timer_buf {
+    unsigned int high;
+    unsigned int sync;
+    time64   ni_time;
+};
+
+typedef union {
+    struct {
+	unsigned int high;
+	unsigned int low;
+    } parts;
+    time64 value;
+} timeParts;
+
+static volatile unsigned int *ni;
+static volatile struct timer_buf timerBuffer;
+
+time64 inline getProcessTime()
+{
+    timeParts end;
+    time64 ni_end;
+
+retry:
+    timerBuffer.sync = 1;
+    ni_end = timerBuffer.ni_time;
+    end.parts.high = timerBuffer.high;
+    end.parts.low = *ni;
+    if (timerBuffer.sync != 1) goto retry;
+    return(end.value-ni_end);
+}
+
+time64 inline getWallTime()
+{
+    timeParts end;
+    time64 ni_end;
+
+retry:
+    timerBuffer.sync = 1;
+    end.parts.high = timerBuffer.high;
+    end.parts.low = *ni;
+    if (timerBuffer.sync != 1) goto retry;
+    return(end.value);
+}
+
+void DYNINSTstartWallTimer(tTimer *timer)
+{
+    if (timer->trigger && (!timer->trigger->value)) return;
+    if (timer->counter == 0) {
+	 timer->start = getWallTime();
+    }
+    /* this must be last to prevent race conditions with the sampler */
+    timer->counter++;
+}
+
+void DYNINSTstopWallTimer(tTimer *timer)
+{
+    time64 now;
+
+    if (timer->trigger && (timer->trigger->value <= 0)) return;
+    if (!timer->counter) return;
+
+    if (timer->counter == 1) {
+	 now = getWallTime();
+	 timer->snapShot = timer->total + now - timer->start;
+	 timer->mutex = 1;
+	 timer->counter = 0;
+	 timer->total = timer->snapShot;
+	 timer->mutex = 0;
+    } else {
+	timer->counter--;
+    }
+}
 
 void DYNINSTstartProcessTimer(tTimer *timer)
 {
     if (timer->trigger && (!timer->trigger->value)) return;
     if (timer->counter == 0) {
 	 timer->start = getProcessTime();
-	 timer->normalize = NI_CLK_USEC * MILLION;
     }
     /* this must be last to prevent race conditions with the sampler */
     timer->counter++;
+}
+
+void set_timer_buf(struct timer_buf *param)
+{
+    asm("set 50,%g1");
+    asm("retl");
+    asm("ta 0x8");
 }
 
 double previous[1000];
@@ -180,6 +234,7 @@ void DYNINSTreportTimer(tTimer *timer)
 	abort();
     }
 
+    timer->normalize = NI_CLK_USEC * MILLION;
     sample.value = total / (double) timer->normalize;
     sample.id = timer->id;
 
@@ -197,6 +252,9 @@ void DYNINSTreportTimer(tTimer *timer)
 
 static time64 startWall;
 int DYNINSTnoHandlers;
+
+#define NI_BASE       (0x20000000)
+#define NI_TIME_A     	      (NI_BASE + 0x0070)
 
 /*
  * should be called before main in each process.
@@ -220,6 +278,9 @@ void DYNINSTinit()
     startWall *= NI_CLK_USEC;
 
     startWall -= startNItime;
+
+    ni = (unsigned int *) NI_TIME_A;
+    set_timer_buf(&timerBuffer);
 
 /*     initTraceLibPN(); */
 }
