@@ -45,6 +45,9 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.23  1997/02/06 20:47:52  karavan
+ * changed MaxActiveExperiments constant to guard against deadlock.
+ *
  * Revision 1.22  1996/08/16 21:03:41  tamches
  * updated copyright for release 1.1
  *
@@ -126,7 +129,7 @@ searchHistoryNode *PCsearch::SearchThrottleNode = NULL;
 //** this is currently being studied!! (klk)
 const float costFudge = 0.1;
 const int MaxPendingSearches = 30;
-const int MaxActiveExperiments = 200;
+const int MaxActiveExperiments = 100;
 //
 // remove from search queues and start up as many experiments as we can 
 // without exceeding our cost limit.  
