@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.5  1994/01/31 20:05:57  hollings
+ * Revision 1.6  1994/02/04 00:35:01  hollings
+ * constructor inheritance round two.
+ *
+ * Revision 1.5  1994/01/31  20:05:57  hollings
  * Added code to check the protocol name and version tests are run
  * before any upcalls get invoked.
  *
@@ -696,7 +699,9 @@ void interfaceSpec::genClass()
 
     printf("class %sUser: public RPCUser, public %s {\n", name, transportBase);
     printf("  public:\n");
-    if (generateXDR) {
+    if (generateTHREAD) {
+	printf("    %sUser(int tid): THREADrpc(tid) {}\n", name);
+    } else if (generateXDR) {
 	printf("    virtual void verifyProtocolAndVersion();\n");
 	printf("    %sUser(int fd, xdrIOFunc r, xdrIOFunc w);\n", name);
 	printf("    %sUser(char *,char *,char*, xdrIOFunc r, xdrIOFunc w);\n", 
@@ -715,6 +720,15 @@ void interfaceSpec::genClass()
 
     printf("class %s: private RPCServer, public %s {\n", name, transportBase);
     printf("  public:\n");
+    if (generateTHREAD) {
+	printf("    %s(int tid): THREADrpc(tid) {}\n", name);
+    } else if (generateXDR) {
+	printf("    %s(char*m,char *u, char *p, xdrIOFunc rd, xdrIOFunc wr):\n",
+	    name);
+	printf("      XDRrpc(m, u, p, rd, wr) {}\n");
+	printf("    %s(int fd, xdrIOFunc rd, xdrIOFunc wr):\n", name);
+	printf("      XDRrpc(fd, rd, wr) {}\n");
+    }
     printf("    mainLoop(void);\n");
     for (curr = methods; *curr; curr++) {
 	printf("    ");
