@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.19  1994/07/03 05:00:24  karavan
-/* bug fix: removed call to delete name returned from getCanonicalName()
+/* Revision 1.20  1994/07/07 03:27:36  markc
+/* Changed expected result of call to dataMgr->addExecutable
 /*
+ * Revision 1.19  1994/07/03  05:00:24  karavan
+ * bug fix: removed call to delete name returned from getCanonicalName()
+ *
  * Revision 1.18  1994/07/02  01:44:13  markc
  * Removed aggregation operator from enableDataCollection call.
  *
@@ -313,7 +316,7 @@ int ParadynProcessCmd(ClientData clientData,
     }
 
     if (dataMgr->addExecutable(context, machine, user, paradynd, argc-i, 
-			       &argv[i]) < 0)
+			       &argv[i]) == False)
       return TCL_ERROR;
     else
       return TCL_OK;
