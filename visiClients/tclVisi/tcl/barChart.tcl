@@ -2,9 +2,13 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.4  1994/09/04 23:55:29  tamches
-#  added 'to do' and 'problems' lists.  tightened code around speed-critical
-#  areas.  improved look of x axis.
+#  Revision 1.5  1994/09/08 00:10:43  tamches
+#  Added preliminary blt_drag&drop interface.
+#  changed window title.
+#
+# Revision 1.4  1994/09/04  23:55:29  tamches
+# added 'to do' and 'problems' lists.  tightened code around speed-critical
+# areas.  improved look of x axis.
 #
 # Revision 1.3  1994/09/03  01:24:40  tamches
 # Cleaned up syntax some more, e.g. longer variable names.
@@ -45,7 +49,8 @@
 #    changes only -yvalue, GetName and some others are
 #    still called, meaning the resource names are being
 #    redrawn each time!!!!  (un-comment the 'puts stderr ...'
-#    lines from throughout the file to see what I mean...)
+#    and 'flush stderr' #    lines from throughout the file to
+#    see what we mean...)
 # 2) multi-lined names (see 3, above) are not supported by
 #    blt_barchart
 # ######################################################
@@ -113,7 +118,6 @@ menubutton $W.top.left.mbar.resource -text Resource -menu $W.top.left.mbar.resou
 menu $W.top.left.mbar.resource.m
 $W.top.left.mbar.resource.m add command -label "Add Resource..." -command AddEntry
 $W.top.left.mbar.resource.m add command -label "Remove Selected Resource" -command DelEntry -state disabled
-#$W.top.left.mbar.resource.m disable 1
 
 # #################### Options menu #################
 
@@ -158,8 +162,47 @@ tk_menuBar $W.top.left.mbar $W.top.left.mbar.file $W.top.left.mbar.resource \
 frame $W.middle -height 1i -class Data
 pack $W.middle -side top -fill both -expand 1
 
+# ############################################################################
+# ######### blt_drag&drop: declare that we are willing and able ##############
+# ######### to receive drag n' drops of type "text" (the type may change) ####
+# ############################################################################
+
+proc dragAndDropTargetHandler {} {
+   # according to the drag n' drop interface, this routine will be
+   # called via a "send" command from the source.  So don't expect
+   # to see this routine called from elsewhere in this file...
+
+   # the variable DragDrop(text) contains what should be added
+   global DragDrop
+
+   # not yet implemented...
+   puts stderr "Welcome to dragAndDropTargetHandler(); DragDrop(text) is $DragDrop(text)"
+   flush stderr
+}
+
+blt_drag&drop target . handler text dragAndDropTargetHandler
+#...that cryptic line reads: "declare the window '.' to be a drag n' drop
+#   handler for sources of type 'text'; routine dragAndDropTargetHandler
+#   gets called (via a "send" from the source...)  Using window '.' means
+#   the entire barchart...
+
+# NOTE: We do not attempt to make yet another callback to paradyn's core
+#       to inform it of the addition; if so desired, it's the responsibility
+#       of the drag n' drop source program...
+
+# ###########################################################
+
 pack append . $W {fill expand frame center}
 wm minsize . 60 60
+wm title . "Barchart"
+
+# trap window resize events: (for some reason, <ResizeRequest> doesn't
+# seem to work, so instead we revert to <Configure>, which is a superset
+# of what we really wanted.   <Configure> gets called for any change of
+# window characteristics, including simple window-movement)
+# [sec 19.2: 'event patterns' in tk/tcl manual]
+
+bind . <Configure> {myResizeHandler}
 
 set DataFormat Instantaneous
 
@@ -171,6 +214,31 @@ set DataFormat Instantaneous
 # on selection of the menu item "Close bar chart"...
 # ###########################################################
 
+proc rethinkLayout {} {
+   # rethinkLayout - when a window size has changed, rethink the
+   # position of the bar graph (most of the other widgets will
+   # automatically do this, so there's no code for them...)
+
+   puts stderr "Welcome to rethinkLayout"
+   flush stderr
+
+   # Since the bar chart is configured to always be in the window center,
+   # I don't think anything has to be moved, per se---just resized.
+
+#   DgConfigCallback
+ 
+   global W
+   
+pack $W.middle -side top -fill both -expand 1
+
+}
+
+proc myResizeHandler {} {
+   # called on a resize event
+   # (currently, unfortunately, it is also called when a window is moved)
+
+   rethinkLayout
+}
 
 # ###########################################################
 # ###################### proc dialog   ######################
@@ -249,6 +317,7 @@ proc DgFoldCallback {} {
 
 proc DgConfigCallback {} {
 #   puts stderr "Welcome to DgConfigCallback; metric/resource space must have changed..."
+#   flush stderr
 
    global W
   
@@ -257,10 +326,11 @@ proc DgConfigCallback {} {
    set metricName   [Dg metricname 0]
    set metricUnits  [Dg metricunits 0]
 
-   puts stderr "DgConfigCallback: $numResources resources..."
-   puts stderr "DgConfigCallback: metricName is $metricName"
-   puts stderr "DgConfigCallback: $numMetrics metrics..."
-   puts stderr "DgConfigCallback: metricUnits is $metricUnits"
+#   puts stderr "DgConfigCallback: $numResources resources..."
+#   puts stderr "DgConfigCallback: metricName is $metricName"
+#   puts stderr "DgConfigCallback: $numMetrics metrics..."
+#   puts stderr "DgConfigCallback: metricUnits is $metricUnits"
+#   flush stderr
 
    if {$numMetrics > 1} {
       dialog .d {Error} {The number of metrics can not exceed 1.} warning -1 OK
@@ -318,6 +388,7 @@ proc DgConfigCallback {} {
 
 proc GetName {w value} {
 #   puts stderr "Welcome to GetName; value is $value"
+#   flush stderr
 
    if {$value < 0 || $value >= [Dg numresources]} {
       return " "
@@ -338,6 +409,7 @@ proc DgValidCallback {m r} {
 
 proc GetValue {m n} {
 #   puts stderr "Welcome to GetValue; m is $m and n is $n"
+#   flush stderr
 
    # DataFormat is one of {Average, Sum, Instantaneous}
    global DataFormat
@@ -355,6 +427,7 @@ proc GetValue {m n} {
 
 proc DgDataCallback {first last} {
 #   puts stderr "Welcome to DgDataCallback; first is $first and last is $last"
+#   flush stderr
 
    global W
 
@@ -369,6 +442,7 @@ proc DgDataCallback {first last} {
 
 proc Update {}  {
 #   puts stderr "Welcome to Update()"
+#   flush stderr
 
    global W
 
@@ -385,6 +459,7 @@ proc Update {}  {
 
 proc AddEntry {} {
 #   puts stderr "Welcome to AddEntry()"
+#   flush stderr
 
    Dg start "*" "*"
 }
@@ -393,6 +468,7 @@ proc AddEntry {} {
 
 proc DelEntry {} {
 #   puts stderr "Welcome to DelEntry()"
+#   flush stderr
 
    puts stderr "Delete Entry not yet implemented"
 }
