@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.17 2004/03/23 01:12:15 eli Exp $
+ * $Id: dyninstAPI_RT.h,v 1.18 2004/05/11 19:01:47 bernat Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -84,6 +84,7 @@ struct DYNINST_bootstrapStruct {
    int ppid; /* parent of forked process */
 
    char path[512]; /* only used in exec */
+    unsigned *obsCostAddr;
 };
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
