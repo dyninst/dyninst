@@ -84,17 +84,16 @@ threadMetFocusNode *threadMetFocusNode::copyThreadMetFocusNode(
 		    const threadMetFocusNode &par, pd_process *childProc,
 		    pd_thread *pdThr)
 {
-  // since the only thing in the thread nodes that we want to copy over is
-  // the cumulativeValue we'll use the "create new threadMetFocusNode" method
-  // (we'll start out this new threadNode without aggregation and insert it
-  // later).  This will do threadNode sharing when it's applicable.
+  // we'll use the "create new threadMetFocusNode" method (we'll start out
+  // this new threadNode without aggregation and insert it later).  This will
+  // do threadNode sharing when it's applicable.
   Focus adjustedFocus = adjustFocusForPid(par.getFocus(), childProc->getPid());
   threadMetFocusNode *newThreadNode = 
     newThreadMetFocusNode(par.getMetricName(), adjustedFocus, pdThr);
 
-  // copy over the cumulative value from the parent threadNode to the child
-  newThreadNode->getValuePtr()->setCumulativeValue(
-				  par.getValuePtr()->getCumulativeValue());
+  // new threads in the forked process need to have their cumulative
+  // value start at zero because the total cpu time starts back at zero
+  newThreadNode->getValuePtr()->setCumulativeValue(pdSample::Zero());
   return newThreadNode;
 }
 
