@@ -2,7 +2,13 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.34  1994/07/28 22:31:06  krisna
+ * Revision 1.35  1994/08/03 19:06:23  hollings
+ * Added tunableConstant to print enable/disable pairs.
+ *
+ * Fixed fold to report fold info to all perfStreams even if they have
+ * not active data being displayed.
+ *
+ * Revision 1.34  1994/07/28  22:31:06  krisna
  * include <rpc/types.h>
  * stringCompare to match qsort prototype
  * proper prorotypes for starting DMmain
@@ -137,6 +143,11 @@ double   quiet_nan(int unused);
 #include "dataManager.h"
 #include "dyninstRPC.CLNT.h"
 #include "DMinternals.h"
+#include "util/h/tunableConst.h"
+
+tunableBooleanConstant printChangeCollection(FALSE, NULL, developerConstant,
+    "printChangeCollection", 
+    "Print the name of metric/focus when enabled or disabled");
 
 List<performanceStream*> applicationContext::streams;
 
@@ -284,8 +295,6 @@ Boolean applicationContext::getDaemon (char *machine,
 				       char *login,
 				       char *program)
 {
-  paradynDaemon *daemon;
-  
   if (!getDaemonHelper(machine, login, program))
     return FALSE;
   else
@@ -578,15 +587,15 @@ void histDataCallBack(sampleValue *buckets,
 
 void histFoldCallBack(timeStamp width, void *arg)
 {
-    metricInstance *mi;
     performanceStream *ps;
+    static timeStamp oldWidth;
     List<performanceStream*> curr;
 
-    mi = (metricInstance *) arg;
-    if (mi->count) {
-	for (curr = mi->users; ps = *curr; curr++) {
-	    ps->callFoldFunc(width);
-	}
+    if (oldWidth == width) return;
+    oldWidth = width;
+
+    for (curr = applicationContext::streams; ps = *curr; curr++) {
+	ps->callFoldFunc(width);
     }
 }
 
@@ -609,7 +618,9 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
 
     ra = convertResourceList(rl);
 
-    cout << "EN: " << m->getName() << rl->getCanonicalName() << "\n";
+    if (printChangeCollection.getValue()) {
+	cout << "EN: " << m->getName() << rl->getCanonicalName() << "\n";
+    }
 
     // 
     // for each daemon request the data to be enabled.
@@ -652,6 +663,11 @@ void applicationContext::disableDataCollection(metricInstance *mi)
 
     m = mi->met;
     name = mi->focus->getCanonicalName();
+
+    if (printChangeCollection.getValue()) {
+	cout << "DI: " << m->getName() << name << "\n";
+    }
+
     m->enabledCombos.remove(name);
     for (curr = mi->components; c = *curr; curr++) {
 	delete(c);

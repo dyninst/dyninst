@@ -2,7 +2,13 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.41  1994/07/28 22:31:08  krisna
+ * Revision 1.42  1994/08/03 19:06:24  hollings
+ * Added tunableConstant to print enable/disable pairs.
+ *
+ * Fixed fold to report fold info to all perfStreams even if they have
+ * not active data being displayed.
+ *
+ * Revision 1.41  1994/07/28  22:31:08  krisna
  * include <rpc/types.h>
  * stringCompare to match qsort prototype
  * proper prorotypes for starting DMmain
@@ -163,8 +169,9 @@ List<paradynDaemon*> paradynDaemon::allDaemons;
 
 void newSampleRate(float rate);
 
-tunableConstant samplingRate(0.5, 0.0, 1000.0, newSampleRate, "samplingRate",
-   "how often to sample intermediate performance data (in seconds)");
+tunableFloatConstant samplingRate(0.5, 0.0, 1000.0, newSampleRate, userConstant,
+    "samplingRate",
+    "how often to sample intermediate performance data (in seconds)");
 
 metricInstance *performanceStream::enableDataCollection(resourceList *rl, 
 							metric *m)
