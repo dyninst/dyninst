@@ -19,14 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.5 1994/06/29 22:37:19 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.6 1994/06/30 18:01:35 jcargill Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.5  1994/06/29 22:37:19  hollings
+ * Revision 1.6  1994/06/30 18:01:35  jcargill
+ * Fixed MAX_BRANCH definition (offset is in words, not bytes).
+ *
+ * Revision 1.5  1994/06/29  22:37:19  hollings
  * Changed heap bound brack error to warning if we can reach some of the inst
  * heap.  The firewall will catch if this is a real error.
  *
@@ -188,7 +191,7 @@ typedef union instructUnion instruction;
 #define TRUE	1
 
 #define ABS(x)		((x) > 0 ? x : -x)
-#define MAX_BRANCH	0x1<<21
+#define MAX_BRANCH	0x1<<23
 #define MAX_IMM		0x1<<12		/* 11 plus shign == 12 bits */
 
 
@@ -566,6 +569,11 @@ Boolean locateAllInstPoints(image *i)
 
     for (func=i->funcs; func; func=func->next) {
 	if (!(func->tag & TAG_LIB_FUNC)) {
+//	    if (func->line) {
+//		printf("inst %s line %d:%s\n", func->file->fileName, 
+//		       func->line, func->prettyName);
+//		logLine (output);
+//	    }
 	    locateInstPoints(func, (instruction *) i->code, i->textOffset,TRUE);
 	}
     }
