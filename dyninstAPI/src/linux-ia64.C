@@ -41,10 +41,9 @@ bool changeSP( int /* pid */, Address /* loc */ ) {
 /* Required by linux.C */
 void generateBreakPoint( instruction & insn ) {
 	assert( 0 );
-	insn = instruction( );
 	} /* end generateBreakPoint() */
 
-/* Require by linux.C's insertTrapAtEntryPointOfMain() */
+/* Require by insertTrapAtEntryPointOfMain() */
 IA64_bundle generateTrapBundle() {
 	/* Note: we're using 0x80000 as our break.m immediate,
 	   which is defined to be a debugger breakpoint.  If this
@@ -234,7 +233,7 @@ Address calculateRSEOffsetFromBySlots( Address addr, int slots ) {
 
 	for( int i = 0; i < abs( slots ); i++ ) {
 		addr += adjust * 8;
-		if( (addr & BIT_8_3) >> 3 == 0x111111 ) {
+		if( (addr & BIT_8_3) == BIT_8_3 ) {
 			addr += adjust * 8;
 			} /* end if we ran into a NaT collection */
 		} /* end iteration over addresses */
@@ -273,29 +272,109 @@ Address dyn_lwp::readRegister( Register reg ) {
 	return value;
 	} /* end readRegister */
 
-/* FIXME: Ye flipping bits only knows if this actually works.  (frame pointer?) */
+#include <libunwind.h>
+
+/* Refactored from getActiveFrame() and getCallerFrame(). */
+Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP, pid_t pid, bool isActiveFrame ) {
+	Address ip = 0, sp = 0, fp = 0, tp = 0;
+	bool isLeaf = false, isUppermost = false, isSignalFrame = false, isTrampoline = false;
+	int status = 0;
+
+	/* Use the unwind cursor to fill in the frame. */
+ 	status = unw_get_reg( unwindCursor, UNW_IA64_IP, &ip );
+	assert( status == 0 );
+ 	status = unw_get_reg( unwindCursor, UNW_IA64_SP, &sp );
+ 	assert( status == 0 );
+	status = unw_get_reg( unwindCursor, UNW_IA64_TP, &tp );
+	assert( status == 0 );
+	
+	/* Unfortunately, libunwind is a little _too_ helpful:
+	   it'll encode the slotNo into the ip.  Take it back
+	   out, since we don't rely on it, and it confuses the
+	   rest of Dyninst. */
+	ip = ip - (ip % 16);
+	
+	status = unw_is_signal_frame( unwindCursor );
+	if( status > 0 ) { isSignalFrame = true; }
+
+	/* I could've just ptrace()d the ip, sp, and tp, but
+	   I couldn't have gotten the frame pointer.  With libunwind,
+	   the frame pointer is simply the stack pointer of the previous frame. */
+	status = unw_step( unwindCursor );
+  
+	if( status == -UNW_ENOINFO ) {
+		/* Most likely, we're trying to unwind from inside a trampoline.
+	  	   FIXME: This should not occur once dynamic unwind information is implemented. */
+	  	fprintf( stderr, "createFrameFromUnwindCursor(): FIXME: no unwind information available for this frame.\n" );
+		isUppermost = true;
+		}
+	else if( status == 0 ) {
+	  	/* This is the uppermost frame. */
+	  	// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(): unwind information indicates that this is the uppermost frame.\n" );
+	  	isUppermost = true;
+	  	}
+	else if( status > 0 ) {
+	  	/* The cursor is now one frame up. */
+	 	isUppermost = false;
+	  	status = unw_get_reg( unwindCursor, UNW_IA64_SP, & fp );
+		assert( status == 0 );
+		}
+		else {
+	  	/* Something erroneous happened.. */
+	    assert( status >= 0 );
+	  	}
+
+	/* FIXME: multithread implementation. */
+	dyn_thread * dynThread = NULL;
+    
+	/* FIXME: determine if this a trampoline frame.  (That is, was the information dynamically constructed?) */
+	Frame currentFrame( ip, fp, sp, pid, dynThread, dynLWP, isUppermost, isLeaf, isSignalFrame, isTrampoline );
+	
+	// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(): ip = 0x%lx, fp = 0x%lx, sp = 0x%lx, tp = 0x%lx\n", ip, fp, sp, tp );
+	return currentFrame;
+	} /* end createFrameFromUnwindCursor() */
+
 Frame dyn_lwp::getActiveFrame() {
-  Address pc, sp, tp;
-  
-  pid_t pid = proc_->getPid();
-  errno = 0;
-  pc = P_ptrace( PTRACE_PEEKUSER, pid, PT_CR_IIP, 0 );
-  assert( ! errno );
-  sp = P_ptrace( PTRACE_PEEKUSER, pid, PT_R12, 0 );
-  assert( ! errno );
-  tp = P_ptrace( PTRACE_PEEKUSER, pid, PT_R13, 0 );
-  assert( ! errno );
-  
-  return Frame( pc, 0, sp, proc_->getPid(), NULL, this, true );
-} /* end getActiveFrame() */
+	// /* DEBUG */ fprintf( stderr, "getActiveFrame(): getting active frame.\n" );
+
+	int status = 0;
+
+	/* Initialize the unwinder. */
+	unw_addr_space * unwindAddressSpace = unw_create_addr_space( & _UPT_accessors, 0 );
+	assert( unwindAddressSpace != NULL );
+	// /* DEBUG */ fprintf( stderr, "Creating unwind context with pid %d\n", proc_->getPid() );
+	void * unwindProcessArg = _UPT_create( proc_->getPid() );
+	assert( unwindProcessArg != NULL );
+
+	/* Initialize it to the active frame. */
+	unw_cursor_t unwindCursor;
+	status = unw_init_remote( & unwindCursor, unwindAddressSpace, unwindProcessArg );
+	assert( status == 0 );
+	
+	/* Generate a Frame from the unwinder. */
+	Frame currentFrame = createFrameFromUnwindCursor( & unwindCursor, this, proc_->getPid(), true );
+	
+	/* Shut down the unwinder. */
+	_UPT_destroy( unwindProcessArg );
+	unw_destroy_addr_space( unwindAddressSpace );
+
+	/* Return the result. */
+	return currentFrame;
+	} /* end getActiveFrame() */
 
 #define DLOPEN_MODE		(RTLD_NOW | RTLD_GLOBAL)
 #define DLOPEN_CALL_LENGTH	4
 
 const char DYNINST_LOAD_HIJACK_FUNCTIONS[][15] = {
-	"main",
+	/* This will probably be the lowest function in the address space,
+	   since GNU ld prefers to put .init before .text.  Other compilers
+	   may require us to look at all of them and pick the lowest.  (Our
+	   problem is that main() may high enough in the address space that
+	   the 8KB (!) that we need to loadDYNINSTlib() tries to read/write
+	   from an unmapped page.) */
 	"_init",
-	"_start"
+	"_start",
+	"main"
 	};
 const int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 3;
 
@@ -365,7 +444,7 @@ bool process::loadDYNINSTlib() {
 	   This is effectively an inferior RPC with the caveat that we're
 	   overwriting code instead of allocating memory from the RT heap. 
 	   (So 'hijack' doesn't mean quite what you might think.) */
-	Address entry = findFunctionToHijack(symbols, this);	// We can avoid using InsnAddr because we know 
+	Address entry = findFunctionToHijack( symbols, this );	// We can avoid using InsnAddr because we know 
 															// that function entry points are aligned.
 	if( !entry ) { return false; }
         
@@ -391,7 +470,7 @@ bool process::loadDYNINSTlib() {
 
 	/* Save the function we're going to hijack. */
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
-	iAddr.saveBundlesTo( savedCodeBuffer, sizeof(savedCodeBuffer) / 16 );
+	iAddr.saveBundlesTo( savedCodeBuffer, sizeof( savedCodeBuffer ) / 16 );
 
 	/* Save the current PC. */
 	savedPC = getPC( pid );	
@@ -481,7 +560,7 @@ bool process::loadDYNINSTlibCleanup() {
 	Address entry = findFunctionToHijack( symbols, this );	// We can avoid using InsnAddr because we know 
 															// that function entry points are aligned.
 	if( !entry ) { assert( 0 ); }
-
+	
 	/* Restore the function we hijacked. */
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
 	iAddr.writeBundlesFrom( savedCodeBuffer, sizeof(savedCodeBuffer) / 16 );
@@ -493,11 +572,39 @@ bool process::loadDYNINSTlibCleanup() {
 	return true;
 	} /* end loadDYNINSTlibCleanup() */
 
-Frame Frame::getCallerFrame( process * /* p */ ) const {
-	/* FIXME: stackwalks! */
-	// assert( 0 );
+/* At some point, it may be worth the trouble to add an unw_cursor_t member to Frame. */
+Frame Frame::getCallerFrame( process * proc ) const {
+	// /* DEBUG */ fprintf( stderr, "getCallerFrame(): getting caller's frame (ip = 0x%lx, fp = 0x%lx, sp = 0x%lx).\n", getPC(), getFP(), getSP() );
 
-	return Frame(); // zero frame
+	int status = 0;
+
+	/* Initialize the unwinder. */
+	unw_addr_space * unwindAddressSpace = unw_create_addr_space( & _UPT_accessors, 0 );
+	assert( unwindAddressSpace != NULL );
+	void * unwindProcessArg = _UPT_create( proc->getPid() );
+	assert( unwindProcessArg != NULL );
+
+	/* Initialize it to the active frame. */
+	unw_cursor_t unwindCursor;
+	status = unw_init_remote( & unwindCursor, unwindAddressSpace, unwindProcessArg );
+	assert( status == 0 );
+	
+	/* Unwind to the current frame. */
+	Frame currentFrame = createFrameFromUnwindCursor( & unwindCursor, lwp_, proc->getPid(), true );
+	while( ! currentFrame.isUppermost() ) {
+		if( getFP() == currentFrame.getFP() && getSP() == currentFrame.getSP() && getPC() == currentFrame.getPC() ) {
+			currentFrame = createFrameFromUnwindCursor( &unwindCursor, lwp_, proc->getPid(), false );
+			break;		
+			} /* end if we've found this frame */
+		currentFrame = createFrameFromUnwindCursor( &unwindCursor, lwp_, proc->getPid(), false );
+		}
+
+	/* Shut down the unwinder. */
+	_UPT_destroy( unwindProcessArg );
+	unw_destroy_addr_space( unwindAddressSpace );
+	
+	/* Return the result. */
+	return currentFrame;
 	} /* end getCallerFrame() */
 
 syscallTrap *process::trapSyscallExitInternal(Address syscall) {
