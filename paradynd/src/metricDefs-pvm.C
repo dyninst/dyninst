@@ -7,13 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.21 1995/05/18 10:39:33 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.22 1995/10/24 03:39:22 tamches Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-pvm.C,v $
+ * Revision 1.22  1995/10/24 03:39:22  tamches
+ * Commented out createCPUTime and createSyncWait, as part of removing
+ * the obsolete metricDefs-common.C
+ *
  * Revision 1.21  1995/05/18 10:39:33  markc
  * These are no longer needed
  *
@@ -194,23 +198,23 @@ void osDependentInst(process *proc) {
 // A wall timer is used because the process timer will be stopped
 // on blocking system calls.
 
-void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)
-{
-    dataReqNode *dataPtr;
-    AstNode *stopNode, *startNode;
-
-    dataPtr = mn->addTimer(wallTime);
-
-    startNode = new AstNode("DYNINSTstartWallTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    if (trigger) startNode = createIf(trigger, startNode);
-
-    stopNode = new AstNode("DYNINSTstopWallTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    if (trigger) stopNode = createIf(trigger, stopNode);
-
-    instAllFunctions(mn, TAG_MSG_SEND | TAG_MSG_RECV, startNode, stopNode);
-}
+//void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)
+//{
+//    dataReqNode *dataPtr;
+//    AstNode *stopNode, *startNode;
+//
+//    dataPtr = mn->addTimer(wallTime);
+//
+//    startNode = new AstNode("DYNINSTstartWallTimer", 
+//	new AstNode(DataValue, dataPtr), NULL);
+//    if (trigger) startNode = createIf(trigger, startNode);
+//
+//    stopNode = new AstNode("DYNINSTstopWallTimer", 
+//	new AstNode(DataValue, dataPtr), NULL);
+//    if (trigger) stopNode = createIf(trigger, stopNode);
+//
+//    instAllFunctions(mn, TAG_MSG_SEND | TAG_MSG_RECV, startNode, stopNode);
+//}
 
 //
 // ***** Warning this metric is pvm specific. *****
@@ -363,39 +367,39 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
     return(new AstNode(DataValue, data));
 }
 
-void createCPUTime(metricDefinitionNode *mn, AstNode *pred)
-{
-    pdFunction *func;
-    dataReqNode *dataPtr;
-    AstNode *stopNode, *startNode;
-
-    dataPtr = mn->addTimer(processTime);
-    assert(dataPtr);
-
-    startNode = new AstNode("DYNINSTstartProcessTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    assert(startNode);
-    if (pred) startNode = createIf(pred, startNode);
-    assert(startNode);
-    stopNode = new AstNode("DYNINSTstopProcessTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    assert(stopNode);
-    if (pred) stopNode = createIf(pred, stopNode);
-    assert(stopNode);
-
-    instAllFunctions(mn, TAG_CPU_STATE, stopNode, startNode);
-
-    func = ((mn->proc())->symbols)->findOneFunction("main");
-    assert(func);
-    mn->addInst(func->funcEntry(), startNode,callPreInsn,orderLastAtPoint);
-
-    mn->addInst(func->funcReturn(), stopNode,callPreInsn,orderLastAtPoint);
-
-    func = ((mn->proc())->symbols)->findOneFunction(EXIT_NAME);
-    assert(func);
-
-    mn->addInst(func->funcEntry(), stopNode, callPreInsn,orderLastAtPoint);
-}
+//void createCPUTime(metricDefinitionNode *mn, AstNode *pred)
+//{
+//    pdFunction *func;
+//    dataReqNode *dataPtr;
+//    AstNode *stopNode, *startNode;
+//
+//    dataPtr = mn->addTimer(processTime);
+//    assert(dataPtr);
+//
+//    startNode = new AstNode("DYNINSTstartProcessTimer", 
+//	new AstNode(DataValue, dataPtr), NULL);
+//    assert(startNode);
+//    if (pred) startNode = createIf(pred, startNode);
+//    assert(startNode);
+//    stopNode = new AstNode("DYNINSTstopProcessTimer", 
+//	new AstNode(DataValue, dataPtr), NULL);
+//    assert(stopNode);
+//    if (pred) stopNode = createIf(pred, stopNode);
+//    assert(stopNode);
+//
+//    instAllFunctions(mn, TAG_CPU_STATE, stopNode, startNode);
+//
+//    func = ((mn->proc())->symbols)->findOneFunction("main");
+//    assert(func);
+//    mn->addInst(func->funcEntry(), startNode,callPreInsn,orderLastAtPoint);
+//
+//    mn->addInst(func->funcReturn(), stopNode,callPreInsn,orderLastAtPoint);
+//
+//    func = ((mn->proc())->symbols)->findOneFunction(EXIT_NAME);
+//    assert(func);
+//
+//    mn->addInst(func->funcEntry(), stopNode, callPreInsn,orderLastAtPoint);
+//}
 
 
 
