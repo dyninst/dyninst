@@ -189,6 +189,9 @@ public:
     ~BPatch_thread();
 
     BPatch_image *getImage() { return image; }
+    
+    // this function should go away as soon as Paradyn links against Dyninst
+    process *lowlevel_process() { return proc; }
 
     int		getPid();
 
