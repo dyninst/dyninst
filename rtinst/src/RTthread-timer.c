@@ -120,11 +120,15 @@ void _VirtualTimerStop(virtualTimer* timer) {
 
 
 /* called when the virtual timer is reused by another thread */
-void DYNINST_VirtualTimerDestroy(virtualTimer* vt) {
+void _VirtualTimerDestroy(virtualTimer* vt) {
   if (vt->lwp) {
     if (vt->rt_fd) close(vt->rt_fd);
     memset((char*) vt, '\0', sizeof(virtualTimer)) ;
   }
+}
+
+void _VirtualTimerFinalize(virtualTimer *vt) {
+    if (vt->rt_fd) close (vt->rt_fd);
 }
 
 /* getThreadCPUTime */
@@ -187,10 +191,13 @@ void DYNINSTstartThreadTimer(tTimer* timer)
    int valid = 0;  
    int i;
 
-   /* in mini, so could use POS (maybe) */
-   unsigned pos = DYNINSTthreadPosSLOW(P_thread_self()) ; 
-   /* fprintf(stderr, "DYNINSTstartThreadTimer, timer 0x%x, tid %d, lwp %d, "
-              "pos %d\n", timer, P_thread_self(), P_lwp_self(), pos); */
+
+   unsigned pos = DYNINSTthreadPosFAST();
+   
+   if (RTsharedData.posToThread[pos] != P_thread_self()) {
+       fprintf(stderr, "POS and thread don't match, exiting\n");
+       return;
+   }
    
    if(!timer)
       i = *((int *)0); /* abort() sometimes doesn't leave good stack traces */
@@ -220,14 +227,22 @@ void DYNINSTstartThreadTimer(tTimer* timer)
 
 void DYNINSTstopThreadTimer(tTimer* timer)
 {
-   int i;
-   if (!timer)
-      i = *((int *)0);
+    int i;
 
-   assert(timer->protector1 == timer->protector2);
-   timer->protector1++;
-   MEMORY_BARRIER;
-   if (timer->counter == 1) {
+    unsigned pos = DYNINSTthreadPosFAST();
+    
+    if (RTsharedData.posToThread[pos] != P_thread_self()) {
+        fprintf(stderr, "Thread and POS don't match, exiting\n");
+        return;
+    }
+    
+    if (!timer)
+        i = *((int *)0);
+    
+    assert(timer->protector1 == timer->protector2);
+    timer->protector1++;
+    MEMORY_BARRIER;
+    if (timer->counter == 1) {
       int valid = 0;
       rawTime64 now;
 
@@ -241,7 +256,7 @@ void DYNINSTstopThreadTimer(tTimer* timer)
       timer->total += (now - timer->start);
    }
    
-   timer->counter--; 
+    if (timer->counter > 0) timer->counter--; 
    MEMORY_BARRIER;
    timer->protector2++;
    
