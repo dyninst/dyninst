@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-ia64.h,v 1.14 2004/08/16 04:33:26 rchen Exp $
+// $Id: inst-ia64.h,v 1.15 2004/12/02 00:57:07 tlmiller Exp $
 
 #ifndef INST_IA64_H
 #define INST_IA64_H
@@ -53,9 +53,14 @@ class IA64_instruction;
 
 /* Stores locations of pre-baseTramp registers */
 #define BP_GR0          0		//   0-127
+#define BP_GR127		(BP_GR0 + 127)
 #define BP_BR0          128		// 128-135
+#define BP_BR7			(BP_BR0 + 7)
 #define BP_PR           136		// 136
 #define BP_AR0          137		// 137-264
+#define BP_AR63			(BP_AR0 + 63)
+#define BP_AR64			(BP_AR0 + 64)
+#define BP_AR127		(BP_AR0 + 127)
 #define BP_R_MAX        (BP_AR0 + 128)
 
 /* aliases */
