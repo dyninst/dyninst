@@ -449,7 +449,10 @@ bool instrCodeNode::loadInstrIntoApp(pd_Function **func) {
     // the instrumentation via inferiorRPC.
     returnInstance *retInst=NULL;
     bool deferredFlag = false;
-    if (!V.instRequests[u1].loadInstrIntoApp(proc(), retInst, &deferredFlag)) {
+    instReqNode *instReq = &V.instRequests[u1];
+    instInstance *mtInst = V.instRequests[u1].loadInstrIntoApp(proc(), 
+						     retInst, &deferredFlag);
+    if (! mtInst) {
       unmarkAsDeferred();
       if (deferredFlag == true) {
 	*func = dynamic_cast<pd_Function *>(const_cast<function_base *>(
@@ -457,16 +460,19 @@ bool instrCodeNode::loadInstrIntoApp(pd_Function **func) {
 	markAsDeferred();
 	//cerr << "marking " << (void*)this << " " << u1+1 << " / "
 	//     << inst_size << " as deferred\n";
+	//cerr << "deferred on function " << (*func)->prettyName() << "\n";
       }
       else cerr << "instRequest.insertInstr - wasn't successful\n";
       //assert (*func != NULL);
       return false; // shouldn't we try to undo what's already put in?
     } else {
-      //cerr << "instrRequest # " << u1+1 << " / " << inst_size 
-      //     << " inserted\n";
+      V.miniTrampInstances += mtInst;
+
+      //cerr << "instrRequest # " << u1+1 << " / " << inst_size
+      //     << "inserted\n";
     }
     if (retInst) {
-      V.returnInsts += retInst;
+      V.baseTrampInstances += retInst;
     }
   }
   V.instrLoaded_ = true;
@@ -508,18 +514,23 @@ void instrCodeNode::recordAsParent(processMetFocusNode *procnode) {
 }
 
 bool instrCodeNode::needToWalkStack() {
-   for (unsigned u1=0; u1<V.returnInsts.size(); u1++) {
-      if (V.returnInsts[u1]->needToWalkStack())
+   for (unsigned u1=0; u1<V.baseTrampInstances.size(); u1++) {
+      if (V.baseTrampInstances[u1]->needToWalkStack())
 	 return true;
    }
    return false;
 }
 
-bool instrCodeNode::hookupJumpsToBaseTramps(vector<Address>& pc) {
+bool instrCodeNode::insertJumpsToTramps(vector<Address>& pc) {
    if(baseTrampsHookedUp()) return true;
-
-  vector<returnInstance *> &returnInsts = V.getReturnInsts();
-   unsigned rsize = returnInsts.size();
+   
+   vector<instInstance *> &miniTrampInstances = V.getMiniTrampInstances();
+   for(unsigned k=0; k<miniTrampInstances.size(); k++) {
+      hookupMiniTramp(miniTrampInstances[k]);
+   }
+      
+   vector<returnInstance *> &baseTrampInstances = V.getBaseTrampInstances();
+   unsigned rsize = baseTrampInstances.size();
    u_int max_index = 0;  // first frame where it is safe to install instr
    bool delay_install = false; // true if some instr. needs to be delayed 
    vector<bool> delay_elm(rsize); // wch instr. to delay
@@ -527,6 +538,7 @@ bool instrCodeNode::hookupJumpsToBaseTramps(vector<Address>& pc) {
    // inserted now (it can if it is not currently on the stack)
    // If some can not be inserted, then find the first safe point on
    // the stack where all can be inserted, and set a break point  
+
    for (unsigned u=0; u<rsize; u++) {
       u_int index = 0;
 #if defined(MT_THREAD) 
@@ -535,7 +547,7 @@ bool instrCodeNode::hookupJumpsToBaseTramps(vector<Address>& pc) {
       // only overwrite 1 instruction on power arch (2 on mips arch)
       // always safe to instrument without stack walk
       // pc is empty for those didn't do a stack walk, will return safe.
-      bool installSafe = returnInsts[u] -> checkReturnInstance(pc,index);
+      bool installSafe = baseTrampInstances[u]->checkReturnInstance(pc,index);
 #endif
       // if unsafe, index will be set to the first unsafe stack walk ndx
       // (0 being top of stack; i.e. the current pc)
@@ -544,7 +556,7 @@ bool instrCodeNode::hookupJumpsToBaseTramps(vector<Address>& pc) {
 	 max_index = index;
       
       if (installSafe) {
-	 returnInsts[u] -> installReturnInstance(proc());
+	 baseTrampInstances[u]->installReturnInstance(proc());
 	 delay_elm[u] = false;
       } else {
 	 delay_install = true;
@@ -557,7 +569,7 @@ bool instrCodeNode::hookupJumpsToBaseTramps(vector<Address>& pc) {
       // TODO: this should be fixed to do something smarter
       if(max_index > 0 && max_index+1 >= pc.size()){
 	 max_index--;
-	//printf("max_index changed: %d\n",max_index);
+	 //printf("max_index changed: %d\n",max_index);
       }
       if(max_index > 0 && pc[max_index+1] == 0){
 	 max_index--;
@@ -566,7 +578,7 @@ bool instrCodeNode::hookupJumpsToBaseTramps(vector<Address>& pc) {
       Address pc2 = pc[max_index+1];
       for (u_int i=0; i < rsize; i++) {
 	 if (delay_elm[i]) {
-	    returnInsts[i]->addToReturnWaitingList(pc2, proc());
+	    baseTrampInstances[i]->addToReturnWaitingList(pc2, proc());
 	 }
       }
    }

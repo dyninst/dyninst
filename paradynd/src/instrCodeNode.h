@@ -53,7 +53,8 @@ class instrCodeNode_Val {
  public:
   string name;
   vector<instReqNode> instRequests;
-  vector<returnInstance *> returnInsts;
+  vector<returnInstance *> baseTrampInstances;
+  vector<instInstance *> miniTrampInstances;
   vector<instrThrDataNode *> dataNodes;
   vector<processMetFocusNode *> parentNodes;
   vector<instReqNode *> manuallyTriggerNodes;
@@ -74,7 +75,12 @@ class instrCodeNode_Val {
   { }
   ~instrCodeNode_Val();
   vector<instReqNode> &getInstRequests() { return instRequests; }
-  vector<returnInstance *> &getReturnInsts() { return returnInsts; }
+  vector<returnInstance *> &getBaseTrampInstances() { 
+    return baseTrampInstances;
+  }
+  vector<instInstance *> &getMiniTrampInstances() { 
+    return miniTrampInstances;
+  }
   void incrementRefCount() { referenceCount++; }
   void decrementRefCount() { referenceCount--; }
   int getRefCount() { return referenceCount; }
@@ -144,7 +150,7 @@ class instrCodeNode {
 
   void addDataNode(instrThrDataNode* part) { V.dataNodes.push_back(part); }
   bool needToWalkStack(); // const;
-  bool hookupJumpsToBaseTramps(vector<Address>& pc);
+  bool insertJumpsToTramps(vector<Address>& pc);
   void addInst(instPoint *point, AstNode *, callWhen when, callOrder o);
   timeLength cost() const;
   void oldCatchUp(int tid);
