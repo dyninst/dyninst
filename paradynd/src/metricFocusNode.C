@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.55  1995/10/04 18:52:47  krisna
+ * Revision 1.56  1995/10/16 13:56:34  naim
+ * Eliminating error message 65. It seems to be not necessary - naim
+ *
+ * Revision 1.55  1995/10/04  18:52:47  krisna
  * for-loop-scope change
  *
  * Revision 1.54  1995/09/26 20:17:50  naim
@@ -766,7 +769,8 @@ void processSample(traceHeader *h, traceSample *s)
       sprintf(errorLine, "Sample %d not for a valid metric instance\n", 
 	      s->id.id);
       logLine(errorLine);
-      showErrorCallback(65,(const char *) errorLine);
+      // TODO: Is this error message necessary?
+      // showErrorCallback(65,(const char *) errorLine);
       return;
     }
     mi = midToMiMap[s->id.id];
