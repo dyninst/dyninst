@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.13  1994/05/12 23:34:13  hollings
-/* made path to paradyn.h relative.
+/* Revision 1.14  1994/05/23 01:59:31  karavan
+/* added callbacks for resource notification and state change notification.
 /*
+ * Revision 1.13  1994/05/12  23:34:13  hollings
+ * made path to paradyn.h relative.
+ *
  * Revision 1.12  1994/05/10  03:57:49  hollings
  * Changed data upcall to return array of buckets.
  *
@@ -122,7 +125,9 @@ List<metricInstance*>     uim_enabled;
 performanceStream         *uim_defaultStream;
 UIM                       *uim_server;
 Tcl_HashTable UIMMsgReplyTbl;
+Tcl_HashTable UIMwhereDagTbl;
 int UIMMsgTokenID;
+int UIMwhereDagID;
 
 /*
  * Command-line options:
@@ -196,22 +201,55 @@ void reaper()
     }
 }
 
+/* This callback function invoked by dataManager whenever a new 
+   resource has been defined.  Maintains where axis display.
+*/
 void controlFunc (performanceStream *ps , 
                   resource *parent, 
                   resource *newResource, 
                   char *name)
 {
-    // printf("creating %s child of %s\n", name, getResourceName(parent));
-    dataMgr->enableResourceCreationNotification(ps, newResource);
-    return;
+  int nodeID;
+  char tcommand[200];
+  char *parname, *label;
+    
+  dataMgr->enableResourceCreationNotification(ps, newResource);
+  nodeID = (int) Tk_GetUid(name);
+  label = strrchr(name, '/'); label++; 
+  if (parent == uim_rootRes) {
+    sprintf 
+      (tcommand, ".rightbox.where.d01 addNode %d -root yes -style %d -label \"%s\"",
+       nodeID, 1, label);
+    if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
+      printf ("WHEREaddNodeError: %s\n", interp->result);
+    }
+  }
+  else {
+    sprintf (tcommand, ".rightbox.where.d01 addNode %d -root no -style 1 -label \"%s\"",
+	     nodeID, label);
+    if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
+      printf ("WHEREaddNodeError: %s\n", interp->result);
+    }
+    parname = dataMgr->getResourceName(parent);
+    sprintf (tcommand, ".rightbox.where.d01 addEdge %d %d -style %d",
+	     (int) Tk_GetUid(parname), nodeID, 1);
+    if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
+      printf ("WHEREaddEdgeError: %s\n", interp->result);
+    }
+  
+  }
 }
 
-void foldFunc (performanceStream *ps, timeStamp width)
+void
+applicStateChanged (performanceStream*, appState state) 
 {
-    printf("histograms folded to bucket width %f\n", width);
-    return;
+  char cmd[6];
+  sprintf (cmd, "%d", state);
+  if (Tcl_VarEval (interp, "changeApplicState ", cmd, 0) == TCL_ERROR) {
+    printf ("changeApplicStateERROR: %s\n", interp->result);
+  }
 }
-
+ 
 /*
  *----------------------------------------------------------------------
  *
@@ -244,6 +282,7 @@ UImain(CLargStruct *clargs)
     controlCallback controlFuncs;
     dataCallback dataFunc;
     char *temp;
+    char *newres;
     printf ("starting mainUI\n");
 
     interp = Tcl_CreateInterp();
@@ -318,7 +357,6 @@ UImain(CLargStruct *clargs)
     if (Tk_Init(interp) == TCL_ERROR) {
       fprintf (stderr, "%s\n", interp->result);
     }
-    printf ("tk initialized.\n");
 
      // Add the dag command to the tcl interpreter.
 
@@ -401,20 +439,29 @@ UImain(CLargStruct *clargs)
    // subscribe to DM new resource notification service
 
     uim_rootRes = dataMgr->getRootResource();
+    newres = dataMgr->getResourceName (uim_rootRes);
+    printf ("root resource: %s\n", newres);
     controlFuncs.rFunc = controlFunc;
     controlFuncs.mFunc = NULL;
-    controlFuncs.fFunc = foldFunc;
+    controlFuncs.fFunc = NULL;
+    controlFuncs.sFunc = applicStateChanged;
     dataFunc.sample = NULL;
     uim_defaultStream = dataMgr->createPerformanceStream(context, Sample, 
         dataFunc, controlFuncs);
     dataMgr->enableResourceCreationNotification(uim_defaultStream, uim_rootRes);
-
+   /* display the where axis */
+    {
+      char wname[] = ".rightbox.where";
+      Tcl_SetVar (interp, "WHEREname", wname, 0);
+      if (Tcl_VarEval (interp, "initWHERE", 0) == TCL_ERROR)
+	printf ("NOWHERE:: %s\n", interp->result);
+    }
+    
 /********************************
  *    Main Loop for UIM thread.  
  ********************************/
 
-    fprintf (stderr, "UIM thread begin main loop\n");
-    while (1) {
+    while (tk_NumMainWindows > 0) {
 
       msgSize = UIMBUFFSIZE;
       mtag = MSG_TAG_ANY;
@@ -448,13 +495,14 @@ UImain(CLargStruct *clargs)
     }
 
     /*
-     * Don't exit directly, but rather invoke the Tcl "exit" command.
-     * This gives the application the opportunity to redefine "exit"
-     * to do additional cleanup.
+     * Exiting this thread will signal the main/parent to exit.  No other
+     * notification is needed.  This call will be reached when there are 
+     * no windows remaining for the application -- either grievous error 
+     * or user has selected "EXIT".
      */
-
-    Tcl_Eval(interp, "exit");
+    thr_exit(0);
   }
+    
 
 
 /*
