@@ -5,6 +5,9 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.program.tmpl,v $
+# Revision 1.10  1996/04/29 03:27:55  tamches
+# added APP_PURE_OPTIONS for application-specific purify options
+#
 # Revision 1.9  1996/01/05 19:52:09  tamches
 # igen --> $(IGEN)
 #
@@ -58,8 +61,9 @@ $(TARGET): $(OBJS) $(LIBS)
 endif
 
 ifndef UNCOMMON_LINK
+# The user may set APP_PURE_OPTIONS for application-specific purify options
 pure: $(OBJS) $(LIBS)
-	purify -cache-dir=/tmp -$(MODCC) -collector=$(COLLECTOR) $(MODCC) -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+	purify $(APP_PURE_OPTIONS) -cache-dir=/tmp -$(MODCC) -collector=$(COLLECTOR) $(MODCC) -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
 endif
 
 ifndef UNCOMMON_LINK
@@ -70,6 +74,9 @@ endif
 ifndef UNCOMMON_LINK
 qpt: $(OBJS) $(LIBS)
 	$(MODCC) -static -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+	# qpt's quick profiling may produce incorrect results in programs
+	# executing interprocedural jumps; this includes setjmp/longjmp.
+	# Hence we must use the -s option for paradyn:
 	qpt2 -s $(TARGET)
 endif
 
