@@ -952,26 +952,16 @@ dag::configureEdge (int srcID, int dstID, int styleID)
 /******************************************************************************/
 /*   Paint Functions */
 /******************************************************************************/
-inline static int Min(int a, int b) { return(a <= b ? a : b); }
 inline static int Max(int a, int b) { return(a >= b ? a : b); }
 
 inline static Flag IsStringType(StringType s, StringType t) {
     return((s & t) != 0);
-}
-inline static Flag IsVerbose(rNode n) {
-    return(IsStringType(n->strType, VERBOSE));
 }
 inline static Flag IsElided(rNode n) {
     return(IsStringType(n->strType, ELIDED));
 }
 inline static Flag IsInvisible(rNode n) {
     return(IsStringType(n->strType, INVISIBLE));
-}
-inline static int PreSpacing(rNode me) {
-    return(0);
-}
-inline static int PostSpacing(rNode me, rGraph g) {
-    return(g->col_spacing);
 }
 inline static Flag IsAncestor(rNode src, rNode dst) {
     while ((src && dst && (src->row > dst->row)))
