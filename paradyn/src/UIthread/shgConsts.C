@@ -1,10 +1,13 @@
 // shgConsts.C
 
 /* $Log: shgConsts.C,v $
-/* Revision 1.2  1996/01/23 07:04:09  tamches
-/* added shadow node features.
-/* moved code here from the .h file
+/* Revision 1.3  1996/02/02 18:44:57  tamches
+/* shg color change: unknown is green more more readability than tan
 /*
+ * Revision 1.2  1996/01/23 07:04:09  tamches
+ * added shadow node features.
+ * moved code here from the .h file
+ *
  * Revision 1.1  1995/10/17 22:07:39  tamches
  * initial version for the new search history graph
  *
@@ -92,42 +95,24 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
 
    // Unknown:
    rootItemTk3DBordersByStyle[1] = Tk_Get3DBorder(interp, theTkWindow,
-//						     Tk_GetUid("tan"));
-						     Tk_GetUid("#e9fbb57aa3c9"));
-         // yuck --ari (try tan)
+//						     Tk_GetUid("#e9fbb57aa3c9"));
+						     Tk_GetUid("#60c0a0")); //green
    assert(rootItemTk3DBordersByStyle[1]);
-
-//      // instrumented, but no decision yet
-//      rootItemTk3DBordersByStyle[1] = Tk_Get3DBorder(interp, theTkWindow,
-//						     Tk_GetUid("#ffffbba5bba5")); // yuck --ari
-//      assert(rootItemTk3DBordersByStyle[1]);
 
    // True:
    rootItemTk3DBordersByStyle[2] = Tk_Get3DBorder(interp, theTkWindow,
 						  Tk_GetUid("cornflowerblue"));
-//      rootItemTk3DBordersByStyle[2] = Tk_Get3DBorder(interp, theTkWindow,
-//						     Tk_GetUid("#acbff48ff6c8")); // yuck --ari
    assert(rootItemTk3DBordersByStyle[2]);
 
-   // False
+   // False:
    rootItemTk3DBordersByStyle[3] = Tk_Get3DBorder(interp, theTkWindow,
 						  Tk_GetUid("pink"));
-//      rootItemTk3DBordersByStyle[3] = Tk_Get3DBorder(interp, theTkWindow,
-//						     Tk_GetUid("#cc85d5c2777d")); // yuck --ari
    assert(rootItemTk3DBordersByStyle[3]);
-
-//      // instrumented, false
-//      rootItemTk3DBordersByStyle[4] = Tk_Get3DBorder(interp, theTkWindow,
-//						     Tk_GetUid("plum"));
-//
-//      // uninstrumented, true
-//      rootItemTk3DBordersByStyle[5] = Tk_Get3DBorder(interp, theTkWindow,
-//						     Tk_GetUid("green"));
 
    // 3D borders for listbox:
    // It seems reasonable to use the exact same colors for shg listbox items:
    listboxItemTk3DBordersByStyle = rootItemTk3DBordersByStyle;
-      // indexed, in effect, by shgRootNode::evaluationState
+      // indexed, in effect, by shgRootNode::evaluationState & an active flag
 }
 
 shgConsts::~shgConsts() {
@@ -136,16 +121,22 @@ shgConsts::~shgConsts() {
    Tk_FreeFontStruct(listboxItemFontStruct);
    Tk_FreeFontStruct(listboxItemItalicFontStruct);
  
-   Tk_FreeGC(display, rootItemActiveTextGC);
-   Tk_FreeGC(display, rootItemInactiveTextGC);
-   Tk_FreeGC(display, listboxItemActiveTextGC);
-   Tk_FreeGC(display, listboxItemInactiveTextGC);
-
    Tk_FreeColor(activeTextColor);
    Tk_FreeColor(inactiveTextColor);
 
-   Tk_Free3DBorder(rootItemTk3DBordersByStyle[0]);
-   Tk_Free3DBorder(rootItemTk3DBordersByStyle[1]);
-   Tk_Free3DBorder(rootItemTk3DBordersByStyle[2]);
-   Tk_Free3DBorder(rootItemTk3DBordersByStyle[3]);
+   Tk_FreeGC(display, rootItemActiveTextGC);
+   Tk_FreeGC(display, rootItemInactiveTextGC);
+   Tk_FreeGC(display, rootItemActiveShadowTextGC);
+   Tk_FreeGC(display, rootItemInactiveShadowTextGC);
+   Tk_FreeGC(display, listboxItemActiveTextGC);
+   Tk_FreeGC(display, listboxItemInactiveTextGC);
+   Tk_FreeGC(display, listboxItemActiveShadowTextGC);
+   Tk_FreeGC(display, listboxItemInactiveShadowTextGC);
+
+   for (unsigned stylelcv=0; stylelcv < rootItemTk3DBordersByStyle.size(); stylelcv++)
+      Tk_Free3DBorder(rootItemTk3DBordersByStyle[stylelcv]);
+
+   // Note that we intentionally don't free up anything in
+   // listboxItemTk3DBordersByStyle, since it was always just a shadow copy
+   // of the contents of rootItemTk3DBordersByStyle
 }
