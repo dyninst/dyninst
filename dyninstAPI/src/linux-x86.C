@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.66 2005/03/11 22:04:12 bernat Exp $
+// $Id: linux-x86.C,v 1.67 2005/03/16 22:59:41 bernat Exp $
 
 #include <fstream>
 
@@ -447,7 +447,17 @@ static void getVSyscallSignalSyms(char *buffer, unsigned dso_size, process *p)
 	  char *name = elf_strptr(elf, dynstr, syms[i].st_name);
 	  if (strstr(name, VSYS_SIGRETURN_NAME) != NULL)
 	  {	    
-	    p->addSignalHandlerAddr(syms[i].st_value);
+	    // Aggravating... FC3 has these as offsets from the entry
+	    // of the vsyscall page. Others have these as absolutes.
+	    // We hates them, my precioussss....
+	    Address signal_addr = syms[i].st_value;
+	    if (signal_addr < p->getVsyscallStart()) {
+	      fprintf(stderr, "Warning: saw signal handler address of 0x%x, guessing it's an offset...\n",
+		      signal_addr);
+	      p->addSignalHandlerAddr(syms[i].st_value + p->getVsyscallStart());
+	    }
+	    else 
+	      p->addSignalHandlerAddr(syms[i].st_value);
 	  } 
 	}
       }
@@ -1435,18 +1445,6 @@ bool process::loadDYNINSTlib_libc21() {
 
   startup_printf("(%d) Writing from %p to %p\n", getPid(), (char *)scratchCodeBuffer, (char *)codeBase);
   writeDataSpace((void *)(codeBase), code_size, (char *)scratchCodeBuffer);
-
-  //Libc >= 2.3.3 has security features that prevent _dl_open from being
-  // called from outside libc.  We'll disable those features by finding the
-  // function that implements them and writing 'return 0' over the top of
-  // the function.
-  int_function *dlcheck = findOnlyOneFunction("_dl_check_caller");
-  if (dlcheck != NULL)
-  {
-    startup_printf("(%d) Found dlopen security function, disabling...\n", getPid());
-    if (!dlcheck->setReturnValue(this, 0))
-      cerr << "Couldn't set function's return value" << endl;
-  }
 
   // save registers
   dyn_lwp *lwp_to_use = NULL;
