@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.108 2002/02/12 15:42:05 chadd Exp $
+// $Id: solaris.C,v 1.109 2002/02/15 18:57:07 gurari Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -2210,95 +2210,41 @@ Frame Frame::getCallerFrameNormal(process *p) const
   return Frame(); // zero frame
 }
 
-#if defined(MT_THREAD)
 Frame Frame::getCallerFrameThread(process *p) const
 {
-  Frame ret; // zero frame
-  ret.lwp_id_ = 0;
-  ret.thread_ = thread_;
-
-  // TODO: special handling for uppermost/leaf frame?
-  /*
-  prgregset_t regs;
-#ifdef PURE_BUILD
-  // explicitly initialize "regs" struct (to pacify Purify)
-  // (at least initialize those components which we actually use)
-  for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
-#endif
-
-  if (uppermost_) {
-      func = this->findFuncByAddr(pc_);
-      if (func) {
-	 if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
-	   int proc_fd = p->getProcFileDescriptor();
-	   if (ioctl(proc_fd, PIOCGREG, &regs) != -1) {
-	     ret.pc_ = regs[R_O7] + 8;
-	     return ret;
-	   }    
-	 }
-      }
-  }
-  */
-
-  //
-  // For the sparc, register %i7 is the return address - 8 and the fp is
-  // register %i6. These registers can be located in %fp+14*5 and
-  // %fp+14*4 respectively, but to avoid two calls to readDataSpace,
-  // we bring both together (i.e. 8 bytes of memory starting at %fp+14*4
-  // or %fp+56).
-  // These values are copied to the stack when the application is paused,
-  // so we are assuming that the application is paused at this point
-
-  struct {
-    Address fp;
-    Address rtn;
-  } addrs;
-
-  if (p->readDataSpace((caddr_t)(fp_ + 56), sizeof(int)*2, 
-		       (caddr_t)&addrs, false)) 
-  {
-    ret.fp_ = addrs.fp;
-    ret.pc_ = addrs.rtn + 8;
-  }
-
-  return ret;
-}
-
-Frame Frame::getCallerFrameLWP(process *p) const
-{
-  Frame ret; // zero frame
+  Frame ret;
   ret.lwp_id_ = lwp_id_;
   ret.thread_ = NULL ;
 
-  prgregset_t regs;
-#ifdef PURE_BUILD
-  // explicitly initialize "regs" struct (to pacify Purify)
-  // (at least initialize those components which we actually use)
-  for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
-#endif
+  // For kernel level threads
+  if (!thread_ && lwp_id_) {
+    prgregset_t regs;
 
-  if (uppermost_) {
-    function_base *func = p->findFuncByAddr(pc_);
-    if (func) {
-      if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
-	int proc_fd = p->getProcFileDescriptor();
-	int lwp_fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp_id_));
-	if (-1 == lwp_fd) {
-	  cerr << "process::getCallerFrameLWP, cannot get lwp_fd" << endl ;
-	  return Frame(); // zero frame
-	}
-	if (ioctl(lwp_fd, PIOCGREG, &regs) != -1) {
-	  ret.pc_ = regs[R_O7] + 8;
-	  ret.fp_ = fp_; // frame pointer unchanged
+    if (uppermost_) {
+      function_base *func = p->findFuncByAddr(pc_);
+      if (func) {
+        if (func->hasNoStackFrame()) {
+	  int proc_fd = p->getProcFileDescriptor();
+	  int lwp_fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp_id_));
+
+	  if (lwp_fd == -1) {
+	    cerr << "process::getCallerFrameLWP, cannot get lwp_fd" << endl ;
+	    return Frame();
+	  }
+
+  	  if (ioctl(lwp_fd, PIOCGREG, &regs) != -1) {
+	    ret.pc_ = regs[R_O7] + 8;
+	    ret.fp_ = fp_; // frame pointer unchanged
+	    close(lwp_fd);
+	    return ret;
+	  }
 	  close(lwp_fd);
-	  return ret;
 	}
-	close(lwp_fd);
       }
     }
   }
 
-  //
+
   // For the sparc, register %i7 is the return address - 8 and the fp is
   // register %i6. These registers can be located in %fp+14*5 and
   // %fp+14*4 respectively, but to avoid two calls to readDataSpace,
@@ -2334,7 +2280,6 @@ Frame Frame::getCallerFrameLWP(process *p) const
 
   return ret;
 }
-#endif //MT_THREAD
 #endif
 
 #ifdef SHM_SAMPLING

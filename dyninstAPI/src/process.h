@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.182 2002/02/13 20:30:48 gurari Exp $
+/* $Id: process.h,v 1.183 2002/02/15 18:57:06 gurari Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -388,10 +388,7 @@ class Frame {
 
     // platform-dependent components of getCallerFrame()
     Frame getCallerFrameNormal(process *) const;
-#if defined(MT_THREAD)
-    Frame getCallerFrameLWP(process *) const;
     Frame getCallerFrameThread(process *) const;
-#endif
 };
 
 typedef void (*continueCallback)(timeStamp timeOfCont);

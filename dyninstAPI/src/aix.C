@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.89 2002/01/30 20:24:44 bernat Exp $
+// $Id: aix.C,v 1.90 2002/02/15 18:57:06 gurari Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -294,19 +294,10 @@ Frame Frame::getCallerFrameNormal(process *p) const
   return ret;
 }
 
-#ifdef MT_THREAD
-
 Frame Frame::getCallerFrameThread(process *p) const
 {
   return getCallerFrameNormal(p);
 }
-
-Frame Frame::getCallerFrameLWP(process* p) const
-{
-  return getCallerFrameNormal(p);
-}
-
-#endif
 
 void decodeInstr(unsigned instr_raw) {
   // Decode an instruction. Fun, eh?
@@ -2547,6 +2538,4 @@ int process::findLWPbyPthread(int tid)
   fprintf(stderr, "find LWP by pthread: returning %d\n", lwp);
   return lwp;
 }
-
 #endif
-

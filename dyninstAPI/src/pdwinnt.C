@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.42 2002/01/08 19:59:30 pcroth Exp $
+// $Id: pdwinnt.C,v 1.43 2002/02/15 18:57:06 gurari Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -2326,6 +2326,11 @@ Frame Frame::getCallerFrameNormal(process *p) const
 
 	return ret;
 }
+#endif
+
+#ifndef BPATCH_LIBRARY
+// Currently no windows multi-threaded paradyn
+Frame Frame::getCallerFrameThread(process *p) const { }
 #endif
 
 #ifdef mips_unknown_ce2_11 //ccw 10 aug 2000 : 29 mar 2001

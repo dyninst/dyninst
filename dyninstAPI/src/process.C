@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.299 2002/02/14 16:26:47 gurari Exp $
+// $Id: process.C,v 1.300 2002/02/15 18:57:06 gurari Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -225,17 +225,11 @@ Frame Frame::getCallerFrame(process *p) const
   if (fp_ == 0) return Frame(); // zero frame
 
   // platform-dependent implementation
-#if defined(MT_THREAD)
-  if (!thread_ && lwp_id_) {
-    // kernel-level thread
-    ret = getCallerFrameLWP(p);
-  } else {
-    // user-level thread
+  if (thread_ || lwp_id_) {
     ret = getCallerFrameThread(p);
+  } else {
+    ret = getCallerFrameNormal(p);
   }
-#else
-  ret = getCallerFrameNormal(p);
-#endif
 
   // if this is the outermost frame, stop by returning zero frame
   extern bool isValidAddress(process *, Address);
