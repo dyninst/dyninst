@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.121 2001/04/25 20:34:12 wxd Exp $
+// $Id: DMpublic.C,v 1.122 2001/05/24 18:37:24 wxd Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -232,7 +232,7 @@ void startTermWin()
     sprintf(buffer,"%d",dataManager::termWin_sock);
     vector<string> *av = new vector<string>;
     *av += buffer;
-    PDSOCKET termWin_sock = RPCprocessCreate("localhost","","termWin","",*av);
+    RPCprocessCreate("localhost","","termWin","",*av);
     delete av;
     P_close(dataManager::termWin_sock);
     dataManager::termWin_sock = INVALID_PDSOCKET;

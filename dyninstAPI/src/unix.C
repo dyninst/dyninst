@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.55 2001/04/25 20:31:37 wxd Exp $
+// $Id: unix.C,v 1.56 2001/05/24 18:37:13 wxd Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -127,14 +127,14 @@ bool forkNewProcess(string &file, string /*dir*/, vector<string> argv,
                     int & /*traceLink*/, 
                     int &pid, int & /*tid*/, 
                     int & /*procHandle*/, int & /*thrHandle*/, 
-		    int stdin_fd, int stdout_fd, int stderr_fd)
+		    int stdin_fd, int , int )
 #else
 bool forkNewProcess(string &file, string dir, vector<string> argv, 
 		    vector<string>envp, string inputFile, string outputFile,
 		    int &traceLink,
 		    int &pid, int & /*tid*/, 
 		    int & /*procHandle*/, int & /*thrHandle*/,
-		    int stdin_fd, int stdout_fd, int stderr_fd)
+		    int stdin_fd, int stdout_fd, int)
 
 #endif
 {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMmain.C,v 1.47 2001/04/25 18:41:37 wxd Exp $ */
+/* $Id: VMmain.C,v 1.48 2001/05/24 18:37:25 wxd Exp $ */
 
 #include "thread/h/thread.h"
 #include "VM.thread.SRVR.h"
@@ -308,16 +308,16 @@ int  VM::VMCreateVisi(int remenuFlag,
 		temp->matrix = new vector<metric_focus_pair>;
 	for (unsigned i=0;i < visitemp->matrix->size();i++)
 	{
-		metricHandle metric_h;
+		metricHandle metric_h=UNUSED_METRIC_HANDLE;
 		
 		string metfocus_item((*visitemp->matrix)[i].string_of());
-		char	*metfocus_str=(char *)metfocus_item.string_of();
+		char	*metfocus_str=P_strdup(metfocus_item.string_of());
 
 		string *metric_name=NULL;
 		string *code_name=NULL;
 		string *machine_name=NULL;
 		string *sync_name=NULL;
-		for (char *pos=strtok(metfocus_str,", \t");pos;pos=strtok(NULL,", \t"))
+		for (char *pos=strtok(metfocus_str,", \t");pos != NULL;pos=strtok(NULL,", \t"))
 		{
 			if (!strcmp(pos,""))
 				continue;
@@ -330,6 +330,8 @@ int  VM::VMCreateVisi(int remenuFlag,
 			else if (sync_name == NULL)
 				sync_name = new string(pos);
 		}
+		delete metfocus_str;
+
 		if (metric_name == NULL)
 			metric_name = new string("*");
 		if (code_name== NULL)

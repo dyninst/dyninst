@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.33 2001/04/25 18:41:35 wxd Exp $
+// $Id: DMmetric.C,v 1.34 2001/05/24 18:37:24 wxd Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -467,13 +467,14 @@ vector<metricInstance*> *metricInstance::query(metric_focus_pair metfocus)
 	       string mi_focus_name=DMcreateRLname(*mi_focus);
 	       delete mi_focus;
 	       string focus_name=DMcreateRLname(metfocus.res);
+	       char *focus_name_str = P_strdup(focus_name.string_of());
 
 	       string focus_code("/Code");
 	       string focus_machine("/Machine");
 	       string focus_sync("/SyncObject");
 	       int  index=0;
 	       char *pos=NULL;
-	       for (pos=strtok((char *)focus_name.string_of(),",");pos;pos=strtok(NULL,","))
+	       for (pos = strtok(focus_name_str,","); pos != NULL;pos=strtok(NULL,","))
 	       {
 	       	    index++;
 		    if (index == 1)
@@ -483,13 +484,15 @@ vector<metricInstance*> *metricInstance::query(metric_focus_pair metfocus)
 		    else if (index == 3)
 		    	focus_sync=pos;
 	       }
+	       delete focus_name_str;
 
+	       char *mi_focus_str = P_strdup(mi_focus_name.string_of());
 	       string mi_code("/Code");
 	       string mi_machine("/Machine");
 	       string mi_sync("/SyncObject");
 	       index=0;
 	       pos=NULL;
-	       for (pos=strtok((char *)mi_focus_name.string_of(),",");pos;pos=strtok(NULL,","))
+	       for (pos=strtok(mi_focus_str,",");pos != NULL;pos=strtok(NULL,","))
 	       {
 	       	    index++;
 		    if (index == 1)
@@ -499,6 +502,7 @@ vector<metricInstance*> *metricInstance::query(metric_focus_pair metfocus)
 		    else if (index == 3)
 		    	mi_sync=pos;
 	       }
+	       delete mi_focus_str;
 
 	       if (focus_code == mi_code && focus_machine.prefix_of(mi_machine) && focus_sync.prefix_of(mi_sync))
 	       		*result += mi;

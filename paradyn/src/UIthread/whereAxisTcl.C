@@ -44,7 +44,7 @@
 
 // Implementations of new commands and tk bindings related to the where axis.
 
-/* $Id: whereAxisTcl.C,v 1.15 2001/04/25 18:41:36 wxd Exp $ */
+/* $Id: whereAxisTcl.C,v 1.16 2001/05/24 18:37:25 wxd Exp $ */
 
 #ifndef PARADYN
 // The test program has "correct" -I paths already set
@@ -168,7 +168,7 @@ int whereAxisCtrlClickCallbackCommand(ClientData, Tcl_Interp *,
    {
       vector<VM_visiInfo> *avail_Visis = vmMgr->VMAvailableVisis();
       int  table_id=-1;
-      for (int i=0;i < avail_Visis->size(); i++)
+      for (unsigned i=0;i < avail_Visis->size(); i++)
       {
       	if ((*avail_Visis)[i].name == "Table")
 		table_id=i;
@@ -184,7 +184,7 @@ int whereAxisCtrlClickCallbackCommand(ClientData, Tcl_Interp *,
 
       //paradyn visi create #table GlobalPhase
       int forceProcessStart = 1;
-      int create_result = vmMgr->VMCreateVisi(1,forceProcessStart,table_id,GlobalPhase,matrix);
+      vmMgr->VMCreateVisi(1,forceProcessStart,table_id,GlobalPhase,matrix);
    }
    
    return TCL_OK;
