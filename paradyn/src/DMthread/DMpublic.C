@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.105 1999/05/20 21:41:01 pcroth Exp $
+// $Id: DMpublic.C,v 1.106 1999/05/24 16:56:35 cain Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -66,6 +66,7 @@ extern "C" {
 #include "DMinclude.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
 #include "paradyn/src/pdMain/paradyn.h"
+#include "CallGraph.h"
 
 // the argument list passed to paradynds
 vector<string> paradynDaemon::args = 0;
@@ -266,6 +267,11 @@ bool dataManager::startApplication()
 bool dataManager::pauseApplication()
 {
     return(paradynDaemon::pauseAll());
+}
+
+void dataManager::createCallGraph(){
+  CallGraph *cg = CallGraph::GetCallGraph(0);
+  cg->displayCallGraph();
 }
 
 bool dataManager::pauseProcess(int pid)
@@ -898,10 +904,14 @@ void dataManager::disableDataAndClearPersistentData(perfStreamHandle ps_handle,
 //
 vector<rlNameId> *dataManager::magnify(resourceHandle rh, 
 				       resourceListHandle rlh){
+  
+#ifdef PCDEBUG
+  printf("Call made to datamanager:magnify, which is calling resourceList::magnify(rh, eCallGraph)\n");
+#endif
 
     resourceList *rl = resourceList::getFocus(rlh);
     if(rl){
-	return(rl->magnify(rh));
+	return(rl->magnify(rh, eCallGraph));
     }
     return 0;
 }
@@ -916,7 +926,7 @@ vector<rlNameId> *dataManager::magnify(resourceHandle rh,
 vector<rlNameId> *dataManager::magnify2(resourceListHandle rlh){
     resourceList *rl = resourceList::getFocus(rlh);
     if(rl){
-	return (rl->magnify());
+	return (rl->magnify(eCallGraph));
     }
     return 0;
 }
@@ -1458,4 +1468,3 @@ vector<string> *dataManager::getAvailableDaemons()
 {
     return(paradynDaemon::getAvailableDaemons());
 }
-

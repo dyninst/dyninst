@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.120 1999/03/03 18:13:47 pcroth Exp $
+// $Id: DMmain.C,v 1.121 1999/05/24 16:56:34 cain Exp $
 
 #include <assert.h>
 extern "C" {
@@ -67,6 +67,9 @@ double   quiet_nan();
 #include "DMphase.h"
 
 #include "util/h/Ident.h"
+
+#include "CallGraph.h"
+
 extern "C" const char V_paradyn[];
 extern const Ident V_id;
 
@@ -133,6 +136,74 @@ void newSampleRate(double rate);
 
 extern void histDataCallBack(sampleValue*, timeStamp, int, int, void*, bool);
 extern void histFoldCallBack(timeStamp, void*, bool);
+
+//upcall from paradynd to notify the datamanager that the static
+//portion of the call graph is completely filled in.
+void dynRPCUser::CallGraphFillDone(int program){
+  CallGraph *cg;
+  cg = CallGraph::FindCallGraph(program);
+  cg->callGraphInitialized = true;
+}
+
+// upcall from paradynd to register the entry function for a given
+//  call graph....
+void dynRPCUser::CallGraphSetEntryFuncCallback(int program, string entry_func) {
+    CallGraph *cg;
+    resource *r;
+
+    // get/create call graph corresponding to program....
+    cg = CallGraph::GetCallGraph(program);
+    assert(cg);
+
+    // resource whose name is passed in <resource> should have been previously
+    //  registered w/ data manager....
+    assert(r = resource::string_to_resource(entry_func));
+
+    cg->SetEntryFunc(r);
+}
+
+// upcall from paradynd to register new function resource with call graph....
+// parameters are an integer corresponding to the program to which a node
+// is being added, and a string that is the name of the function being added
+void dynRPCUser::AddCallGraphNodeCallback(int program, string r_name) {
+    CallGraph *cg;
+    resource *r;
+
+    // get (or create) call graph corresponding to program....
+    cg = CallGraph::GetCallGraph(program);
+    assert(cg);
+
+    // resource whose name is passed in <resource> should have been previously
+    //  registered w/ data manager....
+    assert(r = resource::string_to_resource(r_name));
+
+    cg->AddResource(r);
+}
+
+//Same as AddCallGraphNodeCallback, only adds multiple children at once,
+//and associates these children with a give parent (r_name)
+void dynRPCUser::AddCallGraphStaticChildrenCallback(int program, string 
+                        r_name, vector<string>children) {
+    unsigned u;
+    CallGraph *cg;
+    resource *r, *child;
+    vector <resource *> children_as_resources;
+
+    // call graph for program <program> should have been previously defined....
+    cg = CallGraph::FindCallGraph(program);
+    assert(cg);
+    // resource whose name is passed in <resource> should have been previously
+    //  registered w/ data manager....
+    assert(r = resource::string_to_resource(r_name));
+
+    // convert vector of resource names to vector of resource *'s....
+    for(u=0;u<children.size();u++) {
+        assert(child = resource::string_to_resource(children[u]));
+	children_as_resources += child;
+    }
+
+    cg->SetChildren(r, children_as_resources);
+}
 
 //
 // IO from application processes.
@@ -264,8 +335,8 @@ void dynRPCUser::memoryInfoCallback(int,
    {
     for(u_int j=0; j < paradynDaemon::allDaemons.size(); j++){
                 paradynDaemon *pd = paradynDaemon::allDaemons[j];
-                pd->memoryInfoResponse(vname, start, mem_size, blk_size, handles
-) ;
+                pd->memoryInfoResponse(vname, start, mem_size, blk_size, 
+				       handles);
     }
    }
 
@@ -956,59 +1027,61 @@ void *DMmain(void* varg)
 					paradynDaemon::removeDaemon(pd, true);
 				}
 			}
-		}
-
-		// wait for next message from anyone, blocking till available
-		tid = THR_TID_UNSPEC;
-		tag = MSG_TAG_ANY;
-		err = msg_poll_preference(&tid, &tag, true,fd_first);
-		assert(err != THR_ERR);
-		fd_first = !fd_first;
-
-		if (tag == MSG_TAG_SOCKET) {
-			// must be an upcall on something speaking the dynRPC protocol.
-			PDSOCKET fromSock = thr_socket( tid );
-			assert(fromSock != INVALID_PDSOCKET);
-
-			if (fromSock == dataManager::dm->sock_desc){
-				DMnewParadynd(); // set up a new daemon
-				}
-			else {
-
-					for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-					pd = paradynDaemon::allDaemons[i]; 
-				if(pd->get_sock() == fromSock){
-
-					if(pd->waitLoop() == T_dyninstRPC::error) {
-					cout << "error on paradyn daemon\n";
-					paradynDaemon::removeDaemon(pd, true);
-					}}
-
-					// handle async requests that may have been buffered
-					// while blocking on a sync request
-						while(pd->buffered_requests()){
-					if(pd->process_buffered() == T_dyninstRPC::error) {
-					cout << "error on paradyn daemon\n";
-					paradynDaemon::removeDaemon(pd, true);
-				}}
-				}
-			}
-		} else if (dataManager::dm->isValidTag
-			  ((T_dataManager::message_tags)tag)) {
-			if (dataManager::dm->waitLoop(true, 
-			   (T_dataManager::message_tags)tag) == T_dataManager::error) {
-				// handle error
-				assert(0);
-			}
-		} else {
-			cerr << "Unrecognized message in DMmain.C: tag = "
-				 << tag << ", tid = "
-				 << tid << '\n';
-			assert(0);
-		}
 	}
 
-	return NULL;
+		// wait for next message from anyone, blocking till available
+	tid = THR_TID_UNSPEC;
+	tag = MSG_TAG_ANY;
+	err = msg_poll_preference(&tid, &tag, true,fd_first);
+	assert(err != THR_ERR);
+	fd_first = !fd_first;
+	
+	if (tag == MSG_TAG_SOCKET) {
+	  // must be an upcall on something speaking the dynRPC protocol.
+	  PDSOCKET fromSock = thr_socket( tid );
+	  assert(fromSock != INVALID_PDSOCKET);
+	  
+	  if (fromSock == dataManager::dm->sock_desc){
+	    DMnewParadynd(); // set up a new daemon
+	  }
+	  else {
+	    
+	    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
+	      pd = paradynDaemon::allDaemons[i]; 
+	      if(pd->get_sock() == fromSock){
+		
+		if(pd->waitLoop() == T_dyninstRPC::error) {
+		  cout << "error on paradyn daemon\n";
+		  paradynDaemon::removeDaemon(pd, true);
+		}
+	      }
+	      
+	      // handle async requests that may have been buffered
+	      // while blocking on a sync request
+	      while(pd->buffered_requests()){
+		if(pd->process_buffered() == T_dyninstRPC::error) {
+		  cout << "error on paradyn daemon\n";
+		  paradynDaemon::removeDaemon(pd, true);
+		}
+	      }
+	    }
+	  }
+	} else if (dataManager::dm->isValidTag
+		   ((T_dataManager::message_tags)tag)) {
+	  if (dataManager::dm->waitLoop(true, (T_dataManager::message_tags)tag) 
+	      == T_dataManager::error) {
+				// handle error
+	    assert(0);
+	  }
+	} else {
+	  cerr << "Unrecognized message in DMmain.C: tag = "
+	       << tag << ", tid = "
+	       << tid << '\n';
+	  assert(0);
+	}
+    }
+
+    return NULL;
 }
 
 

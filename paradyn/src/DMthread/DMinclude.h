@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: DMinclude.h,v 1.12 1999/05/24 16:56:34 cain Exp $
+
 #ifndef dminclude_H
 #define dminclude_H
 
@@ -61,6 +63,7 @@ typedef unsigned perfStreamHandle;
 typedef unsigned metricInstanceHandle;
 typedef unsigned phaseHandle;
 
+typedef enum {eOriginal, eCallGraph} magnifyType;
 typedef enum {GlobalPhase, CurrentPhase} phaseType;
 typedef enum {UnNormalized, Normalized, Sampled} dm_MetUnitsType;
 

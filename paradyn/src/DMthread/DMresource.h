@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: DMresource.h,v 1.40 1999/05/24 16:56:37 cain Exp $
+
 #ifndef DMresource_H 
 #define DMresource_H
 #ifndef NULL
@@ -61,6 +63,8 @@ extern "C" {
 #include "DMabstractions.h"
 #include "DMinclude.h"
 
+class CallGraph;
+
 //
 //class resource: the static items basically manage a "database" of all
 //resources. the non-static stuff gives you information about a single resource.
@@ -72,6 +76,10 @@ class resource {
       friend class resourceList;
       friend void printAllResources();
       friend class dynRPCUser;
+
+      // call graph needs to be able to go from resource names to resource *s....
+      friend class CallGraph;
+
       friend string DMcreateRLname(const vector<resourceHandle> &res);
       friend resourceHandle createResource(unsigned, vector<string>&, string&, unsigned);
       friend resourceHandle createResource_ncb(vector<string>&, string&, unsigned, 
@@ -114,6 +122,21 @@ class resource {
     static bool get_func_constraints(vector< vector<string> >&);
     static void saveHierarchiesToFile (ofstream& foo);
     void saveHierarchyToFile (ofstream& foo);
+
+    // Boolean value indicating whether the specified magnify type is
+    //  applicable to the particular node.
+    // Added when changes put in to support different PC searches
+    //  necessitated some types of magnification which semantically
+    //  apply to only some resources....
+    bool MagnifyTypeApplies(magnifyType t) {
+        assert(t == eOriginal || t == eCallGraph);
+	if (t == eOriginal) return true;
+	assert(t == eCallGraph);
+	if (!strcmp(fullName[0].string_of(), "Code")) {
+	    return true;
+	}
+	return false;
+    }
 
   protected:
     resource();
@@ -179,8 +202,15 @@ class resourceList {
       bool convertToIDList(vector<resourceHandle>& flist);
       bool isSuppressed(){return(suppressed);}
 
-      vector<rlNameId> *magnify(resourceHandle rh);
-      vector<rlNameId> *magnify();
+      // Syntacticaly assuming here that all magnify types are equally
+      //  applicable to all resources - conceptually this is not the case
+      //  (eCallGraph applies to magnifying down the call graph only),
+      //  - but this makes the interface more uniform and cleaner....
+      // Therefore, when something which handles non-standard magnification
+      //  types for a resource hierarchy which it does not handle, it
+      //  should NOT crash, but rather should return an empty resource list....
+      vector<rlNameId> *magnify(resourceHandle rh, magnifyType type);
+      vector<rlNameId> *magnify(magnifyType type);
       resourceListHandle *constrain(resourceHandle);
 
       bool getMachineNameReferredTo(string &machName) const;

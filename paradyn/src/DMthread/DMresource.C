@@ -39,6 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: DMresource.C,v 1.46 1999/05/24 16:56:37 cain Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,7 +49,7 @@
 #include "dataManager.thread.h"
 #include "DMresource.h"
 #include "paradyn/src/met/metricExt.h"
-
+#include "paradyn/src/DMthread/MagnifyManager.h"
 // Generate a new resource handle. The daemons generate resources id's (handles)
 // in the range 0..INT_MAX. If there are conflicts between the handles generated
 // by two daemons, paradyn generates a new id in the range INT_MAX..UINT_MAX
@@ -435,7 +436,11 @@ string DMcreateRLname(const vector<resourceHandle> &res){
 resourceList::resourceList(const vector<resourceHandle> &res){
     // create a unique name
     string temp = DMcreateRLname(res);
-    // see if this resourceList has been created already, if not add it
+
+    //cerr << "resourceList::resourceList(const vector<resourceHandle> &res)"
+    // << " called" << endl;
+    //cerr << " temp (name string) = " << temp << endl;
+
     if(!allFoci.defines(temp)){
         id = foci.size();
 	resourceList *rl = this;
@@ -532,7 +537,12 @@ bool resourceList::convertToIDList(resourceListHandle rh,
 // This routine returns a list of foci which are the result of combining
 // each child of resource rh with the remaining resources that make up the
 // focus, otherwise it returns 0
-vector<rlNameId> *resourceList::magnify(resourceHandle rh){
+vector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type){
+    vector<resourceHandle> *children;
+    vector<rlNameId> *return_list;
+
+    // supported magnify types....
+    assert(type == eOriginal || type == eCallGraph);
 
     // check to see if rh is a component of this resourceList
     unsigned rIndex = elements.size();
@@ -543,8 +553,18 @@ vector<rlNameId> *resourceList::magnify(resourceHandle rh){
 	}
     }
     if(rIndex < elements.size()){
-      vector<rlNameId> *return_list = new vector<rlNameId>;
-      vector<resourceHandle> *children = (elements[rIndex])->getChildren();
+      return_list = new vector<rlNameId>;
+
+      // calls elements[rIndex]->getChildren or CallGraph::getChildren
+      //  depending on the magnify type and the characteristics of the 
+      //  resource....
+
+#ifdef PCDEBUG
+      printf("Calling magnifymanager::getChildren\n");
+#endif
+      
+      children = MagnifyManager::getChildren(elements[rIndex], type);
+
       if(children->size()){ // for each child create a new focus
 	vector<resourceHandle> new_focus; 
 	for(unsigned i=0; i < elements.size(); i++){
@@ -599,12 +619,12 @@ resourceListHandle *resourceList::constrain(resourceHandle rh){
 // each child of one of the resources with the remaining resource components of
 // the focus. this is iterated over all resources in the focus.
 // returns 0 if all resources in the focus have no children
-vector<resourceListHandle> *resourceList::magnify(){
+vector<resourceListHandle> *resourceList::magnify(magnifyType type){
     
     vector<resourceListHandle> *return_list = new vector<resourceListHandle>;
     for(unsigned i=0; i < elements.size(); i++){
 	vector<resourceListHandle> *next = 
-				   this->magnify((elements[i])->getHandle());
+				   this->magnify((elements[i])->getHandle(), type);
 	if(next) *return_list += *next;
 	delete next;
     }
@@ -617,12 +637,12 @@ vector<resourceListHandle> *resourceList::magnify(){
 // each child of one of the resources with the remaining resource components of
 // the focus. this is iterated over all resources in the focus.
 // returns 0 if all resources in the focus have no children
-vector<rlNameId> *resourceList::magnify(){
+vector<rlNameId> *resourceList::magnify(magnifyType type){
     
     vector<rlNameId> *return_list = new vector<rlNameId>;
     for(unsigned i=0; i < elements.size(); i++){
 	vector<rlNameId> *next = 
-	                 this->magnify((elements[i])->getHandle());
+	                 this->magnify((elements[i])->getHandle(), type);
         if(next) {
 	  for (unsigned j=0; j < next->size(); j++){
 	    *return_list += (*next)[j];
@@ -631,7 +651,12 @@ vector<rlNameId> *resourceList::magnify(){
 	}
       }
     if(return_list->size()) return return_list;
-    return 0;
+
+    // memory leak, original was
+    // return 0;
+    // -matt
+    delete return_list;
+    return NULL;
 }
 
 
