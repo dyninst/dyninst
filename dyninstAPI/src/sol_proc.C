@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.8 2003/02/19 23:30:39 schendel Exp $
+// $Id: sol_proc.C,v 1.9 2003/02/21 20:06:04 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -1120,7 +1120,10 @@ bool process::set_breakpoint_for_syscall_completion() {
       We want to set a TRAP for the syscall exit, and do the
       inferiorRPC at that time.  We'll use /proc PIOCSEXIT.
       Returns true iff breakpoint was successfully set. */
-
+#if defined(MT_THREAD)
+    // MT: disabling this until we can do it per-LWP
+    return false;
+#endif
     // Only one breakpoint at a time
     fprintf(stderr, "Setting breakpoint for all system call completions\n");
     
@@ -1148,6 +1151,9 @@ bool process::set_breakpoint_for_syscall_completion() {
 
 bool process::clear_breakpoint_for_syscall_completion() 
 {
+#if defined(MT_THREAD)
+    return false;
+#endif
     int bufsize = sizeof(long) + SYSSET_SIZE(save_exitset_ptr);
     char buf[bufsize]; long *bufptr = (long *)buf;
     *bufptr = PCSEXIT; bufptr++;
@@ -1186,20 +1192,13 @@ int handleStopStatus(process *currProc, lwpstatus_t procstatus,
         //int result = (int) GETREG_GPR(procstatus.pr_reg, 3);
         int result = procstatus.pr_reg[R_O0];
 
-        if (p->isAnyIRPCwaitingForSyscall()) {
-           // reset PIOCSEXIT mask
-           // inferiorrpc_cerr << "solaris got PR_SYSEXIT!" << endl;
-           currProc->clear_breakpoint_for_syscall_completion();
-           // fall through on purpose (so status, ret get set)
-        } else {
-           // Test whether ret == -1, since if the exec succeeds the return
-           // value is garbage
-           if (proc_execed && (*ret == -1)) {
-              // a failed exec. continue the process
-              currProc->continueProc();  // changed from continueProc_ 2/1/03
-              break;
-           }	    
-        }
+        // Test whether ret == -1, since if the exec succeeds the return
+        // value is garbage
+        if (proc_execed && (*ret == -1)) {
+            // a failed exec. continue the process
+            currProc->continueProc();  // changed from continueProc_ 2/1/03
+            break;
+        }	    
         
 #ifdef BPATCH_LIBRARY
         if (proc_forked) {
