@@ -16,6 +16,10 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
+ * Revision 1.21  1996/02/12 08:07:14  karavan
+ *  added new data member, bool globalData, set to true if this histogram
+ *  contains global phase data, and used in histDataCallBack.
+ *
  * Revision 1.20  1995/12/12 04:34:52  newhall
  * bug fix
  *
@@ -127,7 +131,9 @@ timeStamp Histogram::baseBucketSize = BASEBUCKETWIDTH;
 timeStamp Histogram::globalBucketSize = BASEBUCKETWIDTH;
 vector<Histogram *> Histogram::allHist;
 
-Histogram::Histogram(metricStyle type, dataCallBack d, foldCallBack f, void *c)
+Histogram::Histogram(metricStyle type, dataCallBack d, foldCallBack f, void *c,
+		     bool globalFlag)
+:globalData(globalFlag)
 {
     smooth = false;
     lastBin = 0;
@@ -155,10 +161,11 @@ Histogram::Histogram(Bin *buckets,
 		     metricStyle type, 
 		     dataCallBack d, 
 		     foldCallBack f,
-		     void *c)
+		     void *c,
+		     bool globalFlag)
 {
     // First call default constructor.
-    (void) Histogram(type, d, f, c);
+    (void) Histogram(type, d, f, c, globalFlag);
 
     storageType = HistBucket;
     dataPtr.buckets = (Bin *) calloc(sizeof(Bin), numBins);
@@ -168,7 +175,8 @@ Histogram::Histogram(Bin *buckets,
 
 // constructor for histogram that doesn't start at time 0
 Histogram::Histogram(timeStamp start, metricStyle type, dataCallBack d, 
-		     foldCallBack f, void *c)
+		     foldCallBack f, void *c, bool globalFlag)
+:globalData(globalFlag)
 {
     smooth = false;
     lastBin = 0;
@@ -200,10 +208,11 @@ Histogram::Histogram(Bin *buckets,
 		     metricStyle type, 
 		     dataCallBack d, 
 		     foldCallBack f,
-		     void *c)
+		     void *c,
+		     bool globalFlag)
 {
     // First call default constructor.
-    (void) Histogram(start, type, d, f, c);
+    (void) Histogram(start, type, d, f, c, globalFlag);
     storageType = HistBucket;
     dataPtr.buckets = (Bin *) calloc(sizeof(Bin), numBins);
     memcpy(dataPtr.buckets, buckets, sizeof(Bin)*numBins);
@@ -333,7 +342,7 @@ void Histogram::foldAllHist()
 	    (allHist[i])->bucketWidth *= 2.0;
 	    if((allHist[i])->storageType == HistBucket){
                 Bin *bins = (allHist[i])->dataPtr.buckets;
-		unsigned j=0;
+		int j=0;
 		for(; j < numBins/2; j++){
                     bins[j] = (bins[j*2] + bins[j*2+1]) / 2.0;
 		}
@@ -452,7 +461,8 @@ void Histogram::bucketValue(timeStamp start_clock,
 		   startTime,
 		   last_bin-first_bin, 
 		   first_bin, 
-		   cData);
+		   cData,
+		   globalData);
     }
 }
 

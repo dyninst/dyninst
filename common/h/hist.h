@@ -15,7 +15,8 @@ typedef void (*dataCallBack)(sampleValue *buckets,
 			     timeStamp start_time,
 			     int numberOfBuckets,
 			     int first,
-			     void *userData);
+			     void *userData,
+			     bool globalFlag);
 
 class Histogram;
 
@@ -29,16 +30,17 @@ class Histogram {
     public:
 	~Histogram();
 	// constructors for base start time and bucket width
-	Histogram(metricStyle, dataCallBack, foldCallBack, void* );
-	Histogram(Bin *buckets, metricStyle, dataCallBack, foldCallBack, void*);
+	Histogram(metricStyle, dataCallBack, foldCallBack, void* , bool);
+	Histogram(Bin *buckets, metricStyle, dataCallBack, foldCallBack, void*, bool);
 	// constructors for specified start time
-	Histogram(timeStamp, metricStyle, dataCallBack, foldCallBack, void* );
+	Histogram(timeStamp, metricStyle, dataCallBack, foldCallBack, void*, bool );
 	Histogram(Bin *buckets,  
 		  timeStamp start,  // binWidth is computed by this value 
 		  metricStyle, 
 		  dataCallBack, 
 		  foldCallBack, 
-		  void*);
+		  void*,
+		  bool);
 	sampleValue getValue();
 	sampleValue getValue(timeStamp start, timeStamp end);
 	sampleValue getBinValue(int i){
@@ -110,6 +112,7 @@ class Histogram {
 	dataCallBack dataFunc;
 	foldCallBack foldFunc;
 	void *cData;
+	bool globalData;    /* true if this histogram stores global phase data */
 };
 
 #endif
