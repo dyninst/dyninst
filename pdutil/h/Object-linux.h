@@ -53,11 +53,11 @@
  * header files.
 ************************************************************************/
 
-#include <util/h/DictionaryLite.h>
-#include <util/h/String.h>
-#include <util/h/Symbol.h>
-#include <util/h/Types.h>
-#include <util/h/Vector.h>
+#include "util/h/DictionaryLite.h"
+#include "util/h/String.h"
+#include "util/h/Symbol.h"
+#include "util/h/Types.h"
+#include "util/h/Vector.h"
 #include <libelf.h>
 
 extern "C" {
