@@ -3,7 +3,11 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.8  1994/04/07 01:21:30  markc
+ * Revision 1.9  1994/05/18 00:53:28  hollings
+ * added flush's after error printfs to force data out pipes on the way
+ * to paradyn.
+ *
+ * Revision 1.8  1994/04/07  01:21:30  markc
  * Cleaned up writes.  Writes interrupted by system calls get retried, others
  * do not.
  *
@@ -120,6 +124,7 @@ void DYNINSTstopProcessTimer(tTimer *timer)
 	if (now < timer->start) {
 	     getrusage(RUSAGE_SELF, &ru);
 	     printf("end before start\n");
+	     fflush(stdout);
 	     sigpause(0xffff);
 	}
     } else {
@@ -331,6 +336,7 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 	(void) close(CONTROLLER_FD);
 	printf("unable to write trace record %s\n", sys_errlist[errno]);
 	printf("disabling further data logging, pid=%d\n", getpid());
+	fflush(stdout);
 	pipeGone = True;
     }
 }
@@ -367,6 +373,7 @@ void DYNINSTreportTimer(tTimer *timer)
     }
     if (total < lastValue[timer->id.id]) {
 	 printf("time regressed\n");
+	 fflush(stdout);
 	 sigpause(0xffff);
     }
     lastValue[timer->id.id] = total;
@@ -384,6 +391,7 @@ void DYNINSTfork(void *arg, int pid)
     traceFork forkRec;
 
     printf("fork called with pid = %d\n", pid);
+    fflush(stdout);
     if (pid > 0) {
 	forkRec.ppid = getpid();
 	forkRec.pid = pid;
