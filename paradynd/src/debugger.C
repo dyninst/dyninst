@@ -41,6 +41,9 @@
 
 /*
  * $Log: debugger.C,v $
+ * Revision 1.15  1997/01/15 00:20:40  tamches
+ * commented out some unused code
+ *
  * Revision 1.14  1996/11/05 20:30:53  tamches
  * removed dumpProcessImage
  *
@@ -93,6 +96,8 @@
 
 process *defaultProcess=NULL;
 
+extern process *findProcess(int); // should become a static method of class process
+
 void changeDefaultProcess(int pid)
 {
     process *def = findProcess(pid);
@@ -105,32 +110,32 @@ void changeDefaultProcess(int pid)
     }
 }
 
-// TODO what does this do
-void changeDefaultThread(int tid)
-{
-    int basePid;
-
-    if (processVec.size()) {
-      basePid = processVec[0]->getPid();
-    } else {
-	sprintf(errorLine, "Internal error: no process defines to take thread of\n");
-	logLine(errorLine);
-	showErrorCallback(59,(const char *) errorLine);
-	return;
-    }
-
-    process *proc = findProcess(tid * MAXPID + basePid);
-    if (!proc) {
-      sprintf(errorLine, "Internal error: unable to find thread %d\n", tid);
-      logLine(errorLine);
-      showErrorCallback(60,(const char *) errorLine);
-    } else {
-      defaultProcess = proc;
-    }
-}
-
-process *getDefaultProcess()
-{
-    if (!defaultProcess) changeDefaultThread(0);
-    return(defaultProcess);
-}
+//// TODO what does this do
+//void changeDefaultThread(int tid)
+//{
+//    int basePid;
+//
+//    if (processVec.size()) {
+//      basePid = processVec[0]->getPid();
+//    } else {
+//	sprintf(errorLine, "Internal error: no process defines to take thread of\n");
+//	logLine(errorLine);
+//	showErrorCallback(59,(const char *) errorLine);
+//	return;
+//    }
+//
+//    process *proc = findProcess(tid * MAXPID + basePid);
+//    if (!proc) {
+//      sprintf(errorLine, "Internal error: unable to find thread %d\n", tid);
+//      logLine(errorLine);
+//      showErrorCallback(60,(const char *) errorLine);
+//    } else {
+//      defaultProcess = proc;
+//    }
+//}
+//
+//process *getDefaultProcess()
+//{
+//    if (!defaultProcess) changeDefaultThread(0);
+//    return(defaultProcess);
+//}
