@@ -4,7 +4,9 @@
 
 #include <assert.h>
 
-#define BREAK_POINT_INSN 0x00000080
+// This is actually a "Software Trap" instruction.
+// Changed to get GCC 3.x working.
+#define BREAK_POINT_INSN 0x000000AA
 
 typedef enum { 
     noneType,
@@ -165,8 +167,8 @@ typedef union instructUnion instruction;
 #define OP_ADDQ_V    0x10
 #define FC_ADDQ_V    0x60
 
-#define OP_CMPLUE    0x10
-#define FC_CMPLUE    0x3d
+#define OP_CMPULE    0x10
+#define FC_CMPULE    0x3d
 
 #define OP_CMPBGE    0x10
 #define FC_CMPBGE    0x0f
