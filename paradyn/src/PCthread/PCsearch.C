@@ -20,6 +20,9 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.21  1996/07/26 18:02:37  karavan
+ * added display of status if search throttled back.
+ *
  * Revision 1.20  1996/07/24 20:10:37  karavan
  * Fixed error in numActiveExperiments calculation; numActiveCurrentExperiments
  * now zero'd at phase boundary.
@@ -182,6 +185,8 @@ float PCsearch::PendingCurrentCost = 0.0;
 float PCsearch::PendingGlobalCost = 0.0;
 int PCsearch::PendingGlobalSearches = 0;
 int PCsearch::PendingCurrentSearches = 0;
+bool PCsearch::SearchThrottledBack = false;
+searchHistoryNode *PCsearch::SearchThrottleNode = NULL;
 
 //** this is currently being studied!! (klk)
 const float costFudge = 0.1;
@@ -232,14 +237,6 @@ PCsearch::expandSearch (sampleValue estimatedCost)
 #endif
     sampleValue predMax = (1-costFudge)*performanceConsultant::predictedCostLimit;
     if (candidateCost > predMax) {
-#ifdef NDEF
-      // move this to the lowest priority; cost exceeds entire cost allowance
-      //**
-      if (q == &CurrentSearchQueue)
-	PCsearch::addToQueue(20, curr, performanceConsultant::currentPhase);
-      else
-	PCsearch::addToQueue(20, curr, 0);
-#endif
       // **for now just get it out of the way
       int dispToken = curr->getGuiToken();
       q->delete_first();
@@ -253,8 +250,24 @@ PCsearch::expandSearch (sampleValue estimatedCost)
     } else if ((estimatedCost + candidateCost + PCsearch::getPendingCost()) 
 	       > predMax) {
       costLimitReached = true;
+      // print status to display but just once per blockage
+      if ( !PCsearch::SearchThrottledBack && 
+	  (curr != PCsearch::SearchThrottleNode)) {
+	int dispToken = curr->getGuiToken();
+	string *ds = new string ("Search Slowed:  Cost Limit Reached.\n");
+	uiMgr->updateStatusDisplay(dispToken, ds);
+	PCsearch::SearchThrottleNode = curr;
+	PCsearch::SearchThrottledBack = true;
+      }
     } else {
       curr->startExperiment();
+      if (PCsearch::SearchThrottledBack) {
+	int dispToken = curr->getGuiToken();
+	string *ds = new string ("Search Resumed.\n");
+	uiMgr->updateStatusDisplay(dispToken, ds);
+	PCsearch::SearchThrottledBack = false;
+	PCsearch::SearchThrottleNode = NULL;
+      }
       if (q == &GlobalSearchQueue) {
 	PCsearch::PendingGlobalSearches += 1;
 	PCsearch::PendingGlobalCost += candidateCost;
@@ -264,6 +277,19 @@ PCsearch::expandSearch (sampleValue estimatedCost)
       }
       q->delete_first();
     }
+  }   
+  if ((PCsearch::getNumActiveExperiments() >=  MaxActiveExperiments) 
+      && (!PCsearch::SearchThrottledBack)) {
+    int dispToken = curr->getGuiToken();
+    string *ds = new string ("Search Slowed:  max active nodes reached.\n");
+    uiMgr->updateStatusDisplay(dispToken, ds);
+    PCsearch::SearchThrottledBack = true;
+  } else if ((PCsearch::getNumPendingSearches() >=  MaxPendingSearches)
+	     && (!PCsearch::SearchThrottledBack)) {
+    int dispToken = curr->getGuiToken();
+    string *ds = new string ("Search Slowed:  max pending nodes.\n");
+    uiMgr->updateStatusDisplay(dispToken, ds);
+    PCsearch::SearchThrottledBack = true;
   }
 #ifdef PCDEBUG
   cout << "END OF EXPAND" << endl;

@@ -20,6 +20,9 @@
  * State information required throughout a search.
  *
  * $Log: PCsearch.h,v $
+ * Revision 1.13  1996/07/26 18:02:39  karavan
+ * added display of status if search throttled back.
+ *
  * Revision 1.12  1996/07/24 20:10:38  karavan
  * Fixed error in numActiveExperiments calculation; numActiveCurrentExperiments
  * now zero'd at phase boundary.
@@ -186,6 +189,8 @@ private:
   static PriorityQueue<SearchQKey, searchHistoryNode*> CurrentSearchQueue;
   static bool CurrentSearchPaused;
   static bool GlobalSearchPaused;
+  static searchHistoryNode *SearchThrottleNode;
+  static bool SearchThrottledBack;
   static PriorityQueue<SearchQKey, searchHistoryNode*> *q;
 };
 
