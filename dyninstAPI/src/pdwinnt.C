@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.101 2003/06/24 19:41:34 schendel Exp $
+// $Id: pdwinnt.C,v 1.102 2003/07/03 14:03:59 hollings Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -2605,6 +2605,10 @@ bool process::loadDYNINSTlibCleanup()
 
 void loadNativeDemangler() {}
 
+#ifndef BPATCH_LIBRARY
+
 Frame dyn_thread::getActiveFrameMT() {
    return Frame();
 }  // not used until MT supported
+
+#endif
