@@ -19,14 +19,18 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.4 1994/06/29 02:52:28 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.5 1994/06/29 22:37:19 hollings Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.4  1994/06/29 02:52:28  hollings
+ * Revision 1.5  1994/06/29 22:37:19  hollings
+ * Changed heap bound brack error to warning if we can reach some of the inst
+ * heap.  The firewall will catch if this is a real error.
+ *
+ * Revision 1.4  1994/06/29  02:52:28  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -545,11 +549,9 @@ Boolean locateAllInstPoints(image *i)
     int instHeapEnd;
 
 
-    instHeapEnd = (int) findInternalAddress(i, GLOBAL_HEAP_BASE, True) + 
-	SYN_INST_BUF_SIZE;
+    instHeapEnd = (int) findInternalAddress(i, GLOBAL_HEAP_BASE, True);
     
-    curr = (int) findInternalAddress(i, INFERRIOR_HEAP_BASE, True) +
-	SYN_INST_BUF_SIZE;
+    curr = (int) findInternalAddress(i, INFERRIOR_HEAP_BASE, True);
     if (curr > instHeapEnd) instHeapEnd = curr;
 
     // check that we can get to our heap.
@@ -558,6 +560,8 @@ Boolean locateAllInstPoints(image *i)
 	sprintf(errorLine, "    heap ends at %x\n", instHeapEnd);
 	logLine(errorLine);
 	return(FALSE);
+    } else if (instHeapEnd + SYN_INST_BUF_SIZE) {
+	logLine("WARNING: Program text + data could be too big for dyninst\n");
     }
 
     for (func=i->funcs; func; func=func->next) {
