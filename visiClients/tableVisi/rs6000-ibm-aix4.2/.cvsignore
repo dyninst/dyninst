@@ -1,1 +1,1 @@
-*.[hC] DEPENDS tableVisi V_tableVisi.c
+*.[dhC] DEPENDS tableVisi V_tableVisi.c

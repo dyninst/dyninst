@@ -1,1 +1,1 @@
-*.[hC] DEPENDS libdyninstAPI.a V_libdyninstAPI.c .deps *.da *.bbg *.bb *.gcov
+*.[dhC] DEPENDS libdyninstAPI.a V_libdyninstAPI.c .deps *.da *.bbg *.bb *.gcov

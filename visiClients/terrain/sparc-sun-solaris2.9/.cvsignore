@@ -1,1 +1,1 @@
-DEPENDS terrain V_terrain.c
+DEPENDS terrain V_terrain.c *.d

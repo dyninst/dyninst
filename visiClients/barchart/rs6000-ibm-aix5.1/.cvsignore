@@ -1,1 +1,1 @@
-*.[hC] DEPENDS barChart V_barChart.c
+*.[dhC] DEPENDS barChart V_barChart.c

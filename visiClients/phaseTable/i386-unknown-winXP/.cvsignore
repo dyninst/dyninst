@@ -1,1 +1,1 @@
-phaseTable.exe *.[hC] DEPENDS V_phaseTable.c
+phaseTable.exe *.[dhC] DEPENDS V_phaseTable.c

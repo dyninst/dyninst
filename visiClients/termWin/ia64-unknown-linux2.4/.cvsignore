@@ -1,1 +1,1 @@
-*.[hC] DEPENDS termWin V_termWin.c
+*.[dhC] DEPENDS termWin V_termWin.c

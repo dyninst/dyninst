@@ -1,1 +1,1 @@
-tclVisi.exe *.[hC] DEPENDS V_tclVisi.c
+tclVisi.exe *.[dhC] DEPENDS V_tclVisi.c

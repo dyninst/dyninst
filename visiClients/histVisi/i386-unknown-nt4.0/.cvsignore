@@ -1,1 +1,1 @@
-rthist.exe DEPENDS *.[hC] V_rthist.c
+rthist.exe DEPENDS *.[dhC] V_rthist.c

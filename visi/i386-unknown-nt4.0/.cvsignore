@@ -1,1 +1,1 @@
-*.[hC] DEPENDS V_libvisi.c *.obj *.lib
+*.[dhC] DEPENDS V_libvisi.c *.obj *.lib

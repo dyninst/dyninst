@@ -1,1 +1,1 @@
-*.[hC] DEPENDS phaseTable V_phaseTable.c
+*.[dhC] DEPENDS phaseTable V_phaseTable.c

@@ -1,1 +1,1 @@
-tableVisi.exe *.[hC] DEPENDS V_tableVisi.c
+tableVisi.exe *.[dhC] DEPENDS V_tableVisi.c

@@ -1,1 +1,1 @@
-*.[hC] DEPENDS libdyninstAPI.a V_libdyninstAPI.c *.bb *.bbg *.da libdemangle.*
+*.[dhC] DEPENDS libdyninstAPI.a V_libdyninstAPI.c *.bb *.bbg *.da libdemangle.*

@@ -1,1 +1,1 @@
-*.[hC] paradynd DEPENDS *.o.warnings V_paradynd.c .deps
+*.[dhC] paradynd DEPENDS *.o.warnings V_paradynd.c .deps

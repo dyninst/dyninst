@@ -1,1 +1,1 @@
-rthist DEPENDS *.[hC] V_rthist.c
+rthist DEPENDS *.[dhC] V_rthist.c

@@ -1,1 +1,1 @@
-DEPENDS tclVisi V_tclVisi.c
+DEPENDS tclVisi V_tclVisi.c *.d
