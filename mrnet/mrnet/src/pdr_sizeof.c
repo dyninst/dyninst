@@ -76,7 +76,7 @@ static bool_t _putbytes(PDR *pdrs, char *, uint32_t len)
     pdrs->space += SIZEOF_CHAR*len;
     return TRUE;
 }
-static bool_t _getbytes(PDR *, char *, uint32_t len)
+static bool_t _getbytes(PDR *, char *, uint32_t )
 {
     return FALSE;
 }

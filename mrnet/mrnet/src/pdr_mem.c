@@ -344,6 +344,6 @@ int32_t * pdrmem_inline(PDR *pdrs, int32_t len)
     return (buf);
 }
 
-void pdrmem_destroy(PDR *pdrs)
+void pdrmem_destroy(PDR *)
 {
 }

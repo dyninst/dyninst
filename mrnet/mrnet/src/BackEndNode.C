@@ -131,7 +131,8 @@ int BackEndNode::flush()
     return flush_PacketsUpStream();
 }
 
-int BackEndNode::recv( bool blocking )
+//TODO: use blocking? Quiet warnings for now
+int BackEndNode::recv( bool /* blocking */ )
 {
     std::list <Packet> packet_list;
     mrn_printf(3, MCFL, stderr, "In backend.recv(). Calling recvfromUpStream()\n");

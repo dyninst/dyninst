@@ -33,7 +33,7 @@ void pdr_free(pdrproc_t proc, char *objp)
     (*proc)(&x, objp);
 }
 
-bool_t pdr_void(PDR *pdrs,  char * addr)
+bool_t pdr_void(PDR *,  char * )
 {
     return (TRUE);
 }

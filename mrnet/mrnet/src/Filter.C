@@ -34,9 +34,10 @@ Filter::~Filter(  )
 {
 }
 
+//TODO: use trans_filter and in_fid? Quiet warnings for now
 int Filter::load_FilterFunc( const char *so_file, const char *func,
-                             bool transformation_filter,
-                             unsigned short in_fid )
+                             bool /* transformation_filter */,
+                             unsigned short /* in_fid */ )
 {
     XPlat::SharedObject* so_handle = NULL;
     void *func_ptr;
@@ -46,7 +47,8 @@ int Filter::load_FilterFunc( const char *so_file, const char *func,
 
     so_handle = XPlat::SharedObject::Load( so_file );
     if( so_handle == NULL ) {
-        mrn_printf( 1, MCFL, stderr, "XPlat::SharedObject::Load() failed.\n" );
+        mrn_printf( 1, MCFL, stderr, "XPlat::SharedObject::Load(\"%s\"): %s\n",
+                 so_file, XPlat::SharedObject::GetErrorString() );
         char buf[1024];
         sprintf( buf, "XPlat::SharedObject::Load(\"%s\"): %s\n",
                  so_file, XPlat::SharedObject::GetErrorString() );

@@ -52,8 +52,10 @@ StreamImpl::StreamImpl(Network * _network, Communicator *_comm,
     }
 }
     
+//TODO: use backends and num_backends? quiet compiler for now
 StreamImpl::StreamImpl(Network * _network, int _stream_id,
-                       int * backends, int num_backends,
+                       int * /* backends */ ,
+                       int /* num_backends */ ,
                        int _us_filter_id,
                        int _sync_id,
                        int _ds_filter_id)

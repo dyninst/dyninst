@@ -617,10 +617,10 @@ void sfilter_WaitForAll( std::vector < Packet >&packets_in,
                 packets_out.size(  ) );
 }
 
-void sfilter_TimeOut( std::vector < Packet >&packets_in,
-                      std::vector < Packet >&packets_out,
+void sfilter_TimeOut( std::vector < Packet >&,
+                      std::vector < Packet >&,
                       const std::list < RemoteNode * >&,
-                      void **local_storage )
+                      void **)
 {
 }
 

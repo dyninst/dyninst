@@ -102,9 +102,9 @@ host: HOSTNAME COLON UINT
 %%
 
 
-void yyerror(const char *s)
+void yyerror(const char * /* s */)
 {
-  //fprintf(stderr, "%s\n", s);
+    //fprintf(stderr, "%s\n", s);
 }
 
 } // namespace MRN
