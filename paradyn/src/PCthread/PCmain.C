@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.24  1994/09/06 08:32:30  karavan
-/* Better control of PC output through tunable constants.
+/* Revision 1.25  1994/09/22 01:01:08  markc
+/* Cast stringHandle to char* to view as text
 /*
+ * Revision 1.24  1994/09/06  08:32:30  karavan
+ * Better control of PC output through tunable constants.
+ *
  * Revision 1.23  1994/09/05  20:01:00  jcargill
  * Better control of PC output through tunable constants.
  *
@@ -96,7 +99,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.24 1994/09/06 08:32:30 karavan Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.25 1994/09/22 01:01:08 markc Exp $";
 #endif
 
 #include <assert.h>
@@ -186,7 +189,7 @@ void PCmetricFunc(performanceStream *ps, metric *met)
     stringHandle name;
     extern stringPool PCmetricStrings;
 
-    name = PCmetricStrings.findAndAdd(dataMgr->getMetricName(met));
+    name = PCmetricStrings.findAndAdd((char*)dataMgr->getMetricName(met));
     pcMet = (PCmetric *) allMetrics.find(name);
     if (!pcMet) {
 	// This warning was intended to make it easy to catch typos in metric
@@ -194,7 +197,7 @@ void PCmetricFunc(performanceStream *ps, metric *met)
 	//   metrics that paradynd defines that the PC doesn't need.
 	//   - jkh 6/25/94
         // printf("WARNING performance consultant has no use for %s\n", name);
-        pcMet = new PCmetric(name);
+        pcMet = new PCmetric((char*)name);
     }
     pcMet->met = met;
 }
