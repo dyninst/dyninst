@@ -486,9 +486,6 @@ bool process::loadDYNINSTlibCleanup() {
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
 	iAddr.writeBundlesFrom( savedCodeBuffer, sizeof(savedCodeBuffer) / 16 );
 
-	/* DYNINSTlib is finished loading; handle it. */
-	dyn->handleDYNINSTlibLoad( this );
-
 	/* Continue execution at the correct point. */
 	pid_t pid = getPid();
 	changePC( pid, savedPC );
