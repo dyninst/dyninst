@@ -43,6 +43,11 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.51  1996/12/06 09:37:55  tamches
+ * cleanUpAndExit() moved here (from .h file); it now also
+ * calls destructors for all processes, which should clean up
+ * process state like shm segments.
+ *
  * Revision 1.50  1996/11/29 19:41:08  newhall
  * Cleaned up some code.  Moved code that was duplicated in inst-sparc-solaris.C
  * and inst-sparc-sunos.C to inst-sparc.C.  Bug fix to process::findFunctionIn.
@@ -160,6 +165,29 @@ void configStdIO(bool closeStdIn)
 
 void sigtermHandler(int ) {
   showErrorCallback(98,"paradynd has been terminated");
+}
+
+// Cleanup for pvm and exit.
+// This function must be called when we exit, to clean up and exit from pvm.
+// Now also cleans up shm segs by deleting all processes  -ari
+void cleanUpAndExit(int status) {
+#ifdef PARADYND_PVM
+  if (pvm_running)
+    PDYN_exit_pvm();
+#endif
+
+  // Fry all processes
+  for (unsigned lcv=0; lcv < processVec.size(); lcv++) {
+     process *theProc = processVec[lcv];
+     if (theProc == NULL)
+        continue; // process has already been cleaned up
+
+     delete theProc; // calls process::~process, which fries the shm seg
+
+     processVec[lcv] = NULL; // probably not needed here.
+  }
+
+  P_exit(status);
 }
 
 int main(int argc, char *argv[])
