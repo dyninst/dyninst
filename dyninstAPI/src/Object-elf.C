@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.30 2001/12/18 16:21:17 pcroth Exp $
+ * $Id: Object-elf.C,v 1.31 2001/12/18 16:23:13 pcroth Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -296,7 +296,43 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
       plt_scnp = scnp;
       plt_addr_ = pd_shdrp->pd_addr;
       plt_size_ = pd_shdrp->pd_size;
+#if defined(i386_unknown_linux2_0)
+      //
+      // On x86, the GNU linker purposefully sets the PLT
+	  // table entry size to an incorrect value to be
+	  // compatible with the UnixWare linker.  (See the comment
+	  // in the elf_i386_finish_dynamic_sections function of
+	  // the BFD library.)  The GNU linker sets this value to 4,
+	  // when it should be 16.
+	  //
+	  // I see no good way to determine this value from the
+	  // ELF section header information.  We can either (a) hard-code
+	  // the value that is used in the BFD library, or (b) compute
+	  // it by dividing the size of the PLT by the number of entries
+	  // we think should be in the PLT.  I'm not certain, but I
+	  // believe the PLT and the .rel.plt section should have the
+	  // same number of "real" entries (the x86 PLT has one extra entry
+	  // at the beginning).
+	  // 
+	  // This code is applicable to any x86 system that uses the
+	  // GNU linker.  We currently only support Linux on x86 - if
+	  // we start supporting some other x86 OS that uses the GNU
+	  // linker in the future, it should be enabled for that platform as well.
+	  // Note that this problem does not affect the non-x86 platforms
+	  // that might use the GNU linker.  For example, programs linked
+	  // with gld on SPARC Solaris have the correct PLT entry size.
+	  //
+	  // Another potential headache in the future is if we support
+	  // some other x86 platform that has both the GNU linker and
+	  // some other linker.  (Does BSD fall into this category?)
+	  // If the two linkers set the entry size differently, we may
+	  // need to re-evaluate this code.
+	  //
+	  plt_entry_size_ = plt_size_ / ((rel_plt_size_ / rel_plt_entry_size_) + 1);
+	  assert( plt_entry_size_ == 16 );
+#else
       plt_entry_size_ = pd_shdrp->pd_entsize;
+#endif // defined(i386_unknown_linux2_0)
     }
     else if (strcmp(name, GOT_NAME) == 0) {
       got_scnp = scnp;
