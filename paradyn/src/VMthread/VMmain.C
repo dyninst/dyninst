@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMmain.C,v 1.52 2002/12/20 07:50:06 jaw Exp $ */
+/* $Id: VMmain.C,v 1.53 2003/01/15 17:16:34 willb Exp $ */
 
 #include "paradyn/src/pdMain/paradyn.h"
 #include "pdthread/h/thread.h"
@@ -567,6 +567,11 @@ void *VMmain(void* varg) {
       unsigned tag = MSG_TAG_ANY;
       int err = msg_poll(&tid, &tag, 1);
       assert(err != THR_ERR);
+
+      if (tag == MSG_TAG_DO_EXIT_CLEANLY) {
+          thr_exit(0);
+      }
+
       if (uiMgr->isValidTag((T_UI::message_tags)tag)) {
 	if (uiMgr->waitLoop(true, (T_UI::message_tags)tag) == T_UI::error) {
 	  // TODO

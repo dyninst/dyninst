@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.143 2002/12/20 07:50:01 jaw Exp $
+// $Id: DMmain.C,v 1.144 2003/01/15 17:16:10 willb Exp $
 
 #include <assert.h>
 extern "C" {
@@ -1049,6 +1049,10 @@ void *DMmain(void* varg)
 	err = msg_poll_preference(&tid, &tag, true,fd_first);
 	assert(err != THR_ERR);
 	fd_first = !fd_first;
+
+   if (tag == MSG_TAG_DO_EXIT_CLEANLY) {
+       thr_exit(0);
+   }
 	
 	if (tag == MSG_TAG_SOCKET) {
 	  // must be an upcall on something speaking the dynRPC protocol.

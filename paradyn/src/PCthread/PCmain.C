@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: PCmain.C,v 1.74 2002/12/20 07:50:02 jaw Exp $ */
+/* $Id: PCmain.C,v 1.75 2003/01/15 17:16:20 willb Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -271,6 +271,8 @@ inline void readTag(unsigned tag)
       cerr << "Error in PCmain.C, needs to be handled\n";
       assert(0);
     }
+  } else if (tag == MSG_TAG_DO_EXIT_CLEANLY) {
+      thr_exit(0);
   } else {
     cerr << "Message sent that is not recognized in PCmain.C\n";
     assert(0);
