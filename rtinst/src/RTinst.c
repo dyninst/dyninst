@@ -41,11 +41,10 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.35 2000/07/28 17:22:36 pcroth Exp $
+ * $Id: RTinst.c,v 1.36 2000/08/08 15:09:12 wylie Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
-
 
 #include <assert.h>
 #include <errno.h>
@@ -77,18 +76,12 @@
 extern void makeNewShmSegCopy();
 #endif
 
-/* sunos's header files don't have these: */
-#ifdef sparc_sun_sunos4_1_3
-extern int socket(int, int, int);
-extern int connect(int, struct sockaddr *, int);
-extern int fwrite(void *, int, int, FILE *);
-extern int setvbuf(FILE *, char *, int, int);
-#ifdef SHM_SAMPLING
-extern int shmget(key_t, unsigned, unsigned);
-extern void *shmat(int, void *, int);
-extern int shmdt(void*);
-extern int shmctl(int, int, struct shmid_ds *);
-#endif
+extern const char V_libdyninstRT[];
+
+#ifdef DEBUG_PRINT_RT
+int DYNINSTdebugPrintRT = 1;
+#else
+int DYNINSTdebugPrintRT = 0;
 #endif
 
 #if defined(i386_unknown_linux2_0)
@@ -96,11 +89,12 @@ extern unsigned DYNINSTtotalTraps;
 #endif
 
 extern void   DYNINSTos_init(int calledByFork, int calledByAttach);
+extern void   PARADYNos_init(int calledByFork, int calledByAttach);
 extern time64 DYNINSTgetCPUtime(void);
 extern time64 DYNINSTgetWalltime(void);
 
 /* platform dependent functions */
-extern void DYNINSTbreakPoint(void);
+extern void PARADYNbreakPoint(void);
 extern void DYNINST_install_ualarm(unsigned interval);
 extern void DYNINSTinitTrace(int);
 extern void DYNINSTflushTrace(void);
@@ -205,6 +199,7 @@ double DYNINSTstaticHeap_4M_anyHeap_1[(4*1024*1024)/sizeof(double)];
    Additionally, we use this framework for DYNINSTexec() -- so the
    TR_EXEC record is now obsolete, too */
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
+struct PARADYN_bootstrapStruct PARADYN_bootstrap_info;
 
 
 #ifndef SHM_SAMPLING
@@ -892,9 +887,11 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     /* make stderr non-buffered */
   }
   
+  RTprintf("%s\n", V_libdyninstRT);
+
   DYNINSTos_init(calledFromFork, calledFromAttach);
-  /* is this needed when calledFromFork?  Depends on what it does, which is in turn
-     os-dependent...so, calledFromFork should probably be passed to this routine. */
+  PARADYNos_init(calledFromFork, calledFromAttach);
+
   /* Initialize TagGroupInfo */
   
   startWall = 0;
@@ -932,9 +929,9 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   
   if (!calledFromFork) {
 #ifdef SHM_SAMPLING
-    shmsampling_printf("DYNINSTinit setting appl_attachedAtPtr in bs_record to %x\n",
-		       (Address)DYNINST_shmSegAttachedPtr);
-    DYNINST_bootstrap_info.appl_attachedAtPtr.ptr = DYNINST_shmSegAttachedPtr;
+    shmsampling_printf("DYNINSTinit setting appl_attachedAtPtr in bs_record"
+                       " to 0x%x\n", (Address)DYNINST_shmSegAttachedPtr);
+    PARADYN_bootstrap_info.appl_attachedAtPtr.ptr = DYNINST_shmSegAttachedPtr;
 #endif
   }
   
@@ -955,7 +952,6 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   else				   
     DYNINST_bootstrap_info.event = 1; /* 1 --> end of DYNINSTinit (normal or when
 					 called by exec'd proc) */
-  
   
   /* If attaching, now's the time where we set up the trace stream connection fd */
   if (calledFromAttach) {
@@ -1028,10 +1024,10 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   /* Now, we stop ourselves.  When paradynd receives the forwarded signal,
      it will read from DYNINST_bootstrap_info */
   
-  shmsampling_printf("DYNINSTinit (pid=%d) --> about to DYNINSTbreakPoint()\n",
+  shmsampling_printf("DYNINSTinit (pid=%d) --> about to PARADYNbreakPoint()\n",
 		     (int)getpid());
   
-  DYNINSTbreakPoint();
+  PARADYNbreakPoint();
 
   /* The next instruction is necessary to avoid a race condition when we
      link the thread library. This is just a hack to get the hw counters
@@ -1061,8 +1057,8 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
 
 #ifdef SHM_SAMPLING
 /* bootstrap structure extraction info (see rtinst/h/trace.h) */
-static struct DYNINST_bootstrapStruct _bs_dummy;
-int32_t DYNINST_attachPtrSize = sizeof(_bs_dummy.appl_attachedAtPtr.ptr);
+static struct PARADYN_bootstrapStruct _bs_dummy;
+int32_t PARADYN_attachPtrSize = sizeof(_bs_dummy.appl_attachedAtPtr.ptr);
 #endif /* SHM_SAMPLING */
 
 
@@ -1151,9 +1147,9 @@ DYNINSTfork(int pid) {
 	  the child to get values from the parent after the fork would be a 
 	  bad thing.  --ari */
 
-       forkexec_printf("DYNINSTfork parent; about to DYNINSTbreakPoint\n");
+       forkexec_printf("DYNINSTfork parent; about to PARADYNbreakPoint\n");
 
-       DYNINSTbreakPoint();
+       PARADYNbreakPoint();
     } else if (pid == 0) {
        /* we are the child process */
 	int pid = getpid();
@@ -1209,11 +1205,14 @@ DYNINSTfork(int pid) {
 #endif
 	DYNINSTflushTrace();
 
-	forkexec_printf("dyninst-fork child pid %d sent pid; now doing DYNINSTbreakPoint() to wait for paradynd to initialize me.\n", (int)getpid());
+	forkexec_printf("dyninst-fork child pid %d sent pid;"
+                        " now doing PARADYNbreakPoint() to wait"
+                        " for paradynd to initialize me.\n", (int)getpid());
 
-	DYNINSTbreakPoint();
+	PARADYNbreakPoint();
 
-	forkexec_printf("dyninst-fork child past DYNINSTbreakPoint()...calling DYNINSTinit(-1,-1)\n");
+	forkexec_printf("dyninst-fork child past PARADYNbreakPoint()"
+                        " ...calling DYNINSTinit(-1,-1)\n");
 
 	DYNINSTinit(-1, -1, DYNINST_paradyndPid);
 	   /* -1 params indicate called from DYNINSTfork */
@@ -1272,7 +1271,7 @@ DYNINSTexec(char *path) {
 
     forkexec_printf("DYNINSTexec before breakpoint\n");
 
-    DYNINSTbreakPoint();
+    PARADYNbreakPoint();
 
     /* after the breakpoint, clear DYNINST_bootstrap_info */
     DYNINST_bootstrap_info.event = 0; /* 0 --> nothing */
@@ -1321,7 +1320,7 @@ DYNINSTprintCost(void) {
 #ifndef SHM_SAMPLING
     value = DYNINSTgetObservedCycles(0);
 #else
-    value = *(unsigned*)((char*)DYNINST_bootstrap_info.appl_attachedAtPtr.ptr + 12);
+    value = *(unsigned*)((char*)PARADYN_bootstrap_info.appl_attachedAtPtr.ptr + 12);
 #endif
     stats.instCycles = value;
 
