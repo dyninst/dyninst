@@ -535,9 +535,31 @@ $remote dynRPC {
     $virtual $upcall $async void resourceInfoCallback(int program, 
 					     vector<string> resource_name,
 					     string abstraction, u_int type);
+   //
+    // Handler that gets called when a new memory is defined.
+    //
+    // data_structure   - name of memory chunk, divided into blks
+    // virtual_address  - start address of the memory chunk
+    // memory_size      - size of the memory chunk
+    // blk_size         - block size
+    $upcall $async void memoryInfoCallback(int program,
+                                           string data_structure,
+                                           int virtual_address,
+                                           u_int memory_size,
+                                           u_int blk_size) ;
 
     // The id that will be used to represent this resource
     $async void resourceInfoResponse(vector<string> resource_name, u_int resource_id);
+
+    // The ids that will be used to represent memory resources
+    // see memoryInfoCallback
+    $async void memoryInfoResponse(string data_structure,
+                                   int virtual_address,
+                                   u_int memory_size,
+                                   u_int blk_size,
+                                   vector<u_int> resource_ids) ;
+
+    $async void memoryRangeSelected(string flat, int min, int max) ;
 
     $virtual $upcall $async void resourceBatchMode(bool);
 
