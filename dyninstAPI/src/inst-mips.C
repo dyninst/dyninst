@@ -2803,8 +2803,7 @@ void emitImm(opCode op, Register src, RegValue imm, Register dst,
 /****************************************************************************/
 /****************************************************************************/
 
-bool rpcMgr::emitInferiorRPCheader(void *code_, Address &base, 
-                                   bool /*isFunclet*/)
+bool rpcMgr::emitInferiorRPCheader(void *code_, Address &base)
 {
   TRACE_B( "rpcMgr::emitInferiorRPCheader" );
 
@@ -2835,8 +2834,7 @@ bool rpcMgr::emitInferiorRPCtrailer(void *code_, Address &baseBytes,
 				     unsigned &breakOffset,
 				     bool stopForResult,
 				     unsigned &stopForResultOffset,
-				     unsigned &justAfter_stopForResultOffset,
-                                     bool /* isFunclet */)
+				     unsigned &justAfter_stopForResultOffset)
 {
   TRACE_B( "rpcMgr::emitInferiorRPCtrailer" );
 

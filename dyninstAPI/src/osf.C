@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.48 2003/03/21 23:40:39 jodom Exp $
+// $Id: osf.C,v 1.49 2003/04/16 21:07:19 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -89,7 +89,7 @@ int getNumberOfCPUs()
 }
 
 
-bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes, bool) {
+bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) {
 
   extern void emitSaveConservative(process *, char *, Address &baseBytes);
 
@@ -102,9 +102,7 @@ bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 				     unsigned &breakOffset,
 				     bool stopForResult,
 				     unsigned &stopForResultOffset,
-				     unsigned &justAfter_stopForResultOffset,
-				     /*int thrId,*/
-				     bool isMT) {
+				     unsigned &justAfter_stopForResultOffset) {
   instruction *insn = (instruction *)insnPtr;
   Address baseInstruc = baseBytes / sizeof(instruction);
 

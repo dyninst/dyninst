@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.140 2003/04/02 07:12:25 jaw Exp $
+// $Id: inst-sparc.C,v 1.141 2003/04/16 21:07:16 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1071,8 +1071,7 @@ pd_Function *getFunction(instPoint *point)
 /****************************************************************************/
 /****************************************************************************/
 
-bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes,
-                                   bool /*isFunclet*/) 
+bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) 
 {
    instruction *insn = (instruction *)insnPtr;
    Address baseInstruc = baseBytes / sizeof(instruction);
@@ -1091,8 +1090,7 @@ bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes,
 bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
                                     unsigned &breakOffset, bool stopForResult,
                                     unsigned &stopForResultOffset,
-                                    unsigned &justAfter_stopForResultOffset,
-                                    bool isFunclet)
+                                    unsigned &justAfter_stopForResultOffset)
 {
 
    // Sequence: restore, trap, illegal
@@ -1109,11 +1107,6 @@ bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
    }
 
 
-   if (isFunclet) { 
-     //ret instruction
-     genImmInsn(&insn[baseInstruc++], JMPLop3, REG_I(7), 0x08, REG_G(0)) ;
-   }
-
    genSimpleInsn(&insn[baseInstruc++], RESTOREop3, 0, 0, 0);
 
    // Now that the inferior has executed the 'restore' instruction, the %in 
@@ -1122,16 +1115,13 @@ bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
    // set with ptrace GETREGS/SETREGS call)
 
 
-   // If non-threaded, or if threaded and not safe RPC
-   if (!isFunclet) {
-     // Trap instruction:
-     genBreakpointTrap(&insn[baseInstruc]); // ta 1
-     breakOffset = baseInstruc * sizeof(instruction);
-     baseInstruc++;
-     
-     // And just to make sure that we don't continue from the trap:
-     genUnimplementedInsn(&insn[baseInstruc++]); // UNIMP 0
-   }
+   // Trap instruction:
+   genBreakpointTrap(&insn[baseInstruc]); // ta 1
+   breakOffset = baseInstruc * sizeof(instruction);
+   baseInstruc++;
+   
+   // And just to make sure that we don't continue from the trap:
+   genUnimplementedInsn(&insn[baseInstruc++]); // UNIMP 0
 
    baseBytes = baseInstruc * sizeof(instruction); // convert back
 

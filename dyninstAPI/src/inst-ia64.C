@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.26 2003/04/02 07:12:24 jaw Exp $
+ * $Id: inst-ia64.C,v 1.27 2003/04/16 21:07:13 bernat Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -685,8 +685,7 @@ int getInsnCost( opCode op ) {
 bool rpcMgr::emitInferiorRPCtrailer( void * void_insnPtr, Address & baseBytes,
 			unsigned & breakOffset, bool shouldStopForResult,
 			unsigned & stopForResultOffset,
-			unsigned & justAfter_stopForResultOffset,
-			bool isFunclet ) { assert( 0 ); return false; }
+			unsigned & justAfter_stopForResultOffset) { assert( 0 ); return false; }
 
 /* Required by process.C */
 bool process::heapIsOk( const pdvector<sym_data> & find_us ) {
@@ -1218,7 +1217,7 @@ fprintf( stderr, "Generating return instance from 0x%lx to 0x%lx\n", returnFrom,
 bool pd_Function::isNearBranchInsn( const instruction insn ) { assert( 0 ); return false; }
 
 /* Required by process.C */
-bool rpcMgr::emitInferiorRPCheader( void * insnPtr, Address & baseBytes, bool isFunclet ) {
+bool rpcMgr::emitInferiorRPCheader( void * insnPtr, Address & baseBytes ) {
 		
 
 	assert(0); return false;

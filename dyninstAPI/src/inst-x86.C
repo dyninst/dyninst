@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.128 2003/04/14 21:49:59 bernat Exp $
+ * $Id: inst-x86.C,v 1.129 2003/04/16 21:07:17 bernat Exp $
  */
 
 #include <iomanip.h>
@@ -3225,7 +3225,7 @@ void instWaitingList::cleanUp(process *, Address ) {
 
 /* ***************************************************** */
 
-bool rpcMgr::emitInferiorRPCheader(void *void_insnPtr, Address &baseBytes, bool /*isFunclet*/) 
+bool rpcMgr::emitInferiorRPCheader(void *void_insnPtr, Address &baseBytes) 
 {
    unsigned char *insnPtr = (unsigned char *)void_insnPtr;
    unsigned char *origInsnPtr = insnPtr;
@@ -3254,9 +3254,7 @@ bool rpcMgr::emitInferiorRPCtrailer(void *void_insnPtr, Address &baseBytes,
                                     unsigned &breakOffset,
                                     bool shouldStopForResult,
                                     unsigned &stopForResultOffset,
-                                    unsigned &justAfter_stopForResultOffset,
-                                    bool /*isFunclet*/)
-{
+                                    unsigned &justAfter_stopForResultOffset) {
    unsigned char *insnPtr = (unsigned char *)void_insnPtr;
 
    // unsigned char * is the most natural to work with on x86, since 

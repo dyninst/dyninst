@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.25 2003/04/15 18:44:33 bernat Exp $
+// $Id: linux-x86.C,v 1.26 2003/04/16 21:07:18 bernat Exp $
 
 #include <fstream.h>
 
@@ -324,6 +324,7 @@ Frame dyn_lwp::getActiveFrame()
 
   sp = ptraceKludge::deliverPtraceReturn(proc_, PTRACE_PEEKUSER, 0 + UESP * INTREGSIZE, 0);
   if (errno) return Frame();
+
   return Frame(pc, fp, sp, proc_->getPid(), NULL, this, true);
 }
 
@@ -666,12 +667,14 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
         return false;
     // Now that we've reset the original behavior, remove this
     // entry from the vector
+
+    pdvector<syscallTrap *> newSyscallTraps;
     for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
-        if (trappedSyscall == syscallTraps_[iter]) {
-            syscallTraps_.removeByIndex(iter);
-            break;
-        }
+        if (trappedSyscall != syscallTraps_[iter])
+            newSyscallTraps.push_back(syscallTraps_[iter]);
     }
+    syscallTraps_ = newSyscallTraps;
+
     delete trappedSyscall;
     return true;
 }

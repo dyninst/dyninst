@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.163 2003/04/02 07:12:24 jaw Exp $
+ * $Id: inst-power.C,v 1.164 2003/04/16 21:07:15 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1589,6 +1589,11 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       fprintf(stderr, "Instrumentation point %x too far from tramp location %x, trying to instrument function %s\n",
 	      (unsigned) location->addr, (unsigned) baseAddr,
 	      location->func->prettyName().c_str());
+      fprintf(stderr, "If this is a library function or the instrumentation point address begins with 0xd...\n");
+      fprintf(stderr, "please ensure that the text instrumentation library (libDyninstText.a) is compiled and\n");
+      fprintf(stderr, "in one of the directories contained in the LIBPATH environment variable. If it is not,\n");
+      fprintf(stderr, "contact paradyn@cs.wisc.edu for further assistance.\n");
+      
       //assert(0);
       // VG(03/02/02): bail if no base tramp
       return NULL;
@@ -1886,8 +1891,7 @@ void generateIllegalInsn(instruction &insn) { // instP.h
 }
 
 
-bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes,
-                                   bool isFunclet) 
+bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) 
 {
   instruction *tmp = (instruction *)insnPtr;
   // A miracle of casting...
@@ -1907,8 +1911,7 @@ bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
                                     unsigned &breakOffset,
                                     bool stopForResult,
                                     unsigned &stopForResultOffset,
-                                    unsigned &justAfter_stopForResultOffset,
-                                    bool isFunclet) {
+                                    unsigned &justAfter_stopForResultOffset) {
 
   // The sequence we want is: (restore), trap, illegal,
   // where (restore) undoes anything done in emitInferiorRPCheader(), above.
@@ -1930,15 +1933,7 @@ bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
   insn++; baseBytes += sizeof(instruction);
   
   
-  // Safe RPCs are run as function-lets
-  if (isFunclet) // ret instruction?
-    {
-      insn->raw = BRraw;
-    }
-  else {
-    // Trap instruction (breakpoint):
-    generateBreakPoint(*insn);
-  }
+  generateBreakPoint(*insn);
   breakOffset = baseBytes;
   baseBytes += sizeof(instruction); insn++;
   
@@ -3551,21 +3546,20 @@ bool process::findCallee(instPoint &instr, function_base *&target){
   const image *owner = instr.iPgetOwner();
   const function_base *caller = instr.iPgetFunction();
   // Or module == glink.s == "Global_Linkage"
-  if (caller->prettyName().suffixed_by("_linkage"))
-    {
+  if (caller->prettyName().suffixed_by("_linkage")) {
       // Make sure we're not mistaking a function named
       // *_linkage for global linkage code. 
       
       if (instr.originalInstruction.raw != 0x4e800420) // BCTR
-	return false;
+          return false;
       Address TOC_addr = (owner->getObject()).getTOCoffset();
       instruction offset_instr;
       offset_instr.raw = owner->get_instruction(instr.addr - 20); // Five instructions up.
       if ((offset_instr.dform.op != Lop) ||
-	  (offset_instr.dform.rt != 12) ||
-	  (offset_instr.dform.ra != 2))
-	// Not a l r12, <offset>(r2), so not actually linkage code.
-	return false;
+          (offset_instr.dform.rt != 12) ||
+          (offset_instr.dform.ra != 2))
+          // Not a l r12, <offset>(r2), so not actually linkage code.
+          return false;
       // This should be the contents of R12 in the linkage function
       Address callee_TOC_entry = owner->get_instruction(TOC_addr + offset_instr.dform.d_or_si);
       // We need to find what object the callee TOC entry is defined in. This will be the
@@ -3573,46 +3567,46 @@ bool process::findCallee(instPoint &instr, function_base *&target){
       Address callee_addr = 0;
       const image *callee_img = NULL;
       if ( (callee_addr = symbols->get_instruction(callee_TOC_entry) ))
-	callee_img = symbols;
+          callee_img = symbols;
       else
-	if (shared_objects) {
-	  for(u_int i=0; i < shared_objects->size(); i++){
-	    const image *img_tmp = ((*shared_objects)[i])->getImage();
-	    if ( (callee_addr = img_tmp->get_instruction(callee_TOC_entry)))
-	      {
-		callee_img = img_tmp;
-		break;
-	      }
-	  }
-	}
+          if (shared_objects) {
+              for(u_int i=0; i < shared_objects->size(); i++){
+                  const image *img_tmp = ((*shared_objects)[i])->getImage();
+                  if ( (callee_addr = img_tmp->get_instruction(callee_TOC_entry)))
+                  {
+                      callee_img = img_tmp;
+                      break;
+                  }
+              }
+          }
       if (!callee_img) return false;
       // callee_addr: address of function called, contained in image callee_img
       // Sanity check on callee_addr
       if (
-	  ((callee_addr < 0x20000000) ||
-	   (callee_addr > 0xdfffffff)))
-	{
-	  if (callee_addr != 0) { // unexpected -- where is this function call? Print it out.
-	    fprintf(stderr, "Skipping illegal address 0x%x in function %s\n",
-		    (unsigned) callee_addr, caller->prettyName().c_str());
-	  }
-	  return false;
-	}
+          ((callee_addr < 0x20000000) ||
+           (callee_addr > 0xdfffffff)))
+      {
+          if (callee_addr != 0) { // unexpected -- where is this function call? Print it out.
+              fprintf(stderr, "Skipping illegal address 0x%x in function %s\n",
+                      (unsigned) callee_addr, caller->prettyName().c_str());
+          }
+          return false;
+      }
       
       // Again, by definition, the function is not in owner. Loop through all 
       // images to find it.
       // It needs the process pointer (this) to determine absolute address
       pd_Function *pdf = 0;
       if ( (pdf = callee_img->findFuncByAddr(callee_addr, this) ))
-	{
-	  target = pdf;
-	  instr.set_callee(pdf);
-	  return true;
-	}
+      {
+          target = pdf;
+          instr.set_callee(pdf);
+          return true;
+      }
       else
-	fprintf(stderr, "Couldn't find target function for address 0x%x\n",
-	    (unsigned) callee_addr);
-    }
+          fprintf(stderr, "Couldn't find target function for address 0x%x\n",
+                  (unsigned) callee_addr);
+  }
   // Todo
   target = 0;
   return false;
