@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.7  1994/07/05 03:26:04  hollings
+ * Revision 1.8  1994/07/12 19:46:57  jcargill
+ * Removed old code, added ability for fork paradyndCM5 when nodes start.
+ *
+ * Revision 1.7  1994/07/05  03:26:04  hollings
  * observed cost model
  *
  * Revision 1.6  1994/06/29  02:52:29  hollings
@@ -36,7 +39,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.7 1994/07/05 03:26:04 hollings Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.8 1994/07/12 19:46:57 jcargill Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +50,6 @@ char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core
 #include <machine/reg.h>
 
 extern "C" {
-#include <sys/unistd.h>
 #include <sys/ptrace.h>
 int ptrace();
 }
@@ -60,6 +62,7 @@ int ptrace();
 #include "instP.h"
 #include "ast.h"
 #include "ptrace_emul.h"
+#include "dyninstRPC.SRVR.h"
 #include "util.h"
 
 
@@ -209,17 +212,72 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
     return(ret);
 }
 
-void sendPtraceBuffer(process *proc)
-{
-}
 
-void processPtraceAck (traceHeader *header, ptraceAck *ackRecord)
-{
-}
+extern char *pd_machine;
+extern int pd_family;
+extern int pd_type;
+extern int pd_known_socket;
+extern int pd_flag;
+
 
 void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 {
+    int childPid;
+    process *parent;
+    char **arg_list;
+    char command[80];
+    char application[256];
+    char app_pid[20];
+    char num_nodes[20];	
+    char *argv[20];
+    extern char *programName;
+
+    parent = findProcess(fr->ppid);
+    assert(parent);
+
+    if ((childPid=fork()) == 0) {		/* child */
+	/* Build arglist */
+	arg_list = RPC_make_arg_list (pd_family, pd_type, 
+				      pd_known_socket, pd_flag);
+	sprintf (command, "%sCM5", programName);
+	sprintf (application, "%s", curr->symbols->file);
+	sprintf (app_pid, "%d", curr->pid);
+	sprintf (num_nodes, "%d", fr->npids);
+
+	/*
+	 * It would be nice if this weren't sensitive to the size of
+	 * arg_list.  For the moment, only 6 are written by
+	 * make_arg_list; this could be cleaner.
+	 */
+	argv[0] = command;
+	argv[1] = application;
+	argv[2] = app_pid;
+	argv[3] = num_nodes;
+	argv[4] = arg_list[1];
+	argv[5] = arg_list[2];
+	argv[6] = arg_list[3];
+	argv[7] = arg_list[4];
+	argv[8] = arg_list[5];
+	argv[9] = arg_list[6];
+	argv[10] = arg_list[7];
+	argv[11] = 0;
+
+/* 	ptrace (0, 0, 0, 0, 0); */
+
+	execv (command, argv);
+	abort();
+    }
+    else {			/* parent */
+	printf ("forked child process (pid=%d).\n", childPid);
+    }
+
+    /* Mark the cm-process as running now */
+//    curr->status = running;
+
+    pauseAllProcesses();
 }
+
+
 
 libraryList msgFilterFunctions;
 libraryList msgByteSentFunctions;
