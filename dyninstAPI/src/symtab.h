@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.58 1998/12/25 22:04:57 wylie Exp $
+// $Id: symtab.h,v 1.59 1999/03/19 18:07:21 csserra Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -316,6 +316,19 @@ class pd_Function : public function_base {
     void relocateInstructionWithFunction(instruction *insn, Address origAddr, 
 	Address targetAddr, process *proc, Address oldFunctionAddr);
     void sorted_ips_vector(vector<instPoint*>&fill_in);
+#elif defined(mips_sgi_irix6_4)
+    bool    checkInstPoints();
+    Address findTarget(instPoint *p);
+    Address findBranchTarget(instPoint *p, instruction i);
+    Address findJumpTarget(instPoint *p, instruction i);
+    Address findIndirectJumpTarget(instPoint *p, instruction i);
+    void    setIDs();
+    // stack frame layout
+    int     frameSize;          // stack frame size
+    int     frameOff[NUM_REGS]; // $sp offsets of saved registers in stack frame
+    Address saveInsn[NUM_REGS]; // offsets of insns that save particular registers
+                                // saveInsn[REG_ZERO] is "save" insn (tweaks $sp)
+    Address findStackFrame(const image *owner); // populate above fields
 #endif
 
   private:
@@ -705,7 +718,7 @@ public:
         const Address boundary_start,  const Address boundary_end,
 	const Address startAddr, bool startB, const Address endAddr,
         bool endB, pdmodule *dyn, pdmodule *lib);
-  void image::insert_function_internal_dynamic(vector<Symbol>& mods,
+  void insert_function_internal_dynamic(vector<Symbol>& mods,
       const Symbol &lookUp,
       pdmodule *dyn, pdmodule *lib, bool is_libdyninstRT);
 

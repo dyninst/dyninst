@@ -1,8 +1,5 @@
-// instPoint.h
-// Defines class instPoint
-
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -42,26 +39,27 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef _INST_POINT_H_
-#define _INST_POINT_H_
-
-// architecture-specific implementation of class instPoint
-#if defined(sparc_sun_solaris2_4) || defined(sparc_sun_sunos4_1_3)
-#include "instPoint-sparc.h"
-#elif defined(rs6000_ibm_aix4_1)
-#include "instPoint-power.h"
-#elif defined(i386_unknown_nt4_0)
-#include "instPoint-x86.h"
-#elif defined(i386_unknown_solaris2_5)
-#include "instPoint-x86.h"
-#elif defined(alpha_dec_osf4_0)
-#include "instPoint-alpha.h"
-#elif defined(i386_unknown_linux2_0)
-#include "instPoint-x86.h"
-#elif defined(mips_sgi_irix6_4)
-#include "instPoint-mips.h"
-#else
-#error unknown architecture
+#if !defined(mips_sgi_irix6_4)
+#error "invalid architecture-os inclusion"
 #endif
 
-#endif /* _INST_POINT_H_ */
+#ifndef _IRIX_PD_H_
+#define _IRIX_PD_H_
+
+#include <sys/param.h>
+
+#define EXIT_NAME "_exithandle"
+
+#ifdef USES_LIBDYNINSTRT_SO
+#define BYTES_TO_SAVE 256 // should be a multiple of sizeof(instruction)
+#endif
+
+#define START_WALL_TIMER "DYNINSTstartWallTimer"
+#define STOP_WALL_TIMER  "DYNINSTstopWallTimer"
+#define START_PROC_TIMER "DYNINSTstartProcessTimer"
+#define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
+#define SIGNAL_HANDLER	 "sigacthandler"
+
+typedef int handleT; // a /proc file descriptor
+
+#endif /* _IRIX_PD_H_ */

@@ -1,8 +1,5 @@
-// instPoint.h
-// Defines class instPoint
-
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -42,26 +39,22 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef _INST_POINT_H_
-#define _INST_POINT_H_
+#include "dyninstAPI/src/arch-mips.h"
 
-// architecture-specific implementation of class instPoint
-#if defined(sparc_sun_solaris2_4) || defined(sparc_sun_sunos4_1_3)
-#include "instPoint-sparc.h"
-#elif defined(rs6000_ibm_aix4_1)
-#include "instPoint-power.h"
-#elif defined(i386_unknown_nt4_0)
-#include "instPoint-x86.h"
-#elif defined(i386_unknown_solaris2_5)
-#include "instPoint-x86.h"
-#elif defined(alpha_dec_osf4_0)
-#include "instPoint-alpha.h"
-#elif defined(i386_unknown_linux2_0)
-#include "instPoint-x86.h"
-#elif defined(mips_sgi_irix6_4)
-#include "instPoint-mips.h"
-#else
-#error unknown architecture
-#endif
+char *reg_names[] = {
+  "zero", "at", "v0", "v1", "a0", "a1", "a2", "a3",
+  "a4",   "a5", "a6", "a7", "t0", "t1", "t2", "t3",
+  "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7",
+  "t8",   "t9", "k0", "k1", "gp", "sp", "s8", "ra",
+};
 
-#endif /* _INST_POINT_H_ */
+/* The below register names are from Hennessey & Patterson.  They do
+ not quite comply with disassembler output, which the above list
+ does. */
+char *reg_names_book[] = {
+  "zero", "at", "v0", "v1", "a0", "a1", "a2", "a3",
+  "t0",   "t1", "t2", "t3", "t4", "t5", "t6", "t7",
+  "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7",
+  "t8",   "t9", "k0", "k1", "gp", "sp", "s8", "ra",
+};
+

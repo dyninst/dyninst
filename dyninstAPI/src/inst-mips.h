@@ -1,8 +1,5 @@
-// instPoint.h
-// Defines class instPoint
-
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -42,26 +39,37 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef _INST_POINT_H_
-#define _INST_POINT_H_
+#ifndef INST_MIPS_H
+#define INST_MIPS_H
 
-// architecture-specific implementation of class instPoint
-#if defined(sparc_sun_solaris2_4) || defined(sparc_sun_sunos4_1_3)
-#include "instPoint-sparc.h"
-#elif defined(rs6000_ibm_aix4_1)
-#include "instPoint-power.h"
-#elif defined(i386_unknown_nt4_0)
-#include "instPoint-x86.h"
-#elif defined(i386_unknown_solaris2_5)
-#include "instPoint-x86.h"
-#elif defined(alpha_dec_osf4_0)
-#include "instPoint-alpha.h"
-#elif defined(i386_unknown_linux2_0)
-#include "instPoint-x86.h"
-#elif defined(mips_sgi_irix6_4)
-#include "instPoint-mips.h"
-#else
-#error unknown architecture
-#endif
 
-#endif /* _INST_POINT_H_ */
+#include <stdio.h>
+#include "dyninstAPI/src/ast.h"
+
+#define REG_MT 0 /* register saved to keep the address */
+                 /* of the current vector of           */
+                 /* counter/timers for each thread     */
+
+extern registerSpace *regSpace;
+extern Register Dead[];
+extern const unsigned int nDead;
+
+typedef Register reg;
+void genRtype(instruction *insn, int ops, reg rs, reg rt, reg rd, int sa = 0); 
+void genItype(instruction *insn, int op, reg rs, reg rt, signed short imm);
+void genJtype(instruction *insn, int op, unsigned imm);
+void genBranch(instruction *insn, Address branch, Address target);
+bool genJump(instruction *insn, Address jump, Address target);
+void genNop(instruction *insn);
+void genMove(instruction *insn, reg rs, reg rd);
+void genZeroCC(instruction *insn, opCode op, reg rs, reg rd, int &cost);
+void genTrap(instruction *insn);
+void genIll(instruction *insn);
+
+Address lookup_fn(process *p, const string &f);
+void dis(void *actual, void *addr = NULL, int ninsns = 1, 
+	 const char *pre = NULL, FILE *stream = stderr);
+void disDataSpace(process *p, void *addr, int ninsns = 1, 
+		  const char *pre = NULL, FILE *stream = stderr);
+
+#endif /* INST_MIPS_H */

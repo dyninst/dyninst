@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// include archetecture specific dynamic_linking class definitions 
+// include architecture-specific dynamic_linking class definitions 
 
-#if !defined(dynamic_linking_h)
-#define dynamic_linking_h
+#ifndef _DYNAMIC_LINKING_H_
+#define _DYNAMIC_LINKING_H_
 
 #if defined(sparc_sun_sunos4_1_3)
 #include "dyninstAPI/src/sunosDL.h"
@@ -64,6 +64,10 @@
 
 #elif defined(i386_unknown_linux2_0)
 #include "dyninstAPI/src/linuxDL.h"
-#endif
+
+#elif defined(mips_sgi_irix6_4)
+#include "dyninstAPI/src/irixDL.h"
 
 #endif
+
+#endif /* _DYNAMIC_LINKING_H_ */

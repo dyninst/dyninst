@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.60 1999/02/08 13:57:29 nash Exp $
+// $Id: ast.C,v 1.61 1999/03/19 18:07:16 csserra Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -71,6 +71,8 @@
 #include "dyninstAPI/src/inst-x86.h"
 #elif defined(alpha_dec_osf4_0)
 #include "dyninstAPI/src/inst-alpha.h"
+#elif defined(mips_sgi_irix6_4)
+#include "dyninstAPI/src/inst-mips.h"
 #else
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.21 1998/12/25 22:04:04 wylie Exp $
+// $Id: templates1.C,v 1.22 1999/03/19 18:07:22 csserra Exp $
 
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
@@ -60,6 +60,15 @@
 
 class BPatch_type;
 class BPatch_thread;
+
+#if defined(mips_sgi_irix6_4)
+#include "dyninstAPI/src/irixDL.h" // dsoEvent_t
+template class  vector<dsoEvent_t *>;
+template class  vector<vector<int> >;
+#endif
+template class  dictionary_hash <Address, unsigned>;
+template class  vector<dictionary_hash <Address, unsigned>::entry>;
+template class  dictionary_hash_iter <Address, unsigned>;
 
 template class  dictionary_hash <const instPoint *, trampTemplate *>;
 template class  vector<dictionary_hash <const instPoint *, trampTemplate *>::entry>;
