@@ -1,7 +1,7 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-# $Id: Makefile,v 1.5 1999/11/07 21:50:01 wylie Exp $
+# $Id: Makefile,v 1.6 2000/04/24 02:37:32 wylie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in nmake.config
@@ -18,7 +18,9 @@ NO_OPT_FLAG=true
 
 CFLAGS = /Z7
 GNU_CC = gcc
-NATIVE_CC = cl
+GNU_CXX = g++
+NATIVE_CC = VC
+NATIVE_CXX = VC++
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -27,17 +29,36 @@ NATIVE_CC = cl
 
 # TARGET2 is for mutatees
 !ifdef TARGET2
+
 !if ("$(MUTATEE_CC)"=="$(NATIVE_CC)")
-$(TARGET2): $(TARGET2:_cl.exe=.obj)
-#	$(LINK) -out:$(TARGET2) $(LDFLAGS) -debug -debugtype:coff
-	$(LINK) -out:$(TARGET2) $(LDFLAGS) -debug -pdb:none \
-                $(TARGET2:_cl.exe=.obj)
+MUTATEE_CFLAGS = -nologo -Z7 -W3 $(ARCH_DEF) -GR
+LDFLAGS = -nologo -debug -pdb:none
+$(TARGET2):
+	cl -TC $(MUTATEE_CFLAGS) -c ../src/$(TARGET2:_VC.exe=.c)
+	$(LINK) -out:$(TARGET2) $(LDFLAGS) $(TARGET2:_VC.exe=.obj)
 !endif
+
+!if ("$(MUTATEE_CC)"=="$(NATIVE_CXX)")
+MUTATEE_CFLAGS = -nologo -Z7 -W3 $(ARCH_DEF) -GR -GX
+LDFLAGS = -nologo -debug -pdb:none
+$(TARGET2):
+	cl -TP $(MUTATEE_CFLAGS) -c ../src/$(TARGET2:_VC++.exe=.c)
+	$(LINK) -out:$(TARGET2) $(LDFLAGS) $(TARGET2:_VC++.exe=.obj)
+!endif
+
 !if ("$(MUTATEE_CC)"=="$(GNU_CC)")
+MUTATEE_CFLAGS = -g $(ARCH_DEF) -Wall
 $(TARGET2): ../src/$(TARGET2:_gcc.exe=.c)
-	$(GNU_CC) -o $(TARGET2) -g -c ../src/$(TARGET2:_gcc.exe=.c)
+	$(GNU_CC) -o $(TARGET2) $(MUTATEE_CFLAGS) -c ../src/$(TARGET2:_gcc.exe=.c)
 !endif
+
+!if ("$(MUTATEE_CC)"=="$(GNU_CXX)")
+MUTATEE_CFLAGS = -g $(ARCH_DEF) -Wall
+$(TARGET2): ../src/$(TARGET2:_g++.exe=.c)
+	$(GNU_CXX) -o $(TARGET2) $(MUTATEE_CFLAGS) -c ../src/$(TARGET2:_g++.exe=.c)
 !endif
+
+!endif TARGET2
 
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.
