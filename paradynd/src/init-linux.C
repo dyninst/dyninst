@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.14 2002/06/17 21:31:16 chadd Exp $
+// $Id: init-linux.C,v 1.15 2002/08/12 04:21:44 schendel Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -75,8 +75,11 @@ bool initOS() {
 					     FUNC_EXIT|FUNC_ARG, retVal);
   } else { /* Fork and exec */
 	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  initialRequestsPARADYN += new instMapping("__libc_fork", "DYNINSTfork", 
-					     FUNC_EXIT|FUNC_ARG, retVal);
+	  instMapping *newMapping = 
+	     new instMapping("__libc_fork", "DYNINSTfork", FUNC_EXIT|FUNC_ARG,
+			     retVal);
+	  newMapping->dontUseTrampGuard();
+	  initialRequestsPARADYN += newMapping;
   
 	  tidArg = new AstNode(AstNode::Param, (void *) 0);
 	  initialRequestsPARADYN += new instMapping("__execve", "DYNINSTexec",

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.37 2002/06/17 21:31:16 chadd Exp $ */
+/* $Id: init-sunos.C,v 1.38 2002/08/12 04:21:42 schendel Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/internalMetrics.h"
@@ -80,14 +80,17 @@ bool initOS() {
 					     FUNC_EXIT|FUNC_ARG, retVal);
   } else { /* Fork and exec */
 	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  initialRequestsPARADYN += new instMapping("fork", "DYNINSTfork", 
+	  instMapping *newMappingA = new instMapping("fork", "DYNINSTfork", 
 					     FUNC_EXIT|FUNC_ARG, retVal);
+	  newMappingA->dontUseTrampGuard();
+	  initialRequestsPARADYN += newMappingA;
 
 	  //libthread _fork
 	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  initialRequestsPARADYN += new instMapping("_fork", "DYNINSTfork", 
+	  instMapping *newMappingB = new instMapping("_fork", "DYNINSTfork", 
 					     FUNC_EXIT|FUNC_ARG, retVal);
-
+	  newMappingB->dontUseTrampGuard();
+	  initialRequestsPARADYN += newMappingB;
 
 	  //initialRequestsPARADYN += new instMapping("execve", "DYNINSTexec",
 	  //			               FUNC_ENTRY|FUNC_ARG, tidArg);

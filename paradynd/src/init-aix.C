@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.23 2002/06/25 20:27:35 bernat Exp $
+// $Id: init-aix.C,v 1.24 2002/08/12 04:21:43 schendel Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -98,9 +98,11 @@ bool initOS()
   // we need to instrument __fork instead of fork. fork makes a tail call
   // to __fork, and we can't get the correct return value from fork.
   AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
-  initialRequestsPARADYN += new instMapping("__fork", "DYNINSTfork", 
-				     FUNC_EXIT|FUNC_ARG, tidArg);
-
+  
+  instMapping *newMapping = new instMapping("__fork", "DYNINSTfork", 
+					    FUNC_EXIT|FUNC_ARG, tidArg);
+  newMapping->dontUseTrampGuard();
+  initialRequestsPARADYN += newMapping;
   // Trap whenever you hit a dlopen()
   //initialRequestsPARADYN += new instMapping("dlopen", "DYNINSTtrap",
   //FUNC_EXIT);
