@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.77 2001/04/16 18:47:39 tikir Exp $
+// $Id: inst.C,v 1.78 2001/04/19 17:52:26 gurari Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -665,7 +665,7 @@ void deleteInst(instInstance *old, const vector<Address> &pointsToCheck)
     instInstance *othersAtPoint;
 
     if (!old) {
-      logLine("Internal error in inst.C: instInstance pointer \"old\" is NULL\n");
+      // logLine("Internal error in inst.C: instInstance pointer \"old\" is NULL\n");
       return;
     }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.73 2001/04/16 18:47:39 tikir Exp $
+// $Id: inst-sparc-solaris.C,v 1.74 2001/04/19 17:52:24 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2617,7 +2617,10 @@ bool pd_Function::checkInstPoints(const image *owner) {
 		if (adr > (funcEntry_->addr+funcEntry_->size)){
 		    //cerr << "WARN : function " << prettyName().string_of()
 		    //	 << " has branch target inside fn entry point, can't instrument" << endl;
-		    return false;
+		  //return false;
+
+                  // function can be instrumented if we relocate it
+                  isTrap = true; 
 	    } }
 
 	    for (u_int i = 0; i < funcReturns.size(); i++) {
@@ -2628,7 +2631,11 @@ bool pd_Function::checkInstPoints(const image *owner) {
 		        //cerr << "WARN : function " << prettyName().string_of()
 		        //  << " has branch target inside fn return point, "
 		        //  << "can't instrument" << endl;
-		        return false;
+		      //return false;
+
+                      // function can be instrumented if we relocate it
+                      isTrap = true; 
+
 		} }
 	    }
 	}
@@ -2649,7 +2656,11 @@ bool pd_Function::checkInstPoints(const image *owner) {
     Address func_entry = funcEntry_->addr + funcEntry_->size; 
     for (u_int i = 0; i < funcReturns.size(); i++) {
 	if(func_entry >= funcReturns[i]->addr){
-	   return false;
+	  //return false;
+
+          // function can be instrumented if we relocate it 
+          isTrap = true; 
+
         }
 	if(i >= 1){ // check if return points overlap
 	    Address prev_exit = funcReturns[i-1]->addr+funcReturns[i-1]->size;  
@@ -2657,7 +2668,11 @@ bool pd_Function::checkInstPoints(const image *owner) {
 	        //cerr << "WARN : function " << prettyName().string_of()
 	        //     << " overlapping instrumentation points, can't instrument"
 	        //     << endl;
-		return false;
+	      //return false;
+
+              // function can be instrumented if we relocate it 
+              isTrap = true; 
+
 	    } 
 	}
     }
@@ -3090,18 +3105,33 @@ bool pd_Function::PA_attachOverlappingInstPoints(
           instr = next_inst_point->insnAtPoint();
           nexti = next_inst_point->insnAfterPoint();
           if (CallRestoreTC(instr, nexti) || 
-      	    JmpNopTC(instr, nexti, next_inst_point->iPgetAddress(), this)) continue;
-	}
-	  /*
+      	    JmpNopTC(instr, nexti, next_inst_point->iPgetAddress(), this)) {
 
-      // Only one instruction is needed to branch to an instPoint (i.e. ba,a),
-      // so there is no need to check for overlapping instPoints. Any
-      // overlapping instPoints will also be a tail call optimization.
-   
+             // This tail call optimization will be rewritten, eliminating the
+             // overlap, so we don't have to worry here about rewriting this
+             // as overlapping instPoints.
+             // Also, I added the i++ because we don't have to bother looking 
+             // for an overlap between the next_inst_point, and any instPoints 
+             // that may follow it (even one that is located at the very next 
+             // instruction). The reason for this is that when we relocate the 
+             // function, we will call installBaseTrampSpecial to generate the
+             // base tramp. The distance between the base tramp and the 
+             // relocated function will then be within the range
+             // of a branch insn, and only one instruction at the instPoint 
+             // will be relocated to the baseTramp (since the restore or nop
+             // will not also have a delay slot insn) which means that there 
+             // will be no conflict with next_inst_point overlapping another
+             // instPoint.  itai 
+             i++;
+
+             continue;
+          }
+	}
+
 	// check if inst point overlaps with next inst point....
 	int overlap = ((this_inst_point->iPgetAddress() + 
-	  this_inst_point->Size()) - next_inst_point->iPgetAddress());
-	if (overlap > 0) {
+ 	  this_inst_point->Size()) - next_inst_point->iPgetAddress());
+ 	if (overlap > 0) {
 	    // Inst point overlaps with next one.  Insert 
 	    //  InsertNops into PA Set AFTER instruction pointed to
 	    //  by inst point (Making sure that this does NOT break up 
@@ -3110,17 +3140,18 @@ bool pd_Function::PA_attachOverlappingInstPoints(
 	    //  2 inst points are located at exactly the same place or 
 	    //  1 is located in the delay slot of the other - it will NOT
 	    //  break up the 2 inst points in that case....
-	    int offset = (this_inst_point->iPgetAddress() - getAddress(0)) +
-	      sizeof(instruction); 
-	    offset = moveOutOfDelaySlot(offset, loadedCode, codeSize) - sizeof(instruction);
-	    InsertNops *nops = new InsertNops(this, offset, overlap);
-	    p->AddAlteration(nops);
+ 	    int offset = (this_inst_point->iPgetAddress() - getAddress(0)) +
+ 	                 sizeof(instruction); 
+ 	    offset = moveOutOfDelaySlot(offset, loadedCode, codeSize) - 
+                     sizeof(instruction);
+ 	    InsertNops *nops = new InsertNops(this, offset, overlap);
+ 	    p->AddAlteration(nops);
+
 #ifdef DEBUG_PA_INST
             cerr << " detected overlapping inst points : offset " << offset <<
-	      " overlap " << overlap << endl;
+ 	      " overlap " << overlap << endl;
 #endif
 	}
-	  */
     }
     return true;
 }
