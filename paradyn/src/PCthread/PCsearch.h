@@ -20,6 +20,9 @@
  * State information required throughout a search.
  *
  * $Log: PCsearch.h,v $
+ * Revision 1.9  1996/05/11 01:58:04  karavan
+ * fixed bug in PendingCost calculation.
+ *
  * Revision 1.8  1996/05/08 07:35:27  karavan
  * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
@@ -122,12 +125,12 @@ public:
       cout << CurrentSearchQueue << endl;
     }
   }
-  static int getNumActiveExperiments() {return numActiveExperiments;}
-  static void incrNumActiveExperiments() {numActiveExperiments++;}
-  static void decrNumActiveExperiments() {numActiveExperiments--;}
-  static void decrNumPendingSearches() {PendingSearches--;}
+  static int getNumActiveExperiments() {return PCsearch::numActiveExperiments;}
+  static void incrNumActiveExperiments() {PCsearch::numActiveExperiments += 1;}
+  static void decrNumActiveExperiments() {PCsearch::numActiveExperiments -= 1;}
+  static void decrNumPendingSearches() {PCsearch::PendingSearches -= 1;}
   static void initCostTracker();
-  static void clearPendingCost(float val) { PendingCost -= val; }
+  static void clearPendingCost(float val) { PCsearch::PendingCost -= val; }
 private:
   schState searchStatus;  // schNeverRun/schPaused/schRunning/schEnded
   unsigned phaseToken;          // identifier for phase of this search

@@ -21,6 +21,9 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.23  1996/05/11 01:58:01  karavan
+ * fixed bug in PendingCost calculation.
+ *
  * Revision 1.22  1996/05/08 13:37:09  naim
  * Minor changes to debugging information - naim
  *
@@ -577,7 +580,7 @@ filteredDataServer::printPendings()
   cout << "=============== " << endl;
   for (unsigned k = 0; k < Pendings.size(); k++) {
     if (Pendings[k].fil) {
-      cout << " mh:" << Pendings[k].mh << " f:" << Pendings[k].f << endl;
+      cout << " mh:" << Pendings[k].mh << " f:" << Pendings[k].f;
       if (Pendings[k].fil == NULL)
 	cout << " fil = NULL" << endl;
       else 
@@ -619,10 +622,6 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
   } 
 
   // is there already a pending request for this filter?
-  //**
-#ifdef PCDEBUG
-  printPendings();
-#endif
   for (unsigned k = 0; k < Pendings.size(); k++) {
     if ((Pendings[k].mh == mh) && (Pendings[k].f == f) && Pendings[k].fil) {
       subfilter = Pendings[k].fil;
@@ -650,6 +649,10 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
   if (!roomAtTheInn) {
     Pendings += newPending;
   }
+#ifdef PCDEBUG
+  printPendings();
+#endif
+
   makeEnableDataRequest (mh, f);
 #ifdef PCDEBUG
   // ---------------------  debug printing ----------------------------
@@ -717,6 +720,7 @@ filteredDataServer::newData (metricInstanceHandle mih,
     cout << "FDS unexpected data, mi handle = " << mih << endl;
   }
 #endif
+  //DataFilters.printStats();
 
 }
 

@@ -20,6 +20,9 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.46  1996/05/11 01:58:06  karavan
+ * fixed bug in PendingCost calculation.
+ *
  * Revision 1.45  1996/05/08 07:35:32  karavan
  * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
@@ -241,7 +244,6 @@ searchHistoryNode::enableReply (bool successful)
 {
   if (successful) {
     changeActive(true);
-    PCsearch::incrNumActiveExperiments();
 #ifdef PCDEBUG
     cout << "experiment started for node: " << nodeID << endl;
 #endif
@@ -250,7 +252,8 @@ searchHistoryNode::enableReply (bool successful)
     cout << "unable to start experiment for node: " << nodeID << endl;
 #endif
   }
-  PCsearch::clearPendingCost(getEstimatedCost());
+  float mycost = getEstimatedCost();
+  PCsearch::clearPendingCost(mycost);
   PCsearch::decrNumPendingSearches();
 }
 
@@ -260,7 +263,6 @@ searchHistoryNode::stopExperiment()
   assert (exp);
   exp->halt();
   changeActive(false);
-  PCsearch::decrNumActiveExperiments();
 }
 
 void 

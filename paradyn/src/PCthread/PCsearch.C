@@ -20,6 +20,9 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.15  1996/05/11 01:58:03  karavan
+ * fixed bug in PendingCost calculation.
+ *
  * Revision 1.14  1996/05/08 07:35:26  karavan
  * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
@@ -151,12 +154,13 @@ bool PCsearch::CurrentSearchPaused = false;
 costModule *PCsearch::costTracker = NULL;
 float PCsearch::PendingCost = 0.0;
 int PCsearch::PendingSearches = 0;
+
 //** this is currently being studied!!
 const float costFudge = 0.2;
 
 //** 
-const int MaxPendingSearches = 20;
-const int MaxActiveExperiments = 40;
+const int MaxPendingSearches = 30;
+const int MaxActiveExperiments = 50;
 //
 // remove from search queues and start up as many experiments as we can 
 // without exceeding our cost limit.  
@@ -167,16 +171,20 @@ PCsearch::expandSearch (sampleValue estimatedCost)
   bool costLimitReached = false;
   searchHistoryNode *curr;
   float newCost = 0.0;
+  float candidateCost = 0.0;
 
 #ifdef PCDEBUG
   cout << "total observed cost: " << estimatedCost << endl;
   cout << "cost limit: " << performanceConsultant::predictedCostLimit << endl;
-  cout << "numActiveExperiments: " << numActiveExperiments << endl;
+  cout << "numActiveExperiments: " << PCsearch::getNumActiveExperiments() << endl;
+  cout << "pendingEnables: " << PCsearch::PendingSearches << endl;
+  cout << "limit: " << (1-costFudge)*performanceConsultant::predictedCostLimit << endl;
+  cout << "pendingCost = " << PCsearch::PendingCost << endl;
 #endif
 
   // alternate between two queues for fairness
-  while (!costLimitReached && (PendingSearches < MaxPendingSearches) &&
-	 (numActiveExperiments < MaxActiveExperiments)) {
+  while (!costLimitReached && (PCsearch::PendingSearches < MaxPendingSearches) &&
+	 (PCsearch::getNumActiveExperiments() < MaxActiveExperiments)) {
     // switch queues for fairness, if possible; never use q if empty or that 
     // search is paused
     if (q == &CurrentSearchQueue) {
@@ -195,13 +203,14 @@ PCsearch::expandSearch (sampleValue estimatedCost)
 	  break;
     }
     curr = q->peek_first_data();
-    newCost += curr->getEstimatedCost();
-    if ((estimatedCost + newCost + PendingCost) > 
+    candidateCost = curr->getEstimatedCost();
+    if ((estimatedCost + newCost + candidateCost + PCsearch::PendingCost) > 
 	(1-costFudge)*performanceConsultant::predictedCostLimit) {
       costLimitReached = true;
     } else {
       curr->startExperiment(); 
-      PendingSearches++;
+      PCsearch::PendingSearches += 1;
+      newCost += candidateCost;
       q->delete_first();
     }
   }

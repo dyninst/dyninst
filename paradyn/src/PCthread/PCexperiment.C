@@ -20,6 +20,9 @@
  * The experiment class methods.
  * 
  * $Log: PCexperiment.C,v $
+ * Revision 1.10  1996/05/11 01:57:58  karavan
+ * fixed bug in PendingCost calculation.
+ *
  * Revision 1.9  1996/05/08 07:35:07  karavan
  * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
@@ -297,6 +300,8 @@ experiment::start()
   if (status) return true;
   assert(pcmih);
   pcmih->activate();
+  PCsearch::incrNumActiveExperiments();
+  status = true;
   //** need to distinguish here if PCmetricInst already running!!
   return false;
 }
@@ -304,9 +309,12 @@ experiment::start()
 void
 experiment::halt ()
 {
-  // to stop experiment, just turn off flow of data at the source
-  (mamaSearch->getDatabase())->endSubscription ((PCmetSubscriber)this, pcmih);
-  status = false;
+  if (status) {
+    PCsearch::decrNumActiveExperiments();
+    // to stop experiment, just turn off flow of data at the source
+    (mamaSearch->getDatabase())->endSubscription ((PCmetSubscriber)this, pcmih);
+    status = false;
+  }
 }
 
 void 
