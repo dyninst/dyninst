@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.16 2004/01/19 21:53:37 schendel Exp $
+// $Id: aix-ptrace.C,v 1.17 2004/02/07 18:33:59 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -173,21 +173,17 @@ Frame dyn_lwp::getActiveFrame()
 
 
 // See sol_proc.C for /proc version
-struct dyn_saved_regs *dyn_lwp::getRegisters() {
-    struct dyn_saved_regs *regs = new dyn_saved_regs();
-    
+bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {
     if (!lwp_id_) {
         // First, the general-purpose integer registers:
         
-        // Format of PT_READ_GPR ptrace call:
-        // -- pass the reg number (see <sys/reg.h>) as the 'addr' (3d param)
-        // -- last 2 params (4th and 5th) ignored
-        // -- returns the value, or -1 on error
-        //    but this leaves the question: what if the register really did contain -1; why
-        //    should that be an error?  So, we ignore what the man page says here, and
-        //    instead look at 'errno'
-        // Errors:
-        //    EIO --> 3d arg didn't specify a valid register (must be 0-31 or 128-136)
+        // Format of PT_READ_GPR ptrace call: -- pass the reg number (see
+        // <sys/reg.h>) as the 'addr' (3d param) -- last 2 params (4th and
+        // 5th) ignored -- returns the value, or -1 on error but this leaves
+        // the question: what if the register really did contain -1; why
+        // should that be an error?  So, we ignore what the man page says
+        // here, and instead look at 'errno' Errors: EIO --> 3d arg didn't
+        // specify a valid register (must be 0-31 or 128-136)
         
         errno = 0;
         for (unsigned i=0; i < 32; i++) {
@@ -201,15 +197,15 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
         
         // Next, the general purpose floating point registers.
         
-        // Format of PT_READ_FPR ptrace call: (it differs greatly from PT_READ_GPR,
-        // probably because the FPR registers are 64 bits instead of 32)
-        // -- 3d param ('address') is the location where ptrace will store the reg's value.
-        // -- 4th param ('data') specifies the fp reg (see <sys/reg.h>)
-        // -- last param (5th) to ptrace ignored
-        // Errors: returns -1 on error
-        //    EIO --> 4th arg didn't specify a valid fp register (must be 256-287)
-        // Note: don't ask me why, but apparantly a return value of -1 doesn't seem
-        //       to properly indicate an error; check errno instead.
+        // Format of PT_READ_FPR ptrace call: (it differs greatly from
+        // PT_READ_GPR, probably because the FPR registers are 64 bits
+        // instead of 32) -- 3d param ('address') is the location where
+        // ptrace will store the reg's value.  -- 4th param ('data')
+        // specifies the fp reg (see <sys/reg.h>) -- last param (5th) to
+        // ptrace ignored Errors: returns -1 on error EIO --> 4th arg didn't
+        // specify a valid fp register (must be 256-287) Note: don't ask me
+        // why, but apparantly a return value of -1 doesn't seem to properly
+        // indicate an error; check errno instead.
         
         for (unsigned i=0; i < 32; i++) {
             double value;
@@ -224,10 +220,10 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
             regs->fprs[i] = value;
         }
         
-        // Finally, the special registers.
-        // (See the notes on PT_READ_GPR above: pass reg # as 3d param, 4th & 5th ignored)
-        // (Only reg numbered 0-31 or 128-136 are valid)
-        // see <sys/reg.h>; FPINFO and FPSCRX are out of range, so we can't use them!
+        // Finally, the special registers.  (See the notes on PT_READ_GPR
+        // above: pass reg # as 3d param, 4th & 5th ignored) (Only reg
+        // numbered 0-31 or 128-136 are valid) see <sys/reg.h>; FPINFO and
+        // FPSCRX are out of range, so we can't use them!
         
         errno = 0;
         for (unsigned i=0; i < num_special_registers; i++) {
@@ -242,18 +238,22 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
     
     else {
         errno = 0;
-        if((P_ptrace(PTT_READ_GPRS, lwp_id_, (void *)regs->gprs, 0, 0) == -1) && errno) {
+        if((P_ptrace(PTT_READ_GPRS, lwp_id_, (void *)regs->gprs, 0, 0) == -1)
+           && errno)
+        {
             perror("ptrace PTT_READ_GPRS");
-            return NULL;
+            return false;
         }
         // Next, the general purpose floating point registers.
         // Again, we read as a block. 
         // ptrace(PTT_READ_FPRS, lwp, &buffer (at least 32*8=256), 0, 0);
         
-	errno = 0;
-        if((P_ptrace(PTT_READ_FPRS, lwp_id_, (void *)regs->fprs, 0, 0) == -1) && errno) {
+        errno = 0;
+        if((P_ptrace(PTT_READ_FPRS, lwp_id_, (void *)regs->fprs, 0, 0) == -1)
+           && errno)
+        {
             perror("ptrace PTT_READ_FPRS");
-            return NULL;
+            return false;
         }
         
         // We get the SPRs in a special structure. We'll then copy to
@@ -262,11 +262,14 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
         struct ptsprs spr_contents;
         
         errno = 0;
-        if((P_ptrace(PTT_READ_SPRS, lwp_id_, (void *)&spr_contents, 0, 0) == -1) && errno) {
+        if((P_ptrace(PTT_READ_SPRS, lwp_id_, (void *)&spr_contents, 0, 0)== -1)
+           && errno)
+        {
             perror("PTT_READ_SPRS");
-            return NULL;
+            return false;
         }
-        // Now we save everything out. List: IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR
+        // Now we save everything out. List: IAR, MSR, CR, LR, CTR, XER, MQ,
+        // TID, FPSCR
         regs->sprs[0] = spr_contents.pt_iar;
         regs->sprs[1] = spr_contents.pt_msr;
         regs->sprs[2] = spr_contents.pt_cr;
@@ -277,84 +280,83 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
         regs->sprs[7] = spr_contents.pt_reserved_0; // Match for TID, whatever that is
         regs->sprs[8] = spr_contents.pt_fpscr;
     }
-    return regs;
+    return true;
 }
 
 
 
-bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
-    if (!regs) return false;
-    
-  if (!lwp_id_) {
-    // First, the general-purpose registers:
-    // Format for PT_WRITE_GPR:
-    // 3d param ('address'): specifies the register (must be 0-31 or 128-136)
-    // 4th param ('data'): specifies value to store
-    // 5th param ignored.
-    // Returns 3d param on success else -1 on error.
-    // Errors:
-    //    EIO: address must be 0-31 or 128-136
-      // How's this for fun: ptrace returns the value the register is set to. If this 
-      // happens to be -1, we interpret it as failure (because -1 means failure). In
-      // this case, check the value of errno. But errno gets set on failure, not 
-      // success... so we need to manually reset it.
+bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) {
+   if (!lwp_id_) {
+      // First, the general-purpose registers:
+      // Format for PT_WRITE_GPR:
+      // 3d param ('address'): specifies the register (must be 0-31 or 128-136)
+      // 4th param ('data'): specifies value to store
+      // 5th param ignored.
+      // Returns 3d param on success else -1 on error.
+      // Errors:
+      //    EIO: address must be 0-31 or 128-136
+      // How's this for fun: ptrace returns the value the register is set
+      // to. If this happens to be -1, we interpret it as failure (because -1
+      // means failure). In this case, check the value of errno. But errno
+      // gets set on failure, not success... so we need to manually reset it.
 
-    errno = 0;
-    for (unsigned i=0; i < 32; i++) {
-        if (P_ptrace(PT_WRITE_GPR, proc_->getPid(), (int *)i, regs->gprs[i], 0) == -1) {
+      errno = 0;
+      for (unsigned i=0; i < 32; i++) {
+         if (P_ptrace(PT_WRITE_GPR, proc_->getPid(), (int *)i, regs.gprs[i], 0)
+             == -1)
+         {
             if (errno) {
-                perror("restoreRegisters PT_WRITE_GPR");
-                return false;
+               perror("restoreRegisters PT_WRITE_GPR");
+               return false;
             }
-        }
-    } 
-    
-    // Next, the floating-point registers:
-    // Format of PT_WRITE_FPR: (it differs from PT_WRITE_GPR, probably because
-    // FP registers are 8 bytes instead of 4)
-    // 3d param ('address'): address of the value to store
-    // 4th param ('data'): reg num (256-287)
-    // 5th param ignored
-    // returns -1 on error
-    // Errors:
-    //    EIO: reg num must be 256-287
-  
-    for (unsigned i=FPR0; i <= FPR31; i++) {
-        
-        if (P_ptrace(PT_WRITE_FPR, proc_->getPid(),
-                     (void *)&(regs->fprs[i-FPR0]), i, 0) == -1) {
+         }
+      } 
+      
+      // Next, the floating-point registers:
+      // Format of PT_WRITE_FPR: (it differs from PT_WRITE_GPR, probably
+      // because FP registers are 8 bytes instead of 4)
+      // 3d param ('address'): address of the value to store
+      // 4th param ('data'): reg num (256-287)
+      // 5th param ignored
+      // returns -1 on error
+      // Errors:
+      //    EIO: reg num must be 256-287
+      
+      for (unsigned i=FPR0; i <= FPR31; i++) {
+         if (P_ptrace(PT_WRITE_FPR, proc_->getPid(),
+                      (void *)&(regs.fprs[i-FPR0]), i, 0) == -1) {
             if (errno) {
-                perror("ptrace PT_WRITE_FPR");
-                cerr << "regnum was " << i << endl;
-                return false;
+               perror("ptrace PT_WRITE_FPR");
+               cerr << "regnum was " << i << endl;
+               return false;
             }
-        }
-    } 
-    
-    // Finally, special registers:
-    
-    for (unsigned i=0; i < num_special_registers; i++) {
-      if (P_ptrace(PT_WRITE_GPR, proc_->getPid(), 
-                   (void *)(special_register_codenums[i]), 
-                   regs->sprs[i], 0) == -1) {
-          if (errno) {
-              perror("ptrace PT_WRITE_GPR for a special register");
-              cerr << "regnum was " << special_register_codenums[i] << endl;
-              return false;
-          }
+         }
+      } 
+      
+      // Finally, special registers:
+      
+      for (unsigned i=0; i < num_special_registers; i++) {
+         if (P_ptrace(PT_WRITE_GPR, proc_->getPid(), 
+                      (void *)(special_register_codenums[i]), 
+                      regs.sprs[i], 0) == -1) {
+            if (errno) {
+               perror("ptrace PT_WRITE_GPR for a special register");
+               cerr << "regnum was " << special_register_codenums[i] << endl;
+               return false;
+            }
+         }
       }
-    }
-  }
-  else {
-      if (P_ptrace(PTT_WRITE_GPRS, lwp_id_, (void *)regs->gprs, 0, 0) == -1) {
-          perror("ptrace PTT_WRITE_GPRS");
-          return false;
+   }
+   else {
+      if (P_ptrace(PTT_WRITE_GPRS, lwp_id_, (void *)regs.gprs, 0, 0) == -1) {
+         perror("ptrace PTT_WRITE_GPRS");
+         return false;
       }
       // Next, the general purpose floating point registers.
       // ptrace(PTT_WRITE_FPRS, lwp, &buffer (at least 32*8=256), 0, 0);
-      if (P_ptrace(PTT_WRITE_FPRS, lwp_id_, (void *)regs->fprs, 0, 0) == -1) {
-          perror("ptrace PTT_WRITE_FPRS");
-          return false;
+      if (P_ptrace(PTT_WRITE_FPRS, lwp_id_, (void *)regs.fprs, 0, 0) == -1) {
+         perror("ptrace PTT_WRITE_FPRS");
+         return false;
       }
       
       // We get the SPRs in a special structure. We'll then copy to
@@ -365,22 +367,22 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
       // Restore. List: IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR
       ptrace(PTT_READ_SPRS, lwp_id_, (int *)&current_sprs, 0, 0);
       
-      saved_sprs.pt_iar = regs->sprs[0];
-      saved_sprs.pt_msr = regs->sprs[1];
-      saved_sprs.pt_cr = regs->sprs[2];
-      saved_sprs.pt_lr = regs->sprs[3];
-      saved_sprs.pt_ctr = regs->sprs[4];
-      saved_sprs.pt_xer = regs->sprs[5];
-      saved_sprs.pt_mq = regs->sprs[6];
-      saved_sprs.pt_reserved_0 = regs->sprs[7];
-      saved_sprs.pt_fpscr = regs->sprs[8];
+      saved_sprs.pt_iar = regs.sprs[0];
+      saved_sprs.pt_msr = regs.sprs[1];
+      saved_sprs.pt_cr = regs.sprs[2];
+      saved_sprs.pt_lr = regs.sprs[3];
+      saved_sprs.pt_ctr = regs.sprs[4];
+      saved_sprs.pt_xer = regs.sprs[5];
+      saved_sprs.pt_mq = regs.sprs[6];
+      saved_sprs.pt_reserved_0 = regs.sprs[7];
+      saved_sprs.pt_fpscr = regs.sprs[8];
       
       if (P_ptrace(PTT_WRITE_SPRS, lwp_id_, (void *)&saved_sprs, 0, 0) == -1) {
-          perror("PTT_WRITE_SPRS");
-          return false;
+         perror("PTT_WRITE_SPRS");
+         return false;
       }
-  }
-  return true;
+   }
+   return true;
 }
 
 bool dyn_lwp::changePC(Address loc, struct dyn_saved_regs *)
@@ -865,7 +867,6 @@ bool dyn_lwp::waitUntilStopped() {
       pdvector<procevent *> foundEvents;      
       bool gotEvent = getSH()->checkForProcessEvents(&foundEvents, getPid(),
                                                      false);
-      getSH()->beginEventHandling(foundEvents.size());
       procevent *ev = NULL;
       if(gotEvent) {
          if(foundEvents.size()) {
@@ -883,7 +884,7 @@ bool dyn_lwp::waitUntilStopped() {
          isStopped = true;
       }
       else {
-         if(!getSH()->handleProcessEventWithUnlock(*ev))
+         if(!getSH()->handleProcessEvent(*ev))
             fprintf(stderr, "handleProcessEvent failed!\n");
          delete ev;
          // if handleProcessEvent left the proc stopped, continue
@@ -1549,9 +1550,9 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
                   static bool in_trap_loop = false;
                   static int recurse_level = 0;
                   // Debug info
-                  dyn_saved_regs *regs;
-                  regs = proc->getRepresentativeLWP()->getRegisters();
-                  if (proc->previousSignalAddr() == regs->gprs[3]) {
+                  dyn_saved_regs regs;
+                  proc->getRepresentativeLWP()->getRegisters(&regs);
+                  if (proc->previousSignalAddr() == regs.gprs[3]) {
                       if (!in_trap_loop) {
                           fprintf(stderr, "Spinning to handle multiple traps caused by null library loads...\n");
                           in_trap_loop = true;
@@ -1583,7 +1584,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
                       fprintf(stderr, "Finished spinning, returning to normal processing.\n");
                       in_trap_loop = false;
                   }
-                  proc->setPreviousSignalAddr(regs->gprs[3]); 
+                  proc->setPreviousSignalAddr(regs.gprs[3]); 
                   break;
               case W_SFWTED:
                   // Fork
@@ -1672,7 +1673,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
     
     procevent *new_event = new procevent;
     new_event->proc = proc;
-    new_event->lwps.push_back(proc->getRepresentativeLWP());
+    new_event->lwp  = proc->getRepresentativeLWP();
     new_event->why  = why;
     new_event->what = what;
     new_event->info = info;
