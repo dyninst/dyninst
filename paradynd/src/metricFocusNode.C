@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.198 2001/09/05 19:06:39 schendel Exp $
+// $Id: metricFocusNode.C,v 1.199 2001/09/07 15:22:30 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -164,6 +164,7 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
   component_focus(component_foc), flat_name_(component_flat_name),
   aggregator(agg_op, getCurrSamplingRate()), _sentInitialActualValue(false),
   cumulativeValue(pdSample::Zero()), okayedToSample(false),
+  partsNeedingInitializing(true),
   id_(-1), originalCost_(timeLength::Zero()), proc_(p)
 {
 #if defined(MT_THREAD)
@@ -183,8 +184,8 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
   focus_(foc), flat_name_(cat_name), components(parts), 
   aggregator(aggregateOp(agg_op), getCurrSamplingRate()), 
   _sentInitialActualValue(false), cumulativeValue(pdSample::Zero()), 
-  okayedToSample(false), id_(-1), originalCost_(timeLength::Zero()), 
-  proc_(NULL)
+  okayedToSample(false), partsNeedingInitializing(true),
+  id_(-1), originalCost_(timeLength::Zero()), proc_(NULL)
 {
 /*
   unsigned p_size = parts.size();
@@ -2280,6 +2281,23 @@ ostream& operator<<(ostream&s, const metricDefinitionNode &m) {
 // that in the future we'll create a metric that it makes sense to send
 // an initial actual value.
 
+// The purpose of this call back function is to initialize the aggComponents
+// of the mdn's.  It loops through all of the top level AGG mdn's and will go
+// down the graph of mdn's from this AGG mdn if the flag returned by the
+// function childrenMdnNeedingInitializing indicates that there are child mdn
+// nodes (& their corresponding aggComponents) that haven't been initialized
+// (ie. the startTime and the initialActualValue haven't been initialized).
+// The childrenMdnNeedingInitializing is set when the mdn is first set up and
+// also by the addPart and addParts function when an mdn gets added to a
+// (parent) mdn.  In this case, all of the mdn's above the added mdn will get
+// this flag set.  This callback will then know to travel down the graph to
+// set the appropriate uninitialized mdn.  Because of the described data
+// structure and algorithm, there should be little cost of calling this
+// function in general, which occurs everytime a process is continued.  It's
+// true that this could initialize a mdn for a process that's not applicable
+// for a given mdn.  However, I don't think it's an issue.  Essentially,
+// mdn's will get added.  This function will get called after a process
+// continues and all mdn's added will get initialized with the current time.
 void mdnContinueCallback(timeStamp timeOfCont) {
   dictionary_hash_iter<unsigned,metricDefinitionNode*> iter=allMIs;
   for (; iter; iter++) {
@@ -2287,16 +2305,52 @@ void mdnContinueCallback(timeStamp timeOfCont) {
 
     sampleVal_cerr << "mdnContinueCallback: comparing mdn: " << mdn 
 		   << ", okayToSample: " << mdn->isOkayedToSample()
+		   << ", partsNeedingInit: " 
+		   << mdn->childrenMdnNeedingInitializing()
     		   << ", type: " << typeStr(mdn->getMdnType()) << "\n";
     // if not okayed for sampling, ie. the aggComponents have not yet been
     // installed, then don't set initial values yet
-    if(! mdn->isOkayedToSample())
+    if(!mdn->isOkayedToSample())
       continue;
-    if(! mdn->isStartTimeSet()) {
+    if(! mdn->isStartTimeSet())
       mdn->setStartTime(timeOfCont);
-    }
-    if(! mdn->isInitialActualValueSet()) {
+
+    if(!mdn->isInitialActualValueSet())
       mdn->setInitialActualValue(pdSample::Zero());
+
+    if(mdn->childrenMdnNeedingInitializing())
+      mdn->initChildrenMdnPartsWhereNeeded(timeOfCont, pdSample::Zero());
+
+    mdn->partsNeedingInitializing = false;
+  }
+}
+
+void metricDefinitionNode::setStartTime(timeStamp t, bool resetCompStartTime) {
+  mdnStartTime = t;
+  sampleVal_cerr << "setStartTime for mdn: " << this << " to " << t
+		 << ", type: " << typeStr(getMdnType()) << ", numComp: "
+		 << aggregator.numComponents() << ", numSamples: "
+		 << samples.size() << "\n"; 
+  for(unsigned i = 0; i < aggregator.numComponents(); i++) {
+    aggComponent *curComp = aggregator.getComponent(i);
+    if(resetCompStartTime)
+      curComp->resetInitialStartTime(t);
+    else if(! curComp->isInitialStartTimeSet()) {
+      // I guess could be set since order of mdn could be AGG-THR-COMP-PRIM
+      // so aggComp could be attempted to be initialized twice
+      sampleVal_cerr << "            for comp: " << curComp << ", time: " 
+		     << t << "\n";
+      curComp->setInitialStartTime(t);
+    }
+  }
+  // an aggComponent pointing up could be new and not initialized if 
+  // this is a new mdn added through addPart or addParts
+  for(unsigned u=0; u<samples.size() ; u++) {
+    aggComponent *curComp = samples[u];
+    if(! curComp->isInitialStartTimeSet()) {
+      curComp->setInitialStartTime(t);      
+      sampleVal_cerr << "                     for aggComp (up) " << curComp
+		     << "\n";
     }
   }
 }
@@ -2309,20 +2363,57 @@ void mdnContinueCallback(timeStamp timeOfCont) {
 // initial actual value.
 void metricDefinitionNode::setInitialActualValue(pdSample s) {
   mdnInitActualVal = s;
-  sampleVal_cerr << "setInitialActualValue() for mdn " << this << "\n";
+  sampleVal_cerr << "setInitialActualValue() for mdn " << this
+		 << ", numComp: " << aggregator.numComponents()
+		 << ", numSamples: " << samples.size() << "\n";
   for(unsigned i = 0; i < aggregator.numComponents(); i++) {
     aggComponent *curComp = aggregator.getComponent(i);
-    sampleVal_cerr << "                       for aggComp " << curComp 
-		   << "\n";
-    curComp->setInitialActualValue(s);
+    if(! curComp->isInitialActualValueSet()) {
+      // I guess could be set since order of mdn could be AGG-THR-COMP-PRIM
+      // so aggComp could be attempted to be initialized twice
+      sampleVal_cerr << "                       for aggComp " << curComp 
+		     << "\n";
+      curComp->setInitialActualValue(s);
+    }
   }
+  // an aggComponent pointing up could be new and not initialized if 
+  // this is a new mdn added through addPart or addParts
+  for(unsigned u=0; u<samples.size() ; u++) {
+    aggComponent *curComp = samples[u];
+    if(! curComp->isInitialActualValueSet()) {
+      curComp->setInitialActualValue(s);
+      sampleVal_cerr << "                     for aggComp (up) " << curComp
+		     << "\n";
+    }
+  }
+}
+
+void metricDefinitionNode::initChildrenMdnPartsWhereNeeded(timeStamp t, 
+							   pdSample s) {
+  sampleVal_cerr << "setChildrenStartTimeWhereNeeded- " << this << "\n";
   for(unsigned j=0; j<components.size(); j++) {
     metricDefinitionNode *compMdn = components[j];
+    sampleVal_cerr << "     compMdn: " << compMdn << ", initTimeSet: "
+	 << compMdn->isStartTimeSet() << "\n";
+
+    if(!compMdn->isStartTimeSet())
+      compMdn->setStartTime(t);
+
     if(! compMdn->isInitialActualValueSet())
       compMdn->setInitialActualValue(s);
-    else
-      sampleVal_cerr << "not calling setInitialActualVal for mdn " 
-		     << compMdn << "\n";
+  }
+  partsNeedingInitializing = false;
+
+  // need to handle these seperately so can unset partsNeedingInitializing
+  // for this mdn, there are cycles and this is the only way to 
+  // stop an infinite loop.
+  for(unsigned k=0; k<components.size(); k++) {
+    metricDefinitionNode *compMdn = components[k];
+    sampleVal_cerr << "     compMdn: " << compMdn << ", childMdnNeedingInit: "
+	 << compMdn->childrenMdnNeedingInitializing() << "\n";
+    
+    if(compMdn->childrenMdnNeedingInitializing())
+      compMdn->initChildrenMdnPartsWhereNeeded(t, s);
   }
 }
 
@@ -2337,26 +2428,6 @@ void metricDefinitionNode::updateAllAggInterval(timeLength width) {
   for (; iter; iter++) {
     metricDefinitionNode *mdn = iter.currval();
     mdn->updateAggInterval(width);
-  }
-}
-
-void metricDefinitionNode::setStartTime(timeStamp t, bool resetCompStartTime) {
-  mdnStartTime = t;
-  sampleVal_cerr << "setStartTime for mdn: " << this << " to " << t
-		 << ", type: " << typeStr(getMdnType()) << "\n"; 
-  for(unsigned i = 0; i < aggregator.numComponents(); i++) {
-    aggComponent *curComp = aggregator.getComponent(i);
-    if(resetCompStartTime)
-      curComp->resetInitialStartTime(t);
-    else
-      curComp->setInitialStartTime(t);
-    sampleVal_cerr << "            for comp: " << curComp << ", time: " 
-		   << t << "\n";
-  }
-  for(unsigned j=0; j<components.size(); j++) {
-    metricDefinitionNode *compMdn = components[j];
-    if(! compMdn->isStartTimeSet())
-      compMdn->setStartTime(t);
   }
 }
 
@@ -3598,6 +3669,17 @@ void metricDefinitionNode::updateWithDeltaValue(timeStamp startTime,
 		   << ", id: " << curParentMdn.getMId() << ", mdn- " 
 		   << curParentMdn.getFullName()
 		   << "  mdnStartTime: " << curParentMdn.getStartTime() <<"\n";
+    // For some reason the mdn graph can be like AGG->THR->COMP->PRIM->THR
+    // with a connection also of AGG->COMP ...  
+
+    // The AGG->THR I suppose works for the case where one is looking at a
+    // per thread metric and the AGG->COMP->PRIM->THR works for the case
+    // where the metric includes all of the threads.  I don't understand the
+    // purpose though of AGG->THR->COMP.  We don't want to batch samples
+    // through this path so ignore parents of THR_LEV when this mdn is a
+    // COMP_MDN.
+    if(mdn_type_ == COMP_MDN && curParentMdn.mdn_type_ == THR_LEV)
+      continue;
 
     // This can happen because even if the sample of the application
     // sent to PRIMITIVE mdn is after the creation of the AGG MDN,
@@ -3616,13 +3698,7 @@ void metricDefinitionNode::updateWithDeltaValue(timeStamp startTime,
 		   << ", val: " << value << "\n";
     curComp.addSamplePt(sampleTime, value);
 
-#if defined(MT_THREAD)
-    if ( !(mdn_type_ == COMP_MDN && curParentMdn.mdn_type_ == THR_LEV) ) {
-#endif
-      curParentMdn.tryAggregation();
-#if defined(MT_THREAD)
-    }
-#endif
+    curParentMdn.tryAggregation();
     sampleVal_cerr <<"  back in updateWithDeltaValue, finished handling agg#: "
 		   << u << ", *: " << &curParentMdn << ", id: " 
 		   << curParentMdn.getMId() << ", mdn- " 
@@ -4898,13 +4974,34 @@ void disableAllInternalMetrics() {
     }  
 }
 
+// will set the partsNeedingInitializing flag in current mdn and in all 
+// parent mdns
+void metricDefinitionNode::notifyMdnsOfNewParts() {
+  sampleVal_cerr << "notifyParentOfMdnsOfNewParts- " << this << "\n";
+  partsNeedingInitializing = true;
+  for (unsigned u = 0; u < aggregators.size(); u++) {
+    metricDefinitionNode &curParentMdn = *aggregators[u];
+    // if parent already notified, don't need to continue up tree
+    if(! curParentMdn.childrenMdnNeedingInitializing()) {
+      curParentMdn.notifyMdnsOfNewParts();
+    }
+  }
+}
 
 // ======================
 void metricDefinitionNode::addPart(metricDefinitionNode* mi)
 {
     components += mi;
     mi->aggregators += this; 
-    mi->samples += aggregator.newComponent();
+    aggComponent *newAggComp = aggregator.newComponent();
+    mi->samples += newAggComp;
+    sampleVal_cerr << "addPart- " << this << " adding mdn " << mi 
+		   << " aggComp: " << newAggComp << "\n";
+    notifyMdnsOfNewParts();
+    // it appears that the application doesn't need to be stopped when
+    // threads are captured and added by daemon, so emulate the starting
+    // of the "process" and thread ourself
+    mdnContinueCallback(getWallTime());
 }
 
 // for adding constraints primitives
@@ -4918,12 +5015,21 @@ void metricDefinitionNode::addPartDummySample(metricDefinitionNode* mi)
 #if defined(MT_THREAD)
 void metricDefinitionNode::addParts(vector<metricDefinitionNode*>& parts)
 {
+  sampleVal_cerr << "addParts- " << this << "\n";
   for (unsigned i=0;i<parts.size();i++) {
     metricDefinitionNode *mi = parts[i];
     components += mi;
     mi->aggregators += this; 
-    mi->samples += aggregator.newComponent();
+    aggComponent *newAggComp = aggregator.newComponent();
+    mi->samples += newAggComp;
+    sampleVal_cerr << "         adding mdn " << mi 
+		   << " aggComp: " << newAggComp << "\n";
   }
+  notifyMdnsOfNewParts();
+  // it appears that the application doesn't need to be stopped when
+  // threads are captured and added by daemon, so emulate the starting
+  // of the "process" and thread ourself
+  mdnContinueCallback(getWallTime());
 }
 
 void metricDefinitionNode::duplicateInst(metricDefinitionNode *mn1, 
