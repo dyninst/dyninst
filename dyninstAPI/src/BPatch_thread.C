@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.21 1999/06/18 21:44:38 hollings Exp $
+// $Id: BPatch_thread.C,v 1.22 1999/07/07 16:02:17 zhichen Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -822,8 +822,14 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
 		      false, // XXX = calculate cost - is this what we want?
 		      BPatch_thread::oneTimeCodeCallbackDispatch, // Callback
 		      NULL, // User data
+#if defined(MT_THREAD)
+		      -1,   // This isn't a metric definition - we shouldn't
+		      -1,   // really have this parameter in the API.
+		      false);  
+#else
 		      -1);  // This isn't a metric definition - we shouldn't
 			    // really have this parameter in the API.
+#endif
 
     waitingForOneTimeCode = true;
 			    
