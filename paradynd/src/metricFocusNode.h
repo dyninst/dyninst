@@ -43,6 +43,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.37  1996/08/20 19:03:17  lzheng
+ * Implementation of moving multiple instructions sequence and
+ * Splitting the instrumentation into two phases
+ *
  * Revision 1.36  1996/08/16 21:19:24  tamches
  * updated copyright for release 1.1
  *
@@ -159,7 +163,7 @@ public:
      return *this;
   }
 
-  bool insertInstrumentation();
+  bool insertInstrumentation(returnInstance *&retInstance);
   void disable(const vector<unsigned> &pointsToCheck);
   float cost();
 
@@ -216,6 +220,7 @@ public:
 
   bool nonNull() { return (requests.size() || data.size()); }
   bool insertInstrumentation();
+  bool checkAndInstallInstrumentation();
   float cost();
   float originalCost() const { return originalCost_; }
 
@@ -246,6 +251,7 @@ private:
   bool			aggregate_;
   int aggOp; // the aggregate operator
   bool			inserted_;
+  bool                  installed_;
   string met_;			// what type of metric
   vector< vector<string> > focus_;
   string flat_name_;
@@ -258,6 +264,7 @@ private:
   vector<dataReqNode*>	data;
 
   vector<instReqNode> requests;
+  vector<returnInstance *> returnInsts;
   sampleValue cumulativeValue; // cumulative value for this metric
 
   // which metricDefinitionNode depend on this value.
