@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.31 1994/07/22 19:20:12 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.32 1994/07/26 19:58:35 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.31  1994/07/22 19:20:12  hollings
+ * Revision 1.32  1994/07/26 19:58:35  hollings
+ * added CMMDhostless variable.
+ *
+ * Revision 1.31  1994/07/22  19:20:12  hollings
  * moved computePauseTimeMetric to machine specific area.
  *
  * Revision 1.30  1994/07/21  01:34:19  hollings
@@ -516,8 +519,11 @@ int startCollecting(resourceList l, metric m)
 {
     float cost;
     metricInstance mi;
+    extern Boolean CMMDhostless;
     extern double currentPredictedCost;
     extern void printResourceList(resourceList);
+
+    if (CMMDhostless == TRUE) return(-1);
 
     mi = createMetricInstance(l, m);
     if (!mi) return(-1);
@@ -526,15 +532,15 @@ int startCollecting(resourceList l, metric m)
     mi->originalCost = cost;
 
     currentPredictedCost += cost;
-    sprintf(errorLine, "*** metric cost = %f\n", cost);
-    logLine(errorLine);
+    // sprintf(errorLine, "*** metric cost = %f\n", cost);
+    // logLine(errorLine);
 
     mi->insertInstrumentation();
 
-    sprintf(errorLine, "enable of %s for RL =", getMetricName(m));
-    logLine(errorLine);
-    printResourceList(l);
-    logLine("\n");
+    // sprintf(errorLine, "enable of %s for RL =", getMetricName(m));
+    // logLine(errorLine);
+    // printResourceList(l);
+    // logLine("\n");
 
     // collect some stats.
     metResPairsEnabled++;

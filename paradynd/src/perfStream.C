@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.23 1994/07/15 04:19:12 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.24 1994/07/26 20:01:14 hollings Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.23  1994/07/15 04:19:12  hollings
+ * Revision 1.24  1994/07/26 20:01:14  hollings
+ * added CMMDhostless variable.
+ *
+ * Revision 1.23  1994/07/15  04:19:12  hollings
  * moved dyninst stats to stats.C
  *
  * Revision 1.22  1994/07/14  23:30:30  hollings
@@ -204,8 +207,9 @@ extern void forkProcess(traceHeader *hr, traceFork *fr);
 extern void processArchDependentTraceStream();
 extern void createResource(traceHeader *header, struct _newresource *res);
 extern void newAssoc(process *proc, char *a, char *t, char *k, char *v);
-
 extern "C" Boolean synchronousMode;
+
+Boolean CMMDhostless;
 Boolean synchronousMode;
 Boolean firstSampleReceived;
 
@@ -342,6 +346,7 @@ void processTraceStream(process *curr)
 	    case TR_MULTI_FORK:
 		printf("got TR_MULTI_FORK record\n");
 		logLine("got TR_MULTI_FORK record\n");
+		CMMDhostless = TRUE;
 		forkNodeProcesses(curr, &header, (traceFork *) recordData);
 		break;
 
