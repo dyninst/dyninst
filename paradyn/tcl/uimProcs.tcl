@@ -1,6 +1,9 @@
 # utilities for UIM tcl functions
 # $Log: uimProcs.tcl,v $
-# Revision 1.13  1996/02/21 22:35:58  tamches
+# Revision 1.14  1996/04/05 21:04:27  naim
+# Chaging the way grabs are done to try to make sure they don't fail - naim
+#
+# Revision 1.13  1996/02/21  22:35:58  tamches
 # created mkDialogWindowTitle
 # revamped showError to eliminate duplicates (when empty-string 2d
 # arg is passed) while generally displaying multiple errors in the
@@ -97,7 +100,8 @@ proc mkDialogWindow {w} {
     wm title $w "Dialog box"
     wm iconname $w "Dialog"
     wm geometry $w +425+300
-    grab $w
+    tkwait visibility $w
+    grab -global $w
     focus $w
     return $w
 }
@@ -108,7 +112,8 @@ proc mkDialogWindowTitle {w theTitle} {
     wm title $w $theTitle
     wm iconname $w $theTitle
     wm geometry $w +425+300
-    grab $w
+    tkwait visibility $w
+    grab -global $w
     focus $w
     return $w
 }
