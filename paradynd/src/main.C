@@ -43,6 +43,12 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.62  1997/05/07 19:01:15  naim
+ * Getting rid of old support for threads and turning it off until the new
+ * version is finished. Additionally, new superTable, baseTable and superVector
+ * classes for future support of multiple threads. The fastInferiorHeap class has
+ * also changed - naim
+ *
  * Revision 1.61  1997/03/29 02:08:53  sec
  * Changed the daemon poe to mpi
  *
@@ -156,7 +162,7 @@ pdRPC *tp;
 #ifdef PARADYND_PVM
 #include "pvm_support.h"
 extern "C" {
-#include "pvm3.h"
+#include <pvm3.h>
 }
 #endif     
 

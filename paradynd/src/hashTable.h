@@ -1,3 +1,5 @@
+// hashTable.h
+
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -39,59 +41,29 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * Generate all the templates in one file.
- *
- */
+#ifndef _HASH_TABLE_H_
+#define _HASH_TABLE_H_
 
-#pragma implementation "Pair.h"
-#include "util/h/Pair.h"
-
-#pragma implementation "Vector.h"
-#include "util/h/Vector.h"
-
-#pragma implementation "Symbol.h"
-#include "util/h/Symbol.h"
-
-#include "util/h/String.h"
-
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/dyninstP.h"
-#include "dyninstAPI/src/ast.h"
+#include "util/h/Dictionary.h"
 #include "dyninstAPI/src/util.h"
-#include "util/h/Object.h"
 
-template class  vector<pdThread *>;
-template class  vector<reg>;
-template class  vector<bool>;
-template class  vector<AstNode>;
-template class  vector<AstNode *>;
-template class  vector<Symbol*>;
-template class  vector<Symbol>;
-template class  vector<float>;
-template class  vector<heapItem*>;
-template class  vector<image*>;
-template class  vector<instMapping*>;
-template class  vector<instPoint *>;
-template class  vector<int>;
-template class  vector<instruction>;
-template class  vector<metricDefinitionNode *>;
-template class  vector<module *>;
-template class  vector<pdmodule *>;
-template class  vector<function_base*>;
-template class  vector<pd_Function*>;
-template class  vector<process*>;
-template class  vector<string>;
-template class  vector<sym_data>;
-template class  vector<unsigned>;
-template class  vector<disabledItem>;
-template class  vector<unsigVecType>;
-template class  vector<vector<string> >;
-template class  vector<double>;
-template class  vector<point *>;
-template class  vector<instInstance *>;
-template class  vector<returnInstance *>;             //XXX
-template class  vector<relocatedFuncInfo *>; 
+class hashTable {
+  public:
+    hashTable(unsigned size, unsigned initial_free_size, unsigned initial_free_elem);
+    hashTable(hashTable *src); // fork ctor
+    unsigned add(unsigned id); 
+    void remove(unsigned id);
+    void addToFreeList(unsigned from, unsigned how_many);
+    unsigned getMapId(unsigned id) 
+    {
+      assert(mapTable.defines(id));
+      return(mapTable[id]); 
+    }
+  private:
+    unsigned tableSize;
+    dictionary_hash<unsigned, unsigned> mapTable;
+    vector<bool> tableUsage;
+    vector<unsigned> freeList;
+};
+
+#endif

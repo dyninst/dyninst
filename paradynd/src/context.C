@@ -43,6 +43,12 @@
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.54  1997/05/07 19:01:45  naim
+ * Getting rid of old support for threads and turning it off until the new
+ * version is finished. Additionally, new superTable, baseTable and superVector
+ * classes for future support of multiple threads. The fastInferiorHeap class has
+ * also changed - naim
+ *
  * Revision 1.53  1997/03/29 02:07:35  sec
  * Debugging stuff
  *
@@ -85,6 +91,7 @@
  */
 
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/pdThread.h"
 #include "dyninstAPI/src/process.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -99,6 +106,7 @@
 #include "dyninstAPI/src/os.h"
 #include "paradynd/src/showerror.h"
 #include "paradynd/src/costmetrics.h"
+#include "paradynd/src/hashTable.h"
 
 extern vector<process*> processVec;
 
@@ -118,10 +126,12 @@ extern process *findProcess(int); // should become a static method of class proc
 
 //timeStamp getCurrentTime(bool);
 
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+
 void createThread(traceThread *fr)
 {
-    Thread *tp;
+    static bool firstTime=true;
+    pdThread *tp;
     process *parent=NULL;
 
     assert(fr);
@@ -136,18 +146,30 @@ void createThread(traceThread *fr)
                                 P_strdup(buffer.string_of()),
 			        0.0, "", MDL_T_STRING);
     // creating new thread
-    tp = new Thread(parent, fr->tid, fr->pos, rid);
+    tp = new pdThread(parent, fr->tid, fr->pos, rid);
     parent->threads += tp;
+    unsigned pd_pos;
+    if (firstTime) {
+      firstTime = false;
+      parent->threadMap->addToFreeList(1,MAX_NUMBER_OF_THREADS-1);
+    }
+    pd_pos = parent->threadMap->add(fr->tid);
+    tp->update_pd_pos(pd_pos);
 }
 
 void updateThreadId(traceThrSelf *fr)
 {
   process *proc = findProcess(fr->ppid);
   assert(proc);
-  Thread *thr = proc->threads[0];
+  pdThread *thr = proc->threads[0];
   assert(thr);
   thr->update_tid(fr->tid, fr->pos);
+  assert(proc->threadMap);
+  unsigned pd_pos;
+  pd_pos = proc->threadMap->add(fr->tid);
+  thr->update_pd_pos(pd_pos);
 }
+
 #endif
 
 unsigned instInstancePtrHash(instInstance * const &ptr) {
@@ -196,9 +218,7 @@ void forkProcess(int pid, int ppid, int trace_fd
 
 #ifdef SHM_SAMPLING
    // The following routines perform some assertion checks.
-   childProc->getInferiorIntCounters().forkHasCompleted();
-   childProc->getInferiorWallTimers().forkHasCompleted();
-   childProc->getInferiorProcessTimers().forkHasCompleted();
+   childProc->getTable().forkHasCompleted();
 #endif
 
 #ifdef FORK_EXEC_DEBUG

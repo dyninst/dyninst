@@ -118,16 +118,29 @@ template class  vector<shared_object *> ;
 #ifdef SHM_SAMPLING
 #include "fastInferiorHeap.C"
 #include "fastInferiorHeapHKs.h"
+
 template class vector<genericHK::trampRange>;
+template class vector<states>;
 
 template class fastInferiorHeap<intCounterHK, intCounter>;
-template class vector< fastInferiorHeap<intCounterHK, intCounter>::states >;
-
 template class fastInferiorHeap<wallTimerHK, tTimer>;
-template class vector< fastInferiorHeap<wallTimerHK, tTimer>::states >;
-
 template class fastInferiorHeap<processTimerHK, tTimer>;
-template class vector< fastInferiorHeap<processTimerHK, tTimer>::states >;
+template class vector< fastInferiorHeap<intCounterHK, intCounter> >;
+template class vector< fastInferiorHeap<wallTimerHK, tTimer> >;
+template class vector< fastInferiorHeap<processTimerHK, tTimer> >;
+
+#include "baseTable.C"
+template class baseTable<intCounterHK, intCounter>;
+template class baseTable<wallTimerHK, tTimer>;
+template class baseTable<processTimerHK, tTimer>;
+
+#include "superVector.C"
+template class superVector<intCounterHK, intCounter>;
+template class superVector<wallTimerHK, tTimer>;
+template class superVector<processTimerHK, tTimer>;
+template class vector<superVector<intCounterHK, intCounter> *>;
+template class vector<superVector<wallTimerHK, tTimer> *>;
+template class vector<superVector<processTimerHK, tTimer> *>;
 #endif
 
 #include "util/src/vectorSet.C"
@@ -136,9 +149,6 @@ template class vectorSet<process::inferiorRPCinProgress>;
 
 #include "fastInferiorHeapMgr.h"
 template class vector<fastInferiorHeapMgr::oneHeapStats>;
-
-/* ***************************************************************************** */
-
 
 #ifdef BPATCH_LIBRARY
 template class dictionary_hash<string, BPatch_type *>;

@@ -41,6 +41,12 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.42  1997/05/07 19:02:53  naim
+ * Getting rid of old support for threads and turning it off until the new
+ * version is finished. Additionally, new superTable, baseTable and superVector
+ * classes for future support of multiple threads. The fastInferiorHeap class has
+ * also changed - naim
+ *
  * Revision 1.41  1997/04/29 16:58:50  buck
  * Added features to dyninstAPI library, including the ability to delete
  * inserted snippets and the start of type checking.
@@ -139,6 +145,7 @@
  */
 
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/pdThread.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
@@ -191,7 +198,7 @@ registerSpace::registerSpace(int deadCount, int *dead, int liveCount, int *live)
 	registers[i+deadCount].mustRestore = false;
 	registers[i+deadCount].needsSaving = true;
 	registers[i+deadCount].startsLive = true;
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
         if (registers[i+deadCount].number == REG_MT) {
           registers[i+deadCount].inUse = true;
           registers[i+deadCount].needsSaving = true;
@@ -308,7 +315,7 @@ void registerSpace::resetSpace() {
 	registers[i].inUse = false;
 	registers[i].mustRestore = false;
 	registers[i].needsSaving = registers[i].startsLive;
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
         if (registers[i].number == REG_MT) {
           registers[i].inUse = true;
           registers[i].needsSaving = true;
@@ -797,6 +804,7 @@ int AstNode::generateTramp(process *proc, char *i,
 
 bool isPowerOf2(int value, int &result)
 {
+  if (value<=0) return(false);
   if (value==1) {
     result=0;
     return(true);
@@ -1063,16 +1071,7 @@ reg AstNode::generateCode_phase2(process *proc,
               rs->keep_register(dest);
             }
 	} else if (oType == DataId) {
-#if defined(MT_THREAD)
-	    unsigned position;
-            Thread *thr = proc->threads[0];
-            position = thr->CTvector->getCTmapId((unsigned) oValue);
-            assert(position < thr->CTvector->size());
-            assert(thr->CTvector->getCTusagePos(position)==1);
-            (void) emit(loadConstOp, (reg) position, dest, dest, insn, base, noCost);
-#else
 	    (void) emit(loadConstOp, (reg) oValue, dest, dest, insn, base, noCost);
-#endif
 	} else if (oType == DataValue) {
 	    addr = (unsigned) oValue;
 
@@ -1282,7 +1281,114 @@ AstNode *createIf(AstNode *expression, AstNode *action)
 }
 
 #ifndef BPATCH_LIBRARY
-#if !defined(MT_THREAD)
+
+// Multithreaded case with shared memory sampling
+
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+
+AstNode *computeAddress(void *level, void *index, int type)
+{
+  AstNode *t0=NULL,*t1=NULL,*t2=NULL,*t3=NULL;
+  AstNode *t4=NULL,*t5=NULL,*t6=NULL,*t7=NULL;
+  AstNode *t8=NULL,*t9=NULL,*t10=NULL,*t11=NULL;
+  int tSize;
+
+  /* DYNINSTthreadTable[0][thr_self()] */
+  t0 = new AstNode(AstNode::DataReg, (void *)REG_MT);
+
+  /* Now we compute the offset for the corresponding level. We assume */
+  /* that the DYNINSTthreadTable is stored by rows - naim 4/18/97 */
+  if ((int)level != 0) {
+    tSize = sizeof(unsigned);
+    t1 = new AstNode(AstNode::Constant, (void *)MAX_NUMBER_OF_THREADS);
+    t2 = new AstNode(AstNode::Constant, level);
+    t3 = new AstNode(timesOp, t1, t2);
+    t4 = new AstNode(AstNode::Constant, (void *)tSize);
+    t5 = new AstNode(timesOp, t3, t4); /* offset including just level */
+
+    /* Given the level and tid, we compute the position in the thread */
+    /* table. */
+    t6 = new AstNode(plusOp, t0, t5);
+
+    /* We then read the address, which is really the base address of the */
+    /* vector of counters and timers in the shared memory segment. */
+    t7 = new AstNode(AstNode::DataIndir, t6); 
+  } else {
+    /* if level is 0, we don't need to compute the offset */
+    t7 = new AstNode(AstNode::DataIndir, t0);
+  }
+
+  /* Finally, using the index as an offset, we compute the address of the */
+  /* counter/timer. */
+  if (type==0) {
+    /* intCounter */
+    tSize = sizeof(intCounter);
+  } else {
+    /* Timer */
+    tSize = sizeof(tTimer);
+  }
+  t8 = new AstNode(AstNode::Constant, (void *)index);
+  t9 = new AstNode(AstNode::Constant, (void *)tSize);
+  t10 = new AstNode(timesOp, t8, t9);
+  t11 = new AstNode(plusOp, t7, t10); /* address of counter/timer */
+
+  removeAst(t0);
+  removeAst(t1);
+  removeAst(t2);
+  removeAst(t3);
+  removeAst(t4);
+  removeAst(t5);
+  removeAst(t6);
+  removeAst(t7);
+  removeAst(t8);
+  removeAst(t9);
+  removeAst(t10);
+  return(t11);
+}
+
+AstNode *createTimer(const string &func, void *level, void *index,
+                     vector<AstNode *> &ast_args)
+{
+  AstNode *t0=NULL,*t1=NULL;
+
+  t0 = computeAddress(level,index,1); /* 1 means tTimer */
+  ast_args += assignAst(t0);
+  removeAst(t0);
+  t1 = new AstNode(func, ast_args);
+  for (unsigned i=0;i<ast_args.size();i++) removeAst(ast_args[i]);  
+
+  return(t1);
+}
+
+AstNode *createCounter(const string &func, void *level, void *index, 
+                       AstNode *ast) 
+{ 
+  AstNode *t0=NULL,*t1=NULL,*t2=NULL,*t3=NULL;
+
+  t0 = computeAddress(level,index,0); /* 0 means intCounter */
+
+  if (func == "addCounter") {
+    t1 = new AstNode(AstNode::DataIndir, t0);
+    t2 = new AstNode(plusOp, t1, ast);
+    t3 = new AstNode(storeIndirOp, t0, t2);
+  } else if (func == "subCounter") {
+    t1 = new AstNode(AstNode::DataIndir, t0);
+    t2 = new AstNode(minusOp, t1, ast);
+    t3 = new AstNode(storeIndirOp, t0, t2);
+  } else if (func == "setCounter") {
+    t3 = new AstNode(storeIndirOp, t0, ast);
+  }
+
+  removeAst(t0);
+  removeAst(t1);
+  removeAst(t2);
+
+  return(t3);
+}
+
+#else
+
+// Single threaded case
 
 AstNode *createTimer(const string &func, void *dataPtr, 
                      vector<AstNode *> &ast_args)
@@ -1315,83 +1421,6 @@ AstNode *createCounter(const string &func, void *dataPtr,
    removeAst(t0);
    removeAst(t1);
    return(t2);
-}
-
-#else
-
-AstNode *computeAddress(void *dataPtr)
-{
-  AstNode *t0=NULL,*t1=NULL,*t2=NULL,*t3=NULL;
-  AstNode *t4=NULL,*t5=NULL,*t6=NULL;
-  int value;
-
-  /* We don't need to check wether dataPtr is NULL, because it represents */
-  /* an id rather than a pointer - naim 2/18/97                      */
-
-  /* DYNINSTthreadTable[thr_self()] */
-  /* make sure we read updated base address */
-  t0 = new AstNode(AstNode::DataReg, (void *)REG_MT);
-  t1 = new AstNode(AstNode::DataIndir, t0); 
-
-  /* Counter_Timer_Table[counter/timerId] */
-  value = sizeof(unsigned);
-  t2 = new AstNode(AstNode::DataId, (void *)dataPtr);
-  t3 = new AstNode(AstNode::Constant, (void *)value);
-  t4 = new AstNode(timesOp, t2, t3);
-  t5 = new AstNode(plusOp, t1, t4);
-  t6 = new AstNode(AstNode::DataIndir, t5);
-
-  /* address of Counter_Timer->value */
-  /* intCounter has value at position 0, so offset is 0 */
-  /* tTimer is different */
-
-  removeAst(t0);
-  removeAst(t1);
-  removeAst(t2);
-  removeAst(t3);
-  removeAst(t4);
-  removeAst(t5);
-  return(t6);
-}
-
-AstNode *createTimer(const string &func, void *dataPtr, 
-                     vector<AstNode *> &ast_args)
-{
-  AstNode *t0=NULL,*t1=NULL;
-
-  t0 = computeAddress(dataPtr);
-  ast_args += assignAst(t0);
-  removeAst(t0);
-  t1 = new AstNode(func, ast_args);
-  for (unsigned i=0;i<ast_args.size();i++) removeAst(ast_args[i]);  
-
-  return(t1);
-}
-
-AstNode *createCounter(const string &func, void *dataPtr, 
-                       AstNode *ast) 
-{ 
-  AstNode *t0=NULL,*t1=NULL,*t2=NULL,*t3=NULL;
-
-  t0 = computeAddress(dataPtr);
-
-  if (func == "addCounter") {
-    t1 = new AstNode(AstNode::DataIndir, t0);
-    t2 = new AstNode(plusOp, t1, ast);
-    t3 = new AstNode(storeIndirOp, t0, t2);
-  } else if (func == "subCounter") {
-    t1 = new AstNode(AstNode::DataIndir, t0);
-    t2 = new AstNode(minusOp, t1, ast);
-    t3 = new AstNode(storeIndirOp, t0, t2);
-  } else if (func == "setCounter") {
-    t3 = new AstNode(storeIndirOp, t0, ast);
-  }
-
-  removeAst(t0);
-  removeAst(t1);
-  removeAst(t2);
-
-  return(t3);
 }
 
 #endif

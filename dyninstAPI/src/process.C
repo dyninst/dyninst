@@ -39,9 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// developer mode internal metrics for debugging purposes
-unsigned memCT=0;
-
 extern "C" {
 #ifdef PARADYND_PVM
 int pvmputenv (const char *);
@@ -51,6 +48,7 @@ int pvmendtask();
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/pdThread.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/inst.h"
@@ -70,7 +68,7 @@ int pvmendtask();
 #include "paradynd/src/main.h"
 #endif
 
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
 extern void generateMTpreamble(char *insn, unsigned &base, process *proc);
 #endif
 
@@ -139,9 +137,9 @@ process *findProcess(int pid) { // make a public static member fn of class proce
 }
 
 #ifdef SHM_SAMPLING
-static unsigned numIntCounters=10000; // rather arbitrary; can we do better?
-static unsigned numWallTimers =10000; // rather arbitrary; can we do better?
-static unsigned numProcTimers =10000; // rather arbitrary; can we do better?
+static unsigned numIntCounters=100000; // rather arbitrary; can we do better?
+static unsigned numWallTimers =100000; // rather arbitrary; can we do better?
+static unsigned numProcTimers =100000; // rather arbitrary; can we do better?
 #endif
 
 bool waitingPeriodIsOver()
@@ -769,12 +767,10 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 	     pid(iPid) // needed in fastInferiorHeap ctors below
 #ifdef SHM_SAMPLING
 	     ,inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
-	     inferiorIntCounters((intCounter*)inferiorHeapMgr.getSubHeapInParadynd(0),
-				 this, iShmHeapStats[0].maxNumElems),
-	     inferiorWallTimers ((tTimer*)inferiorHeapMgr.getSubHeapInParadynd(1),
-				 this, iShmHeapStats[1].maxNumElems),
-	     inferiorProcessTimers((tTimer*)inferiorHeapMgr.getSubHeapInParadynd(2),
-				   this, iShmHeapStats[2].maxNumElems)
+             theSuperTable(this,
+			iShmHeapStats[0].maxNumElems,
+			iShmHeapStats[1].maxNumElems,
+			iShmHeapStats[2].maxNumElems)
 #endif
 {
     hasBootstrapped = false;
@@ -872,12 +868,10 @@ process::process(int iPid, image *iSymbols,
 		 pid(iPid)
 #ifdef SHM_SAMPLING
 	     ,inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
-	     inferiorIntCounters((intCounter*)inferiorHeapMgr.getSubHeapInParadynd(0),
-				 this, iShmHeapStats[0].maxNumElems),
-	     inferiorWallTimers ((tTimer*)inferiorHeapMgr.getSubHeapInParadynd(1),
-				 this, iShmHeapStats[1].maxNumElems),
-	     inferiorProcessTimers((tTimer*)inferiorHeapMgr.getSubHeapInParadynd(2),
-				   this, iShmHeapStats[2].maxNumElems)
+	     theSuperTable(this,
+			iShmHeapStats[0].maxNumElems,
+			iShmHeapStats[1].maxNumElems,
+			iShmHeapStats[2].maxNumElems)
 #endif
 {
    hasBootstrapped = false;
@@ -1001,20 +995,10 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 		 ) :
                      baseMap(ipHash) // could change to baseMap(parentProc.baseMap)
 #ifdef SHM_SAMPLING
-		     ,inferiorHeapMgr(parentProc.inferiorHeapMgr, applShmSegPtr,
-				      theShmKey, iShmHeapStats, iPid),
-		     inferiorIntCounters(parentProc.inferiorIntCounters,
-					 this,
-					 inferiorHeapMgr.getSubHeapInParadynd(0),
-					 inferiorHeapMgr.getSubHeapInApplic(0)),
-		     inferiorWallTimers(parentProc.inferiorWallTimers,
-					this,
-					inferiorHeapMgr.getSubHeapInParadynd(1),
-					inferiorHeapMgr.getSubHeapInApplic(1)),
-		     inferiorProcessTimers(parentProc.inferiorProcessTimers,
-					   this,
-					   inferiorHeapMgr.getSubHeapInParadynd(2),
-					   inferiorHeapMgr.getSubHeapInApplic(2))
+		     ,inferiorHeapMgr(parentProc.inferiorHeapMgr, 
+				      applShmSegPtr,
+				      theShmKey, iShmHeapStats, iPid)
+                     ,theSuperTable(parentProc.getTable(),this)
 #endif
 {
     // This is the "fork" ctor
@@ -1051,7 +1035,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 				);
 #endif
 
-    threads += new Thread(this);
+    threads += new pdThread(this);
     parent = &parentProc;
     
     bufStart = 0;
@@ -1123,10 +1107,17 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     signal_handler = parentProc.signal_handler;
     execed_ = false;
 
+   // threads...
+   for (unsigned i=0; i<parentProc.threads.size(); i++) {
+     threads += new pdThread(this,parentProc.threads[i]);
+   }
+
 #ifdef SHM_SAMPLING
 #ifdef sparc_sun_sunos4_1_3
    childUareaPtr = NULL;
 #endif
+   // thread mapping table
+   threadMap = new hashTable(parentProc.threadMap);
 #endif
 
    if (!attach()) {     // moved from ::forkProcess
@@ -1142,12 +1133,9 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
    shmsample_cerr << "process pid " << getPid() << ": welcome to register with inferiorAttachedAtPtr=" << inferiorAttachedAtPtr << endl;
 
    inferiorHeapMgr.registerInferiorAttachedAt(inferiorAttachedAtPtr);
-   inferiorIntCounters.setBaseAddrInApplic((intCounter*)
-					   inferiorHeapMgr.getSubHeapInApplic(0));
-   inferiorWallTimers.setBaseAddrInApplic((tTimer*)
-					  inferiorHeapMgr.getSubHeapInApplic(1));
-   inferiorProcessTimers.setBaseAddrInApplic((tTimer*)
-					     inferiorHeapMgr.getSubHeapInApplic(2));
+   theSuperTable.setBaseAddrInApplic(0,(intCounter*) inferiorHeapMgr.getSubHeapInApplic(0));
+   theSuperTable.setBaseAddrInApplic(1,(tTimer*) inferiorHeapMgr.getSubHeapInApplic(1));
+   theSuperTable.setBaseAddrInApplic(2,(tTimer*) inferiorHeapMgr.getSubHeapInApplic(2));
 }
 #endif
 
@@ -1272,7 +1260,13 @@ tp->resourceBatchMode(true);
 
         // initializing vector of threads - thread[0] is really the 
         // same process
-        ret->threads += new Thread(ret);
+        ret->threads += new pdThread(ret);
+
+        // initializing hash table for threads. This table maps threads to
+        // positions in the superTable - naim 4/14/97
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+        ret->threadMap = new hashTable(MAX_NUMBER_OF_THREADS,1,0);
+#endif
 
         // we use this flag to solve race condition between inferiorRPC and 
         // continueProc message from paradyn - naim
@@ -1381,7 +1375,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach) {
    processVec += theProc;
    activeProcesses++;
 
-   theProc->threads += new Thread(theProc);
+   theProc->threads += new pdThread(theProc);
    theProc->initDyninstLib();
 
 #ifndef BPATCH_LIBRARY
@@ -1457,20 +1451,14 @@ bool process::doMajorShmSample(time64 theWallTime) {
    bool result = true; // will be set to false if any processAll() doesn't complete
                        // successfully.
 
-   if (!inferiorIntCounters.doMajorSample  (theWallTime, 0))
+   if (!theSuperTable.doMajorSample  (theWallTime, 0))
       result = false;
-
-   if (!inferiorWallTimers.doMajorSample   (theWallTime, 0))
-      result = false;
-
-   if (!inferiorProcessTimers.doMajorSample(theWallTime, 0))
       // inferiorProcessTimers used to take in a non-dummy process time as the
       // 2d arg, but it looks like that we need to re-read the process time for
       // each proc timer, at the time of sampling the timer's value, to avoid
-      // ugly jagged spikes in histogram (i.e. to avoid incorrect sampled values).
-      //
-      // Come to think of it: the same may have to be done for the wall time too!!!
-      result = false;
+      // ugly jagged spikes in histogram (i.e. to avoid incorrect sampled 
+      // values).  Come to think of it: the same may have to be done for the 
+      // wall time too!!!
 
    const time64 theProcTime = getInferiorProcessCPUtime();
 
@@ -1488,13 +1476,7 @@ bool process::doMinorShmSample() {
    // samplings.
    bool result = true; // so far...
 
-   if (!inferiorIntCounters.doMinorSample())
-      result = false;
-
-   if (!inferiorWallTimers.doMinorSample())
-      result = false;
-
-   if (!inferiorProcessTimers.doMinorSample())
+   if (!theSuperTable.doMinorSample())
       result = false;
 
    return result;
@@ -2508,9 +2490,7 @@ void process::handleExec() {
       // reuses the shm seg (paradynd's already attached to it); resets applic-attached-
       // at to NULL.  Quite similar to the (non-fork) ctor, really.
 
-   inferiorIntCounters.handleExec();
-   inferiorWallTimers.handleExec();
-   inferiorProcessTimers.handleExec();
+   theSuperTable.handleExec();
 #endif
 
    inExec = false;
@@ -2779,7 +2759,7 @@ unsigned process::createRPCtempTramp(AstNode *action,
       return NULL;
    }
 
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
    generateMTpreamble((char*)insnBuffer,count,this);
 #endif
 
@@ -3380,108 +3360,4 @@ string process::getStatusAsString() const {
 
    assert(false);
    return "???";
-}
-
-bool CT::update(unsigned tableAddr)
-{
-    unsigned i;
-    if (CTfree.size()==0) {
-      if (CTvectorSize==0) {
-        CTvectorAddr = inferiorMalloc(proc, 
-                                      sizeof(unsigned)*CT_BLOCK_SIZE, 
-                                      dataHeap);
-        assert(CTvectorAddr);
-        CTvectorSize = CT_BLOCK_SIZE;
-        for (i=0;i<CT_BLOCK_SIZE;i++) {
-          CTfree += i;
-          CTusage += 0;
-        }
-      }
-      else {
-        unsigned tmp, *tmpCTvector;
-        int previousCTsize;
-        previousCTsize=sizeof(unsigned)*CTvectorSize;
-        tmpCTvector = (unsigned *) malloc(previousCTsize);
-        for (i=CTvectorSize;i<(CTvectorSize+CT_BLOCK_SIZE);i++)
-        {
-          CTfree += i;
-          CTusage += 0;
-        }
-        CTvectorSize += CT_BLOCK_SIZE;
-        tmp = inferiorMalloc(proc, 
-                             sizeof(unsigned)*CTvectorSize, 
-                             dataHeap);
-        assert(tmp);
-        bool aflag;
-        aflag=proc->readDataSpace((caddr_t) CTvectorAddr, 
-                                  previousCTsize,
-			          (caddr_t) tmpCTvector, true);
-        assert(aflag);
-        aflag=proc->writeDataSpace((caddr_t) tmp, previousCTsize,
-			           (caddr_t) tmpCTvector);
-        assert(aflag);
-        vector<unsigVecType> dummy;
-        inferiorFree(proc,CTvectorAddr,dataHeap,dummy);
-        CTvectorAddr = tmp;
-        free(tmpCTvector);
-      }
-      assert(CTvectorAddr);
-      assert(CTusage.size() == CTvectorSize);
-      proc->writeDataSpace((caddr_t) tableAddr, sizeof(unsigned),
-			   (caddr_t) &CTvectorAddr);
-    }
-    if (CTvectorSize > (unsigned)memCT) memCT = CTvectorSize;
-    assert(CTvectorSize >= CTfree.size());
-    assert(CTfree.size());
-    return(true);
-}
-
-void CT::add(unsigned CTid, unsigned &position)
-{
-    unsigned tmpSize;
-    assert(!CTmapTable.defines(CTid));
-    assert(CTfree.size());
-    CTmapTable[CTid] = CTfree[CTfree.size()-1];
-    position = CTmapTable[CTid];
-    tmpSize = CTfree.size();
-    CTfree.resize(tmpSize-1);
-    assert(position < CTusage.size());
-    assert(position < CTvectorSize);
-    assert(CTusage[position]==0);
-    CTusage[position]++;
-}
-
-void CT::remove(unsigned CTid, unsigned position)
-{
-    assert(position < CTusage.size());
-    CTusage[position]--;
-    CTfree += position;
-    CTmapTable.undef(CTid);
-}
-
-void CT::dup(unsigned CTid, unsigned mid, Thread *thr, unsigned &position)
-{
-    CTmapTable[CTid] = thr->CTvector->getCTmapId(mid);
-    position = CTmapTable[CTid];
-    CTmapTable.undef(mid);
-}
-
-void process::updateActiveCT(bool flag, CTelementType type)
-{
-  switch(type) {
-    case counter:
-      if (flag) numOfActCounters_is++;
-      else numOfActCounters_is--;
-      break;
-    case wallTimer:
-      if (flag) numOfActWallTimers_is++;
-      else numOfActWallTimers_is--;
-      break;
-    case procTimer:
-      if (flag) numOfActProcTimers_is++;
-      else numOfActProcTimers_is--;
-      break;
-    default:
-      assert(0);
-  }
 }

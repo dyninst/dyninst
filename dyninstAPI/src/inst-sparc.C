@@ -47,7 +47,7 @@ static dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
 trampTemplate baseTemplate;
 registerSpace *regSpace;
 
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
 // registers 8 to 15: out registers 
 // registers 16 to 22: local registers
 int deadList[] = {16, 17, 18, 19, 20, 21, 22 };
@@ -322,6 +322,12 @@ void initTramps()
     assert(regSpace);
 }
 
+//
+// For multithreaded applications and shared memory sampling, this routine 
+// will compute the address where the corresponding counter/timer vector for
+// level 0 is (by default). In the mini-tramp, if the counter/timer is at a
+// different level, we will add the corresponding offset - naim 4/18/97
+//
 void generateMTpreamble(char *insn, unsigned &base, process *proc)
 {
   AstNode *t1,*t2,*t3,*t4,*t5;;

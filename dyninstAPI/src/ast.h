@@ -44,6 +44,12 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.26  1997/05/07 19:02:55  naim
+ * Getting rid of old support for threads and turning it off until the new
+ * version is finished. Additionally, new superTable, baseTable and superVector
+ * classes for future support of multiple threads. The fastInferiorHeap class has
+ * also changed - naim
+ *
  * Revision 1.25  1997/04/29 16:58:51  buck
  * Added features to dyninstAPI library, including the ability to delete
  * inserted snippets and the start of type checking.
@@ -186,24 +192,10 @@ class AstNode {
 	AstNode(operandType ot, void *arg);
 	AstNode(AstNode *l, AstNode *r);
 
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
-    public:	
-	bool astFlag;  
-	void sysFlag(instPoint *location);    
-
-	void optRetVal(AstNode *opt);
-#endif
-
-    private:
-        AstNode(opCode); // like AstNode(opCode, const AstNode &, 
-                         //              const AstNode &)
-                         // but assumes "NULL" for both child ptrs
-    public:
         AstNode(opCode, AstNode *left); 
         // assumes "NULL" for right child ptr
         // needed by inst.C and stuff in ast.C
 
-    public:
         AstNode(operandType ot, AstNode *l);
 	AstNode(opCode ot, AstNode *l, AstNode *r);
         AstNode(const string &func, vector<AstNode *> &ast_args);
@@ -233,7 +225,18 @@ class AstNode {
                                           // counter, otherwise it decrements 
                                           // the counter.
         void printRC(void);
+
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+	bool astFlag;  
+	void sysFlag(instPoint *location);    
+
+	void optRetVal(AstNode *opt);
+#endif
+
     private:
+        AstNode(opCode); // like AstNode(opCode, const AstNode &, 
+                         //              const AstNode &)
+                         // but assumes "NULL" for both child ptrs
 	nodeType type;
 	opCode op;		    // only for opCode nodes
 	string callee;		    // only for call nodes
@@ -269,9 +272,16 @@ AstNode *assignAst(AstNode *src);
 void removeAst(AstNode *&ast);
 void terminateAst(AstNode *&ast);
 AstNode *createIf(AstNode *expression, AstNode *action);
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+AstNode *createCounter(const string &func, void *, void *, AstNode *arg);
+AstNode *createTimer(const string &func, void *, void *, 
+                     vector<AstNode *> &arg_args);
+AstNode *computeAddress(void *level, void *index, int type);
+#else
 AstNode *createCounter(const string &func, void *, AstNode *arg);
 AstNode *createTimer(const string &func, void *, 
                      vector<AstNode *> &arg_args);
+#endif
 unsigned emitFuncCall(opCode op, registerSpace *rs, char *i,unsigned &base, 
 		      const vector<AstNode *> &operands, const string &func,
 		      process *proc, bool noCost);

@@ -39,59 +39,57 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * Generate all the templates in one file.
- *
- */
+#ifndef _PDTHREAD_H_
+#define _PDTHREAD_H_
 
-#pragma implementation "Pair.h"
-#include "util/h/Pair.h"
-
-#pragma implementation "Vector.h"
-#include "util/h/Vector.h"
-
-#pragma implementation "Symbol.h"
-#include "util/h/Symbol.h"
-
-#include "util/h/String.h"
-
-#include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/dyninstP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "util/h/Object.h"
 
-template class  vector<pdThread *>;
-template class  vector<reg>;
-template class  vector<bool>;
-template class  vector<AstNode>;
-template class  vector<AstNode *>;
-template class  vector<Symbol*>;
-template class  vector<Symbol>;
-template class  vector<float>;
-template class  vector<heapItem*>;
-template class  vector<image*>;
-template class  vector<instMapping*>;
-template class  vector<instPoint *>;
-template class  vector<int>;
-template class  vector<instruction>;
-template class  vector<metricDefinitionNode *>;
-template class  vector<module *>;
-template class  vector<pdmodule *>;
-template class  vector<function_base*>;
-template class  vector<pd_Function*>;
-template class  vector<process*>;
-template class  vector<string>;
-template class  vector<sym_data>;
-template class  vector<unsigned>;
-template class  vector<disabledItem>;
-template class  vector<unsigVecType>;
-template class  vector<vector<string> >;
-template class  vector<double>;
-template class  vector<point *>;
-template class  vector<instInstance *>;
-template class  vector<returnInstance *>;             //XXX
-template class  vector<relocatedFuncInfo *>; 
+class pdThread {
+  public:
+    // This definition must be completed later when we get the result of a call
+    // to thr_self in the application. We are assuming that 
+    // 0 <= thr_self,tid < MAX_NUMBER_OF_THREADS - naim
+    // We are also assuming that the position in the paradynd super table
+    // for this thread is initially 0, until it gets updated with the record
+    // sent in DYNINSTinit - naim 4/15/97
+    pdThread(process *pproc) : tid(0), pos(0), pd_pos(0), rid(NULL) 
+    { 
+      proc = pproc; 
+      ppid = pproc->getPid();
+    }
+    pdThread(process *proc_, int tid_, unsigned pos_, resource *rid_ )
+    { 
+      proc = proc_; 
+      ppid = proc_->getPid();
+      tid = tid_;
+      pos = pos_;
+      rid = rid_;
+    }
+    pdThread(process *parent, pdThread *src) {
+      assert(src && parent);
+      tid = src->tid;
+      ppid = parent->getPid();
+      pos = src->pos;
+      pd_pos = src->pd_pos;
+      rid = src->rid;
+      proc = parent;
+    }
+    ~pdThread() {}
+    int get_tid() { return(tid); }
+    unsigned get_pos() { return(pos); }
+    unsigned get_pd_pos() { return(pd_pos); }
+    void update_tid(int id, unsigned p) { tid = id; pos = p; }
+    void update_pd_pos(unsigned p) { pd_pos = p; }
+    int get_ppid() { return(ppid); }
+    resource *get_rid() { return(rid); }
+    process *get_proc() { return(proc); }
+  private:
+    int tid;
+    int ppid;
+    unsigned pos;
+    unsigned pd_pos;
+    resource *rid;
+    process *proc;
+};
+
+#endif

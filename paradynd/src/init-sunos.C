@@ -41,6 +41,12 @@
 
 /*
  * $Log: init-sunos.C,v $
+ * Revision 1.18  1997/05/07 19:01:55  naim
+ * Getting rid of old support for threads and turning it off until the new
+ * version is finished. Additionally, new superTable, baseTable and superVector
+ * classes for future support of multiple threads. The fastInferiorHeap class has
+ * also changed - naim
+ *
  * Revision 1.17  1997/03/23 16:53:11  zhichen
  * based on process::pdFlavor, set initial inst accordingly.
  *
@@ -114,7 +120,7 @@ static AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);
 static AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
 static AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
 static AstNode *retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
 static AstNode *THRidArg = new AstNode(AstNode::Param, (void *) 5);
 #endif
 
@@ -135,7 +141,7 @@ bool initOS() {
   	initialRequests += new instMapping("_libc_fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
   }
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
   initialRequests += new instMapping("MY_thr_create", "DYNINSTthreadCreate", 
                                      FUNC_EXIT|FUNC_ARG, THRidArg);
 #endif

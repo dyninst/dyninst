@@ -43,6 +43,12 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.41  1997/05/07 19:02:58  naim
+ * Getting rid of old support for threads and turning it off until the new
+ * version is finished. Additionally, new superTable, baseTable and superVector
+ * classes for future support of multiple threads. The fastInferiorHeap class has
+ * also changed - naim
+ *
  * Revision 1.40  1997/04/14 00:21:47  newhall
  * removed class pdFunction and replaced it with base class function_base and
  * derived class pd_Function
@@ -935,7 +941,7 @@ registerSpace *regSpace;
 // Not really, actually.
 // r26, r25, r24, r23 are call arguments (in that order)
 // All are caller save registers
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
 int deadRegList[] = { 2, 23, 24, 25, 26 };
 #else
 int deadRegList[] = { 3, 2, 23, 24, 25, 26 };
@@ -1110,7 +1116,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 		   (temp->raw == LOCAL_POST_BRANCH) ||
 		   (temp->raw == LOCAL_POST_BRANCH_1) ||
 		   (temp->raw == GLOBAL_POST_BRANCH)) {
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
             if ((temp->raw == LOCAL_PRE_BRANCH) ||
                 (temp->raw == LOCAL_POST_BRANCH)) {
                 temp -= NUM_INSN_MT_PREAMBLE;

@@ -1,0 +1,222 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
+// baseTable.C
+// The superTable class consists of an array of superVectors
+
+#include <sys/types.h>
+#include <limits.h>
+#include "util/h/headers.h"
+#include "baseTable.h"
+#include "rtinst/h/rtinst.h" // for time64
+
+template <class HK, class RAW>
+baseTable<HK, RAW>::baseTable(process *proc, unsigned nColumns, unsigned nRows,
+			      unsigned level, unsigned iheapNumElems,
+			      unsigned isubHeapIndex):
+		    numberOfColumns(nColumns),
+		    numberOfRows(nRows),
+		    heapNumElems(iheapNumElems),
+		    subHeapIndex(isubHeapIndex),
+		    inferiorProcess(proc)
+{
+  for (unsigned i=level; i<level+nRows; i++) {
+    addRows(level,1);
+  }
+}
+
+template <class HK, class RAW>
+baseTable<HK, RAW>::baseTable(const baseTable<HK,RAW> *parentSuperTable,
+			      process *proc):
+		    numberOfColumns(parentSuperTable->numberOfColumns),
+		    numberOfRows(parentSuperTable->numberOfRows),
+		    heapNumElems(parentSuperTable->heapNumElems),
+		    subHeapIndex(parentSuperTable->subHeapIndex),
+		    inferiorProcess(proc)
+{
+  assert(parentSuperTable != NULL);
+  assert(numberOfRows == parentSuperTable->theBaseTable.size());
+  for (unsigned i=0; i<numberOfRows; i++) {
+    theBaseTable += new superVector<HK,RAW>(parentSuperTable->theBaseTable[i], inferiorProcess, subHeapIndex);
+    levelMap += parentSuperTable->levelMap[i];
+  }
+}
+
+template <class HK, class RAW>
+void baseTable<HK, RAW>::addRows(unsigned level, unsigned nRows)
+{
+  // we assume that it is valid to add nRows, i.e. maxNumberOfLevels in the superTable
+  // class is greater than or equal to level+nRows.
+  for (unsigned i=0; i<nRows; i++) {
+    theBaseTable += new superVector<HK, RAW>(inferiorProcess,heapNumElems,subHeapIndex,
+		 			     numberOfColumns);
+    levelMap += level+i;
+  } 
+}
+
+template <class HK, class RAW>
+baseTable<HK, RAW>::~baseTable() 
+{
+  for (unsigned i=0; i<theBaseTable.size(); i++) {
+    delete theBaseTable[i];
+  }
+}
+
+template <class HK, class RAW>
+bool baseTable<HK, RAW>::alloc(const RAW &iRawValue,
+			       const HK &iHouseKeepingValue,
+			       unsigned &allocatedIndex,
+			       unsigned &allocatedLevel,
+			       bool doNotSample)
+{
+  assert(theBaseTable.size() > 0);
+  assert(theBaseTable.size() == levelMap.size());
+
+  // we try to find a superVector where to place the new data element.
+  bool foundFreeLevel;
+  for (unsigned i=0; i<theBaseTable.size(); i++) {
+    assert(theBaseTable[i] != NULL);
+    allocatedLevel=levelMap[i];    
+    foundFreeLevel=theBaseTable[i]->alloc(iRawValue,iHouseKeepingValue,allocatedIndex,doNotSample);
+    if (foundFreeLevel) return(true);
+  }
+  // At this point, we don't have any free spot in the current allocated levels, so
+  // we need to add a new one, but the superTable class has to request it.
+  return(false);
+}
+
+template <class HK, class RAW>
+void baseTable<HK, RAW>::setBaseAddrInApplic(RAW *addr)
+{
+   for (unsigned i=0; i<theBaseTable.size(); i++) {
+     assert(theBaseTable[i]);
+     theBaseTable[i]->setBaseAddrInApplic(addr,levelMap[i]);
+   }
+}
+
+template <class HK, class RAW>
+bool baseTable<HK, RAW>::doMajorSample(time64 wallTime, time64 procTime)
+{
+   bool ok=true;
+   for (unsigned i=0; i<theBaseTable.size(); i++) {
+     ok = ok && theBaseTable[i]->doMajorSample(wallTime,procTime);
+   }
+   return(ok);
+}
+
+template <class HK, class RAW>
+bool baseTable<HK, RAW>::doMinorSample()
+{
+   bool ok=true;
+   for (unsigned i=0; i<theBaseTable.size(); i++) {
+     ok = ok && theBaseTable[i]->doMinorSample();
+   }
+   return(ok);
+}
+
+template <class HK, class RAW>
+RAW *baseTable<HK, RAW>::index2LocalAddr(unsigned position,
+					 unsigned allocatedIndex,
+					 unsigned allocatedLevel) const
+{
+  unsigned i;
+  for (i=0; i<levelMap.size(); i++) {
+    if (levelMap[i] == allocatedLevel) break;
+  }
+  assert(i<levelMap.size());
+  return(theBaseTable[i]->index2LocalAddr(position,allocatedIndex));
+}
+
+template <class HK, class RAW>
+RAW *baseTable<HK, RAW>::index2InferiorAddr(unsigned position,
+					    unsigned allocatedIndex,
+					    unsigned allocatedLevel) const
+{
+  unsigned i;
+  for (i=0; i<levelMap.size(); i++) {
+    if (levelMap[i] == allocatedLevel) break;
+  }
+  assert(i<levelMap.size());
+  return(theBaseTable[i]->index2InferiorAddr(position,allocatedIndex));
+}
+
+template <class HK, class RAW>
+void baseTable<HK, RAW>::initializeHKAfterFork(unsigned allocatedIndex, 
+					       unsigned allocatedLevel,
+					       const HK &iHouseKeepingValue)
+{
+  unsigned i;
+  for (i=0; i<levelMap.size(); i++) {
+    if (levelMap[i] == allocatedLevel) break;
+  }
+  assert(i<levelMap.size());
+  theBaseTable[i]->initializeHKAfterFork(allocatedIndex,iHouseKeepingValue);
+}
+
+template <class HK, class RAW>
+void baseTable<HK, RAW>::makePendingFree(unsigned allocatedIndex,
+					 unsigned allocatedLevel, 
+					 const vector<unsigned> &trampsUsing)
+{
+  unsigned i;
+  for (i=0; i<levelMap.size(); i++) {
+    if (levelMap[i] == allocatedLevel) break;
+  }
+  assert(i<levelMap.size());
+  theBaseTable[i]->makePendingFree(allocatedIndex,trampsUsing);
+}
+
+template <class HK, class RAW>
+void baseTable<HK, RAW>::handleExec()
+{
+   for (unsigned i=0; i<theBaseTable.size(); i++) {
+     theBaseTable[i]->handleExec();
+   }
+}
+
+
+template <class HK, class RAW>
+void baseTable<HK, RAW>::forkHasCompleted()
+{
+   for (unsigned i=0; i<theBaseTable.size(); i++) {
+     theBaseTable[i]->forkHasCompleted();
+   }
+}

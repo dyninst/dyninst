@@ -41,7 +41,7 @@
 
 #ifdef PARADYND_PVM
 extern "C" {
-#include "pvm3.h"
+#include <pvm3.h>
 }
 #include "pvm_support.h"
 #endif
@@ -258,7 +258,7 @@ void processTraceStream(process *curr)
 	   done_yet = true;
 	}
 	switch (header.type) {
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
 	    case TR_THREAD:
 	        createThread((traceThread *) ((void*)recordData));
                 break;

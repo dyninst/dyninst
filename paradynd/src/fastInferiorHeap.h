@@ -62,6 +62,7 @@
 
 #pragma interface
 
+#include "heapStates.h" // enum states
 #include "util/h/Vector.h"
 
 class process; // avoids need for an expensive #include
@@ -72,8 +73,6 @@ template <class HK, class RAW>
    // RAW is the same raw type used in the appl heap; presumably "int", etc.
 class fastInferiorHeap {
  private:
-   enum states {allocated, free, pendingfree, maybeAllocatedByFork};
-
    process *inferiorProcess;
       // ptr instead of ref due to include file problems (if this file is included w/in
       // class process then class process isn't fully defined when we reach this point
@@ -94,34 +93,25 @@ class fastInferiorHeap {
 
    RAW * baseAddrInParadynd;
 
-   vector<states> statemap; // one entry per value (allocated or not) in the appl.
-   vector<HK> houseKeeping; // one entry per value (allocated or not) in the appl.
-
-   unsigned firstFreeIndex;
-      // makes allocation quick; UINT_MAX --> no free elems in heap (but there could be
-      // pending-free items)
-
    // Keeps track of what needs sampling, needed to sort out major/minor sampling
    vector<unsigned> permanentSamplingSet; // all allocated indexes
    vector<unsigned> currentSamplingSet; // a subset of permanentSamplingSet
-
-   // Since we don't define these, making them private makes sure they're not used:
-   fastInferiorHeap &operator=(const fastInferiorHeap &);
+   // since we don't define them, make sure they're not used:
    fastInferiorHeap(const fastInferiorHeap &);
 
-   void reconstructPermanentSamplingSet();
+ public:   
+   fastInferiorHeap &operator=(const fastInferiorHeap &);
 
- public:
+   fastInferiorHeap(){};
 
    fastInferiorHeap(RAW *iBaseAddrInParadynd,
-                    process *iInferiorProcess,
-		    unsigned heapNumElems);
+                    process *iInferiorProcess);
       // Note that the ctor has no way to pass in the baseAddrInApplic because
       // the applic hasn't yet attached to the segment.  When the applic attaches
       // and tells us where it attached, we can call setBaseAddrInApplic() to fill
       // it in.
 
-   fastInferiorHeap(const fastInferiorHeap &parent, process *newProc,
+   fastInferiorHeap(process *newProc,
 		    void *paradynd_attachedAt,
 		    void *appl_attachedAt);
       // this copy-ctor is a fork()/dup()-like routine.  Call after a process forks.
@@ -131,17 +121,6 @@ class fastInferiorHeap {
 
   ~fastInferiorHeap();
 
-   void handleExec();
-      // call after the exec syscall has executed.  Basically we need to redo everything
-      // that we did in the (non-fork) constructor.  Well, some things don't change: the
-      // process ptr, the addr that paradynd attached at, the shm seg key.
-
-   void forkHasCompleted();
-      // call when a fork has completed (i.e. after you've called the fork ctor AND
-      // also metricDefinitionNode::handleFork, as forkProcess [context.C] does).
-      // performs some assertion checks, such as mi != NULL for all allocated HKs.
-      // also recalculates some things, such as the sampling sets.
-
    void setBaseAddrInApplic(RAW *addr) {
       // should call _very_ soon after the ctor, right after the applic has
       // attached to the shm segment.
@@ -149,86 +128,66 @@ class fastInferiorHeap {
       baseAddrInApplic = addr;
    }
 
+   void addToPermanentSamplingSet(unsigned lcv)
+   {
+      permanentSamplingSet += lcv;
+   }
+
+   void updateCurrentSamplingSet() {
+      currentSamplingSet = permanentSamplingSet;
+   }
+
+   unsigned getPermanentSamplingSetSize() {
+      return(permanentSamplingSet.size());
+   }
+
+   void clearPermanentSamplingSet() {
+      permanentSamplingSet.resize(0);
+   }
+
+   void clearCurrentSamplingSet() {
+      currentSamplingSet.resize(0);
+   }
+
    RAW *getBaseAddrInApplic() const {
       assert(baseAddrInApplic != NULL);
       return baseAddrInApplic;
    }
 
+   RAW *getBaseAddrInParadynd() const {
+      assert(baseAddrInParadynd != NULL);
+      return baseAddrInParadynd;
+   }
+
    RAW *index2InferiorAddr(unsigned allocatedIndex) const {
       assert(baseAddrInApplic != NULL);
-      assert(allocatedIndex < statemap.size());    
       return baseAddrInApplic + allocatedIndex;
    }
 
    RAW *index2LocalAddr(unsigned allocatedIndex) const {
       assert(baseAddrInParadynd != NULL);
-      assert(allocatedIndex < statemap.size());    
       return baseAddrInParadynd + allocatedIndex;
    }
 
-   void initializeHKAfterFork(unsigned index, const HK &iHKValue);
-      // After a fork, the hk entry for this index will be copied, which is probably
-      // not what you want.  (We don't provide a param for the raw item since you
-      // can write the raw item easily enough by just writing directly to shared
-      // memory...see baseAddrInParadynd.)
-                            
-   bool alloc(const RAW &iRawValue, const HK &iHouseKeepingValue,
-	      unsigned &allocatedIndex);
-      // Allocate an entry in the inferior heap and initialize its raw value with
-      // "iRawValue" and its housekeeping value with "iHouseKeepingValue".
-      // Returns true iff successful; false if not (because inferior heap was full).
-      // If true, then also sets "allocatedIndex" to the index (0 thru heapNumElems-1)
-      // that was allocated in param "allocatedIndex"; this info is probably needed by
-      // the caller.  For example, the caller might be allocating a mini-tramp
-      // that calls startTimer(); it needs "allocatedIndex" to calculate the
-      // address of the timer structure (which is passed to startTimer).
+   // Reads data values (in the shared memory heap) and processes allocated
+   // item by calling HK::perform() on it.
+   // Note: doesn't pause the application; instead, reads from shared memory.
+   // returns true iff the sample completed successfully.
+   bool doMajorSample(time64, time64, 
+		      const vector<states> &statemap,
+		      const vector<HK> &houseKeeping);
 
-      // Note: we write to the inferior heap, in order to fill in the initial value.
-      //       Since the inferior heap is in shared memory, we don't need to write it
-      //       using /proc lseek/write() combo.  Which means the inferior process
-      //       doesn't necessarily need to be paused (which is slow as hell to do).
-      //       This is nice, but remember:
-      //       (1) /proc writes are still needed at least for patching code to
-      //       cause a jump to a base tramp.  Conceivably though, the base tramp and
-      //       all mini-tramps (and of course counters & timers they write to) can be
-      //       in shared-memory, which is nice.
-      //       (2) if you're not going to pause the application, beware of race
-      //       conditions.  A nice touch is to create backwards; i.e. allocate the
-      //       timer/counter in shared memory, then the mini-tramp in shared memory,
-      //       then the base tramp in shared memory if need be, then initialize the
-      //       code contents of the tramps, and only then patch up some function
-      //       to call our base tramp (the last step using a pause; /proc write; unpause
-      //       sequence).
+   // call every once in a while after a call to doMajorSample returned false.
+   // It'll resample and return true iff the resample finished the job. We keep
+   // around state (currentSamplingSet) to keep track of what needs resampling;
+   // this is reset to 'everything' (permanentSamplingSet) upon a call to
+   // doMajorSample() and is reduced by that routine and by calls to 
+   // doMinorSample().
+   bool doMinorSample(const vector<states> &statemap,
+                      const vector<HK> &houseKeeping);
 
-   void makePendingFree(unsigned ndx, const vector<unsigned> &trampsUsing);
-      // "free" an item in the shared-memory heap.  More specifically, change its
-      // statemap type from allocated to pending-free.  A later call to garbageCollect()
-      // is the only way to truly free the item.  An item in pending-free
-      // state will no longer be processed by processAll().
-      // Note that we don't touch the shared-memory heap; we just play around with
-      // statemap meta-data stuff.  Of course that doesn't mean that it's okay to call
-      // this with the expectation that the raw item will still be written to, except
-      // perhaps by a tramp that is itself in the process of being freed up.
+   void reconstructPermanentSamplingSet(const vector<states> &statemap);
 
-   void garbageCollect(const vector<unsigned> &PCs);
-      // called by alloc() if it needs memory, but it's a good idea to call this
-      // periodically; progressive preemptive garbage collection can help make
-      // allocations requests faster.
-      // The parameter is a stack trace in the inferior process, containing PC-register
-      // values.
-
-   bool doMajorSample(time64 wallTime, time64 procTime);
-      // Reads data values (in the shared memory heap) and processes allocated item
-      // by calling HK::perform() on it.
-      // Note: doesn't pause the application; instead, reads from shared memory.
-      // returns true iff the sample completed successfully.
-
-   bool doMinorSample();
-      // call every once in a while after a call to doMajorSample() returned false.
-      // It'll resample and return true iff the re-sample finished the job.  We keep
-      // around state (currentSamplingSet) to keep track of what needs re-sampling;
-      // this is reset to 'everything' (permanentSamplingSet) upon a call to
-      // doMajorSample() and is reduced by that routine and by calls to doMinorSample().
 };
 
 #endif

@@ -39,59 +39,75 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * Generate all the templates in one file.
- *
- */
+#include "hashTable.h"
 
-#pragma implementation "Pair.h"
-#include "util/h/Pair.h"
+hashTable::hashTable(unsigned size, 
+		     unsigned initial_free_size,
+		     unsigned initial_free_elem) : mapTable(CThash)
+{
+  tableSize = size;
+  for (unsigned i=0; i<size; i++) {
+    tableUsage += false;
+  }
+  for (unsigned i=0; i<initial_free_size; i++) {
+    freeList += i+initial_free_elem;
+  }
+}
 
-#pragma implementation "Vector.h"
-#include "util/h/Vector.h"
+hashTable::hashTable(hashTable *src) : mapTable(CThash)
+{
+  assert(src);
+  tableSize = src->tableSize;
+  for (unsigned i=0; i<tableSize; i++) {
+    tableUsage += src->tableUsage;
+  }
+  for (unsigned i=0; i<src->freeList.size(); i++) {
+    freeList += src->freeList[i];
+  }
+  vector<unsigned> keys;
+  vector<unsigned> values;
+  keys = src->mapTable.keys();
+  values = src->mapTable.values();
+  assert(keys.size()==values.size());
+  for (unsigned i=0; i<keys.size(); i++) {
+    mapTable[keys[i]]=values[i];  
+  }
+}
 
-#pragma implementation "Symbol.h"
-#include "util/h/Symbol.h"
+hashTable::~hashTable() {}
 
-#include "util/h/String.h"
+void hashTable::addToFreeList(unsigned from, unsigned how_many)
+{
+  for (unsigned i=from; i<how_many; i++) {
+    freeList += i;
+    assert(tableUsage[i]==false);
+  }
+}
 
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/dyninstP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "util/h/Object.h"
+unsigned hashTable::add(unsigned id)
+{
+    unsigned tmpSize, position;
+    assert(!mapTable.defines(id));
+    assert(freeList.size());
+    mapTable[id] = freeList[freeList.size()-1];
+    position = mapTable[id];
+    tmpSize = freeList.size();
+    freeList.resize(tmpSize-1);
+    assert(!tableUsage[position]);
+    tableUsage[position] = true;
+    return(position);
+}
 
-template class  vector<pdThread *>;
-template class  vector<reg>;
-template class  vector<bool>;
-template class  vector<AstNode>;
-template class  vector<AstNode *>;
-template class  vector<Symbol*>;
-template class  vector<Symbol>;
-template class  vector<float>;
-template class  vector<heapItem*>;
-template class  vector<image*>;
-template class  vector<instMapping*>;
-template class  vector<instPoint *>;
-template class  vector<int>;
-template class  vector<instruction>;
-template class  vector<metricDefinitionNode *>;
-template class  vector<module *>;
-template class  vector<pdmodule *>;
-template class  vector<function_base*>;
-template class  vector<pd_Function*>;
-template class  vector<process*>;
-template class  vector<string>;
-template class  vector<sym_data>;
-template class  vector<unsigned>;
-template class  vector<disabledItem>;
-template class  vector<unsigVecType>;
-template class  vector<vector<string> >;
-template class  vector<double>;
-template class  vector<point *>;
-template class  vector<instInstance *>;
-template class  vector<returnInstance *>;             //XXX
-template class  vector<relocatedFuncInfo *>; 
+void hashTable::remove(unsigned id)
+{
+    unsigned position;
+    assert(mapTable.defines(id));
+    position = mapTable[id];
+    assert(position < tableUsage.size());
+    assert(tableUsage[position]);
+    tableUsage[position] = false;
+    freeList += position;
+    mapTable.undef(id);
+}
+
+

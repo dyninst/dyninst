@@ -277,7 +277,7 @@ bool init() {
   sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
 #endif
 
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
   sd.name = "DYNINSTthreadTable"; sd.must_find = true; syms_to_find += sd;
 #endif
 

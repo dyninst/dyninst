@@ -43,6 +43,12 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.48  1997/05/07 19:01:27  naim
+ * Getting rid of old support for threads and turning it off until the new
+ * version is finished. Additionally, new superTable, baseTable and superVector
+ * classes for future support of multiple threads. The fastInferiorHeap class has
+ * also changed - naim
+ *
  * Revision 1.47  1997/04/21 16:56:15  hseom
  * added support for trace data
  *
@@ -103,6 +109,10 @@
 #include "dyninstAPI/src/util.h"
 #include "rtinst/h/trace.h"
 
+#if defined(SHM_SAMPLING)
+#include "paradynd/src/superTable.h"
+#endif
+
 class dataReqNode {
  private:
   // Since we don't define these, make sure they're not used:
@@ -115,10 +125,13 @@ class dataReqNode {
  public:
   virtual ~dataReqNode() {};
 
-  virtual unsigned getInferiorPtr() const = 0;
+  virtual unsigned getInferiorPtr(process *proc=NULL) const = 0;
+  virtual unsigned getAllocatedIndex() const = 0;
+  virtual unsigned getAllocatedLevel() const = 0;
+
   virtual int getSampleId() const = 0;
 
-  virtual bool insertInstrumentation(process *, metricDefinitionNode *) = 0;
+  virtual bool insertInstrumentation(process *, metricDefinitionNode *, bool) = 0;
      // Allocates stuff from inferior heap, instrumenting DYNINSTreportCounter
      // as appropriate.  
      // Returns true iff successful.
@@ -133,8 +146,6 @@ class dataReqNode {
 			   const dictionary_hash<instInstance*,instInstance*> &map
 			   ) const = 0;
      // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
-
-  void updateCounterTimerVectorMT(process *proc, int CTid, unsigned &position, unsigned CTaddr, CTelementType type);
 
      // "map" provides a dictionary that maps instInstance's of the parent process to
      // those in the child process; dup() may find it useful. (for now, the shm
@@ -207,10 +218,6 @@ class sampledIntCounterReqNode : public dataReqNode {
    intCounter *counterPtr;		/* NOT in our address space !!!! */
    instInstance *sampler;		/* function to sample value */
 
-#if defined(MT_THREAD)
-   unsigned position_;
-#endif
-
    // Since we don't use these, disallow:
    sampledIntCounterReqNode &operator=(const sampledIntCounterReqNode &);
    sampledIntCounterReqNode(const sampledIntCounterReqNode &);
@@ -232,22 +239,21 @@ class sampledIntCounterReqNode : public dataReqNode {
    dataReqNode *dup(process *, metricDefinitionNode *, int iCounterId,
                     const dictionary_hash<instInstance*,instInstance*> &map) const;
 
-   bool insertInstrumentation(process *, metricDefinitionNode *);
+   bool insertInstrumentation(process *, metricDefinitionNode *, bool doNotSample=false);
       // allocates from inferior heap; initializes it; instruments
       // DYNINSTsampleValues
 
    void disable(process *, const vector< vector<unsigned> > &);
 
-   unsigned getInferiorPtr() const {
+   unsigned getInferiorPtr(process *) const {
       // counterPtr could be NULL if we are building AstNodes just to compute
       // the cost - naim 2/18/97
       //assert(counterPtr != NULL); // NULL until insertInstrumentation()
       return (unsigned)counterPtr;
    }
 
-#if defined(MT_THREAD)
-   unsigned getPosition() const {return position_;}
-#endif
+   unsigned getAllocatedIndex() const {assert(0);}
+   unsigned getAllocatedLevel() const {assert(0);}
 
    int getSampleId() const {return theSampleId;}
 
@@ -269,12 +275,10 @@ class sampledShmIntCounterReqNode : public dataReqNode {
    int initialValue; // needed when dup()'ing
 
    // The following fields are NULL until insertInstrumentation() called:
-   unsigned allocatedIndex; // probably redundant w/ next field; can be removed
-   intCounter *inferiorCounterPtr;	/* NOT in our address space !!!! */
+   unsigned allocatedIndex;
+   unsigned allocatedLevel;
 
-#if defined(MT_THREAD)
    unsigned position_;
-#endif
 
    // Since we don't use these, making them privates ensures they're not used.
    sampledShmIntCounterReqNode &operator=(const sampledShmIntCounterReqNode &);
@@ -283,11 +287,12 @@ class sampledShmIntCounterReqNode : public dataReqNode {
    // private fork-ctor called by dup():
    sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &src,
                                process *childProc, metricDefinitionNode *,
-			       int iCounterId);
+			       int iCounterId, const process *parentProc);
 
  public:
    sampledShmIntCounterReqNode(int iValue, int iCounterId, 
-                               metricDefinitionNode *iMi, bool computingCost);
+                               metricDefinitionNode *iMi, bool computingCost,
+                               bool doNotSample);
   ~sampledShmIntCounterReqNode() {}
       // Hopefully, disable() has already been called.
       // A bit of a complication since disable() needs an
@@ -296,21 +301,17 @@ class sampledShmIntCounterReqNode : public dataReqNode {
    dataReqNode *dup(process *, metricDefinitionNode *, int iCounterId,
                     const dictionary_hash<instInstance*,instInstance*> &) const;
 
-   bool insertInstrumentation(process *, metricDefinitionNode *);
+   bool insertInstrumentation(process *, metricDefinitionNode *, bool);
       // allocates from inferior heap; initializes it, etc.
 
    void disable(process *, const vector< vector<unsigned> > &);
 
-   unsigned getInferiorPtr() const {
-      // counterPtr could be NULL if we are building AstNodes just to compute
-      // the cost - naim 2/18/97
-      //assert(inferiorCounterPtr != NULL); // NULL until insertInstrumentation
-      return (unsigned)inferiorCounterPtr;
-   }
+   unsigned getInferiorPtr(process *) const;
 
-#if defined(MT_THREAD)
+   unsigned getAllocatedIndex() const {return allocatedIndex;}
+   unsigned getAllocatedLevel() const {return allocatedLevel;}
+
    unsigned getPosition() const {return position_;}
-#endif
    int getSampleId() const {return theSampleId;}
 
    bool unFork(dictionary_hash<instInstance*,instInstance*> &) {return true;}
@@ -327,10 +328,6 @@ class nonSampledIntCounterReqNode : public dataReqNode {
 
    // The following is NULL until insertInstrumentation() called:   
    intCounter *counterPtr;		/* NOT in our address space !!!! */
-
-#if defined(MT_THREAD)
-   unsigned position_;
-#endif
 
    // Since we don't use these, disallow:
    nonSampledIntCounterReqNode &operator=(const nonSampledIntCounterReqNode &);
@@ -354,21 +351,20 @@ class nonSampledIntCounterReqNode : public dataReqNode {
    dataReqNode *dup(process *, metricDefinitionNode *, int iCounterId,
                     const dictionary_hash<instInstance*,instInstance*> &) const;
 
-   bool insertInstrumentation(process *, metricDefinitionNode *);
+   bool insertInstrumentation(process *, metricDefinitionNode *, bool doNotSample=false);
       // allocates from inferior heap; initializes it
 
    void disable(process *, const vector< vector<unsigned> > &);
 
-   unsigned getInferiorPtr() const {
+   unsigned getInferiorPtr(process *) const {
       //assert(counterPtr != NULL); // NULL until insertInstrumentation()
       // counterPtr could be NULL if we are building AstNodes just to compute
       // the cost - naim 2/18/97
       return (unsigned)counterPtr;
    }
 
-#if defined(MT_THREAD)
-   unsigned getPosition() const {return position_;}
-#endif
+   unsigned getAllocatedIndex() const {assert(0);}
+   unsigned getAllocatedLevel() const {assert(0);}
 
    int getSampleId() const {return theSampleId;}
 
@@ -388,10 +384,6 @@ class sampledTimerReqNode : public dataReqNode {
    // The following fields are NULL until insertInstrumentation():
    tTimer *timerPtr;			/* NOT in our address space !!!! */
    instInstance *sampler;		/* function to sample value */
-
-#if defined(MT_THREAD)
-   unsigned position_;
-#endif
 
    // since we don't use these, disallow:
    sampledTimerReqNode(const sampledTimerReqNode &);
@@ -415,19 +407,18 @@ class sampledTimerReqNode : public dataReqNode {
    dataReqNode *dup(process *childProc, metricDefinitionNode *, int iCounterId,
                     const dictionary_hash<instInstance*,instInstance*> &map) const;
 
-   bool insertInstrumentation(process *, metricDefinitionNode *);
+   bool insertInstrumentation(process *, metricDefinitionNode *, bool doNotSample=false);
    void disable(process *, const vector< vector<unsigned> > &);
 
-   unsigned getInferiorPtr() const {
+   unsigned getInferiorPtr(process *) const {
       // counterPtr could be NULL if we are building AstNodes just to compute
       // the cost - naim 2/18/97
       //assert(timerPtr != NULL); // NULL until insertInstrumentation()
       return (unsigned)timerPtr;
    }
 
-#if defined(MT_THREAD)
-   unsigned getPosition() const {return position_;}
-#endif
+   unsigned getAllocatedIndex() const {assert(0);}
+   unsigned getAllocatedLevel() const {assert(0);}
 
    int getSampleId() const {return theSampleId;}
 
@@ -447,20 +438,20 @@ class sampledShmWallTimerReqNode : public dataReqNode {
    int theSampleId;
 
    // The following fields are NULL until insertInstrumentatoin():
-   unsigned allocatedIndex;  // probably redundant w/ next field; can be removed
-   tTimer *inferiorTimerPtr; // NOT in our address space !!!!
+   unsigned allocatedIndex;
+   unsigned allocatedLevel;
 
-#if defined(MT_THREAD)
    unsigned position_;
-#endif
 
    // since we don't use these, disallow:
    sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &);
    sampledShmWallTimerReqNode &operator=(const sampledShmWallTimerReqNode &);
 
    // fork ctor:
-   sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src, process *childProc,
-			      metricDefinitionNode *, int iCounterId);
+   sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src, 
+			      process *childProc,
+			      metricDefinitionNode *, int iCounterId,
+			      const process *parentProc);
 
  public:
    sampledShmWallTimerReqNode(int iCounterId,
@@ -473,19 +464,15 @@ class sampledShmWallTimerReqNode : public dataReqNode {
    dataReqNode *dup(process *childProc, metricDefinitionNode *, int iCounterId,
                     const dictionary_hash<instInstance*,instInstance*> &) const;
 
-   bool insertInstrumentation(process *, metricDefinitionNode *);
+   bool insertInstrumentation(process *, metricDefinitionNode *, bool doNotSample=false);
    void disable(process *, const vector< vector<unsigned> > &);
 
-   unsigned getInferiorPtr() const {
-      // counterPtr could be NULL if we are building AstNodes just to compute
-      // the cost - naim 2/18/97
-      //assert(inferiorTimerPtr != NULL); // NULL until insertInstrumentation()
-      return (unsigned)inferiorTimerPtr;
-   }
+   unsigned getInferiorPtr(process *) const;
 
-#if defined(MT_THREAD)
+   unsigned getAllocatedIndex() const {return allocatedIndex;}
+   unsigned getAllocatedLevel() const {return allocatedLevel;}
+
    unsigned getPosition() const {return position_;}
-#endif
 
    int getSampleId() const {return theSampleId;}
 
@@ -500,20 +487,20 @@ class sampledShmProcTimerReqNode : public dataReqNode {
    int theSampleId;
 
    // The following fields are NULL until insertInstrumentatoin():
-   unsigned allocatedIndex;  // probably redundant w/ next field; can be removed
-   tTimer *inferiorTimerPtr; // NOT in our address space !!!!
+   unsigned allocatedIndex;
+   unsigned allocatedLevel;
 
-#if defined(MT_THREAD)
    unsigned position_;
-#endif
 
    // since we don't use these, disallow:
    sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &);
    sampledShmProcTimerReqNode &operator=(const sampledShmProcTimerReqNode &);
 
    // fork ctor:
-   sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src, process *childProc,
-			      metricDefinitionNode *, int iCounterId);
+   sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src, 
+			      process *childProc,
+			      metricDefinitionNode *, int iCounterId,
+			      const process *parentProc);
 
  public:
    sampledShmProcTimerReqNode(int iCounterId,
@@ -526,19 +513,15 @@ class sampledShmProcTimerReqNode : public dataReqNode {
    dataReqNode *dup(process *childProc, metricDefinitionNode *, int iCounterId,
                     const dictionary_hash<instInstance*,instInstance*> &) const;
 
-   bool insertInstrumentation(process *, metricDefinitionNode *);
+   bool insertInstrumentation(process *, metricDefinitionNode *, bool doNotSample=false);
    void disable(process *, const vector< vector<unsigned> > &);
 
-   unsigned getInferiorPtr() const {
-      // counterPtr could be NULL if we are building AstNodes just to compute
-      // the cost - naim 2/18/97
-      //assert(inferiorTimerPtr != NULL); // NULL until insertInstrumentation()
-      return (unsigned)inferiorTimerPtr;
-   }
+   unsigned getInferiorPtr(process *) const;
 
-#if defined(MT_THREAD)
+   unsigned getAllocatedIndex() const {return allocatedIndex;}
+   unsigned getAllocatedLevel() const {return allocatedLevel;}
+
    unsigned getPosition() const {return position_;}
-#endif
 
    int getSampleId() const {return theSampleId;}
 
@@ -679,7 +662,8 @@ public:
   // the heart of it all.  They append to dataRequets or instRequests, so that
   // a future call to metricDefinitionNode::insertInstrumentation() will
   // "do their thing".  The MDL calls these routines.
-  dataReqNode *addSampledIntCounter(int initialValue, bool computingCost);
+  dataReqNode *addSampledIntCounter(int initialValue, bool computingCost,
+                                    bool doNotSample=false);
   dataReqNode *addUnSampledIntCounter(int initialValue, bool computingCost);
   dataReqNode *addWallTimer(bool computingCost);
   dataReqNode *addProcessTimer(bool computingCost);

@@ -44,6 +44,12 @@
  */
 /*
  * $Log: process2.C,v $
+ * Revision 1.2  1997/05/07 19:03:20  naim
+ * Getting rid of old support for threads and turning it off until the new
+ * version is finished. Additionally, new superTable, baseTable and superVector
+ * classes for future support of multiple threads. The fastInferiorHeap class has
+ * also changed - naim
+ *
  * Revision 1.1  1997/03/18 19:44:23  buck
  * first commit of dyninst library.  Also includes:
  * 	moving templates from paradynd to dyninstAPI
@@ -62,6 +68,7 @@ int pvmendtask();
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/pdThread.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/inst.h"
@@ -176,7 +183,7 @@ process *dyninstAPI_createProcess(const string File, vector<string> argv,
 
         // initializing vector of threads - thread[0] is really the 
         // same process
-        ret->threads += new Thread(ret);
+        ret->threads += new pdThread(ret);
 
         // we use this flag to solve race condition between inferiorRPC and 
         // continueProc message from paradyn - naim

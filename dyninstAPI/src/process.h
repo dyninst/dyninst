@@ -67,8 +67,8 @@
 
 #ifdef SHM_SAMPLING
 #include "paradynd/src/fastInferiorHeapMgr.h"
-#include "paradynd/src/fastInferiorHeap.h"
-#include "paradynd/src/fastInferiorHeapHKs.h"
+#include "paradynd/src/superTable.h"
+#include "paradynd/src/hashTable.h"
 #ifdef sparc_sun_sunos4_1_3
 #include <kvm.h>
 #include <sys/user.h>
@@ -86,6 +86,7 @@ class resource;
 class instPoint;
 class instInstance;
 class trampTemplate;
+class pdThread;
 
 // TODO a kludge - to prevent recursive includes
 class image;
@@ -178,7 +179,6 @@ static inline unsigned instInstanceHash(instInstance * const &inst) {
 //  return ((unsigned)inst);
 }
 
-class Thread;
 class Frame;
 
 class process {
@@ -378,7 +378,10 @@ class process {
   int traceLink;		/* pipe to transfer traces data over */
   int ioLink;			/* pipe to transfer stdout/stderr over */
   processState status_;	        /* running, stopped, etc. */
-  vector<Thread *> threads;	/* threads belonging to this process */
+  vector<pdThread *> threads;	/* threads belonging to this process */
+#if defined(SHM_SAMPLING)
+  hashTable *threadMap;         /* mapping table for threads into superTable */
+#endif
   bool continueAfterNextStop_;
   // on some platforms we use one heap for text and data so textHeapFree is not
   // used.
@@ -575,24 +578,8 @@ class process {
   bool doMajorShmSample(time64 currWallTime);
   bool doMinorShmSample();
 
-  const fastInferiorHeap<intCounterHK, intCounter> &getInferiorIntCounters() const {
-     return inferiorIntCounters;
-  }
-  const fastInferiorHeap<wallTimerHK, tTimer> &getInferiorWallTimers() const {
-     return inferiorWallTimers;
-  }
-  const fastInferiorHeap<processTimerHK, tTimer> &getInferiorProcessTimers() const {
-     return inferiorProcessTimers;
-  }
-
-  fastInferiorHeap<intCounterHK, intCounter> &getInferiorIntCounters() {
-     return inferiorIntCounters;
-  }
-  fastInferiorHeap<wallTimerHK, tTimer> &getInferiorWallTimers() {
-     return inferiorWallTimers;
-  }
-  fastInferiorHeap<processTimerHK, tTimer> &getInferiorProcessTimers() {
-     return inferiorProcessTimers;
+  const fastInferiorHeapMgr &getShmHeapMgr() const {
+     return(inferiorHeapMgr);
   }
 
   unsigned getShmHeapTotalNumBytes() {
@@ -639,16 +626,15 @@ private:
   bool hasBootstrapped;
      // set to true when we get callback from inferiorRPC call to DYNINSTinit
 
-  const process *parent;	/* parent of this proces */
+  const process *parent;	/* parent of this process */
   image *symbols;		/* information related to the process */
   int pid;			/* id of this process */
 
 #ifdef SHM_SAMPLING
   // New components of the conceptual "inferior heap"
   fastInferiorHeapMgr inferiorHeapMgr;
-  fastInferiorHeap<intCounterHK, intCounter> inferiorIntCounters;
-  fastInferiorHeap<wallTimerHK, tTimer>      inferiorWallTimers;
-  fastInferiorHeap<processTimerHK, tTimer>   inferiorProcessTimers;
+
+  superTable theSuperTable;
 
 #ifdef sparc_sun_sunos4_1_3
   kvm_t *kvmHandle;
@@ -658,6 +644,14 @@ private:
 #endif
 
 public:
+#ifdef SHM_SAMPLING
+  const superTable &getTable() const {
+     return theSuperTable;
+  }
+  superTable &getTable() {
+     return theSuperTable;
+  }
+#endif
   trampTableEntry trampTable[TRAMPTABLESZ];
   unsigned trampTableItems;
 
@@ -817,86 +811,5 @@ class Frame {
 };
 
 extern vector<process *> processVec;
-
-#define CT_BLOCK_SIZE 300
-
-class CT {
-  public:
-    CT(process *pproc) : CTvectorAddr(0), CTvectorSize(0), CTmapTable(CThash) 
-    { 
-      proc = pproc; 
-    }
-    unsigned size() { return(CTvectorSize); }
-    bool update(unsigned tableAddr);
-    void add(unsigned CTid, unsigned &position); 
-    void remove(unsigned CTid, unsigned position);
-    void dup(unsigned CTid, unsigned mid, Thread *thr, unsigned &position);
-    unsigned getCTmapId(unsigned mid) 
-    {
-      assert(CTmapTable.defines(mid));
-      return(CTmapTable[mid]); 
-    }
-    unsigned getCTusagePos(unsigned position) {
-      assert(position < CTusage.size()); 
-      return(CTusage[position]); 
-    }
-  private:
-    unsigned CTvectorAddr;
-    unsigned CTvectorSize;
-    dictionary_hash<unsigned, unsigned> CTmapTable;
-    vector<int> CTusage;
-    vector<int> CTfree;
-    process *proc;
-};
-
-class Thread {
-  public:
-    // This definition must be completed later when we get the result of a call
-    // to thr_self in the application. We are assuming that 
-    // 0 <= thr_self,tid < MAX_NUMBER_OF_THREADS - naim
-    Thread(process *pproc) : tid(0), pos(0), rid(NULL) 
-    { 
-      proc = pproc; 
-      ppid = pproc->getPid();
-      CTvector = new CT(proc);
-    }
-    Thread(process *pproc, int tid_, handleT handle_) : tid(tid_), pos(0), rid(NULL),
-         handle(handle_)
-    {
-      assert(pproc);
-      proc = pproc;
-      ppid = pproc->getPid();
-      CTvector = new CT(proc);
-    }
-    Thread(process *proc_, int tid_, int pos_, resource *rid_ )
-    { 
-      proc = proc_; 
-      ppid = proc_->getPid();
-      tid = tid_;
-      pos = pos_;
-      rid = rid_;
-      CTvector = new CT(proc_);
-      //assert(tid>=0 && tid<MAX_NUMBER_OF_THREADS);
-    }
-    ~Thread() 
-    { 
-      delete CTvector;
-    }
-    int get_tid() { return(tid); }
-    unsigned get_pos() { return(pos); }
-    void update_tid(int id, int p) { tid = id; pos = p; }
-    int get_ppid() { return(ppid); }
-    resource *get_rid() { return(rid); }
-    process *get_proc() { return(proc); }
-    handleT get_handle() { return(handle); }
-    CT *CTvector;
-  private:
-    int tid;
-    int ppid;
-    int pos;
-    resource *rid;
-    process *proc;
-    handleT handle; // the thread handle (/proc file descriptor or NT handle)
-};
 
 #endif

@@ -460,7 +460,15 @@ dataReqNode *create_data_object(unsigned mdl_data_type,
 
   case MDL_T_NONE:
     // just to keep mdl apply allocate a dummy un-sampled counter.
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+    // "true" means that we are going to create a sampled int counter but
+    // we are *not* going to sample it, because it is just a temporary
+    // counter - naim 4/22/97
+    // By default, the last parameter is false - naim 4/23/97
+    return (mn->addSampledIntCounter(0, computingCost, true));
+#else
     return (mn->addUnSampledIntCounter(0, computingCost));
+#endif
 
   default:
     assert(0);
@@ -573,7 +581,15 @@ apply_to_process(process *proc,
     if (temp_ctr) {
       unsigned tc_size = temp_ctr->size();
       for (unsigned tc=0; tc<tc_size; tc++) {
-	dataReqNode *temp_node = mn->addUnSampledIntCounter(0, computingCost);
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+        // "true" means that we are going to create a sampled int counter but
+        // we are *not* going to sample it, because it is just a temporary
+        // counter - naim 4/22/97
+        // By default, the last parameter is false - naim 4/23/97
+        dataReqNode *temp_node=mn->addSampledIntCounter(0,computingCost,true);
+#else
+	dataReqNode *temp_node=mn->addUnSampledIntCounter(0,computingCost);
+#endif
 	mdl_env::set(temp_node, (*temp_ctr)[tc]);
       }
     }
@@ -882,7 +898,15 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
   if (!replace_) {
     // create the counter used as a flag
     mdl_env::add(id_, false, MDL_T_DRN);
-    dataReqNode *drn = mn->addUnSampledIntCounter(0, computingCost);
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+    // "true" means that we are going to create a sampled int counter but
+    // we are *not* going to sample it, because it is just a temporary
+    // counter - naim 4/22/97
+    // By default, the last parameter is false - naim 4/23/97
+    dataReqNode *drn = mn->addSampledIntCounter(0,computingCost,true);
+#else
+    dataReqNode *drn = mn->addUnSampledIntCounter(0,computingCost);
+#endif
     // this flag will construct a predicate for the metric -- have to return it
     flag = drn;
     assert(drn);
@@ -1050,7 +1074,17 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&ast) {
       bool aflag;
       aflag=get_drn.get(drn);
       assert(aflag);
+#if defined(SHM_SAMPLING)
+  #if defined(MT_THREAD)
+      ast = computeAddress((void *)(drn->getAllocatedLevel()),
+			   (void *)(drn->getAllocatedIndex()),
+			   0); // 0 is for intCounter
+  #else
+      ast = new AstNode(AstNode::DataPtr, (void *)(drn->getInferiorPtr(global_proc)));
+  #endif
+#else
       ast = new AstNode(AstNode::DataPtr, (void *)(drn->getInferiorPtr()));
+#endif
     }
     break;
   case MDL_T_COUNTER:
@@ -1088,10 +1122,25 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&ast) {
 		  fflush(stderr);
 		  return false;
 	      } else {
+#if defined(SHM_SAMPLING)
+  #if defined(MT_THREAD)
+                  AstNode *tmp_ast;
+                  tmp_ast = computeAddress((void *)(drn->getAllocatedLevel()),
+					   (void *)(drn->getAllocatedIndex()),
+					   0); // 0 is for intCounter
+                  // First we get the address, and now we get the value...
+		  ast = new AstNode(AstNode::DataIndir,tmp_ast); 
+		  removeAst(tmp_ast);
+  #else
+                  ast = new AstNode(AstNode::DataValue, 
+				    (void*)(drn->getInferiorPtr(global_proc)));
+  #endif
+#else
                   // Note: getInferiorPtr could return a NULL pointer here if
                   // we are just computing cost - naim 2/18/97
 		  ast = new AstNode(AstNode::DataValue, 
 				    (void*)(drn->getInferiorPtr()));
+#endif
 	      }
 	      break;
 	  default:
@@ -1167,22 +1216,37 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *pred,
 
   switch (type_) {
   case MDL_SET_COUNTER:
-#if defined(MT_THREAD)
-    code = createCounter("setCounter", (void *)(drn->getSampleId()), ast_arg);
+#if defined(SHM_SAMPLING)
+  #if defined(MT_THREAD)
+    code = createCounter("setCounter", (void *)(drn->getAllocatedLevel()), 
+			 (void *)(drn->getAllocatedIndex()),ast_arg);
+  #else
+    code = createCounter("setCounter", (void *)(drn->getInferiorPtr(global_proc)), ast_arg);
+  #endif
 #else
     code = createCounter("setCounter", (void *)(drn->getInferiorPtr()), ast_arg);
 #endif
     break;
   case MDL_ADD_COUNTER:
-#if defined(MT_THREAD)
-    code = createCounter("addCounter", (void *)(drn->getSampleId()), ast_arg);
+#if defined(SHM_SAMPLING)
+  #if defined(MT_THREAD)
+    code = createCounter("addCounter", (void *)(drn->getAllocatedLevel()), 
+			 (void *)(drn->getAllocatedIndex()), ast_arg);
+  #else
+    code = createCounter("addCounter", (void *)(drn->getInferiorPtr(global_proc)), ast_arg);
+  #endif
 #else
     code = createCounter("addCounter", (void *)(drn->getInferiorPtr()), ast_arg);
 #endif
     break;
   case MDL_SUB_COUNTER:
-#if defined(MT_THREAD)
-    code = createCounter("subCounter", (void *)(drn->getSampleId()), ast_arg);
+#if defined(SHM_SAMPLING)
+  #if defined(MT_THREAD)
+    code = createCounter("subCounter", (void *)(drn->getAllocatedLevel()), 
+			 (void *)(drn->getAllocatedIndex()), ast_arg);
+  #else
+    code = createCounter("subCounter", (void *)(drn->getInferiorPtr(global_proc)), ast_arg);
+  #endif
 #else
     code = createCounter("subCounter", (void *)(drn->getInferiorPtr()), ast_arg);
 #endif
@@ -1191,8 +1255,13 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *pred,
   case MDL_STOP_WALL_TIMER:
   case MDL_START_PROC_TIMER:
   case MDL_STOP_PROC_TIMER:
-#if defined(MT_THREAD)
-    code = createTimer(timer_fun, (void *)(drn->getSampleId()), ast_args);
+#if defined(SHM_SAMPLING)
+  #if defined(MT_THREAD)
+    code = createTimer(timer_fun, (void *)(drn->getAllocatedLevel()), 
+		       (void *)(drn->getAllocatedIndex()), ast_args);
+  #else
+    code = createTimer(timer_fun, (void *)(drn->getInferiorPtr(global_proc)), ast_args);
+  #endif
 #else
     code = createTimer(timer_fun, (void *)(drn->getInferiorPtr()), ast_args);
 #endif
@@ -1636,10 +1705,24 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
   if (constrained_) {
      unsigned fsize = inFlags.size();
      for (int fi=fsize-1; fi>=0; fi--) { // any reason why we go backwards?
+#if defined(SHM_SAMPLING)
+  #if defined(MT_THREAD)
+        AstNode *tmp_ast;
+        tmp_ast = computeAddress((void *)((inFlags[fi])->getAllocatedLevel()),(void *)((inFlags[fi])->getAllocatedIndex()), 0); // 0 is for intCounter
+        AstNode *temp1 = new AstNode(AstNode::DataIndir,tmp_ast);
+        removeAst(tmp_ast);
+  #else
+        // Note: getInferiorPtr could return a NULL pointer here if we are
+        // just computing cost - naim 2/18/97
+        AstNode *temp1 = new AstNode(AstNode::DataValue, 
+				     (void*)((inFlags[fi])->getInferiorPtr(global_proc)));
+  #endif
+#else
         // Note: getInferiorPtr could return a NULL pointer here if we are
         // just computing cost - naim 2/18/97
         AstNode *temp1 = new AstNode(AstNode::DataValue, 
 				     (void*)((inFlags[fi])->getInferiorPtr()));
+#endif
         // Note: we don't use assignAst on purpose here
         AstNode *temp2 = code;
         code = createIf(temp1, temp2);

@@ -477,7 +477,7 @@ registerSpace *regSpace;
 // 11-12 are defined not to have live values at procedure call points.
 // reg 3-10 are used to pass arguments to functions.
 //   We must save them before we can use them.
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
 int deadRegList[] = { 11 };
 #else
 int deadRegList[] = { 11, 12 };
@@ -726,7 +726,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
 		   (temp->raw == GLOBAL_PRE_BRANCH) ||
 		   (temp->raw == LOCAL_POST_BRANCH) ||
 		   (temp->raw == GLOBAL_POST_BRANCH)) {
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
             if ((temp->raw == LOCAL_PRE_BRANCH) ||
                 (temp->raw == LOCAL_POST_BRANCH)) {
                 temp -= NUM_INSN_MT_PREAMBLE;
@@ -1062,7 +1062,7 @@ unsigned emitFuncCall(opCode /* ocode */,
   saveRegister(insn,base,0,8+(46*4));
   savedRegs += 0;
   
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
   // save REG_MT
   saveRegister(insn,base,REG_MT,8+(46*4));
   savedRegs += REG_MT;

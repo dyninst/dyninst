@@ -43,6 +43,12 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.17  1997/05/07 19:03:12  naim
+ * Getting rid of old support for threads and turning it off until the new
+ * version is finished. Additionally, new superTable, baseTable and superVector
+ * classes for future support of multiple threads. The fastInferiorHeap class has
+ * also changed - naim
+ *
  * Revision 1.16  1997/05/02 18:25:36  mjrg
  * Changes for allowing different main functions on different platforms
  *
@@ -849,7 +855,7 @@ void initTramps()
     if (inited) return;
     inited = true;
 
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
     for (unsigned u = 0; u < NUM_VIRTUAL_REGISTERS-1; u++) {
 #else
     for (unsigned u = 0; u < NUM_VIRTUAL_REGISTERS; u++) {
@@ -1067,7 +1073,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
 
   // compute the tramp size
   // if there are any changes to the tramp, the size must be updated.
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
   unsigned trampSize = 73+2*27;
 #else
   unsigned trampSize = 73;
@@ -1140,7 +1146,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   emitSimpleInsn(PUSHAD, insn);    // pushad
   emitSimpleInsn(PUSHFD, insn);    // pushfd
 
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
   // generate preamble for MT version
   unsigned base=0;
   generateMTpreamble((char *)insn, base, proc);
@@ -1211,7 +1217,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   emitSimpleInsn(PUSHAD, insn);    // pushad
   emitSimpleInsn(PUSHFD, insn);    // pushfd
 
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
   // generate preamble for MT version
   base=0;
   generateMTpreamble((char *)insn, base, proc);

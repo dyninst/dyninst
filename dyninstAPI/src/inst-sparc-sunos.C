@@ -456,7 +456,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc)
                    (temp->raw == GLOBAL_PRE_BRANCH) ||
                    (temp->raw == LOCAL_POST_BRANCH) ||
 		   (temp->raw == GLOBAL_POST_BRANCH)) {
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
             if ((temp->raw == LOCAL_PRE_BRANCH) ||
                 (temp->raw == LOCAL_POST_BRANCH)) {
                 temp -= NUM_INSN_MT_PREAMBLE;
@@ -567,7 +567,7 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
                    (temp->raw == GLOBAL_PRE_BRANCH) ||
                    (temp->raw == LOCAL_POST_BRANCH) ||
 		   (temp->raw == GLOBAL_POST_BRANCH)) {
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
             if ((temp->raw == LOCAL_PRE_BRANCH) ||
                 (temp->raw == LOCAL_POST_BRANCH)) {
                 temp -= NUM_INSN_MT_PREAMBLE;
@@ -906,7 +906,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	generateNOOP(insn);
 	base += sizeof(instruction);
     } else if (op == getParamOp) {
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
         // saving CT/vector address on the stack
         generateStore(insn, REG_MT, REG_FP, -40);
         insn++;
@@ -924,13 +924,10 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	generateLoad(insn, REG_SP, 112+68+4*src1, 24+src1); 
 	insn++;
 
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
         // restoring CT/vector address back in REG_MT
         generateLoad(insn, REG_FP, -40, REG_MT);
         insn++;
-#endif
-
-#if defined(MT_THREAD)
         base += 6*sizeof(instruction);
 #else
 	base += 4*sizeof(instruction);

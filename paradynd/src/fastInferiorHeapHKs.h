@@ -48,8 +48,12 @@
 #define _FAST_INFERIOR_HEAP_HKS_H_
 
 #include "rtinst/h/rtinst.h" // intCounter, tTimer
-#include "metric.h" // metricDefinitionNode
-#include "dyninstAPI/src/process.h" 
+
+class metricDefinitionNode;
+//#include "metric.h" // metricDefinitionNode
+
+class process;
+//#include "dyninstAPI/src/process.h" 
 
 // The following should provide a useful building-block for intCounterHK,
 // wallTimerHK, processTimerHK, etc.
@@ -79,7 +83,7 @@ class genericHK {
   ~genericHK() {}
    genericHK &operator=(const genericHK &src);
 
-   void makePendingFree(const vector<Address> &iTrampsUsing);
+   void makePendingFree(const vector<unsigned> &iTrampsUsing);
 
    bool tryGarbageCollect(const vector<unsigned> &PCs);
       // Given a list of inferior process PC-registers representing a stack trace

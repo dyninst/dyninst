@@ -45,6 +45,7 @@
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
 #include "dyninstAPI/src/process.h"
+#include "metric.h"
 #include "fastInferiorHeapHKs.h"
 
 // Define some static member vrbles:
