@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.80  1996/02/22 23:41:43  newhall
+ * Revision 1.81  1996/03/06 19:32:49  naim
+ * Minor change to fix internal metric numberOfCPUs on the CM-5 - naim
+ *
+ * Revision 1.80  1996/02/22  23:41:43  newhall
  * removed getCurrentSmoothObsCost, and fix to costMetric::updateSmoothValue
  *
  * Revision 1.79  1996/02/21  19:30:38  naim
@@ -1445,7 +1448,11 @@ void reportInternalMetrics()
         } else if (imp->name() == "bucket_width") {
 	  value = (end - start)*(imp->value);
         } else if (imp->name() == "number_of_cpus") {
-          value = (end - start)* numberOfCPUs;
+#ifdef sparc_tmc_cmost7_3
+	  value = (end - start) * getNumberOfCPUs();
+#else
+          value = (end - start) * numberOfCPUs;
+#endif
         } else if (imp->style() == EventCounter) {
           value = imp->getValue();
           // assert((value + 0.0001)  >= imp->cumulativeValue);

@@ -1,7 +1,10 @@
 
 /*
  * $Log: cm5.C,v $
- * Revision 1.9  1996/02/21 19:30:35  naim
+ * Revision 1.10  1996/03/06 19:32:55  naim
+ * Minor change to fix internal metric numberOfCPUs on the CM-5 - naim
+ *
+ * Revision 1.9  1996/02/21  19:30:35  naim
  * Minor changes to getNumberOfCPUs (CM-5): using CMMD_partition_size() - naim
  *
  * Revision 1.8  1996/02/12  16:46:08  naim
@@ -458,7 +461,9 @@ int getNumberOfCPUs()
   //
   int numberOfCPUs;
 
-  numberOfCPUs = CMMD_partition_size();
+  //TODO: CMMD_partition_size is returning negative values!
+  //numberOfCPUs = CMMD_partition_size();
+  numberOfCPUs = processVec.size();
   if (numberOfCPUs)
     return(numberOfCPUs);
   else
