@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.210 2004/04/02 06:34:15 jaw Exp $
+// $Id: symtab.C,v 1.211 2004/04/08 21:14:09 lharris Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2136,39 +2136,24 @@ top:
                 instruction insn;
                 insn.getNextInstruction( instPtr );
             
-                //look for stack frame setup
-                if( insn.size() == 1 )
+                if( isStackFramePreamble( insn ) )
                 {
-                    instruction next_insn;
-                    next_insn.getNextInstruction( insn.ptr() + insn.size() );
+                    char name[20] = "f";
+                    numIndir++;
+                    sprintf( &name[ 1 ], "%x", pos );
+                    pdf = new pd_Function( name, mod, pos, -1 );
+                    pdf->addPrettyName( name );
+                    if( parseFunction( pdf, callTargets, mod ) )
+                        raw_funcs->push_back( pdf );
                     
-                    const unsigned char *p, *q;
-                    p = insn.ptr();
-                    q = next_insn.ptr();
-                    if( insn.size() == 1
-                        && p[0] == PUSHEBP
-                        && next_insn.size() == 2
-                        && q[0] == 0x89
-                        && q[1] == 0xe5)    
-                       
+                    if( callTargets.size() > 0 )
                     {
-                        char name[20] = "f";
-                        numIndir++;
-                        sprintf( &name[ 1 ], "%x", pos );
-                        pdf = new pd_Function( name, mod, pos, -1 );
-                        pdf->addPrettyName( name );
-                        if( parseFunction( pdf, callTargets, mod ) )
-                            raw_funcs->push_back( pdf );
-                        
-                        if( callTargets.size() > 0 )
+                        for( unsigned r = 0; r < callTargets.size(); r++ )
                         {
-                            for( unsigned r = 0; r < callTargets.size(); r++ )
-                            {
-                                if( callTargets[r] < func1->get_address() )
-                                    p++;
-                            }
-                            goto top; //goto is the devil's construct 
+                            if( callTargets[r] < func1->get_address() )
+                                p++;
                         }
+                        goto top; //goto is the devil's construct. repent!! 
                     }
                 }
                 pos++;
