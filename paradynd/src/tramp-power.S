@@ -66,9 +66,7 @@ _baseTramp:
 	*/
 
 	.long   SKIP_PRE_INSN		/* if no instrumentation, then skip */
-	nop				/* delay slot */
 	.long	GLOBAL_PRE_BRANCH
-	nop
         nop				/* fill this in with instructions to */
 	nop				/* compute the address of the vector */
 	nop				/* of counter/timers for each thread */
@@ -79,13 +77,14 @@ _baseTramp:
 	nop
 	nop
 	.long	LOCAL_PRE_BRANCH
+	.long   UPDATE_COST_INSN
+	nop
+	nop
 	nop
 	.long 	EMULATE_INSN
 	nop
         .long	SKIP_POST_INSN		/* if no instrumentation, then skip */
-	nop
 	.long	GLOBAL_POST_BRANCH
-	nop
         nop				/* fill this in with instructions to */
 	nop				/* compute the address of the vector */
 	nop				/* of counter/timers for each thread */
@@ -96,8 +95,6 @@ _baseTramp:
 	nop
 	nop
 	.long	LOCAL_POST_BRANCH
-	nop
-	/* should update post insn cost of base tramp here */
 	.long	RETURN_INSN
 	nop
 	.long	END_TRAMP
