@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.86  1996/04/03 14:27:44  naim
+ * Revision 1.87  1996/04/03 16:52:01  naim
+ * Minor change to some test messages - naim
+ *
+ * Revision 1.86  1996/04/03  14:27:44  naim
  * Implementation of deallocation of instrumentation for solaris and sunos - naim
  *
  * Revision 1.85  1996/03/25  20:23:01  tamches
@@ -935,20 +938,20 @@ void flush_batch_buffer(int program) {
 
    // Now let's do the actual igen call!
 
-//TEST
+#ifdef FREEDEBUG
 timeStamp t1,t2;
 t1=getCurrentTime(false);
-//TEST
+#endif
 
    tp->batchSampleDataCallbackFunc(program, copyBatchBuffer);
 
-//TEST
+#ifdef FREEDEBUG
 t2=getCurrentTime(false);
 if ((float)(t2-t1) > 1.0) {
 sprintf(errorLine,"++--++ TEST ++--++ batchSampleDataCallbackFunc took %5.2f secs, size=%d, Kbytes=%5.2f\n",(float)(t2-t1),sizeof(T_dyninstRPC::batch_buffer_entry),(float)(sizeof(T_dyninstRPC::batch_buffer_entry)*copyBatchBuffer.size()/1024.0));
 logLine(errorLine);
 }
-//TEST
+#endif
 
    BURST_HAS_COMPLETED = false;
    batch_buffer_next = 0;
