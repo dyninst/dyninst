@@ -19,12 +19,15 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.4 1994/07/26 20:00:28 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.5 1994/08/02 18:23:43 hollings Exp $";
 #endif
 
 /*
  * $Log: metricDefs-common.C,v $
- * Revision 1.4  1994/07/26 20:00:28  hollings
+ * Revision 1.5  1994/08/02 18:23:43  hollings
+ * changed module lists to use new lists.
+ *
+ * Revision 1.4  1994/07/26  20:00:28  hollings
  * removed un userd if
  *
  * Revision 1.3  1994/07/05  03:26:13  hollings
@@ -120,11 +123,11 @@ AstNode *defaultProcedurePredicate(metricDefinitionNode *mn, char *funcName,
 AstNode *defaultModulePredicate(metricDefinitionNode *mn, char *constraint,
     AstNode *pred)
 {
-    int i;
     module *mod;
     function *func;
     char *funcName;
     dataReqNode *dataPtr;
+    List<function *> curr;
 
     if (funcName = strchr(constraint, '/')) {
 	funcName++;
@@ -139,7 +142,7 @@ AstNode *defaultModulePredicate(metricDefinitionNode *mn, char *constraint,
 	}
 
 	dataPtr = mn->addIntCounter(0, False);
-	for (func = mod->funcs, i=0; i < mod->funcCount; i++) {
+	for (curr = mod->funcs; func = *curr; curr++) {
 	    createDefaultFuncPred(mn, func, dataPtr, pred);
 	}
 	return(new AstNode(DataValue, dataPtr));
@@ -308,7 +311,8 @@ void dummyCreate(metricDefinitionNode *mn, AstNode *trigger)
 void perProcedureWallTime(metricDefinitionNode *mn, 
 			  char *funcName, 
 			  AstNode *pred,
-			  dataReqNode *dataPtr)
+			  dataReqNode *dataPtr,
+			  Boolean skipSiblings)
 {
     int i;
     function *func;
@@ -338,6 +342,7 @@ void perProcedureWallTime(metricDefinitionNode *mn,
 	}
 	mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
 	mn->addInst(func->funcReturn, stopNode, callPreInsn, orderFirstAtPoint);
+	if (skipSiblings) break;
     }
 }
 
@@ -345,15 +350,15 @@ void perModuleWallTime(metricDefinitionNode *mn,
 			  char *constraint, 
 			  AstNode *pred)
 {
-    int i;
     module *mod;
     function *func;
     char *funcName;
     dataReqNode *result;
+    List<function *> curr;
 
     if (funcName = strchr(constraint, '/')) {
 	funcName++;
-	perProcedureWallTime(mn, funcName, pred, NULL);
+	perProcedureWallTime(mn, funcName, pred, NULL, FALSE);
     } else {
 	mod = findModule(mn->proc->symbols, constraint);
 	if (!mod) {
@@ -362,8 +367,8 @@ void perModuleWallTime(metricDefinitionNode *mn,
 	}
 
 	result = mn->addTimer(wallTime);
-	for (func = mod->funcs, i=0; i < mod->funcCount; i++, func=func->next) {
-	    perProcedureWallTime(mn, func->prettyName, pred, result);
+	for (curr = mod->funcs; func = *curr; curr++) {
+	    perProcedureWallTime(mn, func->prettyName, pred, result, TRUE);
 	}
 
 	return;
@@ -373,7 +378,8 @@ void perModuleWallTime(metricDefinitionNode *mn,
 AstNode *perProcedureCPUTime(metricDefinitionNode *mn, 
 			     char *funcName, 
 			     AstNode *trigger,
-			     dataReqNode *dataPtr)
+			     dataReqNode *dataPtr,
+			     Boolean skipSiblings)
 {
 
     int i;
@@ -408,6 +414,9 @@ AstNode *perProcedureCPUTime(metricDefinitionNode *mn,
 	mn->addInst(func->funcEntry, startNode, callPreInsn, orderLastAtPoint);
 
 	mn->addInst(func->funcReturn, stopNode, callPreInsn, orderFirstAtPoint);
+
+	// for the module we pick up all siblings at once.
+	if (skipSiblings) break;
     }
 
     return(NULL);
@@ -417,15 +426,15 @@ void perModuleCPUTime(metricDefinitionNode *mn,
 		      char *constraint, 
 		      AstNode *trigger)
 {
-    int i;
     module *mod;
     function *func;
     char *funcName;
     dataReqNode *result;
+    List<function *> curr;
 
     if (funcName = strchr(constraint, '/')) {
 	funcName++;
-	perProcedureCPUTime(mn, funcName, trigger, NULL);
+	perProcedureCPUTime(mn, funcName, trigger, NULL, FALSE);
     } else {
 	mod = findModule(mn->proc->symbols, constraint);
 	if (!mod) {
@@ -434,8 +443,8 @@ void perModuleCPUTime(metricDefinitionNode *mn,
 	}
 
 	result = mn->addTimer(processTime);
-	for (func = mod->funcs, i=0; i < mod->funcCount; i++, func=func->next) {
-	    perProcedureCPUTime(mn, func->prettyName, trigger, result);
+	for (curr = mod->funcs; func = *curr; curr++) {
+	    perProcedureCPUTime(mn, func->prettyName, trigger, result, TRUE);
 	}
     }
 }
@@ -469,13 +478,12 @@ void perModuleCalls(metricDefinitionNode *mn,
 		    char *constraint, 
 		    AstNode *trigger)
 {
-    int i;
     module *mod;
     char *funcName;
     function *func;
-    function *curr;
     AstNode *newCall;
     dataReqNode *counter;
+    List<function *> curr;
 
     if (funcName = strchr(constraint, '/')) {
 	funcName++;
@@ -492,11 +500,8 @@ void perModuleCalls(metricDefinitionNode *mn,
 	newCall = createPrimitiveCall("addCounter", counter, 1);
 	// if (trigger) newCall = createIf(trigger, newCall);
 
-	for (func = mod->funcs, i=0; i < mod->funcCount; i++, func=func->next) {
-	    for (curr=func; curr; curr=curr->sibling) {
-		mn->addInst(curr->funcEntry, newCall, 
-		    callPreInsn,orderLastAtPoint);
-	    }
+	for (curr = mod->funcs; func = *curr; curr++) {
+	    mn->addInst(func->funcEntry, newCall, callPreInsn,orderLastAtPoint);
 	}
 	return;
     }
