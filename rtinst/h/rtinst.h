@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.45 2000/10/17 17:42:49 schendel Exp $
+ * $Id: rtinst.h,v 1.46 2001/01/16 22:27:25 schendel Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -67,11 +67,12 @@ typedef struct sampleIdRec sampleId;
 /* struct endStatsRec in dyninstAPI_RT.h */
 
 struct intCounterRec {
-   int value;		/* this field must be first for setValue to work -jkh */
+   int64_t value;    /* this field must be first for setValue to work -jkh */
    sampleId id;
-    
-   unsigned char theSpinner;
-   /* mutex serving 2 purposes:
+  /* seems to be unused, implementing atomic loads and stores for the counters
+     should make this method unnecessary anyways - bhs
+    unsigned char theSpinner;
+    mutex serving 2 purposes:
       (1) so paradynd won't sample while we're in middle of updating and
       (2) so multiple LWPs or threads won't update at the same time */ 
 };
