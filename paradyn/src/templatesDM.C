@@ -93,6 +93,7 @@ template class vector< dictionary_hash<string, metric *> :: hash_pair >;
 template class vector< vector< dictionary_hash<string, metric *> :: hash_pair > >;
 template class vector<dataValueType>;
 template class BufferPool<dataValueType>;
+template class vector<predCostType*>;
 
 
 template class dictionary<string, resource*>;
