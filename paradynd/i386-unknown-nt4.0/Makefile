@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2003/04/09 18:09:08 pcroth Exp $
+# $Id: Makefile,v 1.13 2003/05/08 21:41:20 pcroth Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -45,7 +45,7 @@ CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT
 
 #CXXFLAGS 	= $(CXXFLAGS) -DSAMPLEVALUE_DEBUG
 
-SYSLIBS	        = $(SYSLIBS) advapi32.lib iphlpapi.lib
+SYSLIBS	        = $(SYSLIBS) advapi32.lib iphlpapi.lib psapi.lib
 
 
 # Include the module-specific Makefile, which defines everything about

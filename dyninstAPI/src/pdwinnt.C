@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.98 2003/05/08 18:12:27 pcroth Exp $
+// $Id: pdwinnt.C,v 1.99 2003/05/08 21:41:20 pcroth Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -53,6 +53,7 @@
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/signalhandler.h"
+#include <psapi.h>
 
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/main.h"
@@ -1459,8 +1460,75 @@ bool process::isRunning_() const {
 }
 
 
-string process::tryToFindExecutable(const string& iprogpath, int pid) {
-  return iprogpath;
+string 
+process::tryToFindExecutable(const string& iprogpath, int pid)
+{
+    if( iprogpath.length() == 0 )
+    {
+        HANDLE hProc = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+                                    FALSE,
+                                    pid );
+        if( hProc != NULL )
+        {
+            // look at the process' modules to see if we can get at an EXE
+            DWORD nMods = 32;
+            DWORD cb = nMods * sizeof(HMODULE);
+            DWORD cbNeeded = 0;
+            HMODULE* hMods = new HMODULE[cb];
+            BOOL epmRet = EnumProcessModules( hProc,
+                                                hMods,
+                                                cb,
+                                                &cbNeeded );
+            if( !epmRet && (cbNeeded > cb) )
+            {
+                // we didn't pass a large enough array in
+                delete[] hMods;
+                nMods = (cbNeeded / sizeof(HMODULE));
+                cb = cbNeeded;
+                hMods = new HMODULE[cb];
+
+                epmRet = EnumProcessModules( hProc,
+                                                hMods,
+                                                cb,
+                                                &cbNeeded );
+            }
+
+            if( epmRet )
+            {
+                // we got modules
+                // look for the EXE (always first item?)
+                nMods = cbNeeded / sizeof(HMODULE);
+                for( unsigned int i = 0; i < nMods; i++ )
+                {
+                    char modName[MAX_PATH];
+
+                    BOOL gmfnRet = GetModuleFileNameEx( hProc,
+                                                        hMods[i],
+                                                        modName,
+                                                        MAX_PATH );
+                    if( gmfnRet )
+                    {
+                        // check if this is the EXE
+                        // TODO is this sufficient?
+                        // should we instead be recognizing the
+                        // "program" by some other criteria?
+                        unsigned int slen = strlen( modName );
+                        if( (modName[slen-4] == '.') &&
+                            ((modName[slen-3]=='E')||(modName[slen-3]=='e')) &&
+                            ((modName[slen-2]=='X')||(modName[slen-2]=='x')) &&
+                            ((modName[slen-1]=='E')||(modName[slen-1]=='e')) )
+                        {
+                            return modName;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            CloseHandle( hProc );
+        }
+    }
+    return iprogpath;
 }
 
 
