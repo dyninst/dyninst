@@ -3,6 +3,12 @@
 
 #
 # $Log: whereAxis.tcl,v $
+# Revision 1.6  1995/11/20 04:07:38  tamches
+# fixed activeBackground and activeForeground colors which had made for
+# ugly menu highlighting.
+# Tips can be removed and re-drawn using whereAxisDrawTips and
+# whereAxisEraseTips command.
+#
 # Revision 1.5  1995/10/17 22:25:57  tamches
 # A few command names have "whereAxis" prepended to them, to differentiate
 # them from shg tcl code.  Added tip4.
@@ -76,22 +82,17 @@ proc resize1Scrollbar {sbname newTotal newVisible} {
 
 # ##################################################################
 
-proc whereAxisCatchDeleteWindow {} {
-   # change the delete into an iconify
-   wm iconify .whereAxis
-}
-
-# ##################################################################
-
-proc whereAxisShowSelections {} {
-}
+#proc whereAxisShowSelections {} {
+#}
 
 # ##################################################################
 
 proc whereAxisInitialize {} {
    toplevel .whereAxis -class "WhereAxis"
    option add *whereAxis*Background grey
-   wm protocol .whereAxis WM_DELETE_WINDOW whereAxisCatchDeleteWindow
+   option add *whereAxis*activeBackground LightGrey
+   option add *activeForeground black
+   wm protocol .whereAxis WM_DELETE_WINDOW {wm iconify .whereAxis}
    
    frame .whereAxis.top
    pack  .whereAxis.top -side top -fill x -expand false -anchor n
@@ -103,6 +104,8 @@ proc whereAxisInitialize {} {
    menubutton .whereAxis.top.mbar.file -text Window -menu .whereAxis.top.mbar.file.m
    menu .whereAxis.top.mbar.file.m -selectcolor cornflowerblue
    .whereAxis.top.mbar.file.m add command -label "Iconify" -command "wm iconify .whereAxis"
+#   .whereAxis.top.mbar.file.m add command -label "DrawTips" -command "whereAxisDrawTips"
+#   .whereAxis.top.mbar.file.m add command -label "EraseTips" -command "whereAxisEraseTips"
    
    menubutton .whereAxis.top.mbar.sel -text Selections -menu .whereAxis.top.mbar.sel.m
    menu .whereAxis.top.mbar.sel.m -selectcolor cornflowerblue
@@ -116,7 +119,6 @@ proc whereAxisInitialize {} {
    menu .whereAxis.top.mbar.abs.m -selectcolor cornflowerblue
    
    pack .whereAxis.top.mbar.file .whereAxis.top.mbar.sel .whereAxis.top.mbar.nav .whereAxis.top.mbar.abs -side left -padx 4
-   tk_menuBar .whereAxis.top.mbar .whereAxis.top.mbar.file .whereAxis.top.mbar.sel .whereAxis.top.mbar.nav .whereAxis.top.mbar.abs
    
    # -----------------------------------------------------------
    
@@ -140,44 +142,11 @@ proc whereAxisInitialize {} {
    
    pack .whereAxis.nontop.main.bottsb -side bottom -fill x -expand false
    
-   #canvas .whereAxis.nontop.main.all -relief flat -width 3i -height 2i \
-   #	-yscrollcommand myYScrollCommand \
-   #	-xscrollcommand myXScrollCommand \
-   #	-scrollincrement 1
    frame .whereAxis.nontop.main.all -relief flat -width 3i -height 2i
    pack .whereAxis.nontop.main.all -side left -fill both -expand true
    
    # -----------------------------------------------------------
-   
-   label .whereAxis.nontop.tip1 -relief sunken \
-	   -text "Click to select; double-click to expand/un-expand" \
-	   -font "*-Helvetica-*-r-*-12-*"
-   pack  .whereAxis.nontop.tip1 -side top -fill both -expand false
-      # fill both (instead of just x) seems needed to prevent from shrinking
-      # when window made shorter
-   
-   label .whereAxis.nontop.tip2 -relief sunken \
-	   -text "Shift-double-click to expand/un-expand all subtrees of a node" \
-	   -font "*-Helvetica-*-r-*-12-*"
-   pack  .whereAxis.nontop.tip2 -side top -fill both -expand false
-      # fill both (instead of just x) seems needed to prevent from shrinking
-      # when window made shorter
-   
-   label .whereAxis.nontop.tip3 -relief sunken \
-	   -text "Ctrl-double-click to select/un-select all subtrees of a node" \
-	   -font "*-Helvetica-*-r-*-12-*"
-   pack  .whereAxis.nontop.tip3 -side top -fill both -expand false
-      # fill both (instead of just x) seems needed to prevent from shrinking
-      # when window made shorter
 
-   label .whereAxis.nontop.tip4 -relief sunken \
-	   -text "Hold down Alt and move the mouse to scroll freely" \
-	   -font "*-Helvetica-*-r-*-12-*"
-   pack  .whereAxis.nontop.tip4 -side top -fill both -expand false
-
-   
-   # -----------------------------------------------------------
-   
    frame .whereAxis.nontop.find
    pack  .whereAxis.nontop.find -side top -fill both -expand false
    
@@ -189,6 +158,11 @@ proc whereAxisInitialize {} {
    
    bind  .whereAxis.nontop.find.entry <Return> {whereAxisFindHook [.whereAxis.nontop.find.entry get]}
    
+   # -----------------------------------------------------------
+   
+   whereAxisDrawTipsBase
+   whereAxisDrawTips
+
    # -----------------------------------------------------------
    
    # install resize, expose, and button event hooks for .whereAxis.nontop.main.all
@@ -203,4 +177,50 @@ proc whereAxisInitialize {} {
    bind .whereAxis.nontop.main.all <Motion> {whereAxisAltReleaseHook}
    
    set currMenuAbstraction 1
+}
+
+proc whereAxisDrawTipsBase {} {
+   frame .whereAxis.nontop.tips
+   pack .whereAxis.nontop.tips -side top -fill x -expand false
+}
+
+proc whereAxisDrawTips {} {
+   if { [winfo exists .whereAxis.nontop.tips.tip1] } {
+      return
+   }
+
+   label .whereAxis.nontop.tips.tip1 -relief groove \
+	   -text "Click to select; double-click to expand/un-expand" \
+	   -font "*-Helvetica-*-r-*-12-*"
+   pack  .whereAxis.nontop.tips.tip1 -side top -fill both -expand false
+      # fill both (instead of just x) seems needed to prevent from shrinking
+      # when window made shorter
+   
+   label .whereAxis.nontop.tips.tip2 -relief groove \
+	   -text "Shift-double-click to expand/un-expand all subtrees of a node" \
+	   -font "*-Helvetica-*-r-*-12-*"
+   pack  .whereAxis.nontop.tips.tip2 -side top -fill both -expand false
+      # fill both (instead of just x) seems needed to prevent from shrinking
+      # when window made shorter
+   
+   label .whereAxis.nontop.tips.tip3 -relief groove \
+	   -text "Ctrl-double-click to select/un-select all subtrees of a node" \
+	   -font "*-Helvetica-*-r-*-12-*"
+   pack  .whereAxis.nontop.tips.tip3 -side top -fill both -expand false
+      # fill both (instead of just x) seems needed to prevent from shrinking
+      # when window made shorter
+
+   label .whereAxis.nontop.tips.tip4 -relief groove \
+	   -text "Hold down Alt and move the mouse to scroll freely" \
+	   -font "*-Helvetica-*-r-*-12-*"
+   pack  .whereAxis.nontop.tips.tip4 -side top -fill both -expand false
+}
+
+proc whereAxisEraseTips {} {
+   if { ![winfo exists .whereAxis.nontop.tips.tip1] } {
+      return
+   }
+
+   destroy .whereAxis.nontop.tips
+   whereAxisDrawTipsBase
 }
