@@ -212,13 +212,20 @@ bool dataManager::addExecutable(const char *machine,
 
 bool dataManager::attach(const char *machine,
 			 const char *user,
-			 const char *daemonName,
-			 const char *pidStr) {
+			 const char *dir,
+			 const char *cmd, // program name
+			 const char *pidStr,
+			 const char *daemonName) {
    if (strlen(pidStr) == 0)
       return false;
 
+   // dir + cmd give a path to the executable...we use it just to read
+   // the symbol table.
+   if (strlen(cmd) == 0)
+      return false;
+
    int pid = atoi(pidStr);
-   return (paradynDaemon::attachStub(machine, user, daemonName, pid));
+   return (paradynDaemon::attachStub(machine, user, dir, cmd, pid, daemonName));
       // "Stub" appended to name to avoid name clash with the actual remote igen call
       // attach()
 }
