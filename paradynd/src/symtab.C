@@ -16,6 +16,11 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
+ * Revision 1.39  1996/04/08 22:27:13  lzheng
+ * Added some HP-specific structures and member functions, needed
+ * for treating the call site, entry point, and exit points differently
+ * on the HP.
+ *
  * Revision 1.38  1996/04/06 21:25:33  hollings
  * Fixed inst free to work on AIX (really any platform with split I/D heaps).
  * Removed the Line class.
@@ -36,161 +41,6 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  * Get module name for functions from symbol table in solaris
  * Fixed code generation for multiple instrumentation statements
  * Changed syntax of MDL resource lists
- *
- * Revision 1.33  1995/11/28 15:56:59  naim
- * Minor fix. Changing char[number] by string - naim
- *
- * Revision 1.32  1995/11/22  00:02:26  mjrg
- * Updates for paradyndPVM on solaris
- * Fixed problem with wrong daemon getting connection to paradyn
- * Removed -f and -t arguments to paradyn
- * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
- * Fixed bug in my previous commit
- *
- * Revision 1.31  1995/11/03 21:17:38  naim
- * Fixing minor warning - naim
- *
- * Revision 1.30  1995/11/03  00:06:13  newhall
- * changes to support changing the sampling rate: dynRPC::setSampleRate changes
- *     the value of DYNINSTsampleMultiple, implemented image::findInternalSymbol
- * fix so that SIGKILL is not being forwarded to CM5 applications.
- *
- * Revision 1.29  1995/10/26  21:07:28  tamches
- * removed some warnings
- *
- * Revision 1.28  1995/09/26 20:34:44  naim
- * Minor fix: change all msg char[100] by string msg everywhere, since this can
- * cause serious troubles. Adding some error messages too.
- *
- * Revision 1.27  1995/08/24  15:04:36  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.26  1995/05/30  05:05:05  krisna
- * upgrade from solaris-2.3 to solaris-2.4.
- * architecture-os based include protection of header files.
- * removed architecture-os dependencies in generic sources.
- * changed ST_* symbol names to PDST_* (to avoid conflict on HPUX)
- *
- * Revision 1.25  1995/05/18  10:42:40  markc
- * Added code to build procedure lists for the mdl
- *
- * Revision 1.24  1995/02/21  22:03:32  markc
- * Added slightly better error recovery, with messages!  Paradynd reports back
- * when it attempts to run an unusable executable.  It no longer aborts.
- *
- * Revision 1.23  1995/02/16  08:54:23  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.22  1995/02/16  08:34:58  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.21  1994/12/15  07:39:53  markc
- * make resourceBatch request prior to defining resources.
- *
- * Revision 1.20  1994/11/10  21:01:21  markc
- * Turn off creation of MODS file.
- * Don't assume a .o is a module until all of the real modules have been seen.
- *
- * Revision 1.19  1994/11/10  18:58:19  jcargill
- * The "Don't Blame Me Either" commit
- *
- * Revision 1.18  1994/11/09  18:40:38  rbi
- * the "Don't Blame Me" commit
- *
- * Revision 1.17  1994/11/02  11:17:23  markc
- * Made symbol table parsing machine independent.
- *
- * Revision 1.15  1994/10/13  07:25:04  krisna
- * solaris porting and updates
- *
- * Revision 1.14  1994/10/04  21:40:12  jcargill
- * Removed requirement that functions have valid line-number information to
- * be consider user functions.
- *
- * Revision 1.13  1994/09/30  19:47:16  rbi
- * Basic instrumentation for CMFortran
- *
- * Revision 1.12  1994/09/22  02:26:40  markc
- * Made structs classes
- *
- * Revision 1.11  1994/08/08  20:13:47  hollings
- * Added suppress instrumentation command.
- *
- * Revision 1.10  1994/08/02  18:25:07  hollings
- * fixed modules to use list template for lists of functions.
- *
- * Revision 1.9  1994/07/28  22:40:48  krisna
- * changed definitions/declarations of xalloc functions to conform to alloc.
- *
- * Revision 1.8  1994/07/22  19:21:10  hollings
- * removed mistaken divid by 1Meg for predicted cost.
- *
- * Revision 1.7  1994/07/20  23:23:41  hollings
- * added insn generated metric.
- *
- * Revision 1.6  1994/07/12  19:26:15  jcargill
- * Added internal prefix for TRACELIB
- *
- * Revision 1.5  1994/06/29  02:52:51  hollings
- * Added metricDefs-common.{C,h}
- * Added module level performance data
- * cleanedup types of inferrior addresses instrumentation defintions
- * added firewalls for large branch displacements due to text+data over 2meg.
- * assorted bug fixes.
- *
- * Revision 1.4  1994/06/27  21:28:23  rbi
- * Abstraction-specific resources and mapping info
- *
- * Revision 1.3  1994/06/27  18:57:15  hollings
- * removed printfs.  Now use logLine so it works in the remote case.
- * added internalMetric class.
- * added extra paramter to metric info for aggregation.
- *
- * Revision 1.2  1994/05/16  22:31:55  hollings
- * added way to request unique resource name.
- *
- * Revision 1.1  1994/01/27  20:31:45  hollings
- * Iinital version of paradynd speaking dynRPC igend protocol.
- *
- * Revision 1.8  1993/12/13  19:57:20  hollings
- * added nearest line match for function to support Fortran convention of making
- * first sline record be the first executable statement in the function.
- *
- * Revision 1.7  1993/10/12  20:10:35  hollings
- * zero memory on a realloc.
- *
- * Revision 1.6  1993/10/04  21:39:08  hollings
- * made missing internal symbols a fatal condition.
- *
- * Revision 1.5  1993/08/23  23:16:05  hollings
- * added third parameter to findInternalSymbol.
- *
- * Revision 1.4  1993/08/20  22:02:39  hollings
- * removed unused local variables.
- *
- * Revision 1.3  1993/07/13  18:32:46  hollings
- * new include file syntax.
- * added name demangler.
- *
- * Revision 1.2  1993/06/08  20:14:34  hollings
- * state prior to bc net ptrace replacement.
- *
- * Revision 1.1  1993/03/19  22:45:45  hollings
- * Initial revision
- *
  *
  */
 
@@ -351,6 +201,7 @@ image *image::parseImage(const string file)
   /*
    * load the symbol table. (This is the a.out format specific routine).
    */
+
   statusLine("Process executable file");
   bool err;
 
@@ -1231,6 +1082,7 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
   instruction instr;
   err = false;
 
+
   instr.raw = owner->get_instruction(adr);
   if (!IS_VALID_INSN(instr)) {
     err = true; return;
@@ -1238,6 +1090,57 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
 
   // TODO - why not automatic?
   // define the entry point
+#if defined(hppa1_1_hp_hpux)
+  bool done;
+
+  szOfLr = 0;
+
+  entryPoint.raw = exitPoint.raw = 0;
+
+  Address entryAdr = adr; 
+  Address retAdr;
+
+  funcEntry_ = new instPoint(this, instr, owner, adr, true, functionEntry);
+  assert(funcEntry_);
+  entryPoint = instr;
+
+  bool notRet = TRUE;
+  while(notRet) {
+    instr.raw = owner->get_instruction(adr);  
+
+    if (isReturnInsn(owner, adr, done)) {
+       funcReturns += new instPoint(this, instr, owner, adr, false,functionExit);
+       retAdr = adr;
+       assert(funcReturns[funcReturns.size()-1]);
+       exitPoint = instr; 
+       notRet = FALSE;
+     }
+    if (isLoadReturn(instr)) szOfLr++;
+
+    adr += 4;
+  }
+
+  adr = entryAdr;
+  if (szOfLr) lr = new loadr[szOfLr];
+
+  int index = 0; 
+  while (true) { 
+    instr.raw = owner->get_instruction(adr);
+
+    if (isLoadReturn(instr)) {
+      assert(index <= szOfLr); 
+      lr[index].loadReturn = instr;
+      lr[index].adr = adr;
+      index++;
+    } if (isReturnInsn(owner, adr, done)) {
+       return;
+    } else if (isCallInsnTest(instr, adr, entryAdr, retAdr)) {
+       adr = newCallPoint(adr, instr, owner, err, callSite);
+    }
+    adr += 4;
+  }   
+	   
+#else
   funcEntry_ = new instPoint(this, instr, owner, adr, true);
   assert(funcEntry_);
 
@@ -1258,11 +1161,14 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
       // define a call point
       // this may update address - sparc - aggregate return value
       // want to skip instructions
+
       adr = newCallPoint(adr, instr, owner, err);
     }
     // now do the next instruction
     adr += 4;
-  }
+   }
+#endif
+
 }
 
 // Store the mapping function:    name --> set of mdl resource lists

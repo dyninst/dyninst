@@ -10,6 +10,11 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
+ * Revision 1.20  1996/04/08 22:26:49  lzheng
+ * Added some HP-specific structures and member functions, needed
+ * for treating the call site, entry point, and exit points differently
+ * on the HP.
+ *
  * Revision 1.19  1996/03/25 22:58:18  hollings
  * Support functions that have multiple exit points.
  *
@@ -135,6 +140,24 @@ typedef enum { langUnknown,
 	       langCMFortran
 	       } supportedLanguages;
 
+/*
+ *  For HP only,  to distinguish the different instrumentation point
+ *  and they will be treated differently
+ */
+
+#if defined(hppa1_1_hp_hpux)
+typedef enum { noneType,
+               functionEntry,
+               functionExit,
+               callSite
+	   } instPointType;
+
+struct loadr{
+   instruction loadReturn;
+   Address adr;
+};
+#endif
+ 
 /* contents of line number field if line is unknown */
 #define UNKNOWN_LINE	0
 
@@ -162,6 +185,7 @@ class lineTable;
 // test if the passed instruction is a return instruction.
 extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne);
 
+
 class pdFunction {
  public:
     pdFunction(const string symbol, const string &pretty, module *f, Address adr,
@@ -169,8 +193,14 @@ class pdFunction {
     ~pdFunction() { /* TODO */ }
     void checkCallPoints();
     bool defineInstPoint();
-    Address newCallPoint(const Address adr, const instruction code, const image *owner, 
-			 bool &err);
+#if defined(hppa1_1_hp_hpux)
+    Address newCallPoint(const Address adr, const instruction code, const 
+                         image *owner, 
+			 bool &err, instPointType pointType=noneType);
+#else 
+    Address newCallPoint(const Address adr, const instruction code, const 
+                         image *owner, bool &err);
+#endif
 
     string symTabName() const { return symTabName_;}
     string prettyName() const { return prettyName_;}
@@ -184,6 +214,12 @@ class pdFunction {
     inline bool isTagSimilar(const unsigned comp) const { return(tag_ & comp);}
     bool isLibTag() const { return (tag_ & TAG_LIB_FUNC);}
     unsigned tag() const { return tag_; }
+#if defined(hppa1_1_hp_hpux)
+    instruction entryPoint;
+    instruction exitPoint;
+    struct loadr *lr; 
+    int szOfLr;
+#endif
 
   private:
     unsigned tag_;
@@ -197,8 +233,15 @@ class pdFunction {
 
 class instPoint {
 public:
+#if defined(hppa1_1_hp_hpux)
+  instPoint(pdFunction *f, const instruction &instr, const image *owner,
+	    const Address adr, const bool delayOK, instPointType 
+            pointType = noneType);
+#else
   instPoint(pdFunction *f, const instruction &instr, const image *owner,
 	    const Address adr, const bool delayOK);
+#endif
+
   ~instPoint() {  /* TODO */ }
 #ifdef notdef
   Address addr() const { return addr_; } 
@@ -221,6 +264,10 @@ private:
 
   Address addr;                   /* address of inst point */
   instruction originalInstruction;    /* original instruction */
+#if defined(hppa1_1_hp_hpux)          /* next instruction for HP-UX only */
+  instruction nextInstruction;
+  instPointType ipType;
+#endif
   instruction delaySlotInsn;  /* original instruction */
   instruction aggregateInsn;  /* aggregate insn */
   bool inDelaySlot;            /* Is the instruction in a delay slot */
