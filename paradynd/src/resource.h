@@ -48,6 +48,18 @@
 #include "common/h/Dictionary.h"
 #include "pdutil/h/resource.h"
 
+#if defined( ia64_unknown_linux2_4 )
+/* For reasons beyond the ken of merely mortal men,
+   /usr/include/asm/current.h, (included via, I think,
+   ptrace) #defines 'current'.
+   
+   Since we've not compiled for IA-64 before,
+   we can't be building anything that depends on it,
+   so #define it out of the way our code here. */
+#define asm_current current
+#undef current
+#endif
+
 class resource;
 
 /*
@@ -55,8 +67,6 @@ class resource;
  * resource		- enable notification of children of this resource
  */
 bool enableResourceCreationNotification(resource*);
-
-class resource;
 
 extern resource *rootResource;
 extern resource *machineRoot;
