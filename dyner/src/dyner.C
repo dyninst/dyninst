@@ -69,15 +69,18 @@ public:
     bool readValue(void *buf) { return var->readValue(buf); }
 };
 
+typedef enum { NORMAL, TRACE, COUNT } InstPointType;
+
 class IPListElem: public ListElem {
 public:
     char		     *statement;
-    bool 		     trace;
+    InstPointType 	     instType;
 
     IPListElem(int _number, char *_function, BPatch_procedureLocation _where,
 	       BPatch_callWhen _when, char *_condition,
-	       BPatchSnippetHandle *_handle, bool forTrace);
+	       BPatchSnippetHandle *_handle, InstPointType _instType);
     ~IPListElem();
+    void Print();
 };
 
 BPatch *bpatch;
@@ -169,15 +172,18 @@ void BPListElem::Print()
 
 IPListElem::IPListElem(int _number, char *_function,
     BPatch_procedureLocation _where, BPatch_callWhen _when, char *_statement,
-    BPatchSnippetHandle *_handle, bool _trace)
+    BPatchSnippetHandle *_handle, InstPointType _instType)
 {
-    number = _number;
+    if (_instType == NORMAL)
+    	number = _number;
+    else
+	number = -1;
     function = strdup(_function);
     where = _where;
     when = _when;
     statement = strdup(_statement);
     handle = _handle;
-    trace = _trace;
+    instType = _instType;
 }
 
 IPListElem::~IPListElem()
@@ -192,11 +198,27 @@ IPListElem::~IPListElem()
     }
 }
 
+void IPListElem::Print()
+{
+    printf("%2d: %s (%s)-->%s\n", number, function, loc2name(where, when), statement);
+}
+
 BPListElem *findBP(int n)
 {
     DynerList<BPListElem *>::iterator i;
 
     for (i = bplist.begin(); i != bplist.end(); i++) {
+	if ((*i)->number == n) return (*i);
+    }
+
+    return NULL;
+}
+
+IPListElem *findIP(int n)
+{
+    DynerList<IPListElem *>::iterator i;
+
+    for (i = iplist.begin(); i != iplist.end(); i++) {
 	if ((*i)->number == n) return (*i);
     }
 
@@ -211,12 +233,14 @@ int help(ClientData, Tcl_Interp *, int, char **)
     printf("attach <pid> <program> - attach dyner to a running program\n");
     printf("declare <type> <variable> - create a new variable of type <type>\n");
     printf("deletebreak <breakpoint number ...> - delete breakpoint(s)\n");
+    printf("deleteinst <instpoint number ...> - delete intrumentation point(s)\n");
     printf("break <function> [entry|exit|preCall|postCall] [<condition>] - set a (conditional)\n");
     printf("     break point at specified points of <function>\n");
     printf("break <file name:line number> [<condition>] - set an arbitrary (conditional) break\n");
     printf("     point at <line number> of <file name>\n");
     printf("execute <statement> - Execute <statement> at the current point\n");
     printf("listbreak - list break points\n");
+    printf("listinst - list intrumentation points\n");
     printf("load <program> [arguments] [< filename] [> filename] - load a program\n");
     printf("load library <lib name> - load a dynamically linked library\n");
     printf("load source <C++ file name> - Create a dynamically linked library from a \n");
@@ -449,6 +473,22 @@ int listBreak(ClientData, Tcl_Interp *, int, char **)
     return TCL_OK;
 }
 
+int listInstrument(ClientData, Tcl_Interp *, int, char **)
+{
+    if (!haveApp()) return TCL_ERROR;
+
+    IPListElem *curr;
+    DynerList<IPListElem *>::iterator i;
+
+    for (i = iplist.begin(); i != iplist.end(); i++) {
+	curr = (IPListElem *) *i;
+	if (curr->instType == NORMAL)
+		curr->Print();
+    }
+
+    return TCL_OK;
+}
+
 int deleteBreak(ClientData, Tcl_Interp *, int argc, char *argv[])
 {
     if (!haveApp()) return TCL_ERROR;
@@ -471,6 +511,33 @@ int deleteBreak(ClientData, Tcl_Interp *, int argc, char *argv[])
 	    bplist.erase(i);
 	    delete i;
 	    printf("Breakpoint %d deleted.\n", n);
+	}
+    }
+
+    return ret;
+}
+
+int deleteInstrument(ClientData, Tcl_Interp *, int argc, char *argv[])
+{
+    if (!haveApp()) return TCL_ERROR;
+
+    if (argc < 2) {
+	printf("Specify intrument number(s) to delete.\n");
+	return TCL_ERROR;
+    }
+
+    int ret = TCL_OK;
+    for (int j = 1; j < argc; j++) {
+	int n = atoi(argv[j]);
+
+       	IPListElem *i = findIP(n);
+	if (i == NULL) {
+	    printf("No such intrument point: %d\n", n);
+	    ret = TCL_ERROR;
+	} else {
+	    iplist.erase(i);
+	    delete i;
+	    printf("Instrument number %d deleted.\n", n);
 	}
     }
 
@@ -845,10 +912,15 @@ int instStatement(ClientData, Tcl_Interp *, int argc, char *argv[])
     //Assign targetPoint using function entry point
     targetPoint = (*(func->findPoint(BPatch_entry)))[0];
 
-    bool trace = false;
+    InstPointType instType = NORMAL;
     if (!strcmp(argv[argc-1], "trace")) {
 	//This statement is used for tracing the functions
-	trace = true;
+	instType = TRACE;
+	argc--;
+    }
+    else if (!strcmp(argv[argc-1], "count")) {
+	//This statement is used for counting the functions
+	instType = COUNT;
 	argc--;
     }
 
@@ -865,7 +937,7 @@ int instStatement(ClientData, Tcl_Interp *, int argc, char *argv[])
 	strcat(line_buf, argv[i]);
 	if (i != argc-1) strcat(line_buf, " ");
     }
-    strcat(line_buf, "\n");
+    // strcat(line_buf, "\n");
 
     // printf("calling parse of %s\n", line_buf);
     set_lex_input(line_buf);
@@ -894,13 +966,15 @@ int instStatement(ClientData, Tcl_Interp *, int argc, char *argv[])
     }
 
     IPListElem *snl =
-	new IPListElem(ipCtr, argv[1], where, when, line_buf, handle, trace);
+	new IPListElem(ipCtr, argv[1], where, when, line_buf, handle, instType);
     delete line_buf;
 
     iplist.push_back(snl);
 
-    // printf("Inst point %d set.\n", ipCtr);
-    ipCtr++;
+    if (instType == NORMAL) {
+    	printf("Instrument point %d set.\n", ipCtr);
+        ipCtr++;
+    }
 
     return TCL_OK;
 }
@@ -1744,15 +1818,15 @@ int countCommand(ClientData, Tcl_Interp *interp, int argc, char *argv[])
     if (Tcl_Eval(interp, cmdBuf) == TCL_ERROR)
 	return TCL_ERROR;
 
-    sprintf(cmdBuf, "at main entry { _%s_cnt = 0; }", fcnName);
+    sprintf(cmdBuf, "at main entry { _%s_cnt = 0; } count", fcnName);
     if (Tcl_Eval(interp, cmdBuf) == TCL_ERROR)
 	return TCL_ERROR;
 
-    sprintf(cmdBuf, "at %s entry { _%s_cnt++; }", fcnName, fcnName);
+    sprintf(cmdBuf, "at %s entry { _%s_cnt++; } count", fcnName, fcnName);
     if (Tcl_Eval(interp, cmdBuf) == TCL_ERROR)
 	return TCL_ERROR;
 
-    sprintf(cmdBuf, "at main exit { printf(\"%s called %%d times\\n\", _%s_cnt); }", 
+    sprintf(cmdBuf, "at main exit { printf(\"%s called %%d times\\n\", _%s_cnt); } count", 
 									fcnName, fcnName);
     if (Tcl_Eval(interp, cmdBuf) == TCL_ERROR)
 	return TCL_ERROR;
@@ -1951,7 +2025,7 @@ int untraceFunc(char *name)
 
 	i++;
 
-        if (ip->trace && !strcmp(name, ip->function)) {
+        if ( (ip->instType == TRACE) && !strcmp(name, ip->function)) {
 		iplist.erase(ip);
 		delete ip;
 	}
@@ -2164,6 +2238,8 @@ int Tcl_AppInit(Tcl_Interp *interp)
     //Tcl_CreateCommand(interp, "dump", dumpCommand, NULL, NULL);
     Tcl_CreateCommand(interp, "detach", detachCommand, NULL, NULL);
     Tcl_CreateCommand(interp, "execute", execStatement, NULL, NULL);
+    Tcl_CreateCommand(interp, "listinst", listInstrument, NULL, NULL);
+    Tcl_CreateCommand(interp, "deleteinst", deleteInstrument, NULL, NULL);
 
     bpatch->registerErrorCallback(errorFunc);
     bpatch->setTypeChecking(false);
