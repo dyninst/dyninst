@@ -133,7 +133,7 @@ bool BPatch_eventMailbox::executeUserCallbacks()
             (cb)(lvl, number, &params);
 
            //  params is allocated upon registration of this cb
-          if (params) delete [] params;
+          if (params) delete [] (const_cast<char *>(params));
           break;
 
         }
@@ -1306,6 +1306,7 @@ BPatch_asyncEventHandler::~BPatch_asyncEventHandler()
 
 bool BPatch_asyncEventHandler::createThread()
 {
+//fprintf(stderr, "%s[%d]:  welcome to createThread()\n", __FILE__, __LINE__);
 #if defined(os_windows)
   fprintf(stderr, "%s[%d]:  about to start thread\n", __FILE__, __LINE__);
   handler_thread = _beginthread(asyncHandlerWrapper, 0, (void *) this);
