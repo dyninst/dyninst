@@ -39,83 +39,23 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.1 1999/06/17 18:35:27 pcroth Exp $
+// $Id: Object-nt.C,v 1.2 1999/07/08 19:26:22 pcroth Exp $
 #include <iostream.h>
 #include <iomanip.h>
 #include <limits.h>
 
-#include "util/h/Object.h"
-#include "util/h/Object-nt.h"
-
 #include "util/h/String.h"
 #include "util/h/Vector.h"
 #include "util/h/CodeView.h"
+#include "util/h/Object.h"
+#include "util/h/Object-nt.h"
 
-
-//---------------------------------------------------------------------------
-// structures used only in this file
-//---------------------------------------------------------------------------
-struct PDModInfo
-{
-    string          name;       // name of Paradyn module
-    unsigned int    offText;    // offset of module's code in text segment
-    unsigned int    cbText;     // size of module's code in text segment
-
-    PDModInfo( void )
-      : name( "" ),
-        offText( 0 ),
-        cbText( 0 )
-    {}
-
-    PDModInfo( string modName, unsigned int offset, unsigned int cb )
-      : name( modName ),
-        offText( offset ),
-        cbText( cb )
-    {}
-
-    PDModInfo& operator=( const PDModInfo& mi )
-    {
-        if( &mi != this )
-        {
-            name = mi.name;
-            offText = mi.offText;
-            cbText = mi.cbText;
-        }
-        return *this;
-    }
-};
-
-struct ModInfo
-{
-	const CodeView::Module*	pCVMod;     // CodeView information
-    unsigned int pdModIdx;              // index of Paradyn module
-                                        // this module is associated with
-                                        // in the pdMods array
-
-	ModInfo( const CodeView::Module* pCVModule = NULL,
-             unsigned int pdModIndex = 0 )
-	  : pCVMod( pCVModule ),
-		pdModIdx( pdModIndex )
-    {}
-
-    ModInfo& operator=( const ModInfo& mi )
-    {
-        if( &mi != this )
-        {
-            pCVMod = mi.pCVMod;
-            pdModIdx = mi.pdModIdx;
-        }
-        return *this;
-    }
-};
 
 
 //---------------------------------------------------------------------------
 // prototypes of functions used in this file
 //---------------------------------------------------------------------------
-int	mod_offset_compare( const void* x, const void* y );
-static  string  FindModuleByOffset( unsigned int offset,
-                                    const vector<PDModInfo>& pdMods );
+int sym_offset_compare( const void *x, const void *y );
 
 
 
@@ -222,10 +162,11 @@ Object::ParseSectionMap( IMAGE_DEBUG_INFORMATION* pDebugInfo )
 }
 
 
-void
+bool
 Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
 {
 	CodeView cv( (const char*)pDebugInfo->CodeViewSymbols, textSectionId );
+    bool ret = true;
 
 	if( cv.Parse() )
 	{
@@ -331,7 +272,7 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
 		}
 
 		// sort list of modules by offset to give us our CodeView module map
-		cvMods.sort( mod_offset_compare );
+        cvMods.sort( ModInfo::CompareByOffset );
 
 #ifdef _DEBUG
         // dump the CodeView module map
@@ -433,223 +374,12 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
 		// now that we have a module map of the .text segment,
 		// consider the symbols defined by each module
 		//
-		for( midx = 0; midx < cvMods.size(); midx++ )
-		{
-			const CodeView::Module& mod = *(cvMods[midx].pCVMod);
-            PDModInfo& pdMod = pdMods[cvMods[midx].pdModIdx];
-                        
-			// add symbols for each global function defined in the module
-            {
-			    const vector<CodeView::SymRecordProc*>& gprocs =
-                    mod.GetSymbols().GetGlobalFunctions();
-			    for( i = 0; i < gprocs.size(); i++ )
-			    {
-				    const CodeView::SymRecordProc* proc = gprocs[i];
+        CVProcessSymbols( cv, cvMods, pdMods, allSymbols );
 
-				    // build a symbol from the proc information
-				    LPString lpsName( proc->name );
-				    string strName = (string)lpsName;
 
-				    Address addr = code_off_ + proc->offset;
-
-				    allSymbols += ( Symbol( strName,
-					    pdMod.name,
-					    Symbol::PDST_FUNCTION,
-					    Symbol::SL_GLOBAL,
-					    addr,
-					    false,
-					    proc->procLength ));
-			    }
-            }
-
-			// add symbols for each local function defined in the module
-            {
-			    const vector<CodeView::SymRecordProc*>& lprocs =
-                       mod.GetSymbols().GetLocalFunctions();
-			    for( i = 0; i < lprocs.size(); i++ )
-			    {
-				    const CodeView::SymRecordProc* proc = lprocs[i];
-				    LPString lpsName( proc->name );
-				    string strName = (string)lpsName;
-
-				    Address addr = code_off_ + proc->offset;
-
-				    allSymbols += ( Symbol( strName,
-					    pdMod.name,
-					    Symbol::PDST_FUNCTION,
-					    Symbol::SL_LOCAL,
-					    addr,
-					    false,
-					    proc->procLength ));
-			    }
-            }
-
-			// handle thunks
-            {
-			    const vector<CodeView::SymRecordThunk*>& thunks =
-                    mod.GetSymbols().GetThunks();
-			    for( i = 0; i < thunks.size(); i++ )
-			    {
-				    const CodeView::SymRecordThunk* thunk = thunks[i];
-				    LPString lpsName( thunk->name );
-				    string strName = (string)lpsName;
-
-				    Address addr = code_off_ + thunk->offset;
-
-				    allSymbols += ( Symbol( strName,
-					    pdMod.name,
-					    Symbol::PDST_FUNCTION,
-					    Symbol::SL_GLOBAL,
-					    addr,
-					    false,
-					    thunk->thunkLength ) );
-			    }
-            }
-
-			// add symbols for each global variable defined in the module
-            {
-			    const vector<CodeView::SymRecordData*>& gvars =
-                    mod.GetSymbols().GetGlobalVariables();
-			    for( i = 0; i < gvars.size(); i++ )
-			    {
-				    const CodeView::SymRecordData* pVar = gvars[i];
-				    LPString lpsName( pVar->name );
-				    string strName = (string)lpsName;
-
-				    Address addr = data_off_ + pVar->offset;
-
-				    allSymbols += ( Symbol( strName,
-					    pdMod.name,
-					    Symbol::PDST_OBJECT,
-					    Symbol::SL_GLOBAL,
-					    addr,
-					    false,
-					    0 ));               // will be patched later (?)
-			    }
-            }
-
-            {
-			    const vector<CodeView::SymRecordData*>& lvars =
-                    mod.GetSymbols().GetGlobalVariables();
-			    for( i = 0; i < lvars.size(); i++ )
-			    {
-				    const CodeView::SymRecordData* pVar = lvars[i];
-				    LPString lpsName( pVar->name );
-				    string strName = (string)lpsName;
-
-				    Address addr = data_off_ + pVar->offset;
-
-				    allSymbols += ( Symbol( strName,
-					    pdMod.name,
-					    Symbol::PDST_OBJECT,
-					    Symbol::SL_LOCAL,
-					    addr,
-					    false,
-					    0 ));               // will be patched later (?)
-			    }
-            }
-		}
-
-        // once we've handled the symbols that the CodeView object
-        // could discover and associate with a module, we've
-        // got to do something with symbols that were not explicitly
-        // associated with a module in the CodeView information
-
-        // Unfortunately, VC++/DF produce S_PUB32 symbols
-        // for functions in some cases.  (For example,
-        // when building a Digital Fortran program, the
-        // software produces an executable with symbols
-        // from the Fortran runtime libraries as S_PUB32
-        // records.)  We do our best to try to determine
-        // whether the symbol is a function, and if so,
-        // how large it is, which module it belongs to, etc.
-		const vector<CodeView::SymRecordData*>& pubs =
-                                                cv.GetSymbols().GetPublics();
-		for( i = 0; i < pubs.size(); i++ )
-		{
-			const CodeView::SymRecordData* sym = pubs[i];
-
-			LPString lpsName( sym->name );
-			string strName = (string)lpsName;
-
-            // we now have to try to determine the type of the
-            // symbol.  Since we're only given a type and a location,
-            // (and the type might not even be valid) we assume
-            // that any public symbol in the code section is
-            // a function and we try to determine which module it
-            // belongs to based on the module map we constructed earlier
-            if( sym->segment == textSectionId )
-            {
-			    Address addr = code_off_ + sym->offset;
-
-                // save the symbol
-			    allSymbols += Symbol( strName,
-				    FindModuleByOffset( sym->offset, pdMods ),
-				    Symbol::PDST_FUNCTION,
-				    Symbol::SL_GLOBAL,
-				    addr,
-				    false,
-				    0 );              // will be patched later
-            }
-            else if( sym->segment == dataSectionId )
-            {
-			    Address addr = data_off_ + sym->offset;
-
-			    allSymbols += Symbol( strName,
-				    FindModuleByOffset( sym->offset, pdMods ),
-				    Symbol::PDST_OBJECT,
-				    Symbol::SL_GLOBAL,
-				    addr,
-				    false,
-				    0 );              // will be patched later
-            }
-            else
-            {
-                // TODO - the symbol is not in the text or data
-                // sections - do we care about it?
-            }
-		}
-		
-        // now we sort all of our symbols by offset
-        // so that we can patch up any outstanding sizes
-        allSymbols.sort( symbol_compare );
-        for( i = 0; i < allSymbols.size(); i++ )
-        {
-            Symbol& sym = allSymbols[i];
-
-            if( (sym.name() != "") && (sym.size() == 0) &&
-                ((sym.type() == Symbol::PDST_FUNCTION) ||
-                 (sym.type() == Symbol::PDST_OBJECT)))
-            {
-                // patch the symbol's size
-                // we consider the symbol's size to be
-                // the distance to the next symbol
-                // (sometimes this causes us to overestimate)
-                unsigned int cb;
-
-                if( (i == (allSymbols.size() - 1)) ||
-                    (allSymbols[i+1].type() != sym.type()) )
-                {
-                    // size is the remainder of the current section
-                    if( sym.type() == Symbol::PDST_FUNCTION )
-                    {
-                        // size is remainder of the .text section
-                        cb = (code_off_ + code_len_*sizeof(Word)) - sym.addr();
-                    }
-                    else
-                    {
-                        // size is remainder of the .data section
-                        cb = (data_off_ + data_len_*sizeof(Word)) - sym.addr();
-                    }
-                }
-                else
-                {
-                    // size is just the delta between symbols
-                    cb = allSymbols[i+1].addr() - sym.addr();
-                }
-                sym.change_size( cb );
-            }
-        }
+        // our symbols are sorted by offset
+        // so we can patch up any outstanding sizes
+        CVPatchSymbolSizes( allSymbols );
 
 		// our symbols are finally ready to enter into
         // the main symbol dictionary
@@ -663,12 +393,313 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
 	}
 	else
 	{
-        // TODO - how to indicate the failure to parse symbols?
+        // indicate failure to parse symbols
+        ret = false;
 	}
+
+    return ret;
 }
 
 
 
+void
+Object::CVPatchSymbolSizes( vector<Symbol>& allSymbols )
+{
+    Address lastFuncAddr = NULL;
+    unsigned int i;
+
+
+    for( i = 0; i < allSymbols.size(); i++ )
+    {
+        Symbol& sym = allSymbols[i];
+
+        if( (sym.name() != "") && (sym.size() == 0) &&
+            ((sym.type() == Symbol::PDST_FUNCTION) ||
+             (sym.type() == Symbol::PDST_OBJECT)))
+        {
+            // check for function aliases
+            // note that this check depends on the allSymbols
+            // array being sorted so that aliases are considered
+            // after the "real" function symbol
+            bool isAlias = false;
+            if( (sym.type() == Symbol::PDST_FUNCTION) &&
+                (sym.addr() == lastFuncAddr) &&
+                (sym.size() == 0) )
+            {
+                // this function is an alias
+                // we currently leave their size as zero to indicate 
+                // that they are uninstrumentable.  Ideally, this will
+                // change once a mechanism becomes available to identify
+                // these as function aliases.
+                isAlias = true;
+            }
+
+
+            if( !isAlias )
+            {
+                //
+                // patch the symbol's size
+                //
+                // We consider the symbol's size to be the distance
+                // to the next symbol.  (Sometimes this causes us to
+                // overestimate, because compilers sometimes leave some
+                // "padding" between the end of a function and the beginning
+                // of the next.)
+                //
+                // Note that we have to use the next symbol whose
+                // address is different from the current one, to handle
+                // cases where aliases are included in the symbol table
+                //
+                unsigned int cb;
+
+                //
+                // find next function or object symbol in our section with
+                // an address different from ours
+                //
+                // the while test looks complicated -
+                // all we're trying to do is skip to the next
+                // function or object symbol within the array whose
+                // address is not the same as allSymbols[i].
+                unsigned int j = i + 1;
+                while( (j < allSymbols.size()) &&
+                       ( ((allSymbols[j].type() != Symbol::PDST_FUNCTION) &&
+                          (allSymbols[j].type() != Symbol::PDST_OBJECT)
+                         ) ||
+                         (allSymbols[j].addr() == sym.addr())
+                       )
+                     )
+                {
+                   j++;
+                }
+
+                if( j < allSymbols.size() &&
+                    (allSymbols[j].type() == sym.type()) )
+                {
+                    // we found a symbol from the same section
+                    // with a different address -
+                    // size is just the delta between symbols
+                    cb = allSymbols[j].addr() - sym.addr();
+                }
+                else
+                {
+                    // we couldn't find another symbol in our section
+                    // with a different address -
+                    // size is the remainder of the current section
+                    if( sym.type() == Symbol::PDST_FUNCTION )
+                    {
+                        // size is remainder of the .text section
+                        cb = (code_off_ + code_len_*sizeof(Word)) - sym.addr();
+                    }
+                    else
+                    {
+                        // size is remainder of the .data section
+                        cb = (data_off_ + data_len_*sizeof(Word)) - sym.addr();
+                    }
+                }
+                assert( cb != 0 );
+                sym.change_size( cb );
+            }
+
+            // update the last known function symbol
+            if( sym.type() == Symbol::PDST_FUNCTION )
+            {
+                lastFuncAddr = sym.addr();
+            }
+        }
+    }
+}
+
+
+void
+Object::CVProcessSymbols( CodeView& cv, 
+                          vector<Object::ModInfo>& cvMods,
+                          vector<Object::PDModInfo>& pdMods,
+                          vector<Symbol>& allSymbols )
+{
+    unsigned int midx;
+    unsigned int i;
+
+
+	for( midx = 0; midx < cvMods.size(); midx++ )
+	{
+		const CodeView::Module& mod = *(cvMods[midx].pCVMod);
+        PDModInfo& pdMod = pdMods[cvMods[midx].pdModIdx];
+                    
+		// add symbols for each global function defined in the module
+        {
+			const vector<CodeView::SymRecordProc*>& gprocs =
+                mod.GetSymbols().GetGlobalFunctions();
+			for( i = 0; i < gprocs.size(); i++ )
+			{
+				const CodeView::SymRecordProc* proc = gprocs[i];
+
+				// build a symbol from the proc information
+				LPString lpsName( proc->name );
+				string strName = (string)lpsName;
+
+				Address addr = code_off_ + proc->offset;
+
+				allSymbols += ( Symbol( strName,
+					pdMod.name,
+					Symbol::PDST_FUNCTION,
+					Symbol::SL_GLOBAL,
+					addr,
+					false,
+					proc->procLength ));
+			}
+        }
+
+		// add symbols for each local function defined in the module
+        {
+			const vector<CodeView::SymRecordProc*>& lprocs =
+                   mod.GetSymbols().GetLocalFunctions();
+			for( i = 0; i < lprocs.size(); i++ )
+			{
+				const CodeView::SymRecordProc* proc = lprocs[i];
+				LPString lpsName( proc->name );
+				string strName = (string)lpsName;
+
+				Address addr = code_off_ + proc->offset;
+
+				allSymbols += ( Symbol( strName,
+					pdMod.name,
+					Symbol::PDST_FUNCTION,
+					Symbol::SL_LOCAL,
+					addr,
+					false,
+					proc->procLength ));
+			}
+        }
+
+		// handle thunks
+        {
+			const vector<CodeView::SymRecordThunk*>& thunks =
+                mod.GetSymbols().GetThunks();
+			for( i = 0; i < thunks.size(); i++ )
+			{
+				const CodeView::SymRecordThunk* thunk = thunks[i];
+				LPString lpsName( thunk->name );
+				string strName = (string)lpsName;
+
+				Address addr = code_off_ + thunk->offset;
+
+				allSymbols += ( Symbol( strName,
+					pdMod.name,
+					Symbol::PDST_FUNCTION,
+					Symbol::SL_GLOBAL,
+					addr,
+					false,
+					thunk->thunkLength ) );
+			}
+        }
+
+		// add symbols for each global variable defined in the module
+        {
+			const vector<CodeView::SymRecordData*>& gvars =
+                mod.GetSymbols().GetGlobalVariables();
+			for( i = 0; i < gvars.size(); i++ )
+			{
+				const CodeView::SymRecordData* pVar = gvars[i];
+				LPString lpsName( pVar->name );
+				string strName = (string)lpsName;
+
+				Address addr = data_off_ + pVar->offset;
+
+				allSymbols += ( Symbol( strName,
+					pdMod.name,
+					Symbol::PDST_OBJECT,
+					Symbol::SL_GLOBAL,
+					addr,
+					false,
+					0 ));               // will be patched later (?)
+			}
+        }
+
+        {
+			const vector<CodeView::SymRecordData*>& lvars =
+                mod.GetSymbols().GetGlobalVariables();
+			for( i = 0; i < lvars.size(); i++ )
+			{
+				const CodeView::SymRecordData* pVar = lvars[i];
+				LPString lpsName( pVar->name );
+				string strName = (string)lpsName;
+
+				Address addr = data_off_ + pVar->offset;
+
+				allSymbols += ( Symbol( strName,
+					pdMod.name,
+					Symbol::PDST_OBJECT,
+					Symbol::SL_LOCAL,
+					addr,
+					false,
+					0 ));               // will be patched later (?)
+			}
+        }
+	}
+
+    // once we've handled the symbols that the CodeView object
+    // could discover and associate with a module, we've
+    // got to do something with symbols that were not explicitly
+    // associated with a module in the CodeView information
+
+    // Unfortunately, VC++/DF produce S_PUB32 symbols
+    // for functions in some cases.  (For example,
+    // when building a Digital Fortran program, the
+    // software produces an executable with symbols
+    // from the Fortran runtime libraries as S_PUB32
+    // records.)  We do our best to try to determine
+    // whether the symbol is a function, and if so,
+    // how large it is, which module it belongs to, etc.
+	const vector<CodeView::SymRecordData*>& pubs =
+                                            cv.GetSymbols().GetPublics();
+	for( i = 0; i < pubs.size(); i++ )
+	{
+		const CodeView::SymRecordData* sym = pubs[i];
+
+		LPString lpsName( sym->name );
+		string strName = (string)lpsName;
+
+        // we now have to try to determine the type of the
+        // symbol.  Since we're only given a type and a location,
+        // (and the type might not even be valid) we assume
+        // that any public symbol in the code section is
+        // a function and we try to determine which module it
+        // belongs to based on the module map we constructed earlier
+        if( sym->segment == textSectionId )
+        {
+			Address addr = code_off_ + sym->offset;
+
+            // save the symbol
+			allSymbols += Symbol( strName,
+				FindModuleByOffset( sym->offset, pdMods ),
+				Symbol::PDST_FUNCTION,
+				Symbol::SL_GLOBAL,
+				addr,
+				false,
+				0 );              // will be patched later
+        }
+        else if( sym->segment == dataSectionId )
+        {
+			Address addr = data_off_ + sym->offset;
+
+			allSymbols += Symbol( strName,
+				FindModuleByOffset( sym->offset, pdMods ),
+				Symbol::PDST_OBJECT,
+				Symbol::SL_GLOBAL,
+				addr,
+				false,
+				0 );              // will be patched later
+        }
+        else
+        {
+            // TODO - the symbol is not in the text or data
+            // sections - do we care about it?
+        }
+	}
+	
+    // sort symbols by offset
+    allSymbols.sort( sym_offset_compare );
+}
 
 
 void
@@ -883,7 +914,7 @@ Object::ParseCOFFSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
 					false);
 
     // Sort the symbols on address to find the function boundaries
-    allSymbols.sort(symbol_compare);
+    allSymbols.sort(sym_offset_compare);
 
 	// find the function boundaries
 	for( u = 0; u < allSymbols.size(); u++ )
@@ -954,9 +985,9 @@ Object::FindName( const char* stringTable, const IMAGE_SYMBOL& sym )
 // compare function for vector sort of
 // CodeView modules
 int
-mod_offset_compare( const void* x, const void* y )
+Object::ModInfo::CompareByOffset( const void* x, const void* y )
 {
-	const ModInfo* px = (const ModInfo*)x;
+    const ModInfo* px = (const ModInfo*)x;
 	const ModInfo* py = (const ModInfo*)y;
 	assert( (px != NULL) && (px->pCVMod != NULL) );
 	assert( (py != NULL) && (py->pCVMod != NULL) );
@@ -995,14 +1026,50 @@ mod_offset_compare( const void* x, const void* y )
 }
 
 
+int
+sym_offset_compare( const void *x, const void *y )
+{
+    const Symbol *s1 = (const Symbol *)x;
+    const Symbol *s2 = (const Symbol *)y;
+    int ret = 0;
+
+
+    // first try comparing by address
+    if( s1->addr() < s2->addr() ) 
+    {
+        ret = -1;
+    }
+    else if( s1->addr() > s2->addr() )
+    {
+        ret = 1;
+    }
+    else
+    {
+        // the two symbols have the same address
+        // use our next criteria (the existence of a size)
+        // for a given address, we want symbols with a size
+        // to occur before those without so that we can
+        // use the size if we wish
+        if( (s1->size() != 0) && (s2->size() == 0) )
+        {
+            ret = -1;
+        }
+        else if( (s1->size() == 0) && (s2->size() != 0) )
+        {
+            ret = 1;
+        }
+    }
+    return ret;
+}
+
 
 
 // FindModuleByOffset
 // Determines the Paradyn module name
 // based on the given offset into the .text section
-static
 string
-FindModuleByOffset( unsigned int offset, const vector<PDModInfo>& pdMods )
+Object::FindModuleByOffset( unsigned int offset,
+                             const vector<Object::PDModInfo>& pdMods )
 {
     string retval = "";
     unsigned int i;

@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.6 1999/06/17 18:35:16 pcroth Exp $
+ * $Id: Object-nt.h,v 1.7 1999/07/08 19:26:27 pcroth Exp $
 ************************************************************************/
 
 
@@ -63,6 +63,7 @@
 #include "util/h/Symbol.h"
 #include "util/h/Types.h"
 #include "util/h/Vector.h"
+#include "util/h/CodeView.h"
 
 #include <stdlib.h>
 #include <winnt.h>
@@ -88,12 +89,79 @@ public:
 	Object&   operator=(const Object &);
 
 private:
+    // struct defining information we keep about a Paradyn module
+    struct PDModInfo
+    {
+        string          name;       // name of Paradyn module
+        unsigned int    offText;    // offset of module's code in text segment
+        unsigned int    cbText;     // size of module's code in text segment
+
+        PDModInfo( void )
+          : name( "" ),
+            offText( 0 ),
+            cbText( 0 )
+        {}
+
+        PDModInfo( string modName, unsigned int offset, unsigned int cb )
+          : name( modName ),
+            offText( offset ),
+            cbText( cb )
+        {}
+
+        PDModInfo& operator=( const PDModInfo& mi )
+        {
+            if( &mi != this )
+            {
+                name = mi.name;
+                offText = mi.offText;
+                cbText = mi.cbText;
+            }
+            return *this;
+        }
+    };
+
+    // struct defining information we keep about a CodeView module
+    struct ModInfo
+    {
+	    const CodeView::Module*	pCVMod;     // CodeView information
+        unsigned int pdModIdx;              // index of Paradyn module
+                                            // this module is associated with
+                                            // in the pdMods array
+
+	    ModInfo( const CodeView::Module* pCVModule = NULL,
+                 unsigned int pdModIndex = 0 )
+	      : pCVMod( pCVModule ),
+		    pdModIdx( pdModIndex )
+        {}
+
+        ModInfo& operator=( const ModInfo& mi )
+        {
+            if( &mi != this )
+            {
+                pCVMod = mi.pCVMod;
+                pdModIdx = mi.pdModIdx;
+            }
+            return *this;
+        }
+
+        static int CompareByOffset( const void* x, const void* y );
+    };
+
 	static	string	FindName(const char* stringTable, const IMAGE_SYMBOL& sym);
+    static  string  FindModuleByOffset( unsigned int offset,
+                                        const vector<PDModInfo>& pdMods );
 
     void    ParseDebugInfo( void );
 	void	ParseSectionMap( IMAGE_DEBUG_INFORMATION* pDebugInfo );
 	void	ParseCOFFSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo );
-	void	ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo );
+
+    bool	ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo );
+    void    CVPatchSymbolSizes( vector<Symbol>& allSymbols );
+    void    CVProcessSymbols( CodeView& cv,
+                              vector<ModInfo>& cvMods,
+                              vector<PDModInfo>& pdMods,
+                              vector<Symbol>& allSymbols );
+
 
 	Address	baseAddr;						// location of this object in 
 											// mutatee address space
