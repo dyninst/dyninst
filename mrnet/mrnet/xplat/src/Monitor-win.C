@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Monitor-win.C,v 1.3 2005/03/14 21:12:48 gquinn Exp $
+// $Id: Monitor-win.C,v 1.4 2005/03/29 16:01:31 darnold Exp $
 //
 // Implementation of the WinMonitor class.
 // A WinMonitor is a Win32-based Monitor.
@@ -13,6 +13,7 @@
 // Implementing POSIX Condition Variables on Win32" by Douglas C. Schmidt 
 // and Irfan Pyarali, C++ Report, SIGS, Vol 10., No. 5, June 1998.
 //
+
 #include <assert.h>
 #include <limits.h>
 #include "xplat/src/Monitor-win.h"

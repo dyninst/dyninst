@@ -7,9 +7,7 @@
 #define utils_h 1
 
 #if defined(os_windows)
-#include <windows.h>
 #include <winsock2.h>
-
 #else
 #include <sys/socket.h>
 #include <arpa/inet.h>

@@ -3,11 +3,11 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: Types-win.h,v 1.4 2005/03/24 04:59:20 darnold Exp $
+// $Id: Types-win.h,v 1.5 2005/03/29 16:01:28 darnold Exp $
 #ifndef XPLAT_TYPES_WIN_H
 #define XPLAT_TYPES_WIN_H
 
-#include <windows.h>
+//#include <windows.h>
 #include <winsock2.h>
 #include <limits.h>
 

@@ -3,11 +3,11 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: Types.h,v 1.3 2005/03/24 04:59:21 darnold Exp $
+// $Id: Types.h,v 1.4 2005/03/29 16:01:29 darnold Exp $
 #ifndef XPLAT_TYPES_H
 #define XPLAT_TYPES_H
 
-#if defined(WIN32)
+#if defined(os_windows)
 #include "xplat/Types-win.h"
 #else
 #include "xplat/Types-unix.h"

@@ -3,8 +3,8 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: SocketUtils-win.C,v 1.2 2005/03/24 04:59:26 darnold Exp $
-#include <windows.h>
+// $Id: SocketUtils-win.C,v 1.3 2005/03/29 16:01:35 darnold Exp $
+//#include <windows.h>
 #include <winsock2.h>
 #include <iphlpapi.h>
 #include "xplat/SocketUtils.h"
