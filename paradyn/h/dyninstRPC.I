@@ -1,11 +1,17 @@
+
 #define MetStyleEventCounter	0
 #define MetStyleSampledFunction	1
 
+#define opSum	0
+#define opAvg	1
+#define opMin	2
+#define opMax	3
 
 /* descriptive information about a metric */
 $remote typedef struct { 
     String name;
     int style;
+    int aggregate;
     String units;
 } metricInfo;		
 
@@ -22,7 +28,7 @@ int createDaemon(String machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 8;
+    $version 10;
 
     //
     // Define a program to run. 
