@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.75 2002/07/25 22:46:43 bernat Exp $
+// $Id: linux.C,v 1.76 2002/08/23 01:56:03 tlmiller Exp $
 
 #include <fstream.h>
 
@@ -1310,6 +1310,10 @@ bool process::loopUntilStopped() {
 #ifndef BPATCH_LIBRARY
 bool process::dumpImage() {return false;}
 #else
+#if defined(ia64_unknown_linux2_4)
+/* FIXME: migrate to linux-[ia64|x86].C, or rewrite to handle 64-bit elfs. */
+bool process::dumpImage( string /* imageFileName */ ) { return true; }
+#else
 bool process::dumpImage(string imageFileName) 
 {
     int newFd;
@@ -1379,6 +1383,7 @@ bool process::dumpImage(string imageFileName)
 
     return true;
 }
+#endif
 #endif
 
 #ifndef BPATCH_LIBRARY

@@ -1,10 +1,10 @@
 #
-# $Id: Makefile,v 1.2 2002/07/31 22:06:47 bernat Exp $
+# $Id: Makefile,v 1.3 2002/08/23 01:56:15 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
-# none
+DEBUG_FLAG = -g
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -21,7 +21,7 @@ CFLAGS		+= -O2
 CC              = $(GCC)
 LD              = $(GCC)
 CFLAGS          = -I. -I../.. -Dia64_unknown_linux2_4 -g -fpic
-LDFLAGS         = -shared -ldl
+LDFLAGS         = -shared -ldl -Wl,-init,_start
 
 ASFLAGS         = 
 

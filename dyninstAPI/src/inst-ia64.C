@@ -41,7 +41,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.16 2002/08/16 16:01:36 gaburici Exp $
+ * $Id: inst-ia64.C,v 1.17 2002/08/23 01:56:03 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -80,9 +80,16 @@
 registerSpace * regSpace;
 
 /* Required by ast.C */
+
+void emitCSload( BPatch_addrSpec_NP as, Register dest, char * baseInsn, Address & base, bool noCost ) {
+	assert( 0 );
+	} /* end emitCSload() */
+
+/* Required by ast.C */
 void emitVload( opCode op, Address src1, Register src2, Register dest,
 		char * ibuf, Address & base, bool noCost, int size ) {
-	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)(ibuf + base);
+	assert( (((Address)ibuf + base) % 16) == 0 );
+	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
 
 	switch( op ) {
 		case loadOp:  // FIXME
@@ -90,7 +97,7 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 			break;
 
 		case loadConstOp: {
-			fprintf( stderr, "Loading a constant (0x%lx) into register %d\n", src1, dest );
+			// fprintf( stderr, "Loading a constant (0x%lx) into register %d\n", src1, dest );
 			// Optimization: if |immediate| <= 22 bits, use generateShortConstantInRegister(), instead.
 			IA64_instruction_x lCO = generateLongConstantInRegister( dest, src1 );
 			* rawBundlePointer = generateBundleFromLongInstruction( lCO ).getMachineCode();
@@ -114,7 +121,7 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 
 /* private function, used by emitFuncCall */
 void emitRegisterToRegisterCopy( Register source, Register destination, char * ibuf, Address & base, registerSpace * rs ) {
-	if( ! rs->isFreeRegister( destination ) ) {
+	if( rs != NULL && ! rs->isFreeRegister( destination ) ) {
 		fprintf( stderr, "Destination register %d is (was) not free(d), overwriting.\n", destination );
 		} /* end if destination register is not free */
 
@@ -123,8 +130,8 @@ void emitRegisterToRegisterCopy( Register source, Register destination, char * i
 	   out of the arch-ia64.h header.) */
 	/* Incidentally, this is 'adds destination = 0, source' */
 	uint64_t rawMoveInsn = 0x0000000000000000 |
-				(((uint64_t)8) << (37 + ALIGN_RIGHT_SHIFT)) |
-				(((uint64_t)2) << (34 + ALIGN_RIGHT_SHIFT)) |
+				(((uint64_t)0x08) << (37 + ALIGN_RIGHT_SHIFT)) |
+				(((uint64_t)0x02) << (34 + ALIGN_RIGHT_SHIFT)) |
 				(((uint64_t)source) << (20 + ALIGN_RIGHT_SHIFT )) |
 				(((uint64_t)destination) << (6 + ALIGN_RIGHT_SHIFT ));
 
@@ -133,7 +140,8 @@ void emitRegisterToRegisterCopy( Register source, Register destination, char * i
 	IA64_bundle r2rBundle( MMIstop, memoryNOP, memoryNOP, moveInsn );
 
 	/* Write the machine code. */
-	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)(ibuf + base);
+	assert( (((Address)ibuf + base) % 16) == 0 );
+	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
 	* rawBundlePointer = r2rBundle.getMachineCode();
 	base += 16;
 	} /* end emitRegisterToRegisterCopy() */
@@ -196,7 +204,7 @@ Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 	/* source-to-output register copy */
 	unsigned int outputZero = rs->getRegSlot( NUM_LOCALS )->number;
 	for( unsigned int i = 0; i < sourceRegisters.size(); i++ ) {
-fprintf( stderr, "Copying argument in local register %d to output register %d\n", sourceRegisters[i], outputZero + i );
+	// fprintf( stderr, "Copying argument in local register %d to output register %d\n", sourceRegisters[i], outputZero + i );
 		emitRegisterToRegisterCopy( sourceRegisters[i], outputZero + i, ibuf, base, rs );
 		rs->freeRegister( sourceRegisters[i] );
 		rs->incRefCount( outputZero + i );
@@ -204,130 +212,103 @@ fprintf( stderr, "Copying argument in local register %d to output register %d\n"
 
 	/* save the caller's GP: find a free register in the locals. */
 	unsigned int savedGPRegister = findFreeLocal( rs, "Unable to find free register to save GP, aborting.\n" );
-fprintf( stderr, "Saving GP in general register %d\n", savedGPRegister );
+	// fprintf( stderr, "Saving GP in general register %d\n", savedGPRegister );
 	emitRegisterToRegisterCopy( REGISTER_GP, savedGPRegister, ibuf, base, rs );
 	rs->incRefCount( savedGPRegister );
 
 	/* set the callee's GP */
-fprintf( stderr, "Setting the callee's GP.\n" );
+	// fprintf( stderr, "Setting the callee's GP.\n" );
 	emitVload( loadConstOp, calleeGP, 0, REGISTER_GP, ibuf, base, false /* ? */, 0 );
 
 	/* save the caller's RP. */
 	unsigned int savedRPRegister = findFreeLocal( rs, "Unable to find free register to save RP, aborting.\n" );
 	rs->incRefCount( savedRPRegister );
-fprintf( stderr, "Saving RP in general register %d\n", savedRPRegister );
+	// fprintf( stderr, "Saving RP in general register %d\n", savedRPRegister );
 	IA64_instruction saveRPInsn = generateBranchToRegisterMove( BRANCH_RETURN, savedRPRegister );
+
+	/* save the caller's ar.pfs */
+	unsigned int savedPFSRegister = findFreeLocal( rs, "Unable to find free register to save ar.pfs, aborting.\n" );
+	rs->incRefCount( savedPFSRegister );
+	// fprinf( stderr, "Saving ar.pfs in general register %d\n", savedPFSRegister );
+	IA64_instruction savePFSInsn = generateApplicationToRegisterMove( AR_PFS, savedPFSRegister );
 
 	/* Save the caller's BRANCH_SCRATCH register, since it may have something in it. */
 	unsigned int savedBranchRegister = findFreeLocal( rs, "Unable to find free register to save BRANCH_SCRATCH, aborting.\n" );
 	rs->incRefCount( savedBranchRegister );
-fprintf( stderr, "Saving BRANCH_SCRATCH in general register %d\n", savedBranchRegister );
+	// fprintf( stderr, "Saving BRANCH_SCRATCH in general register %d\n", savedBranchRegister );
 	IA64_instruction saveBranchInsn = generateBranchToRegisterMove( BRANCH_SCRATCH, savedBranchRegister );
 	IA64_instruction memoryNOP( NOP_M );	
 
 	IA64_bundle saveBranchRegisters( MIIstop, memoryNOP, saveRPInsn, saveBranchInsn );
-	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)(ibuf + base);
+	assert( (((Address)ibuf + base) % 16) == 0 );
+	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
 	rawBundlePointer[0] = saveBranchRegisters.getMachineCode();
 	base += 16;
 
-	/* Call the callee.  Since br.call is IP-relative, get the IP
-	   of the call bundle and subtract it from funcEntryAddress,
-	   and do an indirect call to that value. More specifically,
-	
-		MMI {
-			nop.m
-			nop.m
-			mov r1 = ip
-		};;	
-		MLX { 
-			nop.m
-			movl r2 = funcEntryAddress
-		};;
-		MMI {
-			add r1 = r1, 3 * 16
-			sub r1 = r2, r1;;
-			nop.i
-		};;
-		MMI {
-			nop.m
-			nop.m
-			mov b6 = r1	// We saved BRANCH_SCRATCH above.
-		};;
-		MMB {
-			nop.m
-			nop.m
-			br b0 = b6	// We saved RP above.
-		};;
+	/* Call the callee.  Since br.call is IP-relative, and we don't know
+	   where this function call will be installed until later, we would have
+	   to calculate its immediate.  However, since we're doing calculations,
+	   we have to use an indirect branch.  But if we're doing an indirect branch,
+	   we use absolute addresses.  So just movl the funcEntryAddress to a gr,
+	   and copy it into the scratch branch register. */
 
-	   We'll leave putting the nop.m's (required by serialization) to good use
-	   to the (second pass) optimizer.
-	*/
-
-	fprintf( stderr, "Constructing function call to 0x%lx\n", funcEntryAddress );
+	fprintf( stderr, "*** Constructing call to function 0x%lx\n", funcEntryAddress );
 
 	/* FIXME: could use output registers, if past sourceRegisters.size(). */
-	Register tmp1 = findFreeLocal( rs, "Unable to find local register to calculate call offset, aborting.\n" );
+	Register tmp1 = findFreeLocal( rs, "Unable to find local register in which to store callee address, aborting.\n" );
 	rs->incRefCount( tmp1 );
-	Register tmp2 = findFreeLocal( rs, "Unable to find local register to calculate call offset, aborting.\n" );
-	rs->incRefCount( tmp2 );
 
-fprintf( stderr, "Loading current IP into register %d\n", tmp1 );
-	IA64_instruction loadIPInsn = generateIPToRegisterMove( tmp1 );
-	IA64_bundle loadIPBundle( MMIstop, memoryNOP, memoryNOP, loadIPInsn );
-
-fprintf( stderr, "Loading function address into register %d\n", tmp2 );
-	IA64_instruction_x loadCalleeInsn = generateLongConstantInRegister( tmp2, funcEntryAddress );
+	// fprintf( stderr, "Loading function address into register %d\n", tmp1 );
+	IA64_instruction_x loadCalleeInsn = generateLongConstantInRegister( tmp1, funcEntryAddress );
 	IA64_bundle loadCalleeBundle( MLXstop, memoryNOP, loadCalleeInsn );
 
-fprintf( stderr, "Adding 3 * 16 to %d, result in %d\n", tmp1, tmp1 );
-	IA64_instruction addInsn = generateShortImmediateAdd( tmp1, 3 * 16, tmp1 );
-fprintf( stderr, "Subtracting %d from %d, result in %d\n", tmp1, tmp2, tmp1 );
-	IA64_instruction subtractInsn = generateSubtraction( tmp1, tmp2, tmp1 );
-	IA64_instruction integerNOP( NOP_I );
-	rs->freeRegister( tmp2 );
-	IA64_bundle calculateRelativeOffsetBundle( MstopMIstop, addInsn, subtractInsn, integerNOP );
-
-fprintf( stderr, "Copying computed branch in general register %d to branch register %d.\n", tmp1, BRANCH_SCRATCH );
+	// fprintf( stderr, "Copying computed branch in general register %d to branch register %d.\n", tmp1, BRANCH_SCRATCH );
 	IA64_instruction setBranchInsn = generateRegisterToBranchMove( tmp1, BRANCH_SCRATCH );
 	rs->freeRegister( tmp1 );
-	IA64_bundle setBranchBundle( MMIstop, memoryNOP, memoryNOP, setBranchInsn );
+	IA64_bundle savePFSAndSetBranchBundle( MIIstop, memoryNOP, savePFSInsn, setBranchInsn );
 
-fprintf( stderr, "Calling function with offset in branch register %d, return pointer in %d\n", BRANCH_SCRATCH, BRANCH_RETURN );
+	// fprintf( stderr, "Calling function with offset in branch register %d, return pointer in %d\n", BRANCH_SCRATCH, BRANCH_RETURN );
 	IA64_instruction indirectBranchInsn = generateIndirectCallTo( BRANCH_SCRATCH, BRANCH_RETURN );
 	IA64_bundle indirectBranchBundle( MMBstop, memoryNOP, memoryNOP, indirectBranchInsn );
 
-	rawBundlePointer[1] = loadIPBundle.getMachineCode();
-	rawBundlePointer[2] = loadCalleeBundle.getMachineCode();
-	rawBundlePointer[3] = calculateRelativeOffsetBundle.getMachineCode();
-	rawBundlePointer[4] = setBranchBundle.getMachineCode();
-	rawBundlePointer[5] = indirectBranchBundle.getMachineCode();
+	rawBundlePointer[1] = loadCalleeBundle.getMachineCode();
+	rawBundlePointer[2] = savePFSAndSetBranchBundle.getMachineCode();
+	rawBundlePointer[3] = indirectBranchBundle.getMachineCode();
 	for( unsigned int i = 0; i < sourceRegisters.size(); i++ ) {
 		/* Free all the output registers. */
 		rs->freeRegister( outputZero + i );
 		}
-	base += 16 * 5;
+	base += 16 * 3;
 
 	/* restore the caller's GP */
-fprintf( stderr, "Restoring GP saved in general register %d\n", savedGPRegister );
+	// fprintf( stderr, "Restoring GP saved in general register %d\n", savedGPRegister );
 	emitRegisterToRegisterCopy( savedGPRegister, REGISTER_GP, ibuf, base, rs );
 	rs->freeRegister( savedGPRegister );
 
 	/* restore the caller's RP, BRANCH_SCRATCH */
-fprintf( stderr, "Restoring RP saved in general register %d\n", savedRPRegister );
+	// fprintf( stderr, "Restoring RP saved in general register %d\n", savedRPRegister );
 	IA64_instruction restoreRPInsn = generateRegisterToBranchMove( savedRPRegister, BRANCH_RETURN );
-fprintf( stderr, "Restoring BRANCH_SCRATCH saved in general register %d\n", savedBranchRegister );
+	// fprintf( stderr, "Restoring BRANCH_SCRATCH saved in general register %d\n", savedBranchRegister );
 	IA64_instruction restoreBranchInsn = generateRegisterToBranchMove( savedBranchRegister, BRANCH_SCRATCH );
 	IA64_bundle restoreBranchRegisters( MIIstop, memoryNOP, restoreRPInsn, restoreBranchInsn );
-	rawBundlePointer[6] = restoreBranchRegisters.getMachineCode();
+	rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base); // reset because of the emitRTRC() call
+	rawBundlePointer[0] = restoreBranchRegisters.getMachineCode();
 	base += 16;
 	rs->freeRegister( savedRPRegister );
 	rs->freeRegister( savedBranchRegister );
 
+	/* restore the caller's ar.pfs */
+	IA64_instruction restorePFSInsn = generateRegisterToApplicationMove( savedPFSRegister, AR_PFS );
+	IA64_bundle restorePFSBundle( MMIstop, memoryNOP, memoryNOP, restorePFSInsn );
+	rawBundlePointer[1] = restorePFSBundle.getMachineCode();
+	base += 16;
+	rs->freeRegister( savedPFSRegister );
+
 	/* copy the result (r8) to a registerSpace register */
-fprintf( stderr, "Copying function call result to a known-dead register (%d).\n", savedGPRegister );
+	// fprintf( stderr, "Copying function call result to a known-dead register (%d).\n", savedGPRegister );
 	emitRegisterToRegisterCopy( REGISTER_RP, savedGPRegister, ibuf, base, rs );
 	rs->incRefCount( savedGPRegister );
-	fprintf( stderr, "emitted function call in buffer at %p\n", ibuf );
+	fprintf( stderr, "*** emitted function call in buffer at %p\n", ibuf );
 
 	/* return that register */
 	return savedGPRegister; 
@@ -370,7 +351,6 @@ void pd_Function::checkCallPoints() {
    (calls, vector<instPoint *>), and the return(s) (funcReturns, vector<instPoint *>).
  */
 bool pd_Function::findInstPoints( const image * i_owner ) {
-	// FIXME: handle base addresses correctly.  (instpoints should NOT be offsets, right?)
 	/* We assume the function boundaries are correct.  [Check jump tables, etc.] */
 	Address addr = (Address)i_owner->getPtrToInstruction( getAddress( 0 ) );
 
@@ -379,17 +359,18 @@ bool pd_Function::findInstPoints( const image * i_owner ) {
 	Address addressDelta = getAddress( 0 ) - addr;
 
 	/* Generate an instPoint for the function entry. */
-	funcEntry_ = new instPoint( getAddress( 0 ), this, i_owner );
+	funcEntry_ = new instPoint( getAddress( 0 ), this, i_owner, * iAddr );
 
-	IA64_instruction currInsn;
+	IA64_instruction * currInsn;
 	for( ; iAddr < lastI; iAddr++ ) {	
 		currInsn = * iAddr;
-		switch( currInsn.getType() ) {
+		switch( currInsn->getType() ) {
 			case IA64_instruction::RETURN:
-				funcReturns.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, i_owner ) );
+				funcReturns.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, i_owner, currInsn ) );
 				break;
-			case IA64_instruction::CALL:
-				calls.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, i_owner ) );
+			case IA64_instruction::DIRECT_CALL:
+			case IA64_instruction::INDIRECT_CALL:
+				calls.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, i_owner, currInsn ) );
 				break;
 			default:
 				break;
@@ -430,30 +411,10 @@ BPatch_point *createInstructionInstPoint( process * proc, void * address,
 			BPatch_point ** alternative, BPatch_function * bpf ) { return NULL; assert( 0 ); }
 
 /* Required by ast.C */
-void emitJmpMC(int condition, int offset, char* baseInsn, Address &base)
-{
-  // Not needed for memory instrumentation, otherwise TBD
-}
-
-void emitASload(BPatch_addrSpec_NP as, Register dest, char * baseInsn,
-                Address & base, bool noCost)
-{
-  assert( 0 );
-}
-
-void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
-		Address &base, bool noCost)
-{
-  emitASload(as, dest, baseInsn, base, noCost);
-}
-
-/* FIXME: who actually needs this?
-   ANSWER: The above two are needed by memory instrumentation.
-   They can be safely ignored until that is implemented.
-*/
+void emitASload( BPatch_addrSpec_NP as, Register dest, char * baseInsn,
+			Address & base, bool noCost ) { assert( 0 ); }
 
 /* Required by func-reloc.C */
-
 bool PushEIP::RewriteFootprint( Address oldBaseAdr, Address & oldAdr,
 		Address newBaseAdr, Address & newAdr,
 		instruction oldInstructions[], instruction newInstructions[],
@@ -477,7 +438,22 @@ bool deleteBaseTramp( process *, instPoint *, trampTemplate *,
 
 /* Required by ast.C */
 void emitImm( opCode op, Register src1, RegValue src2imm, Register dest,
-		char *ibuf, Address & base, bool noCost ) { assert( 0 ); }
+		char *ibuf, Address & base, bool noCost ) {
+	switch( op ) {
+		case orOp: {
+			/* Apparently, the bit-wise operation. */
+			if( src2imm == 0 ) {
+				emitRegisterToRegisterCopy( src1, dest, ibuf, base, NULL );
+				} else {
+				abort();
+				}
+		} break;
+
+		default:
+			assert( 0 );
+		break;
+		} /* end op switch */
+	} /* end emitImm() */
 
 /* Required by ast.C */
 int getInsnCost( opCode op ) {
@@ -565,7 +541,17 @@ bool process::heapIsOk( const vector<sym_data> & find_us ) {
 
 /* Required by inst.C */
 void emitVupdate( opCode op, RegValue src1, Register src2,
-		Address dest, char * ibuf, Address & base, bool noCost ) { assert( 0 ); }
+		Address dest, char * ibuf, Address & base, bool noCost ) {
+	switch( op ) {
+		case updateCostOp:
+fprintf( stderr, "FIXME: no-op'ing emitVupdate(updateCostOp)\n" );
+			break;
+
+		default:
+			assert( 0 );
+			break;
+		} /* end op switch */
+	} /* end emitVupdate() */
 
 /* Required by ast.C */
 void emitLoadPreviousStackFrameRegister( Address register_num,
@@ -576,7 +562,13 @@ void emitLoadPreviousStackFrameRegister( Address register_num,
 bool pd_Function::isTrueCallInsn( const instruction insn ) { assert( 0 ); }
 
 /* Required by BPatch_thread.C */
-void returnInstance::installReturnInstance( process * proc ) { assert( 0 ); }
+void returnInstance::installReturnInstance( process * proc ) { 
+	IA64_instruction memoryNOP( NOP_M );
+	IA64_bundle installationBundle( MLXstop, memoryNOP, * (IA64_instruction_x *) instructionSeq );	
+	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr_, proc );
+	iAddr.replaceBundleWith( installationBundle );
+	installed = true;
+	} /* end installReturnInstance() */
 
 /* Required by ast.C */
 Register deadRegisterList[] = { 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF };
@@ -597,8 +589,15 @@ void initTramps() {
 	regSpace = new registerSpace( sizeof( deadRegisterList )/sizeof( Register ), deadRegisterList, 0, NULL );
 	} /* end initTramps() */
 
-/* Required by func-reloc and ast .C */
-void generateBranch( process * proc, Address fromAddr, Address newAddr ) { assert( 0 ); }
+/* Required by inst.C */
+void generateBranch( process * proc, Address fromAddr, Address newAddr ) {
+	/* Write a branch from fromAddr to newAddr in process proc. */
+	IA64_instruction memoryNOP( NOP_M );
+	IA64_instruction_x longBranch = generateLongBranchTo( newAddr - fromAddr );
+	IA64_bundle branchBundle( MLXstop, memoryNOP, longBranch );
+	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( fromAddr, proc );
+	iAddr.replaceBundleWith( branchBundle );
+	} /* end generateBranch */
 
 /* Required by func-reloc.C */
 bool pd_Function::PA_attachGeneralRewrites( const image * owner,
@@ -610,25 +609,242 @@ bool pd_Function::PA_attachGeneralRewrites( const image * owner,
 /* Required by LocalAlteration.C */
 int InsertNops::numInstrAddedAfter() { assert( 0 ); return -1; }
 
+/* in arch-ia64.C */
+extern IA64_instruction::unitType INSTRUCTION_TYPE_ARRAY[(0x20 + 1) * 3];
+
+/* left-aligned constants for instruction emulation */
+#define BIT_36		0x0800000000000000	
+#define BIT_13_32	0x00FFFFF000000000
+#define IMMEDIATE_MASK	(~( 0 | BIT_36 | BIT_13_32 ))
+#define BIT_2_40	0xFFFFFFFFF0000000
+#define BIT_20_32	0x00FFF80000000000
+#define BIT_06_12	0x0000000FE0000000
+#define X3_MASK         0x0700000000000000
+
+/* right-aligned constants for instruction emulation */
+#define RIGHT_IMM20	0x00000000000FFFFF
+#define RIGHT_IMM39	0x07FFFFFFFFF00000
+
 /* private refactoring function */
-void emulateBundle( IA64_bundle bundleToEmulate, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size ) {
+IA64_bundle generateBundleFor( IA64_instruction insnToBundle ) {
+	/* The instruction to bundle is always short; the long instruction bundling is trivial. */
+	IA64_instruction::unitType iUnitType = INSTRUCTION_TYPE_ARRAY[ (insnToBundle.getTemplateID() * 3) + insnToBundle.getSlotNumber() ];
+
+	IA64_instruction integerNOP( NOP_I );
+	IA64_instruction memoryNOP( NOP_M );
+	
+	switch( iUnitType ) {
+		case IA64_instruction::M:
+			return IA64_bundle( MIIstop, insnToBundle, integerNOP, integerNOP );
+			break;
+		case IA64_instruction::I:
+			return IA64_bundle( MIIstop, memoryNOP, insnToBundle, integerNOP );
+			break;
+		case IA64_instruction::B:
+			return IA64_bundle( MMBstop, memoryNOP, memoryNOP, insnToBundle );
+			break;
+		case IA64_instruction::F:
+			return IA64_bundle( MFIstop, memoryNOP, insnToBundle, integerNOP );
+			break;
+
+		case IA64_instruction::L:
+		case IA64_instruction::X:
+		case IA64_instruction::RESERVED:
+		default:
+			fprintf( stderr, "Invalid instruction type in generateBundleFor(), aborting.\n" );
+			abort();
+			break;
+		} /* end iUnitType switch */
+	} /* end generateBundleFor() */
+
+/* private refactoring function */
+void emulateLongInstruction( IA64_instruction_x insnToEmulate, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, Address allocatedAddress ) {
+	/* originalLocation is NOT an encoded address */
+	switch( insnToEmulate.getType() ) {
+		case IA64_instruction::DIRECT_BRANCH:
+		case IA64_instruction::DIRECT_CALL: {
+			/* Correct the immediate by the difference between originalLocation and (insnPtr + size). */
+			uint64_t lowWord = insnToEmulate.getMachineCode().low;
+			uint64_t highWord = insnToEmulate.getMachineCode().high;
+
+			uint64_t immediate = 	( 0 |
+			(((highWord & BIT_36) >> (36 + ALIGN_RIGHT_SHIFT)) << 59) |
+			(((lowWord & BIT_2_40) >> (2 + ALIGN_RIGHT_SHIFT)) << 20) |
+			(((highWord & BIT_13_32) >> (13 + ALIGN_RIGHT_SHIFT)))
+						) << 4;
+
+			Address target = immediate + originalLocation;
+			Address source = allocatedAddress + size;
+			long long int displacement64 = target - source;
+			uint64_t displacement60 = displacement64 >> 4;
+
+			highWord =	( highWord & IMMEDIATE_MASK ) |
+					( ((uint64_t)(displacement64 < 0)) << (36 + ALIGN_RIGHT_SHIFT)) |   
+					( (displacement60 & RIGHT_IMM20) << (13 + ALIGN_RIGHT_SHIFT));
+			lowWord = 0x0000000000000000 |
+					( (displacement60 & RIGHT_IMM39) << (-20 + 2 + ALIGN_RIGHT_SHIFT) );
+
+			IA64_instruction memoryNOP( NOP_M );
+			IA64_instruction_x alteredLong( lowWord, highWord, insnToEmulate.getTemplateID() );
+			IA64_bundle emulationBundle( MLXstop, memoryNOP, alteredLong );
+			insnPtr[offset++] = emulationBundle.getMachineCode(); size += 16;
+			break; } /* end branch handling */
+
+		default: {
+			IA64_instruction memoryNOP( NOP_M );
+			insnPtr[offset++] = IA64_bundle( MLXstop, memoryNOP, insnToEmulate ).getMachineCode(); size += 16;
+			break; } /* end default case */
+		} /* end type switch */
+	} /* end emulateLongInstruction */
+
+/* private refactoring function */
+#define TYPE_20B 0
+#define TYPE_13C 1
+void rewriteShortOffset( IA64_instruction insnToRewrite, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, unsigned int immediateType, Address allocatedAddress ) {
+	/* We insert a short jump past a long jump to the original target, followed
+	   by the instruction rewritten to branch one bundle backwards.
+	   It's not very elegant, but it's very straightfoward to implement. :) */
+	
+	/* Skip the long branch. */
+	IA64_instruction memoryNOP( NOP_M );
+	IA64_instruction_x skipInsn = generateLongBranchTo( 32 ); // could be short
+	IA64_bundle skipInsnBundle( MLXstop, memoryNOP, skipInsn );
+	insnPtr[offset++] = skipInsnBundle.getMachineCode(); size += 16;
+
+	/* Extract the short immediate. */
+	uint64_t immediate;
+	uint64_t machineCode = insnToRewrite.getMachineCode();
+	switch( immediateType ) {
+		case TYPE_20B:
+			immediate = 	0 |
+					( (machineCode & BIT_36) >> (36 + ALIGN_RIGHT_SHIFT - 63) ) |
+					( (machineCode & BIT_13_32) >> (13 + ALIGN_RIGHT_SHIFT) );
+			break;
+
+		case TYPE_13C:
+			immediate = 	0 |
+					( (machineCode & BIT_36) >> (36 + ALIGN_RIGHT_SHIFT - 63) ) |
+					( (machineCode & BIT_20_32) >> (20 + ALIGN_RIGHT_SHIFT - 7) ) |
+					( (machineCode & BIT_06_12) >> (6 + ALIGN_RIGHT_SHIFT) );
+			break;
+
+		default:
+			fprintf( stderr, "Unrecognized immediate type in rewriteShortImmediate(), aborting.\n" );
+			abort();
+			break;
+		} /* end immediateType switch */
+
+	/* The long branch. */
+	Address originalTarget = (immediate << 4 ) + originalLocation;
+	IA64_instruction_x longBranch = generateLongBranchTo( originalTarget - (allocatedAddress + size) );
+	IA64_bundle longBranchBundle( MLXstop, memoryNOP, longBranch );
+	insnPtr[offset++] = longBranchBundle.getMachineCode(); size += 16;
+
+	/* Rewrite the short immediate. */
+	switch( immediateType ) {
+		case TYPE_20B:
+			machineCode =	( machineCode & IMMEDIATE_MASK ) |
+					( ((uint64_t)1) << (36 + ALIGN_RIGHT_SHIFT) ) |
+					( ((uint64_t)1) << (13 + ALIGN_RIGHT_SHIFT) );
+			break;
+
+		case TYPE_13C:
+			machineCode =	( machineCode & IMMEDIATE_MASK ) |
+					( ((uint64_t)1) << (36 + ALIGN_RIGHT_SHIFT) ) |
+					( ((uint64_t)1) << (6 + ALIGN_RIGHT_SHIFT) );
+			break;
+
+		default:
+			fprintf( stderr, "Unrecognized immediate type in rewriteShortImmediate(), aborting.\n" );
+			abort();
+			break;
+		} /* end immediateType switch */
+
+	/* Emit the rewritten immediate. */
+	IA64_instruction rewrittenInsn( machineCode, insnToRewrite.getTemplateID(), NULL, insnToRewrite.getSlotNumber() );
+	insnPtr[offset++] = generateBundleFor( rewrittenInsn ).getMachineCode(); size += 16;
+	} /* end rewriteShortOffset() */
+
+/* private refactoring function */
+void emulateShortInstruction( IA64_instruction insnToEmulate, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, Address allocatedAddress ) {
+	switch( insnToEmulate.getType() ) {
+		case IA64_instruction::DIRECT_BRANCH:
+		case IA64_instruction::DIRECT_CALL: {
+			rewriteShortOffset( insnToEmulate, originalLocation, insnPtr, offset, size, TYPE_20B, allocatedAddress );
+			break; } /* end direct jump handling */
+
+		case IA64_instruction::BRANCH_PREDICT: {
+			/* We can suffer the performance loss. :) */
+			insnPtr[offset++] = IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).getMachineCode(); size += 16;
+			break; } /* end branch predict handling */
+
+		case IA64_instruction::CHECK: {
+			/* The advanced load checks can be handled exactly as we 
+			   handle direct branches and calls.  The other three checks
+			   (I&M unit integer speculation, fp speculation) are handled
+			   identically to each other, but their immediates are laid
+			   out a little different, so we can't handle them as we do
+			   the advanced loads. */
+
+			uint64_t instruction = insnToEmulate.getMachineCode();
+			uint8_t x3 = (instruction & X3_MASK) >> (ALIGN_RIGHT_SHIFT + 33);
+			if( x3 >= 4 && x3 <= 7 ) { /* advanced load check */
+				rewriteShortOffset( insnToEmulate, originalLocation, insnPtr, offset, size, TYPE_20B, allocatedAddress );
+				} /* end if M22 or M23 */
+			else if( x3 == 1 || x3 == 3 ) { /* speculation check */
+				rewriteShortOffset( insnToEmulate, originalLocation, insnPtr, offset, size, TYPE_13C, allocatedAddress );
+				} /* end if I20, M20, or M21. */
+			break; } /* end speculation check handling */
+
+		case IA64_instruction::BRANCH_IA: {
+			assert( 0 );
+			break; } /* end branch to x86 handling */
+
+		case IA64_instruction::MOVE_FROM_IP: {
+			/* Replace with a movl of the original IP. */
+			unsigned int originalRegister = (insnToEmulate.getMachineCode() & 0x0000000FE0000000) >> 6; // bits 06 - 12
+			IA64_instruction memoryNOP( NOP_M );
+			IA64_instruction_x emulatedIPMove = generateLongConstantInRegister( originalRegister, originalLocation );
+			IA64_bundle ipMoveBundle( MLXstop, memoryNOP, emulatedIPMove );
+			insnPtr[offset++] = ipMoveBundle.getMachineCode(); size += 16;
+			break; } /* end ip move handling */
+
+		case IA64_instruction::RETURN:
+		case IA64_instruction::INDIRECT_CALL:
+		case IA64_instruction::INDIRECT_BRANCH:
+			/* Branch registers hold absolute addresses. */
+		default: {
+			insnPtr[offset++] = generateBundleFor( insnToEmulate ).getMachineCode(); size += 16;
+			break; } /* end default case */
+		} /* end type switch */
+	} /* end emulateShortInstruction() */
+
+/* private refactoring function */
+void emulateBundle( IA64_bundle bundleToEmulate, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, Address allocatedAddress ) {
 	/* We need to alter all IP-relative instructions to do the Right Thing.  In particular:
 	
 		mov rX = ip	->	movl rX = <originalLocation>
 		brp.*		->	nop.m	; Is an architectural nop, and we've already destroyed performance by doing the instrumentation.
-		brl.*		->	brl.*	; correct the offset by the difference between originalLocation and (insnPtr + size)
+		brl.*		->	brl.*	; correct the offset by the difference between originalLocation and (allocatedAddress + size)
 		check.*		->	check.*	; replace target25 with an offset to a brl to the original target, as adjusted for brl.*
 		br.[cond|call]	->	brl.*	; direct only; fix as brl.*
 		br.cloop	->	
 		br.c[top|exit]	->
 		br.w[top|exit]	->	br.*	; can handle as per the check.* instructions.
-		br.[cond|call]i	->	brl.*	; replace with a brl to the Right Place.
+		br.[cond|call]i	->	br.*	; 
+		br.ret		->	br.ret	; The three indirect branches can be safely duplicated:
+						; the branch registers hold absolute addresses.
 		br.ia		->		; barf: maybe invoke the x86 port? :)
-		br.ret		->		; rewrite the branch register; it won't be used again anyway.
 	*/
 
-	/* hmm... can we just loop over the instructions, or do we have to be more cute about it? */
+	emulateShortInstruction( * bundleToEmulate.getInstruction( 0 ), originalLocation, insnPtr, offset, size, allocatedAddress );
 
+	if( bundleToEmulate.hasLongInstruction() ) {
+		emulateLongInstruction( * bundleToEmulate.getLongInstruction(), originalLocation, insnPtr, offset, size, allocatedAddress );
+		} else {
+		emulateShortInstruction( * bundleToEmulate.getInstruction( 1 ), originalLocation, insnPtr, offset, size, allocatedAddress );
+		emulateShortInstruction( * bundleToEmulate.getInstruction( 2 ), originalLocation, insnPtr, offset, size, allocatedAddress );
+		}
 	} /* end emulateBundle() */
 
 /* private refactoring function */
@@ -639,10 +855,9 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 	/* Allocate memory and align as needed. */
 	trampTemplate * baseTramp = new trampTemplate();
 
-//	bool allocErr; Address allocatedAddress = proc->inferiorMalloc( MAX_BASE_TRAMP_SIZE, anyHeap, NEAR_ADDRESS, & allocErr );
-// for debugging.
-	Address allocatedAddress = (Address)malloc( MAX_BASE_TRAMP_SIZE ); bool allocErr = ( allocatedAddress == 0 );
-
+	bool allocErr; Address allocatedAddress = proc->inferiorMalloc( MAX_BASE_TRAMP_SIZE, anyHeap, NEAR_ADDRESS, & allocErr );
+//	Address allocatedAddress = (Address)malloc( MAX_BASE_TRAMP_SIZE ); bool allocErr = ( allocatedAddress == 0 );
+//	fprintf( stderr, "WARNING: NOT USING INFERIOR MALLOC, CORRECT BEFORE TESTING BASE TRAMP.\n" );
 	if( allocErr ) { fprintf( stderr, "Unable to allocate base tramp, aborting.\n" ); abort(); }
 	if( allocatedAddress % 16 != 0 ) { allocatedAddress = allocatedAddress - (allocatedAddress % 16); }
 	baseTramp->baseAddr = allocatedAddress;
@@ -650,7 +865,7 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 
 	/* Generate the base tramp at allocatedAddress. */
 	unsigned int bundleCount = 0;
-	ia64_bundle_t * insnPtr = (ia64_bundle_t *)allocatedAddress;
+	ia64_bundle_t insnPtr[ MAX_BASE_TRAMP_SIZE ];
 	
 	/* Initially, we decide if we'll be alloc()ing or saving and restoring
 	   to obtain free (dead) general registers. */
@@ -679,9 +894,11 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 	else {
 		// FIXME: see defineBTRF().
 		Address fnEntryOffset = location->iPgetFunction()->addr();
-		const ia64_bundle_t * rawBundles = (const ia64_bundle_t *) location->iPgetOwner()->getPtrToInstruction( fnEntryOffset );		
+		const unsigned char * fnEntryAddress = location->iPgetOwner()->getPtrToInstruction( fnEntryOffset );
+		assert( (Address)fnEntryAddress % 16 == 0 );
+		const ia64_bundle_t * rawBundles = (const ia64_bundle_t *)(Address)fnEntryAddress;
 		IA64_bundle initialBundle( rawBundles[0] );
-		allocInsn = initialBundle.getInstruction( 0 );
+		allocInsn = * initialBundle.getInstruction( 0 );
 
 		IA64_instruction alteredAlloc = generateAlteredAlloc( allocInsn.getMachineCode(), NUM_LOCALS, NUM_OUTPUT, 0 );
 		IA64_bundle allocBundle( MIIstop, alteredAlloc, NOP_I, NOP_I );
@@ -724,7 +941,9 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 		   rather than saving & restoring a register around the alloc
 		   (since we have to stick its return value somewhere),
 		   we'll just allocate an extra output register and store it there. */
-		IA64_instruction alteredAlloc = generateAlteredAlloc( allocInsn.getMachineCode(), 0, 1, 0 );
+
+		
+		IA64_instruction alteredAlloc = generateRestoreAlloc( allocInsn.getMachineCode() );
 		IA64_bundle allocBundle( MIIstop, alteredAlloc, NOP_I, NOP_I );
 		insnPtr[bundleCount++] = allocBundle.getMachineCode(); baseTramp->size += 16;
 		} /* end if using alloc method */
@@ -732,9 +951,11 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 	/* Emulate the relocated instructions. */
 	Address installationPoint = location->iPgetAddress();
 	installationPoint = installationPoint - (installationPoint % 16);
-	IA64_bundle bundleToEmulate( * (ia64_bundle_t *) location->iPgetOwner()->getPtrToInstruction( installationPoint ) );
+	Address installationPointAddress = (Address)location->iPgetOwner()->getPtrToInstruction( installationPoint );
+	assert( installationPointAddress % 16 == 0 );
+	IA64_bundle bundleToEmulate( * (const ia64_bundle_t *) installationPointAddress );
 	baseTramp->emulateInsOffset = baseTramp->size;
-	emulateBundle( bundleToEmulate, installationPoint, insnPtr, bundleCount, (unsigned int &)(baseTramp->size) );
+	emulateBundle( bundleToEmulate, installationPoint, insnPtr, bundleCount, (unsigned int &)(baseTramp->size), allocatedAddress );
 	
 	/* Replace the skipPre nop bundle with a jump from it to baseTramp->emulateInsOffset. */
 	unsigned int skipPreJumpBundleOffset = baseTramp->skipPreInsOffset / 16;
@@ -777,7 +998,7 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 		   rather than saving & restoring a register around the alloc
 		   (since we have to stick its return value somewhere),
 		   we'll just allocate an extra output register and store it there. */
-		IA64_instruction alteredAlloc = generateAlteredAlloc( allocInsn.getMachineCode(), 0, 1, 0 );
+		IA64_instruction alteredAlloc = generateRestoreAlloc( allocInsn.getMachineCode() );
 		IA64_bundle allocBundle( MIIstop, alteredAlloc, NOP_I, NOP_I );
 		insnPtr[bundleCount++] = allocBundle.getMachineCode(); baseTramp->size += 16;
 		} /* end if using alloc method */
@@ -795,6 +1016,10 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 	IA64_instruction_x skipPostJump = generateLongBranchTo( baseTramp->returnInsOffset - baseTramp->skipPostInsOffset ); 
 	IA64_bundle skipPostJumpBundle( MLXstop, memoryNOP, skipPostJump );
 	insnPtr[skipPostJumpBundleOffset] = skipPostJumpBundle.getMachineCode();
+
+	/* Copy the instructions from hither to thither. */
+	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( allocatedAddress, proc );
+	iAddr.writeBundlesFrom( (unsigned char *)insnPtr, bundleCount );
 
 	fprintf( stderr, "*** Installed base tramp at 0x%lx\n", baseTramp->baseAddr );
 	return baseTramp;
@@ -817,12 +1042,16 @@ trampTemplate * findAndInstallBaseTramp( process * proc, instPoint * & location,
 	trampTemplate * installedBaseTramp = installBaseTramp( location, proc );
 	proc->baseMap[location] = installedBaseTramp;
 
-	/* Generate the returnInstance, which will presumambly be written to
-	   the mutatee at the right time elsewhere. */
-	IA64_instruction memoryNOP( NOP_M );
-	IA64_instruction_x longBranchInstruction = generateLongBranchTo( installedBaseTramp->baseAddr - location->iPgetAddress() );
-	IA64_instruction jumpArray[] = { memoryNOP, longBranchInstruction };
-	retInstance = new returnInstance( 3, jumpArray, 16, location->iPgetAddress(), 16 );
+	/* Generate the returnInstance, which will be written to
+	   the mutatee by installReturnInstance().  Note that we do NOT
+	   store a full bundle, because of how things are declared. */
+	IA64_instruction_x * longBranchInstruction = new IA64_instruction_x();
+	Address returnFrom = installedBaseTramp->baseAddr + installedBaseTramp->size;
+	Address returnTo; assert( proc->getBaseAddress( location->iPgetOwner(), returnTo ) );
+	returnTo += location->iPgetAddress();
+// fprintf( stderr, "Generating return instance from 0x%lx to 0x%lx\n", returnFrom, returnTo );
+	* longBranchInstruction = generateLongBranchTo( returnTo - returnFrom );
+	retInstance = new returnInstance( 3, longBranchInstruction, 16, returnFrom, 16 );
 
 	return installedBaseTramp;
 	} /* end findAndInstallBaseTramp() */
@@ -835,7 +1064,26 @@ bool process::emitInferiorRPCheader( void * void_insnPtr, Address & baseBytes, b
 
 /* Required by ast.C */
 Register emitR( opCode op, Register src1, Register src2, Register dest,
-			char * ibuf, Address & base, bool noCost ) { assert( 0 ); return 0; }
+			char * ibuf, Address & base, bool noCost ) {
+	/* FIXME: handle noCost */
+	switch( op ) {
+		case getParamOp: {
+			/* src1 is the (incoming) parameter we want. */
+			if( src1 >= 8 ) {
+				assert( 0 );
+				} else {
+				/* FIXME: is the global registerSpace the right one? */
+				unsigned int outputZero = regSpace->getRegSlot( 0 )->number;
+				emitRegisterToRegisterCopy( src1 + outputZero, dest, ibuf, base, NULL );
+				return dest;	// Why do we bother doing this?
+				} /* end if it's a parameter in a register. */
+		} break;
+
+		default:
+			assert( 0 ) ;
+		break;
+		} /* end switch */
+	} /* end emitR() */
 
 /* Required by func-reloc.C */
 bool pd_Function::loadCode(const image * owner, process * proc,
@@ -857,7 +1105,22 @@ void initDefaultPointFrequencyTable() {
 
 /* Required by inst.C, ast.C */
 Address emitA( opCode op, Register src1, Register src2, Register dest,
-		char * ibuf, Address & base, bool noCost ) { assert( 0 ); return 0; }
+		char * ibuf, Address & base, bool noCost ) {  // FIXME: cost?
+	/* Emit the give opcode, returning its relative offset. */
+        assert( (((Address)ibuf + base) % 16) == 0 );
+        ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
+
+	switch( op ) {
+		case trampTrailer: {
+			rawBundlePointer[0] = IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).getMachineCode();
+			base += 16;
+			return (base - 16);
+			break; }
+		default:
+			assert( 0 );
+			return 0;
+		} /* end op switch */
+	} /* end emitA() */
 
 /* Required by ast.C */
 bool doNotOverflow( int value ) { assert( 0 ); return false; }
@@ -868,9 +1131,33 @@ bool pd_Function::PA_attachOverlappingInstPoints(
 		Address baseAddress, Address firstAddress,
 		instruction * loadedCode , int codeSize ) { assert( 0 ); return false; }
 
-/* Required by inst.C */
-void installTramp( instInstance *inst, process *proc, char *code, int codeSize,
-		  instPoint * /*location*/, callWhen when ) { assert( 0 ); }
+/* Required by inst.C; install a single mini-tramp */
+void installTramp( instInstance * inst, process * proc, char * code, int codeSize,
+		  instPoint * /* location */, callWhen when ) {
+	/* Book-keeping. */
+	totalMiniTramps++; insnGenerated += codeSize / 16;
+
+	/* Write the minitramp. */
+	fprintf( stderr, "*** Installing minitramp at 0x%lx\n", inst->trampBase );
+	proc->writeDataSpace( (caddr_t)inst->trampBase, codeSize, code );
+
+	/* Make sure that it's not skipped. */
+	Address insertNOPAt = inst->baseInstance->baseAddr;
+	if( when == callPreInsn && inst->baseInstance->prevInstru == false ) {
+		inst->baseInstance->cost += inst->baseInstance->prevBaseCost;
+		insertNOPAt += inst->baseInstance->skipPreInsOffset;
+		inst->baseInstance->prevInstru = true;
+		} 
+	else if( when == callPostInsn && inst->baseInstance->postInstru == false ) {
+		inst->baseInstance->cost += inst->baseInstance->postBaseCost;
+		insertNOPAt += inst->baseInstance->skipPostInsOffset;
+		inst->baseInstance->postInstru = true;
+		}
+
+	/* Write the NOP */
+	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( insertNOPAt, proc );
+	iAddr.replaceBundleWith( IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ) );
+	} /* end installTramp() */
 
 /* Required by func-reloc.C */
 void pd_Function::copyInstruction( instruction & newInsn,
@@ -887,6 +1174,9 @@ bool pd_Function::fillInRelocInstPoints(
 /* Required by ast.C */
 void emitVstore( opCode op, Register src1, Register src2, Address dest,
 		char * ibuf, Address & base, bool noCost, int size ) { assert( 0 ); }
+
+/* Required by ast.C */
+void emitJmpMC( int condition, int offset, char * baseInsn, Address & base ) { assert( 0 ); }
 
 /* Required by inst.C */
 void generateNoOp( process * proc, Address addr ) { assert( 0 ); }
@@ -992,7 +1282,7 @@ uint64_t InsnAddr::operator * () {
 	IA64_bundle bundle( rawBundle );
 
 	/* Return the appropriate left-aligned machine code. */
-	return bundle.getInstruction( offset ).getMachineCode();
+	return bundle.getInstruction( offset )->getMachineCode();
 	} /* end operator * () */
 
 /* Implementation of IA64_iterator. */
@@ -1005,12 +1295,14 @@ bool operator < ( IA64_iterator lhs, IA64_iterator rhs ) {
 	return ( lhs.encodedAddress < rhs.encodedAddress );
 	} /* end operator < () */
 
-IA64_instruction IA64_iterator::operator * () {
+IA64_instruction * IA64_iterator::operator * () {
 	/* Compute the instruction slot. */
 	unsigned short offset = encodedAddress % 16;
 
 	/* Are we looking at a long instruction? */
-	if( currentBundle.hasLongInstruction() && offset != 0 ) { return currentBundle.getLongInstruction(); }
+	if( currentBundle.hasLongInstruction() && offset != 0 ) {
+		return currentBundle.getLongInstruction();
+		}
 
 	/* Return the appropriate instruction. */
 	return currentBundle.getInstruction( offset );
@@ -1043,17 +1335,9 @@ const IA64_iterator IA64_iterator::operator++ ( int ) {
 
 /* Implementation of instPoint */
 
-instPoint::instPoint( Address encodedAddress, pd_Function * pdfn, const image * owner )  : myAddress( encodedAddress ), myPDFunction( pdfn ), myOwner( owner ) {
-	/* Compute the instruction's slot offset. */
-	unsigned short offset = encodedAddress % 16;
-
-	/* Construct an IA64_bundle. */
-	const ia64_bundle_t * insnAddress = (const ia64_bundle_t *) myOwner->getPtrToInstruction( myPDFunction->getAddress( 0 ) );
-	IA64_bundle insnBundle( insnAddress[0] );
-
-	/* Extract from it the relevant instruction. */
-	myInstruction = insnBundle.getInstruction( offset );
-
+instPoint::instPoint( Address encodedAddress, pd_Function * pdfn, const image * owner, IA64_instruction * theInsn )  : myAddress( encodedAddress ), myPDFunction( pdfn ), myOwner( owner ), myInstruction( theInsn ) {
 	/* Extract from that its target address. */
-	myTargetAddress = myInstruction.getTargetAddress() + myPDFunction->addr();
+	myTargetAddress = myInstruction->getTargetAddress() + myPDFunction->addr();
 	} /* end instPoint constructor */
+
+

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-ia64.h,v 1.6 2002/08/01 18:37:28 tlmiller Exp $
+// $Id: inst-ia64.h,v 1.7 2002/08/23 01:56:03 tlmiller Exp $
 
 #ifndef INST_IA64_H
 #define INST_IA64_H
@@ -105,7 +105,7 @@ class IA64_iterator {
 		friend bool operator < ( IA64_iterator lhs, IA64_iterator rhs );
 
 		/* Returns the left-aligned instruction at this address. */
-		IA64_instruction operator * ();
+		IA64_instruction * operator * ();
 		
 		/* postfix increment */
 		const IA64_iterator operator++ (int dummy);

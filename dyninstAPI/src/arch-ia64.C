@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.11 2002/08/02 22:36:36 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.12 2002/08/23 01:56:03 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -97,6 +97,49 @@
 #define RIGHT_IMM20		0x00000000000FFFFF	/* bits 00 - 19 */
 #define RIGHT_IMM39		0x07FFFFFFFFF00000	/* bits 20 - 58 */
 
+/* for type() */
+#define X3_MASK	MEMORY_X3_MASK
+#define X6_MASK IBRANCH_X6
+
+IA64_instruction::unitType INSTRUCTION_TYPE_ARRAY[(0x20 + 1) * 3] = { 
+	IA64_instruction::M, IA64_instruction::I, IA64_instruction::I,
+	IA64_instruction::M, IA64_instruction::I, IA64_instruction::I,
+	IA64_instruction::M, IA64_instruction::I, IA64_instruction::I,
+	IA64_instruction::M, IA64_instruction::I, IA64_instruction::I,
+	IA64_instruction::M, IA64_instruction::L, IA64_instruction::X,
+	IA64_instruction::M, IA64_instruction::L, IA64_instruction::X,
+	IA64_instruction::RESERVED, IA64_instruction::RESERVED, IA64_instruction::RESERVED,
+	IA64_instruction::RESERVED, IA64_instruction::RESERVED, IA64_instruction::RESERVED,
+	IA64_instruction::M, IA64_instruction::M, IA64_instruction::I,
+	IA64_instruction::M, IA64_instruction::M, IA64_instruction::I,
+	IA64_instruction::M, IA64_instruction::M, IA64_instruction::I,
+	IA64_instruction::M, IA64_instruction::M, IA64_instruction::I,
+	IA64_instruction::M, IA64_instruction::F, IA64_instruction::I,
+	IA64_instruction::M, IA64_instruction::F, IA64_instruction::I,
+	IA64_instruction::M, IA64_instruction::M, IA64_instruction::F,
+	IA64_instruction::M, IA64_instruction::M, IA64_instruction::F,
+
+	IA64_instruction::M, IA64_instruction::I, IA64_instruction::B,
+	IA64_instruction::M, IA64_instruction::I, IA64_instruction::B,
+	IA64_instruction::M, IA64_instruction::B, IA64_instruction::B,
+	IA64_instruction::M, IA64_instruction::B, IA64_instruction::B,
+	IA64_instruction::RESERVED, IA64_instruction::RESERVED, IA64_instruction::RESERVED,
+	IA64_instruction::RESERVED, IA64_instruction::RESERVED, IA64_instruction::RESERVED,
+	IA64_instruction::B, IA64_instruction::B, IA64_instruction::B,
+	IA64_instruction::B, IA64_instruction::B, IA64_instruction::B,
+	IA64_instruction::M, IA64_instruction::M, IA64_instruction::B,
+	IA64_instruction::M, IA64_instruction::M, IA64_instruction::B,
+	IA64_instruction::RESERVED, IA64_instruction::RESERVED, IA64_instruction::RESERVED,
+	IA64_instruction::RESERVED, IA64_instruction::RESERVED, IA64_instruction::RESERVED,
+	IA64_instruction::M, IA64_instruction::F, IA64_instruction::B,
+	IA64_instruction::M, IA64_instruction::F, IA64_instruction::B,
+	IA64_instruction::RESERVED, IA64_instruction::RESERVED, IA64_instruction::RESERVED,
+	IA64_instruction::RESERVED, IA64_instruction::RESERVED, IA64_instruction::RESERVED,
+
+	IA64_instruction::RESERVED, IA64_instruction::RESERVED, IA64_instruction::RESERVED,
+	};
+
+
 /* NOTE: for the IA64_bundle constructor to work, the individual
 	instruction 'halves' should left-aligned as if they were independent instructions. */
 IA64_instruction_x::IA64_instruction_x( uint64_t lowHalf, uint64_t highHalf, uint8_t templ, IA64_bundle * mybl ) {
@@ -122,67 +165,79 @@ const void * IA64_instruction::ptr() const {
 	} /* end ptr() */
 
 IA64_instruction::insnType IA64_instruction::getType() const {
-	/* Since we're only interested in calls and returns, for now,
-	   verify we're a B-unit instruction and have the proper major opcode:
-	   0x5 (ip-relative) or 0x1 (indirect) for calls, and 0x0 (indirect) for returns
-	   (in which case, verify that x6 == 33 and btype == 4);
-	   otherwise, return OTHER.  We'll handle the long cases in the subclass. */
+	/* We'll try to be a little smarter, now, and just look up the unit type. */
+	unitType iUnitType = INSTRUCTION_TYPE_ARRAY[(templateID * 3) + slotNumber];
 
-	bool isBranchUnit = false;
-	switch( templateID ) {
-		case 0xFF:
-			fprintf( stderr, "IA64_instruction constructed without templateID, aborting.\n" );
-			abort();
+	uint8_t opCode = (instruction & MAJOR_OPCODE_MASK) >> (ALIGN_RIGHT_SHIFT + 37);
+	uint8_t x6 = (instruction & X6_MASK) >> (ALIGN_RIGHT_SHIFT + 27); // 27 - 32
+	uint8_t x3 = (instruction & X3_MASK) >> (ALIGN_RIGHT_SHIFT + 33); // 33 - 35
+	switch( iUnitType ) {
+		case M:
+			if(	( opCode == 0x01 && x3 == 0x01 ) || 
+				( opCode == 0x01 && x3 == 0x03 ) ||
+				( opCode == 0x00 && x3 >= 0x04 && x3 <= 0x07 ) ) { return CHECK; }
 			break;
 
-		/* Fall-through: slot 0, slot 1, slot 2 B-units. */
-		case 0x16: case 0x17:
-			if( slotNumber == 0 ) { isBranchUnit = true; }
-
-		case 0x12: case 0x13:
-			if( slotNumber == 1 ) { isBranchUnit = true; }
-
-		case 0x10: case 0x11: case 0x18: case 0x19: case 0x1C: case 0x1D:
-			if( slotNumber == 2 ) { isBranchUnit = true; }
-			break;
-
-		default:
-			return OTHER;
-			break;
-		} /* end isBranchOrReturn switch. */
-
-	if( ! isBranchUnit ) { return OTHER; }
-
-	/* Fetch and verify the major opcode. */
-	uint8_t opcode = (instruction & MAJOR_OPCODE_MASK) >> (ALIGN_RIGHT_SHIFT + 37);
-
-	switch( opcode ) {
-		case 0x05: case 0x01:
-			return CALL;
-
-		case 0x04:
-			return BRANCH;
-
-		case 0x00:
-			{
-			/* Is it a return or an indirect branch or something else? */
-			uint8_t x6 = (instruction & IBRANCH_X6) >> (ALIGN_RIGHT_SHIFT + 27);
-			uint8_t btype = (instruction & IBRANCH_BTYPE) >> (ALIGN_RIGHT_SHIFT + 6);
-			if( x6 == 33 && btype == 4 ) { return RETURN; }
-			else if( x6 == 20 && (btype == 0 || btype == 1) ) { return BRANCH; }
+		case I:
+			if( opCode == 0x00 && x6 == 0x30 ) { return MOVE_FROM_IP; }
+			else if( opCode == 0x00 && x3 == 0x01 ) { return CHECK; }
 			else { return OTHER; }
 			break;
-			}
 
-		default:
+		case B:
+			switch( opCode ) {
+				case 0x05:
+					return DIRECT_CALL;
+
+				case 0x01:
+					return INDIRECT_CALL;
+
+				case 0x04:
+					return DIRECT_BRANCH;
+
+				case 0x00: {
+					/* Is it a return or an indirect branch or something else? */
+					uint8_t btype = (instruction & IBRANCH_BTYPE) >> (ALIGN_RIGHT_SHIFT + 6);
+					if( x6 == 0x21 && btype == 0x04 ) { return RETURN; }
+					else if( x6 == 0x20 && btype == 0x00 ) { return INDIRECT_BRANCH; }
+					else if( x6 == 0x20 && btype == 0x01 ) { return BRANCH_IA; }
+					else { return OTHER; }
+					break;
+					}
+
+				case 0x07:
+					return BRANCH_PREDICT;
+
+				case 0x02:
+					if( x6 == 0x10 || x6 == 0x11 ) { return BRANCH_PREDICT; }
+					else { return OTHER; }
+
+				default:
+					return OTHER;
+				} /* end branch-unit opcode switch */
+			break; 
+
+		case F:
 			return OTHER;
-		} /* end opcode switch */
+
+		case L: case X:
+			break;
+
+		case RESERVED: default:
+			break;	
+		} /* end i-unit type switch */
+	
+	return INVALID;
 	} /* end getType() */
 
 IA64_instruction::insnType IA64_instruction_x::getType() const {
 	/* We know we're a long instruction, so just check the major opcode to see which one. */
 	uint8_t opcode = (instruction_x & MAJOR_OPCODE_MASK) >> (ALIGN_RIGHT_SHIFT + 37);
-	if( opcode == 0x0D ) { return CALL; } else { return OTHER; }
+	switch( opcode ) {
+		case 0x0D: return DIRECT_CALL;
+		case 0x0C: return DIRECT_BRANCH;
+		default: return OTHER;
+		} /* end opcode switch */
 	} /* end getType() */
 
 IA64_bundle::IA64_bundle( ia64_bundle_t rawBundle ) {
@@ -225,25 +280,29 @@ IA64_bundle::IA64_bundle( uint64_t lowHalfBundle, uint64_t highHalfBundle ) {
 	myBundle.high = highHalfBundle;
 	} /* end IA64_Bundle() */
 
-IA64_instruction_x IA64_bundle::getLongInstruction() {
-	return IA64_instruction_x( instruction1.getMachineCode(), instruction2.getMachineCode(), 0x05, this );
+IA64_instruction_x * IA64_bundle::getLongInstruction() {
+	longInstruction = IA64_instruction_x( instruction1.getMachineCode(), instruction2.getMachineCode(), 0x05, this );
+	return & longInstruction;
 	} /* end getLongInstruction() */
 
-IA64_instruction IA64_bundle::getInstruction( unsigned int slot ) {
+IA64_instruction * IA64_bundle::getInstruction( unsigned int slot ) {
+	if( (slot == 1 || slot == 2) && hasLongInstruction() ) {
+		return getLongInstruction();
+		}
 	switch( slot ) {
-		case 0: return instruction0;
-		case 1: return instruction1;
-		case 2: return instruction2;
+		case 0: return & instruction0;
+		case 1: return & instruction1;
+		case 2: return & instruction2;
 		default: fprintf( stderr, "Request of invalid instruction (%d), aborting.\n", slot ); abort();
 		}
 	} /* end getInstruction() */
 
-/* private (refactoring) function, used by generateAlteredAlloc() and defineBaseTrampRegisterSpaceFor() */
+/* Used by generateAlteredAlloc(), defineBaseTrampRegisterSpaceFor(), and dlopenDYNINSTlib(). */
 bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, uint64_t * allocatedOutput, uint64_t * allocatedRotate ) {
 	/* Verify that the given instruction is actually, so far as we can tell
 	   (we don't have the template and the offset), an alloc. */
-	if( allocInsn & MAJOR_OPCODE_MASK != ((uint64_t)1) << 37 + ALIGN_RIGHT_SHIFT ||
-	    allocInsn & MEMORY_X3_MASK != ((uint64_t)6) << 33 + ALIGN_RIGHT_SHIFT ) {
+	if( allocInsn & MAJOR_OPCODE_MASK != ((uint64_t)0x01) << 37 + ALIGN_RIGHT_SHIFT ||
+	    allocInsn & MEMORY_X3_MASK != ((uint64_t)0x06) << 33 + ALIGN_RIGHT_SHIFT ) {
 		* allocatedLocal = * allocatedOutput = * allocatedRotate = 0;
 		return false;
 		} /* end if not an alloc instruction */
@@ -256,6 +315,35 @@ bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, u
 	/* Completed successfully. */
 	return true;
         } /* end extractAllocatedRegisters() */
+
+/* For inst-ia64.C */
+IA64_instruction generateRestoreAlloc( uint64_t allocInsn ) {
+	/* Extract the allocated sizes. */
+	uint64_t allocatedLocal, allocatedOutput, allocatedRotate;
+	if( ! extractAllocatedRegisters( allocInsn, & allocatedLocal, & allocatedOutput, & allocatedRotate ) ) {
+		fprintf( stderr, "Alleged alloc instruction is not, aborting.\n" );
+		abort();
+		} /* end if not an alloc instruction */
+
+	/* Calculate the new sizes.  To avoid overwriting one of the registers
+	   we're trying to save, write the return to a spurious output register. */
+	uint64_t generatedLocal = allocatedLocal;
+	uint64_t generatedOutput = allocatedOutput + 1;
+	uint64_t generatedRotate = allocatedRotate;
+	uint64_t generatedRegister = 32 + allocatedLocal + allocatedOutput;
+
+	/* Generate the altered alloc instruction. */
+	allocInsn = 0x0000000000000000 |
+		    ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
+		    ( ((uint64_t)0x06) << (33 + ALIGN_RIGHT_SHIFT) ) |
+		    ( generatedLocal << (20 + ALIGN_RIGHT_SHIFT) ) | 
+		    ( ( generatedRotate >> 3) << (27 + ALIGN_RIGHT_SHIFT) ) |
+		    ( ( generatedLocal + generatedOutput ) << (13 + ALIGN_RIGHT_SHIFT) ) | 
+		    ( generatedRegister << (6 + ALIGN_RIGHT_SHIFT) );
+	
+	/* We're done. */
+	return allocInsn;
+	} /* end generateRestoreAlloc() */
 
 /* For linux-ia64.C */
 IA64_instruction generateAlteredAlloc( uint64_t allocInsn, int newLocal, int newOutput, int newRotate ) {
@@ -272,14 +360,19 @@ IA64_instruction generateAlteredAlloc( uint64_t allocInsn, int newLocal, int new
 	uint64_t generatedOutput = newOutput;
 	uint64_t generatedRotate = newRotate;
 
-	/* Alter allocInsn. */
+	/* Likewise, to avoid overwriting one of the registers we're trying to preserve,
+	   return into a newly-allocated register. */
+	assert( newLocal + newOutput + newRotate != 0 );
+	uint64_t generatedRegister = 32 + allocatedLocal + allocatedOutput;
+
+	/* Generate the altered alloc instruction. */
 	allocInsn = 0x0000000000000000 |
-		    ( ((uint64_t)1) << (37 + ALIGN_RIGHT_SHIFT) ) |
-		    ( ((uint64_t)6) << (33 + ALIGN_RIGHT_SHIFT) ) |
+		    ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
+		    ( ((uint64_t)0x06) << (33 + ALIGN_RIGHT_SHIFT) ) |
 		    ( generatedLocal << (20 + ALIGN_RIGHT_SHIFT) ) | 
 		    ( ( generatedRotate >> 3) << (27 + ALIGN_RIGHT_SHIFT) ) |
 		    ( ( generatedLocal + generatedOutput ) << (13 + ALIGN_RIGHT_SHIFT) ) | 
-		    ( allocInsn & ALLOC_REGISTER );
+		    ( generatedRegister << (6 + ALIGN_RIGHT_SHIFT) );
 	
 	/* We're done. */
 	return allocInsn;
@@ -292,7 +385,7 @@ IA64_instruction generateShortConstantInRegister( unsigned int registerN, int im
 	
 	/* addl */
 	uint64_t rawInsn = 0x0000000000000000 | 
-			   ( ((uint64_t)9) << (37 + ALIGN_RIGHT_SHIFT)) |
+			   ( ((uint64_t)0x09) << (37 + ALIGN_RIGHT_SHIFT)) |
 			   ( ((uint64_t)(imm22 < 0)) << (36 + ALIGN_RIGHT_SHIFT)) |
 			   ( (sImm22 & RIGHT_IMM7B) << (13 + ALIGN_RIGHT_SHIFT)) |
 			   ( (sImm22 & RIGHT_IMM5C) << (-16 + 22 + ALIGN_RIGHT_SHIFT)) |
@@ -307,7 +400,7 @@ IA64_instruction_x generateLongConstantInRegister( unsigned int registerN, long 
 
 	/* movl */
 	uint64_t rawInsnHigh = 0x0000000000000000 | 
-			   ( ((uint64_t)6) << (37 + ALIGN_RIGHT_SHIFT)) |
+			   ( ((uint64_t)0x06) << (37 + ALIGN_RIGHT_SHIFT)) |
 			   ( (imm64 & RIGHT_IMM_I) << (-63 + 36 + ALIGN_RIGHT_SHIFT)) |
 			   ( (imm64 & RIGHT_IMM9D) << (-7 + 27 + ALIGN_RIGHT_SHIFT)) |
 			   ( (imm64 & RIGHT_IMM5C) << (-16 + 22 + ALIGN_RIGHT_SHIFT)) |
@@ -325,10 +418,10 @@ IA64_instruction_x generateLongCallTo( long long int displacement64, unsigned in
 	uint64_t sBranchRegister = (uint64_t)branchRegister;
 
 	uint64_t rawInsnHigh = 0x0000000000000000 | 
-			   ( ((uint64_t)0xD) << (37 + ALIGN_RIGHT_SHIFT)) |
+			   ( ((uint64_t)0x0D) << (37 + ALIGN_RIGHT_SHIFT)) |
 			   ( ((uint64_t)(displacement64 < 0)) << (36 + ALIGN_RIGHT_SHIFT)) |
 			   ( (displacement60 & RIGHT_IMM20) << (13 + ALIGN_RIGHT_SHIFT)) |
-			   ( (sBranchRegister & 0x7 ) << (6 + ALIGN_RIGHT_SHIFT));
+			   ( (sBranchRegister & 0x07 ) << (6 + ALIGN_RIGHT_SHIFT));
 	uint64_t rawInsnLow = 0x0000000000000000 |
 			   ( (displacement60 & RIGHT_IMM39) << (-20 + 2 + ALIGN_RIGHT_SHIFT) );
 
@@ -339,7 +432,7 @@ IA64_instruction_x generateLongBranchTo( long long int displacement64 ) {
 	int64_t displacement60 = displacement64 >> 4;
 
 	uint64_t rawInsnHigh = 0x0000000000000000 | 
-			   ( ((uint64_t)0xC) << (37 + ALIGN_RIGHT_SHIFT)) |
+			   ( ((uint64_t)0x0C) << (37 + ALIGN_RIGHT_SHIFT)) |
 			   ( ((uint64_t)(displacement64 < 0)) << (36 + ALIGN_RIGHT_SHIFT)) |
 			   ( (displacement60 & RIGHT_IMM20) << (13 + ALIGN_RIGHT_SHIFT));
 	uint64_t rawInsnLow = 0x0000000000000000 |
@@ -352,9 +445,9 @@ IA64_instruction generateReturnTo( unsigned int branchRegister ) {
 	uint64_t sBranchRegister = (uint64_t)branchRegister;
 
 	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)33) << (27 + ALIGN_RIGHT_SHIFT ) ) | 
-			   ( ((uint64_t)4) << (6 + ALIGN_RIGHT_SHIFT ) ) |
-			   ( ((uint64_t)1) << (12 + ALIGN_RIGHT_SHIFT ) ) |
+			   ( ((uint64_t)0x21) << (27 + ALIGN_RIGHT_SHIFT ) ) | 
+			   ( ((uint64_t)0x04) << (6 + ALIGN_RIGHT_SHIFT ) ) |
+			   ( ((uint64_t)0x01) << (12 + ALIGN_RIGHT_SHIFT ) ) |
 			   ( (sBranchRegister & 0x7) << (13 + ALIGN_RIGHT_SHIFT) );
 
 	return IA64_instruction( rawInsn );	
@@ -391,7 +484,8 @@ IA64_bundle generateBundleFromLongInstruction( IA64_instruction_x longInstructio
 
 /* Required by inst-ia64.C */
 Address IA64_instruction::getTargetAddress() {
-	if( getType() == CALL || getType() == BRANCH ) {
+	insnType myType = getType();
+	if( myType == DIRECT_CALL || myType == DIRECT_BRANCH ) { /* Kind of pointless to guess at the target of indirect jumps. */
 		uint8_t opcode = (instruction & MAJOR_OPCODE_MASK) >> (ALIGN_RIGHT_SHIFT + 37);
 		switch( opcode ) {
 			case 0x04: case 0x05:
@@ -415,8 +509,8 @@ Address IA64_instruction::getTargetAddress() {
 	} /* end getTargetAddress() */
 
 Address IA64_instruction_x::getTargetAddress() {
-	if( getType() == CALL || getType() == BRANCH ) { // FIXME
-		assert( 0 );
+	if( getType() == DIRECT_CALL || getType() == DIRECT_BRANCH ) {
+		assert( 0 );  // FIXME
 		} else {
 		return 0;
 		}
@@ -426,22 +520,19 @@ Address IA64_instruction_x::getTargetAddress() {
    at the relevant alloc instruction. */
 #include "instPoint-ia64.h"
 void defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace ) {
-	/* FIXME: Scan the function for alloc instructions*.  If there's more than one,
-	   define the register space to be the first eight locals, and the first eight output
-	   registers; but mark them live so that they'll be saved before being used (and
-	   restored afterwards).  Option: go ahead and save all sixteen of these guys
-	   at the beginning of the base tramp and mark them dead, and then restore them
-	   at the end.
-
-	   * Actually, we should flag the alloc instructions during parse & decode. */
+	/* FIXME: Decode the flagged alloc statements.  As long as their input/local
+	   sizes remain the same, we can use the alloc method: just expand the frame
+	   to the end of the largest alloc.  Otherwise, things get tricky.  (See notes.) */
 
 	Address fnEntryOffset = location->iPgetFunction()->addr();
-	const ia64_bundle_t * rawBundles = (const ia64_bundle_t *) location->iPgetOwner()->getPtrToInstruction( fnEntryOffset );
+	Address fnEntryAddress = (Address)location->iPgetOwner()->getPtrToInstruction( fnEntryOffset );
+	assert( fnEntryAddress % 16 == 0 );
+	const ia64_bundle_t * rawBundles = (const ia64_bundle_t *) fnEntryAddress;
 	IA64_bundle initialBundle( rawBundles[0] );
 
 	/* Extract the allocated sizes. */
 	uint64_t allocatedLocal, allocatedOutput, allocatedRotate;
-	if( ! extractAllocatedRegisters( initialBundle.getInstruction(0).getMachineCode(), & allocatedLocal, & allocatedOutput, & allocatedRotate ) ) {
+	if( ! extractAllocatedRegisters( initialBundle.getInstruction(0)->getMachineCode(), & allocatedLocal, & allocatedOutput, & allocatedRotate ) ) {
 		assert( 0 );
 		return;
 		} /* end if no alloc was found. */
@@ -460,7 +551,7 @@ IA64_instruction generateIPToRegisterMove( Register destination ) {
 	uint64_t generalRegister = ((uint64_t)destination) & 0x7F;
 	
 	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)48) << (27 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x30) << (27 + ALIGN_RIGHT_SHIFT) ) |
 			   ( generalRegister << (6 + ALIGN_RIGHT_SHIFT) );
 
 	return IA64_instruction( rawInsn );
@@ -471,7 +562,7 @@ IA64_instruction generateBranchToRegisterMove( Register source, Register destina
 	uint64_t generalRegister = ((uint64_t)destination) & 0x7F;
 
 	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)49) << (27 + ALIGN_RIGHT_SHIFT)) |
+			   ( ((uint64_t)0x31) << (27 + ALIGN_RIGHT_SHIFT)) |
 			   ( branchRegister << (13 + ALIGN_RIGHT_SHIFT)) |
 			   ( generalRegister << (6 + ALIGN_RIGHT_SHIFT));
 
@@ -485,7 +576,7 @@ IA64_instruction generateRegisterToBranchMove( Register source, Register destina
 	/* FIXME: Since I'm ignoring the prediction for now anyway, don't set
 	   timm9, the address of the predicted branch insn. */
 	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)7) << (33 + ALIGN_RIGHT_SHIFT)) |
+			   ( ((uint64_t)0x07) << (33 + ALIGN_RIGHT_SHIFT)) |
 			   ( generalRegister << (13 + ALIGN_RIGHT_SHIFT)) |
 			   ( branchRegister << (6 + ALIGN_RIGHT_SHIFT));
 
@@ -499,8 +590,8 @@ IA64_instruction generateShortImmediateAdd( Register destination, int immediate,
 	uint64_t signBit = immediate < 0 ? 1 : 0;
 
 	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)8) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)2) << (34 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x08) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x02) << (34 + ALIGN_RIGHT_SHIFT) ) |
 			   ( sourceRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
 			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) ) |
 			   ( (immediate14 & RIGHT_IMM7B) << (13 + ALIGN_RIGHT_SHIFT) ) |
@@ -516,9 +607,9 @@ IA64_instruction generateSubtraction( Register destination, Register lhs, Regist
 	uint64_t rhsRegister = ((uint64_t)rhs) & 0x7F;
 
 	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)8) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)1) << (29 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)1) << (27 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x08) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x01) << (29 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x01) << (27 + ALIGN_RIGHT_SHIFT) ) |
 			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) ) |
 			   ( lhsRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
 			   ( rhsRegister << (20 + ALIGN_RIGHT_SHIFT) );
@@ -531,7 +622,7 @@ IA64_instruction generateIndirectCallTo( Register indirect, Register rp ) {
 	uint64_t returnRegister = ((uint64_t)rp) & 0x7;
 
 	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)1) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT) ) |
 			   ( indirectRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
 			   ( returnRegister << (6 + ALIGN_RIGHT_SHIFT) );
 
@@ -542,7 +633,7 @@ IA64_instruction generatePredicatesToRegisterMove( Register destination ) {
 	uint64_t generalRegister = ((uint64_t)destination) & 0x7F;
 	
 	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)51) << (27 + ALIGN_RIGHT_SHIFT) ) | // FIXME: 33?
+			   ( ((uint64_t)0x33) << (27 + ALIGN_RIGHT_SHIFT) ) |
 			   ( generalRegister << (6 + ALIGN_RIGHT_SHIFT) );
 
 	return IA64_instruction( rawInsn );
@@ -553,9 +644,9 @@ IA64_instruction generateRegisterToPredicatesMove( Register source, uint64_t mas
 	
 	uint64_t rawInsn = 0x0000000000000000 |
 			   ( (mask17 & 0x10000) << ( -16 + 36 + ALIGN_RIGHT_SHIFT ) ) |
-			   ( ((uint64_t)3) << ( 33 + ALIGN_RIGHT_SHIFT ) ) |
-			   ( ((mask17 >> 1) & RIGHT_IMM8C) << ( -7 + 24 + ALIGN_RIGHT_SHIFT ) ) |
-			   ( ((mask17 >> 1) & RIGHT_IMM7A) << ( 6 + ALIGN_RIGHT_SHIFT ) ) |
+			   ( ((uint64_t)0x03) << ( 33 + ALIGN_RIGHT_SHIFT ) ) |
+			   ( ((mask17 >> 0x01) & RIGHT_IMM8C) << ( -7 + 24 + ALIGN_RIGHT_SHIFT ) ) |
+			   ( ((mask17 >> 0x01) & RIGHT_IMM7A) << ( 6 + ALIGN_RIGHT_SHIFT ) ) |
 			   ( generalRegister << ( 13 + ALIGN_RIGHT_SHIFT ) );
 	
 	return IA64_instruction( rawInsn );
@@ -566,8 +657,8 @@ IA64_instruction generateRegisterStore( Register address, Register source ) {
 	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
 
 	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)4) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)51) << (30 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x04) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x33) << (30 + ALIGN_RIGHT_SHIFT) ) |
 			   ( addressRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
 			   ( sourceRegister << (13 + ALIGN_RIGHT_SHIFT) );
 
@@ -579,11 +670,35 @@ IA64_instruction generateRegisterLoad ( Register destination, Register address )
 	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
 
 	uint64_t rawInsn = 0x0000000000000000 |
-			   ( ((uint64_t)4) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)3) << (30 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x04) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x03) << (30 + ALIGN_RIGHT_SHIFT) ) |
 			   ( addressRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
 			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) );
 
 	return IA64_instruction( rawInsn );
 	} /* end generateRegisterLoad() */
+
+IA64_instruction generateRegisterToApplicationMove( Register source, Register destination ) {
+	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
+	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
+
+	uint64_t rawInsn = 0x0000000000000000 |
+			   ( ((uint64_t)0x2A) << (27 + ALIGN_RIGHT_SHIFT) ) |
+			   ( sourceRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
+			   ( destinationRegister << (20 + ALIGN_RIGHT_SHIFT) );
+
+	return IA64_instruction( rawInsn );
+	} /* end generateRegisterToApplicationMove() */
+
+IA64_instruction generateApplicationToRegisterMove( Register source, Register destination ) {
+	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
+	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
+
+	uint64_t rawInsn = 0x0000000000000000 |
+			   ( ((uint64_t)0x32) << (27 + ALIGN_RIGHT_SHIFT) ) |
+			   ( sourceRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
+			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) );
+
+	return IA64_instruction( rawInsn );
+	} /* end generateRegisterToApplicationMove() */
 

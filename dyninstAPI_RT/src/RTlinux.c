@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.18 2002/08/09 23:32:38 jaw Exp $
+ * $Id: RTlinux.c,v 1.19 2002/08/23 01:56:30 tlmiller Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -58,6 +58,43 @@
 #ifndef ia64_unknown_linux2_4
 extern struct sigaction DYNINSTactTrap;
 extern struct sigaction DYNINSTactTrapApp;
+#else
+#include <errno.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
+extern double DYNINSTstaticHeap_4M_anyHeap_1[4*1024*1024/sizeof(double)];
+
+void _start( void ) {
+	fprintf( stderr, "*** Initializing dyninstAPI runtime.\n" );
+
+	/* Grab the page size, to align the heap pointer. */
+	long int pageSize = sysconf( _SC_PAGESIZE );
+	if( pageSize == 0 || pageSize == - 1 ) {
+		fprintf( stderr, "*** Failed to obtain page size, guessing 16K.\n" );
+		perror( "_start" );
+		pageSize = 1024 * 1024 * 16;
+		} /* end pageSize initialization */
+
+	/* Align the heap pointer. */
+	unsigned long int alignedHeapPointer = (unsigned long int)DYNINSTstaticHeap_4M_anyHeap_1;
+	unsigned long long adjustedSize = alignedHeapPointer + 4 * 1024 * 1024;
+	alignedHeapPointer = (alignedHeapPointer) & ~(pageSize - 1);
+	adjustedSize -= alignedHeapPointer;
+
+	/* Make the heap's page executable. */
+	if( mprotect( (void *)alignedHeapPointer, adjustedSize, PROT_READ | PROT_WRITE | PROT_EXEC ) != 0 ) {
+		fprintf( stderr, "*** Unable to mark DYNINSTstaticHeap_4M_anyHeap_1 executable!\n" );
+		perror( "_start" );
+		}
+	fprintf( stderr, "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize );
+	}
+
+void R_BRK_TARGET() { // We may (have) want(ed) to make this an array, but I think it's better to make sure it's executable, for now.
+        /* Make sure we've got room for two bundles. */
+        asm( "nop 0" ); asm( "nop 0" ); asm( "nop 0" );
+        asm( "nop 0" ); asm( "nop 0" ); asm( "nop 0" );
+        }
 #endif
 
 #ifdef DETACH_ON_THE_FLY 

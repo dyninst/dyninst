@@ -30,82 +30,67 @@ bool addressIsValidInsnAddr( Address addr ) {
 		}
 	} /* end addressIsValidInsnAddr() */
 
-// some more functions used to identify the properties of the instruction
-/** is the instruction used to return from the functions
-  * @param i the instruction value 
-  */
 bool InstrucIter::isAReturnInstruction()
 {
+	assert( 0 );
 	return false;
 }
 
-extern const unsigned char*
-skip_headers(const unsigned char*,bool&,bool&);
-extern bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
-
-/** is the instruction an indirect jump instruction 
-  * @param i the instruction value 
-  */
 bool InstrucIter::isAIndirectJumpInstruction()
 {
+	assert( 0 );
 	return false;
 }
 
-/** is the instruction a conditional branch instruction 
-  * @param i the instruction value 
-  */ 
 bool InstrucIter::isACondBranchInstruction()
 {
+	assert( 0 );
 	return false;
 }
 
-/** is the instruction an unconditional branch instruction 
-  * @param i the instruction value 
-  */
 bool InstrucIter::isAJumpInstruction()
 {
+	assert( 0 );
 	return false;
 }
 
-/** is the instruction a call instruction 
-  * @param i the instruction value 
-  */
 bool InstrucIter::isACallInstruction()
 {
+	assert( 0 );
 	return false;
 }
 
 bool InstrucIter::isAnneal()
 {
+	assert( 0 );
 	return false;
 }
 
-/** function which returns the offset of control transfer instructions
-  * @param i the instruction value 
-  */
 Address InstrucIter::getBranchTargetAddress(Address pos)
 {
+	assert( 0 );
 	return false;
 }
 
-void initOpCodeInfo()
-{
-}
+void initOpCodeInfo() {
+	/* I don't need this for anything. */
+	} /* end initOpCodeInfo() */
 
-/* NOT yet implemented. */
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
-  return BPatch_memoryAccess::none;
+	assert( 0 );
+	return NULL;
 }
 
 
 void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 {
-	;
+	assert( 0 );
 }
 
 bool InstrucIter::delayInstructionSupported()
 {
+	assert( 0 );
 	return false;
 }
 

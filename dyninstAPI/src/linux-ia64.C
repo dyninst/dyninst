@@ -117,7 +117,6 @@ void process::insertTrapAtEntryPointOfMain() {
 	} /* end insertTrapAtEntryPointOfMain() */
 
 Address process::readRegister(unsigned /*lwp*/, Register) {
-	TRACE( FIXME );
 	assert( 0 );
 	return 0;
 	} /* end readRegister */
@@ -140,7 +139,7 @@ Frame process::getActiveFrame( unsigned lwp ) {
 
 
 #define DLOPEN_MODE		(RTLD_NOW | RTLD_GLOBAL)
-#define DLOPEN_CALL_LENGTH	3
+#define DLOPEN_CALL_LENGTH	4
 
 const char DYNINST_LOAD_HIJACK_FUNCTIONS[][15] = {
 	"main",
@@ -180,6 +179,7 @@ void printBinary( unsigned long long word, int start = 0, int end = 63 ) {
 /* FIXME: this almost certainly NOT the Right Place to keep this. */
 Address savedProcessGP;
 Address savedReturnAddress;
+Address savedPFS;
 bool process::dlopenDYNINSTlib() {
 	/* Look for a function we can hijack to forcibly load dyninstapi_rt. */
 	Address entry = findFunctionToHijack(symbols, this);	// We can avoid using InsnAddr because we know 
@@ -217,11 +217,15 @@ bool process::dlopenDYNINSTlib() {
 	/* Save the current GP. */
 	pid_t pid = getPid();
 	savedProcessGP = P_ptrace( PTRACE_PEEKUSER, pid, PT_R1, 0 );
-	if( savedProcessGP == -1 ) { assert( 0 ); }
+	if( savedProcessGP == (Address)-1 ) { assert( 0 ); }
 
 	/* Save the current return address. */
 	savedReturnAddress = P_ptrace( PTRACE_PEEKUSER, pid, PT_B0, 0 );
-	if( savedReturnAddress == -1 ) { assert( 0 ); }
+	if( savedReturnAddress == (Address)-1 ) { assert( 0 ); }
+
+	/* Save the current AR pfs. */
+	savedPFS = P_ptrace( PTRACE_PEEKUSER, pid, PT_AR_PFS, 0 );
+	if( savedPFS == (Address)-1 ) { assert( 0 ); }
 
 	/* Write _dl_open()'s GP. */
 	Address dlopenGP = getTOCoffsetInfo( dlopenAddr );
@@ -243,24 +247,28 @@ bool process::dlopenDYNINSTlib() {
 	   that is, the location of the SIGILL-generating bundle we'll use
 	   to handleIfDueToDyninstLib() and restore the original code.  */
 
-	/* FIXME: replace with a call to the code generator once it's working. */
+	/* FIXME: replace with a call to the code generator once it's working? */
 	IA64_bundle dlopenCallBundles[DLOPEN_CALL_LENGTH];
 	
 	/* We need three output registers. */
 	InsnAddr allocAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
 
+	IA64_instruction integerNOP( NOP_I );	
+	uint64_t allocatedLocal, allocatedOutput, allocatedRotate;
+	assert( extractAllocatedRegisters( * allocAddr, & allocatedLocal, & allocatedOutput, & allocatedRotate ) );
 	IA64_instruction alteredAlloc = generateAlteredAlloc( * allocAddr, 0, 3, 0 );
-	/* FIXME: maybe generateAlteredAlloc should have a registerSpace (?) parameter
-	   so I can tell which register the first output might be... (rS.out0, rs.in0 ... ) */
-	IA64_instruction_x setStringPointer = generateLongConstantInRegister( 40, entry + ((DLOPEN_CALL_LENGTH + 1) * 16) );
-	IA64_instruction setMode = generateShortConstantInRegister( 41, DLOPEN_MODE );
-	IA64_instruction_x setReturnPointer = generateLongConstantInRegister( 42, entry + (DLOPEN_CALL_LENGTH * 16) );
+	Register out0 = allocatedLocal + allocatedOutput + 32;
+	Register out1 = out0 + 1; Register out2 = out1 + 1;
+	IA64_instruction_x setStringPointer = generateLongConstantInRegister( out0, entry + ((DLOPEN_CALL_LENGTH + 1) * 16) );
+	IA64_instruction setMode = generateShortConstantInRegister( out1, DLOPEN_MODE );
+	IA64_instruction_x setReturnPointer = generateLongConstantInRegister( out2, entry + (DLOPEN_CALL_LENGTH * 16) );
 	IA64_instruction memoryNOP( NOP_M );
 	IA64_instruction_x branchLong = generateLongCallTo( dlopenAddr - (entry + (16 * (DLOPEN_CALL_LENGTH - 1))), 0 );
 
-	dlopenCallBundles[0] = IA64_bundle( MLXstop, alteredAlloc, setStringPointer );
-	dlopenCallBundles[1] = IA64_bundle( MLXstop, setMode, setReturnPointer );
-	dlopenCallBundles[2] = IA64_bundle( MLXstop, memoryNOP, branchLong );
+	dlopenCallBundles[0] = IA64_bundle( MIIstop, alteredAlloc, integerNOP, integerNOP );
+	dlopenCallBundles[1] = IA64_bundle( MLXstop, memoryNOP, setStringPointer );
+	dlopenCallBundles[2] = IA64_bundle( MLXstop, setMode, setReturnPointer );
+	dlopenCallBundles[3] = IA64_bundle( MLXstop, memoryNOP, branchLong );
 	iAddr.replaceBundlesWith( dlopenCallBundles, DLOPEN_CALL_LENGTH );
 
 	/* Generate SIGILL when _dl_open() returns. */
@@ -288,10 +296,11 @@ void process::handleIfDueToDyninstLib() {
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
 	iAddr.writeBundlesFrom( savedCodeBuffer, sizeof(savedCodeBuffer) / 16 );
 
-	/* Restore the GP and return address */
+	/* Restore the GP, return address, and AR pfs. */
 	pid_t pid = getPid();
 	if( P_ptrace( PTRACE_POKEUSER, pid, PT_R1, savedProcessGP ) == -1 ) { assert( 0 ); }
 	if( P_ptrace( PTRACE_POKEUSER, pid, PT_B0, savedReturnAddress ) == -1 ) { assert( 0 ); }
+	if( P_ptrace( PTRACE_POKEUSER, pid, PT_AR_PFS, savedPFS ) == -1 ) { assert( 0 ); }
 
 	/* DYNINSTlib is finished loading; handle it. */
 	dyn->handleDYNINSTlibLoad( this );

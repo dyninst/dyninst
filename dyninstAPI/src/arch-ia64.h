@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.8 2002/08/01 18:37:28 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.9 2002/08/23 01:56:03 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -81,17 +81,21 @@ class IA64_instruction {
 	friend class IA64_bundle;
 
 	public:
-		IA64_instruction( uint64_t insn = 0, uint8_t templ = 0xFF, const IA64_bundle * mybl = 0, uint8_t slotN = 3 );
+		IA64_instruction( uint64_t insn = 0, uint8_t templ = 0x20, const IA64_bundle * mybl = 0, uint8_t slotN = 3 );
 
 		const void * ptr() const;
 		uint32_t size() const { return 16; }
 
 		uint64_t getMachineCode() { return instruction; }
 
-		enum insnType { RETURN, CALL, BRANCH, OTHER };
+		enum insnType { RETURN, BRANCH_IA, DIRECT_CALL, DIRECT_BRANCH, INDIRECT_CALL, INDIRECT_BRANCH, BRANCH_PREDICT, CHECK, MOVE_FROM_IP, OTHER, INVALID };
+		enum unitType { M, I, F, B, L, X, RESERVED };
 		virtual insnType getType() const;
 
 		virtual Address getTargetAddress();
+
+		uint8_t getTemplateID() { return templateID; }
+		uint8_t getSlotNumber() { return slotNumber; }
 
 	protected:
 		const IA64_bundle * myBundle;
@@ -105,7 +109,7 @@ class IA64_instruction_x : public IA64_instruction {
 	friend class IA64_bundle;
 
 	public:
-		IA64_instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0xFF, IA64_bundle * mybl = 0 );
+		IA64_instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0x20, IA64_bundle * mybl = 0 );
 
 		ia64_bundle_t getMachineCode() { ia64_bundle_t r = { instruction, instruction_x }; return r; }	
 
@@ -133,15 +137,16 @@ class IA64_bundle {
 		IA64_instruction getInstruction0() { return instruction0; }
 		IA64_instruction getInstruction1() { return instruction1; }
 		IA64_instruction getInstruction2() { return instruction2; }
-		IA64_instruction getInstruction( unsigned int slot );
+		IA64_instruction * getInstruction( unsigned int slot );
 
-		bool hasLongInstruction() { return templateID == 0x05; }
-		IA64_instruction_x getLongInstruction();
+		bool hasLongInstruction() { return templateID == 0x05 || templateID == 0x04; }
+		IA64_instruction_x * getLongInstruction();
 
 	private:
 		IA64_instruction instruction0;
 		IA64_instruction instruction1;
 		IA64_instruction instruction2;
+		IA64_instruction_x longInstruction;
 		uint8_t templateID;
 
 		ia64_bundle_t myBundle;
@@ -162,15 +167,15 @@ inline bool isAligned( const Address address ) {
 /* Required by linux.C to find the address bounds
    of new dynamic heap segments. */
 inline Address region_lo( const Address x ) {
-	#warning WAG
-	return 0x00000000;
+	/* We're guessing the shared memory region. */
+	return 0x2000000000000000;
 	} /* end region_lo */
 
 /* Required by linux.C to find the address bounds
    of new dynamic heap segments. */
 inline Address region_hi( const Address x ) {
-	#warning WAG
-	return 0xf0000000;
+	/* We're guessing the shared memory region. */
+	return 0x3FFFFFFFFFFFFFFF;
 	} /* end region_hi */
 
 /* Required by func-reloc.C to calculate relative displacements. */
@@ -185,7 +190,9 @@ int sizeOfMachineInsn( instruction * insn );
 int addressOfMachineInsn( instruction * insn );
 
 /* Required by linux-ia64.C */
-IA64_instruction generateAlteredAlloc( uint64_t allocAddr, int deltaLocal, int deltaOutput, int deltaRotate );
+bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, uint64_t * allocatedOutput, uint64_t * allocatedRotate );
+IA64_instruction generateAlteredAlloc( uint64_t allocInsn, int newLocal, int newOutput, int newRotate );
+IA64_instruction generateRestoreAlloc( uint64_t allocInsn );
 IA64_instruction generateShortConstantInRegister( unsigned int registerN, int imm22 );
 IA64_instruction_x generateLongConstantInRegister( unsigned int registerN, long long int imm64 );
 IA64_instruction_x generateLongCallTo( long long int displacement64, unsigned int branchRegister );
@@ -208,6 +215,8 @@ IA64_instruction generatePredicatesToRegisterMove( Register destination );
 IA64_instruction generateRegisterToPredicatesMove( Register source, uint64_t imm17 );
 IA64_instruction generateRegisterStore( Register address, Register destination );
 IA64_instruction generateRegisterLoad( Register destination, Register address );
+IA64_instruction generateRegisterToApplicationMove( Register source, Register destination );
+IA64_instruction generateApplicationToRegisterMove( Register source, Register destination );
 
 /* For ast.C */
 class instPoint;
@@ -225,6 +234,7 @@ void defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 #define REGISTER_RP	8	/* return value, if structure/union, pointer. */
 #define REGISTER_SP	12	/* memory stack pointer */
 #define REGISTER_TP	13	/* thread pointer */
+#define AR_PFS		64	/* application register: previous function state */
 
 /* (right-aligned) Template IDs. */
 const uint8_t MIIstop = 0x01;
@@ -232,6 +242,7 @@ const uint8_t MLXstop = 0x05;
 const uint8_t MMIstop = 0x09;
 const uint8_t MstopMIstop = 0x0B;
 const uint8_t MMBstop = 0x19;
+const uint8_t MFIstop = 0x0D;
 
 /* (left-aligned) Machine code. */
 const uint64_t NOP_I = 0x0004000000000000;

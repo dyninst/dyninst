@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.33 2002/06/14 21:51:49 tlmiller Exp $
+ * $Id: func-reloc.C,v 1.34 2002/08/23 01:56:04 tlmiller Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -153,10 +153,6 @@ bool pd_Function::branchInsideRange(instruction insn, Address branchAddress,
   target = branchAddress + disp + insn.size();
 #elif defined(sparc_sun_solaris2_4)
   target = branchAddress + disp;
-#elif defined(ia64_unknown_linux2_4)
-  /* FIXME: W.A.G. */
-  #warning FIXME: W.A.G.
-  target = branchAddress + disp;
 #endif
 
   if (target < firstAddress) return false;
@@ -199,10 +195,6 @@ bool pd_Function::trueCallInsideRange(instruction insn, Address callAddress,
   target = callAddress + disp + insn.size();
 #elif defined(sparc_sun_solaris2_4)
   target = callAddress + disp;
-#elif defined(ia64_unknown_linux2_4)
- /* FIXME: W.A.G. */
- #warning FIXME: W.A.G.
- target = callAddress + disp;
 #endif
 
   if (target < firstAddress) return false;
@@ -470,10 +462,6 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
     newInstructions = new instruction[getNumInstructions() + totalSizeChange];
 #elif defined(sparc_sun_solaris2_4)
     newInstructions = reinterpret_cast<instruction *> (relocatedCode);
-#elif defined(ia64_unknown_linux2_4)
-    /* FIXME: W.A.G. */
-    #warning FIXME: W.A.G.
-    newInstructions = reinterpret_cast<instruction *> (relocatedCode);
 #endif
 
     // Apply the alterations needed for relocation. The expanded function 
@@ -661,10 +649,6 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
         // Don't expand instruction on sparc. i.e. if the new branch target is 
         // greater than 2^21 bytes away, don't relocate the function 
         return false;
-#elif defined(ia64_unknown_linux2_4)
-	/* FIXME: W.A.G. */
-	#warning FIXME: W.A.G.
-	return false;
 #endif
 
     }
@@ -705,10 +689,6 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
         // Don't expand instruction on sparc. i.e. if the new branch target is 
         // greater than 2^21 bytes away, don't relocate the function 
         return false;
-#elif defined(ia64_unknown_linux2_4)
-	/* FIXME: W.A.G. */
-	#warning FIXME: W.A.G.
-	return false;
 #endif
 
     }
@@ -871,11 +851,11 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
             int targetAddr = (newAdr + newOffset + 
                     set_disp(false, &oldInstructions[oldInsnOffset], newDisp, true));
 #elif defined(ia64_unknown_linux2_4)
-		/* FIXME: W.A.G. */
-		#warning FIXME: W.A.G.
-		int origAddr = (mutatee + oldOffset + oldDisp);
-		int targetAddr = (newAdr + newOffset + 
-                    set_disp(false, &oldInstructions[oldInsnOffset], newDisp, true));			
+            /* Hopefully, my guesses will never be used, since the IA-64 doesn't _do_
+	       function relocation. */
+            int origAddr = (mutatee + oldOffset + oldDisp);
+            int targetAddr = (newAdr + newOffset + 
+                    set_disp(false, &oldInstructions[oldInsnOffset], newDisp, true));
 #endif
 
             newDisp = origAddr - targetAddr;
