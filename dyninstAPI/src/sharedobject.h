@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.37 2003/09/05 16:28:40 schendel Exp $
+// $Id: sharedobject.h,v 1.38 2003/10/21 17:22:28 bernat Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -144,48 +144,14 @@ public:
     pd_Function *findOnlyOneFunction(const pdstring &funcname);
     pdvector<pd_Function *> *findFuncVectorByPretty(const pdstring &funcname);
  
-    pd_Function *findFuncByAddr(Address adr, const process *p) {
-        pd_Function* ret = NULL;
-
-        if( objs_image != NULL )
-        {
-            ret = objs_image->findFuncByAddr(adr, p);
+    pd_Function *findFuncByAddress(const Address &address) {
+        if (objs_image) {
+            return objs_image->findFuncByOffset(address - base_addr);
         }
-        return ret;
+        else
+            return NULL;
     }
-
-    // Convert the given address into an offset.
-    pd_Function *findFuncByEntryAddr(Address adr, const process *p) {
-        pd_Function* ret = NULL;
-
-        if( objs_image != NULL )
-        {
-            Address offset = adr-base_addr;
-            ret = objs_image->findFuncByEntryAddr(offset, p);
-        }
-        return ret;
-    }
-
-    pd_Function *findFuncByRelocAddr(Address adr, const process *p) {
-        pd_Function* ret = NULL;
-
-        if( objs_image != NULL )
-        {
-            ret = objs_image->findFuncByRelocAddr(adr, p);
-        }
-        return ret;
-    }
-
-    pd_Function *findFuncByOrigAddr(Address adr, const process *p) {
-        pd_Function* ret = NULL;
-
-        if( objs_image != NULL )
-        {
-            ret = objs_image->findFuncByOrigAddr(adr, p);
-        }
-        return ret;
-    }
-
+    
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 	//this marks the shared object as dirty, mutated
 	//so it needs saved back to disk during saveworld 
