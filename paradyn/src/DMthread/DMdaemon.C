@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.115 2002/08/27 18:48:55 schendel Exp $
+ * $Id: DMdaemon.C,v 1.116 2002/11/04 23:24:31 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -371,16 +371,26 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
 
     // find out if we have a paradynd on this machine+login+paradynd
     paradynDaemon *pd;
+    bool foundSimilarDaemon = false;
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i];
         if ((!m.c_str() || (pd->machine == m)) && 
-           (!login.c_str() || (pd->login == login))  &&
-	   (name.c_str() && (pd->name == name))) {
-            //cerr << "Returning an existing daemon match!" << endl;
-	    return (pd);     
+           (!login.c_str() || (pd->login == login))) {
+           if((name.c_str() && (pd->name == name))) {
+              //cerr << "Returning an existing daemon match!" << endl;
+              return (pd);     
+           } else 
+              foundSimilarDaemon = true;
         }
     }
-  
+
+    if(foundSimilarDaemon) {
+       cerr << "Warning, found an existing daemon on requested machine \"" << m
+            << "\" and with requested login \"" << login << "\", but the"
+            << " requested daemon flavor \"" << name << "\" doesn't match." 
+            << endl;
+    }
+
     // find a matching entry in the dictionary, and start it
     daemonEntry *def = findEntry(m, name);
     if (!def) {
@@ -1723,7 +1733,7 @@ bool paradynDaemon::newExecutable(const string &machineArg,
       }
 #endif
    }
-   
+
    paradynDaemon *daemon;
    if ((daemon=getDaemonHelper(machine, login, name)) == (paradynDaemon*) NULL)
       return false;
@@ -2366,7 +2376,7 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
       loc = loc + 1;
       command = loc;
     }
-  
+
     if (machine.suffixed_by(local_domain)) {
         const unsigned namelength = machine.length()-local_domain.length()-1;
         const string localname = machine.substr(0,namelength);
