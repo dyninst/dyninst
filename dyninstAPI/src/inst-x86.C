@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.71 2000/10/06 20:25:42 zandy Exp $
+ * $Id: inst-x86.C,v 1.72 2000/12/04 21:29:55 zandy Exp $
  */
 
 #include <iomanip.h>
@@ -420,6 +420,14 @@ bool pd_Function::findInstPoints(const image *i_owner) {
      //fprintf(stderr,"Function %s, size = %d\n", prettyName().string_of(), size());
      return false;
    }
+
+#if defined(i386_unknown_solaris2_5)
+   /* On Solaris, this function is called when a signal handler
+      returns.  If it requires trap-based instrumentation, it can foul
+      the handler return mechanism.  So, better exclude it.  */
+   if (prettyName() == "_setcontext" || prettyName() == "setcontext")
+	return false;
+#endif /* i386_unknown_solaris2_5 */
 
 // XXXXX kludge: these functions are called by DYNINSTgetCPUtime, 
 // they can't be instrumented or we would have an infinite loop
@@ -979,7 +987,7 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
 	2. 2-byte jump to the extra slot in the entry point
 	3. Trap instruction.
      */
-	
+
      /* Ordinary 5-byte jump */
      if (point->size() >= JUMP_REL32_SZ) {
 	  // replace instructions at point with jump to base tramp
