@@ -43,6 +43,9 @@
  * Implements virtual function called during an igen error.
  *
  * $Log: comm.C,v $
+ * Revision 1.12  1997/11/01 05:02:07  tamches
+ * changed an #include<> to #include""
+ *
  * Revision 1.11  1997/03/18 19:45:54  buck
  * first commit of dyninst library.  Also includes:
  * 	moving templates from paradynd to dyninstAPI
@@ -88,7 +91,7 @@
  *
  */
 
-#include <util/h/headers.h>
+#include "util/h/headers.h"
 #include "paradynd/src/comm.h"
 #include "dyninstAPI/src/util.h"
 #include "paradynd/src/showerror.h"
