@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.19 2002/09/18 19:00:13 buck Exp $
+ * $Id: Types.h,v 1.20 2004/03/01 17:28:56 pcroth Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -106,8 +106,6 @@ WindowsNT    nonexistant
    typedef unsigned long uint64_t;
 #  endif
 #elif defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
-#  define __STDC_LIMIT_MACROS
-#  define __STDC_CONSTANT_MACROS
 #  include <stdint.h>
 #else                            /* solaris, irix -------- */
 #  include <inttypes.h>

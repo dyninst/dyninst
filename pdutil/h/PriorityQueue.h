@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -41,7 +41,7 @@
 
 // PriorityQueue.h
 
-/* $Id: PriorityQueue.h,v 1.8 2003/07/18 15:45:05 schendel Exp $ */
+/* $Id: PriorityQueue.h,v 1.9 2004/03/01 17:28:58 pcroth Exp $ */
 
 // Note: in this priority queue class, the item with the _smallest_ key
 //       will be the first item.
@@ -113,8 +113,14 @@ class PriorityQueue {
    void delete_first(); // bombs if empty
 
    ostream &operator<<(ostream &os) const; // just for debugging, nach...
-
-   friend ostream &operator<<(ostream &os, PriorityQueue<KEY, DATA> &q);
 };
+
+template<class K, class T>
+inline
+ostream&
+operator<<(ostream& s, const PriorityQueue<K, T>& q)
+{
+    return q.operator<<( s );
+}
 
 #endif

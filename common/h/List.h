@@ -153,8 +153,6 @@ template <class DataType, class KeyType> class ListBase {
    ~ListBase() {
       clear();
    }
-   friend ostream &operator<<(ostream &os, 
-			      const ListBase<DataType, KeyType> &data);
 
    // returns the first element
    DataType &front() { return *(begin()); }  
@@ -232,7 +230,7 @@ template <class DataType, class KeyType> class ListBase {
 };
 
 template <class DataType, class KeyType>
-inline ostream &operator<<(ostream &os, 
+ostream &operator<<(ostream &os, 
 			   const ListBase<DataType, KeyType> &data) {
    TYPENAME ListBase<DataType, KeyType>::iterator curr = data.begin();
    TYPENAME ListBase<DataType, KeyType>::iterator endMarker = data.end();
@@ -249,10 +247,6 @@ template <class DataType> class List : public ListBase<DataType, void*> {
    List() : ListBase<DataType, KeyType>() { };
    List(const List &fromList) : ListBase<DataType, KeyType>(fromList) { }
    ~List() { }  // ~ListBase will be called
-   friend ostream &operator<<(ostream &os, 
-			      const List<DataType> &data) {
-      return operator<<(os, static_cast<ListBase<DataType, KeyType> >(data));
-   }
 
    void push_front(DataType &data) {
       __push_front(data, static_cast<KeyType>(NULL));
@@ -272,6 +266,13 @@ template <class DataType> class List : public ListBase<DataType, void*> {
 };
 
 
+template <class DataType, class KeyType>
+ostream& operator<<(ostream& os, const List<DataType>& data) 
+{
+    return data.operator<<(os, static_cast<ListBase<DataType, KeyType> >(data));
+}
+
+
 template <class DataType, class KeyType> class ListWithKey : 
 public ListBase<DataType, KeyType> {
  public:
@@ -279,11 +280,6 @@ public ListBase<DataType, KeyType> {
    ListWithKey(const ListWithKey &fromList) : 
       ListBase<DataType, KeyType>(fromList) {}
    ~ListWithKey() { }  // ~ListBase will be called
-   friend ostream &operator<<(ostream &os,
-			      const ListWithKey<DataType, KeyType> &data)
-   {
-      return operator<<(os, static_cast<ListBase<DataType, KeyType> >(data));
-   }
 
    void push_front(DataType &data, KeyType &key) {
       __push_front(data, key);
@@ -309,25 +305,18 @@ public ListBase<DataType, KeyType> {
 };
 
 
+template <class DataType, class KeyType>
+ostream& operator<<(ostream& os, const ListWithKey<DataType, KeyType>& data)
+{
+    return operator<<(os, static_cast<ListBase<DataType, KeyType> >(data));
+}
+
+
 template <class Type> ostream &operator<<(ostream &os, 
                                           HTable<Type> &data);
 
 template <class Type> class HTable {
     public:
-	// placing function def here makes gcc happy 
-  // VG(06/15/02): that nonstandard hack doesn't work with gcc 3.1...
-  // let's do this properly:
-  // (1) the function needs to be already declared (above)
-  // (2) add <> after name here, so only that instantiation is friended
-  // (3) the function is defined after this class
-  // Of course, old broken compilers don't like the standard, so we just
-  // write something that compiles (as was the case before).
-  // BTW, is this operator used anywhere?
-#if (defined(i386_unknown_nt4_0) && _MSC_VER < 1300) || defined(mips_sgi_irix6_4)
-  friend ostream& operator<< (ostream &os, HTable<Type> &data);
-#else
-  friend ostream& operator<< <> (ostream &os, HTable<Type> &data);
-#endif
 
 	HTable(Type data) { (void) HTable(); add(data, (void *) data); }
 	DO_INLINE_F void add(Type data, void *key);

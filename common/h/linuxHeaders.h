@@ -131,7 +131,8 @@ inline int P_fflush(FILE *stream) { return (fflush(stream));}
 inline char * P_fgets (char *S, int COUNT, FILE *STREAM) {
   return (fgets(S, COUNT, STREAM));}
 inline void * P_malloc (size_t SIZE) { return (malloc(SIZE));}
-extern void * P_memcpy (void *A1, const void *A2, size_t SIZE);
+inline void * P_memcpy (void *A1, const void *A2, size_t SIZE)
+    { return memcpy( A1, A2, SIZE ); }
 inline void * P_memset (void *BLOCK, int C, size_t SIZE) {
   return (memset(BLOCK, C, SIZE));}
 inline void P_perror (const char *MESSAGE) { perror(MESSAGE);}
