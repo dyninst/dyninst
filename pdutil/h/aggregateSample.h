@@ -77,10 +77,15 @@ class sampleInfo {
  
     bool firstValueReceived() { return firstSampleReceived; }
 
-    void startTime(timeStamp startTime_);
+//    void startTime(timeStamp startTime_);
+   void firstTimeAndValue(timeStamp, int firstValue);
+   void firstTimeAndValue(timeStamp, float firstValue);
 
-    struct sampleInterval newValue(timeStamp wallTime, sampleValue value, 
-                                   unsigned weight_ = 1);
+    void newValue(timeStamp wallTime, int value,
+                  unsigned weight_ = 1);
+
+    void newValue(timeStamp wallTime, sampleValue value, 
+                  unsigned weight_ = 1);
 
     timeStamp lastSampleTime() { return lastSampleEnd; }
 
