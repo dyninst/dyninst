@@ -86,7 +86,7 @@ BPatch_flowGraph::BPatch_flowGraph(function_base *func,
 
 BPatch_flowGraph::~BPatch_flowGraph()
 {
-    int i;
+    unsigned int i;
    if (loops) {
       BPatch_basicBlockLoop** lelements = 
          new BPatch_basicBlockLoop* [loops->size()];
@@ -120,7 +120,7 @@ BPatch_flowGraph::getAllBasicBlocks(BPatch_Set<BPatch_basicBlock*>& abb)
    
    allBlocks.elements(belements);
    
-   for (int i=0;i<allBlocks.size(); i++)
+   for (unsigned int i=0;i<allBlocks.size(); i++)
       abb += belements[i];
    
    delete[] belements;
@@ -137,7 +137,7 @@ BPatch_flowGraph::getEntryBasicBlock(BPatch_Vector<BPatch_basicBlock*>& ebb)
    
    entryBlock.elements(belements);
    
-   for (int i=0;i<entryBlock.size(); i++)
+   for (unsigned int i=0;i<entryBlock.size(); i++)
       ebb.push_back(belements[i]);
    
    delete[] belements;
@@ -154,7 +154,7 @@ BPatch_flowGraph::getExitBasicBlock(BPatch_Vector<BPatch_basicBlock*>& nbb)
    
    exitBlock.elements(belements);
    
-   for (int i=0;i<exitBlock.size(); i++)
+   for (unsigned int i=0;i<exitBlock.size(); i++)
       nbb.push_back(belements[i]);
    
    delete[] belements;
@@ -168,13 +168,16 @@ BPatch_flowGraph::getLoopsByNestingLevel(
 			     BPatch_Vector<BPatch_basicBlockLoop*>& lbb,
 			     bool outerMostOnly)
 {
-    int i;
+    unsigned int i;
     
     if (!loops) {
 	loops = new BPatch_Set<BPatch_basicBlockLoop*>;
       
 	fillDominatorInfo();
       
+	// need dominator info to find back edges
+	fillPostDominatorInfo();
+
 	// mapping from basic block to set of basic blocks as back edges
 	BPatch_Set<BPatch_basicBlock*>** backEdges = 
 	    new BPatch_Set<BPatch_basicBlock*>* [allBlocks.size()];
@@ -182,8 +185,7 @@ BPatch_flowGraph::getLoopsByNestingLevel(
 	for (i=0; i < allBlocks.size(); i++)
 	    backEdges[i] = NULL;
       
-	// using dfs we find the back edeges which define the
-	// natural loop
+	// find back edeges which define natural loops
 	findBackEdges(backEdges);
 
 	// a map from basic block number to basic block pointer
@@ -250,6 +252,7 @@ BPatch_flowGraph::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 {
     getLoopsByNestingLevel(lbb, true);
 }
+
 
 //this is the main method to create the basic blocks and the
 //the edges between basic blocks. The assumption of the
@@ -392,7 +395,7 @@ bool BPatch_flowGraph::createBasicBlocks()
 
          possTargets.elements(telements);
 
-         for (int i=0; i < possTargets.size(); i++) {
+         for (unsigned int i=0; i < possTargets.size(); i++) {
             taddr = telements[i];
             if (proc->getImage()->isAllocedAddress(taddr) &&
 		(baddr <= taddr) && (taddr < maddr) && 
@@ -442,7 +445,7 @@ bool BPatch_flowGraph::createBasicBlocks()
       //for each leader take the address value and continue procesing
       //the instruction till the next leader or the end of the
       //function space is seen
-      for (int i=0; i < leaders.size(); i++) {
+      for (unsigned int i=0; i < leaders.size(); i++) {
          //set the value of address handle to be the value of the leader
          ah.setCurrentAddress(elements[i]);
 #if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
@@ -568,7 +571,7 @@ bool BPatch_flowGraph::createBasicBlocks()
                Address* telements = new Address[possTargets.size()];
                possTargets.elements(telements);
 
-               for (int j=0; j < possTargets.size(); j++) {
+               for (unsigned int j=0; j < possTargets.size(); j++) {
                   taddr = telements[j];
 		  if (proc->getImage()->isAllocedAddress(taddr)) {
 		    if ((baddr <= taddr) && (taddr < maddr)) {
@@ -756,7 +759,7 @@ private:
 		BPatch_basicBlock* bb = numberToBlock[v];
 		BPatch_basicBlock** elements = new BPatch_basicBlock*[bb->targets.size()];
         	bb->targets.elements(elements);
-        	for(int i=0;i<bb->targets.size();i++){
+        	for(unsigned int i=0;i<bb->targets.size();i++){
 			int w = bbToint(elements[i]);
 			if(semi[w] == 0){
 				parent[w] = v;
@@ -775,7 +778,7 @@ private:
 		BPatch_basicBlock* bb = numberToBlock[v];
 		BPatch_basicBlock** elements = new BPatch_basicBlock*[bb->sources.size()];
         	bb->sources.elements(elements);
-        	for(int i=0;i<bb->sources.size();i++){
+        	for(unsigned int i=0;i<bb->sources.size();i++){
 			int w = bbToint(elements[i]);
 			if(semi[w] == 0){
 				parent[w] = v;
@@ -886,7 +889,7 @@ public:
 			BPatch_basicBlock* bb = numberToBlock[w];
 			BPatch_basicBlock** elements = new BPatch_basicBlock*[bb->sources.size()];
         		bb->sources.elements(elements);
-        		for(int j=0;j<bb->sources.size();j++){
+        		for(unsigned int j=0;j<bb->sources.size();j++){
 				int v = bbToint(elements[j]);
 				int u = EVAL(v);
 				if(semi[u] < semi[w])
@@ -936,7 +939,7 @@ public:
 			BPatch_basicBlock* bb = numberToBlock[w];
 			BPatch_basicBlock** elements = new BPatch_basicBlock*[bb->targets.size()];
         		bb->targets.elements(elements);
-        		for(int j=0;j<bb->targets.size();j++){
+        		for(unsigned int j=0;j<bb->targets.size();j++){
 				int v = bbToint(elements[j]);
 				int u = EVAL(v);
 				if(semi[u] < semi[w])
@@ -981,7 +984,7 @@ public:
 //be called to process dominator related fields and methods.
 void BPatch_flowGraph::fillDominatorInfo(){
 
-  int i;
+  unsigned int i;
   BPatch_basicBlock* bb, *tempb;
   BPatch_basicBlock** elements = NULL;
   
@@ -1032,7 +1035,7 @@ void BPatch_flowGraph::fillDominatorInfo(){
  
 void BPatch_flowGraph::fillPostDominatorInfo(){
    
-  int i;
+  unsigned int i;
   BPatch_basicBlock* bb, *tempb;
   BPatch_basicBlock** elements = NULL;
   
@@ -1081,40 +1084,53 @@ void BPatch_flowGraph::fillPostDominatorInfo(){
   delete[] elements;
 }
 
-// method that finds the unreachable basic blocks and then deletes
-// the structures allocated for that block. If the argument is 
-// NULL then it deletes unreachable code. 
+
+// Add each back edge in the flow graph to the given set. An edge n -> d is
+// defined to be a back edge if d dom n, where dom means every path from the
+// initial node in the graph to n goes through d.
 void BPatch_flowGraph::findBackEdges(BPatch_Set<BPatch_basicBlock*>** backEdges)
 {
-    int i;
-    int* bbToColor = new int[allBlocks.size()];
+    // for each block in the graph
+    BPatch_basicBlock **blks = new BPatch_basicBlock*[allBlocks.size()];
+    allBlocks.elements(blks);
 
-    for (i=0; i < allBlocks.size(); i++)
-	bbToColor[i] = WHITE;
-	
-    //a dfs based back edge discovery
-    BPatch_basicBlock** elements = 
-	new BPatch_basicBlock*[entryBlock.size()];
+    for (unsigned int i = 0; i < allBlocks.size(); i++) {
 
-    entryBlock.elements(elements);
+	// for each of the block's targets
+	BPatch_basicBlock **targs = 
+	    new BPatch_basicBlock*[blks[i]->targets.size()];
 
-    for (i=0; i < entryBlock.size(); i++)
-	if (bbToColor[elements[i]->blockNumber] == WHITE)
-	    dfsVisit(elements[i], bbToColor, backEdges);
+	blks[i]->targets.elements(targs);
 
-    delete[] elements;
-    delete[] bbToColor;
+	for (unsigned int j = 0; j < blks[i]->targets.size(); j++) {
+
+	    if (targs[j]->dominates(blks[i])) {
+		BPatch_Set<BPatch_basicBlock*>* newSet = 
+		    backEdges[blks[i]->blockNumber];
+
+		if (!newSet) {
+		    newSet = new BPatch_Set<BPatch_basicBlock*>;
+		    backEdges[blks[i]->blockNumber] = newSet;
+		}
+
+		newSet->insert(targs[j]);
+	    }
+	}    
+
+	delete[] targs;
+    }
+
+
+    delete[] blks;
 }
 
-// method that implements the depth first visit operation
-void BPatch_flowGraph::dfsVisit(BPatch_basicBlock* bb,
-			        int* bbToColor,
-				BPatch_Set<BPatch_basicBlock*>** backEdges,
-				int* which,
-				BPatch_basicBlock** order)
-{
-    if (order) order[(*which)++] = bb;	
 
+// Perform a dfs of the graph of blocks bb starting at bbToColor. A 
+// condition of this function is that the blocks are marked as not yet visited
+// (WHITE). This function marks blocks as pre- (GRAY) and post-visited (BLACK).
+void BPatch_flowGraph::dfsVisit(BPatch_basicBlock* bb, int* bbToColor)
+{
+    // pre-visit this block
     bbToColor[bb->blockNumber] = GRAY;
 
     BPatch_basicBlock** elements =  
@@ -1122,21 +1138,17 @@ void BPatch_flowGraph::dfsVisit(BPatch_basicBlock* bb,
 
     bb->targets.elements(elements);
 
-    for (int i=0; i < bb->targets.size(); i++) {
+    // for each of the block's sucessors 
+    for (unsigned int i=0; i < bb->targets.size(); i++) {
+	// if sucessor not yet visited then pre-visit it
 	if (bbToColor[elements[i]->blockNumber] == WHITE) {
-	    dfsVisit(elements[i], bbToColor, backEdges, which, order);
-	}
-	else if (backEdges && (bbToColor[elements[i]->blockNumber] == GRAY)) {
-	    BPatch_Set<BPatch_basicBlock*>* newSet = backEdges[bb->blockNumber];
-	    if (!newSet) {
-		newSet = new BPatch_Set<BPatch_basicBlock*>;
-		backEdges[bb->blockNumber] = newSet;
-	    }
-	    newSet->insert(elements[i]);
+	    dfsVisit(elements[i], bbToColor);
 	}
     }
 
+    // post-visit this block
     bbToColor[bb->blockNumber] = BLACK;
+
     delete[] elements;
 }
 
@@ -1157,53 +1169,68 @@ extern "C" int tupleSort(const void* arg1,const void* arg2){
    return 0;
 }
 
+
+// Finds all blocks in the graph not reachable from the entry blocks and
+// deletes them from the sets of blocks. The blocks are then renumbered 
+// increasing with respect to their starting addresses.
 void BPatch_flowGraph::findAndDeleteUnreachable()
 {
 
-	int i,j;
+	unsigned int i,j;
 
 	int* bbToColor = new int[allBlocks.size()];
 	for(i=0;i<allBlocks.size();i++)
 		bbToColor[i] = WHITE;
 
-	//a dfs based back edge discovery
+	// perform a dfs on the graph of blocks starting from each enttry 
+	// block, blocks not reached from the dfs remain colored WHITE and
+	// are unreachable
 	BPatch_basicBlock** elements = 
 			new BPatch_basicBlock*[entryBlock.size()];
 	entryBlock.elements(elements);
 	for(i=0;i<entryBlock.size();i++)
 		if(bbToColor[elements[i]->blockNumber] == WHITE)
-			dfsVisit(elements[i],bbToColor,NULL);
+			dfsVisit(elements[i],bbToColor);
 
 	delete[] elements;
 
 	BPatch_Set<BPatch_basicBlock*> toDelete;
 	elements =  new BPatch_basicBlock*[allBlocks.size()];
 	allBlocks.elements(elements);
-	int oldCount = allBlocks.size();
+	unsigned int oldCount = allBlocks.size();
+
+	// for each basic block B
 	for(i=0;i<oldCount;i++){
 		BPatch_basicBlock* bb = elements[i];
+
+		// if the block B was NOT visited during a dfs
 		if(bbToColor[bb->blockNumber] == WHITE){
 
-			BPatch_basicBlock** selements = 
-				new BPatch_basicBlock*[bb->sources.size()];
-			bb->sources.elements(selements);
-			int count = bb->sources.size();
-			for(j=0;j<count;j++)
-				selements[j]->targets.remove(bb);
-			delete[] selements;
-
-			selements = new BPatch_basicBlock*[bb->targets.size()];
-			bb->targets.elements(selements);
-			count = bb->targets.size();
-			for(j=0;j<count;j++)
-				selements[j]->sources.remove(bb);
-			delete[] selements;
-
-			allBlocks.remove(bb);
-			exitBlock.remove(bb);
-			toDelete += bb;
+		    // for each of B's source blocks, remove B as a target
+		    BPatch_basicBlock** selements = 
+			new BPatch_basicBlock*[bb->sources.size()];
+		    bb->sources.elements(selements);
+		    unsigned int count = bb->sources.size();
+		    for(j=0;j<count;j++)
+			selements[j]->targets.remove(bb);
+		    delete[] selements;
+		    
+		    // for each of B's target blocks, remove B as a source
+		    selements = new BPatch_basicBlock*[bb->targets.size()];
+		    bb->targets.elements(selements);
+		    count = bb->targets.size();
+		    for(j=0;j<count;j++)
+			selements[j]->sources.remove(bb);
+		    delete[] selements;
+		    
+		    // remove B from vec of all blocks
+		    allBlocks.remove(bb);
+		    exitBlock.remove(bb);
+		    toDelete += bb;
 		}
 	}
+
+	// delete all blocks add to toDelete
 	delete[] elements;
 	elements = new BPatch_basicBlock*[toDelete.size()];
 	toDelete.elements(elements);	
@@ -1212,20 +1239,26 @@ void BPatch_flowGraph::findAndDeleteUnreachable()
 	delete[] elements;
 	delete[] bbToColor;
 
-	int orderArraySize = allBlocks.size();
+	// renumber basic blocks to increase with starting addresses
+	unsigned int orderArraySize = allBlocks.size();
 	SortTuple* orderArray = new SortTuple[orderArraySize];
 	elements = new BPatch_basicBlock*[allBlocks.size()];
 	allBlocks.elements(elements);
+
 	for(i=0;i<orderArraySize;i++){
 		orderArray[i].bb = elements[i];
 		orderArray[i].address = elements[i]->startAddress;
         }
+
         qsort((void*)orderArray, orderArraySize, sizeof(SortTuple), tupleSort);
+
         for(i=0;i<orderArraySize;i++)
                 orderArray[i].bb->setBlockNumber(i);
+
         delete[] orderArray;
         delete[] elements;
 }
+
 
 // this method is used to find the basic blocks contained by the loop
 // defined by a backedge. The tail of the backedge is the starting point and
@@ -1276,7 +1309,7 @@ void BPatch_flowGraph::findBBForBackEdge(
 	    new BPatch_basicBlock*[bb->sources.size()];
 	bb->sources.elements(elements);
 
-	for(int i=0; i < bb->sources.size(); i++)
+	for(unsigned int i=0; i < bb->sources.size(); i++)
 	    if (!bbSet.contains(elements[i])) {
 		bbSet += elements[i];
 		stack->push(elements[i]);
@@ -1296,10 +1329,8 @@ void BPatch_flowGraph::findBBForBackEdge(
 void BPatch_flowGraph::fillLoopInfo(BPatch_Set<BPatch_basicBlock*>** backEdges,
 				    BPatch_basicBlock** bToP)
 {
-    // for each back edge find the dominator relationship and if the
-    // head basic block dominates the tail then find the loop basic blocks
-
-    for (int bNo=0; bNo < allBlocks.size(); bNo++) {
+    // for each back edge source
+    for (unsigned int bNo=0; bNo < allBlocks.size(); bNo++) {
 	if (!backEdges[bNo])
 	    continue;
 
@@ -1312,25 +1343,24 @@ void BPatch_flowGraph::fillLoopInfo(BPatch_Set<BPatch_basicBlock*>** backEdges,
 
 	toBlocks->elements(elements);
 
-	for (int i=0; i < toBlocks->size(); i++) {
+	// for each of the source targets
+	for (unsigned int i=0; i < toBlocks->size(); i++) {
 	    BPatch_basicBlock* bbTo = elements[i];
 
-	    if (bbTo->dominates(bbFrom)) {
-		// then check whether it dominates the current basic block. 
-		// If so then it defines a loop. Otherwise there is no regular
-		// loop. create the loop
-		BPatch_basicBlockLoop* l = 
-		    new BPatch_basicBlockLoop(bbTo);
-
-		// initialize some fields of the loop object
-		l->backEdges += bbFrom;
-		(*loops) += l;
-
-		// find all basic blocks in the loop and keep a map used
-		// to find the nest structure 
-		findBBForBackEdge(bbFrom, bbTo, l->basicBlocks);
-	    }
+	    // then check whether it dominates the current basic block. 
+	    // If so then it defines a loop. Otherwise there is no regular
+	    // loop. create the loop
+	    BPatch_basicBlockLoop* l = new BPatch_basicBlockLoop(bbTo);
+	    
+	    // initialize some fields of the loop object
+	    l->backEdges += bbFrom;
+	    (*loops) += l;
+	    
+	    // find all basic blocks in the loop and keep a map used
+	    // to find the nest structure 
+	    findBBForBackEdge(bbFrom, bbTo, l->basicBlocks);
 	}
+
 	delete[] elements;
     }
 
@@ -1347,8 +1377,8 @@ void BPatch_flowGraph::fillLoopInfo(BPatch_Set<BPatch_basicBlock*>** backEdges,
 
     loops->elements(allLoops);
 
-    for (int i=0; i < loops->size(); i++)
-	for (int j=0; j < loops->size(); j++)
+    for (unsigned int i=0; i < loops->size(); i++)
+	for (unsigned int j=0; j < loops->size(); j++)
 	    if (i != j) {
 		BPatch_basicBlockLoop* l1 = allLoops[i];
 		BPatch_basicBlockLoop* l2 = allLoops[j];
@@ -1395,7 +1425,7 @@ operator<<(ostream& os,BPatch_flowGraph& fg){
 
    fg.allBlocks.elements(belements);
 
-   for (int i=0; i < fg.allBlocks.size(); i++)
+   for (unsigned int i=0; i < fg.allBlocks.size(); i++)
       os << *belements[i];
 
    delete[] belements;
@@ -1406,7 +1436,7 @@ operator<<(ostream& os,BPatch_flowGraph& fg){
 
       fg.loops->elements(lelements);  
 
-      for (int i=0;i<fg.loops->size(); i++)
+      for (unsigned int i=0;i<fg.loops->size(); i++)
          os << *lelements[i];
 
       delete[] lelements;
@@ -1485,7 +1515,7 @@ BPatch_flowGraph::createLoopHierarchy()
 
 	bool found = proc->findCallee(*(instPs[i]), f);
 
-	if (f != NULL) {
+	if (found && f != NULL) {
 	    insertCalleeIntoLoopHierarchy( f, instPs[i]->iPgetAddress() );
 	}
 	else {
