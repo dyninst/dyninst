@@ -601,7 +601,7 @@ bool ptraceKludge::deliverPtrace(process *p, int req, void *addr,
 void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
   if ((p->status() != neonatal) && (!wasStopped))
 /* Choose either one of the following methods to continue a process.
- * The choice must be consistent with that in process::continueProc_ and OS::osStop.
+ * The choice must be consistent with that in process::continueProc_ and stop_
  */
 #ifndef PTRACE_ATTACH_DETACH
     if (P_ptrace(PT_CONTIN, p->pid, 1, SIGCONT, 0) == -1) {
@@ -619,11 +619,9 @@ void OS::osDisconnect(void) {
   //logLine("OS::osDisconnect not available");
 }
 
-bool OS::osAttach(pid_t process_id) {
-  return (P_ptrace(PT_ATTACH, process_id, 0, 0, 0) != -1);
-}
+bool process::stop_() {
+   // formerly OS::osStop()
 
-bool OS::osStop(pid_t pid) { 
 /* Choose either one of the following methods for stopping a process, but not both. 
  * The choice must be consistent with that in process::continueProc_ 
  * and ptraceKludge::continueProcess
@@ -631,20 +629,9 @@ bool OS::osStop(pid_t pid) {
 #ifndef PTRACE_ATTACH_DETACH
 	return (P_kill(pid, SIGSTOP) != -1); 
 #else
-	return (osAttach(pid));
+	return attach_();
 #endif
 }
-
-// TODO dump core
-bool OS::osDumpCore(pid_t pid, const string dumpTo) {
-  logLine("dumpcore not available yet");
-  showErrorCallback(47, "");
-  return false;
-}
-
-//bool OS::osForwardSignal (pid_t pid, int cont_status) {
-//  return (P_ptrace(PT_CONTIN, pid, 1, cont_status, 0) != -1);
-//}
 
 bool process::continueWithForwardSignal(int sig) {
   return (P_ptrace(PT_CONTIN, pid, 1, sig, 0) != -1);
@@ -662,9 +649,14 @@ int process::waitProcs(int *status) {
 bool process::attach() {
   // we only need to attach to a process that is not our direct children.
   if (parent != 0) {
-    return OS::osAttach(pid);
+    return attach_();
   }
-  return true;
+  else
+    return true;
+}
+
+bool process::attach_() {
+   return (P_ptrace(PT_ATTACH, getPid(), 0, 0, 0) != -1);
 }
 
 
@@ -676,7 +668,7 @@ bool process::continueProc_() {
     return false;
   ptraceOps++; ptraceOtherOps++;
 /* choose either one of the following ptrace calls, but not both. 
- * The choice must be consistent with that in OS::osStop and
+ * The choice must be consistent with that in stop_ and
  * ptraceKludge::continueProcess.
  */
 #ifndef PTRACE_ATTACH_DETACH
@@ -787,7 +779,8 @@ bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
 
 bool process::loopUntilStopped() {
   /* make sure the process is stopped in the eyes of ptrace */
-  OS::osStop(pid);
+  stop_();
+
   bool isStopped = false;
   int waitStatus;
   while (!isStopped) {
@@ -813,19 +806,14 @@ bool process::loopUntilStopped() {
 		assert(0);
 	    }
 	}
-      OS::osStop(pid);
+	stop_();
     }
   }
 
   return true;
 }
 
-
-bool OS::osDumpImage(const string &, pid_t, Address)
-{
-  logLine("OS::osDumpImage not yet implemented");
-  return false;
-}
+bool process::dumpImage() {return false;}
 
 
 //

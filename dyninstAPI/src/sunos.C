@@ -41,6 +41,9 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.19  1996/11/05 20:35:34  tamches
+ * changed some OS:: methods to process:: methods
+ *
  * Revision 1.18  1996/10/31 08:55:11  tamches
  * the shm-sampling commit; routines to do inferiorRPC; removed some warnings.
  *
@@ -153,7 +156,7 @@ void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
   if (wasStopped) return;
 
   // Choose either one of the following methods to continue a process.
-  // The choice must be consistent with that in process::continueProc_ and OS::osStop.
+  // The choice must be consistent with that in process::continueProc_ and stop_
 
 #ifndef PTRACE_ATTACH_DETACH
   if (P_ptrace(PTRACE_CONT, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
@@ -179,11 +182,6 @@ bool ptraceKludge::deliverPtrace(process *p, enum ptracereq req, void *addr,
 
   return ret;
 }
-
-//bool ptraceKludge::deliverPtraceFast(process *p, enum ptracereq req, void *addr,
-//				     int data, void *addr2) {
-//   return (P_ptrace(req, p->getPid(), (char*)addr, data, (char*)addr2) != -1);
-//}
 
 /* ********************************************************************** */
 
@@ -330,11 +328,9 @@ void OS::osDisconnect(void) {
   P_close (ttyfd);
 }
 
-bool OS::osAttach(pid_t process_id) {
-  return (P_ptrace(PTRACE_ATTACH, process_id, 0, 0, 0) != -1);
-}
+bool process::stop_() {
+   // formerly OS::osStop()
 
-bool OS::osStop(pid_t pid) { 
 /* Choose either one of the following methods for stopping a process, but not both. 
  * The choice must be consistent with that in process::continueProc_ 
  * and ptraceKludge::continueProcess
@@ -343,23 +339,12 @@ bool OS::osStop(pid_t pid) {
 #ifndef PTRACE_ATTACH_DETACH
 	return (P_kill(pid, SIGSTOP) != -1); 
 #else
-	return (osAttach(pid));
+	return attach_();
 #endif
 }
 
-// TODO dump core
-bool OS::osDumpCore(pid_t pid, const string dumpTo) {
-  // return (!P_ptrace(PTRACE_DUMPCORE, pid, dumpTo, 0, 0));
-  logLine("dumpcore not available yet");
-  showErrorCallback(47, "");
-  return false;
-}
-
-//bool OS::osForwardSignal (pid_t pid, int stat) {
-//  return (P_ptrace(PTRACE_CONT, pid, (char*)1, stat, 0) != -1);
-//}
-
 bool process::continueWithForwardSignal(int sig) {
+   // formerly OS::osForwardSignal
    return (P_ptrace(PTRACE_CONT, pid, (char*)1, sig, 0) != -1);
 }
 
@@ -374,10 +359,14 @@ int process::waitProcs(int *status) {
 // attach to an inferior process.
 bool process::attach() {
   // we only need to attach to a process that is not our direct children.
-  if (parent != 0) {
-    return OS::osAttach(pid);
-  }
-  return true;
+  if (parent != 0)
+    return attach_();
+  else
+    return true;
+}
+
+bool process::attach_() {
+   return (P_ptrace(PTRACE_ATTACH, getPid(), 0, 0, 0) != -1);
 }
 
 
@@ -391,7 +380,7 @@ bool process::continueProc_() {
   ptraceOps++; ptraceOtherOps++;
 
 /* choose either one of the following ptrace calls, but not both. 
- * The choice must be consistent with that in OS::osStop and
+ * The choice must be consistent with that in stop_ and
  * ptraceKludge::continueProcess.
  */
 #ifndef PTRACE_ATTACH_DETACH
@@ -405,25 +394,6 @@ bool process::continueProc_() {
 
   return ret != -1;
 }
-
-//bool process::continueAt_(unsigned addr) {
-//  if (!checkStatus()) 
-//    return false;
-//  ptraceOps++; ptraceOtherOps++;
-///* choose either one of the following ptrace calls, but not both. 
-// * The choice must be consistent with that in OS::osStop and ptraceKludge::continueProcess.
-// */
-//#ifndef PTRACE_ATTACH_DETACH
-//  int ret = P_ptrace(PTRACE_CONT, pid, (char*)addr, 0, (char*)NULL);
-//#else
-//  int ret = P_ptrace(PTRACE_DETACH, pid, (char*)addr, SIGCONT, (char*)NULL);
-//#endif
-//
-//  if (ret == -1)
-//     perror("continueAt_()");
-//
-//  return ret != -1;
-//}
 
 // TODO ??
 bool process::pause_() {
@@ -456,9 +426,7 @@ bool process::dumpCore_(const string coreFile) {
     ret = P_ptrace(PTRACE_DUMPCORE, pid, P_strdup(coreFile.string_of()), 0, (char*) NULL);
   else
     ret = P_ptrace(PTRACE_DUMPCORE, pid, (char *) NULL, 0 , (char *) NULL);
-  // int ret = 0;
-  //assert(errno == 0);
-  //return ret;
+
   return (ret != -1);
 }
 
@@ -670,7 +638,7 @@ assert(0);
 
 bool process::loopUntilStopped() {
   /* make sure the process is stopped in the eyes of ptrace */
-   OS::osStop(pid); // sends SIGSTOP signal to the process
+  stop_(); // sends SIGSTOP signal to the process
 
   while (true) {
     int waitStatus;
@@ -699,9 +667,10 @@ bool process::loopUntilStopped() {
   return true;
 }
 
+bool process::dumpImage() {
+  const string &imageFileName = symbols->file();
+  const Address codeOff = symbols->codeOffset();
 
-bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOff)
-{
   int i;
   int rd;
   int ifd;
@@ -720,8 +689,6 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
                  + string("': ") + string(sys_errlist[errno]);
     showErrorCallback(47, msg);
     return false;
-    //P_perror("open");
-    //cleanUpAndExit(-1);
   }
 
   rd = P_read(ifd, (void *) &my_exec, sizeof(struct exec));
@@ -731,8 +698,6 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
     showErrorCallback(47, msg);
     P_close(ifd);
     return false;
-    //P_perror("read");
-    //cleanUpAndExit(-1);
   }
 
   rd = P_fstat(ifd, &statBuf);
@@ -741,8 +706,6 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
     showErrorCallback(47, msg);
     P_close(ifd);
     return false;
-    //P_perror("fstat");
-    //cleanUpAndExit(-1);
   }
   length = statBuf.st_size;
   sprintf(outFile, "%s.real", imageFileName.string_of());
@@ -766,7 +729,7 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
 
   if (!stopped) {
     // make sure it is stopped.
-    osStop(pid);
+    stop_();
     P_waitpid(pid, NULL, WUNTRACED);
   }
 
@@ -780,8 +743,6 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
       showErrorCallback(47, msg);
       P_close(ofd); P_close(ifd);
       return false;
-      //P_perror("ptrace");
-      //assert(0);
     }
     P_write(ofd, buffer, 4096);
   }

@@ -127,12 +127,6 @@ void OS::osDisconnect(void) {
   P_close (ttyfd);
 }
 
-bool OS::osAttach(pid_t) { assert(0); }
-
-bool OS::osStop(pid_t) { assert(0); }
-
-bool OS::osDumpCore(pid_t, const string) { return false; }
-
 bool process::continueWithForwardSignal(int) {
    if (-1 == ioctl(proc_fd, PIOCRUN, NULL)) {
       perror("could not forward signal in PIOCRUN");
@@ -142,7 +136,7 @@ bool process::continueWithForwardSignal(int) {
    return true;
 }
 
-bool OS::osDumpImage(const string &, pid_t , const Address) { return false; }
+bool process::dumpImage() {return false;}
 
 
 /* 
@@ -287,6 +281,9 @@ bool process::attach() {
   proc_fd = fd;
   return true;
 }
+
+bool process::attach_() {assert(false);}
+bool process::stop_() {assert(false);}
 
 /* 
    continue a process that is stopped 

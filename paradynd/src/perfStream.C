@@ -43,6 +43,9 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
+ * Revision 1.65  1996/11/05 20:33:56  tamches
+ * changed some OS:: methods to process:: methods
+ *
  * Revision 1.64  1996/10/31 09:23:49  tamches
  * the shm-sampling commit; shared-memory sampling in the main loop;
  * new inferiorRPC activities in SIGTRAP/STOP/ILL; removed TR_START;
@@ -278,6 +281,7 @@ void processTraceStream(process *curr)
 		break;
 
 	    case TR_NEW_RESOURCE:
+//		cerr << "paradynd: received a new resource from pid " << curr->getPid() << "; processing now" << endl;
 		createResource(curr->getPid(), &header, (struct _newresource *) ((void*)recordData));
 		   // createResource() is in this file, below
 		break;
@@ -530,8 +534,9 @@ int handleSigChild(int pid, int status)
 //		 printf("caught signal, dying...  (sig=%d)\n", 
 //		       WSTOPSIG(status)); fflush(stdout);
 		curr->status_ = stopped;
-		dumpProcessImage(curr, true);
-		OS::osDumpCore(pid, "core.real");
+		curr->dumpImage();
+
+//		OS::osDumpCore(pid, "core.real");
 		//handleProcessExit(curr);
 		// ???
 		// should really log this to the error reporting system.

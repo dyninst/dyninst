@@ -576,8 +576,7 @@ void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
   if ((p->status() != neonatal) && (!wasStopped)) {
 
 /* Choose either one of the following methods to continue a process.
- * The choice must be consistent with that in process::continueProc_ and 
- * OS::osStop.
+ * The choice must be consistent with that in process::continueProc_ and stop_
  */
 
 #if !defined(PTRACE_ATTACH_DETACH)
@@ -600,17 +599,7 @@ void OS::osDisconnect(void) {
   close (ttyfd);
 }
 
-bool OS::osAttach(pid_t process_id) {
-  int ret;
-
-  ret = ptrace(PT_ATTACH, process_id, (int *)0, 0, 0);
-  if (ret == -1) {
-      ret = ptrace(PT_REATT, process_id, (int *)0, 0, 0);
-  }
-  return (ret != -1);
-}
-
-bool OS::osStop(pid_t pid) { 
+bool process::stop_() {
 /* Choose either one of the following methods for stopping a process, 
  * but not both. 
  * The choice must be consistent with that in process::continueProc_ 
@@ -620,33 +609,13 @@ bool OS::osStop(pid_t pid) {
 	return (P_kill(pid, SIGSTOP) != -1); 
 #else
 	// attach generates a SIG TRAP which we catch
-	if (!osAttach(pid)) {
-          assert(kill(pid, SIGSTOP) != -1);
+	if (!attach_()) {
+	  if (kill(pid, SIGSTOP) == -1)
+	     return false;
         }
         return(true);
 #endif
 }
-
-// TODO dump core
-bool OS::osDumpCore(pid_t pid, const string dumpTo) {
-  // return (!ptrace(PT_DUMPCORE, pid, dumpTo, 0, 0));
-  logLine("dumpcore not available yet\n");
-  showErrorCallback(47, "");
-  return false;
-}
-
-//bool OS::osForwardSignal (pid_t pid, int stat) {
-//#if defined(PTRACE_ATTACH_DETACH)
-//  if (stat != 0) {
-//      ptrace(PT_DETACH, pid, (int*)1, stat, 0); // aix 4.1 likes int *
-//      return (true);
-//  } else {
-//      return (ptrace(PT_CONTINUE, pid, (int*)1, 0, 0) != -1); // aix 4.1 likes int *
-//  }
-//#else
-//  return (ptrace(PT_CONTINUE, pid, (int*)1, stat, NULL) != -1);
-//#endif
-//}
 
 bool process::continueWithForwardSignal(int sig) {
 #if defined(PTRACE_ATTACH_DETACH)
@@ -674,11 +643,20 @@ int process::waitProcs(int *status) {
 bool process::attach() {
   // we only need to attach to a process that is not our direct children.
   if (parent != 0) {
-    return OS::osAttach(pid);
+    return attach_();
   }
-  return true;
+  else
+    return true;
 }
 
+bool process::attach_() {
+   // formerly OS::osAttach()
+   int ret = ptrace(PT_ATTACH, getPid(), (int *)0, 0, 0);
+   if (ret == -1)
+      ret = ptrace(PT_REATT, getPid(), (int *)0, 0, 0);
+
+   return (ret != -1);
+}
 
 // TODO is this safe here ?
 bool process::continueProc_() {
@@ -689,8 +667,7 @@ bool process::continueProc_() {
   ptraceOps++; ptraceOtherOps++;
 
 /* Choose either one of the following methods to continue a process.
- * The choice must be consistent with that in process::continueProc_ and 
- * OS::osStop.
+ * The choice must be consistent with that in process::continueProc_ and stop_
  */
 
 #if !defined(PTRACE_ATTACH_DETACH)
@@ -734,7 +711,10 @@ bool process::dumpCore_(const string coreFile) {
     return false;
   ptraceOps++; ptraceOtherOps++;
 
-  assert(OS::osDumpImage(symbols->file(), pid, symbols->codeOffset()));
+  if (!dumpImage())
+//  if (!OS::osDumpImage(symbols->file(), pid, symbols->codeOffset()))
+     assert(false);
+
   errno = 0;
   (void) ptrace(PT_CONTINUE, pid, (int*)1, SIGBUS, NULL);
   assert(errno == 0);
@@ -775,7 +755,8 @@ bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
 
 bool process::loopUntilStopped() {
   /* make sure the process is stopped in the eyes of ptrace */
-  assert(OS::osStop(pid));
+  stop_();
+
   bool isStopped = false;
   int waitStatus;
   while (!isStopped) {
@@ -810,8 +791,11 @@ bool process::loopUntilStopped() {
 // Write out the current contents of the text segment to disk.  This is useful
 //    for debugging dyninst.
 //
-bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOff)
-{
+bool process::dumpImage() {
+    // formerly OS::osDumpImage()
+    const string &imageFileName = symbols->file();
+    const Address codeOff = symbols->codeOffset();
+
     int i;
     int rd;
     int ifd;
@@ -889,7 +873,8 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
 
     if (!stopped) {
         // make sure it is stopped.
-        osStop(pid);
+        findProcess(pid)->stop_();
+
         waitpid(pid, NULL, WUNTRACED);
 	needsCont = true;
     }
