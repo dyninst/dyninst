@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.61 1999/10/18 17:32:43 hollings Exp $
+// $Id: aix.C,v 1.62 1999/10/25 15:14:25 bernat Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1281,9 +1281,9 @@ void Object::load_object()
    }
 
    if (foundDebug) {
-       stabs_ = symbols;
+       stabs_ = (long unsigned int) symbols;
        nstabs_ = hdr.f_nsyms;
-       stringpool_ = stringPool;
+       stringpool_ = (long unsigned int) stringPool;
        if (!seekAndRead(fd, roundup4(sectHdr[i].s_scnptr),
 	   (void **) &stabstr_, sectHdr[i].s_size, true)) {
 	     cerr << "seekAndRead for initialized debug section failed!" << 
