@@ -1,4 +1,4 @@
-/* $Id: test6.mutatee.c,v 1.17 2002/09/23 21:47:12 gaburici Exp $ */
+/* $Id: test6.mutatee.c,v 1.18 2002/09/26 21:12:34 gaburici Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -325,9 +325,9 @@ void init_test_data()
   eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
   for(i=59; i<62; ++i)
     eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
-  i=62; // 2nd of mov
+  i=62; /* 2nd of mov */
   eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
-  for(i=63; i<66; ++i) // scas, cmps
+  for(i=63; i<66; ++i) /* scas, cmps */
     eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
   i=66;
   eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
