@@ -1,5 +1,4 @@
-
-//
+// $Id: test2.C,v 1.14 1999/05/25 16:35:43 wylie Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)

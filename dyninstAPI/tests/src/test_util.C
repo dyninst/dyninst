@@ -1,16 +1,15 @@
 //
-// $Id: test_util.C,v 1.7 1999/05/21 17:26:40 wylie Exp $
+// $Id: test_util.C,v 1.8 1999/05/25 16:35:43 wylie Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
 #include <stdio.h>
 #include <signal.h>
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
-#include <unistd.h>
-#endif
 #ifdef i386_unknown_nt4_0
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#else
+#include <unistd.h>
 #endif
 
 #include "BPatch.h"

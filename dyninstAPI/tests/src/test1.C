@@ -1,4 +1,4 @@
-
+// $Id: test1.C,v 1.22 1999/05/25 16:35:42 wylie Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -17,12 +17,11 @@
 
 #include <stdio.h>
 #include <string.h>
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
-#include <unistd.h>
-#endif
 #ifdef i386_unknown_nt4_0
 #include <windows.h>
 #include <winbase.h>
+#else
+#include <unistd.h>
 #endif
 
 #include "BPatch.h"
