@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.244 2003/03/14 23:18:27 bernat Exp $
+/* $Id: process.h,v 1.245 2003/03/21 21:18:59 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1130,19 +1130,64 @@ void saveWorldData(Address address, int size, const void* src);
       waiting_for_resources = false;
   }
 
+  /////////////////////////////////////////////////////////////////////
+  // Fork, Exec, and Exit callbacks
+  /////////////////////////////////////////////////////////////////////
+
+  // The callback functions are public because the signal handling code is
+  // not a friend of the process class
+  public:
+  void registerPreForkCallback(forkEntryCallback_t callback, void *data);
+  void registerPostForkCallback(forkExitCallback_t callback, void *data);
+  void registerPreExecCallback(execEntryCallback_t callback, void *data);
+  void registerPostExecCallback(execExitCallback_t callback, void *data);
+  void registerPreExitCallback(exitEntryCallback_t callback, void *data);
+
+  private:
+  void *preForkData_;
+  void *postForkData_;
+  void *preExecData_;
+  void *postExecData_;
+  void *preExitData_;
+  forkEntryCallback_t preForkCallback_;
+  forkExitCallback_t postForkCallback_;
+  execEntryCallback_t preExecCallback_;
+  execExitCallback_t postExecCallback_;
+  exitEntryCallback_t preExitCallback_;
+  
+  public:
+  void handleForkEntry();
+  void handleForkExit(process *child);
+  void handleExecEntry(char *arg0);
+  void handleExecExit();
+  void handleExitEntry(int code);
+
+  // For platforms where we can't specifically tell if a signal is due to
+  // fork or exec and have to guess
+  bool nextTrapIsFork;
+  bool nextTrapIsExec;
+
+  // For platforms where we can't get the path string from the PID
+  // Argument given to exec
+  string execPathArg;
+  // Full path info
+  string execFilePath;
+  
   //  wasExeced: returns true is the process did an exec...this is set
   //  in handleExec()
   bool wasExeced(){ return execed_;}
+  private:
+  bool execed_;  // true if this process does an exec...set in handleExec
+  public:
 
-  void handleExec();
-  bool cleanUpInstrumentation(bool wasRunning); // called on exit (also exec?)
+  // True if we're in the process of an exec (from exec entry until we load
+  // the dyninst RT lib)
   bool inExec;
-  bool nextTrapIsExec;
-  bool nextTrapIsFork;
-  string execPathArg;	// path exec is trying - used when process calls exec
+  
+  bool cleanUpInstrumentation(bool wasRunning); // called on exit (also exec?)
 
-  string execFilePath;		// full path of process
-
+  /////////////////////////////////////////////////
+  
   dyn_lwp *getLWP(unsigned lwp_id);
   dyn_lwp *getDefaultLWP() const;
 
@@ -1299,7 +1344,6 @@ private:
   unsigned lastObsCostLow; // in cycles
 
   Address costAddr_;
-  bool execed_;  // true if this process does an exec...set in handleExec
 
   // deal with system differences for ptrace
   bool writeDataSpace_(void *inTracedProcess, u_int amount, const void *inSelf);
@@ -1327,9 +1371,7 @@ private:
   bool dumpCore_(const string coreFile);
   bool osDumpImage(const string &imageFileName,  pid_t pid, Address codeOff);
   bool detach_();
-#ifdef BPATCH_LIBRARY
   bool API_detach_(const bool cont); // XXX Should eventually replace detach_()
-#endif
   bool attach_(); // low-level attach; called by attach() (was OS::osAttach())
   bool stop_(); // formerly OS::osStop
 

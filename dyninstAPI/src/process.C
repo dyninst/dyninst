@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.398 2003/03/17 03:05:42 schendel Exp $
+// $Id: process.C,v 1.399 2003/03/21 21:18:58 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1995,11 +1995,25 @@ process::process(int iPid, image *iImage, int iTraceLink
 #endif
 
     parentPid = childPid = 0;
-  dyninstlib_brk_addr = 0;
+    dyninstlib_brk_addr = 0;
+    
+    main_brk_addr = 0;
 
-  main_brk_addr = 0;
-  nextTrapIsExec = false;
+    preForkData_ = NULL;
+    postForkData_ = NULL;
+    preExecData_ = NULL;
+    postExecData_ = NULL;
+    preExitData_ = NULL;
+    preForkCallback_ = NULL;
+    postForkCallback_ = NULL;
+    preExecCallback_ = NULL;
+    postExecCallback_ = NULL;
+    preExitCallback_ = NULL;
+    
+    nextTrapIsFork = false;
+    nextTrapIsExec = false;
   
+
     wasRunningWhenAttached_ = false;
     bootstrapState = unstarted;
 
@@ -2021,7 +2035,7 @@ process::process(int iPid, image *iImage, int iTraceLink
     theRpcMgr = new rpcMgr(this);
 
     status_ = neonatal;
-    exitCode_ = -1;
+    exitCode_ = (procSignalWhat_t) -1;
     continueAfterNextStop_ = 0;
 #ifndef BPATCH_LIBRARY
     theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
@@ -2166,7 +2180,21 @@ process::process(int iPid, image *iSymbols,
     parentPid = childPid = 0;
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
+    preForkData_ = NULL;
+    postForkData_ = NULL;
+    preExecData_ = NULL;
+    postExecData_ = NULL;
+    preExitData_ = NULL;
+
+    preForkCallback_ = NULL;
+    postForkCallback_ = NULL;
+    preExecCallback_ = NULL;
+    postExecCallback_ = NULL;
+    preExitCallback_ = NULL;
+    
+    nextTrapIsFork = false;
     nextTrapIsExec = false;
+
     
 	createdViaAttach = true;
 
@@ -2185,7 +2213,7 @@ process::process(int iPid, image *iSymbols,
     mainFunction = NULL; // set in platform dependent function heapIsOk
     
     status_ = neonatal;
-    exitCode_ = -1;
+    exitCode_ = (procSignalWhat_t) -1;
     continueAfterNextStop_ = 0;
     
     theRpcMgr = new rpcMgr(this);
@@ -2400,6 +2428,21 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
   procHandle_(0)
 {
     tracingRequests = parentProc.tracingRequests;
+
+    // Leave these as NULL... the parent needs to initialize them
+    // (as the data fields for one are probably meaningless)
+    preForkData_ = NULL;
+    postForkData_ = NULL;
+    preExecData_ = NULL;
+    postExecData_ = NULL;
+    preExitData_ = NULL;
+    preForkCallback_ = NULL;
+    postForkCallback_ = NULL;
+    preExecCallback_ = NULL;
+    postExecCallback_ = NULL;
+    preExitCallback_ = NULL;
+    
+
     
    // This is the "fork" ctor
    bootstrapState = initialized;
@@ -2423,7 +2466,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
    //ioLink = -1; // when does this get set?
 
    status_ = neonatal; // is neonatal right?
-   exitCode_ = -1;
+   exitCode_ = (procSignalWhat_t) -1;
    continueAfterNextStop_ = 0;
 
    pid = iPid; 
@@ -2629,6 +2672,7 @@ process *createProcess(const string File, pdvector<string> argv,
 	// 
 	// The filename is an absolute pathname if it starts with a '/' on UNIX,
 	// or a letter and colon pair on Windows.
+    
     string file = File;
 	if( dir.length() > 0 )
 	{
@@ -2705,7 +2749,7 @@ process *createProcess(const string File, pdvector<string> argv,
     // Ignored except on NT (where we modify in forkNewProcess, and ignore the result???)
     int procHandle_temp;
     int thrHandle_temp;
-
+    
     if (!forkNewProcess(file, dir, argv, envp, inputFile, outputFile,
 		   traceLink, pid, tid, procHandle_temp, thrHandle_temp,
 		   stdin_fd, stdout_fd, stderr_fd)) {
@@ -3257,13 +3301,17 @@ bool process::finalizeDyninstLib() {
    // Ready to rock
    setBootstrapState(bootstrapped);
    
-#if defined(BPATCH_LIBRARY)
-   // It is now safe to call the exec callback
    if (wasExeced()) {
+       
+       // Make the exec callback
+       if (postExecCallback_) {
+           (*postExecCallback_)(this, postExecData_);
+       }
+#if defined(BPATCH_LIBRARY)
        BPatch::bpatch->registerExec(thread);
-   }
-   
 #endif
+   }
+
    return true;
 }
 
@@ -5209,7 +5257,6 @@ bool process::detach(const bool paused) {
    return true;
 }
 
-#ifdef BPATCH_LIBRARY
 // XXX Eventually detach() above should go away and this should be
 //     renamed detach()
 /* process::API_detach: detach from the application, leaving all
@@ -5228,17 +5275,86 @@ bool process::API_detach(const bool cont)
 
   return API_detach_(cont);
 }
+
+// Exec, Fork, Exit callbacks
+void process::registerPreForkCallback(forkEntryCallback_t callback, void *data) {
+    preForkCallback_ = callback;
+    preForkData_ = data;
+}
+void process::registerPostForkCallback(forkExitCallback_t callback, void *data) {
+    postForkCallback_ = callback;
+    postForkData_ = data;
+}
+void process::registerPreExecCallback(execEntryCallback_t callback, void *data) {
+    preExecCallback_ = callback;
+    preExecData_ = data;
+}
+void process::registerPostExecCallback(execExitCallback_t callback, void *data) {
+    postExecCallback_ = callback;
+    postExecData_ = data;
+}
+void process::registerPreExitCallback(exitEntryCallback_t callback, void *data) {
+    preExitCallback_ = callback;
+    preExitData_ = data;
+}
+
+/*
+ * handleForkEntry: do anything necessary when a fork is entered
+ */
+
+void process::handleForkEntry() {
+    // On some platforms we can't tell the fork exit trap, so we 
+    // set a flag that is detected
+    nextTrapIsFork = true;
+    
+    // Make whatever callback is registered
+    if (preForkCallback_) {
+        (*preForkCallback_)(this, preForkData_);
+    }
+#if defined(BPATCH_LIBRARY)
+    // Make bpatch callbacks as well
+    BPatch::bpatch->registerForkingThread(getPid(), NULL);
 #endif
 
-/* process::handleExec: called when a process successfully exec's.
+}
+
+void process::handleForkExit(process *child) {
+    // A lot of this is being done in the signal handler... can any
+    // be moved here?
+    nextTrapIsFork = false;
+    
+    if (postForkCallback_) {
+        (*postForkCallback_)(this, postForkData_, child);
+    }
+#if defined(BPATCH_LIBRARY)
+    BPatch::bpatch->registerForkedThread(getPid(), child->getPid(), child);
+#endif    
+}
+
+void process::handleExecEntry(char *arg0) {
+    nextTrapIsExec = true;
+    execPathArg = "";
+    // The arg0 is an address in the mutatee's space
+    char temp[512];
+    if (!readDataSpace(arg0, 512, temp, false))
+        cerr << "Failed to read exec argument!" << endl;
+    else
+        execPathArg = temp;
+    
+    if (preExecCallback_) {
+        (*preExecCallback_)(this, preExecData_, temp);
+    }
+}
+
+/* process::handleExecExit: called when a process successfully exec's.
    Parse the new image, disable metric instances on the old image, create a
    new (and blank) shm segment.  The process hasn't yet bootstrapped, so we
    mustn't try to enable anything...
 */
-void process::handleExec() {
+void process::handleExecExit() {
     // NOTE: for shm sampling, the shm segment has been removed, so we
     //       mustn't try to disable any dataReqNodes in the standard way...
-
+    nextTrapIsExec = false;
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
 	PARADYNhasBootstrapped = false;
 #endif
@@ -5301,9 +5417,12 @@ void process::handleExec() {
    
    int status = pid;
    fileDescriptor *desc = getExecFileDescriptor(execFilePath,
-						status,
-						false);
+                                                status,
+                                                false);
    if (!desc) return;
+
+   // Clear out any previous version of this path
+   image::removeImage(desc);
    image *img = image::parseImage(desc);
    
    if (!img) {
@@ -5323,8 +5442,10 @@ void process::handleExec() {
     // than one process...images and instPoints can not be deleted...TODO
     // add some sort of reference count to these classes so that they can
     // be deleted
-    symbols = img; // AHEM!  LEAKED MEMORY!!! ...not if parent has ptr to 
-                   // previous image
+   image::removeImage(symbols);
+   delete symbols;
+   
+    symbols = img;
 
     // see if new image contains the signal handler function
     this->findSignalHandler();
@@ -5375,6 +5496,20 @@ void process::handleExec() {
 
    inExec = false;
    execed_ = true;
+
+   // We don't make the exec callback here since this can be called
+   // more than once if we get multiple exec "exits", plus the proces
+   // isn't Dyninst-ready. We make the callback once the RT library is
+   // loaded
+}
+
+void process::handleExitEntry(int code) {
+    if (preExitCallback_) {
+        (*preExitCallback_)(this, preExitData_, code);
+    }
+#if defined(BPATCH_LIBRARY)
+    BPatch::bpatch->registerExit(thread, code);
+#endif
 }
 
 /* 
