@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.7  1993/10/19 15:29:58  hollings
+ * Revision 1.8  1993/12/13 19:47:06  hollings
+ * use assembly version of clock code.
+ *
+ * Revision 1.7  1993/10/19  15:29:58  hollings
  * new simpler primitives.
  *
  * Revision 1.6  1993/10/07  19:09:12  jcargill
@@ -103,6 +106,7 @@ typedef union {
 static volatile unsigned int *ni;
 static volatile struct timer_buf timerBuffer;
 
+#ifdef notdef
 time64 inline getProcessTime()
 {
     timeParts end;
@@ -166,15 +170,6 @@ void DYNINSTstartProcessTimer(tTimer *timer)
     timer->counter++;
 }
 
-void set_timer_buf(struct timer_buf *param)
-{
-    asm("set 50,%g1");
-    /* asm("set 23,%g1"); */
-    asm("retl");
-    asm("ta 0x8");
-}
-
-double previous[1000];
 
 void DYNINSTstopProcessTimer(tTimer *timer)
 {
@@ -212,6 +207,17 @@ retry:
     } else {
 	timer->counter--;
     }
+}
+#endif
+
+double previous[1000];
+
+void set_timer_buf(struct timer_buf *param)
+{
+    asm("set 50,%g1");
+    /* asm("set 23,%g1"); */
+    asm("retl");
+    asm("ta 0x8");
 }
 
 void DYNINSTreportAggregateCounter(intCounter *counter)
