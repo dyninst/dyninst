@@ -597,7 +597,7 @@ void dataManager::getMemoryBounds(perfStreamHandle,
         {
                 metricHandle  met =  ((*request)[j]).met ;
                 string unique_name ;
-		char *metric_name = (char* ) getMetricName(met) ;
+		const char *metric_name = getMetricName(met) ;
 		if(!metric_name)
 		{
 			cerr << "something is caught wrong by getMemoryBounds:"

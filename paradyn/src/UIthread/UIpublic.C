@@ -46,11 +46,14 @@
  */
  
 /* $Log: UIpublic.C,v $
-/* Revision 1.62  1997/06/02 19:41:57  karavan
-/* added new call registerValidVisis.  This single call from Visi Manager to
-/* UI thread at startup registers all valid visis as specified in a config
-/* file, and replaces use of synchronous VM->VMAvailableVisis().
+/* Revision 1.63  1997/10/10 00:21:13  tamches
+/* removed a warning
 /*
+ * Revision 1.62  1997/06/02 19:41:57  karavan
+ * added new call registerValidVisis.  This single call from Visi Manager to
+ * UI thread at startup registers all valid visis as specified in a config
+ * file, and replaces use of synchronous VM->VMAvailableVisis().
+ *
  * Revision 1.61  1997/05/02 04:43:49  karavan
  * added new functionality to support "SAVE" feature.
  *
@@ -185,7 +188,8 @@ bool UI_all_metrics_set_yet = false;
 
 void 
 UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
-			       vector<metric_focus_pair> *pairList)
+			       vector<metric_focus_pair> * // pairList -- unused
+   )
 {
       // store record with unique id and callback function
   UIMMsgTokenID++;

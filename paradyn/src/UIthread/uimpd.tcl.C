@@ -45,10 +45,13 @@
 */
 
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.37  1997/06/02 19:43:53  karavan
-/* changed visi from menu to button.
-/* eliminated uimpd drawStartVisiMenu command
+/* Revision 1.38  1997/10/10 00:22:07  tamches
+/* removed a warning
 /*
+ * Revision 1.37  1997/06/02 19:43:53  karavan
+ * changed visi from menu to button.
+ * eliminated uimpd drawStartVisiMenu command
+ *
  * Revision 1.36  1996/11/26 16:07:00  naim
  * Fixing asserts - naim
  *
@@ -111,7 +114,7 @@ void printMFPlist (vector<metric_focus_pair> *list)
          freed by the visi thread which gets the callback.
 */
 int sendVisiSelectionsCmd(ClientData,
-		Tcl_Interp *interp, 
+		Tcl_Interp *,
 		int,
 		char *argv[])
 {

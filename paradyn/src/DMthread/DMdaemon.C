@@ -516,10 +516,10 @@ paradynDaemon *paradynDaemon::machineName2Daemon(const string &theMachineName) {
 
 //Tempest
 static int startBlzApp(const string &machine,
-                        const string &login,
-                        const string &name,
-                        const string &dir,
-                        const vector<string> &argv)
+                       const string &login,
+                       const string &, // name
+                       const string &, // dir
+                       const vector<string> &argv)
 {
         //int firstPVM = 1 ;                   // "-v"   1
         //int  flag = 2;                       // "-l"   2

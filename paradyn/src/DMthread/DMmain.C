@@ -174,7 +174,7 @@ void dynRPCUser::applicationIO(int,int,string data)
 
 extern status_line *DMstatus;
 
-void dynRPCUser::resourceBatchMode(bool onNow)
+void dynRPCUser::resourceBatchMode(bool) // bool onNow
 {
    printf("error calling virtual func: dynRPCUser::resourceBatchMode\n");
 }

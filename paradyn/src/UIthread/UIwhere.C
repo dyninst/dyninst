@@ -45,9 +45,12 @@
  */
 
 /* $Log: UIwhere.C,v $
-/* Revision 1.19  1997/04/14 20:00:29  zhichen
-/* Added memoryAddedCB (...)
+/* Revision 1.20  1997/10/10 00:21:27  tamches
+/* removed a warning
 /*
+ * Revision 1.19  1997/04/14 20:00:29  zhichen
+ * Added memoryAddedCB (...)
+ *
  * Revision 1.18  1996/08/16 21:06:50  tamches
  * updated copyright for release 1.1
  *
@@ -162,7 +165,7 @@ void resourceAddedCB (perfStreamHandle,
   }
 }
 void memoryAddedCB (perfStreamHandle,
-                    const char* vname,
+                    const char*, // vname
                     int start,
                     unsigned mem_size,
                     unsigned blk_size,
