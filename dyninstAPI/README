@@ -1,30 +1,123 @@
 
-This directory contains the Dyninst API library.  To make the library, type
-"make install" in the subdirectory of this directory that is named after the
-platform that on which you are building the library.  The library also depends
-on code in the core/util and core/dyninstAPI_RT directories, so you will also
-need to go into the appropriate platform subdirectories of these directories
-and type "make install."  If you have built Paradyn, then the util library
-will have already been built.
+This is the version 1.1 release of the Dyninst API.  Currently, the API
+library is available for the SPARC/Solaris, IBM Power/AIX, Intel/Solaris,
+and Intel/Windows NT platforms.
 
-On Windows NT, before running make in the core/util/i386-unknown-nt4.0
-directory, you will need to obtain and install ONC RPC for Windows NT.   See
-the page http://set.gmd.de/~mfg/oncrpc.html for information about this
-package.  The makefiles expect it to be installed in the directory C:\SUNRPC.
+Documentation for the API can be found at:
 
-On platforms on which the API dynamically loads a run-time library into an
-application's address space (Sparc Solaris and Windows NT), you must set
-certain values in the environment so that it can locate the run-time library.
-On the Sparc Solaris platform, you must set the DYNINSTAPI_RT_LIB environment
-variable to the full pathname of the file libdyninstAPI_RT.so.1.  If you have
-correctly set the PARADYN_ROOT and PLATFORM environment variables, then the
-proper pathname is:
+    http://www.cs.umd.edu/~hollings/dyninstAPI/dyninstAPI.html
 
-    $PARADYN_ROOT/lib/$PLATFORM/libdyninstAPI_RT.so.1
+The core/dyninstAPI/tests directory contains the source code for programs
+that test the API functions.  These programs are useful as examples of how
+to use the API.  See the README file in that directory for how to run or
+rebuild them.
 
-On Windows NT, you should put the directory %PARADYN_ROOT%/lib/%PLATFORM%
-in your path.
+Building the Dyninst API from source
+------------------------------------
 
-After the dyninstAPI_RT, util, and dyninstAPI libraries have been built and
-installed, you can test them using the programs in core/dyninstAPI/tests.  See
-the README file in that directory for information about the test programs.
+If you downloaded the source distribution of this package, you can build the
+Dyninst API libraries by running "make" in the core directory (one level up
+from where this README file is located).  However, note the steps below
+which must be taken to set up your environment before you do so.  The
+top-level makefile contains directives for compiling the Paradyn parallel
+performance tool, from which the Dyninst API was derived.  If you have
+downloaded only the Dyninst API, you will see a number of messages about
+missing directories.  These directories are needed only for making Paradyn,
+so you should ignore these messages.  If you downloaded the entire Paradyn
+distribution, you can make only the API libraries by running "make
+dynInstAPI" in the core directory.
+
+Setting up the environment
+--------------------------
+
+Before compiling or using the Dyninst API library, you should set the
+environment variables PLATFORM and DYNINST_ROOT.  PLATFORM should be set to
+one of the following values depending upon what operating system you are
+running on:
+
+    rs6000-ibm-aix4.1		AIX Version 4.1
+    i386-unknown-solaris2.5	Solaris 2.5 on an Intel x86 processor
+    i386-unknown-nt4.0		Windows NT on an Intel x86 processor
+    sparc-sun-solaris2.4	Solaris 2.4 or 2.5 on a SPARC processor
+
+DYNINST_ROOT should be set to the pathname of the top of the library source
+tree (the "core" directory, one level up from where this README file is
+located).
+
+On the Sparc Solaris platform, it is also necessary to set the environment
+variable DYNINSTAPI_RT_LIB to the full pathname of the file
+libdyninstAPI_RT.so.1.  If you have correctly set the DYNINST_ROOT and
+PLATFORM environment variables, then the proper pathname is:
+
+    $DYNINST_ROOT/lib/$PLATFORM/libdyninstAPI_RT.so.1
+
+On Windows NT, you should put the directory %DYNINST_ROOT%/lib/%PLATFORM% in
+your path.
+
+Building the library on Windows NT
+----------------------------------
+
+If you have received this file as part of the source code distribution of
+the library and wish to compile on Windows NT, you will need to obtain and
+install the ONC RPC package for Windows NT.  See the page
+http://set.gmd.de/~mfg/oncrpc.html for information about this package.  You
+should then create a file named "make.config.local" in the core directory,
+and include a line setting the RPCPKG variable to the location in which you
+installed ONC RPC.  For instance, if you installed it in C:\SUNRPC:
+
+    RPCPKG = C:\SUNRPC
+
+-----------------------------------------------------------------------------
+
+This software is derived from the Paradyn system and therefore subject to
+the same copyright.  A copy of the Paradyn copyright appears at the end of
+this file.
+
+Some known issues relating to this distribution are:
+  - You must use a compiler that provides a built-in "bool" type (such as
+    the current version of gcc).
+
+	Jeff Hollingsworth
+	Bryan Buck
+	5/6/98
+
+----------------------- Start of Paradyn Copyright --------------------------
+Copyright (c) 1996 Barton P. Miller
+
+We provide the Paradyn Parallel Performance Tools (below
+described as Paradyn") on an AS IS basis, and do not warrant its
+validity or performance.  We reserve the right to update, modify,
+or discontinue this software at any time.  We shall have no
+obligation to supply such updates or modifications or any other
+form of support to you.
+
+This license is for research uses.  For such uses, there is no
+charge. We define "research use" to mean you may freely use it
+inside your organization for whatever purposes you see fit. But you
+may not re-distribute Paradyn or parts of Paradyn, in any form
+source or binary (including derivatives), electronic or otherwise,
+to any other organization or entity without our permission.
+
+(for other uses, please contact us at paradyn@cs.wisc.edu)
+
+All warranties, including without limitation, any warranty of
+merchantability or fitness for a particular purpose, are hereby
+excluded.
+
+By your use of Paradyn, you understand and agree that we (or any
+other person or entity with proprietary rights in Paradyn) are
+under no obligation to provide either maintenance services,
+update services, notices of latent defects, or correction of
+defects for Paradyn.
+
+Even if advised of the possibility of such damages, under no
+circumstances shall we (or any other person or entity with
+proprietary rights in the software licensed hereunder) be liable
+to you or any third party for direct, indirect, or consequential
+damages of any character regardless of type of action, including,
+without limitation, loss of profits, loss of use, loss of good
+will, or computer failure or malfunction.  You agree to indemnify
+us (and any other person or entity with proprietary rights in the
+software licensed hereunder) for any and all liability it may
+incur to third parties resulting from your use of Paradyn.
+
