@@ -2852,12 +2852,13 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 	            // be silently handled or not
 
       AstNode *ast;
-      if (req->where & FUNC_ARG)
-	 ast = new AstNode(req->inst, req->arg);
-      else {
-         AstNode *tmp = new AstNode(AstNode::Constant, (void*)0);
-	 ast = new AstNode(req->inst, tmp);
-	 removeAst(tmp);
+      if (req->where & FUNC_ARG) {
+        // ast = new AstNode(req->inst, req->arg);
+        ast = new AstNode(req->inst, req->args);
+      } else {
+	AstNode *tmp = new AstNode(AstNode::Constant, (void*)0);
+	ast = new AstNode(req->inst, tmp);
+	removeAst(tmp);
       }
 
       if (req->where & FUNC_EXIT) {
