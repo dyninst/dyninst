@@ -40,66 +40,10 @@
  */
 
 /* paradyn.tcl.C
-
+   $Id: paradyn.tcl.C,v 1.83 1998/04/06 04:23:52 wylie Exp $
    This code implements the tcl "paradyn" command.  See the README file for 
    command descriptions.
-
 */
-
-/* $Log: paradyn.tcl.C,v $
-/* Revision 1.82  1998/03/03 23:40:26  wylie
-/* Revised interface to tcl for additional information display functions and
-/* modifided display/printDaemonStartInfo().
-/*
- * Revision 1.81  1997/12/18 17:07:46  newhall
- * add trace perfStreamHandle to disableData calls
- *
- * Revision 1.80  1997/06/06 22:02:48  mjrg
- * Added option for manual daemon start-up
- *
- * Revision 1.79  1997/05/02 04:43:50  karavan
- * added new functionality to support "SAVE" feature.
- *
- * added support to use standard tcl autoload feature for development use.
- *
- * Revision 1.78  1997/04/21 16:54:15  hseom
- * added support for trace data
- *
- * Revision 1.77  1997/01/30 18:07:21  tamches
- * attach no longer takes in a dir
- *
- * Revision 1.76  1997/01/16 21:57:56  tamches
- * extra params to attach for dir + prog-name
- *
- * Revision 1.75  1997/01/15 00:13:17  tamches
- * added attach command
- *
- * Revision 1.74  1996/10/31 08:21:21  tamches
- * don't call enablePAUSEorRUN anymore in certain places;
- * instead, the new uiMgr->enablePauseOrRun is called elsewhere.
- *
- * Revision 1.73  1996/08/16 21:06:59  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.72  1996/05/06 17:17:59  newhall
- * changed call to enableDataRequest
- *
- * Revision 1.71  1996/05/06  13:45:13  naim
- * Fixing problem with continueProc - naim
- *
- * Revision 1.70  1996/05/01  02:05:36  newhall
- * *** empty log message ***
- *
- * Revision 1.69  1996/04/30  18:56:32  newhall
- * changes to support the asynchrounous enable data calls to the DM
- * this code contains a kludge to make the UI wait for the DM's async response
- *
- * Revision 1.68  1996/02/21  18:17:13  tamches
- * ParadynPauseCmd and ParadynContCmd disable related tk buttons _before_
- * making the dataMgr igen call.  No bool reentrancy protection flag used
- * anymore.
- *
- */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -127,6 +71,7 @@ extern bool detachApplication(bool);
 extern appState PDapplicState;
 
 status_line *app_name=NULL;
+extern status_line *app_status;
 
 void disablePAUSEandRUN() {
   if (Tcl_VarEval(interp,"changeApplicState 2",0)==TCL_ERROR) {
@@ -453,6 +398,10 @@ int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
 
    app_name->message(theMessage.string_of());
 
+   if (!app_status) {
+      app_status = new status_line("Application status");
+   }
+  
    // Disabling PAUSE and RUN during attach can help avoid deadlocks.
    disablePAUSEandRUN();
 
@@ -512,12 +461,17 @@ int ParadynProcessCmd(ClientData,
   if (!app_name) {
     app_name = new status_line("Application name");
   }
+
   static char tmp_buf[1024];
   sprintf(tmp_buf, "program: %s, machine: %s, user: %s, daemon: %s",
 	  argv[i], machine?machine:"(local)", user?user:"(self)",
 	  paradynd?paradynd:"(defd)");
   app_name->message(tmp_buf);
-  
+
+  if (!app_status) {
+    app_status = new status_line("Application status");
+  }
+ 
   vector<string> av;
   unsigned ve=i;
   while (argv[ve]) {
