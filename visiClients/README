@@ -1,6 +1,9 @@
 #
 # $Log: README,v $
-# Revision 1.1  1994/06/01 17:25:27  rbi
+# Revision 1.2  1994/10/14 10:45:52  tamches
+# Added barchart
+#
+# Revision 1.1  1994/06/01  17:25:27  rbi
 # Initial documentation
 #
 #
@@ -19,5 +22,13 @@ Visis so far:
             Written to use the X toolkit and Athena widgets.
             <THIS NEEDS TO BE INSTALLED>
 
-            
-
+  barchart -- A dynamically updated barChart of metric/focus pairs.
+              Written in tcl (as much as possible) and C++ (when
+              speed matters most--new data callbacks).  Bars
+              are drawn with Xlib and use double-buffering.
+              Especially efficient when run remotely (so X server
+              can handle the double-buffering); even when run
+              locally, perturbation is probably acceptable.
+              Many bars can fit on the screen since the resources
+              are drawn on the y axis, meaning labels can fit
+              efficiently without having to be rotated 90 degress.
