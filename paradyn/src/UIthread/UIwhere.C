@@ -45,9 +45,12 @@
  */
 
 /* $Log: UIwhere.C,v $
-/* Revision 1.18  1996/08/16 21:06:50  tamches
-/* updated copyright for release 1.1
+/* Revision 1.19  1997/04/14 20:00:29  zhichen
+/* Added memoryAddedCB (...)
 /*
+ * Revision 1.18  1996/08/16 21:06:50  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.17  1996/08/02 19:08:40  tamches
  * tclclean.h --> tcl.h
  *
@@ -158,3 +161,45 @@ void resourceAddedCB (perfStreamHandle,
      ui_status->message("ready");
   }
 }
+void memoryAddedCB (perfStreamHandle,
+                    const char* vname,
+                    int start,
+                    unsigned mem_size,
+                    unsigned blk_size,
+                    resourceHandle parent,
+                    vector<resourceHandle> *handles)
+{
+        char *abs = "BASE" ;
+        extern abstractions *theAbstractions;
+        assert(theAbstractions);
+
+        abstractions &theAbs = *theAbstractions;
+        string theAbstractionName = abs;
+        whereAxis &theWhereAxis = theAbs[theAbstractionName];
+
+        resourceHandle newResource ;
+        int end = start + mem_size ;
+        unsigned h = 0 ;
+        ui_status->message("receiving where axis item [memory]");
+        while (start < end)
+        {
+                numResourceAddedCBSoFar++;
+
+                char nameLastPart[255] ;
+                sprintf(nameLastPart, "%d", start) ;
+
+                assert(h<(*handles).size()) ;
+                newResource = (*handles)[h] ;
+
+                theWhereAxis.addItem(nameLastPart, parent, newResource,
+                        false, // don't rethink graphics
+                        false // don't resort (if not in batch mode, code below
+                             // will do that, so don't worry
+                        ) ;
+
+                start += blk_size ;
+                h++;
+        } // while
+        ui_status->message("ready [memory]");
+}
+
