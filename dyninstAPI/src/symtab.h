@@ -7,7 +7,10 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
- * Revision 1.4  1994/07/22 19:21:11  hollings
+ * Revision 1.5  1994/08/02 18:25:08  hollings
+ * fixed modules to use list template for lists of functions.
+ *
+ * Revision 1.4  1994/07/22  19:21:11  hollings
  * removed mistaken divid by 1Meg for predicted cost.
  *
  * Revision 1.3  1994/07/20  23:23:43  hollings
@@ -70,8 +73,7 @@ struct moduleRec {
     char *fullName;		/* full path to file */
     supportedLanguages language;
     caddr_t addr;		/* starting address of module */
-    int funcCount;		/* number of functions in this module */
-    function *funcs;		/* functions defined in this module */
+    List<function*> funcs;	/* functions defined in this module */
     image *exec;		/* what executable it came from */
     lineTable lines;		/* line mapping info */
     module *next;		/* pointer to next module */

@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.9 1994/07/28 22:40:48 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.10 1994/08/02 18:25:07 hollings Exp $";
 #endif
 
 /*
@@ -16,7 +16,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.9  1994/07/28 22:40:48  krisna
+ * Revision 1.10  1994/08/02 18:25:07  hollings
+ * fixed modules to use list template for lists of functions.
+ *
+ * Revision 1.9  1994/07/28  22:40:48  krisna
  * changed definitions/declarations of xalloc functions to conform to alloc.
  *
  * Revision 1.8  1994/07/22  19:21:10  hollings
@@ -114,6 +117,13 @@ module *newModule(image *curr, char *currentDirectory, char *name, caddr_t addr)
     module *ret;
     char fileName[255];
 
+    // modules can be defined several times in C++ due to templates and
+    //   in-line member functions.
+    ret = findModule(curr, name);
+    if (ret) {
+	return(ret);
+    }
+
     ret = (module *) xcalloc(1, sizeof(image));
     sprintf(fileName, "%s%s", currentDirectory, name);
     ret->compileInfo = NULL;
@@ -121,8 +131,6 @@ module *newModule(image *curr, char *currentDirectory, char *name, caddr_t addr)
     ret->fileName = pool.findAndAdd(name);
     ret->language = unknown;
     ret->addr = addr;
-    ret->funcCount = 0;
-    ret->funcs = NULL;
     ret->exec = curr;
     ret->next = curr->modules;
 
@@ -179,6 +187,7 @@ function *funcFindOrAdd(image *exec, module *mod, caddr_t addr, char *name)
 	    return(func);
 	}
     }
+
     func = (function *) xcalloc(1, sizeof(function));
     func->symTabName = pool.findAndAdd(name);
     func->prettyName = buildDemangledName(func);
@@ -187,8 +196,7 @@ function *funcFindOrAdd(image *exec, module *mod, caddr_t addr, char *name)
     func->addr = addr;
     func->next = exec->funcs;
 
-    mod->funcs = func;
-    mod->funcCount++;
+    mod->funcs.add(func);
 
     exec->funcs = func;
     exec->funcCount++;
@@ -205,6 +213,12 @@ function *newFunc(image *exec, module *mod, char *name, int addr)
     }
     func = (function *) xcalloc(1, sizeof(function));
 
+    if (exec->funcAddrHash.find((void *) addr)) {
+	sprintf(errorLine, "function defined twice\n");
+	logLine(errorLine);
+	abort();
+    }
+
     exec->funcAddrHash.add(func, (void *) addr);
 
     p = strchr(name, ':');
@@ -216,8 +230,7 @@ function *newFunc(image *exec, module *mod, char *name, int addr)
     func->addr = (caddr_t) addr;
     func->sibling = findFunction(exec, name);
 
-    mod->funcs = func;
-    mod->funcCount++;
+    mod->funcs.add(func);
 
     func->next = exec->funcs;
     exec->funcs = func;
@@ -248,13 +261,13 @@ char *internalPrefix[] = {
  */
 image *parseImage(char *file, int offset)
 {
-    int i;
     image *ret;
     module *mod;
     Boolean status;
     function *func;
     caddr_t endUserAddr;
     resource moduleRoot;
+    List<function*> curr;
     resource modResource;
     caddr_t startUserAddr;
     internalSym *endUserFunc;
@@ -335,20 +348,19 @@ image *parseImage(char *file, int offset)
 
     // define all modules.
     for (mod = ret->modules; mod; mod=mod->next) {
-	if (mod->funcs && !(mod->funcs->tag & TAG_LIB_FUNC) &&
-			    mod->funcs->line) {
-	    modResource = newResource(moduleRoot, mod, NULL, mod->fileName, 
-		0.0, FALSE);
+	modResource = NULL;
+	for (curr = mod->funcs;  func = *curr; curr++) {
+	    if ((!func->tag & TAG_LIB_FUNC) && (func->line)) {
 
-	    for (func = mod->funcs, i= 0; 
-		 i < mod->funcCount; 
-		 func=func->next, i++) {
-		if ((!func->tag & TAG_LIB_FUNC) && (func->line)) {
-		    (void) newResource(modResource, func, NULL, 
-			func->prettyName,0.0,FALSE);
-		} else {
-		    func->tag |= TAG_LIB_FUNC;
+		// see if we have created module yet.
+		if (!modResource) {
+		    modResource = newResource(moduleRoot, mod, NULL, 
+			mod->fileName, 0.0, FALSE);
 		}
+		(void) newResource(modResource, func, NULL, 
+		    func->prettyName,0.0,FALSE);
+	    } else {
+		func->tag |= TAG_LIB_FUNC;
 	    }
 	}
     }
@@ -412,6 +424,10 @@ module *findModule(image *i, char *name)
     return(NULL);
 }
 
+//
+// Warning the sibling code depends on findFunction working down the
+//    function list in order!!  
+//
 function *findFunction(image *i, char *name)
 {
     char *iName;
@@ -451,13 +467,14 @@ int intComp(int *i, int *j)
 
 void mapLines(module *mod)
 {
-    int i, j;
+    int j;
     function *func;
+    List<function*> curr;
 
     if (!mod) return;
 
     qsort(mod->lines.addr, mod->lines.maxLine, sizeof(int), intComp);
-    for (i=0, func = mod->funcs; i < mod->funcCount; i++, func=func->next) {
+    for (curr = mod->funcs; func = *curr; curr++) {
 	for (j=0; j < mod->lines.maxLine; j++) {
 	    if (func->addr <= (caddr_t) mod->lines.addr[j]) {
 		func->line = j;

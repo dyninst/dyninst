@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.4  1994/07/26 20:02:09  hollings
+ * Revision 1.5  1994/08/02 18:25:09  hollings
+ * fixed modules to use list template for lists of functions.
+ *
+ * Revision 1.4  1994/07/26  20:02:09  hollings
  * fixed heap allocation to use hash tables.
  *
  * Revision 1.3  1994/07/20  23:23:44  hollings
@@ -57,3 +60,5 @@ typedef List<heapRec *>;
 typedef HTable<heapRec *>;
 
 typedef StringList<int>;
+
+typedef List<function *>;
