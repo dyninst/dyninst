@@ -109,8 +109,8 @@ extern int RPCprocessCreate(int *pid, char *hostName, char *userName,
 			    char *commandLine, char **arg_list = 0);
 extern char **RPC_make_arg_list (char *program, int family, int type, int port, int flag);
 extern int 
-RPC_undo_arg_list (int argc, char **arg_list, char **machine, int *family,
-		   int *type, int *well_known_socket, int *flag);
+RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
+		   int &type, int &well_known_socket, int &flag);
 extern int RPC_getConnect (int fd);
 
 #endif
