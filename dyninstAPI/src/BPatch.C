@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.31 2000/08/01 02:32:16 hollings Exp $
+// $Id: BPatch.C,v 1.32 2000/08/07 00:55:20 wylie Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -316,7 +316,7 @@ BPatchForkCallback BPatch::registerPostForkCallback(BPatchForkCallback func)
     !defined(alpha_dec_osf4_0) && \
     !defined(mips_sgi_irix6_4)
     reportError(BPatchWarning, 0,
-	"fork callbacks not implemented on this platform");
+	"postfork callbacks not implemented on this platform\n");
     return NULL;
 #else
     BPatchForkCallback ret;
@@ -343,7 +343,7 @@ BPatchForkCallback BPatch::registerPreForkCallback(BPatchForkCallback func)
     !defined(alpha_dec_osf4_0) && \
     !defined(mips_sgi_irix6_4)
     reportError(BPatchWarning, 0,
-	"fork callbacks not implemented on this platform");
+	"prefork callbacks not implemented on this platform\n");
     return NULL;
 #else
     BPatchForkCallback ret;
@@ -371,7 +371,7 @@ BPatchExecCallback BPatch::registerExecCallback(BPatchExecCallback func)
     !defined(alpha_dec_osf4_0) && \
     !defined(mips_sgi_irix6_4)
     reportError(BPatchWarning, 0,
-	"exec callbacks not implemented on this platform");
+	"exec callbacks not implemented on this platform\n");
     return NULL;
 #else
     BPatchExecCallback ret;
@@ -399,7 +399,7 @@ BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
     !defined(alpha_dec_osf4_0) && \
     !defined(mips_sgi_irix6_4)
     reportError(BPatchWarning, 0,
-	"exec callbacks not implemented on this platform");
+	"exit callbacks not implemented on this platform\n");
     return NULL;
 #else
     BPatchExitCallback ret;
