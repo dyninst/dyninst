@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.21 2000/04/11 18:59:45 buck Exp $
+# $Id: make.module.tmpl,v 1.22 2000/04/20 20:18:16 jasonxie Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -29,6 +29,30 @@ TARGETS      +=  test1.mutatee_$(NATIVE_CC) \
 		 test4a.mutatee_$(NATIVE_CC) \
 		 test4b.mutatee_$(NATIVE_CC)
 endif
+
+ifdef GNU_CXX	
+TARGETS      +=  test1.mutatee_$(GNU_CXX) \
+		 test2.mutatee_$(GNU_CXX) \
+		 test3.mutatee_$(GNU_CXX) \
+		 test4a.mutatee_$(GNU_CXX) \
+		 test4b.mutatee_$(GNU_CXX)
+endif
+		
+ifdef NATIVE_CXX
+
+USES_NATIVE_CC  =   true
+
+ifeq ($(DEBUG_FLAG),-gstabs+)
+DEBUG_FLAG =
+endif
+
+TARGETS      +=  test1.mutatee_$(NATIVE_CXX) \
+		 test2.mutatee_$(NATIVE_CXX) \
+		 test3.mutatee_$(NATIVE_CXX) \
+		 test4a.mutatee_$(NATIVE_CXX) \
+		 test4b.mutatee_$(NATIVE_CXX)
+endif
+
 
 ifdef USES_LIBDYNINSTRT_SO
 TARGETS      += libtestA.so libtestB.so
@@ -66,6 +90,22 @@ ifdef NATIVE_CC
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test3.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test4a.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test4b.mutatee_$(NATIVE_CC)
+endif
+
+ifdef GNU_CXX
+	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test1.mutatee_$(GNU_CXX)
+	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test2.mutatee_$(GNU_CXX)
+	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test3.mutatee_$(GNU_CXX)
+	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test4a.mutatee_$(GNU_CXX)
+	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test4b.mutatee_$(GNU_CXX)
+endif
+
+ifdef NATIVE_CXX
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test1.mutatee_$(NATIVE_CXX)
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test2.mutatee_$(NATIVE_CXX)
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test3.mutatee_$(NATIVE_CXX)
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test4a.mutatee_$(NATIVE_CXX)
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test4b.mutatee_$(NATIVE_CXX)
 endif
 
 pc:

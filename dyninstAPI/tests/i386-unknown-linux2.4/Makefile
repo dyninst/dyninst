@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2000/03/31 01:58:27 wylie Exp $
+# $Id: Makefile,v 1.2 2000/04/20 20:18:27 jasonxie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -19,6 +19,8 @@ CXXFLAGS +=
 CFLAGS +=
 
 SYSLIBS   += -lelf -lnsl
+GNU_CXX = g++
+
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
