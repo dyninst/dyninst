@@ -1,30 +1,25 @@
 #
-# $Id: Makefile,v 1.4 1998/03/02 01:09:16 wylie Exp $
+# $Id: Makefile,v 1.5 1998/04/01 02:33:14 wylie Exp $
 #
+
 # Define any symbols needed to invoke configuration changes in make.config
-
-# none
-
-# Include standard make configuration stuff that applies to everything
-# in the paradyn tree.
 
 USES_PVM = true 
 #USES_SHM_SAMPLING = true
+
+# Include standard make configuration stuff that applies to everything
+# in the paradyn tree.
 
 include ../../nmake.config 
 
 # Now make any necessary architecture specific changes to variables:
 
 LD		= link
-LDFLAGS		= -DLL -debug -debugtype:coff
+LDFLAGS		= -DLL -debug -debugtype:coff -base:0x60000000
 
 #TARGET2		= libdyninstCP.a
 
-DYNOBJS		= DYNINSTstartCode.obj \
-		DYNINSTendCode.obj
-
-SRCS	     = $(SRCS) ../src/RTfirst.c \
-		../src/RTwinnt.c
+SRCS	     = $(SRCS) ../src/RTfirst.c ../src/RTwinnt.c
 
 OBJS		= RTfirst.obj RTwinnt.obj
 
@@ -45,8 +40,9 @@ include ../../nmake.library.tmpl
 # Override target to force ld to happen
 #
 $(TARGET): $(OBJS)
+	@$(MAKE) $(VOUCHER)
 	$(LD) $(LDFLAGS) -EXPORT:DYNINSTinit -ENTRY:_DllMainCRTStartup@12 \
-	    -out:$(TARGET) $(OBJS) $(LIBS) wsock32.lib winmm.lib
+	    -out:$(TARGET) $(VOUCHER).obj $(OBJS) $(LIBS) wsock32.lib winmm.lib
 
 #$(TARGET2): $(OBJS) RTpvmPiggy.o RTcriticalPath.o
 #	@$(RM) $(TARGET2)

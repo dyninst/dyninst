@@ -3,29 +3,35 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.14 1997/11/28 21:17:38 wylie Exp $
+# $Id: make.module.tmpl,v 1.15 1998/04/01 02:33:04 wylie Exp $
 #
 
 ifndef TARGET
-TARGET	      = libdyninstRT.o
-ALT_TARGET    = DYNINSTstartCode.o DYNINSTendCode.o RTpvmPiggy.o RTcriticalPath.o
+ifndef USES_LIBDYNINSTRT_SO
+TARGET		= libdyninstRT.o
+else
+TARGET		= libdyninstRT.so.1
+endif
+ifdef INCLUDE_CP_PROFILING
+TARGET2		= libdyninstCP.o
+CP_OBJS		= RTpvmPiggy.o RTcriticalPath.o
+endif
+ifdef BUILD_CODE_BLOCKS        
+ALT_TARGET	= DYNINSTstartCode.o DYNINSTendCode.o 
+endif
 endif
 
 MODCC         = $(CC)
 MODCFLAGS     = $(CFLAGS)
 
 SRCS	     += ../src/RTinst.c ../src/RTend.c
-SRCS2	     += ../src/RTend.c
-
-DYNSRCS	      = ../src/DYNINSTstartCode.c \
-		../src/DYNINSTendCode.c
 
 ifdef USES_SHM_SAMPLING
 CFLAGS	+= -DSHM_SAMPLING
 endif
 
 ifdef USES_LIBDYNINSTRT_SO
-all: $(TARGET3)
+all: $(TARGET) $(TARGET2) 
 else
 all: $(TARGET) $(TARGET2) $(ALT_TARGET)
 endif
@@ -33,7 +39,7 @@ endif
 #
 # override standard link rule; libdyninst is not really a library or a program.
 #
-UNCOMMON_LINK= true
+UNCOMMON_LINK = true
 
 OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
@@ -41,41 +47,41 @@ OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o)
 
-ifndef USES_LIBDYNINSTRT_SO
-$(TARGET): $(OBJS) $(LIBS)
-	$(LD) $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS) -lgcc
-endif
+#ifndef USES_LIBDYNINSTRT_SO
+#$(TARGET): $(OBJS) $(LIBS)
+#	$(LD) $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS) -lgcc
+#endif
 
 #
 # override standard install rule; provide a default DEST if not already set
 #
 ifndef DEST
-DEST		= $(TO_CORE)/../lib/$(PLATFORM)
+DEST		= $(TO_CORE)/$(LIBRARY_DEST)
 endif
 
-UNCOMMON_INSTALL= true
-ifdef USES_LIBDYNINSTRT_SO
-install: $(DEST)/$(TARGET3) \
-	 $(DEST)/DYNINSTstartCode.o \
-	 $(DEST)/DYNINSTendCode.o \
-	 $(DEST)/RTpvmPiggy.o
-else
-install: $(DEST)/$(TARGET) \
-	 $(DEST)/DYNINSTstartCode.o \
-	 $(DEST)/DYNINSTendCode.o \
-	 $(DEST)/RTpvmPiggy.o
+INSTOBJS	= $(DEST)/$(TARGET)
+ifdef BUILD_CODE_BLOCKS
+INSTOBJS	+= $(DEST)/DYNINSTstartCode.o $(DEST)/DYNINSTendCode.o
 endif
-$(DEST)/libdyninstRT.o:       libdyninstRT.o
-	-cp libdyninstRT.o ../../../lib/$(PLATFORM)
+ifdef INCLUDE_CP_PROFILING
+INSTOBJS	+= $(DEST)/RTpvmPiggy.o $(DEST)/$(TARGET2)
+endif
 
-$(DEST)/libdyninstRT.so.1:       libdyninstRT.so.1
-	-cp libdyninstRT.so.1 ../../../lib/$(PLATFORM)
+UNCOMMON_INSTALL = true
+
+install: $(INSTOBJS)
+
+$(DEST)/$(TARGET):       $(TARGET)
+	-$(CP) $(TARGET) $(DEST)
+
+$(DEST)/$(TARGET2):       $(TARGET2)
+	-$(CP) $(TARGET2) $(DEST)
 
 $(DEST)/RTpvmPiggy.o: RTpvmPiggy.o
-	-cp RTpvmPiggy.o ../../../lib/$(PLATFORM)
+	-$(CP) RTpvmPiggy.o $(DEST)
 
 $(DEST)/DYNINSTstartCode.o: DYNINSTstartCode.o
-	-cp DYNINSTstartCode.o ../../../lib/$(PLATFORM)
+	-$(CP) DYNINSTstartCode.o $(DEST)
 
 $(DEST)/DYNINSTendCode.o: DYNINSTendCode.o
-	-cp DYNINSTendCode.o ../../../lib/$(PLATFORM)
+	-$(CP) DYNINSTendCode.o $(DEST)
