@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.405 2003/04/11 20:02:38 bernat Exp $
+// $Id: process.C,v 1.406 2003/04/11 22:46:24 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -222,22 +222,14 @@ void printLoadDyninstLibraryError() {
     cerr << "Please check your environment and try again." << endl;
 }
 
-    
 
-bool reachedLibState(libraryState_t lib, libraryState_t state) { return (lib >= state); }
+bool reachedLibState(libraryState_t lib, libraryState_t state) {
+   return (lib >= state);
+}
 
 void setLibState(libraryState_t &lib, libraryState_t state) {
     if (lib > state) cerr << "Error: attempting to revert library state" << endl;
     else lib = state;
-}
-
-
-process *findProcess(int pid) { // make a public static member fn of class process
-  unsigned size=processVec.size();
-  for (unsigned u=0; u<size; u++)
-    if (processVec[u] && processVec[u]->getPid() == pid)
-      return processVec[u];
-  return NULL;
 }
 
 bool waitingPeriodIsOver()
@@ -1606,7 +1598,8 @@ typedef struct {
   void *result;
 } imd_rpc_ret;
 
-void process::inferiorMallocCallback(process *proc, void *data, void *result)
+void process::inferiorMallocCallback(process *proc, unsigned /* rpc_id */,
+                                     void *data, void *result)
 {
   imd_rpc_ret *ret = (imd_rpc_ret *)data;
   ret->result = result;
@@ -1625,78 +1618,79 @@ void alignUp(int &val, int align)
 // dynamically allocate a new inferior heap segment using inferiorRPC
 void process::inferiorMallocDynamic(int size, Address lo, Address hi)
 {
-/* 03/07/2001 - Jeffrey Shergalis
- * TODO: This code was placed to prevent the infinite recursion on the
- * call to inferiorMallocDynamic, unfortunately it makes paradyn break
- * on Irix, temporarily fixed by the #if !defined(mips..., but should be properly fixed
- * in the future, just no time now
- */
+   /* 03/07/2001 - Jeffrey Shergalis TODO: This code was placed to prevent
+    * the infinite recursion on the call to inferiorMallocDynamic,
+    * unfortunately it makes paradyn break on Irix, temporarily fixed by the
+    * #if !defined(mips..., but should be properly fixed in the future, just
+    * no time now
+    */
 #if !defined(mips_sgi_irix6_4)
-  // Fun (not) case: there's no space for the RPC to execute.
-  // It'll call inferiorMalloc, which will call inferiorMallocDynamic...
-  // Avoid this with a static bool.
-  static bool inInferiorMallocDynamic = false;
-
-  if (inInferiorMallocDynamic) return;
-  inInferiorMallocDynamic = true;
+   // Fun (not) case: there's no space for the RPC to execute.
+   // It'll call inferiorMalloc, which will call inferiorMallocDynamic...
+   // Avoid this with a static bool.
+   if (inInferiorMallocDynamic) {
+      return;
+   }
+   inInferiorMallocDynamic = true;
 #endif
-
-  // word-align buffer size 
-  // (see "DYNINSTheap_align" in rtinst/src/RTheap-<os>.c)
-  alignUp(size, 4);
-
-  // build AstNode for "DYNINSTos_malloc" call
-  string callee = "DYNINSTos_malloc";
-  pdvector<AstNode*> args(3);
-  args[0] = new AstNode(AstNode::Constant, (void *)size);
-  args[1] = new AstNode(AstNode::Constant, (void *)lo);
-  args[2] = new AstNode(AstNode::Constant, (void *)hi);
-  AstNode *code = new AstNode(callee, args);
-  removeAst(args[0]);
-  removeAst(args[1]);
-  removeAst(args[2]);
-
-  // issue RPC and wait for result
-  imd_rpc_ret ret = { false, NULL };
-
-  /* set lowmem to ensure there is space for inferior malloc */
-  postRPCtoDo(code, true, // noCost
-              &inferiorMallocCallback, &ret, -1, // No particular thread or LWP
-              true); // But use reserved memory
-  bool wasRunning = (status() == running);
-  do {
+   
+   // word-align buffer size 
+   // (see "DYNINSTheap_align" in rtinst/src/RTheap-<os>.c)
+   alignUp(size, 4);
+   
+   // build AstNode for "DYNINSTos_malloc" call
+   string callee = "DYNINSTos_malloc";
+   pdvector<AstNode*> args(3);
+   args[0] = new AstNode(AstNode::Constant, (void *)size);
+   args[1] = new AstNode(AstNode::Constant, (void *)lo);
+   args[2] = new AstNode(AstNode::Constant, (void *)hi);
+   AstNode *code = new AstNode(callee, args);
+   removeAst(args[0]);
+   removeAst(args[1]);
+   removeAst(args[2]);
+   
+   // issue RPC and wait for result
+   imd_rpc_ret ret = { false, NULL };
+   
+   /* set lowmem to ensure there is space for inferior malloc */
+   postRPCtoDo(code, true, // noCost
+               &inferiorMallocCallback, &ret, true); // But use reserved memory
+   bool wasRunning = (status() == running);
+   do {
       bool result = launchRPCs(wasRunning);
       if(hasExited()) return;
       decodeAndHandleProcessEvent(false);
-  } while (!ret.ready); // Loop until callback has fired.
-  switch ((int)(Address)ret.result) {
-  case 0:
-#ifdef DEBUG
-    sprintf(errorLine, "DYNINSTos_malloc() failed\n");
-    logLine(errorLine);
-#endif
-    break;
-  case -1:
-    // TODO: assert?
-    sprintf(errorLine, "DYNINSTos_malloc(): unaligned buffer size\n");
-    logLine(errorLine);
-    break;
-  default:
-    // add new segment to buffer pool
-    heapItem *h = new heapItem((Address)ret.result, size, anyHeap, true, HEAPfree);
-    heap.bufferPool.push_back(h);
-    // add new segment to free list
-    heapItem *h2 = new heapItem(h);
-    heap.heapFree.push_back(h2);
-    break;
-  }
+   } while (!ret.ready); // Loop until callback has fired.
 
-/* 03/07/2001 - Jeffrey Shergalis
- * Part of the above #if !defined(mips... patch for the recursion problem
- * TODO: Need a better solution
- */
+   switch ((int)(Address)ret.result) {
+     case 0:
+#ifdef DEBUG
+        sprintf(errorLine, "DYNINSTos_malloc() failed\n");
+        logLine(errorLine);
+#endif
+        break;
+     case -1:
+        // TODO: assert?
+        sprintf(errorLine, "DYNINSTos_malloc(): unaligned buffer size\n");
+        logLine(errorLine);
+        break;
+     default:
+        // add new segment to buffer pool
+        heapItem *h = new heapItem((Address)ret.result, size, anyHeap, true,
+                                   HEAPfree);
+        heap.bufferPool.push_back(h);
+        // add new segment to free list
+        heapItem *h2 = new heapItem(h);
+        heap.heapFree.push_back(h2);
+        break;
+   }
+   
+   /* 03/07/2001 - Jeffrey Shergalis
+    * Part of the above #if !defined(mips... patch for the recursion problem
+    * TODO: Need a better solution
+    */
 #if !defined(mips_sgi_irix6_4)
-  inInferiorMallocDynamic = false;
+   inInferiorMallocDynamic = false;
 #endif
 }
 #endif /* USES_DYNAMIC_INF_HEAP */
@@ -1788,10 +1782,11 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
       freeIndex = findFreeIndex(size, type, lo, hi);
 //	printf("  type %x",type);
    }
-   
+
    // adjust active and free lists
    heapItem *h = hp->heapFree[freeIndex];
    assert(h);
+
    // remove allocated buffer from free list
    if (h->length != size) {
       // size mismatch: put remainder of block on free list
@@ -2008,6 +2003,8 @@ process::process(int iPid, image *iImage, int iTraceLink
 	PARADYNhasBootstrapped = false;
 #endif
 
+   invalid_thr_create_msgs = 0;
+
     parentPid = childPid = 0;
     dyninstlib_brk_addr = 0;
     
@@ -2097,6 +2094,8 @@ process::process(int iPid, image *iImage, int iTraceLink
 #endif
     execed_ = false;
 
+    inInferiorMallocDynamic = false;
+
 #ifdef SHM_SAMPLING
 #ifdef sparc_sun_sunos4_1_3
    kvmHandle = kvm_open(0, 0, 0, O_RDONLY, 0);
@@ -2122,6 +2121,8 @@ process::process(int iPid, image *iImage, int iTraceLink
           traceLink = iTraceLink; // notice that tracelink will be -1 in the unique
                                   // case called "AttachToCreated" - Ana
           
+          bufStart = 0;
+          bufEnd = 0;
    //removed for output redirection
    //ioLink = iIoLink;
 
@@ -2209,8 +2210,9 @@ process::process(int iPid, image *iSymbols,
     nextTrapIsFork = false;
     nextTrapIsExec = false;
 
-    
-	createdViaAttach = true;
+    invalid_thr_create_msgs = 0;
+
+    createdViaAttach = true;
 
 #if !defined(i386_unknown_nt4_0)
     bootstrapState = initialized;
@@ -2229,6 +2231,8 @@ process::process(int iPid, image *iSymbols,
     status_ = neonatal;
     exitCode_ = (procSignalWhat_t) -1;
     continueAfterNextStop_ = 0;
+
+    inInferiorMallocDynamic = false;
     
     theRpcMgr = new rpcMgr(this);
     
@@ -2291,6 +2295,8 @@ process::process(int iPid, image *iSymbols,
 
 
    traceLink = -1; // will be set later, when the appl runs DYNINSTinit
+   bufStart = 0;
+   bufEnd = 0;
 
    //removed for output redirection
    //ioLink = -1; // (ARGUABLY) NOT YET IMPLEMENTED...MAYBE WHEN WE ATTACH WE DON'T WANT
@@ -2384,14 +2390,14 @@ void copyOverInstInstanceObjects(
    for(; it; it++) {
       installed_miniTramps_list *oldMTlist = it.currval();
       installed_miniTramps_list *newMTlist =
-	it.currval() = new installed_miniTramps_list();
+         it.currval() = new installed_miniTramps_list();
       newMTlist->clear();
       List<instInstance*>::iterator lstIter = oldMTlist->get_begin_iter();
       List<instInstance*>::iterator endIter = oldMTlist->get_end_iter();
       for(; lstIter != endIter; lstIter++) {
-	instInstance *oldII = *lstIter;
-	instInstance *newII = new instInstance(*oldII);
-	newMTlist->addMiniTramp(orderLastAtPoint, newII);
+         instInstance *oldII = *lstIter;
+         instInstance *newII = new instInstance(*oldII);
+         newMTlist->addMiniTramp(orderLastAtPoint, newII);
       }
    }
 }
@@ -2403,12 +2409,7 @@ void copyOverInstInstanceObjects(
 // paradynd executes the fork syscall.
 //
 
-process::process(const process &parentProc, int iPid, int iTrace_fd
-#ifndef BPATCH_LIBRARY
-                 ,key_t theShmKey,
-                 void *applShmSegPtr
-#endif
-                 ) :
+process::process(const process &parentProc, int iPid, int iTrace_fd) :
   collectSaveWorldData(true),
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
   requestTextMiniTramp(0), //ccw 30 jul 2002
@@ -2460,9 +2461,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     
    // This is the "fork" ctor
    bootstrapState = initialized;
-#if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
-   PARADYNhasBootstrapped = false;
-#endif
+
+   invalid_thr_create_msgs = 0;
 
    createdViaAttachToCreated = false;
    createdViaFork = true;
@@ -2475,6 +2475,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
    mainFunction = parentProc.mainFunction;
 
    traceLink = iTrace_fd;
+   bufStart = 0;
+   bufEnd = 0;
 
    //removed for output redireciton
    //ioLink = -1; // when does this get set?
@@ -2489,21 +2491,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
    theRpcMgr = new rpcMgr(this);
 
+
 #ifndef BPATCH_LIBRARY
-   // since the child process inherits the parents instrumentation we'll
-   // need to inherit the parent process's data also
-   theSharedMemMgr = new shmMgr(*parentProc.theSharedMemMgr, theShmKey,
-                                applShmSegPtr, pid);
-   shmMetaData = new sharedMetaData(*(parentProc.shmMetaData), 
-                                    *theSharedMemMgr);
-   shMetaOffsetData = new sharedMetaOffsetData(*theSharedMemMgr, 
-					       *(parentProc.shMetaOffsetData));
-   initCpuTimeMgr();
-
-   shmMetaData->adjustToNewBaseAddr(reinterpret_cast<Address>(
-                                                              theSharedMemMgr->getBaseAddrInDaemon()));
-   shmMetaData->initializeForkedProc(theSharedMemMgr->cookie, getPid());
-
    string buff = string(pid); // + string("_") + getHostName();
    rid = resource::newResource(machineResource, // parent
                                (void*)this, // handle
@@ -2524,7 +2513,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
    main_brk_addr = 0;
    nextTrapIsExec = false;
    
-   bootstrapState = initialized;
+   //bootstrapState = initialized;
+   bootstrapState = bootstrapped;
 
    splitHeaps = parentProc.splitHeaps;
 
@@ -2534,6 +2524,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
    cumObsCost = 0;
    lastObsCostLow = 0;
+
+   inInferiorMallocDynamic = false;
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
  || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
@@ -2606,22 +2598,16 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
       status_ = exited;
       return;
    }
-   // threads... // 6/2/99 zhichen
-   for (unsigned i=0; i<parentProc.threads.size(); i++) {
-      dyn_thread *from_thr = parentProc.threads[i];
-      dyn_thread *new_thr = new dyn_thread(this, from_thr);
-      threads.push_back(new_thr);
-#if defined(MT_THREAD)
-      dyn_thread *thr = threads[i] ;
-      string buffer;
-      string pretty_name=string(thr->get_start_func()->prettyName().c_str());
-      buffer = string("thr_")+string(thr->get_tid())+string("{")+pretty_name+string("}");
-      resource *rid;
-      rid = resource::newResource(this->rid, (void *)thr, nullString, buffer, 
-                                  timeStamp::ts1970(), "", MDL_T_STRING, true);
-      thr->update_rid(rid);
-#endif
+
+   if(! multithread_capable()) {
+      // for single thread, add the single thread
+      assert(parentProc.threads.size() == 1);
+      dyn_thread *parent_thr = parentProc.threads[0];
+      dyn_thread *new_thr = new dyn_thread(this, parent_thr);
+      threads.push_back(new_thr);      
    }
+   // the threads for MT programs are added through later, through function
+   // process::recognize_threads
 
    if( isRunning_() )
       status_ = running;
@@ -3246,8 +3232,7 @@ bool process::iRPCDyninstInit() {
     postRPCtoDo(dynInit,
                 true, // Don't update cost
                 process::DYNINSTinitCompletionCallback,
-                NULL, // No user data
-                -1); // Not a metric definition
+                NULL); // No user data
                 // No particular thread or LWP
 
     // We loop until dyninst init has run (check via the callback)
@@ -3284,6 +3269,7 @@ bool process::attach() {
 }
 
 void process::DYNINSTinitCompletionCallback(process* theProc,
+                                            unsigned /* rpc_id */,
                                             void* /*userData*/, // user data
                                             void* /*ret*/) // return value from DYNINSTinit
 {
@@ -3332,7 +3318,7 @@ bool process::finalizeDyninstLib() {
    
    
    if (calledFromFork) {
-       process *parentProcess = findProcess(bs_record.ppid);
+       process *parentProcess = process::findProcess(bs_record.ppid);
        if (parentProcess) {
            if (parentProcess->status() == stopped) {
                if (!parentProcess->continueProc())
@@ -3556,56 +3542,6 @@ void handleProcessExit(process *proc, int exitStatus) {
 //      processVec[lcv] = NULL;
 //     }
 }
-
-
-#ifndef BPATCH_LIBRARY
-/*
-   process::forkProcess: called when a process forks, to initialize a new
-   process object for the child.
-
-   the variable childHasInstrumentation is true if the child process has the 
-   instrumentation of the parent. This is the common case.
-   On some platforms (AIX) the child does not have any instrumentation because
-   the text segment of the child is not a copy of the parent text segment at
-   the time of the fork, but a copy of the original text segment of the parent,
-   without any instrumentation.
-   (actually, childHasInstr is obsoleted by aix's completeTheFork() routine)
-*/
-process *process::forkProcess(const process *theParent, pid_t childPid,
-			      int iTrace_fd, key_t theKey,
-			      void *applAttachedPtr) {
-   forkexec_cerr << "paradynd welcome to process::forkProcess\n; parent pid=" 
-		 << theParent->getPid() << "; calling fork ctor now\n";
-   
-   // Call the "fork" ctor:
-   process *ret = new process(*theParent, (int)childPid, iTrace_fd, theKey,
-			      applAttachedPtr);
-   assert(ret);
-
-   forkexec_cerr << "paradynd fork ctor has completed ok...child pid is " 
-		 << ret->getPid() << "\n";
-
-   processVec += ret;
-   activeProcesses++;
-
-   if (!costMetric::addProcessToAll(ret))
-      assert(false);
-
-   // We used to do a ret->attach() here...it was moved to the fork ctor, so
-   // it's been done already.
-
-   /* all instrumentation on the parent is active on the child */
-   /* TODO: what about instrumentation inserted near the fork time??? */
-   ret->baseMap = theParent->baseMap; // WHY IS THIS HERE?
-
-#ifdef BPATCH_LIBRARY
-   /* XXX Not sure if this is the right thing to do. */
-   ret->instPointMap = theParent->instPointMap;
-#endif
-
-   return ret;
-}
-#endif
 
 #ifdef SHM_SAMPLING
 void process::processCost(unsigned obsCostLow,
@@ -4028,14 +3964,12 @@ bool process::runLibraryCallback(string libname, shared_object *libobj) {
 //  shared objects, parse them, and define new instpoints and resources 
 //
 bool process::initSharedObjects(){
-
     // get shared objects, parse them, and define new resources 
     // For WindowsNT we don't call getSharedObjects here, instead
     // addASharedObject will be called directly by pdwinnt.C
 #if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     this->getSharedObjects();
 #endif
-
     return true;
 }
 
@@ -6144,6 +6078,34 @@ void process::Exited() {
 
 }
 
+process *process::findProcess(int pid) {
+  unsigned size=processVec.size();
+  for (unsigned u=0; u<size; u++)
+    if (processVec[u] && processVec[u]->getPid() == pid)
+      return processVec[u];
+  return NULL;
+}
+
+string process::getBootstrapStateAsString() const {
+   // useful for debugging
+   switch(bootstrapState) {
+     case unstarted:
+        return "unstarted";
+     case begun:
+        return "begun";
+     case initialized:
+        return "initialized";
+     case loadingRT:
+        return "loadingRT";
+     case loadedRT:
+        return "loadedRT";
+     case bootstrapped:
+        return "bootstrapped";
+   }
+   assert(false);
+   return "???";
+}
+
 string process::getStatusAsString() const {
    // useful for debugging
    if (status_ == neonatal)
@@ -6593,31 +6555,41 @@ void process::deleteBaseTramp(trampTemplate *baseTramp,
 }
 
 // Post on this process
-void process::postRPCtoDo(AstNode *action, bool noCost,
-                          inferiorRPCcallbackFunc callbackFunc, void *userData,
-                          int mid, bool lowmem)
+unsigned process::postRPCtoDo(AstNode *action, bool noCost,
+                              inferiorRPCcallbackFunc callbackFunc,
+                              void *userData, bool lowmem)
 {
-   theRpcMgr->postRPCtoDo(action, noCost, callbackFunc, userData, mid, lowmem);
+   return theRpcMgr->postRPCtoDo(action, noCost, callbackFunc, userData,
+                                 lowmem);
 }
 
 // Post on given thread
-void process::postRPCtoDo(AstNode *action, bool noCost,
-                          inferiorRPCcallbackFunc callbackFunc, void *userData,
-                          int mid, dyn_thread *thr, bool lowmem) {
-   theRpcMgr->postRPCtoDo(action, noCost, callbackFunc, userData, 
-                          mid, thr, lowmem);
+unsigned process::postRPCtoDo(AstNode *action, bool noCost,
+                              inferiorRPCcallbackFunc callbackFunc,
+                              void *userData, dyn_thread *thr, bool lowmem)
+{
+   return theRpcMgr->postRPCtoDo(action, noCost, callbackFunc, userData, 
+                                 thr, lowmem);
 }
 
 // Post on given lwp
-void process::postRPCtoDo(AstNode *action, bool noCost,
-                          inferiorRPCcallbackFunc callbackFunc, void *userData,
-                          int mid, dyn_lwp *lwp, bool lowmem) {
-   theRpcMgr->postRPCtoDo(action, noCost, callbackFunc, userData,
-                          mid, lwp, lowmem);
+unsigned process::postRPCtoDo(AstNode *action, bool noCost,
+                             inferiorRPCcallbackFunc callbackFunc,
+                             void *userData, dyn_lwp *lwp, bool lowmem) {
+   return theRpcMgr->postRPCtoDo(action, noCost, callbackFunc, userData,
+                                 lwp, lowmem);
 }
 
 bool process::launchRPCs(bool wasRunning) {
    return theRpcMgr->launchRPCs(wasRunning);
+}
+
+irpcState_t process::getRPCState(unsigned rpc_id) {
+   return theRpcMgr->getRPCState(rpc_id);
+}
+
+bool process::cancelRPC(unsigned rpc_id) {
+   return theRpcMgr->cancelRPC(rpc_id);
 }
 
 bool process::existsRPCPending() const {
@@ -6630,10 +6602,6 @@ bool process::existsRPCinProgress() const {
 
 bool process::existsRPCWaitingForSyscall() const {
    return theRpcMgr->existsRPCWaitingForSyscall();
-}
-
-void process::cleanRPCreadyToLaunch(int mid) {
-   theRpcMgr->cleanRPCreadyToLaunch(mid);
 }
 
 bool process::handleTrapIfDueToRPC() {
@@ -6734,6 +6702,15 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
   }
 }
 
+dyn_thread *process::getThread(unsigned tid) {
+   dyn_thread *thr;
+   for(unsigned i=0; i<threads.size(); i++) {
+      thr = threads[i];
+      if(thr->get_tid() == tid)
+         return thr;
+   }
+   return NULL;
+}
 
 // Question: if we don't find, do we create?
 // For now, yes.
@@ -6775,6 +6752,85 @@ dyn_lwp *process::getDefaultLWP() const
   if (lwps.find(0, lwp))
     return lwp;
   return NULL;
+}
+
+void read_variables_after_fork(process *proc, int *shm_key,
+                               void **DYNINST_shmSegAttachedPtr) {
+   int hintBestCpuTimerLevel, hintBestWallTimerLevel;
+   bool err = false;
+   Address addr = proc->findInternalAddress("DYNINST_shmSegKey", true, err);
+   assert(err==false);
+   if (!proc->readDataSpace((caddr_t)addr, sizeof(int), shm_key, true))
+      return;  // readDataSpace has it's own error reporting
+
+   addr = proc->findInternalAddress("DYNINST_shmSegAttachedPtr", true, err);
+   assert(err==false);
+   if (!proc->readDataSpace((caddr_t)addr, sizeof(int),
+                            DYNINST_shmSegAttachedPtr, true))
+      return;  // readDataSpace has it's own error reporting
+}
+
+void call_PARADYN_init_child_after_fork(process *theProc, 
+                                        unsigned rpc_id,
+                                        void * /*userData*/,
+                                        void *returnVal) {
+   //cerr << "called call_PARADYN_init callback, returnVal: " << returnVal 
+   //     << ", pid: " << theProc->getPid() << ", rpc_id: " << rpc_id << endl;
+   if(reinterpret_cast<long>(returnVal) != 123)
+      cerr << "WARNING, PARADYN_init_child_after_fork unsuccessful\n";
+}
+
+#if !defined(BPATCH_LIBRARY)
+void process::init_shared_memory(process *parentProc) {
+   pdvector<AstNode *> ast_args;
+   AstNode *ast = new AstNode("PARADYN_init_child_after_fork", ast_args);
+
+   unsigned rpc_id =
+      postRPCtoDo(ast, false, call_PARADYN_init_child_after_fork, this);
+
+   bool wasRunning = false;  // child should be paused after fork
+   do {
+      launchRPCs(wasRunning);
+      if(hasExited()) return;
+      decodeAndHandleProcessEvent(false);
+      // loop until the rpc has completed
+   } while(getRPCState(rpc_id) != irpcNotValid);
+
+   int shm_key;
+   void *shmSegAttachedPtr;
+   read_variables_after_fork(this, &shm_key, &shmSegAttachedPtr);
+
+   // since the child process inherits the parents instrumentation we'll
+   // need to inherit the parent process's data also
+   theSharedMemMgr = 
+      new shmMgr(*parentProc->theSharedMemMgr, shm_key, shmSegAttachedPtr,
+                 getPid());
+   shmMetaData = new sharedMetaData(*(parentProc->shmMetaData), 
+                                    *theSharedMemMgr);
+   shMetaOffsetData = 
+      new sharedMetaOffsetData(*theSharedMemMgr, 
+                               *(parentProc->shMetaOffsetData));
+
+   shmMetaData->adjustToNewBaseAddr(reinterpret_cast<Address>(
+                         (theSharedMemMgr->getBaseAddrInDaemon())));
+   shmMetaData->initializeForkedProc(theSharedMemMgr->cookie, getPid());
+}
+#endif
+
+void process::forkCallback(process *parentProc, process *childProc) {
+#if !defined(BPATCH_LIBRARY)
+   // shared memory will probably become part of dyninst soon
+   childProc->init_shared_memory(parentProc);
+#endif
+
+#if defined(BPATCH_LIBRARY)
+   BPatch::bpatch->registerForkedThread(parentProc->getPid(),
+                                        childProc->getPid(), childProc);
+#else
+   extern void paradyn_forkCallback(process *parentDynProc, 
+                                    process *childDynProc);
+   paradyn_forkCallback(parentProc, childProc);
+#endif
 }
 
 // MT section (move to processMT.C?)
