@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.13  1995/12/15 20:12:54  naim
-/* Adding call back function to display error messages from visis - naim
+/* Revision 1.14  1996/01/05 20:01:03  newhall
+/* removed warnings
 /*
+ * Revision 1.13  1995/12/15 20:12:54  naim
+ * Adding call back function to display error messages from visis - naim
+ *
  * Revision 1.12  1995/11/20  03:34:13  tamches
  * changes to use new buffer scheme of VISIthreadmain.C
  *
@@ -141,9 +144,9 @@ void visualizationUser::GetPhaseInfo(){
 // only option), else make enable data collection call to DM for each
 // metric resource pair
 //////////////////////////////////////////////////////////////////////
-void visualizationUser::GetMetricResource(string mets_res,
-					  int numElements,
-					  int type){
+//void visualizationUser::GetMetricResource(string mets_res, int numElements,
+//					  int type){
+void visualizationUser::GetMetricResource(string,int,int){
  VISIthreadGlobals *ptr;
 
 PARADYN_DEBUG(("in visualizationUser::GetMetricResource"));
@@ -231,8 +234,8 @@ void visualizationUser::showError(int code, string msg)
 //
 //  not currently implemented
 ///////////////////////////////////////////////////////////////////
-void visualizationUser::StartPhase(double begin,
-				   string name){
+//void visualizationUser::StartPhase(double begin, string name){
+void visualizationUser::StartPhase(double, string){
 
  VISIthreadGlobals *ptr;
 

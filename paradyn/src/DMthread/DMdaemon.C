@@ -244,7 +244,7 @@ bool paradynDaemon::defineDaemon (const char *c, const char *d,
 }
 
 
-daemonEntry *paradynDaemon::findEntry(const string &m, 
+daemonEntry *paradynDaemon::findEntry(const string &, 
 				      const string &n) {
 
     // if (!n) return ((daemonEntry*) 0);
@@ -689,8 +689,7 @@ int paradynDaemon::read(const void* handle, char *buf, const int len) {
     return ret;
 }
 
-void paradynDaemon::firstSampleCallback(int program,
-					double firstTime) {
+void paradynDaemon::firstSampleCallback(int, double firstTime) {
   setEarliestFirstTime(firstTime);
 }
 
@@ -735,95 +734,9 @@ void printSampleArrivalCallback(bool newVal) {
    our_print_sample_arrival = newVal;
 }
 
-// note: sampleDataCallbackFunc has been obsoleted by
-//       batchSampleDataCallbackFunc:
-
-//void paradynDaemon::sampleDataCallbackFunc(int program,
-//					   int  mid,
-//					   double startTimeStamp,
-//					   double endTimeStamp,
-//					   double value)
-//{
-//   metricInstance *mi = 0;
-//   component *part = 0;
-//
-//   // TAKE NOTE: This routine is _the_ critical path in the paradyn process.
-//   //            Be quick!
-//
-//    // get the earliest first time that had been reported by any paradyn
-//    // daemon to use as the base (0) time
-//    
-//    assert(getEarliestFirstTime());
-//    startTimeStamp -= getEarliestFirstTime();
-//    endTimeStamp -= getEarliestFirstTime();
-//
-//    if (our_print_sample_arrival) {
-//      cout << "mid " << mid << " " << value << " from " 
-//	<< startTimeStamp << " to " << endTimeStamp << "\n";
-//    }
-//    assert(mid >= 0);
-//    if (!activeMids.defines((unsigned)mid)) {
-//      // we're either gonna print a "data for disabled mid" error 
-//      // (in status line),
-//      // or "data for unknown mid".  The latter is a fatal error.
-//      bool found = false;
-//      for (unsigned ve=0; ve<disabledMids.size(); ve++) {
-//	if (disabledMids[ve] == (unsigned) mid) {
-//	  found = true;
-//	  break;
-//	}
-//      }
-//
-//      if (found) {
-//        tunableBooleanConstant developerMode =
-//                           tunableConstantRegistry::findBoolTunableConstant(
-//                           "developerMode");
-//        bool developerModeActive = developerMode.getValue();
-//	if (developerModeActive) {
-//	  string msg;
-//	  msg = string("ERROR?:data for disabled mid: ") + string(mid);
-//	  cout << msg.string_of() << endl;
-//	  DMstatus->message(P_strdup(msg.string_of()));
-//        }
-//	return;
-//      } else {
-//	printf("ERROR: data for unknown mid: %d\n", mid);
-//	uiMgr->showError (2, "");
-//	exit(-1);
-//      }
-//    }
-//
-//    mi = activeMids[(unsigned)mid];
-//    assert(mi);
-//
-//    struct sampleInterval ret;
-//    if(mi->components.size()){
-//        // find the right component.
-//	part = 0;
-//        for(unsigned i=0; i < mi->components.size(); i++){
-//	    if((unsigned)mi->components[i]->daemon == (unsigned)this)
-//		part = mi->components[i];
-//	}
-//	if (!part) {
-//	  uiMgr->showError(3, "Unable to find component!!!");
-//	  exit(-1);
-//	}
-//	ret = part->sample.newValue(endTimeStamp, value);
-//    }
-//    ret = mi->sample.newValue(mi->parts, endTimeStamp, value);
-//
-//    if (ret.valid) {
-//	assert(ret.end >= 0.0);
-//	assert(ret.start >= 0.0);
-//	assert(ret.end >= ret.start);
-//	mi->enabledTime += ret.end - ret.start;
-//	mi->addInterval(ret.start, ret.end, ret.value, false);
-//    }
-//}
-
 // batched version of sampleCallbackFunc
-void paradynDaemon::batchSampleDataCallbackFunc(int program,
-				vector<T_dyninstRPC::batch_buffer_entry> theBatchBuffer)
+void paradynDaemon::batchSampleDataCallbackFunc(int ,
+		vector<T_dyninstRPC::batch_buffer_entry> theBatchBuffer)
 {
     // get the earliest first time that had been reported by any paradyn
     // daemon to use as the base (0) time

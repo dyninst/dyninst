@@ -44,7 +44,7 @@ void phaseInfo::setLastEndTime(timeStamp stop_time){
    }
 }
 
-void phaseInfo::startPhase(timeStamp start_Time, const string &name){
+void phaseInfo::startPhase(timeStamp, const string &name){
 
     phaseHandle lastId =  phaseInfo::CurrentPhaseHandle();
     // create a new phaseInfo object 

@@ -2,6 +2,9 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
+ * Revision 1.86  1996/01/05 20:00:46  newhall
+ * removed warnings
+ *
  * Revision 1.85  1995/12/28 23:35:26  zhichen
  * Commented out sampleDataCallbackFunc; replaced with batchSampleDataCallbackFunc
  *
@@ -390,7 +393,7 @@ void newSampleRate(float rate);
 //
 // IO from application processes.
 //
-void dynRPCUser::applicationIO(int pid, int len, string data)
+void dynRPCUser::applicationIO(int,int,string data)
 {
 
     // NOTE: this fixes a purify error with the commented out code (a memory
@@ -458,14 +461,14 @@ void dynRPCUser::resourceBatchMode(bool onNow)
 //
 // upcalls from remote process.
 //
-void dynRPCUser::resourceInfoCallback(int program,
+void dynRPCUser::resourceInfoCallback(int,
 				      vector<string> resource_name,
 				      string abstr) {
     resourceHandle r = createResource(resource_name, abstr);
     resourceInfoResponse(resource_name, r);
 }
 
-void dynRPCUser::mappingInfoCallback(int program,
+void dynRPCUser::mappingInfoCallback(int,
 				     string abstraction, 
 				     string type, 
 				     string key,
@@ -481,34 +484,6 @@ class uniqueName {
     int nextId;
     stringHandle name;
 };
-
-// commented out since igen no longer supports sync upcalls
-#ifdef notdef
-char *dynRPCUser::getUniqueResource(int program, 
-				    string parentString, 
-				    string newResource)
-{
-    uniqueName *ret;
-    char newName[80];
-    stringHandle ptr;
-    static List<uniqueName*> allUniqueNames;
-
-    sprintf(newName, "%s/%s", parentString.string_of(), newResource.string_of());
-    ptr = dataManager::names.findAndAdd(newName);
-
-    ret = allUniqueNames.find(ptr);
-
-    if (!ret) {
-	ret = new uniqueName(ptr);
-	allUniqueNames.add(ret, ptr);
-    }
-    // changed from [] to {} due to TCL braindeadness.
-    sprintf(newName, "%s{%d}", newResource.string_of(), ret->nextId++);
-    ptr = dataManager::names.findAndAdd(newName);
-
-    return((char*)ptr);
-}
-#endif
 
 //
 // Display errors using showError function from the UIM class
@@ -583,33 +558,19 @@ void dynRPCUser::newMetricCallback(T_dyninstRPC::metricInfo info)
     addMetric(info);
 }
 
-void dynRPCUser::firstSampleCallback (int program,
-                                      double firstTime) {
+void dynRPCUser::firstSampleCallback (int,double) {
 
   assert(0 && "Invalid virtual function");
 }
 
-void dynRPCUser::cpDataCallbackFunc(int program,
-                                         double timeStamp,
-                                         int context,
-                                         double total,
-                                         double share)
+void dynRPCUser::cpDataCallbackFunc(int,double,int,double,double)
 {
     assert(0 && "Invalid virtual function");
 }
 
-//void dynRPCUser::sampleDataCallbackFunc(int program,
-//					   int mid,
-//					   double startTimeStamp,
-//					   double endTimeStamp,
-//					   double value)
-//{
-//    assert(0 && "Invalid virtual function");
-//}
-
 // batch the sample delivery
-void dynRPCUser::batchSampleDataCallbackFunc(int program,
-					    vector<T_dyninstRPC::batch_buffer_entry> theBatchBuffer)
+void dynRPCUser::batchSampleDataCallbackFunc(int,
+		    vector<T_dyninstRPC::batch_buffer_entry>)
 {
     assert(0 && "Invalid virtual function");
 }
@@ -619,20 +580,20 @@ void dynRPCUser::batchSampleDataCallbackFunc(int program,
 // reports the information for that paradynd to paradyn
 //
 void 
-dynRPCUser::reportSelf (string m, string p, int pd, string flavor)
+dynRPCUser::reportSelf (string , string , int , string)
 {
   assert(0);
   return;
 }
 
 void 
-dynRPCUser::reportStatus (string line)
+dynRPCUser::reportStatus (string)
 {
     assert(0 && "Invalid virtual function");
 }
 
 void
-dynRPCUser::processStatus(int pid, u_int stat)
+dynRPCUser::processStatus(int, u_int)
 {
     assert(0 && "Invalid virtual function");
 }
@@ -670,13 +631,6 @@ DMnewParadynd ()
   // add new daemon to dictionary of all deamons
   paradynDaemon::addDaemon(new_fd); 
 }
-
-void DM_eFunction(int errno, char *message)
-{
-    printf("error: %s\b", message);
-    abort();
-}
-
 
 bool dataManager::DM_sequential_init(const char* met_file){
    string mfile = met_file;

@@ -22,10 +22,13 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.56  1995/12/18 23:21:58  newhall
-/* changed metric units type so that it can have one of 3 values (normalized,
-/* unnormalized or sampled)
+/* Revision 1.57  1996/01/05 20:01:00  newhall
+/* removed warnings
 /*
+ * Revision 1.56  1995/12/18 23:21:58  newhall
+ * changed metric units type so that it can have one of 3 values (normalized,
+ * unnormalized or sampled)
+ *
  * Revision 1.55  1995/12/13 03:19:25  newhall
  * update for new return values from some DM interface functions
  *
@@ -305,7 +308,7 @@ void flush_buffer_if_nonempty(VISIGlobalsStruct *ptr) {
 void VISIthreadDataHandler(metricInstanceHandle mi,
 			   int bucketNum,
 			   sampleValue value,
-			   phaseType phase_type){
+			   phaseType){
 
   VISIthreadGlobals *ptr;
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
@@ -322,8 +325,7 @@ void VISIthreadDataHandler(metricInstanceHandle mi,
       return;		    
   }
 
-  if(ptr->buffer_next_insert_index >= ptr->buffer.size() ||
-     ptr->buffer_next_insert_index < 0) {
+  if(ptr->buffer_next_insert_index >= ptr->buffer.size()) {
       PARADYN_DEBUG(("buffer_next_insert_index out of range: VISIthreadDataCallback")); 
       ERROR_MSG(16,"buffer_next_insert_index out of range: VISIthreadDataCallback");
       ptr->quit = 1;
@@ -398,13 +400,13 @@ void VISIthreadDataCallback(vector<dataValueType> *values,
 //    newMetricDefined Upcall
 //    (not currently implemented)  
 /////////////////////////////////////////////////////////
-void VISIthreadnewMetricCallback(perfStreamHandle handle,
-				 const char *name,
-				 int style,
-				 int aggregate,
-				 const char *units,
-				 metricHandle m_handle,
-				 dm_MetUnitsType units_type ){
+void VISIthreadnewMetricCallback(perfStreamHandle,
+				 const char *,
+				 int,
+				 int,
+				 const char *,
+				 metricHandle,
+				 dm_MetUnitsType){
  VISIthreadGlobals *ptr;
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
@@ -421,11 +423,11 @@ void VISIthreadnewMetricCallback(perfStreamHandle handle,
 //    newResourceDefined Upcall 
 //    (not currently implemented)  
 //////////////////////////////////////////////////////////
-void VISIthreadnewResourceCallback(perfStreamHandle handle,
-				   resourceHandle  parent,
-			           resourceHandle newResource, 
-				   const char *name,
-				   const char *abstr){
+void VISIthreadnewResourceCallback(perfStreamHandle,
+				   resourceHandle,
+			           resourceHandle, 
+				   const char *,
+				   const char *){
 
 VISIthreadGlobals *ptr;
 
@@ -449,7 +451,7 @@ if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
 //  before sending Fold msg to visi process  
 ///////////////////////////////////////////////////////
 // TODO: do something with this phase_type info
-void VISIthreadFoldCallback(perfStreamHandle handle,
+void VISIthreadFoldCallback(perfStreamHandle,
 			timeStamp width, phaseType phase_type){
 
 
@@ -465,8 +467,8 @@ void VISIthreadFoldCallback(perfStreamHandle handle,
      return;
 
   
-  if ((ptr->buffer_next_insert_index >= ptr->buffer.size() ||
-     ptr->buffer_next_insert_index < 0) && ptr->buffer.size()){   
+  if ((ptr->buffer_next_insert_index >= ptr->buffer.size()) && 
+	ptr->buffer.size()){   
      PARADYN_DEBUG(("buffer_next_insert_index out of range: VISIthreadFoldCallback")); 
      ERROR_MSG(16,"buffer_next_insert_index out of range: VISIthreadFoldCallback");
      ptr->quit = 1;
@@ -485,7 +487,7 @@ void VISIthreadFoldCallback(perfStreamHandle handle,
   // ignore folds for other phase data...this is an old phase visi
   if(ptr->currPhaseHandle != -1) {
       if((phase_type != GlobalPhase) && 
-	 (ptr->args->my_phaseId != ptr->currPhaseHandle)) return;
+	 (ptr->args->my_phaseId != ((u_int)ptr->currPhaseHandle))) return;
   }
 
   // if new Width is same as old width ignore Fold 
@@ -509,7 +511,7 @@ void VISIthreadFoldCallback(perfStreamHandle handle,
 //     new phase definition upcall 
 //
 ///////////////////////////////////////////////////////
-void VISIthreadPhaseCallback(perfStreamHandle ps_handle, 
+void VISIthreadPhaseCallback(perfStreamHandle, 
 			     const char *name,
 			     phaseHandle handle,
 			     timeStamp begin,
@@ -653,7 +655,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
   // try to enable metric/focus pairs
   vector<metric_focus_pair>  *retryList = new vector<metric_focus_pair> ;
   // vector<metric_focus_pair>  new_pairs = *newMetRes;
-  int  numEnabled = 0;
+  u_int  numEnabled = 0;
   metricInstInfo *newPair = NULL;
   metricInstInfo **newEnabled = new (metricInstInfo *)[newMetRes->size()];
 
@@ -795,7 +797,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
         // send visi all old data bucket values
 	if(howmany > 0){
 	    vector<float> bulk_data;
-	    for (unsigned ve=0; ve<howmany; ve++){
+	    for (u_int ve=0; ve< ((u_int)howmany); ve++){
 	      bulk_data += buckets[ve];
             }
             ptr->visip->BulkDataTransfer(bulk_data, (int)newEnabled[q]->m_id,
@@ -818,7 +820,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
         // don't free retryList since it is passed to UI
 	ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes,newMetRes);
 	string msg("Cannot enable the following metric/focus pair(s): ");
-        for (int ii=0;ii<retryList->size();ii++) {
+        for (u_int ii=0;ii<retryList->size();ii++) {
 	  string *focusName=NULL;
 	  focusName = 
 	      new string(dataMgr->getFocusName(&((*retryList)[ii].res)));
@@ -847,7 +849,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 	if (retryList->size()) {
 	  ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes,newMetRes);
           string msg("Cannot enable the following metric/focus pair(s): ");
-	  for (int ii=0;ii<retryList->size();ii++) {
+	  for (u_int ii=0;ii<retryList->size();ii++) {
 	    string *focusName=NULL;
 	    focusName = new 
 		string(dataMgr->getFocusName(&((*retryList)[ii].res)));
@@ -874,7 +876,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 //  VISIthreadshowMsgREPLY: callback for User Interface 
 //    Manager showMsgREPLY upcall (not currently implemented) 
 ///////////////////////////////////////////////////////
-void VISIthreadshowMsgREPLY(int userChoice){
+void VISIthreadshowMsgREPLY(int){
 
 
 }
@@ -883,7 +885,7 @@ void VISIthreadshowMsgREPLY(int userChoice){
 //  VISIthreadshowErrorREPLY: callback for User Interface 
 //    Manager showErrorREPLY upcall (not currently implemented)
 ///////////////////////////////////////////////////////
-void VISIthreadshowErrorREPLY(int userChoice){
+void VISIthreadshowErrorREPLY(int){
   
 
 }

@@ -46,7 +46,7 @@ class daemonEntry {
 public:
   daemonEntry (){ }
   daemonEntry (const string &m, const string &c, const string &n,
-	       const string &l, const string &d, const string &f) : 
+	       const string &l, const string &, const string &f) : 
 	       machine(m), command(c), name(n), login(l), dir(0), 
 	       flavor(f) { }
   ~daemonEntry() { }

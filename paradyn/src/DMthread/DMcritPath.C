@@ -31,7 +31,7 @@ class cpContext {
 
 vector<cpContext*> allCPContexts;
 
-void paradynDaemon::cpDataCallbackFunc(int program,
+void paradynDaemon::cpDataCallbackFunc(int,
                                        double timeStamp,
                                        int context,
                                        double total,

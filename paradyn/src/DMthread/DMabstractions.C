@@ -2,6 +2,9 @@
  * DMabstractions.C: code to handle programming abstractions
  *
  * $Log: DMabstractions.C,v $
+ * Revision 1.6  1996/01/05 20:00:40  newhall
+ * removed warnings
+ *
  * Revision 1.5  1995/11/08 06:22:19  tamches
  * removed some warnings
  *
@@ -63,8 +66,8 @@ abstraction *AMfind(const char *aname)
   return ret;
 }
 
-void AMnewMapping(const char *abstr, const char *type, const char *key,
-		  const char *value) 
+void AMnewMapping(const char *abstr, const char *, const char *,
+		  const char *) 
 {
   abstraction *a;
 
@@ -79,7 +82,7 @@ void AMnewMapping(const char *abstr, const char *type, const char *key,
 /*
  *  AMnewResource -- new resource 
  */
-void AMnewResource(const char *parent, const char *name, const char *abstr)
+void AMnewResource(const char *, const char *, const char *abstr)
 {
   abstraction *a;
 

@@ -4,6 +4,9 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
+ * Revision 1.63  1996/01/05 20:00:49  newhall
+ * removed warnings
+ *
  * Revision 1.62  1995/12/18 23:21:31  newhall
  * changed metric units type so that it can have one of 3 values (normalized,
  * unnormalized or sampled)
@@ -301,7 +304,7 @@ void histDataCallBack(sampleValue *buckets,
 //
 // start_time specifies the phaseType (globalType starts at 0.0) 
 //
-void histFoldCallBack(timeStamp width, void *arg,timeStamp start_time)
+void histFoldCallBack(timeStamp width, void *,timeStamp start_time)
 {
 
     // need to check if current phase also starts at 0.0

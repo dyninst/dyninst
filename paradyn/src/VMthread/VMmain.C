@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.38  1995/10/30 23:07:36  naim
-/* Eliminating warning message - naim
+/* Revision 1.39  1996/01/05 20:01:12  newhall
+/* removed warnings
 /*
+ * Revision 1.38  1995/10/30  23:07:36  naim
+ * Eliminating warning message - naim
+ *
  * Revision 1.37  1995/09/26  20:27:46  naim
  * Minor changes in error messages
  *
@@ -312,7 +315,7 @@ int VM::VMAddNewVisualization(const char *name,
 //      internal representation
 //  return value NULL indicates an error in parsing the string
 /////////////////////////////////////////////////////////////
- vector<metric_focus_pair> *VM::VMStringToMetResPair(const char *metresString){
+ vector<metric_focus_pair> *VM::VMStringToMetResPair(const char *){
 
    return(NULL);
 }
@@ -439,7 +442,7 @@ void VM::VMDestroyVisi(thread_t visiThreadId){
 //  VMVisiDied: VM server routine, notification of dead visi 
 //  visiThreadId: thread identifier of visithread that has died
 /////////////////////////////////////////////////////////////
-void VM::VMVisiDied(int visiThreadId){
+void VM::VMVisiDied(thread_t visiThreadId){
 
   for(unsigned i=0; i < activeVisis.size(); i++){
       if(activeVisis[i]->visiThreadId == visiThreadId){
@@ -545,7 +548,7 @@ void *VMmain(void* varg) {
       }
   }
   for(unsigned i=0; i < visiList.size(); i++){
-      for(unsigned j=0; j < (*visiList[i]).argc; j++){
+      for(int j=0; j < (*visiList[i]).argc; j++){
           free((*visiList[i]).argv[j]);
       }
   }

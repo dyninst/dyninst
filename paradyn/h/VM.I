@@ -1,7 +1,10 @@
 /* $Log: VM.I,v $
-/* Revision 1.14  1995/08/12 22:27:12  newhall
-/* added VM_sequential_init(), VM_post_thread_create_init(), & vmp members
+/* Revision 1.15  1996/01/05 20:00:27  newhall
+/* removed warnings
 /*
+# Revision 1.14  1995/08/12  22:27:12  newhall
+# added VM_sequential_init(), VM_post_thread_create_init(), & vmp members
+#
 # Revision 1.13  1995/08/01  02:15:27  newhall
 # added phase type parameter to VMCreateVisi
 #
@@ -71,7 +74,7 @@ typedef struct VM_visiInfo {
 $remote VM{
 
   $base 5000;
-  $version 10;
+  $version 11;
 
   // returns a list of information about active visualizations
   // the client is responsible for freeing the space associated with
@@ -118,7 +121,7 @@ $remote VM{
 
   // visiThreadId: thread identifier of visithread that has died
   // called by visithread when the visualization process exits
-  void VMVisiDied(int visiThreadId);
+  void VMVisiDied(thread_t visiThreadId);
 
   $signore
   

@@ -16,9 +16,12 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.18  1995/12/03 21:32:57  newhall
-/* changes to support new sampleDataCallbackFunc
+/* Revision 1.19  1996/01/05 20:00:58  newhall
+/* removed warnings
 /*
+ * Revision 1.18  1995/12/03  21:32:57  newhall
+ * changes to support new sampleDataCallbackFunc
+ *
  * Revision 1.17  1995/11/20  03:32:18  tamches
  * changed BUFFERSIZE from 64 to 1024, though it won't make much difference
  * since actual buffer size is still min(BUFFERSIZE, num m/f pairs).
@@ -113,7 +116,7 @@ struct VISIGlobalsStruct {
   perfStreamHandle ps_handle;
 
   vector<T_visi::dataValue> buffer;
-  int buffer_next_insert_index; // same as old bufferSize
+  u_int buffer_next_insert_index; // same as old bufferSize
 
   int fd;
   int pid;
