@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.h,v 1.54 2004/06/21 19:37:11 pcroth Exp $
+// $Id: DMresource.h,v 1.55 2004/07/14 18:24:05 eli Exp $
 
 #ifndef DMresource_H 
 #define DMresource_H
@@ -60,7 +60,6 @@ extern "C" {
 #include "common/h/Dictionary.h"
 #include "dataManager.thread.h"
 #include "dataManager.thread.SRVR.h"
-#include "DMabstractions.h"
 #include "DMinclude.h"
 #include "pdutil/h/resource.h"
 
@@ -77,10 +76,6 @@ class resource {
     const char *getName() const { 
         return(fullName[fullName.size()-1].c_str());}
     pdstring getFullName() const { return flatName; }
-    const char *getAbstractionName() const { 
-        if (abstr) return(abstr->getName());
-        return NULL;	
-    }
 
     ResourceType getType( void ) const   { return type; }
     unsigned int getMDLType() const      { return mdlType; }
@@ -95,7 +90,6 @@ class resource {
     void setSuppressChildren(bool newValue){ suppressChildSearch = newValue;}
     bool getSuppress() const { return(suppressSearch); }
     bool getSuppressChildren() const { return(suppressChildSearch); }
-    abstraction *getAbstraction() { return(abstr); }
     bool isMagnifySuppressed() const { return (suppressMagnify); }
     void setSuppressMagnify() {suppressMagnify = true;}
     void clearSuppressMagnify() {suppressMagnify = false;}
@@ -176,7 +170,7 @@ class resource {
    
     bool suppressMagnify;  // true if mdl exclude_lib option specifies this 
     bool retired;  // set to true when the resource no longer exists
-    abstraction *abstr;  // TODO: change this to a handle later
+
     pdvector<resource*> children; 
     static dictionary_hash<pdstring, resource*> allResources;
     static dictionary_hash<unsigned, resource*> resources;  // indexed by resourceHandle
