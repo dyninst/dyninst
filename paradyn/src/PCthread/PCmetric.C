@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.9  1994/05/19 00:00:28  hollings
+ * Revision 1.10  1994/05/31 18:30:36  markc
+ * Added msg_bytes_sent and msg_bytes_recv as default metrics.
+ *
+ * Revision 1.9  1994/05/19  00:00:28  hollings
  * Added tempaltes.
  * Fixed limited number of nodes being evaluated on once.
  * Fixed color coding of nodes.
@@ -74,7 +77,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.9 1994/05/19 00:00:28 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.10 1994/05/31 18:30:36 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -95,6 +98,9 @@ int samplesSinceLastChange;
 timeStamp PCshortestEnableTime;
 timeStamp PClastTestChangeTime;
 Boolean explainationFlag = FALSE;
+
+// for debugging
+// #define PC_PRINT
 
 //
 // ugly global to pass cost around for a single hypothesis.
@@ -468,6 +474,8 @@ PCmetric seekWait("seek_wait");
 PCmetric elapsedTime("exec_time", Max, CalcSum);
 PCmetric activeProcesses("active_processes");
 PCmetric msgBytes("msg_bytes");
+PCmetric msgBytesSent("msg_bytes_sent");
+PCmetric msgBytesRecv("msg_bytes_recv");
 PCmetric msgs("msgs");
 PCmetric fileWriteBytes("file_wr_bytes");
 PCmetric fileWriteOps("file_writes");
