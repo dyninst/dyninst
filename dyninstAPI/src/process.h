@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.238 2003/02/21 20:06:03 bernat Exp $
+/* $Id: process.h,v 1.239 2003/02/28 22:13:45 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -71,6 +71,7 @@
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/installed_miniTramps_list.h"
 #include "dyninstAPI/src/inferiorRPC.h"
+#include "dyninstAPI/src/syscalltrap.h"
 #include "dyninstAPI/src/libState.h"
 
 #include "dyninstAPI/src/symtab.h" // internalSym
@@ -848,19 +849,32 @@ void saveWorldData(Address address, int size, const void* src);
 
   vectorSet<inferiorRPCtoDo> RPCsWaitingToStart;
   irpcState_t irpcState_;
-  
+
+  inferiorRPCinProgress currRunningIRPC;
+
   bool wasRunningBeforeSyscall_;
-#if defined(sparc_sun_solaris2_4)
-  sysset_t *save_exitset_ptr;
-#else
-  // Make initialization easy
-  void *save_exitset_ptr;
-#endif
+
+/////////////////////////////////////////////////////////////////
+//  System call trap tracking
+/////////////////////////////////////////////////////////////////
+
+  public:
+  // Overloaded: Address for linux-style, syscall # for /proc
+  syscallTrap *trapSyscallExitInternal(Address syscall);
+  bool clearSyscallTrapInternal(syscallTrap *trappedSyscall);
+  // Returns the thread (if any) that exited the syscall
+  dyn_thread *checkSyscallExit();
+  // Check all traps entered for a match to the syscall
+  bool checkTrappedSyscallsInternal(Address syscall);
+    
+  private:
+  // A list of traps inserted at system calls
+  vectorSet<syscallTrap *> syscallTraps_;
+
   
   // Trampoline guard location -- actually an addr in the runtime library.
   Address trampGuardAddr_;
                                                
-  inferiorRPCinProgress currRunningIRPC;
   
   //
   //  PRIVATE MEMBER FUNCTIONS
@@ -886,13 +900,7 @@ void saveWorldData(Address address, int size, const void* src);
                               unsigned &justAfter_stopForResultOffset,
                               bool isFunclet);
 
- private:
-  int number_of_threads_in_breakpoint;
-  bool set_breakpoint_for_syscall_completion();
-
  public:
-
-  bool clear_breakpoint_for_syscall_completion();
 
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   Address get_dlopen_addr() const;

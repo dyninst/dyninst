@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.387 2003/02/27 02:45:59 buck Exp $
+// $Id: process.C,v 1.388 2003/02/28 22:13:44 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -434,6 +434,14 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame frame,
   Address pc = frame.getPC();
   if ( pd_debug_catchup )
      cerr << "  Stack function matches function containing instPoint" << endl;
+
+  if (pc == point->iPgetAddress()) {
+      if (pd_debug_catchup) {
+          fprintf(stderr, "Found pc at start of instpoint, returning false\n");
+      }
+      return false;
+  }
+  
   
   //  Is the pc within the instPoint instrumentation?
   instPoint* currentIp = findInstPointFromAddress(pc);
@@ -445,7 +453,7 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame frame,
     if ( tempTramp )
     {
       //  Check if pc in basetramp
-      if ( tempTramp->inBasetramp(pc) )
+        if ( tempTramp->inBasetramp(pc) )
       {
         if ( pd_debug_catchup )
         {
@@ -1958,8 +1966,6 @@ process::process(int iPid, image *iImage, int iTraceLink
     
 {
 
-  number_of_threads_in_breakpoint = 0;
-  save_exitset_ptr = NULL;
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
 	PARADYNhasBootstrapped = false;
 #endif
@@ -2132,9 +2138,6 @@ process::process(int iPid, image *iSymbols,
   lwps(CThash),
   procHandle_(0)
 {
-  number_of_threads_in_breakpoint = 0;
-   save_exitset_ptr = NULL;
-
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
 
@@ -2370,10 +2373,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 {
 
    // This is the "fork" ctor
-  number_of_threads_in_breakpoint = 0;
-   save_exitset_ptr = NULL;
-
-
    bootstrapState = initialized;
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
    PARADYNhasBootstrapped = false;
@@ -2516,7 +2515,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
       status_ = exited;
       return;
    }
-#if !defined(BPATCH_LIBRARY)
    // threads... // 6/2/99 zhichen
    for (unsigned i=0; i<parentProc.threads.size(); i++) {
       dyn_thread *from_thr = parentProc.threads[i];
@@ -2533,7 +2531,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
       thr->update_rid(rid);
 #endif
    }
-#endif
 
    if( isRunning_() )
       status_ = running;
@@ -3701,7 +3698,7 @@ bool process::pause() {
   if (status_ == stopped || status_ == neonatal) {
     return true;
   }
-
+  
   if (status_ == exited) {
     sprintf(errorLine, "warn : in process::pause, trying to pause exited process, returning FALSE\n");
     logLine(errorLine);
@@ -5145,7 +5142,7 @@ void process::handleExec() {
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
 	PARADYNhasBootstrapped = false;
 #endif
-
+    cerr << "handleExec" << endl;
    // all instrumentation that was inserted in this process is gone.
    // set exited here so that the disables won't try to write to process
    status_ = exited; 
@@ -5248,7 +5245,8 @@ void process::handleExec() {
     initInferiorHeap();
 #endif
 
-
+    cerr << "Set bootstrapState to unstarted" << endl;
+    
     bootstrapState = unstarted;
     /* update process status */
        // we haven't yet seen initial SIGTRAP for this proc (is this right?)
@@ -5499,9 +5497,10 @@ bool process::rpcSavesRegs()
 //   false if none were (and the process hasn't changed state)
 // wasRunning: desired state of the process (as opposed to current
 //  state).
+// Note: if there are no RPCs running but wasRunning is true, launchRPCs
+// will continue the process!
 
 bool process::launchRPCs(bool wasRunning) {
-
     // First, idiot check. If there aren't any RPCs to run, then
     // don't do anything. Reason: launchRPCs is called several times
     // a second in the daemon main loop
@@ -5520,14 +5519,21 @@ bool process::launchRPCs(bool wasRunning) {
         }
     }
     if (!readyRPC) {
+        if (wasRunning) {
+            // the caller expects the process to be running after
+            // iRPCs finish, so continue the process here
+            continueProc();
+        }
+        
         return false;
     }
     
 
     // We have work to do. Pause the process.
-    if (!pause())
+    if (!pause()) {
+        cerr << "FAILURE TO PAUSE PROCESS in launchRPCs" << endl;
         return false;
-    
+    }
     // Okay, there is an inferior RPC to do somewhere. Now we just need
     // to launch ze sucker
     // MT: take all RPCs in the process queue and find a thread to run
@@ -5596,7 +5602,7 @@ irpcLaunchState_t process::launchProcessIRPC(bool wasRunning) {
     // can run it.
 
     if (getDefaultLWP()->executingSystemCall()) {
-        if (set_breakpoint_for_syscall_completion()) {
+        if (getDefaultLWP()->setSyscallExitTrap()) {
             irpcState_ = irpcWaitingForTrap;
             wasRunningBeforeSyscall_ = wasRunning;
             // Effectively, we've launched an RPC... it will
@@ -5900,6 +5906,49 @@ bool process::handleCompletedIRPC() {
     return (currRunningIRPC.wasRunning);
 }
 
+bool process::checkTrappedSyscallsInternal(Address syscall)
+{
+    for (unsigned i = 0; i < syscallTraps_.size(); i++) {
+        if (syscall == syscallTraps_[i]->syscall_id)
+            return true;
+    }
+    
+    return false;
+}
+
+
+dyn_thread *process::checkSyscallExit() {
+    // For each thread:
+    // Get the LWP associated with the thread
+    // Check to see if the LWP is at a syscall exit trap
+    // Check to see if the trap is desired
+    // Return the first thread to match the above conditions.
+
+    for (unsigned iter = 0; iter < threads.size(); iter++) {
+        dyn_thread *thr = threads[iter];
+        int match_type = thr->get_lwp()->hasReachedSyscallTrap();
+        if (match_type == 0)
+            continue; // No match
+        else if (match_type == 1) {
+            // Uhh... crud. 
+            thr->get_lwp()->stepPastSyscallTrap();
+            // Question: what to return? The trap was incorrect,
+            // and as such should silently disappear. For now, return
+            // the thread that hit the trap, and the caller should 
+            // determine there is nothing to be done.
+            return thr;
+        }
+        else if (match_type == 2) {
+            // Good, we did want a system call. Clear the
+            // trap and return the thread for further processing
+            thr->get_lwp()->clearSyscallExitTrap();
+            return thr;
+        }
+        else assert(0 && "Invalid value from hasReachedSyscallTrap");
+    }
+    return NULL;
+}
+
 
 /* If the PC is at a tramp instruction, then the trap may have been
    decoded but not yet delivered to the application, when the pause
@@ -5996,7 +6045,6 @@ void process::CheckAppTrapIRPCInfo() {
 // Trap when an IRPC stops to read a result
 // Trap when a system call completes if an IRPC is pending
 bool process::handleTrapIfDueToRPC() {
-
     // We will return this parameter to say whether the 
     // trap was something we needed or should be passed along
 
@@ -6013,85 +6061,51 @@ bool process::handleTrapIfDueToRPC() {
 
     // Two main possibilities: a thread is stopped at an interesting address,
     // or a thread was waiting for a system call to complete (and it has).
-    // It's possible to tell the first exactly, but we can't tell the second
-    // except by an absence of syscall where there used to be one.
-
-    if (!threads.size()) {
-        // First, check for completion of a system call
-        if (isIRPCwaitingForSyscall()) {
-            //cerr << "Seeing if a syscall cleared" << endl;
-            if (!getDefaultLWP()->executingSystemCall()) {
-                clear_breakpoint_for_syscall_completion();
-                irpcLaunchState_t launchState;
-                launchState = launchPendingIRPC();
-                if (launchState == irpcStarted) runProcess = true;
-                //else cerr << "Odd state " << launchState << " in handleTrap..." << endl;
-                handledTrap = true;
-            }
-        }
-        else {
-            Frame activeFrame = getDefaultLWP()->getActiveFrame();
-            Address retvalAddr = getIRPCRetValAddr();                
-            Address completedAddr = getIRPCFinishedAddr();
-            //fprintf(stderr, "PC: 0x%x, retVal 0x%x finished 0x%x\n",
-            //      activeFrame.getPC(), retvalAddr, completedAddr);
+    // We check the first case first.
+    unsigned thr_iter;
+    for (thr_iter = 0; thr_iter < threads.size(); thr_iter++) {
+        if (threads[thr_iter]->isRunningIRPC()) {
+            Frame activeFrame = threads[thr_iter]->getActiveFrame();
+            Address retvalAddr = threads[thr_iter]->getIRPCRetValAddr();                
+            Address completedAddr = threads[thr_iter]->getIRPCFinishedAddr();
             if (activeFrame.getPC() == retvalAddr) {
-                //cerr << "Handling retval" << endl;
-                handleRetValIRPC();
+                threads[thr_iter]->handleRetValIRPC();
+                ateTrap = true;
                 handledTrap = true;
                 runProcess = true;
             }
             else if (activeFrame.getPC() == completedAddr) {
                 // handleCompleted returns true if the process
                 // should be run, false otherwise
-                //cerr << "Handling completed RPC" << endl;
-                if (handleCompletedIRPC())
+                if (threads[thr_iter]->handleCompletedIRPC())
                     runProcess = true;
+                ateTrap = true;
                 handledTrap = true;
             }
         }
+        if (ateTrap) break;
     }
-    else {
-        unsigned thr_iter;
-        for (thr_iter = 0; thr_iter < threads.size(); thr_iter++) {
-            if (threads[thr_iter]->isIRPCwaitingForSyscall()) {
-                threads[thr_iter]->updateLWP();
-                if (!threads[thr_iter]->get_lwp()->executingSystemCall()) {
-                    // Fascinating... a system call that is no longer there.
-                    clear_breakpoint_for_syscall_completion();
-                    irpcLaunchState_t launchState;
-                    launchState = threads[thr_iter]->launchPendingIRPC();
-                    if (launchState == irpcStarted) runProcess = true;
-                    //else cerr << "Odd state " << launchState << " in handleTrap..." << endl;
-                    handledTrap = true;
-                }
-                else {
-                    //cerr << "Thread " << thr_iter << " still in syscall!" << endl;
-                    //cerr << "Checking for completed RPC instead... " << endl;
-                }
+    if (!handledTrap) {
+        // Trap signal was not handled, check to see if it's due to 
+        // a system call exiting
+        dyn_thread *comp_thr = checkSyscallExit();
+        if (comp_thr) {
+            // A thread hit a system call... so launch an RPC
+            if (comp_thr->isWaitingForTrap()) {
+                irpcLaunchState_t thr_state;
+                thr_state = comp_thr->launchPendingIRPC();
+                ateTrap = true;
+                handledTrap = true;
+                runProcess = true;
             }
             else {
-                if (threads[thr_iter]->isRunningIRPC()) {
-                    Frame activeFrame = threads[thr_iter]->getActiveFrame();
-                    Address retvalAddr = threads[thr_iter]->getIRPCRetValAddr();                
-                    Address completedAddr = threads[thr_iter]->getIRPCFinishedAddr();
-                    if (activeFrame.getPC() == retvalAddr) {
-                        threads[thr_iter]->handleRetValIRPC();
-                        ateTrap = true;
-                        handledTrap = true;
-                        runProcess = true;
-                    }
-                    else if (activeFrame.getPC() == completedAddr) {
-                        // handleCompleted returns true if the process
-                        // should be run, false otherwise
-                        if (threads[thr_iter]->handleCompletedIRPC())
-                            runProcess = true;
-                        ateTrap = true;
-                        handledTrap = true;
-                    }
-                }
+                // A thread hit a system call exit, but was not expecting
+                // it. Treat this as a handled trap, but don't try and
+                // launch an iRPC
+                ateTrap = true;
+                handledTrap = true;
+                runProcess = true;
             }
-            if (ateTrap) break;
         }
     }
     
