@@ -2,7 +2,10 @@
  * Report statistics about dyninst and data collection.
  *
  * $Log: stats.C,v $
- * Revision 1.8  1994/07/22 19:21:08  hollings
+ * Revision 1.9  1994/08/02 18:24:34  hollings
+ * added clock speed argument to stats.
+ *
+ * Revision 1.8  1994/07/22  19:21:08  hollings
  * removed mistaken divid by 1Meg for predicted cost.
  *
  * Revision 1.7  1994/07/20  23:29:46  hollings
@@ -99,7 +102,7 @@ void printDyninstStats()
     logLine(errorLine);
 }
 
-void printAppStats(struct endStatsRec *stats)
+void printAppStats(struct endStatsRec *stats, float clockSpeed)
 {
     sprintf(errorLine, "    DYNINSTtotalAlaramExpires %d\n", stats->alarms);
     logLine(errorLine);
@@ -111,8 +114,8 @@ void printAppStats(struct endStatsRec *stats)
     logLine(errorLine);
 
     // for ss-10 use 60 MHZ clock.
-    sprintf(errorLine,"    Total instrumentation (60Mhz clock) cost = %f\n", 
-	stats->instCycles/60000000.0);
+    sprintf(errorLine,"    Total instrumentation (%dMhz clock) cost = %f\n", 
+	(int) clockSpeed, stats->instCycles/(clockSpeed * 1000000.0));
     logLine(errorLine);
     sprintf(errorLine,"    Total handler cost = %f\n", stats->handlerCost);
     logLine(errorLine);
