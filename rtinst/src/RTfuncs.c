@@ -3,7 +3,10 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.8  1994/07/11 22:47:49  jcargill
+ * Revision 1.9  1994/07/14 23:35:34  hollings
+ * added return of cost model record.
+ *
+ * Revision 1.8  1994/07/11  22:47:49  jcargill
  * Major CM5 commit: include syntax changes, some timer changes, removal
  * of old aggregation code, old pause code, added signal-driven sampling
  * within node processes
@@ -31,6 +34,7 @@
  *
  *
  */
+#include <sys/types.h>
 #include <assert.h>
 #include <sys/signal.h>
 #include <stdio.h>
@@ -54,12 +58,14 @@ char DYNINSTdata[SYN_INST_BUF_SIZE];
 char DYNINSTglobalData[SYN_INST_BUF_SIZE];
 int DYNINSTnumSampled;
 int DYNINSTnumReported;
+int DYNINSTtotalSamples;
+float DYNINSTsamplingRate;
 int DYNINSTtotalAlaramExpires;
 
 /*
  * for now costCount is in cycles. 
  */
-float DYNINSTcyclesToUsec = 1/66.0;
+float DYNINSTcyclesToUsec = 1/60.0;
 time64 DYNINSTtotalSampleTime;
 
 void DYNINSTreportCounter(intCounter *counter)
@@ -68,8 +74,9 @@ void DYNINSTreportCounter(intCounter *counter)
 
     sample.value = counter->value;
     sample.id = counter->id;
+    DYNINSTtotalSamples++;
 
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample);
+    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0);
 }
 
 void DYNINSTsimplePrint()
@@ -131,29 +138,40 @@ union timeUnion {
  * Return the observed cost of instrumentation in machine cycles.
  *
  */
-int64 DYNINSTgetObservedCycles()
+int64 DYNINSTgetObservedCycles(Boolean inSignal)
 {
-    static int64 previous;
     static union timeUnion value;
+    static union timeUnion previous;
     register unsigned int lowBits asm("%g7");
 
+    if (inSignal) return(value.i64);
+
     value.array[1] = lowBits;
-    if (value.i64 < previous) {
+    if (lowBits < previous.array[1]) {
 	/*  add to high word 
 	 *
 	 ************************** WARNING ***************************
 	 *     this assumes we sample frequenly enough to catch these *
 	 **************************************************************
 	 */
-        fprintf(stderr, "current %f, previous %f\n", ((double) value.i64),
-		((double) previous));
-        fprintf(stderr, "Warning observed cost register wrapped\n");
 	value.array[0] += 1;
-
-	fflush(stderr);
     }
     previous = value.i64;
     return(value.i64);
+}
+
+void DYNINSTreportBaseTramps()
+{
+    costUpdate sample;
+    register unsigned int count asm("%g6");
+
+    sample.slotsExecuted = count;
+
+    sample.observedCost = ((double) DYNINSTgetObservedCycles(1)) *
+	(DYNINSTcyclesToUsec / 1000000.0);
+
+    DYNINSTgenerateTraceRecord(0, TR_COST_UPDATE, sizeof(sample), 
+	&sample, 0);
 }
 
 void DYNINSTreportCost(intCounter *counter)
@@ -168,7 +186,7 @@ void DYNINSTreportCost(intCounter *counter)
     static double prevCost;
     traceSample sample;
 
-    value = DYNINSTgetObservedCycles();
+    value = DYNINSTgetObservedCycles(1);
     cost = ((double) value) * (DYNINSTcyclesToUsec / 1000000.0);
 
     if (cost < prevCost) {
@@ -181,8 +199,9 @@ void DYNINSTreportCost(intCounter *counter)
 
     sample.value = cost;
     sample.id = counter->id;
+    DYNINSTtotalSamples++;
 
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample);
+    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0);
 }
 
 /*
@@ -206,11 +225,20 @@ void DYNINSTalarmExpire()
     DYNINSTtotalAlaramExpires++;
     if ((++DYNINSTnumSampled % DYNINSTsampleMultiple) == 0)  {
 	start = DYNINSTgetCPUtime();
+
+	/* make sure we call this enough to keep observed cost accurate due to
+	   32 cycle rollover */
+	(void) DYNINSTgetObservedCycles(0);
+
+	/* generate actual samples */
 	DYNINSTsampleValues();
+
+	DYNINSTreportBaseTramps();
+
+	DYNINSTflushTrace();
 	end = DYNINSTgetCPUtime();
 	DYNINSTtotalSampleTime += end - start;
     }
 
     inSample = 0;
 }
-

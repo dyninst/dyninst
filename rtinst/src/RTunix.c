@@ -3,7 +3,10 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.11  1994/07/11 22:47:51  jcargill
+ * Revision 1.12  1994/07/14 23:35:36  hollings
+ * added return of cost model record.
+ *
+ * Revision 1.11  1994/07/11  22:47:51  jcargill
  * Major CM5 commit: include syntax changes, some timer changes, removal
  * of old aggregation code, old pause code, added signal-driven sampling
  * within node processes
@@ -54,13 +57,24 @@
 #include <nlist.h>
 #include <unistd.h>
 
+#include "kludges.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 
 #define MILLION	1000000
 extern int DYNINSTmappedUarea;
 extern float DYNINSTcyclesToUsec;
+extern int DYNINSTnumReported;
+extern int DYNINSTtotalAlaramExpires;
+extern int DYNINSTtotalSamples;
+extern float DYNINSTsamplingRate;
 extern time64 DYNINSTtotalSampleTime;
+
+FILE *DYNINSTtraceFp;
+tTimer DYNINSTelapsedTime;
+tTimer DYNINSTelapsedCPUTime;
+int64 DYNINSTgetObservedCycles(Boolean);
+time64 DYNINSTtotalSampleTime;
 int64 DYNINSTgetObservedCycles();
 
 /* clockWord must be volatile becuase it changes on clock interrups. 
@@ -207,20 +221,66 @@ void DYNINSTstopWallTimer(tTimer *timer)
     }
 }
 
-
 time64 startWall;
+
+volatile int DYNINSTpauseDone = 0;
+
+/*
+ * change the variable to let the process proceed.
+ *
+ */
+void DYNINSTcontinueProcess()
+{
+    DYNINSTpauseDone = 1;
+}
+
+#ifdef notdef
+int DYNINSTbufsiz;
+int DYNINSTprofile;
+#endif
+
+/*
+ * pause the process and let only USR2 signal handlers run until a SIGUSR1.
+ *    arrives.
+ *
+ */
+void DYNINSTpauseProcess()
+{
+    int mask;
+    int sigs;
+
+    sigs = ((1 << (SIGUSR2-1)) | (1 << (SIGUSR1-1)) | (1 << (SIGTSTP-1)));
+    mask = ~sigs;
+    DYNINSTpauseDone = 0;
+    while (!DYNINSTpauseDone) {
+#ifdef notdef
+       sigpause(mask);
+       // temporary busy wait until we figure out what the TSD is up to. 
+       printf("out of sigpuase\n");
+#endif
+    }
+}
+
 
 void DYNINSTinit(int skipBreakpoint)
 {
     int val;
-    int sigs;
     char *interval;
     struct sigvec alarmVector;
-    struct sigvec pauseVector;
+    extern int DYNINSTmapUarea();
     extern float DYNINSTgetClock();
     extern void DYNINSTalarmExpire();
 
     startWall = 0;
+
+    /*
+     * clear global base tramp and cycle counters.
+     *
+     */
+    asm("mov 0, %g6");
+#ifdef notdef
+    asm("mov 0, %g7");
+#endif
 
     /* define the alarm signal vector. We block all signals while sampling.  
      *  This prevents race conditions where signal handlers cause timers to 
@@ -240,12 +300,11 @@ void DYNINSTinit(int skipBreakpoint)
     if (interval) {
 	val = atoi(interval);
     }
+    DYNINSTsamplingRate = val/1000000.0;
     sigvec(SIGALRM, &alarmVector, NULL);
     ualarm(val, val);
 
-
     DYNINSTmappedUarea = DYNINSTmapUarea();
-    DYNINSTcyclesToUsec = 1.0/DYNINSTgetClock();
 
     /*
      * pause the process and wait for additional info.
@@ -253,6 +312,9 @@ void DYNINSTinit(int skipBreakpoint)
      */
     printf("Time at main %f\n", ((float) DYNINSTgetCPUtime())/1000000.0);
     if (!skipBreakpoint) DYNINSTbreakPoint();
+
+    DYNINSTstartWallTimer(&DYNINSTelapsedTime);
+    DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
 }
 
 
@@ -260,20 +322,20 @@ void DYNINSTexit()
 {
 }
 
+static int pipeGone;
 
 /*
  * generate a trace record onto the named stream.
  *
  */
 void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
-    void *eventData)
+    void *eventData, int flush)
 {
     int ret;
     int count;
     struct timeval tv;
-    char buffer[1024], *bufptr;
+    char buffer[1024];
     traceHeader header;
-    static Boolean pipeGone = False;
 
     if (pipeGone) return;
 
@@ -307,34 +369,30 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     memcpy(&buffer[count], &header, sizeof(header));
     count += sizeof(header);
 
+    count = ALIGN_TO_WORDSIZE(count);
     memcpy(&buffer[count], eventData, length);
     count += length;
 
     /* on this platorm, we have a pipe to the controller process */
     errno = 0;
-    /* write may be interrupted by a system call */
-    bufptr = buffer;
-    while (count) {
-        ret = write(CONTROLLER_FD, bufptr, count);
 
-	if (ret >= 0)
-            ;     /* check most common case first */
-	else if (errno != EINTR)
-	    break; 
-	else
-	    ret = 0;
-
-	count -= ret;
-	bufptr += ret;
+    if (!DYNINSTtraceFp || (type == TR_EXIT)) {
+	DYNINSTtraceFp = fdopen(dup(CONTROLLER_FD), "w");
     }
-    if (count) {
+    ret = fwrite(buffer, count, 1, DYNINSTtraceFp);
+    if (ret != 1) {
 	extern char *sys_errlist[];
-	(void) close(CONTROLLER_FD);
 	printf("unable to write trace record %s\n", sys_errlist[errno]);
 	printf("disabling further data logging, pid=%d\n", getpid());
 	fflush(stdout);
-	pipeGone = True;
+	/* pipeGone = True; */
     }
+    if (flush) DYNINSTflushTrace();
+}
+
+void DYNINSTflushTrace()
+{
+    if (DYNINSTtraceFp) fflush(DYNINSTtraceFp);
 }
 
 time64 lastValue[200];
@@ -352,7 +410,9 @@ void DYNINSTreportTimer(tTimer *timer)
     } else if (timer->counter) {
 	/* timer is running */
 	if (timer->type == processTime) {
-	    now = DYNINSTgetCPUtime();
+	    /* now = DYNINSTgetCPUtime(); */
+	    /* use mapped time if available */
+	    now = DYNINSTgetUserTime();
 	} else {
 	    gettimeofday(&tv, NULL);
 	    now = tv.tv_sec;
@@ -364,7 +424,20 @@ void DYNINSTreportTimer(tTimer *timer)
 	total = timer->total;
     }
     if (total < lastValue[timer->id.id]) {
-	 printf("time regressed\n");
+	 if (timer->type == processTime) {
+	     printf("process ");
+	 } else {
+	     printf("wall ");
+	 }
+	 printf("time regressed timer %d, total = %f, last = %f\n",
+	     timer->id.id, (float) total, (float) lastValue[timer->id.id]);
+	if (timer->counter) {
+	    printf("timer was active\n");
+	} else {
+	    printf("timer was inactive\n");
+	}
+	printf("now = %f, start = %f, total = %f\n",
+	     (double) now, (double) timer->start, (double) timer->total);
 	 fflush(stdout);
 	 sigpause(0xffff);
     }
@@ -372,8 +445,9 @@ void DYNINSTreportTimer(tTimer *timer)
 
     sample.id = timer->id;
     sample.value = ((double) total) / (double) timer->normalize;
+    DYNINSTtotalSamples++;
 
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample);
+    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0);
     /* printf("raw sample %d = %f\n", sample.id.id, sample.value); */
 }
 
@@ -389,7 +463,7 @@ void DYNINSTfork(void *arg, int pid)
 	forkRec.pid = pid;
 	forkRec.npids = 1;
 	forkRec.stride = 0;
-	DYNINSTgenerateTraceRecord(sid,TR_FORK,sizeof(forkRec), &forkRec);
+	DYNINSTgenerateTraceRecord(sid,TR_FORK,sizeof(forkRec), &forkRec, 1);
     } else {
 	/* set up signals and stop at a break point */
 	DYNINSTinit(1);
@@ -398,36 +472,87 @@ void DYNINSTfork(void *arg, int pid)
 }
 
 
-extern int DYNINSTnumReported;
-extern int DYNINSTtotalAlaramExpires;
-
 void DYNINSTprintCost()
 {
+    FILE *fp;
     time64 now;
     int64 value;
-    FILE *fp;
+    struct rusage ru;
+    struct endStatsRec stats;
 
-    value = DYNINSTgetObservedCycles();
-    printf("Raw cycle count = %f\n", (double) value);
+    DYNINSTstopProcessTimer(&DYNINSTelapsedCPUTime);
+    DYNINSTstopWallTimer(&DYNINSTelapsedTime);
+
+    value = DYNINSTgetObservedCycles(0);
+    stats.instCycles = value;
 
     value *= DYNINSTcyclesToUsec;
 
-    fp = fopen("stats.out", "w");
-
-    fprintf(fp, "DYNINSTtotalAlaramExpires %d\n", DYNINSTtotalAlaramExpires);
-    fprintf(fp, "DYNINSTnumReported %d\n", DYNINSTnumReported);
-
-    fprintf(fp,"Total instrumentation cost = %f\n", ((double) value)/1000000.0);
-    fprintf(fp,"Total handler cost = %f\n", 
-	((double) DYNINSTtotalSampleTime)/1000000.0);
+    stats.alarms = DYNINSTtotalAlaramExpires;
+    stats.numReported = DYNINSTnumReported;
+    stats.instTime = ((double) value)/1000000.0;
+    stats.handlerCost = ((double) DYNINSTtotalSampleTime)/1000000.0;
 
     now = DYNINSTgetCPUtime();
+    stats.totalCpuTime = ((double) DYNINSTelapsedCPUTime.total)/MILLION;
+    stats.totalWallTime = DYNINSTelapsedTime.total;
 
-    fprintf(fp,"Total cpu time of program %f\n", ((double) now)/MILLION);
-    fflush(fp);
+    stats.samplesReported = DYNINSTtotalSamples;
+    stats.samplingRate = DYNINSTsamplingRate;
+
+    stats.userTicks = 0;
+    stats.instTicks = 0;
+
+    fp = fopen("stats.out", "w");
+
+#ifdef notdef
+    if (DYNINSTprofile) {
+	int i;
+	int limit;
+	int pageSize;
+	int startInst;
+	extern void DYNINSTreportCounter();
+
+
+	limit = DYNINSTbufsiz/sizeof(short);
+	/* should really be _DYNINSTendUserCode */
+	startInst = (int) &DYNINSTreportCounter;
+	fprintf(fp, "startInst = %x\n", startInst);
+	for (i=0; i < limit; i++) {
+	    if (DYNINSTprofBuffer[i])
+		fprintf(fp, "%x %d\n", i*2, DYNINSTprofBuffer[i]);
+	    if (i * 2 > startInst) {
+		stats.instTicks += DYNINSTprofBuffer[i];
+	    } else {
+		stats.userTicks += DYNINSTprofBuffer[i];
+	    }
+	}
+
+	/* fwrite(DYNINSTprofBuffer, DYNINSTbufsiz, 1, fp); */
+	fprintf(fp, "stats.instTicks %d\n", stats.instTicks);
+	fprintf(fp, "stats.userTicks %d\n", stats.userTicks);
+
+    }
+#endif
+    getrusage(RUSAGE_SELF, &ru);
+
+    fprintf(fp, "DYNINSTtotalAlaramExpires %d\n", stats.alarms);
+    fprintf(fp, "DYNINSTnumReported %d\n", stats.numReported);
+    fprintf(fp,"Raw cycle count = %f\n", (double) stats.instCycles);
+    fprintf(fp,"Total instrumentation cost = %f\n", stats.instTime);
+    fprintf(fp,"Total handler cost = %f\n", stats.handlerCost);
+    fprintf(fp,"Total cpu time of program %f\n", stats.totalCpuTime);
+    fprintf(fp,"Total system time of program %f\n", 
+	 ru.ru_stime.tv_sec * 1000000.0 + ru.ru_stime.tv_usec);
+    fprintf(fp,"Elapsed wall time of program %f\n",
+	stats.totalWallTime/1000000.0);
+    fprintf(fp,"total data samples %d\n", stats.samplesReported);
+    fprintf(fp,"sampling rate %f\n", stats.samplingRate);
+    fprintf(fp,"Application program ticks %d\n", stats.userTicks);
+    fprintf(fp,"Instrumentation ticks %d\n", stats.instTicks);
+
     fclose(fp);
 
     /* record that we are done -- should be somewhere better. */
-    DYNINSTgenerateTraceRecord(0, TR_EXIT, 0, NULL);
+    DYNINSTgenerateTraceRecord(0, TR_EXIT, sizeof(stats), &stats, 1);
 }
-
