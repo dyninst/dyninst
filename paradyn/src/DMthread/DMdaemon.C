@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.110 2002/04/17 16:06:56 willb Exp $
+ * $Id: DMdaemon.C,v 1.111 2002/04/23 18:58:58 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1239,12 +1239,12 @@ string mpichNameWrapper( const string& dir )
 	rv += "pdd-";
 	rv += getNetworkName();
 	rv += "-";
-	rv += getpid();
+	rv += string(getpid());
 	rv += "-";
 
 	struct timeval tv;
 	gettimeofday( &tv, NULL );
-	rv += tv.tv_sec * 1000000 + tv.tv_usec;
+	rv += string(tv.tv_sec * 1000000 + tv.tv_usec);
 
 	return rv;
 }
