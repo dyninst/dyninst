@@ -43,6 +43,7 @@
 #define _BPatch_point_h_
 
 #include "BPatch_dll.h"
+#include "BPatch_Vector.h"
 
 class process;
 class instPoint;
@@ -50,6 +51,16 @@ class BPatch_thread;
 class BPatch_image;
 class BPatch_function;
 class BPatch_memoryAccess;
+class BPatchSnippetHandle;
+
+/*
+ * Used to specify whether a snippet is to be called before the instructions
+ * at the point where it is inserted, or after.
+ */
+typedef enum {
+    BPatch_callBefore,
+    BPatch_callAfter
+} BPatch_callWhen;
 
 /*
  * Provide these definitions for backwards compatability.
@@ -129,6 +140,13 @@ public:
     BPatch_function *getCalledFunction();
     void            *getAddress();
     const BPatch_memoryAccess* getMemoryAccess() const { return memacc; }
+
+    // to get all current snippets at this point
+    const BPatch_Vector<BPatchSnippetHandle *> getCurrentSnippets();
+
+    // to get all current snippets as defined by when at this point
+    const BPatch_Vector<BPatchSnippetHandle *> 
+               getCurrentSnippets(BPatch_callWhen when);
 
 #ifdef IBM_BPATCH_COMPAT
     void *getPointAddress() { return getAddress(); }

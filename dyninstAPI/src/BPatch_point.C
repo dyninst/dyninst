@@ -101,6 +101,41 @@ BPatch_function *BPatch_point::getCalledFunction()
     return ret;
 }
 
+const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets() {
+  vector<miniTrampHandle> *mt_buf = new vector<miniTrampHandle>;
+  getMiniTrampsAtPoint(proc, point, callPreInsn,  mt_buf);
+  getMiniTrampsAtPoint(proc, point, callPostInsn, mt_buf);
+
+  BPatch_Vector<BPatchSnippetHandle *> snippetVec;
+
+  for(unsigned i=0; i<mt_buf->size(); i++) {
+    BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
+    handle->add(&((*mt_buf)[i]));
+    snippetVec.push_back(handle);
+  }
+  return snippetVec;
+}
+
+const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets(
+                                                    BPatch_callWhen when) {
+  callWhen _when = callPreInsn;
+  if(when == BPatch_callBefore) {
+    _when = callPreInsn;
+  } else if(when == BPatch_callAfter) {
+    _when = callPostInsn;
+  }
+  vector<miniTrampHandle> *mt_buf =  new vector<miniTrampHandle>;
+  cerr << "point proc pid = " << proc->getPid() << "\n";
+  getMiniTrampsAtPoint(proc, point, _when, mt_buf);
+
+  BPatch_Vector<BPatchSnippetHandle *> snippetVec;
+  for(unsigned i=0; i<mt_buf->size(); i++) {
+    BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
+    handle->add(&((*mt_buf)[i]));
+    snippetVec.push_back(handle);
+  }
+  return snippetVec;
+}
 
 /*
  * BPatch_point::getAddress
