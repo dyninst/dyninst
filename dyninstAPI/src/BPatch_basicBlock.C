@@ -246,11 +246,14 @@ bool BPatch_basicBlock::postdominates(BPatch_basicBlock* bb){
 void
 BPatch_basicBlock::getSourceBlocks(BPatch_Vector<BPatch_sourceBlock*>& sBlocks)
 {
-	flowGraph->createSourceBlocks();
-	if(!sourceBlocks)
-		return;
-	for(unsigned int i=0;i<sourceBlocks->size();i++)
-		sBlocks.push_back((*sourceBlocks)[i]);
+    if(!sourceBlocks)
+        flowGraph->createSourceBlocks();
+    
+    if(!sourceBlocks)
+        return;
+    
+    for(unsigned int i=0;i<sourceBlocks->size();i++)
+        sBlocks.push_back((*sourceBlocks)[i]);
 }
 
 //returns the block number of the basic block
