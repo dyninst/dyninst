@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.101 2001/11/02 19:28:39 bernat Exp $
+// $Id: symtab.h,v 1.102 2001/12/10 21:17:16 chadd Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -1105,6 +1105,7 @@ inline bool image::isData(const Address &where)  const{
 }
 
 inline bool image::symbol_info(const string& symbol_name, Symbol &ret_sym) {
+  
   if (linkedFile.get_symbol(symbol_name, ret_sym))
     return true;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.13 2001/08/22 01:31:28 bernat Exp $
+// $Id: Object-xcoff.C,v 1.14 2001/12/10 21:17:16 chadd Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -100,8 +100,13 @@ bool seekAndRead(int fd, int offset, void **dest, int length, bool allocate)
 	showErrorCallback(42, (const char *) errorLine);
 	return false;
     }
-
+#ifdef __alpha
+    prmap_t tmp;
+    tmp.pr_vaddr = (char*)offset;
+    cnt = lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
+#else
     cnt = lseek(fd, offset, SEEK_SET);
+#endif
     if (cnt != offset) {
         sprintf(errorLine, "Unable to parse executable file: failed seek\n");
 	logLine(errorLine);
@@ -130,7 +135,13 @@ unsigned long roundup4(unsigned long val) {
 int Archive_32::read_arhdr()
 {
   char tmpstring[13];
+#ifdef __alpha
+  prmap_t tmp;
+  tmp.pr_vaddr = 0;
+  lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
+#else 
   lseek(fd, 0, SEEK_SET);
+#endif 
   int cnt = read(fd, &filehdr, sizeof(struct fl_hdr));
   if (cnt != sizeof(struct fl_hdr))
     return -1;
@@ -150,7 +161,13 @@ int Archive_32::read_arhdr()
 int Archive_64::read_arhdr()
 {
   char tmpstring[21];
+#ifdef __alpha
+  prmap_t tmp;
+  tmp.pr_vaddr = 0;
+  lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
+#else
   lseek(fd, 0, SEEK_SET);
+#endif
   int cnt = read(fd, &filehdr, sizeof(struct fl_hdr_big));
   if (cnt != sizeof(struct fl_hdr_big))
     return -1;
@@ -183,7 +200,13 @@ int Archive_32::read_mbrhdr()
   char tmpstring[13];
 
   if (next_offset == 0) return -1;
+#ifdef __alpha
+  prmap_t tmp;
+  tmp.pr_vaddr = next_offset;
+  lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
+#else
   lseek(fd, next_offset, SEEK_SET);
+#endif 
   // Don't read last two bytes (first two bytes of the name)
   cnt = read(fd, &memberhdr, sizeof(struct ar_hdr) - 2);
   if (cnt != (sizeof(struct ar_hdr) - 2)) return -1;
@@ -219,7 +242,13 @@ int Archive_64::read_mbrhdr()
   char tmpstring[21];
   
   if (next_offset == 0) return -1;
+#ifdef __alpha
+  prmap_t tmp;
+  tmp.pr_vaddr = next_offset;
+  lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
+#else
   lseek(fd, next_offset, SEEK_SET);
+#endif
   // Don't read last two bytes (first two bytes of the name)
   cnt = read(fd, &memberhdr, sizeof(struct ar_hdr_big) - 2);
   if (cnt != (sizeof(struct ar_hdr_big) - 2)) return -1;
@@ -314,8 +343,13 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
    Symbol heapSym;
    
    // Get to the right place in the file (not necessarily 0)
+#ifdef __alpha
+   prmap_t tmp;
+   tmp.pr_vaddr = offset;
+   lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
+#else
    lseek(fd, offset, SEEK_SET);
-
+#endif
    // Load and check the XCOFF file header
    cnt = read(fd, &hdr, sizeof(struct filehdr));
    if (cnt != sizeof(struct filehdr))
@@ -798,7 +832,13 @@ void Object::load_archive(int fd, bool is_aout)
   Archive *archive;
 
   // Determine archive type
+#ifdef __alpha
+  prmap_t tmp;
+  tmp.pr_vaddr = 0;
+  lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
+#else
   lseek(fd, 0, SEEK_SET);
+#endif
   char magic_number[SAIAMAG];
   int cnt = read(fd, magic_number, SAIAMAG);
   if (cnt != SAIAMAG)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.11 2000/07/28 17:21:17 pcroth Exp $
+// $Id: procfs.C,v 1.12 2001/12/10 21:17:16 chadd Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -158,7 +158,16 @@ bool process::isRunning_() const {
 bool process::restoreRegisters(void *buffer) 
 {
    assert(status_ == stopped); // /proc requires it
-
+#ifdef __alpha 
+   prstatus info;
+   ioctl(proc_fd, PIOCSTATUS,  &info); 
+   while (!prismember(&info.pr_flags, PR_STOPPED))
+   { 
+       sleep(1);
+       ioctl(proc_fd, PIOCSTATUS,  &info);
+   }
+   errno = 0;
+#endif
    gregset_t theIntRegs = *(gregset_t *)buffer;
    fpregset_t theFpRegs = *(fpregset_t *)((char *)buffer + sizeof(theIntRegs));
 
@@ -326,7 +335,18 @@ void *process::getRegisters() {
 
 bool process::changePC(Address addr, const void *savedRegs) {
    assert(status_ == stopped);
-
+#ifdef __alpha
+   prstatus info;
+   ioctl(proc_fd, PIOCSTATUS,  &info);
+   while (!prismember(&info.pr_flags, PR_STOPPED))
+   {
+       sleep(1);
+       ioctl(proc_fd, PIOCSTATUS,  &info);
+       pause_();
+   }
+   errno = 0;
+#endif
+   
    gregset_t theIntRegs = *(const gregset_t *)savedRegs; // makes a copy, on purpose
    theIntRegs.regs[PC_REGNUM] = addr;
    if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
@@ -343,7 +363,17 @@ bool process::changePC(Address addr, const void *savedRegs) {
 
 bool process::changePC(Address addr) {
    assert(status_ == stopped); // /proc will require this
-
+#ifdef __alpha
+   prstatus info;
+   ioctl(proc_fd, PIOCSTATUS,  &info);
+   while (!prismember(&info.pr_flags, PR_STOPPED))
+   {
+       sleep(1);
+       ioctl(proc_fd, PIOCSTATUS,  &info);
+       pause_();
+   }
+  errno = 0;
+#endif   
    gregset_t theIntRegs;
    if (-1 == ioctl(proc_fd, PIOCGREG, &theIntRegs)) {
       perror("process::changePC PIOCGREG");
@@ -487,7 +517,15 @@ bool process::writeDataSpace_(void *inTracedProcess, u_int amount,const void *in
   off_t ret;
   ptraceOps++; ptraceBytes += amount;
 
+#ifdef __alpha
+  errno = 0;
+  prmap_t tmp;
+  tmp.pr_vaddr = (char*)inTracedProcess;
+  ret = lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
+#else
   ret =  lseek(proc_fd, (off_t)inTracedProcess, SEEK_SET);
+#endif  
+
   if (ret != (off_t)inTracedProcess) {
       perror("lseek");
       fprintf(stderr, "   target address %lx\n", inTracedProcess);
@@ -497,14 +535,44 @@ bool process::writeDataSpace_(void *inTracedProcess, u_int amount,const void *in
 }
 
 bool process::readDataSpace_(const void *inTracedProcess, u_int amount, void *inSelf) {
-  ptraceOps++; ptraceBytes += amount;
   off_t ret;
+  ptraceOps++; ptraceBytes += amount;
+#ifdef __alpha   
+  prstatus info;
+  ioctl(proc_fd, PIOCSTATUS,  &info);
+  while (!prismember(&info.pr_flags, PR_STOPPED))
+  {
+     sleep(1);
+     ioctl(proc_fd, PIOCSTATUS,  &info);
+  } 
+  errno = 0;
+#endif  
+  ret = lseek(proc_fd, reinterpret_cast<off_t>(inTracedProcess), SEEK_SET);
 
-  ret = lseek(proc_fd, (off_t)inTracedProcess, SEEK_SET);
   if (ret != (off_t)inTracedProcess) {
       perror("lseek");
       fprintf(stderr, "   target address %lx\n", inTracedProcess);
-      return false;
+      fprintf(stderr, "lseek(%d,%lx,%d)\n", proc_fd, inTracedProcess, SEEK_SET); 
+      fprintf(stderr, "The return address: %lx\n",ret); 
+      #ifdef DEBUG
+        if (errno == EBADF)
+        {
+                perror("The fildes argument is not an open file descriptor.\n");
+        }
+        else if (errno == EINVAL)
+        {
+                perror("The whence argument is not SEEK_SET, SEEK_CUR...\n");
+        }
+        else if (errno == ESPIPE)
+        {
+                perror("ESPIPE error\n");
+        }
+        else
+        {
+                perror("Unknown error\n");
+        }
+     #endif
+     return false;
   }
   return (read(proc_fd, inSelf, amount) == (int)amount);
 }

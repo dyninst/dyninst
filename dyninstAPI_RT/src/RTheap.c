@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.16 2001/11/07 19:50:08 bernat Exp $ */
+/* $Id: RTheap.c,v 1.17 2001/12/10 21:17:57 chadd Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -49,6 +49,8 @@
 	one that is used assert.h anyway.
 	*/
 #include <assert.h>
+#include <errno.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>                 /* open() */
 #include <fcntl.h>                    /* open() */
@@ -136,7 +138,7 @@ trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
     fprintf(stderr, "Calling mmap(addr = 0x%x, len = 0x%x, prot = 0x%x, flags = 0x%x)\n",
 	    try, len, PROT_READ|PROT_WRITE|PROT_EXEC, DYNINSTheap_mmapFlags);
     */
-    result = mmap((void *)try, len, 
+    result = mmap((void*)try, len, 
 		  PROT_READ|PROT_WRITE|PROT_EXEC,
 		  DYNINSTheap_mmapFlags, 
 		  fd, 
@@ -146,7 +148,7 @@ trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
 	return (Address)result;
       }
     
-    perror("mmap");
+    // perror("mmap");
     /* Ugly. Can someone fix this? */
   }
   return 0;
@@ -346,6 +348,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 
     fd = DYNINSTheap_mmapFdOpen();
 #ifndef alpha_dec_osf4_0
+    fprintf(stderr, "The file handle2 %d.\n", fd);
     if (0 > fd) {
 	 free(node);
 	 return NULL;

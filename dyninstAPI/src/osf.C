@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.20 2001/07/05 16:53:23 tikir Exp $
+// $Id: osf.C,v 1.21 2001/12/10 21:17:16 chadd Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -643,17 +643,18 @@ int process::waitProcs(int *status)
 */
 bool process::attach() {
   char procName[128];
-
+  memset(procName, 0, 128);
   // why is this sleep here?? -- jkh 4/1/99
   // sleep(15);
-  sprintf(procName,"/proc/%05d", (int)pid);
+  sprintf(procName,"/proc/%d", (int)pid);
+  errno = 0;
   int fd = P_open(procName, O_RDWR, 0);
   if (fd < 0) {
     fprintf(stderr, "attach: open failed: %s\n", sys_errlist[errno]);
     return false;
   }
   proc_fd = fd;
-  /*  dumpCore_("core.real"); */
+  //dumpCore_("core.real");
 
   /* we don't catch any child signals, except SIGSTOP */
   sigset_t sigs;
@@ -939,11 +940,11 @@ bool process::dumpImage()
     logLine(errorLine);
 
     /* seek to the text segment */
-    lseek(ofd, file_ofs, SEEK_SET);
+    lseek(ofd,(off_t)file_ofs, SEEK_SET);
     for (i=0; i < text_size; i+= 1024) {
         errno = 0;
         length = ((i + 1024) < text_size) ? 1024 : text_size -i;
-	if (lseek(proc_fd, (long)(baseAddr + i), SEEK_SET) != (long)(baseAddr + i)) {
+        if (lseek(proc_fd,(off_t)(baseAddr + i), SEEK_SET) != (long)(baseAddr + i)) {
 	    fprintf(stderr,"Error_:%s\n",sys_errlist[errno]);
 	    fprintf(stderr,"[%d] Couldn't lseek to the designated point\n",i);
 	}

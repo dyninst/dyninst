@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.59 2001/11/09 00:01:47 zandy Exp $
+// $Id: unix.C,v 1.60 2001/12/10 21:17:16 chadd Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -949,7 +949,7 @@ void checkProcStatus() {
 
    int wait_status;
    int wait_pid = process::waitProcs(&wait_status);
-   if (wait_pid > 0) {
+    if (wait_pid > 0) {
       if (handleSigChild(wait_pid, wait_status) < 0) {
 	 cerr << "handleSigChild failed for pid " << wait_pid << endl;
       }

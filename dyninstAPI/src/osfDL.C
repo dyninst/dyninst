@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.16 2001/07/05 16:53:23 tikir Exp $
+// $Id: osfDL.C,v 1.17 2001/12/10 21:17:16 chadd Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -59,6 +59,7 @@ extern debug_ostream sharedobj_cerr;
 #include <sys/fault.h>
 #include <dlfcn.h>
 #include <poll.h>
+#include <filehdr.h>
 
 void generateBreakPoint(instruction &insn);
 
@@ -120,6 +121,7 @@ typedef struct {
 // TODO: 
 // dlclose events should result in a call to removeASharedObject
 vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
+    
     // step 1: figure out if this is a dynamic executable. 
 
     // force load of object
@@ -128,7 +130,7 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 
     // Use the symbol _call_add_pc_range_table as the test for a 
     // dynamically linked obj
-    string dyn_str = string("_call_add_pc_range_table");
+    string dyn_str = string("__INIT_00_add_pc_range_table");
     internalSym dyn_sym;
     bool found = p->findInternalSymbol(dyn_str, false, dyn_sym);
     if (!found) {
@@ -136,10 +138,11 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 	printf("program is statically linked\n");
 	return 0;
     }
-
+   
     int proc_fd = p->getProcFileDescriptor();
     if(!proc_fd){ return 0;}
 
+    // step 2: find the base address and file descriptor of ld.so.1
     vector<shared_object *> *result = new(vector<shared_object *>);
 
     // step 2: get the runtime loader table from the process
@@ -147,16 +150,18 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
     ldr_context first;
     ldr_module module;
 
-    assert(p->readDataSpace((const void*)LDR_BASE_ADDR, 
-	sizeof(Address), &ldr_base_addr, true));
-    assert(p->readDataSpace((const void*)ldr_base_addr, 
-	sizeof(ldr_context), &first, true));
-    assert(p->readDataSpace((const void *) first.head, 
-	sizeof(ldr_module), &module, true));
-
+    assert(p->readDataSpace((const void*)LDR_BASE_ADDR,sizeof(Address), &ldr_base_addr, true));
+    assert(p->readDataSpace((const void*)ldr_base_addr,sizeof(ldr_context), &first, true));
+    assert(p->readDataSpace((const void *) first.head,sizeof(ldr_module), &module, true));
+    
     bool first_time = true;
     while (module.next != first.head) {
-	string obj_name = string(readDataString(p, module.name));
+        if (module.nregions == 0)
+	{ 
+		assert(p->readDataSpace((const void *) module.next,sizeof(ldr_module), &module,true));
+		continue;
+        }
+        string obj_name = string(readDataString(p, module.name));
 	ldr_region *regions;
 
 	regions = (ldr_region *) malloc(module.nregions * sizeof(ldr_region));
@@ -199,8 +204,7 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 
 	first_time = false;
 	free(regions);
-	assert(p->readDataSpace((const void *) module.next, 
-		sizeof(ldr_module), &module,true));
+	assert(p->readDataSpace((const void *) module.next,sizeof(ldr_module), &module,true));
     }
     p->setDynamicLinking();
     dynlinked = true;
@@ -489,11 +493,11 @@ void waitProc(int fd, int)
 void process::insertTrapAtEntryPointOfMain()
 {
   // XXX - Should check if it's statically linked and skip the prod. - jkh
-  continueProc_();
-  waitProc(proc_fd, SIGTRAP);
+  // continueProc_();
+  // waitProc(proc_fd, SIGTRAP);
 
-  continueProc_();
-  waitProc(proc_fd, SIGTRAP);
+  // continueProc_();
+  // waitProc(proc_fd, SIGTRAP);
 
   // save trap address: start of main()
   // TODO: use start of "_main" if exists?
@@ -554,6 +558,13 @@ oc" << endl;
    theIntRegs.regs[PC_REGNUM] -= 4;
    changedPCvalue = theIntRegs.regs[PC_REGNUM];
 
+  prstatus info;
+  ioctl(proc_fd, PIOCSTATUS,  &info);
+  while (!prismember(&info.pr_flags, PR_STOPPED))
+  {
+     sleep(1);
+     ioctl(proc_fd, PIOCSTATUS,  &info);
+  }
    if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
       perror("process::getRegisters PIOCGREG");
       if (errno == EBUSY) {

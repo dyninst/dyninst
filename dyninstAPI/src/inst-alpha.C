@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.41 2001/11/28 05:44:10 gaburici Exp $
+// $Id: inst-alpha.C,v 1.42 2001/12/10 21:17:16 chadd Exp $
 
 #include "common/h/headers.h"
 
@@ -1926,7 +1926,7 @@ emitFuncCall(opCode /* op */,
              const instPoint *location = NULL) // FIXME: pass it!
 {
   vector <Register> srcs;
-
+  
   // First, generate the parameters
   for (unsigned u = 0; u < operands.size(); u++)
     srcs.push_back(operands[u]->generateCode(proc, rs, i , base, false, false));
