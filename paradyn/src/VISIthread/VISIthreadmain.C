@@ -22,13 +22,19 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.51  1995/11/20 03:33:28  tamches
-/* Changed buffer variables; optimized code that write to & flushes it.
-/* Added flush_buffer_if_full() and flush_buffer_if_nonempty() helper routines.
-/* No more checks for a null buffer.  No need to create a temporary buffer
-/* (and do a copy) when sending a full buffer (however, still need to when sending
-/* a less-than-full one).
+/* Revision 1.52  1995/11/21 15:17:25  naim
+/* Changing the way we were displaying error messages when a metric was not
+/* enabled. Currently, if a selected metric has already been enabled, then we
+/* take no action. If the metric cannot be enabled then we display an error
+/* message including the name of the metric and the corresponding focus - naim
 /*
+ * Revision 1.51  1995/11/20  03:33:28  tamches
+ * Changed buffer variables; optimized code that write to & flushes it.
+ * Added flush_buffer_if_full() and flush_buffer_if_nonempty() helper routines.
+ * No more checks for a null buffer.  No need to create a temporary buffer
+ * (and do a copy) when sending a full buffer (however, still need to when sending
+ * a less-than-full one).
+ *
  * Revision 1.50  1995/11/17 17:21:04  newhall
  * added normalized field to metrics
  *
@@ -767,6 +773,20 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
       // send retry list to UIM to deal with 
       if((ptr->args->remenuFlag) && (retryList->size())){
         // don't free retryList since it is passed to UI
+	ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes,newMetRes);
+	string msg("Cannot enable the following metric/focus pair(s): ");
+        for (int ii=0;ii<retryList->size();ii++) {
+	  string *focusName=NULL;
+	  focusName = dataMgr->getFocusName(&((*retryList)[ii].res));
+          msg += (*(dataMgr->getMetricName((*retryList)[ii].met)));
+	  if (focusName) {
+	    msg += string("(");
+	    msg += (*focusName);
+	    msg += string(")");
+          }
+	  msg += string(" ");
+	}
+	uiMgr->showError(86,P_strdup(msg.string_of()));
       }
       else { // else ignore, and set remenuFlag
         ptr->args->remenuFlag = 1;     
@@ -779,13 +799,27 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
       // if nothing was enabled, and remenuflag is set make remenu request
       PARADYN_DEBUG(("No enabled Metric/focus pairs: VISIthreadchooseMetRes"));
       // remake menuing call with 
-      if(ptr->args->remenuFlag){
-         ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes, newMetRes);
+      if (ptr->args->remenuFlag) {
+	if (retryList->size()) {
+	  ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes,newMetRes);
+          string msg("Cannot enable the following metric(s): ");
+	  for (int ii=0;ii<retryList->size();ii++) {
+	    string *focusName=NULL;
+	    focusName = dataMgr->getFocusName(&((*retryList)[ii].res));
+	    msg += (*(dataMgr->getMetricName((*retryList)[ii].met)));
+	    if (focusName) {
+	      msg += string("(");
+	      msg += (*focusName);
+	      msg += string(")");
+	    }
+	    msg += string(" ");
+	  }
+	  uiMgr->showError(86,P_strdup(msg.string_of()));
+	}
       }
       else{ // if nothing was enabled, and remenuflag is not set quit
 	 ptr->quit = 1;
       }
-      ERROR_MSG(17,"Cannot select the same metric twice. Please, try again");
   }
   return 1;
 }
