@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.10 2002/07/18 17:09:26 bernat Exp $
+/* $Id: shmMgr.C,v 1.11 2002/08/12 04:21:59 schendel Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -77,11 +77,60 @@ shmMgr::shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_) :
   highWaterMark = baseAddrInDaemon;
 }
 
+shmMgr::shmMgr(const shmMgr &par, key_t theShmKey, void *applShmSegPtr, 
+	       pid_t inferiorPid) :
+  keyUsed(theShmKey), shmSize(par.shmSize)
+{  
+  if(applShmSegPtr != reinterpret_cast<void*>(par.baseAddrInApplic)) {
+    cerr << "Serious error in fastInferiorHeapMgr fork-constructor. It "
+	 << "appears that\nthe child process hasn't attached the shm seg in"
+	 << "the same location as in the parent process.  This leaves\nall"
+	 << " mini-tramps data references pointing to invalid memory locs!";
+    abort();
+  }
+
+  // open the existing segment
+  theShm = ShmSegment::Open(keyUsed, shmSize);
+  if(theShm == NULL) {
+    // we were unable to open the existing segment
+    // in the future, we could throw an exception and handle this gracefully
+    cerr << "Paradyn is unable to monitor applications for which it cannot "
+	 << "create a shared memory segment for the process's instrumentation "
+	 << "data.\n";
+    abort();
+    return;
+  }
+  baseAddrInApplic = reinterpret_cast<Address>(applShmSegPtr);
+  baseAddrInDaemon = reinterpret_cast<Address>(theShm->GetMappedAddress());
+  memcpy(theShm->GetMappedAddress(), par.theShm->GetMappedAddress(),shmSize);
+
+  freespace = shmSize;
+  highWaterMark = baseAddrInDaemon;
+
+  // we're going to remalloc the prealloc objects, so remove their
+  // contribution from num_allocated
+  num_allocated = par.num_allocated - par.prealloc.size();
+  for(unsigned i=0; i<par.prealloc.size(); i++) {
+    shmMgrPreallocInternal *new_prealloc = 
+       new shmMgrPreallocInternal(*par.prealloc[i], *this);
+    prealloc.push_back(new_prealloc);
+  }
+}
+
 shmMgr::~shmMgr()
 {
-  assert(num_allocated == 0);
-  for (unsigned i = 0; i < prealloc.size(); i++)
+  //cerr << "~shmMgr: " << this << ", num_allocated = " << num_allocated
+  //     << ", prealloc.size: " << prealloc.size() << "\n";
+  // free the preMalloced memory
+  for (unsigned i = 0; i < prealloc.size(); i++) {
+    num_allocated--;  // prealloc objects are included in num_allocated total
     delete prealloc[i];
+  }
+  
+  //cerr << "num_allocated = " << num_allocated << "\n";
+  assert(num_allocated == 0);
+
+  if(theShm) delete theShm;  // detaches from the shared memory segment
 }
 
 static unsigned align(unsigned num, unsigned alignmentFactor) {
@@ -136,19 +185,23 @@ void shmMgr::free(Address addr)
 void shmMgr::preMalloc(unsigned size, unsigned num)
 {
   //  fprintf(stderr, "Preallocating %d of size %d\n", num, size);
-  unsigned amount = (num*size);
-  Address baseAddr = this->malloc(amount);
+  Address baseAddr = this->malloc(num*size);
   if (!baseAddr) return;
-  shmMgrPreallocInternal *new_prealloc = new shmMgrPreallocInternal(size, num, baseAddr);
+  Address offset = baseAddr - 
+                          reinterpret_cast<Address>(getBaseAddrInDaemon());
+  shmMgrPreallocInternal *new_prealloc = 
+    new shmMgrPreallocInternal(size, num, baseAddr, offset);
   prealloc.push_back(new_prealloc);
 }
 
-shmMgrPreallocInternal::shmMgrPreallocInternal(unsigned size, unsigned num, Address baseAddr)
+shmMgrPreallocInternal::shmMgrPreallocInternal(unsigned size, unsigned num, 
+					   Address baseAddr, Address offset)
 {
   baseAddr_ = baseAddr;
   size_ = size;
   numElems_ = num;
   currAlloc_ = 0;
+  offsetIntoSegment = offset;
   // Round up to 8 for purposes of bitmapping.
   unsigned rounded_num = num;
   if (rounded_num % 8) {
@@ -173,6 +226,17 @@ shmMgrPreallocInternal::shmMgrPreallocInternal(unsigned size, unsigned num, Addr
   }
 }
 
+shmMgrPreallocInternal::shmMgrPreallocInternal(
+              const shmMgrPreallocInternal &par, const shmMgr &tShmMgr) :
+   baseAddr_(tShmMgr.getBaseAddrInDaemon2() + par.offsetIntoSegment), 
+   offsetIntoSegment(par.offsetIntoSegment),
+   size_(par.size_), numElems_(par.numElems_),
+   bitmap_size_(par.bitmap_size_), currAlloc_(par.currAlloc_)
+{
+   bitmap_ = new char[bitmap_size_];
+   memcpy(bitmap_, par.bitmap_, bitmap_size_);
+}
+
 shmMgrPreallocInternal::~shmMgrPreallocInternal()
 {
   assert(currAlloc_ == 0);
@@ -186,28 +250,35 @@ bool shmMgrPreallocInternal::oneAvailable()
 
 Address shmMgrPreallocInternal::malloc()
 {
-  if (!oneAvailable()) return 0;
-  // Well, there's one here... let's try and find it. Scan the bitmaps
-  // for one that is less than 0xff
-  unsigned next_free_block = 0;
-  for (next_free_block = 0; next_free_block < bitmap_size_; next_free_block++)
-    if (bitmap_[next_free_block] != (char) 0xff)
-      break;
-  int foo = 0;
-  foo = bitmap_[next_free_block];
-  assert(next_free_block < bitmap_size_); // Should have been bounced by oneAvailable
-  // Next: find slot within that is empty
-  unsigned next_free_slot = 0;
-  for (next_free_slot = 0; next_free_slot < 8; next_free_slot++)
-    if (!(bitmap_[next_free_block] &(0x1 << next_free_slot))) // logical AND, right?
-      break;
+   if (!oneAvailable()) return 0;
+
+   // Well, there's one here... let's try and find it. Scan the bitmaps
+   // for one that is less than 0xff
+   unsigned next_free_block = 0;
+   for (next_free_block = 0; next_free_block<bitmap_size_; next_free_block++)
+      if (bitmap_[next_free_block] != (char) 0xff)
+	 break;
+   int foo = 0;
+   foo = bitmap_[next_free_block];
+   // Should have been bounced by oneAvailable
+   
+   assert(next_free_block < bitmap_size_); 
+   
+   // Next: find slot within that is empty
+   unsigned next_free_slot = 0;
+   for (next_free_slot = 0; next_free_slot < 8; next_free_slot++) {
+      // logical AND, right?
+      if (!(bitmap_[next_free_block] &(0x1 << next_free_slot))) 
+	 break;
+   }
 
   assert(next_free_slot < 8);
   // Okay, we have our man... mark it as active, decrease available count,
   // and calculate the return address
   bitmap_[next_free_block] += 0x1 << next_free_slot;
   currAlloc_++;
-  Address retAddr = baseAddr_ + (((next_free_block * 8) + next_free_slot) * size_);
+  Address retAddr = baseAddr_ + 
+                    (((next_free_block * 8) + next_free_slot) * size_);
   //  fprintf(stderr, "Returning addr 0x%x\n", (unsigned) retAddr);
   return retAddr;
 }
