@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-unix.C,v 1.1 2000/02/22 23:12:14 pcroth Exp $
+// $Id: shmSegment-unix.C,v 1.2 2000/03/12 22:26:56 wylie Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -107,14 +107,23 @@ ShmSegment::Create( key_t& key, unsigned int size, void* addr )
     
 
     // create a shared memory segment of the desired size
-   while (true) {
+    while (true) {
       errno = 0;
 
       shmid_t shmid = P_shmget(key, size, 0666 | IPC_CREAT | IPC_EXCL);
       if (shmid == -1) {
-	     // failure...but why?  If because seg already exists, then increase
-         // 'firstKeyToTry' and retry!  (But first, try to garbage collect it and
-	     // if successful, retry without increasing 'firstKeyToTry'!)
+         // failure...but why?  If because seg already exists, then increase
+         // 'firstKeyToTry' and retry!  (But first, try to garbage collect it
+         // and if successful, retry without increasing 'firstKeyToTry'!)
+
+             if (errno == EINVAL) {
+                cerr << "ShmSegment::Create failed for segment of size "
+                     << size << " bytes, due to system-imposed limits." << endl;
+                string msg = "Size of shared memory segment requested mapped"
+                    " to this process (" + string(size) + ") exceeds OS limit.";
+	        showErrorCallback(102,msg);
+	        cleanUpAndExit(-1);
+             }
 
 	     if (errno == EEXIST) {
 	        // The shm segment already exists; try to garbage collect it.
@@ -123,13 +132,15 @@ ShmSegment::Create( key_t& key, unsigned int size, void* addr )
 	        gcResult result = TryToReleaseShmSegment(key, size);
 	        if (result == gcHappened) {
 #ifdef SHM_SAMPLING_DEBUG
-	           cerr << "ShmSegment::Create successfully gc'd key " << (int)key << endl;
+	           cerr << "ShmSegment::Create successfully gc'd key " 
+                        << (int)key << endl;
 #endif
 	           continue;
 	        }
 	        else if (result == gcDidntHappen) {
 #ifdef SHM_SAMPLING_DEBUG
-	           cerr << "ShmSegment::Create couldn't gc key " << (int)key << endl;
+	           cerr << "ShmSegment::Create couldn't gc key " 
+                        << (int)key << endl;
 #endif
 	           key++;
 	           continue;
@@ -142,11 +153,12 @@ ShmSegment::Create( key_t& key, unsigned int size, void* addr )
 	     }
 
 	     if (errno == ENOSPC) {
-	        // Would have created the shm segment, but the system-imposed limit
-	        // on the max number of allowed shm identifiers system-wide would have
-	        // been exceeded.  What to do here?  At first glance, there's nothing
-	        // we can possibly do.  But we could try to garbage collect some
-	        // segments, and if successful with at least one collection, then retry.
+                // Would have created the shm segment, but the system-imposed
+                // limit on the max number of allowed shm identifiers [shmmni?]
+                // system-wide would have been exceeded.  What to do here? 
+                // At first glance, there's nothing we can possibly do. 
+                // But we could try to garbage collect some segments, and
+                // if successful with at least one collection, then retry.
 	        bool success = false;
 	        for (key_t k= key; k <= key+20; k++) {
 	           if (TryToReleaseShmSegment(k, size)==gcHappened)
@@ -160,9 +172,9 @@ ShmSegment::Create( key_t& key, unsigned int size, void* addr )
 	        // else, fall through to error
 	     }
 
-	     perror("shmget 1");
+             perror("ShmSegment::Create shmget");
 
-	     break; // should probably throw and exception!
+	     break; // should probably throw an exception!
       }
 
       // shmget succeeded -- the shm segment has been created.  Now we need
@@ -174,21 +186,22 @@ ShmSegment::Create( key_t& key, unsigned int size, void* addr )
 	     if (errno == EMFILE) {
 	        // the # of shm segments mapped to this process would exceed the
 	        // system-imposed limit.  Ick, ick, ick.
-	        // Would garbage collection help?  Probably not; it might reduce the
-	        // # of segments system-wide, but not the # of segments we've shmat()'d
-	        // to.  So, give up.  First, undo the shmget.  Then, throw an exception.
+	        // Would garbage collection help?  Probably not; it might reduce
+	        // #segments system-wide, but not #segments we've shmat()'d to.
+	        // So, give up: undo the shmget, then throw an exception.
 
-	        cerr << "ShmSegment::Create: shmat failed -- number of shm segments attached to paradynd" << endl;
+	        cerr << "ShmSegment::Create: shmat failed -- "
+                     << "number of shm segments attached to paradynd" << endl;
 	        cerr << "would exceed a system-imposed limit." << endl;
 	        
-	        showErrorCallback(102,"");
+	        showErrorCallback(102,"Number of shared memory segments"
+                        " mapped to this process exceeds OS limit.");
 	        cleanUpAndExit(-1);
-	        // fall through...
 	     }
 
 	     perror("ShmSegment::Create shmat");
 
-         // release the segment we created
+             // release the segment we created
 	     (void)P_shmctl(shmid, IPC_RMID, NULL);
 	     break; // throw an exception
       }
@@ -198,7 +211,7 @@ ShmSegment::Create( key_t& key, unsigned int size, void* addr )
       seg = new ShmSegment( shmid, key, size, mapAddr );
       break;
 
-   } // while (true)
+    } // while (true)
 
 
     if( seg != NULL )
