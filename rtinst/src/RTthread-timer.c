@@ -47,27 +47,27 @@
 void DEBUG_VIRTUAL_TIMER_START(tTimer *timer, int context) {
   switch(context) {
   case THREAD_UPDATE: {
-    fprintf(stderr, "THREAD_UPDATE--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->lwp_id);
+    fprintf(stderr, "THREAD_UPDATE--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->pos);
     break ;
   }
   case THREAD_CREATE: {
-    fprintf(stderr, "THREAD_CREATE--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->lwp_id);
+    fprintf(stderr, "THREAD_CREATE--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->pos);
     break ;
   }
   case THREAD_DETECT: {
-    fprintf(stderr, "THREAD_DETECT--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->lwp_id);
+    fprintf(stderr, "THREAD_DETECT--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->pos);
     break ;
   }
   case VIRTUAL_TIMER_CREATE: {
-    fprintf(stderr, "VIRTUAL_TIMER_CREATE--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->lwp_id);
+    fprintf(stderr, "VIRTUAL_TIMER_CREATE--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->pos);
     break ;
   }
   case VIRTUAL_TIMER_START: {
-    fprintf(stderr, "VIRTUAL_TIMER_START--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->lwp_id);
+    fprintf(stderr, "VIRTUAL_TIMER_START--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->pos);
     break ;
   }
   case THREAD_TIMER_START: {
-    fprintf(stderr, "THREAD_TIMER_START--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->lwp_id);
+    fprintf(stderr, "THREAD_TIMER_START--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->pos);
     break ;
   }
   }
@@ -78,13 +78,14 @@ void DEBUG_VIRTUAL_TIMER_START(tTimer *timer, int context) {
 void _VirtualTimerStart(tTimer *timer, int context){
   assert(timer->protector1 == timer->protector2);
   timer->protector1++;
-
-  if (timer->vtimer && timer->counter ==0) {
-    fprintf(stderr, "Calling _LWP with lwp_id %d\n", timer->lwp_id);
-    timer->start = DYNINSTgetCPUtime_LWP(timer->lwp_id);
+  
+  timer->pos = P_lwp_self();
+  if (timer->counter ==0) {
+    fprintf(stderr, "Calling _LWP with lwp_id %d, timer addr 0x%x\n", timer->pos, (unsigned) timer);
+    timer->start = DYNINSTgetCPUtime_LWP(timer->pos);
   }
   timer->counter++;
-
+  
   timer->protector2++;
   assert(timer->protector1 == timer->protector2);
 }
@@ -97,10 +98,10 @@ void _VirtualTimerStop(tTimer* timer) {
   
   if (timer->counter == 1) {
     rawTime64 now;
-    now = DYNINSTgetCPUtime_LWP(timer->lwp_id);
+    now = DYNINSTgetCPUtime_LWP(timer->pos);
     if (now < timer->start) {
       fprintf(stderr, "WARNING: rtinst, cpu timer rollback. start=%lld, now=%lld, previous_lwp=%d\n",
-	      timer->start,now,timer->lwp_id);
+	      timer->start,now,timer->pos);
     }
     else
       timer->total += (now - timer->start);
@@ -113,26 +114,26 @@ void _VirtualTimerStop(tTimer* timer) {
 
 /* called when the virtual timer is reused by another thread */
 void DYNINST_VirtualTimerDestroy(tTimer* vt) {
-  if (vt->vtimer)
+  if (vt->pos)
     memset((char*) vt, '\0', sizeof(tTimer)) ;
 }
 
 /* getThreadCPUTime */
 /* We're basically "sampling" the per-lwp virtual timer. So
    use the works: check p1 == p2, check rollbacks, the lot. */
-rawTime64 getThreadCPUTime(tTimer *vt, int *valid) {
+/* Hrm... since only one thread gets to access a timer, why are we bothering?
+   We have serialized access to these suckers */
+rawTime64 getThreadCPUTime(unsigned pos, int *valid) {
   volatile int protector1, protector2;
   volatile rawTime64 total, start ;
+  rawTime64 now = -1;
   volatile int    count, vt_lwp_id;
-  tTimer *vtimer ;
-
-  if (!vt->vtimer)
-    return 0 ;
+  tTimer *vt = &(RTsharedData->virtualTimers[pos]);
 
   protector2 = vt->protector2 ;
   count = vt->counter;
   total = vt->total;
-  vt_lwp_id = vt->lwp_id;
+  vt_lwp_id = vt->pos; /* Reuse of the field */
   start = vt->start ;
   protector1 = vt->protector1 ;
   
@@ -144,17 +145,16 @@ rawTime64 getThreadCPUTime(tTimer *vt, int *valid) {
   *valid = 1 ;
   if (count > 0) {
     /* Timer is running, so get intermediate value */
-    unsigned long long now;
-    int lwp_id = thread_self() ;
     
     /* always read the timer of the lwp of the vtimer*/
     /* Since this could be called by inferior RPC */
-    now=DYNINSTgetCPUtime_LWP(vt_lwp_id);
+    
+    now = DYNINSTgetCPUtime_LWP(vt_lwp_id);
     if (now >= start) {
       return total + (now-start) ;
     } else  {
-      fprintf(stderr, "Timer goes back in getThreadCPUTime, lwp_id=%d, thread_self=%d ...\n",
-	      vt_lwp_id, lwp_id) ;
+      fprintf(stderr, "Timer goes back in getThreadCPUTime, lwp_id=%d\n",
+	      vt_lwp_id);
       return total ;
     }
   } else {
@@ -162,7 +162,7 @@ rawTime64 getThreadCPUTime(tTimer *vt, int *valid) {
   }
 }
 
-#define PRINTOUT_TIMER(t)   fprintf(stderr, "Timer (%x): total %lld, start %lld, counter %d, lwp %d, in_RPC %d, vtimer 0x%x, p1 %d, p2 %d\n", (unsigned) t, t->total, t->start, t->counter, t->lwp_id, t->in_inferiorRPC, (unsigned) t->vtimer, t->protector1, t->protector2);
+#define PRINTOUT_TIMER(t)   fprintf(stderr, "Timer (%x): total %lld, start %lld, counter %d, pos %u, p1 %d, p2 %d\n", (unsigned) t, t->total, t->start, t->counter, t->pos, t->protector1, t->protector2);
 
 
 /*
@@ -171,58 +171,31 @@ rawTime64 getThreadCPUTime(tTimer *vt, int *valid) {
 void DYNINSTstartThreadTimer(tTimer* timer)
 {
   rawTime64 start, old_start ;
-  tTimer* vt ;
-  int lwp_id ;
   int valid = 0;
-
-  fprintf(stderr, "Entry (start) ...\n");
-  PRINTOUT_TIMER(timer);
-
   assert(timer);
-  timer->in_inferiorRPC=1;
-  
   assert(timer->protector1 == timer->protector2);
   timer->protector1++;
 
   if (timer->counter == 0) {
-    if (!(timer->vtimer)) {
+    if (!(timer->pos)) { /* No POS associated with this timer yet */
+      /* POS could be set in the daemon, which would make this all much easier */
       unsigned pos;
       pos = DYNINSTthreadPosFAST() ; /* in mini, so could use POS (maybe) */
-      timer->vtimer = (struct tTimerRec *)&(RTsharedData->virtualTimers[pos]);
-      fprintf(stderr, "POS %d, using timer 0x%x\n", pos, timer->vtimer);
-
-      /* start the per-thread virtual timer if needed */
-      if  (timer->vtimer->vtimer == NULL) {
-	fprintf(stderr, "  VTIMER WAS NULL (%d)\n", timer->protector1);
-	VIRTUAL_TIMER_MARK_CREATION(vt) ;
-      }
+      timer->pos = pos;
     }
-    /* a Hack, for times when we don't catch thread creation (?) */
-    if ( timer->vtimer->counter == 0 ) {
-      VIRTUAL_TIMER_MARK_LWPID(vt, lwp_id) ;
-      _VirtualTimerStart(vt, THREAD_TIMER_START);
-    }
-    /* end of a hack */
     /* We sample the virtual timer, so we may need to retry */
     while (!valid) {
-      start = getThreadCPUTime((tTimer *)timer->vtimer, &valid);
+      start = getThreadCPUTime(timer->pos, &valid);
     }
     timer->start = start;
   }
   timer->counter++;
   timer->protector2++;
-
-  fprintf(stderr, "Exit (start)...\n");
-  PRINTOUT_TIMER(timer);
-
   assert(timer->protector1 == timer->protector2);
 }
 
 void DYNINSTstopThreadTimer(tTimer* timer)
 {
-  fprintf(stderr, "Entry (stop)...\n");
-  PRINTOUT_TIMER(timer);
-
   assert(timer);
 
   assert(timer->protector1 == timer->protector2);
@@ -232,7 +205,7 @@ void DYNINSTstopThreadTimer(tTimer* timer)
     int valid = 0;
     rawTime64 now;
     while (!valid) 
-      now = getThreadCPUTime((tTimer *)timer->vtimer, &valid);
+      now = getThreadCPUTime(timer->pos, &valid);
     if (now < timer->start) {
       assert(0 && "Rollback in DYNINSTstopThreadTimer");
     }
@@ -241,8 +214,6 @@ void DYNINSTstopThreadTimer(tTimer* timer)
   timer->counter--;
   timer->protector2++;
 
-  fprintf(stderr, "Exit (stop)...\n");
-  PRINTOUT_TIMER(timer);
   assert(timer->protector1 == timer->protector2);
 }
 

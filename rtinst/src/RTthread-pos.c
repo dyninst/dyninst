@@ -68,7 +68,7 @@ void DYNINST_initialize_pos_list()
   tc_lock_init(&DYNINST_pos_lock);
   fprintf(stderr, "Got lock\n");
   for (i = 0; i < MAX_NUMBER_OF_THREADS; i++)
-    DYNINST_pos_to_thread[i] = 0;
+    RTsharedData->posToThread[i] = 0;
   /* 0 means a free slot. */
   DYNINST_next_free_pos = 0;
   DYNINST_num_pos_free = MAX_NUMBER_OF_THREADS;
@@ -91,7 +91,7 @@ unsigned DYNINST_alloc_pos(int tid)
   }
   /* We've got the lock, stay here as short a time as possible */
   next_free_pos = DYNINST_next_free_pos;
-  while (DYNINST_pos_to_thread[next_free_pos] != 0) {
+  while (RTsharedData->posToThread[next_free_pos] != 0) {
     next_free_pos++;
     if (next_free_pos >= MAX_NUMBER_OF_THREADS)
       if (looped_once) {
@@ -105,7 +105,7 @@ unsigned DYNINST_alloc_pos(int tid)
       }
   }
   /* next_free_pos is free */
-  DYNINST_pos_to_thread[next_free_pos] = tid;
+  RTsharedData->posToThread[next_free_pos] = tid;
   DYNINST_num_pos_free--;
   DYNINST_next_free_pos = next_free_pos+1;
   tc_lock_unlock(&DYNINST_pos_lock);
@@ -114,7 +114,7 @@ unsigned DYNINST_alloc_pos(int tid)
     
 void DYNINST_free_pos(unsigned pos, int tid)
 {
-  if (DYNINST_pos_to_thread[pos] != tid) {
+  if (RTsharedData->posToThread[pos] != tid) {
     fprintf(stderr, "POS and tid don't match in free (%u != %d)\n", pos, tid);
     return;
   }
@@ -122,7 +122,7 @@ void DYNINST_free_pos(unsigned pos, int tid)
     fprintf(stderr, "Attempting to re-acquire lock for POS table\n");
     return;
   }
-  DYNINST_pos_to_thread[pos] = 0;
+  RTsharedData->posToThread[pos] = 0;
   DYNINST_num_pos_free++;
   tc_lock_unlock(&DYNINST_pos_lock);
 }
@@ -134,7 +134,7 @@ unsigned DYNINST_lookup_pos(int tid)
   /* Readonly... no need to lock */
   unsigned i;
   for (i = 0; i < MAX_NUMBER_OF_THREADS; i++)
-    if (DYNINST_pos_to_thread[i] == tid)
+    if (RTsharedData->posToThread[i] == tid)
       return i;
   return MAX_NUMBER_OF_THREADS;
 }

@@ -51,31 +51,12 @@
 #endif
 
 #include "thread-compat.h"
-#include "tc-lock.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-
-#define MAX_PENDING_RPC  (20)
-typedef struct rpcToDo_s {
-  int flag; /* Indicates when done, and how */
-  void (*rpc) (void); /* Function to run */
-  tc_lock_t lock;
-} rpcToDo;
-
-typedef struct sharedData_s {
-  tTimer virtualTimers[MAX_NUMBER_OF_THREADS] ;
-  rpcToDo pendingIRPCs [MAX_NUMBER_OF_THREADS][MAX_PENDING_RPC];
-  unsigned  DYNINSTthreadMap[MAX_NUMBER_OF_THREADS];
-} RTINSTsharedData ;
-
-extern RTINSTsharedData *RTsharedData;
 
 /* Function prototypes */
 
 /* RTthread-timer.c */
-
-#define VIRTUAL_TIMER_MARK_CREATION(t)     (t)->vtimer=t;
-#define VIRTUAL_TIMER_MARK_LWPID(t, lwpid) (t)->lwp_id=lwpid;
 
 /* Context data for why virtualTimerStart was called */
 #define THREAD_UPDATE           0
@@ -90,7 +71,7 @@ void _VirtualTimerStart(tTimer *timer, int context);
 void _VirtualTimerStop(tTimer *timer);
 void DYNINST_VirtualTimerDestroy(tTimer *timer);
 
-rawTime64 getThreadCPUTime(tTimer *vt, int *valid);
+rawTime64 getThreadCPUTime(unsigned pos, int *valid);
 void DYNINSTstartThreadTimer(tTimer *timer);
 void DYNINSTstopThreadTimer(tTimer *timer);
 
@@ -121,11 +102,12 @@ int DYNINSTthreadPos();
 void DYNINST_ThreadPInfo(void*, void**, int *, long*, int*, void**/*&resumestate_t*/);
 int  DYNINST_ThreadInfo(void**, int *, long*, int*, void** /*&resumestate_t*/);
 
+/* RTetc-<os> */
+rawTime64 DYNINSTgetCPUtime_LWP(int lwp_id);
+
 /* RTthread.c */
 extern dyninst_key_t  DYNINST_thread_key ;
 extern unsigned DYNINST_initialize_done;
-extern RTINSTsharedData *RTsharedData;
-extern unsigned *DYNINST_pos_to_thread;
 void DYNINST_initialize_once();
 extern tc_lock_t DYNINST_traceLock;
 

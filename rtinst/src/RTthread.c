@@ -69,15 +69,11 @@ DECLARE_TC_LOCK(DYNINST_removeLock) ;
 DECLARE_TC_LOCK(DYNINST_traceLock) ;
 DECLARE_TC_LOCK(DYNINST_posLock) ;
 DECLARE_TC_LOCK(DYNINST_initLock) ;
-
 /*============================
        Per-Thread Data
  ============================= */
-RTINSTsharedData *RTsharedData = NULL ;
-
 /* Used for storing appropriate thread-specific data */
 dyninst_key_t  DYNINST_thread_key ;
-unsigned *DYNINST_pos_to_thread;
 
 /**************************** INITIALIZATION ********************************/
 
@@ -97,27 +93,17 @@ void DYNINST_initialize_once(char *DYNINST_shmSegAttachedPtr) {
     return;
   fprintf(stderr, "DYNINST_init_done...\n");
   if (!DYNINST_initialize_done) {
-    fprintf(stderr, "RTsharedData starts at addr 0x%x\n",
-	    ((char*) DYNINST_shmSegAttachedPtr + 16));
-    RTsharedData = (RTINSTsharedData*)((char*) DYNINST_shmSegAttachedPtr + 16) ;
-    DYNINST_pos_to_thread = RTsharedData->DYNINSTthreadMap;
-    fprintf(stderr, "Setting pos_to_thread to addr 0x%x\n",
-	    (unsigned) DYNINST_pos_to_thread);
-    fprintf(stderr, "Initializing pos list...\n");
+    /* Shorthand */
     DYNINST_initialize_pos_list();
     DYNINST_initialize_done=1;
-    fprintf(stderr, "Key create...\n");
     P_thread_key_create(&DYNINST_thread_key, NULL /* no destructor */) ;
-    
-    fprintf(stderr, "memset...\n");
     memset((char*)&(RTsharedData->virtualTimers), '\0', sizeof(tTimer)*MAX_NUMBER_OF_THREADS) ;    
     
   }
-  
   tc_lock_unlock(&DYNINST_initLock);
-  fprintf(stderr, "Returning from init once\n");
-  
+  fprintf(stderr, "Returning from init once\n");  
 }
+
 
 /*======================================
  *

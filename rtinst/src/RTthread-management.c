@@ -83,8 +83,6 @@ int DYNINST_reportThreadUpdate(int flag) {
   } 
 
   /* Called by parent thread... start its virtual timer */
-  VIRTUAL_TIMER_MARK_LWPID(&(RTsharedData->virtualTimers[pos]), lwpid) ;
-  VIRTUAL_TIMER_MARK_CREATION(&(RTsharedData->virtualTimers[pos]));
   _VirtualTimerStart(&(RTsharedData->virtualTimers[pos]), THREAD_CREATE) ;
   return pos ;
 }
@@ -186,8 +184,6 @@ unsigned DYNINSTthreadCreate(int tid)
   fprintf(stderr, "Doing virtual timer at addr 0x%x\n",
 	  (unsigned) &(RTsharedData->virtualTimers[pos]));
   if (&(RTsharedData->virtualTimers[pos])) {
-    VIRTUAL_TIMER_MARK_LWPID(&(RTsharedData->virtualTimers[pos]), lwpid) ;
-    VIRTUAL_TIMER_MARK_CREATION(&(RTsharedData->virtualTimers[pos]));
     _VirtualTimerStart(&(RTsharedData->virtualTimers[pos]), THREAD_CREATE) ;
   }
   fprintf(stderr, "Virtual timer started\n");
@@ -206,9 +202,6 @@ void DYNINSTthreadStart() {
   if (pos >= 0) {
     int lwpid = P_lwp_self() ;
 
-    /* Account for thread migration */
-    VIRTUAL_TIMER_MARK_LWPID(&(RTsharedData->virtualTimers[pos]), lwpid) ;
-    VIRTUAL_TIMER_MARK_CREATION(&(RTsharedData->virtualTimers[pos]));
     /* Restart the virtual timer */
     _VirtualTimerStart(&(RTsharedData->virtualTimers[pos]), VIRTUAL_TIMER_START) ;
 
