@@ -49,7 +49,7 @@ vector<executable*> paradynDaemon::programs;
 unsigned paradynDaemon::procRunning;
 vector<resourceList *> resourceList::foci;
 vector<phaseInfo *> phaseInfo::dm_phases;
-u_int metricInstance::next_id = 0;
+u_int metricInstance::next_id = 1;
 u_int performanceStream::next_id = 0;
 
 resource *resource::rootResource = new resource();
