@@ -99,8 +99,7 @@ class instInstance {
      int cost;			/* cost in cycles of this inst req. */
 };
 
-class image;
-
+// class returnInstance: describes how to jmp to the base tramp
 class returnInstance {
   public:
     returnInstance() {
@@ -111,7 +110,7 @@ class returnInstance {
 		   :instructionSeq(instSeq), instSeqSize(seqSize), 
 		   addr_(addr), size_(size) {};
 
-    bool checkReturnInstance(const vector<Address> adr, u_int &index);
+    bool checkReturnInstance(const vector<Address> &adr, u_int &index);
     void installReturnInstance(process *proc);
     void addToReturnWaitingList(Address pc, process *proc);
 
