@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.74 2003/03/07 22:16:17 zandy Exp $
+// $Id: BPatch_thread.C,v 1.75 2003/03/08 01:23:38 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -473,16 +473,26 @@ int BPatch_thread::terminationStatus()
  */
 bool BPatch_thread::isTerminated()
 {
+    // First see if we've already terminated to avoid 
+    // checking process status too often.
+    if (statusIsTerminated()) {
+        proc->terminateProc();
+        setUnreportedTermination(false);
+        return true;
+    }
+    
     // Check for status changes.
     assert(BPatch::bpatch);
     BPatch::bpatch->getThreadEvent(false);
 
+    // Check again
     if (statusIsTerminated()) {
-	proc->terminateProc();
-	setUnreportedTermination(false);
-	return true;
-    } else
-	return false;
+        proc->terminateProc();
+        setUnreportedTermination(false);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 
@@ -1207,10 +1217,11 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
 					 bool synchronous)
 {
     bool needToResume = false;
-
     if (synchronous && !statusIsStopped()) {
         stopExecution();
+
         if (!statusIsStopped()) {
+            cerr << "Failed to run oneTimeCodeInternal" << endl;
             return NULL;
         }
         needToResume = true;
@@ -1228,22 +1239,21 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
                       false);  
 
     if (synchronous) {
-	do {
-	    proc->launchRPCs(false);
-	    BPatch::bpatch->getThreadEvent(false);
-	} while (!info->isCompleted() && !statusIsTerminated());
-
-	void *ret = info->getReturnValue();
-	delete info;
-
-	if (needToResume)
-	    continueExecution();
-
-	return ret;
+        do {
+            proc->launchRPCs(false);
+            BPatch::bpatch->getThreadEvent(false);
+        } while (!info->isCompleted() && !statusIsTerminated());
+        
+        void *ret = info->getReturnValue();
+        delete info;
+        
+        if (needToResume)
+            continueExecution();
+        
+        return ret;
     } else {
-	proc->launchRPCs(proc->status() == running);
-
-	return NULL;
+        proc->launchRPCs(proc->status() == running);
+        return NULL;
     }
 }
 
@@ -1261,9 +1271,10 @@ bool BPatch_thread::loadLibrary(const char *libname, bool reload)
     defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
     defined(alpha_dec_osf4_0) || defined(rs6000_ibm_aix4_1) || \
     defined(ia64_unknown_linux2_4) ||  defined(i386_unknown_nt4_0)
-  if (!statusIsStopped()) {
-    return false;
-  }
+    if (!statusIsStopped()) {
+        cerr << "PRocess not stopped in loadLibrary" << endl;
+        return false;
+    }
     BPatch_Vector<BPatch_snippet *> args;
 
     BPatch_constExpr nameArg(libname);
