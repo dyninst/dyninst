@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.30 1999/06/30 23:08:00 wylie Exp $
+// $Id: test1.C,v 1.31 1999/07/02 13:32:49 hollings Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -1359,7 +1359,7 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 
 void readyTest21or22(BPatch_thread *appThread)
 {
-#if !defined(rs6000_ibm_aix4_1)
+#if !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_nt4_0)
     if (! appThread->loadLibrary("./libtestA.so")) {
 	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
 	 fprintf(stderr, "  Mutator couldn't load libtestA.so into mutatee\n");
