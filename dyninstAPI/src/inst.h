@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.55 2000/03/04 01:25:20 zandy Exp $
+// $Id: inst.h,v 1.56 2000/03/22 00:44:50 mihai Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -49,6 +49,10 @@
 #include "util/h/String.h"
 #include "ast.h" // enum opCode now defined here.
 #include "util/h/Types.h"
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 class instPoint;
 class instInstance;

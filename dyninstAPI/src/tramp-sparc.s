@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-sparc.s,v 1.19 1999/09/01 15:21:11 wylie Exp $ */
+/* $Id: tramp-sparc.s,v 1.20 2000/03/22 00:44:50 mihai Exp $ */
 
 /*
  * trampoline code to get from a code location to an inst. primitive.
@@ -49,6 +49,46 @@
  */
 #include "as-sparc.h"
 
+/*
+ * mihai Tue Feb 29 14:17:35 CST 2000
+ *
+ * Trampoline structure:
+ *
+ * baseTramp
+ *
+ *   _savePreInsn
+ *   . SKIP_PRE_INSN
+ *   .
+ *   .   GLOBAL_PRE_BRANCH
+ *   .   RECURSIVE_GUARD_ON_PRE_INSN
+ *   .     LOCAL_PRE_BRANCH
+ *   .   RECURSIVE_GUARD_OFF_PRE_INSN
+ *   .
+ *   . UPDATE_COST_INSN
+ *   _restorePreInst
+ *
+ * EMULATE_INSN
+ *
+ *   SKIP_POST_INSN
+ *
+ *     GLOBAL_POST_BRANCH
+ *     _savePostInsn
+ *     . RECURSIVE_GUARD_ON_POST_INSN
+ *     .   LOCAL_POST_BRANCH
+ *     . RECURSIVE_GUARD_OFF_POST_INSN
+ *     _restorePostInsn
+ *
+ * RETURN_INSN
+ * END_TRAMP
+ *
+ * Notes:
+ * - SKIP_PRE_INSN jumps to UPDATE_COST_INSN
+ * - SKIP_POST_INSN jumps to RETURN_INSN
+ * - RECURSIVE_GUARD_ON_PRE_INSN jumps to RECURSIVE_GUARD_OFF_PRE_INSN + 3
+ * - RECURSIVE_GUARD_ON_POST_INSN jumps to RECURSIVE_GUARD_OFF_POST_INSN + 3
+ *
+ */
+	
 /*
  * This is the base where a tramp jumps off.
  *
@@ -104,7 +144,17 @@ _baseTramp_savePreInsn:
 	nop
 	nop
 #endif
+	.word RECURSIVE_GUARD_ON_PRE_INSN /* turn on the recursive guard : 7 instrs */
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 	.word	LOCAL_PRE_BRANCH
+	nop
+	.word RECURSIVE_GUARD_OFF_PRE_INSN /* turn off the recursive guard : 3 instrs */
+	nop
 	nop
 	ldd  [ %fp + -8 ], %g0	/* restoring registers after coming   */
 	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
@@ -169,7 +219,17 @@ _baseTramp_savePostInsn:
 	nop
 	nop
 #endif
+	.word RECURSIVE_GUARD_ON_POST_INSN /* turn on the recursive guard : 7 instrs */
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 	.word	LOCAL_POST_BRANCH
+	nop
+	.word RECURSIVE_GUARD_OFF_POST_INSN /* turn off the recursive guard : 3 instrs */
+	nop
 	nop
 	ldd  [ %fp + -8 ], %g0	/* restoring registers after coming   */
 	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
@@ -183,4 +243,3 @@ _baseTramp_restorePostInsn:
 	.word	RETURN_INSN
 	nop			/* see if this prevents crash jkh 4/4/95 */
 	.word	END_TRAMP
-

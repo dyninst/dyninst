@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.40 2000/03/15 17:41:30 pcroth Exp $
+// $Id: inst-sparc.h,v 1.41 2000/03/22 00:44:50 mihai Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -65,11 +65,43 @@
 #include "dyninstAPI/src/as-sparc.h"
 #include "dyninstAPI/src/instP.h"
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+class NonRecursiveTrampTemplate : public trampTemplate
+{
+
+public:
+
+  int guardOnPre_beginOffset;
+  int guardOnPre_endOffset;
+
+  int guardOffPre_beginOffset;
+  int guardOffPre_endOffset;
+
+  int guardOnPost_beginOffset;
+  int guardOnPost_endOffset;
+
+  int guardOffPost_beginOffset;
+  int guardOffPost_endOffset;
+
+};
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+#define INSN_SIZE ( sizeof( instruction ) )
+
 #define REG_MT               23   /* register saved to keep the address of */
                                   /* the current vector of counter/timers  */
                                   /* for each thread.                      */
 #define NUM_INSN_MT_PREAMBLE 27   /* number of instructions required for   */
                                   /* the MT preamble.                      */ 
+
+#define RECURSIVE_GUARD_ON_CODE_SIZE   7
+#define RECURSIVE_GUARD_OFF_CODE_SIZE  3
 
 // NOTE: LOW() and HIGH() can return ugly values if x is negative, because in
 // that case, 2's complement has really changed the bitwise representation!
@@ -90,6 +122,30 @@ inline Address ABS(int x) {
 #define MIN_IMM13       (-4096)
 
 
+#define REG_G0          0
+/* #ifdef REG_G5 */
+/* #undef REG_G5 */
+/* #endif */
+/* #define	REG_G5		5 */
+/* #ifdef REG_G6 */
+/* #undef REG_G6 */
+/* #endif */
+/* #define	REG_G6		6 */
+/* #ifdef REG_G7 */
+/* #undef REG_G7 */
+/* #endif */
+/* #define	REG_G7		7 */
+
+/* #ifdef REG_O7 */
+/* #undef REG_O7 */
+/* #endif */
+/* #define REG_O7    	15 */
+/* #define REG_I7    	31 */
+
+#define REG_L0          16
+#define REG_L1          17
+#define REG_L2          18
+
 #define REG_SPTR          14
 #define REG_FPTR          30
 
@@ -105,6 +161,7 @@ extern "C" void baseTramp_restorePreInsn();
 extern "C" void baseTramp_savePostInsn();
 extern "C" void baseTramp_restorePostInsn();
 extern trampTemplate baseTemplate;
+extern NonRecursiveTrampTemplate nonRecursiveBaseTemplate;
 extern registerSpace *regSpace;
 extern Register deadList[];
 

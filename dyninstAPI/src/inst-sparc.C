@@ -39,17 +39,23 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.87 2000/03/15 17:41:30 pcroth Exp $
+// $Id: inst-sparc.C,v 1.88 2000/03/22 00:44:50 mihai Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
 
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 instruction newInstr[NEW_INSTR_ARRAY_LEN];
 static dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
 
 trampTemplate baseTemplate;
+NonRecursiveTrampTemplate nonRecursiveBaseTemplate;
+
 registerSpace *regSpace;
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
@@ -61,6 +67,10 @@ Register deadList[] = {16, 17, 18, 19, 20, 21, 22, 23 };
 #endif
 
 int deadListSize = sizeof(deadList);
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 // Constructor for the class instPoint. This one defines the 
 // instPoints for the relocated function. Since the function reloated
@@ -134,6 +144,10 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
   }
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 // Add the astNode opt to generate one instruction to get the 
 // return value for the compiler optimazed case
 void
@@ -155,6 +169,10 @@ AstNode::optRetVal(AstNode *opt) {
     for (unsigned i = 0; i < operands.size(); i++) 
         operands[i] -> optRetVal(opt);
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 bool 
 processOptimaRet(instPoint *location, AstNode *&ast) {
@@ -181,6 +199,10 @@ processOptimaRet(instPoint *location, AstNode *&ast) {
     return false;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 Register
 emitOptReturn(instruction i, Register src, char *insn, Address &base, bool noCost) {
     
@@ -200,6 +222,9 @@ emitOptReturn(instruction i, Register src, char *insn, Address &base, bool noCos
     return emitR(getSysRetValOp, 0, 0, src, insn, base, noCost);
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 //
 // initDefaultPointFrequencyTable - define the expected call frequency of
@@ -232,8 +257,12 @@ void initDefaultPointFrequencyTable()
     fclose(fp);
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 /*
- * Get an etimate of the frequency for the passed instPoint.  
+ * Get an estimate of the frequency for the passed instPoint.  
  *    This is not (always) the same as the function that contains the point.
  * 
  *  The function is selected as follows:
@@ -270,6 +299,10 @@ float getPointFrequency(instPoint *point)
     }
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 //
 // return cost in cycles of executing at this point.  This is the cost
 //   of the base tramp if it is the first at this point or 0 otherwise.
@@ -284,6 +317,9 @@ int getPointCost(process *proc, const instPoint *point)
     }
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 void initATramp(trampTemplate *thisTemp, instruction *tramp)
 {
@@ -334,12 +370,59 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 
     // Cost with the skip branchs.
     thisTemp->cost = 14;  
-    thisTemp->prevBaseCost = 20;
-    thisTemp->postBaseCost = 22;
+    thisTemp->prevBaseCost = 20 +
+      RECURSIVE_GUARD_ON_CODE_SIZE + RECURSIVE_GUARD_OFF_CODE_SIZE;
+    thisTemp->postBaseCost = 22 +
+      RECURSIVE_GUARD_ON_CODE_SIZE + RECURSIVE_GUARD_OFF_CODE_SIZE;
     thisTemp->prevInstru = thisTemp->postInstru = false;
     thisTemp->size = (int) temp - (int) tramp;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+void initATramp( NonRecursiveTrampTemplate * thisTemp,
+		 instruction * tramp )
+{
+  initATramp( ( trampTemplate * )thisTemp, tramp );
+
+  instruction *temp;
+
+  for( temp = tramp; temp->raw != END_TRAMP; temp++ )
+    switch( temp->raw )
+      {
+
+      case RECURSIVE_GUARD_ON_PRE_INSN:
+	thisTemp->guardOnPre_beginOffset = ( ( Address )temp - ( Address )tramp );
+	thisTemp->guardOnPre_endOffset =
+	  thisTemp->guardOnPre_beginOffset + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
+	break;
+
+      case RECURSIVE_GUARD_OFF_PRE_INSN:
+	thisTemp->guardOffPre_beginOffset = ( ( Address )temp - ( Address )tramp );
+	thisTemp->guardOffPre_endOffset =
+	  thisTemp->guardOffPre_beginOffset + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
+	break;
+
+      case RECURSIVE_GUARD_ON_POST_INSN:
+	thisTemp->guardOnPost_beginOffset = ( ( Address )temp - ( Address )tramp );
+	thisTemp->guardOnPost_endOffset =
+	  thisTemp->guardOnPost_beginOffset + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
+	break;
+
+      case RECURSIVE_GUARD_OFF_POST_INSN:
+	thisTemp->guardOffPost_beginOffset = ( ( Address )temp - ( Address )tramp );
+	thisTemp->guardOffPost_endOffset =
+	  thisTemp->guardOffPost_beginOffset + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
+	break;
+
+      }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 void initTramps()
 {
@@ -349,11 +432,16 @@ void initTramps()
     inited = true;
 
     initATramp(&baseTemplate, (instruction *) baseTramp);
+    initATramp( & nonRecursiveBaseTemplate, ( instruction * )baseTramp );
 
     regSpace = new registerSpace(sizeof(deadList)/sizeof(Register), deadList,
                                          0, NULL);
     assert(regSpace);
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 #if defined(MT_THREAD)
 //
@@ -414,6 +502,10 @@ void generateMTpreamble(char *insn, Address &base, process *proc)
   regSpace->freeRegister(src);
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offset, int tid, unsigned pos)
 {
   AstNode *t1 ;
@@ -467,6 +559,10 @@ void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offs
 }
 #endif
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 void generateNoOp(process *proc, Address addr)
 {
     instruction insn;
@@ -479,6 +575,10 @@ void generateNoOp(process *proc, Address addr)
     proc->writeTextWord((caddr_t)addr, insn.raw);
 }
 
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 /*
  * change the insn at addr to be a branch to newAddr.
@@ -495,6 +595,10 @@ void generateBranch(process *proc, Address fromAddr, Address newAddr)
     proc->writeTextWord((caddr_t)fromAddr, insn.raw);
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 void generateCall(process *proc, Address fromAddr, Address newAddr)
 {
     instruction insn; 
@@ -504,6 +608,10 @@ void generateCall(process *proc, Address fromAddr, Address newAddr)
 
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 void genImm(process *proc, Address fromAddr, int op, 
                         Register rs1, int immd, Register rd)
 {
@@ -512,6 +620,10 @@ void genImm(process *proc, Address fromAddr, int op,
 
     proc->writeTextWord((caddr_t)fromAddr, insn.raw);
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 /*
  *  change the target of the branch at fromAddr, to be newAddr.
@@ -525,6 +637,10 @@ void changeBranch(process *proc, Address fromAddr, Address newAddr,
     proc->writeTextWord((caddr_t)fromAddr, insn.raw);
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 int callsTrackedFuncP(instPoint *point)
 {
     if (point->callIndirect) {
@@ -537,6 +653,10 @@ int callsTrackedFuncP(instPoint *point)
         }
     }
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 /*
  * return the function asociated with a point.
@@ -552,6 +672,10 @@ pd_Function *getFunction(instPoint *point)
     return(point->callee ? point->callee : point->func);
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) {
    instruction *insn = (instruction *)insnPtr;
    Address baseInstruc = baseBytes / sizeof(instruction);
@@ -562,6 +686,10 @@ bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) {
    return true;
 }
 
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
                                      unsigned &breakOffset,
@@ -614,6 +742,10 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 
    return true; // success
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
              char *i, Address &base, bool noCost)
@@ -712,6 +844,10 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         return;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 //
 // All values based on Cypress0 && Cypress1 implementations as documented in
 //   SPARC v.8 manual p. 291
@@ -798,6 +934,10 @@ int getInsnCost(opCode op)
     }
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 bool isReturnInsn(instruction instr, Address addr, string name) {
     if (isInsnType(instr, RETmask, RETmatch) ||
         isInsnType(instr, RETLmask, RETLmatch)) {
@@ -825,6 +965,10 @@ bool isReturnInsn(instruction instr, Address addr, string name) {
     return false;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 bool isReturnInsn(const image *owner, Address adr, bool &lastOne, string name)
 {
     instruction instr;
@@ -835,12 +979,20 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne, string name)
     return isReturnInsn(instr, adr, name);
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 bool isBranchInsn(instruction instr) {
     if (instr.branch.op == 0 
                 && (instr.branch.op2 == 2 || instr.branch.op2 == 6)) 
           return true;
     return false;
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 // Does specified branch instruction <instr> located at address <branchAddress>
 //  have target inside <firstAddress> (inclusive) and <lastAddress> (exclusive)?
@@ -857,6 +1009,10 @@ bool branchInsideRange(instruction instr, Address branchAddress,
     if (target >= lastAddress) return false;
     return true;
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 // Does specified call instruction <instr> located at address <callAddress>
 //  have target inside <firstAddress> (inclusive) and <lastAddress> (exclusive)?
@@ -876,6 +1032,10 @@ bool trueCallInsideRange(instruction instr, Address callAddress,
 
     return true;
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 //
 // called to relocate a function: when a request is made to instrument
@@ -925,6 +1085,10 @@ bool pd_Function::relocateFunction(process *proc,
     return true;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 // modifyInstPoint: if the function associated with the process was 
 // recently relocated, then the instPoint may have the old pre-relocated
 // address (this can occur because we are getting instPoints in mdl routines 
@@ -973,6 +1137,9 @@ void pd_Function::modifyInstPoint(const instPoint *&location,process *proc)
     } } }
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 // The exact semantics of the heap are processor specific.
 //
@@ -1056,7 +1223,9 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   return true;
 }
 
-
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 // Certain registers (i0-i7 on a SPARC) may be available to be read
 // as an operand, but cannot be written.
@@ -1067,6 +1236,10 @@ bool registerSpace::readOnlyRegister(Register /*reg_number*/) {
 //else
       return false;
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 bool returnInstance::checkReturnInstance(const vector<Address> &stack, u_int &index) {
     // If false (unsafe) is returned, then 'index' is set to the first unsafe call stack
@@ -1094,15 +1267,27 @@ bool returnInstance::checkReturnInstance(const vector<Address> &stack, u_int &in
     return true;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 void returnInstance::installReturnInstance(process *proc) {
     proc->writeTextSpace((caddr_t)addr_, instSeqSize, 
                          (caddr_t) instructionSeq); 
 	installed = true;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 void generateBreakPoint(instruction &insn) {
     insn.raw = BREAK_POINT_INSN;
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
     // if there already is a TRAP set at this pc for this process don't
@@ -1131,6 +1316,9 @@ void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
     instWList += instW;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 bool doNotOverflow(int value)
 {
@@ -1140,12 +1328,19 @@ bool doNotOverflow(int value)
   else return(false);
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 void instWaitingList::cleanUp(process *proc, Address pc) {
     proc->writeTextSpace((caddr_t)pc, sizeof(relocatedInstruction),
                     (caddr_t)&relocatedInstruction);
     proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t)instructionSeq);
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 // process::replaceFunctionCall
 //
@@ -1174,6 +1369,10 @@ bool process::replaceFunctionCall(const instPoint *point,
     return true;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 #ifndef BPATCH_LIBRARY
 bool process::isDynamicCallSite(instPoint *callSite){
   function_base *temp;
@@ -1185,6 +1384,10 @@ bool process::isDynamicCallSite(instPoint *callSite){
   }
   return false;
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 bool process::MonitorCallSite(instPoint *callSite){
  
@@ -1236,6 +1439,10 @@ bool process::MonitorCallSite(instPoint *callSite){
   return true;
 }
 #endif
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 // Emit code to jump to function CALLEE without linking.  (I.e., when
 // CALLEE returns, it returns to the current caller.)  On SPARC, we do

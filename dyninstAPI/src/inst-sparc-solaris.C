@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.65 2000/03/20 22:56:14 chambrea Exp $
+// $Id: inst-sparc-solaris.C,v 1.66 2000/03/22 00:44:49 mihai Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -51,11 +51,19 @@
 #include <sys/utsname.h>
 #include <stdlib.h>
 
-static unsigned pfdp_to_pfdp_hash(pd_Function * const &f) {
-    pd_Function *pdf = f;
-    unsigned l = (unsigned)pdf;
-    return addrHash4(l); 
-}
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+// static unsigned pfdp_to_pfdp_hash(pd_Function * const &f) {
+//     pd_Function *pdf = f;
+//     unsigned l = (unsigned)pdf;
+//     return addrHash4(l); 
+// }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 // Another constructor for the class instPoint. This one is called
 // for the define the instPoints for regular functions which means
@@ -209,6 +217,10 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
   adr = addr + (size - 1*sizeof(instruction));
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 // return the instruction after originalInstruction....
 const instruction instPoint::insnAfterPoint() const {
     if (this->hasNoStackFrame()) {
@@ -246,8 +258,11 @@ const instruction instPoint::insnAfterPoint() const {
     return delaySlotInsn;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
-   void AstNode::sysFlag(instPoint *location)
+void AstNode::sysFlag(instPoint *location)
 {
     if (location -> ipType == functionEntry) {
 	astFlag = (location -> isLongJump)? false:true; 
@@ -265,6 +280,10 @@ const instruction instPoint::insnAfterPoint() const {
 	operands[u]->sysFlag(location);
     }
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -318,6 +337,10 @@ void pd_Function::checkCallPoints() {
   }
   calls = non_lib;
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 // TODO we cannot find the called function by address at this point in time
 // because the called function may not have been seen.
@@ -411,6 +434,10 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
     return ret;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 /*
  * Given an instruction, relocate it to a new address, patching up
  *   any relative addressing that is present.
@@ -465,6 +492,10 @@ void relocateInstruction(instruction *insn,
     /* The rest of the instructions should be fine as is */
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 /*
  * Heavily Related to relocateInstruction, above....
  *  Used to relocate an instruction when the entire function in which it is located
@@ -492,28 +523,137 @@ void pd_Function::relocateInstructionWithFunction(instruction *insn, Address ori
     relocateInstruction(insn, origAddr, targetAddr, proc);
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+void generate_base_tramp_recursive_guard_code( process & p,
+					       instruction * code,
+					       Address base_addr,
+					       NonRecursiveTrampTemplate & templ )
+{
+  /* prepare guard flag memory, if needed */
+  Address guard_flag_address = p.getTrampGuardFlagAddr();
+  if( guard_flag_address == 0 )
+    {
+	int initial_value = 1;
+	guard_flag_address = inferiorMalloc( & p, sizeof( int ), dataHeap );
+	/* initialize the new value */
+	p.writeDataSpace( ( void * )guard_flag_address, sizeof( int ), & initial_value );
+
+	p.setTrampGuardFlagAddr( guard_flag_address );
+    }
+
+  instruction * curr_instr;
+  Address curr_addr;
+
+  /* fill the 'guard on' pre-instruction instrumentation */
+  curr_instr = code + templ.guardOnPre_beginOffset / sizeof( instruction );
+  curr_addr = base_addr + templ.guardOnPre_beginOffset;
+  generateSetHi( curr_instr, guard_flag_address, REG_L0 );
+  curr_instr++; curr_addr += sizeof( instruction );
+  genSimpleInsn( curr_instr, ADDop3, REG_G0, REG_G0, REG_L1 );
+  curr_instr++; curr_addr += sizeof( instruction );
+  generateLoad( curr_instr, REG_L0, LOW10( guard_flag_address ), REG_L2 );
+  curr_instr++; curr_addr += sizeof( instruction );
+  generateStore( curr_instr, REG_L1, REG_L0, LOW10( guard_flag_address ) );
+  curr_instr++; curr_addr += sizeof( instruction );
+  genSimpleInsn( curr_instr, SUBop3cc, REG_L2, REG_G0, REG_G0 );
+  curr_instr++; curr_addr += sizeof( instruction );
+  int branch_offset_in_bytes =
+    ( base_addr + templ.guardOffPre_endOffset )
+    -
+    curr_addr
+    ;
+  genBranch( curr_instr,
+	     branch_offset_in_bytes,
+	     BEcond,
+	     false );
+  curr_instr++; curr_addr += sizeof( instruction );
+  generateNOOP ( curr_instr );
+
+  /* fill the 'guard off' pre-instruction instrumentation */
+  curr_instr = code + templ.guardOffPre_beginOffset / sizeof( instruction );
+  curr_addr = base_addr + templ.guardOffPre_beginOffset;
+  generateSetHi( curr_instr, guard_flag_address, REG_L0 );
+  curr_instr++; curr_addr += sizeof( instruction );
+  genImmInsn( curr_instr, ADDop3, REG_G0, 1, REG_L1 );
+  curr_instr++; curr_addr += sizeof( instruction );
+  generateStore( curr_instr, REG_L1, REG_L0, LOW10( guard_flag_address ) );
+
+  /* fill the 'guard on' post-instruction instrumentation */
+  curr_instr = code + templ.guardOnPost_beginOffset / sizeof( instruction );
+  curr_addr = base_addr + templ.guardOnPost_beginOffset;
+  generateSetHi( curr_instr, guard_flag_address, REG_L0 );
+  curr_instr++; curr_addr += sizeof( instruction );
+  genSimpleInsn( curr_instr, ADDop3, REG_G0, REG_G0, REG_L1 );
+  curr_instr++; curr_addr += sizeof( instruction );
+  generateLoad( curr_instr, REG_L0, LOW10( guard_flag_address ), REG_L2 );
+  curr_instr++; curr_addr += sizeof( instruction );
+  generateStore( curr_instr, REG_L1, REG_L0, LOW10( guard_flag_address ) );
+  curr_instr++; curr_addr += sizeof( instruction );
+  genSimpleInsn( curr_instr, SUBop3cc, REG_L2, REG_G0, REG_G0 );
+  curr_instr++; curr_addr += sizeof( instruction );
+  branch_offset_in_bytes =
+    ( base_addr + templ.guardOffPost_endOffset )
+    -
+    curr_addr
+    ;
+  genBranch( curr_instr,
+	     branch_offset_in_bytes,
+	     BEcond,
+	     false );
+  curr_instr++; curr_addr += sizeof( instruction );
+  generateNOOP ( curr_instr );
+
+  /* fill the 'guard off' post-instruction instrumentation */
+  curr_instr = code + templ.guardOffPost_beginOffset / sizeof( instruction );
+  curr_addr = base_addr + templ.guardOffPost_beginOffset;
+  generateSetHi( curr_instr, guard_flag_address, REG_L0 );
+  curr_instr++; curr_addr += sizeof( instruction );
+  genImmInsn( curr_instr, ADDop3, REG_G0, 1, REG_L1 );
+  curr_instr++; curr_addr += sizeof( instruction );
+  generateStore( curr_instr, REG_L1, REG_L0, LOW10( guard_flag_address ) );
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 /*
  * Install a base tramp -- fill calls with nop's for now.
  *
  * This one install the base tramp for the regular functions.
  *
  */
-trampTemplate *installBaseTramp(instPoint *&location, process *proc)
+trampTemplate * installBaseTramp( instPoint * & location,
+				  process * proc,
+				  bool trampRecursiveDesired = false )
 {
+  trampTemplate & current_template = nonRecursiveBaseTemplate;
+
+  if( trampRecursiveDesired )
+    {
+      current_template = baseTemplate;
+    }
+
     Address ipAddr = 0;
-    proc->getBaseAddress(location->image_ptr,ipAddr);
-    ipAddr += location -> addr;
-    Address baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap, ipAddr);
-    assert(baseAddr);
-    instruction *code = new instruction[baseTemplate.size];
-    assert(code);
+    proc->getBaseAddress( location->image_ptr, ipAddr );
+    ipAddr += location->addr;
 
-    memcpy((char *) code, (char*) baseTemplate.trampTemp, baseTemplate.size);
+    Address baseAddr = inferiorMalloc( proc, current_template.size, textHeap, ipAddr );
+    assert( baseAddr );
+    instruction * code = new instruction[ current_template.size ];
+    assert( code );
 
-    instruction *temp;
+    memcpy( ( char * )code,
+	    ( char * )current_template.trampTemp,
+	    current_template.size );
+
+    instruction * temp;
     Address currAddr;
     for (temp = code, currAddr = baseAddr; 
-	(currAddr - baseAddr) < (unsigned) baseTemplate.size;
+	(currAddr - baseAddr) < (unsigned) current_template.size;
 	temp++, currAddr += sizeof(instruction)) {
 
 	if (temp->raw == EMULATE_INSN) {
@@ -810,16 +950,16 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
 	    }
         } else if (temp->raw == SKIP_PRE_INSN) {
 	    unsigned offset;
-	    offset = baseAddr+baseTemplate.updateCostOffset-currAddr;
+	    offset = baseAddr+current_template.updateCostOffset-currAddr;
 	    generateBranchInsn(temp,offset);
         } else if (temp->raw == SKIP_POST_INSN) {
 
 	    unsigned offset;
-	    offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
+	    offset = baseAddr+current_template.returnInsOffset-currAddr;
 	    generateBranchInsn(temp,offset);
 
         } else if (temp->raw == UPDATE_COST_INSN) {	    
-	    baseTemplate.costAddr = currAddr;
+	    current_template.costAddr = currAddr;
 	    generateNOOP(temp);
 	} else if ((temp->raw == LOCAL_PRE_BRANCH) ||
                    (temp->raw == GLOBAL_PRE_BRANCH) ||
@@ -838,17 +978,56 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
 	    /* fill with no-op */
 	    generateNOOP(temp);
 	}
+	else if( temp->raw == RECURSIVE_GUARD_ON_PRE_INSN )
+	  {
+	    generateNOOP( temp );
+	  }
+	else if( temp->raw == RECURSIVE_GUARD_OFF_PRE_INSN )
+	  {
+	    generateNOOP( temp );
+	  }
+	else if( temp->raw == RECURSIVE_GUARD_ON_POST_INSN )
+	  {
+	    generateNOOP( temp );
+	  }
+	else if( temp->raw == RECURSIVE_GUARD_OFF_POST_INSN )
+	  {
+	    generateNOOP( temp );
+	  }
     }
-    // TODO cast
-    proc->writeDataSpace((caddr_t)baseAddr, baseTemplate.size,(caddr_t) code);
 
+  if( ! trampRecursiveDesired )
+    {
+      generate_base_tramp_recursive_guard_code( * proc,
+						code,
+						baseAddr,
+						( NonRecursiveTrampTemplate & )current_template );
+    }
+
+    // TODO cast
+    proc->writeDataSpace( ( caddr_t )baseAddr,
+			  current_template.size,
+			  ( caddr_t )code );
     delete [] code;
 
-    trampTemplate *baseInst = new trampTemplate;
-    *baseInst = baseTemplate;
+    trampTemplate * baseInst;
+    if( trampRecursiveDesired )
+      {
+	baseInst = new trampTemplate;
+      }
+    else
+      {
+	baseInst = new NonRecursiveTrampTemplate;
+      }
+    * baseInst = current_template;
     baseInst->baseAddr = baseAddr;
+
     return baseInst;
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 /*
  * Install the base Tramp for the function relocated.
@@ -859,33 +1038,41 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
  */ 
 trampTemplate *installBaseTrampSpecial(const instPoint *&location,
 				       process *proc,
-				       vector<instruction> &extra_instrs) 
+				       vector<instruction> &extra_instrs,
+				       bool trampRecursiveDesired = false )
 {
-    Address currAddr;
-    instruction *code;
-    instruction *temp;
+  trampTemplate & current_template = nonRecursiveBaseTemplate;
 
-    if(!(location->func->isInstalled(proc))) {
-        location->func->relocateFunction(proc,location,extra_instrs);
-    }
-    else if(!location->relocated_){
-        // need to find new instPoint for location...it has the pre-relocated
-        // address of the instPoint
-        location->func->modifyInstPoint(location,proc);
+  if( trampRecursiveDesired )
+    {
+      current_template = baseTemplate;
     }
 
-    code = new instruction[baseTemplate.size];
-    memcpy((char *) code, (char*) baseTemplate.trampTemp, baseTemplate.size);
+  Address currAddr;
+  instruction *code;
+  instruction *temp;
 
-    Address baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap, location->addr);
-    assert(baseAddr);
+  if(!(location->func->isInstalled(proc))) {
+    location->func->relocateFunction(proc,location,extra_instrs);
+  }
+  else if(!location->relocated_){
+    // need to find new instPoint for location...it has the pre-relocated
+    // address of the instPoint
+    location->func->modifyInstPoint(location,proc);
+  }
 
-    for (temp = code, currAddr = baseAddr; 
-        (currAddr - baseAddr) < (unsigned) baseTemplate.size;
-        temp++, currAddr += sizeof(instruction)) {
+  code = new instruction[current_template.size];
+  memcpy((char *) code, (char*) current_template.trampTemp, current_template.size);
 
-        if (temp->raw == EMULATE_INSN) {
-	    if (location->isBranchOut) {
+  Address baseAddr = inferiorMalloc(proc, current_template.size, textHeap, location->addr);
+  assert(baseAddr);
+
+  for (temp = code, currAddr = baseAddr; 
+       (currAddr - baseAddr) < (unsigned) current_template.size;
+       temp++, currAddr += sizeof(instruction)) {
+
+    if (temp->raw == EMULATE_INSN) {
+      if (location->isBranchOut) {
                 // the original instruction is a branch that goes out of a 
 		// function.  We don't relocate the original instruction. We 
 		// only get to the tramp if the branch is taken, so we generate
@@ -930,15 +1117,15 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
             }
         } else if (temp->raw == SKIP_PRE_INSN) {
           unsigned offset;
-          offset = baseAddr+baseTemplate.updateCostOffset-currAddr;
+          offset = baseAddr+current_template.updateCostOffset-currAddr;
           generateBranchInsn(temp,offset);
         } else if (temp->raw == SKIP_POST_INSN) {
           unsigned offset;
-          offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
+          offset = baseAddr+current_template.returnInsOffset-currAddr;
           generateBranchInsn(temp,offset);
         } else if (temp->raw == UPDATE_COST_INSN) {	    
 
-	    baseTemplate.costAddr = currAddr;
+	    current_template.costAddr = currAddr;
 	    generateNOOP(temp);
 	} else if ((temp->raw == LOCAL_PRE_BRANCH) ||
                    (temp->raw == GLOBAL_PRE_BRANCH) ||
@@ -957,17 +1144,55 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
             /* fill with no-op */
             generateNOOP(temp);
         }
+	else if( temp->raw == RECURSIVE_GUARD_ON_PRE_INSN )
+	  {
+	    generateNOOP( temp );
+	  }
+	else if( temp->raw == RECURSIVE_GUARD_OFF_PRE_INSN )
+	  {
+	    generateNOOP( temp );
+	  }
+	else if( temp->raw == RECURSIVE_GUARD_ON_POST_INSN )
+	  {
+	    generateNOOP( temp );
+	  }
+	else if( temp->raw == RECURSIVE_GUARD_OFF_POST_INSN )
+	  {
+	    generateNOOP( temp );
+	  }
+  }
+
+  if( ! trampRecursiveDesired )
+    {
+      generate_base_tramp_recursive_guard_code( * proc,
+						code,
+						baseAddr,
+						( NonRecursiveTrampTemplate & )current_template );
     }
+
     // TODO cast
-    proc->writeDataSpace((caddr_t)baseAddr, baseTemplate.size,(caddr_t) code);
+    proc->writeDataSpace((caddr_t)baseAddr, current_template.size,(caddr_t) code);
 
     delete [] code;
 
-    trampTemplate *baseInst = new trampTemplate;
-    *baseInst = baseTemplate;
+    trampTemplate * baseInst;
+    if( trampRecursiveDesired )
+      {
+	baseInst = new trampTemplate;
+      }
+    else
+      {
+	baseInst = new NonRecursiveTrampTemplate;
+      }
+    * baseInst = current_template;
     baseInst->baseAddr = baseAddr;
+
     return baseInst;
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 /*
  * Allocate the space for the base Trampoline, and generate the instruction
@@ -1004,7 +1229,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
        // relocated to the heap.
        vector<instruction> extra_instrs;
 
-       ret = installBaseTrampSpecial(cLocation, proc,extra_instrs);
+       ret = installBaseTrampSpecial(cLocation, proc,extra_instrs, trampRecursionDesired );
 
        // add a branch from relocated function to the base tramp
        // if function was just relocated then location has old address
@@ -1070,7 +1295,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	  adr += baseAddress;		
        }
 
-       ret = installBaseTramp(location, proc);
+       ret = installBaseTramp(location, proc, trampRecursionDesired);
        // check to see if this is an entry point and if the delay 
        // slot instruction is a call insn, if so, then if the 
        // call is to a location within the function, then we need to 
@@ -1222,6 +1447,10 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
        // installBaseTrampSpecial()
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 /*
  * Install a single tramp.
  *
@@ -1252,6 +1481,10 @@ void installTramp(instInstance *inst, char *code, int codeSize)
     }
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 //This function returns true if the processor on which the daemon is running
 //is an ultra SPARC, otherwise returns false.
 bool isUltraSparc(){
@@ -1265,6 +1498,10 @@ bool isUltraSparc(){
   }
   return false;
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 void emitLoadPreviousStackFrameRegister(Address register_num,
 					Register dest,
@@ -1302,7 +1539,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
     //into the destination register
     emitV(orOp, (Register) register_num + 16, 0,  dest, insn, base, false);
   }
-  else if(register_num >= 0){
+  else /* if(register_num >= 0) */ {
     int frame_offset;
     if(register_num % 2 == 0) 
       frame_offset = (register_num * -4) - 8;
@@ -1313,9 +1550,13 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 	    dest, insn, base, noCost);
     emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
   }
-  else assert(0);
+  /* else assert(0); */
   
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 Register emitFuncCall(opCode op, 
 		      registerSpace *rs,
@@ -1382,6 +1623,10 @@ Register emitFuncCall(opCode op,
         return(REG_O(0));
 }
  
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 Address emitA(opCode op, Register src1, Register /*src2*/, Register dest, 
               char *i, Address &base, bool /*noCost*/)
 {
@@ -1469,6 +1714,10 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
     }
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dest*/, 
               char *i, Address &base, bool /*noCost*/)
 {
@@ -1541,6 +1790,10 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dest*/,
     }
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 //
 // load the original FP (before the dyninst saves) into register dest
 //
@@ -1561,6 +1814,10 @@ int getFP(instruction *insn, Register dest)
     return(4*sizeof(instruction));
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 void emitVload(opCode op, Address src1, Register src2, Register dest, 
               char *i, Address &base, bool /*noCost*/, int /* size */)
 {
@@ -1569,7 +1826,7 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
     if (op == loadConstOp) {
       // dest = src1:imm    TODO
 
-      if ((src1) > MAX_IMM13 || (src1) < MIN_IMM13) {
+      if ((src1) > ( unsigned )MAX_IMM13 || (src1) < ( unsigned )MIN_IMM13) {
             // src1 is out of range of imm13, so we need an extra instruction
 	    generateSetHi(insn, src1, dest);
 	    base += sizeof(instruction);
@@ -1663,6 +1920,10 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
     }
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 void emitVstore(opCode op, Register src1, Register src2, Address dest, 
               char *i, Address &base, bool /*noCost*/, int /* size */)
 {
@@ -1721,6 +1982,10 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
     }
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dest, 
               char *i, Address &base, bool noCost)
 {
@@ -1778,6 +2043,10 @@ void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dest,
         abort();       // unexpected op for this emit!
     }
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 void emitV(opCode op, Register src1, Register src2, Register dest, 
               char *i, Address &base, bool /*noCost*/, int /* size */)
@@ -1884,12 +2153,19 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
    return;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 static inline bool isRestoreInsn(instruction i) {
     return (i.rest.op == 2 \
 	       && ((i.rest.op3 == ORop3 && i.rest.rd == 15)
 		       || i.rest.op3 == RESTOREop3));
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 static inline bool CallRestoreTC(instruction instr, instruction nexti) {
     return (isCallInsn(instr) && isRestoreInsn(nexti));
@@ -1967,6 +2243,10 @@ static inline bool JmpNopTC(instruction instr, instruction nexti,
     return 1;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 /*
   Is the specified call instruction one whose goal is to set the 07 register
   (the sequence of execution is as if the call instruction did not change the
@@ -1997,6 +2277,10 @@ static inline bool is_set_O7_call(instruction instr, unsigned functionSize,
     return false; 
 }  
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 /*
     Does the specified call instruction call to target inside function
     or outside - may be indeterminate if insn is call %reg instead of 
@@ -2022,6 +2306,10 @@ static enum fuzzyBoolean is_call_outside_function(const instruction instr,
     return eTrue;
 }
 
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 /*
  * Find the instPoints of this function.
@@ -2258,6 +2546,10 @@ bool pd_Function::findInstPoints(const image *owner) {
  return (checkInstPoints(owner)); 
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 /*
  * Check all the instPoints within this function to see if there's 
  * any conficts happen.
@@ -2356,6 +2648,9 @@ bool pd_Function::checkInstPoints(const image *owner) {
     return true;	
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 /* The maximum length of relocatable function is 1k instructions */  
 // This function is to find the inst Points for a function
@@ -2562,6 +2857,10 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
  return true;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 #define CHECK_LOCAL(X) if (!X) {delete []oldCode; delete []buf1; return false;}
 #define CHECK_ALLOC(sizeChange, buf) \
     assert((sizeChange % sizeof(instruction)) == 0); \
@@ -2748,6 +3047,10 @@ bool pd_Function::findNewInstPoints(const image *owner,
     return true;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 // used for sorting inst points - typecast void *s to instPoint **s, then
 //  do {-1, 0, 1} comparison by address....
 int sort_inst_points_by_address(const void *arg1, const void *arg2) {
@@ -2760,6 +3063,10 @@ int sort_inst_points_by_address(const void *arg1, const void *arg2) {
     }
     return 0;
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 // 32 bit addresses
 #ifndef MAX_ADDRESS
@@ -2801,6 +3108,10 @@ void pd_Function::sorted_ips_vector(vector<instPoint*>&fill_in) {
 	}
     }
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 // Take an (empty) FunctionExpansionRecord, and fill it with data describing
 //  how blocks of instructions inside function are shifted around by expansion
@@ -2884,7 +3195,9 @@ bool pd_Function::calcRelocationExpansions(const image *owner,
     return TRUE;
 }
 
-
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 /*
   First pass, handle cases where general-purpose re-writing needs to be
@@ -3022,6 +3335,9 @@ bool pd_Function::PA_attachGeneralRewrites(LocalAlterationSet *p,
     return true;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 /* 
   Second pass, handle cases where inst points overlap eachother (and
@@ -3111,6 +3427,10 @@ bool pd_Function::PA_attachOverlappingInstPoints(
     return true;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 // find the 1st inst point in v which a overlaps with....
 //  assumes v sorted by address....
 instPoint *find_overlap(vector<instPoint*> v, Address a) {
@@ -3126,6 +3446,10 @@ instPoint *find_overlap(vector<instPoint*> v, Address a) {
     }
     return NULL;
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 /*
   Third pass, handle cases where inst points overlap branch/jump targets.
@@ -3211,6 +3535,9 @@ bool pd_Function::PA_attachBranchOverlaps(LocalAlterationSet *p, Address baseAdd
     return true;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 // Given a LocalAlterationSet (p) and an instruction (instr) located
 //  at a given address (in the original version of the function) (oldAdr),
@@ -3242,6 +3569,10 @@ void pd_Function::patchOffset(LocalAlterationSet *p, instruction& instr,
 	instr.branch.disp22 += (extra_offset / sizeof(instruction)); // 6/1/99 zhichen
     }
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 //
 // Apply a set of LocalAlterations to a function's code.
@@ -3331,6 +3662,10 @@ bool pd_Function::applyAlterations(LocalAlterationSet *p, Address oldAdr,
     return true;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 // Return the offset (in bytes) of the next instruction at or after
 //  offset (again bytes) which is NOT in the delay slot of another
 //  instruction....
@@ -3343,6 +3678,10 @@ int pd_Function::moveOutOfDelaySlot(int offset, instruction loadedCode[],
     return offset;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 //bool pd_Function::applyAlterations(LocalAlterationSet *p, Address oldAdr, 
 //				   Address newAdr, instruction originalCode[], 
 //				   int originalCodeSize, instruction newCode[],
@@ -3351,6 +3690,10 @@ int pd_Function::moveOutOfDelaySlot(int offset, instruction loadedCode[],
 //  application of alterations.
 // Also assumes single entry point + multiple call sites and exit points.
 //  may want to change if move to model of instrumenting arbitrary points....
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 #ifdef NOT_DEFINED
 #define UPDATE_ADDR(point) \
@@ -3384,6 +3727,10 @@ bool pd_Function::applyAlterationsToInstPoints(LocalAlterationSet *p,
 }
 #endif
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 // Fill in relocatedFuncInfo <func> with inst points from function.
 //  Notes:
 //    Assumes that function inst points are : 1 entry, multiple call site, and
@@ -3410,6 +3757,10 @@ bool pd_Function::applyAlterationsToInstPoints(LocalAlterationSet *p,
     arrayOffset = ((originalOffset + newOffset) / sizeof(instruction)); \
     tmp = newAdr + originalOffset + newOffset; \
     tmp2 = ip->iPgetAddress();
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 bool pd_Function::fillInRelocInstPoints(const image *owner, 
         const instPoint *&location, 
@@ -3494,6 +3845,10 @@ bool pd_Function::fillInRelocInstPoints(const image *owner,
     return true;    
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 //
 // Read instructions in function code from image into <into> (array)....
 bool pd_Function::readFunctionCode(const image *owner, instruction *into) {
@@ -3509,8 +3864,3 @@ bool pd_Function::readFunctionCode(const image *owner, instruction *into) {
 
     return true;
 }
-
-
-
-
-
