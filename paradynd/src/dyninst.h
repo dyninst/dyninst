@@ -7,7 +7,10 @@
  * dyninst.h - exported interface to instrumentation.
  *
  * $Log: dyninst.h,v $
- * Revision 1.4  1994/03/24 16:41:58  hollings
+ * Revision 1.5  1994/03/31 01:48:32  markc
+ * Added default args to addProcess definition.
+ *
+ * Revision 1.4  1994/03/24  16:41:58  hollings
  * Moved sample aggregation to lib/util (so paradyn could use it).
  *
  * Revision 1.3  1994/03/20  01:53:04  markc
@@ -81,8 +84,9 @@ typedef (*errorHandler)(int errno, char *message);
  * Define a program to run (this is very tentative!)
  *
  *   argv - arguments to command
+ *   envp - environment args, for pvm
  */
-int addProcess(int argc, char*argv[]);
+int addProcess(int argc, char*argv[], int nenv=0, char *envp[]=0);
 
 /*
  * Find out if an application has been defined yet.
