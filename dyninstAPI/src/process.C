@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.175 1999/06/17 22:08:11 wylie Exp $
+// $Id: process.C,v 1.176 1999/06/18 21:44:42 hollings Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2286,20 +2286,7 @@ bool process::addASharedObject(shared_object &new_obj){
 #endif /* BPATCH_LIBRARY */
 
 #ifdef BPATCH_NOT_YET
-    assert(BPatch::bpatch);
-    if (BPatch::bpatch->dynLibraryCallback) {
-	vector<module *>*modlist = ((vector<module *> *)(new_obj.getModules())); 
-	if (modlist != NULL) {
-	    for (unsigned i = 0; i < modlist->size(); i++) {
-		string &name = (*modlist)[i]->fileName();
-		if (name != "DYN_MODULE" && name != "LIBRARY_MODULE") {
-		    BPatch_module *bpmod =
-			new BPatch_module(this, (*modlist)[i]);
-		    BPatch::bpatch->dynLibraryCallback(thread, bpmod);
-		}
-	    }
-	}
-    }
+    // wait for Johnd's commit for this code
 #endif /* BPATCH_NOT_YET */
 
     return true;
@@ -3958,6 +3945,7 @@ bool process::dumpCore(const string fileOut) {
  * The process was stopped by a signal. Update its status and notify Paradyn.
  */
 void process::Stopped() {
+  if (status_ == exited) return;
   if (status_ != stopped) {
     status_ = stopped;
 #ifndef BPATCH_LIBRARY

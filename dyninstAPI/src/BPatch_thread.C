@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.20 1999/06/10 19:14:34 hollings Exp $
+// $Id: BPatch_thread.C,v 1.21 1999/06/18 21:44:38 hollings Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -331,6 +331,7 @@ bool BPatch_thread::isTerminated()
     BPatch::bpatch->getThreadEvent(false);
 
     if (statusIsTerminated()) {
+	proc->terminateProc();
 	setUnreportedTermination(false);
 	return true;
     } else

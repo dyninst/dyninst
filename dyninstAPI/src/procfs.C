@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.6 1999/05/25 20:26:59 hollings Exp $
+// $Id: procfs.C,v 1.7 1999/06/18 21:44:43 hollings Exp $
 
 #include "symtab.h"
 #include "util/h/headers.h"
@@ -333,6 +333,7 @@ bool process::pause_() {
 */
 bool process::detach_() {
   close(proc_fd);
+  proc_fd = -1;
   return true;
 }
 

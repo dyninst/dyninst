@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.26 1999/05/21 17:32:13 wylie Exp $
+// $Id: unix.C,v 1.27 1999/06/18 21:44:43 hollings Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -362,6 +362,9 @@ int handleSigChild(int pid, int status)
 
     // ignore signals from unknown processes
     process *curr = findProcess(pid);
+
+    if (curr->status_ == exited) return -1;
+
     if (!curr) {
        forkexec_cerr << "handleSigChild pid " << pid << " is an unknown process." << endl;
        forkexec_cerr << "WIFSTOPPED=" << (WIFSTOPPED(status) ? "true" : "false");

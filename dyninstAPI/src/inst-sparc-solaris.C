@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.51 1999/06/18 14:12:21 zhichen Exp $
+// $Id: inst-sparc-solaris.C,v 1.52 1999/06/18 21:44:40 hollings Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1032,8 +1032,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
           Address adr = location-> func -> getAddress(0);
           instruction *insn;
           unsigned branchSize ;
-          if (in1BranchInsnRange(adr+baseAddress, location->func->getAddress(pro
-c))) {
+          if (in1BranchInsnRange(adr+baseAddress, location->func->getAddress(proc))) {
             branchSize = 1 ;
             insn = new instruction[branchSize + e_size];
             generateBranchInsn(insn,(int)(location->func->getAddress(proc)-(adr+
@@ -1042,16 +1041,14 @@ baseAddress)));
             branchSize = 3 ;
             insn = new instruction[branchSize + e_size];
             genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
-            generateCallInsn(insn+1, adr+baseAddress+4, location->func->getAddre
-ss(proc));
+            generateCallInsn(insn+1, adr+baseAddress+4, location->func->getAddress(proc));
             genSimpleInsn(insn+2, RESTOREop3, 0, 0, 0);
           }
           for(u_int i=0; i < e_size; i++){
             insn[branchSize+i] = extra_instrs[i];
           }
           retInstance = new returnInstance((instructUnion *)insn,
-                                           (branchSize+e_size)*sizeof(instructio
-n),
+                                           (branchSize+e_size)*sizeof(instruction),
                                            adr+baseAddress,
                                            location->func->size());
           assert(retInstance);

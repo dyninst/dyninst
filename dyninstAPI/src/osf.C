@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.7 1999/06/08 22:14:12 csserra Exp $
+// $Id: osf.C,v 1.8 1999/06/18 21:44:41 hollings Exp $
 
 #include "util/h/headers.h"
 #include "os.h"
@@ -237,12 +237,16 @@ int process::waitProcs(int *status, bool block = false)
       
 	if (selected_fds == 0) {
 	    for (unsigned u = 0; u < processVec.size(); u++) {
+		if (processVec[u]->status_ == exited) {
+		    fds[u].fd = -1;
+		    continue;
+		}
 	        fds[u].fd = processVec[u]->proc_fd;
 	        fds[u].events = POLLPRI | POLLIN;
 	        fds[u].revents = 0;
 	        if (waitpid(processVec[u]->getPid(), status, WNOHANG|WNOWAIT)) {
-		    ret = processVec[u]->getPid();
 		    fds[u].revents = POLLPRI;
+		    selected_fds++;
 		    skipPoll = true;
 		    break;
 	        }
@@ -268,9 +272,9 @@ int process::waitProcs(int *status, bool block = false)
 		    continue;
 		}
 	    }
+	    curr = 0;
 	}
 
-	curr = 0;
 	while (fds[curr].revents == 0) ++curr;
 
 #if defined(USES_LIBDYNINSTRT_SO)
@@ -360,7 +364,9 @@ int process::waitProcs(int *status, bool block = false)
 	    }
 	}
     
-	--selected_fds;
+	// clear the processed event
+	fds[curr].revents = 0;
+	if (selected_fds > 0) --selected_fds;
 	++curr;
 	
 	if (ret > 0) {
