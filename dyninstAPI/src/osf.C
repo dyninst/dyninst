@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.22 2002/01/30 22:19:56 hollings Exp $
+// $Id: osf.C,v 1.23 2002/02/15 21:46:14 rchen Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -95,7 +95,9 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 				     unsigned &breakOffset,
 				     bool stopForResult,
 				     unsigned &stopForResultOffset,
-				     unsigned &justAfter_stopForResultOffset) {
+				     unsigned &justAfter_stopForResultOffset,
+				     int thrId,
+				     bool isMT) {
   instruction *insn = (instruction *)insnPtr;
   Address baseInstruc = baseBytes / sizeof(instruction);
 
