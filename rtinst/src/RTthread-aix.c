@@ -77,8 +77,8 @@ void DYNINST_ThreadPInfo(void* tls, void** stkbase, int* tid,
   int *func_ptr;
   struct __pthrdsinfo *ptr = (struct __pthrdsinfo *) tls ;
   *stkbase = (void*) (ptr->__pi_stackaddr);
-  *tid = (int) ptr->__pi_ptid;
-  *lwp = (int) ptr->__pi_tid;
+  /**tid = (int) ptr->__pi_ptid;*/
+  /**lwp = (int) ptr->__pi_tid;*/
   *rs = &(ptr->__pi_context);
   /* The PC is a little different. We grab the thread context
      from a partial pthread structure. That +200 gives us the 

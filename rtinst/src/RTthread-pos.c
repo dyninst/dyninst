@@ -87,6 +87,7 @@ unsigned DYNINST_alloc_pos(int tid)
   }
   /* We've got the lock, stay here as short a time as possible */
   next_free_pos = DYNINST_next_free_pos;
+
   while (RTsharedData.posToThread[next_free_pos] != 0) {
     if (RTsharedData.posToThread[next_free_pos] == THREAD_AWAITING_DELETION)
       saw_deleted_pos = 1;
@@ -106,6 +107,7 @@ unsigned DYNINST_alloc_pos(int tid)
       }
   }
   /* next_free_pos is free */
+
   RTsharedData.posToThread[next_free_pos] = tid;
   DYNINST_num_pos_free--;
   DYNINST_next_free_pos = next_free_pos+1;
@@ -152,7 +154,13 @@ unsigned DYNINSTthreadPosSLOW(tid)
 {
   unsigned pos;
   pos = (unsigned)P_thread_getspecific(DYNINST_thread_key);
-  if (pos == 0)
+  
+
+  if (pos < 0 || pos >= MAX_NUMBER_OF_THREADS) {
     return MAX_NUMBER_OF_THREADS;
-  return pos-1;
+  }
+  if (RTsharedData.posToThread[pos] != tid) {
+    return MAX_NUMBER_OF_THREADS;
+  }
+  return pos;
 }

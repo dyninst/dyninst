@@ -57,6 +57,7 @@ int DYNINST_reportThreadUpdate(int flag) {
   int   lwpid ;
   void*  resumestate_p ;
   if (DYNINST_ThreadInfo(&stackbase, &tid, &startpc, &lwpid, &resumestate_p)) {
+    tid = pthread_self();
     pos=DYNINST_lookup_pos(tid) ;
     if (pos == MAX_NUMBER_OF_THREADS)
       pos = DYNINST_alloc_pos(tid);
@@ -93,7 +94,7 @@ void DYNINST_reportNewThread(unsigned pos, int tid)
 {
   void* stackbase ;
   long  startpc ;
-  int   lwpid ;
+  int   lwpid ; /* Ignored */
   void*  resumestate_p ;
   extern int pipeOK(void); /* RTposix.c */
   if (pipeOK())
@@ -108,7 +109,6 @@ void DYNINST_reportNewThread(unsigned pos, int tid)
       traceRec.resumestate_p = resumestate_p ;
       traceRec.pos=pos ;
       traceRec.context = FLAG_SELF ;
-
       
       DYNINSTgenerateTraceRecord(0,
 				 TR_THR_CREATE,sizeof(traceRec),
@@ -170,8 +170,7 @@ unsigned DYNINSTthreadCreate(int tid)
   /* Report new thread */
   DYNINST_reportNewThread(pos, tid);
   /* Store the POS in thread-specific storage */
-  /* Shift POS to (1 <-> MAX) to avoid NULL return value */
-  P_thread_setspecific(DYNINST_thread_key, (void *)(pos+1)) ;
+  P_thread_setspecific(DYNINST_thread_key, (void *)(pos)) ;
   /* Set up virtual timers */
   if (&(RTsharedData.virtualTimers[pos])) {
     _VirtualTimerStart(&(RTsharedData.virtualTimers[pos]), THREAD_CREATE) ;
@@ -190,7 +189,6 @@ void DYNINSTthreadStart() {
   unsigned pos = DYNINSTthreadPosFAST() ; /* in mini */
   if (pos >= 0) {
     int lwpid = P_lwp_self() ;
-
     /* Restart the virtual timer */
     _VirtualTimerStart(&(RTsharedData.virtualTimers[pos]), VIRTUAL_TIMER_START) ;
 
