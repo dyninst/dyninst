@@ -67,8 +67,10 @@ class refCounter {
       if (this == &src)
          return *this; // protect against x=x
 
-      // dereference what we were using...
-      dereference();
+      if (theData) {
+        // dereference what we were using...
+        dereference();
+      }
 
       // ...and attach to the new stuff efficiently
       theData = src.theData; // just a ptr assignment --> fast
