@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.169 2003/08/25 19:22:27 jaw Exp $
+// $Id: aix.C,v 1.170 2003/09/05 16:27:36 schendel Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -93,9 +93,7 @@
 #include "paradynd/src/instReqNode.h"
 #endif
 
-#if defined(BPATCH_LIBRARY)
 #include "writeBackXCOFF.h"
-#endif
 
 #if !defined(BPATCH_LIBRARY)
 #ifdef USES_PMAPI
@@ -822,7 +820,6 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
 }
 #endif
 
-#if defined(BPATCH_LIBRARY)
 #define DEBUG_MSG 0 
 #define _DEBUG_MSG 0
 void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches){
@@ -1155,49 +1152,50 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 
 void process::addLib(char* lname){
 
-	BPatch_thread *appThread = thread;
-	BPatch_image *appImage = thread->getImage();
+	BPatch_thread *appThread = bpatch_thread;
+	BPatch_image *appImage = appThread->getImage();
 
-    BPatch_Vector<BPatch_point *> *mainFunc;
+   BPatch_Vector<BPatch_point *> *mainFunc;
 
 	bool isTrampRecursive = BPatch::bpatch->isTrampRecursive();
-    BPatch::bpatch->setTrampRecursive( true ); //ccw 31 jan 2003
-    BPatch_Vector<BPatch_function *> bpfv;
-    if (NULL == appImage->findFunction("main", bpfv) || !bpfv.size()) {
+   BPatch::bpatch->setTrampRecursive( true ); //ccw 31 jan 2003
+   BPatch_Vector<BPatch_function *> bpfv;
+   if (NULL == appImage->findFunction("main", bpfv) || !bpfv.size()) {
       fprintf(stderr,"Unable to find function \"main\". Save the world will fail.\n");
       return;
-    }
+   }
 
-    BPatch_function *mainFuncPtr =bpfv[0];
-    mainFunc = mainFuncPtr->findPoint(BPatch_entry);
+   BPatch_function *mainFuncPtr =bpfv[0];
+   mainFunc = mainFuncPtr->findPoint(BPatch_entry);
     
-    if (!mainFunc || ((*mainFunc).size() == 0)) {
-	fprintf(stderr, "    Unable to find entry point to \"main.\"\n");
-	exit(1);
-    }
+   if (!mainFunc || ((*mainFunc).size() == 0)) {
+      fprintf(stderr, "    Unable to find entry point to \"main.\"\n");
+      exit(1);
+   }
 
-    bpfv.clear();
-    if (NULL == appImage->findFunction("dlopen", bpfv) || !bpfv.size()) {
+   bpfv.clear();
+   if (NULL == appImage->findFunction("dlopen", bpfv) || !bpfv.size()) {
       fprintf(stderr,"Unable to find function \"dlopen\". Save the world will fail.\n");
       return;
-    }
-    BPatch_function *dlopen_func = bpfv[0];
-
-    BPatch_Vector<BPatch_snippet *> dlopen_args;
-    BPatch_constExpr nameArg(lname);
-    BPatch_constExpr rtldArg(4);
-
-    dlopen_args.push_back(&nameArg);
-    dlopen_args.push_back(&rtldArg);
-
-    BPatch_funcCallExpr dlopenExpr(*dlopen_func, dlopen_args);
-
+   }
+   BPatch_function *dlopen_func = bpfv[0];
+   
+   BPatch_Vector<BPatch_snippet *> dlopen_args;
+   BPatch_constExpr nameArg(lname);
+   BPatch_constExpr rtldArg(4);
+   
+   dlopen_args.push_back(&nameArg);
+   dlopen_args.push_back(&rtldArg);
+   
+   BPatch_funcCallExpr dlopenExpr(*dlopen_func, dlopen_args);
+   
 	//printf(" inserting DLOPEN(%s)\n",lname);
 	requestTextMiniTramp = 1;
-		
-    appThread->insertSnippet(dlopenExpr, *mainFunc, BPatch_callBefore, BPatch_firstSnippet);
+   
+   appThread->insertSnippet(dlopenExpr, *mainFunc, BPatch_callBefore,
+                            BPatch_firstSnippet);
 	requestTextMiniTramp = 0;
-
+   
 	BPatch::bpatch->setTrampRecursive( isTrampRecursive ); //ccw 31 jan 2003
 }
 
@@ -1242,9 +1240,10 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	}
 
 	imageFileName = "dyninst_mutatedBinary";
-	char* fullName = new char[strlen(directoryName) + strlen (imageFileName.c_str())+1];
-    strcpy(fullName, directoryName);
-    strcat(fullName, imageFileName.c_str());
+	char* fullName =
+      new char[strlen(directoryName) + strlen(imageFileName.c_str())+1];
+   strcpy(fullName, directoryName);
+   strcat(fullName, imageFileName.c_str());
 
 	bool openFileError;
 
@@ -1262,15 +1261,15 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
 	//This adds the LOADABLE HEAP TRAMP sections
 	//AIX/XCOFF NOTES:
-	//On AIX we allocate the heap tramps in two locations:
-	//on the heap (0x20000000) and around the text section (0x10000000)
-	//The os loader will ONLY load ONE text section, ONE data section and
-	//ONE bss section. We cannot (from within the mutated binary)
-	//muck with addresses in the range 0x10000000 - 0x1fffffff so to reload
-	//these tramps we MUST expand the text section and tack these on the
-	//end.  THIS WILL INCREASE THE FILE SIZE BY A HUGE AMOUNT.  The file
-	//size will increase by (sizeof(text section) + sizeof(tramps) + (gap between text section and tramps))
-	//the gap may be quite large 
+	//On AIX we allocate the heap tramps in two locations: on the heap
+	//(0x20000000) and around the text section (0x10000000) The os loader will
+	//ONLY load ONE text section, ONE data section and ONE bss section. We
+	//cannot (from within the mutated binary) muck with addresses in the range
+	//0x10000000 - 0x1fffffff so to reload these tramps we MUST expand the
+	//text section and tack these on the end.  THIS WILL INCREASE THE FILE
+	//SIZE BY A HUGE AMOUNT.  The file size will increase by (sizeof(text
+	//section) + sizeof(tramps) + (gap between text section and tramps)) the
+	//gap may be quite large
 
 	//SO we do NOT do what we do on the other platforms, ie work around the
 	//heap with the compactedUpdates. we just expand the text section and 
@@ -1278,39 +1277,40 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
 	assert(compactedUpdates.size() < 2);
 	(char*) data = new char[compactedUpdates[0]->size];
-	readDataSpace((void*) compactedUpdates[0]->address, compactedUpdates[0]->size, data, true);	
+	readDataSpace((void*) compactedUpdates[0]->address,
+                 compactedUpdates[0]->size, data, true);	
 
-	newXCOFF->attachToText(compactedUpdates[0]->address,compactedUpdates[0]->size, (char*)data);
+	newXCOFF->attachToText(compactedUpdates[0]->address,
+                          compactedUpdates[0]->size, (char*)data);
 
 	if(compactedHighmemUpdates.size() > 0){
-
-		saveWorldCreateHighMemSections(compactedHighmemUpdates, highmemUpdates, (void*) newXCOFF);
+		saveWorldCreateHighMemSections(compactedHighmemUpdates, highmemUpdates,
+                                     (void*) newXCOFF);
 	}
 
-        saveWorldCreateDataSections((void*)newXCOFF);
+   saveWorldCreateDataSections((void*)newXCOFF);
 
 	newXCOFF->createXCOFF();
 	newXCOFF->outputXCOFF();
 /*
 	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.c_str())+1];
-        strcpy(fullName, directoryName);
-        strcat(fullName, (char*)imageFileName.c_str());
-
-        addLibraryXCOFF= new addLibrary(fullName, "/tmp/dyninstMutatee", "libdyninstAPI_RT.so.1");
+   strcpy(fullName, directoryName);
+   strcat(fullName, (char*)imageFileName.c_str());
+   
+   addLibraryXCOFF= new addLibrary(fullName, "/tmp/dyninstMutatee",
+                                   "libdyninstAPI_RT.so.1");
 
 	addLibraryXCOFF->outputXCOFF();
 */
-        delete [] fullName;
+   delete [] fullName;
 
 	return directoryName;
 }
 
-#endif
-
 // should use demangle.h here, but header is badly broken on AIX 5.1
 typedef void *Name;
 typedef enum { VirtualName, MemberVar, Function, MemberFunction, Class,
-	       Special, Long } NameKind;
+               Special, Long } NameKind;
 typedef enum { RegularNames = 0x1, ClassNames = 0x2, SpecialNames = 0x4,
                ParameterText = 0x8, QualifierText = 0x10 } DemanglingOptions;
 
@@ -1320,7 +1320,6 @@ char *(*P_varName)(Name *) = NULL;
 char *(*P_text)(Name *) = NULL;
 NameKind (*P_kind)(Name *) = NULL;
 
-#if defined(BPATCH_LIBRARY)
 void loadNativeDemangler() 
 {
    char *buffer[1024];
@@ -1331,28 +1330,28 @@ void loadNativeDemangler()
    if (hDemangler != NULL) {
       P_native_demangle = (Name*(*)(char*, char**, long unsigned int)) dlsym(hDemangler, "demangle");
       if (!P_native_demangle) 
-	  BPatch_reportError(BPatchSerious,122,
-	      "unable to locate function demangle in libdemangle.so.1\n");
+         BPatch_reportError(BPatchSerious,122,
+                   "unable to locate function demangle in libdemangle.so.1\n");
 
       P_functionName = (char*(*)(Name*)) dlsym(hDemangler, "functionName");
       if (!P_functionName) 
-	  BPatch_reportError(BPatchSerious,122,
-	      "unable to locate function functionName in libdemangle.so.1\n");
-
+         BPatch_reportError(BPatchSerious,122,
+               "unable to locate function functionName in libdemangle.so.1\n");
+      
       P_varName = (char*(*)(Name*)) dlsym(hDemangler, "varName");
       if (!P_varName) 
-	  BPatch_reportError(BPatchSerious,122,
-	      "unable to locate function varName in libdemangle.so.1\n");
+         BPatch_reportError(BPatchSerious,122,
+                    "unable to locate function varName in libdemangle.so.1\n");
 
       P_kind = (NameKind(*)(Name*)) dlsym(hDemangler, "kind");
       if (!P_kind) 
-	  BPatch_reportError(BPatchSerious,122,
-	      "unable to locate function kind in libdemangle.so.1\n");
-
+         BPatch_reportError(BPatchSerious,122,
+                            "unable to locate function kind in libdemangle.so.1\n");
+      
       P_text = (char*(*)(Name*)) dlsym(hDemangler, "text");
       if (!P_text) 
-	  BPatch_reportError(BPatchSerious,122,
-	      "unable to locate function text in libdemangle.so.1\n");
+         BPatch_reportError(BPatchSerious,122,
+                       "unable to locate function text in libdemangle.so.1\n");
    } else {
 #if defined(BPATCH_LIBRARY)
       BPatch_reportError(BPatchSerious,122,"unable to load xlC external demangler libdemangle.so.1\n");
@@ -1361,7 +1360,7 @@ void loadNativeDemangler()
 #endif
    }
 }
-#endif
+
 
 extern "C" char *cplus_demangle(char *, int);
 extern void dedemangle( const char * demangled, char * dedemangled );
@@ -1394,8 +1393,8 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeT
 			}
 
 		return demangled;
-		} /* end if not using native demangler. */
-	 else if( nativeDemanglerAvailable ) {
+   } /* end if not using native demangler. */
+   else if( nativeDemanglerAvailable ) {
 		/* Use the native demangler, which apparently behaves funny. */
 		Name * name;
 		char * rest;
