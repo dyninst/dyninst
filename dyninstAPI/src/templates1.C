@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.43 2002/05/10 18:37:41 schendel Exp $
+//$Id: templates1.C,v 1.44 2002/06/26 21:14:57 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -55,7 +55,7 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/sharedobject.h"
-
+#include "common/h/list.h"
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
 
 //begin from templates05
@@ -84,17 +84,19 @@ template class  dictionary_hash <Address, unsigned>;
 template class  vector<dictionary_hash <Address, unsigned>::entry>;
 template class  dictionary_hash_iter <Address, unsigned>;
 
-
+#include "common/src/list.C"
+template class  List<instInstance*>;
 template class  dictionary_hash <const instPoint *, trampTemplate *>;
 template class  vector<dictionary_hash <const instPoint *, trampTemplate *>::entry>;
 template class  dictionary_hash_iter <const instPoint *, trampTemplate *>;
+
+template class  vector<miniTrampHandle>;
+template class  vector<process::mtListInfo>;
 
 template class  dictionary_hash <instInstance *, instInstance *>;
 template class  vector<dictionary_hash <instInstance *, instInstance *>::entry>;
 template class  dictionary_hash <Address, Symbol*>;
 template class  vector<dictionary_hash <Address, Symbol*>::entry>;
-template class  dictionary_hash<const instPoint*, point*>;
-template class  vector<dictionary_hash<const instPoint*, point*>::entry>;
 template class  dictionary_hash <instPoint*, unsigned>;
 template class  vector<dictionary_hash <instPoint*, unsigned>::entry>;
 template class  vector<dictionary_hash <instPoint*, unsigned long>::entry>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.25 2002/05/10 18:37:40 schendel Exp $
+// $Id: templates-nt.C,v 1.26 2002/06/26 21:14:55 schendel Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -100,7 +100,9 @@ template class vector< parentDataRec<processMetFocusNode> >;
 template class dictionary_hash<string, vector<string> *>;
 template class dictionary_hash<string, vector<pd_Function *> *>;
 
-template class dictionary_hash<instPoint const *, point *>;
+#include "common/src/list.C"
+template class List<instInstance*>;
+template class dictionary_hash<const instPoint *, installed_miniTramps_list*>;
 template class dictionary_hash<instPoint const *, trampTemplate *>;
 template class dictionary_hash<instInstance *, instInstance *>;
 

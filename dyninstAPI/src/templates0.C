@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.33 2002/06/10 19:24:58 bernat Exp $
+// $Id: templates0.C,v 1.34 2002/06/26 21:14:56 schendel Exp $
 // Generate all the templates in one file.
 
 /*
@@ -136,8 +136,8 @@ template class  vector<disabledItem>;
 template class  vector<addrVecType>;
 template class  vector<vector<string> >;
 template class  vector<double>;
-template class  vector<point *>;
 template class  vector<instInstance *>;
+template class  vector<const instInstance *>;
 template class  vector<returnInstance *>;             //XXX
 template class  vector<relocatedFuncInfo *>; 
 template class  vector<relocationEntry>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.11 2002/06/18 21:35:55 rchen Exp $
+// $Id: templates2.C,v 1.12 2002/06/26 21:14:59 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -81,7 +81,6 @@ template class pair<string, vector<string> >;
 template class vector<pair<string, vector<string> > >;
 
 template class  dictionary_hash_iter <Address, Symbol*>;
-template class  dictionary_hash_iter <const instPoint*, point*>;
 template class  dictionary_hash_iter <instPoint*, unsigned>;
 template class  dictionary_hash_iter <string, Symbol>;
 template class  dictionary_hash_iter <string, internalSym*>;
@@ -162,6 +161,9 @@ template class vector<process::inferiorRPCinProgress>;
 
 template class vector<dictionary_hash <unsigned int, Address>::entry>;
 
+#include "dyninstAPI/src/installed_miniTramps_list.h"
+template class dictionary_hash<const instPoint *, installed_miniTramps_list*>;
+template class vector<dictionary_hash <const instPoint *, installed_miniTramps_list*>::entry>;
 
 #if defined(BPATCH_LIBRARY)
 
