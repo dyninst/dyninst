@@ -20,6 +20,9 @@
  * State information required throughout a search.
  *
  * $Log: PCsearch.h,v $
+ * Revision 1.6  1996/04/16 18:36:17  karavan
+ * BUG FIX.
+ *
  * Revision 1.5  1996/04/07 21:29:43  karavan
  * split up search ready queue into two, one global one current, and moved to
  * round robin queue removal.
@@ -78,6 +81,9 @@ public:
   PCmetricInstServer *getDatabase() {return database;}
   void startSearching();
   bool getNodeInfo(int nodeID, shg_node_info *theInfo);
+  void updateDisplayedStatus (string *msg) {
+    shg->updateDisplayedStatus (msg);
+  }
   static void updateCurrentPhase (unsigned phaseID, timeStamp endTime);
   static PCsearch *findSearch (phaseType pt);
   static bool addSearch (unsigned phaseID);

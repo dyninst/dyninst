@@ -20,6 +20,9 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.21  1996/04/16 18:36:14  karavan
+ * BUG FIX.
+ *
  * Revision 1.20  1996/04/14 03:21:16  karavan
  * bug fix:  added size member to shg class for use in UI batching.
  *
@@ -174,7 +177,8 @@ class searchHistoryGraph {
 			      const char *shortName,
 			      bool *newFlag);
   searchHistoryNode *const getNode (unsigned nodeId);
-  void updateDisplayedStatus (string &newmsg);
+  void updateDisplayedStatus (string *newmsg);
+  void updateDisplayedStatus (char *newmsg);
   void finalizeSearch(timeStamp searchEndTime);
   unsigned getPhase() {return guiToken;}
   void addUIrequest(unsigned srcID, unsigned dstID, int styleID, const char *label);
@@ -190,7 +194,6 @@ class searchHistoryGraph {
   unsigned nextID;   // used to create unique ids for the nodes
   vector<uiSHGrequest> *uiRequestBuff;
   unsigned numUIrequests;
-  unsigned uiRequestBuffSize;
 };
   
 #endif

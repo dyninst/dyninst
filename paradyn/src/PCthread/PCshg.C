@@ -20,6 +20,9 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.39  1996/04/16 18:36:10  karavan
+ * BUG FIX.
+ *
  * Revision 1.38  1996/04/14 03:21:13  karavan
  * bug fix:  added size member to shg class for use in UI batching.
  *
@@ -253,19 +256,15 @@ searchHistoryGraph::addUIrequest(unsigned srcID, unsigned dstID,
 				 int styleID, const char *label)
 {
   if (numUIrequests == 0) {
-    uiRequestBuffSize = 10;
-    uiRequestBuff = new vector<uiSHGrequest> (uiRequestBuffSize);
-    numUIrequests = 0;
+    uiRequestBuff = new vector<uiSHGrequest>;
   }
-  ((*uiRequestBuff)[numUIrequests]).srcNodeID = srcID;
-  (*uiRequestBuff)[numUIrequests].dstNodeID = dstID;
-  (*uiRequestBuff)[numUIrequests].styleID = styleID;
-  (*uiRequestBuff)[numUIrequests].label = label;
+  uiSHGrequest newGuy;
+  newGuy.srcNodeID = srcID;
+  newGuy.dstNodeID = dstID;
+  newGuy.styleID = styleID;
+  newGuy.label = label;
+  *uiRequestBuff += newGuy;
   numUIrequests++;
-  if (numUIrequests == uiRequestBuffSize) {
-    uiRequestBuffSize *= 2;
-    uiRequestBuff->resize (uiRequestBuffSize);
-  }
 }
 
 void
@@ -399,11 +398,10 @@ searchHistoryNode::makeTrue()
   changeDisplay();
   // update Search Display Status Area (eventually this will be printed 
   // some better way, but this will have to do...)
-  string status = why->getName();
-  status += " tested true for ";
-  const char *fname = dataMgr->getFocusNameFromHandle(where);
-  status += fname;
-  status += "\n";
+  string *status = new string (why->getName());
+  *status += string(" tested true for ");
+  *status += string(dataMgr->getFocusNameFromHandle(where));
+  *status += string("\n");
   mamaGraph->updateDisplayedStatus (status);
 }
 
@@ -575,8 +573,7 @@ searchHistoryGraph::searchHistoryGraph(PCsearch *searchPhase,
  guiToken(phaseToken),
  nextID(0),
  uiRequestBuff(NULL),
- numUIrequests(0),
- uiRequestBuffSize(0)
+ numUIrequests(0)
 {
   vector<searchHistoryNode*> Nodes;
   root = new searchHistoryNode ((searchHistoryNode *)NULL,
@@ -590,9 +587,16 @@ searchHistoryGraph::searchHistoryGraph(PCsearch *searchPhase,
 }
 
 void 
-searchHistoryGraph::updateDisplayedStatus (string &newmsg)
+searchHistoryGraph::updateDisplayedStatus (char *newmsg)
 {
-  uiMgr->updateStatusDisplay(guiToken, newmsg.string_of());
+  string *msgStr = new string (newmsg);
+  uiMgr->updateStatusDisplay(guiToken, msgStr);
+}
+  
+void 
+searchHistoryGraph::updateDisplayedStatus (string *newmsg)
+{
+  uiMgr->updateStatusDisplay(guiToken, newmsg);
 }
   
 void
@@ -612,10 +616,11 @@ searchHistoryGraph::finalizeSearch(timeStamp searchEndTime)
   // right now search only terminates if phase ends, so just
   // update Search Display Status Area (eventually this will be printed 
   // some better way, but this will have to do...)
-  string status = string("\nSearch for Phase ") 
-    + string(performanceConsultant::DMcurrentPhaseToken)
-      + string (" ended due to end of phase at time ")
-	+ string (searchEndTime) + string (".\n");
+  string *status = new string("\nSearch for Phase "); 
+  *status += string(performanceConsultant::DMcurrentPhaseToken);
+  *status += string (" ended due to end of phase at time ");
+  *status += string (searchEndTime);
+  *status += string(".\n");
   updateDisplayedStatus(status);
   // change display of all nodes to indicate "inactive"; no 
   // change to truth value displayed

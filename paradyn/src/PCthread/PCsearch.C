@@ -20,6 +20,9 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.9  1996/04/16 18:36:16  karavan
+ * BUG FIX.
+ *
  * Revision 1.8  1996/04/07 21:29:41  karavan
  * split up search ready queue into two, one global one current, and moved to
  * round robin queue removal.
@@ -176,7 +179,7 @@ PCsearch::initCostTracker ()
 bool
 PCsearch::addSearch(unsigned phaseID)
 {
-  string msg;
+  string *msg;
   phaseType pType;
   // we can't use the dm token really, cause there's no dm token for 
   // global search, which throws our part of the universe into total 
@@ -185,15 +188,14 @@ PCsearch::addSearch(unsigned phaseID)
   if (phaseID > 0) {
     // non-global search
     performanceConsultant::currentPhase = phaseID;
-    msg = string ("Initializing Search for Current Phase ") + 
-      string (phaseID-1) + string(".\n");
+    msg = new string ("Initializing Search for Current Phase ");
+    *msg += (phaseID-1);
+    *msg += string(".\n");
     pType = CurrentPhase;
   } else {
-    msg =  "Initializing Search for Global Phase.\n";
+    msg =  new string ("Initializing Search for Global Phase.\n");
     pType = GlobalPhase;
   }
-  // * initialize PC displays *
-  uiMgr->updateStatusDisplay(phaseID, msg.string_of());
 
   // if this is first search, initialize all PC metrics and hypotheses
   if (!PChyposDefined) {
@@ -205,6 +207,9 @@ PCsearch::addSearch(unsigned phaseID)
 
   PCsearch *newkid = new PCsearch(phaseID , pType);
   AllPCSearches[phaseID] = newkid;
+
+  // * initialize PC displays *
+  newkid->updateDisplayedStatus(msg);
 
   // display root node with style 1 
   uiMgr->DAGaddNode (phaseID, 0, searchHistoryGraph::InactiveUnknownNodeStyle, 
@@ -237,8 +242,7 @@ PCsearch::pause()
     else 
       // no nodes will be started off the current search queue until false
       CurrentSearchPaused = true;
-    string msg ("Search Paused by User.\n");
-    shg->updateDisplayedStatus (msg);
+    shg->updateDisplayedStatus ("Search Paused by User.\n");
     database->unsubscribeAllRawData();
   }
 }
@@ -253,8 +257,7 @@ PCsearch::resume()
     else
       CurrentSearchPaused = false;
     database->resubscribeAllRawData();
-    string msg ("Search Resumed.\n");
-    shg->updateDisplayedStatus (msg);
+    shg->updateDisplayedStatus ("Search Resumed.\n");
   }
 }
 
