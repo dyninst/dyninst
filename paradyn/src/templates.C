@@ -5,7 +5,10 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.13  1995/07/17 05:04:23  tamches
+ * Revision 1.14  1995/07/24 21:25:51  tamches
+ * removed list of resourceDisplayObj
+ *
+ * Revision 1.13  1995/07/17  05:04:23  tamches
  * Changes for new where axis code.
  *
  * Revision 1.12  1995/06/02  20:55:51  newhall
@@ -235,8 +238,8 @@ class pRec;
 template class HTable<pRec *>;
 template class List<pRec *>;
 template class ListItem<pRec *>;
-template class List<resourceDisplayObj *>;
-template class ListItem<resourceDisplayObj *>;
+//template class List<resourceDisplayObj *>;
+//template class ListItem<resourceDisplayObj *>;
 template class List<resourceList *>;
 template class ListItem<resourceList *>;
 template class List<metricInstInfo *>;
