@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aggregateSample.C,v 1.23 2001/06/20 20:43:15 schendel Exp $
+// $Id: aggregateSample.C,v 1.24 2001/07/06 18:50:35 schendel Exp $
 
 #include <assert.h>
 #include <math.h>
@@ -86,8 +86,7 @@ void sampleInfo::newValue(timeStamp sampleTime,
     aggu_cerr << "sampleInfo::newValue - sampleTime: " << sampleTime
 	      << ", pdSample: " << newVal << ", wt: " << weight << "\n";
     assert(firstSampleReceived);
-    if(lastSampleEnd.isInitialized())
-      assert(sampleTime >= lastSampleEnd);
+    assert(sampleTime >= lastSampleEnd);
 
     // used when it's a component of an aggregate.
     switch(valueUpdateStyle) {
@@ -115,7 +114,8 @@ ostream& operator<<(ostream&s, const sampleInfo &info) {
 }
 
 struct sampleInterval aggregateSample::aggregateValues() {
-    struct sampleInterval ret;
+    struct sampleInterval ret(timeStamp::ts1970(), timeStamp::ts1970(), 
+			      pdSample::Zero());
     const timeLength ten_ms(10, timeUnit::ms());
     timeStamp earlyestTime = timeStamp::ts2200();
     ret.valid = false;
@@ -137,20 +137,14 @@ struct sampleInterval aggregateSample::aggregateValues() {
         if ((!newParts[u]->firstValueReceived())) {
           return ret;
         }
-        if (newParts[u]->lastSampleStart < newStart) {
-          newStart = newParts[u]->lastSampleStart;
-        }
-      }
-
-      if(! lastSampleEnd.isInitialized()) 
-        lastSampleEnd = newStart;
-
-      for (unsigned v = 0; v < newParts.size(); v++) {
-        if (newParts[v]->lastSampleStart < lastSampleEnd + ten_ms) {
+        if (newParts[u]->lastSampleStart < lastSampleEnd + ten_ms) {
           // round lastSampleStart to avoid generating very small aggregate
           // samples. I'm using 0.01 as an arbitrary value. We should
           // do some measurements to find a good value -- mjrg
-          newParts[v]->lastSampleStart = lastSampleEnd;
+          newParts[u]->lastSampleStart = lastSampleEnd;
+        }
+        if (newParts[u]->lastSampleStart < newStart) {
+          newStart = newParts[u]->lastSampleStart;
         }
       }
 
@@ -197,12 +191,8 @@ struct sampleInterval aggregateSample::aggregateValues() {
 
     aggu_cerr << "aggValues() - step3   earlyestTime: " << earlyestTime <<"\n";
     bool partsToRemove = false;
+
     for (unsigned u = 0; u < parts.size(); u++) {
-      if(! parts[u]->lastSampleEnd.isInitialized()) {
-	aggu_cerr << "returning from aggregateValues, a sampleInfo has an "
-		  << "undefined lastSampleEnd\n";
-	return ret;
-      }
       if (removedParts[u]) {
         if (parts[u]->lastSampleEnd == parts[u]->lastSampleStart) {
           partsToRemove = true;

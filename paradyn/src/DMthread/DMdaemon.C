@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.101 2001/06/20 20:34:53 schendel Exp $
+ * $Id: DMdaemon.C,v 1.102 2001/07/06 18:50:32 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2398,7 +2398,7 @@ void paradynDaemon::checkForSampleTooEarly(metricInstance *mi,
   // time adjustment factor is not good enough), and so we must update the
   // time adjustment factor for this daemon.
   timeLength diff = timeLength::Zero();
-  if(! mi->aggSample.currentTime().isInitialized()) {
+  if(mi->aggSample.currentTime() == timeStamp::ts1970()) {
     if(*newStartTimeP < earliestFirstTime) {
       diff = earliestFirstTime - *newStartTimeP;
     }
