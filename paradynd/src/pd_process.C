@@ -1581,11 +1581,20 @@ bool process::triggeredInStackFrame(Frame &frame,
        return false;
     }
     else if (collapsedFrameAddr > pointAddr) {
-        // Have reached the point
-       if(pd_debug_catchup)
-          fprintf(stderr, "        PC past instrumentation, returning true\n");
-       
-       return true;
+       // If this instPoint is for function _exit_ and we're after the point, DO NOT
+       // return true -- it is possible for an exit point to be in the middle of the
+       // function
+        if (point->getPointType() == functionExit) {
+            if (pd_debug_catchup) 
+                fprintf(stderr, "        PC past instrumentation, inst for function exit, returning false\n");
+            return false;
+        }
+        else {
+            // Have reached the point
+            if(pd_debug_catchup)
+                fprintf(stderr, "        PC past instrumentation, returning true\n");
+            return true;
+        }
     }
     else {
        if(pd_debug_catchup)
