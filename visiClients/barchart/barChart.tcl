@@ -2,11 +2,21 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.10  1994/10/28 21:53:44  tamches
-#  Fixed a rather flaming bug that could cause any resource add to
-#  potentially crash after doing a sort (c++ code's numResources
-#  wasn't updated before ::rethinkIndirectResources was called, leading
-#  to an assertion check failure)
+#  Revision 1.11  1994/11/06 10:36:48  tamches
+#  changed title font to 14 point
+#  beefed up validResources(), numValidResources, indirectResources()
+#  throughput the code.
+#  implemented a maximum individual color height of 25 pixels
+#  fixed a major bug when deleted resources (deleted resources were still
+#  being counted when calculating resource heights)
+#  Fixed deletion bug by having myXScroll do the callback to C++ code
+#  that updates bar offsets.
+#
+# Revision 1.10  1994/10/28  21:53:44  tamches
+# Fixed a rather flaming bug that could cause any resource add to
+# potentially crash after doing a sort (c++ code's numResources
+# wasn't updated before ::rethinkIndirectResources was called, leading
+# to an assertion check failure)
 #
 # Revision 1.9  1994/10/14  10:28:49  tamches
 # Swapped the x and y axes -- now resources print vertically and
@@ -85,7 +95,7 @@
 
 #  ################### Default options #################
 
-option add *Visi*font *-New*Century*Schoolbook-Bold-R-*-18-*
+option add *Visi*font *-New*Century*Schoolbook-Bold-R-*-14-*
 option add *Data*font *-Helvetica-*-r-*-12-*
 option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
 
@@ -201,12 +211,12 @@ $Wmbar.view.m add radio -label "Total Values" \
 pack $Wmbar.file $Wmbar.actions $Wmbar.view -side left -padx 4
 #pack $Wmbar.help -side right
 
-# #################### Organize all menu buttons into a menubar #################
+# #################### Organize all menu buttons into a menubar ##############
 
 tk_menuBar $Wmbar $Wmbar.file $Wmbar.actions \
    $Wmbar.view
 
-# ############  Scrollbar ##############
+# #######################  Scrollbar ######################
 
 canvas $W.farLeft
 pack $W.farLeft -side left -expand false -fill y
@@ -217,8 +227,8 @@ pack $W.farLeft -side left -expand false -fill y
 #   # expand is set to true; if the window is made taller, we want the extra height
 
 scrollbar $W.farLeft.resourcesAxisScrollbar -orient vertical -width 16 \
-	-foreground gray -activeforeground gray -relief sunken \
-	-command processNewScrollPosition
+        -foreground gray -activeforeground gray -relief sunken \
+        -command processNewScrollPosition
 pack $W.farLeft.resourcesAxisScrollbar -side top -fill y -expand true
    # expand is set to true; if the window is made taller, we want
    # extra height.
@@ -228,7 +238,7 @@ pack $W.farLeft.sbPadding -side bottom -expand false -fill x
    # expand is set to false; if the window is made taller, we don't
    # want any of the extra height.
 
-# #############  Resources Axis ###########3
+# #####################  Resources Axis #################
 
 canvas $W.left -width $resourcesAxisWidth
 pack   $W.left -side left -expand false -fill y
@@ -236,7 +246,7 @@ pack   $W.left -side left -expand false -fill y
    # any of the extra width
 
 canvas $W.left.metricsKey -height $metricsAxisHeight -width $resourcesAxisWidth\
-	-relief groove
+        -relief groove
 pack   $W.left.metricsKey -side bottom -expand false
    # expand is set to false; if the window is made taller, we don't
    # want any of the extra height
@@ -244,12 +254,12 @@ pack   $W.left.metricsKey -side bottom -expand false
 set WresourcesCanvas $W.left.resourcesAxisCanvas
 canvas $WresourcesCanvas -width $resourcesAxisWidth -relief groove \
                              -yscrollcommand myXScroll \
-			     -scrollincrement 1
+                             -scrollincrement 1
 pack   $WresourcesCanvas -side top -expand true -fill y
    # expand is set to true; if the window is made taller, we want the
    # extra height.
 
-# ####################  Metrics Axis Canvas ##################################
+# ####################  Metrics Axis Canvas ############################
 
 canvas $W.metricsAxisCanvas -height $metricsAxisHeight -relief groove
 pack   $W.metricsAxisCanvas -side bottom -fill x -expand false
@@ -264,8 +274,8 @@ pack  $W.body -side top -fill both -expand true
    # expand is set to true; if the window is made taller, we want the
    # extra height to go to us
 
-# ######### pack $W (and all its subwindows) into the main (top-level) window such that
-# ######### it basically consumes the entire window...
+# ######### pack $W (and all its subwindows) into the main (top-level)
+# ######### window such that it basically consumes the entire window...
 pack append . $W {fill expand frame center}
 
 # set some window manager hints:
@@ -302,14 +312,16 @@ proc getWindowHeight {wName} {
    return $result
 }
 
-# isMetricValid -- true iff at least one metric/focus pair for this metric is enabled
-#                  pas a true metric index, not a sorted one
+# isMetricValid -- true iff at least one metric/focus pair for this metric
+#                  is a enabled (not deleted).  Pass a true (not sorted)
+#                  metric index.
+# Given: updated numResources
+# Does:  returns number of enabled (non-deleted?) metrics
 proc isMetricValid {mindex} {
    global numResources
 
    for {set resourcelcv 0} {$resourcelcv<$numResources} {incr resourcelcv} {
       if {[Dg enabled $mindex $resourcelcv]} {
-         # true
          return 1
       }
    }
@@ -318,14 +330,16 @@ proc isMetricValid {mindex} {
    return 0
 }
 
-# isResourceValid -- true iff at least one metric/focus pair for this resource is enabled
-#                  pas a true resource index, not a sorted one
+# isResourceValid -- true iff at least one metric/focus pair for this
+#                    resource is enabled.  Pass a true resource index, not
+#                    a sorted one
+# Given: updated numMetrics
+# Does:  returns number of enabled (non-deleted?) resources
 proc isResourceValid {rindex} {
    global numMetrics
 
    for {set metriclcv 0} {$metriclcv<$numMetrics} {incr metriclcv} {
       if {[Dg enabled $metriclcv $rindex]} {
-         # true
          return 1
       }
    }
@@ -345,38 +359,32 @@ proc Initialize {} {
 
    global W
 
-   global numMetrics
-   global numMetricsDrawn
+   global numMetrics numMetricsDrawn
    global numMetricLabelsDrawn
    global metricNames
    global validMetrics
 
    global metricUnits
-   global metricMinValues
-   global metricMaxValues
+   global metricMinValues metricMaxValues
 
-   global metricsLabelFont
-   global resourceNameFont
+   global metricsLabelFont resourceNameFont
    global prevLeftSectionWidth
 
    global numResources
-   global resourceNames
+   global numValidResources validResources
    global indirectResources
+   global resourceNames
 
    global currResourceHeight
-   global minResourceHeight
-   global maxResourceHeight
+   global minResourceHeight maxResourceHeight maxIndividualColorHeight
 
    global DataFormat
 
-   global clickedOnResource
-   global clickedOnResourceText
-   global numLabelsDrawn
-   global numResourcesDrawn
+   global clickedOnResource clickedOnResourceText
+   global numLabelsDrawn numResourcesDrawn
 
    global SortPrefs
-   global barColors
-   global numBarColors
+   global barColors numBarColors
 
    set SortPrefs NoParticular
    
@@ -387,8 +395,10 @@ proc Initialize {} {
 
    set DataFormat Instantaneous
 
+   # keep both of the following lines up here:
    set numMetrics [Dg nummetrics]
    set numResources [Dg numresources]
+
    set numMetricsDrawn 0
    set numMetricLabelsDrawn 0
 
@@ -400,13 +410,20 @@ proc Initialize {} {
       set metricMaxValues($metriclcv) [lindex [getMetricHints $metricNames($metriclcv)] 2]
    }
 
+   set numValidResources 0
    for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
-      set resourceNames($resourcelcv) [Dg resourcename $resourcelcv]
-      set indirectResources($resourcelcv) $resourcelcv
-  }
+      set validResources($resourcelcv) [isResourceValid $resourcelcv]
+      if {$validResources($resourcelcv)} {
+         set indirectResources($numValidResources) $resourcelcv
+         incr numValidResources
+      }
 
-   set minResourceHeight 18
+      set resourceNames($resourcelcv) [Dg resourcename $resourcelcv]
+   }
+
+   set minResourceHeight 20
    set maxResourceHeight 50
+   set maxIndividualColorHeight 25
    set currResourceHeight $maxResourceHeight
       # as resources are added, we try to shrink the resource height down to a minimum of
       # (minResourceHeight) rather than having to invoke the scrollbar.
@@ -424,8 +441,6 @@ proc Initialize {} {
    set barColors(4) "orange"
    set numBarColors 5
 
-#   set resourceNameFont -adobe-courier-medium-r-normal-*-12-120-*-*-*-*-iso8859-1
-#   set metricsLabelFont -adobe-courier-medium-r-normal-*-12-120-*-*-*-*-iso8859-1
    set resourceNameFont *-Helvetica-*-r-*-12-*
    set metricsLabelFont *-Helvetica-*-r-*-12-*
 
@@ -447,9 +462,9 @@ proc Initialize {} {
    bind $W.body <Expose>    {myExposeEventHandler}
 }
 
-# ############################################################################
-# ################################ procedures ################################
-# ############################################################################
+# ######################################################################
+# ################################ procedures ##########################
+# ######################################################################
 #
 # selectResource
 # unSelectResource
@@ -476,7 +491,7 @@ proc Initialize {} {
 # rethinkIndirectResources
 # rethinkDataFormat
 #
-# ############################################################################
+# ######################################################################
 
 # selectResource -- assuming this resource was clicked on, select it
 proc selectResource {widgetName} {
@@ -494,11 +509,11 @@ proc selectResource {widgetName} {
    set clickedOnResourceText [lindex [$widgetName configure -text] 4]
    $widgetName configure -relief sunken
 
-   # update "delete resource xxx" menu item s.t. delResourceByName is called automatically
-   # on menu choice selection
+   # update "delete resource xxx" menu item s.t. delResourceByName is
+   # called automatically on menu choice selection
    $Wmbar.actions.m entryconfigure 4 -state normal \
            -label "Remove Resource \"$clickedOnResourceText\"" \
-	   -command {delResourceByName $clickedOnResourceText}
+           -command {delResourceByName $clickedOnResourceText}
 }
 
 # unSelectResource -- pretend we never clicked on this resource
@@ -511,7 +526,7 @@ proc unSelectResource {widgetName} {
    set clickedOnResourceText ""
    $widgetName configure -relief flat
    $Wmbar.actions.m entryconfigure 4 -state disabled \
-	   -label "Remove Selected Resource" \
+           -label "Remove Selected Resource" \
            -command {puts "ignoring unexpected deletion..."}
 }
 
@@ -542,44 +557,49 @@ proc processExitResource {widgetName} {
 }
 
 proc rethinkResourceHeights {screenHeight} {
-   # When resources are added or deleted, this routine is called.
-   # Its sole purpose is to rethink the value of currResourceHeight,
-   # depending on the resources.
+   # When resources are added or deleted, or a resize occurs,
+   # this routine is called.  Its sole purpose is to rethink the value
+   # of currResourceHeight, depending on the resources and window height.
 
-   # algorithm: get current window height.  set resource width equal
-   # to window height / num resources.  If that would make the resource
-   # height too small, make it minResourceHeight
-   global minResourceHeight
-   global maxResourceHeight
+   # algorithm: current window height is passed as a parameter.  Set
+   # resource height equal to window height / num **valid** resources (don't
+   # want to include deleted ones!).  If that would make the resource
+   # height too small, make it minResourceHeight.
+   global minResourceHeight maxResourceHeight
    global currResourceHeight
-   global numResources
+   global numResources numValidResources
+   global validResources
    global WresourcesCanvas
 
-   set tentativeResourceHeight [expr $screenHeight / $numResources]
-   if {$tentativeResourceHeight < $minResourceHeight} {
-      set tentativeResourceHeight $minResourceHeight
-   } elseif {$tentativeResourceHeight > $maxResourceHeight} {
-      set tentativeResourceHeight $maxResourceHeight
+   if {$numValidResources==0} {
+      set tentativeResourceHeight 0
+   } else {
+      set tentativeResourceHeight [expr $screenHeight / $numValidResources]
+      if {$tentativeResourceHeight < $minResourceHeight} {
+         set tentativeResourceHeight $minResourceHeight
+      } elseif {$tentativeResourceHeight > $maxResourceHeight} {
+         set tentativeResourceHeight $maxResourceHeight
+      }
    }
 
    set currResourceHeight $tentativeResourceHeight
 
-   # puts stderr "Leaving rethinkResourceHeights; we have decided upon $currResourceHeight"
+#   puts stderr "Leaving rethinkResourceHeights(tcl); we have decided upon $currResourceHeight (max is $maxResourceHeight)"
 }
 
-# Upon changes to the resources axis or the metrics key, call this routine to rethink
-# how wide the left portion of the screen (which is what holds these guys) should be.
+# Upon changes to the resources axis or the metrics key, call this routine to
+# rethink how wide the left portion of the screen (which is what holds these
+# guys) should be.
 proc rethinkLeftSectionWidth {} {
    global W
    global WresourcesCanvas
    global prevLeftSectionWidth
-   global numResourcesDrawn
-   global numMetricsDrawn
+   global numResourcesDrawn numMetricsDrawn
 
    set maxWidthSoFar 20
    set tickWidth 5
 
-   # loop through the resourcs on screen in sorted order
+   # loop through the resources on screen in sorted order
    for {set rindex 0} {$rindex < $numResourcesDrawn} {incr rindex} {
       set thisLabelWidth [getWindowWidth $WresourcesCanvas.message$rindex]
       if {$thisLabelWidth > $maxWidthSoFar} {
@@ -613,12 +633,13 @@ proc rethinkLeftSectionWidth {} {
 }
 
 proc drawResourcesAxis {theHeight} {
-   # how it works: deletes all canvas items with the tag "resourcesAxisItemTag", including
-   # the window items.  message widgets have to be deleted separately, notwithstanding
-   # the fact that the canvas window items were deleted already.
-   # (it knows how many message widgets there are via numResourcesDrawn, which at the
-   # time this routine is called, may not be up-to-date with respect to numResources),
-   # and then redraws by re-recreating the canvas items and message widgets
+   # how it works: deletes canvas items with the tag "resourcesAxisItemTag",
+   # including window items.  message widgets have to be deleted separately,
+   # notwithstanding that canvas window items were deleted already.
+   # (it knows how many message widgets there are via numResourcesDrawn, which
+   # at the time this routine is called, may not be up-to-date with respect to
+   # numResources), and then redraws by re-recreating the canvas items and
+   # message widgets
 
    global W
    global Wmbar
@@ -628,7 +649,8 @@ proc drawResourcesAxis {theHeight} {
    global resourcesAxisWidth
    global metricsAxisHeight
 
-   global numResources
+   global numResources numValidResources
+   global validResources
    global numResourcesDrawn
    global resourceNames
    global indirectResources
@@ -636,9 +658,7 @@ proc drawResourcesAxis {theHeight} {
    global clickedOnResource
    global clickedOnResourceText
 
-   global minResourceHeight
-   global maxResourceHeight
-   global currResourceHeight
+   global minResourceHeight maxResourceHeight currResourceHeight
 
    global SortPrefs
 
@@ -655,40 +675,41 @@ proc drawResourcesAxis {theHeight} {
    set numResourcesDrawn 0
 
    # loop through resources in sorted order
-   for {set rindex 0} {$rindex < $numResources} {incr rindex} {
+   for {set rindex 0} {$rindex < $numValidResources} {incr rindex} {
       set actualResource $indirectResources($rindex)
-
-      if {[isResourceValid $actualResource]} {
-         set bottom [expr $top + $currResourceHeight - 1]
-         set middle [expr ($top + $bottom) / 2]
-   
-         # create a tick line for this resource
-         $WresourcesCanvas create line [expr $right-$tickWidth] $middle $right $middle -tag resourcesAxisItemTag
-   
-         # create a message widget, bind some commands to it, and attach it to the
-         # canvas via "create window"
-
-         set theName $resourceNames($actualResource)
-   
-         label $WresourcesCanvas.message$numResourcesDrawn -text $theName \
-		 -font $resourceNameFont
-
-         bind $WresourcesCanvas.message$numResourcesDrawn <Enter> \
-                             {processEnterResource %W}
-         bind $WresourcesCanvas.message$numResourcesDrawn <Leave> \
-                             {processExitResource %W}
-         bind $WresourcesCanvas.message$numResourcesDrawn <ButtonPress> \
-		             {selectResource %W}
-
-         $WresourcesCanvas create window [expr $right-$tickWidth] $middle \
-		 -anchor e -tag resourcesAxisItemTag \
-		 -window $WresourcesCanvas.message$numResourcesDrawn
-
-         set top [expr $top + $currResourceHeight]
-         incr numResourcesDrawn    
-      } else {
-         #puts stderr "drawResourcesAxis: not drawing resource #$rindex because its valid flag is false"
+      if {!$validResources($actualResource)} {
+         puts stderr "drawResourcesAxis -- detected an invalid resource"
+         return
       }
+
+      set bottom [expr $top + $currResourceHeight - 1]
+      set middle [expr ($top + $bottom) / 2]
+   
+      # create a tick line for this resource
+      $WresourcesCanvas create line [expr $right-$tickWidth] $middle $right \
+	      $middle -tag resourcesAxisItemTag
+   
+      # create a message widget, bind some commands to it, and attach it to
+      # the canvas via "create window"
+
+      set theName $resourceNames($actualResource)
+   
+      label $WresourcesCanvas.message$numResourcesDrawn -text $theName \
+	      -font $resourceNameFont
+
+      bind $WresourcesCanvas.message$numResourcesDrawn <Enter> \
+	      {processEnterResource %W}
+      bind $WresourcesCanvas.message$numResourcesDrawn <Leave> \
+	      {processExitResource %W}
+      bind $WresourcesCanvas.message$numResourcesDrawn <ButtonPress> \
+	      {selectResource %W}
+
+      $WresourcesCanvas create window [expr $right-$tickWidth] $middle \
+	      -anchor e -tag resourcesAxisItemTag \
+	      -window $WresourcesCanvas.message$numResourcesDrawn
+
+      set top [expr $top + $currResourceHeight]
+      incr numResourcesDrawn    
    }
 
    # the axis itself--a horizontal line
@@ -722,8 +743,7 @@ proc drawResourcesAxis {theHeight} {
 proc processNewMetricMax {mindex newmaxval} {
    # called from barChart.C when y-axis overflow is detected and
    # a new max value is chosen
-   global metricMinValues
-   global metricMaxValues
+   global metricMinValues metricMaxValues
    global W
 
    set metricMaxValues($mindex) $newmaxval
@@ -741,17 +761,13 @@ proc drawMetricsAxis {metricsAxisWidth} {
    # metrics are added or removed.
 
    global W
-   global numMetrics
-   global numMetricsDrawn
-   global numMetricLabelsDrawn
+   global numMetrics numMetricsDrawn numMetricLabelsDrawn
 
    global metricNames
    global validMetrics
 
-   global metricUnits
-   global metricUnitTypes
-   global metricMinValues
-   global metricMaxValues
+   global metricUnits metricUnitTypes
+   global metricMinValues metricMaxValues
    global metricsLabelFont
 
    set keyWindow $W.left.metricsKey
@@ -779,57 +795,62 @@ proc drawMetricsAxis {metricsAxisWidth} {
    set numMetricsDrawn 0
 
    for {set metriclcv 0} {$metriclcv<$numMetrics} {incr metriclcv} {
-      # draw this axis, if it is a legitimate metric
-      if {$validMetrics($metriclcv)} {
-         set numericalStep [expr (1.0 * $metricMaxValues($metriclcv)-$metricMinValues($metriclcv)) / ($numticks-1)]
+      if {!$validMetrics($metriclcv)} continue
 
-         # draw horizontal line for this metric axis; color-coded for the metric in question
-         $W.metricsAxisCanvas create line $fixedLeft $top $fixedRight $top -tag metricsAxisTag \
-		 -fill [getMetricColor $metriclcv]
+      set numericalStep [expr (1.0 * $metricMaxValues($metriclcv)-$metricMinValues($metriclcv)) / ($numticks-1)]
 
-         # draw tick marks and create labels for this metric axis
-         for {set ticklcv 0} {$ticklcv < $numticks} {incr ticklcv} {
-            set tickx [expr $fixedLeft + ($ticklcv * $tickStepPix)]
-            $W.metricsAxisCanvas create line $tickx $top $tickx [expr $top + $tickHeight] \
-		    -tag metricsAxisTag -fill [getMetricColor $metriclcv]
+      # draw horiz line for this metric; color-coded for the metric
+      $W.metricsAxisCanvas create line $fixedLeft $top $fixedRight $top \
+                 -tag metricsAxisTag \
+                 -fill [getMetricColor $metriclcv]
 
-            set labelText [expr $metricMinValues($metriclcv) + $ticklcv * $numericalStep]
+      # draw tick marks and create labels for this metric axis
+      for {set ticklcv 0} {$ticklcv < $numticks} {incr ticklcv} {
+         set tickx [expr $fixedLeft + ($ticklcv * $tickStepPix)]
+         $W.metricsAxisCanvas create line $tickx $top $tickx \
+                    [expr $top + $tickHeight] \
+                    -tag metricsAxisTag -fill [getMetricColor $metriclcv]
 
-	    if {$ticklcv==0} {
-               set theAnchor nw
-               set theJust left
-	    } elseif {$ticklcv==[expr $numticks-1]} {
-               set theAnchor ne
-               set theJust center
-	    } else {
-               set theAnchor n
-               set theJust right
-	    }
+         set labelText [expr $metricMinValues($metriclcv) + $ticklcv * $numericalStep]
 
-            # we use message widgets instead of labels to get justification correct
-            message $W.metricsAxisCanvas.label$labelDrawnCount -text $labelText \
-		    -justify $theJust -font $metricsLabelFont -width [getWindowWidth $W.metricsAxisCanvas]
-            $W.metricsAxisCanvas create window $tickx [expr $top+$tickHeight] -anchor $theAnchor \
-		    -tag metricsAxisItemTag -window $W.metricsAxisCanvas.label$labelDrawnCount
-
-            incr labelDrawnCount
+         if {$ticklcv==0} {
+            set theAnchor nw
+            set theJust left
+         } elseif {$ticklcv==[expr $numticks-1]} {
+            set theAnchor ne
+            set theJust center
+         } else {
+            set theAnchor n
+            set theJust right
          }
 
-         # draw an appropriate entry in the "key" (like the histogram has),
-         # to the left of the metrics axis
-         $keyWindow create line 5 $top [expr [getWindowWidth $keyWindow] - 5] $top \
-		 -tag metricsAxisTag -fill [getMetricColor $metriclcv]
-         set theText $metricNames($metriclcv)
-         label $keyWindow.key$numMetricsDrawn -text $theText \
-		 -font $metricsLabelFont
-         $keyWindow create window [expr [getWindowWidth $keyWindow] - 5] [expr $top + $tickHeight] \
-		 -tag metricsAxisTag -window $keyWindow.key$numMetricsDrawn \
-		 -anchor ne
+         # we use message widgets instead of labels to get justification
+         # correct (actually, label widgets could probably still be used;
+         # I had forgotten about the -anchor option)
+         message $W.metricsAxisCanvas.label$labelDrawnCount -text $labelText \
+                    -justify $theJust -font $metricsLabelFont -width [getWindowWidth $W.metricsAxisCanvas]
+         $W.metricsAxisCanvas create window $tickx [expr $top+$tickHeight] \
+                    -anchor $theAnchor -tag metricsAxisItemTag \
+                    -window $W.metricsAxisCanvas.label$labelDrawnCount
 
-         # prepare for next metric down:
-         set top [expr $top + $tickHeight + 30]
-         incr numMetricsDrawn
+         incr labelDrawnCount
       }
+
+      # draw an appropriate entry in the "key" (like the histogram has),
+      # to the left of the metrics axis
+      $keyWindow create line 5 $top [expr [getWindowWidth $keyWindow] - 5] \
+              $top -tag metricsAxisTag -fill [getMetricColor $metriclcv]
+      set theText $metricNames($metriclcv)
+      label $keyWindow.key$numMetricsDrawn -text $theText \
+              -font $metricsLabelFont
+      $keyWindow create window [expr [getWindowWidth $keyWindow] - 5] \
+              [expr $top + $tickHeight] -tag metricsAxisTag \
+              -window $keyWindow.key$numMetricsDrawn -anchor ne
+
+      # prepare for next metric down:
+      # warning! the "30" is a hack
+      set top [expr $top + $tickHeight + 30]
+      incr numMetricsDrawn
    }
 
    set numMetricLabelsDrawn $labelDrawnCount
@@ -865,22 +886,21 @@ proc getMetricColor {mindex} {
 
 # myConfigureEventHandler - handle a resize of the bar sub-window
 proc myConfigureEventHandler {newWidth newHeight} {
-   # rethink how wide the resources should be
+   # rethink how tall the resources should be
    rethinkResourceHeights $newHeight
 
-   # Call drawResourcesAxis to rethink the scrollbar and to
-   # rethink how many resources can fit on the screen, now that
-   # we've changed the window size
+   # Rethink scrollbar settings and rethink how many resources fit on screen,
+   # assuming window size has changed.
    drawResourcesAxis $newHeight
 
-   # We only need to redraw the metrics axis if the window height has changed
-   # (and at the beginning of the program)
+   # (We only need to do the following if window width has changed or if we're
+   # at the start of the program)
    drawMetricsAxis $newWidth
 
    # the following routines will clear the bar window (ouch! But no
-   # choice since window size change can greatly affect bar layout
-   # --- sometimes)
-   # so resizeCallback has built-in hacks to simulate one new-data callback
+   # choice since window size change can greatly affect bar layout --- well,
+   # sometimes) so resizeCallback has built-in hacks to simulate one
+   # new-data callback
 
    resourcesAxisHasChanged $newHeight
    metricsAxisHasChanged   $newWidth
@@ -921,29 +941,27 @@ proc myExposeEventHandler {} {
 # delResource -- delete a resource, given the resource's true (not sorted)
 #                index number.
 #                Should match the resource we have clicked on.
+#                Should be passed a valid resource
 proc delResource {delindex} {
-   global numMetrics
-   global numResources
-   global validResources
+   global numMetrics numResources
+   global validResources numValidResources
    global resourceNames
    global indirectResources
-   global clickedOnResource
-   global clickedOnResourceText
+   global clickedOnResource clickedOnResourceText
    global Wmbar
    global W
 
-   # first, make sure this resource index is valid
+   # first, make sure this resource index is in range
    if {$delindex < 0 || $delindex >= $numResources} {
       puts stderr "delResource -- ignoring out of bounds index: $delindex"
       return
    }
 
-   if {![isResourceValid $delindex]} {
+   # next, make sure the resource is valid
+   if {!$validResources($delindex)} {
       puts stderr "delResource -- ignoring request to delete an invalid (already deleted?) resource"
       return
    }
-
-   # puts stderr "Welcome to delResource--delindex=$delindex"
 
    # we should be deleting the resource that was clicked on
    if {$clickedOnResourceText == $resourceNames($delindex)} {
@@ -955,29 +973,38 @@ proc delResource {delindex} {
       puts stderr "delResource -- no mbar changes since $clickedOnResourceText != $resourceNames($delindex)"
    }
 
-   # Inform that visi lib that we don't want to receive anything
-   # more about this resource
-   # NOTE: unfortunately, [Dg numResources] etc. will not be
-   #       lowered, even after this is done!
-   #       The temporary solution is to rigidly test the
-   #       Valid bit of each metric-resource pair before
-   #       using it in any way.
+   # Inform that visi lib that we don't want anything more from this resource
+   # NOTE: unfortunately, [Dg numResources] etc. will not be lowered, even after
+   #       this is done!  The temporary solution is to rigidly test the Enabled
+   #       bit of each metric-resource pair before using it in any way.
    for {set mindex 0} {$mindex < $numMetrics} {incr mindex} {
-      if {[isMetricValid $mindex]} {
+      if {[Dg enabled $mindex $delindex]} {
          Dg stop $mindex $delindex
       }
    }
 
-   # note that this resource is now invalid
+   # If the [Dg stop...] worked, then this resource is should now be invalid.
    if {[isResourceValid $delindex]} {
-      puts stderr "delResource -- curious that valid flag wasn't changed to false after the deletion"
-      flush stderr
+      puts stderr "delResource -- valid flag wasn't changed to false after the deletion"
+      return
    }
 
-   # reminder: no use in rethinking "numResources" with a call to [Dg numresources]
-   #           since the visi won't lower that value; instead, it will only clear
-   #           the appropriate valid bits
+   set validResources($delindex) 0
+   set numValidResources [expr $numValidResources - 1]
 
+#      puts stderr "new numValidResources=$numValidResources"
+
+   if {$numValidResources<0} {
+      puts stderr "delResource warning: numValidResources now $numValidResources!"
+      return
+   }
+
+   # reminder: no use in rethinking "numResources" with a call to
+   #           [Dg numresources] since the visi won't lower that value;
+   #           instead, it will only clear the appropriate enabled bits
+
+   # Rethink sorting order, and inform our C++ code to do the same
+   # Does no redrawing whatsoever
    rethinkIndirectResources true
 
    # simulate a resize to rethink bar, bar label, and resource axis layouts
@@ -988,14 +1015,15 @@ proc delResource {delindex} {
 #                           chose the menu item to delete it
 #      calls delResource when it determines an appropriate index number
 proc delResourceByName {rName} {
-   global numResources
+   global numResources numValidResources
+   global validResources
    global resourceNames
    global indirectResources
 
    # find the appropriate index and call delResource...
    for {set rindex 0} {$rindex < $numResources} {incr rindex} {
       if {$rName == $resourceNames($rindex)} {
-         if {! [isResourceValid $rindex]} {
+         if {!$validResources($rindex)} {
             puts stderr "delResourceByName -- ignoring request to delete invalid (already-deleted?) resource $rName"
             return
          }
@@ -1036,42 +1064,42 @@ proc getMetricHints {theMetric} {
    # #pragma HACK done
 }
 
-proc addMetric {theName theUnits} {
-   global numMetrics
-   global metricNames
-   global validMetrics
-
-   global metricUnits
-   global metricUnitTypes
-   global metricMinValues
-   global metricMaxValues
-   global W
-
-   puts stderr "Welcome to addMetric; name is $theName; units are $theUnits"
-
-   # first make sure that this metric isn't already present (if so, do nothing)
-   for {set metricIndex 0} {$metricIndex < $numMetrics} {incr metricIndex} {
-      if {$metricNames($metricIndex) == $theName && $validMetrics($metricIndex)} {
-         puts stderr "addMetric: ignoring request to add $theName (already present)"
-         return
-      }
-   }
-
-   # make the addition
-   set metricNames($numMetrics) $theName
-   set metricUnits($numMetrics) $theUnits
-
-   set theHints [getMetricHints $theName]
-
-   set metricUnitTypes($numMetrics) [lindex $theHints 0]
-   set metricMinValues($numMetrics) [lindex $theHints 1]
-   set metricMaxValues($numMetrics) [lindex $theHints 2]
-
-   incr numMetrics
-
-   drawResourcesAxis [getWindowHeight $W.left.resourcesAxisCanvas]
-   drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
-}
+#proc addMetric {theName theUnits} {
+#   global numMetrics
+#   global metricNames
+#   global validMetrics
+#
+#   global metricUnits
+#   global metricUnitTypes
+#   global metricMinValues
+#   global metricMaxValues
+#   global W
+#
+#   puts stderr "Welcome to addMetric; name is $theName; units are $theUnits"
+#
+#   # first make sure that this metric isn't already present (if so, do nothing)
+#   for {set metricIndex 0} {$metricIndex < $numMetrics} {incr metricIndex} {
+#      if {$metricNames($metricIndex) == $theName && $validMetrics($metricIndex)} {
+#         puts stderr "addMetric: ignoring request to add $theName (already present)"
+#         return
+#      }
+#   }
+#
+#   # make the addition
+#   set metricNames($numMetrics) $theName
+#   set metricUnits($numMetrics) $theUnits
+#
+#   set theHints [getMetricHints $theName]
+#
+#   set metricUnitTypes($numMetrics) [lindex $theHints 0]
+#   set metricMinValues($numMetrics) [lindex $theHints 1]
+#   set metricMaxValues($numMetrics) [lindex $theHints 2]
+#
+#   incr numMetrics
+#
+#   drawResourcesAxis [getWindowHeight $W.left.resourcesAxisCanvas]
+#   drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
+#}
 
 proc delMetric {delIndex} {
    global numMetrics
@@ -1101,8 +1129,9 @@ proc delMetric {delIndex} {
 }
 
 proc processNewScrollPosition {newTop} {
-   # the -command configuration of the scrollbar is fixed to call this procedure.
-   # This happens whenever scrolling takes place.  We update the x-axis canvas
+   # the scrollbar -command setting calls this procedure whenever scrolling
+   # takes place.  We update the x-axis canvas and inform our C++ code of
+   # the new scrollbar settings.
    global WresourcesCanvas
    global W
 
@@ -1112,7 +1141,7 @@ proc processNewScrollPosition {newTop} {
 
    # if max <= visible then set newTop 0
    set currSettings [$W.farLeft.resourcesAxisScrollbar get]
-   set totalSize [lindex $currSettings 0]
+   set totalSize   [lindex $currSettings 0]
    set visibleSize [lindex $currSettings 1]
 
    if {$visibleSize > $totalSize} {
@@ -1121,23 +1150,25 @@ proc processNewScrollPosition {newTop} {
       set newTop [expr $totalSize - $visibleSize]
    }
 
-   # update the x-axis canvas
+   # update the resources axis canvas
    # will automatically generate a call to myXScroll, which then updates the
-   # look of the scrollbar to reflect the new position...
+   # look of the scrollbar to reflect the new position, and calls our
+   # C++ code to update the bar offsets
    $WresourcesCanvas yview $newTop
-
-   # call our C++ code to update the bars
-   newScrollPosition $newTop
 }
 
 # myXScroll -- the -scrollcommand config of the resources axis canvas.
-#              Gets called whenever the canvas view changes or gets resized.
-#              Gives us an opportunity to rethink the bounds of the scrollbar.
-#              We get passed: total size, window size, left, right
+#          Gets called whenever the canvas view changes or gets resized.
+#          This includes every scroll the user makes (yikes!)
+#          Gives us an opportunity to rethink the bounds of the scrollbar.
+#          We get passed: total size, window size, left, right
 proc myXScroll {totalSize visibleSize left right} {
    global W
 
    $W.farLeft.resourcesAxisScrollbar set $totalSize $visibleSize $left $right
+
+   # call our C++ code to update the bar offsets
+   newScrollPosition $left
 }
 
 # ############################################################################
@@ -1154,6 +1185,8 @@ proc dragAndDropTargetHandler {} {
    global DragDrop
 
    # not yet implemented...
+   return
+
    puts stderr "Welcome to dragAndDropTargetHandler(); DragDrop(text) is $DragDrop(text)"
    addResource $DragDrop(text)
 }
@@ -1164,20 +1197,20 @@ proc dragAndDropTargetHandler {} {
 #   gets called (via a "send" from the source...)  Using window '.' means
 #   the entire barchart...
 
-# #################### Called by visi library when histos have folded #################
+# #################### Called by visi library when histos have folded #########
 
 proc DgFoldCallback {} {
-   puts stderr "FOLD detected..."
-   flush stderr
+#   puts stderr "FOLD detected..."
+#   flush stderr
 }
 
-# ########### Called by visi library when metric/resource space changes. #######
+# ########### Called by visi library when metric/resource space changes.
 #
 # note: this routine is too generic; in the future, we plan to
 # implement callbacks that actually tell what was added (as opposed
 # to what was already there...)
 #
-# ###############################################################################
+# ######################################################################
 
 proc DgConfigCallback {} {
    # puts stderr "Welcome to DgConfigCallback"
@@ -1192,12 +1225,14 @@ proc DgConfigCallback {} {
    global metricMinValues
    global metricMaxValues
 
-   global numResources
+   global numResources numValidResources
+   global validResources
    global numResourcesDrawn
    global resourceNames
    global indirectResources
 
    set numMetrics [Dg nummetrics]
+   # the next line must remain up here or else calls to isMetricValid will be wrong!
    set numResources [Dg numresources]
 
    for {set metriclcv 0} {$metriclcv < $numMetrics} {incr metriclcv} {
@@ -1206,19 +1241,28 @@ proc DgConfigCallback {} {
       set validMetrics($metriclcv) [isMetricValid $metriclcv]
 
       # note -- the following 2 lines are very dubious for already-existing
-      #         resources (i.e. we should try to stick with the initial values)
+      #         resources (i.e. we should try to stick with the initial
+      #         values)
       set metricMinValues($metriclcv) [lindex [getMetricHints $metricNames($metriclcv)] 1]
       set metricMaxValues($metriclcv) [lindex [getMetricHints $metricNames($metriclcv)] 2]
    }
 
+   set numValidResources 0
    for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
       set resourceNames($resourcelcv) [file tail [Dg resourcename $resourcelcv]]
+      if {[isResourceValid $resourcelcv]} {
+         set validResources($resourcelcv) 1
+         incr numValidResources
+      } else {
+         set validResources($resourcelcv) 0
+      }
    }
 
-   # rethink the sorting order (false --> don't do callback to c++ code because it
-   # would crash since C++ code doesn't update its value of numMetrics and numResources
-   # until a 'resourcesAxisHasChanged' or 'metricsAxisHasChanged'.  When those do
-   # indeed get called below, they also update the sorting order; so we're OK.)
+   # rethink the sorting order (false --> don't do callback to c++ code
+   # because it would crash since C++ code doesn't update its value of
+   # numMetrics and numResources until a 'resourcesAxisHasChanged' or
+   # 'metricsAxisHasChanged'.  When those do indeed get called below, they
+   # also update the sorting order, so we're OK.)
    rethinkIndirectResources false
 
    # rethink the layout of the axes
@@ -1226,19 +1270,20 @@ proc DgConfigCallback {} {
    drawResourcesAxis [getWindowHeight $W.left.resourcesAxisCanvas]
    drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
 
-   # inform our C++ code that stuff has changed (nummetrics, numresources gets
-   # updated, structures are recalculated based on new #metrics,#resources, etc.)
+   # inform our C++ code that stuff has changed (nummetrics, numresources
+   # gets updated, structures are recalculated based on new #metrics,
+   # #resources, etc.)
    resourcesAxisHasChanged [getWindowHeight $W.left.resourcesAxisCanvas]
    metricsAxisHasChanged   [getWindowWidth $W.metricsAxisCanvas]
 }
 
-# #################  AddMetricDialog -- Ask paradyn for another metric #################
+# ###########  AddMetricDialog -- Ask paradyn for another metric ########
 
 proc AddMetricDialog {} {
    Dg start "*" "*"
 }
 
-# #################  AddResourceDialog -- Ask paradyn for another resource #################
+# #########  AddResourceDialog -- Ask paradyn for another resource #######
 
 proc AddResourceDialog {} {
    Dg start "*" "*"
@@ -1268,20 +1313,23 @@ proc sortCmd {x y} {
 
 proc rethinkIndirectResources {docallback} {
    # sorting order has changed; rethink indirectResources array
-   global indirectResources
    global SortPrefs
-   global numResources
+
+   global numResources numValidResources
+   global validResources
    global resourceNames
+   global indirectResources
 
    # sorting works as follows: create a temporary list of {index,name} pairs;
    # sort the list; extract the indexes in sequence; delete temporary list
    set templist {}
 
+   # Note that we exclude invalid resources
    for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
-      lappend templist [list $resourcelcv $resourceNames($resourcelcv)]
+      if {$validResources($resourcelcv)} {
+         lappend templist [list $resourcelcv $resourceNames($resourcelcv)]
+      }
    }
-
-   # puts stderr "rethinkIndirectResources: templist is $templist"
 
    if {$SortPrefs == "ByName"} {
       set templist [lsort -ascii -increasing -command sortCmd $templist]
@@ -1291,8 +1339,19 @@ proc rethinkIndirectResources {docallback} {
 
    # puts stderr "rethinkIndirectResources: sorted templist is $templist"
 
-   for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
-      set indirectResources($resourcelcv) [lindex [lindex $templist $resourcelcv] 0]
+   # Now go through in sorted order:
+   for {set resourcelcv 0} {$resourcelcv < $numValidResources} {incr resourcelcv} {
+      set actualResource [lindex [lindex $templist $resourcelcv] 0]
+      if {$actualResource<0 || $actualResource>=$numResources} {
+         puts stderr "rethinkIndirectResources -- actualResource=$actualResource (valid range is (0,$numResources)"
+         return
+      }
+      if {!$validResources($actualResource)} {
+         puts stderr "rethinkIndirectResources -- invalid resource detected"
+         return
+      }
+
+      set indirectResources($resourcelcv) $actualResource
    }
 
 #   puts stderr "rethinkIndirectResources: leaving with indirectResources="
@@ -1350,8 +1409,8 @@ proc GracefulClose {} {
    exit
 }
 
-# ######################################################################################
+# #########################################################################
 #                           "Main Program"
-# ######################################################################################
+# #########################################################################
 
 Initialize
