@@ -71,6 +71,8 @@
 #include <rpc/types.h>
 #include <rpc/xdr.h>
 
+#include <strstream.h>
+
 typedef int (*P_xdrproc_t)(XDR*, ...);
 extern const char *sys_errlist[];
 

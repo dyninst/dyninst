@@ -43,6 +43,10 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
+ * Revision 1.29  1997/02/26 23:49:53  mjrg
+ * First part of WindowsNT commit: changes for compiling with VisualC++;
+ * moved includes to platform header files
+ *
  * Revision 1.28  1996/08/16 21:31:56  tamches
  * updated copyright for release 1.1
  *
@@ -71,11 +75,7 @@
  *
  */
 
-#include <stdio.h>
-#include <assert.h>
-#include <string.h>
-#include <stdlib.h>
-
+#include "util/h/headers.h"
 #include "util/h/hist.h"
 
 /* number of intervals at which we switch to regular histograms */

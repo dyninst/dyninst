@@ -77,6 +77,8 @@ extern "C" {
 #include <procinfo.h>
 #include <sys/un.h>
 
+#include <strstream.h>
+
 extern "C" { 
   void bzero(char *b, int length);
 }

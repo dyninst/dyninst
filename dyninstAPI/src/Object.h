@@ -236,6 +236,11 @@ AObject::data_len() const {
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(sparc_tmc_cmost7_3) */
 
+#if defined(i386_unknown_nt4_0)
+#include <util/h/Object-nt.h>
+#define HAVE_SPECIFIC_OBJECT
+#endif /* defined(i386_unknown_nt4_0) */
+
 #if !defined(HAVE_SPECIFIC_OBJECT)
 #error "unable to locate system-specific object files"
 #endif /* !defined(HAVE_SPECIFIC_OBJECT) */

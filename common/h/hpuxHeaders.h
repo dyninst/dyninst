@@ -68,6 +68,8 @@
 #include <sys/stat.h>
 #include <sys/un.h>
 
+#include <strstream.h>
+
 #include <rpc/types.h>
 #include <rpc/xdr.h>
 

@@ -41,6 +41,10 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.48  1997/02/26 23:49:54  mjrg
+ * First part of WindowsNT commit: changes for compiling with VisualC++;
+ * moved includes to platform header files
+ *
  * Revision 1.47  1997/01/21 20:09:59  mjrg
  * Added support for unix domain sockets.
  * Added getHostName function
@@ -235,14 +239,9 @@ bool RPC_make_arg_list(vector<string> &list,
   // arg_list[arg_count++] = strdup (arg_str);  // 0
 
   if (!use_machine) {
-    struct utsname unm;
-    if (P_uname(&unm) == -1)
-      assert(0);
-    sprintf(arg_str, "%s%s", "-m", unm.nodename);
-    list += arg_str;
+    list += string("-m") + getHostName();
   } else {
-    sprintf(arg_str, "%s%s", "-m", machine_name.string_of());
-    list += arg_str;
+    list += string("-m") + machine_name;
   }
   // arg_list[arg_count++] = strdup (arg_str); // 3
 
@@ -624,7 +623,7 @@ int RPCprocessCreate(const string hostName, const string userName,
     return(ret);
 }
 
-int RPC_getConnect(int fd) {
+int RPC_getConnect(const int fd) {
   if (fd == -1)
     return -1;
 
