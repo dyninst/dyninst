@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2000/05/31 18:32:58 schendel Exp $
+# $Id: Makefile,v 1.3 2000/07/30 02:02:32 paradyn Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -22,7 +22,8 @@ SRCS =          ../src/linux.C \
                 ../src/arch-x86.C \
 		../src/Object-elf.C \
                 ../src/unix.C \
-		../src/parseStab.C
+		../src/parseStab.C \
+		../../common/src/linuxKludges.C
 
 MYFLAGS          += -I/usr/include/libelf
 #MYFLAGS          += -DNO_MDL_PRINT
