@@ -155,9 +155,9 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 
 	os << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
 	os << "Basic Block : " << bb.blockNumber <<" : [ ";
-	os << hex << bb.startAddress << " , ";
-	os << hex << bb.endAddress << " | ";
-	os << dec << bb.endAddress-bb.startAddress<< " ]\n";
+	os << ostream::hex << bb.startAddress << " , ";
+	os << ostream::hex << bb.endAddress << " | ";
+	os << ostream::dec << bb.endAddress-bb.startAddress<< " ]\n";
 
 	if(bb.isEntryBasicBlock)
 		os <<"Type : ENTRY TO CFG\n"; 

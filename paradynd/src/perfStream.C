@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.121 2001/08/23 14:44:22 schendel Exp $
+// $Id: perfStream.C,v 1.122 2001/10/26 06:29:42 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -393,8 +393,8 @@ void processTraceStream(process *curr)
 		       }
 		   }
 		 if(!callee || !caller){
-		   cerr << "callee for addr " << hex << c->callee <<dec
-			<< " not found, caller = " <<
+		   cerr << "callee for addr " << ostream::hex << c->callee 
+			<< ostream::dec << " not found, caller = " <<
 		     caller->ResourceFullName() << endl;
 		   break;
 		 }

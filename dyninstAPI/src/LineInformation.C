@@ -643,24 +643,28 @@ FileLineInformation** LineInformation::getLineInformationList(){
 }
 
 ostream& operator<<(ostream& os,FileLineInformation& linfo){
-
 	cerr << "\tLINE TO ADDRESS \t\t ADDRESS TO LINE:\n";
 	for(int j=0;j<linfo.size;j++){
-		os << dec << j << "\t";
-		os << dec << linfo.lineToAddr[j]->lineNo << " ----> ";
-		os << hex << linfo.lineToAddr[j]->codeAddress << "\t\t";
-		os << hex << linfo.addrToLine[j]->codeAddress  << " ----> ";
-		os << dec << linfo.addrToLine[j]->lineNo << "\n";
+		os << ostream::dec << j << "\t";
+		os << ostream::dec << linfo.lineToAddr[j]->lineNo << " ----> ";
+		os << ostream::hex << linfo.lineToAddr[j]->codeAddress 
+		   << "\t\t";
+		os << ostream::hex << linfo.addrToLine[j]->codeAddress  
+		   << " ----> ";
+		os << ostream::dec << linfo.addrToLine[j]->lineNo << "\n";
 	}
 	for(int i=0;i<linfo.functionCount;i++){
 		FunctionInfo* funcinfo = linfo.lineInformationList[i];
 		os << "FUNCTION LINE : " << *(linfo.functionNameList[i]) << " : " ;
 		if(!funcinfo->validInfo)
 			continue;
-		os << dec << funcinfo->startLinePtr->lineNo << " --- ";
-		os << dec << funcinfo->endLinePtr->lineNo << "\t\t";
-		os << hex << funcinfo->startAddrPtr->codeAddress << " --- ";
-		os << hex << funcinfo->endAddrPtr->codeAddress << "\n";
+		os << ostream::dec << funcinfo->startLinePtr->lineNo 
+		   << " --- ";
+		os << ostream::dec << funcinfo->endLinePtr->lineNo << "\t\t";
+		os << ostream::hex << funcinfo->startAddrPtr->codeAddress 
+		   << " --- ";
+		os << ostream::hex << funcinfo->endAddrPtr->codeAddress 
+		   << "\n";
 	}
 	return os;
 }
