@@ -49,12 +49,10 @@ endif
 ifdef GNU_COMPILER
 ifndef SILENCE_WARNINGS
 WARNFLAGS = -Wall \
-	        -Wtraditional          \
 	        -Wpointer-arith        \
 	        -Wcast-qual            \
 	        -Wstrict-prototypes    \
 	        -Wmissing-prototypes   \
-	        -Wmissing-declarations \
 	        -Woverloaded-virtual   \
 	        -Winline               \
 	        -Wno-deprecated        \
