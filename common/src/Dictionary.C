@@ -111,8 +111,19 @@ dictionary_hash<K,V>::size() const {
 }
 
 template<class K, class V>
+const V
+dictionary_hash<K,V>::operator[](const K &key) const { 
+  V retVal;
+  if(! find(key, retVal))  { 
+    // unfortunately, nothing better to return than an uninitialized value
+    return retVal; 
+  }
+  return retVal;
+}
+
+template<class K, class V>
 V&
-dictionary_hash<K,V>::operator[](const K& key) {
+dictionary_hash<K,V>::operator[](const K &key) {
    const unsigned ndx = locate_addIfNotFound(key);
 
 //   assert(defines(key)); // WARNING: expensive assert!
