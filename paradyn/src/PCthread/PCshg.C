@@ -20,6 +20,11 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.34  1996/03/18 07:13:09  karavan
+ * Switched over to cost model for controlling extent of search.
+ *
+ * Added new TC PCcollectInstrTimings.
+ *
  * Revision 1.33  1996/02/22 18:28:38  karavan
  * changed debug print calls from dataMgr->getFocusName to
  * dataMgr->getFocusNameFromHandle
@@ -132,13 +137,13 @@ bool
 searchHistoryNode::startExperiment()
 {
   assert (exp);
+  if (active) return false;
   // check here for true path to root; parent status may have changed
   // while this node was waiting on the Ready Queue
-  if (numTrueParents < 1)
-    return false;
+  if (numTrueParents < 1) return false;
   if (exp->start()) {
     changeActive(true);
-    PCnumActiveExperiments++;
+    PCsearch::incrNumActiveExperiments();
     return true;
   } else {
     return false;
@@ -151,9 +156,7 @@ searchHistoryNode::stopExperiment()
   assert (exp);
   exp->halt();
   changeActive(false);
-  PCnumActiveExperiments--;
-  // may have enough spare cycles to start new experiment(s)
-  mamaGraph->setSearchUpdateNeeded();
+  PCsearch::decrNumActiveExperiments();
 }
 
 void 
@@ -273,10 +276,9 @@ searchHistoryNode::expand ()
     }
     delete hypokids;
   }
-  mamaGraph->setSearchUpdateNeeded();
 #ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges) {
-    cout << mamaGraph->srch->SearchQueue << endl;
+    cout << PCsearch::SearchQueue << endl;
   }
 #endif
 }
@@ -327,13 +329,13 @@ searchHistoryNode::percolateDown(testResult newValue)
     if (numTrueParents == 1) {
       if ((exp) && (!active)) {
 	//** get key
-	mamaGraph->srch->SearchQueue.add(10, this);
+	PCsearch::SearchQueue.add(10, this);
       }
     }
   } else {
     // we're percolating a change to false; if no true parents are 
     // left, we stop the experiment.
-    // this case shouldn't ever happen, IMHO
+    // this case shouldn't ever happen, IMHO - klk
     numTrueParents--;
     if (numTrueParents == 0) {
       if (exp) {
@@ -470,12 +472,6 @@ searchHistoryGraph::searchHistoryGraph(PCsearch *searchPhase,
   nextID++;
 }
 
-void
-searchHistoryGraph::setSearchUpdateNeeded()
-{
-  srch->setRunQUpdateNeeded();
-}
-
 void 
 searchHistoryGraph::updateDisplayedStatus (string &newmsg)
 {
@@ -533,10 +529,9 @@ searchHistoryGraph::addNode (searchHistoryNode *parent,
   newkid->setupExperiment();
   //** this will be replaced with more rational priority calculation
   if (axis == refineWhyAxis)
-    srch->SearchQueue.add(5, newkid);
+    PCsearch::SearchQueue.add(5, newkid);
   else
-    srch->SearchQueue.add(10, newkid);
-      
+    PCsearch::SearchQueue.add(10, newkid);
   Nodes += newkid;
   NodeIndex [(newkid->getNodeId())] = newkid;
   return newkid;
@@ -568,14 +563,12 @@ searchHistoryGraph::initPersistentNodes()
     // checked when new data arrives from the data manager, so its a chicken
     // and egg deal.  We go ahead and start the experiments here; when these
     // nodes are removed from the queue, there will be an extra call to start
-    // them which will have no effect.  We reset PCnumActiveExperiments to 
-    // 0, when they come off the ready queue PCnumActiveExperiments will be 
+    // them which will have no effect.  We reset numActiveExperiments to 
+    // 0, when they come off the ready queue numActiveExperiments will be 
     // bumped back up.
 
     nodeptr->startExperiment();
-    PCnumActiveExperiments--;
   }
-  setSearchUpdateNeeded();
   delete topmost;
 }
 

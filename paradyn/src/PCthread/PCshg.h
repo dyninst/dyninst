@@ -20,6 +20,11 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.17  1996/03/18 07:13:11  karavan
+ * Switched over to cost model for controlling extent of search.
+ *
+ * Added new TC PCcollectInstrTimings.
+ *
  * Revision 1.16  1996/02/22 18:28:43  karavan
  * changed debug print calls from dataMgr->getFocusName to
  * dataMgr->getFocusNameFromHandle
@@ -136,7 +141,6 @@ class searchHistoryGraph {
 			      bool persist,
 			      const char *shortName);
   searchHistoryNode *const getNode (unsigned nodeId);
-  void setSearchUpdateNeeded ();
   void updateDisplayedStatus (string &newmsg);
   void finalizeSearch(timeStamp searchEndTime);
  private:

@@ -20,8 +20,10 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
- * Revision 1.6  1996/02/27 18:19:40  karavan
- * small fix to temporary cost method
+ * Revision 1.7  1996/03/18 07:13:00  karavan
+ * Switched over to cost model for controlling extent of search.
+ *
+ * Added new TC PCcollectInstrTimings.
  *
  * Revision 1.5  1996/02/22 18:27:00  karavan
  * changed GUI node styles from #defines to enum
@@ -55,26 +57,59 @@
 #include "PCsearch.h"
 #include "PCfilter.h"
 #include "PCshg.h"
+#include "PCmetric.h"
 
 #include <iostream.h>
 #include <fstream.h>
 
 extern void initPChypos();
 extern void initPCmetrics();
+extern sampleValue DivideEval (focus, sampleValue *data, int dataSize);
 
 unsigned int PCunhash (const unsigned &val) {return (val >> 2);} 
 
 unsigned PCsearch::PCactiveCurrentPhase = 0;  // init to undefined
 dictionary_hash<unsigned, PCsearch*> PCsearch::AllPCSearches(PCunhash);
-
+PriorityQueue<SearchQKey, searchHistoryNode*> PCsearch::SearchQueue;
+int PCsearch::numActiveExperiments = 0;
 bool PChyposDefined = false;
-int PCnumActiveExperiments = 0;
+costModule *PCsearch::costTracker = NULL;
+
+void ExpandSearch (sampleValue observedRecentCost)
+{
+  if (PCsearch::SearchQueue.empty())
+    return;
+
+  searchHistoryNode *curr;
+  bool result;
+
+  sampleValue tmpCurrentSearchCost = observedRecentCost;
+  cout << "total observed cost: " << tmpCurrentSearchCost << endl;
+  while ( (PCsearch::SearchQueue.empty() == false) && 
+	 (tmpCurrentSearchCost < performanceConsultant::predictedCostLimit)) {
+    curr = PCsearch::SearchQueue.peek_first_data();
+    float myCost = curr->getEstimatedCost();
+    cout << "estimated cost returns " << myCost << endl;
+    
+    result = curr->startExperiment();
+    if (result) {
+      tmpCurrentSearchCost += myCost;
+    } else {
+      //**
+      cout << "unable to start experiment for node: " 
+	<< curr->getNodeId() << endl;
+    }
+    PCsearch::SearchQueue.delete_first();
+  }
+}
 
 PCsearch::PCsearch(u_int phaseID, phaseType phase_type)
-: searchStatus(schNeverRun),  phaseToken(phaseID), phType(phase_type), 
-  runQUpdateNeeded(false)
+: searchStatus(schNeverRun),  phaseToken(phaseID), phType(phase_type) 
 {
-  database = new PCmetricInstServer(phase_type);  
+  if (phase_type == GlobalPhase)
+    database = performanceConsultant::globalPCMetricServer;
+  else 
+    database = new PCmetricInstServer(phase_type);  
   shg = new searchHistoryGraph (this, phaseID);
 }
 
@@ -82,6 +117,23 @@ PCsearch::~PCsearch()
 {
   delete database;
   delete shg;
+}
+
+void 
+PCsearch::initCostTracker () 
+{
+  bool err;
+  PCmetric *pcm;
+  //** out for release!
+  cout << "initializing CostTracker..." << endl;
+  assert (PCmetric::AllPCmetrics.defines("normSmoothCost"));
+
+  pcm = PCmetric::AllPCmetrics ["normSmoothCost"];
+  PCsearch::costTracker = new costModule;
+  PCmetricInstServer *miserve = new PCmetricInstServer (GlobalPhase);
+  costTracker->costFilter = 
+    miserve->addSubscription(costTracker, pcm, topLevelFocus, &err);
+  costTracker->costFilter->activate();
 }
 
 bool
@@ -97,6 +149,14 @@ PCsearch::addSearch(phaseType pType)
   } else {
     phaseID = performanceConsultant::DMcurrentPhaseToken + 1;
     performanceConsultant::currentPhase = phaseID;
+  }
+
+  // if this is first search, initialize all PC metrics and hypotheses
+  if (!PChyposDefined) {
+    initPCmetrics();
+    initPChypos();
+    PChyposDefined = true;
+    initCostTracker();
   }
 
   PCsearch *newkid = new PCsearch(phaseID , pType);
@@ -115,13 +175,6 @@ PCsearch::addSearch(phaseType pType)
   uiMgr->DAGaddNode (phaseID, 0, searchHistoryGraph::InactiveUnknownNodeStyle, 
 		     "TopLevelHypothesis", 
 		     "TopLevelHypothesis", 1);
-
-  // if this is first search, initialize all PC metrics and hypotheses
-  if (!PChyposDefined) {
-    initPCmetrics();
-    initPChypos();
-    PChyposDefined = true;
-  }
   return true;
 }
   
@@ -177,48 +230,6 @@ PCsearch::getNodeInfo(int nodeID, shg_node_info *theInfo)
 
   currNode->getInfo (theInfo);
   return true;
-}
-
-void
-PCsearch::newData(metricInstanceHandle m_handle, sampleValue value, 
-		  int bucketNum) 
-{
-  // pass along this new data value
-  database->newRawData(m_handle, value, bucketNum);
-
-  // if this piece of data has caused certain status changes, we may start 
-  // new experiments now.
-  if (runQUpdateNeeded && (!SearchQueue.empty())) {
-    searchHistoryNode *curr;
-    bool result;
-
-    //** currentSearchCost is WRONG.
-    //float currentSearchCost = dataMgr->getCurrentSmoothObsCost();
-    //cout << "TOTAL CURRENT SEARCH COST = " << currentSearchCost << endl;
-    // tunable constant predictedCostLimit
-    float searchCostThreshold = performanceConsultant::predictedCostLimit; 
-    // we're using number of experiments only until observed cost is 
-    // straightened out
-    int tmpCurrentSearchCost = PCnumActiveExperiments;
-    while ((!SearchQueue.empty()) && 
-	   (tmpCurrentSearchCost < searchCostThreshold)) {
-      curr = SearchQueue.peek_first_data();
-      float myCost = curr->getEstimatedCost();
-      cout << "estimated cost returns " << myCost << endl;
-      result = curr->startExperiment();
-      if (result) {
-	tmpCurrentSearchCost++;
-	//currentSearchCost += curr->getEstimatedCost();
-      } else {
-	//**
-	cout << "unable to start experiment for node: " 
-	  << curr->getNodeId() << endl;
-      }
-      SearchQueue.delete_first();
-    }
-    PCnumActiveExperiments = tmpCurrentSearchCost;
-    runQUpdateNeeded = false;
-  }
 }
 
 PCsearch *

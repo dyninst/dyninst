@@ -20,6 +20,11 @@
  * The PCmetricInst class and the PCmetricInstServer class.
  * 
  * $Log: PCmetricInst.h,v $
+ * Revision 1.3  1996/03/18 07:13:05  karavan
+ * Switched over to cost model for controlling extent of search.
+ *
+ * Added new TC PCcollectInstrTimings.
+ *
  * Revision 1.2  1996/02/22 18:32:01  karavan
  * Changed data storage from queue to circular buffer
  *
@@ -118,21 +123,15 @@ class PCmetricInstServer {
   PCmetricInstServer(phaseType phase_type);
   ~PCmetricInstServer();
   // interface to subscribers
-  PCmetInstHandle addSubscription(PCmetSubscriber sub,
+  PCmetInstHandle addSubscription(dataSubscriber *sub,
 				  PCmetric *pcm,
 				  focus f,
 				  bool *errFlag);
-  void endSubscription(PCmetSubscriber sub, PCmetInstHandle id);
+  void endSubscription(dataSubscriber *sub, PCmetInstHandle id);
   // data
   PCmetInstHandle addPersistentMI (PCmetric *pcm,
 				   focus f,
 				   bool *errFlag);
-  void changeBinSize(timeStamp newSize) {datasource->newBinSize(newSize);}
-  void newRawData(metricInstanceHandle mih, sampleValue value, int bin)
-    { 
-      // cout << "RAWDATA at mserver: mih=" << mih << " value =" << value 
-	//<< " bin =" << bin << endl; 
-      datasource->newData (mih, value, bin); }
   void unsubscribeAllRawData()
     { datasource->unsubscribeAllData(); }
   void resubscribeAllRawData()

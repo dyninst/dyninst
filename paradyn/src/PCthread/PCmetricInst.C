@@ -20,6 +20,11 @@
  * The PCmetricInst class and the PCmetricInstServer methods.
  * 
  * $Log: PCmetricInst.C,v $
+ * Revision 1.4  1996/03/18 07:13:04  karavan
+ * Switched over to cost model for controlling extent of search.
+ *
+ * Added new TC PCcollectInstrTimings.
+ *
  * Revision 1.3  1996/02/22 18:32:00  karavan
  * Changed data storage from queue to circular buffer
  *
@@ -365,7 +370,9 @@ PCmetricInst::alignTimes()
 PCmetricInstServer::PCmetricInstServer (phaseType phase_type) 
 {  
     datasource = new filteredDataServer(phase_type);
-}
+    if (phase_type == GlobalPhase)
+        performanceConsultant::globalPCMetricServer = this;
+ }
 
 PCmetricInstServer::~PCmetricInstServer ()
 {
@@ -399,7 +406,7 @@ PCmetricInstServer::addPersistentMI (PCmetric *pcm,
 }
 
 PCmetInstHandle 
-PCmetricInstServer::addSubscription(PCmetSubscriber sub,
+PCmetricInstServer::addSubscription(dataSubscriber *sub,
 				    PCmetric *pcm,
 				    focus f,
 				    bool *errFlag)
@@ -429,7 +436,7 @@ PCmetricInstServer::addSubscription(PCmetSubscriber sub,
 }
 
 void 
-PCmetricInstServer::endSubscription(PCmetSubscriber sub, 
+PCmetricInstServer::endSubscription(dataSubscriber *sub, 
 				    PCmetInstHandle id)
 {
   int numLeft = id->rmConsumer (sub);

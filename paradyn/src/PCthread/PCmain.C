@@ -16,9 +16,14 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.48  1996/03/05 16:13:15  naim
-/* Minor changes for debugging purposes - naim
+/* Revision 1.49  1996/03/18 07:12:04  karavan
+/* Switched over to cost model for controlling extent of search.
 /*
+/* Added new TC PCcollectInstrTimings.
+/*
+ * Revision 1.48  1996/03/05 16:13:15  naim
+ * Minor changes for debugging purposes - naim
+ *
  * Revision 1.47  1996/02/22  18:30:56  karavan
  * removed some debugging printing
  *
@@ -74,12 +79,22 @@ bool performanceConsultant::printSearchChanges = false;
 bool performanceConsultant::printDataCollection = false;   
 bool performanceConsultant::printTestResults  = false;  
 bool performanceConsultant::printDataTrace = false;   
+bool performanceConsultant::collectInstrTimings = false;
 bool performanceConsultant::useIndividualThresholds  = false;
 // 0 means no current phase defined  
 unsigned performanceConsultant::currentPhase = 0; 
 unsigned performanceConsultant::DMcurrentPhaseToken = 0;
 filteredDataServer *performanceConsultant::globalRawDataServer = NULL;
 filteredDataServer *performanceConsultant::currentRawDataServer = NULL;
+PCmetricInstServer *performanceConsultant::globalPCMetricServer = NULL;
+
+struct pcglobals perfConsultant = {
+  false, 
+  (hypothesis *) NULL,
+  (whyAxis *) NULL,
+  0
+  };
+
 
 // filteredDataServers use the bin width to interpret performance stream data 
 // so we need to pass fold notification to the appropriate server
@@ -90,10 +105,14 @@ void PCfold(perfStreamHandle,
   // this callback may be invoked before we've initialized any searches, 
   // in which case we don't want to do anything at all.  (bin size is 
   // properly initialized when each search is created.)   
+  filteredDataServer *rawInput;
   if (PChyposDefined) { 
-    PCsearch *search = PCsearch::findSearch (phase_type);
-    if (search)
-      search->changeBinSize(newWidth);
+    if (phase_type == GlobalPhase)
+      rawInput = performanceConsultant::globalRawDataServer;
+    else
+      rawInput = performanceConsultant::currentRawDataServer;
+    if (rawInput);
+      rawInput-> newBinSize(newWidth);      
   }
 }
 
@@ -105,21 +124,23 @@ void PCnewDataCallback(vector<dataValueType> *values,
 {
     if (values->size() < num_values) num_values = values->size();
     dataValueType *curr;
+
 //**
 //    cout << "AR: new data CB NUM VALUES = " << num_values << endl;
+
     for(unsigned i=0; i < num_values;i++){
       curr = &((*values)[i]);
+
 #ifdef PCDEBUG
       if (performanceConsultant::printDataTrace) {
-	const char *metname = dataMgr->getMetricNameFromMI((*values)[i].mi);
-	const char *focname = dataMgr->getFocusNameFromMI((*values)[i].mi);
+	const char *metname = dataMgr->getMetricNameFromMI(curr->mi);
+	const char *focname = dataMgr->getFocusNameFromMI(curr->mi);
 	cout << "AR: " << metname << " " << focname;
-	cout << " value: " << (*values)[i].value;
-	cout << " bin: " << (*values)[i].bucketNum << " " << (*values)[i].type
-	  << endl;
+	cout << " value: " << curr->value;
+	cout << " bin: " << curr->bucketNum << " " << curr->type << endl;
       }
 #endif
-/*
+
       filteredDataServer *rawInput;
       if (curr->type == GlobalPhase)
 	rawInput = performanceConsultant::globalRawDataServer;
@@ -127,16 +148,11 @@ void PCnewDataCallback(vector<dataValueType> *values,
 	rawInput = performanceConsultant::currentRawDataServer;
       assert (rawInput);
       rawInput-> newData(curr->mi, curr->value, curr->bucketNum);      
-*/
-      PCsearch *search = PCsearch::findSearch (curr->type);
-      assert (search);
-      search-> newData(curr->mi, curr->value, curr->bucketNum);
-
     }
-    // dealloc buffer space
+    // dealloc dm buffer space
+    // (leave this next line in or die a horrible slow memory leak death!) 
     datavalues_bufferpool.dealloc(values);
 }
-
 
 //
 // If a new phase is announced by the data manager, the CurrentPhase search
@@ -151,6 +167,7 @@ void PCphase (perfStreamHandle,
 	      float bucketwidth,
 	      bool, bool)            // used by UI only
 {
+  //** update bucketwidth??
 #ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges) {
     cout << "NEWPH: " << phase << ":" << name << " started at:" << begin 
@@ -183,8 +200,13 @@ void PCmain(void* varg)
     char PCbuff[64];
     unsigned int msgSize = 64;
 
+    // initialize globals
+    perfConsultant.PChyposDefined = false;
+
 #ifdef PCDEBUG
-    TESTfp = fopen("TESTresult.out","w");
+    if (performanceConsultant::collectInstrTimings) {
+      TESTfp = fopen("TESTresult.out","w");
+    }
 #endif
 
     // define all tunable constants used by the performance Consultant

@@ -21,6 +21,11 @@
  *  be parsed from a configuration file.
  *
  * $Log: PCrules.C,v $
+ * Revision 1.33  1996/03/18 07:13:07  karavan
+ * Switched over to cost model for controlling extent of search.
+ *
+ * Added new TC PCcollectInstrTimings.
+ *
  * Revision 1.32  1996/02/22 18:26:14  karavan
  * added some plums.
  *
@@ -54,32 +59,51 @@ hypothesis *const topLevelHypothesis = PCWhyAxis->getRoot();
 sampleValue 
 DivideEval (focus, sampleValue *data, int dataSize)
 {
-  assert (dataSize == 3);
-  if (data[2] > 0.0)
-    return data[1]/data[2];
-  else
-    return 0.0;
+  assert (dataSize >= 2);
+  if (dataSize == 3) {
+    if (data[2] > 0.0)
+      return data[1]/data[2];
+    else
+      return 0.0;
+  } else {
+    if (data[1] > 0.0)
+      return data[0]/data[1];
+    else
+      return 0.0;
+  }
 }
 
 sampleValue 
 MultiplyEval (focus, sampleValue *data, int dataSize)
 {
-  assert (dataSize == 3);
-  return data[1] * data[2];
+  assert (dataSize >= 2);
+  if (dataSize == 3) {
+    return data[1] * data[2];
+  } else {
+    return data[0] * data[1];
+  }
 }
 
 sampleValue 
 AddEval (focus, sampleValue *data, int dataSize)
 {
-  assert (dataSize == 3);
-  return data[1] + data[2];
+  assert (dataSize >= 2);
+  if (dataSize == 3) {
+    return data[1] + data[2];
+  } else {
+    return data[0] + data[1];
+  }
 }
 
 sampleValue 
 SubtractEval (focus, sampleValue *data, int dataSize)
 {
-  assert (dataSize == 3);
-  return data[1] - data[2];
+  assert (dataSize >= 2);
+  if (dataSize == 3) {
+    return data[1] - data[2];
+  } else {
+    return data[0] - data[1];
+  }
 }
 
 //
@@ -88,6 +112,8 @@ SubtractEval (focus, sampleValue *data, int dataSize)
 
 void initPCmetrics()
 {
+  // note: the PCmetric constructor stores a copy of the address in 
+  // its dictionary, accessed by string name
   PCmetric *temp;
   metNameFocus *specs = new metNameFocus;
   metNameFocus *specs2 = new metNameFocus[2];
@@ -137,7 +163,13 @@ void initPCmetrics()
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
 
-
+  specs2[0].mname = "smooth_obs_cost";
+  specs2[0].whichFocus = tlf;
+  specs2[1].mname = "number_of_cpus";
+  specs2[1].whichFocus = tlf;
+  temp = new PCmetric("normSmoothCost", specs2, 2, NULL, DivideEval, 0);
+  if (performanceConsultant::printSearchChanges)
+    cout << "PCmetric " << temp->getName() << " created." << endl;
 }
 
 sampleValue defaultGetThresholdFunc (const char *tname, focus)

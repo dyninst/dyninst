@@ -20,6 +20,11 @@
  * Included by PC modules only
  *  
  * $Log: PCintern.h,v $
+ * Revision 1.4  1996/03/18 07:13:02  karavan
+ * Switched over to cost model for controlling extent of search.
+ *
+ * Added new TC PCcollectInstrTimings.
+ *
  * Revision 1.3  1996/02/22 18:31:18  karavan
  * changed GUI node styles from #defines to enum
  *
@@ -84,7 +89,15 @@ class whyAxis;
 extern whyAxis *PCWhyAxis;
 extern hypothesis *const topLevelHypothesis;
 extern bool PChyposDefined;
-extern int PCnumActiveExperiments;
+
+struct pcglobals {
+  bool PChyposDefined;
+  hypothesis * topLevelHypothesis;
+  whyAxis *PCWhyAxis;
+  focus topLevelFocus;
+};
+
+extern struct pcglobals perfConsultant;
 
 #endif
 

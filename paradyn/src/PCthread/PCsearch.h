@@ -20,6 +20,11 @@
  * State information required throughout a search.
  *
  * $Log: PCsearch.h,v $
+ * Revision 1.4  1996/03/18 07:13:01  karavan
+ * Switched over to cost model for controlling extent of search.
+ *
+ * Added new TC PCcollectInstrTimings.
+ *
  * Revision 1.3  1996/02/22 18:27:04  karavan
  * changed GUI node styles from #defines to enum
  *
@@ -41,6 +46,25 @@
 
 typedef enum schState {schNeverRun, schPaused, schRunning, schEnded};
 typedef unsigned SearchQKey;
+extern void ExpandSearch(sampleValue);
+
+class costModule : public dataSubscriber 
+{
+ public:
+  void newData (PCmetDataID, sampleValue newVal, timeStamp, timeStamp endsAt, 
+	   sampleValue)
+    {
+      //**
+      cout << "cost modules receives: " << newVal << " ends at: " 
+	<< endsAt << endl;  
+      if (newVal < performanceConsultant::predictedCostLimit)
+	// check search queue and expand search if possible
+	ExpandSearch(newVal);
+    }
+  void updateEstimatedCost(float) {;}
+  PCmetInstHandle costFilter;
+};
+
 
 class PCsearch {
 
@@ -63,16 +87,15 @@ public:
   unsigned getPhase() { return phaseToken; }
   bool paused() {return (searchStatus == schPaused);}
   bool newbie() {return (searchStatus == schNeverRun);}
-  void changeBinSize (timeStamp newSize) {database->changeBinSize(newSize);}
-  void  newData(metricInstanceHandle m_handle, sampleValue value, 
-		int bucketNum); 
   PCmetricInstServer *getDatabase() {return database;}
   void startSearching();
-  void setRunQUpdateNeeded() {runQUpdateNeeded = true;}
   bool getNodeInfo(int nodeID, shg_node_info *theInfo);
   //** the horror!!! *data* temporarily in the *public* section!!! 
-  PriorityQueue<SearchQKey, searchHistoryNode*> SearchQueue;
-
+  static PriorityQueue<SearchQKey, searchHistoryNode*> SearchQueue;
+  static int getNumActiveExperiments() {return numActiveExperiments;}
+  static void incrNumActiveExperiments() {numActiveExperiments++;}
+  static void decrNumActiveExperiments() {numActiveExperiments--;}
+  static void initCostTracker();
 private:
   schState searchStatus;  // schNeverRun/schPaused/schRunning/schEnded
   unsigned phaseToken;          // identifier for phase of this search
@@ -81,7 +104,8 @@ private:
   searchHistoryGraph *shg;
   static dictionary_hash<unsigned, PCsearch*>AllPCSearches;
   static unsigned PCactiveCurrentPhase;
-  bool runQUpdateNeeded; // if true, checkif new jobs can come off ready q
+  static int numActiveExperiments;
+  static costModule *costTracker;
 };
 
 #endif
