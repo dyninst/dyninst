@@ -2,7 +2,10 @@
 /*
  * 
  * $Log: aggregateSample.C,v $
- * Revision 1.4  1994/05/17 00:14:44  hollings
+ * Revision 1.5  1994/06/02 23:36:10  markc
+ * Added assertion to ensure values reported are positive.
+ *
+ * Revision 1.4  1994/05/17  00:14:44  hollings
  * added rcs log entry.
  *
  *
@@ -105,6 +108,7 @@ struct sampleInterval sampleInfo::newValue(List<sampleInfo *> parts,
 	    ret.start = lastSampleEnd;
 	    ret.end = earlyestTime;
 	    ret.value = aggregateVal;
+	    assert(ret.value >= 0.0);
 
 	    lastSampleStart = lastSampleEnd;
 	    lastSampleEnd = earlyestTime;
