@@ -342,7 +342,6 @@ class pd_process {
   
   bool wasCreated;
   bool wasAttached;
-  bool wasRunningWhenAttached;
   bool wasForked;
   bool wasExeced;
   bool inExec;

@@ -567,7 +567,7 @@ bool pd_process::finalizeParadynLib() {
     tp->newProgramCallbackFunc(bs_record.pid, arg_list, 
                                machineResource->part_name(),
                                calledFromExec,
-                               wasRunningWhenAttached);
+                               get_dyn_process()->wasRunningWhenAttached());
     // in paradyn, this will call paradynDaemon::addRunningProgram().
     // If the state of the application as a whole is 'running' paradyn will
     // soon issue an igen call to us that'll continue this process.
