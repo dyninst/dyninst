@@ -729,9 +729,7 @@ $remote dynRPC {
     $async void send_constraints(vector<mdl_constraint*>*);
     $async void send_stmts(vector<mdl_stmt*> *);
     $async void send_libs(vector<string>*);
-    $async void send_funcs(vector<string>*);
     $async void send_no_libs();
-    $async void send_no_funcs();
 
     // get the current wall clock time of the daemon to adjust for clock differences
     double getTime();
