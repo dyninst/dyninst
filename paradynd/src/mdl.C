@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.134 2003/05/05 23:23:05 schendel Exp $
+// $Id: mdl.C,v 1.135 2003/05/07 19:10:55 bernat Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -497,70 +497,40 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
    pd_process *proc = codeNode->proc();
    function_base *pdf = NULL;
    pdvector<function_base *> fbv;
-   
-   if(proc->multithread_ready()) {
-#if defined(rs6000_ibm_aix4_1)
-      if (!proc->findAllFuncsByName("_pthread_body", fbv)) {
-         string msg = string("unable to find procedure '") + 
-                      string("_pthread_body") + string("'");
-         //showErrorCallback(95, msg);
-         cerr << msg << endl;
-      }
-      else {
-         if (fbv.size() > 1) {
-#ifdef FIXME_AFTER_4
-            string msg =
-               string("WARNING:  found ") + string(fbv.size()) + 
-               string(" records of function '") + string("_pthread_body") + 
-               string("'") + string(".  Using the first.");
-            //showErrorCallback(95, msg);
-            cerr << msg << endl;
-#endif
-         }
-         pdf = fbv[0];
-      }
-      
-      if(pdf)  (*start_func_buf).push_back(pdf);
-#endif
-      fbv.clear();
-      pdf = NULL;
 
-#if defined(sparc_sun_solaris2_4)      
-      if (!proc->findAllFuncsByName("_thread_start", fbv)) {
-         string msg = string("unable to find procedure '") + 
-                      string("_thread_start") + string("'");
-         //showErrorCallback(95, msg);
-         cerr << msg << endl;;
-      }
-      else {
-         if (fbv.size() > 1) {
-#ifdef FIXME_AFTER_4
-            string msg = string("WARNING:  found ") + string(fbv.size()) +
-                         string(" records of function '") +
-                         string("_thread_start") + string("'") +
-                         string(".  Using the first.");
-            //showErrorCallback(95, msg);
-            cerr << msg << endl;;
+   pdvector<string> start_funcs;
+#if defined(rs6000_ibm_aix4_1)
+   start_funcs.push_back("_pthread_body");
+#elif defined(sparc_sun_solaris2_4)
+   start_funcs.push_back("_thread_start");
 #endif
-         }
-         pdf = fbv[0];
-      }
-      if(pdf)  (*start_func_buf).push_back(pdf);
-#endif
-   }
-   
+
+   if (proc->multithread_ready()) {
+       for (unsigned start_iter = 0; 
+            start_iter < start_funcs.size();
+            start_iter++) {
+           if (fbv.size()) fbv.clear();
+           proc->findAllFuncsByName(start_funcs[start_iter], fbv);
+           for (unsigned i = 0; i < fbv.size(); i++) {
+               (*start_func_buf).push_back(fbv[i]);
+           }
+       }
+       if ((*start_func_buf).size() == 0) {
+           cerr << "Warning: no internal thread start function found"
+                << ", some data may be missed." << endl;
+       }       
+   }   
    if (NULL != (pdf = proc->getMainFunction())) {
-      (*start_func_buf).push_back(pdf);      
+       (*start_func_buf).push_back(pdf);      
    }
    else {
-      cerr << __FILE__ << __LINE__ << "getMainFunction() returned NULL!"<<endl;
+       cerr << __FILE__ << __LINE__ << "getMainFunction() returned NULL!"<<endl;
    }
-
    if (start_func_buf->size()) {
-      string vname = "$start";
-      // change this to MDL_T_LIST_PROCEDURE
-      mdl_env::add(vname, false, MDL_T_PROCEDURE);
-      mdl_env::set(start_func_buf, vname);
+       string vname = "$start";
+       // change this to MDL_T_LIST_PROCEDURE
+       mdl_env::add(vname, false, MDL_T_PROCEDURE);
+       mdl_env::set(start_func_buf, vname);
    }
    return true;
 }
