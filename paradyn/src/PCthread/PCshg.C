@@ -20,6 +20,9 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.36  1996/04/09 19:25:57  karavan
+ * added batch mode for adding a group of new nodes and edges to SHG display.
+ *
  * Revision 1.35  1996/04/07 21:29:45  karavan
  * split up search ready queue into two, one global one current, and moved to
  * round robin queue removal.
@@ -251,6 +254,7 @@ searchHistoryNode::expand ()
 #endif
   expanded = true;
   searchHistoryNode *curr;
+  uiMgr->setBatchMode(this->getPhase());
 
   // first expand along where axis
   if (why->prunesDefined()) {
@@ -298,6 +302,8 @@ searchHistoryNode::expand ()
     }
     delete hypokids;
   }
+  uiMgr->clearBatchMode(this->getPhase());
+
 #ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges) {
     PCsearch::printQueue(getPhase());
