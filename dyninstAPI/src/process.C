@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.213 2000/03/17 14:18:29 zhichen Exp $
+// $Id: process.C,v 1.214 2000/03/17 21:53:23 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -66,6 +66,7 @@ int pvmendtask();
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/dynamiclinking.h"
 // #include "paradynd/src/mdld.h"
+#include "util/h/Timer.h"
 
 #ifdef BPATCH_LIBRARY
 #include "dyninstAPI/h/BPatch.h"
@@ -4034,6 +4035,10 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 
    currRunningRPCs += inProgStruct;
 
+#ifndef i386_unknown_nt4_0
+   Address curPC = currentPC();
+#endif
+
    if (pd_debug_infrpc)
      inferiorrpc_cerr << "Changing pc (" << (void*)tempTrampBase << ") and exec.." << endl;
 
@@ -4047,6 +4052,25 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
           (void)continueProc();
         return false;
      }
+
+   /* Flag in app is set when running irpc.  Used by app to ignore traps
+      which are delivered before or during the irpc.  Also set beginning
+      and ending addresses of irpc.
+
+      Don't need to worry about hasNewPC option within currentPC when
+      setting pcAtLastIRPC because this (hasNewPC) occurs only when
+      relocating instructions to the basetrampoline.  We only use the
+      pcAtLastIRPC address only for validating the address of
+      regenerated traps are from the correct trap address.  However,
+      instrumentation traps aren't relocated, since they're what
+      replaces the relocated instructions. */
+
+#ifndef i386_unknown_nt4_0
+   if (pd_debug_infrpc)
+     inferiorrpc_cerr << "setting the running RPC flag.\n";
+   SendAppIRPCInfo(1, inProgStruct.firstInstrAddr, inProgStruct.breakAddr);
+   SendAppIRPCInfo(curPC);
+#endif
 
    if (!continueProc()) {
      cerr << "launchRPCifAppropriate: continueProc() failed" << endl;
@@ -4269,6 +4293,95 @@ Address process::createRPCtempTramp(AstNode *action,
    return tempTrampBase;
 }
 
+/* If the PC is at a tramp instruction, then the trap may have been
+   decoded but not yet delivered to the application, when the pause
+   was done.  When the app is restarted the trap is delivered before
+   the inferior rpc (irpc) can run, which causes an assert in the rt
+   library trap handler.  So we set a flag in the application
+   indicating we're in an irpc.  The rt library trap handler when this
+   flag is set (ie. the irpc is running) will not act upon the trap.
+   The trap will get regenerated after the irpc is completed since the
+   PC will be reset to it's previous value, which in this case is the
+   trap instruction.  I suppose it could be also the case that the
+   pause is done when the PC is at the trap instruction but before the
+   trap is decoded and therefore pending.  The default behavior of the
+   PC getting reset to it's previous value, obviously works in this
+   case also.
+
+   We also set variables in the applicatoin that indicate the starting
+   and ending addresses of the irpc.  This is used for the trap handler
+   to check the current PC against these addresses.  If the PC is in the
+   irpc, then it's a previous trap that's interrupting the irpc.  If the
+   PC isn't in the irpc then it's a trap caused by instrumentation called
+   by an inferior rpc, in which case we process the trap as usual.
+*/
+
+void process::SendAppIRPCInfo(int runningRPC, unsigned begRPC, unsigned endRPC) {
+   if (pd_debug_infrpc)
+     inferiorrpc_cerr << "SendAppIRPCInfo(), flag: " << runningRPC<< ", begRPC: "
+                      << begRPC << ", endRPC: " << endRPC << "\n";
+   bool err = false;
+   Address addr = 0;
+   addr = findInternalAddress("curRPC",true, err);
+   assert(err==false);
+   rpcInfo newRPCInfo;
+   newRPCInfo.runningInferiorRPC = runningRPC;
+   newRPCInfo.begRPCAddr = begRPC;
+   newRPCInfo.endRPCAddr = endRPC;
+
+   bool retv = writeTextSpace((caddr_t)addr,
+                              sizeof(rpcInfo), (caddr_t)&newRPCInfo);
+   if(retv == false) {
+     cerr << "!!!  Couldn't write rpcInfo structure into rt library !!\n";
+   }
+}
+
+void process::SendAppIRPCInfo(Address curPC) {
+   bool err = false;
+   if (pd_debug_infrpc)
+     inferiorrpc_cerr << "SendAppIRPCInfo(), lastPC: " << curPC << "\n";
+   err = false;
+   Address lastpcAddr = findInternalAddress("pcAtLastIRPC",true, err);
+   assert(err==false);
+   int lastPC = curPC;
+
+   bool retv = writeTextSpace((caddr_t)lastpcAddr, sizeof(unsigned), 
+                              (caddr_t)&lastPC);
+   if(retv == false) {
+     cerr << "!!!  Couldn't write pcAtLastIRPC variable into rt library !!\n";
+   }
+}
+
+/*
+If you want to check that ignored traps associated with irpcs are getting
+regenerated, you can use this code in the metric::enableDataCollection
+functions, after the process has been continued.
+
+    if(procsToContinue.size()>0) {
+      sleep(1);
+      procsToContinue[0]->CheckAppTrapIRPCInfo();
+    }
+*/
+
+#ifdef INFERIOR_RPC_DEBUG
+void process::CheckAppTrapIRPCInfo() {
+   cout << "CheckAppTrapIRPCInfo() - Entering\n";
+   int trapNotHandled;
+   bool err = false;
+   Address addr = 0;
+   addr = findInternalAddress("trapNotHandled",true, err);
+   assert(err==false);
+   if (!readDataSpace((caddr_t)addr, sizeof(int), &trapNotHandled, true))
+     return;  // readDataSpace has it's own error reporting
+
+   if(trapNotHandled)
+     cerr << "!!! Error, previously ignored trap not regenerated (ABE)!!!\n"; 
+   else
+     cerr << "CheckAppTrapIRPCInfo() - trap got handled correctly (ABE).\n";
+   cout << "CheckAppTrapIRPCInfo() - Leaving\n";
+}
+#endif
+
 #if defined(MT_THREAD)
 bool process::handleDoneSAFEinferiorRPC(void) {
   if (DYNINSTthreadRPC) { 
@@ -4453,6 +4566,12 @@ bool process::handleTrapIfDueToRPC() {
      cerr << "Welcome to handleTrapIfDueToRPC match type 2 (rpc finished)" << endl;
 
    assert(match_type == 2);
+
+#ifndef i386_unknown_nt4_0
+   /* If the application was paused when it was at a trap, reset the rt library
+      flag which indicated this. */
+   SendAppIRPCInfo(0, 0, 0);
+#endif
 
    // step 1) restore registers:
 
