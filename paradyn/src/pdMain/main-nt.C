@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main-nt.C,v 1.2 1999/05/20 21:43:26 pcroth Exp $
+// $Id: main-nt.C,v 1.3 1999/07/08 19:24:06 pcroth Exp $
 
 /*
  * main-nt.C - WinMain for Paradyn on Windows.  
@@ -117,6 +117,9 @@ InitConsole( void )
 	HANDLE stdin_handle;
 	HANDLE stdout_handle;
 	HANDLE stderr_handle;
+	HANDLE hOldStdin;
+	HANDLE hOldStdout;
+	HANDLE hOldStderr;
 	int stdin_fileno; 
 	int stdout_fileno;
 	int stderr_fileno;
@@ -130,25 +133,31 @@ InitConsole( void )
 		goto handle_init_console_error;
 	}
 
-	// set up standard intput and output to the new console
+	// set up standard intput and output to the new console,
+    // so that they can be inherited
+    SECURITY_ATTRIBUTES sa;
+    sa.nLength = sizeof(sa);
+    sa.lpSecurityDescriptor = NULL;
+    sa.bInheritHandle = TRUE;
+
 	stdin_handle = CreateFile( "CONIN$",
 								GENERIC_READ,
 								FILE_SHARE_READ,
-								NULL,
+								&sa,
 								OPEN_ALWAYS,
 								FILE_ATTRIBUTE_NORMAL,
 								NULL );
 	stdout_handle = CreateFile( "CONOUT$",
 								GENERIC_WRITE,
 								FILE_SHARE_WRITE,
-								NULL,
+								&sa,
 								OPEN_ALWAYS,
 								FILE_ATTRIBUTE_NORMAL,
 								NULL );
 	stderr_handle = CreateFile( "CONOUT$",
 								GENERIC_WRITE,
 								FILE_SHARE_WRITE,
-								NULL,
+								&sa,
 								OPEN_ALWAYS,
 								FILE_ATTRIBUTE_NORMAL,
 								NULL );
@@ -160,6 +169,30 @@ InitConsole( void )
 		goto handle_init_console_error;
 	}
 
+    // set our standard handles to these new handles,
+    // closing our old handles in the process
+    hOldStdin = GetStdHandle( STD_INPUT_HANDLE );
+    if( hOldStdin != stdin_handle )
+    {
+        SetStdHandle( STD_INPUT_HANDLE, stdin_handle );
+        CloseHandle( hOldStdin );
+    }
+
+    hOldStdout = GetStdHandle( STD_OUTPUT_HANDLE );
+    if( hOldStdout != stdout_handle )
+    {
+        SetStdHandle( STD_OUTPUT_HANDLE, stdout_handle );
+        CloseHandle( hOldStdout );
+    }
+
+    hOldStderr = GetStdHandle( STD_ERROR_HANDLE );
+    if( hOldStderr != stderr_handle )
+    {
+        SetStdHandle( STD_ERROR_HANDLE, stderr_handle );
+        CloseHandle( hOldStderr );
+    }
+
+    // associate stdio filenos with the new handles
 	stdin_fileno = _open_osfhandle( (LONG)stdin_handle, _O_RDONLY );
 	stdout_fileno = _open_osfhandle( (LONG)stdout_handle, _O_WRONLY );
 	stderr_fileno = _open_osfhandle( (LONG)stderr_handle, _O_WRONLY );
@@ -191,22 +224,19 @@ InitConsole( void )
 		cout = *pstdout_str;
 		cerr = *pstderr_str;
 	}
+
 	return;
 
 handle_init_console_error:
 	{
 		ostrstream estr;
 
-		estr << "Paradyn could not create a console."
-			<< " [" << GetLastError() << "]\n"
-			<< "The program can run, but some diagnostic output may be lost.\n"
-			<< "Do you wish to continue?"
+		estr << "Paradyn was unable to create a console."
+			<< " [" << GetLastError() << "]"
 			<< ends;
 
-		if( MessageBox( NULL, estr.str(), _T("Paradyn"), MB_ICONWARNING | MB_YESNO ) != IDOK )
-		{
-			ExitProcess( 1 );
-		}
+		MessageBox( NULL, estr.str(), _T("Paradyn"), MB_ICONSTOP | MB_OK );
+		ExitProcess( 1 );
 	}
 }
 
@@ -226,7 +256,6 @@ WINAPI
 WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow )
 {
 	int ret;
-
 
 	// set up a console for our console I/O
 	InitConsole();
