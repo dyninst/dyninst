@@ -39,17 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.h,v 1.29 2000/11/20 23:15:26 schendel Exp $
+// $Id: init.h,v 1.30 2001/08/23 14:44:10 schendel Exp $
 
 #ifndef INIT_HDR
 #define INIT_HDR
 
-#include "paradynd/src/metric.h"
-#include "paradynd/src/internalMetrics.h"
-#include "paradynd/src/costmetrics.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/process.h"
 #include "paradynd/src/timeMgr.h"
+//#include "paradynd/src/metric.h"
+//#include "paradynd/src/internalMetrics.h"
+//#include "paradynd/src/costmetrics.h"
+//#include "dyninstAPI/src/inst.h"
+//#include "dyninstAPI/src/process.h"
 
 
 // DON'T use these - private of sorts
@@ -81,9 +81,12 @@ bool yesFunc();
 
 bool bShowTimerInfo();
 
+class internalMetric;
+class costMetric;
+class instMapping;
 
 extern internalMetric *activeProcs;
-extern internalMetric *bucket_width;
+extern internalMetric *sampling_rate;
 extern internalMetric *number_of_cpus;
 extern internalMetric *infHeapMemAvailable;
 
@@ -106,6 +109,24 @@ extern vector<instMapping*> initialRequests;
 
 extern vector<sym_data> syms_to_find;
 extern int numberOfCPUs;
+
+extern timeStamp  startStackwalk;
+extern timeLength elapsedStackwalkTime;
+extern bool       stackwalking;
+
+inline void startTimingStackwalk() {
+  startStackwalk = getWallTime();
+  stackwalking = true;
+}
+
+inline void stopTimingStackwalk() {
+  stackwalking = false;
+  if (startStackwalk.isInitialized())
+    elapsedStackwalkTime += (getWallTime() - startStackwalk);
+}
+
+
+
 
 #endif
 
