@@ -58,12 +58,10 @@ typedef struct rpcToDo_s {
 typedef struct sharedData_s {
   tTimer virtualTimers[MAX_NUMBER_OF_THREADS] ;
   rpcToDo rpcToDoList[MAX_PENDING_RPC];
-  /*
   unsigned rpc_indexMax ;
   mutex_t rpc_mutex ;
   cond_t  rpc_cv ;
   int     rpc_pending ;
-  */
 } RTINSTsharedData ;
 
 extern int DYNINSTthreadSelf(void);  

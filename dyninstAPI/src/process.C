@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.190 1999/08/30 16:04:19 zhichen Exp $
+// $Id: process.C,v 1.191 1999/09/09 15:35:45 zhichen Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1031,6 +1031,9 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     preambleForDYNINSTinit=true;
     inThreadCreation=false;
     DYNINSTthreadRPC = 0 ;      //for safe inferiorRPC
+    DYNINSTthreadRPC_mp = NULL ;
+    DYNINSTthreadRPC_cvp = NULL;
+    DYNINSTthreadRPC_pending_p =  NULL;
     DYNINST_allthreads_p = 0 ;  //for look into the thread package
     allthreads = 0 ;            // and the live threads
 #endif
@@ -1173,6 +1176,9 @@ process::process(int iPid, image *iSymbols,
    inThreadCreation=false;
    preambleForDYNINSTinit=true;
    DYNINSTthreadRPC = 0 ;
+   DYNINSTthreadRPC_mp = NULL ;
+   DYNINSTthreadRPC_cvp = NULL;
+   DYNINSTthreadRPC_pending_p = NULL;
    DYNINST_allthreads_p = 0 ;
    allthreads = 0 ;
 #endif
@@ -1345,6 +1351,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     inThreadCreation=false;
     preambleForDYNINSTinit=true;
     DYNINSTthreadRPC = 0 ;
+    DYNINSTthreadRPC_mp = NULL ;
+    DYNINSTthreadRPC_cvp = NULL;
+    DYNINSTthreadRPC_pending_p = NULL;
     DYNINST_allthreads_p = 0 ;
     allthreads = 0 ;
 #endif
@@ -3379,6 +3388,9 @@ bool process::existsRPCinProgress() const {
 
 #if defined(MT_THREAD)
 bool process::need_to_wait(void) {
+  //
+  // Check if there is any slot left for safe RPC
+  //
   if (!currRunningRPCs.empty()){
     for (unsigned k=0; k< currRunningRPCs.size(); k++) 
       if (!currRunningRPCs[k].isSafeRPC) {
@@ -3398,10 +3410,17 @@ bool process::need_to_wait(void) {
   }
   return false ;
 }
+
+void signalRPCthread(process *p) {
+  mutex_lock(p->DYNINSTthreadRPC_mp);
+  *(p->DYNINSTthreadRPC_pending_p) = 1;
+  cond_signal(p->DYNINSTthreadRPC_cvp);
+  mutex_unlock(p->DYNINSTthreadRPC_mp);
+  cerr <<"PD: Signaled RPC thread ..." << endl ;
+}
 #endif 
 
 //
-// MT_THREAD
 // this should work for both threaded and ono-threaded case
 //
 bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
@@ -3409,6 +3428,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    // if currRunningRPCs.size()==0 (the latter for safety)
 
 #if defined(MT_THREAD)
+   handleDoneSAFEinferiorRPC();
    if (need_to_wait())
 #else
    if (!currRunningRPCs.empty())
@@ -3568,9 +3588,9 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    inProgStruct.savedRegs = theSavedRegs;
 #if defined(MT_THREAD)
    inProgStruct.isSafeRPC = todo.isSafeRPC;
-   if (todo.isSafeRPC) 
-           inProgStruct.wasRunning = wasRunning ;
-   else 
+   if (todo.isSafeRPC) {
+      inProgStruct.wasRunning = wasRunning ;
+   } else 
 #endif
    if( finishingSysCall )
 	   inProgStruct.wasRunning = was_running_before_RPC_syscall_complete;
@@ -3600,7 +3620,6 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 	 (void)continueProc();
       return false;
    }
-
    assert(tempTrampBase);
 
    inProgStruct.firstInstrAddr = tempTrampBase;
@@ -3620,19 +3639,24 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
         return false;
      }
 
+   if (!continueProc()) {
+     cerr << "launchRPCifAppropriate: continueProc() failed" << endl;
+     return false;
+   }
+
 #if defined(MT_THREAD)
-   if (!todo.isSafeRPC || wasRunning) {
-#endif
-     if (!continueProc()) {
-        cerr << "launchRPCifAppropriate: continueProc() failed" << endl;
-        return false;
-     }
-#if defined(MT_THREAD)
+   if (todo.isSafeRPC) {
+     cerr << "SAFE inferiorRPC should be running now" << endl;
+   } else {
      cerr << "inferiorRPC should be running now" << endl;
    }
 #endif
 
    inferiorrpc_cerr << "inferiorRPC should be running now" << endl;
+
+#if defined(MT_THREAD)
+   if (todo.isSafeRPC) { signalRPCthread(this); }
+#endif
 
    return true; // success
 }
@@ -3774,40 +3798,28 @@ Address process::createRPCtempTramp(AstNode *action,
 
 #if defined(MT_THREAD)
    if (!DYNINSTthreadRPC) {
-      RTINSTsharedData* RTsharedData = (RTINSTsharedData* ) 
-				    getRTsharedDataInParadyndSpace() ;
+      RTINSTsharedData* RTsharedData = (RTINSTsharedData* ) getRTsharedDataInParadyndSpace() ;
       DYNINSTthreadRPC = RTsharedData->rpcToDoList ;
       assert(DYNINSTthreadRPC) ;
       memset((char*)DYNINSTthreadRPC, '\0', sizeof(rpcToDo)*MAX_PENDING_RPC) ;
-   }
 
-   /*
-   mutex_t* DYNINSTthreadRPC_mp =        &(RTsharedData->rpc_mutex);
-   cond_t* DYNINSTthreadRPC_cvp =       &(RTsharedData->rpc_cv);
-   int* DYNINSTthreadRPC_pending_p = &(RTsharedData->rpc_pending);
-   */
+      // mutex, conditional variable, and global to communicate with the RPC thread
+      
+      DYNINSTthreadRPC_mp        = &(RTsharedData->rpc_mutex);
+      DYNINSTthreadRPC_cvp       = &(RTsharedData->rpc_cv);
+      DYNINSTthreadRPC_pending_p = &(RTsharedData->rpc_pending);
+
+      //mutex_init(DYNINSTthreadRPC_mp, USYNC_PROCESS, NULL);
+      //cond_init(DYNINSTthreadRPC_cvp, USYNC_PROCESS, NULL);
+   }
 
    if (isSAFE) { /* post it in the shared-memory segment */
      for (unsigned k=0; k< MAX_PENDING_RPC; k++) {
        if (DYNINSTthreadRPC[k].flag ==0) {
          DYNINSTthreadRPC[k].rpc = (void (*) (void)) tempTrampBase ;
          DYNINSTthreadRPC[k].flag = 1 ; 
-
-         /*
-         mutex_lock(DYNINSTthreadRPC_mp);
-         *DYNINSTthreadRPC_pending_p = 1 ;
-         cond_signal(DYNINSTthreadRPC_cvp);
-         mutex_unlock(DYNINSTthreadRPC_mp);
-         */
          break ;
        } 
-     }
-     for (unsigned d=0; d< MAX_PENDING_RPC; d++) {
-       if (DYNINSTthreadRPC[d].flag ==2) { //done execute
-         handleDoneRPC((unsigned) (DYNINSTthreadRPC[d].rpc) ) ;
-         DYNINSTthreadRPC[d].rpc = 0 ; //make it free again
-         DYNINSTthreadRPC[d].flag = 0 ; //make it free again
-       }
      }
    }
 #endif /*MT_THREAD*/
@@ -3819,30 +3831,50 @@ Address process::createRPCtempTramp(AstNode *action,
 }
 
 #if defined(MT_THREAD)
-bool process::handleDoneRPC(unsigned cookie) {
+bool process::handleDoneSAFEinferiorRPC(void) {
+  if (DYNINSTthreadRPC) { 
+    for (unsigned d=0; d< MAX_PENDING_RPC; d++) {
+      if (DYNINSTthreadRPC[d].flag ==2) { //done execute
+	//
+	unsigned cookie = (unsigned) (DYNINSTthreadRPC[d].rpc);
+        if (cookie == 0)
+	  continue ;
 
-   if (cookie == 0)
-     return true ;
+        for (unsigned k=0; k < currRunningRPCs.size(); k++) {
+          inferiorRPCinProgress &theStruct = currRunningRPCs[k];
+          if (theStruct.firstInstrAddr == cookie) {
+            currRunningRPCs.removeByIndex(k);
 
-   for (unsigned k=0; k < currRunningRPCs.size(); k++) {
-     inferiorRPCinProgress &theStruct = currRunningRPCs[k];
-     if (theStruct.firstInstrAddr == cookie) {
-       currRunningRPCs.removeByIndex(k);
+            // step 1) restore registers: not needed for SAFE RPC
+            if (currRunningRPCs.empty() && deferredContinueProc) {
+              deferredContinueProc=false;
+              if (continueProc()) statusLine("application running");
+            }
 
-       vector< addrVecType > pointsToCheck;
-       if (currRunningRPCs.empty() && deferredContinueProc) {
-         deferredContinueProc=false;
-         if (continueProc()) statusLine("application running");
-       }
+            // step 2) delete temp tramp
+            vector< addrVecType > pointsToCheck;
+            inferiorFree(this, theStruct.firstInstrAddr, pointsToCheck);
 
-       inferiorFree(this, theStruct.firstInstrAddr, pointsToCheck);
+            // step 3) pause process, if appropriate
+	    if (!theStruct.wasRunning && status() == running) {
+               if (!pause()) {
+                  cerr << "RPC completion: pause failed" << endl;
+               }
+            }
 
-       if (theStruct.callbackFunc)
-          theStruct.callbackFunc(this, theStruct.userData, theStruct.resultValue);
-       return true;
-     }
-   }
-   return false ;
+            // step 4) invoke user callback, if any
+            if (theStruct.callbackFunc)
+               theStruct.callbackFunc(this, theStruct.userData, theStruct.resultValue);
+	    break; //break the for()
+          }
+        }
+	//
+        DYNINSTthreadRPC[d].rpc = 0 ; //make it free again
+        DYNINSTthreadRPC[d].flag = 0 ; //make it free again
+      }
+    }
+  }
+  return true;
 }
 #endif
 
@@ -3855,10 +3887,17 @@ bool process::handleTrapIfDueToRPC() {
    
    if (currRunningRPCs.empty())
       return false; // no chance of a match
-
+#if defined(MT_THREAD)
+   unsigned rSize = 0 ;
+   for (unsigned k=0; k<currRunningRPCs.size(); k++) {
+     if (!currRunningRPCs[k].isSafeRPC)
+       rSize ++ ;
+   }
+   assert(rSize<=1);
+#else
    assert(currRunningRPCs.size() == 1);
       // it's unsafe to have > 1 RPCs going on at a time within a single process
-
+#endif
    // Okay, time to do a stack trace.
    // If we determine that the PC of any level of the back trace
    // equals the current running RPC's stopForResultAddr or breakAddr,

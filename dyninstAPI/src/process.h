@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.117 1999/08/30 16:04:20 zhichen Exp $
+/* $Id: process.h,v 1.118 1999/09/09 15:35:46 zhichen Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -350,14 +350,10 @@ class process {
 #endif
 
   vector<Address> walkStack(bool noPause=false);
-#if defined(MT_THREAD)
+#if defined(MT_THREAD)  
+  // Walk threads stacks
   vector<vector<Address> > walkAllStack(bool noPause=false);
-  void walkAStack(int, 
-    Frame top, 
-    Address sig_addr, 
-    u_int sig_size, 
-    vector<Address>&pcs,
-    vector<Address>&fps);
+  void walkAStack(int, Frame, Address sig_addr, u_int sig_size, vector<Address>&pcs, vector<Address>&fps);
   bool getLWPIDs(int **IDs_p); //caller should do a "delete [] *IDs_p"
   bool getLWPFrame(int lwp_id, Address *fp, Address *pc);
   bool readDataFromLWPFrame(int lwp_id, 
@@ -371,6 +367,27 @@ class process {
 			 Address *rtn, 
 			 bool uppermost=false);
   bool getActiveFrame(Address *fp, Address *pc, int *lwpid);
+
+  // Notify daemon of threads
+  pdThread *createThread(
+    int tid, 
+    unsigned pos, 
+    unsigned stack_addr, 
+    unsigned start_pc, 
+    void* resumestate_p, 
+    bool);
+  void updateThread(pdThread *thr, int tid, unsigned pos, void* resumestate_p, resource* rid) ;
+  void updateThread(
+    pdThread *thr, 
+    int tid, 
+    unsigned pos, 
+    unsigned stack_addr, 
+    unsigned start_pc, 
+    void* resumestate_p);
+  void deleteThread(int tid);
+
+  // SAFE inferiorRPC
+  bool     handleDoneSAFEinferiorRPC(void);
 #endif
 
 #ifdef SHM_SAMPLING
@@ -454,9 +471,6 @@ class process {
      RPCs_waiting_for_syscall_to_complete = flag;
   }
 
-#if defined(MT_THREAD)
-  bool handleDoneRPC(unsigned cookie);
-#endif
   bool handleTrapIfDueToRPC();
      // look for curr PC reg value in 'trapInstrAddr' of 'currRunningRPCs'.  Return
      // true iff found.  Also, if true is being returned, then additionally does
@@ -533,31 +547,20 @@ class process {
   int ioLink;			/* pipe to transfer stdout/stderr over */
   processState status_;	        /* running, stopped, etc. */
   vector<pdThread *> threads;	/* threads belonging to this process */
-#if defined(MT_THREAD) && defined(SHM_SAMPLING)
+#if defined(MT_THREAD) 
   hashTable *threadMap;         /* mapping table for tid->superTable */
   Address DYNINST_allthreads_p ;  /* in libRTinst  */
   Address allthreads ;            /* in libthread  */
   vector<metricDefinitionNode*> allMIComponentsWithThreads;
   bool preambleForDYNINSTinit;
   bool inThreadCreation;
-  //pdThread *createThread(int tid, unsigned pos);
-  pdThread *createThread(
-    int tid, 
-    unsigned pos, 
-    unsigned stack_addr, 
-    unsigned start_pc, 
-    void* resumestate_p, 
-    bool);
-  void updateThread(pdThread *thr, int tid, unsigned pos, void* resumestate_p, resource* rid) ;
-  void updateThread(
-    pdThread *thr, 
-    int tid, 
-    unsigned pos, 
-    unsigned stack_addr, 
-    unsigned start_pc, 
-    void* resumestate_p);
-  void deleteThread(int tid);
-#endif//MT_THREAD && SHM_SAMPLING
+
+  // SAFE inferiorRPC
+  rpcToDo* DYNINSTthreadRPC; 
+  mutex_t* DYNINSTthreadRPC_mp;
+  cond_t*  DYNINSTthreadRPC_cvp;
+  int*     DYNINSTthreadRPC_pending_p;
+#endif//MT_THREAD 
   bool continueAfterNextStop_;
 
   resource *rid;		/* handle to resource for this process */
@@ -609,14 +612,12 @@ class process {
      int mid;
 #if defined(MT_THREAD)
      int thrId;
-     bool isSafeRPC; // launch it as MT RPC or regular RPC
+     bool isSafeRPC; // launch it as safe RPC or regular RPC
 		     // if DYNINSTinit, we launch it as regular RPC
 		     // otherwise launch it as MT RPC
 #endif
   };
-#if defined(MT_THREAD)
-  rpcToDo* DYNINSTthreadRPC ; 
-#endif
+
   vectorSet<inferiorRPCtoDo> RPCsWaitingToStart;
   bool RPCs_waiting_for_syscall_to_complete;
   bool was_running_before_RPC_syscall_complete;

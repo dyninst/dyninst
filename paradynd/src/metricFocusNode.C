@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.161 1999/08/30 16:02:30 zhichen Exp $
+// $Id: metricFocusNode.C,v 1.162 1999/09/09 15:35:40 zhichen Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -2743,7 +2743,7 @@ bool instReqNode::triggerNow(process *theProc, int mid) {
 #ifdef ONE_THREAD
                         false);
 #else
-			false); //true); //(manuallyTriggerTIDs.size() != 1));
+			true); //false --> regular RPC, true-->SAFE RPC
 #endif
 #else
 			mid);
@@ -2755,7 +2755,7 @@ bool instReqNode::triggerNow(process *theProc, int mid) {
 	   checkProcStatus();
    } while ( !rpcCount && theProc->status() != exited );
 
-   if( needToCont )
+   if( needToCont && (theProc->status() != running))
 	   theProc->continueProc();
 
    return true;

@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.14 1999/08/27 21:04:01 zhichen Exp $
+ * $Id: RTinst.c,v 1.15 1999/09/09 15:36:34 zhichen Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -999,10 +999,15 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
 #if defined(MT_THREAD)
   {
     int pos;
+    extern void DYNINST_initialize_RPCthread(void);
+    extern void DYNINSTlaunchRPCthread(void) ;
+
     DYNINSTthread_init((char*) DYNINST_shmSegAttachedPtr) ;
     if (!calledFromFork)
       DYNINST_initialize_once();
     pos = DYNINST_ThreadUpdate(calledFromAttach?FLAG_ATTACH:FLAG_INIT) ;
+    /* launch the RPCthread */
+    DYNINSTlaunchRPCthread();
   }
 #endif
   

@@ -117,10 +117,10 @@ static thread_key_t  DYNINST_thread_key ;
 static void** DYNINSTthreadSpecific[MAX_NUMBER_OF_THREADS] ;
 
 /* To synchronize the rpcThread with the daemon */
-cond_t   *DYNINSTthreadRPC_cvp ;
-mutex_t  *DYNINSTthreadRPC_mp ;
-int      *DYNINSTthreadRPC_pending_p ;
-unsigned *DYNINSTthreadRPC_indexMax_p ;
+cond_t   *rpc_cv_ptr ;
+mutex_t  *rpc_mutex_ptr ;
+int      *rpc_pending_ptr ;
+unsigned *rpc_maxIndex_ptr ;
 thread_t  DYNINSTthreadRPC_threadId ;
 
 void DYNINSTthread_init(char *DYNINST_shmSegAttachedPtr) {
@@ -781,6 +781,26 @@ void DYNINST_ThreadCreate(int pos, int tid) {
 
 int DYNINSTthreadCheckRPC(void) {
   unsigned k ;
+  return 0;
+  if (DYNINSTthreadRPC) {
+    for (k=0; k<MAX_PENDING_RPC; k++) {
+      rpcToDo* p = DYNINSTthreadRPC+k ;
+      if (p->flag == 1) {
+        if (0 != tc_lock_trylock(&(p->lock)))
+          return ;
+ 
+        if (p->rpc) {
+          (*p->rpc)() ;  /* do the inferiorRPC */
+        }
+        (p->flag) = 2  ; /* done execution */
+        tc_lock_unlock(&(p->lock)) ; ;
+      }
+    }
+  }
+}
+
+int DYNINSTthreadCheckRPC2(void) {
+  unsigned k ;
   if (DYNINSTthreadRPC) {
     for (k=0; k<MAX_PENDING_RPC; k++) {
       rpcToDo* p = DYNINSTthreadRPC+k ;
@@ -1299,42 +1319,37 @@ void DYNINST_initialize_SyncObj(void) {
   initialize_SyncObj_of_1_kind(DYNINSTsemaRes, DYNINSTsemaResLock, MAX_SEMA_RES);
 }
 
-/*
-void* DYNINST_threadRPC_thread(void * garbage) {
-  extern void DYNINSTthreadCheckRPC() ;
+void* DYNINST_RPC_Thread(void * garbage) {
+  fprintf(stderr, "Entering DYNINST_RPC_Thread...\n");
+
   while(1) {
-    fprintf(stderr, "RPC Thread is Waiting ...\n");
-    mutex_lock(DYNINSTthreadRPC_mp);
-    while (!(*DYNINSTthreadRPC_pending_p)) {
-      cond_wait(DYNINSTthreadRPC_cvp, DYNINSTthreadRPC_mp);
+    mutex_lock(rpc_mutex_ptr);
+    while (!(*rpc_pending_ptr)) { 
+      fprintf(stderr, "RPC Thread is Waiting ...\n");
+      cond_wait(rpc_cv_ptr, rpc_mutex_ptr);  
     }
-    DYNINSTthreadCheckRPC();
-    *DYNINSTthreadRPC_pending_p = 0 ;
-    mutex_unlock(DYNINSTthreadRPC_mp);
+    fprintf(stderr, "RPC Thread, Signaled....\n");
+    DYNINSTthreadCheckRPC2();
+    fprintf(stderr, "RPC Thread, RPC performed....\n");
+    *rpc_pending_ptr = 0 ;
+    mutex_unlock(rpc_mutex_ptr);
   }
 }
 
 void DYNINSTlaunchRPCthread(void) {
-  cond_init(DYNINSTthreadRPC_cvp, USYNC_PROCESS, NULL);
-  mutex_init(DYNINSTthreadRPC_mp, USYNC_PROCESS, NULL);
-  thr_create(NULL, 0, DYNINST_threadRPC_thread, NULL, THR_BOUND,
-             &DYNINSTthreadRPC_threadId) ;
-  fprintf(stderr, "DYNINSTlaunchRPCthread, tid %d ...\n",
-         DYNINSTthreadRPC_threadId);
+  mutex_init(rpc_mutex_ptr, USYNC_PROCESS, NULL);
+  cond_init(rpc_cv_ptr, USYNC_PROCESS, NULL);
+  thr_create(NULL, 0, DYNINST_RPC_Thread, NULL, THR_NEW_LWP|THR_BOUND, &DYNINSTthreadRPC_threadId) ;
 }
-
-*/
 
 void DYNINST_initialize_RPCthread(void) {
   DYNINSTthreadRPC = RTsharedData->rpcToDoList ;
-  /*
-  DYNINSTthreadRPC_mp  = &(RTsharedData->rpc_mutex) ;
-  DYNINSTthreadRPC_cvp = &(RTsharedData->rpc_cv);
-  DYNINSTthreadRPC_pending_p = &(RTsharedData->rpc_pending);
-  DYNINSTthreadRPC_indexMax_p = &(RTsharedData->rpc_indexMax);
-  *DYNINSTthreadRPC_pending_p = 0 ;
-  *DYNINSTthreadRPC_indexMax_p = 0 ;
-  */
+  rpc_mutex_ptr  = &(RTsharedData->rpc_mutex) ;
+  rpc_cv_ptr = &(RTsharedData->rpc_cv);
+  rpc_pending_ptr = &(RTsharedData->rpc_pending);
+  rpc_maxIndex_ptr = &(RTsharedData->rpc_indexMax);
+  *rpc_pending_ptr = 0 ;
+  *rpc_maxIndex_ptr = 0 ;
 }
 
 
