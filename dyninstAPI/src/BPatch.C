@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.74 2004/03/08 23:45:38 bernat Exp $
+// $Id: BPatch.C,v 1.75 2004/03/09 21:36:21 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -570,11 +570,11 @@ void BPatch::formatErrorString(char *dst, int size,
 BPatch_thread *BPatch::getThreadByPid(int pid, bool *exists)
 {
     if (info->threadsByPid.defines(pid)) {
-	if (exists) *exists = true;
-	return info->threadsByPid[pid];
+        if (exists) *exists = true;
+        return info->threadsByPid[pid];
     } else {
-	if (exists) *exists = false;
-	return NULL;
+        if (exists) *exists = false;
+        return NULL;
     }
 }
 
@@ -641,11 +641,9 @@ void BPatch::registerForkedThread(int parentPid, int childPid, process *proc)
     if (postForkCallback) {
         postForkCallback(parent, info->threadsByPid[childPid]);
     }
-    // We will continue both processes, but the fork callback may
-    // have set the "unreported stop" bits (because of inferior RPCs,
-    // etc.). Unset them here, as the low-level continue won't.
-    parent->setUnreportedStop(false);
-    info->threadsByPid[childPid]->setUnreportedStop(false);
+    // We don't want to touch the bpatch threads here, as they may have been
+    // deleted in the callback
+    // TODO: figure out if they have and remove them from the info list
 }
 
 /*
@@ -932,6 +930,9 @@ bool BPatch::havePendingEvent()
         if (thread != NULL &&
             (thread->pendingUnreportedStop() ||
              thread->pendingUnreportedTermination())) {
+            fprintf(stderr, "Thread %p: unrep stop %d, term %d\n",
+                    thread, thread->pendingUnreportedStop(),
+                    thread->pendingUnreportedTermination());
             return true;
         }
     }
@@ -970,6 +971,7 @@ bool BPatch::pollForStatusChange()
 bool BPatch::waitForStatusChange()
 {
     if (havePendingEvent()) {
+        fprintf(stderr, "Unclaimed event, returning true\n");
         return true;
     }
     

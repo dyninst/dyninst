@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.97 2004/03/02 22:45:57 bernat Exp $
+// $Id: BPatch_thread.C,v 1.98 2004/03/09 21:36:21 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1213,7 +1213,12 @@ void BPatch_thread::oneTimeCodeCallbackDispatch(process *theProc,
 	BPatch::bpatch->RPCdoneCallback(theThread, userData, returnValue);
     }
 #endif
+    // The iRPC probably left us with unreported stop bits... clear them
+    // here
+    theThread->setUnreportedStop(false);
 }
+
+
 
 
 /*
