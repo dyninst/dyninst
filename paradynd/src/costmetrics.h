@@ -147,6 +147,13 @@ class costMetric {
   static vector<costMetric*> allCostMetrics;
   metricDefinitionNode *node;
 
+  static bool isCostMetric(const string &metName) {
+     for (unsigned lcv=0; lcv < allCostMetrics.size(); lcv++)
+        if (allCostMetrics[lcv]->name_ == metName)
+	   return true;
+     return false;
+  }
+
 private:
   // list of processes and values contributing to metric value
   vector<process *> components;
@@ -167,6 +174,7 @@ private:
   // sampleInfo sample;
   sampleValue cumulativeValue;
 
+  // why is there no mid stored in this class, as there is for the internalMetrics class?
   string name_;
   int agg_;
   metricStyle style_;
