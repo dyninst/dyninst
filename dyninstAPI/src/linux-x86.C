@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.64 2005/03/07 21:18:37 bernat Exp $
+// $Id: linux-x86.C,v 1.65 2005/03/11 17:58:58 bernat Exp $
 
 #include <fstream>
 
@@ -538,8 +538,29 @@ static int getFrameStatus(process *p, unsigned pc)
    reloc = range->is_relocated_func();
    edge = range->is_edge_tramp();
 
-   if (base != NULL || mini != NULL)
-      return TRAMP;
+   if (base != NULL || mini != NULL) {
+     if (base) {
+       Address pc_in_tramp = pc - base->baseAddr;
+       // A bit of a note, here: if we're in the base tramp,
+       // but _not_ in pre/post instrumentation, then we're
+       // _not_ in an instrumentation frame (nstead, we're
+       // in a normal frame
+       if (pc_in_tramp <= base->skipPreInsOffset)
+	 // Haven't saved/created yet...
+	 func = const_cast<int_function *>(base->location->pointFunc());
+       else if (pc_in_tramp <= base->emulateInsOffset)
+	 // In pre instrumentation..
+	 return TRAMP;
+       else if (pc_in_tramp <= base->skipPostInsOffset)
+	 // Emulating instructions, between save points
+	 func = const_cast<int_function *>(base->location->pointFunc());
+       else 
+	 // In post-instrumentation
+	 return TRAMP;
+     }
+     else
+       return TRAMP;
+   }
    if (reloc != NULL && func == NULL)
       func = reloc->func();
    else if (edge != NULL && func == NULL)
@@ -931,7 +952,7 @@ Frame Frame::getCallerFrame()
 
    Frame ret = Frame(newPC, newFP, newSP, newpcAddr, this);
 
-   if (frameType_ == FRAME_instrumentation) 
+   if (status == TRAMP)
    {
       /**
        * Instrumentation has its own stack frame (created in the
