@@ -10,6 +10,9 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
+ * Revision 1.35  1996/05/11 23:14:54  tamches
+ * inferiorHeap uses addrHash instead of uiHash; performs better.
+ *
  * Revision 1.34  1996/05/10 06:54:16  tamches
  * disabledItem is now a class w/ its data private; added
  * proper operator= and a constructor
@@ -247,7 +250,7 @@ class disabledItem {
 
 class inferiorHeap {
  public:
-  inferiorHeap(): heapActive(uiHash) {
+  inferiorHeap(): heapActive(addrHash) {
       freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
   }
   inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy of src.
