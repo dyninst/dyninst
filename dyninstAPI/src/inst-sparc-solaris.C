@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.145 2004/02/28 00:26:22 schendel Exp $
+// $Id: inst-sparc-solaris.C,v 1.146 2004/03/11 22:20:35 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -267,7 +267,7 @@ void relocateInstruction(instruction*& insn, Address origAddr,
 	    /** we need to check whether the new allocated space is **/
 	    /** in the range of 1 branch instruction from reloacted inst **/
 
-	    unsigned ret = proc->inferiorMalloc(3*sizeof(instruction), textHeap,
+	    unsigned ret = proc->inferiorMalloc(3*sizeof(instruction), anyHeap,
 					   targetAddr);
 	    assert(ret);
 
@@ -376,6 +376,8 @@ trampTemplate * installBaseTramp( instPoint * & location,
    // How we transfer between the function and instrumentation, as well
    // as how many instructions get copied to the base trampoline 
    if ( !offsetWithinRangeOfBranchInsn(baseTrampAddress - ipAddr) ) {
+       fprintf(stderr, "Offset not in range: 0x%x to 0x%x\n",
+               baseTrampAddress, ipAddr);
       location->needsLongJump = true;
    }
    
@@ -383,13 +385,16 @@ trampTemplate * installBaseTramp( instPoint * & location,
    //       fprintf(stderr, "dontUseCall@%p\n", ipAddr);
    
    // VG(4/25/2002): refuse installation if call is needed, but not safe
-   if(location->needsLongJump && location->dontUseCall)
-      return NULL;
+   if(location->needsLongJump && location->dontUseCall) {
+       fprintf(stderr, "needs long jump && don't use call\n");
+       return NULL;
+   }
    
    // very conservative installation as o7 can be live 
    // at this arbitrary inst point
    if( (location->getPointType() == otherPoint) &&
-       location->pointFunc() && location->pointFunc()->is_o7_live() &&
+       location->pointFunc() && 
+       location->pointFunc()->is_o7_live() &&
        location->needsLongJump)
    {
       // Free up the space allocated for the base tramp
@@ -397,6 +402,7 @@ trampTemplate * installBaseTramp( instPoint * & location,
       location->needsLongJump = false;
       
       // Creation of base tramp failed
+      fprintf(stderr, "Stuff failed\n");
       return NULL;
    }
 
@@ -954,7 +960,7 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
         
       // Allocate space for the base trampoline
       baseTrampAddress = proc->inferiorMalloc(current_template->size, 
-                                              textHeap, ipAddr);
+                                              anyHeap, ipAddr);
       assert( baseTrampAddress );
         
       // Determine if the base trampoline is within the range of a branch
@@ -1024,7 +1030,7 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
 
       // Allocate space for the base trampoline
       baseTrampAddress = proc->inferiorMalloc(current_template->size, 
-                                              textHeap, ipAddr);
+                                              anyHeap, ipAddr);
       assert( baseTrampAddress );
    }
 
@@ -1034,8 +1040,11 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
                           current_template, 
                           baseTrampAddress, 
                           trampRecursionDesired);
-   if(!ret) return NULL;
-
+   if(!ret) {
+       fprintf(stderr, "Failed installBaseTramp\n");
+       return NULL;
+   }
+   
 
    // If the base trampoline is within the range of a branch instruction
    // from the function, use a branch to transfer control from the 
@@ -1059,7 +1068,7 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
 
 
       if ( location->getPointType() == otherPoint ) {
-
+          
          // Generate call; nop; sequence
          // (no need to generate a save since instrumentation will only go
          // in if the o7 register is not live
