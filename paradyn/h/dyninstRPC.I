@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.93 2002/02/12 23:50:32 schendel Exp $
+/* $Id: dyninstRPC.I,v 1.94 2002/04/05 19:38:50 schendel Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -176,7 +176,7 @@ abstract class mdl_stmt {
 $ignore
 public:
   virtual ~mdl_stmt() { }
-  virtual bool apply(sampleMetFocusNode *mn, vector<dataReqNode*>& flags) = 0;
+  virtual bool apply(instrCodeNode *mn, vector<const dataReqNode*>& flags) = 0;
   virtual bool mk_list(vector<string> &funcs) = 0;
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) = 0;
@@ -197,7 +197,7 @@ public:
   mdl_list_stmt(u_int type, string ident, vector<string> *elems,
 		bool is_lib, vector<string> *flavor);
   virtual ~mdl_list_stmt();
-  virtual bool apply(sampleMetFocusNode *mn, vector<dataReqNode*>& flags);
+  virtual bool apply(instrCodeNode *mn, vector<const dataReqNode*>& flags);
   virtual bool mk_list(vector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
@@ -216,7 +216,7 @@ $ignore
 public:
   mdl_for_stmt(string index_name, mdl_expr *list_exp, mdl_stmt *body);
   virtual ~mdl_for_stmt();
-  virtual bool apply(sampleMetFocusNode *mn, vector<dataReqNode*>& flags);
+  virtual bool apply(instrCodeNode *mn, vector<const dataReqNode*>& flags);
   virtual bool mk_list(vector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
@@ -234,7 +234,7 @@ $ignore
 public:
   mdl_if_stmt(mdl_expr *expr, mdl_stmt *body);
   virtual ~mdl_if_stmt();
-  virtual bool apply(sampleMetFocusNode *mn, vector<dataReqNode*>& flags);
+  virtual bool apply(instrCodeNode *mn, vector<const dataReqNode*>& flags);
   virtual bool mk_list(vector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
@@ -251,7 +251,7 @@ $ignore
 public:
   mdl_seq_stmt(vector<mdl_stmt*> *stmts);
   virtual ~mdl_seq_stmt();
-  virtual bool apply(sampleMetFocusNode *mn, vector<dataReqNode*>& flags);
+  virtual bool apply(instrCodeNode *mn, vector<const dataReqNode*>& flags);
   virtual bool mk_list(vector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
@@ -273,7 +273,7 @@ public:
   mdl_instr_stmt(u_int pos, mdl_expr *point_expr, vector<mdl_icode*> *i_reqs,
 		 unsigned where_instr, bool constrained);
   virtual ~mdl_instr_stmt();
-  virtual bool apply(sampleMetFocusNode *mn, vector<dataReqNode*>& flags);
+  virtual bool apply(instrCodeNode *mn, vector<const dataReqNode*>& flags);
   virtual bool mk_list(vector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) {
@@ -301,8 +301,9 @@ public:
 		 vector<mdl_stmt*> *stmts, bool replace, u_int d_type,
 		 bool& error);
   ~mdl_constraint();
-  bool apply(threadMetFocusNode *mn, dataReqNode *&flag,
-	     vector<string>& resource, process *proc, pdThread* thr,  bool computingCost);
+  bool apply(instrCodeNode *codeNode, instrThrDataNode *mn, dataReqNode **flag,
+	     vector<string>& resource, process *proc, pdThread* thr,
+	     dataInstHandle *metricDataHandlePtr);
   bool mk_list(vector<string> &funcs);
   bool replace();
   string id();
@@ -379,12 +380,11 @@ public:
     return os;
   }
 #endif
-  machineMetFocusNode *apply(vector< vector<string> >&focus, 
-			      string& flat_name,
-	                      vector<process *> procs,
-			      vector< vector<pdThread *> >& threadsVec,
-	                      bool replace_components_if_present,
-			      bool computingCost);
+  machineMetFocusNode *apply(int mid, vector< vector<string> >&focus, 
+			     string& flat_name, vector<process *> procs,
+			     vector< vector<pdThread *> >& threadsVec,
+	                     bool replace_components_if_present,
+			     bool dontInsertData);
 $ignore
 };
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.44 2002/02/12 23:50:33 schendel Exp $
+// $Id: mdl.C,v 1.45 2002/04/05 19:38:51 schendel Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -163,11 +163,12 @@ bool mdl_data::new_metric(string id, string name, string units,
   }
 }
 
-machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >&,
-						      string& , 
-						      vector<process *>,
-						      vector< vector<pdThread *> > &,
-						      bool, bool) {
+machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(int, 
+						     vector< vector<string> >&,
+						     string& , 
+						     vector<process *>,
+					        vector< vector<pdThread *> > &,
+						     bool, bool) {
   mdl_env::push();
   if (!mdl_env::add(id_, true, type_)) return NULL;
   assert(temp_ctr_);
@@ -178,7 +179,7 @@ machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >&,
   // apply 'base' statements
   assert(stmts_);
   unsigned size = stmts_->size();
-  vector<dataReqNode*> flags;
+  vector<const dataReqNode*> flags;
   for (unsigned u=0; u<size; u++) {
     if (!(*stmts_)[u]->apply(NULL, flags)) {
       cerr << "In metric " << name_ << ": apply of " << u 
@@ -194,7 +195,8 @@ machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >&,
       // inlined constraint def
       dataReqNode *drn = NULL;
       vector<string> res;
-      if (!(*constraints_)[u1]->apply(NULL, drn, res, NULL, NULL, false)) {
+      if (!(*constraints_)[u1]->apply(NULL, NULL, &drn, res, NULL, NULL, NULL))
+      {
         cerr << "In metric " << name_ << ": apply of " << u1
           << "th constraint failed." << endl;
         return NULL;
@@ -300,10 +302,14 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
     delete stmts_;
   }
 }
-  
-bool T_dyninstRPC::mdl_constraint::apply(threadMetFocusNode * , 
-					 dataReqNode *& ,
-					 vector<string>& , process *, pdThread*,  bool ) {
+
+bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *,
+					 instrThrDataNode *,
+					 dataReqNode **,
+					 vector<string>&,
+					 process *, pdThread*,
+					 dataInstHandle *)
+{
   mdl_env::push();
 
   switch (data_type_) {
@@ -331,7 +337,7 @@ bool T_dyninstRPC::mdl_constraint::apply(threadMetFocusNode * ,
   }
 
   unsigned stmts_size = stmts_->size();
-  vector<dataReqNode*> flags;
+  vector<const dataReqNode*> flags;
   for (unsigned q=0; q<stmts_size; q++)
     if (!(*stmts_)[q]->apply(NULL, flags)) {
       mdl_env::pop();
@@ -373,8 +379,8 @@ T_dyninstRPC::mdl_for_stmt::~mdl_for_stmt() {
   delete list_expr_;
 }
 
-bool T_dyninstRPC::mdl_for_stmt::apply(sampleMetFocusNode *mn,
-				       vector<dataReqNode*>& flags) {
+bool T_dyninstRPC::mdl_for_stmt::apply(instrCodeNode *mn,
+				       vector<const dataReqNode*>& flags) {
   mdl_env::push();
 
   if (!mdl_env::add(index_name_, false)) return false;
@@ -396,8 +402,8 @@ T_dyninstRPC::mdl_list_stmt::mdl_list_stmt(u_int type, string ident,
 T_dyninstRPC::mdl_list_stmt::mdl_list_stmt() { }
 T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt() { delete elements_; }
 
-bool T_dyninstRPC::mdl_list_stmt::apply(sampleMetFocusNode * ,
-					vector<dataReqNode*>& ) {
+bool T_dyninstRPC::mdl_list_stmt::apply(instrCodeNode * ,
+					vector<const dataReqNode*>& ) {
   if (!elements_)
     return false;
   unsigned list_type = MDL_T_NONE;
@@ -906,8 +912,8 @@ T_dyninstRPC::mdl_if_stmt::~mdl_if_stmt() {
   delete expr_; delete body_;
 }
 
-bool T_dyninstRPC::mdl_if_stmt::apply(sampleMetFocusNode * ,
-				      vector<dataReqNode*>& flags) {
+bool T_dyninstRPC::mdl_if_stmt::apply(instrCodeNode * ,
+				      vector<const dataReqNode*>& flags) {
   mdl_var res(false); int iv;
   if (!expr_->apply(res))
     return false;
@@ -934,8 +940,8 @@ T_dyninstRPC::mdl_seq_stmt::~mdl_seq_stmt() {
   }
 }
  
-bool T_dyninstRPC::mdl_seq_stmt::apply(sampleMetFocusNode * ,
-				       vector<dataReqNode*>& flags) {
+bool T_dyninstRPC::mdl_seq_stmt::apply(instrCodeNode * ,
+				       vector<const dataReqNode*>& flags) {
   if (!stmts_)
     return true;
   unsigned size = stmts_->size();
@@ -961,8 +967,8 @@ T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
   }
 }
 
-bool T_dyninstRPC::mdl_instr_stmt::apply(sampleMetFocusNode * ,
-					 vector<dataReqNode*>& ) {
+bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode * ,
+					 vector<const dataReqNode*>& ) {
   mdl_var temp(false);
   if (!icode_reqs_)
     return false;
@@ -1199,7 +1205,7 @@ bool mdl_apply() {
   // apply resource list statements
   //
   unsigned size = mdl_data::stmts.size();
-  vector<dataReqNode*> flags;
+  vector<const dataReqNode*> flags;
   for (unsigned u=0; u<size; u++)
     if (!mdl_data::stmts[u]->apply(NULL, flags))
       return false;
@@ -1212,7 +1218,7 @@ bool mdl_apply() {
   for (unsigned u1=0; u1<size; u1++) {
     dataReqNode *drn = NULL;
     vector<string> res;
-    if (mdl_data::all_constraints[u1]->apply(NULL, drn, res, NULL, NULL, false)) {
+    if (mdl_data::all_constraints[u1]->apply(NULL, NULL, &drn, res, NULL, NULL, NULL)) {
       ok_cons += mdl_data::all_constraints[u1];
       // cout << "constraint defined: " << mdl_data::all_constraints[u1]->id_ << endl;
     } else {
@@ -1234,7 +1240,7 @@ bool mdl_apply() {
   vector<T_dyninstRPC::mdl_metric*> ok_mets;
   size = mdl_data::all_metrics.size();
   for (unsigned u2=0; u2<size; u2++) {
-    if (mdl_data::all_metrics[u2]->apply(vs, empty, emptyP, emptyThr, false, false) == (machineMetFocusNode*)1) {
+    if (mdl_data::all_metrics[u2]->apply(0, vs, empty, emptyP, emptyThr, false, false) == (machineMetFocusNode*)1) {
       ok_mets += mdl_data::all_metrics[u2];
       // cout << "metric defined: " << mdl_data::all_metrics[u2]->id_ << endl;
     } else {
