@@ -170,17 +170,16 @@ BPatch_flowGraph::findLoopExitInstPoints(BPatch_loop *loop,
                                          BPatch_Vector<BPatch_point*> *points)
 {
     BPatch_Vector<BPatch_basicBlock*> blocks;
-    loop->getLoopBasicBlocksExclusive(blocks);
+    loop->getLoopBasicBlocks(blocks);
     
-    // for each block in this loop
+    // for each block in this loop (including its subloops)
     for (unsigned i = 0; i < blocks.size(); i++) {
         BPatch_Vector<BPatch_edge*> edges;
         blocks[i]->getOutgoingEdges(edges);
         
-        // for each of its outgoing edges
+        // for each of its outgoing edges, if the edge's target is
+        // outside this loop then this edge exits this loop
         for (unsigned j = 0; j < edges.size(); j++) 
-            // if the edge's target is not inside this loop or one
-            // of its subloops then this edge exits this loop
             if (!loop->hasBlock(edges[j]->target)) {
 		if (DEBUG_LOOP) edges[j]->dump();
                 points->push_back(edges[j]->instPoint());
@@ -192,18 +191,42 @@ BPatch_Vector<BPatch_point*> *
 BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc, 
                                      BPatch_loop *loop)
 {
-//      {
-//          fprintf(stderr,"find loop inst points\n");
-//          if (loop->backEdge) loop->backEdge->dump();
-         
-//          else fprintf(stderr,"missing back edge!\n");
-    
-//          BPatch_basicBlock *b = loop->getLoopHead();
-//          if (b) fprintf(stderr, "head [0x%x 0x%x]\n",
-//                         b->getRelStart(),
-//                         b->getRelEnd() );
-//          else fprintf(stderr,"missing loop head!\n");
-//      }
+    /*
+     * We need to detect and handle following cases:
+     * 
+     * (1) If a loop has no entry edge, e.g. the loop head is also
+     * first basic block of the function, we need to create a loop
+     * preheader.  we probably want to relocate the function at this
+     * point.
+     * 
+     *        ___   
+     *       v   |
+     *   f: [_]--/
+     *       |
+     *      [ ]
+     *
+     *
+     * (2) If a loop header is shared between two loops then add a new
+     * nop node N, redirect the back edge of each loop to N and make N
+     * jump to the header. this transforms the two loops into a single
+     * loop.
+     * 
+     *      _              _
+     * --->[_]<---        [_]<---
+     * |  _/ \_  |       _/ \_  |
+     * \-[_] [_]-/      [_] [_] |
+     *                    \_/   |
+     *                    [N]---/
+     *
+     *
+     *  Also, loop instrumentation works on the control flow as it was
+     *  _originally_ parsed. Function entry/exit instrumentation may
+     *  have modified the this control flow, but this new
+     *  instrumentation is not cognizant of these modifications. This
+     *  instrumentation therefore may clobber any instrumentation that
+     *  was added because it has an inaccurate view of the binary.
+     *
+     */
 
     if (DEBUG_LOOP) 
 	fprintf(stderr,"%s findLoopInstPoints 0x%x\n",
@@ -223,58 +246,47 @@ BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
         BPatch_Vector<BPatch_edge*> edges;
         loop->getLoopHead()->getIncomingEdges(edges);
         for (unsigned i = 0; i < edges.size(); i++) {
+            // hasBlock is inclusive, checks subloops
             if (!loop->hasBlock(edges[i]->source)) {
 		if (DEBUG_LOOP) edges[i]->dump();
                 points->push_back(edges[i]->instPoint());
             }
         }
+
+        if (0 == points->size()) {
+            fprintf(stderr,"Warning: request to instrument loop entry "
+                    "of a loop w/o an entry edge.");
+        }
+
         break;        
     }
 
     case BPatch_locLoopExit: {
 	if (DEBUG_LOOP) fprintf(stderr,"loop exit\n");
 
-        // XXX Is possible to have jump from inner loop to outside
-        // outer loop?
-
         // return inst points for all edges e such that e->source is a
-        // member of this loop and e->target is not a member of this
-        // loop or its subloops
+        // member of this loop (including subloops) and e->target is
+        // not a member of this loop (including its subloops)
         findLoopExitInstPoints(loop, points);
 
         break;
     }
 
     case BPatch_locLoopStartIter: {
-        //fprintf(stderr,"loop start iter...\n");
+        if (DEBUG_LOOP) fprintf(stderr,"loop start iter\n");
+
         // instrument the head of the loop
-        
-        // XXX if a loop header is shared between two loops then we
-        // add a new nop node N, we redirect the back edge of each
-        // loop to N and make N jump to the header. this transforms
-        // the two loops into a single loop.
-        
-        // XXX or we could make one of the back edges jump to the other
-        // back edge
-
-        //      _              _
-        // --->[_]<---        [_]<---
-        // |  _/ \_  |       _/ \_  |
-        // --[_] [_]--      [_] [_] |
-        //                    \_/   |
-        //                    [N]----
-        //
-             
-
         BPatch_point *p;
         void *addr = (void*)loop->getLoopHead()->getRelStart();
         p = createInstructionInstPoint(proc, addr, NULL, NULL);
         points->push_back(p);
+
         break;
     }
 
     case BPatch_locLoopEndIter: {
-        if (DEBUG_LOOP) fprintf(stderr,"loop end iter...\n");
+        if (DEBUG_LOOP) fprintf(stderr,"loop end iter\n");
+
         // point for the backedge of this loop 
         BPatch_edge *edge = loop->backEdge;
         if (DEBUG_LOOP) edge->dump();
@@ -282,11 +294,13 @@ BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
 
         // and all edges which exit the loop
         findLoopExitInstPoints(loop, points);
+
         break;
     }
 
     default: {
-        fprintf(stderr,"called findLoopInstPoints with non-loop location\n");
+        bperr("called findLoopInstPoints with non-loop location\n");
+        assert(0);
     }
 
     }
@@ -1455,6 +1469,10 @@ void BPatch_flowGraph::fillPostDominatorInfo(){
 // in a flow graph is an edge whose head dominates its tail. 
 void BPatch_flowGraph::createEdges()
 {
+    /*
+     * Indirect jumps are NOT currently handled correctly
+     */
+
     backEdges = new BPatch_Set<BPatch_edge*>;
 
     BPatch_basicBlock **blks = new BPatch_basicBlock*[allBlocks.size()];
@@ -1472,21 +1490,6 @@ void BPatch_flowGraph::createEdges()
 
         unsigned numTargs = source->targets.size();
 
-        //XXX        
-//         if (numTargs == 3) {
-//             fprintf(stderr,"%u [0x%x 0x%x] %s\n",
-//                     numTargs,
-//                     source->getRelStart(), source->getRelEnd(),
-//                     func->prettyName().c_str());
-//             for (unsigned j = 0; j < numTargs; j++) 
-//                 fprintf(stderr,"[0x%x 0x%x] ",
-//                         targs[j]->getRelStart(), 
-//                         targs[j]->getRelEnd());
-//             fprintf(stderr,"\n\n");
-                        
-//         }
-
-
         // create edges
         image *img = mod->exec();
         const unsigned char *relocp;
@@ -1500,7 +1503,8 @@ void BPatch_flowGraph::createEdges()
             targs[0]->incomingEdges += edge;
             source->outgoingEdges += edge;
 
-            //fprintf(stderr, "t1 %2d %2d\n",source->blockNo(),targs[0]->blockNo());
+//             fprintf(stderr, "t1 %2d %2d\n",source->blockNo(),
+//                     targs[0]->blockNo());
             if (targs[0]->dominates(source))
                 (*backEdges) += edge;
         }
@@ -1514,8 +1518,10 @@ void BPatch_flowGraph::createEdges()
             BPatch_edge *edge1 = 
                 new BPatch_edge(source, targs[1], this, relocp); 
 
-            //fprintf(stderr, "t2 %2d %2d\n",source->blockNo(),targs[0]->blockNo());
-	    //fprintf(stderr, "t2 %2d %2d\n",source->blockNo(),targs[1]->blockNo());
+//             fprintf(stderr, "t2 %2d %2d\n",source->blockNo(),
+//                     targs[0]->blockNo());
+// 	    fprintf(stderr, "t2 %2d %2d\n",source->blockNo(),
+//                     targs[1]->blockNo());
 
             source->outgoingEdges += edge0;
             source->outgoingEdges += edge1;
@@ -1533,11 +1539,11 @@ void BPatch_flowGraph::createEdges()
                 (*backEdges) += edge1;
 
             // taken and fall-through edge should not both be back edges
-	    //if (targs[0]->dominates(source) && targs[1]->dominates(source)){
-// 		fprintf(stderr,"Both edge targets can not dominate the source.\n");
-// 		edge0->dump();
-// 		edge1->dump();
-// 	    }
+// 	    if (targs[0]->dominates(source) && targs[1]->dominates(source)) {
+//                 bperr("Both edge targets can not dominate the source.\n");
+//  		edge0->dump();
+//  		edge1->dump();
+//  	    }
 
             //assert(!(targs[0]->dominates(source) && 
 	    //targs[1]->dominates(source)));
