@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.10 1994/11/02 11:04:44 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.11 1994/11/03 16:12:19 rbi Exp $";
 #endif
 
 
@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.10  1994/11/02 11:04:44  markc
+ * Revision 1.11  1994/11/03 16:12:19  rbi
+ * Eliminated argc from addExecutable interface.
+ *
+ * Revision 1.10  1994/11/02  11:04:44  markc
  * Replaced iterators.
  *
  * Revision 1.9  1994/10/13  07:24:38  krisna
@@ -320,7 +323,7 @@ Boolean dynRPC::attachProgram(int id)
 //
 // start a new program for the tool.
 //
-int dynRPC::addExecutable(int argc,String_Array argv)
+int dynRPC::addExecutable(String_Array argv)
 {
     return(addProcess(argv.count, argv.data));
 }
