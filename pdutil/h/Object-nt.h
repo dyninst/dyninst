@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.4 1998/12/25 21:49:43 wylie Exp $
+ * $Id: Object-nt.h,v 1.5 1999/01/21 20:20:47 wylie Exp $
 ************************************************************************/
 
 
@@ -111,7 +111,7 @@ static void getFileNameAndPath(const string fullName, string &name, string &path
   name = fptr;
   *fptr = 0;
   path = buffer;
-  delete buffer;
+  delete[] buffer;
 }
 
 /* get the value of environment variable varName */
@@ -120,7 +120,7 @@ static void getEnvVar(const string varName, string &value) {
   char *buffer = new char[pathLen];
   GetEnvironmentVariable(varName.string_of(), buffer, pathLen);
   value = buffer;
-  delete buffer;
+  delete[] buffer;
 }
 
 /* find a .dbg file for the .exe or .dll file */
