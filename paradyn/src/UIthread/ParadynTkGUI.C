@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.C,v 1.3 2004/03/20 20:44:47 pcroth Exp $
+// $Id: ParadynTkGUI.C,v 1.4 2004/03/20 23:04:47 pcroth Exp $
 #include "pdutil/h/TclTools.h"
 #include "ParadynTkGUI.h"
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1344,7 +1344,11 @@ ParadynTkGUI::DMready( void )
     // on top of the main Paradyn window.  Give it a chance
     // to be mapped and then raise the main window to the
     // foreground in case it has been covered.
+#if defined(i386_unknown_nt4_0)
+    Sleep( 1000 );
+#else
     usleep( 1000 );
+#endif // defined(i386_unknown_nt4_0)
     myTclEval( interp, "raise ." );
 }
 
