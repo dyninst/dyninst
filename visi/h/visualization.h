@@ -289,6 +289,11 @@ extern void *visi_GetUserData(int metric_num, int resource_num);
 //
 extern int visi_SetUserData(int metric_num, int resource_num, void *data);
 
+//
+// print every stepth bucket to stderr
+//
+extern void visi_PrintDataBuckets(int step);
+
 #if defined(__cplusplus)
 };
 #endif /* defined(__cplusplus) */
