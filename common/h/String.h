@@ -52,6 +52,7 @@
 ************************************************************************/
 
 #include <iostream.h>
+#include "util/h/debugOstream.h"
 #include "util/h/headers.h"
 
 
@@ -66,7 +67,9 @@ public:
      string (const char *, unsigned n); // just copy the first n chars
      string (const string &);
      string (int);      // convert int to its string representation
+     string (long);      // convert int to its string representation
      string (unsigned); // convert unsigned to its string representation
+     string (unsigned long); // convert unsigned to its string representation
      string (float);    // convert float to its string representation
      string (double);   // convert double to its string representation
     ~string ();
@@ -101,6 +104,7 @@ public:
     unsigned         length () const {return len_;}
 
     friend ostream& operator<< (ostream &os, const string &s);
+    friend debug_ostream& operator<< (debug_ostream &os, const string &s);
 
     static unsigned       hash (const string &s) {return s.key_;}
 
