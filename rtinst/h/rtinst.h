@@ -65,14 +65,16 @@ struct floatCounterRec {
 
 typedef struct tTimerRec tTimer;
 struct tTimerRec {
-    int 	counter;		/* must be 0 to start/stop */
-    time64	total;
-    time64	start;
-    time64      lastValue;
-    time64	snapShot;	/* used to get consistant value during st/stp */
-    int		normalize;	/* value to divide total by to get seconds */
-    timerType 	type;
-    sampleId 	id;
+    volatile int 	counter;	/* must be 0 to start/stop */
+    volatile time64	total;
+    volatile time64	start;
+    volatile time64     lastValue;
+    volatile time64	snapShot;	/* used to get consistant value 
+					   during st/stp */
+    volatile int	normalize;	/* value to divide total by to 
+					   get seconds */
+    volatile timerType 	type;
+    volatile sampleId 	id;
     volatile char mutex;
     volatile char sampled;
 };

@@ -33,6 +33,8 @@
 #include <sys/time.h>
 #include "rtinst/h/rtinst.h"
 
+extern int    gettimeofday(struct timeval *, struct timezone *);
+extern void perror(const char *);
 
 
 
@@ -79,7 +81,7 @@ DYNINSTos_init(void) {
 
 time64
 DYNINSTgetCPUtime(void) {
-    return (time64) ((double) gethrvtime()/NANO_PER_USEC);
+    return ((time64)gethrvtime()/(time64)NANO_PER_USEC);
 }
 
 
@@ -96,9 +98,9 @@ DYNINSTgetCPUtime(void) {
 time64
 DYNINSTgetWalltime(void) {
     struct timeval tv;
-    if (gettimeofday(&tv) == -1) {
+    if (gettimeofday(&tv,NULL) == -1) {
         perror("gettimeofday");
         abort();
     }
-    return (time64) (tv.tv_sec*MILLION+tv.tv_usec);
+    return ((time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec);
 }

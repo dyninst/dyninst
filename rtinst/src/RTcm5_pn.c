@@ -4,7 +4,12 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.32  1996/01/15 16:58:13  zhichen
+ * Revision 1.33  1996/02/01 17:47:54  naim
+ * Fixing some problems related to timers and race conditions. I also tried to
+ * make a more standard definition of certain procedures (e.g. reportTimer)
+ * across all platforms - naim
+ *
+ * Revision 1.32  1996/01/15  16:58:13  zhichen
  * Devided sampleInterval by 2 (bart's information theory)
  * The other change is in dynrpc.C , search for SAMPLEnodes
  *
@@ -203,6 +208,19 @@ volatile unsigned int *ni; /* zxu deleted "static" (unneeded; clashes w/blz) */
 volatile struct timer_buf timerBuffer;
 void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length, void *eventData, int flush) ;
 
+int  must_end_timeslice()      /* changed to return int */
+{
+  printf ("Need to end timeslice!!!\n");
+  return(0);
+  /*
+   * We still don't do anything good for this case.
+   * Simple solutions are:
+   * 1.  Increase buffer size
+   * 2.  Implement a way for a node to trigger a context switch and
+   * surrender the rest of a timeslice.
+   */
+}
+
 #ifdef notdef
 inline time64 getProcessTime()
 {
@@ -252,7 +270,7 @@ time64 DYNINSTgetCPUtime()
      time64 now;
 
      now = getProcessTime();
-     now /= NI_CLK_USEC;
+     now /= (time64) NI_CLK_USEC;
      return(now);
 }
 
@@ -279,13 +297,14 @@ inline time64 DYNINSTgetWallTime()
     time64 now;
 
     now = getWallTime();
-    now /= NI_CLK_USEC;
+    now /= (time64) NI_CLK_USEC;
     return(now);
 }
 
 void DYNINSTstartWallTimer(tTimer *timer)
 {
-    /* events that trigger timer starts during trace flushes are to be ignored */
+    /* events that trigger timer starts during trace flushes are to be 
+       ignored */
     if (DYNINSTin_sample) return;
 
     if (timer->counter == 0) {
@@ -300,18 +319,41 @@ void DYNINSTstopWallTimer(tTimer *timer)
 {
     time64 now;
 
-    /* events that trigger timer stops during trace flushes are to be ignored */
+    /* events that trigger timer stops during trace flushes are to be 
+       ignored */
     if (DYNINSTin_sample) return;
 
+    /* don't stop a counter that is not running */
     if (!timer->counter) return;
 
+    /* Warning - there is a window between setting now, and mutex that
+       can cause time to go backwards by the time to execute the
+       instructions between these two points.  This is not a cummlative error
+       and should not affect samples.  This was done (rather than re-sampling
+       now because the cost of computing now is so high).
+    */
     if (timer->counter == 1) {
-	 now = getWallTime();
-	 timer->snapShot = timer->total + now - timer->start;
-	 timer->mutex = 1;
-	 timer->counter = 0;
-	 timer->total = timer->snapShot;
-	 timer->mutex = 0;
+	now = getWallTime();
+	timer->snapShot = now - timer->start + timer->total;
+	timer->mutex = 1;
+        /*                 
+         * The reason why we do the following line in that way is because
+         * a small race condition: If the sampling alarm goes off
+         * at this point (before timer->mutex=1), then time will go backwards 
+         * the next time a sample is take (if the {wall,process} timer has not
+         * been restarted).
+         */
+	timer->total = getWallTime() - timer->start + timer->total;
+	timer->counter = 0;
+	timer->mutex = 0;
+	if (now < timer->start) {
+            printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
+                   timer->id.id, (double)timer->snapShot,
+                   (double)timer->total, 
+                   (double)timer->start, (double)now);
+            printf("wall timer rollback\n"); fflush(stdout);
+            abort();
+	}
     } else {
 	timer->counter--;
     }
@@ -332,53 +374,47 @@ void DYNINSTstartProcessTimer(tTimer *timer)
 
 void DYNINSTstopProcessTimer(tTimer *timer)
 {
-    time64 end;
-    time64 elapsed;
-    /* tTimer timerTemp; --commented out since unused -ZXU */
-    /* events that trigger timer stops during trace flushes are to be ignored */
+    time64 now;
+
+    /* events that trigger timer stops during trace flushes are to be 
+       ignored */
     if (DYNINSTin_sample) return;
 
+    /* don't stop a counter that is not running */
     if (!timer->counter) return;
 
+    /* Warning - there is a window between setting now, and mutex that
+       can cause time to go backwards by the time to execute the
+       instructions between these two points.  This is not a cummlative error
+       and should not affect samples.  This was done (rather than re-sampling
+       now because the cost of computing now is so high).
+    */
     if (timer->counter == 1) {
-retry:
-	end = getProcessTime();
-	elapsed = end - timer->start;
-	timer->snapShot = elapsed + timer->total;
+	now = getProcessTime();
+	timer->snapShot = now - timer->start + timer->total;
 	timer->mutex = 1;
+        /*                 
+         * The reason why we do the following line in that way is because
+         * a small race condition: If the sampling alarm goes off
+         * at this point (before timer->mutex=1), then time will go backwards 
+         * the next time a sample is take (if the {wall,process} timer has not
+         * been restarted).
+         */
+	timer->total = getProcessTime() - timer->start + timer->total;
 	timer->counter = 0;
-	/* read proces time again in case the value was sampled between
-	 *  last sample and mutex getting set.
-	 */
-	if (timer->sampled) {
-	    timer->sampled = 0;
-	    goto retry;
-	}
-	timer->total = timer->snapShot;
-	timer->sampled = 0;
 	timer->mutex = 0;
-
-	/* for debugging */
-	if (timer->total < 0) {
-	    double st, el, en, to;
-
-	    el = elapsed;
-	    en = end;
-	    st = timer->start;
-	    to = timer->total;
-	    printf("FATAL ERROR NEGATIVE TIME****\n");
-	    printf("el = %f, en = %f, st = %f, to = %f\n", el, en,
-		st, to);
-	    fflush(stdout);
-	    abort();
+	if (now < timer->start) {
+            printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
+                   timer->id.id, (double)timer->snapShot,
+                   (double)timer->total, 
+                   (double)timer->start, (double)now);
+            printf("process timer rollback\n"); fflush(stdout);
+            abort();
 	}
     } else {
 	timer->counter--;
     }
 }
-
-time64 previous[1000];
-
 
 /* CMMD programs use set_timer_buf, as usual.
    For Blizzard programs, we cannot use set_timer_buf because
@@ -403,23 +439,19 @@ void DYNINSTreportTimer(tTimer *timer)
  * it reports the total time since beginning -zxu
  */
 {
-    time64 now;
+    time64 now=0;
     time64 total;
-    /* tTimer timerTemp; --commented out since unused -ZXU */
-    traceSample sample;
 
     if (timer->mutex) {
 	total = timer->snapShot;
-	timer->sampled = 1;
     } else if (timer->counter) {
 	/* timer is running */
 	if (timer->type == processTime) {
-	    now = getProcessTime();
-	    total = now - timer->start;
+	   now = getProcessTime();
+	   total = now - timer->start;
 	} else {
-           /* why not call "getWallTime();" to be consistent with DYNINSTstartWallTimer? */
-	   CMOS_get_time(&now);   
-	   total = (now - timer->start);
+           now = getWallTime();   
+	   total = now - timer->start;
 	}
 	total += timer->total;
     } else {
@@ -427,13 +459,13 @@ void DYNINSTreportTimer(tTimer *timer)
     }
 
     if (total < timer->lastValue) {
-	 if (timer->type == processTime) {
-	     printf("process ");
-	 } else {
-	     printf("wall ");
-	 }
-	 printf("time regressed timer %d, total = %f, last = %f\n",
-	     timer->id.id, (float) total, (float) timer->lastValue);
+	if (timer->type == processTime) {
+	    printf("process ");
+	} else {
+	    printf("wall ");
+	}
+	printf("time regressed timer %d, total = %f, last = %f\n",
+	       timer->id.id, (float) total, (float) timer->lastValue);
 	if (timer->counter) {
 	    printf("timer was active\n");
 	} else {
@@ -447,19 +479,20 @@ void DYNINSTreportTimer(tTimer *timer)
 	fflush(stdout);
 	abort();
     }
+
     timer->lastValue = total;
 
     sample.value = total / (double) timer->normalize;
     sample.id = timer->id;
     DYNINSTtotalSamples++;
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, RT_FALSE);
+    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample),&sample,RT_FALSE);
 }
 
 
-
-time64 startWall;       /* zxu deleted storage class static for blz_RTcm5_pn.c */
+time64 startWall;           /* zxu deleted storage class static for 
+                               blz_RTcm5_pn.c */
 int DYNINSTnoHandlers;
-int DYNINSTinitDone;   /* zxu deleted storage class static */
+int DYNINSTinitDone;        /* zxu deleted storage class static */
 time64 DYNINSTelapsedTime;
 tTimer DYNINSTelapsedCPUTime;
 
@@ -583,7 +616,7 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     header.wall += startWall;
     header.wall /= NI_CLK_USEC;
 
-    CMOS_get_times(&header.process, &pTime);
+    CMOS_get_times(&header.process,&pTime);
     header.process -= pTime;
     header.process /= NI_CLK_USEC;
 
@@ -617,18 +650,6 @@ void DYNINSTbreakPoint(int arg)
  */
 void DYNINSTflushTrace()
 {
-}
-
-int  must_end_timeslice()      /* changed to return int */
-{
-  printf ("Need to end timeslice!!!\n");
-  /*
-   * We still don't do anything good for this case.
-   * Simple solutions are:
-   * 1.  Increase buffer size
-   * 2.  Implement a way for a node to trigger a context switch and
-   * surrender the rest of a timeslice.
-   */
 }
 
 extern int DYNINSTnumReported;

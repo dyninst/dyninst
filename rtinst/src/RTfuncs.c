@@ -3,7 +3,12 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.23  1995/12/17 20:58:10  zhichen
+ * Revision 1.24  1996/02/01 17:47:57  naim
+ * Fixing some problems related to timers and race conditions. I also tried to
+ * make a more standard definition of certain procedures (e.g. reportTimer)
+ * across all platforms - naim
+ *
+ * Revision 1.23  1995/12/17  20:58:10  zhichen
  * Hopefully, the samples will arrive
  *
  * Revision 1.22  1995/12/10  16:35:52  zhichen
@@ -97,8 +102,8 @@
 #include "rtinst/h/trace.h"
 #include "rtinst/h/rtinst.h"
 
-extern time64 DYNINSTgetCPUtime();
-extern time64 DYNINSTgetWallTime();
+extern time64 DYNINSTgetCPUtime(void);
+extern time64 DYNINSTgetWallTime(void);
 /* zxu added the following */
 extern void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length, void *eventData, int flush) ;
 extern void saveFPUstate(float *base) ;

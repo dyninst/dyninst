@@ -34,10 +34,12 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/times.h>
+#include <sys/resource.h>
 
 #include "kludges.h"
 #include "rtinst/h/rtinst.h"
 
+extern int getrusage (int, struct rusage *);
 
 
 
@@ -78,12 +80,25 @@ DYNINSTos_init(void) {
 
 time64
 DYNINSTgetCPUtime(void) {
-    struct tms t;
-    if (times(&t) == -1) {
-        perror("times");
-        abort();
+    time64 now;
+    static time64 previous=0;
+    struct rusage ru;
+
+try_again:    
+    if (!getrusage(RUSAGE_SELF, &ru)) {
+      now = (time64)ru.ru_utime.tv_sec + (time64)ru.ru_stime.tv_sec;
+      now *= (time64)1000000;
+      now += (time64)ru.ru_utime.tv_usec + (time64)ru.ru_stime.tv_usec;
+      if (now<previous) {
+        goto try_again;
+      }
+      previous=now;
+      return(now);
     }
-    return (time64) ((t.tms_utime+t.tms_stime)*MILLION/HZ);
+    else {
+      perror("getrusage");
+      abort();
+    }
 }
 
 
@@ -100,9 +115,9 @@ DYNINSTgetCPUtime(void) {
 time64
 DYNINSTgetWalltime(void) {
     struct timeval tv;
-    if (gettimeofday(&tv, 0) == -1) {
+    if (gettimeofday(&tv, NULL) == -1) {
         perror("gettimeofday");
         abort();
     }
-    return (time64) (tv.tv_sec*MILLION + tv.tv_usec);
+    return ((time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec);
 }

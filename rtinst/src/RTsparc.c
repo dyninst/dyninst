@@ -4,7 +4,12 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTsparc.c,v $
- * Revision 1.8  1994/11/12 17:32:12  rbi
+ * Revision 1.9  1996/02/01 17:48:37  naim
+ * Fixing some problems related to timers and race conditions. I also tried to
+ * make a more standard definition of certain procedures (e.g. reportTimer)
+ * across all platforms - naim
+ *
+ * Revision 1.8  1994/11/12  17:32:12  rbi
  * removed /dev/kmem warning messages
  *
  * Revision 1.7  1994/11/11  10:39:10  markc
@@ -50,8 +55,10 @@
 #include "kludges.h"
 #include "../h/rtinst.h"
 
+extern time64 DYNINSTgetCPUtime(void);
+
 int DYNINSTmappedUarea;
-int *_p_1, *_p_2;
+int *_p_1, *_p_2, *_p_3, *_p_4;
 static int _kmem = -1;
 
 /*
@@ -62,9 +69,11 @@ static int _kmem = -1;
 caddr_t DYNINSTprobeUarea()
 {
      int pid;
-     char *cmd;
      kvm_t *kd;
+#ifdef notdef
+     char *cmd;
      char **args;
+#endif
      struct user *u;
      struct proc *p;
 
@@ -142,6 +151,8 @@ int DYNINSTmapUarea()
     u = (struct user *) ret;
     _p_1 = (int *) &(u->u_ru.ru_utime.tv_sec);
     _p_2 = (int *) &(u->u_ru.ru_utime.tv_usec);
+    _p_3 = (int *) &(u->u_ru.ru_stime.tv_sec);
+    _p_4 = (int *) &(u->u_ru.ru_stime.tv_usec);
 
     return(1);
 }

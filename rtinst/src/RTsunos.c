@@ -22,7 +22,12 @@
  * RTsunos.c: SunOs-4.1.3 specific functions.
  *
  * $Log: RTsunos.c,v $
- * Revision 1.4  1995/08/24 15:12:44  hollings
+ * Revision 1.5  1996/02/01 17:48:39  naim
+ * Fixing some problems related to timers and race conditions. I also tried to
+ * make a more standard definition of certain procedures (e.g. reportTimer)
+ * across all platforms - naim
+ *
+ * Revision 1.4  1995/08/24  15:12:44  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -68,6 +73,8 @@
 #include "kludges.h"
 #include "rtinst/h/rtinst.h"
 
+extern int getrusage (int, struct rusage *);
+extern char *getenv(char *);
 
 
 
@@ -123,6 +130,8 @@ DYNINSTprobeUarea(void) {
 int DYNINSTmappedUarea = 0;
 volatile unsigned* DYNINSTuareaTimeSec = 0;
 volatile unsigned* DYNINSTuareaTimeUsec = 0;
+volatile unsigned* DYNINSTuareaSTimeSec = 0;
+volatile unsigned* DYNINSTuareaSTimeUsec = 0;
 struct rusage *DYNINSTrusagePtr;
 struct user *DYNINSTuareaPtr;
 
@@ -135,6 +144,7 @@ DYNINSTmapUarea(void) {
 
     if (getenv("DYNINSTuseGetrusage")) {
         printf("Using getrusage\n");
+        fflush(stdout);
         return;
     }
 
@@ -163,6 +173,8 @@ DYNINSTmapUarea(void) {
 
     DYNINSTuareaTimeSec = (int *) &(u->u_ru.ru_utime.tv_sec);
     DYNINSTuareaTimeUsec = (int *) &(u->u_ru.ru_utime.tv_usec);
+    DYNINSTuareaSTimeSec = (int *) &(u->u_ru.ru_stime.tv_sec);
+    DYNINSTuareaSTimeUsec = (int *) &(u->u_ru.ru_stime.tv_usec);
 }
 
 
@@ -209,27 +221,45 @@ static const double MILLION = 1000000.0;
 
 time64
 DYNINSTgetCPUtime(void) {
-    struct tms    t;
-    unsigned long p1;
-    time64        tm;
+    unsigned long p1, p2;
+    time64 now;
+    static time64 previous=0;
+    struct rusage ru;
 
     if (DYNINSTmappedUarea) {
 retry:
         p1 = *DYNINSTuareaTimeSec;
+        p2 = *DYNINSTuareaSTimeSec;
 	/* This MUST not use float constant MILLION - jkh 2/8/95 */
-        tm = ((p1*(time64)1000000) + *DYNINSTuareaTimeUsec);
-
-        if (p1 != (*DYNINSTuareaTimeSec)) {
-            goto retry;
+        now  = (time64)p1 + (time64)p2;
+        now *= (time64)1000000;
+        now += (time64)(*DYNINSTuareaTimeUsec) + 
+               (time64)(*DYNINSTuareaSTimeUsec);
+        if (p1 != (*DYNINSTuareaTimeSec) || p2 != (*DYNINSTuareaSTimeSec)) {
+          goto retry;
+        }        
+        if (now<previous) {
+          goto retry;
         }
-        return tm;
+        previous=now;
+        return now;
     }
 
-    if (times(&t) == -1) {
-        perror("times");
-        abort();
+try_again:    
+    if (!getrusage(RUSAGE_SELF, &ru)) {
+      now = (time64)ru.ru_utime.tv_sec + (time64)ru.ru_stime.tv_sec;
+      now *= (time64)1000000;
+      now += (time64)ru.ru_utime.tv_usec + (time64)ru.ru_stime.tv_usec;
+      if (now<previous) {
+        goto try_again;
+      }
+      previous=now;
+      return now;
     }
-    return (time64) ((t.tms_utime+t.tms_stime)*MILLION/HZ);
+    else {
+      perror("getrusage");
+      abort();
+    }
 }
 
 
@@ -246,11 +276,11 @@ retry:
 time64
 DYNINSTgetWalltime(void) {
     struct timeval tv;
-    if (gettimeofday(&tv, 0) == -1) {
+    if (gettimeofday(&tv, NULL) == -1) {
         perror("gettimeofday");
         abort();
     }
-    return (time64) ((tv.tv_sec*(time64) 1000000) + tv.tv_usec);
+    return ((time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec);
 }
 
 /*

@@ -63,7 +63,6 @@
 #include "rtinst/h/trace.h"
 #include "util/h/sys.h"
 
-
 
 
 /************************************************************************
@@ -139,7 +138,7 @@ DYNINSTstartProcessTimer(tTimer* timer) {
     if (DYNINSTin_sample) return;       
     if (timer->counter == 0) {
         timer->start     = DYNINSTgetCPUtime();
-        timer->normalize = 1000000;
+        timer->normalize = MILLION;
     }
     timer->counter++;
 }
@@ -167,22 +166,29 @@ DYNINSTstopProcessTimer(tTimer* timer) {
 
         timer->snapShot = now - timer->start + timer->total;
         timer->mutex    = 1;
-        timer->counter  = 0;
-        timer->total    = DYNINSTgetCPUtime() - timer->start + timer->total;
-        timer->mutex    = 0;
+        /*                 
+         * The reason why we do the following line in that way is because
+         * a small race condition: If the sampling alarm goes off
+         * at this point (before timer->mutex=1), then time will go backwards 
+         * the next time a sample is take (if the {wall,process} timer has not
+         * been restarted).
+         */
+        timer->total = DYNINSTgetCPUtime() - timer->start + timer->total; 
+        timer->counter = 0;
+        timer->mutex = 0;
 
         if (now < timer->start) {
             printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
-                   timer->id.id, (double)timer->snapShot, (double)timer->total, 
+                   timer->id.id, (double)timer->snapShot,
+                   (double)timer->total, 
                    (double)timer->start, (double)now);
             printf("process timer rollback\n"); fflush(stdout);
             abort();
         }
     }
     else {
-        timer->counter--;
+      timer->counter--;
     }
-    timer->counter = 0;
 }
 
 
@@ -200,7 +206,7 @@ DYNINSTstartWallTimer(tTimer* timer) {
     if (DYNINSTin_sample) return;       
     if (timer->counter == 0) {
         timer->start     = DYNINSTgetWalltime();
-        timer->normalize = 1000000;
+        timer->normalize = MILLION;
     }
     timer->counter++;
 }
@@ -228,12 +234,24 @@ DYNINSTstopWallTimer(tTimer* timer) {
 
         timer->snapShot = now - timer->start + timer->total;
         timer->mutex    = 1;
-        timer->counter  = 0;
+        /*                 
+         * The reason why we do the following line in that way is because
+         * a small race condition: If the sampling alarm goes off
+         * at this point (before timer->mutex=1), then time will go backwards 
+         * the next time a sample is take (if the {wall,process} timer has not
+         * been restarted).
+         */
         timer->total    = DYNINSTgetWalltime() - timer->start + timer->total;
+        timer->counter  = 0;
         timer->mutex    = 0;
 
         if (now < timer->start) {
-            printf("wall timer rollback\n"); fflush(stdout);
+            printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
+                   timer->id.id, (double)timer->snapShot,
+                   (double)timer->total, 
+                   (double)timer->start, (double)now);
+            printf("wall timer rollback\n"); 
+            fflush(stdout);
             abort();
         }
     }
@@ -650,7 +668,9 @@ DYNINSTinit(int doskip) {
     struct sigaction act;
     unsigned         val;
     char *temp;
+#ifdef n_def
     const char*      interval;
+#endif
 
     DYNINSTos_init();
 

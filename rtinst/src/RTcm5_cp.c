@@ -3,7 +3,12 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTcm5_cp.c,v $
- * Revision 1.8  1995/12/10 16:34:57  zhichen
+ * Revision 1.9  1996/02/01 17:47:52  naim
+ * Fixing some problems related to timers and race conditions. I also tried to
+ * make a more standard definition of certain procedures (e.g. reportTimer)
+ * across all platforms - naim
+ *
+ * Revision 1.8  1995/12/10  16:34:57  zhichen
  * Minor cleanup
  *
  * Revision 1.7  1995/10/27  00:59:50  zhichen
@@ -69,6 +74,10 @@
 /* now our include files */
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
+
+extern void DYNINSTgenerateTraceRecord(traceStream sid, short type, 
+                                       short length, void *eventData, 
+                                       int flush) ;
 
 /*
  * Generate a fork record for each node in the partition.

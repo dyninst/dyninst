@@ -3,7 +3,12 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.26  1995/11/03 00:06:25  newhall
+ * Revision 1.27  1996/02/01 17:49:54  naim
+ * Fixing some problems related to timers and race conditions. I also tried to
+ * make a more standard definition of certain procedures (e.g. reportTimer)
+ * across all platforms - naim
+ *
+ * Revision 1.26  1995/11/03  00:06:25  newhall
  * initialize sampling rate to BASESAMPLEINTERVAL (defined in util/h/sys.h)
  * changed type of all DYNINSTsampleMultiple to "volatile int"
  *
@@ -148,7 +153,7 @@ int64 DYNINSTgetObservedCycles();
  *
  */
 typedef volatile unsigned int clockWord;
-extern clockWord *_p_1, *_p_2;
+extern clockWord *_p_1, *_p_2, *_p_3, *_p_4;
 
 /*
  * Missing stuff.
@@ -162,15 +167,43 @@ extern int getrusage(int who, struct rusage *rusage);
  */
 time64 DYNINSTgetCPUtime()
 {
-     time64 now;
-     struct rusage ru;
+    time64 now;
+    static time64 previous=0;
+    struct rusage ru;
+    int userTimeSec, systemTimeSec;
 
-     getrusage(RUSAGE_SELF, &ru);
-     now = ru.ru_utime.tv_sec;
-     now *= MILLION;
-     now += ru.ru_utime.tv_usec;
+    if (DYNINSTmappedUarea) {
+retry:
+	 userTimeSec = *_p_1;
+         systemTimeSec = *_p_3;
+	 now = (time64)userTimeSec + (time64)systemTimeSec;
+	 now *= (time64)1000000;
+	 now += (time64)(*_p_2) + (time64)(*_p_4); /* User and System times */
+                                                   /* in usecs              */
+	 if (*_p_1 != userTimeSec ||             
+             *_p_3 != systemTimeSec) goto retry;    
+         if (now<previous) {
+           goto retry;
+	 }
+         previous=now;
+         return(now);
+    }
 
-     return(now);
+try_again:    
+    if (!getrusage(RUSAGE_SELF, &ru)) {
+      now = (time64)ru.ru_utime.tv_sec + (time64)ru.ru_stime.tv_sec;
+      now *= (time64)1000000;
+      now += (time64)ru.ru_utime.tv_usec + (time64)ru.ru_stime.tv_usec;
+      if (now<previous) {
+        goto try_again;
+      }
+      previous=now;
+      return(now);
+    }
+    else {
+      perror("getrusage");
+      abort();
+    }
 }
 
 time64 DYNINSTgetWallTime()
@@ -179,25 +212,28 @@ time64 DYNINSTgetWallTime()
      struct timeval tv;
 
      gettimeofday(&tv, NULL);
-     now = tv.tv_sec;
-     now *= (time64) MILLION;
-     now += tv.tv_usec;
+     now = (time64) tv.tv_sec;
+     now *= (time64) 1000000;
+     now += (time64) tv.tv_usec;
 
      return(now);
 }
 
 inline time64 DYNINSTgetUserTime()
 {
-    int first;
+    int userTimeSec, systemTimeSec;
     time64 now;
 
     if (DYNINSTmappedUarea) {
 retry:
-	 first = *_p_1;
-	 now = first;
-	 now *= MILLION;
-	 now += *_p_2;
-	 if (*_p_1 != first) goto retry;
+	 userTimeSec = *_p_1;
+         systemTimeSec = *_p_3;
+	 now = (time64)userTimeSec + (time64)systemTimeSec;
+	 now *= (time64)1000000;
+	 now += (time64)(*_p_2) + (time64)(*_p_4); /* User and System times */
+                                                   /* in usecs              */
+	 if (*_p_1 != userTimeSec ||             
+             *_p_3 != systemTimeSec) goto retry;         
      } else {
 	 now = DYNINSTgetCPUtime();
      }
@@ -216,14 +252,13 @@ void DYNINSTbreakPoint()
 
 void DYNINSTstartProcessTimer(tTimer *timer)
 {
-    time64 temp;
+    /* events that trigger timer starts during trace flushes are to be 
+       ignored */
 
-    /* events that trigger timer starts during trace flushes are to be ignored */
     if (DYNINSTin_sample) return;
 
     if (timer->counter == 0) {
-	 temp = DYNINSTgetUserTime();
-	 timer->start = temp;
+	 timer->start = DYNINSTgetCPUtime();
 	 timer->normalize = MILLION;
     }
     /* this must be last to prevent race conditions */
@@ -233,34 +268,41 @@ void DYNINSTstartProcessTimer(tTimer *timer)
 void DYNINSTstopProcessTimer(tTimer *timer)
 {
     time64 now;
-    struct rusage ru;
 
-    /* events that trigger timer stops during trace flushes are to be ignored */
+    /* events that trigger timer stops during trace flushes are to be 
+       ignored */
     if (DYNINSTin_sample) return;
 
     /* don't stop a counter that is not running */
     if (!timer->counter) return;
 
     /* Warning - there is a window between setting now, and mutex that
-	  can cause time to go backwards by the time to execute the
-	  instructions between these two points.  This is not a cummlative error
-	  and should not affect samples.  This was done (rather than re-sampling
-	  now because the cost of computing now is so high).
+       can cause time to go backwards by the time to execute the
+       instructions between these two points.  This is not a cummlative error
+       and should not affect samples.  This was done (rather than re-sampling
+       now because the cost of computing now is so high).
     */
     if (timer->counter == 1) {
-	now = DYNINSTgetUserTime();
+	now = DYNINSTgetCPUtime();
 	timer->snapShot = now - timer->start + timer->total;
 	timer->mutex = 1;
+        /*                 
+         * The reason why we do the following line in that way is because
+         * a small race condition: If the sampling alarm goes off
+         * at this point (before timer->mutex=1), then time will go backwards 
+         * the next time a sample is take (if the {wall,process} timer has not
+         * been restarted).
+         */
+	timer->total = DYNINSTgetCPUtime() - timer->start + timer->total;
 	timer->counter = 0;
-	/* This next line can have the race condition. */
-	/* timer->total = timer->snapShot; */
-	timer->total = DYNINSTgetUserTime() - timer->start + timer->total;
 	timer->mutex = 0;
 	if (now < timer->start) {
-	     getrusage(RUSAGE_SELF, &ru);
-	     printf("end before start\n");
-	     fflush(stdout);
-	     sigpause(0xffff);
+            printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
+                   timer->id.id, (double)timer->snapShot,
+                   (double)timer->total, 
+                   (double)timer->start, (double)now);
+            printf("process timer rollback\n"); fflush(stdout);
+            abort();
 	}
     } else {
 	timer->counter--;
@@ -270,46 +312,54 @@ void DYNINSTstopProcessTimer(tTimer *timer)
 
 void DYNINSTstartWallTimer(tTimer *timer)
 {
-    struct timeval tv;
-
-    /* events that trigger timer starts during trace flushes are to be ignored */
-    if (DYNINSTin_sample) return;
-
+    /* if "write" is instrumented to start timers, a timer could be started */
+    /* when samples are being written back */
+    if (DYNINSTin_sample) return;       
     if (timer->counter == 0) {
-	 gettimeofday(&tv, NULL);
-	 timer->start = tv.tv_sec;
-	 timer->start *= (time64) MILLION;
-	 timer->start += tv.tv_usec;
-	 timer->normalize = MILLION;
+        timer->start     = DYNINSTgetWallTime();
+        timer->normalize = MILLION;
     }
-    /* this must be last to prevent race conditions */
     timer->counter++;
 }
 
 void DYNINSTstopWallTimer(tTimer *timer)
 {
-    time64 now;
-    struct timeval tv;
+    /* if "write" is instrumented to start timers, a timer could be started */
+    /* when samples are being written back */
+    if (DYNINSTin_sample) return;       
 
-    /* events that trigger timer starts during trace flushes are to be ignored */
-    if (DYNINSTin_sample) return;
-
-    /* don't stop a counter that is not running */
-    if (!timer->counter) return;
+    if (!timer->counter) {
+        return;
+    }
 
     if (timer->counter == 1) {
-	 gettimeofday(&tv, NULL);
-	 now = tv.tv_sec;
-	 now *= MILLION;
-	 now += tv.tv_usec;
-	 /* see note before StopProcess time for warning about this mutex */
-	 timer->snapShot = timer->total + now - timer->start;
-	 timer->mutex = 1;
-	 timer->counter = 0;
-	 timer->total = timer->snapShot;
-	 timer->mutex = 0;
-    } else {
-	timer->counter--;
+        time64 now = DYNINSTgetWallTime();
+
+        timer->snapShot = now - timer->start + timer->total;
+        timer->mutex    = 1;
+        /*                 
+         * The reason why we do the following line in that way is because
+         * a small race condition: If the sampling alarm goes off
+         * at this point (before timer->mutex=1), then time will go backwards 
+         * the next time a sample is take (if the {wall,process} timer has not
+         * been restarted).
+         */
+        timer->total    = DYNINSTgetWallTime() - timer->start + timer->total;
+        timer->counter  = 0;
+        timer->mutex    = 0;
+
+        if (now < timer->start) {
+            printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
+                   timer->id.id, (double)timer->snapShot,
+                   (double)timer->total, 
+                   (double)timer->start, (double)now);
+            printf("wall timer rollback\n");
+            fflush(stdout);
+            abort();
+        }
+    }
+    else {
+        timer->counter--;
     }
 }
 
@@ -357,7 +407,9 @@ void DYNINSTpauseProcess()
 void DYNINSTinit(int skipBreakpoint)
 {
     int val;
+#ifdef n_def
     char *interval;
+#endif
     struct sigvec alarmVector;
     extern int DYNINSTmapUarea();
     extern float DYNINSTcyclesPerSecond();
@@ -424,6 +476,11 @@ void DYNINSTinit(int skipBreakpoint)
 
 void DYNINSTexit()
 {
+}
+
+void DYNINSTflushTrace()
+{
+    if (DYNINSTtraceFp) fflush(DYNINSTtraceFp);
 }
 
 static int pipeGone;
@@ -495,19 +552,14 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
        DYNINSTflushTrace();
 }
 
-void DYNINSTflushTrace()
-{
-    if (DYNINSTtraceFp) fflush(DYNINSTtraceFp);
-}
 
 /* time64 lastValue[10000]; */
-double lastTime[200];
+/* double lastTime[200]; */
 
 void DYNINSTreportTimer(tTimer *timer)
 {
-    time64 now;
+    time64 now=0;
     time64 total;
-    struct timeval tv;
     traceSample sample;
 
     if (timer->mutex) {
@@ -515,27 +567,23 @@ void DYNINSTreportTimer(tTimer *timer)
     } else if (timer->counter) {
 	/* timer is running */
 	if (timer->type == processTime) {
-	    /* now = DYNINSTgetCPUtime(); */
-	    /* use mapped time if available */
-	    now = DYNINSTgetUserTime();
+	    now = DYNINSTgetCPUtime();
 	} else {
-	    gettimeofday(&tv, NULL);
-	    now = tv.tv_sec;
-	    now *= MILLION;
-	    now += tv.tv_usec;
+            now = DYNINSTgetWallTime();
 	}
 	total = now - timer->start + timer->total;
     } else {
 	total = timer->total;
     }
+
     if (total < timer->lastValue) {
-	 if (timer->type == processTime) {
-	     printf("process ");
-	 } else {
-	     printf("wall ");
-	 }
-	 printf("time regressed timer %d, total = %f, last = %f\n",
-	     timer->id.id, (float) total, (float) timer->lastValue);
+	if (timer->type == processTime) {
+	    printf("process ");
+	} else {
+	    printf("wall ");
+	}
+	printf("time regressed timer %d, total = %f, last = %f\n",
+	       timer->id.id, (float) total, (float) timer->lastValue);
 	if (timer->counter) {
 	    printf("timer was active\n");
 	} else {
@@ -547,7 +595,7 @@ void DYNINSTreportTimer(tTimer *timer)
 	printf("now = %f\n start = %f\n total = %f\n",
 	       (double) now, (double) timer->start, (double) timer->total);
 	fflush(stdout);
-	sigpause(0xffff);
+	abort();
     }
     timer->lastValue = total;
 

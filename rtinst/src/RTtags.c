@@ -10,7 +10,12 @@
  *   CMMP_send_noblock
  *
  * $Log: RTtags.c,v $
- * Revision 1.3  1994/07/14 23:36:07  hollings
+ * Revision 1.4  1996/02/01 17:48:57  naim
+ * Fixing some problems related to timers and race conditions. I also tried to
+ * make a more standard definition of certain procedures (e.g. reportTimer)
+ * across all platforms - naim
+ *
+ * Revision 1.3  1994/07/14  23:36:07  hollings
  * added extra arg to generateTrace.
  *
  * Revision 1.2  1994/06/27  21:30:22  rbi
@@ -38,6 +43,10 @@
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
+
+extern void DYNINSTgenerateTraceRecord(traceStream sid, short type, 
+                                       short length, void *eventData, 
+                                       int flush) ;
 
 #define	dest_src	arg1
 #define	tag		arg2
