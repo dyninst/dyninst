@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.30  1995/12/17 05:13:15  zhichen
+ * Revision 1.31  1995/12/17 20:57:12  zhichen
+ * This time i hope i really fixed the no sample problem
+ *
+ * Revision 1.30  1995/12/17  05:13:15  zhichen
  * Hopefully, i have fixed the sample not reporting problem
  *
  * Revision 1.29  1995/12/10  16:35:21  zhichen
@@ -262,7 +265,7 @@ retry:
 
     /* i copied the following two lines from getProcessTime -zxu 11/04/95 */
     /* check for three way race of start/stop & sample & wrap. */
-    if (end.parts.high != timerBuffer.high) goto retry;
+    /* if (end.parts.high != timerBuffer.high) goto retry;     */
 
     return(end.value);
 }
@@ -475,7 +478,7 @@ void DYNINSTinit()
     time64 startNItime;
     extern void DYNINSTalarmExpire();
     extern int DYNINSTsampleMultiple;
-printf("DYNINSTinit is called ...\n") ;
+
     /* temporary correction until we can make the CM-5 aggregation code
        perform a max operation in addition to sum - jk 10/19/94 */
     DYNINSTnprocs = 32;
@@ -548,6 +551,7 @@ printf("DYNINSTinit is called ...\n") ;
     DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
 
     DYNINSTinitDone = 1;
+/* printf("DYNINSTinit is called ...\n") ; */
 
 }
 
