@@ -134,7 +134,7 @@ static time64 DYNINSTtotalSampleTime = 0;
 
 #define DYNINSTTagsLimit      1000
 #define DYNINSTTagGroupsLimit 100
-#define DYNINSTNewTagsLimit   25 // don't want to overload the system
+#define DYNINSTNewTagsLimit   50 // don't want to overload the system
 
 typedef struct DynInstTag_st {
   int   TagGroupId;
@@ -1479,6 +1479,7 @@ void DYNINSTreportNewTags(void)
     }
     strcpy(newRes.abstraction, "BASE");
     newRes.type = RES_TYPE_INT;
+
     DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE, 
 			       sizeof(struct _newresource), &newRes, 1,
 			       wall_time,process_time);
