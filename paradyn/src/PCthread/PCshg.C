@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.16  1994/08/05 16:04:16  hollings
+ * Revision 1.17  1994/09/05 20:01:07  jcargill
+ * Better control of PC output through tunable constants.
+ *
+ * Revision 1.16  1994/08/05  16:04:16  hollings
  * more consistant use of stringHandle vs. char *.
  *
  * Revision 1.15  1994/08/03  19:09:54  hollings
@@ -124,7 +127,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.16 1994/08/05 16:04:16 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.17 1994/09/05 20:01:07 jcargill Exp $";
 #endif
 
 #include <stdio.h>
@@ -196,6 +199,11 @@ void searchHistoryNode::print(int level)
 	printf("active = TRUE");
     else
 	printf("active = FALSE");
+
+    if (suppressed == TRUE)
+	printf(" suppressed = TRUE");
+    else
+	printf(" suppressed = FALSE");
 	
      if (level >= 0) {
 	 printf("\n");

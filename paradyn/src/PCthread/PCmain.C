@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.22  1994/08/22 15:55:58  markc
-/* Cast stringHandles to char* for printing.
+/* Revision 1.23  1994/09/05 20:01:00  jcargill
+/* Better control of PC output through tunable constants.
 /*
+ * Revision 1.22  1994/08/22  15:55:58  markc
+ * Cast stringHandles to char* for printing.
+ *
  * Revision 1.21  1994/08/05  16:04:12  hollings
  * more consistant use of stringHandle vs. char *.
  *
@@ -90,7 +93,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.22 1994/08/22 15:55:58 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.23 1994/09/05 20:01:00 jcargill Exp $";
 #endif
 
 #include <assert.h>
@@ -116,6 +119,7 @@ extern thread_t MAINtid;
 extern timeStamp PCstartTransTime;
 extern timeStamp PCendTransTime;
 
+
 statusDisplayObj *PCstatusDisplay;   // token needed for PC status calls 
 
 int SHGid;             // id needed for Search History Graph uim dag calls
@@ -137,7 +141,6 @@ void PCnewData(performanceStream *ps,
     datum *dp;
     sampleValue total;
     timeStamp start, end;
-    extern tunableBooleanConstant pcEvalPrint;
 
     for (i=0, total = 0.0; i < count; i++) {
 	// printf("mi %x = bin %d == %f\n", mi, i+first, buckets[i]);

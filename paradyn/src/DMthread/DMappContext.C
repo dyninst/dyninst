@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.38  1994/08/22 15:57:26  markc
+ * Revision 1.39  1994/09/05 20:02:59  jcargill
+ * Better control of PC output through tunable constants.
+ *
+ * Revision 1.38  1994/08/22  15:57:26  markc
  * Added support for config language version 2.
  * Check for "" parms and convert them to NULL since NULL signifies undefined,
  * not "".
@@ -706,10 +709,6 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
 
     ra = convertResourceList(rl);
 
-    if (printChangeCollection.getValue()) {
-	cout << "EN: " << m->getName() << rl->getCanonicalName() << "\n";
-    }
-
     // 
     // for each daemon request the data to be enabled.
     //
@@ -717,6 +716,10 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
     foundOne = FALSE;
     for (curr = daemons; daemon = *curr; curr++) {
 	id = daemon->enableDataCollection(ra, m->getName());
+	if (printChangeCollection.getValue()) {
+	  cout << "EDC:  " << (char *) rl->getCanonicalName() 
+	    << " " << id <<"\n";
+	}
 	if (id > 0 && !daemon->did_error_occur()) {
 	    comp = new component(*curr, id, mi);
 	    mi->components.add(comp, (void *) *curr);
@@ -732,6 +735,11 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
 	name = rl->getCanonicalName();
 	m->enabledCombos.add(mi, name);
 	mi->count = 1;
+
+	if (printChangeCollection.getValue()) {
+	  cout << "EN: " << m->getName() 
+	    << ((char *)rl->getCanonicalName()) << "\n";
+	}
 	return(mi);
     } else {
 	delete(mi);

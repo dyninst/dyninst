@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.17  1994/08/03 19:09:53  hollings
+ * Revision 1.18  1994/09/05 20:01:04  jcargill
+ * Better control of PC output through tunable constants.
+ *
+ * Revision 1.17  1994/08/03  19:09:53  hollings
  * split tunable constant into float and boolean types
  *
  * added tunable constant for printing tests as they avaluate.
@@ -120,7 +123,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.17 1994/08/03 19:09:53 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.18 1994/09/05 20:01:04 jcargill Exp $";
 #endif
 
 #include <stdio.h>
@@ -262,7 +265,8 @@ void highSyncToCPURatio_TEST(testValue *result, float normalize)
 	if (active <= 0.0) {
 	  cout << "highSyncToCPURatio Not active\n";
 	} else {
-	  cout << "highSyncToCPURatio" << currentFocus->getName() << " >? V=";
+	  cout << "highSyncToCPURatio" << (char *) currentFocus->getName();
+	  cout << " >? V=";
 	  cout << (st / active) <<
 	    " A=" << (highSyncThreshold * normalize) << "\n"
 	      << "SyncTime.value()=" << st << "\n" 
@@ -321,7 +325,8 @@ void highCPUtoSyncRatio_TEST(testValue *result, float normalize)
     }
 
     if (pcEvalPrint.getValue()) {
-	cout << "highCPUtoSyncRatio " << currentFocus->getName() << " >? V=";
+	cout << "highCPUtoSyncRatio " << (char *) currentFocus->getName();
+	cout << " >? V=";
 	cout << (cpu / processes) << " A=" << (factor * normalize) << "\n";
 	if (factor < highCPUtoSyncRatioThreshold)
 	    cout << "    factor was " << factor << "\n";

@@ -17,7 +17,10 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.26  1994/08/03 19:09:47  hollings
+ * Revision 1.27  1994/09/05 20:00:50  jcargill
+ * Better control of PC output through tunable constants.
+ *
+ * Revision 1.26  1994/08/03  19:09:47  hollings
  * split tunable constant into float and boolean types
  *
  * added tunable constant for printing tests as they avaluate.
@@ -168,7 +171,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.26 1994/08/03 19:09:47 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.27 1994/09/05 20:00:50 jcargill Exp $";
 #endif
 
 #include <stdio.h>
@@ -203,6 +206,16 @@ tunableFloatConstant sufficientTime(6.0, 0.0, 1000.0, NULL, userConstant,
   "sufficientTime",
   "How long to wait (in seconds) before we can conclude a hypothesis is false.");
 
+tunableBooleanConstant printNodes(False, NULL, developerConstant,
+    "printNodes", 
+    "Print out changes to the state of SHG nodes");
+
+tunableBooleanConstant printTestResults(False, NULL, developerConstant,
+    "printTestResults", 
+    "Print out the result of each test as it is computed");
+// Boolean printTestResults = FALSE;
+// Boolean printNodes = FALSE;
+
 int PCsearchPaused;
 extern Boolean textMode;
 List<datum *> *enabledGroup;
@@ -211,8 +224,6 @@ extern timeStamp PCstartTransTime;
 extern int samplesSinceLastChange;
 extern timeStamp PClastTestChangeTime;
 extern timeStamp PCshortestEnableTime;
-Boolean printTestResults = FALSE;
-Boolean printNodes = FALSE;
 
 int testResult::operator ==(testResult *arg)
 {
@@ -529,7 +540,7 @@ Boolean evalTests()
 	}
 
 	if (r->ableToEnable) {
-	    if (printTestResults) {
+	    if (printTestResults.getValue()) {
 		printf("evaluate ");
 		r->t->print();
 		r->f->print();
@@ -559,7 +570,7 @@ Boolean evalTests()
 	// refinements, but that don't require additional tests.
 	ret = TRUE;
 	if ((r->state.status == TRUE) && (previousStatus == FALSE)) {
-	    if (printTestResults) {
+	    if (printTestResults.getValue()) {
 		printf("TEST RETURNED TRUE: ");
 		r->t->print();
 		r->f->print();
@@ -570,7 +581,7 @@ Boolean evalTests()
 	    r->time = PCcurrentTime;
 	    ret = TRUE;
 	} else if (r->state.status != previousStatus) {
-	    if (printTestResults) {
+	    if (printTestResults.getValue()) {
 		printf("TEST BECAME FALSE: ");
 		r->t->print();
 		r->f->print();
@@ -666,7 +677,7 @@ Boolean doScan()
 	    if (shgNode->getStatus() != ret) {
 		shgNode->changeStatus(ret);
 
-		if (printNodes) {
+		if (printNodes.getValue()) {
 		    printf("SHG Node %d ", shgNode->nodeId);
 		    if (ret == TRUE) {
 			printf(" TRUE at time %f\n", PCcurrentTime);

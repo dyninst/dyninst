@@ -19,7 +19,10 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.14  1994/08/05 16:04:10  hollings
+ * Revision 1.15  1994/09/05 20:00:44  jcargill
+ * Better control of PC output through tunable constants.
+ *
+ * Revision 1.14  1994/08/05  16:04:10  hollings
  * more consistant use of stringHandle vs. char *.
  *
  * Revision 1.13  1994/08/03  19:09:45  hollings
@@ -112,7 +115,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.14 1994/08/05 16:04:10 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.15 1994/09/05 20:00:44 jcargill Exp $";
 #endif
 
 #include <stdlib.h>
@@ -255,8 +258,9 @@ void autoChangeRefineList()
     static float batchCost = 0.0;
     extern Boolean PCsearchPaused;
     extern tunableFloatConstant sufficientTime;
+    extern tunableBooleanConstant printNodes;
 
-    if (printNodes) printf("TRYING: ");
+    if (printNodes.getValue()) printf("TRYING: ");
 
     UIM_BatchMode++;
     // totalCost = dataMgr->getCurrentHybridCost(context);
@@ -280,7 +284,7 @@ void autoChangeRefineList()
 	    break;
 	}
 	if (i >= refineCount) break;
-	if (printNodes) printf("%d ", refinementOptions[i]->nodeId);
+	if (printNodes.getValue()) printf("%d ", refinementOptions[i]->nodeId);
 	curr = refinementOptions[i];
 
 	newCost = curr->cost(); 
@@ -293,7 +297,7 @@ void autoChangeRefineList()
     UIM_BatchMode--;
 
     currentRefinementLimit = i;
-    if (printNodes) printf("\n");
+    if (printNodes.getValue()) printf("\n");
 
     // see if there was any thing to test.
     if (currentRefinementBase >= refineCount) {
@@ -314,17 +318,19 @@ void autoChangeRefineList()
 void autoTimeLimitExpired()
 {
     int i;
+    extern tunableBooleanConstant printNodes;
 
-    if (printNodes) printf("GIVING UP ON: ");
+    if (printNodes.getValue()) printf("GIVING UP ON: ");
 
     UIM_BatchMode++;
     for (i=currentRefinementBase; i <= currentRefinementLimit; i++) {
 	if (i >= refineCount) break;
-	if (printNodes) printf("%d ",  refinementOptions[i]->nodeId);
+	if (printNodes.getValue()) 
+	  printf("%d ",  refinementOptions[i]->nodeId);
 	refinementOptions[i]->changeActive(FALSE);
     }
     UIM_BatchMode--;
-    if (printNodes) printf("\n");
+    if (printNodes.getValue()) printf("\n");
 
     currentRefinementBase = currentRefinementLimit+1;
     autoChangeRefineList();

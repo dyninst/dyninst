@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.45  1994/08/22 15:58:36  markc
+ * Revision 1.46  1994/09/05 20:03:07  jcargill
+ * Better control of PC output through tunable constants.
+ *
+ * Revision 1.45  1994/08/22  15:58:36  markc
  * Add code for class daemonEntry
  *
  * Revision 1.44  1994/08/17  17:56:24  markc
@@ -171,6 +174,11 @@ double   quiet_nan(int unused);
 #include "dyninstRPC.CLNT.h"
 #include "DMinternals.h"
 #include "../pdMain/paradyn.h"
+
+
+tunableBooleanConstant printSampleArrival(False, NULL, developerConstant,
+    "printSampleArrival", 
+    "Print out status lines to show the arrival of samples");
 
 static dataManager *dm;
 stringPool metric::names;
@@ -490,7 +498,10 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
     metricInstance *mi;
     struct sampleInterval ret;
 
-    // printf("mid %d %f from %f to %f\n", mid, value, startTimeStamp, endTimeStamp);
+    if (printSampleArrival.getValue()) {
+      cout << "mid " << mid << " " << value << " from " 
+	<< startTimeStamp << " to " << endTimeStamp << "\n";
+    }
     mi = activeMids.find((void*) mid);
     if (!mi) {
 	printf("ERROR: data for unknown mid: %d\n", mid);

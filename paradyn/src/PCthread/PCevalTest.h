@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.h,v $
- * Revision 1.5  1994/08/05 16:04:11  hollings
+ * Revision 1.6  1994/09/05 20:00:53  jcargill
+ * Better control of PC output through tunable constants.
+ *
+ * Revision 1.5  1994/08/05  16:04:11  hollings
  * more consistant use of stringHandle vs. char *.
  *
  * Revision 1.4  1994/08/03  19:09:48  hollings
@@ -130,7 +133,6 @@ extern void configureTests();
 extern tunableFloatConstant hysteresisRange;
 
 extern testResultList *currentTestResults;
-extern Boolean printTestResults;
 
 extern void setCurrentRefinement(searchHistoryNode*);
 
