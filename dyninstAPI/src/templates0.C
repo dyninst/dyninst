@@ -79,7 +79,7 @@
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "util/h/Object.h"
+#include "dyninstAPI/src/Object.h"
 #if !defined(BPATCH_LIBRARY) || defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
 #include "dyninstAPI/src/LocalAlteration.h"

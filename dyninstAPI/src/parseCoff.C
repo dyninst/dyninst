@@ -560,6 +560,11 @@ void parseCoff(BPatch_module *mod, char *exeName, const string& modName)
 	if (!ptr)
 		continue;
 
+	if (strlen(ptr) >= sizeof(name)) {
+	    printf("name overflow: %s\n", name);
+	    abort();
+	} 
+
 	strcpy(name, ptr);
 
 	switch(symbol.st) {

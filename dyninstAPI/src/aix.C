@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.63 1999/11/11 00:50:34 wylie Exp $
+// $Id: aix.C,v 1.64 2000/02/15 23:48:00 hollings Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -47,8 +47,8 @@
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/stats.h"
 #include "util/h/Types.h"
-#include "util/h/Object.h"
 #include "util/h/Dictionary.h"
+#include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/instP.h" // class instInstance
 #include "util/h/pathName.h"
 

@@ -39,26 +39,55 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates05.C,v 1.8 2000/02/15 23:48:01 hollings Exp $
+#ifndef _BPatch_function_h_
+#define _BPatch_function_h_
 
-#pragma implementation "Dictionary.h"
-#include "util/src/Dictionary.C"
+#include "BPatch_Vector.h"
+#include "BPatch_point.h"
+#include "BPatch_type.h"
+#include "BPatch_module.h"
 
-#pragma implementation "list.h"
-#include "util/h/list.h"
+class function_base;
+class process;
 
-#include "util/h/String.h"
+class BPatch_localVarCollection;
+class BPatch_function;
+class BPatch_point;
 
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/dyninstP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/Object.h"
+class BPatch_function {
+    process *proc;
+    BPatch_type * retType;
+    BPatch_Vector<BPatch_localVar *> params;
+    BPatch_module *mod;
+    
+public:
+// The following are for  internal use by the library only:
+    function_base *func;
+// No longer inline but defined in .C file
+    BPatch_function(process *_proc, function_base *_func, BPatch_module *);
+    BPatch_function(process *_proc, function_base *_func,
+		    BPatch_type * _retType, BPatch_module *);
+    BPatch_localVarCollection * localVariables;
+    BPatch_localVarCollection * funcParameters;
+    void setReturnType( BPatch_type * _retType){
+      retType = _retType;}
+    
+// For users of the library:
+    char	 *getName(char *s, int len);
+    void	 *getBaseAddr();
+    unsigned int getSize();
+    BPatch_type * getReturnType(){ return retType; }
+    BPatch_module *getModule()	{ return mod; }
+    void addParam(char * _name, BPatch_type *_type, int _linenum,
+		  int _frameOffset, int _sc = 5 /* scAbs */ );
+    
+    BPatch_Vector<BPatch_localVar *> *getParams() { 
+      return &params; }
+    BPatch_Vector<BPatch_point *>
+	*findPoint(const BPatch_procedureLocation loc);
+    BPatch_localVar * findLocalVar( const char * name);
+    BPatch_localVar * findLocalParam(const char * name);
+};
 
-template class vector<instWaitingList *>;
 
-template class refCounter<string_ll>;
-
+#endif /* _BPatch_function_h_ */
