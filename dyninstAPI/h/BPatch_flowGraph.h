@@ -149,9 +149,7 @@ public:
   
   void fillLoopInfo(BPatch_Set<BPatch_basicBlock*>**,BPatch_basicBlock**);
   
-  void dfsVisit(BPatch_basicBlock*,int*,
-		BPatch_Set<BPatch_basicBlock*>**,
-		int* which=NULL,BPatch_basicBlock** order=NULL); 
+  void dfsVisit(BPatch_basicBlock*,int*); 
   
   void findBackEdges(BPatch_Set<BPatch_basicBlock*>**);
   
