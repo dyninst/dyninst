@@ -44,7 +44,7 @@ int mutateeCplusplus = 0;
 int mutateeFortran = 0;
 int mutateeF77 = 0;
 bool runAllTests = true;
-const unsigned int MAX_TEST = 35;
+const unsigned int MAX_TEST = 36;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 int saveWorld = 0;
@@ -4102,6 +4102,101 @@ void mutatorTest35( BPatch_thread * appThread, BPatch_image * appImage )
 #endif   
 }    
 
+//
+// Start Test Case #36 - (callsite parameter referencing)
+//
+void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
+{
+   // Find the entry point to the procedure "func13_1"
+   BPatch_Vector<BPatch_function *> found_funcs;
+   if ((NULL == appImage->findFunction("func36_1", found_funcs)) || !found_funcs.size()) {
+      fprintf(stderr, "    Unable to find function %s\n",
+              "func36_1");
+      exit(1);
+   }
+   
+   if (1 < found_funcs.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+              __FILE__, __LINE__, found_funcs.size(), "func36_1");
+   }
+   
+   BPatch_Vector<BPatch_point *> *all_points36_1 =
+      found_funcs[0]->findPoint(BPatch_subroutine);
+   
+   if (!all_points36_1 || (all_points36_1->size() < 1)) {
+      fprintf(stderr, "Unable to find point func36_1 - entry.\n");
+      exit(-1);
+   }
+
+   BPatch_point *point36_1 = NULL;
+   for(unsigned i=0; i<(*all_points36_1).size(); i++) {
+      BPatch_point *cur_point = (*all_points36_1)[i];
+      if(cur_point == NULL) continue;
+      BPatch_function *func = cur_point->getCalledFunction();
+      char funcname[100];
+      if(func->getName(funcname, 99)) {
+         if(strstr(funcname, "call36_1"))
+            point36_1 = cur_point;
+      }
+   }
+   if(point36_1 == NULL) {
+      fprintf(stderr, "Unable to find callsite %s\n",
+              "call36_1");
+      exit(1);
+   }
+
+	BPatch_variableExpr *expr36_1 =appImage->findVariable("globalVariable36_1");
+	BPatch_variableExpr *expr36_2 =appImage->findVariable("globalVariable36_2");
+	BPatch_variableExpr *expr36_3 =appImage->findVariable("globalVariable36_3");
+	BPatch_variableExpr *expr36_4 =appImage->findVariable("globalVariable36_4");
+	BPatch_variableExpr *expr36_5 =appImage->findVariable("globalVariable36_5");
+	BPatch_variableExpr *expr36_6 =appImage->findVariable("globalVariable36_6");
+	BPatch_variableExpr *expr36_7 =appImage->findVariable("globalVariable36_7");
+	BPatch_variableExpr *expr36_8 =appImage->findVariable("globalVariable36_8");
+	BPatch_variableExpr *expr36_9 =appImage->findVariable("globalVariable36_9");
+	BPatch_variableExpr *expr36_10 =
+      appImage->findVariable("globalVariable36_10");
+
+	if (expr36_1 == NULL || expr36_2 == NULL || expr36_3 == NULL ||
+       expr36_4 == NULL || expr36_5 == NULL || expr36_6 == NULL ||
+       expr36_7 == NULL || expr36_8 == NULL || expr36_9 == NULL ||
+       expr36_10 == NULL)
+   {
+      fprintf(stderr,"**Failed** test #36 (callsite parameter referencing)\n");
+      fprintf(stderr, "    Unable to locate at least one of "
+              "globalVariable36_{1...10}\n");
+      exit(1);
+	}
+
+   BPatch_Vector<BPatch_snippet *> snippet_seq;
+   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_1,
+                                              *(new BPatch_paramExpr(0))));
+   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_2,
+                                              *(new BPatch_paramExpr(1))));
+   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_3,
+                                              *(new BPatch_paramExpr(2))));
+   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_4,
+                                              *(new BPatch_paramExpr(3))));
+   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_5,
+                                              *(new BPatch_paramExpr(4))));
+   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_6,
+                                              *(new BPatch_paramExpr(5))));
+#if !defined(alpha_dec_osf4_0)   /* alpha doesn't handle more than 6 */
+   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_7,
+                                              *(new BPatch_paramExpr(6))));
+   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_8,
+                                              *(new BPatch_paramExpr(7))));
+   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_9,
+                                              *(new BPatch_paramExpr(8))));
+   snippet_seq.push_back(new BPatch_arithExpr(BPatch_assign, *expr36_10,
+                                              *(new BPatch_paramExpr(9))));
+#endif
+   BPatch_sequence seqExpr(snippet_seq);
+
+   checkCost(seqExpr);
+   appThread->insertSnippet(seqExpr, *point36_1);
+}
+
 
 /*******************************************************************************/
 /*******************************************************************************/
@@ -4268,6 +4363,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
 
     if( runTest[ 35 ] ) mutatorTest35( appThread, appImage );
 
+    if( runTest[ 36 ] ) mutatorTest36( appThread, appImage );
 
     
     /* the following bit of code saves the mutatee in its mutated state to the

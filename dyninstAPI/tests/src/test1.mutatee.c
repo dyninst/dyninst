@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.88 2003/04/25 22:31:14 jaw Exp $ */
+/* $Id: test1.mutatee.c,v 1.89 2003/06/11 15:12:51 schendel Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -185,6 +185,18 @@ int globalVariable32_1 = 0;
 int globalVariable32_2 = 0;
 int globalVariable32_3 = 0;
 int globalVariable32_4 = 0;
+
+int globalVariable36_1 = 0;
+int globalVariable36_2 = 0;
+int globalVariable36_3 = 0;
+int globalVariable36_4 = 0;
+int globalVariable36_5 = 0;
+int globalVariable36_6 = 0;
+int globalVariable36_7 = 0;
+int globalVariable36_8 = 0;
+int globalVariable36_9 = 0;
+int globalVariable36_10 = 0;
+
 
 /*
  * Determine if two doubles are close to being equal (for our purposes, that
@@ -2191,6 +2203,97 @@ void func35_1()
 #endif
 }
 
+int call36_1(int i1, int i2, int i3, int i4, int i5, int i6, int i7,
+             int i8, int i9, int i10) {
+   return i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8 + i9 + i10;
+}
+
+/* Test #36 (callsite parameter referencing) */
+
+void func36_1()
+{
+   int failure = 0;
+
+   int result = call36_1(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+   if(result != 55) {
+      fprintf(stderr, "  expecting a value of 55 from call36_1, got %d\n",
+              result);
+      failure = 1;
+   }
+
+   if(globalVariable36_1 != 1) {
+      fprintf(stderr, "   for test 36, expecting arg1 value of 1, got %d\n",
+              globalVariable36_1);
+      failure = 1;      
+   }
+   if(globalVariable36_2 != 2) {
+      fprintf(stderr, "   for test 36, expecting arg2 value of 2, got %d\n",
+              globalVariable36_2);
+      failure = 1;      
+   }
+   if(globalVariable36_3 != 3) {
+      fprintf(stderr, "   for test 36, expecting arg3 value of 3, got %d\n",
+              globalVariable36_3);
+      failure = 1;      
+   }
+   if(globalVariable36_4 != 4) {
+      fprintf(stderr, "   for test 36, expecting arg4 value of 4, got %d\n",
+              globalVariable36_4);
+      failure = 1;
+   }
+   if(globalVariable36_5 != 5) {
+      fprintf(stderr, "   for test 36, expecting arg5 value of 5, got %d\n",
+              globalVariable36_5);
+      failure = 1;
+   }
+   if(globalVariable36_6 != 6) {
+      fprintf(stderr, "   for test 36, expecting arg6 value of 6, got %d\n",
+              globalVariable36_6);
+      failure = 1;
+   }
+#if !defined(alpha_dec_osf4_0)   /* alpha doesn't handle more than 6 */
+   if(globalVariable36_7 != 7) {
+      fprintf(stderr, "   for test 36, expecting arg7 value of 7, got %d\n",
+              globalVariable36_7);
+      failure = 1;
+   }
+   if(globalVariable36_8 != 8) {
+      fprintf(stderr, "   for test 36, expecting arg8 value of 8, got %d\n",
+              globalVariable36_8);
+      failure = 1;
+   }
+   if(globalVariable36_9 != 9) {
+      fprintf(stderr, "   for test 36, expecting arg9 value of 9, got %d\n",
+              globalVariable36_9);
+      failure = 1;
+   }
+   if(globalVariable36_10 != 10) {
+      fprintf(stderr, "   for test 36, expecting arg10 value of 10, got %d\n",
+              globalVariable36_10);
+#if defined(sparc_sun_solaris2_4)
+      fprintf(stderr, "   not marking as an error since this needs "
+              "to be implemented for sparc-sol\n");
+#else
+      failure = 1;
+#endif
+   }
+#else
+   fprintf(stderr,
+   "    test 36: alpha currently doesn't handle referencing more than\n");
+   
+   fprintf(stderr,
+   "    6 callsite args, so not testing past 6 args on alpha currently\n");
+#endif
+
+   if(failure == 0) {
+      passedTest[ 36 ] = TRUE;
+      printf( "Passed test #36 (callsite parameter referencing)\n" );    
+   } else {
+      passedTest[ 36 ] = FALSE;
+      printf( "**Failed** test #36 (callsite parameter referencing)\n");
+   }
+}
 
 /****************************************************************************/
 /****************************************************************************/
@@ -2264,5 +2367,5 @@ void runTests()
     if (runTest[33]) func33_1();
     if (runTest[33]) func34_1();
     if (runTest[35]) func35_1();
-    
+    if (runTest[36]) func36_1();    
 }
