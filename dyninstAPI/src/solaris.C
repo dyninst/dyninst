@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.143 2003/04/15 18:44:36 bernat Exp $
+// $Id: solaris.C,v 1.144 2003/04/22 21:55:08 mjbrim Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1258,9 +1258,19 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 	    } 
 	    else {
 		// just try to find a function with the same name as entry 
-		target = findOnlyOneFunction((*fbt)[i].name());
-		if(target){
-	            return true;
+	        pdvector<function_base *> pdfv;
+		bool found = findAllFuncsByName((*fbt)[i].name(), pdfv);
+		if(found) {
+		    assert(pdfv.size());
+#ifdef BPATCH_LIBRARY
+		    if(pdfv.size() > 1)
+		        cerr << __FILE__ << ":" << __LINE__ 
+			     << ": WARNING:  findAllFuncsByName found " 
+			     << pdfv.size() << " references to function " 
+			     << (*fbt)[i].name() << ".  Using the first.\n";
+#endif
+		    target = pdfv[0];
+		    return true;
 		}
 		else {  
 		    // KLUDGE: this is because we are not keeping more than
@@ -1277,18 +1287,42 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 		    // it...when we parse the image we should keep multiple
 		    // names for pd_Functions
 
-		    string s = string("_");
+		    string s("_");
 		    s += (*fbt)[i].name();
-		    target = findOnlyOneFunction(s);
-		    if(target){
-	                return true;
+		    found = findAllFuncsByName(s, pdfv);
+		    if(found) {
+		        assert(pdfv.size());
+#ifdef BPATCH_LIBRARY
+		        if(pdfv.size() > 1)
+			    cerr << __FILE__ << ":" << __LINE__ 
+				 << ": WARNING: findAllFuncsByName found " 
+				 << pdfv.size() << " references to function " 
+				 << s << ".  Using the first.\n";
+#endif
+			target = pdfv[0];
+			return true;
 		    }
+		    
 		    s = string("__");
 		    s += (*fbt)[i].name();
-		    target = findOnlyOneFunction(s);
-		    if(target){
-	                return true;
+		    found = findAllFuncsByName(s, pdfv);
+		    if(found) {
+		        assert(pdfv.size());
+#ifdef BPATCH_LIBRARY
+			if(pdfv.size() > 1)
+			    cerr << __FILE__ << ":" << __LINE__ 
+				 << ": WARNING: findAllFuncsByName found " 
+				 << pdfv.size() << " references to function "
+				 << s << ".  Using the first.\n";
+#endif
+			target = pdfv[0];
+			return true;
 		    }
+//		    else
+// 		        cerr << __FILE__ << ":" << __LINE__
+// 			     << ": WARNING: findAllFuncsByName found no "
+// 			     << "matches for function " << (*fbt)[i].name() 
+// 			     << " or its possible aliases\n";
 		}
 	    }
 	    target = 0;

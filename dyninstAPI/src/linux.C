@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.100 2003/04/17 23:38:16 jaw Exp $
+// $Id: linux.C,v 1.101 2003/04/22 21:55:06 mjbrim Exp $
 
 #include <fstream.h>
 
@@ -1292,23 +1292,20 @@ bool process::findCallee(instPoint &instr, function_base *&target){
             return true;  // target has been bound
          } 
          else {
-	   pdvector<function_base *> pdfv;
-	   if (!findAllFuncsByName((*fbt)[i].name(), pdfv) || !pdfv.size()) {
-	     cerr << __FILE__ << __LINE__ << ":  findAllFuncsByName could not find "
-		  << (*fbt)[i].name() << endl;
-	   }
-	   else {
-	     if (pdfv.size() > 1)
-	       cerr << __FILE__ << __LINE__ << ":  WARNING:  findAllFuncsByName found " 
-		    << pdfv.size() << "references to function " <<(*fbt)[i].name() 
-		    << ".  Using the first." << endl;
-	     target = pdfv[0];
-	   }
-            // just try to find a function with the same name as entry 
-	   //target = findOnlyOneFunction((*fbt)[i].name());
-            if(target){
-	            return true;
-            }
+	    pdvector<function_base *> pdfv;
+	    bool found = findAllFuncsByName((*fbt)[i].name(), pdfv);
+	    if(found) {
+	       assert(pdfv.size());
+#ifdef BPATCH_LIBRARY
+	       if(pdfv.size() > 1)
+		   cerr << __FILE__ << ":" << __LINE__ 
+			<< ": WARNING:  findAllFuncsByName found " 
+			<< pdfv.size() << " references to function " 
+			<< (*fbt)[i].name() << ".  Using the first.\n";
+#endif
+	       target = pdfv[0];
+	       return true;
+	    }
             else {  
                // KLUDGE: this is because we are not keeping more than
                // one name for the same function if there is more
@@ -1324,47 +1321,44 @@ bool process::findCallee(instPoint &instr, function_base *&target){
                // it...when we parse the image we should keep multiple
                // names for pd_Functions
 
-               string s = string("_");
-               s += (*fbt)[i].name();
-             
-	       if (!findAllFuncsByName(s, pdfv) || !pdfv.size()) {
-		 cerr << __FILE__ << __LINE__ << ":  findAllFuncsByName could not find "
-		      << s << endl;
+               string s("_");
+	       s += (*fbt)[i].name();
+	       found = findAllFuncsByName(s, pdfv);
+	       if(found) {
+		  assert(pdfv.size());
+#ifdef BPATCH_LIBRARY
+		  if(pdfv.size() > 1)
+		     cerr << __FILE__ << ":" << __LINE__ 
+			  << ": WARNING: findAllFuncsByName found " 
+			  << pdfv.size() << " references to function " 
+			  << s << ".  Using the first.\n";
+#endif
+		  target = pdfv[0];
+		  return true;
 	       }
-	       else {
-		 if (pdfv.size() > 1)
-		   cerr << __FILE__ << __LINE__ << ":  WARNING:  findAllFuncsByName found " 
-			<< pdfv.size() << "references to function " <<s
-			<< ".  Using the first." << endl;
-		 target = pdfv[0];
+		    
+	       s = string("__");
+	       s += (*fbt)[i].name();
+	       found = findAllFuncsByName(s, pdfv);
+	       if(found) {
+		  assert(pdfv.size());
+#ifdef BPATCH_LIBRARY
+		  if(pdfv.size() > 1)
+		     cerr << __FILE__ << ":" << __LINE__ 
+			  << ": WARNING: findAllFuncsByName found " 
+			  << pdfv.size() << " references to function "
+			  << s << ".  Using the first.\n";
+#endif
+		  target = pdfv[0];
+		  return true;
 	       }
-	       // just try to find a function with the same name as entry 
-	       //target = findOnlyOneFunction((*fbt)[i].name());
-	       if(target){
-		 return true;
-	       }
-
-               s = string("__");
-               s += (*fbt)[i].name();
-
-	       if (!findAllFuncsByName(s, pdfv) || !pdfv.size()) {
-		 cerr << __FILE__ << __LINE__ << ":  findAllFuncsByName could not find "
-		      << s << endl;
-	       }
-	       else {
-		 if (pdfv.size() > 1)
-		   cerr << __FILE__ << __LINE__ << ":  WARNING:  findAllFuncsByName found " 
-			<< pdfv.size() << "references to function " <<s
-			<< ".  Using the first." << endl;
-		 target = pdfv[0];
-	       }
-
-	       if(target){
-		 return true;
-	       }
-
-	       cerr << __FILE__ << ":" <<__LINE__
-		    <<": Internal error: unable to find function " << (*fbt)[i].name() << endl;
+#ifdef BPATCH_LIBRARY
+	       else
+		  cerr << __FILE__ << ":" << __LINE__
+		       << ": WARNING: findAllFuncsByName found no "
+		       << "matches for function " << (*fbt)[i].name() 
+		       << " or its possible aliases\n";
+#endif
             }
          }
          target = 0;
