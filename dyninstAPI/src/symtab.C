@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.234 2005/03/07 20:26:45 jaw Exp $
+ // $Id: symtab.C,v 1.235 2005/03/07 21:18:47 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,12 +82,6 @@ extern pdvector<sym_data> syms_to_find;
 extern unsigned enable_pd_sharedobj_debug;
 
 extern bool parseCompilerType(Object *);
-
-#if ENABLE_DEBUG_CERR == 1
-#define sharedobj_cerr if (enable_pd_sharedobj_debug) cerr
-#else
-#define sharedobj_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
 
 pdvector<image*> image::allImages;
 
@@ -723,7 +717,7 @@ void dfsCreateLoopResources(BPatch_loopTreeNode *n, resource *res,
                                   MDL_T_LOOP,
                                   false );
     }
-    
+
     for (unsigned i = 0; i < n->children.size(); i++) {
         // loop resource objects are nested under their parent function rather
         // than each other. using r instead of res would cause the resource
@@ -1955,10 +1949,18 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
 
    // initialize (data members) codeOffset_, dataOffset_,
    //  codeLen_, dataLen_.
+   
    codeOffset_ = linkedFile.code_off();
    dataOffset_ = linkedFile.data_off();
+#if defined(arch_power)
+   // The image class expects these to be shifted right by 2... anyone 
+   // have _any_ clue why???
+   codeLen_ = linkedFile.code_len() >> 2;
+   dataLen_ = linkedFile.data_len() >> 2;
+#else
    codeLen_ = linkedFile.code_len();
    dataLen_ = linkedFile.data_len();
+#endif
    codeValidStart_ = linkedFile.code_vldS();
    codeValidEnd_ = linkedFile.code_vldE();
    dataValidStart_ = linkedFile.data_vldS();
