@@ -42,7 +42,7 @@
 /*
  * The specific metric and hypothesis definitions which will eventually 
  * be parsed from a configuration file.
- * $Id: PCrules.C,v 1.46 1999/06/04 16:07:02 cain Exp $
+ * $Id: PCrules.C,v 1.47 2000/01/06 20:20:20 cain Exp $
  */
 
 #include "PCintern.h"
@@ -137,7 +137,6 @@ void initPCmetrics()
     specs[0].mname = "cpu_inclusive";
   else
     specs[0].mname = "cpu";
-
   specs[0].whichFocus = cf;
   specs[0].ft = averaging;
   temp = new PCmetric ("nonNormalizedCPUtime", specs, 1, NULL, NULL, 1);
@@ -146,7 +145,10 @@ void initPCmetrics()
     cout << "PCmetric " << temp->getName() << " created." << endl;
 #endif
 
-  specs[0].mname = "sync_wait";
+  if(performanceConsultant::useCallGraphSearch)
+    specs[0].mname = "sync_wait_inclusive";
+  else
+    specs[0].mname = "sync_wait";
   specs[0].whichFocus = cf;
   specs[0].ft = averaging;
   specs[1].mname = "active_processes";
@@ -158,7 +160,11 @@ void initPCmetrics()
     cout << "PCmetric " << temp->getName() << " created." << endl;
 #endif
 
-  specs[0].mname = "sync_wait";
+  
+  if(performanceConsultant::useCallGraphSearch)
+    specs[0].mname = "sync_wait_inclusive";
+  else
+    specs[0].mname = "sync_wait";
   specs[0].whichFocus = cf;
   specs[0].ft = averaging;
   temp = new PCmetric ("nonNormSyncToCPURatio", specs, 1, NULL, NULL, 1);
@@ -191,7 +197,10 @@ void initPCmetrics()
     cout << "PCmetric " << temp->getName() << " created." << endl;
 #endif
 
-  specs[0].mname = "io_wait";
+  if(performanceConsultant::useCallGraphSearch)
+    specs[0].mname = "io_wait_inclusive";
+  else 
+    specs[0].mname = "io_wait";
   specs[0].whichFocus = cf;
   specs[0].ft = averaging;
   temp = new PCmetric ("IoWait", specs, 1, NULL, NULL, 1);
