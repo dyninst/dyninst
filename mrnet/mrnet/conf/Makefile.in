@@ -9,7 +9,10 @@ VPATH	= $(MRNET_ROOT)/src:$(MRNET_ROOT)/tests
 #CXX = g++
 CFLAGS +=   $(INCDIR) $(WARNFLAGS)
 CXXFLAGS += $(INCDIR) $(WARNFLAGS)
-DEPENDFLAGS = -MM
+
+MAKEDEPENDS = $(MRNET_ROOT)/conf/makedepends.sh
+DEPENDDIR = $(MRNET_ROOT)/depends
+#DEPENDFLAGS = -MM
 
 GCC_VER := $(shell $(CXX) --version 2> /dev/null )
 ifeq (GCC,$(findstring GCC,$(GCC_VER)))
@@ -100,7 +103,7 @@ PDR_SRCS = $(MRNET_ROOT)/src/pdr.c \
 PDR_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(PDR_SRCS)))))
 
 ALL_SRCS = $(LIBMC_SRCS) $(COMMNODE_SRCS) $(TEST_SRCS)
-DEPS	= $(addprefix $(OBJDIR)/, $(patsubst %.C,%.d,$(patsubst %.c,%.d,$(notdir $(ALL_SRCS)))))
+DEPS	= $(addprefix $(DEPENDDIR)/, $(patsubst %.C,%.d,$(patsubst %.c,%.d,$(notdir $(ALL_SRCS)))))
 
 all: DIRS $(TARGETS)
 
@@ -255,15 +258,23 @@ $(OBJDIR)/%.o: %.C $(FRC)
 	echo Compiling `basename $@` ...
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
-$(OBJDIR)/%.d: %.c $(FRC)
-	echo Building Depends File `basename $@` ...
-	$(CXX) $(CXXFLAGS) $(DEPENDFLAGS) $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@; \
-		[ -s $@ ] || rm -f $@
+#$(OBJDIR)/%.d: %.c $(FRC)
+#echo Building Depends File `basename $@` ...
+#$(CXX) $(CXXFLAGS) $(DEPENDFLAGS) $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@; \
+#	[ -s $@ ] || rm -f $@
 
-$(OBJDIR)/%.d: %.C $(FRC)
-	echo Building Depends File `basename $@` ...
-	$(CXX) $(CXXFLAGS) $(DEPENDFLAGS) $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@; \
-		[ -s $@ ] || rm -f $@
+#$(OBJDIR)/%.d: %.C $(FRC)
+#echo Building Depends File `basename $@` ...
+#$(CXX) $(CXXFLAGS) $(DEPENDFLAGS) $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' > $@; \
+#	[ -s $@ ] || rm -f $@
 
+$(DEPENDDIR)/%.d: %.c $(FRC)
+	echo Building Depends File `basename $@` ...
+	$(MAKEDEPENDS)  $< $(OBJDIR)/$*.o $@ $(INCDIR) 
+
+
+$(DEPENDDIR)/%.d: %.C $(FRC)
+	echo Building Depends File `basename $@` ...
+	$(MAKEDEPENDS)  $< $(OBJDIR)/$*.o $@ $(INCDIR) 
 
 -include $(DEPS)
