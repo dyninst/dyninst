@@ -1,18 +1,4 @@
-#
-# Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
-#     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
-#     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
-# 
-#  This software is furnished under the condition that it may not be
-#  provided or otherwise made available to, or used by, any other
-#  person, except as provided for by the terms of applicable license
-#  agreements.  No title to or ownership of the software is hereby
-#  transferred.  The name of the principals may not be used in any
-#  advertising or publicity related to this software without specific,
-#  written prior authorization.  Any use of this software must include
-#  the above copyright notice.
-#
-
+# $Id: save.tcl,v 1.3 1998/03/03 23:09:49 wylie Exp $
 # this file contains the routines for the "SAVE" button 
 
 proc pdSave {} {
@@ -69,7 +55,7 @@ proc drawSaveMenu {} {
     # save what?
     label $wh.la -text "Save Paradyn Data" \
 	    -foreground white -anchor c \
-	    -font *-New*Century*Schoolbook-Bold-R-*-14-* \
+	    -font { Times 14 bold } \
 	    -relief raised \
 	    -background purple
     pack  $wh.la -side top -fill both -expand true

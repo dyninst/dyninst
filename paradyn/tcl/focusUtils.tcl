@@ -1,9 +1,5 @@
-#these commands are used to translate between different formats for 
-# a focus
-
-# $Log: focusUtils.tcl,v $
-# Revision 1.1  1994/05/03 06:35:58  karavan
-# Initial version.
+# $Id: focusUtils.tcl,v 1.2 1998/03/03 23:09:46 wylie Exp $
+# these commands are used to translate between different formats for a focus
 #
 
 proc convToPath {lis} {

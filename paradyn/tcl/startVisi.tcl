@@ -1,3 +1,5 @@
+# $Id: startVisi.tcl,v 1.8 1998/03/03 23:09:52 wylie Exp $
+
 proc AcceptProc {} {
    global W 
    global phase
@@ -61,7 +63,7 @@ proc drawVisiMenu {} {
             -anchor center -relief raised \
 	    -foreground seashell1 \
 	    -background SeaGreen4 \
-            -font "-Adobe-times-bold-r-normal--*-120*" 
+            -font { Times 12 bold }
   pack $T -side top -expand false -fill both 
 
   frame $W.bottom

@@ -1,40 +1,4 @@
-# whereAxis.tcl
-# Ariel Tamches
-
-#
-# $Log: whereAxis.tcl,v $
-# Revision 1.8  1996/04/01 22:36:13  tamches
-# added a bind to Visibility event
-#
-# Revision 1.7  1996/01/11 00:54:46  tamches
-# removed resize1ScrollBar (moved to generic.tcl)
-# removed iconify menu
-#
-# Revision 1.6  1995/11/20 04:07:38  tamches
-# fixed activeBackground and activeForeground colors which had made for
-# ugly menu highlighting.
-# Tips can be removed and re-drawn using whereAxisDrawTips and
-# whereAxisEraseTips command.
-#
-# Revision 1.5  1995/10/17 22:25:57  tamches
-# A few command names have "whereAxis" prepended to them, to differentiate
-# them from shg tcl code.  Added tip4.
-#
-# Revision 1.4  1995/09/20 01:37:11  tamches
-# Stupid hack to ensure middle-mouse-button can move scrollbars
-# within the where axis.
-#
-# Revision 1.3  1995/07/24  21:38:07  tamches
-# Implemented alt-freescroll feature
-#
-# Revision 1.2  1995/07/18  03:38:08  tamches
-# Added ctrl-double-click to select/unselect an entire subtree (nonrecursive).
-# Added "clear" menu item to clear all selections.
-#
-# Revision 1.1  1995/07/17  05:00:34  tamches
-# First version of new where axis
-#
-#
+# $Id: whereAxis.tcl,v 1.9 1998/03/03 23:09:53 wylie Exp $
 
 # ##################################################################
 
@@ -94,10 +58,11 @@ proc whereAxisInitialize {} {
    frame .whereAxis.nontop.find
    pack  .whereAxis.nontop.find -side top -fill both -expand false
    
-   label .whereAxis.nontop.find.label -relief sunken -font "*-Helvetica-*-r-*-12-*" -text "Search:"
+   label .whereAxis.nontop.find.label -relief sunken -text "Search:" \
+        -font { Helvetica 12 }
    pack  .whereAxis.nontop.find.label -side left -fill y -expand false
    
-   entry .whereAxis.nontop.find.entry -relief sunken -font "*-Helvetica-*-r-*-12-*"
+   entry .whereAxis.nontop.find.entry -relief sunken -font { Helvetica 12 }
    pack  .whereAxis.nontop.find.entry -side left -fill x -expand true
    
    bind  .whereAxis.nontop.find.entry <Return> {whereAxisFindHook [.whereAxis.nontop.find.entry get]}
@@ -136,28 +101,28 @@ proc whereAxisDrawTips {} {
 
    label .whereAxis.nontop.tips.tip1 -relief groove \
 	   -text "Click to select; double-click to expand/un-expand" \
-	   -font "*-Helvetica-*-r-*-12-*"
+	   -font { Helvetica 12 }
    pack  .whereAxis.nontop.tips.tip1 -side top -fill both -expand false
       # fill both (instead of just x) seems needed to prevent from shrinking
       # when window made shorter
    
    label .whereAxis.nontop.tips.tip2 -relief groove \
 	   -text "Shift-double-click to expand/un-expand all subtrees of a node" \
-	   -font "*-Helvetica-*-r-*-12-*"
+	   -font { Helvetica 12 }
    pack  .whereAxis.nontop.tips.tip2 -side top -fill both -expand false
       # fill both (instead of just x) seems needed to prevent from shrinking
       # when window made shorter
    
    label .whereAxis.nontop.tips.tip3 -relief groove \
 	   -text "Ctrl-double-click to select/un-select all subtrees of a node" \
-	   -font "*-Helvetica-*-r-*-12-*"
+	   -font { Helvetica 12 }
    pack  .whereAxis.nontop.tips.tip3 -side top -fill both -expand false
       # fill both (instead of just x) seems needed to prevent from shrinking
       # when window made shorter
 
    label .whereAxis.nontop.tips.tip4 -relief groove \
 	   -text "Hold down Alt and move the mouse to scroll freely" \
-	   -font "*-Helvetica-*-r-*-12-*"
+	   -font { Helvetica 12 }
    pack  .whereAxis.nontop.tips.tip4 -side top -fill both -expand false
 }
 

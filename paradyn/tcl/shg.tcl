@@ -1,61 +1,4 @@
-# shg.tcl
-# Ariel Tamches
-
-#
-# $Log: shg.tcl,v $
-# Revision 1.15  1996/04/01 22:35:57  tamches
-# fixed colors of the information text widget s.t. selecting a piece of
-# text is readable
-#
-# Revision 1.14  1996/03/25 21:50:33  tamches
-# fixed some layout bugs w.r.t. shg-key & shg-tips
-#
-# Revision 1.13  1996/03/08 00:24:42  tamches
-# added 2d entry point
-#
-# Revision 1.12  1996/02/15 23:04:52  tamches
-# shgInitialize puts up error 88 if an appl hasn't been defined yet.
-
-#
-# Revision 1.11  1996/02/12 18:32:07  tamches
-# shgInitialize now takes 3 params
-#
-# Revision 1.10  1996/02/11 18:28:26  tamches
-# "Current Phase" --> "Current Search"
-#
-# Revision 1.9  1996/02/07 19:16:30  tamches
-# removed shgHack
-#
-# Revision 1.8  1996/02/02 18:57:22  tamches
-# added key & tips areas
-# cleaner search/resume button code
-# no more "paradyn shg start global" in window startup
-#
-# Revision 1.7  1996/01/23 07:14:30  tamches
-# now 7 eval states, divided among 4 eval states & an active flag
-#
-# Revision 1.6  1996/01/11 23:43:49  tamches
-# there are now 6 node styles instead of 4
-#
-# Revision 1.5  1996/01/11 00:53:59  tamches
-# removed resize1ScrollBar (now in generic.tcl)
-# removed iconify menu
-#
-# Revision 1.4  1996/01/09 01:09:00  tamches
-# the label area at the bottom of the shg window can now be 1 or
-# 4 lines in height, depending on the status of the devel mode tc
-#
-# Revision 1.3  1995/11/29 00:21:56  tamches
-# removed refs to PdBitmapDir; we now call makeLogo (pdLogo.C)
-#
-# Revision 1.2  1995/11/20 04:06:02  tamches
-# fixed activeBackground/activeForeground colors that were making for ugly
-# menu highlighting.
-#
-# Revision 1.1  1995/10/17 22:25:14  tamches
-# First version of new search history graph
-#
-#
+# $Id: shg.tcl,v 1.16 1998/03/03 23:09:51 wylie Exp $
 
 proc shgChangeCurrLabelHeight {numlines} {
    if {[winfo exists .shg.nontop.labelarea.current]} {
@@ -142,13 +85,13 @@ proc shgDrawKey {} {
 
    label $leftLabels.key0 -relief groove \
 	   -text "Never Evaluated" -anchor c \
-	   -font "*-Helvetica-*-r-*-12-*" \
+	   -font { Helvetica 12 } \
 	   -background grey
    pack   $leftLabels.key0 -side top -fill x -expand false
 
    label $leftLabels.key1 -relief groove \
 	   -text "Unknown" -anchor c \
-	   -font "*-Helvetica-*-r-*-12-*" \
+	   -font { Helvetica 12 } \
 	   -background #60c0a0
            # a nice green...
    pack   $leftLabels.key1 -side top -fill x -expand false
@@ -156,7 +99,7 @@ proc shgDrawKey {} {
 
    label $leftLabels.key2 -relief groove \
 	   -text "True" -anchor c \
-	   -font "*-Helvetica-*-r-*-12-*" \
+	   -font { Helvetica 12 } \
 	   -background cornflowerblue
 #	   -background "#acbff48ff6c8"
                 # yuck --ari
@@ -164,7 +107,7 @@ proc shgDrawKey {} {
 
    label $leftLabels.key3 -relief groove \
 	   -text "False" -anchor c \
-	   -font "*-Helvetica-*-r-*-12-*" \
+	   -font { Helvetica 12 } \
 	   -background pink
 #	   -background "#cc85d5c2777d" 
                 # yuck --ari
@@ -180,34 +123,34 @@ proc shgDrawKey {} {
 
    label  $leftLabels.key4.label -relief flat \
 	   -text "Why Axis Refinement" -anchor c \
-	   -font "*-Helvetica-*-r-*-12-*"
+	   -font { Helvetica 12 }
    pack   $leftLabels.key4.label -side right -fill y -expand true
 
 
 
    label $rightLabels.key0 -relief groove \
-	   -font "*-Helvetica-*-r-*-12-*" \
+	   -font { Helvetica 12 } \
 	   -text "instrumented" \
 	   -foreground ivory \
 	   -background gray
    pack  $rightLabels.key0 -side top -fill x
 
    label $rightLabels.key1 -relief groove \
-	   -font "*-Helvetica-*-r-*-12-*" \
+	   -font { Helvetica 12 } \
 	   -text "uninstrumented" \
 	   -foreground black \
 	   -background gray
    pack  $rightLabels.key1 -side top -fill x
 
    label $rightLabels.key2 -relief groove \
-	   -font "*-Helvetica-*-o-*-12-*" \
+	   -font { Helvetica 12 italic } \
 	   -text "instrumented; shadow node" \
 	   -foreground ivory \
 	   -background gray
    pack  $rightLabels.key2 -side top -fill x
 
    label $rightLabels.key3 -relief groove \
-	   -font "*-Helvetica-*-o-*-12-*" \
+	   -font { Helvetica 12 italic } \
 	   -text "uninstrumented; shadow node" \
 	   -foreground black \
 	   -background gray
@@ -223,7 +166,7 @@ proc shgDrawKey {} {
 
    label  $rightLabels.key4.label -relief flat \
 	   -text "Where Axis Refinement" -anchor c \
-	   -font "*-Helvetica-*-r-*-12-*"
+	   -font { Helvetica 12 }
    pack   $rightLabels.key4.label -side right -fill y -expand true
 
 }
@@ -246,13 +189,13 @@ proc shgDrawTips {} {
 
    label $tipArea.tip0 -relief groove \
 	   -text "Hold down Alt and move the mouse to scroll freely" \
-	   -font "*-Helvetica-*-r-*-12-*"
+	   -font { Helvetica 12 }
    pack $tipArea.tip0 -side top -fill both
       # fill both prevents shrinking when window is made shorter
 
    label $tipArea.tip1 -relief groove \
 	   -text "Click middle button on a node to obtain more info on it" \
-	   -font "*-Helvetica-*-r-*-12-*"
+	   -font { Helvetica 12 }
    pack $tipArea.tip1 -side top -fill both
       # fill both prevents shrinking when window is made shorter
 
@@ -321,8 +264,7 @@ proc shgInitialize2 {iDeveloperMode iDrawKey iDrawTips} {
 
    label .shg.titlearea.left.title -text "The Performance Consultant" \
 	   -foreground white -anchor c \
-           -font *-New*Century*Schoolbook-Bold-R-*-14-* \
-	   -relief raised \
+           -font { Times 14 bold } -relief raised \
 	   -background mediumseagreen
    pack  .shg.titlearea.left.title -side top -fill both -expand true
 
@@ -349,11 +291,11 @@ proc shgInitialize2 {iDeveloperMode iDrawKey iDrawTips} {
    pack  .shg.nontop.currphasearea -side top -fill x -expand false
 
    label .shg.nontop.currphasearea.label1 -text "Current Search: " \
-	   -font "*-Helvetica-*-r-*-12-*" -anchor e
+	   -font { Helvetica 12 } -anchor e
    pack  .shg.nontop.currphasearea.label1 -side left -fill both -expand true
 
    label .shg.nontop.currphasearea.label2 -text "" \
-	   -font "*-Helvetica-*-r-*-12-*" -anchor w
+	   -font { Helvetica 12 } -anchor w
    pack  .shg.nontop.currphasearea.label2 -side left -fill both -expand true
 
    # -----------------------------------------------------------
@@ -362,7 +304,7 @@ proc shgInitialize2 {iDeveloperMode iDrawKey iDrawTips} {
    pack  .shg.nontop.textarea -side top -fill x -expand false
 
    text .shg.nontop.textarea.text -borderwidth 2 -width 40 -height 5 -relief sunken \
-	   -font "*-Helvetica-*-r-*-12-*" \
+	   -font { Helvetica 12 } \
 	   -yscrollcommand ".shg.nontop.textarea.sb set" \
 	   -selectbackground black
    pack .shg.nontop.textarea.text -side left -fill both -expand true
@@ -398,8 +340,7 @@ proc shgInitialize2 {iDeveloperMode iDrawKey iDrawTips} {
    pack  .shg.nontop.labelarea -side top -fill x -expand false
 
    text .shg.nontop.labelarea.current -relief sunken -height 1 \
-	   -font "*-Helvetica-*-r-*-12-*" \
-	   -wrap none
+	   -font { Helvetica 12 } -wrap none
    if {$iDeveloperMode} {
       set numlines 4
    } else {

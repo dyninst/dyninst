@@ -1,4 +1,4 @@
-#applic.tcl
+# $Id: applic.tcl,v 1.22 1998/03/03 23:09:44 wylie Exp $
 # window to get application choices from user
 
 #
@@ -69,7 +69,7 @@ proc AttachProcess {} {
   set T $W.title
   label $T -text "Attach to a Process" \
             -anchor center -relief raised \
-            -font "-Adobe-times-bold-r-normal--*-120*" 
+            -font { Times 12 bold }
   set D $W.data
   frame $D
   set B $W.buttons
@@ -148,15 +148,18 @@ proc AttachProcess {} {
   pack  $D.tips.1 -side top -fill x
 
   label $D.tips.1.label -text "Entering a pid is mandatory." \
-	  -font "*-Helvetica-*-r-*-12-*" -justify left
+	  -font { Helvetica 12 } -justify left
   pack  $D.tips.1.label -side left
 
   frame $D.tips.2
   pack  $D.tips.2 -side top -fill x
   
   label $D.tips.2.label \
-	  -text "Enter the full path to the executable in 'Executable file'. It will be used just to parse the symbol table.\nParadyn tries to determine this information automatically, so you can usually leave 'Executable file' blank." \
-	  -font "*-Helvetica-*-r-*-12-*" -justify left
+	  -font { Helvetica 12 } -justify left \
+	  -text "Enter the full path to the executable in 'Executable file'.\
+                It will be used just to parse the symbol table.\n\
+                Paradyn tries to determine this information automatically,\
+                so you can usually leave 'Executable file' blank."
   pack  $D.tips.2.label -side left -fill x
 
 
@@ -165,7 +168,7 @@ proc AttachProcess {} {
   pack  $D.run -side top -fill x
 
   label $D.run.label -text "After attaching: " -justify left \
-	  -font "*-Helvetica-*-r-*-12-*"
+	  -font { Helvetica 12 }
   pack  $D.run.label -side left
 
   global afterAttaching
@@ -174,19 +177,19 @@ proc AttachProcess {} {
   frame $D.run.fr
   pack  $D.run.fr -ipady 2 -pady 4 -side left -fill x -expand true
 
-  radiobutton $D.run.fr.1 -text "Pause application" -variable afterAttaching -value 1 \
-	  -justify left -relief groove -highlightthickness 0 \
-	  -font "*-Helvetica-*-r-*-12-*"
+  radiobutton $D.run.fr.1 -text "Pause application" -variable afterAttaching \
+	  -value 1 -justify left -relief groove -highlightthickness 0 \
+	  -font { Helvetica 12 }
   pack $D.run.fr.1 -side left -fill x -expand true
 
-  radiobutton $D.run.fr.2 -text "Run application" -variable afterAttaching -value 2 \
-	  -justify left -relief groove -highlightthickness 0 \
-	  -font "*-Helvetica-*-r-*-12-*"
+  radiobutton $D.run.fr.2 -text "Run application" -variable afterAttaching \
+	  -value 2 -justify left -relief groove -highlightthickness 0 \
+	  -font { Helvetica 12 }
   pack $D.run.fr.2 -side left -fill x -expand true
 
-  radiobutton $D.run.fr.3 -text "Leave as is" -variable afterAttaching -value 0 \
-	  -justify left -relief groove -highlightthickness 0 \
-	  -font "*-Helvetica-*-r-*-12-*"
+  radiobutton $D.run.fr.3 -text "Leave as is" -variable afterAttaching \
+	  -value 0 -justify left -relief groove -highlightthickness 0 \
+	  -font { Helvetica 12 }
   pack $D.run.fr.3 -side left -fill x -expand true
 
 
@@ -237,7 +240,7 @@ proc DefineProcess {} {
   set T $W.title
   label $T -text "Define A Process" \
             -anchor center -relief raised \
-            -font "-Adobe-times-bold-r-normal--*-120*" 
+            -font { Times 12 bold }
   set D $W.data
   frame $D
   set B $W.buttons

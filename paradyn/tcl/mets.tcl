@@ -1,30 +1,9 @@
-# mets.tcl
+# $Id: mets.tcl,v 1.20 1998/03/03 23:09:48 wylie Exp $
 # this file contains procedures used in prompting user for metric/resource
 # choices for a visualization.  When the resource hierarchy display is 
 # complete, this will be changed and will only be used to get the metric
 # choices directly.
 # getMetsAndRes (bottom of this file) is the entry-point.
-
-# $Log: mets.tcl,v $
-# Revision 1.19  1996/09/04 20:48:32  tamches
-# removed old copyright notice
-#
-# Revision 1.18  1996/06/09 18:56:03  newhall
-# removed debug output
-#
-# Revision 1.17  1996/04/01  22:43:39  tamches
-# lots of changes; should now avoid crashing when multiple requests are
-# made from the same visi; should now avail crashing when > 1 visi has
-# a metrics dialog box open at the same time.
-#
-# Revision 1.16  1995/11/21 15:16:45  naim
-# Fixing "CLEAR" option from the metrics selection dialog box - naim
-#
-# Revision 1.15  1995/11/15  21:27:51  tamches
-# Better remembering of which metrics were selected "last time", in order
-# to properly initialize the dialog box (a change in "developerMode" had
-# previously confused the dialog box).  New assoc array "selectedMetricNames"
-# is the key.
 #
 
 proc acceptMetChoices {threadid numMetrics metIndexes2Id} {
@@ -187,13 +166,13 @@ proc getMetsAndRes {metsAndResID requestingThread numMetrics metIndexes2Id} {
     mkFrame $w.top {top fill expand} -relief raised -border 1
     mkMessage $w.top.msg "" {top expand padx 20 pady 20} \
 	    -aspect 1000 -text "Select Metrics and Focus(es) below" \
-	    -font -Adobe-times-bold-r-normal--*-120*
+	    -font { Times 12 bold } 
    
     set metSelected($requestingThread) 0
     if {$numMetrics == 0} {
         set msg3 "No Metrics Currently Defined"
 	mkMessage $w.top.nometsmsg $msg3 {top expand} \
-		-font -Adobe-times-medium-r-normal--*-120*
+		-font { Times 12 normal }
     } else {
 	frame $w.top.1 
 	frame $w.top.2

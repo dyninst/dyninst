@@ -1,7 +1,5 @@
-# generic.tcl
-# Ariel Tamches
-
-# Routines I have found useful across all my tk4.0 programs
+# $Id: generic.tcl,v 1.2 1998/03/03 23:09:46 wylie Exp $
+# Routines found useful across all tk4.0 programs
 
 proc resize1Scrollbar {sbname newTotal newVisible} {
    # This is a nice n' generic routine  --ari
