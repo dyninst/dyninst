@@ -4,17 +4,20 @@
  */
 
 #ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
+char Copyright_metric[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52 1995/05/18 10:38:42 markc Exp";
+char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52 1995/05/18 10:38:42 markc Exp";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.88  1996/04/18 22:03:49  naim
+ * Revision 1.89  1996/04/25 22:45:13  hollings
+ * Fixed a bug with $globalId on metric inherit.
+ *
+ * Revision 1.88  1996/04/18  22:03:49  naim
  * Changing maximum buffer size to 2K to write messages from paradynd to paradyn
  * - naim
  *
@@ -650,7 +653,12 @@ void metricDefinitionNode::propagateMetricInstance(process *p) {
   //} else if (mdl_can_do(met_)) {
 
   if (mdl_can_do(met_)) {
-    mi = mdl_do(focus_, met_, flat_name_, vp);
+      // Make the unique ID for this metric/focus visible in MDL.
+      string vname = "$globalId";
+      mdl_env::add(vname, false, MDL_T_INT);
+      mdl_env::set(this->getMId(), vname);
+
+      mi = mdl_do(focus_, met_, flat_name_, vp);
   } else {
     // internal metrics don't need to be propagated
     mi = NULL;
@@ -751,7 +759,6 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id)
     // will enable metrics for the application.
     if (CMMDhostless == true) return(-1);
 
-    static int MICount=0;
     bool internal = false;
 
     // Make the unique ID for this metric/focus visible in MDL.
@@ -762,7 +769,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id)
     metricDefinitionNode *mi = createMetricInstance(metric_name, focus,
                                                     true, internal);
     if (!mi) return(-1);
-    mi->id_ = ++MICount;
+    mi->id_ = id;
     allMIs[mi->id_] = mi;
 
     float cost = mi->cost();
