@@ -1,6 +1,12 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.34  1994/11/06 09:51:03  newhall
+ * Revision 1.35  1994/11/11 06:59:23  markc
+ * Added additional argument to RPC_make_arg_list and RPC_undo_arg_list to
+ * support remote executition for paradyndPVM.
+ * Added additional argument to RPC_make_arg_list and RPC_undo_arg_list to
+ * support remote executition for paradyndPVM.
+ *
+ * Revision 1.34  1994/11/06  09:51:03  newhall
  * added error checking, especially the handshaking when paradyn starts up
  * paradynd.
  *
@@ -263,9 +269,11 @@ RPC_readReady (int fd, int timeout)
   return (FD_ISSET (fd, &readfds));
 }
 
+// TODO
+// mdc - I need to clean this up
 int 
 RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
-		   int &type, int &well_known_socket, int &flag)
+		   int &type, int &well_known_socket, int &flag, int &firstPVM)
 {
   int loop;
   char *ptr;
@@ -287,28 +295,35 @@ RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
 	    return(-1);
           sum |= 2;
 	}
+      else if (!strncmp(arg_list[loop], "-v", 2))
+	{
+	  firstPVM = (int) strtol (arg_list[loop] + 2, &ptr, 10);
+	  if (ptr == (arg_list[loop] + 2))
+	    return(-1);
+          sum |= 4;
+	}
       else if (!strncmp(arg_list[loop], "-t", 2))
 	{
 	  type = (int) strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (ptr == (arg_list[loop] + 2))
 	    return(-1);
-          sum |= 4;
+          sum |= 8;
 	}
       else if (!strncmp(arg_list[loop], "-m", 2))
 	{
 	  *machine = strdup (arg_list[loop] + 2);
 	  if (!(*machine)) return -1;
-	  sum |= 8;
+	  sum |= 16;
 	}
       else if (!strncmp(arg_list[loop], "-l", 2))
 	{
 	  flag = (int) strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (ptr == (arg_list[loop] + 2))
 	    return(-1);
-          sum |= 16;
+          sum |= 32;
 	}
     }
-  if (sum == (16 + 8 + 4 + 2 + 1))
+  if (sum == (32 + 16 + 8 + 4 + 2 + 1))
 	return 0;
   else
 	return -1;
@@ -321,13 +336,13 @@ RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
  * But, a NULL space will NOT be left at the head of the list
  */
 char **RPC_make_arg_list(int family, int type, int well_known_socket,
-		   int flag, char *machine_name)
+			 int flag, int firstPVM, char *machine_name)
 {
   char arg_str[100];
   int arg_count = 0;
   char **arg_list;
 
-  arg_list = new char*[8];
+  arg_list = new char*[9];
   sprintf(arg_str, "%s%d", "-p", well_known_socket);  
   arg_list[arg_count++] = strdup (arg_str);  // 0
   sprintf(arg_str, "%s%d", "-f", family);
@@ -342,7 +357,9 @@ char **RPC_make_arg_list(int family, int type, int well_known_socket,
   arg_list[arg_count++] = strdup (arg_str); // 3
   sprintf(arg_str, "%s%d", "-l", flag);
   arg_list[arg_count++] = strdup (arg_str);  // 4
-  arg_list[arg_count++] = 0;                 // 5
+  sprintf(arg_str, "%s%d", "-v", firstPVM);
+  arg_list[arg_count++] = strdup (arg_str);  // 5 
+  arg_list[arg_count++] = 0;                 // 6
   return arg_list;
 }
 
