@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.29 2003/01/29 21:27:23 pcroth Exp $
+// $Id: templatesDM.C,v 1.30 2003/01/30 15:41:24 pcroth Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -197,4 +197,7 @@ template class pdvector<dictionary_hash<string, Symbol>::entry>;
 
 template class pdvector<paradynDaemon::MPICHWrapperInfo>;
 template class dictionary_hash<string, pdvector<paradynDaemon*> >;
+template class pdvector<dictionary_hash<string,
+                    pdvector<paradynDaemon*> >::entry>;
+
 
