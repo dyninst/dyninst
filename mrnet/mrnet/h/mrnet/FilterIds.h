@@ -2,29 +2,28 @@
  * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
-
-#if !defined( filterids_h )
-#define filterids_h 1
-
+#ifndef MRN_FILTERS_H
+#define MRN_FILTERS_H
 
 namespace MRN
 {
 
-// IDs of built-in transformation filters
-extern unsigned short TFILTER_NULL;
-extern unsigned short TFILTER_SUM;
-extern unsigned short TFILTER_AVG;
-extern unsigned short TFILTER_MIN;
-extern unsigned short TFILTER_MAX;
-extern unsigned short TFILTER_ARRAY_CONCAT;
-extern unsigned short TFILTER_INT_EQ_CLASS;
+typedef unsigned short FilterId;
 
+// IDs for built-in transformation filters
+extern FilterId TFILTER_NULL;
+extern FilterId TFILTER_SUM;
+extern FilterId TFILTER_AVG;
+extern FilterId TFILTER_MIN;
+extern FilterId TFILTER_MAX;
+extern FilterId TFILTER_ARRAY_CONCAT;
+extern FilterId TFILTER_INT_EQ_CLASS;
 
-// IDs of built-in synchronization filters
-extern unsigned short SFILTER_DONTWAIT;
-extern unsigned short SFILTER_WAITFORALL;
-extern unsigned short SFILTER_TIMEOUT;
+// IDs for built-in synchronization filters
+extern FilterId SFILTER_DONTWAIT;
+extern FilterId SFILTER_WAITFORALL;
+extern FilterId SFILTER_TIMEOUT;
 
 } // namespace MRN
 
-#endif  /* filterids_h */
+#endif  // MRN_FILTERS_H
