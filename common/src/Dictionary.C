@@ -41,6 +41,7 @@
 
 // Dictionary.C
 
+#include <iostream.h>
 #include "common/h/Dictionary.h"
 
 // methods of this class implemented in .h so compiler has no trouble finding
