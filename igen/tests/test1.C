@@ -1,10 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-extern "C" {
-#include <rpc/types.h>
-#include <rpc/xdr.h>
-}
 #include "test1.h"
 
 bool_t xdr_int_Array(XDR *__xdrs__, int_Array *__ptr__) {

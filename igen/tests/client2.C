@@ -1,4 +1,3 @@
-#include <rpc/xdr.h>
 #include <unistd.h>
 #include <assert.h>
 #include "test2.h"
@@ -9,7 +8,7 @@ String str2 = "Different String";
 int numbers[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 int_Array vect;
 
-extern void serverMainFunc(int);
+extern void *serverMainFunc(void *);
 
 main()
 {
@@ -22,7 +21,8 @@ main()
     testUser *remote;
 
     // do a thread create???
-    thr_create(0, 0, serverMainFunc, thr_self(), 0, (unsigned int *) &tid);
+    thr_create(0, 0, serverMainFunc, (void *) thr_self(), (unsigned int) 0, 
+	(unsigned int *) &tid);
 
     remote = new testUser(tid);
 

@@ -1,12 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-extern "C" {
-#include <rpc/types.h>
-#include <rpc/xdr.h>
-}
 #include "test1.h"
 
+void testUser::verifyProtocolAndVersion() { abort(); }
 int test::mainLoop(void)
 {
     unsigned int __tag__, __status__;
@@ -171,7 +168,7 @@ void test::asyncUpcall(int x) {
         __xdrs__->x_op = XDR_DECODE;
         xdrrec_skiprecord(__xdrs__);
         __status__ = xdr_int(__xdrs__, &__tag__);
-	assert((__status__ == 0) && (__tag__ == 0));
+	assert(__status__ && (__tag__ == 0));
         __xdrs__->x_op = XDR_ENCODE;
         xdr_int(__xdrs__, &__tag__);
         xdr_String(__xdrs__, &__ProtocolName__);
@@ -196,7 +193,7 @@ void test::syncUpcall(int x) {
         __xdrs__->x_op = XDR_DECODE;
         xdrrec_skiprecord(__xdrs__);
         __status__ = xdr_int(__xdrs__, &__tag__);
-	assert((__status__ == 0) && (__tag__ == 0));
+	assert(__status__ && (__tag__ == 0));
         __xdrs__->x_op = XDR_ENCODE;
         xdr_int(__xdrs__, &__tag__);
         xdr_String(__xdrs__, &__ProtocolName__);

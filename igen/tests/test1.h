@@ -119,6 +119,10 @@ class testUser: public RPCUser, public XDRrpc {
 };
 class test: private RPCServer, public XDRrpc {
   public:
+    test(char*m,char *u, char *p, xdrIOFunc rd, xdrIOFunc wr):
+      XDRrpc(m, u, p, rd, wr) {}
+    test(int fd, xdrIOFunc rd, xdrIOFunc wr):
+      XDRrpc(fd, rd, wr) {}
     mainLoop(void);
     void asyncUpcall(int x);
     void triggerAsyncUpcall(int val);

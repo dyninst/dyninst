@@ -1,10 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-extern "C" {
-#include <rpc/types.h>
-#include <rpc/xdr.h>
-}
 #include "test1.h"
 
 

@@ -1,4 +1,7 @@
 #include "util/h/rpcUtil.h"
+extern "C" {
+#include "thread/h/thread.h"
+}
 
 /* a struct with one int */
 #ifndef intStruct_TYPE
@@ -97,6 +100,7 @@ struct test__17 {
 #define test_asyncUpcall_RESP 2024
 class testUser: public RPCUser, public THREADrpc {
   public:
+    testUser(int tid): THREADrpc(tid) {}
     void awaitResponce(int);
     int isValidUpCall(int);
     void asyncUpcall(int x);
@@ -114,6 +118,7 @@ class testUser: public RPCUser, public THREADrpc {
 };
 class test: private RPCServer, public THREADrpc {
   public:
+    test(int tid): THREADrpc(tid) {}
     mainLoop(void);
     void asyncUpcall(int x);
     void triggerAsyncUpcall(int val);

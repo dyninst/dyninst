@@ -3,7 +3,7 @@ include	../../make.config
 
 C_OBJS1	= test1.o client1.o test1.CLNT.o 
 S_OBJS1	= test1.o server1.o test1.SRVR.o 
-OBJS2	= client2.o test2.o server2.o 
+OBJS2	= test2.o  client2.o server2.o 
 
 all: client1 server1 program2
 
@@ -16,14 +16,13 @@ server1: $(S_OBJS1)
 program2: $(OBJS2) 
 	$(CC) $(CFLAGS) -o program2 $(OBJS2) $(LIBDIR) -lthread -lutil
 
+clean:
+	rm *.o *.CLNT.C *.SRVR.C *.h client1 server1 program2 test1.C test2.C
+
 .SUFFIXES: .c .I .C .o
 
 test1.C: test1.I ../$(PLATFORM)/igen
 	../$(PLATFORM)/igen -xdr $<
 
-test2.h: test2.I ../$(PLATFORM)/igen
+test2.C: test2.I ../$(PLATFORM)/igen
 	../$(PLATFORM)/igen -thread $<
-
-test2.C: test2.h
-test1.h: test1.h
-

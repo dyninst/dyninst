@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include "test2.h"
 
-void serverMainFunc(int parentId)
+void *serverMainFunc(void *parentId)
 {
     int fd;
     int eid;
     int ret;
     test *tp;
 
-    tp = new test(parentId);
+    tp = new test((int) parentId);
 
     // now go into main loop
     while(1) {

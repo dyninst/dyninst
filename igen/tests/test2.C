@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-extern "C" {
-#include "thread/h/thread.h"
-}
 #include "test2.h"
 
 union test__18 {
