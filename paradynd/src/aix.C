@@ -269,7 +269,7 @@ bool OS::osStop(pid_t pid) {
 // TODO dump core
 bool OS::osDumpCore(pid_t pid, const string dumpTo) {
   // return (!ptrace(PT_DUMPCORE, pid, dumpTo, 0, 0));
-  logLine("dumpcore not available yet");
+  logLine("dumpcore not available yet\n");
   showErrorCallback(47, "");
   return false;
 }
@@ -527,7 +527,7 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
     sprintf(errorLine, "seeking to %d as the offset of the text segment \n",
 	aout.text_start);
     logLine(errorLine);
-    sprintf(errorLine, " code offset= %d\n", baseAddr);
+    sprintf(errorLine, "Code offset = %d\n", baseAddr);
     logLine(errorLine);
 
     /* seek to the text segment */
