@@ -6,7 +6,10 @@
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
  * $Log: inst-power.C,v $
- * Revision 1.10  1996/02/12 16:43:17  naim
+ * Revision 1.11  1996/03/20 20:40:31  hollings
+ * Fixed bug in register save/restore for function calls and conditionals
+ *
+ * Revision 1.10  1996/02/12  16:43:17  naim
  * Minor change to cost model - naim
  *
  * Revision 1.9  1996/01/30  23:44:21  hollings
@@ -165,7 +168,7 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
 // classified
 //
 void pdFunction::checkCallPoints() {
-  int i;
+  unsigned int i;
   instPoint *p;
   Address loc_addr;
 
@@ -625,6 +628,8 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	base += sizeof(instruction)*3;
 	return(base - 2*sizeof(instruction));
     } else if (op ==  callOp) {
+	vector<int> savedRegs;
+
 	//     Save the link register.
 	// mflr r0
 	insn->raw = MFLR0;
@@ -633,6 +638,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 
 	// st r0, (r1)
 	saveRegister(0);
+	savedRegs += 0;
 
 	// see what others we need to save.
 	int i;
@@ -643,8 +649,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	    //		(i.e. part of an expression being evaluated).
 	    if (reg->needsSaving || (reg->inUse && !reg->mustRestore)) {
 		saveRegister(reg->number);
-		reg->needsSaving = false;
-		reg->mustRestore = true;
+		savedRegs += reg->number;
 	    } else if (reg->inUse) {
 		if ((reg->number == src1) || (reg->number == src2)) {
 		    // register is a parameter, so we don't need to save it.
@@ -725,16 +730,9 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	insn++;
 	base += sizeof(instruction);
 
-	// restore the saved registers.
-	restoreRegister(0);
-
-	// restore saved working registers in use by dyninst.
-	for (i = 0; i < regSpace->getRegisterCount(); i++) {
-	    registerSlot *reg = regSpace->getRegSlot(i);
-	    if (reg->inUse && reg->mustRestore) {
-		restoreRegister(reg->number);
-		reg->mustRestore = false;
-	    }
+	// restore saved registers.
+	for (i = 0; i < savedRegs.size(); i++) {
+	    restoreRegister(savedRegs[i]);
 	}
 
 	// mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
