@@ -6,6 +6,10 @@
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
  * $Log: inst-power.C,v $
+ * Revision 1.13  1996/04/26 20:53:36  lzheng
+ * Changes to the procedure emitFuncCall. (move all the code dealing with
+ * the function Calls in the miniTrampoline to here)
+ *
  * Revision 1.12  1996/03/25 22:58:02  hollings
  * Support functions that have multiple exit points.
  *
@@ -541,6 +545,8 @@ pdFunction *getFunction(instPoint *point)
     base += sizeof(instruction);		\
 }	\
 
+
+
 //
 // Author: Jeff Hollingsworth (3/26/96)
 //
@@ -559,11 +565,31 @@ pdFunction *getFunction(instPoint *point)
 //
 
 unsigned emitFuncCall(opCode op, 
-		      vector<reg> srcs, 
-		      reg dest, 
-		      char *iPtr, 
-		      unsigned &base)
+		      registerSpace *rs,
+		      char *iPtr, unsigned &base, 
+		      vector<AstNode> operands, 
+		      string callee, process *proc)
 {
+    unsigned addr;
+    bool err;
+    vector <reg> srcs;
+
+    addr = (proc->symbols)->findInternalAddress(callee, false, err);
+    if (err) {
+	pdFunction *func = (proc->symbols)->findOneFunction(callee);
+        if (!func) {
+	    ostrstream os(errorLine, 1024, ios::out);
+            os << "Internal error: unable to find addr of " << callee << endl;
+            logLine(errorLine);
+            showErrorCallback(80, (const char *) errorLine);
+            P_abort();
+	}
+	addr = func->addr();
+    }
+	
+    for (unsigned u = 0; u < operands.size(); u++)
+	srcs += operands[u].generateCode(proc, rs, iPtr, base);
+
     // TODO cast
     instruction *insn = (instruction *) ((void*)&iPtr[base]);
 
