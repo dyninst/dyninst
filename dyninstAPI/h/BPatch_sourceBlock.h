@@ -93,7 +93,7 @@ public:
 	virtual ~BPatch_sourceBlock() {}
 
 #ifdef IBM_BPATCH_COMPAT
-        API_EXPORT(Int, (_startAddress, endAddress),
+        API_EXPORT(Int, (_startAddress, _endAddress),
         bool,getAddressRange,(void*& _startAddress, void*& _endAddress));
 
         API_EXPORT(Int, (_startLine, _endLine),
