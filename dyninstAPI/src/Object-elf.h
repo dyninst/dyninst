@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,19 +40,15 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.35 1999/06/30 16:15:58 davisj Exp $
- * Object-elf32.h: ELF-32 object files.
+ * $Id: Object-elf.h,v 1.36 1999/07/13 22:12:50 wylie Exp $
+ * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
 
-#if !defined(_Object_elf32_h_)
-#define _Object_elf32_h_
+#if !defined(_Object_elf_h_)
+#define _Object_elf_h_
 
 
-
-/************************************************************************
- * header files.
-************************************************************************/
 #include "util/h/String.h"
 #include "util/h/Symbol.h"
 #include "util/h/Types.h"
@@ -71,16 +67,16 @@ extern "C" {
 #include <sys/stat.h>
 }
 
-/***
-   The standard symbol table in an elf file is the .symtab section. This section does
-   not have information to find the module to which a global symbol belongs, so we must
-   also read the .stab section to get this info.
-***/
+/*
+ * The standard symbol table in an elf file is the .symtab section. This section does
+ * not have information to find the module to which a global symbol belongs, so we must
+ * also read the .stab section to get this info.
+ */
 
 // Declarations for the .stab section.
 // These are not declared in any system header files, so we must provide our own
 // declarations. The declarations below were taken from:
-//       SPARCWorks 3.0.x Debugger Interface, July 1994/
+//       SPARCWorks 3.0.x Debugger Interface, July 1994
 
 struct stab_entry { // an entry in the stab section
   unsigned long name;  // stabstr table index for this symbol
@@ -114,125 +110,170 @@ struct stab_entry { // an entry in the stab section
 // The format of a name is "<name>:<symbol descriptor><rest of name>
 // The following are the descriptors of interest
 #define SD_GLOBAL_FUN 'F' /* global function or procedure */
-#define SD_PROTOTYPE 'P'  /* function prototypes */
+#define SD_PROTOTYPE  'P'  /* function prototypes */
 #define SD_GLOBAL_VAR 'G' /* global variable */
 
 // end of stab declarations
 
-
-
-
-/************************************************************************
- * class Object
-************************************************************************/
 
 class Object : public AObject {
-public:
-             // executable file version of constructor....
-             Object (const string, void (*)(const char *) = log_msg);
-             // shared library version of constructor....
-             Object (const string, const Address baseAddr, 
-		     void (*)(const char *) = log_msg);
-             Object (const Object &);
-    virtual ~Object ();
+ public:
+  // executable ctor
+  Object(const string, 
+	 void (*)(const char *) = log_msg);
+  // shared object ctor
+  Object(const string, const Address base, 
+	 void (*)(const char *) = log_msg);  
+  Object(const Object &);
+  virtual ~Object();
+  const Object& operator=(const Object &);
+  
+  bool is_elf64() const { return is_elf64_; }
+  const char *elf_vaddr_to_ptr(Address vaddr) const;
+  void get_stab_info(void **stabs, int &nstabs, void **stabstr);
 
-    const Object& operator= (const Object &);
+  bool needs_function_binding() const { return (plt_addr_ > 0); } 
+  bool get_func_binding_table(vector<relocationEntry> &fbt) const;
+  bool get_func_binding_table_ptr(const vector<relocationEntry> *&fbt) const;
 
-    // for debuggering ....
-    const ostream &dump_state_info(ostream &s);
+  const ostream &dump_state_info(ostream &s);
+  
+ private:
+  static void log_elferror (void (*)(const char *), const char *);
+    
+  int       file_fd_;            // mapped ELF file
+  unsigned  file_size_;          // mapped ELF file
+  char     *file_ptr_;           // mapped ELF file
 
-    bool     needs_function_binding() const {return (plt_addr_  > 0);} 
-    bool     get_func_binding_table(vector<relocationEntry> &fbt) const;
-    bool     get_func_binding_table_ptr(const vector<relocationEntry> *&fbt) const;
-   // New Function 031099 - johnd
-   // Returns stab or stabstr section depending on scnNum  
-   void     getStabInfo(void **stabs, int &nstabs, void **stabstr) {
-	*stabs = stabs_; nstabs = nstabs_; *stabstr = stabstr_ptr_;
-    }
+  Address   dynsym_addr_;        // .dynsym section
+  Address   dynstr_addr_;        // .dynstr section
+  Address   got_addr_;           // global offset table
+  unsigned  got_size_;           // global offset table
+  Address   plt_addr_;           // procedure linkage table
+  unsigned  plt_size_;           // procedure linkage table
+  unsigned  plt_entry_size_;     // procedure linkage table
+  Address   rel_plt_addr_;       // .rel[a].plt section
+  unsigned  rel_plt_size_;       // .rel[a].plt section
+  unsigned  rel_plt_entry_size_; // .rel[a].plt section
 
-   Elf_Scn * get_Elf_Scn_Ptr(int scnNum);
+  Address   stab_off_;           // .stab section
+  unsigned  stab_size_;          // .stab section
+  Address   stabstr_off_;        // .stabstr section
 
-private:
-    static
-    void    log_elferror (void (*)(const char *), const char *);
+  bool      EEL;                 // true if EEL rewritten
+  bool      is_elf64_;           // true if Elf64 file type 
 
-    bool    EEL ; //set to true if EEL rewritten
-    //added char *ptr, to deal with EEL rewritten software
-    //
-    bool      loaded_elf (int, char *, bool &, Elf* &, Elf32_Ehdr* &, 
-			  Elf32_Phdr* &, Address &, Address &, Elf_Scn* &, 
-			  Elf_Scn* &, Elf_Scn* &, Elf_Scn* &,
-    			  Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
-			  Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp,
-			  Elf_Scn*& dynstr_scnp, bool a_out=false);
-
-    // Code for loading in executable files && shared libraries, 
-    //  respectively....
-    void     load_object ();
-    void     load_shared_object ();
-
-    // initialize relocation_table_ from .rel.plt or .rela.plt section entryies 
-    bool     get_relocation_entries(Elf_Scn*& rel_plt_scnp,
-			Elf_Scn*& dynsymscnp, Elf_Scn*& dynstrcnp);
-
-    // elf-specific stuff from dynamic executables and shared objects
-    Address 	plt_addr_;	// address of _PROCEDURE_LINKAGE_TABLE_ 
-    u_int 	plt_size_;
-    u_int 	plt_entry_size_;
-    Address 	got_addr_;	// address of _GLOBAL_OFFSET_TABLE_
-    Address 	rel_plt_addr_;	// address of .rela.plt or .rel.plt section 
-    u_int 	rel_plt_size_;
-    u_int 	rel_plt_entry_size_;
-    Address 	dyn_sym_addr_;	// address of .dynsym section
-    Address 	dyn_str_addr_;	// address of .dynstr section
-    void        *stabs_;     	// address of .stab section
-    int		nstabs_;		// number of items in .stab section
-    void  	*stabstr_ptr_;  // address of .stabstr section
-
-    // for sparc-solaris this is a table of PLT entry addr, function_name
-    // for x86-solaris this is a table of GOT entry addr, function_name
-    // on sparc-solaris the runtime linker modifies the PLT entry when it
-    // binds a function, on X86 the PLT entry is not modified, but it uses
-    // an indirect jump to a GOT entry that is modified when the function 
-    // is bound....is this correct???? or should it be <PLTentry_addr, name> 
-    // for both?
-    vector<relocationEntry> relocation_table_;
+  // for sparc-solaris this is a table of PLT entry addr, function_name
+  // for x86-solaris this is a table of GOT entry addr, function_name
+  // on sparc-solaris the runtime linker modifies the PLT entry when it
+  // binds a function, on X86 the PLT entry is not modified, but it uses
+  // an indirect jump to a GOT entry that is modified when the function 
+  // is bound....is this correct???? or should it be <PLTentry_addr, name> 
+  // for both?
+  vector<relocationEntry> relocation_table_;
 
 
-    void parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym *syms,
-        unsigned nsyms, const char *strs, bool shared_library,
-        string module);
+  // populates: file_fd_, file_size_, file_ptr_
+  bool mmap_file(const char *file, 
+		 bool &did_open, bool &did_mmap);
 
-    void fix_zero_function_sizes(vector<Symbol> &allsymbols, bool EEL);
-    void override_weak_symbols(vector<Symbol> &allsymbols);
-    void insert_symbols_shared(vector<Symbol> allsymbols);
-    void find_code_and_data(Elf32_Ehdr* ehdrp, Elf32_Phdr* phdrp, 
-        char *ptr, Address txtaddr, Address bssaddr);
-    void insert_symbols_static(vector<Symbol> allsymbols, 
-        dictionary_hash<string, Symbol> &global_symbols);
-    bool fix_global_symbol_modules_static_stab(
-        dictionary_hash<string, Symbol> &global_symbols,
-        Elf_Scn* stabscnp, Elf_Scn* stabstrscnp);
-    bool fix_global_symbol_modules_static_dwarf(
-	dictionary_hash<string, Symbol> &global_symbols, Elf *elfp);
-    void fix_global_symbol_unknowns_static(
-        dictionary_hash<string, Symbol> &global_symbols);
+  bool loaded_elf(bool &, Elf* &, 
+		  Address &, Address &, Elf_Scn* &, 
+		  Elf_Scn* &, Elf_Scn* &, Elf_Scn* &,
+		  Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
+		  Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp,
+		  Elf_Scn*& dynstr_scnp, bool a_out=false);
+
+  void load_object();
+  void load_shared_object();
+
+  // initialize relocation_table_ from .rel[a].plt section entries 
+  bool get_relocation_entries(Elf_Scn*& rel_plt_scnp,
+			      Elf_Scn*& dynsym_scnp, 
+			      Elf_Scn*& dynstr_scnp);
+
+  void parse_symbols(vector<Symbol> &allsymbols, 
+		     Elf_Data *symdatap, Elf_Data *strdatap,
+		     bool shared_library,
+		     string module);
+  
+  void fix_zero_function_sizes(vector<Symbol> &allsymbols, bool EEL);
+  void override_weak_symbols(vector<Symbol> &allsymbols);
+  void insert_symbols_shared(vector<Symbol> allsymbols);
+  void find_code_and_data(Elf *elfp,
+       Address txtaddr, Address bssaddr);
+  void insert_symbols_static(vector<Symbol> allsymbols,
+       dictionary_hash<string, Symbol> &global_symbols);
+  bool fix_global_symbol_modules_static_stab(
+       dictionary_hash<string, Symbol> &global_symbols,
+       Elf_Scn* stabscnp, Elf_Scn* stabstrscnp);
+  bool fix_global_symbol_modules_static_dwarf(
+       dictionary_hash<string, Symbol> &global_symbols, Elf *elfp);
+  void fix_global_symbol_unknowns_static(
+       dictionary_hash<string, Symbol> &global_symbols);
 
 #if defined(mips_sgi_irix6_4)
  public:
-    Address get_gp_value()  const { return gp_value; }
-    Address get_rbrk_addr() const { return rbrk_addr; }
-    Address get_base_addr() const { return base_addr; }
+  Address     get_gp_value()  const { return gp_value; }
+  Address     get_rbrk_addr() const { return rbrk_addr; }
+  Address     get_base_addr() const { return base_addr; }
+  const char *got_entry_name(Address entry_off) const;
  private:
-    Address gp_value;
-    Address rbrk_addr;
-    Address base_addr;
+  Address     gp_value;
+  Address     rbrk_addr;
+  Address     base_addr;
+  int         got_zero_index_;
+  int         dynsym_zero_index_;
 #endif /* mips_sgi_irix6_4 */
-
 };
  
 
-#endif /* !defined(_Object_elf32_h_) */
+// ABI-generic wrapper for ELF section header
+class pdElfShdr {
+public:
+  unsigned pd_name;
+  Address  pd_addr;
+  unsigned pd_offset;
+  unsigned pd_size;
+  unsigned pd_entsize;
+  bool err;
+
+  inline pdElfShdr(Elf_Scn *scnp, bool is_elf64) 
+    {
+      err = false;
+      if (is_elf64) {
+	// parse ELF section header (64-bit)
+#ifndef USES_ELF32_ONLY
+	Elf64_Shdr *shdrp_64 = elf64_getshdr(scnp);
+	if (shdrp_64 == NULL) {
+	  err = true;
+	  return;
+	}
+	pd_name =    shdrp_64->sh_name;
+	pd_addr =    shdrp_64->sh_addr;
+	pd_offset =  shdrp_64->sh_offset;
+	pd_size =    shdrp_64->sh_size;
+	pd_entsize = shdrp_64->sh_entsize;
+#endif
+      } else {
+	// parse ELF section header (32-bit)
+	Elf32_Shdr *shdrp_32 = elf32_getshdr(scnp);
+	if (shdrp_32 == NULL) {
+	  err = true;
+	  return;
+	}
+	pd_name =    shdrp_32->sh_name;
+	pd_addr =    shdrp_32->sh_addr;
+	pd_offset =  shdrp_32->sh_offset;
+	pd_size =    shdrp_32->sh_size;
+	pd_entsize = shdrp_32->sh_entsize;
+      }
+    }  
+};
+
+const char *pdelf_get_shnames(Elf *elfp, bool is64);
+
+#endif /* !defined(_Object_elf_h_) */
 
 
 
