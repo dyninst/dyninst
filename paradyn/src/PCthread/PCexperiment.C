@@ -20,6 +20,9 @@
  * The experiment class methods.
  * 
  * $Log: PCexperiment.C,v $
+ * Revision 1.4  1996/02/22 20:02:20  karavan
+ * fixed bug introduced by bug fix.
+ *
  * Revision 1.3  1996/02/22 18:29:24  karavan
  * changed min time to conclusion to 10 (temporary)
  *
@@ -54,8 +57,7 @@
 ostream& operator <<(ostream &os, experiment& ex)
 {
   os << "experiment: " << ex.pcmih << ":" << "\n" 
-    << "\tcost:\t" << ex.estimatedCost << 
-      << endl;
+    << "\tcost:\t" << ex.estimatedCost << endl;
     
   return os;
 }
