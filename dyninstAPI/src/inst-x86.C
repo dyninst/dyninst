@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.157 2004/03/16 22:07:13 lharris Exp $
+ * $Id: inst-x86.C,v 1.158 2004/03/18 19:04:27 lharris Exp $
  */
 
 #include <iomanip>
@@ -567,7 +567,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
     
     //funcEnd set to the beginning of the function
     //will be updated if necessary at the end of each basic block  
-    Address funcEnd = funcBegin;
+    Address funcEnd = funcBegin; 
     Address currAddr = funcBegin;
     
     if( !isInstrumentableByFunctionName() || get_size() == 0 )
@@ -664,51 +664,56 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                     funcEnd = currAddr + insnSize;
                 
                 Address target = ah.getBranchTarget();
-                if( (target < funcBegin) || (reparse && target >= upper) )
-                {
-                    currBlk->isExitBasicBlock = true;
-                    break;
-                }
+                
                 owner->addJumpTarget( target );
                 if( target >= funcBegin && target <= funcBegin + 5 )
                     has_jump_to_first_five_bytes = true;
-                
-                jmpTargets.push_back( target );
-                
-                //check if a basicblock object has been created for the target
-                if( !leaders.contains( target ) )
+                             
+                if( (target < funcBegin) || (reparse && target >= upper) )
                 {
-                    //if not, then create one
-                    leadersToBlock[ target ] = new BPatch_basicBlock;
-                    leaders += target;
-                    blockList->push_back( leadersToBlock[ target ] );
+                    currBlk->isExitBasicBlock = true;
                 }
-                                             
-                leadersToBlock[ target ]->setStartAddress( target );	
-                leadersToBlock[ target ]->addSource( currBlk );
-                currBlk->addTarget( leadersToBlock[ target ] );
-                                
+                else
+                {
+                    jmpTargets.push_back( target );
+                    
+                    //check if a basicblock object has been 
+                    //created for the target
+                    if( !leaders.contains( target ) )
+                    {
+                        //if not, then create one
+                        leadersToBlock[ target ] = new BPatch_basicBlock;
+                        leaders += target;
+                        blockList->push_back( leadersToBlock[ target ] );
+                    }
+                    
+                    leadersToBlock[ target ]->setStartAddress( target );	
+                    leadersToBlock[ target ]->addSource( currBlk );
+                    currBlk->addTarget( leadersToBlock[ target ] );
+                }
+                
                 Address t2 = currAddr + insnSize;
                 if( reparse && t2 >= upper )
                 {
                     currBlk->isExitBasicBlock = true;
-                    break;
                 }
-                
-                jmpTargets.push_back( t2 );
-
-                //check if a basicblock object has be created for fall through
-                if( !leaders.contains( t2 ) )
+                else
                 {
-                    leadersToBlock[ t2 ] = new BPatch_basicBlock;
-                    leaders += t2;
-                    blockList->push_back( leadersToBlock[ t2 ] );
-                }
+                    jmpTargets.push_back( t2 );
+                    
+                    //check if a basicblock 
+                    //object has be created for fall through
+                    if( !leaders.contains( t2 ) )
+                    {
+                        leadersToBlock[ t2 ] = new BPatch_basicBlock;
+                        leaders += t2;
+                        blockList->push_back( leadersToBlock[ t2 ] );
+                    }
 		
-                leadersToBlock[ t2 ]->setStartAddress( t2 );
-                leadersToBlock[ t2 ]->addSource( currBlk );
-                currBlk->addTarget( leadersToBlock[ t2 ] );
-               
+                    leadersToBlock[ t2 ]->setStartAddress( t2 );
+                    leadersToBlock[ t2 ]->addSource( currBlk );
+                    currBlk->addTarget( leadersToBlock[ t2 ] );
+                }
                 allInstructions.push_back( ah.getInstruction() );
                 break;
             }	    
@@ -779,31 +784,34 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                     
                     for( unsigned l = 0; l < result.size(); l++ )
                     {
-                        if( !owner->isValidAddress( result[ l ] ) )
+                        Address res = result[ l ];
+                        if( !owner->isValidAddress( res ) )
                             continue;
                         
-                        if( result[ l ] >= funcBegin && 
-                            result[ l ] <= funcBegin + 5 )
+                        if( res >= funcBegin &&  res <= funcBegin + 5 )
                             has_jump_to_first_five_bytes = true;
                         
-                        if( !leaders.contains( result[ l ] ) )
+                        if( (res < funcBegin ) ||(reparse && res > upper ) )
                         {
-                            leadersToBlock[ result[ l ] ] =
-                                new BPatch_basicBlock;	                      
-                            leadersToBlock[ result[l] ]
-                                ->setStartAddress( result[l] );          
-                            leaders += result[ l ];
-                            
-                            jmpTargets.push_back( result[ l ] );
-                            blockList->push_back( leadersToBlock[result[l] ]);
+                            //currBlk->isExitBasicBlock = true;
                         }
-                        
-                        currBlk->addTarget( leadersToBlock[ result[ l ] ] );
-                        leadersToBlock[ result[ l ] ]->addSource( currBlk );
-                    }
-                }		
-                break;
-            } 
+                        else
+                        {
+                            if( !leaders.contains( res ) )
+                            {
+                                leadersToBlock[res] = new BPatch_basicBlock;
+                                leadersToBlock[ res]->setStartAddress( res );
+                                leaders += res;
+                                jmpTargets.push_back( res );
+                                blockList->push_back( leadersToBlock[res]);
+                            }                        
+                            currBlk->addTarget( leadersToBlock[ res ] );
+                            leadersToBlock[ res ]->addSource( currBlk );
+                        }
+                    }                   
+                    break;
+                } 
+            }
             else if ( ah.isAJumpInstruction() ) 
             {
                 currBlk->setEndAddress( currAddr );
