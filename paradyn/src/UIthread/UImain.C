@@ -1,8 +1,12 @@
 /* $Log: UImain.C,v $
-/* Revision 1.58  1995/10/17 20:46:39  tamches
-/* Changes for new search history graph.
-/* Remove some obsolete variables such as uim_rootRes
+/* Revision 1.59  1995/10/19 22:41:05  mjrg
+/* Added callback function for paradynd's to report change in status of application.
+/* Added Exited status for applications.
 /*
+ * Revision 1.58  1995/10/17  20:46:39  tamches
+ * Changes for new search history graph.
+ * Remove some obsolete variables such as uim_rootRes
+ *
  * Revision 1.57  1995/10/09 18:16:00  naim
  * Minor fix to path variable "temp". I had changed it by mistake! - naim
  *
@@ -369,6 +373,9 @@ applicStateChanged (perfStreamHandle handle, appState state)
     }
 	app_status.state(status_line::URGENT);
 	app_status.message("PAUSED");
+  } else if ((state == appExited)) {
+        app_status.state(status_line::URGENT);
+        app_status.message("EXITED");
   }
     PDapplicState = state;
 }
