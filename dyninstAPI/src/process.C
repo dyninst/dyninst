@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.476 2004/03/05 16:51:39 bernat Exp $
+// $Id: process.C,v 1.477 2004/03/08 23:45:56 bernat Exp $
 
 #include <ctype.h>
 
@@ -1329,7 +1329,6 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   // word-align buffer size 
   // (see "DYNINSTheap_align" in rtinst/src/RTheap-<os>.c)
   alignUp(size, 4);
-
   // build AstNode for "DYNINSTos_malloc" call
   pdstring callee = "DYNINSTos_malloc";
   pdvector<AstNode*> args(3);
@@ -1409,7 +1408,6 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
    inferiorMallocAlign(size); // align size
    // Set the lo/hi constraints (if necessary)
    inferiorMallocConstraints(near_, lo, hi, type);
-   
 #else
    /* align to cache line size (32 bytes on SPARC) */
    size = (size + 0x1f) & ~0x1f; 
@@ -5167,6 +5165,7 @@ bool process::continueProc(int signalToContinueWith) {
         
         return false;
     }
+    
    if (status_ == running) {
       return true;
    }
@@ -5378,6 +5377,12 @@ void process::handleForkExit(process *child) {
     child->init_shared_memory(this);
 #endif
 
+#if defined(os_aix)
+    // AIX doesn't copy memory past the ends of text segments, so we
+    // do it manually here
+    copyDanglingMemory(child);
+#endif
+
     BPatch::bpatch->registerForkedThread(getPid(), child->getPid(), child);
 }
 
@@ -5404,7 +5409,6 @@ void process::handleExecExit() {
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
 	PARADYNhasBootstrapped = false;
 #endif
-
    // all instrumentation that was inserted in this process is gone.
    // set exited here so that the disables won't try to write to process
    set_status(execing);

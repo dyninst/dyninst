@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.192 2004/03/05 16:51:37 bernat Exp $
+ * $Id: inst-power.C,v 1.193 2004/03/08 23:45:55 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1704,10 +1704,22 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   }
   // Okay, actually build this sucker.
   bool isReinstall = true;
+#if defined(bug_aix_proc_broken_fork)
+      // We need the base tramp to be in allocated heap space, not scavenged
+      // text space, because scavenged text space is _not_ copied on fork.
   if (!baseAddr) {
-    baseAddr = proc->inferiorMalloc(theTemplate->size, anyHeap,
-                                    location->absPointAddr(proc));
-    isReinstall = false;
+      if (location->pointFunc()->prettyName() == pdstring("__fork")) {
+          baseAddr = proc->inferiorMalloc(theTemplate->size, dataHeap,
+                                          location->absPointAddr(proc));
+          isReinstall = false;
+      }
+  }
+#endif      
+  if (!baseAddr) {
+      
+      baseAddr = proc->inferiorMalloc(theTemplate->size, anyHeap,
+                                      location->absPointAddr(proc));
+      isReinstall = false;
   }
   // InferiorMalloc can ignore our "hints" when necessary, but that's 
   // bad here because we don't have a fallback position
@@ -1770,10 +1782,11 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 
   // TODO cast
   proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) tramp);
-  
-//  fprintf(stderr, "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
-  //baseAddr, baseAddr+theTemplate->size, location->absPointAddr(proc), 
-  //location->func->prettyName().c_str());
+/*  
+  fprintf(stderr, "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
+          baseAddr, baseAddr+theTemplate->size, location->absPointAddr(proc), 
+          location->pointFunc()->prettyName().c_str());
+*/
   if (!isReinstall) {
       proc->addCodeRange(baseAddr, theTemplate);
       return theTemplate;
