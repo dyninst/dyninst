@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.80 2003/04/02 07:12:24 jaw Exp $
+// $Id: BPatch_thread.C,v 1.81 2003/04/11 18:33:14 buck Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1375,7 +1375,6 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 		    return true;
 #endif
 	}
-	cerr << __FILE__ << __LINE__ << "lI->getLineAndFile failed!" << endl;
 	return false;
 }
 
