@@ -73,7 +73,7 @@ class pdDebug_ostream {
    pdDebug_ostream &operator<<(unsigned short s);
    pdDebug_ostream &operator<<(int i);
    pdDebug_ostream &operator<<(unsigned i);
-#ifndef mips_sgi_irix6_4
+#if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
    pdDebug_ostream &operator<<(long l);
    pdDebug_ostream &operator<<(unsigned long l);
 #endif
