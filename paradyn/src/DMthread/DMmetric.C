@@ -134,8 +134,9 @@ metricInstance::metricInstance(resourceListHandle rl,
     //sample.aggOp = mp->getAggregate();
     data = 0;
     global_data = 0;
-    persistent_data = 0;
-    persistent_collection = 0;
+    persistent_data = false;
+    persistent_collection = false;
+    phase_persistent_data = false;
     currEnablesWaiting = 0;
     globalEnablesWaiting = 0;
     enabled = false;
@@ -285,7 +286,7 @@ metricInstance *metricInstance::find(metricHandle mh, resourceListHandle rh){
 //
 bool metricInstance::clearPersistentData(){
   
-
+    phase_persistent_data = false;
     // if there are no outstanding enables for this MI and the flag was set 
     if(persistent_data && !globalEnablesWaiting && !currEnablesWaiting){ 
        // if persistent collection is false then may need to delete data
@@ -394,6 +395,8 @@ void metricInstance::stopAllCurrentDataCollection(phaseHandle last_phase_id) {
         // remove all users from user list
 	mi->users.resize(0);
 	assert(!(mi->users.size()));
+	// clear the persistent flag that is only valid within a phase
+	mi->clearPhasePersistentData();
 
 	bool was_deleted = false;
         // if persistent data archive curr histogram

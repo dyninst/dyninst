@@ -117,14 +117,11 @@ class metricInstance {
     friend class paradynDaemon;
     friend void histDataCallBack(sampleValue *buckets, timeStamp, int count, 
 				 int first, void *arg, bool globalFlag);
-    friend void DMdoEnableData(perfStreamHandle ps_handle,
-			       vector<metricRLType> *request,
-			       u_int request_Id,
-			       phaseType type,
-			       phaseHandle phaseId,
-			       u_int persistent_data,
-			       u_int persistent_collection);
+    friend void DMdoEnableData(perfStreamHandle,vector<metricRLType> *,
+			       u_int,phaseType,phaseHandle,u_int,u_int,u_int);
     friend void DMenableResponse(DM_enableType&,vector<bool>&);
+    friend void DMdisableRoutine(perfStreamHandle,metricInstanceHandle,
+				 phaseType);
     public:
 	metricInstance(resourceListHandle rl, metricHandle m,phaseHandle ph);
 	~metricInstance(); 
@@ -188,11 +185,14 @@ class metricInstance {
 	}
 
 	void setPersistentData(){ persistent_data = true; } 
+	void setPhasePersistentData(){ phase_persistent_data = true; } 
 	void setPersistentCollection(){ persistent_collection = true; } 
 	// returns true if the metric instance can be deleted 
 	bool clearPersistentData();  
+	void clearPhasePersistentData(){phase_persistent_data=false;}  
 	void clearPersistentCollection(){ persistent_collection = false; } 
 	bool isDataPersistent(){ return persistent_data;}
+	bool isPhaseDataPersistent(){ return phase_persistent_data;}
 	bool isCollectionPersistent(){ return persistent_collection;}
 	// returns false if componet was already on list (not added)
 	bool addComponent(component *new_comp);
@@ -231,22 +231,6 @@ class metricInstance {
 	// sample, that is bucketed by a histogram.
 	vector<component *> components; 
 	aggregateSample aggSample;
-#ifdef notdef
-	// one component for each daemon contributing to the metric value 
-	// one part for each component
-	// as data arrives from each daemon the appropriate part is updated
-	vector<sampleInfo *> parts;
-	vector<component *> components; 
-	// the number of processes per daemon contributing to the metric 
-	// used to correctly compute average for non-internal metrics  
-	vector<u_int> num_procs_per_part;
-
-	// when each part of the component has a value for a new interval
-	// (starting from the last time sample was updated) this value
-	// is updated from its components and the result is bucketed
-	// by a histogram (either data or global_data or both) 
-	sampleInfo sample;
-#endif
 
 	vector<perfStreamHandle> users;  // subscribers to curr. phase data
 	Histogram *data;		 // data corr. to curr. phase
@@ -258,6 +242,8 @@ class metricInstance {
 	bool persistent_data;  
 	// if set, don't disable on new phase definition
 	bool persistent_collection; 
+	// if set, don't delete data on disable, but on new phase clear flag 
+	bool phase_persistent_data;
 
 	unsigned id;
 	static dictionary_hash<metricInstanceHandle,metricInstance *> 
@@ -286,5 +272,6 @@ class metricInstance {
         void removeGlobalUser(perfStreamHandle);
         void removeCurrUser(perfStreamHandle);
 	bool deleteCurrHistogram();
+	resourceList *getresourceList(){return(resourceList::getFocus(focus));}
 };
 #endif

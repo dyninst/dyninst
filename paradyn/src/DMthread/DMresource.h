@@ -1,37 +1,3 @@
-/*
- * DMresource.h - define the resource data abstraction.
- *
- * $Log: DMresource.h,v $
- * Revision 1.29  1996/05/02 16:17:34  tamches
- * added getMachineNameReferredTo
- * cleaned up class decls by making appropriate member fns const
- *
- * Revision 1.28  1996/04/30 18:54:00  newhall
- * changes to make enabling and disabling data asynchronous
- *
- * Revision 1.27  1996/03/01  22:47:05  mjrg
- * Added type to resources.
- *
- * Revision 1.26  1996/02/02 02:14:53  karavan
- * changed resource::magnify to return struct like magnify2.
- *
- * removed obsolete friend classes for compatibility with new PC.
- *
- *
- * Revision 1.25  1995/12/11 02:25:13  newhall
- * changed magnify2 to return the resourceList label with each
- * magnified focus
- *
- * Revision 1.24  1995/10/17  20:42:56  tamches
- * Removed reference to the now-obsolete class "dag"
- *
- * Revision 1.23  1995/10/13 22:07:01  newhall
- * Added code to change sampling rate as bucket width changes (this is not
- * completely implemented in daemon code yet, so now it has no effect).
- * Purify fixes.  Added phaseType parameter to sampleDataCallbackFunc
- * Added 2 new DM interface routines: getResourceName, getResourceLabelName
- *
- */
 #ifndef DMresource_H 
 #define DMresource_H
 #ifndef NULL
@@ -52,9 +18,9 @@ extern "C" {
 #include "DMinclude.h"
 
 //
-//  class resource: the static items basically manage a "database" of all resources.
-//                  the non-static stuff gives you information about a single resource.
-//  note: In the "database", resources can be created, but never destroyed.
+//class resource: the static items basically manage a "database" of all
+//resources. the non-static stuff gives you information about a single resource.
+//note: In the "database", resources can be created, but never destroyed.
 //
 class resource {
       friend class dataManager;
@@ -67,7 +33,8 @@ class resource {
 
   public:
     vector<resourceHandle> *getChildren();
-    const char *getName() const { return(fullName[fullName.size()-1].string_of());}
+    const char *getName() const { 
+	return(fullName[fullName.size()-1].string_of());}
     const char *getFullName() const { return(name.string_of()); }
     const char *getAbstractionName() const { 
 	if (abstr) return(abstr->getName());
@@ -150,14 +117,14 @@ class resourceList {
       resourceListHandle *constrain(resourceHandle);
 
       bool getMachineNameReferredTo(string &machName) const;
-         // If this focus is specific to a machine, then fill in "machName" and return
-         // true.  Else, leave "machName" alone and return false.
+         // If this focus is specific to a machine, then fill in "machName"
+	 // and return true.  Else, leave "machName" alone and return false.
          // What does it mean for a focus to be specific to a machine?
-         // For one, if the focus is a descendant of a machine, then it's obvious.
-         // If the focus is a descendant of a process, then we can find a
-         // machine to which it's referring, too.
-         // NOTE: If this routine gets confused or isn't sure whether the resource is
-         // specific to a machine, it returns false.
+         // For one, if the focus is a descendant of a machine, then it's 
+	 // obvious.  If the focus is a descendant of a process, then we can
+	 // find a machine to which it's referring, too.
+         // NOTE: If this routine gets confused or isn't sure whether the
+	 // resource is  specific to a machine, it returns false.
 
       static const char *getName(resourceListHandle rh);
       static bool convertToIDList(resourceListHandle rh,

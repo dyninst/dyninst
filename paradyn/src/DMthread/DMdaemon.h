@@ -46,11 +46,11 @@ class DM_enableType{
  public: 
     DM_enableType(perfStreamHandle ph,phaseType t,phaseHandle ph_h,
 		  u_int rI,u_int cI,vector <metricInstance *> *r,
-		  vector <bool> *d,vector <bool> *e,u_int h,u_int pd,u_int pc):
-		  ps_handle(ph),ph_type(t), ph_handle(ph_h),request_id(rI), 
-		  client_id(cI), request(r),done(d),enabled(e),how_many(h),
-		  persistent_data(pd), persistent_collection(pc), 
-		  not_all_done(0) { 
+		  vector <bool> *d,vector <bool> *e,u_int h,u_int pd,u_int pc,
+		  u_int ppd): ps_handle(ph),ph_type(t), ph_handle(ph_h),
+		  request_id(rI), client_id(cI), request(r),done(d),enabled(e),
+		  how_many(h), persistent_data(pd), persistent_collection(pc),
+		  phase_persistent_data(ppd), not_all_done(0) { 
 			   for(u_int i=0; i < done->size(); i++){
 			       if(!(*done)[i]) not_all_done++;
 			   }
@@ -58,7 +58,7 @@ class DM_enableType{
     DM_enableType(){ ps_handle = 0; ph_type = GlobalPhase; ph_handle= 0; 
 		request_id = 0; client_id = 0; request = 0; done = 0; 
 		enabled = 0; how_many =0; persistent_data = 0; 
-		persistent_collection = 0; 
+		persistent_collection = 0; phase_persistent_data = 0; 
     }
     ~DM_enableType(){ delete request; delete done; delete enabled;}
 
@@ -80,6 +80,7 @@ class DM_enableType{
     u_int how_many;              // number of daemons 
     u_int persistent_data;
     u_int persistent_collection;
+    u_int phase_persistent_data;
     u_int not_all_done;
 };
 
@@ -162,7 +163,7 @@ class paradynDaemon: public dynRPCUser {
 	friend bool metDoDaemon();
 	friend int dataManager::DM_post_thread_create_init(int tid);
 	friend void DMdoEnableData(perfStreamHandle,vector<metricRLType>*,
-				   u_int,phaseType,phaseHandle,u_int,u_int);
+				 u_int,phaseType,phaseHandle,u_int,u_int,u_int);
     public:
 	paradynDaemon(const string &m, const string &u, const string &c,
 		      const string &n, const string &flav);
@@ -175,13 +176,9 @@ class paradynDaemon: public dynRPCUser {
         virtual void reportStatus(string);
 	virtual void processStatus(int pid, u_int stat);
 	virtual void nodeDaemonReadyCallback(void);
-	
 	virtual void reportSelf (string m, string p, int pd, string flav);
-//	virtual void sampleDataCallbackFunc(int, int, double, 
-//					    double, double);
-
 	virtual void batchSampleDataCallbackFunc(int program,
-                                                 vector<T_dyninstRPC::batch_buffer_entry>);
+                               vector<T_dyninstRPC::batch_buffer_entry>);
 
 	virtual void cpDataCallbackFunc(int, double, int, double, double);
 
@@ -261,6 +258,7 @@ class paradynDaemon: public dynRPCUser {
         string command;
         string name;
         string flavor;
+	u_int id;
 
         status_line *status;
 

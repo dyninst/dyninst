@@ -86,11 +86,9 @@ void DM_enableType::updateAny(vector<metricInstance *> &completed_mis,
                    if(completed_mis[j]->getHandle() == mh){
                        if(successful[j]) (*done)[i] = true;
                        not_all_done--;
-                   } 
-	       }
-           }
-       } 
-   }
+               } } 
+	   }
+   } }
 }
 
 
@@ -425,22 +423,13 @@ vector<string> *paradynDaemon::getAvailableDaemons()
 
 // For a given machine name, find the appropriate paradynd structure.
 // Returns NULL if an appropriate matching entry can't be found.
-// Warning: In the current implementation, the speed of this routine
-//          doesn't scale gracefully as the # of daemons increases!
-//          (a hash table of (machine-name to paradynDaemon*) would fix
-//           this situation)
-// Question: Can there be more than one daemon on a machine?  If so,
-//           then this routine would have to be able to return _more_ than
-//           one paradynDaemon.  Currently, although there may be more than
-//           one user _process_ per machine, there's always just one
-//           paradynd per machine.
 paradynDaemon *paradynDaemon::machineName2Daemon(const string &theMachineName) {
    for (unsigned i=0; i < allDaemons.size(); i++) {
       paradynDaemon *theDaemon = allDaemons[i];
       if (theDaemon->getDaemonMachineName() == theMachineName)
 	 return theDaemon;
    }
-   return NULL; // failure; this machine name isn't known!
+   return 0; // failure; this machine name isn't known!
 }
 
 // TODO: fix this
@@ -678,9 +667,12 @@ void paradynDaemon::enableData(vector<metricInstance *> *miVec,
 
     // make enable request, pass only pairs that need to be enabled to daemons
     if(need_to_enable){  
+	bool whole_prog_focus = false;
+	vector<paradynDaemon*> daemon_subset; // which daemons to send request
         vector<T_dyninstRPC::focusStruct> foci; 
 	vector<string> metrics; 
 	vector<u_int> mi_ids;  
+
         for(u_int i=0; i < miVec->size(); i++){
 	    if(!(*enabled)[i] && !(*done)[i]){
 		// create foci, metrics, and mi_ids entries for this mi
@@ -693,16 +685,58 @@ void paradynDaemon::enableData(vector<metricInstance *> *miVec,
 		mi_ids += (*miVec)[i]->getHandle();
 	        // set curretly enabling flag on mi 
 		(*miVec)[i]->setCurrentlyEnabling();
-	    }
-	}
+
+		// check to see if this focus is refined on the machine
+		// or process heirarcy, if so then add the approp. daemon
+		// to the daemon_subset, else set whole_prog_focus to true
+		if(!whole_prog_focus){
+		    string machine_name;
+		    resourceList *rl = (*miVec)[i]->getresourceList(); 
+		    assert(rl);
+		    // focus is refined on machine or process heirarchy 
+		    if(rl->getMachineNameReferredTo(machine_name)){
+			// get the daemon corr. to this focus and add it
+			// to the list of daemons
+			paradynDaemon *pd = 
+				paradynDaemon::machineName2Daemon(machine_name);
+                        assert(pd);
+			bool found = false;
+			for(u_int k=0; k< daemon_subset.size(); k++){
+			  if(pd->id == daemon_subset[k]->id){
+			      found = true;    
+			} }
+			if(!found){ // add new daemon to subset list
+			    daemon_subset += pd;    
+			}
+			pd = 0;
+		    }
+		    else {  // foucs is not refined on process or machine 
+			whole_prog_focus = true;
+		    }
+		}
+	} }
 	assert(foci.size() == metrics.size());
 	assert(metrics.size() == mi_ids.size());
+	assert(daemon_subset.size() <= paradynDaemon::allDaemons.size());
+
+	// if there is a whole_prog_focus then make the request to all 
+	// the daemons, else make the request to the daemon subset
 	// make enable requests to all daemons
-	for(u_int j=0; j < paradynDaemon::allDaemons.size(); j++){
-	   paradynDaemon *pd = paradynDaemon::allDaemons[j]; 
-	   pd->enableDataCollection(foci,metrics,mi_ids,j,
+	if(whole_prog_focus) {
+	    for(u_int j=0; j < paradynDaemon::allDaemons.size(); j++){
+	       paradynDaemon *pd = paradynDaemon::allDaemons[j]; 
+	       pd->enableDataCollection(foci,metrics,mi_ids,j,
 				     new_entry->request_id);
+	    }
 	}
+	else {  
+	    // change the enable number in the entry 
+	    new_entry->how_many = daemon_subset.size();
+	    for(u_int j=0; j < daemon_subset.size(); j++){
+	       daemon_subset[j]->enableDataCollection(foci,metrics,mi_ids,
+				 daemon_subset[j]->id,new_entry->request_id);
+	    }
+        }
     }
     // add entry to outstanding_enables list
     paradynDaemon::outstanding_enables += new_entry;
@@ -883,6 +917,8 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
     status = new status_line(machine.string_of());
     paradynDaemon *pd = this;
     paradynDaemon::allDaemons+=pd;
+    id = paradynDaemon::allDaemons.size()-1;
+    assert(paradynDaemon::allDaemons.size() > id); 
   }
   // else...we leave "errorConditionFound" for the caller to check...
   //        don't forget to check!
@@ -895,6 +931,7 @@ paradynDaemon::paradynDaemon(int f)
     // No problems found in order to create this new daemon process - naim 
     paradynDaemon *pd = this;
     paradynDaemon::allDaemons += pd;
+    id = paradynDaemon::allDaemons.size()-1;
   }
   // else...we leave "errorConditionFound" for the caller to check...
   //        don't forget to check!

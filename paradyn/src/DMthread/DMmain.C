@@ -176,7 +176,6 @@ void DMenableResponse(DM_enableType &enable,vector<bool> &successful){
     assert(successful.size() == mis.size());
     vector<metricInstInfo> *response = new vector<metricInstInfo>(mis.size()); 
 
-
     // update MI state and response vector
     for(u_int i=0; i < mis.size(); i++){
         if(mis[i] && successful[i]){  // this MI could be enabled
@@ -244,6 +243,9 @@ void DMenableResponse(DM_enableType &enable,vector<bool> &successful){
 	    }
 	    if(enable.persistent_collection){
 		mis[i]->setPersistentCollection();
+	    }
+	    if(enable.phase_persistent_data){
+		mis[i]->setPhasePersistentData();
 	    }
 	}
 	else {  // was not successfully enabled

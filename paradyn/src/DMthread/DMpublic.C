@@ -92,7 +92,7 @@ void histFoldCallBack(timeStamp width, void *, bool globalFlag)
 	    newSampleRate(width); // change sampling rate
 	}
 	phaseInfo::setCurrentBucketWidth(width);
-      }
+    }
 }
 
 
@@ -276,7 +276,8 @@ void DMdoEnableData(perfStreamHandle ps_handle,
 	            phaseType type,
 		    phaseHandle phaseId,
 	            u_int persistent_data,
-                    u_int persistent_collection){
+                    u_int persistent_collection,
+		    u_int phase_persistent_data){
 
     vector<metricInstance *> *miVec = new vector<metricInstance *>;
     vector<bool> *enabled = new vector<bool>;  // passed to daemons on enable
@@ -333,7 +334,8 @@ void DMdoEnableData(perfStreamHandle ps_handle,
    DM_enableType *new_entry = new DM_enableType(ps_handle,type,phaseId,
 			    paradynDaemon::next_enable_id++,request_Id,
 			    miVec,done,enabled,paradynDaemon::allDaemons.size(),
-			    persistent_data,persistent_collection);
+			    persistent_data,persistent_collection,
+			    phase_persistent_data);
 
    // if there is an MI that has not been enabled yet make enable 
    // request to daemons or if there is an MI that is currently being
@@ -373,7 +375,10 @@ void DMdoEnableData(perfStreamHandle ps_handle,
 // request_Id - identifier passed by calling thread
 // type - which phase type to enable data for
 // phaseId - the identifier of the phase for which data is requested
-// persistent_data, persistent_collection - flags for data collection
+// persistent_data - if set data is not distroyed on last disable 
+// persistent_collection - if set data collection isn't stoped on disable 
+// phase_persistent_data - like persistent_data, but only valid for curr
+//                         phase
 //
 void dataManager::enableDataRequest(perfStreamHandle ps_handle,
 				    vector<metric_focus_pair> *request,
@@ -381,7 +386,8 @@ void dataManager::enableDataRequest(perfStreamHandle ps_handle,
 			            phaseType type,
 				    phaseHandle phaseId,
 			            u_int persistent_data,
-		                    u_int persistent_collection){
+		                    u_int persistent_collection,
+				    u_int phase_persistent_data){
 
     if((type == CurrentPhase) && (phaseId != phaseInfo::CurrentPhaseHandle())){
 	// send enable failed response to calling thread
@@ -413,7 +419,7 @@ void dataManager::enableDataRequest(perfStreamHandle ps_handle,
     assert(request->size() == pairList->size());
 
     DMdoEnableData(ps_handle,pairList,request_Id,type,phaseId,
-		   persistent_data,persistent_collection);    
+		  persistent_data,persistent_collection,phase_persistent_data);
     delete request;
     pairList = 0;
 }
@@ -427,7 +433,8 @@ void dataManager::enableDataRequest2(perfStreamHandle ps,
 			             phaseType type,
 				     phaseHandle phaseId,
 			             u_int persistent_data,
-		                     u_int persistent_collection){
+		                     u_int persistent_collection,
+				     u_int phase_persistent_data){
 
     // TODO: if currphase and phaseId != currentPhaseId then make approp.
     //       response call to client
@@ -452,7 +459,7 @@ void dataManager::enableDataRequest2(perfStreamHandle ps,
     }
 
     DMdoEnableData(ps,request,request_Id,type,phaseId, persistent_data,
-		   persistent_collection);    
+		   persistent_collection,phase_persistent_data);    
 
 }
 
@@ -463,12 +470,11 @@ void dataManager::enableDataRequest2(perfStreamHandle ps,
 // current histogram is destroyed when there are no curr users 
 // global histogram is destroyed whern there are no curr or gloabl users
 // clear active flag on archived histograms rather than deleting them
-void dataManager::disableDataCollection(perfStreamHandle handle, 
-					metricInstanceHandle mh,
-					phaseType type)
+void DMdisableRoutine(perfStreamHandle handle, 
+		      metricInstanceHandle mh, 
+		      phaseType type)
 {
 
-    // cout << " in dataManager::disableDataCollection: mh = " << mh << endl;
     metricInstance *mi = metricInstance::getMI(mh);
     if (!mi) return;
 
@@ -496,9 +502,12 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
     // really disable MI data collection?  
     // really disable data when there are no subscribers and
     // there are no outstanding global or curr enables for this MI      
-    if (!(mi->currUsersCount()) && !mi->isCurrEnableOutstanding()) {
+    if (!(mi->currUsersCount()) 
+	&& !mi->isGlobalEnableOutstanding() 
+	&& !mi->isCurrEnableOutstanding()) {
+
 	u_int num_curr_hists = metricInstance::numCurrHists();
-	if (!(mi->isDataPersistent())){
+	if (!(mi->isDataPersistent()) && !(mi->isPhaseDataPersistent())){
 	    // remove histogram
 	    if(mi->deleteCurrHistogram()){
 		assert(metricInstance::numCurrHists());
@@ -517,7 +526,7 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
 
 	if (!(mi->globalUsersCount())&& !mi->isGlobalEnableOutstanding()) {
 	    mi->dataDisable();  // makes disable call to daemons
-	    if (!(mi->isDataPersistent())){
+	    if (!(mi->isDataPersistent()) && !(mi->isPhaseDataPersistent())){
 	        delete mi;	
 		mi = 0;
 		assert(metricInstance::numGlobalHists());
@@ -541,9 +550,42 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
             newSampleRate(rate);
         }
     }
-    // cout << "num global hists " << metricInstance::numGlobalHists() << endl;
-    // cout << "num curr hists " << metricInstance::numCurrHists() << endl;
     return;
+}
+
+// data is really disabled when there are no current or global users and
+// when the persistent_collection flag is clear
+// when persistent_data and phase_persistent_data flags are clear:
+// current histogram is destroyed when there are no curr users 
+// global histogram is destroyed whern there are no curr or gloabl users
+// clear active flag on archived histograms rather than deleting them
+void dataManager::disableDataCollection(perfStreamHandle handle, 
+					metricInstanceHandle mh,
+					phaseType type) {
+
+    DMdisableRoutine(handle,mh,type);
+}
+
+//
+// stop collecting data for the named metricInstance and clear the
+// persistent data flag(s)
+// ps_handle - a handle returned by createPerformanceStream
+// mi_handle - a metricInstance returned by enableDataCollection.
+// p_type - specifies either global or current phase data
+// clear_persistent_data - if true, clear persistent_data flag before disabling
+// clear_phase_persistent_data - if true, clear phase_persistent_data flag
+//
+void dataManager::disableDataAndClearPersistentData(perfStreamHandle ps_handle,
+					metricInstanceHandle mi_handle,
+				       	phaseType p_type,
+				       	bool clear_persistent_data,
+				       	bool clear_phase_persistent_data) {
+
+    metricInstance *mi = metricInstance::getMI(mi_handle);
+    if (!mi) return;
+    if(clear_phase_persistent_data) mi->clearPhasePersistentData();
+    if(clear_persistent_data) mi->clearPersistentData();
+    DMdisableRoutine(ps_handle,mi_handle,p_type);
 }
 
 //
@@ -652,9 +694,15 @@ void dataManager::setPersistentData(metricInstanceHandle mh){
     mi->setPersistentData();
 
 }
+
+//
+// clears both phase_persistent_data flag and persistent data flag
+// this routine may result in the MI being deleted
+//
 void dataManager::clearPersistentData(metricInstanceHandle mh){
     metricInstance *mi = metricInstance::getMI(mh);
     if(!mi) return;
+    mi->clearPhasePersistentData();
     if(mi->clearPersistentData()) delete mi;
 }
 
@@ -867,7 +915,6 @@ void dataManager::StartPhase(timeStamp start_Time,
 {
     string n = name;
     phaseInfo::startPhase(start_Time,n,with_new_pc,with_visis);
-    // cout << "in dataManager::StartPhase " << endl;
     // change the sampling rate
     if(metricInstance::numCurrHists()){
        // set sampling rate to curr phase histogram bucket width 
@@ -879,9 +926,6 @@ void dataManager::StartPhase(timeStamp start_Time,
        float rate = Histogram::getGlobalBucketWidth();
        newSampleRate(rate);
     }
-    // cout << "num global hists " << metricInstance::numGlobalHists() << endl;
-    // cout << "num curr hists " << metricInstance::numCurrHists() << endl;
-
 }
 
 vector<T_visi::phase_info> *dataManager::getAllPhaseInfo(){

@@ -56,9 +56,11 @@ class performanceStream {
       friend class dynRPCUser;
       friend void DMenableResponse(DM_enableType&,vector<bool>&);
       friend void dataManager::enableDataRequest(perfStreamHandle,
-	    vector<metric_focus_pair>*,u_int,phaseType,phaseHandle,u_int,u_int);
+	    vector<metric_focus_pair>*,u_int,phaseType,phaseHandle,
+	    u_int,u_int,u_int);
       friend void dataManager::enableDataRequest2(perfStreamHandle,
-	    vector<metricRLType>*,u_int,phaseType,phaseHandle,u_int,u_int);
+	    vector<metricRLType>*,u_int,phaseType,phaseHandle,
+	    u_int,u_int,u_int);
     public:
 	performanceStream(dataType t, dataCallback dc,
 			  controlCallback cc, int tid); 

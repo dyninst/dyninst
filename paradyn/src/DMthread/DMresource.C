@@ -2,37 +2,6 @@
  *  Copyright 1993 Jeff Hollingsworth.  All rights reserved.
  *
  */
-
-/*
- * resource.C - handle resource creation and queries.
- * 
- * $Log: DMresource.C,v $
- * Revision 1.36  1996/05/02 16:19:01  tamches
- * added getMachineNameReferredTo
- * cleaned up class decls by making appropriate member fns const
- *
- * Revision 1.35  1996/04/30 18:53:59  newhall
- * changes to make enabling and disabling data asynchronous
- *
- * Revision 1.34  1996/03/01  22:47:04  mjrg
- * Added type to resources.
- *
- * Revision 1.33  1996/02/02 02:14:51  karavan
- * changed resource::magnify to return struct like magnify2.
- *
- * removed obsolete friend classes for compatibility with new PC.
- *
- * Revision 1.32  1995/12/11 02:25:11  newhall
- * changed magnify2 to return the resourceList label with each
- * magnified focus
- *
- * Revision 1.31  1995/10/13  22:06:56  newhall
- * Added code to change sampling rate as bucket width changes (this is not
- * completely implemented in daemon code yet, so now it has no effect).
- * Purify fixes.  Added phaseType parameter to sampleDataCallbackFunc
- * Added 2 new DM interface routines: getResourceName, getResourceLabelName
- *
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
