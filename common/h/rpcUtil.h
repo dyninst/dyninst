@@ -4,7 +4,10 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.23  1994/09/22 03:18:05  markc
+ * Revision 1.24  1994/10/12 20:22:08  krisna
+ * hpux update
+ *
+ * Revision 1.23  1994/09/22  03:18:05  markc
  * changes to remove compiler warnings
  * changed pid passed to RPCprocessCreate
  *
@@ -78,7 +81,7 @@ public:
   ~XDRrpc();
   inline void setNonBlock() {
     if (fd >= 0)
-      fcntl (fd, F_SETFL, FNDELAY);
+      fcntl (fd, F_SETFL, O_NONBLOCK);
   }
   inline void closeConnect() {
     if (fd >= 0) close(fd); fd = -1;
