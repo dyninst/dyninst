@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.2 2003/06/22 22:40:38 rchen Exp $
+# $Id: Makefile,v 1.3 2003/09/20 17:21:29 jodom Exp $
 #
 # Makefile for dyninstAPI test programs on Tru64 Alpha
 #
@@ -27,7 +27,7 @@ NATIVE_FC = f90
 COMMA=,
 
 MINI_PLATFORM = alpha
-TEST6_ASFLAGS = -P 
+TEST6_ASFLAGS = -cpp
 TEST6_ASSUFFIX = s
 
 ifeq ($(NATIVE_FC), $(MUTATEE_FC))
@@ -66,7 +66,7 @@ MUTATEE_CFLAGS = $(ARCH_DEF) -g
 endif
 ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
 COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
-MUTATEE_CFLAGS = -x cxx $(ARCH_DEF) -g
+MUTATEE_CFLAGS = -x cxx $(ARCH_DEF) -g -D__USE_STD_IOSTREAM
 endif
 
 EMPTY:=
