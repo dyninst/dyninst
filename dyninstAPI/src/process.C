@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.477 2004/03/08 23:45:56 bernat Exp $
+// $Id: process.C,v 1.478 2004/03/09 17:44:55 chadd Exp $
 
 #include <ctype.h>
 
@@ -788,7 +788,11 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
    for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
       sh_obj = (*shared_objects)[i];
       //ccw 24 jul 2003
-      if( (sh_obj->isDirty() || sh_obj->isDirtyCalled()&& NULL==strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT"))){ //ccw 6 jul 2003
+      if( (sh_obj->isDirty() || sh_obj->isDirtyCalled()) &&
+		/* there are some libraries we should not save even if they are marked as mutated*/
+		NULL==strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT") && 
+		NULL== strstr(sh_obj->getName().c_str(),"ld-linux.so") && 
+		NULL==strstr(sh_obj->getName().c_str(),"libc")){ //ccw 6 jul 2003
          count ++;
          if(!dlopenUsed && sh_obj->isopenedWithdlopen()){
             BPatch_reportError(BPatchWarning,123,"dumpPatchedImage: dlopen used by the mutatee, this may cause the mutated binary to fail\n");
@@ -797,8 +801,7 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
          //printf(" %s is DIRTY!\n", sh_obj->getName().c_str());
         
 
-         if( sh_obj->isDirty() && NULL==strstr(sh_obj->getName().c_str(),"libc") ){ 
-            //dont save libc or libdyninstAPI_RT!
+         if( sh_obj->isDirty()){ 
             //if the lib is only DirtyCalled dont save it! //ccw 24 jul 2003
             Address textAddr, textSize;
             char *newName = new char[strlen(sh_obj->getName().c_str()) + 

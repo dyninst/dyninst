@@ -529,7 +529,7 @@ bool dynamic_linking::initialize() {
 	dlopen_addr = rDebugSym.addr() + ld_base;
 	assert( dlopen_addr );
 
-	delete ld_path;
+	delete [] ld_path; // ccw 8 mar 2004
 
     proc->setDynamicLinking();
     dynlinked = true;

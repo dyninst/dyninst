@@ -1,4 +1,4 @@
-/* $Id: addLibraryLinux.C,v 1.9 2003/09/05 16:28:34 schendel Exp $ */
+/* $Id: addLibraryLinux.C,v 1.10 2004/03/09 17:44:55 chadd Exp $ */
 
 #if defined(i386_unknown_linux2_0)
 
@@ -134,7 +134,7 @@ void addLibrary::updateDynamic(Elf_Data *newData){
  	memcpy(d_buf, newData->d_buf, newData->d_size );
  
  //	delete [] newData;
- 	delete [] newData->d_buf;
+ 	delete  [] (char*) (newData->d_buf); //ccw 8 mar 2004
  	newData->d_buf = d_buf;
  	newData->d_size += sizeof(Elf32_Dyn);
 
@@ -149,11 +149,13 @@ void addLibrary::updateDynamic(Elf_Data *newData){
 		if( 	((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_STRSZ ){
 			((Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val += libnameLen;
 		}
-
-                if( ((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_DEBUG){
+		/* ccw 8 mar 2004: leave DT_DEBUG as is, this allows gdb to
+			properly access the link_map struct
+		*/
+                /*if( ((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_DEBUG){
                     	((Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val = 1;
 
-		}
+		}*/
 		if( ((Elf32_Dyn*) (newData->d_buf))[counter].d_tag == DT_NULL) {
 		       	((Elf32_Dyn*) (newData->d_buf))[counter].d_tag = DT_NEEDED;
         		((Elf32_Dyn*) (newData->d_buf))[counter].d_un.d_val = libnameIndx;
@@ -584,7 +586,9 @@ int addLibrary::checkFile(){
  	newElfFilePhdr[dataSegIndex].p_filesz += dataSegSizeChange;
  	newElfFilePhdr[dataSegIndex].p_memsz += dataSegSizeChange;
  	newElfFilePhdr[dataSegIndex].p_vaddr =  newElfFileSec[dataSegStartIndx].sec_hdr->sh_addr;
- 
+ 	newElfFilePhdr[dataSegIndex].p_paddr =  newElfFileSec[dataSegStartIndx].sec_hdr->sh_addr;
+
+
  	while( newElfFilePhdr[dynSegIndex].p_type != PT_DYNAMIC){
  		dynSegIndex ++;
  	}
@@ -592,6 +596,7 @@ int addLibrary::checkFile(){
  	newElfFilePhdr[dynSegIndex].p_vaddr =  newElfFileSec[dataSegStartIndx].sec_hdr->sh_addr;
  	newElfFilePhdr[dynSegIndex].p_filesz += sizeof(Elf32_Dyn);
 	newElfFilePhdr[dynSegIndex].p_memsz += sizeof(Elf32_Dyn);//ccw 23 jun 2003
+	newElfFilePhdr[dynSegIndex].p_paddr  = newElfFileSec[dataSegStartIndx].sec_hdr->sh_addr; // ccw 8 mar 2004
  	
  
  }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.21 2003/10/24 21:25:54 jaw Exp $
+// $Id: sharedobject.C,v 1.22 2004/03/09 17:44:56 chadd Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
@@ -69,7 +69,9 @@ shared_object::shared_object(pdstring &n, Address b, bool p,bool m, bool i, imag
   include_funcs(i), 
   included_funcs(0),
 #endif
-  objs_image(d)
+  objs_image(d),
+  dlopenUsed(false) // ccw 8 mar 2004
+
 { 
   desc = new fileDescriptor(n, b);
   set_short_name();

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.58 2004/02/23 23:18:30 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.59 2004/03/09 17:44:55 chadd Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1914,7 +1914,7 @@ Object::Object(const pdstring file, const Address /*baseAddr*/,
 }
 
 Object::Object(fileDescriptor *desc, Address /*baseAddr*/, void (*err_func)(const char *))
-  : AObject(desc->file(), err_func), symbolNamesByAddr( addrHash ) {
+  : AObject(desc->file(), err_func), symbolNamesByAddr( addrHash ), EEL(false) { //ccw 8 mar 2004
   if (desc->isSharedObject())
     load_shared_object();
   else load_object();

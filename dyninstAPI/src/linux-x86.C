@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.43 2004/03/08 23:45:44 bernat Exp $
+// $Id: linux-x86.C,v 1.44 2004/03/09 17:44:55 chadd Exp $
 
 #include <fstream>
 
@@ -540,21 +540,26 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 		//i ignore the dyninst RT lib here and in process::saveWorldSaveSharedLibs
 		for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
 			sh_obj = (*shared_objects)[i];
-			if(sh_obj->isDirty() || sh_obj->isDirtyCalled()&& NULL==strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT")){ //ccw 24 jul 2003
+			if( (sh_obj->isDirty() || sh_obj->isDirtyCalled()) && 
+				/* there are a number of libraries that we cannot save even if they are
+					mutated. */
+				NULL==strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT") && 
+				NULL== strstr(sh_obj->getName().c_str(),"ld-linux.so") && 
+				NULL==strstr(sh_obj->getName().c_str(),"libc")){ //ccw 24 jul 2003
+
+				//fprintf(stderr," mutatedSharedObjectsIndex %d %s\n", mutatedSharedObjectsIndex,sh_obj->getName().c_str() ); //ccw 8 mar 2004
 				memcpy(  & ( mutatedSharedObjects[mutatedSharedObjectsIndex]),
 					sh_obj->getName().c_str(),
 					strlen(sh_obj->getName().c_str())+1);
-				mutatedSharedObjectsIndex += strlen(
-					sh_obj->getName().c_str())+1;
+
+				mutatedSharedObjectsIndex += strlen( sh_obj->getName().c_str())+1;
 				baseAddr = sh_obj->getBaseAddress();
-				memcpy( & (mutatedSharedObjects[mutatedSharedObjectsIndex]),
-					&baseAddr, sizeof(unsigned int));
+				memcpy( & (mutatedSharedObjects[mutatedSharedObjectsIndex]), &baseAddr, sizeof(unsigned int));
 				mutatedSharedObjectsIndex += sizeof(unsigned int);	
 
 
 				//set flag
-				tmpFlag = ((sh_obj->isDirty() 
-						&&  NULL==strstr(sh_obj->getName().c_str(),"libc"))?1:0);	
+				tmpFlag = ((sh_obj->isDirty() &&  NULL==strstr(sh_obj->getName().c_str(),"libc"))?1:0);	
 				memcpy( &(mutatedSharedObjects[mutatedSharedObjectsIndex]), &tmpFlag, sizeof(unsigned int));
 				mutatedSharedObjectsIndex += sizeof(unsigned int);	
 
