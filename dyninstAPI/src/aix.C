@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.167 2003/08/11 15:40:26 hollings Exp $
+// $Id: aix.C,v 1.168 2003/08/13 20:41:32 tlmiller Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1380,7 +1380,11 @@ extern void dedemangle( const char * demangled, char * dedemangled );
 char * P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeTypes ) {
 	/* If the symbol isn't from the native compiler, or the native demangler
 	   isn't available, use the built-in. */
-	if( !nativeCompiler || P_native_demangle == NULL ) {
+	bool nativeDemanglerAvailable =	P_cplus_demangle != NULL &&
+									P_text != NULL &&
+									P_varName != NULL &&
+									P_functionName != NULL;
+	if( !nativeCompiler || ! nativeDemanglerAvailable ) {
 		char * demangled = cplus_demangle( const_cast<char *>(symbol),
 					includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0 );
 		if( demangled == NULL ) { return NULL; }
@@ -1388,28 +1392,74 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeT
 		if( ! includeTypes ) {
 			/* De-demangling never makes a string longer. */
 			char * dedemangled = strdup( demangled );
-		        assert( dedemangled != NULL );
+			assert( dedemangled != NULL );
 
-		        dedemangle( demangled, dedemangled );
-		        assert( dedemangled != NULL );
+			dedemangle( demangled, dedemangled );
+			assert( dedemangled != NULL );
 
-		        free( demangled );
-		        return dedemangled;
-		        }
+			free( demangled );
+			return dedemangled;
+			}
 
 		return demangled;
 		} /* end if not using native demangler. */
-	 else {
+	 else if( nativeDemanglerAvailable ) {
 		/* Use the native demangler, which apparently behaves funny. */
 		Name * name;
-		char * demangled;
-
-		name = (P_native_demangle)( const_cast<char*>(symbol), (char **) & demangled, RegularNames ); 
-		if( name == NULL ) { return NULL; }
+		char * rest;
 		
-		assert( P_functionName != NULL );
-		return (P_functionName)( name );
+		/* P_native_demangle() won't actually demangled 'symbol'.
+		   Find out what P_kind() of symbol it is and demangle from there. */
+		name = (P_native_demangle)( const_cast<char*>(symbol), (char **) & rest,
+			RegularNames | ClassNames | SpecialNames | ParameterText | QualifierText );
+		if( name == NULL ) { return NULL; }
+
+		char * demangled = NULL;
+		switch( P_kind( name ) ) {
+			case Function:
+				demangled = (P_functionName)( name );			
+				break;
+			
+			case MemberFunction:
+				/* Doing it this way preserves the leading classnames. */
+				demangled = (P_text)( name );
+				break;
+
+			case MemberVar:
+				demangled = (P_varName)( name );
+				break;
+
+			case VirtualName:
+			case Class:
+			case Special:
+			case Long:
+				demangled = (P_text)( name );
+				break;
+			default: assert( 0 );
+			} /* end P_kind() switch */
+
+		/* Potential memory leak: no P_erase( name ) call.  Also, the
+		   char *'s returned from a particular Name will be freed
+		   when that name is erase()d or destroyed,	so strdup if we're
+		   fond of them. */
+   
+		if( ! includeTypes ) {
+			/* De-demangling never makes a string longer. */
+			char * dedemangled = strdup( demangled );
+			assert( dedemangled != NULL );
+
+			dedemangle( demangled, dedemangled );
+			assert( dedemangled != NULL );
+
+			return dedemangled;
+			}
+
+		return demangled;
 		} /* end if using native demangler. */
+	else {
+		/* We're trying to demangle a native binary but the native demangler isn't available.  Punt. */	
+		return NULL;
+		}
 	} /* end P_cplus_demangle() */
 
 //////////////////////////////////////////////////////////
