@@ -148,6 +148,34 @@ void performanceStream::callResourceFunc(resourceHandle parent,
 			 parent,child,name,abstr);
     }
 }
+void performanceStream::callMemoryFunc(string vname,
+                    int start, unsigned mem_size,
+                    unsigned blk_size, resourceHandle p_handle,
+                    vector<resourceHandle> handles)
+{
+    const char *vn = strdup(vname.string_of()) ;
+    unsigned Psize = handles.size() ;
+    vector<resourceHandle> *children = new vector<resourceHandle> (Psize);
+    //printf("in callMemoryFunc, size = %d (%d)\n", Psize, children->size()) ;
+    //printf("(*children)[%d]=%d\n", k, (*children)[k]) ;
+    // The loop can be saved, if i alloc the vector in DMmain.C
+    for(unsigned k=0; k<Psize; k++) {
+         (*children)[k] = handles[k] ;
+    }
+
+    if (controlFunc.xFunc) {
+        dataManager::dm->setTid(threadId);
+        dataManager::dm->newMemoryDefined(controlFunc.xFunc,
+                                          handle,       //perfStream handle
+                                          vn,
+                                          start,
+                                          mem_size,
+                                          blk_size,
+                                          p_handle,
+                                          children) ;
+    }
+    //if(children) delete children ;
+}
 
 void performanceStream::callResourceBatchFunc(batchMode mode)
 {
