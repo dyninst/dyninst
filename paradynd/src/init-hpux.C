@@ -51,6 +51,7 @@
 static AstNode tagArg(AstNode::Param, (void *) 1);
 static AstNode cmdArg(AstNode::Param, (void *) 4);
 static AstNode tidArg(AstNode::Param, (void *) 0);
+static AstNode retVal(AstNode::ReturnVal, (void *)0);
 
 bool initOS() {
 //  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
@@ -61,7 +62,7 @@ bool initOS() {
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
 
   initialRequests += new instMapping("fork", "DYNINSTfork",
-				     FUNC_EXIT|FUNC_ARG, &tidArg);
+				     FUNC_EXIT|FUNC_ARG, &retVal);
   initialRequests += new instMapping("execve", "DYNINSTexec", 
 				     FUNC_ENTRY|FUNC_ARG, &tidArg);
   initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
