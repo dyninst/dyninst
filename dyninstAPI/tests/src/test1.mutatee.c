@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.34 2000/03/14 22:33:53 tikir Exp $ */
+/* $Id: test1.mutatee.c,v 1.35 2000/03/20 21:01:52 mihai Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -49,7 +49,7 @@ int debugPrint = 0;
 #define FALSE	0
 
 int runAllTests = TRUE;
-#define MAX_TEST 30
+#define MAX_TEST 32
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
 
@@ -190,6 +190,16 @@ int globalVariable30_3 = 0;
 int globalVariable30_4 = 0;
 int globalVariable30_5 = 0;
 int globalVariable30_6 = 0;
+
+int globalVariable31_1 = 0;
+int globalVariable31_2 = 0;
+int globalVariable31_3 = 0;
+int globalVariable31_4 = 0;
+
+int globalVariable32_1 = 0;
+int globalVariable32_2 = 0;
+int globalVariable32_3 = 0;
+int globalVariable32_4 = 0;
 
 #define TEST20_A 3
 #define TEST20_B 4.3
@@ -1886,6 +1896,7 @@ void func30_2()
     DUMMY_FN_BODY;
 }
 
+
 int func30_1()
 {
     func30_2();
@@ -1895,34 +1906,168 @@ int func30_1()
     passedTest[30] = 
     !(globalVariable30_3 && (globalVariable30_2 != globalVariable30_3));
     if (!passedTest[30]){ 
-    	printf("**Failed** test #30 (line information)\n");
+    	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
 	return 0;
     }
 
     passedTest[30] = 
     !(globalVariable30_4 && (globalVariable30_2 != globalVariable30_4));
     if (!passedTest[30]){
-    	printf("**Failed** test #30 (line information)\n");
+    	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
 	return 0;
     }
 
     passedTest[30] = 
     !(globalVariable30_5 && (globalVariable30_2 != globalVariable30_5));
     if (!passedTest[30]){ 
-    	printf("**Failed** test #30 (line information)\n");
+    	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
 	return 0;
     }
    
     passedTest[30] = 
     !(globalVariable30_6 && (globalVariable30_1 != globalVariable30_6));
     if (!passedTest[30]){ 
-    	printf("**Failed** test #30 (line information)\n");
+    	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
 	return 0;
     }
     printf("Passed test #30 (line information)\n");
 
     return 1;
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+void func31_2()
+{
+  globalVariable31_2 = 1;
+}
+
+void func31_3()
+{
+  globalVariable31_3 = 1;
+}
+
+void func31_4( int value )
+{
+  if( value == 0 )
+    {
+      printf( "func_31_4 called with value = 0 !\n" );
+    }
+
+  globalVariable31_4 += value;
+}
+
+int func31_1()
+{
+  globalVariable31_1 = 0;
+  globalVariable31_2 = 0;
+  globalVariable31_3 = 0;
+  globalVariable31_4 = 0;
+
+  func31_2();
+
+  passedTest[ 31 ] = ( globalVariable31_3 == 1 );
+  if( ! passedTest[ 31 ] )
+    {
+      printf( "**Failed** test #31 (non-recursive base tramp guard)\n" );
+      printf( "    globalVariable31_3 = %d, should be 1 (no instrumentation got executed?).\n",
+	      globalVariable31_3 );
+      return 0;
+    }
+
+  passedTest[ 31 ] = ( globalVariable31_4 == 0 );
+  if( ! passedTest[ 31 ] )
+    {
+      printf( "**Failed** test #31 (non-recursive base tramp guard)\n" );
+      printf( "    globalVariable31_4 = %d, should be 0.\n",
+	      globalVariable31_4 );
+      switch( globalVariable31_4 )
+	{
+	case 0: printf( "    Recursive guard works fine.\n" ); break;
+	case 1: printf( "    Pre-instr recursive guard does not work.\n" ); break;
+	case 2: printf( "    Post-instr recursive guard does not work.\n" ); break;
+	case 3: printf( "    None of the recursive guards work.\n" ); break;
+	default: printf( "    Something is really wrong.\n" ); break;
+	}
+      return 0;
+    }
+
+  passedTest[ 31 ] = TRUE;
+  printf( "Passed test #31 (non-recursive base tramp guard)\n" );
+
+  return 1;
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+void func32_2()
+{
+  globalVariable32_2 = 1;
+}
+
+void func32_3()
+{
+  globalVariable32_3 = 1;
+}
+
+void func32_4( int value )
+{
+  if( value == 0 )
+    {
+      printf( "func_32_4 called with value = 0 !\n" );
+    }
+
+  globalVariable32_4 += value;
+}
+
+int func32_1()
+{
+  globalVariable32_1 = 0;
+  globalVariable32_2 = 0;
+  globalVariable32_3 = 0;
+  globalVariable32_4 = 0;
+
+  func32_2();
+
+  passedTest[ 32 ] = ( globalVariable32_3 == 1 );
+  if( ! passedTest[ 32 ] )
+    {
+      printf( "**Failed** test #32 (non-recursive base tramp guard)\n" );
+      printf( "    globalVariable32_3 = %d, should be 1 (no instrumentation got executed?).\n",
+	      globalVariable32_3 );
+      return 0;
+    }
+
+  passedTest[ 32 ] = ( globalVariable32_4 == 3 );
+  if( ! passedTest[ 32 ] )
+    {
+      printf( "**Failed** test #32 (non-recursive base tramp guard)\n" );
+      printf( "    globalVariable32_4 = %d, should be 3.\n",
+	      globalVariable32_4 );
+      switch( globalVariable32_4 )
+	{
+	case 0: printf( "    Recursive guard works fine.\n" ); break;
+	case 1: printf( "    Pre-instr recursive guard does not work.\n" ); break;
+	case 2: printf( "    Post-instr recursive guard does not work.\n" ); break;
+	case 3: printf( "    None of the recursive guards work.\n" ); break;
+	default: printf( "    Something is really wrong.\n" ); break;
+	}
+      return 0;
+    }
+
+  passedTest[ 32 ] = TRUE;
+  printf( "Passed test #32 (recursive base tramp guard)\n" );
+
+  return 1;
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 
 /* "replaceFunctionCall()" on Irix usually requires that the new
    callee have a GOT entry.  This dummy function forces GOT entries to
@@ -2036,6 +2181,9 @@ int main(int iargc, char *argv[])
     if (runTest[28]) func28_1();
     if (runTest[29]) func29_1();
     if (runTest[30]) func30_1();
+
+    if( runTest[ 31 ] ) func31_1();
+    if( runTest[ 32 ] ) func32_1();
 
     /* See how we did running the tests. */
     for (i=1; i <= MAX_TEST; i++) {

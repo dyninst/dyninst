@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.48 2000/03/14 22:33:53 tikir Exp $
+// $Id: test1.C,v 1.49 2000/03/20 21:01:51 mihai Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -31,13 +31,15 @@
 #include "BPatch_snippet.h"
 #include "test_util.h"
 
+#include <vector.h>
+
 extern "C" const char V_libdyninstAPI[];
 
 int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 bool runAllTests = true;
-const unsigned int MAX_TEST = 30;
+const unsigned int MAX_TEST = 32;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
@@ -2220,6 +2222,8 @@ void mutatorTest29(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
+  unsigned int call30_1_line_number_in_test1_mutatee_c = 548;
+
 	BPatch_Vector<BPatch_point *> *point30_1 =
 		appImage->findProcedurePoint("func30_1", BPatch_entry);
 	if (!point30_1 || (point30_1->size() < 1)) {
@@ -2244,7 +2248,8 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
         	exit(1);
     	}
 	BPatch_Vector<unsigned long> buffer1; 
-	if(appImage->getLineToAddr("test1.mutatee.c",538,buffer1)){
+	if(appImage->getLineToAddr("test1.mutatee.c",
+				   call30_1_line_number_in_test1_mutatee_c,buffer1)){
     		int n = buffer1[0];
     		expr30_3->writeValue(&n);
 	}
@@ -2262,7 +2267,8 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 		(*appModules)[i]->getName(mname,255);mname[255] = '\0';
 		if(!strcmp(mname,"test1.mutatee.c")){
 			BPatch_Vector<unsigned long> buffer2;
-			if((*appModules)[i]->getLineToAddr(538,buffer2)){
+			if((*appModules)[i]->
+			   getLineToAddr(call30_1_line_number_in_test1_mutatee_c,buffer2)){
 				int n = buffer2[0];
 				expr30_4->writeValue(&n);
 			}
@@ -2278,7 +2284,7 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 	}
 	BPatch_Vector<unsigned long> buffer3; 
 	BPatch_function* appFunc = appImage->findBPFunction("call30_1");
-	if(appFunc->getLineToAddr(538,buffer3)){
+	if(appFunc->getLineToAddr(call30_1_line_number_in_test1_mutatee_c,buffer3)){
 		int n = buffer3[0];
 		expr30_5->writeValue(&n);
 	}
@@ -2298,6 +2304,237 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 		expr30_6->writeValue(&n);
 	}
 }
+
+/*******************************************************************************/
+/*******************************************************************************/
+/*******************************************************************************/
+
+typedef BPatch_Vector<BPatch_point * > point_vector;
+typedef vector<BPatchSnippetHandle * > handle_vector;
+
+handle_vector & instrument_entry_points( BPatch_thread * app_thread,
+					 BPatch_image * ,
+					 BPatch_function * func,
+					 BPatch_snippet * code )
+{
+  assert( func != 0 );
+  assert( code != 0 );
+
+  handle_vector * list_of_handles = new handle_vector;
+
+  int null_entry_point_count = 0;
+  int failed_snippet_insertion_count = 0;
+
+  point_vector * entries = func->findPoint( BPatch_entry );
+  assert( entries != 0 );
+
+  for( int i = 0; i < entries->size(); i++ )
+    {
+      BPatch_point * point = ( * entries )[ i ];
+      if( point == 0 )
+	{
+	  null_entry_point_count++;
+	}
+      else
+	{
+	  BPatchSnippetHandle * result =
+	    app_thread->insertSnippet( * code,
+				       * point, BPatch_callBefore, BPatch_firstSnippet );
+	  if( result == 0 )
+	    {
+	      failed_snippet_insertion_count++;
+	    }
+	  else
+	    {
+	      list_of_handles->push_back( result );
+	    }
+	}
+    }
+
+  delete code;
+
+  return * list_of_handles;
+}
+
+/*******************************************************************************/
+/*******************************************************************************/
+/*******************************************************************************/
+
+handle_vector & instrument_exit_points( BPatch_thread * app_thread,
+					BPatch_image * ,
+					BPatch_function * func,
+					BPatch_snippet * code )
+{
+  assert( func != 0 );
+  assert( code != 0 );
+
+  handle_vector * list_of_handles = new handle_vector;
+
+  int null_exit_point_count = 0;
+  int failed_snippet_insertion_count = 0;
+
+  point_vector * exits = func->findPoint( BPatch_exit );
+  assert( exits != 0 );
+
+  for( int i = 0; i < exits->size(); i++ )
+    {
+      BPatch_point * point = ( * exits )[ i ];
+      if( point == 0 )
+	{
+	  null_exit_point_count++;
+	}
+      else
+	{
+	  BPatchSnippetHandle * result =
+	    app_thread->insertSnippet( * code,
+				       * point, BPatch_callAfter, BPatch_firstSnippet );
+	  if( result == 0 )
+	    {
+	      failed_snippet_insertion_count++;
+	    }
+	  else
+	    {
+	      list_of_handles->push_back( result );
+	    }
+	}
+    }
+
+  delete code;
+
+  return * list_of_handles;
+}
+
+/*******************************************************************************/
+/*******************************************************************************/
+/*******************************************************************************/
+
+//
+// Start Test Case #31 - (non-recursive base tramp)
+//
+void mutatorTest31( BPatch_thread * appThread, BPatch_image * appImage )
+{
+  char * foo_name = "func31_2";
+  char * bar_name = "func31_3";
+  char * baz_name = "func31_4";
+
+  BPatch_image * app_image = appImage;
+  BPatch_thread * app_thread = appThread;
+
+  BPatch_function * foo_function = app_image->findFunction( foo_name );
+  if( foo_function == 0 )
+    {
+      fprintf( stderr, "Cannot find \"%s\" function.",
+	       foo_name );
+      exit( -1 );
+    }
+  BPatch_function * bar_function = app_image->findFunction( bar_name );
+  if( bar_function == 0 )
+    {
+      fprintf( stderr, "Cannot find \"%s\" function.",
+	       bar_name );
+      exit( -1 );
+    }
+  BPatch_function * baz_function = app_image->findFunction( baz_name );
+  if( baz_function == 0 )
+    {
+      fprintf( stderr, "Cannot find \"%s\" function.",
+	       baz_name );
+      exit( -1 );
+    }
+
+  bool old_value = BPatch::bpatch->isTrampRecursive();
+  BPatch::bpatch->setTrampRecursive( false );
+
+  BPatch_Vector<BPatch_snippet *> foo_args;
+  BPatch_snippet * foo_snippet =
+    new BPatch_funcCallExpr( * bar_function,
+			     foo_args );
+  instrument_entry_points( app_thread, app_image, foo_function, foo_snippet );
+
+  BPatch_Vector<BPatch_snippet *> bar_args_1;
+  bar_args_1.push_back( new BPatch_constExpr( 1 ) );
+  BPatch_snippet * bar_snippet_1 =
+    new BPatch_funcCallExpr( * baz_function,
+			     bar_args_1 );
+  instrument_entry_points( app_thread, app_image, bar_function, bar_snippet_1 );
+
+  BPatch_Vector<BPatch_snippet *> bar_args_2;
+  bar_args_2.push_back( new BPatch_constExpr( 2 ) );
+  BPatch_snippet * bar_snippet_2 =
+    new BPatch_funcCallExpr( * baz_function,
+			     bar_args_2 );
+  instrument_exit_points( app_thread, app_image, bar_function, bar_snippet_2 );
+
+  BPatch::bpatch->setTrampRecursive( old_value );
+}
+
+/*******************************************************************************/
+/*******************************************************************************/
+/*******************************************************************************/
+
+//
+// Start Test Case #32 - (recursive base tramp)
+//
+void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
+{
+  char * foo_name = "func32_2";
+  char * bar_name = "func32_3";
+  char * baz_name = "func32_4";
+
+  BPatch_image * app_image = appImage;
+  BPatch_thread * app_thread = appThread;
+
+  BPatch_function * foo_function = app_image->findFunction( foo_name );
+  if( foo_function == 0 )
+    {
+      fprintf( stderr, "Cannot find \"%s\" function.",
+	       foo_name );
+      exit( -1 );
+    }
+  BPatch_function * bar_function = app_image->findFunction( bar_name );
+  if( bar_function == 0 )
+    {
+      fprintf( stderr, "Cannot find \"%s\" function.",
+	       bar_name );
+      exit( -1 );
+    }
+  BPatch_function * baz_function = app_image->findFunction( baz_name );
+  if( baz_function == 0 )
+    {
+      fprintf( stderr, "Cannot find \"%s\" function.",
+	       baz_name );
+      exit( -1 );
+    }
+
+  bool old_value = BPatch::bpatch->isTrampRecursive();
+  BPatch::bpatch->setTrampRecursive( true );
+
+  BPatch_Vector<BPatch_snippet *> foo_args;
+  BPatch_snippet * foo_snippet =
+    new BPatch_funcCallExpr( * bar_function,
+			     foo_args );
+  instrument_entry_points( app_thread, app_image, foo_function, foo_snippet );
+
+  BPatch_Vector<BPatch_snippet *> bar_args_1;
+  bar_args_1.push_back( new BPatch_constExpr( 1 ) );
+  BPatch_snippet * bar_snippet_1 =
+    new BPatch_funcCallExpr( * baz_function,
+			     bar_args_1 );
+  instrument_entry_points( app_thread, app_image, bar_function, bar_snippet_1 );
+
+  BPatch_Vector<BPatch_snippet *> bar_args_2;
+  bar_args_2.push_back( new BPatch_constExpr( 2 ) );
+  BPatch_snippet * bar_snippet_2 =
+    new BPatch_funcCallExpr( * baz_function,
+			     bar_args_2 );
+  instrument_exit_points( app_thread, app_image, bar_function, bar_snippet_2 );
+
+  BPatch::bpatch->setTrampRecursive( old_value );
+}
+
+/*******************************************************************************/
+/*******************************************************************************/
+/*******************************************************************************/
 
 int mutatorMAIN(char *pathname, bool useAttach)
 {
@@ -2406,6 +2643,9 @@ int mutatorMAIN(char *pathname, bool useAttach)
     if (runTest[28]) mutatorTest28(appThread, appImage);
     if (runTest[29]) mutatorTest29(appThread, appImage);
     if (runTest[30]) mutatorTest30(appThread, appImage);
+
+    if( runTest[ 31 ] ) mutatorTest31( appThread, appImage );
+    if( runTest[ 32 ] ) mutatorTest32( appThread, appImage );
 
     // Start of code to continue the process.  All mutations made
     // above will be in place before the mutatee begins its tests.
