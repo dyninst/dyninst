@@ -1,8 +1,15 @@
 /* $Log: main.C,v $
-/* Revision 1.15  1995/02/16 08:25:09  markc
-/* Removed system includes
-/* Added includes of posix interfaces
+/* Revision 1.16  1995/02/27 19:13:49  tamches
+/* Many changes to reflect changes in tunable constants.
+/* First change: TCthread is launched
+/* other changes: Many tunable constants are declared here (within
+/* main()) since they may no longer be declared globally in any
+/* module.
 /*
+ * Revision 1.15  1995/02/16  08:25:09  markc
+ * Removed system includes
+ * Added includes of posix interfaces
+ *
  * Revision 1.14  1994/11/02  04:39:01  karavan
  * added -s commandline option for a tcl script
  *
@@ -54,6 +61,7 @@
  *   This routine creates DM, UIM, VM, and PC threads.
  */
 
+#include "../TCthread/tunableConst.h"
 #include "util/h/headers.h"
 #include "paradyn.h"
 #include "thread/h/thread.h"
@@ -63,6 +71,7 @@ extern void *UImain(void *);
 extern void *DMmain(void *);
 extern void *PCmain(void *);
 extern void *VMmain (void *);
+extern void *TCmain (void *); // tunable consts
 
 #define MBUFSIZE 256
 #define DEBUGBUFSIZE	4096
@@ -72,6 +81,7 @@ thread_t MAINtid;
 thread_t PCtid;
 thread_t DMtid;
 thread_t VMtid;
+thread_t TCtid; // tunable constants
 
 char UIStack[32768];
 
@@ -152,7 +162,7 @@ main (int argc, char *argv[])
     }
     a_ct++;
   }
-// parse the configuration files
+// parse the configuration files -- WARNING: TC thread is not created yet; they mustn't use tunable constants (verify this)
   parseResult = metMain(fname);
 
 
@@ -162,6 +172,88 @@ main (int argc, char *argv[])
      /* initialize the 4 main threads of paradyn: data manager, visi manager,
         user interface manager, performance consultant */
   
+// initialize Tunable Constants thread
+  if (THR_ERR == thr_create(NULL, // stack
+			    0, // stack size
+			    TCmain, // entry-point function
+			    NULL, // args
+			    0, // flags
+			    &TCtid))
+     exit(1);
+  PARADYN_DEBUG (("TC thread created\n"));
+  // wait until TC has properly initialized (it'll send us a blank msg)
+  mtag = MSG_TAG_TC_READY;
+  msgsize = MBUFSIZE;
+  (void)msg_recv(&mtag, mbuf, &msgsize);
+//  cout << "pdMain: TC thread has given us the okay to continue creating threads!" << endl;
+  
+// Declare some tunable constants (declaring them here makes them last as long
+// as this routine does, which is "forever")
+  extern bool predictedCostLimitValidChecker(float); // in PCauto.C
+  tunableFloatConstantDeclarator pcl ("predictedCostLimit",
+				 "Max. allowable perturbation of the application.",
+				 100.0, // initial value
+				 predictedCostLimitValidChecker, // validation function (in PCauto.C)
+				 NULL, // callback routine
+				 userConstant);
+
+  tunableFloatConstantDeclarator mnh ("maxEval",
+				 "Max. number of hypotheses to consider at once.",
+				 25.0, // initial
+				 0.0,  // min
+				 250.0, // max
+				 NULL, // callback
+				 userConstant);
+  tunableFloatConstantDeclarator hysRange("hysteresisRange",
+					  "Fraction above and below threshold that a test should use.",
+					  0.15, // initial
+					  0.0, // min
+					  1.0, // max
+					  NULL, // callback
+					  userConstant);
+
+  //
+  // Fix this soon... This should be based on some real information.
+  //
+  tunableFloatConstantDeclarator minObsTime("minObservationTime",
+					    "min. time (in seconds) to wait after changing inst to start try hypotheses.",
+					    1.0, // initial
+					    0.0, // min
+					    60.0, // max
+					    NULL, // callback
+					    userConstant);
+
+  tunableFloatConstantDeclarator sufficientTime("sufficientTime",
+						"How long to wait (in seconds) before we can conclude a hypothesis is false.",
+						6.0, // initial
+						0.0, // min
+						1000.0, // max
+						NULL,
+						userConstant);
+  tunableBooleanConstantDeclarator printNodes("printNodes",
+					      "Print out changes to the state of SHG nodes",
+					      false, // initial value
+					      NULL, // callback
+					      developerConstant);
+
+  tunableBooleanConstantDeclarator printTestResults("printTestResults",
+						    "Print out the result of each test as it is computed",
+						    false,
+						    NULL,
+						    developerConstant);
+
+  tunableBooleanConstantDeclarator pcEvalPrint("pcEvalPrint",
+					       "Print out the values of tests each time they are evaluated",
+					       false,
+					       NULL,
+					       developerConstant);
+					       
+  tunableBooleanConstantDeclarator suppressSHG("suppressSHG",
+					       "Don't print the SHG",
+					       false,
+					       NULL,
+					       userConstant);
+					       
 // initialize DM
 
   if (thr_create(0, 0, DMmain, (void *) &MAINtid, 0, 
@@ -240,4 +332,3 @@ main (int argc, char *argv[])
 
   thr_join (UIMtid, NULL, NULL);
 }
-
