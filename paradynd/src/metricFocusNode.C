@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.226 2002/05/13 19:53:51 mjbrim Exp $
+// $Id: metricFocusNode.C,v 1.227 2002/05/14 19:00:31 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -139,7 +139,6 @@ vector<internalMetric*> internalMetric::allInternalMetrics;
 // for NON_MT_THREAD:  PRIM_MDN is non-aggregate
 // for MT_THREAD:  THR_LEV could be aggregate (component being PROC_COMP)
 metricFocusNode::metricFocusNode()
-: originalCost_(timeLength::Zero())
 {
 }
 
@@ -227,8 +226,7 @@ machineMetFocusNode *doInternalMetric(int mid,
 
 machineMetFocusNode *createMetricInstance(int mid, string& metric_name, 
 		        vector<u_int>& focusData,
-		        bool enable, // true if for real; false for guessCost()
-		        bool *internal)
+		        bool enable) // true if for real; false for guessCost()
 {
    // we make third parameter false to avoid printing warning messages in
    // focus2CanonicalFocus ("enable" was here previously) - naim
@@ -240,8 +238,6 @@ machineMetFocusNode *createMetricInstance(int mid, string& metric_name,
    }
 
    if (mdl_can_do(metric_name)) {
-      *internal = false;
-      
       /* select the processes that should be instrumented. We skip process
 	 that have exited, and processes that have been created but are not
 	 completely initialized yet.  If we try to insert instrumentation in
@@ -268,7 +264,7 @@ machineMetFocusNode *createMetricInstance(int mid, string& metric_name,
       }
       
       machineMetFocusNode *machNode = 
-	 mdl_do(mid, focus, metric_name, procs, false, enable);
+	 makeMachineMetFocusNode(mid, focus, metric_name, procs, false,enable);
       
       if (machNode == NULL) {
 	 metric_cerr << "createMetricInstance failed since mdl_do failed\n";
@@ -303,8 +299,7 @@ machineMetFocusNode *createMetricInstance(int mid, string& metric_name,
 	 metric_cerr << "metric name was " << metric_name << "; focus was "
 		     << focus.getName() << "\n";
       }
-      
-      *internal = true;
+      if(machNode)  machNode->markAsInternalMetric();
       return machNode;
    }
 }
@@ -316,78 +311,14 @@ machineMetFocusNode *createMetricInstance(int mid, string& metric_name,
 // for processes started the "normal" way.
 // "this" is an aggregate(AGG_MDN or AGG_MDN) mi, not a component one.
 
-void metricFocusNode::propagateToNewProcess(process *) {
-  /*
-  unsigned comp_size = components.size();
+void metricFocusNode::handleNewProcess(process *p) {
+   vector<machineMetFocusNode *> allMachNodes;
+   machineMetFocusNode::getMachineNodes(&allMachNodes);
 
-  if (comp_size == 0)
-    return; // if there are no components, shouldn't the mi be fried?
-
-  for (unsigned u = 0; u < comp_size; u++) {
-    if (components[u]->proc() == p) {
-      // The metric is already enabled for this process. This case can 
-      // happen when we are starting several processes at the same time.
-      // (explain...?)
-      return;
-    }
-  }
-
-  bool internal = false;
-
-  machineMetFocusNode *machNode = NULL;
-     // an aggregate (not component) machNode, though we know that it'll
-     // contain just one component.  It's that one component that we're
-     // really interested in.
-  if (mdl_can_do(met_)) {
-      // Make the unique ID for this metric/focus visible in MDL.
-      string vname = "$globalId";
-      mdl_env::add(vname, false, MDL_T_INT);
-      mdl_env::set(this->getMetricID(), vname);
-
-      vector<process *> vp(1,p);
-
-      machNode = mdl_do(mid, focus_, met_, vp, false,false);
-  } else {
-    // internal and cost metrics don't need to be propagated (is this correct?)
-    machNode = NULL;
-  }
-
-  if (machNode) { // successfully created new machNode
-    assert(machNode->components.size() == 1);
-
-    processMetFocusNode *procNode = 
-      dynamic_cast<processMetFocusNode*>(machNode->components[0]);
-
-    components += procNode;
-#if defined(MT_THREAD)
-    unsigned aggr_size = procNode->aggregators.size();
-    procNode->aggregators[aggr_size-1] = this;       // overwrite
-    procNode->samples[aggr_size-1] = aggregator.newComponent();
-                                                            // overwrite
-    // procNode->comp_flat_names[aggr_size-1]  has the correct value
-#else
-    procNode->aggregators[0] = this;
-    procNode->samples[0] = aggregator.newComponent();
-#endif
-
-    if (!internal) {
-      // dummy parameters for loadInstrIntoApp
-      pd_Function *func = NULL;
-      procNode->loadInstrIntoApp(&func);
-      procNode->insertJumpsToTramps();
-    }
-
-    // update cost
-    const timeLength cost = machNode->cost();
-    if (cost > originalCost_) {
-      addCurrentPredictedCost(cost - originalCost_);
-      originalCost_ = cost;
-    }
-
-    machNode->components.resize(0); // protect the new component
-    delete machNode;
-  }
-  */
+   for (unsigned j=0; j < allMachNodes.size(); j++) {
+      machineMetFocusNode *curNode = allMachNodes[j];
+      curNode->propagateToNewProcess(p);
+   }
 }
 
 
@@ -763,7 +694,7 @@ void metricFocusNode::handleNewThread(pdThread *thr) {
   vector<processMetFocusNode *> MT_procs;
   processMetFocusNode::getMT_ProcNodes(&MT_procs);
   for(unsigned i=0; i<MT_procs.size(); i++) {
-    MT_procs[i]->addThread(thr);
+    MT_procs[i]->propagateToNewThread(thr);
   }
 }
 
@@ -776,14 +707,13 @@ void metricFocusNode::handleNewThread(pdThread *thr) {
 //
 int startCollecting(string& metric_name, vector<u_int>& focus, int id)
 {
-   bool internal = false;
    // Make the unique ID for this metric/focus visible in MDL.
    string vname = "$globalId";
    mdl_env::add(vname, false, MDL_T_INT);
    mdl_env::set(id, vname);
    
    machineMetFocusNode *machNode = 
-      createMetricInstance(id, metric_name, focus, true, &internal);
+     createMetricInstance(id, metric_name, focus, true);
    
    if (!machNode) {
       metric_cerr << "startCollecting for " << metric_name 
@@ -791,20 +721,14 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id)
       return(-1);
    }
    
-   const timeLength cost = machNode->cost();
-   machNode->originalCost_ = cost;
+   addCurrentPredictedCost(machNode->cost());
+   metResPairsEnabled++;
    
-   addCurrentPredictedCost(cost);
-   
-   if (internal) {
-      metResPairsEnabled++;
-      return(machNode->getMetricID());
+   if (machNode->isInternalMetric()) {
+      return machNode->getMetricID();
    }
 
-   machNode->pauseProcesses();
-
    if(! machNode->insertInstrumentation()) {
-      machNode->continueProcesses();
       return machNode->getMetricID();
    }
    
@@ -820,19 +744,15 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id)
    // create a metric where it makes sense to send an initial actual value.
    machNode->initializeForSampling(getWallTime(), pdSample::Zero());
 
-   machNode->continueProcesses();
-
-   metResPairsEnabled++;
    return machNode->getMetricID();
 }
 
 timeLength guessCost(string& metric_name, vector<u_int>& focus) {
     // called by dynrpc.C (getPredictedDataCost())
    static int tempMetFocus_ID = -1;
-   bool internal;
+
    machineMetFocusNode *mi = 
-      createMetricInstance(tempMetFocus_ID, metric_name, focus, false, 
-			   &internal);
+      createMetricInstance(tempMetFocus_ID, metric_name, focus, false);
    tempMetFocus_ID--;
 
     if (!mi) {
@@ -1419,8 +1339,3 @@ bool AstNode::condMatch(AstNode* a,
 }
 */
 
-defInst::defInst(int id, pd_Function *func, unsigned attempts)
-  : id_(id), func_(func), attempts_(attempts)
-{
-
-}
