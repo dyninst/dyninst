@@ -1,4 +1,4 @@
-/* $Id: test6.mutatee.c,v 1.8 2002/03/15 16:11:45 gaburici Exp $ */
+/* $Id: test6.mutatee.c,v 1.9 2002/03/15 16:29:11 gaburici Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -402,8 +402,8 @@ void listByteCnt(unsigned int count)
     bcList[accessCntBC] = count;
   else
     doomBC = 1;
-  /* dprintf("BC[%d]:%d ", accessCntBC, count); */
   accessCntBC++;
+  dprintf("BC[%d]:%d ", accessCntBC, count);
 }
 
 
@@ -450,7 +450,8 @@ int main(int iargc, char *argv[])
   if (argc==1) exit(0);
 
   result_of_loadsnstores = loadsnstores(2,3,4);
-  dprintf("0x%x %d %d %d %d\n", result_of_loadsnstores, loadCnt, storeCnt, prefeCnt, accessCnt);
+  dprintf("\nresult=0x%x loads=%d stores=%d prefetches=%d accesses=%d\n",
+          result_of_loadsnstores, loadCnt, storeCnt, prefeCnt, accessCnt);
 
   init_test_data();
 
