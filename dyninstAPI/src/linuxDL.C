@@ -638,8 +638,7 @@ pdvector<Address> *dynamic_linking::getLinkMapAddrs() {
 // newly mapped shared object.  old_addrs contains the addresses of the
 // currently mapped shared objects. Sets error_occured to true, and 
 // returns 0 on error.
-pdvector<shared_object *> *dynamic_linking::getNewSharedObjects(pdvector<Address> *old_addrs,
-                                                                bool &error_occured)
+pdvector<shared_object *> *dynamic_linking::getNewSharedObjects()
 {
     r_debug_x *debug_elm;
     if (proc->getAddressWidth() == 4)
@@ -648,58 +647,69 @@ pdvector<shared_object *> *dynamic_linking::getNewSharedObjects(pdvector<Address
 	debug_elm = new r_debug_64(proc, r_debug_addr);
 
     if (!debug_elm->is_valid()) {
-	error_occured = true;
 	delete debug_elm;
-	return 0;
+	return NULL;
     }
 
     // get each link_map object
-    bool first_time = true;
     link_map_x *link_elm  = debug_elm->r_map();
     if (!link_elm->is_valid()) {
-	error_occured = true;
-
 	delete link_elm;
 	delete debug_elm;
-	return 0;
+	return NULL;
     }
 
-    pdvector<shared_object*> *new_shared_objects = new pdvector<shared_object*>;
+    pdvector<shared_object*> *new_objs = new pdvector<shared_object*>;
+    pdvector<shared_object*> *cur_objs = proc->sharedObjects();
+
+    // Ignore the first entry, which is the a.out.
+    // When we unify, this can be removed...
+    link_elm->load_next();
+
     do {
-	// kludge: ignore the entry 
-	if (!first_time) {
-	    // check to see if this is a new shared object 
-	    bool found = false;
-	    for (u_int i = 0; i < old_addrs->size(); ++i) {
-		if ((*old_addrs)[i] == link_elm->l_addr()) {
-		    found = true; 
-		    break;
-		}
-	    }
-	    if (!found) {
-		pdstring obj_name = pdstring(link_elm->l_name());
-		shared_object *newobj =
-		    new shared_object(obj_name, link_elm->l_addr(),
-				      false, true, true, 0, proc);
-		(*new_shared_objects).push_back(newobj);
-	    }
+      // check to see if this is a new shared object 
+      bool found = false;
+      for (u_int i = 0; i < cur_objs->size(); i++) {
+	shared_object *cur_obj = (*cur_objs)[i];
+	if (cur_obj->getBaseAddress() != 0 && false) {
+	  // We've seen addrs of 0... FC3 in particular
+	  if (cur_obj->getBaseAddress() == link_elm->l_addr()) {
+	    found = true;
+	    break;
+	  }
+	} 
+	else {
+	  // No base address, match based on name
+	  if (strcmp(cur_obj->getName().c_str(),
+		     link_elm->l_name()) == 0) {
+	    found = true;
+	    break;
+	  }
 	}
-	first_time = false;
+      }
+      if (!found) {
+	pdstring obj_name = pdstring(link_elm->l_name());
+	shared_object *newobj =
+	  new shared_object(obj_name, link_elm->l_addr(),
+			    false, true, true, 0, proc);
+	(*new_objs).push_back(newobj);
+      }
     } while (link_elm->load_next());
 
     delete link_elm;
     delete debug_elm;
-    error_occured = false;
-    return new_shared_objects;
+    return new_objs;
 }
 
 // initialize: perform initialization tasks on a platform-specific level
 bool dynamic_linking::initialize() {
     r_debug_addr = 0;
     r_brk_target_addr = 0;
-    r_state = 0;
-
-	/* Is this a dynamic executable? */
+    // We figure the first thing we'll see is an add... this serves
+    // as an initial value in handleIfDue... above
+    previous_r_state = r_debug::RT_ADD;
+	
+    /* Is this a dynamic executable? */
 	pdstring dyn_str = pdstring("DYNAMIC");
 	internalSym dyn_sym;
 	if( ! proc->findInternalSymbol( dyn_str, true, dyn_sym ) ) { return false; }
@@ -763,28 +773,23 @@ pdvector <shared_object *> *dynamic_linking::findChangeToLinkMaps(u_int change_t
     
     // get list of current shared objects
     pdvector<shared_object *> *curr_list = proc->sharedObjects();
-    if((change_type == 2) && !curr_list) {
+    if((change_type == SHAREDOBJECT_REMOVED) && !curr_list) {
 	error_occured = true;
 	return 0;
     }
 
     // if change_type is add then figure out what has been added
-    if(change_type == r_debug::RT_ADD){
+    if(change_type == SHAREDOBJECT_ADDED){
         // create a vector of addresses of the current set of shared objects
-        pdvector<Address> *addr_list =  new pdvector<Address>;
-        for (Address i=0; i < curr_list->size(); i++) {
-            (*addr_list).push_back(((*curr_list)[i])->getBaseAddress());
-        }
-        pdvector <shared_object *> *new_shared_objs = 
-        getNewSharedObjects(addr_list,error_occured);
-        if(!error_occured){
-            delete addr_list;
-            return new_shared_objs; 
-            new_shared_objs = 0;
-        }
+        pdvector <shared_object *> *new_shared_objs = getNewSharedObjects();
+        if(new_shared_objs != NULL)
+	  error_occured = false;
+	else
+	  error_occured = true;
+	return new_shared_objs; 
     }
     // if change_type is remove then figure out what has been removed
-    else if((change_type == r_debug::RT_DELETE) && curr_list) {
+    else if((change_type == SHAREDOBJECT_REMOVED) && curr_list) {
 	// create a list of base addresses from the linkmaps and
 	// compare them to the addr in vector of shared object to see
 	// what has been removed
@@ -824,8 +829,8 @@ pdvector <shared_object *> *dynamic_linking::findChangeToLinkMaps(u_int change_t
 // the change_type value is set to indicate if the objects have been added 
 // or removed
 bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*>  **changed_objects,
-				u_int &change_type,
-				bool &error_occured){ 
+						       u_int &change_type,
+						       bool &error_occured){ 
 
     error_occured = false;
 
@@ -877,22 +882,42 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*> 
 
 	// if the state of the link maps is consistent then we can read
 	// the link maps, otherwise just set the r_state value
-	change_type = r_state;   // previous state of link maps 
-	r_state = debug_elm->r_state();  // new state of link maps
-	if( r_state == 0 ) {
-	    // figure out how link maps have changed, and then create
-	    // a list of either all the removed shared objects if this
-	    // was a dlclose or the added shared objects if this was a dlopen
 
-	    // kludge: the state of the first add can get screwed up
-	    // so if both change_type and r_state are 0 set change_type to 1
-	    if( change_type == 0 ) change_type = 1;
-	    *changed_objects = findChangeToLinkMaps(change_type,
-						    error_occured);
+	// We see two events: first a "something is changing..." then a 
+	// "now consistent". We want the library list from consistent,
+	// and the "what's new" from "changing".
+
+	switch(previous_r_state) {
+	case r_debug::RT_CONSISTENT:
+	  change_type = SHAREDOBJECT_NOCHANGE;
+	  break;
+	case r_debug::RT_ADD:
+	  change_type = SHAREDOBJECT_ADDED;
+	  break;
+	case r_debug::RT_DELETE:
+	  change_type = SHAREDOBJECT_REMOVED;
+	  break;
+	default:
+	  assert(0);
+	  break;
+	}
+	current_r_state = debug_elm->r_state();
+
+	if (current_r_state == r_debug::RT_CONSISTENT) {
+	  
+	  // figure out how link maps have changed, and then create
+	  // a list of either all the removed shared objects if this
+	  // was a dlclose or the added shared objects if this was a dlopen
+	  
+	  // kludge: the state of the first add can get screwed up
+	  // so if both change_type and r_state are 0 set change_type to 1
+	  *changed_objects = findChangeToLinkMaps(change_type,
+						  error_occured);
 #if defined(BPATCH_LIBRARY)
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-	    if (change_type == r_debug::RT_ADD) {
+	  // SAVE THE WORLD
+	  if (previous_r_state == r_debug::RT_ADD) {
 		for(unsigned int index = 0; index < (*changed_objects)->size(); index++){
 		    char *tmpStr = new char[ 1+strlen((*(*changed_objects))[index]->getName().c_str())];
 		    strcpy(tmpStr,(*(*changed_objects))[index]->getName().c_str());
@@ -908,49 +933,50 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*> 
 #endif
 	}
 
-	if (force_library_load) return true;
-	else {
-        
+	// Now to clean up.
+
+	if (!force_library_load) {
 #if defined(arch_x86) || defined(arch_x86_64)
-	    // Return from the function.  We used to do this by setting the program
-	    // counter to the end of the function, but we don't necessarily know
-	    // how long it is, so now we emulate a ret instruction by changing the
-	    // PC to the return value from the stack and incrementing the stack
-	    // pointer.
-	    dyn_saved_regs regs;
-
-	    brk_lwp->getRegisters(&regs);
-
-	    Address sp = regs.gprs.PTRACE_REG_SP;
-
-	    Address ret_addr;
-	    if(!proc->readDataSpace((caddr_t)sp, sizeof(Address),
-				    (caddr_t)&ret_addr, true)) {
-		// bperr("read failed sp = 0x%x\n", sp);
-                fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
-		error_occured = true;
-		return true;
-	    }
-	    // Fix up the stack pointer
-	    regs.gprs.PTRACE_REG_SP = sp + proc->getAddressWidth();
-	    brk_lwp->restoreRegisters(regs);
-
-	    if (! brk_lwp->changePC(ret_addr, NULL))
-		error_occured = true;
-
-#else
-	    dyn_lwp *lwp_to_use = NULL;
-	    lwp_to_use = proc->getRepresentativeLWP();
-	    if(lwp_to_use == NULL)
-		if(process::IndependentLwpControl() && lwp_to_use == NULL)
-		    lwp_to_use = proc->getInitialThread()->get_lwp();
-
-	    /* We've inserted a return statement at r_brk_target_addr
-	       for our use here. */
-	    lwp_to_use->changePC( r_brk_target_addr, NULL );
-#endif
+	  // Return from the function.  We used to do this by setting the program
+	  // counter to the end of the function, but we don't necessarily know
+	  // how long it is, so now we emulate a ret instruction by changing the
+	  // PC to the return value from the stack and incrementing the stack
+	  // pointer.
+	  dyn_saved_regs regs;
+	  
+	  brk_lwp->getRegisters(&regs);
+	  
+	  Address sp = regs.gprs.PTRACE_REG_SP;
+	  
+	  Address ret_addr;
+	  if(!proc->readDataSpace((caddr_t)sp, sizeof(Address),
+				  (caddr_t)&ret_addr, true)) {
+	    // bperr("read failed sp = 0x%x\n", sp);
+	    fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
+	    error_occured = true;
 	    return true;
+	  }
+	  // Fix up the stack pointer
+	  regs.gprs.PTRACE_REG_SP = sp + proc->getAddressWidth();
+	  brk_lwp->restoreRegisters(regs);
+	  
+	  if (! brk_lwp->changePC(ret_addr, NULL))
+	    error_occured = true;
+	  
+#else
+	  dyn_lwp *lwp_to_use = NULL;
+	  lwp_to_use = proc->getRepresentativeLWP();
+	  if(lwp_to_use == NULL)
+	    if(process::IndependentLwpControl() && lwp_to_use == NULL)
+	      lwp_to_use = proc->getInitialThread()->get_lwp();
+	  
+	  /* We've inserted a return statement at r_brk_target_addr
+	     for our use here. */
+	  lwp_to_use->changePC( r_brk_target_addr, NULL );
+#endif
 	} // non-forced, clean up for breakpoint
+	previous_r_state = current_r_state;
+	return true;
     } // Not a library load (!forced && pc != breakpoint)
     return false; 
 }
@@ -959,7 +985,31 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*> 
 // loads and unloads (symbol lookups and trap setting)
 bool dynamic_linking::installTracing()
 {
-    assert(r_debug_addr);
+
+  //Libc >= 2.3.3 has security features that prevent _dl_open from being
+  // called from outside libc.  We'll disable those features by finding the
+  // function that implements them and writing 'return 0' over the top of
+  // the function.
+  int_function *dlcheck = proc->findOnlyOneFunction("_dl_check_caller");
+  
+  if (dlcheck != NULL)
+    {
+      startup_printf("(%d) Found dlopen security function, disabling...\n", proc->getPid());
+      if (!dlcheck->setReturnValue(proc, 0))
+        cerr << "Couldn't set function's return value" << endl;
+    }
+  
+  // And find the address of do_dlopen and set the RT library symbol correctly
+  int_function *do_dlopen = proc->findOnlyOneFunction("do_dlopen");
+  Address do_dlopen_addr = do_dlopen->getEffectiveAddress(proc);
+  internalSym sym;
+  bool flag = proc->findInternalSymbol("DYNINST_do_dlopen", true, sym);
+  assert(flag);
+  Address tmp = sym.getAddr();
+  proc->writeDataSpace((void *)tmp, sizeof(Address), (void *)&do_dlopen_addr);
+  
+  
+  assert(r_debug_addr);
     
     r_debug_x *debug_elm;
     if (proc->getAddressWidth() == 4)
