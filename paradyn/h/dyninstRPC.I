@@ -437,7 +437,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 30;
+    $version 31;
 
     //
     // Define a program to run. 
@@ -597,11 +597,6 @@ $remote dynRPC {
     //    perturbation expected (i.e. 0.10 == 10% slow down expected).
     //
     double getPredictedDataCost(vector<u_int> focus, string metric);
-
-    //
-    // Current best guess about the cost of instrumentation.
-    //
-    double getCurrentSmoothObsCost();
 
     //
     // Get the static configuration information.

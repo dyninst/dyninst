@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.63  1996/02/09 05:32:31  karavan
+ * Revision 1.64  1996/02/22 23:39:18  newhall
+ * removed getCurrentSmoothObsCost
+ *
+ * Revision 1.63  1996/02/09  05:32:31  karavan
  * added getFocusNameFromHandle.
  *
  * Revision 1.62  1996/02/05 18:48:31  newhall
@@ -362,7 +365,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 35;
+    $version 36;
 
     //
     // Start a paradyn daemon
@@ -573,11 +576,6 @@ $remote dataManager {
     //    perturbation expected (i.e. 0.10 == 10% slow down expected).
     //
     float getPredictedDataCost(resourceListHandle, metricHandle);
-
-    //
-    // Current best guess of the cost of inst in the system.
-    //
-    float getCurrentSmoothObsCost();
 
     // 
     // Histogram/timebase information
