@@ -37,7 +37,9 @@ public:
 
     bool operator== (const string &) const;
     bool operator== (const char *ptr) const {
-       // we have this routine as a time-saver
+       // This routine exists as an optimization; doesn't need to create a temporary
+       // instance of "string" for "ptr"; hence, doesn't call string::string(char *)
+       // which calls new[].
        return STREQ(ptr, str_);
     }
     bool operator!= (const string &) const;
@@ -60,8 +62,6 @@ public:
     friend ostream& operator<< (ostream &os, const string &s);
 
     static unsigned       hash (const string &s) {return s.key_;}
-
-    static string quote;
 
 private:
     static unsigned      hashs (const char *);
