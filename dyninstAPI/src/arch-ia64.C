@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.20 2003/09/23 17:28:49 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.21 2003/11/03 19:20:01 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -54,8 +54,6 @@
 #define INSTRUCTION1_LOW_MASK	0xFFFFC00000000000	/* bits 45 - 63 */
 #define INSTRUCTION1_HIGH_MASK	0x00000000007FFFFF	/* bits 00 - 20 */
 #define INSTRUCTION2_MASK	0xFFFFFFFFFF800000	/* bits 21 - 63 */
-
-#define MAJOR_OPCODE_MASK	0xF000000000000000	/* bits 37 - 40 */
 
 #define MEMORY_X3_MASK		0x0700000000000000	/* bits 33 - 35 */
 #define MEMORY_R1_MASK		0x0000000FE0000000	/* bits 06 - 12 */
@@ -84,14 +82,14 @@
 
 #define IBRANCH_X6		0x00FC000000000000	/* bits 27 - 32 */
 #define IBRANCH_B2		0x0000007000000000	/* bits 13 - 15 */
-#define IBRANCH_BTYPE		0x00000000E0000000	/* bits 06 - 08 */
+#define IBRANCH_BTYPE	0x00000000E0000000	/* bits 06 - 08 */
 
 #define RIGHT_IMM5C		0x00000000001F0000	/* bits 16 - 20 */
 #define RIGHT_IMM9D		0x000000000000FF80	/* bits 07 - 15 */
 #define RIGHT_IMM6D		0x0000000000001F80	/* bits 07 - 12 */
 #define RIGHT_IMM7B		0x000000000000007F	/* bits 00 - 06 */
 #define RIGHT_IMM_I		0x8000000000000000	/* bit 63 */
-#define RIGHT_IMM_IC		0x0000000000200000	/* bit 21 */
+#define RIGHT_IMM_IC	0x0000000000200000	/* bit 21 */
 #define RIGHT_IMM8C		0x0000000000007F80	/* bits 07 - 15 */
 #define RIGHT_IMM7A		0x000000000000007F	/* bits 00 - 06 */
 
@@ -144,26 +142,20 @@ IA64_instruction::unitType INSTRUCTION_TYPE_ARRAY[(0x20 + 1) * 3] = {
 
 /* NOTE: for the IA64_bundle constructor to work, the individual
 	instruction 'halves' should left-aligned as if they were independent instructions. */
-IA64_instruction_x::IA64_instruction_x( uint64_t lowHalf, uint64_t highHalf, uint8_t templ, const IA64_bundle * mybl ) {
+IA64_instruction_x::IA64_instruction_x( uint64_t lowHalf, uint64_t highHalf, uint8_t templ ) {
 	instruction = lowHalf;
 	instruction_x = highHalf;
 	templateID = templ;
-	myBundle = mybl;
 	} /* end IA64_Instruction_x() */
 
-IA64_instruction::IA64_instruction( uint64_t insn, uint8_t templ, const IA64_bundle * mybl, uint8_t slotN ) {
+IA64_instruction::IA64_instruction( uint64_t insn, uint8_t templ, uint8_t slotN ) {
 	instruction = insn;
 	templateID = templ;
-	myBundle = mybl;
 	slotNumber = slotN;
 	} /* end IA64_Instruction() */
 
 const void * IA64_instruction::ptr() const { 
-	/* If I don't have a bundle, trying to write me is pointless;
-	   this should also make it harder for "unaware" functions to misuse me. */
-	if( myBundle == NULL ) { return NULL; }
-
-	return myBundle->getMachineCodePtr();
+	return NULL;
 	} /* end ptr() */
 
 IA64_instruction::insnType IA64_instruction::getType() const {
@@ -260,9 +252,9 @@ IA64_bundle::IA64_bundle( uint8_t templateID, IA64_instruction & instruction0, I
 
 IA64_bundle::IA64_bundle( uint8_t templateID, uint64_t instruction0, uint64_t instruction1, uint64_t instruction2 ) {
 	this->templateID = templateID;
-	this->instruction0 = IA64_instruction( instruction0, templateID, this, 0 );
-	this->instruction1 = IA64_instruction( instruction1, templateID, this, 1 );
-	this->instruction2 = IA64_instruction( instruction2, templateID, this, 2 ); 
+	this->instruction0 = IA64_instruction( instruction0, templateID, 0 );
+	this->instruction1 = IA64_instruction( instruction1, templateID, 1 );
+	this->instruction2 = IA64_instruction( instruction2, templateID, 2 ); 
 
 	myBundle.low =	( templateID & TEMPLATE_MASK ) |
 			( (instruction0 >> (ALIGN_RIGHT_SHIFT - 5)) & INSTRUCTION0_MASK ) |
@@ -274,17 +266,17 @@ IA64_bundle::IA64_bundle( uint8_t templateID, uint64_t instruction0, uint64_t in
 IA64_bundle::IA64_bundle( uint64_t lowHalfBundle, uint64_t highHalfBundle ) {
 	/* The template is right-aligned; the instructions are left-aligned. */
 	templateID = lowHalfBundle & TEMPLATE_MASK;
-	instruction0 = IA64_instruction( (lowHalfBundle & INSTRUCTION0_MASK) << 18, templateID, this, 0 );
+	instruction0 = IA64_instruction( (lowHalfBundle & INSTRUCTION0_MASK) << 18, templateID, 0 );
 	instruction1 = IA64_instruction( ((lowHalfBundle & INSTRUCTION1_LOW_MASK) >> 23) +
-						((highHalfBundle & INSTRUCTION1_HIGH_MASK) << 41), templateID, this, 1 );
-	instruction2 = IA64_instruction( highHalfBundle & INSTRUCTION2_MASK, templateID, this, 2 );
+						((highHalfBundle & INSTRUCTION1_HIGH_MASK) << 41), templateID, 1 );
+	instruction2 = IA64_instruction( highHalfBundle & INSTRUCTION2_MASK, templateID, 2 );
 
 	myBundle.low = lowHalfBundle;
 	myBundle.high = highHalfBundle;
 	} /* end IA64_Bundle() */
 
 IA64_instruction_x * IA64_bundle::getLongInstruction() {
-	longInstruction = IA64_instruction_x( instruction1.getMachineCode(), instruction2.getMachineCode(), 0x05, this );
+	longInstruction = IA64_instruction_x( instruction1.getMachineCode(), instruction2.getMachineCode(), 0x05 );
 	return & longInstruction;
 	} /* end getLongInstruction() */
 
@@ -308,16 +300,16 @@ bool IA64_bundle::setInstruction(IA64_instruction &newInst)
 
     switch (newInst.slotNumber) {
     case 0:
-	instruction0 = IA64_instruction(newInst.instruction, templateID, this, newInst.slotNumber);
+	instruction0 = IA64_instruction(newInst.instruction, templateID, newInst.slotNumber);
 	myBundle.low &= ~INSTRUCTION0_MASK | (newInst.instruction << (ALIGN_RIGHT_SHIFT - 5));
 	break;
     case 1:
-	instruction1 = IA64_instruction(newInst.instruction, templateID, this, newInst.slotNumber);
+	instruction1 = IA64_instruction(newInst.instruction, templateID, newInst.slotNumber);
 	myBundle.low &= ~INSTRUCTION1_LOW_MASK | (newInst.instruction << 23);
 	myBundle.high &= ~INSTRUCTION1_HIGH_MASK | (newInst.instruction >> (ALIGN_RIGHT_SHIFT + 18));
 	break;
     case 2:
-	instruction2 = IA64_instruction(newInst.instruction, templateID, this, newInst.slotNumber);
+	instruction2 = IA64_instruction(newInst.instruction, templateID, newInst.slotNumber);
 	myBundle.high &= ~INSTRUCTION2_MASK | newInst.instruction;
 	break;
     default:
@@ -333,8 +325,8 @@ bool IA64_bundle::setInstruction(IA64_instruction_x &newInst)
     if (templateID != 0x04 && templateID != 0x05)
 	return false;
 
-    instruction1 = IA64_instruction(newInst.instruction, templateID, this, 1);
-    instruction2 = IA64_instruction(newInst.instruction_x, templateID, this, 2);
+    instruction1 = IA64_instruction(newInst.instruction, templateID, 1);
+    instruction2 = IA64_instruction(newInst.instruction_x, templateID, 2);
 
     myBundle.low &= ~INSTRUCTION1_LOW_MASK | (newInst.instruction << 23);
     myBundle.high = ( ( (newInst.instruction >> (ALIGN_RIGHT_SHIFT + 18)) & INSTRUCTION1_HIGH_MASK ) |
@@ -365,7 +357,7 @@ bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, u
 
 	/* Completed successfully. */
 	return true;
-        } /* end extractAllocatedRegisters() */
+	} /* end extractAllocatedRegisters() */
 
 IA64_instruction generateAllocInstructionFor( registerSpace * rs, int locals, int outputs, int rotates ) {
 	uint64_t sizeOfLocals = rs->getRegSlot( 0 )->number - 32 + locals;
@@ -514,12 +506,13 @@ Address IA64_instruction::getTargetAddress() const {
 	if( myType == DIRECT_CALL || myType == DIRECT_BRANCH ) { /* Kind of pointless to guess at the target of indirect jumps. */
 		uint8_t opcode = (instruction & MAJOR_OPCODE_MASK) >> (ALIGN_RIGHT_SHIFT + 37);
 		switch( opcode ) {
-			case 0x04: case 0x05:
+			case 0x04: case 0x05: {
 				/* ip-relative branch and call, respectively. */
-				return ( 0x0000000000000000 |
-					(instruction >> (13 + ALIGN_RIGHT_SHIFT)) & RIGHT_IMM20 |
-					((instruction >> (36 + ALIGN_RIGHT_SHIFT)) << 20 ) ) << 4;
-				break;
+				uint64_t imm20b = (instruction >> (13 + ALIGN_RIGHT_SHIFT) ) & RIGHT_IMM20;
+				uint64_t signBit = (instruction >> (26 + ALIGN_RIGHT_SHIFT) ) & 0x1;
+				uint64_t signExt = signBit ? 0xFFFFFFFFFFFFFFFF & (~RIGHT_IMM20) : (~RIGHT_IMM20);
+				return (imm20b | signExt) << 4;
+				} break;
 			case 0x01: case 0x00:
 				/* indirect branch and call, respectively. */
 				return 0;
@@ -550,8 +543,9 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 	assert( fnEntryAddress % 16 == 0 );
 	const ia64_bundle_t * rawBundlePointer = (const ia64_bundle_t *) fnEntryAddress;
 
-	/* Zero and one alloc intstruction are easily handled.  Save the
-	   nasty static analysis code for later. */
+	/* Zero and one alloc intstruction are easily handled.  Special
+	   case some more complicated common forms, like system calls,
+	   and leave the rest to the dynamic basetramp. */
 	pdvector< Address > allocs = location->iPgetFunction()->allocs;
 	switch( allocs.size() ) {
 		case 0: {
@@ -573,15 +567,15 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 
 		case 1: {
 			/* Where is our alloc instruction?  We need to have a look at it... */
-	                Address encodedAddress = (location->iPgetFunction()->allocs)[0];
-        	        unsigned short slotNumber = encodedAddress % 16;
-        	        Address alignedOffset = encodedAddress - slotNumber;
-	                IA64_bundle allocBundle = rawBundlePointer[ alignedOffset / 16 ];
+			Address encodedAddress = (location->iPgetFunction()->allocs)[0];
+			unsigned short slotNumber = encodedAddress % 16;
+			Address alignedOffset = encodedAddress - slotNumber;
+			IA64_bundle allocBundle = rawBundlePointer[ alignedOffset / 16 ];
 
 			/* ... so we find out what the frame it generates looks like... */
 			uint64_t allocatedLocals, allocatedOutputs, allocatedRotates;
 			extractAllocatedRegisters( allocBundle.getInstruction( slotNumber )->getMachineCode(),
-					& allocatedLocals, & allocatedOutputs, & allocatedRotates );
+				& allocatedLocals, & allocatedOutputs, & allocatedRotates );
 			uint64_t sizeOfFrame = allocatedLocals + allocatedOutputs;
 
 			/* ... and construct a deadRegisterList and regSpace above the
@@ -604,24 +598,8 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 			} return true;
 
 		default:
-			/* Do the static analysis below. */
-			break;
+			return false;
 		} /* end #-of-allocs switch. */
-
-	/* FIXME: Generate the CFG and calculate reaching allocs. */
-
-	/* If no alloc reaches the instrumenation point, handle as case 0 above and return true.
-	   (FIXME: In fact, go ahead and factor it out, e.g. replace it with:
-	   handleCaseZero( regSpace, deadRegisterList ); return true;.) */
-
-	/* If exactly one alloc reaches the instrumentation point, handle as case 1 above and return true.
-	   (FIXME: In fact, factor out the stuff below the slotNo/address determination above. */
-
-	/* If more than one alloc reaches the instrumentation point, return false.  The
-	   basetramp will have to determine the frame at run-time. */
-
-	assert( 0 );
-	return true;
 	} /* end dBTRSF() */
 
 /* For inst-ia64.h */
@@ -689,7 +667,7 @@ IA64_instruction generateArithmetic( opCode op, Register destination, Register l
 		case andOp: x4 = 3; x2b = 0; break;
 		case orOp: x4 = 3; x2b = 2; break;
 		default:
-			fprintf( stderr, "generateArithmetic() did not recognize opcod %d, aborting.\n", op );
+			fprintf( stderr, "generateArithmetic() did not recognize opcode %d, aborting.\n", op );
 			abort();
 			break;
 		} /* end op switch */
@@ -743,7 +721,7 @@ IA64_instruction generateRegisterToPredicatesMove( Register source, uint64_t mas
 #define BIT_30_35 0xFC0000000
 #define NOT_BIT_30_35 (~ BIT_30_35)
 IA64_instruction generateSpillTo( Register address, Register source, int64_t imm9 ) {
-	IA64_instruction temp = generateRegisterStore( address, source, imm9 );
+	IA64_instruction temp = generateRegisterStoreImmediate( address, source, imm9 );
 	uint64_t rawInsn = temp.getMachineCode();
 	rawInsn = rawInsn & (NOT_BIT_30_35 << ALIGN_RIGHT_SHIFT);
 	rawInsn = rawInsn | ( ((uint64_t)0x3B) << (30 + ALIGN_RIGHT_SHIFT) );
@@ -751,24 +729,40 @@ IA64_instruction generateSpillTo( Register address, Register source, int64_t imm
 	} /* end generateSpillTo() */
 
 IA64_instruction generateFillFrom( Register address, Register destination, int64_t imm9 ) {
-	IA64_instruction temp = generateRegisterLoad( address, destination, imm9 );
+	IA64_instruction temp = generateRegisterLoadImmediate( address, destination, imm9 );
 	uint64_t rawInsn = temp.getMachineCode();
 	rawInsn = rawInsn & (NOT_BIT_30_35 << ALIGN_RIGHT_SHIFT);
 	rawInsn = rawInsn | ( ((uint64_t)0x1B) << (30 + ALIGN_RIGHT_SHIFT) );
 	return temp;
 	} /* end generateFillFrom() */
 
-IA64_instruction generateRegisterStore( Register address, Register source, int imm9 ) {
+IA64_instruction generateRegisterStore( Register address, Register source, int size ) {
+	return generateRegisterStoreImmediate( address, source, 0, size );
+	} /* generateRegisterStore() */
+
+IA64_instruction generateRegisterStoreImmediate( Register address, Register source, int imm9, int size ) {
 	uint64_t addressRegister = ((uint64_t)address) & 0x7F;
 	uint64_t sourceRegister = ((uint64_t)source) & 0x7F;
 	uint64_t immediate = ((uint64_t)imm9) & 0x7F;
 	uint64_t signBit = imm9 < 0 ? 1 : 0;
 	uint64_t iBit = (((uint64_t)imm9) & 0x080) >> 7;
 
+	uint64_t sizeSpec = 0;
+	switch( size ) {
+		case 1: sizeSpec = 0x30; break;
+		case 2: sizeSpec = 0x31; break;
+		case 4: sizeSpec = 0x32; break;
+		case 8: sizeSpec = 0x33; break;
+		default:
+			fprintf( stderr, "Illegal size %d, aborting.\n", size );
+			assert( 0 );
+			break;
+		} /* end sizeSpec determiner */
+
 	uint64_t rawInsn = 0x0000000000000000 |
 			   ( ((uint64_t)0x05) << (37 + ALIGN_RIGHT_SHIFT) ) |
 			   ( signBit << (36 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x33) << (30 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)sizeSpec) << (30 + ALIGN_RIGHT_SHIFT) ) |
 			   ( iBit << (27 + ALIGN_RIGHT_SHIFT) ) |
 			   ( addressRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
 			   ( sourceRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
@@ -779,30 +773,54 @@ IA64_instruction generateRegisterStore( Register address, Register source, int i
 
 /* This is the no-update form, which lets the code generator do dumb
    stuff like load from and into the same register. */
-IA64_instruction generateRegisterLoad( Register destination, Register address ) {
+IA64_instruction generateRegisterLoad( Register destination, Register address, int size ) {
 	uint64_t addressRegister = ((uint64_t)address) & 0x7F;
 	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
 
+	uint64_t sizeSpec = 0;
+	switch( size ) {
+		case 1: sizeSpec = 0x00; break;
+		case 2: sizeSpec = 0x01; break;
+		case 4: sizeSpec = 0x02; break;
+		case 8: sizeSpec = 0x03; break;
+		default:
+			fprintf( stderr, "Illegal size %d, aborting.\n", size );
+			assert( 0 );
+			break;
+		} /* end sizeSpec determiner */
+
 	uint64_t rawInsn = 0x0000000000000000 |
 			   ( ((uint64_t)0x04) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x03) << (30 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)sizeSpec) << (30 + ALIGN_RIGHT_SHIFT) ) |
 			   ( addressRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
 			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) );
 
 	return IA64_instruction( rawInsn );	
 	} /* end generateRegisterLoad() */
 
-IA64_instruction generateRegisterLoad ( Register destination, Register address, int imm9 ) { 
+IA64_instruction generateRegisterLoadImmediate( Register destination, Register address, int imm9, int size ) { 
 	uint64_t addressRegister = ((uint64_t)address) & 0x7F;
 	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
 	uint64_t immediate = ((uint64_t)imm9) & 0x7F;
 	uint64_t signBit = imm9 < 0 ? 1 : 0;
 	uint64_t iBit = (((uint64_t)imm9) & 0x080) >> 7;
 
+	uint64_t sizeSpec = 0;
+	switch( size ) {
+		case 1: sizeSpec = 0x00; break;
+		case 2: sizeSpec = 0x01; break;
+		case 4: sizeSpec = 0x02; break;
+		case 8: sizeSpec = 0x03; break;
+		default:
+			fprintf( stderr, "Illegal size %d, aborting.\n", size );
+			assert( 0 );
+			break;
+		} /* end sizeSpec determiner */
+
 	uint64_t rawInsn = 0x0000000000000000 |
 			   ( ((uint64_t)0x05) << (37 + ALIGN_RIGHT_SHIFT) ) |
 			   ( signBit << (36 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x03) << (30 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)sizeSpec) << (30 + ALIGN_RIGHT_SHIFT) ) |
 			   ( iBit << (27 + ALIGN_RIGHT_SHIFT) ) |
 			   ( addressRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
 			   ( immediate << (13 + ALIGN_RIGHT_SHIFT) ) |
@@ -860,12 +878,13 @@ IA64_instruction generateApplicationToRegisterMove( Register source, Register de
 	} /* end generateRegisterToApplicationMove() */
 
 IA64_instruction predicateInstruction( Register predicate, IA64_instruction insn ) {
-	uint64_t predicateRegister = ((uint64_t)predicate) & 0x7F;
+	uint64_t predicateRegister = ((uint64_t)predicate) & 0x3F;
 
-	uint64_t rawInsn = insn.getMachineCode() |
+	uint64_t predicatesMaskedInsn = insn.getMachineCode() & (~(0x3f << ALIGN_RIGHT_SHIFT));
+	uint64_t rawInsn = predicatesMaskedInsn |
 			   predicateRegister << ALIGN_RIGHT_SHIFT;
 
-	return IA64_instruction( rawInsn, insn.getTemplateID(), insn.getMyBundle(), insn.getSlotNumber() );
+	return IA64_instruction( rawInsn, insn.getTemplateID(), insn.getSlotNumber() );
 	} /* end predicateInstruction() */
 
 /* This was probably implemented somewhere else already.  Too bad. */
@@ -876,7 +895,7 @@ void swap( uint64_t & lhs, uint64_t & rhs ) {
 	} /* end swap() */
 
 IA64_instruction generateComparison( opCode op, Register destination, Register lhs, Register rhs ) {
-	uint64_t truePredicate = ((uint64_t)destination) & 0x7F;
+	uint64_t truePredicate = ((uint64_t)destination) & 0x3F; 
 	uint64_t falsePredicate = truePredicate + 1;
 	uint64_t lhsRegister = ((uint64_t)lhs) & 0x7F;
 	uint64_t rhsRegister = ((uint64_t)rhs) & 0x7F;
@@ -928,12 +947,13 @@ IA64_instruction generateComparison( opCode op, Register destination, Register l
 	} /* end generateComparison() */
 
 IA64_instruction_x predicateLongInstruction( Register predicate, IA64_instruction_x insn ) {
-	uint64_t predicateRegister = ((uint64_t)predicate) & 0x7F;
+	uint64_t predicateRegister = ((uint64_t)predicate) & 0x3F;
 
-	uint64_t highInsn = insn.getMachineCode().high |
+	uint64_t predicatesMaskedInsn = insn.getMachineCode().high & (~(0x3f << ALIGN_RIGHT_SHIFT));
+	uint64_t highInsn = predicatesMaskedInsn |
 			   predicateRegister << ALIGN_RIGHT_SHIFT;
 
-	return IA64_instruction_x( insn.getMachineCode().low, highInsn, insn.getTemplateID(), insn.getMyBundle() );
+	return IA64_instruction_x( insn.getMachineCode().low, highInsn, insn.getTemplateID() );
 	} /* end predicateLongInstruction() */
 
 IA64_instruction generateFPSpillTo( Register address, Register source, int64_t imm9 ) {
