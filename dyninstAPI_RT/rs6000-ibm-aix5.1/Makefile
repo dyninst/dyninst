@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2003/04/11 16:17:38 bernat Exp $
+# $Id: Makefile,v 1.3 2003/05/10 23:52:57 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -8,6 +8,7 @@ USES_SHM_SAMPLING = true
 
 # We set the permissions of the runtime library as 640
 UNCOMMON_INSTALL = true
+DEBUG_FLAG = -g
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
