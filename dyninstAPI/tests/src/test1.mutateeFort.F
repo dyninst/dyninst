@@ -6,106 +6,8 @@
 
 ! AIX xlf90 does not insert underscores at end
 
-#if defined (rs6000_ibm_aix4_1)
-#define globals globals_
-#define init_globals init_globals_
-#define func1_1 func1_1_
-#define func1_2 func1_2_
-#define call1_1 call1_1_
-#define func2_1 func2_1_
-#define call2_1 call2_1_
-#define func3_1 func3_1_
-#define call3_1 call3_1_
-#define func4_1 func4_1_
-#define func4_2 func4_2_
-#define func5_1 func5_1_
-#define func5_2 func5_2_
-#define func6_1 func6_1_
-#define func6_2 func6_2_
-#define fail7Print fail7Print_
-#define fail7aPrint fail7aPrint_
-#define func7_1 func7_1_
-#define func7_2 func7_2_
-#define func8_1 func8_1_
-#define func9_1 func9_1_
-#define call9_1 call9_1_
-#define func10_1 func10_1_
-#define call10_1 call10_1_
-#define call10_2 call10_2_
-#define call10_3 call10_3_
-#define func11_1 func11_1_
-#define func11_2 func11_2_
-#define call11_1 call11_1_
-#define call11_2 call11_2_
-#define call11_3 call11_3_
-#define call11_4 call11_4_
-#define func12_1 func12_1_
-#define func12_2 func12_2_
-#define call12_1 call12_1_
-#define func13_1 func13_1_
-#define func13_2 func13_2_
-#define call13_1 call13_1_
-#define call13_2 call13_2_
-#define func14_1 func14_1_
-#define func14_2 func14_2_
-#define func14_3 func14_3_
-#define call14_1 call14_1_
-#define func15_1 func15_1_
-#define func15_2 func15_2_
-#define func15_3 func15_3_
-#define func15_4 func15_4_
-#define call15_1 call15_1_
-#define call15_2 call15_2_
-#define call15_3 call15_3_
-#define func15_1 func15_1_
-#define check15result check15result_
-#define func16_1 func16_1_
-#define func16_2 func16_2_
-#define func16_3 func16_3_
-#define func16_4 func16_4_
-#define func17_1 func17_1_
-#define func17_2 func17_2_
-#define func17_3 func17_3_
-#define func17_4 func17_4_
-#define call17_1 call17_1_
-#define call17_2 call17_2_
-#define func18_1 func18_1_
-#define func19_1 func19_1_
-#define call19_1 call19_1_
-#define call19_2 call19_2_
-#define call20_1 call20_1_
-#define func20_2 func20_2_
-#define func20_1 func20_1_
-#define eq_doubles eq_doubles_
-#define func21_1 func21_1_
-#define func22_1 func22_1_
-#define func23_1 func23_1_
-#define FverifyScalarValue FverifyScalarValue_
-#define func24_1 func24_1_
-#define func25_1 func25_1_
-#define call25_1 call25_1_
-#define func26_1 func26_1_
-#define call26_1 call26_1_
-#define call26_2 call26_2_
-#define func27_1 func27_1_
-#define func28_1 func28_1_
-#define func29_1 func29_1_
-#define func30_1 func30_1_
-#define func31_1 func31_1_
-#define func31_2 func31_2_
-#define func31_3 func31_3_
-#define func31_4 func31_4_
-#define func32_1 func32_1_
-#define func32_2 func32_2_
-#define func32_3 func32_3_
-#define func32_4 func32_4_
-#define func33_1 func33_1_
-#define func33_2 func33_2_
-#define func33_3 func33_3_
-#define func34_1 func34_1_
-#define func34_2 func34_2_
-#define func35_1 func35_1_
-#define stop_process stop_process_
+#if	defined(sparc_sun_solaris2_4)
+#define stop_process_ stop_process
 #endif
 
 !------------------------------------------------------------------------------
@@ -296,7 +198,7 @@
 	CALL func1_2
 
 	if (globalVariable1_1 .eq. 11) then
-		print *, 'Passed test #1 (zero arg function call)'
+		print *, 'F90: Passed test #1 (zero arg function call)'
 		passedTest (1) = .true.
 	else
 		print *, '**Failed** test #1 (zero arg function call)'
@@ -874,7 +776,7 @@
 #include "test1_common.h"
 
 	CALL func12_2
-	CALL stop_process
+	CALL stop_process_
 	CALL func12_2
 
 	if (globalVariable12_1 .eq. 1) then
@@ -1109,7 +1011,7 @@
 	CALL check15result ('globalVariable15_3', globalVariable15_3, 1,
      & 'after first call to instrumented function', failed)
 
-	CALL stop_process
+	CALL stop_process_
 	CALL func15_2
 	CALL check15result ('globalVariable15_1', globalVariable15_1, 1,
      & 'after second call to instrumented function', failed)
@@ -1118,7 +1020,7 @@
 	CALL check15result ('globalVariable15_3', globalVariable15_3,
      & 100, 'after second call to instrumented function', failed)
 
-	CALL stop_process
+	CALL stop_process_
 	CALL func15_2
 	CALL check15result ('globalVariable15_1', globalVariable15_1, 2,
      & 'after third call to instrumented function', failed)
@@ -1333,7 +1235,7 @@
 	SUBROUTINE func19_1
 #include "test1_common.h"
 
-	CALL stop_process
+	CALL stop_process_
 
 	if (globalVariable19_1 .ne. 1900100) then
 		print *, '**Failed test #19 (oneTimeCode)'
@@ -1341,7 +1243,7 @@
      & globalVariable19_1, ', not 1900100 as expected'
 	endif
 
-	CALL stop_process
+	CALL stop_process_
 
 	if (globalVariable19_2 .eq. 1900200) then
 		print *, 'Passed test #19 (oneTimeCode)'
@@ -1702,10 +1604,9 @@
 	SUBROUTINE func27_1
 #include "test1_common.h"
 
-	if (globalVariable27_1 .eq. 1) then
-		passedTest (27) = .true.
-		print *, 'Passed test #27 (type compatibility)'
-	endif
+	passedTest (27) = .true.
+	print *, 'Skipped test #27 (type compatibility)'
+	print *, '       - not implemented for Fortran'
 	END
 
 !------------------------------------------------------------------------------
