@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.25 2002/08/07 15:53:58 schendel Exp $
+# $Id: Makefile,v 1.26 2002/10/31 20:34:37 buck Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -22,15 +22,7 @@ CFLAGS += -DUSES_DYNAMIC_INF_HEAP -g
 
 MUTATEE_FFLAGS += -U -WF,-Drs6000_ibm_aix4_1 -qnolm -qfixed -w -g
 
-#the _ALT PATH is in case the gcc library can't be found in the first path
-ifdef GCC_2_95
-LIBGCCLOC = /p/paradyn/packages/gcc-2.95.3/lib/gcc-lib/PLATFORM/2.95.3
-LIBGCCLOC_ALT = /usr/local/lib/gcc-lib/powerpc-ibm-aix4.3.2.0/2.95.3
-else
-LIBGCCLOC = /p/paradyn/packages/gcc-3.1/rs_aix42/lib/gcc-lib/powerpc-ibm-aix4.3.3.0/3.1
-LIBGCCLOC_ALT = /usr/local/lib/gcc-lib/powerpc-ibm-aix4.3.2.0/2.95.3
-endif
-MUTATEE_FLINKFLAGS += -g -bgcbypass:3 -ldl -lgcc -L$(LIBGCCLOC) -L$(LIBGCCLOC_ALT)
+MUTATEE_FLINKFLAGS += -g -bgcbypass:3 -ldl `$(GCC) -print-libgcc-file-name`
 
 NATIVE_CC = xlc
 NATIVE_CXX = xlC
