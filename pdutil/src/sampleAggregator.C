@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sampleAggregator.C,v 1.7 2002/04/09 18:06:01 mjbrim Exp $
+// $Id: sampleAggregator.C,v 1.8 2002/10/28 04:54:47 schendel Exp $
 
 #include <assert.h>
 #include <math.h>
@@ -382,16 +382,16 @@ void sampleAggregator::actuallyAggregate(struct sampleInterval *ret) {
 }
 
 void sampleAggregator::removeComponentsRequestedToRemove() {
-  for(unsigned i=0; i<componentBuf.size(); i++) {
-    aggComponent *curComp = componentBuf[i];
-    // can't delete aggComponent until have used all of it's sampling data
-    // to calculate the combined data
-    if(curComp->isRemoveRequested() && curComp->numQueuedSamples()==0) {
-      aggu_cerr << "removing aggComp: " << curComp << "\n";
-      componentBuf.erase(i);
-      delete curComp;
-    }
-  }  
+   vector<aggComponent *>::iterator iter = componentBuf.end();
+   while(iter != componentBuf.begin()) {
+      iter--;
+      aggComponent *curComp = (*iter);
+      if(curComp->isRemoveRequested() && curComp->numQueuedSamples()==0) {
+         aggu_cerr << "removing aggComp: " << curComp << "\n";
+         componentBuf.erase(iter);
+         delete curComp;
+      }
+   }
 }
 
 ostream& operator<<(ostream&s, const sampleAggregator &ag) {

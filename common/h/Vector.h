@@ -149,7 +149,6 @@ class vec_stdalloc {
 
 template<class T, class A=vec_stdalloc<T> >
 class vector {
-   enum { REMOVEONEELEM = 99999999 };
  public:
    // A few typedefs to be compatible with stl algorithms.
    typedef T        value_type;
@@ -265,7 +264,13 @@ class vector {
    }
 
    DO_INLINE_F vector<T, A>& push_back(const T &);
-   DO_INLINE_F void erase (unsigned start, unsigned end = REMOVEONEELEM);
+
+   // Careful, you'll have errors if you attempt to erase an element while
+   // iterating forward over the vector.  This is because the erase method
+   // copies down later elements down to fill the hole.  Iterate from the end
+   // back to the beginning of the vector if you intend to erase an element.
+   DO_INLINE_F void erase(unsigned start, unsigned end);
+   DO_INLINE_F void erase(iterator itr);
    DO_INLINE_F void sort (int (*)(const void *, const void *));
 
    DO_INLINE_F
@@ -512,13 +517,18 @@ DO_INLINE_F
 void vector<T, A>::erase(unsigned start, unsigned end) {
     int origSz = sz_;
     int emptyIndex = start;
-    if(end == REMOVEONEELEM)  
-        end = start;
     int copyIndex = end + 1;
     while(copyIndex<origSz) {
         data_[emptyIndex++] = data_[copyIndex++];
     }
     resize(origSz - (end - start + 1));
+}
+
+template<class T, class A>
+DO_INLINE_F
+void vector<T, A>::erase(iterator itr) { 
+   unsigned index = itr - data_;
+   erase(index, index);
 }
 
 template<class T, class A>

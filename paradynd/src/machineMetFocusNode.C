@@ -114,16 +114,20 @@ void machineMetFocusNode::getMachineNodes(
 }
 
 void machineMetFocusNode::deleteProcNode(processMetFocusNode *procNode) {
-  for(int i=(int)procNodes.size()-1; i>=0; i--) {
-    if(procNode == procNodes[i]) {
-      delete procNodes[i];
-      procNodes.erase(i);
-    }
-  }
-  if(procNodes.size() == 0) {
-    //cerr << "calling delete on machNode since procNodes.size == 0\n";
-    delete this;
-  }
+   vector<processMetFocusNode*>::iterator itr = procNodes.end();
+
+   while(itr != procNodes.begin()) {
+      itr--;
+      if(procNode == (*itr)) {
+         delete procNode;
+         procNodes.erase(itr);
+      }
+   } 
+
+   if(procNodes.size() == 0) {
+      //cerr << "calling delete on machNode since procNodes.size == 0\n";
+      delete this;
+   }
 }
 
 void machineMetFocusNode::endOfDataCollection() {

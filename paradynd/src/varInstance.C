@@ -107,11 +107,13 @@ template <class HK>
 bool varInstance<HK>::removeFromSamplingSet(vector<unsigned> *set, 
 					    unsigned thrPosToRemove) {
   bool foundIt = false;
-  for(int i=(int)((*set).size())-1; i>=0; i--) {
-    if((*set)[i] == thrPosToRemove) {
-      (*set).erase(i);
-      foundIt = true;
-    }
+  vector<unsigned>::iterator itr = (*set).end();
+  while(itr != (*set).begin()) {
+     --itr;
+     if(*itr == thrPosToRemove) {
+        (*set).erase(itr);
+        foundIt = true;
+     }
   }
   return foundIt;
 }
@@ -138,15 +140,18 @@ template <class HK>
 bool varInstance<HK>::doMinorSample() {
   if(elementsToBeSampled == false)  return true;
 
-  for(int i=int(currentSamplingSet.size())-1; i>=0; i--) {
-    unsigned thrPos = currentSamplingSet[i];
-    void *voidVarAddr = elementAddressInDaemon(thrPos);
-    RAWTYPE *shmVarAddr = static_cast<RAWTYPE*>( voidVarAddr);
-    bool successful = hkBuf[thrPos]->perform(shmVarAddr, proc);
-    if(successful) {
-      currentSamplingSet.erase(i);
-    }
+  vector<unsigned>::iterator itr = currentSamplingSet.end();
+  while(itr != currentSamplingSet.begin()) {
+     --itr;
+     unsigned thrPos = *itr;
+     void *voidVarAddr = elementAddressInDaemon(thrPos);
+     RAWTYPE *shmVarAddr = static_cast<RAWTYPE*>( voidVarAddr);
+     bool successful = hkBuf[thrPos]->perform(shmVarAddr, proc);
+     if(successful) {
+        currentSamplingSet.erase(itr);
+     }
   }
+
   return (currentSamplingSet.size() == 0);
 }
 

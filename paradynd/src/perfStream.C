@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.137 2002/10/23 20:14:31 pcroth Exp $
+// $Id: perfStream.C,v 1.138 2002/10/28 04:54:36 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -448,38 +448,40 @@ void processTraceStream(process *curr)
 extern vector<int> deferredMetricIDs;
 
 void doDeferredInstrumentation() {
-  for (int i=(int)deferredMetricIDs.size()-1; i>=0; i--) {
-    int mid = deferredMetricIDs[i];
-    machineMetFocusNode *machNode;
-    machNode = machineMetFocusNode::lookupMachNode(mid);
+   vector<int>::iterator itr = deferredMetricIDs.end();
+   while(itr != deferredMetricIDs.begin()) {
+      itr--;
+      int mid = *itr;
+      machineMetFocusNode *machNode;
+      machNode = machineMetFocusNode::lookupMachNode(mid);
 
-    if(machNode == NULL) {
-      assert(false);
-    }
+      if(machNode == NULL) {
+         assert(false);
+      }
 
-    instr_insert_result_t insert_status = machNode->insertInstrumentation();
-    metricFocusRequestCallbackInfo *cbi = 
-       machNode->getMetricFocusRequestCallbackInfo();
-
-    if(insert_status == insert_success) {
-       deferredMetricIDs.erase(i);
-       machNode->initializeForSampling(getWallTime(), pdSample::Zero());
-       
-       vector<int> returnIDs;
-       returnIDs.push_back(mid);
-       vector<u_int> mi_ids;
-       mi_ids.push_back(mid);
-       if(cbi != NULL)  cbi->makeCallback(returnIDs, mi_ids);
-    } else if(insert_status == insert_failure) {
-      deferredMetricIDs.erase(i);
-      vector<int> returnIDs;
-      returnIDs.push_back(-1);
-      vector<u_int> mi_ids;
-      mi_ids.push_back(mid);
-      if(cbi != NULL)  cbi->makeCallback(returnIDs, mi_ids);
-      delete machNode;
-    } // else insert_status == insert_deferred
-  }  
+      instr_insert_result_t insert_status = machNode->insertInstrumentation();
+      metricFocusRequestCallbackInfo *cbi = 
+         machNode->getMetricFocusRequestCallbackInfo();
+      
+      if(insert_status == insert_success) {
+         deferredMetricIDs.erase(itr);
+         machNode->initializeForSampling(getWallTime(), pdSample::Zero());
+         
+         vector<int> returnIDs;
+         returnIDs.push_back(mid);
+         vector<u_int> mi_ids;
+         mi_ids.push_back(mid);
+         if(cbi != NULL)  cbi->makeCallback(returnIDs, mi_ids);
+      } else if(insert_status == insert_failure) {
+         deferredMetricIDs.erase(itr);
+         vector<int> returnIDs;
+         returnIDs.push_back(-1);
+         vector<u_int> mi_ids;
+         mi_ids.push_back(mid);
+         if(cbi != NULL)  cbi->makeCallback(returnIDs, mi_ids);
+         delete machNode;
+      } // else insert_status == insert_deferred
+   }  
 }
 
 void doDeferredRPCs() {

@@ -241,32 +241,35 @@ void threadMetFocusNode_Val::recordAsParent(processMetFocusNode *procNode,
 }
 
 void threadMetFocusNode_Val::removeParent(processMetFocusNode *procNode) {
-  for(int i=(int)(parentsBuf.size()-1); i>=0; i--) {
-    if(parentsBuf[i].parent == procNode) {
-      parentsBuf[i].childNodeAggInfo->markAsFinished();
-      parentsBuf.erase(i);
-    }
-  }
-  
-  // it's possible that one of the parents caused allAggInfoInitialized
-  // to be turned off, now this parent could have been deleted and so
-  // it's possible allAggInfoInitialized should be changed to true
-  // or 
-  // assuming we removed one or more parents, we may have just changed
-  // things so that the all remaining parents' childAggInfos are 
-  // ready to receive samples  
-  // Here's one example:
-  // a metric-focus with a whole program focus is sharing a threadNode
-  // with a metric-focus with a process focus where this process is the
-  // child process of a recently forked process.  When we added this child
-  // procNode as a parent to the shared thrNodeVal, the allAggInfoInitialized
-  // got turned off (in recordAsParent) since the agg info for the child
-  // process wasn't initialized yet.  Now in the case that this child
-  // procMetFocusNode has it's instrumentation deleted (ie. "unforked")
-  // we delete this procMetFocusNode.  And then since this procMetFocusNode
-  // is no longer a parent of this thrMetFocusNode_Val we can turn the
-  // allAggInfoInitialized back to true.
-  updateAllAggInfoInitialized();
+   vector< parentDataRec<processMetFocusNode> >::iterator parentItr = 
+      parentsBuf.end();
+   while(parentItr != parentsBuf.begin()) {
+      parentItr--;
+      if((*parentItr).parent == procNode) {
+         (*parentItr).childNodeAggInfo->markAsFinished();
+         parentsBuf.erase(parentItr);
+      }
+   }
+
+   // it's possible that one of the parents caused allAggInfoInitialized
+   // to be turned off, now this parent could have been deleted and so
+   // it's possible allAggInfoInitialized should be changed to true
+   // or 
+   // assuming we removed one or more parents, we may have just changed
+   // things so that the all remaining parents' childAggInfos are 
+   // ready to receive samples  
+   // Here's one example:
+   // a metric-focus with a whole program focus is sharing a threadNode
+   // with a metric-focus with a process focus where this process is the
+   // child process of a recently forked process.  When we added this child
+   // procNode as a parent to the shared thrNodeVal, the allAggInfoInitialized
+   // got turned off (in recordAsParent) since the agg info for the child
+   // process wasn't initialized yet.  Now in the case that this child
+   // procMetFocusNode has it's instrumentation deleted (ie. "unforked")
+   // we delete this procMetFocusNode.  And then since this procMetFocusNode
+   // is no longer a parent of this thrMetFocusNode_Val we can turn the
+   // allAggInfoInitialized back to true.
+   updateAllAggInfoInitialized();
 }
 
 string threadMetFocusNode_Val::getKeyName() {

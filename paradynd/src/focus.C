@@ -386,16 +386,16 @@ Focus::Focus(const vector<u_int>& ids, bool *errorFlag) :
       vector<string> &curFocusVec = focusVec[j];
       assert(curFocusVec.size() > 0);  // there must be a heirarchy name
       if(curFocusVec[0] == "Machine") {
-	 curFocusVec.erase(0);
+	 curFocusVec.erase(0, 0);
 	 machineInfo = new machineHierarchy(curFocusVec);
       } else if(curFocusVec[0] == "Code") {      
-	 curFocusVec.erase(0);
+	 curFocusVec.erase(0, 0);
 	 codeInfo = new codeHierarchy(curFocusVec);	 
       } else if(curFocusVec[0] == "SyncObject") {
-	 curFocusVec.erase(0);
+	 curFocusVec.erase(0, 0);
 	 syncObjInfo = new syncObjHierarchy(curFocusVec);
       } else if(curFocusVec[1] == "Memory") {
-	 curFocusVec.erase(0);
+	 curFocusVec.erase(0, 0);
 	 memoryInfo = new memoryHierarchy(curFocusVec);
       } else {
 	 assert(false);  // add a new heirarchy type if this is triggered

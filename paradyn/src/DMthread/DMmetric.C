@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.39 2002/05/13 19:52:57 mjbrim Exp $
+// $Id: DMmetric.C,v 1.40 2002/10/28 04:54:14 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -453,11 +453,14 @@ timeLength metricInstance::determineAggInterval() {
 void metricInstance::dataDisable() {
     assert(!users.size());
     assert(!global_users.size());
-    int numComponents = static_cast<int>(components.size());
-    for(int i=numComponents-1; i>=0; i--){
-	removeComponent(components[i]);
-	components.erase(i);
+
+    vector<component *>::iterator iter = components.end();
+    while(iter != components.begin()) {
+       iter--;
+       removeComponent(*iter);
+       components.erase(iter);  
     }
+ 
     enabled = false;
     assert(components.size()==0);
 }
@@ -679,13 +682,15 @@ void metricInstance::removeComponent(paradynDaemon *daemon) {
 
    sampleVal_cerr << "metricInstance::removeComponent(dmn)-  daemon: " 
 		  << daemon << "  num of components: " << lastIndex+1 << "\n";
-   
-   for (int i = lastIndex; i >= 0; i--) {
-     if (components[i]->getDaemon() == daemon) {
-       removeComponent(components[i]);
-       components.erase(i);
-     }
-   }
+
+   vector<component *>::iterator iter = components.end();
+   while(iter != components.begin()) {
+      iter--;
+      if ((*iter)->getDaemon() == daemon) {
+         removeComponent(*iter);
+         components.erase(iter);
+      }
+   }   
 }
 
 void metricInstance::removeComponent(component *comp) {
