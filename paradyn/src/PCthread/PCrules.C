@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.3  1994/03/01 21:25:12  hollings
+ * Revision 1.4  1994/04/11 23:19:44  hollings
+ * lowered cpu threshold to 60%.
+ *
+ * Revision 1.3  1994/03/01  21:25:12  hollings
  * added tunable constants.
  *
  * Revision 1.2  1994/02/08  17:21:27  hollings
@@ -42,7 +45,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.3 1994/03/01 21:25:12 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.4 1994/04/11 23:19:44 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -74,7 +77,7 @@ hypothesisList activeHypotheses;
 const float highSyncThreshold	= 0.20;
 
 // 75% of time in CPU imples cpu time should be checked.
-const float highCPUtoSyncRatioThreshold	= 0.75;
+const float highCPUtoSyncRatioThreshold	= 0.60;
 
 // 10-50% seems right
 const float highIOthreshold = 0.10;
