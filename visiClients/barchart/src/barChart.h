@@ -41,7 +41,7 @@
 
 // barChart.h
 
-/* $Id: barChart.h,v 1.15 2000/07/28 17:22:57 pcroth Exp $ */
+/* $Id: barChart.h,v 1.16 2002/04/09 18:06:58 mjbrim Exp $ */
 
 #ifndef _BARCHART_H_
 #define _BARCHART_H_
@@ -146,7 +146,7 @@ class BarChart {
 
   public:
 
-   BarChart(char *tkWindowName, unsigned iNumMetrics, unsigned iNumResources,
+   BarChart(char *tkWindowName, int iNumMetrics, int iNumResources,
 	    const vector<string> &colorNames);
   ~BarChart();
 
