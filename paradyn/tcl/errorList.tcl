@@ -1,7 +1,10 @@
 
 #
 # $Log: errorList.tcl,v $
-# Revision 1.6  1995/10/12 19:45:52  naim
+# Revision 1.7  1995/10/30 23:09:43  naim
+# Modifing error message 11 - naim
+#
+# Revision 1.6  1995/10/12  19:45:52  naim
 # Adding some more error messages and modifying existing ones - naim.
 #
 # Revision 1.5  1995/10/06  19:51:41  naim
@@ -242,11 +245,11 @@ Call to malloc failed within a data manager function.
 }} 
 
 set pdError(11) {
-{Internal error - EOF
+{Application process has exited
 } {paradynd
 } {serious
 } {
-EOF on a link in perfStream.C. Please, report this error to paradyn@cs.wisc.edu
+An application process has exited. This situation may be produced, for example, by an unsuccessful request of memory made by this process. 
 }} 
 
 set pdError(12) {
