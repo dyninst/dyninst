@@ -6,12 +6,15 @@
 #endif
 
 #include "../h/thread.h"
-#include "pthread_sync.h"
 #include "hashtbl.C"
+
+
+namespace pdthr
+{
 
 class socket_q : public io_entity {
   private:
-    static hashtbl<PdSocket,socket_q*,pthread_sync> socket_registry;    
+    static hashtbl<PdSocket,socket_q*> socket_registry;    
   public:
     socket_q( PdSocket the_sock, thread_t owned_by,
              int (*will_block_func)(void*), void* desc,
@@ -26,5 +29,7 @@ class socket_q : public io_entity {
     virtual int do_read(void* buf, unsigned bufsize, unsigned* count);
     virtual int do_write(void* buf, unsigned bufsize, unsigned* count);
 }; /* end of class socket_q */
+
+} // namespace pdthr
 
 #endif

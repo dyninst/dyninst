@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -52,7 +52,10 @@
 #define __libthread_refarray_h__
 #include "rwlock.h"
 
-template <class REFOBJ, int USE_RWLOCK>
+namespace pdthr
+{
+
+template <class REFOBJ>
 class refarray {
   private:
     REFOBJ **items;
@@ -61,49 +64,59 @@ class refarray {
     unsigned _last;
     void _resize(REFOBJ* default_value);
     bool destroy_constituents;
+    bool use_rwlock;
 
   public:
 
-    refarray() {
-        int sz = 1024;
-        this->_size = sz;
-
-        destroy_constituents = false;
-        
-        this->lock = new rwlock(rwlock::favor_writers);
-
-        items = new (REFOBJ*)[_size];
-        for(int i = 0; i < this->_size; i++) items[i] = NULL;
-        _last = 0;
+    refarray( bool _use_rwlock=true )
+      : _size( 1024 ),
+        destroy_constituents( false ),
+        lock( new rwlock(rwlock::favor_writers) ),
+        items( NULL ),
+        _last( 0 ),
+        use_rwlock( _use_rwlock )
+    {
+        items = new REFOBJ*[_size];
+        for(unsigned int i = 0; i < this->_size; i++)
+        {
+            items[i] = NULL;
+        }
     }
     
-    refarray(int sz, rwlock *lk) :
-            _size(sz), lock(lk) {
+
+    refarray(int sz,
+                rwlock *lk,
+                bool _use_rwlock = true,
+                REFOBJ* def_value = NULL)
+      : _size( sz ),
+        lock( lk ),
+        destroy_constituents( false ),
+        items( NULL ),
+        _last( 0 ),
+        use_rwlock( _use_rwlock )
+    {
         if(!lk)
+        {
             lock = new rwlock();
+        }
         
-        items = new (REFOBJ*)[_size];
-        for(int i = 0; i < sz; i++) items[i] = NULL;
-        _last = 0;
+        items = new REFOBJ*[_size];
+        for(unsigned int i = 0; i < sz; i++)
+        {
+            items[i] = def_value;
+        }
     }
 
-    refarray(int sz, rwlock *lk, REFOBJ* default_value) :
-            _size(sz), lock(lk) {
 
-        if(!lk)
-            lock = new rwlock();
 
-        destroy_constituents = false;
-        items = new (REFOBJ*)[_size];
-        for(int i = 0; i < sz; i++) items[i] = default_value;
-        _last = 0;
-    }
-    
     ~refarray() {
         if(destroy_constituents)
-            for(int i = 0; i < _size; i++)
-                if(items[i])
-                    delete items[i];
+        {
+            for(unsigned int i = 0; i < _size; i++)
+            {
+                delete items[i];
+            }
+        }
         delete [] items;
     }
     
@@ -116,13 +129,17 @@ class refarray {
     inline unsigned capacity() {
         unsigned sz;
 
-        if(USE_RWLOCK)
+        if( use_rwlock )
+        {
             lock->acquire(rwlock::read);
+        }
 
         sz = _size;
 
-        if(USE_RWLOCK)
+        if( use_rwlock )
+        {
             lock->release(rwlock::read);
+        }
 
         return sz;
     }
@@ -134,5 +151,7 @@ class refarray {
     void resize(REFOBJ* default_value);
 
 };
+
+} // namespace pdthr
 
 #endif /*  __libthread_refarray_h__ */

@@ -3,6 +3,9 @@
 #include <assert.h>
 #include <string.h>
 
+namespace pdthr
+{
+
 thread_t message::deliver(tag_t* tagp, void* buf, unsigned* countp) {
     assert(*tagp == MSG_TAG_ANY || *tagp == this->tag);
 
@@ -28,3 +31,6 @@ unsigned message::deliver_to(io_entity* ie) {
 void message::dump(const char* prefix) {
     fprintf(stderr, "%stid = %d, tag = %d, size = %d\n", prefix, sender, tag, size);
 }
+
+} // namespace pdthr
+

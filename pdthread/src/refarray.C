@@ -56,17 +56,20 @@
 #include "rwlock.h"
 #include <assert.h>
 
+namespace pdthr
+{
+
 /* This operator will return NULL if presented with an out-of-bounds
    index */
-template<class REFOBJ, int USE_RWLOCK>
-REFOBJ *refarray<REFOBJ,USE_RWLOCK>::operator[](unsigned index) {
+template<class REFOBJ>
+REFOBJ *refarray<REFOBJ>::operator[](unsigned index) {
     REFOBJ *rv;
     
         /* instead of providing seperate classes for refarray<REFOBJ,0> 
            and refarray<REFOBJ,1>, we "specialize" by using an if block,
            which should be optimized out as dead in the <REFOBJ,0> case */
     
-    if(USE_RWLOCK)
+    if(use_rwlock)
         lock->acquire(rwlock::read);
     
     if(index >= _size) {
@@ -78,22 +81,22 @@ REFOBJ *refarray<REFOBJ,USE_RWLOCK>::operator[](unsigned index) {
         rv = items[index];
     }
    
-    if(USE_RWLOCK)
+    if(use_rwlock)
         lock->release(rwlock::read);
 
     return rv;
 
 }
 
-template<class REFOBJ, int USE_RWLOCK>
-void refarray<REFOBJ,USE_RWLOCK>::resize() {
+template<class REFOBJ>
+void refarray<REFOBJ>::resize() {
     resize(NULL);
 }
 
-template<class REFOBJ, int USE_RWLOCK>
-void refarray<REFOBJ,USE_RWLOCK>::resize(REFOBJ* default_value) {
+template<class REFOBJ>
+void refarray<REFOBJ>::resize(REFOBJ* default_value) {
     
-    if(USE_RWLOCK)
+    if(use_rwlock)
         lock->acquire(rwlock::write);
 
     unsigned new_size;
@@ -124,16 +127,16 @@ void refarray<REFOBJ,USE_RWLOCK>::resize(REFOBJ* default_value) {
         delete [] new_items;        
     }
 
-    if(USE_RWLOCK)
+    if(use_rwlock)
         lock->release(rwlock::write);
 
     return;
 }
 
-template<class REFOBJ, int USE_RWLOCK>
-void refarray<REFOBJ,USE_RWLOCK>::set_elem_at(unsigned index, REFOBJ* value) {
+template<class REFOBJ>
+void refarray<REFOBJ>::set_elem_at(unsigned index, REFOBJ* value) {
     
-    if(USE_RWLOCK) {
+    if(use_rwlock) {
         assert(lock);
         lock->acquire(rwlock::write);
     }
@@ -145,7 +148,7 @@ void refarray<REFOBJ,USE_RWLOCK>::set_elem_at(unsigned index, REFOBJ* value) {
         items[index] = value;
     }
     
-    if(USE_RWLOCK) {
+    if(use_rwlock) {
         assert(lock);
         lock->release(rwlock::write);
     }
@@ -153,11 +156,11 @@ void refarray<REFOBJ,USE_RWLOCK>::set_elem_at(unsigned index, REFOBJ* value) {
 }
 
 
-template<class REFOBJ, int USE_RWLOCK>
-unsigned refarray<REFOBJ,USE_RWLOCK>::push_back(REFOBJ* value) {
+template<class REFOBJ>
+unsigned refarray<REFOBJ>::push_back(REFOBJ* value) {
     unsigned retval;
     
-    if(USE_RWLOCK)
+    if(use_rwlock)
         lock->acquire(rwlock::write);        
 
     if(_last >= _size) _resize(NULL);
@@ -171,15 +174,15 @@ unsigned refarray<REFOBJ,USE_RWLOCK>::push_back(REFOBJ* value) {
 
     _last++;
 
-    if(USE_RWLOCK)
+    if(use_rwlock)
         lock->release(rwlock::write);
 
     return retval;
 }
 
 
-template<class REFOBJ, int USE_RWLOCK>
-void refarray<REFOBJ,USE_RWLOCK>::_resize(REFOBJ* default_value) {
+template<class REFOBJ>
+void refarray<REFOBJ>::_resize(REFOBJ* default_value) {
 
     // MUST have acquired write access to lock before entering this method
 
@@ -187,13 +190,13 @@ void refarray<REFOBJ,USE_RWLOCK>::_resize(REFOBJ* default_value) {
     unsigned old_size;
     REFOBJ **new_items;
 
-    int i; /* unfortunately, VC++ does not scope variables declared in
+    unsigned int i; /* unfortunately, VC++ does not scope variables declared in
               for loop invariant blocks properly */
 
     new_size = (_size * 2) + 1;
     old_size = _size;
 
-    new_items = new (REFOBJ*)[new_size];
+    new_items = new REFOBJ*[new_size];
 
     for(i = 0; i < old_size; i++)
         new_items[i] = items[i];
@@ -215,5 +218,8 @@ void refarray<REFOBJ,USE_RWLOCK>::_resize(REFOBJ* default_value) {
 
     return;    
 }
+
+} // namespace pdthr
+
 #endif
 

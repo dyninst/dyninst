@@ -9,8 +9,9 @@
 #error fatal: compiling windows message queue support on non-windows
 #endif
 
-class wmsg_q : public entity {
-  public:
+class wmsg_q : public entity
+{
+public:
     virtual item_t gettype() { return item_t_wmsg; }
 }; /* end of class tid_wmsg */
 

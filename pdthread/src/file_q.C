@@ -3,7 +3,10 @@
 #include <unistd.h>
 #endif
 
-hashtbl<PdFile,file_q*,pthread_sync> file_q::file_registry("PdFile","file_q*","file_registry");
+namespace pdthr
+{
+
+hashtbl<PdFile,file_q*> file_q::file_registry("PdFile","file_q*","file_registry");
 
 file_q::file_q(PdFile the_fd,
                 thread_t owned_by,
@@ -70,3 +73,6 @@ int file_q::do_write(void* buf, unsigned bufsize, unsigned* count) {
     
     return ( ret != PDDESC_ERROR) ? THR_OKAY : THR_ERR;
 }
+
+} // namespace pdthr
+

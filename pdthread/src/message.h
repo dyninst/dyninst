@@ -7,6 +7,9 @@
 #include "../h/thread.h"
 #include "thrtab_entries.h"
 
+namespace pdthr
+{
+
 class io_entity;
 
 class message {
@@ -66,5 +69,7 @@ class message {
 
     void dump(const char* prefix);
 };
+
+} // namespace pdthr
 
 #endif

@@ -1,6 +1,9 @@
 #include "thrtab_entries.h"
 
-hashtbl<PdSocket,socket_q*,pthread_sync> socket_q::socket_registry("PdSocket","socket_q*","socket_registry");
+namespace pdthr
+{
+
+hashtbl<PdSocket,socket_q*> socket_q::socket_registry("PdSocket","socket_q*","socket_registry");
 
 socket_q::socket_q( PdSocket the_sock,
                     thread_t owned_by, 
@@ -29,9 +32,6 @@ int socket_q::do_read(void* buf, unsigned bufsize, unsigned* count) {
     ret = recv( sock.s, (char*)buf, bufsize, 0 );
     if( ret != PDSOCKET_ERROR ) {
         *count = (unsigned)ret;
-#if defined( i386_unknown_nt4_0)
-        hasData = false;
-#endif // defined(i386_unknown_nt4_0)
     }
     return (ret != PDSOCKET_ERROR) ? THR_OKAY : PDSOCKET_ERRNO;
 }
@@ -47,3 +47,5 @@ int socket_q::do_write(void* buf, unsigned bufsize, unsigned* count) {
     }
     return (ret != PDSOCKET_ERROR) ? THR_OKAY : PDSOCKET_ERRNO;
 }
+
+} // namespace pdthr

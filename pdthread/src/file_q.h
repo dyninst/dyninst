@@ -6,12 +6,14 @@
 #endif
 
 #include "../h/thread.h"
-#include "pthread_sync.h"
 #include "hashtbl.C"
+
+namespace pdthr
+{
 
 class file_q : public io_entity {
   private:
-    static hashtbl<PdFile,file_q*,pthread_sync> file_registry;
+    static hashtbl<PdFile,file_q*> file_registry;
   public:
     file_q(PdFile the_fd, thread_t owned_by, int (*will_block_func)(void*), void* desc, bool is_special=false);
     virtual ~file_q();
@@ -22,5 +24,7 @@ class file_q : public io_entity {
     virtual int do_read(void* buf, unsigned bufsize, unsigned* count);
     virtual int do_write(void* buf, unsigned bufsize, unsigned* count);
 }; /* end of class file_q */
+
+} // namespace pdthr
 
 #endif

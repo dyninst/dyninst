@@ -1,5 +1,8 @@
 #include "thrtab_entries.h"
 
+namespace pdthr
+{
+
 io_entity::io_entity(thread_t owned_by,
 						int (*will_block_func)(void*),
 						void* the_desc,
@@ -20,4 +23,5 @@ io_entity::is_buffer_ready( void )
 	return ((will_block_fn != NULL) && !(will_block_fn(desc)));
 }
 
+} // namespace pdthr
 

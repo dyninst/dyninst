@@ -3,6 +3,9 @@
 
 #include "message.h"
 
+namespace pdthr
+{
+
 /* This class represents a message coming from a file or socket; it
    can be used either for "special" or non-"special" files */
 
@@ -18,5 +21,7 @@ class io_message : public message {
     virtual thread_t deliver(tag_t* tagp, void* buf, unsigned* countp);
     virtual unsigned deliver_to(io_entity* ie);
 };
+
+} // namespace pdthr
 
 #endif

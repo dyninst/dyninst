@@ -5,11 +5,15 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "hash.h"
-#include "dummy_sync.h"
+#include "xplat/h/Mutex.h"
 
-/* Basic fixed-size hash table class, protected by a monitor.  Some important
+namespace pdthr
+{
+
+/* Basic fixed-size hash table class, protected by a mutex.  Some important
    restrictions: 
     * if key_t is a pointer type, then keys will be hashed based on
       their address, not the contents of said address.  To hash on contents, 
@@ -26,13 +30,13 @@ struct pair {
 };
 
 
-template<class key_t, class value_t, class monitor_t=dummy_sync>
+template<class key_t, class value_t, class mutex_t=XPlat::Mutex>
 class hashtbl {
   private:
     static const char* hashtbl_name(const char* kt, const char* vt, const char* c) {
         const char* format = "monitor_for_hashtbl_key_t-%s_value_t-%s_%s";
         int len = strlen(format) + strlen(kt) + strlen(vt) + strlen(c) + 1;
-        char* retval = (char*)malloc(len);
+        char* retval = new char[len+1];
         snprintf(retval, len, format, kt, vt, c);
         return (const char *)retval;
     }
@@ -41,7 +45,7 @@ class hashtbl {
     pair<key_t,value_t>** entries;
     pair<key_t,value_t>* cleanup_list;
     const char* h_name;
-    monitor_t monitor;
+    mutex_t mutex;
     int (*compare_func)(const key_t*,const key_t*);
 
 
@@ -63,7 +67,8 @@ class hashtbl {
 
   public:
     hashtbl(const char* key_name="key_t", const char* value_name="value_t", const char* comment="") 
-            : h_name(hashtbl_name(key_name, value_name, comment)), monitor(h_name) {
+            : h_name(hashtbl_name(key_name, value_name, comment)) {
+
         entries = new pair<key_t,value_t>* [HASHTBL_SIZE];
         for(int i = 0; i < HASHTBL_SIZE; i++)
             entries[i] = NULL;
@@ -94,7 +99,7 @@ class hashtbl {
     }
 
     void put(key_t key, value_t value) {
-        monitor.lock();
+        mutex.Lock();
         unsigned long index = hashval(key);
         pair<key_t,value_t> *start_bucket, *result_bucket;
         start_bucket = entries[index];
@@ -115,11 +120,11 @@ class hashtbl {
         } else {
             result_bucket->value = value;
         }
-        monitor.unlock();
+        mutex.Unlock();
     }
 
     void put(key_t key, value_t value, unsigned len) {
-        monitor.lock();
+        mutex.Lock();
         unsigned long index = hashval(key, len);
         pair<key_t,value_t> *start_bucket, *result_bucket;
         start_bucket = entries[index];
@@ -140,11 +145,11 @@ class hashtbl {
         } else {
             result_bucket->value = value;
         }
-        monitor.unlock();
+        mutex.Unlock();
     }    
 
     value_t get(key_t key) {
-        monitor.lock();
+        mutex.Lock();
         
         unsigned long index = hashval(key);
         value_t retval;
@@ -161,12 +166,12 @@ class hashtbl {
         else
             retval = (value_t)NULL;
         
-        monitor.unlock();
+        mutex.Unlock();
         return retval;
     }
 
     value_t get(key_t *key, unsigned len) {
-        monitor.lock();
+        mutex.Lock();
         
         unsigned long index = hashval(key, len);
         value_t retval;
@@ -183,26 +188,28 @@ class hashtbl {
         else
             retval = NULL;
         
-        monitor.unlock();
+        mutex.Unlock();
         return retval;
     }
 
     template<class Command>
     void map_keys(Command* cmd) {
-        monitor.lock();
+        mutex.Lock();
         for (int i = 0; i < HASHTBL_SIZE; i++)
             if(entries[i] != NULL) cmd->exec((entries[i])->key);
-        monitor.unlock();
+        mutex.Unlock();
     }
 
     template<class Command>
     void map_vals(Command* cmd) {
-        monitor.lock();
+        mutex.Lock();
         for (int i = 0; i < HASHTBL_SIZE; i++)
             if(entries[i] != NULL) cmd->exec((entries[i])->value);        
-        monitor.unlock();
+        mutex.Unlock();
     }    
 };
+
+} // namespace pdthr
 
 #endif
 

@@ -5,6 +5,10 @@
 #include "mailbox.h"
 #include "thr_mailbox.h"
 
+#if defined(i386_unknown_nt4_0)
+#include "win_thr_mailbox.h"
+#endif // defined(i386_unknown_nt4_0)
+
 #include <assert.h>
 #include <stdio.h>
 
@@ -29,6 +33,8 @@ long long to_from_table[128][128];
 unsigned t_f_table_init = 0;
 
 #endif
+
+using namespace pdthr;
 
 void msg_dump_stats() {
 #if DO_LIBPDTHREAD_MEASUREMENTS == 1
@@ -121,7 +127,11 @@ int msg_poll_preference(thread_t* tid, tag_t* tag, unsigned block, unsigned fd_f
 int msg_recv(thread_t* tid, tag_t* tag, void* buf, unsigned* bufsize) {
     COLLECT_MEASUREMENT(THR_MSG_RECV);
 
-    thr_debug_msg(CURRENT_FUNCTION, "tid = %d, tag = %d, buf = %p, bufsize = %d\n", *tid, *tag, buf, *bufsize);
+    thr_debug_msg(CURRENT_FUNCTION,
+        "tid = %d, tag = %d, buf = %p, bufsize = %d\n",
+        *tid, *tag,
+        buf,
+        (bufsize != NULL ? *bufsize : 0) );
 
     mailbox* mbox = lwp::get_mailbox();
     if(!mbox) {
@@ -132,7 +142,12 @@ int msg_recv(thread_t* tid, tag_t* tag, void* buf, unsigned* bufsize) {
     int ret = mbox->recv(tid,tag,buf,bufsize);
     
 
-    thr_debug_msg(CURRENT_FUNCTION, "returning %d; tid = %d, tag = %d, count = %d\n", ret, *tid, *tag, *bufsize);
+    thr_debug_msg(CURRENT_FUNCTION,
+                    "returning %d; tid = %d, tag = %d, count = %d\n",
+                    ret,
+                    *tid,
+                    *tag,
+                    (bufsize != NULL ? *bufsize : 0) );
     return ret;
 }
 
@@ -177,7 +192,19 @@ msg_bind_socket(PDSOCKET s,
 }
 
 #if defined(i386_unknown_nt4_0)
-int msg_bind_wmsg(thread_t* tid);
+int
+msg_bind_wmsg(thread_t* ptid)
+{
+    int ret = THR_OKAY;
+    thr_debug_msg(CURRENT_FUNCTION, "\n" );
+
+    win_thr_mailbox* my_mail = (win_thr_mailbox*)lwp::get_mailbox();
+    my_mail->bind_wmsg( ptid );
+    assert(my_mail->is_wmsg_bound());
+
+    thr_debug_msg(CURRENT_FUNCTION, "returning %d\n", ret );
+    return ret;
+}
 #endif /* defined(i386_unknown_nt4_0) */
 
 int msg_unbind(thread_t tid)
@@ -212,6 +239,13 @@ int msg_unbind(thread_t tid)
             ret = THR_ERR;
         }
     }
+#if defined(i386_unknown_nt4_0)
+    else if( thr_type( tid ) == item_t_wmsg )
+    {
+        win_thr_mailbox* my_wmail = (win_thr_mailbox*)my_mail;
+        my_wmail->unbind_wmsg();
+    }
+#endif // defined(i386_unknown_nt4_0)
     else
     {
         // item wasn't a socket or a file - it shouldn't have been bound

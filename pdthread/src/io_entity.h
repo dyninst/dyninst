@@ -9,6 +9,9 @@
 #include "mailbox.h"
 #include "io_mailbox.h"
 
+namespace pdthr
+{
+
 class io_entity : public entity {
   protected:
     bool boundp;
@@ -34,15 +37,17 @@ class io_entity : public entity {
         my_mail = new io_mailbox(tid, this);
     }
     
-    virtual thread_t get_owner() { return owner; }
+    virtual thread_t get_owner( void )  const   { return owner; }
     
     virtual int do_read(void* buf, unsigned bufsize, unsigned* count) = 0;
     virtual int do_write(void* buf, unsigned bufsize, unsigned* count) = 0;
-    bool is_special() { return special; }
+    bool is_special( void ) const   { return special; }
 
 	bool is_buffer_ready( void );
 
-    int self() { return my_self; }
+    int self( void ) const          { return my_self; }
 };
+
+} // namespace pdthr
 
 #endif

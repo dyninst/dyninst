@@ -1,40 +1,38 @@
-#include <pthread.h>
 #include <stdlib.h>
 #include "mailbox.h"
 #include "thrtab.h"
 #include "thrtab_entries.h"
+#include "lwp.h"
+#include "xplat/h/TLSKey.h"
 
-pthread_key_t lwp::tid_key;
-pthread_key_t lwp::lwp_key;
-pthread_key_t lwp::name_key;
-pthread_key_t lwp::mailbox_key;
+namespace pdthr
+{
 
+XPlat::TLSKey* lwp::tid_key = NULL;
+XPlat::TLSKey* lwp::lwp_key = NULL;
+XPlat::TLSKey* lwp::name_key = NULL;
+XPlat::TLSKey* lwp::mailbox_key = NULL;
 #ifdef DO_LIBPDTHREAD_MEASUREMENTS
-
-pthread_key_t lwp::perf_data_key;
-
+XPlat::TLSKey* lwp::perf_data_key = NULL;
 #endif /* DO_LIBPDTHREAD_MEASUREMENTS */
 
-pthread_once_t lwp::keys_once;
 lwp* lwp::main_thr = NULL;
 
-
-
-void lwp::initialize_tsd_keys() {
-    pthread_key_create(&lwp::lwp_key, NULL);
-    pthread_key_create(&lwp::tid_key, NULL);
-    pthread_key_create(&lwp::name_key, NULL);
-    pthread_key_create(&lwp::mailbox_key, NULL);
 
 
+void
+lwp::initialize_tsd_keys( void )
+{
+    lwp_key = new XPlat::TLSKey;
+    tid_key = new XPlat::TLSKey;
+    name_key = new XPlat::TLSKey;
+    mailbox_key = new XPlat::TLSKey;
 #ifdef DO_LIBPDTHREAD_MEASUREMENTS
-    
-    pthread_key_create(&lwp::perf_data_key, NULL);
-
+    perf_data_key = new XPlat::TLSKey;
 #endif /* DO_LIBPDTHREAD_MEASUREMENTS */
 }
 
-
+
 
 void* lwp::wrapper_func(void* arg) {
     lwp* the_thread = (lwp*)arg;
@@ -58,23 +56,36 @@ void* lwp::wrapper_func(void* arg) {
     return 0;
 }
 
-
+
 
 void lwp::set_tsd_keys_for(lwp* whom) {
-    pthread_once(&lwp::keys_once, lwp::initialize_tsd_keys);
-    pthread_setspecific(lwp::lwp_key, (void*)whom);
-    pthread_setspecific(lwp::tid_key, (void*)(&whom->_self));
-    pthread_setspecific(lwp::mailbox_key, (void*)whom->_mail);
+
+    // ensure we construct our keys exactly once
+    // Note: we avoid making keys_once a static class data member
+    // because of difficulties in ensuring when it will be constructed
+    // if pdthread is built as a shared library.
+    static XPlat::Once keys_once;
+    keys_once.DoOnce( lwp::initialize_tsd_keys );
+
+    assert( lwp_key != NULL );
+    lwp_key->Set( (void*)whom );
+
+    assert( tid_key != NULL );
+    tid_key->Set( (void*)(&whom->_self) );
+
+    assert( mailbox_key != NULL );
+    mailbox_key->Set( (void*)whom->_mail );
 
 #ifdef DO_LIBPDTHREAD_MEASUREMENTS
     
-    pthread_setspecific(lwp::perf_data_key, (void*)(&whom->_perf_data));
+    assert( perf_data_key != NULL );
+    perf_data_key->Set( (void*)(&whom->_perf_data) );
 
 #endif /* DO_LIBPDTHREAD_MEASUREMENTS */
 
 }
 
-
+
 
 void lwp::init(mailbox *my_mailbox, lwp::task_t func, lwp::value_t arg) {
     _mail = my_mailbox;
@@ -84,18 +95,17 @@ void lwp::init(mailbox *my_mailbox, lwp::task_t func, lwp::value_t arg) {
         // main thread
         lwp::set_tsd_keys_for(this);
     }
-    
 }
 
-
+
 
 void lwp::start() {
     // FIXME:  we really ought to handle non-default stacks 
-    pthread_create(&_pself, NULL, lwp::wrapper_func, this);
+    XPlat::Thread::Create( lwp::wrapper_func, this, &_pself );
     // FIXME:  check for error status
 }
 
-
+
 
 int lwp::join(thread_t* departed, void** return_val) {
     int retval = THR_OKAY;
@@ -107,7 +117,7 @@ int lwp::join(thread_t* departed, void** return_val) {
         retval = THR_ERR;
     } else {
         _joined = 1;
-        pthread_join(_pself, return_val);
+        XPlat::Thread::Join(_pself, return_val);
         // FIXME: check result of this function
         _reaped = 1;
         if(departed)
@@ -120,13 +130,14 @@ int lwp::join(thread_t* departed, void** return_val) {
     return retval;
 }
 
-
+
     
 lwp* lwp::get_lwp() {
-    return (lwp*)pthread_getspecific(lwp::lwp_key);
+    assert( lwp_key != NULL );
+    return (lwp*)lwp_key->Get();
 }
 
-
+
 
 lwp* lwp::get_main(thread_t tid) {
     if(lwp::main_thr != NULL) {
@@ -137,12 +148,13 @@ lwp* lwp::get_main(thread_t tid) {
     }
 }
 
-
+
 
 const char* lwp::name(const char* new_name) {
-    const char* retval = (const char*)pthread_getspecific(lwp::name_key);
+    assert( name_key != NULL );
+    const char* retval = (const char*)name_key->Get();
     if(new_name) {
-        pthread_setspecific(lwp::name_key, new_name);
+        name_key->Set( (void*)new_name );
         lwp::get_lwp()->my_name = new_name;
     }
     
@@ -150,37 +162,40 @@ const char* lwp::name(const char* new_name) {
 }
 
 
-
+
 
 const char* lwp::get_name() {
     return my_name;
 }
 
-
+
     
 thread_t lwp::get_self() {
-    thread_t *self = (thread_t*)pthread_getspecific(lwp::tid_key);
+    assert( tid_key != NULL );
+    thread_t *self = (thread_t*)tid_key->Get();
     if(!self)
         return 0;
     else
         return *self;
 }
 
-
+
 
 mailbox* lwp::get_mailbox() {
-    return (mailbox*)pthread_getspecific(lwp::mailbox_key);
+    assert( mailbox_key != NULL );
+    return (mailbox*)mailbox_key->Get();
 }
 
-
+
 
 #if DO_LIBPDTHREAD_MEASUREMENTS == 1
 thr_perf_data_t* lwp::get_perf_data() {
-    return (thr_perf_data_t*)pthread_getspecific(lwp::perf_data_key);
+    assert( perf_data_key != NULL );
+    return (thr_perf_data_t*)perf_data_key->Get();
 }
 #endif /* DO_LIBPDTHREAD_MEASUREMENTS == 1 */
 
-
+
 
 /* miscellaneous synchronized accessors */
 
@@ -225,3 +240,6 @@ void lwp::complete() {
     _completed = 1;
     _completed_lk.release(rwlock::write);
 }
+
+} // namespace pdthr
+

@@ -4,8 +4,11 @@
 #include <assert.h>
 #include <stdio.h>
 #include "predicate.h"
-#include "dummy_sync.h"
+#include "xplat/h/Monitor.h"
 #include "common/h/language.h"
+
+namespace pdthr
+{
 
 #define DLLIST_EMPTY 0
 #define DLLIST_FULL 1
@@ -23,7 +26,18 @@ class list_types {
     enum type { fifo, lifo };
 };
 
-template<class Element, class Sync=dummy_sync>
+template<class Element>
+class dllist_visitor
+{
+public:
+    dllist_visitor( void ) { }
+    virtual ~dllist_visitor( void ) { }
+
+    virtual bool visit( Element item ) = NULL;
+};
+
+
+template<class Element, class Sync=XPlat::Monitor>
 class dllist
 {
   private:
@@ -50,12 +64,11 @@ class dllist
 
     list_types::type behavior;
 
-    Sync s;
+    XPlat::Monitor* s;
 
     node* find(Element e);
 
-    template<class Predicate>
-    node* find(Predicate* pred);
+    node* find(predicate<Element>* pred);
 
     inline node* new_node();
     inline void free_node(node* n);
@@ -97,19 +110,15 @@ class dllist
     Element yank(Element to_yank);
     bool yank_nb(Element to_yank, Element* result);
 
-    template<class Predicate>
-    Element yank(Predicate* pred);
+    Element yank(predicate<Element>* pred);
 
-    template<class Predicate>
-    bool yank_nb(Predicate* pred, Element* result);
+    bool yank_nb(predicate<Element>* pred, Element* result);
 
     bool contains(Element e);
 
-    template<class Predicate>
-    bool contains(Predicate* pred);
+    bool contains(predicate<Element>* pred);
 
-    template<class Visitor>
-    void visit(Visitor* visitor);
+    void visit(dllist_visitor<Element>* visitor);
 
 };
 
@@ -134,9 +143,8 @@ dllist<Element,Sync>::find(Element e) {
 }
 
 template<class Element, class Sync>
-template<class Predicate>
 TYPENAME dllist<Element,Sync>::node*
-dllist<Element,Sync>::find(Predicate* pred) {
+dllist<Element,Sync>::find(predicate<Element>* pred) {
     // NB!  you MUST lock s before entering this function
     node* result = NULL;
     node* current = head;
@@ -219,20 +227,23 @@ inline void dllist<Element,Sync>::free_node(dllist<Element,Sync>::node* n) {
 }
 
 template<class Element, class Sync>
-dllist<Element,Sync>::dllist(list_types::type type) {
-    size = 0;
-    s.register_cond(DLLIST_EMPTY);
-    s.register_cond(DLLIST_FULL);    
-    head = NULL;
-    tail = NULL;
-    free_pool = NULL;
-    add_pool_entry();
-    behavior = type;
+dllist<Element,Sync>::dllist(list_types::type type)
+  : head( NULL ),
+    tail( NULL ),
+    free_list( NULL ),
+    free_pool( NULL ),
+    size( 0 ),
+    behavior( type ),
+    s( new Sync )
+{
+    s->RegisterCondition(DLLIST_EMPTY);
+    s->RegisterCondition(DLLIST_FULL);    
 }
+
 
 template<class Element, class Sync>
 dllist<Element,Sync>::~dllist() {
-    s.lock();
+    s->Lock();
     pool_entry* p = free_pool;
 
     while(p) {
@@ -242,14 +253,14 @@ dllist<Element,Sync>::~dllist() {
 
         p = temp;
     }
-    s.unlock();
+    s->Unlock();
 }
 
 template<class Element, class Sync>
 bool dllist<Element,Sync>::empty() {
-   s.lock();
+   s->Lock();
     bool retval = size == 0;
-   s.unlock();
+   s->Unlock();
     return retval;
 }   
 
@@ -258,7 +269,7 @@ void dllist<Element,Sync>::put(Element e) {
 #if LIBTHREAD_DEBUG == 1
     fprintf(stderr, "acquiring monitor for dllist %p...\n", this);
 #endif
-   s.lock();
+   s->Lock();
 #if LIBTHREAD_DEBUG == 1
     fprintf(stderr, "done acquiring monitor for dllist %p\n", this);
 #endif
@@ -267,7 +278,7 @@ void dllist<Element,Sync>::put(Element e) {
 #if LIBTHREAD_DEBUG == 1
         fprintf(stderr, "put() blocking for dllist %p\n", this);
 #endif
-       s.wait(DLLIST_FULL);
+       s->WaitOnCondition(DLLIST_FULL);
     }
     
     node* n;
@@ -311,12 +322,12 @@ void dllist<Element,Sync>::put(Element e) {
     assert(head);
     assert(this->find(e) != NULL);
 
-   s.unlock();
+   s->Unlock();
 #if LIBTHREAD_DEBUG == 1
     fprintf(stderr, "done releasing monitor for dllist %p\n", this);
 #endif    
     
-   s.signal(DLLIST_EMPTY);
+   s->SignalCondition(DLLIST_EMPTY);
 }
 
 template<class Element, class Sync>
@@ -324,14 +335,14 @@ Element dllist<Element,Sync>::take() {
     Element retval;
     node* tmp;
     
-   s.lock();
+   s->Lock();
 
     // ensure that there is an item to take
     while (size == 0) {
 #if LIBTHREAD_DEBUG == 1
         fprintf(stderr, "take() blocking for dllist %p\n", this);
 #endif        
-       s.wait(DLLIST_EMPTY);
+       s->WaitOnCondition(DLLIST_EMPTY);
     }
     
     // at this point, we are guaranteed that head is non-null
@@ -350,9 +361,11 @@ Element dllist<Element,Sync>::take() {
 
     size--;
 
-   s.unlock();
+   s->Unlock();
     
-   s.signal(DLLIST_FULL);    
+   s->SignalCondition(DLLIST_FULL);    
+
+   return retval;
 }
 
 template<class Element, class Sync>
@@ -360,7 +373,7 @@ Element dllist<Element,Sync>::yank(Element e) {
     Element retval;
     node* to_yank;
     
-   s.lock();
+   s->Lock();
     
     /* if there's nothing that we want to remove, sleep
        until a new element is placed in the list */
@@ -368,7 +381,7 @@ Element dllist<Element,Sync>::yank(Element e) {
 #if DLLIST_DEBUG
         fprintf(stderr, "blocking on yank()\n");
 #endif
-       s.wait(DLLIST_EMPTY);
+       s->WaitOnCondition(DLLIST_EMPTY);
     }
     
     retval = to_yank->data;
@@ -377,18 +390,17 @@ Element dllist<Element,Sync>::yank(Element e) {
 
     size--;
     
-   s.unlock();
+   s->Unlock();
 
     return retval;
 }
 
 template<class Element, class Sync>
-template<class Predicate>
-Element dllist<Element,Sync>::yank(Predicate* pred) {
+Element dllist<Element,Sync>::yank(predicate<Element>* pred) {
     Element retval;
     node* to_yank;
     
-   s.lock();
+   s->Lock();
     
     /* if there's nothing that we want to remove, sleep
        until a new element is placed in the list */
@@ -396,7 +408,7 @@ Element dllist<Element,Sync>::yank(Predicate* pred) {
 #if DLLIST_DEBUG
         fprintf(stderr, "blocking on yank()\n");
 #endif
-       s.wait(DLLIST_EMPTY);
+       s->WaitOnCondition(DLLIST_EMPTY);
     }
     
     retval = to_yank->data;
@@ -405,7 +417,7 @@ Element dllist<Element,Sync>::yank(Predicate* pred) {
 
     size--;
 
-   s.unlock();
+   s->Unlock();
     
     return retval;
 }
@@ -414,7 +426,7 @@ template<class Element, class Sync>
 bool dllist<Element,Sync>::yank_nb(Element e, Element* result) {
     node* to_yank;
     
-   s.lock();
+   s->Lock();
     
     if((to_yank = this->find(e)) == NULL)
         return false;
@@ -424,17 +436,16 @@ bool dllist<Element,Sync>::yank_nb(Element e, Element* result) {
     
     this->remove(to_yank);
 
-   s.unlock();
+   s->Unlock();
 
     return true;
 }
 
 template<class Element, class Sync>
-template<class Predicate>
-bool dllist<Element,Sync>::yank_nb(Predicate* pred, Element* result) {
+bool dllist<Element,Sync>::yank_nb(predicate<Element>* pred, Element* result) {
     node* to_yank;
     
-   s.lock();
+   s->Lock();
     
     if((to_yank = this->find(pred)) == NULL)
         return false;
@@ -444,34 +455,32 @@ bool dllist<Element,Sync>::yank_nb(Predicate* pred, Element* result) {
     
     this->remove(to_yank);
 
-   s.unlock();
+   s->Unlock();
     
     return true;
 }
 
 template<class Element, class Sync>
-template<class Predicate>
-bool dllist<Element,Sync>::contains(Predicate* pred) {
+bool dllist<Element,Sync>::contains(predicate<Element>* pred) {
     bool retval;
-   s.lock();
+   s->Lock();
     retval = (this->find(pred) != NULL);
-   s.unlock();
+   s->Unlock();
     return retval;
 }
 
 template<class Element, class Sync>
 bool dllist<Element,Sync>::contains(Element e) {
     bool retval;
-   s.lock();
+   s->Lock();
     retval = (this->find(e) != NULL);
-   s.unlock();
+   s->Unlock();
     return retval;
 }
 
 template<class Element, class Sync>
-template<class Visitor>
-void dllist<Element,Sync>::visit(Visitor* visitor) {
-    s.lock();
+void dllist<Element,Sync>::visit(dllist_visitor<Element>* visitor) {
+    s->Lock();
     
     node* result = NULL;
     node* current = head;
@@ -482,8 +491,10 @@ void dllist<Element,Sync>::visit(Visitor* visitor) {
         current = current->next;
     }
 
-    s.unlock();
+    s->Unlock();
 }
+
+} // namespace pdthr
 
 #endif /* __libthread_dllist_C__ */
 

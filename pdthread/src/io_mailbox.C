@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+namespace pdthr
+{
+
 io_mailbox::~io_mailbox() {}
 
 io_mailbox::io_mailbox(thread_t owner, io_entity* ie)
@@ -26,3 +29,6 @@ int io_mailbox::poll(thread_t* from, tag_t* tagp, unsigned block, unsigned fd_fi
     abort();
     return THR_ERR;
 }
+
+} // namespace pdthr
+

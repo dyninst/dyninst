@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -44,9 +44,8 @@
  * 
  * A rwlock is the reader-writer locking implementation for the
  * thread library's thread table.  It relies on the pthreads 
- * locking primitives.  If USE_PTHREADS_BASED_LIBTHREAD is not true, all 
- * class methods are no-ops.  Some ideas for this code come from Butenhof's
- * _Programming With POSIX Threads_.  (AWL, 1997) --willb, 9/2001
+ * locking primitives.  Some ideas for this code come from Butenhof's
+ * _Programming With POSIX Threads_.  (AWL, 1997)
  *
  * NB!  There are no cleanup handlers in this code.  If you use thread
  * cancellation, you deserve what you get.  (Note to libthread
@@ -56,60 +55,46 @@
  * NB!  This code does not check to see whether you have a lock before 
  * you release it.  Be smart.
  *
- * $Revision: 1.1 $
+ * $Id: rwlock.h,v 1.2 2003/10/28 18:30:03 pcroth Exp $
 ************************************************************************/
-
 #ifndef _thread_src_rwlock_h_
 #define _thread_src_rwlock_h_
 
-#define USE_PTHREADS_BASED_LIBTHREAD 1
+#include "xplat/h/Monitor.h"
 
-#include<stdlib.h>
+namespace pdthr
+{
 
-#if USE_PTHREADS_BASED_LIBTHREAD
-#include <pthread.h>
-#endif
 
 #define RWLOCK_FAVOR_READERS 0xda7aba5e
 #define RWLOCK_FAVOR_WRITERS 0xac71014 
 
 class rwlock {  
-  public:
+public:
     enum locktype {read, write};
     enum preftype {favor_readers, favor_writers};
-  private:
-#if USE_PTHREADS_BASED_LIBTHREAD
+
+private:
+    static const unsigned int READ_CVID;
+    static const unsigned int WRITE_CVID;
+
     preftype preference;
     
-    pthread_mutex_t mutex;
-        /* we use two condition variables instead of one variable with two
-           predicates to avoid spurious wakeups */
-    pthread_cond_t read_cond;
-    pthread_cond_t write_cond;
+    XPlat::Monitor* monitor;
     int active_readers; 
     int active_writers;
     int waiting_readers;
     int waiting_writers;
     
-    inline void init_structures() {
-        pthread_mutex_init(&mutex, NULL);
-        pthread_cond_init(&read_cond, NULL);
-        pthread_cond_init(&write_cond, NULL);
-    }
-#endif
-  public:
-#if USE_PTHREADS_BASED_LIBTHREAD
+public:
         /* The default constructor for rwlock creates a table of the
            default size, favoring writers */
-    rwlock(rwlock::preftype favor=rwlock::favor_writers) :
-        preference(favor), active_readers(0), active_writers(0), 
-        waiting_readers(0), waiting_writers(0) {
-        
-        init_structures();
-    }
-#else
-    rwlock(rwlock::preftype favor=rwlock::favor_writers) { }
-#endif
+    rwlock(preftype favor=favor_writers)
+      : preference(favor),
+        monitor( new XPlat::Monitor ),
+        active_readers(0), active_writers(0), 
+        waiting_readers(0), waiting_writers(0)
+    { }
     
     int start_reading();
     int start_writing();  
@@ -121,5 +106,7 @@ class rwlock {
 };
 
 typedef class rwlock rwlock_t;
+
+} // namespace pdthr
 
 #endif // !defined(_thread_src_rwlock_h_)

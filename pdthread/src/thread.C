@@ -5,9 +5,13 @@
 #include "thrtab.h"
 #include <assert.h>
 
-#include "pthread_sync.h"
+#include "xplat/h/TLSKey.h"
+#include "xplat/h/Thread.h"
+#include "xplat/h/Monitor.h"
 
+#if !defined(i386_unknown_nt4_0)
 #include <sys/time.h>
+#endif // !defined(i386_unknown_nt4_0)
 
 #if DO_DEBUG_LIBPDTHREAD_THREAD == 1
 #define DO_DEBUG_LIBPDTHREAD 1
@@ -20,6 +24,8 @@
 
 #undef DO_DEBUG_LIBPDTHREAD
 
+using namespace pdthr;
+
 #if DO_LIBPDTHREAD_MEASUREMENTS
 
 void msg_dump_stats();
@@ -28,15 +34,15 @@ void msg_dump_stats();
 
 class thr_stats_registry {
   private:
-    static hashtbl<thread_t, const char*, pthread_sync> thread_names;
-    static hashtbl<thread_t, thr_perf_data_t*, pthread_sync> thread_stats;
+    static hashtbl<thread_t, const char*> thread_names;
+    static hashtbl<thread_t, thr_perf_data_t*> thread_stats;
   public:
     static void register_thread(thread_t tid, const char* thr_name, thr_perf_data_t* perf_data);
     static void dump_all_stats();
 };
 
-hashtbl<thread_t, const char*, pthread_sync> thr_stats_registry::thread_names;
-hashtbl<thread_t, thr_perf_data_t*, pthread_sync> thr_stats_registry::thread_stats;
+hashtbl<thread_t, const char*> thr_stats_registry::thread_names;
+hashtbl<thread_t, thr_perf_data_t*> thr_stats_registry::thread_stats;
 
 void thr_stats_registry::register_thread(thread_t tid, const char* thr_name, thr_perf_data_t* perf_data) {
     thread_names.put(tid, thr_name);
@@ -261,7 +267,7 @@ static void thr_really_do_exit(lwp* the_thread, void* result) {
     
     thrtab::unregister_joinable(the_thread->self());
 
-    pthread_exit(result);
+    XPlat::Thread::Exit(result);
 }
 
 void thr_exit(void* result) {
@@ -269,24 +275,30 @@ void thr_exit(void* result) {
     thr_really_do_exit(lwp::get_lwp(), result);
 }
 
-int thr_keycreate(thread_key_t* keyp, void (*dtor)(void*)){
-    thr_debug_msg(CURRENT_FUNCTION, "keyp = %p, dtor = %p", keyp, dtor);
-    pthread_key_create(keyp, dtor);
-    // FIXME: do error checking
+int thr_keycreate(thread_key_t* keyp){
+    thr_debug_msg(CURRENT_FUNCTION, "keyp = %p", keyp);
+
+    XPlat::TLSKey* newkey = new XPlat::TLSKey;
+    *keyp = newkey;
     return THR_OKAY;
 }
 
 int thr_setspecific(thread_key_t key, void* data) {
     thr_debug_msg(CURRENT_FUNCTION, "key = %p, data = %p", key, data);
-    pthread_setspecific(key,data);
-    // FIXME: do error checking
-    return THR_OKAY;
+
+    XPlat::TLSKey* realkey = (XPlat::TLSKey*)key;
+    assert( realkey != NULL );
+    int sret = realkey->Set( data );
+    return ((sret == 0) ? THR_OKAY : THR_ERR);
 }
 
 int thr_getspecific(thread_key_t key, void** datap) {
     thr_debug_msg(CURRENT_FUNCTION, "keyp = %d", key);
-    *datap = pthread_getspecific(key);
-    // FIXME: do error checking
+
+    XPlat::TLSKey* realkey = (XPlat::TLSKey*)key;
+    assert( realkey != NULL );
+    assert( datap != NULL );
+    *datap = realkey->Get();
     return THR_OKAY;
 }
 

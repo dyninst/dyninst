@@ -5,6 +5,13 @@
 #error You should not include this file directly
 #endif
 
+#include "xplat/h/Thread.h"
+#include "xplat/h/TLSKey.h"
+#include "xplat/h/Once.h"
+
+namespace pdthr
+{
+
 class mailbox;
 
 class lwp : public entity {
@@ -21,7 +28,7 @@ class lwp : public entity {
     typedef void* value_t;
 
     typedef struct warg {
-        lwp::task_t func;
+        task_t func;
         void* arg;
         thread_t tid;
         lwp* the_thread;
@@ -33,31 +40,27 @@ class lwp : public entity {
 
     /* tid_key points to the libthread tid.  This way, a pthreads
        thread can look up its libthread tid using pthreads TSD. */
-    static pthread_key_t tid_key;
+    static XPlat::TLSKey* tid_key;
 
     /* For any thread, lwp_key points to the lwp object corresponding
        to its thread table entry */
-    static pthread_key_t lwp_key;
+    static XPlat::TLSKey* lwp_key;
 
     /* For any thread, mailbox_key points to its incoming thread
        mailbox */
-    static pthread_key_t mailbox_key;
+    static XPlat::TLSKey* mailbox_key;
 
     /* For any thread, name_key points to its thread name */
-    static pthread_key_t name_key;
+    static XPlat::TLSKey* name_key;
 
     /* For any thread, errno_key points to its "errno" */
-    static pthread_key_t errno_key;
+    static XPlat::TLSKey* errno_key;
 
 #ifdef DO_LIBPDTHREAD_MEASUREMENTS
 
-    static pthread_key_t perf_data_key;
+    static XPlat::TLSKey* perf_data_key;
 
 #endif /* DO_LIBPDTHREAD_MEASUREMENTS */
-    
-    /* keys_once is a latch used to ensure that the static TSD keys
-       are only initialized once */
-    static pthread_once_t keys_once;
 
     /* initialize_tsd_keys creates TSD keys for each of the
        preceding TSD items */
@@ -73,7 +76,7 @@ class lwp : public entity {
     static lwp* main_thr;
     
     thread_t _self;
-    pthread_t _pself;
+    XPlat::Thread::Id _pself;
 
     task_t _task;
     value_t _arg;
@@ -147,5 +150,7 @@ class lwp : public entity {
 #endif /* DO_LIBPDTHREAD_MEASUREMENTS == 1 */
     
 }; /* end of class lwp */
+
+} // namespace pdthr
 
 #endif

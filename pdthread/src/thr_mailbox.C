@@ -1,6 +1,5 @@
-#include <pthread.h>
-#include <errno.h>
-
+#include <stdio.h>
+#include "common/h/Vector.h"
 #include "thr_mailbox.h"
 #include "thrtab.h"
 #include "message.h"
@@ -8,17 +7,9 @@
 #include "refarray.h"
 #include "predicate.h"
 #include "message_predicates.h"
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/poll.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include "mailbox_defs.h"
-
-
-#include <strings.h>
-#include "common/h/Vector.h"
+#include "xplat/h/Mutex.h"
+#include "WaitSet.h"
 
 #if DO_DEBUG_LIBPDTHREAD_THR_MAILBOX == 1
 #define DO_DEBUG_LIBPDTHREAD 1
@@ -31,45 +22,33 @@
 
 #undef DO_DEBUG_LIBPDTHREAD
 
-struct FdSetPopulator
+namespace pdthr
 {
-	thr_mailbox* mbox;
-    fd_set* fds;
-    int max_fd;				// maximum fd value in the fd_set
 
+class SocketWaitSetPopulator : public dllist_visitor<PdSocket>
+{
+private:
+    thr_mailbox& mbox;
+    WaitSet& wset;
 
-	FdSetPopulator( thr_mailbox* mbox_, fd_set* fds_ )
-	  : mbox( mbox_ ),
-		fds( fds_ ),
-		max_fd( 0 )
-	{ }
+public:
+    SocketWaitSetPopulator( thr_mailbox& _mbox, WaitSet& _wset )
+      : mbox( _mbox ),
+        wset( _wset )
+    { }
 
-    void reset( PdSocket wakeup_fd )
-	{
-        FD_ZERO(fds);
-        FD_SET(wakeup_fd.s, fds);
-        max_fd = wakeup_fd.s + 1;
-    }
-    
-    /* FIXME: using fd_set, not portable to non-unix */
-    bool visit( PdSocket desc);
-    bool visit( PdFile desc );
+    virtual bool visit( PdSocket s );
 };
 
-
 bool
-FdSetPopulator::visit( PdSocket desc)
+SocketWaitSetPopulator::visit( PdSocket desc)
 {
-	if(!mbox->ready_socks->contains(desc))
+	if(!mbox.ready_socks->contains(desc))
     {
         thr_debug_msg(CURRENT_FUNCTION,
             "ADDING %d to wait set\n", (unsigned)desc.s);
            
-        FD_SET(desc.s, fds);
-        if( desc.s + 1 > max_fd )
-        {
-           max_fd = desc.s + 1;
-        }
+        wset.Add( desc );
 	}
 	else
 	{
@@ -81,19 +60,31 @@ FdSetPopulator::visit( PdSocket desc)
 }
 
 
-bool
-FdSetPopulator::visit( PdFile desc)
+class FileWaitSetPopulator : public dllist_visitor<PdFile>
 {
-	if(!mbox->ready_files->contains(desc))
+public:
+	thr_mailbox& mbox;
+    WaitSet& wset;
+
+
+	FileWaitSetPopulator( thr_mailbox& _mbox, WaitSet& _wset )
+	  : mbox( _mbox ),
+		wset( _wset )
+	{ }
+
+    virtual bool visit( PdFile desc );
+};
+
+
+bool
+FileWaitSetPopulator::visit( PdFile desc)
+{
+	if(!mbox.ready_files->contains(desc))
     {
         thr_debug_msg(CURRENT_FUNCTION,
             "ADDING %d to wait set\n", (unsigned)desc.fd);
            
-        FD_SET(desc.fd, fds);
-        if( desc.fd + 1 > max_fd )
-        {
-           max_fd = desc.fd + 1;
-        }
+        wset.Add( desc );
 	}
 	else
 	{
@@ -107,44 +98,44 @@ FdSetPopulator::visit( PdFile desc)
 
 
 
-struct ReadySetPopulator
+class SocketReadySetPopulator : public dllist_visitor<PdSocket>
 {
-    thr_mailbox* mbox;
-    fd_set* fds;
+public:
+    thr_mailbox& mbox;
+    WaitSet& wset;
 
-	ReadySetPopulator( thr_mailbox* mbox_, fd_set* fdset_ )
-	  : mbox( mbox_ ),
-		fds( fdset_ )
+	SocketReadySetPopulator( thr_mailbox& _mbox, WaitSet& _wset )
+	  : mbox( _mbox ),
+		wset( _wset )
 	{ }
 
     bool visit( PdSocket desc );
-    bool visit( PdFile desc );
 };
 
 
 bool
-ReadySetPopulator::visit( PdSocket desc )
+SocketReadySetPopulator::visit( PdSocket desc )
 {
 	io_entity *ie = socket_q::socket_from_desc(desc);
 
-	if(!ie || !mbox->bound_socks->contains(desc))
+	if(!ie || !mbox.bound_socks->contains(desc))
       return true;
 
 	// bound_socks had better contain desc, because
 	// we are visiting every item in the bound socks set
 	// assert( mbox->bound_socks->contains(desc) );
 
-	if( !mbox->ready_socks->contains(desc) )
+	if( !mbox.ready_socks->contains(desc) )
 	{
-		if(FD_ISSET(desc.s, fds))
-		{
+        if( wset.HasData( desc ) )
+        {
 			thr_debug_msg(CURRENT_FUNCTION,
                 "enqueuing SOCKET message from %d\n", (unsigned)desc.s);
 
 			message *m = new io_message(ie,ie->self(), MSG_TAG_SOCKET);
 			
-			mbox->put_sock(m);
-			mbox->ready_socks->put(desc);
+			mbox.put_sock(m);
+			mbox.ready_socks->put(desc);
 		} 
 
 		else {
@@ -156,29 +147,44 @@ ReadySetPopulator::visit( PdSocket desc )
 }
 
 
+class FileReadySetPopulator : public dllist_visitor<PdFile>
+{
+public:
+    thr_mailbox& mbox;
+    WaitSet& wset;
+
+	FileReadySetPopulator( thr_mailbox& _mbox, WaitSet& _wset )
+	  : mbox( _mbox ),
+		wset( _wset )
+	{ }
+
+    bool visit( PdFile desc );
+};
+
+
 bool
-ReadySetPopulator::visit( PdFile desc )
+FileReadySetPopulator::visit( PdFile desc )
 {
 	io_entity *ie = file_q::file_from_desc(desc);
 
-	if(!ie || !mbox->bound_files->contains(desc))
+	if(!ie || !mbox.bound_files->contains(desc))
       return true;
 
 	// bound_files had better contain desc, because
 	// we are visiting every item in the bound files set
-	// assert( mbox->bound_file->contains(desc) );
+	// assert( mbox.bound_file->contains(desc) );
 
-	if( !mbox->ready_files->contains(desc) )
+	if( !mbox.ready_files->contains(desc) )
 	{
-		if(FD_ISSET(desc.fd, fds))
+        if( wset.HasData( desc ) )
 		{
 			thr_debug_msg(CURRENT_FUNCTION,
                 "enqueuing FILE message from %d\n", (unsigned)desc.fd);
 
 			message *m = new io_message(ie,ie->self(), MSG_TAG_FILE);
 			
-			mbox->put_file(m);
-			mbox->ready_files->put(desc);
+			mbox.put_file(m);
+			mbox.ready_files->put(desc);
 		} 
 
 		else {
@@ -190,234 +196,58 @@ ReadySetPopulator::visit( PdFile desc )
 }
 
 
-
-
-// struct with visit operation for finding invalid descriptors
-// Intended to be used on the bound_socks and bound_files lists.
-// 
-struct BadDescFinder
+// visitor for finding invalid sockets
+// Intended to be used on the bound_socks list.
+class SocketBadDescFinder : public dllist_visitor<PdSocket>
 {
+private:
     pdvector<PdSocket> socks;
-    pdvector<PdFile> fds;
 
-    bool visit(PdSocket desc);
-    bool visit(PdFile desc);
+public:
+    virtual bool visit(PdSocket desc)
+    {
+        if( desc.IsBad() )
+        {
+            socks.push_back( desc );
+        }
+        return true;        // always continue search
+    }
+
+    const pdvector<PdSocket>& GetSocks( void ) const    { return socks; }
 };
 
-bool
-BadDescFinder::visit( PdSocket desc )
+
+class FileBadDescFinder : public dllist_visitor<PdFile>
 {
-    if( (fcntl(desc.s, F_GETFL) == -1) && (errno == EBADF) )
+private:
+    pdvector<PdFile> fds;
+
+public:
+    virtual bool visit(PdFile desc)
     {
-        socks.push_back( desc );
-    }
-    return true;        // always continue search
-}
-
-bool
-BadDescFinder::visit( PdFile desc )
-{
-    if( (fcntl(desc.fd, F_GETFL) == -1) && (errno == EBADF) )
-    {
-        fds.push_back( desc );
-    }
-    return true;        // always continue search
-}
-
-
-
-
-
-void
-thr_mailbox::wait_for_input( void )
-{
-    assert(thr_type(owned_by) == item_t_thread);
-
-    thr_debug_msg(CURRENT_FUNCTION, "ENTERING for mailbox owned by %d\n", owned_by);
-
-	// allocate a set to hold the sockets that we will check
-	fd_set* fds_to_check = new fd_set;
-
-	// build a visitor that will populate the set of sockets we will check
-	FdSetPopulator select_set_populator( this, fds_to_check );
-    
-	bool done = false;
-    while( !done )
-	{
-        thr_debug_msg(CURRENT_FUNCTION, "LOOPING for mailbox owned by %d\n",
-                        owned_by);
-
-        
-		// populate the set of sockets we will check for read readiness
-		// start with our "message available" pipe...
-        select_set_populator.reset( msg_avail_pipe[0] );
-
-		// ...add our bound sockets that have not
-		// already been indicated as "ready-to-read"
-        sock_monitor->lock();
-        bound_socks->visit(&select_set_populator);
-        sock_monitor->unlock();
-
-        // ...add our bound files that have not already
-        // been indicated as "ready-to-read"
-        file_monitor->lock();
-        bound_files->visit(&select_set_populator);
-        file_monitor->unlock();
-
-
-        thr_debug_msg(CURRENT_FUNCTION,
-                        "SELECTING for mailbox owned by %d; count = %d\n",
-                        owned_by, select_set_populator.max_fd);
-        int select_status = select( select_set_populator.max_fd,
-										select_set_populator.fds,
-										NULL,
-										NULL,
-										NULL);	// block until something ready
-        thr_debug_msg(CURRENT_FUNCTION, "SELECT RETURNING for mailbox owned by %d; status = %d\n", owned_by, select_status);
-
-        if(select_status == -1) {
-            if( errno == EBADF )
-            {
-                // we have at least one bad file descriptor in our set of
-                // bound descriptors -
-                // (sadly, this can happen when a client socket connection is
-                // broken without unbinding the bad descriptor first)
-                // check them all and unbind the bad descriptor
-                // note that we don't unbind them as part of the visit
-                // to avoid changing bound_socks from underneath the
-                // visit method.
-                BadDescFinder bdf;
-
-                // check sockets
-                sock_monitor->lock();
-                bound_socks->visit( &bdf );
-
-                // unbind the bad descriptors
-                for( unsigned int i = 0; i < bdf.socks.size(); i++ )
-                {
-                    // note we already have the lock
-                    unbind( bdf.socks[i], false ); 
-                }
-                sock_monitor->unlock();
-
-                // check files
-                file_monitor->lock();
-                bound_files->visit( &bdf );
-
-                // unbind the bad descriptors
-                for( unsigned int i = 0; i < bdf.fds.size(); i++ )
-                {
-                    // note we already have the lock
-                    unbind( bdf.fds[i], false ); 
-                }
-                file_monitor->unlock();
-            }
-            else
-            {
-                perror("select thread");
-            }
+        if( desc.IsBad() )
+        {
+            fds.push_back( desc );
         }
-		else if( select_status > 0 )
-		{
-    		ReadySetPopulator visitor( this, select_set_populator.fds );
-
-            // check each of our bound sockets to see if it has data available
-			// if a socket is ready to read, add it to the "ready-to-read" set
-            sock_monitor->lock();
-            bound_socks->visit(&visitor);
-            sock_monitor->unlock();
-
-            // check each of our bound files to see if it has data available
-			// if a file is ready to read, add it to the "ready-to-read" set
-            file_monitor->lock();
-            bound_files->visit(&visitor);
-            file_monitor->unlock();
-
-			// if we popped out of the select because someone has
-			// put a message into our message queue, we have nothing else
-			// to do here - our caller will notice that there is a message
-			// available in the message queues
-			done = true;
-
-        } else {
-			// spurious wakeup - we shouldn't have woken up,
-			// because we have an infinite timeout
-        	thr_debug_msg(CURRENT_FUNCTION,
-                "SELECT spurious wakeup for mailbox owned by %d; status = %d\n",
-                owned_by, select_status);
-        }
+        return true;        // always continue search
     }
-    
-    delete fds_to_check;
-}
 
-thr_mailbox::thr_mailbox(thread_t owner) 
-  : mailbox(owner),
-    messages( new dllist<message*> ),
-    sock_messages( new dllist<message*> ),
-    file_messages( new dllist<message*> ),
-    bound_socks( new dllist<PdSocket> ),
-    ready_socks( new dllist<PdSocket> ),
-    sock_monitor( new pthread_sync("socket monitor for thread mailbox") ),
-    bound_files( new dllist<PdFile> ),
-    ready_files( new dllist<PdFile> ),
-    file_monitor( new pthread_sync("socket monitor for thread mailbox") )
+    const pdvector<PdFile>& GetFiles( void ) const  { return fds; }
+};
+
+
+class SocketReadyBufferedVisitor : public dllist_visitor<PdSocket>
 {
-    thr_debug_msg(CURRENT_FUNCTION, "building mailbox for %d\n", owner);
- 
-    assert(owned_by == owner);
-
-    int pipe_success = pipe( msg_avail_pipe );
-    assert(pipe_success == 0);
-
-    // Set the write end of the pipe to be non-blocking.
-    //
-    // A non-blocking pipe is a way to avoid the deadlock that
-    // occurs in case the sender sends so many messages that it
-    // fills the pipe causing the sender to block writing into the pipe
-    // (and holding the receiver's mailbox's mutex), while the receiver
-    // is blocked waiting to acquire the mutex in order to consume
-    // the bytes from the pipe.
-    int fret = fcntl( msg_avail_pipe[1], F_GETFL );
-    if( fret >= 0 )
-    {
-        fret = fcntl( msg_avail_pipe[1], F_SETFL, fret | O_NONBLOCK );
-    }
-    if( fret < 0 )
-    {
-        thr_debug_msg(CURRENT_FUNCTION, "unable to set msg_avail pipe to non-blocking mode\n" );
-    }
-}
-
-thr_mailbox::~thr_mailbox( void )
-{
-    delete messages;
-
-    delete sock_messages;
-    delete ready_socks;
-    delete bound_socks;
-    delete sock_monitor;
-
-    delete file_messages;
-    delete bound_files;
-    delete ready_files;
-    delete file_monitor;
-
-    close( msg_avail_pipe[0] );
-    close( msg_avail_pipe[1] );
-}
-
-
-struct ReadyBufferedVisitor
-{
+private:
 	io_entity* ready_ioe;
 
-	ReadyBufferedVisitor( void )
+public:
+	SocketReadyBufferedVisitor( void )
 	  : ready_ioe( NULL )
 	{ }
 
-	bool visit( PdSocket desc );
-	bool visit( PdFile desc );
+	virtual bool visit( PdSocket desc );
+    const io_entity* GetReadyEntity( void ) const   { return ready_ioe; }
 };
 
 
@@ -426,7 +256,7 @@ struct ReadyBufferedVisitor
 // TODO this method of checking for ready buffered entities is not necessarily
 // fair - we always start visiting from the list's beginning
 bool
-ReadyBufferedVisitor::visit( PdSocket desc )
+SocketReadyBufferedVisitor::visit( PdSocket desc )
 {
 	bool continueVisiting = true;
 
@@ -439,18 +269,181 @@ ReadyBufferedVisitor::visit( PdSocket desc )
 	return continueVisiting;
 }
 
-bool
-ReadyBufferedVisitor::visit( PdFile desc )
-{
-	bool continueVisiting = true;
 
-	io_entity* ioe = file_q::file_from_desc( desc );
-	if( (ioe != NULL) && ioe->is_buffer_ready() )
+
+void
+thr_mailbox::populate_wait_set( WaitSet* wset )
+{
+    // populate the set of sockets we will check for read readiness
+    // start with our "message available" pipe...
+    wset->Add( msg_avail_pipe.GetReadEndpoint() );
+
+    // ...add our bound sockets that have not
+    // already been indicated as "ready-to-read"
+    SocketWaitSetPopulator sock_pop( *this, *wset );
+    sockq_mutex.Lock();
+    bound_socks->visit( &sock_pop );
+    sockq_mutex.Unlock();
+
+    // ...add our bound files that have not already
+    // been indicated as "ready-to-read"
+    FileWaitSetPopulator file_pop( *this, *wset );
+    fileq_mutex.Lock();
+    bound_files->visit( &file_pop );
+    fileq_mutex.Unlock();
+}
+
+
+void
+thr_mailbox::handle_wait_set_input( WaitSet* wset )
+{
+    // check each of our bound sockets to see if it has data available
+    // if a socket is ready to read, add it to the "ready-to-read" set
+    SocketReadySetPopulator sock_pop( *this, *wset );
+    sockq_mutex.Lock();
+    bound_socks->visit( &sock_pop );
+    sockq_mutex.Unlock();
+
+    // check each of our bound files to see if it has data available
+    // if a file is ready to read, add it to the "ready-to-read" set
+    FileReadySetPopulator file_pop( *this, *wset );
+    fileq_mutex.Lock();
+    bound_files->visit( &file_pop );
+    fileq_mutex.Unlock();
+}
+
+
+
+
+void
+thr_mailbox::wait_for_input( void )
+{
+    unsigned int i;
+    assert(thr_type(owned_by) == item_t_thread);
+
+    thr_debug_msg(CURRENT_FUNCTION, "ENTERING for mailbox owned by %d\n",
+        owned_by);
+
+	// allocate a set to hold the sockets that we will check
+    WaitSet* wset = WaitSet::BuildWaitSet();
+
+	bool done = false;
+    while( !done )
 	{
-		ready_ioe = ioe;
-		continueVisiting = false;
-	}
-	return continueVisiting;
+        thr_debug_msg(CURRENT_FUNCTION, "LOOPING for mailbox owned by %d\n",
+                        owned_by);
+
+        // populate the WaitSet with the set of objects (sockets,
+        // files, pipes, etc.) we will be blocking on
+        wset->Clear();
+        populate_wait_set( wset );
+
+        thr_debug_msg(CURRENT_FUNCTION,
+                        "SELECTING for mailbox owned by %d\n",
+                        owned_by );
+        
+        // do the wait
+        WaitSet::WaitReturn wstatus = wset->Wait();
+
+        thr_debug_msg(CURRENT_FUNCTION,
+            "SELECT RETURNING for mailbox owned by %d; status = %d\n",
+            owned_by, wstatus);
+
+        if( wstatus == WaitSet::WaitInput )
+        {
+            // we think there is some input available
+            handle_wait_set_input( wset );
+
+			// if we popped out of the select because someone has
+			// put a message into our message queue, we have nothing else
+			// to do here - our caller will notice that there is a message
+			// available in the message queues
+			done = true;
+        }
+        else if( wstatus == WaitSet::WaitError )
+        {
+            // We might have at least one bad file descriptor in our set of
+            // bound descriptors -
+            // (sadly, this can happen when a client socket connection is
+            // broken without unbinding the bad descriptor first)
+            // check them all and unbind the bad descriptor
+            // note that we don't unbind them as part of the visit
+            // to avoid changing bound_socks from underneath the
+            // visit method.
+
+            // check sockets
+            SocketBadDescFinder sock_bdf;
+            sockq_mutex.Lock();
+            bound_socks->visit( &sock_bdf );
+
+            // unbind the bad descriptors
+            const pdvector<PdSocket>& socks = sock_bdf.GetSocks();
+            for( i = 0; i < socks.size(); i++ )
+            {
+                // note we already have the lock
+                unbind( socks[i], false ); 
+            }
+            sockq_mutex.Unlock();
+
+            // check files
+            FileBadDescFinder file_bdf;
+            fileq_mutex.Lock();
+            bound_files->visit( &file_bdf );
+
+            // unbind the bad descriptors
+            const pdvector<PdFile>& fds = file_bdf.GetFiles();
+            for( i = 0; i < fds.size(); i++ )
+            {
+                // note we already have the lock
+                unbind( fds[i], false ); 
+            }
+            fileq_mutex.Unlock();
+        }
+        else if( wstatus == WaitSet::WaitTimeout )
+        {
+			// spurious wakeup - we shouldn't have woken up,
+			// because we have an infinite timeout
+        	thr_debug_msg(CURRENT_FUNCTION,
+                "SELECT spurious wakeup for mailbox owned by %d; status = %d\n",
+                owned_by, wstatus);
+        }
+        else
+        {
+            // unrecognized wait return value
+            assert( false );
+        }
+    }
+	delete wset;
+}
+
+
+
+
+thr_mailbox::thr_mailbox(thread_t owner) 
+  : mailbox(owner),
+    messages( new dllist<message*,DummyMonitor> ),
+    sock_messages( new dllist<message*,DummyMonitor> ),
+    file_messages( new dllist<message*,DummyMonitor> ),
+    bound_socks( new dllist<PdSocket,DummyMonitor> ),
+    ready_socks( new dllist<PdSocket,DummyMonitor> ),
+    bound_files( new dllist<PdFile,DummyMonitor> ),
+    ready_files( new dllist<PdFile,DummyMonitor> )
+{
+    thr_debug_msg(CURRENT_FUNCTION, "building mailbox for %d\n", owner);
+    assert(owned_by == owner);
+}
+
+thr_mailbox::~thr_mailbox( void )
+{
+    delete messages;
+
+    delete sock_messages;
+    delete ready_socks;
+    delete bound_socks;
+
+    delete file_messages;
+    delete bound_files;
+    delete ready_files;
 }
 
 
@@ -473,12 +466,13 @@ thr_mailbox::is_buffered_special_ready( thread_t* sender, tag_t* type )
 		else
 		{
 			// look for one of our bound socket who has buffered data available
-			ReadyBufferedVisitor rbv;
+			SocketReadyBufferedVisitor rbv;
 			bound_socks->visit( &rbv );
-			if( rbv.ready_ioe != NULL )
+            const io_entity* ready_ioe = rbv.GetReadyEntity();
+			if( ready_ioe != NULL )
 			{
 				is_someone_ready = true;
-				*sender = rbv.ready_ioe->self();
+				*sender = ready_ioe->self();
 			}
 		}
 
@@ -500,21 +494,19 @@ thr_mailbox::check_for(thread_t* sender,
                         message** m,
                         unsigned io_first)
 {
-
-check_for_again:
     bool found = false;
     thread_t actual_sender = 0;
     tag_t actual_type = 0;
 
     message* msg_from_special = NULL;
     match_message_pred criterion(*sender,*type);
-    dllist<message*> *yank_from = NULL;
+    dllist<message*,DummyMonitor> *yank_from = NULL;
     
 find_msg:
     actual_sender = 0;
     actual_type = 0;
 
-monitor->lock();
+qmutex.Lock();
 
 	// TODO when is the correct place to clear the message available pipe?
 	// do we need to do it on each call?
@@ -608,7 +600,7 @@ monitor->lock();
 		}
 	}
 
-    monitor->unlock();
+    qmutex.Unlock();
     
     actual_sender = criterion.actual_sender;
     actual_type = criterion.actual_type;
@@ -617,7 +609,7 @@ monitor->lock();
 
         if(do_yank && m && (yank_from != NULL) ) {
 
-monitor->lock();
+qmutex.Lock();
 
             unsigned int oldsize = yank_from->get_size();
 
@@ -626,7 +618,7 @@ monitor->lock();
             unsigned int newsize = yank_from->get_size();
             assert(oldsize == (newsize + 1));
 
-monitor->unlock();
+qmutex.Unlock();
 
         }
 
@@ -660,7 +652,7 @@ done:
 
 
 int thr_mailbox::put(message* m) {
-    monitor->lock();
+    qmutex.Lock();
     
     unsigned old_size = messages->get_size();
     
@@ -668,13 +660,13 @@ int thr_mailbox::put(message* m) {
 
     assert(messages->get_size() == old_size + 1);
 	raise_msg_avail();
-    monitor->unlock();
+    qmutex.Unlock();
 
     return THR_OKAY;
 }
 
 int thr_mailbox::put_sock(message* m) {
-    monitor->lock();
+    qmutex.Lock();
 
     unsigned old_size = sock_messages->get_size();
 
@@ -682,7 +674,7 @@ int thr_mailbox::put_sock(message* m) {
 
     assert(sock_messages->get_size() == (old_size + 1));
     raise_msg_avail();    
-    monitor->unlock();
+    qmutex.Unlock();
 
     return THR_OKAY;
 }
@@ -690,7 +682,7 @@ int thr_mailbox::put_sock(message* m) {
 int
 thr_mailbox::put_file(message* m)
 {
-    monitor->lock();
+    qmutex.Lock();
 
     unsigned old_size = file_messages->get_size();
 
@@ -698,7 +690,7 @@ thr_mailbox::put_file(message* m)
 
     assert(file_messages->get_size() == (old_size + 1));
     raise_msg_avail();    
-    monitor->unlock();
+    qmutex.Unlock();
 
     return THR_OKAY;
 }
@@ -708,7 +700,7 @@ int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp
     int retval = THR_OKAY;
     COLLECT_MEASUREMENT(THR_MSG_TIMER_START);
         
-//    monitor->lock();
+//    qmutex.Lock();
     thr_debug_msg(CURRENT_FUNCTION, "RECEIVING: size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
     message* to_recv;
     bool did_recv;
@@ -727,18 +719,17 @@ int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp
     delete to_recv;
 
   done:
-//    monitor->unlock();
+//    qmutex.Unlock();
     COLLECT_MEASUREMENT(THR_MSG_TIMER_STOP);
 
     return retval;
 }
 
+
 void
 thr_mailbox::raise_msg_avail( void )
 {
-    static char s = '0';
-    ssize_t nWritten = write( msg_avail_pipe[1], &s, sizeof(char));
-    if( (nWritten == -1) && (errno == EAGAIN) )
+    if( !msg_avail_pipe.RaiseMsgAvailable() )
     {
         thr_debug_msg(CURRENT_FUNCTION,
             "write to msg_avail pipe would've blocked\n" );
@@ -748,33 +739,11 @@ thr_mailbox::raise_msg_avail( void )
 void
 thr_mailbox::clear_msg_avail( void )
 {
-	pollfd pfd;
-
-	pfd.fd = msg_avail_pipe[0];
-	pfd.events = POLLIN;
-	pfd.revents = 0;
-
-	bool done = false;
-	while( !done )
-	{
-		int pollret = ::poll( &pfd, 1, 0 );
-		if( pollret == 1 )
-		{
-			// read a chunk
-			static char buf[1024];
-			read( msg_avail_pipe[0], buf, 1024 );
-		}
-		else if( pollret == 0 )
-		{
-			// we've consumed all the data available on the msg wakeup pipe
-			done = true;
-		}
-		else
-		{
-			// there was an error
-    		thr_debug_msg(CURRENT_FUNCTION, "POLL FAILED: %d\n", errno );
-		}
-	}
+    if( !msg_avail_pipe.Drain() )
+    {
+        // there was an error
+        thr_debug_msg(CURRENT_FUNCTION, "failed to drain msg avail pipe\n" );
+    }
 }
 
 
@@ -782,14 +751,14 @@ thr_mailbox::clear_msg_avail( void )
 int thr_mailbox::poll(thread_t* from, tag_t* tagp, unsigned block,
                       unsigned fd_first)
 { 
-//    monitor->lock();
+//    qmutex.Lock();
     
     COLLECT_MEASUREMENT(THR_MSG_TIMER_START);
 
     bool found = check_for(from, tagp, (block != 0), false, NULL, fd_first);
 
 
- //   monitor->unlock();
+ //   qmutex.Unlock();
 
     COLLECT_MEASUREMENT(THR_MSG_TIMER_STOP);
 
@@ -809,9 +778,9 @@ thr_mailbox::bind( PdSocket sock,
                             thread_t* ptid)
 {
     *ptid = thrtab::create_socket(sock,owned_by,wb,arg,(special != 0));
-    sock_monitor->lock();
+    sockq_mutex.Lock();
     bound_socks->put(sock);
-    sock_monitor->unlock();
+    sockq_mutex.Unlock();
 }
 
 void
@@ -822,9 +791,9 @@ thr_mailbox::bind( PdFile desc,
                         thread_t* ptid )
 {
     *ptid = thrtab::create_file( desc, owned_by, wb, arg, (special != 0) );
-    file_monitor->lock();
+    fileq_mutex.Lock();
     bound_files->put( desc );
-    file_monitor->unlock();
+    fileq_mutex.Unlock();
 }
 
 void
@@ -837,12 +806,12 @@ thr_mailbox::unbind( PdSocket sock, bool getlock )
         
         if( getlock )
         {
-            sock_monitor->lock();
+            sockq_mutex.Lock();
         }
         bound_socks->yank(sock);
         if( getlock )
         {
-            sock_monitor->unlock();
+            sockq_mutex.Unlock();
         }
         
         thrtab::remove(to_remove);
@@ -859,12 +828,12 @@ thr_mailbox::unbind( PdFile fd, bool getlock)
         
         if( getlock )
         {
-            file_monitor->lock();
+            fileq_mutex.Lock();
         }
         bound_files->yank( fd );    
         if( getlock )
         {
-            file_monitor->unlock();
+            fileq_mutex.Unlock();
         }
         
         thrtab::remove(to_remove);
@@ -875,36 +844,26 @@ thr_mailbox::unbind( PdFile fd, bool getlock)
 bool
 thr_mailbox::is_bound( PdFile fd )
 {
-    file_monitor->lock();
+    fileq_mutex.Lock();
     bool ret = bound_files->contains( fd );
-    file_monitor->unlock();
+    fileq_mutex.Unlock();
 
     return ret;
 }
 
 bool thr_mailbox::is_bound( PdSocket sock )
 {
-    sock_monitor->lock();
+    sockq_mutex.Lock();
     bool ret = bound_socks->contains(sock);
-    sock_monitor->unlock();
+    sockq_mutex.Unlock();
 
     return ret;
-}
-
-void clear_ready_sock( PDSOCKET sock )
-{
-	((thr_mailbox*)lwp::get_mailbox())->clear_ready( PdSocket( sock ) );
-}
-
-void clear_ready_file( PDDESC fd )
-{
-	((thr_mailbox*)lwp::get_mailbox())->clear_ready( PdFile( fd ) );
 }
 
 void
 thr_mailbox::clear_ready( PdSocket sock )
 {
-	sock_monitor->lock();
+	sockq_mutex.Lock();
 	if( ready_socks->contains(sock) )
 	{
 		ready_socks->yank(sock);
@@ -924,13 +883,13 @@ thr_mailbox::clear_ready( PdSocket sock )
 		}	
 	}
 
-	sock_monitor->unlock();
+	sockq_mutex.Unlock();
 }
 
 void
 thr_mailbox::clear_ready( PdFile fd )
 {
-	file_monitor->lock();
+	fileq_mutex.Lock();
 	if( ready_files->contains(fd) )
 	{
 		ready_files->yank(fd);
@@ -950,37 +909,44 @@ thr_mailbox::clear_ready( PdFile fd )
 		}	
 	}
 
-	file_monitor->unlock();
+	fileq_mutex.Unlock();
 }
 
-class message_dumper {
-  public:
-    int visit(message* m) {
+class message_dumper : public dllist_visitor<message*> 
+{
+public:
+    virtual bool visit(message* m)
+    {
         m->dump("         ");
-        return 1;
+        return true;
     }
 };
 
 
-class BoundItemDumper
+class SocketBoundItemDumper : public dllist_visitor<PdSocket>
 {
 public:
-    int visit( PdSocket desc )
+    virtual bool visit( PdSocket desc )
     {
         fprintf( stderr, "%d ", desc.s );
-        return 1;
+        return true;
     }
+};
 
-    int visit( PdFile desc )
+class FileBoundItemDumper : public dllist_visitor<PdFile>
+{
+public:
+    virtual bool visit( PdFile desc )
     {
         fprintf( stderr, "%d ", desc.fd );
-        return 1;
+        return true;
     }
 };
 
 void thr_mailbox::dump_state() {
     message_dumper md;
-    BoundItemDumper bidumper;
+    SocketBoundItemDumper sockdumper;
+    FileBoundItemDumper filedumper;
 
     if(messages && messages->get_size()) {
         fprintf(stderr, "   number of pending messages: %d\n", messages->get_size());
@@ -998,7 +964,7 @@ void thr_mailbox::dump_state() {
         fprintf(stderr, "   number of bound sockets: %d\n",
                     bound_socks->get_size());
         fprintf(stderr, "      bound socks are: ");
-        bound_socks->visit(&bidumper);
+        bound_socks->visit(&sockdumper);
         fprintf(stderr, "\n");
     }
     
@@ -1006,7 +972,7 @@ void thr_mailbox::dump_state() {
         fprintf(stderr, "   number of ready sockets: %d\n",
                     ready_socks->get_size());
         fprintf(stderr, "      ready socks are: ");
-        ready_socks->visit(&bidumper);
+        ready_socks->visit(&sockdumper);
         fprintf(stderr, "\n");
     }
     
@@ -1014,7 +980,7 @@ void thr_mailbox::dump_state() {
         fprintf(stderr, "   number of bound files: %d\n",
                     bound_files->get_size());
         fprintf(stderr, "      bound files are: ");
-        bound_files->visit(&bidumper);
+        bound_files->visit(&filedumper);
         fprintf(stderr, "\n");
     }
     
@@ -1022,8 +988,20 @@ void thr_mailbox::dump_state() {
         fprintf(stderr, "   number of ready files: %d\n",
                     ready_files->get_size());
         fprintf(stderr, "      ready files are: ");
-        ready_files->visit(&bidumper);
+        ready_files->visit(&filedumper);
         fprintf(stderr, "\n");
     }
+}
+
+} // namespace pdthr
+
+void clear_ready_sock( PDSOCKET sock )
+{
+	((pdthr::thr_mailbox*)pdthr::lwp::get_mailbox())->clear_ready( PdSocket( sock ) );
+}
+
+void clear_ready_file( PDDESC fd )
+{
+	((pdthr::thr_mailbox*)pdthr::lwp::get_mailbox())->clear_ready( PdFile( fd ) );
 }
 

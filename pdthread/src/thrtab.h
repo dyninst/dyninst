@@ -6,15 +6,17 @@
 #include "dllist.C"
 #include "rwlock.h"
 #include "thrtab_entries.h"
-#include "pthread_sync.h"
-#include <pthread.h>
 #include "hashtbl.C"
+#include "xplat/h/Monitor.h"
+
+namespace pdthr
+{
 
 class thrtab {
   private:
-    static refarray<entity,1> entries;
-    static hashtbl<entity*,thread_t,pthread_sync> entity_registry;
-    static dllist<thread_t,pthread_sync> joinables;
+    static refarray<entity> entries;
+    static hashtbl<entity*,thread_t> entity_registry;
+    static dllist<thread_t> joinables;
     static unsigned initialized;
     static unsigned create_main_thread();
     
@@ -28,6 +30,9 @@ class thrtab {
     static thread_t create_socket( PdSocket sock, thread_t owner,
                                   int (*will_block_func)(void*), void* desc,
                                   bool is_special);
+#if defined(i386_unknown_nt4_0)
+    static thread_t create_wmsg( void );
+#endif // defined(i386_unknown_nt4_0)
     
     static entity* get_entry(thread_t tid);
     static thread_t get_tid(entity* e);
@@ -43,5 +48,7 @@ class thrtab {
     static void unregister_joinable(thread_t tid);
     static thread_t get_any_joinable();
 };
+
+} // namespace pdthr
 
 #endif /*  __libthread_thrtab_h__ */

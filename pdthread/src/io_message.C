@@ -2,6 +2,9 @@
 #include "thrtab.h"
 #include <assert.h>
 
+namespace pdthr
+{
+
 thread_t io_message::deliver(tag_t* tagp, void* buf, unsigned* countp) {
     assert(tagp && (*tagp == MSG_TAG_ANY || *tagp == this->tag));
     unsigned count = countp ? * countp : 0;
@@ -27,3 +30,4 @@ unsigned io_message::deliver_to(io_entity* ie) {
     return 0;
 }
 
+} // namespace pdthr

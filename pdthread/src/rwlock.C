@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -38,126 +38,128 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-
-
-
-
-
 /************************************************************************
  * rwlock.c: implementation of reader-writer lock classes.
  *
- * $Revision: 1.1 $
+ * $Id: rwlock.C,v 1.2 2003/10/28 18:30:03 pcroth Exp $
 ************************************************************************/
-
-/************************************************************************
- * header files.
-************************************************************************/
+#include <stdlib.h>
+#include <assert.h>
 #include "rwlock.h"
-
+#include "xplat/h/Monitor.h"
 
-inline
+namespace pdthr
+{
+
+const unsigned int rwlock::READ_CVID = 0;
+const unsigned int rwlock::WRITE_CVID = 1;
+
+
 int rwlock::start_reading() { 
     int status = 0, doblock=0;
-#if USE_PTHREADS_BASED_LIBTHREAD
-    status = pthread_mutex_lock(&mutex);
+
+    status = monitor->Lock();
     if (status != 0) 
+    {
         return status;
+    }
     doblock = active_writers || (preference == rwlock::favor_writers && waiting_writers);
     
     if (doblock) {
         waiting_readers++;
         while(doblock) {
-            status = pthread_cond_wait(&read_cond, &mutex);
+            status = monitor->WaitOnCondition( READ_CVID );
             doblock = active_writers || (preference == rwlock::favor_writers && waiting_writers);
             if(status != 0)
+            {
                 break;
+            }
         }
         waiting_readers--;
     }
     
     if(status == 0)
+    {
         active_readers++;
-    pthread_mutex_unlock(&mutex);
-#endif
+    }
+    monitor->Unlock();
+
     return status;
 }
 
-inline
 int rwlock::start_writing() {
     int status = 0;
-#if USE_PTHREADS_BASED_LIBTHREAD
-    status = pthread_mutex_lock(&mutex);
+
+    status = monitor->Lock();
     if (status != 0) 
+    {
         return status;
+    }
     
     if (active_writers || active_readers > 0) {
         waiting_writers++;
         while(active_writers || active_readers > 0) {
-            status = pthread_cond_wait(&write_cond, &mutex);
+            status = monitor->WaitOnCondition( WRITE_CVID );
             if(status != 0)
+            {
                 break;
+            }
         }
         waiting_writers--;
     }
     if(status == 0)
+    {
         active_writers = 1;
-    pthread_mutex_unlock(&mutex);
-#endif
+    }
+    monitor->Unlock();
+
     return status;
 }
 
-inline
 int rwlock::stop_reading() {
     int status = 0, status2 = 0;
-#if USE_PTHREADS_BASED_LIBTHREAD
-    status = pthread_mutex_lock(&mutex);
+
+    status = monitor->Lock();
     if (status != 0)
+    {
         return status;
+    }
     active_readers--;
     if (active_readers == 0 && waiting_writers > 0)
-        status = pthread_cond_signal(&write_cond);
-    status2 = pthread_mutex_unlock(&mutex);
-#endif
+    {
+        status = monitor->SignalCondition( WRITE_CVID );
+    }
+    status2 = monitor->Unlock();
+
     return (status || status2);
 }
 
-inline
 int rwlock::stop_writing() {
     int status = 0;
-#if USE_PTHREADS_BASED_LIBTHREAD
-    status = pthread_mutex_lock(&mutex);
+
+    status = monitor->Lock();
     if (status != 0)
+    {
         return status;
+    }
     active_writers = 0;
     if (preference == rwlock::favor_writers) {
         if (waiting_writers > 0) {
-            pthread_cond_signal(&write_cond);
-            status = pthread_mutex_unlock(&mutex);
-            if (status != 0)
-                return status;
+            monitor->SignalCondition( WRITE_CVID );
         } else if (waiting_readers > 0) {
-            pthread_cond_broadcast(&read_cond);
-            status = pthread_mutex_unlock(&mutex);
-            if (status != 0)
-                return status;
+            monitor->BroadcastCondition( READ_CVID );
         }
     } else {
             /* favoring readers */
         if (waiting_readers > 0) {
-            pthread_cond_broadcast(&read_cond);
-            status = pthread_mutex_unlock(&mutex);
-            if (status != 0)
-                return status;
+            monitor->BroadcastCondition( READ_CVID );
         } else if (waiting_writers > 0) {
-            pthread_cond_signal(&write_cond);
-            status = pthread_mutex_unlock(&mutex);
-            if (status != 0)
-                return status;
+            monitor->SignalCondition( WRITE_CVID );
         }
     }
     
-    status = pthread_mutex_unlock(&mutex);
-#endif
+    status = monitor->Unlock();
+
     return status;
 }
 
@@ -176,3 +178,6 @@ int rwlock::release(rwlock::locktype lt) {
     }
     return 0;
 }
+
+} // namespace pdthr
+

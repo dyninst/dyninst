@@ -2,7 +2,6 @@
 #define __libthread_thrtabentries_h__
 #define __in_thrtabentries__
 
-#include <pthread.h>
 #include "rwlock.h"
 #include "mailbox.h"
 #include "../h/thread.h"

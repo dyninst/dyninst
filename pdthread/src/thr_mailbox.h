@@ -1,42 +1,47 @@
 #ifndef __libthread_thr_mailbox_h__
 #define __libthread_thr_mailbox_h__
 
-#include <pthread.h>
 #include "message.h"
 #include "mailbox.h"
 #include "refarray.C"
-#include "pthread_sync.h"
 #include "dllist.C"
 #include "predicate.h"
+#include "DummyMonitor.h"
+#include "MsgAvailablePipe.h"
 #include "../h/thread.h"
 
 
+namespace pdthr
+{
 
+class WaitSet;
 
 class thr_mailbox : public mailbox
 {
-	friend class FdSetPopulator;
-	friend class ReadySetPopulator;
+	friend class SocketWaitSetPopulator;
+	friend class FileWaitSetPopulator;
+	friend class SocketReadySetPopulator;
+	friend class FileReadySetPopulator;
 
 private:
-    int msg_avail_pipe[2];
+    MsgAvailablePipe msg_avail_pipe;
     
 
     // sets of bound sockets, ready-to-read sockets, and a mutex 
     // for access control
-    dllist<PdSocket>* bound_socks;
-    dllist<PdSocket>* ready_socks;
-    pthread_sync* sock_monitor;
+    dllist<PdSocket,DummyMonitor>* bound_socks;
+    dllist<PdSocket,DummyMonitor>* ready_socks;
+    XPlat::Mutex sockq_mutex;
 
     // sets of bound files, ready-to-read files, and a mutex 
     // for access control
-    dllist<PdFile>* bound_files;
-    dllist<PdFile>* ready_files;
-    pthread_sync* file_monitor;
+    dllist<PdFile,DummyMonitor>* bound_files;
+    dllist<PdFile,DummyMonitor>* ready_files;
+    XPlat::Mutex fileq_mutex;
     
-    dllist<message*>* messages;
-    dllist<message*>* sock_messages;
-    dllist<message*>* file_messages;
+    dllist<message*,DummyMonitor>* messages;
+    dllist<message*,DummyMonitor>* sock_messages;
+    dllist<message*,DummyMonitor>* file_messages;
     
     bool check_for(thread_t* sender, tag_t* type,
                           bool do_block = false, bool do_yank = false,
@@ -48,7 +53,11 @@ private:
     
 	bool is_buffered_special_ready( thread_t* sender, tag_t* type );
 
-  public:
+protected:
+    virtual void populate_wait_set( WaitSet* wset );
+    virtual void handle_wait_set_input( WaitSet* wset );
+
+public:
     thr_mailbox(thread_t owner);
     virtual ~thr_mailbox();
 
@@ -87,11 +96,20 @@ private:
     void unbind( PdSocket s, bool getlock = true );
     bool is_bound( PdSocket s);
 
+#if defined(i386_unknown_nt4_0)
+    void bind_wmsg( void );
+    void unbind_wmsg( void );
+    bool is_wmsg_bound( void );
+#endif // defined(i386_unknown_nt4_0)
+
     void clear_ready( PdSocket sock );
     void clear_ready( PdFile fd );
     
     virtual void dump_state();
 };
+
+} // namespace pdthr
+
 #endif
 
 

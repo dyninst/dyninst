@@ -1,14 +1,14 @@
 #ifndef __libthread_io_mailbox_h__
 #define __libthread_io_mailbox_h__
 
-#include <pthread.h>
 #include "mailbox.h"
 #include "refarray.C"
-#include "pthread_sync.h"
-#include "dummy_sync.h"
 #include "dllist.C"
 #include "predicate.h"
 #include "../h/thread.h"
+
+namespace pdthr
+{
 
 class io_entity;
 
@@ -32,4 +32,7 @@ class io_mailbox : public mailbox {
     virtual int poll(thread_t* from, tag_t* tagp, unsigned block, unsigned fd_first=0);
 
 };
+
+} // namespace pdthr
+
 #endif

@@ -1,9 +1,18 @@
-#include "thrtab.h"
-#include "thrtab_entries.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include "thrtab.h"
+#include "thrtab_entries.h"
 #include "thr_mailbox.h"
+
+#if !defined(i386_unknown_nt4_0)
+#include <unistd.h>
+#endif // !defined(i386_unknown_nt4_0)
+
+#if defined(i386_unknown_nt4_0)
+#include "win_thr_mailbox.h"
+#include "wmsg_q.h"
+#endif // defined(i386_unknown_nt4_0)
+
 
 #if DO_DEBUG_LIBPDTHREAD_THRTAB == 1
 #define DO_DEBUG_LIBPDTHREAD 1
@@ -16,10 +25,13 @@
 
 #undef DO_DEBUG_LIBPDTHREAD
 
-refarray<entity,1> thrtab::entries;
-hashtbl<entity*,thread_t,pthread_sync> thrtab::entity_registry("entity*","thread_t","entity_registry");
+namespace pdthr
+{
 
-dllist<thread_t,pthread_sync> thrtab::joinables(list_types::fifo);
+refarray<entity> thrtab::entries;
+hashtbl<entity*,thread_t> thrtab::entity_registry("entity*","thread_t","entity_registry");
+
+dllist<thread_t> thrtab::joinables(list_types::fifo);
 
 unsigned thrtab::initialized = thrtab::create_main_thread();
 
@@ -41,11 +53,17 @@ unsigned thrtab::create_main_thread() {
 
     thr_debug_msg(CURRENT_FUNCTION, "main_tid == %d\n", main_tid);
 
+#if defined(i386_unknown_nt4_0)
+    main_thr->init(new win_thr_mailbox(main_tid), NULL, NULL);
+#else // defined(i386_unknown_nt4_0)
     main_thr->init(new thr_mailbox(main_tid), NULL, NULL);
+#endif // defined(i386_unknown_nt4_0)
 
     main_thr = lwp::get_main();    
 
     entity_registry.put((entity*)main_thr, main_tid);
+
+    return 1;
 }
 
 thread_t thrtab::create_thread(lwp::task_t func, lwp::value_t arg, bool start) {
@@ -53,7 +71,11 @@ thread_t thrtab::create_thread(lwp::task_t func, lwp::value_t arg, bool start) {
     thread_t new_tid = entries.push_back((entity*)thread);
     thr_debug_msg(CURRENT_FUNCTION, "creating new thread with tid %d\n", new_tid);
     thread->set_self(new_tid);
+#if defined(i386_unknown_nt4_0)
+    thread->init(new win_thr_mailbox(new_tid), func, arg);
+#else // defined(i386_unknown_nt4_0)
     thread->init(new thr_mailbox(new_tid), func, arg);
+#endif // defined(i386_unknown_nt4_0)
     if(start)
         thread->start();
     thr_debug_msg(CURRENT_FUNCTION, "done creating thread with tid %d\n", new_tid);
@@ -93,6 +115,20 @@ thread_t thrtab::create_socket( PdSocket sock,
     return new_tid;
 }
 
+#if defined(i386_unknown_nt4_0)
+thread_t
+thrtab::create_wmsg( void )
+{
+    wmsg_q* new_q = new wmsg_q;
+
+    thread_t new_tid = entries.push_back( new_q );
+    thr_debug_msg( CURRENT_FUNCTION,
+                    "created new wmsg_q with tid %d\n", new_tid );
+    entity_registry.put( new_q, new_tid );
+
+    return new_tid;
+}
+#endif // defined(i386_unknown_nt4_0)
 
 entity* thrtab::get_entry(thread_t tid) {
     entity* retval = thrtab::entries[tid];
@@ -121,7 +157,7 @@ bool thrtab::is_io_entity(thread_t tid) {
     return entity_type == item_t_file 
 #if defined(i386_unknown_nt4_0)
         || entity_type == item_t_wmsg
-#endif
+#endif // defined(i386_unknown_nt4_0)
         || entity_type == item_t_socket;
 }
 
@@ -143,4 +179,6 @@ void thrtab::unregister_joinable(thread_t tid) {
 thread_t thrtab::get_any_joinable() {
     return joinables.take();
 }
+
+} // namespace pdthr
 

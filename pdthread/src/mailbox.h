@@ -1,27 +1,28 @@
 #ifndef __libthread_mailbox_h__
 #define __libthread_mailbox_h__
 
-#include <pthread.h>
 #include "refarray.C"
-#include "pthread_sync.h"
-#include "dummy_sync.h"
 #include "dllist.C"
 #include "predicate.h"
 #include "../h/thread.h"
+#include "xplat/h/Mutex.h"
+
+
+namespace pdthr
+{
 
 class message;
 
 class mailbox {
   private:
-    static refarray<mailbox,1>* registry;
+    static refarray<mailbox>* registry;
     static void register_mbox(thread_t owner, mailbox* which);
     
   protected:
     thread_t owned_by;
 
-	// monitor for mutual exclusion to the mailbox message queue(s)
-	// and to signal when a message is available
-    pthread_sync* monitor;
+	// lock for mutual exclusion to the mailbox message queue(s)
+    XPlat::Mutex qmutex;
     
   public:
     mailbox(thread_t owner);
@@ -46,4 +47,7 @@ class mailbox {
     /* poll() checks for suitable available messages */
     virtual int poll(thread_t* from, tag_t* tagp, unsigned block, unsigned fd_first=0) = 0;
 };
+
+} // namespace pdthr
+
 #endif

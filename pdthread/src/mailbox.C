@@ -4,13 +4,22 @@
 #include "message_predicates.h"
 #include <stdio.h>
 #include <sys/types.h>
-#include <sys/time.h>
-#include <unistd.h>
 #include "mailbox_defs.h"
 #include "thrtab.h"
 #include "thrtab_entries.h"
+#include "xplat/h/Mutex.h"
 
-refarray<mailbox,1>* mailbox::registry = NULL;
+#if !defined(i386_unknown_nt4_0)
+#include <unistd.h>
+#else
+
+#endif // !defined(i386_unknown_nt4_0)
+
+
+namespace pdthr
+{
+
+refarray<mailbox>* mailbox::registry = NULL;
 
 
 void mailbox::dump_mailboxes() {
@@ -48,17 +57,17 @@ mailbox* mailbox::for_thread(thread_t tid) {
 
 void mailbox::register_mbox(thread_t owner, mailbox* which) {
     if (!mailbox::registry)
-        mailbox::registry = new refarray<mailbox,1>(2048,NULL,NULL);
+        mailbox::registry = new refarray<mailbox>(2048,NULL);
     mailbox::registry->set_elem_at(owner, which);    
 }
 
 mailbox::mailbox(thread_t owner) {
     owned_by = owner;
     mailbox::register_mbox(owner, this); 
-    monitor = new pthread_sync("main mailbox monitor");
-    monitor->register_cond(RECV_AVAIL);
 }
 
 mailbox::~mailbox() {
-    delete monitor;
 }
+
+} // namespace pdthr
+

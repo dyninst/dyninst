@@ -1,7 +1,5 @@
 #include <stdarg.h>
 #include "../h/thread.h"
-#include "hashtbl.C"
-#include "pthread_sync.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -44,7 +42,10 @@ static void thr_debug_msg(const char* func_name, const char* format, ...) {
     unsigned len = 2048 + strlen(preamble_format) + (func_name ? strlen(func_name) : 0) + strlen(format) + strlen(name);
     char* real_format = 
         new char[len];
-    unsigned ct = snprintf(real_format, 256, preamble_format, getpid(), thr_self(), pthread_self(), name, func_name);
+    unsigned ct = snprintf(real_format, 256,
+                    preamble_format, getpid(), thr_self(),
+                    Thread::GetSelfId(),
+                    name, func_name);
     strncat(real_format, format, len - ct - 1);
     vfprintf(stderr, real_format, ap);
     delete [] real_format;
