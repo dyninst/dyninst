@@ -122,6 +122,30 @@ bool dyn_lwp::changePC( Address loc, dyn_saved_regs * regs ) {
 	return ::changePC( proc_->getPid(), loc );
 	} /* end changePC() */
 
+
+bool process::instrSideEffect( Frame &frame, instPoint * inst)
+{
+  int_function *instFunc = inst->pointFunc();
+  if (!instFunc) return false;
+
+  codeRange *range = frame.getRange();
+  if (range->is_function() != instFunc) {
+    return true;
+  }
+
+  if (inst->getPointType() == callSite) {
+    /* FIXME!!!! */
+    fprintf(stderr, "IA64 doesn't adjust call sites yet\n");
+    Address insnAfterPoint = inst->absPointAddr(this) + 5;
+    // Callsite = 5 bytes.
+    if (frame.getPC() == insnAfterPoint) {
+      frame.setPC(baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset);
+    }
+  }
+
+  return true;
+}
+
 void printRegs( void * /* save */ ) {
 	assert( 0 );
 	} /* end printReg[isters, should be]() */

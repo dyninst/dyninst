@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.154 2005/02/17 21:10:41 bernat Exp $
+// $Id: linux.C,v 1.155 2005/02/18 22:21:41 bernat Exp $
 
 #include <fstream>
 
@@ -1257,40 +1257,6 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
 }
 #endif
 
-
-bool process::instrSideEffect( Frame &frame, instPoint * inst)
-{
-  int_function *instFunc = inst->pointFunc();
-  if (!instFunc) return false;
-
-  codeRange *range = frame.getRange();
-  if (range->is_function() != instFunc) {
-    return true;
-  }
-
-
-  cerr << frame;
-  fprintf(stderr, "   Point in %s, %x, type %d\n",
-	  instFunc->prettyName().c_str(),
-	  inst->absPointAddr(this),
-	  inst->getPointType());
-  
-  if (inst->getPointType() == callSite) {
-    fprintf(stderr, "... call site insn...");
-    Address insnAfterPoint = inst->absPointAddr(this) + 5;
-    fprintf(stderr, "Checking PC %x against addr %x\n",
-	    frame.getPC(), insnAfterPoint);
-    // Callsite = 5 bytes.
-    if (frame.getPC() == insnAfterPoint) {
-      fprintf(stderr, "Should be changing frame PC 0x%x to 0x%x\n",
-	      insnAfterPoint,
-	      baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset);
-      frame.setPC(baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset);
-    }
-  }
-
-  return true;
-}
 
 procSyscall_t decodeSyscall(process * /*p*/, procSignalWhat_t what)
 {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.59 2005/02/17 21:10:40 bernat Exp $
+// $Id: linux-x86.C,v 1.60 2005/02/18 22:21:41 bernat Exp $
 
 #include <fstream>
 
@@ -671,6 +671,27 @@ static bool isEntryExitInstrumentation(process *p, Frame f)
       return true;
 
    return false;
+}
+
+bool process::instrSideEffect( Frame &frame, instPoint * inst)
+{
+  int_function *instFunc = inst->pointFunc();
+  if (!instFunc) return false;
+
+  codeRange *range = frame.getRange();
+  if (range->is_function() != instFunc) {
+    return true;
+  }
+
+  if (inst->getPointType() == callSite) {
+    Address insnAfterPoint = inst->absPointAddr(this) + 5;
+    // Callsite = 5 bytes.
+    if (frame.getPC() == insnAfterPoint) {
+      frame.setPC(baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset);
+    }
+  }
+
+  return true;
 }
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.171 2005/02/17 21:10:46 bernat Exp $
+// $Id: solaris.C,v 1.172 2005/02/18 22:21:42 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -995,12 +995,9 @@ bool process::instrSideEffect(Frame &frame, instPoint *inst)
   }
 
   if (inst->getPointType() == callSite) {
-    Address insnAfterPoint = inst->absPointAddr(this) + sizeof(instruction);
+    Address insnAfterPoint = inst->absPointAddr(this) + 2*sizeof(instruction);
 
     if (frame.getPC() == insnAfterPoint) {
-      fprintf(stderr, "Should be changing frame PC 0x%x to 0x%x\n",
-	      insnAfterPoint,
-	      baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset);
       frame.setPC(baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset);
     }
   }
