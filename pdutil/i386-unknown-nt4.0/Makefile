@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 1998/04/01 02:36:32 wylie Exp $
+# $Id: Makefile,v 1.3 1998/08/16 23:25:05 wylie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -19,7 +19,7 @@ DO_INLINE_ALL           = true
 
 # Now make any necessary architecture specific changes to variables:
 
-#CXXFLAGS		= $(CXXFLAGS)
+CXXFLAGS		= $(CXXFLAGS) -DMATH_EXCEPTION_STRUCT=_exception
 
 # Include the "standard library template".  This defines all the
 # common targets like "clean", "install", etc.
