@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #define LASTUNSIGNED    ((uint32_t) 0-1)
 
@@ -269,8 +270,7 @@ bool_t pdr_bytes(PDR *pdrs, char **cpp, uint32_t *sizep, uint32_t maxsize)
 bool_t pdr_string(PDR *pdrs, char **cpp, uint32_t maxsize)
 {
     char *sp = *cpp;  /* sp is the actual string pointer */
-    uint32_t size=0;
-    uint32_t nodesize;
+    uint32_t nodesize=0;
 
     /*
      * first deal with the length since pdr strings are counted-std::strings
@@ -294,7 +294,7 @@ bool_t pdr_string(PDR *pdrs, char **cpp, uint32_t maxsize)
     if (! pdr_uint32(pdrs, &nodesize)) {
         return FALSE;
     }
-    if (size > maxsize) {
+    if (nodesize > maxsize) {
         return FALSE;
     }
 

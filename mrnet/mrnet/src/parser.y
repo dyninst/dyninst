@@ -45,7 +45,7 @@ config: line config
 | line
 {
     if(potential_root.size() != 1){
-        mrn_printf(1, MCFL, stderr, "graph is not connected\n");
+        mrn_dbg(1, mrn_printf(FLF, stderr, "graph is not connected\n") );
         YYABORT;
     }           
     NetworkImpl::parsed_graph->set_Root( *potential_root.begin() );

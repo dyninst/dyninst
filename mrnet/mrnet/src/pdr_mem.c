@@ -298,8 +298,9 @@ bool_t pdrmem_getdouble_swap(PDR *pdrs, double *p)
 
 bool_t pdrmem_getbytes(PDR *pdrs, char * addr,  uint32_t len)
 {
-    if ((pdrs->space -= len) < 0)
+    if ((pdrs->space -= len) < 0){
         return (FALSE);
+    }
     memcpy(addr, pdrs->cur, len);
     pdrs->cur += len;
     return (TRUE);
