@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.157 2003/06/16 21:14:37 bernat Exp $
+// $Id: aix.C,v 1.158 2003/06/17 20:27:25 schendel Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -758,23 +758,6 @@ void process::inferiorMallocAlign(unsigned &size)
 #endif
 
 #ifndef BPATCH_LIBRARY
-bool process::isPmapiAvail() {
-#ifdef USES_PMAPI
-  return true;
-#else
-  return false;
-#endif
-}
-
-void process::initCpuTimeMgrPlt() {
-  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_ONE, &process::isPmapiAvail, 
-			   getCyclesPerSecond(), timeBase::bNone(), 
-			   &process::getRawCpuTime_hw, "hwCpuTimeFPtrInfo");
-  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
-			   timeUnit::us(), timeBase::bNone(), 
-			   &process::getRawCpuTime_sw, "swCpuTimeFPtrInfo");
-}
-
 class instReqNode;
 
 bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
@@ -1372,18 +1355,21 @@ char *(*P_functionName)(Name *);
 
 void loadNativeDemangler() 
 {
-    char *buffer[1024];
+   char *buffer[1024];
 
-    P_native_demangle = NULL;
-
-    void *hDemangler = dlopen("libdemangle.so.1", RTLD_LAZY|RTLD_MEMBER);
-    if (hDemangler != NULL) {
-        P_native_demangle = (Name*(*)(char*, char**, long unsigned int)) dlsym(hDemangler, "demangle");
-
-	P_functionName = (char*(*)(Name*)) dlsym(hDemangler, "functionName");
-    } else {
-	BPatch_reportError(BPatchSerious,122,"unable to load external demangler libdemangle.so.1\n");
-    }
+   P_native_demangle = NULL;
+   
+   void *hDemangler = dlopen("libdemangle.so.1", RTLD_LAZY|RTLD_MEMBER);
+   if (hDemangler != NULL) {
+      P_native_demangle = (Name*(*)(char*, char**, long unsigned int)) dlsym(hDemangler, "demangle");
+      P_functionName = (char*(*)(Name*)) dlsym(hDemangler, "functionName");
+   } else {
+#if defined(BPATCH_LIBRARY)
+      BPatch_reportError(BPatchSerious,122,"unable to load external demangler libdemangle.so.1\n");
+#else
+      cerr << "unable to load external demangler libdemangle.so.1\n";
+#endif
+   }
 }
 
 extern "C" char *cplus_demangle(char *, int);

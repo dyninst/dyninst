@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.430 2003/06/11 20:05:47 bernat Exp $
+// $Id: process.C,v 1.431 2003/06/17 20:27:33 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1959,17 +1959,15 @@ process::~process()
     // remove it from the processVec
     unsigned int size = processVec.size();
     bool found = false;
-
+    
     for (unsigned lcv=0; lcv < size; lcv++) {
-	if (processVec[lcv] == this) {
-	    assert(!found);
-	    found = true;
-	    processVec[lcv] = processVec[processVec.size()-1];
-	    processVec.resize(size-1);
-	}
+       if (processVec[lcv] == this) {
+          assert(!found);
+          found = true;
+          processVec[lcv] = processVec[processVec.size()-1];
+          processVec.resize(size-1);
+       }
     }
-#else
-  cpuTimeMgr->destroyMechTimers(this);
 #endif
    dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(lwps);
    dyn_lwp *lwp;
@@ -2003,15 +2001,6 @@ process::process(int iPid, image *iImage, int iTraceLink
   collectSaveWorldData(true),
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
  requestTextMiniTramp(0), //ccw 30 jul 2002
-#endif
-#ifndef BPATCH_LIBRARY
-  cpuTimeMgr(NULL),
-#ifdef HRTIME
-  hr_cpu_link(NULL),
-#endif
-#ifdef PAPI
-  papi(NULL),
-#endif
 #endif
   baseMap(ipHash), 
 #ifdef BPATCH_LIBRARY
@@ -2087,8 +2076,6 @@ process::process(int iPid, image *iImage, int iTraceLink
 #ifndef BPATCH_LIBRARY
     theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
     shmMetaData = new sharedMetaData(*theSharedMemMgr, maxNumberOfThreads());
-
-    initCpuTimeMgr();
 
     string buff = string(pid); // + string("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
@@ -2199,15 +2186,6 @@ process::process(int iPid, image *iSymbols,
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
   requestTextMiniTramp(0), //ccw 30 jul 2002
 #endif
-#if !defined(BPATCH_LIBRARY)
-  cpuTimeMgr(NULL),
-#ifdef HRTIME
-  hr_cpu_link(NULL),
-#endif // HRTIME
-#ifdef PAPI
-  papi(NULL),
-#endif
-#endif // BPATCH
   baseMap(ipHash),
 #if defined(BPATCH_LIBRARY)
   PDFuncToBPFuncMap(hash_bp),
@@ -2278,8 +2256,6 @@ process::process(int iPid, image *iSymbols,
 #ifndef BPATCH_LIBRARY
     theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
     shmMetaData = new sharedMetaData(*theSharedMemMgr, maxNumberOfThreads());
-
-    initCpuTimeMgr();
     
     string buff = string(pid); // + string("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
@@ -2450,15 +2426,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   collectSaveWorldData(true),
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
   requestTextMiniTramp(0), //ccw 30 jul 2002
-#endif
-#ifndef BPATCH_LIBRARY
-  cpuTimeMgr(NULL),
-#ifdef HRTIME
-  hr_cpu_link(NULL),
-#endif
-#ifdef PAPI
-  papi(NULL),
-#endif
 #endif
   baseMap(ipHash), // could change to baseMap(parentProc.baseMap)
 #ifdef BPATCH_LIBRARY
@@ -5993,130 +5960,6 @@ bool process::handleStopDueToExecEntry() {
 }
 #endif
 
-#ifndef BPATCH_LIBRARY
-void process::verifyTimerLevels() {
-  int hintBestCpuTimerLevel, hintBestWallTimerLevel;
-  bool err = false;
-  int appAddrWidth = getImage()->getObject().getAddressWidth();
-  Address addr = findInternalAddress("hintBestCpuTimerLevel",true,err);
-  assert(err==false);
-  if (!readDataSpace((caddr_t)addr, appAddrWidth, &hintBestCpuTimerLevel,true))
-    return;  // readDataSpace has it's own error reporting
-  int curCpuTimerLevel = int(cpuTimeMgr->getBestLevel())+1;
-  if(curCpuTimerLevel < hintBestCpuTimerLevel) {
-    char errLine[150];
-    sprintf(errLine, "Chosen cpu timer level (%d) is not available in the rt library (%d is best).\n", curCpuTimerLevel, hintBestCpuTimerLevel);
-    fprintf(stderr, errLine);
-    assert(0);
-  }
-
-  addr = findInternalAddress("hintBestWallTimerLevel",true,err);
-  assert(err==false);
-  if (!readDataSpace((caddr_t)addr, appAddrWidth,&hintBestWallTimerLevel,true))
-    return;  // readDataSpace has it's own error reporting
-  int curWallTimerLevel = int(getWallTimeMgr().getBestLevel())+1;
-  if(curWallTimerLevel < hintBestWallTimerLevel) {
-    char errLine[150];
-    sprintf(errLine, "Chosen wall timer level (%d) is not available in the rt library (%d is best).\n", curWallTimerLevel, hintBestWallTimerLevel);
-    fprintf(stderr, errLine);
-    assert(0);
-  }  
-}
-
-/*
-// being disabled since written for IRIX platform, now that don't support
-// this platform, don't have way to test changes needed in this feature
-// feel free to bring back to life if the need arises again
-bool process::writeTimerFuncAddr_Force32(const char *rtinstVar,
-			   const char *rtinstFunc)
-{
-   bool err = false;
-   int rtfuncAddr = findInternalAddress(rtinstFunc, true, err);
-   assert(err==false);
-
-   err = false;
-   int timeFuncVarAddr = findInternalAddress(rtinstVar, true, err);
-   assert(err==false);
-
-   return writeTextSpace((void *)(timeFuncVarAddr),
-			 sizeof(rtfuncAddr), (void *)(&rtfuncAddr));
-}
-*/
-
-/* That is, get the address of the thing to set the function pointer to.  In
-   most cases, this will be the address of the desired function, however, on
-   AIX it is the address of a structure which in turn points to the desired
-   function. 
-*/
-Address process::getTimerQueryFuncTransferAddress(const char *helperFPtr) {
-  bool err = false;
-  Address transferAddrVar = findInternalAddress(helperFPtr, true, err);
-
-  //logStream << "address of var " << helperFPtr << " = " << hex 
-  //    << transferAddrVar <<"\n";
-
-  int appAddrWidth = getImage()->getObject().getAddressWidth();
-
-  Address transferAddr = 0;
-  assert(err==false);
-  if (!readDataSpace((caddr_t)transferAddrVar, appAddrWidth, 
-		     &transferAddr, true)) {
-    cerr << "getTransferAddress: can't read var " << helperFPtr << "\n";
-    return 0;
-  }
-  return transferAddr;
-}
-
-bool process::writeTimerFuncAddr_(const char *rtinstVar,
-				   const char *rtinstHelperFPtr)
-{
-   Address rtfuncAddr = getTimerQueryFuncTransferAddress(rtinstHelperFPtr);
-   //logStream << "transfer address at var " << rtinstHelperFPtr << " = " 
-   //     << hex << rtfuncAddr <<"\n";
-   bool err = false;
-   Address timeFuncVarAddr = findInternalAddress(rtinstVar, true, err);
-   //logStream << "timeFuncVarAddr (" << rtinstVar << "): " << hex
-   //   << timeFuncVarAddr << "\n";
-   assert(err==false);
-   return writeTextSpace((void *)(timeFuncVarAddr),
-   			 sizeof(rtfuncAddr), (void *)(&rtfuncAddr));
-}
-
-void process::writeTimerFuncAddr(const char *rtinstVar, 
-				 const char *rtinstHelperFPtr)
-{   
-  bool result;
-   // being disabled since written for IRIX platform, now that don't support
-   // this platform, don't have way to test changes needed in this feature
-   // feel free to bring back to life if the need arises again
-   //int appAddrWidth = getImage()->getObject().getAddressWidth();
-   //if(sizeof(Address)==8 && appAddrWidth==4)
-   //result = writeTimerFuncAddr_Force32(rtinstVar, rtinstFunc);     
-   //else
-   result = writeTimerFuncAddr_(rtinstVar, rtinstHelperFPtr);          
-
-   if(result == false) {
-     cerr << "!!!  Couldn't write timer func address into rt library !!\n";
-   }
-}
-
-void process::writeTimerLevels() {
-   char rtTimerStr[61];
-   rtTimerStr[60] = 0;
-   string cStr = cpuTimeMgr->get_rtTimeQueryFuncName(cpuTimeMgr_t::LEVEL_BEST);
-   strncpy(rtTimerStr, cStr.c_str(), 59);
-   writeTimerFuncAddr("PARADYNgetCPUtime", rtTimerStr);
-   //logStream << "Setting cpu time retrieval function in rtinst to " 
-   //     << rtTimerStr << "\n" << flush;
-   
-   string wStr=wallTimeMgr->get_rtTimeQueryFuncName(wallTimeMgr_t::LEVEL_BEST);
-   strncpy(rtTimerStr, wStr.c_str(), 59);
-   writeTimerFuncAddr("PARADYNgetWalltime", rtTimerStr);
-   //logStream << "Setting wall time retrieval function in rtinst to " 
-   //     << rtTimerStr << "\n" << flush;
-}
-#endif
-
 void process::getObservedCostAddr() {
 
 #if !defined(SHM_SAMPLING) || 1 //ccw 19 apr 2002 : SPLIT
@@ -6473,102 +6316,6 @@ void process::MonitorDynamicCallSites(string function_name){
     }
   }
 }
-#endif
-
-#ifndef BPATCH_LIBRARY
-bool bForceSoftwareLevelCpuTimer() {
-  char *pdkill;
-  pdkill = getenv("PD_SOFTWARE_LEVEL_CPU_TIMER");
-  if( pdkill )
-    return true;
-  else
-    return false;
-}
-
-void process::initCpuTimeMgr() {
-  if(cpuTimeMgr != NULL)  delete cpuTimeMgr;
-  cpuTimeMgr = new cpuTimeMgr_t();
-  initCpuTimeMgrPlt();
-
-  if(bForceSoftwareLevelCpuTimer()) {
-    cpuTimeMgr_t::mech_t *tm=cpuTimeMgr->getMechLevel(cpuTimeMgr_t::LEVEL_TWO);
-    cpuTimeMgr->installMechLevel(cpuTimeMgr_t::LEVEL_BEST, tm);    
-    if(bShowTimerInfo())
-          cerr << "Forcing to software level cpu timer\n";
-    sampleVal_cerr << "Forcing to software level cpu timer\n";
-  } else {
-    cpuTimeMgr->determineBestLevels(this);
-  }
-  cpuTimeMgr_t::timeMechLevel ml = cpuTimeMgr->getBestLevel();
-  sampleVal_cerr << "Chosen cpu timer level: " << int(ml)+1 << "  "
-		 << *cpuTimeMgr->getMechLevel(ml)
-		 << "(timeBase is irrelevant for cpu time)\n\n";
-  if(bShowTimerInfo()) {
-    cerr << "Chosen cpu timer level: " << int(ml)+1 << "  "
-	 << *cpuTimeMgr->getMechLevel(ml)
-	 << "(timeBase is irrelevant for cpu time)\n\n";    
-  }
-}
-
-timeStamp process::getCpuTime(int lwp_id) {
-   if(status() == exited) {
-      return timeStamp::tsLongAgoTime();
-   }
-
-   return cpuTimeMgr->getTime(this, lwp_id, cpuTimeMgr_t::LEVEL_BEST);
-  /* can nicely handle case when we allow exceptions
-     } catch(LevelNotInstalled &) {
-     cerr << "getCpuTime: timer level not installed\n";
-     assert(0);
-     }
-  */
-}
-
-bool process::yesAvail() {
-  return true; 
-}
-
-rawTime64 process::getRawCpuTime_hw(int lwp)
-{
-  return lwps[lwp]->getRawCpuTime_hw();
-}
-
-rawTime64 process::getRawCpuTime_sw(int lwp)
-{
-  return lwps[lwp]->getRawCpuTime_sw();
-}
-
-rawTime64 process::getRawCpuTime(int lwp) {
-  return cpuTimeMgr->getRawTime(this, lwp, cpuTimeMgr_t::LEVEL_BEST);
-  /* can nicely handle case when we allow exceptions
-     } catch(LevelNotInstalled &) {
-     cerr << "getRawCpuTime: timer level not installed\n";
-     assert(0);
-     }
-  */
-}
-
-timeStamp process::units2timeStamp(int64_t rawunits) {
-  return cpuTimeMgr->units2timeStamp(rawunits, cpuTimeMgr_t::LEVEL_BEST);
-  /* can nicely handle case when we allow exceptions
-     } catch(LevelNotInstalled &) {
-     cerr << "units2timeStamp: timer level not installed\n";
-     assert(0);
-     }
-  */
-}
-
-timeLength process::units2timeLength(int64_t rawunits) {
-    return cpuTimeMgr->units2timeLength(rawunits, cpuTimeMgr_t::LEVEL_BEST);
-
-  /* can nicely handle case when we allow exceptions
-     } catch(LevelNotInstalled &) {
-     cerr << "units2timeStamp: timer level not installed\n";
-     assert(0);
-     }
-  */
-}
-
 #endif
 
 #ifdef BPATCH_LIBRARY

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.148 2003/06/02 22:04:39 mjbrim Exp $
+// $Id: solaris.C,v 1.149 2003/06/17 20:27:35 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1340,14 +1340,6 @@ bool process::findCallee(instPoint &instr, function_base *&target){
     target = 0;
     return false;  
 }
-
-#ifndef BPATCH_LIBRARY
-void process::initCpuTimeMgrPlt() {
-  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
-			   timeUnit::ns(), timeBase::bNone(), 
-			   &process::getRawCpuTime_sw, "swCpuTimeFPtrInfo");
-}
-#endif
 
 void loadNativeDemangler() {
   

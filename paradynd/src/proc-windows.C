@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996-2001 Barton P. Miller
+ * Copyright (c) 1996 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -39,33 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Id: RThwctr-aix.h
- */
-
-#ifndef _RTHWCTR_AIX_H
-#define _RTHWCTR_AIX_H
+// $Id: proc-windows.C,v
 
 
-typedef enum pmapi_events {
-   PM_FIRST_EVENT = 0,
-   PM_CYC_EVENT = 0,
-   PM_INSTR_CMPL_EVENT = 1,
-   PM_END_EVENT = 2  /* 1 + last_event_type */
-} pmapi_event_t;
-
-int desired_hwctr_binding[PM_END_EVENT] = {
-   0,  /* PM_CYC_EVENT        =>  HW_CTR 0 */
-   1   /* PM_INSTR_CMPL_EVENT =>  HW_CTR 1 */
-};
-
-char *pmapi_event_string[PM_END_EVENT] = { "PM_CYC", "PM_INST_CMPL" };
-
-#define get_hwctr_binding(event) desired_hwctr_binding[event]
-#define get_event_string(event)  pmapi_event_string[event]
+#include "paradynd/src/pd_process.h"
+#include "common/h/timing.h"
 
 
+void pd_process::initCpuTimeMgrPlt() {
+   cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &pd_process::yesAvail, 
+                            timeUnit(fraction(100)), timeBase::bNone(), 
+                            &pd_process::getRawCpuTime_sw,"swCpuTimeFPtrInfo");
+}
 
-
-#endif
 

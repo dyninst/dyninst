@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.14 2003/05/14 18:32:34 tlmiller Exp $
+# $Id: Makefile,v 1.15 2003/06/17 20:27:36 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -34,6 +34,7 @@ SRCS =		../../dyninstAPI/src/linux.C \
 		../../dyninstAPI/src/linuxDL.C \
 		../src/init-linux.C \
 		../../dyninstAPI/src/inst-linux.C \
+		../../paradynd/src/proc-linux.C \
 		../../dyninstAPI/src/inst-x86.C \
 		../../dyninstAPI/src/arch-x86.C \
 		../../dyninstAPI/src/arch-ia32.C \

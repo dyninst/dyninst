@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.50 2003/04/17 20:55:54 jaw Exp $
+// $Id: osf.C,v 1.51 2003/06/17 20:27:31 schendel Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -863,14 +863,6 @@ fileDescriptor *getExecFileDescriptor(string filename,
   fileDescriptor *desc = new fileDescriptor(filename);
   return desc;
 }
-
-#ifndef BPATCH_LIBRARY
-void process::initCpuTimeMgrPlt() {
-  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
-			   timeUnit::ns(), timeBase::bNone(), 
-			   &process::getRawCpuTime_sw, "DYNINSTgetCPUtime_sw");
-}
-#endif
 
 bool dyn_lwp::openFD_()
 {

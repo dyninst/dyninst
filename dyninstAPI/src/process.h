@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.259 2003/06/11 20:05:48 bernat Exp $
+/* $Id: process.h,v 1.260 2003/06/17 20:27:34 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -56,7 +56,6 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h" // ccw 18 apr 2002 : SPLIT only for (DYNINSTbootstrapStruct
 
 #include "rtinst/h/rtinst.h"
-#include "paradynd/src/timeMgr.h"
 #endif
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/util.h"
@@ -94,10 +93,6 @@
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
 #include <procfs.h>
-#endif
-
-#if defined(HRTIME) && !defined(BPATCH_LIBRARY)
-#include "hrtime.h"
 #endif
 
 #include "dyninstAPI/src/sharedobject.h"
@@ -623,93 +618,6 @@ void saveWorldData(Address address, int size, const void* src);
   Address trampGuardAddr(void) { return trampGuardAddr_; }
   void setTrampGuardAddr(Address addr) { trampGuardAddr_ = addr; }
   
-  // Cpu time related functions and members
-#ifndef BPATCH_LIBRARY
- public:
-  // called by process object constructor
-  void initCpuTimeMgr();
-  // called by initCpuTimeMgr, sets up platform specific aspects of cpuTimeMgr
-  void initCpuTimeMgrPlt();
-
-  // Call getCpuTime to get the current cpu time of process. Time conversion
-  // from raw to primitive time units is done in relevant functions by using
-  // the units ratio as defined in the cpuTimeMgr.  getCpuTime and getRawTime
-  // use the best level as determined by the cpuTimeMgr.
-  timeStamp getCpuTime(int lwp);
-  timeStamp units2timeStamp(int64_t rawunits);
-  timeLength units2timeLength(int64_t rawunits);
-  rawTime64 getRawCpuTime(int lwp);
-
- private:
-  // Platform dependent (ie. define in platform files) process time retrieval
-  // function for daemon.  Use process::getCpuTime instead of calling these
-  // functions directly.  If platform doesn't implement particular level,
-  // still need to define a definition (albeit empty).  Ignores lwp arg if
-  // lwp's are irrelevant for platform. The file descriptor argument "fd"
-  // is used.
-
-  // NOTE: It is the caller's responsibility to check for rollbacks!
-
-  rawTime64 getRawCpuTime_hw(int lwp);
-  rawTime64 getRawCpuTime_sw(int lwp);
-
-  // function always returns true, used when timer level is always available
-  bool yesAvail();
-  // The process time time mgr.  This handles choosing the best timer level
-  // to use.  Call getTime member with a process object and an integer lwp
-  // as args.
-  typedef timeMgr<process, int> cpuTimeMgr_t;
-  cpuTimeMgr_t *cpuTimeMgr;
-
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
-  bool isLibhrtimeAvail();           // for high resolution cpu timer on linux
-  bool isPapiAvail();           
-  void free_hrtime_link();
-#ifdef HRTIME
-  struct hrtime_struct *hr_cpu_link;
-#endif
-#endif
-#ifdef mips_sgi_irix6_4
-  bool isR10kCntrAvail();
-#endif
-#ifdef rs6000_ibm_aix4_1
-  bool isPmapiAvail();
-#endif
-  public:
-  
-  // Verifies that the wall and cpu timer levels chosen by the daemon are
-  // also available within the rtinst library.  This is an issue because the
-  // daemon chooses the wall and cpu timer levels to use at daemon startup
-  // and process object initialization respectively.  There is an outside
-  // chance that the level would be determined unavailable by the rtinst
-  // library upon application startup.  Asserts if there is a mismatch.
-  void verifyTimerLevels();
-  // Sets the wall and cpu time retrieval functions to use in the the rtinst
-  // library by setting a function ptr in the rtinst library to the address
-  // of the chosen function.
-  void writeTimerLevels();
-  private:
-  // helper routines for writeTimerLevels
-  void writeTimerFuncAddr(const char *rtinstVar, const char *rtinstHelperFPtr);
-  bool writeTimerFuncAddr_(const char *rtinstVar,const char *rtinstHelperFPtr);
-
-  // returns the address to assign to a function pointer that will
-  // allow the time querying function to be called (in the rtinst library)
-  // on AIX, this address returned will be the address of a structure which 
-  //   has a field that points to the proper querying function (function 
-  //   pointers are handled differently on AIX)
-  // on other platforms, this address will be the address of the time
-  // querying function in the rtinst library
-  Address getTimerQueryFuncTransferAddress(const char *helperFPtr);
-
-  // handles setting time retrieval functions for the case of a 64bit daemon
-  // and 32bit application
-  // see process.C definition for why being disabled
-  //bool writeTimerFuncAddr_Force32(const char *rtinstVar, 
-  //			  const char *rtinstFunc);
- public:
-#endif
-
 #ifdef BPATCH_LIBRARY
   BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, instPoint *ip,
 				    BPatch_procedureLocation pointType);

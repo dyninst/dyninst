@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.13 2003/05/08 21:41:20 pcroth Exp $
+# $Id: Makefile,v 1.14 2003/06/17 20:27:37 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -18,6 +18,7 @@ include ../../nmake.config
 SRCS =		../src/pdwinnt.C \
 		../src/Object-nt.C \
 		../src/init-winnt.C \
+		../src/proc-windows.C \
 		../src/inst-winnt.C \
 		../src/inst-x86.C \
 		../src/func-reloc.C \
@@ -31,6 +32,7 @@ SRCS =		../src/pdwinnt.C \
 OBJS = 		pdwinnt.obj \
 		Object-nt.obj \
 		init-winnt.obj \
+		proc-windows.obj \
 		inst-winnt.obj \
 		inst-x86.obj \
 		func-reloc.obj \

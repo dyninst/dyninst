@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.29 2003/05/21 14:52:23 pcroth Exp $
+// $Id: linux-x86.C,v 1.30 2003/06/17 20:27:29 schendel Exp $
 
 #include <fstream.h>
 
@@ -79,10 +79,6 @@
 #include "dyninstAPI/src/writeBackElf.h"
 //#include "saveSharedLibrary.h" 
 
-#endif
-
-#ifdef HRTIME
-#include "rtinst/h/RThwtimer-linux.h"
 #endif
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)

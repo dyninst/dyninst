@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.11 2003/05/12 21:28:59 bernat Exp $
+// $Id: dyn_thread.h,v 1.12 2003/06/17 20:27:27 schendel Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -124,9 +124,7 @@ class dyn_thread {
   function_base* get_start_func()          { return(start_func); }
   unsigned       get_start_pc()      const { return(start_pc); }
   void*          get_resumestate_p()       { return resumestate_p; }
-#if defined(MT_THREAD)
-  rawTime64  getInferiorVtime(virtualTimer*, bool&);
-#endif
+
   void update_tid          (unsigned tid_)        { tid = tid_; }
   void update_index          (unsigned index_)        { index = index_; }
   void update_lwp          (dyn_lwp *lwp_)        { lwp = lwp_; }

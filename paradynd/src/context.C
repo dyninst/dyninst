@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.98 2003/05/30 21:32:37 bernat Exp $ */
+/* $Id: context.C,v 1.99 2003/06/17 20:27:40 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -161,7 +161,7 @@ void createThread(traceThread *fr) {
       // forks
       return;
    }
-   pd_thread *pd_thr = new pd_thread(thr);
+   pd_thread *pd_thr = new pd_thread(thr, proc);
    proc->addThread(pd_thr);
    metricFocusNode::handleNewThread(proc, pd_thr);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.99 2003/05/08 21:41:20 pcroth Exp $
+// $Id: pdwinnt.C,v 1.100 2003/06/17 20:27:32 schendel Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -1988,14 +1988,6 @@ getExecFileDescriptor(string filename, int& status, bool)
     // "status" holds the process handle
     return new fileDescriptor_Win( filename, (HANDLE)status );
 }
-
-#ifndef BPATCH_LIBRARY
-void process::initCpuTimeMgrPlt() {
-  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
-			   timeUnit(fraction(100)), timeBase::bNone(), 
-			   &process::getRawCpuTime_sw, "swCpuTimeFPtrInfo");
-}
-#endif
 
 bool getLWPIDs(pdvector <unsigned> &LWPids)
 {

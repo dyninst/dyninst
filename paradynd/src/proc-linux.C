@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996-2001 Barton P. Miller
+ * Copyright (c) 1996 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -39,33 +39,54 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Id: RThwctr-aix.h
- */
+// $Id: proc-linux.C,v
 
-#ifndef _RTHWCTR_AIX_H
-#define _RTHWCTR_AIX_H
+#include "paradynd/src/pd_process.h"
+#include "paradynd/src/init.h"
 
+timeUnit calcJiffyUnit() {
+   // Determine the number of jiffies/sec by checking the clock idle time in
+   // /proc/uptime against the jiffies idle time in /proc/stat
+   
+   FILE *tmp = P_fopen( "/proc/uptime", "r" );
+   assert( tmp );
+   double uptimeReal;
+   assert( 1 == fscanf( tmp, "%*f %lf", &uptimeReal ) );
+   fclose( tmp );
+   tmp = P_fopen( "/proc/stat", "r" );
+   assert( tmp );
+   int uptimeJiffies;
+   assert( 1 == fscanf( tmp, "%*s %*d %*d %*d %d", &uptimeJiffies ) );
+   
+   if (sysconf(_SC_NPROCESSORS_CONF) > 1) {
+      // on SMP boxes, the first line is cumulative jiffies, the second line
+      // is jiffies for cpu0 - on uniprocessors, this fscanf will fail as
+      // there is only a single cpu line
+      assert (1 == fscanf(tmp, "\ncpu0 %*d %*d %*d %d", &uptimeJiffies));
+   }
+   
+   fclose( tmp );
+   int intJiffiesPerSec = static_cast<int>( static_cast<double>(uptimeJiffies) 
+                                            / uptimeReal + 0.5 );
+   timeUnit jiffy(fraction(1000000000LL, intJiffiesPerSec));
+   return jiffy;
+}
 
-typedef enum pmapi_events {
-   PM_FIRST_EVENT = 0,
-   PM_CYC_EVENT = 0,
-   PM_INSTR_CMPL_EVENT = 1,
-   PM_END_EVENT = 2  /* 1 + last_event_type */
-} pmapi_event_t;
+bool pd_process::isPapiAvail() {
+   return isPapiInitialized();
+}
 
-int desired_hwctr_binding[PM_END_EVENT] = {
-   0,  /* PM_CYC_EVENT        =>  HW_CTR 0 */
-   1   /* PM_INSTR_CMPL_EVENT =>  HW_CTR 1 */
-};
-
-char *pmapi_event_string[PM_END_EVENT] = { "PM_CYC", "PM_INST_CMPL" };
-
-#define get_hwctr_binding(event) desired_hwctr_binding[event]
-#define get_event_string(event)  pmapi_event_string[event]
-
-
-
-
+void pd_process::initCpuTimeMgrPlt() {
+#ifdef PAPI
+   cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_ONE, &pd_process::isPapiAvail,
+                            getCyclesPerSecond(), timeBase::bNone(), 
+                            &pd_process::getRawCpuTime_hw,"hwCpuTimeFPtrInfo");
+   
 #endif
+
+   cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &pd_process::yesAvail, 
+                            calcJiffyUnit(), timeBase::bNone(), 
+                            &pd_process::getRawCpuTime_sw,"swCpuTimeFPtrInfo");
+}
+
 

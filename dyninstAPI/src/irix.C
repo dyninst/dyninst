@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.59 2003/04/23 22:59:47 bernat Exp $
+// $Id: irix.C,v 1.60 2003/06/17 20:27:28 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1889,60 +1889,6 @@ fileDescriptor *getExecFileDescriptor(string filename,
   fileDescriptor *desc = new fileDescriptor(filename);
   return desc;
 }
-
-#ifndef BPATCH_LIBRARY
-
-// check if hardware cpu cycle counter is available
-bool process::isR10kCntrAvail() {
-  char p_file[128];
-  sprintf(p_file, "/proc/%05d", (int)getpid());
-  int pfd = open(p_file, O_RDWR);
-  hwperf_profevctrarg_t* evctr_args = new hwperf_profevctrarg_t;
-  for(int i=0;i < HWPERF_EVENTMAX; ++i)
-  {
-    if(i == 0)
-    {
-      evctr_args->hwp_evctrargs.hwp_evctrl[i].hwperf_creg.hwp_mode = HWPERF_CNTEN_U;
-      evctr_args->hwp_evctrargs.hwp_evctrl[i].hwperf_creg.hwp_ie = 1;
-      evctr_args->hwp_evctrargs.hwp_evctrl[i].hwperf_creg.hwp_ev = i;
-      evctr_args->hwp_ovflw_freq[i] = 0;
-    }
-    else {
-      evctr_args->hwp_evctrargs.hwp_evctrl[i].hwperf_spec = 0;
-      evctr_args->hwp_ovflw_freq[i] = 0;
-    }
-  }
-  evctr_args->hwp_ovflw_sig = 0;
-
-  if(ioctl(pfd, PIOCENEVCTRS, (void *)evctr_args) < 0)
-  {
-    delete evctr_args;
-    close(pfd);
-    return 0;
-  }
-  else
-  {
-    delete evctr_args;
-    if(ioctl(pfd, PIOCRELEVCTRS) < 0)
-    {
-      perror("PIOCRELEVCTRS in isR10kCntrAvail returns error");
-      close(pfd);
-      return 0;
-    }
-    close(pfd);
-    return 1;
-  }
-}
-
-void process::initCpuTimeMgrPlt() {
- cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_ONE, &process::isR10kCntrAvail,
-			   getCyclesPerSecond(), timeBase::bNone(), 
-			   &process::getRawCpuTime_hw, "hwCpuTimeFPtrInfo");
-  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
-			   timeUnit::ns(), timeBase::bNone(), 
-			   &process::getRawCpuTime_sw, "swCpuTimeFPtrInfo");
-}
-#endif
 
 bool dyn_lwp::openFD_()
 {

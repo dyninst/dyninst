@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.103 2003/05/23 23:44:11 jodom Exp $
+// $Id: linux.C,v 1.104 2003/06/17 20:27:30 schendel Exp $
 
 #include <fstream.h>
 
@@ -77,10 +77,6 @@
 #include "dyninstAPI/src/addLibraryLinux.h"
 #include "dyninstAPI/src/writeBackElf.h"
 // #include "saveSharedLibrary.h" 
-#endif
-
-#ifdef HRTIME
-#include "rtinst/h/RThwtimer-linux.h"
 #endif
 
 #ifdef PAPI
@@ -985,9 +981,6 @@ papiMgr* dyn_lwp::papi() {
 rawTime64 dyn_lwp::getRawCpuTime_hw()
 {
   rawTime64 result = 0;
-#ifdef HRTIME
-  result = hrtimeGetVtime(hr_cpu_link);
-#endif
   
 #ifdef PAPI
   result = papi()->getCurrentVirtCycles();
@@ -1386,81 +1379,6 @@ bool process::findCallee(instPoint &instr, function_base *&target){
    target = 0;
    return false;  
 }
-
-#ifndef BPATCH_LIBRARY
-
-timeUnit calcJiffyUnit() {
-  // Determine the number of jiffies/sec by checking the clock idle time in
-  // /proc/uptime against the jiffies idle time in /proc/stat
-
-  FILE *tmp = P_fopen( "/proc/uptime", "r" );
-  assert( tmp );
-  double uptimeReal;
-  assert( 1 == fscanf( tmp, "%*f %lf", &uptimeReal ) );
-  fclose( tmp );
-  tmp = P_fopen( "/proc/stat", "r" );
-  assert( tmp );
-  int uptimeJiffies;
-  assert( 1 == fscanf( tmp, "%*s %*d %*d %*d %d", &uptimeJiffies ) );
-
-  if (sysconf(_SC_NPROCESSORS_CONF) > 1) {
-    // on SMP boxes, the first line is cumulative jiffies, the second line
-    // is jiffies for cpu0 - on uniprocessors, this fscanf will fail as
-    // there is only a single cpu line
-    assert (1 == fscanf(tmp, "\ncpu0 %*d %*d %*d %d", &uptimeJiffies));
-  }
-
-  fclose( tmp );
-  int intJiffiesPerSec = static_cast<int>( static_cast<double>(uptimeJiffies) 
-					   / uptimeReal + 0.5 );
-  timeUnit jiffy(fraction(1000000000LL, intJiffiesPerSec));
-  return jiffy;
-}
-
-bool process::isLibhrtimeAvail() {
-#ifdef HRTIME
-  int result = ::isLibhrtimeAvail(&hr_cpu_link, getPid());
-  return (result == 1);
-#else
-  return false;
-#endif
-}
-
-bool process::isPapiAvail() {
-  return isPapiInitialized();
-}
-
-
-void process::free_hrtime_link() {
-#ifdef HRTIME
-  int error = free_hrtime_struct(hr_cpu_link);
-  if(error != 0) {
-    cerr << "process::free_hrtime_link- Error in unmapping hrtime_struct for "
-      " libhrtime\n";
-  }
-#endif
-}
-
-void process::initCpuTimeMgrPlt() {
-#ifdef HRTIME
-  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_ONE, &process::isLibhrtimeAvail,
-			   getCyclesPerSecond(), timeBase::bNone(), 
-			   &process::getRawCpuTime_hw, "hwCpuTimeFPtrInfo",
-			   &process::free_hrtime_link);
-#endif
-
-#ifdef PAPI
-  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_ONE, &process::isPapiAvail,
-			   getCyclesPerSecond(), timeBase::bNone(), 
-			   &process::getRawCpuTime_hw, "hwCpuTimeFPtrInfo");
-
-#endif
-
-  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
-			   calcJiffyUnit(), timeBase::bNone(), 
-			   &process::getRawCpuTime_sw, "swCpuTimeFPtrInfo");
-}
-#endif
 
 fileDescriptor *getExecFileDescriptor(string filename,
 				     int &,
