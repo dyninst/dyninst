@@ -3,6 +3,9 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.3  1995/11/15 01:05:16  tamches
+ * fixed bug which clipped cells incorrectly
+ *
  * Revision 1.2  1995/11/08 21:46:46  tamches
  * some ui bug fixes
  *
@@ -494,7 +497,7 @@ void tableVisi::drawCells(Drawable theDrawable) const {
    clipRect.x = getFocusAreaPixWidth();
    clipRect.y = getMetricAreaPixHeight();
    clipRect.width = Tk_Width(theTkWindow) - clipRect.x + 1;
-   clipRect.height = Tk_Width(theTkWindow) - clipRect.y + 1;
+   clipRect.height = Tk_Height(theTkWindow) - clipRect.y + 1;
 
    XSetClipRectangles(Tk_Display(theTkWindow), cellGC,
 		      0, 0, &clipRect, 1, YXBanded);
@@ -550,7 +553,6 @@ void tableVisi::drawCells1Col(Drawable theDrawable, int middle_x, int top_y,
       // making a new "string" would be toop expensive (calls new):
       char buffer[200];
       double2string(buffer, theCell.getData());
-//      sprintf(buffer, "%g", theCell.getData());
 
       int buffer_len = strlen(buffer);
       int string_pix_width = XTextWidth(cellFont, buffer, buffer_len);
