@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.30 2003/05/13 21:34:30 bernat Exp $
+// $Id: sol_proc.C,v 1.31 2003/05/30 02:36:28 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -761,7 +761,10 @@ bool dyn_lwp::get_status(lwpstatus_t *status) const
       if (pread(status_fd_, 
                 (void *)status, 
                 sizeof(lwpstatus_t), 0) != sizeof(lwpstatus_t)) {
-         perror("dyn_lwp::get_status");            
+          // When we fork a LWP file might disappear.
+          if (errno != ENOENT) {
+              perror("dyn_lwp::get_status");            
+          }
          return false;
       }
    }
@@ -1482,6 +1485,7 @@ int decodeProcStatus(process *,
                      procSignalWhat_t &what,
                      procSignalInfo_t &info) {
     info = status.pr_reg[R_O0];
+
     switch (status.pr_why) {
   case PR_SIGNALLED:
       why = procSignalled;
@@ -1509,6 +1513,7 @@ int decodeProcStatus(process *,
       assert(0);
       break;
     }
+
     return 1;
 }
 
@@ -1595,7 +1600,7 @@ process *decodeProcessEvent(int pid,
                 (processVec[u]->status() == running || 
                  processVec[u]->status() == neonatal)) {
                if (pid == -1 || processVec[u]->getPid() == pid) {
-                   fds[u].fd = processVec[u]->status_fd();
+                   fds[u].fd = processVec[u]->getDefaultLWP()->status_fd();
                    any_active_procs = true;
                 } else
                    fds[u].fd = -1;
@@ -1614,7 +1619,6 @@ process *decodeProcessEvent(int pid,
         else timeout = 0;
 
         selected_fds = poll(fds, processVec.size(), timeout);
-
         if (selected_fds <= 0) {
             if (selected_fds < 0) {
                 perror("decodeProcessEvent: poll failed");
