@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.4  1994/02/24 04:36:30  markc
+ * Revision 1.5  1994/03/08 17:39:32  hollings
+ * Added foldCallback and getResourceListName.
+ *
+ * Revision 1.4  1994/02/24  04:36:30  markc
  * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
  * startup.  Added a data member to the class that igen generates.
  * Make depend differences due to new header files that igen produces.
@@ -138,6 +141,7 @@ class performanceStream {
 	void disableResourceCreationNotification(resource*);
 	void callSampleFunc(metricInstance *, double, double, double);
 	void callResourceFunc(resource *p, resource *c, char *name);
+	void callFoldFunc(timeStamp width);
     private:
 	applicationContext      *appl;
 	dataType                type;

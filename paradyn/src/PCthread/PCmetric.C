@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.2  1994/03/01 21:25:11  hollings
+ * Revision 1.3  1994/03/08 17:39:38  hollings
+ * Added foldCallback and getResourceListName.
+ *
+ * Revision 1.2  1994/03/01  21:25:11  hollings
  * added tunable constants.
  *
  * Revision 1.1  1994/02/02  00:38:16  hollings
@@ -46,7 +49,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.2 1994/03/01 21:25:11 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.3 1994/03/08 17:39:38 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -60,7 +63,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCauto.h"
 
 tunableConstant sufficientTime(6.0, 0.0, 1000.0, NULL, "sufficientTime",
-  "How long to wait (in samples) before we can concule a hypothesis is false.");
+  "How long to wait (in seconds) before we can concule a hypothesis is false.");
 
 int totalHistograms;
 timeStamp currentTime;
@@ -78,7 +81,7 @@ extern float globalPredicatedCost;
 //
 // Fix this soon... This should be based on some real information.
 //
-tunableConstant minObservationTime(0.5, 0.0, 60.0, NULL, "minObservationTime",
+tunableConstant minObservationTime(1.0, 0.0, 60.0, NULL, "minObservationTime",
  "min. time (in seconds) to wait after chaning inst to start try hypotheses.");
 
 warningLevel noDataWarning = wNever;
@@ -419,8 +422,7 @@ void datum::newSample(timeStamp start, timeStamp end, sampleValue value)
 	if (autoRefinementLimit != 0) {
 	    if (changed) {
 		autoTestRefinements();
-	    } else if ((currentTime > timeLimit) && 
-		       (samplesSinceLastChange >= sufficientTime.getValue())) {
+	    } else if (currentTime > timeLimit) {
 		// we have waited sufficient observation time move on.
 		printf("autorefinement timelimit reached at %f\n", currentTime);
 		printf("samplesSinceLastChange = %d\n", samplesSinceLastChange);

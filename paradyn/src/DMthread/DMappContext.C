@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.8  1994/03/01 21:24:50  hollings
+ * Revision 1.9  1994/03/08 17:39:31  hollings
+ * Added foldCallback and getResourceListName.
+ *
+ * Revision 1.8  1994/03/01  21:24:50  hollings
  * removed call to print all metrics.
  *
  * Revision 1.7  1994/02/25  20:58:10  markc
@@ -272,6 +275,33 @@ float applicationContext::getPredictedDataCost(resourceList *rl, metric *m)
     return(max);
 }
 
+void histDataCallBack(timeStamp start, 
+		      timeStamp stop, 
+		      timeStamp value,
+		      void *arg)
+{
+    metricInstance *mi;
+    performanceStream *ps;
+    List<performanceStream*> curr;
+
+    mi = (metricInstance *) arg;
+    for (curr = mi->users; ps = *curr; curr++) {
+	ps->callSampleFunc(mi, start, stop, value);
+    }
+}
+
+void histFoldCallBack(timeStamp width, void *arg)
+{
+    metricInstance *mi;
+    performanceStream *ps;
+    List<performanceStream*> curr;
+
+    mi = (metricInstance *) arg;
+    for (curr = mi->users; ps = *curr; curr++) {
+	ps->callFoldFunc(width);
+    }
+}
+
 //
 // Start collecting data about the passed resource list (focus) and metric.
 //    The returned metricInstance is used to provide a unique handle for this
@@ -301,7 +331,10 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
 	}
     }
     if (foundOne) {
-	mi->data = new Histogram(m->getStyle());
+	mi->data = new Histogram(m->getStyle(), 
+				 histDataCallBack, 
+				 histFoldCallBack, 
+				 (void *) mi);
 	m->enabledCombos.add(mi, (void*) rl);
 	return(mi);
     } else {

@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.4  1994/02/24 04:34:14  markc
+ * Revision 1.5  1994/03/08 17:39:23  hollings
+ * Added foldCallback and getResourceListName.
+ *
+ * Revision 1.4  1994/02/24  04:34:14  markc
  * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
  * startup.  Added a data member to the class that igen generates.
  *
@@ -124,9 +127,12 @@ typedef void (*metricInfoCallback)(performanceStream*, metric*);
 typedef void (*resourceInfoCallback)(performanceStream*, resource *parent, 
     resource *newResource, char *name);
 
+typedef void (*histFoldCallback)(performanceStream*, timeStamp width);
+
 struct controlCallback {
-    metricInfoCallback mFunc;
-    resourceInfoCallback rFunc;
+    metricInfoCallback 		mFunc;
+    resourceInfoCallback 	rFunc;
+    histFoldCallback		fFunc;
 };
 
 typedef struct controlCallback controlCallback;
@@ -134,7 +140,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 1;
+    $version 3;
 
     //
     // Create an applicationContext (an application to be studied)
@@ -274,6 +280,13 @@ $remote dataManager {
 
     void addResourceList(resourceList*, resource*);
 
+    //
+    // get the canonical name of a resource list.
+    //   WARNING: The returned pointer is allocated in the heap via new
+    //      and should be freed using delete when the caller is done with it.
+    //   
+    char *getResourceListName(resourceList*);
+
     // Get the static config. information for the passed applicationContext.
     //
     $array String getAvailableMetrics(applicationContext*);
@@ -329,6 +342,11 @@ $remote dataManager {
 				    timeStamp startTimeStamp, 
 				    timeStamp endTimeStamp, 
 				    sampleValue value);
+
+    $upcall $async void histFold(histFoldCallback, 
+				 performanceStream *ps, 
+				 timeStamp width);
+
     $smember applicationContext *appContext;
 };
 

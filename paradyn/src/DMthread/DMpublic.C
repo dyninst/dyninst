@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.4  1994/02/24 04:36:32  markc
+ * Revision 1.5  1994/03/08 17:39:34  hollings
+ * Added foldCallback and getResourceListName.
+ *
+ * Revision 1.4  1994/02/24  04:36:32  markc
  * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
  * startup.  Added a data member to the class that igen generates.
  * Make depend differences due to new header files that igen produces.
@@ -161,6 +164,33 @@ void dataManager::addResourceList(resourceList *rl, resource *r)
     rl->add(r);
 }
 
+char *dataManager::getResourceListName(resourceList *rl)
+{
+    int i;
+    int count;
+    int total;
+    char *ret;
+    char **temp;
+    extern int strCompare(char **a, char **b);
+
+    count = rl->getCount();
+    temp = rl->convertToStringList();
+    qsort(temp, count, sizeof(char *), strCompare);
+
+    total = 2;
+    for (i=0; i < count; i++) total += strlen(temp[i])+2;
+
+    ret = new (char[total]);
+    strcpy(ret, "<");
+    for (i=0; i < count; i++) {
+	if (i) strcat(ret, ",");
+	strcat(ret, temp[i]);
+    }
+    strcat(ret, ">");
+
+    return(ret);
+}
+
 metricInstance *dataManager::enableDataCollection(performanceStream *ps,
 						  resourceList *rl,
 						  metric *m)
@@ -171,7 +201,7 @@ metricInstance *dataManager::enableDataCollection(performanceStream *ps,
 void dataManager::disableDataCollection(performanceStream *ps, 
 					metricInstance *mi)
 {
-    return(ps->disableDataCollection(mi));
+    ps->disableDataCollection(mi);
 }
 
 void dataManager::enableResourceCreationNotification(performanceStream *ps, 
@@ -256,6 +286,13 @@ void dataManagerUser::newResourceDefined(resourceInfoCallback cb,
 					 char *name)
 {
     (cb)(ps, parent, newResource, name);
+}
+
+void dataManagerUser::histFold(histFoldCallback cb,
+			       performanceStream *ps,
+			       timeStamp width)
+{
+    (cb)(ps, width);
 }
 
 void dataManagerUser::newPerfData(sampleDataCallbackFunc func,

@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.6  1994/02/25 20:58:11  markc
+ * Revision 1.7  1994/03/08 17:39:33  hollings
+ * Added foldCallback and getResourceListName.
+ *
+ * Revision 1.6  1994/02/25  20:58:11  markc
  * Added support for storing paradynd's pids.
  *
  * Revision 1.5  1994/02/24  04:36:31  markc
@@ -110,6 +113,15 @@ void performanceStream::callResourceFunc(resource *p,
     }
 }
 
+
+void performanceStream::callFoldFunc(timeStamp width)
+{
+    if (controlFunc.fFunc) {
+	dm->setTid(threadId);
+	dm->histFold(controlFunc.fFunc, this, width);
+    }
+}
+
 //
 // upcalls from remote process.
 //
@@ -153,8 +165,6 @@ void dynRPCUser::sampleDataCallbackFunc(int program,
 					double value)
 {
     metricInstance *mi;
-    performanceStream *ps;
-    List<performanceStream*> curr;
 
     mi = component::allComponents.find((void*) mid);
     if (!mi) {
@@ -170,12 +180,6 @@ void dynRPCUser::sampleDataCallbackFunc(int program,
     mi->enabledTime += endTimeStamp - startTimeStamp;
     mi->data->addInterval(startTimeStamp, endTimeStamp, value, FALSE);
 
-    //
-    // call callbacks for perfstreams.
-    // 
-    for (curr = mi->users; ps = *curr; curr++) {
-	ps->callSampleFunc(mi, startTimeStamp, endTimeStamp,value);
-    }
 }
 
 //
