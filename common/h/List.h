@@ -7,7 +7,10 @@
  * list.h - list ADT
  *
  * $Log: List.h,v $
- * Revision 1.13  1994/02/24 07:05:28  markc
+ * Revision 1.14  1994/02/25 00:25:57  hollings
+ * added tunable constants.
+ *
+ * Revision 1.13  1994/02/24  07:05:28  markc
  * Man page for librpcUtil.a
  * Extended list class to provide map function.  rpcUtil supports internet domain
  * sockets.
@@ -263,13 +266,14 @@ template <class Type> class HTable {
 	}
 	Type find(void *key);
 	Boolean remove(void *key);
-        Type operator =(HTable<Type> arg) {
+        HTable<Type> operator =(HTable<Type> arg) {
 	    table = arg.table;
 	    tableSize = arg.tableSize;
 
 	    // find the first item.
 	    currHid = -1;
 	    (*this)++;
+	    return(*this);
 	}
         Type operator *() {
             return(*currList);
