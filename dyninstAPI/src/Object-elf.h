@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.60 2004/05/26 21:29:19 legendre Exp $
+ * $Id: Object-elf.h,v 1.61 2004/05/28 22:50:17 legendre Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -124,6 +124,7 @@ struct stab_entry { // an entry in the stab section
 // end of stab declarations
 
 class pdElfShdr;
+class ExceptionBlock;
 
 class Object : public AObject {
  public:
@@ -161,6 +162,7 @@ class Object : public AObject {
   Address getTOCoffset() const { return gp; }
 #endif
 
+  bool getCatchBlock(ExceptionBlock &b, Address addr, unsigned size = 0) const;
   const ostream &dump_state_info(ostream &s);
   bool isEEL() { return EEL; }
 
@@ -222,6 +224,7 @@ class Object : public AObject {
   Address   stabstr_indx_off_;	 // .stabstr.index section
 
   bool      dwarvenDebugInfo;    // is DWARF debug info present?
+  pdvector<ExceptionBlock> catch_addrs_; //Addresses of C++ try/catch blocks
   Address   loadAddress_;      // The object may specify a load address
                                //   Set to 0 if it may load anywhere
           
@@ -257,9 +260,10 @@ class Object : public AObject {
 		  Address &, Address &, Elf_Scn* &, Elf_Scn* &, 
 		  Elf_Scn* &, Elf_Scn* &, 
 		  Elf_Scn* &, Elf_Scn* &,
-		  Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
-		  Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp,
-		  Elf_Scn*& dynstr_scnp, bool a_out=false);
+        Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
+        Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp,
+        Elf_Scn*& dynstr_scnp, Elf_Scn*& eh_frame,
+        Elf_Scn*& gcc_except, bool a_out=false);
 
   void load_object();
   void load_shared_object();

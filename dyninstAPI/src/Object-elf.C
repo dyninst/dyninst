@@ -40,12 +40,14 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.71 2004/05/27 18:43:02 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.72 2004/05/28 22:50:16 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
 
 #include "dyninstAPI/src/Object.h"
+#include "dyninstAPI/src/symtab.h"
+
 #if !defined(_Object_elf_h_)
 #error "Object-elf.h not #included"
 #endif
@@ -70,6 +72,11 @@
 
 // add some space to avoid looking for functions in data regions
 #define EXTRA_SPACE 8
+
+#if defined(os_linux) && defined(arch_x86)
+static bool find_catch_blocks(Elf *elf, Elf_Scn *eh_frame, Elf_Scn *except_scn,
+                              pdvector<ExceptionBlock> &catch_addrs);
+#endif
 
 static bool pdelf_check_ehdr(Elf *elfp, bool is64)
 {
@@ -160,9 +167,10 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   Elf_Scn*& stabscnp, Elf_Scn*& stabstrscnp, 
   Elf_Scn*& stabs_indxcnp, Elf_Scn*& stabstrs_indxcnp, 
   Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
-  Elf_Scn*& got_scnp,  
-  Elf_Scn*& dynsym_scnp, Elf_Scn*& dynstr_scnp, 
-  bool 
+  Elf_Scn*& got_scnp, Elf_Scn*& dynsym_scnp, 
+  Elf_Scn*& dynstr_scnp,  Elf_Scn*& eh_frame, 
+  Elf_Scn*& gcc_except,
+  bool
 #if defined(mips_sgi_irix6_4)
   a_out  // variable not used on other platforms
 #endif
@@ -219,6 +227,8 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   const char* DATA_NAME        = ".data";
   const char* RO_DATA_NAME     = ".ro_data";  // mips
   const char* DYNAMIC_NAME     = ".dynamic";
+  const char* EH_FRAME_NAME    = ".eh_frame";
+  const char* EXCEPT_NAME      = ".gcc_except_table";
   // initialize Object members
 
 	text_addr_ = 0; //ccw 23 jan 2002
@@ -383,6 +393,12 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
     }
     else if (strcmp(name, ".debug_info") == 0) {
       dwarvenDebugInfo = true;
+    }
+    else if (strcmp(name, EH_FRAME_NAME) == 0) {
+       eh_frame = scnp;
+    }
+    else if (strcmp(name, EXCEPT_NAME) == 0) {
+       gcc_except = scnp;
     }
 
 //TODO clean up this. it is ugly
@@ -786,7 +802,8 @@ void Object::load_object()
     Elf_Scn*    got_scnp = 0;
     Elf_Scn*    dynsym_scnp = 0;
     Elf_Scn*    dynstr_scnp = 0;
-    
+    Elf_Scn*    eh_frame_scnp = 0;
+    Elf_Scn*    gcc_except = 0;
     // initialize object (for failure detection)
     code_ptr_ = 0;
     code_off_ = 0;
@@ -804,8 +821,9 @@ void Object::load_object()
     // And attempt to parse the ELF data structures in the file....
     // EEL, added one more parameter
     if (!loaded_elf(did_elf, elfp, txtaddr,
-		    bssaddr, symscnp, strscnp, stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
-		    rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,dynstr_scnp,true)) 
+		    bssaddr, symscnp, strscnp, stabscnp, stabstrscnp, stabs_indxcnp, 
+          stabstrs_indxcnp, rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,
+          dynstr_scnp,eh_frame_scnp,gcc_except, true)) 
     {
       goto cleanup;
     }
@@ -836,6 +854,13 @@ void Object::load_object()
     pdstring      module = "DEFAULT_MODULE";
     pdstring      name   = "DEFAULT_NAME";
     
+#if defined(os_linux) && defined(arch_x86)
+    if (eh_frame_scnp != 0 && gcc_except != 0)
+    {
+       find_catch_blocks(elfp, eh_frame_scnp, gcc_except, catch_addrs_);
+    }
+#endif
+
     // global symbols are put in global_symbols. Later we read the
     // stab section to find the module to where they belong.
     // Experiment : lets try to be a bit more intelligent about
@@ -927,6 +952,8 @@ void Object::load_shared_object()
     Elf_Scn*    got_scnp = 0;
     Elf_Scn*    dynsym_scnp = 0;
     Elf_Scn*    dynstr_scnp = 0;
+    Elf_Scn*    eh_frame_scnp = 0;
+    Elf_Scn*    gcc_except = 0;
 
     // initialize "valid" regions of code and data segments
     code_vldS_ = (Address) -1;
@@ -935,8 +962,9 @@ void Object::load_shared_object()
     data_vldE_ = 0;
 
     if (!loaded_elf(did_elf, elfp, txtaddr,
-		    bssaddr, symscnp, strscnp, stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
-		    rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp)) 
+		    bssaddr, symscnp, strscnp, stabscnp, stabstrscnp, stabs_indxcnp, 
+          stabstrs_indxcnp, rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, 
+          dynstr_scnp, eh_frame_scnp, gcc_except)) 
     {
       goto cleanup2;
     }
@@ -957,6 +985,14 @@ void Object::load_shared_object()
     // short module name
     pdstring module = extract_pathname_tail(file_);
     pdstring name   = "DEFAULT_NAME";
+
+#if defined(os_linux) && defined(arch_x86)
+    if (eh_frame_scnp != 0 && gcc_except != 0)
+    {
+       find_catch_blocks(elfp, eh_frame_scnp, gcc_except, catch_addrs_);
+    }
+#endif
+
 #if defined(TIMED_PARSE)
   struct timeval starttime;
   gettimeofday(&starttime, NULL);
@@ -1097,7 +1133,7 @@ Symbol Object::findMain( pdvector< Symbol > &allsymbols )
     
     logLine( "No main symbol found: creating symbol for main\n" );
     Symbol newSym( "main", "DEFAULT_MODULE", Symbol::PDST_FUNCTION,
-    	   Symbol::SL_GLOBAL, mainAddress, 0, -1 );
+    	   Symbol::SL_GLOBAL, mainAddress, 0, (unsigned) -1 );
     
     allsymbols.push_back( newSym );
     return newSym;
@@ -1532,13 +1568,10 @@ static void insertUniqdSymbol(const Symbol &sym,
 
 #if defined(USES_DWARF_DEBUG)
 
-void pd_dwarf_handler( Dwarf_Error error, Dwarf_Ptr userData )
+void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr /*userData*/)
 {
-  // For now, ignore the user-supplied error handler.
-  // void (*errFunc)(const char *) = (void (*)(const char *))userData;
-  
-  char * dwarf_msg = dwarf_errmsg( error );
-  bperr( "DWARF error: %s", dwarf_msg );
+  char *dwarf_msg = dwarf_errmsg(error);
+  bperr( "DWARF error: %s", dwarf_msg);
 }
 
 Dwarf_Signed declFileNo = 0;
@@ -2253,7 +2286,7 @@ Object::operator=(const Object& obj) {
 Object::~Object() {
 }
 
-void Object::log_elferror(void (*pfunc)(const char *), const char* msg) {
+void Object::log_elferror(void (*)(const char *), const char* msg) {
     const char* err = elf_errmsg(elf_errno());
     bperr( "%s: %s\n", msg, err ? err : "(bad elf error)");
 }
@@ -2268,6 +2301,45 @@ inline bool Object::get_func_binding_table_ptr(const pdvector<relocationEntry> *
     if(!plt_addr_ || (!relocation_table_.size())) return false;
     fbt = &relocation_table_;
     return true;
+}
+
+/**
+ * Returns true if the Address range addr -> addr+size contains
+ * a catch block, with b pointing to a the appropriate block
+ **/
+bool Object::getCatchBlock(ExceptionBlock &b, Address addr, 
+                           unsigned size) const 
+{
+   int min = 0;
+   int max = catch_addrs_.size();
+   int cur = -1, last_cur;
+
+   if (max == 0)
+      return false;
+   
+   //Binary search through vector for address
+   while (true) 
+   {
+      last_cur = cur;
+      cur = (min + max) / 2;
+
+      if (last_cur == cur)
+         return false;
+
+      Address curAddr = catch_addrs_[cur].catchStart();
+
+      if ((curAddr <= addr && curAddr+size > addr) ||
+          (size == 0 && curAddr == addr))
+      {
+         //Found it
+         b = catch_addrs_[cur];
+         return true;
+      }
+      if (addr < curAddr)
+         max = cur;
+      else if (addr > curAddr)
+         min = cur;      
+   }
 }
 
 #ifdef DEBUG
@@ -2418,3 +2490,412 @@ bool parseCompilerType(Object *objPtr)
   }
   return false; // Shouldn't happen - maybe N_OPT stripped
 }
+
+
+#if defined(os_linux) && defined(arch_x86)
+
+static unsigned long read_uleb128(char *data, unsigned *bytes_read)
+{
+   unsigned long result = 0;
+   unsigned shift = 0;
+   *bytes_read = 0;
+   while (1)
+   {
+      result |= (data[*bytes_read] & 0x7f) << shift;
+      if ((data[(*bytes_read)++] & 0x80) == 0)
+         break;
+      shift += 7;
+   }
+   return result;
+}
+
+static signed long read_sleb128(char *data, unsigned *bytes_read)
+{
+   unsigned long result = 0;
+   unsigned shift = 0;
+   *bytes_read = 0;
+   while (1)
+   {
+      result |= (data[*bytes_read] & 0x7f) << shift;
+      shift += 7;
+      if ((data[*bytes_read] & 0x80) == 0)
+         break;
+      (*bytes_read)++;
+   }
+   if (shift < sizeof(int) && (data[*bytes_read] & 0x40))
+      result |= -(1 << shift);
+   (*bytes_read)++;
+   return result;
+}
+
+#define DW_EH_PE_uleb128 0x01
+#define DW_EH_PE_udata2  0x02
+#define DW_EH_PE_udata4  0x03
+#define DW_EH_PE_udata8  0x04
+#define DW_EH_PE_sleb128 0x09
+#define DW_EH_PE_sdata2  0x0A
+#define DW_EH_PE_sdata4  0x0B
+#define DW_EH_PE_sdata8  0x0C
+#define DW_EH_PE_absptr  0x00
+#define DW_EH_PE_pcrel   0x10
+#define DW_EH_PE_datarel 0x30
+#define DW_EH_PE_omit    0xff
+
+static int get_ptr_of_type(int type, unsigned long *value, char *addr)
+{
+   unsigned size;
+   if (type == DW_EH_PE_omit)
+      return 0;
+
+   switch (type & 0xf)
+   {
+      case DW_EH_PE_uleb128:
+      case DW_EH_PE_absptr:
+         *value = read_uleb128(addr, &size);
+         return size;
+      case DW_EH_PE_sleb128:
+         *value = read_sleb128(addr, &size);
+         return size;
+      case DW_EH_PE_udata2:
+      case DW_EH_PE_sdata2:         
+         *value = (unsigned long) *((int16_t *) addr);
+         return 2;
+      case DW_EH_PE_udata4:
+      case DW_EH_PE_sdata4:
+         *value = (unsigned long) *((int32_t *) addr);
+         return 4;
+      case DW_EH_PE_udata8:
+      case DW_EH_PE_sdata8:
+         *value = (unsigned long) *((int64_t *) addr);
+         return 8;
+      default:
+         fprintf(stderr, "Error Unexpected type %x\n", (unsigned) type);
+         return 1;
+   }
+}
+
+/**
+ * On GCC 3.x/x86 we find catch blocks as follows:
+ *   1. We start with a list of FDE entries in the .eh_frame
+ *      table.  
+ *   2. Each FDE entry has a pointer to a  CIE entry.  The CIE
+ *      tells us whether the FDE has any 'Augmentations', and
+ *      the types of those augmentations.  The FDE also
+ *      contains a pointer to a function.
+ *   3. If the FDE has a 'Language Specific Data Area' 
+ *      augmentation then we have a pointer to one or more
+ *      entires in the gcc_except_table.
+ *   4. The gcc_except_table contains entries that point 
+ *      to try and catch blocks, all encoded as offsets
+ *      from the function start (it doesn't tell you which
+ *      function, however). 
+ *   5. We can add the function offsets from the except_table
+ *      to the function pointer from the FDE to get all of
+ *      the try/catch blocks.  
+ **/ 
+static int read_except_table_gcc3(Elf_Scn *except_table, 
+     Address eh_frame_base, Address except_base,
+     Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
+     pdvector<ExceptionBlock> &addresses)
+{
+   Elf_Data *elf_data;
+   Dwarf_Error err;
+   Dwarf_Addr low_pc, except_ptr;
+   Dwarf_Unsigned fde_byte_length, bytes_in_cie,
+      outlen;
+   Dwarf_Ptr fde_bytes, lsda, outinstrs;
+   Dwarf_Off fde_offset;
+   Dwarf_Fde fde;
+   Dwarf_Cie cie;
+   int has_lsda = 0, is_pic = 0, has_augmentation_length = 0;
+   int augmentor_len, lsda_size, status, except_size;
+   unsigned bytes_read;
+   unsigned char *data;
+   char *augmentor;
+   unsigned char lpstart_format, ttype_format, table_format;
+   unsigned long value, table_end, region_start, region_size, 
+      catch_block, action;
+   int i, j;
+
+   //For each FDE
+   for (i = 0; i < fde_count; i++)
+   {
+      //Get the FDE
+      status = dwarf_get_fde_n(fde_data, (Dwarf_Unsigned) i, &fde, &err);
+      if (status != DW_DLV_OK) {
+         pd_dwarf_handler(err, NULL);
+         return false;
+      }
+      
+      //Get address of the function associated with this CIE
+      status = dwarf_get_fde_range(fde, &low_pc, NULL, &fde_bytes, 
+           &fde_byte_length, NULL, NULL, &fde_offset, &err);
+      if (status != DW_DLV_OK) {
+         pd_dwarf_handler(err, NULL);
+         return false;
+      }
+
+      //Get the CIE for the FDE
+      status = dwarf_get_cie_of_fde(fde, &cie, &err);
+      if (status != DW_DLV_OK) {
+         pd_dwarf_handler(err, NULL);
+         return false;
+      }
+      
+      //Get the Augmentation string for the CIE
+      status = dwarf_get_cie_info(cie, &bytes_in_cie, NULL, &augmentor, 
+                                  NULL, NULL, NULL, NULL, NULL, &err); 
+      if (status != DW_DLV_OK) {
+         pd_dwarf_handler(err, NULL);
+         return false;
+      }            
+      augmentor_len = (augmentor == NULL) ? 0 : strlen(augmentor);
+      for (j = 0; j < augmentor_len; j++)
+      {
+         if (augmentor[j] == 'z')
+            has_augmentation_length = 1;
+         if (augmentor[j] == 'L')
+            has_lsda = 1;
+         if (augmentor[j] == 'R')
+            is_pic = 1;
+      }
+
+      //If we don't have a language specific data area, then
+      // we don't care about this FDE.
+      if (!has_lsda)
+         continue;
+
+      //Get the Language Specific Data Area pointer
+      status = dwarf_get_fde_instr_bytes(fde, &outinstrs, &outlen, &err);
+      if (status != DW_DLV_OK) {
+         pd_dwarf_handler(err, NULL);
+         return false;
+      }      
+      lsda = ((char *) fde_bytes) + sizeof(long)*4;
+      if (lsda == outinstrs)
+      {
+         continue;
+      }
+      lsda_size = (unsigned) read_uleb128((char *) lsda, &bytes_read);
+      lsda = ((char *) lsda) + bytes_read;
+      
+      //Read the exception table pointer from the LSDA, adjust for PIC
+      except_ptr = (Dwarf_Addr) *((long *) lsda);
+      if (!except_ptr)
+      {
+         //Sometimes the FDE doesn't have an associated 
+         // exception table.
+         continue;
+      }
+      if (is_pic)
+      {
+         low_pc = eh_frame_base + fde_offset + sizeof(long)*2 + (signed) low_pc;
+         except_ptr += eh_frame_base + fde_offset + 
+            sizeof(long)*4 + bytes_read;
+      }
+      except_ptr -= except_base;
+
+      //Get the exception data from the section.
+      elf_data = elf_rawdata(except_table, NULL);
+      if (elf_data == NULL)
+      {
+         return true;
+      }
+      data = ((unsigned char *) elf_data->d_buf);
+      except_size = elf_data->d_size;
+
+      j = except_ptr;
+      if (j < 0 || j >= except_size)
+         continue;
+
+      // Read some variable length header info that we don't really
+      //  care about.
+      lpstart_format = data[j++];
+      if (lpstart_format != DW_EH_PE_omit)
+         j += get_ptr_of_type(DW_EH_PE_uleb128, &value, (char *) data + j);
+      ttype_format = data[j++];
+      if (ttype_format != DW_EH_PE_omit)
+         j += get_ptr_of_type(DW_EH_PE_uleb128, &value, (char *) data + j);
+      
+      //This 'type' byte describes the data format of the entries in the 
+      // table and the format of the table_size field.
+      table_format = data[j++];
+      j += get_ptr_of_type(table_format, &table_end, (char *) data + j);
+      table_end += j;
+      
+      while (j < (signed) table_end && j < (signed) except_size)
+      {
+         //The entries in the gcc_except_table are the following format:
+         //   <type>   region start
+         //   <type>   region length
+         //   <type>   landing pad
+         //  uleb128   action 
+         //The 'region' is the try block, the 'landing pad' is the catch.
+         j += get_ptr_of_type(table_format, &region_start, (char *) data + j);
+         j += get_ptr_of_type(table_format, &region_size, (char *) data + j);
+         j += get_ptr_of_type(table_format, &catch_block, (char *) data + j);
+         j += get_ptr_of_type(DW_EH_PE_uleb128, &action, (char *) data + j);
+      
+         if (catch_block == 0)
+            continue;
+         ExceptionBlock eb(region_start + low_pc, region_size, 
+                           catch_block + low_pc);
+         addresses.push_back(eb);
+      }
+   }
+   
+   return true;
+}
+
+/**
+ * Things were much simpler in the old days.  On gcc 2.x
+ * the gcc_except_table looks like:
+ *   <long> try_start
+ *   <long> try_end
+ *   <long> catch_start
+ * Where everything is an absolute address, even when compiled
+ * with PIC.  All we got to do is read the catch_start entries
+ * out of it.
+ **/
+static bool read_except_table_gcc2(Elf_Scn *except_table, 
+                                   pdvector<ExceptionBlock> &addresses)
+{
+   unsigned i = 0;
+   Elf_Data *elf_data;
+   char *data;
+   unsigned except_size;
+
+   Address try_start;
+   Address try_end;
+   Address catch_start;
+
+   elf_data = elf_rawdata(except_table, NULL);
+   if (elf_data == NULL)
+   {
+      fprintf(stderr, "[read_except_table_gcc2] - Unable to get raw elf data\n");
+      return false;
+   }
+   data = ((char *) elf_data->d_buf);
+   except_size = elf_data->d_size;
+   while (i < except_size)
+   {
+      i += get_ptr_of_type(DW_EH_PE_udata4, &try_start, data + i);
+      i += get_ptr_of_type(DW_EH_PE_udata4, &try_end, data + i);
+      i += get_ptr_of_type(DW_EH_PE_udata4, &catch_start, data + i);
+      if (try_start != (Address) -1 && try_end != (Address) -1)
+      {
+         ExceptionBlock eb(try_start, try_end - try_start, catch_start);
+         addresses.push_back(eb);
+      }
+   }
+   return true;
+}
+
+static int exception_compare(const ExceptionBlock &e1, const ExceptionBlock &e2)
+{
+   if (e1.tryStart() < e2.tryStart())
+      return -1;
+   else if (e1.tryStart() > e2.tryStart())
+      return 1;
+   else
+      return 0;
+}
+
+/**
+ * Finds the addresses of catch blocks in a g++ generated elf file.
+ *  'except_scn' should point to the .gcc_except_table section
+ *  'eh_frame' should point to the .eh_frame section
+ *  the addresses will be pushed into 'addresses'
+ **/
+static bool find_catch_blocks(Elf *elf, Elf_Scn *eh_frame, Elf_Scn *except_scn,
+                              pdvector<ExceptionBlock> &catch_addrs)
+{
+   Dwarf_Cie *cie_data;
+   Dwarf_Fde *fde_data;
+   Dwarf_Signed cie_count, fde_count;
+   Dwarf_Error err;
+   Dwarf_Unsigned bytes_in_cie;
+   Address eh_frame_base, except_base;
+   Elf32_Shdr *frame_hdr, *except_hdr;
+   Dwarf_Debug dbg;
+   char *augmentor;
+   int status, gcc_ver = 3;
+   unsigned i;
+   bool result = false;
+   
+   if (except_scn == NULL)
+   {
+      //likely to happen if we're not using gcc
+      return true;
+   }
+   
+   frame_hdr = elf32_getshdr(eh_frame);
+   except_hdr = elf32_getshdr(except_scn);
+   
+   if (frame_hdr == NULL || except_hdr == NULL)
+   {
+      fprintf(stderr, "[find_catch_blocks] - Couldn't read section headers\n");
+      return false;
+   }
+   eh_frame_base = frame_hdr->sh_addr;
+   except_base = except_hdr->sh_addr;
+
+   //Open dwarf object
+   status = dwarf_elf_init(elf, DW_DLC_READ, &pd_dwarf_handler, NULL, 
+                          &dbg, &err);
+   if( status != DW_DLV_OK ) {
+      pd_dwarf_handler(err, NULL);
+      goto err_noclose;
+   }
+
+   //Read the FDE and CIE information
+   status = dwarf_get_fde_list_eh(dbg, &cie_data, &cie_count,
+                                  &fde_data, &fde_count, &err);
+   if (status != DW_DLV_OK) {
+      pd_dwarf_handler(err, NULL);
+      goto err_noalloc;
+   }
+
+   //GCC 2.x has "eh" as its augmentor string in the CIEs
+   for (i = 0; i < cie_count; i++)
+   {
+      status = dwarf_get_cie_info(cie_data[i], &bytes_in_cie, NULL,
+          &augmentor, NULL, NULL, NULL, NULL, NULL, &err);
+      if (status != DW_DLV_OK) {
+         pd_dwarf_handler(err, NULL);
+         goto cleanup;
+      }
+      if (augmentor[0] == 'e' && augmentor[1] == 'h')
+      {
+         gcc_ver = 2;
+      }
+   }
+
+   //Parse the gcc_except_table
+   if (gcc_ver == 2)
+   {
+      result = read_except_table_gcc2(except_scn, catch_addrs);
+   }
+   else if (gcc_ver == 3)
+   {
+      result = read_except_table_gcc3(except_scn, eh_frame_base, except_base,
+                                      fde_data, fde_count, catch_addrs);
+   }
+   VECTOR_SORT(catch_addrs, exception_compare);
+ cleanup:
+   //Unallocate fde and cie information 
+   for (i = 0; i < cie_count; i++)
+      dwarf_dealloc(dbg, cie_data[i], DW_DLA_CIE);
+   for (i = 0; i < fde_count; i++)
+      dwarf_dealloc(dbg, fde_data[i], DW_DLA_FDE);
+   dwarf_dealloc(dbg, cie_data, DW_DLA_LIST);
+   dwarf_dealloc(dbg, fde_data, DW_DLA_LIST);
+
+ err_noalloc:
+   dwarf_finish(dbg, &err);
+
+ err_noclose:
+   return result;
+}
+
+#endif
