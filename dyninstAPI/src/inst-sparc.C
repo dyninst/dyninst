@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.145 2003/07/18 15:43:58 schendel Exp $
+// $Id: inst-sparc.C,v 1.146 2003/07/18 20:07:01 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -373,7 +373,7 @@ instPoint::instPoint(pd_Function *f, const image *owner, Address &adr,
 // constructor for instPoint class for functions that have been relocated
 instPoint::instPoint(pd_Function *f, const instruction instr[], 
                      int arrayOffset, const image *owner, Address &adr, 
-                     bool delayOK, instPointType pointType)
+                     bool /*delayOK*/, instPointType pointType)
 : insnAddr(adr), addr(adr), 
   firstPriorIsDCTI(false), 
   secondPriorIsDCTI(false),
@@ -775,10 +775,9 @@ int getPointCost(process *proc, const instPoint *point)
 void initATramp (trampTemplate *thisTemp, Address tramp,
 		 bool isConservative=false)
 {
-    instruction *temp;
+   instruction *temp;
 
-    if(!isConservative){
-
+   if(!isConservative) {
     	thisTemp->savePreInsOffset = 
 			((Address)baseTramp_savePreInsn - tramp);
     	thisTemp->restorePreInsOffset = 
@@ -787,72 +786,72 @@ void initATramp (trampTemplate *thisTemp, Address tramp,
 			((Address)baseTramp_savePostInsn - tramp);
     	thisTemp->restorePostInsOffset = 
 			((Address)baseTramp_restorePostInsn - tramp);
-    }else{
-	thisTemp->savePreInsOffset =
-		((Address)conservativeBaseTramp_savePreInsn - tramp);
-	thisTemp->restorePreInsOffset =
-		((Address)conservativeBaseTramp_restorePreInsn - tramp);
-	thisTemp->savePostInsOffset =
-		((Address)conservativeBaseTramp_savePostInsn - tramp);
-	thisTemp->restorePostInsOffset =
-		((Address)conservativeBaseTramp_restorePostInsn - tramp);
-    }
+   } else {
+      thisTemp->savePreInsOffset =
+         ((Address)conservativeBaseTramp_savePreInsn - tramp);
+      thisTemp->restorePreInsOffset =
+         ((Address)conservativeBaseTramp_restorePreInsn - tramp);
+      thisTemp->savePostInsOffset =
+         ((Address)conservativeBaseTramp_savePostInsn - tramp);
+      thisTemp->restorePostInsOffset =
+         ((Address)conservativeBaseTramp_restorePostInsn - tramp);
+   }
 
-    // TODO - are these offsets always positive?
-    thisTemp->trampTemp = (void *) tramp;
-    for (temp = (instruction*)tramp; temp->raw != END_TRAMP; temp++) {
-        const Address offset = (Address)temp - tramp;
-        switch (temp->raw) {
-            case LOCAL_PRE_BRANCH:
-                thisTemp->localPreOffset = offset;
-                thisTemp->localPreReturnOffset = thisTemp->localPreOffset 
-                                                + sizeof(temp->raw);
-                break;
-            case GLOBAL_PRE_BRANCH:
-                thisTemp->globalPreOffset = offset;
-                break;
-            case LOCAL_POST_BRANCH:
-                thisTemp->localPostOffset = offset;
-                thisTemp->localPostReturnOffset = thisTemp->localPostOffset
-                                                + sizeof(temp->raw);
-                break;
-            case GLOBAL_POST_BRANCH:
-                thisTemp->globalPostOffset = offset;
-                break;
-            case SKIP_PRE_INSN:
-                thisTemp->skipPreInsOffset = offset;
-                break;
-            case UPDATE_COST_INSN:
-                thisTemp->updateCostOffset = offset;
-                break;
-            case SKIP_POST_INSN:
-                thisTemp->skipPostInsOffset = offset;
-                break;
-            case RETURN_INSN:
-                thisTemp->returnInsOffset = offset;
-                break;
-            case EMULATE_INSN:
-                thisTemp->emulateInsOffset = offset;
-                break;
-	    case CONSERVATIVE_TRAMP_READ_CONDITION:
-		if(isConservative)
-			temp->raw = 0x83408000; /*read condition codes to g1*/
-		break;
-	    case CONSERVATIVE_TRAMP_WRITE_CONDITION:
-		if(isConservative)
-			temp->raw = 0x85806000; /*write condition codes fromg1*/
-		break;
-        }       
-    }
-
-    // Cost with the skip branches.
-    thisTemp->cost = 14;  
-    thisTemp->prevBaseCost = 20 +
+   // TODO - are these offsets always positive?
+   thisTemp->trampTemp = (void *) tramp;
+   for (temp = (instruction*)tramp; temp->raw != END_TRAMP; temp++) {
+      const Address offset = (Address)temp - tramp;
+      switch (temp->raw) {
+        case LOCAL_PRE_BRANCH:
+           thisTemp->localPreOffset = offset;
+           thisTemp->localPreReturnOffset = thisTemp->localPreOffset 
+              + sizeof(temp->raw);
+           break;
+        case GLOBAL_PRE_BRANCH:
+           thisTemp->globalPreOffset = offset;
+           break;
+        case LOCAL_POST_BRANCH:
+           thisTemp->localPostOffset = offset;
+           thisTemp->localPostReturnOffset = thisTemp->localPostOffset
+              + sizeof(temp->raw);
+           break;
+        case GLOBAL_POST_BRANCH:
+           thisTemp->globalPostOffset = offset;
+           break;
+        case SKIP_PRE_INSN:
+           thisTemp->skipPreInsOffset = offset;
+           break;
+        case UPDATE_COST_INSN:
+           thisTemp->updateCostOffset = offset;
+           break;
+        case SKIP_POST_INSN:
+           thisTemp->skipPostInsOffset = offset;
+           break;
+        case RETURN_INSN:
+           thisTemp->returnInsOffset = offset;
+           break;
+        case EMULATE_INSN:
+           thisTemp->emulateInsOffset = offset;
+           break;
+        case CONSERVATIVE_TRAMP_READ_CONDITION:
+           if(isConservative)
+              temp->raw = 0x83408000; /*read condition codes to g1*/
+           break;
+        case CONSERVATIVE_TRAMP_WRITE_CONDITION:
+           if(isConservative)
+              temp->raw = 0x85806000; /*write condition codes fromg1*/
+           break;
+      }       
+   }
+   
+   // Cost with the skip branches.
+   thisTemp->cost = 14;  
+   thisTemp->prevBaseCost = 20 +
       RECURSIVE_GUARD_ON_CODE_SIZE + RECURSIVE_GUARD_OFF_CODE_SIZE;
-    thisTemp->postBaseCost = 22 +
+   thisTemp->postBaseCost = 22 +
       RECURSIVE_GUARD_ON_CODE_SIZE + RECURSIVE_GUARD_OFF_CODE_SIZE;
-    thisTemp->prevInstru = thisTemp->postInstru = false;
-    thisTemp->size = (int) temp - (int) tramp;
+   thisTemp->prevInstru = thisTemp->postInstru = false;
+   thisTemp->size = (int) temp - (int) tramp;
 }
 
 /****************************************************************************/
@@ -862,41 +861,37 @@ void initATramp (trampTemplate *thisTemp, Address tramp,
 void initATramp(NonRecursiveTrampTemplate *thisTemp, Address tramp,
 		bool isConservative=false)
 {
-  initATramp((trampTemplate *)thisTemp, tramp,isConservative);
+   initATramp((trampTemplate *)thisTemp, tramp,isConservative);
 
-  instruction *temp;
-
-  for (temp = (instruction*)tramp; temp->raw != END_TRAMP; temp++) {
-    const Address offset = (Address)temp - tramp;
-    switch (temp->raw)
+   instruction *temp;
+   
+   for (temp = (instruction*)tramp; temp->raw != END_TRAMP; temp++) {
+      const Address offset = (Address)temp - tramp;
+      switch (temp->raw)
       {
-
-      case RECURSIVE_GUARD_ON_PRE_INSN:
-	thisTemp->guardOnPre_beginOffset = offset;
-	thisTemp->guardOnPre_endOffset = thisTemp->guardOnPre_beginOffset
-                + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
-	break;
-
-      case RECURSIVE_GUARD_OFF_PRE_INSN:
-	thisTemp->guardOffPre_beginOffset = offset;
-	thisTemp->guardOffPre_endOffset = thisTemp->guardOffPre_beginOffset
-                + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
-	break;
-
-      case RECURSIVE_GUARD_ON_POST_INSN:
-	thisTemp->guardOnPost_beginOffset = offset;
-	thisTemp->guardOnPost_endOffset = thisTemp->guardOnPost_beginOffset
-                + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
-	break;
-
-      case RECURSIVE_GUARD_OFF_POST_INSN:
-	thisTemp->guardOffPost_beginOffset = offset;
-	thisTemp->guardOffPost_endOffset = thisTemp->guardOffPost_beginOffset
-                + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
-	break;
-
+        case RECURSIVE_GUARD_ON_PRE_INSN:
+           thisTemp->guardOnPre_beginOffset = offset;
+           thisTemp->guardOnPre_endOffset = thisTemp->guardOnPre_beginOffset
+              + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
+           break;
+        case RECURSIVE_GUARD_OFF_PRE_INSN:
+           thisTemp->guardOffPre_beginOffset = offset;
+           thisTemp->guardOffPre_endOffset = thisTemp->guardOffPre_beginOffset
+              + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
+           break;
+        case RECURSIVE_GUARD_ON_POST_INSN:
+           thisTemp->guardOnPost_beginOffset = offset;
+           thisTemp->guardOnPost_endOffset = thisTemp->guardOnPost_beginOffset
+              + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
+           break;           
+        case RECURSIVE_GUARD_OFF_POST_INSN:
+           thisTemp->guardOffPost_beginOffset = offset;
+           thisTemp->guardOffPost_endOffset =
+              thisTemp->guardOffPost_beginOffset
+                                 + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
+           break;
       }
-  }
+   }
 }
 
 /****************************************************************************/
@@ -2132,7 +2127,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 
     bool decrement = false;
     if ((Address)address > func->getEffectiveAddress(proc)) {
-      //fprintf(stderr, "Wierd1=true@%x\n", address);
+      //fprintf(stderr, "Wierd1=true@%p\n", address);
 	instruction prevInstr;
 	proc->readTextSpace((char *)address - INSN_SIZE,
 			    sizeof(instruction),
@@ -2145,7 +2140,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
               return NULL;
           }
           if(!(isV9ISA() && isUBA(prevInstr))) {
-            fprintf(stderr, "decrement=true@%x\n", address);
+            fprintf(stderr, "decrement=true@%p\n", address);
             decrement = true;
           }
 	}

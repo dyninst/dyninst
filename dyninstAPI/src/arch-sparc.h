@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.30 2002/04/25 22:51:45 gaburici Exp $
+// $Id: arch-sparc.h,v 1.31 2003/07/18 20:07:02 schendel Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -377,10 +377,10 @@ int addressOfMachineInsn(instruction *insn);
 
 class InsnRegister {
 public:
-	enum RegisterType {GlobalIntReg=0,FloatReg,CoProcReg,SpecialReg,None};
+	enum RegisterType { GlobalIntReg=0, FloatReg, CoProcReg, SpecialReg, None};
 
 	InsnRegister();
-	InsnRegister(char isD,RegisterType rt,unsigned short rn);
+	InsnRegister(char isD, RegisterType rt, short rn);
 	void setWordCount(char isD);
 	void setType(RegisterType rt);
 	void setNumber(short rn);

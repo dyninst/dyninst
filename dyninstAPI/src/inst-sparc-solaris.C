@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.134 2003/07/18 15:43:57 schendel Exp $
+// $Id: inst-sparc-solaris.C,v 1.135 2003/07/18 20:07:00 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -440,9 +440,7 @@ void generate_base_tramp_recursive_guard_code( process & p,
 void generateMTpreamble(char *insn, Address &base, process *proc)
 {
   AstNode *threadPOS;
-  Address returnVal;
   pdvector<AstNode *> dummy;
-  bool err;
   Register src = Null_Register;
 
   // registers cleanup
@@ -479,485 +477,477 @@ void generateMTpreamble(char *insn, Address &base, process *proc)
  *
  */
 trampTemplate * installBaseTramp( instPoint * & location,
-				  process * proc,
+                                  process * proc,
                                   trampTemplate *&current_template,
                                   Address baseTrampAddress,
-				  bool trampRecursiveDesired = false )
+                                  bool trampRecursiveDesired = false )
 {
-    Address ipAddr = 0;
-    Address baseAddress = 0;
-    Address currAddr;
-    instruction *temp;
-    // Records the number of instructions copied over to the base trampoline
-    int numInsnsCopied = 0;
-
-    // Get the base address of the so 
-    proc->getBaseAddress( location->image_ptr, baseAddress );
-
-    // Determine the address of the instPoint
-    ipAddr = location->iPgetAddress() + baseAddress;
-
-    // Determine if the base trampoline is within the range of a branch
-    // instruction from the instrumentation point. This is used to determine
-    // How we transfer between the function and instrumentation, as well
-    // as how many instructions get copied to the base trampoline 
-    if ( !offsetWithinRangeOfBranchInsn(baseTrampAddress - ipAddr) ) {
+   Address ipAddr = 0;
+   Address baseAddress = 0;
+   Address currAddr;
+   instruction *temp;
+   // Records the number of instructions copied over to the base trampoline
+   int numInsnsCopied = 0;
+   
+   // Get the base address of the so 
+   proc->getBaseAddress( location->image_ptr, baseAddress );
+   
+   // Determine the address of the instPoint
+   ipAddr = location->iPgetAddress() + baseAddress;
+   
+   // Determine if the base trampoline is within the range of a branch
+   // instruction from the instrumentation point. This is used to determine
+   // How we transfer between the function and instrumentation, as well
+   // as how many instructions get copied to the base trampoline 
+   if ( !offsetWithinRangeOfBranchInsn(baseTrampAddress - ipAddr) ) {
       location->needsLongJump = true;
-    }
-
-//     if(location->dontUseCall)
-//       fprintf(stderr, "dontUseCall@%p\n", ipAddr);
-
-    // VG(4/25/2002): refuse installation if call is needed, but not safe
-    if(location->needsLongJump && location->dontUseCall)
+   }
+   
+   //     if(location->dontUseCall)
+   //       fprintf(stderr, "dontUseCall@%p\n", ipAddr);
+   
+   // VG(4/25/2002): refuse installation if call is needed, but not safe
+   if(location->needsLongJump && location->dontUseCall)
       return NULL;
+   
+   // very conservative installation as o7 can be live 
+   // at this arbitrary inst point
+   if( (location->ipType == otherPoint) &&
+       location->func && location->func->is_o7_live() &&
+       location->needsLongJump)
+   {
+      // Free up the space allocated for the base tramp
+      proc->inferiorFree(baseTrampAddress);
+      location->needsLongJump = false;
+      
+      // Creation of base tramp failed
+      return NULL;
+   }
 
-    // very conservative installation as o7 can be live 
-    // at this arbitrary inst point
-    if( (location->ipType == otherPoint) &&
-         location->func && location->func->is_o7_live() &&
-         location->needsLongJump)
-    {
-        // Free up the space allocated for the base tramp
-	proc->inferiorFree(baseTrampAddress);
-        location->needsLongJump = false;
+   // Generate a buffer for writing the base tramp to
+   instruction * code = new instruction[ current_template->size ];
+   assert( code );
 
-        // Creation of base tramp failed
-	return NULL;
-    }
-
-    // Generate a buffer for writing the base tramp to
-    instruction * code = new instruction[ current_template->size ];
-    assert( code );
-
-    // Set up the template of the base trampoline in the buffer
-    memcpy( (char *)code,
-	    (char *)current_template->trampTemp,
-	    current_template->size );
-
-
-
-    // Iterate over the trampoline template buffer, filling in the details
-    for (temp = code, currAddr = baseTrampAddress; 
-	(currAddr - baseTrampAddress) < (unsigned) current_template->size;
-	temp++, currAddr += sizeof(instruction)) {
+   // Set up the template of the base trampoline in the buffer
+   memcpy( (char *)code,
+           (char *)current_template->trampTemp,
+           current_template->size );
+   
+   // Iterate over the trampoline template buffer, filling in the details
+   for (temp = code, currAddr = baseTrampAddress; 
+        (currAddr - baseTrampAddress) < (unsigned) current_template->size;
+        temp++, currAddr += sizeof(instruction)) {
 
       unsigned offset;
       Address numIns;
       Address retAddress;
 
       switch (temp->raw) {
-      case EMULATE_INSN:
-	// Branch instruction (i.e.  ba, a) will do for transfering 
-	// between function and base trampoline, thus only one 
-	// instruction needs to be copied to the base tramp. (unless
-	// of course that instruction is a DCTI).
-	if ( !location->needsLongJump ) {
-	  
-	  // Need to copy the first instruction to the base trampoline
-	  *temp = location->firstInstruction;
-	  relocateInstruction(temp, ipAddr, currAddr, proc);
-	  numInsnsCopied = 1;
-	  
-	  // If the instruction that was copied over to the 
-	  // base tramp was a DCTI, then we need to copy over the
-	  // instruction in its delay slot, and perhaps also an
-	  // aggregate instruction. (An aggregate instruction is a
-	  // byte that follows the delay slot of a call, where the 
-	  // called function returns a structure, and the aggregate
-	  // instruction records the size of the structure returned).
-	  
-	  if ( location->firstIsDCTI ) {
+        case EMULATE_INSN:
+           // Branch instruction (i.e.  ba, a) will do for transfering 
+           // between function and base trampoline, thus only one 
+           // instruction needs to be copied to the base tramp. (unless
+           // of course that instruction is a DCTI).
+           if ( !location->needsLongJump ) {
+               
+              // Need to copy the first instruction to the base trampoline
+              *temp = location->firstInstruction;
+              relocateInstruction(temp, ipAddr, currAddr, proc);
+              numInsnsCopied = 1;
+               
+              // If the instruction that was copied over to the 
+              // base tramp was a DCTI, then we need to copy over the
+              // instruction in its delay slot, and perhaps also an
+              // aggregate instruction. (An aggregate instruction is a
+              // byte that follows the delay slot of a call, where the 
+              // called function returns a structure, and the aggregate
+              // instruction records the size of the structure returned).
+               
+              if ( location->firstIsDCTI ) {
+                  
+                 // copy delay slot instruction to trampoline
+                 currAddr += sizeof(instruction);  
+                 *++temp = location->secondInstruction;
+                 numInsnsCopied = 2;
+              }
+               
+              if ( location->thirdIsAggregate ) {
+                  
+                 // copy invalid insn with aggregate size in it to
+                 // base trampoline
+                 currAddr += sizeof(instruction);  
+                 *++temp = location->thirdInstruction;
+                 numInsnsCopied = 3;
+              }
+               
+              // call sequence is needed to transfer to base trampoline
+           } else {
+               
+              // For arbitrary instPoints. call; nop; used to transfer 
+              if (location->ipType == otherPoint) {
+                  
+                 // relocate the FIRST instruction
+                 *temp = location->firstInstruction;
+                 relocateInstruction(temp, ipAddr, currAddr, proc);
+                 numInsnsCopied = 1;
 	    
-	    // copy delay slot instruction to trampoline
-	    currAddr += sizeof(instruction);  
-	    *++temp = location->secondInstruction;
-	    numInsnsCopied = 2;
-	  }
-	  
-	  if ( location->thirdIsAggregate ) {
+                 // relocate the SECOND instruction
+                 temp++;
+                 currAddr += sizeof(instruction);
+                 *temp = location->secondInstruction;
+                 relocateInstruction(temp,
+                                     ipAddr + 1*sizeof(instruction), 
+                                     currAddr, proc);
+                 numInsnsCopied = 2;
+                  
+                 // if the SECOND instruction is a DCTI, then the 
+                 // third instruction needs to be copied, and the fourth 
+                 // instruction may be an aggregate 
+                 if (location->secondIsDCTI) {                     
+                    // relocate the third instruction
+                    temp++;
+                    currAddr += sizeof(instruction);
+                    *temp = location->thirdInstruction;
+                    relocateInstruction(temp, 
+                                        ipAddr + 2*sizeof(instruction),
+                                        currAddr, proc);
+                    numInsnsCopied = 3;
+                     
+                    if (location->fourthIsAggregate) {
+                        
+                       // relocate the FOURTH instruction
+                       temp++;
+                       currAddr += sizeof(instruction);
+                       *temp = location->fourthInstruction;
+                       relocateInstruction(temp, 
+                                           ipAddr + 3*sizeof(instruction),
+                                           currAddr, proc);
+                       numInsnsCopied = 4;
+                    }
+                 }
+                  
+              } else {
 	    
-	    // copy invalid insn with aggregate size in it to
-	    // base trampoline
-	    currAddr += sizeof(instruction);  
-	    *++temp = location->thirdInstruction;
-	    numInsnsCopied = 3;
-	  }
-	  
-	  // call sequence is needed to transfer to base trampoline
-	} else {
-	  
-	  // For arbitrary instPoints. call; nop; used to transfer 
-	  if (location->ipType == otherPoint) {
-	    
-	    // relocate the FIRST instruction
-	    *temp = location->firstInstruction;
-	    relocateInstruction(temp, ipAddr, currAddr, proc);
-	    numInsnsCopied = 1;
-	    
-	    
-	    // relocate the SECOND instruction
-	    temp++;
-	    currAddr += sizeof(instruction);
-	    *temp = location->secondInstruction;
-	    relocateInstruction(temp,
-				ipAddr + 1*sizeof(instruction), 
-				currAddr, proc);
-	    numInsnsCopied = 2;
-	    
-	    // if the SECOND instruction is a DCTI, then the 
-	    // third instruction needs to be copied, and the fourth 
-	    // instruction may be an aggregate 
-	    if (location->secondIsDCTI) {
-	      
-	      // relocate the third instruction
-	      temp++;
-	      currAddr += sizeof(instruction);
-	      *temp = location->thirdInstruction;
-	      relocateInstruction(temp, 
-				  ipAddr + 2*sizeof(instruction),
-				  currAddr, proc);
-	      numInsnsCopied = 3;
-	      
-	      if (location->fourthIsAggregate) {
-		
-		// relocate the FOURTH instruction
-		temp++;
-		currAddr += sizeof(instruction);
-		*temp = location->fourthInstruction;
-		relocateInstruction(temp, 
-				    ipAddr + 3*sizeof(instruction),
-				    currAddr, proc);
-		numInsnsCopied = 4;
-	      }
-	    }
-	    
-	  } else {
-	    
-	    // the instructions prior to the instPoint don't need to 
-	    // be used
-	    if ( !location->usesPriorInstructions ) {
-	      
-	      
-	      // For leaf functions
-	      if (location->hasNoStackFrame()) {
-		
-		// relocate the FIRST instruction
-		*temp = location->firstInstruction;
-		relocateInstruction(temp,
-				    ipAddr, 
-				    currAddr, proc);
-		numInsnsCopied = 1;
-		
-		
-		// relocate the SECOND instruction
-		temp++;
-		currAddr += sizeof(instruction);
-		*temp = location->secondInstruction;
-		relocateInstruction(temp,
-				    ipAddr + 1*sizeof(instruction), 
-				    currAddr, proc);
-		numInsnsCopied = 2;
-		
-		
-		// relocate the THIRD instruction
-		temp++;
-		currAddr += sizeof(instruction);
-		*temp = location->thirdInstruction;
-		relocateInstruction(temp, 
-				    ipAddr + 2*sizeof(instruction),
-				    currAddr, proc);
-		numInsnsCopied = 3;
-		
-		
-		// if the THIRD instruction is a DCTI, then the fourth
-		// instruction must be copied to the base tramp as well 
-		if (location->thirdIsDCTI) {
+                 // the instructions prior to the instPoint don't need to 
+                 // be used
+                 if ( !location->usesPriorInstructions ) {
+                    // For leaf functions
+                    if (location->hasNoStackFrame()) {
+                        
+                       // relocate the FIRST instruction
+                       *temp = location->firstInstruction;
+                       relocateInstruction(temp,
+                                           ipAddr, 
+                                           currAddr, proc);
+                       numInsnsCopied = 1;
+                        
+                        
+                       // relocate the SECOND instruction
+                       temp++;
+                       currAddr += sizeof(instruction);
+                       *temp = location->secondInstruction;
+                       relocateInstruction(temp,
+                                           ipAddr + 1*sizeof(instruction), 
+                                           currAddr, proc);
+                       numInsnsCopied = 2;
+                        
+                        
+                       // relocate the THIRD instruction
+                       temp++;
+                       currAddr += sizeof(instruction);
+                       *temp = location->thirdInstruction;
+                       relocateInstruction(temp, 
+                                           ipAddr + 2*sizeof(instruction),
+                                           currAddr, proc);
+                       numInsnsCopied = 3;
+		                        
+                       // if the THIRD instruction is a DCTI, then the
+                       // fourth instruction must be copied to the base
+                       // tramp as well
+                       if (location->thirdIsDCTI) {
+                           
+                          // Copy the instruction in the delay slot to the 
+                          // base trampoline
+                          temp++;
+                          currAddr += sizeof(instruction);
+                          *temp = location->fourthInstruction;
+                          relocateInstruction(temp,
+                                              ipAddr + 3*sizeof(instruction),
+                                              currAddr, proc);
+                          temp++;
+                          numInsnsCopied = 4;
+                       }
+                        
+                       // Function has a stack frame
+                    } else {
+                        
+                       // No need for a save instruction, only need to copy
+                       // the original instruction and the delay slot insn
+                       if ( location->ipType == callSite || 
+                            location->ipType == functionExit ) {
+                           
+                          // relocate the FIRST instruction
+                          *temp = location->firstInstruction;
+                          relocateInstruction(temp,
+                                              ipAddr, 
+                                              currAddr, proc);
+                          temp++;
+                          currAddr += sizeof(instruction);
+                          numInsnsCopied = 1;
+                           
+                          // relocate the SECOND instruction
+                          *temp = location->secondInstruction;
+                          relocateInstruction(temp,
+                                              ipAddr + 1*sizeof(instruction), 
+                                              currAddr, proc);
+                          numInsnsCopied = 2;
+                                                      
+                          // since the FIRST instruction is a DCTI, the 
+                          // third instruction may be an aggregate
+                          assert (location->firstIsDCTI);
+                           
+                          if (location->thirdIsAggregate) {
+                              
+                             // relocate the THIRD instruction
+                             temp++;
+                             currAddr += sizeof(instruction);
+                             *temp = location->thirdInstruction;
+                             relocateInstruction(temp, 
+                                                 ipAddr + 2*sizeof(instruction),
+                                                 currAddr, proc);
+                             numInsnsCopied = 3;
+                          }
+                           
+                       } else {
+                           
+                          assert (location->ipType == functionEntry);
+                           
+                          // relocate the FIRST instruction
+                          *temp = location->firstInstruction;
+                          relocateInstruction(temp, ipAddr, currAddr, proc);
+                          temp++;
+                          currAddr += sizeof(instruction);
+                          numInsnsCopied = 1;
+                           
+                          // relocate the SECOND instruction
+                          *temp = location->secondInstruction;
+                          relocateInstruction(temp,
+                                              ipAddr + 1*sizeof(instruction),
+                                              currAddr, proc);
+                          numInsnsCopied = 2;
 		  
-		  // Copy the instruction in the delay slot to the 
-		  // base trampoline
-		  temp++;
-		  currAddr += sizeof(instruction);
-		  *temp = location->fourthInstruction;
-		  relocateInstruction(temp,
-				      ipAddr + 3*sizeof(instruction),
-				      currAddr, proc);
-		  temp++;
-		  numInsnsCopied = 4;
-		}
-		
-		// Function has a stack frame
-	      } else {
-		
-		// No need for a save instruction, only need to copy
-		// the original instruction and the delay slot insn
-		if ( location->ipType == callSite || 
-		     location->ipType == functionExit ) {
-		  
-		  // relocate the FIRST instruction
-		  *temp = location->firstInstruction;
-		  relocateInstruction(temp,
-				      ipAddr, 
-				      currAddr, proc);
-		  temp++;
-		  currAddr += sizeof(instruction);
-		  numInsnsCopied = 1;
-		  
-		  // relocate the SECOND instruction
-		  *temp = location->secondInstruction;
-		  relocateInstruction(temp,
-				      ipAddr + 1*sizeof(instruction), 
-				      currAddr, proc);
-		  numInsnsCopied = 2;
-		  
-		  
-		  // since the FIRST instruction is a DCTI, the 
-		  // third instruction may be an aggregate
-		  assert (location->firstIsDCTI);
-		  
-		  if (location->thirdIsAggregate) {
-		    
-		    // relocate the THIRD instruction
-		    temp++;
-		    currAddr += sizeof(instruction);
-		    *temp = location->thirdInstruction;
-		    relocateInstruction(temp, 
-					ipAddr + 2*sizeof(instruction),
-					currAddr, proc);
-		    numInsnsCopied = 3;
-		  }
-		  
-		} else {
-		  
-		  assert (location->ipType == functionEntry);
-		  
-		  // relocate the FIRST instruction
-		  *temp = location->firstInstruction;
-		  relocateInstruction(temp, ipAddr, currAddr, proc);
-		  temp++;
-		  currAddr += sizeof(instruction);
-		  numInsnsCopied = 1;
-		  
-		  // relocate the SECOND instruction
-		  *temp = location->secondInstruction;
-		  relocateInstruction(temp,
-				      ipAddr + 1*sizeof(instruction),
-				      currAddr, proc);
-		  numInsnsCopied = 2;
-		  
-		  
-		  // relocate the THIRD instruction
-		  temp++;
-		  currAddr += sizeof(instruction);
-		  *temp = location->thirdInstruction;
-		  relocateInstruction(temp, 
-				      ipAddr + 2*sizeof(instruction),
-				      currAddr, proc);
-		  numInsnsCopied = 3;
-		  
-		  
-		  // if the SECOND instruction is a DCTI, then the 
-		  // fourth instruction may be an aggregate 
-		  if (location->secondIsDCTI) {
-		    
-		    if (location->fourthIsAggregate) {
-		      
+                          // relocate the THIRD instruction
+                          temp++;
+                          currAddr += sizeof(instruction);
+                          *temp = location->thirdInstruction;
+                          relocateInstruction(temp, 
+                                              ipAddr + 2*sizeof(instruction),
+                                              currAddr, proc);
+                          numInsnsCopied = 3;
+
+                          // if the SECOND instruction is a DCTI, then the 
+                          // fourth instruction may be an aggregate 
+                          if (location->secondIsDCTI) {
+                              
+                             if (location->fourthIsAggregate) {
+                                 
                                 // relocate the FOURTH instruction
-		      temp++;
-		      currAddr += sizeof(instruction);
-		      *temp = location->fourthInstruction;
-		      relocateInstruction(temp, 
-					  ipAddr + 3*sizeof(instruction),
-					  currAddr, proc);
-		      numInsnsCopied = 4;
-		    }
-		  }
-		  
-		  // if the THIRD instruction is a DCTI, then the 
-		  // fourth instruction is in the delay slot and the
-		  // fifth instruction may be an aggregate (for 
-		  // entry and other points only). 
-		  if (location->thirdIsDCTI) {
-		    
-		    // relocate the FOURTH instruction
-		    temp++;
-		    currAddr += sizeof(instruction);
-		    *temp = location->fourthInstruction;
-		    relocateInstruction(temp, 
-					ipAddr + 3*sizeof(instruction),
-					currAddr, proc);
-		    numInsnsCopied = 4;
-		    
-		    // Then, possibly, there's a callAggregate
-		    // instruction after this. 
-		    if (location->fifthIsAggregate) {
-		      
+                                temp++;
+                                currAddr += sizeof(instruction);
+                                *temp = location->fourthInstruction;
+                                relocateInstruction(temp, 
+                                                    ipAddr + 3*sizeof(instruction),
+                                                    currAddr, proc);
+                                numInsnsCopied = 4;
+                             }
+                          }
+                           
+                          // if the THIRD instruction is a DCTI, then the 
+                          // fourth instruction is in the delay slot and the
+                          // fifth instruction may be an aggregate (for 
+                          // entry and other points only). 
+                          if (location->thirdIsDCTI) {
+                              
+                             // relocate the FOURTH instruction
+                             temp++;
+                             currAddr += sizeof(instruction);
+                             *temp = location->fourthInstruction;
+                             relocateInstruction(temp, 
+                                                 ipAddr + 3*sizeof(instruction),
+                                                 currAddr, proc);
+                             numInsnsCopied = 4;
+                              
+                             // Then, possibly, there's a callAggregate
+                             // instruction after this. 
+                             if (location->fifthIsAggregate) {
+                                 
                                 // relocate the FIFTH instruction
-		      temp++;
-		      currAddr += sizeof(instruction);
-		      *temp = location->fifthInstruction;
-		      relocateInstruction(temp, 
-					  ipAddr + 4*sizeof(instruction),
-					  currAddr, proc);
-		      
-		      numInsnsCopied = 5;
-		    }
-		  }
-		}
-	      }
+                                temp++;
+                                currAddr += sizeof(instruction);
+                                *temp = location->fifthInstruction;
+                                relocateInstruction(temp, 
+                                                    ipAddr + 4*sizeof(instruction),
+                                                    currAddr, proc);
+                                numInsnsCopied = 5;
+                             }
+                          }
+                       }
+                    }
+                     
+                    // the instructions prior to the instPoint need to be used
+                 } else {
+                     
+                    // At the exit of leaf function, we need to over-write
+                    // three instructions for a save; call; restore; sequence
+                    // but we only have two instructions. So we claim the
+                    // the instructions preceding the exit point
+                    assert(location->hasNoStackFrame());
+                    assert(location->ipType == functionExit);
+                     
+                    numInsnsCopied = 2;
 	      
-	      // the instructions prior to the instPoint need to be used
-	    } else {
+                    // 'firstPriorInstruction' is the aggregate after a call,
+                    // so copy the two instructions that precede it.
+                    if (location->numPriorInstructions == 3) {
+                        
+                       currAddr += sizeof(instruction);
+                       *++temp = location->thirdPriorInstruction;
+                       relocateInstruction(temp, ipAddr, currAddr, proc);
+                        
+                       currAddr += sizeof(instruction);
+                       *++temp = location->secondPriorInstruction;
+                        
+                    }
 	      
-	      // At the exit of leaf function, we need to over-write
-	      // three instructions for a save; call; restore; sequence
-	      // but we only have two instructions. So we claim the
-	      // the instructions preceding the exit point
-	      assert(location->hasNoStackFrame());
-	      assert(location->ipType == functionExit);
+                    // 'firstPriorInstruction' is the delay slot of a call,
+                    // so copy the instruction that precedes it.
+                    if (location->numPriorInstructions == 2) {
+                        
+                       currAddr += sizeof(instruction);
+                       *++temp = location->secondPriorInstruction;
+                       relocateInstruction(temp, ipAddr, currAddr, proc);
+                        
+                    }
+                     
+                    currAddr += sizeof(instruction);
+                    *++temp = location->firstPriorInstruction;
+                     
+                    currAddr += sizeof(instruction);
+                    *++temp = location->firstInstruction;
+                     
+                    currAddr += sizeof(instruction);
+                    *++temp = location->secondInstruction;
 	      
-	      numInsnsCopied = 2;
-	      
-	      // 'firstPriorInstruction' is the aggregate after a call,
-	      // so copy the two instructions that precede it.
-	      if (location->numPriorInstructions == 3) {
-		
-		currAddr += sizeof(instruction);
-		*++temp = location->thirdPriorInstruction;
-		relocateInstruction(temp, ipAddr, currAddr, proc);
-		
-		currAddr += sizeof(instruction);
-		*++temp = location->secondPriorInstruction;
-		
-	      }
-	      
-	      // 'firstPriorInstruction' is the delay slot of a call,
-	      // so copy the instruction that precedes it.
-	      if (location->numPriorInstructions == 2) {
-		
-		currAddr += sizeof(instruction);
-		*++temp = location->secondPriorInstruction;
-		relocateInstruction(temp, ipAddr, currAddr, proc);
-		
-	      }
-	      
-	      currAddr += sizeof(instruction);
-	      *++temp = location->firstPriorInstruction;
-	      
-	      currAddr += sizeof(instruction);
-	      *++temp = location->firstInstruction;
-	      
-	      currAddr += sizeof(instruction);
-	      *++temp = location->secondInstruction;
-	      
-	      // Well, after all these, another SAVE instruction is 
-	      // generated so we are prepared to handle the returning 
-	      // to our application's code segment.
-	      genImmInsn(temp+1, SAVEop3, REG_SPTR, -120, REG_SPTR);
-	    }
-	  }
-	  
-	}
-	break;
-      case RETURN_INSN:
-	
-	if ( offsetWithinRangeOfBranchInsn((ipAddr + 
-					    numInsnsCopied*sizeof(instruction)) - 
-					   currAddr) ) {
-	  
-	  generateBranchInsn(temp, ipAddr + 
-			     numInsnsCopied*sizeof(instruction) - 
-			     currAddr);
-	  
-	} else {
-	  
-	  retAddress =  baseAddress + 
-	    location->iPgetAddress() + 
-	    numInsnsCopied*sizeof(instruction);
-	  
-	  if (location->func->hasNoStackFrame() ||
-	      ((location->ipType == otherPoint) &&
-	       location->func->is_o7_live())){
-		
-	      /* to save value of live o7 register we save and call*/
-	      genImmInsn(temp, SAVEop3, REG_SPTR, -120, REG_SPTR);
-	      generateCallInsn(temp + 1, 
-			       currAddr + sizeof(instruction), 
-			       retAddress);
-	      genImmInsn(temp+2, RESTOREop3, 0, 0, 0);
-	      
-	  } else {
-	      generateCallInsn(temp, currAddr, retAddress);
-	  }
-	}
-	break;
-      case SKIP_PRE_INSN:
-	offset = baseTrampAddress+current_template->updateCostOffset-currAddr;
-	generateBranchInsn(temp,offset);
-	break;
-      case SKIP_POST_INSN:
-	offset = baseTrampAddress+current_template->returnInsOffset-currAddr;
-	generateBranchInsn(temp,offset);
-	break;
-      case UPDATE_COST_INSN:
-	current_template->costAddr = currAddr;
-	generateNOOP(temp);
-	break;
-      case LOCAL_PRE_BRANCH:
-      case LOCAL_POST_BRANCH:
-	generateNOOP(temp);
-	break;
-      case MT_POS_CALC:
-	if (proc->multithread_capable()) {
-	  numIns = 0;
-	  generateMTpreamble((char *)temp, numIns, proc);
-	  //temp += (numIns/sizeof(instruction));
-	}
-	else
-	  generateNOOP(temp); /* Not yet ready for MT tramp */
-	break;
-      case RECURSIVE_GUARD_ON_PRE_INSN:
-      case RECURSIVE_GUARD_OFF_PRE_INSN:
-      case RECURSIVE_GUARD_ON_POST_INSN:
-      case RECURSIVE_GUARD_OFF_POST_INSN:
-	generateNOOP( temp );
-	break;
-      default: /* May catch an unknown instruction (or a noop) */
-	break;
+                    // Well, after all these, another SAVE instruction is 
+                    // generated so we are prepared to handle the returning 
+                    // to our application's code segment.
+                    genImmInsn(temp+1, SAVEop3, REG_SPTR, -120, REG_SPTR);
+                 }
+              }
+               
+           }
+           break;
+        case RETURN_INSN:
+            
+           if ( offsetWithinRangeOfBranchInsn((ipAddr + 
+                                               numInsnsCopied*sizeof(instruction)) - 
+                                              currAddr) ) {
+               
+              generateBranchInsn(temp, ipAddr + 
+                                 numInsnsCopied*sizeof(instruction) - 
+                                 currAddr);
+               
+           } else {
+               
+              retAddress =  baseAddress + 
+                 location->iPgetAddress() + 
+                 numInsnsCopied*sizeof(instruction);
+               
+              if (location->func->hasNoStackFrame() ||
+                  ((location->ipType == otherPoint) &&
+                   location->func->is_o7_live())){
+                  
+                 /* to save value of live o7 register we save and call*/
+                 genImmInsn(temp, SAVEop3, REG_SPTR, -120, REG_SPTR);
+                 generateCallInsn(temp + 1, 
+                                  currAddr + sizeof(instruction), 
+                                  retAddress);
+                 genImmInsn(temp+2, RESTOREop3, 0, 0, 0);
+                  
+              } else {
+                 generateCallInsn(temp, currAddr, retAddress);
+              }
+           }
+           break;
+        case SKIP_PRE_INSN:
+           offset =
+              baseTrampAddress + current_template->updateCostOffset - currAddr;
+           generateBranchInsn(temp,offset);
+           break;
+        case SKIP_POST_INSN:
+           offset = 
+              baseTrampAddress + current_template->returnInsOffset - currAddr;
+           generateBranchInsn(temp,offset);
+           break;
+        case UPDATE_COST_INSN:
+           current_template->costAddr = currAddr;
+           generateNOOP(temp);
+           break;
+        case LOCAL_PRE_BRANCH:
+        case LOCAL_POST_BRANCH:
+           generateNOOP(temp);
+           break;
+        case MT_POS_CALC:
+           if (proc->multithread_capable()) {
+              numIns = 0;
+              generateMTpreamble((char *)temp, numIns, proc);
+              //temp += (numIns/sizeof(instruction));
+           }
+           else
+              generateNOOP(temp); /* Not yet ready for MT tramp */
+           break;
+        case RECURSIVE_GUARD_ON_PRE_INSN:
+        case RECURSIVE_GUARD_OFF_PRE_INSN:
+        case RECURSIVE_GUARD_ON_POST_INSN:
+        case RECURSIVE_GUARD_OFF_POST_INSN:
+           generateNOOP( temp );
+           break;
+        default: /* May catch an unknown instruction (or a noop) */
+           break;
       }
-    }
+   }
     
-    if( ! trampRecursiveDesired ) {
+   if( ! trampRecursiveDesired ) {
       generate_base_tramp_recursive_guard_code( *proc, code, baseTrampAddress,
-						(NonRecursiveTrampTemplate &) *current_template);
-    }
-    /*
-    fprintf(stderr, "------------\n");
-    for (int i = 0; i < (current_template->size/4); i++)
-      fprintf(stderr, "0x%x,\n", code[i].raw);
-    fprintf(stderr, "------------\n");
-    fprintf(stderr, "\n\n\n");
-    */
+                                                (NonRecursiveTrampTemplate &) *current_template);
+   }
+   /*
+     fprintf(stderr, "------------\n");
+     for (int i = 0; i < (current_template->size/4); i++)
+     fprintf(stderr, "0x%x,\n", code[i].raw);
+     fprintf(stderr, "------------\n");
+     fprintf(stderr, "\n\n\n");
+   */
 
-    // TODO cast
-    proc->writeDataSpace( ( caddr_t )baseTrampAddress,
-			  current_template->size,
-			  ( caddr_t )code );
-    delete [] code;
+   // TODO cast
+   proc->writeDataSpace( ( caddr_t )baseTrampAddress,
+                         current_template->size,
+                         ( caddr_t )code );
+   delete [] code;
+    
+   trampTemplate * baseInst;
+   if( trampRecursiveDesired )
+   {
+      baseInst = new trampTemplate;
+   }
+   else
+   {
+      baseInst = new NonRecursiveTrampTemplate;
+   }
+   * baseInst = *current_template;
+   baseInst->baseAddr = baseTrampAddress;
 
-    trampTemplate * baseInst;
-    if( trampRecursiveDesired )
-      {
-	baseInst = new trampTemplate;
-      }
-    else
-      {
-	baseInst = new NonRecursiveTrampTemplate;
-      }
-    * baseInst = *current_template;
-    baseInst->baseAddr = baseTrampAddress;
-
-    return baseInst;
+   return baseInst;
 }
 
 
@@ -973,10 +963,10 @@ trampTemplate * installBaseTramp( instPoint * & location,
  *
  */
 trampTemplate *findAndInstallBaseTramp(process *proc, 
-				       instPoint *&location,
-				       returnInstance *&retInstance,
-				       bool trampRecursionDesired,
-				       bool, 
+                                       instPoint *&location,
+                                       returnInstance *&retInstance,
+                                       bool trampRecursionDesired,
+                                       bool, 
                                        bool &deferred)
 {
     Address baseAddress;
@@ -1621,7 +1611,8 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 }
 
 #ifdef BPATCH_LIBRARY
-void emitJmpMC(int condition, int offset, char* baseInsn, Address &base)
+void emitJmpMC(int /*condition*/, int /*offset*/, char* /*baseInsn*/, 
+               Address & /*base*/)
 {
   // Not needed for memory instrumentation, otherwise TBD
 }
@@ -3213,62 +3204,66 @@ bool pd_Function::PA_attachBranchOverlaps(
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-
-bool pd_Function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *p,
-						 Address baseAddress,
-						 Address firstAddress,
-						 process *proc) {
 #ifdef BPATCH_LIBRARY
+bool pd_Function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *p,
+                                                 Address baseAddress,
+                                                 Address firstAddress,
+                                                 process *proc)
+#else
+bool pd_Function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *,
+                                                 Address, Address,
+                                                 process *)
+#endif
+{
+#ifdef BPATCH_LIBRARY
+   BPatch_function *bpfunc = proc->findOrCreateBPFunc(this);
 
-  BPatch_function *bpfunc = proc->findOrCreateBPFunc(this);
+   BPatch_flowGraph *cfg = bpfunc->getCFG();
+   BPatch_Set<BPatch_basicBlock*> allBlocks;
+   cfg->getAllBasicBlocks(allBlocks);
 
-  BPatch_flowGraph *cfg = bpfunc->getCFG();
-  BPatch_Set<BPatch_basicBlock*> allBlocks;
-  cfg->getAllBasicBlocks(allBlocks);
-
-  BPatch_basicBlock** belements =
-    new BPatch_basicBlock*[allBlocks.size()];
-  allBlocks.elements(belements);
-
-  BPatch_Set<Address> blockEnds;
-  for (int i = 0; i < allBlocks.size(); i++) {
-    void *bbsa, *bbea;
-    belements[i]->getAddressRange(bbsa, bbea);
-    blockEnds.insert((Address) bbea);
-  }
-  delete[] belements;
-
-  pdvector<instPoint*> ips;
-  sorted_ips_vector(ips);
-
-  instPoint *entry = const_cast<instPoint*>(funcEntry_);
-  Address entry_begin, entry_end;
-  entry_begin = entry->iPgetAddress();
-  entry_end = entry_begin + entry->Size();
-
-  for (unsigned i = 0; i < ips.size(); i++) {
-    Address curr_addr = ips[i]->iPgetAddress();
-    // Skip inst points inside entry block
-    if (entry_begin <= curr_addr && curr_addr < entry_end)
-      continue;
-
-    // We do a special check to see if we're the restore in a tail-call
-    // optimization.  This should be probably be addressed in
-    // fixOverlappingAlterations
-    if (blockEnds.contains(curr_addr) &&
-	!isInsnType(ips[i]->insnAtPoint(), RESTOREmask, RESTOREmatch)) {
+   BPatch_basicBlock** belements =
+      new BPatch_basicBlock*[allBlocks.size()];
+   allBlocks.elements(belements);
+   
+   BPatch_Set<Address> blockEnds;
+   for (int i = 0; i < allBlocks.size(); i++) {
+      void *bbsa, *bbea;
+      belements[i]->getAddressRange(bbsa, bbea);
+      blockEnds.insert((Address) bbea);
+   }
+   delete[] belements;
+   
+   pdvector<instPoint*> ips;
+   sorted_ips_vector(ips);
+   
+   instPoint *entry = const_cast<instPoint*>(funcEntry_);
+   Address entry_begin, entry_end;
+   entry_begin = entry->iPgetAddress();
+   entry_end = entry_begin + entry->Size();
+   
+   for (unsigned i = 0; i < ips.size(); i++) {
+      Address curr_addr = ips[i]->iPgetAddress();
+      // Skip inst points inside entry block
+      if (entry_begin <= curr_addr && curr_addr < entry_end)
+         continue;
       
-      InsertNops *blockNop = 
-	new InsertNops(this, curr_addr + baseAddress +
-		       sizeof(instruction) - firstAddress, 
-		       sizeof(instruction));
-      p->AddAlteration(blockNop);
-      
-    }
-  }
-
+      // We do a special check to see if we're the restore in a tail-call
+      // optimization.  This should be probably be addressed in
+      // fixOverlappingAlterations
+      if (blockEnds.contains(curr_addr) &&
+          !isInsnType(ips[i]->insnAtPoint(), RESTOREmask, RESTOREmatch)) {
+         
+         InsertNops *blockNop = 
+            new InsertNops(this, curr_addr + baseAddress +
+                           sizeof(instruction) - firstAddress, 
+                           sizeof(instruction));
+         p->AddAlteration(blockNop);
+      }
+   }   
 #endif // BPATCH_LIBRARY
-  return true;
+
+   return true;
 }
 
 
@@ -3758,7 +3753,7 @@ InsnRegister::InsnRegister()
 	  regNumber(-1) {};
 
 InsnRegister::InsnRegister(char isD,InsnRegister::RegisterType rt,
-			   unsigned short rn)
+                           short rn)
 	: wordCount(isD),
 	  regType(rt),
 	  regNumber(rn) {};
@@ -3799,8 +3794,8 @@ void InsnRegister::print(){
 }
 
 
-void get_register_operands(const instruction& insn,
-		  InsnRegister* rd,InsnRegister* rs1,InsnRegister* rs2)
+void get_register_operands(const instruction& insn, InsnRegister* rd,
+                           InsnRegister* rs1, InsnRegister* rs2)
 {
 	*rd = InsnRegister();
 	*rs1 = InsnRegister();
@@ -3810,157 +3805,143 @@ void get_register_operands(const instruction& insn,
 		return;
 
 	switch(insn.call.op){
-		case 0x0:
-		    {
-			if((insn.sethi.op2 == 0x4) &&
-		   	   (insn.sethi.rd || insn.sethi.imm22))
-				*rd = InsnRegister(1,
-						  InsnRegister::GlobalIntReg,
-						  (short)(insn.sethi.rd));
-			break;
-		    }
-		case 0x2:
-		    {
-			unsigned firstTag = insn.rest.op3 & 0x30;
-			unsigned secondTag = insn.rest.op3 & 0xf;
+     case 0x0:
+        {
+           if((insn.sethi.op2 == 0x4) &&
+              (insn.sethi.rd || insn.sethi.imm22))
+              *rd = InsnRegister(1,
+                                 InsnRegister::GlobalIntReg,
+                                 (short)(insn.sethi.rd));
+           break;
+        }
+     case 0x2:
+        {
+           unsigned firstTag = insn.rest.op3 & 0x30;
+           unsigned secondTag = insn.rest.op3 & 0xf;
 
-			if((firstTag == 0x00) ||
-			   (firstTag == 0x10) ||
-			   ((firstTag == 0x20) && (secondTag < 0x8)) ||
-			   ((firstTag == 0x30) && (secondTag >= 0x8)) ||
-			   ((firstTag == 0x30) && (secondTag < 0x4)))
-			{
-				*rs1 = InsnRegister(1,
-                                 		    InsnRegister::GlobalIntReg,
-                                		    (short)(insn.rest.rs1));
-				if(!insn.rest.i)
-					*rs2 = InsnRegister(1,
-						    InsnRegister::GlobalIntReg,
-					            (short)(insn.rest.rs2));
+           if((firstTag == 0x00) ||
+              (firstTag == 0x10) ||
+              ((firstTag == 0x20) && (secondTag < 0x8)) ||
+              ((firstTag == 0x30) && (secondTag >= 0x8)) ||
+              ((firstTag == 0x30) && (secondTag < 0x4)))
+           {
+              *rs1 = InsnRegister(1, InsnRegister::GlobalIntReg,
+                                  (short)(insn.rest.rs1));
+              if(!insn.rest.i)
+                 *rs2 = InsnRegister(1, InsnRegister::GlobalIntReg,
+                                     (short)(insn.rest.rs2));
 
-				if((firstTag == 0x30) && (secondTag < 0x4))
-					*rd = InsnRegister(1,
-                                 		    InsnRegister::SpecialReg,
-                                		    -1);
-				else if((firstTag != 0x30) || 
-					(secondTag <= 0x8) || 
-				        (secondTag >= 0xc))
-					*rd = InsnRegister(1,
-                                 		    InsnRegister::GlobalIntReg,
-                                		    (short)(insn.rest.rd));
-			}
-			else if((firstTag == 0x20) && (secondTag >= 0x8))
-			{
-				*rs1 = InsnRegister(1,
-                                                    InsnRegister::SpecialReg,
-                                                    -1);
-				*rd = InsnRegister(1,
-                                                    InsnRegister::GlobalIntReg,
-                                                    (short)(insn.rest.rd));
-			}
-			else if((secondTag == 0x6) || (secondTag == 0x7))
-			{
-				*rs1 = InsnRegister(1,
-                                 		    InsnRegister::CoProcReg,
-                                		    (short)(insn.restix.rs1));
-				*rs2 = InsnRegister(1,
-                                 		    InsnRegister::CoProcReg,
-                                		    (short)(insn.restix.rs2));
-				*rd = InsnRegister(1,
-                                 		    InsnRegister::CoProcReg,
-                                		    (short)(insn.restix.rd));
-			}
-			else if((secondTag == 0x4) || (secondTag == 0x5))
-			{
-				char wC = 0;
-				switch(insn.rest.unused & 0x03){
-					case 0x0:
-					case 0x1: wC = 1; break;
-					case 0x2: wC = 2; break;
-					case 0x3: wC = 4; break;
-					default: break;	
-				}
+              if((firstTag == 0x30) && (secondTag < 0x4))
+                 *rd = InsnRegister(1, InsnRegister::SpecialReg, -1);
+              else if((firstTag != 0x30) || 
+                      (secondTag <= 0x8) || 
+                      (secondTag >= 0xc))
+                 *rd = InsnRegister(1, InsnRegister::GlobalIntReg,
+                                    (short)(insn.rest.rd));
+           }
+           else if((firstTag == 0x20) && (secondTag >= 0x8))
+           {
+              *rs1 = InsnRegister(1, InsnRegister::SpecialReg, -1);
+              *rd = InsnRegister(1, InsnRegister::GlobalIntReg,
+                                 (short)(insn.rest.rd));
+           }
+           else if((secondTag == 0x6) || (secondTag == 0x7))
+           {
+              *rs1 = InsnRegister(1, InsnRegister::CoProcReg,
+                                  (short)(insn.restix.rs1));
+              *rs2 = InsnRegister(1, InsnRegister::CoProcReg,
+                                  (short)(insn.restix.rs2));
+              *rd = InsnRegister(1, InsnRegister::CoProcReg,
+                                 (short)(insn.restix.rd));
+           }
+           else if((secondTag == 0x4) || (secondTag == 0x5))
+           {
+              char wC = 0;
+              switch(insn.rest.unused & 0x03){
+                case 0x0:
+                case 0x1: wC = 1; break;
+                case 0x2: wC = 2; break;
+                case 0x3: wC = 4; break;
+                default: break;	
+              }
 				
-				*rs2 = InsnRegister(wC,
-                                 		    InsnRegister::FloatReg,
-                                		    (short)(insn.rest.rs2));
+              *rs2 = InsnRegister(wC, InsnRegister::FloatReg,
+                                  (short)(insn.rest.rs2));
 
-				firstTag = insn.rest.unused & 0xf0;
-				secondTag = insn.rest.unused & 0xf;
-				if((firstTag == 0x40) || (firstTag == 0x60)){
-					*rs1 = *rs2;
-					rs1->setNumber((short)(insn.rest.rs1));
-				}
+              firstTag = insn.rest.unused & 0xf0;
+              secondTag = insn.rest.unused & 0xf;
+              if((firstTag == 0x40) || (firstTag == 0x60)){
+                 *rs1 = *rs2;
+                 rs1->setNumber((short)(insn.rest.rs1));
+              }
 
-				if(firstTag < 0x60){
-					*rd = *rs2;
-					rd->setNumber((short)(insn.rest.rd));
-				}
-				else{
-					if(secondTag < 0x8)
-						wC = 1;
-					else if(secondTag < 0xc)
-						wC = 2;
-					else
-						wC = 4;
+              if(firstTag < 0x60){
+                 *rd = *rs2;
+                 rd->setNumber((short)(insn.rest.rd));
+              }
+              else{
+                 if(secondTag < 0x8)
+                    wC = 1;
+                 else if(secondTag < 0xc)
+                    wC = 2;
+                 else
+                    wC = 4;
 
-					*rd = InsnRegister(wC,
-                                                    InsnRegister::FloatReg,
-                                                    (short)(insn.rest.rd));
-				}
-			}
+                 *rd = InsnRegister(wC, InsnRegister::FloatReg,
+                                    (short)(insn.rest.rd));
+              }
+           }
 
-			break;
-		    }
-		case 0x3:
-		    {
-			*rs1 = InsnRegister(1,
-					    InsnRegister::GlobalIntReg,
-					    (short)(insn.rest.rs1));
-			if(!insn.rest.i)
-				*rs2 = InsnRegister(1,
-						    InsnRegister::GlobalIntReg,
-					            (short)(insn.rest.rs2));
-			char wC = 1;
-			InsnRegister::RegisterType rt;
-			short rn = -1;
+           break;
+        }
+     case 0x3:
+        {
+           *rs1 = InsnRegister(1, InsnRegister::GlobalIntReg,
+                               (short)(insn.rest.rs1));
+           if(!insn.rest.i)
+              *rs2 = InsnRegister(1, InsnRegister::GlobalIntReg,
+                                  (short)(insn.rest.rs2));
+           char wC = 1;
+           InsnRegister::RegisterType rt = InsnRegister::None;
+           short rn = -1;
 
-			unsigned firstTag = insn.rest.op3 & 0x30;
-			unsigned secondTag = insn.rest.op3 & 0xf;
+           unsigned firstTag = insn.rest.op3 & 0x30;
+           unsigned secondTag = insn.rest.op3 & 0xf;
 
-			switch(firstTag){
-				case 0x00:
-				case 0x10:
-					rt = InsnRegister::GlobalIntReg;
-					rn = (short)(insn.rest.rd);
-					break;
-				case 0x20:
-				case 0x30:
-					if((secondTag == 0x1) ||
-					   (secondTag == 0x5) ||
-					   (secondTag == 0x6))
-						rt = InsnRegister::SpecialReg;
-					else{
+           switch(firstTag){
+             case 0x00:
+             case 0x10:
+                rt = InsnRegister::GlobalIntReg;
+                rn = (short)(insn.rest.rd);
+                break;
+             case 0x20:
+             case 0x30:
+                if((secondTag == 0x1) ||
+                   (secondTag == 0x5) ||
+                   (secondTag == 0x6))
+                   rt = InsnRegister::SpecialReg;
+                else{
 					    if(firstTag == 0x20)
-						rt = InsnRegister::FloatReg;
+                      rt = InsnRegister::FloatReg;
 					    else if(firstTag == 0x30)
-						rt = InsnRegister::CoProcReg;
+                      rt = InsnRegister::CoProcReg;
 					    rn = (short)(insn.rest.rd);
-				     	}
-					break;
-				default: break;
-			}
-			if((secondTag == 0x3) ||
-			   (secondTag == 0x7))
-				wC = 2;
+                }
+                break;
+             default: break;
+           }
 
-			rd->setNumber(rn);
-			rd->setType(rt);
-			rd->setWordCount(wC);
-			break;
-		    }
-		default:
-			break;
+           if((secondTag == 0x3) ||
+              (secondTag == 0x7))
+              wC = 2;
+
+           rd->setNumber(rn);
+           rd->setType(rt);
+           rd->setWordCount(wC);
+           break;
+        }
+     default:
+        break;
 	}
 	return;
 }
