@@ -150,7 +150,6 @@ DEPS	= $(addprefix $(DEPENDDIR)/, $(patsubst %.C,%.d,$(patsubst %.c,%.d,$(notdir
 all: xplat-all $(TARGETS)
 
 xplat-all:
-	echo Building libxplat.a ...
 	cd ./xplat ; $(MAKE) all
 
 install: install-local xplat-install

@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #if !defined(Types_h)
 #define Types_h
@@ -20,7 +20,7 @@
 #include <stdint.h>
 #elif defined(solaris)
 #include <inttypes.h>
-#elif defined(WIN32)
+#elif defined(os_windows)
 #include "xplat/Types.h"
 #endif
 

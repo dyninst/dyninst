@@ -1,13 +1,12 @@
 %{
-/***********************************************************************
- * Copyright Â© 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                 Detailed MRNet usage rights in "LICENSE" file.           *
+ ****************************************************************************/
 #include <list>
 
 #include "mrnet/src/NetworkGraph.h"
 #include "mrnet/src/NetworkImpl.h"
-#include "mrnet/src/utils.h"
 
 static std::list <MRN::NetworkNode *> hostlist;
 static std::list <MRN::NetworkNode *> potential_root;
@@ -35,7 +34,7 @@ extern int lineNum;
 }
 
 %token <hostname> HOSTNAME
-%token <uval> UINT
+%token <uval> MRN_UINT
 %token COLON SEMI ARROW
 %token STAR
 %type <node_ptr> host
@@ -45,7 +44,7 @@ config: line config
 | line
 {
     if(potential_root.size() != 1){
-        mrn_dbg(1, mrn_printf(FLF, stderr, "graph is not connected\n") );
+	    fprintf(stderr, "graph is not connected\n");
         YYABORT;
     }           
     NetworkImpl::parsed_graph->set_Root( *potential_root.begin() );
@@ -81,7 +80,7 @@ hosts: hosts host
 ;
 
 
-host: HOSTNAME COLON UINT
+host: HOSTNAME COLON MRN_UINT
 {
     NetworkNode * cur_node = NetworkImpl::parsed_graph->find_Node($1, $3);
     if(cur_node == NULL){

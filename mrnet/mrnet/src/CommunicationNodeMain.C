@@ -1,15 +1,16 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
-#include <unistd.h>
 #include <stdio.h>
-#include <sys/types.h>
 
-#if !defined(WIN32)
+#if !defined(os_windows)
 #include <sys/time.h>
-#endif // !defined(WIN32)
+#include <unistd.h>
+#include <sys/types.h>
+#endif // !defined(os_windows)
+
 
 #include <list>
 
@@ -27,7 +28,7 @@ int main(int argc, char **argv)
 {
     InternalNode *comm_node;
     int i, status;
-    std::list <Packet *> packet_list;
+    //std::list <Packet *> packet_list;
 
     //set_OutputLevel(5);
     if(argc != 4){
@@ -79,11 +80,13 @@ int main(int argc, char **argv)
     comm_node->waitLoop();
 
     delete comm_node;
+
     return 0;
 }
 
 void BeDaemon( void )
 {
+#if !defined (os_windows)
     // become a background process
     pid_t pid = fork();
     if( pid > 0 ) {
@@ -108,4 +111,7 @@ void BeDaemon( void )
     }
 
     // we were the child of both forks - we're the one who survives
+#else
+//TODO: figure out how to run in background on windows
+#endif /* !defined(os_windows) */
 }

@@ -95,7 +95,7 @@ STAR     "*"
 {DIGIT}|{NZDIGIT}{DIGIT}*   {
                                 unsigned int val = strtoul( yytext, NULL, 10 );
                                 MRN::mrnlval.uval = val;
-                                return UINT;
+                                return MRN_UINT;
                             }
 {HOSTNAME} { MRN::mrnlval.hostname = strdup(yytext); return(HOSTNAME); }
 {SEMI}  {return(SEMI); }
