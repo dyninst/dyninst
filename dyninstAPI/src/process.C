@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.316 2002/04/17 16:37:42 schendel Exp $
+// $Id: process.C,v 1.317 2002/04/17 21:18:12 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2148,11 +2148,11 @@ process::process(int iPid, image *iImage, int iTraceLink
   theSuperTable(this,
 		iShmHeapStats[0].maxNumElems,
 		iShmHeapStats[1].maxNumElems,
-#if defined(MT_THREAD)  
 		iShmHeapStats[2].maxNumElems,
+#if defined(MT_THREAD)
 		MAX_NUMBER_OF_THREADS/4
 #else
-		iShmHeapStats[2].maxNumElems
+		1
 #endif
 		)
 #endif
@@ -2337,11 +2337,11 @@ process::process(int iPid, image *iSymbols,
   theSuperTable(this,
 		iShmHeapStats[0].maxNumElems,
 		iShmHeapStats[1].maxNumElems,
-#if defined(MT_THREAD)
 		iShmHeapStats[2].maxNumElems,
+#if defined(MT_THREAD)
 		MAX_NUMBER_OF_THREADS/4
 #else
-  iShmHeapStats[2].maxNumElems
+		1
 #endif
 		)
 #endif
