@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.3 2005/02/22 22:30:47 tlmiller Exp $
+// $Id: frame.C,v 1.4 2005/02/24 20:06:12 tlmiller Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -53,47 +53,6 @@
 #include "miniTrampHandle.h"
 #include "frame.h"
 
-#if defined( DONT_LEAK_FRAME_MEMORY )
-#if defined( arch_ia64 )
-
-#include <libunwind.h>
-#include <libunwind-ptrace.h>
-
-Frame & Frame::operator = ( const Frame & rhs ) {
-	memmove( this, & rhs, sizeof( Frame ) );
-	
-	if( this->unwindCursor_ != NULL ) {
-   		this->unwindCursor_ = malloc( sizeof( unw_cursor_t ) );
-   		assert( this->unwindCursor_ != NULL );
-   		memmove( this->unwindCursor_, rhs.unwindCursor_, sizeof( unw_cursor_t ) );
-		}
-		
-	return * this;
-	} /* end operator =() */
-	
-#else
-
-Frame & Frame::operator = ( const Frame & rhs ) {
-	memmove( this, & rhs, sizeof( Frame ) );
-	
-	return * this;
-	} /* end operator =() */
-	
-#endif
-
-/* Invoke operator = to make the right thing happen. */
-Frame( const Frame & f ) {
-	* this = f;
-	} /* end copy constructor */
-
-Frame::~Frame() {
-	if( unwindCursor_ != NULL ) {
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: freeing %p.\n", __FILE__, __LINE__, unwindCursor_ );
-		free( unwindCursor_ );
-		}
-	} /* end ~Frame() */
-#endif
-
 Frame::Frame() : 
   frameType_(FRAME_unset), 
   uppermost_(false), 
@@ -105,7 +64,7 @@ Frame::Frame() :
   thread_(NULL), 
   lwp_(NULL), 
   range_(0), 
-  unwindCursor_(NULL),
+  hasValidCursor(false),
   pcAddr_(0)
   {}
 
@@ -114,13 +73,12 @@ Frame::Frame(Address pc, Address fp, Address sp,
 	     unsigned pid, process *proc, 
 	     dyn_thread *thread, dyn_lwp *lwp, 
 	     bool uppermost,
-	     Address pcAddr,
-	     void * unwindCursor) :
+	     Address pcAddr ) :
   frameType_(FRAME_unset),
   uppermost_(uppermost),
   pc_(pc), fp_(fp), sp_(sp),
   pid_(pid), proc_(proc), thread_(thread), lwp_(lwp), 
-  range_(0), unwindCursor_( unwindCursor ), pcAddr_(pcAddr)
+  range_(0), hasValidCursor(false), pcAddr_(pcAddr)
   {};
 
 
@@ -154,18 +112,22 @@ ostream & operator << ( ostream & s, Frame & f ) {
 		trampTemplate * basetramp_ptr = range->is_basetramp();
 		miniTrampHandle * minitramp_ptr = range->is_minitramp();
 		relocatedFuncInfo * reloc_ptr = range->is_relocated_func();
+		multitrampTemplate * multitramp_ptr = range->is_multitramp();
 		
 		if( func_ptr ) {
 			s << "(" << func_ptr->prettyName().c_str() << ") ";
 			}
 		if( basetramp_ptr ) {
-			s << "(basetramp from '" << basetramp_ptr->location->pointFunc()->prettyName().c_str() << "' ";
+			s << "(basetramp from '" << basetramp_ptr->location->pointFunc()->prettyName().c_str() << "') ";
 			}
 		if( minitramp_ptr ) {
-			s << "(minitramp from '" << minitramp_ptr->baseTramp->location->pointFunc()->prettyName().c_str() << "' ";
+			s << "(minitramp from '" << minitramp_ptr->baseTramp->location->pointFunc()->prettyName().c_str() << "') ";
 			}
 		if( reloc_ptr ) {
 			s << "(" << reloc_ptr->func()->prettyName().c_str() << " [RELOCATED]) ";
+			}
+		if( multitramp_ptr ) {
+			s << "(multitramp from '" << multitramp_ptr->location->pointFunc()->prettyName().c_str() << "') ";
 			}
 		}
    

@@ -39,13 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.20 2005/02/22 22:30:47 tlmiller Exp $
+// $Id: frame.h,v 1.21 2005/02/24 20:06:11 tlmiller Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
 
 #include <iostream>
 #include "common/h/Types.h"
+
+#if defined( arch_ia64 )
+#include <libunwind.h>
+#include <libunwind-ptrace.h>
+#endif
 
 class dyn_thread;
 class process;
@@ -63,19 +68,12 @@ class Frame {
   // Real constructor -- fill-in.
   // Option 2 would be to have the constructor look up this info,
   // but getCallerFrame works as is.
-  Frame(Address pc, Address fp, Address sp,
-        unsigned pid, process *proc, 
-	dyn_thread *thread, dyn_lwp *lwp, 
-        bool uppermost,
-	Address pcAddr = 0,
-        void * unwindCursor = NULL );
+  Frame(	Address pc, Address fp, Address sp,
+			unsigned pid, process *proc, 
+			dyn_thread *thread, dyn_lwp *lwp, 
+			bool uppermost,
+			Address pcAddr = 0 );
 
-#if defined( DONT_LEAK_FRAME_MEMORY )
-  Frame & operator = ( const Frame & rhs );      
-  ~Frame();
-  Frame( const Frame & f );
-#endif
-  
   bool operator==(const Frame &F) {
     return ((uppermost_ == F.uppermost_) &&
 	    (pc_      == F.pc_) &&
@@ -85,8 +83,7 @@ class Frame {
 	    (proc_    == F.proc_) &&
 	    (thread_  == F.thread_) &&
 	    (lwp_     == F.lwp_) &&
-	    (saved_fp == F.saved_fp) &&
-	    (unwindCursor_ == F.unwindCursor_) );
+	    (saved_fp == F.saved_fp) );
   }
 
   Address  getPC() const { return pc_; }
@@ -110,6 +107,14 @@ class Frame {
   bool setRealReturnAddr(Address retaddr);
 #endif
 
+#if defined( arch_ia64 )
+	/* FIXME: do copies of a reference duplicate data? */
+	void setUnwindCursor( unw_cursor_t & newUnwindCursor ) { 
+		hasValidCursor = true;
+		unwindCursor = newUnwindCursor;
+		}
+#endif
+
   // check for zero frame
   bool isLastFrame() const;
   
@@ -130,7 +135,10 @@ class Frame {
   codeRange *	range_;				// If we've done a by-address lookup, keep it here
                                         
   Address		saved_fp;			// IRIX
-  void *		unwindCursor_;		// IA-64
+  bool			hasValidCursor;		// IA-64
+#if defined( arch_ia64 )  
+  unw_cursor_t	unwindCursor;
+#endif  
   Address		pcAddr_;			// AIX
   
 };
