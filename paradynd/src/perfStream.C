@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.102 1999/07/13 17:12:26 pcroth Exp $
+// $Id: perfStream.C,v 1.103 1999/10/27 21:52:15 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -342,7 +342,18 @@ void processTraceStream(process *curr)
                 batchTraceData(0, sid, header.length, recordData);
                 traceOn[sid] = 1;
                 break;
+ 	    case TR_ERROR: // also used for warnings
+	        { 
 
+		  rtUIMsg *rtMsgPtr;
+		  rtMsgPtr = (rtUIMsg *) recordData;
+		  showErrorCallback(rtMsgPtr->errorNum, rtMsgPtr->msgString);
+		  if(rtMsgPtr->msgType == rtError) {
+		    // if need this, might want to add code
+		    // to shut down paradyn and/or app
+		  }
+	        }
+		break;
 	    case TR_SYNC:
 		// to eliminate a race condition, --Zhichen
 		break ;
