@@ -56,7 +56,9 @@ class processMetFocusNode;
 class threadMetFocusNode;
 class threadMetFocusNode_Val;
 class HwEvent;
+class pd_thread;
 
+inline unsigned ui_hash__(const unsigned &u) { return u; }
 
 class instrCodeNode_Val {
   friend class instrCodeNode;
@@ -67,12 +69,12 @@ class instrCodeNode_Val {
 
   const string name;  // could be either a metric name or a constraint name
   const Focus focus;
-  vector<instReqNode> instRequests;
+  vector<instReqNode *> instRequests;
+  vector<instReqNode *> startThreadInstRequest;
   vector<returnInstance *> baseTrampInstances;
   bool _trampsHookedUp;
   bool instrDeferred_;
   bool instrLoaded_;
-  bool hasBeenCatchuped_;
   pd_process *proc_;
   bool dontInsertData_;
   int referenceCount;
@@ -80,6 +82,8 @@ class instrCodeNode_Val {
   // remember names of each of its threads (tid + start_func_name)
   vector<string> thr_names;  
 #endif
+  dictionary_hash<string, int> thrStartFuncBuf;
+  dictionary_hash<unsigned, int> thridsCatchuped;
 
   HwEvent* hwEvent;
 
@@ -93,8 +97,8 @@ class instrCodeNode_Val {
 		    bool dontInsertData, HwEvent* hw) : 
     sampledDataNode(NULL), constraintDataNode(NULL), name(name_), focus(f), 
     _trampsHookedUp(false), instrDeferred_(false), instrLoaded_(false), 
-    hasBeenCatchuped_(false), proc_(p), dontInsertData_(dontInsertData),
-    referenceCount(0), hwEvent(hw)
+    proc_(p), dontInsertData_(dontInsertData), referenceCount(0), 
+    thrStartFuncBuf(string::hash), thridsCatchuped(ui_hash__), hwEvent(hw)
   { }
 
   instrCodeNode_Val(const instrCodeNode_Val &par, pd_process *childProc);
@@ -102,7 +106,7 @@ class instrCodeNode_Val {
   ~instrCodeNode_Val();
 
   string getKeyName();
-  vector<instReqNode> &getInstRequests() { return instRequests; }
+  vector<instReqNode*> &getInstRequests() { return instRequests; }
   vector<returnInstance *> &getBaseTrampInstances() { 
     return baseTrampInstances;
   }
@@ -137,14 +141,13 @@ class instrCodeNode {
   ~instrCodeNode();
   //bool condMatch(instrCodeNode *mn, vector<dataReqNode*> &data_tuple1,
   //               vector<dataReqNode*> &data_tuple2);
-  vector<instReqNode> getInstRequests() { return V.getInstRequests(); }
-  instr_insert_result_t loadInstrIntoApp(pd_Function **func);
+  vector<instReqNode*> getInstRequests() { return V.getInstRequests(); }
+  instr_insert_result_t loadInstrIntoApp();
   int getID() { return reinterpret_cast<int>(&V); }
   instrCodeNode_Val *getInternalData() { return &V; }
   // should make it private
 
-  bool hasBeenCatchuped() const { return V.hasBeenCatchuped_;};
-  void prepareCatchupInstr(vector<vector<catchupReq *> >&); 
+  void prepareCatchupInstr(pd_thread *thr, vector<catchupReq *> &); 
 
   string getName() const { return V.getName(); }
   int numDataNodes() { 
@@ -163,6 +166,13 @@ class instrCodeNode {
   void addTempCtrDataNode(instrDataNode *dataNode) { 
     V.tempCtrDataNodes.push_back(dataNode);
   }
+
+  // We define catchup as being done on a per thread basis because each
+  // thread needs to have catchup run for each relevant instrCodeNode's.
+  // This is because each thread has a separate instr. variable that needs to
+  // be updated by catchup processing.
+  void markAsCatchuped(const pd_thread *thr);
+  bool hasBeenCatchuped(const pd_thread *thr);
     
   // ---------------------------------------
   void getDataNodes(vector<instrDataNode *> *saveBuf) { 
@@ -186,15 +196,32 @@ class instrCodeNode {
   void unmarkAsDeferred() {
     V.instrDeferred_ = false;
   }
+
+  // these aren't thread specific because the instrumentation deals with the
+  // code and the code is shared by all the threads
   bool instrLoaded() { return V.instrLoaded_; }
   bool trampsHookedUp() { return V._trampsHookedUp; }
 
+  // returns true if new instReqNodes were added to the code node
+  bool updateForNewThread(pd_thread *thr);
+  bool handledThrStartFunc(const string &start_func_str) {
+     return V.thrStartFuncBuf.defines(start_func_str);
+  }
+  void markAsHandledThrStartFunc(const string &start_func_str) {
+     V.thrStartFuncBuf[start_func_str] = 1;
+  }
+
   bool needToWalkStack(); // const;
   bool insertJumpsToTramps(vector<vector<Frame> > &stackWalks);
-  void addInst(instPoint *point, AstNode *, callWhen when, callOrder o);
+  void addInst(instPoint *point, AstNode *, callWhen when, callOrder o,
+	       bool refersToStartThreadPoint);
   timeLength cost() const;
   void oldCatchUp(int tid);
   void disable();
+  void resetInsertedState() {
+     V.instrLoaded_ = false;
+     V._trampsHookedUp = false;
+  }
 
   void cleanup_drn();
   bool nonNull() const { return (V.instRequests.size() > 0);  }
