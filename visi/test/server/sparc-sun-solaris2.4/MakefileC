@@ -13,16 +13,16 @@ CFLAGS = -O -g $(IFLAGS)
 LIBS = $(LIBDIR) -lvisi -lpdutil -lstdc++ -lXaw -lXpm -lXext -lXmu -lXt
 LIBS += -lX11 -lm -lsocket -lnsl
 
-SRCS = ../src/xtext.c
-OBJS = xtext.o
+SRCS = ../src/xtextc.c
+OBJS = xtextc.o
 
-all: xtext 
+all: xtextc 
 
 xtext: $(OBJS)
-	$(CC) -o xtext $(LFLAGS) $(OBJS) $(LIBS) 
+	$(CC) -o xtextc $(LFLAGS) $(OBJS) $(LIBS) 
 
 $(OBJS): $(SRCS)
 	$(CC) $(CFLAGS) -c $(SRCS) 
 
 clean:
-	rm -f $(OBJS) xtext
+	rm -f $(OBJS) xtextc
