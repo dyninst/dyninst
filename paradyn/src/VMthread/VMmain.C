@@ -14,8 +14,9 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.30  1995/05/18 10:57:53  markc
-/* modified AddNewVisi.. used by the mdl to report visis
+/* Revision 1.31  1995/06/02 20:55:10  newhall
+/* made code compatable with new DM interface
+/* replaced List templates  with STL templates
 /*
  * Revision 1.29  1995/02/16  08:23:18  markc
  * Changed Boolean to bool.
@@ -119,7 +120,7 @@
 #include "performanceConsultant.thread.CLNT.h"
 #include "VISIthread.thread.CLNT.h"
 #include "VMtypes.h"
-#include "../pdMain/paradyn.h"
+#include "paradyn/src/pdMain/paradyn.h"
 
 /*
 #include "../UIthread/Status.h"
@@ -130,8 +131,8 @@
 
 static int      currNumActiveVisis = 0;
 thread_key_t visiThrd_key;
-List<VMactiveVisi *>  activeVisis; 
-List<VMvisis *> visiList;
+vector<VMactiveVisi *> activeVisis; 
+vector<VMvisis *> visiList;
 extern void* VISIthreadmain(void *args);
 
 
@@ -139,30 +140,20 @@ extern void* VISIthreadmain(void *args);
 //  VMActiveVisis: VM server routine, returns a list of all 
 //        visualization processes that are currently active
 /////////////////////////////////////////////////////////////
-VM_activeVisiInfo_Array VM::VMActiveVisis(){
+vector<VM_activeVisiInfo> *VM::VMActiveVisis(){
 
-  VM_activeVisiInfo_Array temp;
-  VMactiveVisi *tempdata;
-  List<VMactiveVisi*> walk;
-  int i;
-
-  temp.count = activeVisis.count(); 
-  if (!(temp.data = new VM_activeVisiInfo[temp.count])) {
-    ERROR_MSG(18,"malloc in VMActiveVisis");
-    temp.count = 0;
-    temp.data = (VM_activeVisiInfo*) NULL;
-    return temp;
+  vector<VM_activeVisiInfo> *temp;
+  if (!(temp = new vector<VM_activeVisiInfo>)) {
+      ERROR_MSG(18,"malloc in VMActiveVisis");
+      return NULL;
   }
 
-  for (walk=activeVisis, i=0; tempdata = *walk; i++, walk++) {
-    temp.data[i].visiNum = tempdata->visiThreadId;
-    temp.data[i].visiTypeId = tempdata->visiTypeId;
-    if(tempdata->name) {
-      if(!(temp.data[i].name = strdup(tempdata->name))) {
-	ERROR_MSG(19,"strdup in VM::ActiveVisis");
-      }
-    } else
-      temp.data[i].name = (char*) NULL;
+  for(unsigned i=0; i < activeVisis.size(); i++) {
+      VM_activeVisiInfo newElm;
+      newElm.visiNum = (activeVisis[i])->visiThreadId;
+      newElm.visiTypeId = (activeVisis[i])->visiTypeId;
+      newElm.name = activeVisis[i]->name;
+      *temp += newElm;
   }
   return(temp);
 }
@@ -172,38 +163,20 @@ VM_activeVisiInfo_Array VM::VMActiveVisis(){
 // VMAvailableVisis: VM server routine, returns a list of all
 //                   available visualizations 
 /////////////////////////////////////////////////////////////
-VM_visiInfo_Array VM::VMAvailableVisis(){
-
-  VM_visiInfo_Array  temp; 
-  int i;
-  VMvisis *temp2;
-  List<VMvisis*> vlist;
+vector<VM_visiInfo> *VM::VMAvailableVisis(){
 
   PARADYN_DEBUG(("in VMAvailableVisis"));
-  temp.count = visiList.count();
-  if((temp.count = visiList.count()) > 0){
-      if(!(temp.data = new VM_visiInfo[temp.count])) {
-        ERROR_MSG(18, "malloc in VMAvailableVisis");
-        temp.count = 0;
-        temp.data = (VM_visiInfo*) NULL;
-        return temp;
-      }
-  }
-  else{
-      temp.data = NULL;
+  vector<VM_visiInfo> *temp;
+  if (!(temp = new vector<VM_visiInfo>)) {
+      ERROR_MSG(18,"malloc in VMAvailableVisis");
+      return NULL;
   }
 
-
-  for (vlist=visiList, i=0; temp2 = *vlist; i++, vlist++) {
-    temp.data[i].visiTypeId = temp2->Id;
-    if (temp2->name) {
-      if(!(temp.data[i].name = strdup(temp2->name))) {
-	ERROR_MSG(19,"strdup in VM::AvailableVisis");
-	
-      }
-    }
-    else
-      temp.data[i].name = (char*) NULL;
+  for(unsigned i=0; i < visiList.size(); i++) {
+     VM_visiInfo newVal;
+     newVal.name = visiList[i]->name; 
+     newVal.visiTypeId = visiList[i]->Id; 
+     *temp += newVal;
   }
   return(temp);
 }
@@ -222,83 +195,72 @@ int VM::VMAddNewVisualization(const char *name,
 			      char *matrix,
 			      int numMatrices){
 
-VMvisis *temp = (VMvisis*) NULL;
-int id,i;
-List<VMvisis *> walk;
+   if (!arg_str || !name) {
+       // TODO -- is this error number correct
+       ERROR_MSG(20,"parameters in VM::VMAddNewVisualization");
+       return(VMERROR);
+   }
 
-  if (!arg_str || !name) {
-    // TODO -- is this error number correct
-    ERROR_MSG(20,"parameters in VM::VMAddNewVisualization");
-    return(VMERROR);
+  // walk the list to determine if a visi with  this name is on the list
+  string temp_name = name;
+  VMvisis *temp = NULL;
+  for(unsigned i=0; i < visiList.size(); i++){
+      if(visiList[i]->name == temp_name){
+	  temp = visiList[i]; 
+	  break;
+      }
   }
-
-  // walk the list to determine if a visi with
-  // this name is on the list
-  for (walk = visiList; temp = *walk; walk++) {
-    if (!strcmp(temp->name, name)) {
-      break;
-    } else
-      temp = (VMvisis*) NULL;
+  if(!temp){
+      // create new VMvisis list element and add to visiList
+      if (!(temp = new VMvisis)) {
+          perror("malloc in VM::VMAddNewVisualization");
+          ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
+          return(VMERROR);
+      }
+      temp->Id = visiList.size();
+      visiList += temp; 
+      PARADYN_DEBUG(("visi added %s forcestart %d",name,forceProcessStart));
   }
-
-  if (!temp) {
-    // create new VMvisis list element and add to visiList
-    id = visiList.count();
-    id++;
-    if (!(temp = new VMvisis)) {
-      perror("malloc in VM::VMAddNewVisualization");
-      ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
-      return(VMERROR);
-    }
-    visiList.add(temp,(void *)id);
-    PARADYN_DEBUG(("new visi added %s force start %d",name,forceProcessStart));
-
-  } else {
-    // redefine an existing entry
-    if (temp->argv) {
-      int i=0;
-      while (temp->argv[i]) {
-	delete (temp->argv[i]);
-	i++;
+  else { // redefine an existing entry
+      if(temp->argv){
+	  i = 0;
+          while(temp->argv[i]){
+              delete (temp->argv[i++]);
+	  }
       }
       delete (temp->argv);
-    }
   }
 
   unsigned size = arg_str->size();
   // update info. for new entry 
-  if((temp->argv = (char **)malloc(sizeof(char *)*(size+1))) == NULL){
-    ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
-    return(VMERROR);
+  if((temp->argv = new (char*)[size+1]) == NULL){
+      ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
+      return(VMERROR);
   }
 
   // argv must be null terminated
   temp->argv[size] = (char *) 0;
   unsigned a_size = arg_str->size();
-  for(i=0;i<a_size;i++){
-    if((temp->argv[i] = strdup((*arg_str)[i].string_of())) == NULL){
-        ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
-        return(VMERROR);
-    }
+  for(i=0; i<a_size; i++){
+      if((temp->argv[i] = strdup((*arg_str)[i].string_of())) == NULL){
+          ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
+          return(VMERROR);
+      }
   }
+  temp->name = name;
 
-  if((temp->name = strdup(name)) == NULL){
-    ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
-    return(VMERROR);
-  }
-  
   if (matrix){
       if((temp->matrix = strdup(matrix)) == NULL){
-        ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
-        return(VMERROR);
+          ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
+          return(VMERROR);
       }
   }
   else {
-      matrix = NULL;
+      temp->matrix = NULL;
   }
   temp->numMatrices = numMatrices;
+  delete matrix;
   temp->argc = size;
-  temp->Id = id;
   temp->forceProcessStart = forceProcessStart;
   return(VMOK); 
 }
@@ -308,38 +270,13 @@ List<VMvisis *> walk;
 //  VMStringToMetResPair: VM server routine, converts a string
 //      representation of a metric/focus pair list to the 
 //      internal representation
-//  metrespair_Array values count = 0, and data = NULL indicate
-//  an error in parsing the string list
+//  return value NULL indicates an error in parsing the string
 /////////////////////////////////////////////////////////////
-metrespair_Array  VM::VMStringToMetResPair(char *metresString){
+ vector<metric_focus_pair> *VM::VMStringToMetResPair(const char *metresString){
 
-metrespair_Array temp;
-
-   temp.count = 0;
-   temp.data  = NULL;
-   return(temp);
+   return(NULL);
 }
 
-/*
-static
-void
-update_active_visis(VM* thisptr) {
-	VM_activeVisiInfo_Array active_visis;
-	char buf[1024];
-
-	active_visis = thisptr->VMActiveVisis();
-	buf[0] = '\0';
-	for (unsigned i = 0; i < active_visis.count; i++) {
-		strcat(buf, active_visis.data[i].name);
-		strcat(buf, " ");
-	}
-	if (active_visis.count == 0) {
-		sprintf(buf, "(none)");
-	}
-
-	free(active_visis.data);
-}
-*/
 /////////////////////////////////////////////////////////////
 // VMCreateVisi: VM server routine, starts a visualization process
 //
@@ -359,38 +296,28 @@ update_active_visis(VM* thisptr) {
 int  VM::VMCreateVisi(int remenuFlag,
                       int forceProcessStart,
 		      int visiTypeId,
-		      metrespair *matrix,
-		      int numMatrices){
-
-thread_t  tid;
-visi_thread_args *temp;
-VMactiveVisi  *temp2;
-VMvisis *visitemp;
+		      vector<metric_focus_pair> *matrix){
 
   // get visi process command line to pass to visithread thr_create 
-  if((visitemp = visiList.find((void *)visiTypeId))==NULL){
+  if(visiTypeId >= visiList.size()){
       PARADYN_DEBUG(("in VM::VMCreateVisi"));
-      ERROR_MSG(20,"Error in find() in VM::VMCreateVisi");
+      ERROR_MSG(20,"visi Id out of range in VM::VMCreateVisi");
       return(VMERROR);
   }
-
-  temp = (visi_thread_args *)malloc(sizeof(visi_thread_args));
+  VMvisis *visitemp = visiList[visiTypeId];
+  visi_thread_args *temp =  new visi_thread_args;
   temp->argc = visitemp->argc;
   temp->argv = (char **)visitemp->argv;
   temp->parent_tid = thr_self();
 
   if(matrix != NULL){
-
       temp->matrix = matrix;
-      temp->numMatrices = numMatrices;
   }
   else {
       // TODO: check active visi list to see if visi has
       // pre-defined set of metric/focus pairs, if so
       // parse the string representation into metrespair rep.
-
       temp->matrix = NULL;
-      temp->numMatrices = 0;
   }
   temp->remenuFlag = remenuFlag;
   if(forceProcessStart == -1)
@@ -401,36 +328,25 @@ VMvisis *visitemp;
 
   PARADYN_DEBUG(("forceProcessStart = %d\n",temp->forceProcessStart));
   // create a visi thread  
+  thread_t tid;
   thr_create(0,0,&VISIthreadmain,temp,0,&tid);
 
   // create a new visipointer
-  if((temp2 = (VMactiveVisi  *)malloc(sizeof(VMactiveVisi))) == NULL){
-      ERROR_MSG(18,"malloc in VM::VMCreateVisi");
+  VMactiveVisi *temp2 = new VMactiveVisi;
+  if(temp2 == NULL){
+      ERROR_MSG(18,"new in VM::VMCreateVisi");
       return(VMERROR);
   }
 
   temp2->visip = new VISIthreadUser(tid);
 
   // add  entry to active visi table 
-   temp2->visiTypeId = visiTypeId;
-   if((visitemp != 0) && (visitemp->name != NULL)){
-       if((temp2->name = strdup(visitemp->name)) == NULL){
-          PARADYN_DEBUG(("strdup in VM::VMCreateVisi"));
-          ERROR_MSG(19,"strdup in VM::VMCreateVisi");
-          temp2->name = NULL;
-       }
-   }
-   else {
-       temp2->name = NULL;
-   }
+   temp2->name = visitemp->name;
    temp2->visiThreadId = tid;
-   activeVisis.add(temp2,(void *)tid);
+   activeVisis += temp2;
  
   PARADYN_DEBUG(("in VM::VMCreateVisi: tid = %d added to list",tid));
   currNumActiveVisis++;
-/*
-	update_active_visis(this);
-*/
   return(VMOK);
 }
 
@@ -438,34 +354,24 @@ VMvisis *visitemp;
 // VMDestroyVisi: VM server routine, kills a visualization 
 // visiThreadId: thread identifier associated with the visi to kill
 /////////////////////////////////////////////////////////////
-void VM::VMDestroyVisi(int visiThreadId){
-
-VMactiveVisi *temp;
+void VM::VMDestroyVisi(thread_t visiThreadId){
 
   PARADYN_DEBUG(("VM::VMDestroyVisi: visiThreadId = %d",visiThreadId));
   PARADYN_DEBUG(("currNumActiveVisis = %d",currNumActiveVisis));
 
-  // call visithread Kill_Visi routine (visithread will call thr_exit())
-  if((temp = activeVisis.find((void *)visiThreadId)) != NULL){ 
-      temp->visip->VISIKillVisi(); 
-      free(temp->name);
-      // remove entry from active visi table 
-      if((activeVisis.remove((void *)visiThreadId)) == FALSE){
-         PARADYN_DEBUG(("remove in VM::VMDestroyVisi"));
-         ERROR_MSG(20,"remove in VM::VMDestroyVisi");
-         PARADYN_DEBUG(("in VM::VMDestroyVisi: tid = %d can't be removed",getTid()));
-      }
-      else{
-         // call destructor for visip 
-         delete(temp->visip);
-	 delete(temp);
-         currNumActiveVisis--;
-         PARADYN_DEBUG(("in VM::VMDestroyVisi: tid = %d removed",getTid()));
-      }
-  }
-/*
-  update_active_visis(this);
-*/
+  // kill visiThread associated with visi
+  for(unsigned i = 0; i < activeVisis.size(); i++){
+      if(activeVisis[i]->visiThreadId == visiThreadId){
+          // remove entry from active visi table
+	  VMactiveVisi *temp = activeVisis[i];
+	  activeVisis[i] = activeVisis[activeVisis.size() - 1];
+	  activeVisis.resize(activeVisis.size() - 1);
+	  delete(temp->visip);
+	  delete(temp);
+	  currNumActiveVisis--;
+          PARADYN_DEBUG(("in VM::VMDestroyVisi: tid = %d removed",getTid()));
+	  break;
+  } }
   PARADYN_DEBUG(("VM::VMDestroyVisi: after temp->visip->VISIKillVisi"));
 }
 
@@ -476,23 +382,16 @@ VMactiveVisi *temp;
 /////////////////////////////////////////////////////////////
 void VM::VMVisiDied(int visiThreadId){
 
-VMactiveVisi *temp;
-
-  if(temp = activeVisis.find((void *)visiThreadId)){
-     free(temp->name);
-  }
-  // remove visiId element from active list
-  if(!(activeVisis.remove((void *)visiThreadId))){
-      PARADYN_DEBUG(("remove in VM::VMVisiDied"));
-      ERROR_MSG(20,"remove in VM::VMVisiDied");
-      PARADYN_DEBUG(("in VM::VMVisiDied: tid = %d can't be removed",getTid));
-  }
-  delete(temp->visip);
-  delete(temp);
-  currNumActiveVisis--;
-/*
-  update_active_visis(this);
-*/
+  for(unsigned i=0; i < activeVisis.size(); i++){
+      if(activeVisis[i]->visiThreadId == visiThreadId){
+	  VMactiveVisi *temp = activeVisis[i];
+	  // remove element from activeVisis list
+	  activeVisis[i] = activeVisis[activeVisis.size() - 1];
+	  activeVisis.resize(activeVisis.size() - 1);
+	  delete(temp->visip);
+	  delete(temp);
+          currNumActiveVisis--;
+  } }
 }
 
 void myfree(void* ptr) {
@@ -514,9 +413,6 @@ void *VMmain(void* varg) {
   tag_t mtag;
   int   retVal;
   unsigned msgSize = 0;
-#ifdef DEBUG
-  VMvisis *tempvisi;
-#endif
 
   thr_name("Visualization Manager");
   VMtid = thr_self();
@@ -569,6 +465,11 @@ void *VMmain(void* varg) {
 	// TODO
 	cerr << "Message sent that is not recognized in PCmain.C\n";
 	assert(0);
+      }
+  }
+  for(unsigned i=0; i < visiList.size(); i++){
+      for(unsigned j=0; j < (*visiList[i]).argc; j++){
+          free((*visiList[i]).argv[j]);
       }
   }
   return((void *)0);

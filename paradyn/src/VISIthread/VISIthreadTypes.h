@@ -16,11 +16,15 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.14  1995/02/26 02:08:32  newhall
-/* added some of the support for the phase interface
-/* fix so that the vector of data values are being
-/* correctly filled before call to BulkDataTransfer
+/* Revision 1.15  1995/06/02 20:54:32  newhall
+/* made code compatable with new DM interface
+/* replaced List templates  with STL templates
 /*
+ * Revision 1.14  1995/02/26  02:08:32  newhall
+ * added some of the support for the phase interface
+ * fix so that the vector of data values are being
+ * correctly filled before call to BulkDataTransfer
+ *
  * Revision 1.13  1995/02/16  19:10:52  markc
  * Removed start slash from comments
  * Removed start slash from comments
@@ -71,15 +75,14 @@
  * Revision 1.1  1994/04/09  21:23:04  newhall
  * test version
  * */
+#include "util/h/Vector.h"
 #include "thread/h/thread.h"
 #include "VM.thread.CLNT.h"
 #include "UI.thread.CLNT.h"
 #include "dataManager.thread.CLNT.h"
 #include "visi.xdr.CLNT.h"
 #include "../pdMain/paradyn.h"
-#include "../VMthread/metrespair.h"
-
-
+#include "paradyn/src/DMthread/DMinclude.h"
 
 #define BUFFERSIZE 64 
 #define SUM     0
@@ -96,7 +99,7 @@ struct VISIGlobalsStruct {
   VMUser *vmp;
   dataManagerUser *dmp;
   visualizationUser *visip;
-  performanceStream *perStream;
+  perfStreamHandle ps_handle;
   T_visi::dataValue buffer[BUFFERSIZE];
   int bufferSize;
   int maxBufferSize;
@@ -107,7 +110,7 @@ struct VISIGlobalsStruct {
   visi_thread_args* args;
   int start_up;
   int currPhaseHandle;
-  List<metricInstance *> *mrlist;  // data and key are metricInstance *
+  vector<metricInstInfo *> mrlist;
 
 };
 typedef struct VISIGlobalsStruct VISIthreadGlobals;
@@ -120,8 +123,6 @@ class visiUser : public visualizationUser
     virtual void handle_error();
 };
 
-extern void VISIthreadchooseMetRes(metrespair *newMetRes,
-			           int numElements);
-
+extern int VISIthreadchooseMetRes(vector<metric_focus_pair> *pairList);
 
 #endif

@@ -14,10 +14,14 @@
  *
  */
 /* $Log: VMtypes.h,v $
-/* Revision 1.8  1995/01/26 17:59:19  jcargill
-/* Changed igen-generated include files to new naming convention; fixed
-/* some bugs compiling with gcc-2.6.3.
+/* Revision 1.9  1995/06/02 20:55:12  newhall
+/* made code compatable with new DM interface
+/* replaced List templates  with STL templates
 /*
+ * Revision 1.8  1995/01/26  17:59:19  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
  * Revision 1.7  1994/09/25  01:53:05  newhall
  * updated to support the changes to the  visi, UI and VM interfaces having
  * to do with a new representation of metric/focus lists as a list of
@@ -49,8 +53,8 @@
 #include "thread/h/thread.h"
 #include "VISIthread.thread.CLNT.h"
 #include "dyninstRPC.xdr.CLNT.h"
-#include "util/h/list.h"
-#include "metrespair.h"
+#include "util/h/Vector.h"
+#include "paradyn/src/DMthread/DMinclude.h"
 
 
 #define VMOK                  1 
@@ -63,15 +67,14 @@ class resourceList;
 
 struct VMactiveStruct {
   int visiTypeId;
-  char *name;
-  int visiThreadId;
+  string name;
+  thread_t visiThreadId;
   VISIthreadUser *visip;
 };
 typedef struct VMactiveStruct VMactiveVisi;
 
 struct VMvisisStruct{
-
-  char *name; 
+  string name; 
   int  argc;    // number of command line arguments
   char **argv;  // command line arguments, 1st arg is name of executable
   int  Id;
@@ -87,8 +90,7 @@ struct visi_thread_argsStruct{
   int  parent_tid;
   int  remenuFlag;
   int  forceProcessStart;
-  metrespair *matrix;
-  int  numMatrices;
+  vector<metric_focus_pair> *matrix;
 };
 typedef struct visi_thread_argsStruct visi_thread_args;
 

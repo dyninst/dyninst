@@ -22,11 +22,15 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.38  1995/02/26 02:08:34  newhall
-/* added some of the support for the phase interface
-/* fix so that the vector of data values are being
-/* correctly filled before call to BulkDataTransfer
+/* Revision 1.39  1995/06/02 20:54:34  newhall
+/* made code compatable with new DM interface
+/* replaced List templates  with STL templates
 /*
+ * Revision 1.38  1995/02/26  02:08:34  newhall
+ * added some of the support for the phase interface
+ * fix so that the vector of data values are being
+ * correctly filled before call to BulkDataTransfer
+ *
  * Revision 1.37  1995/02/16  19:10:56  markc
  * Removed start slash from comments
  * Removed start slash from comments
@@ -169,8 +173,7 @@
 #include "VISIthreadTypes.h"
 #include "paradyn/src/pdMain/paradyn.h"
 #include "dyninstRPC.xdr.CLNT.h"
-#include "paradyn/src/DMthread/DMinternals.h"
-#include "paradyn/src/DMthread/DMphase.h"
+#include "paradyn/src/DMthread/DMinclude.h"
 #define  ERROR_MSG(s1, s2) \
 	 uiMgr->showError(s1,s2); 
 
@@ -179,7 +182,6 @@
 */
 
 char *AbbreviatedFocus(char *);
-char *GetResourceName(resourceList *);
 
 /*
 #define  ASSERTTRUE(x) assert(x); 
@@ -194,83 +196,74 @@ char *GetResourceName(resourceList *);
 //  adds the data value to it's local buffer and if the buffer
 //  is full sends it to the visualization process
 /////////////////////////////////////////////////////////////
-void VISIthreadDataHandler(performanceStream *ps,
-			    metricInstance *mi,
+void VISIthreadDataHandler(perfStreamHandle handle,
+			    metricInstanceHandle mi,
 			    int bucketNum,
 			    sampleValue value){
 
-
-
- VISIthreadGlobals *ptr;
- vector<T_visi::dataValue> temp;
-#ifdef DEBUG3
- char	**blah;
- int           count,i;
-#endif
-
+  VISIthreadGlobals *ptr;
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
-    PARADYN_DEBUG(("thr_getspecific in VISIthreadDataCallback"));
-    ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadDataCallback");
-    return;
+      PARADYN_DEBUG(("thr_getspecific in VISIthreadDataCallback"));
+      ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadDataCallback");
+      return;
   }
 
   if(ptr->start_up)  // if visi process has not been started yet return
-    return;
+      return;
 
   if((ptr->bufferSize >= BUFFERSIZE) || (ptr->bufferSize < 0)){
-    PARADYN_DEBUG(("bufferSize out of range: VISIthreadDataCallback")); 
-    ERROR_MSG(16,"bufferSize out of range: VISIthreadDataCallback");
-    ptr->quit = 1;
-    return;
+      PARADYN_DEBUG(("bufferSize out of range: VISIthreadDataCallback")); 
+      ERROR_MSG(16,"bufferSize out of range: VISIthreadDataCallback");
+      ptr->quit = 1;
+      return;
   }
   if((ptr->buffer == NULL)){
-    PARADYN_DEBUG(("buffer error: VISIthreadDataCallback")); 
-    ERROR_MSG(16,"buffer error: VISIthreadDataCallback");
-    ptr->quit = 1;
-    return;
+      PARADYN_DEBUG(("buffer error: VISIthreadDataCallback")); 
+      ERROR_MSG(16,"buffer error: VISIthreadDataCallback");
+      ptr->quit = 1;
+      return;
   }
+
+  // find metricInstInfo for this metricInstanceHandle
+  metricInstInfo *info = NULL;
+  for(unsigned i=0; i < ptr->mrlist.size(); i++){
+      if((ptr->mrlist[i])->mi_id == mi){
+          info = ptr->mrlist[i];
+      }
+  }
+  if(!info) return;  // just ignore values 
+
   // add data value to buffer
   ptr->buffer[ptr->bufferSize].data = value;
-
-  ptr->buffer[ptr->bufferSize].metricId = (int)(mi->met);
-  ptr->buffer[ptr->bufferSize].resourceId = 
-	(int)mi->focus->getCanonicalName();
+  ptr->buffer[ptr->bufferSize].metricId = info->m_id;
+  ptr->buffer[ptr->bufferSize].resourceId = info->r_id; 
   ptr->buffer[ptr->bufferSize].bucketNum = bucketNum;
-
+ 
 #ifdef DEBUG3
-if((bucketNum % 100) == 0){ 
-  fprintf(stderr,"VISIthread %d: bucketNum = %d value = %f metric = %d resource = %d\n", thr_self(),bucketNum,value,(int)(mi->met),ptr->buffer[ptr->bufferSize].resourceId);
-  blah = mi->focus->convertToStringList();
-  count = mi->focus->getCount();
-  if(count){
-     for(i=0; i < count; i++)
-     fprintf(stderr,"resourceName = %s\n", blah[i]); 
+  if((bucketNum % 100) == 0){ 
+      fprintf(stderr,"VISIthr %d: bucket = %d value = %f met = %d res = %d\n",
+	      thr_self(),bucketNum,value,info->m_id,info->r_id);
   }
-  else{
-     fprintf(stderr,"resourceName = NULL\n"); 
-  }
-}
 #endif
 
   ptr->bufferSize++;
 
   // if buffer is full, send buffer to visualization
   if(ptr->bufferSize >= ptr->maxBufferSize) {
-
-    // temp.count = ptr->bufferSize;
-    // temp.data = ptr->buffer;
-    for (unsigned ve=0; ve<ptr->bufferSize; ve++) {
-      temp += ptr->buffer[ve];
-    }
+      vector<T_visi::dataValue> temp;
+      for (unsigned ve=0; ve<ptr->bufferSize; ve++) {
+          temp += ptr->buffer[ve];
+      }
       
-    ptr->visip->Data(temp);
-    if(ptr->visip->did_error_occur()){
-       PARADYN_DEBUG(("igen: after visip->Data() in VISIthreadDataHandler"));
-       ptr->quit = 1;
-       return;
-    }
-    ptr->bufferSize = 0;
+      ptr->visip->Data(temp);
+      if(ptr->visip->did_error_occur()){
+         PARADYN_DEBUG(("igen: after visip->Data() in VISIthreadDataHandler"));
+         ptr->quit = 1;
+         return;
+      }
+      ptr->bufferSize = 0;
   }
+  info = 0;
 }
 
 /////////////////////////////////////////////////////////////
@@ -278,16 +271,14 @@ if((bucketNum % 100) == 0){
 //    newPerfData Upcall
 //
 /////////////////////////////////////////////////////////////
-void VISIthreadDataCallback(performanceStream *ps,
-			    metricInstance *mi,
+void VISIthreadDataCallback(perfStreamHandle handle,
+			    metricInstanceHandle mi,
 			    sampleValue *values,
 			    int total,
 			    int first){
 
-  int i;
-
-  for(i=first; i < (first+total);i++){
-    VISIthreadDataHandler(ps,mi,i,values[i-first]);
+  for(unsigned i=first; i < (first+total);i++){
+      VISIthreadDataHandler(handle,mi,i,values[i-first]);
   }
 
 }
@@ -298,9 +289,12 @@ void VISIthreadDataCallback(performanceStream *ps,
 //    newMetricDefined Upcall
 //    (not currently implemented)  
 /////////////////////////////////////////////////////////
-void VISIthreadnewMetricCallback(performanceStream *ps,
-				 metric *m){
-
+void VISIthreadnewMetricCallback(perfStreamHandle handle,
+				 const char *name,
+				 int style,
+				 int aggregate,
+				 const char *units,
+				 metricHandle m_handle){
  VISIthreadGlobals *ptr;
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
@@ -317,10 +311,11 @@ void VISIthreadnewMetricCallback(performanceStream *ps,
 //    newResourceDefined Upcall 
 //    (not currently implemented)  
 //////////////////////////////////////////////////////////
-void VISIthreadnewResourceCallback(performanceStream *ps,
-				   resource *parent,
-			           resource *newResource, 
-				   char *name){
+void VISIthreadnewResourceCallback(perfStreamHandle handle,
+				   resourceHandle  parent,
+			           resourceHandle newResource, 
+				   const char *name,
+				   const char *abstr){
 
 VISIthreadGlobals *ptr;
 
@@ -343,7 +338,7 @@ if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
 //  the data buffer to the visualization process
 //  before sending Fold msg to visi process  
 ///////////////////////////////////////////////////////
-void VISIthreadFoldCallback(performanceStream *ps,
+void VISIthreadFoldCallback(perfStreamHandle handle,
 			timeStamp width){
 
  VISIthreadGlobals *ptr;
@@ -356,7 +351,7 @@ void VISIthreadFoldCallback(performanceStream *ps,
   }
 
   if(ptr->start_up)  // if visi process has not been started yet return
-    return;
+     return;
 
   if((ptr->bufferSize >= BUFFERSIZE) || (ptr->bufferSize < 0)){
      PARADYN_DEBUG(("bufferSize out of range: VISIthreadFoldCallback")); 
@@ -402,37 +397,37 @@ void VISIthreadFoldCallback(performanceStream *ps,
 //     new phase definition upcall 
 //
 ///////////////////////////////////////////////////////
-void VISIthreadPhaseCallback(performanceStream *ps, phaseInfo *newPhase){
+void VISIthreadPhaseCallback(perfStreamHandle ps_handle, 
+			     const char *name,
+			     phaseHandle handle,
+			     timeStamp begin,
+			     timeStamp end,
+			     float bucketWidth){
 
    VISIthreadGlobals *ptr;
-   string name; 
-
    if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
       PARADYN_DEBUG(("thr_getspecific in VISIthreadPhaseCallback"));
       ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadPhaseCallback");
       return;
    }
 
-   //fprintf(stderr,"in VISIthreadPhaseCallback\n");
-   //fprintf(stderr,"phase name = %s\n",newPhase->PhaseName());
-   //fprintf(stderr,"phase begin = %f\n",(double)newPhase->GetStartTime());
-   //fprintf(stderr,"phase end = %f\n",(double)newPhase->GetEndTime());
-   //fprintf(stderr,"phase width = %f\n",newPhase->GetBucketWidth());
-   //fprintf(stderr,"phase handle = %d\n",(int)newPhase->GetPhaseHandle());
+#ifdef DEBUG3
+   fprintf(stderr,"in VISIthreadPhaseCallback\n");
+   fprintf(stderr,"phase name = %s\n",name);
+   fprintf(stderr,"phase begin = %f\n",begin);
+   fprintf(stderr,"phase end = %f\n",end);
+   fprintf(stderr,"phase width = %f\n",bucketWidth);
+   fprintf(stderr,"phase handle = %d\n",handle);
+#endif
+
    // send visi phase end call for current phase
-   if(ptr->currPhaseHandle != -1){
-       ptr->visip->PhaseEnd((double)newPhase->GetStartTime(),
-			    ptr->currPhaseHandle);
-   }
-   name = newPhase->PhaseName(); 
-   ptr->currPhaseHandle = newPhase->GetPhaseHandle();
+   if(ptr->currPhaseHandle != -1)
+       ptr->visip->PhaseEnd((double)begin,ptr->currPhaseHandle);
+
+   ptr->currPhaseHandle = handle;
 
    // send visi phase start call for new phase
-   ptr->visip->PhaseStart((double)newPhase->GetStartTime(),
-			  (double)newPhase->GetEndTime(),
-			  newPhase->GetBucketWidth(),
-			  name,
-			  (int)newPhase->GetPhaseHandle());
+   ptr->visip->PhaseStart((double)begin,(double)end,bucketWidth,name,handle);
 
 }
 
@@ -462,7 +457,7 @@ int VISIthreadStartProcess(){
     ptr->fd = RPCprocessCreate(ptr->pid, "localhost", "",
 				 ptr->args->argv[0], av);
     if (ptr->fd < 0) {
-      PARADYN_DEBUG(("Error in process Create"));
+      PARADYN_DEBUG(("Error in process Create: RPCprocessCreate"));
       ERROR_MSG(14,"Error in VISIthreadStartProcess: RPCprocessCreate");
       ptr->quit = 1;
       return(0);
@@ -500,175 +495,149 @@ int VISIthreadStartProcess(){
 //  the visi process is started only after the first set of enabled
 //  metrics and resources has been obtained 
 ///////////////////////////////////////////////////////////////////
-void VISIthreadchooseMetRes(metrespair *newMetRes,
-			    int numElements){
+int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 
- VISIthreadGlobals *ptr;
- metric *currMetric;
- metricInstance *currMetInst;
- metricInstance *newEnabled[numElements];
- metrespair *retryList;
- vector<T_visi::visi_matrix> pairList;
- metricInstance *temp;
- T_dyninstRPC::metricInfo *temp2;
- sampleValue buckets[1000];
- vector<T_visi::dataValue>   tempdata;
- timeStamp binWidth = 0.0;
- int  numEnabled = 0;
- int  numRetry = 0;
- int  i, found;
- int  numBins = 0;
- int  howmany;
- stringHandle key;
- vector<float> bulk_data;
- List<metricInstance*> walk;
- int k;
+  if(newMetRes)
+      PARADYN_DEBUG(("In VISIthreadchooseMetRes size = %d",newMetRes->size()));
 
-  PARADYN_DEBUG(("In VISIthreadchooseMetRes numElements = %d",numElements));
-
+  VISIthreadGlobals *ptr;
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in VISIthreadchooseMetRes"));
     ERROR_MSG(13,"thr_getspecific VISIthread::VISIthreadchooseMetRes");
-    return;
+    return 1;
   }
 
   // check for invalid reply  ==> user picked "Cancel" menu option
-  if((numElements <= 0) || (newMetRes == NULL)){
-    if(ptr->start_up){
-      ptr->quit = 1;
-    }
-    return;
-  }
-
-  if((retryList  = 
-      (metrespair *)malloc(sizeof(metrespair)*numElements)) == NULL){
-      ERROR_MSG(12,"in VISIthreadchooseMetRes");
-      ptr->quit = 1;
-      return;
-  }
-
-  // pairList.data = (T_visi::visi_matrix *)NULL;
-  for(k=0; k < numElements; k++){
-
-      key = newMetRes[k].focus->getCanonicalName();
-      currMetric = newMetRes[k].met;
-
-      // determine if this metric/focus has been enabled before
-      found = 0;
-      for (walk= *ptr->mrlist; temp=*walk; ++walk){ 
-          if ((temp->focus->getCanonicalName() == key) &&
-	      (temp->met == currMetric)){
-
-              found = 1;
-              break;
-      } }
-      // this is a new metric/focus pair try to enable
-      if(!found){  
-
-          PARADYN_DEBUG(("before enable metric/focus\n"));
-          if((currMetInst = 
-	      ptr->dmp->enableDataCollection(ptr->perStream,
-	      newMetRes[k].focus,currMetric)) != NULL){
-
-              PARADYN_DEBUG(("after enable metric/focus metInst = %d\n",
-			   (int)currMetInst));
-              ptr->mrlist->add(currMetInst,currMetInst);
-	      newEnabled[numEnabled++] = currMetInst;
-          }
-          else{  
-	      retryList[numRetry].met = newMetRes[k].met;
-	      retryList[numRetry++].focus = newMetRes[k].focus;
-          }
-
-      }
-      // else ignore: this has already been enabled
-  }
-
-  if(numEnabled > 0){
-
-    // increase the buffer size
-    ptr->maxBufferSize += numEnabled;
-    ptr->maxBufferSize = MIN(ptr->maxBufferSize, BUFFERSIZE);
-    assert(ptr->maxBufferSize <= BUFFERSIZE);
-
-    // if this is the first set of enabled values, start visi process
-    if(ptr->start_up){
-        if(!VISIthreadStartProcess()){
+  if(newMetRes == NULL){
+      if(ptr->start_up){
           ptr->quit = 1;
-          return;
-        }
-    }
-    ASSERTTRUE(!ptr->start_up);
+      }
+      return 1;
+  }
 
-    // create a visi_matrix_Array to send to visualization
+  // try to enable metric/focus pairs
+  vector<metric_focus_pair>  *retryList = new vector<metric_focus_pair> ;
+  // vector<metric_focus_pair>  new_pairs = *newMetRes;
+  int  numEnabled = 0;
+  metricInstInfo *newPair = NULL;
+  metricInstInfo **newEnabled = new (metricInstInfo *)[newMetRes->size()];
+  unsigned i;
+  for(unsigned k=0; k < newMetRes->size(); k++){
+      // try to enable this metric/focus pair
+      metricHandle m_handle = (*newMetRes)[k].met;
+      /*
+      for(unsigned blah = 0; blah < (*newMetRes)[k].res.size(); blah++){
+          printf("metric %d   resourceHandle %d: %d\n",
+		 m_handle, blah,(*newMetRes)[k].res[blah]);
+      }
 
-    for(i=0; i < numEnabled; i++){
-	temp2 = newEnabled[i]->met->getInfo();
-	T_visi::visi_matrix matrix;
-        matrix.met.Id = (int)newEnabled[i]->met;
-	matrix.met.name = temp2->name; 
-	matrix.met.units = temp2->units;
-	matrix.met.aggregate = AVE;
-	matrix.res.Id = (int)newEnabled[i]->focus->getCanonicalName();
-	if((matrix.res.name =   
-	    AbbreviatedFocus(GetResourceName(newEnabled[i]->focus))) == NULL){
-            ERROR_MSG(12,"in VISIthreadchooseMetRes");
-	    ptr->quit = 1;
-            free(retryList);
-            free(newMetRes);
-	    return;
-        }
-        pairList += matrix;
-    }
+      printf("try to enable res %d met %d\n",(*newMetRes)[k].res[0],
+					     (*newMetRes)[k].met);
+      */
+      if((newPair = ptr->dmp->enableDataCollection(ptr->ps_handle,
+			      &((*newMetRes)[k].res), (*newMetRes)[k].met))){
+          // check to see if this pair has already been enabled
+          bool found = false;
+	  for(i = 0; i < ptr->mrlist.size(); i++){
+	      if((ptr->mrlist[i]->mi_id == newPair->mi_id)){
+                  found = true;
+		  break;
+	      }
+	  }
+	  if(!found){  // this really is a new metric/focus pair
+              ptr->mrlist += newPair;
+	      newEnabled[numEnabled++] = newPair;
+          }
+      }
+      else {  // add to retry list
+	  *retryList += (*newMetRes)[k];
+      }
+  }
 
-    // if buffer is not empty send visualization buffer of data values
-    if(ptr->bufferSize != 0){
+  // something was enabled
+  if(numEnabled > 0){
+      // increase the buffer size
+      ptr->maxBufferSize += numEnabled;
+      ptr->maxBufferSize = MIN(ptr->maxBufferSize, BUFFERSIZE);
+      assert(ptr->maxBufferSize <= BUFFERSIZE);
+
+      // if this is the first set of enabled values, start visi process
+      if(ptr->start_up){
+          if(!VISIthreadStartProcess()){
+              ptr->quit = 1;
+              return 1;
+          }
+      }
+      ASSERTTRUE(!ptr->start_up);
+      vector<T_visi::visi_matrix> pairList;
+      // create a visi_matrix_Array to send to visualization
+      for(i=0; i < numEnabled; i++){
+	  T_visi::visi_matrix matrix;
+          matrix.met.Id = newEnabled[i]->m_id;
+	  matrix.met.name = newEnabled[i]->metric_name; 
+	  matrix.met.units = newEnabled[i]->metric_units;
+	  matrix.met.aggregate = AVE;
+	  matrix.res.Id = newEnabled[i]->r_id;
+	  if((matrix.res.name = 
+	      AbbreviatedFocus((char *)newEnabled[i]->focus_name.string_of()))
+	      ==NULL){
+	      ERROR_MSG(12,"in VISIthreadchooseMetRes");
+	      ptr->quit = 1;
+              delete(retryList);
+              delete(newMetRes);
+	      return 1;
+          }
+          pairList += matrix;
+      }
+
+      // if buffer is not empty send visualization buffer of data values
+      vector<T_visi::dataValue>   tempdata;
+      if(ptr->bufferSize != 0){
           for (unsigned ve=0; ve<ptr->bufferSize; ve++)
 	    tempdata += ptr->buffer[ve];
 	  ptr->visip->Data(tempdata);
           if(ptr->visip->did_error_occur()){
              PARADYN_DEBUG(("igen: visip->Data() in VISIthreadchooseMetRes"));
              ptr->quit = 1;
-             free(retryList);
-             free(newMetRes);
-             return;
+             delete(retryList);
+             delete(newMetRes);
+             return 1;
           }
 	  ptr->bufferSize = 0;
-    }
+      }
 
-    binWidth = ptr->dmp->getCurrentBucketWidth(); 
-    numBins = ptr->dmp->getMaxBins();
-    PARADYN_DEBUG(("before call to AddMetricsResources\n"));
-    ptr->visip->AddMetricsResources(pairList,binWidth,numBins);
-    if(ptr->visip->did_error_occur()){
-        PARADYN_DEBUG(("igen: visip->AddMetsRess(): VISIthreadchooseMetRes"));
-        ptr->quit = 1;
-        free(retryList);
-        free(newMetRes);
-        return;
-    }
+      PARADYN_DEBUG(("before call to AddMetricsResources\n"));
+      ptr->visip->AddMetricsResources(pairList,
+				      ptr->dmp->getCurrentBucketWidth(),
+				      ptr->dmp->getMaxBins());
+      if(ptr->visip->did_error_occur()){
+          PARADYN_DEBUG(("igen: visip->AddMetsRess(): VISIthreadchooseMetRes"));
+          ptr->quit = 1;
+          delete(retryList);
+          delete(newMetRes);
+          return 1;
+      }
 
     // get old data bucket values for new metric/resources and
     // send them to visualization
     for(i=0;i<numEnabled;i++){
-        howmany = ptr->dmp->getSampleValues(newEnabled[i],
+        sampleValue buckets[1000];
+        int howmany = ptr->dmp->getSampleValues(newEnabled[i]->mi_id,
 					    buckets,1000,0);
         // send visi all old data bucket values
 	if(howmany > 0){
-            // bulk_data.count = howmany; 
-            // bulk_data.data = buckets; 
+	    vector<float> bulk_data;
 	    for (unsigned ve=0; ve<howmany; ve++){
 	      bulk_data += buckets[ve];
             }
-            ptr->visip->BulkDataTransfer(bulk_data,
-		   (int)newEnabled[i]->met,
-		   (int)newEnabled[i]->focus->getCanonicalName());
+            ptr->visip->BulkDataTransfer(bulk_data, (int)newEnabled[i]->m_id,
+		                        (int)newEnabled[i]->r_id);
             if(ptr->visip->did_error_occur()){
             PARADYN_DEBUG(("igen:visip->BulkDataTransfer():VISIthreadchoose"));
                 ptr->quit = 1;
-                free(retryList);
-                free(newMetRes);
-                return;
+                delete(retryList);
+                delete(newMetRes);
+                return 1;
             }
 	    for(int j=bulk_data.size(); j>0; j--){
                bulk_data.resize(bulk_data.size()-1);
@@ -677,33 +646,28 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
     }
     // if remenuFlag is set and retry list is not empty
     // send retry list to UIM to deal with 
-    if((ptr->args->remenuFlag) && (numRetry)){
+    if((ptr->args->remenuFlag) && (retryList->size())){
         // don't free retryList since it is passed to UI
     }
     else { // else ignore, and set remenuFlag
         ptr->args->remenuFlag = 1;     
-        free(retryList);
+        delete(retryList);
     }
-    free(newMetRes);
+    delete(newMetRes);
   }
   else {
-
       // if nothing was enabled, and remenuflag is set make remenu request
       ERROR_MSG(17,"No enabled Metric/focus pairs: VISIthreadchooseMetRes");
       PARADYN_DEBUG(("No enabled Metric/focus pairs: VISIthreadchooseMetRes"));
-
       // remake menuing call with 
       if(ptr->args->remenuFlag){
-         ptr->ump->chooseMetricsandResources(
-		     (chooseMandRCBFunc)VISIthreadchooseMetRes,
-                     newMetRes,
-		     numElements);
-
+         ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes, newMetRes);
       }
       else{ // if nothing was enabled, and remenuflag is not set quit
 	 ptr->quit = 1;
       }
   }
+  return 1;
 }
 
 
@@ -735,29 +699,24 @@ void VISIthreadshowErrorREPLY(int userChoice){
 ///////////////////////////////////////////////////////////////////
 void *VISIthreadmain(void *vargs){ 
  
-  int from;
-  thread_t tag;
-  VISIthreadGlobals *globals;
-  VISIthread *vtp;
-  metricInstance *listItem;
-  List<metricInstance*> walk;
-  union dataCallback dataHandlers;
-  controlCallback callbacks;
-
   //initialize global variables
+  VISIthreadGlobals *globals;
+  globals = new VISIthreadGlobals;
+
+  /*
   if((globals=(VISIthreadGlobals *)malloc(sizeof(VISIthreadGlobals)))==0){
     PARADYN_DEBUG(("Error in malloc globals"));
     ERROR_MSG(13,"malloc in VISIthread::main");
     globals->quit = 1;
   }
+  */
 
-  vtp = new VISIthread(VMtid);
+  VISIthread *vtp = new VISIthread(VMtid);
   globals->ump = uiMgr;
   globals->vmp = vmMgr;
   globals->dmp = dataMgr;
   globals->args = (visi_thread_args *) vargs;
   globals->visip = NULL;     // assigned value in VISIthreadStartProcess 
-  globals->perStream = NULL; 
   globals->currPhaseHandle = -1;
 
   globals->start_up = 1;
@@ -766,29 +725,29 @@ void *VISIthreadmain(void *vargs){
   globals->fd = -1;
   globals->pid = -1;
   globals->quit = 0;
-  globals->mrlist = new(List<metricInstance *>);
   globals->bucketWidth = globals->dmp->getCurrentBucketWidth(); 
 
   // set control callback routines 
-  callbacks.mFunc = (metricInfoCallback)VISIthreadnewMetricCallback;
-  callbacks.rFunc = (resourceInfoCallback)
-		      VISIthreadnewResourceCallback;
-  callbacks.fFunc = (histFoldCallback)VISIthreadFoldCallback;
-  callbacks.pFunc = (newPhaseCallback)VISIthreadPhaseCallback;
+  controlCallback callbacks;
+  callbacks.mFunc = VISIthreadnewMetricCallback;
+  callbacks.rFunc = VISIthreadnewResourceCallback; 
+  callbacks.fFunc = VISIthreadFoldCallback;
+  callbacks.pFunc = VISIthreadPhaseCallback;
   callbacks.sFunc = NULL;
 
   PARADYN_DEBUG(("before create performance stream in visithread"));
 
   // create performance stream
-  dataHandlers.sample =(sampleDataCallbackFunc)VISIthreadDataCallback;
-  if((globals->perStream = globals->dmp->createPerformanceStream(context,
+  union dataCallback dataHandlers;
+  dataHandlers.sample = (sampleDataCallbackFunc)VISIthreadDataCallback;
+  if((globals->ps_handle = globals->dmp->createPerformanceStream(
 		   Sample,dataHandlers,callbacks)) == NULL){
       PARADYN_DEBUG(("Error in createPerformanceStream"));
       ERROR_MSG(15,"Error in VISIthreadchooseMetRes: createPerformanceStream");
       globals->quit = 1;
   }
 
-  PARADYN_DEBUG(("performance stream = %d in visithread",(int)globals->perStream));
+  PARADYN_DEBUG(("perf. stream = %d in visithread",(int)globals->ps_handle));
 
   if (thr_setspecific(visiThrd_key, globals) != THR_OKAY) {
       PARADYN_DEBUG(("Error in thr_setspecific"));
@@ -817,9 +776,7 @@ void *VISIthreadmain(void *vargs){
     // TODO: add parsing code 
 
     // call get metrics and resources with first set
-    globals->ump->chooseMetricsandResources(
-			    (chooseMandRCBFunc)VISIthreadchooseMetRes,
-                             NULL,0);
+    globals->ump->chooseMetricsandResources(VISIthreadchooseMetRes, NULL);
   }
 
 
@@ -836,8 +793,8 @@ void *VISIthreadmain(void *vargs){
 	  }
 	}
       }
-      tag = MSG_TAG_ANY;
-      from = msg_poll(&tag, 1);
+      thread_t tag = MSG_TAG_ANY;
+      int from = msg_poll(&tag, 1);
       if (globals->ump->isValidTag((T_UI::message_tags)tag)) {
 	if (globals->ump->waitLoop(true, (T_UI::message_tags)tag) ==
 	    T_UI::error) {
@@ -888,19 +845,10 @@ void *VISIthreadmain(void *vargs){
   PARADYN_DEBUG(("leaving main loop"));
 
   // disable all metricInstance data collection
-  for (walk= *globals->mrlist; listItem= *walk; ++walk) {
-      globals->dmp->disableDataCollection(globals->perStream, listItem);
+  for(unsigned i =0; i < globals->mrlist.size(); i++){
+	metricInstanceHandle handle = globals->mrlist[i]->mi_id;
+        globals->dmp->disableDataCollection(globals->ps_handle,handle);
   }
-  globals->mrlist->removeAll();
-
-  /*
-  for (walk= *globals->mrlist; listItem= *walk; ++walk) {
-      if (!(globals->mrlist->remove(listItem))) {
-          perror("globals->mrlist->remove");
-          ERROR_MSG(16,"remove() in VISIthreadmain"); 
-      }
-  }
-  */
 
   // kill visi process
   if(!globals->start_up){
@@ -908,7 +856,7 @@ void *VISIthreadmain(void *vargs){
   }
 
   PARADYN_DEBUG(("before destroy perfomancestream"));
-  if(!(globals->dmp->destroyPerformanceStream(context,globals->perStream))){
+  if(!(globals->dmp->destroyPerformanceStream(globals->ps_handle))){
       ERROR_MSG(16,"remove() in VISIthreadmain");
   }
 
@@ -925,8 +873,6 @@ void *VISIthreadmain(void *vargs){
       }
       delete globals->visip;
   }
-
-  delete globals->mrlist;
 
   PARADYN_DEBUG(("leaving visithread main"));
   thr_exit((void *)0);
@@ -969,47 +915,6 @@ void visiUser::handle_error()
          ptr->quit = 1;
          break;
   }
-}
-
-
-char *GetResourceName(resourceList *resource){
-
- char **y;
- char *tempName;
- int  i;
- int  where, numRes, totalSize = 4;
-
-    y = resource->convertToStringList();
-    numRes = resource->getCount();
-    for(i = 0; i < numRes; i++)
-	totalSize += strlen((char *) y[i]) + 1;
-    if((tempName =
-	    (char *)malloc(sizeof(char)*(totalSize))) == NULL){
-	    free(y);
-	    return(NULL);
-     }
-     memset(tempName,'\0',totalSize);
-     where = 0;
-     for(i = 0; i < numRes; i++){
-	 if (!(strncpy(&(tempName[where]),
-	    (char *) y[i],strlen((char *) y[i])))){
-	    free(tempName);
-	    free(y);
-	    return(NULL);
-	 }
-	 where += strlen((char *) y[i]);
-	 if( i < (numRes - 1)){
-	     tempName[where++] = ',';
-	 }
-    }
-
-    tempName[where] = '\0';
-
-    PARADYN_DEBUG(("tempName = %s size = %d\n",tempName,totalSize));
-    PARADYN_DEBUG(("tempName where = %d\n",where));
-    free(y);
-    return(tempName);
-
 }
 
 char *AbbreviatedFocus(char *longName){

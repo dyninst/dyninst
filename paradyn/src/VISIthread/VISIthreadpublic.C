@@ -14,11 +14,15 @@
  *
  */
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.9  1995/02/26 02:08:37  newhall
-/* added some of the support for the phase interface
-/* fix so that the vector of data values are being
-/* correctly filled before call to BulkDataTransfer
+/* Revision 1.10  1995/06/02 20:54:36  newhall
+/* made code compatable with new DM interface
+/* replaced List templates  with STL templates
 /*
+ * Revision 1.9  1995/02/26  02:08:37  newhall
+ * added some of the support for the phase interface
+ * fix so that the vector of data values are being
+ * correctly filled before call to BulkDataTransfer
+ *
  * Revision 1.8  1995/02/16  19:10:59  markc
  * Removed start slash from comments
  * Removed start slash from comments
@@ -70,7 +74,7 @@
 #include "VISIthreadTypes.h"
 #include "../pdMain/paradyn.h"
 #include "dyninstRPC.xdr.CLNT.h"
-#include "../DMthread/DMinternals.h"
+#include "../DMthread/DMinclude.h"
 #define  ERROR_MSG(s1, s2) \
 	 uiMgr->showError(s1,s2); 
 
@@ -124,7 +128,7 @@ PARADYN_DEBUG(("in visualizationUser::GetMetricResource"));
 
  // otherwise initiate menuing request
  ptr->ump->chooseMetricsandResources((chooseMandRCBFunc)VISIthreadchooseMetRes,
-				     NULL,0);
+				     NULL);
 }
 
 
@@ -136,13 +140,10 @@ PARADYN_DEBUG(("in visualizationUser::GetMetricResource"));
 //  call to dataManager for the pair, and remove the associated metric
 //  instance from the threads local mrlist
 //////////////////////////////////////////////////////////////////////
-void visualizationUser::StopMetricResource(int metricId,
-					   int resourceId){
- VISIthreadGlobals *ptr;
- metricInstance *listItem;
- int found = 0;
- List<metricInstance*> walk;
+void visualizationUser::StopMetricResource(u_int metricId,
+					   u_int resourceId){
 
+  VISIthreadGlobals *ptr;
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in visualizationUser::StopMetricResource"));
     ERROR_MSG(13,"thr_getspecific in VISIthread::StopMetricResource");
@@ -152,40 +153,29 @@ void visualizationUser::StopMetricResource(int metricId,
 
   // search metricList for matching metricId and resourceId
   // if found request DM to disable data collection of metricInstance
-
-  found = 0;
-  for (walk = *ptr->mrlist; listItem=*walk; walk++) {
-    if ((listItem->met == (metric*) metricId) &&
-	(listItem->focus->getCanonicalName() == (char*) resourceId)) {
-      found = 1;
-      break;
-    }
+  unsigned size = ptr->mrlist.size();
+  for (unsigned i=0; i < size; i++){
+      if(( ptr->mrlist[i]->m_id == metricId) && 
+	  (ptr->mrlist[i]->r_id == resourceId)){
+          PARADYN_DEBUG(("in visualizationUser::StopMetricResource: mi found"));
+	  metricInstanceHandle mi_handle = ptr->mrlist[i]->mi_id;
+	  // make disable request to DM
+          ptr->dmp->disableDataCollection(ptr->ps_handle,mi_handle);
+	  // remove mi from mrlist
+	  ptr->mrlist[i] = ptr->mrlist[size - 1];
+	  ptr->mrlist.resize(size - 1);
+          ptr->maxBufferSize--;
+          assert(ptr->maxBufferSize >= 0);
+          return;
+      }
       PARADYN_DEBUG(("current list element: metId = %d resId = %d",
-		     (int)listItem->met,(int)listItem->focus));
+		     ptr->mrlist[i]->m_id,ptr->mrlist[i]->r_id));
   }
 
 #ifdef DEBUG
-    if(found){
-     PARADYN_DEBUG(("in visualizationUser::StopMetricResource: mi found"));
-    }
-    else{
-     PARADYN_DEBUG(("visualizationUser::StopMetricResource: mi not found\n"));
-     PARADYN_DEBUG(("metricId = %d resourceId = %d\n",metricId,resourceId));
-    }
+  PARADYN_DEBUG(("visualizationUser::StopMetricResource: mi not found\n"));
+  PARADYN_DEBUG(("metricId = %d resourceId = %d\n",metricId,resourceId));
 #endif
-
-    if(found){
-      //make disable request to DM and remove this metric instance from list
-      ptr->dmp->disableDataCollection(ptr->perStream,listItem);
-      if(!(ptr->mrlist->remove(listItem))){
-        perror("ptr->mrlist->remove"); 
-	ERROR_MSG(16,"remove() in StopMetricResource()");
-	ptr->quit = 1;
-        return;
-      }
-      ptr->maxBufferSize--;
-      assert(ptr->maxBufferSize >= 0);
-    }
 }
 
 
