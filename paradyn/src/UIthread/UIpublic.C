@@ -30,9 +30,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.22  1995/06/02 20:50:37  newhall
-/* made code compatable with new DM interface
+/* Revision 1.23  1995/07/17 05:06:20  tamches
+/* Changes for the new version of the where axis
 /*
+ * Revision 1.22  1995/06/02  20:50:37  newhall
+ * made code compatable with new DM interface
+ *
  * Revision 1.21  1995/01/26  17:59:00  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
@@ -237,19 +240,22 @@ UIM::initStatusDisplay (int type)
 // Batch Mode 
 // ****************************************************************
 
-void
-UIM::startBatchMode ()
-{
-  UIM_BatchMode++;
-}
-
-void 
-UIM::endBatchMode ()
-{
-  UIM_BatchMode--;
-  if (UIM_BatchMode < 0)
-    UIM_BatchMode = 0;
-}
+// These member functions were not used, so I commented them out --ari
+//void
+//UIM::startBatchMode ()
+//{
+//  cout << "@" << endl; cout.flush();
+//  UIM_BatchMode++;
+//}
+//
+//void 
+//UIM::endBatchMode ()
+//{
+//  cout << "#" << endl; cout.flush();
+//  UIM_BatchMode--;
+//  if (UIM_BatchMode < 0)
+//    UIM_BatchMode = 0;
+//}
 
 // 
 // Startup File
@@ -410,7 +416,7 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   Tcl_HashEntry *entryPtr;
   int newptr;
   char tcommand[300];
-  List<resourceDisplayObj *>tmp;
+//  List<resourceDisplayObj *>tmp;
 
       // store record with unique id and callback function
   UIMMsgTokenID++;
@@ -445,18 +451,22 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 
   // set global tcl variable to list of currently defined where axes
 
-  /*** need to implement this functionality
-  tmp = resourceDisplayObj::allRDOs;
-  while (*tmp) {    
-    (*tmp)->addResource (newResource, parent, name, rname);
-    tmp++;
-  }
-  */
+//  /*** need to implement this functionality
+//  tmp = resourceDisplayObj::allRDOs;
+//  while (*tmp) {    
+//    (*tmp)->addResource (newResource, parent, name, rname);
+//    tmp++;
+//  }
+//  */
 
-  tmp = resourceDisplayObj::allRDOs;
+//  tmp = resourceDisplayObj::allRDOs;
       // tcl proc draws window & gets metrics and resources from user 
+
+//  sprintf (tcommand,  "getMetsAndRes %d %d", UIMMsgTokenID,
+//	   (int)(*tmp)->getToken());
   sprintf (tcommand,  "getMetsAndRes %d %d", UIMMsgTokenID,
-	   (int)(*tmp)->getToken());
+	   0); // the last parameter (an Rdo token) is obsolete...0 is just a filler
+
   retVal = Tcl_VarEval (interp, tcommand, 0);
   if (retVal == TCL_ERROR)  {
     uiMgr->showError (21, "getMetsAndRes in UIM::chooseMetricsandResources");

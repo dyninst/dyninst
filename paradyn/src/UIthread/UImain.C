@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.45  1995/06/02 20:50:35  newhall
-/* made code compatable with new DM interface
+/* Revision 1.46  1995/07/17 05:05:44  tamches
+/* Changes for the new version of the where axis
 /*
+ * Revision 1.45  1995/06/02  20:50:35  newhall
+ * made code compatable with new DM interface
+ *
  * Revision 1.43  1995/02/27  18:55:43  tamches
  * Minor include change to placate compiler.
  *
@@ -73,7 +76,7 @@
  * added suppress resource option.
  *
  * Revision 1.22  1994/07/07  17:40:33  karavan
- * added error and batch mode features.
+ * added error and batchmode features.
  *
  * Revision 1.21  1994/06/29  21:46:25  hollings
  * Removed dead variable.
@@ -171,7 +174,6 @@
 #include "UIglobals.h" 
 
 // TEMP until remove all ptrs from DM interface then include DMinclude
-//TEMP until remove all ptrs from interface then include DMinclue.h
 #include "paradyn/src/DMthread/DMinclude.h"
 
 #include "dataManager.thread.h"
@@ -181,14 +183,43 @@
 
 #include "Status.h"
 
+#include "abstractions.h"
+#include "whereAxisTcl.h"
+bool haveSeenFirstGoodWhereAxisWid = false;
+bool tryFirstGoodWhereAxisWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
+   if (haveSeenFirstGoodWhereAxisWid)
+      return true;
+
+   Tk_Window theTkWindow = Tk_NameToWindow(interp, ".whereAxis.nontop.main.all",
+                                           topLevelTkWindow);
+   assert(theTkWindow);
+
+   if (Tk_WindowId(theTkWindow) == 0)
+      return false; // sigh...still invalid (that's why this routine is needed)
+
+   haveSeenFirstGoodWhereAxisWid = true;
+
+   extern abstractions<resourceHandle> *theAbstractions; // whereAxisTcl.C
+   theAbstractions = new abstractions<resourceHandle>(".whereAxis.top.mbar.abs.m",
+                                                      ".whereAxis.top.mbar.nav.m",
+                                                      ".whereAxis.nontop.main.bottsb",
+                                                      ".whereAxis.nontop.main.leftsb",
+                                                      ".whereAxis.nontop.find.entry",
+                                                      interp, theTkWindow);
+   assert(theAbstractions);
+
+   return true;   
+}
+
+
 /*
  * Global variables used by tcl/tk UImain program:
  */
 
-static Tk_Window mainWindow;	/* The main window for the application.  If
-				 * NULL then the application no longer
-				 * exists. */
- Tcl_Interp *interp;	/* Interpreter for this application. */
+Tk_Window mainWindow;	/* The main window for the application.  If
+			 * NULL then the application no longer
+			 * exists. */
+Tcl_Interp *interp;	/* Interpreter for this application. */
 
 static Tcl_DString command;	/* Used to assemble lines of terminal input
 				 * into Tcl commands. */
@@ -225,10 +256,6 @@ static char *geometry = NULL;
  */
 
 extern "C" {
-  // "Type qualifiers conflict with previous declaration:", so I commented it out -AT 1/23/95
-  // (besides, why not just #include <stdlib.h>?)
-//  void		exit _ANSI_ARGS_((int status));
-
   char *	strrchr _ANSI_ARGS_((CONST char *string, int c));
 
   /* void		exit _ANSI_ARGS_((int status)); */
@@ -262,25 +289,25 @@ void             Prompt _ANSI_ARGS_((Tcl_Interp *interp, int partial));
 void             StdinProc _ANSI_ARGS_((ClientData clientData,
                             int mask));
 
-/*** I don't think we need this anymore -klk
-void reaper();
-
-void reaper()
-{
-    int ret;
-    int status;
-
-    printf("**** In reaper\n");
-    ret = P_wait(&status);
-    if (WIFSTOPPED(status)) {
-        printf("child stopped\n");
-    } else if (WIFEXITED(status)) {
-        printf("child gone\n");
-    } else {
-        printf("%x\n", status);
-    }
-}
-*/
+///*** I don't think we need this anymore -klk
+//void reaper();
+//
+//void reaper()
+//{
+//    int ret;
+//    int status;
+//
+//    printf("**** In reaper\n");
+//    ret = P_wait(&status);
+//    if (WIFSTOPPED(status)) {
+//        printf("child stopped\n");
+//    } else if (WIFEXITED(status)) {
+//        printf("child gone\n");
+//    } else {
+//        printf("%x\n", status);
+//    }
+//}
+//*/
 
 // This callback invoked by dataManager before and after a large 
 // batch of draw requests.  If UIM_BatchMode is set, the UI thread 
@@ -290,8 +317,21 @@ void resourceBatchChanged(perfStreamHandle handle, batchMode mode)
 {
     if (mode == batchStart) {
       UIM_BatchMode++;
+      // cout << "+" << endl; cout.flush();
     } else {
       UIM_BatchMode--;
+      // cout << "-" << endl; cout.flush();
+      if (UIM_BatchMode == 0) {
+         // Batch mode is done with.  We need to update the where axis'
+         // spatial graphications...
+         extern abstractions<resourceHandle> *theAbstractions;
+         assert(theAbstractions);
+
+         theAbstractions->resizeEverything();
+            // super-expensive
+
+         initiateWhereAxisRedraw(interp, true); // true--> double buffer
+      }
     }
     assert(UIM_BatchMode >= 0);
 }
@@ -502,11 +542,18 @@ UImain(void* vargs)
     uim_ps_handle = dataMgr->createPerformanceStream
       (Sample, dataFunc, controlFuncs);
     
-    uim_ResourceSelectionStatus = 0;    // no selection in progress
-    Tcl_LinkVar (interp, "resourceSelectionStatus", 
-		 (char *) &uim_ResourceSelectionStatus, TCL_LINK_INT);    
-    retVal = 0;
-    initMainWhereDisplay();
+//    uim_ResourceSelectionStatus = 0;    // no selection in progress
+//    Tcl_LinkVar (interp, "resourceSelectionStatus", 
+//		 (char *) &uim_ResourceSelectionStatus, TCL_LINK_INT);    
+//    retVal = 0;
+//    initMainWhereDisplay();
+
+    // New Where Axis: --ari
+    installWhereAxisCommands(interp);
+    if (TCL_ERROR == Tcl_Eval(interp, "whereAxisInitialize")) {
+       cerr << "could not whereAxisInitialize: " << interp->result << endl;
+       exit(5);
+    }
 
     //
     // initialize status lines library
@@ -587,6 +634,8 @@ UImain(void* vargs)
         }
       }
     } 
+
+    unInstallWhereAxisCommands(interp);
 
     /*
      * Exiting this thread will signal the main/parent to exit.  No other
