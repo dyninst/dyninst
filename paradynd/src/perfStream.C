@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.107 1999/12/01 14:41:45 zhichen Exp $
+// $Id: perfStream.C,v 1.108 2000/01/10 15:37:45 zhichen Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -139,6 +139,11 @@ char errorLine[1024];
 void logLine(const char *line) {
     static char fullLine[1024];
 
+    if (strlen(fullLine) + strlen(line) >= 1024) {
+       tp->applicationIO(0, strlen(fullLine), fullLine);
+       fullLine[0] = '\0';
+    }
+
     assert(strlen(fullLine) + strlen(line) < 1024) ;
     strcat(fullLine, line);
        // Ack!  Possible overflow!  Possible bug!
@@ -221,6 +226,7 @@ void processTraceStream(process *curr)
 	if (curr->bufStart % WORDSIZE != 0)     /* Word alignment check */
 	    break;		        /* this will re-align by shifting */
 
+        unsigned curr_bufStart = curr->bufStart;
 	memcpy(&sid, &(curr->buffer[curr->bufStart]), sizeof(traceStream));
 	curr->bufStart += sizeof(traceStream);
 
@@ -237,7 +243,8 @@ void processTraceStream(process *curr)
 	    
 	if (curr->bufEnd - curr->bufStart < (unsigned)header.length) {
 	    /* the whole record isn't here yet */
-	    curr->bufStart -= sizeof(traceStream) + sizeof(header);
+	    // curr->bufStart -= sizeof(traceStream) + sizeof(header);
+            curr->bufStart = curr_bufStart;
 	    break;
 	}
 
@@ -263,13 +270,13 @@ void processTraceStream(process *curr)
 	switch (header.type) {
 #if defined(MT_THREAD)
 	    case TR_THR_CREATE:
-		sprintf(errorLine, "paradynd received TR_THR_CREATE, curr=0x%x", curr) ;
-		cerr << errorLine <<endl ;
+		// sprintf(errorLine, "paradynd received TR_THR_CREATE, curr=0x%x", curr) ;
+		// cerr << errorLine <<endl ;
 	        createThread((traceThread *) ((void*)recordData));
                 break;
 	    case TR_THR_SELF:
-		sprintf(errorLine, "paradynd received TR_THR_SELF, curr=0x%x", curr) ;
-		cerr << errorLine <<endl ;
+		// sprintf(errorLine, "paradynd received TR_THR_SELF, curr=0x%x", curr) ;
+		// cerr << errorLine <<endl ;
 	        updateThreadId((traceThread *) ((void*)recordData));
                 break;
 	    case TR_THR_DELETE:
