@@ -624,9 +624,24 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*> 
 				bool &error_occured){ 
     
   error_occured = false;
-  Address pc = getPC( proc->getPid() );
 
-  sharedLibHook *hook = reachedLibHook(pc);
+  // Check to see if any thread hit the breakpoint we inserted
+  pdvector<Frame> activeFrames;
+  if (!proc->getAllActiveFrames(activeFrames)) {
+      return false;
+  }
+  
+  dyn_lwp *brk_lwp = NULL;
+  sharedLibHook *hook;
+  
+  for (unsigned frame_iter = 0; frame_iter < activeFrames.size();frame_iter++)
+  {
+      hook = reachedLibHook(activeFrames[frame_iter].getPC());
+      if (hook) {
+          brk_lwp = activeFrames[frame_iter].getLWP();
+          break;
+      }
+  }
 
   // is the trap instr at at the breakpoint?
   if (force_library_load ||
@@ -679,11 +694,6 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*> 
 
     if (force_library_load) return true;
     else {
-        dyn_lwp *lwp_to_use = NULL;
-        lwp_to_use = proc->getRepresentativeLWP();
-        if(lwp_to_use == NULL)
-            if(process::IndependentLwpControl() && lwp_to_use == NULL)
-                lwp_to_use = proc->getInitialThread()->get_lwp();
         
 #if defined(arch_x86)
         // Return from the function.  We used to do this by setting the program
@@ -691,7 +701,11 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*> 
         // how long it is, so now we emulate a ret instruction by changing the
         // PC to the return value from the stack and incrementing the stack
         // pointer.
-        Address sp = getSP(proc->getPid());
+        dyn_saved_regs regs;
+        
+        brk_lwp->getRegisters(&regs);
+
+        Address sp = regs.gprs.esp;
         
         Address ret_addr;
         if(!proc->readDataSpace((caddr_t)sp, sizeof(Address),
@@ -700,16 +714,20 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*> 
             error_occured = true;
             return true;
         }
+        // Fix up the stack pointer
+        regs.gprs.esp = sp+sizeof(Address);
+        brk_lwp->restoreRegisters(regs);
         
-        if (!changeSP(proc->getPid(), sp + sizeof(Address))) {
-            error_occured = true;
-            return true;
-        }
-        
-        if (! lwp_to_use->changePC(ret_addr, NULL))
+        if (! brk_lwp->changePC(ret_addr, NULL))
             error_occured = true;
         
 #else
+        dyn_lwp *lwp_to_use = NULL;
+        lwp_to_use = proc->getRepresentativeLWP();
+        if(lwp_to_use == NULL)
+            if(process::IndependentLwpControl() && lwp_to_use == NULL)
+                lwp_to_use = proc->getInitialThread()->get_lwp();
+
         /* We've inserted a return statement at r_brk_target_addr
            for our use here. */
         lwp_to_use->changePC( r_brk_target_addr, NULL );
