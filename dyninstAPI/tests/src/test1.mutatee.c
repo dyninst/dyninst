@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.69 2001/03/06 04:55:11 buck Exp $ */
+/* $Id: test1.mutatee.c,v 1.70 2001/03/22 20:47:34 bernat Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1394,7 +1394,9 @@ void func21_1()
  || defined(mips_sgi_irix6_4) \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
- || defined(alpha_dec_osf4_0)
+ || defined(alpha_dec_osf4_0) \
+ || defined(rs6000_ibm_aix4_1)
+
      printf("Passed test #21 (findFunction in module)\n");
      passedTest[21] = TRUE;
 #else

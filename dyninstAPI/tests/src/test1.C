@@ -1475,7 +1475,7 @@ void readyTest21or22(BPatch_thread *appThread)
     char libA[128], libB[128];
     sprintf(libA, "./%s", libNameA);
     sprintf(libB, "./%s", libNameB);
-#if !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0)
     if (! appThread->loadLibrary(libA)) {
 	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
 	 fprintf(stderr, "  Mutator couldn't load %s into mutatee\n", libNameA);
@@ -1495,7 +1495,8 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
  || defined(mips_sgi_irix6_4) \
- || defined(alpha_dec_osf4_0)
+ || defined(alpha_dec_osf4_0) \
+ || defined(rs6000_ibm_aix4_1)
 
     // Lookup the libtestA.so and libtestB.so modules that we've just loaded
      
