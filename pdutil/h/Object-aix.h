@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-aix.h,v 1.9 1999/10/18 17:39:47 hollings Exp $
+ * $Id: Object-aix.h,v 1.10 1999/10/25 15:15:33 bernat Exp $
 ************************************************************************/
 
 
@@ -99,7 +99,7 @@ public:
 	stabstr = (char *) stabstr_;
 	nstabs = nstabs_;
 	stabs = stabs_;
-	stringpool = stringpool_;
+	stringpool = (char *) stringpool_;
     }
 
 private:
