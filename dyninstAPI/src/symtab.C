@@ -16,6 +16,14 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
+ * Revision 1.41  1996/04/29 22:18:49  mjrg
+ * Added size to functions (get size from symbol table)
+ * Use size to define function boundary
+ * Find multiple return points for sparc
+ * Instrument branches and jumps out of a function as return points (sparc)
+ * Recognize tail-call optimizations and instrument them as return points (sparc)
+ * Move instPoint to machine dependent files
+ *
  * Revision 1.40  1996/04/26 20:01:44  lzheng
  * Some minor changes in the constructor of pdFunction(for hpux only)
  * in order to prvent paradyn from dying for special instruction sequences.
@@ -121,7 +129,7 @@ bool buildDemangledName(const string mangled, string &use)
 }
 
 // err is true if the function can't be defined
-bool image::newFunc(module *mod, const string name, const Address addr,
+bool image::newFunc(module *mod, const string name, const Address addr, const unsigned size, 
 		    const unsigned tag, pdFunction *&retFunc)
 {
   pdFunction *func;
@@ -146,7 +154,7 @@ bool image::newFunc(module *mod, const string name, const Address addr,
   delete out;
 
   bool err;
-  func = new pdFunction(name, demangled, mod, addr, tag, this, err);
+  func = new pdFunction(name, demangled, mod, addr, size, tag, this, err);
   retFunc = func;
   if (err) {
     delete func;
@@ -695,6 +703,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
 
   // find the real functions -- those with the correct type in the symbol table
   while (symIter.next(symString, lookUp)) {
+
     if (funcsByAddr.defines(lookUp.addr())) {
       // This function has been defined
       ;
@@ -1023,7 +1032,7 @@ bool image::defineFunction(module *use, const Symbol &sym, const unsigned tags,
     str++;
 
   unsigned dictTags = findTags(str);
-  return (newFunc(use, str, sym.addr(), tags | dictTags, retFunc));
+  return (newFunc(use, str, sym.addr(), sym.size(), tags | dictTags, retFunc));
 }
 
 module *image::getOrCreateModule(const string &modName, const Address modAddr) {
@@ -1057,11 +1066,11 @@ bool image::defineFunction(module *libModule, const Symbol &sym,
   unsigned tags = findTags(str);
 
   if (TAG_LIB_FUNC & tags)
-    return (newFunc(libModule, str, sym.addr(), tags | TAG_LIB_FUNC, retFunc));
+    return (newFunc(libModule, str, sym.addr(), sym.size(), tags | TAG_LIB_FUNC, retFunc));
   else {
     module *use = getOrCreateModule(modName, modAddr);
     assert(use);
-    return (newFunc(use, str, sym.addr(), tags, retFunc));
+    return (newFunc(use, str, sym.addr(), sym.size(), tags, retFunc));
   }
 }
 
@@ -1074,108 +1083,17 @@ bool image::defineFunction(module *libModule, const Symbol &sym,
 // Note - this must define funcEntry and funcReturn
 // 
 pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
-		       Address adr, const unsigned tg, const image *owner, bool &err)
+		       Address adr, const unsigned size, const unsigned tg, const image *owner, bool &err)
 : tag_(tg),
   symTabName_(symbol),
   prettyName_(pretty),
   line_(0),
   file_(f),
   addr_(adr),
-  funcEntry_(NULL)
+  funcEntry_(NULL),
+  size_(size)
 {
-  instruction instr;
-  err = false;
-
-
-  instr.raw = owner->get_instruction(adr);
-  if (!IS_VALID_INSN(instr)) {
-    err = true; return;
-  }
-
-  // TODO - why not automatic?
-  // define the entry point
-#if defined(hppa1_1_hp_hpux)
-  bool done;
-
-  szOfLr = 0;
-
-  entryPoint.raw = exitPoint.raw = 0;
-
-  Address entryAdr = adr; 
-  Address retAdr;
-
-  funcEntry_ = new instPoint(this, instr, owner, adr, true, err, functionEntry);
-  assert(funcEntry_);
-  entryPoint = instr;
-
-  bool notRet = TRUE;
-  while(notRet) {
-    instr.raw = owner->get_instruction(adr);  
-
-    if (isReturnInsn(owner, adr, done)) {
-       retAdr = adr;
-       exitPoint = instr; 
-       notRet = FALSE;
-     }
-    if (isLoadReturn(instr)) szOfLr++;
-
-    adr += 4;
-  }
-
-  if (((retAdr-entryAdr)>>2)<=3) {
-      return;
-  }
-  adr = entryAdr;
-  if (szOfLr) lr = new loadr[szOfLr];
-
-  int index = 0; 
-  while (true) { 
-    instr.raw = owner->get_instruction(adr);
-
-    if (isLoadReturn(instr)) {
-      assert(index <= szOfLr); 
-      lr[index].loadReturn = instr;
-      lr[index].adr = adr;
-      index++;
-    } if (isReturnInsn(owner, adr, done)) {
-      funcReturns += new instPoint(this, instr, owner, adr, false, err ,functionExit);	
-      assert(funcReturns[funcReturns.size()-1]);
-      return;
-    } else if (isCallInsnTest(instr, adr, entryAdr, retAdr)) {
-       adr = newCallPoint(adr, instr, owner, err, callSite);
-    }
-    adr += 4;
-  }   
-	   
-#else
-  funcEntry_ = new instPoint(this, instr, owner, adr, true);
-  assert(funcEntry_);
-
-  while (true) {
-    instr.raw = owner->get_instruction(adr);
-
-    bool done;
-
-    // check for return insn and as a side affect decide if we are at the
-    //   end of the function.
-    if (isReturnInsn(owner, adr, done)) {
-      // define the return point
-      funcReturns += new instPoint(this, instr, owner, adr, false);
-
-      // see if this return is the last one 
-      if (done) return;
-    } else if (isCallInsn(instr)) {
-      // define a call point
-      // this may update address - sparc - aggregate return value
-      // want to skip instructions
-
-      adr = newCallPoint(adr, instr, owner, err);
-    }
-    // now do the next instruction
-    adr += 4;
-   }
-#endif
-
+  err = findInstPoints(owner) == false;
 }
 
 // Store the mapping function:    name --> set of mdl resource lists

@@ -26,6 +26,14 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst-hppa.C,v 1
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.11  1996/04/29 22:18:42  mjrg
+ * Added size to functions (get size from symbol table)
+ * Use size to define function boundary
+ * Find multiple return points for sparc
+ * Instrument branches and jumps out of a function as return points (sparc)
+ * Recognize tail-call optimizations and instrument them as return points (sparc)
+ * Move instPoint to machine dependent files
+ *
  * Revision 1.10  1996/04/26 20:38:47  lzheng
  * Some changes are moved so that function arguments registers are saved
  * in miniTrampoline.
@@ -81,6 +89,38 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst-hppa.C,v 1
 #include <sys/mman.h>
 
 #define perror(a) P_abort();
+
+class instPoint {
+public:
+  instPoint(pdFunction *f, const instruction &instr, const image *owner,
+	    const Address adr, const bool delayOK, bool &err,
+	    instPointType pointType = noneType);
+
+  ~instPoint() {  /* TODO */ }
+
+  // can't set this in the constructor because call points can't be classified until
+  // all functions have been seen -- this might be cleaned up
+  void set_callee(pdFunction *to) { callee = to; }
+
+
+  Address addr;                   /* address of inst point */
+  instruction originalInstruction;    /* original instruction */
+  instruction nextInstruction;
+  instPointType ipType;
+
+  instruction delaySlotInsn;  /* original instruction */
+  instruction aggregateInsn;  /* aggregate insn */
+  bool inDelaySlot;            /* Is the instruction in a delay slot */
+  bool isDelayed;		/* is the instruction a delayed instruction */
+  bool callIndirect;		/* is it a call whose target is rt computed ? */
+  bool callAggregate;		/* calling a func that returns an aggregate
+				   we need to reolcate three insns in this case
+				   */
+  pdFunction *callee;		/* what function is called */
+  pdFunction *func;		/* what function we are inst */
+
+};
+
 
 #define ABS(x)		((x) > 0 ? x : -x)
 //#define MAX_BRANCH      ((0x1<<18)+8) /* 17-signed bits, lshift by 2, +8 */
@@ -1246,6 +1286,78 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
     return false;
 }
 
+
+
+bool pdFunction::findInstPoints(const image *owner) {
+
+  Address adr = addr();
+  instruction instr;
+  bool err;
+
+  instr.raw = owner->get_instruction(adr);
+  if (!IS_VALID_INSN(instr)) {
+    return false;
+  }
+
+  bool done;
+
+  szOfLr = 0;
+
+  entryPoint.raw = exitPoint.raw = 0;
+
+  Address entryAdr = adr; 
+  Address retAdr;
+
+  funcEntry_ = new instPoint(this, instr, owner, adr, true, err, functionEntry);
+  if (err)
+    return false;
+  assert(funcEntry_);
+  entryPoint = instr;
+
+  bool notRet = TRUE;
+  while(notRet) {
+    instr.raw = owner->get_instruction(adr);  
+
+    if (isReturnInsn(owner, adr, done)) {
+       retAdr = adr;
+       exitPoint = instr; 
+       notRet = FALSE;
+     }
+    if (isLoadReturn(instr)) szOfLr++;
+
+    adr += 4;
+  }
+
+  if (((retAdr-entryAdr)>>2)<=3) {
+      return true;
+  }
+  adr = entryAdr;
+  if (szOfLr) lr = new loadr[szOfLr];
+
+  int index = 0; 
+  while (true) { 
+    instr.raw = owner->get_instruction(adr);
+
+    if (isLoadReturn(instr)) {
+      assert(index <= szOfLr); 
+      lr[index].loadReturn = instr;
+      lr[index].adr = adr;
+      index++;
+    } if (isReturnInsn(owner, adr, done)) {
+      funcReturns += new instPoint(this, instr, owner, adr, false, err ,functionExit);
+      if (err)
+	return false;
+      assert(funcReturns[funcReturns.size()-1]);
+      return true;
+    } else if (isCallInsnTest(instr, adr, entryAdr, retAdr)) {
+       adr = newCallPoint(adr, instr, owner, err, callSite);
+       if (err)
+	 return false;
+    }
+    adr += 4;
+  }   
+
+}
 
 // The exact semantics of the heap are processor specific.
 //

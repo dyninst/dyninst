@@ -10,6 +10,14 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
+ * Revision 1.22  1996/04/29 22:18:51  mjrg
+ * Added size to functions (get size from symbol table)
+ * Use size to define function boundary
+ * Find multiple return points for sparc
+ * Instrument branches and jumps out of a function as return points (sparc)
+ * Recognize tail-call optimizations and instrument them as return points (sparc)
+ * Move instPoint to machine dependent files
+ *
  * Revision 1.21  1996/04/26 19:58:29  lzheng
  * Moved some data structures used by HP only to the machine dependent file.
  * And an argument for constructor of instPoint to pass the error.
@@ -176,8 +184,12 @@ extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne);
 class pdFunction {
  public:
     pdFunction(const string symbol, const string &pretty, module *f, Address adr,
+	       const unsigned size,
 	       const unsigned tg, const image *owner, bool &err);
     ~pdFunction() { /* TODO */ }
+
+    bool findInstPoints(const image *owner);
+
     void checkCallPoints();
     bool defineInstPoint();
 #if defined(hppa1_1_hp_hpux)
@@ -193,6 +205,7 @@ class pdFunction {
     string prettyName() const { return prettyName_;}
     const module *file() const { return file_;}
     Address addr() const { return addr_;}
+    unsigned size() const {return size_;}
     instPoint *funcEntry() const { return funcEntry_;}
     vector<instPoint*> funcReturns;	/* return point(s). */
     vector<instPoint*> calls;		/* pointer to the calls */
@@ -216,8 +229,16 @@ class pdFunction {
     module *file_;		/* pointer to file that defines func. */
     Address addr_;		/* address of the start of the func */
     instPoint *funcEntry_;	/* place to instrument entry (often not addr) */
+
+    unsigned size_;             /* the function size, in bytes, used to
+				   define the function boundaries. This may not
+				   be exact, and may not be used on all 
+				   platforms. */
+
 };
 
+class instPoint;
+#ifdef notdef
 class instPoint {
 public:
 #if defined(hppa1_1_hp_hpux)
@@ -265,8 +286,11 @@ private:
 				   */
   pdFunction *callee;		/* what function is called */
   pdFunction *func;		/* what function we are inst */
-};
 
+bool conditionalPoint;
+int target;
+};
+#endif
 
 /* Stores source code to address in text association for modules */
 class lineDict {
@@ -398,8 +422,8 @@ public:
 
   // called from function/module destructor, removes the pointer from the watch list
   // TODO
-  static void destroy(pdFunction *pdf) { }
-  static void destroy(module *mod) { }
+  // static void destroy(pdFunction *pdf) { }
+  // static void destroy(module *mod) { }
 
   vector<pdFunction*> mdlLib;
   vector<pdFunction*> mdlNormal;
@@ -425,7 +449,7 @@ private:
   // note, a prettyName is not unique, it may map to a function appearing
   // in several modules
 
-  bool newFunc(module *, const string name, const Address addr,
+  bool newFunc(module *, const string name, const Address addr, const unsigned size,
 	       const unsigned tags, pdFunction *&retFunc);
 
   void checkAllCallPoints();

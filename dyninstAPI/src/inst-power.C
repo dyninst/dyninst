@@ -6,6 +6,14 @@
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
  * $Log: inst-power.C,v $
+ * Revision 1.14  1996/04/29 22:18:44  mjrg
+ * Added size to functions (get size from symbol table)
+ * Use size to define function boundary
+ * Find multiple return points for sparc
+ * Instrument branches and jumps out of a function as return points (sparc)
+ * Recognize tail-call optimizations and instrument them as return points (sparc)
+ * Move instPoint to machine dependent files
+ *
  * Revision 1.13  1996/04/26 20:53:36  lzheng
  * Changes to the procedure emitFuncCall. (move all the code dealing with
  * the function Calls in the miniTrampoline to here)
@@ -73,6 +81,34 @@
 #include "showerror.h"
 
 #define perror(a) P_abort();
+
+class instPoint {
+public:
+  instPoint(pdFunction *f, const instruction &instr, const image *owner,
+	    const Address adr, const bool delayOK);
+
+  ~instPoint() {  /* TODO */ }
+
+  // can't set this in the constructor because call points can't be classified until
+  // all functions have been seen -- this might be cleaned up
+  void set_callee(pdFunction *to) { callee = to; }
+
+
+  Address addr;                   /* address of inst point */
+  instruction originalInstruction;    /* original instruction */
+
+  instruction delaySlotInsn;  /* original instruction */
+  instruction aggregateInsn;  /* aggregate insn */
+  bool inDelaySlot;            /* Is the instruction in a delay slot */
+  bool isDelayed;		/* is the instruction a delayed instruction */
+  bool callIndirect;		/* is it a call whose target is rt computed ? */
+  bool callAggregate;		/* calling a func that returns an aggregate
+				   we need to reolcate three insns in this case
+				   */
+  pdFunction *callee;		/* what function is called */
+  pdFunction *func;		/* what function we are inst */
+};
+
 
 #define ABS(x)		((x) > 0 ? x : -x)
 #define MAX_BRANCH	0x1<<23
@@ -1145,6 +1181,53 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
     }
     return ret;
 }
+
+
+bool pdFunction::findInstPoints(const image *owner) 
+{  
+  Address adr = addr();
+  instruction instr;
+  bool err;
+
+  instr.raw = owner->get_instruction(adr);
+  if (!IS_VALID_INSN(instr)) {
+    return false;
+  }
+
+  funcEntry_ = new instPoint(this, instr, owner, adr, true);
+  assert(funcEntry_);
+
+  while (true) {
+    instr.raw = owner->get_instruction(adr);
+
+    bool done;
+
+    // check for return insn and as a side affect decide if we are at the
+    //   end of the function.
+    if (isReturnInsn(owner, adr, done)) {
+      // define the return point
+      funcReturns += new instPoint(this, instr, owner, adr, false);
+
+      // see if this return is the last one 
+      if (done) return;
+    } else if (isCallInsn(instr)) {
+      // define a call point
+      // this may update address - sparc - aggregate return value
+      // want to skip instructions
+
+      adr = newCallPoint(adr, instr, owner, err);
+      if (err)
+	return false;
+    }
+
+    // now do the next instruction
+    adr += 4;
+
+   }
+
+  }
+}
+
 
 //
 // Each processor may have a different heap layout.
