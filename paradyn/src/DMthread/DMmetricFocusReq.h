@@ -55,7 +55,7 @@
 class metricFocusReq;
 class metricFocusReqBundle;
 class metricInstance;
-
+class paradynDaemon;
 
 inline unsigned ui_hash_(const unsigned &u) { return u; }
 
@@ -86,6 +86,7 @@ class metricFocusReq_Val {
    inst_insert_result_t calculateNewOverallState() const;
    void getBundleClients(pdvector<metricFocusReqBundle *> *bundleClnts) const;
    void makeMetricInstInfo(metricInstInfo *mi_response);
+   void propagateToDaemon(paradynDaemon *dmn);
 
  public:
    static metricFocusReq_Val *lookup_mfReqVal(metricHandle mh) {
@@ -97,6 +98,8 @@ class metricFocusReq_Val {
       return new_mfVal;
    }
    static void cancelOutstandingMetricFocusesInCurrentPhase();
+   static void attachToOutstandingRequest(metricInstance *mi, 
+                                          paradynDaemon *dmn);
 
    metricFocusReq_Val(metricInstance *mi_, int num_daemons_);
    ~metricFocusReq_Val();

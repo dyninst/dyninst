@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.131 2003/05/27 03:30:12 schendel Exp $
+ * $Id: DMdaemon.C,v 1.132 2003/05/27 22:30:36 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -69,6 +69,7 @@ extern "C" {
 #include "pdutil/h/rpcUtil.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "common/h/timing.h"
+#include "DMmetricFocusReq.h"
 
 
 // TEMP this should be part of a class def.
@@ -2184,29 +2185,29 @@ void paradynDaemon::getMatchingDaemons(pdvector<metricInstance *> *miVec,
 // propagation (we can't do it here because the daemon has to do the aggregation).
 // Calling this function has no effect if there are no metrics enabled.
 void paradynDaemon::propagateMetrics() {
+   pdvector<metricInstanceHandle> allMIHs = metricInstance::allMetricInstances.keys();
 
-    pdvector<metricInstanceHandle> allMIHs = metricInstance::allMetricInstances.keys();
-
-    for (unsigned i = 0; i < allMIHs.size(); i++) {
-
+   for (unsigned i = 0; i < allMIHs.size(); i++) {
       metricInstance *mi = metricInstance::getMI(allMIHs[i]);
-
-      if (!mi->isEnabled())
-	 continue;
+      if (!mi->isEnabled()) {
+         metricFocusReq_Val::attachToOutstandingRequest(mi, this);
+         continue;
+      }
 
       // first we must find if the daemon already has this metric enabled for
       // some process. In this case, we don't need to do anything, the
       // daemon will do the propagation by itself.
       bool found = false;
       for (unsigned j = 0; j < mi->components.size(); j++) {
-	 if (mi->components[j]->getDaemon() == this) {
-	    found = true;
-	    break;
-	 }
+         if (mi->components[j]->getDaemon() == this) {
+            found = true;
+            break;
+         }
       }
 
-      if (found)
-	 continue; // we don't enable this mi; let paradynd do it
+      if (found) {
+         continue; // we don't enable this mi; let paradynd do it
+      }
 
       resourceListHandle r_handle = mi->getFocusHandle();
       metricHandle m_handle = mi->getMetricHandle();
@@ -2217,19 +2218,34 @@ void paradynDaemon::propagateMetrics() {
       bool aflag = rl->convertToIDList(vs);
       assert(aflag);
 
-      T_dyninstRPC::instResponse resp = enableDataCollection2(vs,
-                                                    (const char *) m->getName(),
-                                                    mi->id, this->id );
+      T_dyninstRPC::instResponse resp =
+         enableDataCollection2(vs, (const char *) m->getName(), mi->id,
+                               this->id );
+      
+      inst_insert_result_t status = inst_insert_result_t(resp.rinfo[0].status);
+      if(did_error_occur())
+         continue;
 
-      if( (resp.rinfo[0].status == inst_insert_success) && !did_error_occur() ) {
-        component *comp = new component(this, resp.rinfo[0].mi_id, mi);
-        if (!mi->addComponent(comp)) {
-	        cout << "internal error in paradynDaemon::addRunningProgram" 
-                << endl;
-	        abort();
-	    }
-        }
-    }
+      if(status == inst_insert_deferred) {
+         // This shouldn't happen since when we propagate metricInstances to
+         // new machines (ie. call enableDataCollection2 above), the process
+         // on that machine hasn't yet been started.  At this time, a
+         // metric-focus can only be deferred if the process is running
+         // (amongst other conditions).
+         cerr << "WARNING: failed to propagate metric-focus "
+              << mi->getMetricName() << " / " << mi->getFocusName()
+              << " to machine\n   " << getMachineName() 
+              << " since metric-focus was deferred by daemon\n";
+      } else if(status == inst_insert_success) {
+         component *comp = new component(this, resp.rinfo[0].mi_id, mi);
+         if (!mi->addComponent(comp)) {
+            cout << "internal error in paradynDaemon::addRunningProgram" 
+                 << endl;
+            abort();
+         }
+      }
+      // do nothing if request failed
+   }
 }
 
 

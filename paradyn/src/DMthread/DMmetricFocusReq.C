@@ -227,6 +227,51 @@ void metricFocusReq_Val::flushPerfStreamMsgs() {
    }
 }
 
+void metricFocusReq_Val::propagateToDaemon(paradynDaemon *dmn) {
+   inst_insert_result_t cur_state = getOverallState();
+   if(cur_state == inst_insert_failure || cur_state == inst_insert_success) {
+      cerr << "  PARADYN: Can't propagate metric-focus in failed or success\n"
+           << "  state to new machine " << dmn->getMachineName() << endl;
+      return;
+   }
+
+   num_daemons++;
+
+   assert(cur_state == inst_insert_deferred ||
+          cur_state == inst_insert_unknown);
+
+   // yes, cur_mfReq->requestSentToDaemon() would evaluate to true here
+   // because the requests were made on the daemons initially specified
+   pdvector<unsigned> mi_ids;
+   pdvector<T_dyninstRPC::focusStruct> foci;
+   pdvector<string> metric_names;
+
+   mi_ids.push_back(mi->getHandle());
+   T_dyninstRPC::focusStruct focus;
+   bool aflag = mi->convertToIDList(focus.focus);
+   assert(aflag);
+   foci.push_back(focus);
+   metric_names.push_back(mi->getMetricName());
+   
+   assert(foci.size() == metric_names.size());
+   assert(metric_names.size() == mi_ids.size());
+
+   pdvector<metricFocusReqBundle *> bundleClients;
+   getBundleClients(&bundleClients);
+
+   // if it's in deferred or unknown state, there should be a connected bundle
+   assert(bundleClients.size() > 0);
+   // We just need a requested id for a bundle attached to this mfReqVal.
+   // Doesn't matter which one.  All of the bundles will get notified
+   // anyways.
+   unsigned chosen_req_id = bundleClients[0]->getRequestID();
+
+   //cerr << " request for metfocus in " << state_str(cur_state) 
+   //     << " state, on machine: " << dmn->getMachineName() << endl;
+   dmn->enableDataCollection(foci, metric_names, mi_ids, dmn->get_id(),
+                             chosen_req_id);
+}
+
 void metricFocusReq_Val::cancelOutstandingMetricFocusesInCurrentPhase() {
    dictionary_hash<unsigned, metricFocusReq_Val*>::iterator mfIter =
       metricFocusReq_Val::allMetricFocusReqVals.begin();
@@ -282,6 +327,21 @@ void metricFocusReq_Val::cancelOutstandingMetricFocusesInCurrentPhase() {
 
    for (unsigned i = 0; i < deletedMFRVs.size(); i++)
        delete deletedMFRVs[i];
+}
+
+void metricFocusReq_Val::attachToOutstandingRequest(metricInstance *mi, 
+                                                    paradynDaemon *dmn) {
+   dictionary_hash<unsigned, metricFocusReq_Val*>::iterator mfIter =
+      metricFocusReq_Val::allMetricFocusReqVals.begin();
+   
+   while(mfIter != metricFocusReq_Val::allMetricFocusReqVals.end())
+   {
+      metricFocusReq_Val *mfReqVal = (*mfIter);      
+      if(mfReqVal->getMetricInst() == mi) {
+         mfReqVal->propagateToDaemon(dmn);
+      }
+      mfIter++;
+   }
 }
 
 
