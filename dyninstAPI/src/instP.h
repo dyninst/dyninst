@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.37 2002/06/26 21:14:08 schendel Exp $
+// $Id: instP.h,v 1.38 2002/08/12 04:21:23 schendel Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -102,7 +102,8 @@ extern trampTemplate baseTemplate;
 class miniTrampHandle {
  public:
   instInstance *inst;
-  callWhen when;		/* call before or after instruction */
+  // when and location are used to get the other mini-tramps at the point
+  callWhen when;	     /* call before or after instruction */
   instPoint *location;       /* where we put the code */
 };
 
@@ -110,12 +111,16 @@ class miniTrampHandle {
 typedef void (*instInstanceFreeCallback)(void *, instInstance *);
 
 class instInstance {
+  static int _id;
  public:
-  instInstance() : trampBase(0), returnAddr(0), 
+  enum { uninitialized_id = -1 };
+  static int get_new_id() { return _id++; }
+
+  instInstance() : ID(uninitialized_id), trampBase(0), returnAddr(0), 
     baseInstance(NULL), cost(0), callback(NULL), callbackData(NULL) {
   }
 
-  void callDeleteCallback() {
+  ~instInstance() {
     if (callback)
       (*callback)(callbackData, this);  
   }
@@ -124,11 +129,12 @@ class instInstance {
     callback = cb;
     callbackData = data;
   };
-  
-  Address trampBase;         /* base of code */
-  Address returnAddr;        /* address of the return from tramp insn */
-  trampTemplate *baseInstance;  /* the base trampoline instance */
-  int cost;		     /* cost in cycles of this inst req. */
+
+  int ID;                    // used to match up instInstances in forked procs
+  Address trampBase;         // base of code
+  Address returnAddr;        // address of the return from tramp insn
+  trampTemplate *baseInstance;  // the base trampoline instance
+  int cost;		     // cost in cycles of this inst req.
 
   // Material to check when deleting this instInstance
   instInstanceFreeCallback callback; /* Callback to be made when

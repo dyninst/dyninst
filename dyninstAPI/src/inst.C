@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.98 2002/06/26 21:14:07 schendel Exp $
+// $Id: inst.C,v 1.99 2002/08/12 04:21:22 schendel Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -58,6 +58,8 @@
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/init.h"
 #endif
+
+int instInstance::_id = 1;
 
 dictionary_hash <string, unsigned> primitiveCosts(string::hash);
 
@@ -274,6 +276,9 @@ loadMiniTramp_result loadMiniTramp(instInstance *mtInfo, process *proc,
    // (the call to findAndInstallBaseTramp doesn't do that)
    assert(proc && location);
    initTramps();
+
+   if(mtInfo->ID == instInstance::uninitialized_id) 
+     mtInfo->ID = instInstance::get_new_id();
 
    bool deferred = false;  // dummy variable
    mtInfo->baseInstance = findAndInstallBaseTramp(proc, location, 
@@ -543,6 +548,33 @@ void getMiniTrampsAtPoint(process *proc, instPoint *loc, callWhen when,
   }
 }
 
+// writes into childMT the miniTrampHandle for the instrumentation in given
+// child process which was inherited from the given parentMT miniTrampHandle
+// in the given parentProc
+bool getInheritedMiniTramp(const miniTrampHandle *parentMT, 
+			   miniTrampHandle *childMT, process *childProc) {
+  installed_miniTramps_list *mtList = NULL;
+  childProc->getMiniTrampList(parentMT->location, parentMT->when,  &mtList);
+
+  List<instInstance*>::iterator curMT = mtList->get_begin_iter();
+  List<instInstance*>::iterator endMT = mtList->get_end_iter();	 
+  instInstance *instInParentProc = parentMT->inst;
+  instInstance *foundII = NULL;
+  for(; curMT != endMT; curMT++) {
+    instInstance *instInChildProc = *curMT;
+    if(instInParentProc->ID == instInChildProc->ID) {
+      foundII = instInChildProc;
+      break;
+    }
+  }
+  if(foundII == NULL) return false;
+  
+  (*childMT).inst = foundII;
+  (*childMT).when = parentMT->when;
+  (*childMT).location = parentMT->location;
+  return true;
+}
+
 // This procedure assumes that any mini-tramp for an inst request could refer 
 // to any data pointer for that request. A more complex analysis could check 
 // what data pointers each mini-tramp really used, but I don't think it is 
@@ -629,7 +661,7 @@ void deleteInst(process *proc, const miniTrampHandle &mtHandle)
 
    for(; curMT != endMT; curMT++) {
       instInstance *inst = *curMT;
-      if(inst == mtHandle.inst) {
+      if(inst == mtHandle.inst && inst->ID == mtHandle.inst->ID) {
 	 thisMT = inst;
 	 curMT++;
 	 if(curMT == endMT) nextMT = NULL;
@@ -639,7 +671,6 @@ void deleteInst(process *proc, const miniTrampHandle &mtHandle)
       prevMT = inst;
    }
    assert(thisMT != NULL);  // couldn't find the minitramp to delete
-
    if(proc->status() != exited) {
       bool noOtherMTsAtPoint = (prevMT==NULL && nextMT==NULL);
       if(noOtherMTsAtPoint) {
@@ -669,22 +700,20 @@ void deleteInst(process *proc, const miniTrampHandle &mtHandle)
 	    generateBranch(proc, fromAddr, nextMT->trampBase);
 #endif
 	 }
-      }
-      
+      }     
    }
 
    int trampCost = 0 - (thisMT->cost);
    if(thisMT->cost > 0)
       thisMT->baseInstance->updateTrampCost(proc, trampCost);
-  
+
    // DON'T delete the instInstance. When it is deleted, the callback
    // is made... which should only happen when the memory is freed.
    // Place it on the list to be deleted.
    proc->deleteInstInstance(thisMT);
-
    /* remove instInstance from linked list */
    mtList->deleteMiniTramp(thisMT);  // deletes instInstance
-   
+
 #ifdef BPATCH_LIBRARY
    trampTemplate *baseInstance = thisMT->baseInstance;
 
@@ -774,4 +803,8 @@ trampTemplate::updateTrampCost(process *proc, int trampCost) {
     proc->writeDataSpace((caddr_t)costAddr, csize, costInsn);
 #endif
 }
+
+
+
+
 
