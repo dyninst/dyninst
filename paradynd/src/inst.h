@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -47,6 +48,10 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
+ * Revision 1.28  1996/10/31 09:17:04  tamches
+ * the shm-sampling commit; intCounterHandle, timerHandle gone, replaced by
+ * new classes in metric.h derived from dataReqNode.
+ *
  * Revision 1.27  1996/10/04 16:12:43  naim
  * Optimization for code generation (use of immediate operations whenever
  * possible). This first commit is only for the sparc platform. Other platforms
@@ -96,38 +101,21 @@
  */
 
 #include "rtinst/h/trace.h"
-#include "process.h"
 
 class instInstance;
 class process;
 class instPoint;
 class pdFunction;
+class metricDefinitionNode;
 
 typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
 typedef enum { callPreInsn, callPostInsn } callWhen;
 typedef enum { orderFirstAtPoint, orderLastAtPoint } callOrder;
 
-class intCounterHandle {
- public:
-    intCounterHandle() {
-      proc = NULL; sampler = NULL; counterPtr = NULL; 
-    }
-    process *proc;
-    intCounter *counterPtr;		/* NOT in our address space !!!! */
-    intCounter data;			/* a copy in our address space */
-    instInstance *sampler;		/* function to sample value */
-};
-
-class timerHandle {
- public:
-    timerHandle() {
-      proc = NULL; timerPtr = NULL; sampler = NULL;
-    }
-    process *proc;
-    tTimer *timerPtr;			/* NOT in our address space !!!! */
-    tTimer data;			/* a copy in our address space !!!! */
-    instInstance *sampler;		/* function to sample value */
-};
+extern void deleteInst(instInstance *old, const vector<unsigned> &pointsToCheck);
+   // in inst.C
+extern vector<unsigned> getAllTrampsAtPoint(instInstance *);
+   // in inst.C
 
 class AstNode;
 class returnInstance;
@@ -138,15 +126,17 @@ class returnInstance;
  */
 instInstance *addInstFunc(process *proc,
 			  instPoint *location,
-			  AstNode &ast, 
+			  AstNode &ast, // ast could change (sysFlag stuff)
 			  callWhen when,
-			  callOrder order);
+			  callOrder order,
+			  bool noCost);
 
 instInstance *addInstFunc(process *proc,
 			  instPoint *location,
-			  AstNode &ast, 
+			  AstNode &ast, // ast could change (sysFlag stuff)
 			  callWhen when,
 			  callOrder order,
+			  bool noCost,
 			  returnInstance *&retInstance);
 
 void copyInstInstances(process *parent, process *child,
@@ -156,47 +146,8 @@ void copyInstInstances(process *parent, process *child,
 float getPointFrequency(instPoint *point);
 int getPointCost(process *proc, instPoint *point);
 
-void deleteInst(instInstance*, vector<unsigned> pointsToCheck);
-
-intCounterHandle *createIntCounter(process *proc, int value, bool report);
-int getIntCounterValue(intCounterHandle*);
-void freeIntCounter(intCounterHandle*, vector<unsigVecType>);
-void addToIntCounter(intCounterHandle*, int amount);
-intCounterHandle *dupIntCounter(intCounterHandle *parent, process *child, int value);
-
-floatCounter *createFloatCounter(int pid);
-float getCounterValue(floatCounter*);
-void freeFloatCounter(floatCounter*);
-void addToFloatCounter(floatCounter*, float amount);
-
 /*
- * Create a triggered timer.  A triggered timer is one that only will start/stop
- *   when the value of the trigger counter is positive.
- *
- *   type indicates if the timer is based on wall or process (virtual) time.
- *
- *   trigger indicates the trigger counter to use.  A null trigger implies no
- *     trigger is required.
- *
- *   pid is the thread that the timer will run in.
- */
-timerHandle *createTimer(process*proc,timerType type, bool report);
-
-/*
- * return the current value of the timer.
- *
- */
-float getTimerValue(timerHandle *timer);
-
-/*
- * dispose of a timer. 
- *
- */
-void freeTimer(timerHandle*, vector<unsigVecType>);
-timerHandle *dupTimer(timerHandle *parent, process *child);
-
-/*
- * Test if the inst point is for a call to a tahracked function (as opposed to
+ * Test if the inst point is for a call to a tracked function (as opposed to
  *   a function that has been either implictly or explictly suppressed from
  *   instrumentation (i.e. library functions or user suppression of user 
  *   functions).
@@ -243,7 +194,7 @@ void initDefaultPointFrequencyTable();
 // Return the expected runtime of the passed function in instruction
 //   times.
 //
-unsigned getPrimitiveCost(const string name);
+unsigned getPrimitiveCost(const string &name);
 
 // a register.
 typedef int reg;
@@ -281,9 +232,10 @@ typedef enum { plusOp,
  * Generate an instruction.
  *
  */
-unsigned emit(opCode op, reg src1, reg src2, reg dest, char *insn, unsigned &base);
+unsigned emit(opCode op, reg src1, reg src2, reg dest, char *insn, unsigned &base,
+	      bool noCost);
 unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
-                 unsigned &base);
+                 unsigned &base, bool noCost);
 //unsigned emitFuncCall(opCode op, registerSpace *rs, char *i,unsigned &base, 
 //		      vector<AstNode> operands, string func, process *proc);
 
@@ -314,7 +266,7 @@ extern unsigned findTags(const string funcName);
 
 extern float computePauseTimeMetric(const metricDefinitionNode *);
 
-extern process *nodePseudoProcess;
+//extern process *nodePseudoProcess;
 
 extern void initLibraryFunctions();
 
@@ -324,6 +276,6 @@ extern unsigned getMaxBranch();
 // extern dictionary_hash<string, unsigned> tagDict;
 extern dictionary_hash <string, unsigned> primitiveCosts;
 
-extern process *nodePseudoProcess;
+void installBootstrapInst(process *);
 
 #endif
