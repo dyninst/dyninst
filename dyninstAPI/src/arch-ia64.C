@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.19 2003/08/11 11:57:55 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.20 2003/09/23 17:28:49 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -1038,3 +1038,16 @@ void alterLongMoveAtTo( Address target, Address imm64 ) {
 
 	*(ia64_bundle_t *)target = rawBundle;
 	} /* end alterLongMoveAtTo() */
+
+IA64_instruction generateShortImmediateBranch( int64_t target25 ) {
+	uint64_t signBit = target25 < 0 ? 1 : 0;
+	uint64_t immediate = ( ((uint64_t)target25) >> 4 ) & 0xFFFFF;
+
+	uint64_t rawInsn = 0x0000000000000000 |
+			( ((uint64_t)0x04) << (37 + ALIGN_RIGHT_SHIFT)) |
+			( signBit << (36 + ALIGN_RIGHT_SHIFT) ) |
+			( immediate << (13 + ALIGN_RIGHT_SHIFT) ) |
+			( ((uint64_t)0x0) << (6 + ALIGN_RIGHT_SHIFT));
+
+	return IA64_instruction( rawInsn );
+	} /* end generateShortImmediateBranch() */
