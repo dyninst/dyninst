@@ -43,6 +43,9 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.53  1997/07/29 14:36:05  naim
+ * Fixing problem with inferiorRPC, non-shared memory sampling and sigalrm - naim
+ *
  * Revision 1.52  1997/06/23 17:05:07  tamches
  * slight changes to #include
  *
@@ -601,7 +604,7 @@ public:
   instInstance *getInstance() const { return instance; }
 
   bool anythingToManuallyTrigger() const {return manuallyTrigger;}
-  bool triggerNow(process *theProc);
+  bool triggerNow(process *theProc, int mid);
 
 private:
   instPoint	*point;
@@ -728,7 +731,7 @@ public:
 
   bool anythingToManuallyTrigger() const;
 
-  void manuallyTrigger();
+  void manuallyTrigger(int);
 
 private:
   // Since we don't define these, make sure they're not used:

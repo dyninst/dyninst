@@ -1044,20 +1044,21 @@ bool metricDefinitionNode::anythingToManuallyTrigger() const {
    assert(false);
 }
 
-void metricDefinitionNode::manuallyTrigger() {
+void metricDefinitionNode::manuallyTrigger(int parentMId) {
    assert(anythingToManuallyTrigger());
 
    if (aggregate_) {
       for (unsigned i=0; i < components.size(); i++)
 	 if (components[i]->anythingToManuallyTrigger())
-	   components[i]->manuallyTrigger();
+	   components[i]->manuallyTrigger(parentMId);
    }
    else {
       for (unsigned i=0; i < instRequests.size(); i++)
-	 if (instRequests[i].anythingToManuallyTrigger())
-	    if (!instRequests[i].triggerNow(proc())) {
+	if (instRequests[i].anythingToManuallyTrigger()) {
+	    if (!instRequests[i].triggerNow(proc(),parentMId)) {
 	       cerr << "manual trigger failed for an inst request" << endl;
 	    }
+	}
    }
 }
 
@@ -1138,7 +1139,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 	   if (alreadyRunning)
 	      theProc->pause();
 
-	   mi->manuallyTrigger();
+	   mi->manuallyTrigger(id);
 
 	   if (alreadyRunning)
 	      theProc->continueProc(); // the continue will trigger our code
@@ -1856,13 +1857,13 @@ float instReqNode::cost(process *theProc) const
     return(value);
 }
 
-bool instReqNode::triggerNow(process *theProc) {
+bool instReqNode::triggerNow(process *theProc, int mid) {
    assert(manuallyTrigger);
 
    theProc->postRPCtoDo(ast, false, // don't skip cost
 			NULL, // no callback fn needed
-			NULL
-			);
+			NULL,
+			mid);
       // the rpc will be launched with a call to launchRPCifAppropriate()
       // in the main loop (perfStream.C)
 

@@ -43,6 +43,9 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.67  1997/07/29 14:35:55  naim
+ * Fixing problem with inferiorRPC, non-shared memory sampling and sigalrm - naim
+ *
  * Revision 1.66  1997/04/29 23:17:24  mjrg
  * Changes for WindowsNT port
  * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
@@ -225,6 +228,14 @@ void dynRPC::disableDataCollection(int mid)
 	currentPredictedCost = 0.0;
     else 
         currentPredictedCost -= cost;
+
+    process *proc;
+    for (unsigned i=0; i<processVec.size(); i++) {
+      proc = processVec[i];
+      if (proc->existsRPCreadyToLaunch()) {
+	proc->cleanRPCreadyToLaunch(mid);
+      }
+    }
 
     mi->disable();
     allMIs.undef(mid);

@@ -318,6 +318,7 @@ class process {
      bool noCost; // if true, cost model isn't updated by generated code.
      void (*callbackFunc)(process *, void *userData, unsigned result);
      void *userData;
+     int mid;
   };
   vectorSet<inferiorRPCtoDo> RPCsWaitingToStart;
   bool RPCs_waiting_for_syscall_to_complete;
@@ -364,8 +365,9 @@ class process {
   unsigned numOfActWallTimers_is; 
   bool deferredContinueProc;
   void updateActiveCT(bool flag, CTelementType type);
+  void cleanRPCreadyToLaunch(int mid);
   void postRPCtoDo(AstNode *, bool noCost,
-		   void (*)(process *, void *, unsigned), void *);
+		   void (*)(process *, void *, unsigned), void *, int);
   bool existsRPCreadyToLaunch() const;
   bool existsRPCinProgress() const;
   bool launchRPCifAppropriate(bool wasRunning, bool finishingSysCall);

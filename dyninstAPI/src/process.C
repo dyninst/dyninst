@@ -1543,8 +1543,8 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
    theProc->postRPCtoDo(the_ast,
 			true, // true --> don't try to update cost yet
 			process::DYNINSTinitCompletionCallback, // callback routine
-			NULL // user data
-			);
+			NULL, // user data
+			-1);  // we use -1 if this is not metric definition - naim
       // the rpc will be launched with a call to launchRPCifAppropriate()
       // in the main loop (perfStream.C).
       // DYNINSTinit() ends with a DYNINSTbreakPoint(), so we pick up
@@ -2819,15 +2819,33 @@ bool process::cleanUpInstrumentation(bool wasRunning) {
     return found;
 }
 
+void process::cleanRPCreadyToLaunch(int mid) 
+{
+  vectorSet<inferiorRPCtoDo> tmpRPCsWaitingToStart;
+  while (RPCsWaitingToStart.size() > 0) {
+    inferiorRPCtoDo currElem = RPCsWaitingToStart.removeOne();
+    if (currElem.mid == mid)
+      break;
+    else
+      tmpRPCsWaitingToStart += currElem;
+  }
+  // reconstruct RPCsWaitingToStart
+  while (tmpRPCsWaitingToStart.size() > 0) {
+    RPCsWaitingToStart += tmpRPCsWaitingToStart.removeOne();
+  }
+}
+
 void process::postRPCtoDo(AstNode *action, bool noCost,
 			  void (*callbackFunc)(process *, void *, unsigned),
-			  void *userData) {
+			  void *userData,
+			  int mid) {
    // posts an RPC, but does NOT make any effort to launch it.
    inferiorRPCtoDo theStruct;
    theStruct.action = action;
    theStruct.noCost = noCost;
    theStruct.callbackFunc = callbackFunc;
    theStruct.userData = userData;
+   theStruct.mid = mid;
 
    RPCsWaitingToStart += theStruct;
 }
