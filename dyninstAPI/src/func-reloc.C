@@ -1028,11 +1028,6 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
     cerr << " this = " << *this << endl;
 #endif
 
-    //    if (prettyName() == "_exithandle") {
-    //      int tag=1;
-    //      while (tag != 0) {}
-    //    }
-
     // check if this process already has a relocation record for this 
     // function, meaning that the.function has already been relocated
     for(u_int j=0; j < relocatedByProcess.size(); j++){
@@ -1078,7 +1073,8 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
       }
     }
 
-/* We are not currently executing in this function, so proceed with the relocation */
+    /* We are not currently executing in this function, 
+       so proceed with the relocation */
 
 
     Address baseAddress = 0;
@@ -1109,14 +1105,14 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
         generateBranch(proc, origAddress, ret);
         reloc_info->setInstalled();
 
-	//#ifdef DEBUG_FUNC_RELOC
+#ifdef DEBUG_FUNC_RELOC
         cerr << "pd_Function::relocateFunction " << endl;
         cerr << " prettyName = " << prettyName().string_of() << endl;      
         cerr << " relocated from 0x" << hex << origAddress
 	     << " with size 0x" << size() << endl;
         cerr << " to 0x" << hex << ret 
              << " with size 0x" << size()+size_change << endl;
-	//#endif
+#endif
 
       } else {
 
