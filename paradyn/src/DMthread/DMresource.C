@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.15 1994/09/30 21:17:44 newhall Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.16 1994/11/04 08:46:00 jcargill Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.15  1994/09/30 21:17:44  newhall
+ * Revision 1.16  1994/11/04 08:46:00  jcargill
+ * Made suppressSearch flag be inherited from parent resource.  Solves the
+ * problem of having to wait for processes to be defined to suppress them.
+ *
+ * Revision 1.15  1994/09/30  21:17:44  newhall
  * changed convertToStringList method function return value from
  * stringHandle * to char**
  *
@@ -115,8 +119,8 @@ resource::resource(resource *p, char *newResource, const char *a)
 
     abstr = AMfind(a);
 
-    suppressSearch = FALSE;
-
+    suppressSearch = p->getSuppress(); // inherit search suppression from
+				       // parent resource
     parent->children.add(this);
 }
 
