@@ -39,8 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: LocalAlteration.h,v 1.3 2001/02/20 21:40:51 gurari Exp $
+
 #ifndef __LocalAlteration_H__
 #define __LocalAlteration_H__
+
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
@@ -55,50 +58,87 @@ class LocalAlteration {
  protected:
     // function to which alteration is being applied....
     pd_Function *function;
-
+   
     // Offsets into function which specify where alteration applies.
     //  The offsets refer to the ORIGINAL function (not the rewritten
     //  version) and represent BYTES of offset, as opposed to number
     //  of instructions, because architectures may have variables length
     //  instruction sets.... 
-    int beginningOffset;
-    int endingOffset;
-
+    int beginning_offset;  
+    
  public:
     // constructor, make new LocalAlteration
-    LocalAlteration(pd_Function *f, int beginning_offset, \
-	    int ending_offset);
+    LocalAlteration(pd_Function *f, int offset);
 
-    // virtual function to update branches around and into footprint....
+    // update branches around and into footprint....
     virtual bool UpdateExpansions(FunctionExpansionRecord *fer) = 0;
 
     // virtual function to register changes which alteration makes to locations
     //  of inst points inside the function....
     virtual bool UpdateInstPoints(FunctionExpansionRecord *ips) = 0;
-
-    // virtual function to rewrite the actual set of instructions in the 
-    //  footprint....
-    // adr is address (in target address space) of 1st instruction in 
+ 
+   // adr is address (in target address space) of 1st instruction in 
     //  footprint.  It is updated to point to address of 1st instruction
     //  after end of footprint (in origional function).
     // newAdr is address (again in target address space) where 1st 
     //  instruction in rewritten footprint will be written.  It is updated
     //  to point to address of 1st instruction after end of footprint
     //  (in rewritten function).
-    // newOffset is offset into newInstr at which instructions should start
+    // newOffs  t is offset into newInstructions at which instructions should start
     //  being written....
     // newBaseAdr is address at which RELOCATED version of function should 
     //  begin....
-    virtual bool RewriteFootprint(Address &adr, Address newBaseAdr, \
-	Address &newAdr, instruction oldInstr[], instruction newInstr[]) = 0;
+    virtual bool RewriteFootprint(Address oldBaseAdr, Address &oldAdr, 
+                                  Address newBaseAdr, Address &newAdr, 
+                                  instruction oldInstructions[], 
+                                  instruction newInstructions[], 
+                                  int &oldOffset, int &newOffset,
+                                  int newDisp, 
+                                  unsigned &codeOffset,
+                                  unsigned char *insn) = 0;
 
-    //
-    // NON-VIRTUAL MEMBER FUNCTIONS....
-    //
-    int offsetBegins() {return beginningOffset;}
-    int offsetEnds() {return endingOffset;}
+    virtual int getOffset() = 0;
+    virtual int getShift() = 0;
+    virtual int numInstrAddedAfter() = 0;
 };
 
+//
+// ..............NOP EXPANSIONS............
+//
+
+// Stick a bunch of no-ops into code to expand it so that it can be safely
+//  instrumented....
+// Nops are stuck in BEFORE the instruction specified by beginning_offset....
+// extra fields (beyond SparcLocalAlteration)....
+//  size (# BYTES of nop instructions which should be added)
+//
+// Notes:
+//  beginning_offset should be set = ending_offset.
+//
+class InsertNops : public LocalAlteration {
+ protected: 
+    int sizeNopRegion;
+
+ public:
+    // constructor same as LocalAlteration except for extra field 
+    //  specifying how many BYTES of nop....
+    InsertNops(pd_Function *f, int offset, int size);
+
+    virtual int getOffset();
+    virtual int getShift();
+    virtual int sizeOfNop();
+    virtual int numInstrAddedAfter();
+    virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
+    virtual bool UpdateInstPoints(FunctionExpansionRecord *ips);
+    virtual bool RewriteFootprint(Address oldBaseAdr, Address &oldAdr, 
+                                  Address newBaseAdr, Address &newAdr,
+                                  instruction oldInstructions[], 
+                                  instruction newInstructions[], 
+                                  int &oldOffset, int &newOffset,
+                                  int newDisp, 
+                                  unsigned &codeOffset, 
+                                  unsigned char *code);  
+};
 
 // Set of LocalAlterations to be applied to an function.
 //  By definition, none of these wrappers have overlapping footprints,
@@ -108,6 +148,7 @@ class LocalAlteration {
 // Provides the following functionality:
 //  records the set of (non-overlapping peephole) alterations to be
 //  applied to a function and where they are to be applied....
+
 class LocalAlterationSet {
   protected:
     // list of alterations, sorted by offset....
@@ -125,7 +166,7 @@ class LocalAlterationSet {
     pd_Function *func;
 
     // used for iterator....
-    unsigned int iterIdx;
+    int iterIdx;
 
     // keep track of whether work has been done to order alterations....
     bool ordered;
@@ -141,8 +182,11 @@ class LocalAlterationSet {
     // ....CONSTRUCTOR....
     LocalAlterationSet(pd_Function *f);
 
-    // delete all alterations in list....
+    // flush the LocalAlterations out of alterations....
     void Flush();
+
+    // delete the LocalAlterations in alterations 
+    void DeleteAlterations();
 
     // calls FLUSH....
     ~LocalAlterationSet();
@@ -155,8 +199,11 @@ class LocalAlterationSet {
     // Pass through to fer/ips....
     //
     void Collapse() {fer.Collapse(); ips.Collapse();}
-    int GetShift(int f) {return fer.GetShift(f);}
-    int GetInstPointShift(int offset) {return ips.GetShift(offset);}
+    int getShift(int f) {return fer.GetShift(f);}
+    int getInstPointShift(int offset) {return ips.GetShift(offset);}
+ 
+    int numInstrAddedAfter(int offset);
+    
 
     //  
     // ITERATOR CODE
@@ -166,8 +213,12 @@ class LocalAlterationSet {
     void iterReset();
     // return next alteration in iterator....
     LocalAlteration *iterNext();
-};
 
+};
 
 /*  #ifndef __LocalAlteration_H__  */
 #endif
+
+
+
+

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.5 2000/07/28 17:20:41 pcroth Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.6 2001/02/20 21:40:50 gurari Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -57,92 +57,67 @@
 extern void relocateInstruction(instruction *insn, 
                         Address origAddr, Address targetAddr, process *proc);
 
-// constructor for SPARC LocalAlteration....
-SparcLocalAlteration::SparcLocalAlteration
-        (pd_Function *f, int beginning_offset,
-	 int ending_offset, Address nBaseAddress) :
-	  LocalAlteration(f, beginning_offset, ending_offset) {
-    // set (protected data member) baseAddress
-    baseAddress = nBaseAddress;
+
+bool InsertNops::RewriteFootprint(Address /*oldBaseAdr */, Address &oldAdr, 
+                                  Address /* newBaseAdr */, Address &newAdr, 
+                                  instruction oldInstructions[], 
+                                  instruction newInstructions[], 
+                                  int &oldOffset, int &newOffset,  
+                                  int /* newDisp */, unsigned &codeOffset,
+                                  unsigned char* /* code */) {
 
 
-}
+    // copy the instruction we are inserting nops after into NEW_CODE 
+    function->copyInstruction(newInstructions[newOffset], 
+                              oldInstructions[oldOffset], codeOffset);
+    newOffset++;
 
-// constructor for NOPExpansion....
-NOPExpansion::NOPExpansion(pd_Function *f, int 
-			   beginning_offset, int ending_offset,
-                           Address nBaseAddress, int size) :
-    SparcLocalAlteration(f, beginning_offset, ending_offset, 
-			    nBaseAddress)
-{
-    // Size should correspond to integer # of nop instructions.... 
-    assert((size % sizeof(instruction)) == 0);
-    sizeNopRegion = size;
-
-    // ending_offset should be same as beginning_offset (at least for nw)....
-    // indicating that 0 origional instructions are overwritten by the nops....
-    assert(beginningOffset == endingOffset);
-}
-
-// update branches :
-//  Add extra offset to FunctionExpansionRecord to modify all branches
-//  around.  Currently only setup so that footprint has size of 0
-//  (in ORIGIONAL CODE) so branches into shouldn't happen, eh???? 
-bool NOPExpansion::UpdateExpansions(FunctionExpansionRecord *fer) {
-    assert(beginningOffset == endingOffset);
-    fer->AddExpansion(beginningOffset, sizeNopRegion);
-    return true;
-}
-
-// Update location of inst points in function.  In case of NOPExpansion, 
-//  changes to inst points same as changes to branch targets....
-bool NOPExpansion::UpdateInstPoints(FunctionExpansionRecord *ips) {
-    return UpdateExpansions(ips);
-}
-
-// rewrite footprint - here simple, just add nops....
-bool NOPExpansion::RewriteFootprint(Address &adr, Address newBaseAdr, \
-        Address &newAdr, instruction oldInstr[], instruction newInstr[]) {
-    int i;
-
-    // silence warnings about param being unused....
-    assert(oldInstr);
-
-    // make sure implied offset from beginning of newInstr array is int....
-    assert(((newAdr - newBaseAdr) % sizeof(instruction)) == 0);
-    int new_offset = (newAdr - newBaseAdr)/sizeof(instruction);
-    
     // make sure # of new nops is int....
     assert((sizeNopRegion % sizeof(instruction)) == 0);
     int num_nops = sizeNopRegion/sizeof(instruction);
 
     // write that many nops to newInstr....
-    for (i=0;i<num_nops;i++) {
-        generateNOOP(&newInstr[new_offset + i]);
+    for (int i=0 ; i<num_nops ; i++) {
+        generateNOOP(&newInstructions[newOffset + i]);
+        newOffset++;
+        codeOffset++; 
     }
 
-    // adr is updated by difference between beginning and ending offset
-    //  (the # of bytes of origional code overwritten by nops)....
-    adr += (endingOffset - beginningOffset); 
-    // newAdr is updated by Size....
-    newAdr += sizeNopRegion;
+    // Add size of instruction that was copied originally to oldAdr
+    oldAdr += sizeof(instruction);
+    oldOffset++;
+
+    // Add size of instructions that were inserted in newInstructions[]
+    newAdr += sizeof(instruction) + sizeNopRegion;
 
     return true;
 }
 
-TailCallOptimization::TailCallOptimization(pd_Function *f, 
-        int beginning_offset, int ending_offset, Address nBaseAddress) :
-        SparcLocalAlteration(f, beginning_offset, ending_offset, nBaseAddress)
-{
+// Size (in bytes) of a nop instruction
+int InsertNops::sizeOfNop() { 
+    return 4; 
+}
 
+// the number of machine instructions added during the rewriting of the 
+// function
+int InsertNops::numInstrAddedAfter() { 
+    assert(sizeNopRegion % sizeof(instruction) == 0);
+    return sizeNopRegion/sizeof(instruction);
+}
+
+TailCallOptimization::TailCallOptimization(pd_Function *f, 
+        int offsetBegins, int offsetEnds) :
+        LocalAlteration(f, offsetBegins)
+{
+  ending_offset = offsetEnds;
 }
 
 //
 //  (SPARC-SPECIFIC) PEEPHOLE ALTERATIONS FOR UNWINDING TAIL-CALL OPTIMIZATION
 //
 JmpNopTailCallOptimization::JmpNopTailCallOptimization(pd_Function *f, 
-        int beginning_offset, int ending_offset, Address nBaseAddress) :
-  TailCallOptimization(f, beginning_offset, ending_offset, nBaseAddress) {
+        int offsetBegins, int offsetEnds) :
+  TailCallOptimization(f, offsetBegins, offsetEnds) {
 
 }
 
@@ -167,21 +142,29 @@ JmpNopTailCallOptimization::JmpNopTailCallOptimization(pd_Function *f,
 //                                    mov %i5 %o5
 //                                    ret
 //                                    restore
-bool JmpNopTailCallOptimization::RewriteFootprint(Address &adr, Address newBaseAdr, 
-     Address &newAdr, instruction oldInstr[], instruction newInstr[]) {
-
-    int i, oldOffset;
+bool JmpNopTailCallOptimization::RewriteFootprint(
+				      Address /* oldBaseAdr */, 
+                                      Address &oldAdr, 
+                                      Address newBaseAdr, Address &newAdr, 
+                                      instruction oldInstr[], 
+                                      instruction newInstr[], 
+                                      int &oldOffset, int &newOffset, 
+                                      int /* newDisp */, 
+                                      unsigned& /* codeOffset */,
+                                      unsigned char* /* code */) 
+{
+    int i, originalOffset;
 
     // silence warnings about param being unused....
     assert(oldInstr);
 
     // make sure implied offset from beginning of newInstr array is int....
-    assert(  (  (newAdr - newBaseAdr) % sizeof(instruction)  ) == 0);
+    assert(((newAdr - newBaseAdr) % sizeof(instruction)) == 0);
     i = (newAdr - newBaseAdr)/sizeof(instruction);
 
     // figure out offset of original instruction in oldInstr....
-    assert(beginningOffset % sizeof(instruction) == 0);
-    oldOffset = beginningOffset / sizeof(instruction);
+    assert(beginning_offset % sizeof(instruction) == 0);
+    originalOffset = beginning_offset / sizeof(instruction);
 
     // generate save instruction to free up new stack frame for
     //  inserted call....
@@ -192,7 +175,7 @@ bool JmpNopTailCallOptimization::RewriteFootprint(Address &adr, Address newBaseA
   
     // Generate : mv %reg %g1.
     // On Sparc, mv %1 %2 is synthetic inst. implemented as orI %1, 0, %2....
-    genImmInsn(&newInstr[i++], ORop3, oldInstr[oldOffset].rest.rs1, 0, 1);
+    genImmInsn(&newInstr[i++], ORop3, oldInstr[originalOffset].rest.rs1, 0, 1);
 
     // generate mov i0 ... i5 ==> O0 ... 05 instructions....
     // as noted above, mv inst %1 %2 is synthetic inst. implemented as
@@ -234,11 +217,14 @@ bool JmpNopTailCallOptimization::RewriteFootprint(Address &adr, Address newBaseA
     //
     // And modify inout params....
     //
-    // adr incremented to end of footpirnt....
-    adr += (endingOffset - beginningOffset);
+    // oldAdr incremented to end of footpirnt....    
+    assert((ending_offset - beginning_offset) == 2 * sizeof(instruction));
+    oldAdr += 2 * sizeof(instruction);
+    oldOffset += 2;
+
     // newAdr incremented by # of instructions written (curr 18)....
     newAdr += 18 * sizeof(instruction);
-
+    newOffset += 18;
     return true;
 }
 
@@ -251,14 +237,14 @@ bool JmpNopTailCallOptimization::RewriteFootprint(Address &adr, Address newBaseA
 //   ==> Assume that never happens in code below....
 //  A jump around the footprint should get an extra offset of 16 (change in size)....
 bool JmpNopTailCallOptimization::UpdateExpansions(FunctionExpansionRecord *fer) {
-    // beginningOffset should fall on instruction word boundary.... 
-    assert((beginningOffset % sizeof(instruction)) == 0);
+    // beginning_offset should fall on instruction word boundary.... 
+    assert((beginning_offset % sizeof(instruction)) == 0);
     //  A jump to (before) the jmp should go to before the new save (0 extra offset)....
     //  A jump to (before) the nop should go to after the new ret, retsore (17 extra offset)....
     //   ==> code currently assumes this never happens (why branch to a nop)....
     // Jumps that go around the region get an extra offset of the size change 
     //  (old: 2 instructions, new : 18 instructions)....
-    fer->AddExpansion(beginningOffset + sizeof(instruction), 16 * sizeof(instruction));
+    fer->AddExpansion(beginning_offset + sizeof(instruction), 16 * sizeof(instruction));
     return true;
 }
 
@@ -269,25 +255,35 @@ bool JmpNopTailCallOptimization::UpdateExpansions(FunctionExpansionRecord *fer) 
 bool JmpNopTailCallOptimization::UpdateInstPoints(FunctionExpansionRecord *ips) {
     // An inst point previously located at the (old) jmp should be moved to the 
     //  (new) call.
-    ips->AddExpansion(beginningOffset, 8 * sizeof(instruction));
+    ips->AddExpansion(beginning_offset, 8 * sizeof(instruction));
     // An inst point previously located at the (old) nop should be moved to thw
     //  (new ret)
-    ips->AddExpansion(beginningOffset + sizeof(instruction), 7 * sizeof(instruction));
+    ips->AddExpansion(beginning_offset + sizeof(instruction), 7 * sizeof(instruction));
     // One more insn of offset is added to make the total # of bytes of offset agree
     //  with the size change....
-    ips->AddExpansion(beginningOffset + 2 * sizeof(instruction), sizeof(instruction));
+    ips->AddExpansion(beginning_offset + 2 * sizeof(instruction), sizeof(instruction));
     return true;
 } 
+
+int JmpNopTailCallOptimization::getShift() {
+    return 16 * sizeof(instruction);
+}
+
+// the number of machine instructions added during the rewriting of the
+// function
+int JmpNopTailCallOptimization::numInstrAddedAfter() { 
+    return (getShift() % sizeof(instruction));
+}
 
 int fubar() {
     return 1;
 }
     
 // constructor for CallRestoreTailCallOptimization....
-CallRestoreTailCallOptimization::CallRestoreTailCallOptimization(pd_Function *f, 
-        int beginning_offset, int ending_offset, Address nBaseAddress, 
-	instruction callInsn) :
-  TailCallOptimization(f, beginning_offset, ending_offset, nBaseAddress)
+CallRestoreTailCallOptimization::CallRestoreTailCallOptimization(
+                                       pd_Function *f, int offsetBegins, 
+                                       int offsetEnds, instruction callInsn) :
+  TailCallOptimization(f, offsetBegins, offsetEnds)
 {
     SetCallType(callInsn);
 }
@@ -332,14 +328,22 @@ CallRestoreTailCallOptimization::CallRestoreTailCallOptimization(pd_Function *f,
 //                                    mov %i5 %o5
 //                                    ret
 //                                    restore
-bool CallRestoreTailCallOptimization::RewriteFootprint(Address &adr, 
-        Address newBaseAdr, Address &newAdr, instruction oldInstr[], 
-        instruction newInstr[]) {
+bool CallRestoreTailCallOptimization::RewriteFootprint(
+                                        Address /* oldBaseAdr */, 
+                                        Address &oldAdr, 
+                                        Address newBaseAdr, Address &newAdr, 
+                                        instruction oldInstr[], 
+                                        instruction newInstr[], 
+                                        int &oldOffset, int &newOffset, 
+				        int /* newDisp */,
+                                        unsigned& /* codeOffset */, 
+                                        unsigned char* /* code */)
 
+{
     assert(jmpl_call || true_call);
 
-    int oldOffset = beginningOffset/sizeof(instruction);
-    int newOffset = (newAdr - newBaseAdr)/sizeof(instruction);
+    int originalOffset = beginning_offset/sizeof(instruction);
+    int offset = (newAdr - newBaseAdr)/sizeof(instruction);
 
     // if the call instruction was a call to a register, stick in extra
     //  initial mov as above....
@@ -347,7 +351,7 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(Address &adr,
         // added extra mv *, g1
         // translation : mv inst %1 %2 is synthetic inst. implemented as
         //  orI %1, 0, %2  
-        genImmInsn(&newInstr[newOffset++], ORop3, oldInstr[oldOffset].rest.rs1, 0, 1);
+        genImmInsn(&newInstr[offset++], ORop3, oldInstr[originalOffset].rest.rs1, 0, 1);
     }
 
     //
@@ -376,7 +380,7 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(Address &adr,
     //  l registers & i registers ->  ???? W
     //   Would seem to discard the value - return false indicating don't
     //   know how to handle this case....
-    Register restore_add_side_effect_destination = oldInstr[oldOffset + 1].resti.rd;
+    Register restore_add_side_effect_destination = oldInstr[originalOffset + 1].resti.rd;
     if (restore_add_side_effect_destination >= REG_O(0) && 
 	  restore_add_side_effect_destination <= REG_O(7)) {
         restore_add_side_effect_destination = REG_I(0) + 
@@ -402,14 +406,14 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(Address &adr,
     //  value or 2 registers as source operands - conceptually, either case
     //  just make an ADD insn with the same source operands as the restore
     //  and a destination which is "adjusted" as described above....
-    if (oldInstr[oldOffset + 1].resti.i == 1) {
-        genImmInsn(&newInstr[newOffset++], ADDop3, oldInstr[oldOffset + 1].resti.rs1,
-		   oldInstr[oldOffset + 1].resti.simm13, 
+    if (oldInstr[originalOffset + 1].resti.i == 1) {
+        genImmInsn(&newInstr[offset++], ADDop3, oldInstr[originalOffset + 1].resti.rs1,
+		   oldInstr[originalOffset + 1].resti.simm13, 
 		   restore_add_side_effect_destination);
     } else {
-        genSimpleInsn(&newInstr[newOffset++], ADDop3, 
-		    oldInstr[oldOffset + 1].rest.rs1,
-		    oldInstr[oldOffset + 1].rest.rs2,
+        genSimpleInsn(&newInstr[offset++], ADDop3, 
+		    oldInstr[originalOffset + 1].rest.rs1,
+		    oldInstr[originalOffset + 1].rest.rs2,
 		    restore_add_side_effect_destination);
     }
 
@@ -417,19 +421,20 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(Address &adr,
     // generate mov i0 ... i5 ==> O0 ... 05 instructions....
     // as noted above, mv inst %1 %2 is synthetic inst. implemented as
     //  orI %1, 0, %2  
-    genImmInsn(&newInstr[newOffset++], ORop3, REG_I(0), 0, REG_O(0));
-    genImmInsn(&newInstr[newOffset++], ORop3, REG_I(1), 0, REG_O(1));
-    genImmInsn(&newInstr[newOffset++], ORop3, REG_I(2), 0, REG_O(2));
-    genImmInsn(&newInstr[newOffset++], ORop3, REG_I(3), 0, REG_O(3));
-    genImmInsn(&newInstr[newOffset++], ORop3, REG_I(4), 0, REG_O(4));
-    genImmInsn(&newInstr[newOffset++], ORop3, REG_I(5), 0, REG_O(5));
+    genImmInsn(&newInstr[offset++], ORop3, REG_I(0), 0, REG_O(0));
+    genImmInsn(&newInstr[offset++], ORop3, REG_I(1), 0, REG_O(1));
+    genImmInsn(&newInstr[offset++], ORop3, REG_I(2), 0, REG_O(2));
+    genImmInsn(&newInstr[offset++], ORop3, REG_I(3), 0, REG_O(3));
+    genImmInsn(&newInstr[offset++], ORop3, REG_I(4), 0, REG_O(4));
+    genImmInsn(&newInstr[offset++], ORop3, REG_I(5), 0, REG_O(5));
+
 
     if (jmpl_call) { 
         // if original jmp/call instruction was call to a register, that
         //  register should have been pushed into %g0, so generate a call
         //  to %g0.
         //  generate <call %g1>
-        generateJmplInsn(&newInstr[newOffset++], 1, 0, 15);
+        generateJmplInsn(&newInstr[offset++], 1, 0, 15);
       
         // If were dealing with inst points in this code, would stick inst point 
 	//  here on call site....
@@ -437,7 +442,8 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(Address &adr,
         // in the case of a jmpl call, 18 instructions are generated
         // and used to replace origional 2 (call, restore), resulting
         // in a new addition of 16 instructions....
-        newAdr += 18 * sizeof(instruction); 
+        newAdr += 18 * sizeof(instruction);
+        newOffset += 18; 
     } else {
         // if the original call was a call to an ADDRESS, then want
         //  to copy the original call.  There is, however, a potential
@@ -447,38 +453,40 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(Address &adr,
         //  As such, want to change the call target to account for 
         //  the difference in PCs.
       
-        newInstr[newOffset].raw = oldInstr[oldOffset].raw;
-        relocateInstruction(&newInstr[newOffset++],
-			    adr,
+        newInstr[offset].raw = oldInstr[originalOffset].raw;
+        relocateInstruction(&newInstr[offset++],
+			    oldAdr,
 			    newAdr + 7 * sizeof(instruction),
 			    NULL);
             
         // in the case of a "true" call, 17 instructions are generated
         //  + replace origional 2, resulting in addition of 15 instrs.
         newAdr += 17 * sizeof(instruction);  
-    }
+        newOffset += 17; 
+   }
  
     // generate NOP following call instruction (for delay slot)
     //  ....
-    generateNOOP(&newInstr[newOffset++]);
+    generateNOOP(&newInstr[offset++]);
     
     // generate mov instructions moving %o0 ... %o5 ==> 
     //     %i0 ... %i5.  
-    genImmInsn(&newInstr[newOffset++], ORop3, REG_O(0), 0, REG_I(0));
-    genImmInsn(&newInstr[newOffset++], ORop3, REG_O(1), 0, REG_I(1));
-    genImmInsn(&newInstr[newOffset++], ORop3, REG_O(2), 0, REG_I(2));
-    genImmInsn(&newInstr[newOffset++], ORop3, REG_O(3), 0, REG_I(3));
-    genImmInsn(&newInstr[newOffset++], ORop3, REG_O(4), 0, REG_I(4));
-    genImmInsn(&newInstr[newOffset++], ORop3, REG_O(5), 0, REG_I(5));
+    genImmInsn(&newInstr[offset++], ORop3, REG_O(0), 0, REG_I(0));
+    genImmInsn(&newInstr[offset++], ORop3, REG_O(1), 0, REG_I(1));
+    genImmInsn(&newInstr[offset++], ORop3, REG_O(2), 0, REG_I(2));
+    genImmInsn(&newInstr[offset++], ORop3, REG_O(3), 0, REG_I(3));
+    genImmInsn(&newInstr[offset++], ORop3, REG_O(4), 0, REG_I(4));
+    genImmInsn(&newInstr[offset++], ORop3, REG_O(5), 0, REG_I(5));
     
     // generate ret instruction
-    generateJmplInsn(&newInstr[newOffset++], REG_I(7), 8 ,0);
+    generateJmplInsn(&newInstr[offset++], REG_I(7), 8 ,0);
     
     // generate restore operation....
-    genSimpleInsn(&newInstr[newOffset++], RESTOREop3, 0, 0, 0);
+    genSimpleInsn(&newInstr[offset++], RESTOREop3, 0, 0, 0);
 
     // alteration covers 2 instructions in original code....
-    adr += 2 * sizeof(instruction);
+    oldAdr += 2 * sizeof(instruction);
+    oldOffset += 2;
 
     return true;
 }
@@ -498,11 +506,11 @@ bool CallRestoreTailCallOptimization::UpdateExpansions(FunctionExpansionRecord *
     assert(jmpl_call || true_call);
     if (true_call) {
         // call ADDR results in 15 extra instructions....
-        fer->AddExpansion(beginningOffset, 15 * sizeof(instruction));
+        fer->AddExpansion(beginning_offset, 15 * sizeof(instruction));
     }
     else if (jmpl_call) {
         // call %reg results in 16 extra instructions....
-        fer->AddExpansion(beginningOffset, 16 * sizeof(instruction));
+        fer->AddExpansion(beginning_offset, 16 * sizeof(instruction));
     }
     return true;
 }
@@ -515,24 +523,45 @@ bool CallRestoreTailCallOptimization::UpdateExpansions(FunctionExpansionRecord *
 bool CallRestoreTailCallOptimization::UpdateInstPoints(FunctionExpansionRecord *ips) {
     assert(jmpl_call || true_call);
     if (true_call) {
-        ips->AddExpansion(beginningOffset, 7 * sizeof(instruction));
-	ips->AddExpansion(beginningOffset + sizeof(instruction), 
+        ips->AddExpansion(beginning_offset, 7 * sizeof(instruction));
+	ips->AddExpansion(beginning_offset + sizeof(instruction), 
 			  7 * sizeof(instruction));
-	ips->AddExpansion(beginningOffset + 2 * sizeof(instruction), sizeof(instruction));
+	ips->AddExpansion(beginning_offset + 2 * sizeof(instruction), sizeof(instruction));
     } else if (jmpl_call) {
-        ips->AddExpansion(beginningOffset, 8 * sizeof(instruction));
-        ips->AddExpansion(beginningOffset + sizeof(instruction), 7 * sizeof(instruction));
-	ips->AddExpansion(beginningOffset + 2 * sizeof(instruction), sizeof(instruction));
+        ips->AddExpansion(beginning_offset, 8 * sizeof(instruction));
+        ips->AddExpansion(beginning_offset + sizeof(instruction), 7 * sizeof(instruction));
+	ips->AddExpansion(beginning_offset + 2 * sizeof(instruction), sizeof(instruction));
     } 
     return true;
+}
+
+int CallRestoreTailCallOptimization::getShift() {
+    assert(jmpl_call || true_call);
+    if (true_call) {
+        // call ADDR results in 15 extra instructions....
+        return 15 * sizeof(instruction);
+    } else {
+        if (jmpl_call) {
+          // call %reg results in 16 extra instructions....
+          return 16 * sizeof(instruction);
+	}
+    }
+ 
+    // Should never get here
+    assert(false);
+}
+
+// the number of machine instructions added during the rewriting of the
+// function
+int CallRestoreTailCallOptimization::numInstrAddedAfter() { 
+    return (getShift() % sizeof(instruction));
 }
 
 //
 //  CODE FOR Set07 CLASS....
 //
-SetO7::SetO7(pd_Function *f, int beginning_offset, int ending_offset, 
-	     Address nBaseAddress) :
-    SparcLocalAlteration(f, beginning_offset, ending_offset, nBaseAddress)
+SetO7::SetO7(pd_Function *f, int offset) :
+    LocalAlteration(f, offset)
 {
     //  NOTHING EXTRA BEYOND SPARCLocalAlteration CONSTR....
 }
@@ -547,7 +576,7 @@ SetO7::SetO7(pd_Function *f, int beginning_offset, int ending_offset,
 //  by 1 slot....
 bool SetO7::UpdateExpansions(FunctionExpansionRecord *fer) {
     assert(fer);
-    fer->AddExpansion(beginningOffset + sizeof(instruction), sizeof(instruction));
+    fer->AddExpansion(beginning_offset + sizeof(instruction), sizeof(instruction));
     return true;
 }
 
@@ -555,7 +584,7 @@ bool SetO7::UpdateExpansions(FunctionExpansionRecord *fer) {
 //  located after call get bumped up by 1 instruction....
 bool SetO7::UpdateInstPoints(FunctionExpansionRecord *ips) {
     assert(ips);
-    ips->AddExpansion(beginningOffset + sizeof(instruction), sizeof(instruction));
+    ips->AddExpansion(beginning_offset + sizeof(instruction), sizeof(instruction));
     return true;
 }
 
@@ -566,28 +595,50 @@ bool SetO7::UpdateInstPoints(FunctionExpansionRecord *ips) {
 //  generates sequence like:
 //    sethi %07, high 22 bits of adr (also zeros low order 10 bits)
 //    or %07, low order 10 bits of adr, %07
-bool SetO7::RewriteFootprint(Address &adr, Address newBaseAdr, \
-			     Address &newAdr, instruction oldInstr[], 
-			     instruction newInstr[]) {
+bool SetO7::RewriteFootprint(Address /* oldBaseAdr */, 
+                             Address &oldAdr, 
+                             Address newBaseAdr, Address &newAdr, 
+                             instruction oldInstr[], 
+                             instruction newInstr[], 
+                             int &oldOffset, int &newOffset, 
+                             int /* newDisp */,
+                             unsigned& /* codeOffset */,
+                             unsigned char* /* code */)
+{
     assert(oldInstr);
 
     // offset into newInstr 
-    int newOffset = (newAdr - newBaseAdr)/sizeof(instruction);
+    int offset = (newAdr - newBaseAdr)/sizeof(instruction);
     // write 
     //  sethi %07, HIGH_22_BITS(adr) 
     // into newInstr array....
-    generateSetHi(&newInstr[newOffset], adr, REG_O(7));
+    generateSetHi(&newInstr[offset], oldAdr, REG_O(7));
     // write 
     //  or, %07, low order 10 bits of adr, %07
-    genImmInsn(&newInstr[newOffset+1], ORop3, REG_O(7), LOW10(adr), REG_O(7));
+    genImmInsn(&newInstr[offset+1], ORop3, REG_O(7), LOW10(oldAdr), REG_O(7));
  
     //  alteration covers original call instruction....
-    adr += sizeof(instruction);
+    oldAdr += sizeof(instruction);
+    oldOffset += 1;
 
     //  and writes 2 new instructions....
     newAdr += 2 * sizeof(instruction);
+    newOffset += 2;
+
     return true;
 }
+
+// the number of machine instructions added during the rewriting of the
+// function
+int SetO7::numInstrAddedAfter() { 
+    return (getShift() % sizeof(instruction));
+}
+
+
+
+
+
+
 
 
 

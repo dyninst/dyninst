@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.h,v 1.4 2000/07/28 17:20:41 pcroth Exp $
+// $Id: LocalAlteration-Sparc.h,v 1.5 2001/02/20 21:40:50 gurari Exp $
 
 #ifndef __LocalAlteration_SPARC_H__
 #define __LocalAlteration_SPARC_H__
@@ -53,33 +53,20 @@
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"
 
-// Subclass of LocalAlteration which contains SPARC specific 
-//  information....
-class SparcLocalAlteration : public LocalAlteration {
- protected:
-    // base address at which module is loaded.  0 for statically linked
-    //  code, probably non-zero for shared library.
-    Address baseAddress;
-
- public:
-    // constructor for SPARC Peephole Alteration.
-    //  extra stuff : nBaseAddress (sets baseAddress data member)....
-    SparcLocalAlteration(pd_Function *f, int beginning_offset, \
-	    int ending_offset, Address nBaseAddress);
-};
-
-
 //
 // TAIL-CALL OPTIMIZATION BASE PEEPHOLE ALTERATION (abstract)....
 //
 // Peephole alteration to unwind tail-call optimization.
 // 
-class TailCallOptimization : public SparcLocalAlteration {
+class TailCallOptimization : public LocalAlteration {
   public:
 
-    // Constructor - same as SparcLocalAlteration????
-    TailCallOptimization(pd_Function *f, int beginning_offset, \
-	int ending_offset, Address nBaseAddress);
+    // Constructor - same as LocalAlteration????
+    TailCallOptimization(pd_Function *f, int offsetBegins, \
+	int offsetEnds);
+
+  protected:
+    int ending_offset;
 };
 
 //
@@ -100,13 +87,22 @@ class CallRestoreTailCallOptimization : public TailCallOptimization {
      void SetCallType(instruction callInsn);
  public:
      CallRestoreTailCallOptimization(pd_Function *f, int beginning_offset, \
-	int ending_offset, Address nBaseAddress, instruction callInsn);
+	int ending_offset, instruction callInsn);
      // update branch targets in/around footprint....
      virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
      // update inst point locations in/around footprint....
      virtual bool UpdateInstPoints(FunctionExpansionRecord *ips);
-     virtual bool RewriteFootprint(Address &adr, Address newBaseAdr, \
-	Address &newAdr, instruction oldInstr[], instruction newInstr[]);
+     virtual bool RewriteFootprint(Address oldBaseAdr, Address &oldAdr, 
+                                   Address newBaseAdr, Address &newAdr,
+                                   instruction oldInstr[], 
+                                   instruction newInstr[], 
+                                   int &oldOffset, int &newOffset,
+                                   int newDisp,
+                                   unsigned &codeOffset, 
+                                   unsigned char *code);
+     virtual int getShift();
+     virtual int numInstrAddedAfter();
+     virtual int getOffset() { return beginning_offset; }
 };
 
 // used to unwind tail-call optimizations which match the pattern:
@@ -116,48 +112,25 @@ class CallRestoreTailCallOptimization : public TailCallOptimization {
 class JmpNopTailCallOptimization : public TailCallOptimization {
  public:
      JmpNopTailCallOptimization(pd_Function *f, int beginning_offset, \
-	int ending_offset, Address nBaseAddress);
+	int ending_offset);
      // update branch targets and inst point locations in/around footprint....
      virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
      // update inst point locations in/around footprint....
      virtual bool UpdateInstPoints(FunctionExpansionRecord *ips);
-     virtual bool RewriteFootprint(Address &adr, Address newBaseAdr, \
-	Address &newAdr, instruction oldInstr[], instruction newInstr[]);
+     virtual bool RewriteFootprint(Address oldBaseAdr, Address &oldAdr, 
+                                   Address newBaseAdr, Address &newAdr,
+                                   instruction oldInstr[], 
+                                   instruction newInstr[], 
+                                   int &oldOffset, int &newOffset,
+                                   int newDisp,
+                                   unsigned &codeOffset, 
+                                   unsigned char *code);
+     virtual int getShift();
+     virtual int numInstrAddedAfter();
+     virtual int getOffset() { return beginning_offset; }
 };
 
-
-//
-// ..............NOP EXPANSIONS............
-//
-
-// Stick a bunch of no-ops into code to expand it so that it can be safely
-//  instrumented....
-// Nops are stuck in BEFORE the instruction specified by beginning_offset....
-// extra fields (beyond SparcLocalAlteration)....
-//  size (# BYTES of nop instructions which should be added)
-//
-// Notes:
-//  beginning_offset should be set = ending_offset.
-//
-class NOPExpansion : public SparcLocalAlteration {
- protected:
-    // size (in bytes) of nop region to be added (should translate to integer #
-    //  of instructions)....
-    int sizeNopRegion;
- public:
-    // constructor same as SparcLocalAlteration except for extra field 
-    //  specifying how many BYTES of nop....
-    // NOTE : as specified above, if the instruction at off
-    NOPExpansion(pd_Function *f, int beginning_offset, int ending_offset, \
-	Address nBaseAddress, int size);
-
-    virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
-    virtual bool UpdateInstPoints(FunctionExpansionRecord *ips);
-    virtual bool RewriteFootprint(Address &adr, Address newBaseAdr, \
-	Address &newAdr, instruction oldInstr[], instruction newInstr[]);
-};
-
-//class SecondInsnCall : public SparcLocalAlteration {
+//class SecondInsnCall : public LocalAlteration {
 //    
 //};
 
@@ -183,15 +156,25 @@ class NOPExpansion : public SparcLocalAlteration {
 //    setlo %07
 //    sethi %07
 //    
-class SetO7 : public SparcLocalAlteration {
+class SetO7 : public LocalAlteration {
  public:
-    // Set07 constructor - same as SparcLocalAlteration....
-    SetO7(pd_Function *f, int beginning_offset, \
-	    int ending_offset, Address nBaseAddress);
+    // Set07 constructor - same as LocalAlteration....
+    SetO7(pd_Function *f, int offset);
     virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
     virtual bool UpdateInstPoints(FunctionExpansionRecord *ips);
-    virtual bool RewriteFootprint(Address &adr, Address newBaseAdr, \
-	Address &newAdr, instruction oldInstr[], instruction newInstr[]);
+    virtual bool RewriteFootprint(Address oldBaseAdr, Address &oldAdr, 
+                                   Address newBaseAdr, Address &newAdr,
+                                   instruction oldInstr[], 
+                                   instruction newInstr[], 
+                                   int &oldOffset, int &newOffset,
+                                   int newDisp,
+                                   unsigned &codeOffset, 
+                                   unsigned char *code);
+
+    
+    virtual int getOffset() { return beginning_offset; }
+    virtual int getShift() { return sizeof(instruction); }
+    virtual int numInstrAddedAfter();
 };
 
 
