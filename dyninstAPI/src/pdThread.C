@@ -83,6 +83,7 @@ rawTime64 pdThread::getInferiorVtime(virtualTimer *vTimer,
 
 bool pdThread::updateLWP()
 {
+  // ST case
   if ((!proc->multithread_ready()) || 
       (pos == (unsigned) -1)) {
     lwp = proc->getDefaultLWP();
@@ -93,6 +94,7 @@ bool pdThread::updateLWP()
   if (lwp) lwp_id = lwp->get_lwp();
   else lwp_id = 0;
   int vt_lwp = proc->shmMetaData->getVirtualTimer(pos).lwp;
+  fprintf(stderr, "lwp is %d, vt is %d\n", lwp_id, vt_lwp);
   if (vt_lwp < 0) {
     lwp = NULL; // Not currently scheduled
     return false;
@@ -108,11 +110,34 @@ bool pdThread::updateLWP()
 
 #else
 
+// No shared data, so we can't use the above since the reference
+// won't link
 bool pdThread::updateLWP()
 {
   return true;
 }
 #endif
+
+#if !defined(MT_THREAD)
+// MT version lives in the <os>MT.C files, and can do things like
+// get info for threads not currently scheduled on an LWP
+Frame pdThread::getActiveFrame()
+{
+  updateLWP();
+  return lwp->getActiveFrame();
+}
+#endif
+
+// stackWalk: return parameter.
+bool pdThread::walkStack(vector<Frame> &stackWalk)
+{
+  // We cheat (a bit): this method is here for transparency, 
+  // but the process class does the work in the walkStackFromFrame
+  // method. We get the active frame and hand off.
+  Frame active = getActiveFrame();
+  
+  return proc->walkStackFromFrame(active, stackWalk);
+}
   
 dyn_lwp *pdThread::get_lwp()
 {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdThread.h,v 1.18 2002/10/08 22:50:19 bernat Exp $
+// $Id: pdThread.h,v 1.19 2002/10/14 21:02:13 bernat Exp $
 
 #ifndef _PDTHREAD_H_
 #define _PDTHREAD_H_
@@ -96,8 +96,15 @@ class pdThread {
   }
   ~pdThread() {
   }
-  
+
+  // Get the active frame (PC, SP, FP) of the thread
+  // calls dyn_lwp::getActiveFrame if necessary
+  // Note: OS specific, defined in <OS>MT.C files
   Frame getActiveFrame();
+
+  // Walk the stack of the thread
+  bool walkStack(vector<Frame> &stackWalk);
+
   bool updateLWP();
   
   unsigned       get_tid()           const { return(tid); }
