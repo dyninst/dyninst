@@ -41,6 +41,9 @@
 
 /*
  * $Log: init-sunos.C,v $
+ * Revision 1.20  1997/07/16 19:13:55  naim
+ * Fixing fork on sunos - naim
+ *
  * Revision 1.19  1997/07/14 20:43:23  naim
  * Fixing problem with fork on x86 - naim
  *
@@ -138,7 +141,7 @@ bool initOS() {
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
   if(process::pdFlavor != string("cow"))
   {
-#if defined(i386_unknown_solaris2_5)
+#if defined(i386_unknown_solaris2_5) || defined(sparc_sun_sunos4_1_3)
   	initialRequests += new instMapping("_fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
 #else

@@ -41,6 +41,9 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.32  1997/07/16 19:13:48  naim
+ * Fixing fork on sunos - naim
+ *
  * Revision 1.31  1997/07/09 19:30:32  tamches
  * isLeafFunc() --> hasNoStackFrame()
  *
@@ -469,7 +472,11 @@ bool process::continueProc_() {
  * ptraceKludge::continueProcess.
  */
 #ifndef PTRACE_ATTACH_DETACH
-  ret = P_ptrace(PTRACE_CONT, pid, (char*)1, 0, (char*)NULL);
+  if (!ptraceKludge::deliverPtrace(this, PTRACE_CONT, (char*)1, SIGCONT, NULL))
+    ret = -1;
+  else
+    ret = 0;
+  //ret = P_ptrace(PTRACE_CONT, pid, (char*)1, 0, (char*)NULL);
 #else
   ret = P_ptrace(PTRACE_DETACH, pid, (char*)1, SIGCONT, (char*)NULL);
 #endif
