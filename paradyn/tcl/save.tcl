@@ -1,9 +1,9 @@
-# $Id: save.tcl,v 1.3 1998/03/03 23:09:49 wylie Exp $
+# $Id: save.tcl,v 1.4 1999/05/19 07:49:41 karavan Exp $
 # this file contains the routines for the "SAVE" button 
 
 proc pdSave {} {
     global saveGlobalData savePhaseData saveResources saveDirectory \
-	    saveMessage saveWindow
+	    saveMessage saveWindow saveGlobalSearch savePhaseSearch
 
     # clear previous invalid entry message, if any
     set saveMessage "Enter name of Directory for Data/Resource Files"
@@ -33,12 +33,19 @@ proc pdSave {} {
     if {$saveResources == 1} {
 	    paradyn save resources all $saveDirectory
     }
+    if {$saveGlobalSearch == 1} {
+	paradyn save shg global $saveDirectory
+    }
+    if {$savePhaseSearch == 1} {
+	paradyn save shg phase $saveDirectory
+    }
+
     destroy $saveWindow
 }
 
 proc drawSaveMenu {} {
     global saveGlobalData savePhaseData saveResources saveDirectory \
-	    saveMessage saveWindow
+	    saveMessage saveWindow saveGlobalSearch savePhaseSearch
     set saveWindow .pdsw
     toplevel $saveWindow
     wm title $saveWindow "Paradyn Save"
@@ -60,14 +67,28 @@ proc drawSaveMenu {} {
 	    -background purple
     pack  $wh.la -side top -fill both -expand true
 
+    frame $wh.data 
+    checkbutton $wh.data.gd -text "Global Data" -variable saveGlobalData 
+    $wh.data.gd select
+    checkbutton $wh.data.pd -text "Phase Data" -variable savePhaseData
+    pack $wh.data.gd $wh.data.pd -side left -padx 25 -pady 5 -anchor w
+    pack $wh.data -side top
 
-    checkbutton $wh.gd -text "Global Data" -variable saveGlobalData 
-    $wh.gd select
-    checkbutton $wh.pd -text "Phase Data" -variable savePhaseData
+    frame $wh.other
+    checkbutton $wh.other.re -text "Where Axis" -variable saveResources
+    $wh.other.re select
+    pack $wh.other.re -side left
+    pack $wh.other -side top 
 
-    checkbutton $wh.re -text "Where Axes" -variable saveResources
-    $wh.re select
-    pack $wh.gd $wh.pd $wh.re -side left -padx 25 -pady 5 -anchor w
+    frame $wh.perf
+    label $wh.perf.la -text "Performance Consultant: "
+    checkbutton $wh.perf.pc -text "Global Search" \
+            -variable saveGlobalSearch
+    checkbutton $wh.perf.pcph -text "Phase Search(es)" \
+            -variable savePhaseSearch
+    pack $wh.perf.la $wh.perf.pc $wh.perf.pcph -side left \
+            -padx 25 -pady 5 -anchor w
+    pack $wh.perf -side top -fill both
 
     #directory?
 

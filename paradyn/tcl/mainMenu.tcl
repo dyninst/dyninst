@@ -1,6 +1,6 @@
 #
 # main tool bar
-# $Id: mainMenu.tcl,v 1.66 1998/03/04 19:50:41 wylie Exp $
+# $Id: mainMenu.tcl,v 1.67 1999/05/19 07:49:42 karavan Exp $
 #
 
 ## changeApplicState
@@ -84,7 +84,7 @@ proc drawToolBar {} {
     mkButtonBar .parent.buttons {} retval { \
 	    {RUN "paradyn cont"} \
 	    {PAUSE "paradyn pause"} \
-	    {SAVE "drawSaveMenu"} \
+	    {EXPORT "drawSaveMenu"} \
 	    {EXIT "procExit"}}
 
 #   Both RUN and PAUSE buttons are disabled when paradyn starts running
