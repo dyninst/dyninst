@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.201 2005/03/17 19:40:56 jodom Exp $
+ * $Id: inst-x86.C,v 1.202 2005/03/22 05:56:42 rchen Exp $
  */
 #include <iomanip>
 
@@ -420,6 +420,9 @@ void checkIfRelocatable(instruction insn, bool &canBeRelocated) {
 bool isRealCall(instruction insn, Address adr, image *owner,
                 bool &validTarget, int_function * /* pdf */ )
 {
+   // Initialize return value
+   validTarget = true;
+
    // calls to adr+5 are not really calls, they are used in 
    // dynamically linked libraries to get the address of the code.
    if (insn.getTarget(adr) == adr + 5) {
@@ -461,7 +464,7 @@ bool isRealCall(instruction insn, Address adr, image *owner,
    // The target instruction is a  mov
    if (*(target) == 0x8b) {
       // The source register of the mov is specified by a SIB byte 
-      if (*(target + 1) == 0x1c) {
+      if (*(target + 1) == 0x1c || *(target + 1) == 0x0c) {
 
          // The source register of the mov is the %esp register (0x24) and 
          // the instruction after the mov is a ret instruction (0xc3)
@@ -499,7 +502,7 @@ bool checkEntry( instruction insn, Address adr, image* owner )
         //points[npoints++] = point_(p, numInsns, CallPt);
         //bperr("Function %s, call at entry point\n", 
         //prettyName().c_str());
-        return false;
+        //return false;
     }
     return true;
 }
@@ -6331,7 +6334,7 @@ bool int_function::PA_attachGeneralRewrites(
             PushEIP *eip = new PushEIP(this, offset); 
             temp_alteration_set->AddAlteration(eip);
          }
-        
+
          // Look for call to:
          //   mov   %esp, %ebx
          //   ret
@@ -6479,14 +6482,17 @@ LocalAlteration *fixOverlappingAlterations(LocalAlteration *alteration,
   
    casted_alteration = dynamic_cast<InsertNops *> (alteration); 
    casted_tempAlteration = dynamic_cast<InsertNops *> (tempAlteration); 
-   if (casted_alteration != NULL) {
-      if (casted_tempAlteration != NULL) {
-         if (alteration->getShift() >= tempAlteration->getShift()) {
-            return alteration;
-         } else {  
-            return tempAlteration;
-         }
-      }
+   if (casted_alteration && casted_tempAlteration) {
+       if (alteration->getShift() >= tempAlteration->getShift()) {
+	   return alteration;
+       } else {
+	   return tempAlteration;
+       }
+   }
+   // All other alterations trump InsertNops
+   if (casted_alteration || casted_tempAlteration) {
+       return (casted_tempAlteration ? alteration
+				     : tempAlteration);
    }
 
    return NULL;
