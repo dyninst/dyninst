@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.213 2002/08/12 04:21:26 schendel Exp $
+/* $Id: process.h,v 1.214 2002/08/21 19:42:03 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1232,20 +1232,20 @@ void saveWorldData(Address address, int size, const void* src);
   }
 
   Address initSharedMetaData();
-
-  sharedMetaData shmMetaData;
-
+  sharedMetaData *shmMetaData;
+  sharedMetaOffsetData *shMetaOffsetData;   // used to communicate offsets of 
+                                            // shmMetaData memory to rtinst
   tTimer *getVirtualTimerBase() {
-    return shmMetaData.getVirtualTimers();
+    return shmMetaData->getVirtualTimers();
   }
 
   void *getObsCostLowAddrInApplicSpace() {
     void *result = theSharedMemMgr->getAddressInApplic(
-                              (void *)shmMetaData.getObservedCost());
+                              (void *)shmMetaData->getObservedCost());
     return result;
   }
   void *getObsCostLowAddrInParadyndSpace() {
-    return (void *)shmMetaData.getObservedCost();
+    return (void *)shmMetaData->getObservedCost();
   }
 
   void processCost(unsigned obsCostLow, timeStamp wallTime, 
