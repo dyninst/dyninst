@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.14 1995/02/16 08:54:13 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.15 1995/05/18 10:41:49 markc Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
- * Revision 1.14  1995/02/16 08:54:13  markc
+ * Revision 1.15  1995/05/18 10:41:49  markc
+ * Cache global ids supplied by paradyn
+ * have a canonical form for the resource list
+ *
+ * Revision 1.14  1995/02/16  08:54:13  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.13  1995/02/16  08:34:43  markc
@@ -90,253 +94,108 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <strstream.h>
 #include "main.h"
 
-dictionary_hash<string, resource*> allResources(string::hash);
+dictionary_hash<string, resource*> resource::allResources(string::hash);
+dictionary_hash<unsigned, resource*> resource::res_dict(uiHash);
 
 /*
  * handle the notification of resource creation and deletion.
  *
  */
 
-// TODO - this is ugly - move to init
-resource rootNode(true);
-resource *rootResource = &rootNode;
+resource *rootResource;
+resource *machineRoot;
+resource *machineResource;
+resource *processResource;
+resource *moduleRoot;
+resource *syncRoot;
 
-resourceListRec *getRootResources()
-{
-    return(rootResource->children);
+resource *resource::newResource(resource *parent, string& name, unsigned id) {
+  assert (name != (char*) NULL);
+  assert ((name.string_of())[0] != '/');
+
+  string res_string = parent->full_name() + "/" + name;
+
+  // first check to see if the resource has already been defined 
+  if (allResources.defines(res_string))
+    return (allResources[res_string]);
+
+  vector<string> v_names = parent->names();
+  v_names += name;
+  string abs;
+  resource *ret = new resource(abs, name, 0.0, NULL, false, parent, v_names);
+  assert(ret);
+  allResources[res_string] = ret;
+  res_dict[id] = ret;
+  return(ret);
 }
 
-string getResourceName(resource *r)
+resource *resource::newResource(resource *parent, void *handle, string abstraction, 
+				string name, timeStamp creation, string unique)
 {
-    return(r->info.name);
+  assert (name != (char*) NULL);
+  assert ((name.string_of())[0] != '/');
+
+  string unique_string(name);
+  if (unique.length()) 
+    unique_string += string("{") + unique + string("}");
+
+  string res_string = parent->full_name() + "/" + unique_string;
+
+  // first check to see if the resource has already been defined 
+  if (allResources.defines(res_string))
+    return (allResources[res_string]);
+
+  vector<string> v_names = parent->names();
+  v_names += unique_string;
+  resource *ret = new resource(abstraction, unique_string, creation, handle,
+			       false, parent, v_names);
+  assert(ret);
+  allResources[res_string] = ret;
+
+  // TODO -- use pid here
+  tp->resourceInfoCallback(0, v_names, abstraction); 
+  return(ret);
 }
 
-resource *getResourceParent(resource *r)
-{
-    return(r->parent);
-}
-
-resourceListRec *getResourceChildren(resource *r)
-{
-    return(r->children);
-}
-
-int getResourceCount(resourceListRec *rl)
-{
-    return(rl ? rl->count: 0);
-}
-
-resource *getNthResource(resourceListRec *rl, int n)
-{
-    if (n < rl->count) {
-	return(rl->elements[n]);
-    } else {
-	return(NULL);
-    }
-}
-
-resourceInfo *getResourceInfo(resource *r)
-{
-    return(&r->info);
-}
-
-resourceListRec *createResourceList()
-{
-    resourceListRec *ret;
-    ret = new resourceListRec;
-    return(ret);
-}
-
-bool addResourceList(resourceListRec *rl, resource *r)
-{
-    if (rl->count == rl->maxItems) {
-	rl->maxItems += 10;
-	if (rl->elements) {
-            int i;
-	    resource **newEl;
-            newEl = new resource*[rl->maxItems];        
-	    for (i=0; i<(rl->maxItems - 10); ++i)
-	      newEl[i] = rl->elements[i];
-	    // don't want delete called on elements in this list
-	    delete (rl->elements);
-	    rl->elements = newEl;
-	} else {
-	    rl->elements = new resource*[rl->maxItems];
-	}
-    }
-    rl->elements[rl->count] = r;
-    rl->count++;
-    return(true);
-}
-
-bool initResourceRoot = false;
-
-resource *newResource(resource *parent, 
-		      void *handle,
-		      const string abstraction, 
-		      const string name,
-		      timeStamp creation,
-		      const string unique)
-{
-    int c;
-    resource *ret;
-    resource **curr;
-    static string host;
-    static bool init=false;
-    // static dictionary_hash<string, bool> name_map(string::hash);
-
-    if (!init) {
-      struct utsname un;
-      P_uname(&un);
-      host = un.nodename;
-      init=true;
-    }
-    assert (!(name == (char*) NULL));
-
-    string unique_string;
-    if (unique.length()) 
-      unique_string = name + "{" + unique + "}";
-    else 
-      unique_string = name;
-
-    string res_string;
-    if (parent->info.fullName == (char*) NULL) {
-      res_string = string("/") + unique_string;
-    } else {
-      res_string = parent->info.fullName + "/" + unique_string;
-    }
-
-    /* first check to see if the resource has already been defined */
-    if (parent->children) {
-      for (curr=parent->children->elements, c=0; c < parent->children->count; c++) {
-	if (unique_string == curr[c]->info.name)
-	  return(curr[c]);
-      }
-    } else {
-	parent->children = new resourceListRec;
-    }
-
-    ret = new resource(false);
-    ret->parent = parent;
-    ret->handle = handle;
-    
-    ret->info.fullName = res_string;
-    ret->info.name = unique_string;
-    ret->info.abstraction = abstraction;
-    ret->info.creation = creation;
-
-    addResourceList(parent->children, ret);
-    allResources[ret->info.fullName] = ret;
-
-    // TODO -- use pid here
-    tp->resourceInfoCallback(0, parent->info.fullName, unique_string,
-			     unique_string, abstraction);
-    return(ret);
-}
-
-resource *findChildResource(resource *parent, const string name)
-{
-    int c;
-    resource **curr;
-
-    if (!parent || !parent->children) return(NULL);
-    for (curr=parent->children->elements, c=0;
-	 c < parent->children->count; c++) {
-	 if (curr[c]->info.name == name) {
-	     return(curr[c]);
-	 }
-    }
-    return(NULL);
-}
-
-void printResources(resource *r)
-{
-    int c;
-    resource **curr;
-
-    if (r) {
-        ostrstream os(errorLine, 1024, ios::out);
-	os << r->info.fullName << ends;
-	logLine(errorLine);
-	if (r->children) {
-	    for (curr=r->children->elements, c=0;
-		 c < r->children->count; c++) {
-		 printResources(curr[c]);
-	    }
-	}
-    }
-}
-
-void printResourceList(resourceListRec *rl)
-{
-    int i;
-
-    logLine("<");
-    for (i=0; i < rl->count; i++) {
-        ostrstream os(errorLine, 1024, ios::out);
-	os << rl->elements[i]->info.fullName << ends;
-	logLine(errorLine);
-	if (i!= rl->count-1) logLine(",");
-    }
-    logLine(">");
-}
-
-/*
- * Convinence function.
- *
- */
-bool isResourceDescendent(resource *parent, resource *child)
-{
-    while (child) {
-        if (child == parent) {
-            return(true);
-        } else {
-            child = getResourceParent(child);
-        }
-    }
-    return(false);
-}
-
-//
-// Find this passed focus if its resource components are valid for paradynd.
-//    We treat "unknown" top level resources as a specical case since the
-//    meaning is that we are at the top level of refinement of an unsupported
-//    resource hierarchy.  In this case, we simply create the resource, and
-//    the focus is valid.  Any other resource that can't be found results in
-//    an invalid focus.  jkh 1/29/94.
-//
-resourceListRec *findFocus(const vector<string> &data)
-{
-    resource *res;
-    resourceListRec *rl;
-
-    rl = createResourceList();
-
-    for (unsigned i=0; i < data.size(); i++) {
-      bool def = allResources.defines(data[i]);
-      if (!def && (P_strchr(data[i].string_of(), '/') ==
-		   P_strrchr(data[i].string_of(), '/'))) {
-	const char *pl = data[i].string_of() + 1;
-	res = newResource(rootResource, NULL, nullString, pl, 0.0, "");
-      } else if (!def) {
-	return(NULL);
-      } else
-	res = allResources[data[i]];
-
-      addResourceList(rl, res);
-    }
-    return(rl);
-}
-
-resource *findResource(const string &name)
-{
-  // TODO does this work?   NOPE!
-  if (name == (char*)NULL) {
-    return(rootResource);
-  } else {
-    if (allResources.defines(name))
-      return (allResources[name]);
-    else
-      return (NULL);
+bool resource::foc_to_strings(vector< vector<string> >& string_foc, vector<u_int>& ids) {
+  unsigned id_size = ids.size();
+  for (unsigned i=0; i<id_size; i++) {
+    if (!res_dict.defines(ids[i])) return false;
+    resource *r = res_dict[ids[i]];
+    string_foc += r->names();
   }
+  return true;
 }
+
+// Other parts of the system depend on this order (mdl.C)
+// Assume that there are 4 top level resources
+void resource::make_canonical(const vector< vector<string> >& focus,
+			      vector< vector<string> >& ret) {
+  unsigned size = focus.size();
+  bool machine=false, procedure=false, process=false, sync=false;
+  ret.resize(4);
+  for (unsigned f=0; f<size; f++) {
+    assert(focus[f].size() > 0);
+    if (focus[f][0] == "Machine") {
+      machine = true;
+      ret[resource::machine] = focus[f];
+    } else if (focus[f][0] == "Procedure") {      
+      procedure = true;
+      ret[resource::procedure] = focus[f];
+    } else if (focus[f][0] == "Process") {
+      process = true;
+      ret[resource::process] = focus[f];
+    } else if (focus[f][0] == "SyncObject") {
+      sync = true;
+      ret[resource::sync_object] = focus[f];
+    }
+  }
+  if (!machine) ret[resource::machine] = "Machine";
+  if (!procedure) ret[resource::procedure] = "Procedure";
+  if (!process) ret[resource::process] = "Process";
+  if (!sync) ret[resource::sync_object] = "SyncObject";
+}
+
+
+
+
