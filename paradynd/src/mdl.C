@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.129 2003/04/16 21:07:31 bernat Exp $
+// $Id: mdl.C,v 1.130 2003/04/16 21:55:13 pcroth Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -620,6 +620,34 @@ static bool update_environment(pd_process *proc) {
    }
    
    if(pdf) (*exit_func_buf).push_back(pdf);
+#else
+    // findAllFuncsByName works on pretty names, but EXIT_NAME is 
+    // mangled on Windows
+    proc->findAllFuncsByName( "exit", *exit_func_buf);
+    if (exit_func_buf->size() > 1) {
+      // findAllFuncs found more than one function, clear all but one
+      pdf = (*exit_func_buf)[0];
+      exit_func_buf->clear();
+      exit_func_buf->push_back(pdf);
+    }
+
+    proc->findAllFuncsByName( "ExitProcess", *exit_func_buf);
+    if (exit_func_buf->size() > 1) {
+      // findAllFuncs found more than one function, clear all but one
+      pdf = (*exit_func_buf)[0];
+      exit_func_buf->clear();
+      exit_func_buf->push_back(pdf);
+    }
+
+    proc->findAllFuncsByName( "ExitThread", *exit_func_buf);
+    if (exit_func_buf->size() > 1) {
+      // findAllFuncs found more than one function, clear all but one
+      pdf = (*exit_func_buf)[0];
+      exit_func_buf->clear();
+      exit_func_buf->push_back(pdf);
+    }
+
+    pdf = NULL;
 #endif // !defined(i386_unknown_nt4_0)
 
    if ((*exit_func_buf).size() > 0) { 
