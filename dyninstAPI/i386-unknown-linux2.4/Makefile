@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2002/06/07 20:17:53 gaburici Exp $
+# $Id: Makefile,v 1.11 2002/06/14 21:50:11 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -16,6 +16,7 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =          ../src/linux.C \
+		../src/linux-x86.C \
 		../src/linuxDL.C \
                 ../src/inst-linux.C \
                 ../src/inst-x86.C \
