@@ -67,9 +67,13 @@
 #include "rtinst/h/trace.h"
 #include "util/h/sys.h"
 
-
 #if defined(sparc_sun_solaris2_4)
 #include <thread.h>
+#endif
+
+#ifdef PARADYN_MPI
+#include "/usr/lpp/ppe.poe/include/mpi.h"
+//#include <mpi.h>
 #endif
 
 #if defined(MT_THREAD)
@@ -97,30 +101,6 @@ extern int shmctl(int, int, struct shmid_ds *);
 
 #include "util/h/spinMutex_cintf.h"
 
-
-/************************************************************************
- * Per module flags
-************************************************************************/
-
-#ifndef SHM_SAMPLING
-static int DYNINSTin_sample = 0;
-#endif
-
-/************************************************************************
- * symbolic constants.
-************************************************************************/
-
-static const double MILLION = 1000000.0;
-
-
-#ifdef USE_PROF
-int DYNINSTbufsiz;
-int DYNINSTprofile;
-int DYNINSTprofScale;
-int DYNINSTtoAddr;
-short *DYNINSTprofBuffer;
-#endif
-
 extern void   DYNINSTos_init(int calledByFork, int calledByAttach);
 extern time64 DYNINSTgetCPUtime(void);
 extern time64 DYNINSTgetWalltime(void);
@@ -134,16 +114,121 @@ extern int DYNINSTwriteTrace(void *, unsigned);
 extern void DYNINSTcloseTrace(void);
 extern void *DYNINST_shm_init(int, int, int *);
 
+void DYNINSTprintCost(void);
 
-/************************************************************************
- * void DYNINSTstartProcessTimer(tTimer* timer)
-************************************************************************/
+/************************************************************************/
+
+static float  DYNINSTsamplingRate   = 0;
+static int    DYNINSTtotalSamples   = 0;
+static tTimer DYNINSTelapsedCPUTime;
+static tTimer DYNINSTelapsedTime;
+
+static int DYNINSTnumReported = 0;
+static time64 startWall = 0;
+static float DYNINSTcyclesToUsec  = 0;
+static time64 DYNINSTtotalSampleTime = 0;
+
+/************************************************************************/
+
+#define DYNINSTTagsLimit      1000
+#define DYNINSTTagGroupsLimit 100
+#define DYNINSTNewTagsLimit   25 // don't want to overload the system
+
+typedef struct DynInstTag_st {
+  int   TagGroupId;
+  int   TGUniqueId;
+  int   NumTags;
+  int   TagTable[DYNINSTTagsLimit];
+
+  struct DynInstTag_st* Next;
+} DynInstTagSt;
+
+typedef struct {
+  int            TagHierarchy; /* True if hierarchy, false single level */
+  int            NumGroups;     /* Number of groups, tag arrays */
+  /* Group table, each index pointing to an array of tags */
+  DynInstTagSt*  GroupTable[DYNINSTTagGroupsLimit]; 
+
+  /* [0] is tagId, [1] is groupId, [2] is 1 if it is a new group else 0 */
+  int            NewTags[DYNINSTNewTagsLimit][3];
+  int            NumNewTags;
+} DynInstTagGroupSt;
+
+static DynInstTagGroupSt  TagGroupInfo;
+
+/************************************************************************/
+
+#ifdef SHM_SAMPLING
+/* these vrbles are global so that fork() knows the attributes of the
+   shm segs we've been using */
+int DYNINST_shmSegKey;
+int DYNINST_shmSegNumBytes;
+int DYNINST_shmSegShmId; /* needed? */
+void *DYNINST_shmSegAttachedPtr;
+#endif
+static int the_paradyndPid; /* set in DYNINSTinit(); pass to connectToDaemon();
+			       needed if we fork */
+#ifndef SHM_SAMPLING
+static int DYNINSTin_sample = 0;
+#endif
+
+static const double MILLION = 1000000.0;
+
+#ifdef USE_PROF
+int DYNINSTbufsiz;
+int DYNINSTprofile;
+int DYNINSTprofScale;
+int DYNINSTtoAddr;
+short *DYNINSTprofBuffer;
+#endif
+
 
 #ifdef COSTTEST
 time64 DYNINSTtest[10]={0,0,0,0,0,0,0,0,0,0};
 int DYNINSTtestN[10]={0,0,0,0,0,0,0,0,0,0};
 #endif
 
+double DYNINSTdata[SYN_INST_BUF_SIZE/sizeof(double)];
+/* As DYNINSTinit() completes, it has information to pass back
+   to paradynd.  The data can differ; more stuff is needed
+   when SHM_SAMPLING is defined, for example.  But in any event,
+   the following gives us a general framework.  When DYNINSTinit()
+   is about to complete, we used to send a TR_START trace record back and then
+   DYNINSTbreakPoint().  But we've seen strange behavior; sometimes
+   the breakPoint is received by paradynd first.  The following should
+   work all the time:  DYNINSTinit() writes to the following vrble
+   and does a DYNINSTbreakPoint(), instead of sending a trace
+   record.  Paradynd reads this vrble using ptrace(), and thus has
+   the info that it needs.
+   Note: we use this framework for DYNINSTfork(), too -- so the TR_FORK
+   record is now obsolete, along with the TR_START record.
+   Additionally, we use this framework for DYNINSTexec() -- so the
+   TR_EXEC record is now obsolete, too */
+struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
+
+
+#ifndef SHM_SAMPLING
+/* This could be static, but gdb has can't find them if they are.  
+   jkh 5/8/95 */
+int64    DYNINSTvalue = 0;
+unsigned DYNINSTlastLow;
+unsigned DYNINSTobsCostLow;
+#endif
+
+#define N_FP_REGS 33
+
+volatile int DYNINSTsampleMultiple    = 1;
+   /* written to by dynRPC::setSampleRate() (paradynd/dynrpc.C)
+      (presumably, upon a fold) */
+
+#ifndef SHM_SAMPLING
+static int          DYNINSTnumSampled        = 0;
+static int          DYNINSTtotalAlarmExpires = 0;
+#endif
+
+/************************************************************************
+ * void DYNINSTstartProcessTimer(tTimer* timer)
+************************************************************************/
 void
 DYNINSTstartProcessTimer(tTimer* timer) {
     /* WARNING: write() could be instrumented to call this routine, so to avoid
@@ -199,13 +284,9 @@ DYNINSTstartProcessTimer(tTimer* timer) {
 }
 
 
-
-
-
 /************************************************************************
  * void DYNINSTstopProcessTimer(tTimer* timer)
 ************************************************************************/
-
 void
 DYNINSTstopProcessTimer(tTimer* timer) {
     /* WARNING: write() could be instrumented to call this routine, so to avoid
@@ -300,7 +381,6 @@ DYNINSTstopProcessTimer(tTimer* timer) {
 /************************************************************************
  * void DYNINSTstartWallTimer(tTimer* timer)
 ************************************************************************/
-
 void
 DYNINSTstartWallTimer(tTimer* timer) {
     /* WARNING: write() could be instrumented to call this routine, so to avoid
@@ -353,13 +433,9 @@ DYNINSTstartWallTimer(tTimer* timer) {
 }
 
 
-
-
-
 /************************************************************************
  * void DYNINSTstopWallTimer(tTimer* timer)
 ************************************************************************/
-
 void
 DYNINSTstopWallTimer(tTimer* timer) {
 #ifdef COSTTEST
@@ -440,51 +516,22 @@ DYNINSTstopWallTimer(tTimer* timer) {
 
 
 
-
-/************************************************************************
- * global data for DYNINST functions.
-************************************************************************/
-
-double DYNINSTdata[SYN_INST_BUF_SIZE/sizeof(double)];
-
-/* As DYNINSTinit() completes, it has information to pass back
-   to paradynd.  The data can differ; more stuff is needed
-   when SHM_SAMPLING is defined, for example.  But in any event,
-   the following gives us a general framework.  When DYNINSTinit()
-   is about to complete, we used to send a TR_START trace record back and then
-   DYNINSTbreakPoint().  But we've seen strange behavior; sometimes
-   the breakPoint is received by paradynd first.  The following should
-   work all the time:  DYNINSTinit() writes to the following vrble
-   and does a DYNINSTbreakPoint(), instead of sending a trace
-   record.  Paradynd reads this vrble using ptrace(), and thus has
-   the info that it needs.
-   Note: we use this framework for DYNINSTfork(), too -- so the TR_FORK
-   record is now obsolete, along with the TR_START record.
-   Additionally, we use this framework for DYNINSTexec() -- so the
-   TR_EXEC record is now obsolete, too */
-
-struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
-
-
 /************************************************************************
  * float DYNINSTcyclesPerSecond(void)
  *
  * need a well-defined method for finding the CPU cycle speed
  * on each CPU.
 ************************************************************************/
-
 #if defined(rs6000_ibm_aix4_1)
 #define NOPS_4  asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0")
 #else
 #define NOPS_4  asm("nop"); asm("nop"); asm("nop"); asm("nop")
 #endif
 #define NOPS_16 NOPS_4; NOPS_4; NOPS_4; NOPS_4
-
 /* Note: the following should probably be moved into arch-specific files,
    since different platforms could have very different ways of implementation.
    Consider, hypothetically, an OS that let you get cycles per second with a simple
    system call */
-
 static float
 DYNINSTcyclesPerSecond(void) {
     int            i;
@@ -513,9 +560,6 @@ DYNINSTcyclesPerSecond(void) {
 }
 
 
-
-
-
 /************************************************************************
  * void saveFPUstate(float* base)
  * void restoreFPUstate(float* base)
@@ -523,7 +567,6 @@ DYNINSTcyclesPerSecond(void) {
  * save and restore state of FPU on signals.  these are null functions
  * for most well designed and implemented systems.
 ************************************************************************/
-
 static void
 saveFPUstate(float* base) {
 #ifdef i386_unknown_solaris2_5
@@ -543,14 +586,6 @@ restoreFPUstate(float* base) {
 /* The current observed cost since the last call to 
  *      DYNINSTgetObservedCycles(false) 
  */
-
-#ifndef SHM_SAMPLING
-/* This could be static, but gdb has can't find them if they are.  jkh 5/8/95 */
-int64    DYNINSTvalue = 0;
-unsigned DYNINSTlastLow;
-unsigned DYNINSTobsCostLow;
-#endif
-
 /************************************************************************
  * int64 DYNINSTgetObservedCycles(RT_Boolean in_signal)
  *
@@ -596,9 +631,6 @@ int64 DYNINSTgetObservedCycles(RT_Boolean in_signal)
  * dummy function for sampling timers and counters.  the actual code
  * is added by dynamic instrumentation from the paradyn daemon.
 ************************************************************************/
-
-static int DYNINSTnumReported = 0;
-
 #ifndef SHM_SAMPLING
 void
 DYNINSTsampleValues(void) {
@@ -612,9 +644,6 @@ DYNINSTsampleValues(void) {
  * void DYNINSTgenerateTraceRecord(traceStream sid, short type,
  *   short length, void* data, int flush,time64 wall_time,time64 process_time)
 ************************************************************************/
-
-static time64 startWall = 0;
-
 void
 DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 			   void *eventData, int flush,
@@ -671,18 +700,11 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 }
 
 
-
-
-
 /************************************************************************
  * void DYNINSTreportBaseTramps(void)
  *
  * report the cost of base trampolines.
 ************************************************************************/
-
-static float DYNINSTcyclesToUsec  = 0;
-static time64 DYNINSTtotalSampleTime = 0;
-
 #ifndef SHM_SAMPLING
 void
 DYNINSTreportBaseTramps() {
@@ -730,17 +752,14 @@ DYNINSTreportBaseTramps() {
 }
 #endif
 
+
 /************************************************************************
  * static void DYNINSTreportSamples(void)
  *
  * report samples to paradyn daemons. Called by DYNINSTinit, DYNINSTexit,
  * and DYNINSTalarmExpires.
 ************************************************************************/
-
-#define N_FP_REGS 33
-
 #ifndef SHM_SAMPLING
-
 static void 
 DYNINSTreportSamples(void) {
     time64     start_cpu;
@@ -765,8 +784,6 @@ DYNINSTreportSamples(void) {
 #endif
 
 
-
-
 /************************************************************************
  * void DYNINSTalarmExpire(void)
  *
@@ -774,24 +791,11 @@ DYNINSTreportSamples(void) {
  * to the paradyn daemons.  when the program exits, DYNINSTsampleValues
  * should be called directly.
 ************************************************************************/
-
-
 /************************************************************************
  * DYNINSTalarmExpire is changed so that it will restart the sytem call
  * if that called is interrupted on HP
  * Duplicated for the same reason above.
  ************************************************************************/
-
-
-volatile int DYNINSTsampleMultiple    = 1;
-   /* written to by dynRPC::setSampleRate() (paradynd/dynrpc.C)
-      (presumably, upon a fold) */
-
-#ifndef SHM_SAMPLING
-static int          DYNINSTnumSampled        = 0;
-static int          DYNINSTtotalAlarmExpires = 0;
-#endif
-
 #ifndef SHM_SAMPLING
 void
 #if !defined(hppa1_1_hp_hpux)
@@ -841,34 +845,6 @@ DYNINSTalarmExpire(int signo, int code, struct sigcontext *scp) {
 #endif
 
 
-/************************************************************************
- * void DYNINSTinit()
- *
- * initialize the DYNINST library.  this function is called at the start
- * of the application program, as well as after a fork, and after an
- * attach.
- *
-************************************************************************/
-
-static float  DYNINSTsamplingRate   = 0;
-static int    DYNINSTtotalSamples   = 0;
-static tTimer DYNINSTelapsedCPUTime;
-static tTimer DYNINSTelapsedTime;
-static int DYNINSTtagCount = 0;
-static int DYNINSTtagLimit = 100;
-static int DYNINSTtags[1000];
-
-#ifdef SHM_SAMPLING
-/* these vrbles are global so that fork() knows the attributes of the
-   shm segs we've been using */
-int DYNINST_shmSegKey;
-int DYNINST_shmSegNumBytes;
-int DYNINST_shmSegShmId; /* needed? */
-void *DYNINST_shmSegAttachedPtr;
-#endif
-static int the_paradyndPid; /* set in DYNINSTinit(); pass to connectToDaemon();
-			       needed if we fork */
-
 static void shmsampling_printf(const char *fmt, ...) {
 #ifdef SHM_SAMPLING_DEBUG
    va_list args;
@@ -882,218 +858,220 @@ static void shmsampling_printf(const char *fmt, ...) {
 #endif
 }
 
-void
-DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid) {
-   /* If first 2 params are -1 then we're being called by DYNINSTfork(). */
-   /* If first 2 params are 0 then it just means we're not shm sampling */
-   /* If 3d param is negative, then we're called from attach
-      (and we use -paradyndPid as paradynd's pid).  If 3d param
-      is positive, then we're not called from attach (and we use +paradyndPid
-      as paradynd's pid). */
-
-   int calledFromFork = (theKey == -1);
-   int calledFromAttach = (paradyndPid < 0);
-
+/************************************************************************
+ * void DYNINSTinit()
+ *
+ * initialize the DYNINST library.  this function is called at the start
+ * of the application program, as well as after a fork, and after an
+ * attach.
+ *
+ ************************************************************************/
+void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
+{
+  /* If first 2 params are -1 then we're being called by DYNINSTfork(). */
+  /* If first 2 params are 0 then it just means we're not shm sampling */
+  /* If 3d param is negative, then we're called from attach
+     (and we use -paradyndPid as paradynd's pid).  If 3d param
+     is positive, then we're not called from attach (and we use +paradyndPid
+     as paradynd's pid). */
+  
+  int calledFromFork = (theKey == -1);
+  int calledFromAttach = (paradyndPid < 0);
+  
 #ifndef SHM_SAMPLING
-    unsigned         val;
+  unsigned         val;
 #endif
-
-    char *temp;
-
+  
+  int dx;
+  
 #if defined(MT_THREAD)
-    traceThrSelf traceRec;
+  traceThrSelf traceRec;
 #endif
-
+  
 #ifdef SHM_SAMPLING_DEBUG
-   char thehostname[80];
-   extern int gethostname(char*,int);
-
-   (void)gethostname(thehostname, 80);
-   thehostname[79] = '\0';
-
-   shmsampling_printf("WELCOME to DYNINSTinit (%s, pid=%d), args are %d, %d, %d\n",
-		      thehostname, (int)getpid(), theKey, shmSegNumBytes,
-                      paradyndPid);
+  char thehostname[80];
+  extern int gethostname(char*,int);
+  
+  (void)gethostname(thehostname, 80);
+  thehostname[79] = '\0';
+  
+  shmsampling_printf("WELCOME to DYNINSTinit (%s, pid=%d), args are %d, %d, %d\n",
+		     thehostname, (int)getpid(), theKey, shmSegNumBytes,
+		     paradyndPid);
 #endif
-
-   if (calledFromAttach)
-      paradyndPid = -paradyndPid;
-
-   the_paradyndPid = paradyndPid; /* important -- needed in case we fork() */
+  
+  if (calledFromAttach)
+    paradyndPid = -paradyndPid;
+  
+  the_paradyndPid = paradyndPid; /* important -- needed in case we fork() */
+  
+  TagGroupInfo.TagHierarchy = 0;
+  TagGroupInfo.NumGroups = 0;
+  TagGroupInfo.NumNewTags = 0;
+  for(dx=0; dx < DYNINSTTagGroupsLimit; dx++) {
+    TagGroupInfo.GroupTable[dx] = NULL;
+  } 
 
 #ifdef SHM_SAMPLING
-   if (!calledFromFork) {
-      DYNINST_shmSegKey = theKey;
-      DYNINST_shmSegNumBytes = shmSegNumBytes;
-
-      DYNINST_shmSegAttachedPtr = DYNINST_shm_init(theKey, shmSegNumBytes, 
-					       &DYNINST_shmSegShmId);
-
-   }
+  if (!calledFromFork) {
+    DYNINST_shmSegKey = theKey;
+    DYNINST_shmSegNumBytes = shmSegNumBytes;
+    
+    DYNINST_shmSegAttachedPtr = DYNINST_shm_init(theKey, shmSegNumBytes, 
+						 &DYNINST_shmSegShmId);
+  }
 #endif
+  
+  /*
+     In accordance with usual stdio rules, stdout is line-buffered and stderr is
+     non-buffered.  Unfortunately, stdio is a little clever and when it detects
+     stdout/stderr redirected to a pipe/file/whatever, it changes to fully-buffered.
+     This indeed occurs with us (see paradynd/src/process.C to see how a program's
+     stdout/stderr are redirected to a pipe). So we reset back to the desired
+     "bufferedness" here.  See stdio.h for these calls.  When attaching, stdio
+     isn't under paradynd control, so we don't do this stuff.
 
-    // In accordance with usual stdio rules, stdout is line-buffered and stderr is
-    // non-buffered.  Unfortunately, stdio is a little clever and when it detects
-    // stdout/stderr redirected to a pipe/file/whatever, it changes to fully-buffered.
-    // This indeed occurs with us (see paradynd/src/process.C to see how a program's
-    // stdout/stderr are redirected to a pipe). So we reset back to the desired
-    // "bufferedness" here.  See stdio.h for these calls.  When attaching, stdio
-    // isn't under paradynd control, so we don't do this stuff.
-
-    /* Note! Since we are messing with stdio stuff here, it should go without
-       saying that DYNINSTinit() (or at least this part of it) shouldn't be
-       invoked until stdio has been initialized! */
-
-    if (!calledFromAttach) {
-       setvbuf(stdout, NULL, _IOLBF, 0);
-          /* make stdout line-buffered.  "setlinebuf(stdout)" is cleaner but HP
-	     doesn't seem to have it */
-       setvbuf(stderr, NULL, _IONBF, 0);
-          /* make stderr non-buffered */
-    }
-
-    DYNINSTos_init(calledFromFork, calledFromAttach);
-      /* is this needed when calledFromFork?  Depends on what it does, which is in turn
-         os-dependent...so, calledFromFork should probably be passed to this routine. */
-
-    startWall = 0;
-
-    if (!calledFromFork)
-       DYNINSTcyclesToUsec = MILLION/DYNINSTcyclesPerSecond();
-
+     Note! Since we are messing with stdio stuff here, it should go without
+     saying that DYNINSTinit() (or at least this part of it) shouldn't be
+     invoked until stdio has been initialized!
+  */
+  
+  if (!calledFromAttach) {
+    setvbuf(stdout, NULL, _IOLBF, 0);
+    /* make stdout line-buffered.  "setlinebuf(stdout)" is cleaner but HP
+       doesn't seem to have it */
+    setvbuf(stderr, NULL, _IONBF, 0);
+    /* make stderr non-buffered */
+  }
+  
+  DYNINSTos_init(calledFromFork, calledFromAttach);
+  /* is this needed when calledFromFork?  Depends on what it does, which is in turn
+     os-dependent...so, calledFromFork should probably be passed to this routine. */
+  /* Initialize TagGroupInfo */
+  
+  startWall = 0;
+  
+  if (!calledFromFork)
+    DYNINSTcyclesToUsec = MILLION/DYNINSTcyclesPerSecond();
+  
 #ifndef SHM_SAMPLING
-    /* assign sampling rate to be default value in util/h/sys.h */
-    val = BASESAMPLEINTERVAL;
-
-    DYNINSTsamplingRate = val/MILLION;
-
-    /* Do we need to re-create the alarm signal stuff when calledFromFork is true? */
-    DYNINST_install_ualarm(val);
+  /* assign sampling rate to be default value in util/h/sys.h */
+  val = BASESAMPLEINTERVAL;
+  
+  DYNINSTsamplingRate = val/MILLION;
+  
+  /* Do we need to re-create the alarm signal stuff when calledFromFork is true? */
+  DYNINST_install_ualarm(val);
 #endif
-
-    if (!calledFromFork) {				   
-       temp = getenv("DYNINSTtagLimit");
-       if (temp) {
-	  int newVal = atoi(temp);
-	  if (newVal < DYNINSTtagLimit) {
-	     DYNINSTtagLimit = newVal;
-	  }
-       }
-    }
-
+  
 #ifdef USE_PROF
-    {	extern int end;
-
-	DYNINSTprofScale = sizeof(short);
-	DYNINSTtoAddr = sizeof(short);
-	DYNINSTbufsiz = (((unsigned int) &end)/DYNINSTprofScale) + 1;
-	DYNINSTprofBuffer = (short *) calloc(sizeof(short), DYNINSTbufsiz);
-	profil(DYNINSTprofBuffer, DYNINSTbufsiz*sizeof(short), 0, 0xffff);
-	DYNINSTprofile = 1;
-    }
+  {
+    extern int end;
+    
+    DYNINSTprofScale = sizeof(short);
+    DYNINSTtoAddr = sizeof(short);
+    DYNINSTbufsiz = (((unsigned int) &end)/DYNINSTprofScale) + 1;
+    DYNINSTprofBuffer = (short *) calloc(sizeof(short), DYNINSTbufsiz);
+    profil(DYNINSTprofBuffer, DYNINSTbufsiz*sizeof(short), 0, 0xffff);
+    DYNINSTprofile = 1;
+  }
 #endif
-
-    DYNINSTstartWallTimer(&DYNINSTelapsedTime);
-    DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
-
-    /* Fill in info for paradynd to receive: */
-
-    DYNINST_bootstrap_info.ppid = -1; /* not needed really */
-				   
-    if (!calledFromFork) {
+  
+  DYNINSTstartWallTimer(&DYNINSTelapsedTime);
+  DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
+  
+  /* Fill in info for paradynd to receive: */
+  
+  DYNINST_bootstrap_info.ppid = -1; /* not needed really */
+  
+  if (!calledFromFork) {
 #ifdef SHM_SAMPLING
-       shmsampling_printf("DYNINSTinit setting appl_attachedAtPtr in bs_record to %x\n",
-			  (unsigned)DYNINST_shmSegAttachedPtr);
-       DYNINST_bootstrap_info.appl_attachedAtPtr = DYNINST_shmSegAttachedPtr;
+    shmsampling_printf("DYNINSTinit setting appl_attachedAtPtr in bs_record to %x\n",
+		       (unsigned)DYNINST_shmSegAttachedPtr);
+    DYNINST_bootstrap_info.appl_attachedAtPtr = DYNINST_shmSegAttachedPtr;
 #endif
-    }
-
-    DYNINST_bootstrap_info.pid = getpid();
-    if (calledFromFork)
-       DYNINST_bootstrap_info.ppid = getppid();
-
-    /* We do this field last as a way to synchronize; paradynd will ignore what it
-       sees in this structure until the event field is nonzero */
-   if (calledFromFork)
-      DYNINST_bootstrap_info.event = 2; /* 2 --> end of DYNINSTinit (forked process) */
-   else if (calledFromAttach)
-      DYNINST_bootstrap_info.event = 3; /* 3 --> end of DYNINSTinit (attached proc) */
-   else				   
-      DYNINST_bootstrap_info.event = 1; /* 1 --> end of DYNINSTinit (normal or when
-					   called by exec'd proc) */
-
-
-   /* If attaching, now's the time where we set up the trace stream connection fd */
-   if (calledFromAttach) {
-      int pid = getpid();
-      int ppid = getppid();
-      unsigned attach_cookie = 0x22222222;
-
-      DYNINSTinitTrace(paradyndPid);
-
-      DYNINSTwriteTrace(&attach_cookie, sizeof(attach_cookie));
-      DYNINSTwriteTrace(&pid, sizeof(pid));
-      DYNINSTwriteTrace(&ppid, sizeof(ppid));
+  }
+  
+  DYNINST_bootstrap_info.pid = getpid();
+  if (calledFromFork)
+    DYNINST_bootstrap_info.ppid = getppid();
+  
+  /* We do this field last as a way to synchronize; paradynd will ignore what it
+     sees in this structure until the event field is nonzero */
+  if (calledFromFork)
+    DYNINST_bootstrap_info.event = 2; /* 2 --> end of DYNINSTinit (forked process) */
+  else if (calledFromAttach)
+    DYNINST_bootstrap_info.event = 3; /* 3 --> end of DYNINSTinit (attached proc) */
+  else				   
+    DYNINST_bootstrap_info.event = 1; /* 1 --> end of DYNINSTinit (normal or when
+					 called by exec'd proc) */
+  
+  
+  /* If attaching, now's the time where we set up the trace stream connection fd */
+  if (calledFromAttach) {
+    int pid = getpid();
+    int ppid = getppid();
+    unsigned attach_cookie = 0x22222222;
+    
+    DYNINSTinitTrace(paradyndPid);
+    
+    DYNINSTwriteTrace(&attach_cookie, sizeof(attach_cookie));
+    DYNINSTwriteTrace(&pid, sizeof(pid));
+    DYNINSTwriteTrace(&ppid, sizeof(ppid));
 #ifdef SHM_SAMPLING
-      DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
-      DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, sizeof(DYNINST_shmSegAttachedPtr));
+    DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
+    DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, sizeof(DYNINST_shmSegAttachedPtr));
 #endif
-      DYNINSTflushTrace();
-   }
-   else if (!calledFromFork) {
-      /* either normal startup or startup via a process having exec'd */
-      /* trace stream is already open */
-      DYNINSTinitTrace(-1);
-   }
-   else
-      /* calledByFork -- DYNINSTfork already called DYNINSTinitTrace */
-      ;
-
+    DYNINSTflushTrace();
+  }
+  else if (!calledFromFork) {
+    /* either normal startup or startup via a process having exec'd */
+    /* trace stream is already open */
+    DYNINSTinitTrace(-1);
+  }
+  else
+    /* calledByFork -- DYNINSTfork already called DYNINSTinitTrace */
+    ;
+  
 #if defined(MT_THREAD)
-    if (!initialize_done) {
-      initialize_free(MAX_NUMBER_OF_THREADS);
-      initialize_hash(MAX_NUMBER_OF_THREADS);
-      traceRec.pos = hash_insert(DYNINSTthreadSelf());
-      initialize_done=1;
-    } else {
-      traceRec.pos = hash_lookup(DYNINSTthreadSelf());
-    }
-    traceRec.tid = DYNINSTthreadSelf();
-    traceRec.ppid = getpid();
-    DYNINSTgenerateTraceRecord(0, TR_THRSELF, sizeof(traceRec), &traceRec, 1,
-			       DYNINSTgetWalltime(),
-                               DYNINSTgetCPUtime());
+  if (!initialize_done) {
+    initialize_free(MAX_NUMBER_OF_THREADS);
+    initialize_hash(MAX_NUMBER_OF_THREADS);
+    traceRec.pos = hash_insert(DYNINSTthreadSelf());
+    initialize_done=1;
+  } else {
+    traceRec.pos = hash_lookup(DYNINSTthreadSelf());
+  }
+  traceRec.tid = DYNINSTthreadSelf();
+  traceRec.ppid = getpid();
+  DYNINSTgenerateTraceRecord(0, TR_THRSELF, sizeof(traceRec), &traceRec, 1,
+			     DYNINSTgetWalltime(),
+			     DYNINSTgetCPUtime());
 #endif
-				   
-   /* Now, we stop ourselves.  When paradynd receives the forwarded signal,
-      it will read from DYNINST_bootstrap_info */
-
-   shmsampling_printf("DYNINSTinit (pid=%d) --> about to DYNINSTbreakPoint()\n",
-		      (int)getpid());
-
-   DYNINSTbreakPoint();
-
-   /* After the break, we clear DYNINST_bootstrap_info's event field, leaving the
-      others there */
-   DYNINST_bootstrap_info.event = 0; /* 0 --> nothing */
-
-   shmsampling_printf("leaving DYNINSTinit (pid=%d) --> the process is running freely now\n", (int)getpid());
-
-
-
+  
+  /* Now, we stop ourselves.  When paradynd receives the forwarded signal,
+     it will read from DYNINST_bootstrap_info */
+  
+  shmsampling_printf("DYNINSTinit (pid=%d) --> about to DYNINSTbreakPoint()\n",
+		     (int)getpid());
+  
+  DYNINSTbreakPoint();
+  
+  /* After the break, we clear DYNINST_bootstrap_info's event field, leaving the
+     others there */
+  DYNINST_bootstrap_info.event = 0; /* 0 --> nothing */
+  
+  shmsampling_printf("leaving DYNINSTinit (pid=%d) --> the process is running freely now\n", (int)getpid());
+   
 #ifndef SHM_SAMPLING
-    /* what good does this do here? */
-    /* We report samples here to set the starting time for metrics that were
-       enabled before the user press run, so we don't loose any samples - mjrg
-    */
-    DYNINSTreportSamples();
+  /* what good does this do here? */
+  /* We report samples here to set the starting time for metrics that were
+     enabled before the user press run, so we don't loose any samples - mjrg
+     */
+  DYNINSTreportSamples();
 #endif
-
 }
 
-
-
-void DYNINSTprintCost(void);
 
 /************************************************************************
  * void DYNINSTexit(void)
@@ -1101,7 +1079,6 @@ void DYNINSTprintCost(void);
  * handle `exit' in the application. 
  * report samples and print cost.
 ************************************************************************/
-
 void
 DYNINSTexit(void) {
     static int done = 0;
@@ -1120,6 +1097,7 @@ DYNINSTexit(void) {
 
     DYNINSTprintCost();
 }
+
 
 
 /************************************************************************
@@ -1143,7 +1121,6 @@ DYNINSTexit(void) {
  * the child does't have a traceRecord connection yet, but fork() should dup() all fd's
  * and take care of that limitation...
 ************************************************************************/
-
 /* debug code should call forkexec_printf as a way of avoiding
    putting #ifdef FORK_EXEC_DEBUG around their fprintf(stderr, ...) statements,
    which can lead to horribly ugly code --ari */
@@ -1248,6 +1225,7 @@ DYNINSTfork(int pid) {
     }
 }
 
+
 void
 DYNINSTexec(char *path) {
     /* paradynd instruments programs to call this routine on ENTRY to exec
@@ -1289,6 +1267,7 @@ DYNINSTexec(char *path) {
 
     forkexec_printf("DYNINSTexec after breakpoint...allowing the exec to happen now\n");
 }
+
 
 void
 DYNINSTexecFailed() {
@@ -1422,48 +1401,68 @@ DYNINSTprintCost(void) {
  * periodically by DYNINSTsampleValues (or directly from DYNINSTrecordTag,
  * if SHM_SAMPLING).
 ************************************************************************/
+void DYNINSTreportNewTags(void)
+{
+  int    dx;
+  time64 process_time;
+  time64 wall_time;
 
-void
-DYNINSTreportNewTags(void) {
-    int i;
-    static int lastTagCount=0;
-
-    time64 process_time = DYNINSTgetCPUtime();
-       /* not used by consumer [createProcess() in perfStream.C], so can prob. be set to
-          a dummy value to save a little time. */
-
-    time64 wall_time = DYNINSTgetWalltime();
-       /* this _is_ needed; paradynd keeps the 'creation' time of each resource
-          (resource.h) */
+  if(TagGroupInfo.NumNewTags > 0) {
+    /* not used by consumer [createProcess() in perfStream.C], so can prob.
+     * be set to a dummy value to save a little time.  */
+    process_time = DYNINSTgetCPUtime();
+    /* this _is_ needed; paradynd keeps the 'creation' time of each resource
+     *  (resource.h) */
+     wall_time = DYNINSTgetWalltime();
+  }
 
 #ifdef COSTTEST
-    time64 startT,endT;
-    startT=DYNINSTgetCPUtime();
+  time64 startT,endT;
+  startT=DYNINSTgetCPUtime();
 #endif
+  
+  for(dx=0; dx < TagGroupInfo.NumNewTags; dx++) {
+    struct _newresource newRes;
+    
+    if((TagGroupInfo.TagHierarchy) && (TagGroupInfo.NewTags[dx][2])) {
+      memset(&newRes, '\0', sizeof(newRes));
+      sprintf(newRes.name, "SyncObject/Message/%d",
+	      TagGroupInfo.NewTags[dx][1]);
+      strcpy(newRes.abstraction, "BASE");
+      newRes.type = RES_TYPE_INT;
 
-    for (i=lastTagCount; i < DYNINSTtagCount; i++) {
-        struct _newresource newRes;
-        memset(&newRes, '\0', sizeof(newRes));
-        sprintf(newRes.name, "SyncObject/MsgTag/%d", DYNINSTtags[i]);
-        strcpy(newRes.abstraction, "BASE");
-	newRes.type = RES_TYPE_INT;
-
-        DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE, 
-				   sizeof(struct _newresource), &newRes, 1,
-				   wall_time,process_time);
+      DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE,
+				 sizeof(struct _newresource), &newRes, 1,
+				 wall_time,process_time);
     }
-    lastTagCount = DYNINSTtagCount;
-
+    
+    memset(&newRes, '\0', sizeof(newRes));
+    if(TagGroupInfo.TagHierarchy) {
+      sprintf(newRes.name, "SyncObject/Message/%d/%d", 
+	      TagGroupInfo.NewTags[dx][1], TagGroupInfo.NewTags[dx][0]);
+    } else {
+      sprintf(newRes.name, "SyncObject/Message/%d", 
+	      TagGroupInfo.NewTags[dx][0]);
+    }
+    strcpy(newRes.abstraction, "BASE");
+    newRes.type = RES_TYPE_INT;
+    DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE, 
+			       sizeof(struct _newresource), &newRes, 1,
+			       wall_time,process_time);
+  }
+  TagGroupInfo.NumNewTags = 0;
+  
 #ifdef COSTTEST
-    endT=DYNINSTgetCPUtime();
-    DYNINSTtest[8]+=endT-startT;
-    DYNINSTtestN[8]++;
+  endT=DYNINSTgetCPUtime();
+  DYNINSTtest[8]+=endT-startT;
+  DYNINSTtestN[8]++;
 #endif 
 }
 
 
 /************************************************************************
- * void DYNINSTrecordTag(int tag)
+ * void DYNINSTrecordTag(int tagId) &&
+ * void DYNINSTrecordTagAndGroup(int tagId, int groupId)
  *
  * mark a new tag in tag list.
  * Routines such as pvm_send() are instrumented to call us.
@@ -1489,30 +1488,95 @@ DYNINSTreportNewTags(void) {
  * DYNINSTrecordTag returns before calling DYNINSTreportNewTags
  * (and hence DYNINSTgenerateTraceRecord) if the tag has been seen
  * before.
-************************************************************************/
-void
-DYNINSTrecordTag(int tag) {
-    int i;
+ ************************************************************************/
+void DYNINSTrecordTagGroupInfo(int tagId, int tagDx,
+			       int groupId, int groupDx)
+{
+  DynInstTagSt* tagSt;
+  int           dx;
+  int           newGroup;
+  
+  if(TagGroupInfo.NumNewTags == DYNINSTNewTagsLimit) return;
 
-    if (DYNINSTtagCount >= DYNINSTtagLimit) return;
+  tagSt = TagGroupInfo.GroupTable[groupDx];
+  while((tagSt != NULL) && (tagSt->TagGroupId != groupId)) {
+    tagSt = tagSt->Next;
+  }
+  if(tagSt == NULL) {
+    tagSt = (DynInstTagSt *) malloc(sizeof(DynInstTagSt));
+    assert(tagSt != NULL);
 
-    for (i=0; i < DYNINSTtagCount; i++) {
-        if (DYNINSTtags[i] == tag) return;
+    tagSt->TagGroupId = groupId;
+    tagSt->TGUniqueId = TGroup_CreateUniqueId(groupId);
+    tagSt->NumTags = 0;
+    for(dx=0; dx < DYNINSTTagsLimit; dx++) {
+      tagSt->TagTable[dx] = -1;
     }
+    tagSt->Next = TagGroupInfo.GroupTable[groupDx];
+    TagGroupInfo.GroupTable[groupDx] = tagSt;
+    TagGroupInfo.NumGroups++;
+    newGroup = 1;
+  } else {
+    assert(tagSt->TagGroupId == groupId);
+    newGroup = 0;
+  }
 
-    if (DYNINSTtagCount == DYNINSTtagLimit) return;
-    DYNINSTtags[DYNINSTtagCount++] = tag;
+  if(tagSt->NumTags == DYNINSTTagsLimit) return;
+
+  dx = tagDx;
+  while((tagSt->TagTable[dx] != tagId) && (tagSt->TagTable[dx] != -1)) {
+    dx++;
+    if(dx == DYNINSTTagsLimit) dx = 0;
+    assert(dx != tagId);
+  }
+
+  if(tagSt->TagTable[dx] == tagId) return;
+
+  assert(tagSt->TagTable[dx] == -1);
+  tagSt->TagTable[dx] = tagId;
+  tagSt->NumTags++;
+  
+  TagGroupInfo.NewTags[TagGroupInfo.NumNewTags][0] = tagId;
+  TagGroupInfo.NewTags[TagGroupInfo.NumNewTags][1] = tagSt->TGUniqueId;
+  TagGroupInfo.NewTags[TagGroupInfo.NumNewTags][2] = newGroup;
+  TagGroupInfo.NumNewTags++;
 
 #ifdef SHM_SAMPLING
-    /* Usually, DYNINSTreportNewTags() is invoked only periodically, by
-     * DYNINSTalarmExpire.  But since that routine no longer exists, we need
-     * another way for it to be called.  Let's just call it directly here; I
-     * don't think it'll be too expensive (unless a program declares a new
-     * tag every fraction of a second!)  I also don't think there will be an
-     * infinite recursion problem; see comment above.
-     */
-   DYNINSTreportNewTags();
+  /* Usually, DYNINSTreportNewTags() is invoked only periodically, by
+   * DYNINSTalarmExpire.  But since that routine no longer exists, we need
+   * another way for it to be called.  Let's just call it directly here; I
+   * don't think it'll be too expensive (unless a program declares a new
+   * tag every fraction of a second!)  I also don't think there will be an
+   * infinite recursion problem; see comment above.
+   */
+  DYNINSTreportNewTags();
 #endif    
+}
+
+
+void DYNINSTrecordTag(int tagId)
+{
+  assert(tagId >= 0);
+  assert(TagGroupInfo.TagHierarchy == 0);
+  DYNINSTrecordTagGroupInfo(tagId, tagId % DYNINSTTagsLimit,
+			    -1, 0);
+}
+
+void DYNINSTrecordTagAndGroup(int tagId, int groupId)
+{
+  assert(tagId >= 0);
+  assert(groupId >= 0);
+  TagGroupInfo.TagHierarchy = 1;
+  DYNINSTrecordTagGroupInfo(tagId, (tagId % DYNINSTTagsLimit),
+			    groupId, (groupId % DYNINSTTagGroupsLimit));
+}
+
+void DYNINSTrecordGroup(int groupId)
+{
+  assert(groupId >= 0);
+  TagGroupInfo.TagHierarchy = 1;
+  DYNINSTrecordTagGroupInfo(-1, 0,
+			    groupId, (groupId % DYNINSTTagGroupsLimit));
 }
 
 
@@ -1521,7 +1585,6 @@ DYNINSTrecordTag(int tag) {
  *
  * report value of counter to paradynd.
 ************************************************************************/
-
 #ifndef SHM_SAMPLING
 void
 DYNINSTreportCounter(intCounter* counter) {
@@ -1541,7 +1604,7 @@ DYNINSTreportCounter(intCounter* counter) {
     DYNINSTtotalSamples++;
 
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0,
-			       wall_time,process_time);
+			       wall_time, process_time);
 
 #ifdef COSTTEST
     endT=DYNINSTgetCPUtime();
@@ -1552,12 +1615,12 @@ DYNINSTreportCounter(intCounter* counter) {
 }
 #endif
 
+
 /************************************************************************
  * void DYNINSTreportTimer(tTimer* timer)
  *
  * report the timer `timer' to the paradyn daemon.
 ************************************************************************/
-
 #ifndef SHM_SAMPLING
 void
 DYNINSTreportTimer(tTimer *timer) {
@@ -1646,13 +1709,13 @@ DYNINSTreportTimer(tTimer *timer) {
 #endif
 
 
+
 /************************************************************************
  * DYNINST test functions.
  *
  * Since these routines aren't used regularly, shouldn't they be surrounded
  * with an ifdef? --ari
 ************************************************************************/
-
 void DYNINSTsimplePrint(void) {
     printf("inside dynamic inst function\n");
 }
@@ -1674,8 +1737,8 @@ void DYNINSTexitPrint(int arg) {
 }
 
 
-#if defined(MT_THREAD)
 
+#if defined(MT_THREAD)
 unsigned DYNINSTthreadTable[MAX_NUMBER_OF_THREADS];
 
 struct elemList {
@@ -1814,7 +1877,6 @@ void hash_delete(unsigned k)
  *
  * track a thr_create() system call, and report to the paradyn daemon.
  ************************************************************************/
-
 void
 DYNINSTthreadCreate(int *tid) {
     traceThread traceRec;
@@ -1828,5 +1890,77 @@ DYNINSTthreadCreate(int *tid) {
 			       wall_time,process_time);
     hash_insert(*tid);
 }
-
 #endif
+
+
+/************************************************************************
+ *
+ ************************************************************************/
+int TGroup_CreateUniqueId(int commId)
+{
+#ifdef PARADYN_MPI
+  MPI_Group commGroup;
+  MPI_Group worldGroup;
+  int       ranks1[1];
+  int       ranks2[1];
+  int       rc;
+
+  // assert(commId < (1<<16));
+  assert(commId < 100000);
+  
+  rc = MPI_Comm_group(commId, &commGroup);
+  assert(rc == 0);
+  rc = MPI_Comm_group(MPI_COMM_WORLD, &worldGroup);
+  assert(rc == 0);
+  
+  ranks1[0] = 0;
+  rc = MPI_Group_translate_ranks(commGroup, 1, ranks1, worldGroup, ranks2);
+  assert(rc == 0);
+
+  assert(ranks2[0] != MPI_UNDEFINED);
+  // assert(ranks2[0] < (1 << 16));
+  // return(commId + (ranks2[0] * (1<<16)));
+  assert(ranks2[0] < 20000);
+  return(commId + (ranks2[0] * 100000));
+#else
+  return(commId);
+#endif
+}
+
+
+
+/************************************************************************
+ *
+ ************************************************************************/
+int TGroup_CreateLocalId(int tgUniqueId)
+{
+#ifdef PARADYN_MPI
+  // return(tgUniqueId | ((1<<16)-1));
+  return(tgUniqueId % 100000);
+#else
+  return(tgUniqueId);
+#endif
+}
+
+
+/************************************************************************
+ *
+ ************************************************************************/
+int TGroup_FindUniqueId(int groupId)
+{
+  int           groupDx = groupId % DYNINSTTagGroupsLimit;
+  DynInstTagSt* tagSt;
+
+  for(tagSt = TagGroupInfo.GroupTable[groupDx]; tagSt != NULL;
+      tagSt = tagSt->Next) {
+    if(tagSt->TagGroupId == groupId) return(tagSt->TGUniqueId);
+  }
+  return(-1);
+}
+
+
+int TwoComparesAndedExpr(int arg1, int arg2, int arg3, int arg4)
+{
+  return((arg1 == arg2) && (arg3 == arg4));
+}
+
