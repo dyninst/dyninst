@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.49 2002/05/13 19:52:33 mjbrim Exp $
+// $Id: pdwinnt.C,v 1.50 2002/05/24 18:30:12 pcroth Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -61,6 +61,10 @@
 #include "BPatch_thread.h"
 #include "nt_signal_emul.h"
 #endif
+
+// prototypes of functions used in this file
+static string GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev );
+
 
 
 //ccw  27 july 2000 : dummy methods to get the thing to compile before i add
@@ -1338,56 +1342,9 @@ int process::waitProcs(int *status) {
 	// symbols for the dll.
 	// kludgeProcHandle = (HANDLE)p->getProcFileDescriptor();
 
-        void *addr = debugEv.u.LoadDll.lpImageName;
-        int ptr = 0;
-	char nameBuffer[MAX_PATH];
-	if (addr) {
-	    /***
-	      addr is a pointer to the image name (in the application address space)
-	      There is a problem here, because this pointer can be null and it is
-	      null in some cases (in particular, if we attach to a running process
-	      it is always null). This means that it can be difficult to find
-	      the name of an image. 
+	// obtain the name of the DLL
+	string imageName = GetLoadedDllImageName( p, debugEv );
 
-	      Currently, if we can't find the name, we just ignore the
-	      image.  However, we need to at least be able to parse
-	      kernel32.dll, because this library contains some very
-	      important functions, including LoadLibrary, which we
-	      need to call to load libdyninstRT.dll. We use the following
-	      kludge to find if a library is kernel32.dll: the function
-	      klugde_isKernel32Dll open a handle to kernel32.dll. We then
-	      find if the handle we get from the LOAD_DLL_DEBUG_EVENT
-	      is for the same file.
-	    ***/
-
-	    p->readDataSpace_(addr, 4, &ptr);
-	    //printf("ptr = %x\n", ptr);
-	    string kernel32Path;
-		// ****************
-		//ccw 10 aug 2000 : what is going on here???? ***************
-		//at this point ptr contains the first 4 bytes of the name of the
-		//DLL!?!?!?! IS DEBUGEVENT LOADDLL diff on nt/ce? MAYBE
-		// ****************
-
-	    if (ptr) {
-
-		if (debugEv.u.LoadDll.fUnicode) {
-		    unsigned short wbuffer[128];
-		    p->readDataSpace_((void *)ptr, 128*sizeof(short), wbuffer);
-		    WideCharToMultiByte(CP_ACP, 0, wbuffer, 128,
-					nameBuffer, 128, NULL, NULL);
-		} else {
-		    p->readDataSpace_((void *)ptr, 128, nameBuffer);
-		}
-		//printf("Dll name: %s, base = %x\n", nameBuffer, debugEv.u.LoadDll.lpBaseOfDll);
-	    }
-	    else if (kludge_isKernel32Dll(debugEv.u.LoadDll.hFile, kernel32Path)) {
-	        assert(kernel32Path.length() > 0);
-	        assert(kernel32Path.length() < sizeof(nameBuffer));
-		strcpy(nameBuffer, kernel32Path.c_str());
-	    } else
-	        break;
-	}
 
 	// try to load symbols for the DLL
         if (!SymLoadModule((HANDLE)p->getProcFileDescriptor(),
@@ -1397,17 +1354,17 @@ int process::waitProcs(int *status) {
 		char msgText[1024];
 
 		sprintf( msgText, "SymLoadModule failed for %s: 0x%x\n",
-			nameBuffer, GetLastError() );
+			imageName.c_str(), GetLastError() );
 
 		logLine(msgText);
 	}
 
 	// discover structure of new DLL, and incorporate into our
 	// list of known DLLs
-	if (addr) {
+	if (imageName.length() > 0) {
 
 	    shared_object *so =
-		new shared_object(string(nameBuffer), 0,false, true, true, 0);
+		new shared_object(imageName, 0,false, true, true, 0);
 
 	    assert(p->dyn);
 	    p->dyn->sharedObjects.push_back(so);
@@ -1425,10 +1382,7 @@ int process::waitProcs(int *status) {
 	    p->setDynamicLinking();
 	  }
 #ifdef BPATCH_LIBRARY
-	for(int kk = 0;kk< MAX_PATH && nameBuffer[kk] != '\0';kk++){ //ccw 2 may 2001
-		nameBuffer[kk] = toupper(nameBuffer[kk]);
-	}
-	if(strstr(nameBuffer, "LIBDYNINSTAPI_RT.DLL")){
+	if( !_stricmp( imageName.c_str(), "LIBDYNINSTAPI_RT.DLL")){
 	// ccw 2 may 2001
 	//when we load libdyninstAPI_RT.dll we need to find the local
 	//variables in the dll that will hold the cause and pid so when
@@ -1924,59 +1878,9 @@ int process::waitProcs(int *status) {
 	// symbols for the dll.
 	// kludgeProcHandle = (HANDLE)p->getProcFileDescriptor();
 
-        void *addr = debugEv.u.LoadDll.lpImageName;
-        int ptr = 0;
-	char nameBuffer[MAX_PATH];
-	if (addr) {
-	    /***
-	      addr is a pointer to the image name (in the application address space)
-	      There is a problem here, because this pointer can be null and it is
-	      null in some cases (in particular, if we attach to a running process
-	      it is always null). This means that it can be difficult to find
-	      the name of an image. 
+	// obtain the name of the DLL
+	string imageName = GetLoadedDllImageName( p, debugEv );
 
-	      Currently, if we can't find the name, we just ignore the
-	      image.  However, we need to at least be able to parse
-	      kernel32.dll, because this library contains some very
-	      important functions, including LoadLibrary, which we
-	      need to call to load libdyninstRT.dll. We use the following
-	      kludge to find if a library is kernel32.dll: the function
-	      klugde_isKernel32Dll open a handle to kernel32.dll. We then
-	      find if the handle we get from the LOAD_DLL_DEBUG_EVENT
-	      is for the same file.
-	    ***/
-
-	    p->readDataSpace_(addr, 4, &ptr);
-	    //printf("ptr = %x\n", ptr);
-	    string kernel32Path;
-		// ****************
-		//ccw 10 aug 2000 : what is going on here???? ***************
-		//at this point ptr contains the first 4 bytes of the name of the
-		//DLL!?!?!?! IS DEBUGEVENT LOADDLL diff on nt/ce? MAYBE
-		// ****************
-
-	    if (ptr) {
-#ifdef mips_unknown_ce2_11//ccw 11 aug 2000 : 29 mar 2001
-				ptr = (unsigned int) addr;
-#endif
-
-		if (debugEv.u.LoadDll.fUnicode) {
-		    unsigned short wbuffer[128];
-		    p->readDataSpace_((void *)ptr, 128*sizeof(short), wbuffer);
-		    WideCharToMultiByte(CP_ACP, 0, wbuffer, 128,
-					nameBuffer, 128, NULL, NULL);
-		} else {
-		    p->readDataSpace_((void *)ptr, 128, nameBuffer);
-		}
-		//printf("Dll name: %s, base = %x\n", nameBuffer, debugEv.u.LoadDll.lpBaseOfDll);
-	    }
-	    else if (kludge_isKernel32Dll(debugEv.u.LoadDll.hFile, kernel32Path)) {
-	        assert(kernel32Path.length() > 0);
-	        assert(kernel32Path.length() < sizeof(nameBuffer));
-		strcpy(nameBuffer, kernel32Path.c_str());
-	    } else
-	        break;
-	}
 
 	// try to load symbols for the DLL
         if (!SymLoadModule((HANDLE)p->getProcFileDescriptor(),
@@ -1986,21 +1890,21 @@ int process::waitProcs(int *status) {
 		char msgText[1024];
 
 		sprintf( msgText, "SymLoadModule failed for %s: 0x%x\n",
-			nameBuffer, GetLastError() );
+			imageName.c_str(), GetLastError() );
 
 		logLine(msgText);
 	}
 
 	// discover structure of new DLL, and incorporate into our
 	// list of known DLLs
-	if (addr) {
+	if (imageName.length() > 0) {
 
 	    shared_object *so = 
 #ifdef mips_unknown_ce2_11 //ccw 29 mar 2001
-		new shared_object(string(nameBuffer), (unsigned long) debugEv.u.LoadDll.lpBaseOfDll,
+		new shared_object(imageName, (unsigned long) debugEv.u.LoadDll.lpBaseOfDll,
 		false, true, true, 0);
 #else
-		new shared_object(string(nameBuffer), 0,false, true, true, 0);
+		new shared_object(imageName, 0,false, true, true, 0);
 #endif
 
 	    assert(p->dyn);
@@ -2030,7 +1934,7 @@ int process::waitProcs(int *status) {
 		//and load the libdyninstAPI_RT.dll
 
 #ifdef mips_unknown_ce2_11 //ccw 31 jan 2001 : 29 mar 2001
-		if(!strcmp(nameBuffer,"coredll.dll")){ 
+	if( !_stricmp( imageName.c_str(), "COREDLL.DLL" ) ){
 			//make sure we have loaded coredll.dll --this contains LoadLibrary
 
 			continueType = DBG_EXCEPTION_NOT_HANDLED;//ccw 25 oct 2000
@@ -2959,3 +2863,245 @@ bool getLWPIDs(vector <unsigned> &LWPids)
   assert (0 && "Not implemented");
   return false;
 }
+
+
+
+
+//
+// This function retrieves the name of a DLL that has been
+// loaded in an inferior process.  On the desktop flavors
+// of Windows, the debug event that we get for loaded DLLs
+// includes the location of a pointer to the DLL's image name.
+// (Note the indirection.)  On Windows CE, the event contains
+// the location of the image name string, with no indirection.
+//
+// There are several complications to overcome when reading this string:
+//
+// 1.  There is no guarantee that the image name is available.
+//     In this case, the location in the debug event may be NULL,
+//     or the pointer in the inferior process' address space may be NULL.
+// 2.  The image name string may be either ASCII or Unicode.  Most of
+//     the Windows system DLLs have Unicode strings, but many user-built
+//     DLLs use single-byte strings.  If the string is Unicode, we need
+//     to copy it to our address space and convert it to a single-byte
+//     string because the rest of Paradyn/Dyninst has no clue what to
+//     do with Unicode strings.
+// 3.  We don't know how long the string is.  We have a loose upper
+//     bound in that we know it is not more than MAX_PATH characters.
+//     Unfortunately, the call we use to read from the inferior
+//     process' address space will return failure if we ask for more
+//     bytes than it can actually read (so we can't just issue a read
+//     for MAX_PATH characters).  Given this limitation, we have to
+//     try a read and check whether the read succeeded *and* whether
+//     we read the entire image name string.  If not, we have to adjust
+//     the amount we read and try again.
+//
+static
+string
+GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
+{
+	string ret;
+
+
+	if( ev.u.LoadDll.lpImageName == NULL )
+	{
+		// there is no image name string for us to read
+		return ret;
+	}
+
+	char* msgText = new char[1024];	// buffer for error messages
+
+#if defined(ce)
+	// On Windows CE, the address given in the debug event struct
+	// is the address of the DLL name string.
+	void* pImageName = ev.u.LoadDll.lpImageName;
+#else // defined(ce)
+	// On non-CE flavors of Windows, the address given in the debug
+	// event struct is the address of a pointer to the DLL name string.
+	void* pImageName = NULL;
+	if( !p->readDataSpace( ev.u.LoadDll.lpImageName, 4, &pImageName, false ) )
+	{
+		sprintf( msgText, "Failed to read DLL image name pointer: %d\n",
+			GetLastError() );
+		logLine( msgText );
+	}
+#endif // defined(ce)
+
+	if( pImageName != NULL )
+	{
+		// we have the pointer to the DLL image name -
+		// now read the name
+
+		// allocate a conservatively-sized buffer
+		char* buf = new char[(MAX_PATH + 1) * sizeof(WCHAR)];
+		WCHAR* wbuf = (WCHAR*)buf;
+
+		// We don't know how long the image name actually is, but
+		// we do know that they tend not to be very long.
+		// Therefore, we use a scheme to try to minimize the number
+		// of reads needed to get the image name.
+		// We do reads within ranges, starting with [1,128] bytes,
+		// then [129,256] bytes, etc. up to MAX_PATH if necessary.
+		// Within each range, we do reads following a binary search
+		// algorithm.  For example, for the [1,128] range, we start
+		// by trying to read 128 bytes.  If that read fails, we
+		// try to half the number of bytes (i.e., 64).  If that
+		// read also fails, we continue to halve the read requests 
+		// until we find one that succeeds.
+		//
+		// When a read succeeds, we still may not have gotten the
+		// entire string.  So when reads start succeeding, we have to
+		// check the data we got for a null-terimated string.  If we didn't
+		// get the full string, we change the byte count to either
+		// move into the next higher range (if we were already reading
+		// the max within the current range) or we set it to a factor
+		// of 1.5 of the current byte count to try a value between the
+		// current succeeding read and one that had failed.
+		unsigned int loRead = 1;		// range boundaries
+		unsigned int hiRead = 128;
+		unsigned int cbRead = 128;		// number of bytes to read
+		unsigned int chunkRead = 64;	// amount to change cbRead if we fail
+										// we will not halve this before we read
+		bool gotString = false;
+		bool doneReading = false;
+		while( !doneReading )
+		{
+			// try the read with the current byte count
+			if( p->readDataSpace( pImageName, cbRead, buf, false ) )
+			{
+				// the read succeeded - 
+				// did we get the full string?
+				if( ev.u.LoadDll.fUnicode )
+				{
+					unsigned int cbReadIdx = cbRead / sizeof(WCHAR);
+					wbuf[cbReadIdx] = L'\0';
+					WCHAR* nulp = wcschr( wbuf, L'\0' );
+					assert( nulp != NULL );			// because we just NULL-terminated the string
+					gotString = (nulp != &(wbuf[cbReadIdx]));
+				}
+				else
+				{
+					buf[cbRead] = '\0';
+					char* nulp = strchr( buf, '\0' );
+					assert( nulp != NULL );			// because we just NULL-terminated the string
+					gotString = (nulp != &(buf[cbRead]));
+				}
+
+				if( gotString )
+				{
+					doneReading = true;
+				}
+				else
+				{
+					// we didn't get the full string
+					// we need to try a larger read
+					if( cbRead == hiRead )
+					{
+						// we were at the high end of the current range -
+						// move to the next range
+						loRead = hiRead + 1;
+						hiRead = loRead + 128 - 1;
+						chunkRead = 128;				// we will halve this before we read again
+						if( loRead > (MAX_PATH * sizeof(WCHAR)) )
+						{
+							// we've tried every range but still failed
+							doneReading = true;
+						}
+						else
+						{
+							cbRead = hiRead;
+						}
+					}
+					else
+					{
+						// we were within the current range -
+						// try something higher but still within the range
+						cbRead = cbRead + chunkRead;
+					}
+				}
+			}
+			else
+			{
+				// the read failed -
+				// we need to try a smaller read
+				if( cbRead > loRead )
+				{
+					unsigned int nextRead = cbRead - chunkRead;
+					if( nextRead == cbRead )
+					{
+						// we can't subdivide any further
+						doneReading = true;
+					}
+					else
+					{
+						cbRead = nextRead;
+					}
+				}
+				else
+				{
+					// there are no smaller reads to try in this range,
+					// and by induction, in any range.
+					doneReading = true;
+				}
+			}
+
+			// update the amount that we use to change the read request
+			chunkRead /= 2;
+		}
+
+		if( !gotString )
+		{
+			// this is a serious problem because some read 
+			// should've succeeded
+			sprintf( msgText, "Failed to read DLL image name - no read succeeded\n" );
+			logLine( msgText );
+		}
+		else
+		{
+			if( ev.u.LoadDll.fUnicode )
+			{
+				// the DLL path is a Unicode string
+				// we have to convert it to single-byte characters
+				char* tmpbuf = new char[MAX_PATH];
+
+				WideCharToMultiByte(CP_ACP,		// code page to use (ANSI)
+									0,			// flags
+									wbuf,		// Unicode string
+									-1,			// length of Unicode string (-1 => null-terminated)
+									tmpbuf,		// destination buffer
+									MAX_PATH,	// size of destionation buffer
+									NULL,		// default for unmappable chars
+									NULL);		// var to set when defaulting a char
+
+				// swap buffers so that buf points to the single-byte string
+				// when we're out of this code block
+				delete[] buf;
+				buf = tmpbuf;
+			}
+			ret = buf;
+		}
+
+		delete[] buf;
+	}
+	else
+	{
+		// we were given an image name pointer, but it was NULL
+		// this happens for some system DLLs, and if we attach to
+		// the process instead of creating it ourselves.
+		// However, it is very important for us to know about kernel32.dll,
+		// so we check for it specially.
+		//
+		// This call only changes the string parameter if the indicated file is
+		// actually kernel32.dll.
+		kludge_isKernel32Dll( ev.u.LoadDll.hFile, ret );
+	}
+
+	// cleanup
+	delete[] msgText;
+
+	return ret;
+}
+
+
+
+
