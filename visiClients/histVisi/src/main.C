@@ -45,7 +45,7 @@
 // Main program for the rthist executable.
 //
 //----------------------------------------------------------------------------
-// $Id: main.C,v 1.2 1999/12/17 16:22:33 pcroth Exp $
+// $Id: main.C,v 1.3 2000/04/06 15:29:58 wylie Exp $
 //----------------------------------------------------------------------------
 #include "util/h/headers.h"
 
@@ -120,54 +120,3 @@ main( int /* argc */, char* argv[] )
 
     return ret;
 }
-
-
-
-#if defined(rs6000_ibm_aix4_1)
-//----------------------------------------------------------------------------
-// visualizationUser dummies
-// not used, but apparently needed under AIX
-//----------------------------------------------------------------------------
-
-#include "visi/rs6000-ibm-aix4.1/visi.xdr.CLNT.h"
-
-void visualizationUser::GetPhaseInfo()
-{
-   // visi asking us to list the currently defined phases
-   cerr << "visualizationUser::GetPhaseInfo()" << endl;
-   ////vector<T_visi::phase_info> phases;
-   ////this->PhaseData(phases);
-   assert(0);
-}
-
-void visualizationUser::GetMetricResource(string, int, int)
-{
-   // visi asking us to instrument selected metric/focus pairs, and to
-   // start sending that data to it.
-   cerr << "visualizationUser::GetMetricResource(...)" << endl;
-   assert(0);
-}
-
-void visualizationUser::StopMetricResource(u_int /*metricid*/, u_int /*focusid*/)
-{
-   // visi asking us to disable data collection for m/f pair
-   cerr << "visualizationUser::StopMetricResource(...)" << endl;
-   assert(0);
-}
-
-void visualizationUser::StartPhase(double, string, bool, bool)
-{
-   // visi asking us to start a new phase
-   cerr << "visualizationUser::StartPhase(...)" << endl;
-   assert(0);
-}
-
-void visualizationUser::showError(int code, string msg)
-{
-   // visi asking us to show an error
-   cerr << "visualizationUser::showError(code=" << code
-        << ",msg=" << msg << ")" << endl;
-}
-
-#endif // defined(rs6000_ibm_aix4_1)
-
