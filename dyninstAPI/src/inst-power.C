@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.122 2002/02/22 00:06:45 bernat Exp $
+ * $Id: inst-power.C,v 1.123 2002/02/27 01:48:49 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -976,7 +976,11 @@ unsigned generateMTTrampCode(instruction *insn, Address &base, process *proc)
   tmp_insn++; scratchBase+=sizeof(instruction);
 
   // Store POS on the stack
-  saveRegister(tmp_insn, scratchBase, REG_MT_POS, PDYN_MT_POS);
+  // Store POS on the stack
+  // Don't use saveReg because we don't want the reg offset calculation
+  genImmInsn(tmp_insn, STop, REG_MT_POS, 1, PDYN_MT_POS);
+  tmp_insn++;
+  scratchBase += sizeof(instruction);
   // Get sizeof (int) and multiply
   base += scratchBase; scratchBase = 0; // reset
   emitImm(timesOp, REG_MT_POS, sizeof(int), REG_GUARD_OFFSET, 
@@ -1859,81 +1863,68 @@ int callsTrackedFuncP(instPoint *point)
  * pos:    Use this POS
  */
 
-unsigned generateMTRPCCode(char *insn, Address &base, process *proc, 
-			   unsigned offset, int tid, unsigned pos)
+Address generateMTRPCCode(char *insn, Address &base, process *proc, 
+			  int tid, unsigned pos)
 {
-  AstNode *t1 ;
-  Address tableAddr;
-  int value; 
+  AstNode *threadPOSTID;
+  vector<AstNode *>param;
+  Address returnVal;
   bool err;
   Register src = Null_Register;
-  cerr << "In generateMTRPC" << endl;
-  if (tid != -1)  {
 
-    // Pseudocode:
-    /*
-      t1 = DYNINSTthreadPosTID(tid, pos);
-      t2 = t1 * sizeof(unsigned);
-      t3 = DYNINSTthreadtable + t2;
-      if (t1 == -2)
-        return; //basically, skip forward by a given offset
-    */
-    // Check to see if POS is valid or return -2
-    // t1 = DYNINSTthreadPosTID(tid, pos);
-    vector<AstNode *> param;
-    param += new AstNode(AstNode::Constant,(void *)tid);
-    param += new AstNode(AstNode::Constant,(void *)pos);
-    t1 = new AstNode("DYNINSTthreadPosTID", param);
-    for (unsigned i=0; i<param.size(); i++) 
-      removeAst(param[i]) ;
+  // registers cleanup
+  regSpace->resetSpace();
 
-    // Multiply POS by size of unsigned (not void *)?
+  /* Get the hashed value of the thread */
+  param += new AstNode(AstNode::Constant, (void *)tid);
+  param += new AstNode(AstNode::Constant, (void *)pos);
+  threadPOSTID = new AstNode("DYNINSTthreadPosTID", param);
+  for (unsigned i=0; i<param.size(); i++) 
+    removeAst(param[i]) ;
 
-    value = sizeof(unsigned);
-    AstNode* t4 = new AstNode(AstNode::Constant,(void *)value);
-    AstNode* t2 = new AstNode(timesOp, t1, t4);
-    // Don't remove, we use it further down.
-    //removeAst(t1) ;
-    removeAst(t4) ;
-
-    // t3 = DYNINSTthreadTable + POS*sizeof(unsigned)
-
-    tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
-    assert(!err);
-    AstNode* t5 = new AstNode(AstNode::Constant, (void *)tableAddr);
-    AstNode* t3 = new AstNode(plusOp, t2, t5);
-    removeAst(t2);
-    removeAst(t5);
-
-    //if (t1 == -2) go forward by offset
-
-    AstNode* t7 = new AstNode(AstNode::Constant,(void *)-2);
-    AstNode* t8 = new AstNode(eqOp, t1, t7);
-    removeAst(t1);
-    removeAst(t7);
-    AstNode* t9 = new AstNode(AstNode::Constant, (void *)(offset));
-    AstNode* t10 = new AstNode(branchOp, t9);
-    removeAst(t9);
-    AstNode* t11 = new AstNode(ifOp, t8, t10);
-    removeAst(t8);
-    removeAst(t10);
-    AstNode *t6= new AstNode(t11, t3);
-
-    removeAst(t11);
-    removeAst(t3);
-    src = t6->generateCode(proc, regSpace, insn, base, false, true);
-    removeAst(t6);
-
-    instruction *tmp_insn = (instruction *) ((void*)&insn[base]);
-    genImmInsn(tmp_insn, ORILop, src, REG_MT_BASE, 0);  
-    base += sizeof(instruction);
-    //regSpace->freeRegister(src);
+  src = threadPOSTID->generateCode(proc, regSpace, (char *)insn,
+				   base, 
+				   false, // noCost 
+				   true); // root node
+  instruction *tmp_insn = (instruction *) ((void*)&(insn[base]));
+  if ((src) != REG_MT_POS) {
+    cerr << "Source reg " << src << " neq " << REG_MT_POS << endl;
+    genImmInsn(tmp_insn, ORILop, src, REG_MT_POS, 0);
+    tmp_insn++; base+=sizeof(instruction);
   }
+  // Compare immediate with -2, branch if true: two ops
+  genImmInsn(tmp_insn, CMPIop, 0, REG_MT_POS, (unsigned) -2);
+  tmp_insn++; base+=sizeof(instruction);
+  returnVal = base;
+  generateNOOP(tmp_insn);
+  tmp_insn++; base+=sizeof(instruction);
 
-  return 0;
+  // Store POS on the stack
+  // Don't use saveReg because we don't want the reg offset calculation
+  genImmInsn(tmp_insn, STop, REG_MT_POS, 1, PDYN_MT_POS);
+  tmp_insn++; base += sizeof(instruction);
+
+  // Get sizeof (int) and multiply
+  emitImm(timesOp, REG_MT_POS, sizeof(int), REG_GUARD_OFFSET, 
+	  insn, base, true);
+  
+  // Now we leave that be. Build the addr of threadTable in REG_MT_BASE
+  // and add REG_MT_POS to it
+  emitVload(loadConstOp, proc->findInternalAddress("DYNINSTthreadTable",true,err),
+	    REG_MT_BASE, REG_MT_BASE, insn, base, false);
+  emitV(plusOp, REG_GUARD_OFFSET, REG_MT_BASE, REG_MT_BASE, 
+	insn, base, false);
+
+  return returnVal;
 }
 
 #endif
+
+void generateMTSkipBranch(unsigned char *insn, Address addr, Address offset)
+{
+  instruction *tmp_insn = (instruction *) ((void*)&(insn[addr]));
+  generateBranchInsn(tmp_insn, offset-addr);
+}
 
 void generateBreakPoint(instruction &insn) { // instP.h
     insn.raw = BREAK_POINT_INSN;
@@ -2481,8 +2472,8 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 	restoreRegister(insn, base, src1+3, dest, TRAMP_GPR_OFFSET);
 	return(dest);
       } else {
-	assert(0 && "This is broken severely");
-        genImmInsn(insn, Lop, dest, 1, (src1+6)*4);
+	// Registers from 11 (src = 8) and beyond are saved starting at stack+56
+        genImmInsn(insn, Lop, dest, 1, TRAMP_FRAME_SIZE+((src1-8)*sizeof(unsigned))+56);
         insn++;	
         base += sizeof(instruction);
         return(dest);
@@ -2498,11 +2489,6 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 static inline bool needsRestore(Register x)
 {
   return (x == 0) || ((x >= 3) && (x <= 12)) || (x == 9999);
-}
-
-static inline unsigned int stackOffset(Register x)
-{
-  return (x >= 3) ? 8 : 0;
 }
 
 // VG(11/16/01): Emit code to add the original value of a register to
@@ -2527,8 +2513,9 @@ static inline void emitAddOriginal(Register src, Register acc,
     // This writes at insn, and updates insn and base.
 
     if(src == 9999) { // hack for XER_25:31
-      //fprintf(stderr, "XER_25:31\n");
-      restoreRegister(insn, base, 15, temp, 8); // get orignal XER value
+      fprintf(stderr, "XER_25:31\n");
+      //restoreRegister(insn, base, 15, temp, 8); // get orignal XER value
+      base += restoreSPR(insn, temp, SPR_XER, TRAMP_SPR_OFFSET);
       // keep only bits 32+25:32+31; extrdi temp, temp, 7 (n bits), 32+25 (start at b)
       // which is actually: rldicl temp, temp, 32+25+7 (b+n), 64-7 (64-n)
       // which is the same as: clrldi temp,temp,57 because 32+25+7 = 64
@@ -2545,8 +2532,12 @@ static inline void emitAddOriginal(Register src, Register acc,
       ++insn;
       base += sizeof(instruction);
     }
-    else
-      restoreRegister(insn, base, src, temp, stackOffset(src));
+    else {
+      fprintf(stderr, "Restoring register %d into %d\n",
+	      src, temp);
+
+      restoreRegister(insn, base, src, temp, TRAMP_GPR_OFFSET);
+    }
   }
   else
     temp = src;
@@ -2569,7 +2560,6 @@ void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
   int imm = as.getImm();
   int ra  = as.getReg(0);
   int rb  = as.getReg(1);
-  
   // TODO: optimize this to generate the minimum number of
   // instructions; think about schedule
 
@@ -2587,6 +2577,7 @@ void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
   // get the value of ra from stack into it
   if(rb > -1)
     emitAddOriginal(rb, dest, baseInsn, base, noCost);
+
 }
 #endif
 
@@ -3743,8 +3734,10 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
   switch ( (int) register_num)
     {
     case REG_LR:
-      assert(0 && "Need to fix this");
-      // LR is saved down the stack
+      // LR is saved on the stack
+      // Note: this is only valid for non-function entry/exit instru. 
+      // Once we've entered a function, the LR is stomped to point
+      // at the exit tramp!
       offset = TRAMP_SPR_OFFSET + STK_LR; 
       // Get address (SP + offset) and stick in register dest.
       emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest, insn, 

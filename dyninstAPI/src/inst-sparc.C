@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.115 2002/02/21 21:47:48 bernat Exp $
+// $Id: inst-sparc.C,v 1.116 2002/02/27 01:48:49 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -989,8 +989,8 @@ void generateMTpreamble(char *insn, Address &base, process *proc)
 
 // Fake the POS calculation
 
-void generateMTRPCCode(char *insn, Address &base, 
-		       process *proc, unsigned offset, 
+Address generateMTRPCCode(char *insn, Address &base, 
+		       process *proc,
 		       int tid, unsigned pos)
 {
   AstNode *t1 ;
@@ -1025,7 +1025,7 @@ void generateMTRPCCode(char *insn, Address &base,
     AstNode* t7 = new AstNode(AstNode::Constant,(void *)-2);
     AstNode* t8 = new AstNode(eqOp, t1, t7);
     removeAst(t7);
-    AstNode* t9 = new AstNode(AstNode::Constant, (void *)(offset));
+    AstNode* t9 = new AstNode(AstNode::Constant, (void *)28);
     AstNode* t10 = new AstNode(branchOp, t9);
     removeAst(t9);
     AstNode* t11 = new AstNode(ifOp, t8, t10);
@@ -1041,8 +1041,15 @@ void generateMTRPCCode(char *insn, Address &base,
     (void) emitV(orOp, src, 0, REG_MT_BASE, insn, base, false);
     regSpace->freeRegister(src);
   }
+  return 0;
 }
 #endif
+
+void generateMTSkipBranch(unsigned char *insn, Address addr, Address offset)
+{
+  instruction *tmp_insn = (instruction *) ((void*)&(insn[addr]));
+  generateBranchInsn(tmp_insn, offset-addr);
+}
 
 /****************************************************************************/
 /****************************************************************************/

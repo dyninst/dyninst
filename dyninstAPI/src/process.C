@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.305 2002/02/26 20:30:05 gurari Exp $
+// $Id: process.C,v 1.306 2002/02/27 01:48:49 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1876,10 +1876,7 @@ process::process(int iPid, image *iImage, int iTraceLink
     reachedVeryFirstTrap = false;
     createdViaAttach = false;
     createdViaFork = false;
-    if (iTraceLink != -1 ) createdViaAttachToCreated = false; 
-    else 
-       createdViaAttachToCreated = true; // indicates the unique case where paradynd is attached to
-                                         // a stopped application just after executing the execv() --Ana 
+    createdViaAttachToCreated = false; 
 
 #ifndef BPATCH_LIBRARY
       if (iTraceLink == -1 ) createdViaAttachToCreated = true;
@@ -5191,7 +5188,6 @@ void signalRPCthread(process *p) {
 bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    // asynchronously launches an inferiorRPC iff RPCsWaitingToStart.size() > 0
    // AND if currRunningRPCs.size()==0 (the latter for safety)
-
 #if defined(MT_THREAD)
    handleDoneSAFEinferiorRPC();
    if (need_to_wait())
@@ -5518,6 +5514,7 @@ Address process::createRPCtempTramp(AstNode *action,
                                      int thrId,
                                      bool isSAFE)
 {
+
    // Returns addr of temp tramp, which was allocated in the inferior heap.
    // You must free it yourself when done.
    // Note how this is, in many ways, a greatly simplified version of
@@ -5544,8 +5541,8 @@ Address process::createRPCtempTramp(AstNode *action,
       return 0;
    }
 
+   Address skipBRAddr = 0;
 #if defined(MT_THREAD)
-
    // Use -1 since 0 may be a valid pthread id, and -1 is equivalent to
    // "no thread" for Paradyn purposes.
    if (thrId != -1) {
@@ -5592,18 +5589,14 @@ Address process::createRPCtempTramp(AstNode *action,
 
      for (unsigned i=0; i<param.size(); i++) removeAst(param[i]) ;
 
-     // Count the number of instructions actions needs  to set offset properly
-     char tmp[1024] ;
-     Address cnt = 0 ;
-     action->generateCode(this, regSpace, (char*) tmp, cnt, noCost, true) ;
-     regSpace->resetSpace();
-     extern void generateMTRPCCode(char *insn, Address &base, process *proc, unsigned offset, int tid, unsigned pos);
-     // FIXME: 7*sizeof(instruction)? 
-     generateMTRPCCode((char*)insnBuffer,count,this,
-		       (cnt)+7*sizeof(instruction), thrId, pos);
+     extern Address generateMTRPCCode(char *insn, Address &base, process *proc, int tid, unsigned pos);
+     
+     // We need to put in a branch past the rest of the RPC (to the trailer, actually)
+     // if the MT information given is incorrect. That's the skipBRaddr part.
+     skipBRAddr = generateMTRPCCode((char*)insnBuffer,count,this, thrId, pos);
+     
    }
 #endif
-
    resultReg = (Register)action->generateCode(this, regSpace,
                                     (char*)insnBuffer,
                                     count, noCost, true);
@@ -5613,9 +5606,10 @@ Address process::createRPCtempTramp(AstNode *action,
    else
       ; // in this case, we'll call freeRegister() the inferior rpc completes
 
-   // Now, the trailer (restore, TRAP, illegal)
-   // (the following is implemented in an arch-specific source file...)
+   Address skipOffset = count;
 
+   // Now, the trailer (restore, TRAP, illegal)
+   // (the following is implemented in an arch-specific source file...)   
    unsigned breakOffset, stopForResultOffset, justAfter_stopForResultOffset;
    if (!emitInferiorRPCtrailer(insnBuffer, count,
                        breakOffset, shouldStopForResult, stopForResultOffset,
@@ -5627,6 +5621,13 @@ Address process::createRPCtempTramp(AstNode *action,
 
       return 0;
    }
+
+   // Patch up the MT skip jump if required
+   if (skipBRAddr) {
+     extern void generateMTSkipBranch(unsigned char *insn, Address addr, Address offset);
+     generateMTSkipBranch(insnBuffer, skipBRAddr, skipOffset);
+   }
+
    Address tempTrampBase;
    if (lowmem)
      {
@@ -5662,12 +5663,14 @@ Address process::createRPCtempTramp(AstNode *action,
 
    /* Now, write to the tempTramp, in the inferior addr's data space
       (all tramps are allocated in data space) */
+
    if (!writeDataSpace((void*)tempTrampBase, count, insnBuffer)) {
       // should put up a nice error dialog window
       cerr << "createRPCtempTramp failed because writeDataSpace failed" << endl;
       return 0;
    }
 
+#if 0
 #if defined(MT_THREAD)
    if (!DYNINSTthreadRPC) {
       RTINSTsharedData* RTsharedData = (RTINSTsharedData* ) getRTsharedDataInParadyndSpace() ;
@@ -5695,7 +5698,7 @@ Address process::createRPCtempTramp(AstNode *action,
      }
    }
 #endif /*MT_THREAD*/
-
+#endif
    extern int trampBytes; // stats.h
    trampBytes += count;
 
