@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.35 1994/11/11 10:44:06 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.36 1994/11/12 17:28:59 rbi Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.35  1994/11/11 10:44:06  markc
+ * Revision 1.36  1994/11/12 17:28:59  rbi
+ * improved status reporting for applications pauses
+ *
+ * Revision 1.35  1994/11/11  10:44:06  markc
  * Remove non-emergency prints
  * Changed others to use statusLine
  *
@@ -447,13 +450,6 @@ int handleSigChild(int pid, int status)
 		break;
 
 	    case SIGSTOP:
-//
-//  uncomment these two lines if you want to see debugging output
-//  at every breakpoint (i don't).  -- rbi
-//
-//	sprintf(errorLine, "PID=%d, CONTROLLER: Breakpoint reached\n",pid);
-//	logLine(errorLine);
-
 		curr->status = stopped;
 		curr->reachedFirstBreak = 1;
 
