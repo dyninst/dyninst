@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.32 2003/07/28 20:18:46 chadd Exp $
+# $Id: Makefile,v 1.33 2004/01/19 21:54:07 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -24,7 +24,7 @@ MUTATEE_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -g
 MUTATEE_FLINKFLAGS += -g -ldl
 
 MUTATEE_TEST9_LIBS_LIST = libInstMe.so libLoadMe.so
-MUTATEE_TEST9_LIBS = -L. -lInstMe -ldl
+MUTATEE_TEST9_LIBS = -L. -lInstMe
 
 SYSLIBS += -lelf -ldl
 LIBS = -L$(LIBDWARFDIR)/lib -ldwarf
@@ -50,7 +50,7 @@ TEST6_ASSUFFIX = asm
 # the module that is common across architectures.
 
 USES_MUTATEE_LIBS = true
-MUTATEE_LIBS = -ldl
+MUTATEE_LIBS = -Wl,-ldl
 
 include ../make.module.tmpl
 
@@ -87,6 +87,7 @@ ifeq (test1,$(findstring test1,$(TARGET2)))
 #MUTATEE_CFLAGS += -rdynamic
 MUTATEE_CFLAGS += -g -Wl,-export-dynamic
 endif
+
 
 ifeq (test9,$(findstring test9,$(TARGET2)))
 # test9.mutatee loads libInstMe.so & libLoadMe.so for tests 5 & 6
