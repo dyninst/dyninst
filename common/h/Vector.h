@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Vector.h: resizable vectors.
- * $Id: Vector.h,v 1.10 2001/06/12 15:42:46 hollings Exp $
+ * $Id: Vector.h,v 1.11 2001/06/15 20:48:28 hollings Exp $
 ************************************************************************/
 
 
@@ -78,7 +78,7 @@ typedef int (*qsort_cmpfunc_t)(const void *, const void *);
 
 #else
 
-#define VECTOR_APPEND(l1, l2) 	l1 += l2;
+#define VECTOR_APPEND(l1, l2) 	{ for (int _i=0; _i < (l2).size(); _i++) (l1).push_back((l2)[_i]); }
 #define VECTOR_SORT(l1, f) 	l1.sort((qsort_cmpfunc_t)f);
 
 
@@ -106,8 +106,10 @@ public:
     DO_INLINE_F vector<T>&  operator= (const vector<T> &);
 
     // These two should be elimindated as non-standard
+#ifndef BPATCH_LIBRARY
     DO_INLINE_F vector<T>& operator+= (const vector<T> &);
     DO_INLINE_F vector<T>& operator+= (const T &);
+#endif
 
     DO_INLINE_F vector<T>& push_back(const T &); 
 
@@ -175,6 +177,8 @@ vector<T>::operator=(const vector<T>& v) {
     return *this;
 }
 
+
+#ifndef BPATCH_LIBRARY
 template<class T>
 DO_INLINE_F
 vector<T>&
@@ -195,6 +199,7 @@ vector<T>::operator+=(const T& v0) {
     data_[sz_-1] = v0;
     return *this;
 }
+#endif
 
 template<class T>
 DO_INLINE_F
