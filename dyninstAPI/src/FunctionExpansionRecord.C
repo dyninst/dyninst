@@ -4,16 +4,27 @@
 
 
 FERNode::FERNode(int toffset, int tshift) {
-    origional_offset = toffset;
+    original_offset = toffset;
     shift = tshift;
 }
- 
+
+// updated with totalShift for function relocation 
 FunctionExpansionRecord::FunctionExpansionRecord() {
     index = 0;
     collapsed = 0;
+    totalShift = 0;
 }
 
+
+// replaced old destructor for function relocation
 FunctionExpansionRecord::~FunctionExpansionRecord() {
+    DeleteNodes();
+}
+
+
+// Added for function relocation
+// deletes FERNodes 
+void FunctionExpansionRecord::DeleteNodes() {
     unsigned int i;
     for(i=0;i<expansions.size();i++) {
         delete expansions[i];
@@ -21,7 +32,26 @@ FunctionExpansionRecord::~FunctionExpansionRecord() {
     expansions.resize(0);
 }
 
-int FunctionExpansionRecord::GetShift(int origional_offset) {
+
+// Added for function relocation
+// clears record of FERNodes 
+void FunctionExpansionRecord::Flush() {
+    unsigned int i;
+    index = 0;
+    collapsed = 0;
+    totalShift = 0;
+    total_expansions.resize(0);
+
+    for(i=0;i<expansions.size();i++) {
+        expansions[i] = 0;
+    }
+    expansions.resize(0);
+}
+
+
+
+// updated for function relocation
+int FunctionExpansionRecord::GetShift(int original_offset) {
     int stop;
 
     assert(collapsed);
@@ -31,41 +61,42 @@ int FunctionExpansionRecord::GetShift(int origional_offset) {
 	return 0;
     }
 
-    // origional_offset < lowest expansion record offset, offset 0....
-    if (origional_offset < total_expansions[0].OrigionalOffset()) {
+    // original_offset < lowest expansion record offset, offset 0....
+    if (original_offset < total_expansions[0].OriginalOffset()) {
 	return 0;
     }
 
     stop = total_expansions.size() - 1;
-    // origional_offset >= highest expansion record offset, offset of
+    // original_offset >= highest expansion record offset, offset of
     //  highest expansion record....
-    if (origional_offset >= total_expansions[stop].OrigionalOffset()) {
-	return total_expansions[stop].Shift();
+    if (original_offset > total_expansions[stop].OriginalOffset()) {
+	return totalShift;
     } 
 
     // index points too far into expansions, reset it to 0...
-    if (origional_offset < total_expansions[index].OrigionalOffset()) {
+    if (original_offset < total_expansions[index].OriginalOffset()) {
 	stop = index;
 	index = 0;
     }
 
-    while (index < stop && origional_offset >= \
-	    total_expansions[index+1].OrigionalOffset()) {
+    while (index < stop && original_offset > \
+	    total_expansions[index].OriginalOffset()) {
 	index++;
     }
     return total_expansions[index].Shift();
-}  
+} 
 
-void FunctionExpansionRecord::AddExpansion(int origional_offset, int shift) {
-    int size = expansions.size();
+// added for function relocation
+int FunctionExpansionRecord::sizeChange() {
+    return totalShift;
+}
+
+
+// updated by adding totalShift for function relocation
+void FunctionExpansionRecord::AddExpansion(int original_offset, int shift) {
     collapsed = 0;
-    //if (size > 0) {
-    //	// assert just to make that expansions is kept sorted.  Currently,
-    //	// expansion instances should only be added in increasing order.
-    //	// change code here to allow arbitrary inserts here iff necessary.....
-    //	assert(origional_offset > expansions[size-1].OrigionalOffset());
-    //}
-    expansions += new FERNode(origional_offset, shift);
+    expansions += new FERNode(original_offset, shift);
+    totalShift += shift;
 }
 
 
@@ -89,17 +120,17 @@ ostream &FunctionExpansionRecord::operator<<(ostream &os) {
 } 
 
 ostream &FERNode::operator<<(ostream &os) {
-  os << "origional_offset : " << origional_offset << " , shift : " \
+  os << "original_offset : " << original_offset << " , shift : " \
      << shift << endl;
   return os;
 }
 
 // function used to sort array of fer nodes....
 int sort_fernode_by_offset(const void *a, const void *b) {
-    FERNode *f1 = *(FERNode**)a;            // 6/1/99 zhichen
-    FERNode *f2 = *(FERNode**)b;
-    int offset1 = f1->OrigionalOffset();
-    int offset2 = f2->OrigionalOffset();
+    FERNode *f1 = *(FERNode**)(const_cast <void*> (a));
+    FERNode *f2 = *(FERNode**)(const_cast <void*> (b));
+    int offset1 = f1->OriginalOffset();
+    int offset2 = f2->OriginalOffset();
     if (offset1 > offset2) {
         return 1;
     } else if (offset1 < offset2) {
@@ -121,11 +152,12 @@ void FunctionExpansionRecord::Collapse() {
     total_expansions.resize(0);
     expansions.sort(sort_fernode_by_offset);
 
-    for(i=0;i<expansions.size();i++) {
+    for(i=0;(unsigned)i<expansions.size();i++) {
+	total_expansions += FERNode(expansions[i]->OriginalOffset(), total);
         total += expansions[i]->Shift();
-	total_expansions += FERNode(expansions[i]->OrigionalOffset(), total);
     }
 
     collapsed = 1;
 }
+
 

@@ -51,19 +51,19 @@
 class FERNode {
     //  the offset (number of instructions from beginning of the function) at
     //   which the extra instructions are inserted.  This offset is called
-    //   "origional" to exphasze that it is relative to the ORIGIONAL function,
+    //   "original" to exphasze that it is relative to the ORIGINAL function,
     //   not the REWRITTEN function.
-    int origional_offset;
+    int original_offset;
     //  the number of instructions by which offsets in F() between
-    //   origional_offset and the origional_offset of the next FERNode are
+    //   original_offset and the original_offset of the next FERNode are
     //   shifted....
     int shift;
   public:
-    int OrigionalOffset() {return origional_offset;}
+    int OriginalOffset() {return original_offset;}
     int Shift() {return shift;}
     void SetShift(int val) {shift = val;}
     FERNode(int toffset = 0, int tshift = 0);
-
+ 
     ostream &operator<<(ostream &os);
 };
 
@@ -74,7 +74,7 @@ class FunctionExpansionRecord {
     //  locations inside the function).
 
     // vector holding FERNodes added with AddExpansion()....
-    //  assumes sorted in order of origional_offset....
+    //  assumes sorted in order of original_offset....
     vector<FERNode*> expansions;
     // vector holding FERNodes representing TOTAL displacements 
     //  derived from individual displacements specified via AddExpansion()....
@@ -82,7 +82,12 @@ class FunctionExpansionRecord {
     // index into expansions which satisfied last GetShift() request.... 
     int index;
 
+    // 0 indicatess that a new FERNode has been added while
+    // total_expansions has not been updated to reflect this
     int collapsed;
+
+    // total shift of the record
+    int totalShift;
 
     // sort expansions vector (in place)....
     void SortExpansions();
@@ -91,14 +96,23 @@ class FunctionExpansionRecord {
     // destructor, nuke expansions and total_expansions....
     ~FunctionExpansionRecord();
 
+    // delete the FERNodes in expansions
+    void DeleteNodes();
+ 
+    // clear FERNodes out of expansions without deleting the FERNodes
+    void Flush();
+
     // add an additional expansion record....
-    void AddExpansion(int origional_offset, int shift);
+    void AddExpansion(int original_offset, int shift);
     // compute total expansions for given regions from added expansion
     //  records - use BEFORE GetShift()....
     void Collapse();
 
-    int GetShift(int origional_offset);
+    int GetShift(int original_offset);
     FunctionExpansionRecord();
+
+    // returns the sum total of the FERNodes shifts 
+    int sizeChange();
 
     // dump state info....
     ostream& operator<<(ostream &os);
@@ -107,3 +121,4 @@ class FunctionExpansionRecord {
 
 /*  __FUNCTION_EXPANSION_RECORD_H__  */
 #endif
+
