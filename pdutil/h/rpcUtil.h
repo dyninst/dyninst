@@ -44,8 +44,9 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.40  1999/03/03 17:43:49  pcroth
- * Updated with new support for Windows NT in front end and thread lib
+ * Revision 1.41  1999/03/19 20:30:38  pcroth
+ * Moved THREADrpc class declaration to thread library, to remove
+ * dependency of util library on thread library header.
  *
  * Revision 1.39  1998/08/27 21:22:02  nash
  * Fixed type warnings in header files and removed Linux kludge from
@@ -116,7 +117,6 @@
 
 #include "util/h/headers.h"
 #include "util/h/pdsocket.h"
-#include "thread/h/thread.h"
 #include "util/h/String.h"
 // trace data streams
 #include "util/h/ByteArray.h"
@@ -191,25 +191,6 @@ public:
 
   bool versionVerifyDone;
   int err_state;
-};
-
-class THREADrpc {
-public:
-  THREADrpc(thread_t t) { tid = t; }
-  // ~THREADrpc() { }
-  void setTid(thread_t id) { tid = id; }
-  thread_t getTid() const { return tid;}
-
-  // see not on requestingThread, the use of this may be unsafe
-  thread_t getRequestingThread() const { return requestingThread; }
-  void setRequestingThread(thread_t t) { requestingThread = t;}
-  thread_t net_obj() const { return tid;}
-
- private:
-  thread_t tid;
-  // these are only to be used by implmentors of thread RPCs.
-  //   the value is only valid during a thread RPC.
-  thread_t requestingThread;
 };
 
 extern int RPC_setup_socket (PDSOCKET &sfd,   // return file descriptor
