@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.32 2002/04/23 18:58:54 schendel Exp $
+// $Id: mdl.h,v 1.33 2002/05/04 21:47:21 schendel Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
@@ -83,7 +83,7 @@ const char RH_SEPARATOR = '/';
 #define MDL_T_PROC_TIMER 39
 #define MDL_T_WALL_TIMER 40
 #define MDL_T_PROCESS 41
-#define MDL_T_DRN     42
+#define MDL_T_DATANODE    42
 #define MDL_T_COUNTER_PTR 43
 #define MDL_T_PROCEDURE_NAME 44
 #define MDL_T_CONSTRAINT   45
@@ -264,11 +264,10 @@ class pdThread { };
 class function_base { };
 class module { };
 class instPoint { };
-class dataReqNode { };
 class metricDefinitionNode { };
 class machineMetFocusNode { };
 class instrCodeNode { };
-class instrThrDataNode { };
+class instrDataNode { };
 class threadMetFocusNode { };
 class AstNode { };
 #else
@@ -277,11 +276,10 @@ class pdThread;
 class function_base;
 class module;
 class instPoint;
-class dataReqNode;
 class metricDefinitionNode;
 class machineMetFocusNode;
 class instrCodeNode;
-class instrThrDataNode;
+class instrDataNode;
 class threadMetFocusNode;
 class AstNode;
 #endif
@@ -329,7 +327,7 @@ public:
   mdl_var(const string& nm, vector<int> *vi, bool is_remote);
   mdl_var(const string& nm, vector<float> *vf, bool is_remote);
   mdl_var(const string& nm, vector<string> *vs, bool is_remote);
-  mdl_var(const string& nm, dataReqNode *drn, bool is_remote);
+  mdl_var(const string& nm, instrDataNode *dn, bool is_remote);
   mdl_var(const string& nm, vector<instPoint*> *ipl, bool is_remote);
 
   bool get(int &i);
@@ -346,7 +344,7 @@ public:
   bool get(vector<int> *&vi);
   bool get(vector<float> *&vf);
   bool get(vector<string> *&vs);
-  bool get(dataReqNode *&drn);
+  bool get(instrDataNode *&dn);
   bool get(vector<instPoint*> *&vip);
 
   bool set(int i);
@@ -363,7 +361,7 @@ public:
   bool set(vector<int> *vi);
   bool set(vector<float> *vf);
   bool set(vector<string> *vs);
-  bool set(dataReqNode *drn);
+  bool set(instrDataNode *dn);
   bool set(vector<instPoint*> *ipl);
 
   void set_type(unsigned type);
@@ -396,7 +394,7 @@ private:
     vector<string>       *list_string;
     vector<module*>      *list_module;
     vector<instPoint*>   *list_pts;
-    dataReqNode          *drn;
+    instrDataNode        *dn;
     void *ptr;
   };
 
@@ -434,7 +432,7 @@ public:
   static bool set(vector<float> *vf, const string& var_name);
   static bool set(vector<string> *vs, const string& var_name);
   static bool set(vector<instPoint*> *vip, const string& var_name);
-  static bool set(dataReqNode *drn, const string& var_name);
+  static bool set(instrDataNode *dn, const string& var_name);
 
   //static unsigned get_type(string var_name) ;
   static bool set_type(unsigned type, const string& var_name);
@@ -486,8 +484,8 @@ inline void mdl_var::dump() {
   case MDL_T_PROC_TIMER:
     cout << "MDL_T_PROC_TIMER\n";
     break;
-  case MDL_T_DRN:
-    cout << "MDL_T_DRN\n";
+  case MDL_T_DATANODE:
+    cout << "MDL_T_DATANODE\n";
     break;
   case MDL_T_LIST_PROCEDURE:
     cout << "MDL_T_LIST_PROCEDURE\n";
@@ -592,9 +590,9 @@ inline mdl_var::mdl_var(const string& nm, vector<instPoint*> *vip, bool is_remot
 : name_(nm), type_(MDL_T_LIST_POINT), remote_(is_remote), string_val_("")
 { PURE_INIT(&vals_); vals_.list_pts = vip; }
 
-inline mdl_var::mdl_var(const string& nm, dataReqNode *drn, bool is_remote) 
-: name_(nm), type_(MDL_T_DRN), remote_(is_remote), string_val_("")
-{ PURE_INIT(&vals_); vals_.drn = drn; }
+inline mdl_var::mdl_var(const string& nm, instrDataNode *dn, bool is_remote) 
+: name_(nm), type_(MDL_T_DATANODE), remote_(is_remote), string_val_("")
+{ PURE_INIT(&vals_); vals_.dn = dn; }
 
 inline bool mdl_var::get(int &i) {
   if (type_ != MDL_T_INT) return false;
@@ -637,9 +635,9 @@ inline bool mdl_var::get(process *&pr) {
   pr = vals_.the_process;
   return true;
 }
-inline bool mdl_var::get(dataReqNode *&drn) {
-  if (type_ != MDL_T_DRN) return false;
-  drn = vals_.drn; 
+inline bool mdl_var::get(instrDataNode *&dn) {
+  if (type_ != MDL_T_DATANODE) return false;
+  dn = vals_.dn; 
   return true;
 }
 
@@ -727,10 +725,10 @@ inline bool mdl_var::set(process *pr) {
   vals_.the_process = pr;
   return true;
 }
-inline bool mdl_var::set(dataReqNode *drn) {
+inline bool mdl_var::set(instrDataNode *dn) {
   reset();
-  type_ = MDL_T_DRN;
-  vals_.drn = drn;
+  type_ = MDL_T_DATANODE;
+  vals_.dn = dn;
   return true;
 }
 
@@ -1060,11 +1058,11 @@ inline bool mdl_env::set(process *pr, const string& var_name) {
   return mdl_env::all_vars[index].set(pr);
 }
 
-inline bool mdl_env::set(dataReqNode *drn, const string& var_name) {
+inline bool mdl_env::set(instrDataNode *dn, const string& var_name) {
   unsigned index;
   if (!mdl_env::find(index, var_name))
     return false;
-  return mdl_env::all_vars[index].set(drn);
+  return mdl_env::all_vars[index].set(dn);
 }
 
 inline bool mdl_env::set(vector<function_base*> *vp, const string& var_name) {
