@@ -70,6 +70,7 @@ performanceStream::performanceStream(dataType t,
     nextpredCostReqestId = 0;
     pred_Cost_buff.resize(0);
     // trace data streams
+    num_trace_mis =0;
     my_traceBuffer_size = 0;
     next_traceBuffer_loc = 0;
     my_traceBuffer = 0;
@@ -397,9 +398,9 @@ void performanceStream::addTraceUser(perfStreamHandle p){
         assert(!(ps->next_traceBuffer_loc));
     }
     ps->num_trace_mis++;
-//    if(ps->my_traceBuffer_size < DM_DATABUF_LIMIT) {
-//        ps->my_traceBuffer_size++;
-//    }
+    if(ps->my_traceBuffer_size < DM_DATABUF_LIMIT) {
+        ps->my_traceBuffer_size++;
+    }
     if(ps->num_trace_mis){
         ps->my_traceBuffer_size = 10;
         assert(ps->my_traceBuffer_size);
