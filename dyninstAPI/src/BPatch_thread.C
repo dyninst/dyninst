@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.34 2000/05/11 04:52:21 zandy Exp $
+// $Id: BPatch_thread.C,v 1.35 2000/05/14 20:39:25 zandy Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -446,6 +446,9 @@ bool BPatch_thread::statusIsTerminated()
  */
 void BPatch_thread::detach(bool cont)
 {
+#ifdef DETACH_ON_THE_FLY
+    proc->reattachAndPause();
+#endif
     proc->API_detach(cont);
 
     detached = true;
