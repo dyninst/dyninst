@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id */
+/* $Id: RTetc-linux.c,v 1.5 1999/05/28 01:57:29 nash Exp $ */
 
 /************************************************************************
  * RTlinux.c: clock access functions for linux-2.0.x and linux-2.2.x
