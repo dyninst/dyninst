@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.41 2005/02/25 07:04:47 jaw Exp $ */
+/* $Id: RTcommon.c,v 1.42 2005/03/17 15:35:10 jodom Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -343,7 +343,7 @@ void DYNINSTunlock_spinlock(dyninst_spinlock *mut)
   mut->lock = 0;
 }
 
-extern int DYNINSTwriteEvent(void *ev, int sz); // posix or windows
+extern int DYNINSTwriteEvent(void *ev, int sz); /* posix or windows */
 extern void LockCommsMutex();
 extern void UnlockCommsMutex();
 unsigned long int getThreadID() {return 0;}

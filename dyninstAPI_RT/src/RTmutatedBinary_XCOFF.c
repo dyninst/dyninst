@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_XCOFF.c,v 1.6 2004/03/23 19:11:46 eli Exp $ */
+/* $Id: RTmutatedBinary_XCOFF.c,v 1.7 2005/03/17 15:35:10 jodom Exp $ */
 
 
 /* this file contains the code to restore the necessary
@@ -102,7 +102,7 @@ void* loadFile(char *name, int *fd){
 	
 	if( statRet == -1) {
 		printf(" no stats found for %s \n",name);
-		close(fd);
+		close(*fd);
 		return 0;
 	}
 	
@@ -223,13 +223,13 @@ int checkMutatedFile(){
 				/* this is a heap tramp section */
 				if( sawFirstHeapTrampSection ){
 
-					result = mmap((void*) currScnhdr->s_vaddr, currScnhdr->s_size, 
+					result = (int)mmap((void*) currScnhdr->s_vaddr, currScnhdr->s_size, 
 					PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANONYMOUS| MAP_FIXED,-1,0);
 					if( result == -1){
 
 						mprotect((void*) currScnhdr->s_vaddr, currScnhdr->s_size,
 							PROT_READ|PROT_WRITE|PROT_EXEC);
-						result = mmap((void*) currScnhdr->s_vaddr, currScnhdr->s_size, 
+						result = (int) mmap((void*) currScnhdr->s_vaddr, currScnhdr->s_size, 
 						PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANONYMOUS| MAP_FIXED,-1,0);
 						if( result == -1){
 						perror("TRYING TO MMAP:");
@@ -267,7 +267,7 @@ int checkMutatedFile(){
 						((char*) XCOFFfile) + currScnhdr->s_scnptr );
 					fflush(stdout);
 
-					//memcpy(currScnhdr->s_vaddr, ((char*) XCOFFfile) + currScnhdr->s_scnptr, currScnhdr->s_size);
+					/*memcpy(currScnhdr->s_vaddr, ((char*) XCOFFfile) + currScnhdr->s_scnptr, currScnhdr->s_size);*/
 					sawFirstHeapTrampSection = 1;
 				}
 			}
@@ -293,7 +293,7 @@ int checkMutatedFile(){
 
 			int oldPageDataSize;
 			int dataSize = currScnhdr->s_size;
-			//Dl_info dlip;
+			/*Dl_info dlip;*/
 
 			retVal = 1; /* just to be sure */
 
@@ -307,7 +307,7 @@ int checkMutatedFile(){
 			/*copy old page data */
 
 			/* probe memory to see if we own it */
-			checkAddr = 1;//dladdr((void*)currScnhdr->s_vaddr, &dlip); 
+			checkAddr = 1;/*dladdr((void*)currScnhdr->s_vaddr, &dlip); */
 
 			updateSize  = dataSize-((2*numberUpdates+1)* sizeof(unsigned int));
 
@@ -366,7 +366,7 @@ int checkMutatedFile(){
 				*/
 				mmapAddr = currScnhdr->s_vaddr - (currScnhdr->s_vaddr %pageSize);
 
-				checkAddr = mprotect(mmapAddr, currScnhdr->s_vaddr - mmapAddr + oldPageDataSize, 
+				checkAddr = mprotect((void *)mmapAddr, currScnhdr->s_vaddr - mmapAddr + oldPageDataSize, 
 					PROT_READ|PROT_WRITE|PROT_EXEC);
 				/*printf(" MPROTECT: %x %lx : %lx \n", checkAddr, mmapAddr,currScnhdr->s_vaddr - mmapAddr + oldPageDataSize
  );*/
