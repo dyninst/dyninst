@@ -353,7 +353,7 @@ image *image::parseImage(const string file,u_int baseAddr)
   if (err || !ret) {
     if (ret)
       delete ret;
-    logLine("error after new image in parseImage\n");
+    //logLine("error after new image in parseImage\n");
     return NULL;
   }
 

@@ -2089,7 +2089,7 @@ bool process::handleIfDueToSharedObjectMapping(){
 		 hasLoadedDyninstLib = true;
 		 isLoadingDyninstLib = false;
 	       } else {
-		 logLine("Error after call to addASharedObject\n");
+		 //logLine("Error after call to addASharedObject\n");
 		 delete (*changed_objects)[i];
 	       }
 #ifndef BPATCH_LIBRARY
@@ -2154,7 +2154,7 @@ bool process::addASharedObject(shared_object &new_obj){
 
     image *img = image::parseImage(new_obj.getName(),new_obj.getBaseAddress());
     if(!img){
-        logLine("error parsing image in addASharedObject\n");
+        //logLine("error parsing image in addASharedObject\n");
 	return false;
     }
     new_obj.addImage(img);
@@ -2241,7 +2241,7 @@ bool process::getSharedObjects() {
 	    // logLine(P_strdup(temp2.string_of()));
 
 	    if(!addASharedObject(*((*shared_objects)[j]))){
-	        logLine("Error after call to addASharedObject\n");
+	      //logLine("Error after call to addASharedObject\n");
 	    }
 	}
 

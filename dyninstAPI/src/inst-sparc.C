@@ -679,20 +679,18 @@ int getInsnCost(opCode op)
 bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 {
     instruction instr;
-    
+
     instr.raw = owner->get_instruction(adr);
     lastOne = false;
 
     if (isInsnType(instr, RETmask, RETmatch) ||
         isInsnType(instr, RETLmask, RETLmatch)) {
         if ((instr.resti.simm13 != 8) && (instr.resti.simm13 != 12)) {
-	    logLine("*** FATAL Error:");
-	    sprintf(errorLine, " unsupported return\n");
-	    logLine(errorLine);
-	    showErrorCallback(55, "");
-	    P_abort();
-        }
-	return true;
+	  sprintf(errorLine,"WARNING: unsupported return in module %s",(owner->name()).string_of());
+	  showErrorCallback(55, errorLine);
+        } else {
+	  return true;
+	}
     }
     return false;
 }
