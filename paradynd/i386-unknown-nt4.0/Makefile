@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.16 2003/07/31 19:01:04 schendel Exp $
+# $Id: Makefile,v 1.17 2003/10/28 18:36:16 pcroth Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -44,9 +44,10 @@ OBJS = 		pdwinnt.obj \
 		RThwtimer-winnt.obj \
 		InstrucIter-x86.obj
 
-CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT 
+CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT -MT
 
 #CXXFLAGS 	= $(CXXFLAGS) -DSAMPLEVALUE_DEBUG
+LDFLAGS     = $(LDFLAGS) -NODEFAULTLIB:LIBC.LIB
 
 SYSLIBS	        = $(SYSLIBS) advapi32.lib iphlpapi.lib psapi.lib
 
