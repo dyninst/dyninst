@@ -43,6 +43,9 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.25  1996/10/30 02:46:08  lzheng
+ * Minor bug fixes for call site instrumentation and emitImm.
+ *
  * Revision 1.24  1996/10/18 23:52:39  mjrg
  * Changed argument of findInstPoints
  *
@@ -555,7 +558,6 @@ void pdFunction::checkCallPoints() {
   vector<instPoint*> non_lib;
 
   for (i=0; i<calls.size(); ++i) {
-    /* check to see where we are calling */
     p = calls[i];
     assert(p);
 
@@ -597,7 +599,7 @@ Address pdFunction::newCallPoint(const Address adr, const instruction instr,
     Address ret=adr;
     instPoint *point;
 
-    err = true;
+    err = false;
 
     // modified 1/16/95 3:45pm
     //   same reason as in the inst-sparc.C
@@ -618,10 +620,10 @@ Address pdFunction::newCallPoint(const Address adr, const instruction instr,
 
     point->callAggregate = false;
 
-    if (err == true) {
+    if (err == false) {
 	calls += point;
     }
-    err = false;
+
     return ret;
 }
 
@@ -1699,6 +1701,7 @@ bool doNotOverflow(int value)
   // be checked here, then the function should return TRUE. If there isn't
   // any immediate code to be generated, then it should return FALSE - naim
   //
+  if ( (value <= 2047) && (value >= -2048) ) return (true); 
   return(false);
 }
 
