@@ -108,8 +108,8 @@ void instrDataNode::print() {
    cerr << "D:" << (void*)this << "\n";
 }
 
-void instrDataNode::startSampling(unsigned thrPos,
-				  threadMetFocusNode_Val *thrClient) { 
+void instrDataNode::prepareForSampling(unsigned thrPos,
+				       threadMetFocusNode_Val *thrClient) { 
   thrNodeClientSet = true;
   variableMgr &varMgr = proc->getVariableMgr();
   varMgr.markVarAsSampled(varType, varIndex, thrPos, thrClient);
