@@ -200,6 +200,7 @@ class process {
 	  void *applShmSegPtr,
 	  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
+	  , bool childHasInstrumentation = true
 	  );
      // this is the "fork" ctor
 
@@ -392,6 +393,7 @@ class process {
                               ,key_t theKey,
                               void *applAttachedAtPtr
 #endif
+                              , bool childHasInstrumentation = true
                               );
 
   // get and set info. specifying if this is a dynamic executable
