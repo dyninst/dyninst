@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.11  1994/05/31 21:43:00  markc
+ * Revision 1.12  1994/06/14 15:29:45  markc
+ * Added aggregationOperator argument to enableDataCollection call.
+ *
+ * Revision 1.11  1994/05/31  21:43:00  markc
  * Allow compensationFactor to be computed, but keep it within 0 and 1, which
  * is a short term fix.  Enable the hotSyncObject test in PCrules.C.
  *
@@ -81,7 +84,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.11 1994/05/31 21:43:00 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.12 1994/06/14 15:29:45 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -268,7 +271,8 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
 	    val->lastSampleTime = 0.0;
 	    val->enableTime = 0.0;
 	    val->used = TRUE;
-	    val->mi = dataMgr->enableDataCollection(pcStream,val->resList, met);
+	    val->mi = dataMgr->enableDataCollection(pcStream,val->resList,
+						    met, aggregationOperator);
 	    if (val->mi) {
 		// only the data that really exhists gets enabled.
 		miToDatumMap.add(val, val->mi);
