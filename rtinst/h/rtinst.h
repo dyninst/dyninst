@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.59 2003/02/04 22:25:59 bernat Exp $
+ * $Id: rtinst.h,v 1.60 2003/05/12 21:29:13 bernat Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -169,7 +169,7 @@ struct tTimerRec {
   volatile rawTime64 total;
   volatile rawTime64 start;
   volatile int counter;
-  unsigned pos; /* Unused for ST, but makes the size a power of 2 */
+  unsigned index; /* Unused for ST, but makes the size a power of 2 */
 
    /* the following 2 vrbles are used to implement consistent sampling.
       Updating by rtinst works as follows: bump protector1, do action, then
@@ -256,8 +256,8 @@ typedef struct RTsharedData_rec {
   unsigned *observed_cost;
   /* MT */
   virtualTimer *virtualTimers;
-  unsigned *posToThread;
-  rpcToDo **pendingIRPCs; /* By POS, then by index */
+  unsigned *indexToThread;
+  rpcToDo **pendingIRPCs; /* By INDEX, then by number */
 } RTsharedData_t;
 
 extern RTsharedData_t RTsharedData; /* Defined in RTinst.c */

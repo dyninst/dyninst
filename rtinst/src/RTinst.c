@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.75 2003/05/09 17:35:03 mirg Exp $
+ * $Id: RTinst.c,v 1.76 2003/05/12 21:29:15 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -509,8 +509,8 @@ void PARADYNinit(int paradyndPid,
 
       RTsharedData.virtualTimers = (virtualTimer *)
          ((Address) RTsharedInShm->virtualTimers + shmBase);
-      RTsharedData.posToThread = (unsigned *)
-         ((Address) RTsharedInShm->posToThread + shmBase);
+      RTsharedData.indexToThread = (unsigned *)
+         ((Address) RTsharedInShm->indexToThread + shmBase);
       RTsharedData.pendingIRPCs = 
          malloc(sizeof(rpcToDo *)*MAX_NUMBER_OF_THREADS);
       RTsharedData.pendingIRPCs[0] = NULL;
