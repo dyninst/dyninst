@@ -1,4 +1,4 @@
-# $Id: whereAxis.tcl,v 1.9 1998/03/03 23:09:53 wylie Exp $
+# $Id: whereAxis.tcl,v 1.10 1999/03/03 18:18:31 pcroth Exp $
 
 # ##################################################################
 
@@ -13,6 +13,10 @@ proc whereAxisInitialize {} {
    pack  .whereAxis.top -side top -fill x -expand false -anchor n
       # area for menubar
    
+   # we need notification when the whereAxis is to be
+   # destroyed so we can release the fonts it uses
+   bind .whereAxis.top <Destroy> +{whereAxisDestroyHook}
+
    frame .whereAxis.top.mbar -borderwidth 2 -relief raised
    pack  .whereAxis.top.mbar -side top -fill both -expand false
    

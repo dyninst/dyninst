@@ -1,4 +1,4 @@
-# $Id: uimProcs.tcl,v 1.20 1998/03/11 18:33:13 naim Exp $
+# $Id: uimProcs.tcl,v 1.21 1999/03/03 18:18:30 pcroth Exp $
 # utilities for UIM tcl functions
 #
 
@@ -337,7 +337,7 @@ proc procExit {} {
 
     frame $w.fr.buttons
     mkButtonBar $w.fr.buttons {} retval {{YES ""} {NO ""}}
-    $w.fr.buttons.1 configure -command "paradyn exit"
+    $w.fr.buttons.1 configure -command "destroy ."
     $w.fr.buttons.2 configure -command "destroy $w"
     pack $w.fr.buttons -side top -fill both
 
