@@ -21,7 +21,10 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
- * Revision 1.4  1996/02/22 18:30:01  karavan
+ * Revision 1.5  1996/03/05 16:12:55  naim
+ * Minor changes for debugging purposes - naim
+ *
+ * Revision 1.4  1996/02/22  18:30:01  karavan
  * bug fix to PC pause/resume so only filters active at time of pause
  * resubscribe to data
  *
@@ -49,6 +52,19 @@
 #include "PCfilter.h"
 #include "PCintern.h"
 #include "PCmetricInst.h"
+
+#ifdef PCDEBUG
+extern "C" FILE *TESTfp;
+#include <sys/time.h>
+double TESTgetTime()
+{
+  double now;
+  struct timeval tv;
+  gettimeofday(&tv,NULL);
+  now = (double) tv.tv_sec + ((double)tv.tv_usec/(double)1000000.0);
+  return(now);
+}
+#endif
 
 perfStreamHandle filteredDataServer::pstream = 0;
 
@@ -264,10 +280,16 @@ filteredDataServer::resubscribeAllData()
   metricInstanceHandle *curr;
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->isActive()) {
+#ifdef PCDEBUG
+      double t1=TESTgetTime(); 
+#endif
       curr = dataMgr->enableDataCollection2(filteredDataServer::pstream, 
 					    AllDataFilters[i]->getFocus(), 
 					    AllDataFilters[i]->getMetric(),
 					    pht, 1, 0);
+#ifdef PCDEBUG
+      fprintf(TESTfp,"==> TEST <== PCfilter 1, enableDataCollection2 took %5.2f secs\n",TESTgetTime()-t1); 
+#endif
       delete curr;
     }
   }
@@ -281,8 +303,14 @@ filteredDataServer::unsubscribeAllData()
 {
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->isActive()) {
+#ifdef PCDEBUG
+      double t1=TESTgetTime(); 
+#endif
       dataMgr->disableDataCollection(filteredDataServer::pstream, 
 				     AllDataFilters[i]->getMI(), pht);
+#ifdef PCDEBUG
+      fprintf(TESTfp,"==> TEST <== PCfilter 1, disableDataCollection took %5.2f secs\n",TESTgetTime()-t1); 
+#endif
     }
   }
 }
@@ -306,8 +334,14 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
   metricInstanceHandle indexCopy;
   *errFlag = false;
   // does filter already exist?
+#ifdef PCDEBUG
+  double t1=TESTgetTime(); 
+#endif
   index = dataMgr->enableDataCollection2 (filteredDataServer::pstream, 
 					  f, mh, pht, 1, 0);
+#ifdef PCDEBUG
+  fprintf(TESTfp,"==> TEST <== PCfilter 2, enableDataCollection2 took %5.2f secs\n",TESTgetTime()-t1); 
+#endif
   if (index == NULL) {
     // unable to collect this data
     *errFlag = true;
@@ -329,6 +363,7 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
     cout << "FDS: " << sub << " subscribed to " << indexCopy << " met=" 
       << dataMgr->getMetricNameFromMI(indexCopy) << " methandle=" << mh << endl
 	<< "foc=" << dataMgr->getFocusNameFromMI(indexCopy) << endl;
+    fprintf(TESTfp,"==> TEST <== Metric name = %s, Focus name = %s\n",dataMgr->getMetricNameFromMI(indexCopy),dataMgr->getFocusNameFromMI(indexCopy)); 
   }
 #endif
   return indexCopy;
@@ -362,16 +397,23 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
   if (DataFilters.defines((unsigned)subID)) { 
     subsLeft = DataFilters[(unsigned)subID]->rmConsumer(sub);
     if (subsLeft == 0) {
+#ifdef PCDEBUG
+      double t1=TESTgetTime();
+#endif
       dataMgr->clearPersistentData(subID);
       dataMgr->disableDataCollection (pstream, subID, pht);
+#ifdef PCDEBUG
+      fprintf(TESTfp,"==> TEST <== PCfilter 2, disableDataCollection took %5.2f secs\n",TESTgetTime()-t1); 
+#endif
     }
   }
 #ifdef PCDEBUG
   // debug printing
   if (performanceConsultant::printDataCollection) {
-    cout << "FDS: subscription ended: " << subID << "numLeft=" << subsLeft
-      << endl << " met=" << dataMgr->getMetricNameFromMI(subID) << endl;
-    cout << "foc=" << dataMgr->getFocusNameFromMI(subID) << endl;
+    cout << "FDS: subscription ended: " << subID << "numLeft=" << subsLeft 
+         << endl; 
+    //cout << " met=" << dataMgr->getMetricNameFromMI(subID) << endl;
+    //cout << "foc=" << dataMgr->getFocusNameFromMI(subID) << endl;
   }
 #endif
 }

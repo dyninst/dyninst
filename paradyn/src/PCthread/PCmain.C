@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.47  1996/02/22 18:30:56  karavan
-/* removed some debugging printing
+/* Revision 1.48  1996/03/05 16:13:15  naim
+/* Minor changes for debugging purposes - naim
 /*
+ * Revision 1.47  1996/02/22  18:30:56  karavan
+ * removed some debugging printing
+ *
  * Revision 1.46  1996/02/12 20:00:53  karavan
  * part one of change to newDataCallback, streamlining here since this is
  * the critical path for the PC.
@@ -56,6 +59,10 @@
 #include "PCintern.h"
 #include "PCsearch.h"
 #include "PCfilter.h"
+
+#ifdef PCDEBUG
+FILE *TESTfp;
+#endif
 
 extern thread_t MAINtid;
 extern void initPCconstants();
@@ -175,6 +182,10 @@ void PCmain(void* varg)
     performanceConsultant *pc;
     char PCbuff[64];
     unsigned int msgSize = 64;
+
+#ifdef PCDEBUG
+    TESTfp = fopen("TESTresult.out","w");
+#endif
 
     // define all tunable constants used by the performance Consultant
     // tunable constants must be defined here in the sequential section
