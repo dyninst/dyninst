@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-x86.h,v 1.7 2004/03/23 01:11:59 eli Exp $
+// $Id: LocalAlteration-x86.h,v 1.8 2004/04/11 04:52:05 legendre Exp $
 
 #ifndef __LocalAlteration_X86_H__
 #define __LocalAlteration_X86_H__
@@ -125,6 +125,30 @@ class PushEIPmov : public LocalAlteration {
                                   unsigned &codeOffset,
                                   unsigned char *code);
 };
+
+//Handle a function that possibly falls through to the next function
+class Fallthrough : public LocalAlteration {
+ private:
+  int branchsize_;
+ public:
+    // constructor same as LocalAlteration 
+    Fallthrough(pd_Function *f, int offset); 
+
+    virtual int getOffset() const;
+    virtual int getShift() const;
+    virtual int numInstrAddedAfter();
+    virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
+    virtual bool UpdateInstPoints(FunctionExpansionRecord *ips);
+    virtual bool RewriteFootprint(Address oldBaseAdr, Address &oldAdr, 
+                                  Address newBaseAdr, Address &newAdr,
+                                  instruction oldInstructions[], 
+                                  instruction newInstructions[], 
+                                  int &oldOffset, int &newOffset,
+                                  int newDisp, 
+                                  unsigned &codeOffset,
+                                  unsigned char *code);
+};
+
 
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-x86.C,v 1.8 2004/03/23 01:11:59 eli Exp $
+// $Id: LocalAlteration-x86.C,v 1.9 2004/04/11 04:52:04 legendre Exp $
 
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/LocalAlteration-x86.h"
@@ -79,11 +79,11 @@ int ExpandInstruction::numInstrAddedAfter() {
 }
 
 
+extern int getMaxJumpSize();
 // constructor for ExpandInstruction local alteration....
 PushEIP::PushEIP(pd_Function *f, int offset):
     LocalAlteration(f, offset) 
 { 
-
 }
 
 // 5 byte call should be replaced with 5 byte push, so no change in branch
@@ -138,6 +138,39 @@ int PushEIPmov::getShift() const {
 int PushEIPmov::numInstrAddedAfter() {
     return 0;
 }
+
+Fallthrough::Fallthrough(pd_Function *f, int offset) :
+  LocalAlteration(f, offset)
+{
+  branchsize_ = getMaxJumpSize();//5
+}
+
+// Branch is added at end of function, so it shouldn't change prior
+//  branches.
+bool Fallthrough::UpdateExpansions(FunctionExpansionRecord* fer) {
+  fer->AddExpansion(beginning_offset, branchsize_);
+  return true;
+}
+
+// Branch added at end, so won't move any InstPoints
+bool Fallthrough::UpdateInstPoints(FunctionExpansionRecord* ips) {
+    return UpdateExpansions(ips);
+}
+
+int Fallthrough::getOffset() const {
+    return beginning_offset;
+}
+ 
+int Fallthrough::getShift() const {
+  return branchsize_;
+}
+
+int Fallthrough::numInstrAddedAfter() {
+    return 1;
+}
+
+
+
 
 
 
