@@ -1,6 +1,12 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.25  1994/07/18 19:08:25  hollings
+ * Revision 1.26  1994/07/19 18:30:27  markc
+ * Made machineName default to zero as last parameter to RPC_make_arg_list.
+ * Added typecast to malloc call in RPC_make_arg_list.
+ *
+ * Added typecast to malloc call in RPC_make_arg_list.
+ *
+ * Revision 1.25  1994/07/18  19:08:25  hollings
  * added extra arg to RPC_make_arg_list.
  *
  * Revision 1.24  1994/06/22  00:37:13  markc
@@ -287,7 +293,7 @@ char **RPC_make_arg_list(int family, int type, int well_known_socket,
   sprintf(arg_str, "%s%d", "-t", type);
   arg_list[arg_count++] = strdup (arg_str);
   if (!machine_name) {
-      machine_name = malloc(50);
+      machine_name = (char *) malloc(50);
       gethostname (machine_name, 49);
   }
   sprintf(arg_str, "%s%s", "-m", machine_name);
