@@ -1,6 +1,6 @@
 #pragma implementation "Vector.h"
 #include "util/h/Vector.h"
-#include "visi/h/datagrid.h"
+#include "visi/h/visiTypes.h"
 
 class PhaseInfo;
 

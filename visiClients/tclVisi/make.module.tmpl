@@ -4,6 +4,9 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.8  1996/01/17 18:32:29  newhall
+# changes due to new visiLib
+#
 # Revision 1.7  1995/12/01 06:41:57  tamches
 # added new SRCS: pdLogo.C, tkTools.C, minmax.C; updated
 # VPATH and IFLAGS to match
@@ -43,7 +46,7 @@ IFLAGS	     += -I../../../util/h \
 		-I../../../paradyn/src/UIthread
 
 LIBS         += -lvisi -lhist -lpdutil 
-SYSLIBS	     += -ltk -ltcl -lXaw -lXext -lXmu -lXt -lX11 -lm
+SYSLIBS      += -ltk -ltcl -lX11 -lm
 
 
 all: $(TARGET)

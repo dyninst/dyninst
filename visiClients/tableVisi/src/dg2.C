@@ -3,7 +3,10 @@
 
 /*
  * $Log: dg2.C,v $
- * Revision 1.2  1995/11/08 21:45:56  tamches
+ * Revision 1.3  1996/01/17 18:31:36  newhall
+ * changes due to new visiLib
+ *
+ * Revision 1.2  1995/11/08  21:45:56  tamches
  * specialized s.t. only the implementation of the "Dg" tcl command is here
  *
  * Revision 1.1  1995/11/04 00:44:11  tamches
@@ -112,95 +115,90 @@ int Dg_TclCommand(ClientData, Tcl_Interp *interp,
   case AGGREGATE:   
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%g", dataGrid.AggregateValue(m,r));
+    sprintf(interp->result,"%g", visi_AverageValue(m,r));
     return TCL_OK;
 
   case BINWIDTH:     
-    sprintf(interp->result, "%g", dataGrid.BinWidth());
+    sprintf(interp->result, "%g", visi_BucketWidth());
     return TCL_OK;
 
   case FIRSTBUCKET:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%d", dataGrid[m][r].FirstValidBucket()); 
-    return TCL_OK;
-
-  case FOLDMETHOD:
-    m = atoi(argv[2]);
-    sprintf(interp->result,"%d", dataGrid.FoldMethod(m));
+    sprintf(interp->result,"%d", visi_FirstValidBucket(m,r)); 
     return TCL_OK;
 
   case LASTBUCKET:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%d", dataGrid[m][r].LastBucketFilled());
+    sprintf(interp->result,"%d", visi_LastBucketFilled(m,r));
     return TCL_OK;
 
   case METRICNAME:  
     m = atoi(argv[2]);
-    sprintf(interp->result, "%s", dataGrid.MetricName(m));
+    sprintf(interp->result, "%s", visi_MetricName(m));
     return TCL_OK;
 
   case METRICUNITS:  
     m = atoi(argv[2]);
-    sprintf(interp->result, "%s", dataGrid.MetricUnits(m));
+    sprintf(interp->result, "%s", visi_MetricUnits(m));
     return TCL_OK;
 
   case NUMBINS:     
-    sprintf(interp->result, "%d", dataGrid.NumBins());
+    sprintf(interp->result, "%d", visi_NumBuckets());
     return TCL_OK;
 
   case NUMMETRICS:  
-    sprintf(interp->result, "%d", dataGrid.NumMetrics());
+    sprintf(interp->result, "%d", visi_NumMetrics());
     return TCL_OK;
 
   case NUMRESOURCES:
-    sprintf(interp->result, "%d", dataGrid.NumResources());
+    sprintf(interp->result, "%d", visi_NumResources());
     return TCL_OK;
 
   case DEFINEPHASE:       
-    DefinePhase(-1.0,NULL);
+    visi_DefinePhase(-1.0,NULL);
     return TCL_OK;
 
   case RESOURCENAME:
     r = atoi(argv[2]);
-    sprintf(interp->result, "%s", dataGrid.ResourceName(r));
+    sprintf(interp->result, "%s", visi_ResourceName(r));
     return TCL_OK;
 
   case STARTSTREAM:       
-    GetMetsRes(argv[2], atoi(argv[3]), 0); // 0-->histogram (1-->scalar)
+    visi_GetMetsRes(argv[2], atoi(argv[3]), 0); // 0-->histogram (1-->scalar)
                                            // argv[3] is num
     return TCL_OK;
 
   case STOPSTREAM:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    StopMetRes(m, r);
+    visi_StopMetRes(m, r);
     return TCL_OK;
 
   case DGSUM:         
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%g", dataGrid.SumValue(m,r));
+    sprintf(interp->result,"%g", visi_SumValue(m,r));
     return TCL_OK;
 
   case DGVALID:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result, "%d", dataGrid.Valid(m,r));
+    sprintf(interp->result, "%d", visi_Valid(m,r));
     return TCL_OK;
 
   case DGENABLED:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result, "%d", dataGrid[m][r].Enabled());
+    sprintf(interp->result, "%d", visi_Enabled(m,r));
     return TCL_OK;
 
   case VALUE:       
     m = atoi(argv[2]);
     r = atoi(argv[3]);
     buck = atoi(argv[4]);
-    sprintf(interp->result,"%g", dataGrid[m][r].Value(buck));
+    sprintf(interp->result,"%g", visi_DataValue(m,r,buck));
     return TCL_OK;
   }
 

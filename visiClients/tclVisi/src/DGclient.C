@@ -2,7 +2,10 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
- * Revision 1.9  1995/11/17 17:30:32  newhall
+ * Revision 1.10  1996/01/17 18:32:34  newhall
+ * changes due to new visiLib
+ *
+ * Revision 1.9  1995/11/17  17:30:32  newhall
  * added Dg metriclabel, Dg metricavelabel, and Dg metricsumlabel commands
  * changed the Dg start command so that it doesn't take any arguments
  *
@@ -37,16 +40,16 @@
 #include <iostream.h>
 #include <tcl.h>
 #include <tk.h>
-#include "../../../visi/h/visualization.h"
+#include "visi/h/visualization.h"
 
 extern Tcl_Interp *MainInterp;
 
-void my_visi_callback(void* arg0, int* arg1, long unsigned int* arg2) {
+void my_visi_callback(void* , int* , long unsigned int* ) {
     if (-1 == visi_callback())
        exit(1);
 }
 
-int Dg_Add(int dummy) {
+int Dg_Add(int) {
    // Gets called by visi lib when it detects new METRICS and/or RESOURCES
 
    const int retval = Tcl_Eval(MainInterp, "DgConfigCallback");
@@ -72,7 +75,7 @@ int Dg_Data(int lastBucket) {
    return retval;
 }
 
-int Dg_Fold(int dummy) {
+int Dg_Fold(int) {
    const int retval=Tcl_Eval(MainInterp, "DgFoldCallback");
    if (retval == TCL_ERROR)
       cerr << MainInterp->result << endl;
@@ -80,7 +83,7 @@ int Dg_Fold(int dummy) {
    return retval;
 }
 
-int Dg_Invalid(int dummy) {
+int Dg_Invalid(int) {
    const int retval=Tcl_Eval(MainInterp, "DgInvalidCallback");
    if (retval == TCL_ERROR)
       cerr << MainInterp->result << endl;
@@ -108,7 +111,7 @@ int Dg_PhaseEnd(int which) {
   return retval;
 }
 
-int Dg_PhaseData(int dummy) {
+int Dg_PhaseData(int) {
    const int retval=Tcl_Eval(MainInterp, "DgPhaseDataCallback");
    if (retval == TCL_ERROR)
       cerr << MainInterp->result << endl;
@@ -116,7 +119,7 @@ int Dg_PhaseData(int dummy) {
   return retval;
 }
 
-int Dg_Exited(int dummy) {
+int Dg_Exited(int) {
    const int retval=Tcl_Eval(MainInterp, "DgParadynExitedCallback");
    if (retval == TCL_ERROR){
       // cerr << MainInterp->result << endl;
@@ -128,29 +131,28 @@ int Dg_Exited(int dummy) {
 
 #define   AGGREGATE        0
 #define   BINWIDTH         1
-#define   FOLDMETHOD       2
-#define   METRICNAME       3
-#define   METRICUNITS      4
-#define   NUMBINS          5
-#define   NUMMETRICS       6
-#define   NUMRESOURCES     7
-#define   DEFINEPHASE      8
-#define   RESOURCENAME     9
-#define   STARTSTREAM      10
-#define   STOPSTREAM       11
-#define   DGSUM            12
-#define   DGVALID          13
-#define   DGENABLED        14
-#define   VALUE            15
-#define   CMDERROR         16
-#define   LASTBUCKET       17
-#define   FIRSTBUCKET      18
-#define   NUMPHASES        19
-#define   PHASENAME        20
-#define   PHASESTARTTIME   21
-#define   PHASEENDTIME     22
-#define   METRICAVELAB     23
-#define   METRICSUMLAB	   24
+#define   METRICNAME       2
+#define   METRICUNITS      3
+#define   NUMBINS          4
+#define   NUMMETRICS       5
+#define   NUMRESOURCES     6
+#define   DEFINEPHASE      7
+#define   RESOURCENAME     8
+#define   STARTSTREAM      9
+#define   STOPSTREAM       10
+#define   DGSUM            11
+#define   DGVALID          12
+#define   DGENABLED        13
+#define   VALUE            14
+#define   CMDERROR         15
+#define   LASTBUCKET       16
+#define   FIRSTBUCKET      17
+#define   NUMPHASES        18
+#define   PHASENAME        19
+#define   PHASESTARTTIME   20
+#define   PHASEENDTIME     21
+#define   METRICAVELAB     22
+#define   METRICSUMLAB	   23
 
 struct cmdTabEntry {
    char *cmdname;
@@ -162,7 +164,6 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"aggregate",    AGGREGATE,       2},
   {"binwidth",     BINWIDTH,        0},
   {"firstbucket",  FIRSTBUCKET,     2},
-  {"foldmethod",   FOLDMETHOD,      2},
   {"lastbucket",   LASTBUCKET,      2},
   {"metricname",   METRICNAME,      1},
   {"metriclabel",  METRICUNITS,     1},
@@ -217,133 +218,123 @@ int Dg_TclCommand(ClientData clientData,
      return TCL_ERROR;
 
   int m, r, buck;
-  PhaseInfo *p;
 
   switch(cmdDex) {
   case AGGREGATE:   
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%g", dataGrid.AggregateValue(m,r));
+    sprintf(interp->result,"%g", visi_AverageValue(m,r));
     return TCL_OK;
 
   case BINWIDTH:     
-    sprintf(interp->result, "%g", dataGrid.BinWidth());
+    sprintf(interp->result, "%g", visi_BucketWidth());
     return TCL_OK;
 
   case FIRSTBUCKET:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%d", dataGrid[m][r].FirstValidBucket()); 
-    return TCL_OK;
-
-  case FOLDMETHOD:
-    m = atoi(argv[2]);
-    sprintf(interp->result,"%d", dataGrid.FoldMethod(m));
+    sprintf(interp->result,"%d", visi_FirstValidBucket(m,r)); 
     return TCL_OK;
 
   case LASTBUCKET:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%d", dataGrid[m][r].LastBucketFilled());
+    sprintf(interp->result,"%d", visi_LastBucketFilled(m,r));
     return TCL_OK;
 
   case METRICNAME:  
     m = atoi(argv[2]);
-    sprintf(interp->result, "%s", dataGrid.MetricName(m));
+    sprintf(interp->result, "%s", visi_MetricName(m));
     return TCL_OK;
 
   case METRICUNITS:  
     m = atoi(argv[2]);
-    sprintf(interp->result, "%s", dataGrid.MetricLabel(m));
+    sprintf(interp->result, "%s", visi_MetricLabel(m));
     return TCL_OK;
 
   case NUMBINS:     
-    sprintf(interp->result, "%d", dataGrid.NumBins());
+    sprintf(interp->result, "%d", visi_NumBuckets());
     return TCL_OK;
 
   case NUMMETRICS:  
-    sprintf(interp->result, "%d", dataGrid.NumMetrics());
+    sprintf(interp->result, "%d", visi_NumMetrics());
     return TCL_OK;
 
   case NUMRESOURCES:
-    sprintf(interp->result, "%d", dataGrid.NumResources());
+    sprintf(interp->result, "%d", visi_NumResources());
     return TCL_OK;
 
   case DEFINEPHASE:       
-    // DefinePhase(atof(argv[2]), argv[3]);
-    DefinePhase(-1.0, NULL);
+    visi_DefinePhase(-1.0, NULL);
     return TCL_OK;
 
   case RESOURCENAME:
     r = atoi(argv[2]);
-    sprintf(interp->result, "%s", dataGrid.ResourceName(r));
+    sprintf(interp->result, "%s", visi_ResourceName(r));
     return TCL_OK;
 
   case STARTSTREAM:       
-    GetMetsRes();
+    visi_GetMetsRes();
     return TCL_OK;
 
   case STOPSTREAM:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    StopMetRes(m, r);
+    visi_StopMetRes(m, r);
     return TCL_OK;
 
   case DGSUM:         
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%g", dataGrid.SumValue(m,r));
+    sprintf(interp->result,"%g", visi_SumValue(m,r));
     return TCL_OK;
 
   case DGVALID:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result, "%d", dataGrid.Valid(m,r));
+    sprintf(interp->result, "%d", visi_Valid(m,r));
     return TCL_OK;
 
   case DGENABLED:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result, "%d", dataGrid[m][r].Enabled());
+    sprintf(interp->result, "%d", visi_Enabled(m,r));
     return TCL_OK;
 
   case VALUE:       
     m = atoi(argv[2]);
     r = atoi(argv[3]);
     buck = atoi(argv[4]);
-    sprintf(interp->result,"%g", dataGrid[m][r].Value(buck));
+    sprintf(interp->result,"%g", visi_DataValue(m,r,buck));
     return TCL_OK;
 
   case NUMPHASES:
-    sprintf(interp->result, "%d", dataGrid.NumPhases());
+    sprintf(interp->result, "%d", visi_NumPhases());
     return TCL_OK;
 
   case PHASENAME:
     m = atoi(argv[2]);
-    p = dataGrid.GetPhaseInfo(m);
-    sprintf(interp->result, "%s", p->getName());
+    sprintf(interp->result, "%s", visi_GetPhaseName(m));
     return TCL_OK;
 
   case PHASESTARTTIME:
     m = atoi(argv[2]);
-    p = dataGrid.GetPhaseInfo(m);
-    sprintf(interp->result, "%f", p->getStartTime());
+    sprintf(interp->result, "%f", visi_GetPhaseStartTime(m));
     return TCL_OK;
 
   case PHASEENDTIME:
     m = atoi(argv[2]);
-    p = dataGrid.GetPhaseInfo(m);
-    sprintf(interp->result, "%f", p->getEndTime());
+    sprintf(interp->result, "%f", visi_GetPhaseEndTime(m));
     return TCL_OK;
 
   case METRICAVELAB:
     m = atoi(argv[2]);
-    sprintf(interp->result, "%s", dataGrid.MetricAveLabel(m));
+    sprintf(interp->result, "%s", visi_MetricAveLabel(m));
     return TCL_OK;
 
   case METRICSUMLAB:
     m = atoi(argv[2]);
-    sprintf(interp->result, "%s", dataGrid.MetricSumLabel(m));
+    sprintf(interp->result, "%s", visi_MetricSumLabel(m));
     return TCL_OK;
    
   }
@@ -353,20 +344,20 @@ int Dg_TclCommand(ClientData clientData,
 }
 
 int Dg_Init(Tcl_Interp *interp) {
-   int fd=VisiInit();
+   int fd=visi_Init();
    if (fd < 0) {
       cerr << "tclVisi: could not initialize visilib" << endl;
       exit(-1);
    }
 
-  (void) RegistrationCallback(ADDMETRICSRESOURCES,Dg_Add); 
-  (void) RegistrationCallback(DATAVALUES,Dg_Data); 
-  (void) RegistrationCallback(FOLD,Dg_Fold); 
-  (void) RegistrationCallback(INVALIDMETRICSRESOURCES,Dg_Invalid);
-  (void) RegistrationCallback(PHASESTART,Dg_PhaseStart);
-  (void) RegistrationCallback(PHASEEND,Dg_PhaseEnd);
-  (void) RegistrationCallback(PHASEDATA,Dg_PhaseData);
-  (void) RegistrationCallback(PARADYNEXITED,Dg_Exited);
+  (void) visi_RegistrationCallback(ADDMETRICSRESOURCES,Dg_Add); 
+  (void) visi_RegistrationCallback(DATAVALUES,Dg_Data); 
+  (void) visi_RegistrationCallback(FOLD,Dg_Fold); 
+  (void) visi_RegistrationCallback(INVALIDMETRICSRESOURCES,Dg_Invalid);
+  (void) visi_RegistrationCallback(PHASESTART,Dg_PhaseStart);
+  (void) visi_RegistrationCallback(PHASEEND,Dg_PhaseEnd);
+  (void) visi_RegistrationCallback(PHASEDATA,Dg_PhaseData);
+  (void) visi_RegistrationCallback(PARADYNEXITED,Dg_Exited);
 
   Tcl_CreateCommand(interp, "Dg", Dg_TclCommand, 
 		    (ClientData *) NULL,(Tcl_CmdDeleteProc *) NULL);

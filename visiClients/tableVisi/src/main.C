@@ -3,6 +3,9 @@
 
 /*
  * $Log: main.C,v $
+ * Revision 1.8  1996/01/17 18:31:38  newhall
+ * changes due to new visiLib
+ *
  * Revision 1.7  1995/12/22 22:37:25  tamches
  * highlight background color is new
  *
@@ -57,7 +60,7 @@ bool xsynch_flag=false;
 
 void visiFdReadableHandler(ClientData, int) {
    // Installed as a file-handler routine for whenever data arrives over
-   // the socket returned from VisiInit()
+   // the socket returned from visi_Init()
    if (visi_callback() == -1)
       exit(0);
 }
@@ -100,7 +103,7 @@ int main(int argc, char **argv) {
    if (TCL_OK != Dg2_Init(mainInterp))
       tclpanic(mainInterp, "Could not Dg2_Init");
 
-   int fd = VisiInit();
+   int fd = visi_Init();
    if (fd < 0)
       panic("failed to initialize w/ visi lib");
 
@@ -109,10 +112,10 @@ int main(int argc, char **argv) {
    // Install our new tcl commands here:
    installTableVisiCommands(mainInterp);
 
-   if (RegistrationCallback(ADDMETRICSRESOURCES, Dg2AddMetricsCallback) != 0)
+   if (visi_RegistrationCallback(ADDMETRICSRESOURCES,Dg2AddMetricsCallback)!=0)
       panic("Dg2_Init() -- couldn't install ADDMETRICSRESOURCES callback");
 
-   if (RegistrationCallback(DATAVALUES, Dg2NewDataCallback) != 0)
+   if (visi_RegistrationCallback(DATAVALUES, Dg2NewDataCallback) != 0)
       panic("Dg2_Init() -- couldn't install DATAVALUES callback");
 
    Tk_CreateFileHandler(fd, TK_READABLE, visiFdReadableHandler, 0);

@@ -7,9 +7,12 @@
 // option which does -O and -DNDEBUG
 
 /* $Log: barChart.C,v $
-/* Revision 1.19  1996/01/10 21:10:11  tamches
-/* metricMaxValues now indexed by metric units
+/* Revision 1.20  1996/01/17 18:31:10  newhall
+/* changes due to new visiLib
 /*
+ * Revision 1.19  1996/01/10 21:10:11  tamches
+ * metricMaxValues now indexed by metric units
+ *
  * Revision 1.18  1996/01/10 02:36:11  tamches
  * changed uses of dynamic1dArray/2d to the vector class
  * removed theWindowName
@@ -250,8 +253,8 @@ void BarChart::RethinkMetricsAndResources() {
    // rethink metric max values, colors, bar positioning
    // Clears screen; redraws.
 
-   numMetrics   = dataGrid.NumMetrics();
-   numResources = dataGrid.NumResources();
+   numMetrics   = visi_NumMetrics();
+   numResources = visi_NumResources();
 
    // reallocate and rethink validMetrics, validResources
    rethinkValidMetricsAndResources(); 
@@ -287,11 +290,10 @@ void BarChart::rethinkValues() {
 
       for (unsigned resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
          if (!validResources[resourcelcv]) continue;
-
-         visi_GridCellHisto &theCell = dataGrid[metriclcv][resourcelcv];
-         const sampleType theValue = theCell.Value(theCell.LastBucketFilled());
+	 int buck_num = visi_LastBucketFilled(metriclcv,resourcelcv);
+	 const visi_sampleType theValue = visi_DataValue(metriclcv,
+						    resourcelcv,buck_num);
             // warning: "theValue" may be a NaN
-         
          values[metriclcv][resourcelcv] = isnan(theValue) ? 0 : theValue;
       }
    }
@@ -310,7 +312,7 @@ void BarChart::rethinkMetricMaxValues() {
       char buffer[64];
       sprintf(buffer, "%d", metriclcv);
       char *str = Tcl_GetVar2(MainInterp, "metricMaxValues",
-			      dataGrid.MetricLabel(metriclcv), // units
+			      visi_MetricLabel(metriclcv), // units
 			      TCL_GLOBAL_ONLY);
       if (str == NULL)
          panic("BarChart::RethinkMetricMaxValues() -- could not read 'metricMaxValues'");
@@ -334,27 +336,22 @@ void BarChart::processNewData(const int newBucketIndex) {
    
    for (unsigned metriclcv=0; metriclcv<numMetrics; metriclcv++) {
       if (!validMetrics[metriclcv]) continue;
-
-      visi_GridHistoArray &metricValues = dataGrid[metriclcv];
-
       for (unsigned resourcelcv=0; resourcelcv<numResources; resourcelcv++) {
          if (!validResources[resourcelcv]) continue;
 
-         visi_GridCellHisto &theCell = metricValues[resourcelcv];
-
-         if (theCell.Valid) {
+         if (visi_Valid(metriclcv,resourcelcv)) {
             // note that we check the .Valid flag, not the .enabled flag
 
             register double newVal;
             switch (DataFormat) {
                case Current:
-                  newVal = theCell.Value(newBucketIndex);
+                  newVal = visi_DataValue(metriclcv,resourcelcv,newBucketIndex);
                   break;
                case Average:
-                  newVal = dataGrid.AggregateValue(metriclcv, resourcelcv);
+                  newVal = visi_AverageValue(metriclcv, resourcelcv);
                   break;
                case Total:
-                  newVal = dataGrid.SumValue(metriclcv, resourcelcv);
+                  newVal = visi_SumValue(metriclcv, resourcelcv);
                   break;
                default:
                   panic("BarChart::processNewData() -- unknown data format!");
@@ -556,7 +553,7 @@ void BarChart::rethinkValidMetricsAndResources() {
 
    for (unsigned metlcv=0; metlcv<numMetrics; metlcv++)
       for (unsigned reslcv=0; reslcv<numResources; reslcv++)
-         if (dataGrid[metlcv][reslcv].Enabled()) {
+         if (visi_Enabled(metlcv,reslcv)) {
             validMetrics[metlcv] = true;
             validResources[reslcv] = true;
 	 }

@@ -2,9 +2,12 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.13  1996/01/10 21:11:15  tamches
-/* added METRICAVEUNITS, METRICSUMUNITS
+/* Revision 1.14  1996/01/17 18:31:14  newhall
+/* changes due to new visiLib
 /*
+ * Revision 1.13  1996/01/10 21:11:15  tamches
+ * added METRICAVEUNITS, METRICSUMUNITS
+ *
  * Revision 1.12  1995/11/29 00:40:07  tamches
  * removed myTclEval
  *
@@ -186,105 +189,100 @@ int Dg_TclCommand(ClientData,
   case AGGREGATE:   
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%g", dataGrid.AggregateValue(m,r));
+    sprintf(interp->result,"%g", visi_AverageValue(m,r));
     return TCL_OK;
 
   case BINWIDTH:     
-    sprintf(interp->result, "%g", dataGrid.BinWidth());
+    sprintf(interp->result, "%g", visi_BucketWidth());
     return TCL_OK;
 
   case FIRSTBUCKET:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%d", dataGrid[m][r].FirstValidBucket()); 
-    return TCL_OK;
-
-  case FOLDMETHOD:
-    m = atoi(argv[2]);
-    sprintf(interp->result,"%d", dataGrid.FoldMethod(m));
+    sprintf(interp->result,"%d", visi_FirstValidBucket(m,r)); 
     return TCL_OK;
 
   case LASTBUCKET:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%d", dataGrid[m][r].LastBucketFilled());
+    sprintf(interp->result,"%d", visi_LastBucketFilled(m,r));
     return TCL_OK;
 
   case METRICNAME:  
     m = atoi(argv[2]);
-    strcpy(interp->result, dataGrid.MetricName(m));
+    strcpy(interp->result, visi_MetricName(m));
     return TCL_OK;
 
   case METRICUNITS:  
     m = atoi(argv[2]);
-    strcpy(interp->result, dataGrid.MetricLabel(m));
+    strcpy(interp->result, visi_MetricLabel(m));
     return TCL_OK;
 
   case METRICAVEUNITS:  
     m = atoi(argv[2]);
-    strcpy(interp->result, dataGrid.MetricAveLabel(m));
+    strcpy(interp->result, visi_MetricAveLabel(m));
     return TCL_OK;
 
   case METRICSUMUNITS:  
     m = atoi(argv[2]);
-    strcpy(interp->result, dataGrid.MetricSumLabel(m));
+    strcpy(interp->result, visi_MetricSumLabel(m));
     return TCL_OK;
 
   case NUMBINS:     
-    sprintf(interp->result, "%d", dataGrid.NumBins());
+    sprintf(interp->result, "%d", visi_NumBuckets());
     return TCL_OK;
 
   case NUMMETRICS:  
-    sprintf(interp->result, "%d", dataGrid.NumMetrics());
+    sprintf(interp->result, "%d", visi_NumMetrics());
     return TCL_OK;
 
   case NUMRESOURCES:
-    sprintf(interp->result, "%d", dataGrid.NumResources());
+    sprintf(interp->result, "%d", visi_NumResources());
     return TCL_OK;
 
   case DEFINEPHASE:       
-    DefinePhase(-1.0,NULL);
+    visi_DefinePhase(-1.0,NULL);
     return TCL_OK;
 
   case RESOURCENAME:
     r = atoi(argv[2]);
-    strcpy(interp->result, dataGrid.ResourceName(r));
+    strcpy(interp->result, visi_ResourceName(r));
     return TCL_OK;
 
   case STARTSTREAM:       
-    GetMetsRes(); 
+    visi_GetMetsRes(); 
     return TCL_OK;
 
   case STOPSTREAM:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    StopMetRes(m, r);
+    visi_StopMetRes(m, r);
     return TCL_OK;
 
   case DGSUM:         
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result,"%g", dataGrid.SumValue(m,r));
+    sprintf(interp->result,"%g", visi_SumValue(m,r));
     return TCL_OK;
 
   case DGVALID:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result, "%d", dataGrid.Valid(m,r));
+    sprintf(interp->result, "%d", visi_Valid(m,r));
     return TCL_OK;
 
   case DGENABLED:
     m = atoi(argv[2]);
     r = atoi(argv[3]);
-    sprintf(interp->result, "%d", dataGrid[m][r].Enabled());
-//    sprintf(interp->result, "%d", dataGrid.Enabled(m,r));
+    sprintf(interp->result, "%d", visi_Enabled(m,r));
+//    sprintf(interp->result, "%d", Enabled(m,r));
     return TCL_OK;
 
   case VALUE:       
     m = atoi(argv[2]);
     r = atoi(argv[3]);
     buck = atoi(argv[4]);
-    sprintf(interp->result,"%g", dataGrid[m][r].Value(buck));
+    sprintf(interp->result,"%g", visi_DataValue(m,r,buck));
     return TCL_OK;
   }
 
@@ -299,7 +297,7 @@ void (*UsersNewDataCallbackRoutine)(int firstBucket, int lastBucket);
 
 int Dg2_Init(Tcl_Interp *interp) {
    // initialize with the visi lib
-   int fd = VisiInit();
+   int fd = visi_Init();
    if (fd < 0) {
       cerr << "Dg2_Init() -- could not initialize with the visi lib" << endl;
       exit(5);
@@ -311,19 +309,19 @@ int Dg2_Init(Tcl_Interp *interp) {
    // new barchart data.  We must process this callback very quickly,
    // in order to perturb the system as little as possible.
 
-   if (RegistrationCallback(ADDMETRICSRESOURCES, Dg2AddMetricsCallback) != 0)
+   if (visi_RegistrationCallback(ADDMETRICSRESOURCES,Dg2AddMetricsCallback)!=0)
       panic("Dg2_Init() -- couldn't install ADDMETRICSRESOURCES callback");
 
-   if (RegistrationCallback(FOLD, Dg2Fold) != 0)
+   if (visi_RegistrationCallback(FOLD, Dg2Fold) != 0)
       panic("Dg2_Init() -- couldn't install FOLD callback");
 
-   if (RegistrationCallback(INVALIDMETRICSRESOURCES, Dg2InvalidMetricsOrResources) != 0)
+   if (visi_RegistrationCallback(INVALIDMETRICSRESOURCES, Dg2InvalidMetricsOrResources) != 0)
       panic("Dg2_Init() -- couldn't install INVALID callback");
 
-   if (RegistrationCallback(PHASESTART, Dg2PhaseNameCallback) != 0)
+   if (visi_RegistrationCallback(PHASESTART, Dg2PhaseNameCallback) != 0)
       panic("Dg2_Init() -- couldn't install PHASENAME callback");
 
-   if (RegistrationCallback(DATAVALUES, Dg2NewDataCallback) != 0)
+   if (visi_RegistrationCallback(DATAVALUES, Dg2NewDataCallback) != 0)
       panic("Dg2_Init() -- couldn't install DATAVALUES callback");
 
    // install "Dg" as a new tcl command; Dg_TclCommand() will be invoked when

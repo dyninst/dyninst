@@ -3,6 +3,9 @@
 
 /*
  * $Log: tableVisiTcl.C,v $
+ * Revision 1.8  1996/01/17 18:31:39  newhall
+ * changes due to new visiLib
+ *
  * Revision 1.7  1995/12/22 22:44:33  tamches
  * selection
  * deletion
@@ -77,28 +80,25 @@ int Dg2NewDataCallback(int) {
    // Loop through the enabled metrics:
    for (unsigned metriclcv=0; metriclcv < numMetrics; metriclcv++) {
       const unsigned metId = theTableVisi->metric2MetId(metriclcv);
-
-      visi_GridHistoArray &metricValues = dataGrid[metId];
     
       // Loop through the enabled foci
       for (unsigned focuslcv=0; focuslcv < numFoci; focuslcv++) {
          const unsigned resId = theTableVisi->focus2ResId(focuslcv);
           
-         visi_GridCellHisto &theCell = metricValues[resId];
          // const unsigned bucketToUse = lastBucket;
-         const unsigned bucketToUse = theCell.LastBucketFilled();
+         const unsigned bucketToUse = visi_LastBucketFilled(metId,resId);
 
-         if (!theCell.Valid)
+         if (!visi_Valid(metId,resId))
             theTableVisi->invalidateCell(metriclcv, focuslcv);
          else if (currFormat==0) // current values
             theTableVisi->setCellValidData(metriclcv, focuslcv,
-					   theCell.Value(bucketToUse));
+				visi_DataValue(metId,resId,bucketToUse));
          else if (currFormat==1) // average values
             theTableVisi->setCellValidData(metriclcv, focuslcv,
-					   dataGrid.AggregateValue(metId, resId));
+					   visi_AverageValue(metId, resId));
          else if (currFormat==2) // total values
             theTableVisi->setCellValidData(metriclcv, focuslcv,
-					   dataGrid.SumValue(metId, resId));
+					   visi_SumValue(metId, resId));
       }
    }
 
@@ -124,15 +124,15 @@ int Dg2AddMetricsCallback(int) {
 
    extern Tcl_Interp *mainInterp;
    theTableVisi->clearMetrics(mainInterp);
-   unsigned newNumMetrics = dataGrid.NumMetrics();
+   unsigned newNumMetrics = visi_NumMetrics();
       // not necessarily the correct value; metric(s) may be disabled
 
    for (unsigned metriclcv=0; metriclcv < newNumMetrics; metriclcv++) {
       // Is this metric enabled?  Boils down to "is this metric enabled for
       // at least one focus?"
       bool enabled = false;
-      for (unsigned focuslcv=0; focuslcv < dataGrid.NumResources(); focuslcv++) {
-         if (dataGrid[metriclcv][focuslcv].Enabled()) {
+      for (int focuslcv=0; focuslcv < visi_NumResources(); focuslcv++) {
+         if (visi_Enabled(metriclcv,focuslcv)) {
             enabled = true;
 	    break;
 	 }
@@ -142,27 +142,27 @@ int Dg2AddMetricsCallback(int) {
 
       if (currFormat==0) // current values
          theTableVisi->addMetric(metriclcv,
-				 dataGrid.MetricName(metriclcv),
-				 dataGrid.MetricLabel(metriclcv));
+				 visi_MetricName(metriclcv),
+				 visi_MetricLabel(metriclcv));
       else if (currFormat==1) // average values
          theTableVisi->addMetric(metriclcv,
-				 dataGrid.MetricName(metriclcv),
-				 dataGrid.MetricAveLabel(metriclcv));
+				 visi_MetricName(metriclcv),
+				 visi_MetricAveLabel(metriclcv));
       else if (currFormat==2) // total values
          theTableVisi->addMetric(metriclcv,
-				 dataGrid.MetricName(metriclcv),
-				 dataGrid.MetricSumLabel(metriclcv));
+				 visi_MetricName(metriclcv),
+				 visi_MetricSumLabel(metriclcv));
    }
 
    theTableVisi->clearFoci(mainInterp);
-   unsigned newNumFoci = dataGrid.NumResources();
+   unsigned newNumFoci = visi_NumResources();
       // not necessarily the correct value; foci may be disabled
 
    for (unsigned focuslcv=0; focuslcv < newNumFoci; focuslcv++) {
       // is this focus enabled?
       bool enabled = false;
       for (unsigned metriclcv=0; metriclcv < newNumMetrics; metriclcv++)
-         if (dataGrid[metriclcv][focuslcv].Enabled()) {
+         if (visi_Enabled(metriclcv,focuslcv)) {
 	    enabled = true;
 	    break;
 	 }
@@ -170,7 +170,7 @@ int Dg2AddMetricsCallback(int) {
       if (!enabled)
          continue;
 
-      theTableVisi->addFocus(focuslcv, dataGrid.ResourceName(focuslcv));
+      theTableVisi->addFocus(focuslcv, visi_ResourceName(focuslcv));
    }
 
    // now update the sorting, as applicable
@@ -334,9 +334,9 @@ int tableVisiDeleteSelectionCommand(ClientData, Tcl_Interp *interp,
          unsigned theMetId = theTableVisi->getSelectedMetId();
          unsigned theResId = theTableVisi->getSelectedResId();
          //cout << "tableVisiDeleteSelectionCommand: about to delete a cell..." << endl;
-         //cout << "...whose resource name is " << dataGrid.ResourceName(theResId) << endl;
-         //cout << "...and whose metric name is " << dataGrid.MetricName(theMetId) << endl;
-         StopMetRes(theMetId, theResId);
+         //cout << "...whose resource name is " << visi_ResourceName(theResId) << endl;
+         //cout << "...and whose metric name is " << visi_MetricName(theMetId) << endl;
+         visi_StopMetRes(theMetId, theResId);
 
          unsigned theRow = theTableVisi->getSelectedRow();
          unsigned theCol = theTableVisi->getSelectedCol();
@@ -346,11 +346,11 @@ int tableVisiDeleteSelectionCommand(ClientData, Tcl_Interp *interp,
       case tableVisi::rowOnly: {
          unsigned theResId = theTableVisi->getSelectedResId();
          //cout << "tableVisiDeleteSelectionCommand: about to delete a row..." << endl;
-         //cout << "...whose resource name is " << dataGrid.ResourceName(theResId) << endl;
+         //cout << "...whose resource name is " << visi_ResourceName(theResId) << endl;
 
          for (unsigned collcv=0; collcv < theTableVisi->getNumMetrics(); collcv++) {
             unsigned theMetId = theTableVisi->col2MetId(collcv);
-            StopMetRes(theMetId, theResId);
+            visi_StopMetRes(theMetId, theResId);
 	 }
 
          unsigned theRow = theTableVisi->getSelectedRow();
@@ -360,10 +360,10 @@ int tableVisiDeleteSelectionCommand(ClientData, Tcl_Interp *interp,
       case tableVisi::colOnly: {
          unsigned theMetId = theTableVisi->getSelectedMetId();
          //cout << "tableVisiDeleteSelectionCommand: about to delete a column..." << endl;
-         //cout << "...whose metric name is " << dataGrid.MetricName(theMetId) << endl;
+         //cout << "...whose metric name is " << MetricName(theMetId) << endl;
          for (unsigned rowlcv=0; rowlcv < theTableVisi->getNumFoci(); rowlcv++) {
             unsigned theResId = theTableVisi->row2ResId(rowlcv);
-            StopMetRes(theMetId, theResId);
+            visi_StopMetRes(theMetId, theResId);
 	 }
 
          unsigned theCol = theTableVisi->getSelectedCol();
@@ -468,13 +468,13 @@ int formatChangedCommand(ClientData, Tcl_Interp *interp,
    int dataFormat = atoi(dataFormatStr);
    currFormat = dataFormat;
 
-   for (unsigned i =0; i < dataGrid.NumMetrics(); i++){
+   for (int i =0; i < visi_NumMetrics(); i++){
        if (currFormat==0) // current values
-            theTableVisi->changeUnitsLabel(i, dataGrid.MetricLabel(i));
+            theTableVisi->changeUnitsLabel(i, visi_MetricLabel(i));
        else if (currFormat==1) // average values
-            theTableVisi->changeUnitsLabel(i, dataGrid.MetricAveLabel(i));
+            theTableVisi->changeUnitsLabel(i, visi_MetricAveLabel(i));
        else // total values
-            theTableVisi->changeUnitsLabel(i, dataGrid.MetricSumLabel(i));
+            theTableVisi->changeUnitsLabel(i, visi_MetricSumLabel(i));
    }
 
    Dg2AddMetricsCallback(0);
