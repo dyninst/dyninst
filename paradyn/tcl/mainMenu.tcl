@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.46  1995/11/29 00:21:30  tamches
+# Revision 1.47  1995/12/08 16:08:07  naim
+# Disabling SAVE button because it is not implemented yet - naim
+#
+# Revision 1.46  1995/11/29  00:21:30  tamches
 # removed refs to pdBitmapDir; we now call makeLogo (pdLogo.C)
 #
 # Revision 1.45  1995/11/16 00:46:40  tamches
@@ -264,6 +267,10 @@ proc drawToolBar {} {
 #   since there is no process to RUN or to PAUSE
     .parent.buttons.1 configure -state disabled
     .parent.buttons.2 configure -state disabled
+
+#   SAVE button will be disabled for the time being since it is not 
+#   implemented yet.
+    .parent.buttons.3 configure -state disabled
 
     frame .parent.menub.left
     label .parent.menub.left.title -text "Paradyn Main Control" \
