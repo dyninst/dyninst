@@ -56,12 +56,9 @@
 #define RT_TRUE 1
 #define RT_FALSE 0
 
-typedef void (*instFunc)(void *cdata, int type, char *eventData);
-
-typedef struct intCounterRec intCounter;
+//typedef void (*instFunc)(void *cdata, int type, char *eventData);
 
 /* parameters to a instremented function */
-typedef struct _parameteters parameters;
 typedef enum { processTime, wallTime } timerType;
 
 /* 64 bit time values */
@@ -69,9 +66,10 @@ typedef long long int time64;
 typedef long long int int64;
 
 struct sampleIdRec {
-    unsigned int aggregate:1;
-    unsigned int id:31;
+    unsigned int id;
+    /* formerly an aggregate bit, but that's now obsolete */
 };
+typedef struct sampleIdRec sampleId;
 
 struct endStatsRec {
     int alarms;
@@ -87,25 +85,27 @@ struct endStatsRec {
     int instTicks;
 };
 
-typedef struct sampleIdRec sampleId;
 
 
 struct intCounterRec {
-    int value;		/* this field must be first for setValue to work -jkh */
-    sampleId id;
+   int value;		/* this field must be first for setValue to work -jkh */
+   sampleId id;
+    
+   unsigned char theSpinner;
+   /* mutex serving 2 purposes: (1) so paradynd won't sample while we're in middle of
+      updating and (2) so multiple LWPs or threads won't update at the same time */ 
 };
+typedef struct intCounterRec intCounter;
 
-
-typedef struct floatCounterRec floatCounter;
 struct floatCounterRec {
     float value;
     sampleId id;
 };
+typedef struct floatCounterRec floatCounter;
 
 
-typedef struct tTimerRec tTimer;
 struct tTimerRec {
-    volatile int 	counter;	/* must be 0 to start/stop */
+    volatile int 	counter;	/* must be 0 to start; must be 1 to stop */
     volatile time64	total;
     volatile time64	start;
     volatile time64     lastValue;
@@ -113,13 +113,19 @@ struct tTimerRec {
 					   during st/stp */
     volatile int	normalize;	/* value to divide total by to 
 					   get seconds */
+                                        /* always seems to be MILLION; can we get rid
+                                           of this? --ari */
     volatile timerType 	type;
     volatile sampleId 	id;
     volatile char mutex;
     volatile char sampled;
-};
 
-typedef int (*filterFunc)(void *cdata, parameters *params);
+   volatile unsigned char theSpinner;
+   /* mutex serving 2 purposes: (1) so paradynd won't sample while we're in middle of
+      updating and (2) so multiple LWPs or threads won't update at the same time */ 
+};
+typedef struct tTimerRec tTimer;
+
 typedef int traceStream;
 
 void DYNINSTgenerateTraceRecord(traceStream sid, short type, 

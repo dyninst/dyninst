@@ -49,6 +49,7 @@
 
 #include "rtinst/h/rtinst.h"
 #include "util/h/sys.h"
+#include <sys/types.h> /* key_t */
 
 #ifndef False
 #define False 0
@@ -89,36 +90,45 @@ typedef struct _traceHeader traceHeader;
  *
  */
 #define TR_FORK			1
+
+#ifndef SHM_SAMPLING
 #define TR_SAMPLE		2
+#endif
+
 #define TR_NEW_RESOURCE		3
 #define TR_NEW_ASSOCIATION	4
-#define TR_MULTI_FORK		5
 #define TR_EXIT			6
-#define TR_NODE_PRINT		7
 #define TR_COST_UPDATE		9
-#define TR_CP_SAMPLE		10
+#define TR_CP_SAMPLE		10 /* critical path */
 #define TR_EXEC                 11
 #define TR_EXEC_FAILED          12
-#define TR_START          	13
 
 /* types for resources that may be reported */
 #define RES_TYPE_INT    0
 #define RES_TYPE_STRING 1
 
-
+#ifndef SHM_SAMPLING
 struct _traceSample {
     sampleId	id;		/* id of the sample */
     sampleValue value;		/* sample value */
 };
-
 typedef struct _traceSample traceSample;
+#endif
 
 struct _traceFork {
     int	ppid;	/* id of creating thread */
     int	pid;	/* id of new thread */
     int npids;	/* number of new threads */
     int stride;	/* offset to next pid in multi */
+
+#ifdef SHM_SAMPLING
+    key_t the_shmSegBaseKey;
+    intCounter *appl_shmSegIntCounterPtr;
+    tTimer *appl_shmSegWallTimerPtr;
+    tTimer *appl_shmSegProcTimerPtr;
+#endif
 };
+typedef struct _traceFork traceFork;
 
 struct _traceExec {
     int pid;
@@ -130,7 +140,6 @@ struct _traceStart {
     int value;		/* dummy value */
 };
 typedef struct _traceStart traceStart;
-
 
 /* a map from one name space to another.  
  *   For example 
@@ -156,24 +165,16 @@ struct _newresource {
     unsigned short type;                /* type of leaf resource */
 };
 
-typedef struct _traceFork traceFork;
-
-struct _ptraceAck {
-    int seqNumber;              /* sequence number of ptrace request */
-    int bytes_read;             /* bytes which made up the ptrace request. */
-                                /* We can extend the window by this much. */
-};
-
-typedef struct _ptraceAck ptraceAck;
 
 struct _costUpdate {
-    int 	slotsExecuted;	/* number of base tramps halves called. */
-    float	pauseTime;	/* total pause time this interval */
+/*    int 	slotsExecuted;	(number of base tramps halves called.) */
+/*    float	pauseTime;	(total pause time this interval) */
     float 	obsCostIdeal;	/* ideal memory model time */
+
+    /* the following fields are used if profil()'ing: */
     float 	obsCostLow;	/* using profil */
     float 	obsCostHigh;	/* combined */
 };
-
 typedef struct _costUpdate costUpdate;
 
 /* XXX - should this be a general vector?? (jkh 1/19/95) */
@@ -182,7 +183,17 @@ struct _cpSample {
     float length;
     float share;
 };
-
 typedef struct _cpSample cpSample;
+
+struct DYNINST_bootstrapStruct {
+   int pid;
+
+#ifdef SHM_SAMPLING
+   intCounter *intCounterAttachedAt;
+   tTimer *wallTimerAttachedAt;
+   tTimer *procTimerAttachedAt;
+#endif
+
+};
 
 #endif

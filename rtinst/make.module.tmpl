@@ -1,10 +1,14 @@
 
+
 #
 # Common makefile template for rtinst library.  This file is not
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.9  1996/10/31 08:03:00  tamches
+# the shm-sampling commit
+#
 # Revision 1.8  1996/07/30 19:02:19  mjrg
 # Changed libdyninstRT.a to libdyninstRT.o
 # Link libdyninstRT.o with libgcc
@@ -53,6 +57,10 @@ SRCS2	     += ../src/RTend.c
 
 DYNSRCS	      = ../src/DYNINSTstartCode.c \
 		../src/DYNINSTendCode.c
+
+ifdef USES_SHM_SAMPLING
+CFLAGS	+= -DSHM_SAMPLING
+endif
 
 all: $(TARGET) $(TARGET2) $(ALT_TARGET)
 
