@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.60 2002/01/09 04:42:59 schendel Exp $
+// $Id: init.C,v 1.61 2002/01/25 00:05:48 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -139,7 +139,9 @@ pdSample computePauseTimeMetric(const metricDefinitionNode *) {
 pdSample computeNumOfActCounters(const metricDefinitionNode *) {
   unsigned max = 0;
   for (unsigned i = 0; i < processVec.size(); i++) {
-    if (processVec[i]->numOfActCounters_is > max)
+    process *curProc = processVec[i];
+    if(curProc->hasExited()) continue;
+    if(curProc->numOfActCounters_is > max)
       max = processVec[i]->numOfActCounters_is;
   }
   return pdSample(max);
@@ -148,7 +150,9 @@ pdSample computeNumOfActCounters(const metricDefinitionNode *) {
 pdSample computeNumOfActProcTimers(const metricDefinitionNode *) {
   unsigned max = 0;
   for (unsigned i = 0; i < processVec.size(); i++) {
-    if (processVec[i]->numOfActProcTimers_is > max)
+    process *curProc = processVec[i];
+    if(curProc->hasExited()) continue;
+    if(curProc->numOfActProcTimers_is > max)
       max = processVec[i]->numOfActProcTimers_is;
   }
   return pdSample(max);
@@ -157,7 +161,9 @@ pdSample computeNumOfActProcTimers(const metricDefinitionNode *) {
 pdSample computeNumOfActWallTimers(const metricDefinitionNode *) {
   unsigned max = 0;
   for (unsigned i = 0; i < processVec.size(); i++) {
-    if (processVec[i]->numOfActWallTimers_is > max)
+    process *curProc = processVec[i];
+    if(curProc->hasExited()) continue;
+    if(curProc->numOfActWallTimers_is > max)
       max = processVec[i]->numOfActWallTimers_is;
   }
   return pdSample(max);
@@ -294,6 +300,7 @@ bool init() {
        internalMetric::firstSample_ForInitActualValue);
   sampling_rate->setStyle(SampledFunction);
 
+  /* ie. the number of CPUs present on the machine */
   number_of_cpus = internalMetric::newInternalMetric(
        "number_of_cpus", aggSum, "CPUs", computeNumOfCPUs, default_im_preds, 
        false, Sampled, internalMetric::firstSample_ForInitActualValue);
