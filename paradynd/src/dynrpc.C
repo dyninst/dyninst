@@ -43,6 +43,9 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.57  1997/01/15 00:21:08  tamches
+ * added attach()
+ *
  * Revision 1.56  1996/11/14 14:26:59  naim
  * Changing AstNodes back to pointers to improve performance - naim
  *
@@ -126,6 +129,9 @@ void dynRPC::addResource(u_int parent_id, u_int id, string name, u_int type)
   resource::newResource(parent, name, id, type);
 }
 
+extern vector<process*> processVec;
+extern process* findProcess(int); // should become a static method of class process
+
 void dynRPC::coreProcess(int id)
 {
   process *proc = findProcess(id);
@@ -174,6 +180,9 @@ void dynRPC::getPredictedDataCost(u_int id,
 #endif
 
       float cost = guessCost(metName, focus);
+         // note: returns 0.0 in a variety of situations (if metric cannot be
+         //       enabled, etc.)  Would we rather have a more explicit error
+         //       return value?
 
 #ifdef TIMINGDEBUG_OFF
   t2=getCurrentTime(false);
@@ -521,22 +530,22 @@ bool dynRPC::startProgram(int )
 }
 
 //
-// This is not implemented yet.
-//
-bool dynRPC::attachProgram(int)
-{
-    return(false);
-}
-
-//
 // start a new program for the tool.
 //
 int dynRPC::addExecutable(vector<string> argv, string dir)
 {
   vector<string> envp;
-  return(addProcess(argv, envp, dir));
+  return(addProcess(argv, envp, dir)); // context.C
 }
 
+
+//
+// Attach is the other way to start a process (application?)
+//
+bool dynRPC::attach(int pid)
+{
+    return attachProcess(pid); // process.C
+}
 
 //
 // report the current time 
