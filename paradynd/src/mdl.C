@@ -3,7 +3,11 @@
 
 /* 
  * $Log: mdl.C,v $
- * Revision 1.7  1995/09/26 20:28:47  naim
+ * Revision 1.8  1995/11/13 14:52:55  naim
+ * Adding "mode" option to the Metric Description Language to allow specificacion
+ * of developer mode for metrics (default mode is "normal") - naim
+ *
+ * Revision 1.7  1995/09/26  20:28:47  naim
  * Minor warning fixes and some other minor error messages fixes
  *
  * Revision 1.6  1995/09/18  18:31:01  newhall
@@ -128,12 +132,16 @@ private:
   unsigned max;
 };
 
-T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units, unsigned fold,
-				     unsigned agg, unsigned sty, u_int type,
-				     vector<T_dyninstRPC::mdl_stmt*> *mv, vector<string> *flav,
-				     vector<T_dyninstRPC::mdl_constraint*> *cons,
-				     vector<string> *temp_counters)
-: id_(id), name_(name), units_(units), fold_op_(fold), agg_op_(agg), style_(sty),
+T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units, 
+				    unsigned fold,
+				    unsigned agg, unsigned sty, u_int type,
+				    vector<T_dyninstRPC::mdl_stmt*> *mv, 
+				    vector<string> *flav,
+				    vector<T_dyninstRPC::mdl_constraint*> *cons,
+				    vector<string> *temp_counters,
+				    bool developerMode)
+: id_(id), name_(name), units_(units), fold_op_(fold), agg_op_(agg), 
+  style_(sty), developerMode_(developerMode),
   type_(type), stmts_(mv), flavors_(flav), constraints_(cons), temp_ctr_(temp_counters) { }
 T_dyninstRPC::mdl_metric::mdl_metric() { }
 
@@ -160,11 +168,14 @@ bool mdl_data::new_metric(string id, string name, string units,
 			  vector<T_dyninstRPC::mdl_stmt*> *mv,
 			  vector<string> *flav,
 			  vector<T_dyninstRPC::mdl_constraint*> *cons,
-			  vector<string> *temp_counters) {
-  T_dyninstRPC::mdl_metric *m = new T_dyninstRPC::mdl_metric(id, name, units, fold, agg,
+			  vector<string> *temp_counters,
+			  bool developerMode) {
+  T_dyninstRPC::mdl_metric *m = new T_dyninstRPC::mdl_metric(id, name, 
+							     units, fold, agg,
 							     sty, type, mv,
 							     flav, cons,
-							     temp_counters);
+							     temp_counters,
+							     developerMode);
   if (!m)
     return false;
   else {
@@ -1191,9 +1202,9 @@ bool mdl_init(string& flavor) {
 }
 
 void dynRPC::send_metrics(vector<T_dyninstRPC::mdl_metric*>* var_0) {
-  static bool been_here = false;
   mdl_met = true;
 
+  static bool been_here = false;
   if (!been_here) {
     been_here = true;
     // Kludge -- declare observed cost
@@ -1201,8 +1212,9 @@ void dynRPC::send_metrics(vector<T_dyninstRPC::mdl_metric*>* var_0) {
     string obs_cost = "observed_cost";
     assert(mdl_data::new_metric("observedCost", obs_cost, "# CPUS",
 				aggMax, aggMax, EventCounter, 0,
-				NULL, NULL, NULL, NULL));
+ 			        NULL, NULL, NULL, NULL, true));
   }
+
   if (var_0) {
     unsigned var_size = var_0->size();
     for (unsigned v=0; v<var_size; v++) {
@@ -1637,6 +1649,7 @@ void mdl_get_info(vector<T_dyninstRPC::metricInfo>& metInfo) {
     element.style = mdl_data::all_metrics[u]->style_;
     element.aggregate = mdl_data::all_metrics[u]->agg_op_;
     element.units = mdl_data::all_metrics[u]->units_;
+    element.developerMode = mdl_data::all_metrics[u]->developerMode_;
     metInfo += element;
   }
 }

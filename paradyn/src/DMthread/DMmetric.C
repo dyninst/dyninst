@@ -28,6 +28,7 @@ metric::metric(T_dyninstRPC::metricInfo i){
     info.style = i.style;
     info.units = i.units;
     info.name = i.name;
+    info.developerMode = i.developerMode;
     info.aggregate = i.aggregate;
     info.handle = metrics.size();
     metric *met = this;
@@ -78,28 +79,47 @@ vector<string> *metric::allMetricNames(){
 
     vector<string> *temp = new vector<string>;
     string name;
+    tunableBooleanConstant developerMode =
+			   tunableConstantRegistry::findBoolTunableConstant(
+			   "developerMode");
+    bool developerModeActive = developerMode.getValue();
     for(unsigned i=0; i < metrics.size(); i++){
         metric *met = metrics[i];
-        string name = met->getName();
-	*temp += name; 
-
+	if (developerModeActive) {
+	  string name = met->getName();
+	  *temp += name;
+	}
+	else if (!met->isDeveloperMode()) {
+	  string name = met->getName();
+	  *temp += name;
+	}
     }
     return(temp);
-    temp = 0;
 }
 
 vector<met_name_id> *metric::allMetricNamesIds(){
 
     vector<met_name_id> *temp = new vector<met_name_id>;
     met_name_id next;
+    tunableBooleanConstant developerMode =
+			   tunableConstantRegistry::findBoolTunableConstant(
+		           "developerMode");
+    bool developerModeActive = developerMode.getValue();
+
     for(unsigned i=0; i < metrics.size(); i++){
         metric *met = metrics[i];
-        next.name = met->getName();
-	next.id = met->getHandle();
-	*temp += next; 
+        if (developerModeActive) {
+          next.name = met->getName();
+	  next.id = met->getHandle();
+	  *temp += next; 
+        }
+        else if (!met->isDeveloperMode()) {
+	  next.name = met->getName();
+	  next.id = met->getHandle();
+	  *temp += next;
+	}
     }
     return(temp);
-    temp = 0;
 }
 
 metricInstance::metricInstance(resourceListHandle rl, 

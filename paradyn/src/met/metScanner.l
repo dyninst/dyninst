@@ -1,7 +1,11 @@
 %{
 /*
  * $Log: metScanner.l,v $
- * Revision 1.5  1995/08/24 15:02:48  hollings
+ * Revision 1.6  1995/11/13 14:54:06  naim
+ * Adding "mode" option to the Metric Description Language to allow specificacion
+ * of developer mode for metrics (default mode is "normal") - naim
+ *
+ * Revision 1.5  1995/08/24  15:02:48  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -136,6 +140,9 @@ i
 "sum"		{ return(tSUM);}
 "name"		{ return(tNAME);}
 "units"		{ return(tUNITS);}
+"mode"		{ return(tMODE);}
+"developer"	{ return(tDEVELOPER);}
+"normal"	{ return(tNORMAL);}
 "foldOperator"	{ return(tFOLD);}
 "base"		{ return(tBASE);}
 "is"		{ return(tIS);}

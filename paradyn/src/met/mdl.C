@@ -28,13 +28,19 @@ vector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
 static bool do_instr_rand(u_int arg_type, u_int arg_val, string& arg_name, string& a2);
 static bool do_operation(mdl_var& ret, mdl_var& left, mdl_var& right, unsigned bin_op);
 
-T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units, unsigned fold,
-				     unsigned agg, unsigned sty, u_int type,
-				     vector<T_dyninstRPC::mdl_stmt*> *mv, vector<string> *flav,
-				     vector<T_dyninstRPC::mdl_constraint*> *cons,
-				     vector<string> *temp_counters)
-: id_(id), name_(name), units_(units), fold_op_(fold), agg_op_(agg), style_(sty),
-  type_(type), stmts_(mv), flavors_(flav), constraints_(cons), temp_ctr_(temp_counters) { }
+T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units, 
+				    unsigned fold,
+				    unsigned agg, unsigned sty, u_int type,
+				    vector<T_dyninstRPC::mdl_stmt*> *mv, 
+				    vector<string> *flav,
+				    vector<T_dyninstRPC::mdl_constraint*> *cons,
+				    vector<string> *temp_counters,
+				    bool developerMode)
+: id_(id), name_(name), units_(units), developerMode_(developerMode),
+  fold_op_(fold), agg_op_(agg), 
+  style_(sty),
+  type_(type), stmts_(mv), flavors_(flav), constraints_(cons), 
+  temp_ctr_(temp_counters) { }
 
 T_dyninstRPC::mdl_metric::mdl_metric() { }
 
@@ -59,10 +65,15 @@ bool mdl_data::new_metric(string id, string name, string units,
 			  vector<T_dyninstRPC::mdl_stmt*> *mv,
 			  vector<string> *flavs,
 			  vector<T_dyninstRPC::mdl_constraint*> *cons,
-			  vector<string> *temp_counters) {
-  T_dyninstRPC::mdl_metric *m = new T_dyninstRPC::mdl_metric(id, name, units, fold, agg,
-							     sty, type, mv, flavs, cons,
-							     temp_counters);
+			  vector<string> *temp_counters,
+			  bool developerMode) {
+
+  T_dyninstRPC::mdl_metric *m = new T_dyninstRPC::mdl_metric(id, name, units, 
+							     fold, agg,
+							     sty, type, mv, 
+							     flavs, cons,
+							     temp_counters,
+							     developerMode);
   if (!m)
     return false;
   else {

@@ -3,7 +3,11 @@
 
 /*
  * $Log: metParser.y,v $
- * Revision 1.9  1995/09/18 22:39:20  mjrg
+ * Revision 1.10  1995/11/13 14:53:28  naim
+ * Adding "mode" option to the Metric Description Language to allow specificacion
+ * of developer mode for metrics (default mode is "normal") - naim
+ *
+ * Revision 1.9  1995/09/18  22:39:20  mjrg
  * Added directory command.
  * Removed host and user from daemon declaration.
  * Changed host and directory fields to string.
@@ -73,7 +77,7 @@ extern unsigned hacked_cons_type;
 %token tCOUNTER tAGG tAVG tSUM tMIN tMAX tDOT tW_TIME tP_TIME
 %token tAPPEND tPREPEND tDERIVED tIF tREPLACE tCONSTRAINT tCONSTRAINED
 %token tTYPE tAT tIN tLSQUARE tRSQUARE tBEFORE tAFTER
-%token tSTYLE tEVENT_COUNTER tSAMPLE_FUNC
+%token tSTYLE tEVENT_COUNTER tSAMPLE_FUNC tMODE tDEVELOPER tNORMAL
 %token tPLUS tMINUS tDIV tMULT tLT tGT tLE tGE tEQ tNE tAND tOR tNOT
 %token tADD_COUNTER tSET_COUNTER tSUB_COUNTER 
 %token tSTART_PROC_TIMER tSTOP_PROC_TIMER 
@@ -470,6 +474,12 @@ flavor_list: tIDENT {
 
 met_flavor: tFLAVOR tASSIGN tLBLOCK flavor_list tRBLOCK tSEMI { $$.vs = $4.vs; };
 
+mode_val: tDEVELOPER { $$.b = true; }
+	| tNORMAL { $$.b = false; }; 
+
+met_mode: 		       { $$.b = false; };	
+	| tMODE mode_val tSEMI { $$.b = $2.b; };
+
 met_base: tBASE tIS tCOUNTER tLBLOCK metric_stmts tRBLOCK {
   $$.base.type = MDL_T_COUNTER;
   $$.base.m_stmt_v = $5.m_stmt_v;
@@ -504,9 +514,10 @@ constraint_list:      {
 met_temps:                                 { $$.vs = new vector<string>; }
          | met_temps tCOUNTER tIDENT tSEMI { $$.vs = $1.vs; (*$$.vs) += *$3.sp; delete $3.sp;};
 
-metric_definition: tMETRIC tIDENT tLBLOCK met_name met_units met_fold met_agg met_style met_flavor constraint_list met_temps met_base tRBLOCK {
-  if (!mdl_data::new_metric(*$2.sp, *$4.sp, *$5.sp, $6.u, $7.u, $8.u, $12.base.type, 
-			    $12.base.m_stmt_v, $9.vs, $10.v_cons, $11.vs)) {
+metric_definition: tMETRIC tIDENT tLBLOCK met_name met_units met_fold met_agg met_style met_flavor met_mode constraint_list met_temps met_base tRBLOCK {
+  if (!mdl_data::new_metric(*$2.sp, *$4.sp, *$5.sp, $6.u, $7.u, $8.u, 
+			    $13.base.type, $13.base.m_stmt_v,
+			    $9.vs, $11.v_cons, $12.vs, $10.b)) {
     char msg[100];
     sprintf(msg, "Error defining %s\n", $2.sp->string_of());
     yyerror(msg);

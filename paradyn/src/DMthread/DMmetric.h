@@ -28,6 +28,7 @@
 #include "util/h/aggregateSample.h"
 #include "DMinclude.h"
 #include "DMdaemon.h"
+#include "paradyn/src/TCthread/tunableConst.h"
 
 
 class metricInstance;
@@ -99,6 +100,7 @@ class metric {
         static const metricHandle  *find(const string name); 
 	static vector<string> *allMetricNames();
 	static vector<met_name_id> *allMetricNamesIds();
+	bool isDeveloperMode() { return info.developerMode; }
 
     private:
 	static dictionary_hash<string, metric*> allMetrics;

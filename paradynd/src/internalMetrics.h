@@ -4,7 +4,11 @@
 
 /*
  * $Log: internalMetrics.h,v $
- * Revision 1.8  1995/08/24 15:04:11  hollings
+ * Revision 1.9  1995/11/13 14:52:21  naim
+ * Adding "mode" option to the Metric Description Language to allow specificacion
+ * of developer mode for metrics (default mode is "normal") - naim
+ *
+ * Revision 1.8  1995/08/24  15:04:11  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -28,9 +32,9 @@ typedef float (*sampleValueFunc)();
 class internalMetric {
  public:
   internalMetric(const string n, metricStyle style, int a, const string units,
-		 sampleValueFunc f, im_pred_struct& im_preds) 
+		 sampleValueFunc f, im_pred_struct& im_preds, bool developermode=false) 
     : value(0.0), cumulativeValue(0.0), func(f), node(NULL), name_(n), agg_(a),
-      style_(style), units_(units), pred(im_preds) { }
+      style_(style), units_(units), pred(im_preds), developermode_(developermode) { }
 
   inline float getValue();
   void enable(metricDefinitionNode *n) { node = n; }
@@ -40,9 +44,12 @@ class internalMetric {
   string name() const { return name_;}
 
   static vector<internalMetric*> allInternalMetrics;
-  static internalMetric *newInternalMetric(const string n, metricStyle style, int a,
+  static internalMetric *newInternalMetric(const string n, metricStyle style, 
+					   int a,
 					   const string units,
-					   sampleValueFunc f, im_pred_struct& preds);
+					   sampleValueFunc f, 
+					   im_pred_struct& preds,
+					   bool developerMode);
   float value;
   float cumulativeValue;
   sampleValueFunc func;
@@ -53,16 +60,18 @@ class internalMetric {
     T_dyninstRPC::metricInfo ret;
     ret.name = name_; ret.style = style_;
     ret.aggregate = agg_; ret.units = units_;
+    ret.developerMode = developermode_;
     return ret;
   }
   bool legalToInst(vector< vector<string> >& focus);
-
+  bool isDeveloperMode() { return developermode_; }
 private:
   string name_;
   int agg_;
   metricStyle style_;
   string units_;
   im_pred_struct pred;
+  bool developermode_;
 };
 
 float internalMetric::getValue() {

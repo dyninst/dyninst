@@ -14,7 +14,11 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.56  1995/10/16 13:56:34  naim
+ * Revision 1.57  1995/11/13 14:54:12  naim
+ * Adding "mode" option to the Metric Description Language to allow specificacion
+ * of developer mode for metrics (default mode is "normal") - naim
+ *
+ * Revision 1.56  1995/10/16  13:56:34  naim
  * Eliminating error message 65. It seems to be not necessary - naim
  *
  * Revision 1.55  1995/10/04  18:52:47  krisna
@@ -1014,8 +1018,10 @@ internalMetric *internalMetric::newInternalMetric(const string n,
 						  int a, 
 						  const string units, 
 						  sampleValueFunc f,
-						  im_pred_struct& im_pred) {
-  internalMetric *im = new internalMetric(n, style, a, units, f, im_pred);
+						  im_pred_struct& im_pred,
+						  bool developerMode) {
+  internalMetric *im = new internalMetric(n, style, a, units, f, im_pred,
+					  developerMode);
   assert(im);
   unsigned size = allInternalMetrics.size();
   for (unsigned u=0; u<size; u++)

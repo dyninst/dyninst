@@ -360,6 +360,7 @@ class mdl_metric {
   string id_;
   string name_;
   string units_;
+  bool developerMode_;
   u_int fold_op_;
   u_int agg_op_;
   u_int style_;
@@ -373,8 +374,9 @@ $ignore
 public:
   mdl_metric(string id, string name, string units,
 	     u_int fold, u_int agg, u_int style, u_int type,
-	     vector<mdl_stmt*> *mv, vector<string> *flavs, vector<T_dyninstRPC::mdl_constraint*> *cons,
-	     vector<string> *temp_c);
+	     vector<mdl_stmt*> *mv, vector<string> *flavs, 
+	     vector<T_dyninstRPC::mdl_constraint*> *cons,
+	     vector<string> *temp_c, bool developerMode);
   ~mdl_metric();
 #ifdef NO_MDL_PRINT
   friend ostream& operator<< (ostream &os, const T_dyninstRPC::mdl_metric& met) {
@@ -408,6 +410,7 @@ $remote struct metricInfo {
     int style;
     int aggregate;
     string units;
+    bool developerMode;
     u_int handle;  // this is currently ignored by the daemons 
 };
 
