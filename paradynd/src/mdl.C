@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.140 2003/05/22 19:10:16 igor Exp $
+// $Id: mdl.C,v 1.141 2003/05/30 21:32:38 bernat Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -1180,6 +1180,9 @@ bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *codeNode,
 					 bool dontInsertData)
 {
    assert(dataNode);
+   assert(proc);
+   assert(codeNode);
+   
    switch (data_type_) {
      case MDL_T_COUNTER:
      case MDL_T_WALL_TIMER:
