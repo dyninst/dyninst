@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.32 2000/03/14 22:31:31 tikir Exp $
+// $Id: BPatch_thread.C,v 1.33 2000/03/22 00:47:41 mihai Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -941,6 +941,12 @@ bool BPatch_thread::replaceFunction(BPatch_function &oldFunc,
     if (oldFunc.func == newFunc.func)
 	 return true;
 
+    /* mihai
+     *
+     */
+    bool old_recursion_flag = BPatch::bpatch->isTrampRecursive();
+    BPatch::bpatch->setTrampRecursive( true );
+
     // We replace functions by instrumenting the entry of OLDFUNC with
     // a non-linking jump to NEWFUNC.  Calls to OLDFUNC do actually
     // transfer to OLDFUNC, but then our jump shunts them to NEWFUNC.
@@ -950,7 +956,14 @@ bool BPatch_thread::replaceFunction(BPatch_function &oldFunc,
     if (! pts || ! pts->size())
 	 return false;
     BPatch_funcJumpExpr fje(newFunc);
-    return (NULL != insertSnippet(fje, *pts, BPatch_callBefore));
+    BPatchSnippetHandle * result = insertSnippet(fje, *pts, BPatch_callBefore);
+
+    /* mihai
+     *
+     */
+    BPatch::bpatch->setTrampRecursive( old_recursion_flag );
+
+    return (NULL != result);
 #else
     BPatch_reportError(BPatchSerious, 109,
 		       "replaceFunction is not implemented on this platform");
