@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.18 1999/08/18 19:04:48 pcroth Exp $
+// $Id: BPatch.C,v 1.19 1999/08/19 14:37:26 pcroth Exp $
 
 #include <stdio.h>
 #include <assert.h>
