@@ -185,11 +185,6 @@ short *DYNINSTprofBuffer;
 #endif
 
 
-#ifdef COSTTEST
-time64 DYNINSTtest[10]={0,0,0,0,0,0,0,0,0,0};
-int DYNINSTtestN[10]={0,0,0,0,0,0,0,0,0,0};
-#endif
-
 double DYNINSTdata[SYN_INST_BUF_SIZE/sizeof(double)];
 /* As DYNINSTinit() completes, it has information to pass back
    to paradynd.  The data can differ; more stuff is needed
@@ -237,20 +232,12 @@ DYNINSTstartProcessTimer(tTimer* timer) {
        some serious infinite recursion, avoid calling anything that might directly
        or indirectly call write() in this routine; e.g. printf()!!!!! */
 
-#ifdef COSTTEST
-    time64 startT,endT;
-#endif
-
 #ifndef SHM_SAMPLING
     /* if "write" is instrumented to start/stop timers, then a timer could be
        (incorrectly) started/stopped every time a sample is written back */
 
     if (DYNINSTin_sample)
        return;
-#endif
-
-#ifdef COSTTEST
-    startT=DYNINSTgetCPUtime();
 #endif
 
 /* For shared-mem sampling only: bump protector1, do work, then bump protector2 */
@@ -276,13 +263,6 @@ DYNINSTstartProcessTimer(tTimer* timer) {
 #else
     timer->normalize = MILLION; /* I think this vrble is obsolete & can be removed */
 #endif
-
-
-#ifdef COSTTEST
-    endT=DYNINSTgetCPUtime();
-    DYNINSTtest[0]+=endT-startT;
-    DYNINSTtestN[0]++;
-#endif
 }
 
 
@@ -295,20 +275,12 @@ DYNINSTstopProcessTimer(tTimer* timer) {
        some serious infinite recursion, avoid calling anything that might directly
        or indirectly call write() in this routine; e.g. printf()!!!!! */
 
-#ifdef COSTTEST
-    time64 startT,endT;
-#endif
-
 #ifndef SHM_SAMPLING
     /* if "write" is instrumented to start/stop timers, then a timer could be
        (incorrectly) started/stopped every time a sample is written back */
 
     if (DYNINSTin_sample)
        return;       
-#endif
-
-#ifdef COSTTEST
-    startT=DYNINSTgetCPUtime();
 #endif
 
 #ifdef SHM_SAMPLING
@@ -368,12 +340,6 @@ DYNINSTstopProcessTimer(tTimer* timer) {
       timer->counter--;
     }
 #endif
-
-#ifdef COSTTEST
-    endT=DYNINSTgetCPUtime();
-    DYNINSTtest[1]+=endT-startT;
-    DYNINSTtestN[1]++;
-#endif 
 }
 
 
@@ -389,10 +355,6 @@ DYNINSTstartWallTimer(tTimer* timer) {
        some serious infinite recursion, avoid calling anything that might directly
        or indirectly call write() in this routine; e.g. printf()!!!!! */
 
-#ifdef COSTTEST
-    time64 startT, endT;
-#endif
-
 #ifndef SHM_SAMPLING
     /* if "write" is instrumented to start/stop timers, then a timer could be
        (incorrectly) started/stopped every time a sample is written back */
@@ -400,10 +362,6 @@ DYNINSTstartWallTimer(tTimer* timer) {
     if (DYNINSTin_sample) {
        return;
     }
-#endif
-
-#ifdef COSTTEST
-    startT=DYNINSTgetCPUtime();
 #endif
 
 #ifdef SHM_SAMPLING
@@ -426,12 +384,6 @@ DYNINSTstartWallTimer(tTimer* timer) {
 #else
     timer->normalize = MILLION; /* I think this vrble is obsolete & can be removed */
 #endif
-
-#ifdef COSTTEST
-    endT=DYNINSTgetCPUtime();
-    DYNINSTtest[2]+=endT-startT;
-    DYNINSTtestN[2]++;
-#endif 
 }
 
 
@@ -440,20 +392,12 @@ DYNINSTstartWallTimer(tTimer* timer) {
 ************************************************************************/
 void
 DYNINSTstopWallTimer(tTimer* timer) {
-#ifdef COSTTEST
-    time64 startT, endT;
-#endif
-
 #ifndef SHM_SAMPLING
     /* if "write" is instrumented to start timers, a timer could be started */
     /* when samples are being written back */
 
     if (DYNINSTin_sample)
        return;
-#endif
-
-#ifdef COSTTEST
-    startT=DYNINSTgetCPUtime();
 #endif
 
 #ifdef SHM_SAMPLING
@@ -508,12 +452,6 @@ DYNINSTstopWallTimer(tTimer* timer) {
         timer->counter--;
     }
 #endif
-
-#ifdef COSTTEST
-    endT=DYNINSTgetCPUtime();
-    DYNINSTtest[3]+=endT-startT;
-    DYNINSTtestN[3]++;
-#endif 
 }
 
 
@@ -808,18 +746,10 @@ DYNINSTalarmExpire(int signo) {
 DYNINSTalarmExpire(int signo, int code, struct sigcontext *scp) {
 #endif
 
-#ifdef COSTTEST
-    time64 startT, endT;
-#endif
-
     if (DYNINSTin_sample) {
         return;
     }
     DYNINSTin_sample = 1;
-
-#ifdef COSTTEST
-    startT=DYNINSTgetCPUtime();
-#endif
 
     DYNINSTtotalAlarmExpires++;
 
@@ -838,13 +768,6 @@ DYNINSTalarmExpire(int signo, int code, struct sigcontext *scp) {
 #if defined(hppa1_1_hp_hpux)
     scp->sc_syscall_action = SIG_RESTART;
 #endif
-
-
-#ifdef COSTTEST
-    endT=DYNINSTgetCPUtime();
-    DYNINSTtest[4]+=endT-startT;
-    DYNINSTtestN[4]++;
-#endif 
 }
 #endif
 
@@ -1448,11 +1371,6 @@ void DYNINSTreportNewTags(void)
      *  (resource.h) */
     wall_time = DYNINSTgetWalltime();
   }
-
-#ifdef COSTTEST
-  time64 startT,endT;
-  startT=DYNINSTgetCPUtime();
-#endif
   
   for(dx=0; dx < TagGroupInfo.NumNewTags; dx++) {
     struct _newresource newRes;
@@ -1485,12 +1403,6 @@ void DYNINSTreportNewTags(void)
 			       wall_time,process_time);
   }
   TagGroupInfo.NumNewTags = 0;
-  
-#ifdef COSTTEST
-  endT=DYNINSTgetCPUtime();
-  DYNINSTtest[8]+=endT-startT;
-  DYNINSTtestN[8]++;
-#endif 
 }
 
 
@@ -1627,11 +1539,6 @@ void DYNINSTrecordGroup(int groupId)
 void
 DYNINSTreportCounter(intCounter* counter) {
     traceSample sample;
-
-#ifdef COSTTEST
-    time64 endT;
-    time64 startT=DYNINSTgetCPUtime();
-#endif
     time64 process_time = DYNINSTgetCPUtime();
     time64 wall_time = DYNINSTgetWalltime();
     sample.value = counter->value;
@@ -1643,13 +1550,6 @@ DYNINSTreportCounter(intCounter* counter) {
 
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0,
 			       wall_time, process_time);
-
-#ifdef COSTTEST
-    endT=DYNINSTgetCPUtime();
-    DYNINSTtest[6]+=endT-startT;
-    DYNINSTtestN[6]++;
-#endif 
-
 }
 #endif
 
@@ -1664,11 +1564,6 @@ void
 DYNINSTreportTimer(tTimer *timer) {
     time64 total;
     traceSample sample;
-
-#ifdef COSTTEST
-    time64 endT;
-    time64 startT = DYNINSTgetCPUtime();
-#endif
 
     time64 process_time = DYNINSTgetCPUtime();
     time64 wall_time = DYNINSTgetWalltime();
@@ -1737,12 +1632,6 @@ DYNINSTreportTimer(tTimer *timer) {
 
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0,
 				wall_time,process_time);
-
-#ifdef COSTTEST
-    endT=DYNINSTgetCPUtime();
-    DYNINSTtest[5]+=endT-startT;
-    DYNINSTtestN[5]++;
-#endif 
 }
 #endif
 
