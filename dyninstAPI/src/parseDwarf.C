@@ -809,9 +809,10 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			if( functions.size() == 0 ) {
 				/* If we can't find it by name, try searching by address. */
 				status = dwarf_lowpc(dieEntry, &baseAddr, NULL);
-				if( status == DW_DLV_OK )
-					module->findFunctionByAddress((void *)baseAddr, functions);
-			}
+				if( status == DW_DLV_OK ) {
+					module->findFunctionByAddress((void *)baseAddr, functions, false );
+					}
+				}
 
 			if( functions.size() == 0 ) {
 				/* Don't parse the children, since we can't add them. */
@@ -1790,49 +1791,30 @@ void BPatch_module::parseDwarfTypes() {
 	/* Run a sanity check. */
 	assert (moduleTypes);
 
-	/* This may not be necessary anymore
-	int tid;
-	BPatch_type * bptype;
-	dictionary_hash_iter<int, BPatch_type *> titer( moduleTypes->typesByID );
-	while( titer.next( tid, bptype ) ){
-		if( bptype->getDataClass() == BPatch_dataUnknownType ) {
-			if( bptype->getConstituentType() != NULL ) {
-				// Forward-referenced typedef's have unknown dataClasses but non-NULL
-				//   constituents.  Correct their dataClass and move on.
-				bptype->setDataClass( bptype->getConstituentType()->getDataClass() );
-				}
-			else {
-				fprintf( stderr, "Warning: type information may be incomplete (#%d).\n", bptype->getID() );
-				}
-			} // end if the datatype is unknown.
-		} // end iteration over moduleTypes
-	*/
+	/* Fix type list. */
+	int typeID;
+	BPatch_type * bpType;
+	dictionary_hash_iter< int, BPatch_type * > typeIter( moduleTypes->typesByID );
+	while( typeIter.next( typeID, bpType ) ) {
+		bpType->fixupUnknowns(this);
+		} /* end iteratation over types. */
+	
+	/* Fix the types of variables. */   
+	pdstring variableName;
+	dictionary_hash_iter< pdstring, BPatch_type * > variableIter( moduleTypes->globalVarsByName );
+	while( variableIter.next( variableName, bpType ) ) {
+		if(	bpType->getDataClass() == BPatch_dataUnknownType && 
+			moduleTypes->findType( bpType->getID() ) != NULL ) {
+			moduleTypes->globalVarsByName[ variableName ] = moduleTypes->findType( bpType->getID() );
+			} /* end if data class is unknown but the type exists. */
+		} /* end iteration over variables. */
 
-	// Well, yes it is, but we'll do it differently
-
-	// Fix type list
-
-	int tid;
-	BPatch_type * bptype;
-	dictionary_hash_iter<int, BPatch_type *> titer( moduleTypes->typesByID );
-	while (titer.next( tid, bptype ))
-	   bptype->fixupUnknowns(this);
-	pdstring varname;
-	dictionary_hash_iter<pdstring, BPatch_type *> viter( moduleTypes->globalVarsByName );
-	while (viter.next( varname, bptype )) {
-	   if (bptype->getDataClass() == BPatch_dataUnknownType &&
-		   moduleTypes->findType(bptype->getID()) != NULL)
-		  moduleTypes->globalVarsByName[varname] = 
-			 moduleTypes->findType(bptype->getID());
-	}
-
-	// Fix pointers to types in functions
-
-	if (BPfuncs != NULL) {
-	   for (unsigned int i = 0; i < BPfuncs->size(); i++) {
-		  (*BPfuncs)[i]->fixupUnknown(this);
-	   }
-	}
+	/* Fix the type references in functions. */
+	if( BPfuncs != NULL ) {
+		for( unsigned int i = 0; i < BPfuncs->size(); i++ ) {
+			(*BPfuncs)[i]->fixupUnknown(this);
+			} /* end iteration over functions. */
+		} /* end if BPfuncs is non-NULL. */
 
 	/* Cache the parsed debug information. */
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: caching parse results for object '%s'\n", __FILE__, __LINE__, fileName );
