@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.2 2004/03/08 19:04:11 bernat Exp $
+// $Id: dynamiclinking.C,v 1.3 2004/03/08 19:22:15 bernat Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -75,7 +75,7 @@ dynamic_linking::dynamic_linking(process *p,
 #if defined(os_irix)
     libc_obj= d->libc_obj;
     for (unsigned j = 0; j < d->rld_map.size(); j++) {
-        pdElfObjInfo *obj = d->rld_map[i];
+        pdElfObjInfo *obj = d->rld_map[j];
         pdElfObjInfo *newobj = new pdElfObjInfo(*obj);
         rld_map.push_back(newobj);
     }
