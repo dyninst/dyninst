@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.132 2000/03/12 23:27:15 hollings Exp $
+/* $Id: process.h,v 1.133 2000/03/17 18:49:05 hollings Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -699,6 +699,7 @@ class process {
 #endif
   };
 
+  int abortSyscall();
   vectorSet<inferiorRPCtoDo> RPCsWaitingToStart;
   bool RPCs_waiting_for_syscall_to_complete;
   bool was_running_before_RPC_syscall_complete;

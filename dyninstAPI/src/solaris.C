@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.86 2000/03/12 23:27:16 hollings Exp $
+// $Id: solaris.C,v 1.87 2000/03/17 18:49:08 hollings Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -311,6 +311,8 @@ bool process::setProcfsFlags()
     close(proc_fd);
     return false;
   }
+
+  return true;
 }
 #endif
 
@@ -486,7 +488,7 @@ int process::waitProcs(int *status) {
 		 theParent->status_ = running;
 		 return (0);
 	     } else if (childPid > 0) {
-		 int i;
+		 unsigned int i;
 
 		 for (i=0; i < processVec.size(); i++) {
 		     if (processVec[i]->getPid() == childPid) break;
@@ -552,7 +554,6 @@ int process::waitProcs(int *status) {
        case PR_SYSENTRY: {
 	 bool alreadyCont = false;
 	 process *p = processVec[curr];
-         sysset_t sysset;
 
 	 if ((stat.pr_what == SYS_fork) || (stat.pr_what == SYS_vfork) ||
 	     (stat.pr_what == SYS_fork1)) {
@@ -563,7 +564,7 @@ int process::waitProcs(int *status) {
 	     }
 
 	     if (stat.pr_what == SYS_vfork)  {
-		 int i;
+		 unsigned int i;
 		 int childPid = 0;
 		 alreadyCont = true;
 		 struct DYNINST_bootstrapStruct bootRec;
@@ -617,7 +618,15 @@ int process::waitProcs(int *status) {
 #else
 	     int code = stat.pr_reg[PARAM1_REG];
 #endif
-	     BPatch::bpatch->registerExit(processVec[curr]->thread, code);
+	     process *proc = processVec[curr];
+
+	     proc->status_ = stopped;
+
+	     BPatch::bpatch->registerExit(proc->thread, code);
+
+	     proc->continueProc();
+	     alreadyCont = true;
+
 	 } else {
 	     printf("got PR_SYSENTRY\n");
 	     printf("    unhandeled sys call #%d\n", stat.pr_what);
@@ -1371,48 +1380,33 @@ void inferiorMallocAlign(unsigned &size)
 }
 #endif
 
-/*
-   pause a process that is running
-*/
-bool process::pause_() {
-  ptraceOps++; ptraceOtherOps++;
-  int ioctl_ret;
+// We stopped a process that it is a system call.  We abort the
+// system call, so that the process can execute an inferior RPC.  We
+// save the process state as it was at the ENTRY of the system call,
+// so that the system call can be restarted when we continue the
+// process.  Note: this code does not deal with multiple LWPs.
+
+int process::abortSyscall()
+{
   prrun_t run;
   sysset_t scexit, scsavedexit;
+  sysset_t scentry, scsavedentry;
   prstatus_t prstatus;
-
-  // /proc PIOCSTOP: direct all LWPs to stop, _and_ wait for them to stop.
-  ioctl_ret = ioctl(proc_fd, PIOCSTOP, &prstatus);
-  if (ioctl_ret == -1) {
-      sprintf(errorLine,
-	      "warn : process::pause_ use ioctl to send PICOSTOP returns error : errno = %i\n", errno);
-      perror("warn : process::pause_ ioctl PICOSTOP: ");
-      logLine(errorLine);
-      return 0;
-  }
-
-#ifndef MT_THREAD
-  // Determine if the process was in a system call when we stopped it.
-  if (! (prstatus.pr_why == PR_REQUESTED
-	 && prstatus.pr_syscall != 0
-	 && (prstatus.pr_flags & PR_ASLEEP))) {
-       // The process was not in a system call.  We're done.
-       return 1;
-  }
-
-  // We stopped a process that it is a system call.  We abort the
-  // system call, so that the process can execute an inferior RPC.  We
-  // save the process state as it was at the ENTRY of the system call,
-  // so that the system call can be restarted when we continue the
-  // process.  Note: this code does not deal with multiple LWPs.
 
   // We do not expect to recursively interrupt system calls.  We could
   // probably handle it by keeping a stack of system call state.  But
   // we haven't yet seen any reason to have this functionality.
   assert(!stoppedInSyscall);
+  stoppedInSyscall = true;
+
+  if (ioctl(proc_fd, PIOCSTATUS, &prstatus) == -1) {
+      sprintf(errorLine,
+	      "warn : process::pause_ use ioctl to send PICOSTOP returns error : errno = %i\n", errno);
+      perror("warn : process::abortSyscall ioctl PICOSTOP: ");
+      logLine(errorLine);
+  }
 
   // 1. Save the syscall number, registers, and blocked signals
-  stoppedInSyscall = true;
   stoppedSyscall = prstatus.pr_syscall;
   memcpy(syscallreg, prstatus.pr_reg, sizeof(prstatus.pr_reg));
   sighold = prstatus.pr_sighold;
@@ -1447,12 +1441,27 @@ bool process::pause_() {
        return 0;
   }
 
+  if (0 > ioctl(proc_fd, PIOCGENTRY, &scsavedentry)) {
+       sprintf(errorLine,
+	       "warn: Can't get status (PIOCGEXIT) of paused process\n");
+       logLine(errorLine);
+       return 0;
+  }
+
   // Set process to trap on exit from this system call
   premptyset(&scexit);
   praddset(&scexit, stoppedSyscall);
   if (0 > ioctl(proc_fd, PIOCSEXIT, &scexit)) {
        sprintf(errorLine,
 	       "warn: Can't step paused process out of syscall (PIOCSEXIT)\n");
+       logLine(errorLine);
+       return 0;
+  }
+
+  premptyset(&scentry);
+  if (0 > ioctl(proc_fd, PIOCSENTRY, &scentry)) {
+       sprintf(errorLine,
+	       "warn: Can't step paused process out of syscall (PIOCSENTRY)\n");
        logLine(errorLine);
        return 0;
   }
@@ -1509,10 +1518,55 @@ bool process::pause_() {
        return 0;
   }
 
+  // Reset the syscall entry traps
+  if (0 > ioctl(proc_fd, PIOCSENTRY, &scsavedentry)) {
+       sprintf(errorLine,
+	       "warn: Can't step paused process out of syscall (PIOCSENTRY)\n");
+       logLine(errorLine);
+       return 0;
+  }
+
   // Remember the current PC.  When we continue the process at this PC
   // we will restart the system call.
   postsyscallpc = (Address) prstatus.pr_reg[PC_REG];
 
+  return 1;
+}
+
+/*
+   pause a process that is running
+*/
+bool process::pause_() {
+  ptraceOps++; ptraceOtherOps++;
+  int ioctl_ret;
+  prstatus_t prstatus;
+
+  // /proc PIOCSTOP: direct all LWPs to stop, _and_ wait for them to stop.
+  ioctl_ret = ioctl(proc_fd, PIOCSTOP, &prstatus);
+  if (ioctl_ret == -1) {
+      // see if the reason it failed is that we were already stopped
+      if (ioctl(proc_fd, PIOCSTATUS, &prstatus) == -1) {
+	  sprintf(errorLine,
+		  "warn : process::pause_ use ioctl to send PICOSTOP returns error : errno = %i\n", errno);
+	  perror("warn : process::pause_ ioctl PICOSTOP: ");
+	  logLine(errorLine);
+	  return 0;
+      } else if (!(prstatus.pr_flags & PR_STOPPED)) {
+	  return 0;
+      }
+  }
+
+#ifndef MT_THREAD
+  // Determine if the process was in a system call when we stopped it.
+  if (! (prstatus.pr_why == PR_REQUESTED
+	 && prstatus.pr_syscall != 0
+	 && (prstatus.pr_flags & PR_ASLEEP))) {
+       // The process was not in a system call.  We're done.
+       if (prstatus.pr_why != PR_SYSENTRY) 
+	   return 1;
+  }
+
+  return (abortSyscall());
 #endif
   return 1;
 }
@@ -1637,9 +1691,9 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
     return false;
   }
   int written = write(proc_fd, inSelf, amount);
-  if (written != amount) {
+  if ((unsigned) written != amount) {
       printf("write returned %d\n", written);
-      printf("attempt to write at %x\n", (off_t)inTraced);
+      printf("attempt to write at %lx\n", (off_t)inTraced);
       perror("write");
       return false;
   } else {
@@ -2132,7 +2186,14 @@ bool process::executingSystemCall() {
      // yet continued the process.  The process in that case is not
      // executing a system call.  (pr_syscall is the aborted call.)
      if (theStatus.pr_syscall > 0 && theStatus.pr_why != PR_SYSEXIT) {
-       // inferiorrpc_cerr << "pr_syscall=" << theStatus.pr_syscall << endl;
+       if ((theStatus.pr_syscall == SYS_exit) && (theStatus.pr_why == PR_SYSENTRY)) {
+	   // entry to exit is a special case - jkh 3/16/00
+	   stoppedSyscall = SYS_exit;
+	   abortSyscall();
+	   inferiorrpc_cerr << "at entry to exit" << endl;
+	   return(false);
+       }
+       inferiorrpc_cerr << "pr_syscall=" << theStatus.pr_syscall << endl;
        return(true);
      }
    } else assert(0);
