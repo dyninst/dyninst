@@ -93,8 +93,8 @@ class BPATCH_DLL_EXPORT BPatch_point {
     friend class BPatch_image;
     friend class BPatch_function;
     friend class process;
-    friend BPatch_point* createInstructionInstPoint(process*proc,void*address);
-
+    friend BPatch_point* createInstructionInstPoint(process*proc,void*address,
+						    BPatch_point** alternative);
     process	*proc;
     const BPatch_function	*func;
     instPoint	*point;

@@ -104,6 +104,8 @@ public:
 		       BPatch_Vector<unsigned long>& buffer,
 		       bool exactMatch = true);
 
+    LineInformation* getLineInformation();
+
 #ifdef IBM_BPATCH_COMPAT
     bool getLineNumbers(unsigned int &start, unsigned int &end);
     char *getUniqueString(char *buffer, int length);

@@ -111,6 +111,7 @@ class BPATCH_DLL_EXPORT BPatch {
     bool	typeCheckOn;
     int		lastError;
     bool	debugParseOn;
+    bool	baseTrampDeletionOn;
 
     bool	getThreadEvent(bool block);
     bool	havePendingEvent();
@@ -136,6 +137,7 @@ public:
  
     bool isTypeChecked() { return typeCheckOn; }
     bool parseDebugInfo() { return debugParseOn; }
+    bool baseTrampDeletion() { return baseTrampDeletionOn; }
     bool isTrampRecursive() { return trampRecursiveOn; }
     bool hasForcedRelocation_NP() { return forceRelocation_NP; }
 
@@ -182,6 +184,7 @@ public:
     BPatch_Vector<BPatch_thread*> *getThreads();
 
     void setDebugParsing(bool x) { debugParseOn = x; }
+    void setBaseTrampDeletion(bool x) { baseTrampDeletionOn = x; }
     void setTypeChecking(bool x) { typeCheckOn = x; }
     void setTrampRecursive(bool x) { trampRecursiveOn = x; }
     void setForcedRelocation_NP(bool x) { forceRelocation_NP = x; }

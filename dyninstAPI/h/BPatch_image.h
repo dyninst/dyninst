@@ -85,6 +85,9 @@ public:
 
     BPatch_point *createInstPointAtAddr(void *address);
 
+    BPatch_point *createInstPointAtAddr(void *address,
+					BPatch_point** alternative);
+
     BPatch_function	*findFunction(const char *name);
     BPatch_function	*findBPFunction(const char *name);
 
