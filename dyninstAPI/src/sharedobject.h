@@ -8,6 +8,9 @@
  * A class for link map information about a shared object that is mmapped 
  * by the dynamic linker into the applicaitons address space at runtime. 
  */
+#define 	SHAREDOBJECT_NOCHANGE	0
+#define 	SHAREDOBJECT_ADDED	1
+#define 	SHAREDOBJECT_REMOVED	2
 
 class shared_object {
 

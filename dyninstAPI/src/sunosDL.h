@@ -79,6 +79,12 @@ public:
     // returns true if the executable is dynamically linked 
     bool isDynamic(){ return(dynlinked);}
 
+    // handleIfDueToSharedObjectMapping: returns true if the trap was caused
+    // by a change to the link maps  
+    bool handleIfDueToSharedObjectMapping(process *, vector<shared_object *> **,
+                           u_int &, bool &){ return false;}
+
+
 
 private:
    u_int link_map_addr;  

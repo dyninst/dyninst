@@ -342,6 +342,7 @@ class process {
      // look for curr PC reg value in 'trapInstrAddr' of 'currRunningRPCs'.  Return
      // true iff found.  Also, if true is being returned, then additionally does
      // a 'launchRPCifAppropriate' to fire off the next waiting RPC, if any.
+  bool changePC(unsigned addr);
 
  private:
   // The follwing 5 routines are implemented in an arch-specific .C file
@@ -368,7 +369,6 @@ class process {
   bool changePC(unsigned addr,
                 const void *savedRegs // returned by getRegisters()
                 );
-  bool changePC(unsigned addr);
 
   bool restoreRegisters(void *buffer);
      // input is the opaque type returned by getRegisters()
@@ -450,6 +450,10 @@ class process {
   void setDynamicLinking(){ dynamiclinking = true;}
   bool isDynamicallyLinked() { return (dynamiclinking); }
 
+  // handleIfDueToSharedObjectMapping: if a trap instruction was caused by
+  // a dlopen or dlclose event then return true
+  bool handleIfDueToSharedObjectMapping();
+
   // handleStartProcess: this function is called when an appplication 
   // starts executing.  It is used to insert instrumentation necessary
   // to handle dynamic linking
@@ -466,6 +470,9 @@ class process {
   // has been loaded by the run-time linker after the process starts running
   // It processes the image, creates new resources
   bool addASharedObject(shared_object &);
+
+  // return the list of dynamically linked libs
+  vector<shared_object *> *sharedObjects() { return shared_objects;  } 
 
   // findOneFunction: returns the function associated with function "func"
   // and module "mod".  This routine checks both the a.out image and any

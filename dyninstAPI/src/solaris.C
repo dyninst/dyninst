@@ -255,7 +255,7 @@ static char *extract_string_ptr(int procfd, char **ptr) {
    return result;   
 }
 
-static string extract_string(int procfd, const char *inferiorptr) {
+string extract_string(int procfd, const char *inferiorptr) {
    // assuming inferiorptr points to a null-terminated string in the inferior
    // process, extract it and return it.
 

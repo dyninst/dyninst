@@ -386,6 +386,15 @@ int handleSigChild(int pid, int status)
 		const bool wasRunning = (curr->status() == running);
 		curr->status_ = stopped; // probably was 'neonatal'
 
+                // check to see if trap is due to dlopen or dlcose event
+		if(curr->isDynamicallyLinked()){
+		    if(curr->handleIfDueToSharedObjectMapping()){
+			// continue proc?
+			if(wasRunning) curr->continueProc();
+			break;
+		    }
+		}
+
 		//If the list is not empty, it means some previous
 		//instrumentation has yet need to be finished.
 		if (instWList.size() != 0) {

@@ -55,7 +55,8 @@ class dynamic_linking {
 
 public:
 
-    dynamic_linking(){ dynlinked = false; r_debug_addr = 0;} 
+    dynamic_linking(): dynlinked(false),r_debug_addr(0),r_brk_addr(0),
+		       r_state(0), brkpoint_set(false) {} 
     ~dynamic_linking(){}
     
     // getProcessSharedObjects: This routine is called after attaching to
@@ -65,20 +66,31 @@ public:
     // returns 0 on error or if there are no shared objects
     vector< shared_object *> *getSharedObjects(process *p);
 
-    // addASharedObject: This routine is called whenever a new shared object
-    // has been loaded by the run-time linker
-    // It processes the image, creates new resources
-    // Currently, this is not implemented, because we are not handleing
-    // adding shared objects after the executable starts executing main()
-    shared_object *addSharedObject(process *){ return 0;}
-
     // returns true if the executable is dynamically linked 
     bool isDynamic(){ return(dynlinked);}
+
+    // handleIfDueToSharedObjectMapping: returns true if the trap was caused
+    // by a change to the link maps,  If it is, and if the linkmaps state is
+    // safe, it processes the linkmaps to find out what has changed...if it
+    // is not safe it sets the type of change currently going on (specified by
+    // the value of r_debug.r_state in link.h
+    // The added or removed shared objects are returned in changed_objects, 
+    // and the change_type value is set to indicate if the object has been 
+    // added or removed. On error error_occured is true.
+    bool handleIfDueToSharedObjectMapping(process *proc,
+			vector<shared_object *> **changed_objects,
+			u_int &change_type,
+			bool &error_occured=false);
 
 
 private:
    bool  dynlinked;
    u_int r_debug_addr;
+   Address r_brk_addr;   // this routine consists of retl and nop instrs, used
+		         // in handleSigChild to determine what trap occured 
+   u_int r_state;  // either 0 (RT_CONSISTENT), 1 (RT_ADD), or 2 (RT_DELETE)
+   bool brkpoint_set; // true if brkpoint set in r_brk
+   instPoint *r_brk_instPoint; // used to instrument r_brk
 
    // get_ld_base_addr: This routine returns the base address of ld.so.1
    // it returns true on success, and false on error
@@ -89,11 +101,36 @@ private:
    // it returns false on error
    bool find_r_debug(u_int ld_fd,u_int ld_base_addr);
 
+   // set_r_brk_point: this routine instruments the code pointed to by
+   // the r_debug.r_brk (the linkmap update routine).  Currently this code
+   // corresponds to no function in the symbol table and consists of only
+   // 2 instructions (retl nop).  This makes instrumenting it a little 
+   // bit kludgey
+   bool set_r_brk_point(process *proc);
+
    // processLinkMaps: This routine is called by getSharedObjects to
    // process all shared objects that have been mapped into the process's
    // address space.  This routine reads the link maps from the application
    // process to find the shared object file base mappings. returns 0 on error
    vector<shared_object *> *processLinkMaps(process *p);
+
+   // findChangeToLinkMaps: This routine returns a shared objects
+   // that have been deleted or added to the link maps as indicated by
+   // change_type.  If an error occurs it sets error_occured to true.
+   vector<shared_object *> *findChangeToLinkMaps(process *p, u_int change_type,
+				               bool &error_occured);
+
+   // getLinkMapAddrs: returns a vector of addresses corresponding to all 
+   // base addresses in the link maps.  Returns 0 on error.
+   vector<u_int> *getLinkMapAddrs(process *p);
+
+   // getNewSharedObjects: returns a vector of shared_object one element for 
+   // newly mapped shared object.  old_addrs contains the addresses of the
+   // currently mapped shared objects. Sets error_occured to true, and 
+   // returns 0 on error.
+   vector<shared_object *> *getNewSharedObjects(process *p,
+						vector<u_int> *old_addrs,
+						bool &error_occured);
 
 };
 

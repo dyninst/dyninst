@@ -59,6 +59,8 @@ int pvmendtask();
 #include "dyninstAPI/src/os.h"
 #include "paradynd/src/showerror.h"
 #include "dyninstAPI/src/dynamiclinking.h"
+// #include "paradynd/src/mdld.h"
+
 
 #ifndef BPATCH_LIBRARY
 #include "rtinst/h/rtinst.h"
@@ -1824,6 +1826,68 @@ bool process::pause() {
 
   return true;
 }
+
+// handleIfDueToSharedObjectMapping: if a trap instruction was caused by
+// a dlopen or dlclose event then return true
+bool process::handleIfDueToSharedObjectMapping(){
+
+  if(!dyn) { 
+    return false;
+  }
+
+  vector<shared_object *> *changed_objects = 0;
+  u_int change_type = 0;
+  bool error_occured = false;
+  bool ok = dyn->handleIfDueToSharedObjectMapping(this,&changed_objects,
+						  change_type,error_occured);
+
+  // if this trap was due to dlopen or dlclose, and if something changed
+  // then figure out how it changed and either add or remove shared objects
+  if(ok && !error_occured && (change_type != SHAREDOBJECT_NOCHANGE)) {
+
+      // if something was added then call process::addASharedObject with
+      // each element in the vector of changed_objects
+      if((change_type == SHAREDOBJECT_ADDED) && changed_objects) {
+	  for(u_int i=0; i < changed_objects->size(); i++) {
+              // TODO: currently we aren't handling dlopen because  
+              // we don't have the code in place to modify existing metrics
+#ifdef ndef
+	      // This is what we really want to do:
+	      if(!addASharedObject(*((*changed_objects)[i]))){
+	          logLine("Error after call to addASharedObject\n");
+		  delete (*changed_objects)[i];
+	      }
+	      else {
+                  *shared_objects += (*changed_objects)[i]; 
+	      }
+#endif
+	      // for now, just delete shared_objects to avoid memory leeks
+	      delete (*changed_objects)[i];
+	  }
+	  delete changed_objects;
+      } 
+      else if((change_type == SHAREDOBJECT_REMOVED) && (changed_objects)) { 
+          // TODO: handle this case
+          // if something was removed then call process::removeASharedObject
+          // with each element in the vector of changed_objects
+
+	  // for now, just delete shared_objects to avoid memory leeks
+	  for(u_int i=0; i < changed_objects->size(); i++){
+	      delete (*changed_objects)[i];
+	  }
+	  delete changed_objects;
+      }
+
+      // TODO: add support for adding or removing new code resource once the 
+      // process has started running...this means that currently collected
+      // metrics may have to have aggregate components added or deleted
+  }
+  return ok;
+}
+
+
+
+
 
 //
 //  If this process is a dynamic executable, then get all its 

@@ -38,7 +38,6 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
 #include "dyninstAPI/src/process.h"
@@ -140,6 +139,42 @@ bool dynamic_linking::find_r_debug(u_int ld_fd,u_int ld_base_addr){
     return true;
 }
 
+// set_r_brk_point: this routine instruments the code pointed to by
+// the r_debug.r_brk (the linkmap update routine).  Currently this code  
+// corresponds to no function in the symbol table and consists of only
+// 2 instructions on sparc-solaris (retl nop).  Also, the library that 
+// contains these instrs is the runtime linker which is not parsed like
+// other shared objects, so adding instrumentation here is ugly. 
+// TODO: add support for this on x86
+bool dynamic_linking::set_r_brk_point(process *proc) {
+
+    if(brkpoint_set) return true;
+    if(!r_brk_addr) return false;
+
+#if defined(sparc_sun_solaris2_4)
+    // because there is no pdFunction, instPoint, or image associated with
+    // this instrumentation point we can't use all the normal routines to
+    // insert base tramp and minitrap code here.  Instead we replace the 
+    // retl instruction  with a trap instruction.   Then in paradynd in  
+    // the routine that handles the sigtrap for this case we will simulate
+    // the retl instruction by changing the value of the o7 register
+    // so that it looks like the retl instruction has executed
+    instruction trap_insn;
+    trap_insn.raw = BREAK_POINT_INSN;
+    if(!proc->writeDataSpace((caddr_t)r_brk_addr,
+	sizeof(instruction),&trap_insn.raw)){
+	return false;
+    }
+#else
+    // currently we don't support this on x86 
+    return false;
+#endif
+
+    brkpoint_set = true;
+    return true;
+}
+
+
 // processLinkMaps: This routine is called by getSharedObjects to  
 // process all shared objects that have been mapped into the process's
 // address space.  This routine reads the link maps from the application 
@@ -152,6 +187,8 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
         // printf("read d_ptr_addr failed r_debug_addr = 0x%x\n",r_debug_addr);
         return 0;
     }
+
+    r_brk_addr = debug_elm.r_brk;
 
     // get each link_map object
     bool first_time = true;
@@ -183,7 +220,9 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
         f_name[f_amount-1] = '\0';
 	string obj_name = string(f_name);
 
-	sharedobj_cerr << "dynamicLinking::processLinkMaps(): file name of next shared obj=" << obj_name << endl;
+	sharedobj_cerr << 
+	    "dynamicLinking::processLinkMaps(): file name of next shared obj="
+	    << obj_name << endl;
 
 	// create a shared_object and add it to the list
 	// kludge: ignore the entry if it has the same name as the
@@ -191,20 +230,24 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 	if(obj_name != p->getImage()->file() && 
 	   obj_name != p->getImage()->name() &&
 	   obj_name != p->getArgv0()) {
-	   sharedobj_cerr << "file name doesn't match that of image, so not ignoring it...firsttime=" << first_time << endl;
+	   sharedobj_cerr << 
+	       "file name doesn't match image, so not ignoring it...firsttime=" 
+	       << first_time << endl;
 
 	   // kludge for when an exec occurs...the first element
 	   // in the link maps is the file name of the parent process
 	   // so in this case, we ignore the first entry
 	   if((!(p->wasExeced())) || (p->wasExeced() && !first_time)){ 
-	        // printf("adding so: %s",blah.string_of());
                 shared_object *newobj = new shared_object(obj_name,
 			link_elm.l_addr,false,true,true,0);
 	        *shared_objects += newobj;
 	    }
 	}
-	else
-	   sharedobj_cerr << "file name matches that of image, so ignoring...firsttime=" << first_time << endl;
+	else {
+	   sharedobj_cerr << 
+	       "file name matches that of image, so ignoring...firsttime=" 
+	       << first_time << endl;
+        }
 
 	first_time = false;
 	next_addr = (u_int)link_elm.l_next;
@@ -216,6 +259,115 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 }
 
 
+// getLinkMapAddrs: returns a vector of addresses corresponding to all 
+// base addresses in the link maps.  Returns 0 on error.
+vector<u_int> *dynamic_linking::getLinkMapAddrs(process *p) {
+
+    r_debug debug_elm;
+    if(!p->readDataSpace((caddr_t)(r_debug_addr),
+        sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
+        // printf("read d_ptr_addr failed r_debug_addr = 0x%x\n",r_debug_addr);
+        return 0;
+    }
+
+    bool first_time = true;
+    Link_map *next_link_map = debug_elm.r_map;
+    Address next_addr = (Address)next_link_map; 
+    vector<u_int> *link_addresses = new vector<u_int>;
+    while(next_addr != 0) {
+	Link_map link_elm;
+        if(!p->readDataSpace((caddr_t)(next_addr),
+            sizeof(Link_map),(caddr_t)&(link_elm),true)) {
+            logLine("read next_link_map failed\n");
+	    return 0;
+        }
+	// kludge: ignore the first entry
+	if(!first_time) { 
+	    *link_addresses += link_elm.l_addr; 
+	}
+	else {
+	    // printf("first link map addr 0x%x\n",link_elm.l_addr);
+	}
+
+	first_time = false;
+	next_addr = (u_int)link_elm.l_next;
+    }
+    return link_addresses;
+    link_addresses = 0;
+}
+
+// getNewSharedObjects: returns a vector of shared_object one element for
+// newly mapped shared object.  old_addrs contains the addresses of the
+// currently mapped shared objects. Sets error_occured to true, and 
+// returns 0 on error.
+vector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
+						vector<u_int> *old_addrs,
+						bool &error_occured){
+
+    r_debug debug_elm;
+    if(!p->readDataSpace((caddr_t)(r_debug_addr),
+        sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
+        // printf("read d_ptr_addr failed r_debug_addr = 0x%x\n",r_debug_addr);
+	error_occured = true;
+        return 0;
+    }
+
+    // get each link_map object
+    bool first_time = true;
+    Link_map *next_link_map = debug_elm.r_map;
+    Address next_addr = (Address)next_link_map; 
+    vector<shared_object*> *new_shared_objects = new vector<shared_object*>;
+    while(next_addr != 0){
+	Link_map link_elm;
+        if(!p->readDataSpace((caddr_t)(next_addr),
+            sizeof(Link_map),(caddr_t)&(link_elm),true)) {
+            logLine("read next_link_map failed\n");
+	    delete new_shared_objects;
+	    error_occured = true;
+	    return 0;
+        }
+
+	// kludge: ignore the entry 
+	if(!first_time){
+	    // check to see if this is a new shared object 
+	    bool found = false;
+	    for(u_int i=0; i < old_addrs->size(); i++){
+		if((*old_addrs)[i] == link_elm.l_addr) {
+		    found = true; 
+		    break;
+		}
+	    }
+	    if (!found) {  
+		// this is a new shared object, create a shrared_object for it 
+	        char f_name[256];// assume no file names greater than 256 chars
+	        // check to see if reading 256 chars will go out of bounds
+	        // of data segment
+	        u_int f_amount = 256;
+                bool done = false;
+	        for(u_int i=0; (i<256) && (!done); i++){
+                    if(!p->readDataSpace((caddr_t)((u_int)(link_elm.l_name)+i),
+		        sizeof(char),(caddr_t)(&(f_name[i])),true)){
+                    }
+	            if(f_name[i] == '\0'){
+		        done = true;
+		        f_amount = i+1;
+	            }
+	        }
+                f_name[f_amount-1] = '\0';
+	        string obj_name = string(f_name);
+                shared_object *newobj = new shared_object(obj_name,
+			link_elm.l_addr,false,true,true,0);
+		*new_shared_objects += newobj;
+            }
+	}
+	first_time = false;
+	next_addr = (u_int)link_elm.l_next;
+    }
+    error_occured = false;
+    return new_shared_objects;
+    new_shared_objects = 0;
+}
+
 
 // getSharedObjects: This routine is called after attaching to
 // an already running process p, or when a process reaches the breakpoint at
@@ -226,7 +378,11 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 // a /proc file descriptor has been opened for the application process.
 // This is a very kludgy way to get this stuff, but it is the only way to
 // do it until verision 2.6 of Solaris is released.
-vector< shared_object *> *dynamic_linking::getSharedObjects(process *p){
+// TODO: this should also set a breakpoint in the r_brk routine that will
+// catch future changes to the linkmaps (from dlopen and dlclose)
+// dlopen events should result in a call to addSharedObject
+// dlclose events should result in a call to removeASharedObject
+vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 
     // step 1: figure out if this is a dynamic executable
     string dyn_str = string("DYNAMIC");
@@ -248,6 +404,147 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p){
     close(ld_fd);
 
     // step 4: get link-maps and process them
-    return (this->processLinkMaps(p));
+    vector<shared_object *> *result = this->processLinkMaps(p);
+
+    // step 5: set brkpoint in r_brk to catch dlopen and dlclose events
+    if(!(this->set_r_brk_point(p))){ 
+	// printf("error after step5 in getSharedObjects\n");
+    }
+    fflush(stdout);
+    return (result);
+    result = 0;
 }
 
+
+// findChangeToLinkMaps: This routine returns a vector of shared objects
+// that have been deleted or added to the link maps as indicated by
+// change_type.  If an error occurs it sets error_occured to true.
+vector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p, 
+						   u_int change_type,
+						   bool &error_occured) {
+
+    // get list of current shared objects
+    vector<shared_object *> *curr_list = p->sharedObjects();
+    if((change_type == 2) && !curr_list) {
+	error_occured = true;
+	return 0;
+    }
+
+    // if change_type is add then figure out what has been added
+    if(change_type == 1){
+        // create a vector of addresses of the current set of shared objects
+	vector<u_int> *addr_list =  new vector<u_int>;
+	for (u_int i=0; i < curr_list->size(); i++) {
+	    *addr_list += ((*curr_list)[i])->getBaseAddress();
+	}
+	vector <shared_object *> *new_shared_objs = 
+				getNewSharedObjects(p, addr_list,error_occured);
+        if(!error_occured){
+	    delete addr_list;
+	    return new_shared_objs; 
+	    new_shared_objs = 0;
+	}
+    }
+    // if change_type is remove then figure out what has been removed
+    else if((change_type == 2) && curr_list) {
+	// create a list of base addresses from the linkmaps and
+	// compare them to the addr in vector of shared object to see
+	// what has been removed
+	vector<u_int> *addr_list = getLinkMapAddrs(p);
+	if(addr_list) {
+	    vector <shared_object *> *remove_list = new vector<shared_object*>;
+	    // find all shared objects that have been removed
+	    for(u_int i=0; i < curr_list->size(); i++){
+		u_int curr_addr = ((*curr_list)[i])->getBaseAddress(); 
+		bool found = false;
+		for(u_int j=0; j < addr_list->size(); j++){
+                    if(curr_addr == (*addr_list)[j]){
+			found = true;
+			break;
+		    }
+                }
+		if(!found) {
+		    *remove_list += (*curr_list)[i];
+		}
+	    }
+	    delete addr_list;
+	    return remove_list; 
+	    remove_list = 0;
+	}
+    }
+    error_occured = true;
+    return 0;
+}
+
+
+
+
+// handleIfDueToSharedObjectMapping: returns true if the trap was caused
+// by a change to the link maps,  If it is, and if the linkmaps state is
+// safe, it processes the linkmaps to find out what has changed...if it
+// is not safe it sets the type of change currently going on (specified by
+// the value of r_debug.r_state in link.h
+// The added or removed shared objects are returned in changed_objects
+// the change_type value is set to indicate if the objects have been added 
+// or removed
+bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
+				vector<shared_object*>  **changed_objects,
+				u_int &change_type,
+				bool &error_occured){ 
+
+#if defined(sparc_sun_solaris2_4) 
+  prgregset_t regs;
+  error_occured = false;
+  int proc_fd = proc->getProcFileDescriptor(); 
+  if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
+    // is the trap instr at r_brk_addr?
+    if(regs[R_PC] == (int)r_brk_addr){ 
+
+	// find out what has changed in the link map
+	// and process it
+	r_debug debug_elm;
+	if(!proc->readDataSpace((caddr_t)(r_debug_addr),
+	    sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
+	    // printf("read failed r_debug_addr = 0x%x\n",r_debug_addr);
+	    error_occured = true;
+	    return true;
+	}
+
+        // if the state of the link maps is consistent then we can read
+	// the link maps, otherwise just set the r_state value
+	change_type = r_state;   // previous state of link maps 
+	r_state = debug_elm.r_state;  // new state of link maps
+        if( debug_elm.r_state == 0){
+	    // figure out how link maps have changed, and then create
+	    // a list of either all the removed shared objects if this
+	    // was a dlclose or the added shared objects if this was a dlopen
+
+	    // kludge: the state of the first add can get screwed up
+	    // so if both change_type and r_state are 0 set change_type to 1
+	    if(change_type == 0) change_type = 1;
+	    *changed_objects = findChangeToLinkMaps(proc, change_type,
+						  error_occured);
+	} 
+
+	// change the pc so that it will look like the retl instr 
+        // completed: set PC to o7 in current frame
+	// we can do this because this retl doesn't correspond to 
+	// an instrumentation point, so we don't have to worry about 
+	// missing any instrumentation code by making it look like the
+	// retl has already happend
+
+	// first get the value of the stackpointer
+	u_int o7reg = regs[R_O7];  
+	o7reg += 8;
+	if(!(proc->changePC(o7reg))) {
+	      // printf("error in changePC handleIfDueToSharedObjectMapping\n");
+	      error_occured = true;
+	      return true;
+        }
+	return true;
+    }
+  }
+#endif
+
+  return false; 
+}

@@ -77,6 +77,12 @@ public:
     //  
     shared_object *addSharedObject(process *){ return 0;}
 
+    // handleIfDueToSharedObjectMapping: returns true if the trap was caused
+    // by a change to the link maps  
+    bool handleIfDueToSharedObjectMapping(process *, vector<shared_object *> **,
+			       u_int &, bool &){ return false;}
+
+
     // returns true if the executable is dynamically linked 
     bool isDynamic(){ return(dynlinked);}
 
