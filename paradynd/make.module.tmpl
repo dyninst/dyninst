@@ -48,7 +48,8 @@ SRCS	     += ../src/association.C \
 		../src/util.C \
  		../src/mdl.C \
 		../src/templates0.C \
-		../src/templates1.C
+		../src/templates1.C \
+		../src/templatesIGEN.C
 
 
 ifdef USES_PVM
@@ -80,3 +81,6 @@ templates0.o: ../src/templates0.C
 
 templates1.o: ../src/templates1.C
 	$(CXX) $(TFLAGS) -c ../src/templates1.C
+
+templatesIGEN.o: ../src/templatesIGEN.C
+	$(CXX) $(TFLAGS) -c ../src/templatesIGEN.C
