@@ -40,7 +40,7 @@
  */
 
 // hist.C - routines to manage histograms.
-// $Id: hist.C,v 1.46 2004/03/23 01:12:41 eli Exp $
+// $Id: hist.C,v 1.47 2004/07/20 21:22:39 pcroth Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/hist.h"
@@ -106,15 +106,15 @@ Histogram::Histogram(relTimeStamp start, dataCallBack d,
 }
 
 
-Histogram::Histogram(Bin *buckets, 
-                     relTimeStamp start,
-		     dataCallBack d, 
-		     foldCallBack f,
-		     void *c)
+Histogram::Histogram(Bin *_buckets, 
+                     relTimeStamp _start,
+		     dataCallBack _d, 
+		     foldCallBack _f,
+		     void * _c)
 {
     // First call default constructor.
-    (void) Histogram(start, d, f, c);
-    memcpy(buckets, buckets, sizeof(Bin)*numBins);
+    (void) Histogram(_start, _d, _f, _c);
+    memcpy(buckets, _buckets, sizeof(Bin)*numBins);
 }
 
 Histogram::~Histogram(){
