@@ -43,6 +43,10 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.8  1997/01/21 23:58:53  mjrg
+ * Moved allocation of virtual registers to basetramp and fix to
+ * emitInferiorRPCheader to allocate virtual registers
+ *
  * Revision 1.7  1997/01/21 00:27:58  tamches
  * removed uses of DYNINSTglobalData
  *
@@ -122,8 +126,12 @@ extern bool isPowerOf2(int value, int &result);
  */
 #define PARAM_OFFSET (8)
 
+
+// number of virtual registers
+#define NUM_VIRTUAL_REGISTERS (32)
+
 // offset from EBP of the saved EAX for a tramp
-#define SAVED_EAX_OFFSET (-4)
+#define SAVED_EAX_OFFSET (-NUM_VIRTUAL_REGISTERS*4-4)
 
 
 
@@ -717,23 +725,23 @@ bool registerSpace::readOnlyRegister(reg) {
 }
 
 /*
-   We don't use the machine registers to store temporaries.
-   The "registers" are really locations on the stack.
+   We don't use the machine registers to store temporaries,
+   but "virtual registers" that are located on the stack.
    The stack frame for a tramp is:
 
-     ebp->   saved ebp (4 bytes)
-     ebp-4:  saved registers (8*4 bytes)
-     ebp-36: saved flags registers (4 bytes)
-     ebp-40: the temporary registers
+     ebp->    saved ebp (4 bytes)
+     ebp-4:   128-byte space for 32 virtual registers (32*4 bytes)
+     ebp-132: saved registers (8*4 bytes)
+     ebp-164: saved flags registers (4 bytes)
 
-     The temporaries are assigned numbers from 10 so that it is easier
-     to refer to them.
+     The temporaries are assigned numbers from 1 so that it is easier
+     to refer to them: -(reg*4)[ebp]. So the first reg is -4[ebp].
 
      We are using a fixed number of temporaries now (32), but we could 
      change to using an arbitrary number.
 
 */
-int deadList[32];
+int deadList[NUM_VIRTUAL_REGISTERS];
 
 void initTramps()
 {
@@ -742,8 +750,8 @@ void initTramps()
     if (inited) return;
     inited = true;
 
-    for (unsigned u = 0; u < 32; u++) {
-      deadList[u] = u+10;
+    for (unsigned u = 0; u < NUM_VIRTUAL_REGISTERS; u++) {
+      deadList[u] = u+1;
     }
 
     regSpace = new registerSpace(sizeof(deadList)/sizeof(int), deadList,					 0, NULL);
@@ -753,6 +761,7 @@ void emitJump(unsigned disp32, unsigned char *&insn);
 void emitSimpleInsn(unsigned opcode, unsigned char *&insn);
 void emitMovRegToReg(reg dest, reg src, unsigned char *&insn);
 void emitAddMemImm32(Address dest, int imm, unsigned char *&insn);
+void emitOpRegImm(int opcode, reg dest, int imm, unsigned char *&insn);
 
 /*
  * change the insn at addr to be a branch to newAddr.
@@ -830,35 +839,37 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
    a+0:   jmp a+30 <skip pre insn>  1
    a+5:   push ebp                  1
    a+6:   mov esp, ebp              1
-   a+8:   pushad                    5
-   a+9:   pushaf                    9
-   a+10:  jmp <global pre inst>     1
-   a+15:  jmp <local pre inst>      1
-   a+20:  popaf                    14
-   a+21:  popad                     5
-   a+22:  leave                     3
-   a+23:  add costAddr, cost        3
-   a+33:  <relocated instructions at point>
+   a+8:   subl esp, 0x80            1
+   a+14:  pushad                    5
+   a+15:  pushaf                    9
+   a+16:  jmp <global pre inst>     1
+   a+21:  jmp <local pre inst>      1
+   a+26:  popaf                    14
+   a+27:  popad                     5
+   a+28:  leave                     3
+   a+29:  add costAddr, cost        3
+   a+39:  <relocated instructions at point>
 
    b = a +30 + size of relocated instructions at point
    b+0:   jmp b+30 <skip post insn>
    b+5:   push ebp
    b+6:   mov esp, ebp
-   b+8:   pushad
-   b+9:   pushaf
-   b+10:  jmp <global post inst>
-   b+15:  jmp <local post inst>
-   b+20:  popaf
-   b+21:  popad
-   b+22:  leave
-   b+23:  <relocated instructions after point>
+   b+8:   subl esp, 0x80
+   b+14:  pushad
+   b+15:  pushaf
+   b+16:  jmp <global post inst>
+   b+21:  jmp <local post inst>
+   b+26:  popaf
+   b+27:  popad
+   b+28:  leave
+   b+29:  <relocated instructions after point>
 
    c:     jmp <return to user code>
 
    tramp size = 2*23 + 10 + 5 + size of relocated instructions
    Make sure to update the size if the tramp is changed
 
-   cost of pre and post instrumentation is (1+1+5+9+1+1+15+5+3) = 41
+   cost of pre and post instrumentation is (1+1+1+5+9+1+1+15+5+3) = 42
    cost of rest of tramp is (1+3+1+1)
 
 */
@@ -873,7 +884,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
 
   // compute the tramp size
   // if there are any changes to the tramp, the size must be updated.
-  unsigned trampSize = 61;
+  unsigned trampSize = 73;
   for (unsigned u = 0; u < location->insnsBefore; u++) {
     trampSize += getRelocatedInstructionSz(location->insnBeforePt[u]);
   }
@@ -937,6 +948,8 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   // save registers and create a new stack frame for the tramp
   emitSimpleInsn(PUSH_EBP, insn);  // push ebp
   emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp  (2-byte instruction)
+  // allocate space for temporaries (virtual registers)
+  emitOpRegImm(5, ESP, 128, insn); // sub esp, 128
   emitSimpleInsn(PUSHAD, insn);    // pushad
   emitSimpleInsn(PUSHFD, insn);    // pushfd
 
@@ -996,6 +1009,8 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   // save registers and create a new stack frame for the tramp
   emitSimpleInsn(PUSH_EBP, insn);  // push ebp
   emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp
+  // allocate space for temporaries (virtual registers)
+  emitOpRegImm(5, ESP, 128, insn); // sub esp, 128
   emitSimpleInsn(PUSHAD, insn);    // pushad
   emitSimpleInsn(PUSHFD, insn);    // pushfd
 
@@ -1049,8 +1064,8 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   free(code);
 
   ret->cost = 6;
-  ret->prevBaseCost = 41;
-  ret->postBaseCost = 41;
+  ret->prevBaseCost = 42;
+  ret->postBaseCost = 42;
   ret->prevInstru = false;
   ret->postInstru = false;
   return ret;
@@ -1507,12 +1522,9 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *ibuf, unsigned &bas
       return base;
 
     } else if (op ==  trampPreamble) {
-      // allocate space for temporaries
-      emitOpRegImm(5, ESP, 128, insn); // sub esp, 128
-
+      // no code is needed here
+      
     } else if (op ==  trampTrailer) {
-      // reset the stack pointer
-      emitOpRegImm(0, ESP, 128, insn); // add esp, 128
 
       // generate the template for a jump -- actual jump is generated elsewhere
       emitJump(0, insn); // jump xxxx
@@ -1747,9 +1759,9 @@ int getInsnCost(opCode op)
     } else if (op == updateCostOp) {
         return(3);
     } else if (op ==  trampPreamble) {
-        return(1);
+        return(0);
     } else if (op ==  trampTrailer) {
-        return(1+1);
+        return(1);
     } else if (op == noOp) {
 	return(1);
     } else if (op == getRetValOp) {
@@ -1985,6 +1997,8 @@ bool process::emitInferiorRPCheader(void *void_insnPtr, unsigned &base) {
 
    emitSimpleInsn(PUSH_EBP, insnPtr);
    emitMovRegToReg(EBP, ESP, insnPtr);
+   // allocate space for temporaries (virtual registers)
+   emitOpRegImm(5, ESP, 128, insnPtr); // sub esp, 128
    emitSimpleInsn(PUSHAD, insnPtr);
    emitSimpleInsn(PUSHFD, insnPtr);
 
