@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.84 2003/02/04 14:59:38 bernat Exp $ */
+/* $Id: context.C,v 1.85 2003/02/21 20:06:14 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -119,13 +119,16 @@ void createThread(traceThread *fr) {
     pd_thr->get_dyn_thread()->update_rid(rid);
 
     // tell front-end about thread start function for newly created threads
-    image *img = proc->getImage();
-    pdmodule *foundMod = img->findModule(thr->get_start_func());
+    // We need the module, which could be anywhere (including a library)
+    pd_Function *func = (pd_Function *)thr->get_start_func();
+    pdmodule *foundMod = func->file();
     assert(foundMod != NULL);
     resource *modRes = foundMod->getResource();
     string start_func_str = thr->get_start_func()->prettyName();
     string res_string = modRes->full_name() + "/" + start_func_str;
-    CallGraphSetEntryFuncCallback(img->file(), res_string, thr->get_tid());
+    cerr << start_func_str << ", " << res_string << ", " << foundMod->exec()->file() << endl;
+    
+    CallGraphSetEntryFuncCallback(proc->getImage()->file(), res_string, thr->get_tid());
 }
 
 //
@@ -383,16 +386,12 @@ bool continueAllProcesses()
    while(itr != getProcMgr().end()) {
       pd_process *p = *itr++;
       if(p != NULL && p->status() != running) {
-#ifdef DETACH_ON_THE_FLY
-         if(! p->detachAndContinue())
-#else
-	 if(! p->continueProc())
-#endif
-	 {
-	    sprintf(errorLine,"WARNING: cannot continue process %d\n",
-		    p->getPid());
-	    cerr << errorLine << endl;
-	 }
+          if(! p->continueProc())
+          {
+              sprintf(errorLine,"WARNING: cannot continue process %d\n",
+                      p->getPid());
+              cerr << errorLine << endl;
+          }
       }
    }
 
@@ -416,11 +415,7 @@ bool pauseAllProcesses()
       pd_process *p = *itr++;
 
       if (p != NULL && p->status() == running) {
-#ifdef DETACH_ON_THE_FLY
-         p->reattachAndPause();
-#else
          p->pause();
-#endif
       }
    }
 
