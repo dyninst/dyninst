@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.80 2002/10/28 04:54:22 schendel Exp $ */
+/* $Id: context.C,v 1.81 2002/11/25 23:52:44 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -73,6 +73,8 @@ extern debug_ostream signal_cerr;
 extern int termWin_port; //defined in main.C
 extern string pd_machine;
 #endif
+
+extern pdRPC *tp;
 
 /*
  * find out if we have an application defined
@@ -174,6 +176,12 @@ void deleteThread(traceThread *fr)
     assert(pdproc && pdproc->get_dyn_process()->rid);
 
     pd_thread *thr = pdproc->thrMgr().find_pd_thread(fr->tid);
+    tp->retiredResource(thr->get_dyn_thread()->get_rid()->full_name());
+
+    // take a final sample when thread is noticed as exited, but before it's
+    // meta-data is deleted;
+    pdproc->doMajorShmSample();  // take a final sample
+    metricFocusNode::handleDeletedThread(pdproc, thr);
     pdproc->getVariableMgr().deleteThread(thr);
 
     // deleting thread
@@ -296,8 +304,6 @@ PDSOCKET connect_Svr(string machine,int port)
   return stdout_fd;
 }
 #endif
-
-extern pdRPC *tp;
 
 int pd_createProcess(vector<string> &argv, vector<string> &envp, string dir) {
 #if !defined(i386_unknown_nt4_0)
@@ -605,28 +611,15 @@ void processNewTSConnection(int tracesocket_fd) {
    }
 }
 
-extern pdRPC *tp;
-extern void removeFromMetricInstances(process *proc);
-
-void paradyn_handleProcessExit(process *proc) {
+void paradyn_handleProcessExit(process *proc, int exitStatus) {
    pd_process *pd_proc = getProcMgr().find_pd_process(proc);
    assert(pd_proc != NULL);
-
-   pd_proc->doMajorShmSample();
-   reportInternalMetrics(true);
-
-   // close down the trace stream:
-   if (pd_proc->getTraceLink() >= 0) {
-      //processTraceStream(proc); // can't do since it's a blocking read 
-                                  // (deadlock)
-      P_close(pd_proc->getTraceLink());      
-      pd_proc->setTraceLink(-1);
-   }
-
-   removeFromMetricInstances(pd_proc->get_dyn_process());
-
-   tp->processStatus(pd_proc->getPid(), procExited);
-
+   pd_proc->handleExit(exitStatus);
 }
+
+
+
+
+
 
 
