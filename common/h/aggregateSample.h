@@ -23,9 +23,9 @@ struct sampleInterval {
 
 class sampleInfo {
   public:
-    struct sampleInterval newValue(time64 wallTime, sampleValue value);
+    struct sampleInterval newValue(timeStamp wallTime, sampleValue value);
     struct sampleInterval newValue(List<sampleInfo *> peers, 
-				   time64 wallTime, 
+				   timeStamp wallTime, 
 				   sampleValue value);
     sampleInfo() {
         firstSampleReceived = FALSE;

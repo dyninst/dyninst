@@ -3,8 +3,8 @@
 
 #include "util/h/aggregateSample.h"
 
-struct sampleInterval sampleInfo::newValue(time64 sampleTime, 
-						  sampleValue newVal)
+struct sampleInterval sampleInfo::newValue(timeStamp sampleTime, 
+						     sampleValue newVal)
 {
     struct sampleInterval ret;
 
@@ -32,7 +32,7 @@ struct sampleInterval sampleInfo::newValue(time64 sampleTime,
 }
 
 struct sampleInterval sampleInfo::newValue(List<sampleInfo *> parts,
-					   time64 sampleTime, 
+					   timeStamp sampleTime, 
 					   sampleValue newVal)
 {
     double fract;
