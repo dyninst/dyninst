@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: addLibraryLinux.C,v 1.13 2004/04/02 06:34:11 jaw Exp $ */
+/* $Id: addLibraryLinux.C,v 1.14 2004/07/23 20:39:22 tlmiller Exp $ */
 
 #if defined(i386_unknown_linux2_0)
 
@@ -650,9 +650,8 @@ int addLibrary::checkFile(){
  
  void addLibrary::moveDynamic(){
  
- 	int newIndex;
  	int oldDynamicIndex;
- 	int newDynamicIndex;
+ 	unsigned int newDynamicIndex;
  	Elf_element *updatedElfFile;
  	Elf32_Shdr tmpShdr;
  

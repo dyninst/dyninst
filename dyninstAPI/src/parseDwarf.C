@@ -1645,7 +1645,7 @@ void BPatch_module::parseDwarfTypes() {
 	assert( moduleImage != NULL );
 	const Object & moduleObject = moduleImage->getObject();
 	const char * fileName = moduleObject.getFileName();
-	const char * moduleFileName = mod->fileName().c_str();
+	// /* DEBUG */ const char * moduleFileName = mod->fileName().c_str();
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: parsing object '%s' for module '%s'\n", __FILE__, __LINE__, fileName, moduleFileName );
 
 	/* Cache type collections on a per-image basis.  (Since BPatch_functions are solitons, we don't have to cache them.) */

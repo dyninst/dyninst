@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.51 2004/06/08 22:03:15 legendre Exp $
+// $Id: linux-x86.C,v 1.52 2004/07/23 20:39:20 tlmiller Exp $
 
 #include <fstream>
 
@@ -148,22 +148,6 @@ const char libc_version_symname[] = "__libc_version";
 #if defined(PTRACEDEBUG) && !defined(PTRACEDEBUG_ALWAYS)
 static bool debug_ptrace = false;
 #endif
-
-static int regmap[] = 
-{
-    EBX, ECX, EDX, ESI,
-    EDI, EBP, EAX, DS,
-    ES, FS, GS, ORIG_EAX,
-    EIP, CS, EFL, UESP,
-    SS
-/*
-  EAX, ECX, EDX, EBX,
-  UESP, EBP, ESI, EDI,
-  EIP, EFL, CS, SS,
-  DS, ES, FS, GS,
-  ORIG_EAX
-*/
-};
 
 #define NUM_REGS (17 /*+ NUM_FREGS*/)
 #define NUM_FREGS 8
