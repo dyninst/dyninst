@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.138 2004/04/05 14:47:05 chadd Exp $
+// $Id: linux.C,v 1.139 2004/04/08 21:15:44 legendre Exp $
 
 #include <fstream>
 
@@ -145,7 +145,6 @@ bool dyn_lwp::deliverPtrace(int request, Address addr, Address data) {
    
    if(request != PTRACE_DETACH  &&  needToCont == true)
       continueLWP();
-         
    return ret;
 }
 
@@ -167,7 +166,6 @@ int dyn_lwp::deliverPtraceReturn(int request, Address addr, Address data) {
 
    if(request != PTRACE_DETACH  &&  needToCont == true)
       continueLWP();
-   
    return ret;
 }
 
@@ -216,6 +214,7 @@ bool checkForAndHandleProcessEventOnLwp(bool block, dyn_lwp *lwp) {
 }
 #endif
 
+static char getState(int pid);
 bool dyn_lwp::stop_() {
    return (P_kill(get_lwp_id(), SIGSTOP) != -1); 
 }
@@ -332,9 +331,9 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
       if(process::IndependentLwpControl() &&
          pertinentProc->getRepresentativeLWP() == NULL) {
          pertinentLWP = pertinentProc->getInitialThread()->get_lwp();
-      } else
+      } else {
          pertinentLWP = pertinentProc->getRepresentativeLWP();
-
+      }
       pertinentProc->set_lwp_status(pertinentLWP, stopped);
    } else {
       extern pdvector<process*> processVec;
@@ -418,8 +417,15 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
    (*new_event).why  = why;
    (*new_event).what = what;
    (*new_event).info = info;
+
    return true;
 }
+
+/**
+ * We sometimes receive an event from checkForEventLinux that we 
+ * don't want to deal with yet.  This function will insert the 
+ * event into a vector that 
+ **/
 
 bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
                                           int wait_arg, bool block)
@@ -436,33 +442,33 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
       wait_on_spawned_lwp = true;
    }
 
-	/* If we're blocking, check to make sure we don't do so forever. */
-	if( block ) {
-		/* If we're waiting on just one process, only check it. */
-		if( wait_arg > 0 ) { 
-			process * proc = process::findProcess( wait_arg );
-			assert( proc != NULL );
-			
-			/* Having to enumerate everything is broken. */
-			if( proc->status() == exited || proc->status() == stopped || proc->status() == detached ) { return false; }
-			}
-		else {
-			/* Iterate over all the processes.  Prove progress because the processVec
-			   may be empty. */
-			bool noneLeft = true;
+   /* If we're blocking, check to make sure we don't do so forever. */
+   if( block ) {
+      /* If we're waiting on just one process, only check it. */
+      if( wait_arg > 0 ) { 
+         process * proc = process::findProcess( wait_arg );
+         assert( proc != NULL );
+         
+         /* Having to enumerate everything is broken. */
+         if( proc->status() == exited || proc->status() == stopped || proc->status() == detached ) { return false; }
+         }
+      else {
+         /* Iterate over all the processes.  Prove progress because the processVec
+            may be empty. */
+         bool noneLeft = true;
 
-			for( unsigned i = 0; i < processVec.size(); i++ ) {
-				if( processVec[i] != NULL ) {
-					process * proc = processVec[i];
-					
-					/* Enumeration is broken, but I'm also wondering why we keep processes around that are 'exited.' */
-					if( proc->status() != exited && proc->status() != stopped && proc->status() != detached ) { noneLeft = false;	}
-					}
-				}
-			if( noneLeft ) { return false; }
-			} /* end multiple-process wait */
-		} /* end if we're blocking */
-		
+         for( unsigned i = 0; i < processVec.size(); i++ ) {
+            if( processVec[i] != NULL ) {
+               process * proc = processVec[i];
+               
+               /* Enumeration is broken, but I'm also wondering why we keep processes around that are 'exited.' */
+               if( proc->status() != exited && proc->status() != stopped && proc->status() != detached ) { noneLeft = false;   }
+               }
+            }
+         if( noneLeft ) { return false; }
+         } /* end multiple-process wait */
+      } /* end if we're blocking */
+   	
    procevent *new_event = new procevent;
    bool gotevent = false;
    while(1) {
@@ -561,19 +567,6 @@ bool process::unsetProcessFlags(){
 
 void emitCallRel32(unsigned disp32, unsigned char *&insn);
 
-/* Input P points to a buffer containing the contents of
-   /proc/PID/stat.  This buffer will be modified.  Output STATUS is
-   the status field (field 3), and output SIGPEND is the pending
-   signals field (field 31).  As of Linux 2.2, the format of this file
-   is defined in /usr/src/linux/fs/proc/array.c (get_stat). */
-static void parse_procstat_status(char *statfile, char *status) {
-   char *t = strstr(statfile, "State:");
-   assert(t);
-   char *stat_str = t + 7;
-   
-   *status = stat_str[0];
-}
-
 static bool parse_procstat_pending(char *statfile, unsigned long *shgsigpend) {
      /* Advance to sigpending int */
    char *t = strstr(statfile, "ShdPnd:");
@@ -584,32 +577,6 @@ static bool parse_procstat_pending(char *statfile, unsigned long *shgsigpend) {
    res[16] = 0;
    *shgsigpend = strtoul(res, NULL, 8);
    return true;
-}
-
-bool dyn_lwp::isRunning() const {
-   int fd;
-   char name[32];
-   char buf[400];
-   char status;
-   
-   sprintf(name, "/proc/%d/status", get_lwp_id());
-
-   /* Read current contents of /proc/pid/status */
-   fd = open(name, O_RDONLY);
-   assert(fd >= 0);
-   assert(read(fd, buf, sizeof(buf)) > 0);
-   close(fd);
-   buf[399] = 0;
-
-   /* Parse status and pending signals */
-   parse_procstat_status(buf, &status);   
-   //cerr << "  isRunning, got status: " << status << endl;
-
-   if(status == 'T') {
-      return false;
-   } else {
-      return true;
-   }
 }
 
 bool dyn_lwp::isStopPending() const {
@@ -639,31 +606,49 @@ bool dyn_lwp::isStopPending() const {
    return false;
 }
 
-bool process::isRunning_() const {
-   // determine if a process is running by doing low-level system checks, as
-   // opposed to checking the 'status_' member vrble.  May assume that attach()
-   // has run, but can't assume anything else.
-
+/**
+ * Return the state of the process from /proc/pid/stat.
+ * File format is:
+ *   pid (executablename) state ...
+ * where state is a character.  Returns '\0' on error.
+ **/
+static char getState(int pid)
+{
   char procName[64];
-  char sstat[132];
-  char *token = NULL;
+  char sstat[256];
+  char *status;
+  int paren_level = 1;
 
-  sprintf(procName,"/proc/%d/stat", (int)pid);
+  sprintf(procName,"/proc/%d/stat", pid);
   FILE *sfile = P_fopen(procName, "r");
-  fread( sstat, 128, 1, sfile );
+  if (sfile == NULL) return '\0';
+  fread( sstat, 1, 256, sfile );
   fclose( sfile );
-
-  char status;
-  if( !( strtok( sstat, " (" ) && strtok( NULL, " )" ) && ( token = strtok( NULL, " " ) ) ) )
-    assert( false && "Shouldn't happen" );
-  status = token[0];
-
-  if( status == 'T' )
-     return false;
-  else
-     return true;
+  sstat[255] = '\0';
+  status = sstat;
+  
+  while (*status != '\0' && *(status++) != '(');
+  while (*status != '\0' && paren_level != 0)
+  {
+    if (*status == '(') paren_level++;
+    if (*status == ')') paren_level--;
+    status++;
+  }
+  while (*status == ' ') status++;
+  return *status;
 }
 
+bool process::isRunning_() const {
+  char result = getState(getpid());
+  assert(result != '\0');
+  return (result != 'T');
+}
+
+bool dyn_lwp::isRunning() const {
+  char result = getState(get_lwp_id());
+  assert(result != '\0');
+  return (result != 'T');
+}
 
 // TODO is this safe here ?
 bool dyn_lwp::continueLWP_(int signalToContinueWith) {
@@ -678,9 +663,13 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
       arg4 = signalToContinueWith;
    }
 
+   if (proc()->suppressEventConts())
+     return false;
+
    int ret = P_ptrace(PTRACE_CONT, get_lwp_id(), arg3, arg4);
    if (ret == -1) {
-      perror("continueProc_()");
+     fprintf(stderr, "State: %d %d\n", (int) isRunning(), status());
+     while (1);
       return false;
    }
 
@@ -716,7 +705,8 @@ bool process::waitUntilStopped() {
 bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
    /* make sure the process is stopped in the eyes of ptrace */
    bool haveStopped = false;
-    
+   procevent new_event;
+
    // Loop handling signals until we receive a sigstop. Handle
    // anything else.
    int loopCt = 0;
@@ -726,30 +716,36 @@ bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
       }
       ++loopCt;
 
-      if(loopCt>10000) {
-         lwp->stop_();
-         loopCt = 0;
+      if(loopCt>10000) 
+      {
+        lwp->stop_();
+        loopCt = 0;
       }
 
-      procevent new_event;
       bool gotevent = checkForEventLinux(&new_event, lwp->get_lwp_id(), false,
                                          options);
       if(gotevent) {
-         if(didProcReceiveSignal(new_event.why) && new_event.what == SIGSTOP) {
-            dyn_lwp *lwp_for_event = NULL;
-            if(new_event.lwp != NULL) {
-               lwp_for_event = new_event.lwp;
-            }
-
-            if(lwp_for_event == lwp) {
-               haveStopped = true;
-            }
-            // Don't call the general handler
-         }
-         else {
-            getSH()->handleProcessEvent(new_event);
-         }
+        //If we got a SIGSTOP for this lwp we'll drop it, otherwise handle
+        //the event.
+        if(didProcReceiveSignal(new_event.why) && new_event.what == SIGSTOP &&
+           new_event.lwp == lwp)
+        {
+           haveStopped = true;
+           continue;
+        }
+        getSH()->handleProcessEvent(new_event);
       }
+      else {
+        if (lwp->status() == stopped)
+        {
+          //We've waited long enough for the stop.  If another event
+          // did the jobs for us, we'll accept it and move on.  Note
+          // that this may result in extra SIGSTOPS.
+          haveStopped = true;
+          continue;
+        }
+      }
+      
       // a slight delay to lesson impact of spinning
       // *** important for performance ***
       struct timeval timeout;
@@ -758,6 +754,17 @@ bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
       select(0, NULL, NULL, NULL, &timeout);
    }
    
+   /**
+    * The thread will not be marked as stopped until it gets scheduled.  
+    * We've got to wait for this
+    **/
+   while (lwp->isRunning())
+   {
+      struct timeval timeout;
+      timeout.tv_sec = 0;
+      timeout.tv_usec = 1;
+      select(0, NULL, NULL, NULL, &timeout);
+   }
    return true;
 }
 
@@ -768,7 +775,6 @@ bool dyn_lwp::waitUntilStopped() {
    } else {
       res = waitUntilStoppedGeneral(this, __WCLONE);
    }
-
    return res;
 }
 
