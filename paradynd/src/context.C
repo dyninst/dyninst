@@ -43,6 +43,9 @@
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.55  1997/08/28 16:01:50  naim
+ * Fixing some problems and bringing the NT version up to date - naim
+ *
  * Revision 1.54  1997/05/07 19:01:45  naim
  * Getting rid of old support for threads and turning it off until the new
  * version is finished. Additionally, new superTable, baseTable and superVector
@@ -439,8 +442,8 @@ void processNewTSConnection(int tracesocket_fd) {
       // the middle of running DYNINSTinit.
       curr = findProcess(pid);
       assert(curr);
-
       curr->traceLink = fd;
+      statusLine("ready");
    }
 
 }

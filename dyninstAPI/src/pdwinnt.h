@@ -51,7 +51,7 @@ typedef HANDLE handleT;
 
 #define read(x,y,z) recv(x,(char *)y,z,0)
 
-#define EXIT_NAME "exit"
+#define EXIT_NAME "_exit"
 #define START_WALL_TIMER "DYNINSTstartWallTimer"
 #define STOP_WALL_TIMER  "DYNINSTstopWallTimer"
 #define START_PROC_TIMER "DYNINSTstartProcessTimer"

@@ -1943,6 +1943,8 @@ bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
 
    function_base *sampleFunction = 
 	theProc->findOneFunction("DYNINSTsampleValues");
+   if (!sampleFunction) 
+     sampleFunction = theProc->findOneFunction("_DYNINSTsampleValues");
    assert(sampleFunction);
 
    AstNode *ast, *tmp;
@@ -2308,6 +2310,8 @@ bool sampledTimerReqNode::insertInstrumentation(process *theProc,
    // Now instrument DYNINSTreportTimer:
    function_base *sampleFunction = 
 	theProc->findOneFunction("DYNINSTsampleValues");
+   if (!sampleFunction) 
+     sampleFunction = theProc->findOneFunction("_DYNINSTsampleValues");
    assert(sampleFunction);
 
    AstNode *ast, *tmp;

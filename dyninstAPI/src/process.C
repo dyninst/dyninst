@@ -2316,10 +2316,11 @@ vector<function_base *> *process::getIncludedFunctions(module *mod) {
 // this routine checks both the a.out image and any shared object
 // images for this resource
 function_base *process::findOneFunction(const string &func_name){
-    
     // first check a.out for function symbol
     function_base *pdf = symbols->findOneFunction(func_name);
-    if(pdf) return pdf;
+    if(pdf) {
+      return pdf;
+    }
 
     // search any shared libraries for the file name 
     if(dynamiclinking && shared_objects){
