@@ -4,7 +4,10 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.13  1994/03/20 01:45:23  markc
+ * Revision 1.14  1994/03/25 16:07:31  markc
+ * Added option to specify timeout on readReady.
+ *
+ * Revision 1.13  1994/03/20  01:45:23  markc
  * Changed xdr_Boolean to char rather than int to reflect Boolean change.
  *
  * Revision 1.12  1994/03/11  21:01:24  hollings
@@ -13,13 +16,12 @@
  *
  */
 
-// prevents malloc from being redefined
+/* prevents malloc from being redefined */
 #ifdef MIPS
 #define MALLOC_DEFINED_AS_VOID
 #endif
 
 #include <stdio.h>
-#include <strings.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -76,7 +78,7 @@ class XDRrpc {
     void closeConnect() { if (fd >= 0) close(fd); fd = -1;}
     void setNonBlock();
     int get_fd() { return fd;}
-    int readReady();
+    int readReady(int timeout=0);
     XDR *__xdrs__;
     int fd;
     int pid;		// pid of child;
@@ -114,7 +116,7 @@ class RPCServer {
 	int __versionVerifyDone__;
 };
 
-extern int RPC_readReady (int fd);
+extern int RPC_readReady (int fd, int timeout=0);
 extern int RPC_setup_socket (int *sfd,   // return file descriptor
 			     int family, // AF_INET ...
 			     int type);   // SOCK_STREAM ...
