@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.14 2001/08/07 20:49:01 chadd Exp $ */
+/* $Id: RTheap.c,v 1.15 2001/11/06 19:20:35 bernat Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -290,15 +290,19 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     heap = malloc(size_heap);
     if (heap == NULL) {
       free(node);
+      fprintf(stderr, "Failed to MALLOC\n");
+      
       return NULL;
     }
     ret_heap = heap_alignUp((Address)heap, DYNINSTheap_align);
-
+    
     /* malloc buffer must meet range constraints */
     if (ret_heap < (Address)lo_addr ||
 	ret_heap + size - 1 > (Address)hi_addr) {
       free(heap);
       free(node);
+      fprintf(stderr, "MALLOC'd area fails range constraints\n");
+      
       return NULL;
     }
 
@@ -315,10 +319,19 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     int fd, nmaps;
     dyninstmm_t *maps;
 
+    /* What if we need to allocate memory not in the area we can mmap? */
+    if ((hi < DYNINSTheap_loAddr) || (lo > DYNINSTheap_hiAddr)) {
+      fprintf(stderr, "CAN'T MMAP IN RANGE GIVEN\n");
+      return NULL;
+    }
+    
+
     /* Get memory map and sort it.  maps will point to malloc'd memory
        that we must free. */
     if (0 > DYNINSTgetMemoryMap(&nmaps, &maps)) {
       free(node);
+      fprintf(stderr, "failed MMAP\n");
+      
       return NULL;
     }
     qsort(maps, (size_t)nmaps, (size_t)sizeof(dyninstmm_t), &heap_memmapCompare);
@@ -338,6 +351,8 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     DYNINSTheap_mmapFdClose(fd);
     if (!heap) {
 	 free(node);
+	 fprintf(stderr, "failed MMAP(2)\n");
+	 
 	 return NULL;
     }
 
@@ -353,7 +368,9 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
   node->next = Heaps;
   if (Heaps) Heaps->prev = node;
   Heaps = node;
-  
+  /*
+  fprintf(stderr, "Returning addr %x\n", (unsigned) node->heap.ret_addr);
+  */
   return node->heap.ret_addr;
 }
 

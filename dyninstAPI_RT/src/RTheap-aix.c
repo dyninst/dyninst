@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-aix.c,v 1.1 2000/07/18 19:59:05 bernat Exp $ */
+/* $Id: RTheap-aix.c,v 1.2 2001/11/06 19:20:35 bernat Exp $ */
 /* RTheap-aix.c: AIX-specific heap components */
 
 #include <stdlib.h>
@@ -58,7 +58,7 @@ int     DYNINSTheap_align = 4; /* heaps are word-aligned */
 /* Not really the heap addresses, but these are used by
    constrained_mmap to determine the bounds on the mmap search.
    The heap is in segment 2, and is used in malloc below */
-Address DYNINSTheap_loAddr = 0x20000000;
+Address DYNINSTheap_loAddr = 0x30000000;
 Address DYNINSTheap_hiAddr = 0xcfffffff;
 
 int     DYNINSTheap_mmapFlags = MAP_VARIABLE | MAP_PRIVATE;
@@ -75,6 +75,12 @@ int     DYNINSTheap_mmapFlags = MAP_VARIABLE | MAP_PRIVATE;
    0xe0000000; segment 14; kernel (mmappable in experiment,
                            I'm not sure I'd want to.)
    0xf0000000; segment 15; shared lib data
+*/
+
+/*
+  Slight modification to the memory map: if the maxdata flag is
+  set, then the heap starts at 0x30000000 and goes from there.
+  So catch this behavior
 */
 
 /* AIX mmap behavior: MAP_FIXED either works or fails. In
