@@ -449,7 +449,6 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
    }
    BPatch_funcCallExpr fork_init_expr(*(fork_init_func[0]), fork_init_args);
 
-   fprintf(stderr, " ************** Running init_child_after_fork...\n");
    if (dyninst_process->oneTimeCode(fork_init_expr) != (void *)123)
        fprintf(stderr, "Error running forked child init function\n");
    
@@ -472,8 +471,6 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
                                );
 
    setLibState(paradynRTState, libReady);
-
-   fprintf(stderr, " ************** new shared_mem and meta data\n");
 
    // Okay, time to rock and roll... that is, make a copy of the parent's
    // shared memory
@@ -500,16 +497,12 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
 
    // Back off the paradyn bootstrap level
 
-   fprintf(stderr, "BTW: this is %p\n", this);
-
    // DYNINST SEP
    process *cp = childDynProc->PDSEP_process();
    if (parent.dyninst_process->PDSEP_process()->multithread_ready()) {
      for (unsigned i = 0; i < cp->threads.size(); i++) {
-       fprintf(stderr, "********** adding thread %d of %d\n", i+1, cp->threads.size());
        dyn_thread *thr = cp->threads[i];
        pd_thread *pd_thr = new pd_thread(thr, this);
-       fprintf(stderr, "... new pdthread...\n");
        addThread(pd_thr);
        // This is mostly duplicated from context.C::createThread.
        // Problem is, in this case we _have_ threads already...     
@@ -529,11 +522,7 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
 				   ThreadResourceType,
 				   MDL_T_STRING,
 				   true);
-       fprintf(stderr, ".... new resource....\n");
        pd_thr->update_rid(rid);
-       fprintf(stderr, "... resetting vtime...\n");
-       fprintf(stderr, "Getting virtual timer %p for index %d\n",
-	       getVirtualTimer(thr->get_index()), thr->get_index());
        pd_thr->resetInferiorVtime(getVirtualTimer(thr->get_index()));
      }
    }
@@ -731,23 +720,10 @@ void pd_process::postForkHandler(BPatch_thread *child) {
      return;
    }
 
-   fprintf(stderr, "******************** postFork new pd_process\n");
-   
    pd_process *childProc = new pd_process(*parentProc, child);
-
-   fprintf(stderr, "******************** postFork have new pd_process\n");
-
    getProcMgr().addProcess(childProc);
-
-   fprintf(stderr, "******************** postFork process added\n");
-
    metricFocusNode::handleFork(parentProc, childProc);
-
-   fprintf(stderr, "******************** postFork mfnode::handleFork\n");
-
    childDynProc->setParadynBootstrap();
-
-   fprintf(stderr, "******************** postFork process paradyn bootstrapped\n");
 
    // I don't think we want to continue the process here... hand it back
    // to Dyninst -- bernat, 28APR04
@@ -1848,7 +1824,7 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
       frame_func = dyninst_process->lowlevel_process()->findFuncByAddr(edge_ptr->addrInFunc);
       collapsedFrameAddr = edge_ptr->addrInFunc;
        if(pd_debug_catchup)
-	 fprintf(stderr, "      PC in edge tramp...");
+          fprintf(stderr, "      PC in edge tramp...");
     }
     else if (multitramp_ptr) {
         const instPoint *instP = multitramp_ptr->location;
@@ -1863,7 +1839,7 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
     else {
         // Uhh... no function, no point... murph?
         // Could be top of the stack -- often address 0x0 or -1
-        if (frame.getPC()) 
+        if (frame.getPC() && pd_debug_catchup) 
             fprintf(stderr, "     Couldn't find match for address 0x%lx!\n",
                     frame.getPC());
         return false;
@@ -1871,7 +1847,7 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
 
     if (frame_func != point->pointFunc()) {
       if(pd_debug_catchup)
-	fprintf(stderr, "     Current function %s not instPoint function, returning false\n======\n",
+         fprintf(stderr, "     Current function %s not instPoint function, returning false\n======\n",
 		frame_func->prettyName().c_str());
       return false;
     }
@@ -1898,7 +1874,7 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
 	pointAddr = point->addrInFunc;
 
       if (pd_debug_catchup)
-	fprintf(stderr, "PA 0x%lx, ", pointAddr);
+         fprintf(stderr, "PA 0x%lx, ", pointAddr);
       
       logicalPCLocation_t location = nowhere;
       
@@ -1956,32 +1932,32 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
       } // addrs equal
       
       if (pd_debug_catchup) {
-	switch(location) {
-	case beforeInstru:
-	  fprintf(stderr, "beforeInstru...");
-	  break;
-	case baseEntry:
-	  fprintf(stderr, "baseEntry...");
-	  break;
-	case preInsn:
-	  fprintf(stderr, "preInsn...");
-	  break;
-	case emulInsns:
-	  fprintf(stderr, "emulInsns...");
-	  break;
-	case postInsn:
-	  fprintf(stderr, "postInsn...");
-	  break;
-	case baseExit:
-	  fprintf(stderr, "baseExit...");
-	  break;
-	case afterInstru:
-	  fprintf(stderr, "afterInstru...");
-	  break;
-	case nowhere:
-	  fprintf(stderr, "serious problem with the compiler...");
-	  break;
-	}    
+         switch(location) {
+            case beforeInstru:
+               fprintf(stderr, "beforeInstru...");
+               break;
+            case baseEntry:
+               fprintf(stderr, "baseEntry...");
+               break;
+            case preInsn:
+               fprintf(stderr, "preInsn...");
+               break;
+            case emulInsns:
+               fprintf(stderr, "emulInsns...");
+               break;
+            case postInsn:
+               fprintf(stderr, "postInsn...");
+               break;
+            case baseExit:
+               fprintf(stderr, "baseExit...");
+               break;
+            case afterInstru:
+               fprintf(stderr, "afterInstru...");
+               break;
+            case nowhere:
+               fprintf(stderr, "serious problem with the compiler...");
+               break;
+         }    
       }
       // And now determine if we're before or after the point
       if (location == afterInstru) {
@@ -2035,10 +2011,10 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
       
 
     if (pd_debug_catchup) {
-      if (catchupNeeded)
-	fprintf(stderr, "catchup needed, ret true\n========\n");
-      else
-	fprintf(stderr, "catchup not needed, ret false\n=======\n");
+       if (catchupNeeded)
+          fprintf(stderr, "catchup needed, ret true\n========\n");
+       else
+          fprintf(stderr, "catchup not needed, ret false\n=======\n");
     }
     return catchupNeeded;
 }

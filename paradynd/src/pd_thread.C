@@ -162,32 +162,23 @@ bool pd_thread::resetInferiorVtime(virtualTimer *vTimer) {
    if (!vTimer) {
      return false;
    }
-   fprintf(stderr, "UpdatingLWP\n");
    dyninst_thread->updateLWP();
-   fprintf(stderr, "1\n");
    if (vTimer->protector1 != vTimer->protector2)
      return false;
 
-   fprintf(stderr, "2\n");
    vTimer->protector1++;
 
-   fprintf(stderr, "3\n");
    // Stop the timer...
    if (vTimer->counter == 1) {
-     fprintf(stderr, "Current lwp: %d\n", vTimer->lwp);
-     fprintf(stderr, "pd_proc is %p\n", pd_proc);
      rawTime64 now = pd_proc->getRawCpuTime(vTimer->lwp);
-     fprintf(stderr, "Now is %lld\n", now);
      if (now >= vTimer->start) 
        vTimer->total += (now - vTimer->start);
      
      vTimer->lwp = 0;
      vTimer->rt_fd = 0;
    }
-   fprintf(stderr, "4\n");
    vTimer->counter--;
 
-   fprintf(stderr, "5\n");
    // Start the timer
    if (vTimer->counter == 0) {
      vTimer->lwp = dyninst_thread->get_lwp()->get_lwp_id();
@@ -195,10 +186,7 @@ bool pd_thread::resetInferiorVtime(virtualTimer *vTimer) {
      vTimer->start = pd_proc->getRawCpuTime(vTimer->lwp);
      vTimer->rt_previous = vTimer->start;
    }
-   fprintf(stderr, "6\n");
    vTimer->counter++;
-   fprintf(stderr, "7\n");
-
    vTimer->protector2++;
 
    return true;

@@ -66,8 +66,8 @@ pd_module::pd_module(BPatch_module *dmod) : dyn_module(dmod)
   all_funcs = dmod->getProcedures();
   if (!all_funcs || !all_funcs->size()) {
     // ok to just get rid of printout if this happens a lot:
-    fprintf(stderr, "%s[%d]:  WARNING:  module %s has no functions\n", 
-           __FILE__, __LINE__, buf);
+     //fprintf(stderr, "%s[%d]:  WARNING:  module %s has no functions\n", 
+     //      __FILE__, __LINE__, buf);
     return;
   }
 
