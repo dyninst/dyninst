@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.68 2005/02/02 17:27:19 bernat Exp $
+ * $Id: inst-ia64.C,v 1.69 2005/02/03 23:45:49 bernat Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -445,7 +445,7 @@ void int_function::checkCallPoints() {
 	instPoint * callSite;
 	Address targetAddress;
 	int_function * calledPdF;
-	image * owner = file_->exec();
+	image * owner = pdmod()->exec();
 	pdvector< instPoint * > pdfCalls;
 
 	for( unsigned int i = 0; i < calls.size(); i++ ) {
@@ -556,7 +556,7 @@ BPatch_point *createInstructionInstPoint( process * proc, void * address,
 		}
 
 	/* Acquire the owner. */
-	const image * owner = containingFunction->file()->exec();
+	const image * owner = containingFunction->pdmod()->exec();
 
 	/* Acquire the instruction. */
 	Address instructionAddress = (Address)owner->getPtrToInstruction( containingFunction->getAddress( NULL ) );
