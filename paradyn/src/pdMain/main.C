@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.10  1994/07/28 22:31:42  krisna
-/* proper prototypes and starting code for thread main functions
+/* Revision 1.11  1994/08/22 15:54:49  markc
+/* Added command line argument to specify application config file.
 /*
+ * Revision 1.10  1994/07/28  22:31:42  krisna
+ * proper prototypes and starting code for thread main functions
+ *
  * Revision 1.9  1994/07/19  23:52:58  markc
  * Moved "include "metricExt.h"" to main.C from paradyn.h to remove false
  * dependencies.
@@ -111,8 +114,8 @@ main (int argc, char *argv[])
   //
   signal(SIGPIPE, SIG_IGN);
 
-  if (argc != 1) {
-    printf("usage: %s\n", argv[0]);
+  if (argc != 1 && argc != 3) {
+    printf("usage: %s [-f <filename>]\n", argv[0]);
     exit(-1);
   }
 
@@ -126,9 +129,16 @@ main (int argc, char *argv[])
   }
 
 // parse the configuration files
-  int parseResult;
-
-  parseResult = metMain();
+  int parseResult, a_ct=0;
+  char *fname=0;
+  while (argv[a_ct + 1]) {
+    if (!strcmp(argv[a_ct], "-f")) {
+      fname = argv[a_ct+1];
+      break;
+    }
+    a_ct++;
+  }
+  parseResult = metMain(fname);
 
 
 // get tid of parent
