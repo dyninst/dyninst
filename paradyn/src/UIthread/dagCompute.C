@@ -432,7 +432,7 @@ int *size, s;
     if ((s < *size) && (e->eType == NO_LINE)) {
 	/* edge already exists */
 	assert(type != NO_LINE && type != NO_ARROW);
-	e->eType = ((ArrowType) (e->eType & ~NO_ARROW) | type);
+	e->eType = (ArrowType) ((e->eType & ~NO_ARROW) | type);
 	e->style = edge_style;
 	return;
       }
