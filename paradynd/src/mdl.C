@@ -54,6 +54,7 @@
 #include "dyninstAPI/src/process.h"
 #include "util/h/debugOstream.h"
 #include "paradynd/src/blizzard_memory.h"
+#include "dyninstAPI/src/instPoint.h" // new...for class instPoint
 
 // The following vrbles were defined in process.C:
 extern debug_ostream attach_cerr;
@@ -566,27 +567,28 @@ apply_to_process(process *proc,
       }
     }
 
-    unsigned flag_size = flag_cons.size();
+    unsigned flag_size = flag_cons.size(); // could be zero
     vector<dataReqNode*> flags;
-    if (flag_size) {
-      for (unsigned fs=0; fs<flag_size; fs++) {
+    metric_cerr << "There are " << flag_size << " flags (constraints)" << endl;
+
+    for (unsigned fs=0; fs<flag_size; fs++) {
 	// TODO -- cache these created flags
 	dataReqNode *flag = NULL;
-	if (! (flag_cons[fs]->apply(mn, flag, focus[flag_dex[fs]], proc, computingCost))) {
+	// The following calls mdl_constraint::apply():
+	if (!flag_cons[fs]->apply(mn, flag, focus[flag_dex[fs]], proc, computingCost)) {
           mn->cleanup_drn();
           delete mn;
 	  return NULL;
 	}
 	assert(flag);
 	flags += flag;
-	// cout << "Applying constraint for " << flag_cons[fs]->id_ << endl;
-      }
+
+	metric_cerr << "Applied constraint for " << flag_cons[fs]->id_ << endl;
     }
 
     if (base_use) {
       dataReqNode *flag = NULL;
       if (!base_use->apply(mn, flag, focus[base_dex], proc, computingCost)) {
-	// cout << "apply of " << name << " failed\n";
 	mn->cleanup_drn();  
         delete mn;
 	return NULL;
@@ -594,8 +596,7 @@ apply_to_process(process *proc,
     } else {
       unsigned size = stmts->size();
       for (unsigned u=0; u<size; u++) {
-	if (!(*stmts)[u]->apply(mn, flags)) { // virtual fn call depending on the statement type
-	  // cout << "apply of " << name << " failed\n";
+	if (!(*stmts)[u]->apply(mn, flags)) { // virtual fn call depending on stmt type
 	  mn->cleanup_drn();  
 	  delete mn;
 	  return NULL;
@@ -689,6 +690,10 @@ static bool apply_to_process_list(vector<process*>& instProcess,
   return true;
 }
 
+///////////////////////////
+vector<string>global_excluded_funcs;
+
+
 metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &focus,
 					              string& flat_name,
 					              vector<process *> procs,
@@ -740,6 +745,31 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
   if (!check_constraints(flag_cons, base_used, focus, constraints_, flag_dex, base_dex))
     return NULL;
 
+  //////////
+  /* 
+     Compute the list of excluded functions here. This is the list of functions
+     that should be excluded from the calls sites.
+     We set the global variable global_excluded_functions to the list of excluded
+     functions.
+
+     At this point, the $constraint variable is not in the environment yet,
+     so anything that uses $constraint will not be added to the list,
+     which is what we want.
+   */
+  if (base_used) {
+    base_used->mk_list(global_excluded_funcs);
+  } else {
+    for (unsigned u1 = 0; u1 < flag_cons.size(); u1++)
+      flag_cons[u1]->mk_list(global_excluded_funcs);
+    for (unsigned u2 = 0; u2 < stmts_->size(); u2++)
+      (*stmts_)[u2]->mk_list(global_excluded_funcs);
+  }
+  metric_cerr << "Metric: " << name_ << endl;
+  for (unsigned x1 = 0; x1 < global_excluded_funcs.size(); x1++)
+    metric_cerr << "  " << global_excluded_funcs[x1] << endl;
+  //////////
+
+
   // build the instrumentation request
   vector<metricDefinitionNode*> parts; // one per process
   if (!apply_to_process_list(instProcess, parts, id_, name_, focus,
@@ -758,6 +788,10 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
 
   // cout << "apply of " << name_ << " ok\n";
   mdl_env::pop();
+
+  ////////////////////
+  global_excluded_funcs.resize(0);
+
   return ret;
 }
 
@@ -899,7 +933,7 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
   unsigned size = stmts_->size();
   vector<dataReqNode*> flags;
   for (unsigned u=0; u<size; u++) {
-    if (!(*stmts_)[u]->apply(mn, flags)) {
+    if (!(*stmts_)[u]->apply(mn, flags)) { // virtual fn call; several possibilities
       // cout << "apply of constraint " << id_ << " failed\n";
       return(false);
     }
@@ -1015,6 +1049,7 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&ast) {
     break;
   case MDL_CALL_FUNC: {
     // don't confuse 'args' with 'args_' here!
+
     vector<AstNode *> args;
     for (unsigned u = 0; u < args_.size(); u++) {
       AstNode *arg=NULL;
@@ -1181,9 +1216,9 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *pred,
   dataReqNode *drn;
   mdl_var get_drn;
   if (type_ != MDL_CALL_FUNC) {
-      bool aflag;
-      aflag=mdl_env::get(get_drn, timer_counter_name_);
+      bool aflag=mdl_env::get(get_drn, timer_counter_name_);
       assert(aflag);
+
       aflag=get_drn.get(drn);
       assert(aflag);
   }
@@ -1640,7 +1675,8 @@ T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
 bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
 					 vector<dataReqNode*>& inFlags) {
    // An instr statement is like:
-   //    append preInsn $start.entry constrained (* startWallTimer(a_wallTime); *)
+   //    append preInsn $constraint[0].entry constrained
+   //       (* setCounter(procedureConstraint, 1); *)
    // (note that there are other kinds of statements; i.e. there are other classes
    //  derived from the base class mdl_stmt; see dyninstRPC.I)
 
@@ -2126,8 +2162,96 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
       }
       // TODO: should these be passed a process?  yes, they definitely should!
       case 1:
-	if (!ret.set((vector<instPoint *>*)&pdf->funcCalls(global_proc)))
-	  return false;
+	{
+	  //
+	  /*****
+	    here we should check the calls and exclude the calls to fns in the
+	    global_excluded_funcs list.
+	    *****/
+	  // ARI -- This is probably the spot!
+
+	  vector<instPoint*> calls = pdf->funcCalls(global_proc);
+	  // makes a copy of the return value (on purpose), since we may delete some
+	  // items that shouldn't be a call site for this metric.
+	  bool anythingRemoved = false; // so far
+
+	  metric_cerr << "global_excluded_funcs size is: "
+	              << global_excluded_funcs.size() << endl;
+
+ 	  metric_cerr << "pdf->funcCalls() returned the following call sites:" << endl;
+ 	  for (unsigned u = 0; u < calls.size(); u++) { // calls.size() can change!
+ 	     metric_cerr << u << ") ";
+
+ 	     instPoint *point = calls[u];
+ 	     function_base *callee = (function_base*)point->iPgetCallee();
+	        // cast discards const
+
+ 	     const char *callee_name=NULL;
+
+ 	     if (callee == NULL) {
+   	        // call Tia's new process::findCallee() to fill in point->callee
+ 	        if (!global_proc->findCallee(*point, callee)) {
+ 		   // an unanalyzable function call; sorry.
+ 		   callee_name = NULL;
+ 		   metric_cerr << "-unanalyzable-" << endl;
+ 		}
+ 		else {
+ 		   // success -- either (a) the call has been bound already, in which
+		   // case the instPoint is updated _and_ callee is set, or (b) the
+		   // call hasn't yet been bound, in which case the instPoint isn't
+		   // updated but callee *is* updated.
+ 		   callee_name = callee->prettyName().string_of();
+ 		   metric_cerr << "(successful findCallee() was required) "
+                                << callee_name << endl;
+ 		}
+ 	     }
+ 	     else {
+ 	        callee_name = callee->prettyName().string_of();
+ 	        metric_cerr << "(easy case) " << callee->prettyName() << endl;
+ 	     }
+
+	     // If this callee is in global_excluded_funcs for this metric (a global
+	     // vrble...sorry for that), then it's not really a callee (for this
+	     // metric, at least), and thus, it should be removed from whatever
+	     // we eventually pass to "ret.set()" below.
+
+	     if (callee_name != NULL) // could be NULL (e.g. indirect fn call)
+	        for (unsigned lcv=0; lcv < global_excluded_funcs.size(); lcv++) {
+		  if (0==strcmp(global_excluded_funcs[lcv].string_of(), callee_name)) {
+		      anythingRemoved = true;
+
+		      // remove calls[u] from calls.  To do this, swap
+		      // calls[u] with calls[maxndx], and resize-1.
+		      const unsigned maxndx = calls.size()-1;
+		      calls[u] = calls[maxndx];
+		      calls.resize(maxndx);
+
+		      metric_cerr << "removed something! -- " << callee_name << endl;
+
+		      break;
+		  }
+		}
+ 	  }
+
+	  if (!anythingRemoved) {
+	     metric_cerr << "nothing was removed -- doing set() now" << endl;
+	     vector<instPoint*> *setMe = &pdf->funcCalls(global_proc);
+	     if (!ret.set(setMe))
+	        return false;
+	  }
+	  else {
+	     metric_cerr << "something was removed! -- doing set() now" << endl;
+	     vector<instPoint*> *setMe = new vector<instPoint*>(calls);
+	     assert(setMe);
+	     
+	     if (!ret.set(setMe))
+	        return false;
+
+	     // WARNING: "setMe" will now be leaked memory!  The culprit is
+	     // "ret", which can only take in a _pointer_ to a vector of instPoint*'s;
+	     // it can't take in a vector of instPoints*'s, which we'd prefer.
+	  }
+	}
 	break;
       case 2: 
 	if (!ret.set((instPoint *)pdf->funcEntry(global_proc)))
@@ -2230,4 +2354,160 @@ bool mdl_metric_data(const string& met_name, mdl_inst_data& md) {
       return true;
     }
   return false;
+}
+
+//
+// Compute the list of excluded functions recursively. 
+// The mk_list functions are similar to apply, but they make a list
+// of the excluded functions
+// 
+
+bool T_dyninstRPC::mdl_list_stmt::mk_list(vector<string> &funcs);
+bool T_dyninstRPC::mdl_for_stmt::mk_list(vector<string> &funcs);
+bool T_dyninstRPC::mdl_if_stmt::mk_list(vector<string> &funcs);
+bool T_dyninstRPC::mdl_seq_stmt::mk_list(vector<string> &funcs);
+bool T_dyninstRPC::mdl_instr_stmt::mk_list(vector<string> &funcs);
+
+bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &funcs);
+
+bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &funcs) {
+  switch (type_) {
+  case MDL_RVAL_INT: 
+  case MDL_RVAL_STRING:
+    return true;
+  case MDL_RVAL_ARRAY:
+    {
+      mdl_var array(false);
+      mdl_var elem(false);
+      if (!mdl_env::get(array, var_)) return false;
+      if (!array.is_list()) return false;
+      if (arg_ >= array.list_size()) return false;
+      if (!array.get_ith_element(elem, arg_)) return false;
+      if (elem.get_type() == MDL_T_PROCEDURE_NAME) {
+	functionName *fn;
+	elem.get(fn);
+	funcs += fn->get();
+      }
+      return true;
+    }
+  case MDL_RVAL_EXPR: {
+      if (!left_ || !right_) return false;
+      if (!left_->mk_list(funcs)) return false;
+      if (!right_->mk_list(funcs)) return false;
+      return true;
+  }
+  case MDL_RVAL_FUNC:
+    return true;
+    // TODO: should we add anything to the list here?
+    // It seems that lookupFunction and lookupModule are useless, they can never
+    // be used in a valid MDL expression.
+#ifdef notdef
+    switch (arg_) {
+    case 0:
+      // lookupFunction
+      {
+       mdl_var arg0(false);
+       if (!(*args_)[0]->apply(arg0)) return false;
+       string func_name;
+       if (!arg0.get(func_name)) return false;
+       if (global_proc) {
+          // TODO -- what if the function is not found ?
+         function_base *pdf = global_proc->findOneFunction(func_name);
+         return (ret.set(pdf));
+       } else {
+         assert(0); return false;
+       }
+      }
+    case 1:
+      // lookupModule
+      {
+       mdl_var arg0(false);
+       if (!(*args_)[0]->apply(arg0)) return false;
+       string mod_name;
+       if (!arg0.get(mod_name)) return false;
+       if (global_proc) {
+         // TODO -- what if the function is not found ?
+         module *mod = global_proc->findModule(mod_name,false);
+         if (!mod) { assert(0); return false; }
+         return (ret.set(mod));
+       } else {
+         assert(0); return false;
+       }
+      }
+    case 2:
+      break;
+    default:
+      return false;
+ }
+#endif
+  case MDL_RVAL_DEREF:
+    return true;
+    break;
+  default:
+    return false;
+ }
+  return true;
+}
+
+
+bool T_dyninstRPC::mdl_list_stmt::mk_list(vector<string> &funcs) {
+  if (type_ == MDL_T_PROCEDURE_NAME) {
+    unsigned size = elements_->size();
+    for (unsigned u = 0; u < size; u++)
+      funcs += (*elements_)[u];
+  }
+  return true;
+}
+
+bool T_dyninstRPC::mdl_for_stmt::mk_list(vector<string> &funcs) {
+  mdl_env::push();
+  mdl_var list_var(false);
+
+  if (!list_expr_->apply(list_var)) {
+    mdl_env::pop();
+   return false;
+  }
+  if (!list_var.is_list()) {
+    mdl_env::pop();
+    return false;
+  }
+
+  if (list_var.element_type() == MDL_T_PROCEDURE_NAME) {
+    vector<functionName *> *funcNames;
+    if (!list_var.get(funcNames)) {
+      mdl_env::pop();
+      return false;
+    }    
+    for (unsigned u = 0; u < funcNames->size(); u++)
+       funcs += (*funcNames)[u]->get();
+  }
+
+  if (!for_body_->mk_list(funcs)) {
+    mdl_env::pop();
+    return false;
+  }
+  mdl_env::pop();
+  return true;
+}
+
+bool T_dyninstRPC::mdl_if_stmt::mk_list(vector<string> &funcs) {
+  return expr_->mk_list(funcs) && body_->mk_list(funcs);
+}
+
+bool T_dyninstRPC::mdl_seq_stmt::mk_list(vector<string> &funcs) {
+  for (unsigned u = 0; u < stmts_->size(); u++) {
+    if (!(*stmts_)[u]->mk_list(funcs))
+      return false;
+  }
+  return true;
+}
+
+bool T_dyninstRPC::mdl_instr_stmt::mk_list(vector<string> &funcs) {
+  return point_expr_->mk_list(funcs);
+}
+
+bool T_dyninstRPC::mdl_constraint::mk_list(vector<string> &funcs) {
+  for (unsigned u = 0; u < stmts_->size(); u++)
+    (*stmts_)[u]->mk_list(funcs);
+  return true;
 }
