@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.17 2001/12/10 21:17:16 chadd Exp $
+// $Id: osfDL.C,v 1.18 2002/01/30 22:19:56 hollings Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -323,8 +323,13 @@ void dynamic_linking::setMappingHooks(process *proc)
 bool process::trapDueToDyninstLib()
 {
   Address pc;
+  prstatus_t stat;
 
   if (dyninstlib_brk_addr == 0) return false;
+
+  if (ioctl(getProcFileDescriptor(), PIOCSTATUS, &stat) < 0) {
+      perror("ioctl");
+  }
 
   pc = Frame(this).getPC();
 
@@ -332,7 +337,12 @@ bool process::trapDueToDyninstLib()
   // printf("    breakpoint addr = 0x%lx\n", dyninstlib_brk_addr);
 
   bool ret = (pc == dyninstlib_brk_addr);
-  // if (ret) fprintf(stderr, ">>> process::trapDueToDyninstLib()\n");
+
+  // XXXX - Hack, Tru64 is giving back an invalid pc here, we check for a pc == 0 and
+  //   conclude if we are waiting for a trap for dlopen, then this must be it.
+  //   Need to figure out why this happens. - jkh 1/30/02
+  if (!ret && (stat.pr_reg.regs[31] == 0)) ret = true;
+
   return ret;
 }
 
@@ -409,6 +419,8 @@ void process::handleIfDueToDyninstLib()
   }
   isLoadingDyninstLib = false;
   hasLoadedDyninstLib = true;
+
+  dyninstlib_brk_addr = 0;
 }
 
 #ifdef DEBUG

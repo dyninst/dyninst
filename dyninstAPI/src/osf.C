@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.21 2001/12/10 21:17:16 chadd Exp $
+// $Id: osf.C,v 1.22 2002/01/30 22:19:56 hollings Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -100,6 +100,7 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
   Address baseInstruc = baseBytes / sizeof(instruction);
 
 
+  extern void generate_nop(instruction*);
   extern void generateBreakPoint(instruction &);
   extern void emitRestoreConservative(process *, char *, Address &baseBytes);
 
@@ -424,9 +425,13 @@ int process::waitProcs(int *status)
 		assert(ret == processVec[curr]->getPid());
 	    } else if (stat.pr_flags & PR_STOPPED || stat.pr_flags & PR_ISTOP) {
 		switch (stat.pr_why) {
-		      case PR_SIGNALLED:
+		      case PR_SIGNALLED: {
+			    process *p = processVec[curr];
+			    p->status_ = stopped;
 			    // return the signal number
-			    if (stat.pr_what == SIGTRAP) {
+			    if (p->handleTrapIfDueToRPC()) {
+				continue;
+			    } else if (stat.pr_what == SIGTRAP) {
 				// we ignore sigtraps
 				// some Alpha processors produce a sigTRAP when
 				// we continue a process at a new address
@@ -436,6 +441,7 @@ int process::waitProcs(int *status)
 				ret = processVec[curr]->getPid();
 				break;
 			    }
+		      }
 		      case PR_SYSEXIT: {
 			 // exit of a system call.
 		         process *p = processVec[curr];
@@ -518,10 +524,16 @@ int process::waitProcs(int *status)
 				 proc->heap.bufferPool = emptyHeap;
 			     }
 			 } else {
-			     sprintf(errorLine, "got unexpected PIOCSEXIT: ret syscall #%d\n", 
-				 (int) stat.pr_what);
-			     logLine(errorLine);
-			     processVec[curr]->continueProc_();
+			     process *p = processVec[curr];
+			     p->status_ = stopped;
+			     if (p->handleTrapIfDueToRPC()) {
+				 continue;
+			     } else {
+				 sprintf(errorLine, "got unexpected PIOCSEXIT: ret syscall #%d\n", 
+				     (int) stat.pr_what);
+				 logLine(errorLine);
+				 p->continueProc();
+			     }
 			 }
 #endif
 			 *status = SIGTRAP << 8 | 0177;

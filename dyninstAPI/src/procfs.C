@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.12 2001/12/10 21:17:16 chadd Exp $
+// $Id: procfs.C,v 1.13 2002/01/30 22:19:57 hollings Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -172,7 +172,7 @@ bool process::restoreRegisters(void *buffer)
    fpregset_t theFpRegs = *(fpregset_t *)((char *)buffer + sizeof(theIntRegs));
 
    if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
-      perror("process::restoreRegisters PIOCSREG failed");
+      logLine("process::restoreRegisters PIOCSREG failed");
       if (errno == EBUSY) {
          cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
 	 assert(false);
@@ -181,7 +181,7 @@ bool process::restoreRegisters(void *buffer)
    }
 
    if (ioctl(proc_fd, PIOCSFPREG, &theFpRegs) == -1) {
-      perror("process::restoreRegisters PIOCSFPREG failed");
+      logLine("process::restoreRegisters PIOCSFPREG failed");
       if (errno == EBUSY) {
          cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
          assert(false);
@@ -543,7 +543,8 @@ bool process::readDataSpace_(const void *inTracedProcess, u_int amount, void *in
   while (!prismember(&info.pr_flags, PR_STOPPED))
   {
      sleep(1);
-     ioctl(proc_fd, PIOCSTATUS,  &info);
+     ret = ioctl(proc_fd, PIOCSTATUS,  &info);
+     if (ret == -1) return false;
   } 
   errno = 0;
 #endif  

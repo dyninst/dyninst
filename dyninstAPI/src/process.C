@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.289 2002/01/30 20:24:44 bernat Exp $
+// $Id: process.C,v 1.290 2002/01/30 22:19:56 hollings Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5479,7 +5479,7 @@ Address process::createRPCtempTramp(AstNode *action,
    if (shouldStopForResult) {
       stopForResultAddr           = tempTrampBase + stopForResultOffset;
       justAfter_stopForResultAddr = tempTrampBase + justAfter_stopForResultOffset;
-   }
+   } 
    else {
       stopForResultAddr = justAfter_stopForResultAddr = 0;
    }
@@ -5750,14 +5750,12 @@ fprintf(stderr, "Checking currRunning %d\n", k);
      }
    }
    if (find_match) {
-     sprintf(errorLine, "handleTrapIfDueToRPC found matching RPC, "
+         sprintf(errorLine, "handleTrapIfDueToRPC found matching RPC, "
 	     "pc=%s, match_type=%d, the_index=%u", 
 	     Address_str(currPC), match_type, the_index);
      
-     if (pd_debug_infrpc)
-       cerr << errorLine << endl;
-   }
-   else {
+       if (pd_debug_infrpc) cerr << errorLine << endl;
+   } else {
      // well, we've gone as far as we can, with no match.
      if (pd_debug_infrpc) {
        sprintf(errorLine, "handleTrapIfDuetoRPC: no match found");
