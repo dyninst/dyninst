@@ -40,9 +40,9 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.68 2004/05/20 20:35:40 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.69 2004/05/25 17:13:23 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
-************************************************************************/
+ ************************************************************************/
 
 
 #include "dyninstAPI/src/Object.h"
@@ -207,7 +207,11 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   const char* STABSTR_INDX_NAME= ".stab.indexstr";
   // sections from dynamic executables and shared objects
   const char* PLT_NAME         = ".plt";
+#if ! defined( ia64_unknown_linux2_4 )
   const char* REL_PLT_NAME     = ".rela.plt"; // sparc-solaris
+#else  
+  const char* REL_PLT_NAME     = ".rela.IA_64.pltoff";
+#endif  
   const char* REL_PLT_NAME2    = ".rel.plt";  // x86-solaris
   const char* GOT_NAME         = ".got";
   const char* DYNSYM_NAME      = ".dynsym";
@@ -622,48 +626,82 @@ int Object::got_gp_disp(const char *fn_name) const
 }
 #endif /* mips_sgi_irix6_4 */
 
-bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
+bool Object::get_relocation_entries( Elf_Scn*& rel_plt_scnp,
 				    Elf_Scn*& dynsym_scnp, 
-				    Elf_Scn*& dynstr_scnp) 
+				    Elf_Scn*& dynstr_scnp )
 {
-#if defined (i386_unknown_solaris2_5) || defined (i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
-        Elf32_Rel *next_entry = 0;
-        Elf32_Rel *entries = 0;
+#if defined( i386_unknown_solaris2_5 ) || defined( i386_unknown_linux2_0 )
+	#define ELF_RELOCATION_ENTRY Elf32_Rel
+	#define ELF_SYMBOL Elf32_Sym
+	#define ELF_WORD Elf32_Word
+	#define ELF_R_SYM ELF32_R_SYM
+#elif defined( ia64_unknown_linux2_4 )
+	#define ELF_RELOCATION_ENTRY Elf64_Rela
+	#define ELF_SYMBOL Elf64_Sym
+	#define ELF_WORD Elf64_Word
+	#define ELF_R_SYM ELF64_R_SYM	
 #else
-        Elf32_Rela *next_entry = 0;
-        Elf32_Rela *entries = 0;
+	#define ELF_RELOCATION_ENTRY Elf32_Rela
+	#define ELF_SYMBOL Elf32_Sym	
+	#define ELF_WORD Elf32_Word
+	#define ELF_R_SYM ELF32_R_SYM
 #endif
 
-    if(rel_plt_size_ && rel_plt_addr_) {
-	Elf_Data *reldatap = elf_getdata(rel_plt_scnp, 0);
-	Elf_Data* symdatap = elf_getdata(dynsym_scnp, 0);
-	Elf_Data* strdatap = elf_getdata(dynstr_scnp, 0);
-	if(!reldatap || !symdatap || !strdatap) return false;
+	ELF_RELOCATION_ENTRY * next_entry = 0;
+	ELF_RELOCATION_ENTRY * entries = 0;
 
-	Elf32_Sym*  syms   = (Elf32_Sym *) symdatap->d_buf;
-	const char* strs   = (const char *) strdatap->d_buf;
-	Address next_plt_entry_addr = plt_addr_;
+	if(rel_plt_size_ && rel_plt_addr_) {
+		Elf_Data * reldatap = elf_getdata( rel_plt_scnp, 0 );
+		Elf_Data * symdatap = elf_getdata( dynsym_scnp, 0 );
+		Elf_Data * strdatap = elf_getdata( dynstr_scnp, 0 );
+		if( !reldatap || !symdatap || !strdatap ) { return false; }
 
-#if defined (i386_unknown_solaris2_5) || defined (i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
-	entries  = (Elf32_Rel *) reldatap->d_buf;
-	next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
+		ELF_SYMBOL * syms = (ELF_SYMBOL *)symdatap->d_buf;
+		const char* strs   = (const char *) strdatap->d_buf;
+		entries  = (ELF_RELOCATION_ENTRY *) reldatap->d_buf;
+
+		Address next_plt_entry_addr = plt_addr_;
+#if defined( ia64_unknown_linux2_4 ) 
+		unsigned int functionDescriptorCount = ( rel_plt_size_ / rel_plt_entry_size_ );
+		/* The IA-64 PLT contains 1 special entry, and two entries for each functionDescriptor
+		   in the function descriptor table (.IA_64.pltoff, whose count we're deriving from
+		   its relocation entries).  These entries are in two groups, the second of which is
+		   separated from the first by 128 bits of zeroes.  The entries in the latter group
+		   are call targets that makes an indirect jump using an FD table entry.  If the
+		   function they want to call hasn't been linked yet, the FD will point to one of 
+		   former group's entries, which will then jump to the first, special entry, in order
+		   to invoke the linker.  The linker, after doing the link, will rewrite the FD to
+		   point directly to the requested function. 
+		   
+		   As we're only interested in call targets, skip the first group and the buffer entirely.
+		  */
+		next_plt_entry_addr += (0x10 * 3) + (functionDescriptorCount * 0x10) + 0x10;
+		
+#elif defined( i386_unknown_solaris2_5 ) || defined( i386_unknown_linux2_0 )
+		next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
 #else
-	entries  = (Elf32_Rela *) reldatap->d_buf;
-	next_plt_entry_addr += 4*(plt_entry_size_); //1st 4 entries are special
+		next_plt_entry_addr += 4*(plt_entry_size_); //1st 4 entries are special
 #endif
-	if(!entries) return false;
 
-	next_entry = entries;
-	for(u_int i=0; i < (rel_plt_size_/rel_plt_entry_size_); i++) {
-	    Elf32_Word sym_index = ELF32_R_SYM(next_entry->r_info); 
-	    relocationEntry re(next_plt_entry_addr, next_entry->r_offset,
-			       pdstring(&strs[syms[sym_index].st_name]));
-            relocation_table_.push_back(re); 
-	    next_entry++;
-	    next_plt_entry_addr += plt_entry_size_;
-	}
-    }
-    return true;
+		/* Iterate over the entries. */
+		if( !entries ) { return false; }
+		next_entry = entries;
+		for( u_int i = 0; i < (rel_plt_size_/rel_plt_entry_size_); i++ ) {
+		    ELF_WORD sym_index = ELF_R_SYM( next_entry->r_info );
+		    // /* DEBUG */ fprintf( stderr, "%s: relocation information for target 0x%lx\n", __FUNCTION__, next_plt_entry_addr );
+		    relocationEntry re( next_plt_entry_addr, next_entry->r_offset, pdstring(&strs[syms[sym_index].st_name] ) );
+			relocation_table_.push_back(re); 
+    	    
+	    	next_entry++;
+			#if ! defined( ia64_unknown_linux2_4 )	    	
+		    	next_plt_entry_addr += rel_plt_entry_size_;
+		    #else 
+		    	/* IA-64 headers don't declare a size, because it varies. */
+		    	next_plt_entry_addr += 0x20;
+			#endif /* ia64_unknown_linux2_4 */
+			}			
+	    }
+	return true;
 }
 
 // map object file into memory
@@ -813,7 +851,7 @@ void Object::load_object()
     // populate "relocation_table_"
     if(rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
       if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) {
-	goto cleanup;
+		goto cleanup;
       }
     }
     
@@ -1464,11 +1502,13 @@ static void insertUniqdSymbol(const Symbol &sym,
 
 #if defined(USES_DWARF_DEBUG)
 
-void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr userData)
+void pd_dwarf_handler( Dwarf_Error error, Dwarf_Ptr userData )
 {
-  void (*errFunc)(const char *) = (void (*)(const char *))userData;
-  char *dwarf_msg = dwarf_errmsg(error);
-  bperr( "DWARF error: %s", dwarf_msg);
+  // For now, ignore the user-supplied error handler.
+  // void (*errFunc)(const char *) = (void (*)(const char *))userData;
+  
+  char * dwarf_msg = dwarf_errmsg( error );
+  bperr( "DWARF error: %s", dwarf_msg );
 }
 
 Dwarf_Signed declFileNo = 0;
@@ -1607,7 +1647,6 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 			/* Update the module information. */
 			if( globalSymbol != "" ) {
 				assert( symbols.defines( globalSymbol ) );
-				Symbol & symbol = symbols[ globalSymbol ];
 
 				/* If it's not specified, is an inlined function in the same
 				   CU/namespace as its use. */
@@ -2146,7 +2185,7 @@ Object::Object(const pdstring file, const Address /*baseAddr*/,
 }
 
 Object::Object(fileDescriptor *desc, Address /*baseAddr*/, void (*err_func)(const char *))
-  : AObject(desc->file(), err_func), symbolNamesByAddr( addrHash ), EEL(false) { //ccw 8 mar 2004
+  : AObject(desc->file(), err_func), EEL(false), symbolNamesByAddr( addrHash ) { //ccw 8 mar 2004
   if (desc->isSharedObject())
     load_shared_object();
   else load_object();
