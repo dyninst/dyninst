@@ -43,9 +43,12 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.15  1996/08/16 21:07:36  tamches
-/* updated copyright for release 1.1
+/* Revision 1.16  1996/11/26 16:07:02  naim
+/* Fixing asserts - naim
 /*
+ * Revision 1.15  1996/08/16 21:07:36  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.14  1996/04/01 22:32:46  tamches
  * use visibility X events to simulate GraphicsExpose, thus fixing bug
  * which appeared when scrolling a partially obscured listbox
@@ -1461,7 +1464,10 @@ bool where4tree<NODEDATA>::expandEntirePath(const where4TreeConstants &tc,
       (void)getChildTree(childindex)->expandEntirePath(tc, thePath, index+1);
          // recurse
 
-      assert(explicitlyExpandSubchild(tc, childindex, false)); // false --> don't force
+      bool aflag;
+      aflag=(explicitlyExpandSubchild(tc, childindex, false)); 
+      // false --> don't force
+      assert(aflag);
          // rethinks stuff, too (like allExpandedChildrenWidthAsDrawn)
 
       return true; // expansion(s) were made

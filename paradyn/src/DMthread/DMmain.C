@@ -343,7 +343,9 @@ void dynRPCUser::enableDataCallback(u_int daemon_id,
 	    metricInstance *mi = request_entry->findMI(mh);
 	    assert(mi);
 	    component *comp = new component(pd,return_id[j], mi);  
-	    assert(mi->addComponent(comp));
+	    bool aflag;
+	    aflag=(mi->addComponent(comp));
+	    assert(aflag);
 	    // if at least one daemon could enable, update done and enabled
             request_entry->setDone(mh);
     } }
@@ -602,8 +604,10 @@ static void
 DMsetupSocket (int &sockfd)
 {
   // setup "well known" socket for pvm paradynd's to connect to
-  assert ((dataManager::dm->socket =
-       RPC_setup_socket (sockfd, AF_INET, SOCK_STREAM)) >= 0);
+  bool aflag;
+  aflag = ((dataManager::dm->socket =
+           RPC_setup_socket (sockfd, AF_INET, SOCK_STREAM)) >= 0);
+  assert(aflag);
 
   // bind fd for this thread
   msg_bind (sockfd, true);
@@ -636,8 +640,10 @@ int dataManager::DM_post_thread_create_init(int tid) {
     // new paradynd's may try to connect to well known port
     DMsetupSocket (dataManager::dm->sock_fd);
 
-    assert(RPC_make_arg_list(paradynDaemon::args,
-  	 		     dataManager::dm->socket, 1, 1, "", false));
+    bool aflag;
+    aflag=(RPC_make_arg_list(paradynDaemon::args,
+  	 	             dataManager::dm->socket, 1, 1, "", false));
+    assert(aflag);
 
     // start initial phase
     string dm_phase0 = "phase_0";

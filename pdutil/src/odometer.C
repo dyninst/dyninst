@@ -58,7 +58,9 @@ bool odometer::done() const {
 }
 
 void odometer::add1() {
-   assert(!done());
+   bool aflag;
+   aflag=(!done());
+   assert(aflag);
    currValue[0]++;
 
    // now move from the least significant to most significant digit,

@@ -43,9 +43,12 @@
 // Process Critical Path data from the various paradyn daemons.
 //
 /* $Log: DMcritPath.C,v $
-/* Revision 1.6  1996/08/16 21:01:31  tamches
-/* updated copyright for release 1.1
+/* Revision 1.7  1996/11/26 16:06:47  naim
+/* Fixing asserts - naim
 /*
+ * Revision 1.6  1996/08/16 21:01:31  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.5  1996/05/08 15:55:41  hollings
  * Commented out a debugging printf
  *
@@ -93,7 +96,9 @@ void paradynDaemon::cpDataCallbackFunc(int,
     cpContext *conn;
     metricInstance *mi;
 
-    assert(getEarliestFirstTime());
+    bool aflag;
+    aflag=getEarliestFirstTime();
+    assert(aflag);
     timeStamp -= getEarliestFirstTime();
 
     if (!allCPContexts.defines(context)) {

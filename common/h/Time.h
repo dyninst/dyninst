@@ -48,7 +48,9 @@
 #ifdef notdef
 timeStamp getCurrentTime(void) {
     struct timeval tv;
-    assert(gettimeofday(&tv, NULL) == 0); // 0 --> success; -1 --> error
+    bool aflag;
+    aflag=(gettimeofday(&tv, NULL) == 0); // 0 --> success; -1 --> error
+    assert(aflag);
 
     double seconds_dbl = tv.tv_sec * 1.0;
     assert(tv.tv_usec < 1000000);

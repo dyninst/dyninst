@@ -43,6 +43,9 @@
 
 /*
  * $Log: DictionaryLite.C,v $
+ * Revision 1.8  1996/11/26 16:09:32  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.7  1996/10/31 07:32:31  tamches
  * locate() now returns V* instead of bool
  *
@@ -252,7 +255,9 @@ dictionary_lite<K,V>::insert(const K& key, unsigned hash, unsigned chain) {
         split();
         if (chain == onext) {
             unsigned nhash;
-            assert(locate(key, nhash, nchain, i) != NULL);
+            bool aflag;
+	    aflag=(locate(key, nhash, nchain, i) != NULL);
+	    assert(aflag);
             assert(hash == nhash);
         }
     }

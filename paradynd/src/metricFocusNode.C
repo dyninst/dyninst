@@ -132,7 +132,9 @@ metricDefinitionNode::metricDefinitionNode(process *p, string& met_name,
   id_(-1), originalCost_(0.0), proc_(p)
 {
   mdl_inst_data md;
-  assert(mdl_internal_metric_data(met_name, md));
+  bool aflag;
+  aflag=mdl_internal_metric_data(met_name, md);
+  assert(aflag);
   style_ = md.style;
 }
 

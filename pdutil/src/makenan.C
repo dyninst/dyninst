@@ -54,7 +54,9 @@ float make_Nan() {
     matherr_flag = false;
     nan_created = true;
     }
-    assert(isnan(f_paradyn_nan));
+    bool aflag;
+    aflag=(isnan(f_paradyn_nan));
+    assert(aflag);
     return f_paradyn_nan;
 }
 

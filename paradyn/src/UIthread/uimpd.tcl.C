@@ -45,9 +45,12 @@
 */
 
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.35  1996/08/16 21:07:31  tamches
-/* updated copyright for release 1.1
+/* Revision 1.36  1996/11/26 16:07:00  naim
+/* Fixing asserts - naim
 /*
+ * Revision 1.35  1996/08/16 21:07:31  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.34  1996/05/07 18:06:00  newhall
  * added threadExiting routine
  *
@@ -264,7 +267,9 @@ int processVisiSelectionCmd(ClientData,
   int metcnt;
   char **metlst;
   // reminder: argv[1] is the list of selected metrics (each is an integer id)
-  assert(TCL_OK == Tcl_SplitList (interp, argv[1], &metcnt, &metlst));
+  bool aflag;
+  aflag = (TCL_OK == Tcl_SplitList (interp, argv[1], &metcnt, &metlst));
+  assert(aflag);
 
 //   cout << "Here are the selections (in metric-ids)" << endl;
 //   for (unsigned i=0; i < metcnt; i++)

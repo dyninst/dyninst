@@ -425,7 +425,9 @@ dictionary_hash<K,V>::insert(const K& key, unsigned hash, unsigned chain) {
         split();
         if (chain == onext) {
             unsigned nhash;
-            assert(locate(key, nhash, nchain, i));
+            bool aflag;
+	    aflag=locate(key, nhash, nchain, i);
+            assert(aflag);
             assert(hash == nhash);
         }
     }

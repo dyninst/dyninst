@@ -43,6 +43,9 @@
 
 /*
  * $Log: PriorityQueue.C,v $
+ * Revision 1.4  1996/11/26 16:09:33  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.3  1996/08/16 21:31:46  tamches
  * updated copyright for release 1.1
  *
@@ -105,19 +108,25 @@ void PriorityQueue<KEY, DATA>::add(const KEY &k, const DATA &d) {
 
 template <class KEY, class DATA>
 const KEY &PriorityQueue<KEY, DATA>::peek_first_key() const {
-   assert(!empty());
+   bool aflag;
+   aflag=!empty();
+   assert(aflag);
    return data[0].theKey;
 }
 
 template <class KEY, class DATA>
 const DATA &PriorityQueue<KEY, DATA>::peek_first_data() const {
-   assert(!empty());
+   bool aflag;
+   aflag=!empty();
+   assert(aflag);
    return data[0].theData;
 }
 
 template <class KEY, class DATA>
 void PriorityQueue<KEY, DATA>::delete_first() {
-   assert(!empty());
+   bool aflag;
+   aflag=!empty();
+   assert(aflag);
 
    if (size()==1) {
       // the queue will now be empty

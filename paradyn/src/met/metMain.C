@@ -50,6 +50,9 @@
 
 /*
  * $Log: metMain.C,v $
+ * Revision 1.33  1996/11/26 16:07:17  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.32  1996/08/16 21:12:21  tamches
  * updated copyright for release 1.1
  *
@@ -231,7 +234,9 @@ bool metDoDaemon()
 static void add_visi(visiMet *the_vm)
 {
   vector<string> argv;
-  assert(RPCgetArg(argv, the_vm->command().string_of()));
+  bool aflag;
+  aflag=(RPCgetArg(argv, the_vm->command().string_of()));
+  assert(aflag);
 
   // the strings created here are used, not copied in the VM
   vmMgr->VMAddNewVisualization(the_vm->name().string_of(), &argv, 
@@ -269,7 +274,9 @@ static void start_process(processMet *the_ps)
 
   string directory;
   if (the_ps->command().length()) {
-    assert(RPCgetArg(argv, the_ps->command().string_of()));
+    bool aflag;
+    aflag=(RPCgetArg(argv, the_ps->command().string_of()));
+    assert(aflag);
     directory = expand_tilde_pathname(the_ps->execDir()); // see util lib
   }
   else {

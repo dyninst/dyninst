@@ -40,9 +40,12 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.41  1996/08/16 21:09:24  tamches
-/* updated copyright for release 1.1
+/* Revision 1.42  1996/11/26 16:07:14  naim
+/* Fixing asserts - naim
 /*
+ * Revision 1.41  1996/08/16 21:09:24  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.40  1996/04/04 21:50:13  newhall
  * added mi_limit to VMAddNewVisualization
  *
@@ -417,7 +420,9 @@ int VM::VM_post_thread_create_init(){
       visiMet *next_visi = metgetVisi(u);
       if(next_visi){
 	  vector<string> argv;
-	  assert(RPCgetArg(argv, next_visi->command().string_of()));
+	  bool aflag;
+	  aflag=(RPCgetArg(argv, next_visi->command().string_of()));
+	  assert(aflag);
 	  VM_AddNewVisualization(next_visi->name().string_of(), &argv, 
 				next_visi->force(),next_visi->limit(),NULL, 0);
       }

@@ -221,7 +221,9 @@ timeStamp getCurrentTime(void) {
     static double previousTime=0.0;
     struct timeval tv;
   retry:
-    assert(gettimeofday(&tv, NULL) == 0); // 0 --> success; -1 --> error
+    bool aflag;
+    aflag=(gettimeofday(&tv, NULL) == 0); // 0 --> success; -1 --> error
+    assert(aflag);
 
     double seconds_dbl = tv.tv_sec * 1.0;
     assert(tv.tv_usec < 1000000);
@@ -734,7 +736,9 @@ void paradynDaemon::getPredictedDataCostCall(perfStreamHandle ps_handle,
 {
     if(rl && m){
         vector<u_int> focus;
-        assert(rl->convertToIDList(focus));
+        bool aflag;
+	aflag=rl->convertToIDList(focus);
+	assert(aflag);
         const char *metName = m->getName();
         assert(metName);
         u_int requestId;
@@ -778,7 +782,9 @@ void paradynDaemon::enableData(vector<metricInstance *> *miVec,
 		// create foci, metrics, and mi_ids entries for this mi
 		T_dyninstRPC::focusStruct focus;
 		string met_name;
-		assert((*miVec)[i]->convertToIDList(focus.focus));
+		bool aflag;
+		aflag=((*miVec)[i]->convertToIDList(focus.focus));
+		assert(aflag);
 		met_name = (*miVec)[i]->getMetricName();
 		foci += focus;
 		metrics += met_name;
@@ -881,7 +887,9 @@ void paradynDaemon::propagateMetrics() {
 	  metric *m = metric::getMetric(m_handle);
 
 	  vector<u_int> vs;
-	  assert(rl->convertToIDList(vs));
+	  bool aflag;
+	  aflag=(rl->convertToIDList(vs));
+	  assert(aflag);
 
 	  int id = enableDataCollection2(vs, (const char *) m->getName(), mi->id);
 
@@ -1044,7 +1052,9 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 {
     // get the earliest first time that had been reported by any paradyn
     // daemon to use as the base (0) time
-    assert(getEarliestFirstTime());
+    bool aflag;
+    aflag=getEarliestFirstTime();
+    assert(aflag);
 
   // Just for debugging:
   //fprintf(stderr, "in DMdaemon.C, burst size = %d\n", theBatchBuffer.size()) ;
@@ -1271,7 +1281,9 @@ paradynDaemon::endOfDataCollection(int mid) {
     if(activeMids.defines(mid)){
         metricInstance *mi = activeMids[mid];
 	assert(mi);
-        assert(mi->removeComponent(this));
+        bool aflag;
+	aflag=(mi->removeComponent(this));
+	assert(aflag);
     }
     else{  // check if this mid is for a disabled metric 
         bool found = false;

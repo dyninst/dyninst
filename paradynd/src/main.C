@@ -43,6 +43,9 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.49  1996/11/26 16:08:09  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.48  1996/09/26 18:58:44  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -191,11 +194,15 @@ int main(int argc, char *argv[])
     // process command line args passed in
     // pd_flag == 1 --> started by paradyn
     int pvm_first;
-    assert (RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
-			       pd_known_socket_portnum, pd_flag, pvm_first));
-    assert (RPC_make_arg_list(process::arg_list,
+    bool aflag;
+    aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
+			       pd_known_socket_portnum, pd_flag, 
+			       pvm_first);
+    assert(aflag);
+    aflag = RPC_make_arg_list(process::arg_list,
 			      pd_known_socket_portnum, pd_flag, 0,
-			      pd_machine, true));
+			      pd_machine, true);
+    assert(aflag);
     string flav_arg(string("-z")+ pd_flavor);
     process::arg_list += flav_arg;
     struct utsname un;
@@ -332,7 +339,8 @@ int main(int argc, char *argv[])
 
     // Note -- it is important that this daemon receives all mdl info
     // before starting a process
-    assert(mdl_get_initial(pd_flavor, tp));
+    aflag = mdl_get_initial(pd_flavor, tp);
+    assert(aflag);
 
     initLibraryFunctions();
     if (!init())

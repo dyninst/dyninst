@@ -43,9 +43,12 @@
 // C++ code that provides access to tunable constants from tcl.
 
 /* $Log: tclTunable.C,v $
-/* Revision 1.11  1996/08/16 21:07:25  tamches
-/* updated copyright for release 1.1
+/* Revision 1.12  1996/11/26 16:06:58  naim
+/* Fixing asserts - naim
 /*
+ * Revision 1.11  1996/08/16 21:07:25  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.10  1996/08/02 19:09:58  tamches
  * tclclean.h --> tcl.h
  *
@@ -299,7 +302,9 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
             return TCL_ERROR;
 	 }
 
-         assert(tunableFloat == tunableConstantRegistry::getTunableConstantType(argv[2]));
+         bool aflag;
+	 aflag=(tunableFloat == tunableConstantRegistry::getTunableConstantType(argv[2]));
+	 assert(aflag);
          tunableFloatConstant tfc = tunableConstantRegistry::findFloatTunableConstant(argv[2]);
          sprintf(interp->result, "%g %g", tfc.getMin(), tfc.getMax());
          return TCL_OK;

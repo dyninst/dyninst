@@ -43,9 +43,12 @@
 // Ariel Tamches
 
 /* $Log: abstractions.C,v $
-/* Revision 1.8  1996/08/16 21:06:51  tamches
-/* updated copyright for release 1.1
+/* Revision 1.9  1996/11/26 16:06:55  naim
+/* Fixing asserts - naim
 /*
+ * Revision 1.8  1996/08/16 21:06:51  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.7  1996/05/30 21:54:26  tamches
  * removed uses of string::quote
  *
@@ -149,11 +152,14 @@ bool abstractions::change(unsigned newindex) {
 
    string commandStr = horizSBName + " get";
    myTclEval(interp, commandStr);
-   assert(2==sscanf(interp->result, "%f %f", &was.horizSBfirst, &was.horizSBlast));
+   bool aflag;
+   aflag=(2==sscanf(interp->result,"%f %f",&was.horizSBfirst,&was.horizSBlast));
+   assert(aflag);
 
    commandStr = vertSBName + " get";
    myTclEval(interp, commandStr);
-   assert(2==sscanf(interp->result, "%f %f", &was.vertSBfirst, &was.vertSBlast));
+   aflag = (2==sscanf(interp->result, "%f %f", &was.vertSBfirst, &was.vertSBlast));
+   assert(aflag);
 
    // Save current find string
    commandStr = findName + " get";

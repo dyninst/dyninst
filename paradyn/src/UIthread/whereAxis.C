@@ -45,9 +45,12 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.14  1996/08/16 21:07:44  tamches
-/* updated copyright for release 1.1
+/* Revision 1.15  1996/11/26 16:07:08  naim
+/* Fixing asserts - naim
 /*
+ * Revision 1.14  1996/08/16 21:07:44  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.13  1996/02/15 23:14:56  tamches
  * added code relating to the new line-GC indirection feature of where4tree
  *
@@ -1034,8 +1037,10 @@ int whereAxis::find(const string &str) {
       (void)softScrollToEndOfPath(thePath);
    else {
       assert(result==2);
-      assert(forciblyScrollToEndOfPath(thePath));
-         // rethinks nominal centerx, resizes scrollbars, etc.
+      bool aflag;
+      aflag = (forciblyScrollToEndOfPath(thePath));
+      // rethinks nominal centerx, resizes scrollbars, etc.
+      assert(aflag);
    }
 
    return result;

@@ -142,7 +142,7 @@ unsigned long int P_strtoul(const char *STRING, char **TAILPTR, int BASE){
 /* BSD */
 
 int P_accept (int SOCK, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
-  return (accept(SOCK, ADDR, LENGTH_PTR));}
+  return (accept(SOCK, ADDR, (int *)LENGTH_PTR));}
 
 int P_bind(int socket, struct sockaddr *addr, size_t len) {
   return (bind(socket, addr, len));}
@@ -163,7 +163,7 @@ struct servent *P_getservbyname (const char *NAME, const char *PROTO) {
   return (getservbyname(NAME, PROTO));}
 
 int P_getsockname (int SOCKET, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
-  return (getsockname(SOCKET, ADDR, LENGTH_PTR));}
+  return (getsockname(SOCKET, ADDR, (int *)LENGTH_PTR));}
 
 /* int P_gettimeofday (struct timeval *TP, struct timezone *TZP) {
   return (gettimeofday(TP, TZP));} */

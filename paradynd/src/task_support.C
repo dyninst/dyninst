@@ -57,9 +57,12 @@
 
 
 /* $Log: task_support.C,v $
-/* Revision 1.4  1996/08/16 21:20:03  tamches
-/* updated copyright for release 1.1
+/* Revision 1.5  1996/11/26 16:08:15  naim
+/* Fixing asserts - naim
 /*
+ * Revision 1.4  1996/08/16 21:20:03  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.3  1996/03/11 19:04:14  mjrg
  * commented out an error message that is not needed.
  *
@@ -220,10 +223,15 @@ PDYN_startProcess()
   buf[1023] = '\0';
 
   // TODO - should this be an unsigned or a signed int
-  assert (pvm_upkuint (&tid, 1, 1) >= 0);
-  assert (pvm_upkint (&flags, 1, 1) >= 0);
-  assert (pvm_upkstr (path) >= 0);
-  assert (pvm_upkint (&argc, 1, 1) >= 0);
+  bool aflag;
+  aflag=(pvm_upkuint (&tid, 1, 1) >= 0);
+  assert(aflag);
+  aflag=(pvm_upkint (&flags, 1, 1) >= 0);
+  assert(aflag);
+  aflag=(pvm_upkstr (path) >= 0);
+  assert(aflag);
+  aflag=(pvm_upkint (&argc, 1, 1) >= 0);
+  assert(aflag);
 
 #ifdef PDYN_DEBUG
   pvm_perror ("in start process\n");
@@ -331,7 +339,8 @@ int dofork(char *path, int argc, char **argv, int nenv, char **envp)
 {
   int pid;
 
-  if (pid = fork()) {
+  pid = fork();
+  if (pid > 0) {
     return pid;
   } else {
     pvmendtask();

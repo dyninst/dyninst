@@ -41,6 +41,9 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.45  1996/11/26 16:09:37  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.44  1996/11/12 17:50:16  mjrg
  * Removed warnings, changes for compiling with Visual C++ and xlc
  *
@@ -554,9 +557,13 @@ int rshCommand(const string hostName, const string userName,
     shellPid = vfork();
     if (shellPid == 0) {
 	/* child */
-	assert(-1 != dup2(fd[1], 1)); /* copy it onto stdout */
-	assert(-1 != close(fd[0]));
-	assert(-1 != close(fd[1]));
+	bool aflag;
+	aflag=(-1 != dup2(fd[1], 1)); /* copy it onto stdout */
+	assert(aflag);
+	aflag=(-1 != close(fd[0]));
+	assert(aflag);
+	aflag=(-1 != close(fd[1]));
+	assert(aflag);
 	if (userName.length()) {
 	    ret = execlp(RSH_COMMAND, RSH_COMMAND, hostName.string_of(), "-l", 
 			 userName.string_of(), "-n", paradyndCommand.string_of(),

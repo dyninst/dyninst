@@ -43,9 +43,12 @@
 // Ariel Tamches
 
 /* $Log: tkTools.C,v $
-/* Revision 1.6  1996/08/16 21:07:27  tamches
-/* updated copyright for release 1.1
+/* Revision 1.7  1996/11/26 16:06:59  naim
+/* Fixing asserts - naim
 /*
+ * Revision 1.6  1996/08/16 21:07:27  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.5  1996/02/15 22:47:34  tamches
  * changed setResultBool a bit
  *
@@ -121,7 +124,9 @@ void getScrollBarValues(Tcl_Interp *interp, const string &scrollBarName,
 			float &first, float &last) {
    string commandStr = scrollBarName + " get";
    myTclEval(interp, commandStr.string_of());
-   assert(2==sscanf(interp->result, "%f %f", &first, &last));
+   bool aflag;
+   aflag = (2==sscanf(interp->result, "%f %f", &first, &last));
+   assert(aflag);
 }
 
 float moveScrollBar(Tcl_Interp *interp, const string &scrollBarName,

@@ -45,9 +45,12 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.24  1996/08/16 21:07:09  tamches
-/* updated copyright for release 1.1
+/* Revision 1.25  1996/11/26 16:06:56  naim
+/* Fixing asserts - naim
 /*
+ * Revision 1.24  1996/08/16 21:07:09  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.23  1996/05/01 20:55:55  tamches
  * added inactivateAll
  * changed configNode implementation
@@ -489,7 +492,9 @@ void shg::sliderMouseMotion(ClientData cd, XEvent *eventPtr) {
    }
 
    where4tree<shgRootNode> *ptr = pthis->slider_currently_dragging_subtree;
-   assert(thePath.getLastPathNode(pthis->rootPtr) == ptr);
+   bool aflag;
+   aflag=(thePath.getLastPathNode(pthis->rootPtr) == ptr);
+   assert(aflag);
 
    // The scrollbar may no longer exist in the listbox, if one or more items
    // have been expanded from it, thus shrinking the listbox to the point where

@@ -55,7 +55,9 @@ string::string(const char* str)
 string::string(const char *str, unsigned len) {
    // same as above constructor, but copies less than the entire string.
    // You specifiy the # of chars to copy.
-   assert(len <= strlen(str));
+   bool aflag;
+   aflag=(len <= strlen(str));
+   assert(aflag);
    len_ = len;
    str_ = new char[len+1];
    (void) P_memcpy(str_, str, len);

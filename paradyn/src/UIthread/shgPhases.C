@@ -45,9 +45,12 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.22  1996/08/16 21:07:15  tamches
-/* updated copyright for release 1.1
+/* Revision 1.23  1996/11/26 16:06:57  naim
+/* Fixing asserts - naim
 /*
+ * Revision 1.22  1996/08/16 21:07:15  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.21  1996/05/30 21:54:55  tamches
  * removed uses of string::quote
  *
@@ -176,13 +179,16 @@ bool shgPhases::changeLL(unsigned newIndex) {
 
       string commandStr = horizSBName + " get";
       myTclEval(interp, commandStr);
-      assert(2==sscanf(interp->result, "%f %f", &theShgStruct.horizSBfirst,
+      bool aflag;
+      aflag=(2==sscanf(interp->result, "%f %f", &theShgStruct.horizSBfirst,
 		       &theShgStruct.horizSBlast));
+      assert(aflag);
 
       commandStr = vertSBName + " get";
       myTclEval(interp, commandStr);
-      assert(2==sscanf(interp->result, "%f %f", &theShgStruct.vertSBfirst,
+      aflag=(2==sscanf(interp->result, "%f %f", &theShgStruct.vertSBfirst,
 		       &theShgStruct.vertSBlast));
+      assert(aflag);
    }
 
    // Set new scrollbar values:

@@ -43,6 +43,9 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.6  1996/11/26 16:08:08  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.5  1996/11/19 16:28:04  newhall
  * Fix to stack walking on Solaris: find leaf functions in stack (these can occur
  * on top of stack or in middle of stack if the signal handler is on the stack)
@@ -815,7 +818,7 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, unsigned b
 
 trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool noCost) 
 {
-
+   bool aflag;
 /*
    The base tramp:
    addr   instruction             cost
@@ -917,7 +920,8 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
     }
 
     unsigned newSize = relocateInstruction(location->insnBeforePt[u], origAddr, currAddr, insn);
-    assert(newSize == getRelocatedInstructionSz(location->insnBeforePt[u]));
+    aflag=(newSize == getRelocatedInstructionSz(location->insnBeforePt[u]));
+    assert(aflag);
     currAddr += newSize;
     origAddr += location->insnBeforePt[u].size();
   }
@@ -975,7 +979,8 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
     proc->setNewPC(currAddr);
   }
   unsigned newSize = relocateInstruction(location->insnAtPoint, origAddr, currAddr, insn);
-  assert(newSize == getRelocatedInstructionSz(location->insnAtPoint));
+  aflag=(newSize == getRelocatedInstructionSz(location->insnAtPoint));
+  assert(aflag);
   currAddr += newSize;
   origAddr += location->insnAtPoint.size();
 
@@ -1017,7 +1022,8 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
       proc->setNewPC(currAddr);
     }
     unsigned newSize = relocateInstruction(location->insnAfterPt[u], origAddr, currAddr, insn);
-    assert(newSize == getRelocatedInstructionSz(location->insnAfterPt[u]));
+    aflag=(newSize == getRelocatedInstructionSz(location->insnAfterPt[u]));
+    assert(aflag);
     currAddr += newSize;
     origAddr += location->insnAfterPt[u].size();
   }

@@ -47,7 +47,9 @@
 template <class T>
 T vectorSet<T>::removeByIndex(unsigned index) {
    // note: we don't return a reference to T on purpose; it wouldn't be safe.
-   assert(!empty());
+   bool aflag;
+   aflag=(!empty());
+   assert(aflag);
 
    const T result = data[index];
      

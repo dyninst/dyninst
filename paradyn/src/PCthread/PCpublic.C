@@ -45,6 +45,9 @@
  * PC thread interface functions
  *
  * $Log: PCpublic.C,v $
+ * Revision 1.40  1996/11/26 16:13:53  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.39  1996/08/16 21:03:38  tamches
  * updated copyright for release 1.1
  *
@@ -148,8 +151,9 @@ performanceConsultant::activateSearch(unsigned phaseID)
     }
 
     // create new search 
-    bool sflag = PCsearch::addSearch(phaseID);
-    assert (sflag);
+    bool aflag;
+    aflag = PCsearch::addSearch(phaseID);
+    assert (aflag);
   }
   PCsearch *specifiedSearch = PCsearch::AllPCSearches[phaseID];
   if (specifiedSearch->paused())

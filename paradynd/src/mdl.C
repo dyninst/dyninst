@@ -92,30 +92,35 @@ public:
     : index_name(i_name), element_type(0), index(0), int_iter(NULL), float_iter(NULL),
   string_iter(NULL), bool_iter(NULL), func_iter(NULL), mod_iter(NULL), max(0)
   {
-    assert(list_v.is_list());
+    bool aflag;
+    aflag=list_v.is_list();
+    assert(aflag);
 
     element_type = list_v.element_type();
     switch(element_type) {
     case MDL_T_INT:
-      assert(list_v.get(int_iter)); max = int_iter->size(); break;
+      aflag=list_v.get(int_iter); assert(aflag);
+      max = int_iter->size(); break;
     case MDL_T_FLOAT:
-      assert(list_v.get(float_iter)); max = float_iter->size(); break;
+      aflag=list_v.get(float_iter); assert(aflag);
+      max = float_iter->size(); break;
     case MDL_T_STRING:
-      assert(list_v.get(string_iter)); max = string_iter->size(); break;
+      aflag=list_v.get(string_iter); assert(aflag);
+      max = string_iter->size(); break;
     case MDL_T_PROCEDURE_NAME:
-      assert(list_v.get(funcName_iter));
+      aflag=list_v.get(funcName_iter); assert(aflag);
       max = funcName_iter->size();
       break;
     case MDL_T_PROCEDURE:
-      assert(list_v.get(func_iter));
+      aflag=list_v.get(func_iter); assert(aflag);
       max = func_iter->size();
       break;
     case MDL_T_MODULE:
-      assert(list_v.get(mod_iter));
+      aflag=list_v.get(mod_iter); assert(aflag);
       max = mod_iter->size();
       break;
     case MDL_T_POINT:
-      assert(list_v.get(point_iter));
+      aflag=list_v.get(point_iter); assert(aflag);
       max = point_iter->size();
       break;
     default:
@@ -655,7 +660,11 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
   static bool machine_init= false;
   if (!machine_init) {
     machine_init = true;
-    struct utsname un; assert(!P_uname(&un) != -1); machine = un.nodename;
+    struct utsname un; 
+    bool aflag;
+    aflag=P_uname(&un);
+    assert(!aflag != -1); 
+    machine = un.nodename;
   }
 
   // TODO -- I am assuming that a canonical resource list is
@@ -870,7 +879,9 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&ast) {
       // variable in the expression.
       mdl_var get_int;
       int value;
-      assert(mdl_env::get(get_int, name_));
+      bool aflag;
+      aflag=mdl_env::get(get_int, name_);
+      assert(aflag);
       if (!get_int.get(value)) {
 	  fprintf(stderr, "Unable to get value for %s\n", name_.string_of());
 	  fflush(stderr);
@@ -941,7 +952,9 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&ast) {
 	showErrorCallback(92, msg);
 	return false;
       }
-      assert(get_drn.get(drn));
+      bool aflag;
+      aflag=get_drn.get(drn);
+      assert(aflag);
       ast = new AstNode(AstNode::DataPtr, drn);      
     }
     break;
@@ -949,7 +962,9 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&ast) {
     {
       mdl_var get_drn;
       dataReqNode *drn;
-      assert(mdl_env::get(get_drn, name_));
+      bool aflag;
+      aflag=mdl_env::get(get_drn, name_);
+      assert(aflag);
       //
       // This code was added to support additional mdl evaluation time 
       //     variables.  To keep it simple, I left the parser alone and so
@@ -1043,8 +1058,11 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *pred,
   dataReqNode *drn;
   mdl_var get_drn;
   if (type_ != MDL_CALL_FUNC) {
-      assert(mdl_env::get(get_drn, timer_counter_name_));
-      assert(get_drn.get(drn));
+      bool aflag;
+      aflag=mdl_env::get(get_drn, timer_counter_name_);
+      assert(aflag);
+      aflag=get_drn.get(drn);
+      assert(aflag);
   }
 
   AstNode *code=NULL, *tmp=NULL;
@@ -1416,7 +1434,9 @@ bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode */*mn*/,
 
   if (type_ == MDL_T_PROCEDURE_NAME) {
     vector<functionName*> *list_fn;
-    assert(list_var.get(list_fn));
+    bool aflag;
+    aflag=list_var.get(list_fn);
+    assert(aflag);
     for (unsigned u=0; u<size; u++) {
       functionName *fn = new functionName((*elements_)[u]);
       *list_fn += fn;
@@ -1559,15 +1579,20 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
         // since exit locations are always a list-of-points.  Sorry for the kludge.
 
         instPoint *theVrbleInstPoint; // NOTE: instPoint is defined in arch-specific files!!!
-	assert(temp.get(theVrbleInstPoint)); // theVrbleInstPoint set to equiv of points[0]
+	bool aflag;
+        aflag=(temp.get(theVrbleInstPoint)); 
+        // theVrbleInstPoint set to equiv of points[0]
+        assert(aflag);
 
 	assert(theVrbleInstPoint == points[0]); // just a sanity check
 
 	mdl_var theVar;
-	assert(mdl_env::get(theVar, temp.name()));
+        aflag=mdl_env::get(theVar, temp.name());
+	assert(aflag);
 
 	pdFunction *theFunction;
-	assert(theVar.get(theFunction));
+	aflag=theVar.get(theFunction);
+	assert(aflag);
 
 	// Make a note to do an inferiorRPC to manually execute this code.
 	if (!manuallyTrigger)

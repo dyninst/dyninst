@@ -46,9 +46,12 @@
  */
  
 /* $Log: UIpublic.C,v $
-/* Revision 1.59  1996/10/31 08:19:16  tamches
-/* UIM::enablePauseOrRun()
+/* Revision 1.60  1996/11/26 16:06:54  naim
+/* Fixing asserts - naim
 /*
+ * Revision 1.59  1996/10/31 08:19:16  tamches
+ * UIM::enablePauseOrRun()
+ *
  * Revision 1.58  1996/08/16 21:06:48  tamches
  * updated copyright for release 1.1
  *
@@ -210,8 +213,11 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 	 UI_all_metric_names[id] = name;
 
 	 string idString(id);
-	 assert(Tcl_SetVar2(interp, "metricNamesById", idString.string_of(),
+	 bool aflag;
+	 aflag=(Tcl_SetVar2(interp, "metricNamesById", 
+			    idString.string_of(),
 			    name.string_of(), TCL_GLOBAL_ONLY));
+         assert(aflag);
       }
       
       delete all_mets;
@@ -227,8 +233,10 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   for (unsigned metlcv=0; metlcv < numAvailMets; metlcv++) {
      string metricIdStr = string(curr_avail_mets[metlcv].id);
      
-     assert(Tcl_SetVar(interp, "temp", metricIdStr.string_of(),
+     bool aflag;
+     aflag=(Tcl_SetVar(interp, "temp", metricIdStr.string_of(),
 		       TCL_APPEND_VALUE | TCL_LIST_ELEMENT));
+     assert(aflag);
   }
   delete curr_avail_mets_ptr;
   
@@ -311,7 +319,9 @@ void UIM::newPhaseNotification (unsigned ph, const char *name, bool with_new_pc)
          // the user has requested that we begin searching immediately on this
          // new phase, as if we had clicked on the "Search" button.  So let's do
          // the equivalent.  But first, we must switch to the new "screen".
-	 assert(theShgPhases->changeByPhaseId(ph));
+	 bool aflag;
+	 aflag=theShgPhases->changeByPhaseId(ph);
+	 assert(aflag);
 
 	 myTclEval(interp, "shgClickOnSearch");
 	    // calls shgSearchCommand (shgTcl.C), which calls activateCurrSearch()

@@ -40,9 +40,12 @@
  */
 
 /* $Log: main.C,v $
-/* Revision 1.45  1996/08/16 21:13:02  tamches
-/* updated copyright for release 1.1
+/* Revision 1.46  1996/11/26 16:07:20  naim
+/* Fixing asserts - naim
 /*
+ * Revision 1.45  1996/08/16 21:13:02  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.44  1996/08/05 07:33:03  tamches
  * update for tcl 7.5
  *
@@ -123,7 +126,7 @@ dataManagerUser *dataMgr;
 performanceConsultantUser *perfConsult;
 UIMUser *uiMgr;
 VMUser  *vmMgr;
-int paradyn_debug;
+int paradyn_debug=0;
 char debug_buf[DEBUGBUFSIZE];
 
 // default_host defines the host where programs run when no host is
@@ -181,7 +184,7 @@ main (int argc, char **argv)
   char mbuf[MBUFSIZE];
   unsigned int msgsize;
   tag_t mtag;
-  char *temp;
+  char *temp=NULL;
 
   // Initialize tcl/tk
   interp = Tcl_CreateInterp();
@@ -229,8 +232,9 @@ main (int argc, char **argv)
 
   // get paradyn_debug environment var PARADYNDEBUG, if its value
   // is > 1, then PARADYN_DEBUG msgs will be printed to stdout
-  if((temp = (char *) getenv("PARADYNDEBUG"))){
-     paradyn_debug = atoi(temp);
+  temp = (char *) getenv("PARADYNDEBUG");
+  if (temp != NULL) {
+    paradyn_debug = atoi(temp);
   }
   else {
     paradyn_debug = 0;
