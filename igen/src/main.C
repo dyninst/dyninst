@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.7  1994/02/04 01:25:46  hollings
+ * Revision 1.8  1994/02/08 00:17:55  hollings
+ * Fixed pointer problems to work on DECstations.
+ *
+ * Revision 1.7  1994/02/04  01:25:46  hollings
  * *** empty log message ***
  *
  * Revision 1.6  1994/02/04  00:35:01  hollings
@@ -136,18 +139,6 @@ void interfaceSpec::genIncludes()
     printf("#include <stdio.h>\n");
     printf("#include <stdlib.h>\n");
     printf("#include <assert.h>\n");
-    if (generateTHREAD) {
-	printf("extern \"C\" {\n");
-	printf("#include \"thread/h/thread.h\"\n");
-	printf("}\n");
-    }
-    if (generateXDR) {
-	printf("extern \"C\" {\n");
-	printf("#include <rpc/types.h>\n");
-	printf("#include <rpc/xdr.h>\n");
-	printf("}\n");
-    }
-
     printf("#include \"%s\"\n\n", headerFile);
 }
 
@@ -361,22 +352,27 @@ int main(int argc, char *argv[])
     }
     *(temp+1) = '\0';
 
-    headerFile = (char *) malloc(strlen(file)+1);
+    headerFile = (char *) malloc(strlen(file)+2);
     sprintf(headerFile, "%sh", file);
 
-    codeFile = (char *) malloc(strlen(file)+1);
+    codeFile = (char *) malloc(strlen(file)+2);
     sprintf(codeFile, "%sC", file);
 
-    serverFile = (char *) malloc(strlen(file)+6);
+    serverFile = (char *) malloc(strlen(file)+7);
     sprintf(serverFile, "%sSRVR.C", file);
 
-    clientFile = (char *) malloc(strlen(file)+6);
+    clientFile = (char *) malloc(strlen(file)+7);
     sprintf(clientFile, "%sCLNT.C", file);
 
     if (emitHeader) {
 	of = fopen(headerFile, "w");
 	dup2(of->_file, 1);
 	printf("#include \"util/h/rpcUtil.h\"\n");
+	if (generateTHREAD) {
+	    printf("extern \"C\" {\n");
+	    printf("#include \"thread/h/thread.h\"\n");
+	    printf("}\n");
+	}
     }
 
     yyparse();

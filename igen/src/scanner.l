@@ -7,7 +7,7 @@
 static char Copyright[] =
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/igen/src/scanner.l,v 1.3 1994/02/04 00:40:54 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/igen/src/scanner.l,v 1.4 1994/02/08 00:17:59 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -16,7 +16,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/ige
 
 #define YYSTYPE union parseStack
 #include "y.tab.h"
-#include "parse.h"
+#include "../src/parse.h"
 #include "util/h/stringPool.h"
 
 int parsing;

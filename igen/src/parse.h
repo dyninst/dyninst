@@ -2,7 +2,10 @@
  * parse.h - define the classes that are used in parsing an interface.
  *
  * $Log: parse.h,v $
- * Revision 1.3  1994/01/31 20:05:59  hollings
+ * Revision 1.4  1994/02/08 00:17:56  hollings
+ * Fixed pointer problems to work on DECstations.
+ *
+ * Revision 1.3  1994/01/31  20:05:59  hollings
  * Added code to check the protocol name and version tests are run
  * before any upcalls get invoked.
  *
@@ -131,7 +134,7 @@ union parseStack {
     int i;
     float f;
     argument *arg;
-    field *field;
+    field *fld;
     enum upCallType uc;
     List<argument*> *args;
     List<field*> *fields;

@@ -1,6 +1,6 @@
 %{
 #include <string.h>
-#include "parse.h"
+#include "../src/parse.h"
 
 #define YYSTYPE union parseStack
 
@@ -91,7 +91,7 @@ typeSpec: tTYPEDEF tSTRUCT tLBLOCK fieldDeclList tRBLOCK tIDENT tSEMI {
    ;
 
 fieldDeclList:	{ $$.fields = new List<field*>; }
-	| fieldDeclList fieldDecl { $1.fields->add($2.field); }
+	| fieldDeclList fieldDecl { $1.fields->add($2.fld); }
 	;
 
 typeName: tIDENT {
@@ -115,7 +115,7 @@ typeName: tIDENT {
 	;
 
 fieldDecl: typeName tIDENT tSEMI { 
-		$$.field = new field($1.cp, $2.cp);
+		$$.fld = new field($1.cp, $2.cp);
 	 }
 	 ;
 
