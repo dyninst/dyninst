@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.11  1994/08/22 15:54:49  markc
-/* Added command line argument to specify application config file.
+/* Revision 1.12  1994/09/22 01:22:48  markc
+/* Gave correct signature for signal
 /*
+ * Revision 1.11  1994/08/22  15:54:49  markc
+ * Added command line argument to specify application config file.
+ *
  * Revision 1.10  1994/07/28  22:31:42  krisna
  * proper prototypes and starting code for thread main functions
  *
@@ -44,7 +47,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+extern "C" {
 #include <signal.h>
+// void (*signal())(int, void (*)());
+};
+
 
 #include "paradyn.h"
 #include "thread/h/thread.h"
