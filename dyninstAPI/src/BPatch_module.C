@@ -382,13 +382,18 @@ BPatch_function * BPatch_module::findFunctionByMangledInt(const char *mangled_na
 {
   BPatch_function *bpfunc = NULL;
 
-  int_function *pdfunc = mod->findFunctionByMangled(pdstring(mangled_name));
+  pdvector<int_function *> *pdfuncvec = mod->findFunctionByMangled(pdstring(mangled_name));
 
-  if (!pdfunc) return NULL;
+  if (!pdfuncvec) return NULL;
+
+  if (pdfuncvec->size() > 1) {
+    cerr << "Warning: found multiple matches for " << mangled_name << ", returning first" << endl;
+  }
+  int_function *pdfunc = (*pdfuncvec)[0];
 
   if (incUninstrumentable ||
       pdfunc->isInstrumentable()) {
-    bpfunc = proc->findOrCreateBPFunc((int_function *)pdfunc, this);
+    bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
     if (!proc->PDFuncToBPFuncMap.defines(pdfunc)) {
       this->BPfuncs->push_back(bpfunc);
     }
