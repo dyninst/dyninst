@@ -26,7 +26,7 @@ item_t thr_type(thread_t tid) {
 PDDESC thr_file(thread_t tid) {
     thr_debug_msg(CURRENT_FUNCTION, "tid = %d\n", (unsigned)tid);
     entity* thrtab_entry = thrtab::get_entry(tid);
-    if(thrtab_entry && thrtab_entry->gettype() != item_t_file) 
+    if(!thrtab_entry || (thrtab_entry && thrtab_entry->gettype() != item_t_file))
         return INVALID_PDDESC;
     return ((file_q*)thrtab_entry)->fd;
 }
@@ -34,7 +34,7 @@ PDDESC thr_file(thread_t tid) {
 PDSOCKET thr_socket(thread_t tid) {
     thr_debug_msg(CURRENT_FUNCTION, "tid = %d\n", (unsigned)tid);
     entity* thrtab_entry = thrtab::get_entry(tid);
-    if (thrtab_entry && thrtab_entry->gettype() != item_t_socket)
+    if (!thrtab_entry || (thrtab_entry && thrtab_entry->gettype() != item_t_socket))
         return INVALID_PDSOCKET;
     return ((socket_q*)thrtab_entry)->sock;
 }
