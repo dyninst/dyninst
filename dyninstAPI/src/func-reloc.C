@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.36 2002/10/14 21:02:14 bernat Exp $
+ * $Id: func-reloc.C,v 1.37 2002/10/28 04:54:56 schendel Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -1122,10 +1122,10 @@ bool pd_Function::relocateFunction(process *proc,
 	
 	if( stack_func == this ) {
 	  
-	  //#ifdef DEBUG_FUNC_RELOC
+#ifdef DEBUG_FUNC_RELOC
 	  cerr << "pd_Function::relocateFunction" << endl;
 	  cerr << "currently in Function " << prettyName() << endl;
-	  //#endif
+#endif
 	  
 	  // Defer relocation and instrumentation for Paradyn only
 	  deferred = true;
