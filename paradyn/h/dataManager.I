@@ -2,8 +2,15 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.38  1995/05/18 10:51:07  markc
- * Removed defineDaemon call
+ * Revision 1.39  1995/06/02 20:57:40  newhall
+ * * removed all pointers to datamanager class objects from datamanager
+ *    interface functions and from client threads, objects are now
+ *    refered to by handles or by passing copies of DM internal data
+ * * removed applicationContext class from datamanager
+ * * replaced List and HTable container classes with STL containers
+ * * removed global variables from datamanager
+ * * remove redundant lists of class objects from datamanager
+ * * removed all stringPools and stringHandles
  *
  * Revision 1.37  1995/02/26  02:11:53  newhall
  * added some phase interface routines
@@ -146,45 +153,7 @@
 #include "dyninstRPC.xdr.h"
 #include "util/h/aggregation.h"
 #include "util/h/stringPool.h"
-
-/* one or more program working together */
-class applicationContext;	
-
-/* sequence of peformance data (trace|sample) */
-class performanceStream;	
-
-/* time */
-// typedef double timeStamp;		
-
-/* something that data can be collected for */
-class resource;		
-
-/* phase information */ 
-class phaseInfo;
-
-/* descriptive information about a resource */
-typedef struct {
-    char *name;			/* name of actual resource */
-    char *fullName;		/* full path name of resource */
-    timeStamp creation;		/* when did it get created */
-} resourceInfo;		
-
-typedef struct String_Array {
-   int count;
-   char **data;
-} String_Array;
-
-/* list of resources */
-class resourceList;		
-
-/* a metric */
-class metric;			
-
-/* a list of metrics */
-typedef metric *metricList;		
-
-/* a metric/resourceList pair */
-class metricInstance;		
+#include "paradyn/src/DMthread/DMinclude.h"
 
 typedef enum { Trace, Sample } dataType;
 
@@ -197,30 +166,33 @@ typedef void (*errorHandler)(int errno, char *message);
 /*
  * Handler that gets called when new sample data is delivered.
  *
- *   ps - a performanceStream from createPerformanceStream
+ *   handle - a performance stream handle from createPerformanceStream
  *   mi - a metricInstance returned by enableDataCollection
- *   startTimeStamp - starting time of the interval covered by this sample.
- *   endTimeStamp - ending time of the interval covered by this sample.
- *   value - the value of this sample
+ *   buckets - array of sampleValue filled by the DM 
+ *   first - the first bucket value
+ *   count - number of bucket values in buckets
  *    
  */
-typedef void (*sampleDataCallbackFunc)(performanceStream *ps, 
-				       metricInstance *mi,
+typedef void (*sampleDataCallbackFunc)(perfStreamHandle handle, 
+				       metricInstanceHandle mi,
 				       sampleValue *buckets,
 				       int count,
-				       int total);
+				       int first);
 
 /*
  * Handler that gets called when new trace data is available.
  *   
- *   ps - a performanceStream from createPerformanceStream
+ *   handle - a performance stream handle from createPerformanceStream
  *   mi - a metricInstance returned by enableDataCollection
  *   time - time of the event.
  *   eventSize - size of the event specific data.
  *   eventData - event specific data.
  */
-typedef void (*traceDataCallbackFunc)(performanceStream *ps, metricInstance *mi,
-    timeStamp time, int eventSize, void *eventData);
+typedef void (*traceDataCallbackFunc)(perfStreamHandle handle, 
+				      metricInstanceHandle mi, 
+				      timeStamp time, 
+				      int eventSize, 
+				      void *eventData);
 
 /*
  * union to hold two types of data callback.
@@ -236,35 +208,48 @@ typedef union dataCallback dataCallback;
 /*
  * Handler that gets called when a new metric is defined.
  *
- * performanceStream	- a stream returned by createPerformanceStream
- * metric		- a metric
+ * handle - a performance stream handle from createPerformanceStream
+ * metricInfo - info about metric, client is resp. for deleting this struct
  *
  */
-typedef void (*metricInfoCallback)(performanceStream*, metric*);
+typedef void (*metricInfoCallback)(perfStreamHandle, 
+				   const char *name,
+				   int style,
+				   int aggregate,
+				   const char *units,
+				   metricHandle handle);
 
 /*
  * Handler that gets called when a new resource is defined.
  *
- * performanceStream	- a stream returned by createPerformanceStream
+ * handle - a performance stream handle from createPerformanceStream
  * parent		- parent of new resource
  * newResource		- new resource being created
- * name			- name of the new resource
+ * name			- name of the new resource, client must delete
  *
  */
-typedef void (*resourceInfoCallback)(performanceStream*, resource *parent, 
-    resource *newResource, stringHandle name);
+typedef void (*resourceInfoCallback)(perfStreamHandle handle, 
+				     resourceHandle parent, 
+				     resourceHandle newResource, 
+				     const char *name,
+				     const char *abstraction);
 
 typedef enum batchMode { batchStart, batchEnd };
 
-typedef void (*resourceBatchModeCallback)(performanceStream*, batchMode mode); 
+typedef void (*resourceBatchModeCallback)(perfStreamHandle, batchMode mode); 
 
-typedef void (*histFoldCallback)(performanceStream*, timeStamp width);
+typedef void (*histFoldCallback)(perfStreamHandle, timeStamp width);
 
 typedef enum appState { appRunning, appPaused };
 
-typedef void (*appStateChangeCallback)(performanceStream*, appState state);
+typedef void (*appStateChangeCallback)(perfStreamHandle, appState state);
 
-typedef void (*newPhaseCallback)(performanceStream*, phaseInfo*); 
+typedef void (*newPhaseCallback)(perfStreamHandle handle, 
+				 const char *name, 
+				 phaseHandle phase,
+				 timeStamp begin, 
+				 timeStamp end, 
+				 float bucketwidth); 
 
 struct controlCallback {
     metricInfoCallback 		mFunc;
@@ -280,20 +265,33 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 17;
-
-    //
-    // Create an applicationContext (an application to be studied)
-    //
-    applicationContext *createApplicationContext(errorHandler foo);
+    $version 18;
 
     //
     // Start a paradyn daemon
     //
-    bool addDaemon (applicationContext *app,
-	               char *machine,
-		       char *login,
-		       char *name);
+    bool addDaemon (const char *machine,
+		    const char *login,
+		    const char *name);
+
+    // 
+    // Define a daemon in the daemon dictionary
+    //     command = command line to exec
+    //     dir = directory to use as working directory
+    //     login = user name to execute as
+    //     name = name of dictionary entry, for matching
+    //     flavor = programming environment (metPVM, metCM5, metUNIX)
+    //     machine = machine to run this daemon on
+    //
+    //     Note - arguments that are not used should be passed in
+    //            as null, anything else will be assumed to be a
+    //            valid string.
+    // bool defineDaemon (const char *command,
+    // 	               const char *dir,
+    // 	               const char *login,
+    //                 const char *name,
+    // 	               const char *machine,
+    //                 const char *flavor);
 
     //
     // Define a program to run. 
@@ -305,136 +303,109 @@ $remote dataManager {
     //     Note - arguments that are not used should be passed in
     //            as null, anything else will be assumed to be a
     //            valid string.
-    bool addExecutable(applicationContext *app,
-			  char  *machine, 
-			  char *login, 
-			  char *name, 
-	                  char *dir,
-			  vector<string> *argv);
+    bool addExecutable(const char *machine, 
+		       const char *login, 
+		       const char *name, 
+	               const char *dir,
+		       const vector<string> *argv);
 
     //
     // Find out if an application has been defined yet.
     //
-    bool applicationDefined(applicationContext *app);
+    bool applicationDefined();
 
     //
     // Start an application running (This starts the actual execution).
-    //   app - an application context from createPerformanceConext.
     // 
-    bool startApplication(applicationContext *app);
+    bool startApplication();
 
     //
     //   Stop all processes associted with the application.
-    //	    app - an application context from createPerformanceConext.
     //
     // Pause an application (I am not sure about this but I think we want it).
     //      - Does this force buffered data to be delivered?
     //	- Does a paused application respond to enable/disable commands?
     //
-    bool pauseApplication(applicationContext *app);
+    bool pauseApplication();
 
-    //
-    //   Stop all processes associted with the application.
-    //	    app - an application context from createPerformanceConext.
     //
     // Pause a process in an application 
     //      - Does this force buffered data to be delivered?
     //	- Does a paused application respond to enable/disable commands?
     //
-    bool pauseProcess(applicationContext *app, int pid);
+    bool pauseProcess(int pid);
 
     //
-    //
     // Continue a paused application.
-    //    app - an application context from createPerformanceConext.
     //
-    bool continueApplication(applicationContext *app);
+    bool continueApplication();
 
     //
     // Continue a paused process in an application.
-    //    app - an application context from createPerformanceConext.
     //
-    bool continueProcess(applicationContext *app, int pid);
+    bool continueProcess(int pid);
 
     //
     // Disconnect the tool from the process.
-    //    app - an application context from createPerformanceConext.
     //    pause - leave the process in a stopped state.
     //
-    bool detachApplication(applicationContext *app,bool pause);
+    bool detachApplication(bool pause);
 
     // 
     // Create a performanceStream.  This a flow of performance information
     //   to a destination. 
     //
-    // applicationContext	- an application context.
-    // dataType 		- Sample or Trace
+    // dataType 	- Sample or Trace
     // dataCallback 	- Function to call when new data arrives
     // controlCallback	- Function to call when new structure info arrives
-    // sampleInterval	- nominal interval between samples (sample only)
     //
-    performanceStream *createPerformanceStream(applicationContext*, 
-					       dataType, 
-					       dataCallback, 
-					       controlCallback);
+    perfStreamHandle createPerformanceStream(dataType, 
+					     dataCallback, 
+					     controlCallback);
 
     // 
-    // Destroy a performanceStream.  
+    // Destroy a performance Stream.  
     // 
-    // applicationContext  - an application context.
-    // performanceStream   - a stream returned by createPerformanceStream
+    // perfStreamHandle   - a handle returned by createPerformanceStream
     //
-    int  destroyPerformanceStream(applicationContext*,
-				 performanceStream*);
+    int  destroyPerformanceStream(perfStreamHandle);
 
-    void setSampleRate(performanceStream *stream, timeStamp sampleInterval);
+    // TODO: this should go:  use a tunable const to get initial rate
+    //       and use phase mechanism as way to change rate after that 
+    void setSampleRate(perfStreamHandle handle, timeStamp sampleInterval);
+
 
     //
-    // Routines to control data collection on a performanceStream.
+    // Routines to control data collection on a performance Stream.
     //
-    // performanceStream 	- a stream returned by createPerformanceStream
-    // resourceList		- a list of resources
+    // perfStreamHandle	- a handle returned by createPerformanceStream
+    // resourceList	- a focus : DM deletes this 
     // metric		- what metric to collect data for
-    metricInstance *enableDataCollection(performanceStream*,
-					 resourceList*,
-					 metric*);
+    // metricInstInfo   - info. about enabled metric/focus
+    //                    client must delete this struct
+    metricInstInfo *enableDataCollection(perfStreamHandle,
+					 const vector<resourceHandle>*,
+					 metricHandle);
 
 
     //
     // stop collecting data for the named metricInstance.
-    // performanceStream	- a stream returned by createPerformanceStream
+    // perfStreamHandle	- a handle returned by createPerformanceStream
     // metricInstance	- a metricInstance returned by enableDataCollection.
     //
-    void disableDataCollection(performanceStream*, metricInstance*);
+    void disableDataCollection(perfStreamHandle, metricInstanceHandle);
 
     //
     // Return the expected cost of collecting performance data for a single
     //    metric at a given focus.  The value returned is the fraction of
     //    perturbation expected (i.e. 0.10 == 10% slow down expected).
     //
-    float getPredictedDataCost(applicationContext*, resourceList*, metric*);
+    float getPredictedDataCost(resourceListHandle, metricHandle);
 
     //
     // Current best guess of the cost of inst in the system.
     //
-    float getCurrentHybridCost(applicationContext*);
-
-    //
-    // Control information arriving about a resource Classes
-    //
-    // performanceStream	- a stream returned by createPerformanceStream
-    // resource		- enable notification of children of this resource
-    //
-    void enableResourceCreationNotification(performanceStream*, resource*);
-
-    //
-    // Turn off notification of creation of descendants of this resource.
-    // 
-    // performanceStream	- a stream returned by createPerformanceStream
-    // resource		- disable notification of descendants of this resource
-    //
-    //
-    void disableResourceCreationNotification(performanceStream*, resource*);
+    float getCurrentHybridCost();
 
     // 
     // Histogram/timebase information
@@ -446,60 +417,107 @@ $remote dataManager {
     //
     // Resource utility functions.
     //
-    resource *getRootResource();
 
-    resourceList *getRootResources();
+    //
+    // returns handle for root resource, returns NULL on error
+    //
+    resourceHandle *getRootResource();
 
-    resource *newResource(applicationContext *app,
-     			  resource *parent, 
-     			  const char *name);
+    //
+    // returns handles of root resources, returns NULL on error
+    //
+    vector<resourceHandle> *getRootResources();
+
+    //
+    // create a new resource and return it's handle
+    //
+    resourceHandle newResource(resourceHandle parent, const char *name);
+
+    //
+    // converts from a vector of resourceHandles to a resourceListHandle
+    // 
+    resourceListHandle getResourceList(const vector<resourceHandle>*);
+
+    //
+    // converts from a resourceListHandle to a vector of resourceHandles
+    // client is responsible for deleting vector<resourceHandle>*
+    // 
+    vector<resourceHandle> *getResourceHandles(resourceListHandle);
+
+    //
+    // converts from a resource name to a resourceHandle 
+    // returns NULL if convertion fails 
+    //
+    resourceHandle *findResource(const char *name);
+
+    //
+    // returns name of resource
+    //
+    string *getResourceName(resourceHandle);
+
+    //
+    // converts from a focus name to a resourceListHandle 
+    // returns NULL if convertion fails 
+    //
+    resourceListHandle *findResourceList(const char *name);
 
     //
     // don't search the SHG for this node.
     //
-    void setResourceSearchSuppress(applicationContext *app,
-			     resource *res, bool newValue);
+    void setResourceSearchSuppress(resourceHandle res, bool newValue);
 
     //
     // don't search the SHG for children of this node.
     //
-    void setResourceSearchChildrenSuppress(applicationContext *app,
-					   resource *res, bool newValue);
+    void setResourceSearchChildrenSuppress(resourceHandle res, bool newValue);
 
     //
     // consider this resource a black box (applies to modules/procedures now).
     //
-    void setResourceInstSuppress(applicationContext *app,
-			     resource *res, bool newValue);
+    void setResourceInstSuppress(resourceHandle res, bool newValue);
 
-    // Get the static config. information for the passed applicationContext.
+    // 
+    // returns a vector of metric names 
+    // client is responsible for deleting these
     //
-    String_Array getAvailableMetrics(applicationContext*);
+    vector<string> *getAvailableMetrics();
 
     //
-    // looks for a specifc metric instance in an application context.
+    // returns a vector of metric name and id pairs
+    // client is responsible for deleting these
     //
-    metric *findMetric(applicationContext *context, char *name);
+    vector<met_name_id> *getAvailableMetInfo();
+
+    //
+    // looks for a specifc metric instance
+    // returns NULL if search is unsuccessful
+    // TODO: when igen supports returning const type* then change to const
+    // 
+    metricHandle *findMetric(const char *name);
 
     //
     // Metric utility functions.
+    // TODO: when igen supports returning const type* then change to const
     //
-    stringHandle getMetricName(metric*);
+    string *getMetricName(metricHandle);
 
     //
     // get the supporting info about a metric.
-    T_dyninstRPC::metricInfo *getMetricInfo(metric*);
+    // TODO: when igen supports returning const type* then change to const
+    //
+    T_dyninstRPC::metricInfo *getMetricInfo(metricHandle);
 
-    //
+    // TODO: these shouldn't be necessary
     // Get metric out of a metric instance.
+    // TODO: when igen supports returning const type* then change to const
     //
-    metric *getMetric(metricInstance*);
-    stringHandle getMetricNameFromMI(metricInstance*);
+    metricHandle *getMetric(metricInstanceHandle);
+    string *getMetricNameFromMI(metricInstanceHandle);
 
     //
     // Get the value of a metric.
     //
-    sampleValue getMetricValue(metricInstance*);
+    sampleValue getMetricValue(metricInstanceHandle);
 
     //
     // fill the passed array of buckets with the histogram sample from the
@@ -510,7 +528,7 @@ $remote dataManager {
     //		first		first bin to fill (i.e. what bin goes into
     //				buckets[0]
     //
-    int getSampleValues(metricInstance *mi, 
+    int getSampleValues(metricInstanceHandle mi, 
 			sampleValue *buckets,
 			int numberOfBuckets,
 			int first);
@@ -519,8 +537,7 @@ $remote dataManager {
     // Get the total value of a metric. 
     //  (ie. do not divide by time enabled)
     //
-    sampleValue getTotValue(metricInstance*);
-
+    sampleValue getTotValue(metricInstanceHandle);
 
 
     //
@@ -531,84 +548,95 @@ $remote dataManager {
     //  name: would be an optional user defined identifier for the phase
     //        each phase would still have a system defined unique id
     //
-    $async void StartPhase(timeStamp start_Time, string *name);
+    $async void StartPhase(timeStamp start_Time, const char *name);
 
 
     //
     // Debugger style calls.
     //
+
     void printResources();
-    void printStatus(applicationContext*);
-    void coreProcess(applicationContext*, int pid);
+    void printStatus();
+    void coreProcess(int pid);
 
     //
     // probably temporary call, show defined daemons
     //
-    void printDaemons(applicationContext *app);
+    void printDaemons();
 
     //
     // return a list of daemon names
     //
-    String_Array getAvailableDaemons(applicationContext*);
+    vector<string> *getAvailableDaemons();
 
     //
     // upcalls for indications of events.
     //
     $upcall $async void newMetricDefined(metricInfoCallback, 
-					 performanceStream*, 
-					 metric*);
+					 perfStreamHandle, 
+				         const char *name,
+				         int style,
+				         int aggregate,
+				         const char *units,
+				         metricHandle handle);
 
     $upcall $async void newResourceDefined(resourceInfoCallback,
-					   performanceStream *ps, 
-					   resource *parent,
-					   resource *newResource, 
-					   stringHandle name);
+					   perfStreamHandle, 
+					   resourceHandle parent,
+					   resourceHandle newResource, 
+					   const char *name,
+					   const char *abstr);
 
     $upcall $async void changeResourceBatchMode(resourceBatchModeCallback,
-					        performanceStream *ps, 
+					        perfStreamHandle, 
 						batchMode mode);
 
     $upcall $async void newPerfData(sampleDataCallbackFunc, 
-				    performanceStream *ps,
-				    metricInstance *mi,
+				    perfStreamHandle,
+				    metricInstanceHandle mi,
 				    sampleValue *buckets,
 				    int total,
 				    int first);
 
     $upcall $async void histFold(histFoldCallback, 
-				 performanceStream *ps, 
+				 perfStreamHandle, 
 				 timeStamp width);
 
     $upcall $async void changeState(appStateChangeCallback, 
-				    performanceStream *ps, 
-				    appState state);
+				    perfStreamHandle, 
+				    appState);
 
     //
     // Info. about a new phase that was created
     //
     $upcall $async void newPhaseInfo(newPhaseCallback, 
-				     performanceStream *ps,
-				     phaseInfo *phase);
+				     perfStreamHandle,
+				     const char *,       // name
+				     phaseHandle,       // unique id 
+				     timeStamp,         // start time 
+				     timeStamp,         // end time 
+				     float);            // bucketwidth
 
 
     // called to establish a base time to allow absolute times to be converted
     // to relative times, since the program execution is viewed as starting at
     // time 0
-    double firstSampleTime(int program, double firstTime);
+    // TODO:  check to see if this function should be removed 
+    // double firstSampleTime(int program, double firstTime);
 
     // Called to inform the data manager that it is ok to parse the mdl files
     // This informs the data manager that all igen interfaces have been created
-    // and that it is ok to use them -- the start up of all the thread is inelegant
+    // and that it is ok to use them -- the start up of all the thread is
+    // inelegant
     $async void kludge(char *metric_file);
 
-    $signore
-    applicationContext *appContext;
-    int socket;
-    int sock_fd;
 
-    // This is set in DMsetupSocket,
-    // TODO mdc - make this be set in the constructor
-    double firstTime;
+    $signore
+    static int socket;
+    static int sock_fd;
+    static dataManager *dm;  // need this so can call setTid which is
+			     // not a static function, otherwise could
+			     // just define all DM functions as static
     $signore
 };
 
