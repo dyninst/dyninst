@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.313 2002/03/22 21:55:17 chadd Exp $
+// $Id: process.C,v 1.314 2002/04/05 19:38:42 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -84,6 +84,7 @@ int pvmendtask();
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "paradynd/src/perfStream.h"
+#include "paradynd/src/machineMetFocusNode.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/main.h"
@@ -545,7 +546,7 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
         if (getLWPFrame(lwp_id, &fp, &pc)) {
           Frame currentFrame(lwp_id, fp, pc, true);
 
-	  cerr << "Walking stack, lwp_id " << lwp_id << endl;
+	  //cerr << "Walking stack, lwp_id " << lwp_id << endl;
           walkStack(currentFrame, pcs, fps, noPause);
 
 	  stack_buffer.push_back(pcs);
@@ -657,6 +658,10 @@ vector<pd_Function *> process::convertPCsToFuncs(vector<Address> pcs) {
 bool process::triggeredInStackFrame(instPoint* point, pd_Function* stack_fn,
                                     Address pc, callWhen when, callOrder order)
 {
+  //cerr << "process::triggeredInStackFrame - stack_fn: " 
+  //     << stack_fn->prettyName() << " (" << (void*)stack_fn
+  //     << "), point->iPgetFunction: " << point->iPgetFunction()->prettyName()
+  //     << " (" << (void*)point->iPgetFunction() << ")\n";
   //this->print(stderr, ">>> triggeredInStackFrame(): ");
   trampTemplate *tempTramp;
   bool retVal = false;
@@ -2123,9 +2128,9 @@ process::process(int iPid, image *iImage, int iTraceLink
   instPointMap(hash_address),
 #endif
   savedRegs(NULL),
-  pid(iPid), // needed in fastInferiorHeap ctors below
+  pid(iPid) // needed in fastInferiorHeap ctors below
 #if !defined(BPATCH_LIBRARY)
-  previous(0),
+  ,previous(0),
   inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
   theSuperTable(this,
 		iShmHeapStats[0].maxNumElems,
@@ -2136,9 +2141,8 @@ process::process(int iPid, image *iImage, int iTraceLink
 #else
 		iShmHeapStats[2].maxNumElems
 #endif
-		),
+		)
 #endif
-  callBeforeContinue(NULL)
 {
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
@@ -2313,9 +2317,9 @@ process::process(int iPid, image *iSymbols,
   instPointMap(hash_address),
 #endif
   savedRegs(NULL),
-  pid(iPid),
+  pid(iPid)
 #if !defined(BPATCH_LIBRARY)
-  previous(0),
+  ,previous(0),
   inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
   theSuperTable(this,
 		iShmHeapStats[0].maxNumElems,
@@ -2326,9 +2330,8 @@ process::process(int iPid, image *iSymbols,
 #else
   iShmHeapStats[2].maxNumElems
 #endif
-		),
+		)
 #endif
-  callBeforeContinue(NULL)
 {
 
 #ifdef DETACH_ON_THE_FLY
@@ -2581,8 +2584,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
                   theShmKey, iShmHeapStats, iPid),
   theSuperTable(parentProc.getTable(), this)
 #endif
-  ,callBeforeContinue(parentProc.callBeforeContinue)
-
 {
 
 #ifdef DETACH_ON_THE_FLY
@@ -3111,7 +3112,6 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 
 #ifndef BPATCH_LIBRARY
    theProc->threads += new pdThread(theProc);
-   theProc->setCallbackBeforeContinue(mdnContinueCallback);
 #endif
 
 #if !(defined i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
@@ -3424,14 +3424,7 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
     // In general it is even harder, since dynamic libs can be loaded
     // at any time.
     extern int handleSigChild(int pid, int status);
-
     (void) handleSigChild(pid, status);
-#endif
-
-#ifndef BPATCH_LIBRARY
-    if (ret) {
-      ret->setCallbackBeforeContinue(mdnContinueCallback); 
-    }
 #endif
     
     return(true);
@@ -5152,24 +5145,7 @@ bool process::continueProc() {
     showErrorCallback(39, errorLine);
     return false;
   }
-
-#ifndef BPATCH_LIBRARY
-  timeStamp initStartTime = getWallTime();
-#endif
-
   bool res = continueProc_();
-
-#ifndef BPATCH_LIBRARY
-#if !defined(rs6000_ibm_aix4_1)
-  // on AIX there's a hack in createProcess (handleSigChild) that's causing
-  // continueProc to be called before the variable below has a chance to
-  // be set
-  assert(callBeforeContinue != NULL);  // capturing metric initial start time
-                                       // requires that we make this callback
-#endif
-  if(callBeforeContinue!=NULL)
-    (*callBeforeContinue)(initStartTime);
-#endif
 
   if (!res) {
     showErrorCallback(38, "System error: can't continue process");
@@ -5822,10 +5798,10 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 
 #ifdef MT_THREAD
    if (todo.isSafeRPC) {
-       cerr << "SAFE inferiorRPC should be running now" << endl;
+     //cerr << "SAFE inferiorRPC should be running now" << endl;
        signalRPCthread(this);
    } else {
-       cerr << "inferiorRPC should be running now" << endl;
+     //cerr << "inferiorRPC should be running now" << endl;
    }
 #endif
 
@@ -6207,7 +6183,7 @@ bool process::handleTrapIfDueToRPC() {
      unsigned k;
      unsigned rSize = 0 ;
      for (k=0; k<currRunningRPCs.size(); k++) {
-       fprintf(stderr, "Checking currRunning %d\n", k);
+       //fprintf(stderr, "Checking currRunning %d\n", k);
        if (!currRunningRPCs[k].isSafeRPC) {
          rSize ++ ;
        }
@@ -6914,19 +6890,23 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 #ifndef BPATCH_LIBRARY
       if (!calledFromExec) {
          // propagate any metric that is already enabled to the new process.
-         // For a forked process, this isn't needed because handleFork() has its own
-         // special propagation algorithm (it propagates every aggregate mi having the
-         // parent as a component, except for aggregate mi's whose focus is specifically
-         // refined to the parent).
-         vector<metricDefinitionNode *> MIs = allMIs.values();
-         for (unsigned j = 0; j < MIs.size(); j++) {
-            MIs[j]->propagateToNewProcess(this);
-            // change to a process:: method which takes in the metricDefinitionNode
+         // For a forked process, this isn't needed because handleFork() has
+         // its own special propagation algorithm (it propagates every
+         // aggregate mi having the parent as a component, except for
+         // aggregate mi's whose focus is specifically refined to the
+         // parent).
+ 	 vector<machineMetFocusNode *> allMachNodes;
+	 machineMetFocusNode::getMachineNodes(&allMachNodes);
+
+         for (unsigned j=0; j < allMachNodes.size(); j++) {
+            allMachNodes[j]->propagateToNewProcess(this);
+            // change to a process:: method which takes in the
+            // metricDefinitionNode
          }
       }
       else {
-         // exec propagates in its own, special way that differs from a new process.
-         // (propagate all mi's that make sense in the new process)
+         // exec propagates in its own, special way that differs from a new
+         // process.  (propagate all mi's that make sense in the new process)
          metricDefinitionNode::handleExec(this);
       }
 #endif
