@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.130 2003/07/15 22:44:43 schendel Exp $
+// $Id: symtab.h,v 1.131 2003/07/29 00:32:44 eli Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -62,6 +62,7 @@ extern "C" {
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/LineInformation.h"
 #include "common/h/String.h"
 
 #ifndef BPATCH_LIBRARY
@@ -159,7 +160,12 @@ class module;
 
 class function_base {
 public:
-  static pdstring emptyString;
+    // needed to workaround gcc 3.0.2 problem (bug?)
+    typedef const unsigned char* InstrucPos;
+    InstrucPos *iptrs;
+    
+    static pdstring emptyString;
+
   /*
     function_base(const pdstring &symbol, const pdstring &pretty,
 		  Address adr, const unsigned size): line_(0), addr_(adr),size_(size) 
@@ -169,12 +175,28 @@ public:
       }
   */
     // and a constructor for the case where no pretty name is supplied (initially)
-    function_base(const pdstring &symbol,
-		  Address adr, const unsigned size): line_(0), addr_(adr),size_(size) 
-      { 
+
+    function_base(const pdstring &symbol, Address adr, const unsigned size)
+	: line_(0), addr_(adr),size_(size) { 
+
 	symTabName_.push_back(symbol); 
-      }
-    virtual ~function_base() { /* TODO */ }
+
+        #if defined(i386_unknown_linux2_0) ||\
+            defined(i386_unknown_solaris2_5) ||\
+            defined(i386_unknown_nt4_0) ||\
+            defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+            iptrs = NULL;
+        #endif
+    }
+
+    virtual ~function_base() {
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0) ||\
+    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+	if (iptrs) delete[] iptrs;
+#endif
+    }
 
     /* The next two asserts should necver be reached, function_base has no
      * default constructor which leaves the pdstring vectors empty, the if
@@ -217,6 +239,8 @@ public:
     ostream & operator<<(ostream &s) const;
     friend ostream &operator<<(ostream &os, function_base &f);
 
+    char *getMangledName(char *s, int len) const;
+
 #if defined(ia64_unknown_linux2_4)
 	// We need to know where all the alloc instructions in the
 	// function are to do a reasonable job of register allocation
@@ -244,10 +268,13 @@ class pd_Function : public function_base {
     pd_Function(const pdstring &symbol, pdmodule *f, 
 		Address adr, const unsigned size);
 	
-    ~pd_Function() { if (relocatedCode) delete relocatedCode;  // delete the rewritten version 
-                     if (originalCode) delete originalCode;   // of the function if it was 
-                     if (instructions) delete instructions;   // relocated      
-                               /* TODO */ }
+    ~pd_Function() { 
+	// delete the rewritten version of the function if it was relocated
+	if (relocatedCode) delete relocatedCode;  
+	if (originalCode) delete originalCode;   
+	if (instructions) delete instructions;   
+	/* TODO */ 
+    }
 
     bool findInstPoints(const image *owner);
     void checkCallPoints();
@@ -673,8 +700,11 @@ private:
 class pdmodule: public module {
 friend class image;
 public:
+
   pdmodule(supportedLanguages lang, Address adr, pdstring &fullNm,
 	   pdstring &fileNm, image *e): module(lang,adr,fullNm,fileNm),
+    lineInformation(NULL),
+
 #ifndef BPATCH_LIBRARY
     modResource(0),
 #endif
@@ -683,7 +713,8 @@ public:
     some_funcs_inited = FALSE;
 #endif
   }
-  ~pdmodule() { /* TODO */ }
+
+  ~pdmodule();
 
   void setLineAddr(unsigned line, Address addr) {
 	lines_.setLineAddr(line, addr);}
@@ -724,6 +755,28 @@ public:
   resource *getResource() { return modResource; }
 #endif
   void dumpMangled(char * prefix);
+
+  LineInformation* lineInformation;
+  pdstring* processDirectories(pdstring* fn);
+
+#if defined(rs6000_ibm_aix4_1)
+
+  void parseLineInformation(process* proc, 
+			    pdstring* currentSourceFile,
+			    char* symbolName,
+			    SYMENT *sym,
+			    Address linesfdptr,char* lines,int nlines);
+#endif
+
+#if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0) && !defined(i386_unknown_nt4_0)
+    void parseFileLineInfo(process *proc);
+#endif
+
+  LineInformation* getLineInformation(process *proc);
+  void initLineInformation();
+  void cleanupLineInformation();
+
+
  private:
 
 #ifndef BPATCH_LIBRARY
