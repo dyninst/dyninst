@@ -17,9 +17,12 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.18  1995/08/01 01:58:43  newhall
-/* changes relating to phase interface stuff
+/* Revision 1.19  1995/11/12 00:45:05  newhall
+/* added PARADYNEXITED event, added "InvalidSpans" dataGrid method
 /*
+ * Revision 1.18  1995/08/01  01:58:43  newhall
+ * changes relating to phase interface stuff
+ *
  * Revision 1.17  1995/06/02  21:01:54  newhall
  * changed type of metric and focus handles to u_int
  *
@@ -297,6 +300,16 @@ class visi_GridCellHisto {
 	}
      }
 
+     // returns true when there are NaN spans of between valid data buckets
+     bool   InvalidSpans(){
+        if(value != NULL) {
+            for(int i = firstValidBucket; i < lastBucketFilled; i++){
+                if(isnan(value[i])) return true;
+	    }
+	}
+	return false;
+     }
+
      int    AddValue(sampleType x,
 		     int i,
 		     int numElements){
@@ -390,6 +403,15 @@ class  visi_GridHistoArray {
 	  return(values[i].SumValue(width));
         else
 	  return(ERROR);
+      }
+
+      // returns true if histogram in element "which" contains invalid
+      // spans of bucket values
+      bool InvalidSpans(int which){
+	if((which>=0)&&(which<size))
+	  return(values[which].InvalidSpans());
+        else
+	  return false;
       }
 
       visi_GridCellHisto&   operator[](int i){
@@ -544,6 +566,13 @@ class visi_DataGrid {
         if((metric < 0) || (metric >= numMetrics))
 	  return(ERROR_SUBSCRIPT);
         return(data_values[metric].LastBucketFilled(resource));
+     }
+
+     bool InvalidSpans(int metric, int resource){
+        if((metric < 0) || (metric >= numMetrics))
+            return false;
+        else 
+	    return (data_values[metric].InvalidSpans(resource));
      }
 
 };

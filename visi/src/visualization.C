@@ -14,10 +14,13 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.30  1995/11/02 02:12:51  newhall
-/* added class derived from igen generated visualization class that contains
-/* a handle_error method that won't print an error msg when an error occurs
+/* Revision 1.31  1995/11/12 00:45:19  newhall
+/* added PARADYNEXITED event, added "InvalidSpans" dataGrid method
 /*
+ * Revision 1.30  1995/11/02  02:12:51  newhall
+ * added class derived from igen generated visualization class that contains
+ * a handle_error method that won't print an error msg when an error occurs
+ *
  * Revision 1.29  1995/09/18  18:26:06  newhall
  * updated test subdirectory, added visilib routine GetMetRes()
  *
@@ -204,6 +207,7 @@ int RegistrationCallback(msgTag event,
 
   if((event < EVENTSIZE)){
     eventCallbacks[event] = callBack;
+    if(event == PARADYNEXITED)
     return(OK);
   }
   else{
@@ -669,5 +673,12 @@ void visualization::PhaseData(vector<T_visi::phase_info> phases){
 }
 
 void visi_visualization::handle_error(){
-   exit(-1);
+   // call user registered callback routine assoc. w/event PARADYNEXITED
+   if(eventCallbacks[PARADYNEXITED] !=  NULL){
+      eventCallbacks[PARADYNEXITED](0);
+   }
+   // otherwise, exit
+   else {
+      exit(-1);
+   }
 }

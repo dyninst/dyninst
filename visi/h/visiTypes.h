@@ -16,9 +16,12 @@
  *
  */
 /* $Log: visiTypes.h,v $
-/* Revision 1.12  1995/09/18 18:25:58  newhall
-/* updated test subdirectory, added visilib routine GetMetRes()
+/* Revision 1.13  1995/11/12 00:45:08  newhall
+/* added PARADYNEXITED event, added "InvalidSpans" dataGrid method
 /*
+ * Revision 1.12  1995/09/18  18:25:58  newhall
+ * updated test subdirectory, added visilib routine GetMetRes()
+ *
  * Revision 1.11  1995/08/24  15:14:41  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
@@ -93,7 +96,8 @@
 
 #define ERROR PARADYN_NaN
 
-//
+// 
+// note: add new event types before FOLD (ie. FOLD is always last type)
 // event types associated with events from Paradyn to a visualization
 // DATAVALUES:  a new set of data has arrived in the datagrid
 // INVALIDMETRICSRESOURCES:  a metric resource combination has become invalid
@@ -101,10 +105,11 @@
 // PHASESTART:  a new phase has been defined
 // PHASEEND:    a phase has ended
 // PHASEDATA:  data about the current set of phases has arrived
+// PARADYNEXITED: the paradyn process has exited
 // FOLD:  the histogram has folded; binWidth has doubled
 //
 typedef enum {DATAVALUES,INVALIDMETRICSRESOURCES,ADDMETRICSRESOURCES,
-	      PHASESTART,PHASEEND,PHASEDATA,FOLD} msgTag;
+	      PHASESTART,PHASEEND,PHASEDATA,PARADYNEXITED,FOLD} msgTag;
 
 
 typedef float sampleType;
