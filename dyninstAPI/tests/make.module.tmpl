@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.44 2002/08/05 23:05:41 bernat Exp $
+# $Id: make.module.tmpl,v 1.45 2002/08/06 16:42:09 schendel Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -99,29 +99,21 @@ ifeq (test6,$(findstring test6,$(TARGET2)))
 TEST6_AS_SRC	=	test6LS-$(MINI_PLATFORM).$(TEST6_ASSUFFIX)
 endif
 
-# Assuming that the native compiler uses the right (native) assembler,
-# and that it can automagically asseble and link our stuff
-# Some flags may have to be passed to the native compiler for this to work
-# Assuming that it is safe to compile test[1-5] with those as well...
-
-ifneq ($(NATIVE_CC),)
-ifeq (test6.mutatee_$(NATIVE_CC), $(findstring test6.mutatee_$(NATIVE_CC),$(TARGET2)))
-MUTATEE_SRC     +=      ../src/$(TEST6_AS_SRC)
-
-test6.mutatee_$(NATIVE_CC):	$(TEST6_AS_SRC)
-endif
-endif
-
 # For gcc (which may use gas) we force the native assembler with TEST6_ASFLAGS
-ifeq (test6.mutatee_$(M_GCC), $(findstring test6.mutatee_$(M_GCC),$(TARGET2)))
+ifeq (test6,$(findstring test6,$(TARGET2)))
 TEST6_AS_OBJ	= 	$(TEST6_AS_SRC:.$(TEST6_ASSUFFIX)=.o)
 MUTATEE_SRC     +=      $(TEST6_AS_OBJ)
 
 test6.mutatee_$(M_GCC):	$(TEST6_AS_OBJ)
+test6.mutatee_pgcc:	$(TEST6_AS_OBJ)
 
 $(TEST6_AS_OBJ):	../src/$(TEST6_AS_SRC)
+ifeq (linux,$(findstring linux,$(PLATFORM)))
 ifdef NASM
 	$(NASM) $(TEST6_ASFLAGS) -o $@ $<
+else
+	$(AS) $(TEST6_ASFLAGS) -o $@ $<
+endif
 else
 	$(AS) $(TEST6_ASFLAGS) -o $@ $<
 endif

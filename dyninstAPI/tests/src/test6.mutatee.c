@@ -1,4 +1,4 @@
-/* $Id: test6.mutatee.c,v 1.13 2002/08/04 17:29:54 gaburici Exp $ */
+/* $Id: test6.mutatee.c,v 1.14 2002/08/06 16:42:10 schendel Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -215,7 +215,7 @@ extern int amd_features();
 extern int divarw;
 extern float dfvars;
 extern double dfvard;
-extern long double dfvart; // 10 byte hopefully, but it shouldn't matter...
+extern long double dfvart; /* 10 byte hopefully, but it shouldn't matter... */
 extern unsigned char dlarge[512];
 
 #define CAP_MMX   (1<<23)
@@ -252,7 +252,7 @@ void init_test_data()
   dprintf("&dlarge = %p\n", &dlarge);
 
   for(i=4; i<15; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]); // skip ebp for now
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]); /* skip ebp for now */
   for(i=16; i<18; ++i)
     eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
   for(i=19; i<26; ++i)
@@ -292,7 +292,7 @@ void init_test_data()
   for(i=75; i<77; ++i)
     eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
 
-  // Order of reductions matters!
+  /* Order of reductions matters! */
 
   caps = amd_features();
   if(!(caps & CAP_3DNOW))
