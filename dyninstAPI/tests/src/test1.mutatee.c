@@ -1,7 +1,10 @@
 
 /* Test application (Mutatee) */
 
+/* $Id: test1.mutatee.c,v 1.18 1999/06/17 14:59:12 wylie Exp $ */
+
 #include <stdio.h>
+#include <assert.h>
 #include <sys/types.h>
 #include <signal.h>
 #include <string.h>
@@ -368,6 +371,10 @@ int call17_1(int p1)
 
      int a1, a2, a3, a4, a5, a6, a7;
 
+     dprintf("call17_1 (p1=%d)\n", p1);
+     assert(p1!=0); // shouldn't try to divide by zero!
+     assert(p1==1); // actually only expect calls with p1==1
+
      a1 = p1;
      a2 = a1 + p1;
      a3 = a1 * a2;
@@ -375,6 +382,9 @@ int call17_1(int p1)
      a5 = a4 + p1;
      a6 = a5 + a1;
      a7 = a6 + p1;
+
+     dprintf("call17_1 (ret=%d)\n", a7);
+
      return a7; 
 }
 
@@ -384,6 +394,10 @@ int call17_2(int p1)
 
      int a1, a2, a3, a4, a5, a6, a7;
 
+     dprintf("call17_2 (p1=%d)\n", p1);
+     assert(p1!=0); // shouldn't try to divide by zero!
+     assert(p1==1); // actually only expect calls with p1==1
+
      a1 = p1;
      a2 = a1 + p1;
      a3 = a1 * a2;
@@ -392,6 +406,9 @@ int call17_2(int p1)
      a6 = a5 + a1;
      a7 = a6 + p1;
      globalVariable17_2 = RAN17_1;
+
+     dprintf("call17_2 (ret=%d)\n", a7);
+
      return a7; 
 }
 
@@ -970,7 +987,9 @@ int main(int argc, char *argv[])
     int i;
     int ret17_1;
     int useAttach = FALSE;
+#ifndef i386_unknown_nt4_0
     int pfd;
+#endif
  
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {
