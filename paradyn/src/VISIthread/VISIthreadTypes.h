@@ -14,12 +14,15 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.4  1994/05/11 17:21:29  newhall
-/* Changes to handle multiple curves on one visualization
-/* and multiple visualizations.  Fixed problems with folding
-/* and resource name string passed to visualization.  Changed
-/* data type from double to float.
+/* Revision 1.5  1994/06/03 18:22:50  markc
+/* Changes to support igen error handling.
 /*
+ * Revision 1.4  1994/05/11  17:21:29  newhall
+ * Changes to handle multiple curves on one visualization
+ * and multiple visualizations.  Fixed problems with folding
+ * and resource name string passed to visualization.  Changed
+ * data type from double to float.
+ *
  * Revision 1.3  1994/04/29  18:57:35  newhall
  * changed typedefs of structs to deal with g++/gdb bug
  *
@@ -64,4 +67,11 @@ struct VISIGlobalsStruct {
 };
 typedef struct VISIGlobalsStruct VISIthreadGlobals;
 
+class visiUser : public visualizationUser
+{
+  public:
+    visiUser(int fd, xdrIOFunc r, xdrIOFunc w, int nblock=0) :
+	visualizationUser(fd, r, w, 0) {;};
+    virtual void handle_error();
+};
 #endif

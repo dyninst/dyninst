@@ -25,10 +25,13 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.4  1994/05/17 00:53:14  hollings
-/* Changed waiting time to transfer data to visi process to 0.  We used to wait
-/* for the buffer to fill which delayed the data too much.
+/* Revision 1.5  1994/06/03 18:22:51  markc
+/* Changes to support igen error handling.
 /*
+ * Revision 1.4  1994/05/17  00:53:14  hollings
+ * Changed waiting time to transfer data to visi process to 0.  We used to wait
+ * for the buffer to fill which delayed the data too much.
+ *
  * Revision 1.3  1994/05/11  17:21:32  newhall
  * Changes to handle multiple curves on one visualization
  * and multiple visualizations.  Fixed problems with folding
@@ -63,7 +66,6 @@
 
 void PrintThreadLocals(){
 
- int i;
  VISIthreadGlobals *ptr;
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
@@ -315,9 +317,7 @@ void VISIthreadchooseMetRes(char **metricNames,
  metricInfo *temp2;
  char errorString[128];
  sampleValue buckets[1000];
- int howmany,times;
- double currStartTime;
-
+ int howmany;
 
   PARADYN_DEBUG(("in VISIthreadchooseMetRes callback: numMetrics = %d focusChoice = %d",numMetrics,focusChoice));
 
@@ -519,8 +519,8 @@ void visualizationUser::GetMetricResource(String metric,
 
 PARADYN_DEBUG(("in visualizationUser::GetMetricResource"));
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
-    PARADYN_DEBUG(("thr_getspecific in visiUser::GetMetricResource"));
-    uiMgr->showError("thr_getspecific in visiUser::GetMetricResource");
+    PARADYN_DEBUG(("thr_getspecific in visualizationUser::GetMetricResource"));
+    uiMgr->showError("thr_getspecific in visualizationUser::GetMetricResource");
     printf("error # :fatal or serious\n");
   }
 PARADYN_DEBUG(("GetMetricResource pre ump->chooseMetricsandResources"));
@@ -544,8 +544,8 @@ void visualizationUser::StopMetricResource(int metricId,
  int found = 0;
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
-    PARADYN_DEBUG(("thr_getspecific in visiUser::StopMetricResource"));
-    uiMgr->showError("thr_getspecific in visiUser::StopMetricResource");
+    PARADYN_DEBUG(("thr_getspecific in visualizationUser::StopMetricResource"));
+    uiMgr->showError("thr_getspecific in visualizationUser::StopMetricResource");
     printf("error # :fatal or serious\n");
   }
   // search metricList for matching metricId and resourceId
@@ -583,8 +583,8 @@ void visualizationUser::PhaseName(double begin,
  VISIthreadGlobals *ptr;
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
-    PARADYN_DEBUG(("thr_getspecific in visiUser::PhaseName"));
-    uiMgr->showError("thr_getspecific in visiUser::PhaseName");
+    PARADYN_DEBUG(("thr_getspecific in visualizationUser::PhaseName"));
+    uiMgr->showError("thr_getspecific in visualizationUser::PhaseName");
     printf("error # :fatal or serious\n");
   }
 
@@ -645,7 +645,7 @@ void *VISIthreadmain(visi_thread_args *args){
     globals->quit = 1;
   }
 
-  globals->visip = new visualizationUser(globals->fd,NULL,NULL); 
+  globals->visip = new visiUser(globals->fd,NULL,NULL); 
 
   if(msg_bind(globals->fd,0) != THR_OKAY) {
     PARADYN_DEBUG(("Error in msg_bind(globals->fd)"));
@@ -718,3 +718,59 @@ void *VISIthreadmain(visi_thread_args *args){
   PARADYN_DEBUG(("leaving visithread main"));
   thr_exit(0);
 }
+
+// Tia, here is the function, do what you must
+
+// handle_error is a virtual function in the igen generated code
+// defining it allows for custom error handling routines to be implemented
+// the error types are defined in igen generated code, but should be
+// relatively stable
+//
+// THESE are elaborated in the igen documentation (coming soon)
+// 
+// igen_no_err --> no error
+// igen_decode_err --> an error occurred while unmarshalling data
+// igen_encode_err --> an error occurred while marshalling data
+// igen_send_err   --> an error occurred while sending a message
+// igen_read_err --> an error occurred while receiving a messaged
+// igen_call_err --> attempt to do a sync call when in an async call handler
+// igen_request_err --> received an unknown message tag, or a response
+//                      message tag that was unexpected
+//
+// cannot call exit here, since a thread should not cause paradyn to exit
+void visiUser::handle_error()
+{
+  fprintf(stderr, "Error in visiUser \n");
+
+  // err_state is set by the event that caused the error
+  switch (err_state)
+    {
+    case igen_encode_err:
+    case igen_decode_err:
+      fprintf(stderr, "Could not (un)marshall parameters, dumping core, pid=%d\n",
+	      getpid());
+      break;
+
+    case igen_call_err:
+      fprintf(stderr, "can't do sync call here, pid=%d\n",
+	      getpid());
+      break;
+
+    case igen_request_err:
+      fprintf(stderr, "unknown message tag pid=%d\n",
+	      getpid());
+      break;
+
+    case igen_no_err:
+      fprintf(stderr, "Why is handle error called for err_state = igen_no_err\n");
+      // fall thru
+    case igen_send_err:
+    case igen_read_err:
+      // if paradyn quits either of these errors can occur, so don't dump core
+    default:
+      fprintf(stderr, "Error: err_state = %d\n", err_state);
+    }
+}
+
+
+
