@@ -4,9 +4,13 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.12  1996/03/08 00:22:15  tamches
-/* added support for hidden nodes
+/* Revision 1.13  1996/03/08 03:01:35  tamches
+/* constructor now grabs initial hide-node flags from the actual paradyn
+/* tunable constants
 /*
+ * Revision 1.12  1996/03/08 00:22:15  tamches
+ * added support for hidden nodes
+ *
  * Revision 1.11  1996/02/26 18:16:54  tamches
  * bug fix when changing phases
  *
@@ -57,6 +61,7 @@
 #include "shgPhases.h"
 
 #ifdef PARADYN
+#include "paradyn/src/TCthread/tunableConst.h"
 #include "performanceConsultant.thread.CLNT.h"
 extern performanceConsultantUser *perfConsult;
 #endif
@@ -85,8 +90,19 @@ shgPhases::shgPhases(const string &iMenuName,
    currInstalledAltMoveHandler=false;
    ignoreNextShgAltMove=false;
 
+#ifdef PARADYN
+   // grab initial values from the appropriate tunable constants
+   hideTrueNodes = tunableConstantRegistry::findBoolTunableConstant("hideShgTrueNodes").getValue();
+   hideFalseNodes = tunableConstantRegistry::findBoolTunableConstant("hideShgFalseNodes").getValue();
+   hideUnknownNodes = tunableConstantRegistry::findBoolTunableConstant("hideShgUnknownNodes").getValue();
+   hideNeverSeenNodes = tunableConstantRegistry::findBoolTunableConstant("hideShgNeverSeenNodes").getValue();
+   hideActiveNodes = tunableConstantRegistry::findBoolTunableConstant("hideShgActiveNodes").getValue();
+   hideInactiveNodes = tunableConstantRegistry::findBoolTunableConstant("hideShgInactiveNodes").getValue();
+   hideShadowNodes = tunableConstantRegistry::findBoolTunableConstant("hideShgShadowNodes").getValue();
+#else
    hideTrueNodes = hideFalseNodes = hideUnknownNodes = hideNeverSeenNodes = false;
    hideActiveNodes = hideInactiveNodes = hideShadowNodes = false;
+#endif
 }
 
 shgPhases::~shgPhases() {
@@ -610,8 +626,8 @@ void shgPhases::addToStatusDisplay(int phaseId, const string &iMsg) {
    }
 
    if (!existsById(phaseId)) {
-      cerr << "addToStatusDisplay: no phase id " << phaseId << " exists to display msg:" << endl;
-      cerr << "\"" << iMsg << "\"" << endl;
+      //cerr << "addToStatusDisplay: no phase id " << phaseId << " exists to display msg:" << endl;
+      //cerr << "\"" << iMsg << "\"" << endl;
       return;
    }
 
