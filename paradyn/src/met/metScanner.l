@@ -1,7 +1,10 @@
 %{
 /*
  * $Log: metScanner.l,v $
- * Revision 1.11  1996/03/20 17:04:22  mjrg
+ * Revision 1.12  1996/04/04 21:55:28  newhall
+ * added limit option to visi definition
+ *
+ * Revision 1.11  1996/03/20  17:04:22  mjrg
  * Changed mdl to support calls with multiple arguments.
  *
  * Revision 1.10  1995/12/18 23:22:14  newhall
@@ -210,6 +213,7 @@ i
 "dir"		{ return(tDIR); }
 "user"		{ return(tUSER);}
 "force"		{ return(tFORCE);}
+"limit"		{ return(tLIMIT);}
 "default"	{ return(tDEFAULT); }
 "void"		{ return(tVOID); }
 "items"         { return(tITEMS); }

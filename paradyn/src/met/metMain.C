@@ -10,7 +10,10 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.29  1996/04/03 14:25:59  naim
+ * Revision 1.30  1996/04/04 21:55:24  newhall
+ * added limit option to visi definition
+ *
+ * Revision 1.29  1996/04/03  14:25:59  naim
  * Eliminating "simd" from the daemon's menu for the meantime - naim
  *
  * Revision 1.28  1996/02/16  20:23:57  tamches
@@ -259,8 +262,8 @@ static void add_visi(visiMet *the_vm)
   assert(RPCgetArg(argv, the_vm->command().string_of()));
 
   // the strings created here are used, not copied in the VM
-  vmMgr->VMAddNewVisualization(the_vm->name().string_of(), &argv, the_vm->force(),
-			       NULL, 0);
+  vmMgr->VMAddNewVisualization(the_vm->name().string_of(), &argv, 
+			the_vm->force(),the_vm->limit(), NULL, 0);
 }
 
 

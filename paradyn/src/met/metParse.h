@@ -1,7 +1,10 @@
 
 /*
  * $Log: metParse.h,v $
- * Revision 1.11  1996/03/20 17:04:19  mjrg
+ * Revision 1.12  1996/04/04 21:55:26  newhall
+ * added limit option to visi definition
+ *
+ * Revision 1.11  1996/03/20  17:04:19  mjrg
  * Changed mdl to support calls with multiple arguments.
  *
  * Revision 1.10  1995/12/18 23:22:11  newhall
@@ -58,6 +61,7 @@
 #define SET_DIR 6
 #define SET_DAEMON 7
 #define SET_FORCE 8
+#define SET_LIMIT 9
 
 typedef enum {SET_MNAME, SET_UNITS, SET_AGG, SET_STYLE,
 	      SET_MFLAVOR, SET_MODE, SET_UNITTYPE, SET_CONSTRAINT, SET_TEMPS,
@@ -252,6 +256,7 @@ typedef struct field {
   int spec;
   string *flav;
   int force;
+  int limit;
 } field;
 
 typedef struct string_list {
@@ -395,8 +400,8 @@ private:
 
 class visiMet {
 public:
-  visiMet() : force_(0) { }
-  visiMet(string& nm, string& u, string& h, string& e, string& c, int& f);
+  visiMet() : force_(0), limit_(0) { }
+  visiMet(string& nm,string& u,string& h,string& e,string& c,int& f,int& l);
   ~visiMet() { }
 
   bool set_field (field &f);
@@ -409,6 +414,7 @@ public:
   string name() const { return name_; }
   string command() const { return command_; }
   int force() const { return force_; }
+  int limit() const { return limit_; }
 
   static vector<visiMet*> allVisis;
 
@@ -419,6 +425,7 @@ private:
   string execDir_;
   string command_;
   int force_;
+  int limit_;
 
 };
 

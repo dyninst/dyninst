@@ -3,7 +3,10 @@
 
 /*
  * $Log: metParser.y,v $
- * Revision 1.19  1996/03/20 17:04:20  mjrg
+ * Revision 1.20  1996/04/04 21:55:27  newhall
+ * added limit option to visi definition
+ *
+ * Revision 1.19  1996/03/20  17:04:20  mjrg
  * Changed mdl to support calls with multiple arguments.
  *
  * Revision 1.18  1996/03/01 22:49:16  mjrg
@@ -104,7 +107,7 @@ extern void handle_error();
 %token tDAEMON tPROCESS tTUNABLE_CONSTANT tIDENT 
 %token tCOMMAND tARGS tHOST tLITERAL tFLOAT tCOMMA
 %token tSEMI tFLAVOR tNAME
-%token tRES_LIST tVISI tUSER tDIR tFALSE tTRUE tFORCE
+%token tRES_LIST tVISI tUSER tDIR tFALSE tTRUE tFORCE tLIMIT
 
 %token tT_PROCEDURE tT_MODULE tT_STRING tT_INT tT_FLOAT tTRUE tFALSE tDEFAULT
 %token tFOREACH tLPAREN tRPAREN tLBLOCK tRBLOCK tCOLON tDOLLAR tAMPERSAND
@@ -235,6 +238,8 @@ vItem: tCOMMAND tLITERAL tSEMI
            { $$.fld.val = $2.sp; $$.fld.spec = SET_DIR;};
      | tFORCE tUNS tSEMI
            { $$.fld.force = $2.u; $$.fld.spec = SET_FORCE;};
+     | tLIMIT tUNS tSEMI
+           { $$.fld.limit = $2.u; $$.fld.spec = SET_LIMIT;};
 
 processDef: tPROCESS tIDENT processItem {
                field f;

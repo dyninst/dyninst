@@ -3,7 +3,10 @@
  * Implements classes used for metric description language
  *
  * $Log: metClass.C,v $
- * Revision 1.5  1995/11/08 06:23:33  tamches
+ * Revision 1.6  1996/04/04 21:55:23  newhall
+ * added limit option to visi definition
+ *
+ * Revision 1.5  1995/11/08  06:23:33  tamches
  * removed some warnings
  *
  * Revision 1.4  1995/05/18 10:58:15  markc
@@ -185,6 +188,9 @@ bool visiMet::set_field(field &f)
       force_ = 0;
     }
     break;
+  case SET_LIMIT:
+    limit_ = f.limit;
+    break;
   default:
     return false;
   }
@@ -272,7 +278,8 @@ bool processMet::addProcess(processMet *pm)
   return true;
 }
 
-visiMet::visiMet(string &nm, string &u, string &h, string &e, string &c, int &f) 
+visiMet::visiMet(string &nm, string &u, string &h, string &e, string &c, 
+		int &f,int &l) 
   : name_(nm), user_(u), host_(h), execDir_(e) { }
 
 void visiMet::dumpAll()
