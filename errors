@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.9  1994/04/22 21:48:54  hollings
+# Revision 1.10  1994/04/22 21:51:17  hollings
+# created error #9
+#
+# Revision 1.9  1994/04/22  21:48:54  hollings
 # created error #8
 #
 # Revision 1.8  1994/04/19  18:59:35  hollings
@@ -113,4 +116,15 @@ was already being attempted.
 An attempt to lookup a search history graph node failed.  The passed interger
 name of the node was not found in the list of nodes.
 
+%Y
+
+%N 9
+%E search history graph ancestor not true
+%A pc
+%S information
+%X
+An attempt to set the current refinement to a node failed becuase one of the
+ancesstors of that node is false.  To manually select a SHG node, you must
+select a node which is true.  In addition, all of it's ancesstors back to
+the root must also be true.
 %Y
