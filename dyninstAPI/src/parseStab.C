@@ -376,7 +376,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      /* Get variable type number */
 	      symdescID = parseTypeUse(mod, stabstr, cnt, name);
 	      if (stabstr[cnt]) {
-		  fprintf(stderr, "\tMore to parse %s\n", &stabstr[cnt]);
+		  fprintf(stderr, "\tMore to parse - global var %s\n", &stabstr[cnt]);
 		  fprintf(stderr, "\tFull String: %s\n", stabstr);
 	      }
 	      // lookup symbol and set type
@@ -407,7 +407,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  // parameter type information, not used for now
 		  cnt = strlen(stabstr);
 	      } else if (stabstr[cnt]) {
-		  fprintf(stderr, "\tMore to parse %s\n", &stabstr[cnt]);
+		  fprintf(stderr, "\tMore to parse func param %s\n", &stabstr[cnt]);
 		  fprintf(stderr, "\tFull String: %s\n", stabstr);
 	      }
 
@@ -509,12 +509,13 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      //Create BPatch_type.
 	      if (stabstr[cnt] == '=') {
 		/* More Stuff to parse, call parseTypeDef */
+		char *oldStr = stabstr;
 		stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name, symdescID);
 		cnt = 0;
 		// AIX seems to append an semi at the end of these
 		if (stabstr[0] && strcmp(stabstr, ";")) {
-		    fprintf(stderr, "\tMore to parse %s\n", stabstr);
-		  fprintf(stderr, "\tFull String: %s\n", stabstr);
+		    fprintf(stderr, "\tMore to parse creating type %s\n", stabstr);
+		  fprintf(stderr, "\tFull String: %s\n", oldStr);
 		}
 	      } else {
 		//Create BPatch_type defined as a pre-exisitng type.
@@ -555,7 +556,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  stabstr = parseTypeDef(mod,(&stabstr[cnt+1]),name,symdescID);
 		  cnt = 0;
 		  if (stabstr[0]) {
-		      fprintf(stderr, "\tMore to parse %s\n", (&stabstr[cnt]));
+		      fprintf(stderr, "\tMore to parse aggregate type %s\n", (&stabstr[cnt]));
 		  fprintf(stderr, "\tFull String: %s\n", stabstr);
 		  }
 	      } else {
@@ -573,7 +574,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      /* Get variable type number */
 	      symdescID = parseTypeUse(mod, stabstr, cnt, name);
 	      if (stabstr[cnt]) {
-		  fprintf(stderr, "\tMore to parse %s\n", &stabstr[cnt]);
+		  fprintf(stderr, "\tMore to parse local static %s\n", &stabstr[cnt]);
 		  fprintf(stderr, "\tFull String: %s\n", stabstr);
 	      }
 	      // lookup symbol and set type
@@ -822,7 +823,7 @@ static char *parseCrossRef(BPatch_typeCollection *moduleTypes,const char *name,
 // 		   ar<symDesc>;<symDesc>;<symDesc>;<arrayDef>
 //
 static BPatch_type *parseArrayDef(BPatch_module *mod, const char *name,
-		     int ID, char *stabstr, int &cnt)
+		     int ID, char *&stabstr, int &cnt)
 {
     char *symdesc;
     int symdescID;
@@ -845,7 +846,8 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, const char *name,
     symdesc = &(stabstr[cnt]);
 
     cnt++;	/* skip 'r' */
-    symdescID = parseSymDesc(stabstr, cnt);
+
+    symdescID = parseTypeUse(mod, stabstr, cnt, name);
  
     cnt++; /* skip semicolon */
     lowbound = parseSymDesc(stabstr, cnt);
@@ -1088,9 +1090,12 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
     cnt = cnt + i;
     if( stabstr[cnt] == ';')
       cnt++;
+#ifdef notdef
+    // ranges can now be used as part of an inline typdef
     if( stabstr[cnt] ) {
       fprintf(stderr, "ERROR: More to parse in type-r- %s\n", &(stabstr[cnt]));
     }
+#endif
     
     return(&(stabstr[cnt]));
 }
@@ -1619,6 +1624,9 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 		newType = mod->moduleTypes->addOrUpdateType(newType);
 
 		if (stabstr[cnt] == ';') cnt++;	// skip the final ';'
+
+		// gcc 3.0 adds an extra field that is always 0 (no indication in the code why)
+		if (stabstr[cnt] == '0') cnt += 2;	// skip the final '0;'
 
 		break;
 	  }
