@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.59 1999/03/19 18:07:21 csserra Exp $
+// $Id: symtab.h,v 1.60 1999/05/03 20:00:11 zandy Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -156,6 +156,7 @@ public:
     void setTag(unsigned tg){ tag_ = tg; }
 
     virtual Address getAddress(const process *p) = 0;
+    virtual Address getEffectiveAddress(const process *p) const = 0;
     virtual const instPoint *funcEntry(process *p) const = 0;
     virtual const vector<instPoint*> &funcExits(process *p) const = 0;
     virtual const vector<instPoint*> &funcCalls(process *p) const = 0; 
@@ -204,6 +205,7 @@ class pd_Function : public function_base {
 	} }
 	return addr();
     }
+    Address getEffectiveAddress(const process *p) const;
     const instPoint *funcEntry(process *p) const {
         if(relocatable_) { 
 	  for(u_int i=0; i < relocatedByProcess.size(); i++){

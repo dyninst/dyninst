@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.92 1999/04/26 17:30:39 buck Exp $
+// $Id: symtab.C,v 1.93 1999/05/03 20:00:09 zandy Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,6 +57,7 @@
 #include "util/h/Timer.h"
 #include "dyninstAPI/src/showerror.h"
 #include "util/h/debugOstream.h"
+#include "dyninstAPI/src/process.h" // for process::getBaseAddress()
 
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/mdld.h"
@@ -1766,6 +1767,25 @@ pd_Function::pd_Function(const string &symbol, const string &pretty,
   relocatable_(false)
 {
   err = findInstPoints(owner) == false;
+}
+
+// This method returns the address at which this function resides
+// in the process P, even if it is dynamic, even if it has been
+// relocated.  getAddress() (see symtab.h) does not always do this:
+// If the function is in a shlib and it has not been relocated,
+// getAddress() only returns the relative offset of the function
+// within its shlib.  We think that getAddress() should be fixed
+// to always return the effective address, but we are not sure
+// whether that would boggle any of its 75 callers.  Until that is
+// cleared up, call this method. -zandy, Apr-26-1999
+Address pd_Function::getEffectiveAddress(const process *p) const {
+     assert(p);
+     // Even if the function has been relocated, call it at its
+     // original address since the call will be redirected to the
+     // right place anyway.
+     Address base;
+     p->getBaseAddress(file()->exec(), base);
+     return base + addr();
 }
 
 // image::addAllFunctions dupliactes this section of code.
