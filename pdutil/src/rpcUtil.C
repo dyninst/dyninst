@@ -7,10 +7,6 @@
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
 // malloc 
 
-#ifdef MIPS
-#define MALLOC_DEFINED_AS_VOID
-#endif
-
 #include "util/h/rpcUtil.h"
 
 int RPCdefaultXDRRead(int handle, char *buf, u_int len)
