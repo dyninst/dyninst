@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.181 2000/10/27 23:04:37 zandy Exp $
+// $Id: metricFocusNode.C,v 1.182 2000/12/12 21:03:24 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -169,7 +169,7 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
   // CM5 metrics need aggOp to be set
   inserted_(false), installed_(false), met_(met_name), focus_(foc), 
   component_focus(component_foc), flat_name_(component_flat_name),
-  aggSample(0, sampleInfo::add),  // unused
+  aggSample(0, metAggInfo.get_proportionCalc(metric_style)),
   cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), proc_(p), 
   style_(metric_style)
 {
