@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.27  1994/11/03 22:15:19  tamches
+# Revision 1.28  1994/11/04 20:10:02  karavan
+# Sent flicker back to the sea where it belongs...
+#
+# Revision 1.27  1994/11/03  22:15:19  tamches
 # change "Start Perf Consultant" to "Performance Consultant"
 #
 # Revision 1.26  1994/11/03  22:13:37  tamches
@@ -171,84 +174,86 @@ proc drawToolBar {} {
     bind Entry <2> { %W insert insert [selection get] }
 
     wm minsize . 600 600
-
-    frame .menub -relief raised -borderwidth 2
-    frame .where  -background "#d04b8b3edcab" -borderwidth 4
-    frame .status  -relief raised -borderwidth 4
-    frame .main
-    frame .buttons -relief raised -borderwidth 4
-    mkButtonBar .buttons {} retval {{RUN "paradyn cont"} \
+    frame .parent -geometry 600x600
+    pack propagate .parent 0
+    pack .parent -fill both -expand 1
+    frame .parent.menub -relief raised -borderwidth 2
+    frame .parent.where  -background "#d04b8b3edcab" -borderwidth 4
+    frame .parent.status  -relief raised -borderwidth 4
+    frame .parent.main
+    frame .parent.buttons -relief raised -borderwidth 4
+    mkButtonBar .parent.buttons {} retval {{RUN "paradyn cont"} \
 	    {PAUSE "paradyn pause"} {SAVE ""} \
 	    {EXIT "destroy ."}}
-    .buttons.2 configure -state disabled
+    .parent.buttons.2 configure -state disabled
 
-    frame .menub.left
-    label .menub.left.title -text "Paradyn Main Control" \
+    frame .parent.menub.left
+    label .parent.menub.left.title -text "Paradyn Main Control" \
           -font *-New*Century*Schoolbook-Bold-R-*-14-* \
           -relief raised -background #b3331e1b53c7 -foreground white
 
-    frame .menub.left.men -class TopMenu -borderwidth 2 -relief raised
-    menubutton .menub.left.men.b0 -text "File" -menu .menub.left.men.b0.m 
-    menubutton .menub.left.men.b1 -text "Setup" -menu .menub.left.men.b1.m 
-#    menubutton .menub.left.men.b3 -text "Metrics"
-#    menubutton .menub.left.men.b2 -text "Options" -menu .menub.left.men.b2.m
-    menubutton .menub.left.men.b5 -text "Visualization" \
-	    -menu .menub.left.men.b5.m 
-    menubutton .menub.left.men.b6 -text "Help" 
+    frame .parent.menub.left.men -class TopMenu -borderwidth 2 -relief raised
+    menubutton .parent.menub.left.men.b0 -text "File" -menu .parent.menub.left.men.b0.m 
+    menubutton .parent.menub.left.men.b1 -text "Setup" -menu .parent.menub.left.men.b1.m 
+#    menubutton .parent.menub.left.men.b3 -text "Metrics"
+#    menubutton .parent.menub.left.men.b2 -text "Options" -menu .menub.left.men.b2.m
+    menubutton .parent.menub.left.men.b5 -text "Visualization" \
+	    -menu .parent.menub.left.men.b5.m 
+    menubutton .parent.menub.left.men.b6 -text "Help" 
 
-    menu .menub.left.men.b5.m -postcommand \
-	    {uimpd drawStartVisiMenu .menub.left.men.b5.m}
+    menu .parent.menub.left.men.b5.m -postcommand \
+	    {uimpd drawStartVisiMenu .parent.menub.left.men.b5.m}
 
-    menu .menub.left.men.b0.m
-    .menub.left.men.b0.m add command -label "Exit Paradyn" -command "destroy ."
+    menu .parent.menub.left.men.b0.m
+    .parent.menub.left.men.b0.m add command -label "Exit Paradyn" -command "destroy ."
        # the -command is the same as the command executed when "EXIT"
        # button (lower right of screen) is clicked on.  If this is not right,
        # then by all means change it.
  
-    menu .menub.left.men.b1.m 
-    .menub.left.men.b1.m add command -label "Define A Process" \
+    menu .parent.menub.left.men.b1.m 
+    .parent.menub.left.men.b1.m add command -label "Define A Process" \
 	    -command DefineProcess
-    .menub.left.men.b1.m add command -label "Performance Consultant" \
+    .parent.menub.left.men.b1.m add command -label "Performance Consultant" \
 	    -command {paradyn shg start}
-    .menub.left.men.b1.m add command -label "Tunable Constants Control" \
+    .parent.menub.left.men.b1.m add command -label "Tunable Constants Control" \
             -command {tunableEntryPoint}
-    .menub.left.men.b1.m add command -label "Options Control" \
+    .parent.menub.left.men.b1.m add command -label "Options Control" \
 	    -state disabled
 
-#    menu .menub.left.men.b2.m 
-#    .menub.left.men.b2.m add command -label "Error History" \
+#    menu .parent.menub.left.men.b2.m 
+#    .parent.menub.left.men.b2.m add command -label "Error History" \
 #	    -command {showErrorHistory}
-#    .menub.left.men.b2.m add command -label "Where Axis Postscript C" \
-#	    -command ".baseWA.dag._c_ postscript -colormode color \
+#    .parent.menub.left.men.b2.m add command -label "Where Axis Postscript C" \
+#	    -command ".parent.baseWA.dag._c_ postscript -colormode color \
 #	    -file cwhere.ps -pageheight 3.0i"
 #    .menub.left.men.b2.m add command -label "Where Axis Postscript Gr" \
-#	    -command ".baseWA.dag._c_ postscript -colormode gray \
+#	    -command ".parent.baseWA.dag._c_ postscript -colormode gray \
 #	    -file gwhere.ps -pageheight 3.0i"
 #    .menub.left.men.b2.m add command -label "Where Axis Postscript BW" \
-#	    -command ".baseWA.dag._c_ postscript -colormode mono \
+#	    -command ".parent.baseWA.dag._c_ postscript -colormode mono \
 #	    -file mwhere.ps -pageheight 3.0i"
 
-    set mb .menub.left.men
+    set mb .parent.menub.left.men
 #    tk_menuBar $mb $mb.b1 $mb.b2 $mb.b3 $mb.b4 $mb.b5 $mb.b6
     tk_menuBar $mb $mb.b0 $mb.b1 $mb.b5 $mb.b6
 
     wm title . "Paradyn"
 
-    pack .menub -side top -fill x
-    pack .where -side top -fill both -expand 1
-    pack .status -side top -fill x -expand 0
-    pack .buttons -side bottom -fill x 
+    pack .parent.menub -side top -fill x
+    pack .parent.where -side top -fill both -expand 1
+    pack .parent.status -side top -fill x -expand 0
+    pack .parent.buttons -side bottom -fill x 
 
-    pack .menub.left.men.b6 -side right -padx 10
-#    pack .menub.left.men.b1 .menub.left.men.b3 .menub.left.men.b2 \
-#	    .menub.left.men.b5 \
+    pack .parent.menub.left.men.b6 -side right -padx 10
+#    pack .parent.menub.left.men.b1 .parent.menub.left.men.b3 .parent.menub.left.men.b2 \
+#	    .parent.menub.left.men.b5 \
 #	    -side left -padx 10
-    pack .menub.left.men.b0 .menub.left.men.b1 .menub.left.men.b5 \
+    pack .parent.menub.left.men.b0 .parent.menub.left.men.b1 .parent.menub.left.men.b5 \
 	    -side left -padx 10
-    pack .menub.left -side left -fill both -expand 1
-    mkLogo .menub.logobox right
+    pack .parent.menub.left -side left -fill both -expand 1
+    mkLogo .parent.menub.logobox right
 
-    pack .menub.left.title .menub.left.men -side top -fill both -expand 1
+    pack .parent.menub.left.title .parent.menub.left.men -side top -fill both -expand 1
 
     # read in error file
 
