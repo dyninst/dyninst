@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-X.C,v 1.3 2002/04/09 18:06:54 mjbrim Exp $
+// $Id: templates-X.C,v 1.4 2002/12/20 07:50:09 jaw Exp $
 
 #if !defined(rs6000_ibm_aix4_1)
 ERROR: "templates-X is only for AIX"
@@ -53,10 +53,10 @@ ERROR: "templates-X is only for AIX"
 template class dictionary_hash<string, Symbol>;
 
 #ifndef external_templates
-template class vector<string>;
-template class vector<u_int>;
-template class vector<Symbol>;
-template class vector<dictionary_hash<string, Symbol>::entry>;
+template class pdvector<string>;
+template class pdvector<u_int>;
+template class pdvector<Symbol>;
+template class pdvector<dictionary_hash<string, Symbol>::entry>;
 #endif
 
 // visualizationUser stuff
@@ -67,7 +67,7 @@ template class vector<dictionary_hash<string, Symbol>::entry>;
 void visualizationUser::GetPhaseInfo() {
    // visi asking us to list the currently defined phases
    cerr << "visualizationUser::GetPhaseInfo()" << endl;
-   ////vector<T_visi::phase_info> phases;
+   ////pdvector<T_visi::phase_info> phases;
    ////this->PhaseData(phases);
    assert(0);
 }

@@ -41,7 +41,7 @@
 
 /*
  * Generate code for template classes used by libpdutil
- * $Id: templates.C,v 1.17 2002/08/20 17:51:12 tlmiller Exp $
+ * $Id: templates.C,v 1.18 2002/12/20 07:50:08 jaw Exp $
  */
 
 #include "pdutil/src/PriorityQueue.C"
@@ -55,4 +55,4 @@ template void std::__pad<char, std::char_traits<char> >(std::ios_base&, char, ch
 #endif
 #endif
 template class PriorityQueue<timeStamp, pdSample>;
-template class vector<RPCSockCallbackFunc>;
+template class pdvector<RPCSockCallbackFunc>;

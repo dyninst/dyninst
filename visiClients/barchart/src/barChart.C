@@ -47,7 +47,7 @@
 // for maximum speed.  Can be done from makefile, e.g. a "make optimized"
 // option which does -O and -DNDEBUG
 
-/* $Id: barChart.C,v 1.31 2002/05/13 19:54:00 mjbrim Exp $ */
+/* $Id: barChart.C,v 1.32 2002/12/20 07:50:09 jaw Exp $ */
 
 // tk/tcl has a very nice interface for mixing C++ and tk/tcl
 // scripts.  From within tcl, C++ code can be called via
@@ -101,15 +101,15 @@ BarChart *theBarChart;
 
 BarChart::BarChart(char *tkWindowName,
 		   int initNumMetrics, int initNumResources,
-		   const vector<string> &barColorNames) :
+		   const pdvector<string> &barColorNames) :
 	    drawWhenIdle(&lowestLevelDrawBars),
 	    metricColorNames(barColorNames),
             metricColors(metricColorNames.size()),
 	    indirectResources(initNumResources),
 	    validMetrics(initNumMetrics),
 	    validResources(initNumResources),
-	    values(initNumMetrics, *(new vector<double>(initNumResources))),
-	    barPixWidths(initNumMetrics, *(new vector<int>(initNumResources))),
+	    values(initNumMetrics, *(new pdvector<double>(initNumResources))),
+	    barPixWidths(initNumMetrics, *(new pdvector<int>(initNumResources))),
             metricCurrMaxVals(initNumMetrics)
              {
 

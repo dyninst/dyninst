@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.130 2002/10/14 21:02:18 bernat Exp $
+// $Id: inst-sparc.C,v 1.131 2002/12/20 07:49:57 jaw Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1403,7 +1403,7 @@ void pd_Function::modifyInstPoint(const instPoint *&location,process *proc)
                     location = new_entry;
                 } 
                 else if(location->ipType == functionExit){
-                    const vector<instPoint *> new_returns = 
+                    const pdvector<instPoint *> new_returns = 
                         (relocatedByProcess[i])->funcReturns(); 
                     if(funcReturns.size() != new_returns.size()){
                         printf("funcReturns = %d new_returns = %d\n",
@@ -1419,7 +1419,7 @@ void pd_Function::modifyInstPoint(const instPoint *&location,process *proc)
                     }
                 }
                 else if(location->ipType == otherPoint) {
-                    const vector<instPoint *> new_arbitrary = 
+                    const pdvector<instPoint *> new_arbitrary = 
                         (relocatedByProcess[i])->funcArbitraryPoints(); 
 
                     assert(arbitraryPoints.size() == new_arbitrary.size());
@@ -1431,7 +1431,7 @@ void pd_Function::modifyInstPoint(const instPoint *&location,process *proc)
                     }
 		}
 		else {
-                    const vector<instPoint *> new_calls = 
+                    const pdvector<instPoint *> new_calls = 
                                 (relocatedByProcess[i])->funcCallSites(); 
                     assert(calls.size() == new_calls.size());
                     for(u_int j=0; j < new_calls.size(); j++){
@@ -1454,7 +1454,7 @@ void pd_Function::modifyInstPoint(const instPoint *&location,process *proc)
 //
 // find all DYNINST symbols that are data symbols
 //
-bool process::heapIsOk(const vector<sym_data> &find_us) {
+bool process::heapIsOk(const pdvector<sym_data> &find_us) {
   Symbol sym;
   Address baseAddr;
 
@@ -1553,7 +1553,7 @@ bool registerSpace::readOnlyRegister(Register /*reg_number*/) {
 /****************************************************************************/
 /****************************************************************************/
 
-bool returnInstance::checkReturnInstance(const vector<vector<Frame> > &stackWalks)
+bool returnInstance::checkReturnInstance(const pdvector<pdvector<Frame> > &stackWalks)
 {
   // If false (unsafe) is returned, then 'index' is set to the first unsafe call stack
   // index.
@@ -1696,7 +1696,7 @@ bool process::isDynamicCallSite(instPoint *callSite){
 bool process::MonitorCallSite(instPoint *callSite){
  
   if(isJmplInsn(callSite->firstInstruction)){
-    vector<AstNode *> the_args(2);
+    pdvector<AstNode *> the_args(2);
     
     //this instruction is a jmpl with i == 1, meaning it
     //calling function register rs1+simm13
@@ -2048,7 +2048,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 	    return NULL;
 	}
 
-	const vector<instPoint*> &exits = func->funcExits(NULL);
+	const pdvector<instPoint*> &exits = func->funcExits(NULL);
 	for (i = 0; i < exits.size(); i++) {
 	    assert(exits[i]);
 
@@ -2065,7 +2065,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 	    }
 	}
 
-	const vector<instPoint*> &calls = func->funcCalls(NULL);
+	const pdvector<instPoint*> &calls = func->funcCalls(NULL);
 	for (i = 0; i < calls.size(); i++) {
 	    assert(calls[i]);
 

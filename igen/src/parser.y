@@ -189,7 +189,7 @@ typeSpec: classOrStruct tIDENT optDerived
 optDerived: {$$.derived.is_derived = false; $$.derived.name = new string;}
           | tCOLON tIDENT {$$.derived.is_derived=true; $$.derived.name = $2.cp;};
 
-fieldDeclList:  { $$.arg_vector = new vector<arg*>; }
+fieldDeclList:  { $$.arg_vector = new pdvector<arg*>; }
 | fieldDeclList fieldDecl {
   (*$1.arg_vector)+= $2.args;
 };
@@ -325,14 +325,14 @@ funcArg: optConst typeName pointers {
 	  };
 
 nonEmptyArg: funcArg {    
-  $$.arg_vector = new vector<arg*>;
+  $$.arg_vector = new pdvector<arg*>;
   (*$$.arg_vector)+= $1.args;
 }
 | nonEmptyArg tCOMMA funcArg {
   (*$1.arg_vector)+= $3.args;
 };
 
-arglist:		{ $$.arg_vector = new vector<arg*>; }
+arglist:		{ $$.arg_vector = new pdvector<arg*>; }
 | nonEmptyArg	{
   $$.arg_vector = $1.arg_vector;
 };

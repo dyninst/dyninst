@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCmetricInst.h,v 1.18 2002/04/09 18:06:12 mjbrim Exp $
+// $Id: PCmetricInst.h,v 1.19 2002/12/20 07:50:02 jaw Exp $
 // The PCmetricInst class and the PCmetricInstServer class.
 
 #ifndef pc_metric_inst_h
@@ -129,13 +129,13 @@ private:
                           //   ports enabled 
   unsigned DataStatus;    // updated by data arriving on each port
   int numInPorts;         // how many IN ports?
-  vector<inPort> AllData;
+  pdvector<inPort> AllData;
   pdRate *AllCurrentValues;
   unsigned TimesAligned;  // flag that beginning stage has passed
   bool active;            // is data collection active for this PCmetInst?
   bool costFlag;          // if true, data collection continues during pause
   filteredDataServer *db; // source of all raw data
-  vector<dataSubscriber *> costWaitList; // waiting for initial cost estimate
+  pdvector<dataSubscriber *> costWaitList; // waiting for initial cost estimate
 };
 
 ostream& operator <<(ostream &os, PCmetricInst &pcm);
@@ -162,7 +162,7 @@ class PCmetricInstServer {
 			     focus f,
 			     bool *errFlag);
  private:
-  vector<PCMRec> AllData;
+  pdvector<PCMRec> AllData;
   filteredDataServer *datasource;
 };
 

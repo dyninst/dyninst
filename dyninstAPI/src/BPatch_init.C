@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_init.C,v 1.10 2002/06/17 21:31:14 chadd Exp $
+// $Id: BPatch_init.C,v 1.11 2002/12/20 07:49:55 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -53,14 +53,14 @@ extern int getNumberOfCPUs();
 
 int numberOfCPUs;
 
-vector<instMapping*> initialRequests;
+pdvector<instMapping*> initialRequests;
 
 #if !defined(BPATCH_LIBRARY) // ccw 19 apr 2002 : SPLIT
-vector<instMapping*> initialRequestsPARADYN;
-vector<sym_data> syms_to_findPARADYN;
+pdvector<instMapping*> initialRequestsPARADYN;
+pdvector<sym_data> syms_to_findPARADYN;
 #endif
 
-vector<sym_data> syms_to_find;
+pdvector<sym_data> syms_to_find;
 
 bool dyninstAPI_init() {
 
@@ -83,21 +83,10 @@ bool dyninstAPI_init() {
   const char *sigactionF="_libc_sigaction";
 #endif
 
-#if !defined(USE_STL_VECTOR)
-  vector<AstNode*> argList(3);
+  pdvector<AstNode*> argList(3);
   static AstNode  sigArg(AstNode::Param, (void*) 0); argList[0] = &sigArg;
   static AstNode  actArg(AstNode::Param, (void*) 1); argList[1] = &actArg;
   static AstNode oactArg(AstNode::Param, (void*) 2); argList[2] = &oactArg;
-#else
-  vector<AstNode*> argList;
-  static AstNode  sigArg(AstNode::Param, (void*) 0); 
-  argList.push_back(&sigArg);
-  static AstNode  actArg(AstNode::Param, (void*) 1); 
-  argList.push_back(&actArg);
-  static AstNode oactArg(AstNode::Param, (void*) 2); 
-  argList.push_back(&oactArg);    
-#endif
-
       
   initialRequests.push_back(new instMapping(sigactionF, "DYNINSTdeferSigHandler",
                                      FUNC_ENTRY|FUNC_ARG, argList));

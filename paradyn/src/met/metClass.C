@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metClass.C,v 1.13 2001/04/25 18:41:38 wxd Exp $
+// $Id: metClass.C,v 1.14 2002/12/20 07:50:06 jaw Exp $
 
 // Implements classes used for metric description language
 
@@ -47,14 +47,14 @@
 #include <assert.h>
 
 
-vector<daemonMet*> daemonMet::allDaemons;
-vector<processMet*> processMet::allProcs;
-vector<visiMet*> visiMet::allVisis;
-vector<tunableMet*> tunableMet::allTunables;
+pdvector<daemonMet*> daemonMet::allDaemons;
+pdvector<processMet*> processMet::allProcs;
+pdvector<visiMet*> visiMet::allVisis;
+pdvector<tunableMet*> tunableMet::allTunables;
 
-static vector<string_list*> all_strings;
+static pdvector<string_list*> all_strings;
 
-void add_string_list(string& name, vector<string>& elem) {
+void add_string_list(string& name, pdvector<string>& elem) {
   unsigned size = all_strings.size();
   for (unsigned u=0; u<size; u++)
     if (all_strings[u]->name == name) {
@@ -220,7 +220,7 @@ bool visiMet::set_field(field &f)
     break;
   case SET_METFOCUS:
     if (metfocus_ == NULL)
-    	metfocus_ = new vector<string>;
+    	metfocus_ = new pdvector<string>;
     (*metfocus_) += *f.val;
     break;
   default:

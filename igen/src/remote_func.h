@@ -16,7 +16,7 @@ public:
 		 async_call         // from client to server, async
 		 } call_type; 
 
-  remote_func(const string name, vector<arg*> *arglist, const call_type &ct,
+  remote_func(const string name, pdvector<arg*> *arglist, const call_type &ct,
 	      const bool &is_v, const arg &return_arg, const bool do_free);
   ~remote_func() { }
   bool operator== (const remote_func &other) const { return (other.name() == name_);}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: UIglobals.h,v 1.28 2002/08/02 21:00:32 pcroth Exp $ */
+/* $Id: UIglobals.h,v 1.29 2002/12/20 07:50:04 jaw Exp $ */
 
 /* UIglobals.h 
      definitions used by UI thread */
@@ -93,7 +93,7 @@ extern status_line *ui_status;
 extern int uim_maxError;     
 
 // metric-resource selection 
-extern vector<metric_focus_pair> uim_VisiSelections;
+extern pdvector<metric_focus_pair> uim_VisiSelections;
 
 int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
                       int argc, char **argv);

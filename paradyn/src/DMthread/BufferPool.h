@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: BufferPool.h,v 1.4 2000/07/28 17:21:41 pcroth Exp $ */
+/* $Id: BufferPool.h,v 1.5 2002/12/20 07:50:01 jaw Exp $ */
 
 #ifndef _BUFFER_POOL_H_
 #define _BUFFER_POOL_H_
@@ -70,8 +70,8 @@ class BufferPool {
    BufferPool();
   ~BufferPool();
 
-   vector<BUFFERITEM> *alloc(unsigned req_size);
-   void dealloc(vector<BUFFERITEM> *);
+   pdvector<BUFFERITEM> *alloc(unsigned req_size);
+   void dealloc(pdvector<BUFFERITEM> *);
 };
 
 template <class BUFFERITEM>
@@ -83,16 +83,16 @@ BufferPool<BUFFERITEM>::~BufferPool() {
 }
 
 template <class BUFFERITEM>
-vector<BUFFERITEM> *
+pdvector<BUFFERITEM> *
 BufferPool<BUFFERITEM>::alloc(unsigned req_size) {
-   vector <BUFFERITEM> *result = new vector<BUFFERITEM>(req_size);
+   pdvector <BUFFERITEM> *result = new pdvector<BUFFERITEM>(req_size);
    assert(result);
    return result;
 }
 
 template <class BUFFERITEM>
 void 
-BufferPool<BUFFERITEM>::dealloc(vector<BUFFERITEM> *buffer) {
+BufferPool<BUFFERITEM>::dealloc(pdvector<BUFFERITEM> *buffer) {
    delete buffer;
 }
 

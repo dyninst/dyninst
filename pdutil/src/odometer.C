@@ -43,7 +43,7 @@
 
 #include "pdutil/h/odometer.h"
 
-odometer::odometer(vector<unsigned> &iDigitRanges) :
+odometer::odometer(pdvector<unsigned> &iDigitRanges) :
         digitRanges(iDigitRanges), currValue(digitRanges.size()) {
    for (unsigned digitlcv=0; digitlcv < numDigits(); digitlcv++)
       currValue[digitlcv] = 0;

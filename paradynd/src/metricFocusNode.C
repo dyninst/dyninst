@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.235 2002/12/14 16:37:53 schendel Exp $
+// $Id: metricFocusNode.C,v 1.236 2002/12/20 07:50:07 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -99,7 +99,7 @@ extern pdDebug_ostream metric_cerr;
 extern pdDebug_ostream sampleVal_cerr;
 
 extern unsigned inferiorMemAvailable;
-extern vector<Address> getAllTrampsAtPoint(instInstance *instance);
+extern pdvector<Address> getAllTrampsAtPoint(instInstance *instance);
 
 void flush_batch_buffer();
 void batchSampleData(string metname, int mid, timeStamp startTimeStamp, 
@@ -113,7 +113,7 @@ unsigned mdnHash(const metricFocusNode *&mdn) {
   //  return ((unsigned) mdn);
 }
 
-vector<internalMetric*> internalMetric::allInternalMetrics;
+pdvector<internalMetric*> internalMetric::allInternalMetrics;
 
 // used to indicate the mi is no longer used.
 #define DELETED_MI 1
@@ -150,8 +150,8 @@ metricFocusNode::metricFocusNode()
 {
 }
 
-void metricFocusRequestCallbackInfo::makeCallback(const vector<int> &returnIDs,
-						  const vector<u_int> &mi_ids)
+void metricFocusRequestCallbackInfo::makeCallback(const pdvector<int> &returnIDs,
+						  const pdvector<u_int> &mi_ids)
 {
    assert(returnIDs.size() == mi_ids.size());
    tp->enableDataCallback(daemon_id, returnIDs, mi_ids, request_id);
@@ -191,7 +191,7 @@ machineMetFocusNode *doInternalMetric(int mid,
       // it's required that the internal metric's mdn be a "top level node"
       // (ie. AGG_MDN or AGG_MDN) in order for setInitialActualValue to send
       // the value the the front-end
-      vector<processMetFocusNode*> noParts;
+      pdvector<processMetFocusNode*> noParts;
       mn = new machineMetFocusNode(mid, metric_name, focus, noParts, 
 				   theIMetric->aggregate(), enable);
       assert(mn);
@@ -213,7 +213,7 @@ machineMetFocusNode *doInternalMetric(int mid,
 
       if (!nc->legalToInst(focus))
 	return (machineMetFocusNode*)-2;
-      vector<processMetFocusNode*> noParts;
+      pdvector<processMetFocusNode*> noParts;
       mn = new machineMetFocusNode(mid, metric_name, focus, noParts, 
 				   nc->aggregate(), enable);
       assert(mn);
@@ -229,7 +229,7 @@ machineMetFocusNode *doInternalMetric(int mid,
 }
 
 machineMetFocusNode *createMetricInstance(int mid, string& metric_name, 
-		        vector<u_int>& focusData,
+		        pdvector<u_int>& focusData,
 		        bool enable) // true if for real; false for guessCost()
 {
    // we make third parameter false to avoid printing warning messages in
@@ -249,7 +249,7 @@ machineMetFocusNode *createMetricInstance(int mid, string& metric_name,
 	 ready when it is not in neonatal state and the isBootstrappedYet
 	 returns true.
       */
-      vector<pd_process*> procs;
+      pdvector<pd_process*> procs;
 
       processMgr::procIter itr = getProcMgr().begin();
       while(itr != getProcMgr().end()) {
@@ -317,7 +317,7 @@ machineMetFocusNode *createMetricInstance(int mid, string& metric_name,
 // "this" is an aggregate(AGG_MDN or AGG_MDN) mi, not a component one.
 
 void metricFocusNode::handleNewProcess(process *p) {
-   vector<machineMetFocusNode *> allMachNodes;
+   pdvector<machineMetFocusNode *> allMachNodes;
    machineMetFocusNode::getMachineNodes(&allMachNodes);
 
    pd_process *pd_proc = getProcMgr().find_pd_process(p);
@@ -333,7 +333,7 @@ void metricFocusNode::handleDeletedProcess(pd_process *proc) {
    metric_cerr << "removeFromMetricInstances- proc: " << proc << ", pid: " 
 	       << proc->getPid() << "\n";
 
-   vector<processMetFocusNode *> greppedProcNodes;
+   pdvector<processMetFocusNode *> greppedProcNodes;
    processMetFocusNode::getProcNodes(&greppedProcNodes, proc->getPid());
    for(unsigned i=0; i<greppedProcNodes.size(); i++) {
       if (greppedProcNodes[i]->isBeingDeleted()) continue;
@@ -345,7 +345,7 @@ void metricFocusNode::handleDeletedProcess(pd_process *proc) {
 }
 
 void metricFocusNode::handleNewThread(pd_process *proc, pd_thread *thr) {
-   vector<processMetFocusNode *> procNodes;
+   pdvector<processMetFocusNode *> procNodes;
    assert(proc->multithread_ready());
    processMetFocusNode::getProcNodes(&procNodes, proc->getPid());
    for(unsigned i=0; i<procNodes.size(); i++) {
@@ -354,7 +354,7 @@ void metricFocusNode::handleNewThread(pd_process *proc, pd_thread *thr) {
 }
 
 void metricFocusNode::handleDeletedThread(pd_process *proc, pd_thread *thr) {
-   vector<processMetFocusNode *> procNodes;
+   pdvector<processMetFocusNode *> procNodes;
    assert(proc->multithread_ready());
    processMetFocusNode::getProcNodes(&procNodes, proc->getPid());
    for(unsigned i=0; i<procNodes.size(); i++) {
@@ -366,10 +366,10 @@ void metricFocusNode::handleDeletedThread(pd_process *proc, pd_thread *thr) {
 // called for the child process.
 void metricFocusNode::handleFork(const pd_process *parent, pd_process *child)
 {
-   vector<machineMetFocusNode *> allMachNodes;
+   pdvector<machineMetFocusNode *> allMachNodes;
    machineMetFocusNode::getMachineNodes(&allMachNodes);
 
-   vector<processMetFocusNode *> procNodesToUnfork;
+   pdvector<processMetFocusNode *> procNodesToUnfork;
 
    for (unsigned j=0; j < allMachNodes.size(); j++) {
       machineMetFocusNode *curNode = allMachNodes[j];
@@ -382,9 +382,8 @@ void metricFocusNode::handleFork(const pd_process *parent, pd_process *child)
    }
 }
 
-
 void metricFocusNode::handleExec(pd_process *pd_proc) {
-   vector<machineMetFocusNode *> allMachNodes;
+   pdvector<machineMetFocusNode *> allMachNodes;
    machineMetFocusNode::getMachineNodes(&allMachNodes);
 
    for (unsigned j=0; j < allMachNodes.size(); j++) {
@@ -401,7 +400,7 @@ void metricFocusNode::handleExec(pd_process *pd_proc) {
 // in particular, it sets the crucial vrble "id_"
 //
 instr_insert_result_t startCollecting(string& metric_name, 
-      vector<u_int>& focus, int mid, metricFocusRequestCallbackInfo *cbi)
+      pdvector<u_int>& focus, int mid, metricFocusRequestCallbackInfo *cbi)
 {
    // Make the unique ID for this metric/focus visible in MDL.
    string vname = "$globalId";
@@ -450,7 +449,7 @@ instr_insert_result_t startCollecting(string& metric_name,
    return insert_success;
 }
 
-timeLength guessCost(string& metric_name, vector<u_int>& focus) {
+timeLength guessCost(string& metric_name, pdvector<u_int>& focus) {
     // called by dynrpc.C (getPredictedDataCost())
    static int tempMetFocus_ID = -1;
 
@@ -484,7 +483,7 @@ bool BURST_HAS_COMPLETED = false;
    // the CM5), which will force the buffer to be flushed before it fills up
    // (if not, we'd have bad response time)
 
-vector<T_dyninstRPC::batch_buffer_entry> theBatchBuffer (SAMPLE_BUFFER_SIZE);
+pdvector<T_dyninstRPC::batch_buffer_entry> theBatchBuffer (SAMPLE_BUFFER_SIZE);
 unsigned int batch_buffer_next=0;
 
 // The following routines (flush_batch_buffer() and batchSampleData() are
@@ -503,7 +502,7 @@ void flush_batch_buffer() {
    // This would work but would always (in the igen call) copy the entire
    // vector.  This solution has the downside of calling new but is not too bad
    // and is clean.
-   vector<T_dyninstRPC::batch_buffer_entry> copyBatchBuffer(batch_buffer_next);
+   pdvector<T_dyninstRPC::batch_buffer_entry> copyBatchBuffer(batch_buffer_next);
    assert(copyBatchBuffer.size() <= theBatchBuffer.size());
    for (unsigned i=0; i< batch_buffer_next; i++) {
       copyBatchBuffer[i] = theBatchBuffer[i];
@@ -624,7 +623,7 @@ bool TRACE_BURST_HAS_COMPLETED = false;
    // the CM5), which will force the buffer to be flushed before it fills up
    // (if not, we'd have bad response time)
 
-vector<T_dyninstRPC::trace_batch_buffer_entry> theTraceBatchBuffer (TRACE_BUFFER_SIZE);
+pdvector<T_dyninstRPC::trace_batch_buffer_entry> theTraceBatchBuffer (TRACE_BUFFER_SIZE);
 unsigned int trace_batch_buffer_next=0;
 
 void flush_trace_batch_buffer(int program) {
@@ -633,7 +632,7 @@ void flush_trace_batch_buffer(int program) {
    if (trace_batch_buffer_next == 0)
       return;
 
-   vector<T_dyninstRPC::trace_batch_buffer_entry> copyTraceBatchBuffer(trace_batch_buffer_next);
+   pdvector<T_dyninstRPC::trace_batch_buffer_entry> copyTraceBatchBuffer(trace_batch_buffer_next);
    for (unsigned i=0; i< trace_batch_buffer_next; i++)
       copyTraceBatchBuffer[i] = theTraceBatchBuffer[i];
 
@@ -757,13 +756,13 @@ bool instPoint::match(instPoint *p)
 #if defined(MT_THREAD)
 bool level_index_match(unsigned level1, unsigned level2,
 		       unsigned index1, unsigned index2,
-		       vector<dataReqNode*> &data_tuple1, // initialization?
-		       vector<dataReqNode*> &data_tuple2,
-		       vector<dataReqNode*> datareqs1,
-		       vector<dataReqNode*> datareqs2)
+		       pdvector<dataReqNode*> &data_tuple1, // initialization?
+		       pdvector<dataReqNode*> &data_tuple2,
+		       pdvector<dataReqNode*> datareqs1,
+		       pdvector<dataReqNode*> datareqs2)
 {
   // defined in mdl.C
-  extern int index_in_data(unsigned lev, unsigned ind, vector<dataReqNode*>& data);
+  extern int index_in_data(unsigned lev, unsigned ind, pdvector<dataReqNode*>& data);
 
   int match_index1 = index_in_data(level1, index1, data_tuple1);
   int match_index2 = index_in_data(level2, index2, data_tuple2);
@@ -807,13 +806,13 @@ bool level_index_match(unsigned level1, unsigned level2,
 }
 #else
 bool variable_address_match(Address v1, Address v2, 
-			    vector<dataReqNode*> &data_tuple1, // initialization?
-			    vector<dataReqNode*> &data_tuple2,
-			    vector<dataReqNode*> datareqs1,
-			    vector<dataReqNode*> datareqs2)
+			    pdvector<dataReqNode*> &data_tuple1, // initialization?
+			    pdvector<dataReqNode*> &data_tuple2,
+			    pdvector<dataReqNode*> datareqs1,
+			    pdvector<dataReqNode*> datareqs2)
 {
   // defined in mdl.C
-  extern int index_in_data(Address v, vector<dataReqNode*>& data);
+  extern int index_in_data(Address v, pdvector<dataReqNode*>& data);
 
   int match_index1 = index_in_data(v1, data_tuple1);
   int match_index2 = index_in_data(v2, data_tuple2);
@@ -857,10 +856,10 @@ bool variable_address_match(Address v1, Address v2,
 
 /*
 bool AstNode::condMatch(AstNode* a,
-			vector<dataReqNode*> &data_tuple1, // initialization?
-			vector<dataReqNode*> &data_tuple2,
-			vector<dataReqNode*> datareqs1,
-			vector<dataReqNode*> datareqs2)
+			pdvector<dataReqNode*> &data_tuple1, // initialization?
+			pdvector<dataReqNode*> &data_tuple2,
+			pdvector<dataReqNode*> datareqs1,
+			pdvector<dataReqNode*> datareqs2)
 {
 
   unsigned i;

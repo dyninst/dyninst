@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.30 2002/10/28 04:54:43 schendel Exp $
+// $Id: templatesPD.C,v 1.31 2002/12/20 07:50:07 jaw Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -69,78 +69,78 @@
 #include "pdutil/h/pdSample.h"
 #include "paradynd/src/timeMgr.h"
 
-template class dictionary_hash <unsigned, vector<mdl_type_desc> >;
-template class vector<dictionary_hash <unsigned, vector<mdl_type_desc> >::entry>;
+template class dictionary_hash <unsigned, pdvector<mdl_type_desc> >;
+template class pdvector<dictionary_hash <unsigned, pdvector<mdl_type_desc> >::entry>;
 
-template class vector<functionName*>;
+template class pdvector<functionName*>;
 
-template class vector<aggComponent*>;
+template class pdvector<aggComponent*>;
 
-template class vector<internalMetric*>;
+template class pdvector<internalMetric*>;
 
-template class vector<mdl_focus_element>;
-template class vector<mdl_type_desc>;
-template class vector<mdl_var>;
+template class pdvector<mdl_focus_element>;
+template class pdvector<mdl_type_desc>;
+template class pdvector<mdl_var>;
 
-template class vector<costMetric *>;
+template class pdvector<costMetric *>;
 
-template class vector<instReqNode *>;
-template bool  find(const vector<instReqNode *> &, 
+template class pdvector<instReqNode *>;
+template bool  find(const pdvector<instReqNode *> &, 
 		    instReqNode * const &, 
 		    unsigned &);
-template class vector<internalMetric::eachInstance>;
+template class pdvector<internalMetric::eachInstance>;
 
 template class  dictionary_hash <unsigned, machineMetFocusNode*>;
-template class  vector<dictionary_hash <unsigned, machineMetFocusNode*>::entry>;
+template class  pdvector<dictionary_hash <unsigned, machineMetFocusNode*>::entry>;
 
 template class  dictionary_hash <string, instrCodeNode_Val*>;
-template class  vector<dictionary_hash <string, instrCodeNode_Val*>::entry>;
+template class  pdvector<dictionary_hash <string, instrCodeNode_Val*>::entry>;
 template class  dictionary_hash <string, instrCodeNode*>;
-template class  vector<dictionary_hash <string, instrCodeNode*>::entry>;
+template class  pdvector<dictionary_hash <string, instrCodeNode*>::entry>;
 
 template class  dictionary_hash <string, threadMetFocusNode_Val*>;
-template class  vector<dictionary_hash <string, threadMetFocusNode_Val*>::entry>;
+template class  pdvector<dictionary_hash <string, threadMetFocusNode_Val*>::entry>;
 
-template class  vector<instrDataNode*>;
-template class  vector<const instrDataNode*>;
+template class  pdvector<instrDataNode*>;
+template class  pdvector<const instrDataNode*>;
 
 template class dictionary_hash <unsigned, cpSample*>;
-template class vector<dictionary_hash <unsigned, cpSample*>::entry>;
+template class pdvector<dictionary_hash <unsigned, cpSample*>::entry>;
 
 template class dictionary_hash<string, Symbol>;
-template class vector<dictionary_hash<string, Symbol>::entry>;
+template class pdvector<dictionary_hash<string, Symbol>::entry>;
 
 template class dictionary_hash<string, string>;
-template class vector<dictionary_hash<string, string>::entry>;
+template class pdvector<dictionary_hash<string, string>::entry>;
 
-template class vector<dictionary_hash<unsigned int, resource *>::entry>;
+template class pdvector<dictionary_hash<unsigned int, resource *>::entry>;
 
-template class vector<timeStamp>;
-template class vector<pdSample>;
+template class pdvector<timeStamp>;
+template class pdvector<pdSample>;
 
 template class timeMgrBase<NoClass, NoArgs>;
 template class timeMgrBase<process, int>;
 template class timeMgr<process, int>;
 
 template class parentDataRec<processMetFocusNode>;
-template class vector< parentDataRec<processMetFocusNode> >;
+template class pdvector< parentDataRec<processMetFocusNode> >;
 
-template class vector<shmMgrPreallocInternal *>;
+template class pdvector<shmMgrPreallocInternal *>;
 
 template class dictionary_hash<string, int>;
-template class vector<dictionary_hash<string, int>::entry>;
+template class pdvector<dictionary_hash<string, int>::entry>;
 
 template class dictionary_hash<unsigned, int>;
-template class vector<dictionary_hash<unsigned, int>::entry>;
+template class pdvector<dictionary_hash<unsigned, int>::entry>;
 
 #include "paradynd/src/focus.h"
 
-template class vector<const Hierarchy *>;
+template class pdvector<const Hierarchy *>;
 
 #include "paradynd/src/pd_process.h"
-template class vector<pd_process*>;
+template class pdvector<pd_process*>;
 
 #include "paradynd/src/pd_thread.h"
-template class vector<pd_thread*>;
+template class pdvector<pd_thread*>;
 
 

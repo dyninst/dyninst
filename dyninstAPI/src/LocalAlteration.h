@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration.h,v 1.6 2002/03/12 18:40:02 jaw Exp $
+// $Id: LocalAlteration.h,v 1.7 2002/12/20 07:49:56 jaw Exp $
 
 #ifndef __LocalAlteration_H__
 #define __LocalAlteration_H__
@@ -152,7 +152,7 @@ class InsertNops : public LocalAlteration {
 class LocalAlterationSet {
   protected:
     // list of alterations, sorted by offset....
-    vector<LocalAlteration*> alterations;
+    pdvector<LocalAlteration*> alterations;
 
     // compact representation for set of size changes caused by rewriting
     //  function....
@@ -181,9 +181,8 @@ class LocalAlterationSet {
  
     // ....CONSTRUCTOR....
     LocalAlterationSet(pd_Function *f);
-    //#ifdef USE_STL_VECTOR
     LocalAlterationSet();
-    //#endif
+
     // flush the LocalAlterations out of alterations....
     void Flush();
 
@@ -205,31 +204,6 @@ class LocalAlterationSet {
     int getInstPointShift(int offset) {return ips.GetShift(offset);}
  
     int numInstrAddedAfter(int offset);
-    
-#ifdef USE_STL_VECTOR
-    LocalAlterationSet &operator=(const LocalAlterationSet &src) {
-#ifdef DEBUG_STL
-      cout << "copying Local Alteration Set" << endl;
-#endif
-      ordered = src.ordered;
-      iterIdx = src.iterIdx;
-      func = src.func;
-      fer = src.fer;
-    
-      for (unsigned int i = 0; i < alterations.size(); ++i) {
-	delete alterations[i];
-      }
-      alterations.clear();
-      
-      for (unsigned int i = 0; i < src.alterations.size(); ++i) {
-	alterations.push_back(src.alterations[i]);
-      }
-#ifdef DEBUG_STL
-      cout << "copied Local Alteration Set" << endl;
-#endif
-      return *this;
-    }
-#endif
 
     //  
     // ITERATOR CODE

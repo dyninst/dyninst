@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.115 2002/10/14 21:02:19 bernat Exp $
+ * $Id: inst-x86.C,v 1.116 2002/12/20 07:49:57 jaw Exp $
  */
 
 #include <iomanip.h>
@@ -239,7 +239,7 @@ void instPoint::checkInstructions() {
    and PT can use it. */
 static bool
 _canUseExtraSlot(const instPoint *pt, const instPoint *entry,
-		 const vector<instPoint*> &exits)
+		 const pdvector<instPoint*> &exits)
 {
      if (entry->size() < 2*JUMP_SZ)
 	  return false;
@@ -287,7 +287,7 @@ bool instPoint::canUseExtraSlot(process *proc) const
 static bool
 _usesTrap(const instPoint *pt,
 	  const instPoint *entry,
-	  const vector<instPoint*> &exits)
+	  const pdvector<instPoint*> &exits)
 {
      /* If this point is big enough to hold a 32-bit jump to any
 	basetramp, it doesn't need a trap. */
@@ -322,7 +322,7 @@ void pd_Function::checkCallPoints() {
   instPoint *p;
   Address loc_addr;
 
-  vector<instPoint*> non_lib;
+  pdvector<instPoint*> non_lib;
 
   for (i=0; i<calls.size(); ++i) {
     /* check to see where we are calling */
@@ -782,7 +782,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 	points[u].point->checkInstructions();
 
    // create and sort vector of instPoints
-   vector<instPoint*> foo;
+   pdvector<instPoint*> foo;
    sorted_ips_vector(foo);
 
    for (unsigned i=0;i<foo.size();i++) {
@@ -2251,16 +2251,16 @@ static inline void emitEnter(short imm16, unsigned char *&insn) {
 Register emitFuncCall(opCode op, 
 		      registerSpace *rs,
 		      char *ibuf, Address &base,
-		      const vector<AstNode *> &operands, 
+		      const pdvector<AstNode *> &operands, 
 		      const string &callee, process *proc,
 	              bool noCost, const function_base *calleefunc,
-		      const vector<AstNode *> &ifForks,
+		      const pdvector<AstNode *> &ifForks,
 		      const instPoint *location)
 {
   assert(op == callOp);
   Address addr;
   bool err;
-  vector <Register> srcs;
+  pdvector <Register> srcs;
 
   if (calleefunc)
        addr = calleefunc->getEffectiveAddress(proc);
@@ -2978,7 +2978,7 @@ int getInsnCost(opCode op)
 
 
 
-bool process::heapIsOk(const vector<sym_data> &find_us) {
+bool process::heapIsOk(const pdvector<sym_data> &find_us) {
   Symbol sym;
   string str;
   Address baseAddr;
@@ -3135,7 +3135,7 @@ int getPointCost(process *proc, const instPoint *point)
 
 
 
-bool returnInstance::checkReturnInstance(const vector<vector<Frame> >&stackWalks)
+bool returnInstance::checkReturnInstance(const pdvector<pdvector<Frame> >&stackWalks)
 {
   for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
     for (u_int i=0; i < stackWalks[walk_iter].size(); i++) {
@@ -3342,7 +3342,7 @@ bool process::MonitorCallSite(instPoint *callSite){
 
   AstNode *func;
   instruction i = callSite->insnAtPoint();
-  vector<AstNode *> the_args(2);
+  pdvector<AstNode *> the_args(2);
   if(i.isCallIndir()){
     addr_mode = get_instruction_operand(i.ptr(), base_reg, index_reg,
 					 displacement, scale, Mod);
@@ -3622,7 +3622,7 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
 	return NULL;
     }
 
-    const vector<instPoint*> &exits = func->funcExits(NULL);
+    const pdvector<instPoint*> &exits = func->funcExits(NULL);
     for (i = 0; i < exits.size(); i++) {
 	assert(exits[i]);
 
@@ -3638,7 +3638,7 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
 	}
     }
 
-    const vector<instPoint*> &calls = func->funcCalls(NULL);
+    const pdvector<instPoint*> &calls = func->funcCalls(NULL);
     for (i = 0; i < calls.size(); i++) {
 	assert(calls[i]);
 
@@ -3753,7 +3753,7 @@ bool pd_Function::loadCode(const image* /* owner */, process *proc,
                            unsigned &numberOfInstructions, 
                            Address &firstAddress) {
 
-  vector<instruction> insnVec;
+  pdvector<instruction> insnVec;
   unsigned type, insnSize, totalSize = 0; 
   instruction *insn = 0;
 
@@ -4539,7 +4539,7 @@ bool pd_Function::PA_attachOverlappingInstPoints(
 #endif
 
     // create and sort vector of instPoints
-    vector<instPoint*> foo;
+    pdvector<instPoint*> foo;
     sorted_ips_vector(foo);
 
     // loop over all consecutive pairs of instPoints
@@ -4592,7 +4592,7 @@ bool pd_Function::PA_attachBranchOverlaps(
   instruction instr;
    
   // create and sort vector of instPoints
-  vector<instPoint*> foo;
+  pdvector<instPoint*> foo;
   sorted_ips_vector(foo);
 
   // Iterate over function instruction by instruction....
@@ -4679,7 +4679,7 @@ bool pd_Function::PA_attachGeneralRewrites(
     Address instr_address;
 
     // create and sort vector of instPoints
-    vector<instPoint*> foo;
+    pdvector<instPoint*> foo;
     sorted_ips_vector(foo);
 
     // loop over all consecutive pairs of instPoints
@@ -4801,7 +4801,7 @@ void pd_Function::modifyInstPoint(const instPoint *&location, process *proc) {
                else {
                  for(retId=0;retId < funcReturns.size(); retId++) {
                     if(location == funcReturns[retId]){
-                       const vector<instPoint *> new_returns = 
+                       const pdvector<instPoint *> new_returns = 
                           (relocatedByProcess[i])->funcReturns(); 
                        location = (new_returns[retId]);
                        found = true;
@@ -4812,7 +4812,7 @@ void pd_Function::modifyInstPoint(const instPoint *&location, process *proc) {
          
                  for(callId=0;callId < calls.size(); callId++) {
                     if(location == calls[callId]){
-                       vector<instPoint *> new_calls = 
+                       pdvector<instPoint *> new_calls = 
                           (relocatedByProcess[i])->funcCallSites(); 
                        location = (new_calls[callId]);
                        found = true;
@@ -4826,7 +4826,7 @@ void pd_Function::modifyInstPoint(const instPoint *&location, process *proc) {
 		     arbitraryID++) 
 		 {
                     if(location == arbitraryPoints[arbitraryID]){
-                       const vector<instPoint *> new_arbitrary = 
+                       const pdvector<instPoint *> new_arbitrary = 
                           (relocatedByProcess[i])->funcArbitraryPoints(); 
                        location = (new_arbitrary[arbitraryID]);
                        break;

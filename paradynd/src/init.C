@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.70 2002/11/25 23:52:58 schendel Exp $
+// $Id: init.C,v 1.71 2002/12/20 07:50:06 jaw Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -89,11 +89,11 @@ internalMetric *active_threads = NULL;
 
 int numberOfCPUs;
 
-vector<instMapping*> initialRequests;//ccw 19 apr 2002 : SPLIT  ALSO CHANGED BELOW 
-vector<sym_data> syms_to_find; //ccw 19 apr 2002 : SPLIT
+pdvector<instMapping*> initialRequests;//ccw 19 apr 2002 : SPLIT  ALSO CHANGED BELOW 
+pdvector<sym_data> syms_to_find; //ccw 19 apr 2002 : SPLIT
 
-vector<instMapping*> initialRequestsPARADYN;//ccw 19 apr 2002 : SPLIT  ALSO CHANGED BELOW 
-vector<sym_data> syms_to_findPARADYN; //ccw 19 apr 2002 : SPLIT
+pdvector<instMapping*> initialRequestsPARADYN;//ccw 19 apr 2002 : SPLIT  ALSO CHANGED BELOW 
+pdvector<sym_data> syms_to_findPARADYN; //ccw 19 apr 2002 : SPLIT
 
 
 pdSample computeSamplingRate(const machineMetFocusNode *) {
@@ -429,7 +429,7 @@ void instMPI() {
   static AstNode mpiScattervCommArg(AstNode::Param, (void *) 8);
   static AstNode mpiScanCommArg(AstNode::Param, (void *) 5);
 
-  vector<AstNode*> argList(2);
+  pdvector<AstNode*> argList(2);
   argList[0] = &mpiNormTagArg;
   argList[1] = &mpiNormCommArg;
   initialRequestsPARADYN += new instMapping("PMPI_Send", "DYNINSTrecordTagAndGroup",

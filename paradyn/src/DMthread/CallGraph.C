@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.11 2002/10/28 04:54:11 schendel Exp $
+// $Id: CallGraph.C,v 1.12 2002/12/20 07:50:01 jaw Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
@@ -159,7 +159,7 @@ void CallGraph::CallGraphFillDone(){
   callGraphInitialized = true;
 }
 bool CallGraph::AddResource(resource *r) {
-    vector <resource *> empty;
+    pdvector <resource *> empty;
 
     // make sure that resource refers to function....
     assert(r == rootResource || r->getType() == MDL_T_PROCEDURE);
@@ -174,7 +174,7 @@ bool CallGraph::AddResource(resource *r) {
 }
 
 
-int CallGraph::SetChildren(resource *r, const vector <resource *>rchildren) {
+int CallGraph::SetChildren(resource *r, const pdvector <resource *>rchildren) {
     unsigned u,i;
     resource *rchild;
     bool already_added;
@@ -296,7 +296,7 @@ void CallGraph::SetEntryFunc(resource *r, unsigned tid) {
 }
 
 bool CallGraph::isStartFunction(resourceHandle rh) {
-   vector<resourceHandle> *entryFuncs = getChildren(rootResource);
+   pdvector<resourceHandle> *entryFuncs = getChildren(rootResource);
    for(unsigned i=0; i<entryFuncs->size(); i++) {
       if((*entryFuncs)[i] == rh) return true;
    }
@@ -343,7 +343,7 @@ void CallGraph::displayCallGraph(){
 //Add Displays for all of the CallGraphs known to the DM
 void CallGraph::displayAllCallGraphs(){
   unsigned u;
-  vector<CallGraph*> cgs = directory.values();
+  pdvector<CallGraph*> cgs = directory.values();
   for(u = 0; u < directory.size(); u++)
     cgs[u]->displayCallGraph();
 }
@@ -356,7 +356,7 @@ void CallGraph::addChildrenToDisplay(resource *parent,
 				     callPath){
   
   unsigned i;
-  const vector<resource *> &these_children = children[parent];
+  const pdvector<resource *> &these_children = children[parent];
   visited[parent] = 1;
   
   for(i =0; i < these_children.size(); i++){
@@ -399,15 +399,15 @@ void CallGraph::addChildrenToDisplay(resource *parent,
   }
 }
 
-vector <resourceHandle> *CallGraph::getChildren(resource *rh) {
+pdvector <resourceHandle> *CallGraph::getChildren(resource *rh) {
     unsigned i;
-    vector <resourceHandle> *ret;
+    pdvector <resourceHandle> *ret;
     // rh should have been registsred w/ call graph....
     assert(children.defines(rh));
 
-    // convert children[rh] from vector of resources to vector of 
+    // convert children[rh] from pdvector of resources to pdvector of 
     //  resource handles....
-    ret = new vector<resourceHandle>;
+    ret = new pdvector<resourceHandle>;
     assert(ret);
 
     for (i=0;i<children[rh].size();i++) {
@@ -438,7 +438,7 @@ bool CallGraph::isDescendent(resource *child, const resource *parent,
     return true;
   else {
     unsigned i;
-    vector<resource *>my_parents = parents[child];
+    pdvector<resource *>my_parents = parents[child];
     for(i = 0; i < my_parents.size(); i++){
       if(!have_visited[my_parents[i]]){
 	have_visited[my_parents[i]] = 1;

@@ -42,7 +42,7 @@
 #ifndef _datagrid_h
 #define _datagrid_h
 
-// $Id: datagridP.h,v 1.15 2002/05/15 21:53:11 mjbrim Exp $
+// $Id: datagridP.h,v 1.16 2002/12/20 07:50:09 jaw Exp $
 
 /////////////////////////////////
 //  Data Grid Class definitions
@@ -327,7 +327,7 @@ class visi_DataGrid {
      int         numBins;
      visi_timeType    binWidth;
      visi_GridHistoArray  *data_values;
-     vector<PhaseInfo *> phases;
+     pdvector<PhaseInfo *> phases;
      visi_timeType   start_time;
      int 	phase_handle; // -1: global -2: not yet defined
   public:

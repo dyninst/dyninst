@@ -47,7 +47,7 @@
 #include "paradynd/src/resource.h"
 
 
-machineHierarchy::machineHierarchy(const vector<string> &setupInfo) {
+machineHierarchy::machineHierarchy(const pdvector<string> &setupInfo) {
    unsigned setupInfo_size = setupInfo.size();
    assert(setupInfo_size <= 3);
    switch(setupInfo_size) {
@@ -111,14 +111,14 @@ int machineHierarchy::getThreadID() const {
    return thr_id;
 }
 
-bool machineHierarchy::focus_matches(const vector<string> &/*match_path*/) 
+bool machineHierarchy::focus_matches(const pdvector<string> &/*match_path*/) 
    const
 {
    return false;
 }
 
-vector<string> machineHierarchy::tokenized() const {
-   vector<string> retVec;
+pdvector<string> machineHierarchy::tokenized() const {
+   pdvector<string> retVec;
    retVec.push_back(string("Machine"));
    if(machine_defined()) retVec.push_back(string(machine));
    if(process_defined()) retVec.push_back(string(process));
@@ -126,7 +126,7 @@ vector<string> machineHierarchy::tokenized() const {
    return retVec;
 }
 
-codeHierarchy::codeHierarchy(const vector<string> &setupInfo) {
+codeHierarchy::codeHierarchy(const pdvector<string> &setupInfo) {
    unsigned setupInfo_size = setupInfo.size();
    assert(setupInfo_size <= 2);
    switch(setupInfo_size) {
@@ -144,8 +144,8 @@ string codeHierarchy::getName() const {
    return name;
 }
 
-vector<string> codeHierarchy::tokenized() const {
-   vector<string> retVec;
+pdvector<string> codeHierarchy::tokenized() const {
+   pdvector<string> retVec;
    retVec.push_back(string("Code"));
    if(module_defined())   retVec.push_back(string(module));
    if(function_defined()) retVec.push_back(string(function));
@@ -163,7 +163,7 @@ vector<string> codeHierarchy::tokenized() const {
 // ( "SyncObject" ) - used to select a type of synchronization
 // ( "SyncObject", "Message" ) - seems to be used with message group constr.s
 // ( "SyncObject", "Message", "*" ) - used with message tag constraints
-bool codeHierarchy::focus_matches(const vector<string> &match_path) const
+bool codeHierarchy::focus_matches(const pdvector<string> &match_path) const
 {
    unsigned mp_size = match_path.size();
    bool ret = false;
@@ -200,7 +200,7 @@ bool codeHierarchy::focus_matches(const vector<string> &match_path) const
    return ret;
 }
 
-syncObjHierarchy::syncObjHierarchy(const vector<string> &setupInfo) {
+syncObjHierarchy::syncObjHierarchy(const pdvector<string> &setupInfo) {
    unsigned setupInfo_size = setupInfo.size();
    
    if(setupInfo_size == 0) {
@@ -270,7 +270,7 @@ string syncObjHierarchy::getName() const {
 }
 
 // see description above codeHierarchy::focus_matches
-bool syncObjHierarchy::focus_matches(const vector<string> &match_path) const
+bool syncObjHierarchy::focus_matches(const pdvector<string> &match_path) const
 {
    unsigned mp_size = match_path.size();
    bool ret = false;
@@ -312,8 +312,8 @@ bool syncObjHierarchy::focus_matches(const vector<string> &match_path) const
 }
 
 // temporary
-vector<string> syncObjHierarchy::tokenized() const {
-   vector<string> retVec;
+pdvector<string> syncObjHierarchy::tokenized() const {
+   pdvector<string> retVec;
    retVec.push_back(string("SyncObject"));
    switch(syncObjType) {
      case NoSyncObjT:
@@ -344,7 +344,7 @@ vector<string> syncObjHierarchy::tokenized() const {
    return retVec;
 }
 
-memoryHierarchy::memoryHierarchy(const vector<string> & /* setupInfo */) {
+memoryHierarchy::memoryHierarchy(const pdvector<string> & /* setupInfo */) {
 }
 
 string memoryHierarchy::getName() const {
@@ -352,24 +352,24 @@ string memoryHierarchy::getName() const {
    return name;
 }
 
-bool memoryHierarchy::focus_matches(const vector<string> &/*match_path*/) 
+bool memoryHierarchy::focus_matches(const pdvector<string> &/*match_path*/) 
    const 
 {
    return false;
 }
 
-vector<string> memoryHierarchy::tokenized() const {
-   vector<string> retVec;
+pdvector<string> memoryHierarchy::tokenized() const {
+   pdvector<string> retVec;
    retVec.push_back(string("Memory"));
    return retVec;
 }
 
 
-Focus::Focus(const vector<u_int>& ids, bool *errorFlag) : 
+Focus::Focus(const pdvector<u_int>& ids, bool *errorFlag) : 
    machineInfo(NULL), codeInfo(NULL), syncObjInfo(NULL),
    memoryInfo(NULL)
 {
-   vector< vector<string> > focusVec;
+   pdvector< pdvector<string> > focusVec;
    *errorFlag = false;
   
    for (unsigned i=0; i<ids.size(); i++) {
@@ -383,7 +383,7 @@ Focus::Focus(const vector<u_int>& ids, bool *errorFlag) :
 
    // assign to the object
    for (unsigned j=0; j<focusVec.size(); j++) {
-      vector<string> &curFocusVec = focusVec[j];
+      pdvector<string> &curFocusVec = focusVec[j];
       assert(curFocusVec.size() > 0);  // there must be a heirarchy name
       if(curFocusVec[0] == "Machine") {
 	 curFocusVec.erase(0, 0);
@@ -431,8 +431,8 @@ string Focus::getName() const {
    return name;
 }
 
-vector< vector<string> > Focus::tokenized() const {
-   vector< vector<string> > ret;
+pdvector< pdvector<string> > Focus::tokenized() const {
+   pdvector< pdvector<string> > ret;
    ret.push_back(machineInfo->tokenized());
    ret.push_back(codeInfo->tokenized());
    ret.push_back(syncObjInfo->tokenized());

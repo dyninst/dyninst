@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParse.h,v 1.22 2002/09/05 19:46:56 mikem Exp $
+// $Id: metParse.h,v 1.23 2002/12/20 07:50:06 jaw Exp $
 
 #ifndef _MET_PARSE_H
 #define _MET_PARSE_H
@@ -73,13 +73,13 @@ typedef struct metricFld {
   string units;
   unsigned agg;
   unsigned style;
-  vector<string> *flavor;
+  pdvector<string> *flavor;
   bool mode;
   int unittype;
   T_dyninstRPC::mdl_constraint *constraint;
   string temps;
   unsigned base_type;
-  vector<T_dyninstRPC::mdl_stmt*> *base_m_stmt_v;
+  pdvector<T_dyninstRPC::mdl_stmt*> *base_m_stmt_v;
   string base_hwcntr_str;
 } metricFld;
 
@@ -89,7 +89,7 @@ public:
   void setUnits(string units) {units_ = units; units_flag = true;}
   void setAgg(unsigned agg) {agg_ = agg; agg_flag = true;}
   void setStyle(unsigned style) {style_ = style; style_flag = true;}
-  void setFlavor(vector<string> *flavor) {flavor_ = flavor; 
+  void setFlavor(pdvector<string> *flavor) {flavor_ = flavor; 
 					  flavor_flag = true;}
   void setMode(bool mode) {mode_ = mode; mode_flag = true;}
   void setUnittype(int unittype) {unittype_ = unittype; unittype_flag = true;}
@@ -105,7 +105,7 @@ public:
   }
   void setBaseType(unsigned base_type) {base_type_ = base_type; 
 					base_type_flag = true;}
-  void setBaseMstmtV(vector<T_dyninstRPC::mdl_stmt*> *base_m_stmt_v) 
+  void setBaseMstmtV(pdvector<T_dyninstRPC::mdl_stmt*> *base_m_stmt_v) 
 		     {base_m_stmt_v_ = base_m_stmt_v;
 		      base_m_stmt_v_flag = true;}
 
@@ -200,8 +200,8 @@ public:
 		units_flag(false), 
 		name_flag(false) 
   {
-    constraint_list_ = new vector<T_dyninstRPC::mdl_constraint*>;
-    temps_ = new vector<string>;
+    constraint_list_ = new pdvector<T_dyninstRPC::mdl_constraint*>;
+    temps_ = new pdvector<string>;
   }
   ~metricDef() {}
 private:
@@ -209,13 +209,13 @@ private:
   string units_;
   unsigned agg_;
   unsigned style_;
-  vector<string> *flavor_;
+  pdvector<string> *flavor_;
   bool mode_;
   int unittype_;
-  vector<T_dyninstRPC::mdl_constraint*> *constraint_list_;
-  vector<string> *temps_;
+  pdvector<T_dyninstRPC::mdl_constraint*> *constraint_list_;
+  pdvector<string> *temps_;
   unsigned base_type_; 
-  vector<T_dyninstRPC::mdl_stmt*> *base_m_stmt_v_;
+  pdvector<T_dyninstRPC::mdl_stmt*> *base_m_stmt_v_;
   string base_hwcntr_str;
   bool base_m_stmt_v_flag;
   bool base_type_flag;
@@ -231,7 +231,7 @@ private:
 };
 
 typedef struct mdl_base {
-  vector<T_dyninstRPC::mdl_stmt*> *m_stmt_v;
+  pdvector<T_dyninstRPC::mdl_stmt*> *m_stmt_v;
   unsigned type;
   string* hwcntr_str;
 } mdl_base;
@@ -274,10 +274,10 @@ typedef struct field {
 
 typedef struct string_list {
   string name;
-  vector<string> elements;
+  pdvector<string> elements;
 } string_list;
 
-extern void add_string_list(string &name, vector<string> &elem);
+extern void add_string_list(string &name, pdvector<string> &elem);
 
 // Warning: bison will allocate a parseStack struct with malloc, so the constructors
 // for C++ classes will not be called!
@@ -297,22 +297,22 @@ struct parseStack {
   tunableMet *tm;
   daemonMet *dm;
   visiMet *vm;
-  vector<string> *vs;
+  pdvector<string> *vs;
   //ie_struct expr;
   //T_dyninstRPC::mdl_instr_rand *rand;
-  //vector<T_dyninstRPC::mdl_instr_rand *> *pars;
+  //pdvector<T_dyninstRPC::mdl_instr_rand *> *pars;
   //T_dyninstRPC::mdl_instr_req *instr_req;
-  vector <T_dyninstRPC::mdl_icode*> *icode_v;
+  pdvector <T_dyninstRPC::mdl_icode*> *icode_v;
   T_dyninstRPC::mdl_stmt *m_stmt;
-  vector<T_dyninstRPC::mdl_stmt*> *m_stmt_v;
+  pdvector<T_dyninstRPC::mdl_stmt*> *m_stmt_v;
   T_dyninstRPC::mdl_expr *m_expr;
-  vector<T_dyninstRPC::mdl_expr*> *m_expr_v;
+  pdvector<T_dyninstRPC::mdl_expr*> *m_expr_v;
   mdl_base base;
   T_dyninstRPC::mdl_constraint *constraint;
   T_dyninstRPC::mdl_icode *i_code;
   metricFld *mfld;
   metricDef *mde;
-  vector<string> *vsf;
+  pdvector<string> *vsf;
 };
 
 extern FILE *yyin;
@@ -338,7 +338,7 @@ public:
   void dump() const;
   static void dumpAll();
 
-  static vector<tunableMet*> allTunables;
+  static pdvector<tunableMet*> allTunables;
   string name() const { return name_; }
   bool Bvalue() const { return Bvalue_; }
   float Fvalue() const { return Fvalue_; }
@@ -373,7 +373,7 @@ class daemonMet {
   string host() const { return host_; }
   string flavor() const { return flavor_; }
 
-  static vector<daemonMet*> allDaemons;
+  static pdvector<daemonMet*> allDaemons;
   
 private:
   string name_;
@@ -419,7 +419,7 @@ private:
   string execDir_;
   bool autoStart_;
 
-  static vector<processMet*> allProcs;
+  static pdvector<processMet*> allProcs;
 };
 
 class visiMet {
@@ -439,9 +439,9 @@ public:
   string command() const { return command_; }
   int force() const { return force_; }
   int limit() const { return limit_; }
-  vector<string> *metfocus() const { return metfocus_;}
+  pdvector<string> *metfocus() const { return metfocus_;}
 
-  static vector<visiMet*> allVisis;
+  static pdvector<visiMet*> allVisis;
 
 private:
   string name_;
@@ -451,7 +451,7 @@ private:
   string command_;
   int force_;
   int limit_;
-  vector<string> *metfocus_;
+  pdvector<string> *metfocus_;
 };
 
 #endif

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.155 2002/10/18 22:41:12 bernat Exp $
+ * $Id: inst-power.C,v 1.156 2002/12/20 07:49:57 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -283,7 +283,7 @@ void pd_Function::checkCallPoints() {
   Address loc_addr;
   image *owner = file_->exec();
 
-  vector<instPoint*> non_lib;
+  pdvector<instPoint*> non_lib;
 
   for (i=0; i<calls.size(); ++i) {
     /* check to see where we are calling */
@@ -943,7 +943,7 @@ unsigned generateMTpreamble(char *insn, Address &base, process *proc)
 {
   AstNode *threadPOS;
   Address returnVal;
-  vector<AstNode *> dummy;
+  pdvector<AstNode *> dummy;
   bool err;
   Register src = Null_Register;
 
@@ -1649,7 +1649,7 @@ bool baseTrampExists(process  *p,         //Process to check into
      //  base trampolines that have been damaged by an AIX load.
      //
 void findAndReinstallBaseTramps(process                  *p,
-				vector<const instPoint*> &allInstPoints)
+				pdvector<const instPoint*> &allInstPoints)
 {
   if (! p) return;
 
@@ -1747,7 +1747,7 @@ trampTemplate* findAndInstallBaseTramp(process *proc,
      //  from base trampolines to their mini trampolines
      //
 void reattachMiniTramps(process *p,
-			const vector<process::mtListInfo> &allMTlistsInfo)
+			const pdvector<process::mtListInfo> &allMTlistsInfo)
 {  // pass in a vector of installed_miniTramps_list's and just 
    // work on the first minitramp
   if (! p) return;
@@ -2054,10 +2054,10 @@ void cleanUpAndExit(int status);
 Register emitFuncCall(opCode /* ocode */, 
 		      registerSpace *rs,
 		      char *iPtr, Address &base, 
-		      const vector<AstNode *> &operands, 
+		      const pdvector<AstNode *> &operands, 
 		      const string &callee, process *proc, bool noCost,
 		      const function_base *calleefunc,
-		      const vector<AstNode *> &ifForks,
+		      const pdvector<AstNode *> &ifForks,
 		      const instPoint *location)
 {
 
@@ -2065,7 +2065,7 @@ Register emitFuncCall(opCode /* ocode */,
   Address dest;
   Address toc_anchor;
   bool err;
-  vector <Register> srcs;
+  pdvector <Register> srcs;
   if (calleefunc)
     {
       dest = calleefunc->getEffectiveAddress(proc);
@@ -2108,7 +2108,7 @@ Register emitFuncCall(opCode /* ocode */,
   
   // generateCode can shift the instruction pointer, so reset insn
   instruction *insn = (instruction *) ((void*)&iPtr[base]);
-  vector<int> savedRegs;
+  pdvector<int> savedRegs;
   
   //  Save the link register.
   // mflr r0
@@ -3266,7 +3266,7 @@ bool pd_Function::findInstPoints(const image *owner)
 //   So we make this processor specific.
 //
 // find all DYNINST symbols that are data symbols
-bool process::heapIsOk(const vector<sym_data> &find_us) {
+bool process::heapIsOk(const pdvector<sym_data> &find_us) {
   Address baseAddr;
   Symbol sym;
   string str;
@@ -3370,7 +3370,7 @@ bool registerSpace::readOnlyRegister(Register reg_number)
 }
 
 
-bool returnInstance::checkReturnInstance(const vector<vector<Frame> > &stackWalks)
+bool returnInstance::checkReturnInstance(const pdvector<pdvector<Frame> > &stackWalks)
 {
 #ifdef ndef  
   // TODO: implement this.  This stuff is not implemented for this platform 
@@ -3416,7 +3416,7 @@ bool completeTheFork(process *parentProc, int childpid) {
    forkexec_cerr << "WELCOME to completeTheFork parent pid is " << parentProc->getPid()
                  << ", child pid is " << childpid << endl;
 
-   vector<heapItem*> srcAllocatedBlocks = parentProc->heap.heapActive.values();
+   pdvector<heapItem*> srcAllocatedBlocks = parentProc->heap.heapActive.values();
 
    char buffer[2048];
    const unsigned max_read = 1024;
@@ -3458,7 +3458,7 @@ bool completeTheFork(process *parentProc, int childpid) {
    // Fields of interest are:
    // 1) location (type instPoint*) -- where the code was put
    
-   vector<const instPoint*> allInstPoints = parentProc->baseMap.keys();
+   pdvector<const instPoint*> allInstPoints = parentProc->baseMap.keys();
    
    int jj = 0;
    for (unsigned u = 0; u < allInstPoints.size(); u++) {
@@ -3715,7 +3715,7 @@ bool process::isDynamicCallSite(instPoint *callSite){
 
 bool process::MonitorCallSite(instPoint *callSite){
   instruction i = callSite->originalInstruction;
-  vector<AstNode *> the_args(2);
+  pdvector<AstNode *> the_args(2);
   Register branch_target;
 
   // Is this a branch conditional link register (BCLR)

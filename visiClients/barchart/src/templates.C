@@ -53,31 +53,31 @@ template float max(const float, const float);
 #include "common/src/Dictionary.C"
 #include <X11/Xlib.h> // XColor
 
-template class vector<unsigned>;
-template class vector<double>;
-template class vector<int>;
-template class vector< vector<double> >;
-template class vector< vector<int> >;
-template class vector<XColor *>;
-template class vector<bool>;
+template class pdvector<unsigned>;
+template class pdvector<double>;
+template class pdvector<int>;
+template class pdvector< pdvector<double> >;
+template class pdvector< pdvector<int> >;
+template class pdvector<XColor *>;
+template class pdvector<bool>;
 
 template class dictionary_hash<string, pdLogo *>;
-template class vector<dictionary_hash<string, pdLogo *>::entry>;
-template class vector<string>;
-template class vector<pdLogo *>;
+template class pdvector<dictionary_hash<string, pdLogo *>::entry>;
+template class pdvector<string>;
+template class pdvector<pdLogo *>;
 
-template class pair<string, pdLogo *>;
-template class pair<string, pdLogo::logoStruct>;
+template class pdpair<string, pdLogo *>;
+template class pdpair<string, pdLogo::logoStruct>;
 
-template pair<string, pdLogo *> make_pair<string, pdLogo *>(const string &, pdLogo * const &);
-template pair<string, pdLogo::logoStruct> make_pair<string, pdLogo::logoStruct>(const string &, const pdLogo::logoStruct &);
+template pdpair<string, pdLogo *> make_pdpair<string, pdLogo *>(const string &, pdLogo * const &);
+template pdpair<string, pdLogo::logoStruct> make_pdpair<string, pdLogo::logoStruct>(const string &, const pdLogo::logoStruct &);
 
-template class vector<pair<string, pdLogo *> >;
-template class vector<pair<string, pdLogo::logoStruct> >;
+template class pdvector<pdpair<string, pdLogo *> >;
+template class pdvector<pdpair<string, pdLogo::logoStruct> >;
 
 template class dictionary_hash<string, pdLogo::logoStruct>;
-template class vector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
-template class vector<pdLogo::logoStruct>;
+template class pdvector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
+template class pdvector<pdLogo::logoStruct>;
 
 template class  refCounter<string_ll>;
 

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.37 2002/02/11 22:02:12 tlmiller Exp $
+ * $Id: Object.h,v 1.38 2002/12/20 07:49:56 jaw Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -159,8 +159,8 @@ public:
     int getAddressWidth() const { return addressWidth_nbytes; }
 
     virtual  bool   needs_function_binding()  const;
-    virtual  bool   get_func_binding_table(vector<relocationEntry> &) const;
-    virtual  bool   get_func_binding_table_ptr(const vector<relocationEntry> *&) const;
+    virtual  bool   get_func_binding_table(pdvector<relocationEntry> &) const;
+    virtual  bool   get_func_binding_table_ptr(const pdvector<relocationEntry> *&) const;
     
     // for debuggering....
     const ostream &dump_state_info(ostream &s);

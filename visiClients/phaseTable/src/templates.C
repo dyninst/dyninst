@@ -41,6 +41,24 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.11  2002/12/20 07:50:09  jaw
+ * This commit fully changes the class name of "vector" to "pdvector".
+ *
+ * A nice upshot is the removal of a bunch of code previously under the flag
+ * USE_STL_VECTOR, which is no longer necessary in many cases where a
+ * functional difference between common/h/Vector.h and stl::vector was
+ * causing a crash.
+ *
+ * Generally speaking, Dyninst and Paradyn now use pdvector exclusively.
+ * This commit DOES NOT cover the USE_STL_VECTOR flag, which will now
+ * substitute stl::vector for BPatch_Vector only.  This is currently, to
+ * the best of my knowledge, only used by DPCL.  This will be updated and
+ * tested in a future commit.
+ *
+ * The purpose of this, again, is to create a further semantic difference
+ * between two functionally different classes (which both have the same
+ * [nearly] interface).
+ *
  * Revision 1.10  2002/04/09 18:06:42  mjbrim
  * Updates to allow sharing of common/pdutil/igen between Paradyn
  * & Kerninst, which in turn allows them to share binary visis  - - - - - -
@@ -86,26 +104,26 @@ template float max(const float, const float);
 #include "visi/h/visiTypes.h"
 
 class PhaseInfo;
-template class vector<PhaseInfo *>;
+template class pdvector<PhaseInfo *>;
 
 #include "common/h/String.h"
 #include "common/src/Dictionary.C"
 #include "pdLogo.h"
 
-template class pair<string, pdLogo *>;
-template class pair<string, pdLogo::logoStruct>;
-template class vector<pair<string, pdLogo *> >;
-template class vector<pair<string, pdLogo::logoStruct> >;
+template class pdpair<string, pdLogo *>;
+template class pdpair<string, pdLogo::logoStruct>;
+template class pdvector<pdpair<string, pdLogo *> >;
+template class pdvector<pdpair<string, pdLogo::logoStruct> >;
 
 template class dictionary_hash<string, pdLogo *>;
-template class vector<dictionary_hash<string, pdLogo *>::entry>;
-template class vector<pdLogo*>;
+template class pdvector<dictionary_hash<string, pdLogo *>::entry>;
+template class pdvector<pdLogo*>;
 
 template class dictionary_hash<string, pdLogo::logoStruct>;
-template class vector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
-template class vector<pdLogo::logoStruct>;
+template class pdvector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
+template class pdvector<pdLogo::logoStruct>;
 
-template class vector<unsigned int>;
+template class pdvector<unsigned int>;
 template class refCounter<string_ll>;
 
 #endif //!defined(i386_unknown_nt4_0)

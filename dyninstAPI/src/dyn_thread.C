@@ -215,7 +215,7 @@ Frame dyn_thread::getActiveFrame()
 #endif
 
 // stackWalk: return parameter.
-bool dyn_thread::walkStack(vector<Frame> &stackWalk)
+bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
 {
   // We cheat (a bit): this method is here for transparency, 
   // but the process class does the work in the walkStackFromFrame

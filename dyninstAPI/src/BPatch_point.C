@@ -102,7 +102,7 @@ BPatch_function *BPatch_point::getCalledFunction()
 }
 
 const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets() {
-  vector<miniTrampHandle> *mt_buf = new vector<miniTrampHandle>;
+  pdvector<miniTrampHandle> *mt_buf = new pdvector<miniTrampHandle>;
   getMiniTrampsAtPoint(proc, point, callPreInsn,  mt_buf);
   getMiniTrampsAtPoint(proc, point, callPostInsn, mt_buf);
 
@@ -124,7 +124,7 @@ const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets(
   } else if(when == BPatch_callAfter) {
     _when = callPostInsn;
   }
-  vector<miniTrampHandle> *mt_buf =  new vector<miniTrampHandle>;
+  pdvector<miniTrampHandle> *mt_buf =  new pdvector<miniTrampHandle>;
   cerr << "point proc pid = " << proc->getPid() << "\n";
   getMiniTrampsAtPoint(proc, point, _when, mt_buf);
 

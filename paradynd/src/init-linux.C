@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.16 2002/12/14 16:37:48 schendel Exp $
+// $Id: init-linux.C,v 1.17 2002/12/20 07:50:06 jaw Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -123,7 +123,7 @@ bool initOS() {
   // Note that this is currently replicated in dyninstAPI_init until
   // dyninst is updated to refer to this (or a similar) initialization.
   const char *sigactionF="__sigaction";
-  vector<AstNode*> argList(3);
+  pdvector<AstNode*> argList(3);
   static AstNode  sigArg(AstNode::Param, (void*) 0); argList[0] = &sigArg;
   static AstNode  actArg(AstNode::Param, (void*) 1); argList[1] = &actArg;
   static AstNode oactArg(AstNode::Param, (void*) 2); argList[2] = &oactArg;

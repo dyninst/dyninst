@@ -42,7 +42,7 @@
 // tclTunable.C
 // C++ code that provides access to tunable constants from tcl.
 
-/* $Id: tclTunable.C,v 1.21 2002/05/13 19:53:29 mjbrim Exp $ */
+/* $Id: tclTunable.C,v 1.22 2002/12/20 07:50:05 jaw Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // atoi()
@@ -132,7 +132,7 @@ Tcl_Obj*
 getBoolAllNames(Tcl_Interp* interp)
 {
     unsigned nBoolTunables = tunableConstantRegistry::numBoolTunables();
-    vector<tunableBooleanConstant> allBoolConstants = tunableConstantRegistry::getAllBoolTunableConstants();
+    pdvector<tunableBooleanConstant> allBoolConstants = tunableConstantRegistry::getAllBoolTunableConstants();
     assert(allBoolConstants.size() == nBoolTunables);
     unsigned int i;
 
@@ -156,7 +156,7 @@ Tcl_Obj*
 getFloatAllNames(Tcl_Interp* interp)
 {
     unsigned nFloatTunables = tunableConstantRegistry::numFloatTunables();
-    vector<tunableFloatConstant> allFloatConstants = tunableConstantRegistry::getAllFloatTunableConstants();
+    pdvector<tunableFloatConstant> allFloatConstants = tunableConstantRegistry::getAllFloatTunableConstants();
     assert(allFloatConstants.size() == nFloatTunables);
     unsigned int i;
 

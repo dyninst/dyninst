@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.35 2002/10/15 17:11:20 schendel Exp $
+// $Id: templates0.C,v 1.36 2002/12/20 07:49:59 jaw Exp $
 // Generate all the templates in one file.
 
 /*
@@ -83,76 +83,76 @@
 #include "paradynd/src/processMetFocusNode.h"
 #endif
 
-template class  vector<dyn_thread *>;
-template class  vector< vector<dyn_thread *> >;
-template class  vector<bool>;
-template class  vector<AstNode>;
-template class  vector<AstNode *>;
-template class  vector<Symbol*>;
-template class  vector<Frame>;
-template class  vector<Frame*>;
-template class  vector<vector<Frame> >;
-template class  vector<vector<Frame*> >;
+template class  pdvector<dyn_thread *>;
+template class  pdvector< pdvector<dyn_thread *> >;
+template class  pdvector<bool>;
+template class  pdvector<AstNode>;
+template class  pdvector<AstNode *>;
+template class  pdvector<Symbol*>;
+template class  pdvector<Frame>;
+template class  pdvector<Frame*>;
+template class  pdvector<pdvector<Frame> >;
+template class  pdvector<pdvector<Frame*> >;
 
-template class  vector<Symbol>;
-template class  vector<float>;
-template class  vector<heapItem*>;
-template class  vector<image*>;
-template class  vector<instMapping*>;
-template class  vector<instPoint *>;
-template class  vector<const instPoint *>;
-template class  vector<trampTemplate *>;
-template class  vector<int>;
-template class  vector<instruction>;
+template class  pdvector<Symbol>;
+template class  pdvector<float>;
+template class  pdvector<heapItem*>;
+template class  pdvector<image*>;
+template class  pdvector<instMapping*>;
+template class  pdvector<instPoint *>;
+template class  pdvector<const instPoint *>;
+template class  pdvector<trampTemplate *>;
+template class  pdvector<int>;
+template class  pdvector<instruction>;
 #ifndef BPATCH_LIBRARY
 class processMetFocusNode;
 
-template class  vector<machineMetFocusNode *>;
-template class  vector<processMetFocusNode *>;
-template class  vector<instrCodeNode *>;
-template class  vector<const instrCodeNode *>;
-template class  vector<instrDataNode *>;
-template class  vector<threadMetFocusNode *>;
-template class  vector<catchupReq>;
-template class  vector<catchupReq*>;
-template class  vector<vector<catchupReq *> >;
+template class  pdvector<machineMetFocusNode *>;
+template class  pdvector<processMetFocusNode *>;
+template class  pdvector<instrCodeNode *>;
+template class  pdvector<const instrCodeNode *>;
+template class  pdvector<instrDataNode *>;
+template class  pdvector<threadMetFocusNode *>;
+template class  pdvector<catchupReq>;
+template class  pdvector<catchupReq*>;
+template class  pdvector<pdvector<catchupReq *> >;
 // Temporary structs used in processMetFocusNode.C
-template class  vector<catchup_t>;
-template class  vector<sideEffect_t>;
-template class  vector<threadMetFocusNode_Val *>;
-template class  vector<const threadMetFocusNode_Val *>;
+template class  pdvector<catchup_t>;
+template class  pdvector<sideEffect_t>;
+template class  pdvector<threadMetFocusNode_Val *>;
+template class  pdvector<const threadMetFocusNode_Val *>;
 #endif
-template class  vector<module *>;
-template class  vector<pdmodule *>;
-template class  vector<function_base*>;
-template class  vector<pd_Function*>;
-template class  vector<process*>;
-template class  vector<string>;
-template class  vector<sym_data>;
-template class  vector<unsigned>;
-template class  vector<unsigned long>;
-template class  vector<long>;
-template class  vector<disabledItem>;
-template class  vector<addrVecType>;
-template class  vector<vector<string> >;
-template class  vector<double>;
-template class  vector<instInstance *>;
-template class  vector<const instInstance *>;
-template class  vector<returnInstance *>;             //XXX
-template class  vector<relocatedFuncInfo *>; 
-template class  vector<relocationEntry>;
-template class vector<LocalAlteration*>;
-template class vector<FERNode>;
-template class vector<FERNode*>;
-template class vector<process::instPendingDeletion *>;
+template class  pdvector<module *>;
+template class  pdvector<pdmodule *>;
+template class  pdvector<function_base*>;
+template class  pdvector<pd_Function*>;
+template class  pdvector<process*>;
+template class  pdvector<string>;
+template class  pdvector<sym_data>;
+template class  pdvector<unsigned>;
+template class  pdvector<unsigned long>;
+template class  pdvector<long>;
+template class  pdvector<disabledItem>;
+template class  pdvector<addrVecType>;
+template class  pdvector<pdvector<string> >;
+template class  pdvector<double>;
+template class  pdvector<instInstance *>;
+template class  pdvector<const instInstance *>;
+template class  pdvector<returnInstance *>;             //XXX
+template class  pdvector<relocatedFuncInfo *>; 
+template class  pdvector<relocationEntry>;
+template class pdvector<LocalAlteration*>;
+template class pdvector<FERNode>;
+template class pdvector<FERNode*>;
+template class pdvector<process::instPendingDeletion *>;
 
 #ifdef BPATCH_LIBRARY
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
-template class vector<imageUpdate*>;//ccw 28 oct 2001
-template class vector<dataUpdate*> ;//ccw 26 nov 2001
+template class pdvector<imageUpdate*>;//ccw 28 oct 2001
+template class pdvector<dataUpdate*> ;//ccw 26 nov 2001
 #endif
 #endif
 
 #ifndef BPATCH_LIBRARY
-template class vector<vector<string> *>;
+template class pdvector<pdvector<string> *>;
 #endif

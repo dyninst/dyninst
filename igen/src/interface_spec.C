@@ -313,7 +313,7 @@ bool interface_spec::gen_header(ofstream &out_stream, bool server) const {
 
   out_stream << "\nprotected:\n virtual void handle_error();\n";
   if (Options::ml->serial()) {
-    out_stream << "vector<" << Options::type_prefix()
+    out_stream << "pdvector<" << Options::type_prefix()
 	       << "buf_struct*> async_buffer;\n";
     out_stream << "unsigned head;\n";
   } 
@@ -396,7 +396,7 @@ bool interface_spec::gen_ctor_3(ofstream &out_stream, bool server,
 				bool hdr) const
 {
   out_stream << (!hdr ? gen_class_prefix(server) : string("")) << gen_class_name(server)
-	     << "(const string machine, const string login, const string program, const string remote_shell, int(*rf)(void*,caddr_t,int), int (*wf)(void*,caddr_t,int), vector<string> &args, int nblock, int port_fd)";
+	     << "(const string machine, const string login, const string program, const string remote_shell, int(*rf)(void*,caddr_t,int), int (*wf)(void*,caddr_t,int), pdvector<string> &args, int nblock, int port_fd)";
 
   if (hdr) {
     out_stream << ";\n";
@@ -597,7 +597,7 @@ bool interface_spec::gen_interface() const {
 bool interface_spec::gen_stl_temps() const {
 
   if (Options::ml->address_space() == message_layer::AS_many) 
-    Options::temp_dot_c << "template class vector<"
+    Options::temp_dot_c << "template class pdvector<"
 			<< Options::type_prefix() << "buf_struct*>;\n";
   
   for (unsigned stl_index=0; stl_index < Options::stl_types.size(); stl_index++) {
@@ -934,7 +934,7 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, bool srvr) const {
   return true;
 }
 
-bool interface_spec::new_remote_func(const string *name, vector<arg*> *arglist,
+bool interface_spec::new_remote_func(const string *name, pdvector<arg*> *arglist,
 				     const remote_func::call_type &callT,
 				     bool is_virtual, const arg &return_arg,
 				     bool do_free) {

@@ -1,4 +1,4 @@
-/* $Id: VM.I,v 1.22 2001/05/08 15:23:18 pcroth Exp $ */
+/* $Id: VM.I,v 1.23 2002/12/20 07:50:00 jaw Exp $ */
 
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "common/h/Vector.h"
@@ -18,29 +18,29 @@ $remote VM{
   // returns a list of information about active visualizations
   // the client is responsible for freeing the space associated with
   // this list
-  vector<VM_activeVisiInfo> *VMActiveVisis(); 
+  pdvector<VM_activeVisiInfo> *VMActiveVisis(); 
 
 
   // returns a list of information about available visualizations
   // the client is responsible for freeing the space associated with
   // this list
-  vector<VM_visiInfo> *VMAvailableVisis(); 
+  pdvector<VM_visiInfo> *VMAvailableVisis(); 
   
   //  name: string representation of visi (for UIM menuing)
   //  args: command line arguments for the visualiztion, argv[0]
   //        is the executable name
   //  matrix: initial set of metrics and foci to start the visi with
   int VMAddNewVisualization(const char *name,
-		            vector<string> *argv,	
+		            pdvector<string> *argv,	
 			    int forceProcessStart,
 			    int mi_limit,
-			    vector<string> *matrix);
+			    pdvector<string> *matrix);
 
 
   //  converts a string representation of a list of met/focus pairs  
   //  to the internal list of metrespairs representation
   //  returns metrespair_Array values of count = 0, and data = NULL on error
-  vector<metric_focus_pair> *VMStringToMetResPair(const char *metresString);
+  pdvector<metric_focus_pair> *VMStringToMetResPair(const char *metresString);
 
 
   // remenuFlag: if set, remenuing request made by visithread when 
@@ -52,7 +52,7 @@ $remote VM{
 		   int forceProcessStart,
 		   int visiTypeId,
 		   phaseType phase_type,
-		   vector<metric_focus_pair> *matrix);
+		   pdvector<metric_focus_pair> *matrix);
   
   // visiThreadId: thread identifier associated with the  visi to destroy 
   // can be called by any thread in the paradyn process

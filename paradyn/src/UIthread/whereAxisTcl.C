@@ -44,7 +44,7 @@
 
 // Implementations of new commands and tk bindings related to the where axis.
 
-/* $Id: whereAxisTcl.C,v 1.17 2001/10/31 19:35:02 willb Exp $ */
+/* $Id: whereAxisTcl.C,v 1.18 2002/12/20 07:50:05 jaw Exp $ */
 
 #ifndef PARADYN
 // The test program has "correct" -I paths already set
@@ -166,7 +166,7 @@ int whereAxisCtrlClickCallbackCommand(ClientData, Tcl_Interp *,
 
    if (result == true)
    {
-      vector<VM_visiInfo> *avail_Visis = vmMgr->VMAvailableVisis();
+      pdvector<VM_visiInfo> *avail_Visis = vmMgr->VMAvailableVisis();
       int  table_id=-1;
       for (unsigned i=0;i < avail_Visis->size(); i++)
       {
@@ -179,7 +179,7 @@ int whereAxisCtrlClickCallbackCommand(ClientData, Tcl_Interp *,
       	 return TCL_OK;
       }
       
-      vector<metric_focus_pair> *matrix=new vector<metric_focus_pair>;
+      pdvector<metric_focus_pair> *matrix=new pdvector<metric_focus_pair>;
       *matrix += metric_focus_pair(UNUSED_METRIC_HANDLE,select_focus);
 
       //paradyn visi create #table GlobalPhase

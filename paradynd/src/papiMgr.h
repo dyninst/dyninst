@@ -132,7 +132,7 @@ class papiMgr {
   unsigned int numHwCntrs_;
   unsigned int numAddedEvents_;
 
-  /*vector<papiEvent_t*> eventList_; */
+  /*pdvector<papiEvent_t*> eventList_; */
   papiEvent_t** eventArray_;
 
   bool inferiorPapiAddEvent(int EventCode);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCmetric.C,v 1.35 2000/03/23 01:34:25 wylie Exp $
+// $Id: PCmetric.C,v 1.36 2002/12/20 07:50:02 jaw Exp $
 // The PCmetric class implements a limited subset of derived metrics.
 
 /*
@@ -85,7 +85,7 @@ PCmetric::PCmetric (const char *thisName,
 {
   PCMetInfo *newEntry;
   metricHandle *mh;
-  DMmetrics = new vector <PCMetInfo*> (dataSpecsSize); 
+  DMmetrics = new pdvector <PCMetInfo*> (dataSpecsSize); 
   for (int i = 0; i < dataSpecsSize; i++) {
     mh = dataMgr->findMetric(dataSpecs[i].mname);
     if (!mh) {

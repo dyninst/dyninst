@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.67 2002/10/28 04:55:03 schendel Exp $
+ * $Id: PCshg.C,v 1.68 2002/12/20 07:50:03 jaw Exp $
  */
 
 #include "PCintern.h"
@@ -91,7 +91,7 @@ axis(axis), nodeID(newID), exStat(expandedNone),
 mamaGraph (mama), sname(shortName)
 {
   unsigned i;
-  vector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
+  pdvector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
   // full name of node (both why and where)
   name = why->getName();
   name += "::";
@@ -128,7 +128,7 @@ searchHistoryNode::searchHistoryNode(searchHistoryNode *parent,
 				     unsigned newID,
 				     bool amFlag,
 				     int csp,
-				     vector<bool> as,
+				     pdvector<bool> as,
 				     bool ns):
 why(why), where(whereowhere), 
 persistent(persist), altMetricFlag(amFlag), 
@@ -290,7 +290,7 @@ searchHistoryGraph::addUIrequest(unsigned srcID, unsigned dstID,
 				 int styleID, const char *label)
 {
   if (uiRequestBuff == NULL)
-    uiRequestBuff = new vector<uiSHGrequest>;
+    uiRequestBuff = new pdvector<uiSHGrequest>;
   uiSHGrequest newGuy;
   newGuy.srcNodeID = srcID;
   newGuy.dstNodeID = dstID;
@@ -340,7 +340,7 @@ searchHistoryGraph::addActiveSearch ()
 searchHistoryNode *
 searchHistoryNode::addDynamicChild(resourceHandle child){
   bool newNodeFlag;
-  vector<resourceHandle> *currFocus;
+  pdvector<resourceHandle> *currFocus;
   
   //create a new focus including the dynamic child
   resourceListHandle *new_where = dataMgr->morespecific(child, where);
@@ -400,10 +400,10 @@ bool searchHistoryNode::expandWhereOldPC(){
   bool newNodeFlag;
   bool expansionPossible = false;
   // expand along where axis
-  vector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
-  vector<resourceHandle> *currFocus;
+  pdvector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
+  pdvector<resourceHandle> *currFocus;
   resourceHandle currHandle;
-  vector<rlNameId> *kids;
+  pdvector<rlNameId> *kids;
   for (unsigned m = 0; m < parentFocus->size(); m++) {
     currHandle = (*parentFocus)[m];
     if (!why->isPruned(currHandle)) {
@@ -483,7 +483,7 @@ searchHistoryNode::expandWhereDownNewPath(){
   assert(performanceConsultant::useCallGraphSearch);
   bool searchExhausted = true;
   unsigned u;
-  vector<resourceHandle> *parentFocus = NULL;//placate g++ warning
+  pdvector<resourceHandle> *parentFocus = NULL;//placate g++ warning
   parentFocus = dataMgr->getResourceHandles(where);
   
   //Mark this search path as "already searched"
@@ -522,10 +522,10 @@ searchHistoryNode::expandWhereNarrow()
    bool expansionPossible = false;
    bool searchExhausted;
    // expand along where axis
-   vector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
-   vector<resourceHandle> *currFocus;
+   pdvector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
+   pdvector<resourceHandle> *currFocus;
    resourceHandle currHandle;
-   vector<rlNameId> *kids;
+   pdvector<rlNameId> *kids;
    
    do { //I can't believe that I'm using a do while. 
       //cerr << "doing another expandWhereNarrow loop, currentSearchPath: "
@@ -622,10 +622,10 @@ bool searchHistoryNode::expandWhereWide(){
    bool expansionPossible = false;
    assert(performanceConsultant::useCallGraphSearch);
    // expand along where axis
-   vector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
-   vector<resourceHandle> *currFocus;
+   pdvector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
+   pdvector<resourceHandle> *currFocus;
    resourceHandle currHandle;
-   vector<rlNameId> *kids;
+   pdvector<rlNameId> *kids;
    for (unsigned m = 0; m < parentFocus->size(); m++) {
       currHandle = (*parentFocus)[m];
       if (!why->isPruned(currHandle)) {
@@ -696,7 +696,7 @@ searchHistoryNode::expandWhy()
   bool expansionPossible = false;
 
   // expand along why axis
-  vector<hypothesis*> *hypokids = why->expand();
+  pdvector<hypothesis*> *hypokids = why->expand();
   if (hypokids != NULL) { 
     expansionPossible = true;
     for (unsigned i = 0; i < hypokids->size(); i++) {
@@ -1058,7 +1058,7 @@ searchHistoryGraph::searchHistoryGraph(PCsearch *searchPhase,
  nextID(0),
  uiRequestBuff(NULL) 
 {
-  vector<searchHistoryNode*> Nodes;
+  pdvector<searchHistoryNode*> Nodes;
   root = new searchHistoryNode ((searchHistoryNode *)NULL,
 				topLevelHypothesis,
 				topLevelFocus, refineWhyAxis,
@@ -1116,7 +1116,7 @@ searchHistoryGraph::addNode (searchHistoryNode *parent,
 {
   // check if node already exists
   searchHistoryNode *newkid = NULL;
-  vector<searchHistoryNode*> *foclist = NULL;
+  pdvector<searchHistoryNode*> *foclist = NULL;
   *newFlag = false;
   if (NodesByFocus.defines(whereowhere)) {
     foclist = NodesByFocus[whereowhere];
@@ -1129,7 +1129,7 @@ searchHistoryGraph::addNode (searchHistoryNode *parent,
   }
   *newFlag = true;
   if (foclist == NULL) {
-    foclist = new vector<searchHistoryNode*>;
+    foclist = new pdvector<searchHistoryNode*>;
     NodesByFocus[whereowhere] = foclist;
   }
   newkid = parent->addChild (why, whereowhere, axis, persist, 
@@ -1156,7 +1156,7 @@ searchHistoryGraph::initPersistentNodes()
 {
   searchHistoryNode *nodeptr;
   hypothesis *currhypo;
-  vector<hypothesis*> *topmost = topLevelHypothesis->expand();
+  pdvector<hypothesis*> *topmost = topLevelHypothesis->expand();
   bool nodeAdded;
   for (unsigned i = 0; i < topmost->size(); i++) {
     currhypo = (*topmost)[i];
@@ -1182,7 +1182,7 @@ searchHistoryGraph::notifyDynamicChild(resourceHandle parent,
     /*If the node is active*/
     if(NodeIndex[i]->getActive()){
       unsigned resource_index;
-      vector<resourceHandle> *res = 
+      pdvector<resourceHandle> *res = 
 	dataMgr->getResourceHandles(NodeIndex[i]->getWhere());
       found_parent = false;
       /*if the node matches the parent of the dynamic callee*/

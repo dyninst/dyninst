@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCfilter.C,v 1.39 2001/12/12 17:28:50 gurari Exp $    
+ * $Id: PCfilter.C,v 1.40 2002/12/20 07:50:02 jaw Exp $    
  */
 
 #include "PCfilter.h"
@@ -411,7 +411,7 @@ filteredDataServer::~filteredDataServer ()
 }
 
 void
-filteredDataServer::newDataEnabled(vector<metricInstInfo> *newlyEnabled)
+filteredDataServer::newDataEnabled(pdvector<metricInstInfo> *newlyEnabled)
 {
   //** cache focus name here??
   filter *curr = NULL;
@@ -498,7 +498,7 @@ filteredDataServer::makeEnableDataRequest (metricHandle met,
     printPendings();
 #endif
 
-  vector<metricRLType> *request = new vector<metricRLType>;
+  pdvector<metricRLType> *request = new pdvector<metricRLType>;
   metricRLType request_entry(met, foc);
   *request += request_entry;
   assert(request->size() == 1);

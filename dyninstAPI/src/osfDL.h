@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.h,v 1.4 2000/07/28 17:21:16 pcroth Exp $
+// $Id: osfDL.h,v 1.5 2002/12/20 07:49:58 jaw Exp $
 
 #if !defined(osf_dl_hdr)
 #define osf_dl_hdr
@@ -68,11 +68,11 @@ public:
     // process all shared objects that have been mapped into the process's
     // address space
     // returns 0 
-    vector< shared_object *> *getSharedObjects(process *);
+    pdvector <shared_object *> *getSharedObjects(process *);
 
     // handleIfDueToSharedObjectMapping: returns true if the trap was caused
     // by a change to the link maps  
-    bool handleIfDueToSharedObjectMapping(process *, vector<shared_object *> **,
+    bool handleIfDueToSharedObjectMapping(process *, pdvector<shared_object *> **,
 			       u_int &, bool &);
 
 

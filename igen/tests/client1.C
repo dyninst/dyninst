@@ -4,12 +4,12 @@
 string str1 = "A Test string with server words in it";
 string str2 = "Different string";
 
-void echoA(vector<string> &in) {
+void echoA(pdvector<string> &in) {
   for (int i=0; i<in.size(); ++i)
     cout << "Element " << i << " = " << in[i] << endl;
 }
 
-void echoCSA(vector<T_test1::charStruct> &in) {
+void echoCSA(pdvector<T_test1::charStruct> &in) {
   for (int i=0; i<in.size(); ++i)
     cout << "Item " << i << " = " << in[i].cp << endl;
 }
@@ -29,7 +29,7 @@ main(int argc, char *argv[])
     T_test1::intStruct is;
     testUser *remote;
 
-    vector<string> arg_list;
+    pdvector<string> arg_list;
     // note -- starting on remote hosts will not work yet
     string host = "localhost";
     if (argc > 1)
@@ -125,7 +125,7 @@ main(int argc, char *argv[])
     cerr << max_tries << " echo long string by ref rpc's in " << perf_timer.wsecs() << " seconds\n";
     cerr << ((double)max_tries)/perf_timer.wsecs() << " echo long string by ref rpc's per second\n\n";
 
-    vector<string> arg, result;
+    pdvector<string> arg, result;
     arg += "happy"; arg += "sad"; arg += "honest"; arg += "memory_hog";
     arg += "design"; arg += "good"; arg += "bad"; arg += "functional";
     arg += "efficient"; arg += "debug"; arg += "core_dump"; arg += "fault";
@@ -138,16 +138,16 @@ main(int argc, char *argv[])
     for (tries=0; tries<max_tries; tries++)
       result = remote->norefVector(arg);
     perf_timer.stop();
-    cerr << max_tries << " echo vector<string> rpc's in " << perf_timer.wsecs() << " seconds\n";
-    cerr << ((double)max_tries)/perf_timer.wsecs() << " echo vector<string> rpc's per second\n\n";
+    cerr << max_tries << " echo pdvector<string> rpc's in " << perf_timer.wsecs() << " seconds\n";
+    cerr << ((double)max_tries)/perf_timer.wsecs() << " echo pdvector<string> rpc's per second\n\n";
 
     perf_timer.clear();
     perf_timer.start();
     for (tries=0; tries<max_tries; tries++)
       result = remote->refVector(arg);
     perf_timer.stop();
-    cerr << max_tries << " echo vector<string> by ref rpc's in " << perf_timer.wsecs() << " seconds\n";
-    cerr << ((double)max_tries)/perf_timer.wsecs() << " echo vector<string> by ref rpc's per second\n\n";
+    cerr << max_tries << " echo pdvector<string> by ref rpc's in " << perf_timer.wsecs() << " seconds\n";
+    cerr << ((double)max_tries)/perf_timer.wsecs() << " echo pdvector<string> by ref rpc's per second\n\n";
 
     
     for (tries=0; tries<100; tries++) {
@@ -156,7 +156,7 @@ main(int argc, char *argv[])
     }
     cerr << "add ok\n";
 
-    vector<int> vect;
+    pdvector<int> vect;
     vect += 1; vect += 2; vect += 3; vect += 4; vect += 5;
     vect += 6; vect += 7; vect += 8; vect += 9; vect += 10;
     for (i=0, total = 0; i < vect.size(); i++) 
@@ -174,7 +174,7 @@ main(int argc, char *argv[])
 	assert(remote->add(1, i) == (1+i));
     printf("RPC test1 passed\n");
 
-    vector<string> cpa, res;
+    pdvector<string> cpa, res;
     cpa += "Happy"; cpa += "Sad";
     echoA(cpa);
     res = remote->echoCPA(cpa);
@@ -184,14 +184,14 @@ main(int argc, char *argv[])
     for (int ea=0; ea<res.size(); ea++)
       assert(res[ea] == cpa[ea]);
 
-    vector<string> *vs = remote->echoCPAPtr(&cpa);
+    pdvector<string> *vs = remote->echoCPAPtr(&cpa);
     assert(vs->size() == cpa.size());
     for (int l=0; l<vs->size(); l++)
       assert((*vs)[l] == cpa[l]);
     delete vs;
 
     T_test1::charStruct cs, csp;
-    vector<T_test1::charStruct> csa, csap;
+    pdvector<T_test1::charStruct> csa, csap;
 
     cs.cp = "Happy";
     csp = remote->echoCS(cs);
@@ -239,21 +239,21 @@ main(int argc, char *argv[])
     delete bp;
     cerr << "passing derived class ok\n";
 
-    vector<string> vs1, vs2;
+    pdvector<string> vs1, vs2;
     vs1 += "/Mark"; vs1 += "/Is"; vs1 += "/Bored";
     vs2 += "/What"; vs2 += "/To";
-    vector<T_test1::resStruct> vres, answer;
+    pdvector<T_test1::resStruct> vres, answer;
     T_test1::resStruct restr;
     restr.parts = vs1;
     restr.handle = 0;
     vres += restr;
     restr.parts = vs2;
     vres += restr;
-    cerr << "Echoing vector of structures\n";
+    cerr << "Echoing pdvector of structures\n";
     answer = remote->echoResStruct(vres);
     assert(answer[0].parts == vs1);
     assert(answer[1].parts == vs2);
-    cerr << "Echoing vector of structures --> passed\n";
+    cerr << "Echoing pdvector of structures --> passed\n";
     
     cerr << "triggering async upcalls\n";
     T_test1::boolStruct bs;

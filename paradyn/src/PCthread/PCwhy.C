@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCwhy.C,v 1.21 2002/05/13 19:53:14 mjbrim Exp $
+// $Id: PCwhy.C,v 1.22 2002/12/20 07:50:03 jaw Exp $
 // The hypothesis class and the why axis.
 
 #include "PCwhy.h"
@@ -54,8 +54,8 @@ hypothesis::hypothesis (const char *hypothesisName,
 			compOperator compare,
 			expandPolicy exPol,
 			explanationFunction explanation, bool *success,
-			vector<string*> *plumList,
-			vector<string*> *suppressions) 
+			pdvector<string*> *plumList,
+			pdvector<string*> *suppressions) 
 :name(hypothesisName), explain(explanation), 
  indivThresholdNm(indivThresholdName), groupThresholdNm(groupThresholdName), 
  getThreshold(threshold),
@@ -129,10 +129,10 @@ hypothesis::isSuppressed(resourceHandle candidate)
   return false;
 }
 
-vector<hypothesis*> *
+pdvector<hypothesis*> *
 hypothesis::expand()
 {
-  vector<hypothesis*> *result = new vector<hypothesis*> (kids);
+  pdvector<hypothesis*> *result = new pdvector<hypothesis*> (kids);
   return result;
 }
 
@@ -156,8 +156,8 @@ whyAxis::addHypothesis(const char *hypothesisName,
 		       compOperator compareOp,
 		       expandPolicy expandPol,
 		       explanationFunction explanation,
-		       vector<string*> *plumList,
-		       vector<string*> *suppressions)
+		       pdvector<string*> *plumList,
+		       pdvector<string*> *suppressions)
 {
   hypothesis *mom;
   if (parentName == NULL) 

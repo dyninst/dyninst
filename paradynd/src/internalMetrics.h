@@ -42,7 +42,7 @@
 #ifndef INTERNAL_MET_HDR
 #define INTERNAL_MET_HDR
 
-// $Id: internalMetrics.h,v 1.22 2002/05/10 18:37:30 schendel Exp $
+// $Id: internalMetrics.h,v 1.23 2002/12/20 07:50:06 jaw Exp $
 
 #include "im_preds.h"
 #include "dyninstRPC.xdr.h" // T_dyninstRPC
@@ -118,7 +118,7 @@ class internalMetric {
 
  private:
   // enabled instances of this internal metric are here:
-  vector<eachInstance> instances;
+  pdvector<eachInstance> instances;
 
  public:
   internalMetric(const string &n, aggregateOp a, const string &units,
@@ -171,7 +171,7 @@ class internalMetric {
 
   bool legalToInst(const Focus& focus) const;
 
-  static vector<internalMetric*> allInternalMetrics; // should be private!
+  static pdvector<internalMetric*> allInternalMetrics; // should be private!
   static internalMetric *newInternalMetric(const string &n, aggregateOp a,
 	     const string &units, sampleValueFunc f, im_pred_struct& preds,
 	     bool developerMode, daemon_MetUnitsType unitstype,

@@ -50,10 +50,10 @@ class process;
 
 
 class processMgr {
-   vector<pd_process *> procBuf;
+   pdvector<pd_process *> procBuf;
    
  public:
-   typedef vector<pd_process*>::iterator procIter;
+   typedef pdvector<pd_process*>::iterator procIter;
 
    void addProcess(pd_process *pd_proc) {
       assert(pd_proc != NULL);

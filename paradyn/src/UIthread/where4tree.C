@@ -42,7 +42,7 @@
 // where4tree.C
 // Ariel Tamches
 
-/* $Id: where4tree.C,v 1.23 2002/11/25 23:52:35 schendel Exp $ */
+/* $Id: where4tree.C,v 1.24 2002/12/20 07:50:05 jaw Exp $ */
 
 /* ******************************************************************
  *
@@ -1609,7 +1609,7 @@ bool where4tree<NODEDATA>::path2UnExpandAllChildren(const where4TreeConstants &t
 template <class NODEDATA>
 where4tree<NODEDATA>::where4tree(const NODEDATA &iNodeData) :
                                      theNodeData(iNodeData) {
-   // theChildren [] is initialized to empty vector
+   // theChildren [] is initialized to empty pdvector
 
    // We'll assume that the new node is a leaf node; hence, the right way to
    // initialize anything2Draw is to simply extract the value from the node-data.
@@ -1769,7 +1769,7 @@ void where4tree<NODEDATA>::sortChildren() {
    //    (But how to do an in-place mergesort?)
 
    if (numChildrenAddedSinceLastSort > 0 && theChildren.size() > 1)
-      theChildren.sort(childstruct::cmpfunc); // Vector::sort()
+      theChildren.sort(childstruct::cmpfunc); // Pdvector::sort()
 
    numChildrenAddedSinceLastSort = 0;
 }
@@ -1838,12 +1838,12 @@ selectUnSelectFromFullPathName(const char *name, bool selectFlag) {
 }
 
 template <class NODEDATA>
-vector<const NODEDATA *> where4tree<NODEDATA>::getSelections() const {
+pdvector<const NODEDATA *> where4tree<NODEDATA>::getSelections() const {
    // NOTE: Things would be faster if this function returned void and
-   // takes in a reference to a vector<NODEDATA*> which is appended to
+   // takes in a reference to a pdvector<NODEDATA*> which is appended to
    // in-place...
 
-   vector<const NODEDATA *> result; // initially empty
+   pdvector<const NODEDATA *> result; // initially empty
       
    if (getNodeData().getHighlighted()) {
       const NODEDATA &theNodeData = getNodeData();

@@ -20,7 +20,7 @@ public:
             bool in_lib);
   type_defn(const string &name, bool is_class, bool is_abstract,
             bool is_derived, const string &parent, 
-            const type_type type, vector<arg*> *arglist = NULL, 
+            const type_type type, pdvector<arg*> *arglist = NULL, 
             const bool can_point=false, const bool in_lib=false, 
 	    const string &ignore="", const string &bundle_name="");
   type_defn(const string &name, bool is_class, type_type type, 
@@ -53,17 +53,17 @@ public:
   type_type my_type() const { return my_type_;}
   bool is_in_library() const { return in_lib_;}
   bool operator== (const type_defn &other) const { return (other.name() == name_); }
-  bool is_same_type(vector<arg*> *arglist) const;
+  bool is_same_type(pdvector<arg*> *arglist) const;
   string dump_args(const string data_name, const string sep) const;
   void dump_type() const;
   const string &unqual_name() const { return unqual_name_;}
   bool is_stl() const { return is_stl_;}
   const string &prefix() const { return prefix_;}
-  bool assign_to(const string prefix, const vector<arg*> &alist, ofstream &out_stream) const;
+  bool assign_to(const string prefix, const pdvector<arg*> &alist, ofstream &out_stream) const;
   bool pointer_used() const { return pointer_used_;}
   void set_pointer_used() { pointer_used_ = true;}
   bool can_point() const { return can_point_;}
-  const vector<arg*> &copy_args() const { return (arglist_);}
+  const pdvector<arg*> &copy_args() const { return (arglist_);}
   unsigned numFields() const { return arglist_.size(); }
 
   string ignore() const { return ignore_; }
@@ -80,7 +80,7 @@ private:
   string name_;
   string bundle_name_;
   bool in_lib_;
-  vector<arg*> arglist_;
+  pdvector<arg*> arglist_;
   string unqual_name_;
   bool is_stl_;
   string prefix_;
@@ -92,7 +92,7 @@ private:
   bool is_abstract_;
   bool is_derived_;
   string parent_;
-  vector<string> kids_;
+  pdvector<string> kids_;
 
   bool gen_bundler_ptr_struct(const string class_prefix,
 		       ofstream &out_c, ofstream &out_h) const;

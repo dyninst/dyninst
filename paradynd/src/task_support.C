@@ -55,7 +55,7 @@
  *
  */
 
-// $Id: task_support.C,v 1.9 2000/07/28 17:22:33 pcroth Exp $
+// $Id: task_support.C,v 1.10 2002/12/20 07:50:07 jaw Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -269,7 +269,7 @@ PDYN_startProcess()
 
   // it is very important that the environment args are passed to addProcess
   // nevn and envp must be used in addProcess for pvm
-  vector<string> av, ev;
+  pdvector<string> av, ev;
   for (unsigned u=0; u<(unsigned)argc; u++)
     av += argv[u];
   for (unsigned v=0; v<(unsigned)nenv; v++)

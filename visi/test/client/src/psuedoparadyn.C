@@ -1,4 +1,4 @@
-/* $Id: psuedoparadyn.C,v 1.8 2002/04/09 18:06:55 mjbrim Exp $
+/* $Id: psuedoparadyn.C,v 1.9 2002/12/20 07:50:09 jaw Exp $
  * */ 
 #include <stdio.h>
 #include <stream.h>
@@ -20,7 +20,7 @@ double minbucketWidth = DEFAULT_BUCKET_WIDTH;
 int numBuckets = DEFAULT_NUM_BUCKETS;
 u_int nextMetId = 0;
 u_int nextResId = 0;
-vector<T_visi::visi_matrix> mrlist;
+pdvector<T_visi::visi_matrix> mrlist;
 void SendData(u_int,u_int,int &,double &);
 void Fold(double &bucketWidth,int &lastBucketCollected);
 void NewMR();
@@ -74,7 +74,7 @@ main(int argc, char *argv[]){
     }
 
     int pid;
-    vector<string> arg_list;
+    pdvector<string> arg_list;
     
     if(argc > 2){
         u_int index = 2;
@@ -191,7 +191,7 @@ void SendData(u_int howmany,
         cerr << "enter data value as a float" << endl;
         scanf("%f",&user_selected_value);
     }
-    vector <T_visi::dataValue> tempData;
+    pdvector <T_visi::dataValue> tempData;
     for(u_int i=0; i < howmany; i++){
         for(u_int j=0; j < mrlist.size(); j++){
 	    T_visi::dataValue newValue;
@@ -245,7 +245,7 @@ void NewMR(){
     cerr << "Enter number of metrics and number of resources" << endl;
     u_int num_mets = 0, num_res = 0;
     scanf("%d%d",&num_mets,&num_res);
-    vector<T_visi::visi_matrix> newlist;
+    pdvector<T_visi::visi_matrix> newlist;
     for(u_int i=0; i < num_mets; i++){
         for(u_int j=0; j < num_res; j++){
 	    T_visi::visi_matrix newElement;

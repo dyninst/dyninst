@@ -129,7 +129,7 @@ ready_socks_populator::visit(PDSOCKET desc)
 // 
 struct bad_desc_finder
 {
-    vector<PDSOCKET> socks;
+    pdvector<PDSOCKET> socks;
 
     bool visit(PDSOCKET desc);
 };

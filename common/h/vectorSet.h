@@ -59,7 +59,7 @@
 template <class T>
 class vectorSet {
  private:
-   vector<T> data;
+   pdvector<T> data;
 
  public:
    vectorSet() {} // empty set

@@ -123,7 +123,7 @@ void instReqNode::hookupJumps(pd_process *proc) {
 }
 
 void instReqNode::setAffectedDataNodes(instInstanceFreeCallback cb, 
-				   vector<instrDataNode *> *affectedNodes) {
+				   pdvector<instrDataNode *> *affectedNodes) {
   assert(loadedIntoApp_ == true);
   mtHandle.inst->registerCallback(cb, (void *)affectedNodes);
 }

@@ -40,7 +40,7 @@
  */
 
 /* 
- * $Id: PCpublic.C,v 1.45 2002/05/13 19:53:09 mjbrim Exp $
+ * $Id: PCpublic.C,v 1.46 2002/12/20 07:50:02 jaw Exp $
  * PC thread interface functions
  */
 
@@ -70,7 +70,7 @@ performanceConsultant::activateSearch(unsigned phaseID)
       performanceConsultant::normalMetric = *tmpmh;
       delete tmpmh;
       // number of metrics is used to setup filteredDataServer data structures
-      vector<string> *mets = dataMgr->getAvailableMetrics(true);
+      pdvector<string> *mets = dataMgr->getAvailableMetrics(true);
       performanceConsultant::numMetrics = mets->size();
       delete mets;
     }

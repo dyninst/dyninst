@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.43 2002/12/05 01:38:39 buck Exp $
+// $Id: irix.C,v 1.44 2002/12/20 07:49:57 jaw Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -448,7 +448,7 @@ int process::waitProcs(int *status)
 {
   //fprintf(stderr, ">>> process::waitProcs()\n");
 
-  extern vector<process*> processVec;
+  extern pdvector<process*> processVec;
 
   static struct pollfd fds[OPEN_MAX];  // argument for poll
   static int selected_fds;             // number of selected
@@ -721,7 +721,7 @@ int process::waitProcs(int *status)
 		     proc->status_ = stopped;
 
 		     // reset buffer pool to empty (exec clears old mappings)
-		     vector<heapItem *> emptyHeap;
+		     pdvector<heapItem *> emptyHeap;
 		     proc->heap.bufferPool = emptyHeap;
 	         }
 	     } else {
@@ -850,7 +850,7 @@ bool process::continueProc_()
   return true;
 }
 
-bool process::heapIsOk(const vector<sym_data>&findUs)
+bool process::heapIsOk(const pdvector<sym_data>&findUs)
 {
   if (!(mainFunction = findOneFunction("main")) &&
       !(mainFunction = findOneFunction("_main"))) {
@@ -1905,7 +1905,7 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
 //
 //  Attaching to the children is handled in handleSigChild.
 
-bool execIrixMPIProcess(vector<string> &argv)
+bool execIrixMPIProcess(pdvector<string> &argv)
 {
   int pipeFlag[2], retval;
   char processFile[64];

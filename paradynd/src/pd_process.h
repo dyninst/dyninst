@@ -191,7 +191,7 @@ class pd_process {
       return dyninst_process->triggeredInStackFrame(point, frame, when, order);
    }
 
-   bool walkStacks(vector<vector<Frame> > &stackWalks) {
+   bool walkStacks(pdvector<pdvector<Frame> > &stackWalks) {
       return dyninst_process->walkStacks(stackWalks);
    }
 
@@ -215,15 +215,15 @@ class pd_process {
       return dyninst_process->findCallee(instr, target);
    }
 
-   vector<function_base *> *getIncludedFunctions(module *mod) {
+   pdvector<function_base *> *getIncludedFunctions(module *mod) {
       return dyninst_process->getIncludedFunctions(mod);
    }
 
-   vector<function_base *> *getIncludedFunctions() {
+   pdvector<function_base *> *getIncludedFunctions() {
       return dyninst_process->getIncludedFunctions();
    }
 
-   vector<module *> *getIncludedModules() {
+   pdvector<module *> *getIncludedModules() {
       return dyninst_process->getIncludedModules();
    }
 

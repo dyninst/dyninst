@@ -5,7 +5,7 @@
 #include "Options.h"
 #include "common/h/Dictionary.h"
 
-signature::signature(vector<arg*> *alist, const string rf_name) : is_const_(false), stars_(0) {
+signature::signature(pdvector<arg*> *alist, const string rf_name) : is_const_(false), stars_(0) {
   assert(alist);
   for (unsigned i=0; i<alist->size(); i++) 
     args += (*alist)[i];

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.96 2002/07/25 19:22:37 willb Exp $
+/* $Id: paradyn.tcl.C,v 1.97 2002/12/20 07:50:04 jaw Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -149,7 +149,7 @@ int ParadynMetricsCmd(ClientData,
 			int,
 			char **)
 {
-  vector<string> *ml = dataMgr->getAvailableMetrics(false);
+  pdvector<string> *ml = dataMgr->getAvailableMetrics(false);
   for (unsigned i=0; i < ml->size(); i++)
     Tcl_AppendElement(interp, const_cast<char*>((*ml)[i].c_str()));
   delete ml;
@@ -162,7 +162,7 @@ int ParadynDaemonsCmd(ClientData,
 		      int,
 		      char **)
 {
-  vector<string> *dl = dataMgr->getAvailableDaemons();
+  pdvector<string> *dl = dataMgr->getAvailableDaemons();
   for (unsigned i=0; i < dl->size(); i++)
     Tcl_AppendElement(interp, const_cast<char*>((*dl)[i].c_str()));
   delete dl;
@@ -186,14 +186,14 @@ int ParadynListCmd(ClientData,
 {
   dataMgr->printResources();
 
-  vector<string> *ml = dataMgr->getAvailableMetrics(false);
+  pdvector<string> *ml = dataMgr->getAvailableMetrics(false);
   for (unsigned i=0; i < ml->size(); i++) {
     cout << ((*ml)[i]).c_str() << endl;
   }
 
   cout << "CONSTANTS" << endl;
 
-  vector<tunableBooleanConstant> allBoolConstants = tunableConstantRegistry::getAllBoolTunableConstants();
+  pdvector<tunableBooleanConstant> allBoolConstants = tunableConstantRegistry::getAllBoolTunableConstants();
   for (unsigned boollcv = 0; boollcv < allBoolConstants.size(); boollcv++) {
      tunableBooleanConstant &tbc = allBoolConstants[boollcv];
      cout << tbc.getName() << " = ";
@@ -203,7 +203,7 @@ int ParadynListCmd(ClientData,
         cout << "false" << endl;
   }
 
-  vector<tunableFloatConstant> allFloatConstants = tunableConstantRegistry::getAllFloatTunableConstants();
+  pdvector<tunableFloatConstant> allFloatConstants = tunableConstantRegistry::getAllFloatTunableConstants();
   for (unsigned floatlcv = 0; floatlcv < allFloatConstants.size(); floatlcv++) {
      tunableFloatConstant &tfc = allFloatConstants[floatlcv];
 
@@ -485,7 +485,7 @@ int ParadynProcessCmd(ClientData,
     app_status = new status_line("Application status");
   }
  
-  vector<string> av;
+  pdvector<string> av;
   unsigned ve=i;
   while (argv[ve]) {
     av += argv[ve];
@@ -580,7 +580,7 @@ int ParadynEnableCmd (ClientData,
 {
   metricHandle *met;
   metricInstInfo *mi;
-  vector<resourceHandle> *resList;
+  pdvector<resourceHandle> *resList;
   ostrstream resstr;
 
 
@@ -600,7 +600,7 @@ int ParadynEnableCmd (ClientData,
       return TCL_ERROR;
     }
 
-    resList = new vector<resourceHandle>;
+    resList = new pdvector<resourceHandle>;
     cout << "enable request for ";
     for (int i = 0; i < argsc; i++) {
       res = dataMgr->findResource(argsv[i]);
@@ -624,7 +624,7 @@ int ParadynEnableCmd (ClientData,
     // Finally enable the data collection
     // TODO: phaseType, and persistent flags should be command args
     
-    vector<metric_focus_pair> *request = new vector<metric_focus_pair>;
+    pdvector<metric_focus_pair> *request = new pdvector<metric_focus_pair>;
     metric_focus_pair new_request_entry(*met,*resList);
     *request += new_request_entry;
     assert(request->size() == 1);
@@ -633,7 +633,7 @@ int ParadynEnableCmd (ClientData,
 
     // KLUDGE: wait for async response from DM
     bool ready=false;
-    vector<metricInstInfo> *response;
+    pdvector<metricInstInfo> *response;
     // wait for response from DM
     while(!ready){
  	  T_dataManager::msg_buf buffer;
@@ -911,7 +911,7 @@ int ParadynVisiCmd (ClientData,
     return TCL_ERROR;
   }
   if (argv[1][0] == 'a') {
-    vector<VM_activeVisiInfo> *temp;
+    pdvector<VM_activeVisiInfo> *temp;
 
     temp = vmMgr->VMActiveVisis();
     for (unsigned i=0; i < temp->size(); i++) {
@@ -922,7 +922,7 @@ int ParadynVisiCmd (ClientData,
     delete temp;
   }
   else if (argv[1][0] == 'i') {
-      vector<VM_visiInfo> *visi_info;
+      pdvector<VM_visiInfo> *visi_info;
 
       visi_info = vmMgr->VMAvailableVisis();
       for (unsigned i=0; i < visi_info->size();i++) {

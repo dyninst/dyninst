@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.38 2002/12/05 01:38:39 buck Exp $
+// $Id: osf.C,v 1.39 2002/12/20 07:49:58 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -521,7 +521,7 @@ int process::waitProcs(int *status)
 				 proc->status_ = stopped;
 
 				 // reset buffer pool to empty (exec clears old mappings)
-				 vector<heapItem *> emptyHeap;
+				 pdvector<heapItem *> emptyHeap;
 				 proc->heap.bufferPool = emptyHeap;
 			     }
 			 } else {

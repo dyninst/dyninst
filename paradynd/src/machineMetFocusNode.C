@@ -61,7 +61,7 @@ dictionary_hash<unsigned, machineMetFocusNode*>
 machineMetFocusNode::machineMetFocusNode(int metricID, 
 					 const string& metric_name, 
 					 const Focus &foc,
-					 vector<processMetFocusNode*>& parts, 
+					 pdvector<processMetFocusNode*>& parts, 
 					 aggregateOp agg_op, bool enable_)
   : metricFocusNode(), aggregator(agg_op, getCurrSamplingRate()), 
     id_(metricID), aggOp(agg_op),
@@ -103,7 +103,7 @@ machineMetFocusNode::~machineMetFocusNode() {
 }
 
 void machineMetFocusNode::getMachineNodes(
-                                 vector<machineMetFocusNode*> *machNodes)
+                                 pdvector<machineMetFocusNode*> *machNodes)
 {
   dictionary_hash_iter<unsigned, machineMetFocusNode*> iter = allMachNodes;
 
@@ -117,7 +117,7 @@ void machineMetFocusNode::getMachineNodes(
 // to remain, then the machineMetFocusNode will be deleted too
 void machineMetFocusNode::deleteProcNode(processMetFocusNode *procNode,
                                          bool auto_delete_mach_node) {
-   vector<processMetFocusNode*>::iterator itr = procNodes.end();
+   pdvector<processMetFocusNode*>::iterator itr = procNodes.end();
 
    while(itr != procNodes.begin()) {
       itr--;
@@ -176,7 +176,7 @@ void machineMetFocusNode::initAggInfoObjects(timeStamp startTime,
 
 
 void machineMetFocusNode::updateAllAggInterval(timeLength width) {
-  vector<machineMetFocusNode *> machNodes;
+  pdvector<machineMetFocusNode *> machNodes;
   getMachineNodes(&machNodes);
 
   for(unsigned i=0; i<machNodes.size(); i++) {
@@ -358,7 +358,7 @@ void machineMetFocusNode::propagateToNewProcess(pd_process *newProcess) {
 void machineMetFocusNode::setupProcNodeForForkedProcess(
 		      processMetFocusNode *parentProcNode, 
 		      pd_process *childProc,
-		      vector<processMetFocusNode *> *procNodesToUnfork)
+		      pdvector<processMetFocusNode *> *procNodesToUnfork)
 {
   processMetFocusNode *childProcNode = 
     new processMetFocusNode(*parentProcNode, childProc);
@@ -402,7 +402,7 @@ void machineMetFocusNode::setupProcNodeForForkedProcess(
 
 void machineMetFocusNode::propagateToForkedProcess(
 			   const pd_process *parentProc, pd_process *childProc,
-			      vector<processMetFocusNode *> *procNodesToUnfork)
+			      pdvector<processMetFocusNode *> *procNodesToUnfork)
 {
   // see if this metric-focus needs to be adjusted for this new process
   if(isInternalMetric()) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.h,v 1.6 2002/10/15 17:12:22 schendel Exp $
+// $Id: varTable.h,v 1.7 2002/12/20 07:50:07 jaw Exp $
 
 // The varTable class consists of an array of superVectors. The varTable
 // class is a template class. It has a levelMap vector that keeps track of
@@ -89,9 +89,9 @@ class baseVarTable {
 template <class HK>
 class varTable : public baseVarTable {
  private:
-  vector<baseVarInstance *> varInstanceBuf;
+  pdvector<baseVarInstance *> varInstanceBuf;
   variableMgr &varMgr;
-  vector<inst_var_index> freeIndexes;
+  pdvector<inst_var_index> freeIndexes;
 
   inst_var_index getFreeIndex();
 

@@ -48,21 +48,21 @@
 #include "common/h/Vector.h"
 #include "common/src/Dictionary.C"
 
-template class vector< vector<unsigned> >;
+template class pdvector< pdvector<unsigned> >;
 
 /* ******************************
  * TCthread stuff
  */
 #include "paradyn/src/TCthread/tunableConst.h"
 
-template class vector<tunableBooleanConstant>;
-template class vector<tunableFloatConstant>;
+template class pdvector<tunableBooleanConstant>;
+template class pdvector<tunableFloatConstant>;
 
 template class dictionary_hash<string, tunableBooleanConstant>;
-template class vector<dictionary_hash<string, tunableBooleanConstant>::entry>;
+template class pdvector<dictionary_hash<string, tunableBooleanConstant>::entry>;
 
 template class dictionary_hash<string, tunableFloatConstant>;
-template class vector<dictionary_hash<string, tunableFloatConstant>::entry>;
+template class pdvector<dictionary_hash<string, tunableFloatConstant>::entry>;
 
 /* *************************************
  * UIthread stuff
@@ -72,23 +72,23 @@ template class vector<dictionary_hash<string, tunableFloatConstant>::entry>;
 #include "common/src/list.C"
 template class ListWithKey<metricInstInfo *, metricInstanceHandle>;
 template class ListBase<metricInstInfo *, metricInstanceHandle>;
-template class vector<VM_activeVisiInfo>;
+template class pdvector<VM_activeVisiInfo>;
 
 template class dictionary_hash<unsigned, string>;
-template class vector<dictionary_hash<unsigned, string>::entry>;
+template class pdvector<dictionary_hash<unsigned, string>::entry>;
 
 /* *************************************
  * UIthread Logo Stuff
  */
 
 #include "paradyn/src/UIthread/pdLogo.h"
-template class vector<pdLogo *>;
+template class pdvector<pdLogo *>;
 template class dictionary_hash<string, pdLogo *>;
-template class vector<dictionary_hash<string, pdLogo *>::entry>;
+template class pdvector<dictionary_hash<string, pdLogo *>::entry>;
 
 template class dictionary_hash<string, pdLogo::logoStruct>;
-template class vector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
-template class vector<pdLogo::logoStruct>;
+template class pdvector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
+template class pdvector<pdLogo::logoStruct>;
 
 /* *************************************
  * UIthread Misc Stuff

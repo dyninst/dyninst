@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.58 2002/11/25 23:52:22 schendel Exp $
+// $Id: DMresource.C,v 1.59 2002/12/20 07:50:01 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,7 +87,7 @@ resource::resource()
 
 resource::resource(resourceHandle p_handle, 
 		   unsigned tempId,
-		   vector<string>& resource_name,
+		   pdvector<string>& resource_name,
 		   string& r_name,
 		   string& a, unsigned res_type) 
 {
@@ -122,7 +122,7 @@ resource::resource(resourceHandle p_handle,
 }
 
 resource::resource(resourceHandle p_handle, 
-		   vector<string>& resource_name,
+		   pdvector<string>& resource_name,
 		   string& r_name,
 		   string& a, unsigned res_type) 
 {
@@ -166,7 +166,7 @@ resource *resource::handle_to_resource(resourceHandle r_handle) {
 // I don't want to parse for '/' more than once, thus the use of a string
 // vector
 resourceHandle resource::createResource(unsigned res_id, 
-                                        vector<string>& resource_name,
+                                        pdvector<string>& resource_name,
                                         string& abstr, unsigned type) 
 {
    static const string slashStr = "/";
@@ -215,8 +215,8 @@ resourceHandle resource::createResource(unsigned res_id,
 
    // check to see if the suppressMagnify option should be set...if
    // this resource is specifed in the mdl exclude_lib option
-   vector<string> shared_lib_constraints;
-   vector<unsigned> constraint_flags;
+   pdvector<string> shared_lib_constraints;
+   pdvector<unsigned> constraint_flags;
    if(resource::get_lib_constraints(shared_lib_constraints, constraint_flags) &&
       (string(parent->getFullName()) == "/Code")) {
       for(u_int i=0; i < shared_lib_constraints.size(); i++){
@@ -262,7 +262,7 @@ resourceHandle resource::createResource(unsigned res_id,
          resourceHandle pph = parent->getParent();
          resource *ppr = resource::handle_to_resource(pph);
          if( ppr && (string(ppr->getFullName()) == "/Code")) {
-            vector< vector<string> > libs;
+            pdvector< pdvector<string> > libs;
             constraint_flags.resize( 0 );
             if(resource::get_func_constraints(libs, constraint_flags)) {
                for(u_int i=0; i < libs.size(); i++){
@@ -322,7 +322,7 @@ resourceHandle resource::createResource(unsigned res_id,
    return(r_handle);
 }
 
-resourceHandle resource::createResource_ncb(vector<string>& resource_name, 
+resourceHandle resource::createResource_ncb(pdvector<string>& resource_name, 
                                             string& abstr, unsigned type,
                                             resourceHandle &p_handle, 
                                             bool &exist) 
@@ -377,11 +377,11 @@ resourceHandle resource::createResource_ncb(vector<string>& resource_name,
    return(r_handle);
 }
 
-vector<resourceHandle> *resource::getChildren(bool dontGetRetiredChildren) {
+pdvector<resourceHandle> *resource::getChildren(bool dontGetRetiredChildren) {
    // set member resource::retired to true when retired
    // query this member variable here
 
-    vector<resourceHandle> *temp = new vector<resourceHandle>;
+    pdvector<resourceHandle> *temp = new pdvector<resourceHandle>;
     for(unsigned i=0; i < children.size(); i++){
        resource *curRes = resources[children[i]];
        if(dontGetRetiredChildren == true && curRes->isRetired())  continue;
@@ -547,11 +547,11 @@ resource *resource::string_to_resource(const string &res) {
 // get_lib_constraints: returns true if there is a list of lib constraints
 // specified by the mdl exclude_lib option.  If the list has not yet been 
 // created, this routine creates the list from the mdl_data list
-bool resource::get_lib_constraints(vector<string> &list, vector<unsigned> &flags){
+bool resource::get_lib_constraints(pdvector<string> &list, pdvector<unsigned> &flags){
  
     if(!lib_constraints_built) {
-        vector<string> temp;
-		vector<unsigned> tmp_flags;
+        pdvector<string> temp;
+		pdvector<unsigned> tmp_flags;
 	// create list
         if(mdl_get_lib_constraints(temp, tmp_flags)){
 
@@ -580,11 +580,11 @@ bool resource::get_lib_constraints(vector<string> &list, vector<unsigned> &flags
 // get_func_constraints: returns true if there is a list of func constraints
 // specified by the mdl exclude_func option.  If the list has not yet been 
 // created, this routine creates the list from the mdl_data list
-bool resource::get_func_constraints(vector< vector<string> > &list, vector<unsigned> &flags){
+bool resource::get_func_constraints(pdvector< pdvector<string> > &list, pdvector<unsigned> &flags){
  
     if(!func_constraints_built) {
-        vector< string > temp;
-		vector<unsigned> tmp_flags;
+        pdvector< string > temp;
+		pdvector<unsigned> tmp_flags;
 	// create list
         if(mdl_get_lib_constraints(temp, tmp_flags)){
 	    for(u_int i=0; i < temp.size(); i++){
@@ -602,7 +602,7 @@ bool resource::get_func_constraints(vector< vector<string> > &list, vector<unsig
 		  }
 		  assert(where < temp[i].length());
 		  assert(where > prev_where);
-		  vector<string> func_consts;
+		  pdvector<string> func_consts;
 		  // module name
 		  u_int size = where-prev_where;
 		  char *temp_str = new char[size]; 
@@ -665,12 +665,12 @@ int DMresourceListNameCompare(const void *n1, const void *n2){
 
 }
 
-string resource::DMcreateRLname(const vector<resourceHandle> &res) {
+string resource::DMcreateRLname(const pdvector<resourceHandle> &res) {
     // create a unique name
     string temp;
     resource *next;
 
-    vector <string> sorted_names;
+    pdvector <string> sorted_names;
 
     for(unsigned i=0; i < res.size(); i++){
 	next = resource::handle_to_resource(res[i]);
@@ -688,11 +688,11 @@ string resource::DMcreateRLname(const vector<resourceHandle> &res) {
     return(temp);
 }
 
-resourceList::resourceList(const vector<resourceHandle> &res){
+resourceList::resourceList(const pdvector<resourceHandle> &res){
     // create a unique name
     string temp = resource::DMcreateRLname(res);
 
-    //cerr << "resourceList::resourceList(const vector<resourceHandle> &res)"
+    //cerr << "resourceList::resourceList(const pdvector<resourceHandle> &res)"
     // << " called" << endl;
     //cerr << " temp (name string) = " << temp << endl;
 
@@ -703,7 +703,7 @@ resourceList::resourceList(const vector<resourceHandle> &res){
         fullName = temp;
         foci += rl;
 
-        // create elements vector 
+        // create elements pdvector 
         for(unsigned i=0; i < res.size(); i++){
 	    resource *r = resource::handle_to_resource(res[i]);
 	    if(r){
@@ -720,7 +720,7 @@ resourceList::resourceList(const vector<resourceHandle> &res){
 
 // this should be called with strings of fullNames for resources
 // ex.  "/Procedure/blah.c/foo"  rather than "foo"
-resourceList::resourceList(const vector<string> &names){
+resourceList::resourceList(const pdvector<string> &names){
     // create a unique name
     unsigned size = names.size();
     string temp;
@@ -737,7 +737,7 @@ resourceList::resourceList(const vector<string> &names){
         allFoci[temp] = rl;
         fullName = temp;
         foci += rl;
-        // create elements vector 
+        // create elements pdvector 
         for(unsigned j=0; j < size; j++){
 	    resource *r = resource::string_to_resource(names[j]);
 	    if(r){
@@ -766,13 +766,13 @@ void resourceList::print()
     printf("}");
 }
 
-bool resourceList::convertToStringList(vector< vector<string> > &fs) {
+bool resourceList::convertToStringList(pdvector< pdvector<string> > &fs) {
     for (unsigned i=0; i < elements.size(); i++)
         fs += elements[i]->getParts();
     return true;
 }
 
-bool resourceList::convertToIDList(vector<resourceHandle> &fs) {
+bool resourceList::convertToIDList(pdvector<resourceHandle> &fs) {
     for (unsigned i=0; i < elements.size(); i++){
         fs += elements[i]->getHandle();
     }
@@ -780,7 +780,7 @@ bool resourceList::convertToIDList(vector<resourceHandle> &fs) {
 }
 
 bool resourceList::convertToIDList(resourceListHandle rh,
-				   vector<resourceHandle> &rl){
+				   pdvector<resourceHandle> &rl){
 
     for(u_int i=0; i < foci.size(); i++){
         if(rh == foci[i]->getHandle()){
@@ -802,10 +802,10 @@ int resourceList::getThreadID() {
 // This routine returns a list of foci which are the result of combining
 // each child of resource rh with the remaining resources that make up the
 // focus, otherwise it returns 0
-vector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type,
+pdvector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type,
 					resource *currentPath){
-    vector<resourceHandle> *children;
-    vector<rlNameId> *return_list;
+    pdvector<resourceHandle> *children;
+    pdvector<rlNameId> *return_list;
 
     // supported magnify types....
     assert(type == OriginalSearch || type == CallGraphSearch);
@@ -821,7 +821,7 @@ vector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type,
     }
     if(rIndex == not_found_indicator)  return 0;
 
-    return_list = new vector<rlNameId>;
+    return_list = new pdvector<rlNameId>;
 
     // calls elements[rIndex]->getChildren or CallGraph::getChildren
     // depending on the magnify type and the characteristics of the
@@ -834,7 +834,7 @@ vector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type,
     children = MagnifyManager::getChildren(elements[rIndex], type);
 
     if(children->size()){ // for each child create a new focus
-       vector<resourceHandle> new_focus; 
+       pdvector<resourceHandle> new_focus; 
        for(unsigned i=0; i < elements.size(); i++){
 	  new_focus += (elements[i])->getHandle();
        }
@@ -918,7 +918,7 @@ resourceListHandle *resourceList::constrain(resourceHandle rh){
             break;
     }}
     if(rIndex < elements.size()){
-	vector<resourceHandle> new_focus; 
+	pdvector<resourceHandle> new_focus; 
 	for(unsigned j=0; j < elements.size(); j++){
             new_focus += (elements[j])->getHandle();
 	}
@@ -935,11 +935,11 @@ resourceListHandle *resourceList::constrain(resourceHandle rh){
 // each child of one of the resources with the remaining resource components of
 // the focus. this is iterated over all resources in the focus.
 // returns 0 if all resources in the focus have no children
-vector<resourceListHandle> *resourceList::magnify(magnifyType type){
+pdvector<resourceListHandle> *resourceList::magnify(magnifyType type){
     
-    vector<resourceListHandle> *return_list = new vector<resourceListHandle>;
+    pdvector<resourceListHandle> *return_list = new pdvector<resourceListHandle>;
     for(unsigned i=0; i < elements.size(); i++){
-	vector<resourceListHandle> *next = 
+	pdvector<resourceListHandle> *next = 
 				   this->magnify((elements[i])->getHandle(), type);
 	if(next) *return_list += *next;
 	delete next;
@@ -953,11 +953,11 @@ vector<resourceListHandle> *resourceList::magnify(magnifyType type){
 // each child of one of the resources with the remaining resource components of
 // the focus. this is iterated over all resources in the focus.
 // returns 0 if all resources in the focus have no children
-/*vector<rlNameId> *resourceList::magnify(magnifyType type){
+/*pdvector<rlNameId> *resourceList::magnify(magnifyType type){
     
-    vector<rlNameId> *return_list = new vector<rlNameId>;
+    pdvector<rlNameId> *return_list = new pdvector<rlNameId>;
     for(unsigned i=0; i < elements.size(); i++){
-	vector<rlNameId> *next = 
+	pdvector<rlNameId> *next = 
 	                 this->magnify((elements[i])->getHandle(), type);
         if(next) {
 	  for (unsigned j=0; j < next->size(); j++){
@@ -1019,7 +1019,7 @@ bool resourceList::getMachineNameReferredTo(string &machName) const {
          // bingo.  Now check out the resource's components.  The machine name
          // should be in the 2d component, and the first component should be "Machine".
 	 // (For example, the resource "/Machine/goat" has 2 components)
-	 const vector<string> &components = theResource.getParts();
+	 const pdvector<string> &components = theResource.getParts();
 
          // The following line is not fast; calls string's constructor which calls
 	 // malloc.  But it's really just an assert, so we could get rid of it for
@@ -1054,10 +1054,10 @@ bool resourceList::getMachineNameReferredTo(string &machName) const {
    return false;
 }
 
-vector<resourceHandle> *resourceList::getResourceHandles(resourceListHandle h){
+pdvector<resourceHandle> *resourceList::getResourceHandles(resourceListHandle h){
     resourceList *focus = getFocus(h);
     if(focus){
-        vector<resourceHandle> *handles = new vector<resourceHandle>;
+        pdvector<resourceHandle> *handles = new pdvector<resourceHandle>;
         for(unsigned i=0; i < focus->elements.size(); i++){
 	    resource *part = focus->elements[i];
             *handles += part->getHandle(); 
@@ -1080,7 +1080,7 @@ const resourceListHandle *resourceList::find(const string &name){
 }
 
 resourceListHandle resourceList::getResourceList(
-				const vector<resourceHandle>& h){
+				const pdvector<resourceHandle>& h){
 
     // does this resourceList already exist?
     string temp = resource::DMcreateRLname(h);
@@ -1103,7 +1103,7 @@ resourceList *resourceList::findRL(const char *name){
 }
 
 void resource::printAllResources() {
-    vector<resource *>allRes = resource::resources.values();
+    pdvector<resource *>allRes = resource::resources.values();
     for(unsigned i=0; i < allRes.size(); i++){
         cout << "{";
         (allRes[i])->print();

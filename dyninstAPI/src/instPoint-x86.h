@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.17 2002/01/29 19:59:57 gurari Exp $
+// $Id: instPoint-x86.h,v 1.18 2002/12/20 07:49:57 jaw Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -98,13 +98,13 @@ class instPoint {
   // add an instruction before the point. Instructions should be added in reverse
   // order, the instruction closest to the point first.
   void addInstrBeforePt(instruction inst) {
-    if (!insnBeforePt_) insnBeforePt_ = new vector<instruction>;
+    if (!insnBeforePt_) insnBeforePt_ = new pdvector<instruction>;
     (*insnBeforePt_).push_back(inst);
   };
 
   // add an instruction after the point.
   void addInstrAfterPt(instruction inst) {
-    if (!insnAfterPt_) insnAfterPt_ = new vector<instruction>;
+    if (!insnAfterPt_) insnAfterPt_ = new pdvector<instruction>;
     (*insnAfterPt_).push_back(inst);
   }
 
@@ -241,8 +241,8 @@ class instPoint {
   Address              jumpAddr_;     //This is the address where we insert the jump.
                                       // It may be an instruction before the point
   instruction          insnAtPoint_;  //The instruction at this point
-  vector<instruction> *insnBeforePt_; //Additional instructions before the point
-  vector<instruction> *insnAfterPt_;  //Additional instructions after the point
+  pdvector<instruction> *insnBeforePt_; //Additional instructions before the point
+  pdvector<instruction> *insnAfterPt_;  //Additional instructions after the point
   unsigned            bonusBytes_;    //Additional bytes after function for points
                                       //at end of function.
   bool relocated_;       // true if the function where this instPoint belongs

@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.26 2002/10/28 04:54:10 schendel Exp $
+// $Id: templatesDM.C,v 1.27 2002/12/20 07:50:01 jaw Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -67,31 +67,31 @@
 
 
   ****** dictionary_hash (no iter) *********
-template class pair<>;
+template class pdpair<>;
 template class dictionary<>;
-template class vector< pair<> >;
-template class vector< dictionary_hash<>::hash_pair>;
-template class vector< vector< dictionary_hash<>::hash_pair> >;
+template class pdvector< pdpair<> >;
+template class pdvector< dictionary_hash<>::hash_pair>;
+template class pdvector< pdvector< dictionary_hash<>::hash_pair> >;
 template class dictionary_hash<>;
 
   ****** dictionary_hash (iter) ************
 template class dictionary<>;
-template class pair<>;
-template class vector< pair<> >; 
+template class pdpair<>;
+template class pdvector< pdpair<> >; 
 template class dictionary_hash<>;
 template class dictionary_hash_iter<>;
-template class vector< dictionary_hash<> :: hash_pair >;
-template class vector< vector< dictionary_hash<> :: hash_pair > >;
+template class pdvector< dictionary_hash<> :: hash_pair >;
+template class pdvector< pdvector< dictionary_hash<> :: hash_pair > >;
 
   ******* priority queue ********************
 template class PriorityQueue<>; 
 template ostream &operator<<(ostream &, PriorityQueue<> &);
-template class vector<PriorityQueue<>::pair>;
+template class pdvector<PriorityQueue<>::pdpair>;
 
 */
 
-template class vector<bool>;
-template class vector< vector<string> >;
+template class pdvector<bool>;
+template class pdvector< pdvector<string> >;
 
 /* *********************************   
  * DMthread stuff
@@ -108,69 +108,69 @@ class cpContext;
 #include "paradyn/src/DMthread/DMabstractions.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
 
-template class vector<phaseInfo *>;
-template class vector<daemonEntry*>;
-template class vector<paradynDaemon*>;
-template class vector<executable*>;
-template class vector<component*>;
-template class vector<aggComponent*>;
-template class vector<processMetFocusNode *>;
-template class vector<metric_focus_pair>;
-template class vector<metricInstInfo>;
-template class vector<met_name_id>;
-template class vector<metric*>;
-template class vector<resource*>;
-template class vector<resourceList*>;
-template class vector<abstraction*>;
-template class vector<metricInstance*>;
-template class vector<ArchiveType *>;
-template class vector<rlNameIdType>;
+template class pdvector<phaseInfo *>;
+template class pdvector<daemonEntry*>;
+template class pdvector<paradynDaemon*>;
+template class pdvector<executable*>;
+template class pdvector<component*>;
+template class pdvector<aggComponent*>;
+template class pdvector<processMetFocusNode *>;
+template class pdvector<metric_focus_pair>;
+template class pdvector<metricInstInfo>;
+template class pdvector<met_name_id>;
+template class pdvector<metric*>;
+template class pdvector<resource*>;
+template class pdvector<resourceList*>;
+template class pdvector<abstraction*>;
+template class pdvector<metricInstance*>;
+template class pdvector<ArchiveType *>;
+template class pdvector<rlNameIdType>;
 
 template class dictionary_hash<string,metric*>;
-template class vector<dictionary_hash<string,metric*>::entry>;
+template class pdvector<dictionary_hash<string,metric*>::entry>;
 
-template class vector<dataValueType>;
+template class pdvector<dataValueType>;
 template class BufferPool<dataValueType>;
 
-template class vector<predCostType*>;
-template class vector<DM_enableType*>;
-template class vector<metricRLType>;
+template class pdvector<predCostType*>;
+template class pdvector<DM_enableType*>;
+template class pdvector<metricRLType>;
 
 // trace data streams
-template class vector<traceDataValueType>;
+template class pdvector<traceDataValueType>;
 template class BufferPool<traceDataValueType>;
 
 template class dictionary_hash<string, resource*>;
-template class vector<dictionary_hash<string, resource*>::entry>;
+template class pdvector<dictionary_hash<string, resource*>::entry>;
 
 template class dictionary_hash<unsigned, resource*>;
-template class vector<dictionary_hash<unsigned, resource*>::entry>;
+template class pdvector<dictionary_hash<unsigned, resource*>::entry>;
 template class dictionary_hash_iter<unsigned, resource*>;
 
 template class dictionary_hash<unsigned, resourceHandle>;
-template class vector<dictionary_hash<unsigned, resourceHandle>::entry>;
+template class pdvector<dictionary_hash<unsigned, resourceHandle>::entry>;
 
 template class dictionary_hash<unsigned int, cpContext*>;
-template class vector<dictionary_hash<unsigned int, cpContext*>::entry>;
-template class vector<cpContext *>;
+template class pdvector<dictionary_hash<unsigned int, cpContext*>::entry>;
+template class pdvector<cpContext *>;
 
 template class dictionary_hash<string, resourceList*>;
-template class vector<dictionary_hash<string, resourceList*>::entry>;
+template class pdvector<dictionary_hash<string, resourceList*>::entry>;
 
 template class dictionary_hash<string, abstraction*>;
-template class vector<dictionary_hash<string, abstraction*>::entry>;
+template class pdvector<dictionary_hash<string, abstraction*>::entry>;
 
 template class dictionary_hash<perfStreamHandle,performanceStream*>;
-template class vector<dictionary_hash<perfStreamHandle,performanceStream*>::entry>;
+template class pdvector<dictionary_hash<perfStreamHandle,performanceStream*>::entry>;
 
 template class dictionary_hash<metricInstanceHandle,metricInstance*>;
-template class vector<dictionary_hash<metricInstanceHandle,metricInstance*>::entry>;
+template class pdvector<dictionary_hash<metricInstanceHandle,metricInstance*>::entry>;
 
-template class vector<perfStreamEntry>;
+template class pdvector<perfStreamEntry>;
 
 //Blizzard
 template class dictionary_hash<string,unsigned>;
-template class vector<dictionary_hash<string,unsigned>::entry>;
+template class pdvector<dictionary_hash<string,unsigned>::entry>;
 
 #include <common/src/list.C>
 template class List<aggComponent*>;
@@ -178,21 +178,21 @@ template class ListBase<aggComponent*, void*>;
 
 class CallGraph;
 template class dictionary_hash<int,CallGraph*>;
-template class vector<CallGraph*>;
-template class vector<dictionary_hash<int,CallGraph*>::entry>;
+template class pdvector<CallGraph*>;
+template class pdvector<dictionary_hash<int,CallGraph*>::entry>;
 
-template class dictionary_hash<resource*,vector<resource*> >;
-template class vector<vector<resource*> >;
-template class vector<dictionary_hash<resource*,vector<resource*> >::entry>;
+template class dictionary_hash<resource*,pdvector<resource*> >;
+template class pdvector<pdvector<resource*> >;
+template class pdvector<dictionary_hash<resource*,pdvector<resource*> >::entry>;
 
 template class dictionary_hash<resource *, int>;
-template class vector<dictionary_hash<resource *, int>::entry>;
+template class pdvector<dictionary_hash<resource *, int>::entry>;
 
 #if defined(rs6000_ibm_aix4_1)
 #include "common/h/Symbol.h"
-template class vector<Symbol>;
+template class pdvector<Symbol>;
 template class dictionary_hash<string, Symbol>;
-template class vector<dictionary_hash<string, Symbol>::entry>;
+template class pdvector<dictionary_hash<string, Symbol>::entry>;
 #endif
 
-template class vector<paradynDaemon::MPICHWrapperInfo>;
+template class pdvector<paradynDaemon::MPICHWrapperInfo>;

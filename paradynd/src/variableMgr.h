@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.h,v 1.7 2002/10/15 17:12:14 schendel Exp $
+// $Id: variableMgr.h,v 1.8 2002/12/20 07:50:07 jaw Exp $
 // The variableMgr class is the top-level view of the actual
 // shared, sampled counters and timers. The provides a logical way 
 // to reference the counters and timers (called variables) for creation,
@@ -68,7 +68,7 @@ class variableMgr {
   unsigned maxNumberOfThreads; // Set at creation time and unchangeable
 
   // This is where we'd add another type to be sampled. 
-  vector<baseVarTable *> varTables;
+  pdvector<baseVarTable *> varTables;
 
   // One variableMgr per process.
   pd_process *applicProcess;

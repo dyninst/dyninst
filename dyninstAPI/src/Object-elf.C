@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.43 2002/06/25 19:16:01 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.44 2002/12/20 07:49:56 jaw Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -140,14 +140,6 @@ SectionHeaderSortFunction( const void* v1, const void* v2 )
 
 	return hdr1->pd_addr - hdr2->pd_addr;
 }
-
-#ifdef USE_STL_VECTOR
-struct sort_func : public binary_function<pdElfShdr *, pdElfShdr *, bool> {
-  bool operator()(pdElfShdr *hdr1, pdElfShdr *hdr2) {return hdr1->pd_addr < hdr2->pd_addr;}
-};
-#endif
-
-
 
 // loaded_elf(): populate elf section pointers
 // for EEL rewritten code, also populate "code_*_" members
@@ -505,12 +497,8 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   }
 
   // sort the section headers by base address
-
-#ifndef USE_STL_VECTOR
   allSectionHdrs.sort( SectionHeaderSortFunction );
-#else
-  sort(allSectionHdrs.begin(), allSectionHdrs.end(), sort_func());
-#endif
+  //sort(allSectionHdrs.begin(), allSectionHdrs.end(), sort_func());
 
 #ifndef BPATCH_LIBRARY /* Some objects really don't have all sections. */
   if (!bssaddr || !symscnp || !strscnp) {
@@ -737,7 +725,7 @@ void Object::load_object()
     // Leaving aside the grow factor, lets allocate an initial #
     // of bins = nsyms / max bin load.
     
-    vector<Symbol> allsymbols;
+    pdvector<Symbol> allsymbols;
     parse_symbols(allsymbols, symdatap, strdatap, false, module);
     VECTOR_SORT(allsymbols,symbol_compare);
     fix_zero_function_sizes(allsymbols, 0);
@@ -835,7 +823,7 @@ void Object::load_shared_object()
     string name   = "DEFAULT_NAME";
 
     // build symbol dictionary
-    vector<Symbol> allsymbols;
+    pdvector<Symbol> allsymbols;
     parse_symbols(allsymbols, symdatap, strdatap, true, module);
     VECTOR_SORT(allsymbols,symbol_compare);
     fix_zero_function_sizes(allsymbols, 0);
@@ -882,7 +870,7 @@ static Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
 }
 
 // parse_symbols(): populate "allsymbols"
-void Object::parse_symbols(vector<Symbol> &allsymbols, 
+void Object::parse_symbols(pdvector<Symbol> &allsymbols, 
 			   Elf_Data *symdatap, Elf_Data *strdatap,
 			   bool shared, string smodule)
 {
@@ -979,7 +967,7 @@ void Object::parse_symbols(vector<Symbol> &allsymbols,
  * Assumes that allsymbols is sorted, with e.g. symbol_compare....
  *
 ********************************************************/
-void Object::fix_zero_function_sizes(vector<Symbol> &allsymbols, bool isEEL)
+void Object::fix_zero_function_sizes(pdvector<Symbol> &allsymbols, bool isEEL)
 {
     unsigned u, v, nsymbols;
 
@@ -1110,7 +1098,7 @@ void Object::fix_zero_function_sizes(vector<Symbol> &allsymbols, bool isEEL)
  *  Assumes that allsymbols is sorted, with e.g. symbol_compare....
  *
 ********************************************************/
-void Object::override_weak_symbols(vector<Symbol> &allsymbols) {
+void Object::override_weak_symbols(pdvector<Symbol> &allsymbols) {
     signed i, nsymbols; // these need to be signed
     u_int next_start;
     int next_size;
@@ -1418,7 +1406,7 @@ bool Object::fix_global_symbol_modules_static_stab(
 void Object::fix_global_symbol_unknowns_static(
 	dictionary_hash<string, Symbol> &global_symbols)
 {
-  vector<string> k = global_symbols.keys();
+  pdvector<string> k = global_symbols.keys();
     for (unsigned i2 = 0; i2 < k.size(); i2++) {
       Symbol sym = global_symbols[k[i2]];
       if (!(symbols_.defines(sym.name())))
@@ -1436,7 +1424,7 @@ void Object::fix_global_symbol_unknowns_static(
  *  for static libraries....
  *
 ********************************************************/
-void Object::insert_symbols_static(vector<Symbol> allsymbols,
+void Object::insert_symbols_static(pdvector<Symbol> allsymbols,
      dictionary_hash<string, Symbol> &global_symbols)
 {
   unsigned nsymbols = allsymbols.size();
@@ -1463,7 +1451,7 @@ void Object::insert_symbols_static(vector<Symbol> allsymbols,
  *  dump them into symbols_ (data member, instead of stack var....)....
  *
 ********************************************************/
-void Object::insert_symbols_shared(vector<Symbol> allsymbols) {
+void Object::insert_symbols_shared(pdvector<Symbol> allsymbols) {
     unsigned i, nsymbols;
 
     nsymbols = allsymbols.size();
@@ -1625,13 +1613,13 @@ void Object::log_elferror(void (*pfunc)(const char *), const char* msg) {
     log_printf(pfunc, "%s: %s\n", msg, err ? err : "(bad elf error)");
 }
 
-inline bool Object::get_func_binding_table(vector<relocationEntry> &fbt) const {
+inline bool Object::get_func_binding_table(pdvector<relocationEntry> &fbt) const {
     if(!plt_addr_ || (!relocation_table_.size())) return false;
     fbt = relocation_table_;
     return true;
 }
 
-inline bool Object::get_func_binding_table_ptr(const vector<relocationEntry> *&fbt) const {
+inline bool Object::get_func_binding_table_ptr(const pdvector<relocationEntry> *&fbt) const {
     if(!plt_addr_ || (!relocation_table_.size())) return false;
     fbt = &relocation_table_;
     return true;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.16 2002/10/08 16:23:19 mikem Exp $
+// $Id: templates2.C,v 1.17 2002/12/20 07:49:59 jaw Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -75,11 +75,11 @@ class BPatch_variableExpr;
 // pair<string, vector<string> > in the line after.
 //
 // Ray Chen 6/18/2002
-template class vector<string>;
+template class pdvector<string>;
 #endif
-template class pair<string, vector<string> >;
+template class pdpair<string, pdvector<string> >;
 
-template class vector<pair<string, vector<string> > >;
+template class pdvector<pdpair<string, pdvector<string> > >;
 
 template class  dictionary_hash_iter <Address, Symbol*>;
 template class  dictionary_hash_iter <instPoint*, unsigned>;
@@ -89,12 +89,12 @@ template class  dictionary_hash_iter <string, pdmodule *>;
 template class  dictionary_hash_iter <string, pd_Function*>;
 template class  dictionary_hash_iter <string, resource*>;
 template class  dictionary_hash_iter <string, unsigned>;
-template class  dictionary_hash_iter <string, vector<pd_Function*>*>;
+template class  dictionary_hash_iter <string, pdvector<pd_Function*>*>;
 template class  dictionary_hash_iter <unsigned, unsigned>;
 template class  dictionary_hash_iter <unsigned, heapItem*>;
 template class  dictionary_hash_iter <unsigned, pd_Function*>;
 template class  dictionary_hash_iter <unsigned long, pd_Function*>;
-template class  vector<shared_object *> ;
+template class  pdvector<shared_object *> ;
 
 
 #include "common/src/vectorSet.C"
@@ -105,12 +105,12 @@ template class vectorSet<inferiorRPCinProgress>;
 
 #ifdef SHM_SAMPLING
 #include "varInstanceHKs.h"
-template class vector<intCounterHK*>;
-template class vector<wallTimerHK*>;
-template class vector<processTimerHK*>;
+template class pdvector<intCounterHK*>;
+template class pdvector<wallTimerHK*>;
+template class pdvector<processTimerHK*>;
 #ifdef PAPI
-template class vector<hwTimerHK*>;
-template class vector<hwCounterHK*>;
+template class pdvector<hwTimerHK*>;
+template class pdvector<hwCounterHK*>;
 #endif
 
 #ifndef USES_NATIVE_CC
@@ -123,7 +123,7 @@ template class varInstance<processTimerHK>;
 template class varInstance<hwTimerHK>;
 template class varInstance<hwCounterHK>;
 #endif
-template class vector<baseVarInstance *>;
+template class pdvector<baseVarInstance *>;
 
 #ifndef USES_NATIVE_CC
 #include "varTable.C"
@@ -135,13 +135,13 @@ template class varTable<processTimerHK>;
 template class varTable<hwTimerHK>;
 template class varTable<hwCounterHK>;
 #endif
-template class vector<baseVarTable *>;
+template class pdvector<baseVarTable *>;
 #endif
 
 #ifdef BPATCH_LIBRARY
 template class dictionary_hash <string, Symbol>;
-template class vector<dictionary_hash <string, Symbol>::entry>;
-template class vector<dictionary_hash<Address, BPatch_point *>::entry>;
+template class pdvector<dictionary_hash <string, Symbol>::entry>;
+template class pdvector<dictionary_hash<Address, BPatch_point *>::entry>;
 
 template class dictionary_hash<string, BPatch_type *>;
 template class dictionary_hash<int, BPatch_type *>;
@@ -150,41 +150,41 @@ template class dictionary_hash<int, BPatch_thread *>;
 template class dictionary_hash<Address, BPatch_point *>;
 
 template class dictionary_hash_iter<string, BPatch_type *>;
-template class vector<dictionary_hash <string, BPatch_type *>::entry>;
+template class pdvector<dictionary_hash <string, BPatch_type *>::entry>;
 template class dictionary_hash_iter<int, BPatch_type *>;
-template class vector<dictionary_hash <int, BPatch_type *>::entry>;
+template class pdvector<dictionary_hash <int, BPatch_type *>::entry>;
 template class dictionary_hash_iter<string, BPatch_localVar *>;
-template class vector<dictionary_hash <string, BPatch_localVar *>::entry>;
+template class pdvector<dictionary_hash <string, BPatch_localVar *>::entry>;
 template class dictionary_hash_iter<int, BPatch_thread *>;
-template class vector<dictionary_hash <int, BPatch_thread *>::entry>;
+template class pdvector<dictionary_hash <int, BPatch_thread *>::entry>;
 
-template class vector<BPatch_localVar *>;
-template class vector<BPatch_field *>;
+template class pdvector<BPatch_localVar *>;
+template class pdvector<BPatch_field *>;
 #endif
 
-template class vector<pair<string, vector<string> *> >;
-template class dictionary_hash <string, vector<string> *>;
-template class vector<dictionary_hash <string, vector<string> *>::entry>;
+template class pdvector<pdpair<string, pdvector<string> *> >;
+template class dictionary_hash <string, pdvector<string> *>;
+template class pdvector<dictionary_hash <string, pdvector<string> *>::entry>;
 
-template class vector<inferiorRPCtoDo>;
-template class vector<inferiorRPCinProgress>;
+template class pdvector<inferiorRPCtoDo>;
+template class pdvector<inferiorRPCinProgress>;
 
-template class vector<dictionary_hash <unsigned int, Address>::entry>;
+template class pdvector<dictionary_hash <unsigned int, Address>::entry>;
 
 #include "dyninstAPI/src/installed_miniTramps_list.h"
 template class dictionary_hash<const instPoint *, installed_miniTramps_list*>;
-template class vector<dictionary_hash <const instPoint *, installed_miniTramps_list*>::entry>;
+template class pdvector<dictionary_hash <const instPoint *, installed_miniTramps_list*>::entry>;
 
 #if defined(BPATCH_LIBRARY)
 
 class BPatch_basicBlock;
 
 template class  dictionary_hash<Address,BPatch_basicBlock*>;
-template class  vector<dictionary_hash<Address,BPatch_basicBlock*>::entry>;
+template class  pdvector<dictionary_hash<Address,BPatch_basicBlock*>::entry>;
 
 #endif
 
 #ifndef BPATCH_LIBRARY
 class defInst;
-template class vector<defInst *>;
+template class pdvector<defInst *>;
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.h,v 1.16 2002/05/13 19:53:44 mjbrim Exp $
+// $Id: costmetrics.h,v 1.17 2002/12/20 07:50:06 jaw Exp $
 
 #ifndef COST_METRICS_HDR 
 #define COST_METRICS_HDR
@@ -126,7 +126,7 @@ class costMetric {
 		   timeStamp processTime);
   // returns false when no more aggregation can be done
   bool aggregateAndBatch();
-  static vector<costMetric*> allCostMetrics;
+  static pdvector<costMetric*> allCostMetrics;
 
   static bool isCostMetric(const string &metName) {
      for (unsigned lcv=0; lcv < allCostMetrics.size(); lcv++)
@@ -137,15 +137,15 @@ class costMetric {
 
 private:
   // list of processes and values contributing to metric value
-  vector<process *> components;
-  vector<aggComponent *> parts;
+  pdvector<process *> components;
+  pdvector<aggComponent *> parts;
   sampleAggregator aggregator;
 
-  vector<pdSample> cumulative_values;
+  pdvector<pdSample> cumulative_values;
 
   // process times associated with each component wall times are contained
-  // in the parts vector
-  vector<timeStamp> lastProcessTime;
+  // in the parts pdvector
+  pdvector<timeStamp> lastProcessTime;
 
   // why is there no mid stored in this class, as there is for the internalMetrics class?
   string name_;

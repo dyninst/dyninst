@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.48 2002/11/27 02:38:24 schendel Exp $
+// $Id: metMain.C,v 1.49 2002/12/20 07:50:06 jaw Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -200,7 +200,7 @@ bool metDoDaemon()
 
 static void add_visi(visiMet *the_vm)
 {
-  vector<string> argv;
+  pdvector<string> argv;
   bool aflag;
   aflag=(RPCgetArg(argv, the_vm->command().c_str()));
   assert(aflag);
@@ -237,7 +237,7 @@ bool metDoVisi()
 
 static void start_process(processMet *the_ps)
 {
-  vector<string> argv;
+  pdvector<string> argv;
 
   string directory;
   if (the_ps->command().length()) {

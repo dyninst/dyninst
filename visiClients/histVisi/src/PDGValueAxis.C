@@ -49,7 +49,7 @@
 // megawidget.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGValueAxis.C,v 1.4 2002/05/13 19:54:04 mjbrim Exp $
+// $Id: PDGValueAxis.C,v 1.5 2002/12/20 07:50:09 jaw Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -292,7 +292,7 @@ PDGraph::ValueAxisW::Draw( void )
         0, TK_RELIEF_FLAT);
 
     // draw axis for each group
-    const vector<PDGraph::Group*>& groups = g->GetGroups();
+    const pdvector<PDGraph::Group*>& groups = g->GetGroups();
     unsigned int xRight = Tk_Width(tkwin);   // right edge of value axis window
     unsigned int i;
     for( i = 0; i < groups.size(); i++ )
@@ -436,7 +436,7 @@ PDGraph::ValueAxisW::HandleConfigureNotification( void )
 {
     if( Tk_IsMapped(tkwin) )
     {
-        const vector<PDGraph::Group*>& groups = g->GetGroups();
+        const pdvector<PDGraph::Group*>& groups = g->GetGroups();
         unsigned int i = 0;
 
         for( i = 0; i < groups.size(); i++ )

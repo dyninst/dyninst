@@ -309,7 +309,7 @@ class sampleAggregator {
   pdSample initActualVal;       // the initial actual value for this 
                                 // aggregate (derivative) graph
   mutable bool bCachedAllStartTimesReceived;
-  vector<aggComponent *> componentBuf;
+  pdvector<aggComponent *> componentBuf;
   
   friend ostream& operator<<(ostream&s, const sampleAggregator &ag);
 };

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.h,v 1.7 2001/02/19 15:36:59 wxd Exp $
+// $Id: callGraphs.h,v 1.8 2002/12/20 07:50:04 jaw Exp $
 
 //callGraphs.h: the callGraphs class, whose code is taken  
 //from the shgPhases class, is just used to keep track of multiple 
@@ -128,7 +128,7 @@ class callGraphs {
      }
    };
    
-   vector<callGraphStruct> theCallGraphPrograms;
+   pdvector<callGraphStruct> theCallGraphPrograms;
    unsigned currCallGraphProgramIndex;
       // NOTE: An index into the above array
    

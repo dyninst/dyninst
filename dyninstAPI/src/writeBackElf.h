@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.h,v 1.7 2002/06/26 21:15:00 schendel Exp $ */
+/* $Id: writeBackElf.h,v 1.8 2002/12/20 07:49:59 jaw Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
@@ -91,9 +91,9 @@ public:
 
 	bool outputElf();
 	bool createElf();
-        void compactSections(vector <imageUpdate*> imagePatches, vector<imageUpdate*> &newPatches); 
-	void compactLoadableSections(vector <imageUpdate*> imagePatches, vector<imageUpdate*> &newPatches);
-	void alignHighMem(vector<imageUpdate*> imagesPatches);
+        void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches); 
+	void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches);
+	void alignHighMem(pdvector<imageUpdate*> imagesPatches);
 	Elf* getElf(){ return newElf; };
 	void setHeapAddr(unsigned int heapAddr);
 };

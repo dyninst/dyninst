@@ -42,7 +42,7 @@
 // shgConsts.h
 // Ariel Tamches
 
-/* $Id: shgConsts.h,v 1.9 2000/07/28 17:22:06 pcroth Exp $ */
+/* $Id: shgConsts.h,v 1.10 2002/12/20 07:50:05 jaw Exp $ */
 
 #ifndef _SHG_CONSTS_H_
 #define _SHG_CONSTS_H_
@@ -70,8 +70,8 @@ struct shgConsts {
    GC whyRefinementRayGC, whereRefinementRayGC;
    XColor *whyRefinementColor, *whereRefinementColor;
 
-   vector<Tk_3DBorder> rootItemTk3DBordersByStyle;
-   vector<Tk_3DBorder> listboxItemTk3DBordersByStyle;
+   pdvector<Tk_3DBorder> rootItemTk3DBordersByStyle;
+   pdvector<Tk_3DBorder> listboxItemTk3DBordersByStyle;
 
    shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow);
   ~shgConsts();

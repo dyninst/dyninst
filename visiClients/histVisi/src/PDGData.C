@@ -49,7 +49,7 @@
 // megawidget.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGData.C,v 1.2 2000/07/28 17:22:58 pcroth Exp $
+// $Id: PDGData.C,v 1.3 2002/12/20 07:50:09 jaw Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -267,7 +267,7 @@ PDGraph::DataW::UpdateConfiguration( void )
     dataRect.height = tkheight - valLabelHeight - 1;
 
     // compute new X coordinates for all curves
-    const vector<PDGraph::Curve*>& curves = g->GetCurves();
+    const pdvector<PDGraph::Curve*>& curves = g->GetCurves();
     unsigned int idx;
 
     for( idx = 0; idx < curves.size(); idx++ )
@@ -394,7 +394,7 @@ PDGraph::DataW::Draw( void )
                     Tk_Width(tkwin) - 1, Tk_Height(tkwin) - valLabelHeight - 1);
 
     // draw the curve data
-    const vector<PDGraph::Curve*>& curves = g->GetCurves();
+    const pdvector<PDGraph::Curve*>& curves = g->GetCurves();
     unsigned int idx;
 
     for( idx = 0; idx < curves.size(); idx++ )

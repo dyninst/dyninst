@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.110 2002/12/14 16:37:51 schendel Exp $
+// $Id: main.C,v 1.111 2002/12/20 07:50:07 jaw Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -98,7 +98,7 @@ int pd_debug=0;
 int ready;
 
 #ifdef mips_sgi_irix6_4
-extern bool execIrixMPIProcess(vector<string> &argv);
+extern bool execIrixMPIProcess(pdvector<string> &argv);
 #endif
 
 #ifdef DETACH_ON_THE_FLY
@@ -638,7 +638,7 @@ main( int argc, char* argv[] )
    // Second, put the inferior application and its command line
    // arguments into cmdLine. Basically, loop through argv until
    // we find -runme, and put everything after it into cmdLine.
-   vector<string> cmdLine;
+   pdvector<string> cmdLine;
    unsigned int argNum = 0;
    while ((argNum < (unsigned int)argc) && (strcmp(argv[argNum], "-runme")))
    {
@@ -769,10 +769,10 @@ main( int argc, char* argv[] )
       // spawn the given process, if necessary
       if (cmdLine.size() && (pd_attpid==0))
       {
-         vector<string> envp;
+         pdvector<string> envp;
          // ignore return val (is this right?)
-         extern int pd_createProcess(vector<string> &argv, 
-                                     vector<string> &envp, string dir);
+         extern int pd_createProcess(pdvector<string> &argv, 
+                                     pdvector<string> &envp, string dir);
          pd_createProcess(cmdLine, envp, *dir); 
       } 
       else if (pd_attpid && (pd_flag==2))

@@ -145,9 +145,9 @@ class dictionary_hash {
 
 #ifndef _KERNEL
   // Sun's compiler can't handle the return types
-  vector<K> keys () const;
-  vector<V> values () const;
-  vector< pair<K, V> > keysAndValues() const;
+  pdvector<K> keys () const;
+  pdvector<V> values () const;
+  pdvector< pdpair<K, V> > keysAndValues() const;
 #endif
 
   void      clear ();
@@ -203,7 +203,7 @@ class dictionary_hash {
     unsigned next; // an index into 'all_elems', for hash collisions.  UINT_MAX
                    // implies end of collision chain for this bin
 
-    entry() {} // needed by vector class
+    entry() {} // needed by pdvector class
     entry(const K &ikey, unsigned ikey_hashval, const V &ival, unsigned inext) :
           key(ikey), val(ival), key_hashval(ikey_hashval), next(inext) {
       removed = false;
@@ -225,16 +225,16 @@ class dictionary_hash {
     }
   };
 
-  // The actual elements, in one big vector.  This enables certain important
+  // The actual elements, in one big pdvector.  This enables certain important
   // operations, (specifically rehashing the entire dictionary) to be done
   // efficiently.  Plus, it's a clean approach to storage.
-  // Since we use vector<>::operator+= on this vector, we're glad that class vector<>
+  // Since we use pdvector<>::operator+= on this pdvector, we're glad that class pdvector<>
   // preallocates some extra stuff when growing.
-  vector<entry> all_elems;
+  pdvector<entry> all_elems;
 
   // The bins.  Note: since the number of bins doesn't change often (only when
   // growing), we use resize with the exact flag set.
-  vector<unsigned> bins;
+  pdvector<unsigned> bins;
   // each entry in 'bins' gives the index (w/in 'all_elems') of the first element
   // in the bin.  In other words, the first element in bin X is all_elems[bin[X]].
   // If bin[X] is UINT_MAX, then the bin is empty.
@@ -265,8 +265,8 @@ class dictionary_hash_iter {
  private:
   typedef const V &RET; // RET: type returned by operator*()
   dictionary_hash<K,V> &dict;
-  TYPENAME31 vector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator i;
-  TYPENAME31 vector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator the_end;
+  TYPENAME31 pdvector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator i;
+  TYPENAME31 pdvector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator the_end;
 
   // too bad we need to store the_end (for make_valid_or_end())
    
@@ -280,8 +280,8 @@ class dictionary_hash_iter {
   }
    
  public:
-  //dictionary_hash_iter(vector< dictionary_hash<K,V>::entry >::const_iterator ii,
-  //		       vector< dictionary_hash<K,V>::entry >::const_iterator iend) :
+  //dictionary_hash_iter(pdvector< dictionary_hash<K,V>::entry >::const_iterator ii,
+  //		       pdvector< dictionary_hash<K,V>::entry >::const_iterator iend) :
   //                   i(ii), the_end(iend) {
   //make_valid_or_end();
   //}
@@ -293,14 +293,14 @@ class dictionary_hash_iter {
     reset();
   }
   dictionary_hash_iter(dictionary_hash<K,V> &idict,
-		       TYPENAME31 vector< TYPENAME31 dictionary_hash<K,V>::entry>::iterator curi) 
+		       TYPENAME31 pdvector< TYPENAME31 dictionary_hash<K,V>::entry>::iterator curi) 
     : dict(idict), i(curi), the_end(dict.all_elems.end()) {
   }
   dictionary_hash_iter(const dictionary_hash<K,V> &idict,
-		    TYPENAME31 vector< TYPENAME31 dictionary_hash<K,V>::entry>::const_iterator curi) 
+		    TYPENAME31 pdvector< TYPENAME31 dictionary_hash<K,V>::entry>::const_iterator curi) 
     : dict(const_cast< dictionary_hash<K,V>& >(idict)), 
-    i(const_cast< TYPENAME31 vector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator>(curi)), 
-    the_end(const_cast< TYPENAME31 vector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator>(
+    i(const_cast< TYPENAME31 pdvector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator>(curi)), 
+    the_end(const_cast< TYPENAME31 pdvector< TYPENAME31 dictionary_hash<K,V>::entry >::iterator>(
 						       dict.all_elems.end()))
   {  }
 

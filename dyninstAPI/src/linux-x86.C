@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.10 2002/12/14 16:37:39 schendel Exp $
+// $Id: linux-x86.C,v 1.11 2002/12/20 07:49:57 jaw Exp $
 
 #include <fstream.h>
 
@@ -580,7 +580,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 
 	addLibrary addLibraryElf;
 	unsigned int errFlag=0;
-	vector<imageUpdate*> compactedHighmemUpdates;
+	pdvector<imageUpdate*> compactedHighmemUpdates;
 	char *mutatedSharedObjects=0;
 	int mutatedSharedObjectsSize = 0, mutatedSharedObjectsIndex=0;
 	char *directoryName = 0;
@@ -637,11 +637,8 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 			                "/tmp/dyninstMutatee",errFlag);
         newElf->registerProcess(this);
 
-#ifdef USE_STL_VECTOR
-	sort(highmemUpdates.begin(), highmemUpdates.end(), imageUpdateOrderingRelation());
-#else
         highmemUpdates.sort( imageUpdate::imageUpdateSort);
-#endif
+
         newElf->compactSections(highmemUpdates, compactedHighmemUpdates);
 
         newElf->alignHighMem(compactedHighmemUpdates);
@@ -882,7 +879,7 @@ bool process::dlopenPARADYNlib() {
   readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
 
   unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
-  vector<AstNode*> dlopenAstArgs( 2 );
+  pdvector<AstNode*> dlopenAstArgs( 2 );
 
   unsigned count = 0;
   Address dyninst_count = 0;
@@ -1124,7 +1121,7 @@ bool process::dlopenDYNINSTlib() {
   readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
 
   unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
-  vector<AstNode*> dlopenAstArgs( 2 );
+  pdvector<AstNode*> dlopenAstArgs( 2 );
 
   unsigned count = 0;
   Address dyninst_count = 0;

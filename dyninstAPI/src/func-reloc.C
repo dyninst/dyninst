@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.37 2002/10/28 04:54:56 schendel Exp $
+ * $Id: func-reloc.C,v 1.38 2002/12/20 07:49:56 jaw Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -555,7 +555,7 @@ bool pd_Function::expandInstPoints(const image *owner,
 // Check if targetAddress (the target of a branch or call insn) 
 // is in the footprint of an inst point. 
 
-instPoint *pd_Function::find_overlap(vector<instPoint*> v, Address targetAddress) {
+instPoint *pd_Function::find_overlap(pdvector<instPoint*> v, Address targetAddress) {
 
 #ifdef DEBUG_FUNC_RELOC
   cerr << " find_overlap:" 
@@ -1045,8 +1045,8 @@ bool pd_Function::updateAlterations(LocalAlterationSet *temp_alteration_set,
 
 // Function relocation requires a version of process::convertPCsToFuncs 
 // in which null functions are not passed into ret. - Itai 
-vector<pd_Function *> process::pcsToFuncs(vector<Frame> stackWalk) {
-    vector <pd_Function *> ret;
+pdvector<pd_Function *> process::pcsToFuncs(pdvector<Frame> stackWalk) {
+    pdvector <pd_Function *> ret;
     unsigned i;
     pd_Function *fn;
     for(i=0;i<stackWalk.size();i++) {
@@ -1107,11 +1107,11 @@ bool pd_Function::relocateFunction(process *proc,
     unsigned i;
     pd_Function *stack_func;
 
-    vector<vector<Frame> > stackWalks;
+    pdvector<pdvector<Frame> > stackWalks;
     if (!proc->walkStacks(stackWalks)) return false;
 
     for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
-      vector<pd_Function *> stack_funcs = proc->pcsToFuncs(stackWalks[walk_iter]);
+      pdvector<pd_Function *> stack_funcs = proc->pcsToFuncs(stackWalks[walk_iter]);
       for(i=0;i<stack_funcs.size();i++) {
 	stack_func = stack_funcs[i];
 	
@@ -1210,7 +1210,7 @@ bool pd_Function::relocateFunction(process *proc,
 
 // Fill up vector with instPoints and then sort it 
 
-void pd_Function::sorted_ips_vector(vector<instPoint*>&fill_in) {
+void pd_Function::sorted_ips_vector(pdvector<instPoint*>&fill_in) {
     unsigned int returns_idx, calls_idx;
     Address returns_ip_addr, calls_ip_addr;
 

@@ -33,14 +33,14 @@ public:
                             const string &err_name, const string &return_value);
   static interface_spec *current_interface;
   static dictionary_hash<string, type_defn*> all_types;
-  static vector<type_defn*> vec_types;
-  static vector<message_layer*> all_ml;
+  static pdvector<type_defn*> vec_types;
+  static pdvector<message_layer*> all_ml;
   static message_layer *ml;
 
   static void ignore(string &s, bool is_server);
-  static vector<string> client_ignores;
-  static vector<string> server_ignores;
-  static vector<string> forward_decls;
+  static pdvector<string> client_ignores;
+  static pdvector<string> server_ignores;
+  static pdvector<string> forward_decls;
 
   typedef struct el_data {
     string type;
@@ -53,9 +53,9 @@ public:
     string name;
     bool need_include;
     string pragma_name;
-    vector<el_data> elements;
+    pdvector<el_data> elements;
   } stl_data;
-  static vector<stl_data> stl_types;
+  static pdvector<stl_data> stl_types;
 
   static ifstream input;
   static ofstream dot_h;
@@ -75,7 +75,7 @@ public:
 			      bool is_derived, const string &parent,
 			      const type_defn::type_type &typ,
 			      bool can_point, bool in_lib,
-			      vector<arg*> *arglist=NULL, const string &ignore_text="",
+			      pdvector<arg*> *arglist=NULL, const string &ignore_text="",
 			      const string &bundle_name="");
    static string allocate_type(const string &name, const bool isClass,
                                const type_defn::type_type &typ,
@@ -86,7 +86,7 @@ public:
 			 const bool is_derived, const string parent,
 			 const type_defn::type_type &type, 
 			 const bool can_point, const bool in_lib, 
-			 vector<arg*> *arglist=NULL, const string ignore="",
+			 pdvector<arg*> *arglist=NULL, const string ignore="",
 			 const string bundler_name="");
    static string add_type(const string &name, bool is_class,
                           const type_defn::type_type &type, 

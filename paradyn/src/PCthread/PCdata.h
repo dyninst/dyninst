@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCdata.h,v 1.8 2001/12/12 17:28:50 gurari Exp $
+// $Id: PCdata.h,v 1.9 2002/12/20 07:50:02 jaw Exp $
 // dataSubscriber and dataProvider base classes
 
 #ifndef pc_data_h
@@ -84,7 +84,7 @@ public:
   void sendEnableReply (unsigned, unsigned, unsigned, bool);
 protected:
   void sendUpdatedEstimatedCost(float costDiff);
-  vector<dataSubscriber*> allConsumers;
+  pdvector<dataSubscriber*> allConsumers;
   float estimatedCost;
   int numConsumers;
 };

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.53 2002/11/25 23:51:47 schendel Exp $
+// $Id: DMdaemon.h,v 1.54 2002/12/20 07:50:01 jaw Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -72,11 +72,11 @@ class DM_enableType{
     friend class paradynDaemon;
     friend class dynRPCUser;
     friend class phaseInfo;
-    friend void DMenableResponse(DM_enableType&,vector<bool>&);
+    friend void DMenableResponse(DM_enableType&,pdvector<bool>&);
  public: 
     DM_enableType(perfStreamHandle ph,perfStreamHandle pth,phaseType t,phaseHandle ph_h,
-		  u_int rI,u_int cI,vector <metricInstance *> *r,
-		  vector <bool> *d,vector <bool> *e,u_int h,u_int pd,u_int pc,
+		  u_int rI,u_int cI,pdvector <metricInstance *> *r,
+		  pdvector <bool> *d,pdvector <bool> *e,u_int h,u_int pd,u_int pc,
 		  u_int ppd): ps_handle(ph),pt_handle(pth),ph_type(t), ph_handle(ph_h),
 		  request_id(rI), client_id(cI), request(r),done(d),enabled(e),
 		  how_many(h), persistent_data(pd), persistent_collection(pc),
@@ -95,8 +95,8 @@ class DM_enableType{
     metricInstance *findMI(metricInstanceHandle mh);
     void setDone(metricInstanceHandle mh);
 
-    void updateAny(vector<metricInstance *> &completed_mis,
-		   vector<bool> successful);
+    void updateAny(pdvector<metricInstance *> &completed_mis,
+		   pdvector<bool> successful);
 
  private:
     perfStreamHandle ps_handle;  // client thread
@@ -105,9 +105,9 @@ class DM_enableType{
     phaseHandle ph_handle;       // phase id, used if request is for curr phase
     u_int request_id;            // DM assigned enable request identifier
     u_int client_id;             // enable request id sent by calling thread
-    vector <metricInstance *> *request;  // MI's assoc. w/ enable request
-    vector <bool> *done;         // which elements are waiting for replies
-    vector <bool> *enabled;      // which elements were already enabled
+    pdvector <metricInstance *> *request;  // MI's assoc. w/ enable request
+    pdvector <bool> *done;         // which elements are waiting for replies
+    pdvector <bool> *enabled;      // which elements were already enabled
     u_int how_many;              // number of daemons 
     u_int persistent_data;
     u_int persistent_collection;
@@ -164,10 +164,10 @@ private:
 //
 class executable {
     public:
-	executable(unsigned id, const vector<string> &av, paradynDaemon *p)
+	executable(unsigned id, const pdvector<string> &av, paradynDaemon *p)
 		 : pid(id), argv(av), controlPath(p) { exited = false; }
 	unsigned pid;
-        vector<string> argv;
+        pdvector<string> argv;
         paradynDaemon *controlPath;
 	bool exited; // true if this process has exited
 };
@@ -199,7 +199,7 @@ class paradynDaemon: public dynRPCUser {
    friend bool metDoDaemon();
    friend int dataManager::DM_post_thread_create_init(thread_t tid);
    friend void DMdoEnableData(perfStreamHandle, perfStreamHandle,
-			      vector<metricRLType>*, u_int, phaseType,
+			      pdvector<metricRLType>*, u_int, phaseType,
 			      phaseHandle,u_int,u_int,u_int);
  public:
    struct MPICHWrapperInfo
@@ -232,7 +232,7 @@ class paradynDaemon: public dynRPCUser {
       }
    };
 
-   static vector<MPICHWrapperInfo> wrappers;
+   static pdvector<MPICHWrapperInfo> wrappers;
    
    paradynDaemon(const string &m, const string &u, const string &c,
 		 const string &r, const string &n, const string &flav);
@@ -247,19 +247,19 @@ class paradynDaemon: public dynRPCUser {
    virtual void processStatus(int pid, u_int stat);
    virtual void reportSelf (string m, string p, int pd, string flav);
    virtual void batchSampleDataCallbackFunc(int program,
-				    vector<T_dyninstRPC::batch_buffer_entry>);
+				    pdvector<T_dyninstRPC::batch_buffer_entry>);
    // trace data streams
    virtual void batchTraceDataCallbackFunc(int program,
-			      vector<T_dyninstRPC::trace_batch_buffer_entry>);
+			      pdvector<T_dyninstRPC::trace_batch_buffer_entry>);
    
    virtual void cpDataCallbackFunc(int, double, int, double, double);
    
    virtual void endOfDataCollection(int);
    virtual void retiredResource(string res);
    virtual void resourceInfoCallback(unsigned int,
-                                     vector<string> resource_name,
+                                     pdvector<string> resource_name,
                                      string abstr, u_int type);
-   virtual void severalResourceInfoCallback(vector<T_dyninstRPC::resourceInfoCallbackStruct>);
+   virtual void severalResourceInfoCallback(pdvector<T_dyninstRPC::resourceInfoCallbackStruct>);
    virtual void resourceBatchMode(bool onNow);  
    void reportResources();
    
@@ -315,7 +315,7 @@ class paradynDaemon: public dynRPCUser {
 			    const char *flavor);
 
    // start a new program; propagate all enabled metrics to it   
-   static bool addRunningProgram(int pid, const vector<string> &paradynd_argv, 
+   static bool addRunningProgram(int pid, const pdvector<string> &paradynd_argv, 
 				 paradynDaemon *daemon,
 				 bool calledFromExec, bool isInitiallyRunning);
 
@@ -323,7 +323,7 @@ class paradynDaemon: public dynRPCUser {
    static bool newExecutable(const string &machineArg, 
 			     const string &login, const string &name, 
 			     const string &dir, 
-			     const vector<string> &argv);
+			     const pdvector<string> &argv);
 
    // attach to an already-running process.  cmd gives the full path to the
    // executable, used just to parse the symbol table.  the word Stub was
@@ -351,8 +351,8 @@ class paradynDaemon: public dynRPCUser {
    //the dynamic call sites in a certain function.
    static bool AllMonitorDynamicCallSites(string name);
    static bool setInstSuppress(resource *, bool);
-   static void enableData(vector<metricInstance *> *miVec, vector<bool> *done,
-			  vector<bool> *enabled, DM_enableType *new_entry,
+   static void enableData(pdvector<metricInstance *> *miVec, pdvector<bool> *done,
+			  pdvector<bool> *enabled, DM_enableType *new_entry,
 			  bool need_to_enable);
    
    static void tellDaemonsOfResource(u_int parent,
@@ -371,10 +371,10 @@ class paradynDaemon: public dynRPCUser {
    void print();
    
    static bool applicationDefined(){return(programs.size() != 0);}
-   static vector<string> *getAvailableDaemons();
+   static pdvector<string> *getAvailableDaemons();
 
    // returns the paradynDaemon(s) w/ this machine name.
-   static vector<paradynDaemon*> machineName2Daemon(const string &mach);
+   static pdvector<paradynDaemon*> machineName2Daemon(const string &mach);
    
    static void getPredictedDataCostCall(perfStreamHandle, metricHandle,
 					resourceListHandle, resourceList*,
@@ -383,7 +383,7 @@ class paradynDaemon: public dynRPCUser {
    const string &getMachineName() const {return machine;}
    
    // list of all active daemons: one for each unique name/machine pair 
-   static vector<paradynDaemon*>  allDaemons;
+   static pdvector<paradynDaemon*>  allDaemons;
    
  private:
    bool   dead;	// has there been an error on the link.
@@ -404,30 +404,30 @@ class paradynDaemon: public dynRPCUser {
    
    // all active metrics ids for this daemon.
    dictionary_hash<unsigned, metricInstance*> activeMids;
-   vector<unsigned> disabledMids;
+   pdvector<unsigned> disabledMids;
    
    // used to hold responses to resourceInfoCallback
-   vector<u_int> newResourceTempIds;
-   vector<resourceHandle> newResourceHandles;
+   pdvector<u_int> newResourceTempIds;
+   pdvector<resourceHandle> newResourceHandles;
    static u_int count;
    
    static timeStamp earliestStartTime;
    
    // list of all possible daemons: currently one per unique name
-   static vector<daemonEntry*> allEntries; 
+   static pdvector<daemonEntry*> allEntries; 
    // list of all active programs
-   static vector<executable*>  programs;
+   static pdvector<executable*>  programs;
 
    // how many processes are running or ready to run.
    static unsigned procRunning;
 
-   static vector<DM_enableType*> outstanding_enables;
+   static pdvector<DM_enableType*> outstanding_enables;
    static u_int next_enable_id;
    
    // these args are passed to the paradynd when started for paradyndPVM
    // these args contain the info to connect to the "well known" socket for
    // new paradynd's
-   static vector<string> args;
+   static pdvector<string> args;
    
    // start a daemon on a machine, if one not currently running there
    static paradynDaemon *getDaemonHelper(const string &machine,

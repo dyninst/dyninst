@@ -51,8 +51,8 @@ class Hierarchy {
  public:
   virtual ~Hierarchy() { };
   virtual string getName() const = 0;
-  virtual vector<string> tokenized() const = 0;
-  virtual bool focus_matches(const vector<string> &match_path) const = 0;
+  virtual pdvector<string> tokenized() const = 0;
+  virtual bool focus_matches(const pdvector<string> &match_path) const = 0;
 };
 
 
@@ -64,7 +64,7 @@ class machineHierarchy : public Hierarchy {
   string process;
   string thread;
  public:
-  machineHierarchy(const vector<string> &setupInfo);
+  machineHierarchy(const pdvector<string> &setupInfo);
   int getPid() const;
   void setPid(int pid);
   int getThreadID() const;
@@ -82,8 +82,8 @@ class machineHierarchy : public Hierarchy {
   void set_process(const string &process_) {  process = process_; }
   void set_thread(const string &thread_)   {  thread  = thread_;  }
 
-  bool focus_matches(const vector<string> &match_path) const;
-  vector<string> tokenized() const;
+  bool focus_matches(const pdvector<string> &match_path) const;
+  pdvector<string> tokenized() const;
 };
 
 
@@ -91,7 +91,7 @@ class codeHierarchy : public Hierarchy {
   string module;
   string function;
  public:
-  codeHierarchy(const vector<string> &setupInfo);
+  codeHierarchy(const pdvector<string> &setupInfo);
   string getName() const;  
   bool allCode() const { 
     return (!module_defined() && !function_defined());
@@ -101,8 +101,8 @@ class codeHierarchy : public Hierarchy {
   bool module_defined()   const { return (module.length()>0);   }
   bool function_defined() const { return (function.length()>0); }
 
-  bool focus_matches(const vector<string> &match_path) const;
-  vector<string> tokenized() const;
+  bool focus_matches(const pdvector<string> &match_path) const;
+  pdvector<string> tokenized() const;
 };
 
 struct message_data_t {
@@ -134,7 +134,7 @@ class syncObjHierarchy : public Hierarchy {
   spinlock_data_t  spinlockData;
 
  public:
-  syncObjHierarchy(const vector<string> &setupInfo);
+  syncObjHierarchy(const pdvector<string> &setupInfo);
   string getName() const;
   bool allSync() const { return (syncObjType == NoSyncObjT); }
   bool allMessages() const { 
@@ -172,19 +172,19 @@ class syncObjHierarchy : public Hierarchy {
   }
   bool tag_defined() const { return (messageData.tag.length()>0); }
 
-  bool focus_matches(const vector<string> &match_path) const;
-  vector<string> tokenized() const;
+  bool focus_matches(const pdvector<string> &match_path) const;
+  pdvector<string> tokenized() const;
 };
 
 
 class memoryHierarchy : public Hierarchy {
  public:
   memoryHierarchy() { }
-  memoryHierarchy(const vector<string> &setupInfo);
+  memoryHierarchy(const pdvector<string> &setupInfo);
   string getName() const ;
   bool allMem() const { return true; }
-  bool focus_matches(const vector<string> &match_path) const;
-  vector<string> tokenized() const;
+  bool focus_matches(const pdvector<string> &match_path) const;
+  pdvector<string> tokenized() const;
 };
 
 // --------------------------------------------------------------
@@ -200,7 +200,7 @@ class Focus {
   void operator=(const Focus &);
 
  public:
-  Focus(const vector<u_int>& ids, bool *errorFlag);
+  Focus(const pdvector<u_int>& ids, bool *errorFlag);
   ~Focus();
   
   Focus(const Focus &f);
@@ -246,7 +246,7 @@ class Focus {
   bool allSemaphores() const { return syncObjInfo->allSemaphores(); }
   bool allSpinlocks()  const { return syncObjInfo->allSpinlocks(); }  
 
-  vector< vector<string> > tokenized() const;
+  pdvector< pdvector<string> > tokenized() const;
 };
 
 class ostream;

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.49 2002/06/21 14:19:29 chadd Exp $
+ * $Id: Object-elf.h,v 1.50 2002/12/20 07:49:56 jaw Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -143,8 +143,8 @@ class Object : public AObject {
   void get_stab_info(void **stabs, int &nstabs, void **stabstr);
 
   bool needs_function_binding() const { return (plt_addr_ > 0); } 
-  bool get_func_binding_table(vector<relocationEntry> &fbt) const;
-  bool get_func_binding_table_ptr(const vector<relocationEntry> *&fbt) const;
+  bool get_func_binding_table(pdvector<relocationEntry> &fbt) const;
+  bool get_func_binding_table_ptr(const pdvector<relocationEntry> *&fbt) const;
 
 #if defined(ia64_unknown_linux2_4)
   Address getTOCoffset() const { return gp; }
@@ -211,11 +211,11 @@ class Object : public AObject {
   // an indirect jump to a GOT entry that is modified when the function 
   // is bound....is this correct???? or should it be <PLTentry_addr, name> 
   // for both?
-  vector<relocationEntry> relocation_table_;
+  pdvector<relocationEntry> relocation_table_;
 
   // all section headers, sorted by address
   // we use these to do a better job of finding the end of symbols
-  vector<pdElfShdr*> allSectionHdrs;
+  pdvector<pdElfShdr*> allSectionHdrs;
 
   // populates: file_fd_, file_size_, file_ptr_
   bool mmap_file(const char *file, 
@@ -237,17 +237,17 @@ class Object : public AObject {
 			      Elf_Scn*& dynsym_scnp, 
 			      Elf_Scn*& dynstr_scnp);
 
-  void parse_symbols(vector<Symbol> &allsymbols, 
+  void parse_symbols(pdvector<Symbol> &allsymbols, 
 		     Elf_Data *symdatap, Elf_Data *strdatap,
 		     bool shared_library,
 		     string module);
   
-  void fix_zero_function_sizes(vector<Symbol> &allsymbols, bool EEL);
-  void override_weak_symbols(vector<Symbol> &allsymbols);
-  void insert_symbols_shared(vector<Symbol> allsymbols);
+  void fix_zero_function_sizes(pdvector<Symbol> &allsymbols, bool EEL);
+  void override_weak_symbols(pdvector<Symbol> &allsymbols);
+  void insert_symbols_shared(pdvector<Symbol> allsymbols);
   void find_code_and_data(Elf *elfp,
        Address txtaddr, Address bssaddr);
-  void insert_symbols_static(vector<Symbol> allsymbols,
+  void insert_symbols_static(pdvector<Symbol> allsymbols,
        dictionary_hash<string, Symbol> &global_symbols);
   bool fix_global_symbol_modules_static_stab(
        dictionary_hash<string, Symbol> &global_symbols,

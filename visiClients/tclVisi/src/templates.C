@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates.C,v 1.10 2002/04/09 18:06:44 mjbrim Exp $
+// $Id: templates.C,v 1.11 2002/12/20 07:50:09 jaw Exp $
 
 // logo stuff:
 #include "paradyn/src/UIthread/minmax.C"
@@ -52,20 +52,20 @@ template float max(const float, const float);
 #include "visi/h/visiTypes.h"
 
 class PhaseInfo;
-template class vector<PhaseInfo *>;
+template class pdvector<PhaseInfo *>;
 
 #include "common/h/String.h"
 #include "common/src/Dictionary.C"
 #include "pdLogo.h"
 template class dictionary_hash<string, pdLogo *>;
-template class vector<dictionary_hash<string, pdLogo *>::entry>;
-template class vector<pdLogo*>;
+template class pdvector<dictionary_hash<string, pdLogo *>::entry>;
+template class pdvector<pdLogo*>;
 
 template class dictionary_hash<string, pdLogo::logoStruct>;
-template class vector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
-template class vector<pdLogo::logoStruct>;
+template class pdvector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
+template class pdvector<pdLogo::logoStruct>;
 
 template class  refCounter<string_ll>;
-template class vector<unsigned int>;
+template class pdvector<unsigned int>;
 
 #endif //!defined(i386_unknown_nt4_0)

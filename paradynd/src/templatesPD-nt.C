@@ -66,32 +66,32 @@ class threadMetFocusNode_Val;
 class processMetFocusNode;
 
 template class dictionary_hash<unsigned, int>;
-template class vector<dictionary_hash<unsigned, int>::entry>;
+template class pdvector<dictionary_hash<unsigned, int>::entry>;
 
 template class dictionary_hash<string, int>;
-template class vector<dictionary_hash<string, int>::entry>;
+template class pdvector<dictionary_hash<string, int>::entry>;
 
 template class dictionary_hash<function_base *, function_base *>;
 
 template class dictionary_hash<unsigned int, _cpSample *>;
 template class dictionary_hash<unsigned int, metricFocusNode *>;
-template class dictionary_hash<unsigned int, vector<mdl_type_desc> >;
+template class dictionary_hash<unsigned int, pdvector<mdl_type_desc> >;
 
 template class dictionary_hash<string, metricFocusNode *>;
 template class dictionary_hash<string, instrCodeNode *>;
 
 template class  dictionary_hash <unsigned, machineMetFocusNode*>;
-template class  vector<dictionary_hash <unsigned, machineMetFocusNode*>::entry>;
+template class  pdvector<dictionary_hash <unsigned, machineMetFocusNode*>::entry>;
 template class  dictionary_hash <string, instrCodeNode_Val*>;
-template class  vector<dictionary_hash <string, instrCodeNode_Val*>::entry>;
+template class  pdvector<dictionary_hash <string, instrCodeNode_Val*>::entry>;
 template class  dictionary_hash <string, instrCodeNode*>;
-template class  vector<dictionary_hash <string, instrCodeNode*>::entry>;
+template class  pdvector<dictionary_hash <string, instrCodeNode*>::entry>;
 
 template class  dictionary_hash <string, threadMetFocusNode_Val*>;
-template class  vector<dictionary_hash <string, threadMetFocusNode_Val*>::entry>;
+template class  pdvector<dictionary_hash <string, threadMetFocusNode_Val*>::entry>;
 
 template class parentDataRec<processMetFocusNode>;
-template class vector< parentDataRec<processMetFocusNode> >;
+template class pdvector< parentDataRec<processMetFocusNode> >;
 
 #include "paradynd/src/varTable.h" 
 #include "paradynd/src/varTable.C"
@@ -103,7 +103,7 @@ template class varTable<processTimerHK>;
 template class varTable<hwTimerHK>;
 template class varTable<hwCounterHK>;
 #endif
-template class vector<baseVarTable *>;
+template class pdvector<baseVarTable *>;
 
 #include "paradynd/src/varInstance.h"
 #include "paradynd/src/varInstance.C"
@@ -114,5 +114,5 @@ template class varInstance<processTimerHK>;
 template class varInstance<hwTimerHK>;
 template class varInstance<hwCounterHK>;
 #endif
-template class vector<baseVarInstance *>;
+template class pdvector<baseVarInstance *>;
 

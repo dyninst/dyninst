@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.h,v 1.7 2002/08/21 19:42:11 schendel Exp $
+/* $Id: shmMgr.h,v 1.8 2002/12/20 07:50:07 jaw Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -95,7 +95,7 @@ class shmMgr {
   Address baseAddrInDaemon;
   Address baseAddrInApplic;
   Address highWaterMark;
-  vector<shmMgrPreallocInternal *> prealloc;
+  pdvector<shmMgrPreallocInternal *> prealloc;
   unsigned num_allocated; // Allocated tracker
 
  public:

@@ -42,7 +42,7 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
-// $Id: rpcUtil.h,v 1.51 2002/08/24 20:40:08 schendel Exp $
+// $Id: rpcUtil.h,v 1.52 2002/12/20 07:50:08 jaw Exp $
 
 #include "common/h/headers.h"
 #include "pdsocket.h"
@@ -67,7 +67,7 @@ class XDRrpc {
 public:
   XDRrpc(const string &machine, const string &user, const string &program,
 	 const string &remote_shell, xdr_rd_func r, xdr_wr_func w,
-	 const vector<string> &arg_list, const int nblock, PDSOCKET wellKnownSock);
+	 const pdvector<string> &arg_list, const int nblock, PDSOCKET wellKnownSock);
   XDRrpc(PDSOCKET use_sock, xdr_rd_func readRoutine, xdr_wr_func writeRoutine,
 	 const int nblock);
   XDRrpc(int family, int port, int type, const string machine,
@@ -129,23 +129,23 @@ extern bool RPC_setup_socket_un(PDSOCKET &sfd, const char *path);
 
 extern PDSOCKET RPCprocessCreate(const string hostName, const string userName,
 			    const string commandLine, const string remote_shell,
-			    const vector<string> &arg_list,
+			    const pdvector<string> &arg_list,
 			    int wellKnownPort = 0);
 
 #if !defined(i386_unknown_nt4_0)
-extern bool RPC_make_arg_list (vector<string> &list, const int port, 
+extern bool RPC_make_arg_list (pdvector<string> &list, const int port, 
 			       const int termWin_port, 
 			       const int flag, const int firstPVM,
 			       const string machineName, const bool useMachine);
 #else
-extern bool RPC_make_arg_list (vector<string> &list, const int port, 
+extern bool RPC_make_arg_list (pdvector<string> &list, const int port, 
 			       const int flag, const int firstPVM,
 			       const string machineName, const bool useMachine);
 #endif
 
 extern PDSOCKET RPC_getConnect (PDSOCKET fd);
 
-extern bool RPCgetArg(vector<string> &ret, const char *input);
+extern bool RPCgetArg(pdvector<string> &ret, const char *input);
 
 extern double timing_loop(const unsigned TRIES=1,
 			  const unsigned LOOP_LIMIT=100000);
@@ -167,6 +167,6 @@ class rpcBuffer {
 // a vector of callback functions for reads and accepts, needed to support
 // correct interation between XDR and our thread library
 typedef void (*RPCSockCallbackFunc)( PDSOCKET );
-extern vector<RPCSockCallbackFunc> rpcSockCallback;
+extern pdvector<RPCSockCallbackFunc> rpcSockCallback;
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.71 2002/12/14 16:37:45 schendel Exp $
+// $Id: unix.C,v 1.72 2002/12/20 07:49:59 jaw Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -99,16 +99,16 @@ int pvmendtask();
  *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
 #ifdef BPATCH_LIBRARY
-bool forkNewProcess(string &file, string /*dir*/, vector<string> argv, 
-                    vector<string> /*envp*/, 
+bool forkNewProcess(string &file, string /*dir*/, pdvector<string> argv, 
+                    pdvector<string> /*envp*/, 
                     string /*inputFile*/, string /*outputFile*/,
                     int & /*traceLink*/, 
                     int &pid, int & /*tid*/, 
                     int & /*procHandle*/, int & /*thrHandle*/, 
 		    int stdin_fd, int , int )
 #else
-bool forkNewProcess(string &file, string dir, vector<string> argv, 
-		    vector<string>envp, string inputFile, string outputFile,
+bool forkNewProcess(string &file, string dir, pdvector<string> argv, 
+		    pdvector<string>envp, string inputFile, string outputFile,
 		    int &traceLink,
 		    int &pid, int & /*tid*/, 
 		    int & /*procHandle*/, int & /*thrHandle*/,

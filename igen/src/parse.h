@@ -88,7 +88,7 @@ union parse_stack {
   arg *args;
   functype_data fd;
   derived_data derived;
-  vector<arg*> *arg_vector;
+  pdvector<arg*> *arg_vector;
   interface_spec *spec;
   char *charp;
 };

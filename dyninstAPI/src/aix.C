@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.117 2002/12/05 01:38:39 buck Exp $
+// $Id: aix.C,v 1.118 2002/12/20 07:49:56 jaw Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -1537,16 +1537,16 @@ void resurrectBaseTramps(process *p)
 {
   if (! p) return;
 
-  vector<const instPoint*> allInstPoints = p->baseMap.keys();
+  pdvector<const instPoint*> allInstPoints = p->baseMap.keys();
 
-  extern void findAndReinstallBaseTramps(process *, vector<const instPoint*> &);
+  extern void findAndReinstallBaseTramps(process *, pdvector<const instPoint*> &);
   findAndReinstallBaseTramps(p, allInstPoints);
 
-  vector<process::mtListInfo> allMTlistsInfo;
+  pdvector<process::mtListInfo> allMTlistsInfo;
   p->getMiniTrampLists(&allMTlistsInfo);
 
   extern void reattachMiniTramps(process *, 
-			   const vector<process::mtListInfo> &allMTlistsInfo);
+			   const pdvector<process::mtListInfo> &allMTlistsInfo);
   reattachMiniTramps(p, allMTlistsInfo);
 }
 
@@ -2076,7 +2076,7 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
   if ((frame.getPC() < instFunc->addr()) || (frame.getPC() > instFunc->addr() + instFunc->size()))
     return true;
 
-  const vector <instPoint *>exitPoints = instFunc->funcExits(this);
+  const pdvector <instPoint *>exitPoints = instFunc->funcExits(this);
   exitTrampAddr = baseMap[exitPoints[0]]->baseAddr;
 
   // If the function is a leaf function, we need to overwrite the LR directly.

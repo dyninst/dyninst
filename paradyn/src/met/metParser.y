@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParser.y,v 1.42 2002/09/05 19:47:26 mikem Exp $
+// $Id: metParser.y,v 1.43 2002/12/20 07:50:06 jaw Exp $
 
 #include "paradyn/src/met/metParse.h"
 #include "paradyn/src/met/mdl.h"
@@ -128,7 +128,7 @@ list_items: tCOMMA tLPAREN stringItems tRPAREN { $$.vs = $3.vs; }
 
 resList: tRES_LIST tLPAREN list_type list_id list_items opt_library tCOMMA tIDENT tRPAREN tSEMI
     { 
-        vector<string> *temp = new vector<string>;
+        pdvector<string> *temp = new pdvector<string>;
         *temp += *$8.sp;
 
         metParseError = ERR_NO_ERROR;
@@ -170,7 +170,7 @@ resListItems: tITEMS list_items tSEMI met_flavor tLIBRARY library tSEMI
 	;
 
 stringItems: tLITERAL 
-		{ $$.vs = new vector<string>; (*$$.vs) += *$1.sp; delete $1.sp; }
+		{ $$.vs = new pdvector<string>; (*$$.vs) += *$1.sp; delete $1.sp; }
 	| stringItems tCOMMA tLITERAL 
 		{ $$.vs = $1.vs; (*$$.vs) += *$3.sp; delete $3.sp; }
 	;
@@ -410,7 +410,7 @@ instr_code: tIF tLPAREN metric_expr tRPAREN metric_expr tSEMI
 	}
 	;
 
-instr_code_list: { $$.icode_v = new vector<T_dyninstRPC::mdl_icode*>; }
+instr_code_list: { $$.icode_v = new pdvector<T_dyninstRPC::mdl_icode*>; }
   | instr_code_list instr_code 
     { $$.icode_v = $1.icode_v; (*$$.icode_v) += $2.i_code; }
   ;
@@ -420,14 +420,14 @@ opt_constrained: { $$.b = false;}
   ;
 
 fields: tIDENT 
-  { $$.vs = new vector<string>; (*$$.vs) += *$1.sp; delete $1.sp; }
+  { $$.vs = new pdvector<string>; (*$$.vs) += *$1.sp; delete $1.sp; }
   | fields tDOT tIDENT { $$.vs = $1.vs; (*$$.vs) += *$3.sp; delete $3.sp; }
   ;
 
-metric_expr_list: { $$.m_expr_v = new vector<T_dyninstRPC::mdl_expr*>; }
+metric_expr_list: { $$.m_expr_v = new pdvector<T_dyninstRPC::mdl_expr*>; }
   | metric_expr 
   {
-    $$.m_expr_v = new vector<T_dyninstRPC::mdl_expr*>;
+    $$.m_expr_v = new pdvector<T_dyninstRPC::mdl_expr*>;
     (*$$.m_expr_v) += $1.m_expr; 
   }
   | metric_expr_list tCOMMA metric_expr 
@@ -506,7 +506,7 @@ instr_request: position where_instr metric_expr opt_constrained tLC instr_code_l
   }
   ;
 
-metric_stmts: { $$.m_stmt_v = new vector<T_dyninstRPC::mdl_stmt*>;}
+metric_stmts: { $$.m_stmt_v = new pdvector<T_dyninstRPC::mdl_stmt*>;}
   | metric_stmts metric_stmt 
   { $$.m_stmt_v = $1.m_stmt_v; (*$$.m_stmt_v) += $2.m_stmt;}
   ;
@@ -524,7 +524,7 @@ metric_stmt: tLBLOCK metric_stmts tRBLOCK
   ;
 
 flavor_list: tIDENT 
-		{ $$.vs = new vector<string>; (*$$.vs) += *$1.sp; delete $1.sp; }
+		{ $$.vs = new pdvector<string>; (*$$.vs) += *$1.sp; delete $1.sp; }
 	| flavor_list tCOMMA tIDENT 
 		{ $$.vs = $1.vs; (*$$.vs) += *$3.sp; delete $3.sp; }
 	;
@@ -691,7 +691,7 @@ metric_definition: tMETRIC tIDENT metric_struct
   }
   ;
 
-match_path: {$$.vs = new vector<string>; }
+match_path: {$$.vs = new pdvector<string>; }
   | match_path tDIV tIDENT 
     { $$.vs = $1.vs; (*$$.vs) += *$3.sp; delete $3.sp; }
   | match_path tDIV tMULT 

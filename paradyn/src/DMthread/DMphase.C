@@ -114,7 +114,7 @@ void phaseInfo::startPhase(const string &name, bool with_new_pc,
 	    if((next_entry->ph_type == CurrentPhase) 
 	       && (next_entry->ph_handle == lastId)){
 		// send enable failed response to calling thread
-                vector<bool> successful(next_entry->request->size());
+                pdvector<bool> successful(next_entry->request->size());
 		for(u_int j=0; j< successful.size(); j++){
 		    successful[j] = false;
 		}
@@ -158,9 +158,9 @@ void phaseInfo::startPhase(const string &name, bool with_new_pc,
 }	
 
 // caller is responsible for freeing space assoc. with return list
-vector<T_visi::phase_info> *phaseInfo::GetAllPhaseInfo(){
+pdvector<T_visi::phase_info> *phaseInfo::GetAllPhaseInfo(){
 
-    vector<T_visi::phase_info> *phase_list = new vector<T_visi::phase_info>;
+    pdvector<T_visi::phase_info> *phase_list = new pdvector<T_visi::phase_info>;
     T_visi::phase_info newValue;
 
     for(unsigned i=0; i < dm_phases.size(); i++){

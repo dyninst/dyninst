@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.14 2002/06/21 14:19:29 chadd Exp $
+// $Id: Object-nt.C,v 1.15 2002/12/20 07:49:56 jaw Exp $
 
 #include <iostream.h>
 #include <iomanip.h>
@@ -196,7 +196,7 @@ Object::ParseDebugInfo( void )
 void
 Object::ParseExports( IMAGE_DEBUG_INFORMATION* pDebugInfo )
 {
-    vector<Symbol> allSymbols;
+    pdvector<Symbol> allSymbols;
 
     // map the object into our address space
     HANDLE hFile = CreateFile( file_.c_str(),
@@ -470,9 +470,9 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
     {
         bool isDll = ((pDebugInfo->Characteristics & IMAGE_FILE_DLL)!=0);
         dictionary_hash<string, unsigned int> libDict( string::hash, 19 );
-        vector<Symbol> allSymbols;
-        vector<ModInfo> cvMods;         // CodeView's notion of modules
-        vector<PDModInfo> pdMods;       // Paradyn's notion of modules
+        pdvector<Symbol> allSymbols;
+        pdvector<ModInfo> cvMods;         // CodeView's notion of modules
+        pdvector<PDModInfo> pdMods;       // Paradyn's notion of modules
         unsigned int midx;
         unsigned int i;
 
@@ -483,7 +483,7 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
         // 
         // note that the CodeView modules vector uses one-based indexing
         //
-        const vector<CodeView::Module>& modules = cv.GetModules();
+        const pdvector<CodeView::Module>& modules = cv.GetModules();
         for( midx = 1; midx < modules.size(); midx++ )
         {
             const CodeView::Module& mod = modules[midx];
@@ -701,7 +701,7 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
 
 
 void
-Object::CVPatchSymbolSizes( vector<Symbol>& allSymbols )
+Object::CVPatchSymbolSizes( pdvector<Symbol>& allSymbols )
 {
     Address lastFuncAddr = NULL;
     unsigned int i;
@@ -809,9 +809,9 @@ Object::CVPatchSymbolSizes( vector<Symbol>& allSymbols )
 
 void
 Object::CVProcessSymbols( CodeView& cv, 
-                          vector<Object::ModInfo>& cvMods,
-                          vector<Object::PDModInfo>& pdMods,
-                          vector<Symbol>& allSymbols )
+                          pdvector<Object::ModInfo>& cvMods,
+                          pdvector<Object::PDModInfo>& pdMods,
+                          pdvector<Symbol>& allSymbols )
 {
     unsigned int midx;
     unsigned int i;
@@ -824,7 +824,7 @@ Object::CVProcessSymbols( CodeView& cv,
                     
         // add symbols for each global function defined in the module
         {
-            const vector<CodeView::SymRecordProc*>& gprocs =
+            const pdvector<CodeView::SymRecordProc*>& gprocs =
                 mod.GetSymbols().GetGlobalFunctions();
             for( i = 0; i < gprocs.size(); i++ )
             {
@@ -848,7 +848,7 @@ Object::CVProcessSymbols( CodeView& cv,
 
         // add symbols for each local function defined in the module
         {
-            const vector<CodeView::SymRecordProc*>& lprocs =
+            const pdvector<CodeView::SymRecordProc*>& lprocs =
                    mod.GetSymbols().GetLocalFunctions();
             for( i = 0; i < lprocs.size(); i++ )
             {
@@ -870,7 +870,7 @@ Object::CVProcessSymbols( CodeView& cv,
 
         // handle thunks
         {
-            const vector<CodeView::SymRecordThunk*>& thunks =
+            const pdvector<CodeView::SymRecordThunk*>& thunks =
                 mod.GetSymbols().GetThunks();
             for( i = 0; i < thunks.size(); i++ )
             {
@@ -892,7 +892,7 @@ Object::CVProcessSymbols( CodeView& cv,
 
         // add symbols for each global variable defined in the module
         {
-            const vector<CodeView::SymRecordData*>& gvars =
+            const pdvector<CodeView::SymRecordData*>& gvars =
                 mod.GetSymbols().GetGlobalVariables();
             for( i = 0; i < gvars.size(); i++ )
             {
@@ -913,7 +913,7 @@ Object::CVProcessSymbols( CodeView& cv,
         }
 
         {
-            const vector<CodeView::SymRecordData*>& lvars =
+            const pdvector<CodeView::SymRecordData*>& lvars =
                 mod.GetSymbols().GetGlobalVariables();
             for( i = 0; i < lvars.size(); i++ )
             {
@@ -947,7 +947,7 @@ Object::CVProcessSymbols( CodeView& cv,
     // records.)  We do our best to try to determine
     // whether the symbol is a function, and if so,
     // how large it is, which module it belongs to, etc.
-    const vector<CodeView::SymRecordData*>& pubs =
+    const pdvector<CodeView::SymRecordData*>& pubs =
                                             cv.GetSymbols().GetPublics();
     for( i = 0; i < pubs.size(); i++ )
     {
@@ -1003,7 +1003,7 @@ void
 Object::ParseCOFFSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
 {
     IMAGE_COFF_SYMBOLS_HEADER* pHdr = pDebugInfo->CoffSymbols;
-    vector<Symbol>    allSymbols;
+    pdvector<Symbol>    allSymbols;
     bool gcc_compiled = false;
     bool isDll = ((pDebugInfo->Characteristics & IMAGE_FILE_DLL)!=0);
     DWORD u, v;
@@ -1366,7 +1366,7 @@ sym_offset_compare( const void *x, const void *y )
 // based on the given offset into the .text section
 string
 Object::FindModuleByOffset( unsigned int offset,
-                             const vector<Object::PDModInfo>& pdMods )
+                             const pdvector<Object::PDModInfo>& pdMods )
 {
     string retval = "";
     unsigned int i;
@@ -1407,7 +1407,7 @@ bool Object::ParseMapSymbols(IMAGE_DEBUG_INFORMATION *pDebugInfo, char *mapFile)
 
 	/** from ParseCOFFSymbols */
 
-	vector<Symbol> allSymbols;
+	pdvector<Symbol> allSymbols;
 	//bool gcc_compiled = false;
 	bool isDLL = ((pDebugInfo->Characteristics & IMAGE_FILE_DLL) != 0 ); //ccw 27 apr 2001
 

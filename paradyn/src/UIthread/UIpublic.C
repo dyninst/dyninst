@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.78 2002/08/02 21:00:32 pcroth Exp $
+/* $Id: UIpublic.C,v 1.79 2002/12/20 07:50:04 jaw Exp $
  */
 
 #include <stdio.h>
@@ -65,12 +65,12 @@
 #include "callGraphTcl.h"
 
  /* globals for metric resource selection */
-vector<metric_focus_pair> uim_VisiSelections; // keep this one
+pdvector<metric_focus_pair> uim_VisiSelections; // keep this one
 
 void
 UIMUser::chosenMetricsandResources
           (chooseMandRCBFunc cb,
-	   vector<metric_focus_pair> *pairList)
+	   pdvector<metric_focus_pair> *pairList)
 {
   (cb) (pairList);
 }
@@ -160,7 +160,7 @@ bool UI_all_metrics_set_yet = false;
 
 void 
 UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
-			       vector<metric_focus_pair> * // pairList -- unused
+			       pdvector<metric_focus_pair> * // pairList -- unused
    )
 {
       // store record with unique id and callback function
@@ -190,7 +190,7 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   Tcl_SetHashValue (entryPtr, reply);
 
   if (!UI_all_metrics_set_yet) {
-      vector<met_name_id> *all_mets = dataMgr->getAvailableMetInfo(true);
+      pdvector<met_name_id> *all_mets = dataMgr->getAvailableMetInfo(true);
       
       for (unsigned metlcv=0; metlcv < all_mets->size(); metlcv++) {
 	 unsigned id  = (*all_mets)[metlcv].id;
@@ -214,8 +214,8 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   // Set metIndexes2Id via "temp"
   (void)Tcl_UnsetVar(interp, "temp", 0);
      // ignore result; temp may not have existed
-  vector<met_name_id> *curr_avail_mets_ptr = dataMgr->getAvailableMetInfo(false);
-  vector<met_name_id> &curr_avail_mets = *curr_avail_mets_ptr;
+  pdvector<met_name_id> *curr_avail_mets_ptr = dataMgr->getAvailableMetInfo(false);
+  pdvector<met_name_id> &curr_avail_mets = *curr_avail_mets_ptr;
   unsigned numAvailMets = curr_avail_mets.size();
   assert( numAvailMets > 0 );
   for (unsigned metlcv=0; metlcv < numAvailMets; metlcv++) {
@@ -484,7 +484,7 @@ void UIM::CGDoneAddingNodesForNow(int pid) {
 }
 
 void
-UIM::DAGaddBatchOfEdges (int dagID, vector<uiSHGrequest> *requests,
+UIM::DAGaddBatchOfEdges (int dagID, pdvector<uiSHGrequest> *requests,
 			 unsigned numRequests)
 {
   // "requests" was allocated (using new) by the producer (PCshg.C code); we
@@ -585,7 +585,7 @@ int compare_visi_names (const void *viptr1, const void *viptr2) {
 }
 
 void 
-UIM::registerValidVisis (vector<VM_visiInfo> *via) {
+UIM::registerValidVisis (pdvector<VM_visiInfo> *via) {
   int i;
   int count;
   Tcl_DString namelist;

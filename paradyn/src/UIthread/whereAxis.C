@@ -44,7 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.C,v 1.26 2002/11/25 23:52:38 schendel Exp $ */
+/* $Id: whereAxis.C,v 1.27 2002/12/20 07:50:05 jaw Exp $ */
 
 #include <stdlib.h> // exit()
 
@@ -1381,7 +1381,7 @@ void whereAxis::rethinkNavigateMenu() {
 }
 
 bool whereAxis::selectUnSelectFromFullPathName(const string &name, bool selectFlag) {
-   // returns true iff fountor < vector<resourceHandle> > res 
+   // returns true iff fountor < pdvector<resourceHandle> > res 
    const char *str = name.c_str();
    if (str == NULL)
       return false;
@@ -1389,22 +1389,22 @@ bool whereAxis::selectUnSelectFromFullPathName(const string &name, bool selectFl
    return rootPtr->selectUnSelectFromFullPathName(str, selectFlag);
 }
 
-vector< vector<resourceHandle> >
+pdvector< pdvector<resourceHandle> >
 whereAxis::getSelections(bool &wholeProgram,
-			 vector<unsigned> &wholeProgramFocus) const {
+			 pdvector<unsigned> &wholeProgramFocus) const {
    // returns a vector[num-hierarchies] of vector of selections.
    // The number of hierarchies is defined as the number of children of the
    // root node.  If "Whole Program" was selection, it isn't returned with
    // the main result; it's returned by modifying the 2 params
    const unsigned numHierarchies = rootPtr->getNumChildren();
 
-   vector < vector<resourceHandle> > result(numHierarchies);
+   pdvector < pdvector<resourceHandle> > result(numHierarchies);
 
    bool wholeProgramImplicit = true; // so far...
 
    for (unsigned i=0; i < numHierarchies; i++) {
       where4tree<whereAxisRootNode> *hierarchyRoot = hierarchyRoots[i];
-      vector <const whereAxisRootNode *> thisHierarchySelections = hierarchyRoot->getSelections();
+      pdvector <const whereAxisRootNode *> thisHierarchySelections = hierarchyRoot->getSelections();
 
       if (thisHierarchySelections.size()==0)
          // add hierarchy's root item

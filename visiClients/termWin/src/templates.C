@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templates.C,v 1.3 2002/04/09 18:06:45 mjbrim Exp $
+ * $Id: templates.C,v 1.4 2002/12/20 07:50:09 jaw Exp $
  */
 
 #pragma implementation "Vector.h"
@@ -53,7 +53,7 @@
 
 class clientConn;
 
-template class vector<clientConn *>;
+template class pdvector<clientConn *>;
 
 // logo stuff:
 #include "paradyn/src/UIthread/minmax.C"
@@ -63,22 +63,22 @@ template float max(const float, const float);
 #include "common/src/Dictionary.C"
 #include "pdLogo.h"
 
-template class pair<string, pdLogo *>;
-template class pair<string, pdLogo::logoStruct>;
-template class vector<pair<string, pdLogo *> >;
-template class vector<pair<string, pdLogo::logoStruct> >;
+template class pdpair<string, pdLogo *>;
+template class pdpair<string, pdLogo::logoStruct>;
+template class pdvector<pdpair<string, pdLogo *> >;
+template class pdvector<pdpair<string, pdLogo::logoStruct> >;
 
 template class dictionary_hash<string, pdLogo *>;
-template class vector<dictionary_hash<string, pdLogo *>::entry>;
-template class vector<pdLogo*>;
+template class pdvector<dictionary_hash<string, pdLogo *>::entry>;
+template class pdvector<pdLogo*>;
 
 template class dictionary_hash<string, pdLogo::logoStruct>;
-template class vector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
-template class vector<pdLogo::logoStruct>;
+template class pdvector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
+template class pdvector<pdLogo::logoStruct>;
 
-template class vector<unsigned int>;
+template class pdvector<unsigned int>;
 template class refCounter<string_ll>;
 
 // termWin igen interface template instantiations
-template class vector<T_termWin::buf_struct*>;
+template class pdvector<T_termWin::buf_struct*>;
 

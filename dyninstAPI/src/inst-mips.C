@@ -395,7 +395,7 @@ Address nonRecursiveBaseTemplate_postInstru;
 #endif
 
 
-void print_inst_pts(const vector<instPoint*> &pts, pd_Function *fn) 
+void print_inst_pts(const pdvector<instPoint*> &pts, pd_Function *fn) 
 {
   TRACE_B( "print_inst_pts" );
 
@@ -430,7 +430,7 @@ void print_function(pd_Function *f)
 	  f->prettyName().c_str(), 
 	  f->size() / (int)INSN_SIZE);
 
-  vector<instPoint*> t;
+  pdvector<instPoint*> t;
   t.push_back(const_cast<instPoint*>(f->funcEntry(0)));
   print_inst_pts(t, f);
 
@@ -711,7 +711,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 /****************************************************************************/
 /****************************************************************************/
 
-static bool contains(vector<int> &V, int val)
+static bool contains(pdvector<int> &V, int val)
 {
   TRACE_B( "contains" );
 
@@ -733,7 +733,7 @@ static bool contains(vector<int> &V, int val)
 /****************************************************************************/
 /****************************************************************************/
 
-static void addIfNew(vector<int> &V, int val)
+static void addIfNew(pdvector<int> &V, int val)
 {
   TRACE_B( "addIfNew" );
 
@@ -753,13 +753,13 @@ static void addIfNew(vector<int> &V, int val)
 /****************************************************************************/
 /****************************************************************************/
 
-static void print_saved_registers(pd_Function *fn, const vector<vector<int> > &slots)
+static void print_saved_registers(pd_Function *fn, const pdvector<pdvector<int> > &slots)
 {
   TRACE_B( "print_saved_registers" );
 
   /*
-  vector<vector<int> > slots2(slots.size());
-  vector<int> locals;
+  pdvector<pdvector<int> > slots2(slots.size());
+  pdvector<int> locals;
   for (unsigned i = 0; i < slots.size(); i++) {
     for (int j = 0; j < slots[i].size(); j++) {
       int slot = slots[i][j];
@@ -789,7 +789,7 @@ static void print_saved_registers(pd_Function *fn, const vector<vector<int> > &s
 	    fn->prettyName().c_str(), 
 	    fn->getAddress(0), 
 	    fn->size() / (int)INSN_SIZE);
-    vector<int> locals;
+    pdvector<int> locals;
     for (unsigned i = 0; i < slots.size(); i++) {
       if (slots[i].size() > 0) {
 	fprintf(stderr, "  $%-4s:", reg_names[i]);
@@ -1169,7 +1169,7 @@ bool pd_Function::checkInstPoints()
   }
 
   /* sort all instPoints by address */
-  vector<instPoint*> pts;
+  pdvector<instPoint*> pts;
   if (funcEntry_) pts.push_back(funcEntry_);
   for(unsigned  i = 0; i < funcReturns.size(); i++) {
     pts.push_back(funcReturns[i]);
@@ -1238,7 +1238,7 @@ void pd_Function::checkCallPoints()
   //size() / INSN_SIZE);
   
   Address fnStart = getAddress(0);
-  vector<instPoint*> calls2;
+  pdvector<instPoint*> calls2;
   for (unsigned i = 0; i < calls.size(); i++) {
     instPoint *ip = calls[i];
     assert(ip);
@@ -1357,8 +1357,8 @@ Address pd_Function::findJumpTarget(instPoint *p, instruction i)
 /****************************************************************************/
 /****************************************************************************/
 
-void print_sequence(int targetReg, vector<int> &baseAdjusts,
-		    vector<int> &adjusts, int n, char * /*pre*/ = NULL)
+void print_sequence(int targetReg, pdvector<int> &baseAdjusts,
+		    pdvector<int> &adjusts, int n, char * /*pre*/ = NULL)
 {
   TRACE_B( "print_sequence" );
 
@@ -1458,11 +1458,11 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
 
   // indirect jump sequence
   Register targetReg = i.rtype.rs;
-  vector<int> baseRegs;
-  vector<int> baseAdjusts;
-  vector<int> adjusts;
-  vector<unsigned int> insns;
-  vector<Address> insnAddrs;
+  pdvector<int> baseRegs;
+  pdvector<int> baseAdjusts;
+  pdvector<int> adjusts;
+  pdvector<unsigned int> insns;
+  pdvector<Address> insnAddrs;
 
   // parse code
   Address start = getAddress(0);
@@ -3381,9 +3381,9 @@ void initTramps()
 /****************************************************************************/
 
 Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base, 
-		      const vector<AstNode *> &params, const string &calleeName,
+		      const pdvector<AstNode *> &params, const string &calleeName,
 		      process *p, bool noCost, const function_base *callee,
-		      const vector<AstNode *> &ifForks,
+		      const pdvector<AstNode *> &ifForks,
 		      const instPoint *location) // FIXME: pass it!
   // Note: MIPSPro compiler complains about redefinition of default argument
 {
@@ -3399,7 +3399,7 @@ Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base,
   //fprintf(stderr, "  <0x%08x:%s>\n", calleeAddr, calleeName.c_str());
   
   // generate argument values
-  vector<reg> args;
+  pdvector<reg> args;
 #ifdef mips_unknown_ce2_11 //ccw 22 jan 2001 : 28 mar 2001
   
 	//add to the stack HACK
@@ -4606,7 +4606,7 @@ bool process::MonitorCallSite(instPoint *callSite){
   TRACE_B( "process::MonitorCallSite" );
 
   instruction i = callSite->origInsn_;
-  vector<AstNode *> the_args(2);
+  pdvector<AstNode *> the_args(2);
   //IS the instruction of type "jalr ra,RR"?
   if(isCall1(i)){
     the_args[0] = 
@@ -4758,7 +4758,7 @@ string process::getProcessStatus() const
 /****************************************************************************/
 /****************************************************************************/
 
-bool returnInstance::checkReturnInstance(const vector<vector<Frame> > &stackWalks)
+bool returnInstance::checkReturnInstance(const pdvector<pdvector<Frame> > &stackWalks)
 {
   TRACE_B( "returnInstance::checkReturnInstance" );
 
@@ -4973,7 +4973,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
 	    return NULL;
 	}
 
-	const vector<instPoint*> &exits = func->funcExits(proc);
+	const pdvector<instPoint*> &exits = func->funcExits(proc);
 	for (i = 0; i < exits.size(); i++) {
 	    assert(exits[i]);
 	    if ((exits[i]->iPgetAddress() == (Address)address-INSN_SIZE) ||
@@ -4984,7 +4984,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
 	    }
 	}
 
-	const vector<instPoint*> &calls = func->funcCalls(proc);
+	const pdvector<instPoint*> &calls = func->funcCalls(proc);
 	for (i = 0; i < calls.size(); i++) {
 	    assert(calls[i]);
     	    if ((calls[i]->iPgetAddress() == (Address) - INSN_SIZE) ||

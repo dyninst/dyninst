@@ -44,7 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.h,v 1.20 2002/11/25 23:52:39 schendel Exp $ */
+/* $Id: whereAxis.h,v 1.21 2002/12/20 07:50:05 jaw Exp $ */
 
 #ifndef _WHERE_AXIS_H_
 #define _WHERE_AXIS_H_
@@ -61,7 +61,7 @@
 #include "common/h/Dictionary.h"
 #endif
 
-typedef vector<unsigned> numlist;
+typedef pdvector<unsigned> numlist;
 
 // Note: whereAxis is no longer a templated type.
 // It utilized where4tree<> with a template of rootNode, which
@@ -121,7 +121,7 @@ class whereAxis {
    // we have to keep track of the original ordering of the resource hierarchies
    // so that we return the "canonical" ordering of resources from a getSelections
    // call.
-    vector<where4tree<whereAxisRootNode>*> hierarchyRoots;
+    pdvector<where4tree<whereAxisRootNode>*> hierarchyRoots;
 
    dictionary_hash<resourceHandle, where4tree<whereAxisRootNode> *> hash;
       // associative array: resource unique id --> its corresponding node
@@ -309,7 +309,7 @@ class whereAxis {
       // pass true for the 2nd param iff you want to select it; false
       // if you want to unselect it.
    
-   vector< vector<resourceHandle> > getSelections(bool &wholeProgram, vector<unsigned> &wholeProgramFocus) const;
+   pdvector< pdvector<resourceHandle> > getSelections(bool &wholeProgram, pdvector<unsigned> &wholeProgramFocus) const;
    void clearSelections();
 
    void map_to_CallGraph(resourceHandle,bool);

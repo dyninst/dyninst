@@ -61,7 +61,7 @@
 #include "termWin.xdr.h"
 #endif // !defined(i386_unknown_nt4_0)
 
-template class vector< vector<string> >;
+template class pdvector< pdvector<string> >;
 template class refCounter<string_ll>;
 
 /* ***********************************
@@ -76,29 +76,29 @@ class processMet;
 class visiMet;
 class tunableMet;
 
-template class vector<functionName*>;
-template class vector<processMet *>;
-template class vector<daemonMet*>;
-template class vector<visiMet*>;
-template class vector<tunableMet*>;
-template class vector<string_list*>;
-template class vector<function_base*>;
-template class vector<module*>;
-template class vector<instPoint*>;
+template class pdvector<functionName*>;
+template class pdvector<processMet *>;
+template class pdvector<daemonMet*>;
+template class pdvector<visiMet*>;
+template class pdvector<tunableMet*>;
+template class pdvector<string_list*>;
+template class pdvector<function_base*>;
+template class pdvector<module*>;
+template class pdvector<instPoint*>;
 
 // MDL stuff 
 
-template class vector<pd_process *>;
-template class vector< vector<dyn_thread *> >;
-template class vector<const instrDataNode *>;
-template class vector<mdl_var>;
-template class vector<mdl_focus_element>;
+template class pdvector<pd_process *>;
+template class pdvector< pdvector<dyn_thread *> >;
+template class pdvector<const instrDataNode *>;
+template class pdvector<mdl_var>;
+template class pdvector<mdl_focus_element>;
 
-template class vector<mdl_type_desc>;
-template class vector< vector< mdl_type_desc > >;
+template class pdvector<mdl_type_desc>;
+template class pdvector< pdvector< mdl_type_desc > >;
 
-template class dictionary_hash<unsigned, vector<mdl_type_desc> >;
-template class vector<dictionary_hash<unsigned, vector<mdl_type_desc> >::entry>;
+template class dictionary_hash<unsigned, pdvector<mdl_type_desc> >;
+template class pdvector<dictionary_hash<unsigned, pdvector<mdl_type_desc> >::entry>;
 
 // Igen - dyninstRPC stuff
 // no longer need to instantiate here, now done in dyninstRPC.xdr.temp.C
@@ -132,6 +132,6 @@ template bool writerfn_noMethod<T_visi::phase_info>(struct XDR *, const T_visi::
 
 #if !defined(i386_unknown_nt4_0)
 // termWin igen interface template instantiations
-template class vector<T_termWin::buf_struct*>;
+template class pdvector<T_termWin::buf_struct*>;
 #endif // !defined(i386_unknown_nt4_0)
 

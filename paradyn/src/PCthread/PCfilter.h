@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCfilter.h,v 1.17 2001/12/12 17:28:50 gurari Exp $
+ * $Id: PCfilter.h,v 1.18 2002/12/20 07:50:02 jaw Exp $
  * Data filter class performs initial processing of raw DM data arriving 
  * in the Performance Consultant.  
  */
@@ -205,7 +205,7 @@ public:
   void newBinSize(timeLength newSize);
   void newData (metricInstanceHandle mih, pdSample deltaVal, 
 		int bucketNumber, phaseType ptype);
-  void newDataEnabled(vector<metricInstInfo>* newlyEnabled);
+  void newDataEnabled(pdvector<metricInstInfo>* newlyEnabled);
 
   // miscellaneous  
   timeLength getCurrentBinSize () {return currentBinSize;}
@@ -236,7 +236,7 @@ public:
 
   // miIndex and AllDataFilters contain every filter ever created for this server
   dictionary_hash<focus, filter*> **miIndex;
-  vector<filter*> AllDataFilters;
+  pdvector<filter*> AllDataFilters;
 };
 
 #endif

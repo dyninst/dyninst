@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.h,v 1.34 2002/11/25 23:52:59 schendel Exp $
+// $Id: init.h,v 1.35 2002/12/20 07:50:06 jaw Exp $
 
 #ifndef INIT_HDR
 #define INIT_HDR
@@ -110,9 +110,9 @@ extern costMetric *observed_cost;
 extern bool paradyn_init();
 extern bool initOS();
 extern void instMPI();
-extern vector<instMapping*> initialRequestsPARADYN;//ccw 19 apr 2002 : SPLIT
+extern pdvector<instMapping*> initialRequestsPARADYN;//ccw 19 apr 2002 : SPLIT
 
-extern vector<sym_data> syms_to_findPARADYN; //ccw 19 apr 2002 : SPLIT
+extern pdvector<sym_data> syms_to_findPARADYN; //ccw 19 apr 2002 : SPLIT
 extern int numberOfCPUs;
 
 extern timeStamp  startStackwalk;

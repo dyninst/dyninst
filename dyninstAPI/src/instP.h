@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.39 2002/10/14 21:02:20 bernat Exp $
+// $Id: instP.h,v 1.40 2002/12/20 07:49:57 jaw Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -154,7 +154,7 @@ class returnInstance {
 		   :insnsOverwritten(insnsOver), instructionSeq(instSeq), instSeqSize(seqSize), 
 		   addr_(addr), size_(size), installed(false) {};
 
-    bool checkReturnInstance(const vector<vector<Frame> > &stackWalks);
+    bool checkReturnInstance(const pdvector<pdvector<Frame> > &stackWalks);
     void installReturnInstance(process *proc);
     void addToReturnWaitingList(Address pc, process *proc);
 
@@ -208,7 +208,7 @@ class instWaitingList {
     process *which_proc;
 };
 
-extern vector<instWaitingList*> instWList;
+extern pdvector<instWaitingList*> instWList;
 
 extern trampTemplate *findAndInstallBaseTramp(process *proc, 
 				 instPoint *&location,

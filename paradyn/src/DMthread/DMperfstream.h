@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.h,v 1.24 2002/11/25 23:51:45 schendel Exp $
+// $Id: DMperfstream.h,v 1.25 2002/12/20 07:50:01 jaw Exp $
 
 #ifndef dmperfstream_H
 #define dmperfstream_H
@@ -100,7 +100,7 @@ class performanceStream {
    void callStateFunc(appState state);
    void callPhaseFunc(phaseInfo& phase,bool with_new_pc,bool with_visis);
    void callPredictedCostFuc(metricHandle,resourceListHandle,float,u_int);
-   void callDataEnableFunc(vector<metricInstInfo> *response,
+   void callDataEnableFunc(pdvector<metricInstInfo> *response,
                            u_int request_Id);
    perfStreamHandle Handle(){return(handle);}
    void flushBuffer();   // send data to client thread
@@ -149,14 +149,14 @@ class performanceStream {
    u_int              my_buffer_size;   // total number of MI's enabled
    u_int              next_buffer_loc;  // next buffer loc. to fill
    u_int              nextpredCostReqestId;    
-   vector<dataValueType>   *my_buffer;	// buffer of dataValues
-   vector<predCostType*>   pred_Cost_buff; // outstanding predCost events
+   pdvector<dataValueType>   *my_buffer;	// buffer of dataValues
+   pdvector<predCostType*>   pred_Cost_buff; // outstanding predCost events
    static u_int       next_id;
    // trace data streams
    u_int              num_trace_mis;   // num MI's for trace
    u_int              my_traceBuffer_size; // fixed; 10
    u_int              next_traceBuffer_loc; // next buffer loc. to fill
-   vector<traceDataValueType>   *my_traceBuffer; // buffer of trace data
+   pdvector<traceDataValueType>   *my_traceBuffer; // buffer of trace data
 
    bool reallocTraceBuffer();  
    // dictionary rather than vector since perfStreams can be destroyed

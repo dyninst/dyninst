@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.h,v 1.7 2001/02/19 15:37:00 wxd Exp $
+// $Id: callGraphDisplay.h,v 1.8 2002/12/20 07:50:04 jaw Exp $
 
 #ifndef _CALLGRAPH_DISPLAY_H_
 #define _CALLGRAPH_DISPLAY_H_
@@ -66,8 +66,8 @@ class callGraphDisplay {
    // these static members are needed by whereAxisRootNode (rootNode.h)
    static Tk_Font theRootItemFontStruct, theRootItemShadowFontStruct;
    static Tk_Font theListboxItemFontStruct, theListboxItemShadowFontStruct;
-   static vector<Tk_3DBorder> rootItemTk3DBordersByStyle;
-   static vector<Tk_3DBorder> listboxItemTk3DBordersByStyle;
+   static pdvector<Tk_3DBorder> rootItemTk3DBordersByStyle;
+   static pdvector<Tk_3DBorder> listboxItemTk3DBordersByStyle;
    static GC rootItemTextGC, rootItemShadowTextGC;
    static GC listboxItemGC, listboxItemShadowTextGC;
    static GC listboxRayGC;
@@ -289,8 +289,8 @@ class callGraphDisplay {
    // pass true for the 2nd param iff you want to select it; false
    // if you want to unselect it.
    
-   vector< vector <resourceHandle> >getSelections(bool &wholeProgram, 
-				   vector<unsigned> &wholeProgramFocus) const;
+   pdvector< pdvector <resourceHandle> >getSelections(bool &wholeProgram, 
+				   pdvector<unsigned> &wholeProgramFocus) const;
    void clearSelections();
 
    void map_to_WhereAxis(resourceHandle,bool);

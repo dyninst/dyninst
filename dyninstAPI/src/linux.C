@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.81 2002/12/05 01:38:39 buck Exp $
+// $Id: linux.C,v 1.82 2002/12/20 07:49:58 jaw Exp $
 
 #include <fstream.h>
 
@@ -1490,7 +1490,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 
     // else, get the relocation information for this image
     const Object &obj = owner->getObject();
-    const vector<relocationEntry> *fbt;
+    const pdvector<relocationEntry> *fbt;
     if(!obj.get_func_binding_table_ptr(fbt)) {
 	target = 0;
 	return false; // target cannot be found...it is an indirect call.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.129 2002/12/14 16:37:41 schendel Exp $
+// $Id: solaris.C,v 1.130 2002/12/20 07:49:58 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -175,8 +175,8 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 	void *data, *paddedData;
 	unsigned int errFlag=0;
 	char name[50];	
-	vector<imageUpdate*> compactedUpdates;
-	vector<imageUpdate*> compactedHighmemUpdates;
+	pdvector<imageUpdate*> compactedUpdates;
+	pdvector<imageUpdate*> compactedHighmemUpdates;
 	Address guardFlagAddr= trampGuardAddr();
 	char *mutatedSharedObjects=0;
 	int mutatedSharedObjectsSize = 0, mutatedSharedObjectsIndex=0;
@@ -232,19 +232,11 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 		"/tmp/dyninstMutatee",errFlag);
 	newElf->registerProcess(this);
 
-#ifndef USE_STL_VECTOR
 	imageUpdates.sort(imageUpdate::imageUpdateSort);// imageUpdate::mysort ); 
-#else
-	sort(imageUpdates.begin(), imageUpdates.end(), imageUpdateOrderingRelation());
-#endif
 
 	newElf->compactLoadableSections(imageUpdates,compactedUpdates);
 
-#ifndef USE_STL_VECTOR
 	highmemUpdates.sort( imageUpdate::imageUpdateSort);
-#else
-	sort(highmemUpdates.begin(), highmemUpdates.end(), imageUpdateOrderingRelation());
-#endif
 
 	newElf->compactSections(highmemUpdates, compactedHighmemUpdates);
 
@@ -548,7 +540,7 @@ int process::waitProcs(int *status, bool block) {
 #else
 int process::waitProcs(int *status) {
 #endif
-   extern vector<process*> processVec;
+   extern pdvector<process*> processVec;
 
    static struct pollfd fds[OPEN_MAX];  // argument for poll
    static int selected_fds;             // number of selected
@@ -772,7 +764,7 @@ int process::waitProcs(int *status) {
 		 proc->status_ = stopped;
 
 		 // reset buffer pool to empty (exec clears old mappings)
-		 vector<heapItem *> emptyHeap;
+		 pdvector<heapItem *> emptyHeap;
 		 proc->heap.bufferPool = emptyHeap;
 	     }
 	 } else {
@@ -1223,7 +1215,7 @@ bool process::dlopenPARADYNlib() {
   readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
 
   unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
-  vector<AstNode*> dlopenAstArgs(2);
+  pdvector<AstNode*> dlopenAstArgs(2);
 
   Address count = 0;
 
@@ -1432,7 +1424,7 @@ bool process::dlopenDYNINSTlib() {
   readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
 
   unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
-  vector<AstNode*> dlopenAstArgs(2);
+  pdvector<AstNode*> dlopenAstArgs(2);
 
   Address count = 0;
 
@@ -2291,7 +2283,7 @@ Frame dyn_lwp::getActiveFrame()
 
 #if 0
 // It is the caller's responsibility to do a "delete [] (*IDs)"
-bool process::getLWPIDs(vector <unsigned> &LWPids) {
+bool process::getLWPIDs(pdvector <unsigned> &LWPids) {
    int nlwp;
    prstatus_t the_psinfo;
    if (-1 !=  ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS, &the_psinfo)) {
@@ -2927,7 +2919,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 
     // else, get the relocation information for this image
     const Object &obj = owner->getObject();
-    const vector<relocationEntry> *fbt;
+    const pdvector<relocationEntry> *fbt;
     if(!obj.get_func_binding_table_ptr(fbt)) {
 	target = 0;
 	return false; // target cannot be found...it is an indirect call.

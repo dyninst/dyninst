@@ -43,6 +43,24 @@
 
 /*
  * $Log: PriorityQueue.C,v $
+ * Revision 1.6  2002/12/20 07:50:08  jaw
+ * This commit fully changes the class name of "vector" to "pdvector".
+ *
+ * A nice upshot is the removal of a bunch of code previously under the flag
+ * USE_STL_VECTOR, which is no longer necessary in many cases where a
+ * functional difference between common/h/Vector.h and stl::vector was
+ * causing a crash.
+ *
+ * Generally speaking, Dyninst and Paradyn now use pdvector exclusively.
+ * This commit DOES NOT cover the USE_STL_VECTOR flag, which will now
+ * substitute stl::vector for BPatch_Vector only.  This is currently, to
+ * the best of my knowledge, only used by DPCL.  This will be updated and
+ * tested in a future commit.
+ *
+ * The purpose of this, again, is to create a further semantic difference
+ * between two functionally different classes (which both have the same
+ * [nearly] interface).
+ *
  * Revision 1.5  2000/07/28 17:22:35  pcroth
  * Updated #includes to reflect util library split
  *
@@ -228,7 +246,7 @@ ostream &PriorityQueue<KEY, DATA>::operator<<(ostream &os) const {
    // However, this is surprisingly hard.  We end up needing to make a copy
    // of the array and sorting it...
 
-   vector<PriorityQueue<KEY,DATA>::pair> copy = data;
+   pdvector<PriorityQueue<KEY,DATA>::pair> copy = data;
    copy.sort(cmpfunc);
 
    for (unsigned i=0; i < copy.size(); i++) {

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.14 2002/08/09 23:32:38 jaw Exp $
+ * $Id: RTsolaris.c,v 1.15 2002/12/20 07:49:59 jaw Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -250,7 +250,7 @@ int DYNINSTloadLibrary(char *libname)
     else 
       sprintf(gLoadLibraryErrorString,"unknown error with dlopen");
     
-    //fprintf(stderr, "%s[%d]: %s\n",__FILE__,__LINE__,gLoadLibraryErrorString);
+    fprintf(stderr, "%s[%d]: %s\n",__FILE__,__LINE__,gLoadLibraryErrorString);
     return 0;  
   } else
     return 1;

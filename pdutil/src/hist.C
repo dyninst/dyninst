@@ -40,7 +40,7 @@
  */
 
 // hist.C - routines to manage histograms.
-// $Id: hist.C,v 1.42 2001/09/04 17:02:31 schendel Exp $
+// $Id: hist.C,v 1.43 2002/12/20 07:50:08 jaw Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/hist.h"
@@ -55,7 +55,7 @@ int Histogram::numBins = 1000;
 int Histogram::lastGlobalBin = 0;
 timeLength Histogram::globalBucketSize = timeLength(BASEBUCKETWIDTH_SECS,
 						    timeUnit::sec());
-vector<Histogram *> Histogram::allHist;
+pdvector<Histogram *> Histogram::allHist;
 
 #ifdef HIST_DEBUG
 pdDebug_ostream hist_cerr(cerr, true);

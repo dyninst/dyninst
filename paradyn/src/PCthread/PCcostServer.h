@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCcostServer.h,v 1.3 2000/03/23 01:34:25 wylie Exp $
+// $Id: PCcostServer.h,v 1.4 2002/12/20 07:50:02 jaw Exp $
 // a static class which manages predicted cost data for the Performance 
 // Consultant.
 
 #include "PCintern.h"
 
 struct costServerRecStr {
-  vector<PCmetricInst*> pending;
+  pdvector<PCmetricInst*> pending;
   metricHandle met;
   focus foc;
   float cost;
@@ -59,6 +59,6 @@ public:
   static void newPredictedCostData (unsigned, float); 
 private:
   static int getIndex (metricHandle, focus);
-  static vector<costServerRec> costRecords;
+  static pdvector<costServerRec> costRecords;
 };
 

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2002/07/31 22:06:56 bernat Exp $
+# $Id: Makefile,v 1.10 2002/12/20 07:50:08 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -11,7 +11,6 @@ DO_INLINE_ALL           = true
 # in the paradyn tree.
 
 include ../../make.config 
-
 #CXXFLAGS        +=  -DHIST_DEBUG
 #CXXFLAGS        +=  -DAGGREGATE_DEBUG
 
@@ -24,9 +23,9 @@ include ../make.module.tmpl
 
 CXXFLAGS        += $(USEFULWARNINGS)
 SRCS            += ../../common/src/aixv41Kludges.C \
-                   ../../common/src/timing-aix.C
+                   ../../common/src/timing-aix.C 
 OBJS            += aixv41Kludges.o \
-                   timing-aix.o
+                   timing-aix.o 
 
 # you'll need the following for the SP2/AIX if your sscanf is also broken
 # and unable to handle a numeric field width for the first field (eg. "%16s")
@@ -46,5 +45,4 @@ endif
 
 # Include the "standard library template".  This defines all the
 # common targets like "clean", "install", etc.
-
 include ../../make.library.tmpl

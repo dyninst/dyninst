@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.17 2002/04/09 18:06:07 mjbrim Exp $
+// $Id: PDGraph.C,v 1.18 2002/12/20 07:50:09 jaw Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -697,7 +697,7 @@ PDGraph::HandleSmoothCommand( int argc, char* argv[], bool smooth )
 {
     ostrstream rstr;        // result stream
     int ret = TCL_OK;
-    vector<Group*>    checkGroups;    // groups that need max value rechecks
+    pdvector<Group*>    checkGroups;    // groups that need max value rechecks
 
 
     if( argc == 3 )
@@ -2095,8 +2095,8 @@ PDGraph::Group::Remove( PDGraph::Curve* curve )
 //---------------------------------------------------------------------------
 const unsigned int PDGraph::Curve::smoothingWindowSize  = 8;
 
-vector<PDGraph::Curve::LineSpec> PDGraph::Curve::lineColorSpecs;
-vector<PDGraph::Curve::LineSpec> PDGraph::Curve::linePatternSpecs;
+pdvector<PDGraph::Curve::LineSpec> PDGraph::Curve::lineColorSpecs;
+pdvector<PDGraph::Curve::LineSpec> PDGraph::Curve::linePatternSpecs;
 unsigned int PDGraph::Curve::nextLineSpecIdx = 0;
 
 #ifndef DBL_MIN
@@ -2743,13 +2743,13 @@ PDGraph::ValueAxis::ComputeIntervals( unsigned int nTicksMax )
 #include "common/src/Dictionary.C"
 
 template class dictionary_hash<Tk_Window, ClientData>;
-template class vector<dictionary_hash<Tk_Window, ClientData>::entry>;
-template class vector<Tk_Window>;
+template class pdvector<dictionary_hash<Tk_Window, ClientData>::entry>;
+template class pdvector<Tk_Window>;
 
-template class vector<PDGraph::Curve*>;
-template class vector<PDGraph::Curve::LineSpec>;
-template class vector<PDGraph::Group*>;
+template class pdvector<PDGraph::Curve*>;
+template class pdvector<PDGraph::Curve::LineSpec>;
+template class pdvector<PDGraph::Group*>;
 
-template class vector<unsigned int>;
-template class vector<void*>;
+template class pdvector<unsigned int>;
+template class pdvector<void*>;
 

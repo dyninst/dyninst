@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.27 2002/12/14 16:37:31 schendel Exp $
+// $Id: aixDL.C,v 1.28 2002/12/20 07:49:56 jaw Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -70,7 +70,7 @@ extern void generateBreakPoint(instruction &);
 /* Parse a binary to extract all shared objects it
    contains, and create shared object objects for each
    of them */
-vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
+pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 {
   // First things first, get a list of all loader info structures.
   int pid;
@@ -123,8 +123,8 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
   // Skip the first element, which appears to be the executable file.
   ptr = (struct ld_info *)(ptr->ldinfo_next + (char *)ptr);
 
-  // We want to fill in this vector.
-  vector<shared_object *> *result = new(vector<shared_object *>);
+  // We want to fill in this pdvector.
+  pdvector<shared_object *> *result = new(pdvector<shared_object *>);
 
   // So we have this list of ldinfo structures. This will include the executable and
   // all shared objects it has loaded. Parse it.
@@ -197,15 +197,15 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 // return value: true if there was a change to the link map,
 // false otherwise
 bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
-				     vector<shared_object *> **changed_objects,
+						       pdvector<shared_object *> **changed_objects,
 						       u_int &change_type, 
 						       bool &error_occurred) {
    // Well, this is easy, ain't it?
    // List of current shared objects
-   vector <shared_object *> *curr_list = p->sharedObjects();
+   pdvector <shared_object *> *curr_list = p->sharedObjects();
    // List of new shared objects (since we cache parsed objects, we
    // can go overboard safely)
-   vector <shared_object *> *new_list = getSharedObjects(p);
+   pdvector <shared_object *> *new_list = getSharedObjects(p);
 
    error_occurred = false; // Boy, we're optimistic.
    change_type = 0; // Assume no change
@@ -232,7 +232,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
       change_type = 2; // Something removed
 
 
-   *changed_objects = new(vector<shared_object *>);
+   *changed_objects = new(pdvector<shared_object *>);
 
    // if change_type is add, figure out what is new
    if (change_type == 1) {
@@ -327,7 +327,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
 
 bool checkAllThreadsForBreakpoint(process *proc, Address break_addr)
 {
-  vector<Frame> activeFrames;
+  pdvector<Frame> activeFrames;
   if (!proc->getAllActiveFrames(activeFrames)) return false;
   for (unsigned frame_iter = 0; frame_iter < activeFrames.size(); frame_iter++)
     if (activeFrames[frame_iter].getPC() == break_addr) {
@@ -555,7 +555,7 @@ bool process::dlopenDYNINSTlib()
   dlopenRegSpace->resetSpace();
 
   Address dyninst_count = 0; // size of generated code
-  vector<AstNode*> dlopenAstArgs(2);
+  pdvector<AstNode*> dlopenAstArgs(2);
   AstNode *dlopenAst;
 
   dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
@@ -677,7 +677,7 @@ bool process::dlopenPARADYNlib()
   dlopenRegSpace->resetSpace();
 
   Address dyninst_count = 0; // size of generated code
-  vector<AstNode*> dlopenAstArgs(2);
+  pdvector<AstNode*> dlopenAstArgs(2);
   AstNode *dlopenAst;
 
   dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));

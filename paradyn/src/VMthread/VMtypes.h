@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMtypes.h,v 1.17 2002/07/25 19:22:45 willb Exp $ */
+/* $Id: VMtypes.h,v 1.18 2002/12/20 07:50:06 jaw Exp $ */
 
 #ifndef VMtypes_H
 #define VMtypes_H
@@ -77,7 +77,7 @@ struct VMvisisStruct{
   int  Id;
   int forceProcessStart; // if set, visi proc. started before initial menuing
   int mi_limit; // an upper bound on the number of mi's that can be enabled 
-  vector<string> *matrix;  // string representation of initial set of metrics/foci
+  pdvector<string> *matrix;  // string representation of initial set of metrics/foci
 };
 typedef struct VMvisisStruct VMvisis;
 
@@ -92,7 +92,7 @@ struct visi_thread_argsStruct{
   timeLength bucketWidth;
   relTimeStamp start_time;
   unsigned  my_phaseId;
-  vector<metric_focus_pair> *matrix;
+  pdvector<metric_focus_pair> *matrix;
 };
 typedef struct visi_thread_argsStruct visi_thread_args;
 

@@ -61,17 +61,17 @@ public:
     // getSharedObjects: This routine is called before main() to get and
     // process all shared objects that have been mapped into the process's
     // address space
-    vector< shared_object *> *getSharedObjects(process *){ return &sharedObjects;}
+    pdvector< shared_object *> *getSharedObjects(process *){ return &sharedObjects;}
 
     // handleIfDueToSharedObjectMapping: returns true if the trap was caused
     // by a change to the link maps  
-    bool handleIfDueToSharedObjectMapping(process *, vector<shared_object *> **,
+    bool handleIfDueToSharedObjectMapping(process *, pdvector<shared_object *> **,
 			       u_int &, bool &){ return false;}
 
     // returns true if the executable is dynamically linked 
     bool isDynamic(){ return(dynlinked);}
 
-   vector<shared_object *> sharedObjects;
+   pdvector<shared_object *> sharedObjects;
 
 private:
 

@@ -63,7 +63,7 @@ public:
     // the entry point of main().  It gets all shared objects that have been
     // mapped into the process's address space
     // returns 0 on error or if there are no shared objects
-    vector< shared_object *> *getSharedObjects(process *p);
+    pdvector< shared_object *> *getSharedObjects(process *p);
 
     // returns true if the executable is dynamically linked 
     bool isDynamic(){ return(dynlinked);}
@@ -77,7 +77,7 @@ public:
     // and the change_type value is set to indicate if the object has been 
     // added or removed. On error error_occured is true.
     bool handleIfDueToSharedObjectMapping(process *proc,
-			vector<shared_object *> **changed_objects,
+			pdvector<shared_object *> **changed_objects,
 			u_int &change_type,
 			bool &error_occured);
     Address get_dlopen_addr() const { return dlopen_addr; }
@@ -156,24 +156,24 @@ private:
    // process all shared objects that have been mapped into the process's
    // address space.  This routine reads the link maps from the application
    // process to find the shared object file base mappings. returns 0 on error
-   vector<shared_object *> *processLinkMaps(process *p);
+   pdvector<shared_object *> *processLinkMaps(process *p);
 
    // findChangeToLinkMaps: This routine returns a shared objects
    // that have been deleted or added to the link maps as indicated by
    // change_type.  If an error occurs it sets error_occured to true.
-   vector<shared_object *> *findChangeToLinkMaps(process *p, u_int change_type,
+   pdvector<shared_object *> *findChangeToLinkMaps(process *p, u_int change_type,
 				               bool &error_occured);
 
    // getLinkMapAddrs: returns a vector of addresses corresponding to all 
    // base addresses in the link maps.  Returns 0 on error.
-   vector<Address> *getLinkMapAddrs(process *p);
+   pdvector<Address> *getLinkMapAddrs(process *p);
 
    // getNewSharedObjects: returns a vector of shared_object one element for 
    // newly mapped shared object.  old_addrs contains the addresses of the
    // currently mapped shared objects. Sets error_occured to true, and 
    // returns 0 on error.
-   vector<shared_object *> *getNewSharedObjects(process *p,
-						vector<Address> *old_addrs,
+   pdvector<shared_object *> *getNewSharedObjects(process *p,
+						pdvector<Address> *old_addrs,
 						bool &error_occured);
 
 };

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.140 2002/11/25 23:53:02 schendel Exp $
+// $Id: perfStream.C,v 1.141 2002/12/20 07:50:07 jaw Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -340,7 +340,7 @@ void processTraceStream(process *curr)
 	       {
 		 pd_Function *caller, *callee;
 		 resource *caller_res, *callee_res;
-		 vector<shared_object *> *sh_objs = NULL;
+		 pdvector<shared_object *> *sh_objs = NULL;
 		 image *symbols = curr->getImage();
 		 callercalleeStruct *c = (struct callercalleeStruct *) 
 		   ((void*)recordData);
@@ -445,10 +445,10 @@ void processTraceStream(process *curr)
     curr->bufEnd = curr->bufEnd - curr->bufStart;
 }
 
-extern vector<int> deferredMetricIDs;
+extern pdvector<int> deferredMetricIDs;
 
 void doDeferredInstrumentation() {
-   vector<int>::iterator itr = deferredMetricIDs.end();
+   pdvector<int>::iterator itr = deferredMetricIDs.end();
    while(itr != deferredMetricIDs.begin()) {
       itr--;
       int mid = *itr;
@@ -467,16 +467,16 @@ void doDeferredInstrumentation() {
          deferredMetricIDs.erase(itr);
          machNode->initializeForSampling(getWallTime(), pdSample::Zero());
          
-         vector<int> returnIDs;
+         pdvector<int> returnIDs;
          returnIDs.push_back(mid);
-         vector<u_int> mi_ids;
+         pdvector<u_int> mi_ids;
          mi_ids.push_back(mid);
          if(cbi != NULL)  cbi->makeCallback(returnIDs, mi_ids);
       } else if(insert_status == insert_failure) {
          deferredMetricIDs.erase(itr);
-         vector<int> returnIDs;
+         pdvector<int> returnIDs;
          returnIDs.push_back(-1);
-         vector<u_int> mi_ids;
+         pdvector<u_int> mi_ids;
          mi_ids.push_back(mid);
          if(cbi != NULL)  cbi->makeCallback(returnIDs, mi_ids);
          delete machNode;
@@ -889,7 +889,7 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
     char *tmp;
     char *name;
     // resource *res;
-    vector<string> parent_name;
+    pdvector<string> parent_name;
     resource *parent = NULL;
     unsigned type;
     

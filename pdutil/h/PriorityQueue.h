@@ -41,7 +41,7 @@
 
 // PriorityQueue.h
 
-/* $Id: PriorityQueue.h,v 1.6 2000/07/28 17:22:34 pcroth Exp $ */
+/* $Id: PriorityQueue.h,v 1.7 2002/12/20 07:50:08 jaw Exp $ */
 
 // Note: in this priority queue class, the item with the _smallest_ key
 //       will be the first item.
@@ -77,7 +77,7 @@ class PriorityQueue {
       }
    };
 
-   vector<pair> data;
+   pdvector<pair> data;
 
  private:
    static int cmpfunc(const void *ptr1, const void *ptr2);

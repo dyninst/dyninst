@@ -39,22 +39,22 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates.C,v 1.12 2002/04/09 18:06:43 mjbrim Exp $
+// $Id: templates.C,v 1.13 2002/12/20 07:50:09 jaw Exp $
 // for table visi
 
 #include "common/h/Vector.h"
 
-template class vector<unsigned>;
+template class pdvector<unsigned>;
 
 #include "tvFocus.h"
-template class vector<tvFocus>;
+template class pdvector<tvFocus>;
 
 #include "tvMetric.h"
-template class vector<tvMetric>;
+template class pdvector<tvMetric>;
 
 #include "tvCell.h"
-template class vector<tvCell>;
-template class vector< vector<tvCell> >;
+template class pdvector<tvCell>;
+template class pdvector< pdvector<tvCell> >;
 
 #include "../../../paradyn/src/UIthread/minmax.C"
 template unsigned max(const unsigned, const unsigned);
@@ -69,24 +69,24 @@ template int max(const int, const int);
 #include "common/src/Dictionary.C"
 #include "paradyn/src/UIthread/pdLogo.h"
 
-template class pair<string, pdLogo *>;
-template class pair<string, pdLogo::logoStruct>;
+template class pdpair<string, pdLogo *>;
+template class pdpair<string, pdLogo::logoStruct>;
 
-template pair<string, pdLogo *> make_pair<string, pdLogo *>(const string &, pdLogo * const &);
-template pair<string, pdLogo::logoStruct> make_pair<string, pdLogo::logoStruct>(const string &, const pdLogo::logoStruct &);
+template pdpair<string, pdLogo *> make_pdpair<string, pdLogo *>(const string &, pdLogo * const &);
+template pdpair<string, pdLogo::logoStruct> make_pdpair<string, pdLogo::logoStruct>(const string &, const pdLogo::logoStruct &);
 
-template class vector<pair<string, pdLogo *> >;
-template class vector<pair<string, pdLogo::logoStruct> >;
+template class pdvector<pdpair<string, pdLogo *> >;
+template class pdvector<pdpair<string, pdLogo::logoStruct> >;
 
 template class dictionary_hash<string, pdLogo *>;
-template class vector<dictionary_hash<string, pdLogo *>::entry>;
-template class vector<pdLogo *>;
+template class pdvector<dictionary_hash<string, pdLogo *>::entry>;
+template class pdvector<pdLogo *>;
 
 template class dictionary_hash<string, pdLogo::logoStruct>;
-template class vector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
-template class vector<pdLogo::logoStruct>;
+template class pdvector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
+template class pdvector<pdLogo::logoStruct>;
 
-template class vector<string>;
+template class pdvector<string>;
 template class refCounter<string_ll>;
 
 #endif //!defined(i386_unknown_nt4_0)

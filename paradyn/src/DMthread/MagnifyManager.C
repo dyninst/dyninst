@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: MagnifyManager.C,v 1.7 2002/11/25 23:52:26 schendel Exp $
+// $Id: MagnifyManager.C,v 1.8 2002/12/20 07:50:02 jaw Exp $
 
 #include "DMinclude.h"
 #include "MagnifyManager.h"
 #include "CallGraph.h"
 
-vector <resourceHandle>* MagnifyManager::getChildren(resource *rh, 
+pdvector <resourceHandle>* MagnifyManager::getChildren(resource *rh, 
 						     magnifyType type) {
     CallGraph *cg;
 

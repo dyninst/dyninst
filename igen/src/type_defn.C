@@ -5,7 +5,7 @@
 
 string type_defn::qual_id() const { return (Options::type_prefix()+unqual_id());}
 
-bool type_defn::assign_to(const string prefix, const vector<arg*> &alist,
+bool type_defn::assign_to(const string prefix, const pdvector<arg*> &alist,
 			  ofstream &out_stream) const
 {
   assert (alist.size() == arglist_.size());
@@ -14,7 +14,7 @@ bool type_defn::assign_to(const string prefix, const vector<arg*> &alist,
   return true;
 }
 
-bool type_defn::is_same_type(vector<arg*> *arglist) const {
+bool type_defn::is_same_type(pdvector<arg*> *arglist) const {
   assert(arglist);
   if (arglist_.size() != arglist->size())
     return false;
@@ -104,7 +104,7 @@ static string process_ignore(const string txt) {
 
 type_defn::type_defn(const string &name, bool is_cl, bool is_abs,
 		     bool is_der, const string &par, 
-		     const type_type type, vector<arg*> *arglist, 
+		     const type_type type, pdvector<arg*> *arglist, 
 		     const bool can_point, const bool in_lib,
 		     const string &ignore, const string &bundle_name)
 : my_type_(type), bundle_name_(bundle_name), in_lib_(in_lib),

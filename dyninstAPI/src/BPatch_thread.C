@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.66 2002/12/14 16:37:28 schendel Exp $
+// $Id: BPatch_thread.C,v 1.67 2002/12/20 07:49:56 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -143,8 +143,8 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[],
     createdViaAttach(false), detached(false),
     unreportedStop(false), unreportedTermination(false)
 {
-    vector<string> argv_vec;
-    vector<string> envp_vec;
+    pdvector<string> argv_vec;
+    pdvector<string> envp_vec;
 
     // Contruct a vector out of the contents of argv
     for(int i = 0; argv[i] != NULL; i++)
@@ -1366,7 +1366,7 @@ void BPatch_thread::startSaveWorld(){
  */
 void BPatch_thread::getCallStack(BPatch_Vector<BPatch_frame>& stack)
 {
-    vector<vector<Frame> > stackWalks;
+    pdvector<pdvector<Frame> > stackWalks;
 
     proc->walkStacks(stackWalks);
 

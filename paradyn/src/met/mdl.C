@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.55 2002/11/25 23:52:42 schendel Exp $
+// $Id: mdl.C,v 1.56 2002/12/20 07:50:06 jaw Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -49,16 +49,16 @@
 
 inline unsigned ui_hash(const unsigned &u) { return u; }
 
-vector<unsigned> mdl_env::frames;
-vector<mdl_var> mdl_env::all_vars;
+pdvector<unsigned> mdl_env::frames;
+pdvector<mdl_var> mdl_env::all_vars;
 
-vector<T_dyninstRPC::mdl_stmt*> mdl_data::stmts;
-vector<T_dyninstRPC::mdl_metric*> mdl_data::all_metrics;
-dictionary_hash<unsigned, vector<mdl_type_desc> > mdl_data::fields(ui_hash);
-vector<mdl_focus_element> mdl_data::foci;
-vector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
-vector<string> mdl_data::lib_constraints;
-vector<unsigned> mdl_data::lib_constraint_flags;
+pdvector<T_dyninstRPC::mdl_stmt*> mdl_data::stmts;
+pdvector<T_dyninstRPC::mdl_metric*> mdl_data::all_metrics;
+dictionary_hash<unsigned, pdvector<mdl_type_desc> > mdl_data::fields(ui_hash);
+pdvector<mdl_focus_element> mdl_data::foci;
+pdvector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
+pdvector<string> mdl_data::lib_constraints;
+pdvector<unsigned> mdl_data::lib_constraint_flags;
 
 static bool do_operation(mdl_var& ret, mdl_var& left, mdl_var& right, unsigned bin_op);
 static bool do_operation(mdl_var& ret, mdl_var& lval, unsigned u_op, bool is_preop);
@@ -108,10 +108,10 @@ void mdl_data::unique_name(string name) {
 
 T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units, 
 				    u_int agg, u_int sty, u_int type, string hwcntr, 
-				    vector<T_dyninstRPC::mdl_stmt*> *mv, 
-				    vector<string> *flav,
-				    vector<T_dyninstRPC::mdl_constraint*> *cons,
-				    vector<string> *temp_counters,
+				    pdvector<T_dyninstRPC::mdl_stmt*> *mv, 
+				    pdvector<string> *flav,
+				    pdvector<T_dyninstRPC::mdl_constraint*> *cons,
+				    pdvector<string> *temp_counters,
 				    bool developerMode,
 				    int unitstype)
 : id_(id), name_(name), units_(units), agg_op_(agg), style_(sty),
@@ -142,10 +142,10 @@ T_dyninstRPC::mdl_metric::~mdl_metric() {
 
 bool mdl_data::new_metric(string id, string name, string units,
 			  u_int agg, u_int sty, u_int type, string hwcntr, 
-			  vector<T_dyninstRPC::mdl_stmt*> *mv,
-			  vector<string> *flavs,
-			  vector<T_dyninstRPC::mdl_constraint*> *cons,
-			  vector<string> *temp_counters,
+			  pdvector<T_dyninstRPC::mdl_stmt*> *mv,
+			  pdvector<string> *flavs,
+			  pdvector<T_dyninstRPC::mdl_constraint*> *cons,
+			  pdvector<string> *temp_counters,
 			  bool developerMode,
 			  int normalized) {
 
@@ -165,8 +165,8 @@ bool mdl_data::new_metric(string id, string name, string units,
   }
 }
 
-bool T_dyninstRPC::mdl_metric::apply(vector<processMetFocusNode *> *,
-				     const Focus &, vector<pd_process *>,
+bool T_dyninstRPC::mdl_metric::apply(pdvector<processMetFocusNode *> *,
+				     const Focus &, pdvector<pd_process *>,
 				     bool, bool) {
   mdl_env::push();
   if (!mdl_env::add(id_, true, type_)) return false;
@@ -178,7 +178,7 @@ bool T_dyninstRPC::mdl_metric::apply(vector<processMetFocusNode *> *,
   // apply 'base' statements
   assert(stmts_);
   unsigned size = stmts_->size();
-  vector<const instrDataNode*> flags;
+  pdvector<const instrDataNode*> flags;
   for (unsigned u=0; u<size; u++) {
     if (!(*stmts_)[u]->apply(NULL, flags)) {
       cerr << "In metric " << name_ << ": apply of " << u 
@@ -225,8 +225,8 @@ T_dyninstRPC::mdl_constraint::mdl_constraint()
 : id_(""), match_path_(NULL), stmts_(NULL), replace_(false),
   data_type_(0), hierarchy_(0), type_(0) { }
 
-T_dyninstRPC::mdl_constraint::mdl_constraint(string id, vector<string> *match_path,
-					     vector<T_dyninstRPC::mdl_stmt*> *stmts,
+T_dyninstRPC::mdl_constraint::mdl_constraint(string id, pdvector<string> *match_path,
+					     pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
 					     bool replace, u_int d_type, bool& error)
 : id_(id), match_path_(match_path), stmts_(stmts), replace_(replace),
   data_type_(d_type), hierarchy_(0), type_(0)
@@ -340,7 +340,7 @@ bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *,
   }
 
   unsigned stmts_size = stmts_->size();
-  vector<const instrDataNode*> flags;
+  pdvector<const instrDataNode*> flags;
   for (unsigned q=0; q<stmts_size; q++)
     if (!(*stmts_)[q]->apply(NULL, flags)) {
       mdl_env::pop();
@@ -359,7 +359,7 @@ string T_dyninstRPC::mdl_constraint::id() {
 }
 
 T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id, 
-  vector<string> *path, vector<T_dyninstRPC::mdl_stmt*> *stmts, 
+  pdvector<string> *path, pdvector<T_dyninstRPC::mdl_stmt*> *stmts, 
   bool replace, u_int d_type) 
 {
   bool error;
@@ -389,7 +389,7 @@ T_dyninstRPC::mdl_for_stmt::~mdl_for_stmt() {
 
 
 bool T_dyninstRPC::mdl_for_stmt::apply(instrCodeNode *mn,
-				       vector<const instrDataNode*>& flags) {
+				       pdvector<const instrDataNode*>& flags) {
   mdl_env::push();
 
   if (!mdl_env::add(index_name_, false)) return false;
@@ -405,8 +405,8 @@ bool T_dyninstRPC::mdl_for_stmt::apply(instrCodeNode *mn,
 }
 
 T_dyninstRPC::mdl_list_stmt::mdl_list_stmt(u_int type, string ident,
-					   vector<string> *elems,
-					   bool is_lib, vector<string> *flavor) 
+					   pdvector<string> *elems,
+					   bool is_lib, pdvector<string> *flavor) 
 : type_(type), id_(ident), elements_(elems), is_lib_(is_lib), flavor_(flavor) 
 { }
 
@@ -417,7 +417,7 @@ T_dyninstRPC::mdl_list_stmt::mdl_list_stmt()
 T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt() { delete elements_; }
 
 bool T_dyninstRPC::mdl_list_stmt::apply(instrCodeNode * ,
-					vector<const instrDataNode*>& ) {
+					pdvector<const instrDataNode*>& ) {
   if (!elements_)
     return false;
   unsigned list_type = MDL_T_NONE;
@@ -488,14 +488,14 @@ T_dyninstRPC::mdl_v_expr::mdl_v_expr(string a_str, bool is_literal)
 }
 
 T_dyninstRPC::mdl_v_expr::mdl_v_expr(T_dyninstRPC::mdl_expr* expr, 
-				     vector<string> fields) 
+				     pdvector<string> fields) 
 : type_(MDL_EXPR_DOT), int_literal_(0), bin_op_(0), 
   u_op_(0), left_(expr), right_(NULL), args_(NULL),
   fields_(fields), do_type_walk_(false), ok_(false) 
 { }
 
 T_dyninstRPC::mdl_v_expr::mdl_v_expr(string func_name,
-				     vector<T_dyninstRPC::mdl_expr *> *a) 
+				     pdvector<T_dyninstRPC::mdl_expr *> *a) 
 : type_(MDL_EXPR_FUNC), int_literal_(0), var_(func_name), bin_op_(100000),
   u_op_(0), left_(NULL), right_(NULL), args_(a),
   do_type_walk_(false), ok_(false)
@@ -863,7 +863,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
         // these fields are registered in mdl_init().  -chun.
         //
 
-        vector<mdl_type_desc> acceptable_fdlst;
+        pdvector<mdl_type_desc> acceptable_fdlst;
         unsigned v_index = 0, v_max = fields_.size();
         unsigned current_type = temp.type();
 
@@ -941,7 +941,7 @@ T_dyninstRPC::mdl_if_stmt::~mdl_if_stmt() {
 }
 
 bool T_dyninstRPC::mdl_if_stmt::apply(instrCodeNode * ,
-				      vector<const instrDataNode*>& flags) {
+				      pdvector<const instrDataNode*>& flags) {
   mdl_var res(false); int iv;
   if (!expr_->apply(res))
     return false;
@@ -957,7 +957,7 @@ bool T_dyninstRPC::mdl_if_stmt::apply(instrCodeNode * ,
   return ret;
 }
 
-T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt(vector<T_dyninstRPC::mdl_stmt*> *stmts) 
+T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt(pdvector<T_dyninstRPC::mdl_stmt*> *stmts) 
 : stmts_(stmts) { }
 
 T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt()
@@ -973,7 +973,7 @@ T_dyninstRPC::mdl_seq_stmt::~mdl_seq_stmt() {
 }
  
 bool T_dyninstRPC::mdl_seq_stmt::apply(instrCodeNode * ,
-				       vector<const instrDataNode*>& flags) {
+				       pdvector<const instrDataNode*>& flags) {
   if (!stmts_)
     return true;
   unsigned size = stmts_->size();
@@ -985,7 +985,7 @@ bool T_dyninstRPC::mdl_seq_stmt::apply(instrCodeNode * ,
 
 T_dyninstRPC::mdl_instr_stmt::mdl_instr_stmt(unsigned pos, 
 					     T_dyninstRPC::mdl_expr *expr,
-					     vector<T_dyninstRPC::mdl_icode*> *reqs,
+					     pdvector<T_dyninstRPC::mdl_icode*> *reqs,
 					     unsigned where, bool constrained) 
 : position_(pos), point_expr_(expr), icode_reqs_(reqs),
   where_instr_(where), constrained_(constrained) { }
@@ -1005,7 +1005,7 @@ T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
 }
 
 bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode * ,
-					 vector<const instrDataNode*>& ) {
+					 pdvector<const instrDataNode*>& ) {
   mdl_var temp(false);
   if (!icode_reqs_)
     return false;
@@ -1055,7 +1055,7 @@ bool mdl_init() {
   static bool init_done = false;
   if (init_done) return true;
 
-  vector<mdl_type_desc> kids;
+  pdvector<mdl_type_desc> kids;
   mdl_type_desc self, kid;
   mdl_focus_element fe;
 
@@ -1097,7 +1097,7 @@ bool mdl_init() {
   /* Are these entered by hand at the new scope ? */
   /* $constraint, $arg, $return */
 
-  vector<mdl_type_desc> field_list;
+  pdvector<mdl_type_desc> field_list;
   mdl_type_desc desc;
   desc.name = "name"; desc.type = MDL_T_STRING; field_list += desc;
   desc.name = "calls"; desc.type = MDL_T_LIST_POINT; field_list += desc;
@@ -1169,9 +1169,9 @@ bool mdl_check_node_constraints() {
 
     first_slash = second_slash = third_slash = fourth_slash = NULL;
 
-    // temp vector to hold lib constraints with leading 
+    // temp pdvector to hold lib constraints with leading 
     //  "Code/" stripped off....
-    vector<string> modified_lib_constraints;
+    pdvector<string> modified_lib_constraints;
 
     for(i=0;i<mdl_data::lib_constraints.size(); i++) {
         first_slash = second_slash = third_slash = NULL;
@@ -1242,7 +1242,7 @@ bool mdl_apply() {
   // apply resource list statements
   //
   unsigned size = mdl_data::stmts.size();
-  vector<const instrDataNode*> flags;
+  pdvector<const instrDataNode*> flags;
   for (unsigned u=0; u<size; u++)
     if (!mdl_data::stmts[u]->apply(NULL, flags))
       return false;
@@ -1250,7 +1250,7 @@ bool mdl_apply() {
   //
   // apply constraints
   //
-  vector<T_dyninstRPC::mdl_constraint*> ok_cons;
+  pdvector<T_dyninstRPC::mdl_constraint*> ok_cons;
   size = mdl_data::all_constraints.size();
   for (unsigned u1=0; u1<size; u1++) {
     instrDataNode *drn = NULL;
@@ -1271,12 +1271,12 @@ bool mdl_apply() {
   //
   Focus focus;
   string empty;
-  vector<pd_process*> emptyP;
+  pdvector<pd_process*> emptyP;
 
-  vector<T_dyninstRPC::mdl_metric*> ok_mets;
+  pdvector<T_dyninstRPC::mdl_metric*> ok_mets;
   size = mdl_data::all_metrics.size();
   for (unsigned u2=0; u2<size; u2++) {
-    vector<processMetFocusNode *> nodes;
+    pdvector<processMetFocusNode *> nodes;
     if (mdl_data::all_metrics[u2]->apply(&nodes, focus, emptyP, false,false)
 	== true)
     {
@@ -1308,7 +1308,7 @@ bool mdl_send(dynRPCUser *remote) {
 }
 
 
-bool mdl_get_lib_constraints(vector<string> &lc, vector<unsigned> &lcf){
+bool mdl_get_lib_constraints(pdvector<string> &lc, pdvector<unsigned> &lcf){
     for(u_int i=0; i < mdl_data::lib_constraints.size(); i++){
         lc += mdl_data::lib_constraints[i];
 		lcf += mdl_data::lib_constraint_flags[i];
@@ -1517,11 +1517,11 @@ static bool do_operation(mdl_var& ret, mdl_var& lval, unsigned u_op, bool/*is_pr
   return false;
 }
 
-bool T_dyninstRPC::mdl_list_stmt::mk_list(vector<string> &) {return true;}
-bool T_dyninstRPC::mdl_for_stmt::mk_list(vector<string> &) {return true;}
-bool T_dyninstRPC::mdl_if_stmt::mk_list(vector<string> &) {return true;}
-bool T_dyninstRPC::mdl_seq_stmt::mk_list(vector<string> &) {return true;}
-bool T_dyninstRPC::mdl_instr_stmt::mk_list(vector<string> &) {return true;}
-bool T_dyninstRPC::mdl_constraint::mk_list(vector<string> &) {return true;}
-bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &) {return true;}
+bool T_dyninstRPC::mdl_list_stmt::mk_list(pdvector<string> &) {return true;}
+bool T_dyninstRPC::mdl_for_stmt::mk_list(pdvector<string> &) {return true;}
+bool T_dyninstRPC::mdl_if_stmt::mk_list(pdvector<string> &) {return true;}
+bool T_dyninstRPC::mdl_seq_stmt::mk_list(pdvector<string> &) {return true;}
+bool T_dyninstRPC::mdl_instr_stmt::mk_list(pdvector<string> &) {return true;}
+bool T_dyninstRPC::mdl_constraint::mk_list(pdvector<string> &) {return true;}
+bool T_dyninstRPC::mdl_v_expr::mk_list(pdvector<string> &) {return true;}
 

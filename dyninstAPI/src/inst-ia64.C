@@ -41,7 +41,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.19 2002/09/27 19:38:12 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.20 2002/12/20 07:49:57 jaw Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -166,10 +166,10 @@ Register findFreeLocal( registerSpace * rs, char * failure ) {
 
 /* Required by ast.C */
 Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
-			Address & base, const vector<AstNode *> & operands,
+			Address & base, const pdvector<AstNode *> & operands,
 			const string & callee, process * proc,
 			bool noCost, const function_base * calleefunc,
-			const vector<AstNode *> &ifForks,
+			const pdvector<AstNode *> &ifForks,
 			const instPoint *location) { 
 	/* Consistency check. */
 	assert( op == callOp );
@@ -200,7 +200,7 @@ Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 	Address calleeGP = proc->getTOCoffsetInfo( funcEntryAddress );
 
 	/* Generate the code for the arguments. */
-	vector< Register > sourceRegisters;
+	pdvector< Register > sourceRegisters;
 	for( unsigned int i = 0; i < operands.size(); i++ ) {
 		sourceRegisters.push_back( operands[i]->generateCode_phase2( proc, rs, ibuf, base, false, ifForks, location ) );
 		}
@@ -329,7 +329,7 @@ void pd_Function::checkCallPoints() {
 	Address targetAddress;
 	pd_Function * calledPdF;
 	image * owner = file_->exec();
-	vector< instPoint * > pdfCalls;
+	pdvector< instPoint * > pdfCalls;
 
 	for( unsigned int i = 0; i < calls.size(); i++ ) {
 		callSite = calls[i]; assert( callSite );
@@ -610,7 +610,7 @@ bool process::emitInferiorRPCtrailer( void * void_insnPtr, Address & baseBytes,
 			bool isFunclet ) { assert( 0 ); return false; }
 
 /* Required by process.C */
-bool process::heapIsOk( const vector<sym_data> & find_us ) {
+bool process::heapIsOk( const pdvector<sym_data> & find_us ) {
 	/* Set .mainFunction; in the interest of civility, I will
 	   not speculate why this is done here. */
 	if( ! (mainFunction = findOneFunction( "main" )) ) {

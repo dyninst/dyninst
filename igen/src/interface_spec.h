@@ -18,7 +18,7 @@ public:
   bool gen_interface() const;
 
   // TODO reverse arg list ?
-  bool new_remote_func(const string *name, vector<arg*> *arglist,
+  bool new_remote_func(const string *name, pdvector<arg*> *arglist,
 		       const remote_func::call_type &callT,
 		       bool is_virtual, const arg &return_arg,
 		       bool do_free);
@@ -49,8 +49,8 @@ private:
   string client_name_;
   string server_name_;
 
-  vector<string> client_ignore;
-  vector<string> server_ignore;
+  pdvector<string> client_ignore;
+  pdvector<string> server_ignore;
 
   bool gen_stl_temps() const;
   bool gen_stl_bundler(ofstream &out_h, ofstream &out_c) const;

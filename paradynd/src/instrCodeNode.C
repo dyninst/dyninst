@@ -156,7 +156,7 @@ instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
                                                 childProc);
       instRequests.push_back(newInstReq);
       // update the data assocated with the minitramp deletion callback
-      vector<instrDataNode *> *affectedNodes = new vector<instrDataNode *>;
+      pdvector<instrDataNode *> *affectedNodes = new pdvector<instrDataNode *>;
       getDataNodes(affectedNodes);
       for (unsigned i = 0; i < affectedNodes->size(); i++) {
          (*affectedNodes)[i]->incRefCount();
@@ -193,7 +193,7 @@ instrCodeNode_Val::~instrCodeNode_Val() {
     constraintDataNode = NULL;
   }
   
-  vector<instrDataNode*>::iterator itr = tempCtrDataNodes.end();
+  pdvector<instrDataNode*>::iterator itr = tempCtrDataNodes.end();
   while(itr != tempCtrDataNodes.begin()) {
      itr--;
      //tempCtrDataNodes[u]->disable();
@@ -205,7 +205,7 @@ instrCodeNode_Val::~instrCodeNode_Val() {
 }
 
 
-void instrCodeNode_Val::getDataNodes(vector<instrDataNode *> *saveBuf) { 
+void instrCodeNode_Val::getDataNodes(pdvector<instrDataNode *> *saveBuf) { 
   if(constraintDataNode != NULL)  (*saveBuf).push_back(constraintDataNode);
   for(unsigned i=0; i<tempCtrDataNodes.size(); i++) {
     (*saveBuf).push_back(tempCtrDataNodes[i]);
@@ -246,7 +246,7 @@ void prepareCatchupInstr_debug(instReqNode &iRN)
     (const_cast<function_base *>
      (iRN.Point()->iPgetFunction()));
   if (instPoint_fn) {
-    vector<string> name = instPoint_fn->prettyNameVector();
+    pdvector<string> name = instPoint_fn->prettyNameVector();
     if (name.size())
       cerr << "instP function: " << name[0] << " ";
   }
@@ -297,7 +297,7 @@ void prepareCatchupInstr_debug(instReqNode &iRN)
 //
 }
 
-void instrCodeNode::prepareCatchupInstr(vector<catchupReq *> &stackWalk)
+void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
 {
    if(needsCatchup()==false) return;
 
@@ -401,8 +401,8 @@ instr_insert_result_t instrCodeNode::loadInstrIntoApp() {
 	   // Interesting... it's possible that this minitramp writes to more
 	   // than one variable (data, constraint, "temp" vector)
 	   {
-	      vector<instrDataNode *> *affectedNodes = 
-		 new vector<instrDataNode *>;
+	      pdvector<instrDataNode *> *affectedNodes = 
+		 new pdvector<instrDataNode *>;
 	      getDataNodes(affectedNodes);
 	      for (unsigned i = 0; i < affectedNodes->size(); i++)
 		 (*affectedNodes)[i]->incRefCount();
@@ -420,7 +420,7 @@ instr_insert_result_t instrCodeNode::loadInstrIntoApp() {
 }
 
 void instrCodeNode::prepareForSampling(
-                                  const vector<threadMetFocusNode *> &thrNodes)
+                                  const pdvector<threadMetFocusNode *> &thrNodes)
 {
   if(! instrLoaded()) return;
 
@@ -455,17 +455,17 @@ bool instrCodeNode::needToWalkStack() {
    return false;
 }
 
-bool instrCodeNode::insertJumpsToTramps(vector<vector<Frame> > &stackWalks) {
+bool instrCodeNode::insertJumpsToTramps(pdvector<pdvector<Frame> > &stackWalks) {
    if(trampsNeedHookup()==false) return true;
 
    for(unsigned k=0; k<V.instRequests.size(); k++) {
       V.instRequests[k]->hookupJumps(proc());
    }
    
-   vector<returnInstance *> &baseTrampInstances = V.getBaseTrampInstances();
+   pdvector<returnInstance *> &baseTrampInstances = V.getBaseTrampInstances();
    unsigned rsize = baseTrampInstances.size();
    bool delay_install = false; // true if some instr. needs to be delayed 
-   vector<bool> delay_elm(rsize); // wch instr. to delay
+   pdvector<bool> delay_elm(rsize); // wch instr. to delay
    // for each inst point walk the stack to determine if it can be
    // inserted now (it can if it is not currently on the stack)
    // If some can not be inserted, then find the first safe point on
@@ -505,13 +505,13 @@ void instrCodeNode::print() {
 /*
 // Check if "mn" and "this" correspond to the same instrumentation?
 bool instrCodeNode::condMatch(instrCodeNode *mn,
-				   vector<dataReqNode*> &data_tuple1,
-				   vector<dataReqNode*> &data_tuple2) {
-  vector<dataReqNode *> this_datanodes = getDataRequests();
-  vector<dataReqNode *> other_datanodes = mn->getDataRequests();
+				   pdvector<dataReqNode*> &data_tuple1,
+				   pdvector<dataReqNode*> &data_tuple2) {
+  pdvector<dataReqNode *> this_datanodes = getDataRequests();
+  pdvector<dataReqNode *> other_datanodes = mn->getDataRequests();
 
-  vector<instReqNode> this_instRequests = V.getInstRequests();
-  vector<instReqNode> other_instRequests = mn->getInstRequests();  
+  pdvector<instReqNode> this_instRequests = V.getInstRequests();
+  pdvector<instReqNode> other_instRequests = mn->getInstRequests();  
 
   // Both "this" metricFocusNode and the passed in metricFocusNode
   // "mn" have the same number of dataRequestNodes 
@@ -523,7 +523,7 @@ bool instrCodeNode::condMatch(instrCodeNode *mn,
   unsigned instreqs_size = this_instRequests.size();
 
   // need to return this match?
-  // vector<dataReqNode*> data_tuple1, data_tuple2; // initialization?
+  // pdvector<dataReqNode*> data_tuple1, data_tuple2; // initialization?
 
   // Check that instRequestNodes in "mn" and "this" are the same. 
   for (unsigned i=0; i<instreqs_size; i++) {
@@ -553,7 +553,7 @@ bool instrCodeNode::condMatch(instrCodeNode *mn,
 instrCodeNode* instrCodeNode::matchInMIPrimitives() {
   // note the two loops; we can't safely combine into one since the second
   // loop modifies the dictionary.
-  vector<instrCodeNode*> allprims;
+  pdvector<instrCodeNode*> allprims;
   dictionary_hash_iter<string, instrCodeNode*> iter =
                                                 getIter_sampleMetFocusBuf();
   for (; iter; iter++) {
@@ -576,8 +576,8 @@ instrCodeNode* instrCodeNode::matchInMIPrimitives() {
     // A NEW PROBLEM TO DO:
     //   component mdn needs to remember all names of its primitive mdns
 
-    vector<dataReqNode*> data_tuple1;
-    vector<dataReqNode*> data_tuple2;
+    pdvector<dataReqNode*> data_tuple1;
+    pdvector<dataReqNode*> data_tuple2;
     bool match_flag = condMatch(primitiveMI, data_tuple1, data_tuple2);
     if (match_flag) {
       return primitiveMI;

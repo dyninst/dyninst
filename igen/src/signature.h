@@ -12,7 +12,7 @@
 
 class signature {
 public:
-  signature(vector<arg*> *alist, const string rf_name);
+  signature(pdvector<arg*> *alist, const string rf_name);
   ~signature() { }
 
   string type(const bool use_bool=false) const;
@@ -31,7 +31,7 @@ public:
                           const string &obj_name, const string &data_name) const;
 
 private:
-  vector<arg*> args;
+  pdvector<arg*> args;
   string type_;
   bool is_const_;
   unsigned stars_;

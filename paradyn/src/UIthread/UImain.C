@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.104 2002/11/25 23:52:29 schendel Exp $
+// $Id: UImain.C,v 1.105 2002/12/20 07:50:04 jaw Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -283,7 +283,7 @@ void applicStateChanged (perfStreamHandle, appState newstate) {
 // message.  If the UI is changed so that the call to getPredictedDataCost
 // is handled in a truely asynchronous manner, then this routine should
 // contain the code to handle the upcall from the DM
-void UIenableDataResponse(vector<metricInstInfo> *,  u_int){
+void UIenableDataResponse(pdvector<metricInstInfo> *,  u_int){
     cout << "UIenableDataResponse: THIS SHOULD NEVER EXECUTE" << endl;
 }
 

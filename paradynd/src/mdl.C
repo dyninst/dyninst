@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.120 2002/12/14 16:37:52 schendel Exp $
+// $Id: mdl.C,v 1.121 2002/12/20 07:50:07 jaw Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -87,21 +87,21 @@ static bool mdl_met=false, mdl_cons=false, mdl_stmt=false, mdl_libs=false;
 inline unsigned ui_hash(const unsigned &u) { return u; }
 
 // static members of mdl_env
-vector<unsigned> mdl_env::frames;
-vector<mdl_var> mdl_env::all_vars;
+pdvector<unsigned> mdl_env::frames;
+pdvector<mdl_var> mdl_env::all_vars;
 
 // static members of mdl_data
-dictionary_hash<unsigned, vector<mdl_type_desc> > mdl_data::fields(ui_hash);
-vector<mdl_focus_element> mdl_data::foci;
-vector<T_dyninstRPC::mdl_stmt*> mdl_data::stmts;
-vector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
-vector<string> mdl_data::lib_constraints;
-vector<T_dyninstRPC::mdl_metric*> mdl_data::all_metrics;
+dictionary_hash<unsigned, pdvector<mdl_type_desc> > mdl_data::fields(ui_hash);
+pdvector<mdl_focus_element> mdl_data::foci;
+pdvector<T_dyninstRPC::mdl_stmt*> mdl_data::stmts;
+pdvector<T_dyninstRPC::mdl_constraint*> mdl_data::all_constraints;
+pdvector<string> mdl_data::lib_constraints;
+pdvector<T_dyninstRPC::mdl_metric*> mdl_data::all_metrics;
 
 
 /*
 #if defined(MT_THREAD)
-int index_in_data(unsigned lev, unsigned ind, vector<dataReqNode*>& data) {
+int index_in_data(unsigned lev, unsigned ind, pdvector<dataReqNode*>& data) {
   int size = data.size();
   
   for (int i=0; i<size; i++) {
@@ -114,7 +114,7 @@ int index_in_data(unsigned lev, unsigned ind, vector<dataReqNode*>& data) {
   return -1;
 }
 #else
-int index_in_data(Address v, vector<dataReqNode*>& data) {
+int index_in_data(Address v, pdvector<dataReqNode*>& data) {
   int size = data.size();
   
   for (int i=0; i<size; i++) {
@@ -134,7 +134,7 @@ int index_in_data(Address v, vector<dataReqNode*>& data) {
 // expression.  the MDL_EXPR_DOT expression is used to be called
 // MDL_EXPR_DEREF, which is inaccurate at best. --chun
 //
-static bool walk_deref(mdl_var& ret, vector<unsigned>& types);
+static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types);
 
 //
 // these two do_operation()'s are for processing MDL_EXPR_BINOP, 
@@ -222,13 +222,13 @@ public:
         } while (pdf == NULL && index < max_index);
         if (pdf == NULL)
           return false;
-        vector<function_base *> *func_buf = new vector<function_base*>;
+        pdvector<function_base *> *func_buf = new pdvector<function_base*>;
         (*func_buf).push_back(pdf);
         return (mdl_env::set(func_buf, index_name));
       }
       case MDL_T_PROCEDURE: {
         pdf = (*func_list)[index++];
-        vector<function_base *> *func_buf = new vector<function_base*>;
+        pdvector<function_base *> *func_buf = new pdvector<function_base*>;
         (*func_buf).push_back(pdf);
         assert(pdf);
         return (mdl_env::set(func_buf, index_name));
@@ -251,14 +251,14 @@ private:
   string index_name;
   unsigned element_type;
   unsigned index;
-  vector<int> *int_list;
-  vector<float> *float_list;
-  vector<string> *string_list;
-  vector<bool> *bool_list;
-  vector<function_base*> *func_list;
-  vector<functionName*> *funcName_list;
-  vector<module*> *mod_list;
-  vector<instPoint*> *point_list;
+  pdvector<int> *int_list;
+  pdvector<float> *float_list;
+  pdvector<string> *string_list;
+  pdvector<bool> *bool_list;
+  pdvector<function_base*> *func_list;
+  pdvector<functionName*> *funcName_list;
+  pdvector<module*> *mod_list;
+  pdvector<instPoint*> *point_list;
   unsigned max_index;
 };
 
@@ -273,10 +273,10 @@ private:
 //
 T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units, 
 		       u_int agg, u_int sty, u_int type, string hwcntr,
-		       vector<T_dyninstRPC::mdl_stmt*> *mv, 
-		       vector<string> *flav,
-		       vector<T_dyninstRPC::mdl_constraint*> *cons,
-		       vector<string> *temp_counters,
+		       pdvector<T_dyninstRPC::mdl_stmt*> *mv, 
+		       pdvector<string> *flav,
+		       pdvector<T_dyninstRPC::mdl_constraint*> *cons,
+		       pdvector<string> *temp_counters,
 		       bool developerMode,
 		       int unitstype)
 : id_(id), name_(name), units_(units), agg_op_(agg), style_(sty),
@@ -310,10 +310,10 @@ T_dyninstRPC::mdl_metric::~mdl_metric() {
 
 bool mdl_data::new_metric(string id, string name, string units,
 			  u_int agg, u_int sty, u_int type, string hwcntr,
-			  vector<T_dyninstRPC::mdl_stmt*> *mv,
-			  vector<string> *flav,
-			  vector<T_dyninstRPC::mdl_constraint*> *cons,
-			  vector<string> *temp_counters,
+			  pdvector<T_dyninstRPC::mdl_stmt*> *mv,
+			  pdvector<string> *flav,
+			  pdvector<T_dyninstRPC::mdl_constraint*> *cons,
+			  pdvector<string> *temp_counters,
 			  bool developerMode,
 			  int unitstype) 
 {
@@ -330,8 +330,8 @@ bool mdl_data::new_metric(string id, string name, string units,
 
 // will filter out processes from fromProcs that match the given focus
 // and places the result in filteredOutProcs
-static void filter_processes(const Focus &focus, vector<pd_process*> fromProcs,
-			     vector<pd_process*> *filteredOutProcs) {
+static void filter_processes(const Focus &focus, pdvector<pd_process*> fromProcs,
+			     pdvector<pd_process*> *filteredOutProcs) {
   // assumes that the machine we're on (and thus the daemon we're using)
   // matches the focus
    if(focus.process_defined()) {
@@ -376,7 +376,7 @@ static T_dyninstRPC::mdl_constraint *flag_matches(const Hierarchy* hier,
 // Global constraints that are applicable are put on flag_cons
 // repl_cons returns the ONE replace constraint that matches
 
-// Goes through vector of constraints, cons, and selects the constraints
+// Goes through pdvector of constraints, cons, and selects the constraints
 // that match against the given focus.
 // Matched external (flag) constraints are written into vector flag_cons.
 // If the metric is defined as a replace constraint, this constraint is
@@ -384,11 +384,11 @@ static T_dyninstRPC::mdl_constraint *flag_matches(const Hierarchy* hier,
 // The focus data for constraints in flag_cons is in flags_focus_data and
 //     the focus data for a replace constraint is written in repl_cons.
 static bool pick_out_matched_constraints(
-			     const vector<T_dyninstRPC::mdl_constraint*> &cons,
+			     const pdvector<T_dyninstRPC::mdl_constraint*> &cons,
 			      const Focus& focus,			      
-			      vector<T_dyninstRPC::mdl_constraint*> *flag_cons,
+			      pdvector<T_dyninstRPC::mdl_constraint*> *flag_cons,
 			      T_dyninstRPC::mdl_constraint **repl_cons,	      
-			      vector<const Hierarchy *> *flags_focus_data,
+			      pdvector<const Hierarchy *> *flags_focus_data,
 			      const Hierarchy **repl_focus) {
    bool aMatch = false;
    bool aReplConsMatch = false;
@@ -443,7 +443,7 @@ static bool pick_out_matched_constraints(
 
 // put $start in the environment
 bool update_environment_start_point(instrCodeNode *codeNode) {
-   vector<function_base *> *start_func_buf = new vector<function_base*>;
+   pdvector<function_base *> *start_func_buf = new pdvector<function_base*>;
    pd_process *proc = codeNode->proc();
 
    if(proc->multithread_ready()) {
@@ -470,7 +470,7 @@ static bool update_environment(pd_process *proc) {
    // for cases when libc is dynamically linked, the exit symbol is not
    // correct
    string vname = "$exit";
-   vector<function_base *> *exit_func_buf = new vector<function_base*>;
+   pdvector<function_base *> *exit_func_buf = new pdvector<function_base*>;
    function_base *pdf = proc->findOneFunction(string(EXIT_NAME));
    (*exit_func_buf).push_back(pdf);
 
@@ -504,8 +504,8 @@ bool setup_sampled_code_node(const processMetFocusNode* procNode,
 			     instrCodeNode* codeNode, pd_process *proc,
 			     const string &id, unsigned type,
 			     T_dyninstRPC::mdl_constraint *repl_cons,
-			     vector<T_dyninstRPC::mdl_stmt*> *stmts,
-			     const vector<string> &temp_ctr, 
+			     pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
+			     const pdvector<string> &temp_ctr, 
 			     const Hierarchy &repl_focus_data,
 			     bool dontInsertData)
 {
@@ -534,7 +534,7 @@ bool setup_sampled_code_node(const processMetFocusNode* procNode,
 	 return false;
       }
    } else {
-      vector<const instrDataNode*> flagNodes = procNode->getFlagDataNodes();
+      pdvector<const instrDataNode*> flagNodes = procNode->getFlagDataNodes();
       unsigned size = stmts->size();
       for (unsigned u=0; u<size; u++) {
 	 // virtual fn call depending on stmt type
@@ -567,12 +567,12 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
 		     const Focus &no_thr_focus,
 		     unsigned type, 
                      string& hw_cntr_str,
-		     vector<T_dyninstRPC::mdl_constraint*> &flag_cons,
+		     pdvector<T_dyninstRPC::mdl_constraint*> &flag_cons,
 		     T_dyninstRPC::mdl_constraint *repl_cons,
-		     vector<T_dyninstRPC::mdl_stmt*> *stmts,
-		     vector<const Hierarchy *> flags_focus_data, 
+		     pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
+		     pdvector<const Hierarchy *> flags_focus_data, 
 		     const Hierarchy &repl_focus_data,
-		     const vector<string> &temp_ctr, 
+		     const pdvector<string> &temp_ctr, 
 		     bool /*replace_component*/)
 {
    processMetFocusNode *procNode = (*procNode_arg);
@@ -651,7 +651,7 @@ bool createThreadNodes(processMetFocusNode **procNode_arg,
    pd_process *proc = procNode->proc();
    bool bMT = proc->multithread_capable();
 
-   vector<threadMetFocusNode *> threadNodeBuf;
+   pdvector<threadMetFocusNode *> threadNodeBuf;
    if(! bMT) {   // --- single-threaded ---
       threadMetFocusNode *thrNode = 
 	 threadMetFocusNode::newThreadMetFocusNode(metname, no_thr_focus,
@@ -702,12 +702,12 @@ apply_to_process(pd_process *proc,
                  unsigned agg_op,
                  unsigned type,
                  string& hw_cntr_str,
-                 vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
+                 pdvector<T_dyninstRPC::mdl_constraint*>& flag_cons,
                  T_dyninstRPC::mdl_constraint *repl_cons,
-                 vector<T_dyninstRPC::mdl_stmt*> *stmts,
-		 vector<const Hierarchy *> &flags_focus_data,
+                 pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
+		 pdvector<const Hierarchy *> &flags_focus_data,
                  const Hierarchy &repl_focus_data,
-                 const vector<string> &temp_ctr,
+                 const pdvector<string> &temp_ctr,
                  bool replace_component,
                  bool dontInsertData) {
 
@@ -743,19 +743,19 @@ apply_to_process(pd_process *proc,
    return procNode;
 }
 
-static bool apply_to_process_list(vector<pd_process*>& instProcess,
-				  vector<processMetFocusNode*> *procParts,
+static bool apply_to_process_list(pdvector<pd_process*>& instProcess,
+				  pdvector<processMetFocusNode*> *procParts,
 				  string& id, string& name,
 				  const Focus& focus,
 				  unsigned& agg_op,
 				  unsigned& type,
                                   string& hw_cntr_str, 
-			      vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
+			      pdvector<T_dyninstRPC::mdl_constraint*>& flag_cons,
 				  T_dyninstRPC::mdl_constraint *repl_cons,
-				  vector<T_dyninstRPC::mdl_stmt*> *stmts,
-				  vector<const Hierarchy *> &flags_focus_data,
+				  pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
+				  pdvector<const Hierarchy *> &flags_focus_data,
 				  const Hierarchy &repl_focus_data,
-				  const vector<string> &temp_ctr,
+				  const pdvector<string> &temp_ctr,
 				  bool replace_components_if_present,
 				  bool dontInsertData) {
    for(unsigned p=0; p<instProcess.size(); p++) {
@@ -780,12 +780,12 @@ static bool apply_to_process_list(vector<pd_process*>& instProcess,
 }
 
 ///////////////////////////
-vector<string>global_excluded_funcs;
+pdvector<string>global_excluded_funcs;
 
 
 bool T_dyninstRPC::mdl_metric::apply(
-			    vector<processMetFocusNode *> *createdProcNodes,
-			    const Focus &focus, vector<pd_process *> procs, 
+			    pdvector<processMetFocusNode *> *createdProcNodes,
+			    const Focus &focus, pdvector<pd_process *> procs, 
 	                    bool replace_components_if_present, bool enable) {
   mdl_env::push();
   mdl_env::add(id_, false, MDL_T_DATANODE);
@@ -808,21 +808,21 @@ bool T_dyninstRPC::mdl_metric::apply(
     return false;
   }
 
-  vector<pd_process*> instProcess;
+  pdvector<pd_process*> instProcess;
   filter_processes(focus, procs, &instProcess);
 
   if (!instProcess.size())
     return false;
 
   // build the list of constraints to use
-  vector<T_dyninstRPC::mdl_constraint*> flag_cons;
+  pdvector<T_dyninstRPC::mdl_constraint*> flag_cons;
 
   // the first replace constraint that matches, if any
   T_dyninstRPC::mdl_constraint *repl_cons = NULL;
 
   // build list of global constraints that match and choose local replace constraint
   const Hierarchy *repl_focus = NULL;
-  vector<const Hierarchy *> flags_focus_data;
+  pdvector<const Hierarchy *> flags_focus_data;
   if (! pick_out_matched_constraints(*constraints_, focus, &flag_cons,
 				 &repl_cons, &flags_focus_data, &repl_focus)) {
     return false;
@@ -862,7 +862,7 @@ bool T_dyninstRPC::mdl_metric::apply(
   if (enable) dontInsertData = false;
   else dontInsertData = true;
 
-  vector<processMetFocusNode*> procParts; // one per process
+  pdvector<processMetFocusNode*> procParts; // one per process
 
   if (type_ == MDL_T_HW_COUNTER || type_ == MDL_T_HW_TIMER) {
 #ifdef PAPI
@@ -905,8 +905,8 @@ T_dyninstRPC::mdl_constraint::mdl_constraint()
   data_type_(0), hierarchy_(0), type_(0) { }
 
 T_dyninstRPC::mdl_constraint::mdl_constraint(string id, 
-                               vector<string> *match_path,
-			       vector<T_dyninstRPC::mdl_stmt*> *stmts,
+                               pdvector<string> *match_path,
+			       pdvector<T_dyninstRPC::mdl_stmt*> *stmts,
 			       bool replace, u_int d_type, bool& err)
 : id_(id), match_path_(match_path), stmts_(stmts), replace_(replace),
   data_type_(d_type), hierarchy_(0), type_(0) 
@@ -923,10 +923,10 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
 }
 
 
-static bool do_trailing_resources(const vector<string>& resource_,
+static bool do_trailing_resources(const pdvector<string>& resource_,
 				  pd_process *proc)
 {
-  vector<string>  resPath;
+  pdvector<string>  resPath;
 
   for(unsigned pLen = 0; pLen < resource_.size(); pLen++) {
     string   caStr = string("$constraint") + 
@@ -960,7 +960,7 @@ static bool do_trailing_resources(const vector<string>& resource_,
       break;
     case MDL_T_PROCEDURE: {
       // find the resource corresponding to this function's module 
-      vector<string> m_vec;
+      pdvector<string> m_vec;
       for(u_int i=0; i < resPath.size()-1; i++){
 	m_vec += resPath[i];
       }
@@ -971,11 +971,11 @@ static bool do_trailing_resources(const vector<string>& resource_,
 	return(false);
       }
       function_base *pdf = proc->findOneFunction(r, m_resource);
-      vector<function_base *> *func_buf = new vector<function_base*>;
+      pdvector<function_base *> *func_buf = new pdvector<function_base*>;
       (*func_buf).push_back(pdf);
       if (!pdf) {
-         const vector<string> &f_names = r->names();
-         const vector<string> &m_names = m_resource->names();
+         const pdvector<string> &f_names = r->names();
+         const pdvector<string> &m_names = m_resource->names();
          string func_name = f_names[f_names.size() -1]; 
          string mod_name = m_names[m_names.size() -1]; 
 
@@ -1004,7 +1004,7 @@ static bool do_trailing_resources(const vector<string>& resource_,
 
          /*
          image *img = proc->getImage();
-         vector<pdmodule *> mods = img->getExcludedModules();
+         pdvector<pdmodule *> mods = img->getExcludedModules();
          for(unsigned i=0; i<mods.size(); i++) {
             cerr << "  i: " << i << ", filenm: " << mods[i]->fileName()
                  << ", fullnm: " << mods[i]->fullName() << "\n";
@@ -1069,7 +1069,7 @@ bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *codeNode,
 
   // Now evaluate the constraint statements
   unsigned size = stmts_->size();
-  vector<const instrDataNode*> flags;
+  pdvector<const instrDataNode*> flags;
   bool wasRunning = global_proc->status()==running;
 #ifdef DETACH_ON_THE_FLY
   global_proc->reattachAndPause();
@@ -1109,8 +1109,8 @@ string T_dyninstRPC::mdl_constraint::id() {
 }
 
 T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id, 
-                                        vector<string> *path,
-					vector<T_dyninstRPC::mdl_stmt*> *Cstmts,
+                                        pdvector<string> *path,
+					pdvector<T_dyninstRPC::mdl_stmt*> *Cstmts,
 					bool replace, u_int d_type) {
   assert (0);
   bool error;
@@ -1135,7 +1135,7 @@ T_dyninstRPC::mdl_for_stmt::~mdl_for_stmt()
 }
 
 bool T_dyninstRPC::mdl_for_stmt::apply(instrCodeNode *mn,
-				       vector<const instrDataNode*>& flags) {
+				       pdvector<const instrDataNode*>& flags) {
   mdl_env::push();
   mdl_env::add(index_name_, false);
   mdl_var list_var(false);
@@ -1147,7 +1147,7 @@ bool T_dyninstRPC::mdl_for_stmt::apply(instrCodeNode *mn,
     return false;
 
   // TODO
-  //  vector<function_base*> *vp;
+  //  pdvector<function_base*> *vp;
   //  list_var.get(vp);
   list_closure closure(index_name_, list_var);
 
@@ -1250,14 +1250,14 @@ T_dyninstRPC::mdl_v_expr::mdl_v_expr(string a_str, bool is_literal)
   }
 }
 
-T_dyninstRPC::mdl_v_expr::mdl_v_expr(T_dyninstRPC::mdl_expr* expr, vector<string> fields) 
+T_dyninstRPC::mdl_v_expr::mdl_v_expr(T_dyninstRPC::mdl_expr* expr, pdvector<string> fields) 
 : type_(MDL_EXPR_DOT), int_literal_(0), bin_op_(0),
   u_op_(0), left_(expr), right_(NULL), args_(NULL),
   fields_(fields), do_type_walk_(false), ok_(false)
 { assert(0); }
 
 T_dyninstRPC::mdl_v_expr::mdl_v_expr(string func_name,
-				     vector<T_dyninstRPC::mdl_expr *> *a) 
+				     pdvector<T_dyninstRPC::mdl_expr *> *a) 
 : type_(MDL_EXPR_FUNC), int_literal_(0), var_(func_name), bin_op_(100000),
   u_op_(0), left_(NULL), right_(NULL), args_(a), do_type_walk_(false), 
   ok_(false)
@@ -1472,7 +1472,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
 	else if (var_ == "destroyProcessTimer")
 	  timer_func = DESTROY_PROC_TIMER;
 #endif
-        vector<AstNode *> ast_args;
+        pdvector<AstNode *> ast_args;
         ast = createTimer(timer_func, (void*)(dn->getInferiorPtr()),
 			  ast_args);
       }
@@ -1496,7 +1496,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
         else if (var_ == "sampleHwCounter")
           timer_func = "DYNINSTsampleHwCounter";
 
-        vector<AstNode *> ast_args;
+        pdvector<AstNode *> ast_args;
 
         /* hwCounter can be treated the same way as a hwTimer because
            both types need to invoke a DYNINST* method 
@@ -1559,7 +1559,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
       }
       else
       {
-        vector<AstNode *> astargs;
+        pdvector<AstNode *> astargs;
         for (unsigned u = 0; u < args_->size(); u++) 
         {
           AstNode *tmparg=NULL;
@@ -1907,7 +1907,7 @@ T_dyninstRPC::mdl_if_stmt::~mdl_if_stmt() {
 }
 
 bool T_dyninstRPC::mdl_if_stmt::apply(instrCodeNode *mn,
-				      vector<const instrDataNode*>& flags) {
+				      pdvector<const instrDataNode*>& flags) {
   // An if stmt is comprised of (1) the 'if' expr and (2) the body to
   // execute if true.
   mdl_var res(false);
@@ -1929,7 +1929,7 @@ bool T_dyninstRPC::mdl_if_stmt::apply(instrCodeNode *mn,
   return body_->apply(mn, flags);
 }
 
-T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt(vector<T_dyninstRPC::mdl_stmt*> *stmts)
+T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt(pdvector<T_dyninstRPC::mdl_stmt*> *stmts)
  : stmts_(stmts) { assert (0); }
 
 T_dyninstRPC::mdl_seq_stmt::mdl_seq_stmt() 
@@ -1946,7 +1946,7 @@ T_dyninstRPC::mdl_seq_stmt::~mdl_seq_stmt() {
 }
 
 bool T_dyninstRPC::mdl_seq_stmt::apply(instrCodeNode *mn,
-				       vector<const instrDataNode*>& flags) {
+				       pdvector<const instrDataNode*>& flags) {
   // a seq_stmt is simply a sequence of statements; apply them all.
   if (!stmts_)
     return true;
@@ -1960,8 +1960,8 @@ bool T_dyninstRPC::mdl_seq_stmt::apply(instrCodeNode *mn,
 }
 
 T_dyninstRPC::mdl_list_stmt::mdl_list_stmt(u_int type, string ident,
-					   vector<string> *elems,
-					   bool is_lib, vector<string>* flavor) 
+					   pdvector<string> *elems,
+					   bool is_lib, pdvector<string>* flavor) 
   : type_(type), id_(ident), elements_(elems), is_lib_(is_lib), flavor_(flavor) 
   { assert (0); }
 
@@ -1973,7 +1973,7 @@ T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt()
 { assert(0); delete elements_; }
 
 bool T_dyninstRPC::mdl_list_stmt::apply(instrCodeNode * /*mn*/,
-				       vector<const instrDataNode*>& /*flags*/)
+				       pdvector<const instrDataNode*>& /*flags*/)
 {
   bool found = false;
   for (unsigned u0 = 0; u0 < flavor_->size(); u0++) {
@@ -1990,7 +1990,7 @@ bool T_dyninstRPC::mdl_list_stmt::apply(instrCodeNode * /*mn*/,
   unsigned size = elements_->size();
 
   if (type_ == MDL_T_PROCEDURE_NAME) {
-    vector<functionName*> *list_fn;
+    pdvector<functionName*> *list_fn;
     bool aflag;
     aflag=list_var.get(list_fn);
     assert(aflag);
@@ -2029,7 +2029,7 @@ bool T_dyninstRPC::mdl_list_stmt::apply(instrCodeNode * /*mn*/,
 
 T_dyninstRPC::mdl_instr_stmt::mdl_instr_stmt(unsigned pos, 
                                       T_dyninstRPC::mdl_expr *expr,
-				      vector<T_dyninstRPC::mdl_icode*> *reqs,
+				      pdvector<T_dyninstRPC::mdl_icode*> *reqs,
 				      unsigned where, bool constrained) 
   : position_(pos), point_expr_(expr), icode_reqs_(reqs),
   where_instr_(where), constrained_(constrained) 
@@ -2051,7 +2051,7 @@ T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
 }
 
 bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode *mn,
-					 vector<const instrDataNode*>& inFlags) {
+					 pdvector<const instrDataNode*>& inFlags) {
    // An instr statement is like:
    //    append preInsn $constraint[0].entry constrained
    //       (* setCounter(procedureConstraint, 1); *)
@@ -2067,9 +2067,9 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode *mn,
     return false;
   }
 
-  vector<instPoint *> points;
+  pdvector<instPoint *> points;
   if (pointsVar.type() == MDL_T_LIST_POINT) {
-    vector<instPoint *> *pts;
+    pdvector<instPoint *> *pts;
     if (!pointsVar.get(pts)) return false;
     points = *pts;
   } else if (pointsVar.type() == MDL_T_POINT) {
@@ -2176,9 +2176,9 @@ bool mdl_can_do(const string &met_name) {
   return false;
 }
 
-bool mdl_do(vector<processMetFocusNode *> *createdProcNodes, 
+bool mdl_do(pdvector<processMetFocusNode *> *createdProcNodes, 
 	    const Focus& focus, const string &met_name,
-	    const vector<pd_process *> &procs,
+	    const pdvector<pd_process *> &procs,
 	    bool replace_components_if_present, bool enable, 
 	    aggregateOp *aggOpToUse) {
   currentMetric = met_name;
@@ -2201,9 +2201,9 @@ bool mdl_do(vector<processMetFocusNode *> *createdProcNodes,
 
 machineMetFocusNode *makeMachineMetFocusNode(int mid, const Focus& focus, 
 			    const string &met_name, 
-			    vector<pd_process *> procs,
+			    pdvector<pd_process *> procs,
 			    bool replace_components_if_present, bool enable) {
-  vector<processMetFocusNode *> createdProcNodes;
+  pdvector<processMetFocusNode *> createdProcNodes;
   aggregateOp aggOp;
   bool result = mdl_do(&createdProcNodes, focus, met_name, procs, 
 		       replace_components_if_present, enable, &aggOp);
@@ -2219,9 +2219,9 @@ machineMetFocusNode *makeMachineMetFocusNode(int mid, const Focus& focus,
 processMetFocusNode *makeProcessMetFocusNode(const Focus& focus, 
 			    const string &met_name, pd_process *proc,
 			    bool replace_components_if_present, bool enable) {
-  vector<processMetFocusNode *> createdProcNodes;
+  pdvector<processMetFocusNode *> createdProcNodes;
   aggregateOp aggOp;
-  vector<pd_process *> procs;
+  pdvector<pd_process *> procs;
   procs.push_back(proc);
   bool result = mdl_do(&createdProcNodes, focus, met_name, procs, 
 		       replace_components_if_present, enable, &aggOp);
@@ -2249,7 +2249,7 @@ bool mdl_init(string& flavor) {
   /* Are these entered by hand at the new scope ? */
   /* $arg, $return */
 
-  vector<mdl_type_desc> field_list;
+  pdvector<mdl_type_desc> field_list;
   mdl_type_desc desc;
   desc.end_allowed = false;     // random initialization
 
@@ -2268,7 +2268,7 @@ bool mdl_init(string& flavor) {
   return true;
 }
 
-void dynRPC::send_metrics(vector<T_dyninstRPC::mdl_metric*>* var_0) {
+void dynRPC::send_metrics(pdvector<T_dyninstRPC::mdl_metric*>* var_0) {
   mdl_met = true;
 
   if (var_0) {
@@ -2305,7 +2305,7 @@ void dynRPC::send_metrics(vector<T_dyninstRPC::mdl_metric*>* var_0) {
   }
 }
 
-void dynRPC::send_constraints(vector<T_dyninstRPC::mdl_constraint*> *cv) {
+void dynRPC::send_constraints(pdvector<T_dyninstRPC::mdl_constraint*> *cv) {
 
   mdl_cons = true;
   if (cv) {
@@ -2329,7 +2329,7 @@ void dynRPC::send_constraints(vector<T_dyninstRPC::mdl_constraint*> *cv) {
 
 
 // TODO -- are these executed immediately ?
-void dynRPC::send_stmts(vector<T_dyninstRPC::mdl_stmt*> *vs) {
+void dynRPC::send_stmts(pdvector<T_dyninstRPC::mdl_stmt*> *vs) {
   mdl_stmt = true;
   if (vs) {
     // ofstream of("other_out", (been_here ? ios::app : ios::out));
@@ -2343,7 +2343,7 @@ void dynRPC::send_stmts(vector<T_dyninstRPC::mdl_stmt*> *vs) {
     // TODO -- handle errors here
     // TODO -- apply these statements without a metric definition node ?
     unsigned s_size = vs->size();
-    vector<const instrDataNode*> flags;
+    pdvector<const instrDataNode*> flags;
 
     // Application may fail if the list flavor is different than the flavor
     // of this daemon
@@ -2358,10 +2358,10 @@ void dynRPC::send_stmts(vector<T_dyninstRPC::mdl_stmt*> *vs) {
 }
 
 // recieves the list of shared libraries to exclude 
-void dynRPC::send_libs(vector<string> *libs) {
+void dynRPC::send_libs(pdvector<string> *libs) {
 
     mdl_libs = true;
-    //metric_cerr << "void dynRPC::send_libs(vector<string> *libs) called" << endl;
+    //metric_cerr << "void dynRPC::send_libs(pdvector<string> *libs) called" << endl;
     for(u_int i=0; i < libs->size(); i++){
 	mdl_data::lib_constraints += (*libs)[i]; 
 	//metric_cerr << " send_libs : adding " << (*libs)[i] << " to paradynd set of mdl_data::lib_constraints" << endl;
@@ -2566,7 +2566,7 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val,
   return false;
 }
 
-static bool walk_deref(mdl_var& ret, vector<unsigned>& types) 
+static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types) 
 {
    unsigned index=0;
    unsigned max = types.size();
@@ -2578,14 +2578,14 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
       {
         case MDL_T_PROCEDURE_NAME:
         case MDL_T_PROCEDURE: {
-           vector<function_base *> *func_buf_ptr;
+           pdvector<function_base *> *func_buf_ptr;
            if (!ret.get(func_buf_ptr)) return false;
-           vector<instPoint *> *inst_point_buf = new vector<instPoint*>;
+           pdvector<instPoint *> *inst_point_buf = new pdvector<instPoint*>;
                           
            switch (next_field) {
              case 0:  // .name
              {
-                vector<string> *nameBuf = new vector<string>;
+                pdvector<string> *nameBuf = new pdvector<string>;
                 for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
                    string prettyName = (*func_buf_ptr)[i]->prettyName();
                    (*nameBuf).push_back(prettyName);
@@ -2603,7 +2603,7 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
                 for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
                    function_base *pdf = (*func_buf_ptr)[i];
                    
-                   vector<instPoint*> calls =
+                   pdvector<instPoint*> calls =
                       pdf->funcCalls(global_proc->get_dyn_process());
                    // makes a copy of the return value (on purpose), since we 
                    // may delete some items that shouldn't be a call site for 
@@ -2683,7 +2683,7 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
                    if (!anythingRemoved) 
                    {
                       // metric_cerr << "nothing was removed -- doing set() now" << endl;
-                      const vector<instPoint*> *pt_hold = 
+                      const pdvector<instPoint*> *pt_hold = 
                          &(pdf->funcCalls(global_proc->get_dyn_process()));
                       for(unsigned i=0; i<(*pt_hold).size(); i++)
                          (*inst_point_buf).push_back((*pt_hold)[i]);
@@ -2691,7 +2691,7 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
                    else 
                    {
                       // metric_cerr << "something was removed! -- doing set() now" << endl;
-                      vector<instPoint*> pt_hold(calls);
+                      pdvector<instPoint*> pt_hold(calls);
                       for(unsigned i=0; i<pt_hold.size(); i++)
                          (*inst_point_buf).push_back(pt_hold[i]);
                       
@@ -2722,12 +2722,12 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
              {
                 for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
                    function_base *pdf = (*func_buf_ptr)[i];
-                   const vector<instPoint *> func_exit_pts = 
+                   const pdvector<instPoint *> func_exit_pts = 
                       pdf->funcExits(global_proc->get_dyn_process());
                    for(unsigned j=0; j<func_exit_pts.size(); j++)
                       (*inst_point_buf).push_back(func_exit_pts[j]);
                 }
-                if(! ret.set(const_cast<vector<instPoint*>*>(inst_point_buf)))
+                if(! ret.set(const_cast<pdvector<instPoint*>*>(inst_point_buf)))
                    return false;
                 break;
              }
@@ -2806,14 +2806,14 @@ bool mdl_get_initial(string flavor, pdRPC *connection) {
   return true;
 }
 
-bool mdl_get_lib_constraints(vector<string> &lc){
+bool mdl_get_lib_constraints(pdvector<string> &lc){
     for(u_int i=0; i < mdl_data::lib_constraints.size(); i++){
 	lc += mdl_data::lib_constraints[i];
     }
     return (lc.size()>0);
 }
 
-void mdl_get_info(vector<T_dyninstRPC::metricInfo>& metInfo) {
+void mdl_get_info(pdvector<T_dyninstRPC::metricInfo>& metInfo) {
   unsigned size = mdl_data::all_metrics.size();
   T_dyninstRPC::metricInfo element;
   for (unsigned u=0; u<size; u++) {
@@ -2846,14 +2846,14 @@ bool mdl_metric_data(const string& met_name, mdl_inst_data& md) {
 // 
 
 // These prototypes seem to confuse egcs, so let's comment them out
-//bool T_dyninstRPC::mdl_list_stmt::mk_list(vector<string> &funcs);
-//bool T_dyninstRPC::mdl_for_stmt::mk_list(vector<string> &funcs);
-//bool T_dyninstRPC::mdl_if_stmt::mk_list(vector<string> &funcs);
-//bool T_dyninstRPC::mdl_seq_stmt::mk_list(vector<string> &funcs);
-//bool T_dyninstRPC::mdl_instr_stmt::mk_list(vector<string> &funcs);
-//bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &funcs);
+//bool T_dyninstRPC::mdl_list_stmt::mk_list(pdvector<string> &funcs);
+//bool T_dyninstRPC::mdl_for_stmt::mk_list(pdvector<string> &funcs);
+//bool T_dyninstRPC::mdl_if_stmt::mk_list(pdvector<string> &funcs);
+//bool T_dyninstRPC::mdl_seq_stmt::mk_list(pdvector<string> &funcs);
+//bool T_dyninstRPC::mdl_instr_stmt::mk_list(pdvector<string> &funcs);
+//bool T_dyninstRPC::mdl_v_expr::mk_list(pdvector<string> &funcs);
 
-bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &funcs) 
+bool T_dyninstRPC::mdl_v_expr::mk_list(pdvector<string> &funcs) 
 {
   switch (type_) 
   {
@@ -2898,7 +2898,7 @@ bool T_dyninstRPC::mdl_v_expr::mk_list(vector<string> &funcs)
 }
 
 
-bool T_dyninstRPC::mdl_list_stmt::mk_list(vector<string> &funcs) {
+bool T_dyninstRPC::mdl_list_stmt::mk_list(pdvector<string> &funcs) {
   if (type_ == MDL_T_PROCEDURE_NAME) {
     unsigned size = elements_->size();
     for (unsigned u = 0; u < size; u++)
@@ -2907,7 +2907,7 @@ bool T_dyninstRPC::mdl_list_stmt::mk_list(vector<string> &funcs) {
   return true;
 }
 
-bool T_dyninstRPC::mdl_for_stmt::mk_list(vector<string> &funcs) {
+bool T_dyninstRPC::mdl_for_stmt::mk_list(pdvector<string> &funcs) {
   mdl_env::push();
   mdl_var list_var(false);
 
@@ -2921,7 +2921,7 @@ bool T_dyninstRPC::mdl_for_stmt::mk_list(vector<string> &funcs) {
   }
 
   if (list_var.element_type() == MDL_T_PROCEDURE_NAME) {
-    vector<functionName *> *funcNames;
+    pdvector<functionName *> *funcNames;
     if (!list_var.get(funcNames)) {
       mdl_env::pop();
       return false;
@@ -2938,11 +2938,11 @@ bool T_dyninstRPC::mdl_for_stmt::mk_list(vector<string> &funcs) {
   return true;
 }
 
-bool T_dyninstRPC::mdl_if_stmt::mk_list(vector<string> &funcs) {
+bool T_dyninstRPC::mdl_if_stmt::mk_list(pdvector<string> &funcs) {
   return expr_->mk_list(funcs) && body_->mk_list(funcs);
 }
 
-bool T_dyninstRPC::mdl_seq_stmt::mk_list(vector<string> &funcs) {
+bool T_dyninstRPC::mdl_seq_stmt::mk_list(pdvector<string> &funcs) {
   for (unsigned u = 0; u < stmts_->size(); u++) {
     if (!(*stmts_)[u]->mk_list(funcs))
       return false;
@@ -2950,11 +2950,11 @@ bool T_dyninstRPC::mdl_seq_stmt::mk_list(vector<string> &funcs) {
   return true;
 }
 
-bool T_dyninstRPC::mdl_instr_stmt::mk_list(vector<string> &funcs) {
+bool T_dyninstRPC::mdl_instr_stmt::mk_list(pdvector<string> &funcs) {
   return point_expr_->mk_list(funcs);
 }
 
-bool T_dyninstRPC::mdl_constraint::mk_list(vector<string> &funcs) {
+bool T_dyninstRPC::mdl_constraint::mk_list(pdvector<string> &funcs) {
   for (unsigned u = 0; u < stmts_->size(); u++)
     (*stmts_)[u]->mk_list(funcs);
   return true;

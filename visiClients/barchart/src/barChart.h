@@ -41,7 +41,7 @@
 
 // barChart.h
 
-/* $Id: barChart.h,v 1.16 2002/04/09 18:06:58 mjbrim Exp $ */
+/* $Id: barChart.h,v 1.17 2002/12/20 07:50:09 jaw Exp $ */
 
 #ifndef _BARCHART_H_
 #define _BARCHART_H_
@@ -67,8 +67,8 @@ class BarChart {
    Display *display; // low-level display structure used in Xlib drawing calls
 
    XColor *greyColor; // for the background
-   vector<string> metricColorNames; // needed for call by tcl
-   vector<XColor *> metricColors;
+   pdvector<string> metricColorNames; // needed for call by tcl
+   pdvector<XColor *> metricColors;
       // an arbitrary-sized array (not necessarily equal to # metrics)
       // (note: this is a new characteristic!!!)
 
@@ -91,22 +91,22 @@ class BarChart {
    unsigned numValidMetrics, numValidResources;
       // how many are enabled by visi lib (as opposed to deleted)
 
-   vector<unsigned> indirectResources;
-   vector<bool> validMetrics, validResources;
+   pdvector<unsigned> indirectResources;
+   pdvector<bool> validMetrics, validResources;
       // which metrics and resources are valid and should be drawn?
 
    int totalResourceHeight; // same as tcl vrble "currResourceHeight"
    int individualResourceHeight; // fullResourceHeight / numMetrics, but pinned to a max value (maxIndividualColorHeight tcl vrble)
    int resourceBorderHeight; // vertical padding due to "90%" rule, above.
 
-   vector< vector<double> > values;
+   pdvector< pdvector<double> > values;
       // array [metric][rsrc] of numerical (not pixel) bar values
       // the basis for barPixWidths[][]
-   vector< vector<int> > barPixWidths;
+   pdvector< pdvector<int> > barPixWidths;
       // array [metric][rsrc] of pixel widths for each bar.  This
       // changes quite often (every time new data arrives) and
       // needs to be saved for the case of expose events...
-   vector<double> metricCurrMaxVals;
+   pdvector<double> metricCurrMaxVals;
       // array [metric] of the current y-axis high value for each metric.
       // When new data comes in that is higher than this, I give the command
       // to rethink the metrics axis.
@@ -147,7 +147,7 @@ class BarChart {
   public:
 
    BarChart(char *tkWindowName, int iNumMetrics, int iNumResources,
-	    const vector<string> &colorNames);
+	    const pdvector<string> &colorNames);
   ~BarChart();
 
    unsigned getNumMetrics() const {

@@ -44,7 +44,7 @@
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
-/* $Id: shgPhases.h,v 1.22 2002/08/02 21:00:32 pcroth Exp $ */
+/* $Id: shgPhases.h,v 1.23 2002/12/20 07:50:05 jaw Exp $ */
 
 #ifndef _SHG_PHASES_H_
 #define _SHG_PHASES_H_
@@ -136,7 +136,7 @@ class shgPhases {
       }
    };
 
-   vector<shgStruct> theShgPhases;
+   pdvector<shgStruct> theShgPhases;
    unsigned currShgPhaseIndex;
       // NOTE: An index into the above array; not a phaseid/dagid!
 

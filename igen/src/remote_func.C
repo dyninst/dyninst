@@ -9,7 +9,7 @@ string remote_func::request_tag(bool unqual) const {
 string remote_func::response_tag(bool unqual) const {
   return((unqual ? string("") : Options::type_prefix()) + name() + "_RESP");}
 
-remote_func::remote_func(const string name, vector<arg*> *arglist, const call_type &ct,
+remote_func::remote_func(const string name, pdvector<arg*> *arglist, const call_type &ct,
 			 const bool &is_v, const arg &return_arg, const bool do_free)
 : name_(name), function_type_(ct), is_virtual_(is_v),
   call_sig_(arglist, name_), return_arg_(return_arg), do_free_(do_free)

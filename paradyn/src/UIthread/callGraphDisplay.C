@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.C,v 1.9 2002/05/13 19:53:18 mjbrim Exp $
+// $Id: callGraphDisplay.C,v 1.10 2002/12/20 07:50:04 jaw Exp $
 
 //callGraphDisplay.C: this code is an adaptation of the code from shg.C,
 //for use with the call graph
@@ -65,9 +65,9 @@
 //add by wxd on Feb 3
 extern abstractions *theAbstractions;
 
-vector<Tk_3DBorder> callGraphDisplay::rootItemTk3DBordersByStyle; 
-// init to empty vector
-vector<Tk_3DBorder> callGraphDisplay::listboxItemTk3DBordersByStyle; 
+pdvector<Tk_3DBorder> callGraphDisplay::rootItemTk3DBordersByStyle; 
+// init to empty pdvector
+pdvector<Tk_3DBorder> callGraphDisplay::listboxItemTk3DBordersByStyle; 
 // inits to empty vector
 
 Tk_Font callGraphDisplay::theRootItemFontStruct = NULL;
@@ -1033,22 +1033,22 @@ bool callGraphDisplay::selectUnSelectFromFullPathName(const string &name, bool s
   return rootPtr->selectUnSelectFromFullPathName(str, selectFlag);
 }
 
-vector< vector<resourceHandle> >
+pdvector< pdvector<resourceHandle> >
 callGraphDisplay::getSelections(bool &wholeProgram,
-				vector<unsigned> &wholeProgramFocus) const {
+				pdvector<unsigned> &wholeProgramFocus) const {
   // returns a vector[num-hierarchies] of vector of selections.
   // The number of hierarchies is defined as the number of children of the
   // root node.  If "Whole Program" was selection, it isn't returned with
   // the main result; it's returned by modifying the 2 params
   const unsigned numHierarchies = rootPtr->getNumChildren();
   
-  vector < vector<resourceHandle> > result(numHierarchies);
+  pdvector < pdvector<resourceHandle> > result(numHierarchies);
 
   bool wholeProgramImplicit = true; // so far...
 
   for (unsigned i=0; i < numHierarchies; i++) {
     where4tree<callGraphRootNode> *hierarchyRoot = rootPtr->getChildTree(i);
-    vector <const callGraphRootNode *> thisHierarchySelections = 
+    pdvector <const callGraphRootNode *> thisHierarchySelections = 
       hierarchyRoot->getSelections();
     
     if (thisHierarchySelections.size()==0)
@@ -1099,7 +1099,7 @@ void callGraphDisplay::notify_shadow(resourceHandle select_handle,bool isHighlig
 	assert(select_node != NULL);
 
 	where4tree<callGraphRootNode> *primary_node=select_node;
-	vector<where4tree<callGraphRootNode> *>  shadow_nodes=primary_node->getShadowNodes();
+	pdvector<where4tree<callGraphRootNode> *>  shadow_nodes=primary_node->getShadowNodes();
 
 	if (isHighlight)
 		primary_node->highlight();

@@ -29,8 +29,8 @@ template class BPatch_Set<BPatch_function*>;
 template struct comparison<FunctionCoverage*>;
 template class BPatch_Set<FunctionCoverage*>;
 
-template class vector<BPFunctionList*>;
+template class pdvector<BPFunctionList*>;
 template class dictionary_hash<string,BPFunctionList*>;
-template class vector<dictionary_hash<string,BPFunctionList*>::entry>;
+template class pdvector<dictionary_hash<string,BPFunctionList*>::entry>;
 
 /** end of the template class initialization */

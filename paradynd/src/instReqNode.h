@@ -65,7 +65,7 @@ class catchupReq {
 	 reqNodes.push_back(src.reqNodes[i]);
    }
    
-   vector<instReqNode*> reqNodes;
+   pdvector<instReqNode*> reqNodes;
    Frame        frame;
 };
 
@@ -109,7 +109,7 @@ class instReqNode {
    timeLength cost(pd_process *theProc) const;
    returnInstance *getRInstance() const { return rinstance; }
    void setAffectedDataNodes(instInstanceFreeCallback cb, 
-			     vector<instrDataNode *> *affectedNodes); 
+			     pdvector<instrDataNode *> *affectedNodes); 
    
    void catchupRPCCallback(void *returnValue);
    

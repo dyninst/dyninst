@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.13 2002/06/21 14:19:29 chadd Exp $
+// $Id: Object-coff.C,v 1.14 2002/12/20 07:49:56 jaw Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -281,9 +281,9 @@ static inline bool obj_read_section(SCNHDR& secthead, LDFILE *ldptr,
 
 // Attempt to find the largest contiguous (in virtual address space) region.
 // This region must include ".data", and may include the other data like regions
-static inline bool find_data_region(vector<Address>& all_addr,
-				    vector<long>& all_size,
-				    vector<long>& all_disk,
+static inline bool find_data_region(pdvector<Address>& all_addr,
+				    pdvector<long>& all_size,
+				    pdvector<long>& all_disk,
 				    unsigned long& data_len, Address& data_off) {
   // Start at data and work back
   assert(all_addr[K_D_INDEX]); assert(all_size[K_D_INDEX]);
@@ -332,9 +332,9 @@ static inline bool find_data_region(vector<Address>& all_addr,
 }
 
 // Read in from the contiguous data regions, put the data in 'buffer'
-static inline bool read_data_region(vector<Address>& all_addr,
-				    vector<long>& all_size,
-				    vector<long>& all_disk,
+static inline bool read_data_region(pdvector<Address>& all_addr,
+				    pdvector<long>& all_size,
+				    pdvector<long>& all_disk,
 				    unsigned long& data_len, Address& data_off,
 				    Word *buffer, LDFILE *ldptr) {
   unsigned index, max = all_disk.size();
@@ -365,11 +365,11 @@ void Object::load_object(bool sharedLibrary) {
     SCNHDR      secthead;
     filehdr     fhdr;
     unsigned 	nsymbols;
-    vector<Symbol> allSymbols;
-    vector<Address> all_addr(9, 0);
-    vector<long> all_size(9, 0);
-    vector<bool> all_dex(9, false);
-    vector<long> all_disk(9, 0);
+    pdvector<Symbol> allSymbols;
+    pdvector<Address> all_addr(9, 0);
+    pdvector<long> all_size(9, 0);
+    pdvector<bool> all_dex(9, false);
+    pdvector<long> all_disk(9, 0);
 
         if (!(ldptr = ldopen(file, ldptr))) {
             log_perror(err_func_, file);

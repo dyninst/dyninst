@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.C,v 1.7 2002/10/15 17:12:21 schendel Exp $
+// $Id: varTable.C,v 1.8 2002/12/20 07:50:07 jaw Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -241,7 +241,7 @@ bool varTable<HK>::doMinorSample()
   // This is used to clean up after a doMajorSample, above
   
   bool completedSample = true;
-  //vector<unsigned> *varsLeft = new vector();
+  //pdvector<unsigned> *varsLeft = new pdvector();
 
   // Run it backwards so that deleting elements from the vector is easier.
   for (unsigned iter = 0; iter < varsNeedingSample->size(); iter++) {

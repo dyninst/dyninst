@@ -74,8 +74,8 @@ struct sideEffect_t {
 class processMetFocusNode : public metricFocusNode {
  private:
   instrCodeNode *metricVarCodeNode;
-  vector<instrCodeNode *> constraintCodeNodes;
-  vector<threadMetFocusNode *> thrNodes;
+  pdvector<instrCodeNode *> constraintCodeNodes;
+  pdvector<threadMetFocusNode *> thrNodes;
   sampleAggregator aggregator;
   machineMetFocusNode *parentNode;
   aggComponent *aggInfo;  // for machNode <-> procNode link
@@ -90,12 +90,12 @@ class processMetFocusNode : public metricFocusNode {
   bool dontInsertData_;
   bool currentlyPaused;
   bool instrInserted_;  // ie. instr:  loaded & tramps hookedup & catchuped
-  vector<catchup_t >   catchupASTList;
-  vector<sideEffect_t> sideEffectFrameList;
+  pdvector<catchup_t >   catchupASTList;
+  pdvector<sideEffect_t> sideEffectFrameList;
 
   // don't have a hash indexed by pid because can have multiple procNodes
   // with same pid
-  static vector<processMetFocusNode*> allProcNodes;
+  static pdvector<processMetFocusNode*> allProcNodes;
 
   bool isBeingDeleted_;
 
@@ -110,8 +110,8 @@ class processMetFocusNode : public metricFocusNode {
 
  public:
   bool isBeingDeleted() {return isBeingDeleted_; };
-  static void getProcNodes(vector<processMetFocusNode*> *procNodes);
-  static void getProcNodes(vector<processMetFocusNode*> *procNodes, int pid);
+  static void getProcNodes(pdvector<processMetFocusNode*> *procNodes);
+  static void getProcNodes(pdvector<processMetFocusNode*> *procNodes, int pid);
 
   // use this function to create a new processMetFocusNode in the general case
   static processMetFocusNode *newProcessMetFocusNode(pd_process *p, 
@@ -144,12 +144,12 @@ class processMetFocusNode : public metricFocusNode {
   void recordAsParent(machineMetFocusNode *machNode,
 		      aggComponent *childAggInfo);
 
-  void getAllCodeNodes(vector<instrCodeNode *> *vecPtr) {
+  void getAllCodeNodes(pdvector<instrCodeNode *> *vecPtr) {
     (*vecPtr).push_back(metricVarCodeNode);
     for(unsigned i=0; i<constraintCodeNodes.size(); i++)
       (*vecPtr).push_back(constraintCodeNodes[i]);
   }
-  void getAllCodeNodes(vector<const instrCodeNode *> *vecPtr) const {
+  void getAllCodeNodes(pdvector<const instrCodeNode *> *vecPtr) const {
     (*vecPtr).push_back(metricVarCodeNode);
     for(unsigned i=0; i<constraintCodeNodes.size(); i++)
       (*vecPtr).push_back(constraintCodeNodes[i]);
@@ -179,7 +179,7 @@ class processMetFocusNode : public metricFocusNode {
   void doCatchupInstrumentation();
   instr_insert_result_t insertInstrumentation();
   
-  vector<const instrDataNode *> getFlagDataNodes() const;
+  pdvector<const instrDataNode *> getFlagDataNodes() const;
   void prepareForSampling();
   void prepareForSampling(threadMetFocusNode *thrNode);
   void stopSamplingThr(threadMetFocusNode_Val *thrNodeVal);

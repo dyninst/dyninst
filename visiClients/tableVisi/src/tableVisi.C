@@ -44,6 +44,24 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.17  2002/12/20 07:50:09  jaw
+ * This commit fully changes the class name of "vector" to "pdvector".
+ *
+ * A nice upshot is the removal of a bunch of code previously under the flag
+ * USE_STL_VECTOR, which is no longer necessary in many cases where a
+ * functional difference between common/h/Vector.h and stl::vector was
+ * causing a crash.
+ *
+ * Generally speaking, Dyninst and Paradyn now use pdvector exclusively.
+ * This commit DOES NOT cover the USE_STL_VECTOR flag, which will now
+ * substitute stl::vector for BPatch_Vector only.  This is currently, to
+ * the best of my knowledge, only used by DPCL.  This will be updated and
+ * tested in a future commit.
+ *
+ * The purpose of this, again, is to create a further semantic difference
+ * between two functionally different classes (which both have the same
+ * [nearly] interface).
+ *
  * Revision 1.16  2002/05/13 19:54:07  mjbrim
  * update string class to eliminate implicit number conversions
  * and replace all use of string_of with c_str  - - - - - - - - - - - - - -
@@ -752,7 +770,7 @@ void tableVisi::drawCells(Drawable theDrawable) const {
          continue;
       }
 
-      const vector<tvCell> &thisMetricCells = cells[indirectMetrics[metriclcv]];
+      const pdvector<tvCell> &thisMetricCells = cells[indirectMetrics[metriclcv]];
       drawCells1Col(theDrawable,
 		    (curr_x + next_x - 1) / 2, // middle x
 		    offset_y + getMetricAreaPixHeight(), // start y
@@ -765,7 +783,7 @@ void tableVisi::drawCells(Drawable theDrawable) const {
 }
 
 void tableVisi::drawCells1Col(Drawable theDrawable, int middle_x, int top_y,
-			      const vector<tvCell> &thisMetricCells) const {
+			      const pdvector<tvCell> &thisMetricCells) const {
    // uses getVertPixFocusTop2Baseline() and getFocusLinePixHeight()
    int curr_y = top_y;
 
@@ -850,7 +868,7 @@ void tableVisi::clearFoci(Tcl_Interp *interp) {
 
    unsigned numMetrics = getNumMetrics();
    for (unsigned i=0; i < numMetrics; i++) {
-      vector<tvCell> &theVec = cells[i];
+      pdvector<tvCell> &theVec = cells[i];
       theVec.resize(0);
    }
 
@@ -871,7 +889,7 @@ void tableVisi::addMetric(unsigned iVisiLibMetId,
 			numSigFigs);
    metrics += newTvMetric;
    indirectMetrics += (metrics.size()-1);
-   cells += vector<tvCell>();
+   cells += pdvector<tvCell>();
 
    all_cells_width += newTvMetric.getColPixWidth();
 
@@ -893,7 +911,7 @@ void tableVisi::addFocus(unsigned iVisiLibFocusId, const string &focusName) {
 
    unsigned numMetrics = metrics.size();
    for (unsigned metriclcv=0; metriclcv < numMetrics; metriclcv++) {
-      vector<tvCell> &metricCells = cells[metriclcv];
+      pdvector<tvCell> &metricCells = cells[metriclcv];
       metricCells += tvCell();
    }
 
@@ -980,7 +998,7 @@ void tableVisi::deleteFocus(unsigned theRow) {
    foci.resize(newNumFoci);
 
    for (metriclcv=0; metriclcv < metrics.size(); metriclcv++) {
-      vector<tvCell> &theColumn = cells[metriclcv];
+      pdvector<tvCell> &theColumn = cells[metriclcv];
 
       for (focuslcv=actualFocusIndex; focuslcv < newNumFoci; focuslcv++)
          theColumn[focuslcv] = theColumn[focuslcv+1];
@@ -1104,7 +1122,7 @@ int tableVisi::partitionFoci(int left, int right) {
    }
 }
 
-int tableVisi::partitionFociByValues(const vector<tvCell> &theMetricColumn,
+int tableVisi::partitionFociByValues(const pdvector<tvCell> &theMetricColumn,
 				     int left, int right) {
    // note: theMetricColumn comes straight from "cells"; index it via focus numbers
    //       (not by the sorted indexes but rather by the real indexes) to get the
@@ -1156,7 +1174,7 @@ void tableVisi::sortFoci() {
    }
 }
 
-void tableVisi::sortFociByValues(const vector<tvCell> &theMetricColumn,
+void tableVisi::sortFociByValues(const pdvector<tvCell> &theMetricColumn,
 				 int left, int right) {
    if (left < right) {
       int middle = partitionFociByValues(theMetricColumn, left, right);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.h,v 1.7 2001/08/01 15:39:54 chadd Exp $
+// $Id: CodeView.h,v 1.8 2002/12/20 07:49:56 jaw Exp $
 
 //
 // This file contains the declaration of the CodeView class.
@@ -596,21 +596,21 @@ public:
 	{
 	public:
         // accessors
-		const vector<SymRecordProc*>&
+		const pdvector<SymRecordProc*>&
             GetGlobalFunctions( void ) const    { return gprocs; }
-		const vector<SymRecordProc*>&
+		const pdvector<SymRecordProc*>&
             GetLocalFunctions( void ) const     { return lprocs; }
-		const vector<SymRecordData*>&
+		const pdvector<SymRecordData*>&
             GetGlobalVariables( void ) const	{ return gvars; }
-		const vector<SymRecordData*>&
+		const pdvector<SymRecordData*>&
             GetLocalVariables( void ) const		{ return lvars; }
-		const vector<SymRecordBPRel*>&
+		const pdvector<SymRecordBPRel*>&
             GetStackVariables( void ) const		{ return bprels; }
-		const vector<SymRecordLabel*>&
+		const pdvector<SymRecordLabel*>&
             GetLabels( void ) const				{ return labels; }
-		const vector<SymRecordThunk*>&
+		const pdvector<SymRecordThunk*>&
             GetThunks( void ) const				{ return thunks; }
-        const vector<SymRecordData*>&
+        const pdvector<SymRecordData*>&
             GetPublics( void ) const            { return pubs; }
 
         // operations
@@ -623,14 +623,14 @@ public:
 #endif
 
 	private:
-		vector<SymRecordProc*> gprocs;		// global functions
-		vector<SymRecordProc*> lprocs;		// local functions
-		vector<SymRecordData*> gvars;		// global variables
-		vector<SymRecordData*> lvars;		// local variables
-		vector<SymRecordBPRel*> bprels;	    // stack variables
-		vector<SymRecordLabel*> labels;	    // labels
-		vector<SymRecordThunk*> thunks;	    // thunks (non-function code)
-        vector<SymRecordData*> pubs;        // public (catch-all) symbols
+		pdvector<SymRecordProc*> gprocs;		// global functions
+		pdvector<SymRecordProc*> lprocs;		// local functions
+		pdvector<SymRecordData*> gvars;		// global variables
+		pdvector<SymRecordData*> lvars;		// local variables
+		pdvector<SymRecordBPRel*> bprels;	    // stack variables
+		pdvector<SymRecordLabel*> labels;	    // labels
+		pdvector<SymRecordThunk*> thunks;	    // thunks (non-function code)
+        pdvector<SymRecordData*> pubs;        // public (catch-all) symbols
 
 		//Below are used to create DyninstAPI types for the symbols
 
@@ -683,8 +683,8 @@ public:
 	{}
 
     // accessors
-	const vector<Module>&		GetModules( void ) const	{ return modules; }
-	const vector<LPString>&		GetLibraries( void ) const	{ return libs; }
+	const pdvector<Module>&		GetModules( void ) const	{ return modules; }
+	const pdvector<LPString>&		GetLibraries( void ) const	{ return libs; }
     const Symbols&              GetSymbols( void ) const    { return syms; }
 
     // operations
@@ -703,8 +703,8 @@ public:
 
 private:
 	const char* pBase;			// location of CodeView symbols
-	vector<Module> modules;		// modules represented in the executable
-	vector<LPString> libs;		// libraries used to build this executable
+	pdvector<Module> modules;		// modules represented in the executable
+	pdvector<LPString> libs;		// libraries used to build this executable
     Symbols syms;               // symbols not associated with a module
     unsigned int textId;        // section number for .text section
 

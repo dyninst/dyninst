@@ -50,10 +50,10 @@ class dyn_thread;
 
 
 class threadMgr {
-   vector<pd_thread *> thrBuf;
+   pdvector<pd_thread *> thrBuf;
    
  public:
-   typedef vector<pd_thread*>::iterator thrIter;
+   typedef pdvector<pd_thread*>::iterator thrIter;
 
    void addThread(pd_thread *pd_thr) {
       thrBuf.push_back(pd_thr);

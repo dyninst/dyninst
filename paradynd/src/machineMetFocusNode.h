@@ -53,7 +53,7 @@ class threadMetFocusNode_Val;
 class machineMetFocusNode : public metricFocusNode {
  private:
   bool partsNeedingInitializing;
-  vector<processMetFocusNode*> procNodes;
+  pdvector<processMetFocusNode*> procNodes;
   sampleAggregator aggregator;
   int id_;
   aggregateOp aggOp;
@@ -78,10 +78,10 @@ class machineMetFocusNode : public metricFocusNode {
   void prepareForSampling();
   void setupProcNodeForForkedProcess(processMetFocusNode *parentProcNode, 
 				     pd_process *childProc,
-			     vector<processMetFocusNode *> *procNodesToUnfork);
+			     pdvector<processMetFocusNode *> *procNodesToUnfork);
 
  public:
-  static void getMachineNodes(vector<machineMetFocusNode*> *machNodes);
+  static void getMachineNodes(pdvector<machineMetFocusNode*> *machNodes);
   static machineMetFocusNode *lookupMachNode(int mid) {
     machineMetFocusNode *foundMachNode;
     bool foundIt = allMachNodes.find(mid, foundMachNode);
@@ -91,13 +91,13 @@ class machineMetFocusNode : public metricFocusNode {
 
   machineMetFocusNode(int metricID, const string& metric_name, 
 		      const Focus& foc,
-		      vector<processMetFocusNode*>& parts,
+		      pdvector<processMetFocusNode*>& parts,
 		      aggregateOp agg_op, bool enable_);
   ~machineMetFocusNode();
   const string &getMetName() const { return met_; }
   const Focus &getFocus() const { return focus_; }
   const string getFullName() const { return (met_ + focus_.getName()); }
-  vector<processMetFocusNode*> getProcNodes() { return procNodes; }
+  pdvector<processMetFocusNode*> getProcNodes() { return procNodes; }
   static void updateAllAggInterval(timeLength width);
   void updateAggInterval(timeLength width);
   aggregateOp getAggOp() { return aggOp; }
@@ -131,7 +131,7 @@ class machineMetFocusNode : public metricFocusNode {
   void propagateToNewProcess(pd_process *newProcess);
   void propagateToForkedProcess(const pd_process *parentProc, 
 				pd_process *childProcess,
-			     vector<processMetFocusNode *> *procNodesToUnfork);
+			     pdvector<processMetFocusNode *> *procNodesToUnfork);
   void adjustForExecedProcess(pd_process *proc);
 };
 

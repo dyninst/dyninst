@@ -41,7 +41,7 @@
 
 // barChartTcl.C
 
-/* $Id: barChartTcl.C,v 1.24 2002/05/13 19:54:02 mjbrim Exp $ */
+/* $Id: barChartTcl.C,v 1.25 2002/12/20 07:50:09 jaw Exp $ */
 
 #include <iostream.h>
 
@@ -265,7 +265,7 @@ int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, char **
    }
 
    // Step 1: split up into components; 1 per resource hierarchy
-   vector<string> components;
+   pdvector<string> components;
    const char *ptr = longName;
 
    while (*ptr != '\0') {
@@ -339,7 +339,7 @@ int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
    const int iNumResources = atoi(argv[3]);
 
    // bar colors: (see /usr/lib/X11/rgb.txt)
-   vector<string> barColorNames;
+   pdvector<string> barColorNames;
    barColorNames += "mediumslateblue";
    barColorNames += "hotpink";
 //   barColorNames += "chartreuse"; // too bright

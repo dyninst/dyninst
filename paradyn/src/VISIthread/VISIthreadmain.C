@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.95 2002/11/25 23:52:40 schendel Exp $
+// $Id: VISIthreadmain.C,v 1.96 2002/12/20 07:50:05 jaw Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -106,7 +106,7 @@ void flush_buffer_if_nonempty(VISIGlobalsStruct *ptr) {
    if (num_to_send < ptr->buffer.size()) {
       // send less than the full buffer --> need to make a temporary buffer
       // Make sure this doesn't happen on the critical path!
-      vector<T_visi::dataValue> temp(num_to_send);
+      pdvector<T_visi::dataValue> temp(num_to_send);
       for (unsigned i = 0; i < num_to_send; i++)
          temp[i] = ptr->buffer[i];
       ptr->visip->Data(temp);
@@ -165,7 +165,7 @@ void flush_traceBuffer_if_nonempty(VISIGlobalsStruct *ptr) {
    if (num_to_send < ptr->traceBuffer.size()) {
       // send less than the full buffer --> need to make a temporary buffer
       // Make sure this doesn't happen on the critical path!
-      vector<T_visi::traceDataValue> temp(num_to_send);
+      pdvector<T_visi::traceDataValue> temp(num_to_send);
       for (unsigned i = 0; i < num_to_send; i++)
          temp[i] = ptr->traceBuffer[i];
       ptr->visip->TraceData(temp);
@@ -277,7 +277,7 @@ void VISIthreadDataHandler(metricInstanceHandle mi,
 //    newPerfData Upcall
 //
 /////////////////////////////////////////////////////////////
-void VISIthreadDataCallback(vector<dataValueType> *values,
+void VISIthreadDataCallback(pdvector<dataValueType> *values,
 			    u_int num_values){
 
   sampleVal_cerr << "VISIthreadDataCallback - num_values: " << num_values 
@@ -387,8 +387,8 @@ void VISIthreadTraceDataCallback(perfStreamHandle ,
   // if visi process has not been started yet or if visi process has exited
   if(ptr->start_up || ptr->quit)  return;
 
-    vector<traceDataValueType> *traceValues =
-      (vector<traceDataValueType> *)values;
+    pdvector<traceDataValueType> *traceValues =
+      (pdvector<traceDataValueType> *)values;
   if (traceValues->size() < (u_int)num_values) num_values = traceValues->size();
   for(int i=0; i < num_values;i++){
       VISIthreadTraceDataHandler((*traceValues)[i].mi,
@@ -633,7 +633,7 @@ int VISIthreadStartProcess(){
 
 
     PARADYN_DEBUG(("start_up in VISIthreadStartProcess"));
-    vector<string> av;
+    pdvector<string> av;
     // start at 1 since RPCprocessCreate will add 0th arg to list
     unsigned index=1;
     while(ptr->args->argv[index]) {
@@ -723,8 +723,8 @@ bool VISIMakeEnableRequest(){
   }
 
   // create the request vector of pairs and make enable request to DM
-  vector<metric_focus_pair> *metResParts = 
-		             new vector<metric_focus_pair>(request_size);
+  pdvector<metric_focus_pair> *metResParts = 
+		             new pdvector<metric_focus_pair>(request_size);
   assert(request_size == metResParts->size());
 
   for(u_int i=0; i < request_size; i++){
@@ -750,7 +750,7 @@ bool VISIMakeEnableRequest(){
 //  Otherwise, just update request info. (a call to VISIMakeEnableRequest
 //  will occur when the response to the request in progress is received)
 ///////////////////////////////////////////////////////////////////
-int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
+int VISIthreadchooseMetRes(pdvector<metric_focus_pair> *newMetRes){
 
     if(newMetRes)
        PARADYN_DEBUG(("In VISIthreadchooseMetRes size = %d",newMetRes->size()));
@@ -766,7 +766,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
     if (ptr->args->matrix)
     {
     	if (newMetRes == NULL)
-		newMetRes = new vector<metric_focus_pair>;
+		newMetRes = new pdvector<metric_focus_pair>;
 	//*newMetRes += *ptr->args->matrix;
 	for (unsigned i=0;i<ptr->args->matrix->size();i++)
 	{
@@ -828,7 +828,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 bool VISISendResultsToVisi(VISIthreadGlobals *ptr,u_int numEnabled){
 
       // create a visi_matrix_Array to send to visualization
-      vector<T_visi::visi_matrix> pairList;
+      pdvector<T_visi::visi_matrix> pairList;
       // the newly enabled pairs are the last numEnabled in the list
       u_int start = ptr->mrlist.size() - numEnabled; 
       assert((start+numEnabled) == ptr->mrlist.size());
@@ -895,7 +895,7 @@ bool VISISendResultsToVisi(VISIthreadGlobals *ptr,u_int numEnabled){
 					    ptr->args->phase_type);
           // send visi all old data bucket values
 	  if(howmany > 0){
-	      vector<float> bulk_data;
+	      pdvector<float> bulk_data;
 	      for (u_int ve=0; ve< ((u_int)howmany); ve++){
 		// -----------------------------------------------------
 		// delete & cleanup the following after visis/ign are converted
@@ -949,7 +949,7 @@ bool VISISendResultsToVisi(VISIthreadGlobals *ptr,u_int numEnabled){
 // VISIMakeEnableRequest is made, otherwise a remenuing call could be made
 // to the UI with all pairs that were requested, but not enabled
 ///////////////////////////////////////////////////////////////////
-void VISIthreadEnableCallback(vector<metricInstInfo> *response, u_int){
+void VISIthreadEnableCallback(pdvector<metricInstInfo> *response, u_int){
 
     VISIthreadGlobals *ptr;
     if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
@@ -980,7 +980,7 @@ void VISIthreadEnableCallback(vector<metricInstInfo> *response, u_int){
 		     (*ptr->request)[i+ptr->first_in_curr_request];
             }
 	    else {
-		ptr->retryList = new vector<metric_focus_pair>;
+		ptr->retryList = new pdvector<metric_focus_pair>;
 	        *(ptr->retryList) += 
 		     (*ptr->request)[i+ptr->first_in_curr_request];
 	    }

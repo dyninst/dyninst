@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sampleAggregator.C,v 1.8 2002/10/28 04:54:47 schendel Exp $
+// $Id: sampleAggregator.C,v 1.9 2002/12/20 07:50:08 jaw Exp $
 
 #include <assert.h>
 #include <math.h>
@@ -382,7 +382,7 @@ void sampleAggregator::actuallyAggregate(struct sampleInterval *ret) {
 }
 
 void sampleAggregator::removeComponentsRequestedToRemove() {
-   vector<aggComponent *>::iterator iter = componentBuf.end();
+   pdvector<aggComponent *>::iterator iter = componentBuf.end();
    while(iter != componentBuf.begin()) {
       iter--;
       aggComponent *curComp = (*iter);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.132 2002/11/25 23:51:46 schendel Exp $
+// $Id: DMpublic.C,v 1.133 2002/12/20 07:50:01 jaw Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -74,7 +74,7 @@ extern "C" {
 #endif //  !defined(i386_unknown_nt4_0)
 
 // the argument list passed to paradynds
-vector<string> paradynDaemon::args(0);
+pdvector<string> paradynDaemon::args(0);
 extern bool our_print_sample_arrival;
 
 #if !defined(i386_unknown_nt4_0)
@@ -239,7 +239,7 @@ void startTermWin()
 
     char buffer[256];
     sprintf(buffer,"%d",dataManager::termWin_sock);
-    vector<string> *av = new vector<string>;
+    pdvector<string> *av = new pdvector<string>;
     *av += buffer;
     PDSOCKET tw_sock = RPCprocessCreate("localhost","","termWin","",*av);
     if( tw_sock != PDSOCKET_ERROR )
@@ -287,7 +287,7 @@ bool dataManager::addExecutable(const char *machine,
 				const char *login,
 				const char *name,
 				const char *dir,
-				const vector<string> *argv)
+				const pdvector<string> *argv)
 {
   bool added = false;
 
@@ -386,7 +386,7 @@ void dataManager::saveAllData (const char *dirname, SaveRequestType optionFlag)
     success = false;
   } else {
 
-    vector<metricInstanceHandle> allMIHs = 
+    pdvector<metricInstanceHandle> allMIHs = 
       metricInstance::allMetricInstances.keys();
     for (unsigned i = 0; i < allMIHs.size(); i++) {
       // try to write data from one metric instance 
@@ -445,7 +445,7 @@ int dataManager::destroyPerformanceStream(perfStreamHandle handle){
 // Otherwise, only those metrics corresponding to the current mode will be
 // passed.
 //
-vector<string> *dataManager::getAvailableMetrics(bool all)
+pdvector<string> *dataManager::getAvailableMetrics(bool all)
 {
     return(metric::allMetricNames(all));
 }
@@ -453,7 +453,7 @@ vector<string> *dataManager::getAvailableMetrics(bool all)
 //
 // Same comments as for getAvailableMetrics
 //
-vector<met_name_id> *dataManager::getAvailableMetInfo(bool all)
+pdvector<met_name_id> *dataManager::getAvailableMetInfo(bool all)
 {
     return(metric::allMetricNamesIds(all));
 }
@@ -471,7 +471,7 @@ metricHandle *dataManager::findMetric(const char *name)
     return 0;
 }
 
-vector<resourceHandle> *dataManager::getRootResources()
+pdvector<resourceHandle> *dataManager::getRootResources()
 {
     return(resource::getRootResource()->getChildren());
 }
@@ -488,7 +488,7 @@ resourceHandle *dataManager::getRootResource()
 //
 void DMdoEnableData(perfStreamHandle ps_handle,
                     perfStreamHandle pt_handle,
-		    vector<metricRLType> *request,
+		    pdvector<metricRLType> *request,
 		    u_int request_Id,
 	            phaseType type,
 		    phaseHandle phaseId,
@@ -496,9 +496,9 @@ void DMdoEnableData(perfStreamHandle ps_handle,
                     u_int persistent_collection,
 		    u_int phase_persistent_data){
 
-    vector<metricInstance *> *miVec = new vector<metricInstance *>;
-    vector<bool> *enabled = new vector<bool>;  // passed to daemons on enable
-    vector<bool> *done = new vector<bool>;  // used for waiting list
+    pdvector<metricInstance *> *miVec = new pdvector<metricInstance *>;
+    pdvector<bool> *enabled = new pdvector<bool>;  // passed to daemons on enable
+    pdvector<bool> *done = new pdvector<bool>;  // used for waiting list
 
    // for each element in list determine if this metric/focus pair is
    // already enabled, or is currently being enabled: "enabled" is used to 
@@ -585,7 +585,7 @@ void DMdoEnableData(perfStreamHandle ps_handle,
        done = 0; new_entry = 0;
    }
    else {  // else every MI is enabled update state and return result to caller
-       vector<bool> successful(miVec->size());
+       pdvector<bool> successful(miVec->size());
        for(u_int j=0; j < successful.size(); j++){
 	   if((*miVec)[j]) successful[j] = true;
 	   else successful[j] = false;
@@ -599,7 +599,7 @@ void DMdoEnableData(perfStreamHandle ps_handle,
 // Request to enable a set of metric/focus pairs
 // ps_handle - the perfStreamHandle of the calling thread
 // pt_handle - the perfTraceStreamHandle of the calling thread
-// request   - vector of metic/focus pairs to enable
+// request   - pdvector of metic/focus pairs to enable
 // request_Id - identifier passed by calling thread
 // type - which phase type to enable data for
 // phaseId - the identifier of the phase for which data is requested
@@ -610,7 +610,7 @@ void DMdoEnableData(perfStreamHandle ps_handle,
 //
 void dataManager::enableDataRequest(perfStreamHandle ps_handle,
                                     perfStreamHandle pt_handle,
-				    vector<metric_focus_pair> *request,
+				    pdvector<metric_focus_pair> *request,
 				    u_int request_Id,
 			            phaseType type,
 				    phaseHandle phaseId,
@@ -620,8 +620,8 @@ void dataManager::enableDataRequest(perfStreamHandle ps_handle,
   
     if((type == CurrentPhase) && (phaseId != phaseInfo::CurrentPhaseHandle())){
 	// send enable failed response to calling thread
-	vector<metricInstInfo> *response = 
-				   new vector<metricInstInfo>(request->size());
+	pdvector<metricInstInfo> *response = 
+				   new pdvector<metricInstInfo>(request->size());
         for(u_int i=0; i < response->size();i++){
             (*response)[i].successfully_enabled = false;	    
 	}
@@ -646,8 +646,8 @@ void dataManager::enableDataRequest(perfStreamHandle ps_handle,
 	return;
     }
 
-    // convert request to vector of metricRLType
-    vector<metricRLType> *pairList = new vector<metricRLType>;
+    // convert request to pdvector of metricRLType
+    pdvector<metricRLType> *pairList = new pdvector<metricRLType>;
     for(u_int i=0; i < request->size(); i++){
 	metricRLType newPair((*request)[i].met,
 			    resourceList::getResourceList((*request)[i].res)); 
@@ -665,7 +665,7 @@ void dataManager::enableDataRequest(perfStreamHandle ps_handle,
 // same as enableDataRequest but with diff type for request 
 //
 void dataManager::enableDataRequest2(perfStreamHandle ps,
-				     vector<metricRLType> *request,
+				     pdvector<metricRLType> *request,
 				     u_int request_Id,
 			             phaseType type,
 				     phaseHandle phaseId,
@@ -677,8 +677,8 @@ void dataManager::enableDataRequest2(perfStreamHandle ps,
     // response call to client
     if((type == CurrentPhase) && (phaseId != phaseInfo::CurrentPhaseHandle())){
 	// send enable failed response to calling thread
-	vector<metricInstInfo> *response = 
-				   new vector<metricInstInfo>(request->size());
+	pdvector<metricInstInfo> *response = 
+				   new pdvector<metricInstInfo>(request->size());
         for(u_int i=0; i < response->size();i++){
             (*response)[i].successfully_enabled = false;	    
 	}
@@ -838,7 +838,7 @@ void dataManager::disableDataAndClearPersistentData(perfStreamHandle ps_handle,
 // each child of resource rh with the remaining resources that make up rlh
 // if the resource rh is a component of the focus rlh, otherwise it returns 0
 //
-vector<rlNameId> *dataManager::magnify(resourceHandle rh, 
+pdvector<rlNameId> *dataManager::magnify(resourceHandle rh, 
 				       resourceListHandle rlh, 
 				       magnifyType m,
 				       resourceHandle currentSearchPath) {
@@ -991,9 +991,9 @@ void dataManager::getTotValue(metricInstanceHandle mh, pdSample *retSample)
 }
 
 //
-// converts from a vector of resourceHandles to a resourceListHandle
+// converts from a pdvector of resourceHandles to a resourceListHandle
 //
-resourceListHandle dataManager::getResourceList(const vector<resourceHandle> *h)
+resourceListHandle dataManager::getResourceList(const pdvector<resourceHandle> *h)
 {
   
     resourceListHandle r = resourceList::getResourceList(*h);
@@ -1001,9 +1001,9 @@ resourceListHandle dataManager::getResourceList(const vector<resourceHandle> *h)
 }
 
 //
-// returns the corresponding focus name for a given resourceHandle vector
+// returns the corresponding focus name for a given resourceHandle pdvector
 //
-const char *dataManager::getFocusName(const vector<resourceHandle> *rh)
+const char *dataManager::getFocusName(const pdvector<resourceHandle> *rh)
 {
   resourceListHandle rlh = resourceList::getResourceList(*rh);
   resourceList *rl = resourceList::getFocus(rlh);
@@ -1022,9 +1022,9 @@ const char *dataManager::getFocusNameFromHandle(resourceListHandle rlh){
 
 
 //
-// converts from a resourceListHandle to a vector of resourceHandles
+// converts from a resourceListHandle to a pdvector of resourceHandles
 //
-vector<resourceHandle> *dataManager::getResourceHandles(resourceListHandle h)
+pdvector<resourceHandle> *dataManager::getResourceHandles(resourceListHandle h)
 {
     return resourceList::getResourceHandles(h);
 }
@@ -1084,16 +1084,16 @@ resourceListHandle *dataManager::findResourceList(const char *name){
 }
 
 //query for matched metric_focus_pair
-vector<metric_focus_pair> *dataManager::matchMetFocus(metric_focus_pair *metfocus)
+pdvector<metric_focus_pair> *dataManager::matchMetFocus(metric_focus_pair *metfocus)
 {
-	vector<metric_focus_pair> *result = new vector<metric_focus_pair>;
-	const vector<metricInstance*> *match_metInsts=metricInstance::query(*metfocus);
+	pdvector<metric_focus_pair> *result = new pdvector<metric_focus_pair>;
+	const pdvector<metricInstance*> *match_metInsts=metricInstance::query(*metfocus);
 	//change results to metric_focus_pair
 	for (unsigned i=0; i < match_metInsts->size(); i++)
 	{
 		metricInstance *mi=(*match_metInsts)[i];
 		metricHandle mi_h = mi->getMetricHandle();
-		vector<resourceHandle> *mi_focus=resourceList::getResourceHandles(mi->getFocusHandle());
+		pdvector<resourceHandle> *mi_focus=resourceList::getResourceHandles(mi->getFocusHandle());
                 assert(mi_focus != NULL);
 
 		*result += metric_focus_pair(mi_h,*mi_focus);
@@ -1191,7 +1191,7 @@ void dataManager::StartPhase(const relTimeStamp *startTimePtr,const char *name,
     }
 }
 
-vector<T_visi::phase_info> *dataManager::getAllPhaseInfo(){
+pdvector<T_visi::phase_info> *dataManager::getAllPhaseInfo(){
     return(phaseInfo::GetAllPhaseInfo());
 }
 
@@ -1241,11 +1241,11 @@ void dataManagerUser::changeResourceBatchMode(resourceBatchModeCallback cb,
 //
 // response to enableDataRequest call
 // func - callback function registered by client thread on createPerfStream
-// response - vector of enable reponses to enable
+// response - pdvector of enable reponses to enable
 // request_id - identifier passed by client to enableDataRequest
 //
 void dataManagerUser::enableDataCallback(enableDataCallbackFunc func,
-				         vector<metricInstInfo> *response,
+				         pdvector<metricInstInfo> *response,
 			                 u_int request_id)
 {
     (func)(response, request_id);
@@ -1279,7 +1279,7 @@ void dataManagerUser::changeState(appStateChangeCallback cb,
 }
 
 void dataManagerUser::newPerfData(sampleDataCallbackFunc func, 
-				  vector<dataValueType> *data,
+				  pdvector<dataValueType> *data,
 				  u_int num_data_values){
 
     (func)(data, num_data_values);
@@ -1291,7 +1291,7 @@ void dataManagerUser::forceFlush(forceFlushCallbackFunc func){
 
 // trace data streams
 void dataManagerUser::newTracePerfData(traceDataCallbackFunc func,
-                                  vector<traceDataValueType> *traceData,
+                                  pdvector<traceDataValueType> *traceData,
                                   u_int num_traceData_values){
 
     timeStamp *heapTime = new timeStamp;
@@ -1348,13 +1348,13 @@ resourceHandle dataManager::newResource(resourceHandle parent,
     // the kludge works because we know that all calls to this method 
     // are for BASE abstraction resources.  
 
-    // TEMP: until this routine is called with vector of strings for new res
+    // TEMP: until this routine is called with pdvector of strings for new res
     string res = resource::resources[parent]->getFullName();
     res += string("/");
     res += string(newResource);
     char *word = strdup(res.c_str());
     string next;
-    vector<string> temp;
+    pdvector<string> temp;
     unsigned j=1;
     for(unsigned i=1; i < res.length(); i++){
 	if(word[i] == '/'){
@@ -1386,7 +1386,7 @@ resourceHandle dataManager::newResource(resourceHandle parent,
     
     string abs = "BASE";
     resource *parent_res = resource::handle_to_resource(parent);
-    vector<string> res_name = parent_res->getParts();
+    pdvector<string> res_name = parent_res->getParts();
     res_name += name;
     resourceHandle child = resource::createResource(0, res_name, abs, type);
     paradynDaemon::tellDaemonsOfResource(parent_res->getHandle(), 
@@ -1428,7 +1428,7 @@ void dataManager::printDaemons()
   paradynDaemon::printDaemons();
 }
 
-vector<string> *dataManager::getAvailableDaemons()
+pdvector<string> *dataManager::getAvailableDaemons()
 {
     return(paradynDaemon::getAvailableDaemons());
 }

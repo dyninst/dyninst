@@ -33,8 +33,8 @@ $remote test {
     void nullStruct(intStruct);
     int intString(string*);
     int add(const int, const int);
-    int sumVector(vector<int>*);
-    vector<int> *retVector(int len, int start);
+    int sumVector(pdvector<int>*);
+    pdvector<int> *retVector(int len, int start);
     string *stringString(string*);
     void triggerAsyncUpcall(int val);
     $upcall $async void asyncUpcall(int x1);

@@ -62,7 +62,7 @@ dictionary_hash<K,V>::dictionary_hash(unsigned (*hf)(const K &),
                                 // collisions per bin?
   hasher = hf;
 
-  // Note: all_elems[] starts off as an empty vector.
+  // Note: all_elems[] starts off as an empty pdvector.
 
   // Pre-size the # of bins from parameter.  
   // Each bins starts off empty (UINT_MAX)
@@ -310,12 +310,12 @@ void dictionary_hash<K,V>::undef(const K& key) {
 // Sun's compiler can't handle the return types
 
 template<class K, class V>
-vector<K>
+pdvector<K>
 dictionary_hash<K,V>::keys() const {
   // One can argue that this method (and values(), below) should be removed in
   // favor of using the dictionary iterator class.  I agree; it's here only for
   // backwards compatibility.
-  vector<K> result;
+  pdvector<K> result;
   result.reserve(size());
    
   // note that the iterator class automatically skips elems tagged for removal
@@ -327,12 +327,12 @@ dictionary_hash<K,V>::keys() const {
 }
 
 template<class K, class V>
-vector<V>
+pdvector<V>
 dictionary_hash<K,V>::values() const {
   // One can argue that this method (and keys(), above) should be removed in
   // favor of using the dictionary iterator class.  I agree; it's here only for
   // backwards compatibility.
-  vector<V> result;
+  pdvector<V> result;
   result.reserve(size());
    
   // note that the iterator class automatically skips elems tagged for removal
@@ -344,14 +344,14 @@ dictionary_hash<K,V>::values() const {
 }
 
 template<class K, class V>
-vector< pair<K, V> >
+pdvector< pdpair<K, V> >
 dictionary_hash<K,V>::keysAndValues() const {
-  vector< pair<K, V> > result;
+  pdvector< pdpair<K, V> > result;
   result.reserve(size());
    
   const_iterator finish = end();
   for (const_iterator iter = begin(); iter != finish; ++iter)
-    result.push_back( make_pair(iter.currkey(), iter.currval()) );
+    result.push_back( make_pdpair(iter.currkey(), iter.currval()) );
 
   return result;
 }
@@ -364,7 +364,7 @@ void dictionary_hash<K,V>::clear() {
   // Also, bins.size() doesn't change; is this best (perhaps we should shrink
   // bins down to its original size...not trivial since we didn't set that value
   // aside in the ctor.  In any event we don't lose sleep since calling clear() is
-  // rare.)  Like class vector, we could also provide a zap() method which actually
+  // rare.)  Like class pdvector, we could also provide a zap() method which actually
   // does free up memory.
 
   all_elems.clear();
@@ -512,7 +512,7 @@ dictionary_hash<K,V>::grow_numbins(unsigned new_numbins) {
 	const unsigned oldsize = all_elems.size();
 	assert(oldsize > 0);
 
-	// remove item from vector by swap with last item & resizing/-1
+	// remove item from pdvector by swap with last item & resizing/-1
 	all_elems[lcv] = all_elems[oldsize-1]; // should be OK if lcv==oldsize-1
 	all_elems.resize(oldsize-1);
 
@@ -529,7 +529,7 @@ dictionary_hash<K,V>::grow_numbins(unsigned new_numbins) {
 
   // Now rehash everything.  Sounds awfully expensive, and I guess it is -- it's
   // linear in the total # of items in the hash table.  But take heart: beyond this
-  // point, we don't need to make any copies of type KEY or VALUE, resize any vectors,
+  // point, we don't need to make any copies of type KEY or VALUE, resize any pdvectors,
   // or recalculate any hash values.  We just need to assign to <n> unsigned
   // integers.
 

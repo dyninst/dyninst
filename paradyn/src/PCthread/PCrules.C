@@ -42,14 +42,14 @@
 /*
  * The specific metric and hypothesis definitions which will eventually 
  * be parsed from a configuration file.
- * $Id: PCrules.C,v 1.50 2001/06/20 20:33:41 schendel Exp $
+ * $Id: PCrules.C,v 1.51 2002/12/20 07:50:03 jaw Exp $
  */
 
 #include "PCintern.h"
 #include "PCwhy.h"
 #include "PCmetric.h"
 
-typedef vector<string*> stringList;
+typedef pdvector<string*> stringList;
 
 //** temporary home of <gasp> globals
 whyAxis *PCWhyAxis = new whyAxis();

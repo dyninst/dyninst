@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.C,v 1.31 2002/11/25 23:51:48 schendel Exp $
+// $Id: DMperfstream.C,v 1.32 2002/12/20 07:50:01 jaw Exp $
 
 #include <assert.h>
 #include <limits.h>     // UINT_MAX
@@ -302,7 +302,7 @@ void performanceStream::callPredictedCostFuc(metricHandle m_handle,
     }
 }
 
-void performanceStream::callDataEnableFunc(vector<metricInstInfo> *response,
+void performanceStream::callDataEnableFunc(pdvector<metricInstInfo> *response,
 					   u_int request_id)
 {
     if (controlFunc.eFunc) {

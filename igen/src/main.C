@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.54 2002/07/25 19:22:23 willb Exp $
+// $Id: main.C,v 1.55 2002/12/20 07:50:00 jaw Exp $
 
 #include "parse.h"
 #include "Options.h"
@@ -55,10 +55,10 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 
 bool Options::dont_gen_handle_err = false;
 dictionary_hash<string, type_defn*> Options::all_types(string::hash);
-vector<type_defn*> Options::vec_types;
-vector<message_layer*> Options::all_ml;
-vector<Options::stl_data> Options::stl_types;
-vector<string> Options::forward_decls;
+pdvector<type_defn*> Options::vec_types;
+pdvector<message_layer*> Options::all_ml;
+pdvector<Options::stl_data> Options::stl_types;
+pdvector<string> Options::forward_decls;
 
 extern FILE *yyin;
 extern int yyparse();
@@ -360,7 +360,7 @@ static void close_files() {
 
 static void init_types() {
   Options::stl_data sd;
-  sd.name = "vector"; sd.include_file = "common/h/Vector.h";
+  sd.name = "pdvector"; sd.include_file = "common/h/Vector.h";
   sd.need_include = false; sd.pragma_name = "Vector.h";
   Options::stl_types += sd;
   Options::el_data el;

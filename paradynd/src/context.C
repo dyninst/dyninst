@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.82 2002/12/14 16:37:47 schendel Exp $ */
+/* $Id: context.C,v 1.83 2002/12/20 07:50:06 jaw Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -315,7 +315,8 @@ PDSOCKET connect_Svr(string machine,int port)
 }
 #endif
 
-int pd_createProcess(vector<string> &argv, vector<string> &envp, string dir) {
+int pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, string dir) {
+
 #if !defined(i386_unknown_nt4_0)
    if (termWin_port == -1)
       return -1;

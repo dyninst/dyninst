@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.25 2002/12/14 16:37:34 schendel Exp $
+// $Id: osfDL.C,v 1.26 2002/12/20 07:49:58 jaw Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -121,7 +121,7 @@ typedef struct {
 // a /proc file descriptor has been opened for the application process.
 // TODO: 
 // dlclose events should result in a call to removeASharedObject
-vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
+pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
     
     // step 1: figure out if this is a dynamic executable. 
 
@@ -144,7 +144,7 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
     if(!proc_fd){ return 0;}
 
     // step 2: find the base address and file descriptor of ld.so.1
-    vector<shared_object *> *result = new(vector<shared_object *>);
+    pdvector<shared_object *> *result = new(pdvector<shared_object *>);
 
     // step 2: get the runtime loader table from the process
     Address ldr_base_addr;
@@ -214,7 +214,7 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 }
 
 bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc, 
-    vector<shared_object *> **shObjects, u_int &changeType, bool & /* err */)
+    pdvector<shared_object *> **shObjects, u_int &changeType, bool & /* err */)
 {
   Address pc;
 
@@ -231,12 +231,12 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
     changeType = SHAREDOBJECT_ADDED;
 
 
-      *shObjects = new vector<shared_object *>;
+      *shObjects = new pdvector<shared_object *>;
       // get list of current shared objects defined for the process
-      vector<shared_object *> *curr_list = proc->sharedObjects();
+      pdvector<shared_object *> *curr_list = proc->sharedObjects();
 
       // get the list from the process via /proc
-      vector<shared_object *> *new_shared_objs = getSharedObjects(proc);
+      pdvector<shared_object *> *new_shared_objs = getSharedObjects(proc);
 
       for (unsigned int i=0; i < new_shared_objs->size(); i++) {
 	  string new_name = ((*new_shared_objs)[i])->getName();
@@ -405,7 +405,7 @@ void process::handleIfDueToDyninstLib()
     return;
   }
 
-  vector<shared_object *> *new_shared_objs = dyn->getSharedObjects(this);
+  pdvector<shared_object *> *new_shared_objs = dyn->getSharedObjects(this);
   if (!new_shared_objs) return;
 
   // get the address of the new shared objects
@@ -679,7 +679,7 @@ bool process::dlopenDYNINSTlib()
   extern registerSpace *createRegisterSpace();
   registerSpace *regs = createRegisterSpace();
 
-  vector<AstNode*> args(2);
+  pdvector<AstNode*> args(2);
   AstNode *call;
   string callee = "dlopen";
   // inferior dlopen(): build AstNodes

@@ -44,7 +44,7 @@
    is used internally by the UIM.
 */
 
-/* $Id: uimpd.tcl.C,v 1.47 2001/11/02 16:11:32 pcroth Exp $ */
+/* $Id: uimpd.tcl.C,v 1.48 2002/12/20 07:50:05 jaw Exp $ */
  
 #include <stdlib.h>
 #include "pdutil/h/odometer.h"
@@ -55,7 +55,7 @@
 #include "abstractions.h"
 #include "pdutil/h/TclTools.h"
 
-void printMFPlist (vector<metric_focus_pair> *list) 
+void printMFPlist (pdvector<metric_focus_pair> *list) 
 {
   for (unsigned i = 0; i < list->size(); i++) {
     cout << "   metric: " <<  
@@ -126,7 +126,7 @@ int sendVisiSelectionsCmd(ClientData,
       // Since the following igen call is async, we must unfortunately make
       // a copy of uim_VisiSelections, and pass that in.  The consumer
       // will deallocate the memory.
-      vector<metric_focus_pair> *temp_igen_vec = new vector<metric_focus_pair> (uim_VisiSelections);
+      pdvector<metric_focus_pair> *temp_igen_vec = new pdvector<metric_focus_pair> (uim_VisiSelections);
       assert(temp_igen_vec);
       uim_server->chosenMetricsandResources(mcb, temp_igen_vec);
   }
@@ -137,8 +137,8 @@ int sendVisiSelectionsCmd(ClientData,
   return TCL_OK;
 }
 
-typedef vector<unsigned> numlist;
-void printResSelectList (vector<numlist> *v, char *name)
+typedef pdvector<unsigned> numlist;
+void printResSelectList (pdvector<numlist> *v, char *name)
 {
   cout << "[Focus List " << name << "|" << v->size() << "] "; 
   for (unsigned i = 0; i < v->size(); i++) {
@@ -157,16 +157,16 @@ void printResSelectList (vector<numlist> *v, char *name)
  * nodeID vectors; each element on resulting list can be converted into 
  * one focus.
  */
-vector<numlist> parseSelections(vector<numlist> &theHierarchy,
+pdvector<numlist> parseSelections(pdvector<numlist> &theHierarchy,
 				bool plusWholeProgram,
 				numlist wholeProgramFocus) {
    // how many resources are in each hierarchy?:
-   vector<unsigned> numResourcesByHierarchy(theHierarchy.size());
+   pdvector<unsigned> numResourcesByHierarchy(theHierarchy.size());
    for (unsigned hier=0; hier < theHierarchy.size(); hier++)
       numResourcesByHierarchy[hier] = theHierarchy[hier].size();
 
    odometer theOdometer(numResourcesByHierarchy);
-   vector<numlist> result;
+   pdvector<numlist> result;
 
    while (!theOdometer.done()) {
       // create a focus using the odometer's current setting
@@ -213,7 +213,7 @@ int processVisiSelectionCmd(ClientData,
    extern abstractions *theAbstractions;
    bool wholeProgram;
    numlist wholeProgramFocus;
-   vector< vector<resourceHandle> > theHierarchySelections = theAbstractions->getCurrAbstractionSelections(wholeProgram, wholeProgramFocus);
+   pdvector< pdvector<resourceHandle> > theHierarchySelections = theAbstractions->getCurrAbstractionSelections(wholeProgram, wholeProgramFocus);
 
 #if UIM_DEBUG
    for (int i=0; i < theHierarchySelections.size(); i++) {
@@ -224,7 +224,7 @@ int processVisiSelectionCmd(ClientData,
    }
 #endif
 
-  vector<numlist> fociList = parseSelections (theHierarchySelections,
+  pdvector<numlist> fociList = parseSelections (theHierarchySelections,
 					      wholeProgram, wholeProgramFocus);
 
 #if UIM_DEBUG

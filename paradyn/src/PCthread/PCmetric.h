@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCmetric.h,v 1.27 2002/05/13 19:53:08 mjbrim Exp $
+// $Id: PCmetric.h,v 1.28 2002/12/20 07:50:02 jaw Exp $
 // The PCmetric class and the PCmetricInst class.
 
 #ifndef pc_metric_h
@@ -86,7 +86,7 @@ public:
 private:
   string metName;
   bool InstWithPause;
-  vector <PCMetInfo*> *DMmetrics; 
+  pdvector <PCMetInfo*> *DMmetrics; 
   metricHandle mh;
   focusType ft;
   initPCmetricInstFunc setup;

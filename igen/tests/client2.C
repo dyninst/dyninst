@@ -33,7 +33,7 @@ void *clientMainFunc(void *parentId) {
   remote = new testUser(stid);
 
   int tries;
-  vector<int> vect;
+  pdvector<int> vect;
   vect += 1; vect += 2; vect += 3; vect += 4; vect += 5; 
   vect += 6; vect += 7; vect += 8; vect += 9; vect += 10;
 

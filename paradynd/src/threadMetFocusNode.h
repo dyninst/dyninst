@@ -62,7 +62,7 @@ class threadMetFocusNode_Val {
   enum { NON_THREAD = -1};
   const string metric_name;
   const Focus focus;
-  vector< parentDataRec<processMetFocusNode> > parentsBuf;
+  pdvector< parentDataRec<processMetFocusNode> > parentsBuf;
   pdSample cumulativeValue;
   bool allAggInfoInitialized;
   pd_thread *pdThr;

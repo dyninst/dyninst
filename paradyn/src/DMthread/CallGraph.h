@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.h,v 1.8 2002/10/28 04:54:12 schendel Exp $
+// $Id: CallGraph.h,v 1.9 2002/12/20 07:50:01 jaw Exp $
 
 /**********************************************************
  *
@@ -78,11 +78,11 @@ class CallGraph;
 class CallGraph {
   // for each resource registered w/ call graph, list of children
     //  in call graph.... 
-    dictionary_hash <resource *, vector<resource *> > children;
+    dictionary_hash <resource *, pdvector<resource *> > children;
  
     // for each resource registered w/ call graph, list of parents
     //  in call graph....
-    dictionary_hash <resource *, vector<resource *> > parents;
+    dictionary_hash <resource *, pdvector<resource *> > parents;
     
     //used to avoid revisiting nodes that we have already visited when
     //traversing the call graph in displayCallGraph()
@@ -94,7 +94,7 @@ class CallGraph {
     dictionary_hash<resource *, int> instrumented_call_sites;
     
     //Vector holding all of those functions that contain dynamic call sites
-    vector<resource *> dynamic_call_sites;
+    pdvector<resource *> dynamic_call_sites;
 
     dictionary_hash<unsigned, resourceHandle> tid_to_start_func;
 
@@ -152,7 +152,7 @@ class CallGraph {
     //  added....
     // assert(r previously seen by call graph).....
     // registers resources in <children> not previously seen....
-    int SetChildren(resource *r, const vector <resource *>children);
+    int SetChildren(resource *r, const pdvector <resource *>children);
 
     int AddChild(resource *parent, resource *child);
 
@@ -180,7 +180,7 @@ class CallGraph {
     //  (e.g. Performance Consultant searches).
     // See above for discussion of why alternate resource hierarchies
     //  were not used....
-    vector <resourceHandle>* getChildren(resource *rh);
+    pdvector <resourceHandle>* getChildren(resource *rh);
 
     // Call Graph class also holds static directory of call graphs indexed
     //  by program id.  This function should return a pointer to the call

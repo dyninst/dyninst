@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.98 2002/12/14 16:37:54 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.99 2002/12/20 07:50:07 jaw Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -72,13 +72,13 @@ class threadMetFocusNode;
 class instrCodeNode;
 
 class metricFocusNode {
-friend timeLength guessCost(string& metric_name, vector<u_int>& focus) ;
+friend timeLength guessCost(string& metric_name, pdvector<u_int>& focus) ;
 
 #if defined(MT_THREAD)
 friend bool checkMetricMIPrimitives(string metric_flat_name, 
 				    instrCodeNode *& metric_prim,
 				    string name, 
-				    vector< vector<string> >& comp_focus, 
+				    pdvector< pdvector<string> >& comp_focus, 
 				    int processIdx);
 #endif
 
@@ -137,8 +137,8 @@ class metricFocusRequestCallbackInfo {
    metricFocusRequestCallbackInfo(int request_id_, int daemon_id_) :
       request_id(request_id_), daemon_id(daemon_id_) { }
 
-   void makeCallback(const vector<int> &returnIDs, 
-		     const vector<u_int> &mi_ids);
+   void makeCallback(const pdvector<int> &returnIDs, 
+		     const pdvector<u_int> &mi_ids);
 };
 
 #if defined(MT_THREAD)
@@ -174,7 +174,7 @@ extern void reportInternalMetrics(bool force);
  * procsToContinue      - a list of processes that had to be stopped to insert
  *                        instrumentation. The caller must continue these processes.
  */
-instr_insert_result_t startCollecting(string& metricName, vector<u_int>& focus,
+instr_insert_result_t startCollecting(string& metricName, pdvector<u_int>& focus,
 				   int mid, 
 				   metricFocusRequestCallbackInfo *cbi = NULL);
 
@@ -183,7 +183,7 @@ instr_insert_result_t startCollecting(string& metricName, vector<u_int>& focus,
  *    metric at a given focus.  The value returned is the fraction of
  *    perturbation expected (i.e. 0.10 == 10% slow down expected).
  */
-timeLength guessCost(string& metric_name, vector<u_int>& focus);
+timeLength guessCost(string& metric_name, pdvector<u_int>& focus);
 
 void flush_batch_buffer();
 void batchSampleData(string metname, int mid, timeStamp startTimeStamp, 
@@ -191,10 +191,10 @@ void batchSampleData(string metname, int mid, timeStamp startTimeStamp,
 
 /*
 bool AstNode_condMatch(AstNode* a1, AstNode* a2,
-		       vector<dataReqNode*> &data_tuple1, // initialization?
-		       vector<dataReqNode*> &data_tuple2,
-		       vector<dataReqNode*> datareqs1,
-		       vector<dataReqNode*> datareqs2);
+		       pdvector<dataReqNode*> &data_tuple1, // initialization?
+		       pdvector<dataReqNode*> &data_tuple2,
+		       pdvector<dataReqNode*> datareqs1,
+		       pdvector<dataReqNode*> datareqs2);
 */
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.28 2002/08/04 17:29:50 gaburici Exp $
+// $Id: BPatch_function.C,v 1.29 2002/12/20 07:49:55 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -274,8 +274,8 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
           break;
       case BPatch_allLocations:
         {
-          const vector<instPoint *> &Rpoints = func->funcExits(proc);
-          const vector<instPoint *> &Cpoints = func->funcCalls(proc);
+          const pdvector<instPoint *> &Rpoints = func->funcExits(proc);
+          const pdvector<instPoint *> &Cpoints = func->funcCalls(proc);
           unsigned int c=0, r=0;
           Address cAddr, rAddr;
           while (c < Cpoints.size() || r < Rpoints.size()) {
@@ -297,7 +297,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
         }
       case BPatch_exit:
         {
-          const vector<instPoint *> &points = func->funcExits(proc);
+          const pdvector<instPoint *> &points = func->funcExits(proc);
           for (unsigned i = 0; i < points.size(); i++) {
 	      result->push_back(proc->findOrCreateBPPoint(
 		  this, points[i], BPatch_exit));
@@ -306,7 +306,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
         }
       case BPatch_subroutine:
         {
-          const vector<instPoint *> &points = func->funcCalls(proc);
+          const pdvector<instPoint *> &points = func->funcCalls(proc);
           for (unsigned i = 0; i < points.size(); i++) {
 	      result->push_back(proc->findOrCreateBPPoint(
 		  this, points[i], BPatch_subroutine));

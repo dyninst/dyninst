@@ -41,7 +41,7 @@
 
 // new search history graph user interface, along the lines
 // of the new where axis user interface
-// $Id: shg.C,v 1.34 2002/08/02 21:00:32 pcroth Exp $
+// $Id: shg.C,v 1.35 2002/12/20 07:50:04 jaw Exp $
 // Ariel Tamches
 
 #include <assert.h>
@@ -63,8 +63,8 @@
 Tk_Font shg::theRootItemFontStruct, shg::theRootItemShadowFontStruct;
 Tk_Font shg::theListboxItemFontStruct, shg::theListboxItemShadowFontStruct;
 
-vector<Tk_3DBorder> shg::rootItemTk3DBordersByStyle; // init to empty vector
-vector<Tk_3DBorder> shg::listboxItemTk3DBordersByStyle; // inits to empty vector
+pdvector<Tk_3DBorder> shg::rootItemTk3DBordersByStyle; // init to empty vector
+pdvector<Tk_3DBorder> shg::listboxItemTk3DBordersByStyle; // inits to empty vector
 
 GC shg::rootItemInactiveTextGC, shg::rootItemActiveTextGC;
 GC shg::rootItemInactiveShadowTextGC, shg::rootItemActiveShadowTextGC;
@@ -1000,7 +1000,7 @@ shg::configNodeResult shg::configNode(unsigned id, bool newActive,
 
    if (shadowNodeHash.defines(id)) {
       // shadow nodes exist for this id.  configStyle() them, too.
-      vector< where4tree<shgRootNode>* > &shadowList = shadowNodeHash[id];
+      pdvector< where4tree<shgRootNode>* > &shadowList = shadowNodeHash[id];
       for (unsigned i=0; i < shadowList.size(); i++) {
          where4tree<shgRootNode>* shadowNode = shadowList[i];
          if (shadowNode->getNodeData().configStyle(newActive, newEvalState))
@@ -1258,7 +1258,7 @@ void shg::addEdge(unsigned fromId, unsigned toId,
       childPtr = new where4tree<shgRootNode> (tempNewNode.shadowify(label));
       assert(childPtr);
 
-      vector<where4tree<shgRootNode>*> &theShadowNodes = shadowNodeHash[toId];
+      pdvector<where4tree<shgRootNode>*> &theShadowNodes = shadowNodeHash[toId];
       theShadowNodes += childPtr;
 
       // Note: we do not add shadow node pointers to hash2[] (is this right?)

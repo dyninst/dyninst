@@ -69,7 +69,7 @@ string Options::allocate_type(const string &name, bool is_class, bool is_abstrac
 			      bool is_derived, const string &parent,
 			      const type_defn::type_type &typ,
 			      bool can_point, bool in_lib,
-			      vector<arg*> *arglist, const string &ignore_text,
+			      pdvector<arg*> *arglist, const string &ignore_text,
 			      const string &bundle_name) {
   return (Options::add_type(name, is_class, is_abstract, is_derived, parent, typ, can_point,
 			    in_lib, arglist, ignore_text, bundle_name));
@@ -86,7 +86,7 @@ string Options::add_type(const string name, const bool is_class, const bool is_a
 			 const bool is_derived, const string parent,
 			 const type_defn::type_type &type,
 			 const bool can_point, const bool in_lib,
-			 vector<arg*> *arglist, const string ignore_text,
+			 pdvector<arg*> *arglist, const string ignore_text,
 			 const string bundler_name) {
   type_defn *ign = new type_defn(name, is_class, is_abstract, is_derived, parent, type,
 				 arglist, can_point, in_lib,

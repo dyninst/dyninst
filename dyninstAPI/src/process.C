@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.374 2002/12/14 16:37:42 schendel Exp $
+// $Id: process.C,v 1.375 2002/12/20 07:49:58 jaw Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -171,11 +171,11 @@ static const timeLength MaxDeletingTime(2, timeUnit::sec());
 unsigned inferiorMemAvailable=0;
 
 unsigned activeProcesses; // number of active processes
-vector<process*> processVec;
+pdvector<process*> processVec;
 string process::programName;
 string process::dyninstRT_name;
 string process::pdFlavor;
-vector<string> process::arg_list;
+pdvector<string> process::arg_list;
 
 #ifndef BPATCH_LIBRARY
 string process::paradynRT_name;
@@ -224,26 +224,6 @@ ostream& operator<<(ostream&s, const Frame &f) {
   return s;
 }
 
-#if defined(USE_STL_VECTOR)
-// need to use dumber vector alloc method w/stl, I think -JAW 1/2002
-disabledItem::disabledItem(heapItem *h, const vector<addrVecType> &preds) :
-  block(h) 
-{
-  for (unsigned int i = 0; i < preds.size(); ++i) {
-    pointsToCheck.push_back(preds[i]);
-  }
-}
-
-disabledItem::disabledItem(const disabledItem &src) : 
-  block(src.block) 
-{
-  for (unsigned int i = 0; i < src.pointsToCheck.size(); ++i) {
-    pointsToCheck.push_back(src.pointsToCheck[i]);
-  }
-}
-
-#endif
-
 /* AIX method defined in aix.C; hijacked for IA-64's GP. */
 #if !defined(rs6000_ibm_aix4_1) && !defined( ia64_unknown_linux2_4 )
 Address process::getTOCoffsetInfo(Address /*dest */)
@@ -287,7 +267,7 @@ Address process::getTOCoffsetInfo(Address dest)
 
 #if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
 bool process::walkStackFromFrame(Frame startFrame,
-				 vector<Frame> &stackWalk)
+				 pdvector<Frame> &stackWalk)
 {
   Address next_pc = 0;
   Address fpOld   = 0;
@@ -349,7 +329,7 @@ bool process::walkStackFromFrame(Frame startFrame,
 // Return a vector (possibly with one object) of active frames
 // in the process
 
-bool process::getAllActiveFrames(vector<Frame> &activeFrames)
+bool process::getAllActiveFrames(pdvector<Frame> &activeFrames)
 {
   Frame active;
   bool success = true;
@@ -373,9 +353,9 @@ bool process::getAllActiveFrames(vector<Frame> &activeFrames)
   return success;
 }
 
-bool process::walkStacks(vector<vector<Frame> >&stackWalks)
+bool process::walkStacks(pdvector<pdvector<Frame> >&stackWalks)
 {
-  vector<Frame> stackWalk;
+  pdvector<Frame> stackWalk;
   if (!threads.size()) { // Nothing defined in thread data structures
     if (!getDefaultLWP()->walkStack(stackWalk))
       return false;
@@ -422,7 +402,7 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame frame,
      char line[200];
      bool didA = false;
      if (stack_fn) {
-	vector<string> name = stack_fn->prettyNameVector();
+	pdvector<string> name = stack_fn->prettyNameVector();
 	if (name.size()) {
            sprintf(line, "stack_func: %-20.20s ", name[0].c_str());
            didA = true;
@@ -431,7 +411,7 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame frame,
      if(!didA)  sprintf(line, "stack_func: %-20.20s ", "");
 
      if (instPoint_fn) {
-        vector<string> name = instPoint_fn->prettyNameVector();
+        pdvector<string> name = instPoint_fn->prettyNameVector();
         strcat(line, "instP_func: ");
         if (name.size())
            strcat(line, name[0].c_str());
@@ -710,7 +690,7 @@ static Address alignAddress(Address addr, unsigned align) {
 
 // disItem was previously declared const, but heap management
 // occasionally deletes such items
-bool isFreeOK(process *proc, disabledItem &dis, vector<Frame> stackWalk)
+bool isFreeOK(process *proc, disabledItem &dis, pdvector<Frame> stackWalk)
 {
   Address disPointer = dis.block.addr;
   inferiorHeap *hp = &proc->heap;
@@ -730,7 +710,7 @@ bool isFreeOK(process *proc, disabledItem &dis, vector<Frame> stackWalk)
   }
   assert(ptr);
 
-  vector<addrVecType> &points = dis.pointsToCheck; 
+  pdvector<addrVecType> &points = dis.pointsToCheck; 
   for (unsigned pci = 0; pci < stackWalk.size(); pci++) {
     Address pc = stackWalk[pci].getPC();
     // Condition 1: PC is inside current block
@@ -782,7 +762,7 @@ int heapItemCmpByAddr(const heapItem **A, const heapItem **B)
 
 void process::inferiorFreeCompact(inferiorHeap *hp)
 {
-  vector<heapItem *> &freeList = hp->heapFree;
+  pdvector<heapItem *> &freeList = hp->heapFree;
   unsigned i, nbuf = freeList.size();
 
   /* sort buffers by address */
@@ -807,7 +787,7 @@ void process::inferiorFreeCompact(inferiorHeap *hp)
 
   /* remove any absorbed (empty) buffers */ 
   if (needToCompact) {
-    vector<heapItem *> cleanList;
+    pdvector<heapItem *> cleanList;
     unsigned end = freeList.size();
     for (i = 0; i < end; i++) {
       heapItem *h1 = freeList[i];
@@ -831,7 +811,7 @@ void process::inferiorFreeCompact(inferiorHeap *hp)
 // There's also another one which takes a shared library and
 // only looks in there for the heaps
 
-bool process::getInfHeapList(vector<heapDescriptor> &infHeaps)
+bool process::getInfHeapList(pdvector<heapDescriptor> &infHeaps)
 {
   bool foundHeap = false;
   // First check the program (without shared libs)
@@ -851,7 +831,7 @@ bool process::getInfHeapList(vector<heapDescriptor> &infHeaps)
 }
 
 bool process::getInfHeapList(const image *theImage, // okay, boring name
-                             vector<heapDescriptor> &infHeaps)
+                             pdvector<heapDescriptor> &infHeaps)
 {
 
   // First we get the list of symbols we're interested in, then
@@ -859,7 +839,7 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
   // for two reasons: first, the symbol address might be off (depends
   // on the image), and this lets us do some post-processing.
   bool foundHeap = false;
-  vector<Symbol> heapSymbols;
+  pdvector<Symbol> heapSymbols;
   Address baseAddr = 0;
 
   // For maximum flexibility the findInternalByPrefix function
@@ -1194,8 +1174,8 @@ char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibraries
 	return dyninst_SharedLibrariesData;
 }
 
-void process::saveWorldCreateHighMemSections(vector<imageUpdate*> &compactedHighmemUpdates, 
-				vector<imageUpdate*> &highmemUpdates, void *ptr){
+void process::saveWorldCreateHighMemSections(pdvector<imageUpdate*> &compactedHighmemUpdates, 
+				pdvector<imageUpdate*> &highmemUpdates, void *ptr){
 
 	unsigned int trampGuardValue;
 	Address guardFlagAddr= trampGuardAddr();
@@ -1353,7 +1333,7 @@ void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002
 
 void process::addInferiorHeap(const image *theImage)
 {
-  vector<heapDescriptor> infHeaps;
+  pdvector<heapDescriptor> infHeaps;
 
   /* Get a list of inferior heaps in the new image */
   if (getInfHeapList(theImage, infHeaps))
@@ -1380,7 +1360,7 @@ void process::initInferiorHeap()
 {
   assert(this->symbols);
   inferiorHeap *hp = &heap;
-  vector<heapDescriptor> infHeaps;
+  pdvector<heapDescriptor> infHeaps;
 
   // first initialization: add static heaps to pool
   if (hp->bufferPool.size() == 0) {
@@ -1473,7 +1453,7 @@ inferiorHeap::inferiorHeap(const inferiorHeap &src):
       heapFree.push_back(new heapItem(src.heapFree[u1]));
     }
 
-    vector<heapItem *> items = src.heapActive.values();
+    pdvector<heapItem *> items = src.heapActive.values();
     for (unsigned u2 = 0; u2 < items.size(); u2++) {
       heapActive[items[u2]->addr] = new heapItem(items[u2]);
     }
@@ -1498,7 +1478,7 @@ inferiorHeap::inferiorHeap(const inferiorHeap &src):
 //
 int process::findFreeIndex(unsigned size, int type, Address lo, Address hi)
 {
-  vector<heapItem *> &freeList = heap.heapFree;
+  pdvector<heapItem *> &freeList = heap.heapFree;
 
   int best = -1;
   for (unsigned i = 0; i < freeList.size(); i++) {
@@ -1569,7 +1549,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
 
   // build AstNode for "DYNINSTos_malloc" call
   string callee = "DYNINSTos_malloc";
-  vector<AstNode*> args(3);
+  pdvector<AstNode*> args(3);
   args[0] = new AstNode(AstNode::Constant, (void *)size);
   args[1] = new AstNode(AstNode::Constant, (void *)lo);
   args[2] = new AstNode(AstNode::Constant, (void *)hi);
@@ -1851,7 +1831,7 @@ bool process::initDyninstLib() {
   initInferiorHeap();
   // This must be done after the inferior heap is initialized
   initTrampGuard();
-  extern vector<sym_data> syms_to_find;
+  extern pdvector<sym_data> syms_to_find;
   if (!heapIsOk(syms_to_find))
     return false;
  
@@ -2583,7 +2563,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
    // make copy of parent's shared_objects vector
    if (parentProc.shared_objects) {
-      shared_objects = new vector<shared_object*>;
+      shared_objects = new pdvector<shared_object*>;
       for (unsigned u1 = 0; u1 < parentProc.shared_objects->size(); u1++){
          (*shared_objects).push_back(
                                      new shared_object(*(*parentProc.shared_objects)[u1]));
@@ -2592,28 +2572,28 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
    all_functions = 0;
    if (parentProc.all_functions) {
-      all_functions = new vector<function_base *>;
+      all_functions = new pdvector<function_base *>;
       for (unsigned u2 = 0; u2 < parentProc.all_functions->size(); u2++)
          (*all_functions).push_back((*parentProc.all_functions)[u2]);
    }
 
    all_modules = 0;
    if (parentProc.all_modules) {
-      all_modules = new vector<module *>;
+      all_modules = new pdvector<module *>;
       for (unsigned u3 = 0; u3 < parentProc.all_modules->size(); u3++)
          (*all_modules).push_back((*parentProc.all_modules)[u3]);
    }
 
    some_modules = 0;
    if (parentProc.some_modules) {
-      some_modules = new vector<module *>;
+      some_modules = new pdvector<module *>;
       for (unsigned u4 = 0; u4 < parentProc.some_modules->size(); u4++)
          (*some_modules).push_back((*parentProc.some_modules)[u4]);
    }
     
    some_functions = 0;
    if (parentProc.some_functions) {
-      some_functions = new vector<function_base *>;
+      some_functions = new pdvector<function_base *>;
       for (unsigned u5 = 0; u5 < parentProc.some_functions->size(); u5++)
          (*some_functions).push_back((*parentProc.some_functions)[u5]);
    }
@@ -2700,8 +2680,8 @@ Address process::initSharedMetaData() {
 }
 #endif
 
-extern bool forkNewProcess(string &file, string dir, vector<string> argv, 
-		    vector<string> envp, string inputFile, string outputFile,
+extern bool forkNewProcess(string &file, string dir, pdvector<string> argv, 
+		    pdvector<string> envp, string inputFile, string outputFile,
 		    int &traceLink, 
 		    int &pid, int &tid, 
 		    int &procHandle, int &thrHandle,
@@ -2711,8 +2691,8 @@ extern bool forkNewProcess(string &file, string dir, vector<string> argv,
  * Create a new instance of the named process.  Read the symbols and start
  *   the program
  */
-process *createProcess(const string File, vector<string> argv, 
-                        vector<string> envp, const string dir = "", 
+process *createProcess(const string File, pdvector<string> argv, 
+                        pdvector<string> envp, const string dir = "", 
                         int stdin_fd=0, int stdout_fd=1, int stderr_fd=2)
 {
 
@@ -3076,24 +3056,14 @@ bool attachProcess(const string &progpath, int pid, int afterAttach,
    
 #if defined(BPATCH_LIBRARY) || 1 //ccw 28 apr 2002 : SPLIT2
   
-#ifdef USE_STL_VECTOR
-  vector<AstNode*> the_args;
-  the_args.push_back(new AstNode(AstNode::Constant, (void*)3));
-  the_args.push_back(new AstNode(AstNode::Constant, (void*)getpid()));
-#else
-  vector<AstNode*> the_args(2);
+  pdvector<AstNode*> the_args(2);
   the_args[0] = new AstNode(AstNode::Constant, (void*)3);
   the_args[1] = new AstNode(AstNode::Constant, (void*)getpid());
-#endif
   
 #else /* BPATCH_LIBRARY */
   attach_cerr << "calling DYNINSTinit with args:" << endl;
   
-#ifndef USE_STL_VECTOR
-  vector<AstNode*> the_args(3);
-#else
-  vector<AstNode*> the_args;
-#endif
+  pdvector<AstNode*> the_args(3);
   
 #ifdef SHM_SAMPLING
   AstNode *an1 = new AstNode(AstNode::Constant,
@@ -3126,15 +3096,9 @@ bool attachProcess(const string &progpath, int pid, int afterAttach,
   AstNode *an3 =  new AstNode(AstNode::Constant, (void*)(-1 * traceConnectInfo));
   attach_cerr << (-1* getpid()) << endl;
   
-#ifndef USE_STL_VECTOR   
   the_args[0] = an1; 
   the_args[1] = an2;
   the_args[2] = an3;
-#else
-  the_args.push_back(an1);
-  the_args.push_back(an2);
-  the_args.push_back(an3);
-#endif
   
 #endif /* BPATCH_LIBRARY */
   
@@ -3866,7 +3830,7 @@ bool process::handleIfDueToSharedObjectMapping(){
       return false;
    }
 
-   vector<shared_object *> *changed_objects = 0;
+   pdvector<shared_object *> *changed_objects = 0;
    u_int change_type = 0;
    bool error_occured = false;
    bool ok = dyn->handleIfDueToSharedObjectMapping(this,&changed_objects,
@@ -4094,12 +4058,12 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
     // created for this process, then the functions and modules from this
     // shared object need to be added to those lists 
     if(all_modules){
-      vector<module *> *vptr = const_cast< vector<module *> *>(reinterpret_cast< const vector<module *> *>(new_obj.getModules()));
+      pdvector<module *> *vptr = const_cast< pdvector<module *> *>(reinterpret_cast< const pdvector<module *> *>(new_obj.getModules()));
       VECTOR_APPEND(*all_modules, *vptr);
     }
     if(all_functions){
-      vector<function_base *> *normal_funcs = (vector<function_base *> *)
-                const_cast< vector<pd_Function *> *>(new_obj.getAllFunctions());
+      pdvector<function_base *> *normal_funcs = (pdvector<function_base *> *)
+                const_cast< pdvector<pd_Function *> *>(new_obj.getAllFunctions());
 	// need to concat two vectors ...
         VECTOR_APPEND(*all_functions, *normal_funcs); 
         normal_funcs = 0;
@@ -4123,7 +4087,7 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
     // clear the include_funcs flag if this shared object should not be
     // included in the some_functions and some_modules lists
 #ifndef BPATCH_LIBRARY
-    vector<string> lib_constraints;
+    pdvector<string> lib_constraints;
     if(mdl_get_lib_constraints(lib_constraints)){
         for(u_int j=0; j < lib_constraints.size(); j++){
            char *where = 0; 
@@ -4147,12 +4111,12 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
     //  shared objects have ONLY 1 module.
     if(new_obj.includeFunctions()){
         if(some_modules) {
-            *some_modules += *((const vector<module *> *)(new_obj.getModules()));
+            *some_modules += *((const pdvector<module *> *)(new_obj.getModules()));
         }
         if(some_functions) {
             // gets only functions not excluded by mdl "exclude_node" option
             *some_functions += 
-                *((vector<function_base *> *)(new_obj.getIncludedFunctions()));
+                *((pdvector<function_base *> *)(new_obj.getIncludedFunctions()));
         }
     }
 #endif /* BPATCH_LIBRARY */
@@ -4161,7 +4125,7 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
 #ifdef BPATCH_LIBRARY
 
     assert(BPatch::bpatch);
-    const vector<pdmodule *> *modlist = new_obj.getModules();
+    const pdvector<pdmodule *> *modlist = new_obj.getModules();
     if (modlist != NULL) {
       for (unsigned i = 0; i < modlist->size(); i++) {
         pdmodule *curr = (*modlist)[i];
@@ -4255,8 +4219,8 @@ function_base *process::findOneFunction(resource *func, resource *mod){
     if(func->type() != MDL_T_PROCEDURE) { return 0; }
     if(mod->type() != MDL_T_MODULE) { return 0; }
 
-    const vector<string> &f_names = func->names();
-    const vector<string> &m_names = mod->names();
+    const pdvector<string> &f_names = func->names();
+    const pdvector<string> &m_names = mod->names();
     string func_name = f_names[f_names.size() -1]; 
     string mod_name = m_names[m_names.size() -1]; 
 
@@ -4293,7 +4257,7 @@ function_base *process::findOneFunction(resource *func, resource *mod){
 // returns all the functions in the module "mod" that are not excluded by
 // exclude_lib or exclude_func
 // return 0 on error.
-vector<function_base *> *process::getIncludedFunctions(module *mod) {
+pdvector<function_base *> *process::getIncludedFunctions(module *mod) {
 
     if((!mod)) { return 0; }
 
@@ -4308,7 +4272,7 @@ vector<function_base *> *process::getIncludedFunctions(module *mod) {
             next = ((*shared_objects)[j])->findModule(mod->fileName(), true);
             if(next){
                 if(((*shared_objects)[j])->includeFunctions()){ 
-                    return((vector<function_base *> *)
+                    return((pdvector<function_base *> *)
                            ((*shared_objects)[j])->getIncludedFunctions());
                 } 
                 else { return 0;} 
@@ -4501,7 +4465,7 @@ pd_Function *process::findFuncByName(const string &name){
 
 // findAllFuncsByName: return a vector of all functions in all images
 // matching the given string
-bool process::findAllFuncsByName(const string &name, vector<function_base *> &res)
+bool process::findAllFuncsByName(const string &name, pdvector<function_base *> &res)
 {
   string lib_name;
   string func_name;
@@ -4585,7 +4549,7 @@ bool process::getSymbolInfo( const string &name, Symbol &ret )
 pd_Function *process::findFunctionIn(Address adr)
 {
 
-  vector <pd_Function *> returned_functions;
+  pdvector <pd_Function *> returned_functions;
   pd_Function *pdf;
   // first check a.out for function symbol
   // Search all functions 
@@ -4749,22 +4713,22 @@ bool process::getSymbolInfo(const string &name, Symbol &info,
 // getAllFunctions: returns a vector of all functions defined in the
 // a.out and in the shared objects
 // TODO: what to do about duplicate function names?
-vector<function_base *> *process::getAllFunctions(){
+pdvector<function_base *> *process::getAllFunctions(){
 
     // if this list has already been created, return it
     if(all_functions) 
         return all_functions;
 
     // else create the list of all functions
-    all_functions = new vector<function_base *>;
-    const vector<function_base *> &blah = 
-                    (vector<function_base *> &)(symbols->getAllFunctions());
+    all_functions = new pdvector<function_base *>;
+    const pdvector<function_base *> &blah = 
+                    (pdvector<function_base *> &)(symbols->getAllFunctions());
     VECTOR_APPEND(*all_functions,blah);
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-           vector<function_base *> *funcs = (vector<function_base *> *) 
-                        const_cast< vector<pd_Function *> *>
+           pdvector<function_base *> *funcs = (pdvector<function_base *> *) 
+                        const_cast< pdvector<pd_Function *> *>
                         (((*shared_objects)[j])->getAllFunctions());
            if(funcs){
                VECTOR_APPEND(*all_functions,*funcs); 
@@ -4777,18 +4741,18 @@ vector<function_base *> *process::getAllFunctions(){
 // getAllModules: returns a vector of all modules defined in the
 // a.out and in the shared objects
 // Includes "excluded" modules....
-vector<module *> *process::getAllModules(){
+pdvector<module *> *process::getAllModules(){
 
     // if the list of all modules has already been created, the return it
     if(all_modules) return all_modules;
 
     // else create the list of all modules
-    all_modules = new vector<module *>;
-    VECTOR_APPEND(*all_modules,*((const vector<module *> *)(&(symbols->getAllModules()))));
+    all_modules = new pdvector<module *>;
+    VECTOR_APPEND(*all_modules,*((const pdvector<module *> *)(&(symbols->getAllModules()))));
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-           const vector<module *> *mods = (const vector<module *> *)
+           const pdvector<module *> *mods = (const pdvector<module *> *)
                         (((*shared_objects)[j])->getModules());
            if(mods) {
                VECTOR_APPEND(*all_modules,*mods); 
@@ -4801,7 +4765,7 @@ vector<module *> *process::getAllModules(){
 // getIncludedFunctions: returns a vector of all functions defined in the
 // a.out and in the shared objects
 // TODO: what to do about duplicate function names?
-vector<function_base *> *process::getIncludedFunctions(){
+pdvector<function_base *> *process::getIncludedFunctions(){
     //cerr << "process " << programName << " :: getIncludedFunctions() called"
     //   << endl;
     // if this list has already been created, return it
@@ -4809,9 +4773,9 @@ vector<function_base *> *process::getIncludedFunctions(){
         return some_functions;
 
     // else create the list of all functions
-    some_functions = new vector<function_base *>;
-    const vector<function_base *> &incl_funcs = 
-        (vector<function_base *> &)(symbols->getIncludedFunctions());
+    some_functions = new pdvector<function_base *>;
+    const pdvector<function_base *> &incl_funcs = 
+        (pdvector<function_base *> &)(symbols->getIncludedFunctions());
         *some_functions += incl_funcs;
 
     //cerr << " (process::getIncludedFunctions), about to add incl_funcs to some_functions, incl_funcs = " << endl;
@@ -4822,7 +4786,7 @@ vector<function_base *> *process::getIncludedFunctions(){
             if(((*shared_objects)[j])->includeFunctions()){
                 // kludge: can't assign a vector<derived_class *> to 
                 // a vector<base_class *> so recast
-                vector<function_base *> *funcs = (vector<function_base *> *)
+                pdvector<function_base *> *funcs = (pdvector<function_base *> *)
                         (((*shared_objects)[j])->getIncludedFunctions());
                 if(funcs) { 
                     *some_functions += (*funcs); 
@@ -4839,7 +4803,7 @@ vector<function_base *> *process::getIncludedFunctions(){
 // getIncludedModules: returns a vector of all modules defined in the
 // a.out and in the shared objects that are included as specified in
 // the mdl
-vector<module *> *process::getIncludedModules(){
+pdvector<module *> *process::getIncludedModules(){
 
     //cerr << "process::getIncludedModules called" << endl;
 
@@ -4851,13 +4815,13 @@ vector<module *> *process::getIncludedModules(){
     }
 
     // else create the list of all modules
-    some_modules = new vector<module *>;
-    *some_modules += *((const vector<module *> *)(&(symbols->getIncludedModules())));
+    some_modules = new pdvector<module *>;
+    *some_modules += *((const pdvector<module *> *)(&(symbols->getIncludedModules())));
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
             if(((*shared_objects)[j])->includeFunctions()){
-               const vector<module *> *mods = (const vector<module *> *) 
+               const pdvector<module *> *mods = (const pdvector<module *> *) 
                         (((*shared_objects)[j])->getModules());
                if(mods) {
                    *some_modules += *mods; 
@@ -4896,7 +4860,7 @@ void process::newMiniTrampList(const instPoint *loc, callWhen when,
   }
 }
 
-void process::getMiniTrampLists(vector<mtListInfo> *vecBuf) {
+void process::getMiniTrampLists(pdvector<mtListInfo> *vecBuf) {
   dictionary_hash_iter<const instPoint *, installed_miniTramps_list*>
     befIter = installedMiniTramps_beforePt;
 
@@ -4999,8 +4963,8 @@ instPoint *process::findInstPointFromAddress(Address addr,
 					     instInstance **mt)
 {
    unsigned u;
-   vector<const instPoint*> ips;
-   vector<trampTemplate*> bts;
+   pdvector<const instPoint*> ips;
+   pdvector<trampTemplate*> bts;
    ips = baseMap.keys();
    bts = baseMap.values();
    assert( ips.size() == bts.size() );
@@ -6027,7 +5991,7 @@ bool process::handleTrapIfDueToRPC() {
     return false;
   }
 
-  vector<Frame> activeFrames;
+  pdvector<Frame> activeFrames;
   if (!getAllActiveFrames(activeFrames)) {
 	  return false;
   }
@@ -6209,24 +6173,17 @@ void process::installBootstrapInst() {
    attach_cerr << "process::installBootstrapInst()" << endl;
 #if defined(BPATCH_LIBRARY) || 1 //ccw 19 apr 2002 : SPLIT
 
-#ifndef USE_STL_VECTOR
-  vector<AstNode *> the_args(2);
+  pdvector<AstNode *> the_args(2);
 
   the_args[0] = new AstNode(AstNode::Constant, (void*)1);
   the_args[1] = new AstNode(AstNode::Constant, (void*)getpid());
-#else // USE_STL_VECTOR is defined
-   vector<AstNode *> the_args;
-
-   the_args.push_back(new AstNode(AstNode::Constant, (void*)1));
-   the_args.push_back(new AstNode(AstNode::Constant, (void*)getpid()));
-#endif // STL_VECTOR
 
    AstNode *ast = new AstNode("DYNINSTinit", the_args);
 
    removeAst(the_args[0]) ;
    removeAst(the_args[1]) ;
 #else
-   vector<AstNode *> the_args(3);
+   pdvector<AstNode *> the_args(3);
 
    // 2 dummy args when not shm sampling (just don't use -1, which is reserved
    // for fork)
@@ -6299,14 +6256,14 @@ void process::installBootstrapInst() {
     attach_cerr << "process::installBootstrapInst() complete" << endl;
 }
 
-void process::installInstrRequests(const vector<instMapping*> &requests) {
+void process::installInstrRequests(const pdvector<instMapping*> &requests) {
    for (unsigned lcv=0; lcv < requests.size(); lcv++) {
 
       instMapping *req = requests[lcv];
 
       string func_name;
       string lib_name;
-      vector<function_base *>matchingFuncs;
+      pdvector<function_base *>matchingFuncs;
 
       getLibAndFunc(req->func, lib_name, func_name);
       
@@ -6339,7 +6296,7 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 	  removeAst(tmp);
 	}
 	if (req->where & FUNC_EXIT) {
-	  const vector<instPoint*> func_rets = func->funcExits(this);
+	  const pdvector<instPoint*> func_rets = func->funcExits(this);
 	  for (unsigned j=0; j < func_rets.size(); j++) {
 	    instPoint *func_ret = const_cast<instPoint *>(func_rets[j]);
 	    miniTrampHandle mtHandle;
@@ -6363,7 +6320,7 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 	}
 	
 	if (req->where & FUNC_CALL) {
-	  vector<instPoint*> func_calls = func->funcCalls(this);
+	  pdvector<instPoint*> func_calls = func->funcCalls(this);
 	  if (func_calls.size() == 0)
             continue;
 	  
@@ -6691,11 +6648,9 @@ void process::callpDYNINSTinit(){
    // 3) Shared memory key, for attaching to shm segment (if attachToCreated -1*key) - Ana
    // 4) Shared memory size, see above
    // 5) Offset to info passed in the shared segment
-#ifndef USE_STL_VECTOR
-   vector<AstNode*> the_args(6);
-#else
-   vector<AstNode*> the_args;
-#endif
+
+   pdvector<AstNode*> the_args(6);
+
    // Paradynd pid
 
    /*
@@ -6736,20 +6691,11 @@ void process::callpDYNINSTinit(){
    AstNode *arg5 = new AstNode(AstNode::Constant, 
 			       (void *) offsetOfShMetaOffsetData);
 
-#ifndef USE_STL_VECTOR   
    the_args[0] = arg1;
    the_args[1] = arg2;
    the_args[2] = arg3;
    the_args[3] = arg4;
    the_args[4] = arg5;
-#else
-   the_args.push_back(arg1);
-   the_args.push_back(arg2);
-   the_args.push_back(arg3);
-   the_args.push_back(arg4);
-   the_args.push_back(arg5);
-#endif
-  
 
    AstNode *the_ast = new AstNode("pDYNINSTinit", the_args);
 #if !defined(i386_unknown_nt4_0) //SPLIT ccw 4 jun 2002
@@ -6968,7 +6914,7 @@ void process::handleCompletionOfpDYNINSTinit() {
       str=string("PID=") + string(bs_struct.pid) + ", installing default inst...";
       statusLine(str.c_str());
 
-      extern vector<instMapping*> initialRequestsPARADYN; // init.C //ccw 18 apr 2002 : SPLIT
+      extern pdvector<instMapping*> initialRequestsPARADYN; // init.C //ccw 18 apr 2002 : SPLIT
       installInstrRequests(initialRequestsPARADYN); 
       str=string("PID=") + string(bs_struct.pid) + ", propagating mi's...";
       statusLine(str.c_str());
@@ -7116,7 +7062,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
       str=string("PID=") + string(bs_record.pid) + ", installing default inst...";
       statusLine(str.c_str());
 
-      extern vector<instMapping*> initialRequests; // init.C
+      extern pdvector<instMapping*> initialRequests; // init.C
       installInstrRequests(initialRequests);
 
       str=string("PID=") + string(bs_record.pid) + ", propagating mi's...";
@@ -7469,7 +7415,7 @@ void process::MonitorDynamicCallSites(string function_name){
   //Should I just be using a resource::handle here instead of going through
   //all of this crap to find a pointer to the function???
   string exe_name = getImage()->file();
-  vector<instPoint*> callPoints;
+  pdvector<instPoint*> callPoints;
   callPoints = func->funcCalls(this);
   
   unsigned i;
@@ -7704,7 +7650,7 @@ void process::gcInstrumentation()
     return;
   }
 
-  vector< vector<Frame> > stackWalks;
+  pdvector< pdvector<Frame> > stackWalks;
   if (!walkStacks(stackWalks)) return;
 
   gcInstrumentation(stackWalks);
@@ -7721,7 +7667,7 @@ void process::gcInstrumentation()
 }
 
 // garbage collect instrumentation
-void process::gcInstrumentation(vector<vector<Frame> > &stackWalks)
+void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
 {
   // Go through the list and try to clear out any
   // instInstances that are freeable.
@@ -7734,7 +7680,7 @@ void process::gcInstrumentation(vector<vector<Frame> > &stackWalks)
   for (unsigned i = 0; i < pendingGCInstrumentation.size(); i++) {
     instPendingDeletion *old = pendingGCInstrumentation[i];
     bool safeToDelete = true;
-    vector<Address> hotAddrs = old->hot;
+    pdvector<Address> hotAddrs = old->hot;
     // Get the heap item associated with the mini
     for (unsigned hotIter = 0; hotIter < hotAddrs.size(); hotIter++) {
       // Optimization...
@@ -7922,7 +7868,7 @@ void process::updateThread(
 
 void process::deleteThread(int tid)
 {
-   vector<dyn_thread *>::iterator iter = threads.end();
+   pdvector<dyn_thread *>::iterator iter = threads.end();
    while(iter != threads.begin()) {
       dyn_thread *thr = *(--iter);
       if(thr->get_tid() != (unsigned) tid)  continue;

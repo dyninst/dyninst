@@ -46,10 +46,10 @@ int test::intString(string s) {
     return(s.length());
 }
 
-vector<string> test::refVector(vector<string> &vec) {
+pdvector<string> test::refVector(pdvector<string> &vec) {
   return vec;
 }
-vector<string> test::norefVector(vector<string> vec) {
+pdvector<string> test::norefVector(pdvector<string> vec) {
   return vec;
 }
 
@@ -69,7 +69,7 @@ float test::fadd(float a, float b) {
     return(a+b);
 }
 
-int test::sumVector(vector<int> nums) {
+int test::sumVector(pdvector<int> nums) {
    int total=0;
    for (int i=0; i < nums.size(); i++) {
        total += nums[i];
@@ -77,7 +77,7 @@ int test::sumVector(vector<int> nums) {
    return(total);
 }
 
-int test::sumVectorPtr(vector<int> *nums) {
+int test::sumVectorPtr(pdvector<int> *nums) {
    int total=0;
    for (int i=0; i < (*nums).size(); i++) {
        total += (*nums)[i];
@@ -86,8 +86,8 @@ int test::sumVectorPtr(vector<int> *nums) {
    return(total);
 }
 
-vector<int> test::retVector(int num, int start) {
-    vector<int> retVal;
+pdvector<int> test::retVector(int num, int start) {
+    pdvector<int> retVal;
 
     for (int i=0; i<num; i++)
       retVal += start++;
@@ -109,11 +109,11 @@ void test::asyncClient() {
   exitNow(this);
 }
 
-vector<string> test::echoCPA(vector<string> input) {
+pdvector<string> test::echoCPA(pdvector<string> input) {
   return input;
 }
 
-vector<string> *test::echoCPAPtr(vector<string> *input) {
+pdvector<string> *test::echoCPAPtr(pdvector<string> *input) {
   return input;
 }
 
@@ -121,7 +121,7 @@ T_test1::charStruct test::echoCS(T_test1::charStruct csin) {
   return csin;
 }
 
-vector<T_test1::charStruct> test::echoCSA(vector<T_test1::charStruct> csa) {
+pdvector<T_test1::charStruct> test::echoCSA(pdvector<T_test1::charStruct> csa) {
   return csa;
 }
 
@@ -173,6 +173,6 @@ T_test1::charStruct *test::echoCSP(T_test1::charStruct *cs) {
 T_test1::basicClass::basicClass() { }
 T_test1::derClass::derClass() { }
 
-vector<T_test1::resStruct> test::echoResStruct(vector<T_test1::resStruct> rs) {
+pdvector<T_test1::resStruct> test::echoResStruct(pdvector<T_test1::resStruct> rs) {
   return rs;
 }

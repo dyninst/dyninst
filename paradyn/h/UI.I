@@ -1,6 +1,6 @@
 /*
  * input file for igen for User Interface Manager (UIM) interface to Paradyn
- * $Id: UI.I,v 1.42 2002/08/02 21:00:31 pcroth Exp $
+ * $Id: UI.I,v 1.43 2002/12/20 07:50:00 jaw Exp $
  */
 
 #include "paradyn/src/DMthread/DMinclude.h"
@@ -13,7 +13,7 @@
  * are passed back to the requesting visualization thread
  */
 
-typedef int (*chooseMandRCBFunc) (vector<metric_focus_pair> *pairList);
+typedef int (*chooseMandRCBFunc) (pdvector<metric_focus_pair> *pairList);
 
 /* 
  * Handler that gets called when user choice passed back to requesting 
@@ -55,12 +55,12 @@ $remote UIM {
 	// provides user with appropriate choices and passes back selections
 
 	$async void chooseMetricsandResources(chooseMandRCBFunc cb,
-			     vector<metric_focus_pair> *pairList);
+			     pdvector<metric_focus_pair> *pairList);
 
 	$upcall $async void chosenMetricsandResources (chooseMandRCBFunc, 
-			      vector<metric_focus_pair> *pairList);
+			      pdvector<metric_focus_pair> *pairList);
 
-	$async void registerValidVisis (vector<VM_visiInfo> *allVisis);
+	$async void registerValidVisis (pdvector<VM_visiInfo> *allVisis);
 
         //
 	// called by an exiting thread to notify the UI that it is exiting
@@ -115,7 +115,7 @@ $remote UIM {
 			int styleID, // why vs. where refinement
 			const char *label // only used for shadow nodes; else NULL
 			);
-	$async void DAGaddBatchOfEdges(int dagID, vector<uiSHGrequest> *requests,
+	$async void DAGaddBatchOfEdges(int dagID, pdvector<uiSHGrequest> *requests,
 				       unsigned numRequests);
 	int DAGconfigNode (int dagID, unsigned nodeID, int styleID);
 	$async void DAGinactivateEntireSearch(int dagID);

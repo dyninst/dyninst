@@ -191,7 +191,7 @@ void instrDataNode::decRefCount()
 
 void instrDataNode::decRefCountCallback(void *temp, instInstance *)
 {
-  vector<instrDataNode *> *dataNodes = (vector<instrDataNode *> *)temp;
+  pdvector<instrDataNode *> *dataNodes = (pdvector<instrDataNode *> *)temp;
   for (unsigned i = 0; i < dataNodes->size(); i++) {
     (*dataNodes)[i]->decRefCount();
   }

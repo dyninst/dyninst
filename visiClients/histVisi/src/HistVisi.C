@@ -46,7 +46,7 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.C,v 1.11 2002/08/01 18:21:48 willb Exp $
+// $Id: HistVisi.C,v 1.12 2002/12/20 07:50:09 jaw Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include "common/h/headers.h"
@@ -808,5 +808,5 @@ HistVisi::MetricResourcePair::MetricResourcePair( int metricId, int resourceId )
 //---------------------------------------------------------------------------
 // explicit template instantiations needed by this class
 //---------------------------------------------------------------------------
-template class vector<HistVisi::MetricResourcePair*>;
+template class pdvector<HistVisi::MetricResourcePair*>;
 

@@ -50,48 +50,48 @@
 #if !defined(_Pair_h_)
 #define _Pair_h_
 
-#ifdef USE_STL_VECTOR
-#include <stl.h>
-#else
+//ifdef USE_STL_VECTOR
+//#include <stl.h>
+//#else
 
 /************************************************************************
- * template<class T1, class T2> struct pair
+ * template<class T1, class T2> struct pdpair
 ************************************************************************/
 
-// Note that paired classes must provide operator== and operator<
+// Note that pdpaired classes must provide operator== and operator<
 
 template<class T1, class T2>
-struct pair {
+struct pdpair {
  public: //needed so nt build doesn't think members are private
   T1 first;
   T2 second;
 
-  bool operator==(const pair<T1, T2>& p) {
+  bool operator==(const pdpair<T1, T2>& p) {
     return (first == p.first) && (second == p.second); 
   }
-  bool operator!=(const pair<T1, T2>& p) {
+  bool operator!=(const pdpair<T1, T2>& p) {
     return !((first == p.first) && (second == p.second));
   }
   /*
-  bool operator<(const pair<T1, T2>& p) { 
+  bool operator<(const pdpair<T1, T2>& p) { 
     return (first < p.first) || (!(p.first < first) && second < p.second); 
   }
-  bool operator>(const pair<T1, T2>& p) {
+  bool operator>(const pdpair<T1, T2>& p) {
     return (p.first < first) || (!(first < p.first) && p.second < second);
   }
   */
-  pair () : first(), second()                                    {}
-  pair (const T1& k) : first(k), second(0)                       {}
-  pair (const T1& k, const T2& v) : first(k), second(v)          {}
-  pair(const pair<T1, T2>& p) : first(p.first), second(p.second) {}
+  pdpair () : first(), second()                                    {}
+  pdpair (const T1& k) : first(k), second(0)                       {}
+  pdpair (const T1& k, const T2& v) : first(k), second(v)          {}
+  pdpair(const pdpair<T1, T2>& p) : first(p.first), second(p.second) {}
 };
 
 template <class T1, class T2>
-pair<T1, T2> make_pair(const T1& x, const T2& y)
+pdpair<T1, T2> make_pdpair(const T1& x, const T2& y)
 {
-  return pair<T1, T2>(x, y);
+  return pdpair<T1, T2>(x, y);
 }
 
-#endif
+//#endif
 
-#endif /* !defined(_Pair_h_) */
+#endif /* !defined(_PDPair_h_) */

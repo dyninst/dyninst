@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.30 2002/10/28 04:54:06 schendel Exp $
+// $Id: sharedobject.h,v 1.31 2002/12/20 07:49:58 jaw Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -121,7 +121,7 @@ public:
 	return false;
     }
 
-    const vector<pd_Function *> *getAllFunctions(){
+    const pdvector<pd_Function *> *getAllFunctions(){
         if(objs_image) {
 	    // previously objs_image->mdlNormal....
 	    return (&(objs_image->getAllFunctions()));
@@ -137,12 +137,12 @@ public:
 #ifndef BPATCH_LIBRARY
     // get only the functions not excluded by the mdl options exclude_lib
     // or exclude_funcs
-    //    vector<pd_Function *> *getSomeFunctions();
-    vector<pd_Function *> *getIncludedFunctions();
+    //    pdvector<pd_Function *> *getSomeFunctions();
+    pdvector<pd_Function *> *getIncludedFunctions();
 #endif
 
     // Get list of ALL modules, not just included ones.
-    const vector<pdmodule *> *getModules() {
+    const pdvector<pdmodule *> *getModules() {
         if(objs_image) {
 	  return (&(objs_image->getAllModules()));
 	}
@@ -259,7 +259,7 @@ private:
 			// - Conceptually assumes that shared object has 1
 			// and only 1 module.
     image  *objs_image; // pointer to image if processed is true 
-    vector<pd_Function *> *included_funcs; // all functions not excluded by 
+    pdvector<pd_Function *> *included_funcs; // all functions not excluded by 
 				       // exclude_func option
 
     void set_short_name();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.25 2002/12/14 16:37:44 schendel Exp $
+// $Id: solarisDL.C,v 1.26 2002/12/20 07:49:58 jaw Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
@@ -236,7 +236,7 @@ bool dynamic_linking::unset_r_brk_point(process *proc) {
 // process all shared objects that have been mapped into the process's
 // address space.  This routine reads the link maps from the application 
 // process to find the shared object file base mappings. It returns 0 on error.
-vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
+pdvector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 
     r_debug debug_elm;
     if(!p->readDataSpace((caddr_t)(r_debug_addr),
@@ -251,7 +251,7 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
     bool first_time = true;
     Link_map *next_link_map = debug_elm.r_map;
     Address next_addr = (Address)next_link_map; 
-    vector<shared_object*> *shared_objects = new vector<shared_object*>;
+    pdvector<shared_object*> *shared_objects = new pdvector<shared_object*>;
     while(next_addr != 0){
 	Link_map link_elm;
         if(!p->readDataSpace((caddr_t)(next_addr),
@@ -329,7 +329,7 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 
 // getLinkMapAddrs: returns a vector of addresses corresponding to all 
 // base addresses in the link maps.  Returns 0 on error.
-vector<Address> *dynamic_linking::getLinkMapAddrs(process *p) {
+pdvector<Address> *dynamic_linking::getLinkMapAddrs(process *p) {
 
     r_debug debug_elm;
     if(!p->readDataSpace((caddr_t)(r_debug_addr),
@@ -341,7 +341,7 @@ vector<Address> *dynamic_linking::getLinkMapAddrs(process *p) {
     bool first_time = true;
     Link_map *next_link_map = debug_elm.r_map;
     Address next_addr = (Address)next_link_map; 
-    vector<Address> *link_addresses = new vector<Address>;
+    pdvector<Address> *link_addresses = new pdvector<Address>;
     while(next_addr != 0) {
 	Link_map link_elm;
         if(!p->readDataSpace((caddr_t)(next_addr),
@@ -368,8 +368,8 @@ vector<Address> *dynamic_linking::getLinkMapAddrs(process *p) {
 // newly mapped shared object.  old_addrs contains the addresses of the
 // currently mapped shared objects. Sets error_occured to true, and 
 // returns 0 on error.
-vector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
-						vector<Address> *old_addrs,
+pdvector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
+						pdvector<Address> *old_addrs,
 						bool &error_occured){
 
     r_debug debug_elm;
@@ -384,7 +384,7 @@ vector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
     bool first_time = true;
     Link_map *next_link_map = debug_elm.r_map;
     Address next_addr = (Address)next_link_map; 
-    vector<shared_object*> *new_shared_objects = new vector<shared_object*>;
+    pdvector<shared_object*> *new_shared_objects = new pdvector<shared_object*>;
     while(next_addr != 0){
 	Link_map link_elm;
         if(!p->readDataSpace((caddr_t)(next_addr),
@@ -450,7 +450,7 @@ vector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
 // catch future changes to the linkmaps (from dlopen and dlclose)
 // dlopen events should result in a call to addSharedObject
 // dlclose events should result in a call to removeASharedObject
-vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
+pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 
     // step 1: figure out if this is a dynamic executable
     string dyn_str = string("DYNAMIC");
@@ -473,7 +473,7 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
     close(ld_fd);
 
     // step 4: get link-maps and process them
-    vector<shared_object *> *result = this->processLinkMaps(p);
+    pdvector<shared_object *> *result = this->processLinkMaps(p);
 
     // step 5: set brkpoint in r_brk to catch dlopen and dlclose events
     if(!(this->set_r_brk_point(p))){ 
@@ -499,12 +499,12 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 // findChangeToLinkMaps: This routine returns a vector of shared objects
 // that have been deleted or added to the link maps as indicated by
 // change_type.  If an error occurs it sets error_occured to true.
-vector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p, 
+pdvector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p, 
 						   u_int change_type,
 						   bool &error_occured) {
 
     // get list of current shared objects
-    vector<shared_object *> *curr_list = p->sharedObjects();
+    pdvector<shared_object *> *curr_list = p->sharedObjects();
     if((change_type == 2) && !curr_list) {
 	error_occured = true;
 	return 0;
@@ -513,11 +513,11 @@ vector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p,
     // if change_type is add then figure out what has been added
     if(change_type == 1){
         // create a vector of addresses of the current set of shared objects
-	vector<Address> *addr_list =  new vector<Address>;
+	pdvector<Address> *addr_list =  new pdvector<Address>;
 	for (u_int i=0; i < curr_list->size(); i++) {
 	    (*addr_list).push_back(((*curr_list)[i])->getBaseAddress());
 	}
-	vector <shared_object *> *new_shared_objs = 
+	pdvector <shared_object *> *new_shared_objs = 
 				getNewSharedObjects(p, addr_list,error_occured);
         if(!error_occured){
 	    delete addr_list;
@@ -530,9 +530,9 @@ vector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p,
 	// create a list of base addresses from the linkmaps and
 	// compare them to the addr in vector of shared object to see
 	// what has been removed
-	vector<Address> *addr_list = getLinkMapAddrs(p);
+	pdvector<Address> *addr_list = getLinkMapAddrs(p);
 	if(addr_list) {
-	    vector <shared_object *> *remove_list = new vector<shared_object*>;
+	    pdvector <shared_object *> *remove_list = new pdvector<shared_object*>;
 	    // find all shared objects that have been removed
 	    for(u_int i=0; i < curr_list->size(); i++){
 		Address curr_addr = ((*curr_list)[i])->getBaseAddress(); 
@@ -568,7 +568,7 @@ vector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p,
 // the change_type value is set to indicate if the objects have been added 
 // or removed
 bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
-				vector<shared_object*>  **changed_objects,
+				pdvector<shared_object*>  **changed_objects,
 				u_int &change_type,
 				bool &error_occured) { 
    prgregset_t regs;
@@ -582,7 +582,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 
    // MT_THREAD: possible one of many threads hit the breakpoint
 
-   vector<Frame> activeFrames;
+   pdvector<Frame> activeFrames;
    if (!proc->getAllActiveFrames(activeFrames)) {
       return false;
    }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.36 2002/05/13 19:51:38 mjbrim Exp $
+// $Id: BPatch_image.C,v 1.37 2002/12/20 07:49:55 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -205,7 +205,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariables()
 	BPatch_module *module = (*mods)[m];
 	char name[255];
 	module->getName(name, sizeof(name));
-	vector<string> keys = module->moduleTypes->globalVarsByName.keys();
+	pdvector<string> keys = module->moduleTypes->globalVarsByName.keys();
 	int limit = keys.size();
 	for (int j = 0; j < limit; j++) {
 	    string name = keys[j];
@@ -250,7 +250,7 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules()
   // XXX Also, what should we do about getting rid of this?  Should
   //     the BPatch_modules already be made and kept around as long
   //     as the process is, so the user doesn't have to delete them?
-  vector<module *> *mods = proc->getAllModules();
+  pdvector<module *> *mods = proc->getAllModules();
   
   for (unsigned int m = 0; m < mods->size(); m++) {
     pdmodule *curr = (pdmodule *) (*mods)[m];
@@ -388,7 +388,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
 	    return proc->findOrCreateBPPoint(NULL, entry, BPatch_entry);
 	}
 
-	const vector<instPoint*> &exits = func->funcExits(NULL);
+	const pdvector<instPoint*> &exits = func->funcExits(NULL);
 	for (i = 0; i < exits.size(); i++) {
 	    assert(exits[i]);
 	    if ((exits[i]->iPgetAddress() == (Address)address) ||
@@ -399,7 +399,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
 	    }
 	}
 
-	const vector<instPoint*> &calls = func->funcCalls(NULL);
+	const pdvector<instPoint*> &calls = func->funcCalls(NULL);
 	for (i = 0; i < calls.size(); i++) {
 	    assert(calls[i]);
 	    if ((calls[i]->iPgetAddress() == (Address)address) ||
@@ -439,7 +439,7 @@ void BPatch_image::findFunctionInImage(
 	const char *name, image *img, BPatch_Vector<BPatch_function*>& funcs)
 {
     pd_Function *pdf;
-    vector<pd_Function*> *pdfv;
+    pdvector<pd_Function*> *pdfv;
 
     if ((pdfv = img->findFuncVectorByPretty(name)) != NULL) {
 	assert(pdfv->size() > 0);

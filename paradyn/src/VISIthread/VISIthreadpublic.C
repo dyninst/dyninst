@@ -94,7 +94,7 @@ void visualizationUser::GetPhaseInfo(){
     return;
  }
 
- vector<T_visi::phase_info> *phases = ptr->dmp->getAllPhaseInfo();
+ pdvector<T_visi::phase_info> *phases = ptr->dmp->getAllPhaseInfo();
  if((ptr->currPhaseHandle == -1) && (phases->size() > 0)){
       ptr->currPhaseHandle = (*phases)[(phases->size() -1)].handle;
  }

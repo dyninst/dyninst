@@ -44,7 +44,7 @@
 
 // Header file for subtree based on where4.fig [and where5.fig]
 
-/* $Id: where4tree.h,v 1.18 2002/11/25 23:52:32 schendel Exp $ */
+/* $Id: where4tree.h,v 1.19 2002/12/20 07:50:05 jaw Exp $ */
 
 // This class is sort of a placeholder.  It has variables to find out who
 // is expanded and who isn't; it maintains the tree layout.
@@ -126,8 +126,8 @@ class where4tree {
       }
    };
 
-   vector<childstruct> theChildren;
-      // Why a vector instead of a set?  Because the children are ordered.
+   pdvector<childstruct> theChildren;
+      // Why a pdvector instead of a set?  Because the children are ordered.
       // Why do we group these into a childstruct?  To make memory allocation faster
       // and more efficient.
 
@@ -452,12 +452,12 @@ class where4tree {
       // returns true iff found.  char * is used instead of string because
       // we'll be using pointer arithmetic as we parse "name".
 
-   vector<const NODEDATA *> getSelections() const;
+   pdvector<const NODEDATA *> getSelections() const;
 
    void recursiveClearSelections();
 
 private:
-	vector<where4tree<NODEDATA> *>	shadow_nodes;
+	pdvector<where4tree<NODEDATA> *>	shadow_nodes;
 	where4tree<NODEDATA> *parent;
 public:
 	void addShadowNode(where4tree<NODEDATA> *shadow_node) {
@@ -467,7 +467,7 @@ public:
 	{
 		return (shadow_nodes.size() > 0);
 	}
-	vector<where4tree<NODEDATA> *>  &getShadowNodes() { return shadow_nodes;}
+	pdvector<where4tree<NODEDATA> *>  &getShadowNodes() { return shadow_nodes;}
 	void setParent(where4tree<NODEDATA> *_parent) {
 		parent = _parent;
 	}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCcostServer.C,v 1.3 2000/03/23 01:34:25 wylie Exp $
+// $Id: PCcostServer.C,v 1.4 2002/12/20 07:50:02 jaw Exp $
 // methods for the costServer class
 
 #include "PCintern.h"
@@ -47,7 +47,7 @@
 #include "PCfilter.h"
 #include "PCcostServer.h"
 
-vector<costServerRec> costServer::costRecords;
+pdvector<costServerRec> costServer::costRecords;
 
 void
 costServer::getPredictedCost (metricHandle m, focus f, PCmetricInst *me)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration.C,v 1.7 2002/03/12 18:40:02 jaw Exp $
+// $Id: LocalAlteration.C,v 1.8 2002/12/20 07:49:56 jaw Exp $
 
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/symtab.h"
@@ -98,14 +98,12 @@ LocalAlterationSet::LocalAlterationSet(pd_Function *f) {
     ordered = false;
 }
 
-//#ifdef USE_STL_VECTOR
 LocalAlterationSet::LocalAlterationSet() 
 {
     func = (pd_Function *)NULL;
     iterIdx = -1;
     ordered = false;
 }
-//#endif
 
 LocalAlterationSet::~LocalAlterationSet() {
   //    Flush();

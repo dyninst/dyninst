@@ -14,7 +14,7 @@
  *
  */
 
-/* $Id: visi.I,v 1.21 2002/05/15 21:53:08 mjbrim Exp $ */ 
+/* $Id: visi.I,v 1.22 2002/12/20 07:50:08 jaw Exp $ */ 
 
 
 $remote struct metricType {
@@ -64,10 +64,10 @@ $remote visualization {
   $version  16;
 
   // data: list of new data values from Paradyn 
-  $async void Data(vector<dataValue> data);  
+  $async void Data(pdvector<dataValue> data);  
 
   // data: list of new trace data values from Paradyn
-  $async void TraceData(vector<traceDataValue> data);
+  $async void TraceData(pdvector<traceDataValue> data);
 
   // a fold event from paradyn
   $async void Fold(double newBucketWidth);
@@ -93,7 +93,7 @@ $remote visualization {
   // newElements: a list of new metric-focus matrices
   // bucketWidth: current bucket width for histograms
   // nobuckets:   max number of buckets for histograms
-  $async void AddMetricsResources(vector<visi_matrix> newElements,
+  $async void AddMetricsResources(pdvector<visi_matrix> newElements,
 				  double bucketWidth,
 				  int nobuckets,
 				  double start_time,
@@ -118,13 +118,13 @@ $remote visualization {
   //
   // A list of phase data from paradyn (response to GetPhaseInfo upcall) 
   //
-  $async void PhaseData(vector<phase_info> phases);
+  $async void PhaseData(pdvector<phase_info> phases);
 
 
   //
   // An array of data values from Paradyn starting with bucket #0
   //
-  $async void BulkDataTransfer(vector<float> values, // array of data values 
+  $async void BulkDataTransfer(pdvector<float> values, // array of data values 
 			       u_int metricId,	  // id of met. assoc. w/data
 			       u_int resourceId);   // id of res. assoc. w/data
 

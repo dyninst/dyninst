@@ -55,7 +55,7 @@ void checkProcStatus();
   
 extern pdDebug_ostream sampleVal_cerr;
 
-vector<processMetFocusNode*> processMetFocusNode::allProcNodes;
+pdvector<processMetFocusNode*> processMetFocusNode::allProcNodes;
 
 inline unsigned ui_hash_(const unsigned &u) { return u; }
 
@@ -115,7 +115,7 @@ processMetFocusNode::processMetFocusNode(const processMetFocusNode &par,
    instrInserted_ = par.instrInserted_;
 }
 
-void processMetFocusNode::getProcNodes(vector<processMetFocusNode*> *procnodes)
+void processMetFocusNode::getProcNodes(pdvector<processMetFocusNode*> *procnodes)
 {
   for(unsigned i=0; i<allProcNodes.size(); i++) {
     (*procnodes).push_back(allProcNodes[i]);
@@ -123,7 +123,7 @@ void processMetFocusNode::getProcNodes(vector<processMetFocusNode*> *procnodes)
 }
 
 // optimize this if helpful
-void processMetFocusNode::getProcNodes(vector<processMetFocusNode*> *procnodes,
+void processMetFocusNode::getProcNodes(pdvector<processMetFocusNode*> *procnodes,
 				       int pid)
 {
   for(unsigned i=0; i<allProcNodes.size(); i++) {
@@ -136,7 +136,7 @@ void processMetFocusNode::getProcNodes(vector<processMetFocusNode*> *procnodes,
 bool processMetFocusNode::instrLoaded() {
    bool allCompInserted = true;
 
-   vector<instrCodeNode *> codeNodes;
+   pdvector<instrCodeNode *> codeNodes;
    getAllCodeNodes(&codeNodes);
    if(codeNodes.size() == 0) {
       allCompInserted = false;
@@ -154,7 +154,7 @@ bool processMetFocusNode::instrLoaded() {
 }
 
 bool processMetFocusNode::hasBeenCatchuped() {
-  vector<instrCodeNode *> codeNodes;
+  pdvector<instrCodeNode *> codeNodes;
   getAllCodeNodes(&codeNodes);
 
   if(codeNodes.size() == 0)  return false;
@@ -171,7 +171,7 @@ bool processMetFocusNode::hasBeenCatchuped() {
 }
 
 bool processMetFocusNode::trampsHookedUp() {
-  vector<instrCodeNode *> codeNodes;
+  pdvector<instrCodeNode *> codeNodes;
   getAllCodeNodes(&codeNodes);
 
   if(codeNodes.size() == 0)  return false;
@@ -188,7 +188,7 @@ bool processMetFocusNode::trampsHookedUp() {
 }
 
 threadMetFocusNode *processMetFocusNode::getThrNode(pd_thread *thr) {
-   vector<threadMetFocusNode *>::iterator iter = thrNodes.begin();
+   pdvector<threadMetFocusNode *>::iterator iter = thrNodes.begin();
    while(iter != thrNodes.end()) {
       if((*iter)->getThreadID() == thr->get_tid()) {
          return (*iter);
@@ -360,14 +360,14 @@ processMetFocusNode* processMetFocusNode::handleExec() {
    mdl_env::add(vname, false, MDL_T_INT);
    mdl_env::set(machnode->getMetricID(), vname);
    
-   vector<process*> vp(1, this->proc());
-   vector< vector<dyn_thread *> > t_hreadsVec;
+   pdvector<process*> vp(1, this->proc());
+   pdvector< pdvector<dyn_thread *> > t_hreadsVec;
 #if defined(MT_THREAD)
    t_hreadsVec += this->proc()->t_hreads;
 #endif
    cerr << "mdl_do - C\n";
    machineMetFocusNode *tempMachNode = mdl_do(//mid
-              const_cast<vector< vector<string> > &>(machnode->getFocus()),
+              const_cast<pdvector< pdvector<string> > &>(machnode->getFocus()),
 	                      const_cast<string &>(machnode->getMetName()),
 	                      const_cast<string &>(machnode->getFullName()),
 	                      vp, 
@@ -382,7 +382,7 @@ processMetFocusNode* processMetFocusNode::handleExec() {
    // Of course, we're just interested in the (single) component mi contained
    // within it; it'll replace "this".
    
-   vector<metricFocusNode *> comp = tempMachNode->getComponents();
+   pdvector<metricFocusNode *> comp = tempMachNode->getComponents();
    assert(comp.size() == 1);
    processMetFocusNode *procNode = 
       dynamic_cast<processMetFocusNode*>(comp[0]);
@@ -410,7 +410,7 @@ processMetFocusNode* processMetFocusNode::handleExec() {
 #endif
       
       bool found=false;
-      vector<metricFocusNode *> aggComp = aggMI->getComponents();
+      pdvector<metricFocusNode *> aggComp = aggMI->getComponents();
       for (unsigned complcv=0; complcv < aggComp.size(); complcv++) {
 	 if (aggComp[complcv] == this) {
 	    aggComp[complcv] = 
@@ -452,7 +452,7 @@ int processMetFocusNode::getMetricID() {
   return parentNode->getMetricID();
 }
 
-vector<int> deferredMetricIDs;
+pdvector<int> deferredMetricIDs;
 
 void registerAsDeferred(int metricID) {
    for(unsigned i=0; i<deferredMetricIDs.size(); i++) {
@@ -576,14 +576,14 @@ void processMetFocusNode::doCatchupInstrumentation() {
 //         
 
 void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
-   vector<Frame> stackWalk;
+   pdvector<Frame> stackWalk;
    thr->walkStack(stackWalk);
    
    // Convert the stack walks into a similar list of catchupReq nodes, which
    // maps 1:1 onto the stack walk and includes a vector of instReqNodes that
    // need to be executed
 
-   vector<catchupReq *> catchupWalk;
+   pdvector<catchupReq *> catchupWalk;
    for (unsigned f=0; f<stackWalk.size(); f++)
       catchupWalk.push_back(new catchupReq(stackWalk[f]));
 
@@ -649,7 +649,7 @@ void processMetFocusNode::prepareCatchupInstr() {
       prepareCatchupInstr(pdthr);
    }
 
-   vector<instrCodeNode *> allCodeNodes;
+   pdvector<instrCodeNode *> allCodeNodes;
    getAllCodeNodes(&allCodeNodes);
    for(unsigned i=0; i<allCodeNodes.size(); i++)
       allCodeNodes[i]->markAsCatchupDone();
@@ -721,7 +721,7 @@ void processMetFocusNode::initAggInfoObjects(timeStamp startTime,
 
 instr_insert_result_t processMetFocusNode::loadInstrIntoApp()
 {
-   vector<instrCodeNode *> codeNodes;
+   pdvector<instrCodeNode *> codeNodes;
    getAllCodeNodes(&codeNodes);
 
    // mark remaining prim. components as deferred if we come upon
@@ -753,8 +753,8 @@ void processMetFocusNode::stopSamplingThr(threadMetFocusNode_Val *thrNodeVal) {
   metricVarCodeNode->stopSamplingThr(thrNodeVal);
 }
 
-vector<const instrDataNode*> processMetFocusNode::getFlagDataNodes() const {
-  vector<const instrDataNode*> buff;
+pdvector<const instrDataNode*> processMetFocusNode::getFlagDataNodes() const {
+  pdvector<const instrDataNode*> buff;
   for(unsigned i=0; i<constraintCodeNodes.size(); i++) {
     const instrDataNode *dn = constraintCodeNodes[i]->getFlagDataNode();
     buff.push_back(dn);
@@ -765,7 +765,7 @@ vector<const instrDataNode*> processMetFocusNode::getFlagDataNodes() const {
 bool processMetFocusNode::needToWalkStack() {
    bool anyNeeded = false;
 
-   vector<instrCodeNode *> codeNodes;
+   pdvector<instrCodeNode *> codeNodes;
    getAllCodeNodes(&codeNodes);
 
    for(unsigned i=0; i<codeNodes.size(); i++) {
@@ -803,11 +803,11 @@ bool processMetFocusNode::insertJumpsToTramps() {
    // always safe to instrument without stack walk
    bool allInserted = true;
 
-   vector<instrCodeNode *> codeNodes;
+   pdvector<instrCodeNode *> codeNodes;
    getAllCodeNodes(&codeNodes);
    
    // Vector of stack walks, one per thread
-   vector<vector<Frame> > stackWalks; 
+   pdvector<pdvector<Frame> > stackWalks; 
 
    if (needToWalkStack()) {
      proc()->walkStacks(stackWalks);
@@ -830,7 +830,7 @@ bool processMetFocusNode::insertJumpsToTramps() {
 timeLength processMetFocusNode::cost() const {
    timeLength totCost = timeLength::Zero();   
 
-   vector<const instrCodeNode *> codeNodes;
+   pdvector<const instrCodeNode *> codeNodes;
    getAllCodeNodes(&codeNodes);
 
    for(unsigned i=0; i<codeNodes.size(); i++) {
@@ -847,7 +847,7 @@ void processMetFocusNode::print() {
       thrNodes[i]->print();
    cerr << "mfinstr nodes\n";
 
-   vector<instrCodeNode *> codeNodes;
+   pdvector<instrCodeNode *> codeNodes;
    getAllCodeNodes(&codeNodes);
 
    for(unsigned j=0; j<codeNodes.size(); j++)
@@ -874,7 +874,7 @@ processMetFocusNode::~processMetFocusNode() {
     delete constraintCodeNodes[j];
   }
 
-  vector<processMetFocusNode*>::iterator itr = allProcNodes.end();
+  pdvector<processMetFocusNode*>::iterator itr = allProcNodes.end();
   while(itr != allProcNodes.begin()) {
      itr--;
      if(*itr == this)  
@@ -911,7 +911,7 @@ void processMetFocusNode::continueProcess() {
 bool processMetFocusNode::hasDeferredInstr() {
   bool hasDeferredComp = false;
 
-  vector<instrCodeNode *> codeNodes;
+  pdvector<instrCodeNode *> codeNodes;
   getAllCodeNodes(&codeNodes);
 
   for(unsigned i=0; i<codeNodes.size(); i++) {
@@ -939,7 +939,7 @@ void processMetFocusNode::addThrMetFocusNode(threadMetFocusNode* thrNode)
 }
 
 void processMetFocusNode::removeThrMetFocusNode(threadMetFocusNode *thrNode) {
-   vector<threadMetFocusNode *>::iterator iter = thrNodes.end();
+   pdvector<threadMetFocusNode *>::iterator iter = thrNodes.end();
    bool didErase = false;
    while(iter != thrNodes.begin()) {
       threadMetFocusNode *curThrNode = *(--iter);

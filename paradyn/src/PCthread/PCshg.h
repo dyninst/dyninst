@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCshg.h,v 1.40 2002/05/13 19:53:13 mjbrim Exp $
+ * $Id: PCshg.h,v 1.41 2002/12/20 07:50:03 jaw Exp $
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  */
 
@@ -89,7 +89,7 @@ public:
 		    unsigned newID,
 		    bool amFlag,
 		    int csp,
-		    vector<bool> as,
+		    pdvector<bool> as,
 		    bool alreadyNarrowed);
   searchHistoryNode *addChild (hypothesis *why, 
 			       focus whereowhere, 
@@ -166,7 +166,7 @@ private:
   
   //originalParent designates the true parent of every node. Many nodes
   //only have one parent, so in this case originalParent is the same as 
-  //the lone entry in the "parents" vector. In the case of shadow nodes,
+  //the lone entry in the "parents" pdvector. In the case of shadow nodes,
   //which have multiple parents, originalParent refers to the original parent 
   //of the shadow node.
   //This variable is necessary for the new PC, where SHG nodes notify 
@@ -175,15 +175,15 @@ private:
   //when it no longer has any expanded children.
   searchHistoryNode* originalParent;
 
-  vector<searchHistoryNode*> parents;
-  vector<searchHistoryNode*> children;
+  pdvector<searchHistoryNode*> parents;
+  pdvector<searchHistoryNode*> children;
   searchHistoryGraph *mamaGraph;
   
   string sname;
 
   //Index into searchPaths
   unsigned currentSearchPath;
-  vector<bool> alreadySearched; //one entry for each part of focus
+  pdvector<bool> alreadySearched; //one entry for each part of focus
   bool narrowedSearch;
   
   int numExpandedChildren;
@@ -233,15 +233,15 @@ class searchHistoryGraph {
 			  resourceHandle child);
   
  private:
-  vector<searchHistoryNode*> Nodes;
+  pdvector<searchHistoryNode*> Nodes;
   static unsigned uhash (const unsigned& val) {return (unsigned) (val % 19);} 
   dictionary_hash<unsigned, searchHistoryNode*> NodeIndex;
-  dictionary_hash<focus, vector<searchHistoryNode*>*> NodesByFocus;
+  dictionary_hash<focus, pdvector<searchHistoryNode*>*> NodesByFocus;
   searchHistoryNode *root;
   PCsearch *srch;
   int guiToken;      // use in UI calls to select correct search display  
   unsigned nextID;   // used to create unique ids for the nodes
-  vector<uiSHGrequest> *uiRequestBuff;
+  pdvector<uiSHGrequest> *uiRequestBuff;
 };
   
 ostream& operator <<(ostream &os, searchHistoryGraph& shg);

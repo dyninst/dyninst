@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.54 2002/10/14 21:02:15 bernat Exp $
+// $Id: inst-alpha.C,v 1.55 2002/12/20 07:49:56 jaw Exp $
 
 #include "common/h/headers.h"
 
@@ -565,7 +565,7 @@ void pd_Function::checkCallPoints() {
   instPoint *p;
   Address loc_addr;
 
-  vector<instPoint*> non_lib;
+  pdvector<instPoint*> non_lib;
 
   for (i=0; i<calls.size(); ++i) {
     /* check to see where we are calling */
@@ -1865,7 +1865,7 @@ bool pd_Function::findInstPoints(const image *owner)
 //   So we make this processor specific.
 //
 // find all DYNINST symbols that are data symbols
-bool process::heapIsOk(const vector<sym_data> &find_us) {
+bool process::heapIsOk(const pdvector<sym_data> &find_us) {
   bool err;
   Symbol sym;
   string str;
@@ -1932,13 +1932,13 @@ Register
 emitFuncCall(opCode /* op */, 
 	     registerSpace *rs,
 	     char *i, Address &base, 
-	     const vector<AstNode *> &operands,
+	     const pdvector<AstNode *> &operands,
 	     const string &callee, process *proc, bool noCost,
 	     const function_base *calleebase,
-	     const vector<AstNode *> &ifForks,
+	     const pdvector<AstNode *> &ifForks,
              const instPoint *location = NULL) // FIXME: pass it!
 {
-  vector <Register> srcs;
+  pdvector <Register> srcs;
   
   // First, generate the parameters
   for (unsigned u = 0; u < operands.size(); u++)
@@ -2060,7 +2060,7 @@ emitFuncCall(opCode /* op */,
   return dest;
 }
 
-bool returnInstance::checkReturnInstance(const vector< vector<Frame> > &stackWalks)
+bool returnInstance::checkReturnInstance(const pdvector< pdvector<Frame> > &stackWalks)
 {
   // Single instruction jumps == we don't have to implement
   return true;

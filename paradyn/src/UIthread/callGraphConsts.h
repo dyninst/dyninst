@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphConsts.h,v 1.3 2000/07/28 17:21:44 pcroth Exp $
+// $Id: callGraphConsts.h,v 1.4 2002/12/20 07:50:04 jaw Exp $
 
 #ifndef _CALLGRAPH_CONSTS_H_
 #define _CALLGRAPH_CONSTS_H_
@@ -63,8 +63,8 @@ struct callGraphConsts {
   GC rootItemTextGC, rootItemShadowTextGC;
   GC listboxItemGC, listboxItemShadowTextGC;
   
-  vector<Tk_3DBorder> rootItemTk3DBordersByStyle;
-  vector<Tk_3DBorder> listboxItemTk3DBordersByStyle;
+  pdvector<Tk_3DBorder> rootItemTk3DBordersByStyle;
+  pdvector<Tk_3DBorder> listboxItemTk3DBordersByStyle;
 
   callGraphConsts(Tcl_Interp *interp, Tk_Window theTkWindow);
   ~callGraphConsts();

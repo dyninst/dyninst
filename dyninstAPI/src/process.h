@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.229 2002/12/14 16:37:43 schendel Exp $
+/* $Id: process.h,v 1.230 2002/12/20 07:49:58 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -151,7 +151,7 @@ typedef enum { neonatal, running, stopped, exited } processState;
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
 typedef enum { textHeap=0x01, dataHeap=0x02, anyHeap=0x33, lowmemHeap=0x40 }
         inferiorHeapType;
-typedef vector<Address> addrVecType;
+typedef pdvector<Address> addrVecType;
 
 const int LOAD_DYNINST_BUF_SIZE = 256;
 
@@ -192,32 +192,14 @@ class disabledItem {
  public:
   disabledItem() : block() {}
 
-#if defined(USE_STL_VECTOR)
-
-  disabledItem(heapItem *h, const vector<addrVecType> &preds);
-  disabledItem(const disabledItem &src);
-  
-  disabledItem &operator=(const disabledItem &src) {
-    if (&src == this) return *this; // check for x=x    
-    block = src.block;
-    
-    // is this a mem leak???
-    pointsToCheck.clear();
-    for (unsigned int i = 0; i < src.pointsToCheck.size(); ++i) {
-      pointsToCheck.push_back(src.pointsToCheck[i]);
-    }
-    return *this;
-  }
-
-#else
-  disabledItem(heapItem *h, const vector<addrVecType> &preds) :
+  disabledItem(heapItem *h, const pdvector<addrVecType> &preds) :
     block(h), pointsToCheck(preds) {}
   disabledItem(const disabledItem &src) :
     block(src.block), pointsToCheck(src.pointsToCheck) {}
 
   // TODO: unused?
   disabledItem(Address ip, inferiorHeapType iht,
-               const vector<addrVecType> &ipts) :
+               const pdvector<addrVecType> &ipts) :
     block(ip, 0, iht), pointsToCheck(ipts) { 
     fprintf(stderr, "error: unused disabledItem ctor\n");
     assert(0);
@@ -228,17 +210,17 @@ class disabledItem {
     pointsToCheck = src.pointsToCheck;
     return *this;
   }
-#endif
+
 
  ~disabledItem() {}
   
   heapItem block;                    // inferior heap block
-  vector<addrVecType> pointsToCheck; // list of addresses to check against PCs
+  pdvector<addrVecType> pointsToCheck; // list of addresses to check against PCs
 
   Address getPointer() const {return block.addr;}
   inferiorHeapType getHeapType() const {return block.type;}
-  const vector<addrVecType> &getPointsToCheck() const {return pointsToCheck;}
-  vector<addrVecType> &getPointsToCheck() {return pointsToCheck;}
+  const pdvector<addrVecType> &getPointsToCheck() const {return pointsToCheck;}
+  pdvector<addrVecType> &getPointsToCheck() {return pointsToCheck;}
 };
 
 /* Dyninst heap class */
@@ -284,13 +266,13 @@ class inferiorHeap {
   inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy
                                           // of src (used on fork)
   dictionary_hash<Address, heapItem*> heapActive; // active part of heap 
-  vector<heapItem*> heapFree;           // free block of data inferior heap 
-  vector<disabledItem> disabledList;    // items waiting to be freed.
+  pdvector<heapItem*> heapFree;           // free block of data inferior heap 
+  pdvector<disabledItem> disabledList;    // items waiting to be freed.
   int disabledListTotalMem;             // total size of item waiting to free
   int totalFreeMemAvailable;            // total free memory in the heap
   int freed;                            // total reclaimed (over time)
 
-  vector<heapItem *> bufferPool;        // distributed heap segments -- csserra
+  pdvector<heapItem *> bufferPool;        // distributed heap segments -- csserra
 };
 
 
@@ -398,14 +380,14 @@ class process {
 #endif
   protected:  
   bool walkStackFromFrame(Frame currentFrame, // Where to start walking from
-			  vector<Frame> &stackWalk); // return parameter
+			  pdvector<Frame> &stackWalk); // return parameter
   public:
   // Preferred function: returns a stack walk (vector of frames)
   // for each thread in the program
-  bool walkStacks(vector<vector<Frame> > &stackWalks);
+  bool walkStacks(pdvector<pdvector<Frame> > &stackWalks);
 
   // Get a vector of the active frames of all threads in the process
-  bool getAllActiveFrames(vector<Frame> &activeFrames);
+  bool getAllActiveFrames(pdvector<Frame> &activeFrames);
 
   bool collectSaveWorldData;//this is set to collect data for
 				//save the world
@@ -572,7 +554,7 @@ class process {
   // additionally does a 'launchRPCifAppropriate' to fire off the next
   // waiting RPC, if any.
 
-  bool getCurrPCVector(vector <Address> &currPCs);
+  bool getCurrPCVector(pdvector <Address> &currPCs);
 
 #if defined(i386_unknown_solaris2_5)
   bool changeIntReg(int reg, Address addr);
@@ -583,17 +565,17 @@ class process {
 #endif
 
   void installBootstrapInst();
-  void installInstrRequests(const vector<instMapping*> &requests);
+  void installInstrRequests(const pdvector<instMapping*> &requests);
 
   int getPid() const { return pid;}
 
-  bool heapIsOk(const vector<sym_data>&);
+  bool heapIsOk(const pdvector<sym_data>&);
   bool initDyninstLib();
 
   // Get the list of inferior heaps from:
-  bool getInfHeapList(vector<heapDescriptor> &infHeaps); // Whole process
+  bool getInfHeapList(pdvector<heapDescriptor> &infHeaps); // Whole process
   bool getInfHeapList(const image *theImage,
-		      vector<heapDescriptor> &infHeaps); // Single image
+		      pdvector<heapDescriptor> &infHeaps); // Single image
 
   void addInferiorHeap(const image *theImage);
 
@@ -618,11 +600,11 @@ void saveWorldData(Address address, int size, const void* src);
 
 #ifdef BPATCH_LIBRARY
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
-  vector<imageUpdate*> imageUpdates;//ccw 28 oct 2001
-  vector<imageUpdate*> highmemUpdates;//ccw 20 nov 2001
-  vector<dataUpdate*>  dataUpdates;//ccw 26 nov 2001
-  vector<string> loadLibraryCalls;//ccw 14 may 2002 
-  vector<string> loadLibraryUpdates;//ccw 14 may 2002
+  pdvector<imageUpdate*> imageUpdates;//ccw 28 oct 2001
+  pdvector<imageUpdate*> highmemUpdates;//ccw 20 nov 2001
+  pdvector<dataUpdate*>  dataUpdates;//ccw 26 nov 2001
+  pdvector<string> loadLibraryCalls;//ccw 14 may 2002 
+  pdvector<string> loadLibraryUpdates;//ccw 14 may 2002
 
 	char* saveWorldFindDirectory();
 
@@ -630,8 +612,8 @@ void saveWorldData(Address address, int size, const void* src);
 		 char* directoryName, unsigned int &count);
 	char* saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibrariesSize);
 
-	void saveWorldCreateHighMemSections(vector<imageUpdate*> &compactedHighmemUpdates, 
-		vector<imageUpdate*> &highmemUpdates, void *newElf);
+	void saveWorldCreateHighMemSections(pdvector<imageUpdate*> &compactedHighmemUpdates, 
+		pdvector<imageUpdate*> &highmemUpdates, void *newElf);
 	void saveWorldCreateDataSections(void* ptr);
 	void saveWorldAddSharedLibs(void *ptr);//ccw 14 may 2002
 	void saveWorldloadLibrary(string tmp){ loadLibraryUpdates.push_back(tmp); };
@@ -805,7 +787,7 @@ void saveWorldData(Address address, int size, const void* src);
 
   // the following 2 vrbles probably belong in a different class:
   static string programName; // the name of paradynd (specifically, argv[0])
-  static vector<string> arg_list; // the arguments of paradynd
+  static pdvector<string> arg_list; // the arguments of paradynd
   static string pdFlavor;
   static string dyninstRT_name; // the filename of the dyninst runtime library
 #if !defined(BPATCH_LIBRARY)
@@ -1026,7 +1008,7 @@ void saveWorldData(Address address, int size, const void* src);
   bool addASharedObject(shared_object &, Address newBaseAddr = 0);
 
   // return the list of dynamically linked libs
-  vector<shared_object *> *sharedObjects() { return shared_objects;  } 
+  pdvector<shared_object *> *sharedObjects() { return shared_objects;  } 
 
   // getMainFunction: returns the main function for this process
   function_base *getMainFunction() const { return mainFunction; }
@@ -1042,7 +1024,7 @@ void saveWorldData(Address address, int size, const void* src);
     callWhen when;
     installed_miniTramps_list *mtList;
   } mtListInfo;
-  void getMiniTrampLists(vector<mtListInfo> *vecBuf);
+  void getMiniTrampLists(pdvector<mtListInfo> *vecBuf);
 
   void newMiniTrampList(const instPoint *loc, callWhen when,
 			installed_miniTramps_list **mtList);
@@ -1071,7 +1053,7 @@ void saveWorldData(Address address, int size, const void* src);
   // returns all the functions in the module "mod" that are not excluded by
   // exclude_lib or exclude_func
   // return 0 on error.
-  vector<function_base *> *getIncludedFunctions(module *mod); 
+  pdvector<function_base *> *getIncludedFunctions(module *mod); 
 #endif
 
   // Now: multithread daemon/library
@@ -1114,7 +1096,7 @@ void saveWorldData(Address address, int size, const void* src);
   pd_Function *findFuncByName(const string &func_name);
 
   // And do it, returning a vector if multiple matches
-  bool findAllFuncsByName(const string &func_name, vector<function_base *> &res);
+  bool findAllFuncsByName(const string &func_name, pdvector<function_base *> &res);
 
   // Check all loaded images for a function containing the given address.
   pd_Function *findFuncByAddr(Address adr);
@@ -1126,10 +1108,10 @@ void saveWorldData(Address address, int size, const void* src);
   // and if it is it returns 0.  If check_excluded is false it doesn't check
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-  // Same as vector <pd_Function*>convertPCsToFuncs(vector<Address> pcs);
+  // Same as pdvector <pd_Function*>convertPCsToFuncs(pdvector<Address> pcs);
   // except that NULL is not used if address cannot be resolved to unique 
   // function. Used in function relocation for x86.
-  vector<pd_Function *>pcsToFuncs(vector<Frame> stackWalk);
+  pdvector<pd_Function *>pcsToFuncs(pdvector<Frame> stackWalk);
 #endif
 
 
@@ -1142,21 +1124,21 @@ void saveWorldData(Address address, int size, const void* src);
 
   // getAllFunctions: returns a vector of all functions defined in the
   // a.out and in the shared objects
-  vector<function_base *> *getAllFunctions();
+  pdvector<function_base *> *getAllFunctions();
 
   // getAllModules: returns a vector of all modules defined in the
   // a.out and in the shared objects
-  vector<module *> *getAllModules();
+  pdvector<module *> *getAllModules();
 
 #ifndef BPATCH_LIBRARY
   // getIncludedFunctions: returns a vector of all functions defined in the
   // a.out and in shared objects that are not excluded by an mdl option 
-  vector<function_base *> *getIncludedFunctions();
+  pdvector<function_base *> *getIncludedFunctions();
 #endif
 
   // getIncludedModules: returns a vector of all functions defined in the
   // a.out and in shared objects that are  not excluded by an mdl option
-  vector<module *> *getIncludedModules();
+  pdvector<module *> *getIncludedModules();
 
   // getBaseAddress: sets baseAddress to the base address of the 
   // image corresponding to which.  It returns true  if image is mapped
@@ -1440,7 +1422,7 @@ private:
   // access methods. 
  public:
   dictionary_hash<unsigned, dyn_lwp *> lwps;
-  vector<dyn_thread *> threads;   /* threads belonging to this process */
+  pdvector<dyn_thread *> threads;   /* threads belonging to this process */
   handleT getProcessHandle() const { return procHandle_; };
  private:
   handleT procHandle_; // Process-specific, as opposed to thread-specific,
@@ -1450,7 +1432,7 @@ private:
   dynamic_linking *dyn;   // platform specific dynamic linking routines & data
 
   bool dynamiclinking;   // if true this a.out has a .dynamic section
-  vector<shared_object *> *shared_objects;  // list of dynamically linked libs
+  pdvector<shared_object *> *shared_objects;  // list of dynamically linked libs
 
   // The set of all functions and modules from the shared objects that show
   // up on the Where axis (both  instrumentable and uninstrumentable due to 
@@ -1458,15 +1440,15 @@ private:
   // are between DYNINSTStart and DYNINSTend
   // TODO: these lists for a.out functions and modules should be handled the 
   // same way as for shared object functions and modules
-  vector<function_base *> *all_functions;
-  vector<module *> *all_modules;
+  pdvector<function_base *> *all_functions;
+  pdvector<module *> *all_modules;
 
   // these are a restricted set of functions and modules which are those  
   // from the a.out and shared objects that are instrumentable (not excluded 
   // through the mdl "exclude_lib" or "exclude_func" option) 
   // "excluded" now means never able to instrument
-  vector<module *> *some_modules;  
-  vector<function_base *> *some_functions; 
+  pdvector<module *> *some_modules;  
+  pdvector<function_base *> *some_functions; 
   bool waiting_for_resources;  // true if waiting for resourceInfoResponse
 #if defined(i386_unknown_linux2_0)
   Address signal_restore;	// address of signal context restore function
@@ -1548,7 +1530,7 @@ private:
    // Maybe this should be in a different file... instead of crudding up
    // process.h more
    struct instPendingDeletion {
-     vector<Address> hot;
+     pdvector<Address> hot;
      Address baseAddr;
      // Stupid duplication...
      instInstance *oldMini;
@@ -1563,19 +1545,19 @@ private:
 
 Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type=anyHeap,
                        Address near_=0, bool *err=NULL);
-void inferiorFree(process *p, Address item, const vector<addrVecType> &);
+void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
 
 // garbage collect instrumentation
    void gcInstrumentation();
-   void gcInstrumentation(vector<vector<Frame> >&stackWalks);
+   void gcInstrumentation(pdvector<pdvector<Frame> >&stackWalks);
  private:
-   vector<instPendingDeletion *> pendingGCInstrumentation;
+   pdvector<instPendingDeletion *> pendingGCInstrumentation;
  
 };
 
 
-process *createProcess(const string file, vector<string> argv, 
-		       vector<string> envp, const string dir,
+process *createProcess(const string file, pdvector<string> argv, 
+		       pdvector<string> envp, const string dir,
 		       int stdin_fd, int stdout_fd, int stderr_fd);
 
 bool attachProcess(const string &progpath, int pid, int afterAttach,
@@ -1588,7 +1570,7 @@ bool isInferiorAllocated(process *p, Address block);
 
 extern resource *machineResource;
 
-extern vector<process *> processVec;
+extern pdvector<process *> processVec;
 
 //
 // PARADYND_DEBUG_XXX

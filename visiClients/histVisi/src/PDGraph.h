@@ -47,7 +47,7 @@
 // support the drawing of time-based histograms.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.h,v 1.4 2000/04/09 17:49:24 wylie Exp $
+// $Id: PDGraph.h,v 1.5 2002/12/20 07:50:09 jaw Exp $
 //---------------------------------------------------------------------------
 #ifndef PDGRAPH_H
 #define PDGRAPH_H
@@ -120,7 +120,7 @@ private:
     {
         ValueAxis* axis;         // Y axis for the group of curves
         int nVisible;            // number of curves currently visible
-        vector<Curve*> curves;   // curves belonging to the group
+        pdvector<Curve*> curves;   // curves belonging to the group
 
 
         Group( const char* title );
@@ -169,8 +169,8 @@ private:
             {}
         };
 
-        static  vector<LineSpec>    lineColorSpecs;     // allowable line specs
-        static  vector<LineSpec>    linePatternSpecs;
+        static  pdvector<LineSpec>    lineColorSpecs;     // allowable line specs
+        static  pdvector<LineSpec>    linePatternSpecs;
         static  unsigned int        nextLineSpecIdx;    // next spec to use
 
 
@@ -793,8 +793,8 @@ private:
 
 
 private:
-    vector<Curve*>    curves;        // set of curves known to the graph
-    vector<Group*>    groups;        // set of groups known to the graph
+    pdvector<Curve*>    curves;        // set of curves known to the graph
+    pdvector<Group*>    groups;        // set of groups known to the graph
     TimeAxisW*      timeAxis;        // the graph's time axis subwidget
     ValueAxisW*     valAxis;         // the graph's value axis subwidget
     DataW*          dataw;           // the graph's data subwidget
@@ -958,8 +958,8 @@ private:
     const Tk_Font& GetFont( void ) const            { return font; }
     const HistogramInfo&    GetHistogramInfo( void ) const  { return histInfo; }
     const VisualScopeInfo&  GetVisScopeInfo( void ) const   { return visScopeInfo; }
-    const vector<Group*>&   GetGroups( void ) const { return groups; }
-    const vector<Curve*>&   GetCurves( void ) const { return curves; }
+    const pdvector<Group*>&   GetGroups( void ) const { return groups; }
+    const pdvector<Curve*>&   GetCurves( void ) const { return curves; }
 
 
     // Tcl callback routines

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.7 2002/09/03 15:47:21 willb Exp $
+// $Id: main.C,v 1.8 2002/12/20 07:50:09 jaw Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -69,7 +69,7 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 Tcl_Interp *MainInterp;
 termWin* twServer = NULL;
 PDSOCKET serv_sock = -1;
-vector<clientConn *> conn_pool;
+pdvector<clientConn *> conn_pool;
 thread_t stdin_tid = 0;
 
 

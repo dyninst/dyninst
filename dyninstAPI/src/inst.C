@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.101 2002/12/14 16:37:37 schendel Exp $
+// $Id: inst.C,v 1.102 2002/12/20 07:49:57 jaw Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -92,7 +92,7 @@ static unsigned function_base_ptr_hash(function_base *const &f) {
 // Should filter out any duplicates in this callees list....
 
 bool pd_Function::getStaticCallees(process *proc,
-				   vector <pd_Function *>&callees) {
+				   pdvector <pd_Function *>&callees) {
     unsigned u;
     function_base *f;
     bool found;
@@ -212,7 +212,7 @@ static int insn[65536/sizeof(int)]; // Made into array of int so it would be
 				    // aligned correctly on platforms that
 				    // need it to be (like SPARC) - BRB
 
-vector<instWaitingList *> instWList;
+pdvector<instWaitingList *> instWList;
 
 // Shouldn't this be a member fn of class process?
 // writes into miniTrampHandle
@@ -528,7 +528,7 @@ trampTemplate *findBaseTramp(const instPoint * ip, const process *proc) {
 }
 
 void getMiniTrampsAtPoint(process *proc, instPoint *loc, callWhen when,
-			  vector<miniTrampHandle> *mt_buf) {
+			  pdvector<miniTrampHandle> *mt_buf) {
   installed_miniTramps_list *mtList = NULL;
   proc->getMiniTrampList(loc, when, &mtList);
   if(mtList == NULL) {
@@ -580,10 +580,10 @@ bool getInheritedMiniTramp(const miniTrampHandle *parentMT,
 // what data pointers each mini-tramp really used, but I don't think it is 
 // worth the trouble.
 //
-vector<Address> getTrampAddressesAtPoint(process *proc, const instPoint *loc,
+pdvector<Address> getTrampAddressesAtPoint(process *proc, const instPoint *loc,
 					 callWhen when)
 {
-   vector<Address> pointsToCheck;
+   pdvector<Address> pointsToCheck;
    
    installed_miniTramps_list *mtList = NULL;
    proc->getMiniTrampList(loc, when,  &mtList);

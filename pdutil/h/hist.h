@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: hist.h,v 1.25 2001/09/04 17:02:26 schendel Exp $
+// $Id: hist.h,v 1.26 2002/12/20 07:50:08 jaw Exp $
 
 #ifndef HIST
 #define HIST
@@ -124,7 +124,7 @@ class Histogram {
 
 	// static Histogram *allHist;	/* linked list of all histograms */
 	// Histogram *next;		/* linked list of all histograms */
-        static vector<Histogram *> allHist;  // list of all histograms
+        static pdvector<Histogram *> allHist;  // list of all histograms
 
         // these are added to support histograms with different bucket widths
 	// with different startTimes  (an individual histogram does not need

@@ -45,7 +45,7 @@
 // Explicit instantiation for templates needed by the runtime histogram visi.
 //
 //----------------------------------------------------------------------------
-// $Id: templates.C,v 1.3 2002/04/09 18:06:40 mjbrim Exp $
+// $Id: templates.C,v 1.4 2002/12/20 07:50:09 jaw Exp $
 //----------------------------------------------------------------------------
 
 #include "minmax.C"
@@ -56,32 +56,32 @@ template float max(const float, const float);
 #include "common/h/Vector.h"
 #include "common/h/String.h"
 template class  refCounter<string_ll>;
-template class vector<string>;
+template class pdvector<string>;
 
 #include "pdLogo.h"
 #include "common/h/Dictionary.h"
 #include "common/src/Dictionary.C"
 
-template class pair<string, pdLogo *>;
-template class pair<string, pdLogo::logoStruct>;
+template class pdpair<string, pdLogo *>;
+template class pdpair<string, pdLogo::logoStruct>;
 
-template pair<string, pdLogo *> make_pair<string, pdLogo *>(const string &, pdLogo * const &);
-template pair<string, pdLogo::logoStruct> make_pair<string, pdLogo::logoStruct>(const string &, const pdLogo::logoStruct &);
+template pdpair<string, pdLogo *> make_pdpair<string, pdLogo *>(const string &, pdLogo * const &);
+template pdpair<string, pdLogo::logoStruct> make_pdpair<string, pdLogo::logoStruct>(const string &, const pdLogo::logoStruct &);
 
-template class vector<pair<string, pdLogo *> >;
-template class vector<pair<string, pdLogo::logoStruct> >;
+template class pdvector<pdpair<string, pdLogo *> >;
+template class pdvector<pdpair<string, pdLogo::logoStruct> >;
 
 template class dictionary_hash<string, pdLogo*>;
-template class vector<dictionary_hash<string, pdLogo*>::entry>;
-template class vector<pdLogo*>;
+template class pdvector<dictionary_hash<string, pdLogo*>::entry>;
+template class pdvector<pdLogo*>;
 
 template class dictionary_hash<string, pdLogo::logoStruct>;
-template class vector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
-template class vector<pdLogo::logoStruct>;
+template class pdvector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
+template class pdvector<pdLogo::logoStruct>;
 
 #include "tk.h"
-template class pair<Tk_Window_ *, void *>;
-template class vector<pair<Tk_Window_ *, void *> >;
-template pair<Tk_Window_ *, void *> make_pair<Tk_Window_ *, void *>(Tk_Window_ * const &, void * const &);
+template class pdpair<Tk_Window_ *, void *>;
+template class pdvector<pdpair<Tk_Window_ *, void *> >;
+template pdpair<Tk_Window_ *, void *> make_pdpair<Tk_Window_ *, void *>(Tk_Window_ * const &, void * const &);
 
 #endif //!defined(i386_unknown_nt4_0)

@@ -76,12 +76,12 @@ class FunctionExpansionRecord {
     //  jump/branch targets to locations inside the function (e.g. from other
     //  locations inside the function).
 
-    // vector holding FERNodes added with AddExpansion()....
+    // pdvector holding FERNodes added with AddExpansion()....
     //  assumes sorted in order of original_offset....
-    vector<FERNode*> expansions;
-    // vector holding FERNodes representing TOTAL displacements 
+    pdvector<FERNode*> expansions;
+    // pdvector holding FERNodes representing TOTAL displacements 
     //  derived from individual displacements specified via AddExpansion()....
-    vector<FERNode> total_expansions;
+    pdvector<FERNode> total_expansions;
     // index into expansions which satisfied last GetShift() request.... 
     int index;
 
@@ -92,7 +92,7 @@ class FunctionExpansionRecord {
     // total shift of the record
     int totalShift;
 
-    // sort expansions vector (in place)....
+    // sort expansions pdvector (in place)....
     void SortExpansions();
   public:
 
@@ -116,33 +116,6 @@ class FunctionExpansionRecord {
 
     // returns the sum total of the FERNodes shifts 
     int sizeChange();
-
-#ifdef USE_STL_VECTOR
-    FunctionExpansionRecord &operator=(const FunctionExpansionRecord &src) {
-#ifdef DEBUG_STL
-    cout << "copying Function Expansion Record" << endl;
-#endif
-    index = src.index;
-    collapsed = src.collapsed;
-    totalShift = src.totalShift;
-    
-    for (unsigned int i = 0; i < expansions.size(); ++i) 
-      delete expansions[i];
-    expansions.clear();
-
-    total_expansions.clear();
-
-    for (unsigned int i = 0; i < src.expansions.size(); ++i) 
-      expansions.push_back(src.expansions[i]);
-
-    for (unsigned int i = 0; i < src.total_expansions.size(); ++i) 
-      total_expansions.push_back(src.total_expansions[i]);
-#ifdef DEBUG_STL
-    cout << "copied Function Expansion Record" << endl;
-#endif
-    return *this;
-  }
-#endif
 
 // dump state info....
     friend ostream& operator<<(ostream &os, const FunctionExpansionRecord &rc);

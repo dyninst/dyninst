@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.41 2002/11/25 23:52:24 schendel Exp $
+// $Id: DMmetric.C,v 1.42 2002/12/20 07:50:01 jaw Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -112,9 +112,9 @@ metric *metric::getMetric(metricHandle handle){
      }
 }
 
-vector<string> *metric::allMetricNames(bool all){
+pdvector<string> *metric::allMetricNames(bool all){
 
-    vector<string> *temp = new vector<string>;
+    pdvector<string> *temp = new pdvector<string>;
     string name;
     tunableBooleanConstant developerMode =
 			   tunableConstantRegistry::findBoolTunableConstant(
@@ -134,9 +134,9 @@ vector<string> *metric::allMetricNames(bool all){
     return(temp);
 }
 
-vector<met_name_id> *metric::allMetricNamesIds(bool all){
+pdvector<met_name_id> *metric::allMetricNamesIds(bool all){
 
-    vector<met_name_id> *temp = new vector<met_name_id>;
+    pdvector<met_name_id> *temp = new pdvector<met_name_id>;
     met_name_id next;
     tunableBooleanConstant developerMode =
 			   tunableConstantRegistry::findBoolTunableConstant(
@@ -406,7 +406,7 @@ void metricInstance::currPhaseDataCallback(pdSample *buckets, int count,
 }
  
 void metricInstance::updateAllAggIntervals() {
-  vector<metricInstanceHandle> allMIHs;
+  pdvector<metricInstanceHandle> allMIHs;
   allMIHs = metricInstance::allMetricInstances.keys();
 
   // if a fold has occurred, then update the sampleAggregate object's
@@ -454,7 +454,7 @@ void metricInstance::dataDisable() {
     assert(!users.size());
     assert(!global_users.size());
 
-    vector<component *>::iterator iter = components.end();
+    pdvector<component *>::iterator iter = components.end();
     while(iter != components.begin()) {
        iter--;
        removeComponent(*iter);
@@ -467,7 +467,7 @@ void metricInstance::dataDisable() {
 
 void metricInstance::removeCurrUser(perfStreamHandle ps){
 
-    // remove ps from vector of users
+    // remove ps from pdvector of users
     unsigned size = users.size();
     for(unsigned i=0; i < size; i++){
 	if(users[i].psHandle == ps){
@@ -482,7 +482,7 @@ void metricInstance::removeCurrUser(perfStreamHandle ps){
 
 void metricInstance::removeGlobalUser(perfStreamHandle ps){
 
-    // remove ps from vector of users
+    // remove ps from pdvector of users
     unsigned size = global_users.size();
     for(unsigned i=0; i < size; i++){
 	if(global_users[i].psHandle == ps){
@@ -498,7 +498,7 @@ void metricInstance::removeGlobalUser(perfStreamHandle ps){
 // trace data streams
 void metricInstance::removeTraceUser(perfStreamHandle ps){
 
-    // remove ps from vector of users
+    // remove ps from pdvector of users
     unsigned size = trace_users.size();
     for(unsigned i=0; i < size; i++){
         if(trace_users[i] == ps){
@@ -538,10 +538,10 @@ metricInstance *metricInstance::find(metricHandle mh, resourceListHandle rh){
     return 0;
 }
 
-vector<metricInstance*> *metricInstance::query(metric_focus_pair metfocus)
+pdvector<metricInstance*> *metricInstance::query(metric_focus_pair metfocus)
 {
     resourceListHandle focus_handle=resourceList::getResourceList(metfocus.res);
-    vector<metricInstance*> *result=new vector<metricInstance*>;
+    pdvector<metricInstance*> *result=new pdvector<metricInstance*>;
 
     dictionary_hash_iter<metricInstanceHandle,metricInstance *> 
 			allMI(allMetricInstances);
@@ -554,7 +554,7 @@ vector<metricInstance*> *metricInstance::query(metric_focus_pair metfocus)
 	       return result;
 	    }
 	}else {
-	       vector<resourceHandle> *mi_focus=resourceList::getResourceHandles(mi->getFocusHandle());
+	       pdvector<resourceHandle> *mi_focus=resourceList::getResourceHandles(mi->getFocusHandle());
 	       assert(mi_focus != NULL);
 
 	       string mi_focus_name = resource::DMcreateRLname(*mi_focus);
@@ -683,7 +683,7 @@ void metricInstance::removeComponent(paradynDaemon *daemon) {
    sampleVal_cerr << "metricInstance::removeComponent(dmn)-  daemon: " 
 		  << daemon << "  num of components: " << lastIndex+1 << "\n";
 
-   vector<component *>::iterator iter = components.end();
+   pdvector<component *>::iterator iter = components.end();
    while(iter != components.begin()) {
       iter--;
       if ((*iter)->getDaemon() == daemon) {
@@ -828,7 +828,7 @@ void metricInstance::stopAllCurrentDataCollection(phaseHandle last_phase_id) {
     metricInstanceHandle handle;
     metricInstance *mi;
  
-    vector<metricInstance *> remove_list;
+    pdvector<metricInstance *> remove_list;
     allMI.reset();
     while(allMI.next(handle,mi)){
 	remove_list += mi;

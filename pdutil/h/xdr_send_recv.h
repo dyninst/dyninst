@@ -126,7 +126,7 @@ bool P_xdr_recv(XDR *xdr, T *&data) {
 // New style XDR send routines for vectors
 
 template <class T, class A>
-bool P_xdr_send_common(XDR *xdr, const vector<T, A> &vec,
+bool P_xdr_send_common(XDR *xdr, const pdvector<T, A> &vec,
                        bool (*writerfn)(XDR *, const T)) {
    assert(xdr->x_op == XDR_ENCODE);
    
@@ -137,8 +137,8 @@ bool P_xdr_send_common(XDR *xdr, const vector<T, A> &vec,
    if (nelems == 0)
       return true;
    
-   TYPENAME31 vector<T, A>::const_iterator finish = vec.end();
-   for (TYPENAME31 vector<T, A>::const_iterator iter = vec.begin(); iter != finish; ++iter) {
+   TYPENAME31 pdvector<T, A>::const_iterator finish = vec.end();
+   for (TYPENAME31 pdvector<T, A>::const_iterator iter = vec.begin(); iter != finish; ++iter) {
       const T item = *iter;
 
       if (!writerfn(xdr, item))
@@ -158,16 +158,16 @@ bool writerfn_noMethod(XDR *xdr, const T item) {
 }
 
 template <class T, class A>
-bool P_xdr_send_method(XDR *xdr, const vector<T, A> &vec) {
+bool P_xdr_send_method(XDR *xdr, const pdvector<T, A> &vec) {
    return P_xdr_send_common(xdr, vec, writerfn_method<T>);
 }
 template <class T, class A>
-bool P_xdr_send(XDR *xdr, const vector<T, A> &vec) {
+bool P_xdr_send(XDR *xdr, const pdvector<T, A> &vec) {
    return P_xdr_send_common(xdr, vec, writerfn_noMethod<T>);
 }
 
 template <class T, class A>
-bool P_xdr_send_pointers(XDR *xdr, const vector<T*, A> &vec) {
+bool P_xdr_send_pointers(XDR *xdr, const pdvector<T*, A> &vec) {
    assert(xdr->x_op == XDR_ENCODE);
    
    const uint32_t nelems = vec.size(); // uint32_t helps portability
@@ -177,8 +177,8 @@ bool P_xdr_send_pointers(XDR *xdr, const vector<T*, A> &vec) {
    if (nelems == 0)
       return true;
    
-   TYPENAME31 vector<T*, A>::const_iterator finish = vec.end();
-   for (TYPENAME31 vector<T*, A>::const_iterator iter = vec.begin(); iter != finish; ++iter) {
+   TYPENAME31 pdvector<T*, A>::const_iterator finish = vec.end();
+   for (TYPENAME31 pdvector<T*, A>::const_iterator iter = vec.begin(); iter != finish; ++iter) {
       const T *item = *iter;
       if (!P_xdr_send(xdr, *item))
          return false;
@@ -192,7 +192,7 @@ bool P_xdr_send_pointers(XDR *xdr, const vector<T*, A> &vec) {
 // New style XDR recv routines for vectors
 
 template <class T, class A>
-bool P_xdr_recv(XDR *xdr, vector<T, A> &vec) {
+bool P_xdr_recv(XDR *xdr, pdvector<T, A> &vec) {
    assert(xdr->x_op == XDR_DECODE);
 
    uint32_t nelems;
@@ -202,7 +202,7 @@ bool P_xdr_recv(XDR *xdr, vector<T, A> &vec) {
    // Call default ctor for "vec" (needed before reserve_for_inplace_construction()
    // can be invoked).  Fortunately, vector's default ctor is always very quick
    // (doesn't allocate anything).
-   (void)new((void*)&vec)vector<T, A>();
+   (void)new((void*)&vec)pdvector<T, A>();
 
    // assert that the default ctor did exactly what we expected it to do:
    assert(vec.size() == 0);
@@ -213,8 +213,8 @@ bool P_xdr_recv(XDR *xdr, vector<T, A> &vec) {
       // don't call reserve_for_inplace_construction() with an argument of zero.
       return true;
    
-   TYPENAME31 vector<T, A>::iterator iter = vec.reserve_for_inplace_construction(nelems);
-   TYPENAME31 vector<T, A>::iterator finish = vec.end();
+   TYPENAME31 pdvector<T, A>::iterator iter = vec.reserve_for_inplace_construction(nelems);
+   TYPENAME31 pdvector<T, A>::iterator finish = vec.end();
 
    // Reminder: Upon failure, we must still expect the dtor for vector<T, A> to
    // get called, so leave the object in a valid state no matter what.
@@ -231,7 +231,7 @@ bool P_xdr_recv(XDR *xdr, vector<T, A> &vec) {
 }
 
 template <class T, class A>
-bool P_xdr_recv_ctor(XDR *xdr, vector<T, A> &vec) {
+bool P_xdr_recv_ctor(XDR *xdr, pdvector<T, A> &vec) {
    assert(xdr->x_op == XDR_DECODE);
 
    uint32_t nelems;
@@ -241,7 +241,7 @@ bool P_xdr_recv_ctor(XDR *xdr, vector<T, A> &vec) {
    // Call default ctor for "vec" (needed before reserve_for_inplace_construction()
    // can be invoked).  Fortunately, vector's default ctor is always very quick
    // (doesn't allocate anything).
-   (void)new((void*)&vec)vector<T, A>();
+   (void)new((void*)&vec)pdvector<T, A>();
 
    // assert that the default ctor did exactly what we expected it to do:
    assert(vec.size() == 0);
@@ -252,8 +252,8 @@ bool P_xdr_recv_ctor(XDR *xdr, vector<T, A> &vec) {
       // don't call reserve_for_inplace_construction() with an argument of zero.
       return true;
    
-   TYPENAME31 vector<T, A>::iterator iter = vec.reserve_for_inplace_construction(nelems);
-   TYPENAME31 vector<T, A>::iterator finish = vec.end();
+   TYPENAME31 pdvector<T, A>::iterator iter = vec.reserve_for_inplace_construction(nelems);
+   TYPENAME31 pdvector<T, A>::iterator finish = vec.end();
 
    // Reminder: Upon failure, we must still expect the dtor for vector<T, A> to
    // get called, so leave the object in a valid state no matter what.
@@ -269,7 +269,7 @@ bool P_xdr_recv_ctor(XDR *xdr, vector<T, A> &vec) {
 }
 
 template <class T, class A>
-bool P_xdr_recv_pointers(XDR *xdr, vector<T*, A> &vec) {
+bool P_xdr_recv_pointers(XDR *xdr, pdvector<T*, A> &vec) {
    assert(xdr->x_op == XDR_DECODE);
 
    uint32_t nelems;
@@ -279,7 +279,7 @@ bool P_xdr_recv_pointers(XDR *xdr, vector<T*, A> &vec) {
    // Call default ctor for "vec" (needed before reserve_for_inplace_construction()
    // can be invoked).  Fortunately, vector's default ctor is always very quick
    // (doesn't allocate anything).
-   (void)new((void*)&vec)vector<T*, A>();
+   (void)new((void*)&vec)pdvector<T*, A>();
 
    // assert that the default ctor did exactly what we expected it to do:
    assert(vec.size() == 0);
@@ -292,8 +292,8 @@ bool P_xdr_recv_pointers(XDR *xdr, vector<T*, A> &vec) {
 
    // No need to be too clever with reserve_for_inplace_construction() here; since
    // the vector is of pointers, element copying will be cheap, etc.
-   TYPENAME31 vector<T*, A>::iterator iter = vec.reserve_for_inplace_construction(nelems);
-   TYPENAME31 vector<T*, A>::iterator finish = vec.end();
+   TYPENAME31 pdvector<T*, A>::iterator iter = vec.reserve_for_inplace_construction(nelems);
+   TYPENAME31 pdvector<T*, A>::iterator finish = vec.end();
 
    // Reminder: Upon failure, we must still expect the dtor for vector<T, A> to
    // get called, so leave the object in a valid state no matter what.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.59 2002/08/31 16:53:10 mikem Exp $
+// $Id: ast.h,v 1.60 2002/12/20 07:49:56 jaw Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -179,8 +179,8 @@ class AstNode {
 
         AstNode(operandType ot, AstNode *l);
 	AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e = NULL);
-        AstNode(const string &func, vector<AstNode *> &ast_args);
-        AstNode(function_base *func, vector<AstNode *> &ast_args);
+        AstNode(const string &func, pdvector<AstNode *> &ast_args);
+        AstNode(function_base *func, pdvector<AstNode *> &ast_args);
 	AstNode(function_base *func); // FuncJump (for replaceFunction)
 
         AstNode(AstNode *src);
@@ -195,7 +195,7 @@ class AstNode {
 			     const instPoint *location = NULL);
 	Address generateCode_phase2(process *proc, registerSpace *rs, char *i, 
 				    Address &base, bool noCost,
-				    const vector<AstNode*> &ifForks,
+				    const pdvector<AstNode*> &ifForks,
 				    const instPoint *location = NULL);
 
 	enum CostStyleType { Min, Avg, Max };
@@ -224,11 +224,11 @@ class AstNode {
 	// Path from the root to this node which resulted in computing the
 	// kept_register. It contains only the nodes where the control flow
 	// forks (e.g., "then" or "else" clauses of an if statement)
-	vector<AstNode*> kept_path;
+	pdvector<AstNode*> kept_path;
 
 	// Record the register to share as well as the path that lead
 	// to its computation
-	void keepRegister(Register r, vector<AstNode*> path);
+	void keepRegister(Register r, pdvector<AstNode*> path);
 
 	// Do not keep the register anymore
 	void unkeepRegister();
@@ -250,7 +250,7 @@ class AstNode {
 	// Allocate a register and make it available for sharing if our
         // node is shared
 	Register allocateAndKeep(registerSpace *rs, 
-				 const vector<AstNode*> &ifForks,
+				 const pdvector<AstNode*> &ifForks,
 				 char *insn, Address &base, bool noCost);
 
         // Sometimes we can reuse one of the source registers to store
@@ -258,15 +258,15 @@ class AstNode {
         // not shared between tree nodes.
 	Register shareOrAllocate(Register left, Register right,
 				 registerSpace *rs, 
-				 const vector<AstNode*> &ifForks,
+				 const pdvector<AstNode*> &ifForks,
 				 char *insn, Address &base, bool noCost);
 	
 	// Check to see if path1 is a subpath of path2
-	bool subpath(const vector<AstNode*> &path1, 
-		     const vector<AstNode*> &path2) const;
+	bool subpath(const pdvector<AstNode*> &path1, 
+		     const pdvector<AstNode*> &path2) const;
 
 	// Return all children of this node ([lre]operand, ..., operands[])
-	void getChildren(vector<AstNode*> *children);
+	void getChildren(pdvector<AstNode*> *children);
 
         void updateOperandsRC(bool flag); // Update operand's referenceCount
                                           // if "flag" is true, increments the
@@ -275,7 +275,7 @@ class AstNode {
         void printRC(void);
 	bool findFuncInAst(string func) ;
 	void replaceFuncInAst(function_base *func1, function_base *func2);
-	void replaceFuncInAst(function_base *func1, function_base *func2, vector<AstNode *> &ast_args, int index=0);
+	void replaceFuncInAst(function_base *func1, function_base *func2, pdvector<AstNode *> &ast_args, int index=0);
 	bool accessesParam(void);         // Does this AST access "Param"
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
@@ -287,10 +287,10 @@ class AstNode {
 	void setOValue(void *arg) { oValue = (void *) arg; }
 	// only function that's defined in metric.C (only used in metri.C)
 	bool condMatch(AstNode* a,
-		       vector<dataReqNode*> &data_tuple1,
-		       vector<dataReqNode*> &data_tuple2,
-		       vector<dataReqNode*> datareqs1,
-		       vector<dataReqNode*> datareqs2);
+		       pdvector<dataReqNode*> &data_tuple1,
+		       pdvector<dataReqNode*> &data_tuple2,
+		       pdvector<dataReqNode*> datareqs1,
+		       pdvector<dataReqNode*> datareqs2);
 
 
 	// DEBUG
@@ -303,7 +303,7 @@ class AstNode {
 	opCode op;		    // only for opCode nodes
 	string callee;		    // only for call nodes
 	function_base *calleefunc;  // only for call nodes
-	vector<AstNode *> operands; // only for call nodes
+	pdvector<AstNode *> operands; // only for call nodes
 	operandType oType;	    // for operand nodes
 	void *oValue;	            // operand value for operand nodes
         unsigned int whichMA;       // only for memory access nodes
@@ -351,14 +351,14 @@ AstNode *getTimerAddress(void *base, unsigned struct_size);
 AstNode *getCounterAddress(void *base, unsigned struct_size);
 AstNode *createCounter(const string &func, void *, AstNode *arg);
 AstNode *createHwTimer(const string &func, void *, 
-                     vector<AstNode *> &arg_args, int hwCntrIndex);
+                     pdvector<AstNode *> &arg_args, int hwCntrIndex);
 
 AstNode *createTimer(const string &func, void *, 
-                     vector<AstNode *> &arg_args);
+                     pdvector<AstNode *> &arg_args);
 // VG(11/06/01): This should be in inst.h I suppose; moved there...
 /*
 Register emitFuncCall(opCode op, registerSpace *rs, char *i, Address &base, 
-		      const vector<AstNode *> &operands, const string &func,
+		      const pdvector<AstNode *> &operands, const string &func,
 		      process *proc, bool noCost, const function_base *funcbase,
 		      const instPoint *location = NULL);
 */

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.117 2002/11/25 23:51:43 schendel Exp $
+ * $Id: DMdaemon.C,v 1.118 2002/12/20 07:50:01 jaw Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -83,7 +83,7 @@ extern pdDebug_ostream sampleVal_cerr;
 void metCheckDaemonProcess( const string & );
 
 
-vector<paradynDaemon::MPICHWrapperInfo> paradynDaemon::wrappers;
+pdvector<paradynDaemon::MPICHWrapperInfo> paradynDaemon::wrappers;
 
 
 // change a char* that points to "" to point to NULL
@@ -120,8 +120,8 @@ void DM_enableType::setDone(metricInstanceHandle mh){
 
 // find any matching completed mids and update the done values 
 // if a matching value is successfully enabled done=true, else done= false
-void DM_enableType::updateAny(vector<metricInstance *> &completed_mis,
-			      vector<bool> successful){
+void DM_enableType::updateAny(pdvector<metricInstance *> &completed_mis,
+			      pdvector<bool> successful){
 
    for(u_int i=0; i < done->size(); i++){
        if(!(*done)[i]){  // try to update element
@@ -156,7 +156,7 @@ const string daemonEntry::getRemoteShellString() const {
 // Called by the igen routine newProgramCallbackFunc()
 
 bool paradynDaemon::addRunningProgram (int pid,
-				       const vector<string> &paradynd_argv,
+				       const pdvector<string> &paradynd_argv,
 				       paradynDaemon *daemon,
 				       bool calledFromExec,
 				       bool attached_runMe) {
@@ -444,7 +444,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
    // Send the initial metrics, constraints, and other neato things
    mdl_send(pd);
    // Send the initial metrics, constraints, and other neato things
-   vector<T_dyninstRPC::metricInfo> info = pd->getAvailableMetrics();
+   pdvector<T_dyninstRPC::metricInfo> info = pd->getAvailableMetrics();
    unsigned size = info.size();
    for (unsigned u=0; u<size; u++)
 	addMetric(info[u]);
@@ -575,9 +575,9 @@ void paradynDaemon::printPrograms()
 //
 // Return list of names of defined daemons.  
 //
-vector<string> *paradynDaemon::getAvailableDaemons()
+pdvector<string> *paradynDaemon::getAvailableDaemons()
 {
-    vector<string> *names = new vector<string>;
+    pdvector<string> *names = new pdvector<string>;
 
     daemonEntry *entry;
     for(unsigned i=0; i < allEntries.size(); i++){
@@ -588,8 +588,8 @@ vector<string> *paradynDaemon::getAvailableDaemons()
 }
 
 // For a given machine name, find the appropriate paradynd structure(s).
-vector<paradynDaemon*> paradynDaemon::machineName2Daemon(const string &mach) {
-   vector<paradynDaemon*> v;
+pdvector<paradynDaemon*> paradynDaemon::machineName2Daemon(const string &mach) {
+   pdvector<paradynDaemon*> v;
    for (unsigned i=0; i < allDaemons.size(); i++) {
       paradynDaemon *theDaemon = allDaemons[i];
       if (theDaemon->getMachineName() == mach)
@@ -607,7 +607,7 @@ static bool hostIsLocal(const string &machine)
 
 static bool execPOE(const string /* &machine*/, const string /* &login */,
                     const string /* &name   */, const string         &dir,
-                    const vector<string> &argv, const vector<string>  args,
+                    const pdvector<string> &argv, const pdvector<string>  args,
                     daemonEntry          *de)
 {
 	unsigned i;
@@ -659,7 +659,7 @@ static bool execPOE(const string /* &machine*/, const string /* &login */,
 
 static bool rshPOE(const string         &machine, const string         &login,
                    const string      /* &name*/,  const string         &dir,
-                   const vector<string> &argv,    const vector<string>  args,
+                   const pdvector<string> &argv,    const pdvector<string>  args,
                    daemonEntry          *de)
 {
   unsigned i;
@@ -718,7 +718,7 @@ static bool rshPOE(const string         &machine, const string         &login,
 
 static bool startPOE(const string         &machine, const string         &login,
                      const string         &name,    const string         &dir,
-                     const vector<string> &argv,    const vector<string>  args,
+                     const pdvector<string> &argv,    const pdvector<string>  args,
 		     daemonEntry          *de)
 {
 #if !defined(i386_unknown_nt4_0)
@@ -738,8 +738,8 @@ static bool startPOE(const string         &machine, const string         &login,
 }
 
 
-bool getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
-              daemonEntry* de, vector<string>& cmdLineVec, string& programNames)
+bool getIrixMPICommandLine(const pdvector<string> argv, const pdvector<string> args,
+              daemonEntry* de, pdvector<string>& cmdLineVec, string& programNames)
 {
   //  This parsing implemented for mpirun IRIX 6.5, SGI MPI 3.2.0.0
 
@@ -784,7 +784,7 @@ bool getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
   };
 
   unsigned int i = 0, j = 0;
-  vector<string> progNameVec;
+  pdvector<string> progNameVec;
   
   //  parse past mpirun
   bool mpirunFound = false;
@@ -1064,7 +1064,7 @@ bool getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
 }
 
 
-static bool execIrixMPI(const string &dir, vector<string>& cmdLineVec)
+static bool execIrixMPI(const string &dir, pdvector<string>& cmdLineVec)
 {
   unsigned int j;
   
@@ -1105,7 +1105,7 @@ static bool execIrixMPI(const string &dir, vector<string>& cmdLineVec)
 
 static bool rshIrixMPI(const string &machine, const string &login,
                        const string &dir, daemonEntry* de,
-                       vector<string>& cmdLineVec)
+                       pdvector<string>& cmdLineVec)
 {
   char *s[6];
   char  t[1024];
@@ -1160,7 +1160,7 @@ static bool rshIrixMPI(const string &machine, const string &login,
 
 static bool startIrixMPI(const string     &machine, const string         &login,
                      const string         &name,    const string         &dir,
-                     const vector<string> &argv,    const vector<string>  args,
+                     const pdvector<string> &argv,    const pdvector<string>  args,
 		     daemonEntry          *de)
 {
 #if !defined(i386_unknown_nt4_0)
@@ -1168,7 +1168,7 @@ static bool startIrixMPI(const string     &machine, const string         &login,
    if (PROCstatus) uiMgr->updateStatusLine(PROCstatus, "IRIX MPI");
 
    string programNames;
-   vector<string> cmdLineVec;
+   pdvector<string> cmdLineVec;
    
    if ( !getIrixMPICommandLine(argv, args, de, cmdLineVec, programNames) )
      return false;
@@ -1334,7 +1334,7 @@ bool writeMPICHWrapper(const string& fileName, const string& buffer )
 */
 bool mpichCreateWrapper(const string& machine, bool localMachine,
 			const string& script, const char *dir,
-			const string& app_name, const vector<string> args,
+			const string& app_name, const pdvector<string> args,
 			daemonEntry *de)
 {
    const char *preamble = "#!/bin/sh\ncd ";
@@ -1440,14 +1440,14 @@ bool mpichCreateWrapper(const string& machine, bool localMachine,
    return true;
 }
 
-extern void appendParsedString(vector<string> &strList, const string &str);
+extern void appendParsedString(pdvector<string> &strList, const string &str);
 
 /*
   Handle remote startup case
 */
 void mpichRemote(const string &machine, const string &login, 
 		 const char *cwd, daemonEntry *de, 
-		 vector<string> &params)
+		 pdvector<string> &params)
 {
 	string rsh = de->getRemoteShellString();
 	assert(rsh.length() > 0);
@@ -1474,8 +1474,8 @@ struct known_arguments {
   (mpirun arguments, the application name, application parameters)
   Insert the script name instead of the application name
 */
-bool mpichParseCmdline(const string& script, const vector<string> &argv,
-		       string& app_name, vector<string> &params)
+bool mpichParseCmdline(const string& script, const pdvector<string> &argv,
+		       string& app_name, pdvector<string> &params)
 {
    const unsigned int NKEYS = 34;
    struct known_arguments known[NKEYS] = {
@@ -1561,11 +1561,11 @@ bool mpichParseCmdline(const string& script, const vector<string> &argv,
 */
 static bool startMPICH(const string &machine, const string &login,
 		       const string &/*name*/, const string &dir,
-		       const vector<string> &argv, const vector<string> &args,
+		       const pdvector<string> &argv, const pdvector<string> &args,
 		       daemonEntry *de)
 {
 	string app_name;
-	vector<string> params;
+	pdvector<string> params;
 	unsigned int i;
 	char cwd[PATH_MAX];
 	char **s;
@@ -1628,7 +1628,7 @@ bool paradynDaemon::newExecutable(const string &machineArg,
 				  const string &login,
 				  const string &name, 
 				  const string &dir, 
-				  const vector<string> &argv){
+				  const pdvector<string> &argv){
    string machine = machineArg;
 
    if (! DMstatus_initialized) {
@@ -2007,14 +2007,14 @@ void  paradynDaemon::reportResources(){
 // upcall from paradynd reporting new resource
 //
 void paradynDaemon::resourceInfoCallback(u_int temporaryId,
-			      vector<string> resource_name,
+			      pdvector<string> resource_name,
 		   	      string abstr, u_int type) {
 
     resourceHandle r = resource::createResource(temporaryId, resource_name, 
                                                 abstr, type);
     if(!count){
       if (r != temporaryId) {
-	vector<u_int>tempIds; vector<u_int>rIds;
+	pdvector<u_int>tempIds; pdvector<u_int>rIds;
 	tempIds += temporaryId; rIds += r;
 	resourceInfoResponse(tempIds, rIds);
       }
@@ -2028,7 +2028,7 @@ void paradynDaemon::resourceInfoCallback(u_int temporaryId,
     }
 }
 
-void paradynDaemon::severalResourceInfoCallback(vector<T_dyninstRPC::resourceInfoCallbackStruct> items) {
+void paradynDaemon::severalResourceInfoCallback(pdvector<T_dyninstRPC::resourceInfoCallbackStruct> items) {
    for (unsigned lcv=0; lcv < items.size(); lcv++)
       resourceInfoCallback(items[lcv].temporaryId,
 			   items[lcv].resource_name,
@@ -2049,7 +2049,7 @@ void paradynDaemon::getPredictedDataCostCall(perfStreamHandle ps_handle,
 				      u_int clientID)
 {
     if(rl && m){
-        vector<u_int> focus;
+        pdvector<u_int> focus;
         bool aflag;
 	aflag=rl->convertToIDList(focus);
 	assert(aflag);
@@ -2077,19 +2077,19 @@ void paradynDaemon::getPredictedDataCostCall(perfStreamHandle ps_handle,
 // make data enable request to paradynds, and add request entry to
 // list of outstanding enable requests
 //
-void paradynDaemon::enableData(vector<metricInstance *> *miVec,
- 			       vector<bool> *done,
-			       vector<bool> *enabled,
+void paradynDaemon::enableData(pdvector<metricInstance *> *miVec,
+ 			       pdvector<bool> *done,
+			       pdvector<bool> *enabled,
 			       DM_enableType *new_entry,
 	                       bool need_to_enable){
 
     // make enable request, pass only pairs that need to be enabled to daemons
     if(need_to_enable){  
 	bool whole_prog_focus = false;
-	vector<paradynDaemon*> daemon_subset; // which daemons to send request
-        vector<T_dyninstRPC::focusStruct> foci; 
-	vector<string> metrics; 
-	vector<u_int> mi_ids;  
+	pdvector<paradynDaemon*> daemon_subset; // which daemons to send request
+        pdvector<T_dyninstRPC::focusStruct> foci; 
+	pdvector<string> metrics; 
+	pdvector<u_int> mi_ids;  
 
         for(u_int i=0; i < miVec->size(); i++){
 	    if(!(*enabled)[i] && !(*done)[i]){
@@ -2117,7 +2117,7 @@ void paradynDaemon::enableData(vector<metricInstance *> *miVec,
 		    if(rl->getMachineNameReferredTo(machine_name)){
 			// get the daemon corr. to this focus and add it
 			// to the list of daemons
-			vector<paradynDaemon*> vpd = 
+			pdvector<paradynDaemon*> vpd = 
 				paradynDaemon::machineName2Daemon(machine_name);
 			assert(vpd.size());
 			for(u_int j=0; j < vpd.size(); j++){
@@ -2178,7 +2178,7 @@ void paradynDaemon::enableData(vector<metricInstance *> *miVec,
 // Calling this function has no effect if there are no metrics enabled.
 void paradynDaemon::propagateMetrics() {
 
-    vector<metricInstanceHandle> allMIHs = metricInstance::allMetricInstances.keys();
+    pdvector<metricInstanceHandle> allMIHs = metricInstance::allMetricInstances.keys();
 
     for (unsigned i = 0; i < allMIHs.size(); i++) {
 
@@ -2206,7 +2206,7 @@ void paradynDaemon::propagateMetrics() {
       resourceList *rl = resourceList::getFocus(r_handle);
       metric *m = metric::getMetric(m_handle);
 
-      vector<u_int> vs;
+      pdvector<u_int> vs;
       bool aflag = rl->convertToIDList(vs);
       assert(aflag);
 
@@ -2270,7 +2270,7 @@ int paradynDaemon::read(const void* handle, char *buf, const int len) {
   assert(len > 0);
   assert((int)handle<200);
   assert((int)handle >= 0);
-  static vector<unsigned> fd_vect(200);
+  static pdvector<unsigned> fd_vect(200);
 
   // must handle the msg_bind_buffered call here because xdr_read will be
   // called in the constructor for paradynDaemon, before the previous call
@@ -2425,7 +2425,7 @@ void printSampleArrivalCallback(bool newVal) {
 
 // batched version of sampleCallbackFunc
 void paradynDaemon::batchSampleDataCallbackFunc(int ,
-		vector<T_dyninstRPC::batch_buffer_entry> theBatchBuffer)
+		pdvector<T_dyninstRPC::batch_buffer_entry> theBatchBuffer)
 {
     sampleVal_cerr << "batchSampleDataCallbackFunc(), burst size: " 
 		   << theBatchBuffer.size() << "   earliestFirstTime: " 
@@ -2488,7 +2488,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 
 // trace data streams
 void paradynDaemon::batchTraceDataCallbackFunc(int ,
-                vector<T_dyninstRPC::trace_batch_buffer_entry> theTraceBatchBuffer)
+                pdvector<T_dyninstRPC::trace_batch_buffer_entry> theTraceBatchBuffer)
 {
     // get the earliest first time that had been reported by any paradyn
     // daemon to use as the base (0) time
@@ -2605,7 +2605,7 @@ paradynDaemon::reportSelf (string m, string p, int /*pid*/, string flav)
 
   // Send the initial metrics, constraints, and other neato things
   mdl_send(this);
-  vector<T_dyninstRPC::metricInfo> info = this->getAvailableMetrics();
+  pdvector<T_dyninstRPC::metricInfo> info = this->getAvailableMetrics();
   unsigned size = info.size();
   for (unsigned u=0; u<size; u++)
       addMetric(info[u]);

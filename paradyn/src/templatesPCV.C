@@ -76,46 +76,46 @@
 #include "paradyn/src/PCthread/PCcostServer.h"
 #include "UI.thread.h"
 
-template class vector<string*>;
-template class vector<costServerRec>;
-template class vector<uiSHGrequest>;
-template class vector<dataSubscriber*>;
-template class vector<PCsearch*>;
-template class vector<filter*>;
-template class vector<PCMetInfo*>;
-template class vector<PCmetric*>;
-template class vector<PCMRec>;
-template class vector<inPort>;
-template class vector<searchHistoryNode*>;
-template class vector<hypothesis*>;
-template class vector<PCmetricInst*>;
+template class pdvector<string*>;
+template class pdvector<costServerRec>;
+template class pdvector<uiSHGrequest>;
+template class pdvector<dataSubscriber*>;
+template class pdvector<PCsearch*>;
+template class pdvector<filter*>;
+template class pdvector<PCMetInfo*>;
+template class pdvector<PCmetric*>;
+template class pdvector<PCMRec>;
+template class pdvector<inPort>;
+template class pdvector<searchHistoryNode*>;
+template class pdvector<hypothesis*>;
+template class pdvector<PCmetricInst*>;
 
 template class dictionary_hash<unsigned, PCsearch*>;
-template class vector<dictionary_hash<unsigned, PCsearch*>::entry>;
+template class pdvector<dictionary_hash<unsigned, PCsearch*>::entry>;
 
 #include "pdutil/src/PriorityQueue.C"
 template class PriorityQueue<unsigned, searchHistoryNode*>; 
 template ostream &operator<<(ostream &, PriorityQueue<unsigned, searchHistoryNode*> &);
-template class vector<PriorityQueue<unsigned, searchHistoryNode*>::pair>;
+template class pdvector<PriorityQueue<unsigned, searchHistoryNode*>::pair>;
 
 template class dictionary_hash<unsigned,filter*>;
-template class vector<dictionary_hash<unsigned,filter*>::entry>;
+template class pdvector<dictionary_hash<unsigned,filter*>::entry>;
  
 template class dictionary_hash<unsigned, searchHistoryNode*>;
-template class vector<dictionary_hash<unsigned, searchHistoryNode*>::entry>;
+template class pdvector<dictionary_hash<unsigned, searchHistoryNode*>::entry>;
 
 template class dictionary_hash<string,PCmetric*>;
-template class vector<dictionary_hash<string,PCmetric*>::entry>;
+template class pdvector<dictionary_hash<string,PCmetric*>::entry>;
 
 template class dictionary_hash<unsigned, PCmetricInst*>;
-template class vector<dictionary_hash<unsigned, PCmetricInst*>::entry>;
+template class pdvector<dictionary_hash<unsigned, PCmetricInst*>::entry>;
 
 template class dictionary_hash<string, hypothesis*>;
-template class vector<dictionary_hash<string, hypothesis*>::entry>;
+template class pdvector<dictionary_hash<string, hypothesis*>::entry>;
 
-template class dictionary_hash<focus, vector<searchHistoryNode*>*>;
-template class vector<dictionary_hash<focus, vector<searchHistoryNode*>*>::entry>;
-template class vector< vector<searchHistoryNode*> *>;
+template class dictionary_hash<focus, pdvector<searchHistoryNode*>*>;
+template class pdvector<dictionary_hash<focus, pdvector<searchHistoryNode*>*>::entry>;
+template class pdvector< pdvector<searchHistoryNode*> *>;
 
 #include "pdutil/src/CircularBuffer.C"
 #include "paradyn/src/PCthread/PCintern.h"
@@ -127,11 +127,11 @@ template class circularBuffer<PCInterval, PCdataQSize>;
 #include "paradyn/src/VMthread/VMtypes.h"
 #include "VM.thread.h"
 
-template class vector<VMactiveStruct *>;
-template class vector<VMvisisStruct *>;
-template class vector<VM_visiInfo>;
+template class pdvector<VMactiveStruct *>;
+template class pdvector<VMvisisStruct *>;
+template class pdvector<VM_visiInfo>;
 
 /* ******************************
  * VISIthread stuff
   */
-template class vector<metricInstInfo *>;
+template class pdvector<metricInstInfo *>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.142 2002/11/25 23:51:44 schendel Exp $
+// $Id: DMmain.C,v 1.143 2002/12/20 07:50:01 jaw Exp $
 
 #include <assert.h>
 extern "C" {
@@ -79,7 +79,7 @@ extern const Ident V_id;
 #define	S_ISREG(m)	(((m)&0xF000) == _S_IFREG)
 #endif // defined(i386_unknown_nt4_0)
 
-typedef vector<string> blahType;
+typedef pdvector<string> blahType;
 
 // bool parse_metrics(string metric_file);
 bool metMain(string &userFile);
@@ -104,23 +104,23 @@ dictionary_hash<string, resource*> resource::allResources(string::hash, 8192);
 dictionary_hash<string,resourceList *> resourceList::allFoci(string::hash);
 
 dictionary_hash<unsigned, resource*>resource::resources(uiHash);
-vector<string> resource::lib_constraints;
-vector<unsigned> resource::lib_constraint_flags;
-vector< vector<string> > resource::func_constraints;
-vector<unsigned> resource::func_constraint_flags;
+pdvector<string> resource::lib_constraints;
+pdvector<unsigned> resource::lib_constraint_flags;
+pdvector< pdvector<string> > resource::func_constraints;
+pdvector<unsigned> resource::func_constraint_flags;
 bool resource::func_constraints_built = false;
 bool resource::lib_constraints_built = false;
 
-vector<metric*> metric::metrics;
-vector<paradynDaemon*> paradynDaemon::allDaemons;
-vector<daemonEntry*> paradynDaemon::allEntries;
-vector<executable*> paradynDaemon::programs;
+pdvector<metric*> metric::metrics;
+pdvector<paradynDaemon*> paradynDaemon::allDaemons;
+pdvector<daemonEntry*> paradynDaemon::allEntries;
+pdvector<executable*> paradynDaemon::programs;
 unsigned paradynDaemon::procRunning;
-vector<resourceList *> resourceList::foci;
-vector<phaseInfo *> phaseInfo::dm_phases;
+pdvector<resourceList *> resourceList::foci;
+pdvector<phaseInfo *> phaseInfo::dm_phases;
 u_int metricInstance::next_id = 1;
 // u_int performanceStream::next_id = 0;
-vector<DM_enableType*> paradynDaemon::outstanding_enables;  
+pdvector<DM_enableType*> paradynDaemon::outstanding_enables;  
 u_int paradynDaemon::next_enable_id = 0;  
 u_int paradynDaemon::count = 0;
 
@@ -206,11 +206,11 @@ void dynRPCUser::AddCallGraphNodeCallback(string exe_name, string r_name) {
 //and associates these children with a give parent (r_name)
 void dynRPCUser::AddCallGraphStaticChildrenCallback(string exe_name, 
 						    string r_name, 
-						    vector<string>children) {
+						    pdvector<string>children) {
     unsigned u;
     CallGraph *cg;
     resource *r, *child;
-    vector <resource *> children_as_resources;
+    pdvector <resource *> children_as_resources;
 
     // call graph for program <program> should have been previously defined....
     cg = CallGraph::FindCallGraph(exe_name);
@@ -220,7 +220,7 @@ void dynRPCUser::AddCallGraphStaticChildrenCallback(string exe_name,
     r = resource::string_to_resource(r_name);
     assert(r);
 
-    // convert vector of resource names to vector of resource *'s....
+    // convert pdvector of resource names to pdvector of resource *'s....
     for(u=0;u<children.size();u++) {
       child = resource::string_to_resource(children[u]);
       assert(child);
@@ -317,7 +317,7 @@ void dynRPCUser::resourceBatchMode(bool) // bool onNow
 //
 // upcalls from remote process.
 //
-void dynRPCUser::resourceInfoCallback(u_int , vector<string> ,
+void dynRPCUser::resourceInfoCallback(u_int , pdvector<string> ,
 				      string , u_int) {
 
 printf("error calling virtual func: dynRPCUser::resourceInfoCallback\n");
@@ -331,7 +331,7 @@ void dynRPCUser::retiredResource(string) {
    printf("error calling virtual func: dynRPCUser::retiredResource\n");
 }
 
-void dynRPCUser::severalResourceInfoCallback(vector<T_dyninstRPC::resourceInfoCallbackStruct>) {
+void dynRPCUser::severalResourceInfoCallback(pdvector<T_dyninstRPC::resourceInfoCallbackStruct>) {
 printf("error calling virtual func: dynRPCUser::severalResourceInfoCallback\n");
 }
 
@@ -356,13 +356,13 @@ class uniqueName {
 // handles a completed enable response: updates metricInstance state
 // and send the calling thread the response 
 //
-void DMenableResponse(DM_enableType &enable, vector<bool> &successful)
+void DMenableResponse(DM_enableType &enable, pdvector<bool> &successful)
 {
-    vector<metricInstance *> &mis = (*enable.request);
+    pdvector<metricInstance *> &mis = (*enable.request);
     assert(successful.size() == mis.size());
-    vector<metricInstInfo> *response = new vector<metricInstInfo>(mis.size()); 
+    pdvector<metricInstInfo> *response = new pdvector<metricInstInfo>(mis.size()); 
 
-    // update MI state and response vector
+    // update MI state and response pdvector
     for(u_int i=0; i < mis.size(); i++){
         if(mis[i] && successful[i]){  // this MI could be enabled
 	  mis[i]->setEnabled();
@@ -421,7 +421,7 @@ void DMenableResponse(DM_enableType &enable, vector<bool> &successful)
 		    metricInstance::incrNumGlobalHists();
 		}
 	    }
-	    // update response vector
+	    // update response pdvector
 	    (*response)[i].successfully_enabled = true;
 	    (*response)[i].mi_id = mis[i]->getHandle(); 
 	    (*response)[i].m_id = mis[i]->getMetricHandle();
@@ -492,8 +492,8 @@ void DMenableResponse(DM_enableType &enable, vector<bool> &successful)
 // MI* is not 0
 //
 void dynRPCUser::enableDataCallback(u_int daemon_id, 
-				    vector<int> return_id,
-				    vector<u_int> mi_ids,
+				    pdvector<int> return_id,
+				    pdvector<u_int> mi_ids,
 				    u_int request_id)
 {
     // find element in outstanding_enables corr. to request_id
@@ -536,7 +536,7 @@ void dynRPCUser::enableDataCallback(u_int daemon_id,
 
     // all daemons have responded to enable request, send result to caller 
     if(!request_entry->how_many) { 
-	vector<bool> successful( request_entry->request->size());
+	pdvector<bool> successful( request_entry->request->size());
 	for(u_int k=0; k < request_entry->request->size(); k++){
 	    // if MI is 0 or if done is false
 	    if(!((*(request_entry->done))[k]) 
@@ -699,7 +699,7 @@ void dynRPCUser::showErrorCallback(int errCode,
 // has completed running DYNINSTinit).
 //
 void dynRPCUser::newProgramCallbackFunc(int pid,
-					vector<string> argvString,
+					pdvector<string> argvString,
 					string machine_name,
 					bool calledFromExec,
 					bool runMe)
@@ -751,14 +751,14 @@ void dynRPCUser::cpDataCallbackFunc(int,double,int,double,double)
 
 // batch the sample delivery
 void dynRPCUser::batchSampleDataCallbackFunc(int,
-		    vector<T_dyninstRPC::batch_buffer_entry>)
+		    pdvector<T_dyninstRPC::batch_buffer_entry>)
 {
     assert(0 && "Invalid virtual function");
 }
 
 // batch the trace delivery
 void dynRPCUser::batchTraceDataCallbackFunc(int,
-                    vector<T_dyninstRPC::trace_batch_buffer_entry>)
+                    pdvector<T_dyninstRPC::trace_batch_buffer_entry>)
 {
     assert(0 && "Invalid virtual function");
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-irix.C,v 1.8 2002/05/10 18:37:23 schendel Exp $
+// $Id: init-irix.C,v 1.9 2002/12/20 07:50:06 jaw Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -109,7 +109,7 @@ bool initOS() {
 				 FUNC_ENTRY|FUNC_ARG, cmdArg);
 //   initialRequests += new instMapping("PROCEDURE_LINKAGE_TABLE","DYNINSTdynlinker",FUNC_ENTRY);
 
-  vector<AstNode*> argList(2);
+  pdvector<AstNode*> argList(2);
   argList[0] = &mpiNormTagArg;
   argList[1] = &mpiNormCommArg;
   initialRequests += new instMapping("PMPI_Send", "DYNINSTrecordTagAndGroup",

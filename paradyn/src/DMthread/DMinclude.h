@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMinclude.h,v 1.18 2001/11/02 16:05:20 pcroth Exp $
+// $Id: DMinclude.h,v 1.19 2002/12/20 07:50:01 jaw Exp $
 
 #ifndef dminclude_H
 #define dminclude_H
@@ -70,11 +70,11 @@ typedef enum {GlobalPhase, CurrentPhase} phaseType;
 typedef enum {UnNormalized, Normalized, Sampled} dm_MetUnitsType;
 
 struct metfocusType {
-    vector<resourceHandle> res;
+    pdvector<resourceHandle> res;
     metricHandle  met;
 
     metfocusType(metricHandle iMet,
-		 const vector<resourceHandle> &iRes) :
+		 const pdvector<resourceHandle> &iRes) :
 		   res(iRes), met(iMet) {}
     metfocusType() {}
 };

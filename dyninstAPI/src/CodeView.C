@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.11 2002/05/13 19:51:45 mjbrim Exp $
+// $Id: CodeView.C,v 1.12 2002/12/20 07:49:56 jaw Exp $
 
 #include <assert.h>
 
@@ -118,8 +118,8 @@ CodeView::Parse( void )
 void
 CodeView::ParseModuleSubsection( SDEntry* pEntry )
 {
-	// ensure that the modules vector contains an element for this module
-	// recall that the modules vector uses a one-based index
+	// ensure that the modules pdvector contains an element for this module
+	// recall that the modules pdvector uses a one-based index
 	if( pEntry->iMod >= modules.size() )
 	{
 		modules.resize( pEntry->iMod + 1 );

@@ -43,7 +43,7 @@
 #include "common/h/Vector.h"
 #include "visi/src/datagridP.h"
 
-template class vector<PhaseInfo *>;
+template class pdvector<PhaseInfo *>;
 
 #if defined(i386_unknown_nt4_0)
 #include "visi.xdr.h"

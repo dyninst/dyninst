@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.5 2002/12/14 16:37:36 schendel Exp $
+// $Id: dyn_thread.h,v 1.6 2002/12/20 07:49:56 jaw Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -108,7 +108,7 @@ class dyn_thread {
   Frame getActiveFrame();
 
   // Walk the stack of the thread
-  bool walkStack(vector<Frame> &stackWalk);
+  bool walkStack(pdvector<Frame> &stackWalk);
 
   bool updateLWP();
   

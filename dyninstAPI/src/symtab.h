@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.113 2002/10/28 04:54:08 schendel Exp $
+// $Id: symtab.h,v 1.114 2002/12/20 07:49:58 jaw Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -124,9 +124,9 @@ public:
     Address address(){ return addr_;}
     const process *getProcess(){ return proc_;}
     void setProcess(process *proc) { proc_ = proc; }
-    const vector<instPoint*> &funcReturns(){ return funcReturns_;}
-    const vector<instPoint*> &funcCallSites(){ return calls_;}
-    const vector<instPoint*> &funcArbitraryPoints(){ return arbitraryPoints_;}
+    const pdvector<instPoint*> &funcReturns(){ return funcReturns_;}
+    const pdvector<instPoint*> &funcCallSites(){ return calls_;}
+    const pdvector<instPoint*> &funcArbitraryPoints(){ return arbitraryPoints_;}
     const instPoint *funcEntry(){ return funcEntry_;}
     void addFuncEntry(instPoint *e){ if(e) funcEntry_ = e; }
     void addFuncReturn(instPoint *r){ if(r) funcReturns_.push_back(r); }
@@ -139,9 +139,9 @@ private:
     Address addr_;			// function's relocated address
     instPoint *funcEntry_;		// function entry point
     bool installed_;			// if true, function has been relocated
-    vector<instPoint*> funcReturns_;    // return point(s)
-    vector<instPoint*> calls_;          // pointer to the calls
-    vector<instPoint*> arbitraryPoints_;          // pointer to the calls
+    pdvector<instPoint*> funcReturns_;    // return point(s)
+    pdvector<instPoint*> calls_;          // pointer to the calls
+    pdvector<instPoint*> arbitraryPoints_;          // pointer to the calls
 };
 
 
@@ -173,8 +173,8 @@ public:
  	if (prettyName_.size() > 0) return prettyName_[0];
 	else return emptyString;
     }
-    vector<string> symTabNameVector() { return symTabName_; }
-    vector<string> prettyNameVector() { return prettyName_; }
+    pdvector<string> symTabNameVector() { return symTabName_; }
+    pdvector<string> prettyNameVector() { return prettyName_; }
     void addSymTabName(string name) { symTabName_.push_back(name); }
     void addPrettyName(string name) { prettyName_.push_back(name); }
     unsigned size() const {return size_;}
@@ -185,9 +185,9 @@ public:
     virtual Address getAddress(const process *p) = 0;
     virtual Address getEffectiveAddress(const process *p) const = 0;
     virtual const instPoint *funcEntry(process *p) const = 0;
-    virtual const vector<instPoint*> &funcExits(process *p) const = 0;
-    virtual const vector<instPoint*> &funcCalls(process *p) const = 0; 
-    virtual const vector<instPoint*> &funcArbitraryPoints(process *p) const = 0; 
+    virtual const pdvector<instPoint*> &funcExits(process *p) const = 0;
+    virtual const pdvector<instPoint*> &funcCalls(process *p) const = 0; 
+    virtual const pdvector<instPoint*> &funcArbitraryPoints(process *p) const = 0; 
     virtual bool hasNoStackFrame() const = 0;
        // formerly "isLeafFunc()" but that led to confusion, since people assign two
        // different meanings to "leaf" fns: (1) has no stack frame, (2) makes no calls.
@@ -198,8 +198,8 @@ public:
     ostream & operator<<(ostream &s) const;
     friend ostream &operator<<(ostream &os, function_base &f);
 private:
-    vector<string> symTabName_;	/* name as it appears in the symbol table */
-    vector<string> prettyName_;	/* user's view of name (i.e. de-mangled) */
+    pdvector<string> symTabName_;	/* name as it appears in the symbol table */
+    pdvector<string> prettyName_;	/* user's view of name (i.e. de-mangled) */
     int line_;			/* first line of function */
     Address addr_;		/* address of the start of the func */
     unsigned size_;             /* the function size, in bytes, used to
@@ -251,7 +251,7 @@ class pd_Function : public function_base {
 	} }
 	return funcEntry_;
     }
-    const vector<instPoint*> &funcExits(process *p) const {
+    const pdvector<instPoint*> &funcExits(process *p) const {
         if(p && relocatable_) {
 	  for(u_int i=0; i < relocatedByProcess.size(); i++){
 	    if((relocatedByProcess[i])->getProcess() == p) 
@@ -259,7 +259,7 @@ class pd_Function : public function_base {
 	} }
 	return funcReturns;
     }
-    const vector<instPoint*> &funcArbitraryPoints(process *p) const {
+    const pdvector<instPoint*> &funcArbitraryPoints(process *p) const {
         if(p && relocatable_) {
 	  for(u_int i=0; i < relocatedByProcess.size(); i++){
 	    if((relocatedByProcess[i])->getProcess() == p) 
@@ -297,7 +297,7 @@ class pd_Function : public function_base {
 
 #endif
 
-    const vector<instPoint*> &funcCalls(process *p) const {
+    const pdvector<instPoint*> &funcCalls(process *p) const {
         if(p && relocatable_) {
 	  for(u_int i=0; i < relocatedByProcess.size(); i++){
 	    if((relocatedByProcess[i])->getProcess() == p) 
@@ -338,7 +338,7 @@ class pd_Function : public function_base {
     //  statically determined to be called from any call sites in 
     //  this function.
     // Returns false if unable to fill in that information....
-    bool getStaticCallees(process *proc, vector <pd_Function *> &callees);
+    bool getStaticCallees(process *proc, pdvector <pd_Function *> &callees);
 #endif
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)   
@@ -380,7 +380,7 @@ class pd_Function : public function_base {
     } reg_saves[NUM_REGS];
     // $sp-style frame (common)
     Address         sp_mod;     // offset of insn that modifies $sp
-    vector<Address> sp_ret;     // offset of insn that restores $sp
+    pdvector<Address> sp_ret;     // offset of insn that restores $sp
     int             frame_size; // stack frame size ($sp frame only)
     // $fp-style frame (rare)
     Address         fp_mod;     // offset of insn that modifies $fp
@@ -391,7 +391,7 @@ class pd_Function : public function_base {
        int retOffset;
        } InactiveFrameRange;
 
-       vector<InactiveFrameRange> inactiveRanges;
+       pdvector<InactiveFrameRange> inactiveRanges;
 
 #elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 
@@ -503,7 +503,7 @@ class pd_Function : public function_base {
 
     bool relocateFunction(process *proc, instPoint *&location, bool &deferred);
 
-    void sorted_ips_vector(vector<instPoint*>&fill_in);
+    void sorted_ips_vector(pdvector<instPoint*>&fill_in);
 
     void copyInstruction(instruction &newInsn, instruction &oldInsn,  
                                                unsigned &codeOffset);
@@ -522,7 +522,7 @@ class pd_Function : public function_base {
     bool trueCallInsideRange(instruction insn, Address callAddress, 
                          Address firstAddress, Address lastAddress);
 
-    instPoint *find_overlap(vector<instPoint*> v, Address targetAddress);
+    instPoint *find_overlap(pdvector<instPoint*> v, Address targetAddress);
 #endif
 
     void setNumInstructions(unsigned num) { numInstructions = num; }
@@ -551,9 +551,9 @@ class pd_Function : public function_base {
   private:
     pdmodule *file_;		/* pointer to file that defines func. */
     instPoint *funcEntry_;	/* place to instrument entry (often not addr) */
-    vector<instPoint*> funcReturns;	/* return point(s). */
-    vector<instPoint*> calls;		/* pointer to the calls */
-    vector<instPoint*> arbitraryPoints;		/* pointer to the calls */
+    pdvector<instPoint*> funcReturns;	/* return point(s). */
+    pdvector<instPoint*> calls;		/* pointer to the calls */
+    pdvector<instPoint*> arbitraryPoints;		/* pointer to the calls */
 #ifndef BPATCH_LIBRARY
     resource *funcResource;
 #endif
@@ -576,7 +576,7 @@ class pd_Function : public function_base {
 
     bool isTrap; 		// true if function contains a trap instruct
     bool isInstrumentable_;     // true if the function is instrumentable
-    vector<relocatedFuncInfo *> relocatedByProcess; // one element per process
+    pdvector<relocatedFuncInfo *> relocatedByProcess; // one element per process
 
 #if defined(sparc_sun_solaris2_4)
     bool o7_live;
@@ -612,10 +612,10 @@ public:
     virtual function_base *findFunction (const string &name) = 0;
     virtual function_base *findFunctionFromAll(const string &name) = 0;
     virtual void define() = 0;    // defines module to paradyn
-    virtual vector<function_base *> *getFunctions() = 0;
+    virtual pdvector<function_base *> *getFunctions() = 0;
 
 #ifndef BPATCH_LIBRARY
-    virtual vector<function_base *> *getIncludedFunctions() = 0;
+    virtual pdvector<function_base *> *getIncludedFunctions() = 0;
 #endif
 
 private:
@@ -655,8 +655,8 @@ public:
       //  for paradyn....
 #endif
 
-  vector<function_base *> *getFunctions() { return (vector<function_base *>*)&funcs;} 
-  vector<function_base *> *getIncludedFunctions();
+  pdvector<function_base *> *getFunctions() { return (pdvector<function_base *>*)&funcs;} 
+  pdvector<function_base *> *getIncludedFunctions();
   function_base *findFunction (const string &name);
   function_base *findFunctionFromAll(const string &name);
 #ifndef BPATCH_LIBRARY
@@ -670,27 +670,27 @@ private:
   image *exec_;                      // what executable it came from 
   lineDict lines_;
   //  list of all found functions in module....
-  vector<pd_Function*> funcs;
-  vector<pd_Function*> notInstruFuncs;
+  pdvector<pd_Function*> funcs;
+  pdvector<pd_Function*> notInstruFuncs;
   // added as part of exclude support for statically linked objects.
   //  mcheyny, 970928
   //  list of non-excluded found functions in module....
-  vector<pd_Function*> some_funcs;
+  pdvector<pd_Function*> some_funcs;
   bool some_funcs_inited;
 };
 
 
-extern bool mdl_get_lib_constraints(vector<string> &);
+extern bool mdl_get_lib_constraints(pdvector<string> &);
 
 void print_func_vector_by_pretty_name(string prefix,
-				      vector<function_base *>*funcs);
+				      pdvector<function_base *>*funcs);
 void print_module_vector_by_short_name(string prefix,
-                                      vector<pdmodule*> *mods);
+                                      pdvector<pdmodule*> *mods);
 string getModuleName(string constraint);
 string getFunctionName(string constraint);
 //used by both sharedobject and pdmodule class....
-bool filter_excluded_functions(vector<pd_Function*> all_funcs,
-    vector<pd_Function*>& some_funcs, string module_name);
+bool filter_excluded_functions(pdvector<pd_Function*> all_funcs,
+    pdvector<pd_Function*>& some_funcs, string module_name);
 bool function_is_excluded(pd_Function *func, string module_name);
 bool module_is_excluded(pdmodule *module);
 
@@ -759,7 +759,7 @@ public:
 
   // Check the list of symbols returned by the parser, return
   // all which start with the given prefix
-  bool findInternalByPrefix(const string &prefix, vector<Symbol> &found) const;
+  bool findInternalByPrefix(const string &prefix, pdvector<Symbol> &found) const;
 
   
   //Address findInternalAddress (const string &name, const bool warn, bool &err);
@@ -774,7 +774,7 @@ public:
   // consts, we can move from [] to find()
 
   // Find the vector of functions associated with a (demangled) name
-  vector <pd_Function *> *findFuncVectorByPretty(const string &name);
+  pdvector <pd_Function *> *findFuncVectorByPretty(const string &name);
   // Find a (single) function by pretty (demangled) name. Picks one if more than
   // one exists. Probably shouldn't exist.
   pd_Function *findFuncByPretty(const string &name);
@@ -797,7 +797,7 @@ public:
   pd_Function *findFuncByRelocAddr(const Address &addr, const process *p = 0) const;
   pd_Function *findFuncByOrigAddr(const Address &addr, const process *p = 0) const;
 
-  void findModByAddr (const Symbol &lookUp, vector<Symbol> &mods,
+  void findModByAddr (const Symbol &lookUp, pdvector<Symbol> &mods,
 		      string &modName, Address &modAddr, 
 		      const string &defName);
 
@@ -855,21 +855,21 @@ public:
   inline bool symbol_info(const string& symbol_name, Symbol& ret);
 
   // Called from the mdl -- lists of functions to look for
-  static void watch_functions(string& name, vector<string> *vs, bool is_lib,
-			      vector<pd_Function*> *updateDict);
+  static void watch_functions(string& name, pdvector<string> *vs, bool is_lib,
+			      pdvector<pd_Function*> *updateDict);
 
   // origionally return mdlNormal;....
   // Note that (unlike name), this returns ONLY functions for which
   // necessary instrumentation info could be found)!!!!
-  const vector<pd_Function*> &getAllFunctions();
+  const pdvector<pd_Function*> &getAllFunctions();
 
   // get all modules, including excluded ones....
-  const vector<pdmodule *> &getAllModules();
+  const pdvector<pdmodule *> &getAllModules();
 
 #ifndef BPATCH_LIBRARY
-  const vector<pd_Function*> &getIncludedFunctions();
-  const vector<pdmodule *> &getIncludedModules();
-  const vector<pdmodule *> &getExcludedModules();
+  const pdvector<pd_Function*> &getIncludedFunctions();
+  const pdvector<pdmodule *> &getIncludedModules();
+  const pdvector<pdmodule *> &getExcludedModules();
 #endif 
 
   //
@@ -916,10 +916,10 @@ public:
   bool newFunc(pdmodule *, const string &name, const Address addr, 
 	       const unsigned size);
 
-  bool addOneFunction(vector<Symbol> &mods,
+  bool addOneFunction(pdvector<Symbol> &mods,
 		      const Symbol &lookUp);
 
-  void addMultipleFunctionNames(vector<Symbol> &mods,
+  void addMultipleFunctionNames(pdvector<Symbol> &mods,
 				const Symbol &lookUp);
 
   //
@@ -929,7 +929,7 @@ public:
   // private methods for findind an excluded function by name or
   //  address....
   bool find_excluded_function(const string &name,
-      vector<pd_Function*> &retList);
+      pdvector<pd_Function*> &retList);
   pd_Function *find_excluded_function(const Address &addr);
 
   void checkAllCallPoints();
@@ -941,7 +941,7 @@ public:
   pdmodule *getOrCreateModule (const string &modName, const Address modAddr);
   pdmodule *newModule(const string &name, const Address addr);
 
-  bool addAllFunctions(vector<Symbol> &mods);
+  bool addAllFunctions(pdvector<Symbol> &mods);
 
   bool addAllVariables();
 
@@ -973,7 +973,7 @@ public:
 
   // A vector of all images. Used to avoid duplicating
   // an "image" that already exists.
-  static vector<image*> allImages;
+  static pdvector<image*> allImages;
 
   // knownJumpTargets: the addresses in this image that are known to 
   // be targets of jumps. It is used to check points with multiple 
@@ -982,19 +982,19 @@ public:
   dictionary_hash<Address, Address> knownJumpTargets;
 
   // list of modules which have not been excluded.
-  vector<pdmodule *> includedMods;
+  pdvector<pdmodule *> includedMods;
   // list of excluded module.  includedMods && excludedMods
   //  should be disjoint!!!!
-  vector<pdmodule *> excludedMods;
+  pdvector<pdmodule *> excludedMods;
   // list of all modules, should = includedMods + excludedMods;
   // Not actually created until getAllModules called....
-  vector<pdmodule *> allMods;
+  pdvector<pdmodule *> allMods;
 
   // list of all functions for which necessary instrumentation data
   //  could be found which are NOT excluded....
-  vector<pd_Function*> includedFunctions;
+  pdvector<pd_Function*> includedFunctions;
   // includedFunctions + excludedFunctions (but not notInstruFunctions)....
-  vector<pd_Function*> instrumentableFunctions;
+  pdvector<pd_Function*> instrumentableFunctions;
 
 
   //
@@ -1006,10 +1006,10 @@ public:
   dictionary_hash <Address, pd_Function*> funcsByAddr;
   // note, a prettyName is not unique, it may map to a function appearing
   // in several modules.  Also only contains instrumentable functions....
-  dictionary_hash <string, vector<pd_Function*>*> funcsByPretty;
+  dictionary_hash <string, pdvector<pd_Function*>*> funcsByPretty;
   // Hash table holding functions by mangled name.
   // Should contain same functions as funcsByPretty....
-  dictionary_hash <string, vector<pd_Function*>*> funcsByMangled;
+  dictionary_hash <string, pdvector<pd_Function*>*> funcsByMangled;
   // The functions that can't be instrumented
   // Note that notInstruFunctions holds list of functions for which
   //  necessary instrumentation data could NOT be found....
@@ -1026,7 +1026,7 @@ public:
   dictionary_hash <string, pdmodule *> modsByFileName;
   dictionary_hash <string, pdmodule*> modsByFullName;
   // Variables indexed by pretty (non-mangled) name
-  dictionary_hash <string, vector<string>*> varsByPretty;
+  dictionary_hash <string, pdvector<string>*> varsByPretty;
  
 
 };
@@ -1075,7 +1075,7 @@ inline function_base *pdmodule::findFunction (const string &name) {
   unsigned f;
   
   for (f=0; f<funcs.size(); f++) {
-    vector<string> funcNames = funcs[f]->symTabNameVector();
+    pdvector<string> funcNames = funcs[f]->symTabNameVector();
     for (unsigned i = 0; i < funcNames.size(); i++)
       if (funcNames[i] == name)
 	return funcs[f];
@@ -1152,7 +1152,7 @@ inline bool image::symbol_info(const string& symbol_name, Symbol &ret_sym) {
     return true;
 
   if (varsByPretty.defines(symbol_name)) {
-    vector<string> *mangledNames = varsByPretty[symbol_name];
+    pdvector<string> *mangledNames = varsByPretty[symbol_name];
     assert(mangledNames && mangledNames->size() == 1);
     if (linkedFile.get_symbol((*mangledNames)[0], ret_sym))
       return true;

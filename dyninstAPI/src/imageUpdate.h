@@ -1,4 +1,4 @@
-/* $Id: imageUpdate.h,v 1.2 2002/03/12 18:40:02 jaw Exp $ */
+/* $Id: imageUpdate.h,v 1.3 2002/12/20 07:49:56 jaw Exp $ */
 
 #if defined(BPATCH_LIBRARY)
 
@@ -68,17 +68,6 @@ class imageUpdate{
 	      return -1;
 	  };
 };
-
-#ifdef USE_STL_VECTOR
-#include <vector>
-#include <algorithm>
-#include "imageUpdate.h"
-struct imageUpdateOrderingRelation : public binary_function<imageUpdate *, imageUpdate *, bool> {
-  bool operator()(imageUpdate *left, imageUpdate *right) {return left->address < right->address;}
-};
-#endif
-
-
 
 
 typedef struct dataUpdate__{

@@ -265,7 +265,7 @@ void visi_DefinePhase(char *name, u_int withPerfConsult,
 //  invokes the callback routine associated with the
 //  DATAVALUES event.
 ///////////////////////////////////////////////////////////
-void visualization::Data(vector<T_visi::dataValue> data){
+void visualization::Data(pdvector<T_visi::dataValue> data){
   sampleVal_cerr << "visualization::Data\n";
   if(!visi_initDone)
     visi_Init();
@@ -312,7 +312,7 @@ void visualization::Data(vector<T_visi::dataValue> data){
 //  invokes the callback routine associated with the
 //  TRACEDATAVALUES event.
 ///////////////////////////////////////////////////////////
-void visualization::TraceData(vector<T_visi::traceDataValue> traceData){
+void visualization::TraceData(pdvector<T_visi::traceDataValue> traceData){
 
   if(!visi_initDone)
     visi_Init();
@@ -451,7 +451,7 @@ int i,j;
 // Visi interface routine.  Receives a list of metrics and
 // resources to add to the datagrid.
 ///////////////////////////////////////////////////////////
-void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
+void visualization::AddMetricsResources(pdvector<T_visi::visi_matrix> newElements,
 			 		double bucketWidth,
 			 		int nobuckets,
 					double start_time,
@@ -622,7 +622,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 // values for the datagrid cell indicated by metricId and 
 // resourceId 
 ///////////////////////////////////////////////////////////
-void visualization::BulkDataTransfer(vector<float> values,
+void visualization::BulkDataTransfer(pdvector<float> values,
 				     u_int metricId,
 				     u_int resourceId){
 int lastBucket, temp, j;
@@ -733,7 +733,7 @@ void visualization::PhaseEnd(double end, u_int handle){
 // Visi interface routine.  Visualization recieves list  
 // of all Phase info from Paradyn.
 ///////////////////////////////////////////////////////////
-void visualization::PhaseData(vector<T_visi::phase_info> phases){
+void visualization::PhaseData(pdvector<T_visi::phase_info> phases){
 
   if(!visi_initDone)
     visi_Init();

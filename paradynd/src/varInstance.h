@@ -82,18 +82,18 @@ class varInstance : public baseVarInstance {
   unsigned numElems;
   void *baseAddrInDaemon;
   void *baseAddrInApplic;
-  vector<HK*> hkBuf;
+  pdvector<HK*> hkBuf;
   bool elementsToBeSampled;  // true if currentSamplingSet > 0
   pd_process *proc;
   RAWTYPE  initValue;
   shmMgr &theShmMgr;
   HwEvent* hwEvent;
 
-  vector<unsigned> permanentSamplingSet;
-  vector<unsigned> currentSamplingSet;
+  pdvector<unsigned> permanentSamplingSet;
+  pdvector<unsigned> currentSamplingSet;
 
   void createHKifNotPresent(unsigned thrPos);
-  bool removeFromSamplingSet(vector<unsigned> *set, unsigned thrPosToRemove);
+  bool removeFromSamplingSet(pdvector<unsigned> *set, unsigned thrPosToRemove);
 
   // --- disallow these -------------------
   varInstance(const varInstance<HK> &par) : baseVarInstance(par),

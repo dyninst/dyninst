@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.13 2002/10/28 04:54:04 schendel Exp $
+// $Id: sharedobject.C,v 1.14 2002/12/20 07:49:58 jaw Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
@@ -100,7 +100,7 @@ void shared_object::set_short_name() {
 #ifndef BPATCH_LIBRARY
 // returns all the functions not excluded by exclude_lib or exclude_func
 // mdl option
-vector<pd_Function *> *shared_object::getIncludedFunctions(){
+pdvector<pd_Function *> *shared_object::getIncludedFunctions(){
 
     //cerr << "shared_object::getSomeFunctions called for shared object "
     //	 << short_name << endl;
@@ -110,7 +110,7 @@ vector<pd_Function *> *shared_object::getIncludedFunctions(){
         if(included_funcs) {
 	    //cerr << " (shared_object::getSomeFunctions) included_funcs already created"
 	    //     << " about to return : " << endl;
-	    //print_func_vector_by_pretty_name(string("  "), (vector<function_base *>*)included_funcs);
+	    //print_func_vector_by_pretty_name(string("  "), (pdvector<function_base *>*)included_funcs);
 	    return included_funcs;
 	}
 
@@ -118,9 +118,9 @@ vector<pd_Function *> *shared_object::getIncludedFunctions(){
         // check to see if this module occurs in the list of modules from
         // exclude_funcs mdl option...if it does then we need to check
         // function by function
-        included_funcs = new vector<pd_Function *>;
+        included_funcs = new pdvector<pd_Function *>;
 
-        vector<pd_Function *> temp = *(getAllFunctions());
+        pdvector<pd_Function *> temp = *(getAllFunctions());
 
         if (filter_excluded_functions(temp, *included_funcs, short_name) == FALSE) {
 	    // WRONG!!!!  Leads to memory leak!!!!
@@ -133,7 +133,7 @@ vector<pd_Function *> *shared_object::getIncludedFunctions(){
         
         //cerr << " (shared_object::getSomeFunctions) included_funcs newly created"
 	//	 << " about to return : " << endl;
-	//print_func_vector_by_pretty_name(string("  "), (vector<function_base *>*)included_funcs);
+	//print_func_vector_by_pretty_name(string("  "), (pdvector<function_base *>*)included_funcs);
         return included_funcs;
     }
     return NULL;    

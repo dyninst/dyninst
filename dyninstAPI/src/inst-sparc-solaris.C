@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.116 2002/12/12 20:19:43 mirg Exp $
+// $Id: inst-sparc-solaris.C,v 1.117 2002/12/20 07:49:57 jaw Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -54,8 +54,8 @@
 extern bool relocateFunction(process *proc, instPoint *&location);
 extern bool branchInsideRange(instruction insn, Address branchAddress, 
                               Address firstAddress, Address lastAddress); 
-extern instPoint* find_overlap(vector<instPoint*> v, Address targetAddress);
-extern void sorted_ips_vector(vector<instPoint*>&fill_in);
+extern instPoint* find_overlap(pdvector<instPoint*> v, Address targetAddress);
+extern void sorted_ips_vector(pdvector<instPoint*>&fill_in);
 
 /****************************************************************************/
 /****************************************************************************/
@@ -95,7 +95,7 @@ void pd_Function::checkCallPoints() {
 
   //cerr << "pd_Function:: checkCallPoints called, *this = " << *this;
 
-  vector<instPoint*> non_lib;
+  pdvector<instPoint*> non_lib;
 
   for (unsigned i=0; i<calls.size(); ++i) {
     /* check to see where we are calling */
@@ -439,7 +439,7 @@ void generateMTpreamble(char *insn, Address &base, process *proc)
 {
   AstNode *threadPOS;
   Address returnVal;
-  vector<AstNode *> dummy;
+  pdvector<AstNode *> dummy;
   bool err;
   Register src = Null_Register;
 
@@ -1348,16 +1348,16 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 Register emitFuncCall(opCode op, 
 		      registerSpace *rs,
 		      char *i, Address &base, 
-		      const vector<AstNode *> &operands, 
+		      const pdvector<AstNode *> &operands, 
 		      const string &callee, process *proc,
 		      bool noCost, const function_base *calleefunc,
-		      const vector<AstNode *> &ifForks,
+		      const pdvector<AstNode *> &ifForks,
 		      const instPoint *location)
 {
         assert(op == callOp);
         Address addr;
 	bool err;
-	vector <Register> srcs;
+	pdvector <Register> srcs;
 	void cleanUpAndExit(int status);
 
 	if (calleefunc) {
@@ -3026,7 +3026,7 @@ bool pd_Function::PA_attachOverlappingInstPoints(
 
     // Make a list of all inst-points attached to function, and sort
     //  by address.  Then check for overlaps....
-    vector<instPoint*> foo;    
+    pdvector<instPoint*> foo;    
     sorted_ips_vector(foo);
 
     // should hopefully have inst points for fn sorted by address....
@@ -3107,7 +3107,7 @@ bool pd_Function::PA_attachBranchOverlaps(
 
     // Make a list of all inst-points attached to function, and sort
     //  by address.  Then check for overlaps....
-    vector<instPoint*> foo;
+    pdvector<instPoint*> foo;
     foo.push_back(funcEntry_);
     VECTOR_APPEND(foo,funcReturns);
     VECTOR_APPEND(foo,calls);

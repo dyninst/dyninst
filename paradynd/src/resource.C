@@ -95,7 +95,7 @@ resource *resource::newResource(resource *parent, const string& name, unsigned i
   return(ret);
 }
 
-static vector<T_dyninstRPC::resourceInfoCallbackStruct> resourceInfoCallbackBuffer;
+static pdvector<T_dyninstRPC::resourceInfoCallbackStruct> resourceInfoCallbackBuffer;
 
 resource *resource::newResource(resource *parent, void *handle,
 				const string &abstraction, 
@@ -122,7 +122,7 @@ resource *resource::newResource(resource *parent, void *handle,
 
   // The components of this resource's name equals that of its parent, plus
   // the extra level not included with the parent.
-  vector<string> res_components = parent->names();
+  pdvector<string> res_components = parent->names();
   res_components += unique_string;
 
   ret = new resource(abstraction, unique_string, creation, handle,
@@ -188,7 +188,7 @@ resource *resource::newResource_ncb(resource *parent, void *handle,
 
   // The components of this resource's name equals that of its parent, plus
   // the extra level not included with the parent.
-  vector<string> res_components = parent->names();
+  pdvector<string> res_components = parent->names();
   res_components += unique_string;
 
   resource *ret = new resource(abstraction, unique_string, creation, handle,
@@ -199,8 +199,8 @@ resource *resource::newResource_ncb(resource *parent, void *handle,
   return(ret);
 }
 
-bool resource::foc_to_strings(vector< vector<string> >& string_foc,
-			      const vector<u_int>& ids,
+bool resource::foc_to_strings(pdvector< pdvector<string> >& string_foc,
+			      const pdvector<u_int>& ids,
 			      bool print_err_msg) {
   unsigned id_size = ids.size();
   for (unsigned i=0; i<id_size; i++) {
@@ -220,8 +220,8 @@ bool resource::foc_to_strings(vector< vector<string> >& string_foc,
 
 // Other parts of the system depend on this order (mdl.C)
 // Assume that there are 4 top level resources
-void resource::make_canonical(const vector< vector<string> >& focus,
-			      vector< vector<string> >& ret) {
+void resource::make_canonical(const pdvector< pdvector<string> >& focus,
+			      pdvector< pdvector<string> >& ret) {
   unsigned size = focus.size();
   bool Machine=false, Procedure=false, SyncObj=false, Memory=false;
   ret.resize(4); 
@@ -242,7 +242,7 @@ void resource::make_canonical(const vector< vector<string> >& focus,
     }
   }
 
-  vector<string> temp(1); // 1 entry vector
+  pdvector<string> temp(1); // 1 entry vector
 
   if (!Machine) {temp[0]="Machine"; ret[resource::machine] = temp;}
   if (!Procedure) {temp[0]="Code"; ret[resource::procedure] = temp;}

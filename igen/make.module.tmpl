@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.9 2002/04/09 18:05:05 mjbrim Exp $
+# $Id: make.module.tmpl,v 1.10 2002/12/20 07:49:59 jaw Exp $
 #
 
 USES_FLEX = true
@@ -23,7 +23,7 @@ SRCS 	     += \
 		parser.C \
 		scanner.C
 
-LIBS 	     += -lpdutil
+LIBS 	     +=  -lpdutil
 SYSLIBS	     += $(FLEX_LIB)
 
 ifdef CROSSCOMPILER

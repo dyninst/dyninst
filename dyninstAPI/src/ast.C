@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.119 2002/12/12 20:20:45 mirg Exp $
+// $Id: ast.C,v 1.120 2002/12/20 07:49:56 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -455,7 +455,7 @@ AstNode::AstNode(const string &func, AstNode *l) {
 #endif
 }
 
-AstNode::AstNode(const string &func, vector<AstNode *> &ast_args) {
+AstNode::AstNode(const string &func, pdvector<AstNode *> &ast_args) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
@@ -479,7 +479,7 @@ AstNode::AstNode(const string &func, vector<AstNode *> &ast_args) {
 }
 
 
-AstNode::AstNode(function_base *func, vector<AstNode *> &ast_args) {
+AstNode::AstNode(function_base *func, pdvector<AstNode *> &ast_args) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
@@ -953,7 +953,7 @@ void AstNode::setUseCount(registerSpace *rs)
 	kept_register = Null_Register;
 
 	// Set useCounts for our children
-	vector<AstNode*> children;
+	pdvector<AstNode*> children;
 	getChildren(&children);
 	for (unsigned i=0; i<children.size(); i++) {
 	    children[i]->setUseCount(rs);
@@ -973,7 +973,7 @@ void AstNode::cleanUseCount(void)
     useCount = 0;
     kept_register = Null_Register;
 
-    vector<AstNode*> children;
+    pdvector<AstNode*> children;
     getChildren(&children);
     for (unsigned i=0; i<children.size(); i++) {
 	children[i]->cleanUseCount();
@@ -1009,7 +1009,7 @@ void AstNode::printUseCount(void)
 // Allocate a register and make it available for sharing if our
 // node is shared
 Register AstNode::allocateAndKeep(registerSpace *rs, 
-				  const vector<AstNode*> &ifForks,
+				  const pdvector<AstNode*> &ifForks,
 				  char *insn, Address &base, bool noCost)
 {
     // Allocate a register
@@ -1029,7 +1029,7 @@ Register AstNode::allocateAndKeep(registerSpace *rs,
 // not shared between tree nodes.
 Register AstNode::shareOrAllocate(Register left, Register right, 
 				  registerSpace *rs, 
-				  const vector<AstNode*> &ifForks,
+				  const pdvector<AstNode*> &ifForks,
 				  char *insn, Address &base, bool noCost)
 {
     Register dest;
@@ -1103,7 +1103,7 @@ Address AstNode::generateCode(process *proc,
   // rs->checkLeaks(Null_Register);
 
   // Create an empty vector to keep track of if statements
-  vector<AstNode*> ifForks;
+  pdvector<AstNode*> ifForks;
 
   // note: this could return the value "(Address)(-1)" -- csserra
   Address tmp = generateCode_phase2(proc, rs, insn, base, noCost, 
@@ -1124,7 +1124,7 @@ Address AstNode::generateCode_phase2(process *proc,
 				     registerSpace *rs,
 				     char *insn, 
 				     Address &base, bool noCost,
-				     const vector<AstNode*> &ifForks,
+				     const pdvector<AstNode*> &ifForks,
 				     const instPoint *location) {
   // Note: MIPSPro compiler complains about redefinition of default argument
     Address addr;
@@ -1181,7 +1181,7 @@ Address AstNode::generateCode_phase2(process *proc,
 
 	    // The flow of control forks. We need to add the forked node to 
 	    // the path
-	    vector<AstNode*> thenFork = ifForks;
+	    pdvector<AstNode*> thenFork = ifForks;
 	    thenFork.push_back(roperand);
             Register tmp = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, thenFork, location);
             rs->freeRegister(tmp);
@@ -1199,7 +1199,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	   
 	    if (eoperand) {
 		// If there's an else clause, we need to generate code for it.
-		vector<AstNode*> elseFork = ifForks;
+		pdvector<AstNode*> elseFork = ifForks;
 		elseFork.push_back(eoperand);// Add the forked node to the path
 		tmp = (Register)eoperand->generateCode_phase2(proc, rs, insn,
 							      base, noCost, 
@@ -1229,7 +1229,7 @@ Address AstNode::generateCode_phase2(process *proc,
             emitJmpMC(cond, 0 /* target, changed later */, insn, base);
             fromAddr = base;  // here base points after the jcc
             // Add the snippet to the ifForks, as AM has indicated...
-            vector<AstNode*> thenFork = ifForks;
+            pdvector<AstNode*> thenFork = ifForks;
             thenFork.push_back(loperand);
             // generate code with the right path
             Register tmp = (Register)loperand->generateCode_phase2(proc, rs, insn, base,
@@ -1252,7 +1252,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	    fromAddr = emitA(ifOp, src, 0, 0, insn, base, noCost);
             rs->freeRegister(src);
 	    if (roperand) {
-		vector<AstNode*> whileFork = ifForks;
+		pdvector<AstNode*> whileFork = ifForks;
 		whileFork.push_back(eoperand);//Add the forked node to the path
                 Register tmp = 
 		    (Register)roperand->generateCode_phase2(proc, rs, insn, 
@@ -1981,7 +1981,7 @@ AstNode *getTimerAddress(void *base, unsigned struct_size)
 }
 
 AstNode *createTimer(const string &func, void *dataPtr, 
-                     vector<AstNode *> &ast_args)
+                     pdvector<AstNode *> &ast_args)
 {
   AstNode *var_base=NULL,*timer=NULL;
 
@@ -1996,7 +1996,7 @@ AstNode *createTimer(const string &func, void *dataPtr,
 
 
 AstNode *createHwTimer(const string &func, void *dataPtr, 
-                     vector<AstNode *> &ast_args, int hwCntrIndex)
+                     pdvector<AstNode *> &ast_args, int hwCntrIndex)
 {
   AstNode *var_base=NULL,*timer=NULL;
   AstNode *hw_var=NULL;
@@ -2242,7 +2242,7 @@ void AstNode::replaceFuncInAst(function_base *func1, function_base *func2)
 } 
 
 void AstNode::replaceFuncInAst(function_base *func1, function_base *func2,
-			       vector<AstNode *> &more_args, int index)
+			       pdvector<AstNode *> &more_args, int index)
 {
   unsigned i ;
   if (type == callNode) {
@@ -2300,7 +2300,7 @@ bool AstNode::accessesParam(void)
 
 // Record the register to share as well as the path that lead
 // to its computation
-void AstNode::keepRegister(Register r, vector<AstNode*> path)
+void AstNode::keepRegister(Register r, pdvector<AstNode*> path)
 {
     kept_register = r;
     kept_path = path;
@@ -2325,7 +2325,7 @@ void AstNode::forceUnkeepAndFree(registerSpace *rs)
 // assume that we will not bother them again, which is wrong)
 void AstNode::fixChildrenCounts(registerSpace *rs)
 {
-    vector<AstNode*> children;
+    pdvector<AstNode*> children;
     getChildren(&children);
     for (unsigned i=0; i<children.size(); i++) {
 	children[i]->setUseCount(rs);
@@ -2382,8 +2382,8 @@ void AstNode::decUseCount(registerSpace *rs)
 }
 
 // Check to see if path1 is a subpath of path2
-bool AstNode::subpath(const vector<AstNode*> &path1, 
-		      const vector<AstNode*> &path2) const
+bool AstNode::subpath(const pdvector<AstNode*> &path1, 
+		      const pdvector<AstNode*> &path2) const
 {
     if (path1.size() > path2.size()) {
 	return false;
@@ -2397,7 +2397,7 @@ bool AstNode::subpath(const vector<AstNode*> &path1,
 }
 
 // Return all children of this node ([lre]operand, ..., operands[])
-void AstNode::getChildren(vector<AstNode*> *children)
+void AstNode::getChildren(pdvector<AstNode*> *children)
 {
     if (loperand) {
 	children->push_back(loperand);

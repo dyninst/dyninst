@@ -44,6 +44,24 @@
 
 /*
  * $Log: tableVisi.h,v $
+ * Revision 1.10  2002/12/20 07:50:09  jaw
+ * This commit fully changes the class name of "vector" to "pdvector".
+ *
+ * A nice upshot is the removal of a bunch of code previously under the flag
+ * USE_STL_VECTOR, which is no longer necessary in many cases where a
+ * functional difference between common/h/Vector.h and stl::vector was
+ * causing a crash.
+ *
+ * Generally speaking, Dyninst and Paradyn now use pdvector exclusively.
+ * This commit DOES NOT cover the USE_STL_VECTOR flag, which will now
+ * substitute stl::vector for BPatch_Vector only.  This is currently, to
+ * the best of my knowledge, only used by DPCL.  This will be updated and
+ * tested in a future commit.
+ *
+ * The purpose of this, again, is to create a further semantic difference
+ * between two functionally different classes (which both have the same
+ * [nearly] interface).
+ *
  * Revision 1.9  2000/07/28 17:23:01  pcroth
  * Updated #includes to reflect util library split
  *
@@ -95,11 +113,11 @@
 
 class tableVisi {
  private:
-   vector<tvMetric> metrics;
-   vector<tvFocus> foci;
-   vector<unsigned> indirectMetrics; // for sorting
-   vector<unsigned> indirectFoci;    // for sorting
-   vector< vector<tvCell> > cells;   // array[metrics] of array[foci]
+   pdvector<tvMetric> metrics;
+   pdvector<tvFocus> foci;
+   pdvector<unsigned> indirectMetrics; // for sorting
+   pdvector<unsigned> indirectFoci;    // for sorting
+   pdvector< pdvector<tvCell> > cells;   // array[metrics] of array[foci]
    bool focusLongNameMode;
    unsigned numSigFigs;
    char conversionString[100]; // e.g. "%.5g" if numSigFigs is currently 5
@@ -183,7 +201,7 @@ class tableVisi {
    // private cell helper functions
    void drawCells(Drawable) const;
    void drawCells1Col(Drawable, int middle_x, int top_y,
-                      const vector<tvCell> &thisMetricCells) const;
+                      const pdvector<tvCell> &thisMetricCells) const;
    unsigned getVertPixCellTop2Baseline() const;
 
    // helper function for drawing
@@ -194,9 +212,9 @@ class tableVisi {
    int partitionMetrics(int left, int right);
 
    void sortFoci(int left, int right);
-   void sortFociByValues(const vector<tvCell> &theMetricColumn, int left, int right);
+   void sortFociByValues(const pdvector<tvCell> &theMetricColumn, int left, int right);
    int partitionFoci(int left, int right);
-   int partitionFociByValues(const vector<tvCell> &, int left, int right);
+   int partitionFociByValues(const pdvector<tvCell> &, int left, int right);
 
  public:
    tableVisi(Tcl_Interp *interp,

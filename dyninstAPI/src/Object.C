@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object.C,v 1.9 2001/06/12 15:43:29 hollings Exp $
+// $Id: Object.C,v 1.10 2002/12/20 07:49:56 jaw Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -82,11 +82,11 @@ bool AObject::needs_function_binding() const {
     return false;
 }
 
-bool AObject::get_func_binding_table(vector<relocationEntry> &) const {
+bool AObject::get_func_binding_table(pdvector<relocationEntry> &) const {
     return false;
 }
 
-bool AObject::get_func_binding_table_ptr(const vector<relocationEntry> *&) const {
+bool AObject::get_func_binding_table_ptr(const pdvector<relocationEntry> *&) const {
     return false;
 }
 

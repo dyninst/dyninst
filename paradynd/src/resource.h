@@ -81,16 +81,16 @@ public:
 
   const string &name() const { return name_; }
 
-  const vector<string> names() const {
+  const pdvector<string> names() const {
     if (parent() == NULL) {
-      vector<string> ret;
+      pdvector<string> ret;
       return ret;
     }
     unsigned level = 1;
     resource *p;
     for (p = parent(); p && p->parent(); p = p->parent())
       level++;
-    vector<string> ret(level);
+    pdvector<string> ret(level);
     if (level == 0)
       return ret;
     ret[--level] = name();
@@ -122,16 +122,16 @@ public:
 
   resource *parent() const { return parent_; }
 
-  static void make_canonical(const vector< vector<string> >& focus,
-			     vector< vector<string> >& ret);
+  static void make_canonical(const pdvector< pdvector<string> >& focus,
+			     pdvector< pdvector<string> >& ret);
   inline static resource *findResource(const string& name);
   inline static resource *findResource(unsigned name);
-  inline static resource *findResource(vector<string>& name);
+  inline static resource *findResource(pdvector<string>& name);
 
   inline bool isResourceDescendent(resource *is_a_parent);
 
-  static bool foc_to_strings(vector< vector<string> >& string_foc,
-			     const vector<u_int>& ids,
+  static bool foc_to_strings(pdvector< pdvector<string> >& string_foc,
+			     const pdvector<u_int>& ids,
 			     bool print_err_msg);
   static resource *newResource(resource *parent, void *handle,
 			       const string &abstraction,
@@ -209,7 +209,7 @@ inline resource *resource::findResource(const string &name) {
      return result;
 }
 
-inline resource *resource::findResource(vector<string>& name) {
+inline resource *resource::findResource(pdvector<string>& name) {
   unsigned n_size = name.size();
   if (!n_size) assert(0);
   string flat(slashStr+name[0]);

@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.17 2002/06/21 14:19:29 chadd Exp $
+ * $Id: Object-nt.h,v 1.18 2002/12/20 07:49:56 jaw Exp $
 ************************************************************************/
 
 
@@ -160,7 +160,7 @@ private:
 
 	static	string	FindName(const char* stringTable, const IMAGE_SYMBOL& sym);
     static  string  FindModuleByOffset( unsigned int offset,
-                                        const vector<PDModInfo>& pdMods );
+                                        const pdvector<PDModInfo>& pdMods );
 
     void    ParseDebugInfo( void );
 	void	ParseSectionMap( IMAGE_DEBUG_INFORMATION* pDebugInfo );
@@ -175,11 +175,11 @@ private:
 #endif // mips_unknown_ce2_11
 
     bool	ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo );
-    void    CVPatchSymbolSizes( vector<Symbol>& allSymbols );
+    void    CVPatchSymbolSizes( pdvector<Symbol>& allSymbols );
     void    CVProcessSymbols( CodeView& cv,
-                              vector<ModInfo>& cvMods,
-                              vector<PDModInfo>& pdMods,
-                              vector<Symbol>& allSymbols );
+                              pdvector<ModInfo>& cvMods,
+                              pdvector<PDModInfo>& pdMods,
+                              pdvector<Symbol>& allSymbols );
 
 
 	Address	baseAddr;					// location of this object in 

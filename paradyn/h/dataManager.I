@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.106 2002/11/25 23:51:41 schendel Exp $
+ * $Id: dataManager.I,v 1.107 2002/12/20 07:50:00 jaw Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -35,7 +35,7 @@ typedef void (*errorHandler)(int errno, char *message);
  *   count - number of bucket values in buckets
  *    
  */
-typedef void (*sampleDataCallbackFunc)(vector<dataValueType> *data,
+typedef void (*sampleDataCallbackFunc)(pdvector<dataValueType> *data,
 				       u_int num_data_values);
 
 /*
@@ -151,7 +151,7 @@ typedef void (*predDataCostCallbackFunc)(u_int clientId,
  * request_id - identifier that client thread associated with this call
  *              (passed to DM on enableDataRequest)
  */
-typedef void (*enableDataCallbackFunc)(vector<metricInstInfo> *response,
+typedef void (*enableDataCallbackFunc)(pdvector<metricInstInfo> *response,
 				       u_int request_id);
 
 struct controlCallback {
@@ -218,7 +218,7 @@ $remote dataManager {
 		       const char *login, 
 		       const char *name, 
 	               const char *dir,
-		       const vector<string> *argv);
+		       const pdvector<string> *argv);
 
     // Attach is the other way to start a process...newly implemented with v1.2
     bool attach(const char *machine,
@@ -316,7 +316,7 @@ $remote dataManager {
     //
     $async void enableDataRequest(perfStreamHandle ps_handle,
                                   perfStreamHandle pt_handle,
-                                  vector<metric_focus_pair> *request,
+                                  pdvector<metric_focus_pair> *request,
 				  u_int request_Id,
 				  phaseType type,
 				  u_int phaseId,
@@ -328,7 +328,7 @@ $remote dataManager {
     // same as enableDataRequest, but with diff type request
     //
     $async void enableDataRequest2(perfStreamHandle ps_handle,
-                                   vector<metricRLType> *request,
+                                   pdvector<metricRLType> *request,
 				   u_int request_Id,
 				   phaseType type,
 				   u_int phaseId,
@@ -373,7 +373,7 @@ $remote dataManager {
     // that are in the currentSearchPath if the resource rh is a 
     // component of the focus rlh, otherwise returns 0
     //
-    vector<rlNameId> *magnify(resourceHandle rh, 
+    pdvector<rlNameId> *magnify(resourceHandle rh, 
 			      resourceListHandle rlh,
                               magnifyType m,
 			      resourceHandle currentSearchPath);
@@ -404,7 +404,7 @@ $remote dataManager {
     //
     // returns the name for the focus associated with this resourceHandle
     //
-    const char *getFocusName(const vector<resourceHandle>*);
+    const char *getFocusName(const pdvector<resourceHandle>*);
 
     //
     // returns the name for the focus associated with this resourceListHandle
@@ -469,7 +469,7 @@ $remote dataManager {
     //
     // returns handles of root resources, returns NULL on error
     //
-    vector<resourceHandle> *getRootResources();
+    pdvector<resourceHandle> *getRootResources();
 
     //
     // create a new resource and return it's handle
@@ -481,20 +481,20 @@ $remote dataManager {
     //
     // converts from a vector of resourceHandles to a resourceListHandle
     // 
-    resourceListHandle getResourceList(const vector<resourceHandle>*);
+    resourceListHandle getResourceList(const pdvector<resourceHandle>*);
 
     //
     // converts from a resourceListHandle to a vector of resourceHandles
     // client is responsible for deleting vector<resourceHandle>*
     // 
-    vector<resourceHandle> *getResourceHandles(resourceListHandle);
+    pdvector<resourceHandle> *getResourceHandles(resourceListHandle);
 
 
     //query for matched metric/focus.
     //the current match implemetation is that the code hierarchy 
     //resource name in reponse focus should be same as that included in 
     //parameter. no wildcard expression is taken into consideration
-    vector<metric_focus_pair> *matchMetFocus(metric_focus_pair *);
+    pdvector<metric_focus_pair> *matchMetFocus(metric_focus_pair *);
 
     //
     // converts from a resource name to a resourceHandle 
@@ -542,13 +542,13 @@ $remote dataManager {
     // returns a vector of metric names 
     // client is responsible for deleting these
     //
-    vector<string> *getAvailableMetrics(bool all);
+    pdvector<string> *getAvailableMetrics(bool all);
 
     //
     // returns a vector of metric name and id pairs
     // client is responsible for deleting these
     //
-    vector<met_name_id> *getAvailableMetInfo(bool all);
+    pdvector<met_name_id> *getAvailableMetInfo(bool all);
 
     //
     // looks for a specifc metric instance
@@ -642,7 +642,7 @@ $remote dataManager {
     // the caller is responsible for freeing the space associated with
     // the list
     //
-    vector<T_visi::phase_info> *getAllPhaseInfo();
+    pdvector<T_visi::phase_info> *getAllPhaseInfo();
 
 
     //
@@ -676,7 +676,7 @@ $remote dataManager {
     //
     // return a list of daemon names
     //
-    vector<string> *getAvailableDaemons();
+    pdvector<string> *getAvailableDaemons();
 
     //
     // upcalls for indications of events.
@@ -709,12 +709,12 @@ $remote dataManager {
 
     // $upcall $async void newPerfData(sampleDataCallbackFunc, 
     $upcall $async void newPerfData(sampleDataCallbackFunc sampleFunc, 
-				    vector<dataValueType> *data,
+				    pdvector<dataValueType> *data,
 				    u_int num_data_values);
 
     // trace data streams
     $upcall $async void newTracePerfData(traceDataCallbackFunc traceFunc,
-                                    vector<traceDataValueType> *traceData,
+                                    pdvector<traceDataValueType> *traceData,
                                     u_int num_traceData_values);
 
     $upcall $async void predictedDataCost(predDataCostCallbackFunc func,
@@ -730,7 +730,7 @@ $remote dataManager {
     // request_id - identifier passed by client to enableDataRequest
     //
     $upcall $async void enableDataCallback(enableDataCallbackFunc func,
-    				           vector<metricInstInfo> *response,
+    				           pdvector<metricInstInfo> *response,
 					   u_int request_id);
 
     $upcall $async void forceFlush(forceFlushCallbackFunc func);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.40 2002/12/12 20:21:05 mirg Exp $ */
+/* $Id: init-sunos.C,v 1.41 2002/12/20 07:50:06 jaw Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/internalMetrics.h"
@@ -189,7 +189,7 @@ bool initOS() {
       // Note that this is currently replicated in dyninstAPI_init until
       // dyninst is updated to refer to this (or a similar) initialization.
       const char *sigactionF="_libc_sigaction";
-      vector<AstNode*> argList(3);
+      pdvector<AstNode*> argList(3);
       static AstNode  sigArg(AstNode::Param, (void*) 0); argList[0] = &sigArg;
       static AstNode  actArg(AstNode::Param, (void*) 1); argList[1] = &actArg;
       static AstNode oactArg(AstNode::Param, (void*) 2); argList[2] = &oactArg;

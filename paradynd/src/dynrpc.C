@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.91 2002/11/25 23:53:05 schendel Exp $ */
+/* $Id: dynrpc.C,v 1.92 2002/12/20 07:50:06 jaw Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -128,8 +128,8 @@ string dynRPC::getStatus(int id)
       return (proc->getProcessStatus());
 }
 
-vector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void) {
-  vector<T_dyninstRPC::metricInfo> metInfo;
+pdvector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void) {
+  pdvector<T_dyninstRPC::metricInfo> metInfo;
   unsigned size = internalMetric::allInternalMetrics.size();
   for (unsigned u=0; u<size; u++)
     metInfo += internalMetric::allInternalMetrics[u]->getInfo();
@@ -139,7 +139,7 @@ vector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void) {
   return(metInfo);
 }
 
-void dynRPC::getPredictedDataCost(u_int id, u_int req_id, vector<u_int> focus, 
+void dynRPC::getPredictedDataCost(u_int id, u_int req_id, pdvector<u_int> focus, 
 				  string metName, u_int clientID)
 {
    if (!metName.length()) 
@@ -173,7 +173,7 @@ void dynRPC::disableDataCollection(int mid)
     else 
         subCurrentPredictedCost(cost);
 
-    vector<pd_process *> procsToCont;
+    pdvector<pd_process *> procsToCont;
     processMgr::procIter itr = getProcMgr().begin();
     while(itr != getProcMgr().end()) {
        pd_process *proc = *itr++;
@@ -221,8 +221,8 @@ bool dynRPC::setTracking(unsigned target, bool /* mode */)
     }
 }
 
-void dynRPC::resourceInfoResponse(vector<u_int> temporaryIds, 
-			 	  vector<u_int> resourceIds) {
+void dynRPC::resourceInfoResponse(pdvector<u_int> temporaryIds, 
+			 	  pdvector<u_int> resourceIds) {
     assert(temporaryIds.size() == resourceIds.size());
 
     for (unsigned u = 0; u < temporaryIds.size(); u++) {
@@ -233,14 +233,14 @@ void dynRPC::resourceInfoResponse(vector<u_int> temporaryIds,
 }
 
 // TODO -- startCollecting  Returns -1 on failure ?
-void dynRPC::enableDataCollection(vector<T_dyninstRPC::focusStruct> focus, 
-				  vector<string> metric, vector<u_int> mi_ids, 
+void dynRPC::enableDataCollection(pdvector<T_dyninstRPC::focusStruct> focus, 
+				  pdvector<string> metric, pdvector<u_int> mi_ids, 
 				  u_int daemon_id, u_int request_id) {
    assert(focus.size() == metric.size());
    totalInstTime.start();
 
-   vector<u_int> send_mi_ids;
-   vector<int>   send_return_ids;
+   pdvector<u_int> send_mi_ids;
+   pdvector<int>   send_return_ids;
 
    metricFocusRequestCallbackInfo *cbi = 
       new metricFocusRequestCallbackInfo(request_id, daemon_id);
@@ -265,7 +265,7 @@ void dynRPC::enableDataCollection(vector<T_dyninstRPC::focusStruct> focus,
 }
 
 // synchronous, for propogating metrics
-int dynRPC::enableDataCollection2(vector<u_int> focus, string met, int mid)
+int dynRPC::enableDataCollection2(pdvector<u_int> focus, string met, int mid)
 {
    totalInstTime.start();
    instr_insert_result_t ret_status = startCollecting(met, focus, mid);
@@ -427,10 +427,10 @@ void dynRPC::MonitorDynamicCallSites(string function_name){
 //
 // start a new program for the tool.
 //
-int dynRPC::addExecutable(vector<string> argv, string dir)
+int dynRPC::addExecutable(pdvector<string> argv, string dir)
 {
-  vector<string> envp;
-  extern int pd_createProcess(vector<string> &argv, vector<string> &envp, 
+  pdvector<string> envp;
+  extern int pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, 
 										string dir);
   return(pd_createProcess(argv, envp, dir)); // context.C
 }

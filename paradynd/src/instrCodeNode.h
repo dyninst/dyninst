@@ -65,12 +65,12 @@ class instrCodeNode_Val {
 
   instrDataNode *sampledDataNode;
   instrDataNode *constraintDataNode;
-  vector<instrDataNode*> tempCtrDataNodes;
+  pdvector<instrDataNode*> tempCtrDataNodes;
 
   const string name;  // could be either a metric name or a constraint name
   const Focus focus;
-  vector<instReqNode *> instRequests;
-  vector<returnInstance *> baseTrampInstances;
+  pdvector<instReqNode *> instRequests;
+  pdvector<returnInstance *> baseTrampInstances;
   bool trampsNeedHookup_;
 
   // instrCodeNodes (actually instrCodeNode_Vals) can be shared so we want to
@@ -84,7 +84,7 @@ class instrCodeNode_Val {
   int referenceCount;
 #if defined(MT_THREAD)
   // remember names of each of its threads (tid + start_func_name)
-  vector<string> thr_names;  
+  pdvector<string> thr_names;  
 #endif
   HwEvent* hwEvent;
 
@@ -107,15 +107,15 @@ class instrCodeNode_Val {
   ~instrCodeNode_Val();
 
   string getKeyName();
-  vector<instReqNode*> &getInstRequests() { return instRequests; }
-  vector<returnInstance *> &getBaseTrampInstances() { 
+  pdvector<instReqNode*> &getInstRequests() { return instRequests; }
+  pdvector<returnInstance *> &getBaseTrampInstances() { 
     return baseTrampInstances;
   }
   bool getDontInsertData() const { return dontInsertData_; }
   void incrementRefCount() { referenceCount++; }
   void decrementRefCount() { referenceCount--; }
   int getRefCount() { return referenceCount; }
-  void getDataNodes(vector<instrDataNode *> *saveBuf);
+  void getDataNodes(pdvector<instrDataNode *> *saveBuf);
   pd_process *proc() {  return proc_;  }
   string getName() const { return name; }
 };
@@ -140,15 +140,15 @@ class instrCodeNode {
 					  pd_process *childProc);
 
   ~instrCodeNode();
-  //bool condMatch(instrCodeNode *mn, vector<dataReqNode*> &data_tuple1,
-  //               vector<dataReqNode*> &data_tuple2);
-  vector<instReqNode*> getInstRequests() { return V.getInstRequests(); }
+  //bool condMatch(instrCodeNode *mn, pdvector<dataReqNode*> &data_tuple1,
+  //               pdvector<dataReqNode*> &data_tuple2);
+  pdvector<instReqNode*> getInstRequests() { return V.getInstRequests(); }
   instr_insert_result_t loadInstrIntoApp();
   int getID() { return reinterpret_cast<int>(&V); }
   instrCodeNode_Val *getInternalData() { return &V; }
   // should make it private
 
-  void prepareCatchupInstr(vector<catchupReq *> &); 
+  void prepareCatchupInstr(pdvector<catchupReq *> &); 
 
   string getName() const { return V.getName(); }
   int numDataNodes() { 
@@ -169,11 +169,11 @@ class instrCodeNode {
   }
 
   // ---------------------------------------
-  void getDataNodes(vector<instrDataNode *> *saveBuf) { 
+  void getDataNodes(pdvector<instrDataNode *> *saveBuf) { 
     V.getDataNodes(saveBuf);
   }
   void manuallyTrigger(int mid);
-  void prepareForSampling(const vector<threadMetFocusNode *> &thrNodes);
+  void prepareForSampling(const pdvector<threadMetFocusNode *> &thrNodes);
   void prepareForSampling(threadMetFocusNode *thrNode);
   void stopSamplingThr(threadMetFocusNode_Val *thrNodeVal);
   bool hasDeferredInstr() { return V.instrDeferred_; }
@@ -199,7 +199,7 @@ class instrCodeNode {
   bool needsCatchup() { return V.needsCatchup_; }
 
   bool needToWalkStack(); // const;
-  bool insertJumpsToTramps(vector<vector<Frame> > &stackWalks);
+  bool insertJumpsToTramps(pdvector<pdvector<Frame> > &stackWalks);
   void addInst(instPoint *point, AstNode *, callWhen when, callOrder o);
   timeLength cost() const;
   void oldCatchUp(int tid);
@@ -209,7 +209,7 @@ class instrCodeNode {
   bool nonNull() const { return (V.instRequests.size() > 0);  }
 #if defined(MT_THREAD)
   void addThrName(string thr_name) {  V.thr_names += thr_name;  }
-  vector<string> getThrNames() {  return V.thr_names;  }
+  pdvector<string> getThrNames() {  return V.thr_names;  }
 #endif
   HwEvent* getHwEvent() { return V.hwEvent; }
 

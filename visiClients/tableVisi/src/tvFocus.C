@@ -42,7 +42,7 @@
 // tvFocus.C
 // Ariel Tamches
 
-// $Id: tvFocus.C,v 1.8 2002/05/13 19:54:08 mjbrim Exp $
+// $Id: tvFocus.C,v 1.9 2002/12/20 07:50:09 jaw Exp $
 
 #include "common/h/Vector.h"
 #include "tvFocus.h"
@@ -68,7 +68,7 @@ tvFocus::tvFocus(unsigned iVisiLibId,
    }
    else {
       // Step 1: split up into components; 1 per resource hierarchy
-      vector<string> components;
+      pdvector<string> components;
 		unsigned componentlcv;
 
       const char *ptr = longName.c_str();

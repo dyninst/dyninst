@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMmain.C,v 1.51 2002/07/25 19:22:43 willb Exp $ */
+/* $Id: VMmain.C,v 1.52 2002/12/20 07:50:06 jaw Exp $ */
 
 #include "paradyn/src/pdMain/paradyn.h"
 #include "pdthread/h/thread.h"
@@ -59,8 +59,8 @@
 
 static int      currNumActiveVisis = 0;
 thread_key_t visiThrd_key;
-vector<VMactiveVisi *> activeVisis; 
-vector<VMvisis *> visiList;
+pdvector<VMactiveVisi *> activeVisis; 
+pdvector<VMvisis *> visiList;
 extern void* VISIthreadmain(void *args);
 VM *VM::vmp = NULL;
 
@@ -68,10 +68,10 @@ VM *VM::vmp = NULL;
 //  VMActiveVisis: VM server routine, returns a list of all 
 //        visualization processes that are currently active
 /////////////////////////////////////////////////////////////
-vector<VM_activeVisiInfo> *VM::VMActiveVisis(){
+pdvector<VM_activeVisiInfo> *VM::VMActiveVisis(){
 
-  vector<VM_activeVisiInfo> *temp;
-  if (!(temp = new vector<VM_activeVisiInfo>)) {
+  pdvector<VM_activeVisiInfo> *temp;
+  if (!(temp = new pdvector<VM_activeVisiInfo>)) {
       ERROR_MSG(18,"malloc failure in VMActiveVisis");
       return NULL;
   }
@@ -91,11 +91,11 @@ vector<VM_activeVisiInfo> *VM::VMActiveVisis(){
 // VMAvailableVisis: VM server routine, returns a list of all
 //                   available visualizations 
 /////////////////////////////////////////////////////////////
-vector<VM_visiInfo> *VM::VMAvailableVisis(){
+pdvector<VM_visiInfo> *VM::VMAvailableVisis(){
 
   PARADYN_DEBUG(("in VMAvailableVisis"));
-  vector<VM_visiInfo> *temp;
-  if (!(temp = new vector<VM_visiInfo>)) {
+  pdvector<VM_visiInfo> *temp;
+  if (!(temp = new pdvector<VM_visiInfo>)) {
       ERROR_MSG(18,"malloc in VMAvailableVisis");
       return NULL;
   }
@@ -118,10 +118,10 @@ vector<VM_visiInfo> *VM::VMAvailableVisis(){
 //        in the list
 /////////////////////////////////////////////////////////////
 int VM_AddNewVisualization(const char *name,
-			      vector<string> *arg_str,
+			      pdvector<string> *arg_str,
 			      int  forceProcessStart,
 			      int  mi_limit,
-			      vector<string> *matrix
+			      pdvector<string> *matrix
 			      ){
 
    if (!arg_str || !name) {
@@ -179,7 +179,7 @@ int VM_AddNewVisualization(const char *name,
   temp->name = name;
 
   if (matrix){
-      if((temp->matrix = new vector<string>(*matrix)) == NULL){
+      if((temp->matrix = new pdvector<string>(*matrix)) == NULL){
           ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
           return(VMERROR);
       }
@@ -207,10 +207,10 @@ int VM_AddNewVisualization(const char *name,
 //        in the list
 /////////////////////////////////////////////////////////////
 int VM::VMAddNewVisualization(const char *name,
-			      vector<string> *arg_str,
+			      pdvector<string> *arg_str,
 			      int  forceProcessStart,
 			      int  mi_limit,
-			      vector<string> *matrix
+			      pdvector<string> *matrix
 			      ){
 
     return(VM_AddNewVisualization(name, arg_str, forceProcessStart,
@@ -223,7 +223,7 @@ int VM::VMAddNewVisualization(const char *name,
 //      internal representation
 //  return value NULL indicates an error in parsing the string
 /////////////////////////////////////////////////////////////
- vector<metric_focus_pair> *VM::VMStringToMetResPair(const char *){
+ pdvector<metric_focus_pair> *VM::VMStringToMetResPair(const char *){
 
    return(NULL);
 }
@@ -248,7 +248,7 @@ int  VM::VMCreateVisi(int remenuFlag,
                       int forceProcessStart,
 		      int visiTypeId,
 		      phaseType phase_type,
-		      vector<metric_focus_pair> *matrix){
+		      pdvector<metric_focus_pair> *matrix){
 
   // get visi process command line to pass to visithread thr_create 
   if(visiTypeId >= (int)visiList.size()){
@@ -279,13 +279,13 @@ int  VM::VMCreateVisi(int remenuFlag,
   }
       
   if(matrix != NULL){
-      temp->matrix = new vector<metric_focus_pair>;
+      temp->matrix = new pdvector<metric_focus_pair>;
       for (unsigned i=0; i < matrix->size(); i++)
       {
       	  metric_focus_pair &metfocus = (*matrix)[i];
 	  if (metfocus.met == UNUSED_METRIC_HANDLE)
 	  {
-		vector<metric_focus_pair> *match_matrix = dataMgr->matchMetFocus(&metfocus);
+		pdvector<metric_focus_pair> *match_matrix = dataMgr->matchMetFocus(&metfocus);
 		if (match_matrix)
 		{	*temp->matrix += *match_matrix;
 			delete match_matrix;
@@ -297,7 +297,7 @@ int  VM::VMCreateVisi(int remenuFlag,
   else {
       temp->matrix = NULL;
   }
-  //wxd visitemp->vector<string> == > vector<metric_focus_pair>
+  //wxd visitemp->pdvector<string> == > pdvector<metric_focus_pair>
       // check active visi list to see if visi has
       // pre-defined set of metric/focus pairs, if so
       // parse the string representation into metrespair rep.
@@ -305,7 +305,7 @@ int  VM::VMCreateVisi(int remenuFlag,
   if (visitemp->matrix)
   {
   	if (temp->matrix == NULL)
-		temp->matrix = new vector<metric_focus_pair>;
+		temp->matrix = new pdvector<metric_focus_pair>;
 	for (unsigned i=0;i < visitemp->matrix->size();i++)
 	{
 		metricHandle metric_h=UNUSED_METRIC_HANDLE;
@@ -382,14 +382,14 @@ int  VM::VMCreateVisi(int remenuFlag,
 		delete machine_name;
 		delete sync_name;
 
-		vector<resourceHandle> focus;
+		pdvector<resourceHandle> focus;
 		focus += code_h;
 		focus += machine_h;
 		focus += sync_h;
 		metric_focus_pair metfocus(metric_h,focus);
 		if (metric_h == UNUSED_METRIC_HANDLE)
 		{
-			vector<metric_focus_pair> *match_matrix = dataMgr->matchMetFocus(&metfocus);
+			pdvector<metric_focus_pair> *match_matrix = dataMgr->matchMetFocus(&metfocus);
 			if (match_matrix)
 			{	*temp->matrix += *match_matrix;
 				delete match_matrix;
@@ -520,7 +520,7 @@ int VM::VM_post_thread_create_init(){
   for(unsigned u=0; u < metVisiSize(); u++){
       visiMet *next_visi = metgetVisi(u);
       if(next_visi){
-	  vector<string> argv;
+	  pdvector<string> argv;
 	  bool aflag;
 	  aflag=(RPCgetArg(argv, next_visi->command().c_str()));
 	  assert(aflag);
@@ -541,7 +541,7 @@ int VM::VM_post_thread_create_init(){
   assert( mtid == MAINtid );
 
   // register valid visis with the UI
-  vector<VM_visiInfo> *temp = new vector<VM_visiInfo>;
+  pdvector<VM_visiInfo> *temp = new pdvector<VM_visiInfo>;
   for(unsigned i=0; i < visiList.size(); i++) {
      VM_visiInfo newVal;
      newVal.name = visiList[i]->name; 

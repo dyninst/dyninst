@@ -44,6 +44,24 @@
  *    execution of the system.
  *
  * $Log: tunableConst.C,v $
+ * Revision 1.8  2002/12/20 07:50:04  jaw
+ * This commit fully changes the class name of "vector" to "pdvector".
+ *
+ * A nice upshot is the removal of a bunch of code previously under the flag
+ * USE_STL_VECTOR, which is no longer necessary in many cases where a
+ * functional difference between common/h/Vector.h and stl::vector was
+ * causing a crash.
+ *
+ * Generally speaking, Dyninst and Paradyn now use pdvector exclusively.
+ * This commit DOES NOT cover the USE_STL_VECTOR flag, which will now
+ * substitute stl::vector for BPatch_Vector only.  This is currently, to
+ * the best of my knowledge, only used by DPCL.  This will be updated and
+ * tested in a future commit.
+ *
+ * The purpose of this, again, is to create a further semantic difference
+ * between two functionally different classes (which both have the same
+ * [nearly] interface).
+ *
  * Revision 1.7  1999/03/03 18:15:26  pcroth
  * Updated to support Windows NT as a front-end platform
  * Changes made to X code, to use Tcl analogues when appropriate
@@ -175,7 +193,7 @@ tunableBooleanConstant tunableConstantRegistry::findBoolTunableConstant(const st
    return allBoolTunables[theName]; // makes a copy in the process of returning...
 }
 
-vector<tunableBooleanConstant> tunableConstantRegistry::getAllBoolTunableConstants() {
+pdvector<tunableBooleanConstant> tunableConstantRegistry::getAllBoolTunableConstants() {
    return allBoolTunables.values();
 }
 
@@ -273,7 +291,7 @@ tunableFloatConstant tunableConstantRegistry::findFloatTunableConstant(const str
    return allFloatTunables[theName]; // makes a copy in the process of returning...
 }
 
-vector<tunableFloatConstant> tunableConstantRegistry::getAllFloatTunableConstants() {
+pdvector<tunableFloatConstant> tunableConstantRegistry::getAllFloatTunableConstants() {
    return allFloatTunables.values();
 }
 

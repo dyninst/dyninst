@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.103 2002/11/25 23:51:42 schendel Exp $
+/* $Id: dyninstRPC.I,v 1.104 2002/12/20 07:50:00 jaw Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -93,7 +93,7 @@ public:
   virtual ~mdl_expr();
   virtual bool apply(mdl_var &ret) = 0;
   virtual bool apply(AstNode*& ast) = 0;
-  virtual bool mk_list(vector<string> &funcs) = 0;
+  virtual bool mk_list(pdvector<string> &funcs) = 0;
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) = 0;
 #endif
@@ -113,12 +113,12 @@ $remote class mdl_v_expr : mdl_expr {
   // there's really no "left" or "right" expressions. --chun
   mdl_expr *left_;
   mdl_expr *right_;
-  vector<mdl_expr*> *args_;
-  vector<string> fields_;
+  pdvector<mdl_expr*> *args_;
+  pdvector<string> fields_;
 
   // for fields. set in paradyn's mdl.C and used in paradynd's mdl.C
   // --chun.
-  vector<u_int> type_walk;
+  pdvector<u_int> type_walk;
   bool do_type_walk_;
 
   bool ok_;
@@ -127,8 +127,8 @@ $ignore
 public:
   mdl_v_expr(int int_literal);
   mdl_v_expr(string a_str, bool is_literal);
-  mdl_v_expr(mdl_expr* expr, vector<string> fields);
-  mdl_v_expr(string func_name, vector<mdl_expr*> *args);
+  mdl_v_expr(mdl_expr* expr, pdvector<string> fields);
+  mdl_v_expr(string func_name, pdvector<mdl_expr*> *args);
   mdl_v_expr(u_int bin_op, mdl_expr *left, mdl_expr *right);
   mdl_v_expr(string var, u_int assign_op, mdl_expr* expr);
   mdl_v_expr(u_int u_op, mdl_expr *expr, bool is_preop);
@@ -137,7 +137,7 @@ public:
   bool apply(mdl_var &ret); // non-code-gen version
   bool apply(AstNode*& mn); // code-gen version
 
-  bool mk_list(vector<string> &funcs);
+  bool mk_list(pdvector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) 
   {
@@ -172,8 +172,8 @@ $remote abstract class mdl_stmt {
 $ignore
 public:
   virtual ~mdl_stmt() { }
-  virtual bool apply(instrCodeNode *mn, vector<const instrDataNode*>& flags) = 0;
-  virtual bool mk_list(vector<string> &funcs) = 0;
+  virtual bool apply(instrCodeNode *mn, pdvector<const instrDataNode*>& flags) = 0;
+  virtual bool mk_list(pdvector<string> &funcs) = 0;
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) = 0;
 #endif
@@ -183,17 +183,17 @@ $ignore
 $remote class mdl_list_stmt : mdl_stmt {
   u_int type_;
   string id_;
-  vector<string> *elements_;
+  pdvector<string> *elements_;
   bool is_lib_;
-  vector<string> *flavor_;
+  pdvector<string> *flavor_;
 
 $ignore
 public:
-  mdl_list_stmt(u_int type, string ident, vector<string> *elems,
-		bool is_lib, vector<string> *flavor);
+  mdl_list_stmt(u_int type, string ident, pdvector<string> *elems,
+		bool is_lib, pdvector<string> *flavor);
   virtual ~mdl_list_stmt();
-  virtual bool apply(instrCodeNode *mn, vector<const instrDataNode*>& flags);
-  virtual bool mk_list(vector<string> &funcs);
+  virtual bool apply(instrCodeNode *mn, pdvector<const instrDataNode*>& flags);
+  virtual bool mk_list(pdvector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
 #endif
@@ -210,8 +210,8 @@ $ignore
 public:
   mdl_for_stmt(string index_name, mdl_expr *list_exp, mdl_stmt *body);
   virtual ~mdl_for_stmt();
-  virtual bool apply(instrCodeNode *mn, vector<const instrDataNode*>& flags);
-  virtual bool mk_list(vector<string> &funcs);
+  virtual bool apply(instrCodeNode *mn, pdvector<const instrDataNode*>& flags);
+  virtual bool mk_list(pdvector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
 #endif
@@ -227,8 +227,8 @@ $ignore
 public:
   mdl_if_stmt(mdl_expr *expr, mdl_stmt *body);
   virtual ~mdl_if_stmt();
-  virtual bool apply(instrCodeNode *mn, vector<const instrDataNode*>& flags);
-  virtual bool mk_list(vector<string> &funcs);
+  virtual bool apply(instrCodeNode *mn, pdvector<const instrDataNode*>& flags);
+  virtual bool mk_list(pdvector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
 #endif
@@ -237,14 +237,14 @@ $ignore
 };
 
 $remote class mdl_seq_stmt : mdl_stmt {
-  vector<mdl_stmt*> *stmts_;
+  pdvector<mdl_stmt*> *stmts_;
 
 $ignore
 public:
-  mdl_seq_stmt(vector<mdl_stmt*> *stmts);
+  mdl_seq_stmt(pdvector<mdl_stmt*> *stmts);
   virtual ~mdl_seq_stmt();
-  virtual bool apply(instrCodeNode *mn, vector<const instrDataNode*>& flags);
-  virtual bool mk_list(vector<string> &funcs);
+  virtual bool apply(instrCodeNode *mn, pdvector<const instrDataNode*>& flags);
+  virtual bool mk_list(pdvector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
 #endif
@@ -255,17 +255,17 @@ $ignore
 $remote class mdl_instr_stmt : mdl_stmt {
   u_int position_; // append or prepend
   mdl_expr *point_expr_; // e.g. $start.entry.  Can be a fn entry, exit, or call site.
-  vector<mdl_icode*> *icode_reqs_; // the instrumentation code itself
+  pdvector<mdl_icode*> *icode_reqs_; // the instrumentation code itself
   u_int where_instr_; // preInsn or postInsn
   bool constrained_; // if not true, no constraints will be applied
 
 $ignore
 public:
-  mdl_instr_stmt(u_int pos, mdl_expr *point_expr, vector<mdl_icode*> *i_reqs,
+  mdl_instr_stmt(u_int pos, mdl_expr *point_expr, pdvector<mdl_icode*> *i_reqs,
 		 unsigned where_instr, bool constrained);
   virtual ~mdl_instr_stmt();
-  virtual bool apply(instrCodeNode *mn, vector<const instrDataNode*>& flags);
-  virtual bool mk_list(vector<string> &funcs);
+  virtual bool apply(instrCodeNode *mn, pdvector<const instrDataNode*>& flags);
+  virtual bool mk_list(pdvector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) {
     os << "MDL_INSTR_STMT: constrained=" << constrained_ << " ";
@@ -278,8 +278,8 @@ $ignore
 
 $remote class mdl_constraint {
   string id_;
-  vector<string> *match_path_;
-  vector<mdl_stmt*> *stmts_;
+  pdvector<string> *match_path_;
+  pdvector<mdl_stmt*> *stmts_;
   bool replace_;
   u_int data_type_; // type of this constraint: counter, timer, etc.
   u_int hierarchy_;
@@ -287,13 +287,13 @@ $remote class mdl_constraint {
 
 $ignore
 public:
-  mdl_constraint(string id, vector<string> *match_path,
-		 vector<mdl_stmt*> *stmts, bool replace, u_int d_type,
+  mdl_constraint(string id, pdvector<string> *match_path,
+		 pdvector<mdl_stmt*> *stmts, bool replace, u_int d_type,
 		 bool& error);
   ~mdl_constraint();
   bool apply(instrCodeNode *codeNode, instrDataNode **dataNode,
              const Hierarchy &resource, pd_process *proc, bool dontInsertData);
-  bool mk_list(vector<string> &funcs);
+  bool mk_list(pdvector<string> &funcs);
   bool replace();
   string id();
 
@@ -331,10 +331,10 @@ $remote class mdl_metric {
   u_int style_;  // currently, always EventCounter
   u_int type_;   // counter, processTimer, or wallTimer
   string hwcntr_;  // string denoting hw counter event
-  vector<mdl_stmt*> *stmts_; // for "base is <type_> { ... }
-  vector<string> *flavors_; // which flavors this metric is valid for
-  vector<mdl_constraint*> *constraints_;
-  vector<string> *temp_ctr_; // temporary counters
+  pdvector<mdl_stmt*> *stmts_; // for "base is <type_> { ... }
+  pdvector<string> *flavors_; // which flavors this metric is valid for
+  pdvector<mdl_constraint*> *constraints_;
+  pdvector<string> *temp_ctr_; // temporary counters
   bool developerMode_;
   int unitstype_; // normalized, unnormalized, or sampled
 
@@ -342,9 +342,9 @@ $ignore
 public:
   mdl_metric(string id, string name, string units,
 	     u_int agg, u_int style, u_int type, string hwcntr, 
-	     vector<mdl_stmt*> *mv, vector<string> *flavs, 
-	     vector<mdl_constraint*> *cons,
-	     vector<string> *temp_c, bool developerMode,int unitstype);
+	     pdvector<mdl_stmt*> *mv, pdvector<string> *flavs, 
+	     pdvector<mdl_constraint*> *cons,
+	     pdvector<string> *temp_c, bool developerMode,int unitstype);
   ~mdl_metric();
 #ifdef NO_MDL_PRINT
   friend ostream& operator<< (ostream &os, const mdl_metric& met) {
@@ -370,8 +370,8 @@ public:
   }
 #endif
 
-  bool apply(vector<processMetFocusNode *> *createdProcNodes,
-             const Focus &focus, vector<pd_process *> procs,
+  bool apply(pdvector<processMetFocusNode *> *createdProcNodes,
+             const Focus &focus, pdvector<pd_process *> procs,
 	     bool replace_components_if_present, bool dontInsertData);
 $ignore
 };
@@ -389,12 +389,12 @@ $remote struct metricInfo {
 };
 
 $remote struct focusStruct {
-  vector<u_int> focus;
+  pdvector<u_int> focus;
 };
 
 $remote struct resourceInfoCallbackStruct {
    u_int temporaryId;
-   vector<string> resource_name;
+   pdvector<string> resource_name;
    string abstraction;
    u_int type;
 };
@@ -406,7 +406,7 @@ $remote struct resourceInfoCallbackStruct {
 int createDaemon(string machine,
 		 string login,
 		 string name,
-		 vector<string> argv);
+		 pdvector<string> argv);
 
 
 $remote dynRPC {
@@ -417,7 +417,7 @@ $remote dynRPC {
     // Define a program to run. 
     // argv: the command and arguments
     // dir: working directory where program will run.
-    int addExecutable(vector<string> argv, string dir);
+    int addExecutable(pdvector<string> argv, string dir);
 
     //
     // Connect up with a running program (not possible on all platforms).
@@ -474,7 +474,7 @@ $remote dynRPC {
     // paused.
     //
     $upcall $async void newProgramCallbackFunc( int pid, 
-						vector<string> argv, 
+						pdvector<string> argv, 
 						string machine,
 	                                        bool calledFromExec,
 						bool wantToInitiallyRun);
@@ -493,7 +493,7 @@ $remote dynRPC {
 
    $virtual $upcall $async
    void batchSampleDataCallbackFunc(int program,
-	                            vector<batch_buffer_entry> theBatchBuffer);
+	                            pdvector<batch_buffer_entry> theBatchBuffer);
 
    // batch the traces (paradynd-->paradyn) to get better performance
    // the functionality is essentially the same as the 
@@ -501,7 +501,7 @@ $remote dynRPC {
 
    $virtual $upcall $async
    void batchTraceDataCallbackFunc(int program,
-                                    vector<trace_batch_buffer_entry> theTraceBatchBuffer);
+                                    pdvector<trace_batch_buffer_entry> theTraceBatchBuffer);
 
    //
    // XXXX - Hack this should be generalized into a vector.
@@ -541,10 +541,10 @@ $remote dynRPC {
    // type		- the MDL type for this resource (MDL_T_STRING, etc.)
    // 
    $virtual $upcall $async void resourceInfoCallback(u_int temporaryId, 
-					     vector<string> resource_name,
+					     pdvector<string> resource_name,
 					     string abstraction, u_int type);
 
-    $virtual $upcall $async void severalResourceInfoCallback(vector<resourceInfoCallbackStruct>);
+    $virtual $upcall $async void severalResourceInfoCallback(pdvector<resourceInfoCallbackStruct>);
 	
    //
    // Handlers that gets called in paradynd when a new call graph relationship
@@ -565,7 +565,7 @@ $remote dynRPC {
    $virtual $upcall $async void AddCallGraphStaticChildrenCallback(
                                                       string exe_name, 
                                                       string resource, 
-	                                              vector<string> children);
+	                                              pdvector<string> children);
    //Specify the root node if CallGraph "exe_name"
    $virtual $upcall $async void CallGraphSetEntryFuncCallback(string exe_name,
                                                             string entry_func,
@@ -588,8 +588,8 @@ $remote dynRPC {
 
    // In case there are conflicts between the resource Id's generated by
    // the daemons, paradyn generates a new Id and report it to the daemon.
-   $async void resourceInfoResponse(vector<u_int> temporaryIds,
-				    vector<u_int>resourceIds);
+   $async void resourceInfoResponse(pdvector<u_int> temporaryIds,
+				    pdvector<u_int>resourceIds);
 
 
    $virtual $upcall $async void resourceBatchMode(bool);
@@ -626,23 +626,23 @@ $remote dynRPC {
    // resourceList	- a list of resources
    // metric	- what metric to collect data for
    //
-   $async void enableDataCollection(vector<focusStruct> focus, 
-                                    vector<string> metric,
-				    vector<u_int> mi_ids, 
+   $async void enableDataCollection(pdvector<focusStruct> focus, 
+                                    pdvector<string> metric,
+				    pdvector<u_int> mi_ids, 
 				    u_int daemon_id,
 				    u_int request_id);
    //
    // synchronous enable call, for propogating metrics
    //
-   int enableDataCollection2(vector<u_int> focus, string metric, int id);
+   int enableDataCollection2(pdvector<u_int> focus, string metric, int id);
 
    //
    // Upcall to tell paradyn that all daemons are ready after a metric 
    // enable request
    //
    $upcall $async void enableDataCallback(u_int daemon_id, 
-                                          vector<int> return_id,
-                                          vector<u_int> mi_ids,
+                                          pdvector<int> return_id,
+                                          pdvector<u_int> mi_ids,
 					  u_int request_id);
    //
    // Upcall to tell paradyn that all daemons are ready after computing 
@@ -675,14 +675,14 @@ $remote dynRPC {
    //
    $async void getPredictedDataCost(u_int id,
 				    u_int req_id,
-				    vector<u_int> focus, 
+				    pdvector<u_int> focus, 
 				    string metric,
 				    u_int clientID);
 
    //
    // Get the static configuration information.
    //
-   vector<metricInfo> getAvailableMetrics();
+   pdvector<metricInfo> getAvailableMetrics();
 
    //
    // Create a new resource.
@@ -730,10 +730,10 @@ $remote dynRPC {
    void printStats();
 
    // MDL methods
-   $async void send_metrics(vector<mdl_metric*> *);
-   $async void send_constraints(vector<mdl_constraint*>*);
-   $async void send_stmts(vector<mdl_stmt*> *);
-   $async void send_libs(vector<string>*);
+   $async void send_metrics(pdvector<mdl_metric*> *);
+   $async void send_constraints(pdvector<mdl_constraint*>*);
+   $async void send_stmts(pdvector<mdl_stmt*> *);
+   $async void send_libs(pdvector<string>*);
    $async void send_no_libs();
 
    // get the current wall clock time of the daemon to adjust for clock differences

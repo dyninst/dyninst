@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.47 2002/12/05 01:38:39 buck Exp $
+//$Id: templates1.C,v 1.48 2002/12/20 07:49:59 jaw Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -61,9 +61,9 @@
 class dyn_lwp;
 
 //begin from templates05
-template class vector<instWaitingList *>;
+template class pdvector<instWaitingList *>;
 template class refCounter<string_ll>;
-template class vector<heapDescriptor>;
+template class pdvector<heapDescriptor>;
 //end from templates05
 
 #if defined(BPATCH_LIBRARY)
@@ -79,82 +79,82 @@ class BPatch_variableExpr;
 
 #if defined(mips_sgi_irix6_4)
 #include "dyninstAPI/src/irixDL.h" // dsoEvent_t
-template class  vector<pdDsoEvent *>;
-template class  vector<pdElfObjInfo *>;
-template class  vector<vector<int> >;
-template class  vector<pdElfSym *>;
+template class  pdvector<pdDsoEvent *>;
+template class  pdvector<pdElfObjInfo *>;
+template class  pdvector<pdvector<int> >;
+template class  pdvector<pdElfSym *>;
 #endif
 template class  dictionary_hash <Address, unsigned>;
-template class  vector<dictionary_hash <Address, unsigned>::entry>;
+template class  pdvector<dictionary_hash <Address, unsigned>::entry>;
 template class  dictionary_hash_iter <Address, unsigned>;
 
 // For the LWP list in the process class
 template class  dictionary_hash <unsigned, dyn_lwp *>;
-template class  vector<dictionary_hash <unsigned, dyn_lwp *>::entry>;
+template class  pdvector<dictionary_hash <unsigned, dyn_lwp *>::entry>;
 template class  dictionary_hash_iter <unsigned, dyn_lwp *>;
 
 #include "common/src/list.C"
 template class  List<instInstance*>;
 template class  ListBase<instInstance*, void*>;
 template class  dictionary_hash <const instPoint *, trampTemplate *>;
-template class  vector<dictionary_hash <const instPoint *, trampTemplate *>::entry>;
+template class  pdvector<dictionary_hash <const instPoint *, trampTemplate *>::entry>;
 template class  dictionary_hash_iter <const instPoint *, trampTemplate *>;
 
-template class  vector<miniTrampHandle>;
-template class  vector<process::mtListInfo>;
+template class  pdvector<miniTrampHandle>;
+template class  pdvector<process::mtListInfo>;
 
 template class  dictionary_hash <instInstance *, instInstance *>;
-template class  vector<dictionary_hash <instInstance *, instInstance *>::entry>;
+template class  pdvector<dictionary_hash <instInstance *, instInstance *>::entry>;
 template class  dictionary_hash <Address, Symbol*>;
-template class  vector<dictionary_hash <Address, Symbol*>::entry>;
+template class  pdvector<dictionary_hash <Address, Symbol*>::entry>;
 template class  dictionary_hash <instPoint*, unsigned>;
-template class  vector<dictionary_hash <instPoint*, unsigned>::entry>;
-template class  vector<dictionary_hash <instPoint*, unsigned long>::entry>;
+template class  pdvector<dictionary_hash <instPoint*, unsigned>::entry>;
+template class  pdvector<dictionary_hash <instPoint*, unsigned long>::entry>;
 template class  dictionary_hash <string, internalSym*>;
-template class  vector<dictionary_hash <string, internalSym*>::entry>;
+template class  pdvector<dictionary_hash <string, internalSym*>::entry>;
 template class  dictionary_hash <string, pdmodule *>;
-template class  vector<dictionary_hash <string, pdmodule *>::entry>;
+template class  pdvector<dictionary_hash <string, pdmodule *>::entry>;
 template class  dictionary_hash <string, pd_Function*>;
-template class  vector<dictionary_hash <string, pd_Function*>::entry>;
+template class  pdvector<dictionary_hash <string, pd_Function*>::entry>;
 template class  dictionary_hash <string, resource*>;
-template class  vector<dictionary_hash <string, resource*>::entry>;
+template class  pdvector<dictionary_hash <string, resource*>::entry>;
 template class  dictionary_hash <string, unsigned>;
-template class  vector<dictionary_hash <string, unsigned>::entry>;
-template class  dictionary_hash <string, vector<pd_Function*>*>;
-template class  vector<dictionary_hash <string, vector<pd_Function*>*>::entry>;
+template class  pdvector<dictionary_hash <string, unsigned>::entry>;
+template class  dictionary_hash <string, pdvector<pd_Function*>*>;
+template class  pdvector<dictionary_hash <string, pdvector<pd_Function*>*>::entry>;
 template class  dictionary_hash <unsigned, heapItem*>;
 template class  dictionary_hash <unsigned long, heapItem*>;
-template class  vector<dictionary_hash <unsigned, heapItem*>::entry>;
-template class  vector<dictionary_hash <unsigned long, heapItem*>::entry>;
+template class  pdvector<dictionary_hash <unsigned, heapItem*>::entry>;
+template class  pdvector<dictionary_hash <unsigned long, heapItem*>::entry>;
 template class  dictionary_hash <unsigned, pd_Function*>;
 template class  dictionary_hash <unsigned long, pd_Function*>;
-template class  vector<dictionary_hash <unsigned, pd_Function*>::entry>;
+template class  pdvector<dictionary_hash <unsigned, pd_Function*>::entry>;
 
 #ifndef BPATCH_LIBRARY
 template class  dictionary_hash <function_base*, function_base*>;
-template class  vector<dictionary_hash <function_base*, function_base*>::entry>;
+template class  pdvector<dictionary_hash <function_base*, function_base*>::entry>;
 #else
 template class  dictionary_hash <function_base*, BPatch_function*>;
-template class  vector<dictionary_hash<function_base*, BPatch_function*>::entry>;
+template class  pdvector<dictionary_hash<function_base*, BPatch_function*>::entry>;
 template class  dictionary_hash <Address, BPatch_variableExpr*>;
-template class  vector<dictionary_hash <Address, BPatch_variableExpr*>::entry>;
+template class  pdvector<dictionary_hash <Address, BPatch_variableExpr*>::entry>;
 
 template class BPatch_Vector<BPatch_frame>;
 #endif
 
 #ifdef alpha_dec_osf4_0
 template class  dictionary_hash <string, int>;
-template class  vector<dictionary_hash <string, int>::entry>;
+template class  pdvector<dictionary_hash <string, int>::entry>;
 #endif
 
-template class  vector<dictionary_hash <unsigned long, pd_Function*>::entry>;
+template class  pdvector<dictionary_hash <unsigned long, pd_Function*>::entry>;
 template class  dictionary_hash <unsigned, resource *>;
-template class  vector<dictionary_hash <unsigned long, resource *>::entry>;
+template class  pdvector<dictionary_hash <unsigned long, resource *>::entry>;
 template class  dictionary_hash <unsigned, unsigned>;
-template class  vector<dictionary_hash <unsigned, unsigned>::entry>;
+template class  pdvector<dictionary_hash <unsigned, unsigned>::entry>;
 template class  dictionary_hash <unsigned, unsigned long>;
 template class  dictionary_hash <unsigned long, unsigned long>;
-template class  vector<dictionary_hash <unsigned long, unsigned long>::entry>;
+template class  pdvector<dictionary_hash <unsigned long, unsigned long>::entry>;
 template class  dictionary_hash_iter <unsigned long, unsigned long>;
 
 #if defined(i386_unknown_linux2_0) || \
@@ -162,6 +162,6 @@ template class  dictionary_hash_iter <unsigned long, unsigned long>;
 	defined(sparc_sun_solaris2_4) || \
 	defined(mips_sgi_irix_6_4) || \
 	defined(ia64_unknown_linux2_4)
-template class vector<pdElfShdr*>;
+template class pdvector<pdElfShdr*>;
 #endif
 

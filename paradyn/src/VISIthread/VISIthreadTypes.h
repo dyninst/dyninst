@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: VISIthreadTypes.h,v 1.31 2002/07/25 19:22:41 willb Exp $ 
+// $Id: VISIthreadTypes.h,v 1.32 2002/12/20 07:50:05 jaw Exp $ 
 
 #ifndef VISI_thread_h
 #define VISI_thread_h 
@@ -69,12 +69,12 @@ struct VISIGlobalsStruct {
   visualizationUser *visip; // where we talk to visi lib of the visi process
   perfStreamHandle ps_handle;
 
-  vector<T_visi::dataValue> buffer;
+  pdvector<T_visi::dataValue> buffer;
   u_int buffer_next_insert_index; // same as old bufferSize
 
   // trace data streams
   perfStreamHandle pt_handle;
-  vector<T_visi::traceDataValue> traceBuffer;
+  pdvector<T_visi::traceDataValue> traceBuffer;
 
   thread_t vtid;
   int quit;
@@ -83,11 +83,11 @@ struct VISIGlobalsStruct {
   int start_up;
   int currPhaseHandle;
   unsigned fd_first;
-  vector<metricInstInfo> mrlist;
+  pdvector<metricInstInfo> mrlist;
 
   // for enable requests
-  vector<metric_focus_pair> *request;  // list returned by UI menuing
-  vector<metric_focus_pair> *retryList;  // list of unsuccessful enables 
+  pdvector<metric_focus_pair> *request;  // list returned by UI menuing
+  pdvector<metric_focus_pair> *retryList;  // list of unsuccessful enables 
   u_int num_Enabled;  // number of successful enables in this request
   u_int next_to_enable;  // which element in request list to try next 
   u_int first_in_curr_request; // request vector id: start of curr. DM request
@@ -109,6 +109,6 @@ class visiUser : public visualizationUser
     virtual void handle_error();
 };
 
-extern int VISIthreadchooseMetRes(vector<metric_focus_pair> *pairList);
+extern int VISIthreadchooseMetRes(pdvector<metric_focus_pair> *pairList);
 
 #endif

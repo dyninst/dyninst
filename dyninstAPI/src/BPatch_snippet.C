@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.42 2002/08/16 16:01:36 gaburici Exp $
+// $Id: BPatch_snippet.C,v 1.43 2002/12/20 07:49:56 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -229,7 +229,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
      * generate a callNode AST that calls a divide function.
      */
     if (astOp == divOp) {
-        vector<AstNode *> args;
+        pdvector<AstNode *> args;
 
         args.push_back(assignAst(lOperand.ast));
         args.push_back(assignAst(rOperand.ast));
@@ -463,7 +463,7 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
     const BPatch_function &func,
     const BPatch_Vector<BPatch_snippet *> &args)
 {
-    vector<AstNode *> ast_args;
+    pdvector<AstNode *> ast_args;
 
     unsigned int i;
     for (i = 0; i < args.size(); i++)
@@ -899,7 +899,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
  */
 BPatch_breakPointExpr::BPatch_breakPointExpr()
 {
-    vector<AstNode *> null_args;
+    pdvector<AstNode *> null_args;
 
     ast = new AstNode("DYNINSTbreakPoint", null_args);
 

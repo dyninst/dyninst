@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.71 2002/12/14 16:37:40 schendel Exp $
+// $Id: pdwinnt.C,v 1.72 2002/12/20 07:49:58 jaw Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -250,7 +250,7 @@ findFunctionFromAddress( process* proc, Address addr )
 // for the VC++ compiler to turn this optimization off.)
 //
 
-bool process::walkStackFromFrame(Frame currentFrame, vector<Frame> &stackWalk)
+bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
 {
 #ifndef BPATCH_LIBRARY
     startTimingStackwalk();
@@ -452,7 +452,7 @@ bool process::walkStackFromFrame(Frame currentFrame, vector<Frame> &stackWalk)
 //ccw 6 feb 2001 : windows CE does not have the NT walkStack function
 //so we use this one.
 
-bool process::walkStackFromFrame(Frame currentFrame, vector<Frame> &stackWalk)
+bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
 {
     if (status_ == running) {
         cerr << "Error: stackwalk attempeded on running process" << endl;
@@ -1391,7 +1391,7 @@ int process::waitProcs(int *status) {
 
 #ifndef mips_unknown_ce2_11 //ccw 6 feb 2001 : 29 mar 2001
 	  // Should walk stacks for other threads as well
-	  vector<vector<Frame> > stackWalks;
+	  pdvector<pdvector<Frame> > stackWalks;
       p->walkStacks(stackWalks);
       for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
           for( unsigned i = 0; i < stackWalks[walk_iter].size(); i++ )
@@ -1543,7 +1543,7 @@ int process::waitProcs(int *status) {
 	    assert(p->dyn);
 	    p->dyn->sharedObjects.push_back(so);
 	    if (!p->shared_objects) {
-	      p->shared_objects = new vector<shared_object *>;
+	      p->shared_objects = new pdvector<shared_object *>;
 	    }
 	    (*(p->shared_objects)).push_back(so);
 #ifndef BPATCH_LIBRARY
@@ -2184,8 +2184,8 @@ void initSymbols(HANDLE procH, const string file, const string dir) {
  *   procHandle: handle for new process (needed by WindowsNT)
  *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
-bool forkNewProcess(string &file, string dir, vector<string> argv, 
-		    vector<string>envp, string inputFile, string outputFile,
+bool forkNewProcess(string &file, string dir, pdvector<string> argv, 
+		    pdvector<string>envp, string inputFile, string outputFile,
 		    int &traceLink,  
 		    int &pid, int &tid, 
 		    int &procHandle, int &thrHandle, int /* stdin_fd */, 
@@ -2472,7 +2472,7 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
 
 #include "inst-mips.h"
 //this comes from irix.C
-bool process::heapIsOk(const vector<sym_data>&findUs)
+bool process::heapIsOk(const pdvector<sym_data>&findUs)
 { 
 	
   //ccw 12 oct 2000 NEED TO FIND WinMain here or _WinMain then try to find main or _main
@@ -2533,7 +2533,7 @@ void process::initCpuTimeMgrPlt() {
 }
 #endif
 
-bool getLWPIDs(vector <unsigned> &LWPids)
+bool getLWPIDs(pdvector <unsigned> &LWPids)
 {
   assert (0 && "Not implemented");
   return false;

@@ -46,7 +46,7 @@
 // is 1 abstraction; hence, this class maintains a set of
 // abstractions.
 
-/* $Id: abstractions.h,v 1.18 2001/02/19 15:36:48 wxd Exp $ */
+/* $Id: abstractions.h,v 1.19 2002/12/20 07:50:04 jaw Exp $ */
 
 #ifndef _ABSTRACTIONS_H_
 #define _ABSTRACTIONS_H_
@@ -77,12 +77,12 @@ class abstractions {
       // reset the scrollbars, the navigate menu, and the text in the find box.
       float horizSBfirst, horizSBlast;
       float vertSBfirst, vertSBlast;
-      // vector<string> navigateMenuItems; [not needed; each whereAxis has
+      // pdvector<string> navigateMenuItems; [not needed; each whereAxis has
       //                                    its own 'path'; just rethinkNavigateMenu()]
       string findString;
    };
 
-   vector<whereAxisStruct> theAbstractions;
+   pdvector<whereAxisStruct> theAbstractions;
    unsigned currAbstractionIndex; // an index into the above array
 
    Tcl_Interp *interp;
@@ -154,8 +154,8 @@ class abstractions {
    void drawCurrent(bool doubleBuffer, bool xsynchOn);
       // checks batch mode; if true, rethinks before the redraw
 
-   vector< vector<resourceHandle> > getCurrAbstractionSelections(bool &wholeProgram, vector<unsigned> &wholeProgramFocus) const {
-      // returns a vector[num-hierarchies] of vector of selections.
+   pdvector< pdvector<resourceHandle> > getCurrAbstractionSelections(bool &wholeProgram, pdvector<unsigned> &wholeProgramFocus) const {
+      // returns a pdvector[num-hierarchies] of vector of selections.
       // The number of hierarchies is defined as the number of children of the
       // root node.
       return getCurrent().getSelections(wholeProgram, wholeProgramFocus);

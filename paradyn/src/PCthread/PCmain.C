@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: PCmain.C,v 1.73 2002/11/25 23:52:27 schendel Exp $ */
+/* $Id: PCmain.C,v 1.74 2002/12/20 07:50:02 jaw Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -132,7 +132,7 @@ void PCinitialActualValue(perfStreamHandle, metricInstanceHandle mih,
 void PCpredData(u_int tok, float f){
   costServer::newPredictedCostData(tok, f);			 
 }
-void PCenableDataCallback(vector<metricInstInfo> *bunchostuff,  u_int phaseID)
+void PCenableDataCallback(pdvector<metricInstInfo> *bunchostuff,  u_int phaseID)
 {
 #ifdef PCDEBUG  
   cout << "PCenableDataCallback: phase" << phaseID << " ";
@@ -150,7 +150,7 @@ void PCenableDataCallback(vector<metricInstInfo> *bunchostuff,  u_int phaseID)
 //
 // all new data arrives at the PC thread via this upcall
 //
-void PCnewDataCallback(vector<dataValueType> *values,
+void PCnewDataCallback(pdvector<dataValueType> *values,
 		       u_int num_values) 
 {
 #ifdef MYPCDEBUG

@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.3 2002/10/21 22:42:37 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.4 2002/12/20 07:49:56 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -110,7 +110,7 @@ dyn_lwp::~dyn_lwp()
 // multithreaded programs
 
 // stackWalk: return parameter.
-bool dyn_lwp::walkStack(vector<Frame> &stackWalk)
+bool dyn_lwp::walkStack(pdvector<Frame> &stackWalk)
 {
   // We cheat (a bit): this method is here for transparency, 
   // but the process class does the work in the walkStackFromFrame

@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.82 2002/08/24 20:40:09 schendel Exp $
+// $Id: rpcUtil.C,v 1.83 2002/12/20 07:50:08 jaw Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -63,7 +63,7 @@
 const char *DEF_RSH_COMMAND="rsh";
 const char *RSH_COMMAND_ENV="PARADYN_RSH";
 
-vector<RPCSockCallbackFunc>    rpcSockCallback;
+pdvector<RPCSockCallbackFunc>    rpcSockCallback;
 
 //---------------------------------------------------------------------------
 // prototypes of utility functions used in this file
@@ -100,10 +100,10 @@ int RPCdefaultXDRRead(const void* handle, char *buf, const u_int len)
 
 // one counter per file descriptor to record the sequnce no the message
 // to be received
-vector<int> counter_2;
+pdvector<int> counter_2;
 
 // One partial message record for each file descriptor
-vector<rpcBuffer *> partialMsgs;
+pdvector<rpcBuffer *> partialMsgs;
 
 int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
 {
@@ -257,7 +257,7 @@ int RPCdefaultXDRWrite(const void* handle, const char *buf, const u_int len)
       return (ret);
 }
 
-vector<rpcBuffer *> rpcBuffers;
+pdvector<rpcBuffer *> rpcBuffers;
 static short counter = 0;
 
 int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
@@ -448,7 +448,7 @@ XDRrpc::XDRrpc(const string &machine,
 	       const string &remote_shell,
 	       xdr_rd_func readRoutine,
 	       xdr_wr_func writeRoutine,
-	       const vector<string> &arg_list,
+	       const pdvector<string> &arg_list,
 	       const int nblock,
 	       PDSOCKET wellKnownSocket) : xdrs(NULL), sock(INVALID_PDSOCKET) {
     sock = RPCprocessCreate(machine, user, program, remote_shell, arg_list, wellKnownSocket);
@@ -505,7 +505,7 @@ RPC_readReady (PDSOCKET sock, int timeout)
  * AND, the command name will have to be inserted at the head of the list
  * But, a NULL space will NOT be left at the head of the list
  */
-bool RPC_make_arg_list(vector<string> &list,
+bool RPC_make_arg_list(pdvector<string> &list,
 		       const int well_known_socket,
 #if !defined(i386_unknown_nt4_0)
 		       const int termWin_port,
@@ -674,7 +674,7 @@ XDRrpc::XDRrpc(int family,
 //
 
 PDSOCKET
-execCmd(const string command, const vector<string> &arg_list)
+execCmd(const string command, const pdvector<string> &arg_list)
 {
   PDSOCKET ret;
   PDSOCKET sv[2];
@@ -807,7 +807,7 @@ execCmd(const string command, const vector<string> &arg_list)
 // Parse an input string into space-delimited substrings, and add each as a
 // separate string the given vector
 
-void appendParsedString( vector< string > &strList, const string &str )
+void appendParsedString( pdvector< string > &strList, const string &str )
 {
   unsigned i, j, l = str.length();
 
@@ -822,7 +822,7 @@ void appendParsedString( vector< string > &strList, const string &str )
 
 // Output a list of strings with spaces between them
 
-void printStringList( vector< string > &strList, ostream &strout )
+void printStringList( pdvector< string > &strList, ostream &strout )
 {
   unsigned i, l = strList.size();
 
@@ -837,7 +837,7 @@ void printStringList( vector< string > &strList, ostream &strout )
 
 PDSOCKET remoteCommand(const string hostName, const string userName,
 		       const string command, const string remoteExecCmd,
-		       const vector<string> &arg_list, int portFd)
+		       const pdvector<string> &arg_list, int portFd)
 {
     PDSOCKET ret = INVALID_PDSOCKET;
     unsigned i;
@@ -845,8 +845,8 @@ PDSOCKET remoteCommand(const string hostName, const string userName,
 
     // build the command line of the remote execution command we will execute
     // note that it must support the "-l" flag to specify a username, like rsh
-    vector<string> remoteExecArgList;
-    vector<string> tmp;
+    pdvector<string> remoteExecArgList;
+    pdvector<string> tmp;
     string rsh;
 
     // first extract any arguments specified with the remote execution command
@@ -904,7 +904,7 @@ const char *getRshCommand() {
 // daemons.
 
 PDSOCKET rshCommand(const string hostName, const string userName, 
-		    const string command, const vector<string> &arg_list, int portFd)
+		    const string command, const pdvector<string> &arg_list, int portFd)
 {
   // ensure we know the user's desired rsh command
   const char* rshCmd = getRshCommand();
@@ -920,7 +920,7 @@ PDSOCKET rshCommand(const string hostName, const string userName,
 
 PDSOCKET RPCprocessCreate(const string hostName, const string userName,
 			  const string command, const string remote_shell,
-			  const vector<string> &arg_list,
+			  const pdvector<string> &arg_list,
 			  int portFd)
 {
     PDSOCKET ret;
@@ -977,7 +977,7 @@ PDSOCKET RPC_getConnect(PDSOCKET sock) {
  *  returns --> words (separated by blanks on command line)
  *  Note --> this allocates memory 
  */
-bool RPCgetArg(vector<string> &arg, const char *input)
+bool RPCgetArg(pdvector<string> &arg, const char *input)
 {
 #define BLANK ' '
 

@@ -349,7 +349,7 @@ bool papiMgr::inferiorPapiAddEvent(int eventCode)
 
   // build AstNode for "DYNINSTpapi_add_event" call
   string callee = "DYNINSTpapi_add_event";
-  vector<AstNode*> args(1);
+  pdvector<AstNode*> args(1);
   args[0] = new AstNode(AstNode::Constant, (void *)eventCode);
   AstNode *code = new AstNode(callee, args);
   removeAst(args[0]);
@@ -398,7 +398,7 @@ bool papiMgr::inferiorPapiRemoveEvent(int eventCode)
 
   // build AstNode for "DYNINSTpapi_remove_event" call
   string callee = "DYNINSTpapi_remove_event";
-  vector<AstNode*> args(1);
+  pdvector<AstNode*> args(1);
   args[0] = new AstNode(AstNode::Constant, (void *)eventCode);
   AstNode *code = new AstNode(callee, args);
   removeAst(args[0]);
@@ -448,7 +448,7 @@ bool papiMgr::inferiorPapiStart()
 
   // build AstNode for "DYNINSTpapi_start" call
   string callee = "DYNINSTpapi_start";
-  vector<AstNode*> args(1);
+  pdvector<AstNode*> args(1);
   AstNode *code = new AstNode(callee, args);
 
   // issue RPC and wait for result
@@ -496,7 +496,7 @@ bool papiMgr::inferiorPapiStop()
 
   // build AstNode for "DYNINSTpapi_start" call
   string callee = "DYNINSTpapi_stop";
-  vector<AstNode*> args(1);
+  pdvector<AstNode*> args(1);
   AstNode *code = new AstNode(callee, args);
 
   // issue RPC and wait for result

@@ -85,7 +85,7 @@ class dynamic_linking {
   /* getSharedObjects(): called before main() to process all
      currently loaded shared objects; also sets hooks for future
      calls to dlopen() and dlclose() */
-  vector<shared_object *> *getSharedObjects(process *);
+  pdvector<shared_object *> *getSharedObjects(process *);
 
   /* isDynamic(): returns true if the executable is dynamically linked */
   bool isDynamic();
@@ -94,7 +94,7 @@ class dynamic_linking {
      shared object event (i.e. dlopen() or dlclose()), returns true
      and handles event */
   bool handleIfDueToSharedObjectMapping(process *, 
-					vector<shared_object *> **,
+					pdvector<shared_object *> **,
 					u_int &, bool &);
 
   void unsetMappingHooks(process *p);
@@ -102,14 +102,14 @@ class dynamic_linking {
   Address get_dlopen_addr() const;
 
  private:
-  vector<pdElfObjInfo *> getRldMap(process *p);
+  pdvector<pdElfObjInfo *> getRldMap(process *p);
   bool setMappingHooks(process *p, pdElfObjInfo *libc_obj);
   
   bool dynlinked;
   Address dlopen_addr;
   Address r_brk_addr;
-  vector<pdDsoEvent *> dso_events;
-  vector<pdElfObjInfo *> rld_map;
+  pdvector<pdDsoEvent *> dso_events;
+  pdvector<pdElfObjInfo *> rld_map;
 };
 
 // ABI-generic wrapper class for "ElfXX_Obj_Info"
@@ -162,7 +162,7 @@ class pdElfSym {
 class pdElfSymVector {
  private:
 
-  vector<pdElfSym *> elf_syms_;
+  pdvector<pdElfSym *> elf_syms_;
 
  public:
 

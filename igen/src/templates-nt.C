@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templates-nt.C,v 1.4 2002/07/03 23:13:46 schendel Exp $
+ * $Id: templates-nt.C,v 1.5 2002/12/20 07:50:00 jaw Exp $
  */
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
@@ -59,13 +59,13 @@
 #include "message_layer.h"
 #include "Options.h"
 
-template class vector<arg *>;
-template class vector<unsigned>;
-template class vector<type_defn *>;
-template class vector<message_layer *>;
-template class vector<Options::stl_data>;
-template class vector<Options::el_data>;
+template class pdvector<arg *>;
+template class pdvector<unsigned>;
+template class pdvector<type_defn *>;
+template class pdvector<message_layer *>;
+template class pdvector<Options::stl_data>;
+template class pdvector<Options::el_data>;
 template class dictionary_hash<string, type_defn *>;
 template class dictionary_hash<string, remote_func *>;
-template class vector<dictionary_hash<string, type_defn *>::entry>;
-template class vector<dictionary_hash<string, remote_func *>::entry>;
+template class pdvector<dictionary_hash<string, type_defn *>::entry>;
+template class pdvector<dictionary_hash<string, remote_func *>::entry>;

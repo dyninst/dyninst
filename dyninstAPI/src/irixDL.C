@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.14 2002/12/14 16:37:32 schendel Exp $
+// $Id: irixDL.C,v 1.15 2002/12/20 07:49:57 jaw Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -248,10 +248,10 @@ static bool is_libc(const string &dso_name)
   return false;
 }
 
-vector<pdElfObjInfo *>dynamic_linking::getRldMap(process *p)
+pdvector<pdElfObjInfo *>dynamic_linking::getRldMap(process *p)
 {
   //fprintf(stderr, ">>> dynamic_linking::getRldMap()\n");
-  vector<pdElfObjInfo *> ret;
+  pdvector<pdElfObjInfo *> ret;
   
   // ELF class: 32/64-bit
   bool is_elf64 = p->getImage()->getObject().is_elf64();
@@ -363,10 +363,10 @@ void dynamic_linking::unsetMappingHooks(process *)
    establish hooks for future (un)mapping events */
 // dlopen() events trigger addASharedObject()
 // dlclose() events trigger removeASharedObject()
-vector<shared_object *> *dynamic_linking::getSharedObjects(process *p)
+pdvector<shared_object *> *dynamic_linking::getSharedObjects(process *p)
 {
   //fprintf(stderr, ">>> getSharedObjects()\n");
-  vector<shared_object *> *ret = new vector<shared_object *>;
+  pdvector<shared_object *> *ret = new pdvector<shared_object *>;
 
   // local copy of runtime linker map
   rld_map = getRldMap(p);
@@ -489,7 +489,7 @@ bool process::dlopenDYNINSTlib()
   // step 2: inferior dlopen() call (code)
   Address codeAddr = baseAddr + bufSize;
   registerSpace *regs = new registerSpace(nDead, Dead, 0, (Register *)0);
-  vector<AstNode*> args(2);
+  pdvector<AstNode*> args(2);
   int dlopen_mode = RTLD_NOW | RTLD_GLOBAL;
   AstNode *call;
   string callee = "dlopen";
@@ -568,7 +568,7 @@ char *dso2str(pdDsoEventType t)
 }
 
 bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p, 
-				vector<shared_object *> **changed_objs,
+				pdvector<shared_object *> **changed_objs,
 				u_int &change_type, 
 				bool &error)
 {
@@ -608,7 +608,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
     }
     
     // current snapshot of rld map
-    vector<pdElfObjInfo *> new_map = getRldMap(p);
+    pdvector<pdElfObjInfo *> new_map = getRldMap(p);
     unsigned old_size = rld_map.size();
     unsigned new_size = new_map.size();
 
@@ -618,7 +618,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
       // dlopen(): check for inserted objects
       assert(new_size >= old_size);
       if (new_size > old_size) {
-	(*changed_objs) = new vector<shared_object *>;
+	(*changed_objs) = new pdvector<shared_object *>;
 	change_type = SHAREDOBJECT_ADDED;
 	
 	// add inserted objects
@@ -637,12 +637,12 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
       // dlclose(): check for deleted objects      
       assert(old_size >= new_size);
       if (new_size < old_size) {
-	(*changed_objs) = new vector<shared_object *>;
+	(*changed_objs) = new pdvector<shared_object *>;
 	change_type = SHAREDOBJECT_REMOVED;
 	
 	// construct list of deleted objects
 	// (assumes no new objects inserted)
-	vector<unsigned> deleted;
+	pdvector<unsigned> deleted;
 	unsigned j = 0; // index for new rld map
 	for (unsigned i = 0; i < old_size; i++) {
 	  if (j == new_size || ((*rld_map[i]) != (*new_map[j]))) 
@@ -655,7 +655,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
 	assert(j == new_size);
 	
 	// identify deleted shared_object's
-	const vector<shared_object *> &sobjs = *p->sharedObjects();
+	const pdvector<shared_object *> &sobjs = *p->sharedObjects();
 	for (unsigned i = 0; i < deleted.size(); i++) {
 	  pdElfObjInfo *eobj = rld_map[deleted[i]];
 	  // lookup shared_object by base address

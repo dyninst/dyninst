@@ -46,7 +46,7 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.h,v 1.3 2001/11/07 05:03:26 darnold Exp $
+// $Id: HistVisi.h,v 1.4 2002/12/20 07:50:09 jaw Exp $
 //---------------------------------------------------------------------------
 #ifndef HISTVISI_H
 #define HISTVISI_H
@@ -92,7 +92,7 @@ private:
 
     Tcl_Interp* interp;    
     bool visiLibInitialized;                  // is visi library initialized?
-    vector<MetricResourcePair*> mrpairs;      // active metric-resource pairs
+    pdvector<MetricResourcePair*> mrpairs;      // active metric-resource pairs
     PDGraph* graph;                           // custom graph object
     DGClient* dg;                             // object providing access to
                                               // visi library from Tcl code

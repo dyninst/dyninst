@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.72 2002/12/14 16:37:38 schendel Exp $
+// $Id: inst.h,v 1.73 2002/12/20 07:49:57 jaw Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -74,7 +74,7 @@ typedef enum { orderFirstAtPoint, orderLastAtPoint } callOrder;
 
 extern bool deleteInst(process *proc, const miniTrampHandle &mtHandle);
 
-extern vector<Address> getTrampAddressesAtPoint(process *proc, 
+extern pdvector<Address> getTrampAddressesAtPoint(process *proc, 
 						const instPoint *loc,
 						callWhen when);
 
@@ -111,10 +111,10 @@ void hookupMiniTramp(process *proc, const miniTrampHandle &mtHande,
 /* Utility functions */
 
 void getAllInstInstancesForProcess(const process *,
-				   vector<instInstance*> &);
+				   pdvector<instInstance*> &);
 
 void getMiniTrampsAtPoint(process *proc, instPoint *loc, callWhen when,
-			  vector<miniTrampHandle> *mt_buf);
+			  pdvector<miniTrampHandle> *mt_buf);
 
 bool getInheritedMiniTramp(const miniTrampHandle *parentMT, 
 			   miniTrampHandle *childMT, process *childProc);
@@ -165,7 +165,7 @@ public:
   }
 
   instMapping(const string f, const string i, const int w, 
-	      vector<AstNode*> &aList) : func(f), inst(i), where(w),
+	      pdvector<AstNode*> &aList) : func(f), inst(i), where(w),
 	      when(callPreInsn), order(orderLastAtPoint), useTrampGuard(true) {
     for(unsigned u=0; u < aList.size(); u++) {
       if(aList[u]) args.push_back(assignAst(aList[u]));
@@ -189,7 +189,7 @@ public:
   int where;                   /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
   callWhen when;               /* callPreInsn, callPostInsn */
   callOrder order;             /* orderFirstAtPoint, orderLastAtPoint */
-  vector<AstNode *> args;      /* what to pass as arg0 ... n */
+  pdvector<AstNode *> args;      /* what to pass as arg0 ... n */
   bool useTrampGuard;
   // AstNode *arg;            /* what to pass as arg0 */
 };
@@ -256,10 +256,10 @@ void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 
 // VG(11/06/01): moved here and added location
 Register emitFuncCall(opCode op, registerSpace *rs, char *i, Address &base, 
-		      const vector<AstNode *> &operands, const string &func,
+		      const pdvector<AstNode *> &operands, const string &func,
 		      process *proc, bool noCost, 
 		      const function_base *funcbase,
-		      const vector<AstNode *> &ifForks, // control-flow path
+		      const pdvector<AstNode *> &ifForks, // control-flow path
 		      const instPoint *location = NULL);
 
 int getInsnCost(opCode t);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.39 2002/05/13 19:52:58 mjbrim Exp $ 
+// $Id: DMmetric.h,v 1.40 2002/12/20 07:50:01 jaw Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -109,7 +109,7 @@ class metric {
     friend class metricInstance;
     friend class paradynDaemon;
     friend void addMetric(T_dyninstRPC::metricInfo &info);
-    friend void DMenableResponse(DM_enableType&,vector<bool>&);
+    friend void DMenableResponse(DM_enableType&,pdvector<bool>&);
     public:
 	metric(T_dyninstRPC::metricInfo i); 
 	const T_dyninstRPC::metricInfo *getInfo() { return(&info); }
@@ -127,14 +127,14 @@ class metric {
 	static const T_dyninstRPC::metricInfo  *getInfo(metricHandle handle);
 	static const char *getName(metricHandle handle);
         static const metricHandle  *find(const string name); 
-	static vector<string> *allMetricNames(bool all);
-	static vector<met_name_id> *allMetricNamesIds(bool all);
+	static pdvector<string> *allMetricNames(bool all);
+	static pdvector<met_name_id> *allMetricNamesIds(bool all);
 	bool isDeveloperMode() { return info.developerMode; }
         static metric  *getMetric(metricHandle iName); 
 
     private:
 	static dictionary_hash<string, metric*> allMetrics;
-	static vector<metric*> metrics;  // indexed by metric id
+	static pdvector<metric*> metrics;  // indexed by metric id
 	T_dyninstRPC::metricInfo info;
 };
 
@@ -162,9 +162,9 @@ class metricInstance {
     friend class dataManager;
     friend class metric;
     friend class paradynDaemon;
-    friend void DMdoEnableData(perfStreamHandle,perfStreamHandle,vector<metricRLType> *,
+    friend void DMdoEnableData(perfStreamHandle,perfStreamHandle,pdvector<metricRLType> *,
 			       u_int,phaseType,phaseHandle,u_int,u_int,u_int);
-    friend void DMenableResponse(DM_enableType&,vector<bool>&);
+    friend void DMenableResponse(DM_enableType&,pdvector<bool>&);
     friend void DMdisableRoutine(perfStreamHandle,perfStreamHandle,
 				metricInstanceHandle, phaseType);
     // trace data streams
@@ -200,7 +200,7 @@ class metricInstance {
 	resourceListHandle getFocusHandle(){ return(focus); }
 	const char *getMetricName(){ return(metric::getName(met));}
 	const char *getFocusName(){return(resourceList::getName(focus));}
-	bool convertToIDList(vector<u_int> &rl){
+	bool convertToIDList(pdvector<u_int> &rl){
 	    return resourceList::convertToIDList(focus,rl);
         }
 	void addInterval(relTimeStamp s, relTimeStamp e, pdSample v){
@@ -309,14 +309,14 @@ class metricInstance {
 	// from aggSample.
 	// When all components have a value, aggSample will return an aggregated
 	// sample, that is bucketed by a histogram.
-	vector<component *> components; 
+	pdvector<component *> components; 
 	sampleAggregator aggregator;
 
-	vector<perfStreamEntry> users;  // subscribers to curr. phase data
+	pdvector<perfStreamEntry> users;  // subscribers to curr. phase data
 	Histogram *data;		 // data corr. to curr. phase
-	vector<perfStreamEntry> global_users;  // subscribers to global data
+	pdvector<perfStreamEntry> global_users;  // subscribers to global data
 	Histogram *global_data;	    // data corr. to global phase
-        vector<ArchiveType *> old_data;  // histograms of data from old phases 
+        pdvector<ArchiveType *> old_data;  // histograms of data from old phases 
         
 	// if set, archive old data on disable and on new phase definition
 	bool persistent_data;  
@@ -344,11 +344,11 @@ class metricInstance {
 	static u_int num_global_hists; // num of global phase active histograms 
         
         // trace data streams
-        vector<perfStreamHandle> trace_users;  // subscribers to trace data
+        pdvector<perfStreamHandle> trace_users;  // subscribers to trace data
         dataCallBack2 traceFunc;
 	
 	static metricInstance *find(metricHandle, resourceListHandle);
-        static vector<metricInstance*> *query(metric_focus_pair); 
+        static pdvector<metricInstance*> *query(metric_focus_pair); 
 	void flushPerfStreams();
         void newCurrDataCollection(dataCallBack, foldCallBack);
         void newGlobalDataCollection(dataCallBack, foldCallBack);

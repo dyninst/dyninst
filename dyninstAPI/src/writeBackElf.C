@@ -1,4 +1,4 @@
-/* $Id: writeBackElf.C,v 1.11 2002/07/01 18:50:43 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.12 2002/12/20 07:49:59 jaw Exp $ */
 
 #if defined(BPATCH_LIBRARY) 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
@@ -482,7 +482,7 @@ void writeBackElf::fixPhdrs(int oldPhdrs){
 }
 
 
-void writeBackElf::compactLoadableSections(vector <imageUpdate*> imagePatches, vector<imageUpdate*> &newPatches){
+void writeBackElf::compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches){
 	int startPage, stopPage;
 	imageUpdate *patch;
 	//this function now returns only ONE section that is loadable.
@@ -640,7 +640,7 @@ void writeBackElf::compactLoadableSections(vector <imageUpdate*> imagePatches, v
 	
 }
 
-void writeBackElf::compactSections(vector <imageUpdate*> imagePatches, vector<imageUpdate*> &newPatches){
+void writeBackElf::compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches){
 
 	int startPage, stopPage;
 	imageUpdate *patch;
@@ -807,7 +807,7 @@ void writeBackElf::compactSections(vector <imageUpdate*> imagePatches, vector<im
 	
 }
 
-void writeBackElf::alignHighMem(vector<imageUpdate*> imagePatches){
+void writeBackElf::alignHighMem(pdvector<imageUpdate*> imagePatches){
 	unsigned int currPage;
 	unsigned int sizeDiff;
 

@@ -240,7 +240,7 @@ void threadMetFocusNode_Val::recordAsParent(processMetFocusNode *procNode,
 }
 
 void threadMetFocusNode_Val::removeParent(processMetFocusNode *procNode) {
-   vector< parentDataRec<processMetFocusNode> >::iterator parentItr = 
+   pdvector< parentDataRec<processMetFocusNode> >::iterator parentItr = 
       parentsBuf.end();
    while(parentItr != parentsBuf.begin()) {
       parentItr--;

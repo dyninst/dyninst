@@ -62,11 +62,11 @@ public:
   // process all shared objects that have been mapped into the process's
   // address space
   
-  vector< shared_object *> *getSharedObjects(process *);
+  pdvector< shared_object *> *getSharedObjects(process *);
   
   // handleIfDueToSharedObjectMapping: returns true if the trap was caused
   // by a change to the link maps  
-  bool handleIfDueToSharedObjectMapping(process *, vector<shared_object *> **,
+  bool handleIfDueToSharedObjectMapping(process *, pdvector<shared_object *> **,
 					u_int &, bool &);
   
   

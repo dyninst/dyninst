@@ -151,7 +151,7 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
 
     if (BPfuncs == NULL) return NULL;
 
-    vector<function_base *> *funcs = mod->getFunctions();
+    pdvector<function_base *> *funcs = mod->getFunctions();
 
     for (unsigned int f = 0; f < funcs->size(); f++)
 	BPfuncs->push_back(
@@ -1049,7 +1049,7 @@ bool BPatch_module::getLineToAddr(unsigned short lineNo,
 bool BPatch_module::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
     BPatch_variableExpr *var;
-    vector<string> keys = moduleTypes->globalVarsByName.keys();
+    pdvector<string> keys = moduleTypes->globalVarsByName.keys();
     int limit = keys.size();
     for (int j = 0; j < limit; j++) {
 	string name = keys[j];

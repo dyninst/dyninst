@@ -104,10 +104,10 @@ void varInstance<HK>::markVarAsSampled(unsigned thrPos,
 }
 
 template <class HK>
-bool varInstance<HK>::removeFromSamplingSet(vector<unsigned> *set, 
+bool varInstance<HK>::removeFromSamplingSet(pdvector<unsigned> *set, 
 					    unsigned thrPosToRemove) {
   bool foundIt = false;
-  vector<unsigned>::iterator itr = (*set).end();
+  pdvector<unsigned>::iterator itr = (*set).end();
   while(itr != (*set).begin()) {
      --itr;
      if(*itr == thrPosToRemove) {
@@ -140,7 +140,7 @@ template <class HK>
 bool varInstance<HK>::doMinorSample() {
   if(elementsToBeSampled == false)  return true;
 
-  vector<unsigned>::iterator itr = currentSamplingSet.end();
+  pdvector<unsigned>::iterator itr = currentSamplingSet.end();
   while(itr != currentSamplingSet.begin()) {
      --itr;
      // check that we don't run past the vector when iterating through it,

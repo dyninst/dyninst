@@ -48,18 +48,18 @@
 
 class odometer {
  private:
-   vector<unsigned> digitRanges;
+   pdvector<unsigned> digitRanges;
       // the number of elements in digit index <n> is digitRanges[n];
       // the values that digit index <n> can take on are from 0
       // to (digitRanges[n]-1), inclusive.
 
-   vector<unsigned> currValue;
+   pdvector<unsigned> currValue;
    // note: for both of the above arrays, index 0 represents the _least_
    //       significant digit in the odometer; index <maxindex-1> represents
    //       the _most_ significant digit in the odometer.
 
  public:
-   odometer(vector<unsigned> &iDigitRanges);
+   odometer(pdvector<unsigned> &iDigitRanges);
    odometer(const odometer &) {}
   ~odometer() {}
 

@@ -40,18 +40,18 @@ string *test::stringString(string *s) { return(s); }
 
 int test::add(const int a, const int b) { return(a+b); }
 
-int test::sumVector(vector<int> *nums) {
+int test::sumVector(pdvector<int> *nums) {
   int i, total;
   for (i=0, total=0; i < nums->size(); i++)
     total += (*nums)[i];
   return(total);
 }
 
-vector<int> *test::retVector(int num, int start) {
+pdvector<int> *test::retVector(int num, int start) {
   int i;
-  vector<int> *retVal;
+  pdvector<int> *retVal;
 
-  retVal = new vector<int>;
+  retVal = new pdvector<int>;
   for (i=0; i < num; i++)
     (*retVal)[i] = start+i;
 

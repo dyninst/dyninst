@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCwhy.h,v 1.16 2002/05/13 19:53:15 mjbrim Exp $
+// $Id: PCwhy.h,v 1.17 2002/12/20 07:50:03 jaw Exp $
 // The hypothesis class and the why axis.
 
 #ifndef pc_why_h
@@ -67,8 +67,8 @@ class hypothesis {
 	      compOperator compareOp,
 	      expandPolicy exPol,
 	      explanationFunction explanation, bool *success,
-	      vector<string*> *plums,
-	      vector<string*> *suppressions); 
+	      pdvector<string*> *plums,
+	      pdvector<string*> *suppressions); 
   hypothesis (const char *hypothesisName,
 	      explanationFunction explanation, 
 	      bool *success); 
@@ -77,7 +77,7 @@ class hypothesis {
   PCmetric *getPcMet(bool altFlag);
   expandPolicy getExpandPolicy() {return exType;}
   void addChild (hypothesis *child) {kids += child;}
-  vector<hypothesis*> *expand();
+  pdvector<hypothesis*> *expand();
   bool isVirtual() {return (pcMet == NULL);}
   bool isPruned(resourceHandle);
   bool isSuppressed(resourceHandle);
@@ -92,9 +92,9 @@ class hypothesis {
   thresholdFunction getThreshold;
   compOperator compOp;
   expandPolicy exType;
-  vector <hypothesis*> kids;
-  vector<resourceHandle> pruneList;
-  vector<resourceHandle> suppressList;
+  pdvector <hypothesis*> kids;
+  pdvector<resourceHandle> pruneList;
+  pdvector<resourceHandle> suppressList;
 };
 
 class whyAxis {
@@ -110,8 +110,8 @@ class whyAxis {
 		     compOperator compareOp,
 		     expandPolicy expandPol,
 		     explanationFunction explanation,
-		     vector<string*> *plumList,
-		     vector<string*> *suppressions); 
+		     pdvector<string*> *plumList,
+		     pdvector<string*> *suppressions); 
   bool addHypothesis(const char *hypothesisName,
 		     const char *parentName,
 		     explanationFunction explanation); 

@@ -44,7 +44,7 @@
 // of the new where axis user interface
 // Ariel Tamches
 
-/* $Id: shg.h,v 1.26 2002/08/02 21:00:32 pcroth Exp $ */
+/* $Id: shg.h,v 1.27 2002/12/20 07:50:05 jaw Exp $ */
 
 #ifndef _SHG_H_
 #define _SHG_H_
@@ -72,9 +72,9 @@ class shg {
    static Tk_Font theRootItemFontStruct, theRootItemShadowFontStruct;
    static Tk_Font theListboxItemFontStruct, theListboxItemShadowFontStruct;
 
-   static vector<Tk_3DBorder> rootItemTk3DBordersByStyle;
+   static pdvector<Tk_3DBorder> rootItemTk3DBordersByStyle;
       // array[shgRootNode::evaluationState]
-   static vector<Tk_3DBorder> listboxItemTk3DBordersByStyle;
+   static pdvector<Tk_3DBorder> listboxItemTk3DBordersByStyle;
       // array[shgRootNode::evaluationState]
    static GC rootItemInactiveTextGC, rootItemActiveTextGC,
              rootItemInactiveShadowTextGC, rootItemActiveShadowTextGC;
@@ -115,7 +115,7 @@ class shg {
       // associative array: shg-node-id --> its corresponding data node
    dictionary_hash<where4tree<shgRootNode> *, where4tree<shgRootNode> *> hash2;
       // associative array: shg-node --> its parent
-   dictionary_hash<unsigned, vector< where4tree<shgRootNode>* > > shadowNodeHash;
+   dictionary_hash<unsigned, pdvector< where4tree<shgRootNode>* > > shadowNodeHash;
       // associative array: shg-node-id --> list of shadow nodes
       // An entry exists in this dictionary _only_ if shadow node(s) exist
 

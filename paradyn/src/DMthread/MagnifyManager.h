@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: MagnifyManager.h,v 1.2 1999/06/04 16:05:40 cain Exp $
+// $Id: MagnifyManager.h,v 1.3 2002/12/20 07:50:02 jaw Exp $
 
 #ifndef __magnify_manager_h__
 #define __magnify_manager_h__
@@ -69,7 +69,7 @@ class MagnifyManager {
     //  and rh represents a resource in a hierarchy to which type does
     //  not apply, default to using the OriginalSearch type, which applies to
     //  all resource hierarchies....
-    static vector <resourceHandle>* getChildren(resource *rh,magnifyType type);
+    static pdvector <resourceHandle>* getChildren(resource *rh,magnifyType type);
 };
 
 

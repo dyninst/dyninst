@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.24 2002/08/12 04:21:43 schendel Exp $
+// $Id: init-aix.C,v 1.25 2002/12/20 07:50:06 jaw Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -131,7 +131,7 @@ bool initOS()
 
   // ----------------------------------------------------------------------
 
-  vector<AstNode*> argList(2);
+  pdvector<AstNode*> argList(2);
   argList[0] = &mpiNormTagArg;
   argList[1] = &mpiNormCommArg;
   initialRequestsPARADYN += new instMapping("PMPI_Send", "DYNINSTrecordTagAndGroup",
