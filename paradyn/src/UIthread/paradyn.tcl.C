@@ -40,7 +40,7 @@
  */
 
 /* paradyn.tcl.C
-   $Id: paradyn.tcl.C,v 1.84 1999/03/03 18:16:06 pcroth Exp $
+   $Id: paradyn.tcl.C,v 1.85 1999/05/19 07:51:12 karavan Exp $
    This code implements the tcl "paradyn" command.  See the README file for 
    command descriptions.
 */
@@ -811,7 +811,7 @@ int ParadynSuppressCmd (ClientData,
 		       int argc,
 		       char *argv[])
 {
-  bool suppressInst, suppressChildren;
+  bool suppressInst, suppressChildren = false;
 
   if (argc != 3) {
     printf("Usage: paradyn suppress <search|inst|searchChildren> <resource list>\n");
@@ -941,18 +941,19 @@ int ParadynSaveCmd (ClientData,
   if (argc == 4) {
     if (!strcmp(argv[1], "data")) {
       // "save data [global|phase|all] <dirname>" 
-      char *dirname = new char [strlen(argv[3])+1];
-      strcpy (dirname, argv[3]);
-      cout << "paradyn save " << dirname << " data all" << endl;
+      //char *dirname = new char [strlen(argv[3])+1];
+      //strcpy (dirname, argv[3]);
+      string dirname = string(argv[3]);
+      cout << "paradyn save " << dirname.string_of() << " data all" << endl;
       switch (argv[2][0]) {
       case 'a':
-	dataMgr->saveAllData(dirname, All);
+	dataMgr->saveAllData(dirname.string_of(), All);
 	break;
       case 'g':
-	dataMgr->saveAllData(dirname, Global);
+	dataMgr->saveAllData(dirname.string_of(), Global);
 	break;
       case 'p':
-	dataMgr->saveAllData(dirname, Phase);
+	dataMgr->saveAllData(dirname.string_of(), Phase);
 	break;
       default:
 	sprintf(interp->result, 
@@ -966,10 +967,20 @@ int ParadynSaveCmd (ClientData,
       strcpy (fname, argv[3]);
       dataMgr->saveAllResources(fname);
       return TCL_OK;
+    } else if (!strcmp(argv[1], "shg")) {
+      // "save shg [global|phase]"
+      char *fname = new char [strlen(argv[3])+1];
+      strcpy (fname, argv[3]);
+      cout << "paradyn save " << argv[2] << fname << " shg" << endl;
+      if (!strcmp(argv[2], "phase"))
+        perfConsult->saveSHG(fname, 0);   // save phase shg(s)
+      else
+        perfConsult->saveSHG(fname, 1);   // save global shg
+      return TCL_OK;
     }
   }
   sprintf(interp->result, 
-	  "USAGE: save data [global|phase|all] <dirname>\n save resources all <file>\n");
+          "USAGE: save data [global|phase|all] <dirname>\n save resources all <file>\n save shg [global|phase|all] <dirname>\n");
   return TCL_ERROR;
 }
 

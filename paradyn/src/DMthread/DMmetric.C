@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.28 1998/03/04 19:56:10 wylie Exp $
+// $Id: DMmetric.C,v 1.29 1999/05/19 07:51:49 karavan Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -237,10 +237,10 @@ metricInstance::saveAllData (ofstream& fptr, phaseType ph)
   Histogram *hdata;
   if (ph == GlobalPhase) {
     hdata = global_data;
-    width = global_bucket_width;
+    width = phaseInfo::GetLastBucketWidth();
   } else {
     hdata = data;
-    width = curr_bucket_width;
+    width = phaseInfo::GetLastBucketWidth();
   }
   if (hdata == NULL)
     // histogram not created yet for this MI

@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.66 1999/03/03 18:16:04 pcroth Exp $
+/* $Id: UIpublic.C,v 1.67 1999/05/19 07:51:13 karavan Exp $
  */
 
 #include <stdio.h>
@@ -571,4 +571,13 @@ UIM::resourcesSaved(bool succeeded)
     ui_status->message("Resource Hierarchies Saved");
   else
     ui_status->message("Resource Hierarchy Save Request Failed");
+}
+
+void 
+UIM::shgSaved (bool succeeded)
+{
+  if (succeeded)
+    ui_status->message("Search History Graph Saved");
+  else
+    ui_status->message("Search History Graph Save Request Failed");
 }
