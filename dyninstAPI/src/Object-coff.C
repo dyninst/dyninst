@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.7 2000/06/26 17:00:38 paradyn Exp $
+// $Id: Object-coff.C,v 1.8 2000/07/06 19:15:59 altinel Exp $
 
 #include "util/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -668,7 +668,7 @@ void Object::load_object(bool sharedLibrary) {
 		sym_use = false;
 	}
 
-	  // cout << index << "\t" << name << "\t" << StName(symbol.st) << "\t" << ScName(symbol.sc) << "\t" << symbol.value << "\n";
+	 // cout << index << "\t" << name << "\t" << StName(symbol.st) << "\t" << ScName(symbol.sc) << "\t" << symbol.value << "\n";
 
 	  index++;
 

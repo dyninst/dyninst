@@ -153,6 +153,10 @@ public:
   const char *getName() { return fieldname; } 
   BPatch_type *getType() { return type; }
   int getValue() { return value;}
+  BPatch_visibility getVisibility() { return vis; }
+  BPatch_dataClass getTypeDesc() { return typeDes; }
+  int getSize() { return size; }
+  int getOffset() { return offset; }
 }; 
 
 
