@@ -3,6 +3,10 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
+ * Revision 1.21  1996/02/09 20:56:11  karavan
+ * Added globalRawDataServer and currentRawDataServer to keep the new data
+ * path efficient.
+ *
  * Revision 1.20  1996/02/09 18:01:28  karavan
  * Changes to support phase-level searching
  *
@@ -83,6 +87,7 @@
 // Forward decl of classes that are passed out the interface.
 //
 class searchHistoryNode;
+class filteredDataServer;
 
 typedef struct int_Array {
   int count;
@@ -105,7 +110,7 @@ struct shg_node_info {
 
 $remote performanceConsultant {
     $base 6000;
-    $version 10;
+    $version 11;
 
     // all initialization for new search; checks first if search already
     // active for specified phase, to enforce 1 search/phase rule
@@ -139,5 +144,8 @@ $remote performanceConsultant {
     // other PC-globals
     static unsigned DMcurrentPhaseToken;
     static unsigned currentPhase;
+    // for quick handling of new data
+    static filteredDataServer *globalRawDataServer;
+    static filteredDataServer *currentRawDataServer;
     $signore    
 };
