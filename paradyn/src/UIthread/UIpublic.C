@@ -30,11 +30,14 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.18  1994/11/02 04:40:44  karavan
-/* added new interface function UIM::readStartupFile which implements
-/* the new -s commandline option to read in a tcl script after initialization
-/* but before any other UI functions.
+/* Revision 1.19  1994/11/02 23:44:12  karavan
+/* added error service call for startup script error.
 /*
+ * Revision 1.18  1994/11/02  04:40:44  karavan
+ * added new interface function UIM::readStartupFile which implements
+ * the new -s commandline option to read in a tcl script after initialization
+ * but before any other UI functions.
+ *
  * Revision 1.17  1994/11/01  05:43:39  karavan
  * changed window pathname in call to dag::createDisplay() to match
  * update to createDisplay(); minor performance and warning fixes
@@ -247,8 +250,7 @@ UIM::readStartupFile(const char *script)
   if (script != NULL) {   // script specified on paradyn command line
     sprintf (tcommand, "source \"%s\"", script);
     if (Tcl_Eval (interp, tcommand) == TCL_ERROR) {
-      //uiMgr->showError(25, "Error in specified tcl script");
-      printf ("Error in specified tcl script\n");
+      uiMgr->showError(24, "Error reading tcl startup script");
     }
   }
 }
