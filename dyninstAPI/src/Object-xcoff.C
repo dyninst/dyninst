@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.14 2001/12/10 21:17:16 chadd Exp $
+// $Id: Object-xcoff.C,v 1.15 2002/04/09 18:05:01 mjbrim Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -947,7 +947,7 @@ Object::Object(const string file, void (*err_func)(const char *))
   cerr << "In illegal constructor Object(string, addr, func)" << endl;
   text_org_ = 0;
   data_org_ = 0;
-  member_ = 0;
+  member_ = "";
   pid_ = 0;
   load_object(true);
 }
@@ -974,7 +974,7 @@ Object::Object(const string file,Address addr,void (*err_func)(const char *))
 
   text_org_ = addr;
   data_org_ = 0;
-  member_ = 0;
+  member_ = "";
   pid_ = 0;
   load_object(false);
 }
