@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.13 1994/07/12 20:04:09 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.14 1994/07/14 14:24:17 jcargill Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.13  1994/07/12 20:04:09  jcargill
+ * Revision 1.14  1994/07/14 14:24:17  jcargill
+ * Removed old call to flushPtrace -- not needed anymore
+ *
+ * Revision 1.13  1994/07/12  20:04:09  jcargill
  * Fixed tagArg; changed to instrumenting CMMDs instead of CMMPs, to
  * correctly handle optimized libraries.
  *
@@ -352,7 +355,6 @@ Boolean pauseAllProcesses()
     for (curr = processList; *curr; curr++) {
 	pauseProcess(*curr);
     }
-    flushPtrace();
     return(changed);
 }
 
