@@ -258,7 +258,7 @@ class sampleAggregator {
   // no sharing of components between sampleAggregators is allowed
   aggComponent *newComponent();
 
-  aggComponent *getComponent(int index) {
+  aggComponent *getComponent(unsigned index) {
     return componentBuf[index];
   }
     
