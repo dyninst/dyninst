@@ -1,7 +1,10 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
-# Revision 1.16  1995/09/26 20:31:08  naim
+# Revision 1.17  1995/10/05 04:16:46  karavan
+# added error handling for empty command name
+#
+# Revision 1.16  1995/09/26  20:31:08  naim
 # Eliminating error message "eval [list uimpd showError 25 $result]". The idea
 # here is to display a more precise error message if there is an error during
 # process creation
@@ -122,7 +125,6 @@ proc DefineProcess {} {
   frame $D.user -border 2
   label $D.user.lbl -text "User: " -anchor e -width 12
   entry $D.user.ent -width 50 -textvariable applicUser -relief sunken
-#  bind $D.user.ent <Tab> "focus $D.machine.ent"
   bind $D.user.ent <Return> "$B.1 invoke"
   pack $D.user -side top -expand yes -fill x
   pack $D.user.lbl $D.user.ent -side left -expand yes -fill x
@@ -130,7 +132,6 @@ proc DefineProcess {} {
   frame $D.machine -border 2
   label $D.machine.lbl -text "Machine: " -anchor e -width 12
   entry $D.machine.ent -width 50 -textvariable applicMachine -relief sunken
-#  bind $D.machine.ent <Tab> "focus $D.cmd.ent"
   bind $D.machine.ent <Return> "$B.1 invoke"
   pack $D.machine -side top -expand yes -fill x
   pack $D.machine.lbl $D.machine.ent -side left -expand yes -fill x
@@ -138,7 +139,6 @@ proc DefineProcess {} {
   frame $D.directory -border 2
   label $D.directory.lbl -text "Directory: " -anchor e -width 12
   entry $D.directory.ent -width 50 -textvariable applicDir -relief sunken
-#  bind $D.directory.ent <Tab> "focus $D.cmd.ent"
   bind $D.directory.ent <Return> "$B.1 invoke"
   pack $D.directory -side top -expand yes -fill x
   pack $D.directory.lbl $D.directory.ent -side left -expand yes -fill x
@@ -158,7 +158,6 @@ proc DefineProcess {} {
   frame $D.cmd -border 2
   label $D.cmd.lbl -text "Command: " -anchor e -width 12
   entry $D.cmd.ent -width 50 -textvariable applicCmd -relief sunken
-#  bind $D.cmd.ent <Tab> "focus $D.user.ent"
   bind $D.cmd.ent <Return> "$B.1 invoke"
   pack $D.cmd -side top -expand yes -fill x
   pack $D.cmd.lbl $D.cmd.ent -side left -expand yes -fill x
@@ -185,6 +184,11 @@ proc DefineProcess {} {
 #        failures.  the current error message is useless.
 #
 proc AcceptNewApplicDefn {user machine daemon directory cmd} {
+
+    if {[string length $cmd] == 0} {
+	puts "\a"
+	return
+    }
   set pcmd [list paradyn process]
 
   if {[string length $user] > 0} {
