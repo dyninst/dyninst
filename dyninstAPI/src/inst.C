@@ -130,18 +130,26 @@ void clearBaseBranch(process *proc, instInstance *inst)
     generateNoOp(proc, addr);
     // If there is no instrumentation at this point, skip.
     unsigned fromAddr, toAddr;
+
+    int trampCost;
     if (inst->when == callPreInsn) {
       fromAddr = (unsigned)inst->baseInstance->baseAddr
 	         + inst->baseInstance->skipPreInsOffset;
       toAddr = (unsigned)inst->baseInstance->baseAddr
-	         + inst->baseInstance->emulateInsOffset;
+	         + inst->baseInstance->updateCostOffset;
+      inst->baseInstance->prevInstru = false;
+      trampCost = -(inst->baseInstance->prevBaseCost);
     }
     else {
       fromAddr = (unsigned)inst->baseInstance->baseAddr 
 	         + inst->baseInstance->skipPostInsOffset; 
       toAddr = (unsigned)inst->baseInstance->baseAddr 
                  + inst->baseInstance->returnInsOffset;
+      inst->baseInstance->postInstru = false;
+      trampCost = -(inst->baseInstance->postBaseCost);
     }
+    inst->baseInstance->updateTrampCost(proc, trampCost);
+    
     generateBranch(proc,fromAddr,toAddr);
 #if defined(MT_DEBUG)
     sprintf(errorLine,"generating branch from address 0x%x to address 0x%x - CLEAR\n",fromAddr,toAddr);
@@ -227,7 +235,7 @@ instInstance *addInstFunc(process *proc, instPoint *location,
 
     // must do this before findAndInstallBaseTramp, puts the tramp in to
     // get the correct cost.
-    int trampCost = getPointCost(proc, location);
+    // int trampCost = getPointCost(proc, location);
 
     /* make sure the base tramp has been installed for this point */
     //ret->baseAddr = findAndInstallBaseTramp(proc, location, retInstance);
@@ -248,7 +256,13 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     ast.sysFlag(location);  
 #endif
 
+    int trampCost = 0;
     ret->returnAddr = ast.generateTramp(proc, insn, count, trampCost, noCost);
+
+    if (!noCost) {
+	ret->cost = trampCost; 
+	ret->baseInstance->updateTrampCost(proc, trampCost);
+    }
 
     ret->trampBase = inferiorMalloc(proc, count, textHeap);
     assert(ret->trampBase);
@@ -497,7 +511,11 @@ void deleteInst(instInstance *old, const vector<unsigned> &pointsToCheck)
 	thePoint->inst = old->next;
 	if (old->next) old->next->prev = NULL;
     }
+    int trampCost = 0-old->cost;
+    old->baseInstance->updateTrampCost(old->proc, trampCost);
+
     delete old;
+
     //free(old);
 }
 
@@ -656,4 +674,25 @@ unsigned findTags(const string ) {
   else
     return 0;
 #endif
+}
+
+
+void
+trampTemplate::updateTrampCost(process *proc, int trampCost) {
+    
+    int caddr;
+    cost = cost + trampCost;
+    if (cost < 0) cost = 0;
+
+    char costInsn[40];
+    unsigned csize = 0;
+
+    // quick dirty hack; Will be changed soon so that we 
+    // don't call getObservedCostAddr() every time  --ling  
+    proc->getObservedCostAddr();   
+    caddr = proc->costAddr(); 
+
+    emit(trampPreamble, cost, 0, caddr, costInsn, csize, false);
+    
+    proc->writeDataSpace((caddr_t)costAddr, csize, costInsn);
 }

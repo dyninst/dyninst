@@ -43,6 +43,10 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.27  1996/11/11 01:53:08  lzheng
+ * Moved the instructions which is used to caculate the observed cost
+ * from the miniTramps to baseTramp
+ *
  * Revision 1.26  1996/10/31 08:46:44  tamches
  * the shm-sampling commit
  *
@@ -169,6 +173,7 @@ public:
 //#define MAX_BRANCH      ((0x1<<18)+8) /* 17-signed bits, lshift by 2, +8 */
 #define MAX_BRANCH         (0x01<<31)    /* assumed it is within one address
                                            space, maybe more complicated */ 
+const unsigned MAX_IMM21 = 0x1fff;
 
 unsigned getMaxBranch() {
   return MAX_BRANCH;
@@ -386,7 +391,7 @@ inline void genCmpOp(instruction *insn, unsigned cond, unsigned flow,
 // only numbers larger than 0 are handled  
 inline void generateLoadConst(instruction *insn, int src1, int dest,
   unsigned& base) {
-      const unsigned MAX_IMM21 = 0x1fff;
+
       if (ABS(src1) > MAX_IMM21) {
 	insn->raw = 0;
 	insn->li.op = LDILop;
@@ -846,8 +851,15 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 	    case EMULATE_INSN:
                 thisTemp->emulateInsOffset = ((void*)temp - (void*)tramp);
                 break;
+	    case UPDATE_COST_INSN:
+		thisTemp->updateCostOffset = ((void*)temp - (void*)tramp);
+                break;
   	}
     }
+    thisTemp->cost = 30;  
+    thisTemp->prevBaseCost = 13;
+    thisTemp->postBaseCost = 13;
+    thisTemp->prevInstru = thisTemp->postInstru = false;
     thisTemp->size = (int) temp - (int) tramp;
 }
 
@@ -979,12 +991,17 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
           currAddr += ind*sizeof(instruction);
         } else if (temp->raw == SKIP_PRE_INSN) {
           unsigned offset;
-          offset = baseAddr+baseTemplate.emulateInsOffset-currAddr;
+          offset = baseAddr+baseTemplate.updateCostOffset-currAddr;
           generateBranchInsn(temp,offset);
         } else if (temp->raw == SKIP_POST_INSN) {
-          unsigned offset;
-          offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
-          generateBranchInsn(temp,offset);
+	    unsigned offset;
+	    offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
+	    generateBranchInsn(temp,offset);
+	    
+	} else if (temp->raw == UPDATE_COST_INSN) {
+	    baseTemplate.costAddr = currAddr;
+	    generateNOOP(temp);
+   
         } else if ((temp->raw == LOCAL_PRE_BRANCH) ||
 		   (temp->raw == LOCAL_PRE_BRANCH_1) ||
 		   (temp->raw == GLOBAL_PRE_BRANCH) ||
@@ -1064,12 +1081,21 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 
     unsigned atAddr;
     if (inst->when == callPreInsn) {
-      atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPreInsOffset;
+	if (inst->baseInstance->prevInstru == false) {
+	    atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPreInsOffset;
+	    inst->baseInstance->cost += inst->baseInstance->prevBaseCost;
+	    inst->baseInstance->prevInstru = true;
+	    generateNoOp(inst->proc, atAddr);
+	}
     }
     else {
-      atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPostInsOffset; 
+	if (inst->baseInstance->postInstru == false) {
+	    atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPostInsOffset; 
+	    inst->baseInstance->cost += inst->baseInstance->postBaseCost;
+	    inst->baseInstance->postInstru = true;
+	    generateNoOp(inst->proc, atAddr);
+	}
     }
-    generateNoOp(inst->proc, atAddr);
 }
 
 /*
@@ -1391,7 +1417,12 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	if (!noCost) {
 	   generateLoadConst(insn, dest, 29, base);
 	   insn = (instruction *) ((void*)&i[base]);
-
+	   if (ABS(dest) <= MAX_IMM21) {
+	      generateNOOP(insn); 
+	      base += sizeof(instruction);	
+	      insn = (instruction *) ((void*)&i[base]);
+	   }
+	       
 	   generateLoad(insn, 29, 29);
 	   base += sizeof(instruction);
 	   insn = (instruction *) ((void*)&i[base]);
@@ -1402,7 +1433,12 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 
 	   generateLoadConst(insn, dest, 29, base);
 	   insn = (instruction *) ((void*)&i[base]);
-	   
+	   if (ABS(dest) <= MAX_IMM21) {
+	      generateNOOP(insn); 
+	      base += sizeof(instruction);	
+	      insn = (instruction *) ((void*)&i[base]);
+	   }
+
 	   generateStore(insn, 28, 29);
 	   base += sizeof(instruction);
         }	
@@ -1541,7 +1577,7 @@ int getInsnCost(opCode op)
     } else if (op ==  callOp) {
 	return(2+2+3);
     } else if (op ==  trampPreamble) {
-	return(4+2+1+1+2+1);
+	return(0);
     } else if (op ==  trampTrailer) {
 	return(1+1+4);
     } else if (op == noOp) {
@@ -1766,7 +1802,7 @@ bool doNotOverflow(int value)
   // be checked here, then the function should return TRUE. If there isn't
   // any immediate code to be generated, then it should return FALSE - naim
   //
-  if ( (value <= 2047) && (value >= -2048) ) return (true); 
+  //  if ( (value <= 2047) && (value >= -2048) ) return (true); 
   return(false);
 }
 

@@ -5,6 +5,10 @@
 ; *    appropriate inferior process via ptrace calls.
 ; *
 ; * $Log: tramp-hppa.s,v $
+; * Revision 1.5  1996/11/11 01:43:19  lzheng
+; * Moved the instructions which is used to caculate the observed cost
+; * from the miniTramps to baseTramp
+; *
 ; * Revision 1.4  1996/10/04 14:58:00  naim
 ; * Moving save/restore instructions from mini-tramp to base-tramp. Also, changes
 ; * to the base-tramp to support arrays of counters and timers (multithreaded
@@ -53,14 +57,14 @@ _baseTramp
 ;	/* should update cost of base tramp here, but we don't have a
 ;	   register to use!
 ;	*/
-	.word   0xffffffd3		; SKIP_PRE_INSN
-	nop			        ; delay slot
 	.word	0xffffff0f		; PREAMBLE_0 stack pointer
 	.word	0xffffff1f		; PREAMBLE_1 save 31
 	.word	0xffffff2f		; PREAMBLE_2 save 2
 	.word   0xffffff3f		; PREAMBLE_3 save 3
 	.word	0xffffff4f		; PREAMBLE_4 save 28
 	.word	0xfffffffa		; GLOBAL_PRE_BRANCH
+	.word   0xffffffd3		; SKIP_PRE_INSN
+	nop			        ; delay slot
 	; SAVE registers here
 	.word	0xffffffa2		; SAVE_PRE
 	nop
@@ -82,6 +86,13 @@ _baseTramp
 	nop
 	nop
 	nop
+	.word   0xffffffd4		; update cost
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop	 
 	.word   0xffffffaf		; TRAILER_4 restore 28
 	.word   0xffffffbf		; TRAILER_3 restore 3
 	.word	0xffffffcf		; TRAILER_2 restore 2

@@ -584,6 +584,9 @@ public:
     hasNewPC = true;
   }
 
+  inline int costAddr()  const { return costAddr_; }  
+  void getObservedCostAddr();   
+
 private:
   unsigned currentPC_;
   bool hasNewPC;
@@ -593,6 +596,8 @@ private:
   // for processing observed cost (see method processCost())
   unsigned long long cumObsCost; // in cycles
   unsigned lastObsCostLow; // in cycles
+
+  int costAddr_; 
 
   // deal with system differences for ptrace
   bool writeDataSpace_(void *inTracedProcess, int amount, const void *inSelf);

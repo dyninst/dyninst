@@ -836,6 +836,9 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 	    case SKIP_PRE_INSN:
                 thisTemp->skipPreInsOffset = ((void*)temp - (void*)tramp);
                 break;
+	    case UPDATE_COST_INSN:
+		thisTemp->updateCostOffset = ((void*)temp - (void*)tramp);
+		break;
 	    case SKIP_POST_INSN:
                 thisTemp->skipPostInsOffset = ((void*)temp - (void*)tramp);
                 break;
@@ -847,6 +850,10 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
                 break;
   	}	
     }
+    thisTemp->cost = 14;
+    thisTemp->prevBaseCost = 20;
+    thisTemp->postBaseCost = 22;
+    thisTemp->prevInstru = thisTemp->postInstru = false;
     thisTemp->size = (int) temp - (int) tramp;
 }
 
@@ -978,13 +985,19 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 		generateCallInsn(temp, currAddr, location->addr+location->size);
 	    }
         } else if (temp->raw == SKIP_PRE_INSN) {
-          unsigned offset;
-          offset = baseAddr+baseTemplate.emulateInsOffset-currAddr;
-          generateAnnulledBranchInsn(temp,offset);
+	    unsigned offset;
+	    offset = baseAddr+baseTemplate.updateCostOffset-currAddr;
+	    generateAnnulledBranchInsn(temp,offset);
+
         } else if (temp->raw == SKIP_POST_INSN) {
-          unsigned offset;
-          offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
-          generateAnnulledBranchInsn(temp,offset);
+	    unsigned offset;
+	    offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
+	    generateAnnulledBranchInsn(temp,offset);
+
+	} else if (temp->raw == UPDATE_COST_INSN) {
+	    baseTemplate.costAddr = currAddr;
+	    generateNOOP(temp);
+
         } else if ((temp->raw == LOCAL_PRE_BRANCH) ||
                    (temp->raw == GLOBAL_PRE_BRANCH) ||
                    (temp->raw == LOCAL_POST_BRANCH) ||
@@ -1073,13 +1086,19 @@ trampTemplate *installBaseTrampSpecial(instPoint *location, process *proc)
                 temp->branch.disp22 += 1;
             }
         } else if (temp->raw == SKIP_PRE_INSN) {
-          unsigned offset;
-          offset = baseAddr+baseTemplate.emulateInsOffset-currAddr;
-          generateAnnulledBranchInsn(temp,offset);
+	    unsigned offset;
+	    offset = baseAddr+baseTemplate.updateCostOffset-currAddr;
+	    generateAnnulledBranchInsn(temp,offset);
+
         } else if (temp->raw == SKIP_POST_INSN) {
-          unsigned offset;
-          offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
-          generateAnnulledBranchInsn(temp,offset);
+	    unsigned offset;
+	    offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
+	    generateAnnulledBranchInsn(temp,offset);
+
+	} else if (temp->raw == UPDATE_COST_INSN) {
+	    baseTemplate.costAddr = currAddr;
+	    generateNOOP(temp);
+
         } else if ((temp->raw == LOCAL_PRE_BRANCH) ||
                    (temp->raw == GLOBAL_PRE_BRANCH) ||
                    (temp->raw == LOCAL_POST_BRANCH) ||
@@ -1237,10 +1256,20 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 
     unsigned atAddr;
     if (inst->when == callPreInsn) {
-      atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPreInsOffset;
+	if (inst->baseInstance->prevInstru == false) {
+	    atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPreInsOffset;
+	    inst->baseInstance->cost += inst->baseInstance->prevBaseCost;
+	    inst->baseInstance->prevInstru = true;
+	    generateNoOp(inst->proc, atAddr);
+	}
     }
     else {
-      atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPostInsOffset; 
+	if (inst->baseInstance->postInstru == false) {
+	    atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPostInsOffset; 
+	    inst->baseInstance->cost += inst->baseInstance->postBaseCost;
+	    inst->baseInstance->postInstru = true;
+	    generateNoOp(inst->proc, atAddr);
+	}
     }
     generateNoOp(inst->proc, atAddr);
 }
@@ -1603,6 +1632,14 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	      genImmInsn(insn, ADDop3, REG_L1, src1, REG_L1);
 	      base += sizeof(instruction);
 	      insn++;
+
+	      generateNOOP(insn);
+	      base += sizeof(instruction);
+	      insn++;
+	      
+	      generateNOOP(insn);
+	      base += sizeof(instruction);
+	      insn++;
 	   } else {
 	      // load in two parts
 	      generateSetHi(insn, src1, REG_L2);
@@ -1839,12 +1876,12 @@ int getInsnCost(opCode op)
         // add %l1, <cost>, %l1
         // st %l1, [%lo + %lo(obsCost)]
         // return(1+1+2+1+3);
-	return(1+1+1+1+2 + 4);
+	return(0);
     } else if (op ==  trampTrailer) {
 	// restore
 	// noop
 	// retl
-	return(1+1+1 + 4);
+	return(2);
     } else if (op == noOp) {
 	// noop
 	return(1);

@@ -44,6 +44,10 @@
 
 /*
  * $Log: as-sparc.h,v $
+ * Revision 1.5  1996/11/11 01:39:40  lzheng
+ * Moved the instructions which is used to caculate the observed cost
+ * from the miniTramps to baseTramp
+ *
  * Revision 1.4  1996/09/12 15:08:25  naim
  * This commit move all saves and restores from the mini-tramps to the base
  * tramp. It also add jumps to skip instrumentation in the base-tramp when
@@ -100,5 +104,7 @@
    this point */
 #define SKIP_PRE_INSN           0xd
 #define SKIP_POST_INSN          0xe
+
+#define UPDATE_COST_INSN        0xf
 
 #endif

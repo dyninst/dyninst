@@ -43,6 +43,10 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
+ * Revision 1.20  1996/11/11 01:46:11  lzheng
+ * Moved the instructions which is used to caculate the observed cost
+ * from the miniTramps to baseTramp
+ *
  * Revision 1.19  1996/10/31 09:00:34  tamches
  * added noCost param to findAndInstallBaseTramp
  *
@@ -140,6 +144,16 @@ class trampTemplate {
     int skipPreInsOffset;
     int skipPostInsOffset;
     int emulateInsOffset;
+    int updateCostOffset;
+
+    int cost;			/* cost in cycles for this basetramp. */
+    int costAddr;               /* address of cost in this tramp      */
+    bool prevInstru;
+    bool postInstru;
+    int  prevBaseCost;
+    int  postBaseCost;
+
+    void updateTrampCost(process *proc, int c);
 };
 
 extern trampTemplate baseTemplate;

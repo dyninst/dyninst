@@ -41,6 +41,10 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.32  1996/11/11 01:45:30  lzheng
+ * Moved the instructions which is used to caculate the observed cost
+ * from the miniTramps to baseTramp
+ *
  * Revision 1.31  1996/10/31 08:36:58  tamches
  * the shm-sampling commit; added noCost param to some fns
  *
@@ -425,14 +429,14 @@ AstNode::~AstNode() {
 
 int AstNode::generateTramp(process *proc, char *i, 
 			   unsigned &count, 
-			   int trampCost, bool noCost) const {
+			   int &trampCost, bool noCost) const {
     static AstNode trailer(trampTrailer); // private constructor
-    // used to estimate cost.
     static AstNode preambleTemplate(trampPreamble, 
-				    AstNode(Constant, (void *) 0));
-       // private constructor; assumes NULL for right child
-    
-    int cycles = preambleTemplate.cost() + cost() + trailer.cost() + trampCost;
+    	       		           AstNode(Constant, (void *) 0));
+        // private constructor; assumes NULL for right child
+
+    trampCost  = preambleTemplate.cost() + cost() + trailer.cost();
+    int cycles = trampCost;
 
 #ifdef notdef
     print();
@@ -441,8 +445,8 @@ int AstNode::generateTramp(process *proc, char *i,
 #endif
 
     AstNode preamble(trampPreamble, 
-		     AstNode(Constant, (void *) cycles));
-       // private constructor; assumes NULL for right child
+                    AstNode(Constant, (void *) cycles));
+        // private constructor; assumes NULL for right child
 
     initTramps(); // needed to initialize regSpace below
                   // shouldn't we do a "delete regSpace" first to avoid
@@ -509,7 +513,9 @@ reg AstNode::generateCode(process *proc,
 	    rs->freeRegister(src2);
 	} else if (op == trampTrailer) {
 	    return (unsigned) emit(op, 0, 0, 0, insn, base, noCost);
+
 	} else if (op == trampPreamble) {
+#ifdef i386_unknown_solaris2_5
 	    // loperand is a constant AST node with the cost, in cycles.
 	    int cost = noCost ? 0 : (int) loperand->oValue;
             int costAddr = 0; // for now... (won't change if noCost is set)
@@ -528,6 +534,7 @@ reg AstNode::generateCode(process *proc,
 #endif
 
 	    return (unsigned) emit(op, cost, 0, costAddr, insn, base, noCost);
+#endif
 	} else {
 	    AstNode *left = loperand;
 	    AstNode *right = roperand;

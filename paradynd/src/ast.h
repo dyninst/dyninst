@@ -44,6 +44,10 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.18  1996/11/11 01:44:56  lzheng
+ * Moved the instructions which is used to caculate the observed cost
+ * from the miniTramps to baseTramp
+ *
  * Revision 1.17  1996/10/31 08:36:11  tamches
  * the shm-sampling commit; added noCost param to several fns
  *
@@ -161,7 +165,7 @@ class AstNode {
        ~AstNode();
 
 	int generateTramp(process *proc, char *i, unsigned &base,
-			  int baseTrampCost, bool noCost) const;
+			  int &trampCost, bool noCost) const;
 	reg generateCode(process *proc, registerSpace *rs, char *i, 
 			 unsigned &base, bool noCost) const;
 	int cost() const;	// return the # of instruction times in the ast.

@@ -44,6 +44,10 @@
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.67  1996/11/11 01:44:27  lzheng
+ * Moved the instructions which is used to caculate the observed cost
+ * from the miniTramps to baseTramp
+ *
  * Revision 1.66  1996/11/08 23:45:00  tamches
  * change from 3-->1 shm seg per process
  *
@@ -1314,6 +1318,7 @@ process *process::forkProcess(const process *theParent, pid_t childPid
     assert(ret);
     processVec += ret;
     activeProcesses++;
+
     if (!costMetric::addProcessToAll(ret))
        assert(false);
 
@@ -2251,6 +2256,7 @@ bool process::tryToReadAndProcessBootstrapInfo() {
 #ifdef SHM_SAMPLING
    registerInferiorAttachedSegs(bs_record.applicAttachedAt);
 #endif
+   getObservedCostAddr();
 
    str=string("PID=") + string(bs_record.pid) + ", calling handleStartProcess...";
    statusLine(str.string_of());
@@ -2311,3 +2317,20 @@ tp->resourceBatchMode(false);
 
    return true;
 }
+
+
+void process::getObservedCostAddr() {
+
+#ifndef SHM_SAMPLING
+    bool err;
+    costAddr_ = findInternalAddress("DYNINSTobsCostLow", true, err);
+    if (err) {
+	logLine("Internal error: unable to find addr of DYNINSTobsCostLow\n");
+	showErrorCallback(79, "");
+	P_abort();
+    }
+#else
+    costAddr_ = (int)getObsCostLowAddrInApplicSpace();
+#endif
+}
+
