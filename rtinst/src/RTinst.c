@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.42 2000/12/04 21:30:49 zandy Exp $
+ * $Id: RTinst.c,v 1.43 2001/03/12 17:42:25 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -622,10 +622,10 @@ DYNINSTreportBaseTramps() {
     costUpdate sample;
 
     /*
-    // Adding the cost corresponding to the alarm when it goes off.
-    // This value includes the time spent inside the routine (DYNINSTtotal-
-    // sampleTime) plus the time spent during the context switch (121 usecs
-    // for SS-10, sunos)
+       Adding the cost corresponding to the alarm when it goes off.
+       This value includes the time spent inside the routine (DYNINSTtotal-
+       sampleTime) plus the time spent during the context switch (121 usecs
+       for SS-10, sunos)
     */
 
     sample.obsCostIdeal  = ((((double) DYNINSTgetObservedCycles(1) *
@@ -796,9 +796,11 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   (void)gethostname(thehostname, 80);
   thehostname[79] = '\0';
   
-  shmsampling_printf("WELCOME to DYNINSTinit (%s, pid=%d), args are %d, %d, %d\n",
-		     thehostname, (int)getpid(), theKey, shmSegNumBytes,
-		     paradyndPid);
+  /*  
+      shmsampling_printf("WELCOME to DYNINSTinit (%s, pid=%d), args are %d, %d, %d\n",
+      thehostname, (int)getpid(), theKey, shmSegNumBytes,
+      paradyndPid);
+  */
 #endif
 
   initFPU();
@@ -926,6 +928,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     unsigned attach_cookie = 0x22222222;
     int32_t ptr_size;
     
+    fprintf(stderr, "DYNINSTinit with pd %d\n", paradyndPid);
     DYNINSTinitTrace(paradyndPid);
     
     DYNINSTwriteTrace(&attach_cookie, sizeof(attach_cookie));

@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.23 2000/10/17 17:42:51 schendel Exp $
+ * $Id: RTetc-aix.c,v 1.24 2001/03/12 17:42:13 bernat Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -190,8 +190,8 @@ rawTime64 DYNINSTgetCPUtime_sw_proc(void)
     perror("Failure in getInferiorCPUtime");
 
   /* Get the user+sys time from the rusage struct in procsinfo */
-  now = (rawTime64) procInfoBuf[0].pi_ru.ru_utime.tv_sec + // User time
-        (rawTime64) procInfoBuf[0].pi_ru.ru_stime.tv_sec;  // System time
+  now = (rawTime64) procInfoBuf[0].pi_ru.ru_utime.tv_sec + /* User time */
+    (rawTime64) procInfoBuf[0].pi_ru.ru_stime.tv_sec;  /* System time */
 
   now *= (rawTime64) 1000000; /* Secs -> millions of microsecs */
 
