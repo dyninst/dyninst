@@ -623,25 +623,31 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object*> 
 				u_int &change_type,
 				bool &error_occured){ 
     
-  error_occured = false;
+   error_occured = false;
 
-  // Check to see if any thread hit the breakpoint we inserted
-  pdvector<Frame> activeFrames;
-  if (!proc->getAllActiveFrames(activeFrames)) {
-      return false;
-  }
-  
-  dyn_lwp *brk_lwp = NULL;
-  sharedLibHook *hook;
-  
-  for (unsigned frame_iter = 0; frame_iter < activeFrames.size();frame_iter++)
-  {
-      hook = reachedLibHook(activeFrames[frame_iter].getPC());
-      if (hook) {
-          brk_lwp = activeFrames[frame_iter].getLWP();
-          break;
+   pdvector<dyn_thread *>::iterator iter = proc->threads.begin();
+
+   dyn_lwp *brk_lwp = NULL;
+   sharedLibHook *hook = NULL;
+
+   while(iter != proc->threads.end()) {
+      dyn_thread *thr = *(iter);
+      dyn_lwp *cur_lwp = thr->get_lwp();
+      
+      if(cur_lwp->status() == running) {
+         iter++;
+         continue;  // if lwp is running couldn't have hit load library trap
       }
-  }
+
+      Frame lwp_frame = cur_lwp->getActiveFrame();
+      hook = reachedLibHook(lwp_frame.getPC());
+      if(hook) {
+         brk_lwp = cur_lwp;
+         break;
+      }
+
+      iter++;
+   }
 
   // is the trap instr at at the breakpoint?
   if (force_library_load ||
