@@ -1,6 +1,6 @@
-# $Id: Makefile,v 1.12 2000/06/21 03:26:25 paradyn Exp $
+# $Id: Makefile,v 1.13 2000/08/06 22:23:15 wylie Exp $
 #
-# Makefile for dyninstAPI test programs on Compaq Alpha
+# Makefile for dyninstAPI test programs on Tru64 Alpha
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -29,13 +29,19 @@ include ../make.module.tmpl
 
 MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
 
+COMPILER = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
+
 MUTATEE_CFLAGS = $(MODCFLAGS) -g
 ifeq ($(MUTATEE_CC),$(NATIVE_CC))
+COMPILER = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
 MUTATEE_CFLAGS = $(ARCH_DEF) -g
 endif
 ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
+COMPILER = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
 MUTATEE_CFLAGS = -x cxx $(ARCH_DEF) -g
 endif
+
+MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
 ifdef GCC_2_95
 MUTATEE_CFLAGS += -gcoff

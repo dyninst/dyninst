@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2000/07/18 19:55:31 bernat Exp $
+# $Id: Makefile,v 1.7 2000/08/06 22:23:24 wylie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -38,13 +38,17 @@ MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
 MUTATEE_OBJ = $(TARGET2:_$(MUTATEE_CC)=.o)
 
 ifeq (xl,$(findstring xl,$(MUTATEE_CC)))
+COMPILER = $(shell strings `which $(MUTATEE_CC)` | grep Compiler | head -1)
 MUTATEE_CFLAGS = $(ARCH_DEF) -bnso -bI:/lib/syscalls.exp -bkeepfile:$(MUTATEE_OBJ)
 ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
 MUTATEE_CFLAGS += -+
 endif
 else
+COMPILER = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
 MUTATEE_CFLAGS = $(MODCFLAGS) -static -Wl,-bgcbypass:3 
 endif
+
+MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
 $(TARGET2): $(MUTATEE_SRC)
 	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) -Wl,-bnoobjreorder \

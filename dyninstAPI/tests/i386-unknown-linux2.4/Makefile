@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2000/07/13 18:00:23 zandy Exp $
+# $Id: Makefile,v 1.9 2000/08/06 22:23:20 wylie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -41,7 +41,16 @@ include ../make.module.tmpl
 
 MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
 
+ifeq (pg,$(findstring pg,$(MUTATEE_CC)))
+COMPILER = $(shell $(MUTATEE_CC) -V 2>/dev/null | grep '^pg' | head -1 \
+                                                | sed -e 's/ /_/g')
+else
+COMPILER = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
+endif
+
 MUTATEE_CFLAGS = -g $(ARCH_DEF)
+
+MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
 ifdef DETACH_ON_THE_FLY
 MUTATEE_CFLAGS += -DDETACH_ON_THE_FLY
