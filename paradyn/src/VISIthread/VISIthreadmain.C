@@ -25,9 +25,12 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.8  1994/06/16 18:28:30  newhall
-/* added short focus names
+/* Revision 1.9  1994/06/17 00:13:35  hollings
+/* Fixed error in malloc of the string longName.
 /*
+ * Revision 1.8  1994/06/16  18:28:30  newhall
+ * added short focus names
+ *
  * Revision 1.7  1994/06/14  15:19:15  markc
  * Added new param to enableDataCollection call which specifies how a metric is
  * to be aggregated.  This is probably temporary, since the data manager or the
@@ -74,8 +77,6 @@
 /*
 #define DEBUG2
 */
-#define DEBUG
-#define DEBUG3
 
 char *AbbreviatedFocus(char *);
 
@@ -508,10 +509,10 @@ void VISIthreadchooseMetRes(char **metricNames,
 
     resources.data[0].name = AbbreviatedFocus(resources.data[0].name);
 
-    fprintf(stderr,"adding new resource %d\n",resources.data[0].Id);
 #ifdef DEBUG
+    fprintf(stderr,"adding new resource %d\n",resources.data[0].Id);
 #endif
-// if buffer is not empty send visualization buffer of data values
+    // if buffer is not empty send visualization buffer of data values
     if(ptr->bufferSize != 0){
 	  tempdata.count = ptr->bufferSize;
           tempdata.data = ptr->buffer;
@@ -882,8 +883,8 @@ int flag  = 0;
 char *newword;
 int nextFocus = 0;
 
-  size = strlen(longName); 
-  newword = (char *)malloc(sizeof(size));
+  size = strlen(longName)+1; 
+  newword = (char *)malloc(size);
 
   for(i = 0; i < size; i++){
       if(longName[i] == '/'){
