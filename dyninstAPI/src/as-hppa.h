@@ -51,16 +51,6 @@
 #define GLOBAL_POST_BRANCH	0xfffffffc
 
 /*preambles and trailers*/
-#define PARAM_SAV_0            0xfffff0ff
-#define PARAM_SAV_1            0xfffff1ff
-#define PARAM_SAV_2            0xfffff2ff 
-#define PARAM_SAV_3            0xfffff3ff
-
-#define PARAM_RES_3            0xfffffbff
-#define PARAM_RES_2            0xfffffcff
-#define PARAM_RES_1            0xfffffdff 
-#define PARAM_RES_0            0xfffffeff
-
 #define	PREAMBLE_0	       0xffffff0f  
 #define	PREAMBLE_1             0xffffff1f
 #define	PREAMBLE_2             0xffffff2f
