@@ -46,6 +46,10 @@
  *    appropriate inferior process via ptrace calls.
  *
  * $Log: tramp-sparc.s,v $
+ * Revision 1.12  1996/08/20 18:57:59  lzheng
+ * A few slot was added to allow multiple instructions to be moved into
+ * the base trampoline
+ *
  * Revision 1.11  1996/08/16 21:20:13  tamches
  * updated copyright for release 1.1
  *
@@ -128,7 +132,10 @@ _baseTramp:
 	.word	LOCAL_PRE_BRANCH
 	nop
 	.word 	EMULATE_INSN
+	nop			/* second instruction if it's leaf */
 	nop			/* delay slot */
+	nop			/* if the previous instruction is a DCTI  */
+	nop			/* this slot is needed for leaf procedure */
 	nop			/* extra nop for aggregate size */
 	.word	GLOBAL_POST_BRANCH
 	.word	LOCAL_POST_BRANCH
