@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.114 2002/11/14 20:26:19 bernat Exp $
+// $Id: aix.C,v 1.115 2002/11/21 23:41:51 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -1770,11 +1770,17 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
    static bool need_init = true;
    if(need_init) {
       pm_info_t pinfo;
-      ret = pm_init(PM_VERIFIED | PM_CAVEAT | PM_UNVERIFIED, &pinfo);
+#ifdef PMAPI_GROUPS
+      pm_groups_info_t pginfo;
+      ret = pm_init(PM_VERIFIED | PM_CAVEAT | PM_GET_GROUPS, &pinfo, &pginfo);
+#else
+      ret = pm_init(PM_VERIFIED | PM_CAVEAT, &pinfo);
+#endif
+      // We ignore the return, but pm_init must be called to initialize the
+      // library
       if (ret) pm_error("PARADYNos_init: pm_init", ret);
       need_init = false;
    }
-
    int lwp_to_use;
    if (lwp_ > 0) 
       lwp_to_use = lwp_;
@@ -1800,9 +1806,10 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
    else   // lwp == 0, means get data for the entire process (ie. all lwps)
       ret = pm_get_data_group(proc_->getPid(), lwp_to_use, &data);
    if (ret) {    
-      pm_error("dyn_lwp::getRawCpuTime_hw: pm_get_data_thread", ret);
-      fprintf(stderr, "Attempted pm_get_data_thread(%d, %d, %d)\n"
-              "this is 0x%x\n", proc_->getPid(), lwp_, lwp_to_use);
+       pm_error("dyn_lwp::getRawCpuTime_hw: pm_get_data_thread", ret);
+       fprintf(stderr, "Attempted pm_get_data(%d, %d, %d)\n",
+               proc_->getPid(), lwp_, lwp_to_use);
+       
    }
    rawTime64 result = data.accu[get_hwctr_binding(PM_CYC_EVENT)];
 

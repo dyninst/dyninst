@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.36 2002/11/02 21:08:40 schendel Exp $
+ * $Id: RTetc-aix.c,v 1.37 2002/11/21 23:41:52 bernat Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -100,6 +100,10 @@ rawTime64 cpuPrevious  = 0;
 
 pm_prog_t pdyn_pm_prog;
 pm_info_t pinfo;
+int using_groups = 0;
+#ifdef PMAPI_GROUPS
+pm_groups_info_t pginfo;
+#endif
 
 /* returns 0 on success, 1 on error */
 int pmapi_bind_event_to_hwctr(pm_info_t *myinfo, int destination_mapping[],
@@ -152,21 +156,37 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
   hintBestCpuTimerLevel  = HARDWARE_TIMER_LEVEL;
   hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;
 
-  ret = pm_init(PM_VERIFIED | PM_CAVEAT | PM_UNVERIFIED, &pinfo);
+  // Zero out the program setup info
+  pdyn_pm_prog.mode.w = 0;
+
+#ifdef PMAPI_GROUPS
+  // Check to see if we have a verified group, and if so use it. If not,
+  // default to the old behavior
+  ret = pm_init(PM_VERIFIED | PM_CAVEAT | PM_GET_GROUPS, &pinfo, &pginfo);
+  if (pginfo.maxgroups) {
+      // We have groups, set it up that way
+      // ...
+      fprintf(stderr, "Using PMAPI groups is not supported yet. Please contact paradyn@cs.wisc.edu.\n");
+      using_groups = 1;
+      pdyn_pm_prog.mode.b.is_group = 1;
+  }
+#else
+  ret = pm_init(PM_VERIFIED | PM_CAVEAT, &pinfo);
+#endif
   if (ret) pm_error("PARADYNos_init: pm_init", ret);
-  
-  if(pmapi_setup_bindings(&pinfo, pdyn_pm_prog.events))
-    fprintf(stderr, "Mapping failed for pm events\n");
+
+  if (!using_groups)
+      if(pmapi_setup_bindings(&pinfo, pdyn_pm_prog.events))
+          fprintf(stderr, "Mapping failed for pm events\n");
 
   /* Count both user and kernel instructions */
-  pdyn_pm_prog.mode.w = 0;
   pdyn_pm_prog.mode.b.user = 1;
   pdyn_pm_prog.mode.b.kernel = 1;
   /* Count for an entire process group. Catch all threads concurrently */
   pdyn_pm_prog.mode.b.process = 1;
   pdyn_pm_prog.mode.b.count  = 1;  /* start counting immediately,
                                       precludes the need for pm_start_...() */
-
+  
   /* Prep the sucker for launch */
   /* we need to set up a group because we need to sample the cycle hwctr
      for all of the threads (in addition to, for each thread) */
