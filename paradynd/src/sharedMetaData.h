@@ -94,7 +94,7 @@ class sharedMetaData {
 
   unsigned *getObservedCost() { return observed_cost; }
   virtualTimer *getVirtualTimers() { return virtualTimers; }
-  virtualTimer &getVirtualTimer(int pos) { return virtualTimers[pos]; }
+  virtualTimer *getVirtualTimer(int pos) { return &virtualTimers[pos]; }
   unsigned getPosToThread(int pos) const { return posToThread[pos]; }
   void setPosToThread(int pos, unsigned v) { posToThread[pos] = v; }
 
