@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.94 2003/05/13 03:57:06 buck Exp $
+// $Id: unix.C,v 1.95 2003/05/13 13:53:34 chadd Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -720,7 +720,22 @@ int handleSignal(process *proc, procSignalWhat_t what,
    switch(what) {
  case SIGTRAP:
      // Big one's up top. We use traps for most of our process control
-     ret = handleSigTrap(proc, info); 
+     ret = handleSigTrap(proc, info);
+
+#if defined(rs6000_ibm_aix4_1)
+	//after we have handled a trap on AIX, be sure we reset the
+	//nextTrapIsFork flag. This flag may be reset in handleSigTrap 
+	//on AIX 4.x  It will not be reset in that function on AIX 5.
+	//
+	//This is probably unnecessary.  nextTrapIsFork is only checked
+	//in handleSigTrap as a last resort, if any other SIGTRAP is
+	//expected that will be handled first (correctly).  This only
+	//causes a problem if the mutatee is trying to send itself a 
+	//SIGTRAP. If this flag is still set dyninst will just eat the
+	//trap rather than passing it back to the mutatee.
+	proc->nextTrapIsFork = false; 
+#endif
+
      break;
 #if defined(USE_IRIX_FIXES)
  case SIGEMT:
