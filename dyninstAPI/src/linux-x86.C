@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.21 2003/04/02 07:12:25 jaw Exp $
+// $Id: linux-x86.C,v 1.22 2003/04/11 22:46:21 schendel Exp $
 
 #include <fstream.h>
 
@@ -323,8 +323,6 @@ Frame dyn_lwp::getActiveFrame()
   if (errno) Frame();
   return Frame(pc, fp, proc_->getPid(), NULL, this, true);
 }
-
-process *findProcess(int);  // In process.C
 
 // MT problem FIXME
 

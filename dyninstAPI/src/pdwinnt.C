@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.89 2003/04/07 21:55:29 bernat Exp $
+// $Id: pdwinnt.C,v 1.90 2003/04/11 22:46:23 schendel Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -103,7 +103,6 @@ void kludgeWCHAR(const char *str8, WCHAR *str16){
 #endif
 
 extern bool isValidAddress(process *proc, Address where);
-extern process *findProcess(int);
 
 //HANDLE kludgeProcHandle;
 
@@ -1012,7 +1011,7 @@ process *decodeProcessEvent(int pid,
 #endif    
         return NULL;
    
-    proc = findProcess(info.dwProcessId);
+    proc = process::findProcess(info.dwProcessId);
     if (proc == NULL) {
         /* 
            this case can happen when we create a process, but then are
@@ -1544,9 +1543,8 @@ ReleaseSymbolHandler( HANDLE hProcess )
     }
 }
 
-
-
-
+void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
+}
 
 /*****************************************************************************
  * forkNewProcess: starts a new process, setting up trace and io links between
