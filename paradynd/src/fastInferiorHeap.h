@@ -55,6 +55,7 @@
 // segment).  To cut down on the number of segments floating around, and to reduce
 // and hopefully avoid the dreaded EMFILE errno when shmat()'ing to a segment,
 // there's now just 1 shm segment per process (and 2 shmat()'s are done).
+// The actual shm seg management is now done in file fastInferiorHeapMgr.h/.C
 
 #ifndef _FAST_INFERIOR_HEAP_H_
 #define _FAST_INFERIOR_HEAP_H_
@@ -71,7 +72,7 @@ template <class HK, class RAW>
    // RAW is the same raw type used in the appl heap; presumably "int", etc.
 class fastInferiorHeap {
  private:
-   enum states {allocated, free, pendingfree};
+   enum states {allocated, free, pendingfree, maybeAllocatedByFork};
 
    process *inferiorProcess;
       // ptr instead of ref due to include file problems (if this file is included w/in
@@ -97,15 +98,18 @@ class fastInferiorHeap {
    vector<HK> houseKeeping; // one entry per value (allocated or not) in the appl.
 
    unsigned firstFreeIndex;
-      // makes allocation quick; UINT_MAX --> no free elems in heap
+      // makes allocation quick; UINT_MAX --> no free elems in heap (but there could be
+      // pending-free items)
 
    // Keeps track of what needs sampling, needed to sort out major/minor sampling
    vector<unsigned> permanentSamplingSet; // all allocated indexes
    vector<unsigned> currentSamplingSet; // a subset of permanentSamplingSet
 
-   // Since we don't define these, make sure they're not used:
+   // Since we don't define these, making them private makes sure they're not used:
    fastInferiorHeap &operator=(const fastInferiorHeap &);
    fastInferiorHeap(const fastInferiorHeap &);
+
+   void reconstructPermanentSamplingSet();
 
  public:
 
@@ -123,22 +127,24 @@ class fastInferiorHeap {
       // this copy-ctor is a fork()/dup()-like routine.  Call after a process forks.
       // From the process' point of view after the fork(): the fork() has attached it
       // to all shm segments of its parent; so, it needs to unattach() from them
-      // and then attach to a segment newly created by us, which we do here.
+      // and then attach to a new segment.
 
   ~fastInferiorHeap();
-      // Fries the shm segment
 
-//   unsigned getShmSegNumBytes() const {return sizeof(RAW) * statemap.size();}
+   void handleExec();
+      // call after the exec syscall has executed.  Basically we need to redo everything
+      // that we did in the (non-fork) constructor.  Well, some things don't change: the
+      // process ptr, the addr that paradynd attached at, the shm seg key.
 
-//   void setBaseAddrInParadynd(RAW *addr) {
-//      assert(baseAddrInParadynd == NULL);
-//      baseAddrInParadynd = addr;
-//   }
+   void forkHasCompleted();
+      // call when a fork has completed (i.e. after you've called the fork ctor AND
+      // also metricDefinitionNode::handleFork, as forkProcess [context.C] does).
+      // performs some assertion checks, such as mi != NULL for all allocated HKs.
+      // also recalculates some things, such as the sampling sets.
 
    void setBaseAddrInApplic(RAW *addr) {
       // should call _very_ soon after the ctor, right after the applic has
-      // attached to the shm segment.  Of course, in order to do that, the applic
-      // needs to be sent the key; a call getShmSegKey() is assumed.
+      // attached to the shm segment.
       assert(baseAddrInApplic == NULL); // not for long...
       baseAddrInApplic = addr;
    }
@@ -154,14 +160,26 @@ class fastInferiorHeap {
       return baseAddrInApplic + allocatedIndex;
    }
 
+   RAW *index2LocalAddr(unsigned allocatedIndex) const {
+      assert(baseAddrInParadynd != NULL);
+      assert(allocatedIndex < statemap.size());    
+      return baseAddrInParadynd + allocatedIndex;
+   }
+
+   void initializeHKAfterFork(unsigned index, const HK &iHKValue);
+      // After a fork, the hk entry for this index will be copied, which is probably
+      // not what you want.  (We don't provide a param for the raw item since you
+      // can write the raw item easily enough by just writing directly to shared
+      // memory...see baseAddrInParadynd.)
+                            
    bool alloc(const RAW &iRawValue, const HK &iHouseKeepingValue,
 	      unsigned &allocatedIndex);
       // Allocate an entry in the inferior heap and initialize its raw value with
       // "iRawValue" and its housekeeping value with "iHouseKeepingValue".
       // Returns true iff successful; false if not (because inferior heap was full).
-      // If true, then also "returns" the index (0 thru heapNumElems-1) that was
-      // allocated in param "allocatedIndex"; this info is probably needed by the
-      // caller.  For example, the caller might be allocating a mini-tramp
+      // If true, then also sets "allocatedIndex" to the index (0 thru heapNumElems-1)
+      // that was allocated in param "allocatedIndex"; this info is probably needed by
+      // the caller.  For example, the caller might be allocating a mini-tramp
       // that calls startTimer(); it needs "allocatedIndex" to calculate the
       // address of the timer structure (which is passed to startTimer).
 

@@ -48,6 +48,35 @@
 #include "fastInferiorHeap.h"
 
 template <class HK, class RAW>
+void fastInferiorHeap<HK, RAW>::handleExec() {
+   // after the exec syscall...the applic has detached from the segment, but paradynd
+   // is still attached to one...and we'll reuse it.
+   
+   // inferiorProcess doesn't change
+   // statemap and houseKeeping sizes don't change (but we need to reset their contents)
+   assert(statemap.size() == houseKeeping.size());
+
+   for (unsigned lcv=0; lcv < statemap.size(); lcv++)
+      statemap[lcv] = free;
+
+   // here's a quick-and-dirty way to reinitialize the houseKeeping vector (I think):
+   houseKeeping.resize(0);
+   houseKeeping.resize(statemap.size());
+
+   firstFreeIndex = 0;
+
+   // baseAddrInParadynd doesn't change
+
+   // baseAddrInApplic: reset to NULL since applic isn't attached any more (it needs
+   // to re-run DYNINSTinit)
+   baseAddrInApplic = NULL;
+
+   // sampling sets: reset
+   permanentSamplingSet.resize(0);
+   currentSamplingSet.resize(0);
+}
+
+template <class HK, class RAW>
 fastInferiorHeap<HK, RAW>::
 fastInferiorHeap(RAW *iBaseAddrInParadynd,
 		 process *iInferiorProcess,
@@ -79,23 +108,85 @@ fastInferiorHeap<HK, RAW>::fastInferiorHeap(const fastInferiorHeap<HK, RAW> &par
 					    void *appl_attachedAt) :
                              inferiorProcess(newProc),
 			     statemap(parent.statemap), // copy statemap
-			     houseKeeping(parent.houseKeeping), // copy hk
-			     permanentSamplingSet(parent.permanentSamplingSet), // copy
-			     currentSamplingSet(parent.currentSamplingSet) // copy
+			     houseKeeping(parent.houseKeeping.size()) // just size it
 {
    // this copy-ctor is a fork()/dup()-like routine.  Call after a process forks.
-   // Here is what has already been done:
 
    baseAddrInApplic   = (RAW*)appl_attachedAt;
    baseAddrInParadynd = (RAW*)paradynd_attachedAt;
 
    firstFreeIndex = parent.firstFreeIndex;
+
+   // Now for the houseKeeping, which is quick tricky on a fork.
+   // We (intentionally) leave every entry undefined for now.
+   // (using a copy-ctor would be a very bad idea, for then we would end up sharing
+   // mi's with the parent process, which is not at all the correct thing to do.
+   // outside code (forkProcess(); context.C) should soon fill in what we left
+   // undefined; for example, the call to metricDefinitionNode::handleFork().)
+   // More specifically: on a fork, dataReqNode->dup() is called for everything in
+   // the parent.  This virtual fn will end up calling the correct fork-ctor for
+   // objects like "samedShmIntCounterReqNode", which will in turn think up a new
+   // HK value for a single allocated entry, and call initializeHKAfterFork() to
+   // fill it in.  If, for whatevery reason, some allocated datareqnode doesn't have
+   // its HK filled in by initializeAfterFork(), then the HK is left undefined
+   // (in particular, its mi will be NULL), so we should get an assert error rather
+   // soon...the next shm sample, in fact.
+
+   // Furthermore: we initially turn each allocated entry in the new heap into type
+   // maybeAllocated.  Why do we do this?
+   // Because some of the allocated items of the parent process don't belong in the
+   // child process after all...specifically, those with foci narrowed down to a
+   // specific process --- the parent process.  In such cases, the new process
+   // shouldn't get a copy of the mi.  On the other hand, what about foci which aren't
+   // specific to any process, and thus should be copied to the new heap?  Well in such
+   // cases, intializeHKAfterFork() will be called...so at that time, we'll turn the
+   // item back to allocated.  A bit ugly, n'est-ce pas?.  --ari
+
+   for (unsigned lcv=0; lcv < statemap.size(); lcv++) {
+      if (statemap[lcv] == allocated)
+	 statemap[lcv] = maybeAllocatedByFork;
+   }
+
+   for (unsigned lcv=0; lcv < houseKeeping.size(); lcv++) {
+      // If we wanted, we could do this only for allocated items...but doing it for
+      // every item should be safe (if unnecessary).
+      const HK undefinedHK; // default ctor should leave things undefined
+      houseKeeping[lcv] = undefinedHK;
+   }
+
+   // permanent and curr sampling sets init'd to null on purpose, since they
+   // can differ from those of the parent.  forkHasCompleted() initializes them.
+}
+
+template <class HK, class RAW>
+void fastInferiorHeap<HK, RAW>::forkHasCompleted() {
+   // call when a fork has completed (i.e. after you've called the fork ctor AND
+   // also metricDefinitionNode::handleFork, as forkProcess [context.C] does).
+   // performs some assertion checks, such as mi != NULL for all allocated HKs.
+
+   for (unsigned lcv=0; lcv < statemap.size(); lcv++) {
+      if (statemap[lcv] == maybeAllocatedByFork)
+         // this guy isn't being carried over, because the focus was specific to a
+	 // process -- some other process -- before the fork.  (Can we check this?)
+	 statemap[lcv] = free;
+
+      if (statemap[lcv] == allocated) {
+	 const HK &theHK = houseKeeping[lcv];
+	 theHK.assertWellDefined();
+      }
+   }
+
+   // entries that were allocated (and thus in the sampling set) of the parent
+   // may not carry over to the child, in which case the sampling set(s) can become
+   // invalid.
+   reconstructPermanentSamplingSet();
+   currentSamplingSet = permanentSamplingSet; // just being conservative
 }
 
 template <class HK, class RAW>
 fastInferiorHeap<HK, RAW>::~fastInferiorHeap() {
-   // destructor for statemap[] and houseKeeping[] is called automatically
-
+   // destructors for statemap[], houseKeeping[], permanentSamplingSet[], and
+   // currentSamplingSet[] are called automatically
 }
 
 template <class HK, class RAW>
@@ -126,7 +217,16 @@ bool fastInferiorHeap<HK, RAW>::alloc(const RAW &iValue,
    assert(statemap[allocatedIndex] == free);
    statemap[allocatedIndex] = allocated;
 
-   houseKeeping[allocatedIndex] = iHKValue;
+   houseKeeping[allocatedIndex] = iHKValue; // HK::operator=()
+
+   // Write "iValue" to the inferior heap, by writing to the shared memory segment.
+   // Should we grab the mutex lock before writing?  Right now we don't, on the
+   // assumption that no trampoline in the inferior process is yet writing to
+   // this just-allocated memory.  (Mem should be allocated: data first, then initialize
+   // tramps, then actually insert tramps)
+
+   RAW *destRawPtr = baseAddrInParadynd + allocatedIndex; // ptr arith
+   *destRawPtr = iValue; // RAW::operator=(const RAW &) if defined, else a bit copy
 
    // update firstFreeIndex to point to next free entry; UINT_MAX if full
    while (++firstFreeIndex < statemap.size()) {
@@ -141,32 +241,40 @@ bool fastInferiorHeap<HK, RAW>::alloc(const RAW &iValue,
       cout << "fastInferiorHeap alloc: alloc succeeded but now full" << endl;
    }
 
-   // Write "iValue" to the inferior heap, by writing to the shared memory segment.
-   // Should we grab the mutex lock before writing?  Right now we don't, on the
-   // assumption that no trampoline in the inferior process is yet writing to
-   // this just-allocated memory.  (Mem should be allocated: data first, then initialize
-   // tramps, then actually insert tramps)
-
-   // Don't forget to leave the first 16 bytes of meta-data alone...
-   // (ergo, we use baseAddrInParadynd instead of trueBaseAddrInParadynd)
-   RAW *destRawPtr = baseAddrInParadynd + allocatedIndex; // ptr arith
-   *destRawPtr = iValue; // RAW::operator=(const RAW &) if defined, else a bit copy
-
    // sampling set: add to permanent; no need to add to current
    // note: because allocatedIndex is not necessarily larger than all of the current
    //       entries in permanentSamplingSet[] (non-increasing allocation indexes can
    //       happen all the time, once holes are introduced into the statemap due to
    //       deallocation & garbage collection), we reconstruct the set from scratch;
-   //       it's the only easy way to maintain our invariant that the set is sorted.
+   //       it's the only easy way to maintain our invariant that the permanent
+   //       sampling set is sorted.
    const unsigned oldPermanentSamplingSetSize = permanentSamplingSet.size();
 
-   permanentSamplingSet.resize(0);
-   for (unsigned lcv=0; lcv < statemap.size(); lcv++)
-      if (statemap[lcv] == allocated)
-         permanentSamplingSet += lcv;
+   reconstructPermanentSamplingSet();
+
    assert(permanentSamplingSet.size() == oldPermanentSamplingSetSize + 1);
 
    return true;
+}
+
+template <class HK, class RAW>
+void fastInferiorHeap<HK, RAW>::reconstructPermanentSamplingSet() {
+   permanentSamplingSet.resize(0);
+
+   for (unsigned lcv=0; lcv < statemap.size(); lcv++)
+      if (statemap[lcv] == allocated)
+         permanentSamplingSet += lcv;
+}
+
+template <class HK, class RAW>
+void fastInferiorHeap<HK, RAW>::initializeHKAfterFork(unsigned index,
+						      const HK &iHKValue) {
+   // should be called only for a maybe-allocated-by-fork value
+   assert(statemap[index] == maybeAllocatedByFork);
+   statemap[index] = allocated;
+
+   // write HK:
+   houseKeeping[index] = iHKValue; // HK::operator=()
 }
 
 template <class HK, class RAW>
@@ -183,20 +291,20 @@ void fastInferiorHeap<HK, RAW>::makePendingFree(unsigned ndx,
 
    // Sampling sets: a pending-free item should no longer be sampled, so remove
    // it from both permanentSamplingSet and currentSamplingSet.
-   // Remember that both sets need to stay in sorted order, so we'd have to shift items
-   // to the right after removing from both sets, instead of just swapping with the
-   // last item and reducing the size by 1.  Since it can't be done fast, we just
-   // reconstruct from scratch, for simplicity.
+   // Remember that the permanent set needs to stay sorted.  Since it can't be done
+   // fast, we just reconstruct from scratch, for simplicity.
 
    const unsigned oldPermanentSamplingSetSize = permanentSamplingSet.size();
    assert(oldPermanentSamplingSetSize > 0);
 
+#ifdef SHM_SAMPLING_DEBUG
    // Verify: ndx should be in permanentSamplingSet[], before we reconstruct the set.
    bool found = false;
    for (unsigned lcv=0; lcv < permanentSamplingSet.size() && !found; lcv++)
       if (permanentSamplingSet[lcv] == ndx)
 	 found = true;
    assert(found);
+#endif
 
    permanentSamplingSet.resize(0);
    for (unsigned lcv=0; lcv < statemap.size(); lcv++)
@@ -206,15 +314,14 @@ void fastInferiorHeap<HK, RAW>::makePendingFree(unsigned ndx,
    assert(permanentSamplingSet.size() == oldPermanentSamplingSetSize - 1);
 
    // What about the current sampling set?  We can conservatively set it to contain more
-   // entries than need be.
+   // entries than need be, which we do.  (We could also set it to the empty set;
+   // at worst, one bucket of sampling data is lost, which is no big deal).
    currentSamplingSet = permanentSamplingSet;
 }
 
 template <class HK, class RAW>
 void fastInferiorHeap<HK, RAW>::garbageCollect(const vector<unsigned> &PCs) {
-   // tries to set some pending-free items to free, giving preference to freeing items
-   // at the end of the heap, thus tending keeping the end of the heap entirely
-   // free, which reduces the # of items which need to be read during grabFromApplic().
+   // tries to set some pending-free items to free.
 
    // PCs represents a stack trace (list of PC-register values) in the inferior process,
    // presumably obtained by calling process::walkStack() (which needs to use /proc to
@@ -261,17 +368,21 @@ bool fastInferiorHeap<HK, RAW>::doMajorSample(unsigned long long, // wall time
    // fudge factor when sampling an active process timer) must be taken at the
    // same time the sample is taken to avoid incorrectly scaled fudge factors,
    // leading to jagged spikes in the histogram (i.e. incorrect samples).
-   // The same applies to wall-time, so we ignore the 2d-to-last param too.
+   // The same applies to wall-time, so we ignore both params.
 
    currentSamplingSet = permanentSamplingSet;
       // not a fast operation; vector::operator=()
 
+#ifdef SHM_SAMPLING_DEBUG
    // Verify that every item in the sampling set is allocated (i.e. should be sampled)
    for (unsigned lcv=0; lcv < currentSamplingSet.size(); lcv++)
       assert(statemap[currentSamplingSet[lcv]] == allocated);
+#endif
 
    // Verify that every allocated statemap item is in the current sampling set,
    // and that the current sampling set is ordered. (A very strong set of asserts.)
+   // (Note: The curr sampling set is sorted now (at the start of a major sample), but
+   //        it likely won't remain so for long...which is OK.)
    // It's a bit too expensive to do casually, however, so we ifdef it:
 #ifdef SHM_SAMPLING_DEBUG
    unsigned cssIndex=0; // current-sampling-set index
@@ -308,6 +419,8 @@ bool fastInferiorHeap<HK, RAW>::doMinorSample() {
       }
       else {
 	 // remove the item from "currentSamplingSet[]"; note that lcv doesn't change
+         // Note also that the current sampling set, unlike the permanent sampling
+         // set, does not remain sorted.
 	 currentSamplingSet[lcv] = currentSamplingSet[--numLeftInMinorSample];
       }
    }
