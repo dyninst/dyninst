@@ -1720,16 +1720,16 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
     
     // Can't figure it out if we don't know where we are
     if (!range) {
-      fprintf(stderr, "ERROR: can't find owner for pc 0x%x, failing catchup\n",
+      fprintf(stderr, "ERROR: can't find owner for pc 0x%lx, failing catchup\n",
 	      frame.getPC());
        return false;
     }
 
     if(pd_debug_catchup) {
       fprintf(stderr, "--------\n");
-       fprintf(stderr, "Catchup for PC 0x%x (%d), instpoint at 0x%x (%s), ",
+       fprintf(stderr, "Catchup for PC 0x%lx (%d), instpoint at 0x%lx (%s), ",
                frame.getPC(), 
-               frame.getThread()->get_tid(),
+               frame.getThread() == NULL ? -1 : frame.getThread()->get_tid(),
                point->absPointAddr(dyninst_process->lowlevel_process()),
                point->pointFunc()->prettyName().c_str());
        fprintf(stderr, "point type is ");
@@ -1772,6 +1772,7 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
     miniTrampHandle *minitramp_ptr = range->is_minitramp();
     trampTemplate *basetramp_ptr = range->is_basetramp();
     relocatedFuncInfo *reloc_ptr = range->is_relocated_func();
+    multitrampTemplate *multitramp_ptr = range->is_multitramp();
 
     int_function *frame_func;
 
@@ -1791,7 +1792,7 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
 	frame_func = instP->pointFunc();
 
         if(pd_debug_catchup)
-           fprintf(stderr, "     PC in minitramp at 0x%x (%s)...",
+           fprintf(stderr, "     PC in minitramp at 0x%lx (%s)...",
                    collapsedFrameAddr,
                    instP->pointFunc()->prettyName().c_str());
     }
@@ -1801,7 +1802,7 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
 	frame_func = instP->pointFunc();
 
         if(pd_debug_catchup)
-           fprintf(stderr,"     PC in base tramp at 0x%x (%s)...",
+           fprintf(stderr,"     PC in base tramp at 0x%lx (%s)...",
                    collapsedFrameAddr,
                    instP->pointFunc()->prettyName().c_str());
     }
@@ -1813,11 +1814,21 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
           fprintf(stderr, "      PC in relocated function (%s)...",
                   frame_func->prettyName().c_str());
     }
+    else if (multitramp_ptr) {
+        const instPoint *instP = multitramp_ptr->location;
+        collapsedFrameAddr = instP->absPointAddr(dyninst_process->lowlevel_process());
+	frame_func = instP->pointFunc();
+
+        if(pd_debug_catchup)
+           fprintf(stderr,"     PC in multitramp at 0x%lx (%s)...",
+                   collapsedFrameAddr,
+                   instP->pointFunc()->prettyName().c_str());
+    }
     else {
         // Uhh... no function, no point... murph?
         // Could be top of the stack -- often address 0x0 or -1
         if (frame.getPC()) 
-            fprintf(stderr, "     Couldn't find match for address 0x%x!\n",
+            fprintf(stderr, "     Couldn't find match for address 0x%lx!\n",
                     frame.getPC());
         return false;
     }
@@ -1832,7 +1843,7 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
     bool catchupNeeded = false;
     
     if (pd_debug_catchup)
-      fprintf(stderr, " CFA 0x%x, ", collapsedFrameAddr);
+      fprintf(stderr, " CFA 0x%lx, ", collapsedFrameAddr);
 
     if (bpPoint->getPointType() != BPatch_locLoopEntry &&
 	bpPoint->getPointType() != BPatch_locLoopStartIter) {
@@ -1851,7 +1862,7 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
 	pointAddr = point->addrInFunc;
 
       if (pd_debug_catchup)
-	fprintf(stderr, "PA 0x%x, ", pointAddr);
+	fprintf(stderr, "PA 0x%lx, ", pointAddr);
       
       logicalPCLocation_t location = nowhere;
       
