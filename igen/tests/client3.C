@@ -16,13 +16,15 @@ int_Array vect;
 main()
 {
     sStruct Sret, Ssend;
+    fStruct fret;
     int i;
     int fd;
     int eid;
     int total;
     intStruct is;
     testUser *remote = 0;
-
+    float pracF = 0.3945;
+    double pracD = 0.3945;
     is.style = 5;
     fd = RPCprocessCreate(&eid, "localhost", "", "server3");
     if (fd < 0) {
@@ -36,7 +38,11 @@ main()
     remote->nullNull();
 
     assert(remote->intNull() == 0);
-
+    assert(remote->doubleDouble(pracD) == pracD);
+    assert(remote->floatFloat(pracF) == pracF);
+    fret.fval = pracF; fret.dval = pracD;
+    fret = remote->fTest(fret);
+    assert((fret.fval == pracF) && (fret.dval == pracD));
     remote->nullStruct(is);
 
     assert(strlen(str1) == remote->intString(str1));

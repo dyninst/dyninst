@@ -14,6 +14,11 @@ $remote typedef struct {
     String name;
 } sStruct;
 
+$remote typedef struct {
+	float fval;
+	double dval;
+} fStruct;
+
 /*
  *
  */
@@ -22,7 +27,10 @@ $remote test {
     $version 1;
     void nullNull();				// a comment
     int intNull();
+    double doubleDouble(double);
+    float floatFloat(float);
     sStruct msTest(sStruct);
+    fStruct fTest(fStruct);
     void nullStruct(intStruct);
     int intString(String);
     $virtual int VintString(String);

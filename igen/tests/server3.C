@@ -39,6 +39,16 @@ int test::intNull()
     return(0);
 }
 
+float test::floatFloat(float f)
+{
+    return(f);
+}
+
+double test::doubleDouble(double d)
+{
+    return(d);
+}
+
 void test::nullStruct(intStruct s)
 {
     return;
@@ -104,4 +114,9 @@ sStruct test::msTest(sStruct input)
     ret.computer = 1;
     ret.name = strdup("happy");
     return ret;
+}
+
+fStruct test::fTest(fStruct input)
+{
+    return input;
 }
