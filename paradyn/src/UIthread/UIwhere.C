@@ -3,9 +3,12 @@
  * code related to displaying the where axes lives here
  */
 /* $Log: UIwhere.C,v $
-/* Revision 1.16  1995/12/01 06:39:03  tamches
-/* removed some warnings (tclclean.h; tkclean.h)
+/* Revision 1.17  1996/08/02 19:08:40  tamches
+/* tclclean.h --> tcl.h
 /*
+ * Revision 1.16  1995/12/01 06:39:03  tamches
+ * removed some warnings (tclclean.h; tkclean.h)
+ *
  * Revision 1.15  1995/11/06 19:26:41  tamches
  * removed some warnings
  *
@@ -75,8 +78,8 @@
  *
  */
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 
 #include "UIglobals.h" // UIM_BatchMode
 #include "dataManager.thread.h"
@@ -110,9 +113,8 @@ void resourceAddedCB (perfStreamHandle,
 //       << " [" << newResource << "] [" << parent << "]" << endl;
 
   const bool inBatchMode = (UIM_BatchMode > 0);
-  if (!inBatchMode) {
+  if (!inBatchMode)
      ui_status->message("receiving where axis item");
-  }
 
   extern abstractions *theAbstractions;
   assert(theAbstractions);

@@ -2,9 +2,12 @@
 // C++ code that provides access to tunable constants from tcl.
 
 /* $Log: tclTunable.C,v $
-/* Revision 1.9  1996/02/07 00:10:52  tamches
-/* yet more proper usage of Tcl_SetResult
+/* Revision 1.10  1996/08/02 19:09:58  tamches
+/* tclclean.h --> tcl.h
 /*
+ * Revision 1.9  1996/02/07 00:10:52  tamches
+ * yet more proper usage of Tcl_SetResult
+ *
  * Revision 1.8  1996/02/05 19:13:56  tamches
  * proper use of Tcl_SetResult fixes a purify problem
  *
@@ -36,8 +39,8 @@
 
 #include <assert.h>
 #include <stdlib.h> // atoi()
-#include <tclclean.h>
-#include <tkclean.h>
+#include "tcl.h"
+#include "tk.h"
 #include "../TCthread/tunableConst.h"
 
 #include "tclTunable.h"
