@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TermWin.C,v 1.3 2004/12/07 20:48:05 tlmiller Exp $
+// $Id: TermWin.C,v 1.4 2005/01/11 22:45:12 legendre Exp $
 #include <signal.h>
 #include "common/h/headers.h"
 #include "visiClients/termWin/src/TermWin.h"
@@ -209,6 +209,8 @@ TermWin::DispatchEvent( thread_t mtid, tag_t mtag )
                         client->isDone = true;
                         P_close(client->sock);
                         msg_unbind(client->tid);
+                        fprintf(stderr, "ERROR: recv from client failed %u\n",num);
+                        ret = true;
                         break;
                     }
                     buffer[num]=0x00;
@@ -252,6 +254,7 @@ TermWin::DispatchEvent( thread_t mtid, tag_t mtag )
     else
     {
         // we expect no other type of input
+        assert(0);
     }
 
     return ret;
