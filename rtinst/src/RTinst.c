@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.29 2000/04/20 22:50:25 mirg Exp $
+ * $Id: RTinst.c,v 1.30 2000/04/27 21:49:23 chambrea Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -1777,18 +1777,35 @@ int DYNINSTTGroup_CreateLocalId(int tgUniqueId)
 /************************************************************************
  *
  ************************************************************************/
-int DYNINSTTGroup_FindUniqueId(unsigned int groupId)
+int DYNINSTTGroup_FindUniqueId(int groupId)
 {
-  unsigned int groupDx = groupId % DYNINSTTagGroupsLimit;
+  int           groupDx;
   DynInstTagSt* tagSt;
 
-  for(tagSt = TagGroupInfo.GroupTable[groupDx]; tagSt != NULL;
-      tagSt = tagSt->Next) {
-    if(tagSt->TagGroupId == groupId) return(tagSt->TGUniqueId);
+  if ( groupId < 0 )
+  {
+    rtUIMsg traceData;
+    sprintf(traceData.msgString,
+            "Invalid group ID %d encountered.", groupId);
+    traceData.errorNum = 116;
+    traceData.msgType = rtWarning;
+    DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),&traceData,
+                               1, 1, 1);
+
+    return(-1);
   }
+  
+  groupDx = groupId % DYNINSTTagGroupsLimit;
+
+  for(tagSt = TagGroupInfo.GroupTable[groupDx]; tagSt != NULL;
+      tagSt = tagSt->Next)
+  {
+    if(tagSt->TagGroupId == groupId)
+        return(tagSt->TGUniqueId);
+  }
+  
   return(-1);
 }
-
 
 int DYNINSTTwoComparesAndedExpr(int arg1, int arg2, int arg3, int arg4)
 {
