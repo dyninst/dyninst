@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.C,v 1.12 2002/04/11 19:30:33 schendel Exp $
+// $Id: superTable.C,v 1.13 2002/04/17 21:18:00 schendel Exp $
 // The superTable class consists of an array of baseTable elements
 // (superVectors) and it represents the ThreadTable in paradynd. For more
 // info, please look at the .h file for this class.
@@ -56,201 +56,178 @@
 superTable::superTable(process *proc,
 		       unsigned maxNumberOfIntCounters,
 		       unsigned maxNumberOfWallTimers,
-#if defined(MT_THREAD)
 		       unsigned maxNumberOfProcTimers,
 		       unsigned i_currMaxNumberOfThreads) :
                        currMaxNumberOfThreads(i_currMaxNumberOfThreads),
-#else
-		       unsigned maxNumberOfProcTimers) : 
-#endif
 		       inferiorProcess(proc)
 {
   // Note: there should only be *one* instance of this class
 
+  if(proc->is_multithreaded()) {
 #if defined(MT_THREAD)
-  maxNumberOfThreads = MAX_NUMBER_OF_THREADS;
-  maxNumberOfLevels = MAX_NUMBER_OF_LEVELS;
-#else
-  maxNumberOfThreads = 1;
-  maxNumberOfLevels = 3;
+    maxNumberOfThreads = MAX_NUMBER_OF_THREADS;
+    maxNumberOfLevels = MAX_NUMBER_OF_LEVELS;
 #endif
+  } else {
+    maxNumberOfThreads = 1;
+    maxNumberOfLevels = 3;
+  }
+
   numberOfCounterLevels = 1;
   numberOfWallTimerLevels = 1;
   numberOfProcTimerLevels = 1;
   numberOfCurrentLevels = numberOfCounterLevels + numberOfWallTimerLevels +
                           numberOfProcTimerLevels;
-#if defined(MT_THREAD)
-  proc->numOfCurrentLevels_is = numberOfCurrentLevels;
-#endif
+  if(proc->is_multithreaded()) {
+    proc->numOfCurrentLevels_is = numberOfCurrentLevels;
+  }
   		                                         
   unsigned nCol, nRow, nElems;
+  if(proc->is_multithreaded()) {
+    nCol = maxNumberOfThreads;
+    nRow = maxNumberOfLevels/numberOfCurrentLevels; 
+    numberOfCurrentThreads = 0;
+    inferiorProcess->numOfCurrentThreads_is = numberOfCurrentThreads;
+
 #if defined(MT_THREAD)
-  nCol = maxNumberOfThreads;
-  nRow = maxNumberOfLevels/numberOfCurrentLevels; 
-  numberOfCurrentThreads = 0;
-  inferiorProcess->numOfCurrentThreads_is = numberOfCurrentThreads;
-
-  proc->threadMap = new hashTable(maxNumberOfThreads,currMaxNumberOfThreads,0);
-  nElems = maxNumberOfIntCounters/(nCol*nRow);
-  theIntCounterSuperTable = new baseTable<intCounterHK, intCounter>(inferiorProcess,currMaxNumberOfThreads,1,0,nElems,0);
-
-  nElems = maxNumberOfWallTimers/(nCol*nRow);
-  theWallTimerSuperTable  = new baseTable<wallTimerHK, tTimer>(inferiorProcess,currMaxNumberOfThreads,1,1,nElems,1);
-
-  nElems = maxNumberOfProcTimers/(nCol*nRow);
-  theProcTimerSuperTable  = new baseTable<processTimerHK, tTimer>(inferiorProcess,currMaxNumberOfThreads,1,2,nElems,2);
-#else
-  nCol = 1;
-  nRow = 1;
-  nElems = (maxNumberOfIntCounters/nCol)/(maxNumberOfLevels/3);
-  theIntCounterSuperTable = new baseTable<intCounterHK, intCounter>(inferiorProcess,nCol,nRow,0,nElems,0);
-  nElems = (maxNumberOfWallTimers/nCol)/(maxNumberOfLevels/3);
-  theWallTimerSuperTable  = new baseTable<wallTimerHK, tTimer>(inferiorProcess,nCol,nRow,1,nElems,1);
-  nElems = (maxNumberOfProcTimers/nCol)/(maxNumberOfLevels/3);
-  theProcTimerSuperTable  = new baseTable<processTimerHK, tTimer>(inferiorProcess,nCol,nRow,2,nElems,2);
+    proc->threadMap = new hashTable(maxNumberOfThreads, 
+				    currMaxNumberOfThreads, 0);
 #endif
+    nElems = maxNumberOfIntCounters/(nCol*nRow);
+    theIntCounterBaseTable = 
+      new baseTable<intCounterHK, intCounter>(inferiorProcess, 
+				      currMaxNumberOfThreads, 1, 0, nElems, 0);
+    
+    nElems = maxNumberOfWallTimers/(nCol*nRow);
+    theWallTimerBaseTable = 
+      new baseTable<wallTimerHK, tTimer>(inferiorProcess,
+				      currMaxNumberOfThreads, 1, 1, nElems, 1);
+
+    nElems = maxNumberOfProcTimers/(nCol*nRow);
+    theProcTimerBaseTable = 
+      new baseTable<processTimerHK, tTimer>(inferiorProcess,
+				      currMaxNumberOfThreads, 1, 2, nElems, 2);
+  } else {
+    nCol = 1;
+    nRow = 1;
+    nElems = (maxNumberOfIntCounters/nCol)/(maxNumberOfLevels/3);
+    theIntCounterBaseTable = new baseTable<intCounterHK, intCounter>(
+				    inferiorProcess, nCol, nRow, 0, nElems, 0);
+    nElems = (maxNumberOfWallTimers/nCol)/(maxNumberOfLevels/3);
+    theWallTimerBaseTable = new baseTable<wallTimerHK, tTimer>(
+                                    inferiorProcess, nCol, nRow, 1, nElems, 1);
+    nElems = (maxNumberOfProcTimers/nCol)/(maxNumberOfLevels/3);
+    theProcTimerBaseTable = new baseTable<processTimerHK, tTimer>(
+				    inferiorProcess, nCol, nRow, 2, nElems, 2);
+  }
 }
 
 superTable::superTable(const superTable &parentSuperTable, process *proc) :
-		       maxNumberOfThreads(parentSuperTable.maxNumberOfThreads),
-		       maxNumberOfLevels(parentSuperTable.maxNumberOfLevels),
-		       numberOfCurrentLevels(parentSuperTable.numberOfCurrentLevels),
-		       numberOfCounterLevels(parentSuperTable.numberOfCounterLevels),
-		       numberOfWallTimerLevels(parentSuperTable.numberOfWallTimerLevels),
-		       numberOfProcTimerLevels(parentSuperTable.numberOfProcTimerLevels),
-#if defined(MT_THREAD)
-		       numberOfCurrentThreads(parentSuperTable.numberOfCurrentThreads),
-		       currMaxNumberOfThreads(parentSuperTable.currMaxNumberOfThreads),
-#endif
-		       inferiorProcess(proc)
+          maxNumberOfThreads(parentSuperTable.maxNumberOfThreads),
+          maxNumberOfLevels(parentSuperTable.maxNumberOfLevels),
+          numberOfCurrentLevels(parentSuperTable.numberOfCurrentLevels),
+          numberOfCounterLevels(parentSuperTable.numberOfCounterLevels),
+          numberOfWallTimerLevels(parentSuperTable.numberOfWallTimerLevels),
+          numberOfProcTimerLevels(parentSuperTable.numberOfProcTimerLevels),
+          numberOfCurrentThreads(parentSuperTable.numberOfCurrentThreads),
+          currMaxNumberOfThreads(parentSuperTable.currMaxNumberOfThreads),
+          inferiorProcess(proc)
 {
+  if(proc->is_multithreaded()) {
 #if defined(MT_THREAD)
-  proc->threadMap = new hashTable(parentSuperTable.inferiorProcess->threadMap);
+    proc->threadMap = 
+      new hashTable(parentSuperTable.inferiorProcess->threadMap);
 #endif
-  theIntCounterSuperTable = new baseTable<intCounterHK, intCounter>(parentSuperTable.theIntCounterSuperTable,inferiorProcess);
-  theWallTimerSuperTable  = new baseTable<wallTimerHK, tTimer>(parentSuperTable.theWallTimerSuperTable,inferiorProcess);
-  theProcTimerSuperTable  = new baseTable<processTimerHK, tTimer>(parentSuperTable.theProcTimerSuperTable,inferiorProcess);
+  }
+  theIntCounterBaseTable = new baseTable<intCounterHK, intCounter>(
+			          parentSuperTable.theIntCounterBaseTable,
+				  inferiorProcess);
+  theWallTimerBaseTable  = new baseTable<wallTimerHK, tTimer>(
+                                  parentSuperTable.theWallTimerBaseTable,
+				  inferiorProcess);
+  theProcTimerBaseTable  = new baseTable<processTimerHK, tTimer>(
+                                  parentSuperTable.theProcTimerBaseTable,
+				  inferiorProcess);
 }
 
 superTable::~superTable() 
 {
-  delete theIntCounterSuperTable;
-  delete theWallTimerSuperTable;
-  delete theProcTimerSuperTable;
+  delete theIntCounterBaseTable;
+  delete theWallTimerBaseTable;
+  delete theProcTimerBaseTable;
 }
 
 bool superTable::allocIntCounter(const intCounter &iRawValue,
 				 const intCounterHK &iHouseKeepingValue,
-				 unsigned &allocatedIndex,
-				 unsigned &allocatedLevel,
+				 unsigned *allocatedIndex,
+				 unsigned *allocatedLevel,
 				 bool doNotSample, int thr_pos)
 {
-#if defined(MT_THREAD)
-#if defined(TEST_DEL_DEBUG)
-  if (allocatedIndex != UI32_MAX && allocatedLevel!=UI32_MAX) {
-    sprintf(errorLine,"=====> in allocIntCounter, re-using index=%d, level=%d",allocatedIndex,allocatedLevel);
-  } else {
-    sprintf(errorLine,"=====> in allocIntCounter, not-reusing index and level");
-  }
-  cerr << errorLine << endl;;
-#endif
-
-  if (!theIntCounterSuperTable->alloc(thr_pos, iRawValue,iHouseKeepingValue,
-				      allocatedIndex,
-				      allocatedLevel,doNotSample))
-#else
-  if (!theIntCounterSuperTable->alloc(iRawValue,iHouseKeepingValue,allocatedIndex,
-				      allocatedLevel,doNotSample))
-#endif
+  if (!theIntCounterBaseTable->alloc(thr_pos, iRawValue,iHouseKeepingValue,
+				     allocatedIndex, allocatedLevel,
+				     doNotSample))
   {
     if (numberOfCurrentLevels+1 <= maxNumberOfLevels) numberOfCurrentLevels++;
     else return(false);
     numberOfCounterLevels++;
-#if defined(MT_THREAD)
+
     inferiorProcess->numOfCurrentLevels_is++;
-    theIntCounterSuperTable->addRows(numberOfCurrentLevels-1,1);
-    bool ret = (theIntCounterSuperTable->alloc(thr_pos,iRawValue,iHouseKeepingValue,
-					  allocatedIndex,
-				          allocatedLevel,doNotSample));
-    return ret ;
-#else
-    theIntCounterSuperTable->addRows(numberOfCurrentLevels,1);
-    return(theIntCounterSuperTable->alloc(iRawValue,iHouseKeepingValue,allocatedIndex,
-                                          allocatedLevel,doNotSample));
-#endif
+    if(inferiorProcess->is_multithreaded()) {
+      theIntCounterBaseTable->addRows(numberOfCurrentLevels-1, 1);
+    } else {
+      theIntCounterBaseTable->addRows(numberOfCurrentLevels, 1);
+    }
+    bool ret = (theIntCounterBaseTable->alloc(thr_pos,iRawValue,
+				            iHouseKeepingValue, allocatedIndex,
+					    allocatedLevel, doNotSample));
+    return ret;
   }
-  else  return(true);
+  else return true;
 }
 
 bool superTable::allocWallTimer(const tTimer &iRawValue,
 				const wallTimerHK &iHouseKeepingValue,
-				unsigned &allocatedIndex,
-				unsigned &allocatedLevel, int thr_pos)
+				unsigned *allocatedIndex,
+				unsigned *allocatedLevel, int thr_pos)
 {
-#if defined(MT_THREAD)
-#if defined(TEST_DEL_DEBUG)
-  if (allocatedIndex != UI32_MAX && allocatedLevel!=UI32_MAX) {
-    sprintf(errorLine,"=====> in allocWallTimer, re-using index=%d, level=%d",allocatedIndex,allocatedLevel);
-  } else {
-    sprintf(errorLine,"=====> in allocWallTimer, not-reusing index and level");
-  }
-  cerr << errorLine <<endl;;
-#endif
-  if (!theWallTimerSuperTable->alloc(thr_pos,iRawValue,iHouseKeepingValue, allocatedIndex,
-#else
-  if (!theWallTimerSuperTable->alloc(iRawValue,iHouseKeepingValue,allocatedIndex,
-#endif
-				     allocatedLevel))
+
+  if(!theWallTimerBaseTable->alloc(thr_pos, iRawValue, iHouseKeepingValue, 
+				   allocatedIndex, allocatedLevel))
   {
     if (numberOfCurrentLevels+1 <= maxNumberOfLevels) numberOfCurrentLevels++;
     else return(false);
     numberOfWallTimerLevels++;
-    theWallTimerSuperTable->addRows(numberOfCurrentLevels,1);
-#if defined(MT_THREAD)
+    theWallTimerBaseTable->addRows(numberOfCurrentLevels, 1);
     inferiorProcess->numOfCurrentLevels_is++;
-    return(theWallTimerSuperTable->alloc(thr_pos,iRawValue,iHouseKeepingValue, allocatedIndex,
-#else
-    return(theWallTimerSuperTable->alloc(iRawValue,iHouseKeepingValue,allocatedIndex,
-#endif
-				         allocatedLevel));
+    return theWallTimerBaseTable->alloc(thr_pos, iRawValue, 
+					iHouseKeepingValue, allocatedIndex,
+					allocatedLevel);
   }
-  else return(true);
+  else return true;
 }
 
 
 bool superTable::allocProcTimer(const tTimer &iRawValue,
 				const processTimerHK &iHouseKeepingValue,
-				unsigned &allocatedIndex,
-				unsigned &allocatedLevel, int thr_pos)
+				unsigned *allocatedIndex,
+				unsigned *allocatedLevel, int thr_pos)
 {
-#if defined(MT_THREAD)
-#if defined(TEST_DEL_DEBUG)
-  if (allocatedIndex != UI32_MAX && allocatedLevel!=UI32_MAX) {
-    sprintf(errorLine,"=====> in allocProcTimer, re-using index=%d, level=%d",allocatedIndex,allocatedLevel);
-  } else {
-    sprintf(errorLine,"=====> in allocProcTimer, not-reusing index and level");
-  }
-  cerr << errorLine << endl;
-#endif
-  if (!theProcTimerSuperTable->alloc(thr_pos,iRawValue,iHouseKeepingValue, allocatedIndex,
-#else
-  if (!theProcTimerSuperTable->alloc(iRawValue,iHouseKeepingValue,allocatedIndex,
-#endif
-				     allocatedLevel))
+  if( !theProcTimerBaseTable->alloc(thr_pos, iRawValue, iHouseKeepingValue, 
+				    allocatedIndex, allocatedLevel))
   {
-    if (numberOfCurrentLevels+1 <= maxNumberOfLevels) numberOfCurrentLevels++;
-    else return(false);
+    if(numberOfCurrentLevels+1 <= maxNumberOfLevels)
+      numberOfCurrentLevels++;
+    else  
+      return false;
+
     numberOfProcTimerLevels++;
-    theProcTimerSuperTable->addRows(numberOfCurrentLevels,1);
-#if defined(MT_THREAD)
+    theProcTimerBaseTable->addRows(numberOfCurrentLevels, 1);
     inferiorProcess->numOfCurrentLevels_is++;
-    return(theProcTimerSuperTable->alloc(thr_pos,iRawValue,iHouseKeepingValue,allocatedIndex,
-#else
-    return(theProcTimerSuperTable->alloc(iRawValue,iHouseKeepingValue,allocatedIndex,
-#endif
-					 allocatedLevel));
+    return theProcTimerBaseTable->alloc(thr_pos, iRawValue,
+					iHouseKeepingValue, allocatedIndex,
+					allocatedLevel);
   }
-  else return(true);
+  else return true;
 }
 
 void superTable::setBaseAddrInApplic(unsigned type, void *addr)
@@ -258,15 +235,15 @@ void superTable::setBaseAddrInApplic(unsigned type, void *addr)
   switch (type) {
     case 0:
       // intCounter
-      theIntCounterSuperTable->setBaseAddrInApplic((intCounter *)addr);
+      theIntCounterBaseTable->setBaseAddrInApplic((intCounter *)addr);
       break;
     case 1:
       // wallTimer
-      theWallTimerSuperTable->setBaseAddrInApplic((tTimer *)addr);
+      theWallTimerBaseTable->setBaseAddrInApplic((tTimer *)addr);
       break;
     case 2:
       // procTimer
-      theProcTimerSuperTable->setBaseAddrInApplic((tTimer *)addr);
+      theProcTimerBaseTable->setBaseAddrInApplic((tTimer *)addr);
       break;
     default:
       assert(0);
@@ -278,23 +255,27 @@ void *superTable::index2LocalAddr(unsigned type,
 				  unsigned allocatedIndex,
 				  unsigned allocatedLevel) const
 {
+  void *ptr = NULL;
   switch (type) {
     case 0:
       // intCounter
-      return(theIntCounterSuperTable->index2LocalAddr(position,allocatedIndex,allocatedLevel));
+      ptr = theIntCounterBaseTable->index2LocalAddr(position, allocatedIndex,
+						      allocatedLevel);
       break;
     case 1:
       // wallTimer
-      return(theWallTimerSuperTable->index2LocalAddr(position,allocatedIndex,allocatedLevel));
+      ptr = theWallTimerBaseTable->index2LocalAddr(position, allocatedIndex,
+						     allocatedLevel);
       break;
     case 2:
       // procTimer
-      return(theProcTimerSuperTable->index2LocalAddr(position,allocatedIndex,allocatedLevel));
+      ptr = theProcTimerBaseTable->index2LocalAddr(position, allocatedIndex,
+						     allocatedLevel);
       break;
     default:
       assert(0);
   }  
-  return ((void*)0);
+  return ptr;
 }
 
 void *superTable::index2InferiorAddr(unsigned type, 
@@ -302,23 +283,27 @@ void *superTable::index2InferiorAddr(unsigned type,
 				     unsigned allocatedIndex,
 				     unsigned allocatedLevel) const
 {
+  void *ptr = NULL;
   switch (type) {
     case 0:
       // intCounter
-      return(theIntCounterSuperTable->index2InferiorAddr(position,allocatedIndex,allocatedLevel));
+      ptr = theIntCounterBaseTable->index2InferiorAddr(position,
+					       allocatedIndex, allocatedLevel);
       break;
     case 1:
       // wallTimer
-      return(theWallTimerSuperTable->index2InferiorAddr(position,allocatedIndex,allocatedLevel));
+      ptr = theWallTimerBaseTable->index2InferiorAddr(position,
+                                               allocatedIndex, allocatedLevel);
       break;
     case 2:
       // procTimer
-      return(theProcTimerSuperTable->index2InferiorAddr(position,allocatedIndex,allocatedLevel));
+      ptr = theProcTimerBaseTable->index2InferiorAddr(position,
+                                               allocatedIndex, allocatedLevel);
       break;
     default:
       assert(0);
   }  
-  return ((void*)0);
+  return ptr;
 }
 
 void *superTable::getHouseKeeping(unsigned type, pdThread *thr,
@@ -326,31 +311,32 @@ void *superTable::getHouseKeeping(unsigned type, pdThread *thr,
 				  unsigned allocatedLevel)
 {
   unsigned pd_pos;
-#if defined(MT_THREAD)
-  pd_pos = thr->get_pd_pos();
-#else
-  pd_pos = 0;
-#endif
+  if(inferiorProcess->is_multithreaded()) {
+    pd_pos = thr->get_pd_pos();
+  } else {
+    pd_pos = 0;
+  }
+  void *ptr = NULL;
   switch (type) {
     case 0:
       // intCounter
-      return(theIntCounterSuperTable->getHouseKeeping(pd_pos, allocatedIndex,
-						      allocatedLevel));
+      ptr = (void*) theIntCounterBaseTable->getHouseKeeping(pd_pos, 
+					       allocatedIndex, allocatedLevel);
       break;
     case 1:
       // wallTimer
-      return(theWallTimerSuperTable->getHouseKeeping(pd_pos, allocatedIndex,
-						     allocatedLevel));
+      ptr = (void*) theWallTimerBaseTable->getHouseKeeping(pd_pos, 
+					       allocatedIndex, allocatedLevel);
       break;
     case 2:
       // procTimer
-      return(theProcTimerSuperTable->getHouseKeeping(pd_pos, allocatedIndex,
-						     allocatedLevel));
+      ptr = (void*) theProcTimerBaseTable->getHouseKeeping(pd_pos, 
+					       allocatedIndex, allocatedLevel);
       break;
     default:
       assert(0);
   }  
-  return ((void*)0);
+  return ptr;
 }
 
 void superTable::makePendingFree(pdThread *thr, unsigned type,
@@ -358,36 +344,29 @@ void superTable::makePendingFree(pdThread *thr, unsigned type,
 				 unsigned allocatedLevel, 
 				 const vector<Address> &trampsUsing)
 {
-  //cerr << "superTable::makePendingFree - type: " << type << ", allocIndex: "
-  //   << allocatedIndex << ", allocLevel: " << allocatedLevel << "\n";
-#if defined(MT_THREAD)
-  assert(thr);
-  unsigned pd_pos = thr->get_pd_pos();
-#endif
+  unsigned pd_pos;
+  if(inferiorProcess->is_multithreaded()) {
+    assert(thr);
+    pd_pos = thr->get_pd_pos();
+  } else {
+    pd_pos = 0;
+  }
   switch (type) {
     case 0:
       // intCounter
-#if defined(MT_THREAD) //are these baseTable
-      theIntCounterSuperTable->makePendingFree(pd_pos,allocatedIndex,allocatedLevel,trampsUsing);
-#else
-      theIntCounterSuperTable->makePendingFree(allocatedIndex,allocatedLevel,trampsUsing);
-#endif
+      theIntCounterBaseTable->makePendingFree(pd_pos, allocatedIndex,
+					      allocatedLevel, trampsUsing);
+
       break;
     case 1:
       // wallTimer
-#if defined(MT_THREAD)
-      theWallTimerSuperTable->makePendingFree(pd_pos,allocatedIndex,allocatedLevel,trampsUsing);
-#else
-      theWallTimerSuperTable->makePendingFree(allocatedIndex,allocatedLevel,trampsUsing);
-#endif
+      theWallTimerBaseTable->makePendingFree(pd_pos, allocatedIndex,
+					     allocatedLevel, trampsUsing);
       break;
     case 2:
       // procTimer
-#if defined(MT_THREAD)
-      theProcTimerSuperTable->makePendingFree(pd_pos,allocatedIndex,allocatedLevel,trampsUsing);
-#else
-      theProcTimerSuperTable->makePendingFree(allocatedIndex,allocatedLevel,trampsUsing);
-#endif
+      theProcTimerBaseTable->makePendingFree(pd_pos, allocatedIndex,
+					     allocatedLevel, trampsUsing);
       break;
     default:
       assert(0);
@@ -397,19 +376,19 @@ void superTable::makePendingFree(pdThread *thr, unsigned type,
 bool superTable::doMajorSample()
 {
   bool ok1, ok2, ok3;
-  ok1 = theIntCounterSuperTable->doMajorSample();
-  ok2 = theWallTimerSuperTable->doMajorSample();
-  ok3 = theProcTimerSuperTable->doMajorSample();
-  return(ok1 && ok2 && ok3);
+  ok1 = theIntCounterBaseTable->doMajorSample();
+  ok2 = theWallTimerBaseTable->doMajorSample();
+  ok3 = theProcTimerBaseTable->doMajorSample();
+  return (ok1 && ok2 && ok3);
 }
 
 bool superTable::doMinorSample()
 {
   bool ok1, ok2, ok3;
-  ok1 = theIntCounterSuperTable->doMinorSample();
-  ok2 = theWallTimerSuperTable->doMinorSample();
-  ok3 = theProcTimerSuperTable->doMinorSample();
-  return(ok1 && ok2 && ok3);
+  ok1 = theIntCounterBaseTable->doMinorSample();
+  ok2 = theWallTimerBaseTable->doMinorSample();
+  ok3 = theProcTimerBaseTable->doMinorSample();
+  return (ok1 && ok2 && ok3);
 }
 
 void superTable::
@@ -417,9 +396,9 @@ initializeHKAfterForkIntCounter(unsigned allocatedIndex,
 				unsigned allocatedLevel,
 				const intCounterHK &iHouseKeepingValue)
 {
-  theIntCounterSuperTable->initializeHKAfterFork(allocatedIndex,
-						 allocatedLevel,
-						 iHouseKeepingValue);
+  theIntCounterBaseTable->initializeHKAfterFork(allocatedIndex,
+						allocatedLevel,
+						iHouseKeepingValue);
 }
 
 void superTable::
@@ -427,9 +406,9 @@ initializeHKAfterForkWallTimer(unsigned allocatedIndex,
 			       unsigned allocatedLevel,
 			       const wallTimerHK &iHouseKeepingValue)
 {
-  theWallTimerSuperTable->initializeHKAfterFork(allocatedIndex,
-					        allocatedLevel,
-					        iHouseKeepingValue);
+  theWallTimerBaseTable->initializeHKAfterFork(allocatedIndex,
+					       allocatedLevel,
+					       iHouseKeepingValue);
 }
 
 void superTable::
@@ -437,40 +416,46 @@ initializeHKAfterForkProcTimer(unsigned allocatedIndex,
 			       unsigned allocatedLevel,
 			       const processTimerHK &iHouseKeepingValue)
 {
-  theProcTimerSuperTable->initializeHKAfterFork(allocatedIndex,
-					        allocatedLevel,
-					        iHouseKeepingValue);
+  theProcTimerBaseTable->initializeHKAfterFork(allocatedIndex,
+					       allocatedLevel,
+					       iHouseKeepingValue);
 }
 
 void superTable::handleExec()
 {
-  theIntCounterSuperTable->handleExec();
-  theWallTimerSuperTable->handleExec();
-  theProcTimerSuperTable->handleExec();
+  theIntCounterBaseTable->handleExec();
+  theWallTimerBaseTable->handleExec();
+  theProcTimerBaseTable->handleExec();
 }
 
 void superTable::forkHasCompleted()
 {
-  theIntCounterSuperTable->forkHasCompleted();
-  theWallTimerSuperTable->forkHasCompleted();
-  theProcTimerSuperTable->forkHasCompleted();
+  theIntCounterBaseTable->forkHasCompleted();
+  theWallTimerBaseTable->forkHasCompleted();
+  theProcTimerBaseTable->forkHasCompleted();
 }
 
-#if defined(MT_THREAD)
 unsigned superTable::getCurrentNumberOfThreads()
 {
-  return(numberOfCurrentThreads);
+  return numberOfCurrentThreads;
 }
 
 bool superTable::increaseMaxNumberOfThreads()
 {
+  assert(inferiorProcess->is_multithreaded());
   unsigned columnsToAdd;
   if (2*currMaxNumberOfThreads < maxNumberOfThreads) {
-    inferiorProcess->threadMap->addToFreeList(currMaxNumberOfThreads,currMaxNumberOfThreads);
+#if defined(MT_THREAD)
+    inferiorProcess->threadMap->addToFreeList(currMaxNumberOfThreads,
+					      currMaxNumberOfThreads);
+#endif
     columnsToAdd = currMaxNumberOfThreads;
     currMaxNumberOfThreads = 2*currMaxNumberOfThreads;
   } else if (currMaxNumberOfThreads < maxNumberOfThreads) {
-    inferiorProcess->threadMap->addToFreeList(currMaxNumberOfThreads,maxNumberOfThreads-currMaxNumberOfThreads);
+#if defined(MT_THREAD)
+    inferiorProcess->threadMap->addToFreeList(currMaxNumberOfThreads,
+			      maxNumberOfThreads - currMaxNumberOfThreads);
+#endif
     columnsToAdd = maxNumberOfThreads-currMaxNumberOfThreads;
     currMaxNumberOfThreads = maxNumberOfThreads;
   } else {
@@ -480,52 +465,54 @@ bool superTable::increaseMaxNumberOfThreads()
   unsigned from, to;
   from = currMaxNumberOfThreads-columnsToAdd;
   to = currMaxNumberOfThreads;
-  theIntCounterSuperTable->addColumns(from,to);
-  theWallTimerSuperTable->addColumns(from,to);
-  theProcTimerSuperTable->addColumns(from,to);  
+  theIntCounterBaseTable->addColumns(from, to);
+  theWallTimerBaseTable->addColumns(from, to);
+  theProcTimerBaseTable->addColumns(from, to);  
   return(true);
 }
 
 void superTable::addThread(pdThread *thr)
 {
+  assert(inferiorProcess->is_multithreaded());
   unsigned pos, pd_pos;
   assert(thr);
   pos = thr->get_pos();
   pd_pos = thr->get_pd_pos();
   numberOfCurrentThreads++;
   inferiorProcess->numOfCurrentThreads_is++;
-#if defined(TEST_DEL_DEBUG)
-  sprintf(errorLine,"=====> allMIComponentsWithThreads size=%d\n",inferiorProcess->allMIComponentsWithThreads.size());
-  logLine(errorLine);
-#endif
+#if defined(MT_THREAD)
   for (unsigned i=0;i<inferiorProcess->allMIComponentsWithThreads.size();i++) {
     processMetFocusNode *mi = inferiorProcess->allMIComponentsWithThreads[i];
     if (mi)  
       mi->addThread(thr); 
   }
+#endif
   // Add the pointers after setting up the instrumentation -- otherwise the
   // thread will start using the counters/timers before they've been cleared.
-  theIntCounterSuperTable->addThread(pos,pd_pos);
-  theWallTimerSuperTable->addThread(pos,pd_pos);
-  theProcTimerSuperTable->addThread(pos,pd_pos);  
+  theIntCounterBaseTable->addThread(pos, pd_pos);
+  theWallTimerBaseTable->addThread(pos, pd_pos);
+  theProcTimerBaseTable->addThread(pos, pd_pos);  
 }
 
 void superTable::deleteThread(pdThread *thr)
 {
+  assert(inferiorProcess->is_multithreaded());
   unsigned pos, pd_pos;
   assert(thr);
   pos = thr->get_pos();
   pd_pos = thr->get_pd_pos();
   numberOfCurrentThreads--;
   inferiorProcess->numOfCurrentThreads_is--;
-  theIntCounterSuperTable->deleteThread(pos,pd_pos);
-  theWallTimerSuperTable->deleteThread(pos,pd_pos);
-  theProcTimerSuperTable->deleteThread(pos,pd_pos);  
+  theIntCounterBaseTable->deleteThread(pos, pd_pos);
+  theWallTimerBaseTable->deleteThread(pos, pd_pos);
+  theProcTimerBaseTable->deleteThread(pos, pd_pos);  
+#if defined(MT_THREAD)
   for (unsigned i=0;i<inferiorProcess->allMIComponentsWithThreads.size();i++) {
     processMetFocusNode *mi = inferiorProcess->allMIComponentsWithThreads[i];
     if (mi) {
       mi->deleteThread(thr);
     }
   }
-}
 #endif
+}
+
