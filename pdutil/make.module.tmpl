@@ -4,7 +4,10 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.1  1995/01/30 18:11:52  jcargill
+# Revision 1.2  1995/02/16 09:21:22  markc
+# Added template support
+#
+# Revision 1.1  1995/01/30  18:11:52  jcargill
 # Major build system reorganization
 #
 #
@@ -12,20 +15,21 @@
 TARGET	      = libutil.a
 TARGET2	      = libutilPVM.a
 
-SRCS	     += ../src/aggregateSample.C \
-		../src/hist.C \
-		../src/lprintf.C \
+SRCS	     += ../src/lprintf.C \
 		../src/rpcUtil.C \
-		../src/stringPool.C \
 		../src/tunableConst.C \
-		../src/templates.C
+		../src/aggregateSample.C \
+		../src/stringPool.C \
+		../src/hist.C \
+		../src/timing.C 
 
-PVMSRCS	     += rpcUtilPVM.C
+OBJS         += lprintf.o rpcUtil.o tunableConst.o aggregateSample.o \
+ 		stringPool.o hist.o timing.o
 
-PVMOBJS	     += rpcUtilPVM.o
+SRCS2	     += rpcUtilPVM.C
+OBJS2	     += rpcUtilPVM.o
 
-all: $(TARGET) $(TARGET2)
+all: $(TARGET) $(TARGET2) 
 
-libutilPVM.a: $(PVMOBJS)
-	@rm -f libutilPVM.a
-	ar crv libutilPVM.a $(PVMOBJS)
+TFLAGS +=  $(USEFULWARNINGS) -DDO_INLINE_F="inline"
+CXXFLAGS = $(TFLAGS) -g
