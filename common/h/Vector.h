@@ -57,7 +57,6 @@ public:
     DO_INLINE_F unsigned         size ()                                       const;
     DO_INLINE_F void           resize (unsigned);
 
-    DO_INLINE_F void       extract(const unsigned index);
 
     DO_INLINE_F void             sort (int (*)(const void *, const void *));
     DO_INLINE_F bool           sorted (int (*)(const void *, const void *))    const;
@@ -227,18 +226,6 @@ vector<T>::resize(unsigned sz) {
 
         sz_ = sz;
     }
-}
-
-template<class T>
-DO_INLINE_F
-void
-vector<T>::extract(const unsigned index) {
-  if (index < (sz_ - 1)) {
-    data_[index] = data_[sz_ - 1];
-  } else if (index >= sz_)
-    return;
-
-  resize(sz_ - 1);
 }
 
 template<class T>
