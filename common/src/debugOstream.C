@@ -135,17 +135,12 @@ debug_ostream &debug_ostream::operator<<(double d) {
    return *this;
 }
 
-#if !defined(i386_unknown_nt4_0) && \
-    !(defined(mips_sgi_irix6_4) && defined(USES_NATIVE_CC))
-debug_ostream &debug_ostream::operator<<(__omanip m) {
-   if (on)
-      actual_ostream << m;
-   return *this;
+debug_ostream& debug_ostream::operator<<( ostream& (*f)(ostream&) )
+{
+    if( on )
+    {
+        actual_ostream << f;
+    }
+    return *this;
 }
-#endif
 
-debug_ostream &debug_ostream::flush() {
-   if (on)
-      actual_ostream.flush();
-   return *this;
-}
