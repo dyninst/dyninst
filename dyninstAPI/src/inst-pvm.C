@@ -3,7 +3,11 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.13  1994/09/22 01:56:17  markc
+ * Revision 1.14  1994/10/21 15:52:25  jcargill
+ * Made PCptrace intf agree with defn in instP.h; cast arg in ptrace call to
+ * agree with Sunos prototype (temporary)
+ *
+ * Revision 1.13  1994/09/22  01:56:17  markc
  * Changed libraryList to List<libraryFunc*>
  * make system includes extern "C"
  *
@@ -55,7 +59,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.13 1994/09/22 01:56:17 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/Attic/inst-pvm.C,v 1.14 1994/10/21 15:52:25 jcargill Exp $";
 
 extern "C" {
 #include <stdio.h>
@@ -145,7 +149,7 @@ int flushPtrace()
  * The performance consultant's ptrace, it calls CM_ptrace and ptrace as needed.
  *
  */
-int PCptrace(ptracereq request, process *proc, void *addr, int data, void *addr2)
+int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
 {
     // TODO - changed from old
     int ret;
@@ -188,7 +192,7 @@ int PCptrace(ptracereq request, process *proc, void *addr, int data, void *addr2
     /* INTERRUPT is pseudo request to stop a process. prev lines do this */
     if (request == PTRACE_INTERRUPT) return(0);
     errno = 0;
-    ret = ptrace(request, proc->pid,(char*) addr, data, (char*) addr2);
+    ret = ptrace((enum ptracereq) request, proc->pid,(char*) addr, data, (char*) addr2);
     assert(errno == 0);
     if ((proc->status != neonatal) && (request != PTRACE_CONT) &&
       (!wasStopped)) {
