@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.28 1998/04/01 02:50:01 wylie Exp $
+# $Id: make.module.tmpl,v 1.29 1998/04/27 20:55:26 wylie Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS)
@@ -52,7 +52,7 @@ SRCS	     +=	../src/pvm_support.C \
 		../src/task_support.C \
 		../src/templatesPVM.C
 
-CXXFLAGS	+= -DPARADYND_PVM -DPOWER_DEBUG
+CXXFLAGS	+= -DPARADYND_PVM
 LIBS		+= $(PVM_LIB)
 endif
 
