@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.C,v 1.7 2002/07/11 19:45:47 bernat Exp $
+// $Id: variableMgr.C,v 1.8 2002/08/12 04:22:11 schendel Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -85,16 +85,32 @@ variableMgr::variableMgr(process *proc, shmMgr *shmMgr_,
 }
 
 // Fork constructor
-/*
-variableMgr::variableMgr(const variableMgr &parentVarMgr, process *proc,
+variableMgr::variableMgr(const variableMgr &par, process *proc,
 			 shmMgr *shmMgr_) :
-          maxNumberOfThreads(parentVarMgr.maxNumberOfThreads),
-          applicProcess(proc),
-	  theShmMgr(*shmMgr_)
+  maxNumberOfThreads(par.maxNumberOfThreads),
+  applicProcess(proc),
+  theShmMgr(*shmMgr_)
 {
-
+  varTables.resize(3);
+  for(unsigned i=0; i<par.varTables.size(); i++) {
+    switch(i) {
+      case Counter:
+	varTables[Counter] = new varTable<intCounterHK>(
+            *dynamic_cast<varTable<intCounterHK>*>(par.varTables[i]), *this);
+	break;
+      case WallTimer:
+	varTables[WallTimer] = new varTable<wallTimerHK>(
+            *dynamic_cast<varTable<wallTimerHK>*>(par.varTables[i]), *this);
+	break;
+      case ProcTimer:
+	varTables[ProcTimer] = new varTable<processTimerHK>(
+            *dynamic_cast<varTable<processTimerHK>*>(par.varTables[i]), *this);
+	break;
+      default:
+	assert(false);
+    }
+  }
 }
-*/
 
 variableMgr::~variableMgr() 
 {
@@ -181,4 +197,8 @@ void variableMgr::deleteThread(pdThread *thr)
     varTables[iter]->deleteThread(thrPos);
 }
 
-
+void variableMgr::initializeVarsAfterFork() {
+  for (unsigned iter = 0; iter < varTables.size(); iter++) {
+    varTables[iter]->initializeVarsAfterFork();
+  }
+}
