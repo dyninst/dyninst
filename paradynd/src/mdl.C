@@ -710,11 +710,7 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
   static bool machine_init= false;
   if (!machine_init) {
     machine_init = true;
-    struct utsname un; 
-    bool aflag;
-    aflag=P_uname(&un);
-    assert(!aflag != -1); 
-    machine = un.nodename;
+    machine = getHostName();
   }
 
   // TODO -- I am assuming that a canonical resource list is
@@ -1461,7 +1457,7 @@ T_dyninstRPC::mdl_list_stmt::mdl_list_stmt(u_int type, string ident,
 T_dyninstRPC::mdl_list_stmt::mdl_list_stmt() { }
 T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt() { delete elements_; }
 
-bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode */*mn*/,
+bool T_dyninstRPC::mdl_list_stmt::apply(metricDefinitionNode * /*mn*/,
 					vector<dataReqNode*>& /*flags*/) {
   bool found = false;
   for (unsigned u0 = 0; u0 < flavor_->size(); u0++) {
@@ -1724,11 +1720,9 @@ bool mdl_init(string& flavor) {
   // mdl_env::add("$procedures", false, MDL_T_LIST_PROCEDURE);
   // mdl_env::add("$modules", false, MDL_T_LIST_MODULE);
 
-  struct utsname unm;
-  if (P_uname(&unm) == -1) assert(0);
   string vname = "$machine";
   mdl_env::add(vname, false, MDL_T_STRING);
-  string nodename = unm.nodename;
+  string nodename = getHostName();
   mdl_env::set(nodename, vname);
 
   /* Are these entered by hand at the new scope ? */

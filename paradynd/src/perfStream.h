@@ -45,6 +45,10 @@
 
 /*
  * $Log: perfStream.h,v $
+ * Revision 1.8  1997/01/21 20:07:53  mjrg
+ * Changed to unix domain socket for trace stream
+ * Replaced calls to uname by calls to libutil function getHostName
+ *
  * Revision 1.7  1996/10/31 09:04:41  tamches
  * removed 2 unused cm5 vrbles
  *
@@ -88,5 +92,6 @@ extern void createResource(traceHeader *header, struct _newresource *r);
 extern void processArchDependentTraceStream();
 extern void processAppIO(process *p);
 extern void processTraceStream(process *p);
+extern string traceSocketPath; /* file path of trace socket */
 
 #endif

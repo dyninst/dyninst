@@ -736,9 +736,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     status_ = neonatal;
     continueAfterNextStop_ = false;
 
-    struct utsname un;
-    P_uname(&un);
-    string buffer = string(pid) + string("_") + string(un.nodename);
+    string buffer = string(pid) + string("_") + getHostName();
     rid = resource::newResource(processResource, // parent
 				(void*)this, // handle
 				nullString, // abstraction
@@ -834,9 +832,7 @@ process::process(int iPid, image *iSymbols
    status_ = neonatal;
    continueAfterNextStop_ = false;
 
-    struct utsname un;
-    P_uname(&un);
-    string buffer = string(pid) + string("_") + string(un.nodename);
+    string buffer = string(pid) + string("_") + getHostName();
     rid = resource::newResource(processResource, // parent
 				(void*)this, // handle
 				nullString, // abstraction
@@ -960,9 +956,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
     pid = iPid; 
 
-    struct utsname un;
-    P_uname(&un);
-    string buffer = string(pid) + string("_") + string(un.nodename);
+    string buffer = string(pid) + string("_") + getHostName();
     rid = resource::newResource(processResource, // parent
 				(void*)this, // handle
 				nullString, // abstraction
@@ -1354,13 +1348,10 @@ tp->resourceBatchMode(true);
 	}
 	P_putenv(paradynInfo);
 
-	/* put the traceSocket address and host address in the environment. 
+	/* put the traceSocketPath in the environment variable PARADYND_TRACE_SOCKET
 	   This will be use by forked processes to get a connection with the daemon
 	*/
-	extern int traceSocket;
-	extern unsigned hostAddr;
-	string paradyndSockInfo = string("PARADYND_TRACE_SOCKET=") + string(traceSocket)
-	                          + string(" ") + string(hostAddr);
+	string paradyndSockInfo = string("PARADYND_TRACE_SOCKET=") + string(traceSocketPath);
 
 	P_putenv(paradyndSockInfo.string_of());
 
@@ -1468,7 +1459,8 @@ bool attachProcess(const string &dir, const string &cmd, int pid) {
 
    attach_cerr << "calling DYNINSTinit with args:" << endl;
 
-   vector<AstNode*> the_args(4);
+   vector<AstNode*> the_args(3);
+
 #ifdef SHM_SAMPLING
    the_args[0] = new AstNode(AstNode::Constant,
 			     (void*)(theProc->getShmKeyUsed()));
@@ -1484,13 +1476,13 @@ bool attachProcess(const string &dir, const string &cmd, int pid) {
    the_args[1] = new AstNode(AstNode::Constant, (void*)0);
 #endif
 
-   extern int traceSocket;
-   the_args[2] = new AstNode(AstNode::Constant, (void*)traceSocket);
-   attach_cerr << traceSocket << endl;
-
-   extern unsigned hostAddr;
-   the_args[3] = new AstNode(AstNode::Constant, (void*)hostAddr);
-   attach_cerr << hostAddr << endl;
+   /*
+      the third argument to DYNINSTinit is the our own pid. It is used
+      by DYNINSTinit to build the socket path to which it connects to.
+      This socket is set up in controllerMainLoop (perfStream.C).
+   */
+   the_args[2] = new AstNode(AstNode::Constant, (void*)getpid());
+   attach_cerr << getpid() << endl;
 
    AstNode *the_ast = new AstNode("DYNINSTinit", the_args);
    for (unsigned i=0;i<the_args.size();i++) removeAst(the_args[i]);
@@ -2794,7 +2786,7 @@ void process::installBootstrapInst() {
    // We build an ast saying: "call DYNINSTinit() with args
    // key_base, nbytes, -1, -1".
 
-   vector<AstNode *> the_args(4);
+   vector<AstNode *> the_args(3);
 
    // 2 dummy args when not shm sampling (just don't use -1, which is reserved
    // for fork)
@@ -2814,7 +2806,6 @@ void process::installBootstrapInst() {
    the_args[0] = new AstNode(AstNode::Constant, (void*)theKey);
    the_args[1] = new AstNode(AstNode::Constant, (void*)numBytes);
    the_args[2] = new AstNode(AstNode::Constant, (void*)-1);
-   the_args[3] = new AstNode(AstNode::Constant, (void*)-1);
 
    AstNode *ast = new AstNode("DYNINSTinit", the_args);
    for (unsigned i=0;i<the_args.size();i++) removeAst(the_args[i]);

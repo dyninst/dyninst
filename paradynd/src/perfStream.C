@@ -78,6 +78,8 @@ extern debug_ostream forkexec_cerr;
 extern debug_ostream metric_cerr;
 extern debug_ostream signal_cerr;
 
+string traceSocketPath; /* file path for trace socket */
+
 void createResource(int pid, traceHeader *header, struct _newresource *r);
 
 bool firstSampleReceived = false;
@@ -798,6 +800,7 @@ void controllerMainLoop(bool check_buffer_first)
     fd_set readSet;
     fd_set errorSet;
     struct timeval pollTime;
+    int traceSocket_fd;
 
     // TODO - i am the guilty party - this will go soon - mdc
 #ifdef PARADYND_PVM
@@ -816,6 +819,43 @@ void controllerMainLoop(bool check_buffer_first)
 //    cerr << "welcome to controllerMainLoop...pid=" << getpid() << endl;
 //    kill(getpid(), SIGSTOP);
 //    cerr << "doing controllerMainLoop..." << endl;
+
+
+    /***
+       set up a socket to be used to create a trace link
+       by inferior processes that are not forked 
+       directly by this daemon.
+       This is a unix domain socket, which is bound to the file
+          <P_tmpdir>/paradynd.<pid>
+       where <P_tmpdir> is a constant defined in stdio.h (usually "/tmp" or
+       "/usr/tmp"), and <pid> is the pid of the paradynd process.
+
+       This socket is currently being used in two cases: when a
+       process forks and when we attach to a running process.  In the
+       fork case, the socket path can be passed in the environment (so
+       any name for the file would be ok), but in the attach case the
+       name is passed as an argument to DYNINSTinit. Since we
+       currently can only pass integer values as arguments, we use the
+       file name paradynd.<pid>, so that we need only to pass the pid
+       as the argument to DYNINSTinit, which can then determine the
+       full file name.
+
+       traceSocket_fd is the file descriptor of a socket, ready to receive
+       connections.
+       It represents a socket created with socket(); listen()
+       In other words, one which we intend to call accept() on.
+       (See perfStream.C -- the call to RPC_getConnect(traceSocket_fd))
+    ***/
+
+    traceSocketPath = string(P_tmpdir) + string("paradynd.") + string(getpid());
+    // unlink it, in case the file was left around from a previous run
+    unlink(traceSocketPath.string_of());
+
+    if (!RPC_setup_socket_un(traceSocket_fd, traceSocketPath.string_of())) {
+      perror("paradynd -- can't setup socket");
+      cleanUpAndExit(-1);
+    }
+
 
     while (1) {
 //        doSignals();
@@ -842,7 +882,6 @@ void controllerMainLoop(bool check_buffer_first)
 	// add traceSocket_fd, which accept()'s new connections (from processes
 	// not launched via createProcess() [process.C], such as when a process
 	// forks, or when we attach to an already-running process).
-	extern int traceSocket_fd;
 	if (traceSocket_fd > 0) FD_SET(traceSocket_fd, &readSet);
 	if (traceSocket_fd > width) width = traceSocket_fd;
 

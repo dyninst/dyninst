@@ -90,9 +90,7 @@ float activeProcessesProc(const metricDefinitionNode *node) {
 
 
 bool init() {
-  struct utsname un;
-  P_uname(&un);
-  string hostName(un.nodename);
+  string hostName = getHostName();
   rootResource = new resource;
   machineRoot = resource::newResource(rootResource, NULL, nullString,
 				      string("Machine"), 0.0, "", MDL_T_STRING);

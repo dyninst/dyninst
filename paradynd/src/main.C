@@ -43,6 +43,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.55  1997/01/21 20:07:47  mjrg
+ * Changed to unix domain socket for trace stream
+ * Replaced calls to uname by calls to libutil function getHostName
+ *
  * Revision 1.54  1997/01/16 22:07:15  tamches
  * moved RPC_undo_arg_list here from util lib
  *
@@ -137,13 +141,9 @@ extern "C" {
 #endif     
 
 
-int traceSocket;
-int traceSocket_fd;
-unsigned hostAddr;
-
 bool pvm_running = false;
 
-static char machine_name[80];
+static string machine_name;
 
 int ready;
 
@@ -185,6 +185,9 @@ void cleanUpAndExit(int status) {
   if (pvm_running)
     PDYN_exit_pvm();
 #endif
+
+  // delete the trace socket file
+  unlink(traceSocketPath.string_of());
 
 #ifdef SHM_SAMPLING_DEBUG
    cerr << "paradynd cleanUpAndExit: deleting all process structures now" << endl;
@@ -298,9 +301,7 @@ int main(int argc, char *argv[]) {
     assert(aflag);
     string flav_arg(string("-z")+ pd_flavor);
     process::arg_list += flav_arg;
-    struct utsname un;
-    P_uname(&un);
-    P_strcpy(machine_name, un.nodename);
+    machine_name = getHostName();
 
     // kill(getpid(),SIGSTOP);
 
@@ -441,43 +442,7 @@ int main(int argc, char *argv[]) {
     }
 
 
-    /* set up a socket to be used to create a trace link
-       by inferior processes that are not forked 
-       directly by this daemon.
-       "traceSocket" is a port num; traceSocket_fd is a socket.
-       They represent a socket created with socket(); listen()
-       In other words, one which we intend to call accept() on.
-       (See perfStream.C -- the call to RPC_getConnect(traceSocket_fd))
-    */
-    traceSocket = RPC_setup_socket(traceSocket_fd, PF_INET, SOCK_STREAM);
-    if (traceSocket < 0) {
-      perror("paradynd -- cannot create socket");
-      cleanUpAndExit(-1);
-    }
-
-    /* get the address of this host to be used by the apllications when 
-       they get a connection. This avoids a load on AIX */
-    struct hostent *hostptr = gethostbyname("localhost");
-    assert(hostptr);
-    struct in_addr *inadr = (struct in_addr *)((void*) hostptr->h_addr_list[0]);
-    hostAddr = inadr->s_addr;
-
     controllerMainLoop(true);
+
 }
 
-#ifdef notdef
-#ifdef PARADYND_PVM
-
-bool
-PDYND_report_to_paradyn (int pid, int argc, char **argv)
-{
-    assert(tp);
-    vector <string> as;
-    for (int i=0; i<argc; i++) 
-      as += argv[i];
-
-    tp->newProgramCallbackFunc(pid, as, machine_name, false);
-    return true;
-}
-#endif
-#endif
