@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.36 2000/03/21 00:49:59 hollings Exp $
+// $Id: test2.C,v 1.37 2000/04/24 02:51:46 wylie Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -56,11 +56,8 @@ bool passedTest[MAX_TEST+1];
 
 BPatch *bpatch;
 
-#if defined(i386_unknown_nt4_0)
-static char *mutateeName = "test2.mutatee_cl.exe";
-#else
-static char *mutateeName = "test2.mutatee_gcc";
-#endif
+static char *mutateeNameRoot = "test2.mutatee";
+char mutateeName[128];
 
 // control debug printf statements
 #define dprintf	if (debugPrint) printf
@@ -639,9 +636,11 @@ main(unsigned int argc, char *argv[])
 {
     BPatch_thread *ret;
 
-    char libname[256];
-    libname[0]='\0';
+    bool N32ABI=false;
+    char libRTname[256];
 
+    strcpy(mutateeName,mutateeNameRoot);
+    libRTname[0]='\0';
 
     unsigned int i;
 
@@ -658,7 +657,7 @@ main(unsigned int argc, char *argv[])
          exit(-1);
 #endif
     } else
-         strcpy((char *)libname, (char *)getenv("DYNINSTAPI_RT_LIB"));
+         strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
 #endif
 
     // by default run all tests
@@ -674,7 +673,8 @@ main(unsigned int argc, char *argv[])
 	    debugPrint = 1;
 	} else if (!strcmp(argv[i], "-V")) {
             fprintf (stdout, "%s\n", V_libdyninstAPI);
-            if (libname[0]) fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libname);
+            if (libRTname[0]) 
+                fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libRTname);
             fflush(stdout);
 	} else if (!strcmp(argv[i], "-attach")) {
 	    useAttach = true;
@@ -716,11 +716,14 @@ main(unsigned int argc, char *argv[])
             }
             i = j-1;
 	} else if (!strcmp(argv[i], "-mutatee")) {
-	    mutateeName = argv[i+1];
 	    i++;
+            if (*argv[i]=='_')
+                strcat(mutateeName,argv[i]);
+            else
+                strcpy(mutateeName,argv[i]);
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {
-	    mutateeName = "test2.mutatee_gcc_n32";
+	    N32ABI=true;
 #endif
 	} else {
 	    fprintf(stderr, "Usage: test2 "
@@ -734,6 +737,22 @@ main(unsigned int argc, char *argv[])
 	    exit(-1);
 	}
     }
+
+    // patch up the default compiler in mutatee name (if necessary)
+    if (!strstr(mutateeName, "_"))
+#if defined(i386_unknown_nt4_0)
+        strcat(mutateeName,"_VC");
+#else
+        strcat(mutateeName,"_gcc");
+#endif
+    if (N32ABI || strstr(mutateeName,"_n32")) {
+        // patch up file names based on alternate ABI (as necessary)
+        if (!strstr(mutateeName, "_n32")) strcat(mutateeName,"_n32");
+    }
+    // patch up the platform-specific filename extensions
+#if defined(i386_unknown_nt4_0)
+    if (!strstr(mutateeName, ".exe")) strcat(mutateeName,".exe");
+#endif
 
     // Create an instance of the BPatch library
     bpatch = new BPatch;

@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.15 1999/11/07 22:44:13 wylie Exp $
+// $Id: test3.C,v 1.16 2000/04/24 02:50:58 wylie Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -45,11 +45,7 @@ template class BPatch_Vector<BPatch_variableExpr*>;
 
 BPatch *bpatch;
 
-#if defined(i386_unknown_nt4_0)
-static char *mutateeName = "test3.mutatee_cl.exe";
-#else
-static char *mutateeName = "test3.mutatee_gcc";
-#endif
+static char *mutateeNameRoot = "test3.mutatee";
 
 // control debug printf statements
 #define dprintf	if (debugPrint) printf
@@ -206,12 +202,17 @@ void mutatorTest1(char *pathname, BPatch *bpatch)
     child_argv[2] = NULL;
     BPatch_thread *appThread1, *appThread2;
 
+    // Start the 1st mutatee
+    dprintf("Starting \"%s\" #1\n", pathname);
     child_argv[1] = "1";		// run test1 in mutatee
     appThread1 = bpatch->createProcess(pathname, child_argv, NULL);
     if (!appThread1) {
 	printf("*ERROR*: unable to create handle1 for executable\n");
         return;
     }
+
+    // Start the 2nd mutatee
+    dprintf("Starting \"%s\" #2\n", pathname);
     child_argv[1] = "1";		// run test1 in mutatee 
     appThread2 = bpatch->createProcess(pathname, child_argv, NULL);
     if (!appThread2) {
@@ -272,6 +273,8 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
     child_argv[2] = NULL;
     BPatch_thread *appThread1, *appThread2;
 
+    // Start the 1st mutatee
+    dprintf("Starting \"%s\" #1\n", pathname);
     child_argv[1] = "2";		// run test2 in mutatee
     appThread1 = bpatch->createProcess(pathname, child_argv, NULL);
     if (!appThread1) {
@@ -279,6 +282,8 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
         return;
     }
     pid1 = appThread1->getPid();
+    // Start the 2nd mutatee
+    dprintf("Starting \"%s\" #2\n", pathname);
     child_argv[1] = "2";		// run test2 in mutatee 
     appThread2 = bpatch->createProcess(pathname, child_argv, NULL);
     if (!appThread2) {
@@ -333,6 +338,8 @@ void mutatorTest3(char *pathname, BPatch *bpatch)
     child_argv[2] = NULL;
     BPatch_thread *appThread1, *appThread2;
 
+    // Start the 1st mutatee
+    dprintf("Starting \"%s\" #1\n", pathname);
     child_argv[1] = "1";		// run test1 in mutatee
     appThread1 = bpatch->createProcess(pathname, child_argv, NULL);
     if (!appThread1) {
@@ -345,6 +352,8 @@ void mutatorTest3(char *pathname, BPatch *bpatch)
     while (!appThread1->isTerminated())
 	bpatch->waitForStatusChange();
 
+    // Start the 2nd mutatee
+    dprintf("Starting \"%s\" #2\n", pathname);
     child_argv[1] = "1";		// run test1 in mutatee 
     appThread2 = bpatch->createProcess(pathname, child_argv, NULL);
     if (!appThread2) {
@@ -375,6 +384,8 @@ void mutatorTest4(char *pathname, BPatch *bpatch)
     child_argv[2] = NULL;
     BPatch_thread *appThread1, *appThread2;
 
+    // Start the 1st mutatee
+    dprintf("Starting \"%s\" #1\n", pathname);
     child_argv[1] = "4";		// run test4 in mutatee
     appThread1 = bpatch->createProcess(pathname, child_argv, NULL);
     if (!appThread1) {
@@ -387,6 +398,8 @@ void mutatorTest4(char *pathname, BPatch *bpatch)
     while (!appThread1->isTerminated())
 	bpatch->waitForStatusChange();
 
+    // Start the 2nd mutatee
+    dprintf("Starting \"%s\" #2\n", pathname);
     child_argv[1] = "4";		// run test4 in mutatee 
     appThread2 = bpatch->createProcess(pathname, child_argv, NULL);
     if (!appThread2) {
@@ -404,10 +417,14 @@ void mutatorTest4(char *pathname, BPatch *bpatch)
 
 int main(unsigned int argc, char *argv[])
 {
-    char libname[256];
+    bool N32ABI=false;
+    char mutateeName[128];
+    char libRTname[256];
     bool runTest[MAX_TEST+1];		// should we run a particular test
 
-    libname[0]='\0';
+    strcpy(mutateeName,mutateeNameRoot);
+    libRTname[0]='\0';
+
 #if !defined(USES_LIBDYNINSTRT_SO)
     fprintf(stderr,"(Expecting subject application to be statically linked"
                         " with libdyninstAPI_RT.)\n");
@@ -421,7 +438,7 @@ int main(unsigned int argc, char *argv[])
          exit(-1);
 #endif
     } else
-         strcpy((char *)libname, (char *)getenv("DYNINSTAPI_RT_LIB"));
+         strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
 #endif
 
     unsigned int i;
@@ -438,7 +455,8 @@ int main(unsigned int argc, char *argv[])
 	    debugPrint = 1;
 	} else if (!strcmp(argv[i], "-V")) {
             fprintf (stdout, "%s\n", V_libdyninstAPI);
-            if (libname[0]) fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libname);
+            if (libRTname[0]) 
+                fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libRTname);
             fflush(stdout);
         } else if (!strcmp(argv[i], "-skip")) {
             unsigned int j;
@@ -477,11 +495,14 @@ int main(unsigned int argc, char *argv[])
 	    }
 	    i=j-1;
 	} else if (!strcmp(argv[i], "-mutatee")) {
-	    mutateeName = argv[i+1];
 	    i++;
+            if (*argv[i]=='_')
+                strcat(mutateeName,argv[i]);
+            else
+                strcpy(mutateeName,argv[i]);
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {
-	    mutateeName = "test3.mutatee_gcc_n32";
+	    N32ABI=true;
 #endif
 	} else {
 	    fprintf(stderr, "Usage: test3 "
@@ -503,6 +524,22 @@ int main(unsigned int argc, char *argv[])
 	}
 	printf("\n");
     }
+
+    // patch up the default compiler in mutatee name (if necessary)
+    if (!strstr(mutateeName, "_"))
+#if defined(i386_unknown_nt4_0)
+        strcat(mutateeName,"_VC");
+#else
+        strcat(mutateeName,"_gcc");
+#endif
+    if (N32ABI || strstr(mutateeName,"_n32")) {
+        // patch up file names based on alternate ABI (as necessary)
+        if (!strstr(mutateeName, "_n32")) strcat(mutateeName,"_n32");
+    }
+    // patch up the platform-specific filename extensions
+#if defined(i386_unknown_nt4_0)
+    if (!strstr(mutateeName, ".exe")) strcat(mutateeName,".exe");
+#endif
 
     // Create an instance of the BPatch library
     bpatch = new BPatch;

@@ -48,15 +48,10 @@ template class BPatch_Vector<BPatch_variableExpr*>;
 
 BPatch *bpatch;
 
-#if defined(i386_unknown_nt4_0)
-char *mutateeName = "test1.mutatee_cl.exe";
-static char *libNameA = "libtestA.dll";
-static char *libNameB = "libtestB.dll";
-#else
-char *mutateeName = "test1.mutatee_gcc";
-static char *libNameA = "libtestA.so";
-static char *libNameB = "libtestB.so";
-#endif
+static char *mutateeNameRoot = "test1.mutatee";
+static char *libNameAroot = "libtestA";
+static char *libNameBroot = "libtestB";
+char libNameA[64], libNameB[64];
 
 // control debug printf statements
 #define dprintf	if (debugPrint) printf
@@ -3381,10 +3376,16 @@ int mutatorMAIN(char *pathname, bool useAttach)
 int
 main(unsigned int argc, char *argv[])
 {
-    char libname[256];
+    char mutateeName[128];
+    char libRTname[256];
+
+    bool N32ABI = false;
     bool useAttach = false;
 
-    libname[0]='\0';
+    strcpy(mutateeName,mutateeNameRoot);
+    strcpy(libNameA,libNameAroot);
+    strcpy(libNameB,libNameBroot);
+    libRTname[0]='\0';
 
 #if !defined(USES_LIBDYNINSTRT_SO)
     fprintf(stderr,"(Expecting subject application to be statically linked"
@@ -3399,7 +3400,7 @@ main(unsigned int argc, char *argv[])
          exit(-1);
 #endif
     } else
-         strcpy((char *)libname, (char *)getenv("DYNINSTAPI_RT_LIB"));
+         strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
 #endif
 
     unsigned int i;
@@ -3416,7 +3417,8 @@ main(unsigned int argc, char *argv[])
 	    debugPrint = 1;
 	} else if (!strcmp(argv[i], "-V")) {
             fprintf (stdout, "%s\n", V_libdyninstAPI);
-            if (libname[0]) fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libname);
+            if (libRTname[0]) 
+                fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libRTname);
             fflush(stdout);
 	} else if (!strcmp(argv[i], "-attach")) {
 	    useAttach = true;
@@ -3458,14 +3460,15 @@ main(unsigned int argc, char *argv[])
             }
             i=j-1;
 	} else if (!strcmp(argv[i], "-mutatee")) {
-	    mutateeName = argv[i+1];
-	    if ( strstr(mutateeName, "_g++") )  runCpp = true;
 	    i++;
+            if (*argv[i]=='_')
+                strcat(mutateeName,argv[i]);
+            else
+                strcpy(mutateeName,argv[i]);
+	    if ( strstr(mutateeName, "_g++") )  runCpp = true;
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {
-	    mutateeName = "test1.mutatee_gcc_n32";
-	    libNameA = "libtestA_n32.so";
-	    libNameB = "libtestB_n32.so";
+            N32ABI = true;
 #endif
 	} else {
 	    fprintf(stderr, "Usage: test1 "
@@ -3488,14 +3491,29 @@ main(unsigned int argc, char *argv[])
 	printf("\n");
     }
 
-
-#if defined(sparc_sun_sunos4_1_3)
-    if (useAttach) {
-        printf("Attach is not supported on this platform.\n");
-        exit(1);
-    }
+    // patch up the default compiler in mutatee name (if necessary)
+    if (!strstr(mutateeName, "_"))
+#if defined(i386_unknown_nt4_0)
+        strcat(mutateeName,"_VC");
+#else
+        strcat(mutateeName,"_gcc");
 #endif
-
+    if (N32ABI || strstr(mutateeName,"_n32")) {
+        // patch up file names based on alternate ABI (as necessary)
+        if (!strstr(mutateeName, "_n32")) strcat(mutateeName,"_n32");
+        strcat(libNameA,"_n32");
+        strcat(libNameB,"_n32");
+    }
+    // patch up the platform-specific filename extensions
+#if defined(i386_unknown_nt4_0)
+    if (!strstr(mutateeName, ".exe")) strcat(mutateeName,".exe");
+    strcat(libNameA,".dll");
+    strcat(libNameB,".dll");
+#else
+    strcat(libNameA,".so");
+    strcat(libNameB,".so");
+#endif
+    
     int exitCode = mutatorMAIN(mutateeName, useAttach);
 
     return exitCode;
