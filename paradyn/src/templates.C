@@ -5,7 +5,11 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.8  1995/02/27 18:40:05  tamches
+ * Revision 1.9  1995/03/15 20:12:22  jcargill
+ * Added instantiation of templates used by TCthread; this caused link
+ * problems only on HPUX for some strange reason.
+ *
+ * Revision 1.8  1995/02/27  18:40:05  tamches
  * Minor changes to reflect new TCthread (tunable constant header
  * files have moved)
  *
@@ -117,6 +121,15 @@ template class List<searchHistoryNode *>;
 template class List<test *>;
 template class List<testResult *>;
 template class List<timeInterval *>;
+
+/* ******************************
+ * TCthread stuff
+ */
+template class dictionary_hash<string, tunableBooleanConstant>;
+template class dictionary_hash<string, tunableFloatConstant>;
+template class vector<tunableFloatConstant>;
+template class vector<tunableBooleanConstant>;
+
 
 /* *************************************
  * UIthread stuff
