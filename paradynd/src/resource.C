@@ -43,6 +43,13 @@
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
+ * Revision 1.26  1997/04/14 20:08:03  zhichen
+ * Added   enum index { machine, procedure, process, sync_object, memory };
+ *         resource *memoryRoot; // shared-memory resource
+ *         resource *memoryResource; // shared-memory resource
+ *         resource *resource::newResource_ncb(...)
+ * changed void resource::make_canonical...)
+ *
  * Revision 1.25  1997/03/29 02:11:06  sec
  * Debugging stuff
  *
@@ -108,6 +115,9 @@ resource *machineResource;
 resource *processResource;
 resource *moduleRoot;
 resource *syncRoot;
+resource *memoryRoot; // shared-memory resource
+resource *memoryResource; // shared-memory resource
+
 
 resource *resource::newResource(resource *parent, const string& name, unsigned id, 
 				unsigned type) {
@@ -168,6 +178,38 @@ resource *resource::newResource(resource *parent, void *handle,
   return(ret);
 }
 
+resource *resource::newResource_ncb(resource *parent, void *handle,
+				const string &abstraction, 
+				const string &name, timeStamp creation,
+				const string &unique,
+				unsigned type)
+{
+  assert (name != (char*) NULL);
+  assert ((name.string_of())[0] != '/');
+
+  string unique_string(name);
+  if (unique.length()) 
+    unique_string += string("{") + unique + string("}");
+
+  string res_string = parent->full_name() + "/" + unique_string;
+
+  // Has this resource already been defined?
+  if (allResources.defines(res_string))
+    return (allResources[res_string]);
+
+  // The components of this resource's name equals that of its parent, plus
+  // the extra level not included with the parent.
+  vector<string> res_components = parent->names();
+  res_components += unique_string;
+
+  resource *ret = new resource(abstraction, unique_string, creation, handle,
+			       false, parent, res_components, type);
+  assert(ret);
+  allResources[res_string] = ret;
+
+  return(ret);
+}
+
 bool resource::foc_to_strings(vector< vector<string> >& string_foc,
 			      const vector<u_int>& ids,
 			      bool print_err_msg) {
@@ -192,8 +234,8 @@ bool resource::foc_to_strings(vector< vector<string> >& string_foc,
 void resource::make_canonical(const vector< vector<string> >& focus,
 			      vector< vector<string> >& ret) {
   unsigned size = focus.size();
-  bool machine=false, procedure=false, process=false, sync=false;
-  ret.resize(4);
+  bool machine=false, procedure=false, process=false, sync=false, memory = false;
+  ret.resize(5); //changed from 4 to 5 Zhichen for resource::memory
   for (unsigned f=0; f<size; f++) {
     assert(focus[f].size() > 0);
     if (focus[f][0] == "Machine") {
@@ -208,6 +250,9 @@ void resource::make_canonical(const vector< vector<string> >& focus,
     } else if (focus[f][0] == "SyncObject") {
       sync = true;
       ret[resource::sync_object] = focus[f];
+    } else if (focus[f][0] == "Memory") {
+      memory = true ;
+      ret[resource::memory] = focus[f] ;
     }
   }
 
@@ -217,4 +262,5 @@ void resource::make_canonical(const vector< vector<string> >& focus,
   if (!procedure) {temp[0]="Code"; ret[resource::procedure] = temp;}
   if (!process) {temp[0]="Process"; ret[resource::process] = temp;}
   if (!sync) {temp[0]="SyncObject"; ret[resource::sync_object] = temp;}
+  if (!memory) {temp[0]="Memory"; ret[resource::memory] = temp; }
 }
