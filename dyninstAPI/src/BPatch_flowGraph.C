@@ -130,13 +130,9 @@ BPatch_flowGraph::BPatch_flowGraph(function_base *func,
       return;
    }
    
-#if !defined(i386_unknown_linux2_0) &&\
-    !defined(i386_unknown_solaris2_5) &&\
-    !defined(i386_unknown_nt4_0) 
-   
+#if ! defined( arch_x86 )
    findAndDeleteUnreachable();
-
-#endif
+#endif /* defined( arch_x86 ) */
 
    // this may be a leaf function - if so, we won't have figure out what
    // the exit blocks are.  But we can assume that all blocks that don't
@@ -429,9 +425,7 @@ BPatch_flowGraph::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 bool BPatch_flowGraph::createBasicBlocks()
 { 
 
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) 
+#if defined( arch_x86 )
  
     pdvector< BPatch_basicBlock* >* blocks	= func->blocks();
     
@@ -450,7 +444,7 @@ bool BPatch_flowGraph::createBasicBlocks()
     
     return true;
 
-#else // x86 linux, x86 solaris, x86 windows
+#else /* [not] defined( arch_x86 ) */
 
    // assign sequential block numbers to basic blocks
    int bno = 0;
@@ -596,6 +590,15 @@ bool BPatch_flowGraph::createBasicBlocks()
             allBlocks += leaderToBlock[taddr];
          }
       }
+      
+      else if( inst.getInstruction()->getType() == IA64_instruction::ALLOC ) {
+        if( ! leaders.contains( pos ) ) { 
+        	/* DEBUG */ fprintf( stderr, "%s[%d]: alloc at 0x%lx is a (new) leader.\n", __FILE__, __LINE__, pos );
+        	leaders += pos;
+        	leaderToBlock[pos] = new BPatch_basicBlock( this, bno++ );
+        	allBlocks += leaderToBlock[pos];
+        	}
+      	} /* end if an alloc instruction */
 #endif
       }
       
@@ -762,7 +765,7 @@ bool BPatch_flowGraph::createBasicBlocks()
    delete[] elements;
          
    return true;
-#endif // x86 linux, x86 solaris, or x86 Windows
+#endif /* defined( arch_x86 ) */
 }
 
 
