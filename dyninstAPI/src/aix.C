@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.92 2002/03/12 18:40:02 jaw Exp $
+// $Id: aix.C,v 1.93 2002/03/14 23:26:34 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -149,22 +149,11 @@ void Frame::getActiveFrame(process *p)
       P_ptrace(PTT_READ_GPRS, lwp_id_, (int *)allRegs, 0, 0); // aix 4.1 likes int *
       // Register 1 is the current stack pointer. It must contain
       // a back chain to the caller's stack pointer.
+      // Note: things like the LR are stored in the "parent's" stack frame.
+      // This allows leaf functions to store the LR, even without a 
+      // stack frame.
       fp_ = allRegs[1];
       if (errno != 0) return;
-      
-      /* Read the first frame from memory.  The first frame pointer is
-	 in the memory location pointed to by $sp.  However, there is no
-	 $pc stored there, it's the place to store a $pc if the current
-	 function makes a call. */
-      /*
-      Frame dummy = getCallerFrame(p);
-      */
-      Address linkarea;
-      p->readDataSpace((void *)fp_, sizeof(linkarea), &linkarea, false);
-      fprintf(stderr, "Returning pc 0x%x, sp 0x%x, and fp 0x%x\n",
-	      (unsigned) sp_, (unsigned) fp_, (unsigned) linkarea);
-      fp_ = linkarea;
-      
     }
     else { // Old behavior, pid-based. 
       pc_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *) IAR, 0, 0); // aix 4.1 likes int *
@@ -173,13 +162,6 @@ void Frame::getActiveFrame(process *p)
       errno = 0;
       fp_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *) STKP, 0, 0); // aix 4.1 likes int *
       if (errno != 0) return;
-      
-      /* Read the first frame from memory.  The first frame pointer is
-	 in the memory location pointed to by $sp.  However, there is no
-	 $pc stored there, it's the place to store a $pc if the current
-	 function makes a call. */
-      Frame dummy = getCallerFrame(p);
-      fp_ = dummy.fp_;
     }
     
 }
@@ -196,14 +178,19 @@ bool process::needToAddALeafFrame(Frame, Address &){
 
 Frame Frame::getCallerFrame(process *p) const
 {
-  struct {
+  typedef struct {
     unsigned oldFp;
     unsigned savedCR;
     unsigned savedLR;
     unsigned compilerInfo;
     unsigned binderInfo;
     unsigned savedTOC;
-  } linkArea;
+  } linkArea_t;
+
+  linkArea_t thisStackFrame;
+  linkArea_t lastStackFrame;
+
+  linkArea_t stackFrame;
 
   Frame ret; // zero frame
 
@@ -218,21 +205,19 @@ Frame Frame::getCallerFrame(process *p) const
     noFrame = func->hasNoStackFrame();
   }
 
-  // DEBUG
-#ifdef DEBUG_STACKWALK
-  if (func) {
-    cerr << "Walking stack in function " << func->prettyName(); 
-    if (isLeaf) cerr << " leaf func...";
-    if (noFrame) cerr << " no stack frame...";
-    cerr << endl;
-  }
-#endif
-  // If we're in a leaf, we don't necessarily have a stack frame
-  // (is there ever a case where we do?) So the LR is in the register,
-  // and the FP's unchanged. If we push back up, 
-  if (!p->readDataSpace((caddr_t)fp_, sizeof(linkArea),
-			(caddr_t)&linkArea, false))
+  // Get current stack frame link area
+  if (!p->readDataSpace((caddr_t)fp_, sizeof(linkArea_t),
+			(caddr_t)&thisStackFrame, false))
     return Frame();
+  p->readDataSpace((caddr_t) thisStackFrame.oldFp, sizeof(linkArea_t),
+		   (caddr_t) &lastStackFrame, false);
+
+  /*
+  if (noFrame)
+    stackFrame = thisStackFrame;
+  else
+  */
+    stackFrame = lastStackFrame;
   
   if (isLeaf) {
     // So:
@@ -257,9 +242,10 @@ Frame Frame::getCallerFrame(process *p) const
       ret.pc_ = P_ptrace(PT_READ_GPR, p->getPid(), (void *)LR, 0, 0);
     }
   }
-  else  // Not a leaf function, grab the LR from the stack
-    ret.pc_ = linkArea.savedLR;
-  
+  else { // Not a leaf function, grab the LR from the stack
+    ret.pc_ = stackFrame.savedLR;
+  }
+
   // If we're in instrumented functions, then the actual LR is stored
   // in the stack in the compilerInfo word. But how can we tell this?
   // Well... if there's an exit tramp at the LR addr, then it's the wrong one.
@@ -267,14 +253,15 @@ Frame Frame::getCallerFrame(process *p) const
     instPoint *exitInst = func->funcExits(p)[0];
     if (p->baseMap.defines(exitInst)) { // should always be true
       if (p->baseMap[exitInst]->baseAddr == ret.pc_) {
-	ret.pc_ = linkArea.compilerInfo;
+	// Again, we might be down one too far stack frames
+	ret.pc_ = stackFrame.compilerInfo;
       }
     }
   }
   if (noFrame) // We never shifted the stack down, so recycle
     ret.fp_ = fp_;
   else
-    ret.fp_ = linkArea.oldFp;
+    ret.fp_ = thisStackFrame.oldFp;
 #ifdef DEBUG_STACKWALK
   fprintf(stderr, "PC %x, FP %x\n", ret.pc_, ret.fp_);
 #endif
@@ -599,6 +586,10 @@ bool process::changePC(Address loc, const void *) {
       return false;
    }
    */
+
+   if (curr_lwp) { // We have a current LWP to use
+     return changePC(loc, NULL, curr_lwp);
+   }
 
    errno = 0;
    P_ptrace(PT_WRITE_GPR, pid, (void *)IAR, loc, 0);
@@ -2033,7 +2024,6 @@ bool process::getLWPIDs(vector <unsigned> &LWPids)
     // Note: it's possible that we're returning a thread in kernel mode, i.e.
     // unptraceable. 
     LWPids.push_back(thrd_buf[i].ti_tid);
-    fprintf(stderr, "Added thread %ld, state %ld\n", thrd_buf[i].ti_tid, thrd_buf[i].ti_state);
   }
   return true;
 }

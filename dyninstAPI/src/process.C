@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.310 2002/03/12 18:40:03 jaw Exp $
+// $Id: process.C,v 1.311 2002/03/14 23:26:35 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -201,11 +201,10 @@ bool waitingPeriodIsOver()
 }
 // Frame(process *): return toplevel (active) stack frame
 // (platform-independent wrapper)
-Frame::Frame(process *p, unsigned curr_lwp)
+Frame::Frame(process *p)
   : uppermost_(true), pc_(0), fp_(0), lwp_id_(0), thread_(NULL)
 {
-  if (curr_lwp) lwp_id_ = curr_lwp;
-  else if (p->curr_lwp) lwp_id_ = p->curr_lwp;
+  if (p->curr_lwp) lwp_id_ = p->curr_lwp;
   getActiveFrame(p);
 }
 
@@ -390,6 +389,7 @@ void process::walkStack(Frame currentFrame, vector<Address> &pcs,
       next_pc = currentFrame.getPC();
       pcs.push_back(next_pc);
       fps.push_back(fpOld);
+      //fprintf(stderr, "   0x%x/0x%x\n", fpOld, next_pc);
 
       // is this pc in the signal_handler function?
       if(signal_handler && (next_pc >= sig_addr)
@@ -876,8 +876,8 @@ bool process::triggeredInStackFrame(instPoint* point, pd_Function* stack_fn,
     }
     else
     {
-      if ( pd_debug_catchup )
-        cerr << "  Requested instrumentation point is not appropriate for catchup, returning false." << endl;
+      //if ( pd_debug_catchup )
+        //cerr << "  Requested instrumentation point is not appropriate for catchup, returning false." << endl;
     }      
 #elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) \
 || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
@@ -1541,15 +1541,8 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
 }
 #endif /* USES_DYNAMIC_INF_HEAP */
 
-#if defined(rs6000_ibm_aix4_1)
-// TODO: resolve unsigned comparison issues
-const Address ADDRESS_LO = ((Address)0x10000000);
-const Address ADDRESS_HI = ((Address)0x7fffffff);
-#else
 const Address ADDRESS_LO = ((Address)0);
 const Address ADDRESS_HI = ((Address)~((Address)0));
-#endif
-
 
 Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type, 
                        Address near_, bool *err)
@@ -1598,9 +1591,13 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
       inferiorMallocDynamic(p, size, lo, hi);
       break;
     case 4: // remove range constraints
+      fprintf(stderr, "Removing address limits: looking for 0x%x near 0x%x. Old constraints: 0x%x - 0x%x\n", 
+	      size, near_, lo, hi);
       lo = ADDRESS_LO;
       hi = ADDRESS_HI;
-      if (err) *err = true;
+      if (err) {
+	*err = true;
+      }
       break;
     case 5: // allocate new segment (1MB, unconstrained)
       inferiorMallocDynamic(p, HEAP_DYN_BUF_SIZE, lo, hi);
@@ -1689,7 +1686,7 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
 	}
 #endif
 #endif
-	
+
   return(h->addr);
 }
 

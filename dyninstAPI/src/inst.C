@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.87 2001/12/06 20:57:48 schendel Exp $
+// $Id: inst.C,v 1.88 2002/03/14 23:26:35 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -269,9 +269,10 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
    					        trampRecursiveDesired, noCost, 
                                                 deferred);
 
-    if (!ret->baseInstance)
+    if (!ret->baseInstance) {
+      cerr << "findAndInstallBaseTramp failed" << endl;
        return(NULL);
-
+    }
 #if defined(MT_DEBUG_ON)
     sprintf(errorLine,"==>BaseTramp is in 0x%lx\n",ret->baseInstance->baseAddr);
     logLine(errorLine);
@@ -360,14 +361,40 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 #else
     inferiorHeapType htype = (proc->splitHeaps) ? (textHeap) : (anyHeap);
 #endif
-    Address near_ = ret->baseInstance->baseAddr;
+    // Let's be intelligent about near_. If we've got any other minitramp,
+    // try and allocate near that one. This is because we use single-instruction
+    // jumps between minis.
+    Address near_;
+#if defined(rs6000_ibm_aix4_1)
+    // On AIX, the branch from base to mini is limitless --
+    // we use a register branch. Mini to mini is limited.
+    // So cluster the minis in their own space.
+    if (!lastAtPoint) // We are the only mini in the chain
+      near_ = 0;
+    else // Other minis. so let's try and get near them
+      if (order == orderLastAtPoint)
+	near_ = lastAtPoint->returnAddr;
+      else // First at point
+	near_ = firstAtPoint->trampBase;
+#else
+    // Non-AIX, old behavior
+    near_ = ret->baseInstance->baseAddr;
+#endif
     bool err = false;
     ret->trampBase = inferiorMalloc(proc, count, htype, near_, &err);
 
-    if (err) return NULL;
+    //fprintf(stderr, "Got %d bytes at 0x%x\n", count, ret->trampBase);
+
+    if (err) {
+      cerr << "Returning inst.C:line 369" << endl;
+      return NULL;
+    }
     assert(ret->trampBase);
 
-    if (!ret->trampBase) return(NULL);
+    if (!ret->trampBase) {
+      cerr << "Returning inst.C:line 375" << endl;
+      return(NULL);
+    }
     trampBytes += count;
     ret->returnAddr += ret->trampBase;
 
@@ -391,6 +418,8 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 #if defined(rs6000_ibm_aix4_1)
 	resetBRL(proc, fromAddr, ret->trampBase);
 #else
+	//fprintf(stderr, "Branch from 0x%x to 0x%x\n",
+	//fromAddr, ret->trampBase);
 	generateBranch(proc, fromAddr, ret->trampBase);
 #endif
 
@@ -399,6 +428,8 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 	resetBR(proc, ret->returnAddr);
 #else
 	Address toAddr = getBaseReturnAddr(proc, ret);
+	//fprintf(stderr, "Branch(2) from 0x%x to 0x%x\n",
+	//fromAddr, ret->trampBase);
 	generateBranch(proc, ret->returnAddr, toAddr);
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.188 2002/03/12 18:40:04 jaw Exp $
+/* $Id: process.h,v 1.189 2002/03/14 23:26:36 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -350,7 +350,7 @@ class Frame {
 
     // process cconstructor (toplevel frame, particular LWP)
     // Non-threaded applications assume LWP id = 0.
-    Frame(process *, unsigned = 0);
+    Frame(process *);
 
     // default ctor (zero frame)
     Frame() : uppermost_(false), pc_(0), fp_(0), lwp_id_(0), thread_(NULL) {}
