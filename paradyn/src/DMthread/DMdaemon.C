@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.141 2003/11/24 17:38:31 schendel Exp $
+ * $Id: DMdaemon.C,v 1.142 2004/03/15 18:05:40 mirg Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -167,18 +167,22 @@ bool paradynDaemon::addRunningProgram (int pid,
         uiMgr->enablePauseOrRun();
     }
     else {
-        // Daemon is handling pause/run, we just need to update our state
         switch(daemon->afterAttach_) {
       case 0:
           // Leave as is... key off the isInitiallyRunning parameter
-          if (isInitiallyRunning)
-              uiMgr->enablePauseOrRun();
+          if (isInitiallyRunning) {
+	      daemon->continueProcess(pid);
+	      applicationState = appRunning;
+	      performanceStream::notifyAllChange(appRunning);
+	  }
           break;
       case 1:
           break;
       case 2:
           // Run
-          uiMgr->enablePauseOrRun();
+	  daemon->continueProcess(pid);
+	  applicationState = appRunning;
+	  performanceStream::notifyAllChange(appRunning);
           break;
         }
     }
