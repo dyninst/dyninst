@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.22 2000/02/18 20:41:48 bernat Exp $
+ * $Id: RTinst.c,v 1.23 2000/02/18 20:59:30 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -401,7 +401,7 @@ DYNINSTstopWallTimer(tTimer* timer) {
 
     if (timer->counter == 0)
       /* a strange condition; should we make it an assert fail? */
-      walltime_printf("Timer counter 0 in stopWallTimer\n");
+      fprintf(stderr, "Timer counter 0 in stopWallTimer\n");
     else if (--timer->counter == 0) {
        const time64 now = DYNINSTgetWalltime();
 
