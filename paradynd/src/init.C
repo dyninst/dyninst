@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.10  1995/09/26 20:28:46  naim
+ * Revision 1.11  1995/11/13 14:56:31  naim
+ * Making all internal metrics "developer mode" metrics - naim
+ *
+ * Revision 1.10  1995/09/26  20:28:46  naim
  * Minor warning fixes and some other minor error messages fixes
  *
  * Revision 1.9  1995/07/24  03:52:34  tamches
@@ -51,7 +54,8 @@ internalMetric *activeProcs = NULL;
 internalMetric *pauseTime = NULL;
 internalMetric *totalPredictedCost= NULL;
 internalMetric *hybridPredictedCost = NULL;
-internalMetric *activeSlots = NULL;
+internalMetric *observed_cost = NULL;
+//internalMetric *activeSlots = NULL;
 
 internalMetric *cpu_daemon = NULL;
 internalMetric *sys_daemon = NULL;
@@ -106,126 +110,150 @@ bool init() {
   obs_cost_preds.process = pred_null;
   obs_cost_preds.sync = pred_invalid;
 
-    
-  activeProcs = internalMetric::newInternalMetric("active_processes",
-						  EventCounter,
-						  aggSum,
-						  "Processes",
-						  NULL,
-						  obs_cost_preds);
-
-  pauseTime = internalMetric::newInternalMetric("pause_time", 
-						EventCounter,
-						aggMax, 
-						"% Time",
-						computePauseTimeMetric,
-						default_im_preds);
-
-  totalPredictedCost = internalMetric::newInternalMetric("predicted_cost", 
+  totalPredictedCost = internalMetric::newInternalMetric("predicted_cost",
 							 EventCounter,
-							 aggMax,
+					                 aggMax,	
 							 "Wasted CPUs",
 							 NULL,
-							 default_im_preds);
+							 default_im_preds,
+							 true);
 
   hybridPredictedCost = internalMetric::newInternalMetric("hybrid_cost", 
 							  SampledFunction,
 							  aggMax,
 							  "Wasted CPUs",
 							  NULL,
-							  default_im_preds);
+							  default_im_preds,
+							  true);
 
-  activeSlots = internalMetric::newInternalMetric("active_slots", 
-						  SampledFunction,
-						  aggSum,
-						  "Number",
-						  NULL,
-						  default_im_preds);
+  observed_cost = internalMetric::newInternalMetric("observed_cost",
+						   EventCounter,
+						   aggMax,
+						   "Wasted CPUs",
+						   NULL,
+						   default_im_preds,
+						   true);
+
+//  activeSlots = internalMetric::newInternalMetric("active_slots", 
+//						  SampledFunction,
+//						  aggSum,
+//						  "Number",
+//						  NULL,
+//						  default_im_preds,
+//						  true);
 
   cpu_daemon = internalMetric::newInternalMetric("cpu_daemon",
 						 EventCounter,
 						 aggSum,
 						 "Seconds",
 						 OS::compute_rusage_cpu,
-						 default_im_preds);
+						 default_im_preds,
+						 true);
   
   sys_daemon = internalMetric::newInternalMetric("sys_daemon",
 						 EventCounter,
 						 aggSum,
 						 "Seconds",
 						 OS::compute_rusage_sys,
-						 default_im_preds);
+						 default_im_preds,
+						 true);
 
   minflt_daemon = internalMetric::newInternalMetric("min_fault_daemon",
 						    EventCounter,
 						    aggSum,
 						    "Seconds",
 						    OS::compute_rusage_min,
-						    default_im_preds);
+						    default_im_preds,
+						    true);
 
   majflt_daemon = internalMetric::newInternalMetric("maj_fault_daemon",
 						    EventCounter,
 						    aggSum,
 						    "Seconds",
 						    OS::compute_rusage_maj,
-						    default_im_preds);
+						    default_im_preds,
+						    true);
 
   swap_daemon = internalMetric::newInternalMetric("swap_daemon",
 						  EventCounter,
 						  aggSum,
 						  "Seconds",
 						  OS::compute_rusage_swap,
-						  default_im_preds);
+						  default_im_preds,
+						  true);
 
   io_in_daemon = internalMetric::newInternalMetric("io_in_daemon",
 						   EventCounter,
 						   aggSum,
 						   "Seconds",
 						   OS::compute_rusage_io_in,
-						   default_im_preds);
+						   default_im_preds,
+						   true);
 
   io_out_daemon = internalMetric::newInternalMetric("io_out_daemon",
 						    EventCounter,
 						    aggSum,
 						    "Seconds",
 						    OS::compute_rusage_io_out,
-						    default_im_preds);
+						    default_im_preds,
+						    true);
 
   msg_send_daemon = internalMetric::newInternalMetric("msg_send_daemon",
-						      EventCounter,
-						      aggSum,
-						      "Seconds",
-						      OS::compute_rusage_msg_send,
-						      default_im_preds);
+						    EventCounter,
+						    aggSum,
+						    "Seconds",
+						    OS::compute_rusage_msg_send,
+						    default_im_preds,
+						    true);
 
   msg_recv_daemon = internalMetric::newInternalMetric("msg_recv_daemon",
-						      EventCounter,
-						      aggSum,
-						      "Seconds",
-						      OS::compute_rusage_msg_recv,
-						      default_im_preds);
+						    EventCounter,
+						    aggSum,
+						    "Seconds",
+						    OS::compute_rusage_msg_recv,
+						    default_im_preds,
+						    true);
 
   sigs_daemon = internalMetric::newInternalMetric("signals_daemon",
 						  EventCounter,
 						  aggSum,
 						  "Seconds",
 						  OS::compute_rusage_sigs,
-						  default_im_preds);
+						  default_im_preds,
+						  true);
 
   vol_csw_daemon = internalMetric::newInternalMetric("vol_csw_daemon",
 						     EventCounter,
 						     aggSum,
 						     "Seconds",
 						     OS::compute_rusage_vol_cs,
-						     default_im_preds);
+						     default_im_preds,
+						     true);
 
   inv_csw_daemon = internalMetric::newInternalMetric("inv_csw_daemon",
 						     EventCounter,
 						     aggSum,
 						     "Seconds",
 						     OS::compute_rusage_inv_cs,
-						     default_im_preds);
-  
+						     default_im_preds,
+						     true);
+ 
+   pauseTime = internalMetric::newInternalMetric("pause_time",
+						 EventCounter,
+						 aggMax,
+						 "% Time",
+						 computePauseTimeMetric,
+						 default_im_preds,
+						 true);
+
+  activeProcs = internalMetric::newInternalMetric("active_processes",
+						  EventCounter,
+						  aggSum,
+						  "Processes",
+						  NULL,
+						  obs_cost_preds,
+						  true);
+
   sym_data sd;
   sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
   sd.name = EXIT_NAME; sd.must_find = true; syms_to_find += sd;
