@@ -26,7 +26,12 @@ class mailbox {
   public:
     mailbox(thread_t owner);
     virtual ~mailbox();
-
+    
+    static void dump_mailboxes();
+    void dump();
+    void dump_meta();
+    virtual void dump_state();
+    
     /* mailbox::for_thread() returns the appropriate mailbox for tid */
     static mailbox* for_thread(thread_t tid);
 

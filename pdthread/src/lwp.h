@@ -86,6 +86,8 @@ class lwp : public entity {
     wrapper_arg_t _wrapped_args;
     mailbox *_mail;
 
+    const char* my_name;
+    
   public:
     lwp() : _running(0), _completed(0),
         _joined(0), _reaped(0),
@@ -113,6 +115,7 @@ class lwp : public entity {
     static thread_t get_self();
     static lwp *get_lwp();
     static lwp *get_main(thread_t tid=1);
+    const char* get_name();
     static const char* name(const char* new_name = NULL);
 }; /* end of class lwp */
 

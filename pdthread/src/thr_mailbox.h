@@ -64,7 +64,9 @@ class thr_mailbox : public mailbox {
 
     bool is_sock_bound(PDSOCKET s);
 
-	void clear_ready_sock( PDSOCKET sock );
+    void clear_ready_sock( PDSOCKET sock );
+    
+    virtual void dump_state();
 };
 #endif
 

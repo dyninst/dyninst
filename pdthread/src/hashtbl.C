@@ -12,9 +12,8 @@
 /* Basic fixed-size hash table class, protected by a monitor.  Some important
    restrictions: 
     * if key_t is a pointer type, then keys will be hashed based on
-      their address, not the contents of said address.  To hash on a
-      string, build a hashtbl<char,...,...> and use the
-      put(key_t*,len, value) and get(key_t*,len) methods.
+      their address, not the contents of said address.  To hash on contents, 
+      use the put(key_t,len, value) and get(key_t,len) methods.
     * value_t must be a pointer type.
  */
 
@@ -38,7 +37,7 @@ class hashtbl {
     hashval(key_t key) { return hash((ub1*)&key, sizeof(key)) % HASHTBL_SIZE; }
 
     inline unsigned long 
-    hashval(key_t *keyp, unsigned len) { return hash(keyp, len) %
+    hashval(key_t *keyp, unsigned len) { return hash((ub1*)keyp, len) %
                                              HASHTBL_SIZE; }
 
     inline pair<key_t,value_t>* 
@@ -105,7 +104,7 @@ class hashtbl {
         monitor.unlock();
     }
 
-    void put(key_t* key, value_t value, unsigned len) {
+    void put(key_t key, value_t value, unsigned len) {
         monitor.lock();
         unsigned long index = hashval(key, len);
         pair<key_t,value_t> *start_bucket, *result_bucket;

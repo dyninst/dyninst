@@ -121,11 +121,20 @@ lwp* lwp::get_main(thread_t tid=1) {
 
 const char* lwp::name(const char* new_name) {
     const char* retval = (const char*)pthread_getspecific(lwp::name_key);
-    if(new_name)
+    if(new_name) {
         pthread_setspecific(lwp::name_key, new_name);
+        lwp::get_lwp()->my_name = new_name;
+    }
+    
     return retval;
 }
 
+
+
+
+const char* lwp::get_name() {
+    return my_name;
+}
 
 
     

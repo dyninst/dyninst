@@ -25,3 +25,6 @@ unsigned message::deliver_to(io_entity* ie) {
     return ret;
 }
 
+void message::dump(const char* prefix) {
+    fprintf(stderr, "%stid = %d, tag = %d, size = %d\n", prefix, sender, tag, size);
+}

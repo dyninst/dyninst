@@ -7,8 +7,40 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include "mailbox_defs.h"
+#include "thrtab.h"
+#include "thrtab_entries.h"
 
 refarray<mailbox,1>* mailbox::registry = NULL;
+
+
+void mailbox::dump_mailboxes() {
+    mailbox *cur = NULL;
+    for (int i = 0; i < 256; i++) {
+        (cur = mailbox::for_thread(i));
+      if(cur) cur->dump();
+  }  
+}
+
+void mailbox::dump() {
+    this->dump_meta();
+    this->dump_state();
+}
+
+void mailbox::dump_meta() {
+    entity* e = thrtab::get_entry(owned_by);
+    static const char* noname = "no name";
+    const char* name;
+    if (e && e->gettype() == item_t_thread)
+        name = ((lwp*)e)->get_name();
+    else
+        name = noname;
+        
+    fprintf(stderr, "Mailbox state for thread %d (%s):\n", owned_by, name);
+}
+
+void mailbox::dump_state() {
+    fprintf(stderr, "   base class (mailbox.[Ch]); no state\n");
+}
 
 mailbox* mailbox::for_thread(thread_t tid) {
     return (*registry)[tid];

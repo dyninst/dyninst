@@ -63,6 +63,8 @@ class message {
     inline thread_t from() {
         return sender;
     }
+
+    void dump(const char* prefix);
 };
 
 #endif
