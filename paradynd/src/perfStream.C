@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.113 2000/10/17 17:42:38 schendel Exp $
+// $Id: perfStream.C,v 1.114 2000/11/15 22:57:58 bernat Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -366,21 +366,41 @@ void processTraceStream(process *curr)
 	       {
 		 pd_Function *caller, *callee;
 		 resource *caller_res, *callee_res;
-		 image *symbols;
+		 vector<shared_object *> *sh_objs = NULL;
+		 image *symbols = curr->getImage();
 		 callercalleeStruct *c = (struct callercalleeStruct *) 
 		   ((void*)recordData);
 
 		 //cerr << "DYNAMIC trace record received!!, caller = " << hex 
 		 //   << c->caller << " callee = " << c->callee << dec << endl;
-		 symbols = curr->getImage();
 		 assert(symbols);	
+		 if (curr->isDynamicallyLinked())
+		   sh_objs  = curr->sharedObjects();
+		 // Have to look in main image and (possibly) in shared objects
 		 caller = symbols->findPossiblyRelocatedFunctionIn(c->caller, 
 								   curr);
-		 assert(caller);
+		 if (!caller && sh_objs)
+		   {
+		     for(u_int j=0; j < sh_objs->size(); j++)
+		       {
+			 caller = ((*sh_objs)[j])->getImage()->findPossiblyRelocatedFunctionIn(c->caller,
+											       curr);
+			 if (caller) break;
+		       }
+		   }
+
 		 callee = symbols->findPossiblyRelocatedFunctionIn(c->callee, 
 								   curr);
-
-		 if(!callee){
+		 if (!callee && sh_objs)
+		   {
+		     for(u_int j=0; j < sh_objs->size(); j++)
+		       {
+			 callee = ((*sh_objs)[j])->getImage()->findPossiblyRelocatedFunctionIn(c->callee,
+											       curr);
+			 if (callee) break;
+		       }
+		   }
+		 if(!callee || !caller){
 		   cerr << "callee for addr " << hex << c->callee <<dec
 			<< " not found, caller = " <<
 		     caller->ResourceFullName() << endl;
