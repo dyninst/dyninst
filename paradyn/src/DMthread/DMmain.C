@@ -2,7 +2,12 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.46  1994/09/05 20:03:07  jcargill
+ * Revision 1.47  1994/09/22 00:55:37  markc
+ * Changed "String" to "char*"
+ * Changed arg types for DMsetupSocket
+ * Made createResource() take a const char* rather than char*
+ *
+ * Revision 1.46  1994/09/05  20:03:07  jcargill
  * Better control of PC output through tunable constants.
  *
  * Revision 1.45  1994/08/22  15:58:36  markc
@@ -163,10 +168,10 @@
  */
 #include <assert.h>
 extern "C" {
-#include <math.h>
 double   quiet_nan(int unused);
 #include <malloc.h>
 #include "thread/h/thread.h"
+#include <stdio.h>
 }
 
 #include "util/h/tunableConst.h"
@@ -286,7 +291,7 @@ void performanceStream::callStateFunc(appState state)
 //
 // IO from application processes.
 //
-void dynRPCUser::applicationIO(int pid, int len, String data)
+void dynRPCUser::applicationIO(int pid, int len, char *data)
 {
     char *ptr;
     char *rest;
@@ -300,7 +305,7 @@ void dynRPCUser::applicationIO(int pid, int len, String data)
 	if (pid) {
 	    printf("pid %d:", pid);
 	} else {
-	    printf("paradynd:", pid);
+	    printf("paradynd: %d", pid);
 	}
 	if (extra) {
 	    printf(extra);
@@ -315,7 +320,7 @@ void dynRPCUser::applicationIO(int pid, int len, String data)
     strcpy(extra, rest);
 }
 
-abstractionType parseAbstractionName(String abstraction)
+abstractionType parseAbstractionName(char *abstraction)
 {
   if (!abstraction) return BASE;
   if (strcmp(abstraction,"TCL") == 0) return TCL;
@@ -353,10 +358,10 @@ void dynRPCUser::resourceBatchMode(Boolean onNow)
 // upcalls from remote process.
 //
 void dynRPCUser::resourceInfoCallback(int program,
-				      String parentString,
-				      String newResource,
-				      String name,
-				      String abstraction)
+				      char *parentString,
+				      char *newResource,
+				      char *name,
+				      char *abstraction)
 {
     resource *parent;
     stringHandle iName;
@@ -380,10 +385,10 @@ void dynRPCUser::resourceInfoCallback(int program,
 }
 
 void dynRPCUser::mappingInfoCallback(int program,
-				     String abstraction, 
-				     String type, 
-				     String key,
-				     String value)
+				     char *abstraction, 
+				     char *type, 
+				     char *key,
+				     char *value)
 
 {
 //  List<performanceStream *> curr;
@@ -407,9 +412,9 @@ class uniqueName {
 };
 
 
-String dynRPCUser::getUniqueResource(int program, 
-					   String parentString, 
-					   String newResource)
+char *dynRPCUser::getUniqueResource(int program, 
+				    char *parentString, 
+				    char *newResource)
 {
     uniqueName *ret;
     char newName[80];
@@ -429,7 +434,7 @@ String dynRPCUser::getUniqueResource(int program,
     sprintf(newName, "%s{%d}", newResource, ret->nextId++);
     ptr = resource::names.findAndAdd(newName);
 
-    return((String)ptr);
+    return((char*)ptr);
 }
 
 //
@@ -438,7 +443,7 @@ String dynRPCUser::getUniqueResource(int program,
 void dynRPCUser::newProgramCallbackFunc(int pid,
 					int argc, 
 					String_Array argvString,
-					String machine_name)
+					char *machine_name)
 {
      char **argv;
      paradynDaemon *daemon;
@@ -457,7 +462,8 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
 	printf("paradyn error #1 encountered\n");
 	exit(-1);
     }
-   argv = (char **) malloc (argvString.count);
+   argv = new char*[argvString.count + 1];
+   argv[argvString.count] = NULL;
    if (!argv) {
 	printf(" cannot malloc memory in newProgramCallbackFunc\n");
 	exit(-1);
@@ -558,7 +564,7 @@ paradynDaemon::~paradynDaemon() {
 // reports the information for that paradynd to paradyn
 //
 void 
-dynRPCUser::reportSelf (String m, String p, int pd, int flavor)
+dynRPCUser::reportSelf (char *m, char *p, int pd, int flavor)
 {
   assert(0);
   return;
@@ -581,9 +587,9 @@ void paradynDaemon::handle_error()
 // This must set command, name, machine and flavor fields
 //
 void 
-paradynDaemon::reportSelf (String m, String p, int pd, int flav)
+paradynDaemon::reportSelf (char *m, char *p, int pd, int flav)
 {
-  pid = pd;
+  setPid(pd);
   flavor = flav;
   if (!m || !p) {
     dm->appContext->removeDaemon(this, TRUE);
@@ -606,7 +612,7 @@ paradynDaemon::reportSelf (String m, String p, int pd, int flav)
       dm->appContext->removeDaemon(this, TRUE);
       printf("paradyn daemon reported bad flavor, removed\n");
     }
-    printf("paradyn daemon pid %d reported\n", pid);
+    printf("paradyn daemon pid %d reported\n", getPid());
   }
   return;
 }
@@ -616,18 +622,18 @@ paradynDaemon::reportSelf (String m, String p, int pd, int flav)
 // this socket will allow paradynd's to connect to paradyn for pvm
 //
 static void
-DMsetupSocket (int *sockfd, int *known_sock)
+DMsetupSocket (int &sockfd, int &known_sock)
 {
   // setup "well known" socket for pvm paradynd's to connect to
-  assert ((*known_sock =
-	   RPC_setup_socket (sockfd, AF_INET, SOCK_STREAM)) >= 0);
+  assert ((known_sock =
+	   RPC_setup_socket (&sockfd, AF_INET, SOCK_STREAM)) >= 0);
 
   // this info is needed to create argument list for other paradynds
-  dm->socket = *known_sock;
-  dm->sock_fd = *sockfd;
+  dm->socket = known_sock;
+  dm->sock_fd = sockfd;
 
   // bind fd for this thread
-  msg_bind (*sockfd, TRUE);
+  msg_bind (sockfd, TRUE);
 }
 
 static void
@@ -669,7 +675,7 @@ void *DMmain(void* varg)
 
     // supports argv passed to paradynDaemon
     // new paradynd's may try to connect to well known port
-    DMsetupSocket (&sockfd, &known_sock);
+    DMsetupSocket (sockfd, known_sock);
     dynRPCUser::__wellKnownPortFd__ = sockfd;
 
     paradynDaemon::args =
@@ -687,7 +693,7 @@ void *DMmain(void* varg)
 	if (tag == MSG_TAG_FILE) {
 	  // must be an upcall on something speaking the dynRPC protocol.
 	  for (curr = paradynDaemon::allDaemons; *curr; curr++) {
-	    if ((*curr)->fd == ret) {
+	    if ((*curr)->getFd() == ret) {
 	      (*curr)->awaitResponce(-1);
 	    }
 	  }
@@ -735,7 +741,7 @@ void addMetric(metricInfo info)
 }
 
 
-resource *createResource(resource *p, char *newResource, abstractionType at)
+resource *createResource(resource *p, const char *newResource, abstractionType at)
 {
     resource *ret;
     resource *temp;
@@ -770,25 +776,18 @@ void newSampleRate(float rate)
     }
 }
 
-Boolean daemonEntry::setAll (char *m, char *c, char *n,
-			     char *l, char *d, int f)
+Boolean daemonEntry::setAll (const char *m, const char *c, const char *n,
+			     const char *l, const char *d, int f)
 {
   if (!n || !c)
     return FALSE;
-  if (m)
-    machine = strdup(m);
-  else
-    machine = 0;
-  command = strdup(c);
-  name = strdup(n);
-  if (l)
-    login = strdup(l);
-  else 
-    login = 0;
-  if (d)
-    dir = strdup(d);
-  else
-    dir = 0;
+  freeAll();
+
+  if (m) machine = strdup(m);
+  if (c) command = strdup(c);
+  if (n) name = strdup(n);
+  if (l) login = strdup(l);
+  if (d) dir = strdup(d);
   flavor = f;
 
   return TRUE;
@@ -829,3 +828,6 @@ void daemonEntry::print()
     break;
   }
 }
+
+
+
