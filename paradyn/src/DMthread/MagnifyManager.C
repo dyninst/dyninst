@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: MagnifyManager.C,v 1.4 1999/08/09 05:40:09 csserra Exp $
+// $Id: MagnifyManager.C,v 1.5 2000/01/06 20:21:15 cain Exp $
 
 #include "DMinclude.h"
 #include "MagnifyManager.h"
@@ -49,26 +49,19 @@ vector <resourceHandle>* MagnifyManager::getChildren
     (resource *rh, magnifyType type) {
     CallGraph *cg;
 
-    // default type is original....
-    if (!rh->MagnifyTypeApplies(type)) {
-      type = OriginalSearch;
-    }
+    if(type == OriginalSearch)
+      return rh->getChildren();
 
-    switch(type) {
-	case OriginalSearch:
-#ifdef PCDEBUG
-printf("in getchildren, original magnify type\n");
-#endif
-	    return rh->getChildren();
-	case CallGraphSearch:
-#ifdef PCDEBUG
-printf("in getchildren, CallGraph magnify type\n");
-#endif
-	    cg = CallGraph::FindCallGraph();
-	    assert(cg);
-	    return cg->getChildren(rh);
-	default:
-	    assert(false);
+    assert(type == CallGraphSearch);
+
+    //It doesn't make sense to expand the call graph down all of 
+    //the resource hierarchies.
+    if(!rh->MagnifyTypeApplies(type))
+      return rh->getChildren();
+    else{
+      cg = CallGraph::FindCallGraph();
+      assert(cg);
+      return cg->getChildren(rh);
     }
 
     assert(false);
