@@ -44,7 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.C,v 1.22 2001/02/11 20:03:42 pcroth Exp $ */
+/* $Id: whereAxis.C,v 1.23 2001/02/12 14:53:07 wxd Exp $ */
 
 #include <stdlib.h> // exit()
 
@@ -57,6 +57,7 @@
 #endif
 
 #include "whereAxis.h"
+#include "whereAxisTcl.h"
 
 #ifndef PARADYN
 // only the where axis test program needs this
@@ -64,6 +65,10 @@
 #endif
 
 #include "tkTools.h"
+#include "callGraphs.h"
+
+//modified by wxd
+extern callGraphs *theCallGraphPrograms;
 
 Tk_Font whereAxis::theRootItemFontStruct = NULL;
 Tk_Font whereAxis::theListboxItemFontStruct = NULL;
@@ -521,8 +526,108 @@ void whereAxis::resize(bool currentlyDisplayedAbstraction) {
    }
 }
 
+void whereAxis::map_from_callgraph(const string &select_name,bool ishighlight)
+{
+	unsigned i=0;
+//	cout << select_name << endl;
+   
+   	whereNodePosRawPath theClickPath;
+   	int result = rootPtr->string2Path(theClickPath, consts, string("Code"), NULL, true);
+	if (result == 0)
+	{
+//		cout << "can not find code" <<endl;
+		return;
+	}
+	
+   	// found.  Update cur_ptr.
+   	where4tree<whereAxisRootNode> *cur_ptr = rootPtr;
+   	for (i=0; i < theClickPath.getSize(); i++)
+      		cur_ptr = cur_ptr->getChildTree(theClickPath[i]);
+
+	const char	*select_name_str=select_name.string_of();
+	const char	*file_name_end=P_strchr(select_name_str,'/');
+	if (file_name_end == NULL)
+		return;
+	string	file(select_name_str,file_name_end-select_name_str);
+
+   	result = cur_ptr->string2Path(theClickPath, consts, file, NULL, true);
+	if (result == 0)
+		return;
+
+   	// found.  Update cur_ptr.
+   	cur_ptr = rootPtr;
+   	for (i=0; i < theClickPath.getSize()-1; i++)
+      		cur_ptr = cur_ptr->getChildTree(theClickPath[i]);
+
+	int	file_listboxPixWidth=cur_ptr->getListboxPixWidth();
+	const bool file_allChildrenExpanded = (file_listboxPixWidth == 0);
+
+	const bool file_inListbox= !file_allChildrenExpanded &&
+		  !cur_ptr->getChildIsExpandedFlag(theClickPath.getLastItem());
+      	cur_ptr = cur_ptr->getChildTree(theClickPath.getLastItem());
+
+	const char	*procedure_name_end=select_name_str+select_name.length();
+	string	procedure(file_name_end+1,procedure_name_end-file_name_end-1);
+
+   	result = cur_ptr->string2Path(theClickPath, consts, procedure, NULL, true);
+	if (result == 0)
+		return;
+
+      	if (result==1 && !file_inListbox)
+      		(void)softScrollToEndOfPath(theClickPath);
+   	else {
+      		bool aflag;
+      		aflag = (forciblyScrollToEndOfPath(theClickPath));
+      		// rethinks nominal centerx, resizes scrollbars, etc.
+      		assert(aflag);
+   	}
+
+   	const int overallWindowBorderPix = 0;
+	const int root_centerx = nominal_centerx + horizScrollBarOffset;
+      	// relative (not absolute) coord.  note: horizScrollBarOffset <= 0
+   	const int root_topy = overallWindowBorderPix + vertScrollBarOffset;
+      	// relative (not absolute) coord.  note: vertScrollBarOffset <= 0
+
+   	whereNodeGraphicalPath<whereAxisRootNode> thePath(theClickPath, consts, rootPtr,root_centerx, root_topy);
+
+	switch (thePath.whatDoesPathEndIn()) {
+      		case whereNodeGraphicalPath<whereAxisRootNode>::ExpandedNode:{
+         		lastClickPath = thePath.getPath();
+         		rethinkNavigateMenu();
+
+         		// Now redraw the node in question...(its highlightedness changed)
+         		where4tree<whereAxisRootNode> *ptr = thePath.getLastPathNode(rootPtr);
+        	 	ptr->set_highlight(ishighlight);
+         		ptr->getNodeData().drawAsRoot(consts.theTkWindow,
+				       Tk_WindowId(consts.theTkWindow),
+				       thePath.get_endpath_centerx(),
+				       thePath.get_endpath_topy());
+			break;
+      		}
+      		case whereNodeGraphicalPath<whereAxisRootNode>::ListboxItem:{
+         		lastClickPath = thePath.getPath();
+         		rethinkNavigateMenu();
+
+		         // Now we have to redraw the item in question...(its highlightedness changed)
+         		thePath.getLastPathNode(rootPtr)->set_highlight(ishighlight);
+
+         		thePath.getParentOfLastPathNode(rootPtr)->draw(consts.theTkWindow,
+				consts, Tk_WindowId(consts.theTkWindow),
+				thePath.get_endpath_centerx(),
+				thePath.get_endpath_topy(),
+				false, // not root only
+				true // listbox only
+				);
+         		break;
+		}
+		default: break;
+	}
+
+	initiateWhereAxisRedraw(interp,true);
+}
 void whereAxis::processSingleClick(int x, int y) {
    whereNodeGraphicalPath<whereAxisRootNode> thePath=point2path(x, y);
+
 
    switch (thePath.whatDoesPathEndIn()) {
       case whereNodeGraphicalPath<whereAxisRootNode>::Nothing:
@@ -540,9 +645,13 @@ void whereAxis::processSingleClick(int x, int y) {
 				       Tk_WindowId(consts.theTkWindow),
 				       thePath.get_endpath_centerx(),
 				       thePath.get_endpath_topy());
+
+	 //modified by wxd
+	 bool ishighlight=ptr->isHighlighted();
+	 map_to_CallGraph(lastClickPath,ishighlight);
          return;
       }
-      case whereNodeGraphicalPath<whereAxisRootNode>::ListboxItem:
+      case whereNodeGraphicalPath<whereAxisRootNode>::ListboxItem:{
 //         cout << "click on a listbox item; adjusting NAVIGATE menu..." << endl;
          lastClickPath = thePath.getPath();
          rethinkNavigateMenu();
@@ -557,7 +666,11 @@ void whereAxis::processSingleClick(int x, int y) {
 							false, // not root only
 							true // listbox only
 							);
-         break;
+	 //modified by wxd
+	 bool ishighlight=thePath.getLastPathNode(rootPtr)->isHighlighted();
+	 map_to_CallGraph(lastClickPath,ishighlight);
+         return;
+	}
       case whereNodeGraphicalPath<whereAxisRootNode>::ListboxScrollbarUpArrow:
       case whereNodeGraphicalPath<whereAxisRootNode>::ListboxScrollbarDownArrow:
       case whereNodeGraphicalPath<whereAxisRootNode>::ListboxScrollbarPageup:
@@ -790,6 +903,10 @@ bool whereAxis::processDoubleClick(int x, int y) {
          adjustHorizSBOffset();
          adjustVertSBOffset();
          softScrollToEndOfPath(thePath.getPath());
+
+	 //modified by wxd
+	 bool ishighlight=thePath.getLastPathNode(rootPtr)->isHighlighted();
+	 map_to_CallGraph(lastClickPath,ishighlight);
          return true;
       }
       case whereNodeGraphicalPath<whereAxisRootNode>::ListboxItem: {
@@ -812,6 +929,10 @@ bool whereAxis::processDoubleClick(int x, int y) {
 		      false, // not root only
 		      true // listbox only
 		      );
+
+	 //modified by wxd
+	 bool ishighlight=thePath.getLastPathNode(rootPtr)->isHighlighted();
+	 map_to_CallGraph(lastClickPath,ishighlight);
             return false;
          }
          else {
@@ -1009,7 +1130,8 @@ int whereAxis::find(const string &str) {
       }
 
    // found.  Update beginSearchFromPtr.
-   where4tree<whereAxisRootNode> *beginSearchFromPtr = rootPtr;
+//   where4tree<whereAxisRootNode> *beginSearchFromPtr = rootPtr;
+   beginSearchFromPtr = rootPtr;
    for (unsigned i=0; i < thePath.getSize(); i++)
       beginSearchFromPtr = beginSearchFromPtr->getChildTree(thePath[i]);
 
@@ -1200,4 +1322,22 @@ whereAxis::getSelections(bool &wholeProgram,
 
 void whereAxis::clearSelections() {
    rootPtr->recursiveClearSelections();
+}
+
+void whereAxis::map_to_CallGraph(whereNodePosRawPath &ClickPath,bool ishighlight)
+{
+	if (ClickPath.getSize() != 3)
+		return;
+	where4tree<whereAxisRootNode> *code = rootPtr->getChildTree(ClickPath[0]);
+	if (code->getNodeData().getName() != string("Code"))
+		return;
+
+	where4tree<whereAxisRootNode> *module = code->getChildTree(ClickPath[1]);
+	string module_name=module->getNodeData().getName();
+
+	where4tree<whereAxisRootNode> *function = module->getChildTree(ClickPath[2]);
+	string func_name=function->getNodeData().getName();
+
+	if (theCallGraphPrograms && theCallGraphPrograms->existsCurrent())
+      		theCallGraphPrograms->map_from_WhereAxis(module_name,func_name,ishighlight);
 }
