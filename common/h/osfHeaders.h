@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfHeaders.h,v 1.4 2000/08/20 21:58:21 paradyn Exp $
+// $Id: osfHeaders.h,v 1.5 2003/01/02 19:51:19 schendel Exp $
 
 #if !defined(_osf_headers_h)
 #define _osf_headers_h
@@ -177,6 +177,22 @@ inline int P_ptrace(int req, int pid, void *addr, int data)
 extern int P_rexec(char **ahost, u_short inport, char *user, char *passwd, char *cmd, int *fd2p);
 
 extern int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex, struct timeval *tm);
+
+extern "C" char *cplus_demangle(char *, int);
+/* symbol: is the mangled name
+   prototype:  the unmangled name is saved in this buffer
+   size: specifies the size of the buffer, prototype
+   return 0 for success and non-zero for failure
+*/
+inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size) {
+   char *demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0);
+   if(demangled_sym==NULL || strlen(demangled_sym) >= size)
+      return 1;
+   
+   strcpy(prototype, demangled_sym);
+   free(demangled_sym);
+   return 0;
+}
 
 extern void   P_xdr_destroy(XDR*);
 extern bool_t P_xdr_u_char(XDR*, u_char*);

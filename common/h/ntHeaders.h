@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.10 2001/12/06 18:08:11 bernat Exp $
+// $Id: ntHeaders.h,v 1.11 2003/01/02 19:51:16 schendel Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -202,6 +202,22 @@ inline int P_socket (int NAMESPACE, int STYLE, int PROTOCOL) {
 inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,
 		    struct timeval *tm) {
   return (select(wid, rd, wr, ex, tm));}
+
+extern char *cplus_demangle(char *, int);
+/* symbol: is the mangled name
+   prototype:  the unmangled name is saved in this buffer
+   size: specifies the size of the buffer, prototype
+   return 0 for success and non-zero for failure
+*/
+inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size) {
+   char *demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0);
+   if(demangled_sym==NULL || strlen(demangled_sym) >= size)
+      return 1;
+   
+   strcpy(prototype, demangled_sym);
+   free(demangled_sym);
+   return 0;
+}
 
 #ifndef BPATCH_LIBRARY
 typedef int (*P_xdrproc_t)(XDR*, ...);

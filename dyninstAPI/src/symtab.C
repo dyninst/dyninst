@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.144 2002/12/20 07:49:58 jaw Exp $
+// $Id: symtab.C,v 1.145 2003/01/02 19:51:20 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,12 +74,6 @@ extern pdvector<sym_data> syms_to_find;
 extern debug_ostream sharedobj_cerr;
 
 pdvector<image*> image::allImages;
-
-#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-extern char *cplus_demangle(char *, int);
-#else
-extern "C" char *cplus_demangle(char *, int);
-#endif
 
 string function_base::emptyString("");
 
@@ -177,15 +171,14 @@ bool buildDemangledName(const string &mangled, string &use)
   */
   if(!mangled.prefixed_by("MPI__")) {
     char *tempName = P_strdup(mangled.c_str());
-    char *demangled = cplus_demangle(tempName, 0);
+    char demangled[1000];
+    int result = P_cplus_demangle(tempName, demangled, 1000);
     
-    if (demangled) {
+    if(result==0) {
       use = demangled;
       free(tempName);
-      free(demangled);
       return true;
     } else {
-      free(tempName);
       return false;
     }
   }
@@ -486,18 +479,19 @@ bool image::addAllVariables()
      const Symbol &symInfo = symIter.currval();
 
     if (symInfo.type() == Symbol::PDST_OBJECT) {
-      char *name = cplus_demangle((char *)mangledName.c_str(), 0);
-      const char *unmangledName;
-      if (name) unmangledName = name;
-      else unmangledName = mangledName.c_str();
-      if (varsByPretty.defines(unmangledName)) {
+       char unmangledName[1000];
+       int result = P_cplus_demangle((char*)mangledName.c_str(), unmangledName,
+                                     1000);
+       if(result == 1) {
+          strcpy(unmangledName, mangledName.c_str());
+       }
+       if (varsByPretty.defines(unmangledName)) {
 	  (*(varsByPretty[unmangledName])).push_back(string(mangledName));
-      } else {
+       } else {
 	  pdvector<string> *varEntry = new pdvector<string>;
 	  (*varEntry).push_back(string(mangledName));
 	  varsByPretty[unmangledName] = varEntry;
-      }
-      if (name) free(name);
+       }
     }
   }
 #endif

@@ -234,6 +234,31 @@ inline int P_rexec(char **ahost, u_short inport, char *user,
 		   char *passwd, char *cmd, int *fd2p) {
   return (rexec(ahost, inport, user, passwd, cmd, fd2p));}
 
+#if defined(__GNUC__)
+extern "C" char *cplus_demangle(char *, int);
+#else
+#include <demangle.h>
+#endif
+
+/* symbol: is the mangled name
+   prototype:  the unmangled name is saved in this buffer
+   size: specifies the size of the buffer, prototype
+   return 0 for success and non-zero for failure
+*/
+inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size) {
+#if defined(__GNUC__)
+   char *demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0);
+   if(demangled_sym==NULL || strlen(demangled_sym) >= size)
+      return 1;
+   
+   strcpy(prototype, demangled_sym);
+   free(demangled_sym);
+   return 0;
+#else
+   return cplus_demangle(symbol, prototype, size);
+#endif
+}
+
 inline void   P_xdr_destroy(XDR *x) { xdr_destroy(x);}
 inline bool_t P_xdr_u_char(XDR *x, u_char *uc) { return (xdr_u_char(x, uc));}
 inline bool_t P_xdr_int(XDR *x, int *i) { return (xdr_int(x, i));}
