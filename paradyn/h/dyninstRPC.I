@@ -16,6 +16,10 @@
 
 /*
  * dyninstRPC.I,v
+ *
+ * Revision 1.28  1995/10/13  14:43:55  naim
+ * Revision version update for the showErrorCallback function
+ *
  * Revision 1.27  1995/06/02  20:58:45  newhall
  * made code compatable with new datamanager interface
  * replaced List and HTable container classes with STL containers
