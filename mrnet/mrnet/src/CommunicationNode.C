@@ -1,3 +1,8 @@
+/***********************************************************************
+ * Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.     *
+ **********************************************************************/
+
 #include "mrnet/src/CommunicationNode.h"
 #include "mrnet/src/utils.h"
 

@@ -1,3 +1,8 @@
+/***********************************************************************
+ * Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.     *
+ **********************************************************************/
+
 /*===========================================================*/
 /*             Network Class DEFINITIONS                  */
 /*===========================================================*/
@@ -78,12 +83,13 @@ NetworkImpl::NetworkImpl( const char *_filename,
     // so that we don't build a packet with a pointer into a temporary
     std::string sg_str = sg.get_ByteArray(  );
     const char* mrn_commnode_path = getenv( "MRN_COMM_PATH" );
-    if( mrn_commnode_path == NULL )
-    {
-      mrn_commnode_path = COMMNODE_EXE;
+    if( mrn_commnode_path == NULL ) {
+        mrn_commnode_path = COMMNODE_EXE;
     }
-    Packet packet( 0, PROT_NEW_SUBTREE, "%s%s%s",
-                   sg_str.c_str(  ), mrn_commnode_path, application.c_str(  ) );
+    Packet packet( 0, PROT_NEW_SUBTREE, "%s%s%s", sg_str.c_str( ),
+                   mrn_commnode_path, application.c_str( ) );
+    mrn_printf( 1, MCFL, stderr, "DCA: set packet(%p) destroy data false!\n",
+                &packet);
     if( front_end->proc_newSubTree( packet ) == -1 ) {
         _fail = true;
         return;

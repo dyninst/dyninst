@@ -1,3 +1,8 @@
+/***********************************************************************
+ * Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.     *
+ **********************************************************************/
+
 #if !defined(test_basic_h)
 #define test_basic_h 1
 

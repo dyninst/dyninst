@@ -1,5 +1,10 @@
-#if !defined( MICROBENCH_H )
-#define MICROBENCH_H 1
+/***********************************************************************
+ * Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.     *
+ **********************************************************************/
+
+#if !defined( microbench_h )
+#define microbench_h 1
 
 typedef enum {
     MB_EXIT=MRN::FIRST_APPL_TAG,
@@ -7,4 +12,4 @@ typedef enum {
     MB_RED_THROUGHPUT
 } Protocol;
 
-#endif /* MICROBENCH_H */
+#endif /* microbench_h */

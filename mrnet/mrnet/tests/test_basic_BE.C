@@ -1,3 +1,8 @@
+/***********************************************************************
+ * Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.     *
+ **********************************************************************/
+
 #include "mrnet/h/MRNet.h"
 #include "mrnet/src/Types.h"
 #include "mrnet/tests/test_basic.h"
@@ -153,6 +158,7 @@ int main(int argc, char **argv){
                 fprintf(stderr, "stream::send(%%s) failure\n");
                 success=false;
             }
+            free(recv_string);
             break;
         case PROT_ALL:
             fprintf( stdout, "Processing PROT_ALL ...\n");

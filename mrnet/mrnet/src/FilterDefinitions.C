@@ -1,3 +1,8 @@
+/***********************************************************************
+ * Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.     *
+ **********************************************************************/
+
 #include <map>
 #include <string>
 
@@ -50,7 +55,7 @@ void tfilter_IntSum( const std::vector < Packet >&packets_in,
     
     for( unsigned int i = 0; i < packets_in.size( ); i++ ) {
         Packet cur_packet = packets_in[i];
-        sum += cur_packet[0].get_int32_t( );
+        sum += cur_packet[0]->get_int32_t( );
     }
     
     Packet new_packet( packets_in[0].get_StreamId( ),
@@ -126,7 +131,7 @@ void tfilter_Sum( const std::vector < Packet >&packets_in,
                 return;
             }
         }
-        sum( result, &(cur_packet[0].val.p), result, type );
+        sum( result, &(cur_packet[0]->val.p), result, type );
     }
     
     if( type == FLOAT_T ){
@@ -207,7 +212,7 @@ void tfilter_Max( const std::vector < Packet >&packets_in,
 	      return;
 	    }
 	}
-	max( result, &(cur_packet[0].val.p), result, type );
+	max( result, &(cur_packet[0]->val.p), result, type );
     }
     
     Packet new_packet( packets_in[0].get_StreamId( ),
@@ -278,7 +283,7 @@ void tfilter_Min( const std::vector < Packet >&packets_in,
 	      return;
 	    }
 	}
-	min( result, &(cur_packet[0].val.p), result, type );
+	min( result, &(cur_packet[0]->val.p), result, type );
     }
     
     Packet new_packet( packets_in[0].get_StreamId( ),
@@ -350,8 +355,8 @@ void tfilter_Avg( const std::vector < Packet >&packets_in,
 	      return;
 	    }
 	}
-	sum( result, &(cur_packet[0].val.p), result, type );
-	num_results += cur_packet[1].val.d;
+	sum( result, &(cur_packet[0]->val.p), result, type );
+	num_results += cur_packet[1]->val.d;
     }
     
     div( result, num_results, result, type );
@@ -435,7 +440,7 @@ void tfilter_ArrayConcat( const std::vector < Packet >&packets_in,
 	      return;
 	    }
 	}
-	result_array_size += cur_packet[0].array_len;
+	result_array_size += cur_packet[0]->array_len;
     }
 
     result_array = (char *) malloc( result_array_size * data_size );
@@ -444,9 +449,9 @@ void tfilter_ArrayConcat( const std::vector < Packet >&packets_in,
     for( unsigned int i = 0; i < packets_in.size(); i++ ) {
         Packet cur_packet = packets_in[i];
         memcpy( result_array + pos,
-		cur_packet[0].val.p,
-		cur_packet[0].array_len * data_size );
-	pos += ( cur_packet[0].array_len * data_size );
+		cur_packet[0]->val.p,
+		cur_packet[0]->array_len * data_size );
+	pos += ( cur_packet[0]->array_len * data_size );
     }
     
     Packet new_packet( packets_in[0].get_StreamId( ),
@@ -467,11 +472,11 @@ void tfilter_IntEqClass( const std::vector < Packet >&packets_in,
     for( unsigned int i = 0; i < packets_in.size(); i++ ) {
         Packet cur_packet = packets_in[i];
         unsigned int *vals = ( unsigned int * )
-	  ( cur_packet[0].get_array(&type, &array_len0) );
+	  ( cur_packet[0]->get_array(&type, &array_len0) );
 	unsigned int *memcnts = ( unsigned int * )
-	  ( cur_packet[1].get_array(&type, &array_len1) );
+	  ( cur_packet[1]->get_array(&type, &array_len1) );
 	unsigned int *mems = ( unsigned int * )
-	  ( cur_packet[2].get_array(&type, &array_len2) );
+	  ( cur_packet[2]->get_array(&type, &array_len2) );
 
 	assert( array_len0 == array_len1 );
 	unsigned int curClassMemIdx = 0;
@@ -530,13 +535,13 @@ void tfilter_IntEqClass( const std::vector < Packet >&packets_in,
     for( unsigned int i = 0; i < classes.size(  ); i++ ) {
         mrn_printf( 3, MCFL, stderr,
 		    "\tclass %d: val = %u, nMems = %u, mems = ", i,
-		    ( ( unsigned int * )( packets_out[0][0].val.p) )[i],
-		    ( ( unsigned int * )( packets_out[0][1].val.p) )[i] );
+		    ( ( unsigned int * )( packets_out[0][0]->val.p) )[i],
+		    ( ( unsigned int * )( packets_out[0][1]->val.p) )[i] );
 	for( unsigned int j = 0;
-	     j < ( ( unsigned int * )( packets_out[0][1].val.p ) )[i];
+	     j < ( ( unsigned int * )( packets_out[0][1]->val.p ) )[i];
 	     j++ ) {
 	    mrn_printf( 3, MCFL, stderr, "%d ",
-			( ( unsigned int * )( packets_out[0][2].val.
+			( ( unsigned int * )( packets_out[0][2]->val.
 					      p ) )[curMem] );
 	    curMem++;
 	}

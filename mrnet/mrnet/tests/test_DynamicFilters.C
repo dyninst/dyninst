@@ -1,3 +1,8 @@
+/***********************************************************************
+ * Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.     *
+ **********************************************************************/
+
 #include "mrnet/src/FilterDefinitions.h"
 #include "mrnet/src/Packet.h"
 
@@ -14,8 +19,8 @@ void aggr_Count( std::vector < Packet >&packets_in,
     
     for( unsigned int i = 0; i < packets_in.size(  ); i++ ) {
         Packet cur_packet = packets_in[i];
-        fprintf(stderr, "FFF: Adding %d to sum\n", cur_packet[0].get_int32_t());
-        sum += cur_packet[0].get_int32_t( );
+        fprintf(stderr, "FFF: Adding %d to sum\n", cur_packet[0]->get_int32_t());
+        sum += cur_packet[0]->get_int32_t( );
     }
     
     Packet new_packet ( packets_in[0].get_StreamId(  ),
@@ -32,9 +37,9 @@ void aggr_CountOddsAndEvens( std::vector < Packet >&packets_in,
     
     for( unsigned int i = 0; i < packets_in.size(  ); i++ ) {
         Packet cur_packet = packets_in[i];
-        odd_sum += cur_packet[0].get_int32_t(	);
-        even_sum += cur_packet[1].get_int32_t( );
-        fprintf(stderr, "FFF: Adding %d to even and %d to odd\n", cur_packet[1].get_int32_t(), cur_packet[0].get_int32_t());
+        odd_sum += cur_packet[0]->get_int32_t(	);
+        even_sum += cur_packet[1]->get_int32_t( );
+        fprintf(stderr, "FFF: Adding %d to even and %d to odd\n", cur_packet[1]->get_int32_t(), cur_packet[0]->get_int32_t());
     }
     
     Packet new_packet( packets_in[0].get_StreamId(  ),

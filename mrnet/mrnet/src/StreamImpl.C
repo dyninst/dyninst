@@ -1,3 +1,8 @@
+/***********************************************************************
+ * Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.     *
+ **********************************************************************/
+
 /*===========================================================*/
 /*             StreamImpl CLASS METHOD DEFINITIONS            */
 /*===========================================================*/
@@ -29,7 +34,7 @@ StreamImpl::StreamImpl(CommunicatorImpl *_comm, int _sync_id,
 
     if ( Network::network ){
         const std::vector <EndPoint*> endpoints = communicator->get_EndPoints();
-        int * backends = new int[endpoints.size()];
+        int * backends = new int[ endpoints.size() ];
         unsigned int i;
         
         mrn_printf(4, MCFL, stderr, "Adding backends to stream %d: [ ",
@@ -40,9 +45,9 @@ StreamImpl::StreamImpl(CommunicatorImpl *_comm, int _sync_id,
         }
         mrn_printf(4, 0,0, stderr, "]\n");
 
-        Packet packet(0, PROT_NEW_STREAM, "%d %ad %d %d %d",
-                      stream_id, backends, endpoints.size(),
-                      sync_id, ds_filter_id, us_filter_id);
+        Packet packet( 0, PROT_NEW_STREAM, "%d %ad %d %d %d",
+                       stream_id, backends, endpoints.size(),
+                       sync_id, ds_filter_id, us_filter_id );
         StreamManager * stream_mgr;
         stream_mgr = Network::network->front_end->proc_newStream(packet);
         Network::network->front_end->send_newStream(packet, stream_mgr);

@@ -1,3 +1,8 @@
+/***********************************************************************
+ * Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.     *
+ **********************************************************************/
+
 #if !defined(dataelement_h)
 #define dataelement_h 1
 
@@ -38,19 +43,14 @@ class DataElement{
     DataValue val;
     DataType type;
     uint32_t array_len;
+    bool destroy_data;
 
-    DataElement( ) : type(UNKNOWN_T), array_len(0) { 
+    DataElement( ) : type(UNKNOWN_T), array_len(0), destroy_data(false) { 
         val.uld=0;
     }
-    DataElement( const DataElement & de);
-    DataElement & operator= ( const DataElement &);
-    ~DataElement()
-    {
-        //TODO: array ptrs need to be "deleted" for CTL packets and
-        //      packets the usr sends since the buffer will never be
-        //      used again. array ptrs that result from recv'd data
-        //      packets must be "free()'d" by the user.
-    }
+    ~DataElement();
+
+    void set_DestroyData( bool d ) { destroy_data = d; }
     DataType get_Type( void ) const { return type; }
 
     char get_char( void ) const { return val.c; }

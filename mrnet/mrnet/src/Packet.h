@@ -1,3 +1,8 @@
+/***********************************************************************
+ * Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.     *
+ **********************************************************************/
+
 #if !defined(packet_h)
 #define packet_h 1
 
@@ -21,13 +26,14 @@ class RemoteNode;
 **************************************************************************/
 class PacketData: public Error{
  private:
-    std::vector < DataElement >data_elements;
+    std::vector < DataElement * >data_elements;
     unsigned short stream_id;
     int tag;                /* Application/Protocol Level ID */
     char *src;              /* Null Terminated String */
     char *fmt_str;          /* Null Terminated String */
     char *buf;              /* The entire packed buffer (header+payload)! */
     unsigned int buf_len;
+    bool destroy_data;
 
     RemoteNode *inlet_node;
 
@@ -88,20 +94,24 @@ class PacketData: public Error{
         return data_elements.size(  );
     }
 
-    DataElement & get_DataElement( unsigned int i ) {
+    DataElement * get_DataElement( unsigned int i ) {
         return data_elements[i];
     }
 
-    const DataElement & get_DataElement( unsigned int i ) const {
+    const DataElement * get_DataElement( unsigned int i ) const {
         return data_elements[i];
     }
 
-    DataElement & operator[] ( unsigned int i ) {
+    DataElement * operator[] ( unsigned int i ) {
         return data_elements[i];
     }
 
-    const DataElement & operator[] ( unsigned int i ) const {
+    const DataElement * operator[] ( unsigned int i ) const {
         return data_elements[i];
+    }
+
+    void set_DestroyData( bool b ) {
+        destroy_data = b;
     }
 };
 
@@ -130,8 +140,6 @@ class Packet:public Error
         va_start( arg_list, fmt );
         *this = Packet( _stream_id, _tag, fmt, arg_list );
         va_end( arg_list );
-        //refCounter<PacketData> newRefCtr( pdata );
-        //data = newRefCtr;
         return;
     }
 
@@ -204,17 +212,21 @@ class Packet:public Error
     unsigned int get_NumDataElements(  ) const {
         return data.getData().get_NumDataElements();
     }
-    DataElement & get_DataElement( unsigned int pos ){
+    DataElement * get_DataElement( unsigned int pos ){
         return data.getData()[ pos ];
     }
-    const DataElement & get_DataElement( unsigned int pos ) const {
+    const DataElement * get_DataElement( unsigned int pos ) const {
         return data.getData()[ pos ];
     }
-    DataElement & operator[] ( unsigned int pos ){
+    DataElement * operator[] ( unsigned int pos ){
         return data.getData()[ pos ];
     }
-    const DataElement & operator[] ( unsigned int pos ) const {
+    const DataElement * operator[] ( unsigned int pos ) const {
         return data.getData()[ pos ];
+    }
+
+    void set_DestroyData( bool b ) {
+        data.getData().set_DestroyData( b );
     }
 };
 
