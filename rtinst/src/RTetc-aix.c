@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.38 2002/12/14 16:37:58 schendel Exp $
+ * $Id: RTetc-aix.c,v 1.39 2003/04/10 17:17:55 bernat Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -86,8 +86,6 @@
  *
  * OS initialization function---currently null.
  ************************************************************************/
-
-void DYNINSTstaticHeap_1048576_textHeap_libSpace(void);
 
 /* We switch methods on the fly -- keep a previous for both */
 rawTime64 wallPrevious_hw = 0;
@@ -154,11 +152,10 @@ void PARADYN_initialize_pmapi(int calledByFork) {
   // Zero out the program setup info
   int ret;
   pdyn_pm_prog.mode.w = 0;
-
 #ifdef PMAPI_GROUPS
   // Check to see if we have a verified group, and if so use it. If not,
   // default to the old behavior
-  ret = pm_init(PM_VERIFIED | PM_CAVEAT | PM_GET_GROUPS, &pinfo, &pginfo);
+  ret = pm_init(PM_VERIFIED | PM_CAVEAT | PM_UNVERIFIED | PM_GET_GROUPS, &pinfo, &pginfo);
   if (pginfo.maxgroups) {
       // We have groups, set it up that way
       // ...
@@ -167,10 +164,11 @@ void PARADYN_initialize_pmapi(int calledByFork) {
       pdyn_pm_prog.mode.b.is_group = 1;
   }
 #else
-  ret = pm_init(PM_VERIFIED | PM_CAVEAT, &pinfo);
+  ret = pm_init(PM_VERIFIED | PM_CAVEAT | PM_UNVERIFIED, &pinfo);
 #endif
   if (ret) pm_error("PARADYNos_init: pm_init", ret);
-
+  
+      
   if (!using_groups)
       if(pmapi_setup_bindings(&pinfo, pdyn_pm_prog.events))
           fprintf(stderr, "Mapping failed for pm events\n");
@@ -190,7 +188,6 @@ void PARADYN_initialize_pmapi(int calledByFork) {
      ret = pm_set_program_mygroup(&pdyn_pm_prog);
      if (ret) pm_error("PARADYNos_init: pm_set_program_mythread", ret); 
   } else {
-     fprintf(stderr, "calling pm_delete_program_mythread\n");
      pm_delete_program_mythread();
      ret = pm_set_program_mygroup(&pdyn_pm_prog);
      if (ret) pm_error("PARADYNos_init: pm_set_program_mythread", ret); 
@@ -213,21 +210,12 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
   wallPrevious_sw = 0;
   cpuPrevious = 0;
 
-#ifdef USES_LIB_TEXT_HEAP
-  /* Dummy call to get the library space actually included
-     (not pruned by an optimizing linker) */
-  DYNINSTstaticHeap_1048576_textHeap_libSpace();
-#endif
 }
 
 #else
 PARADYNos_init(int calledByFork, int calledByAttach) {
     hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
     hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;
-#ifdef USES_LIB_TEXT_HEAP
-  DYNINSTstaticHeap_1048576_textHeap_libSpace();
-#endif
-
   /* needs to be reinitialized when fork occurs */
   wallPrevious_hw = 0;
   wallPrevious_sw = 0;

@@ -52,9 +52,18 @@
  * os initialization function
 ************************************************************************/
 
+void DYNINSTstaticHeap_1048576_textHeap_libSpace(void);
 void
 DYNINSTos_init(int calledByFork, int calledByAttach)
 {
+/* Text heap initialization. Call this to force the library to
+   be included by the linker */
+#ifdef USES_LIB_TEXT_HEAP
+    /* Dummy call to get the library space actually included
+       (not pruned by an optimizing linker) */
+    DYNINSTstaticHeap_1048576_textHeap_libSpace();
+#endif
+
 }
 
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
