@@ -3,9 +3,12 @@
  * code related to displaying the where axes lives here
  */
 /* $Log: UIwhere.C,v $
-/* Revision 1.15  1995/11/06 19:26:41  tamches
-/* removed some warnings
+/* Revision 1.16  1995/12/01 06:39:03  tamches
+/* removed some warnings (tclclean.h; tkclean.h)
 /*
+ * Revision 1.15  1995/11/06 19:26:41  tamches
+ * removed some warnings
+ *
  * Revision 1.14  1995/10/17 20:49:12  tamches
  * Where axis changes, e.g. abstractions* instead of
  * abstractions<resourceHandle>*.
@@ -71,6 +74,9 @@
  * the above copyright notice.
  *
  */
+
+#include "tclclean.h"
+#include "tkclean.h"
 
 #include "UIglobals.h" // UIM_BatchMode
 #include "dataManager.thread.h"
