@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.5  1994/05/18 00:48:55  hollings
+ * Revision 1.6  1994/06/14 15:30:26  markc
+ * Moved aggregationOperator defines to util directory.
+ *
+ * Revision 1.5  1994/05/18  00:48:55  hollings
  * Major changes in the notion of time to wait for a hypothesis.  We now wait
  * until the earlyestLastSample for a metrics used by a hypothesis is at
  * least sufficient observation time after the change was made.
@@ -56,6 +59,7 @@
 #define METRIC_H
 
 #include "util/h/hist.h"
+#include "util/h/aggregation.h"
 #include "dataManager.CLNT.h"
 #include "PCwhere.h"
 #include "PCwhen.h"
@@ -70,7 +74,8 @@ typedef enum {
 
 
 // How do we compine multipe metrics of this type
-enum aggregation { Sum, Min, Max, Avg };
+// enum aggregation { Sum, Min, Max, Avg };
+// moved to util/h/aggregateSample.h
 
 // do we normalize by the windowWidth
 enum calcType { CalcSum, CalcNormalize };
