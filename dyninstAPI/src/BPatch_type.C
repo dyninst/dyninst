@@ -51,6 +51,29 @@
 #include "showerror.h"
 #include "BPatch.h"
 
+/* Intended only for classes. */
+void BPatch_type::merge( BPatch_type * other ) {
+	// fprintf( stderr, "Merging 0x%x and 0x%x\n", this, other );
+
+	if( this->ID != other->ID ) {
+		fprintf( stderr, "Ignoring attempt to merge dissimilar types.\n" );
+		}
+
+	/* If we don't have a name, gain one. */
+	if( this->name == NULL ) { this->name = other->name; }
+
+	/* Assume larger sizes are more accurate. */
+	if( this->size < other->size ) { this->size = other->size; }
+
+	/* Gain a more specific type, if possible. */
+	if( this->type_ == BPatch_unknownType ) { this->type_ = other->type_; }
+
+	/* The largest fieldList wins. */
+	if( this->fieldList.size() < other->fieldList.size() ) {
+		this->fieldList = other->fieldList;
+		}
+	} /* end merge() */
+
 // This is the ID that is decremented for each type a user defines. It is
 // Global so that every type that the user defines has a unique ID.
 // jdd 7/29/99
@@ -71,6 +94,7 @@ BPatch_type::BPatch_type() :
   low = NULL;
   hi = NULL;
   ptr = NULL;
+  modifierType = 0;
 }
 
 /*
@@ -92,7 +116,7 @@ BPatch_type::BPatch_type(const char *_name, bool _nullType) :
   low = NULL;
   hi = NULL;
   ptr = NULL;
-
+  modifierType = 0;
 }
 
 /*
@@ -115,6 +139,7 @@ nullType(false), cblocks(NULL)
     name = strdup(_name);
   else
     name = NULL;
+  modifierType = 0;
 }
 
 /*
@@ -132,6 +157,7 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
 			 int _size):
 nullType(false), cblocks(NULL)
 {
+  modifierType = 0;
   ID = _ID;
   type_ = _type;
 
@@ -189,6 +215,7 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
 nullType(false), cblocks(NULL)
 {
     
+  modifierType = 0;
   ID = _ID;
   if(_type == BPatch_dataScalar){  // could be a typedef for something
     if( _name)
@@ -236,6 +263,7 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
 			 const char * _low, const char * _hi):
 nullType(false), cblocks(NULL)
 {
+  modifierType = 0;
   ID = _ID;
   type_ = _type;
 
@@ -265,6 +293,7 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
   nullType(false), cblocks(NULL)
 {
   
+  modifierType = 0;
   char temp[255];
 
   ID = _ID;
@@ -297,6 +326,7 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type,
 BPatch_type::BPatch_type(const char * _name, int _ID, BPatch_type *  _ptr):
 nullType(false), cblocks(NULL)
 {
+  modifierType = 0;
   if(_ptr){
     ID = _ID;
     size = _ptr->size;
@@ -346,22 +376,15 @@ nullType(false), cblocks(NULL)
  * with the features given in the parameters.
  */
 BPatch_type::BPatch_type(const char * _name, int _ID, BPatch_dataClass _type,
-			 int _size, BPatch_type * _ptr):
+			 int _size, BPatch_type * _ptr, int _modifierType):
 nullType(false), cblocks(NULL)
 {
+  modifierType = _modifierType;
   int b_size;
 
   b_size = _ptr->getSize();
   
   ID = _ID;
-
-  if( b_size != _size && _ptr != BPatch::bpatch->type_Untyped) {
-    sprintf(errorLine, "Built-in Type size %d and Stabs record size %d differ"
-        " for [%d]%s: Overriding built-in type size!!",
-        b_size, _size, _ID, _name);
-    BPatch_reportError(BPatchWarning, 112, errorLine);
-  }
-  
   size = _size;
 
   if( _name)
@@ -397,6 +420,7 @@ nullType(false), cblocks(NULL)
   ID = USER_BPATCH_TYPE_ID;
   USER_BPATCH_TYPE_ID--;
   
+  modifierType = 0;
   type_ = _type;
   // This is just for now XXX jdd 8/5/99, may need to be changed later
   size = sizeof(int);
@@ -428,6 +452,7 @@ nullType(false), cblocks(NULL)
   ID =USER_BPATCH_TYPE_ID;
   USER_BPATCH_TYPE_ID--;
   
+  modifierType = 0;
   type_ = _type;
 
   if( _name)
@@ -461,6 +486,7 @@ nullType(false), cblocks(NULL)
   ID = USER_BPATCH_TYPE_ID;
   USER_BPATCH_TYPE_ID--;
 
+  modifierType = 0;
   type_ = BPatch_dataPointer;
   size = size_;
   
@@ -499,6 +525,7 @@ nullType(false), cblocks(NULL)
   ID = USER_BPATCH_TYPE_ID;
   USER_BPATCH_TYPE_ID--;
 
+  modifierType = 0;
   type_ = _type;
 
   if( _name)
@@ -531,6 +558,7 @@ BPatch_type::BPatch_type(const char *_name, BPatch_dataClass _type,
   ID = USER_BPATCH_TYPE_ID;
   USER_BPATCH_TYPE_ID--;
   
+  modifierType = 0;
   char temp[255];
 
   type_ = _type;
@@ -563,6 +591,7 @@ BPatch_type::BPatch_type(const char *_name, BPatch_dataClass _type,
 BPatch_type::BPatch_type(const char * _name, BPatch_type *  _ptr):
 nullType(false)
 {
+  modifierType = 0;
   if(_ptr){
     ID = USER_BPATCH_TYPE_ID;
     USER_BPATCH_TYPE_ID--;
@@ -617,9 +646,10 @@ nullType(false)
  * with the features given in the parameters.
  */
 BPatch_type::BPatch_type(const char * _name, BPatch_dataClass _type,
-			 int _size, BPatch_type * _ptr):
+			 int _size, BPatch_type * _ptr, int _modifierType ):
 nullType(false)  
 {
+  modifierType = _modifierType;
   int b_size;
 
   b_size = _ptr->getSize();
@@ -654,6 +684,47 @@ BPatch_type::~BPatch_type()
     if (name) free(name);
     if (low)  free(low);
     if (hi)   free(hi);
+}
+
+BPatch_Vector<BPatch_field *> * BPatch_type::getComponents() {
+    if( type_ != BPatch_typeDefine && ptr != NULL) {
+	return & ptr->fieldList;
+        }
+    if( type_ == BPatch_dataStructure ) {
+	// fprintf( stderr, "Getting the %d components of '%s' at 0x%x\n", fieldList.size(), getName(), this );
+	/* Iterate over the field list.  Recursively (replace)
+	   '{superclass}' with the superclass's non-private fields. */
+	/* FIXME: this is gonna be slow; some sort of flag should be added so we only do this once. */
+	BPatch_Vector< BPatch_field * > * newFieldList = new BPatch_Vector< BPatch_field * >();
+	for( unsigned int i = 0; i < fieldList.size(); i++ ) {
+		BPatch_field * currentField = fieldList[i];
+		// fprintf( stderr, "Considering field '%s'\n", currentField->getName() );
+		if( strcmp( currentField->getName(), "{superclass}" ) == 0 ) {
+			/* Note that this is a recursive call.  However, because
+			   the class-graph is acyclic (Stroustrup SpecialEd pg 308),
+			   we're OK. */
+			// fprintf( stderr, "Found superclass '%s'...\n", currentField->getType()->getName() );
+			BPatch_Vector<BPatch_field *> * superClassFields = currentField->getType()->getComponents();
+			// fprintf( stderr, "Superclass has %d components.\n", superClassFields->size() );
+			/* FIXME: do we also need to consider the visibility of the superclass itself? */
+			/* FIXME: visibility can also be described on a per-name basis in the
+			   subclass.  We have now way to convey this information currently, but I'm not
+			   sure that it matters for our purposes... */
+			for( unsigned int i = 0; i < superClassFields->size(); i++ ) {
+				BPatch_field * currentSuperField = (*superClassFields)[i];
+				// fprintf( stderr, "Considering superfield '%s'\n", currentSuperField->getName() );
+				if( currentSuperField->getVisibility() != BPatch_private ) {
+					newFieldList->push_back( currentSuperField );
+					}
+				} /* end super-class iteration */
+			} /* end if currentField is a superclass */
+		else {
+			newFieldList->push_back( currentField );
+			}
+		} /* end field iteration */
+	fieldList = * newFieldList;
+	} /* end if we need to iterate over fields */
+    return &fieldList;
 }
 
 void BPatch_type::beginCommonBlock()
@@ -738,7 +809,7 @@ static int findIntrensicType(char *name)
     struct intrensicTypes_ *curr;
 
     for (curr = intrensicTypes; curr->name; curr++) {
-	if (!strcmp(name, curr->name)) {
+	if (name && curr->name && !strcmp(name, curr->name)) {
 	    return curr->tid;
 	}
     }
@@ -776,9 +847,16 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
   }
 
   switch(type_){
+
+  case BPatch_typeDefine: {
+      if( name && otype->name && !strcmp( name, otype->name ) && ptr == otype->ptr ) { return true; }
+      if( ! ptr || ! otype->ptr || !ptr->isCompatible( otype->ptr ) ) { return false; }
+      else { return true; }
+      } break;
+
   case BPatch_dataBuilt_inType:
   case BPatch_dataScalar:
-      if (!strcmp(name,otype->name) && (size == otype->size)) {
+      if ( name && otype->name && !strcmp(name,otype->name) && (size == otype->size)) {
 	  return true;
       } else if (size == otype->size) {
 	  t1 = findIntrensicType(name);
@@ -790,14 +868,14 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
       break;
 
   case BPatchSymTypeRange:
-      if (!(strcmp(name,otype->name))&& (ID == otype->ID)&&(size == otype->size))
+      if (name && otype->name && !(strcmp(name,otype->name))&& (ID == otype->ID)&&(size == otype->size))
           return true;
-      if (!(strcmp(name,otype->name))&&(size == otype->size))
+      if (name && otype->name && !(strcmp(name,otype->name))&&(size == otype->size))
           return true;
       break;
 
   case BPatch_dataReference:
-      if (!(strcmp(name,otype->name)) && (size == otype->size))
+      if (name && otype->name && !(strcmp(name,otype->name)) && (size == otype->size))
           return true;
       break;
 
@@ -807,8 +885,10 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
       break;
 
   case BPatch_dataTypeAttrib:
-    if (!(strcmp(name,otype->name))&&(size == otype->size))
+    if (name && otype->name && !(strcmp(name,otype->name))&&(size == otype->size))
         return true;
+    if( ID == otype->ID ) { return true; }
+    if( modifierType == otype->modifierType && ( ptr == otype->ptr || ptr->isCompatible( otype->ptr ) ) ) { return true; }
     break;
 
   case BPatch_dataPointer:
@@ -833,7 +913,7 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
     break;
 
   case BPatch_dataFunction:
-    if (!(strcmp(name,otype->name))&&(ID == otype->ID)) {
+    if (name && otype->name && !(strcmp(name,otype->name))&&(ID == otype->ID)) {
 	  return true;
     } else {
 	  BPatch_reportError(BPatchWarning, 112, 
@@ -852,8 +932,8 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
 	  return false;
       }
 
-      // verify that the number of elements is the same
-      if ((atoi(this->hi) - atoi(this->low)) != (atoi(otype->hi) - atoi(otype->low))) {
+      /* Verify that the bounds are the same. */
+      if( ! strcmp( this->hi, this->low ) || ! strcmp( otype->hi, otype->low ) ) {
 	  char message[80];
 	  sprintf(message, "Incompatible number of elements [%s..%s] vs. [%s..%s]",
 	      this->low, this->hi, otype->low, otype->hi);
@@ -875,7 +955,7 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
 
   case BPatch_dataEnumerated:
     {
-      if( !strcmp( name, otype->name) && (ID == otype->ID))
+      if( name && otype->name && !strcmp( name, otype->name) && (ID == otype->ID))
 	return true;
       BPatch_Vector<BPatch_field *> * fields1 = this->getComponents();
       // BPatch_Vector<BPatch_field *> * fields2 = ((BPatch_type)otype).getComponents();
@@ -903,7 +983,7 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
   case BPatch_dataStructure:
   case BPatch_dataUnion:
     {
-      if (!strcmp( name, otype->name) && (ID == otype->ID))
+      if (name && otype->name && !strcmp( name, otype->name) && (ID == otype->ID))
 	  return true;
       BPatch_Vector<BPatch_field *> * fields1 = this->getComponents();
       // The line below does not work in linux.
