@@ -328,7 +328,7 @@ void initOpCodeInfo()
 }
 
 /* NOT yet implemented. */
-BPatch_memoryAccess InstrucIter::isLoadOrStore()
+BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
   return BPatch_memoryAccess::none;
 }
