@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.28 2002/06/10 19:25:14 bernat Exp $
+// $Id: templatesPD.C,v 1.29 2002/10/15 17:12:09 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -132,3 +132,11 @@ template class vector<shmMgrPreallocInternal *>;
 #include "paradynd/src/focus.h"
 
 template class vector<const Hierarchy *>;
+
+#include "paradynd/src/pd_process.h"
+template class vector<pd_process*>;
+
+#include "paradynd/src/pd_thread.h"
+template class vector<pd_thread*>;
+
+
