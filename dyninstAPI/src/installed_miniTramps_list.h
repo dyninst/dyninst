@@ -39,22 +39,22 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: installed_miniTramps_list.h,v 1.2 2003/01/02 19:51:25 schendel Exp $
+// $Id: installed_miniTramps_list.h,v 1.3 2003/10/21 17:22:16 bernat Exp $
 
-#ifndef INSTALLED_MINITRAMPS_LIST_H
-#define INSTALLED_MINITRAMPS_LIST_H
+#ifndef MINITRAMPS_LIST_H
+#define MINITRAMPS_LIST_H
 
 #include "common/h/List.h"
 #include "dyninstAPI/src/instP.h"
 
-class instInstance;
+class miniTrampHandle;
 
-class installed_miniTramps_list {
-  List<instInstance *> mt_list;
+class miniTramps_list {
+  List<miniTrampHandle *> mt_list;
 
  public:
-  installed_miniTramps_list() { }
-  explicit installed_miniTramps_list(const installed_miniTramps_list &fromList)
+  miniTramps_list() { }
+  explicit miniTramps_list(const miniTramps_list &fromList)
     : mt_list(fromList.mt_list) { 
   }
   
@@ -63,32 +63,32 @@ class installed_miniTramps_list {
   }
   // be careful, because these any references to these objects could be
   // invalid if addMiniTramp is called between your getFirstMT/getLastMT call
-  // and your use of the instInstance.  The installedMiniTramps... dictionary
+  // and your use of the miniTrampHandle.  The installedMiniTramps... dictionary
   // of instPoint to installedMiniTramps_list may copy and delete this
-  // installed_miniTramps_list when it expands it's internal data.
-  instInstance *getFirstMT() {
+  // miniTramps_list when it expands it's internal data.
+  miniTrampHandle *getFirstMT() {
     if(mt_list.isEmpty()) { return NULL; }
     return *(mt_list.begin());
   }
-  instInstance *getLastMT();
+  miniTrampHandle *getLastMT();
 
-  List<instInstance*>::iterator get_begin_iter() {
+  List<miniTrampHandle*>::iterator get_begin_iter() {
     return mt_list.begin();
   }
-  List<instInstance*>::const_iterator get_begin_iter() const {
+  List<miniTrampHandle*>::const_iterator get_begin_iter() const {
     return mt_list.begin();
   }
 
-  List<instInstance*>::iterator get_end_iter() {
+  List<miniTrampHandle*>::iterator get_end_iter() {
     return mt_list.end();
   }
-  List<instInstance*>::const_iterator get_end_iter() const {
+  List<miniTrampHandle*>::const_iterator get_end_iter() const {
     return mt_list.end();
   }
 
-  void addMiniTramp(callOrder order, instInstance *inst);
+  void addMiniTramp(callOrder order, miniTrampHandle *inst);
 
-  void deleteMiniTramp(instInstance *inst);
+  void deleteMiniTramp(miniTrampHandle *inst);
   void clear() {
     mt_list.clear();
   }

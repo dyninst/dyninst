@@ -39,15 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: installed_miniTramps_list.C,v 1.1 2002/06/26 21:14:14 schendel Exp $
+// $Id: installed_miniTramps_list.C,v 1.2 2003/10/21 17:22:15 bernat Exp $
 
+#include <iostream>
+#include "dyninstAPI/src/miniTrampHandle.h"
 #include "dyninstAPI/src/installed_miniTramps_list.h"
 
 
-instInstance *installed_miniTramps_list::getLastMT() {
+miniTrampHandle *miniTramps_list::getLastMT() {
   if(mt_list.isEmpty()) return NULL;
 
-  List<instInstance*>::iterator cur = mt_list.begin();
+  List<miniTrampHandle*>::iterator cur = mt_list.begin();
   while(cur+1 != mt_list.end()) {
     cur++;
   }
@@ -59,11 +61,11 @@ void out_of_store() {
   assert(false);
 }
 
-// returns the address of the new instInstance (the one to use)
-// the instInstance passed into this function will be copied
-//     (ie. &inst doesn't exist in the installed_miniTramps_list)
-void installed_miniTramps_list::addMiniTramp(callOrder order,
-					     instInstance *inst) {
+// returns the address of the new miniTrampHandle (the one to use)
+// the miniTrampHandle passed into this function will be copied
+//     (ie. &inst doesn't exist in the miniTramps_list)
+void miniTramps_list::addMiniTramp(callOrder order,
+					     miniTrampHandle *inst) {
   //set_new_handler(out_of_store);
   int befSize = mt_list.count();
   switch(order) {
@@ -79,7 +81,7 @@ void installed_miniTramps_list::addMiniTramp(callOrder order,
   assert(mt_list.count() == befSize+1);
 }
 
-void installed_miniTramps_list::deleteMiniTramp(instInstance *inst) {
+void miniTramps_list::deleteMiniTramp(miniTrampHandle *inst) {
   assert(mt_list.remove(inst) == true);
 }
 
