@@ -2,15 +2,21 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.11  1994/11/06 10:36:48  tamches
-#  changed title font to 14 point
-#  beefed up validResources(), numValidResources, indirectResources()
-#  throughput the code.
-#  implemented a maximum individual color height of 25 pixels
-#  fixed a major bug when deleted resources (deleted resources were still
-#  being counted when calculating resource heights)
-#  Fixed deletion bug by having myXScroll do the callback to C++ code
-#  that updates bar offsets.
+#  Revision 1.12  1994/11/09 02:25:19  tamches
+#  Re-implemented a feature of old: Long Names.  The option
+#  (which is off by default) is found at the bottom of the options menu.
+#  Fixed a bug whereby resourcesAxisWidth stayed unchanged at "1.4i"
+#  forever.
+#
+# Revision 1.11  1994/11/06  10:36:48  tamches
+# changed title font to 14 point
+# beefed up validResources(), numValidResources, indirectResources()
+# throughput the code.
+# implemented a maximum individual color height of 25 pixels
+# fixed a major bug when deleted resources (deleted resources were still
+# being counted when calculating resource heights)
+# Fixed deletion bug by having myXScroll do the callback to C++ code
+# that updates bar offsets.
 #
 # Revision 1.10  1994/10/28  21:53:44  tamches
 # Fixed a rather flaming bug that could cause any resource add to
@@ -196,6 +202,13 @@ $Wmbar.view.m add radio -label "Average Values" \
 $Wmbar.view.m add radio -label "Total Values" \
    -variable DataFormat -command {rethinkDataFormat} \
    -value Sum
+
+$Wmbar.view.m add separator
+
+$Wmbar.view.m add checkbutton -label "Long Names" -variable LongNames \
+	-command ProcessLongNamesChange
+
+set LongNames 0
 
 # #################### Help menu #################
 
@@ -662,6 +675,9 @@ proc drawResourcesAxis {theHeight} {
 
    global SortPrefs
 
+   set resourcesAxisWidth [getWindowWidth $WresourcesCanvas]
+#   puts stderr "Welcome to drawResourcesAxis; width=$resourcesAxisWidth"
+
    # delete leftover stuff (canvas widgets in 1 step, then message widgets manually)
    $WresourcesCanvas delete resourcesAxisItemTag
    for {set rindex 0} {$rindex < $numResourcesDrawn} {incr rindex} {
@@ -974,9 +990,6 @@ proc delResource {delindex} {
    }
 
    # Inform that visi lib that we don't want anything more from this resource
-   # NOTE: unfortunately, [Dg numResources] etc. will not be lowered, even after
-   #       this is done!  The temporary solution is to rigidly test the Enabled
-   #       bit of each metric-resource pair before using it in any way.
    for {set mindex 0} {$mindex < $numMetrics} {incr mindex} {
       if {[Dg enabled $mindex $delindex]} {
          Dg stop $mindex $delindex
@@ -1230,6 +1243,7 @@ proc DgConfigCallback {} {
    global numResourcesDrawn
    global resourceNames
    global indirectResources
+   global LongNames
 
    set numMetrics [Dg nummetrics]
    # the next line must remain up here or else calls to isMetricValid will be wrong!
@@ -1249,7 +1263,12 @@ proc DgConfigCallback {} {
 
    set numValidResources 0
    for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
-      set resourceNames($resourcelcv) [file tail [Dg resourcename $resourcelcv]]
+      if {$LongNames==1} {
+         set resourceNames($resourcelcv) [Dg resourcename $resourcelcv]
+      } else {
+         set resourceNames($resourcelcv) [file tail [Dg resourcename $resourcelcv]]
+      }
+
       if {[isResourceValid $resourcelcv]} {
          set validResources($resourcelcv) 1
          incr numValidResources
@@ -1384,8 +1403,23 @@ proc rethinkDataFormat {} {
    # inform our C++ code that the data format has changed
    dataFormatHasChanged
 
-   # redraw the y axis
+   # redraw the metrics axis
    drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
+}
+
+proc ProcessLongNamesChange {} {
+   global LongNames W numResources resourceNames
+
+   # rethink resource names and redraw the resources axis --- that's all that is needed
+   for {set resourcelcv 0} {$resourcelcv < $numResources} {incr resourcelcv} {
+      if {$LongNames==1} {
+         set resourceNames($resourcelcv) [Dg resourcename $resourcelcv]
+      } else {
+         set resourceNames($resourcelcv) [file tail [Dg resourcename $resourcelcv]]
+      }
+   }
+
+   drawResourcesAxis [getWindowHeight $W.metricsAxisCanvas]
 }
 
 proc GracefulClose {} {
