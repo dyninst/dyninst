@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.23  1994/07/25 14:58:14  hollings
-/* added suppress resource option.
+/* Revision 1.24  1994/07/28 22:32:16  krisna
+/* proper starting sequence for UImain thread
 /*
+ * Revision 1.23  1994/07/25  14:58:14  hollings
+ * added suppress resource option.
+ *
  * Revision 1.22  1994/07/07  17:40:33  karavan
  * added error and batch mode features.
  *
@@ -328,8 +331,10 @@ applicStateChanged (performanceStream*, appState state)
  */
 
 void *
-UImain(CLargStruct *clargs)
+UImain(void* vargs)
 {
+    CLargStruct* clargs = (CLargStruct *) vargs;
+
     char *args;
     char buf[20];
     int code;
