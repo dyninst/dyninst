@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.117 2004/10/07 00:45:57 jaw Exp $ */
+/* $Id: dynrpc.C,v 1.118 2005/02/02 22:04:48 bernat Exp $ */
 
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
@@ -246,10 +246,14 @@ void deleteMetricFocus(machineMetFocusNode *mi) {
 
 void processInstrDeletionRequests() {
    pdvector<pd_process *> procsToCont;
-
    for(unsigned i=0; i<metricFocusesRequestedForDelete.size(); i++) {
       int curmid = metricFocusesRequestedForDelete[i];
       machineMetFocusNode *mi = machineMetFocusNode::lookupMachNode(curmid);
+      if (!mi) {
+	// Case: the backend has already deleted the node, and now the
+	// frontend is duplicating our work.
+	continue;
+      }
       pdvector<processMetFocusNode*> procnodes = mi->getProcNodes();
       for(unsigned j=0; j<procnodes.size(); j++) {
          processMetFocusNode *cur_procnode = procnodes[j];
