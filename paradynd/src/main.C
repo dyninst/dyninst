@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.103 2002/04/09 18:05:58 mjbrim Exp $
+// $Id: main.C,v 1.104 2002/05/10 18:37:31 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -69,7 +69,6 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/dyninstP.h"
-#include "paradynd/src/metric.h"
 #include "paradynd/src/comm.h"
 #include "paradynd/src/internalMetrics.h"
 #include "common/h/machineType.h"

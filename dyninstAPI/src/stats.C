@@ -41,7 +41,7 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.28 2002/02/11 22:02:25 tlmiller Exp $
+ * $Id: stats.C,v 1.29 2002/05/10 18:37:19 schendel Exp $
  */
 
 #if defined(i386_unknown_nt4_0) || defined (mips_unknown_ce2_11) //ccw 6 apr 2001
@@ -62,7 +62,6 @@
 #include "common/h/Timer.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/dynrpc.h"

@@ -60,7 +60,6 @@
 #include "BPatch_flowGraph.h"
 #else
 //#include "rtinst/h/trace.h"
-//#include "paradynd/src/metric.h"
 //#include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h" // firstRecordTime
 //#include "dyninstAPI/src/showerror.h"

@@ -39,13 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.64 2002/05/09 21:42:46 schendel Exp $
+// $Id: init.C,v 1.65 2002/05/10 18:37:29 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/costmetrics.h"
-#include "paradynd/src/metric.h"
 #include "paradynd/src/machineMetFocusNode.h"
 #include "dyninstAPI/src/inst.h"
 #include "paradynd/src/init.h"

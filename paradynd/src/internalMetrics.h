@@ -42,11 +42,15 @@
 #ifndef INTERNAL_MET_HDR
 #define INTERNAL_MET_HDR
 
-// $Id: internalMetrics.h,v 1.21 2002/05/09 21:42:50 schendel Exp $
+// $Id: internalMetrics.h,v 1.22 2002/05/10 18:37:30 schendel Exp $
 
-#include "metric.h"
 #include "im_preds.h"
 #include "dyninstRPC.xdr.h" // T_dyninstRPC
+#include "pdutil/h/pdSample.h"
+#include "pdutil/h/metricStyle.h"
+
+
+class machineMetFocusNode;
 
 typedef pdSample (*sampleValueFunc)(const machineMetFocusNode *);
 

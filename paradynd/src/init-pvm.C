@@ -39,9 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-pvm.C,v 1.12 2000/04/28 20:40:18 paradyn Exp $
+// $Id: init-pvm.C,v 1.13 2002/05/10 18:37:26 schendel Exp $
 
-#include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
 #include "paradynd/src/init.h"

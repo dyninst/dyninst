@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.95 2002/05/04 21:47:13 schendel Exp $
+// $Id: ast.C,v 1.96 2002/05/10 18:37:11 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -60,7 +60,6 @@
 #else
 #include "dyninstAPI/src/pdThread.h"
 #include "rtinst/h/rtinst.h"
-#include "paradynd/src/metric.h"
 #endif
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)

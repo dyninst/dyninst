@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inst-aix.C,v 1.17 2002/01/17 16:22:53 schendel Exp $
+/* $Id: inst-aix.C,v 1.18 2002/05/10 18:37:12 schendel Exp $
  * inst-aix.C - AIX-specific code for paradynd.
  *
  * XXX - The following functions seem to be less than OS dependent, but I
@@ -62,7 +62,6 @@
 #include <sys/ldr.h>
 
 #ifndef BPATCH_LIBRARY
-#include "paradynd/src/metric.h"
 #include "dyninstRPC.xdr.SRVR.h"
 #include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h"

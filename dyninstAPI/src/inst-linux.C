@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-linux.C,v 1.7 2001/12/06 20:57:46 schendel Exp $
+// $Id: inst-linux.C,v 1.8 2002/05/10 18:37:14 schendel Exp $
 
 #ifndef NULL
 #define NULL 0
@@ -58,7 +58,6 @@
 
 #ifndef BPATCH_LIBRARY
 #include "rtinst/h/trace.h"
-#include "paradynd/src/metric.h"
 #include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h"
 #include "dyninstAPI/src/showerror.h"

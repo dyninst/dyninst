@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.9 2002/01/08 22:16:30 pcroth Exp $
+// $Id: inst-winnt.C,v 1.10 2002/05/10 18:37:18 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
@@ -56,7 +56,6 @@
 
 #ifndef BPATCH_LIBRARY
 #include "rtinst/h/trace.h"
-#include "paradynd/src/metric.h"
 #include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h"
 #include "dyninstAPI/src/showerror.h"

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.127 2002/04/05 19:39:21 schendel Exp $
+// $Id: perfStream.C,v 1.128 2002/05/10 18:37:34 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -56,7 +56,6 @@ extern "C" {
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/dyninstP.h"
-#include "paradynd/src/metric.h"
 #include "paradynd/src/machineMetFocusNode.h"
 #include "dyninstAPI/src/util.h"
 #include "paradynd/src/comm.h"

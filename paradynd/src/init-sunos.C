@@ -39,10 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.35 2002/04/18 19:40:09 bernat Exp $ */
+/* $Id: init-sunos.C,v 1.36 2002/05/10 18:37:27 schendel Exp $ */
 
 #include <sys/time.h>
-#include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
 #include "paradynd/src/init.h"

@@ -44,6 +44,11 @@
  * metricDefs-critPath.C - Compute the Critical Path.
  *
  * $Log: metricDefs-critPath.C,v $
+ * Revision 1.7  2002/05/10 18:37:33  schendel
+ * add ability in daemon to adjust existing metric-focuses for thread creation
+ *   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ * removed extraneous header file, metric.h
+ *
  * Revision 1.6  2001/06/20 20:33:44  schendel
  * Use pdutil instead of pdutilOld.  Update to use new time and sample value
  *   types (ie. timeStamp, relTimeStamp, timeLength, pdSample, pdRate).
@@ -100,7 +105,6 @@
 #include "rtinst/h/critPath.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/dyninstP.h"
-#include "paradynd/src/metric.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "rtinst/h/trace.h"

@@ -39,9 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-osf.C,v 1.4 2002/02/21 21:48:32 bernat Exp $ */
+/* $Id: init-osf.C,v 1.5 2002/05/10 18:37:25 schendel Exp $ */
 
-#include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
 #include "paradynd/src/init.h"

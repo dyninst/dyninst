@@ -39,13 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.2 2002/05/04 21:47:10 schendel Exp $
+// $Id: varInstanceHKs.C,v 1.3 2002/05/10 18:37:35 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
-#include "metric.h"
 #include "paradynd/src/threadMetFocusNode.h"
 #include "paradynd/src/varInstanceHKs.h"
 #include "paradynd/src/init.h"

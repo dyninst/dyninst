@@ -39,9 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-irix.C,v 1.7 2002/02/21 21:48:31 bernat Exp $
+// $Id: init-irix.C,v 1.8 2002/05/10 18:37:23 schendel Exp $
 
-#include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
 #include "paradynd/src/init.h"

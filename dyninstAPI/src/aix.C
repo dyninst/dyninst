@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.94 2002/04/18 19:39:38 bernat Exp $
+// $Id: aix.C,v 1.95 2002/05/10 18:37:10 schendel Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1597,7 +1597,6 @@ int getNumberOfCPUs()
   return(1);
 }
 
-// #include "paradynd/src/metric.h"
 // #include "paradynd/src/costmetrics.h"
 
 class instInstance;

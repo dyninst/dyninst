@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-osf.C,v 1.7 2000/10/17 17:42:16 schendel Exp $
+// $Id: inst-osf.C,v 1.8 2002/05/10 18:37:16 schendel Exp $
 
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -49,7 +49,6 @@
 
 #ifndef BPATCH_LIBRARY
 #include "dyninstAPI/src/dyninstP.h"    // isApplicationPaused()
-#include "paradynd/src/metric.h"
 #include "paradynd/src/perfStream.h"
 #endif
 
