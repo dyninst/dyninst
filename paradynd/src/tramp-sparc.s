@@ -5,9 +5,12 @@
  *    appropriate inferior process via ptrace calls.
  *
  * $Log: tramp-sparc.s,v $
- * Revision 1.4  1994/07/14 23:30:33  hollings
- * Hybrid cost model added.
+ * Revision 1.5  1994/07/26 19:58:03  hollings
+ * removed slots executed counter.
  *
+# Revision 1.4  1994/07/14  23:30:33  hollings
+# Hybrid cost model added.
+#
 # Revision 1.3  1994/07/06  00:35:45  hollings
 # Added code to handle SPARC ABI aggregate return type calling convention
 # of using the instruction after the call's delay slot to indicate aggregate
@@ -55,8 +58,8 @@
 	.global	_baseTramp
 .data
 _baseTramp:
-	add %g6, 1, %g6		/* g6 counts the number of slots executed */
-	add %g7, 6, %g7		/* cost of base tramp yp to emulate insn */
+	/* add %g6, 1, %g6	-- g6 counts the number of slots executed */
+	add %g7, 5, %g7		/* cost of base tramp yp to emulate insn */
 				/* also needs to include cost of ba,a in */
 	.word	GLOBAL_PRE_BRANCH
 	.word	LOCAL_PRE_BRANCH
@@ -65,7 +68,7 @@ _baseTramp:
 	nop			/* extra nop for aggregate size */
 	.word	GLOBAL_POST_BRANCH
 	.word	LOCAL_POST_BRANCH
-	add %g6, 1, %g6		/* g6 counts the number of slots executed */
-	add %g7, 0xa, %g7	/* cost of base tramp from nop to return */
+	/* add %g6, 1, %g6	-- g6 counts the number of slots executed */
+	add %g7, 0x9, %g7	/* cost of base tramp from nop to return */
 	.word	RETURN_INSN
 	.word	END_TRAMP
