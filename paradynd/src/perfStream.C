@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.122 2001/10/26 06:29:42 schendel Exp $
+// $Id: perfStream.C,v 1.123 2001/12/05 22:35:49 bernat Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -687,6 +687,56 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
 }
 #endif
 
+/***
+    set up a socket to be used to create a trace link
+    by inferior processes that are not forked 
+    directly by this daemon.
+    This is a unix domain socket, which is bound to the file
+    <P_tmpdir>/paradynd.<pid>
+    where <P_tmpdir> is a constant defined in stdio.h (usually "/tmp" or
+    "/usr/tmp"), and <pid> is the pid of the paradynd process.
+    
+    This socket is currently being used in two cases: when a
+    process forks and when we attach to a running process.  In the
+    fork case, the socket path can be passed in the environment (so
+    any name for the file would be ok), but in the attach case the
+    name is passed as an argument to DYNINSTinit. Since we
+    currently can only pass integer values as arguments, we use the
+    file name paradynd.<pid>, so that we need only to pass the pid
+    as the argument to DYNINSTinit, which can then determine the
+    full file name.
+    
+    traceSocket_fd is the file descriptor of a socket, ready to receive
+    connections.
+    It represents a socket created with socket(); listen()
+    In other words, one which we intend to call accept() on.
+    (See perfStream.C -- the call to RPC_getConnect(traceSocket_fd))
+***/
+
+  PDSOCKET traceSocket_fd;
+void setupTraceSocket()
+{
+
+#if !defined(i386_unknown_nt4_0)
+  traceSocketPath = string(P_tmpdir) + "/" + string("paradynd.") + string(getpid());
+  
+  // unlink it, in case the file was left around from a previous run
+  unlink(traceSocketPath.string_of());
+  
+  if (!RPC_setup_socket_un(traceSocket_fd, traceSocketPath.string_of())) {
+    perror("paradynd -- can't setup socket");
+    cleanUpAndExit(-1);
+  }
+  traceConnectInfo = getpid();
+#else
+  traceSocketPort = RPC_setup_socket(traceSocket_fd, PF_INET, SOCK_STREAM);
+  if (traceSocketPort < 0) {
+    perror("paradynd -- can't setup socket");
+    cleanUpAndExit(-1);
+  }
+  traceConnectInfo = traceSocketPort;
+#endif
+}
 
 /*
  * Wait for a data from one of the inferiors or a request to come in.
@@ -700,70 +750,6 @@ void controllerMainLoop(bool check_buffer_first)
     fd_set readSet;
     fd_set errorSet;
     struct timeval pollTimeStruct;
-    PDSOCKET traceSocket_fd;
-
-    // TODO - i am the guilty party - this will go soon - mdc
-#ifdef PARADYND_PVM
-#ifdef notdef
-    int fd_num, *fd_ptr;
-    if (pvm_mytid() < 0)
-      {
-	printf("pvm not working\n");
-	_exit(-1);
-      }
-    fd_num = pvm_getfds(&fd_ptr);
-    assert(fd_num == 1);
-#endif
-#endif
-
-//    cerr << "doing controllerMainLoop..." << endl;
-
-
-    /***
-       set up a socket to be used to create a trace link
-       by inferior processes that are not forked 
-       directly by this daemon.
-       This is a unix domain socket, which is bound to the file
-          <P_tmpdir>/paradynd.<pid>
-       where <P_tmpdir> is a constant defined in stdio.h (usually "/tmp" or
-       "/usr/tmp"), and <pid> is the pid of the paradynd process.
-
-       This socket is currently being used in two cases: when a
-       process forks and when we attach to a running process.  In the
-       fork case, the socket path can be passed in the environment (so
-       any name for the file would be ok), but in the attach case the
-       name is passed as an argument to DYNINSTinit. Since we
-       currently can only pass integer values as arguments, we use the
-       file name paradynd.<pid>, so that we need only to pass the pid
-       as the argument to DYNINSTinit, which can then determine the
-       full file name.
-
-       traceSocket_fd is the file descriptor of a socket, ready to receive
-       connections.
-       It represents a socket created with socket(); listen()
-       In other words, one which we intend to call accept() on.
-       (See perfStream.C -- the call to RPC_getConnect(traceSocket_fd))
-    ***/
-
-#if !defined(i386_unknown_nt4_0)
-      traceSocketPath = string(P_tmpdir) + "/" + string("paradynd.") + string(getpid());
-
-    // unlink it, in case the file was left around from a previous run
-    unlink(traceSocketPath.string_of());
-
-    if (!RPC_setup_socket_un(traceSocket_fd, traceSocketPath.string_of())) {
-      perror("paradynd -- can't setup socket");
-      cleanUpAndExit(-1);
-    }
-    traceConnectInfo = getpid();
-#else
-    traceSocketPort = RPC_setup_socket(traceSocket_fd, PF_INET, SOCK_STREAM);
-    if (traceSocketPort < 0) {
-      perror("paradynd -- can't setup socket");
-      cleanUpAndExit(-1);
-    }
-    traceConnectInfo = traceSocketPort;
-#endif
 
     while (1) {
         // we have moved this code at the beginning of the loop, so we will

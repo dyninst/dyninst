@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.98 2001/11/06 19:20:45 bernat Exp $
+// $Id: main.C,v 1.99 2001/12/05 22:35:49 bernat Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
 #include "common/h/Ident.h"
+
 
 #if defined(MT_THREAD)
 extern "C" const char V_paradyndMT[];
@@ -75,6 +76,11 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 #include "paradynd/src/init.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/mdld.h"
+
+// by Ana
+//#include "paradyn/src/DMthread/DMdaemon.h"
+#include "dyninstRPC.xdr.SRVR.h"
+
 
 pdRPC *tp = NULL;
 
@@ -108,6 +114,7 @@ extern void initDetachOnTheFly();
  * start up other paradynds (such as on the CM5), and need this later.
  */
 string pd_machine;
+static int pd_attpid; // by Ana
 static int pd_known_socket_portnum=0;
 static int pd_flag=0;
 static string pd_flavor;
@@ -184,75 +191,91 @@ void cleanUpAndExit(int status) {
 
 // TODO
 // mdc - I need to clean this up
-#if !defined(i386_unknown_nt4_0)
+
+// ANa introduces one new parameter
+
 bool
-RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list, 
-		   string &machine, int &well_known_socket,int &termWin_port, int &flag)
-#else
-RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list, 
-		   string &machine, int &well_known_socket, int &flag)
-#endif
+RPC_undo_arg_list (string &flavor, unsigned argc, char **argv, 
+		   string &machine, int &well_known_socket,int &termWin_port, int &flag, int &attpid)
 {
   char *ptr;
-  bool b_well_known=false; // found well-known socket port num
-#if !defined(i386_unknown_nt4_0)
-  bool b_termWin=false; // found termWin socket port num
+  int c;
+  extern int optind;
+  extern char *optarg;
+  bool err = false;
+#if !defined(i386_unknown_linux2_0)
+  const char optstring[] = "p:P:vVL:m:l:z:a:r:";
+#else
+  // Linux's optstring has slightly different behavior than default
+  const char optstring[] = "+p:P:vVL:m:l:z:a:r:";
 #endif
-  bool b_machine = false, b_flag = false, b_flavor=false;
 
-  for (unsigned loop=0; loop < argc; ++loop) {
-      // stop at the -runme argument since the rest are for the application
-      //   process we are about to spawn
-      if (!P_strcmp(arg_list[loop], "-runme")) break;
-      if (!P_strncmp(arg_list[loop], "-p", 2)) {
-	  well_known_socket = P_strtol (arg_list[loop] + 2, &ptr, 10);
-	  if (ptr == (arg_list[loop] + 2))
-	    return(false);
-	  b_well_known = true;
-#if !defined(i386_unknown_nt4_0)
-      }else if (!P_strncmp(arg_list[loop], "-P", 2)) {
-	  termWin_port = P_strtol (arg_list[loop] + 2, &ptr, 10);
-	  if (ptr == (arg_list[loop] + 2))
-	    return(false);
-	  b_termWin= true;
-#endif
-      }else if (!P_strncmp(arg_list[loop], "-V", 2)) { // optional
-          cout << V_id << endl;
-      }
-      else if (!P_strncmp(arg_list[loop], "-v", 2)) {
-          pd_debug++;
-          //cerr << "paradynd: -v flag is obsolete (and ignored)" << endl;
-      }
-      else if (!P_strncmp(arg_list[loop], "-L", 2)) {
-          // this is an optional specification of the runtime library,
-          // overriding PARADYN_LIB (primarily for debugging/testing purposes)
-	  process::dyninstName = (arg_list[loop] + 2);
-	  if (!process::dyninstName.length()) return false;
-      }
-      else if (!P_strncmp(arg_list[loop], "-m", 2)) {
-	  machine = (arg_list[loop] + 2);
-	  if (!machine.length()) return false;
-	  b_machine = true;
-      }
-      else if (!P_strncmp(arg_list[loop], "-l", 2)) {
-	  flag = P_strtol (arg_list[loop] + 2, &ptr, 10);
-	  if (ptr == (arg_list[loop] + 2))
-	    return(false);
-	  b_flag = true;
-      }
-      else if (!P_strncmp(arg_list[loop], "-z", 2)) {
-	  flavor = (arg_list[loop]+2);
-	  if (!flavor.length()) return false;
-	  b_flavor = true;
-      }
-  }
+  // Defaults (for ones that make sense)
+  machine = "localhost";
+  flavor = "unix";
+  flag = 2;
+  well_known_socket = 0;
+  termWin_port = 0;
+  attpid = 0;
+  bool stop = false;
+  while ( (c = getopt(argc, argv, optstring)) != EOF && !stop)
+    switch (c) {
+    case 'p':
+      // Port number to connect to for the Paradyn command port
+      well_known_socket = P_strtol(optarg, &ptr, 10);
+      if (ptr == optarg) err = true;
+      break;
+    case 'P':
+      termWin_port = P_strtol(optarg, &ptr, 10);
+      if (ptr == optarg) err = true;
+      break;
+    case 'v':
+      // Obsolete argument
+      err = true;
+      break;
+    case 'V':
+      cout << V_id << endl;
+      break;
+    case 'L':
+      // Debugging flag to specify runtime library
+      process::dyninstName = optarg;
+      break;
+    case 'm':
+      // Machine specification. We could do "machine:portname", but there are
+      // two ports. 
+      machine = optarg;
+      break;
+    case 'l':
+      flag = P_strtol(optarg, &ptr, 10);
+      if (ptr == optarg) err = true;
+      break;
+    case 'z':
+      flavor = optarg;
+      break;
+    case 'a':
+      attpid = P_strtol(optarg, &ptr, 10);
+      break;
+    case 'r':
+      // We've hit the "runme" parameter. Stop processing
+      stop = true;
+      break;
+    default:
+      err = true;
+      break;
+    }
+  if (err)
+    return false;
 
   // verify required parameters
+  // This define should be something like ENABLE_TERMWIN, but hey
 #if !defined(i386_unknown_nt4_0)
-  return (b_flag && b_machine && b_well_known && b_termWin && b_flavor);
+  if (!well_known_socket && !termWin_port)
+    return false;
 #else
-  return (b_flag && b_machine && b_well_known && b_flavor);
+  if (!well_known_socket)
+    return false;
 #endif
+  return true;
 }
 
 // PARADYND_DEBUG_XXX
@@ -350,9 +373,6 @@ InitForMPI( char* argv[], const string& pd_machine )
 
 	tp->reportSelf(machine_name, argv[0], getpid(), "mpi");
 }
-
-
-
 
 static
 void
@@ -502,71 +522,77 @@ InitForPVM( char* argv[], const string& pd_machine )
 int
 main( int argc, char* argv[] )
 {
-
-	PauseIfDesired();
-	initialize_debug_flag();
-
+  
+  PauseIfDesired();
+  initialize_debug_flag();
+  
 #if !defined(i386_unknown_nt4_0)
-	InitSigTermHandler();
+  InitSigTermHandler();
 #endif // defined(i386_unknown_nt4_0)
-
-
+  
+  
 #ifdef DETACH_ON_THE_FLY
-    initDetachOnTheFly();
+  initDetachOnTheFly();
 #endif
-
+  
 #if defined(i386_unknown_nt4_0)
-	InitWinsock();
+  InitWinsock();
 #endif // defined(i386_unknown_nt4_0)
-
-
-	//
-    // process command line args passed in
-	//
-    process::programName = argv[0];
-    bool aflag;
-#if !defined(i386_unknown_nt4_0)
-    aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
-			       pd_known_socket_portnum,termWin_port, pd_flag);
-#else 
-    aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
-			       pd_known_socket_portnum,pd_flag);
+  
+  
+  //
+  // process command line args passed in
+  //
+  process::programName = argv[0];
+  bool aflag;
+#ifdef DEBUG
+  // Print command line args
+  for (int j = 0; j < argc; j++)
+    cerr << argv[j] << " ";
+  cerr << endl;
 #endif
-    if (!aflag || pd_debug)
+  aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
+			     pd_known_socket_portnum,termWin_port, pd_flag, pd_attpid);
+  if (!aflag || pd_debug)
+    {
+      if (!aflag)
 	{
-		if (!aflag)
-		{
-			cerr << "Invalid/incomplete command-line args:" << endl;
-		}
-		cerr << "   -z<flavor";
-		if (pd_flavor.length())
-		{
-			cerr << "=" << pd_flavor;
-		}
-		cerr << "> -l<flag";
-		if (pd_flag)
-		{
-			cerr << "=" << pd_flag;
-		}
-		cerr << "> -m<hostmachine";
-		if (pd_machine.length()) 
-		{
-			cerr << "=" << pd_machine;
-		}
-		cerr << "> -p<hostport";
-		if (pd_known_socket_portnum)
-		{
-			cerr << "=" << pd_known_socket_portnum;
-		}
-		cerr << ">" << endl;
-		if (process::dyninstName.length())
-		{
-			cerr << "   -L<library=" << process::dyninstName << ">" << endl;
-		}
-		if (!aflag)
-		{
-			cleanUpAndExit(-1);
-		}
+	  cerr << "Invalid/incomplete command-line args:" << endl;
+	}
+      cerr << "   -z<flavor";
+      if (pd_flavor.length())
+	{
+	  cerr << "=" << pd_flavor;
+	}
+      cerr << "> -l<flag";
+      if (pd_flag)
+	{
+	  cerr << "=" << pd_flag;
+	}
+      cerr << "> -m<hostmachine";
+      if (pd_machine.length()) 
+	{
+	  cerr << "=" << pd_machine;
+	}
+      cerr << "> -p<hostport";
+      if (pd_known_socket_portnum)
+	{
+	  cerr << "=" << pd_known_socket_portnum;
+	}
+      cerr << "> -apid<attachpid";
+      if (pd_attpid)
+	{
+	  cerr << "=" << pd_attpid;
+	}
+      cerr << ">" << endl;
+      if (process::dyninstName.length())
+	{
+	  cerr << "   -L<library=" << process::dyninstName << ">" << endl;
+	}
+      if (!aflag)
+	{
+	  cleanUpAndExit(-1);
+	}
     }
 
 #if !defined(i386_unknown_nt4_0)
@@ -620,24 +646,24 @@ extern PDSOCKET connect_Svr(string machine,int port);
 	{
 		cmdLine += argv[i];
 	}
-	// note - cmdLine could be empty here, if the -runme flag were not given
+    // note - cmdLine could be empty here, if the -runme flag were not given
 
 
     // There are several ways that we might have been started.
-	// We need to connect to Paradyn differently depending on which 
-	// method was used.
-	//
-	// Use our own stdin if:
-	//   started as local daemon by Paradyn using fork+exec
-	//
-	// Use a socket described in our command-line args if:
-	//   started as remote daemon by rsh/rexec
-	//   started manually on command line
-	//   started by MPI
-	//   started as PVM daemon by another Paradyn daemon using pvm_spawn() 
-	//
-
-
+    // We need to connect to Paradyn differently depending on which 
+    // method was used.
+    //
+    // Use our own stdin if:
+    //   started as local daemon by Paradyn using fork+exec
+    //
+    // Use a socket described in our command-line args if:
+    //   started as remote daemon by rsh/rexec
+    //   started manually on command line
+    //   started by MPI
+    //   started as PVM daemon by another Paradyn daemon using pvm_spawn() 
+    //
+    
+    
     process::pdFlavor = pd_flavor;
 #ifdef PDYN_DEBUG
     cerr << "pd_flavor: " << pd_flavor.string_of() << endl;
@@ -651,46 +677,48 @@ extern PDSOCKET connect_Svr(string machine,int port);
 	}
 #endif // PARADYND_PVM
 
-	if( tp == NULL )
-	{
-		// we haven't yet reported to our front end
-
-		if( pd_flavor == "mpi" )
-		{
-			InitForMPI( argv, pd_machine );
-		}
-		else if( pd_flag == 0 )
-		{
-			// we are a remote daemon started by rsh/rexec or some other
-			InitRemotelyStarted( argv, pd_machine, (cmdLine.size() > 0) );
-		}
-		else if( pd_flag == 1 )
-		{
-			// we were started by a local front end using fork+exec
-			InitLocallyStarted( argv, pd_machine );
-		}
-		else if( pd_flag == 2 )
-		{
-			// we were started manually (i.e., from the command line)
-			InitManuallyStarted( argv, pd_machine );
-		}
-	}
-
-	// by now, we should have a connection to our front end
-	if( tp == NULL )
-	{
-		if( (pd_flag < 0) || (pd_flag > 2) )
-		{
-			cerr << "Paradyn daemon: invalid -l value " << pd_flag << " given." << endl;
-		}
-		else
-		{
-			cerr << "Paradyn daemon: invalid command-line options seen" << endl;
-		}
-		cleanUpAndExit(-1);
-	}
+    if( tp == NULL )
+      {
+	// we haven't yet reported to our front end
+	
+	if( pd_flavor == "mpi" )
+	  {
+	    InitForMPI( argv, pd_machine );
+	  }
+	else if( pd_flag == 0 )
+	  {
+	    // we are a remote daemon started by rsh/rexec or some other
+	    InitRemotelyStarted( argv, pd_machine, (cmdLine.size() > 0) );
+	  }
+	else if( pd_flag == 1 )
+	  {
+	    // we were started by a local front end using fork+exec
+	    InitLocallyStarted( argv, pd_machine );
+	  }
+	else if( (pd_flag == 2)|| (pd_flag == 3))
+	  {
+	    // we were started manually (i.e., from the command line) -2
+	    // we were started manually by a daemon - 3
+	    InitManuallyStarted( argv, pd_machine );
+	  }
+	
+      }
+    
+    // by now, we should have a connection to our front end
+    if( tp == NULL )
+      {
+	if( (pd_flag < 0) || (pd_flag > 3) )
+	  {
+	    cerr << "Paradyn daemon: invalid -l value " << pd_flag << " given." << endl;
+	  }
+	else
+	  {
+	    cerr << "Paradyn daemon: invalid command-line options seen" << endl;
+	  }
+	cleanUpAndExit(-1);
+      }
     assert( tp != NULL );
-
+    
 #if defined(MT_THREAD)
     statusLine(V_paradyndMT);
 #else
@@ -701,42 +729,57 @@ extern PDSOCKET connect_Svr(string machine,int port);
     // before starting a process
     aflag = mdl_get_initial(pd_flavor, tp);
     assert(aflag);
-
+    
     initLibraryFunctions();
     if (!init()) 
-	{
-		abort();
-	}
-
+      {
+	abort();
+      }
+    bool startByAttach = false;
 #ifdef mips_sgi_irix6_4
     struct utsname unameInfo;
     if ( P_uname(&unameInfo) == -1 )
-    {
+      {
         perror("uname");
         return false;
-    }
-
+      }
+    
     // osName is used in irix.C and process.C
     osName = unameInfo.sysname;
-
+    
     if ( pd_flavor == "mpi" && osName.prefixed_by("IRIX") )
-    {
-      if ( !execIrixMPIProcess(cmdLine) )
-        return(0);
-    }
+      {
+	if ( !execIrixMPIProcess(cmdLine) )
+	  return(0);
+      }
     else
 #endif
+      
+    // spawn the given process, if necessary
+    if (cmdLine.size() && (pd_attpid==0))
+      {
+	vector<string> envp;
+        addProcess(cmdLine, envp, *dir); // ignore return val (is this right?)
+      } 
+    else if (pd_attpid)
+      {
+	// We attach after doing a last bit of initialization, below
+	startByAttach = true;
+      }
 
-	// spawn the given process, if necessary
-	if (cmdLine.size())
-	{
-		vector<string> envp;
-		addProcess(cmdLine, envp, *dir); // ignore return val (is this right?)
-	}
-
-
-	// start handling events
+    // Set up the trace socket. This is needed before we try
+    // to attach to a process
+    extern void setupTraceSocket();
+    setupTraceSocket();
+    if (startByAttach) {
+      bool success = attachProcess("",
+				   pd_attpid,
+				   1);
+      if (!success) return(-1);
+    }
     controllerMainLoop(true);
     return(0);
 }
+
+
 
