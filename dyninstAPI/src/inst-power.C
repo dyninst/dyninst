@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.140 2002/06/27 20:21:55 mirg Exp $
+ * $Id: inst-power.C,v 1.141 2002/07/03 22:20:29 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -979,6 +979,21 @@ unsigned generateMTTrampCode(instruction *insn, Address &base, process *proc)
   tmp_insn++;
   scratchBase += sizeof(instruction);
 
+  AstNode *pos = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
+  AstNode *size = new AstNode(AstNode::Constant, (void *)sizeof(unsigned));
+  AstNode *tramp_offset = new AstNode(timesOp, pos, size);
+  removeAst(pos);
+  removeAst(size);
+  Register result = tramp_offset->generateCode(proc, regSpace, (char *)insn,
+					       scratchBase, false, true);
+  tmp_insn = (instruction *) ((void*)&insn[scratchBase/4]);
+  if ((result) != REG_GUARD_OFFSET) {
+    // This is always going to happen... we reserve REG_MT_POS, so the
+    // code generator will never use it as a destination
+    genImmInsn(tmp_insn, ORILop, result, REG_GUARD_OFFSET, 0);
+    tmp_insn++; scratchBase+=sizeof(instruction);
+  }
+			      
   base += scratchBase;
 
   return returnVal;
@@ -1270,17 +1285,16 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
  
 #if defined(MT_THREAD)
-
-if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
-	//at this point we may have not yet loaded the
-	//paradyn lib, so the DYNINSTthreadPos symbols may not
-	//be found
-
-  // MT: thread POS calculation. If not, stick a 0 here
-  theTemplate->MTpreBranch = generateMTTrampCode(insn, currAddr, proc);
-  // GenerateMT will push forward the currAddr, but not insn
-  insn = &tramp[currAddr/4];
-}
+  if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
+    //at this point we may have not yet loaded the
+    //paradyn lib, so the DYNINSTthreadPos symbols may not
+    //be found
+    
+    // MT: thread POS calculation. If not, stick a 0 here
+    theTemplate->MTpreBranch = generateMTTrampCode(insn, currAddr, proc);
+    // GenerateMT will push forward the currAddr, but not insn
+    insn = &tramp[currAddr/4];
+  }
 #endif
   if (wantTrampGuard) {
     // Tramp guard
@@ -1400,17 +1414,14 @@ if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
  
   // MT: thread POS calculation. If not, stick a 0 here
 #if defined(MT_THREAD)
-if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
-	//at this point we may have not yet loaded the
-	//paradyn lib, so the DYNINSTthreadPos symbols may not
-	//be found
-
-
-  theTemplate->MTpostBranch = generateMTTrampCode(insn, currAddr, proc);
-  // GenerateMT will push forward the currAddr, but not insn
-  insn = &tramp[currAddr/4];
-}
-
+  if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
+    //at this point we may have not yet loaded the
+    //paradyn lib, so the DYNINSTthreadPos symbols may not
+    //be found   
+    theTemplate->MTpostBranch = generateMTTrampCode(insn, currAddr, proc);
+    // GenerateMT will push forward the currAddr, but not insn
+    insn = &tramp[currAddr/4];
+  }
 #endif
   
   // Tramp guard
@@ -1591,7 +1602,6 @@ if(proc->paradynLibAlreadyLoaded()){ //ccw 13 jun 2002 : SPLIT
       // VG(03/02/02): bail if no base tramp
       return NULL;
     }
-
   theTemplate->baseAddr = baseAddr;
   theTemplate->costAddr = baseAddr + theTemplate->updateCostOffset;
 
