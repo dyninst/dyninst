@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.113 2002/05/22 19:03:24 bernat Exp $
+// $Id: mdl.C,v 1.114 2002/08/31 16:53:34 mikem Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -63,6 +63,10 @@
 #include "pdutil/h/pdDebugOstream.h"
 #include "dyninstAPI/src/instPoint.h" // new...for class instPoint
 #include "paradynd/src/focus.h"
+
+#include "paradynd/src/papiMgr.h"
+
+#include "paradynd/src/init.h"
 
 #include <ctype.h>
 
@@ -262,7 +266,7 @@ private:
 // assert's need to be removed.  --chun
 //
 T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units, 
-		       u_int agg, u_int sty, u_int type,
+		       u_int agg, u_int sty, u_int type, string hwcntr,
 		       vector<T_dyninstRPC::mdl_stmt*> *mv, 
 		       vector<string> *flav,
 		       vector<T_dyninstRPC::mdl_constraint*> *cons,
@@ -270,7 +274,7 @@ T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units,
 		       bool developerMode,
 		       int unitstype)
 : id_(id), name_(name), units_(units), agg_op_(agg), style_(sty),
-  type_(type), stmts_(mv), flavors_(flav), constraints_(cons),
+  type_(type), hwcntr_(hwcntr), stmts_(mv), flavors_(flav), constraints_(cons),
   temp_ctr_(temp_counters), developerMode_(developerMode),
   unitstype_(unitstype) { assert(0); }
 
@@ -299,7 +303,7 @@ T_dyninstRPC::mdl_metric::~mdl_metric() {
 }
 
 bool mdl_data::new_metric(string id, string name, string units,
-			  u_int agg, u_int sty, u_int type,
+			  u_int agg, u_int sty, u_int type, string hwcntr,
 			  vector<T_dyninstRPC::mdl_stmt*> *mv,
 			  vector<string> *flav,
 			  vector<T_dyninstRPC::mdl_constraint*> *cons,
@@ -308,9 +312,8 @@ bool mdl_data::new_metric(string id, string name, string units,
 			  int unitstype) 
 {
   assert (0);
-  T_dyninstRPC::mdl_metric *m = new T_dyninstRPC::mdl_metric(id, name, units, agg, sty, type, mv, flav, 
-				 cons, temp_counters, developerMode, 
-				 unitstype);
+  T_dyninstRPC::mdl_metric *m = new T_dyninstRPC::mdl_metric(id, name, units, agg, sty, 
+                  type, hwcntr, mv, flav, cons, temp_counters, developerMode, unitstype);
   if (!m)
     return false;
   else {
@@ -478,7 +481,8 @@ bool setup_sampled_code_node(const processMetFocusNode* procNode,
 			     bool dontInsertData)
 {
    instrDataNode *sampledDataNode = 
-      new instrDataNode(proc, type, dontInsertData);
+      new instrDataNode(proc, type, dontInsertData, codeNode->getHwEvent());
+
    codeNode->setSampledDataNode(sampledDataNode);
    mdl_env::set(sampledDataNode, id);
 
@@ -530,7 +534,8 @@ bool setup_constraint_code_node(instrCodeNode* codeNode, process *proc,
 bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
 		     const string &id, const string &name, 
 		     const Focus &no_thr_focus,
-		     unsigned type,
+		     unsigned type, 
+                     string& hw_cntr_str,
 		     vector<T_dyninstRPC::mdl_constraint*> &flag_cons,
 		     T_dyninstRPC::mdl_constraint *repl_cons,
 		     vector<T_dyninstRPC::mdl_stmt*> *stmts,
@@ -572,7 +577,7 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
       }
    }
    instrCodeNode *metCodeNode = 
-      instrCodeNode::newInstrCodeNode(name, no_thr_focus, proc,dontInsertData);
+        instrCodeNode::newInstrCodeNode(name, no_thr_focus, proc,dontInsertData, hw_cntr_str);
 
    bool metCodeNodeComplete = (metCodeNode->numDataNodes() > 0);
    if(! metCodeNodeComplete) {
@@ -655,6 +660,7 @@ apply_to_process(process *proc,
 		 const Focus &focus,
                  unsigned agg_op,
                  unsigned type,
+                 string& hw_cntr_str,
                  vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
                  T_dyninstRPC::mdl_constraint *repl_cons,
                  vector<T_dyninstRPC::mdl_stmt*> *stmts,
@@ -683,7 +689,7 @@ apply_to_process(process *proc,
 					  aggregateOp(agg_op), dontInsertData);
 
    bool ret = createCodeAndDataNodes(&procNode, id, name, no_thr_focus, 
-			      type, flag_cons, repl_cons, stmts, 
+			      type, hw_cntr_str, flag_cons, repl_cons, stmts, 
 			      flags_focus_data, repl_focus_data, temp_ctr, 
 			      replace_component);
    if(ret == false) {
@@ -700,6 +706,7 @@ static bool apply_to_process_list(vector<process*>& instProcess,
 				  const Focus& focus,
 				  unsigned& agg_op,
 				  unsigned& type,
+                                  string& hw_cntr_str, 
 			      vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
 				  T_dyninstRPC::mdl_constraint *repl_cons,
 				  vector<T_dyninstRPC::mdl_stmt*> *stmts,
@@ -717,7 +724,7 @@ static bool apply_to_process_list(vector<process*>& instProcess,
       if (proc->status() == exited || proc->status() == neonatal) continue;
       
       processMetFocusNode *procRetNode = 
-	 apply_to_process(proc, id, name, focus, agg_op, type, flag_cons, 
+	 apply_to_process(proc, id, name, focus, agg_op, type, hw_cntr_str, flag_cons, 
 			  repl_cons, stmts, flags_focus_data, repl_focus_data,
 			  temp_ctr, replace_components_if_present,
 			  dontInsertData);
@@ -824,10 +831,29 @@ bool T_dyninstRPC::mdl_metric::apply(
 
   vector<processMetFocusNode*> procParts; // one per process
 
+  if (type_ == MDL_T_HW_COUNTER || type_ == MDL_T_HW_TIMER) {
+#ifdef PAPI
+    if (!isPapiInitialized()) {
+        string msg = string("PAPI hardware events are unavailable");
+        showErrorCallback(125,msg.c_str());
+        return false;
+    }
+    else if (!papiMgr::isHwStrValid(hwcntr_)) {
+        string msg = string(hwcntr_ + " PAPI hardware event is invalid");
+        showErrorCallback(125,msg.c_str());
+        return false;
+    }
+#else
+    string msg = string("PAPI hardware events are not available");
+    showErrorCallback(125,msg.c_str());
+    return false;
+#endif
+  }
+
   if (!apply_to_process_list(instProcess, 
                              createdProcNodes, id_, name_,
 			     focus, agg_op_, 
-			     type_, flag_cons, repl_cons,
+			     type_, hwcntr_, flag_cons, repl_cons,
 			     stmts_, flags_focus_data, *repl_focus, *temp_ctr_,
 			     replace_components_if_present,
 			     dontInsertData)) {
@@ -948,6 +974,8 @@ bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *codeNode,
   case MDL_T_COUNTER:
   case MDL_T_WALL_TIMER:
   case MDL_T_PROC_TIMER:
+  case MDL_T_HW_TIMER:
+  case MDL_T_HW_COUNTER:
     break;
   default:
     assert(0);
@@ -962,7 +990,7 @@ bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *codeNode,
     // counter - naim 4/22/97
     // By default, the last parameter is false - naim 4/23/97
 
-    (*dataNode) = new instrDataNode(proc, MDL_T_COUNTER, dontInsertData);
+    (*dataNode) = new instrDataNode(proc, MDL_T_COUNTER, dontInsertData, NULL);
     codeNode->setConstraintDataNode(*dataNode);
 
     // this flag will construct a predicate for the metric -- have to return it
@@ -1385,6 +1413,41 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
         ast = createTimer(timer_func, (void*)(dn->getInferiorPtr()),
 			  ast_args);
       }
+      else if (var_ == "sampleHwCounter" || var_ == "startHwTimer" || var_ == "stopHwTimer") {
+
+        if (!args_) return false;
+        unsigned size = args_->size();
+        if (size != 1) return false;
+
+        mdl_var timer(false);
+	instrDataNode* dn;
+        if (!(*args_)[0]->apply(timer)) return false;
+        if (!timer.get(dn)) return false;
+
+        string timer_func;
+ 
+        if (var_ == "startHwTimer")
+          timer_func = "DYNINSTstartHwTimer";
+        else if (var_ == "stopHwTimer")
+          timer_func = "DYNINSTstopHwTimer";
+        else if (var_ == "sampleHwCounter")
+          timer_func = "DYNINSTsampleHwCounter";
+
+        vector<AstNode *> ast_args;
+
+        /* hwCounter can be treated the same way as a hwTimer because
+           both types need to invoke a DYNINST* method 
+         */
+
+        HwEvent* hw = dn->getHwEvent();
+        assert(hw != NULL);
+        int hwCntrIndex = hw->getIndex();  /* temp */
+
+        ast = createHwTimer(timer_func, (void*)(dn->getInferiorPtr()),
+			  ast_args, hwCntrIndex);
+
+      }
+      
       else if (var_ == "readSymbol")
       {
         mdl_var symbol_var;
