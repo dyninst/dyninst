@@ -45,7 +45,7 @@
 // Fixed maximum sequence size (currently twenty) for maximum speed
 // Very lightweight all-around; no free store operations _ever_
 
-/* $Id: simpSeq.h,v 1.6 1999/04/27 16:03:51 nash Exp $ */
+/* $Id: simpSeq.h,v 1.7 1999/07/26 21:48:52 cain Exp $ */
 
 #ifndef _SIMPSEQ_H_
 #define _SIMPSEQ_H_
@@ -53,7 +53,7 @@
 template <class T>
 class simpSeq {
  private:
-   T data[20];
+   T data[50];
    unsigned numitems; // indexes in use are 0 thru numitems-1
 
    T &getItem(unsigned index);

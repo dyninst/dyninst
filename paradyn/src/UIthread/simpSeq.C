@@ -42,7 +42,7 @@
 // simpSeq.C
 // Ariel Tamches
 
-/* $Id: simpSeq.C,v 1.5 1999/04/27 16:03:51 nash Exp $ */
+/* $Id: simpSeq.C,v 1.6 1999/07/26 21:48:52 cain Exp $ */
 
 #include <assert.h>
 #include "simpSeq.h"
@@ -91,7 +91,7 @@ const T *simpSeq<T>::getEntireSeqQuick() const {
 
 template <class T>
 void simpSeq<T>::append(const T &newItem) {
-   assert(numitems < 20);
+   assert(numitems < 50);
 
    data[numitems++] = newItem; // makes a copy of the item
 }
