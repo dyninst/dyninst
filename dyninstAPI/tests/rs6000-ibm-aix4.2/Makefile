@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.18 2001/08/30 18:17:15 beyerj Exp $
+# $Id: Makefile,v 1.19 2001/10/26 06:29:49 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -21,7 +21,8 @@ CXXFLAGS += -DUSES_DYNAMIC_INF_HEAP -g
 CFLAGS += -DUSES_DYNAMIC_INF_HEAP -g
 
 MUTATEE_FFLAGS += -U -WF,-Drs6000_ibm_aix4_1 -qnolm -qfixed -w -g
-MUTATEE_FLINKFLAGS += -g -bgcbypass:3 -ldl -lgcc -L/usr/local/lib/gcc-lib/powerpc-ibm-aix4.3.2.0/2.95.3
+LIBGCCLOC = /s/gcc-2.95.3/lib/gcc-lib/powerpc-ibm-aix4.3.3.0/2.95.3
+MUTATEE_FLINKFLAGS += -g -bgcbypass:3 -ldl -lgcc -L$(LIBGCCLOC)
 
 NATIVE_CC = xlc
 NATIVE_CXX = xlC
@@ -83,7 +84,7 @@ $(FORTRAN_BASE)_$(NATIVE_FC).o: ../src/$(FORTRAN_BASE).F
 	-$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F
  
 $(FORTRAN_BASE)C_$(NATIVE_FC).o: ../src/$(TARGET2:_$(NATIVE_FC)=).c
-	-$(MUTATEE_CC) $(filter-out -Wl$(COMMA)-bgcbypass:3, $(MUTATEE_CFLAGS)) -fno-implicit-templates -W -Wall -fno-squangle -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(TARGET2:_$(NATIVE_FC)=).c
+	-$(MUTATEE_CC) $(filter-out -Wl$(COMMA)-bgcbypass:3, $(MUTATEE_CFLAGS)) -fno-implicit-templates -W -Wall $(FORT_SQGL_FLAG) -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(TARGET2:_$(NATIVE_FC)=).c
 else
 $(TARGET2): $(MUTATEE_SRC)
 	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) -Wl,-bnoobjreorder \
