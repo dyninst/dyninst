@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: PCwhere.h,v $
- * Revision 1.3  1994/02/24 04:36:51  markc
+ * Revision 1.4  1994/06/14 15:34:48  markc
+ * Modified parameters for moreSpecific.
+ * Added MsgTags as a resource.
+ *
+ * Revision 1.3  1994/02/24  04:36:51  markc
  * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
  * startup.  Added a data member to the class that igen generates.
  * Make depend differences due to new header files that igen produces.
@@ -68,7 +72,7 @@ class focus {
 	focus *constrain(resource *param);
 
 	Boolean operator ==(focus*);	// comparison
-	focus *moreSpecific(resource *parm);
+	focus *moreSpecific(resource *parm, Boolean &conflicts);
 	operator =(focus);
 	void print(char*);
 	void print();
@@ -121,6 +125,7 @@ extern focusList allFoci;
 extern resource *Locks;
 extern resource *Barriers;
 extern resource *Semaphores;
+extern resource *MsgTags;
 
 extern resource *SyncObject;
 extern resource *Procedures;
