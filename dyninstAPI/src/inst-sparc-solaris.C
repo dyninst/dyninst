@@ -39,13 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.42 1998/08/26 20:59:04 zhichen Exp $
+// $Id: inst-sparc-solaris.C,v 1.43 1998/09/19 20:56:10 mcheyney Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "util/h/debugOstream.h"
 
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
+#include "dyninstAPI/src/LocalAlteration-Sparc.h"
+
+#include <stdlib.h>
 
 static unsigned pfdp_to_pfdp_hash(pd_Function * const &f) {
     pd_Function *pdf = f;
@@ -193,8 +196,19 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
   adr = addr + (size - 1*sizeof(instruction));
 }
 
+// return the instruction after originalInstruction....
+const instruction instPoint::insnAfterPoint() const {
+    if (!this->hasNoStackFrame()) {
+        if (ipType == functionEntry) {
+	    return delaySlotInsn;
+	} else {
+	    return delaySlotInsn;
+	}
+    } 
+    return otherInstruction;
+}
 
-void AstNode::sysFlag(instPoint *location)
+   void AstNode::sysFlag(instPoint *location)
 {
     if (location -> ipType == functionEntry) {
 	astFlag = (location -> isLongJump)? false:true; 
@@ -277,7 +291,7 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
 {
     Address ret=adr;
     instPoint *point;
-
+ 
 #ifdef DEBUG_CALL_POINTS
     cerr << "pd_Function::newCallPoint called " << endl;
     cerr << " this " << *this << endl;
@@ -401,6 +415,32 @@ void relocateInstruction(instruction *insn, u_int origAddr, u_int targetAddr,
 	// logLine("attempt to relocate trap\n");
     } 
     /* The rest of the instructions should be fine as is */
+}
+
+/*
+ * Heavily Related to relocateInstruction, above....
+ *  Used to relocate an instruction when the entire function in which it is located
+ *  is also reloated - e.g. when function is rewritten to allow instrumentation
+ *  (unlike relocateInstruction, which is used when the instruction ALONE is relocated
+ *   - e.g. when instruction in inst point is relocated to tramp)....
+ */
+void pd_Function::relocateInstructionWithFunction(instruction *insn, Address origAddr, 
+  Address targetAddr, process *proc, Address oldFunctionAddr) {
+    // Because the whole function is being relocated, there are a few types of 
+    //  instruction which would be altered by relocateInstruction which should
+    //  not be altered here. 
+    // In particular, branches and calls to locations WITHIN the function should
+    //  NOT be altered, because their destinations move also....
+    if (branchInsideRange(*insn, origAddr, oldFunctionAddr, \
+						 oldFunctionAddr + size())) {
+        return;
+    }
+    if (trueCallInsideRange(*insn, origAddr, oldFunctionAddr, \
+					     oldFunctionAddr + size())) {
+        return;
+    }
+        
+    relocateInstruction(insn, origAddr, targetAddr, proc);
 }
 
 /*
@@ -1524,11 +1564,14 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
     return(0);
 }
 
+static inline bool isRestoreInsn(instruction i) {
+    return (i.rest.op == 2 \
+	       && ((i.rest.op3 == ORop3 && i.rest.rd == 15)
+		       || i.rest.op3 == RESTOREop3));
+}
+
 static inline bool CallRestoreTC(instruction instr, instruction nexti) {
-    return (isCallInsn(instr) && 
-           (nexti.rest.op == 2
-	       && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
-		       || nexti.rest.op3 == RESTOREop3)));
+    return (isCallInsn(instr) && isRestoreInsn(nexti));
 }
 
 /*
@@ -2018,18 +2061,21 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
        //  anywhere inside function.  The second (seen to date on
        //  Solaris 2.6 only) is a JMP, NOP in the last 2 instructions 
        //  of a function w/o a stack frame.
-       //  In both cases, the sequence is marked here as a function
-       //   return point (not call site).  This is possibly meaningless
-       //   however, as the first time the function is called, 
-       //   it is relocated, and (theoretically) the tail-call sequence
-       //   is opened up and seperate call site and exit point
-       //   should be falgged.
-       if (CallRestoreTC(instr, nexti)) {
+       // In both cases, the 1st instruction in the tail-call sequences
+       //  (call or jmp....) is marked as a call site, and the second is
+       //  marked as a return point.
+       // Sependencies in the Tail Call Opt. Peephole Alteration code -
+       //  make sure that BOTH the call site and return point are marked
+       //  as inst points, AND that the call site points to the 1st instruction
+       //  in the tail-call sequence and the retuirn point points to the 
+       //  second....
+       if (CallRestoreTC(instr, nexti) || JmpNopTC(instr, nexti, adr, this)) {
 	   // Alert!!!!
 	   adr = newCallPoint(newAdr, instr, owner, err, callsId, adr,0,blah);
 	   if (err) return false;
 
-           instPoint *point = new instPoint(this, instr, owner, newAdr, false,
+           instPoint *point = new instPoint(this, instr, owner, 
+				      newAdr + sizeof(instruction), false,
 				      functionExit, adr);
            funcReturns += point;
            funcReturns[retId] -> instId = retId++;
@@ -2114,8 +2160,24 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
  return true;
 }
 
-// This function assigns new address to instrumentation points of  
-// a function that has been relocated
+#define CHECK_LOCAL(X) if (!X) {delete []oldCode; delete []buf1; return false;}
+#define CHECK_ALLOC(sizeChange, buf) \
+    assert((sizeChange % sizeof(instruction)) == 0); \
+    buf = new instruction[(size() + sizeChange)/sizeof(instruction)]; \
+    if (buf == NULL) { \
+         cerr << "WARN : unable to allocate array (" << size() + sizeChange \
+	     << " bytes) to use as working " \
+             << "space rewriting function " << prettyName().string_of() \
+	     << " unable to instrument fn...." << endl; \
+	delete []oldCode; \
+	delete []buf1; \
+        delete []buf2; \
+	return false; \
+    } \
+
+// Called when a function is relocated:
+//  rewrites the function code
+//  assigns new address to inst points in function????
 bool pd_Function::findNewInstPoints(const image *owner, 
 				const instPoint *&location,
 				Address newAdr,
@@ -2123,560 +2185,218 @@ bool pd_Function::findNewInstPoints(const image *owner,
 				vector<instruction> &callInstrs,
 				relocatedFuncInfo *reloc_info, 
 				FunctionExpansionRecord *fer, 
-				int size_change) {
+				int &size_change) {
+    instruction *oldCode, *buf1, *buf2;
+    Address baseAddress, firstAddress;
+    int totalSizeChange;
 
-   int i, extra_offset, disp;
-   instruction nexti; 
-   bool call_restore_tc, jmp_nop_tc, err;
+    // assumes delete NULL ptr safe....
+    oldCode = buf1 = buf2 = NULL;
 
-   if (size() == 0) {
-       cerr << "WARN : attempting to relocate function "
-       	    << prettyName().string_of() << " with size 0, unable to instrument"
-            <<  endl;
-       return false;
-   }
-   assert(reloc_info);
+#ifdef DEBUG_PA_INST
+    cerr << "pd_Function::findNewInstPoints called " << endl;
+    cerr << " prettyName = " << prettyName().string_of() << endl;
+    cerr << " size() = " << size() << endl;
+#endif
 
-   // Note : newInstr defined as static array 1024 long in inst-sparc.h
-   //  for some reason. (why static????)????
-   if (size() + size_change > NEW_INSTR_ARRAY_LEN) {
-       cerr << "WARN : attempting to relocate function "
-       	    << prettyName().string_of() << " with size "
-	    << " > NEW_INSTR_ARRAY_LEN, unable to instrument";
-       cerr << " size = " << size() << " , size_change = "
-	    << size_change << endl;
+    //
+    //  SOME PRELIMINARY CHECKS....
+    //
+    // check that function has size > 0.... 
+    if (size() == 0) {
+        cerr << "WARN : attempting to relocate function " \
+       	     << prettyName().string_of() << " with size 0, unable to instrument" \
+             <<  endl;
+        return false;
+    }
+
+    // reloc_info should be non-null??
+    assert(reloc_info);
+
+    // get baseAddress if this is a shared object
+    baseAddress = 0;
+    if(!(proc->getBaseAddress(owner,baseAddress))){
+	 baseAddress =0;
+    }
+    firstAddress = baseAddress + getAddress(0);
+
+    //
+    //  LOAD CODE FROM ADDRESS SPACE INTO ARRAY OF INSTRUCTIONS....
+    //
+    // allocate array of instructions to original code to be read from
+    //  addr space
+    assert(size() % sizeof(instruction) == 0);;
+    oldCode = new instruction[size() / sizeof(instruction)];
+    // if unable to allocate array, dump warn and return false.... 
+    if (oldCode == NULL) {
+        cerr << "WARN : unable to allocate array (" << size() << " bytes) to read in " \
+             << "code for function" << prettyName().string_of() << " unable to instrument" \
+             << endl;
+	return false;
+    }
+    // read function code from image....
+    if (!readFunctionCode(owner, oldCode)) {
+        cerr << "WARN : unable to read code for function " 
+	     << prettyName().string_of() << " from address space : unable to instrument" \
+             << endl;
+	delete []oldCode;
+	return false;
+    }
+
+    // 
+    //  ATTACH ALTERATIONS AND APPLY THEM TO RE-WRITE FUNCTION....  
+    //
+    //  Attach alterations - in sparc-solaris, this is done in 3 steps - 
+    //  nothing intrinsic here about the choice of 3 steps - step selection
+    //  designed to simplify the interaction of various types of peephole 
+    //  alterations....
+    LocalAlterationSet alterationSet1(this), alterationSet2(this), 
+        alterationSet3(this);
+
+    //
+    // ATTACH AND APPLY FIRST SET OF ALTERATIONS....
+    //
+    PA_attachGeneralRewrites(&alterationSet1, 
+			     baseAddress, firstAddress, oldCode, size());
+    alterationSet1.Collapse();
+
+    //  allocate buffer to hold changes oldCode --alteration set 1--> buf1
+    totalSizeChange = alterationSet1.sizeChange();
+    CHECK_ALLOC(totalSizeChange, buf1)
+ 
+    // Apply oldCode --alteration set1--> buf1
+    //  here, newAdr (param to applyAlterations) is passed in as firstAddress,
+    //  because the 1st n - 1 applications of alteration sets don't actually
+    //  correspond to the code being moved around, but the last one does.
+    CHECK_LOCAL(applyAlterations(&alterationSet1, firstAddress, firstAddress, oldCode, 
+			  size(), buf1, proc))
+
+    //
+    // ATTACH AND APPLY 2ND SET OF PEEPHOLE ALTERATIONS....
+    //
+    PA_attachOverlappingInstPoints(&alterationSet2, 
+			     baseAddress, firstAddress, oldCode, size());
+    alterationSet2.Collapse();
+    totalSizeChange = alterationSet1.sizeChange() + alterationSet2.sizeChange();
+
+    CHECK_ALLOC(totalSizeChange, buf2)
+
+    // Apply buf1 --alteration set2--> buf2
+    //  here, newAdr (param to applyAlterations) is passed in as firstAddress,
+    //  because the 1st n - 1 applications of alteration sets don't actually
+    //  correspond to the code being moved around, but the last one does.
+    CHECK_LOCAL(applyAlterations(&alterationSet2, firstAddress, firstAddress, buf1, \
+			  size() + alterationSet1.sizeChange(), buf2, \
+			  proc))
+
+    //
+    // ATTACH AND APPLY THIRD SET OF PEEPHOLE ALTERATIONS....
+    //
+    PA_attachBranchOverlaps(&alterationSet3, 
+			     baseAddress, firstAddress, oldCode, size());
+
+    alterationSet3.Collapse();
+
+    // figure out how much space will be necessary for rewritten version of code....
+    totalSizeChange = alterationSet1.sizeChange() + alterationSet2.sizeChange() \
+      + alterationSet3.sizeChange();
+    assert(totalSizeChange % sizeof(instruction) == 0);
+
+#ifdef DEBUG_PA_INST
+    cerr << " computed totalSizeChange = " << totalSizeChange << endl;
+#endif
+
+    // make sure that new function version can fit in newInstr (statically allocated)....
+    if (size() + totalSizeChange > NEW_INSTR_ARRAY_LEN) {
+       cerr << "WARN : attempting to relocate function " \
+       	    << prettyName().string_of() << " with size " \
+	    << " > NEW_INSTR_ARRAY_LEN (" << NEW_INSTR_ARRAY_LEN \
+	    << "), unable to instrument : " \
+            << " size = " << size() << " , totalSizeChange = " \
+	    << totalSizeChange << endl;
+       delete []oldCode;
+       delete []buf1;
+       delete []buf2;
        return FALSE;
-   }
+    }
 
+    // Apply buf2 --alteration set3--> newInstr (statically defined array which
+    //  older infrastructure which calls expects modified version in....)....
+    //  This is (in current code) the final application of an alteration set, so
+    //   newAdr is passed in so that the code is actually moved.... 
+    CHECK_LOCAL(applyAlterations(&alterationSet3, firstAddress, newAdr, buf2, \
+		     size() + alterationSet1.sizeChange() + alterationSet2.sizeChange(), 
+		     newInstr, proc))
 
-   Address adr = getAddress(0);
-   Address start_adr = adr;
-   instruction instr;
-   instr.raw = owner->get_instruction(adr);
-   if (!IS_VALID_INSN(instr)) {
-       cerr << "WARN : attempting to relocate function "
-	    << prettyName().string_of() << " first instruction could not "
-	    << " be correctly parsed, unable to instrument" << endl;
-       return false;
-   }
+    // Fill reloc_info up with relocated (and altered by alterations) inst poinsts/
+    //  Do AFTER all alterations are attached AND applied to func code....
+    fillInRelocInstPoints(owner, location, reloc_info, getAddress(0), newAdr, newInstr, 
+			  &alterationSet1, &alterationSet2, &alterationSet3);
 
-   instPoint *point = new instPoint(this, instr, owner, newAdr, true, 
-				    functionEntry, adr);
-   point->relocated_ = true;
-   // if location was the entry point then change location's value to new pt
-   if(location == funcEntry_) { 
-	location = point;
-   }
+    //  Fill in size_change (passed in from above) so that relocateFunction knows
+    //   how many bytes of new code to write....
+    size_change = totalSizeChange;
 
-   reloc_info->addFuncEntry(point);
-   assert(reloc_info->funcEntry());
-   int retId = 0;
-   int callsId = 0; 
+    // Successfull application, delete allocated buffers + return true....
+    delete []oldCode;
+    delete []buf1;
+    delete []buf2;
+    return true;
+}
 
-   // get baseAddress if this is a shared object
-   Address baseAddress = 0;
-   if(!(proc->getBaseAddress(owner,baseAddress))){
-	baseAddress =0;
-   }
+// used for sorting inst points - typecast void *s to instPoint *s, then
+//  do {-1, 0, 1} comparison by address....
+int sort_inst_points_by_address(const void *arg1, const void *arg2) {
+    const instPoint *a, *b;
+    a = (const instPoint*)arg1;
+    b = (const instPoint*)arg2;
+    if (a->iPgetAddress() > b->iPgetAddress()) {
+        return 1;
+    } else if (a->iPgetAddress() < b->iPgetAddress()) {
+        return -1;
+    }
+    return 0;
+}
 
-   // if we have call instructions that need to be added after the instrs
-   // to call the relocated instruction, the first address we can use is
-   // the address of the 4th instruction in the function
-   Address call_start_addr = getAddress(0)+baseAddress + 3*sizeof(instruction);
+// 32 bit addresses
+#ifndef MAX_ADDRESS
+#define MAX_ADDRESS 0xffffffff;
+#endif
+void pd_Function::sorted_ips_vector(vector<instPoint*>&fill_in) {
+    unsigned int returns_idx, calls_idx;
+    Address returns_ip_addr, calls_ip_addr;
 
-   for (i = 0; adr < getAddress(0) + size(); adr += 4,  newAdr += 4, i++) {
-    
-     instr.raw = owner->get_instruction(adr);
-     newInstr[i] = instr;
-     nexti.raw = owner->get_instruction(adr+4);
+    // sorted vector of inst points starts with funcEntry_  ....
+    fill_in += funcEntry_;
 
-     bool done;
+    returns_idx = calls_idx = 0;
 
-     // check for return insn and as a side affect decide if we are at the
-     //   end of the function.
-     if (isReturnInsn(owner, adr, done)) {
-       // define the return point
-       instPoint *point	= new instPoint(this, instr, owner, newAdr, false, 
-					functionExit, adr);
-       point->relocated_ = true;
-       // if location was this point, change it to new point
-       if(location == funcReturns[retId]) { 
-	   location = point;
-       }
-       retId++;
-       reloc_info->addFuncReturn(point);
-     } else if (instr.branch.op == 0 
-		&& (instr.branch.op2 == 2 || instr.branch.op2 == 6)) {
-       // --- If the instruction being relocated is a branch instruction ---
+    // step through funcReturns and calls, popping element off of each and
+    //  looking at iPgetAddress() to see which one to stick onto fill_in next....
+    while (returns_idx < funcReturns.size() || calls_idx < calls.size()) {
+        if (returns_idx < funcReturns.size()) {
+	    returns_ip_addr = funcReturns[returns_idx]->iPgetAddress();
+        } else {
+	    returns_ip_addr = MAX_ADDRESS;
+	}
+	
+        if (calls_idx < calls.size()) {
+	    calls_ip_addr = calls[calls_idx]->iPgetAddress();
+        } else {
+	    calls_ip_addr = MAX_ADDRESS;
+	}
 
-       // find if this branch is going out of the function
-       disp = instr.branch.disp22;
-       Address target = adr + baseAddress + (disp << 2);
+	// 2 inst points at same location????
+	assert(returns_ip_addr != calls_ip_addr);
 
-       // getAddress(0) gives the addr of the fn before it's relocated
-       if ((target < (getAddress(0) + baseAddress)) 
-	   || (target >= (getAddress(0) + baseAddress + size()))) {
-	   // If the branch was to a target outside of the function
-	   //  then mark the point as an exit point, and patch the
-	   //  jump target - the jump target needs to be patched because
-	   //  the jump target is NOT REALLY AN ABSOLUTE ADDRESS.  It is 
-	   //  actually a PC relative offset - and the relocated function
-	   //  will have a different PC. -matt
-
-	   relocateInstruction(&newInstr[i],adr+baseAddress,newAdr,proc);
-	   instPoint *point = new instPoint(this, newInstr[i], owner, 
-					    newAdr, false, 
-					    functionExit, adr);
-           point->relocated_ = true;
-	   disp = newInstr[i].branch.disp22;
-	   if ((instr.branch.cond != 0) && (instr.branch.cond != 8)) {  
-	       point->isBranchOut = true;
-	       point->branchTarget = adr + (disp<<2);
-	   }
-           // if location was this point, change it to new point
-           if(location == funcReturns[retId]) { 
-	       location = point;
-           }
-           retId++;
-           reloc_info->addFuncReturn(point);
-       } else {
-	   // If the branch was to a target INSIDE the function, then
-	   // the branch target also needs to be updated. 
-	   // a. it should point to the relocated function
-	   // - because the branch is PC relative, the target DOESN'T
-	   //  need to be updated for this (it will be the same relative 
-           //  to the PC location inside the relocated function as it was
-	   //  to the PC location inside the non-relocated function.)
-	   // b. however, it may need to point to a slightly different location
-	   //  inside the relocated function - this is because pieces of the 
-	   //  function code may be expanded during the instrumentation 
-           //  process....
-	   // -matt
-
-	   //  branch how far....
-	   disp = newInstr[i].branch.disp22;
-	   //  by how many instructions is code between the src and 
-           //   destination expanded....
-	   extra_offset = fer->GetShift(adr - start_adr +
-		 disp * sizeof(instruction)) -
-	         fer->GetShift(adr - start_adr);
-	   
-	   //if (extra_offset != 0) {
-	   //    cerr << "WARNING : function " << prettyName().string_of()
-	   //	  << " using addition FER offset of " << extra_offset
-	   //	  << " at instruction " << adr - start_adr << endl;
-	   //}
-
-	   //  Dont want to use relocateInstruction function here, as
-	   //   the branching is PC-relative, and thus not changed by
-	   //   relocation....
-	   assert(extra_offset % 4 == 0);
-	   newInstr[i].branch.disp22 += extra_offset >> 2;
-       }
-
-     } 
-     else if ((call_restore_tc = CallRestoreTC(instr, nexti))
-	      || (jmp_nop_tc = JmpNopTC(instr, nexti, adr, this))) {
-        // First, check for tail-call optimization: a call where the instruction 
-        // in the delay slot write to register %o7(15), usually just moving
-        // the caller's return address, or doing a restore
-        // Tail calls are instrumented as return points, not call points.
-        // New Tail-Call Optimization sequence (found by pd grp 
-        //  to-date only in Solaris 2.6, not in 2.5 or 2.4)
-        //  jmp %reg, nop as last 2 instructions in function w/o
-        //  own stack frame.  This sequence gets rewritten so
-        //  as to seperate the call site and exit point, similar
-        //  to what's done in the call, restore TC opt sequence
-        //  above.
-	    // Undoing the tail-call optimazation when the function
-	    // is relocated. Here is an example:
-	    //   before:          --->             after
-	    // ---------------------------------------------------
-	    //                                    mov %reg %g1
-	    //   call  %reg                       mov %i0 %o0
-	    //   restore                          mov %i1 %o1
-	    //                                    mov %i2 %o2
-	    //                                    mov %i3 %o3
-	    //                                    mov %i4 %o4
-	    //                                    mov %i5 %o5
-	    //                                    call %g1
-	    //                                    nop
-	    //                                    mov %o0 %i0
-	    //                                    mov %o1 %i1
-	    //                                    mov %i2 %o2
-	    //                                    mov %i3 %o3
-	    //                                    mov %i4 %o4
-	    //                                    mov %i5 %o5
-	    //                                    ret
-	    //                                    restore
-	    //   before:          --->             after
-	    // ---------------------------------------------------
-	    //   call  PC_REL_ADDR                mov %i0 %o0
-	    //   restore                          mov %i1 %o1
-	    //                                    mov %i2 %o2
-	    //                                    mov %i3 %o3
-	    //                                    mov %i4 %o4
-	    //                                    mov %i5 %o5
-	    //                                    call PC_REL_ADDR'
-	    //                                    nop
-	    //                                    mov %o0 %i0
-	    //                                    mov %o1 %i1
-	    //                                    mov %i2 %o2
-	    //                                    mov %i3 %o3
-	    //                                    mov %i4 %o4
-	    //                                    mov %i5 %o5
-	    //                                    ret
-	    //                                    restore
-            //   before:          --->             after
-	    // ---------------------------------------------------
-            //                                    save  %sp, -96, %sp
-	    //                                    mov %reg %g1
-	    //   jmp  %reg                        mov %i0 %o0
-	    //   restore                          mov %i1 %o1
-	    //                                    mov %i2 %o2
-	    //                                    mov %i3 %o3
-	    //                                    mov %i4 %o4
-	    //                                    mov %i5 %o5
-	    //                                    call %g1
-	    //                                    nop
-	    //                                    mov %o0 %i0
-	    //                                    mov %o1 %i1
-	    //                                    mov %i2 %o2
-	    //                                    mov %i3 %o3
-	    //                                    mov %i4 %o4
-	    //                                    mov %i5 %o5
-	    //                                    ret
-	    //                                    restore
-
-	 //    Note : Assuming that %g1 is safe to use, since g1 is scratch
-	 //     register that is defined to be volatile across procedure
-	 //     calls.
-         //    My barf for hand written assembly code which violates this
-         //     assumption.
-	    // Q: Here the assumption that register i1 is available 
-	    //    might be an question, is it?
-	    // A: I think it is appropriate because:
-	    //      (in situation A calls B and B calls C)
-	    //      The procedure C called via tail call is a leaf 
-	    //      procedure, the value arguments and return value between
-	    //      A and C are passed by register (o1...o5, o7)
-	    //      So even If B mess up the value of i0, it won't affect the
-	    //      commnucation between A and C. Also, we saved the value of
-	    //      i0 on stack and when we return from B, the value of i0
-	    //      won't be affected.
-	    //      If C is not a leaf procedure, it should be fine
-	    //      as it is.
-	    //    ( If you could give an counter-example, please
-	    //      let me know.                         --ling )
-
-            //  Should both be false for jmp, nop tail call sequences........
-	    bool true_call = isTrueCallInsn(instr);
-	    bool jmpl_call = isJmplCallInsn(instr);
-
-            if (call_restore_tc) {
-	        if (!true_call && !jmpl_call) {
-	            cerr << "WARN : attempting to unwind tail-call optimization, call instruction appears to be neither TRUE call nor JMPL call, bailing.  Function is : " << prettyName().string_of() << endl;
-	            return FALSE;
-	        }
-
-	        // if the call instruction was a call to a register, stick in extra
-	        //  initial mov as above....
-	        if (jmpl_call) {
-	            // added extra mv *, g1
-	            // translation : mv inst %1 %2 is synthetic inst. implemented as
-	            //  orI %1, 0, %2  
-	            genImmInsn(&newInstr[i++], ORop3, instr.rest.rs1, 0, 1);
-	        }
-	    } else {
-	        assert(jmp_nop_tc);
-		
-		// generate save instruction to free up new stack frame for
-		//  inserted call....
-		// ALERT ALERT - -112 seems like apparently random number
-		//  used in solaris specific code where save instructions 
-		//  are generated.  Why -112?
-		genImmInsn(&newInstr[i++], SAVEop3, REG_SP, -112, REG_SP);
-		 
-		// mv %reg %g1
-		genImmInsn(&newInstr[i++], ORop3, instr.rest.rs1, 0, 1);
-	    }
-
-	    // generate mov i0 ... i5 ==> O0 ... 05 instructions....
-	    // as noted above, mv inst %1 %2 is synthetic inst. implemented as
-	    //  orI %1, 0, %2  
-	    genImmInsn(&newInstr[i++], ORop3, REG_I(0), 0, REG_O(0));
-	    genImmInsn(&newInstr[i++], ORop3, REG_I(1), 0, REG_O(1));
-	    genImmInsn(&newInstr[i++], ORop3, REG_I(2), 0, REG_O(2));
-	    genImmInsn(&newInstr[i++], ORop3, REG_I(3), 0, REG_O(3));
-	    genImmInsn(&newInstr[i++], ORop3, REG_I(4), 0, REG_O(4));
-	    genImmInsn(&newInstr[i++], ORop3, REG_I(5), 0, REG_O(5));
-
-	    err = false;
-
-	    if (jmp_nop_tc) {
-	        // if origional jmp/call instruction was call to a register, that
-	        //  register should have been pushed into g0, so generate a call
-	        //  to %g0.
-	        //  generate <call %g1>
-	        generateJmplInsn(&newInstr[i], 1, 0, 15);
-
-		newCallPoint(newAdr += 8 *sizeof(instruction), newInstr[i], owner,
-			     err, callsId, adr,
-			     reloc_info, location);
-		i++;
-
-		// here, 18 instructions are generated and used to replace
-		//  the origional 2 (jmp, nop), resulting in an addition 
-		//  of 16 instructions....
-		// 8 instructions added above, so add 8 more here....
-		newAdr += 8 * sizeof(instruction);
-	        
-	    } else {
-	        assert(call_restore_tc);
-	        if (jmpl_call) { 
-	            // if origional jmp/call instruction was call to a register, that
-	            //  register should have been pushed into g0, so generate a call
-	            //  to %g0.
-	            //  generate <call %g1>
-	            generateJmplInsn(&newInstr[i], 1, 0, 15);
-		    
-		    newCallPoint(newAdr += 7 *sizeof(instruction), newInstr[i],
-			     owner, err, callsId, adr,
-			     reloc_info, location);
-
-		    i++;
-		    // in the case of a jmpl call, 17 instructions are generated
-	            // and used to replace origional 2 (call, restore), resulting
-	            // in a new addition of 15 instructions....
-		    // 7 instructions added above, so add 8 more here....
-	            newAdr += 8 * sizeof(instruction); 
-	        } else {
-	            // if the origional call was a call to an ADDRESS, then want
-	            //  to copy the origional call.  There is, however, a potential
-	            //  caveat:  The sparc- CALL instruction is apparently PC
-	            //  relative (even though disassemblers like that in gdb will
-	            //  show a call to an absolute address).
-	            //  As such, want to change the call target to account for 
-	            //  the difference in PCs.
-
-		    newAdr += 6 * sizeof(instruction);
-
-	            newInstr[i].raw = owner->get_instruction(adr);
-	            relocateInstruction(&newInstr[i],
-		        adr+baseAddress,
-		        newAdr,
-			proc);
-		    
-		    // mark the call instruction as a call site....
-		    //  alert -
-		    //  callsId looks ok, only used in calls to newInstPoint
-		    //  reloc_info looks ok as long as new call site added in 
-		    //   newCallPoint? - CHECK
-		    //  location looks ok as long as compared with funcReturns[id?}
-		    //   ? - CHECK
-		    newCallPoint(newAdr,
-                    		 newInstr[i], owner, err, callsId, adr,
-                    		 reloc_info, location); 
-
-		    i++;
-
-		    // in the case of a "true" call, 16 instructions are generated
-	            //  + replace origional 2, resulting in addition of 18 instrs.
-		    // Addition of 14 total should make newAdr point to
-		    //  the retl instruction 2nd to last in unwound tail-call 
-		    //  opt. sequence....
-		    // 6 instructions were added above, so add 8 more here....
-	            newAdr += 8 * sizeof(instruction);
-	        }
-	    }
-
-	    // err should have been set in call to newCallPoint - to mark
-	    //  relocated call insn as cal site....
-	    if (err) return false;
-
-	    // generate NOP following call instruction (for delay slot)
-	    //  ....
-	    generateNOOP(&newInstr[i++]);
-
-	    // generate mov instructions moving %o0 ... %o5 ==> 
-	    //     %i0 ... %i5.  
-            genImmInsn(&newInstr[i++], ORop3, REG_O(0), 0, REG_I(0));
-	    genImmInsn(&newInstr[i++], ORop3, REG_O(1), 0, REG_I(1));
-	    genImmInsn(&newInstr[i++], ORop3, REG_O(2), 0, REG_I(2));
-	    genImmInsn(&newInstr[i++], ORop3, REG_O(3), 0, REG_I(3));
-	    genImmInsn(&newInstr[i++], ORop3, REG_O(4), 0, REG_I(4));
-	    genImmInsn(&newInstr[i++], ORop3, REG_O(5), 0, REG_I(5));
-	    
-	    // generate ret instruction
-            generateJmplInsn(&newInstr[i++], REG_I(7), 8 ,0);
-
-	    // generate restore operation....
-	    genSimpleInsn(&newInstr[i], RESTOREop3, 0, 0, 0);
-
-	    // and note retl location as return point....
-	    instPoint *point = new instPoint(this, instr, owner, newAdr, false,
-				      functionExit, adr);
-	    point-> originalInstruction = newInstr[i-1];
-	    point-> delaySlotInsn = newInstr[i];
-	    point-> isDelayed = true;
-            point->relocated_ = true;
-            // if location was this point, change it to new point
-            if(location == funcReturns[retId]) { 
-		location = point;
-            }
-            retId++;
-            reloc_info->addFuncReturn(point);
-
-	    // skip the restore instruction (in nexti)....
-	    adr += 4;
-	    newAdr += 4;
-     }
-     else if (isCallInsn(instr)) {
-	 // if the second instruction in the function is a call instruction
-         // then this cannot go in the delay slot of the branch to the
-         // base tramp, so add a noop between first and second instructions
-	 // in the relocated function (check out write in libc.so.1 for
-	 // and example of this):
-	 //
-	 //     save  %sp, -96, %sp             brach to base tramp
-	 //     call  0x73b70                   nop
-	 //                                     call 0x73b70
-	 if(adr == (getAddress(0)+4)){
-	     newInstr[i+1] = instr;
-	     generateNOOP(&newInstr[i]);
-	     i++;
-	     newAdr += 4;
-	 }
-
-	 // if this is a call to an address within the same function, then
-	 // we need to set the 07 register to have the same value as it
-	 // would before the function was relocated
-	 // to do this we generate a call instruction back to the original
-	 // function location, and then at this location we generate a call 
-	 // instruction back to the relocated instruction.  In the delay 
-	 // slot of the second instruction the value of 07 is changed by 
-	 // the difference between the origninal call instruction, and 
-	 // the location of the call instruction back to the relocated
-	 // function.  This way the 07 register will contain the address
-	 // of the original call instruction
-         //
-	 // Assumes call is "true" call, NOT jmpl call....
-	 Address call_target = adr + (instr.call.disp30 << 2);
-         if((call_target >= getAddress(0)) 
-		&& (call_target <= (getAddress(0) + size()))){ 
-	    assert((newInstr[i].call.disp30 << 2) == 8);
-
-	    // generating call instruction to orginal function address
-	    // after the SAVE, CALL, RESTORE instr.s that call the relocated
-	    // function 
-	    disp = newInstr[i].call.disp30;
-            newInstr[i].call.disp30 = ((call_start_addr -newAdr) >> 2); 
-
-
-	    // generate call to relocated function from original function 
-	    // (this will get almost correct value for register 07)
-	    // NOTE - also want to keep track of any code expansion which
-	    //  occurs in function between origional call location and 
-	    //  target, and patch call targets appropriately....
-            instruction new_inst;
-	    extra_offset = fer->GetShift((i + disp) * sizeof(instruction)) -
-	      fer->GetShift(i * sizeof(instruction));
-	    
-	    //if (extra_offset != 0) {
-	    //    cerr << "WARNING : function " << prettyName().string_of()
-	    //	    << " using addition FER offset of " << extra_offset
-	    //	    << " at instruction " << i * 4 << endl;
-	    //}
-
-	    // the call (stuck in the origional function) should go to
-	    // 2 instructions after newAdr (which will be a call back to 
-	    // the patched call instruction).  Call to newAdr + 2 (instead
-	    // of newAdr + 1) because the call at newAdr has a delay slot,
-	    // calling to newAdr + 1 would end up executing the instruction
-	    // in the delay slot twice.
-	    generateCallInsn(&new_inst,call_start_addr,
-			     newAdr + 2 * sizeof(instruction) + extra_offset);
-            callInstrs += new_inst;
-	   
-
-	    // generate add isntruction to get correct value for 07 register 
-	    // this will go in delay slot of previous call instr.
-	    // NOTE 1 - looks to me like this will be correct ONLY when 
-	    //  this trick of generating a call to the same place in the 
-	    //  function to set the 07 register is done from the beginning
-	    //  of the function (2nd instruction)????
-	    //  -matt
-	    genImmInsn(&new_inst,ADDop3,REG_O7,
-		       (adr+baseAddress-call_start_addr),REG_O7);
-            callInstrs += new_inst;
-	    call_start_addr += 2*sizeof(instruction);
-         }
-	 else {
-	    // otherwise, this is a call instruction to a location
-	    // outside the function
-	    relocateInstruction(&newInstr[i],adr+baseAddress,newAdr,proc);
-	    (void)newCallPoint(newAdr, newInstr[i], owner, err, 
-			       callsId, adr,reloc_info,location);
-	    if (err) return false;
-         }
-     }
-
-     else if (isInsnType(instr, JMPLmask, JMPLmatch)) {
-	 reg jumpreg = instr.rest.rs1;
-         nexti.raw = owner->get_instruction(adr+4);
-
-       /* A register indirect jump. Some jumps may exit the function 
-          (e.g. read/write on SunOS). In general, the only way to 
-	  know if a jump is exiting the function is to instrument
-	  the jump to test if the target is outside the current 
-	  function. Instead 
-of doing this, we just check the 
-	  previous two instructions, to see if they are loading
-	  an address that is out of the current function.
-	  This should catch the most common cases (e.g. read/write).
-	  For other cases, we would miss a return point.
-
-	  This is the case considered:
-
-	     sethi addr_hi, r
-	     or addr_lo, r, r
-	     jump r
-	*/
-	 instruction prev1;
-	 instruction prev2;
-	 
-	 prev1.raw = owner->get_instruction(adr-4);
-	 prev2.raw = owner->get_instruction(adr-8);
-
-	 unsigned targetAddr;
-
-	 if (instr.rest.rd == 0 && (instr.rest.i == 1 || instr.rest.rs2 == 0)
-	     && prev2.sethi.op == FMT2op && prev2.sethi.op2 == SETHIop2 
-	     && prev2.sethi.rd == (unsigned)jumpreg
-	     && prev1.rest.op == RESTop 
-	     && prev1.rest.rd == (unsigned)jumpreg && prev1.rest.i == 1
-	     && prev1.rest.op3 == ORop3 && prev1.rest.rs1 == (unsigned)jumpreg){
-	     
-	     targetAddr = (prev2.sethi.imm22 << 10) & 0xfffffc00;
-	     targetAddr |= prev1.resti.simm13;
-	     if ((targetAddr < getAddress(0)) 
-		 || (targetAddr >= (getAddress(0)+size()))) {
-		 instPoint *point = new instPoint(this, instr, owner, 
-						  newAdr, false,
-						  functionExit, adr);
-                 point->relocated_ = true;
-                 // if location was this point, change it to new point
-                 if(location == funcReturns[retId]) { 
-		     location = point;
-                 }
-                 retId++;
-                 reloc_info->addFuncReturn(point);
-	     }
-	 }
-     }
- }
-   
-   return true;
+	// if next call inst point comes before next return inst point, add
+	//  the call inst point....
+	if (calls_ip_addr < returns_ip_addr) {
+	    fill_in += calls[calls_idx++];
+	} else {
+	    fill_in += funcReturns[returns_idx++];
+	}
+    }
 }
 
 // Take an (empty) FunctionExpansionRecord, and fill it with data describing
@@ -2762,8 +2482,636 @@ bool pd_Function::calcRelocationExpansions(const image *owner,
 
 
 
+/*
+  First pass, handle cases where general-purpose re-writing needs to be
+  done to preserve paradynd/dyninstAPI's assumptions about function
+  structure.  
+    In current sparc-solaris version, this is ONLY the following cases:
+      If a call site and return point overlap and are located directly
+       next to eachother, and the return point is located on a 
+       restore operation, then a TailCallPA is applied whose footprint
+       covers the call and the restore.
+       The TailCallPA should rewrite the call; restore, and update the 
+       locations of both inst points as necessary.
+      If the 2nd instruction in a function is a CALL, then a single nop
+       is inserted before the call - to clear out the delay slot of the
+       branch which is inserted at the first instruction (for entry point
+       instrumentation).
+       If the dyninstAPI is seperated from paradyn, or when converting this 
+       code to support instrumentation at arbitrary points (instead of assuming
+       entry, exit, and call site instrumentation), then the check should be 
+       changed from:
+         look at 2nd insn, see if its a call
+        TO
+	 look at all inst points, see if any of them have a call in what
+	 corresponds to the delay slot of the instruction which is going to
+	 get stomped by a branch/call to tramp....
+      If the code has any calls to address (of call) + 8, replace the call with
+        a sequence which sets the 07 register to the (original) address....
+  Function:
+    Attaches LocalAlterations related to general rewrites of function
+     (by adding them to LocalAlterationSet p).
+    returns boolean value indicating whether it was able to figure out
+    sequence of LocalAlterations to apply to perform specified rewrites....
+ */
+
+/*  heuristically, we define a call whose goial is to set the 07 regsiter
+    as one where the target is the call address + 8, AND where that
+    target is INSIDE the same function (need to make sure to check for that
+    last case also, c.f. function DOW, which ends with:
+     0xef601374 <DOW+56>:    call  0xef60137c <adddays>
+     0xef601378 <DOW+60>:    restore 
+*/
+#define IS_SET_O7_CALL(instr, codeSize, i) \
+    (((instr.call.disp30 << 2) == 8) && (i < (codeSize/sizeof(instruction) - 2))) 
+bool pd_Function::PA_attachGeneralRewrites(LocalAlterationSet *p, 
+        Address baseAddress, Address firstAddress, instruction loadedCode[], int codeSize) {
+    unsigned i;
+    instruction instr, nexti;
+    TailCallOptimization *tail_call;
+
+#ifdef DEBUG_PA_INST
+    cerr << "pd_Function::PA_attachGeneralRewrites called" <<endl;
+    cerr << " baseAddress = " << baseAddress << endl;
+    cerr << " firstAddress = " << baseAddress << endl;
+    cerr << " codeSize = " << codeSize << endl;
+#endif
+
+    // Look at the 2nd instruction in function.  If its a call, then
+    //  stick a single nop before it....
+    // The comment in the old inst-sparc-solaris.C version describing the rationale
+    // for thw change is :
+    //   if the second instruction in the function is a call instruction
+    //   then this cannot go in the delay slot of the branch to the
+    //   base tramp, so add a noop between first and second instructions
+    //   in the relocated function (check out write in libc.so.1 for
+    //   and example of this):
+    //
+    //     save  %sp, -96, %sp             brach to base tramp
+    //     call  0x73b70                   nop
+    //                                     call 0x73b70
+    //    Note that if this call insn is a call to address + 8, it will actually
+    //     be replaced by a sequence which does NOT include a call, so don't need to
+    //     worry about inserting the extra nop....
+    if (isCallInsn(loadedCode[1]) && !IS_SET_O7_CALL(loadedCode[1], \
+						     codeSize, 1)) {
+        NOPExpansion *nop = new NOPExpansion(this, sizeof(instruction), 
+	        sizeof(instruction), baseAddress, sizeof(instruction));
+	p->AddAlteration(nop);
+#ifdef DEBUG_PA_INST
+	cerr << " added single NOP in 2nd instruction" << endl;
+#endif
+    }
+
+    // Iterate over function instruction by instruction, looking for calls to
+    //  address + 8....
+    assert((codeSize % sizeof(instruction)) == 0);
+    for(i=0;i<(codeSize/sizeof(instruction));i++) {
+        //  want CALL %address, NOT CALL %register
+        if (isTrueCallInsn(loadedCode[i])) {
+	    // figure out destination of call....
+	    if (IS_SET_O7_CALL(loadedCode[i], codeSize, i)) {
+	        SetO7 *seto7 = new SetO7(this, i * sizeof(instruction), 
+					 (i+1) * sizeof(instruction), baseAddress);
+		p->AddAlteration(seto7);
+#ifdef DEBUG_PA_INST
+	        cerr << " detected call pattern designed to set 07 register at offset " 
+		     <<  i * sizeof(instruction) << endl;
+#endif
+	    }
+        }
+    }
+
+    // Look for an instPoint in funcCalls where the instruction is 
+    //  a call instruction and the next instruction is a restore op
+    //  or where the instruction is a jmp (out of function?), and the next 
+    //  instruction is a nop....
+    // There is an unfortunate dependence on the method for detecting tail-call
+    //  optimizations in the code for detecting overlapping inst-points, below.
+    //  If change this code, may need to update that code correspondingly....
+    for(i=0;i<calls.size();i++) {
+        // this should return the offset at which the FIRST instruction which
+        //  is ACTUALLY OVEWRITTEN BY INST POINT is located....
+        int offset = (calls[i]->iPgetAddress() - getAddress(0));
+	instr = calls[i]->insnAtPoint();
+	nexti = calls[i]->insnAfterPoint();
+	if (CallRestoreTC(instr, nexti)) {
+	    tail_call = new CallRestoreTailCallOptimization(
+				   this, offset, 
+				   offset + 2 * sizeof(instruction), 
+				   baseAddress, instr);
+	    p->AddAlteration(tail_call);
+#ifdef DEBUG_PA_INST
+	    cerr << " detected call, restore tail-call optimization at offset " 
+		 << offset << endl;
+#endif
+	}
+	if (JmpNopTC(instr, nexti, calls[i]->iPgetAddress(), this)) {
+	    tail_call = new JmpNopTailCallOptimization(
+				   this, offset, 
+				   offset + 2 * sizeof(instruction), 
+				   baseAddress);
+	    p->AddAlteration(tail_call);
+#ifdef DEBUG_PA_INST
+	    cerr << " detected jmp, nop tail-call optimization at offset " 
+		 << offset << endl;
+#endif
+	}
+    }
+
+    return true;
+}
 
 
+/* 
+  Second pass, handle cases where inst points overlap eachother (and
+  thus prevent the normal instrumentation technique from being used).
+    In current sparc-solaris version, the following algorithm is used:
+     Check all inst points.  If any overlap, figure out the instruction
+     that each is trying to get and insert nops so that they no longer
+     overlap.  
+*/
+bool pd_Function::PA_attachOverlappingInstPoints(
+        LocalAlterationSet *p, Address baseAddress, Address firstAddress,
+	instruction loadedCode[], int codeSize) {
+
+    unsigned i;
+    instruction instr, nexti;
+#ifdef DEBUG_PA_INST
+    cerr << "pd_Function::PA_attachOverlappingInstPoints called" <<endl;
+    cerr << " baseAddress = " << baseAddress << endl;
+    cerr << " codeSize = " << codeSize << endl;
+#endif
+
+    // Make a list of all inst-points attached to function, and sort
+    //  by address.  Then check for overlaps....
+    vector<instPoint*> foo;
+    //foo += funcEntry_;
+    //foo += funcReturns;
+    //foo += calls;
+    // define sort_inst_points_by_address as function with following
+    //  interface:
+    //  void             sort (int (*)(const void *, const void *))
+    //   - takes 2 void *'s, typecasts to instPoint *'s, then does
+    //   {-1, 0, 1} comparison based on ip->addr....
+    // foo.sort(sort_inst_points_by_address);
+    // qsort((void *) data_, sz_, sizeof(T), cmpfunc);
+    //qsort(foo.data(), foo.size(), sizeof(instPoint*), sort_inst_points_by_address);
+    
+    sorted_ips_vector(foo);
+
+    // should hopefully have inst points for fn sorted by address....
+    // check for overlaps....
+    for (i=0;i<foo.size()-1;i++) {
+        instPoint *this_inst_point = foo[i];
+        instPoint *next_inst_point = foo[i+1];
+	// This is kind of a hack - strictly speaking, the peephole alteration 
+	//  abstraction for relocating inst points should be applied to the set of
+	//  inst points in the function after every independent set of alterations is
+	//  applied.  This is nto done for performance reasons - rather all the inst
+	//  points in the function are relocated at once - based on the alteration sets.
+	// As such, the peephole alterations are NOT implemented so as to be strictly
+	//  independent.  An example of this is the interaction of the code for attaching
+	//  tail-call optimization PAs based on inst points (NOT function instructions),
+	//  above.  Anyway, the net efffect is that by the time flow-of-control reaches 
+	//  here, the tail-call optimization has (hopefully) been rewritten, but the 
+	//  inst points pointing to it have not been updated.  As such, check here to
+	//  make sure that the overalpping inst points aren't really part of a tail-call
+	//  optimization.  This introduces some lack of locality of reference - sorry....
+	if ((this_inst_point->ipType == callSite) && 
+	            (next_inst_point->ipType == functionExit)) {
+	    instr = next_inst_point->insnAtPoint();
+	    nexti = next_inst_point->insnAfterPoint();
+	    if (CallRestoreTC(instr, nexti) || 
+		    JmpNopTC(instr, nexti, next_inst_point->iPgetAddress(), this)) continue;
+	}
+	// check if inst point overlaps with next inst point....
+	int overlap = ((this_inst_point->iPgetAddress() + 
+	  this_inst_point->Size()) - next_inst_point->iPgetAddress());
+	if (overlap > 0) {
+	    // Inst point overlaps with next one.  Insert 
+	    //  NOPExpansion into PA Set AFTER instruction pointed to
+	    //  by inst point (Making sure that this does NOT break up 
+	    //  an insn and its delay slot).....
+	    // ALRT ALRT : This is NOT designed to handle the case where
+	    //  2 inst points are located at exactly the same place or 
+	    //  1 is located in the delay slot of the other - it will NOT
+	    //  break up the 2 inst points in that case....
+	    int offset = (this_inst_point->iPgetAddress() - getAddress(0)) + \
+	      sizeof(instruction); 
+	    offset = moveOutOfDelaySlot(offset, loadedCode, codeSize);
+	    NOPExpansion *nops = new NOPExpansion(this, offset, offset, 
+						  baseAddress, overlap);
+	    p->AddAlteration(nops);
+#ifdef DEBUG_PA_INST
+            cerr << " detected overlapping inst points : offset " << offset <<
+	      " overlap " << overlap << endl;
+#endif
+	}
+    }
+    return true;
+}
+
+// find the 1st inst point in v which a overlaps with....
+//  assumes v sorted by address....
+instPoint *find_overlap(vector<instPoint*> v, Address a) {
+    unsigned u;
+    for (u=0;u<v.size();u++) {
+        instPoint *i = v[u];
+	// too far?
+	if (i->followingAddress() <= a) {
+	    return NULL;
+	}
+	if (a >= i->firstAddress() && a < i->followingAddress()) {
+	    return i;
+	}
+    }
+    return NULL;
+}
+
+/*
+  Third pass, handle cases where inst points overlap branch/jump targets.
+    In current sparc-solaris version, the following algorithm is used:
+     Check all branch/jump operations.  If they go into footprint of 
+     any inst points, then try to insert nops so that the branch targets
+     move outside of the the footprint....
+  Note that the algorithm given below should be attached AFTER alterations
+   which unwind tail-call optimizations and seperate overlapping inst points
+   have been BOTH attached and applied....
+ */
+bool pd_Function::PA_attachBranchOverlaps(LocalAlterationSet *p, Address baseAddress, 
+	Address firstAddress, instruction loadedCode[], int codeSize)  {
+    int i;
+
+#ifdef DEBUG_PA_INST
+    cerr << "pd_Function::PA_attachBranchOverlaps called" <<endl;
+    cerr << " baseAddress = " << baseAddress << endl;
+    cerr << " codeSize = " << codeSize << endl;
+#endif
+
+    // Make a list of all inst-points attached to function, and sort
+    //  by address.  Then check for overlaps....
+    vector<instPoint*> foo;
+    foo += funcEntry_;
+    foo += funcReturns;
+    foo += calls;
+
+    // Sort inst points list by address....
+    foo.sort(sort_inst_points_by_address);
+
+    // Iterate over function instruction by instruction....
+    assert((codeSize % sizeof(instruction)) == 0);
+    for(i=0;i<(codeSize/sizeof(instruction));i++) {
+        // looking for branch instructions inside function....
+        if (!branchInsideRange(loadedCode[i], 
+			       firstAddress + (i * sizeof(instruction)),
+			       firstAddress, 
+			       firstAddress + size())) {
+	    continue;
+	}
+							      
+        int disp = loadedCode[i].branch.disp22;
+        Address target = firstAddress + (i * sizeof(instruction))
+							    + (disp << 2);
+
+	// branch insn inside function.  Check target versus known inst points....
+	instPoint *overlap = find_overlap(foo, target);
+	if (overlap == NULL) continue;
+
+	//
+	// ALRT ALRT - What happens if you have multiple barcnhes to the same spot?
+	//  They will reuslt in multiple identical NOP expansions added here.  Need
+	//  LocalAlterationSet to ignore multiple identical alterations (identical
+	//  in type, location, and all fields) beyond first....
+	//
+	// branch target inside function and inside inst point footprint....
+	//  if target is before actual inst point target instruction, add
+	//  (target - 1st addres) nops, where 1st address is address of 1st
+	//  instruction actually inside the footprint....
+	if (target <= overlap->iPgetAddress()) {
+	    NOPExpansion *nops = new NOPExpansion(this, target - firstAddress, 
+				    target - firstAddress, 
+				    baseAddress, target - overlap->firstAddress());
+	    p->AddAlteration(nops);
+#ifdef DEBUG_PA_INST
+	    cerr << " detected overlap between branch target and inst point : offset "
+		 << target - firstAddress << " # bytes " 
+		 << target - overlap->firstAddress() << endl;
+#endif
+	} else {
+	    NOPExpansion *nops = new NOPExpansion(this, target - firstAddress, 
+				    target - firstAddress, 
+				    baseAddress, overlap->followingAddress() - target);
+	    p->AddAlteration(nops);
+#ifdef DEBUG_PA_INST
+	    cerr << " detected overlap between branch target and inst point : offset "
+		 << target - firstAddress << " # bytes " 
+		 << overlap->firstAddress() - target << endl;
+#endif
+	}
+    }
+
+    return true;
+}
+
+
+// Given a LocalAlterationSet (p) and an instruction (instr) located
+//  at a given address (in the original version of the function) (oldAdr),
+//  make any necessary changes to instruction needed to account for the 
+//  changes in the function expressed in the LocalAlterationSet....
+//
+// firstAddess - address at which function starts....
+// adr         - address at which instruction is located....
+void pd_Function::patchOffset(LocalAlterationSet *p, instruction& instr, 
+			      Address adr, Address firstAddress) {
+    int disp, extra_offset;
+    Address target;
+
+    // Currently applied to :
+    //  branches inside function....
+    if (isBranchInsn(instr)) {
+        // branch to target inside or outside of fn???? 
+        if (!branchInsideRange(instr, adr, firstAddress, 
+			      firstAddress + size())) return;
+	// branch inside fn. patch offset....
+	disp = instr.branch.disp22;
+	extra_offset = p->GetShift(adr - firstAddress + disp * sizeof(instruction))
+		     - p->GetShift(adr - firstAddress);
+#ifdef DEBUG_PA_INST 
+	cerr << "  patching offset of (intra-function) branch at offset " 
+	     << (adr - firstAddress) << " : extra offset " << extra_offset << endl; 
+#endif
+	assert(extra_offset % sizeof(instruction) == 0);
+	instr.branch.disp22 += extra_offset >> 2;
+    }
+}
+
+//
+// Apply a set of LocalAlterations to a function's code.
+//  Original of function should be in originalCode.
+//  New version should be written into newCode (which should have 
+//  previously been allocated to originalCodeSize + p->SizeChange()?)
+// Should copy originalCode into newCode, applying all alterations in p,
+//  and also relocating all instructions which need to have offsets changed
+//  because of the change in PC (which comes from relcoating the function
+//  code)....
+//
+// Parameters:
+//  originalCodeSize - size of originalCode, IN BYTES (not in # of insns)....
+//  oldAdr - address at which function USED TO begin.
+//   this address should be adjusted to INCLUDE the beginning address
+//   of the module/library which the function is located in (e.g. if
+//   the function is in a shared library which starts at address 100, and
+//   is located at offset 10 in that library, oldAdr should be 110)....
+//  newAdr - address at which RELOCATED version of function will begin.
+bool pd_Function::applyAlterations(LocalAlterationSet *p, Address oldAdr, 
+				   Address newAdr, instruction originalCode[], 
+				   int originalCodeSize, instruction newCode[],
+				   process *proc) {
+    LocalAlteration *nextAlter;
+    Address nextAlterBegins, oldAdrSave, newAdrSave;
+    instruction tmp;
+
+    int newOffset, oldOffset;
+
+#ifdef DEBUG_PA_INST
+    cerr << "pd_Function::applyAlterations called" <<endl;
+    cerr << " oldAdr = " << oldAdr << " newAdr = " << newAdr << endl;
+    cerr << " originalCodeSize = " << originalCodeSize << endl;
+#endif 
+
+ 
+    // copy of origional value of oldAdr....
+    oldAdrSave = oldAdr;
+    newAdrSave = newAdr;
+    // move to beginning of Peephole Alteration set....
+    p->Collapse();
+    p->iterReset();
+    
+    // iterate over all instructions in originalCode....
+    while (oldAdr < oldAdrSave + originalCodeSize) {
+
+        // find the offset at which the footprint of the next peephole 
+        //  alteration begins....
+        nextAlter = p->iterNext();
+	// no more alterations, set nextAlterBegins to the end of the fn....
+	if (nextAlter == NULL) {
+	    nextAlterBegins = oldAdrSave + originalCodeSize;
+#ifdef DEBUG_PA_INST
+	    cerr << " no more alterations found" << endl;
+#endif
+	} else {
+	    nextAlterBegins = oldAdrSave + nextAlter->offsetBegins();
+#ifdef DEBUG_PA_INST 
+	    cerr << " found alteration beginning at offset " << 
+	            nextAlter->offsetBegins() << endl;
+#endif
+	}
+
+	// loop over all instructions in newAdr (inclusive) - nextAlterBegins 
+	//  (exclusive), copying instructions and relocating IFF necessary....
+	for(;oldAdr < nextAlterBegins;oldAdr += sizeof(instruction), 
+	                              newAdr += sizeof(instruction)) {
+	    oldOffset = (oldAdr - oldAdrSave)/sizeof(instruction);
+	    newOffset = (newAdr - newAdrSave)/sizeof(instruction);
+	    // relocateInstruction should just return insn as is if it doesn't
+	    //  need to be altered for relocation....
+	    newCode[newOffset] = originalCode[oldOffset];
+	    relocateInstructionWithFunction(&newCode[newOffset], oldAdr, newAdr, proc, 
+					    oldAdrSave);
+	    // patch offset should change the offset for any PC-relative code
+	    //  to reflect any alterations in the region branched over contained
+	    //  in LocalAlterationSet p....
+	    patchOffset(p, newCode[newOffset], oldAdr, oldAdrSave);
+	}
+
+	// If the simple copy loop stopped because encountered an alteration, 
+	//  call the alteration to rewrite the instructions in its footprint....
+	if (nextAlter != NULL) {
+	    nextAlter->RewriteFootprint(oldAdr, newAdrSave, newAdr, originalCode, newCode);
+	}
+    }
+    
+    return true;
+}
+
+// Return the offset (in bytes) of the next instruction at or after
+//  offset (again bytes) which is NOT in the delay slot of another
+//  instruction....
+int pd_Function::moveOutOfDelaySlot(int offset, instruction loadedCode[],
+	  int codeSize) {
+    assert(offset < codeSize);
+    if (IS_DELAYED_INST(loadedCode[offset])) {
+        return offset + sizeof(instruction);
+    }
+    return offset;
+}
+
+//bool pd_Function::applyAlterations(LocalAlterationSet *p, Address oldAdr, 
+//				   Address newAdr, instruction originalCode[], 
+//				   int originalCodeSize, instruction newCode[],
+//				   Address baseAddress, process *proc)
+// Assumes that inst_points in reloc_info have new (relocated) address modulo
+//  application of alterations.
+// Also assumes single entry point + multiple call sites and exit points.
+//  may want to change if move to model of instrumenting arbitrary points....
+
+#ifdef NOT_DEFINED
+#define UPDATE_ADDR(point) \
+    if (point != NULL) { \
+        offset = point->Addr() - oldAdr; \
+	shift = p->GetInstPointShift();  \
+        if (shift != 0) {                \
+	    p->SetAddr(p->Addr() = shift); \
+	} \
+    }
+bool pd_Function::applyAlterationsToInstPoints(LocalAlterationSet *p, 
+        relocatedFuncInfo *info, Address oldAdr) {
+    instPoint *point;
+    int offset, shift, i;    
+
+    // try to handle entry point....
+    point = info->funcEntry();
+    UPDATE_ADDR(point);
+
+    // ditto for calls....
+    for(i=0;i<funcCalls().size();i++) {
+        point = funcCalls[i];
+	UPDATE_ADDR(point);
+    }
+
+    // and for exit points....
+    for(i=0;i<funcReturns().size();i++) {
+        point = funcReturns[i];
+	UPDATE_ADDR(point);
+    }
+}
+#endif
+
+// Fill in relocatedFuncInfo <func> with inst points from function.
+//  Notes:
+//    Assumes that function inst points are : 1 entry, multiple call site, and
+//     multiple exit points, and that all should be translated into inst
+//     points in relocated function (in reloc_info).  This probably shld get 
+//     changed if Trash-A-Dyn/Dyninst moves to a model of instrumenting arbitrary
+//     points in function....
+//    When this function finishes, inst points in reloc info should have their
+//     NEW (relocated) address, including changes made by alterations applied
+//     to function.
+//    3 LocalAlterationSet s are used because that is the number which a relatively
+//     straight-forward coding of the logic to find alterations used - other
+//     platforms which have different logic for attaching alterations will 
+//     probably have more or less than 3 alteration sets....
+//    This function preserves the (probably memory leaking) semantics of Tia's original
+//     code for filling in reloc_info in findNewInstPoints - it does NOT delete 
+//     created inst points on error....
+#define CALC_OFFSETS(ip) \
+    originalOffset = ip->iPgetAddress() - oldAdr; \
+    newOffset = set1->GetInstPointShift(originalOffset) + \
+                set2->GetInstPointShift(originalOffset) + \
+	        set3->GetInstPointShift(originalOffset);  \
+    assert(((originalOffset + newOffset) % sizeof(instruction)) == 0); \
+    arrayOffset = ((originalOffset + newOffset) / sizeof(instruction)); \
+    tmp = newAdr + originalOffset + newOffset; \
+    tmp2 = ip->iPgetAddress();
+
+bool pd_Function::fillInRelocInstPoints(const image *owner, 
+        const instPoint *&location, 
+        relocatedFuncInfo *reloc_info, Address oldAdr,
+        Address newAdr, instruction newCode[], LocalAlterationSet *set1, 
+	LocalAlterationSet *set2, LocalAlterationSet *set3) {
+    unsigned retId = 0;
+    unsigned callId = 0; 
+    unsigned tmpId = 0;
+    int originalOffset, newOffset, arrayOffset;
+    bool err;
+    instPoint *point;
+    Address tmp, tmp2;
+
+#ifdef DEBUG_PA_INST
+    cerr << "pd_Function::applyAlterations called" <<endl;
+    cerr << " oldAdr = " << oldAdr << " newAdr = " << newAdr << endl;
+#endif
+
+    //  Add inst point corresponding to func entry....
+    //   Assumes function has single entry point  
+    if (funcEntry_ != NULL) {
+        //  figure out how far entry inst point is from beginning of function....
+        CALC_OFFSETS(funcEntry_)
+        point = new instPoint(this, newCode[arrayOffset], owner, 
+	                            tmp, true, functionEntry, tmp2);
+#ifdef DEBUG_PA_INST
+        cerr << " added entry point at originalOffset " << originalOffset
+	     << " newOffset " << newOffset << endl;
+#endif
+	assert(point != NULL);
+        point->relocated_ = true;
+
+	if (location == funcEntry_) {
+	    location = point;
+	}
+
+	reloc_info->addFuncEntry(point);
+        assert(reloc_info->funcEntry());
+    }
+
+    // Add inst points corresponding to func exits....
+    for(retId=0;retId < funcReturns.size(); retId++) {
+        CALC_OFFSETS(funcReturns[retId])
+        point = new instPoint(this, newCode[arrayOffset], owner, 
+                          tmp, false, functionExit, tmp2);
+#ifdef DEBUG_PA_INST
+        cerr << " added return point at originalOffset " << originalOffset
+	     << " newOffset " << newOffset << endl;
+#endif
+	point->relocated_ = true;
+
+	// ALERT ALERT
+	//  Setting point->delaySlotInsn necessary because instPoint
+	//  constructor used above reads program address space (at address
+	//  adr) to set point->delaySlotInsn (and aggregateInsn, 	
+	//  - should that also be set here?).  That's really a design screw-up
+	//  in the inst point constructor - which should take additional
+        point-> originalInstruction = newCode[arrayOffset];
+        point-> delaySlotInsn = newCode[arrayOffset+1];
+	
+	if (location == funcReturns[retId]) {
+	    location = point;
+	}
+	reloc_info->addFuncReturn(point);
+    } 
+
+    // Add inst points corresponding to func call sites....
+    for(callId=0;callId<calls.size();callId++) {
+        CALC_OFFSETS(calls[callId])
+	tmpId = callId;
+        newCallPoint(tmp, newCode[arrayOffset], 
+		     owner, err, tmpId, tmp2, reloc_info, location);
+#ifdef DEBUG_PA_INST
+        cerr << " added call site at originalOffset " << originalOffset
+	     << " newOffset " << newOffset << endl;
+#endif
+	if (err) return false;
+    }
+
+    return true;    
+}
+
+//
+// Read instructions in function code from image into <into> (array)....
+bool pd_Function::readFunctionCode(const image *owner, instruction *into) {
+    int i = 0;
+
+    Address firstAddress = getAddress(0);
+    Address lastAddress = firstAddress + size();
+
+    while (firstAddress < lastAddress) {
+        into[i++].raw = owner->get_instruction(firstAddress);
+	firstAddress += sizeof(instruction);
+    }
+
+    return true;
+}
 
 
 

@@ -69,6 +69,8 @@ extern "C" {
 #include "dyninstAPI/src/inst.h"
 
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
+////#include "dyninstAPI/src/LocalAlteration.h"
+class LocalAlterationSet;
 
 #define RH_SEPERATOR '/'
 
@@ -268,7 +270,7 @@ class pd_Function : public function_base {
 			  process *proc,
 			  vector<instruction> &extra_instrs, 
 			  relocatedFuncInfo *reloc_info, 
-                          FunctionExpansionRecord *fer, int size_change);
+                          FunctionExpansionRecord *fer, int &size_change);
     bool relocateFunction(process *proc, const instPoint *&location,
 			  vector<instruction> &extra_instrs);
     // Add a new call point to a function that will be, or currently is
@@ -286,6 +288,33 @@ class pd_Function : public function_base {
 
     bool calcRelocationExpansions(const image *owner, \
         FunctionExpansionRecord *fer, int *size_change);
+
+    //
+    // NEW routines for function code rewrites using peephole alterations....
+    //
+    bool PA_attachGeneralRewrites(LocalAlterationSet *p, 
+        Address baseAddress, Address firstAddress, instruction loadedCode[], int codeSize);
+    bool PA_attachOverlappingInstPoints(
+        LocalAlterationSet *p, Address baseAddress, Address firstAddress,
+	instruction loadedCode[], int codeSize);
+    bool PA_attachBranchOverlaps( LocalAlterationSet *p, Address baseAddress, 
+	Address firstAddress, instruction loadedCode[], int codeSize);
+    bool applyAlterations(LocalAlterationSet *p, Address oldAdr, 
+			  Address newAdr, instruction originalCode[], 
+			  int originalCodeSize, instruction newCode[],
+			  process *proc);
+    bool readFunctionCode(const image *owner, instruction *into);
+    int moveOutOfDelaySlot(int offset, instruction loadedCode[],
+	  int codeSize);
+    void patchOffset(LocalAlterationSet *p, instruction& instr, 
+			      Address adr, Address firstAddress);
+    bool fillInRelocInstPoints(const image *owner, const instPoint *&location, 
+        relocatedFuncInfo *func, Address oldAdr,
+        Address newAdr, instruction newCode[], LocalAlterationSet *set1, 
+	LocalAlterationSet *set2, LocalAlterationSet *set3);
+    void relocateInstructionWithFunction(instruction *insn, Address origAddr, 
+	Address targetAddr, process *proc, Address oldFunctionAddr);
+    void sorted_ips_vector(vector<instPoint*>&fill_in);
 #endif
 
   private:

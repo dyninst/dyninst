@@ -66,6 +66,9 @@ int deadListSize = sizeof(deadList);
 // reach, the instructions to be moved are the one instruction at that
 // point plus others if necessary(i.e. instruction in the delayed
 // slot and maybe the aggregate instuction ).    
+//
+// Unfortunately, this constructor does NOT set several internal fields
+//  e.g. size, isDelayedInsn, aggregateInsn, delaySlotInsn
 instPoint::instPoint(pd_Function *f, const instruction &instr, 
 		     const image *owner, Address &adr, bool delayOK, 
 		     instPointType pointType, Address &oldAddr)
@@ -106,6 +109,26 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
       // logLine(errorLine);
       inDelaySlot = true;
     }
+  }
+
+  // set size at least....
+  size = 0;
+  if (ipType == functionEntry) {
+      if (hasNoStackFrame()) {
+	  size = 4 * sizeof(instruction);
+      } else {
+	  size = 5 * sizeof(instruction);
+      }
+  } else if (ipType == callSite) {
+      size = 3 * sizeof(instruction);
+  } else if (ipType == functionExit) {
+      if (hasNoStackFrame) {
+	  size = 5 * sizeof(instruction);
+      } else {
+	  size = 2 * sizeof(instruction);
+      }
+  } else {
+      assert(false);  
   }
 }
 
@@ -676,13 +699,7 @@ int getInsnCost(opCode op)
     }
 }
 
-bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
-{
-    instruction instr;
-
-    instr.raw = owner->get_instruction(adr);
-    lastOne = false;
-
+bool isReturnInsn(instruction instr) {
     if (isInsnType(instr, RETmask, RETmatch) ||
         isInsnType(instr, RETLmask, RETLmatch)) {
         //  Why 8 or 12?
@@ -697,7 +714,7 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
         //   absolutely have to be true.
         //  -matt
         if ((instr.resti.simm13 != 8) && (instr.resti.simm13 != 12)) {
-	  sprintf(errorLine,"WARNING: unsupported return in module %s",(owner->name()).string_of());
+	  sprintf(errorLine,"WARNING: unsupported return");
 	  showErrorCallback(55, errorLine);
         } else {
 	  return true;
@@ -706,6 +723,57 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
     return false;
 }
 
+bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
+{
+    instruction instr;
+
+    instr.raw = owner->get_instruction(adr);
+    lastOne = false;
+
+    return isReturnInsn(instr);
+}
+
+bool isBranchInsn(instruction instr) {
+    if (instr.branch.op == 0 
+		&& (instr.branch.op2 == 2 || instr.branch.op2 == 6)) 
+          return true;
+    return false;
+}
+
+// Does specified branch instruction <instr> located at address <branchAddress>
+//  have target inside <firstAddress> (inclusive) and <lastAddress> (exclusive)?
+bool branchInsideRange(instruction instr, Address branchAddress, 
+      Address firstAddress, Address lastAddress) {
+    int disp;
+    Address target;
+
+    if (!isBranchInsn(instr)) return false;
+
+    disp = instr.branch.disp22;
+    target = branchAddress + (disp << 2);
+    if (target < firstAddress) return false;
+    if (target >= lastAddress) return false;
+    return true;
+}
+
+// Does specified call instruction <instr> located at address <callAddress>
+//  have target inside <firstAddress> (inclusive) and <lastAddress> (exclusive)?
+bool trueCallInsideRange(instruction instr, Address callAddress, 
+	Address firstAddress, Address lastAddress) {
+    Address callTarget;
+    int disp;
+
+    if (!isCallInsn(instr)) return false;
+    if (!isTrueCallInsn(instr)) return false;
+    
+    disp = (instr.call.disp30 << 2);
+    callTarget = callAddress + disp;
+
+    if (callTarget < firstAddress) return false;
+    if (callTarget >= lastAddress) return false;
+
+    return true;
+}
 
 //
 // called to relocate a function: when a request is made to instrument

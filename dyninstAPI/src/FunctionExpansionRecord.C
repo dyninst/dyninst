@@ -13,6 +13,14 @@ FunctionExpansionRecord::FunctionExpansionRecord() {
     collapsed = 0;
 }
 
+FunctionExpansionRecord::~FunctionExpansionRecord() {
+    int i;
+    for(i=0;i<expansions.size();i++) {
+        delete expansions[i];
+    }
+    expansions.resize(0);
+}
+
 int FunctionExpansionRecord::GetShift(int origional_offset) {
     int stop;
 
@@ -51,13 +59,13 @@ int FunctionExpansionRecord::GetShift(int origional_offset) {
 void FunctionExpansionRecord::AddExpansion(int origional_offset, int shift) {
     int size = expansions.size();
     collapsed = 0;
-    if (size > 0) {
-	// assert just to make that expansions is kept sorted.  Currently,
-	// expansion instances should only be added in increasing order.
-  	// change code here to allow arbitrary inserts here iff necessary.....
-	assert(origional_offset > expansions[size-1].OrigionalOffset());
-    }
-    expansions += FERNode(origional_offset, shift);
+    //if (size > 0) {
+    //	// assert just to make that expansions is kept sorted.  Currently,
+    //	// expansion instances should only be added in increasing order.
+    //	// change code here to allow arbitrary inserts here iff necessary.....
+    //	assert(origional_offset > expansions[size-1].OrigionalOffset());
+    //}
+    expansions += new FERNode(origional_offset, shift);
 }
 
 
@@ -71,7 +79,7 @@ ostream &FunctionExpansionRecord::operator<<(ostream &os) {
 
     // if vector has iterator class, use that instead....
     for(i=0;i<expansions.size();i++) {
-        expansions[i].operator<<(os);
+        expansions[i]->operator<<(os);
     }
 
     for(i=0;i<total_expansions.size();i++) {
@@ -86,15 +94,36 @@ ostream &FERNode::operator<<(ostream &os) {
   return os;
 }
 
+// function used to sort array of fer nodes....
+int sort_fernode_by_offset(const void *a, const void *b) {
+    FERNode *f1 = (FERNode*)a;
+    FERNode *f2 = (FERNode*)b;
+    if (f1->OrigionalOffset() > f2->OrigionalOffset()) {
+        return 1;
+    } else if (f1->OrigionalOffset() < f2->OrigionalOffset()) {
+        return -1;
+    }
+    return 0;
+}
+
 void FunctionExpansionRecord::Collapse() {
     int i, total = 0;
-    
-    total_expansions = expansions;
+
+    //total_expansions = expansions;
+
+    //for(i=0;i<expansions.size();i++) {
+    //    total += expansions[i].Shift();
+    //	total_expansions[i].SetShift(total);
+    //}
+
+    total_expansions.resize(0);
+    expansions.sort(sort_fernode_by_offset);
 
     for(i=0;i<expansions.size();i++) {
-        total += expansions[i].Shift();
-	total_expansions[i].SetShift(total);
+        total += expansions[i]->Shift();
+	total_expansions += FERNode(expansions[i]->OrigionalOffset(), total);
     }
 
     collapsed = 1;
 }
+

@@ -82,6 +82,7 @@
 #include "util/h/Object.h"
 #if !defined(BPATCH_LIBRARY) || defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
+#include "dyninstAPI/src/LocalAlteration.h"
 #endif
 
 template class  vector<pdThread *>;
@@ -123,4 +124,6 @@ template class  vector<relocatedFuncInfo *>;
 template class  vector<relocationEntry>;
 #if !defined(BPATCH_LIBRARY) || defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
 template class vector<FERNode>;
+template class vector<FERNode*>;
+template class vector<LocalAlteration*>;
 #endif

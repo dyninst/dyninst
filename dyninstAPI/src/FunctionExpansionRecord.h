@@ -75,7 +75,7 @@ class FunctionExpansionRecord {
 
     // vector holding FERNodes added with AddExpansion()....
     //  assumes sorted in order of origional_offset....
-    vector<FERNode> expansions;
+    vector<FERNode*> expansions;
     // vector holding FERNodes representing TOTAL displacements 
     //  derived from individual displacements specified via AddExpansion()....
     vector<FERNode> total_expansions;
@@ -83,7 +83,14 @@ class FunctionExpansionRecord {
     int index;
 
     int collapsed;
+
+    // sort expansions vector (in place)....
+    void SortExpansions();
   public:
+
+    // destructor, nuke expansions and total_expansions....
+    ~FunctionExpansionRecord();
+
     // add an additional expansion record....
     void AddExpansion(int origional_offset, int shift);
     // compute total expansions for given regions from added expansion

@@ -72,7 +72,14 @@ public:
   // until all functions have been seen -- this might be cleaned up
   void set_callee(pd_Function *to) { callee = to; }
 
+  // get instruction at actual inst point (not nec. first instruction, e.g. look
+  //  at entry instrumentation below)....
   const instruction &insnAtPoint() const { return originalInstruction;}
+  // return instruction directly following originalInstruction (which data member
+  //  that corresponds to may vary - see explanation of various instruction data
+  //  members below)
+  // ALRT ALRT!!!!  FILL IN!!!!
+  const instruction insnAfterPoint() const;
 
   const function_base *iPgetFunction() const { return func;      }
   const function_base *iPgetCallee()   const { return callee;    }
@@ -96,6 +103,16 @@ public:
      assert(func);
      return func->hasNoStackFrame();
   }
+
+  // ALERT ALERT - FOR NEW PA CODE........
+  // offset (in bytes) from beginning of function at which the FIRST 
+  //  instruction of the inst point in located....
+  int Size() {return size;}
+  // address of 1st instruction to be clobbered by inst point....
+  //  Is this always same as iPgetAddress????
+  Address firstAddress() {return iPgetAddress();}
+  // address of 1st instruction AFTER those clobbered by inst point....
+  Address followingAddress() {return firstAddress() + sizeof(instruction);}
 
   // These are the instructions corresponding to different instrumentation
   // points (the instr point is always the "originalInstruction" instruction,

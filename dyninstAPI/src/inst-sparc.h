@@ -434,6 +434,12 @@ extern unsigned emitOptReturn(unsigned, reg, char *, unsigned &, bool);
 
 extern int getInsnCost(opCode op);
 extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne);
+extern bool isReturnInsn(instruction i);
+extern bool isBranchInsn(instruction i);
+extern bool branchInsideRange(instruction i,  Address branchAddress, 
+      Address firstAddress, Address lastAddress);
+extern bool trueCallInsideRange(instruction instr, Address callAddress, 
+      Address firstAddress, Address lastAddress);
 extern void generateMTpreamble(char *insn, unsigned &base, process *proc);
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.19 1998/09/15 04:16:12 buck Exp $
+// $Id: templates1.C,v 1.20 1998/09/19 20:56:19 mcheyney Exp $
 
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
@@ -55,6 +55,8 @@
 #include "dyninstAPI/src/util.h"
 #include "util/h/Object.h"
 #include "dyninstAPI/src/sharedobject.h"
+
+#include "dyninstAPI/src/FunctionExpansionRecord.h"
 
 class BPatch_type;
 class BPatch_thread;
@@ -186,3 +188,4 @@ template class vector<dictionary_hash <string, vector<string>*>::entry>;
 
 template class vector<process::inferiorRPCtoDo>;
 template class vector<process::inferiorRPCinProgress>;
+
