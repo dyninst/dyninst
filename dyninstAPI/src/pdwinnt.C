@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.50 2002/05/24 18:30:12 pcroth Exp $
+// $Id: pdwinnt.C,v 1.51 2002/06/03 18:57:30 pcroth Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1380,21 +1380,33 @@ int process::waitProcs(int *status) {
 	    tp->resourceBatchMode(false);
 #endif 
 	    p->setDynamicLinking();
-	  }
+
 #ifdef BPATCH_LIBRARY
-	if( !_stricmp( imageName.c_str(), "LIBDYNINSTAPI_RT.DLL")){
-	// ccw 2 may 2001
-	//when we load libdyninstAPI_RT.dll we need to find the local
-	//variables in the dll that will hold the cause and pid so when
-	//DLLMain is called they will be correctly passed to DYNINSTinit
-		if(!setVariable(p, "libdyninstAPI_RT_DLL_localCause", 1)){
-			assert(0);
-		}
-		if(!setVariable(p, "libdyninstAPI_RT_DLL_localPid", getpid())){
-			assert(0);
-		}
-	}
+            {
+                char dllFilename[_MAX_FNAME];
+                char dllExtension[_MAX_EXT];
+
+                _splitpath( imageName.c_str(),
+                            NULL,
+                            NULL,
+                            dllFilename,
+                            dllExtension );
+                if( !_stricmp( dllFilename, "libdyninstAPI_RT" ) &&
+                    !_stricmp( dllExtension, ".dll" ) ) {
+                    // ccw 2 may 2001
+                    //when we load libdyninstAPI_RT.dll we need to find the local
+                    //variables in the dll that will hold the cause and pid so when
+                    //DLLMain is called they will be correctly passed to DYNINSTinit
+                    if(!setVariable(p, "libdyninstAPI_RT_DLL_localCause", 1)){
+                         assert(0);
+                    }
+                    if(!setVariable(p, "libdyninstAPI_RT_DLL_localPid", getpid())){
+                         assert(0);
+                    }
+                }
+            }
 #endif	
+	  }
 	}
     break;
     case UNLOAD_DLL_DEBUG_EVENT:
@@ -1921,7 +1933,6 @@ int process::waitProcs(int *status) {
 	    tp->resourceBatchMode(false);
 #endif 
 	    p->setDynamicLinking();
-	  }
 
 		//ccw 31 jan 2001 : 29 mar 2001
 		//here i need to check to see if this is the first breakpt since
@@ -1934,27 +1945,39 @@ int process::waitProcs(int *status) {
 		//and load the libdyninstAPI_RT.dll
 
 #ifdef mips_unknown_ce2_11 //ccw 31 jan 2001 : 29 mar 2001
-	if( !_stricmp( imageName.c_str(), "COREDLL.DLL" ) ){
-			//make sure we have loaded coredll.dll --this contains LoadLibrary
+            {
+                char dllFilename[_MAX_FNAME];
+                char dllExtension[_MAX_EXT];
 
-			continueType = DBG_EXCEPTION_NOT_HANDLED;//ccw 25 oct 2000
-			if (!p->reachedFirstBreak) {
 
-				if (!p->hasLoadedDyninstLib && !p->isLoadingDyninstLib) {
-					//DebugBreak();//ccw 30 jan 2001
-					continueType = DBG_CONTINUE;//ccw 25 oct 2000
-					//DebugBreak();
-					Address addr = loadDyninstDll(p, p->savedData);
-					p->savedRegs = p->getRegisters();
-					p->changePC(addr);
-					//p->LoadDyninstTrapAddr = addr + 0xd;
-					p->isLoadingDyninstLib = true;
-					break;
-				}
-			}
-		}
+                _splitpath( imageName.c_str(),
+                            NULL,
+                            NULL,
+                            dllFilename,
+                            dllExtension );
+                if( !_stricmp( dllFilename, "coredll" ) &&
+                    !_stricmp( dllExtension, ".dll" ) ) {
+                    //make sure we have loaded coredll.dll --this contains LoadLibrary
+
+                    continueType = DBG_EXCEPTION_NOT_HANDLED;//ccw 25 oct 2000
+                    if (!p->reachedFirstBreak) {
+
+                        if (!p->hasLoadedDyninstLib && !p->isLoadingDyninstLib) {
+                            //DebugBreak();//ccw 30 jan 2001
+                            continueType = DBG_CONTINUE;//ccw 25 oct 2000
+                            //DebugBreak();
+                            Address addr = loadDyninstDll(p, p->savedData);
+                            p->savedRegs = p->getRegisters();
+                            p->changePC(addr);
+                            //p->LoadDyninstTrapAddr = addr + 0xd;
+                            p->isLoadingDyninstLib = true;
+                            break;
+                        }
+                    }
+                 }
+             }
 #endif
-
+         }
       }
     break;
     case UNLOAD_DLL_DEBUG_EVENT:
