@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.108 2002/06/13 19:53:04 mirg Exp $
+ * $Id: inst-x86.C,v 1.109 2002/06/26 21:14:47 schendel Exp $
  */
 
 #include <iomanip.h>
@@ -1822,18 +1822,19 @@ trampTemplate* findAndInstallBaseTramp(process *proc,
  * Install a single mini-tramp.
  *
  */
-void installTramp(instInstance *inst, char *code, int codeSize) 
+void installTramp(instInstance *inst, process *proc, char *code, int codeSize,
+		  instPoint * /*location*/, callWhen when)
 {
     totalMiniTramps++;
     //insnGenerated += codeSize/sizeof(int);
-    (inst->proc)->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
+    proc->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
     Address atAddr;
-    if (inst->when == callPreInsn) {
+    if (when == callPreInsn) {
 	if (inst->baseInstance->prevInstru == false) {
 	    atAddr = inst->baseInstance->baseAddr+inst->baseInstance->skipPreInsOffset;
 	    inst->baseInstance->cost += inst->baseInstance->prevBaseCost;
 	    inst->baseInstance->prevInstru = true;
-	    generateNoOp(inst->proc, atAddr);
+	    generateNoOp(proc, atAddr);
 	}
     }
     else {
@@ -1841,7 +1842,7 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 	    atAddr = inst->baseInstance->baseAddr+inst->baseInstance->skipPostInsOffset; 
 	    inst->baseInstance->cost += inst->baseInstance->postBaseCost;
 	    inst->baseInstance->postInstru = true;
-	    generateNoOp(inst->proc, atAddr);
+	    generateNoOp(proc, atAddr);
 	}
     }
 }
@@ -3058,14 +3059,17 @@ bool process::MonitorCallSite(instPoint *callSite){
     switch(addr_mode){
       
     case REGISTER_DIRECT:
+      {
       the_args[0] = new AstNode(AstNode::PreviousStackFrameDataReg,
 				(void *) base_reg);
       the_args[1] = new AstNode(AstNode::Constant,
 				(void *) callSite->iPgetAddress());
       func = new AstNode("DYNINSTRegisterCallee", the_args);
-      addInstFunc(this, callSite, func, callPreInsn,
+      miniTrampHandle mtHandle;
+      addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
 		  orderFirstAtPoint, true,false);
       break;
+      }
     case REGISTER_INDIRECT:
       {
 	AstNode *prevReg = new AstNode(AstNode::PreviousStackFrameDataReg,
@@ -3074,7 +3078,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 	the_args[1] = new AstNode(AstNode::Constant,
 				  (void *) callSite->iPgetAddress());
 	func = new AstNode("DYNINSTRegisterCallee", the_args);
-	addInstFunc(this, callSite, func, callPreInsn,
+	miniTrampHandle mtHandle;
+	addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
 		    orderFirstAtPoint, true,false);
 	break;
       }
@@ -3092,7 +3097,8 @@ bool process::MonitorCallSite(instPoint *callSite){
  	the_args[1] = new AstNode(AstNode::Constant,
  				  (void *) callSite->iPgetAddress());
   	func = new AstNode("DYNINSTRegisterCallee", the_args);
- 	addInstFunc(this, callSite, func, callPreInsn,
+	miniTrampHandle mtHandle;
+ 	addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
 		    orderFirstAtPoint, true,false);
 	break;
       }
@@ -3104,7 +3110,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 	the_args[1] = new AstNode(AstNode::Constant,
 				  (void *) callSite->iPgetAddress());
 	func = new AstNode("DYNINSTRegisterCallee", the_args);
-	addInstFunc(this, callSite, func, callPreInsn,
+	miniTrampHandle mtHandle;
+	addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
 		    orderFirstAtPoint, true, false);
 	break;
       }
@@ -3142,7 +3149,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 	    the_args[1] = new AstNode(AstNode::Constant,
 				      (void *) callSite->iPgetAddress());
 	    func = new AstNode("DYNINSTRegisterCallee", the_args);
-	    addInstFunc(this, callSite, func, callPreInsn,
+	    miniTrampHandle mtHandle;
+	    addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
 			orderFirstAtPoint, true, false);
 	  }
 	  else {
@@ -3166,7 +3174,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 	    the_args[1] = new AstNode(AstNode::Constant,
 				      (void *) callSite->iPgetAddress());
 	    func = new AstNode("DYNINSTRegisterCallee", the_args);
-	    addInstFunc(this, callSite, func, callPreInsn,
+	    miniTrampHandle mtHandle;	    
+	    addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
 			orderFirstAtPoint, true,false);
 	  }
 	}
@@ -3185,7 +3194,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 	  the_args[1] = new AstNode(AstNode::Constant,
 				    (void *) callSite->iPgetAddress());
 	  func = new AstNode("DYNINSTRegisterCallee", the_args);
-	  addInstFunc(this, callSite, func, callPreInsn,
+	  miniTrampHandle mtHandle;
+	  addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
 		      orderFirstAtPoint, true, false);
 	}
       }
@@ -3228,8 +3238,8 @@ BaseTrampTrapHandler (int)//, siginfo_t*, ucontext_t*)
 }
 #endif
 
-bool deleteBaseTramp(process *proc,instPoint* location,
-		     instInstance* instance)
+bool deleteBaseTramp(process *, instPoint *,
+		     trampTemplate *, instInstance *lastMT)
 {
 	cerr << "WARNING : deleteBaseTramp is unimplemented "
 	     << "(after the last instrumentation deleted)" << endl;
