@@ -2,9 +2,12 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.22  1996/02/23 22:09:16  naim
-/* Adding igen call to display status line (fixes a deadlock situation) - naim
+/* Revision 1.23  1996/04/07 21:19:37  karavan
+/* added newPhaseNotification.
 /*
+ * Revision 1.22  1996/02/23 22:09:16  naim
+ * Adding igen call to display status line (fixes a deadlock situation) - naim
+ *
 # Revision 1.21  1996/02/07  19:02:09  tamches
 # got rid of initSHG
 #
@@ -132,7 +135,7 @@ typedef int (*chooseMenuItemCBFunc) (int userChoice);
 
 $remote UIM {
 	$base 3000;
-	$version 11;
+	$version 12;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -162,7 +165,9 @@ $remote UIM {
 
 	// add string to end of PC (scrolling) status display box
 	void updateStatusDisplay (int token, const char *item);
-
+	// phaseID here is PC/UI version
+	$async void newPhaseNotification (unsigned phaseID, const char *phname, 
+					  bool with_new_pc);
 	int DAGaddNode(int dagID, unsigned nodeID, int styleID, 
 			const char *label, const char *shgname, int root);
 	int DAGaddEdge (int dagID, unsigned srcID, 
