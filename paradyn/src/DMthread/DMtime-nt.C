@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,17 +40,63 @@
  */
 
 /*
- * $Id: DMtime-nt.C,v 1.2 1999/03/12 22:57:42 pcroth Exp $
+ * $Id: DMtime-nt.C,v 1.3 1999/08/03 20:16:32 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
-#include "util/h/sys.h"
+#include "DMinclude.h"
 #include "DMtime.h"
+
+
+// returns the current time in seconds, in a manner comparable to
+// the method the daemon uses to obtain the current time (so they
+// can be compared).  Code taken, essentially, from daemon's
+// getCurrentTime() function.
+//
+// Note: like the daemon's getCurrentTime function, this function
+// assumes that the Windows NT high performance counters are available.
+// This will be true for most modern processors (Pentium onward).
+//
+// TODO - can this be shared between front end and daemon?
 
 timeStamp
 getCurrentTime( void )
 {
-#if READY
-#endif // READY
-	return 0;
+    static double freq = 0.0; // the counter frequency
+    static double previousTime = 0.0;
+    LARGE_INTEGER time;
+    
+
+    // obtain the frequency of the high performance counter
+    if( freq == 0.0 )
+    {
+        if( QueryPerformanceFrequency( &time ) )
+        {
+            freq = (double)time.QuadPart;
+        }
+        else
+        {
+            // TODO - report error?
+            assert( false );
+        }
+    }
+
+    // sample the counter
+    double result = 0.0;
+    do
+    {
+        if( QueryPerformanceCounter( &time ) )
+        {
+            result = (double)time.QuadPart/freq;
+        }
+        else
+        {
+            // TODO - report error?
+            assert( false );
+        }
+    }
+    while( result < previousTime );
+    previousTime = result;
+
+    return result;
 }
 
