@@ -40,7 +40,7 @@ PacketData::PacketData( unsigned short _stream_id, int _tag, const char *fmt,
     pdrmem_create( &pdrs, buf, buf_len, PDR_ENCODE );
 
     if( !PacketData::pdr_packet( &pdrs, this ) ) {
-        error( EPACKING, "pdr_packet() failed\n" );
+        error( MRN_EPACKING, "pdr_packet() failed\n" );
         return;
     }
 
@@ -74,7 +74,7 @@ PacketData::PacketData( unsigned int _buf_len, char *_buf )
 }
 
 PacketData::PacketData(const PacketData& p)
-    : stream_id(p.stream_id), tag(p.tag),
+    : Error( ), stream_id(p.stream_id), tag(p.tag),
       src(NULL), fmt_str(NULL), buf(NULL), buf_len(p.buf_len),
       destroy_data(p.destroy_data)
 {
@@ -180,7 +180,7 @@ int PacketData::ExtractVaList( const char *fmt, va_list arg_list )
     mrn_printf( 3, MCFL, stderr, "In ExtractVaList(%p)\n", this );
 
     if( strcmp( fmt_str, fmt ) ) {
-        error(EFMTSTR, "Extracted (%s), Packet (%s): Format string mismatch\n",
+        error(MRN_EFMTSTR, "Extracted (%s), Packet (%s): Format string mismatch\n",
                 fmt, fmt_str);
         return -1;
     }

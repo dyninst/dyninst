@@ -152,7 +152,7 @@ class Packet:public Error
     Packet( unsigned short _stream_id, int _tag, const char *fmt,
             va_list v ) : data( PacketData( _stream_id, _tag, fmt, v) ){}
 
-    Packet(const Packet &src): data(src.data) { }
+    Packet(const Packet &src): Error(), data(src.data) { }
     Packet & operator=(const Packet &src) {
         if( this != &src ){
             data = src.data;
