@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.127 2002/03/21 22:35:18 gaburici Exp $
+ * $Id: inst-power.C,v 1.128 2002/03/22 00:11:05 gaburici Exp $
  */
 
 #include "common/h/headers.h"
@@ -1578,7 +1578,9 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       fprintf(stderr, "Instrumentation point %x too far from tramp location %x, trying to instrument function %s\n",
 	      (unsigned) location->addr, (unsigned) baseAddr,
 	      location->func->prettyName().string_of());
-      assert(0);
+      //assert(0);
+      // VG(03/02/02): bail if no base tramp
+      return NULL;
     }
 
   theTemplate->baseAddr = baseAddr;
@@ -1742,6 +1744,9 @@ trampTemplate* findAndInstallBaseTramp(process *proc,
       }
     } else {
       ret = installBaseTramp(location, globalProc, trampRecursiveDesired);
+      // VG(03/02/02): bail if no base tramp
+      if(!ret)
+        return NULL;
       instruction *insn = new instruction;
       generateBranchInsn(insn, ret->baseAddr - location->addr);
       globalProc->baseMap[location] = ret;
