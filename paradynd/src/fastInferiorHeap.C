@@ -68,6 +68,8 @@ fastInferiorHeap(RAW *iBaseAddrInParadynd,
 
    // Note: houseKeeping[] values are uninitialized; each call to alloc() initializes
    //       one HK (here) and one RAW (in the inferior heap).
+
+   // Note: permanentSamplingSet and currentSamplingSet are initialized to empty arrays
 }
 
 template <class HK, class RAW>
@@ -77,7 +79,9 @@ fastInferiorHeap<HK, RAW>::fastInferiorHeap(const fastInferiorHeap<HK, RAW> &par
 					    void *appl_attachedAt) :
                              inferiorProcess(newProc),
 			     statemap(parent.statemap), // copy statemap
-			     houseKeeping(parent.houseKeeping) // copy hk
+			     houseKeeping(parent.houseKeeping), // copy hk
+			     permanentSamplingSet(parent.permanentSamplingSet), // copy
+			     currentSamplingSet(parent.currentSamplingSet) // copy
 {
    // this copy-ctor is a fork()/dup()-like routine.  Call after a process forks.
    // Here is what has already been done:
@@ -148,6 +152,20 @@ bool fastInferiorHeap<HK, RAW>::alloc(const RAW &iValue,
    RAW *destRawPtr = baseAddrInParadynd + allocatedIndex; // ptr arith
    *destRawPtr = iValue; // RAW::operator=(const RAW &) if defined, else a bit copy
 
+   // sampling set: add to permanent; no need to add to current
+   // note: because allocatedIndex is not necessarily larger than all of the current
+   //       entries in permanentSamplingSet[] (non-increasing allocation indexes can
+   //       happen all the time, once holes are introduced into the statemap due to
+   //       deallocation & garbage collection), we reconstruct the set from scratch;
+   //       it's the only easy way to maintain our invariant that the set is sorted.
+   const unsigned oldPermanentSamplingSetSize = permanentSamplingSet.size();
+
+   permanentSamplingSet.resize(0);
+   for (unsigned lcv=0; lcv < statemap.size(); lcv++)
+      if (statemap[lcv] == allocated)
+         permanentSamplingSet += lcv;
+   assert(permanentSamplingSet.size() == oldPermanentSamplingSetSize + 1);
+
    return true;
 }
 
@@ -162,6 +180,34 @@ void fastInferiorHeap<HK, RAW>::makePendingFree(unsigned ndx,
    houseKeeping[ndx].makePendingFree(trampsUsing);
 
    // firstFreeIndex doesn't change
+
+   // Sampling sets: a pending-free item should no longer be sampled, so remove
+   // it from both permanentSamplingSet and currentSamplingSet.
+   // Remember that both sets need to stay in sorted order, so we'd have to shift items
+   // to the right after removing from both sets, instead of just swapping with the
+   // last item and reducing the size by 1.  Since it can't be done fast, we just
+   // reconstruct from scratch, for simplicity.
+
+   const unsigned oldPermanentSamplingSetSize = permanentSamplingSet.size();
+   assert(oldPermanentSamplingSetSize > 0);
+
+   // Verify: ndx should be in permanentSamplingSet[], before we reconstruct the set.
+   bool found = false;
+   for (unsigned lcv=0; lcv < permanentSamplingSet.size() && !found; lcv++)
+      if (permanentSamplingSet[lcv] == ndx)
+	 found = true;
+   assert(found);
+
+   permanentSamplingSet.resize(0);
+   for (unsigned lcv=0; lcv < statemap.size(); lcv++)
+      if (statemap[lcv] == allocated)
+         permanentSamplingSet += lcv;
+
+   assert(permanentSamplingSet.size() == oldPermanentSamplingSetSize - 1);
+
+   // What about the current sampling set?  We can conservatively set it to contain more
+   // entries than need be.
+   currentSamplingSet = permanentSamplingSet;
 }
 
 template <class HK, class RAW>
@@ -199,53 +245,74 @@ void fastInferiorHeap<HK, RAW>::garbageCollect(const vector<unsigned> &PCs) {
  
    // We've gone thru every item in the inferior heap so there's no more garbage
    // collection we can do at this time.
+
+   // Note that garbage collection doesn't affect either of the sampling sets.
 }
 
 template <class HK, class RAW>
-void fastInferiorHeap<HK, RAW>::processAll(unsigned long long theWallTime,
-					   unsigned long long theProcTime) {
-   // theWallTime and theProcTime passed in should be in microsecs.
+bool fastInferiorHeap<HK, RAW>::doMajorSample(unsigned long long, // wall time
+					      unsigned long long // process time
+					      ) {
+   // return true iff a complete sample was made
+   // theWallTime passed in should be in microsecs (since what time?)
 
-   vector<unsigned> indexesLeftToSample(statemap.size());
-   unsigned numIndexesLeftToSample=0; // so far
-   for (unsigned index=0; index < statemap.size(); index++)
-      if (statemap[index] == allocated)
-         indexesLeftToSample[numIndexesLeftToSample++] = index;
+   // We used to take in a process (virtual) time as the last param, passing it
+   // on to HK::perform().  But we've found that the process time (when used as
+   // fudge factor when sampling an active process timer) must be taken at the
+   // same time the sample is taken to avoid incorrectly scaled fudge factors,
+   // leading to jagged spikes in the histogram (i.e. incorrect samples).
+   // The same applies to wall-time, so we ignore the 2d-to-last param too.
 
-   while (numIndexesLeftToSample > 0)
-      processAll(indexesLeftToSample, numIndexesLeftToSample,
-		 theWallTime, theProcTime);
+   currentSamplingSet = permanentSamplingSet;
+      // not a fast operation; vector::operator=()
+
+   // Verify that every item in the sampling set is allocated (i.e. should be sampled)
+   for (unsigned lcv=0; lcv < currentSamplingSet.size(); lcv++)
+      assert(statemap[currentSamplingSet[lcv]] == allocated);
+
+   // Verify that every allocated statemap item is in the current sampling set,
+   // and that the current sampling set is ordered. (A very strong set of asserts.)
+   // It's a bit too expensive to do casually, however, so we ifdef it:
+#ifdef SHM_SAMPLING_DEBUG
+   unsigned cssIndex=0; // current-sampling-set index
+   for (unsigned lcv=0; lcv < statemap.size(); lcv++) {
+      if (statemap[lcv] == allocated)
+	 assert(currentSamplingSet[cssIndex++] == lcv);
+   }
+   assert(cssIndex == currentSamplingSet.size());
+#endif
+
+   const bool result = doMinorSample();
+
+   return result;
 }
 
 template <class HK, class RAW>
-void fastInferiorHeap<HK, RAW>::processAll(vector<unsigned> &indexesLeftToSample,
-					   unsigned &numIndexesLeftToSample,
-					   unsigned long long theWallTime,
-					   unsigned long long theVirtualTime) {
-   unsigned lcv=0;
-   while (lcv < numIndexesLeftToSample) {
-      const unsigned index = indexesLeftToSample[lcv];
+bool fastInferiorHeap<HK, RAW>::doMinorSample() {
+   // samples items in currentSamplingSet[]; returns false if all done successfully
+
+   unsigned numLeftInMinorSample = currentSamplingSet.size();
+
+   unsigned lcv = 0;
+   while (lcv < numLeftInMinorSample) {
+      // try to sample this item
+      const unsigned index = currentSamplingSet[lcv];
       assert(statemap[index] == allocated);
 
-      // What about synchronization here?  baseAddrInParadynd + index refers to
-      // an object in shared memory; we have not paused the process; so the potential
-      // for race conditions is rather obvious.  We'll let HK::process() handle
-      // synchronization.  It should return true if it was able to grab a lock without
-      // waiting and do the processing; otherwise it returns false, and we'll try again
-      // later, under the assumption that the lock will probably become free by then.
-      // In other words, we're assuming the locks are held for a very short time.
-
+      // HK::perform() returns true iff sampling succeeded without having to
+      // wait; false otherwise.  It handles all needed synchronization.
       if (!houseKeeping[index].perform(*(baseAddrInParadynd + index), // ptr arith
-				       theWallTime, theVirtualTime))
-         // this item must remain on "indexesLeftToSample"; move to next candidate
+				       inferiorProcess)) {
+	 // the item remains in "currentSamplingSet[]"; move on to the next candidate
 	 lcv++;
-      else
-         // We've successfully processed this index; remove it from "indexesLeftToSample"
-	 // by swapping [lcv] with [last], while intentionally _not_ incrementing lcv.
-         // Also reduce numIndexesLeftToSample by 1.
-	 indexesLeftToSample[lcv] = indexesLeftToSample[--numIndexesLeftToSample];
+      }
+      else {
+	 // remove the item from "currentSamplingSet[]"; note that lcv doesn't change
+	 currentSamplingSet[lcv] = currentSamplingSet[--numLeftInMinorSample];
+      }
    }
 
-   // We've gone thru the entire list of things to process.
-   // If numIndexesLeftToSample is > 0 then we haven't been able to process everything...
+   const bool result = (numLeftInMinorSample == 0);
+
+   return result;
 }
