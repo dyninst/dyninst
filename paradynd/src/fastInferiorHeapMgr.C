@@ -48,7 +48,7 @@
 
 #include <iostream.h>
 #include "fastInferiorHeapMgr.h"
-#include "showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #include "main.h"
 
 unsigned fastInferiorHeapMgr::cookie = 0xabcdefab;

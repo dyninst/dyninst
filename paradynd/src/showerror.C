@@ -42,7 +42,7 @@
 #include "paradynd/src/comm.h"
 #include "dyninstAPI/src/dyninst.h"
 #include "paradynd/src/resource.h"
-#include "showerror.h"
+#include "dyninstAPI/src/showerror.h"
 
 extern resource *machineResource;
 extern pdRPC *tp;

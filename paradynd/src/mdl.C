@@ -50,7 +50,7 @@
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/Timer.h"
 #include "paradynd/src/mdld.h"
-#include "showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/process.h"
 #include "util/h/debugOstream.h"
 #include "paradynd/src/blizzard_memory.h"

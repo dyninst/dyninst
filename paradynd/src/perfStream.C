@@ -66,7 +66,7 @@ extern "C" {
 #include "paradynd/src/perfStream.h"
 #include "dyninstAPI/src/os.h"
 #include "paradynd/src/mdld.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/main.h"
 #include "util/h/debugOstream.h"
 

@@ -43,6 +43,9 @@
  * Implements virtual function called during an igen error.
  *
  * $Log: comm.C,v $
+ * Revision 1.13  1998/04/22 02:37:24  buck
+ * Moved showerror.h from paradynd directory to dyninstAPI directory.
+ *
  * Revision 1.12  1997/11/01 05:02:07  tamches
  * changed an #include<> to #include""
  *
@@ -94,7 +97,7 @@
 #include "util/h/headers.h"
 #include "paradynd/src/comm.h"
 #include "dyninstAPI/src/util.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/main.h"
 
 void dump_profile(pdRPC *pdr) {

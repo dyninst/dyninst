@@ -43,6 +43,9 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.70  1998/04/22 02:37:27  buck
+ * Moved showerror.h from paradynd directory to dyninstAPI directory.
+ *
  * Revision 1.69  1998/03/19 19:02:46  wylie
  * Workaround for VC++'s inability to correctly scope iterator variable
  * definitions.
@@ -131,7 +134,7 @@
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/costmetrics.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #include "util/h/sys.h" 
 #include "util/h/debugOstream.h"
 

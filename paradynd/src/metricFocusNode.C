@@ -63,7 +63,7 @@
 #include "paradynd/src/dynrpc.h"
 #include "paradynd/src/mdld.h"
 #include "util/h/Timer.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/metric.h"
 #include "util/h/debugOstream.h"

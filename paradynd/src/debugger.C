@@ -41,6 +41,9 @@
 
 /*
  * $Log: debugger.C,v $
+ * Revision 1.18  1998/04/22 02:37:26  buck
+ * Moved showerror.h from paradynd directory to dyninstAPI directory.
+ *
  * Revision 1.17  1997/02/26 23:46:28  mjrg
  * First part of WindowsNT port: changes for compiling with Visual C++;
  * moved unix specific code to unix.C file
@@ -98,7 +101,7 @@
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/os.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 
 
 process *defaultProcess=NULL;

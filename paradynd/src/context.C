@@ -43,6 +43,9 @@
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.56  1998/04/22 02:37:25  buck
+ * Moved showerror.h from paradynd directory to dyninstAPI directory.
+ *
  * Revision 1.55  1997/08/28 16:01:50  naim
  * Fixing some problems and bringing the NT version up to date - naim
  *
@@ -107,7 +110,7 @@
 #include "paradynd/src/metric.h"
 #include "paradynd/src/perfStream.h"
 #include "dyninstAPI/src/os.h"
-#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/hashTable.h"
 
