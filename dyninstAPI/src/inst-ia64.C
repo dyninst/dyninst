@@ -41,7 +41,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.6 2002/06/03 18:17:13 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.7 2002/06/14 21:48:37 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -75,8 +75,6 @@
 // for function relocation
 #include "dyninstAPI/src/func-reloc.h" 
 #include "dyninstAPI/src/LocalAlteration.h"
-
-#include "TRACE.INC"
 
 /* Required by process, ast .C, et al */
 registerSpace * regSpace;
