@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.233 2000/08/17 19:43:28 pcroth Exp $
+// $Id: process.C,v 1.234 2000/08/21 00:28:42 paradyn Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5307,6 +5307,16 @@ void process::installBootstrapInst() {
    function_base *func = getMainFunction();
    if (func) {
        instPoint *func_entry = const_cast<instPoint*>(func->funcEntry(this));
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+       if (func_entry->usesTrap(this)) {
+            // we can't instrument main's entry with a trap yet
+            // since DYNINSTinit installs our instrumentation trapHandler
+            showErrorCallback(108,"main() entry uninstrumentable (w/o trap)");
+            extern void cleanUpAndExit(int);
+            cleanUpAndExit(-1); 
+            return;
+       }
+#endif
        addInstFunc(this, func_entry, ast, callPreInsn,
                orderFirstAtPoint,
                true, // true --> don't try to have tramp code update the cost
