@@ -3,9 +3,12 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.5  1994/09/21 15:35:24  karavan
-/* added addNStyle and addEStyle commands
+/* Revision 1.6  1994/09/22 01:17:26  markc
+/* Added const to char* for args in compare function
 /*
+ * Revision 1.5  1994/09/21  15:35:24  karavan
+ * added addNStyle and addEStyle commands
+ *
  * Revision 1.4  1994/08/01  20:24:42  karavan
  * new version of dag; new dag support commands
  *
@@ -321,7 +324,7 @@ int unhighlightNodeCmd (ClientData clientData,
    Tcl command "drawVisiMenu" will return selections to the requesting
    visi thread
 */
-int compare_visi_names (void *viptr1, void *viptr2) {
+int compare_visi_names (const void *viptr1, const void *viptr2) {
   const VM_visiInfo *p1 = (VM_visiInfo *)viptr1;
   const VM_visiInfo *p2 = (VM_visiInfo *)viptr2;
   return strcmp (p1->name, p2->name);
