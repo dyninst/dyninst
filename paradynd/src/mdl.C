@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.154 2003/11/24 17:38:38 schendel Exp $
+// $Id: mdl.C,v 1.155 2004/01/19 21:53:58 schendel Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -1643,21 +1643,15 @@ mdld_constraint::apply_be(instrCodeNode *codeNode,
    // Now evaluate the constraint statements
    unsigned size = stmts_->size();
    pdvector<const instrDataNode*> flags;
-   bool wasRunning = global_proc->status()==running;
-   global_proc->pause();
+
    for (unsigned u=0; u<size; u++) {
-      if (!dynamic_cast<mdld_stmt*>((*stmts_)[u])->apply_be(codeNode, flags)) { // virtual fn call         
-         if (wasRunning) {
-            global_proc->continueProc();
-         }
+      if (!dynamic_cast<mdld_stmt*>((*stmts_)[u])->apply_be(codeNode, flags)) {
          return(false);
       }
    }
    mdl_data::cur_mdl_data->env->pop();
-   if (wasRunning) {
-      global_proc->continueProc();
-   }
-   return(true);
+
+   return true;
 }
 
 bool
