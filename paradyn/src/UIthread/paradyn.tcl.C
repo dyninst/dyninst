@@ -47,9 +47,12 @@
 */
 
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.75  1997/01/15 00:13:17  tamches
-/* added attach command
+/* Revision 1.76  1997/01/16 21:57:56  tamches
+/* extra params to attach for dir + prog-name
 /*
+ * Revision 1.75  1997/01/15 00:13:17  tamches
+ * added attach command
+ *
  * Revision 1.74  1996/10/31 08:21:21  tamches
  * don't call enablePAUSEorRUN anymore in certain places;
  * instead, the new uiMgr->enablePauseOrRun is called elsewhere.
@@ -362,6 +365,12 @@ int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
    char *user = NULL;
    char *machine = NULL;
    char *paradynd = NULL;
+
+   // dir + cmd give the path to the executable...used only to read
+   // the symbol table.
+   char *dir = NULL;
+   char *cmd = NULL; // program name
+
    char *pidstr = NULL;
 
    for (int i=1; i < argc-1; i++) {
@@ -373,6 +382,12 @@ int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
       }
       else if (0==strcmp("-daemon", argv[i]) && i+1 < argc) {
 	 paradynd = argv[++i];
+      }
+      else if (0==strcmp("-dir", argv[i]) && i+1 < argc) {
+	 dir = argv[++i];
+      }
+      else if (0==strcmp("-command", argv[i]) && i+1 < argc) {
+	 cmd = argv[++i];
       }
       else if (0==strcmp("-pid", argv[i]) && i+1 < argc) {
 	 pidstr = argv[++i];
@@ -391,12 +406,18 @@ int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
       return TCL_ERROR;
    }
 
+   if (cmd == NULL) {
+      Tcl_SetResult(interp, "paradyn attach: the -command option is required", TCL_STATIC);
+      cerr << interp->result << endl;
+      return TCL_ERROR;
+   }
+
    if (!app_name)
       app_name = new status_line("Application name");
 
    char buffer[512];
    sprintf(buffer, "program: %s, machine: %s, user: %s, daemon: %s",
-	   "???", // how to get the program name from an attach?
+	   cmd, // how to get the program name from an attach?
 	   machine ? machine : "(local)",
 	   user ? user : "(self)",
 	   paradynd ? paradynd : "(defd)");
@@ -406,7 +427,7 @@ int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
    disablePAUSEandRUN();
 
    // Note: the following is not an igen call to paradynd...just to the DM thread
-   if (!dataMgr->attach(machine, user, paradynd, pidstr)) {
+   if (!dataMgr->attach(machine, user, dir, cmd, pidstr, paradynd)) {
       Tcl_SetResult(interp, "", TCL_STATIC);
       return TCL_ERROR;
    }
