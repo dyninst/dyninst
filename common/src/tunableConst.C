@@ -3,7 +3,10 @@
  *    execution of the system.
  *
  * $Log: tunableConst.C,v $
- * Revision 1.2  1994/02/28 23:58:38  hollings
+ * Revision 1.3  1994/08/03 18:37:39  hollings
+ * split tunable constant into Boolean and Float sub-classes.
+ *
+ * Revision 1.2  1994/02/28  23:58:38  hollings
  * Changed global list to be a pointer to a list because I couldn't rely on
  * the order of global constructors.
  *
@@ -19,41 +22,83 @@
 List<tunableConstant*> *tunableConstant::allConstants;
 stringPool *tunableConstant::pool;
 
-Boolean tunableConstant::simpleRangeCheck(float val)
+tunableBooleanConstant::tunableBooleanConstant(Boolean initialValue,
+					       booleanChangeValCallBackFunc cb,
+					       tunableUse u,
+					       char *n,
+					       char *d)
+{
+    value = initialValue;
+    desc = d;
+    use = u;
+    typeName = tunableBoolean;
+
+    if (!pool) pool = new(stringPool);
+    name = pool->findAndAdd(n);
+    newValueCallBack = cb;
+    if (!allConstants) allConstants = new(List<tunableConstant*>);
+    allConstants->add(this, name);
+}
+
+void tunableBooleanConstant::print()
+{
+   cout << name << " = ";
+   if (value == TRUE) {
+       cout << "True\n";
+   } else {
+       cout << "False\n";
+   }
+}
+
+Boolean tunableFloatConstant::simpleRangeCheck(float val)
 {
     return((val >= min) && (val <= max));
 }
 
-tunableConstant::tunableConstant(float initialValue, 
-				 float low, 
-				 float high, 
-				 changeValCallBackFunc cb,
-				 char *n,
-				 char *d)
+tunableFloatConstant::tunableFloatConstant(float initialValue, 
+					 float low, 
+					 float high, 
+					 floatChangeValCallBackFunc cb,
+					 tunableUse u,
+					 char *n,
+					 char *d)
+
 {
     value = initialValue;
     min = low;
     max = high;
     desc = d;
+    use = u;
+    typeName = tunableFloat;
+    newValueCallBack = cb;
+
     if (!pool) pool = new(stringPool);
     name = pool->findAndAdd(n);
-    newValueCallBack = cb;
     if (!allConstants) allConstants = new(List<tunableConstant*>);
     allConstants->add(this, name);
 }
 
-tunableConstant::tunableConstant(float initialValue, 
-				 isValidFunc func, 
-				 changeValCallBackFunc cb,
-				 char *n,
-				 char *d)
+tunableFloatConstant::tunableFloatConstant(float initialValue, 
+					   isValidFunc func, 
+					   floatChangeValCallBackFunc cb,
+					   tunableUse u,
+					   char *n,
+					   char *d)
 {
     desc = d;
-    if (!pool) pool = new(stringPool);
-    name = pool->findAndAdd(n);
+    use = u;
+    typeName = tunableFloat;
     isValidValue = func;
     value = initialValue;
     newValueCallBack = cb;
+
+    if (!pool) pool = new(stringPool);
+    name = pool->findAndAdd(n);
     if (!allConstants) allConstants = new(List<tunableConstant*>);
     allConstants->add(this, name);
+}
+
+void tunableFloatConstant::print()
+{
+    cout << name << " = " << value << "\n";
 }
