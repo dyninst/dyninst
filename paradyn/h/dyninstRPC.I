@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.118 2004/10/19 01:23:43 pack Exp $
+/* $Id: dyninstRPC.I,v 1.119 2005/01/28 18:12:02 legendre Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -638,6 +638,10 @@ $remote dynRPC {
                                                       int context,
                                                       double total,
                                                       double share);
+
+   $virtual $upcall $async void resourceUpdateCallback(pdvector<pdstring> resource_name,
+                                                       pdvector<pdstring> display_name,
+                                                       pdstring abstraction);
 
    // 
    // Handler that reports the initial time that the daemon started the

@@ -41,7 +41,7 @@
 
 /*
  * The experiment class methods.
- * $Id: PCexperiment.C,v 1.27 2005/01/18 00:51:58 eli Exp $
+ * $Id: PCexperiment.C,v 1.28 2005/01/28 18:12:03 legendre Exp $
  */
 
 #include "PCintern.h"
@@ -122,16 +122,19 @@ experiment::newData(PCmetDataID, pdRate val, relTimeStamp start,
     << "            focus = <" 
       << dataMgr->getFocusNameFromHandle(where) << ">" 
       << endl
-      << "            time = " << endTime << "  pauseNorm = " 
-	<< timeNormalizer << "  thresh = " << thresh << "  hys = " 
+      << "            time = " << endTime //<< "  pauseNorm = " 
+	//<< timeNormalizer << "  thresh = " << thresh << "  hys = " 
+	 <<"  thresh = " << thresh << "  hys = " 
 	  << hysConstant << endl;
     if (why->compOp == gt) {
       cout << "             " << val << " >? " 
-	<< (thresh*timeNormalizer * hysConstant)
+	//<< (thresh*timeNormalizer * hysConstant)
+	<< (thresh* hysConstant)
 	<< " evals to " << newGuess << endl; 
     } else {
       cout << "             " << val << " <? " 
-        << (thresh*timeNormalizer * hysConstant)
+        //<< (thresh*timeNormalizer * hysConstant)
+        << (thresh* hysConstant)
 	<< " evals to " << newGuess << endl; 
     }
   } // end debug print

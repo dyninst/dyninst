@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.23 2004/06/24 22:27:47 legendre Exp $
+# $Id: Makefile,v 1.24 2005/01/28 18:12:04 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -9,7 +9,7 @@ USES_SHM_SAMPLING = true
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
-# DEBUG_FLAG = -g
+DEBUG_FLAG = -g
 
 #If libhrtime is not installed on your computer and you have no interest
 #  in using it, then comment out the following line (with a #), remove
@@ -84,6 +84,7 @@ AS		= /usr/bin/as
 #MYFLAGS		+= -DLD_DEBUG
 #MYFLAGS		+= -DSAMPLEVALUE_DEBUG
 #MYFLAGS		+= -DAGGREGATE_DEBUG
+MYFLAGS			+= -g
 
 CFLAGS		+= $(MYFLAGS)
 CXXFLAGS	+= $(MYFLAGS)

@@ -42,7 +42,7 @@
 // where4tree.C
 // Ariel Tamches
 
-/* $Id: where4tree.C,v 1.26 2004/03/23 01:12:31 eli Exp $ */
+/* $Id: where4tree.C,v 1.27 2005/01/28 18:12:04 legendre Exp $ */
 
 /* ******************************************************************
  *
@@ -1727,6 +1727,12 @@ void where4tree<NODEDATA>::addChild(where4tree *theNewChild,
    if (resortNow)
       this->sortChildren();
 }
+
+template <class NODEDATA>
+void where4tree<NODEDATA>::updateNode(where4tree * node, pdstring newname){
+   node->theNodeData.updateName(newname);
+}
+
 
 template <class NODEDATA>
 void where4tree<NODEDATA>::doneAddingChildren(const where4TreeConstants &tc,

@@ -39,12 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.127 2004/10/07 00:45:58 jaw Exp $
+// $Id: main.C,v 1.128 2005/01/28 18:12:05 legendre Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
 #include "common/h/Ident.h"
-
 
 extern "C" const char V_paradynd[];
 extern "C" const char V_libpdutil[];
@@ -94,6 +93,7 @@ static int pd_attpid;
 static int pd_known_socket_portnum=0;
 static int pd_flag=0;
 pdstring pd_flavor;
+pdstring MPI_impl;
 // Unused on NT, but this makes prototypes simpler.
 int termWin_port = -1;
 
@@ -176,13 +176,14 @@ void cleanUpAndExit(int status) {
 
 bool
 RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv, 
-		   pdstring &machine, int &well_known_socket,int &termWin_port, int &flag, int &attpid)
+		   pdstring &machine, int &well_known_socket,int &termWin_port,
+		   int &flag, int &attpid,  pdstring &MPI_impl)
 {
   char *ptr;
   int c;
   extern char *optarg;
   bool err = false;
-  const char optstring[] = "p:P:vVL:m:l:z:a:r:t:s:";
+  const char optstring[] = "p:P:vVL:m:l:z:a:r:t:s:M:";
 
   // Defaults (for ones that make sense)
   machine = "localhost";
@@ -233,12 +234,16 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
       // We've hit the "runme" parameter. Stop processing
       stop = true;
       break;
-  case 't':
+    case 't':
       // MAX_NUMBER_OF_THREADS is found in pd_process.h
       MAX_NUMBER_OF_THREADS = P_strtol(optarg, &ptr, 10);
       break;
-  case 's':
+    case 's':
       SHARED_SEGMENT_SIZE = P_strtol(optarg, &ptr, 10);
+      break;
+    case 'M':
+      //the MPI implementation - MPICH or LAM
+      MPI_impl = optarg;
       break;
     default:
       err = true;
@@ -257,6 +262,21 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
     return false;
 #endif
   return true;
+}
+
+//added for RMA window support and MPI communicator support
+//in the instrumentation code (rtinst/src/RTinst.c), we need to know
+//which MPI implementation is used.
+void RPC_do_environment_work(pdstring pd_flavor, pdstring MPI_impl){
+  if(pd_flavor == "mpi"){
+    char * temp = (char *)malloc((10 + MPI_impl.length())*sizeof(char)) ;
+    sprintf(temp, "PARADYN_MPI=%s",MPI_impl.c_str());
+    //cerr<<"temp is "<<temp<<endl;
+    putenv(temp);
+  }
+}
+void RPC_undo_environment_work(){
+   putenv("PARADYN_MPI=");
 }
 
 // PARADYND_DEBUG_XXX
@@ -351,7 +371,12 @@ InitForMPI( char* argv[], const pdstring& pd_machine )
 	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
 	     pd_machine, NULL, NULL, 2);
 	assert(tp != NULL);
-
+	if (!tp->net_obj())
+	{
+		cerr << "Failed to establish connection to Paradyn on "
+			 << pd_machine << " port " << pd_known_socket_portnum << endl;
+		cleanUpAndExit(-1);
+	}
 	tp->reportSelf(machine_name, argv[0], getpid(), "mpi");
     reportedSelf = true;
 }
@@ -482,7 +507,9 @@ main( int argc, char* argv[] )
    cerr << endl;
 #endif
    aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
-                              pd_known_socket_portnum,termWin_port, pd_flag, pd_attpid);
+                              pd_known_socket_portnum,termWin_port, 
+			      pd_flag, pd_attpid, MPI_impl);
+
    if (!aflag || pd_debug)
    {
       if (!aflag)
@@ -515,6 +542,13 @@ main( int argc, char* argv[] )
          cerr << "=" << pd_attpid;
       }
       cerr << ">" << endl;
+      cerr << "> -M<MPI_impl";
+      if (MPI_impl.length())
+      {
+         cerr << "=" << MPI_impl;
+      }
+      cerr << ">" << endl;
+
       if (pd_process::defaultParadynRTname.length())
       {
          cerr << "   -L<library=" << pd_process::defaultParadynRTname << ">" << endl;
@@ -532,8 +566,13 @@ main( int argc, char* argv[] )
       cleanUpAndExit(-1);
    if (write(stdout_fd,"from_paradynd\n",strlen("from_paradynd\n")) <= 0)
       cleanUpAndExit(-1);
-   
-   dup2(stdout_fd,1);
+   //for MPICH2  - MPICH2 mpd selects on the stdout fd
+   //of its children. If it is closed then EOF is detected by select.  MPICH2
+   //mpd begins a shutdown sequence if it detects EOF on the fd.
+   //paradynd/dyninstAPI error messages through stdout should still be seen by
+   //the user, because MPICH2 mpd passes the stdout to the console
+   if(MPI_impl != "MPICH")
+      dup2(stdout_fd,1);
    dup2(stdout_fd,2);
 #endif
 
@@ -546,6 +585,8 @@ main( int argc, char* argv[] )
                              pd_known_socket_portnum, pd_flag, 0,
                              pd_machine, true);
 #endif 
+    RPC_do_environment_work(pd_flavor, MPI_impl);
+
    assert(aflag);
    pdstring flav_arg(pdstring("-z")+ pd_flavor);
    pd_process::arg_list += flav_arg;
@@ -688,6 +729,8 @@ main( int argc, char* argv[] )
 
     // start handling requests
     controllerMainLoop( true );
+
+    RPC_undo_environment_work();
     return 0;
 }
 

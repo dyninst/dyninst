@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.83 2004/10/07 00:45:58 jaw Exp $
+// $Id: init.C,v 1.84 2005/01/28 18:12:05 legendre Exp $
 
 
 #include "paradynd/src/internalMetrics.h"
@@ -292,6 +292,10 @@ bool paradyn_init() {
             CategoryResourceType,
             MDL_T_STRING,
             false);
+  resource::newResource(syncRoot, NULL, nullString, "Window",
+                      timeStamp::ts1970(), "",
+                      CategoryResourceType,
+                      MDL_T_STRING, false);
 
   /*
   memoryRoot = resource::newResource(rootResource, NULL, nullString, 
@@ -451,8 +455,36 @@ void instMPI() {
   static BPatch_paramExpr mpiScatterCommArg(7);
   static BPatch_paramExpr mpiScattervCommArg(8);
   static BPatch_paramExpr mpiScanCommArg(5);
+  static BPatch_paramExpr mpiWinCreateArg(5);
+  static BPatch_paramExpr mpiWinNameWinArg(0);
+  static BPatch_paramExpr mpiWinNameNameArg(1);
+  static BPatch_paramExpr mpiWinFreeArg(0);
+  static BPatch_paramExpr mpiCommNameCommArg(0);
+  static BPatch_paramExpr mpiCommNameNameArg(1);
+  static BPatch_paramExpr mpiCommFreeArg(0);
 
   pdvector<BPatch_snippet*> argList(2);
+  initialRequestsPARADYN += new pdinstMapping("MPI_Win_create", "DYNINSTrecordWindow",
+              FUNC_EXIT|FUNC_ARG, BPatch_callBefore, BPatch_firstSnippet,
+              &mpiWinCreateArg, false);
+  initialRequestsPARADYN += new pdinstMapping("MPI_Win_free", "DYNINSTretireWindow",
+              FUNC_ENTRY|FUNC_ARG, BPatch_callBefore, BPatch_firstSnippet,
+              &mpiWinFreeArg, false);
+  argList[0] = &mpiWinNameWinArg;
+  argList[1] = &mpiWinNameNameArg;
+  initialRequestsPARADYN += new pdinstMapping("MPI_Win_set_name", "DYNINSTnameWindow",
+              FUNC_ENTRY|FUNC_ARG, BPatch_callBefore, BPatch_firstSnippet,
+              argList, false);
+
+  argList[0] = &mpiCommNameCommArg;
+  argList[1] = &mpiCommNameNameArg;
+  initialRequestsPARADYN += new pdinstMapping("MPI_Comm_set_name", "DYNINSTnameGroup",
+              FUNC_ENTRY|FUNC_ARG, BPatch_callBefore, BPatch_firstSnippet,
+              argList, false);
+  initialRequestsPARADYN += new pdinstMapping("MPI_Comm_free", "DYNINSTretireGroupTag",
+              FUNC_ENTRY|FUNC_ARG, BPatch_callBefore, BPatch_firstSnippet,
+              &mpiCommFreeArg, false);
+
   argList[0] = &mpiNormTagArg;
   argList[1] = &mpiNormCommArg;
   initialRequestsPARADYN += new pdinstMapping("MPI_Send", "DYNINSTrecordTagAndGroup",
@@ -467,15 +499,12 @@ void instMPI() {
 				     FUNC_ENTRY|FUNC_ARG, argList);
   argList[0] = &mpiSRSendTagArg;
   argList[1] = &mpiSRCommArg;
-  initialRequestsPARADYN += new pdinstMapping("MPI_Sendrecv", 
-				     "DYNINSTrecordTagAndGroup",
+  initialRequestsPARADYN += new pdinstMapping("MPI_Sendrecv", "DYNINSTrecordTagAndGroup",
 				     FUNC_ENTRY|FUNC_ARG, argList);
   argList[0] = &mpiSRRSendTagArg;
   argList[1] = &mpiSRRCommArg;
-  initialRequestsPARADYN += new pdinstMapping("MPI_Sendrecv_replace",
-				     "DYNINSTrecordTagAndGroup",
+  initialRequestsPARADYN += new pdinstMapping("MPI_Sendrecv_replace", "DYNINSTrecordTagAndGroup",
 				     FUNC_ENTRY|FUNC_ARG, argList);
-
   initialRequestsPARADYN += new pdinstMapping("MPI_Bcast", "DYNINSTrecordGroup",
 				     FUNC_ENTRY|FUNC_ARG, &mpiBcastCommArg);
   initialRequestsPARADYN += new pdinstMapping("MPI_Alltoall", "DYNINSTrecordGroup",
@@ -498,8 +527,7 @@ void instMPI() {
   initialRequestsPARADYN += new pdinstMapping("MPI_Allreduce", "DYNINSTrecordGroup",
 				     FUNC_ENTRY|FUNC_ARG, 
 				     &mpiAllreduceCommArg);
-  initialRequestsPARADYN += new pdinstMapping("MPI_Reduce_scatter", 
-				     "DYNINSTrecordGroup",
+  initialRequestsPARADYN += new pdinstMapping("MPI_Reduce_scatter", "DYNINSTrecordGroup",
 				     FUNC_ENTRY|FUNC_ARG, 
 				     &mpiReduceScatterCommArg);
   initialRequestsPARADYN += new pdinstMapping("MPI_Scatter", "DYNINSTrecordGroup",

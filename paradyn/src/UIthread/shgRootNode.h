@@ -43,7 +43,7 @@
 // Ariel Tamches
 // analagous to rootNode.h (for the where axis)
 
-/* $Id: shgRootNode.h,v 1.13 2004/03/23 01:12:30 eli Exp $ */
+/* $Id: shgRootNode.h,v 1.14 2005/01/28 18:12:04 legendre Exp $ */
 
 #ifndef _SHG_ROOT_NODE_H_
 #define _SHG_ROOT_NODE_H_
@@ -139,6 +139,21 @@ class shgRootNode {
 
    const pdstring &getName() const {return label;}
    const pdstring &getLongName() const {return fullInfo;}
+
+   void updateName(pdstring& newname){label = newname;
+        const char* mfl = getenv("PARADYN_MAX_FUNCTION_LENGTH");
+        mfl = mfl ? mfl : "0";
+        int abbrevLength = atoi(mfl);
+        if(label.length() > (unsigned)abbrevLength &&
+          (unsigned)abbrevLength != 0) {
+            abbrevLabel = label.substr(0, abbrevLength / 2);
+            abbrevLabel += pdstring("...");
+            abbrevLabel += label.substr(label.length() - (abbrevLength / 2), label.length());
+        } else {
+           abbrevLabel = label;
+        }
+   }
+
 
    bool getHighlighted() const {return highlighted;}
    void highlight() {highlighted = true;}

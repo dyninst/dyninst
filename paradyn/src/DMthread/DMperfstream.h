@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.h,v 1.28 2004/07/14 18:24:02 eli Exp $
+// $Id: DMperfstream.h,v 1.29 2005/01/28 18:12:03 legendre Exp $
 
 #ifndef dmperfstream_H
 #define dmperfstream_H
@@ -90,6 +90,8 @@ class performanceStream {
                        int count, int first, phaseType type);
    void callResourceFunc(resourceHandle parent, resourceHandle child, 
                          const char *name, const char *abstr);
+   void callUpdateResourceFunc(resourceHandle theResource, 
+                               const char * displayname, const char *abstr);
    void callResourceRetireFunc(resourceHandle uniqueID, const char *name);
 
    void callResourceBatchFunc(batchMode mode);

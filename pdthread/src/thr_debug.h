@@ -73,7 +73,7 @@ static void thr_debug_msg(const char* func_name, const char* format, ...) {
     va_list ap;
     va_start(ap, format);
 
-    if (do_traces_for->get((char*)func_name, strlen(func_name)) != 0) return;
+    if (do_traces_for->get((char*)func_name, strlen(func_name)) != 0) return; 
 
     static const char* preamble_format = "[id: (%d,%d,%d,\"%s\"); func: %s] ";
     const char* name = thr_name(NULL);
@@ -88,8 +88,9 @@ static void thr_debug_msg(const char* func_name, const char* format, ...) {
                     Thread::GetSelfId(),
                     name, func_name);
     strncat(real_format, format, len - ct - 1);
-    vfprintf(stderr, real_format, ap);
-    delete [] real_format;
+    vfprintf(stderr, real_format, ap); 
+    vfprintf(stderr, format, ap); 
+    delete [] real_format; 
 }
 
 #define DEBUGGING_CURRENT_MODULE

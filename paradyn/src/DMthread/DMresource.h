@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.h,v 1.55 2004/07/14 18:24:05 eli Exp $
+// $Id: DMresource.h,v 1.56 2005/01/28 18:12:03 legendre Exp $
 
 #ifndef DMresource_H 
 #define DMresource_H
@@ -76,6 +76,9 @@ class resource {
     const char *getName() const { 
         return(fullName[fullName.size()-1].c_str());}
     pdstring getFullName() const { return flatName; }
+    const char *getDisplayName() const {
+        return (displayname.c_str());
+    }
 
     ResourceType getType( void ) const   { return type; }
     unsigned int getMDLType() const      { return mdlType; }
@@ -103,6 +106,7 @@ class resource {
     static bool string_to_handle (const pdstring &res,resourceHandle *h);
     static pdstring getName(resourceHandle);
     static pdstring getFullName(resourceHandle);
+    static pdstring getDisplayName(resourceHandle);
     const pdvector<pdstring>& getParts() const {return fullName;}
     static bool get_lib_constraints(pdvector<pdstring>&, pdvector<unsigned>&);
     static bool get_func_constraints(pdvector< pdvector<pdstring> >&, pdvector<unsigned>&);
@@ -143,6 +147,9 @@ class resource {
                                 unsigned int mdlType,
                                 resource* parent,
                                 unsigned int id );
+   static void update( pdvector<pdstring>& resource_name,
+                       pdvector<pdstring>& display_name,
+                       pdstring& abstr);
 
 
     // returns true on success, false if it failed to fill in procName and pid
@@ -163,6 +170,7 @@ class resource {
     pdvector<pdstring> fullName;    // our full name (each name in pathname)
     ResourceType type;              // our real type
     unsigned int mdlType;           // our MDL type (e.g., MDL_T_INT)
+    pdstring displayname;          //name for display in user interface
     resourceHandle res_handle;  
     resource* parent;
     bool suppressSearch;

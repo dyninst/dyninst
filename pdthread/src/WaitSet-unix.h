@@ -45,7 +45,9 @@
 
 #include <poll.h>
 #include "pdthread/src/WaitSet.h"
+#include "pdthread/src/thr_mailbox.h"
 
+static XPlat::Mutex poll_mutex;
 
 namespace pdthr
 {
@@ -58,7 +60,6 @@ private:
     pollfd* fds;
     unsigned int nWaiters;
     unsigned int nAllocated;
-
 
     int Find( int fd );
     void Add( int fd );

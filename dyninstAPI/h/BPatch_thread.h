@@ -212,6 +212,8 @@ public:
 
     BPatch_image *getImage() { return image; }
     
+    //Matt
+    void check_procstatus(int loc);
     // this function should go away as soon as Paradyn links against Dyninst
     process *lowlevel_process() { return proc; }
     process *PDSEP_process() { return proc; }

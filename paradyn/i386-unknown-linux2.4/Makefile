@@ -1,5 +1,8 @@
 #
 # $Log: Makefile,v $
+# Revision 1.5  2005/01/28 18:12:03  legendre
+# Adding MPI-2 support
+#
 # Revision 1.4  2004/10/19 01:23:43  pack
 # Undoing accidental commit
 #
@@ -29,8 +32,10 @@ NO_IMPLICIT_TEMPLATES = true
 include ../../make.config 
 
 # Now make any necessary architecture specific changes to variables:
-CFLAGS		+=  -DSHG_ADD_ON_EVAL
-CXXFLAGS	+=  -DSHG_ADD_ON_EVAL
+#CFLAGS		+=  -DSHG_ADD_ON_EVAL 
+#CXXFLAGS	+=  -DSHG_ADD_ON_EVAL 
+CFLAGS		+=  -DSHG_ADD_ON_EVAL -g 
+CXXFLAGS	+=  -DSHG_ADD_ON_EVAL -g
 #CXXFLAGS	+=  -DSAMPLEVALUE_DEBUG
 TFLAGS		+=  -DSHG_ADD_ON_EVAL
 SYSLIBS		+=  -ldl

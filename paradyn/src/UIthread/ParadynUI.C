@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynUI.C,v 1.4 2004/07/14 18:24:15 eli Exp $
+// $Id: ParadynUI.C,v 1.5 2005/01/28 18:12:04 legendre Exp $
 #include "UIglobals.h"
 #include "common/h/Ident.h"
 #include "../pdMain/paradyn.h"
@@ -201,6 +201,7 @@ ParadynUI::DMready( void )
 
     controlCallback controlFuncs;
     controlFuncs.rFunc = ResourceAddedCallback;
+    controlFuncs.uFunc = ResourceUpdatedCallback;
     controlFuncs.retireFunc = ResourceRetiredCallback;
     controlFuncs.mFunc = NULL;
     controlFuncs.fFunc = NULL;
@@ -239,6 +240,15 @@ ParadynUI::ResourceAddedCallback(perfStreamHandle h,
                                     const char *abs)
 {
     pdui->ResourceAdded( h, parent, newResource, name, abs );
+}
+
+void
+ParadynUI::ResourceUpdatedCallback (perfStreamHandle handle,
+                                   resourceHandle theResource,
+                                   const char * displayname,
+                                   const char * abstraction)
+{
+    pdui->ResourceUpdated( handle, theResource, displayname, abstraction);
 }
 
 

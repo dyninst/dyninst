@@ -40,7 +40,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * $Id: mdlScanner.l,v 1.5 2004/04/16 20:41:15 legendre Exp $
+ * $Id: mdlScanner.l,v 1.6 2005/01/28 18:12:05 legendre Exp $
  */
 
 #include <stdio.h>
@@ -175,6 +175,7 @@ COMMENT	{SLASH}{SLASH}
 "int"		{ return(tT_INT); }
 "float"		{ return(tT_FLOAT); }
 "flavor"	{ return(tFLAVOR);}
+"MPItype"	{ return(tMPI_TYPE);}
 "foreach"	{ return(tFOREACH); }
 "metfocus"	{ return(tMETFOCUS); }
 "avg"		{ return(tAVG);}

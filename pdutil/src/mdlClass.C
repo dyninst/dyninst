@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdlClass.C,v 1.4 2004/03/23 01:12:41 eli Exp $
+// $Id: mdlClass.C,v 1.5 2005/01/28 18:12:05 legendre Exp $
 
 // Implements classes used for metric description language
 
@@ -185,6 +185,9 @@ bool daemonMet::set_field (field &f)
   case SET_HOST:
     host_ = *f.val;
     break;
+  case SET_MPITYPE:
+    MPItype_ = *f.val;
+    break;
   default:
     return false;
   }
@@ -229,10 +232,17 @@ bool visiMet::set_field(field &f)
   return true;
 }
 
-daemonMet::daemonMet(pdstring &nm, pdstring &cmd, pdstring &remsh, pdstring &exec, 
-					 pdstring &u, pdstring &h, pdstring& flav)
+daemonMet::daemonMet(pdstring &nm, pdstring &cmd, pdstring &remsh, 
+                     pdstring &exec, 
+		     pdstring &u, pdstring &h, pdstring& flav)
 : name_(nm), command_(cmd), remoteShell_(remsh), execDir_(exec), user_(u), 
-  host_(h), flavor_(flav) { }
+  host_(h), flavor_(flav) {MPItype_ = pdstring("MPICH");}
+
+daemonMet::daemonMet(pdstring &nm, pdstring &cmd, pdstring &remsh, pdstring &exec,
+                                 pdstring &u, pdstring &h, pdstring& flav,
+                                 pdstring & MPIt)
+: name_(nm), command_(cmd), remoteShell_(remsh), execDir_(exec), user_(u),
+  host_(h), flavor_(flav), MPItype_(MPIt) { } 
 
 void daemonMet::dumpAll() {
   unsigned size = allDaemons.size();
@@ -248,6 +258,7 @@ void daemonMet::dump() const
   cout << "     host: " << host_ << endl;
   cout << "     flavor: " << flavor_ << endl;
   cout << "     user: " << user_ << endl;
+  cout << " 	MPItype: " << MPItype_ <<endl;
 }
 
 bool daemonMet::addDaemon(daemonMet *dm)

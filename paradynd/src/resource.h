@@ -96,6 +96,7 @@ public:
 		  unsigned int mdlType);
 
   const pdstring &name() const { return name_; }
+  const pdstring &displayname() const {return displayname_;}
 
   const pdvector<pdstring> names() const {
     if (parent() == NULL) {
@@ -170,10 +171,17 @@ public:
                                 unsigned int id,
                                 ResourceType type,
 			                    unsigned int mdlType);
+  static void updateResource(resource * old, const pdstring & abstraction,
+                       pdvector<pdstring>& name, ResourceType *type,
+                       pdvector<pdstring>& displayname, int retired);
+
   inline void set_id(unsigned id);
+  inline void set_displayname(const pdstring& dn);
+
 
 private:
   pdstring name_;                 // name of resource
+  pdstring displayname_; 	 //name of resource to display
   pdstring abstraction_;          // abstraction name (wouldn't an abstraction-id be
                                 // more efficient?)
   timeStamp creation_;          // when did it get created
@@ -263,5 +271,9 @@ inline void resource::set_id(unsigned new_id) {
   id_ = new_id;
   res_dict[new_id] = this;
 }
+inline void resource::set_displayname(const pdstring& dn){
+  displayname_ = dn;
+}
+
 
 #endif

@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.84 2005/01/11 22:46:44 legendre Exp $
+ * $Id: RTinst.c,v 1.85 2005/01/28 18:12:05 legendre Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -116,8 +116,15 @@ extern void DYNINSTcloseTrace(void);
 extern void *DYNINST_shm_init(int, int, int *);
 
 void DYNINSTprintCost(void);
-int DYNINSTTGroup_CreateUniqueId(int);
+int DYNINSTGroup_CreateUniqueId(int,int);
+void DYNINSTrecordTagGroupInfo(int,unsigned);
 void DYNINSTtagGroupInfo_Init( void );
+
+//for MPI RMA Window support
+void DYNINSTWinInfo_Init( void );
+unsigned int DYNINSTWindow_CreateUniqueId(unsigned int, int);
+struct DynInstWin_st;
+void DYNINSTreportNewWindow(const struct DynInstWin_st *);
 
 int DYNINSTCalleeSearch(unsigned int callSiteAddr,                                                        unsigned int calleeAddr);
 /************************************************************************/
@@ -504,6 +511,7 @@ void PARADYNinit(int paradyndPid,
   
    /* initialize the tag and group info */
    DYNINSTtagGroupInfo_Init();
+   DYNINSTWinInfo_Init();
 
    tramp_guards = (unsigned *)malloc(numThreads * sizeof(unsigned));
    for (i = 0; i < numThreads; i++)
@@ -1060,17 +1068,48 @@ DYNINSTresourceCreationInfo_Add( DYNINSTresourceCreationInfo* ci,
 
 /*****************************************************************************
  * Support for discovering new communication groups and message tags.
+ * and MPI Windows, too
  ****************************************************************************/
 
-#define DYNINSTTagsLimit      1000
-#define DYNINSTTagGroupsLimit 100
+#define DYNINSTagsLimit      1000
+#define DYNINSTagGroupsLimit 100
 #define DYNINSTNewTagsLimit   50 /* don't want to overload the system */
+
+#define DYNINSTWindowsLimit   500
+
+typedef struct DynInstWin_st {
+   unsigned int   WinId;        /* winId as used by the program */
+   unsigned int   WinUniqueId;     /* our unique identifier for the window */
+   /* A Window is identifed by a combination of WinId and WinUniqueId. */
+   char * WinName;                   /* name of window given by the user */
+   struct DynInstWin_st* Next;       /* next defined window info struct */
+} DynInstWinSt;
+
+#define LAM 0
+#define MPICH 1
+
+int whichMPI = -1;
+char *whichMPIenv = NULL;
+
+typedef struct {
+   int            NumWins;     /* Number of Windows */
+   struct DynInstWin_st*  WindowTable[DYNINSTWindowsLimit]; /* Window table */
+/* WindowCounters is an array that maintains the 'next' unique number
+   for windows that fall into the
+   same index in WindowTable.  This is because the MPI implementation may reuse
+   a WinId if a window is destroyed with MPI_Win_free.  When a window is freed
+   we will remove its entry from WindowTable.  That way when the WinId is
+  reused in a MPI_Win_create call, we won't find it in the WindowTable. We will   know it is a new resource.
+ */
+  int WindowCounters[DYNINSTWindowsLimit];
+} DynInstWinArraySt;
+
 
 typedef struct DynInstTag_st {
   int      TagGroupId;                /* group as used by the program */
   unsigned TGUniqueId;                /* our unique identifier for the group */
   int      NumTags;                   /* number of tags in our TagTable */
-  int      TagTable[DYNINSTTagsLimit];/* known tags for this group */
+  int      TagTable[DYNINSTagsLimit];/* known tags for this group */
   DYNINSTresourceCreationInfo	tagCreateInfo;	/* record of recent tag creations */
 
   struct DynInstTag_st* Next;       /* next defined group info struct */
@@ -1082,6 +1121,7 @@ typedef struct DynInstNewTagInfo_
 {
 	int tagId;                   /* id of new tag */
 	unsigned groupId;            /* group tag belongs to */
+        int TGUniqueId;              /* our unique identifier for the group */
 	int isNewGroup;              /* is this the first time we saw this group? */
 } DynInstNewTagInfo;
 
@@ -1090,8 +1130,10 @@ typedef struct {
   int            TagHierarchy; /* True if hierarchy, false single level */
   int            NumGroups;     /* Number of groups, tag arrays */
   /* Group table, each index pointing to an array of tags */
-  DynInstTagSt*  GroupTable[DYNINSTTagGroupsLimit]; 
-
+  DynInstTagSt*  GroupTable[DYNINSTagGroupsLimit]; 
+  //for unique representation of communicators - they may be deallocated
+  //and the identifier reused in the implmenentation
+  int GroupCounters[DYNINSTagGroupsLimit];
   int                NumNewTags;   /* number of entries in the NewTags array */
   DynInstNewTagInfo  NewTags[DYNINSTNewTagsLimit];
 } DynInstTagGroupSt;
@@ -1100,6 +1142,7 @@ typedef struct {
 
 
 static DynInstTagGroupSt  TagGroupInfo;
+static DynInstWinArraySt  WinInfo;
 
 
 
@@ -1118,11 +1161,49 @@ DYNINSTtagGroupInfo_Init( void )
   TagGroupInfo.TagHierarchy = 0; /* FALSE; */
   TagGroupInfo.NumGroups = 0;
   TagGroupInfo.NumNewTags = 0;
-  for(dx=0; dx < DYNINSTTagGroupsLimit; dx++) {
+  for(dx=0; dx < DYNINSTagGroupsLimit; dx++) {
     TagGroupInfo.GroupTable[dx] = NULL;
+    TagGroupInfo.GroupCounters[dx] = 0;
   } 
 }
 
+/************************************************************************
+ * DYNINSTWinInfo_Init
+ *
+ * Initialize the singleton WinInfo struct for RMA Windows
+ ************************************************************************/
+void
+DYNINSTWinInfo_Init( void )
+{
+  unsigned int dx;
+  static int warned = 0;
+
+  WinInfo.NumWins = 0;
+  for(dx=0; dx < DYNINSTWindowsLimit; dx++) {
+    WinInfo.WindowTable[dx] = NULL;
+    WinInfo.WindowCounters[dx] = 0;
+  }
+/* determine which MPI implementation we are using - necessary because they
+   use different data structures to represent things like communicators and
+   windows.
+*/
+  if(whichMPI == -1){
+    whichMPIenv = getenv("PARADYN_MPI");
+    //fprintf(stderr,"got it %s\n",whichMPIenv);
+    if(whichMPIenv){
+      if (!strcmp(whichMPIenv,"LAM"))
+         whichMPI = LAM;
+      else if(!strcmp(whichMPIenv, "MPICH"))
+         whichMPI = MPICH;
+      else
+         if(!warned){
+            warned = 1;
+            fprintf(stderr,"ENV variable PARADYN_MPI not set. Unable to \
+	            determine MPI implementation.\n");
+	 }
+    }
+  }
+}
 
 /************************************************************************
  * void DYNINSTreportNewTags(void)
@@ -1150,8 +1231,8 @@ void DYNINSTreportNewTags(void)
     
     if((TagGroupInfo.TagHierarchy) && (TagGroupInfo.NewTags[dx].isNewGroup)) {
       memset(&newRes, '\0', sizeof(newRes));
-      sprintf(newRes.name, "SyncObject/Message/%u",
-	      TagGroupInfo.NewTags[dx].groupId);
+      sprintf(newRes.name, "SyncObject/Message/%d-%d",
+        TagGroupInfo.NewTags[dx].groupId, TagGroupInfo.NewTags[dx].TGUniqueId);
       strcpy(newRes.abstraction, "BASE");
       newRes.mdlType = RES_TYPE_INT;
       newRes.btype = MessageGroupResourceType;
@@ -1163,10 +1244,12 @@ void DYNINSTreportNewTags(void)
     
     memset(&newRes, '\0', sizeof(newRes));
     if(TagGroupInfo.TagHierarchy) {
-      sprintf(newRes.name, "SyncObject/Message/%u/%d", 
-	      TagGroupInfo.NewTags[dx].groupId, TagGroupInfo.NewTags[dx].tagId);
+      sprintf(newRes.name, "SyncObject/Message/%d-%d/%d",
+              TagGroupInfo.NewTags[dx].groupId,TagGroupInfo.NewTags[dx].TGUniqueId, TagGroupInfo.NewTags[dx].tagId);
       newRes.btype = MessageTagResourceType;
-    } else {
+    } else {//if there is no Group/Tag hierarchy - when is this true?
+            //I believe this was for PVM support, I don't see it used anywhere
+            //else
       sprintf(newRes.name, "SyncObject/Message/%d", 
 	      TagGroupInfo.NewTags[dx].tagId);
       newRes.btype = MessageGroupResourceType;
@@ -1211,8 +1294,8 @@ void DYNINSTrecordTagGroupInfo(int tagId, unsigned groupId)
   DynInstTagSt* tagSt;
   int           dx;
   int           newGroup;
-  int		        tagDx = (tagId % DYNINSTTagsLimit);
-  unsigned		groupDx = (groupId % DYNINSTTagGroupsLimit);
+  int		        tagDx = (tagId % DYNINSTagsLimit);
+  unsigned		groupDx = (groupId % DYNINSTagGroupsLimit);
   double		recentTagCreateRate;
   rawTime64		ts;
   
@@ -1240,9 +1323,9 @@ void DYNINSTrecordTagGroupInfo(int tagId, unsigned groupId)
     assert(tagSt != NULL);
 
     tagSt->TagGroupId = groupId;
-    tagSt->TGUniqueId = DYNINSTTGroup_CreateUniqueId(groupId);
+    tagSt->TGUniqueId = DYNINSTGroup_CreateUniqueId(groupId, groupDx);
     tagSt->NumTags = 0;
-    for(dx=0; dx < DYNINSTTagsLimit; dx++) {
+    for(dx=0; dx < DYNINSTagsLimit; dx++) {
       tagSt->TagTable[dx] = DYNINSTGroupUndefinedTag;
     }
 	DYNINSTresourceCreationInfo_Init( &(tagSt->tagCreateInfo),
@@ -1261,7 +1344,7 @@ void DYNINSTrecordTagGroupInfo(int tagId, unsigned groupId)
   /*
    * Check if we've reached the limit on the number of tags to track.
    */
-  if(tagSt->NumTags == DYNINSTTagsLimit) return;
+  if(tagSt->NumTags == DYNINSTagsLimit) return;
 
 
   /*
@@ -1270,7 +1353,7 @@ void DYNINSTrecordTagGroupInfo(int tagId, unsigned groupId)
   dx = tagDx;
   while((tagSt->TagTable[dx] != tagId) && (tagSt->TagTable[dx] != DYNINSTGroupUndefinedTag)) {
     dx++;
-    if(dx == DYNINSTTagsLimit)
+    if(dx == DYNINSTagsLimit)
 	{
        dx = 0;
     }
@@ -1335,7 +1418,8 @@ void DYNINSTrecordTagGroupInfo(int tagId, unsigned groupId)
   tagSt->NumTags++;
   
   TagGroupInfo.NewTags[TagGroupInfo.NumNewTags].tagId = tagId;
-  TagGroupInfo.NewTags[TagGroupInfo.NumNewTags].groupId = tagSt->TGUniqueId;
+  TagGroupInfo.NewTags[TagGroupInfo.NumNewTags].groupId = tagSt->TagGroupId;
+  TagGroupInfo.NewTags[TagGroupInfo.NumNewTags].TGUniqueId = tagSt->TGUniqueId;
   TagGroupInfo.NewTags[TagGroupInfo.NumNewTags].isNewGroup = newGroup;
   TagGroupInfo.NumNewTags++;
 
@@ -1343,7 +1427,426 @@ void DYNINSTrecordTagGroupInfo(int tagId, unsigned groupId)
   DYNINSTreportNewTags();
 }
 
+//The following structures are for lam support. The c_contextid field is the
+//context id of the communicator or window we are interested in. Another option
+//for getting the context id would be to use the LAM specific MPIL_Comm_id
+//function. However, that would require statically linking the appropriate
+//MPI library into libparadynRT.so.1...
 
+struct LAM_Comm{
+   int one;
+   int c_contextid;
+};
+struct LAM_Win{
+   struct LAM_Comm * comm;
+};
+
+
+//Record new window information and report it as a new resource
+void DYNINSTrecordWindowInfo(unsigned int * WinId)
+{
+  int           newWindow;
+  int WindowId;
+  static int warned = 0;
+  int WindowDx;
+  rawTime64             ts;
+  struct DynInstWin_st* WinSt;
+
+//get context id of window
+  if(whichMPI == LAM){
+    struct LAM_Win * myWin = *(struct LAM_Win **)WinId;
+    WindowId =  myWin->comm->c_contextid;
+  }
+  else if(whichMPI == MPICH){
+    WindowId =(short) *WinId;
+  }
+  //else
+    //fprintf(stderr, "Error: Unable to determine MPI implementation");
+
+  WindowDx = (WindowId % DYNINSTWindowsLimit);
+
+  // check if we've reached the limit on the number of new windows
+
+  if(WinInfo.NumWins == DYNINSTWindowsLimit){
+    if(!warned){
+       fprintf(stderr,"The limit of the number of RMA windows supported by Paradyn has been reached - The max number of windows is set at %d.\n",DYNINSTWindowsLimit);
+       warned = 1;
+    }
+    return;
+  }
+
+
+  /*
+   * Find the info about the window we were given
+   */  
+   //fprintf(stderr, "in Record: windowDx is %d for WindowId %u\n",
+             //WindowDx,WindowId);
+
+/* search for already existing window, because although right now this function   is only called by MPI_Win_create, in the future, we may call it from any
+   functions that use windows, e.g. MPI_Win_fence, MPI_Win_start... */
+
+  WinSt = WinInfo.WindowTable[WindowDx];
+  while((WinSt != NULL) && (WinSt->WinId != WindowId)) {
+    WinSt = WinSt->Next;
+  }
+  if(WinSt == NULL) {
+    /* We have not seen this Window before, so add a WinInfo struct for it. */
+    WinSt = (DynInstWinSt *)malloc(sizeof(DynInstWinSt));
+    assert(WinSt != NULL);
+
+    WinSt->WinId = WindowId;
+    WinSt->WinUniqueId = DYNINSTWindow_CreateUniqueId(WindowId, WindowDx);
+    //fprintf(stderr,"WinUniqueId %d for WindowId %d\n",
+             // WinSt->WinUniqueId,WindowId);
+
+//have to wait until we see MPI_Win_set_name on this window to get WinName
+    WinSt->WinName = NULL;
+    WinSt->Next = WinInfo.WindowTable[WindowDx];
+    WinInfo.WindowTable[WindowDx] = WinSt;
+    WinInfo.NumWins++;
+    newWindow = 1;
+  } else {
+    /* We have seen this window before - nothing to do */
+    assert(WinSt->WinId == WindowId);
+    newWindow = 0;
+  }
+
+  /* report new window to our daemon */
+  if(newWindow)
+    DYNINSTreportNewWindow(WinSt);
+}
+
+/************************************************************************
+ * void DYNINSTreportNewWindow(void)
+ *
+ * Inform the paradyn daemons of new  RMA Windows
+ *
+************************************************************************/
+void DYNINSTreportNewWindow(const struct DynInstWin_st * WinSt )
+{
+  int    dx;
+  rawTime64 process_time;
+  rawTime64 wall_time;
+
+    process_time = DYNINSTgetCPUtime();
+    wall_time = DYNINSTgetWalltime();
+
+    struct _newresource newRes;
+
+    memset(&newRes, '\0', sizeof(newRes));
+    sprintf(newRes.name, "SyncObject/Window/%d-%d",
+              WinSt->WinId,WinSt->WinUniqueId);
+      strcpy(newRes.abstraction, "BASE");
+      newRes.mdlType = RES_TYPE_INT;
+      newRes.btype = WindowResourceType;
+
+      DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE,
+                                 sizeof(struct _newresource), &newRes, 1,
+                                 wall_time,process_time);
+}
+// report user-defined name for RMA window to the front-end
+void DYNINSTnameWindow(unsigned int WindowId, char * name){
+  struct DynInstWin_st* WinSt;
+  int           WindowDx ;
+  rawTime64 process_time;
+  rawTime64 wall_time;  static int warned = 0;
+  int WinId;
+
+// get implementation dependent context id for window
+  if(whichMPI == LAM){
+    struct LAM_Win * lw = (struct LAM_Win *)WindowId;
+    WinId = lw->comm->c_contextid;
+  } 
+  else if(whichMPI == MPICH){
+    WinId =(short) WindowId;
+  } 
+  else{
+    //fprintf(stderr, "Unable to determine MPI implementation.\n");
+    return;
+  }
+  
+  WindowDx = (WinId % DYNINSTWindowsLimit);
+
+  process_time = DYNINSTgetCPUtime();
+  wall_time = DYNINSTgetWalltime();
+ 
+  WinSt = WinInfo.WindowTable[WindowDx];
+  //fprintf(stderr, "in Name: windowDx is %d for WindowId %u name is %s\n",
+            //WindowDx,WindowId, name);
+  while((WinSt != NULL) && (WinSt->WinId != WinId)) {
+    WinSt = WinSt->Next;
+  }
+  if(WinSt == NULL) {
+     if(!warned && WinInfo.NumWins >= DYNINSTWindowsLimit){
+         fprintf(stderr, "The number of RMA Windows supported by Paradyn has been reached. %u\n",WinId);
+         warned = 1;
+         return;
+     }
+     else if(WinInfo.NumWins < DYNINSTWindowsLimit){
+        //hmmm this shouldn't happen
+        fprintf(stderr, "Attempting to name an RMA Window not already picked up by MPI_Win_create: %u\n",WinId);
+        return;
+     }
+     return;
+  }   
+  if(!name){
+     //I would hope this wouldn't happen either
+     fprintf(stderr, "Attempting to name an RMA Window a null value\n");
+     return;                     
+  }
+  WinSt->WinName = (char*)malloc(strlen(name) +1);
+  strcpy(WinSt->WinName,name);
+
+  struct _updtresource Res;
+  memset(&Res, '\0', sizeof(Res));
+  sprintf(Res.name, "SyncObject/Window/%d-%d",
+             WinSt->WinId, WinSt->WinUniqueId);
+  sprintf(Res.displayname, "SyncObject/Window/%s",
+             WinSt->WinName);
+  strcpy(Res.abstraction, "BASE");
+  Res.mdlType = RES_TYPE_INT;
+  Res.btype = WindowResourceType;  
+  Res.retired = 0;
+
+  DYNINSTgenerateTraceRecord(0,TR_UPDATE_RESOURCE,
+                                 sizeof(struct _updtresource), &Res, 1,
+                                 wall_time,process_time);
+}
+
+// report user-defined name for communicator to the frontend
+void DYNINSTnameGroup(unsigned int gId, char * name){
+  struct DynInstTag_st* tagSt;
+  int           groupDx ;
+  rawTime64 process_time;
+  rawTime64 wall_time;
+  static int warned = 0;
+  int groupId;
+
+//get implementation dependent context id for communicator
+  if(whichMPI == LAM){
+    struct LAM_Comm * lc = (struct LAM_Comm *)gId;
+    groupId = lc->c_contextid;
+  }
+  else if(whichMPI == MPICH){
+    groupId =(short) gId;
+  }
+  else{
+    //fprintf(stderr, "Unable to determine MPI implementation.\n");
+    return;
+  }
+
+  wall_time = DYNINSTgetWalltime ();
+  process_time = DYNINSTgetCPUtime();
+
+  //find the communicator
+  groupDx = (groupId % DYNINSTagGroupsLimit);
+  tagSt = TagGroupInfo.GroupTable[groupDx];
+  while((tagSt != NULL) && (tagSt->TagGroupId != groupId)) {
+      tagSt = tagSt->Next;
+  }
+
+  if(tagSt == NULL) {
+     if(!warned && TagGroupInfo.NumGroups >= DYNINSTagGroupsLimit){
+         fprintf(stderr, "The number of Commicators supported by Paradyn has been reached. %u\n",groupId);
+         warned = 1;
+         return;
+     }
+     else if(TagGroupInfo.NumGroups < DYNINSTagGroupsLimit){
+        //we get here if they havent' sent any messages on the communicator yet
+        //and the communicator wasn't created with MPI_Comm_create
+          TagGroupInfo.TagHierarchy = 1;  /* TRUE; */
+          DYNINSTrecordTagGroupInfo(-1, groupId);
+          tagSt = TagGroupInfo.GroupTable[groupDx];
+          while((tagSt != NULL) && (tagSt->TagGroupId != groupId)) {
+              tagSt = tagSt->Next; 
+          }
+          assert(tagSt); //we just put it there. it should be there.
+      }
+  }                              
+  if(!name){                     
+     //I would hope this wouldn't happen either
+     fprintf(stderr, "Attempting to name a Communicator a null value\n");
+     return;
+  }
+  if(!strcmp(name, "")){
+     //It seems that LAM names a communicator "" when it deallocates it
+     //so this happens on MPI_Comm_free
+   return;
+  }
+//fprintf(stderr,"name for group %d-%d \n", tagSt->TagGroupId, tagSt->TGUniqueId);
+  struct _updtresource Res;
+  memset(&Res, '\0', sizeof(Res));
+  sprintf(Res.name, "SyncObject/Message/%d-%d",
+             tagSt->TagGroupId,tagSt->TGUniqueId );
+  sprintf(Res.displayname, "SyncObject/Message/%s", name);
+  strcpy(Res.abstraction, "BASE");
+  Res.mdlType = RES_TYPE_INT;
+  Res.btype = MessageGroupResourceType;
+  Res.retired = 0;
+    
+  DYNINSTgenerateTraceRecord(0,TR_UPDATE_RESOURCE,
+                                 sizeof(struct _updtresource), &Res, 1,
+                                 wall_time,process_time);
+} 
+
+// when a communicator is deallocated with MPI_Comm_free report it as retired
+// to the front end
+void DYNINSTretireGroupTag(unsigned int * gId){
+  struct DynInstTag_st* tagSt;
+  struct DynInstTag_st* prevtagSt = NULL;
+  int           groupDx ;
+  rawTime64 process_time;
+  rawTime64 wall_time;
+  int groupId;
+  int i = 0;
+
+// get implementation dependent context id for communicator
+  if(whichMPI == LAM){ 
+     struct LAM_Comm * lc = (struct LAM_Comm *)*gId;
+     groupId = lc->c_contextid;
+  }
+  else if(whichMPI == MPICH){
+    groupId =(short)* gId;
+  }
+  else{
+    //fprintf(stderr, "Unable to determine MPI implementation.\n");
+    return;
+  }
+  
+  groupDx = (groupId % DYNINSTagGroupsLimit);
+  tagSt = TagGroupInfo.GroupTable[groupDx];
+  while((tagSt != NULL) && (tagSt->TagGroupId != groupId)) {
+      prevtagSt = tagSt;
+      tagSt = tagSt->Next;
+  }
+  
+  process_time = DYNINSTgetCPUtime();
+  wall_time = DYNINSTgetWalltime();
+  
+  if(tagSt == NULL) {     //fprintf(stderr, "Attempting to retire a communicator we haven't seen yet %u\n",groupId);
+     /* this could happen if a communicator is freed that we didn't see any
+        messages for */
+     return;
+  }//fprintf(stderr,"found group %u-%d and sending retire request\n",tagSt->TagGroupId, tagSt->TGUniqueId);
+  
+  struct _updtresource Res;
+
+/* retire tags first */
+  
+  int count = 0;
+  for(i = 0 ; i < DYNINSTagsLimit && count < tagSt->NumTags; ++i){
+//fprintf(stderr,"tagSt->NumTags is %d for group %d-%d tag is %d\n",tagSt->NumTags, tagSt->TagGroupId, tagSt->TGUniqueId, tagSt->TagTable[i]);
+    if(tagSt->TagTable[i] != DYNINSTGroupUndefinedTag){
+       ++count;
+       memset(&Res, '\0', sizeof(Res));
+ sprintf(Res.name, "SyncObject/Message/%d-%d/%d",
+             tagSt->TagGroupId, tagSt->TGUniqueId, tagSt->TagTable[i]);
+       sprintf(Res.displayname, "SyncObject/Message/%d-%d/%s",
+             tagSt->TagGroupId, tagSt->TGUniqueId, "");
+       strcpy(Res.abstraction, "BASE");
+       Res.mdlType = RES_TYPE_INT;
+       Res.btype = MessageTagResourceType;
+       Res.retired = 1;
+
+       DYNINSTgenerateTraceRecord(0,TR_UPDATE_RESOURCE,
+                                 sizeof(struct _updtresource), &Res, 1,
+                                 wall_time,process_time);
+    }
+  }
+
+/* retire communicator */
+  memset(&Res, '\0', sizeof(Res));
+  sprintf(Res.name, "SyncObject/Message/%d-%d",
+             tagSt->TagGroupId, tagSt->TGUniqueId);
+  sprintf(Res.displayname, "SyncObject/Message/%s", "");
+  strcpy(Res.abstraction, "BASE");
+  Res.mdlType = RES_TYPE_INT;
+  Res.btype = MessageTagResourceType;
+  Res.retired = 1;
+
+  DYNINSTgenerateTraceRecord(0,TR_UPDATE_RESOURCE,
+                                 sizeof(struct _updtresource), &Res, 1,
+                                 wall_time,process_time);
+
+  /* remove the window from the WindowTable */
+
+assert(tagSt);
+  if(!prevtagSt)
+    TagGroupInfo.GroupTable[groupDx] = tagSt->Next;
+  else
+    prevtagSt->Next = tagSt->Next;
+  free(tagSt);
+  tagSt = NULL;
+  --TagGroupInfo.NumGroups;
+}
+
+
+// when a window is deallocated with MPI_Win_free, report it to the frontend
+//as retired
+void DYNINSTretireWindow(unsigned int * WindowId){
+  struct DynInstWin_st* WinSt;
+  struct DynInstWin_st* prevWinSt = NULL;
+  int           WindowDx ;
+  rawTime64 process_time;
+  rawTime64 wall_time;
+  int WinId;
+
+//get implementation dependent context id for window
+  if(whichMPI == LAM){
+    struct LAM_Win * lw = (struct LAM_Win *)*WindowId;
+    WinId = lw->comm->c_contextid;
+  }    
+  else if(whichMPI == MPICH){
+    WinId =(short) *WindowId;
+  }    
+  else{
+    //fprintf(stderr,"Unable to determine MPI implementation.\n");
+    return;
+  }    
+                                 
+  WindowDx = (WinId % DYNINSTWindowsLimit);
+    
+  process_time = DYNINSTgetCPUtime();
+  wall_time = DYNINSTgetWalltime();
+
+  WinSt = WinInfo.WindowTable[WindowDx];
+  //fprintf(stderr, "in retire: windowDx is %d for WinId %u\n",WindowDx,WinId);
+  while((WinSt != NULL) && (WinSt->WinId != WinId)) {
+    prevWinSt = WinSt;
+    WinSt = WinSt->Next;
+  }
+  if(WinSt == NULL) {
+     fprintf(stderr, "Attempting to retire a window we haven't seen yet %u\n",WinId);
+     return;
+  }                              
+//fprintf(stderr,"found window %u-%d and sending retire request\n",WinSt->WinId, WinSt->WinUniqueId);
+  struct _updtresource Res; 
+  memset(&Res, '\0', sizeof(Res));
+  sprintf(Res.name, "SyncObject/Window/%u-%d",
+             WinSt->WinId, WinSt->WinUniqueId);
+  if (WinSt->WinName)
+    sprintf(Res.displayname, "SyncObject/Window/%s", WinSt->WinName);
+  else
+    sprintf(Res.displayname, "SyncObject/Window/%s", "");
+  strcpy(Res.abstraction, "BASE");
+  Res.mdlType = RES_TYPE_INT;
+  Res.btype = WindowResourceType; 
+  Res.retired = 1;
+
+  DYNINSTgenerateTraceRecord(0,TR_UPDATE_RESOURCE, 
+                                 sizeof(struct _updtresource), &Res, 1,
+                                 wall_time,process_time);
+  
+  /* remove the window from the WindowTable */
+  assert(WinSt);
+if(!prevWinSt)
+    WinInfo.WindowTable[WindowDx] = WinSt->Next;
+  else
+    prevWinSt->Next = WinSt->Next;
+  free(WinSt);
+  WinSt = NULL;
+  --WinInfo.NumWins; 
+}
 
 /************************************************************************
  * 
@@ -1367,14 +1870,42 @@ void DYNINSTrecordTag(int tagId)
 void DYNINSTrecordTagAndGroup(int tagId, unsigned groupId)
 {
   assert(tagId >= 0);
+  int gId = -1;
+  if(whichMPI == LAM){
+    struct LAM_Comm * lc = (struct LAM_Comm*)groupId;
+    gId = lc->c_contextid;
+  }
+  else if(whichMPI == MPICH){
+    gId = (short)groupId;
+  }
+  else{
+    gId = (int)groupId;
+  }
   TagGroupInfo.TagHierarchy = 1; /* TRUE; */
-  DYNINSTrecordTagGroupInfo(tagId, groupId );
+  DYNINSTrecordTagGroupInfo(tagId, gId );
 }
 
 void DYNINSTrecordGroup(unsigned groupId)
 {
+  int gId = -1;
+  if(whichMPI == LAM){
+    struct LAM_Comm * lc = (struct LAM_Comm*)groupId;
+    gId = lc->c_contextid;
+  }
+  else if(whichMPI == MPICH){
+    gId = (short)groupId;
+  }
+  else{
+    gId = (int)groupId;
+  }
   TagGroupInfo.TagHierarchy = 1;  /* TRUE; */
-  DYNINSTrecordTagGroupInfo(-1, groupId);
+  DYNINSTrecordTagGroupInfo(-1, gId);
+}
+
+//record new RMA window
+void DYNINSTrecordWindow(unsigned int WindowId)
+{
+  DYNINSTrecordWindowInfo((unsigned int *)WindowId);
 }
 
 /************************************************************************
@@ -1408,7 +1939,7 @@ void DYNINSTexitPrint(int arg) {
 /************************************************************************
  *
  ************************************************************************/
-int DYNINSTTGroup_CreateUniqueId(int commId)
+int DYNINSTGroup_CreateUniqueId(int commId, int dx)
 {
 #ifdef PARADYN_MPI
   MPI_Group commGroup;
@@ -1436,16 +1967,26 @@ int DYNINSTTGroup_CreateUniqueId(int commId)
   assert(ranks2[0] < 20000);
   return(commId + (ranks2[0] * 100000));
 #else
-  return(commId);
+// maintain unique identifiers for communicators as their implementation
+//dependent context ids may be reused by the MPI implementation
+  return TagGroupInfo.GroupCounters[dx]++;
+
 #endif
 }
 
-
+/*
+ * RMA windows
+ * maintain a unique identifier for each window because the MPI implementation
+ * may reuse a window's context id after it is deallocated
+*/
+unsigned int DYNINSTWindow_CreateUniqueId(unsigned int WindowId, int dx){
+  return WinInfo.WindowCounters[dx]++;
+}
 
 /************************************************************************
  *
  ************************************************************************/
-int DYNINSTTGroup_CreateLocalId(int tgUniqueId)
+int DYNINSTGroup_CreateLocalId(int tgUniqueId)
 {
 #ifdef PARADYN_MPI
   /* return(tgUniqueId | ((1<<16)-1)); */
@@ -1459,20 +2000,72 @@ int DYNINSTTGroup_CreateLocalId(int tgUniqueId)
 /************************************************************************
  *
  ************************************************************************/
-int DYNINSTTGroup_FindUniqueId(unsigned groupId)
+int DYNINSTGroup_FindUniqueId(unsigned gId)
 {
-  unsigned      groupDx;
+  int           groupDx;
+  int           groupId;
   DynInstTagSt* tagSt;
 
-  groupDx = groupId % DYNINSTTagGroupsLimit;
+//get implementation dependent context id for communicator
+  if(whichMPI == LAM){
+    struct LAM_Comm * lc = (struct LAM_Comm *)gId;
+    groupId = lc->c_contextid;
+  }
+  else if(whichMPI == MPICH){
+    groupId = (short)gId;
+  }
+  //else{
+    //fprintf(stderr, "Unable to determine MPI implementation.\n");
+  //}
+
+  groupDx = groupId % DYNINSTagGroupsLimit;
 
   for(tagSt = TagGroupInfo.GroupTable[groupDx]; tagSt != NULL;
       tagSt = tagSt->Next)
   {
     if(tagSt->TagGroupId == groupId)
-        return(tagSt->TGUniqueId);
+        return(tagSt->TagGroupId);
   }
-  
+
+  return(-1);
+}
+
+//find the indentifier of the RMA window in question
+int DYNINSTWindow_FindUniqueId(unsigned int WindowId)
+{
+  int           WinDx;
+  DynInstWinSt* WinSt = NULL;
+  int WinId;
+
+//get the implementation dependent context id of the window
+  if(whichMPI == LAM){
+    struct LAM_Win * lw = (struct LAM_Win *)WindowId;
+    WinId = lw->comm->c_contextid;
+  }
+  else if(whichMPI == MPICH){
+    WinId = (short)WindowId;
+  }
+  //else{
+    //fprintf(stderr, "Unable to determine MPI implementation.\n");
+  //}
+
+  WinDx = (WinId % DYNINSTWindowsLimit);
+
+  WinSt = WinInfo.WindowTable[WinDx];
+  while((WinSt != NULL) && (WinSt->WinId != WinId)) {
+    WinSt = WinSt->Next;
+  }
+  if(WinSt == NULL) {
+     //hmmm this shouldn't happen unless there is a bug somewhere
+     // or if paradyn supports attach for MPI programs
+     fprintf(stderr, "trying to FIND a window we haven't seen before %u\n",WinId);
+     return (-1);
+  }
+
+  if(WinSt->WinId == WinId){
+        return(WinSt->WinId);
+  }
+
   return(-1);
 }
 

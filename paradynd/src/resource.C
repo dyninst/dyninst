@@ -182,6 +182,26 @@ void resource::send_now() {
   resourceInfoCallbackBuffer.resize(0);
 }
 
+void resource::updateResource(resource * old, const pdstring & abstraction,
+                       pdvector<pdstring>& name,  ResourceType *type,
+                        pdvector <pdstring>& displayname, int retired){
+
+    if(retired){ /* if it's retiring, we're not going to change anything else */
+       pdstring res = old->full_name();
+       tp -> retiredResource(res);
+       return;
+    }
+    //commented out because 'set_abstraction' and 'set_type' are no longer defined.
+    /*if(abstraction != (char *)NULL)
+        old->set_abstraction(abstraction);
+    if(type != NULL)
+        old->set_type(*type); 
+    */
+    if(displayname.size() != 0)
+        old->set_displayname(displayname[displayname.size()-1]);
+    tp -> resourceUpdateCallback(name, displayname, abstraction);
+}
+
 resource *resource::newResource_ncb(resource *parent, void *handle,
 				const pdstring &abstraction, 
 				const pdstring &name, timeStamp creation,

@@ -42,7 +42,7 @@
 // whereAxisRootNode.C
 // Ariel Tamches
 
-/* $Id: rootNode.C,v 1.17 2004/03/23 01:12:30 eli Exp $ */
+/* $Id: rootNode.C,v 1.18 2005/01/28 18:12:04 legendre Exp $ */
 
 #include <assert.h>
 
@@ -63,7 +63,7 @@ whereAxisRootNode::whereAxisRootNode(resourceHandle iUniqueId, const pdstring &i
    const char* mfl = getenv("PARADYN_MAX_FUNCTION_LENGTH");
    mfl = mfl ? mfl : "0";
    int abbrevLength = atoi(mfl);
-   if(name.length() > abbrevLength && abbrevLength != 0) {
+   if(name.length() > (unsigned)abbrevLength && (unsigned)abbrevLength != 0) {
        abbrevName = name.substr(0, abbrevLength / 2);
        abbrevName += pdstring("...");
        abbrevName += name.substr(name.length() - (abbrevLength / 2), name.length());
@@ -237,3 +237,24 @@ int whereAxisRootNode::pointWithinAsRoot(int xpix, int ypix,
    assert(ypix >= root_topy && ypix <= root_bottomy);
    return 1; // bingo
 }
+
+void whereAxisRootNode::updateName(pdstring new_name) {
+      name = new_name;
+      const char* mfl = getenv("PARADYN_MAX_FUNCTION_LENGTH");
+      mfl = mfl ? mfl : "0";
+      int abbrevLength = atoi(mfl);
+      if(name.length() > (unsigned)abbrevLength && (unsigned)abbrevLength != 0) {
+          abbrevName = name.substr(0, abbrevLength / 2);
+          abbrevName += pdstring("...");
+          abbrevName += name.substr(name.length() - (abbrevLength / 2), name.length());
+      } else {
+          abbrevName = name;
+      }
+      pixWidthAsRoot = borderPix + horizPad +
+         Tk_TextWidth(whereAxis::getRootItemFontStruct(),
+                   abbrevName.c_str(), abbrevName.length()) +
+                   horizPad + borderPix;
+
+      pixWidthAsListboxItem = Tk_TextWidth(whereAxis::getListboxItemFontStruct(), abbrevName.c_str(), abbrevName.length());
+}
+

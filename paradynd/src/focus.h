@@ -113,6 +113,10 @@ struct message_data_t {
   pdstring tag;
 };
   
+struct window_data_t {
+  pdstring window;
+};
+
 struct barrier_data_t {
   pdstring barrierStr;    // this may or may not be used
 };
@@ -140,7 +144,7 @@ struct rwlock_data_t {
 class syncObjHierarchy : public Hierarchy {
   typedef enum { NoSyncObjT, MessageT, BarrierT, 
                  SemaphoreT, SpinlockT, MutexT, CondVarT,
-                 RwLockT } sync_obj_type;
+                 RwLockT, WindowT } sync_obj_type;
 
   sync_obj_type syncObjType;
   message_data_t   messageData;
@@ -150,6 +154,7 @@ class syncObjHierarchy : public Hierarchy {
   mutex_data_t     mutexData;
   condvar_data_t   condVarData;
   rwlock_data_t    rwlockData;
+  window_data_t    windowData;
 
  public:
   syncObjHierarchy(const pdvector<pdstring> &setupInfo);
@@ -161,6 +166,9 @@ class syncObjHierarchy : public Hierarchy {
   }
   bool allBarriers() const {
     return (syncObjType == BarrierT  && barrierData.barrierStr.length() == 0);
+  }
+  bool allWindows() const {
+    return (syncObjType == WindowT  && windowData.window.length() == 0);
   }
   bool allSemaphores() const {
     return (syncObjType == SemaphoreT  &&
@@ -198,6 +206,12 @@ class syncObjHierarchy : public Hierarchy {
      else
         return pdstring("");
   }
+  pdstring get_window() const {
+     if(syncObjType == WindowT)
+        return windowData.window;
+     else
+        return pdstring("");
+  }
   pdstring get_condVar() const {
      if(syncObjType == CondVarT)
         return condVarData.condVarStr;
@@ -216,6 +230,7 @@ class syncObjHierarchy : public Hierarchy {
   }
   bool tag_defined() const { return (messageData.tag.length()>0); }
   bool mutex_defined() const { return (mutexData.mutexStr.length() > 0); }
+  bool window_defined() const { return (windowData.window.length() > 0); }
   bool condVar_defined() const { return (condVarData.condVarStr.length() > 0);}
   bool rwlock_defined() const { return (rwlockData.rwlockStr.length() > 0); }
 

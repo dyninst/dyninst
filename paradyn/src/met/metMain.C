@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.57 2004/06/21 19:37:55 pcroth Exp $
+// $Id: metMain.C,v 1.58 2005/01/28 18:12:04 legendre Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -177,8 +177,8 @@ bool metDoDaemon()
   static bool been_done=0;
   // the default daemons
   if (!been_done) {
-    dataMgr->defineDaemon("paradynd", NULL, NULL, "defd", NULL, NULL, "unix");
-    dataMgr->defineDaemon("paradynd", NULL, NULL, "winntd", NULL,NULL,"winnt");
+    dataMgr->defineDaemon("paradynd",NULL,NULL,"defd",NULL,NULL,NULL,"unix");
+    dataMgr->defineDaemon("paradynd",NULL,NULL,"winntd",NULL,NULL,NULL,"winnt");
     been_done = true;
   }
   unsigned size=daemonMet::allDaemons.size();
@@ -189,6 +189,7 @@ bool metDoDaemon()
 			 daemonMet::allDaemons[u]->name().c_str(),
 			 daemonMet::allDaemons[u]->host().c_str(),
 			 daemonMet::allDaemons[u]->remoteShell().c_str(),
+                         daemonMet::allDaemons[u]->MPItype().c_str(),
 			 daemonMet::allDaemons[u]->flavor().c_str());
     delete daemonMet::allDaemons[u];
   }

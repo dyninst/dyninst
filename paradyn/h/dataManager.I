@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.116 2004/07/14 18:23:57 eli Exp $
+ * $Id: dataManager.I,v 1.117 2005/01/28 18:12:02 legendre Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -100,6 +100,10 @@ typedef void (*resourceRetireCallback)(perfStreamHandle handle,
 				       resourceHandle uniqueID, 
 				       const char *name);
 
+typedef void (*resourceUpdateCallback)(perfStreamHandle handle,
+                                    resourceHandle theResource,
+                                    const char * displayname,
+                                    const char * abstraction);
 typedef enum { batchStart, batchEnd } batchMode;
 
 typedef void (*resourceBatchModeCallback)(perfStreamHandle, batchMode mode); 
@@ -157,6 +161,7 @@ struct controlCallback {
     metricInfoCallback		mFunc;
     resourceInfoCallback	rFunc;
     resourceRetireCallback	retireFunc;
+    resourceUpdateCallback      uFunc;
     resourceBatchModeCallback	bFunc;
     // histFoldCallback must delete memory at widthPtr
     histFoldCallback		fFunc;
@@ -195,6 +200,7 @@ $remote dataManager {
                         const char *name,
      	                const char *machine,
                         const char *remote_shell,
+                        const char *MPI_type,
                         const char *flavor);
 
     //
@@ -211,6 +217,7 @@ $remote dataManager {
 		       const char *login, 
 		       const char *name, 
 	               const char *dir,
+	               const char *MPItype,
 		       const pdvector<pdstring> *argv);
 
     // Attach is the other way to start a process...newly implemented with v1.2
@@ -487,6 +494,11 @@ $remote dataManager {
     //
     resourceHandle *findResource(const char *name);
 
+    //updates a resource's display name in the case that the user
+    //defines a new name
+    void updateResource(resourceHandle theResource,
+                         const char * name,
+                         const char * displayname);
     //
     // returns name of resource (this is not a unique representation of 
     // the name instead it is the unique name trunctated)
@@ -685,6 +697,12 @@ $remote dataManager {
 				        perfStreamHandle, 
                                         resourceHandle uniqueID, 
 					const char *name);
+
+    $upcall $async void updateResource_(resourceUpdateCallback,
+                                        perfStreamHandle,
+                                        resourceHandle theResource,
+                                        const char * displayname,
+                                        const char * abstr);
 
     $upcall $async void changeResourceBatchMode(resourceBatchModeCallback,
 					        perfStreamHandle, 

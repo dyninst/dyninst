@@ -901,6 +901,8 @@ T_dyninstRPC::mdl_constraint::mdl_constraint(pdstring id, pdvector<pdstring> *ma
 	type_ = MDL_T_INT;
       else if ((*match_path)[1] == "RwLock")
 	type_ = MDL_T_INT;
+      else if ((*match_path)[1] == "Window")
+        type_ = MDL_T_INT;
       else 
       {
         cout << "Error in constraint '" << id.c_str()

@@ -42,7 +42,7 @@
 // shgRootNode.C
 // Ariel Tamches
 
-/* $Id: shgRootNode.C,v 1.15 2004/03/23 01:12:30 eli Exp $ */
+/* $Id: shgRootNode.C,v 1.16 2005/01/28 18:12:04 legendre Exp $ */
 
 #include "shg.h"
 #include "shgRootNode.h"
@@ -64,7 +64,7 @@ void shgRootNode::initialize(unsigned iId,
    const char* mfl = getenv("PARADYN_MAX_FUNCTION_LENGTH");
    mfl = mfl ? mfl : "0";
    int abbrevLength = atoi(mfl);
-   if(label.length() > abbrevLength && abbrevLength != 0) {
+   if(label.length() > (unsigned)abbrevLength && (unsigned)abbrevLength != 0) {
        abbrevLabel = label.substr(0, abbrevLength / 2);
        abbrevLabel += pdstring("...");
        abbrevLabel += label.substr(label.length() - (abbrevLength / 2), label.length());

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphRootNode.h,v 1.7 2004/03/23 01:12:29 eli Exp $
+// $Id: callGraphRootNode.h,v 1.8 2005/01/28 18:12:04 legendre Exp $
 
 #ifndef _CALLGRAPH_ROOTNODE_H_
 #define _CALLGRAPH_ROOTNODE_H_
@@ -114,6 +114,9 @@ class callGraphRootNode {
   const pdstring &getFullName() const {return fullName;}
   void showFullName();
   void showShortName();
+  void updateName(pdstring & newname){
+     fullName = newname; shortName = newname;
+  }
   int getWidthAsRoot()  const {return pixWidthAsRoot;}
   int getHeightAsRoot() const {return pixHeightAsRoot;}
   int getWidthAsListboxItem() const {return pixWidthAsListboxItem;}

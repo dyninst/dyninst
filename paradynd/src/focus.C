@@ -221,6 +221,11 @@ syncObjHierarchy::syncObjHierarchy(const pdvector<pdstring> &setupInfo) {
          messageData.tag     = setupInfo[2];
       }
       assert(setupInfo_size <= 3);  //changes needed if triggered
+   } else if(setupInfo[0] == "Window") { // RMA windows
+      syncObjType = WindowT;
+      if(setupInfo_size >= 2)
+         windowData.window = setupInfo[1];
+      assert(setupInfo_size <= 2);  //changes needed if triggered
    } else if(setupInfo[0] == "Semaphore") {
       syncObjType = SemaphoreT;
       if(setupInfo_size >= 2)
@@ -267,6 +272,11 @@ pdstring syncObjHierarchy::getName() const {
            name += ("/" + messageData.communicator);
         if(messageData.tag.length())
            name += ("/" + messageData.tag);
+        break;
+     case WindowT:  // RMA windows
+        name += "/Window";
+        if(windowData.window.length())
+           name += ("/" + windowData.window);
         break;
      case SemaphoreT:
         name += "/Semaphore";
@@ -320,7 +330,8 @@ bool syncObjHierarchy::focus_matches(const pdvector<pdstring> &match_path) const
    if(mp_size == 1) {
       if(match_path[0] == "SyncObject") {
          if(allMessages() || allBarriers() || allSemaphores() || 
-            allSpinlocks() || allMutexes() || allCondVars() || allRwLocks())
+            allSpinlocks() || allMutexes() || allCondVars() || allRwLocks() ||
+            allWindows())
             ret = true;
          else
             ret = false;
@@ -330,6 +341,10 @@ bool syncObjHierarchy::focus_matches(const pdvector<pdstring> &match_path) const
       if(match_path[0] == "SyncObject") {
          if(match_path[1] == "Message") {
             if(communicator_defined() && !tag_defined())  ret = true;
+            else ret = false;
+         }
+         if(match_path[1] == "Window") { // RMA windows
+            if(window_defined()) ret = true;
             else ret = false;
          }
          if(match_path[1] == "Mutex") {
@@ -380,6 +395,11 @@ pdvector<pdstring> syncObjHierarchy::tokenized() const {
            retVec.push_back(messageData.communicator);
         if(messageData.tag.length())
            retVec.push_back(messageData.tag);
+        break;
+     case WindowT:  // RMA windows
+        retVec.push_back(pdstring("Window"));
+        if(windowData.window.length())
+           retVec.push_back(windowData.window);
         break;
      case SemaphoreT:
         retVec.push_back(pdstring("Semaphore"));

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdlParse.h,v 1.4 2004/03/23 01:12:40 eli Exp $
+// $Id: mdlParse.h,v 1.5 2005/01/28 18:12:05 legendre Exp $
 
 #ifndef _MDL_PARSE_H
 #define _MDL_PARSE_H
@@ -64,7 +64,7 @@
 #define SET_METFOCUS 10
 #define SET_REMSH 11
 #define SET_AUTO_START 12
-
+#define SET_MPITYPE 13
 class T_dyninstRPC;
 class T_dyninstRPC::mdl_constraint;
 class T_dyninstRPC::mdl_stmt;
@@ -369,8 +369,9 @@ private:
 
 class daemonMet {
  public:
-  daemonMet() { }
+  daemonMet() {MPItype_ = pdstring("MPICH");}
   daemonMet(pdstring& nm, pdstring& cmd, pdstring& remsh, pdstring& exec, pdstring& u, pdstring& h, pdstring& flav);
+  daemonMet(pdstring& nm, pdstring& cmd, pdstring& remsh, pdstring& exec, pdstring& u, pdstring& h, pdstring& flav, pdstring & MPItype);
   ~daemonMet() { }
 
   bool set_field (field &f);
@@ -387,6 +388,7 @@ class daemonMet {
   pdstring user() const { return user_; }
   pdstring host() const { return host_; }
   pdstring flavor() const { return flavor_; }
+  pdstring MPItype() const { return MPItype_; }
 
   static pdvector<daemonMet*> allDaemons;
   
@@ -398,6 +400,7 @@ private:
   pdstring user_;
   pdstring host_;
   pdstring flavor_;
+  pdstring MPItype_;
 };
 
 class processMet {

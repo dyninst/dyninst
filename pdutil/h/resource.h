@@ -58,7 +58,8 @@ enum ResourceType
     CondVarResourceType         = 10,
     MutexResourceType           = 11,
     RWLockResourceType          = 12,
-    SemaphoreResourceType       = 13
+    SemaphoreResourceType       = 13,
+    WindowResourceType		= 14
 };
 
 

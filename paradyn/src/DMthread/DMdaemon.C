@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.147 2005/01/11 22:45:15 legendre Exp $
+ * $Id: DMdaemon.C,v 1.148 2005/01/28 18:12:03 legendre Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -87,7 +87,6 @@ extern pdvector<pdstring> mdl_files;
 
 // This is from met/metMain.C
 void metCheckDaemonProcess( const pdstring & );
-
 
 pdvector<paradynDaemon::MPICHWrapperInfo> paradynDaemon::wrappers;
 dictionary_hash<pdstring, pdvector<paradynDaemon*> > paradynDaemon::daemonsByHost( pdstring::hash );
@@ -217,9 +216,9 @@ bool paradynDaemon::addDaemon (PDSOCKET sock)
    }
 #endif
 
+  assert(new_daemon);
   msg_bind_socket (new_daemon->get_sock(), true, (int(*)(void*)) xdrrec_eof,
 		     (void*)new_daemon->net_obj(), &(new_daemon->stid));
-  assert(new_daemon);
 
   // The pid is reported later in an upcall
   return (true);
@@ -611,7 +610,8 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const pdstring &machine,
 //
 bool paradynDaemon::defineDaemon (const char *c, const char *d,
 				  const char *l, const char *n,
-				  const char *m, const char *r, const char *f) {
+				  const char *m, const char *r, 
+	                          const char *MPIt, const char *f) {
 
   if(!n || !c)
       return false;
@@ -621,20 +621,21 @@ bool paradynDaemon::defineDaemon (const char *c, const char *d,
   pdstring name = n;
   pdstring machine = m;
   pdstring remote_shell = r;
+  pdstring MPItype = MPIt; //which MPI implementation
   pdstring flavor = f;
 
   daemonEntry *newE;
   for(unsigned i=0; i < allEntries.size(); i++){
       newE = allEntries[i];
       if(newE->getNameString() == name){
-          if (newE->setAll(machine, command, name, login, dir, remote_shell, flavor))
+          if (newE->setAll(machine, command, name, login, dir, remote_shell, MPItype, flavor))
               return true;
           else 
               return false;
       }
   }
 
-  newE = new daemonEntry(machine, command, name, login, dir, remote_shell, flavor);
+  newE = new daemonEntry(machine, command, name, login, dir, remote_shell, MPItype, flavor);
   if (!newE)
       return false;
   allEntries += newE;
@@ -1337,7 +1338,7 @@ static bool startIrixMPI(const pdstring &machine,  const pdstring &login,
 /*
   Pick a unique name for the wrapper
 */
-pdstring mpichNameWrapper( const pdstring& dir )
+ pdstring mpichNameWrapper( const pdstring& dir )
 {
    pdstring rv;
 	
@@ -1459,6 +1460,7 @@ bool writeMPICHWrapper(int fd, const pdstring& buffer )
 }
 
 
+
 /*
   Create a script file which will start paradynd with appropriate
   parameters in a given directory. MPICH hides the user cmdline from
@@ -1467,6 +1469,7 @@ bool writeMPICHWrapper(int fd, const pdstring& buffer )
 
   If successful, adds an entry to paradynDaemon::wrappers.
 */
+
 bool mpichCreateWrapper(const pdstring& machine, bool localMachine,
                         const pdstring& script, const char *dir,
                         const pdstring& app_name,
@@ -1520,6 +1523,7 @@ bool mpichCreateWrapper(const pdstring& machine, bool localMachine,
     }
     
     buffer += (pdstring(" -z") + pdstring(de->getFlavor()));
+    buffer += (pdstring(" -M") + pdstring(de->getMPItype()));
 
     // Next add the arguments that define the process to be created.
     buffer += (pdstring(" -runme ") + app_name + pdstring(" $appargs\n"));
@@ -1608,14 +1612,15 @@ bool mpichCreateWrapper(const pdstring& machine, bool localMachine,
    }
 
    return true;
-}
+} 
+
 
 extern void appendParsedString(pdvector<pdstring> &strList, const pdstring &str);
 
 /*
   Handle remote startup case
 */
-void mpichRemote(const pdstring &machine, const pdstring &login, 
+void mpiRemote(const pdstring &machine, const pdstring &login, 
                  const char *cwd, daemonEntry *de, 
                  pdvector<pdstring> &params)
 {
@@ -1640,42 +1645,262 @@ void mpichRemote(const pdstring &machine, const pdstring &login,
 	params += pdstring(";");
 }
 	
+//added member num_values to known_arguments, because sometimes
+//in LAM the argument might have more than one thing following it
+//e.g.  -ssi rpi usysv
+
 struct known_arguments {
 	char* name;
 	bool has_value;
 	bool supported;
+        int num_values;
 };
+
+ //      added function
+ //      returns true if all characters in char array are numbers
+ //      returns false o.w.
+
+bool allCharsNumeric( int len, const char * array){
+   for(int c = 0; c < len; ++c){
+       if(!isdigit(array[c]))
+           return false;
+   }
+   return true;
+}
+
+//a function to parse out int ranges from strings like '10-200'
+//len is how many chars before the '-' character
+//returns true if the string represents a valid node spec
+//returns false otherwise
+bool lamParseNodeSpecDash(char * no,int len){
+      int first;
+      bool numeric = false;
+
+      numeric = allCharsNumeric(len,no);
+      if(!numeric)
+          return false;
+      first = atoi(no);
+      int len2 =  strlen(no) - len - 1;  //get rid of chars before - and the -
+      numeric = allCharsNumeric(len2,no+len+1);
+       if(!numeric)
+           return false;
+       return true;
+}
+
+//a function to parse out nxxx or cxxx commandline args to mpirun
+//returns false if the string doesn't match a valid node or cpu spec.
+//then we assume that it's the name of their MPI program
+
+bool lamParseNodeSpec(const pdstring& spec ){
+  const char * temp;
+  char no[10];
+  int k;
+  char * ptr;
+  bool good = false;
+
+  temp = spec.c_str();
+  char * comma = strchr(temp,',');
+  char * dash = strchr(temp,'-');
+
+  // if nodespec like n0-23,27 or something crazy like that
+  if(comma){
+      k = comma - temp;
+      strncpy(no,temp+1,k-1);
+      no[k-1] = '\0';
+      dash = strchr(no,'-');
+      if(dash){
+         good = lamParseNodeSpecDash(no,dash-no);
+         if(!good)
+           return false;
+      }
+      else{
+         good = allCharsNumeric(k-2,no);
+         if(!good)
+           return false;
+      }
+      ptr = comma;           //hold the previous comma spot
+      //loop through each comma delimited section and parse out node numbers
+      for(comma = strchr(temp+k+1,','); ptr; comma = strchr(ptr+1,',')){
+         if(comma)
+            k = comma - ptr;
+         else
+            k = temp + strlen(temp) - ptr;  //length from comma to comma
+         strncpy(no,ptr+1,k-1);             //get the string without commas
+         no[k-1] = '\0';
+         dash = strchr(no,'-');
+         if(dash){
+            good = lamParseNodeSpecDash(no,dash-no);
+            if(!good)
+               return false;
+         }
+         else {
+            good = allCharsNumeric(k-2,no);
+            if(!good)
+               return false;
+         }
+         if(!comma)  //no more specs to parse out, whew
+            break;
+         ptr = comma;
+      }
+  }
+// else  if like n10-20 only
+  else if(dash){
+      strncpy(no,temp+1,strlen(temp)-1);  //exclude 'n'  or 'c'
+      no[strlen(temp)-1] = '\0';
+      good = lamParseNodeSpecDash(no,dash-temp-1);
+      if(!good) 
+         return false;
+  }
+  // else nodespec like n10 only
+  else{
+      strcpy(no,temp+1);  //exclude 'n' or 'c'
+      good = allCharsNumeric(strlen(temp)-2,no);
+      if(!good) 
+         return false;
+  }
+  return true;
+}
+
 
 /*
   Split the command line into three parts:
   (mpirun arguments, the application name, application parameters)
   Insert the script name instead of the application name
 */
+bool lamParseCmdline(const pdstring& script, const pdvector<pdstring> &argv,
+                       pdstring & app_name,
+                       pdvector<pdstring> &params,
+                       bool& has_explicit_wd )
+{  
+   const unsigned int NKEYS = 31;
+   struct known_arguments known[NKEYS] = {
+      {"-f", false, true, 0},           {"-c", true, true, 1},
+      {"-np", true, true, 1},           {"-D", false, true, 0},
+      {"-wd", true, true, 1},           {"-ger", false, true, 0},
+      {"-nger", false, true, 0},        {"-sigs", false, true, 0},
+      {"-nsigs", false, true, 0},       {"-ssi", true, true, 2},
+      {"-nw", false, true, 0},          {"-w", false, true, 0},
+      {"-nx", false, true, 0},          {"-ptr", false, true, 0},
+      {"-npty", false, true, 0},        {"-s", true, true, 1},
+      {"-t", false, true, 0},           {"-toff", false, true, 0},
+      {"-ton", false, true, 0},         {"-tv", false, false, 0},
+      {"-x", false, false, 0},          {"-p", true, true, 1},
+      {"-sa", false, true, 0},          {"-sf", false, true, 0},
+      {"C", false, true, 0},            {"P", false, true, 0},
+      {"-h", false, false, 0},          {"-v", false, true,0},
+      {"-O", false, true, 0},           {"-c2c", false, true, 0},
+      {"N", false,true,0}		
+   };
+   bool app = false, found_mpirun = false;
+   bool in_known = false;
+   unsigned int i = 0, k;
+
+   while (i < argv.size() && !found_mpirun) {
+      found_mpirun = (strstr(argv[i].c_str(), "mpirun") != 0);
+      params += argv[i++];
+   }
+
+   if (!found_mpirun) {
+      uiMgr->showError(113, "Expected: \"mpirun <command>\"");
+      return false;
+   }
+
+   has_explicit_wd = false;
+   while (!app && i < argv.size()) {
+      app = true;
+      in_known = false;
+
+      for (k=0; k<NKEYS; k++) {
+         if (argv[i] == known[k].name) {
+            app = false;
+            in_known = true;
+
+            if (!known[k].supported) {
+               pdstring msg = pdstring("Argument \"") + pdstring(known[k].name) +
+                            pdstring("\" is not supported");
+              uiMgr->showError(113, strdup(msg.c_str()));
+               return false;
+            }
+
+            // check whether the user explicitly specified a working directory
+            if( (argv[i] == "-wd") || argv[i] == "-D") {
+               has_explicit_wd = true;
+            }
+
+            params += argv[i++];
+
+            if (known[k].has_value) {
+               // Skip the next arg
+               if (i >= argv.size()) {
+                  uiMgr->showError(113, "LAM/MPI command line parse error");
+                  return false;
+               }
+               //loop through args for the value
+               for(int z = 0; z < known[k].num_values; ++z)
+                 params += argv[i++];
+            }
+            break;
+         }
+      }//end for
+
+      //check for n0 n1-5 etc -- node specification
+      //OR check for c0 c1-5 etc  -- cpu specification
+      // the reason for parsing it is so we know if the string is a node
+      //spec, or is a cpu spec, or is the executable name
+      if(!in_known){
+            bool retVal = false;
+            if(argv[i].prefixed_by("n") || argv[i].prefixed_by("c"))
+               retVal= lamParseNodeSpec(argv[i]);
+            if(retVal){
+               app = false;  //if it was a node or spec, it's not the app
+               params += argv[i++];
+            }
+      }
+   }//end while
+
+   if (!app) {
+      uiMgr->showError(113, "LAM/MPI command line parse error");
+      return false;
+   }
+   
+   params += script;
+   app_name += argv[i++] ;
+
+   for (; i < argv.size(); i++) {
+     params += argv[i];
+   }
+
+   return true;
+}
+
 bool mpichParseCmdline(const pdstring& script, const pdvector<pdstring> &argv,
                        pdstring& app_name,
                        pdvector<pdstring> &params,
-                       bool& has_explicit_wd)
+                       bool& has_explicit_wd) 
 {
-   const unsigned int NKEYS = 36;
+   const unsigned int NKEYS = 39;
    struct known_arguments known[NKEYS] = {
-      {"-arch", true, true},           {"-h", false, false},
-      {"-machine", true, true},        {"-machinefile", true, true},
-      {"-np", true, true},             {"-nolocal", false, true},
-      {"-stdin", true, true},          {"-t", false, false},
-      {"-v", false, true},             {"-dbx", false, false},
-      {"-gdb", false, false},          {"-xxgdb", false, false},
-      {"-tv", false, false},           {"-batch", true, true},
-      {"-stdout", true, true},         {"-stderr", true, true},
-      {"-nexuspg", true, true},        {"-nexusdb", true, true},
-      {"-e", false, true},             {"-pg", false, true},
-      {"-leave_pg", false, true},      {"-p4pg", true, false},
-      {"-tcppg", true, false},         {"-p4ssport", true, true},
-      {"-p4wd", true, true},           {"-all-local", false, true},
-      {"-mvhome", false, false},       {"-mvback", true, false},
-      {"-maxtime", true, true},        {"-nopoll", false, true},
-      {"-mem", true, true},            {"-cpu", true, true},
-      {"-cac", true, true},            {"-paragontype", true, true},
-      {"-paragonname", true, true},    {"-paragonpn", true, true}
+      {"-arch", true, true, 1},           {"-h", false, false, 0},
+      {"-machine", true, true, 1},        {"-machinefile", true, true, 1},
+      {"-np", true, true, 1},             {"-nolocal", false, true, 0},
+      {"-stdin", true, true, 1},          {"-t", false, false, 0},
+      {"-v", false, true, 0},             {"-dbx", false, false, 0},
+      {"-gdb", false, false, 0},          {"-xxgdb", false, false, 0},
+      {"-tv", false, false, 0},           {"-batch", true, true, 1},
+      {"-stdout", true, true, 1},         {"-stderr", true, true, 1},
+      {"-nexuspg", true, true, 1},        {"-nexusdb", true, true, 1},
+      {"-e", false, true, 0},             {"-pg", false, true, 0},
+      {"-leave_pg", false, true, 0},      {"-p4pg", true, false, 1},
+      {"-tcppg", true, false, 1},         {"-p4ssport", true, true, 1},
+      {"-p4wd", true, true, 1},           {"-all-local", false, true, 1},
+      {"-mvhome", false, false, 0},       {"-mvback", true, false, 1},
+      {"-maxtime", true, true, 1},        {"-nopoll", false, true, 0},
+      {"-mem", true, true, 1},            {"-cpu", true, true, 1},
+      {"-cac", true, true, 1},            {"-paragontype", true, true, 1},
+      {"-paragonname", true, true, 1},    {"-paragonpn", true, true, 1},
+      {"-wdir", true, true, 1},//added for chp4_mpd MPICH - it's like p4wd
+      {"-hf", true, true, 1},//MPICH2 - it's like machinefile
+      {"-1", false, true, 0} //MPICH2 -start 1st proc non-locally
    };
 
    bool app = false, found_mpirun = false;
@@ -1707,7 +1932,7 @@ bool mpichParseCmdline(const pdstring& script, const pdvector<pdstring> &argv,
 	    }
 
         // check whether the user explicitly specified a working directory
-        if( (argv[i] == "-p4wd") )
+        if( (argv[i] == "-p4wd" || argv[i] == "-wdir") )
         {
             has_explicit_wd = true;
         }
@@ -1720,7 +1945,9 @@ bool mpichParseCmdline(const pdstring& script, const pdvector<pdstring> &argv,
 		  uiMgr->showError(113, "MPICH command line parse error");
 		  return false;
 	       }
-	       params += argv[i++];
+              //loop through args for the value
+               for(int z = 0; z < known[k].num_values; ++z)
+                  params += argv[i++];
 	    }
 	    break;
 	 }
@@ -1733,7 +1960,7 @@ bool mpichParseCmdline(const pdstring& script, const pdvector<pdstring> &argv,
    }
 
    params += script;
-   app_name = argv[i++];
+   app_name = argv[i++] ;
    
    for (; i < argv.size(); i++) {
       params += argv[i];
@@ -1746,12 +1973,12 @@ bool mpichParseCmdline(const pdstring& script, const pdvector<pdstring> &argv,
   Initiate the MPICH startup process: start the master application
   under paradynd
 */
-static bool startMPICH(const pdstring &machine, const pdstring &login,
+static bool startMPI(const pdstring &machine, const pdstring &login,
                        const pdstring &/*name*/, const pdstring &dir,
                        const pdvector<pdstring> &argv,
                        const pdvector<pdstring> &args, daemonEntry *de)
 {
-	pdstring app_name;
+        pdstring app_name;
 	pdvector<pdstring> params;
 	unsigned int i;
 	char cwd[PATH_MAX];
@@ -1766,6 +1993,13 @@ static bool startMPICH(const pdstring &machine, const pdstring &login,
 	   getcwd(cwd, PATH_MAX);
 	}
 
+       // find out if we are using MPICH or LAM
+        pdstring whichMPI = de->getMPItypeString();
+	if(whichMPI.length() == 0){
+           whichMPI = pdstring("MPICH");
+	}
+
+
    if( !localMachine || (login.length() > 0) )
    {
       // run the mpirun command via rsh/ssh
@@ -1778,56 +2012,62 @@ static bool startMPICH(const pdstring &machine, const pdstring &login,
       // to be that the user explicitly specifies a user name
       // iff it is different from the one they used to start
       // the front end.
-      mpichRemote(machine, login, cwd, de, params);
+      mpiRemote(machine, login, cwd, de, params);
 	}
-
-   pdstring script = mpichNameWrapper( cwd );
+	 
+   pdstring script = mpichNameWrapper(cwd);
 
    bool has_explicit_wd = false;
-   bool parseRet = mpichParseCmdline(script,
-                                     argv,
-                                     app_name,
-                                     params,
-                                     has_explicit_wd);
-	if (!parseRet) {
-	   return false;
-	}
+   bool parseRet = false;
+   if(whichMPI == "MPICH"){
+     parseRet = mpichParseCmdline(script, argv, app_name, params, 
+                                  has_explicit_wd);
+   }
+   else if(whichMPI == "LAM"){
+          parseRet = lamParseCmdline(script, argv, app_name,  params, 
+	                             has_explicit_wd);
 
-   bool createRet = mpichCreateWrapper(machine,
-                                       localMachine,
-                                       script,
-                                       cwd,
-                                       app_name, 
-                                       args,
-                                       de,
-                                       has_explicit_wd);
-	if (!createRet) {
-	   return false;
-	}
+   }
+   if (!parseRet) {
+      return false;
+   }
+    
+   bool createRet = mpichCreateWrapper(machine, localMachine, script,
+				       cwd, app_name, args, de,
+				       has_explicit_wd);
+   if (!createRet) {
+      return false;
+   }
 
-	if ((s = (char **)malloc((params.size() + 1) * sizeof(char *))) == 0) {
+   if ((s = (char **)malloc((params.size() + 1) * sizeof(char *))) == 0) {
 	   uiMgr->showError(113, "Out of memory");
 	   return false;
-	}
+   }
 
-	for (i=0; i<params.size(); i++) {
-	   s[i] = strdup(params[i].c_str());
-	}
-	s[i] = 0;
+   for (i=0; i<params.size(); i++) {
+       s[i] = strdup(params[i].c_str());
+   }
+   s[i] = 0;
+
+   /*	
+   for (i=0; i<params.size(); i++) {
+      cerr<<"s["<<i<<"]="<<s[i]<<"  "; 
+   }
+   */
+	
+
+   if (fork()) {
+       return true;
+   }
 
 
-	if (fork()) {
-	   return true;
-	}
+   // Close Tk X connection to avoid conflicts with parent
+   uiMgr->CloseTkConnection();
 
-
-	// Close Tk X connection to avoid conflicts with parent
-	uiMgr->CloseTkConnection();
-
-	if (execvp(s[0], s) < 0) {
-	   uiMgr->showError(113, "Failed to start MPICH");
-	}
-	return false;
+   if (execvp(s[0], s) < 0) {
+      uiMgr->showError(113, "Failed to start MPI");
+   }
+   return false;
 }
 #endif // !defined(i386_unknown_nt4_0)
 
@@ -1839,6 +2079,7 @@ bool paradynDaemon::newExecutable(const pdstring &machineArg,
                                   const pdstring &login,
                                   const pdstring &name, 
                                   const pdstring &dir, 
+                                  const pdstring &MPItype, 
                                   const pdvector<pdstring> &argv) {
    pdstring machine = machineArg;
 
@@ -1888,6 +2129,14 @@ bool paradynDaemon::newExecutable(const pdstring &machineArg,
       return false;
 #else
       pdstring os;
+
+      //Make sure we have the correct MPI implementation in MPItype
+      //if the user specified one in the user-interface (in MPItype) 
+      //then that value
+      //wins, otherwise, we use the value from pcl file (in def)
+      if (MPItype.length() >0 && def->getMPItypeString() != MPItype) {
+         def->setMPItype(MPItype);
+      }
 
       if (hostIsLocal(machine))
       {
@@ -1948,7 +2197,7 @@ bool paradynDaemon::newExecutable(const pdstring &machineArg,
       }
       else
       {
-         return(startMPICH(machine, login, name, dir, argv, args, def));
+         return(startMPI(machine, login, name, dir, argv, args, def));
       }
 #endif
    }
@@ -2281,6 +2530,16 @@ void paradynDaemon::severalResourceInfoCallback(pdvector<T_dyninstRPC::resourceI
 			   items[lcv].mdlType);
 }
 
+// - update resource - added this function
+// upcall from paradynd reporting resource update
+//
+void paradynDaemon::resourceUpdateCallback( pdvector<pdstring> resource_name,
+                                            pdvector<pdstring> display_name,
+                                            pdstring abstr) {
+  //cerr<<"in paradynDaemon::resourceUpdateCallback res size "<< resource_name.size()<<" disp size "<<display_name.size()<<endl;
+   resource::update(resource_name,display_name, abstr);
+
+}
 
 //
 // Get the expected delay (as a fraction of the running program) for the passed
@@ -2496,7 +2755,7 @@ bool paradynDaemon::setDefaultArgs(char *&name)
 bool daemonEntry::setAll (const pdstring &m, const pdstring &c,
                           const pdstring &n, const pdstring &l,
                           const pdstring &d, const pdstring &r,
-                          const pdstring &f)
+                          const pdstring &MPIt, const pdstring &f)
 {
   if(!n.c_str() || !c.c_str())
       return false;
@@ -2507,6 +2766,7 @@ bool daemonEntry::setAll (const pdstring &m, const pdstring &c,
   if (l.c_str()) login = l;
   if (d.c_str()) dir = d;
   if (r.c_str()) remote_shell = r;
+  if (MPIt.c_str()) MPItype = MPIt;
   if (f.c_str()) flavor = f;
 
   return true;

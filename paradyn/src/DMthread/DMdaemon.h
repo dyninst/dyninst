@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.70 2005/01/11 22:45:16 legendre Exp $
+// $Id: DMdaemon.h,v 1.71 2005/01/28 18:12:03 legendre Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -78,13 +78,13 @@ public:
   daemonEntry (){ }
   daemonEntry (const pdstring &m, const pdstring &c, const pdstring &n,
 	       const pdstring &l, const pdstring &, const pdstring &r,
-		   const pdstring &f) : 
+		   const pdstring & MPIt, const pdstring &f) : 
 	       machine(m), command(c), name(n), login(l),
-	       dir(0), remote_shell(r), flavor(f) { }
+	       dir(0), remote_shell(r), MPItype(MPIt), flavor(f) { }
   ~daemonEntry() { }
   bool setAll(const pdstring &m, const pdstring &c, const pdstring &n,
 	      const pdstring &l, const pdstring &d, const pdstring &r,
-		  const pdstring &f);
+		  const pdstring & MPIt, const pdstring &f);
   void print();
   const char *getCommand() const { return command.c_str();}
   const char *getName() const { return name.c_str();}
@@ -92,11 +92,15 @@ public:
   const char *getDir() const { return dir.c_str();}
   const char *getMachine() const { return machine.c_str();}
   const char *getFlavor() const { return flavor.c_str();}
+  const char * getMPItype() const {return MPItype.c_str();}
   const pdstring &getNameString() const { return name;}
   const pdstring &getMachineString() const { return machine;}
   const pdstring &getCommandString() const { return command;}
   const pdstring getRemoteShellString() const;
+  const pdstring getMPItypeString() const {return MPItype;}
   const pdstring &getFlavorString() const { return flavor;}
+
+  void setMPItype(pdstring type){ MPItype = type;}
 
 private:
   pdstring machine;
@@ -105,6 +109,7 @@ private:
   pdstring login;
   pdstring dir;
   pdstring remote_shell;
+  pdstring MPItype;
   pdstring flavor;
 };
 
@@ -213,6 +218,9 @@ class paradynDaemon: public dynRPCUser {
                                      u_int type,
                                      u_int mdlType);
    virtual void severalResourceInfoCallback(pdvector<T_dyninstRPC::resourceInfoCallbackStruct>);
+   virtual void resourceUpdateCallback( pdvector<pdstring> resource_name,
+                                      pdvector<pdstring> display_name,
+                                      pdstring abstr);
    virtual void resourceBatchMode(bool onNow);  
    void reportResources();
    
@@ -270,7 +278,7 @@ class paradynDaemon: public dynRPCUser {
    static bool defineDaemon(const char *command, const char *dir,
 			    const char *login, const char *name,
 			    const char *machine, const char *remote_shell,
-			    const char *flavor);
+			    const char * MPItype, const char *flavor);
 
    // start a new program; propagate all enabled metrics to it   
    static bool addRunningProgram(int pid, const pdvector<pdstring> &paradynd_argv, 
@@ -281,6 +289,7 @@ class paradynDaemon: public dynRPCUser {
    static bool newExecutable(const pdstring &machineArg, 
 			     const pdstring &login, const pdstring &name, 
 			     const pdstring &dir, 
+			     const pdstring &MPItype, 
 			     const pdvector<pdstring> &argv);
 
    // attach to an already-running process.  cmd gives the full path to the

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.146 2005/01/11 22:45:22 legendre Exp $
+// $Id: DMpublic.C,v 1.147 2005/01/28 18:12:03 legendre Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -202,17 +202,19 @@ bool dataManager::defineDaemon(const char *command,
 			       const char *name,
 			       const char *machine,
 				   const char *remote_shell,
+                               const char *MPI_type,
 			       const char *flavor)
 {
   if(!name || !command)
       return false;
-  return (paradynDaemon::defineDaemon(command, dir, login, name, machine, remote_shell, flavor));
+  return (paradynDaemon::defineDaemon(command, dir, login, name, machine, remote_shell, MPI_type, flavor));
 }
 
 bool dataManager::addExecutable(const char *machine,
 				const char *login,
 				const char *name,
 				const char *dir,
+				const char *MPItype,
 				const pdvector<pdstring> *argv)
 {
   bool added = false;
@@ -223,16 +225,16 @@ bool dataManager::addExecutable(const char *machine,
   pdstring l = login;
   pdstring n = name;
   pdstring d = dir;
-
+  pdstring mpi = MPItype;
 
 #if !defined(i386_unknown_nt4_0)
   if( twUser != NULL ) {
     // we have a termWin, so try to start the executable
-    added = paradynDaemon::newExecutable(m, l, n, d, *argv);
+    added = paradynDaemon::newExecutable(m, l, n, d, mpi, *argv);
   }
 #else
   // Windows does not yet support the termWin
-  added = paradynDaemon::newExecutable(m, l, n, d, *argv);
+  added = paradynDaemon::newExecutable(m, l, n, d, mpi, *argv);
 #endif
 
   return added;
@@ -934,10 +936,12 @@ resourceHandle *dataManager::findResource(const char *name){
 // returns name of resource (this is not a unique representation of 
 // the name instead it is the unique name trunctated)
 // so for "/Code/blah.c/foo" this routine will return "foo"
-//
+// in the case that the resource was given a user-defined name,
+// the user-defined name is returned instead of the real resource name
 const char *dataManager::getResourceLabelName(resourceHandle h){
 
-    pdstring ret = resource::getName( h );
+    //pdstring ret = resource::getName( h );
+    pdstring ret = resource::getDisplayName( h );
     return ((ret.length() > 0) ? ret.c_str() : NULL);
 }
 
@@ -1112,6 +1116,16 @@ void dataManagerUser::retireResource_(resourceRetireCallback cb,
    (cb)(handle, uniqueID, name);
 }
 
+void dataManagerUser::updateResource_(resourceUpdateCallback cb,
+                                      perfStreamHandle handle,
+                                      resourceHandle theResource,
+                                      const char * displayname,
+                                      const char * abstr)
+{
+//cerr<< "in dataManagerUser::updateResource_ displayname "<<displayname<<endl;
+    (cb)(handle, theResource, displayname, abstr);
+}
+
 void dataManagerUser::changeResourceBatchMode(resourceBatchModeCallback cb,
 					 perfStreamHandle handle,
 					 batchMode mode)
@@ -1270,3 +1284,15 @@ pdvector<pdstring> *dataManager::getAvailableDaemons()
 {
     return(paradynDaemon::getAvailableDaemons());
 }
+
+void dataManager::updateResource(resourceHandle theResource, const char *name,
+                                 const char * displayname){
+    pdstring abs = "BASE";
+    resource *res = resource::handle_to_resource(theResource);
+    pdvector<pdstring> res_name = res->getParts();
+    res_name += name;
+    pdvector<pdstring> disp_name = res->getParts();
+    disp_name += displayname;
+    resource::update(res_name,disp_name ,abs);
+}
+

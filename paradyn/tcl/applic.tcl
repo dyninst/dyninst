@@ -39,7 +39,7 @@
 # incur to third parties resulting from your use of Paradyn.
 #
 
-# $Id: applic.tcl,v 1.24 2004/03/23 19:12:06 eli Exp $
+# $Id: applic.tcl,v 1.25 2005/01/28 18:12:04 legendre Exp $
 # window to get application choices from user
 
 #
@@ -49,6 +49,7 @@
 #  applicUser    -- user name
 #  applicMachine -- machine to use
 #  applicCmd     -- command to run (including arguments)
+#  applicMPItype -- which MPI implementation is used
 #  applicDir     -- directory to chdir
 #
 #  It would be nice if there were a better way to specify defaults
@@ -61,6 +62,13 @@
 #
 if {[catch {set applicDaemon}]} {
   set applicDaemon defd
+}
+
+# this is a strange way to say "if default MPI implementation 
+# is not set then set it to MPICH"
+#
+if {[catch {set applicMPItype}]} {
+  set applicMPItype MPICH 
 }
 
 #
@@ -238,7 +246,7 @@ proc AttachProcess {} {
 }
 
 proc DefineProcess {} {
-  global env applicDaemon applicUser applicMachine applicCmd applicDir 
+  global env applicDaemon applicUser applicMachine applicCmd applic MPItype applicDir 
 
   set W .pDefn
 
@@ -317,6 +325,17 @@ proc DefineProcess {} {
   }
   $D.daemon.$applicDaemon invoke
 
+  frame $D.mpitype -border 2
+  label $D.mpitype.lbl -text "MPI type: " -anchor e -width 12
+  pack $D.mpitype -side top -expand yes -fill x
+  pack $D.mpitype.lbl -side left -expand no -fill x
+  radiobutton $D.mpitype.mpich -text "MPICH" -variable applicMPItype \
+              -value  MPICH -relief flat
+  pack $D.mpitype.mpich -side left -expand yes -fill x
+  radiobutton $D.mpitype.lam -text "LAM" -variable applicMPItype \
+              -value  LAM -relief flat
+  pack $D.mpitype.lam -side left -expand yes -fill x
+
   frame $D.cmd -border 2
   label $D.cmd.lbl -text "Command: " -anchor e -width 12
   entry $D.cmd.ent -width 50 -textvariable applicCmd -relief sunken
@@ -326,7 +345,7 @@ proc DefineProcess {} {
 
   mkButtonBar $B {} retVal \
   {{"Accept" {AcceptNewApplicDefn $applicUser $applicMachine \
-	  $applicDaemon $applicDir $applicCmd}} \
+	  $applicDaemon $applicDir $applicCmd $applicMPItype}} \
   {"Cancel" {destroy .pDefn}}}
 
   focus $D.machine.ent
@@ -345,7 +364,7 @@ proc DefineProcess {} {
 #  TODO: we must have very specific reporting of process startup
 #        failures.  the current error message is useless.
 #
-proc AcceptNewApplicDefn {user machine daemon directory cmd} {
+proc AcceptNewApplicDefn {user machine daemon directory cmd mpitype} {
   set W .pDefn
   set D $W.data
 
@@ -370,6 +389,10 @@ proc AcceptNewApplicDefn {user machine daemon directory cmd} {
 
   if {[string length $daemon] > 0} {
     lappend pcmd "-daemon" $daemon
+  }
+
+  if {[string length $mpitype] > 0} {
+    lappend pcmd "-MPItype" $mpitype
   }
 
   set pcmd [concat $pcmd $cmd]

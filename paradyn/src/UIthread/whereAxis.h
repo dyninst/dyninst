@@ -44,7 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.h,v 1.24 2004/03/23 01:12:31 eli Exp $ */
+/* $Id: whereAxis.h,v 1.25 2005/01/28 18:12:04 legendre Exp $ */
 
 #ifndef _WHERE_AXIS_H_
 #define _WHERE_AXIS_H_
@@ -213,6 +213,9 @@ class whereAxis {
 		resourceHandle newNodeUniqueId,
 		bool rethinkGraphicsNow,
 		bool resortNow);
+
+   void updateItemName(const pdstring &newname,
+              resourceHandle NodeUniqueId);
 
    void retireItem(resourceHandle uniqueId);
 

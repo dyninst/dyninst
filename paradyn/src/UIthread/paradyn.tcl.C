@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.104 2004/06/21 19:37:42 pcroth Exp $
+/* $Id: paradyn.tcl.C,v 1.105 2005/01/28 18:12:04 legendre Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -316,7 +316,7 @@ ParadynTkGUI::ParadynPrintCmd( int, TCLCONST char *argv[])
 void processUsage()
 {
   printf("USAGE: process <-user user> <-machine machine> "
-         "<-daemon daemon> <-dir directory> \"command\"\n");
+         "<-daemon daemon> <-dir directory> <-MPItype mpitype> \"command\"\n");
 }
 
 /****
@@ -423,6 +423,7 @@ ParadynTkGUI::ParadynProcessCmd( int argc, TCLCONST char *argv[])
   const char *user = NULL;
   const char *machine = NULL;
   const char *paradynd = NULL;
+  const char *mpitype = NULL;
   pdstring idir;
   int i;
   
@@ -451,6 +452,12 @@ ParadynTkGUI::ParadynProcessCmd( int argc, TCLCONST char *argv[])
 	return TCL_ERROR;
       }
       idir = argv[++i];
+    } else if (!strcmp("-MPItype", argv[i])) {
+      if (i+1 == argc) {
+	processUsage();
+	return TCL_ERROR;
+      }
+      mpitype = argv[++i];
     } else if (argv[i][0] != '-') {
       break;
     } else {
@@ -497,7 +504,7 @@ ParadynTkGUI::ParadynProcessCmd( int argc, TCLCONST char *argv[])
   pdstring dir = expand_tilde_pathname(idir); // idir --> "initial dir"
 
   // Note: the following is not an igen call to paradynd...just to the DM thread.
-  if (dataMgr->addExecutable(machine, user, paradynd, dir.c_str(),
+  if (dataMgr->addExecutable(machine, user, paradynd, dir.c_str(), mpitype,
 			     &av) == false)
   {
     // NOTE: dataMgr->addExecutable isn't returning detailed-enough error

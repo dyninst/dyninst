@@ -44,7 +44,7 @@
 // C++ class for the root node of subtrees declared in where4tree.h
 // Basically, this file exists just to make where4tree.h that much shorter.
 
-/* $Id: rootNode.h,v 1.15 2004/03/23 01:12:30 eli Exp $ */
+/* $Id: rootNode.h,v 1.16 2005/01/28 18:12:04 legendre Exp $ */
 
 #ifndef _ROOTNODE_H_
 #define _ROOTNODE_H_
@@ -111,6 +111,7 @@ class whereAxisRootNode {
       pixWidthAsListboxItem = src.pixWidthAsListboxItem;
    }
   ~whereAxisRootNode() {}
+   void updateName(pdstring new_name);
 
    bool anything2draw() const {return true;}
       // where axis items are never hidden

@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdlParser.y,v 1.5 2004/04/16 20:41:14 legendre Exp $
+// $Id: mdlParser.y,v 1.6 2005/01/28 18:12:05 legendre Exp $
 
 #include "pdutil/h/mdlParse.h"
 #include "pdutil/h/metricStyle.h"
@@ -58,7 +58,7 @@ extern void handle_error();
 %token tDAEMON tPROCESS tTUNABLE_CONSTANT tIDENT 
 %token tCOMMAND tHOST tLITERAL tFLOAT tCOMMA
 %token tREMOTE_SHELL tAUTO_START
-%token tSEMI tFLAVOR tNAME
+%token tSEMI tFLAVOR tNAME tMPI_TYPE
 %token tRES_LIST tVISI tUSER tDIR tFALSE tTRUE tFORCE tLIMIT tMETFOCUS
 %token tEXLIB tNOCASE tREGEX
 %token tT_PROCEDURE tT_MODULE tT_STRING tT_INT tT_FLOAT tTRUE tFALSE tDEFAULT
@@ -350,6 +350,8 @@ daemonItem:  tCOMMAND tLITERAL tSEMI
     | tREMOTE_SHELL tLITERAL tSEMI { $$.fld.val = $2.sp; $$.fld.spec = SET_REMSH;}
 	| tUSER tIDENT tSEMI { $$.fld.val = $2.sp; $$.fld.spec = SET_USER;}
 	| tFLAVOR tIDENT tSEMI { $$.fld.flav = $2.sp; $$.fld.spec = SET_FLAVOR;}
+        | tMPI_TYPE tLITERAL tSEMI
+             { $$.fld.val = $2.sp; $$.fld.spec = SET_MPITYPE;}
 	| tHOST tLITERAL tSEMI { $$.fld.val = $2.sp; $$.fld.spec = SET_HOST;}
 	| tDIR tIDENT tSEMI { $$.fld.val = $2.sp; $$.fld.spec = SET_DIR;}
 	;

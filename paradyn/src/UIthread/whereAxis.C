@@ -44,7 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.C,v 1.29 2004/03/23 01:12:31 eli Exp $ */
+/* $Id: whereAxis.C,v 1.30 2005/01/28 18:12:04 legendre Exp $ */
 
 #include <stdlib.h> // exit()
 
@@ -362,6 +362,18 @@ void whereAxis::addItem(const pdstring &newName,
    assert(!hash.defines(newNodeUniqueId));
    hash[newNodeUniqueId] = newNode;
    assert(hash.defines(newNodeUniqueId));
+}
+
+void whereAxis::updateItemName(const pdstring &newName,
+                      resourceHandle NodeUniqueId){
+   if(!hash.defines(NodeUniqueId)){
+        //cerr<<"node not defined in whereAxis::updateItemName\n";
+        return; // what else to do!
+   }
+   where4tree<whereAxisRootNode> *nodePtr = hash[NodeUniqueId];
+   assert(nodePtr != NULL);
+   nodePtr->updateNode(nodePtr, newName);
+
 }
 
 void whereAxis::retireItem(resourceHandle uniqueId) {

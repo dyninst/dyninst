@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.C,v 1.9 2005/01/18 00:52:00 eli Exp $
+// $Id: ParadynTkGUI.C,v 1.10 2005/01/28 18:12:04 legendre Exp $
 #include "pdutil/h/TclTools.h"
 #include "ParadynTkGUI.h"
 #include "paradyn/src/pdMain/paradyn.h"
@@ -238,7 +238,7 @@ ParadynTkGUI::Init( void )
         true, // default value
         ShowShgShadowCallback,
         userConstant);
-
+    
 
     // load the TCL sources into the interpreter
     if(initialize_tcl_sources( interp ) != TCL_OK)
@@ -682,6 +682,30 @@ ParadynTkGUI::ResourceAdded(perfStreamHandle, resourceHandle parent,
   }
 }
 
+/* updates where axis with user-defined name for a resource */
+void
+ParadynTkGUI::ResourceUpdated(perfStreamHandle, 
+                     resourceHandle theResource,  
+                     const char * displayname, const char * abs){
+
+  const bool inBatchMode = IsInBatchMode();
+  if (!inBatchMode)
+     ui_status->message("receiving where axis item");
+
+  extern abstractions *theAbstractions;
+  assert(theAbstractions);
+
+  abstractions &theAbs = *theAbstractions;
+  pdstring theAbstractionName = abs;
+  whereAxis &theWhereAxis = theAbs[theAbstractionName];
+     // may create a where axis!
+  assert(displayname);
+
+//cerr<<" in ParadynTkGUI::ResourceUpdated displayname is "<<displayname<<endl;
+
+  theWhereAxis.updateItemName(displayname, theResource);
+
+}
 
 void
 ParadynTkGUI::ResourceRetired(perfStreamHandle /* h */,

@@ -51,7 +51,8 @@ extern resource *machineResource;
 
 void dump_profile(pdRPC *pdr) {
   delete pdr;
-  cleanUpAndExit(-1);
+  //cleanUpAndExit(-1);
+  cleanUpAndExit(0);
   return;
 }
 

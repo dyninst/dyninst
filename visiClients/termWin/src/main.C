@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.14 2004/12/07 20:48:08 tlmiller Exp $
+// $Id: main.C,v 1.15 2005/01/28 18:12:06 legendre Exp $
 
 #include <stdio.h>
 #include "common/h/headers.h"
@@ -78,7 +78,6 @@ main(int argc, char **argv)
 
     // start our own process group
     (void)setsid();
-    
 
     // check and parse the command line
     if( (argc < 2) || (argc > 3) )

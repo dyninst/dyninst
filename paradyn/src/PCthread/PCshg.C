@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.74 2004/04/13 19:56:34 legendre Exp $
+ * $Id: PCshg.C,v 1.75 2005/01/28 18:12:03 legendre Exp $
  */
 
 #include "PCintern.h"
@@ -223,7 +223,8 @@ searchHistoryNode::enableReply (bool successful, bool deferred, pdstring msg)
     else if (successful) {
         changeActive(true);
 #ifdef PCDEBUG
-        cout << "experiment started for node: " << nodeID << endl;
+        //cout << "experiment started for node: " << nodeID << endl;
+	cout <<"experiment started for: "<<dataMgr->getFocusNameFromHandle(where)<<endl;
 #endif
     } else {
 #ifdef PCDEBUG
@@ -409,7 +410,8 @@ searchHistoryNode::addDynamicChild(resourceHandle child){
     // shadow node
     mamaGraph->addUIrequest(nodeID,curr->getNodeId(),
 			    (unsigned)refineWhereAxis,
-			    dataMgr->getResourceName(child));
+			    //dataMgr->getResourceName(child));
+			    dataMgr->getResourceLabelName(child));
   }
   
   mamaGraph->flushUIbuffer();

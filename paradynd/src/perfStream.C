@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.174 2005/01/21 23:45:03 bernat Exp $
+// $Id: perfStream.C,v 1.175 2005/01/28 18:12:05 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h" // getCyclesPerSecond
@@ -149,6 +149,7 @@ int traceConnectInfo;
 int traceSocketPort;
 
 static void createResource(int pid, traceHeader *header, struct _newresource *r);
+static void updateResource(int pid, traceHeader *header, struct _updtresource *r);
 bool firstSampleReceived = false;
 
 extern bool isInfProcAttached;
@@ -402,6 +403,13 @@ void processTraceStream(process *dproc)
             createResource(dproc->getPid(), &header, 
                            (struct _newresource *) ((void*)recordData));
             // createResource() is in this file, below
+            break;
+         case TR_UPDATE_RESOURCE:
+           //  cerr << "paradynd: received update resource cmd from pid "
+           //      << dproc->getPid() << "; dprocessing now" << endl;
+            updateResource(dproc->getPid(), &header,
+                           (struct _updtresource *) ((void*)recordData));
+            // updateResource() is in this file, below
             break;
          case TR_EXIT:
             {
@@ -1072,6 +1080,73 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
    }
    //cerr << "cr - return normal\n";
 }
+
+static void updateResource(int pid, traceHeader *header,struct _updtresource *r)
+{
+   char *tmp;
+   char *name;
+   char *displayname;
+   resource *res = NULL;
+   pdvector<pdstring> the_name;
+   pdvector<pdstring> disp_name;
+   int retired = 0;
+   unsigned type;
+
+   //cerr << "in updateResource pid: " << pid << endl;
+   switch (r->mdlType) {
+     case RES_TYPE_STRING: type = MDL_T_STRING; break;
+     case RES_TYPE_INT:    type = MDL_T_INT; break;
+     default:
+        pdstring msg = pdstring("Invalid resource type reported on trace stream from PID=")
+           + pdstring(pid);
+        showErrorCallback(36,msg);
+        cerr << "cr - ret A\n";
+        return;
+   }
+   name = r->name;
+   displayname = r->displayname;
+   retired = r->retired;
+   //cerr << "cr - a, name: " << name << endl;
+   //cerr << "cr - a, displayname: " << displayname << endl;
+
+/* make pdvectors of the strings because they're easier to work with*/
+  do {
+      tmp = strchr(name, '/');
+      //cerr << "  tmp at " << tmp << endl;
+      if (tmp) {
+         *tmp = '\0';
+         tmp++;
+         the_name += name;
+        name = tmp;
+     }
+  } while (tmp);
+   the_name += name;
+   do {
+      tmp = strchr(displayname, '/');
+      //cerr << "  tmp at " << tmp << endl;
+      if (tmp) {
+         *tmp = '\0';
+         tmp++;
+         disp_name += displayname;
+         displayname = tmp;
+      }
+   } while (tmp);
+   disp_name += displayname;
+   if ((res = resource::findResource(the_name))) {
+      resource::updateResource(res, r->abstraction, the_name,
+                             (ResourceType*)&type, disp_name, retired);
+   }
+   else {
+      pdstring msg = pdstring("Unknown resource '") + pdstring(r->name) +
+         pdstring("' reported on trace stream from PID=") +
+                   pdstring(pid);
+      showErrorCallback(36,msg);
+   }
+   //for(int i = 0; i < the_name.size(); ++i)
+      //cerr<<"the_name["<<i<<"]="<<the_name[i]<< " ";
+   //cerr << "cr - return normal\n";
+}
+
 void printAppStats(struct endStatsRec *stats)
 {
   if (stats) {
@@ -1129,4 +1204,3 @@ void printDyninstStats(BPatch_stats &st)
     sprintf(errorLine, "    %d instructions generated\n", st.insnGenerated);
     logLine(errorLine);
 }
-

@@ -44,7 +44,7 @@
 
 // Header file for subtree based on where4.fig [and where5.fig]
 
-/* $Id: where4tree.h,v 1.21 2004/03/23 01:12:31 eli Exp $ */
+/* $Id: where4tree.h,v 1.22 2005/01/28 18:12:04 legendre Exp $ */
 
 // This class is sort of a placeholder.  It has variables to find out who
 // is expanded and who isn't; it maintains the tree layout.
@@ -361,6 +361,8 @@ class where4tree {
       //       dimensions and/or the all-expanded-children dimensions, as needed.
       //       In all likelihood, you'll also need to rethink all-expanded-children
       //       dimensions for all ancestors of this node; you must do this manually.
+
+   void updateNode(where4tree * node, pdstring newname);
 
    void doneAddingChildren(const where4TreeConstants &tc, bool sortNow);
    void recursiveDoneAddingChildren(const where4TreeConstants &tc, bool sortNow);
