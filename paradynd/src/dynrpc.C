@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.99 2003/04/16 21:07:29 bernat Exp $ */
+/* $Id: dynrpc.C,v 1.100 2003/04/21 17:11:18 zandy Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -321,6 +321,8 @@ void dynRPC::setSampleRate(double sampleInterval)
 	 processMgr::procIter itr = getProcMgr().begin();
 	 while(itr != getProcMgr().end()) {
 	    pd_process *proc = *itr++;
+	    if (!proc)
+	       continue;
 	    if(proc->status() != exited) {
 	       internalSym ret_sym; 
 	       if(! proc->findInternalSymbol("DYNINSTsampleMultiple",
@@ -425,6 +427,8 @@ void dynRPC::MonitorDynamicCallSites(string function_name){
   processMgr::procIter itr = getProcMgr().begin();
   while(itr != getProcMgr().end()) {
      pd_process *p = *itr++;
+     if (!p)
+       continue;
      p->MonitorDynamicCallSites(function_name);
   }
 }

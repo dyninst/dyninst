@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.72 2003/03/04 19:16:18 willb Exp $
+// $Id: init.C,v 1.73 2003/04/21 17:11:18 zandy Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -157,6 +157,7 @@ pdSample computeNumOfActCounters(const machineMetFocusNode *) {
    processMgr::procIter itr = getProcMgr().begin();
    while(itr != getProcMgr().end()) {
       pd_process *curProc = *itr++;
+      if(!curProc) continue;
       if(curProc->hasExited()) continue;
       if(curProc->numOfActCounters_is > max)
 	 max = curProc->numOfActCounters_is;
@@ -169,6 +170,7 @@ pdSample computeNumOfActProcTimers(const machineMetFocusNode *) {
    processMgr::procIter itr = getProcMgr().begin();
    while(itr != getProcMgr().end()) {
       pd_process *curProc = *itr++;
+      if(!curProc) continue;
       if(curProc->hasExited()) continue;
       if(curProc->numOfActProcTimers_is > max)
 	 max = curProc->numOfActProcTimers_is;
@@ -181,6 +183,7 @@ pdSample computeNumOfActWallTimers(const machineMetFocusNode *) {
   processMgr::procIter itr = getProcMgr().begin();
   while(itr != getProcMgr().end()) {
      pd_process *curProc = *itr++;
+     if(!curProc) continue;
      if(curProc->hasExited()) continue;
      if(curProc->numOfActWallTimers_is > max)
 	max = curProc->numOfActWallTimers_is;
@@ -213,6 +216,7 @@ pdSample computeNumOfCurrentThreads(const machineMetFocusNode *) {
    processMgr::procIter itr = getProcMgr().begin();
    while(itr != getProcMgr().end()) {
       pd_process *curProc = *itr++;
+      if(!curProc) continue;
       if(curProc->thrMgr().size() > max)
 	 max = curProc->thrMgr().size();
    }
@@ -224,6 +228,7 @@ pdSample computeNumOfActiveThreads(const machineMetFocusNode *) {
    processMgr::procIter itr = getProcMgr().begin();
    while(itr != getProcMgr().end()) {
       pd_process *curProc = *itr++;
+      if(!curProc) continue;
       numOfActiveThreads += curProc->thrMgr().size();
    }
    return pdSample(numOfActiveThreads);

@@ -107,8 +107,7 @@ class processMgr {
    void removeProcess(pd_process *p) {
       for(unsigned i=0; i<procBuf.size(); i++) {
          if(procBuf[i] == p) {
-  	    procBuf.erase(i, i);
-	    break;
+            procBuf[i] = NULL;
          }
       }
    }

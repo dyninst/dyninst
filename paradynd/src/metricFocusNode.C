@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.237 2003/03/04 19:16:18 willb Exp $
+// $Id: metricFocusNode.C,v 1.238 2003/04/21 17:11:18 zandy Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -296,6 +296,7 @@ machineMetFocusNode *createMetricInstance(int mid, string& metric_name,
       processMgr::procIter itr = getProcMgr().begin();
       while(itr != getProcMgr().end()) {
 	 pd_process *curProc = *itr++;
+         if(!curProc) continue;
 	 if(curProc->status()==exited || curProc->status()==neonatal || 
 	    curProc->isBootstrappedYet())
 	 {
