@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.51 2004/05/11 20:41:25 legendre Exp $
+ * $Id: func-reloc.C,v 1.52 2005/01/18 18:34:08 bernat Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -1088,7 +1088,8 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
    // check if this process already has a relocation record for this 
    // function, meaning that the.function has already been relocated
    for(u_int j=0; j < relocatedByProcess.size(); j++){
-      if((relocatedByProcess[j])->getProcess() == proc){        
+     if(relocatedByProcess[j] &&
+	(relocatedByProcess[j])->getProcess() == proc){        
          reloc_info = relocatedByProcess[j];
 	    
 #ifdef DEBUG_FUNC_RELOC
