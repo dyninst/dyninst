@@ -956,18 +956,19 @@ void Object::find_code_and_data(Elf32_Ehdr* ehdrp, Elf32_Phdr* phdrp, \
     for (i0 = 0; i0 < ehdrp-> e_phnum;i0++) {
 	if ((phdrp[i0].p_vaddr <= txtaddr)
                 && ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= txtaddr)) {
-	  if (!code_ptr_ && !code_off_ && !code_len_) {
-            code_ptr_ = (Word *) ((void*)&ptr[phdrp[i0].p_offset]);
-            code_off_ = (Address) phdrp[i0].p_vaddr;
-            code_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
-	  }
+	    if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
+                code_ptr_ = (Word *) ((void*)&ptr[phdrp[i0].p_offset]);
+                code_off_ = (Address) phdrp[i0].p_vaddr;
+                code_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
+	    }
+
         }
         else if ((phdrp[i0].p_vaddr <= bssaddr)
                 && ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= bssaddr)) {
-	  if (!data_ptr_ && !data_off_ && !data_len_) {
-            data_ptr_ = (Word *) ((void *) &ptr[phdrp[i0].p_offset]);
-            data_off_ = (Address) phdrp[i0].p_vaddr;
-            data_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
+	  if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
+                data_ptr_ = (Word *) ((void *) &ptr[phdrp[i0].p_offset]);
+                data_off_ = (Address) phdrp[i0].p_vaddr;
+                data_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
 	  }
         }
     }
