@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.6 1999/11/11 00:55:03 wylie Exp $ */
+/* $Id: RTcommon.c,v 1.7 2000/03/06 21:30:35 zandy Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -56,6 +56,9 @@ extern void DYNINSTos_init(int calledByFork, int calledByAttach);
 
 unsigned int DYNINSTversion = 1;
 unsigned int DYNINSTobsCostLow;
+unsigned int DYNINSThasInitialized = 0; /* 0 : has not initialized
+					   2 : initialized by Dyninst
+					   3 : initialized by Paradyn */
 
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 
@@ -70,6 +73,7 @@ void DYNINSTinit(int cause, int pid)
 {
     int calledByFork = 0, calledByAttach = 0;
 
+    DYNINSThasInitialized = 2;
     if (cause == 2) calledByFork = 1;
     else if (cause == 3) calledByAttach = 1;
 

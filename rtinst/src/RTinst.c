@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.26 2000/03/03 22:09:53 mirg Exp $
+ * $Id: RTinst.c,v 1.27 2000/03/06 21:30:44 zandy Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -123,6 +123,10 @@ static int DYNINSTnumReported = 0;
 static time64 startWall = 0;
 static float DYNINSTcyclesToUsec  = 0;
 static time64 DYNINSTtotalSampleTime = 0;
+
+char DYNINSThasInitialized = 0; /* 0 : has not initialized
+				   2 : initialized by Dyninst
+				   3 : initialized by Paradyn */
 
 /************************************************************************/
 
@@ -806,6 +810,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   
   int calledFromFork = (theKey == -1);
   int calledFromAttach = (paradyndPid < 0);
+
   
 #ifndef SHM_SAMPLING
   unsigned         val;
@@ -824,6 +829,8 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
 		     thehostname, (int)getpid(), theKey, shmSegNumBytes,
 		     paradyndPid);
 #endif
+
+  DYNINSThasInitialized = 3;
 
   /* sanity check */
   assert(sizeof(time64) == 8);
