@@ -42,30 +42,6 @@
 // tvMetric.h
 // Ariel Tamches
 
-/*
- * $Log: tvMetric.h,v $
- * Revision 1.6  1996/08/16 21:37:08  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1996/08/05 07:12:33  tamches
- * tkclean.h --> tk.h
- *
- * Revision 1.4  1995/12/22 22:38:56  tamches
- * added visiLibId
- *
- * Revision 1.3  1995/12/19 00:52:49  tamches
- * added numSigFigs and valuesPixWidth member variables.
- * Constructor takes in 2 new params, accordingly.
- * changeUnitsName was cleaned up (it should not have been const)
- *
- * Revision 1.2  1995/12/03 21:09:32  newhall
- * changed units labeling to match type of data being displayed
- *
- * Revision 1.1  1995/11/04  00:45:58  tamches
- * First version of new table visi
- *
- */
-
 #ifndef _TV_METRIC_H_
 #define _TV_METRIC_H_
 
@@ -94,6 +70,8 @@ class tvMetric {
       visiLibId = src.visiLibId;
       namePixWidth = src.namePixWidth;
       unitsPixWidth = src.unitsPixWidth;
+      numSigFigs = src.numSigFigs;
+      valuesPixWidth = src.valuesPixWidth;
    }
   ~tvMetric() {}
 
