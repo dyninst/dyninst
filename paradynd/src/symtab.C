@@ -56,6 +56,10 @@
 #include "util/h/Timer.h"
 #include "init.h"
 #include "showerror.h"
+#include "util/h/debugOstream.h"
+
+// All debug_ostream vrbles are defined in process.C (for no particular reason)
+extern debug_ostream sharedobj_cerr;
 
 vector<image*> image::allImages;
 
@@ -94,7 +98,7 @@ module *image::newModule(const string &name, const Address addr)
 
 
 // TODO -- is this g++ specific
-bool buildDemangledName(const string mangled, string &use)
+bool buildDemangledName(const string &mangled, string &use)
 {
     char *tempName = P_strdup(mangled.string_of());
     char *demangled = cplus_demangle(tempName, 0);
@@ -371,7 +375,7 @@ pdFunction *image::findOneFunction(const string &name)
       return ((*a)[0]);
   } else if (buildDemangledName(name, demangName)) {
     if (funcsByPretty.defines(demangName)) {
-      vector<pdFunction*> *a = funcsByPretty[name];
+      vector<pdFunction*> *a = funcsByPretty[demangName];
       assert(a);
       if (!a->size())
 	return NULL;
@@ -865,6 +869,8 @@ image::image(const string &fileName, bool &err)
     funcsByPretty(string::hash),
     knownJumpTargets(addrHash, 8192)
 {
+sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
+
   codeOffset_ = linkedFile.code_off();
   dataOffset_ = linkedFile.data_off();
   codeLen_ = linkedFile.code_len();
@@ -875,10 +881,14 @@ image::image(const string &fileName, bool &err)
 #endif
 
   if (!codeLen_ || !linkedFile.code_ptr()) {
-    string msg;
-    msg = string("Unable to open executable file: ") + fileName;
+    string msg = string("Unable to open executable file: ") + fileName;
     statusLine(msg.string_of());
+
+    msg += "\n";
+    logLine(msg.string_of());
+
     err = true;
+
     showErrorCallback(27, msg); 
     return;
   }
@@ -1021,6 +1031,8 @@ image::image(const string &fileName, u_int baseAddr, bool &err)
     funcsByPretty(string::hash),
     knownJumpTargets(addrHash, 8192)
 {
+sharedobj_cerr << "welcome to image::image for shared obj; file name=" << file_ << endl;
+
   codeOffset_ = linkedFile.code_off();
   dataOffset_ = linkedFile.data_off();
   codeLen_ = linkedFile.code_len();
@@ -1032,16 +1044,21 @@ image::image(const string &fileName, u_int baseAddr, bool &err)
 #endif
 
   if (!codeLen_ || !linkedFile.code_ptr()) {
-    string msg;
-    msg = string("Unable to open shared object file: ") + fileName;
+    string msg = string("Unable to open shared object file: ") + fileName;
     statusLine(msg.string_of());
+    
+    msg += "\n";
+    logLine(msg.string_of());
+
     err = true;
     showErrorCallback(27, msg); 
+
+    assert(false);
+
     return;
   }
   else {
-    string msg;
-    msg = string("Parsing shared object file: ") + fileName;
+    string msg = string("Parsing shared object file: ") + fileName;
     statusLine(msg.string_of());
   }
 
