@@ -8,8 +8,13 @@
 #include <unistd.h>
 #include <errno.h>
 #include <assert.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <memory.h>
+#include <string.h>
 
 extern "C" {
 #include <rpc/types.h>
@@ -39,18 +44,33 @@ int RPCdefaultXDRWrite(int handle, char *buf, u_int len)
     return (ret);
 }
 
+XDRrpc::~XDRrpc()
+{
+  if (fd >= 0)
+    {
+      fcntl (fd, F_SETFL, FNDELAY);
+      close(fd);
+    }
+  if (__xdrs__) 
+    {
+      xdr_destroy (__xdrs__);
+      delete (__xdrs__);
+    }
+}
+
 //
 // prepare for RPC's to be done/received on the passed fd.
 //
-XDRrpc::XDRrpc(int f, xdrIOFunc readRoutine, xdrIOFunc writeRoutine)
+XDRrpc::XDRrpc(int f, xdrIOFunc readRoutine, xdrIOFunc writeRoutine, int nblock)
 {
     fd = f;
-    __xdrs__ = (XDR *) malloc(sizeof(XDR));
+    __xdrs__ = new XDR;
     if (!readRoutine) readRoutine = RPCdefaultXDRRead;
     if (!writeRoutine) writeRoutine = RPCdefaultXDRWrite;
     (void) xdrrec_create(__xdrs__, 0, 0, (char *) fd, readRoutine,writeRoutine);
+    if (nblock)
+      fcntl (fd, F_SETFL, FNDELAY);
 }
-
 
 //
 // prepare for RPC's to be done/received on the passed fd.
@@ -59,19 +79,188 @@ XDRrpc::XDRrpc(char *machine,
 	       char *user,
 	       char *program,
 	       xdrIOFunc readRoutine, 
-	       xdrIOFunc writeRoutine)
+	       xdrIOFunc writeRoutine,
+	       char **arg_list,
+	       int nblock)
 {
-    fd = RPCprocessCreate(&pid, machine, user, program);
+    fd = RPCprocessCreate(&pid, machine, user, program, arg_list);
     if (fd >= 0) {
-	__xdrs__ = (XDR *) malloc(sizeof(XDR));
+        __xdrs__ = new XDR;
 	if (!readRoutine) readRoutine = RPCdefaultXDRRead;
 	if (!writeRoutine) writeRoutine = RPCdefaultXDRWrite;
 	(void) xdrrec_create(__xdrs__, 0, 0, (char *) fd, 
 		readRoutine, writeRoutine);
+	if (nblock)
+	  fcntl (fd, F_SETFL, FNDELAY);
     } else {
 	__xdrs__ = NULL;
 	fd = -1;
     }
+}
+
+int
+RPC_readReady (int fd)
+{
+  fd_set readfds;
+  struct timeval tvptr;
+
+  tvptr.tv_sec = 0; tvptr.tv_usec = 0;
+  if (fd < 0) return -1;
+  FD_ZERO(&readfds);
+  FD_SET (fd, &readfds);
+  if (select (fd+1, &readfds, NULL, NULL, &tvptr) == -1)
+    {
+      // if (errno == EBADF)
+	return -1;
+    }
+  return (FD_ISSET (fd, &readfds));
+}
+
+int 
+RPC_undo_arg_list (int argc, char **arg_list, char **machine, int *family,
+		   int *type, int *well_known_socket, int *flag)
+{
+  int loop;
+  char *ptr;
+  int ret = 0;
+
+  for (loop=0; loop < argc; ++loop)
+    {
+      if (!strncmp(arg_list[loop], "-p", 2))
+	{
+	  *well_known_socket = (int) strtol (arg_list[loop] + 2, &ptr, 10);
+	  if (!ptr)
+	    ret = -1;
+	}
+      else if (!strncmp(arg_list[loop], "-f", 2))
+	{
+	  *family = (int) strtol (arg_list[loop] + 2, &ptr, 10);
+	  if (!ptr)
+	    ret = -1;
+	}
+      else if (!strncmp(arg_list[loop], "-t", 2))
+	{
+	  *type = (int) strtol (arg_list[loop] + 2, &ptr, 10);
+	  if (!ptr)
+	    ret = -1;
+	}
+      else if (!strncmp(arg_list[loop], "-m", 2))
+	{
+	  *machine = strdup (arg_list[loop] + 2);
+	}
+      else if (!strncmp(arg_list[loop], "-l", 2))
+	{
+	  *flag = (int) strtol (arg_list[loop] + 2, &ptr, 10);
+	  if (!ptr)
+	    ret = -1;
+	}
+    }
+  return ret;
+}
+
+char **
+RPC_make_arg_list (char *program, int family, int type, int well_known_socket,
+		   int flag)
+{
+  char arg_str[100];
+  int arg_count = 0;
+  char **arg_list;
+  char machine_name[50];
+
+  arg_list = new char*[7];
+  arg_list[arg_count++] = strdup (program);
+  sprintf(arg_str, "%s%d", "-p", well_known_socket);
+  arg_list[arg_count++] = strdup (arg_str);
+  sprintf(arg_str, "%s%d", "-f", family);
+  arg_list[arg_count++] = strdup (arg_str);
+  sprintf(arg_str, "%s%d", "-t", type);
+  arg_list[arg_count++] = strdup (arg_str);
+  gethostname (machine_name, 49);
+  sprintf(arg_str, "%s%s", "-m", machine_name);
+  arg_list[arg_count++] = strdup (arg_str);
+  sprintf(arg_str, "%s%d", "-l", flag);
+  arg_list[arg_count++] = strdup (arg_str);
+  arg_list[arg_count++] = 0;
+  return arg_list;
+}
+
+// returns fd of socket that is listened on, or -1
+int
+RPC_setup_socket (int *sfd,   // return file descriptor
+		  int family, // AF_INET ...
+		  int type)   // SOCK_STREAM ...
+{
+  struct sockaddr_in serv_addr;
+  int length;
+  char machine[50];
+
+  if (gethostname(machine, 49) != 0)
+    return -1;
+
+  if ((*sfd = socket(family, type, 0)) < 0)
+    return -1;
+  
+  bzero ((char *) &serv_addr, sizeof(serv_addr));
+  serv_addr.sin_family = (short) family;
+  serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  serv_addr.sin_port = htons(0);
+  
+  length = sizeof(serv_addr);
+
+  if (bind(*sfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+    return -1;
+
+  if (getsockname (*sfd, (struct sockaddr *) &serv_addr, &length) < 0)
+    return -1;
+
+  if (listen(*sfd, 5) < 0)
+    return -1;
+
+  return (ntohs (serv_addr.sin_port));
+}
+
+//
+// connect to well known socket
+//
+XDRrpc::XDRrpc(int family,            
+	       int req_port,             
+	       int type,
+	       char *machine, 
+	       xdrIOFunc readRoutine,
+	       xdrIOFunc writeRoutine,
+	       int nblock)
+     // socket, connect using machine
+{
+  int fd = 0;
+
+  struct sockaddr_in serv_addr;
+  struct hostent *hostptr = 0;
+  struct in_addr *inadr = 0;
+
+  __xdrs__ = 0;
+
+  if ( (hostptr = gethostbyname(machine)) == 0)
+    { fd = -1; return; }
+
+  inadr = (struct in_addr *) hostptr->h_addr_list[0];
+  bzero ((char *) &serv_addr, sizeof(serv_addr));
+  serv_addr.sin_family = family;
+  serv_addr.sin_addr = *inadr;
+  serv_addr.sin_port = htons(req_port);
+
+  if ( (fd = socket(family, type, 0)) < 0)
+    { fd = -1; return; }
+
+  if (connect(fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+    { fd = -1; return; }
+
+    __xdrs__ = new XDR;
+    if (!readRoutine) readRoutine = RPCdefaultXDRRead;
+    if (!writeRoutine) writeRoutine = RPCdefaultXDRWrite;
+    (void) xdrrec_create(__xdrs__, 0, 0, (char *) fd, readRoutine,writeRoutine);
+    if (nblock)
+      fcntl (fd, F_SETFL, FNDELAY);
+
 }
 
 //
@@ -98,17 +287,34 @@ bool_t xdr_String(XDR *xdrs, String *str)
 {
     int len;
 
-    if (xdrs->x_op == XDR_ENCODE) {
-	len = strlen(*str)+1;
-    } else {
-	*str = NULL;
+	// if XDR_FREE, str's memory is freed
+    switch (xdrs->x_op) {
+	case XDR_ENCODE:
+		len = strlen(*str)+1;
+		break;
+	case XDR_DECODE:
+		*str = NULL;
+		break;
+	case XDR_FREE:
+		// xdr_free (xdr_string, str);
+		if (*str)
+		  free (*str);
+		*str = NULL;
+		return (TRUE);
+		// return(TRUE);
+		// free the memory
+	default:
+		assert(0);
+		// this should never occur	
     }
     // should we have a better max length ???. 
-    xdr_bytes(xdrs, str, &len, 65536*32768);
-    return(TRUE);
+    // xdr_bytes(xdrs, str, &len, 65536*32768);
+    // return(TRUE);
+    return (xdr_string (xdrs, str, 65536));
 }
 
-int RPCprocessCreate(int *pid, char *hostName, char *userName, char *command)
+int RPCprocessCreate(int *pid, char *hostName, char *userName,
+		     char *command, char **arg_list)
 {
     int ret;
     int sv[2];
@@ -122,7 +328,10 @@ int RPCprocessCreate(int *pid, char *hostName, char *userName, char *command)
 	if (*pid == 0) {
 	    close(sv[0]);
 	    dup2(sv[1], 0);
-	    execl(command, command);
+	    if (!arg_list)
+	      execl(command, command);
+	    else
+	      execv(command, arg_list);
 	    execlERROR = errno;
 	    _exit(-1);
 	} else if (*pid > 0 && !execlERROR) {
@@ -146,3 +355,35 @@ void RPCUser::awaitResponce(int tag)
 {
     abort();
 }
+
+void
+XDRrpc::setNonBlock()
+{
+  if (fd >= 0)
+    fcntl (fd, F_SETFL, FNDELAY);
+}
+
+int
+XDRrpc::readReady()
+{
+  return RPC_readReady (fd);
+}
+
+int
+RPC_getConnect(int fd)
+{
+  int clilen;
+  struct in_addr cli_addr;
+  int new_fd;
+
+  if (fd == -1)
+    return -1;
+
+  clilen = sizeof(cli_addr);
+
+  if ((new_fd = accept (fd, (struct sockaddr *) &cli_addr, &clilen)) < 0)
+    return -1;
+  else
+    return new_fd;
+}
+
