@@ -3,33 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Log: make.module.tmpl,v $
-# Revision 1.30  1998/02/05 22:19:00  czhang
-# Removed the rule for "metTester", which was used for building a stand-alone
-# test for the MDL scanner and parser.  Two of the source files for the test
-# "metTester.C" and "metTemplates.C" were removed because they were obsolete.
-#
-# Revision 1.29  1996/05/12 04:41:20  tamches
-# added templatesUIWASHG.C (split off from templatesUI.C), since our
-# aix 4.1 machines barfed when assembling what was templatesUI.C
-#
-# Revision 1.28  1996/05/02 19:51:39  karavan
-# added new cost server class, two new files, PCcostServer.C and PCcostServer.h
-#
-# Revision 1.27  1996/02/27 17:30:40  karavan
-# removed PC debug printing flag
-#
-# Revision 1.26  1996/02/22 18:34:23  karavan
-#  obsoleted PCdataQ.C
-#
-# Revision 1.25  1996/02/11 18:20:47  tamches
-# templatesDMPCV.C to templatesDM.C
-#
-# Revision 1.24  1996/02/07 00:05:27  tamches
-# added templatesPCV.C
-#
-# Revision 1.23  1996/02/06 16:27:43  mjrg
-# Invoke tcl2c with perl, to avoid problems on HP.
+# $Id: make.module.tmpl,v 1.31 1998/04/01 02:54:01 wylie Exp $
 #
 
 CFLAGS		+= $(TCLFRIENDLYWARNINGS)
@@ -44,7 +18,7 @@ VPATH	     += ../h:$(wildcard ../src/*thread):\
 
 # We don't want to force the user to have "visi" checked out in order
 # to compile paradyn:
-VPATH	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ":../../visi/h"; else echo ":/p/paradyn/core/visi/h"; fi )
+VPATH	+= $(shell if [ -d $(TO_CORE)/visi ]; then echo ":../../visi/h"; else echo ":$(BACKUP_CORE)/visi/h"; fi )
 
 SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/DMthread/DMdaemon.C \
@@ -138,7 +112,6 @@ IGEN_ISRCS    = dataManager.I \
 
 
 TCL_SRCS	= $(wildcard ../tcl/*.tcl)
-#TCL_SRCS	=
 		
 SRCS		+= $(TCL2C_GEN_SRCS)
 
@@ -146,8 +119,7 @@ SRCS		+= $(TCL2C_GEN_SRCS)
 IFLAGS       += -DPARADYN
 
 LIBS 	     += -lpdutil -lpdthread
-#SYSLIBS	     += -ltix -ltk -ltcl -lX11 -lm -lfl
-SYSLIBS	     += -ltk -ltcl -lX11 -lm -lfl
+SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm $(FLEX_LIB)
 
 CFLAGS       += -DNO_MDL_PRINT
 CXXFLAGS     += -DNO_MDL_PRINT
@@ -165,6 +137,6 @@ templatesUI.o: ../src/templatesUI.C
 	$(CXX) $(TFLAGS) -c ../src/templatesUI.C
 
 $(TCL2C_GEN_SRCS):	$(TCL_SRCS)
-	perl $(TCL2C) $^ > $@
+	$(PERL) $(TCL2C) $^ > $@
 
 
