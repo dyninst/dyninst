@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.26 2002/11/25 23:51:37 schendel Exp $
+// $Id: aixDL.C,v 1.27 2002/12/14 16:37:31 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -197,108 +197,109 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 // return value: true if there was a change to the link map,
 // false otherwise
 bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
-						       vector<shared_object *> **changed_objects,
+				     vector<shared_object *> **changed_objects,
 						       u_int &change_type, 
 						       bool &error_occurred) {
-  // Well, this is easy, ain't it?
-  // List of current shared objects
-  vector <shared_object *> *curr_list = p->sharedObjects();
-  // List of new shared objects (since we cache parsed objects, we
-  // can go overboard safely)
-  vector <shared_object *> *new_list = getSharedObjects(p);
+   // Well, this is easy, ain't it?
+   // List of current shared objects
+   vector <shared_object *> *curr_list = p->sharedObjects();
+   // List of new shared objects (since we cache parsed objects, we
+   // can go overboard safely)
+   vector <shared_object *> *new_list = getSharedObjects(p);
 
-  error_occurred = false; // Boy, we're optimistic.
-  change_type = 0; // Assume no change
+   error_occurred = false; // Boy, we're optimistic.
+   change_type = 0; // Assume no change
 
-  // I've seen behavior where curr_list should be null, but instead has zero size
-  if (!curr_list || (curr_list->size() == 0)) {
-    change_type = 0;
-    return false;
-  }
+   // I've seen behavior where curr_list should be null, but instead has zero size
+   if (!curr_list || (curr_list->size() == 0)) {
+      change_type = 0;
+      return false;
+   }
 
-  // Check to see if something was returned by getSharedObjects
-  // They all went away? That's odd
-  if (!new_list) {
-    error_occurred = true;
-    change_type = 2;
-    return false;
-  }
+   // Check to see if something was returned by getSharedObjects
+   // They all went away? That's odd
+   if (!new_list) {
+      error_occurred = true;
+      change_type = 2;
+      return false;
+   }
 
-  if (new_list->size() == curr_list->size())
-    change_type = 0;
-  else if (new_list->size() > curr_list->size())
-    change_type = 1; // Something added
-  else
-    change_type = 2; // Something removed
+   if (new_list->size() == curr_list->size())
+      change_type = 0;
+   else if (new_list->size() > curr_list->size())
+      change_type = 1; // Something added
+   else
+      change_type = 2; // Something removed
 
 
-  *changed_objects = new(vector<shared_object *>);
+   *changed_objects = new(vector<shared_object *>);
 
-  // if change_type is add, figure out what is new
-  if (change_type == 1) {
-    // Compare the two lists, and stick anything new on
-    // the added_list vector (should only be one, but be general)
-    bool found_object = false;
-    for (u_int i = 0; i < new_list->size(); i++) {
-      for (u_int j = 0; j < curr_list->size(); j++) {
-	// Check for equality -- file descriptor equality, nothing
-	// else is good enough.
-	shared_object *sh1 = (*new_list)[i];
-	shared_object *sh2 = (*curr_list)[j];
-	fileDescriptor *fd1 = sh1->getFileDesc();
-	fileDescriptor *fd2 = sh2->getFileDesc();
-
-	if (*fd1 == *fd2) {
-	  found_object = true;
-	  break;
-	}
-      }
-      // So if found_object is true, we don't care. Set it to false and loop. Otherwise,
-      // add this to the new list of objects
-      if (!found_object) {
-	(**changed_objects).push_back(((*new_list)[i]));
-      }
-      else found_object = false; // reset
-    }
-  }
-  else if (change_type == 2) {
-    // Compare the two lists, and stick anything deleted on
-    // the removed_list vector (should only be one, but be general)
-    bool found_object = false;
-    // Yes, this almost identical to the previous case. The for loops
-    // are reversed, but that's it. Basically, find items in the larger
-    // list that aren't in the smaller. 
-    for (u_int j = 0; j < curr_list->size(); j++) {
+   // if change_type is add, figure out what is new
+   if (change_type == 1) {
+      // Compare the two lists, and stick anything new on
+      // the added_list vector (should only be one, but be general)
+      bool found_object = false;
       for (u_int i = 0; i < new_list->size(); i++) {
-	// Check for equality -- file descriptor equality, nothing
-	// else is good enough.
-	shared_object *sh1 = (*new_list)[i];
-	shared_object *sh2 = (*curr_list)[j];
-	fileDescriptor *fd1 = sh1->getFileDesc();
-	fileDescriptor *fd2 = sh2->getFileDesc();
-	
-	if (*fd1 == *fd2) {
-	  found_object = true;
-	  break;
-	}
+         for (u_int j = 0; j < curr_list->size(); j++) {
+            // Check for equality -- file descriptor equality, nothing
+            // else is good enough.
+            shared_object *sh1 = (*new_list)[i];
+            shared_object *sh2 = (*curr_list)[j];
+            fileDescriptor *fd1 = sh1->getFileDesc();
+            fileDescriptor *fd2 = sh2->getFileDesc();
+           
+            if (*fd1 == *fd2) {
+               found_object = true;
+               break;
+            }
+         }
+         // So if found_object is true, we don't care. Set it to false and
+         // loop. Otherwise, add this to the new list of objects
+         if (!found_object) {
+            (**changed_objects).push_back(((*new_list)[i]));
+         }
+         else found_object = false; // reset
       }
-      // So if found_object is true, we don't care. Set it to false and loop. Otherwise,
-      // add this to the new list of objects
-      if (!found_object) {
-	(**changed_objects).push_back(((*new_list)[j]));
+   }
+   else if (change_type == 2) {
+      // Compare the two lists, and stick anything deleted on
+      // the removed_list vector (should only be one, but be general)
+      bool found_object = false;
+      // Yes, this almost identical to the previous case. The for loops
+      // are reversed, but that's it. Basically, find items in the larger
+      // list that aren't in the smaller. 
+      for (u_int j = 0; j < curr_list->size(); j++) {
+         for (u_int i = 0; i < new_list->size(); i++) {
+            // Check for equality -- file descriptor equality, nothing
+            // else is good enough.
+            shared_object *sh1 = (*new_list)[i];
+            shared_object *sh2 = (*curr_list)[j];
+            fileDescriptor *fd1 = sh1->getFileDesc();
+            fileDescriptor *fd2 = sh2->getFileDesc();
+           
+            if (*fd1 == *fd2) {
+               found_object = true;
+               break;
+            }
+         }
+         // So if found_object is true, we don't care. Set it to false and
+         // loop. Otherwise, add this to the new list of objects
+         if (!found_object) {
+            (**changed_objects).push_back((*curr_list)[j]);
+         }
+         else found_object = false; // reset
       }
-      else found_object = false; // reset
-    }
-  }
-  
-  // Check to see that there is something in the new list
-  if ((*changed_objects)->size() == 0) {
-    change_type = 0; // no change after all
-    delete changed_objects; // Save memory
-    changed_objects = 0;
-    return false;
-  }
-  return true;
+   }
+
+   // Check to see that there is something in the new list
+   if ((*changed_objects)->size() == 0) {
+      change_type = 0; // no change after all
+      delete changed_objects; // Save memory
+      changed_objects = 0;
+      return false;
+   }
+
+   return true;
 }
 
 
@@ -450,21 +451,20 @@ void process::insertTrapAtEntryPointOfMain()
  * Return the name of the runtime library, grabbed from the environment
  * or the command line, as appropriate.
  *
- * Updates process::dyninstName
  */
 
-bool getRTLibraryName(string &dyninstName, int pid)
+bool getDYN_RTLibraryName(string &dyninst_rt_name, int pid)
 {
   // get library name... 
   // Get the name of the appropriate runtime library
   const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";//ccw 1 jun 2002 SPLIT
 
-  if (dyninstName.length()) {
+  if (dyninst_rt_name.length()) {
     // use the library name specified on the start-up command-line
   } else {
     // check the environment variable
     if (getenv(DyninstEnvVar) != NULL) {
-      dyninstName = getenv(DyninstEnvVar);
+      dyninst_rt_name = getenv(DyninstEnvVar);
     } else {
       string msg = string("Environment variable " + string(DyninstEnvVar)
                    + " has not been defined for process ") + string(pid);
@@ -474,8 +474,8 @@ bool getRTLibraryName(string &dyninstName, int pid)
   }
 
   // Check to see if the library given exists.
-  if (access(dyninstName.c_str(), R_OK)) {
-    string msg = string("Runtime library ") + dyninstName
+  if (access(dyninst_rt_name.c_str(), R_OK)) {
+    string msg = string("Runtime library ") + dyninst_rt_name
         + string(" does not exist or cannot be accessed!");
     showErrorCallback(101, msg);
     return false;
@@ -531,14 +531,14 @@ bool process::dlopenDYNINSTlib()
   // Do we want to save whatever is there? Can't see a reason why...
 
   // Write out the name of the library to the codeBase area
-  if (!getRTLibraryName(dyninstName, pid))
+  if (!getDYN_RTLibraryName(dyninstRT_name, pid))
     return false;
   
   // write library name...
   dyninstlib_addr = (Address) (codeBase + count);
-  writeDataSpace((void *)(codeBase + count), dyninstName.length()+1,
-		 (caddr_t)const_cast<char*>(dyninstName.c_str()));
-  count += dyninstName.length()+sizeof(instruction); // a little padding
+  writeDataSpace((void *)(codeBase + count), dyninstRT_name.length()+1,
+		 (caddr_t)const_cast<char*>(dyninstRT_name.c_str()));
+  count += dyninstRT_name.length()+sizeof(instruction); // a little padding
 
   // Actually, we need to bump count up to a multiple of insnsize
   count += sizeof(instruction) - (count % sizeof(instruction));
@@ -640,7 +640,7 @@ bool process::dlopenPARADYNlib()
 
     // check the environment variable
     if (getenv(DyninstEnvVar) != NULL) {
-      dyninstName = getenv(DyninstEnvVar);
+      paradynRT_name = getenv(DyninstEnvVar);
     } else {
       string msg = string("Environment variable " + string(DyninstEnvVar)
                    + " has not been defined for process ") + string(pid);
@@ -649,8 +649,8 @@ bool process::dlopenPARADYNlib()
   }
 
   // Check to see if the library given exists.
-  if (access(dyninstName.c_str(), R_OK)) {
-    string msg = string("Runtime library ") + dyninstName
+  if (access(paradynRT_name.c_str(), R_OK)) {
+    string msg = string("Runtime library ") + paradynRT_name
         + string(" does not exist or cannot be accessed!");
     showErrorCallback(101, msg);
     return false;
@@ -658,9 +658,9 @@ bool process::dlopenPARADYNlib()
   
   // write library name...
   dyninstlib_addr = (Address) (codeBase + count);
-  writeDataSpace((void *)(codeBase + count), dyninstName.length()+1,
-		 (caddr_t)const_cast<char*>(dyninstName.c_str()));
-  count += dyninstName.length()+sizeof(instruction); // a little padding
+  writeDataSpace((void *)(codeBase + count), paradynRT_name.length()+1,
+		 (caddr_t)const_cast<char*>(paradynRT_name.c_str()));
+  count += paradynRT_name.length()+sizeof(instruction); // a little padding
 
   // Actually, we need to bump count up to a multiple of insnsize
   count += sizeof(instruction) - (count % sizeof(instruction));
