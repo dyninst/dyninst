@@ -466,7 +466,7 @@ void process::handleIfDueToDyninstLib()
 {
   // rewrite original instructions in the text segment we use for 
   // the inferiorRPC - naim
-  unsigned count = BYTES_TO_SAVE; //sizeof(savedCodeBuffer);
+  unsigned count = sizeof(savedCodeBuffer);
   //Address codeBase = getImage()->codeOffset();
 
   Address codeBase = (this->findOneFunction("_start"))->addr();
@@ -515,8 +515,7 @@ bool process::dlopenDYNINSTlib() {
   // generate code for dlopen.
 
   // savedCodeBuffer[BYTES_TO_SAVE] is declared in process.h
-  //readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
-  readDataSpace((void *)codeBase, BYTES_TO_SAVE, savedCodeBuffer, true);
+  readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
 
   unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
   vector<AstNode*> dlopenAstArgs(2);
@@ -622,6 +621,7 @@ bool process::dlopenDYNINSTlib() {
   unsigned dyninstlib_addr = (unsigned) (codeBase + count);
   writeDataSpace((void *)(codeBase + count), strlen(libname)+1,
 		 (caddr_t)libname);
+  count += strlen(libname)+1;
   // we have now written the name of the library after the trap - naim
 
   char socketname[256];
@@ -630,9 +630,10 @@ bool process::dlopenDYNINSTlib() {
   } else {
     strcpy((char*)socketname,(char *)"/usr/lib/libsocket.so.1");
   }
-  unsigned socketlib_addr = (unsigned) (codeBase + count + strlen(libname) + 1);
-  writeDataSpace((void *)(codeBase + count + strlen(libname) + 1), 
+  unsigned socketlib_addr = (unsigned) (codeBase + count);
+  writeDataSpace((void *)(codeBase + count), 
 		 strlen(socketname)+1, (caddr_t)socketname);
+  count += strlen(socketname)+1;
   // we have now written the name of the socket library after the trap - naim
 
   assert(count<=BYTES_TO_SAVE);

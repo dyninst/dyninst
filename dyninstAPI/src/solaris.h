@@ -51,7 +51,7 @@
 #define EXIT_NAME "_exithandle"
 
 #if defined(USES_LIBDYNINSTRT_SO)
-#define BYTES_TO_SAVE 112
+#define BYTES_TO_SAVE 160 // it should be a multiple of sizeof(instruction)
 #endif
 
 #define START_WALL_TIMER "DYNINSTstartWallTimer"
