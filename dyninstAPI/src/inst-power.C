@@ -6,6 +6,10 @@
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
  * $Log: inst-power.C,v $
+ * Revision 1.16  1996/05/12 05:16:45  tamches
+ * (really Jeff)
+ * Now works with aix 4.1
+ *
  * Revision 1.15  1996/05/10 05:12:34  tamches
  * changed vrble addr to dest; can now compile ok
  *
@@ -1267,17 +1271,17 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
   addInternalSymbol(ghb, instHeapStart);
 
   // check that we can get to our heap.
-  if (instHeapStart > getMaxBranch() + AIX_TEXT_OFFSET_HACK) {
+  if (instHeapStart > getMaxBranch() + linkedFile.code_off()) {
     logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
     sprintf(errorLine, "    heap starts at %x\n", instHeapStart);
     logLine(errorLine);
     sprintf(errorLine, "    max reachable at %x\n", 
-	getMaxBranch() + AIX_TEXT_OFFSET_HACK);
+	getMaxBranch() + linkedFile.code_off());
     logLine(errorLine);
     showErrorCallback(53,(const char *) errorLine);
     return false;
   } else if (instHeapStart + SYN_INST_BUF_SIZE > 
-	     getMaxBranch() + AIX_TEXT_OFFSET_HACK) {
+	     getMaxBranch() + linkedFile.code_off()) {
     logLine("WARNING: Program text + data could be too big for dyninst\n");
     showErrorCallback(54,(const char *) errorLine);
     return false;
