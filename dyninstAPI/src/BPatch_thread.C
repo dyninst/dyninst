@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.106 2004/04/20 01:27:54 jaw Exp $
+// $Id: BPatch_thread.C,v 1.107 2004/04/20 23:33:41 mirg Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1537,13 +1537,6 @@ void BPatch_thread::getCallStack(BPatch_Vector<BPatch_frame>& stack)
                     bt = mt->baseTramp;
                 if (bt) {
                     Address ipAddr = bt->location->absPointAddr(proc);
-#if defined(os_aix) 
-                    // Funfun... if this is an exit point then the address is _not_ within
-                    // the function -- it's 1 byte after the function.
-                    if (ipAddr % 4) {
-                        ipAddr -= ipAddr % 4;
-                    }
-#endif
                     stack.push_back(BPatch_frame(this,
                                                  (void *)ipAddr,
                                                  // Fake this
