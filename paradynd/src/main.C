@@ -2,7 +2,11 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.19  1994/07/05 03:26:08  hollings
+ * Revision 1.20  1994/07/14 14:29:20  jcargill
+ * Renamed connection-related variables (family, port, ...), and moved all the
+ * standard dynRPC functions to another file.
+ *
+ * Revision 1.19  1994/07/05  03:26:08  hollings
  * observed cost model
  *
  * Revision 1.18  1994/06/29  02:52:34  hollings
@@ -78,8 +82,10 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <signal.h>
 #include <assert.h>
 #include <fcntl.h>
+#include <sys/termios.h>
 
 #include "util/h/list.h"
 #include "rtinst/h/rtinst.h"
@@ -93,15 +99,18 @@
 #include "dyninstP.h"
 #include "metric.h"
 #include "comm.h"
+#include "kludges.h"
 #include "internalMetrics.h"
 
 extern "C" {
 int gethostname(char*, int);
+int ioctl(int, int, caddr_t);
 }
 
 pdRPC *tp;
 extern int controllerMainLoop();
 extern void initLibraryFunctions();
+
 
 #ifdef PARADYND_PVM
 static pdRPC *init_pvm_code(char *argv[], char *machine, int family,
@@ -111,8 +120,18 @@ static char machine_name[80];
 
 int ready;
 
-// default to once a second.
-float samplingRate = 1.0;
+/*
+ * These variables are global so that we can easily find out what
+ * machine/socket/etc we're connected to paradyn on; we may need to
+ * start up other paradynds (such as on the CM5), and need this later.
+ */
+char *pd_machine;
+int pd_family;
+int pd_type;
+int pd_known_socket;
+int pd_flag;
+
+char *programName;
 
 
 void configStdIO(Boolean closeStdIn)
@@ -131,32 +150,37 @@ void configStdIO(Boolean closeStdIn)
     if (nullfd > 2) close(nullfd);
 }
 
+
 main(int argc, char *argv[])
 {
-    int i, family, type, well_known_socket, flag;
-    char *machine;
+    int i;
     metricList stuff;
+    int val;
+    char *interval;
+
+    programName = argv[0];
 
     initLibraryFunctions();
 
     // process command line args passed in
-    // flag == 1 --> started by paradyn
-    assert (RPC_undo_arg_list (argc, argv, &machine, family, type,
-		       well_known_socket, flag) == 0);
+    // pd_flag == 1 --> started by paradyn
+
+    assert (RPC_undo_arg_list (argc, argv, &pd_machine, pd_family, pd_type,
+		       pd_known_socket, pd_flag) == 0);
 
 
 #ifdef PARADYND_PVM
-    tp = init_pvm_code(argv, machine, family, type, well_known_socket, flag);
+    tp = init_pvm_code(argv, pd_machine, pd_family, pd_type, 
+		       pd_known_socket, pd_flag);
 #else
-
-    if (!flag) {
+    if (!pd_flag) {
 	int pid;
 
 	pid = fork();
 	if (pid == 0) {
-	    configStdIO(TRUE);
+//	    configStdIO(TRUE);
 	    // setup socket
-	    tp = new pdRPC(family, well_known_socket, type, machine, 
+	    tp = new pdRPC(pd_family, pd_known_socket, pd_type, pd_machine, 
 			    NULL, NULL, 0);
 	} else if (pid > 0) {
 	    printf("PARADYND %d\n", pid);
@@ -167,10 +191,17 @@ main(int argc, char *argv[])
 	    exit(-1);
 	}
     } else {
+	int ttyfd;
 	// already setup on this FD.
+
+	/* disconnect from controlling terminal */
+	ttyfd = open ("/dev/tty", O_RDONLY);
+	ioctl (ttyfd, TIOCNOTTY, NULL); 
+	close (ttyfd);
+
 	tp = new pdRPC(0, NULL, NULL);
 
-	configStdIO(FALSE);
+//	configStdIO(FALSE);
     }
 #endif
 
@@ -185,218 +216,7 @@ main(int argc, char *argv[])
     controllerMainLoop();
 }
 
-void dynRPC::printStats()
-{
-    extern void printDyninstStats();
 
-    printDyninstStats();
-}
-
-void dynRPC::addResource(String parent, String name)
-{
-    resource pr;
-    extern resource findResource(char*);
-
-    pr = findResource(parent);
-    if (pr) (void) newResource(pr, NULL, NULL, name, 0.0, FALSE);
-}
-
-void dynRPC::coreProcess(int pid)
-{
-    process *proc;
-
-    proc = processList.find((void *) pid);
-    dumpCore(proc);
-}
-
-String dynRPC::getStatus(int pid)
-{
-    process *proc;
-    extern char *getProcessStatus(process *proc);
-    char ret[50];
-
-    proc = processList.find((void *) pid);
-
-    if (!proc) {
-	sprintf (ret, "PID:%d not found for getStatus\n", pid);
-	return (ret);
-    }
-    else
-	return(getProcessStatus(proc));
-}
-
-//
-// NOTE: This version of getAvailableMetrics assumes that new metrics are
-//   NOT added during execution.
-//
-metricInfo_Array dynRPC::getAvailableMetrics(void)
-{
-    int i;
-    static int inited;
-    static metricInfo_Array metInfo;
-
-    if (!inited) {
-	metricList stuff;
-
-	stuff = getMetricList();
-	metInfo.count = stuff->count;
-	metInfo.data = (metricInfo*) calloc(sizeof(metricInfo), metInfo.count);
-	for (i=0; i < metInfo.count; i++) {
-	    metInfo.data[i] = stuff->elements[i].info;
-	}
-	inited = 1;
-    }
-    return(metInfo);
-}
-
-double dynRPC::getPredictedDataCost(String_Array focusString, String metric)
-{
-    metric m;
-    double val;
-    resourceList l;
-
-    m = findMetric(metric);
-    l = findFocus(focusString.count, focusString.data);
-    if (!l) return(0.0);
-    val = guessCost(l, m);
-
-    return(val);
-}
-
-void dynRPC::disableDataCollection(int mid)
-{
-    float cost;
-    timeStamp now;
-    metricInstance mi;
-    extern double totalPredictedCost;
-    extern timeStamp timeCostLastChanged;
-    extern internalMetric currentPredictedCost;
-    extern void printResourceList(resourceList);
-
-    mi = allMIs.find((void *) mid);
-
-    sprintf(errorLine, "disable of %s for RL =", getMetricName(mi->met));
-    logLine(errorLine);
-    printResourceList(mi->resList);
-    logLine("\n");
-
-    cost = mi->originalCost;
-
-    now = getCurrentTime(FALSE);
-    totalPredictedCost += currentPredictedCost.value * 
-	(now - timeCostLastChanged);
-    timeCostLastChanged = now;
-
-    currentPredictedCost.value -= cost;
-
-    mi->disable();
-    allMIs.remove(mi);
-    delete(mi);
-}
-
-int dynRPC::enableDataCollection(String_Array foucsString,String metric)
-{
-    int id;
-    metric m;
-    resourceList l;
-
-    m = findMetric(metric);
-    l = findFocus(foucsString.count, foucsString.data);
-    if (!l) return(-1);
-    id = startCollecting(l, m);
-    return(id);
-}
-
-//
-// not implemented yet.
-//
-void dynRPC::setSampleRate(double sampleInterval)
-{
-    samplingRate = sampleInterval;
-    return;
-}
-
-Boolean dynRPC::detachProgram(int program,Boolean pause)
-{
-    return(detachProcess(program, pause));
-}
-
-//
-// Continue all processes
-//
-void dynRPC::continueApplication()
-{
-    continueAllProcesses();
-}
-
-//
-// Continue a process
-//
-void dynRPC::continueProgram(int program)
-{
-    struct List<process *> curr;
-
-    for (curr = processList; *curr; curr++) {
-	if ((*curr)->pid == pid) break;
-    }
-    if (*curr) {
-        continueProcess(*curr);
-    } else {
-	sprintf(errorLine, "Can't continue PID %d\n", program);
-	logLine(errorLine);
-    }
-}
-
-//
-//  Stop all processes 
-//
-Boolean dynRPC::pauseApplication()
-{
-    pauseAllProcesses();
-    return TRUE;
-}
-
-//
-//  Stop a single process
-//
-Boolean dynRPC::pauseProgram(int program)
-{
-    struct List<process *> curr;
-
-    for (curr = processList; *curr; curr++) {
-        if ((*curr)->pid == program) break;
-    }
-    if (!(*curr)) {
-	sprintf(errorLine, "Can't pause PID %d\n", program);
-	logLine(errorLine);
-	return FALSE;
-    }
-    pauseProcess(*curr);
-    flushPtrace();
-    return TRUE;
-}
-
-Boolean dynRPC::startProgram(int program)
-{
-    continueAllProcesses();
-    return(False);
-}
-
-//
-// This is not implemented yet.
-//
-Boolean dynRPC::attachProgram(int pid)
-{
-    return(FALSE);
-}
-
-//
-// start a new program for the tool.
-//
-int dynRPC::addExecutable(int argc,String_Array argv)
-{
-    return(addProcess(argc, argv.data));
-}
 
 #ifdef PARADYND_PVM
 pdRPC *
