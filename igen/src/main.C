@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: main.C,v 1.47 1998/02/24 23:18:00 wylie Exp $
+
 #include "parse.h"
 #include <iostream.h>
 #include <stdio.h>
@@ -105,7 +107,7 @@ static void usage() {
 static void do_opts(int argc, char *argv[]) {
   Options::current_interface = NULL;
 
-  for (int i=0; i<argc-1; i++) {
+  for (int i=0; i<argc; i++) {
     if (!strcmp("-pvm", argv[i])) {
       if (!set_ml("pvm")) {
 	cerr << "Message layer 'pvm' unknown\n";
@@ -146,10 +148,17 @@ static void do_opts(int argc, char *argv[]) {
 	exit(-1);
       }
       Options::set_input_file(argv[i+1]);
+    } else if (!strcmp("-usage", argv[i]) || !strcmp("-help",argv[i])) {
+        usage();
+        exit(0);
+    } else if (!strncmp("-", argv[i], 1)) {
+        cerr << "Unexpected flag: " << argv[i] << endl;
+        usage();
+        exit(-1);
     }
   }
 
-  if (Options::ml->med() == message_layer::Med_none) {
+  if ((Options::ml==NULL) || (Options::ml->med() == message_layer::Med_none)) {
     cerr << "No message layer defined\n";
     usage();
     exit(-1);
@@ -474,7 +483,7 @@ int main(int argc, char *argv[]) {
   Options::current_interface->gen_interface();
   end_header_files();
   close_files();
-  exit(0);
+  return(0);
 }
 
 void dump_to_dot_h(const char *msg) {
@@ -1445,7 +1454,7 @@ signature::signature(vector<arg*> *alist, const string rf_name) : is_const_(fals
     is_const_ = args[0]->is_const();
     break;
   default:
-    type_defn *td;
+    type_defn *td = NULL;
     bool match = false;
     for (dictionary_hash_iter<string, type_defn*> tdi=Options::all_types;
          tdi && !match; tdi++) {
