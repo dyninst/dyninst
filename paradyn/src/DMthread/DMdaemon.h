@@ -242,8 +242,11 @@ class paradynDaemon: public dynRPCUser {
            // launch new process
 
         static bool attachStub(const string &machine, const string &user,
-                               const string &daemonName, int pid);
-           // attach to an already-running process
+                               const string &dir, const string &cmd, int pid,
+                               const string &daemonName);
+           // attach to an already-running process.
+           // dir + cmd are used to get a path to the executable, which we use just
+           // to read the symbol table.
            // the word Stub was appended to the name to avoid conflict with the
            // igen call "attach"
 

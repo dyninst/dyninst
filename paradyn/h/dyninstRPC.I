@@ -429,7 +429,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 48;
+    $version 49;
 
     //
     // Define a program to run. 
@@ -439,8 +439,10 @@ $remote dynRPC {
 
     //
     // Connect up with a running program (not possible on all platforms).
+    // dir + cmd are used to get a path to the executable, which we use
+    // only to read the symbol table.
     //
-    bool attach(int pid);
+    bool attach(string dir, string cmd, int pid);
 
     //
     // Start an application running (This starts the actual execution).

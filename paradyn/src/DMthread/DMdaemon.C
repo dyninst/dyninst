@@ -297,8 +297,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
     daemonEntry *def = findEntry(machine, name);
     if (!def) {
 	if (name.length()) {
-	  string msg;
-	  msg = string("Paradyn daemon \"") + name + string("\" not defined.");
+	  string msg = string("Paradyn daemon \"") + name + string("\" not defined.");
 	  uiMgr->showError(90,P_strdup(msg.string_of()));
         }
 	else {
@@ -548,8 +547,10 @@ bool paradynDaemon::newExecutable(const string &machine,
 
 bool paradynDaemon::attachStub(const string &machine,
 			       const string &userName,
-			       const string &daemonName,
-			       int the_pid) {
+			       const string &dir,
+			       const string &cmd, // program name
+			       int the_pid,
+			       const string &daemonName) {
   if (! DMstatus)
       DMstatus = new status_line("Data Manager");
 
@@ -561,7 +562,7 @@ bool paradynDaemon::attachStub(const string &machine,
       return false;
 
   performanceStream::ResourceBatchMode(batchStart);
-  bool success = daemon->attach(the_pid);
+  bool success = daemon->attach(dir, cmd, the_pid);
   performanceStream::ResourceBatchMode(batchEnd);
 
   if (daemon->did_error_occur())
