@@ -1,7 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.50  1995/08/05 17:10:19  krisna
-/* deleted prototype for `strrchr', this file is anyway bogus
+/* Revision 1.51  1995/08/13 01:41:05  tamches
+/* Tightened and heavily commented the main loop.
+/* Removed superfluous code; general cleaning up.
 /*
+ * Revision 1.50  1995/08/05  17:10:19  krisna
+ * deleted prototype for `strrchr', this file is anyway bogus
+ *
  * Revision 1.49  1995/08/04 19:13:55  tamches
  * Added a status line for 'rethinking' after receiving data (whethere batch
  * mode or not)
@@ -259,11 +263,7 @@ status_line *ui_status;
  * Command-line options:
  */
 
-static int synchronize = 0;
 static char *fileName = NULL;
-//static char *name = NULL; (unused)
-static char *display = NULL;
-static char *geometry = NULL;
 
 /*
  * Declarations for various library procedures and variables 
@@ -291,7 +291,6 @@ extern void resourceAddedCB (perfStreamHandle handle,
 		      resourceHandle newResource, 
 		      const char *name,
 		      const char *abstraction);
-//extern int initMainWhereDisplay ();
 
 /*
  * Forward declarations for procedures defined later in this file:
@@ -300,26 +299,6 @@ extern void resourceAddedCB (perfStreamHandle handle,
 void             Prompt _ANSI_ARGS_((Tcl_Interp *interp, int partial));
 void             StdinProc _ANSI_ARGS_((ClientData clientData,
                             int mask));
-
-///*** I don't think we need this anymore -klk
-//void reaper();
-//
-//void reaper()
-//{
-//    int ret;
-//    int status;
-//
-//    printf("**** In reaper\n");
-//    ret = P_wait(&status);
-//    if (WIFSTOPPED(status)) {
-//        printf("child stopped\n");
-//    } else if (WIFEXITED(status)) {
-//        printf("child gone\n");
-//    } else {
-//        printf("%x\n", status);
-//    }
-//}
-//*/
 
 // This callback invoked by dataManager before and after a large 
 // batch of draw requests.  If UIM_BatchMode is set, the UI thread 
@@ -349,6 +328,9 @@ void resourceBatchChanged(perfStreamHandle handle, batchMode mode)
          initiateWhereAxisRedraw(interp, true); // true--> double buffer
 
          ui_status->message("ready");
+
+         // Shouldn't we also Tcl_Eval(interp, "update"), to process any
+         // pending idle events?
       }
     }
     assert(UIM_BatchMode >= 0);
@@ -391,88 +373,78 @@ applicStateChanged (perfStreamHandle handle, appState state)
  *----------------------------------------------------------------------
  */
 
+void panic(const char *msg) {
+   cerr << msg << endl;
+   exit(5);
+}
+
+// This utility routine is already defined in the where axis code
+extern void tclpanic(Tcl_Interp *interp, const char *msg);
+
+void processPendingTkEventsNoBlock() {
+   // We use Tk_DoOneEvent (w/o blocking) to soak up and process
+   // pending tk events, if any.  Returns as soon as there are no
+   // tk events to process.
+   // NOTE: This includes (as it should) tk idle events.
+   // NOTE: This is basically the same as Tcl_Eval(interp, "update"), but
+   //       who wants to incur the expense of tcl parsing?
+
+   while (Tk_DoOneEvent(TK_DONT_WAIT) > 0)
+      ;
+}
+
 void *
 UImain(void* vargs)
 {
     CLargStruct* clargs = (CLargStruct *) vargs;
 
     char *args;
-    char buf[20];
-    int code;
-    int uiargc;
-    char **uiargv;
-    int xfd;
-    Display *UIMdisplay;
     tag_t mtag;
     int retVal;
     unsigned msgSize = 0;
     char UIMbuff[UIMBUFFSIZE];
-    char *temp;
     controlCallback controlFuncs;
     dataCallback dataFunc;
 
     interp = Tcl_CreateInterp();
-#ifdef TCL_MEM_DEBUG
-    Tcl_InitMemory(interp);
-#endif
-
-    // Parse commandline arguments 
-    uiargc = clargs->clargc;
-    uiargv = clargs->clargv;
-
-    /*
-     * If a display was specified, put it into the DISPLAY
-     * environment variable so that it will be available for
-     * any sub-processes created by us.
-     */
-
-    if (display != NULL) {
-	Tcl_SetVar2(interp, "env", "DISPLAY", display, TCL_GLOBAL_ONLY);
-    }
 
     // Tk main window initialization
-    char *name, *cls;
-    name = new char[8];
-    cls = new char[3];
-    strcpy (name, "paradyn");
-    strcpy (cls, "Tk");
-    mainWindow = Tk_CreateMainWindow(interp, display, name, cls);
-    if (mainWindow == NULL) {
-	fprintf(stderr, "%s\n", interp->result);
-	exit(1);
-    }
-    if (synchronize) {
-	XSynchronize(Tk_Display(mainWindow), True);
-    }
+    mainWindow = Tk_CreateMainWindow(interp, NULL, "paradyn", "Paradyn");
+    if (mainWindow == NULL)
+       tclpanic(interp, "Could not Tk_CreateMainWindow");
+
+    if (false)
+       // This is cool for X debugging...but we don't want it normally.
+       // It forces a flush after every X event -- no buffering.
+       XSynchronize(Tk_Display(mainWindow), True);
+
     Tk_GeometryRequest(mainWindow, 725, 475);
 
-    Tk_SetClass(mainWindow, "Paradyn");
-    
+    // initialize tcl and tk
+    tty = isatty(0);
+    Tcl_SetVar(interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
+    if (Tcl_Init(interp) == TCL_ERROR)
+       tclpanic(interp, "tcl_init() failed (perhaps TCL_LIBRARY not set?)");
+    if (Tk_Init(interp) == TCL_ERROR)
+       tclpanic(interp, "tk_init() failed (perhaps TK_LIBRARY not set?");
+
+
+    // Parse commandline arguments 
+    int uiargc = clargs->clargc;
+    char **uiargv = clargs->clargv;
+
     // Copy commandline arguments into the Tcl variables "argc" and "argv"  
     args = Tcl_Merge(uiargc-1, uiargv+1);
     Tcl_SetVar(interp, "argv", args, TCL_GLOBAL_ONLY);
     ckfree(args);
     
+    char buf[20];
     sprintf(buf, "%d", uiargc-1);
     Tcl_SetVar(interp, "argc", buf, TCL_GLOBAL_ONLY);
     Tcl_SetVar(interp, "argv0", (fileName != NULL) ? fileName : uiargv[0],
 	    TCL_GLOBAL_ONLY);
-    // set tcl geometry variable
-    if (geometry != NULL) {
-	Tcl_SetVar(interp, "geometry", geometry, TCL_GLOBAL_ONLY);
-    }
 
-     // initialize tcl and tk
-    tty = isatty(0);
-    Tcl_SetVar(interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
-    if (Tcl_Init(interp) == TCL_ERROR) {
-      fprintf(stderr, "%s\n", interp->result);
-    }
-    if (Tk_Init(interp) == TCL_ERROR) {
-      fprintf (stderr, "%s\n", interp->result);
-    }
-
-     // Add internal UIM command to the tcl interpreter.
+    // Add internal UIM command to the tcl interpreter.
     Tcl_CreateCommand(interp, "uimpd", 
 		      UimpdCmd, (ClientData) mainWindow,
 		      (Tcl_CmdDeleteProc *) NULL);
@@ -481,15 +453,8 @@ UImain(void* vargs)
     Tcl_CreateCommand(interp, "paradyn", ParadynCmd, (ClientData) NULL,
 		      (Tcl_CmdDeleteProc *) NULL);
 
-    // Set the geometry of the main window, if requested.
-    if (geometry != NULL) {
-	code = Tcl_VarEval(interp, "wm geometry . ", geometry, (char *) NULL);
-	if (code != TCL_OK) {
-	    fprintf(stderr, "%s\n", interp->result);
-	}
-      }
-
     /* tell interpreter where the tcl files are */
+    char *temp;
     if ((temp = (char *) getenv("PARADYNTCL")) != 0) {
         if (Tcl_VarEval (interp, "set auto_path [linsert $auto_path 0 ",
 		 temp, "]", 0) == TCL_ERROR)
@@ -498,7 +463,7 @@ UImain(void* vargs)
     if (temp == 0) {
 	temp = "/p/paradyn/core/paradyn/tcl";
     }
-    Tcl_SetVar (interp, "PdBitmapDir", temp, 0);
+    Tcl_SetVar (interp, "PdBitmapDir", temp, 0); // YUCK --ari
 
 /*
  * load all converted Tcl sources into the interpreter.
@@ -519,37 +484,40 @@ UImain(void* vargs)
      // initialize number of errors read in from error database 
     uim_maxError = atoi(Tcl_GetVar (interp, "numPdErrors", 0));
 
-   // first take care of any events caused by initialization.
+//   // first take care of any events caused by initialization.
+//    while (Tk_DoOneEvent (TK_DONT_WAIT) > 0)
+//      ;
 
-    while (Tk_DoOneEvent (TK_DONT_WAIT) > 0)
-      ;
+    // bind stdin to this thread & setup command-line input w/prompt
+    retVal = msg_bind (fileno(stdin),
+		       1 // "special" flag --> libthread leaves it to us to manually
+                         // dequeue these messages
+		       );
 
-   // bind stdin to this thread & setup command-line input w/prompt
-
-    retVal = msg_bind (0, 1);
-
-    if (tty) {
-      Prompt(interp, 0);
-    }
-    fflush(stdout);
+    // Initialize "command", an important global variable that accumulates
+    // a typed-in line of data.  It gets updated in StdinProc(), below.
     Tcl_DStringInit(&command);
+    if (tty)
+      Prompt(interp, 0);
 
-   // Initialize UIM thread as UIM server 
+    // Initialize UIM thread as UIM server 
     thr_name ("UIM");
     uim_server = new UIM(MAINtid);
 
-   // register fd for X events with threadlib as special */
-
-    UIMdisplay = Tk_Display (mainWindow);
-    xfd = XConnectionNumber (UIMdisplay);
-    retVal = msg_bind (xfd, 1);
+    // register fd for X events with threadlib as special
+    Display *UIMdisplay = Tk_Display (mainWindow);
+    int xfd = XConnectionNumber (UIMdisplay);
+    retVal = msg_bind (xfd,
+		       1 // "special" flag --> libthread leaves it to us to manually
+                         // dequeue these messages
+		       );
 
     // initialize hash table for async call replies
     Tcl_InitHashTable (&UIMMsgReplyTbl, TCL_ONE_WORD_KEYS);
     UIMMsgTokenID = 0;
 
-   // wait for all other main module threads to complete initialization
-   //  before continuing.
+    // wait for all other main module threads to complete initialization
+    //  before continuing.
 
     retVal = msg_send (MAINtid, MSG_TAG_UIM_READY, (char *) NULL, 0);
     mtag = MSG_TAG_ALL_CHILDREN_READY;
@@ -557,10 +525,11 @@ UImain(void* vargs)
 
     PARADYN_DEBUG(("UIM thread past barrier\n"));
 
-   // subscribe to DM new resource notification service
+    // subscribe to DM new resource notification service
     resourceHandle *rhptr = dataMgr->getRootResource();
-    if (rhptr == (resourceHandle *)NULL) 
-      abort();
+    if (rhptr == (resourceHandle *)NULL)
+       panic("dataMgr->getRootResource() failed");
+
     uim_rootRes = *rhptr;
     controlFuncs.rFunc = resourceAddedCB;
     controlFuncs.mFunc = NULL;
@@ -573,18 +542,10 @@ UImain(void* vargs)
     uim_ps_handle = dataMgr->createPerformanceStream
       (Sample, dataFunc, controlFuncs);
     
-//    uim_ResourceSelectionStatus = 0;    // no selection in progress
-//    Tcl_LinkVar (interp, "resourceSelectionStatus", 
-//		 (char *) &uim_ResourceSelectionStatus, TCL_LINK_INT);    
-//    retVal = 0;
-//    initMainWhereDisplay();
-
     // New Where Axis: --ari
     installWhereAxisCommands(interp);
-    if (TCL_ERROR == Tcl_Eval(interp, "whereAxisInitialize")) {
-       cerr << "could not whereAxisInitialize: " << interp->result << endl;
-       exit(5);
-    }
+    if (TCL_ERROR == Tcl_Eval(interp, "whereAxisInitialize"))
+       tclpanic(interp, "Could not whereAxisInitialize()");
 
     //
     // initialize status lines library
@@ -602,72 +563,62 @@ UImain(void* vargs)
 
     ui_status = new status_line("UIM status");
     assert(ui_status);
-
-//    status_line ui_status("UIM status");
     ui_status->message("ready");
-//    ui_status.message("WELCOME to Paradyn.  Interfaces ready");
 
 /*******************************
  *    Main Loop for UIM thread.  
  ********************************/
 
-    while (tk_NumMainWindows > 0) {
-
+   while (tk_NumMainWindows > 0) {
       msgSize = UIMBUFFSIZE;
       mtag = MSG_TAG_ANY;
+      int pollsender = msg_poll (&mtag, 1); // 1-->make this a blocking poll
+                                            // i.e., not really a poll at all...
+      // Why don't we do a blocking msg_recv() in all cases?  Probably
+      // because it soaks up the pending message, which may (? my best guess ?)
+      // throw off those mysterious dataMgr->waitLoop() and uim_server->waitLoop()
+      // calls below.
 
-      retVal = msg_poll (&mtag, 1);
-
-// check for X events or commands on stdin
-//   These generate a notification message only which can be ignored.
-
+      // check for X events or commands on stdin
       if (mtag == MSG_TAG_FILE) {
-	retVal = msg_recv (&mtag, UIMbuff, &msgSize);
-	if (retVal == xfd) {
-	  if (UIM_BatchMode) {
-	    while (Tk_DoOneEvent (TK_X_EVENTS | TK_FILE_EVENTS 
-				  | TK_TIMER_EVENTS | TK_DONT_WAIT) > 0)
-	      ;
-	  }
-	  else {
-	    while (Tk_DoOneEvent (TK_DONT_WAIT) > 0)
-	      ;
-	  }
-	} else
-	  StdinProc((ClientData) NULL, 0);
-      } else  {
+         // Note: why don't we do a msg_recv(), to consume the pending
+         //       event?  Because both of the MSG_TAG_FILEs we have set
+         //       up have the special flag set (in the call to msg_bind()),
+         //       which indicated that we, instead of libthread, will take
+         //       responsibility for that.  In other words, a msg_recv()
+         //       now would not dequeue anything, so there's no point in doing it...
 
-// check for upcalls
-
-	if (dataMgr->isValidTag((T_dataManager::message_tags)mtag)) {
-	  if (dataMgr->waitLoop(true, (T_dataManager::message_tags)mtag) ==
-	      T_dataManager::error) {
-	    // TODO
-	    assert(0);
-	  }
-	  if (!UIM_BatchMode) {
-	    Tcl_VarEval (interp, "update", 0);
-	    while (Tk_DoOneEvent (TK_DONT_WAIT) > 0)
-	      ;
-	  }
-	} else if (uim_server->isValidTag((T_UI::message_tags)mtag)) {
-
-// check for incoming client requests
-	  if (uim_server->waitLoop(true, (T_UI::message_tags)mtag) ==
-	      T_UI::error) {
-	    // TODO
-	    assert(0);
-	  }
-	  if (!UIM_BatchMode) {
-	    Tcl_VarEval (interp, "update", 0);
-	  }
-	} else {
-           assert(0);
-        }
+	 if (pollsender == xfd)
+            processPendingTkEventsNoBlock();
+         else if (pollsender == fileno(stdin))
+            // process all pending stdin events
+            StdinProc((ClientData) NULL, 0);
+         else
+            cerr << "hmmm...unknown sender of a MSG_TAG_FILE message...ignoring" << endl;
       }
-    } 
+      else  {
+         // check for upcalls
+         if (dataMgr->isValidTag((T_dataManager::message_tags)mtag)) {
+            if (dataMgr->waitLoop(true, (T_dataManager::message_tags)mtag) ==
+		T_dataManager::error) {
+               // TODO
+               assert(0);
+	    }
+	}
+        else if (uim_server->isValidTag((T_UI::message_tags)mtag)) {
+           // check for incoming client requests
+           if (uim_server->waitLoop(true, (T_UI::message_tags)mtag) ==
+	       T_UI::error) {
+	      // TODO
+	      assert(0);
+	   }
+	}
+        else
+           panic("ui main loop: neither dataMgr nor uim_server report isValidTag() of true");
+      }
+   } 
 
-    unInstallWhereAxisCommands(interp);
+   unInstallWhereAxisCommands(interp);
 
     /*
      * Exiting this thread will signal the main/parent to exit.  No other
@@ -675,8 +626,6 @@ UImain(void* vargs)
      * no windows remaining for the application -- either grievous error 
      * or user has selected "EXIT".
      */
-    delete name;
-    delete cls;
     thr_exit(0);
     return ((void*)0);
   }
@@ -728,7 +677,6 @@ UImain(void* vargs)
  *----------------------------------------------------------------------
  */
 
-    /* ARGSUSED */
 void
 StdinProc(ClientData clientData, int mask)
 {
