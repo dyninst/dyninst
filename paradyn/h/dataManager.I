@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.43  1995/08/08 03:10:35  newhall
+ * Revision 1.44  1995/08/11 21:50:03  newhall
+ * removed kludge()
+ *
+ * Revision 1.43  1995/08/08  03:10:35  newhall
  * changed newPerfData and sampleDataCallbackFunc definitions
  *
  * Revision 1.42  1995/08/05  17:07:40  krisna
@@ -277,7 +280,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 21;
+    $version 22;
 
     //
     // Start a paradyn daemon
@@ -692,7 +695,7 @@ $remote dataManager {
     // This informs the data manager that all igen interfaces have been created
     // and that it is ok to use them -- the start up of all the thread is
     // inelegant
-    $async void kludge(char *metric_file);
+    // $async void kludge(char *metric_file);
 
 
     $signore
