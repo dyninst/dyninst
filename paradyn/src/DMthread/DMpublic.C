@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.6  1994/03/20 01:49:49  markc
+ * Revision 1.7  1994/03/31 01:39:01  markc
+ * Added dataManager continue/pause Process.
+ *
+ * Revision 1.6  1994/03/20  01:49:49  markc
  * Gave process structure a buffer to allow multiple writers.  Added support
  * to register name of paradyn daemon.  Changed addProcess to return type int.
  *
@@ -76,9 +79,19 @@ Boolean dataManager::pauseApplication(applicationContext *app)
     return(app->pauseApplication());
 }
 
+Boolean dataManager::pauseProcess(applicationContext *app, int pid)
+{
+    return(app->pauseProcess(pid));
+}
+
 Boolean dataManager::continueApplication(applicationContext *app)
 {
     return(app->continueApplication());
+}
+
+Boolean dataManager::continueProcess(applicationContext *app, int pid)
+{
+    return(app->continueProcess(pid));
 }
 
 Boolean dataManager::detachApplication(applicationContext *app, Boolean pause)
