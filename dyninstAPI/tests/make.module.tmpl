@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.52 2003/10/29 22:43:18 rchen Exp $
+# $Id: make.module.tmpl,v 1.53 2003/11/04 06:37:38 rchen Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -14,16 +14,16 @@ DEST		= $(TO_CORE)/$(PROGRAM_DEST)/testprogs
 
 # Test to see if GCC is available
 ifdef M_GCC
-OUTPUT		= $(shell which $(M_GCC) 2>&1)
-ifeq (,$(findstring /$(M_GCC),$(OUTPUT)))
+OUTPUT		= $(shell $(M_GCC) --version)
+ifeq (,$(findstring GCC,$(OUTPUT)))
 M_GCC =
 endif
 endif
 
 # Test to see if GXX is available
 ifdef M_GXX
-OUTPUT		= $(shell which $(M_GXX) 2>&1)
-ifeq (,$(findstring /$(M_GXX),$(OUTPUT)))
+OUTPUT		= $(shell $(M_GXX) --version)
+ifeq (,$(findstring GCC,$(OUTPUT)))
 M_GXX =
 endif
 endif
