@@ -3,9 +3,13 @@
 // analagous to rootNode.h (for the where axis)
 
 /* $Log: shgRootNode.h,v $
-/* Revision 1.2  1996/01/11 23:42:21  tamches
-/* there are now 6 node styles instead of 4
+/* Revision 1.3  1996/01/23 07:09:04  tamches
+/* style split up into evaluationState & active flag
+/* added shadow node features
 /*
+ * Revision 1.2  1996/01/11 23:42:21  tamches
+ * there are now 6 node styles instead of 4
+ *
  * Revision 1.1  1995/10/17 22:08:52  tamches
  * initial version, for the new search history graph
  *
@@ -24,9 +28,8 @@
 
 class shgRootNode {
  public:
-   enum style {InactiveUnknown, ActiveUnknown,
-		 ActiveTrue, InactiveFalse,
-		 ActiveFalse, InactiveTrue};
+   enum evaluationState {es_never, es_unknown, es_true, es_false};
+
  private:
    unsigned id;
    string label;
@@ -35,7 +38,13 @@ class shgRootNode {
       // keeping "fullInfo" here is a mistake?
 
    bool highlighted;
-   style theStyle;
+
+   // the combination of the following 2 vrbles defines the 7 possible states
+   // (active/never is undefined)
+   bool active;
+   evaluationState evalState;
+
+   bool shadowNode;
 
    int pixWidthAsRoot, pixHeightAsRoot;
    int pixWidthAsListboxItem;
@@ -44,9 +53,17 @@ class shgRootNode {
    static int horizPad, vertPad;
 
  public:
-   shgRootNode(unsigned iId, style iStyle,
+
+   shgRootNode(unsigned iId, bool iActive, evaluationState iEvalState,
+	       bool iShadowNode,
 	       const string &iLabel, const string &iFullInfo);
+   shgRootNode(const shgRootNode &src);
   ~shgRootNode() {}
+
+   shgRootNode shadowify(const char *newlabel) const {
+      return shgRootNode(id, active, evalState, true,
+			 newlabel, fullInfo);
+   }
 
    unsigned getId() const {return id;}
 
@@ -65,8 +82,12 @@ class shgRootNode {
    int getWidthAsRoot()  const {return pixWidthAsRoot;}
    int getWidthAsListboxItem() const {return pixWidthAsListboxItem;}
 
-   style getStyle() const {return theStyle;}
-   bool configStyle(style newStyle);
+   bool isActive() const {return active;}
+   evaluationState getEvalState() const {return evalState;}
+//   style getStyle() const {return theStyle;}
+
+//   bool configStyle(style newStyle);
+   bool configStyle(bool newActive, evaluationState newEvalState);
       // returns true iff any changes.  Does not redraw.
 
    void drawAsRoot(Tk_Window, int theDrawable,
