@@ -3,6 +3,9 @@
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.31  1996/07/25 23:24:11  mjrg
+ * Added sharing of metric components
+ *
  * Revision 1.30  1996/06/29 19:29:16  newhall
  * removed call to showErrorCallback that is already handled by the paradyn process
  *
@@ -357,25 +360,6 @@ static inline bool focus_matches(vector<string>& focus, vector<string> *match_pa
   return true;
 }
 
-#ifdef notdef
-// TODO -- determine if a focus matches
-// What are the rules ?
-static inline bool focus_matches(vector<string>& focus, vector<string> *match_path) {
-  unsigned mp_size = match_path->size();
-  unsigned f_size = focus.size();
-  if (!mp_size) return false;
-  if (f_size < 2) return false;
-  if (mp_size != (f_size - 1)) return false;
-
-  if (focus[0] == (*match_path)[0])
-    return true;
-  else
-    return false;
-
-  // TODO -- I am ignoring intermediate fields in the match path
-  //      -- I only care about the first and the last fields
-}
-#endif
 
 // Global constraints are specified by giving their name within a metric def
 // Find the real constraint by searching the dictionary using this name
@@ -502,7 +486,6 @@ static metricDefinitionNode *
 apply_to_process(process *proc, 
 		 string& id, string& name,
 		 vector< vector<string> >& focus,
-		 string& flat_name,
 		 unsigned& agg_op,
 		 unsigned& type,
 		 vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
@@ -514,9 +497,31 @@ apply_to_process(process *proc,
 
     if (!update_environment(proc)) return NULL;
 
+    // compute the flat_name for this component: the machine and process
+    // are always defined for the component, even if they are not defined
+    // for the aggregate metric.
+    string flat_name(name);
+    for (unsigned u1 = 0; u1 < focus.size(); u1++) {
+      if (focus[u1][0] == "Process")
+	flat_name += focus[u1][0] + proc->rid->part_name();
+      else if (focus[u1][0] == "Machine")
+	flat_name += focus[u1][0] + machineResource->part_name();
+      else
+	for (unsigned u2 = 0; u2 < focus[u1].size(); u2++)
+	  flat_name += focus[u1][u2];
+    }
+
+    if (allMIComponents.defines(flat_name)) {
+      //sprintf(errorLine,"Found component for %s\n", flat_name.string_of());
+      //logLine(errorLine);
+      return allMIComponents[flat_name];
+    }
+
     // TODO -- Using aggOp value for this metric -- what about folds
     metricDefinitionNode *mn = new metricDefinitionNode(proc, name,
 							focus, flat_name, agg_op);
+    allMIComponents[flat_name] = mn;
+
 
     // Create the timer, counter
     dataReqNode *the_node = create_data_object(type, mn);
@@ -579,7 +584,6 @@ static bool apply_to_process_list(vector<process*>& instProcess,
 				  vector<metricDefinitionNode*>& parts,
 				  string& id, string& name,
 				  vector< vector<string> >& focus,
-				  string& flat_name,
 				  unsigned& agg_op,
 				  unsigned& type,
 				  vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
@@ -612,11 +616,11 @@ static bool apply_to_process_list(vector<process*>& instProcess,
     process *proc = instProcess[p]; assert(proc);
     global_proc = proc;     // TODO -- global
 
-    // skip exited processes.
-    if (proc->status() == exited) continue;
+    // skip neonatal and exited processes.
+    if (proc->status() == exited || proc->status() == neonatal) continue;
 
     metricDefinitionNode *mn;
-    mn = apply_to_process(proc, id, name, focus, flat_name, agg_op, type,
+    mn = apply_to_process(proc, id, name, focus, agg_op, type,
 			  flag_cons, base_use, stmts, flag_dex, base_dex, temp_ctr);
     if (mn)
       parts += mn;
@@ -698,7 +702,7 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
 
   // build the instrumentation request
   if (!apply_to_process_list(instProcess, parts, id_, name_, focus,
-			     flat_name, agg_op_, type_, flag_cons, base_used,
+			     agg_op_, type_, flag_cons, base_used,
 			     stmts_, flag_dex, base_dex, temp_ctr_))
     return NULL;
 
@@ -1193,8 +1197,8 @@ bool T_dyninstRPC::mdl_icode::apply(AstNode &mn, bool mn_initialized) {
      // note: a result of true implies that "mn" was written to
      // Hence, a result of true from this routine means the same.
 
-//  if (pred_ptr)
-//     delete pred_ptr;
+  if (pred_ptr)
+     delete pred_ptr;
 
   return result;
 }
@@ -1866,69 +1870,6 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
   return true;
 }
 
-//// Old definition of observed cost, this is no longer being used
-//#ifdef notdef
-//metricDefinitionNode *mdl_observed_cost(vector< vector<string> >& canon_focus,
-//					string& met_name,
-//					string& flat_name, vector<process *> procs) {
-//  pdFunction *sampler;
-//  dataReqNode *dataPtr;
-//  string name("observed_cost");
-//  static string machine;
-//  static bool machine_init= false;
-//  if (!machine_init) {
-//    machine_init = true;
-//    struct utsname un; assert(!P_uname(&un) != -1); machine = un.nodename;
-//  }
-//
-//  if (other_machine_specified(canon_focus, machine)) return NULL;
-//  vector<process*> ip;
-//  add_processes(canon_focus, procs, ip);
-//  unsigned ip_size, index;
-//  if (!(ip_size = ip.size())) return NULL;
-//
-//  // Can't refine procedure or sync object
-//  if (canon_focus[resource::sync_object].size() > 1) return NULL;
-//  if (canon_focus[resource::procedure].size() > 1) return NULL;
-//
-//  vector<metricDefinitionNode*> parts;
-//
-//  for (index=0; index<ip_size; index++) {
-//    process *proc = ip[index];
-//    metricDefinitionNode *mn =
-//      new metricDefinitionNode(proc, name, canon_focus, flat_name, aggMax);
-//    assert(mn);
-//    dataPtr = mn->addIntCounter(0, false);
-//    assert(dataPtr);
-//
-//    sampler = ((mn->proc())->symbols)->findOneFunction("DYNINSTsampleValues");
-//    assert(sampler);
-//
-//    AstNode reportNode ("DYNINSTreportCost", 
-//			AstNode(DataPtr, dataPtr), AstNode(Constant, 0));
-//
-//    mn->addInst(sampler->funcEntry(), reportNode, callPreInsn, orderLastAtPoint);
-//
-//    if (mn && mn->nonNull()) 
-//      parts += mn;
-//    else {
-//      delete mn; mn = NULL;
-//    }
-//  }
-//
-//  metricDefinitionNode *ret = NULL;
-//  //  switch (parts.size()) {
-//  //  case 0: break;
-//  //  case 1: ret = parts[0]; break;
-//  //  default: ret = new metricDefinitionNode(name, canon_focus, flat_name, parts);
-//  //  }
-//  if (parts.size())
-//    ret = new metricDefinitionNode(name, canon_focus, flat_name, parts);
-//
-//  if (ret) ret->set_inform(true);
-//  return ret;
-//}
-//#endif
 
 bool mdl_get_initial(string flavor, pdRPC *connection) {
   mdl_init(flavor);

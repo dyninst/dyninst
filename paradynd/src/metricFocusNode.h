@@ -7,6 +7,9 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.34  1996/07/25 23:24:07  mjrg
+ * Added sharing of metric components
+ *
  * Revision 1.33  1996/05/10 22:36:38  naim
  * Bug fix and some improvements passing a reference instead of copying a
  * structure - naim
@@ -160,6 +163,21 @@ private:
 };
 
 
+/*
+   metricDefinitionNode describe metric instances. There are two types of
+   nodes: aggregates and non-aggregates (Maybe this class should be divided in
+   two).
+   Aggregate nodes represent a metric instance with one or more components.
+   Each component is represented by a non-aggregate metricDefinitionNode, and
+   is associated with a process.
+   All metric instance have an aggregate metricDefinitionNode, even if it has 
+   only one component (this simplifies doing metric propagation when new 
+   processes start).
+   Components can be shared by two or more aggregate metricDefinitionNodes, 
+   so for example if there are two metric/focus pairs enabled, cpu time for
+   the whole program and cpu time for process p, there will be one non-aggregate
+   instance shared between two aggregate metricDefinitionNodes.
+*/
 class metricDefinitionNode {
 friend int startCollecting(string&, vector<u_int>&, int id);
 
@@ -202,14 +220,14 @@ public:
   metricDefinitionNode *forkProcess(process *child);
   static void handleFork(process *parent, process *child);
 
-  // remove the component associated with process p from this metric instance
-  void removeComponent(process *p);
+  // remove an instance from an aggregate metric
+  void removeThisInstance();
 
 private:
 
-  //void updateAggregateComponent(metricDefinitionNode *,
-  //				timeStamp time, 
-  // 				sampleValue value);
+  void removeComponent(metricDefinitionNode *comp);
+  void endOfDataCollection();
+  void removeFromAggregate(metricDefinitionNode *comp);
   void updateAggregateComponent();
 
   bool			aggregate_;
@@ -226,16 +244,14 @@ private:
   /* for non-aggregate metrics */
   vector<dataReqNode*>	data;
 
-  //vector<instReqNode*> 	requests;
   vector<instReqNode> requests;
-  sampleInfo *sample;          // current sample for this metric
   sampleValue cumulativeValue; // cumulative value for this metric
 
   // which metricDefinitionNode depend on this value.
   vector<metricDefinitionNode*>   aggregators;	
+  vector<sampleInfo *> samples;  // one sample for each aggregator.
+                                 // samples[i] is the sample of aggregators[i].
 
-  //  vector<sampleInfo*>	valueList;	// actual data for comp.
-  //  sampleInfo sample;
   int id_;				// unique id for this one 
   float originalCost_;
 
@@ -274,6 +290,8 @@ inline void metricDefinitionNode::addInst(instPoint *point, const AstNode &ast,
 };
 
 extern dictionary_hash<unsigned, metricDefinitionNode*> allMIs;
+// allMIComponents: the metric components indexed by flat_name.
+extern dictionary_hash<string, metricDefinitionNode*> allMIComponents;
 
 //
 // Return the current wall time -- 

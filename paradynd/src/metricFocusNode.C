@@ -14,6 +14,9 @@ char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.101  1996/07/25 23:24:03  mjrg
+ * Added sharing of metric components
+ *
  * Revision 1.100  1996/06/20 21:34:01  naim
  * Minor change - naim
  *
@@ -119,7 +122,9 @@ unsigned mdnHash(const metricDefinitionNode *&mdn) {
   return ((unsigned) mdn);
 }
 
+
 dictionary_hash<unsigned, metricDefinitionNode*> allMIs(uiHash);
+dictionary_hash<string, metricDefinitionNode*> allMIComponents(string::hash);
 vector<internalMetric*> internalMetric::allInternalMetrics;
 
 // used to indicate the mi is no longer used.
@@ -156,7 +161,7 @@ metricDefinitionNode::metricDefinitionNode(process *p, string& met_name,
   aggOp(agg_style), // CM5 metrics need aggOp to be set
   inserted_(false), met_(met_name), focus_(foc), flat_name_(cat_name),
   aggSample(0),
-  sample(0), cumulativeValue(0.0),
+  cumulativeValue(0.0), samples(0),
   id_(-1), originalCost_(0.0), inform_(false), proc_(p)
 {
   mdl_inst_data md;
@@ -189,24 +194,12 @@ metricDefinitionNode::metricDefinitionNode(string& metric_name,
   aggSample(agg_op),
   id_(-1), originalCost_(0.0), inform_(false), proc_(NULL)
 {
-  // TODO -- does this work 
-  //mdl_inst_data md;
-  //assert(mdl_metric_data(metric_name, md));
-  //style_ = md.style;
-  //sample = md.aggregate;
-  //aggOp = md.aggregate;
   unsigned p_size = parts.size();
   for (unsigned u=0; u<p_size; u++) {
     metricDefinitionNode *mi = parts[u];
     metricDefinitionNode *t = (metricDefinitionNode *) this;
     mi->aggregators += t;
-    if (parts[u]->sample)
-      aggSample.addComponent(parts[u]->sample);
-    else
-      parts[u]->sample = aggSample.newComponent();
-    // parts[u]->aggregators += this;
-    //valueList.add(&parts[u]->sample);
-    //valueList += &parts[u]->sample;
+    mi->samples += aggSample.newComponent();
   }
 }
 
@@ -319,15 +312,6 @@ metricDefinitionNode *createMetricInstance(string& metric_name, vector<u_int>& f
       if (mi->getFullName() == flat_name)
         return mi;
 
-    //
-    // Old definition of observed_cost
-    //
-    // KLUDGE ALERT
-    // Catch complex metrics that are currently beyond the mdl's power
-    //if (metric_name == "observed_cost") {
-    //  mi=mdl_observed_cost(canon_focus, metric_name, flat_name, processVec);
-    //} else if (mdl_can_do(metric_name)) {
-
     if (mdl_can_do(metric_name)) {
       mi = mdl_do(canon_focus, metric_name, flat_name, processVec);
     } else {
@@ -347,15 +331,18 @@ void metricDefinitionNode::propagateMetricInstance(process *p) {
   vector<process *> vp(1,p);
   bool internal = false;
 
-  if (components.size() == 0)
+  unsigned comp_size = components.size();
+
+  if (comp_size == 0)
     return;
 
-  //
-  // Old definition of observed_cost
-  //
-  //if (met_ == "observed_cost") {
-  //  mi = mdl_observed_cost(focus_, met_, flat_name_, vp);
-  //} else if (mdl_can_do(met_)) {
+  for (unsigned u = 0; u < comp_size; u++) {
+    if (components[u]->proc() == p) {
+      // The metric is already enabled for this process. This case can 
+      // happen when we are starting several processes at the same time.
+      return;
+    }
+  }
 
   if (mdl_can_do(met_)) {
       // Make the unique ID for this metric/focus visible in MDL.
@@ -374,13 +361,7 @@ void metricDefinitionNode::propagateMetricInstance(process *p) {
 
     components += mi->components[0];
     mi->components[0]->aggregators[0] = this;
-    if (mi->components[0]->sample)
-      aggSample.addComponent(mi->components[0]->sample);
-    else
-      mi->components[0]->sample = aggSample.newComponent();
-    //valueList.add(&mi->components[0]->sample);
-    //valueList += &mi->components[0]->sample;
-
+    mi->components[0]->samples[0] = aggSample.newComponent();
     if (!internal)
       mi->components[0]->insertInstrumentation();
 
@@ -390,68 +371,70 @@ void metricDefinitionNode::propagateMetricInstance(process *p) {
       currentPredictedCost += cost - originalCost_;
       originalCost_ = cost;
     }
+
+    mi->components.resize(0);
+    delete mi;
   }
 }
 
-// remove process proc from this metric instance. This function should be 
-// called whenever a process exits.
-void metricDefinitionNode::removeComponent(process *proc) {
-    unsigned u;
-    unsigned components_size = components.size();
 
-    bool found = false;
-    for (u = 0; u < components_size; u++) {
-      if (components[u]->proc_ == proc) {
-	found = true;
-	break;
-      }
-    }
-    if (!found) {
-      // the process is not a component of this metric instance.
-      return;
-    }    
+// called when all components have been removed (because the processes have exited)
+void metricDefinitionNode::endOfDataCollection() {
+  assert(components.size() == 0);
 
-    aggSample.removeComponent(components[u]->sample);
+  // flush aggregateSamples
+  sampleInterval ret = aggSample.aggregateValues();
 
-    // delete component u from metric instance
-    components[u]->disable();
-
-    delete components[u];
- 
-
-    if ((components_size - 1) > u) {
-      components[u] = components[components_size-1];
-    }
-    components.resize(components_size-1);
-
-    if (components.size() == 0) {
-      // end data collection for this metric
-
-      // flush aggregateSamples
-      sampleInterval ret = aggSample.aggregateValues();
-
-      while (ret.valid) {
-        assert(ret.end > ret.start);
-        assert(ret.start >= (firstRecordTime/MILLION));
-        assert(ret.end >= (firstRecordTime/MILLION));
-
-	batchSampleData(0, id_, ret.start, ret.end, ret.value,
-			aggSample.numComponents(),false);
-	ret = aggSample.aggregateValues();
-      }
-
-      flush_batch_buffer(0);
-      tp->endOfDataCollection(id_);
-    }
+  while (ret.valid) {
+    assert(ret.end > ret.start);
+    assert(ret.start >= (firstRecordTime/MILLION));
+    assert(ret.end >= (firstRecordTime/MILLION));
+    batchSampleData(0, id_, ret.start, ret.end, ret.value,
+		    aggSample.numComponents(),false);
+    ret = aggSample.aggregateValues();
+  }
+  flush_batch_buffer(0);
+  tp->endOfDataCollection(id_);
 }
+
+
+// remove a component from an aggregate.
+void metricDefinitionNode::removeFromAggregate(metricDefinitionNode *comp) {
+  unsigned size = components.size();
+  for (unsigned u = 0; u < size; u++) {
+    if (components[u] == comp) {
+      components[u] = components[size-1];
+      components.resize(size-1);
+      if (size == 1) {
+	endOfDataCollection();
+      }
+      return;
+    }
+  }
+  // should always find the right component 
+  assert(0);
+}
+
+// remove this instance from all aggregators it is a component of.
+void metricDefinitionNode::removeThisInstance() {
+  assert(!aggregate_);
+  unsigned aggr_size = aggregators.size();
+  assert(aggr_size > 0);
+  for (unsigned u = 0; u < aggr_size; u++) {
+    aggregators[u]->aggSample.removeComponent(samples[u]);
+    aggregators[u]->removeFromAggregate(this); 
+  }
+}
+
 
 // Called when a process exits to remove the component associated to proc 
 // from all metric instances
 // Remove the metric instances that don't have any components left
 void removeFromMetricInstances(process *proc) {
-    vector<metricDefinitionNode *> MIs = allMIs.values();
+    vector<metricDefinitionNode *> MIs = allMIComponents.values();
     for (unsigned j = 0; j < MIs.size(); j++) {
-      MIs[j]->removeComponent(proc);
+      if (MIs[j]->proc() == proc)
+	MIs[j]->removeThisInstance();
     }
     costMetric::removeProcessFromAll(proc);
 }
@@ -483,7 +466,7 @@ void metricDefinitionNode::handleFork(process *parent, process *child) {
 	  if (mi->focus_[resource::process].size()== 1) {
 	    mi->components += childMI;
 	    childMI->aggregators += mi;
-	    childMI->sample = mi->aggSample.newComponent();
+	    childMI->samples += mi->aggSample.newComponent();
 	  }
 	  else {
 	    // this metric is only being computed for selected processes.
@@ -518,6 +501,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id)
 
     metricDefinitionNode *mi = createMetricInstance(metric_name, focus,
                                                     true, internal);
+
     if (!mi) return(-1);
 
     mi->id_ = id;
@@ -610,8 +594,7 @@ void metricDefinitionNode::disable()
     for (unsigned u=0; u<ai_size; u++) {
       internalMetric *theIMetric = internalMetric::allInternalMetrics[u];
       if (theIMetric->disableByMetricDefinitionNode(this)) {
-	// Shouldn't the following line be commented out for the release?
-//        logLine("disabled internal metric\n");
+	//logLine("disabled internal metric\n");
         return;
       }
     }
@@ -620,7 +603,7 @@ void metricDefinitionNode::disable()
     for (unsigned i=0; i<costMetric::allCostMetrics.size(); i++){
       if (costMetric::allCostMetrics[i]->node == this) {
         costMetric::allCostMetrics[i]->disable();
-//        logLine("disabled cost metric\n");
+	//logLine("disabled cost metric\n");
         return;
     }}
 
@@ -630,8 +613,27 @@ void metricDefinitionNode::disable()
     if (aggregate_) {
         /* disable components of aggregate metrics */
         unsigned c_size = components.size();
-        for (unsigned u=0; u<c_size; u++)
-          components[u]->disable();
+        for (unsigned u=0; u<c_size; u++) {
+	  //components[u]->disable();
+	  metricDefinitionNode *m = components[u];
+	  unsigned aggr_size = m->aggregators.size();
+	  assert(aggr_size == m->samples.size());
+	  for (unsigned u1=0; u1 < aggr_size; u1++) {
+	    if (m->aggregators[u1] == this) {
+	      m->aggregators[u1] = m->aggregators[aggr_size-1];
+	      m->aggregators.resize(aggr_size-1);
+	      m->samples[u1] = m->samples[aggr_size-1];
+	      m->samples.resize(aggr_size-1);
+	      break;
+	    }
+	  }
+	  assert(m->aggregators.size() == aggr_size-1);
+	  // disable component only if it is not being shared
+	  if (aggr_size == 1) {
+	    m->disable();
+	  }
+	}
+
     } else {
       vector<unsigVecType> pointsToCheck;
       for (unsigned u1=0; u1<requests.size(); u1++) {
@@ -647,23 +649,56 @@ void metricDefinitionNode::disable()
 
 }
 
+void metricDefinitionNode::removeComponent(metricDefinitionNode *comp) {
+    assert(!comp->aggregate_);
+    unsigned aggr_size = comp->aggregators.size();
+    unsigned found = aggr_size;
+
+    if (aggr_size == 0) {
+      delete comp;
+      return;
+    }
+
+    // component has more than one aggregator. Remove this from list of aggregators
+    for (unsigned u = 0; u < aggr_size; u++) {
+      if (comp->aggregators[u] == this) {
+	found = u;
+	break;
+      }
+    }
+    if (found == aggr_size)
+     return;
+    assert(found < aggr_size);
+    assert(aggr_size == comp->samples.size());
+    comp->aggregators[found] = comp->aggregators[aggr_size-1];
+    comp->aggregators.resize(aggr_size-1);
+    comp->samples[found] = comp->samples[aggr_size-1];
+    comp->samples.resize(aggr_size-1);
+
+    if (aggr_size == 1) {
+      delete comp;
+      return;
+    }
+
+}
+
 metricDefinitionNode::~metricDefinitionNode()
 {
     if (aggregate_) {
         /* delete components of aggregate metrics */
         unsigned c_size = components.size();
         for (unsigned u=0; u<c_size; u++)
-          delete components[u];
+	  removeComponent(components[u]);
+	  //delete components[u];
         components.resize(0);
     } else {
+      allMIComponents.undef(flat_name_);
       unsigned size = data.size();
       for (unsigned u=0; u<size; u++)
         delete data[u];
-//      size = requests.size();
-//      for (unsigned u1=0; u1<size; u1++)
-//        delete requests[u1];
     }
 }
+
 
 //////////////////////////////////////////////////////////////////////////////
 // Buffer the samples before we actually send it                            //
@@ -774,14 +809,6 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     timeStamp sampleTime = wallTime / 1000000.0; 
     assert(value >= -0.01);
 
-// TODO mdc
-//    if (!sample.firstSampleReceived) {
-//      sprintf(errorLine, "First for %s:%d at %f\n", met->info.name.string_of(), id,
-//            sampleTime-(firstRecordTime/MILLION));
-//      logLine(errorLine);
-//    }
-
-
     // TODO -- is this ok?
     // TODO -- do sampledFuncs work ?
     if (style_ == EventCounter) { 
@@ -801,6 +828,7 @@ void metricDefinitionNode::updateValue(time64 wallTime,
       value -= cumulativeValue;
       cumulativeValue += value;
     } 
+
       // char buffer[200];
       // sprintf(buffer, "metricDefinitionNode::updateValue: value = %f aggOp = %d agg.size = %d valueList.size = %d\n", value,sample.aggOp,aggregators.size(),valueList.count());
       // logLine(buffer);
@@ -810,74 +838,16 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     // necessary to have an special case for SampledFunction.
     //
 
-#ifdef notdef
-    assert(valueList.size() == 0);
-    // ret = sample.newValue(valueList, sampleTime, value);
-    if (sample.firstValueReceived()) {
-      ret = sample.newValue(valueList, sampleTime, value);
+
+    assert(samples.size() == aggregators.size());
+    for (unsigned u = 0; u < samples.size(); u++) {
+      if (samples[u]->firstValueReceived())
+	samples[u]->newValue(sampleTime, value);
+      else {
+	samples[u]->startTime(sampleTime);
+      }
+      aggregators[u]->updateAggregateComponent();
     }
-    else {
-      // this is the first sample. Since we don't have the start time for this
-      // sample, we have to loose it, but we set the start time here. 
-      ret = sample.startTime(sampleTime);
-      cumulativeValue = value;
-    }
-#endif
-
-    if (sample->firstValueReceived())
-      sample->newValue(sampleTime, value);
-    else {
-      sample->startTime(sampleTime);
-      cumulativeValue = value;
-    }
-
-//    if (!ret.valid && inform_) {
-//       sprintf(errorLine, "Invalid for %s:%d at %f, val=%f, inform=%d\n",
-//            met->info.name.string_of(), id_, sampleTime-(firstRecordTime/MILLION),
-//            value, inform);
-//      logLine(errorLine);
-//    }
-
-    unsigned a_size = aggregators.size();
-    for (unsigned a=0; a<a_size; a++) 
-      //aggregators[a]->updateAggregateComponent(this, sampleTime, value);
-      aggregators[a]->updateAggregateComponent();
-
-    // we should not need to report any values, since this should not be an aggregate
-    assert(!inform_);
-#ifdef notdef
-    /* 
-     * must do this after all updates are done, because it may turn off this
-     *  metric instance.
-     */
-    if (inform_ && ret.valid) {
-        /* invoke call backs */
-        // assert(ret.start >= 0.0);
-        // I have no idea where negative time comes from but leave it to
-        // the CM-5 to create it on the first sample -- jkh 7/15/94
-        // This has been solved; no sample times will be bad -- zxu
-        if (ret.start < 0.0) ret.start = 0.0;
-        assert(ret.end >= 0.0);
-        assert(ret.end >= ret.start);
-
-        // TODO mdc
-//      assert(ret.start >= (firstRecordTime/ MILLION));
-//      assert(ret.end >= (firstRecordTime/MILLION));
-
-//        double time1 = getCurrentTime(false);
-
-        batchSampleData(0, id_, ret.start, ret.end, ret.value,
-			valueList.size(),false);
-
-//        double diffTime = getCurrentTime(false) - time1;
-//        if (diffTime > 0.2) {
-//           char buffer[200];
-//           sprintf(buffer, "metricDefinitionNode::updateValue: igen call took unusually long: %g seconds\n", 
-//                   diffTime);
-//           logLine(buffer);
-//      }
-    }
-#endif
 }
 
 void metricDefinitionNode::updateCM5AggValue(time64 wallTime, 
@@ -903,83 +873,37 @@ void metricDefinitionNode::updateCM5AggValue(time64 wallTime,
       cumulativeValue += value;
 
       // if this is an average aggregated value then get ave. from sum
-      //if((is_agg) && (sample.aggOp != aggSum)){
       if((is_agg) && (aggOp != aggSum)){
               value /= num_processes;
       }
     }
 
-#ifdef notdef
-    // ret = sample.newValue(valueList, sampleTime, value);
-    assert(valueList.size() == 0);
-    if (sample.firstValueReceived()) {
-      ret = sample.newValue(sampleTime, value);
+    for (unsigned u = 0; u < samples.size(); u++) {
+      if (samples[u]->firstValueReceived())
+	samples[u]->newValue(sampleTime, value);
+      else {
+	samples[u]->startTime(sampleTime);
+	cumulativeValue = value;
+      }
     }
-    else {
-      // this is the first sample. Since we don't have the start time for this
-      // sample, we have to loose it, but we set the start time here. 
-      ret = sample.startTime(sampleTime);
-      cumulativeValue = value;
-    }
-#endif
-
-    if (sample->firstValueReceived())
-      sample->newValue(sampleTime, value);
-    else {
-      sample->startTime(sampleTime);
-      cumulativeValue = value;
-    }
-
 
     unsigned a_size = aggregators.size();
     for (unsigned a=0; a<a_size; a++) {
-      //aggregators[a]->updateAggregateComponent(this, sampleTime, value);
       aggregators[a]->updateAggregateComponent();
     }
 
-
-    // we should not need to report any values, since this should not be an aggregate
-    assert(!inform_);
-#ifdef notdef
-    /* 
-     * must do this after all updates are done, because it may turn off this
-     *  metric instance.
-     */
-    if (inform_ && ret.valid) {
-        /* invoke call backs */
-        // assert(ret.start >= 0.0);
-        // I have no idea where negative time comes from but leave it to
-        // the CM-5 to create it on the first sample -- jkh 7/15/94
-        // This has been solved; no sample times will be bad -- zxu
-        if (ret.start < 0.0) ret.start = 0.0;
-        assert(ret.end >= 0.0);
-        assert(ret.end >= ret.start);
-        batchSampleData(0, id_, ret.start, ret.end, ret.value,
-			valueList.size(),false);
-    }
-#endif
 }
 
-//void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
-//                                                    timeStamp sampleTime, 
-//                                                    sampleValue value)
 void metricDefinitionNode::updateAggregateComponent()
 {
     sampleInterval ret;
-
-    // ret = sample.newValue(valueList, sampleTime, value);
     ret = aggSample.aggregateValues();
-
     if (ret.valid) {
         assert(ret.end > ret.start);
         assert(ret.start >= (firstRecordTime/MILLION));
         assert(ret.end >= (firstRecordTime/MILLION));
-
-	// batchSampleData(0, id_, ret.start, ret.end, ret.value,
-	//		valueList.size(),false);
 	batchSampleData(0, id_, ret.start, ret.end, ret.value,
 			aggSample.numComponents(),false);
-
     }
 }
 
@@ -1096,7 +1020,6 @@ bool instReqNode::insertInstrumentation()
 {
     instance = addInstFunc(proc, point, ast, when, order);
     if (instance) return(true);
-
     return(false);
 }
 
@@ -1280,24 +1203,6 @@ dataReqNode::~dataReqNode()
 {
     instance = NULL;
 }
-
-#ifdef notdef
-timeStamp xgetCurrentTime(bool firstRecordRelative)
-{
-    time64 now;
-    timeStamp ret;
-    struct timeval tv;
-    
-    // TODO -- declaration for gettimeofday ?
-    gettimeofday(&tv, NULL);
-    now = (time64) (tv.tv_sec * MILLION) + tv.tv_usec;
-    if (firstRecordRelative) now -= firstRecordTime;
-    
-    ret = now/MILLION;
-
-    return(ret);
-}
-#endif
 
 timeStamp getCurrentTime(bool firstRecordRelative)
 {
