@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.44 2004/03/02 22:46:06 bernat Exp $
+// $Id: sol_proc.C,v 1.45 2004/03/05 16:51:41 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1674,8 +1674,6 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
       
       if(lproc && (lproc->status() == running || lproc->status() == neonatal))
       {
-          fprintf(stderr, "Process %d, status %d\n",
-                  lproc->getPid(), lproc->status());
           if (wait_arg == -1 || lproc->getPid() == wait_arg) {
               fds[u].fd = lproc->getRepresentativeLWP()->status_fd();
               any_active_procs = true;
