@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.41 2002/04/15 15:07:24 mjbrim Exp $
+# $Id: make.module.tmpl,v 1.42 2002/04/22 20:52:43 mjbrim Exp $
 #
 
 CFLAGS		+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
@@ -112,8 +112,6 @@ IGEN_GEN_SRCS =	dataManager.thread.C \
 		termWin.xdr.CLNT.C \
 		termWin.xdr.temp.C
 
-	
-
 IGEN_ISRCS    = dataManager.I \
 		performanceConsultant.I \
 		dyninstRPC.I \
@@ -122,7 +120,6 @@ IGEN_ISRCS    = dataManager.I \
 		UI.I \
 		VM.I \
 		termWin.I
-
 
 TCL_SRCS 	= ../tcl/applic.tcl \
 		../tcl/callGraph.tcl \
@@ -140,7 +137,6 @@ TCL_SRCS 	= ../tcl/applic.tcl \
 		../tcl/whereAxis.tcl
 
 SRCS		+= $(TCL2C_GEN_SRCS)
-
 
 IFLAGS       += -DPARADYN
 
@@ -162,6 +158,8 @@ templatesPCV.o: ../src/templatesPCV.C
 	$(CXX) $(TFLAGS) -c ../src/templatesPCV.C
 templatesUI.o: ../src/templatesUI.C
 	$(CXX) $(TFLAGS) -c ../src/templatesUI.C
+templatesUIWASHG.o: ../src/templatesUIWASHG.C
+	$(CXX) $(TFLAGS) -c ../src/templatesUIWASHG.C
 
 $(TCL2C_GEN_SRCS):	$(TCL_SRCS)
 	$(PERL) $(TCL2C) $^ > $@
