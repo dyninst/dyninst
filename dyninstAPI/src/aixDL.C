@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.16 2002/02/22 00:06:45 bernat Exp $
+// $Id: aixDL.C,v 1.17 2002/02/22 00:25:10 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -336,7 +336,6 @@ bool checkAllThreadsForBreakpoint(int pid, Address break_addr, unsigned &curr_lw
   // kernel thread ID. Sheesh.
 
   struct ptsprs spr_contents;
-  fprintf(stderr, "Checking all threads for breakpoint %x\n", break_addr);
   // Check the current (cached) kernel thread ID
   if (curr_lwp) {
     if (P_ptrace(PTT_READ_SPRS, curr_lwp, (int *)&spr_contents,
@@ -630,8 +629,6 @@ bool process::dlopenDYNINSTlib()
     logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
     assert(0);
   }
-  fprintf(stderr, "Wrote trap at addr 0x%x, starting at 0x%x\n",
-	  dlopentrap_addr, dlopencall_addr);
   return true;
 }
 

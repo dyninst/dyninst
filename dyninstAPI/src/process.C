@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.302 2002/02/21 21:47:49 bernat Exp $
+// $Id: process.C,v 1.303 2002/02/22 00:25:10 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1392,7 +1392,7 @@ bool process::initTrampGuard()
   bool flag = findInternalSymbol(vrbleName, true, sym);
   assert(flag);
   trampGuardAddr_ = sym.getAddr();
-  fprintf(stderr, "Found tramp guard at addr %x\n", (unsigned) trampGuardAddr_);
+  //fprintf(stderr, "Found tramp guard at addr %x\n", (unsigned) trampGuardAddr_);
   return true;
 }
   
