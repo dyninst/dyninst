@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.30 2003/12/04 19:15:08 schendel Exp $
+// $Id: procfs.C,v 1.31 2003/12/11 21:23:31 rchen Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -77,7 +77,7 @@ extern long sysconf(int);
    the child.
 */
 void OS::osTraceMe(void) {
-  sysset_t exitSet;
+  sigset_t signalSet;
   char procName[128];
 
   sprintf(procName,"/proc/%05d", (int)getpid());
@@ -88,37 +88,25 @@ void OS::osTraceMe(void) {
     P__exit(-1); // must use _exit here.
   }
 
-  /* set a breakpoint at the exit of exec/execve */
-  premptyset(&exitSet);
-#ifdef SYS_exec
-  praddset(&exitSet, SYS_exec);
-#endif
-#ifdef SYS_execve
-  praddset(&exitSet, SYS_execve);
-#endif
-
-  /* DIGITAL UNIX USES THIS */
-#ifdef SYS_execv
-  praddset(&exitSet,SYS_execv);
-#endif
-
-  if (ioctl(fd, PIOCSEXIT, &exitSet) < 0) {
-    fprintf(stderr, "osTraceMe: PIOCSEXIT failed: %s\n", sys_errlist[errno]); 
-    fflush(stderr);
-    P__exit(-1); // must use _exit here.
-  }
-
-  long pr_flags;
-  if (ioctl(fd, PIOCGSPCACT, &pr_flags) < 0) {
-      sprintf(errorLine, "Cannot get status\n");
+  premptyset(&signalSet);
+  praddset(&signalSet, SIGTRAP);
+  praddset(&signalSet, SIGSTOP);
+  praddset(&signalSet, SIGSEGV);
+  if (ioctl(fd, PIOCSTRACE, &signalSet) == -1) {
+      sprintf(errorLine, "Cannot trace singals\n");
       logLine(errorLine);
       close(fd);
       return;
   }
-  pr_flags |= PRFS_STOPEXEC;	/* stop on exec */
-  pr_flags |= PRFS_KOLC;	/* add kill on last close flag */
-  ioctl(fd, PIOCSSPCACT, &pr_flags);
- 
+
+  long pr_flags = PR_STOPEXEC | PR_KLC;
+  if (ioctl(fd, PIOCSET, &pr_flags) == -1) {
+      sprintf(errorLine, "Cannot set status\n");
+      logLine(errorLine);
+      close(fd);
+      return;
+  }
+
   errno = 0;
   return;
 }
