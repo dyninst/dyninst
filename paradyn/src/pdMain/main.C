@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.40  1996/03/14 14:22:42  naim
-/* Batching enable data requests for better performance - naim
+/* Revision 1.41  1996/04/05 21:02:39  naim
+/* Chaging default value for packet size tunable constant - naim
 /*
+ * Revision 1.40  1996/03/14  14:22:42  naim
+ * Batching enable data requests for better performance - naim
+ *
  * Revision 1.39  1996/02/02  02:08:20  karavan
  * moved performance consultant related tunable constant definitions to the
  * PC thread.
@@ -316,7 +319,7 @@ main (int argc, char **argv)
      "Enable request packet size",
      NULL,
      developerConstant,
-     5.0, // initial value
+     2.0, // initial value
      1.0,  // min
      100.0); // max
 
