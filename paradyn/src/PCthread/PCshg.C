@@ -20,6 +20,10 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.40  1996/04/18 20:44:18  tamches
+ * uiRequestBuff no longer a pointer; we call 'new' on a vector just before
+ * the batch call.  This avoids some purify hits.
+ *
  * Revision 1.39  1996/04/16 18:36:10  karavan
  * BUG FIX.
  *
@@ -255,23 +259,26 @@ void
 searchHistoryGraph::addUIrequest(unsigned srcID, unsigned dstID, 
 				 int styleID, const char *label)
 {
-  if (numUIrequests == 0) {
-    uiRequestBuff = new vector<uiSHGrequest>;
-  }
   uiSHGrequest newGuy;
   newGuy.srcNodeID = srcID;
   newGuy.dstNodeID = dstID;
   newGuy.styleID = styleID;
   newGuy.label = label;
-  *uiRequestBuff += newGuy;
-  numUIrequests++;
+  uiRequestBuff += newGuy;
 }
 
 void
 searchHistoryGraph::flushUIbuffer()
 {
-  uiMgr->DAGaddBatchOfEdges(guiToken, uiRequestBuff, numUIrequests);
-  numUIrequests = 0;
+  if (uiRequestBuff.size() == 0)
+     return; // nothing needs to be sent
+
+  vector<uiSHGrequest> *bufferToSend = new vector<uiSHGrequest>(uiRequestBuff);
+     // the consumer (the UI igen call) will delete this guy
+  assert(bufferToSend->size() == uiRequestBuff.size()); // just a sanity check for fun
+
+  uiMgr->DAGaddBatchOfEdges(guiToken, bufferToSend, bufferToSend->size());
+  uiRequestBuff.resize(0);
 }
 
 void
@@ -572,8 +579,7 @@ searchHistoryGraph::searchHistoryGraph(PCsearch *searchPhase,
  srch(searchPhase), 
  guiToken(phaseToken),
  nextID(0),
- uiRequestBuff(NULL),
- numUIrequests(0)
+ uiRequestBuff(0) // initialize to a 0-sized array
 {
   vector<searchHistoryNode*> Nodes;
   root = new searchHistoryNode ((searchHistoryNode *)NULL,
@@ -589,13 +595,14 @@ searchHistoryGraph::searchHistoryGraph(PCsearch *searchPhase,
 void 
 searchHistoryGraph::updateDisplayedStatus (char *newmsg)
 {
-  string *msgStr = new string (newmsg);
+  string *msgStr = new string (newmsg); // UI will call 'delete' on this
   uiMgr->updateStatusDisplay(guiToken, msgStr);
 }
   
 void 
 searchHistoryGraph::updateDisplayedStatus (string *newmsg)
 {
+  // note: UI will call 'delete' on newmsg
   uiMgr->updateStatusDisplay(guiToken, newmsg);
 }
   
@@ -707,5 +714,3 @@ searchHistoryGraph::initPersistentNodes()
   }
   delete topmost;
 }
-
-
