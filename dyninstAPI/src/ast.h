@@ -44,6 +44,9 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.30  1998/08/26 20:57:20  zhichen
+ * Fixed dag code generation, added one parameter to AstNode::CodeGeneration.
+ *
  * Revision 1.29  1998/08/25 19:35:04  buck
  * Initial commit of DEC Alpha port.
  *
@@ -133,9 +136,9 @@ typedef enum { plusOp,
                loadOp,           
                loadConstOp,
                storeOp,
-	       storeMemOp,
-	       loadMemOp,
                ifOp,
+	       whileOp,  // Simple control structures will be useful
+	       doOp,     // Zhichen
 	       callOp,
 	       trampPreamble,
 	       trampTrailer,
@@ -150,7 +153,7 @@ typedef enum { plusOp,
 	       storeIndirOp,
 	       saveRegOp,
 	       updateCostOp,
-	       branchOp } opCode;
+	       branchOp} opCode;
 
 class registerSlot {
  public:
@@ -187,7 +190,8 @@ class AstNode {
         enum operandType { Constant, ConstantPtr, ConstantString,
 			   DataValue, DataPtr, 
                            DataId, DataIndir, DataReg,
-			   Param, ReturnVal, DataAddr };
+			   Param, ReturnVal, DataAddr,
+			   SharedData};
 
         AstNode(); // mdl.C
 	AstNode(const string &func, AstNode *l, AstNode *r);
@@ -211,7 +215,7 @@ class AstNode {
 	int generateTramp(process *proc, char *i, Address &base,
 			  int &trampCost, bool noCost);
 	reg generateCode(process *proc, registerSpace *rs, char *i, 
-			 Address &base, bool noCost);
+			 Address &base, bool noCost, bool root);
 	reg generateCode_phase2(process *proc, registerSpace *rs, char *i, 
 			        Address &base, bool noCost);
 
@@ -221,6 +225,7 @@ class AstNode {
         int useCount;           // Reference count for generating code
         void setUseCount(void); // Set values for useCount
         void cleanUseCount(void);
+        bool checkUseCount(registerSpace*, bool&);
         void printUseCount(void);
         reg kept_register;      // Use when generating code for shared nodes
         void updateOperandsRC(bool flag); // Update operand's referenceCount
@@ -228,6 +233,9 @@ class AstNode {
                                           // counter, otherwise it decrements 
                                           // the counter.
         void printRC(void);
+	bool findFuncInAst(string func) ;
+	void replaceFuncInAst(string func1, string func2);
+	void replaceFuncInAst(string func1, string func2, vector<AstNode *> &ast_args, int index=0);
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
 	bool astFlag;  
@@ -289,5 +297,7 @@ AstNode *createTimer(const string &func, void *,
 Address emitFuncCall(opCode op, registerSpace *rs, char *i,Address &base, 
 		      const vector<AstNode *> &operands, const string &func,
 		      process *proc, bool noCost);
-
 #endif
+
+
+
