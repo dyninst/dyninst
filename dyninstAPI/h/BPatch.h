@@ -246,4 +246,23 @@ public:
     bool waitUntilStopped(BPatch_thread *appThread);
 };
 
+#if defined(IBM_BPATCH_COMPAT) && (defined(rs6000_ibm_aix4_1) || defined(rs6000_ibm_aix5_1)) 
+#include <sys/ldr.h>
+
+typedef struct LD_INFO {
+  union {
+    struct ld_info32 {
+      __I_FIELDS(__I_INT32, __I_PTR32, __I_FP32, __I_EMPTY)
+    }ld_info32;
+    struct ld_info64 {
+      __I_FIELDS(__I_INT64, __I_PTR64, __I_FP64, uint ldinfo_flags;)
+    }ld_info64;
+  } ld_info;
+} LD_INFO;
+
+#define LD_32(a,b) (a->ld_info.ld_info32.b)
+#define LD_64(a,b) (a->ld_info.ld_info64.b)
+
+#endif // AIX IBM BPATCH
+
 #endif /* _BPatch_h_ */

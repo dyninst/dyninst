@@ -85,6 +85,9 @@ typedef enum eBPatch_procedureLocation {
     BPatch_locLongJump,
     BPatch_locAllLocations,
     BPatch_locInstruction,
+#ifdef IBM_BPATCH_COMPAT
+    BPatch_locUnknownLocation,
+#endif
     BPatch_locSourceBlockEntry,		// not yet used
     BPatch_locSourceBlockExit,		// not yet used
     BPatch_locSourceLoopEntry,		// not yet used

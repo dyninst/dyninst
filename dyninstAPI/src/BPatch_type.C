@@ -787,6 +787,18 @@ void BPatch_type::endCommonBlock(BPatch_function *func, void *baseAddr)
 
     return;
 }
+#ifdef IBM_BPATCH_COMPAT
+char *BPatch_type::getName(char *buffer, int max)
+{
+  if (max > strlen(name)) {
+    strcpy (buffer, name);
+    return buffer;
+  } else {
+    strncpy (buffer, name, max-1)[max-1] = '\0';
+  }
+   return NULL;
+}
+#endif
 
 //
 // Define the type compatability among the intrensic types of the various

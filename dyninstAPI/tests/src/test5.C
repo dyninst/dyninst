@@ -218,7 +218,7 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
    }
 
    BPatch_Vector<BPatch_snippet *> call1_args;
-   BPatch_constExpr expr1_2((unsigned long)this1->getBaseAddr());
+   BPatch_constExpr expr1_2((const void *)this1->getBaseAddr());
    call1_args.push_back(&expr1_2);
    BPatch_constExpr expr1_3(1);
    call1_args.push_back(&expr1_3);
@@ -341,7 +341,7 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_Vector<BPatch_snippet *> call2_args;
-    BPatch_constExpr expr2_0((unsigned long)this2->getBaseAddr());
+    BPatch_constExpr expr2_0((void *)this2->getBaseAddr());
     call2_args.push_back(&expr2_0);
     BPatch_constExpr expr2_1(2);
     call2_args.push_back(&expr2_1);
@@ -579,7 +579,7 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
          
          BPatch_Vector<BPatch_snippet *> call5_args;
          
-         BPatch_constExpr expr5_0((unsigned long)this5->getBaseAddr());
+         BPatch_constExpr expr5_0((void *)this5->getBaseAddr());
          call5_args.push_back(&expr5_0);
          BPatch_constExpr expr5_1(5);
          call5_args.push_back(&expr5_1);
@@ -825,7 +825,7 @@ void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
   }
 
   BPatch_Vector<BPatch_snippet *> call8_args;
-  BPatch_constExpr expr8_0((unsigned long)this8->getBaseAddr());
+  BPatch_constExpr expr8_0((void *)this8->getBaseAddr());
   call8_args.push_back(&expr8_0);
   BPatch_constExpr expr8_1(8);
   call8_args.push_back(&expr8_1);

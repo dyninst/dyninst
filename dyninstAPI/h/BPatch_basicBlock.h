@@ -111,6 +111,10 @@ public:
 
 	/** return the start and end addresses of the basic block */
 	bool getAddressRange(void*& _startAddress, void*& _endAddress);
+#ifdef IBM_BPATCH_COMPAT
+        //  dummy placeholder.  I think this is only used by dpcl in a debug routine
+	bool getLineNumbers(unsigned int _startLine, unsigned int  _endLine) {return false;}
+#endif
 
 	/** return a set of points within the basic block */
 	BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops);

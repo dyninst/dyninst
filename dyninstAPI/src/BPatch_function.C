@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.37 2003/08/03 19:24:08 jodom Exp $
+// $Id: BPatch_function.C,v 1.38 2003/08/25 19:22:27 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -162,6 +162,14 @@ char *BPatch_function::getName(char *s, int len) const
     return s;
 }
 
+#ifdef IBM_BPATCH_COMPAT
+const char *BPatch_function::getName()
+{
+  char n[1024];
+  getName(n, 1023)[1023]='\0';
+  return n;
+}
+#endif
 /*
  * BPatch_function::getMangledName
  *

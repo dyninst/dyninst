@@ -44,6 +44,9 @@
 
 #include "BPatch_dll.h"
 #include <BPatch_Vector.h>
+#ifdef IBM_BPATCH_COMPAT
+#include "BPatch_point.h"
+#endif
 
 class BPatch_type;
 class BPatch_variableExpr;
@@ -63,13 +66,21 @@ typedef enum BPatch_language {
 } BPatch_language;
 
 typedef enum BPatch_sourceType {
+#ifdef IBM_BPATCH_COMPAT
+    BPatch_sourceUnknown,
+#else
     BPatch_sourceUnknown_type,
+#endif
     BPatch_sourceProgram,
     BPatch_sourceModule,
     BPatch_sourceFunction,
     BPatch_sourceOuterLoop,
     BPatch_sourceLoop,
+#ifdef IBM_BPATCH_COMPAT
+    BPatch_sourceTypeBlock,
+#else
     BPatch_srcBlock,
+#endif
     BPatch_sourceStatement
 } BPatch_sourceType;
 
@@ -85,9 +96,15 @@ class BPATCH_DLL_EXPORT BPatch_sourceObj {
       const char *getLanguageStr() {return strLanguage(_srcLanguage);}
       BPatch_type *getType(char *name);
       BPatch_Vector<char *> *getLoadedFileNames();
-      char *getName(char *buf, unsigned int len);
+      //char *getName(char *buf, unsigned int len);
       int getNameLen();
 
+#ifdef IBM_BPATCH_COMPAT
+ virtual bool getAddressRange(void*& _startAddress, void*& _endAddress) {return false;}
+ virtual bool getLineNumbers(unsigned int _startLine, unsigned int  _endLine) {return false;}
+ virtual void getIncPoints(BPatch_Vector<BPatch_point *> &vect) {return;}
+ virtual void getExcPoints(BPatch_Vector<BPatch_point *> &vect) {return;}
+#endif
   protected:
       enum BPatch_sourceType _srcType;
       BPatch_language _srcLanguage;

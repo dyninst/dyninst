@@ -298,7 +298,7 @@ public:
   const char *getName() { return name; }
 
 #ifdef IBM_BPATCH_COMPAT
-  const char *getName(char *buffer, int max) { return strncpy(buffer, name, max); }
+  char *getName(char *buffer, int max); 
   BPatch_dataClass type() { return type_; }
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.168 2003/08/13 20:41:32 tlmiller Exp $
+// $Id: aix.C,v 1.169 2003/08/25 19:22:27 jaw Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1232,19 +1232,11 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	addLib("libdyninstAPI_RT.so.1");
 
 	
-#ifndef USE_STL_VECTOR
 	imageUpdates.sort(imageUpdateSort);// imageUpdate::mysort ); 
-#else
-	sort(imageUpdates.begin(), imageUpdates.end(), imageUpdateOrderingRelation());
-#endif
 
 	compactLoadableSections(imageUpdates,compactedUpdates);
 
-#ifndef USE_STL_VECTOR
 	highmemUpdates.sort( imageUpdateSort);
-#else
-	sort(highmemUpdates.begin(), highmemUpdates.end(), imageUpdateOrderingRelation());
-#endif
 	if(highmemUpdates.size() > 0){
 		compactSections(highmemUpdates, compactedHighmemUpdates);
 	}

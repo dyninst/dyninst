@@ -17,7 +17,6 @@
   * @see BPatch_flowGraph
   * @see BPatch_basicBlock
   */
-
 class BPATCH_DLL_EXPORT BPatch_sourceBlock{
 	friend class BPatch_flowGraph;
 	friend ostream& operator<<(ostream&,BPatch_sourceBlock&);
@@ -40,10 +39,18 @@ public:
 	/** destructor for the sourceBlock class */
 	~BPatch_sourceBlock() {}
 
+#ifdef IBM_BPATCH_COMPAT
+ bool getAddressRange(void*& _startAddress, void*& _endAddress) {return false;}
+ bool getLineNumbers(unsigned int _startLine, unsigned int  _endLine) {return false;}
+ void getExcPoints(BPatch_Vector<BPatch_point *> &vect); 
+ void getIncPoints(BPatch_Vector<BPatch_point *> &vect);
+#endif
+
 private:
 	/** constructor of the class */
 	BPatch_sourceBlock();
 	BPatch_sourceBlock(const char*,BPatch_Set<unsigned short>&);
+       
 };
 
 #endif /* _BPatch_sourceBlock_h_ */

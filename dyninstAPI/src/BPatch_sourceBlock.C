@@ -10,8 +10,8 @@ BPatch_sourceBlock::BPatch_sourceBlock()
 {}
 
 //constructor
-BPatch_sourceBlock::BPatch_sourceBlock(
-	const char* filePtr,BPatch_Set<unsigned short>& lines)
+BPatch_sourceBlock::BPatch_sourceBlock( const char *filePtr,
+                                        BPatch_Set<unsigned short>& lines)
 {
 	sourceFile = filePtr;
 	sourceLines = new BPatch_Set<unsigned short>(lines);
@@ -62,5 +62,17 @@ ostream& operator<<(ostream& os,BPatch_sourceBlock& sb){
 	os << ")}" << endl;
 	return os;
 }
+#endif
 
+#ifdef IBM_BPATCH_COMPAT
+void BPatch_sourceBlock::getIncPoints(BPatch_Vector<BPatch_point *> &vect)
+{
+//  nothing here for now...  might need to implement, might not.
+}
+
+void BPatch_sourceBlock::getExcPoints(BPatch_Vector<BPatch_point *> &vect)
+{
+ //  for now, they are the same
+ getIncPoints(vect);
+}
 #endif

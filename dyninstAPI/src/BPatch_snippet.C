@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.51 2003/08/01 22:55:30 jodom Exp $
+// $Id: BPatch_snippet.C,v 1.52 2003/08/25 19:22:27 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -491,6 +491,17 @@ BPatch_constExpr::BPatch_constExpr(const void *value)
 
 
 #ifdef IBM_BPATCH_COMPAT
+char *BPatch_variableExpr::getName(char *buffer, int max)
+{
+  if (max > strlen(name)) {
+    strcpy (buffer, name);
+    return buffer;
+  } else {
+    strncpy (buffer, name, max-1)[max-1]='\0';
+  }
+  return NULL;
+}
+
 //
 // this is long long only in size, it will fail if a true long long
 //    with high bits is passed.

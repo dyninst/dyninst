@@ -129,6 +129,7 @@ public:
 
 #ifdef IBM_BPATCH_COMPAT
     bool getLineNumbers(unsigned int &start, unsigned int &end);
+    bool getAddressRange(void * &start, void * &end) {return false;} // DPCL only uses for debug output.
     char *getUniqueString(char *buffer, int length);
 
     char *sharedLibraryName(char *buffer, int length) { getFullName(buffer, length); return buffer;}
