@@ -3,7 +3,10 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.19  1995/02/26 22:45:36  markc
+ * Revision 1.20  1995/05/18 10:35:23  markc
+ * Removed tag dictionary
+ *
+ * Revision 1.19  1995/02/26  22:45:36  markc
  * Updated to compile under new system.
  *
  * Revision 1.18  1995/02/16  08:33:24  markc
@@ -78,7 +81,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-pvm.C,v 1.19 1995/02/26 22:45:36 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-pvm.C,v 1.20 1995/05/18 10:35:23 markc Exp $";
 
 extern "C" {
 #include "pvm3.h"
@@ -197,20 +200,6 @@ void initLibraryFunctions()
      *   Not sure what the best fix is - jkh 10/4/93
      *
      */
-    tagDict["write"] = TAG_LIB_FUNC | TAG_IO_OUT;
-    tagDict["read"] =  TAG_LIB_FUNC | TAG_IO_IN;
-    tagDict["DYNINSTsampleValues"] = TAG_LIB_FUNC;
-    tagDict[EXIT_NAME] = TAG_LIB_FUNC;
-    tagDict["fork"] = TAG_LIB_FUNC;
-    tagDict["main"] = 0;
-    tagDict["pvm_bufinfo"] = TAG_LIB_FUNC;
-    tagDict["pvm_getsbuf"] = TAG_LIB_FUNC;
-    tagDict["pvm_getrbuf"] = TAG_LIB_FUNC;
-    // tagDict["pvm_barrier"] = TAG_LIB_FUNC | TAG_SYNC_FUNC | TAG_CPU_STATE;
-    // tagDict["pvm_mcast"] =  TAG_LIB_FUNC | TAG_MSG_FUNC | TAG_CPU_STATE;
-
-    tagDict["pvm_send"] = TAG_LIB_FUNC | TAG_MSG_SEND | TAG_CPU_STATE;
-    tagDict["pvm_recv"] = TAG_LIB_FUNC | TAG_MSG_RECV | TAG_CPU_STATE;
 }
 
 void instCleanup()

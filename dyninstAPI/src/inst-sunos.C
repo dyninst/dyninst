@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.26  1995/03/10 19:33:49  hollings
+ * Revision 1.27  1995/05/18 10:35:25  markc
+ * Removed tag dictionary
+ *
+ * Revision 1.26  1995/03/10  19:33:49  hollings
  * Fixed several aspects realted to the cost model:
  *     track the cost of the base tramp not just mini-tramps
  *     correctly handle inst cost greater than an imm format on sparc
@@ -108,7 +111,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.26 1995/03/10 19:33:49 hollings Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.27 1995/05/18 10:35:25 markc Exp $";
 
 #include "os.h"
 #include "metric.h"
@@ -212,19 +215,17 @@ int flushPtrace()
 void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 {
     int childPid;
-    process *parent;
     char command[256];
     char application[256];
     char app_pid[20];
     char num_nodes[20];	
 
-    if (!processMap.defines(fr->ppid)) {
+    process *parent = findProcess(fr->ppid);
+    if (!parent) {
       sprintf(errorLine, "In forkNodeProcesses, parent id %d unknown", fr->ppid);
       statusLine(errorLine);
       return;
     }
-    parent = processMap[fr->ppid];
-    assert(parent);
 
     /* Build arglist */
     sprintf (command, "%sCM5", process::programName.string_of());
@@ -234,8 +235,8 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 
     /*
      * It would be nice if this weren't sensitive to the size of
-     * arg_list.  For the moment, only arg_list[0] --> arg_list[5]
-     * are written by RPC_make_arg_list (arg_list[6] is NULL).
+     * arg_list.  For the moment, only arg_list[0] --> arg_list[6]
+     * are written by RPC_make_arg_list
      * This is a small-time hack.
      */
 
@@ -252,7 +253,9 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
     argv[7] = P_strdup(process::arg_list[3].string_of());
     argv[8] = P_strdup(process::arg_list[4].string_of());
     argv[9] = P_strdup(process::arg_list[5].string_of());
-    argv[10] = NULL;
+    argv[10] = P_strdup(process::arg_list[6].string_of());
+    argv[11] = NULL;
+
     if ((childPid=fork()) == 0) {		/* child */
       P_execvp (command, argv);
       logLine("Exec failed in paradynd to start paradyndCM5\n");
@@ -286,6 +289,7 @@ void initLibraryFunctions()
      *   Not sure what the best fix is - jkh 10/4/93
      *
      */
+#ifdef notdef
     tagDict["write"] = TAG_LIB_FUNC | TAG_IO_OUT;
     tagDict["read"] = TAG_LIB_FUNC | TAG_IO_IN;
 
@@ -304,6 +308,7 @@ void initLibraryFunctions()
     tagDict["CMMD_send_async"] = TAG_LIB_FUNC;
 
     tagDict["main"] = 0;
+#endif
 }
  
 float computePauseTimeMetric()

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.24 1995/02/16 08:53:16 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.25 1995/05/18 10:35:21 markc Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.24  1995/02/16 08:53:16  markc
+ * Revision 1.25  1995/05/18 10:35:21  markc
+ * Removed tag dictionary
+ *
+ * Revision 1.24  1995/02/16  08:53:16  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.23  1995/02/16  08:33:22  markc
@@ -193,6 +196,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  */
 void initLibraryFunctions()
 {
+#ifdef notdef
   tagDict["CMMD_send"] = TAG_LIB_FUNC | TAG_MSG_SEND | TAG_CPU_STATE | TAG_MSG_FILT;
 
   // TODO - why not TAG_CPU_STATE for the following 
@@ -270,6 +274,7 @@ void initLibraryFunctions()
 
   /* un-used node */
   tagDict["cmcn_sleep"] = TAG_LIB_FUNC | TAG_CPU_STATE;
+#endif
 }
 
 void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr) {
@@ -382,13 +387,11 @@ string process::getProcessStatus() const
 float computePauseTimeMetric()
 {
     float max=0.0;
-    process *p;
 
-    dictionary_hash_iter<int, process*> pi(processMap);
-    int i;
-    while (pi.next(i, p)) {
-      if (p->pauseTime > max) {
-	max = p->pauseTime;
+    unsigned size = processVec.size();
+    for (unsigned u=0; u<size; u++) {
+      if (processVec[u]->pauseTime > max) {
+	max = processVec[u]->pauseTime;
       }
     }
     return(max);
