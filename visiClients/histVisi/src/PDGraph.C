@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.5 1999/11/09 15:54:44 pcroth Exp $
+// $Id: PDGraph.C,v 1.6 1999/11/10 15:06:26 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -494,6 +494,17 @@ PDGraph::InitTclTk( Tcl_Interp* interp, Tk_Window mwin, int argc, char* argv[] )
 
     // register our association of Tk_Window and instance data
     winInstDataMap[tkwin] = (ClientData)this;
+
+
+    cmdstr << "::PDGraph::Legend::init_font " << argv[1] << ends;
+    cmdobj = Tcl_NewStringObj( cmdstr.str(), -1 );
+    cmdstr.rdbuf()->freeze( 0 );
+    cmdstr.seekp( 0 );
+    if( Tcl_EvalObj( interp, cmdobj ) != TCL_OK )
+    {
+        Tk_DestroyWindow( tmpMainW );
+        return TCL_ERROR;
+    }
 
     return TCL_OK;
 }
