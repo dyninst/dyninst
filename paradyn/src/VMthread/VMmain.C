@@ -16,9 +16,12 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.5  1994/05/11 17:28:25  newhall
-/* test version 3
+/* Revision 1.6  1994/05/11 21:32:26  newhall
+/* changed location of VMconfig.file
 /*
+ * Revision 1.5  1994/05/11  17:28:25  newhall
+ * test version 3
+ *
  * Revision 1.4  1994/05/09  21:16:53  hollings
  * added PARADYNCONFIG environment varaible for local spec. of visualizations.
  *
@@ -320,7 +323,7 @@ void *VMmain(int arg){
 
   // for visilist need info. from config. file on visualization info.
   if (!(vmConfigFile = getenv("PARADYNCONFIG"))) {
-     vmConfigFile = "/usr/home/paradyn/development/newhall/core/paradyn/src/VMthread/VMconfig.file";
+     vmConfigFile = "/usr/home/paradyn/core/paradyn/src/VMthread/VMconfig.file";
   }
 
   if ((fd = fopen(vmConfigFile,"r")) == NULL){
