@@ -41,6 +41,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.6  1997/10/28 20:45:22  tamches
+ * update for new dictionary class
+ *
  * Revision 1.5  1997/09/05 22:20:33  naim
  * Changes to template files to be able to compile paradyn with -O3 - naim
  *
@@ -71,12 +74,15 @@ template class vector<PhaseInfo *>;
 template float max(float, float);
 
 #include "util/h/String.h"
-#include "util/src/DictionaryLite.C"
+#include "util/src/DictionaryAri.C"
 #include "pdLogo.h"
-template class dictionary_lite<string, pdLogo *>;
+template class dictionary_hash<string, pdLogo *>;
+template class vector<dictionary_hash<string, pdLogo *>::entry>;
+template class vector<pdLogo*>;
 
-template class dictionary_lite<string, pdLogo::logoStruct>;
-template class refCounter<string_ll>;
-template class vector<vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair> >;
-template class vector<vector<dictionary_lite<string, pdLogo *>::hash_pair> >;
+template class dictionary_hash<string, pdLogo::logoStruct>;
+template class vector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
+template class vector<pdLogo::logoStruct>;
+
 template class vector<unsigned int>;
+template class refCounter<string_ll>;

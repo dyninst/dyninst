@@ -44,6 +44,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.7  1997/10/28 20:45:43  tamches
+ * update for new dictionary class
+ *
  * Revision 1.6  1997/04/30 15:37:19  mjrg
  * added template needed for new implementation of string class
  *
@@ -86,19 +89,22 @@ template int ipmin(int, int);
 template int min(int, int);
 template int max(int, int);
 
-#include "util/src/DictionaryLite.C"
+#include "util/src/Dictionary.C"
 #include "paradyn/src/UIthread/pdLogo.h"
-template class vector<pdLogo *>;
-template class dictionary_lite<string, pdLogo *>;
-template class pair<string, pdLogo *>;
-template class vector<dictionary_lite<string, pdLogo *>::hash_pair>;
-template class vector< vector<dictionary_lite<string,pdLogo*>::hash_pair> >;
 
-template class dictionary_lite<string, pdLogo::logoStruct>;
+template class dictionary_hash<string, pdLogo *>;
+template class vector<dictionary_hash<string, pdLogo *>::entry>;
+template class vector<pdLogo *>;
+//template class pair<string, pdLogo *>;
+//template class vector<dictionary_lite<string, pdLogo *>::hash_pair>;
+//template class vector< vector<dictionary_lite<string,pdLogo*>::hash_pair> >;
+
+template class dictionary_hash<string, pdLogo::logoStruct>;
+template class vector<dictionary_hash<string, pdLogo::logoStruct>::entry>;
 template class vector<pdLogo::logoStruct>;
-template class vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair>;
-template class vector< vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair> >;
-template class pair<string, pdLogo::logoStruct>;
+//template class vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair>;
+//template class vector< vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair> >;
+//template class pair<string, pdLogo::logoStruct>;
 
 template class vector<string>;
 template class  refCounter<string_ll>;
