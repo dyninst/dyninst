@@ -1,3 +1,9 @@
+/*
+ *  $Log: blz_RTcm5_pn.c,v $
+ *  Revision 1.3  1995/11/08 02:27:49  zhichen
+ *  make corrsponding change to Tia's commit for sampleInterval for blizzard
+ *
+ */
 #include <stdlib.h>
 /* #include <signal.h> */
 #include <assert.h>
