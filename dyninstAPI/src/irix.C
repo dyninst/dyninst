@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.57 2003/04/17 20:55:54 jaw Exp $
+// $Id: irix.C,v 1.58 2003/04/18 22:35:34 tlmiller Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -818,7 +818,8 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     // entry from the vector
     for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
         if (trappedSyscall == syscallTraps_[iter]) {
-            syscallTraps_.removeByIndex(iter);
+//            syscallTraps_.removeByIndex(iter);
+	    syscallTraps_.erase( iter, iter );
             break;
         }
     }
