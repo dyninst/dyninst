@@ -136,6 +136,7 @@ class Network{
     static unsigned int next_stream_id;
 
  public:
+
     class LeafInfo {
     public:
         virtual const char* get_Host( void ) const = NULL;
@@ -149,23 +150,22 @@ class Network{
     Network(const char * _filename, const char * _backend);
     Network(const char * _filename, LeafInfo*** leafInfo,
             unsigned int* nLeaves );
+    Network(const char *hostname, const char *port,
+            const char *phostname, const char *pport,
+            const char *pid);
+    Network(const char *hostname, unsigned int backend_id,
+            const char *phostname, unsigned int pport,
+            unsigned int pid);
     ~Network();
 
     int connect_Backends( void );
     int getConnections( int** conns, unsigned int* nConns );
 
-    int init_Backend(const char *hostname, const char *port,
-                     const char *phostname, const char *pport,
-                     const char *pid);
-    int init_Backend(const char *hostname, unsigned int backend_id,
-                     const char *phostname, unsigned int pport,
-                     unsigned int pid);
     int send(Packet &);
     int recv(bool blocking=true);
     int recv(int *tag, void **buf, Stream ** stream, bool blocking=true);
     int load_FilterFunc( const char * so_file, const char * func,
                                 bool is_trans_filter=true );
-    void error_str(const char *);
     Communicator * get_BroadcastCommunicator( void );
 
     EndPoint * get_EndPoint(const char*, short unsigned int);
@@ -186,8 +186,12 @@ class Network{
                          int sync_id=SFILTER_DONTWAIT,
                          int ds_filter_id=TFILTER_NULL );
     Stream *get_Stream( int stream_id );
-    bool is_FrontEnd();
-    bool is_BackEnd();
+
+    bool is_FrontEnd( void );
+    bool is_BackEnd( void );
+    bool fail( void );
+    bool good( void );
+    void error_str( const char * );
 };
 
 } /* namespace MRN */
