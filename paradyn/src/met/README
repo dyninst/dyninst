@@ -71,6 +71,9 @@ q4) What can be defined?
 
     IDENTIFIER = string, not quote delimited
     LITERAL = quote delimited string
+    INT = integer
+    FLOAT = floating point number
+    BOOLEAN = {TRUE, FALSE}  (case does not matter}
 
     Lists:
     	list <name> { [<list item>,]* }
@@ -85,17 +88,21 @@ q4) What can be defined?
 
         Note: the <name> field is used to detect duplicate definitions
 
-    tunableConstant settings
+    tunableConstant settings:
+
   	tunable_constant <name> <tunable value>;
 	tunable_constant { [<name> <tunable value>;]* }
 	    
-	<name>: IDENTIFIER
+	<name>: LITERAL
 	<tunable value>: FLOAT
+	<tunable value>: INT
+	<tunable value>: BOOLEAN
 
 	tunable_constant "maxEval" 3;
 	tunable_constant {
 	    "maxEval" 3;
 	    "minObservationTime" 5.1;
+	    "pcPrintEval" TruE;
 	}
 
 	Note: the name field is used to detect duplicate definitions.
@@ -103,21 +110,24 @@ q4) What can be defined?
               knows the tunable constant.
 
 
-    paradyn daemons
+    paradyn daemons: 
+
 	daemon <name> {
 	    command <cmd string>;
 	    [flavor <flavor type>;]
 	    [user <user name>;]
             [dir <directory name>;]
+	    [host <host name>;]
  	}
 
         REQUIRED:
-        <name>: the name of the daemon, this allows daemon definitions 
-                to be looked up and replaced.
+        <name>: IDENTIFIER, the name of the daemon, this allows daemon
+		definitions to be looked up and replaced.
 	<cmd string>: LITERAL, the command to use to start this paradyn
                       daemon (for exec's)
 
         OPTIONAL:
+	<host name>: IDENTIFIER, no effect now
         <user name>: IDENTIFIER, no effect now
         <directory name>: IDENTIFIER, no effect now
 	<flavor type> a keyword that represents the environment type
@@ -152,7 +162,7 @@ q4) What can be defined?
 	}
 
         REQUIRED:
-        <name>: the name of the process
+        <name>: IDENTIFIER, the name of the process
 	<command string>: LITERAL, the command to use to start this paradyn
                           daemon (for exec's)
         <daemon string>: IDENTIFIER, the name of the daemon used to get 
@@ -166,7 +176,7 @@ q4) What can be defined?
                        should be started.  If this field is not specified, the
                        process is started on the local machine.
 
-	process {
+	process default {
 	    command "potato";
 	    daemon "paradyndPVM";
  	}
