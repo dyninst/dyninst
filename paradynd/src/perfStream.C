@@ -320,13 +320,17 @@ void doDeferredRPCs() {
    // perform one, then launch one.
    for (unsigned lcv=0; lcv < processVec.size(); lcv++) {
       process *proc = processVec[lcv];
+      if (proc == NULL) continue; // proc must've died and has itself cleaned up
       if (proc->status() == exited) continue;
       if (proc->status() == neonatal) continue; // not sure if this is appropriate
       
       bool wasLaunched = proc->launchRPCifAppropriate(proc->status() == running);
       // do we need to do anything with 'wasLaunched'?
-      if (wasLaunched)
-	 cerr << "launched an inferior RPC" << endl;
+      if (wasLaunched) {
+#ifdef INFERIOR_RPC_DEBUG
+	 cerr << "launched an inferior RPC" << endl; cerr.flush();
+#endif
+      }
    }
 }
 
@@ -377,7 +381,7 @@ int handleSigChild(int pid, int status)
 		}
 
 		if (curr->handleTrapIfDueToRPC()) {
-		   cerr << "processed RPC response in SIGTRAP" << endl;
+		   //logLine("processed RPC response in SIGTRAP\n");
 		   break;
 		}
 		    
@@ -418,7 +422,7 @@ int handleSigChild(int pid, int status)
 
 	    case SIGSTOP:
 	    case SIGINT: {
-		//cerr << "welcome to SIGSTOP/SIGINT" << endl;
+	        //logLine("welcome to SIGSTOP/SIGINT\n");
 
 		const bool wasRunning = (curr->status_ == running);
 		const bool wasNeonatal = (curr->status_ == neonatal);
@@ -427,11 +431,12 @@ int handleSigChild(int pid, int status)
 		if (curr->tryToReadAndProcessBootstrapInfo()) {
 		   // grab data from DYNINST_bootstrap_info
 		   tp->processStatus(curr->getPid(), procPaused);
+		   //logLine("read & processed bootstrap in SIGSTOP\n");
 		   break;
 		}
 
 		if (curr->handleTrapIfDueToRPC()) {
-		   cerr << "processed RPC response in SIGSTOP" << endl;
+		   //logLine("processed RPC response in SIGSTOP\n");
 		   break;
 		}
 
@@ -470,11 +475,14 @@ int handleSigChild(int pid, int status)
 	    }
 
 	    case SIGILL:
-	       //cerr << "welcome to SIGILL" << endl;
+	       //cerr << "welcome to SIGILL" << endl; cerr.flush();
 	       curr->status_ = stopped;
 
 	       if (curr->handleTrapIfDueToRPC()) {
-		  cerr << "processed RPC response in SIGILL" << endl;
+#ifdef INFERIOR_RPC_DEBUG
+		  cerr << "processed RPC response in SIGILL" << endl; cerr.flush();
+#endif
+
 		  break; // we don't forward the signal -- on purpose
 	       }
 	       else
@@ -579,7 +587,156 @@ void ioFunc()
      fflush(stdout);
 }
 
+#ifdef SHM_SAMPLING
+static void checkAndDoShmSampling(unsigned long long &pollTimeUSecs) {
+   // We assume that nextShmSampleTime (synched to getCurrWallTime())
+   // has already been set.  If the curr time is >= to this, then
+   // we should sample immediately, and update nextShmSampleTime to
+   // be nextShmSampleTime + sampleInterval, unless it is <= currTime,
+   // in which case we set it to currTime + sampleInterval.
 
+   // QUESTION: should we sample a given process while it's paused?  While it's
+   //           in the middle of an inferiorRPC?  For now, the answer is no
+   //           to both.
+
+   static unsigned long long nextMajorSampleTime = 0;
+   static unsigned long long nextMinorSampleTime = 0;
+
+   const unsigned long long currWallTime = getCurrWallTimeULL();
+      // checks for rollback
+
+   bool doMajorSample = false; // so far...
+   bool doMinorSample = false; // so far...
+
+   bool forNextTimeDoMinorSample = false; // so far...
+
+   if (currWallTime >= nextMajorSampleTime)
+      doMajorSample = true;
+   else if (currWallTime >= nextMinorSampleTime)
+      doMinorSample = true;
+   else
+      // it's not time to do anything.
+      return;
+
+   // Do shared memory sampling (for all processes) now!
+
+   // Loop thru all processes.  For each, process inferiorIntCounters,
+   // inferiorWallTimers, and inferiorProcessTimers.  But don't
+   // sample while an inferiorRPC is pending for that process, or for
+   // a non-running process.
+
+   for (unsigned lcv=0; lcv < processVec.size(); lcv++) {
+      process *theProc = processVec[lcv];
+      if (theProc == NULL)
+	 continue; // proc died & had its structures cleaned up
+
+      // Don't sample paused/exited/neonatal processes, or even running processes
+      // that haven't been bootstrapped yet (i.e. haven't called DYNINSTinit yet),
+      // or processes that are in the middle of an inferiorRPC (we like for
+      // inferiorRPCs to finish up quickly).
+      if (theProc->status_ != running) {
+	 //cerr << "(-" << theProc->status_ << "-)";
+	 continue;
+      }
+      else if (!theProc->isBootstrappedYet()) {
+	 //cerr << "(-*-)" << endl;
+	 continue;
+      }
+      else if (theProc->existsRPCinProgress()) {
+	 //cerr << "(-~-)" << endl;
+	 continue;
+      }
+
+      if (doMajorSample) {
+	 if (!theProc->doMajorShmSample(currWallTime)) {
+	    // The major sample didn't complete all of its work, so we
+	    // schedule a minor sample for sometime in the near future
+	    // (before the next major sample)
+
+#ifdef SHM_SAMPLING_DEBUG
+	    cerr << "a minor sample will be needed" << endl;
+	    cerr.flush();
+#endif
+
+	    forNextTimeDoMinorSample = true;
+	 }
+      }
+      else if (doMinorSample) {
+#ifdef SHM_SAMPLING_DEBUG
+	 cerr << "trying needed minor sample..."; cerr.flush();
+#endif
+
+	 if (!theProc->doMinorShmSample()) {
+	    // The minor sample didn't complete all of its work, so
+	    // schedule another one.
+	    forNextTimeDoMinorSample = true;
+
+#ifdef SHM_SAMPLING_DEBUG
+	    cerr << "it failed" << endl; cerr.flush();
+#endif
+	 }
+	 else {
+#ifdef SHM_SAMPLING_DEBUG
+	    cerr << "it succeeded" << endl; cerr.flush();
+#endif
+	 }
+      }
+   } // loop thru the processes
+
+   // And now, do the internal metrics
+   if (doMajorSample)
+      reportInternalMetrics(true);
+
+   // Here, we should probably flush the batch buffer (whether for a major
+   // sample or a minor one)
+   extern void flush_batch_buffer(); // metric.C (should be in this file)
+   flush_batch_buffer();
+
+   // Take currSamplingRate (which has values such as 0.2, 0.4, 0.8, 1.6, etc.)
+   // and multiply by a million to get the # of usecs per sample.
+   extern float currSamplingRate; // dynrpc.C
+   assert(currSamplingRate > 0);
+   const unsigned long long shmSamplingInterval =
+	      (unsigned long long)((double)currSamplingRate * 1000000.0);
+
+   if (doMajorSample) {
+      // If we just did a major sample, then we schedule the next major sample,
+      // and reset the next minor sample time.
+      nextMajorSampleTime += shmSamplingInterval;
+      if (nextMajorSampleTime <= currWallTime)
+	 nextMajorSampleTime = currWallTime + shmSamplingInterval;
+   }
+
+   if (forNextTimeDoMinorSample) {
+      // If a minor sample is needed, then we schedule it.  For now, let's
+      // assume that a minor sample is always scheduled for now plus
+      // one-fourth of the original sampling rate...i.e. for now + (0.2 sec/4) =
+      // now + (0.05 sec), i.e. now + 50 milliseconds.
+// temp: one-tenth of original sample rate...i.e. for now + 0.02 sec (+20 millisec)
+
+//      nextMinorSampleTime = currWallTime + 50000; // 50ms = 50000us
+      nextMinorSampleTime = currWallTime + 20000; // 20ms = 20000us
+      if (nextMinorSampleTime > nextMajorSampleTime)
+	 // oh, never mind, we'll just do the major sample which is going to
+	 // happen first anyway.
+	 nextMinorSampleTime = nextMajorSampleTime;
+   }
+   else {
+      // we don't need to do a minor sample next time, so reset nextMinorSampleTime
+      nextMinorSampleTime = nextMajorSampleTime;
+   }
+
+   unsigned long long nextAnyKindOfSampleTime = nextMajorSampleTime;
+   if (nextMinorSampleTime < nextAnyKindOfSampleTime)
+      nextAnyKindOfSampleTime = nextMinorSampleTime;
+
+   assert(nextAnyKindOfSampleTime >= currWallTime);
+   const unsigned long long shmSamplingTimeout = nextAnyKindOfSampleTime - currWallTime;
+
+   if (shmSamplingTimeout < pollTimeUSecs)
+      pollTimeUSecs = shmSamplingTimeout;
+}
+#endif
 
 /*
  * Wait for a data from one of the inferiors or a request to come in.
@@ -618,6 +775,9 @@ void controllerMainLoop(bool check_buffer_first)
 	width = 0;
 	unsigned p_size = processVec.size();
 	for (unsigned u=0; u<p_size; u++) {
+	    if (processVec[u] == NULL)
+	       continue;
+
 	    if (processVec[u]->traceLink >= 0)
 	      FD_SET(processVec[u]->traceLink, &readSet);
 	    if (processVec[u]->traceLink > width)
@@ -658,17 +818,21 @@ void controllerMainLoop(bool check_buffer_first)
 #endif
 
 #ifdef SHM_SAMPLING
-// Because of the variable DYNINSTin_sample (rtinst), it's possible
-// that an inferiorRPC launched here could be nullified when not doing
-// shared-mem sampling.  Therefore, as a kludge, when not SHM_SAMPLING,
-// we can't "safely" do this code here; we need to wait until we're sure
+// When _not_ shm sampling, rtinst defines a global vrble called
+// DYNINSTin_sample, which is set to true while the application samples
+// itself due to an alarm-expire.  When this variable is set, a call to
+// DYNINSTstartProcessTimer() et al. will return immediately, taking
+// no action.  This is of course a bad thing to happen.
+// So: when not shm sampling, we mustn't do an inferiorRPC here.
+// So we only do inferiorRPC here when SHM_SAMPLING.
+// (What do we do when non-shm-sampling?  We wait until we're sure
 // that we're not in the middle of processing a timer.  One way to do
 // that is to manually reset DYNINSTin_sample when doing an RPC, and
-// then restoring its initial value when done.  Instead, what we do
-// here is wait for an ALARM signal to be delivered, and do pending RPCs
-// just before we forward the signal.  Assuming ALARM signals aren't
-// recursive, this should do the trick.  Ick...yet another reason to
-// kill the ALARM signal and go with shm sampling.
+// then restoring its initial value when done.  Instead, we wait for an
+// ALARM signal to be delivered, and do pending RPCs just before we forward
+// the signal.  Assuming ALARM signals aren't recursive, this should do the
+// trick.  Ick...yet another reason to kill the ALARM signal and go with shm
+// sampling.
 
 	doDeferredRPCs();
 #endif
@@ -678,62 +842,9 @@ void controllerMainLoop(bool check_buffer_first)
            // in which to check for signals, etc.
 
 #ifdef SHM_SAMPLING
-        // Now for shm sampling:
-        // We assume that nextShmSampleTime (synched to getCurrWallTime())
-        // has already been set.  If the curr time is >= to this, then
-        // we should sample immediately, and update nextShmSampleTime to
-        // be nextShmSampleTime + sampleInterval, unless it is <= currTime,
-        // in which case we set it to currTime + sampleInterval.
-        // QUESTION: should we sample while paused?
-	static unsigned long long nextShmSampleTime = 0;
-        const unsigned long long currWallTime = getCurrWallTimeULL(); // checks for rollback
-
-	if (currWallTime >= nextShmSampleTime) {
-	   // Do shared memory sampling now!
-
-	   // Loop thru all processes.  For each, process inferiorIntCounters,
-	   // inferiorWallTimers, and inferiorProcessTimers.
-	   for (unsigned lcv=0; lcv < processVec.size(); lcv++) {
-	      process *theProc = processVec[lcv];
-
-	      // Don't sample paused/exited/neonatal processes, or even
-	      // running processes that haven't been bootstrapped yet (i.e. haven't
-	      // called DYNINSTinit yet)
-	      if (theProc->status_ != running) {
-		 //cerr << "(-" << theProc->status_ << "-)";
-		 continue;
-	      }
-	      else if (!theProc->isBootstrappedYet()) {
-		 //cerr << "(-*-)" << endl;
-		 continue;
-	      }
-
-	      theProc->doSharedMemSampling(currWallTime);
-	   }
-
-	   // And now, do the internal metrics
-	   reportInternalMetrics(true);
-
-	   // Here, we should probably flush the batch buffer
-	   extern void flush_batch_buffer(); // metric.C (should be in this file)
-	   flush_batch_buffer();
-
-	   // Take currSamplingRate (which has values such as 0.2, 0.4, 0.8, 1.6, etc.)
-	   // and multiply by a million to get the # of usecs per sample.
-	   extern float currSamplingRate; // dynrpc.C
-	   assert(currSamplingRate > 0);
-	   const unsigned long long shmSamplingInterval = (unsigned long long)((double)currSamplingRate * 1000000.0);
-
-	   nextShmSampleTime += shmSamplingInterval;
-	   if (nextShmSampleTime <= currWallTime)
-	      nextShmSampleTime = currWallTime + shmSamplingInterval;
-	}
-
-	assert(nextShmSampleTime >= currWallTime);
-	unsigned long long shmSamplingTimeout = nextShmSampleTime - currWallTime;
-
-	if (shmSamplingTimeout < pollTimeUSecs)
-	   pollTimeUSecs = shmSamplingTimeout;
+        checkAndDoShmSampling(pollTimeUSecs);
+           // does shm sampling of each process, as appropriate.
+           // may update pollTimeUSecs.
 #endif 
 
 	pollTime.tv_sec  = pollTimeUSecs / 1000000;
@@ -787,21 +898,33 @@ void controllerMainLoop(bool check_buffer_first)
 
             unsigned p_size = processVec.size();
 	    for (unsigned u=0; u<p_size; u++) {
-		if ((processVec[u]->traceLink >= 0) && 
+	        if (processVec[u] == NULL)
+		   continue; // process structure has been deallocated
+
+		if (processVec[u] && processVec[u]->traceLink >= 0 && 
 		       FD_ISSET(processVec[u]->traceLink, &readSet)) {
 		    processTraceStream(processVec[u]);
 
+		    /* in the meantime, the process may have died, setting
+		       processVec[u] to NULL */
+
 		    /* clear it in case another process is sharing it */
-		    if (processVec[u]->traceLink >= 0) // may have been set to -1
+		    if (processVec[u] &&
+			processVec[u]->traceLink >= 0)
+		           // may have been set to -1
 		       FD_CLR(processVec[u]->traceLink, &readSet);
 		}
 
-		if ((processVec[u]->ioLink >= 0) && 
+		if (processVec[u] && processVec[u]->ioLink >= 0 && 
     		       FD_ISSET(processVec[u]->ioLink, &readSet)) {
 		    processAppIO(processVec[u]);
 
+		    // app can (conceivably) die in processAppIO(), resulting
+		    // in a processVec[u] to NULL.
+
 		    /* clear it in case another process is sharing it */
-		    if (processVec[u]->ioLink >= 0) // may have been set to -1
+		    if (processVec[u] && processVec[u]->ioLink >= 0)
+		       // may have been set to -1
 		       FD_CLR(processVec[u]->ioLink, &readSet);
 		}
 	    }
@@ -866,6 +989,11 @@ void controllerMainLoop(bool check_buffer_first)
 	int pid = process::waitProcs(&status);
 	if (pid > 0)
 	    if (handleSigChild(pid, status) < 0) {
+	       // perhaps the process has died, and had its structures cleaned
+               // up (and its entry in processVec[] deallocated and then set to NULL); that
+	       // could explain this.  So perhaps we should not report this to the user?
+	       // On the other hand...some times it could be a real error which should
+	       // be reported.  How to differentiate those two cases?
 	       string buffer=string("handleSigChild failed for pid ") +
 		 string(pid) + " (not found?)\n";
 	       logLine(buffer.string_of());
