@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.127 2003/03/11 18:44:16 bernat Exp $
+// $Id: aix.C,v 1.128 2003/03/12 01:49:54 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -175,53 +175,54 @@ bool ptraceKludge::haltProcess(process *p) {
 // getActiveFrame(): populate Frame object using toplevel frame
 Frame dyn_lwp::getActiveFrame()
 {
-  unsigned pc, fp;
+   unsigned pc, fp;
 
-  if (lwp_) { // We have a kernel thread to target. Nifty, eh?
-    struct ptsprs spr_contents;
-    bool kernel_mode = false;
-    if (P_ptrace(PTT_READ_SPRS, lwp_, (int *)&spr_contents, 0, 0) == -1) {
-      if (errno != EPERM) { // EPERM == thread in kernel mode, not to worry
-	perror("----------Error getting IAR in getActiveFrame");
-	fprintf(stderr, "dyn_lwp of 0x%x with lwp %d\n", (unsigned) this, lwp_);
+   if (lwp_id_) { // We have a kernel thread to target. Nifty, eh?
+      struct ptsprs spr_contents;
+      bool kernel_mode = false;
+      if (P_ptrace(PTT_READ_SPRS, lwp_id_, (int *)&spr_contents, 0, 0) == -1) {
+         if (errno != EPERM) { // EPERM == thread in kernel mode, not to worry
+            perror("----------Error getting IAR in getActiveFrame");
+            fprintf(stderr, "dyn_lwp of 0x%x with lwp %d\n", (unsigned) this,
+                    lwp_id_);
+         }
+         else
+            kernel_mode = true; // This is going to be... annoying
       }
-      else
-	kernel_mode = true; // This is going to be... annoying
-    }
-    pc = spr_contents.pt_iar;
-    
-    if (!kernel_mode) {
-      unsigned allRegs[64];
-      // Register 1 is the current stack pointer. It must contain
-      // a back chain to the caller's stack pointer.
-      // Note: things like the LR are stored in the "parent's" stack frame.
-      // This allows leaf functions to store the LR, even without a 
-      // stack frame.
-      if (P_ptrace(PTT_READ_GPRS, lwp_, (int *)allRegs, 0, 0) == -1) {
-	perror("Problem reading stack pointer in getActiveFrame");
-	return Frame();
+      pc = spr_contents.pt_iar;
+      
+      if (!kernel_mode) {
+         unsigned allRegs[64];
+         // Register 1 is the current stack pointer. It must contain
+         // a back chain to the caller's stack pointer.
+         // Note: things like the LR are stored in the "parent's" stack frame.
+         // This allows leaf functions to store the LR, even without a 
+         // stack frame.
+         if (P_ptrace(PTT_READ_GPRS, lwp_id_, (int *)allRegs, 0, 0) == -1) {
+            perror("Problem reading stack pointer in getActiveFrame");
+            return Frame();
+         }
+         fp = allRegs[1];
       }
-      fp = allRegs[1];
-    }
-    else { // We're in the kernel. Any idea how to get the (old) PC and FP?
-      struct thrdsinfo thrd_buf[1000]; // 1000 should be enough for anyone!
-      getthrds(proc_->getPid(), thrd_buf, sizeof(struct thrdsinfo), 0, 1000);
-      unsigned foo = 0;
-      while (thrd_buf[foo].ti_tid != lwp_) foo++;
-      fp = thrd_buf[foo].ti_ustk;
-      pc = (unsigned)-1; // ???
-    }
-    
-  }
-  else { // Old behavior, pid-based. 
-    pc = P_ptrace(PT_READ_GPR, proc_->getPid(), (int *) IAR, 0, 0); // aix 4.1 likes int *
-    if (pc == (unsigned) -1) return Frame();
-    
-    fp = P_ptrace(PT_READ_GPR, proc_->getPid(), (int *) STKP, 0, 0); // aix 4.1 likes int *
-    if (fp == (unsigned) -1) return Frame();
-
-  }
-  return Frame(pc, fp, proc_->getPid(), NULL, this, true);
+      else { // We're in the kernel. Any idea how to get the (old) PC and FP?
+         struct thrdsinfo thrd_buf[1000]; // 1000 should be enough for anyone!
+         getthrds(proc_->getPid(), thrd_buf, sizeof(struct thrdsinfo), 0,1000);
+         unsigned foo = 0;
+         while (thrd_buf[foo].ti_tid != lwp_id_) foo++;
+         fp = thrd_buf[foo].ti_ustk;
+         pc = (unsigned)-1; // ???
+      }
+      
+   }
+   else { // Old behavior, pid-based. 
+      pc = P_ptrace(PT_READ_GPR, proc_->getPid(), (int *) IAR, 0, 0); // aix 4.1 likes int *
+      if (pc == (unsigned) -1) return Frame();
+      
+      fp = P_ptrace(PT_READ_GPR, proc_->getPid(), (int *) STKP, 0, 0); // aix 4.1 likes int *
+      if (fp == (unsigned) -1) return Frame();
+      
+   }
+   return Frame(pc, fp, proc_->getPid(), NULL, this, true);
 }
 
 
@@ -290,7 +291,7 @@ Frame Frame::getCallerFrame(process *p) const
     // LWP: call ptrace(lwp)
     struct ptsprs spr_contents;
     if (lwp_) {
-      if (P_ptrace(PTT_READ_SPRS, lwp_->get_lwp(), (int *)&spr_contents,
+      if (P_ptrace(PTT_READ_SPRS, lwp_->get_lwp_id(), (int *)&spr_contents,
 		   0, 0) == -1) {
 	perror("Failed to read SPR data in getCallerFrameLWP");
 	fprintf(stderr, "errno = %d\n", errno);
@@ -416,7 +417,7 @@ void decodeInstr(unsigned instr_raw) {
 struct dyn_saved_regs *dyn_lwp::getRegisters() {
     struct dyn_saved_regs *regs = new dyn_saved_regs();
     
-    if (!lwp_) {
+    if (!lwp_id_) {
         // First, the general-purpose integer registers:
         
         // Format of PT_READ_GPR ptrace call:
@@ -481,7 +482,7 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
     }
     
     else {
-        P_ptrace(PTT_READ_GPRS, lwp_, (void *)regs->gprs, 0, 0);
+        P_ptrace(PTT_READ_GPRS, lwp_id_, (void *)regs->gprs, 0, 0);
         if (errno != 0) {
             perror("ptrace PTT_READ_GPRS");
             return NULL;
@@ -490,7 +491,7 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
         // Again, we read as a block. 
         // ptrace(PTT_READ_FPRS, lwp, &buffer (at least 32*8=256), 0, 0);
         
-        P_ptrace(PTT_READ_FPRS, lwp_, (void *)regs->fprs, 0, 0);
+        P_ptrace(PTT_READ_FPRS, lwp_id_, (void *)regs->fprs, 0, 0);
         if (errno != 0) {
             perror("ptrace PTT_READ_FPRS");
             return NULL;
@@ -501,7 +502,7 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
         // but there's a _lot_ of extra space that is unused.
         struct ptsprs spr_contents;
         
-        P_ptrace(PTT_READ_SPRS, lwp_, (void *)&spr_contents, 0, 0);
+        P_ptrace(PTT_READ_SPRS, lwp_id_, (void *)&spr_contents, 0, 0);
         if (errno) {
             perror("PTT_READ_SPRS");
             return NULL;
@@ -576,11 +577,11 @@ bool dyn_lwp::executingSystemCall()
   // lwp -- we may care about a particular thread.
   errno = 0;
   int retCode = 0;
-  if (lwp_) {
+  if (lwp_id_) {
     // Easiest way to check: try to read GPRs and see
     // if we get EPERM back
       struct ptsprs spr_contents;
-      P_ptrace(PTT_READ_SPRS, lwp_, (int *)&spr_contents, 0, 0); // aix 4.1 likes int *
+      P_ptrace(PTT_READ_SPRS, lwp_id_, (int *)&spr_contents, 0, 0); // aix 4.1 likes int *
   }
   else {
       // aix 4.1 likes int *
@@ -596,45 +597,47 @@ bool dyn_lwp::executingSystemCall()
 
 bool dyn_lwp::changePC(Address loc, struct dyn_saved_regs *)
 {
-  if (!lwp_) {
+   if (!lwp_id_) {
       if ( !P_ptrace(PT_READ_GPR, proc_->getPid(), (void *)IAR, 0, 0)) {
-          perror("changePC (PT_READ_GPR) failed");
-          return false;
+         perror("changePC (PT_READ_GPR) failed");
+         return false;
       }
       
       
       if (P_ptrace(PT_WRITE_GPR, proc_->getPid(), (void *)IAR, loc, 0) == -1) {
-          perror("changePC (PT_WRITE_GPR) failed");
-          return false;
+         perror("changePC (PT_WRITE_GPR) failed");
+         return false;
       }
       
       // Double-check that the change was made by reading the IAR register
-      if (P_ptrace(PT_READ_GPR, proc_->getPid(), (void *)IAR, 0, 0) != (int)loc) {
-          perror("changePC (verify) failed");
-          return false;
+      if (P_ptrace(PT_READ_GPR, proc_->getPid(), (void *)IAR, 0,0) != (int)loc)
+      {
+         perror("changePC (verify) failed");
+         return false;
       }
-  }
-  else {
+   }
+   else {
       struct ptsprs spr_contents;
-      if (P_ptrace(PTT_READ_SPRS, lwp_, (void *)&spr_contents, 0, 0) == -1) {
-          perror("changePC: PTT_READ_SPRS failed");
-          return false;
+      if (P_ptrace(PTT_READ_SPRS, lwp_id_, (void *)&spr_contents, 0,0) == -1) {
+         perror("changePC: PTT_READ_SPRS failed");
+         return false;
       }
       spr_contents.pt_iar = loc;
       // Write the registers back in
       
-      if (P_ptrace(PTT_WRITE_SPRS, lwp_, (void *)&spr_contents, 0, 0) == -1) {
-          perror("changePC: PTT_WRITE_SPRS failed");
-          return false;
+      if (P_ptrace(PTT_WRITE_SPRS, lwp_id_, (void *)&spr_contents, 0, 0) == -1)
+      {
+         perror("changePC: PTT_WRITE_SPRS failed");
+         return false;
       }
-  }
-  return true;
+   }
+   return true;
 }
 
 bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
     if (!regs) return false;
     
-  if (!lwp_) {
+  if (!lwp_id_) {
     // First, the general-purpose registers:
     // Format for PT_WRITE_GPR:
     // 3d param ('address'): specifies the register (must be 0-31 or 128-136)
@@ -684,13 +687,13 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
     }
   }
   else {
-      if (P_ptrace(PTT_WRITE_GPRS, lwp_, (void *)regs->gprs, 0, 0) == -1) {
+      if (P_ptrace(PTT_WRITE_GPRS, lwp_id_, (void *)regs->gprs, 0, 0) == -1) {
           perror("ptrace PTT_WRITE_GPRS");
           return false;
       }
       // Next, the general purpose floating point registers.
       // ptrace(PTT_WRITE_FPRS, lwp, &buffer (at least 32*8=256), 0, 0);
-      if (P_ptrace(PTT_WRITE_FPRS, lwp_, (void *)regs->fprs, 0, 0) == -1) {
+      if (P_ptrace(PTT_WRITE_FPRS, lwp_id_, (void *)regs->fprs, 0, 0) == -1) {
           perror("ptrace PTT_WRITE_FPRS");
           return false;
       }
@@ -701,7 +704,7 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
       struct ptsprs saved_sprs;
       struct ptsprs current_sprs;
       // Restore. List: IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR
-      ptrace(PTT_READ_SPRS, lwp_, (int *)&current_sprs, 0, 0);
+      ptrace(PTT_READ_SPRS, lwp_id_, (int *)&current_sprs, 0, 0);
       
       saved_sprs.pt_iar = regs->sprs[0];
       saved_sprs.pt_msr = regs->sprs[1];
@@ -713,7 +716,7 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
       saved_sprs.pt_reserved_0 = regs->sprs[7];
       saved_sprs.pt_fpscr = regs->sprs[8];
       
-      if (P_ptrace(PTT_WRITE_SPRS, lwp_, (void *)&saved_sprs, 0, 0) == -1) {
+      if (P_ptrace(PTT_WRITE_SPRS, lwp_id_, (void *)&saved_sprs, 0, 0) == -1) {
           perror("PTT_WRITE_SPRS");
           return false;
       }
@@ -763,6 +766,14 @@ void OS::osDisconnect(void) {
   close (ttyfd);
 }
 
+bool attach_helper(process *proc) {
+   // formerly OS::osAttach()
+   int ret = ptrace(PT_ATTACH, proc->getPid(), (int *)0, 0, 0);
+   if (ret == -1)
+      ret = ptrace(PT_REATT, proc->getPid(), (int *)0, 0, 0);
+   return (ret != -1);
+}
+
 bool process::stop_() {
 /* Choose either one of the following methods for stopping a process, 
  * but not both. 
@@ -773,7 +784,7 @@ bool process::stop_() {
 	return (P_kill(pid, SIGSTOP) != -1); 
 #else
 	// attach generates a SIG TRAP which we catch
-	if (!attach_()) {
+	if (!attach_helper(this)) {
 	  if (kill(pid, SIGSTOP) == -1)
 	     return false;
         }
@@ -891,15 +902,10 @@ process *decodeProcessEvent(int pid,
 
 
 // attach to an inferior process.
-bool process::attach() {
-  // Create the default LWP
-  dyn_lwp *lwp = new dyn_lwp(0, this);
-  if (!lwp->openFD()) {
-    delete lwp;
-    return false;
-  }
-  
-  lwps[0] = lwp;
+bool process::attach_() {
+  if(getDefaultLWP() == NULL)
+     return false;
+
   // we only need to attach to a process that is not our direct children.
 
   //ccw 30 apr 2002 : SPLIT5
@@ -907,18 +913,10 @@ bool process::attach() {
   statusLine(buffer.c_str());
   
   if (parent != 0 || createdViaAttach) {
-      return attach_();
+      return attach_helper(this);
   }
   else
       return true;
-}
-
-bool process::attach_() {
-   // formerly OS::osAttach()
-   int ret = ptrace(PT_ATTACH, getPid(), (int *)0, 0, 0);
-   if (ret == -1)
-      ret = ptrace(PT_REATT, getPid(), (int *)0, 0, 0);
-   return (ret != -1);
 }
 
 bool process::isRunning_() const {
@@ -1021,17 +1019,17 @@ bool process::pause_() {
 }
 
 bool process::detach_() {
-  if (checkStatus()) {
+   if (checkStatus()) {
       ptraceOps++; ptraceOtherOps++;
       if (!ptraceKludge::deliverPtrace(this,PT_DETACH,(char*)1,SIGSTOP, NULL))
       {
-	  sprintf(errorLine, "Unable to detach %d\n", getPid());
-	  logLine(errorLine);
-	  showErrorCallback(40, (const char *) errorLine);
+         sprintf(errorLine, "Unable to detach %d\n", getPid());
+         logLine(errorLine);
+         showErrorCallback(40, (const char *) errorLine);
       }
-  }
-  // always return true since we report the error condition.
-  return (true);
+   }
+   // always return true since we report the error condition.
+   return (true);
 }
 
 #ifdef BPATCH_LIBRARY
@@ -1552,9 +1550,9 @@ string process::tryToFindExecutable(const string &progpath, int /*pid*/) {
 
 Address dyn_lwp::readRegister(Register returnValReg) 
 {
-  if (lwp_) {
+  if (lwp_id_) {
       unsigned allRegs[64];
-      P_ptrace(PTT_READ_GPRS, lwp_, (int *)allRegs, 0, 0); // aix 4.1 likes int *
+      P_ptrace(PTT_READ_GPRS, lwp_id_, (int *)allRegs, 0, 0); // aix 4.1 likes int *
       return allRegs[returnValReg];
   }
   else
@@ -1701,12 +1699,13 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
    tid_t indexPtr = 0;   
    struct thrdsinfo thrd_buf;
 
-   if (lwp_ > 0) 
-      lwp_to_use = lwp_;
+   if (lwp_id_ > 0) 
+      lwp_to_use = lwp_id_;
    else {
-      /* If we need to get the data for the entire process (ie. lwp_ == 0) then
-         we need to the pm_get_data_group function requires any lwp in the
-         group, so we'll grab the lwp of any active thread in the process */
+      /* If we need to get the data for the entire process (ie. lwp_id_ == 0)
+         then we need to the pm_get_data_group function requires any lwp in
+         the group, so we'll grab the lwp of any active thread in the
+         process */
       if(getthrds(proc_->getPid(), &thrd_buf, sizeof(struct thrdsinfo), 
                   &indexPtr, 1) == 0) {
          // perhaps the process ended
@@ -1724,7 +1723,7 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
    }
 
    pm_data_t data;
-   if(lwp_ > 0) 
+   if(lwp_id_ > 0) 
       ret = pm_get_data_thread(proc_->getPid(), lwp_to_use, &data);
    else {  // lwp == 0, means get data for the entire process (ie. all lwps)
       ret = pm_get_data_group(proc_->getPid(), lwp_to_use, &data);
@@ -1747,7 +1746,7 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
    if (ret) {
        pm_error("dyn_lwp::getRawCpuTime_hw: pm_get_data_thread", ret);
        fprintf(stderr, "Attempted pm_get_data(%d, %d, %d)\n",
-               proc_->getPid(), lwp_, lwp_to_use);
+               proc_->getPid(), lwp_id_, lwp_to_use);
        return -1;
    }
    rawTime64 result = data.accu[get_hwctr_binding(PM_CYC_EVENT)];
@@ -1758,11 +1757,11 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
    }
 
    //if(pos_junk != 101)
-   //  ct_record(pos_junk, result, hw_previous_, lwp_, lwp_to_use);
+   //  ct_record(pos_junk, result, hw_previous_, lwp_id_, lwp_to_use);
 
    if(result < hw_previous_) {
       cerr << "rollback in dyn_lwp::getRawCpuTime_hw, lwp_to_use: " 
-           << lwp_to_use << ", lwp: " << lwp_ << ", result: " << result 
+           << lwp_to_use << ", lwp: " << lwp_id_ << ", result: " << result 
            << ", previous result: " << hw_previous_ << "\n";
       result = hw_previous_;
    }
@@ -1811,7 +1810,7 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
   const int sizeProcInfo = sizeof(struct procsinfo);
   const int sizeFdsInfo = sizeof(struct fdsinfo);
   
-  if (lwp_ > 0) {
+  if (lwp_id_ > 0) {
     // Whoops, we _really_ don't want to do this. 
     cerr << "Error: calling software timer routine with a valid kernel thread ID" << endl;
   }
@@ -2015,13 +2014,15 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
       // LWP method
       struct ptsprs spr_contents;
       Address oldLR;
-      if (P_ptrace(PTT_READ_SPRS, frame.getLWP()->get_lwp(), (int *)&spr_contents, 0, 0) == -1) {
+      if (P_ptrace(PTT_READ_SPRS, frame.getLWP()->get_lwp_id(),
+                   (int *)&spr_contents, 0, 0) == -1) {
 	perror("Failed to read SPRS in catchupSideEffect");
 	return false;
       }
       oldReturnAddr = spr_contents.pt_lr;
       spr_contents.pt_lr = (unsigned) exitTrampAddr;
-      if (P_ptrace(PTT_WRITE_SPRS, frame.getLWP()->get_lwp(), (int *)&spr_contents, 0, 0) == -1) {
+      if (P_ptrace(PTT_WRITE_SPRS, frame.getLWP()->get_lwp_id(),
+                   (int *)&spr_contents, 0, 0) == -1) {
 	perror("Failed to write SPRS in catchupSideEffect");
 	return false;
       }
@@ -2058,13 +2059,13 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
 }
 #endif
 
-bool dyn_lwp::openFD()
+bool dyn_lwp::openFD_()
 {
   // Umm... no file descriptors on AIX
   return true;
 }
 
-void dyn_lwp::closeFD()
+void dyn_lwp::closeFD_()
 {
   return;
 }

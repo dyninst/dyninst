@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.50 2003/03/10 23:15:28 bernat Exp $
+// $Id: irix.C,v 1.51 2003/03/12 01:49:55 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -359,8 +359,11 @@ void OS::osTraceMe(void)
   close(fd);
 }
 
-bool process::attach()
+bool process::attach_()
 {
+  if(getDefaultLWP() == NULL)
+     return false;
+
   // QUESTION: does this attach operation lead to a SIGTRAP being forwarded
   // to paradynd in all cases?  How about when we are attaching to an
   // already-running process?  (Seems that in the latter case, no SIGTRAP
@@ -368,12 +371,7 @@ bool process::attach()
 
   // step 1 - /proc open: attach to the inferior process
   // Note: opening /proc is done in the dyn_lwp constructor
-  dyn_lwp *lwp = new dyn_lwp(0, this);
-  if (!lwp->openFD()) {
-    delete lwp;
-    return false;
-  }
-  lwps[0] = lwp;
+  // THIS STEP IS DONE IN THE OS INDEPENDENT FUNCTION process::attach()
 
   // step 2 - /proc PIOCSTRACE: define which signals should be forwarded to daemon
   // these are (1) SIGSTOP and (2) either SIGTRAP (sparc/mips) or SIGILL (x86),
@@ -389,7 +387,7 @@ bool process::attach()
   // --wcb 10/4/2000
   (void)praddset(&sigs, SIGEMT);
 #endif
-  if (ioctl(lwp->get_fd(), PIOCSTRACE, &sigs) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCSTRACE, &sigs) < 0) {
     perror("process::attach(PIOCSTRACE)");
     return false;
   }
@@ -409,12 +407,12 @@ bool process::attach()
   long flags = 0;
 
   flags = PR_KLC | PR_FORK;
-  if (ioctl (lwp->get_fd(), PIOCSET, &flags) < 0) {
+  if (ioctl (getDefaultLWP()->get_fd(), PIOCSET, &flags) < 0) {
     perror("process::attach(PIOCSET)");
     return false;
   }
   flags = PR_RLC;
-  if (ioctl (lwp->get_fd(), PIOCRESET, &flags) < 0) {
+  if (ioctl (getDefaultLWP()->get_fd(), PIOCRESET, &flags) < 0) {
     perror("process::attach(PIOCRESET)");
     return false;
   }
@@ -422,7 +420,7 @@ bool process::attach()
 
   // environment variables
   prpsinfo_t info;
-  if (ioctl(lwp->get_fd(), PIOCPSINFO, &info) < 0) {
+  if (ioctl(getDefaultLWP()->get_fd(), PIOCPSINFO, &info) < 0) {
     perror("process::attach(PIOCPSINFO)");
     return false;
   }
@@ -619,7 +617,6 @@ process *decodeProcessEvent(int pid,
 bool process::detach_()
 {
   //fprintf(stderr, ">>> process::detach_()\n");
-  delete getDefaultLWP();
   return true;
 }
 
@@ -953,7 +950,7 @@ bool process::API_detach_(const bool cont)
     ret = false;
   }    
 
-  delete getDefaultLWP();
+  deleteLWP(getDefaultLWP());
   return ret;
 }
 #endif
@@ -1942,7 +1939,7 @@ void process::initCpuTimeMgrPlt() {
 }
 #endif
 
-bool dyn_lwp::openFD()
+bool dyn_lwp::openFD_()
 {
   char procName[128];    
   sprintf(procName, "/proc/%05d", (int)proc_->getPid());
@@ -1954,7 +1951,7 @@ bool dyn_lwp::openFD()
   return true;
 }
 
-void dyn_lwp::closeFD()
+void dyn_lwp::closeFD_()
 {
   if (fd_) close(fd_);
 }

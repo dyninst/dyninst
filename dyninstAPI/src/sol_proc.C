@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.12 2003/03/10 23:15:31 bernat Exp $
+// $Id: sol_proc.C,v 1.13 2003/03/12 01:49:58 schendel Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -599,24 +599,24 @@ bool process::changeIntReg(int reg, Address val) {
 // Utility function: get the appropriate lwpstatus_t struct
 bool dyn_lwp::get_status(lwpstatus_t *status) const
 {
-    if (lwp_) {
-        // We're using an lwp file descriptor, so get directly
-        if (pread(status_fd_, 
-                 (void *)status, 
-                 sizeof(lwpstatus_t), 0) != sizeof(lwpstatus_t)) {
-            perror("dyn_lwp::get_status");            
-            return false;
-        }
-    }
-    else {
-        // No lwp, so we get the whole thing and pick it out
-        pstatus_t procstatus;
-        if (!proc_->get_status(&procstatus)) {
-           return false;
-        }
-        memcpy(status, &(procstatus.pr_lwp), sizeof(lwpstatus_t));
-    }
-    return true;
+   if (lwp_id_) {
+      // We're using an lwp file descriptor, so get directly
+      if (pread(status_fd_, 
+                (void *)status, 
+                sizeof(lwpstatus_t), 0) != sizeof(lwpstatus_t)) {
+         perror("dyn_lwp::get_status");            
+         return false;
+      }
+   }
+   else {
+      // No lwp, so we get the whole thing and pick it out
+      pstatus_t procstatus;
+      if (!proc_->get_status(&procstatus)) {
+         return false;
+      }
+      memcpy(status, &(procstatus.pr_lwp), sizeof(lwpstatus_t));
+   }
+   return true;
 }
 
 // Read the value of a particular register
@@ -631,18 +631,18 @@ Address dyn_lwp::readRegister(Register reg)
 }
 
 // Open all file descriptors corresponding to an LWP
-bool dyn_lwp::openFD()
+bool dyn_lwp::openFD_()
 {
-  if (lwp_) {
+  if (lwp_id_) {
       char temp[128];
-      sprintf(temp, "/proc/%d/lwp/%d/lwpctl", (int)proc_->getPid(), lwp_);
+      sprintf(temp, "/proc/%d/lwp/%d/lwpctl", (int)proc_->getPid(), lwp_id_);
       ctl_fd_ = P_open(temp, O_WRONLY, 0);
       if (ctl_fd_ < 0) perror("Opening lwpctl");
-      sprintf(temp, "/proc/%d/lwp/%d/lwpstatus", (int)proc_->getPid(), lwp_);
+      sprintf(temp, "/proc/%d/lwp/%d/lwpstatus", (int)proc_->getPid(),lwp_id_);
       status_fd_ = P_open(temp, O_RDONLY, 0);    
       if (status_fd_ < 0) perror("Opening lwpstatus");
 #if !defined(rs6000_ibm_aix4_1)
-      sprintf(temp, "/proc/%d/lwp/%d/lwpusage", (int)proc_->getPid(), lwp_);
+      sprintf(temp, "/proc/%d/lwp/%d/lwpusage", (int)proc_->getPid(), lwp_id_);
       usage_fd_ = P_open(temp, O_RDONLY, 0);
 #else
       usage_fd_ = 0;
@@ -670,7 +670,7 @@ bool dyn_lwp::openFD()
 }
 
 // Close FDs opened above
-void dyn_lwp::closeFD()
+void dyn_lwp::closeFD_()
 {
     if (ctl_fd_) close(ctl_fd_);
     if (status_fd_) close(status_fd_);
@@ -759,18 +759,14 @@ bool process::setProcfsFlags()
    and set the kill-on-last-close and inherit-on-fork flags.
 */
 extern string pd_flavor ;
-bool process::attach() {
-  // step 1) /proc open: attach to the inferior process
-  // Blow away the existing default LWP handle (if one)
+bool process::attach_() {
+    // step 1) /proc open: attach to the inferior process
 
-    dyn_lwp *lwp = new dyn_lwp(0, this);
-    if (!lwp->openFD()) {
-        delete lwp;
-        return false;
-    }
-    lwps[0] = lwp;
     //cerr << "Attaching... " << endl;
-    
+    dyn_lwp *default_lwp = getDefaultLWP();
+    if(default_lwp == NULL)
+       return false;
+
     // Open the process-wise handles
     char temp[128];
     as_fd_ = -1;
@@ -817,7 +813,7 @@ bool process::attach() {
     *bufptr = PCSTRACE; bufptr++;
     memcpy(bufptr, &sigs, sizeof(proc_sigset_t));
 
-    if (write(getDefaultLWP()->ctl_fd(), buf, bufsize) != bufsize) {
+    if(write(getDefaultLWP()->ctl_fd(), buf, bufsize) != bufsize) {
         perror("attach: PCSTRACE");
         return false;
     }
@@ -932,19 +928,12 @@ bool process::pause_() {
    close the file descriptor for the file associated with a process
 */
 bool process::detach_() {
-    dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(lwps);
-    dyn_lwp *lwp; unsigned thr;
-    
-    while (lwp_iter.next(thr, lwp)) {
-        lwp->closeFD();
-        delete lwp;
-    }
-    lwps.clear();
-    close(procHandle_);
-    close(as_fd_);
-    close(ps_fd_);
-    close(status_fd_);
-    return true;
+   close(procHandle_);
+   close(as_fd_);
+   close(ps_fd_);
+   close(status_fd_);
+
+   return true;
 }
 
 #ifdef BPATCH_LIBRARY
@@ -1036,7 +1025,7 @@ bool process::API_detach_(const bool cont)
   }
 
   // Close all file descriptors
-  detach_();
+  detach(false);
   
   return true;
 }

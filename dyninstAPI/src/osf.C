@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.45 2003/03/10 23:15:30 bernat Exp $
+// $Id: osf.C,v 1.46 2003/03/12 01:49:57 schendel Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -475,15 +475,11 @@ process *decodeProcessEvent(int pid,
    set the signals to be caught to be only SIGSTOP,
    and set the kill-on-last-close and inherit-on-fork flags.
 */
-bool process::attach() {
+bool process::attach_() {
+  if(getDefaultLWP() == NULL)
+     return false;
 
-  dyn_lwp *lwp = new dyn_lwp(0, this);
-  if (!lwp->openFD()) {
-    delete lwp;
-    return false;
-  }
-  lwps[0] = lwp;
-  int fd = lwp->get_fd();
+  int fd = getDefaultLWP()->get_fd();
 
   /* we don't catch any child signals, except SIGSTOP */
   sigset_t sigs;
@@ -875,7 +871,7 @@ void process::initCpuTimeMgrPlt() {
 }
 #endif
 
-bool dyn_lwp::openFD()
+bool dyn_lwp::openFD_()
 {
   char procName[128];    
   sprintf(procName, "/proc/%d", (int)proc_->getPid());
@@ -887,7 +883,7 @@ bool dyn_lwp::openFD()
   return true;
 }
 
-void dyn_lwp::closeFD()
+void dyn_lwp::closeFD_()
 {
   if (fd_) close(fd_);
 }

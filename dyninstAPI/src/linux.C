@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.88 2003/03/10 23:15:29 bernat Exp $
+// $Id: linux.C,v 1.89 2003/03/12 01:49:56 schendel Exp $
 
 #include <fstream.h>
 
@@ -300,7 +300,7 @@ process *decodeProcessEvent(int pid,
 }
 
 // attach to an inferior process.
-bool process::attach() {
+bool process::attach_() {
   char procName[128];
   bool running = false;
   if( createdViaAttach )
@@ -312,14 +312,11 @@ bool process::attach() {
   // is automatically generated)
 
   // step 1) /proc open: attach to the inferior process memory file
-  dyn_lwp *lwp = new dyn_lwp(0, this);
-  if (!lwp->openFD()) {
-    delete lwp;
-    return false;
-  }
-  lwps[0] = lwp;
 
-  int fd = lwp->get_fd();
+  if(getDefaultLWP() == NULL)
+     return false;
+
+  int fd = getDefaultLWP()->get_fd();
   if (fd < 0 ) {
     fprintf(stderr, "attach: open failed on %s: %s\n", procName, sys_errlist[errno]);
     return false;
@@ -407,10 +404,6 @@ bool process::attach() {
 #endif
 
   return true;
-}
-
-bool process::attach_() {
-  return false; // (P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) != -1);
 }
 
 bool process::trapAtEntryPointOfMain(Address)
@@ -520,11 +513,11 @@ bool process::pause_() {
 }
 
 bool process::detach_() {
-  if (!checkStatus())
-    return false;
-  ptraceOps++; ptraceOtherOps++;
-  delete lwps[0];
-  return (ptraceKludge::deliverPtrace(this, PTRACE_DETACH, 1, SIGCONT));
+   if (!checkStatus())
+      return false;
+   ptraceOps++;
+   ptraceOtherOps++;
+   return (ptraceKludge::deliverPtrace(this, PTRACE_DETACH, 1, SIGCONT));
 }
 
 #ifdef BPATCH_LIBRARY
@@ -533,7 +526,6 @@ bool process::API_detach_(const bool cont) {
   if (!checkStatus())
     return false;
   ptraceOps++; ptraceOtherOps++;
-  delete lwps[0];
   if (!cont) P_kill(pid, SIGSTOP);
   return (ptraceKludge::deliverPtrace(this, PTRACE_DETACH, 1, SIGCONT));
 }
@@ -557,12 +549,12 @@ bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
 
 bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
 {
-     unsigned char *ap = (unsigned char*) inTraced;
-     const unsigned char *dp = (const unsigned char*) inSelf;
-     int pid = getPid();
-     Address w;               /* ptrace I/O buffer */
-     unsigned len = sizeof(w); /* address alignment of ptrace I/O requests */
-     unsigned cnt;
+   unsigned char *ap = (unsigned char*) inTraced;
+   const unsigned char *dp = (const unsigned char*) inSelf;
+   int pid = getPid();
+   Address w;               /* ptrace I/O buffer */
+   unsigned len = sizeof(w); /* address alignment of ptrace I/O requests */
+   unsigned cnt;
 
 #if defined(BPATCH_LIBRARY)
 #if defined(i386_unknown_linux2_0)
@@ -575,14 +567,14 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
 		}
 		if( result  ){
 			if(strcmp(findFuncByAddr((Address)inTraced)->prettyName().c_str(), 
-						"__libc_sigaction")){
+                   "__libc_sigaction")){
 				//for linux we instrument sigactiont to watch libraries
 				//being loaded. dont consider libc.so mutated because of 
 				//this	
 				/*printf(" write at %lx in %s amount %x insn: %x \n", 
-				(off_t)inTraced, sh_obj->getName().c_str(), nbytes,
-				 *(unsigned int*) inSelf);
-				 */
+              (off_t)inTraced, sh_obj->getName().c_str(), nbytes,
+              *(unsigned int*) inSelf);
+              */
 				sh_obj->setDirty();	
 			}
 		}
@@ -590,62 +582,69 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
 #endif
 #endif
 
-     ptraceOps++; ptraceBytes += nbytes;
+   ptraceOps++; ptraceBytes += nbytes;
 
-     if (0 == nbytes)
-	  return true;
+   if (0 == nbytes)
+      return true;
 
-     if ((cnt = ((Address)ap) % len)) {
-	  /* Start of request is not aligned. */
-	  unsigned char *p = (unsigned char*) &w;
+   if ((cnt = ((Address)ap) % len)) {
+      /* Start of request is not aligned. */
+      unsigned char *p = (unsigned char*) &w;	  
+
+      /* Read the segment containing the unaligned portion, edit
+         in the data from DP, and write the segment back. */
+      errno = 0;
+      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), 0);
+
+      if (errno)
+         return false;
+
+      for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
+         p[cnt+i] = dp[i];
+
+      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) (ap-cnt), w))
+         return false;
+
+      if (len-cnt >= nbytes) 
+         return true; /* done */
 	  
-	  /* Read the segment containing the unaligned portion, edit
-	     in the data from DP, and write the segment back. */
-	  errno = 0;
-	  w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), 0);
-	  if (errno)
-	       return false;
-	  for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
-	       p[cnt+i] = dp[i];
-	  if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) (ap-cnt), w))
-	       return false;
-
-	  if (len-cnt >= nbytes) 
-	       return true; /* done */
+      dp += len-cnt;
+      ap += len-cnt;
+      nbytes -= len-cnt;
+   }	  
 	  
-	  dp += len-cnt;
-	  ap += len-cnt;
-	  nbytes -= len-cnt;
-     }	  
-	  
-     /* Copy aligned portion */
-     while (nbytes >= len) {
-	  assert(0 == ((Address)ap) % len);
-	  memcpy(&w, dp, len);
-	  if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w))
-	       return false;
-	  dp += len;
-	  ap += len;
-	  nbytes -= len;
-     }
+   /* Copy aligned portion */
+   while (nbytes >= len) {
+      assert(0 == ((Address)ap) % len);
+      memcpy(&w, dp, len);
+      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w))
+         return false;
+      dp += len;
+      ap += len;
+      nbytes -= len;
+   }
 
-     if (nbytes > 0) {
-	  /* Some unaligned data remains */
-	  unsigned char *p = (unsigned char *) &w;
-	  
-	  /* Read the segment containing the unaligned portion, edit
-             in the data from DP, and write it back. */
-	  errno = 0;
-	  w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0);
-	  if (errno)
-	       return false;
-	  for (unsigned i = 0; i < nbytes; i++)
-	       p[i] = dp[i];
-	  if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w))
-	       return false;
-     }
+   if (nbytes > 0) {
+      /* Some unaligned data remains */
+      unsigned char *p = (unsigned char *) &w;
 
-     return true;
+      /* Read the segment containing the unaligned portion, edit
+         in the data from DP, and write it back. */
+      errno = 0;
+      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0);
+
+      if (errno)
+         return false;
+
+      for (unsigned i = 0; i < nbytes; i++)
+         p[i] = dp[i];
+
+      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w))
+         return false;
+
+   }
+
+   return true;
 }
 
 bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf) {
@@ -1083,112 +1082,112 @@ int getNumberOfCPUs()
 // function foo in libfoo.so.2.  We are currently not handling this case, since
 // it is unlikely to happen in practice.
 bool process::findCallee(instPoint &instr, function_base *&target){
-    
-    if((target = const_cast<function_base *>(instr.iPgetCallee()))) {
- 	return true; // callee already set
-    }
 
-    // find the corresponding image in this process  
-    const image *owner = instr.iPgetOwner();
-    bool found_image = false;
-    Address base_addr = 0;
-    if(symbols == owner) {  found_image = true; } 
-    else if(shared_objects){
-        for(u_int i=0; i < shared_objects->size(); i++){
-            if(owner == ((*shared_objects)[i])->getImage()) {
-		found_image = true;
-		base_addr = ((*shared_objects)[i])->getBaseAddress();
-		break;
-            }
-	}
-    } 
-    if(!found_image) {
-        target = 0;
-        return false; // image not found...this is bad
-    }
+   if((target = const_cast<function_base *>(instr.iPgetCallee()))) {
+      return true; // callee already set
+   }
+   
+   // find the corresponding image in this process  
+   const image *owner = instr.iPgetOwner();
+   bool found_image = false;
+   Address base_addr = 0;
+   if(symbols == owner) {  found_image = true; } 
+   else if(shared_objects){
+      for(u_int i=0; i < shared_objects->size(); i++){
+         if(owner == ((*shared_objects)[i])->getImage()) {
+            found_image = true;
+            base_addr = ((*shared_objects)[i])->getBaseAddress();
+            break;
+         }
+      }
+   } 
+   if(!found_image) {
+      target = 0;
+      return false; // image not found...this is bad
+   }
 
-    // get the target address of this function
-    Address target_addr = 0;
-//    Address insn_addr = instr.iPgetAddress(); 
-    target_addr = instr.getTargetAddress();
+   // get the target address of this function
+   Address target_addr = 0;
+   //    Address insn_addr = instr.iPgetAddress(); 
+   target_addr = instr.getTargetAddress();
 
-    if(!target_addr) {  
-	// this is either not a call instruction or an indirect call instr
-	// that we can't get the target address
-        target = 0;
-        return false;
-    }
+   if(!target_addr) {  
+      // this is either not a call instruction or an indirect call instr
+      // that we can't get the target address
+      target = 0;
+      return false;
+   }
 
-    // see if there is a function in this image at this target address
-    // if so return it
-    pd_Function *pdf = 0;
-    if( (pdf = owner->findFuncByAddr(target_addr,this)) ) {
-        target = pdf;
-        instr.set_callee(pdf);
-	return true; // target found...target is in this image
-    }
+   // see if there is a function in this image at this target address
+   // if so return it
+   pd_Function *pdf = 0;
+   if( (pdf = owner->findFuncByAddr(target_addr,this)) ) {
+      target = pdf;
+      instr.set_callee(pdf);
+      return true; // target found...target is in this image
+   }
 
-    // else, get the relocation information for this image
-    const Object &obj = owner->getObject();
-    const pdvector<relocationEntry> *fbt;
-    if(!obj.get_func_binding_table_ptr(fbt)) {
-	target = 0;
-	return false; // target cannot be found...it is an indirect call.
-    }
+   // else, get the relocation information for this image
+   const Object &obj = owner->getObject();
+   const pdvector<relocationEntry> *fbt;
+   if(!obj.get_func_binding_table_ptr(fbt)) {
+      target = 0;
+      return false; // target cannot be found...it is an indirect call.
+   }
 
-    // find the target address in the list of relocationEntries
-    for(u_int i=0; i < fbt->size(); i++) {
-	if((*fbt)[i].target_addr() == target_addr) {
-	    // check to see if this function has been bound yet...if the
-	    // PLT entry for this function has been modified by the runtime
-	    // linker
-	    pd_Function *target_pdf = 0;
-	    if(hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
-                target = target_pdf;
-                instr.set_callee(target_pdf);
-	        return true;  // target has been bound
-	    } 
-	    else {
-		// just try to find a function with the same name as entry 
-		target = findFuncByName((*fbt)[i].name());
-		if(target){
+   // find the target address in the list of relocationEntries
+   for(u_int i=0; i < fbt->size(); i++) {
+      if((*fbt)[i].target_addr() == target_addr) {
+         // check to see if this function has been bound yet...if the
+         // PLT entry for this function has been modified by the runtime
+         // linker
+         pd_Function *target_pdf = 0;
+         if(hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
+            target = target_pdf;
+            instr.set_callee(target_pdf);
+            return true;  // target has been bound
+         } 
+         else {
+            // just try to find a function with the same name as entry 
+            target = findFuncByName((*fbt)[i].name());
+            if(target){
 	            return true;
-		}
-		else {  
-		    // KLUDGE: this is because we are not keeping more than
-		    // one name for the same function if there is more
-		    // than one.  This occurs when there are weak symbols
-		    // that alias global symbols (ex. libm.so.1: "sin" 
-		    // and "__sin").  In most cases the alias is the same as 
-		    // the global symbol minus one or two leading underscores,
-		    // so here we add one or two leading underscores to search
-		    // for the name to handle the case where this string 
-		    // is the name of the weak symbol...this will not fix 
-		    // every case, since if the weak symbol and global symbol
-		    // differ by more than leading underscores we won't find
-		    // it...when we parse the image we should keep multiple
-		    // names for pd_Functions
+            }
+            else {  
+               // KLUDGE: this is because we are not keeping more than
+               // one name for the same function if there is more
+               // than one.  This occurs when there are weak symbols
+               // that alias global symbols (ex. libm.so.1: "sin" 
+               // and "__sin").  In most cases the alias is the same as 
+               // the global symbol minus one or two leading underscores,
+               // so here we add one or two leading underscores to search
+               // for the name to handle the case where this string 
+               // is the name of the weak symbol...this will not fix 
+               // every case, since if the weak symbol and global symbol
+               // differ by more than leading underscores we won't find
+               // it...when we parse the image we should keep multiple
+               // names for pd_Functions
 
-		    string s = string("_");
-		    s += (*fbt)[i].name();
-		    target = findFuncByName(s);
-		    if(target){
-	                return true;
-		    }
-		    s = string("__");
-		    s += (*fbt)[i].name();
-		    target = findFuncByName(s);
-		    if(target){
-	                return true;
-		    }
-		}
-	    }
-	    target = 0;
-	    return false;
-	}
-    }
-    target = 0;
-    return false;  
+               string s = string("_");
+               s += (*fbt)[i].name();
+               target = findFuncByName(s);
+               if(target){
+                  return true;
+               }
+               s = string("__");
+               s += (*fbt)[i].name();
+               target = findFuncByName(s);
+               if(target){
+                  return true;
+               }
+            }
+         }
+         target = 0;
+         return false;
+      }
+   }
+   target = 0;
+   return false;  
 }
 
 #ifndef BPATCH_LIBRARY
@@ -1293,7 +1292,7 @@ void process::inferiorMallocAlign(unsigned &size)
 }
 #endif
 
-bool dyn_lwp::openFD(void)
+bool dyn_lwp::openFD_(void)
 {
   char procName[128];
   sprintf(procName, "/proc/%d/mem", (int) proc_->getPid());
@@ -1302,7 +1301,7 @@ bool dyn_lwp::openFD(void)
   return true;
 }
 
-void dyn_lwp::closeFD()
+void dyn_lwp::closeFD_()
 {
   if (fd_) close(fd_);
 }
