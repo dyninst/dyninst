@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.277 2003/11/13 22:49:05 schendel Exp $
+/* $Id: process.h,v 1.278 2003/11/24 17:37:55 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -385,9 +385,13 @@ class process {
 #endif
 
   processState status() const { return status_;}
-  // If no lwp is passed for which lwp the status change occured on,
-  // then it's considered to have occurred on all of the lwps.
-  void set_status(processState st, dyn_lwp *whichLWP=NULL);
+
+  // update the status on the whole process (ie. process state and all lwp
+  // states)
+  void set_status(processState st);
+
+  // update the status of the process and one particular lwp in the process
+  void set_status(processState st, dyn_lwp *whichLWP);
 
   Address previousSignalAddr() const { return previousSignalAddr_; }
   void setPreviousSignalAddr(Address a) { previousSignalAddr_ = a; }
@@ -816,7 +820,8 @@ class process {
   // shared object images for this function.  
   // mcheyney - should return NULL if function is excluded!!!!
   function_base *findOnlyOneFunction(resource *func,resource *mod);
-  
+  function_base *findOnlyOneFunction(pdstring func_name, pdstring mod_name);
+
   //this routine searches for a function in a module.  Note that res is a vector
   // due to gcc emitting duplicate constructors/destructors
   bool findAllFuncsByName(resource *func, resource *mod, pdvector<function_base *> &res);
@@ -1022,6 +1027,13 @@ class process {
   // the case for multi-threaded linux processes.
   dyn_lwp *getRepresentativeLWP() const {
      return representativeLWP;
+  }
+
+  dyn_thread *getInitialThread() const {
+     if(threads.size() == 0)
+        return NULL;
+
+     return threads[0];
   }
 
   void overrideRepresentativeLWP(dyn_lwp *lwp);
