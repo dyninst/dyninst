@@ -1,7 +1,10 @@
 /* $Log: xtext2.C,v $
-/* Revision 1.2  1996/01/17 18:40:26  newhall
-/* *** empty log message ***
+/* Revision 1.3  1996/01/17 19:29:11  newhall
+/* changes due to new visiLib
 /*
+ * Revision 1.2  1996/01/17 18:40:26  newhall
+ * *** empty log message ***
+ *
  * Revision 1.1  1995/09/18  18:27:13  newhall
  * updated test subdirectory, added visilib routine GetMetRes()
  * */
@@ -40,7 +43,7 @@
 #include <X11/Xaw/Cardinals.h>
 
 //////////////////////////////////
-#include "visi/h/visualization.h"
+#include "visualization.h"
 //////////////////////////////////
 
 static void ClearText(Widget w,XtPointer text_ptr,XtPointer call_data);
@@ -90,17 +93,17 @@ int fd_input(int dummy){
 
 
   fprintf(stderr,"@@@@ in callback for datavalues and fold\n");
-  noMetrics = dataGrid.NumMetrics();
-  noResources = dataGrid.NumResources();
-  noBins = dataGrid.NumBins();
+  noMetrics = visi_NumMetrics();
+  noResources = visi_NumResources();
+  noBins = visi_NumBuckets();
   for(i=0;i < noMetrics; i++)
    for(j=0;j<noResources;j++){
       k = dummy;
-      if(dataGrid[i][j].Valid()){
-	  fprintf(stderr,"dataGrid[%d][%d][%d] = %f\n",i,j,k,dataGrid[i][j][k]);
-	  value = dataGrid[i][j][k];
+      if(visi_Valid(i,j)){
+	  fprintf(stderr,"dataGrid[%d][%d][%d] = %f\n",i,j,k,
+					visi_DataValue(i,j,k));
+	  value = visi_DataValue(i,j,k);
           if(!(isnan(value))){
-//        if((value = dataGrid[i][j][k]) != ERROR){
           sprintf(&buf[0],"%s%d%s%d%s%d%s%f\n","dataGrid[",i,"][",j,"][",k,
 	          "] = ",value); 
           }
@@ -138,14 +141,13 @@ int fd_input2(int dummy){
   fprintf(stderr,"@@@@ in callback for ADDMETRICSRESOURCES\n");
   XtSetArg(args[0], XtNinsertPosition, &pos);
   XtGetValues(text, args, ONE);
-  noMetrics = dataGrid.NumMetrics();
-  noResources = dataGrid.NumResources();
-  noBins = dataGrid.NumBins();
-  value  = dataGrid.BinWidth();
-  aggr   = dataGrid.FoldMethod(0);
-  sprintf(&buf[0],"\n%s%d%s%d%s%d%s%f%s%d\n","noMetrics = ",noMetrics,
+  noMetrics = visi_NumMetrics();
+  noResources = visi_NumResources();
+  noBins = visi_NumBuckets();
+  value  = visi_BucketWidth();
+  sprintf(&buf[0],"\n%s%d%s%d%s%d%s%f\n","noMetrics = ",noMetrics,
 	 ", no resources = ",noResources,", num Bins = ",noBins,
-	 "\nbinWidth = ",value,", Fold Method = ",aggr);
+	 "\nbinWidth = ",value);
 
   size = strlen(buf);  
   tb.firstPos = 0;
@@ -158,7 +160,7 @@ int fd_input2(int dummy){
   pos += size;
   XtSetArg(args[0], XtNinsertPosition, pos);
   XtSetValues(text, args, ONE);
-  return(OK);
+  return(0);
 }
 
 // callback routine for NEWMETRICSRESOURCES, PHASENAME
@@ -185,7 +187,7 @@ int fd_input3(int dummy){
   XtSetArg(args[0], XtNinsertPosition, pos);
   XtSetValues(text, args, ONE);
 
-  return(OK);
+  return(0);
 }
 
 /////////////////////////////////////
@@ -195,7 +197,7 @@ static void GetMetsResCallback(Widget w,
 {
 
   fprintf(stderr,"@@@@ in GetMetsResCallback upcall\n"); 
-  GetMetsRes();  
+  visi_GetMetsRes();  
 }
 
 static void StopMetsResCallback(Widget w,
@@ -204,13 +206,13 @@ static void StopMetsResCallback(Widget w,
 {
 
   fprintf(stderr,"@@@@ in StopMetsResCallback upcall\n"); 
-  StopMetRes(0,0);  
+  visi_StopMetRes(0,0);  
 }
 
 static void PName(Widget w,XtAppContext app_con,XtPointer call_data){
 
  fprintf(stderr,"@@@@ in PName upcall\n"); 
-  DefinePhase(0.0," ");  
+  visi_DefinePhase(0.0," ");  
 }
 /////////////////////////////////////
 
@@ -239,9 +241,9 @@ int main(int argc,char **argv)
 	Syntax(app_con, argv[0]);
 
 //////////////////////////////////////
-// call VisiInit: step (1) from README file
+// call visi_Init: step (1) from README file
 
-   if((fd = VisiInit()) < 0){
+   if((fd = visi_Init()) < 0){
 	 exit(-1);
     }
 //////////////////////////////////////
@@ -249,18 +251,10 @@ int main(int argc,char **argv)
 //////////////////////////////////////
 // register event callbacks: step (2) from README file
 
-   ok = RegistrationCallback(ADDMETRICSRESOURCES,fd_input2); 
-   ok = RegistrationCallback(DATAVALUES,fd_input); 
-   ok = RegistrationCallback(FOLD,fd_input); 
-   ok = RegistrationCallback(INVALIDMETRICSRESOURCES,fd_input);
-//   ok = RegistrationCallback(ADDMETRICSRESOURCES,fd_input3);
-//   ok = RegistrationCallback(PHASEDATA,fd_input3);
-//////////////////////////////////////
-
-//////////////////////////////////////
-// start visi: get initial metric and resource choices: step (3) from README
-
-//   ok = StartVisi(0,0);
+   ok = visi_RegistrationCallback(ADDMETRICSRESOURCES,fd_input2); 
+   ok = visi_RegistrationCallback(DATAVALUES,fd_input); 
+   ok = visi_RegistrationCallback(FOLD,fd_input); 
+   ok = visi_RegistrationCallback(INVALIDMETRICSRESOURCES,fd_input);
 //////////////////////////////////////
 
     paned = XtCreateManagedWidget("paned", panedWidgetClass, toplevel, 
