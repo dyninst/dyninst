@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.487 2004/03/23 01:12:08 eli Exp $
+// $Id: process.C,v 1.488 2004/03/31 20:37:22 tlmiller Exp $
 
 #include <ctype.h>
 
@@ -350,8 +350,14 @@ bool process::walkStackFromFrame(Frame startFrame,
       // One thing that makes me feel better: gdb is getting royally
       // confused as well. This sucks for catchup.
       
-      // We should check to see if this early exit is warranted.
-      return false;
+      #if defined( ia64_unknown_linux2_4 ) 
+        /* My single-stepper needs to be able to continue past stackwalking errors. */
+		/* DEBUG */ fprintf( stderr, "Terminating stackwalk early because fpOld (0x%lx) > fpNew (0x%lx).\n", fpOld, fpNew );
+		break;
+      #else
+        // We should check to see if this early exit is warranted.
+        return false;
+      #endif
     }
 #endif
     fpOld = fpNew;
@@ -624,6 +630,8 @@ bool process::isInSignalHandler(Address addr)
       return true;
   }
   return false;
+#elif defined( os_linux ) && defined( arch_ia64 )
+  assert( 0 );
 #else
   if (!signal_handler)
       return false;
@@ -1702,17 +1710,19 @@ process::~process()
 
     // We used to delete the particular process, but this created no end of problems
     // with people storing pointers into particular indices. We set the pointer to NULL.
-
-
     for (unsigned lcv=0; lcv < processVec.size(); lcv++) {
         if (processVec[lcv] == this) {
             processVec[lcv] = NULL;
-        }
-        
+        }        
     }
 
 #if defined(i386_unknown_linux2_0)
     cleanupVsysinfo(getVsyscallData());
+#endif
+
+#if defined( ia64_unknown_linux2_4 )
+     _UPT_destroy( unwindProcessArg );
+     unw_destroy_addr_space( unwindAddressSpace );
 #endif
 }
 
@@ -1740,6 +1750,7 @@ process::process(int iPid, image *iImage, int iTraceLink
  requestTextMiniTramp(0), //ccw 30 jul 2002
 #endif
   baseMap(ipHash),
+  bpatch_thread( NULL ),
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
   trampTrapMapping(addrHash4),
@@ -1757,7 +1768,11 @@ process::process(int iPid, image *iImage, int iTraceLink
   windows_termination_requested(false),
 #endif
   representativeLWP(NULL),
-  real_lwps(CThash)
+#if ! defined( ia64_unknown_linux2_4 )  
+  real_lwps(CThash)  
+#else
+  real_lwps(CThash), unwindAddressSpace( NULL ), unwindProcessArg( NULL )
+#endif
 {
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
 	PARADYNhasBootstrapped = false;
@@ -1917,6 +1932,7 @@ process::process(int iPid, image *iSymbols,
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
   requestTextMiniTramp(0), //ccw 30 jul 2002
 #endif
+  bpatch_thread( NULL ),
   baseMap(ipHash),
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
@@ -1936,7 +1952,11 @@ process::process(int iPid, image *iSymbols,
   windows_termination_requested(false),
 #endif
   representativeLWP(NULL),
-  real_lwps(CThash)
+#if ! defined( ia64_unknown_linux2_4 )  
+  real_lwps(CThash)  
+#else
+  real_lwps(CThash), unwindAddressSpace( NULL ), unwindProcessArg( NULL )
+#endif
 {
     tracedSyscalls_ = NULL;
     codeRangesByAddr_ = NULL;
@@ -2134,7 +2154,11 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   windows_termination_requested(false),
 #endif
   representativeLWP(NULL),
-  real_lwps(CThash)
+#if ! defined( ia64_unknown_linux2_4 )  
+  real_lwps(CThash)  
+#else
+  real_lwps(CThash), unwindAddressSpace( NULL ), unwindProcessArg( NULL )
+#endif
 {
    // This is the "fork" ctor
    bootstrapState = initialized;

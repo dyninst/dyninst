@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.292 2004/03/23 01:12:08 eli Exp $
+/* $Id: process.h,v 1.293 2004/03/31 20:37:23 tlmiller Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -103,6 +103,10 @@
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
+
+#if defined( ia64_unknown_linux2_4 )
+#include <libunwind.h>
+#endif
 
 #if !defined(MAX_NUMBER_OF_THREADS) 
 #define MAX_NUMBER_OF_THREADS 256
@@ -1421,6 +1425,12 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
    void gcInstrumentation(pdvector<pdvector<Frame> >&stackWalks);
  private:
    pdvector<instPendingDeletion *> pendingGCInstrumentation;
+   
+#if defined( ia64_unknown_linux2_4 )
+	public:
+		 unw_addr_space * unwindAddressSpace;
+		 void * unwindProcessArg;
+#endif
  
 };
 
