@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2000/10/20 17:49:38 schendel Exp $
+# $Id: Makefile,v 1.9 2001/12/06 18:07:34 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -21,6 +21,8 @@ DO_INLINE_ALL           = true
 
 CXXFLAGS		= $(CXXFLAGS) -D_WINDOWS
 #CXXFLAGS		= $(CXXFLAGS) -DHIST_DEBUG
+SRCS		+= ../../common/src/ntKludges.C
+OBJS		+= ntKludges.o
 
 # Include the "standard library template".  This defines all the
 # common targets like "clean", "install", etc.
