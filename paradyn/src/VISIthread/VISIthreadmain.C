@@ -22,10 +22,13 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.39  1995/06/02 20:54:34  newhall
-/* made code compatable with new DM interface
-/* replaced List templates  with STL templates
+/* Revision 1.40  1995/07/06 01:53:58  newhall
+/* fixed arguments to RPCprocessCreate (I have no idea why this worked before)
 /*
+ * Revision 1.39  1995/06/02  20:54:34  newhall
+ * made code compatable with new DM interface
+ * replaced List templates  with STL templates
+ *
  * Revision 1.38  1995/02/26  02:08:34  newhall
  * added some of the support for the phase interface
  * fix so that the vector of data values are being
@@ -449,7 +452,8 @@ int VISIthreadStartProcess(){
   if(ptr->start_up){
     PARADYN_DEBUG(("start_up in VISIthreadStartProcess"));
     vector<string> av;
-    unsigned index=0;
+    // start at 1 since RPCprocessCreate will add 0th arg to list
+    unsigned index=1;
     while(ptr->args->argv[index]) {
       av += ptr->args->argv[index];
       index++;
