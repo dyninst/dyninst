@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.18 2001/11/28 05:44:10 gaburici Exp $
+// $Id: BPatch_function.C,v 1.19 2001/12/03 04:42:06 tikir Exp $
 
 #define BPATCH_FILE
 
@@ -491,7 +491,7 @@ bool BPatch_function::getLineToAddr(unsigned short lineNo,
 
 	//retrieve the addresses
 	BPatch_Set<Address> addresses;
-	if(!fLineInformation->getAddrFromLine(func->prettyName(),addresses,
+	if(!fLineInformation->getAddrFromLine(func->symTabName(),addresses,
 					      lineNo,false,exactMatch))
 		return false;
 
@@ -534,7 +534,7 @@ bool BPatch_function::getLineAndFile(unsigned int &start,
     //retrieve the addresses
     FunctionInfo *funcLineInfo;
 
-    funcLineInfo = fLineInformation->findFunctionInfo(func->prettyName());
+    funcLineInfo = fLineInformation->findFunctionInfo(func->symTabName());
 
     if (!funcLineInfo) return false;
 
