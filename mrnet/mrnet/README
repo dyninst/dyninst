@@ -1,6 +1,6 @@
 MRNet: A Multicast/Reduction Network
 http://www.paradyn.org/mrnet/
-Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller.
+Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller.
 
 LICENSE contains the usage terms for MRNet.
 
@@ -18,10 +18,6 @@ LICENSE contains the usage terms for MRNet.
   compute averages, sums, and other more complex aggregations and analyses
   on tool data. MRNet also supports facilities that allow tool developers
   dynamically load new tool-specific filters into the system.
-
-2. RELEASE NOTES
-
-  This is MRNet v1.0, released September 2003.
 
   Features:
     * Flexible tool organization: MRNet does not dictate the organization of
@@ -46,14 +42,41 @@ LICENSE contains the usage terms for MRNet.
 
     * Open source licensing.
 
+
+
+2. MRNet v1.1 RELEASE NOTES
+  This release of MRNet includes a source distribution for Unix/Linux
+  platforms, a Windows binary distribution, as well as associated manuals.
+  The release incorporates improvements and platform changes made to MRNet
+  since the 1.0 release.
+
+  For information about the software releases, plus papers and manuals on the
+  MRNet system, visit:
+      http://www.paradyn.org/mrnet
+
+  Release Highlights:
+    * Support for multiple overlays in single tool/application
+    * Support forback-ends not started by MRNet
+      - Static only: backends join to complete network initialization phase
+    * Topology specification via memory buffer
+    * Comprehensive test suite
+    * Windows support
+    * IBM/Sun native compiler support
+    * Various fixes and enhancements
+      - e.g. Data reference counting for automatic garbage collection
+
 3. SUPPORTED PLATFORMS
 
-  MRNet is designed to be a highly-portable system. This first version should
-  build cleanly with GNU v3 compilers. We have built and successfully tested
-  all MRNet components on:
-    - Linux 2.4
-    - Aix 5.1
-    - Solaris 8
+  MRNet is designed to be a highly-portable system. While it should build
+  effortlessly with GNU v3 compilers, this version adds support for native
+  compilers on Solaris, AIX, and Windows. We have built and successfully tested
+  MRNet components on:
+   - i686-pc-linux-gnu
+   - ia64-unknown-linux
+   - rs6000-ibm-aix5.1.0.0
+   - sparc-sun-solaris2.8
+   - sparc-sun-solaris2.9
+   - i386-unknown-nt4.0
 
 4. CONTACT
 
