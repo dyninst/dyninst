@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.382 2003/02/04 14:59:13 bernat Exp $
+// $Id: process.C,v 1.383 2003/02/19 00:15:41 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3168,7 +3168,6 @@ bool process::finalizeDyninstLib() {
    assert(status_ == stopped);
 
    if (reachedBootstrapState(bootstrapped)) {
-       fprintf(stderr, "hasBootstrapped\n");
        return true;
    }
 
@@ -6878,7 +6877,6 @@ timeStamp process::units2timeStamp(int64_t rawunits) {
 }
 
 timeLength process::units2timeLength(int64_t rawunits) {
-    fprintf(stderr, "Converting value of %lld\n", rawunits);
     return cpuTimeMgr->units2timeLength(rawunits, cpuTimeMgr_t::LEVEL_BEST);
 
   /* can nicely handle case when we allow exceptions
