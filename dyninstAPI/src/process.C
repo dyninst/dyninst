@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.362 2002/10/09 22:07:28 bernat Exp $
+// $Id: process.C,v 1.363 2002/10/10 15:23:23 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2539,9 +2539,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #endif
 #if defined(i386_unknown_nt4_0) || defined (mips_unknown_ce2_11)   //ccw 2 oct 2002 
 	mainAddr = 0;
-#endif
-#if defined(alpha_dec_osf4_0)
-   changedPCvalue = 0;
 #endif
 
     reachedFirstBreak = true; // initial TRAP has (long since) been reached
