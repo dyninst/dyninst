@@ -19,14 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.23 1995/03/10 19:33:47 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sparc.C,v 1.24 1995/05/18 10:36:08 markc Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.23  1995/03/10 19:33:47  hollings
+ * Revision 1.24  1995/05/18 10:36:08  markc
+ * Prevent reference null call point
+ *
+ * Revision 1.23  1995/03/10  19:33:47  hollings
  * Fixed several aspects realted to the cost model:
  *     track the cost of the base tramp not just mini-tramps
  *     correctly handle inst cost greater than an imm format on sparc
@@ -362,6 +365,8 @@ void pdFunction::checkCallPoints() {
   instPoint *p;
   Address loc_addr;
 
+  vector<instPoint*> non_lib;
+
   for (i=0; i<calls.size(); ++i) {
     /* check to see where we are calling */
     p = calls[i];
@@ -369,9 +374,16 @@ void pdFunction::checkCallPoints() {
 
     if (isInsnType(p->originalInstruction, CALLmask, CALLmatch)) {
       loc_addr = p->addr + (p->originalInstruction.call.disp30 << 2);
-      p->callee = (file_->exec)->findFunction(loc_addr);
+      pdFunction *pdf = (file_->exec())->findFunction(loc_addr);
+      if (pdf && !pdf->isLibTag()) {
+	p->callee = pdf;
+	non_lib += p;
+      } else {
+	delete p;
+      }
     }
   }
+  calls = non_lib;
 }
 
 // TODO we cannot find the called function by address at this point in time
@@ -728,6 +740,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
     instruction *insn = (instruction *) ((void*)&i[base]);
 
     if (op == loadConstOp) {
+      // dest = src1:imm    TODO
 	if (ABS(src1) > MAX_IMM) {
 	    generateSetHi(insn, src1, dest);
 	    base += sizeof(instruction);
@@ -741,7 +754,8 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	    genImmInsn(insn, ORop3, 0, LOW(src1), dest);
 	    base += sizeof(instruction);
 	}
-    } else if (op ==  loadOp) {
+      } else if (op ==  loadOp) {
+	// dest = [src1]   TODO
 	generateSetHi(insn, src1, dest);
 	insn++;
 
