@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2002/05/14 21:37:38 pcroth Exp $
+# $Id: Makefile,v 1.5 2003/04/21 22:50:35 willb Exp $
 #
 # Define any symbols needed to invoke configuration changes in make.config
 
@@ -29,5 +29,5 @@ include ../../make.library.tmpl
 $(TARGET): $(OBJS)
 	@$(RM) $@
 	@$(MAKE) $(VOUCHER)
-	$(CC) -shared -dy -G -z text $(LDFLAGS) -o $@ $(VOUCHER).o $(OBJS) $(LIBS)
+	$(CC) -shared -dy -G $(LDFLAGS) -o $@ $(VOUCHER).o $(OBJS) $(LIBS)
 
