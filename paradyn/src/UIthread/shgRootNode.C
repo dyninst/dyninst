@@ -2,9 +2,12 @@
 // Ariel Tamches
 
 /* $Log: shgRootNode.C,v $
-/* Revision 1.2  1996/01/11 23:42:40  tamches
-/* there are now 6 node styles
+/* Revision 1.3  1996/01/23 19:48:10  tamches
+/* added shadow node features
 /*
+ * Revision 1.2  1996/01/11 23:42:40  tamches
+ * there are now 6 node styles
+ *
  * Revision 1.1  1995/10/17 22:08:53  tamches
  * initial version, for the new search history graph
  *
@@ -17,35 +20,55 @@ int shgRootNode::borderPix = 3;
 int shgRootNode::horizPad = 3;
 int shgRootNode::vertPad = 2;
 
-shgRootNode::shgRootNode(unsigned iId, shgRootNode::style iStyle,
+shgRootNode::shgRootNode(unsigned iId,
+			 bool iActive, shgRootNode::evaluationState iEvalState,
+			 bool iShadow,
 			 const string &iLabel, const string &iFullInfo) :
    			    label(iLabel),
 			    fullInfo(iFullInfo) {
    id = iId;
    highlighted = false;
 
-   theStyle = iStyle;
+   active = iActive;
+   evalState = iEvalState;
+
+   shadowNode = iShadow;
+
+   XFontStruct *rootItemFontStruct = shg::getRootItemFontStruct(shadowNode);
 
    pixWidthAsRoot = borderPix + horizPad // static members
-                  + XTextWidth(shg::getRootItemFontStruct(),
+                  + XTextWidth(rootItemFontStruct,
 			       label.string_of(), label.length()) +
                   + horizPad + borderPix;
 
    pixHeightAsRoot = borderPix + vertPad +
-                     shg::getRootItemFontStruct()->ascent +
-                     shg::getRootItemFontStruct()->descent +
+                     rootItemFontStruct->ascent +
+                     rootItemFontStruct->descent +
                      vertPad + borderPix;
 
-   pixWidthAsListboxItem = XTextWidth(shg::getListboxItemFontStruct(),
+   XFontStruct *listboxItemFontStruct = shg::getListboxItemFontStruct(shadowNode);
+   pixWidthAsListboxItem = XTextWidth(listboxItemFontStruct,
 				      label.string_of(), label.length());
 }
 
-bool shgRootNode::configStyle(style newStyle) {
+shgRootNode::shgRootNode(const shgRootNode &src) : label(src.label), fullInfo(src.fullInfo) {
+   id = src.id;
+   highlighted = src.highlighted;
+   active = src.active;
+   evalState = src.evalState;
+   shadowNode = src.shadowNode;
+   pixWidthAsRoot = src.pixWidthAsRoot;
+   pixHeightAsRoot = src.pixHeightAsRoot;
+   pixWidthAsListboxItem = src.pixWidthAsListboxItem;
+}
+
+bool shgRootNode::configStyle(bool newActive, evaluationState newEvalState) {
    // returns true iff any changes.  Does not redraw.
-   if (theStyle == newStyle)
+   if (active == newActive && evalState == newEvalState)
       return false;
 
-   theStyle = newStyle;
+   active = newActive;
+   evalState = newEvalState;
    return true;
 }
 
@@ -74,7 +97,7 @@ void shgRootNode::drawAsRoot(Tk_Window theTkWindow,
    const int highlightedRelief = TK_RELIEF_SUNKEN;
 
    Tk_Fill3DRectangle(theTkWindow, theDrawable,
-		      shg::getRootItemTk3DBorder(theStyle),
+		      shg::getRootItemTk3DBorder(evalState),
 		      boxLeft, root_topy,
 		      pixWidthAsRoot, pixHeightAsRoot,
 		      borderPix,
@@ -83,10 +106,10 @@ void shgRootNode::drawAsRoot(Tk_Window theTkWindow,
    // Third, draw the text
    const int textLeft = boxLeft + borderPix + horizPad;
    const int textBaseLine = root_topy + borderPix + vertPad +
-                            shg::getRootItemFontStruct()->ascent - 1;
+                            shg::getRootItemFontStruct(shadowNode)->ascent - 1;
 
    XDrawString(Tk_Display(theTkWindow), theDrawable,
-	       shg::getRootItemTextGC(),
+	       shg::getRootItemTextGC(active, shadowNode),
 	       textLeft, textBaseLine,
 	       label.string_of(), label.length());
 }
@@ -94,11 +117,23 @@ void shgRootNode::drawAsRoot(Tk_Window theTkWindow,
 void shgRootNode::prepareForDrawingListboxItems(Tk_Window theTkWindow,
 						XRectangle &listboxBounds) {
    XSetClipRectangles(Tk_Display(theTkWindow),
-		      shg::getListboxItemGC(),
+		      shg::getListboxItemGC(false, false), // inactive, not shadow
 		      0, 0, &listboxBounds, 1, YXBanded);
 
-   for (unsigned theStyle=InactiveUnknown; theStyle <= InactiveTrue; theStyle++) {
-      Tk_3DBorder thisStyleTk3DBorder = shg::getListboxItemTk3DBorder((style)theStyle);
+   XSetClipRectangles(Tk_Display(theTkWindow),
+		      shg::getListboxItemGC(false, true), // inactive, shadow
+		      0, 0, &listboxBounds, 1, YXBanded);
+
+   XSetClipRectangles(Tk_Display(theTkWindow),
+		      shg::getListboxItemGC(true, false), // active, not shadow
+		      0, 0, &listboxBounds, 1, YXBanded);
+
+   XSetClipRectangles(Tk_Display(theTkWindow),
+		      shg::getListboxItemGC(true, true), // active, shadow
+		      0, 0, &listboxBounds, 1, YXBanded);
+
+   for (unsigned theStyle=es_never; theStyle <= es_false; theStyle++) {
+      Tk_3DBorder thisStyleTk3DBorder = shg::getListboxItemTk3DBorder((evaluationState)theStyle);
 
       XSetClipRectangles(Tk_Display(theTkWindow),
 			 Tk_3DBorderGC(theTkWindow, thisStyleTk3DBorder,  TK_3D_LIGHT_GC),
@@ -113,10 +148,17 @@ void shgRootNode::prepareForDrawingListboxItems(Tk_Window theTkWindow,
 }
 
 void shgRootNode::doneDrawingListboxItems(Tk_Window theTkWindow) {
-   XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(), None);
+   XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(false, false),
+		None); // inactive, not shadow
+   XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(false, true),
+		None); // inactive, shadow
+   XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(true, false),
+		None); // active, not shadow
+   XSetClipMask(Tk_Display(theTkWindow), shg::getListboxItemGC(true, true),
+		None); // active, shadow
 
-   for (unsigned theStyle=InactiveUnknown; theStyle <= InactiveTrue; theStyle++) {
-      Tk_3DBorder thisStyleTk3DBorder = shg::getListboxItemTk3DBorder((style)theStyle);
+   for (unsigned theStyle=es_never; theStyle <= es_false; theStyle++) {
+      Tk_3DBorder thisStyleTk3DBorder = shg::getListboxItemTk3DBorder((evaluationState)theStyle);
 
       XSetClipMask(Tk_Display(theTkWindow),
 		   Tk_3DBorderGC(theTkWindow, thisStyleTk3DBorder, TK_3D_LIGHT_GC),
@@ -135,14 +177,14 @@ void shgRootNode::drawAsListboxItem(Tk_Window theTkWindow, int theDrawable,
 				    int boxWidth, int boxHeight,
 				    int textLeft, int textBaseline) const {
    Tk_Fill3DRectangle(theTkWindow, theDrawable,
-		      shg::getListboxItemTk3DBorder(theStyle),
+		      shg::getListboxItemTk3DBorder(evalState),
                          // note how this is a function of style
 		      boxLeft, boxTop, boxWidth, boxHeight,
 		      1, // 2 is not bad looking
 		      highlighted ? TK_RELIEF_SUNKEN : TK_RELIEF_RAISED);
 
    XDrawString(Tk_Display(theTkWindow), theDrawable,
-	       shg::getListboxItemGC(),
+	       shg::getListboxItemGC(active, shadowNode),
 	       textLeft, // boxLeft + tc.listboxHorizPadBeforeText
 	       textBaseline, // boxTop + tc.listboxVertPadAboveItem + tc.listboxFontStruct->ascent - 1,
 	       label.string_of(), label.length());
