@@ -2,7 +2,12 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.57  1995/01/26 17:58:18  jcargill
+ * Revision 1.58  1995/02/16 08:15:53  markc
+ * Changed Boolean to bool
+ * Changed interfaces for igen-xdr to use string/vectors rather than char*/igen-arrays
+ * Check for buffered igen calls.
+ *
+ * Revision 1.57  1995/01/26  17:58:18  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -218,6 +223,7 @@ tunableBooleanConstant printSampleArrival(false, NULL, developerConstant,
     "printSampleArrival", 
     "Print out status lines to show the arrival of samples");
 
+static int wellKnownPortFd;
 static dataManager *dm;
 stringPool metric::names;
 HTable<metric *> metric::allMetrics;
@@ -324,15 +330,16 @@ void performanceStream::callStateFunc(appState state)
 //
 // IO from application processes.
 //
-void dynRPCUser::applicationIO(int pid, int len, char *data)
+void dynRPCUser::applicationIO(int pid, int len, string data)
 {
     char *ptr;
     char *rest;
     // extra should really be per process.
-    static char *extra;
+    static string extra;
 
-    rest = data;
-    ptr = strchr(rest, '\n');
+    rest = P_strdup(data.string_of());
+    char *tp = rest;
+    ptr = P_strchr(rest, '\n');
     while (ptr) {
 	*ptr = '\0';
 	if (pid) {
@@ -340,22 +347,21 @@ void dynRPCUser::applicationIO(int pid, int len, char *data)
 	} else {
 	    printf("paradynd: %d", pid);
 	}
-	if (extra) {
-	    printf(extra);
-	    free(extra);
-	    extra = NULL;
+	if (extra.length()) {
+	    cout << extra;
+	    extra = (char*) NULL;
 	}
-	printf("%s\n", rest);
+	cout << rest << endl;
 	rest = ptr+1;
-	ptr = strchr(rest, '\n');
+	ptr = P_strchr(rest, '\n');
     }
-    extra = (char *) malloc(strlen(rest)+1);
-    strcpy(extra, rest);
+    delete tp;
+    extra = rest;
 }
 
 extern status_line *DMstatus;
 
-void dynRPCUser::resourceBatchMode(Boolean onNow)
+void dynRPCUser::resourceBatchMode(bool onNow)
 {
     int prev;
     static int count=0;
@@ -383,10 +389,10 @@ void dynRPCUser::resourceBatchMode(Boolean onNow)
 // upcalls from remote process.
 //
 void dynRPCUser::resourceInfoCallback(int program,
-				      char *parentString,
-				      char *newResource,
-				      char *name,
-				      char *abstr)
+				      string parentString,
+				      string newResource,
+				      string name,
+				      string abstr)
 {
     resource *parent;
     stringHandle iName;
@@ -398,15 +404,15 @@ void dynRPCUser::resourceInfoCallback(int program,
 //    (*DMstatus) << "receiving resources";
 
     // create the resource.
-    if (parentString && *parentString) {
+    if (parentString.length()) {
 	// non-null string.
-	iName = resource::names.findAndAdd(parentString);
+	iName = resource::names.findAndAdd(parentString.string_of());
 	parent = resource::allResources.find(iName);
 	if (!parent) abort();
     } else {
 	parent = resource::rootResource;
     }
-    createResource(parent, name, abstr);
+    createResource(parent, name.string_of(), abstr.string_of());
 
 //
 //  Commented out because it slows resource 
@@ -416,13 +422,14 @@ void dynRPCUser::resourceInfoCallback(int program,
 }
 
 void dynRPCUser::mappingInfoCallback(int program,
-				     char *abstraction, 
-				     char *type, 
-				     char *key,
-				     char *value)
+				     string abstraction, 
+				     string type, 
+				     string key,
+				     string value)
 
 {
-  AMnewMapping(abstraction,type,key,value);    
+  AMnewMapping(abstraction.string_of(),type.string_of(),key.string_of(),
+	       value.string_of());    
 }
 
 class uniqueName {
@@ -432,17 +439,18 @@ class uniqueName {
     stringHandle name;
 };
 
-
+// commented out since igen no longer supports sync upcalls
+#ifdef notdef
 char *dynRPCUser::getUniqueResource(int program, 
-				    char *parentString, 
-				    char *newResource)
+				    string parentString, 
+				    string newResource)
 {
     uniqueName *ret;
     char newName[80];
     stringHandle ptr;
     static List<uniqueName*> allUniqueNames;
 
-    sprintf(newName, "%s/%s", parentString, newResource);
+    sprintf(newName, "%s/%s", parentString.string_of(), newResource.string_of());
     ptr = resource::names.findAndAdd(newName);
 
     ret = allUniqueNames.find(ptr);
@@ -452,56 +460,42 @@ char *dynRPCUser::getUniqueResource(int program,
 	allUniqueNames.add(ret, ptr);
     }
     // changed from [] to {} due to TCL braindeadness.
-    sprintf(newName, "%s{%d}", newResource, ret->nextId++);
+    sprintf(newName, "%s{%d}", newResource.string_of(), ret->nextId++);
     ptr = resource::names.findAndAdd(newName);
 
     return((char*)ptr);
 }
+#endif
 
 //
 // used when a new program gets forked.
 //
 void dynRPCUser::newProgramCallbackFunc(int pid,
-					int argc, 
-					String_Array argvString,
-					char *machine_name)
+					vector<string> argvString,
+					string machine_name)
 {
-     char **argv;
      paradynDaemon *daemon;
      List<paradynDaemon*> curr;
-     int i;
 
     // there better be a paradynd running on this machine!
     for (curr=paradynDaemon::allDaemons, daemon = NULL; *curr; curr++) {
-	if ((*curr)->machine && !strcmp((*curr)->machine, machine_name))
+	if ((*curr)->machine.length() &&
+	    ((*curr)->machine == machine_name))
 	    daemon = *curr;
     }
     // for now, abort if there is no paradynd, this should not happen
     if (!daemon) {
 	printf("process started on %s, can't find paradynd there\n",
-		machine_name);
+		machine_name.string_of());
 	printf("paradyn error #1 encountered\n");
 	exit(-1);
     }
-   argv = new char*[argvString.count + 1];
-   argv[argvString.count] = NULL;
-   if (!argv) {
-	printf(" cannot malloc memory in newProgramCallbackFunc\n");
-	exit(-1);
-   }
-   for (i=0; i<argvString.count; ++i) {
-	argv[i] = strdup(argvString.data[i]);
-	if (!argv[i]) {
-		printf(" cannot malloc memory in newProgramCallbackFunc\n");
-		exit(-1);
-	}
-   }
       
    assert (dm->appContext);
-   assert (dm->appContext->addRunningProgram(pid, argc, argv, daemon));
+   assert (dm->appContext->addRunningProgram(pid, argvString, daemon));
 }
 
-void dynRPCUser::newMetricCallback(metricInfo info)
+void dynRPCUser::newMetricCallback(T_dyninstRPC::metricInfo info)
 {
     addMetric(info);
 }
@@ -527,6 +521,34 @@ void dynRPCUser::sampleDataCallbackFunc(int program,
     assert(0 && "Invalid virtual function");
 }
 
+paradynDaemon::paradynDaemon(const string m, const string u, const string c,
+			     const string n, int f)
+: dynRPCUser(m, u, c, NULL, NULL, args, false, wellKnownPortFd),
+  machine(m), login(u), command(c), name(n), flavor(f),
+  activeMids(uiHash), earliestFirstTime(0)
+{
+  assert(m.length());
+  assert(c.length());
+  assert(n.length());
+
+  // if c includes a pathname, lose the pathname
+  char *loc = P_strrchr(c.string_of(), '/');
+  if (loc) {
+    loc = loc + 1;
+    command = loc;
+  }
+  
+  status = new status_line(machine.string_of());
+  allDaemons.add(this);
+}
+
+// machine, name, command, flavor and login are set via a callback
+paradynDaemon::paradynDaemon(int f)
+: dynRPCUser(f, NULL, NULL, false), flavor(0), activeMids(uiHash),
+  earliestFirstTime(0) {
+  allDaemons.add(this);
+}
+
 void paradynDaemon::sampleDataCallbackFunc(int program,
 					   int mid,
 					   double startTimeStamp,
@@ -548,13 +570,29 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
       cout << "mid " << mid << " " << value << " from " 
 	<< startTimeStamp << " to " << endTimeStamp << "\n";
     }
-    mi = activeMids.find((void*) mid);
-    if (!mi) {
+    assert(mid >= 0);
+    if (!activeMids.defines((unsigned)mid)) {
+      bool found = false;
+      for (unsigned ve=0; ve<disabledMids.size(); ve++) {
+	if (disabledMids[ve] == (unsigned) mid) {
+	  found = true;
+	  break;
+	}
+      }
+      if (found) {
+	char msg[80];
+	// TODO -- data may be in transit when the disable request is made
+	sprintf(msg, "ERROR?:data for disabled mid: %d", mid);
+	DMstatus->message(msg);
+	return;
+      } else {
 	printf("ERROR: data for unknown mid: %d\n", mid);
 	uiMgr->showError (2, "");
 	exit(-1);
+      }
     }
-
+    mi = activeMids[(unsigned)mid];
+    assert(mi);
     if (mi->components.count() != 1) {
 	// find the right component.
 	part = mi->components.find(this);
@@ -572,7 +610,7 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
 	assert(ret.start >= 0.0);
 	assert(ret.end >= ret.start);
 	mi->enabledTime += ret.end - ret.start;
-	mi->data->addInterval(ret.start, ret.end, ret.value, FALSE);
+	mi->data->addInterval(ret.start, ret.end, ret.value, false);
     }
 }
 
@@ -603,7 +641,7 @@ paradynDaemon::~paradynDaemon() {
 // reports the information for that paradynd to paradyn
 //
 void 
-dynRPCUser::reportSelf (char *m, char *p, int pd, int flavor)
+dynRPCUser::reportSelf (string m, string p, int pd, int flavor)
 {
   assert(0);
   return;
@@ -616,7 +654,7 @@ dynRPCUser::reportSelf (char *m, char *p, int pd, int flavor)
 //
 void paradynDaemon::handle_error()
 {
-   dm->appContext->removeDaemon(this, TRUE);
+   dm->appContext->removeDaemon(this, true);
 }
 
 //
@@ -626,18 +664,18 @@ void paradynDaemon::handle_error()
 // This must set command, name, machine and flavor fields
 //
 void 
-paradynDaemon::reportSelf (char *m, char *p, int pd, int flav)
+paradynDaemon::reportSelf (string m, string p, int pd, int flav)
 {
   setPid(pd);
   flavor = flav;
-  if (!m || !p) {
-    dm->appContext->removeDaemon(this, TRUE);
+  if (!m.length() || !p.length()) {
+    dm->appContext->removeDaemon(this, true);
     printf("paradyn daemon reported bad info, removed\n");
     // error
   } else {
-    machine = strdup(m);
-    command = strdup(p);
-    status = new status_line(machine);
+    machine = strdup(m.string_of());
+    command = strdup(p.string_of());
+    status = new status_line(machine.string_of());
 
     switch (flavor) {
     case metPVM:
@@ -650,7 +688,7 @@ paradynDaemon::reportSelf (char *m, char *p, int pd, int flav)
       name = strdup("defd");
       break;
     default:
-      dm->appContext->removeDaemon(this, TRUE);
+      dm->appContext->removeDaemon(this, true);
       printf("paradyn daemon reported bad flavor, removed\n");
     }
   }
@@ -658,7 +696,7 @@ paradynDaemon::reportSelf (char *m, char *p, int pd, int flav)
 }
 
 void 
-dynRPCUser::reportStatus (const char *line)
+dynRPCUser::reportStatus (string line)
 {
     assert(0 && "Invalid virtual function");
 }
@@ -667,10 +705,10 @@ dynRPCUser::reportStatus (const char *line)
 // When a paradynd reports status, send the status to the user
 //
 void 
-paradynDaemon::reportStatus (const char *line)
+paradynDaemon::reportStatus (string line)
 {
   if (status)
-    status->message(line);
+    status->message(line.string_of());
 }
 
 // 
@@ -682,7 +720,7 @@ DMsetupSocket (int &sockfd, int &known_sock)
 {
   // setup "well known" socket for pvm paradynd's to connect to
   assert ((known_sock =
-	   RPC_setup_socket (&sockfd, AF_INET, SOCK_STREAM)) >= 0);
+	   RPC_setup_socket (sockfd, AF_INET, SOCK_STREAM)) >= 0);
 
   // this info is needed to create argument list for other paradynds
   dm->socket = known_sock;
@@ -690,7 +728,7 @@ DMsetupSocket (int &sockfd, int &known_sock)
 
   dm->firstTime = 0;
   // bind fd for this thread
-  msg_bind (sockfd, TRUE);
+  msg_bind (sockfd, true);
 }
 
 static void
@@ -731,44 +769,79 @@ void *DMmain(void* varg)
     // supports argv passed to paradynDaemon
     // new paradynd's may try to connect to well known port
     DMsetupSocket (sockfd, known_sock);
-    dynRPCUser::__wellKnownPortFd__ = sockfd;
+    wellKnownPortFd = sockfd;
 
-    paradynDaemon::args =
-	      RPC_make_arg_list(AF_INET, SOCK_STREAM, known_sock, 1, 1);
+    assert(RPC_make_arg_list(paradynDaemon::args, AF_INET, SOCK_STREAM,
+			     known_sock, 1, 1, "", false));
 
     msg_send (MAINtid, MSG_TAG_DM_READY, (char *) NULL, 0);
     tag = MSG_TAG_ALL_CHILDREN_READY;
     msg_recv (&tag, DMbuff, &msgSize);
 
     while (1) {
+        for (curr = paradynDaemon::allDaemons; *curr; curr++) {
+	  // handle up to max async requests that may have been buffered
+	  // while blocking on a sync request
+	  while ((*curr)->buffered_requests()) {
+	    if ((*curr)->process_buffered() == T_dyninstRPC::error) {
+	      // cleanup code here ?
+	      cout << "error on paradyn daemon\n";
+	      dm->appContext->removeDaemon(*curr, true);
+	    }
+	  }
+	}
+
 	tag = MSG_TAG_ANY;
-	ret = msg_poll(&tag, TRUE);
+	ret = msg_poll(&tag, true);
 	assert(ret != THR_ERR);
 
 	if (tag == MSG_TAG_FILE) {
 	  // must be an upcall on something speaking the dynRPC protocol.
-	  for (curr = paradynDaemon::allDaemons; *curr; curr++) {
-	    if ((*curr)->getFd() == ret) {
-	      (*curr)->awaitResponce(-1);
-	    }
-	  }
 	  if (ret == sockfd)
 	    DMnewParadynd(sockfd, dm);        // set up a new paradynDaemon
+	  else {
+	    for (curr = paradynDaemon::allDaemons; *curr; curr++) {
+	      if ((*curr)->get_fd() == ret) {
+		if ((*curr)->waitLoop() == T_dyninstRPC::error) {
+		  // cleanup code here ?
+		  cout << "error on paradyn daemon\n";
+		  dm->appContext->removeDaemon(*curr, true);
+		}
+	      }
+
+	      // handle async requests that may have been buffered
+	      // while blocking on a sync request
+	      while ((*curr)->buffered_requests()) {
+		if ((*curr)->process_buffered() == T_dyninstRPC::error) {
+		  // cleanup code here ?
+		  cout << "error on paradyn daemon\n";
+		  dm->appContext->removeDaemon(*curr, true);
+		}
+	      }
+	    }
+	  }
+	} else if (dm->isValidTag((T_dataManager::message_tags)tag)) {
+	  if (dm->waitLoop(true, (T_dataManager::message_tags)tag) ==
+	      T_dataManager::error) {
+	    // handle error
+	    assert(0);
+	  }
 	} else {
-	    dm->mainLoop(); 
+	  cerr << "Unrecognized message in DMmain.C\n";
+	  assert(0);
 	}
-    }
+   }
 }
 
 
-void addMetric(metricInfo info)
+void addMetric(T_dyninstRPC::metricInfo info)
 {
     metric *met;
     stringHandle iName;
     performanceStream *stream;
     List<performanceStream *> curr;
 
-    iName = metric::names.findAndAdd(info.name);
+    iName = metric::names.findAndAdd(info.name.string_of());
     assert(iName);
     met = metric::allMetrics.find(iName);
     if (met) {
@@ -828,42 +901,29 @@ void newSampleRate(float rate)
     }
 }
 
-Boolean daemonEntry::setAll (const char *m, const char *c, const char *n,
-			     const char *l, const char *d, int f)
+bool daemonEntry::setAll (const string m, const string c, const string n,
+			  const string l, const string d, int f)
 {
-  if (!n || !c)
-    return FALSE;
-  freeAll();
+  if (!n.length() || !c.length())
+    return false;
 
-  if (m) machine = strdup(m);
-  if (c) command = strdup(c);
-  if (n) name = strdup(n);
-  if (l) login = strdup(l);
-  if (d) dir = strdup(d);
+  if (m.length()) machine = m;
+  if (c.length()) command = c;
+  if (n.length()) name = n;
+  if (l.length()) login = l;
+  if (d.length()) dir = d;
   flavor = f;
 
-  return TRUE;
+  return true;
 }
-
-Boolean daemonEntry::freeAll()
-{
-  if (name) delete name;
-  if (command) delete command;
-  if (dir) delete dir;
-  if (login) delete login;
-  if (machine) delete machine;
-  name = 0; command = 0; dir = 0; login = 0; machine = 0;
-  return TRUE;
-}
-
 void daemonEntry::print() 
 {
   cout << "DAEMON ENTRY\n";
-  cout << "  name: " << (name ? name : "<EMPTY>") << endl;
-  cout << "  command: " << (command ? command : "<EMPTY>") << endl;
-  cout << "  dir: " << (dir ? dir : "<EMPTY>") << endl;
-  cout << "  login: " << (login ? login : "<EMPTY>") << endl;
-  cout << "  machine: " << (machine ? machine : "<EMPTY>") << endl;
+  cout << "  name: " << name << endl;
+  cout << "  command: " << command << endl;
+  cout << "  dir: " << dir << endl;
+  cout << "  login: " << login << endl;
+  cout << "  machine: " << machine << endl;
   cout << "  flavor: ";
   switch (flavor) {
   case metPVM:
@@ -879,6 +939,34 @@ void daemonEntry::print()
     cout << flavor << " is UNKNOWN!" << endl;
     break;
   }
+}
+
+int paradynDaemon::read(const void* handle, char *buf, const int len) {
+#ifdef notdef
+// msg_bind_buffered need to be called before this is called
+  int ret, ready_fd;
+  assert(len > 0);
+  do {
+    int tag = MSG_TAG_FILE;
+
+    do 
+      ready_fd = msg_poll(&tag, true);
+    while ((ready_fd != (int) handle) && (ready_fd != THR_ERR));
+    
+    if (ready_fd == (int) handle) {
+      errno = 0;
+      ret = P_read((int)handle, buf, len);
+    } else 
+      return -1;
+  } while (ret < 0 && errno == EINTR);
+
+  if (ret <= 0)
+    return (-1);
+  else
+    return ret;
+#endif
+  assert(0);
+  return -1;
 }
 
 
