@@ -2,7 +2,14 @@
  * parse.h - define the classes that are used in parsing an interface.
  *
  * $Log: parse.h,v $
- * Revision 1.4  1994/02/08 00:17:56  hollings
+ * Revision 1.5  1994/02/24 05:14:33  markc
+ * Man page for igen.
+ * Initial version for solaris2.2.
+ * Dependencies changed.
+ * Added pvm support, virtual function support, inclusion of data members,
+ * separate client and header include files.
+ *
+ * Revision 1.4  1994/02/08  00:17:56  hollings
  * Fixed pointer problems to work on DECstations.
  *
  * Revision 1.3  1994/01/31  20:05:59  hollings
@@ -25,7 +32,15 @@ class remoteFunc;
 
 extern stringPool pool;
 extern List<typeDefn*> types;
+extern typeDefn *foundType;
 
+void addCMember (char *type, char *name, List<char*>*);
+void addSMember (char *type, char *name, List<char*>*);
+void buildPVMfilters();
+void buildPVMincludes();
+void buildPVMargs();
+void genPVMServerCons(char *);
+void genXDRServerCons(char *);
 class interfaceSpec {
   public:
     interfaceSpec(char *n, int v, int lowTag) {
@@ -39,9 +54,11 @@ class interfaceSpec {
     void generateClientCode();
     void generateThreadLoop();
     void generateXDRLoop();
+    void generatePVMLoop();
     void generateServerCode();
     void genWaitLoop();
     void genProtoVerify();
+    void genProtoVerifyPVM();
     void generateBundlers();
     void genIncludes();
     int getNextTag();
@@ -61,17 +78,20 @@ extern class interfaceSpec *currentInterface;
 
 class argument {
   public:
-    argument(char *t, char *n,  List<char *> *s) {
+    argument(char *t, char *n,  List<char *> *s, int m) {
 	type = t;
 	name = n;
 	stars = s;
+	mallocs = m;
     }
     argument(char *t) {
 	type = t;
 	name = currentInterface->genVariable();
+	mallocs = 0;
     }
     char *type;
     char *name;
+    int mallocs;
     List<char *> *stars;
 };
 
@@ -84,7 +104,11 @@ class field {
       char *getName() { return(name); }
       char *getType() { return(type); }
       void genBundler() {
-	  printf("    xdr_%s(__xdrs__, &(__ptr__->%s));\n", type, name);
+	  if (generateXDR) {
+	    printf("    xdr_%s(__xdrs__, &(__ptr__->%s));\n", type, name);
+	  } else if (generatePVM) {
+	    printf("    IGEN_pvm_%s(__dir__, &(__ptr__->%s));\n", type, name);
+	  }
       }
       void genHeader() {
 	  printf("    %s %s;\n", type, name);
@@ -125,17 +149,33 @@ class typeDefn {
        void genBundler();
 };
 
-enum upCallType { notUpcall, syncUpcall, asyncUpcall };
+enum upCallType { notUpcall, syncUpcall, asyncUpcall, notUpcallAsync };
 
 class interfaceSpec;
 
+struct type_data {
+  char *cp;
+  int mallocs;
+  int structs;
+};
+
+typedef struct type_data type_data;
+
+struct func_data {
+  enum upCallType uc;
+  int virtual_f;
+};
+
+typedef struct func_data func_data;
+
 union parseStack {
+    type_data td;
     char *cp;
     int i;
     float f;
     argument *arg;
     field *fld;
-    enum upCallType uc;
+    func_data fd;
     List<argument*> *args;
     List<field*> *fields;
     List<char*> *cl;
@@ -149,25 +189,32 @@ class remoteFunc {
 		 List<char *> *st, 
 		 char *n, char *r, 
 		 List <argument *> a, 
-		 enum upCallType uc) {
+		 enum upCallType uc,
+		 int v_f,
+		 int rs=0) {
 	  spec = sp;
 	  name = n;
 	  retType = r;
 	  structName = spec->genVariable();
 	  args = a;
 	  upcall = uc;
+	  retStructs = rs;
+	  virtual_f = v_f;
       }
       void genSwitch(Boolean);
       void genStub(char *interfaceName, Boolean forUpcalls);
       void genXDRStub(char *);
+      void genPVMStub(char *);
       void genThreadStub(char *);
       void genHeader();
-      void genMethodHeader(char *className);
+      void genMethodHeader(char *className, int in_client);
       char *name;
       char *retType;
       char *structName;
       List <argument *> args;
       enum upCallType upcall;
+      int retStructs;
+      int virtual_f;
   private:
       interfaceSpec *spec;
 };
