@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.126 2004/12/09 05:01:00 rchen Exp $
+// $Id: pdwinnt.C,v 1.127 2005/01/13 23:53:05 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1537,9 +1537,6 @@ ReleaseSymbolHandler( HANDLE hProcess )
     }
 }
 
-void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
-}
-
 /*****************************************************************************
  * forkNewProcess: starts a new process, setting up trace and io links between
  *                the new process and the daemon
@@ -2571,3 +2568,7 @@ Frame dyn_thread::getActiveFrameMT() {
    return Frame();
 }  // not used until MT supported
 
+void process::determineLWPs(pdvector<unsigned> *all_lwps)
+{
+   return;
+}
