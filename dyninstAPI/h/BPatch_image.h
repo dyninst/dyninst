@@ -100,7 +100,7 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
     BPatch_sourceObj *getObjParent();
     bool getVariables(BPatch_Vector<BPatch_variableExpr *> &);
   
-    BPatch_Vector<BPatch_function *> *getProcedures();
+    BPatch_Vector<BPatch_function *> *getProcedures(bool incUninstrumentable = false);
     BPatch_Vector<BPatch_module *> *getModules();
 
     BPatch_Vector<BPatch_variableExpr *> *getGlobalVariables();
@@ -112,9 +112,17 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
 					BPatch_function* bpf = NULL);
 
 
-    BPatch_Vector<BPatch_function*>	*findFunction(const char *name, BPatch_Vector<BPatch_function*> &funcs, bool showError=true, bool regex_case_sensitive=true);
+    BPatch_Vector<BPatch_function*>	*findFunction(const char *name, 
+						      BPatch_Vector<BPatch_function*> &funcs, 
+						      bool showError=true, 
+						      bool regex_case_sensitive=true,
+						      bool incUninstrumentable = false);
 
-    BPatch_Vector<BPatch_function *> *findFunction(BPatch_Vector<BPatch_function *> &funcs, BPatchFunctionNameSieve bpsieve, void *user_data=NULL, int showError=0);
+    BPatch_Vector<BPatch_function *> *findFunction(BPatch_Vector<BPatch_function *> &funcs, 
+						   BPatchFunctionNameSieve bpsieve, 
+						   void *user_data=NULL, 
+						   int showError=0,
+						   bool incUninstrumentable = false);
     BPatch_variableExpr	*findVariable(const char *name, bool showError=true);
     BPatch_variableExpr *findVariable(BPatch_point &scp, const char *nm); 
 
@@ -143,16 +151,19 @@ private:
     // These private "find" functions convert from internal int_function
     // representation to the exported BPatch_Function type
     void findFunctionInImage(const char *name, image *img,
-			     BPatch_Vector<BPatch_function*> *funcs);
+			     BPatch_Vector<BPatch_function*> *funcs,
+			     bool incUninstrumentable = false);
     
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
     void findFunctionPatternInImage(regex_t *comp_pat, image *img, 
-				    BPatch_Vector<BPatch_function*> *funcs);
+				    BPatch_Vector<BPatch_function*> *funcs,
+				    bool incUninstrumentable = false);
 #endif
     void sieveFunctionsInImage(image *img, 
-			      BPatch_Vector<BPatch_function *> *funcs,
-			      BPatchFunctionNameSieve bpsieve, 
-			      void *user_data);
+			       BPatch_Vector<BPatch_function *> *funcs,
+			       BPatchFunctionNameSieve bpsieve, 
+			       void *user_data,
+			       bool incUninstrumentable = false);
 };
 
 #endif /* _BPatch_image_h_ */

@@ -180,45 +180,45 @@ BPatch_module::BPatch_module( process *_proc, pdmodule *_mod,BPatch_image *_img 
     	/* The bpfs for a shared object module won't have been built by now,
     	   but generating them on the fly is OK because each .so is a single module
     	   for our purposes. */
-    	int_function * function = (int_function *)( * functions )[i];
-    	if( proc->PDFuncToBPFuncMap.defines( function ) ) {
- 		   	BPatch_function * bpf = proc->PDFuncToBPFuncMap[ function ];
- 		   	assert( bpf != NULL );
-    		bpf->setModule( this );
-    		}
-    	} /* end iteration over functions */
-    	
-	/* Load the debug information. */
+      int_function * function = (int_function *)( * functions )[i];
+      if( proc->PDFuncToBPFuncMap.defines( function ) ) {
+	BPatch_function * bpf = proc->PDFuncToBPFuncMap[ function ];
+	assert( bpf != NULL );
+	bpf->setModule( this );
+      }
+    } /* end iteration over functions */
+    
+    /* Load the debug information. */
     moduleTypes = new BPatch_typeCollection;
 #if ! defined( mips_sgi_irix6_4 )
     if( BPatch::bpatch->parseDebugInfo() ) {
-	    #if defined( rs6000_ibm_aix4_1 ) || defined( alpha_dec_osf4_0 ) || defined( i386_unknown_nt4_0 )
-	    	/* These platforms don't have 2-phase parsing, so init
-	    	   LineInformation and assume that parseTypes() fills it in. */
-			mod->initLineInformation();
-			parseTypes();
-			mod->cleanupLineInformation();
-		#else
-			parseTypes();
-		#endif
-		} /* end if we're supposed to parse debug information */
-	else {
-		cerr	<< __FILE__ << __LINE__ << ":  WARNING:  skipping parse of debug info for " 
-				<< mod->fileName() << endl;
-		} /* end if we're not supposed to parse debug information */
-#endif /* ! defined( mips_sgi_irix6_4 ) */
-
-#if defined(TIMED_PARSE)
-	struct timeval endtime;
-	gettimeofday(&endtime, NULL);
-	unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-	unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-	unsigned long difftime = lendtime - lstarttime;
-	double dursecs = difftime/(1000 );
-	cout << __FILE__ << ":" << __LINE__ <<": BPatch_module("<< mod->fileName()
-	  <<") took "<<dursecs <<" msecs" << endl;
+#if defined( rs6000_ibm_aix4_1 ) || defined( alpha_dec_osf4_0 ) || defined( i386_unknown_nt4_0 )
+      /* These platforms don't have 2-phase parsing, so init
+	 LineInformation and assume that parseTypes() fills it in. */
+      mod->initLineInformation();
+      parseTypes();
+      mod->cleanupLineInformation();
+#else
+      parseTypes();
 #endif
-	} /* end BPatch_module() */
+    } /* end if we're supposed to parse debug information */
+    else {
+      cerr	<< __FILE__ << __LINE__ << ":  WARNING:  skipping parse of debug info for " 
+		<< mod->fileName() << endl;
+    } /* end if we're not supposed to parse debug information */
+#endif /* ! defined( mips_sgi_irix6_4 ) */
+    
+#if defined(TIMED_PARSE)
+    struct timeval endtime;
+    gettimeofday(&endtime, NULL);
+    unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+    unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+    unsigned long difftime = lendtime - lstarttime;
+    double dursecs = difftime/(1000 );
+    cout << __FILE__ << ":" << __LINE__ <<": BPatch_module("<< mod->fileName()
+	 <<") took "<<dursecs <<" msecs" << endl;
+#endif
+} /* end BPatch_module() */
 
 BPatch_module::~BPatch_module()
 {
@@ -243,7 +243,7 @@ BPatch_module::~BPatch_module()
  * Returns a list of all procedures in the module upon success, and NULL
  * upon failure.
  */
-BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
+BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures(bool incUninstrumentable)
 {
     if (BPfuncs) return BPfuncs;
     
@@ -254,9 +254,11 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
     pdvector<int_function *> *funcs = mod->getFunctions();
 
     for (unsigned int f = 0; f < funcs->size(); f++)
+      if (incUninstrumentable ||
+	  (*funcs)[f]->isInstrumentable()) 
 	BPfuncs->push_back(
-		proc->findOrCreateBPFunc((int_function*)(*funcs)[f], this));
-
+			   proc->findOrCreateBPFunc((int_function*)(*funcs)[f], this));
+    
     return BPfuncs;
 }
 
@@ -274,7 +276,8 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
 
 BPatch_Vector<BPatch_function *> *
 BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> & funcs,
-			    bool notify_on_failure, bool regex_case_sensitive)
+			    bool notify_on_failure, bool regex_case_sensitive,
+			    bool incUninstrumentable)
 {
   pdvector<int_function *> pdfuncs;
 
@@ -293,10 +296,13 @@ BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> &
 
   // found function(s), translate to BPatch_functions  
   for (unsigned int i = 0; i < pdfuncs.size(); ++i) {
-    BPatch_function * bpfunc = proc->findOrCreateBPFunc((int_function *)pdfuncs[i], this);
-    funcs.push_back(bpfunc);
-    if (!proc->PDFuncToBPFuncMap.defines(pdfuncs[i])) {
-      this->BPfuncs->push_back(bpfunc);
+    if (incUninstrumentable ||
+	pdfuncs[i]->isInstrumentable()) {
+      BPatch_function * bpfunc = proc->findOrCreateBPFunc(pdfuncs[i], this);
+      funcs.push_back(bpfunc);
+      if (!proc->PDFuncToBPFuncMap.defines(pdfuncs[i])) {
+	this->BPfuncs->push_back(bpfunc);
+      }
     }
   }
 
@@ -312,7 +318,8 @@ BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> &
 
 BPatch_Vector<BPatch_function *> *
 BPatch_module::findFunctionByAddress(void *addr, BPatch_Vector<BPatch_function *> &funcs,
-				     bool notify_on_failure)
+				     bool notify_on_failure, 
+				     bool incUninstrumentable)
 {
   int_function *pdfunc = NULL;
   BPatch_function *bpfunc = NULL;
@@ -325,75 +332,33 @@ BPatch_module::findFunctionByAddress(void *addr, BPatch_Vector<BPatch_function *
     }
     return NULL;
   }
-
-  bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
-  if (bpfunc) {
-    funcs.push_back(bpfunc);
-    if (!proc->PDFuncToBPFuncMap.defines(pdfunc))
-      this->BPfuncs->push_back(bpfunc);
+  if (incUninstrumentable ||
+      pdfunc->isInstrumentable()) {
+    bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
+    if (bpfunc) {
+      funcs.push_back(bpfunc);
+      if (!proc->PDFuncToBPFuncMap.defines(pdfunc))
+	this->BPfuncs->push_back(bpfunc);
+    }
   }
   return &funcs;
 }
 
-BPatch_Vector<BPatch_function *> *
-BPatch_module::findUninstrumentableFunction(const char *name, 
-					    BPatch_Vector<BPatch_function *> & funcs)
+BPatch_function * BPatch_module::findFunctionByMangled(const char *mangled_name,
+						       bool incUninstrumentable)
 {
-  pdvector<int_function *> pdfuncs;
+  BPatch_function *bpfunc = NULL;
 
-  if (!name) {
-    cerr << __FILE__ << __LINE__ << ":  findFunction(NULL), failing "<<endl; 
-    return NULL;
-  }
-
-  if (NULL == mod->findUninstrumentableFunction(pdstring(name), &pdfuncs)
-      || !pdfuncs.size()) {
-    pdstring msg = pdstring("Module: Unable to find function: ") + pdstring(name);
-    //BPatch_reportError(BPatchSerious, 100, msg.c_str());
-    return NULL;
-  } 
-
-   if (NULL == BPfuncs_uninstrumentable) 
-      BPfuncs_uninstrumentable = new BPatch_Vector<BPatch_function *>;
-
-  // found function(s), translate to BPatch_functions  
- for (unsigned int i = 0; i < pdfuncs.size(); ++i) {
-   BPatch_function *found = NULL;
-   for (unsigned int j = 0; j < BPfuncs_uninstrumentable->size(); ++j) {
-     pdstring mangled_name1 = pdfuncs[i]->symTabName(); // problem -- more than 1 name possible here
-     char mangled_name2[2048];
-     (*BPfuncs_uninstrumentable)[j]->getMangledName(mangled_name2, 2048);
-     if (!strcmp(mangled_name1.c_str(), mangled_name2)) {
-       found = (*BPfuncs_uninstrumentable)[j];
-       break;
-     }
-   }
-   if (!found) {
-     if (proc->PDFuncToBPFuncMap.defines(pdfuncs[i])) { //  JAW -- seen this happen
-       cerr << __FILE__ << __LINE__ << ":  Warning:  moving function " << name 
-	    << " from the list of instrumentable functions to the uninstrumentable" << endl;
-       found = proc->PDFuncToBPFuncMap[pdfuncs[i]];
-       proc->PDFuncToBPFuncMap.undef(pdfuncs[i]);
-     }
-     else
-       found = new BPatch_function(proc, pdfuncs[i], this);
-     BPfuncs_uninstrumentable->push_back(found);
-   }
-   funcs.push_back(found);
- }
-
-  return &funcs;
-}
-
-BPatch_function * BPatch_module::findFunctionByMangled(const char *mangled_name)
-{
   int_function *pdfunc = mod->findFunctionByMangled(pdstring(mangled_name));
-						     
+
   if (!pdfunc) return NULL;
 
-  BPatch_function * bpfunc = proc->findOrCreateBPFunc((int_function *)pdfunc, this);
-  if (!proc->PDFuncToBPFuncMap.defines(pdfunc)) {
-    this->BPfuncs->push_back(bpfunc);
+  if (incUninstrumentable ||
+      pdfunc->isInstrumentable()) {
+    bpfunc = proc->findOrCreateBPFunc((int_function *)pdfunc, this);
+    if (!proc->PDFuncToBPFuncMap.defines(pdfunc)) {
+      this->BPfuncs->push_back(bpfunc);
+    }
   }
 
   return bpfunc;

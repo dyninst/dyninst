@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.66 2005/01/21 23:43:55 bernat Exp $
+// $Id: BPatch_image.C,v 1.67 2005/02/02 17:27:14 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -146,7 +146,7 @@ BPatch_sourceObj *BPatch_image::getObjParent()
  * Returns a list of all procedures in the image upon success, and NULL
  * upon failure.
  */
-BPatch_Vector<BPatch_function *> *BPatch_image::getProcedures()
+BPatch_Vector<BPatch_function *> *BPatch_image::getProcedures(bool incUninstrumentable)
 {
     BPatch_Vector<BPatch_function *> *proclist =
 	new BPatch_Vector<BPatch_function *>;
@@ -159,7 +159,7 @@ BPatch_Vector<BPatch_function *> *BPatch_image::getProcedures()
     BPatch_Vector<BPatch_module *> *mods = getModules();
 
     for (unsigned int i = 0; i < (unsigned) mods->size(); i++) {
-	BPatch_Vector<BPatch_function *> *funcs = (*mods)[i]->getProcedures();
+	BPatch_Vector<BPatch_function *> *funcs = (*mods)[i]->getProcedures(incUninstrumentable);
 	for (unsigned int j=0; j < (unsigned) funcs->size(); j++) {
 	    proclist->push_back((*funcs)[j]);
 	}
@@ -244,56 +244,56 @@ bool BPatch_image::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
  * upon failure.
  */
 BPatch_Vector<BPatch_module *> *BPatch_image::getModules() {
-	if( modlist ) { return modlist; }
-	
-	modlist = new BPatch_Vector< BPatch_module *>;
-	if( modlist == NULL ) { return NULL; }
+  if( modlist ) { return modlist; }
   
-	pdvector< module * > * pdModules = proc->getAllModules();
-	/* Generate the BPatch_functions for every module before
-	   constructing the BPatch_modules.  This allows us to
-	   parse the debug information once per image.*/
-	unsigned int i; 
-	for( i = 0; i < pdModules->size(); i++ ) {
-		pdmodule * currentModule = (pdmodule *) ((* pdModules)[i]);
-		pdvector< int_function * > * currentFunctions = currentModule->getFunctions();
-		for( unsigned int j = 0; j < currentFunctions->size(); j++ ) {
-			/* The constructor will try to register the bpf with proc's map,
-			   so check first.  This happens when, for instance, when we parse libunwind
-			   during BPatch_thread creation. */
-			if( ! proc->PDFuncToBPFuncMap.defines( (* currentFunctions)[j] ) ) {
-				new BPatch_function( proc, (* currentFunctions)[j], NULL );
-				}
-			} /* end iteration over functions in modules */
-		} /* end initial iteration over modules */
-	
-	/* With all the BPatch_functions created, generate the modules.
-	   The BPatch_module constructor will set its bpfs to point to itself,
-	   and the parser will cache per-image type collections. */
-	char moduleName[255];   
-	BPatch_module * defaultModule = NULL;
-	for( i = 0; i < pdModules->size(); i++ ) {
-		pdmodule * currentModule = (pdmodule *) ((* pdModules)[i]);
-		BPatch_module * bpm = new BPatch_module( proc, currentModule, this );
-		modlist->push_back( bpm );
-		if( strcmp( bpm->getName( moduleName, 255 ), "DEFAULT_MODULE" ) ) { defaultModule = bpm; }
-		} /* end of second iteration over modules */		
-	assert( defaultModule != NULL ) ;
-
-	/* DEBUG: verify that all known bpfs have non-NULL bpm pointers. */
-	dictionary_hash< int_function *, BPatch_function *>::const_iterator iter = proc->PDFuncToBPFuncMap.begin();
-	dictionary_hash< int_function *, BPatch_function *>::const_iterator end = proc->PDFuncToBPFuncMap.end();
-	for( ; iter != end; ++iter ) {
-		//char name[255];
-		BPatch_function * bpf = * iter;
-		if( bpf->getModule() == NULL ) {
-			// /* DEBUG */ fprintf( stderr, "Warning: bpf '%s' unclaimed by any module, setting to DEFAULT_MODULE.\n", bpf->getName( name, 255 ) );
-			bpf->setModule( defaultModule );
-			}
-		} /* end iteration over function map */
-		
-	return modlist;
-	} /* end getModules() */
+  modlist = new BPatch_Vector< BPatch_module *>;
+  if( modlist == NULL ) { return NULL; }
+  
+  pdvector< module * > * pdModules = proc->getAllModules();
+  /* Generate the BPatch_functions for every module before
+     constructing the BPatch_modules.  This allows us to
+     parse the debug information once per image.*/
+  unsigned int i; 
+  for( i = 0; i < pdModules->size(); i++ ) {
+    pdmodule * currentModule = (pdmodule *) ((* pdModules)[i]);
+    pdvector< int_function * > * currentFunctions = currentModule->getFunctions();
+    for( unsigned int j = 0; j < currentFunctions->size(); j++ ) {
+      /* The constructor will try to register the bpf with proc's map,
+	 so check first.  This happens when, for instance, when we parse libunwind
+	 during BPatch_thread creation. */
+      if( ! proc->PDFuncToBPFuncMap.defines( (* currentFunctions)[j] ) ) {
+	new BPatch_function( proc, (* currentFunctions)[j], NULL );
+      }
+    } /* end iteration over functions in modules */
+  } /* end initial iteration over modules */
+  
+  /* With all the BPatch_functions created, generate the modules.
+     The BPatch_module constructor will set its bpfs to point to itself,
+     and the parser will cache per-image type collections. */
+  char moduleName[255];   
+  BPatch_module * defaultModule = NULL;
+  for( i = 0; i < pdModules->size(); i++ ) {
+    pdmodule * currentModule = (pdmodule *) ((* pdModules)[i]);
+    BPatch_module * bpm = new BPatch_module( proc, currentModule, this );
+    modlist->push_back( bpm );
+    if( strcmp( bpm->getName( moduleName, 255 ), "DEFAULT_MODULE" ) ) { defaultModule = bpm; }
+  } /* end of second iteration over modules */		
+  assert( defaultModule != NULL ) ;
+  
+  /* DEBUG: verify that all known bpfs have non-NULL bpm pointers. */
+  dictionary_hash< int_function *, BPatch_function *>::const_iterator iter = proc->PDFuncToBPFuncMap.begin();
+  dictionary_hash< int_function *, BPatch_function *>::const_iterator end = proc->PDFuncToBPFuncMap.end();
+  for( ; iter != end; ++iter ) {
+    //char name[255];
+    BPatch_function * bpf = * iter;
+    if( bpf->getModule() == NULL ) {
+      // /* DEBUG */ fprintf( stderr, "Warning: bpf '%s' unclaimed by any module, setting to DEFAULT_MODULE.\n", bpf->getName( name, 255 ) );
+      bpf->setModule( defaultModule );
+    }
+  } /* end iteration over function map */
+  
+  return modlist;
+} /* end getModules() */
 
 
 
@@ -362,9 +362,9 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
     }
 
     Address pointImageBase = 0;
-    if(!func || !func->file())
+    if(!func || !func->pdmod())
 	return NULL;
-    image* pointImage = func->file()->exec();
+    image* pointImage = func->pdmod()->exec();
     proc->getBaseAddress((const image*)pointImage,pointImageBase);
 
     if (func != NULL) {
@@ -425,30 +425,32 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
  * but it's here since it deals with BPatch_functions and not int_functions.
  */
 void BPatch_image::findFunctionInImage(
-	const char *name, image *img, BPatch_Vector<BPatch_function*> *funcs)
+	const char *name, 
+	image *img, 
+	BPatch_Vector<BPatch_function*> *funcs,
+	bool incUninstrumentable)
 {
-   int_function *pdf;
-   pdvector<int_function*> *pdfv;
+  pdvector<int_function*> *pdfv;
+  pdvector<int_function *> raw_found_functions;
 
-   if ((pdfv = img->findFuncVectorByPretty(name)) != NULL) {
-      assert(pdfv->size() > 0);
+  if ((pdfv = img->findFuncVectorByPretty(name)) != NULL) {
+    assert(pdfv->size() > 0);
+  } 
+  else {
+    // Basically, assert that any mangled name match would also
+    // show up in the pretty name match. 
+    pdfv = img->findFuncVectorByMangled(name);
+  }
+  
+  if (pdfv == NULL) return;
 
-      for (unsigned int i = 0; i < pdfv->size(); i++) {
-         BPatch_function * foo = proc->findOrCreateBPFunc((*pdfv)[i]);
-         funcs->push_back( foo );
-      }
-
-	
-   } else {
-
-      if ((pdf = img->findFuncByMangled(name)) != NULL)
-         funcs->push_back(proc->findOrCreateBPFunc(pdf));
-   }
-
-   // Note that we can only return one non instrumentable function right now.
-   if ((pdf = img->findNonInstruFunc(name)) != NULL)
-      funcs->push_back(proc->findOrCreateBPFunc(pdf));
-
+  for (unsigned i = 0; i < pdfv->size(); i++) {
+    if ((*pdfv)[i]->isInstrumentable() ||
+	incUninstrumentable) {
+      BPatch_function * foo = proc->findOrCreateBPFunc((*pdfv)[i]);
+      funcs->push_back(foo);
+    }
+  }
 }
 
 /*
@@ -467,20 +469,28 @@ void BPatch_image::findFunctionInImage(
  * but it's here since it deals with BPatch_functions and not int_functions.
  */
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
-void BPatch_image::findFunctionPatternInImage(regex_t *comp_pat, image *img, 
-					      BPatch_Vector<BPatch_function*> *funcs)
+void BPatch_image::findFunctionPatternInImage(regex_t *comp_pat, 
+					      image *img, 
+					      BPatch_Vector<BPatch_function*> *funcs,
+					      bool incUninstrumentable)
 {
   pdvector<int_function*> pdfv;
   
   img->findFuncVectorByPrettyRegex(&pdfv, comp_pat);
-
-  for (unsigned int i = 0; i < pdfv.size(); i++)
-    funcs->push_back(proc->findOrCreateBPFunc((pdfv)[i]));
   
+  for (unsigned int i = 0; i < pdfv.size(); i++) {
+    if (incUninstrumentable ||
+	pdfv[i]->isInstrumentable())
+      funcs->push_back(proc->findOrCreateBPFunc(pdfv[i]));
+  }   
   if (!pdfv.size()) { // didn't find any pretty matches, try mangled    
     img->findFuncVectorByMangledRegex(&pdfv, comp_pat);
-    for (unsigned int j = 0; j < pdfv.size(); ++j) 
-      funcs->push_back(proc->findOrCreateBPFunc(pdfv[j]));
+    for (unsigned int j = 0; j < pdfv.size(); ++j) {
+      if (pdfv[j]->isInstrumentable() ||
+	  incUninstrumentable) {
+	funcs->push_back(proc->findOrCreateBPFunc(pdfv[j]));
+      }
+    }
   }
 }
 #endif
@@ -499,35 +509,37 @@ void BPatch_image::findFunctionPatternInImage(regex_t *comp_pat, image *img,
 
 BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
 	const char *name, BPatch_Vector<BPatch_function*> &funcs, bool showError,
-	bool regex_case_sensitive)
+	bool regex_case_sensitive,
+	bool incUninstrumentable)
 {
 
-   if (NULL == strpbrk(name, REGEX_CHARSET)) {
-      //  usual case, no regex
-      findFunctionInImage(name, proc->getImage(), &funcs);
+  if (NULL == strpbrk(name, REGEX_CHARSET)) {
+    //  usual case, no regex
+    findFunctionInImage(name, proc->getImage(), &funcs, incUninstrumentable);
+    
+    if (proc->dynamiclinking && proc->shared_objects) {
+      for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
+	const image *obj_image = ((*proc->shared_objects)[j])->getImage();
+	if (obj_image) {
+	  findFunctionInImage(name, const_cast<image*>(obj_image), 
+			      &funcs, incUninstrumentable);
+	}
+      }
+    }
+    
+    if (funcs.size() > 0) {
+      return &funcs;
+    } else {
       
-      if (proc->dynamiclinking && proc->shared_objects) {
-         for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
-            const image *obj_image = ((*proc->shared_objects)[j])->getImage();
-            if (obj_image) {
-               findFunctionInImage(name, const_cast<image*>(obj_image), &funcs);
-            }
-         }
+      if (showError) {
+	pdstring msg = pdstring("Image: Unable to find function: ") + 
+	  pdstring(name);
+	BPatch_reportError(BPatchSerious, 100, msg.c_str());
       }
-
-      if (funcs.size() > 0) {
-         return &funcs;
-      } else {
-         
-         if (showError) {
-            pdstring msg = pdstring("Image: Unable to find function: ") + 
-               pdstring(name);
-            BPatch_reportError(BPatchSerious, 100, msg.c_str());
-         }
-         return NULL;
-      }
-   }
-
+      return NULL;
+    }
+  }
+  
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
    // REGEX falls through:
    regex_t comp_pat;
@@ -552,14 +564,14 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
       return NULL;
    }
    
-   findFunctionPatternInImage(&comp_pat, proc->getImage(), &funcs);
+   findFunctionPatternInImage(&comp_pat, proc->getImage(), &funcs, incUninstrumentable);
    //cerr << "matched regex: " <<name<<"in symbols, results: "<<funcs.size()<<endl;
 
    if (proc->dynamiclinking && proc->shared_objects) {
       for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
          const image *obj_image = ((*proc->shared_objects)[j])->getImage();
          if (obj_image) {
-            findFunctionPatternInImage(&comp_pat, const_cast<image*>(obj_image), &funcs);
+            findFunctionPatternInImage(&comp_pat, const_cast<image*>(obj_image), &funcs, incUninstrumentable);
             //cerr << "matched regex: " <<name<<"in so, results: "<<funcs.size()<<endl;
          }
       }
@@ -584,27 +596,32 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
 //  allocated before calling.
 BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
         const char *name, BPatch_Vector<BPatch_function*> *funcs, bool showError,
-        bool regex_case_sensitive)
+        bool regex_case_sensitive, bool incUninstrumentable)
 {
-  return findFunction(name, *funcs, showError, regex_case_sensitive);
+  return findFunction(name, *funcs, showError, regex_case_sensitive, incUninstrumentable);
 }
 #endif
 
 void BPatch_image::sieveFunctionsInImage(image *img, BPatch_Vector<BPatch_function *> *funcs,
-					BPatchFunctionNameSieve bpsieve, void *user_data) 
+					 BPatchFunctionNameSieve bpsieve, void *user_data,
+					 bool incUninstrumentable) 
 {
   pdvector<int_function*> pdfv;
   
-  if (NULL != img->findFuncVectorByPretty(bpsieve, user_data,&pdfv)) {
+  if (NULL != img->findFuncVectorByPretty(bpsieve, user_data, &pdfv)) {
     assert(pdfv.size() > 0);
     
     for (unsigned int i = 0; i < pdfv.size(); i++)
-      funcs->push_back(proc->findOrCreateBPFunc(pdfv[i]));
+      if (incUninstrumentable || 
+	  pdfv[i]->isInstrumentable())
+	funcs->push_back(proc->findOrCreateBPFunc(pdfv[i]));
   } else {
     
     if (NULL != img->findFuncVectorByMangled(bpsieve, user_data, &pdfv))
       for (unsigned int i = 0; i < pdfv.size(); i++)
-	funcs->push_back(proc->findOrCreateBPFunc(pdfv[i]));
+	if (incUninstrumentable ||
+	    pdfv[i]->isInstrumentable())
+	  funcs->push_back(proc->findOrCreateBPFunc(pdfv[i]));
   }
 }
 
@@ -625,16 +642,17 @@ void BPatch_image::sieveFunctionsInImage(image *img, BPatch_Vector<BPatch_functi
 BPatch_Vector<BPatch_function *> *
 BPatch_image::findFunction(BPatch_Vector<BPatch_function *> &funcs, 
 			   BPatchFunctionNameSieve bpsieve,
-			   void *user_data, int showError)
+			   void *user_data, int showError, 
+			   bool incUninstrumentable)
 {
 
-  sieveFunctionsInImage(proc->getImage(), &funcs, bpsieve, user_data);
+  sieveFunctionsInImage(proc->getImage(), &funcs, bpsieve, user_data, incUninstrumentable);
   
   if (proc->dynamiclinking && proc->shared_objects) {
     for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
       const image *obj_image = ((*proc->shared_objects)[j])->getImage();
       if (obj_image) {
-	sieveFunctionsInImage(const_cast<image *>(obj_image), &funcs, bpsieve, user_data);
+	sieveFunctionsInImage(const_cast<image *>(obj_image), &funcs, bpsieve, user_data, incUninstrumentable);
       }
     }
   }

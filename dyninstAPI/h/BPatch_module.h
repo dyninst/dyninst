@@ -103,19 +103,20 @@ public:
 
     size_t getAddressWidth();
 
-    BPatch_Vector<BPatch_function *> *getProcedures();
+    BPatch_Vector<BPatch_function *> *getProcedures(bool incUninstrumentable = false);
     BPatch_Vector<BPatch_function *> *findFunction(const char *name,
 						   BPatch_Vector<BPatch_function *> & funcs,
 						   bool notify_on_failure=true,
-						   bool regex_case_sensitive=true);
+						   bool regex_case_sensitive=true,
+						   bool incUninstrumentable = false);
     // FIXME: This (undocumented) method only works for function entry addresses.
     BPatch_Vector<BPatch_function *> *findFunctionByAddress(void *addr,
 							    BPatch_Vector<BPatch_function *> &funcs,
-							    bool notify_on_failure = true);
+							    bool notify_on_failure = true,
+							    bool incUninstrumentable = false);
 
-    BPatch_function *findFunctionByMangled(const char * mangled_name);
-    BPatch_Vector<BPatch_function *> *findUninstrumentableFunction(const char *name,
-								  BPatch_Vector<BPatch_function *> & funcs);
+    BPatch_function *findFunctionByMangled(const char * mangled_name, 
+					   bool incUninstrumentable = false);
 
     void dumpMangled(char * prefix);
     void parseTypes();
