@@ -77,6 +77,8 @@ class NetworkImpl: public Error {
     static bool is_BackEnd();
 
     NetworkImpl(Network *, const char * _filename, const char * _application);
+    NetworkImpl(Network *, const char *hostname, unsigned int backend_id,
+                const char *phostname, unsigned int pport, unsigned int pid);
     ~NetworkImpl();
 
     Communicator * get_BroadcastCommunicator(void);
@@ -89,9 +91,6 @@ class NetworkImpl: public Error {
     int connect_Backends( void );
 
     int getConnections( int** conns, unsigned int* nConns );
-    int init_Backend(Network *, const char *hostname, unsigned int backend_id,
-                     const char *phostname, unsigned int pport,
-                     unsigned int pid);
 };
 
 

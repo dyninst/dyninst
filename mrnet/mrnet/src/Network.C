@@ -28,8 +28,6 @@
 namespace MRN
 {
 
-unsigned int Network::next_stream_id=1;  //id '0' reserved for broadcast
-
 /*===========================================================*/
 /*             Network static function DEFINITIONS        */
 /*===========================================================*/
@@ -74,22 +72,22 @@ int Network::getConnections( int **conns, unsigned int *nConns )
     return network->getConnections( conns, nConns );
 }
 
-int Network::init_Backend( const char *_hostname, const char *_port,
-                           const char *_phostname,
-                           const char *_pport, const char *_pid )
+Network::Network( const char *_hostname, const char *_port,
+                  const char *_phostname,
+                  const char *_pport, const char *_pid )
 {
     unsigned int port( atoi( _port ) );
     unsigned int pport( atoi( _pport ) );
     unsigned int pid( atoi( _pid ) );
 
-    return network->init_Backend( this, _hostname, port, _phostname, pport, pid );
+    network = new NetworkImpl( this, _hostname, port, _phostname, pport, pid );
 }
 
-int Network::init_Backend( const char *_hostname, unsigned int port,
-                           const char *_phostname,
-                           unsigned int pport, unsigned int pid )
+Network::Network( const char *_hostname, unsigned int port,
+                      const char *_phostname,
+                      unsigned int pport, unsigned int pid )
 {
-    return network->init_Backend( this, _hostname, port, _phostname, pport, pid );
+    network = new NetworkImpl( this, _hostname, port, _phostname, pport, pid );
 }
 
 void Network::error_str( const char *s )
@@ -142,7 +140,11 @@ Communicator * Network::new_Communicator( Communicator& comm )
 
 Communicator * Network::new_Communicator( std::vector <EndPoint *> & endpoints )
 {
-    assert(network);
+    // TODO: technically, assert is correct, but commented as temp. fix for
+    // fact that in the calling sequence Network() calls NetworkImpl() calls
+    // new_Communicator() Network, object has not yet set network var
+
+    // assert(network);
     return new Communicator( this, endpoints );
 }
 
@@ -159,8 +161,8 @@ Stream * Network::new_Stream( Communicator *comm, int ds_filter_id,
     Stream * new_stream = new Stream( this, comm, us_filter_id,
                                       sync_id, ds_filter_id );
 
-    network->streams[next_stream_id] = new_stream;
-    next_stream_id++;
+    network->streams[ new_stream->get_Id() ] = new_stream;
+    mrn_printf(3, MCFL, stderr, "DCA new_stream() created stream %d (%p)\n", new_stream->get_Id(), new_stream);
     return new_stream;
 }
 
@@ -173,8 +175,8 @@ Stream * Network::new_Stream( int stream_id, int *backends,
                                       num_backends, us_filter_id,
                                       sync_id, ds_filter_id );
 
-    network->streams[next_stream_id] = new_stream;
-    next_stream_id++;
+    network->streams[ new_stream->get_Id() ] = new_stream;
+    //next_stream_id++;
     return new_stream;
 }
 
@@ -222,6 +224,18 @@ bool Network::is_BackEnd()
     return network->is_BackEnd();
 }
 
+bool Network::good()
+{
+    assert(network);
+    return network->good();
+}
+
+bool Network::fail()
+{
+    assert(network);
+    return network->fail();
+}
+
 FrontEndNode * Network::get_FrontEndNode( void )
 {
     assert( network );
@@ -242,6 +256,7 @@ Stream::Stream(Network *network, Communicator *comm, int us_filter_id,
     : stream( new StreamImpl( network, comm, us_filter_id, sync_id,
                                ds_filter_id ) )
 {
+    mrn_printf(3, MCFL, stderr, "DCA Stream::Stream() has stream %p has streamimp %p\n", this, stream);
 }
 
 Stream::Stream( Network *network, int stream_id, int *backends,
@@ -250,6 +265,7 @@ Stream::Stream( Network *network, int stream_id, int *backends,
     : stream( new StreamImpl( network, stream_id, backends, num_backends,
                               ds_filter_id, sync_id, us_filter_id ) )
 {
+    mrn_printf(3, MCFL, stderr, "DCA Stream::Stream() has stream %p has streamimp %p\n", this, stream);
 }
 
 void Stream::add_IncomingPacket( Packet& packet )
@@ -282,6 +298,46 @@ void Stream::set_BlockingTimeOut( int timeout )
 int Stream::get_BlockingTimeOut(  )
 {
     return RemoteNode::get_BlockingTimeOut(  );
+}
+
+int Stream::send(int tag, const char * format_str, ...)const
+{
+    mrn_printf(3, MCFL, stderr, "DCA stream::recv() has stream %p streamimpl\n", this, stream);
+    assert( stream );
+
+    int status;
+    va_list arg_list;
+
+    va_start(arg_list, format_str);
+    status = stream->send_aux( tag, format_str, arg_list );
+    va_end(arg_list);
+
+    return status;
+}
+
+int Stream::flush()const
+{
+    assert( stream );
+    return stream->flush();
+}
+
+int Stream::recv( int *tag, void **buf, bool blocking )
+{
+    mrn_printf(3, MCFL, stderr, "DCA stream::recv() has stream %p streamimpl\n", this, stream);
+    assert( stream );
+    return stream->recv( tag, buf, blocking );
+}
+
+unsigned int Stream::get_NumEndPoints()const
+{
+    assert( stream );
+    return stream->get_NumEndPoints();
+}
+
+unsigned int Stream::get_Id()const
+{
+    assert( stream );
+    return stream->get_Id();
 }
 
 /*======================================================*/

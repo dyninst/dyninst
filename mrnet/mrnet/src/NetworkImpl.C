@@ -80,7 +80,6 @@ NetworkImpl::NetworkImpl( Network * _network, const char *_filename,
     //Frontend is root of the tree
     front_end = new FrontEndNode( _network, graph->get_Root( )->get_HostName( ),
                                   graph->get_Root( )->get_Port( ) );
-    is_frontend = true;
     SerialGraph sg = graph->get_SerialGraph(  );
     sg.print(  );
 
@@ -93,14 +92,58 @@ NetworkImpl::NetworkImpl( Network * _network, const char *_filename,
     }
     Packet packet( 0, PROT_NEW_SUBTREE, "%s%s%s", sg_str.c_str( ),
                    mrn_commnode_path, application.c_str( ) );
-    mrn_printf( 1, MCFL, stderr, "DCA: set packet(%p) destroy data false!\n",
-                &packet);
     if( front_end->proc_newSubTree( packet ) == -1 ) {
         _fail = true;
         return;
     }
 
+    is_frontend = true;
     return;
+}
+
+NetworkImpl::NetworkImpl( Network *_network,
+                          const char *_hostname, unsigned int port,
+                          const char *_phostname, unsigned int pport,
+                          unsigned int pid )
+{
+    std::string host( _hostname );
+    std::string phost( _phostname );
+
+    //TLS: setup thread local storage for frontend
+    //I am "BE(host:port)"
+    std::string prettyHost;
+    getHostName( prettyHost, host );
+    char port_str[16];
+    sprintf( port_str, "%u", port );
+    std::string name( "BE(" );
+    name += prettyHost;
+    name += ":";
+    name += port_str;
+    name += ")";
+    int status;
+
+    if( ( status = pthread_key_create( &tsd_key, NULL ) ) != 0 ) {
+        //TODO: add event to notify upstream
+        error(ESYSTEM, "pthread_key_create(): %s\n", strerror( status ) );
+        mrn_printf( 1, MCFL, stderr, "pthread_key_create(): %s\n",
+                    strerror( status ) );
+    }
+    tsd_t *local_data = new tsd_t;
+    local_data->thread_id = pthread_self(  );
+    local_data->thread_name = strdup( name.c_str(  ) );
+    if( ( status = pthread_setspecific( tsd_key, local_data ) ) != 0 ) {
+        //TODO: add event to notify upstream
+        error(ESYSTEM, "pthread_setspecific(): %s\n", strerror( status ) );
+        mrn_printf( 1, MCFL, stderr, "pthread_setspecific(): %s\n",
+                    strerror( status ) );
+    }
+
+    back_end = new BackEndNode( _network, host, port, phost, pport, pid );
+
+    if( back_end->fail() ){
+        error( ESYSTEM, "Failed to initialize via BackEndNode()\n" );
+    }
+    is_backend = true;
 }
 
 int NetworkImpl::parse_configfile(  )
@@ -130,6 +173,7 @@ NetworkImpl::~NetworkImpl(  ) {
     delete graph;
     delete front_end;
     is_frontend = false;
+    is_backend = false;
 }
 
 EndPoint * NetworkImpl::get_EndPoint( const char *_hostname,
@@ -158,10 +202,13 @@ int NetworkImpl::recv( bool blocking )
                     "Calling FrontEnd::recv()\n" );
         return front_end->recv( blocking );
     }
-    else {
+    else if( is_BackEnd() ){
         mrn_printf( 3, MCFL, stderr, "In NetImpl::recv(). "
                     "Calling BackEnd::recv()\n" );
-        return front_end->recv( blocking );
+        return back_end->recv( blocking );
+    }
+    else{
+        assert(0); // shouldn't call recv when backend/front not init'd
     }
 }
 
@@ -179,12 +226,12 @@ int NetworkImpl::send( Packet& packet )
     }
 }
 
-bool NetworkImpl::is_FrontEnd(  )
+bool NetworkImpl::is_FrontEnd( )
 {
     return is_frontend;
 }
 
-bool NetworkImpl::is_BackEnd(  )
+bool NetworkImpl::is_BackEnd( )
 {
     return is_backend;
 }
@@ -393,8 +440,9 @@ get_packet_from_stream_label:
 
             cur_packet = cur_stream->get_IncomingPacket();
             if( cur_packet != *Packet::NullPacket ){
-                mrn_printf( 3, MCFL, stderr, "Found a packet on stream[%d] ...",
-                            cur_stream_idx);
+                mrn_printf( 3, MCFL, stderr,
+                            "Found a packet on stream[%d] %p ...\n",
+                            cur_stream_idx, cur_stream );
                 cur_stream_idx++;
                 cur_stream_idx %= streams.size();
                 break;
@@ -410,6 +458,8 @@ get_packet_from_stream_label:
     if( cur_packet != *Packet::NullPacket ) {
         *tag = cur_packet.get_Tag();
         *stream = streams[cur_packet.get_StreamId()];
+        mrn_printf( 3, MCFL, stderr, "DCA: Setting returned stream[%d] to %p. Packet = %p\n",
+                    cur_packet.get_StreamId(), *stream, &cur_packet );
         *ptr = (void *) new Packet(cur_packet);
         mrn_printf(4, MCFL, stderr, "cur_packet tag: %d, fmt: %s\n",
                    cur_packet.get_Tag(), cur_packet.get_FormatString() );
@@ -434,54 +484,6 @@ get_packet_from_stream_label:
     return 0;
 }
 
-int NetworkImpl::init_Backend( Network *_network,
-                               const char *_hostname, unsigned int port,
-                               const char *_phostname, unsigned int pport,
-                               unsigned int pid )
-{
-    std::string host( _hostname );
-    std::string phost( _phostname );
-
-    //TLS: setup thread local storage for frontend
-    //I am "BE(host:port)"
-    std::string prettyHost;
-    getHostName( prettyHost, host );
-    char port_str[16];
-    sprintf( port_str, "%u", port );
-    std::string name( "BE(" );
-    name += prettyHost;
-    name += ":";
-    name += port_str;
-    name += ")";
-
-    int status;
-    if( ( status = pthread_key_create( &tsd_key, NULL ) ) != 0 ) {
-        //TODO: add event to notify upstream
-        //error(ESYSTEM, "pthread_key_create(): %s\n", strerror( status ) );
-        mrn_printf( 1, MCFL, stderr, "pthread_key_create(): %s\n",
-                    strerror( status ) );
-        return -1;
-    }
-    tsd_t *local_data = new tsd_t;
-    local_data->thread_id = pthread_self(  );
-    local_data->thread_name = strdup( name.c_str(  ) );
-    if( ( status = pthread_setspecific( tsd_key, local_data ) ) != 0 ) {
-        //TODO: add event to notify upstream
-        //error(ESYSTEM, "pthread_setspecific(): %s\n", strerror( status ) );
-        mrn_printf( 1, MCFL, stderr, "pthread_setspecific(): %s\n",
-                    strerror( status ) );
-        return -1;
-    }
-
-    is_backend = true;
-    back_end = new BackEndNode( _network, host, port, phost, pport, pid );
-
-    if( back_end->fail(  ) ) {
-        return -1;
-    }
-
-    return 0;
-}
 
 NetworkImpl::LeafInfoImpl::LeafInfoImpl( unsigned short _id, const char* _host,
                                          unsigned short _rank,

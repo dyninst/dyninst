@@ -27,6 +27,7 @@ class StreamImpl{
  private:
     Network * network;
     static bool force_network_recv;
+    static unsigned int next_stream_id;
 
     std::list < Packet >IncomingPacketBuffer;
     int ds_filter_id;
@@ -68,11 +69,17 @@ class StreamImpl{
 
 inline int StreamImpl::flush() const
 {
-    if(network){
+    if( network->is_FrontEnd() ){
+        mrn_printf( 3, MCFL, stderr, "calling frontend flush()" );
         return network->get_FrontEndNode()->flush(stream_id);
     }
-
-    return network->get_BackEndNode()->flush();
+    else if( network->is_BackEnd() ){
+        mrn_printf( 3, MCFL, stderr, "calling backend flush()" );
+        return network->get_BackEndNode()->flush();
+    }
+    else{
+        assert( 0 && "Cannot call flush without front/backend init'd");
+    }
 }
 
 

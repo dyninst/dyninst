@@ -898,6 +898,7 @@ int mrn_printf( int level, const char *file, int line, FILE * fp,
     va_start( arglist, format );
     retval = vfprintf( fp, format, arglist );
     va_end( arglist );
+    fflush( fp );
 
     return retval;
 }

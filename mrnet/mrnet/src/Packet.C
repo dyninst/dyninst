@@ -43,14 +43,14 @@ PacketData::PacketData( unsigned short _stream_id, int _tag, const char *fmt,
     }
 
     mrn_printf( 3, MCFL, stderr,
-                "Packet(%p) constructor succeeded. fmt_str=%s\n",
-                this, fmt_str );
+                "Packet(%p) constructor succeeded: src:%s, stream_id:%d "
+                "tag:%d, fmt:%s\n", this, src, stream_id, tag, fmt_str );
     return;
 }
 
 PacketData::PacketData( unsigned int _buf_len, char *_buf )
-    : src( NULL ), fmt_str( NULL ), buf( _buf ), buf_len( _buf_len ),
-      destroy_data( false )
+    : stream_id( 0 ), src( NULL ), fmt_str( NULL ), buf( _buf ),
+      buf_len( _buf_len ), destroy_data( false )
 {
     PDR pdrs;
     mrn_printf( 3, MCFL, stderr, "In Packet(%p) constructor\n", this );
@@ -67,8 +67,8 @@ PacketData::PacketData( unsigned int _buf_len, char *_buf )
     }
 
     mrn_printf( 3, MCFL, stderr,
-                "Packet(%p) constructor succeeded: src:%s, "
-                "tag:%d, fmt:%s\n", this, src, tag, fmt_str );
+                "Packet(%p) constructor succeeded: src:%s, stream_id:%d "
+                "tag:%d, fmt:%s\n", this, src, stream_id, tag, fmt_str );
 }
 
 PacketData::PacketData(const PacketData& p)

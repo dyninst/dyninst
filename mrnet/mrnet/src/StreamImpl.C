@@ -15,14 +15,16 @@
 namespace MRN
 {
 
+unsigned int StreamImpl::next_stream_id=1;  //id '0' reserved for broadcast
 bool StreamImpl::force_network_recv=false;
 
 StreamImpl::StreamImpl(Network * _network, Communicator *_comm,
                        int _sync_id, int _ds_filter_id, int _us_filter_id)
   : network(_network), ds_filter_id(_ds_filter_id),
     us_filter_id(_us_filter_id),
-    sync_id(_sync_id)
+    sync_id(_sync_id), stream_id( next_stream_id )
 {
+    next_stream_id++;
     communicator = new Communicator(*_comm); //copy the comm.
 
     if ( network->is_FrontEnd() ){
@@ -65,6 +67,7 @@ StreamImpl::~StreamImpl()
 
 int StreamImpl::send_aux(int tag, char const * fmt, va_list arg_list ) const
 {
+    mrn_printf(3, MCFL, stderr, "DCA: StreamImpl::send_aux() Creating new packet with stream_id: %d", stream_id);
     Packet packet(stream_id, tag, fmt, arg_list);
     if(packet.fail()){
         mrn_printf(1, MCFL, stderr, "new packet() fail\n");
