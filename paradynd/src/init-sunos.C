@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.43 2003/03/08 01:23:51 bernat Exp $ */
+/* $Id: init-sunos.C,v 1.44 2003/03/14 23:18:39 bernat Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/internalMetrics.h"
@@ -77,28 +77,6 @@ bool initOS() {
 	  initialRequestsPARADYN += new instMapping("_fork", "DYNINSTmpi_fork", 
 					     FUNC_EXIT|FUNC_ARG, retVal);
   } else { /* Fork and exec */
-	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  instMapping *newMappingA = new instMapping("fork", "DYNINSTfork", 
-					     FUNC_EXIT|FUNC_ARG, retVal);
-	  newMappingA->dontUseTrampGuard();
-	  initialRequestsPARADYN += newMappingA;
-
-	  //libthread _fork
-	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  instMapping *newMappingB = new instMapping("_fork", "DYNINSTfork", 
-					     FUNC_EXIT|FUNC_ARG, retVal);
-	  newMappingB->dontUseTrampGuard();
-	  initialRequestsPARADYN += newMappingB;
-
-	  //initialRequestsPARADYN += new instMapping("execve", "DYNINSTexec",
-	  //			               FUNC_ENTRY|FUNC_ARG, tidArg);
-	  //initialRequestsPARADYN += new instMapping("execve", "DYNINSTexecFailed", 
-	  //                                   FUNC_EXIT);
-	  AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
-	  initialRequestsPARADYN += new instMapping("_execve", "DYNINSTexec",
-					     FUNC_ENTRY|FUNC_ARG, tidArg);
-	  initialRequestsPARADYN += new instMapping("_execve", "DYNINSTexecFailed", 
-					     FUNC_EXIT);
   }
   
 #if defined(MT_THREAD)

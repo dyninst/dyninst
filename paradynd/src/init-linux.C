@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.17 2002/12/20 07:50:06 jaw Exp $
+// $Id: init-linux.C,v 1.18 2003/03/14 23:18:38 bernat Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -61,35 +61,14 @@ bool initOS() {
   AstNode *cmdArg;
   AstNode *tidArg;
   AstNode *retVal;
-//ccw 29 apr 2002 : SPLIT3 initialRequests is changed to
-// initialRequestsPARADYN
+
   initialRequestsPARADYN += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
 
   initialRequestsPARADYN += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
 
   if (process::pdFlavor == "mpi") {
 	  instMPI();
-
-	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  initialRequestsPARADYN += new instMapping("__libc_fork", "DYNINSTmpi_fork", 
-					     FUNC_EXIT|FUNC_ARG, retVal);
-  } else { /* Fork and exec */
-	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  instMapping *newMapping = 
-	     new instMapping("__libc_fork", "DYNINSTfork", FUNC_EXIT|FUNC_ARG,
-			     retVal);
-	  newMapping->dontUseTrampGuard();
-	  initialRequestsPARADYN += newMapping;
-  
-	  tidArg = new AstNode(AstNode::Param, (void *) 0);
-
-	  initialRequestsPARADYN += 
-             new instMapping("execve", "DYNINSTexec", FUNC_ENTRY|FUNC_ARG, 
-                             tidArg);
-	  initialRequestsPARADYN += 
-             new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
-  }
-
+  } 
   cmdArg = new AstNode(AstNode::Param, (void *) 4);
   initialRequestsPARADYN += new instMapping("rexec", "DYNINSTrexec",
 				     FUNC_ENTRY|FUNC_ARG, cmdArg);
