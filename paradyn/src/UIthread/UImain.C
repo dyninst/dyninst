@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.32  1994/11/01 05:42:32  karavan
-/* some minor performance and warning fixes
+/* Revision 1.33  1994/11/01 22:39:27  karavan
+/* changed debugging printf to call to PARADYN_DEBUG
 /*
+ * Revision 1.32  1994/11/01  05:42:32  karavan
+ * some minor performance and warning fixes
+ *
  * Revision 1.31  1994/10/25  17:57:32  karavan
  * added Resource Display Objects, which support display of multiple resource
  * abstractions.
@@ -492,7 +495,7 @@ UImain(void* vargs)
     mtag = MSG_TAG_ALL_CHILDREN_READY;
     retVal = msg_recv (&mtag, UIMbuff, &msgSize);
 
-    fprintf (stderr, "UIM thread past barrier\n");
+    PARADYN_DEBUG(("UIM thread past barrier\n"));
 
    // subscribe to DM new resource notification service
 
