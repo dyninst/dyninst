@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.82 2005/02/24 10:16:38 rchen Exp $
+ * $Id: Object-elf.C,v 1.83 2005/03/04 17:45:51 bernat Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -1567,12 +1567,10 @@ static void insertUniqdSymbol(const Symbol &sym,
         else {
             // Let's make up a name in the form oldname,version. We'll
             // keep incrementing version until we get a unique name
-            char temp[255];
             unsigned versionId = 1;
             pdstring uniqName;
             do {
-                sprintf(temp, "%s,v%u", symName.c_str(), versionId++);
-                uniqName = pdstring(temp);
+	      uniqName = symName + ",v" + pdstring(versionId++);
             } while (syms->defines(uniqName));
         
             Symbol modified(uniqName, sym.module(), sym.type(), sym.linkage(),
