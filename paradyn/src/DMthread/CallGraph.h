@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.h,v 1.7 2000/08/17 19:41:37 pcroth Exp $
+// $Id: CallGraph.h,v 1.8 2002/10/28 04:54:12 schendel Exp $
 
 /**********************************************************
  *
@@ -96,6 +96,8 @@ class CallGraph {
     //Vector holding all of those functions that contain dynamic call sites
     vector<resource *> dynamic_call_sites;
 
+    dictionary_hash<unsigned, resourceHandle> tid_to_start_func;
+
     // pointer to root resource for code hierarchy....  This is the resource 
     //  with which searches on a call graph should start.
     // Currently, "/Code" resource
@@ -140,7 +142,7 @@ class CallGraph {
     //  either the code entry point (the place where the code starts 
     //  executing), or the first program specific function (usually "main")
     //  depending on where searches should start.... 
-    void SetEntryFunc(resource *r);
+    void SetEntryFunc(resource *r, unsigned tid);  // tid = 0 : initial thread
 
     // Return boolean value indicating whether was added (not added if resource
     //  was previously seen)....
@@ -152,8 +154,9 @@ class CallGraph {
     // registers resources in <children> not previously seen....
     int SetChildren(resource *r, const vector <resource *>children);
 
-    // As per SetChildren, but w/ single child....
-    int SetChild(resource *r, resource *c);
+    int AddChild(resource *parent, resource *child);
+
+    bool isStartFunction(resourceHandle rh);
 
     // Add DYNAMICALLY DETERMINED child resource.
     // assert(r previously known to call graph).
@@ -198,6 +201,12 @@ class CallGraph {
     //registered, and the user selects the callGraph menu item from the
     //main paradyn display
     void displayCallGraph();
+
+    resource *getThreadStartFunc(unsigned tid) {
+       assert(tid_to_start_func.defines(tid));
+       resourceHandle rh = tid_to_start_func[tid];
+       return resource::handle_to_resource(rh);
+    }
     
     //Calls displayCallGraph() for each of the known call graphs.
     static void displayAllCallGraphs();
