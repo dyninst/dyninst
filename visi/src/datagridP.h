@@ -42,7 +42,7 @@
 #ifndef _datagrid_h
 #define _datagrid_h
 
-// $Id: datagridP.h,v 1.10 2000/07/28 17:22:38 pcroth Exp $
+// $Id: datagridP.h,v 1.11 2001/08/23 14:44:49 schendel Exp $
 
 /////////////////////////////////
 //  Data Grid Class definitions
@@ -167,23 +167,17 @@ class visi_GridCellHisto {
      int   lastBucketFilled;  // bucket number of last data value added
      int   enabled;   // set when data values can be added to this cell
      visi_sampleType *value;   // array of data values
+     visi_sampleType initActVal;   // array of data values
   public: 
      void *userdata;  // to allow visi writer to add info to grid cells
      visi_GridCellHisto(){value = NULL; valid = 0; size = 0; 
 			  userdata = NULL; lastBucketFilled = -1; 
-			  firstValidBucket = -1; enabled = 0;}
+			  firstValidBucket = -1; enabled = 0;
+			  initActVal = -1;
+     }
      visi_GridCellHisto(int);
      ~visi_GridCellHisto();
      int    LastBucketFilled(){return(lastBucketFilled);}
-     visi_sampleType  *Value(){ return(value);}
-
-     visi_sampleType  Value(int i) { 
-	    if((i < 0) || (i >= size)){
-	     return(VISI_ERROR);
-            }
-	    return(value[i]);
-     }
-
      int    Size(){return(size);}
      int    Valid(){return(valid);}
      int    Enabled(){return(enabled);}
@@ -192,108 +186,13 @@ class visi_GridCellHisto {
      int    FirstValidBucket() { return(firstValidBucket); }
      void   Invalidate(){delete[] value; value = NULL; size = 0; 
 			 valid = 0; lastBucketFilled = -1;}
+     visi_sampleType  *GetValueRawData(){ return(value);}
 
-     int    AddNewValues(visi_sampleType *temp,
-			 int arraySize,
-			 int lbf,
-			 void *ud,
-			 int v, 
-			 int e){
-        
-	if(temp == NULL){
-          value = NULL;
-	  size = 0;
-	}
-	else{
-	  // initialize cell to temp values
-	  value = new visi_sampleType[arraySize];
-	  size = arraySize;
-	  for(int i=0;i<size;i++){
-	    if(!isnan(temp[i])){
-	      value[i] = temp[i]; 
-	      if(firstValidBucket == -1)
-	         firstValidBucket = i;
-            }
-	    else
-	      value[i] = VISI_ERROR; 
-	  }
-	}
-	lastBucketFilled = lbf;
-	userdata = ud;
-	valid = v;
-	enabled = e;
-	return(VISI_OK);
-     }
-
-     void   Fold(){
-       int i,j;
-       if(valid){
-	 firstValidBucket = -1;
-         for(i=0,j=0;(i< (lastBucketFilled+1)/2) // new bucket counter
-	     && (j< (lastBucketFilled+1)); // old bucket counter
-	     i++,j+=2){
-	   if((!isnan(value[j])) && (!isnan(value[j+1]))){
-             value[i] = (value[j] + value[j+1])/2;
-	     if(firstValidBucket == -1){
-	       firstValidBucket = i;
-             }
-	   }
-           else{
-	     value[i] = VISI_ERROR;
-           }
-	 }
-	 for(i=(lastBucketFilled+1)/2; i < size; i++){
-           value[i] = VISI_ERROR;
-	 }
-	 lastBucketFilled = ((lastBucketFilled+1)/2)-1;
-       }
-     }
-
-     visi_sampleType  SumValue(visi_timeType width){
-       int i;
-       visi_sampleType sum;
-
-        if(value != NULL){
-           for(sum=0.0,i=0; i< size; i++){
-	     if(!isnan(value[i])){
-	       sum += value[i]; 
-	     }
-	   }
-	   sampleVal_cerr << "  numBuckets: " << size << "  sum: " << sum 
-			  << "  width: " << width << "  sum*width: " 
-			  << sum*width << "\n"; 
-	   return(sum*width);
-	}
-	else{
-	  sampleVal_cerr << " value == NULL\n";
-	  return(VISI_ERROR);
-	}
-     }
-
-     visi_sampleType  AggregateValue(){
-	int i,num;
-	visi_sampleType sum;
-        if(value != NULL){
-           for(sum=0.0,num=i=0; i< size; i++){
-	     if(!isnan(value[i])){
-	       sum += value[i]; 
-	       num++;
-	     }
-	   }
-
-           if(num != 0){
-	     sampleVal_cerr << "  sum: " << sum << "  num: " << num 
-			    << "  sum/num: " << (sum/(1.0*num)) << "\n";
-	     return(sum/(1.0*num));
-	   }
-	   else{
-	     return(VISI_ERROR);
-           }
-	}
-	else{
-	  return(VISI_ERROR);
-	}
-     }
+     void SetInitialActualValue(visi_sampleType v) { initActVal = v; }
+     int AddNewValues(visi_sampleType *temp, int arraySize,
+		      int lbf, void *ud, int v, int e);
+     int AddValue(visi_sampleType x, int i, int numElements);
+     void Fold(visi_unitsType unitstype);
 
      // returns true when there are NaN spans of between valid data buckets
      bool   InvalidSpans(){
@@ -305,41 +204,11 @@ class visi_GridCellHisto {
 	return false;
      }
 
-     int    AddValue(visi_sampleType x,
-		     int i,
-		     int numElements){
-        
-       int j;
-
-       if (!enabled){ // if this cell has not been enabled don't add values
-         return(VISI_OK);
-       }
-       if (!valid){ // if this is the first value create a histo cell array 
-	 if(value == NULL)
-	   value = new visi_sampleType[numElements];
-	 size = numElements;
-	 valid = 1;
-	 enabled = 1;
-	 for(j=0;j<size;j++){
-	   value[j] = VISI_ERROR;
-         }
-       }
-       if((i < 0) || (i >= size))
-	 return(VISI_ERROR_INT);
-       value[i] = x;
-       if(i > lastBucketFilled)
-        lastBucketFilled = i;
-       if(firstValidBucket == -1)
-	 firstValidBucket = i;
-       return(VISI_OK);
-     }
-
-     visi_sampleType  operator[](int i){
-       if((i >= size) || (i < 0)){
-	 return(VISI_ERROR);
-       }
-       return(value[i]);
-     }
+     visi_sampleType Value(int i, visi_unitsType unitstype);
+     void Value(visi_sampleType *samples, int firstBucket, int lastBucket,
+		visi_unitsType unitstype);
+     visi_sampleType SumValue(visi_timeType width, visi_unitsType unitstype);
+     visi_sampleType AggregateValue(visi_unitsType unitstype);
 };
 
 
@@ -373,6 +242,13 @@ class  visi_GridHistoArray {
 	  return *this;
       }
 
+      int SetInitialActualValue(int resource, visi_sampleType x) {
+	 if((resource < 0) || (resource >= size))
+	   return VISI_ERROR_INT;
+	 values[resource].SetInitialActualValue(x);
+	 return VISI_OK;
+      }
+
       int AddValue(visi_sampleType x,
 	           int resource,
 	           int bucketNum,
@@ -389,21 +265,22 @@ class  visi_GridHistoArray {
       int    AddNewResources(int);
       int    AddNewValues(visi_GridCellHisto *,int);
 
-      void   Fold(){
+      void Fold(visi_unitsType unitstype) {
         int i;
 	for(i=0; i< size; i++)
-	  values[i].Fold();
+	  values[i].Fold(unitstype);
       } 
 
-      visi_sampleType  AggregateValue(int i){
+      visi_sampleType  AggregateValue(int i, visi_unitsType unitstype) {
 	if((i>=0)&&(i<size))
-	  return(values[i].AggregateValue());
+	  return(values[i].AggregateValue(unitstype));
         else
 	  return(VISI_ERROR);
       }
-      visi_sampleType  SumValue(int i,visi_timeType width){
+      visi_sampleType  SumValue(int i,visi_timeType width, 
+				visi_unitsType unitstype){
 	if((i>=0)&&(i<size))
-	  return(values[i].SumValue(width));
+	  return(values[i].SumValue(width, unitstype));
         else
 	  return(VISI_ERROR);
       }
@@ -506,6 +383,7 @@ class visi_DataGrid {
      ~visi_DataGrid();
      const char *MetricName(int i);
      const char *MetricUnits(int i);
+     const visi_unitsType MetricUnitsType(int i);
      const char *MetricLabel(int i);
      const char *MetricAveLabel(int i);
      const char *MetricSumLabel(int i);
@@ -569,8 +447,9 @@ class visi_DataGrid {
      visi_sampleType AggregateValue(int i,int j){
        sampleVal_cerr << "AggregateValue (avg)-  " << MetricName(i) << " "
 		      << ResourceName(j) << "\n";
+       
        if((i>=0)&&(i<numMetrics))
-	 return(data_values[i].AggregateValue(j)); 
+	 return(data_values[i].AggregateValue(j, metrics[i].UnitsType())); 
        else
 	 return(VISI_ERROR);
      }
@@ -578,17 +457,27 @@ class visi_DataGrid {
      visi_sampleType  SumValue(int i,int j){
        sampleVal_cerr << "datagrid::SumValue()-  " << MetricName(i) << " "
 		      << ResourceName(j) << "\n";
+       
        if((i>=0)&&(i<numMetrics))
-	 return(data_values[i].SumValue(j,binWidth)); 
+	 return(data_values[i].SumValue(j,binWidth, metrics[i].UnitsType())); 
        else
 	 return(VISI_ERROR);
      }
 
-     void  Fold(visi_timeType width){
+     void  Fold(visi_timeType width) {
        int i;
-       for(i=0; i < numMetrics; i++)
-	 data_values[i].Fold();
+       for(i=0; i < numMetrics; i++) {
+	 visi_unitsType type = MetricUnitsType(i);
+	 data_values[i].Fold(type);
+       }
        binWidth = width;
+     }
+
+     int SetInitialActualValue(int metric, int resource, 
+			       visi_sampleType value) {
+	if((metric < 0) || (metric >= numMetrics))
+	   return(VISI_ERROR_INT);
+	return (data_values[metric].SetInitialActualValue(resource, value));
      }
 
      int AddValue(int metric, 
