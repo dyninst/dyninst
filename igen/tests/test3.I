@@ -25,6 +25,7 @@ $remote test {
     sStruct msTest(sStruct);
     void nullStruct(intStruct);
     int intString(String);
+    $virtual int VintString(String);
     int add(int, int);
     int sumVector($array int);
     $array int retVector(int len, int start);
@@ -33,4 +34,7 @@ $remote test {
     $upcall void syncUpcall(int x);
     void triggerAsyncUpcall(int val);
     $upcall $async void asyncUpcall(int x);
+    $virtual $upcall $async void VasyncUpcall(int x);
+    $cmember sStruct s;
+    $smember mStruct m;
 };

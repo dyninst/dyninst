@@ -44,6 +44,11 @@ void test::nullStruct(intStruct s)
     return;
 }
 
+int test::VintString(String s)
+{
+    return(strlen(s));
+}
+
 int test::intString(String s)
 {
     return(strlen(s));

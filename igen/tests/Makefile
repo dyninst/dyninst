@@ -41,7 +41,7 @@ all_pure: client3_pure server3_pure program4_pure clientPVM_pure \
 
 xdrc_pvm_pure: $(XDRC_PVM)
 	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -o xdrc_pvm \
-	         $(XDRC_PVM) $(LIBDIR) -lutil -lpvm3 
+	         $(XDRC_PVM) $(LIBDIR) -lutil -lutilPVM -lpvm3 
 
 server_xdr_pure: $(S_OBJSXDR)
 	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -o server_xdr \
@@ -73,11 +73,11 @@ program4_pure: $(OBJS4)
 
 clientPVM_pure: $(C_OBJSPVM) 
 	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -o clientPVM \
-	            $(C_OBJSPVM) $(LIBDIR) -lutil -lpvm3 
+	            $(C_OBJSPVM) $(LIBDIR) -lutil -lutilPVM -lpvm3 
 
 serverPVM_pure: $(S_OBJSPVM) 
 	purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -o serverPVM \
-	         $(S_OBJSPVM) $(LIBDIR) -lutil -lpvm3 
+	         $(S_OBJSPVM) $(LIBDIR) -lutil -lutilPVM -lpvm3 
 
 
 client3: $(C_OBJS3) 
@@ -99,16 +99,16 @@ program4: $(OBJS4)
 	$(CC) $(CFLAGS) -o program4 $(OBJS4) $(LIBDIR) -lthread -lutil
 
 clientPVM: $(C_OBJSPVM) 
-	$(CC) $(CFLAGS) -o clientPVM $(C_OBJSPVM) $(LIBDIR) -lutil -lpvm3 
+	$(CC) $(CFLAGS) -o clientPVM $(C_OBJSPVM) $(LIBDIR) -lutil -lutilPVM -lpvm3 
 
 serverPVM: $(S_OBJSPVM) 
-	$(CC) $(CFLAGS) -o serverPVM $(S_OBJSPVM) $(LIBDIR) -lutil -lpvm3 
+	$(CC) $(CFLAGS) -o serverPVM $(S_OBJSPVM) $(LIBDIR) -lutil -lutilPVM -lpvm3 
 
 server_xdr: $(S_OBJSXDR) 
 	$(CC) $(CFLAGS) -o server_xdr $(S_OBJSXDR) $(LIBDIR) -lutil
 
 xdrc_pvm: $(XDRC_PVM)
-	$(CC) $(CFLAGS) -o xdrc_pvm $(XDRC_PVM) $(LIBDIR) -lutil -lpvm3 
+	$(CC) $(CFLAGS) -o xdrc_pvm $(XDRC_PVM) $(LIBDIR) -lutil -lutilPVM -lpvm3 
 
 clean: 
 	rm *.o *.CLNT.C *.SRVR.C *.h client3 server3 program4 test3.C \
@@ -160,121 +160,38 @@ depend: $(SRCS)
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
-client1.o: /usr/include/unistd.h /usr/include/assert.h test1.h
-client1.o: ../../util/h/rpcUtil.h /usr/include/rpc/types.h
-client1.o: /usr/include/malloc.h /usr/include/sys/types.h
-client1.o: /usr/include/sys/stdtypes.h /usr/include/sys/sysmacros.h
-client1.o: /usr/include/sys/time.h /usr/include/sys/time.h
-client1.o: /usr/include/rpc/xdr.h /usr/include/sys/socket.h
-client1.o: /usr/include/netinet/in.h /usr/include/netdb.h
-client1.o: /usr/include/sys/file.h /usr/include/sys/fcntlcom.h
-client1.o: /usr/include/sys/stat.h
-client2.o: /usr/include/unistd.h /usr/include/assert.h test2.h
-client2.o: ../../util/h/rpcUtil.h /usr/include/rpc/types.h
-client2.o: /usr/include/malloc.h /usr/include/sys/types.h
-client2.o: /usr/include/sys/stdtypes.h /usr/include/sys/sysmacros.h
-client2.o: /usr/include/sys/time.h /usr/include/sys/time.h
-client2.o: /usr/include/rpc/xdr.h /usr/include/sys/socket.h
-client2.o: /usr/include/netinet/in.h /usr/include/netdb.h
-client2.o: /usr/include/sys/file.h /usr/include/sys/fcntlcom.h
-client2.o: /usr/include/sys/stat.h
+client1.o: /usr/include/unistd.h /usr/include/assert.h
+client2.o: /usr/include/unistd.h /usr/include/assert.h
 client3.o: /usr/include/rpc/xdr.h /usr/include/rpc/types.h
 client3.o: /usr/include/malloc.h /usr/include/sys/types.h
 client3.o: /usr/include/sys/stdtypes.h /usr/include/sys/sysmacros.h
 client3.o: /usr/include/sys/time.h /usr/include/sys/time.h
-client3.o: /usr/include/unistd.h /usr/include/assert.h test3.CLNT.h test3.h
-client3.o: ../../util/h/rpcUtil.h /usr/include/sys/socket.h
-client3.o: /usr/include/netinet/in.h /usr/include/netdb.h
-client3.o: /usr/include/sys/file.h /usr/include/sys/fcntlcom.h
-client3.o: /usr/include/sys/stat.h /usr/include/string.h
+client3.o: /usr/include/unistd.h /usr/include/assert.h /usr/include/string.h
 client4.o: /usr/include/rpc/xdr.h /usr/include/rpc/types.h
 client4.o: /usr/include/malloc.h /usr/include/sys/types.h
 client4.o: /usr/include/sys/stdtypes.h /usr/include/sys/sysmacros.h
 client4.o: /usr/include/sys/time.h /usr/include/sys/time.h
-client4.o: /usr/include/unistd.h /usr/include/assert.h test4.CLNT.h test4.h
-client4.o: ../../util/h/rpcUtil.h /usr/include/sys/socket.h
-client4.o: /usr/include/netinet/in.h /usr/include/netdb.h
-client4.o: /usr/include/sys/file.h /usr/include/sys/fcntlcom.h
-client4.o: /usr/include/sys/stat.h
+client4.o: /usr/include/unistd.h /usr/include/assert.h
 server1.o: /usr/include/stdio.h /usr/include/stdlib.h
-server1.o: /usr/include/sys/stdtypes.h test1.h ../../util/h/rpcUtil.h
-server1.o: /usr/include/rpc/types.h /usr/include/malloc.h
-server1.o: /usr/include/sys/types.h /usr/include/sys/sysmacros.h
-server1.o: /usr/include/sys/time.h /usr/include/sys/time.h
-server1.o: /usr/include/rpc/xdr.h /usr/include/sys/socket.h
-server1.o: /usr/include/netinet/in.h /usr/include/netdb.h
-server1.o: /usr/include/unistd.h /usr/include/sys/file.h
-server1.o: /usr/include/sys/fcntlcom.h /usr/include/sys/stat.h
+server1.o: /usr/include/sys/stdtypes.h
 server2.o: /usr/include/stdio.h /usr/include/stdlib.h
-server2.o: /usr/include/sys/stdtypes.h test2.h ../../util/h/rpcUtil.h
-server2.o: /usr/include/rpc/types.h /usr/include/malloc.h
-server2.o: /usr/include/sys/types.h /usr/include/sys/sysmacros.h
-server2.o: /usr/include/sys/time.h /usr/include/sys/time.h
-server2.o: /usr/include/rpc/xdr.h /usr/include/sys/socket.h
-server2.o: /usr/include/netinet/in.h /usr/include/netdb.h
-server2.o: /usr/include/unistd.h /usr/include/sys/file.h
-server2.o: /usr/include/sys/fcntlcom.h /usr/include/sys/stat.h
+server2.o: /usr/include/sys/stdtypes.h
 server3.o: /usr/include/stdio.h /usr/include/stdlib.h
-server3.o: /usr/include/sys/stdtypes.h test3.SRVR.h test3.h
-server3.o: ../../util/h/rpcUtil.h /usr/include/rpc/types.h
-server3.o: /usr/include/malloc.h /usr/include/sys/types.h
-server3.o: /usr/include/sys/sysmacros.h /usr/include/sys/time.h
-server3.o: /usr/include/sys/time.h /usr/include/rpc/xdr.h
-server3.o: /usr/include/sys/socket.h /usr/include/netinet/in.h
-server3.o: /usr/include/netdb.h /usr/include/unistd.h /usr/include/sys/file.h
-server3.o: /usr/include/sys/fcntlcom.h /usr/include/sys/stat.h
-server3.o: /usr/include/string.h
+server3.o: /usr/include/sys/stdtypes.h /usr/include/string.h
 server4.o: /usr/include/stdio.h /usr/include/stdlib.h
-server4.o: /usr/include/sys/stdtypes.h test4.SRVR.h test4.h
-server4.o: ../../util/h/rpcUtil.h /usr/include/rpc/types.h
-server4.o: /usr/include/malloc.h /usr/include/sys/types.h
-server4.o: /usr/include/sys/sysmacros.h /usr/include/sys/time.h
-server4.o: /usr/include/sys/time.h /usr/include/rpc/xdr.h
-server4.o: /usr/include/sys/socket.h /usr/include/netinet/in.h
-server4.o: /usr/include/netdb.h /usr/include/unistd.h /usr/include/sys/file.h
-server4.o: /usr/include/sys/fcntlcom.h /usr/include/sys/stat.h
+server4.o: /usr/include/sys/stdtypes.h
 clientPVM.o: /usr/include/rpc/xdr.h /usr/include/rpc/types.h
 clientPVM.o: /usr/include/malloc.h /usr/include/sys/types.h
 clientPVM.o: /usr/include/sys/stdtypes.h /usr/include/sys/sysmacros.h
 clientPVM.o: /usr/include/sys/time.h /usr/include/sys/time.h
-clientPVM.o: /usr/include/unistd.h /usr/include/assert.h testPVM.CLNT.h
-clientPVM.o: testPVM.h ../../util/h/rpcUtil.h /usr/include/sys/socket.h
-clientPVM.o: /usr/include/netinet/in.h /usr/include/netdb.h
-clientPVM.o: /usr/include/sys/file.h /usr/include/sys/fcntlcom.h
-clientPVM.o: /usr/include/sys/stat.h ../../util/h/rpcUtilPVM.h
-clientPVM.o: /paradyn/packages/pvm3-dyn/include/pvm3.h
+clientPVM.o: /usr/include/unistd.h /usr/include/assert.h
 serverPVM.o: /usr/include/stdio.h /usr/include/stdlib.h
-serverPVM.o: /usr/include/sys/stdtypes.h testPVM.SRVR.h testPVM.h
-serverPVM.o: ../../util/h/rpcUtil.h /usr/include/rpc/types.h
-serverPVM.o: /usr/include/malloc.h /usr/include/sys/types.h
-serverPVM.o: /usr/include/sys/sysmacros.h /usr/include/sys/time.h
-serverPVM.o: /usr/include/sys/time.h /usr/include/rpc/xdr.h
-serverPVM.o: /usr/include/sys/socket.h /usr/include/netinet/in.h
-serverPVM.o: /usr/include/netdb.h /usr/include/unistd.h
-serverPVM.o: /usr/include/sys/file.h /usr/include/sys/fcntlcom.h
-serverPVM.o: /usr/include/sys/stat.h ../../util/h/rpcUtilPVM.h
-serverPVM.o: /paradyn/packages/pvm3-dyn/include/pvm3.h
-xdrc_pvm.o: /usr/include/stdio.h xdr_link.CLNT.h xdr_link.h
-xdrc_pvm.o: ../../util/h/rpcUtil.h /usr/include/rpc/types.h
-xdrc_pvm.o: /usr/include/malloc.h /usr/include/sys/types.h
-xdrc_pvm.o: /usr/include/sys/stdtypes.h /usr/include/sys/sysmacros.h
-xdrc_pvm.o: /usr/include/sys/time.h /usr/include/sys/time.h
-xdrc_pvm.o: /usr/include/rpc/xdr.h /usr/include/sys/socket.h
-xdrc_pvm.o: /usr/include/netinet/in.h /usr/include/netdb.h
-xdrc_pvm.o: /usr/include/unistd.h /usr/include/sys/file.h
-xdrc_pvm.o: /usr/include/sys/fcntlcom.h /usr/include/sys/stat.h
-xdrc_pvm.o: ../../util/h/list.h /usr/include/stdlib.h
+serverPVM.o: /usr/include/sys/stdtypes.h
+xdrc_pvm.o: /usr/include/stdio.h ../../util/h/list.h /usr/include/stdlib.h
+xdrc_pvm.o: /usr/include/sys/stdtypes.h
 xdrc_pvm.o: /paradyn/packages/pvm3-dyn/include/pvm3.h /usr/include/string.h
 xdrc_pvm.o: /usr/include/assert.h
 server_xdr.o: /usr/include/stdio.h /usr/include/stdlib.h
-server_xdr.o: /usr/include/sys/stdtypes.h xdr_link.SRVR.h xdr_link.h
-server_xdr.o: ../../util/h/rpcUtil.h /usr/include/rpc/types.h
-server_xdr.o: /usr/include/malloc.h /usr/include/sys/types.h
-server_xdr.o: /usr/include/sys/sysmacros.h /usr/include/sys/time.h
-server_xdr.o: /usr/include/sys/time.h /usr/include/rpc/xdr.h
-server_xdr.o: /usr/include/sys/socket.h /usr/include/netinet/in.h
-server_xdr.o: /usr/include/netdb.h /usr/include/unistd.h
-server_xdr.o: /usr/include/sys/file.h /usr/include/sys/fcntlcom.h
-server_xdr.o: /usr/include/sys/stat.h ../../util/h/list.h
+server_xdr.o: /usr/include/sys/stdtypes.h ../../util/h/list.h
 server_xdr.o: /usr/include/signal.h /usr/include/sys/signal.h
 server_xdr.o: /usr/include/vm/faultcode.h
