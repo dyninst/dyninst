@@ -65,7 +65,7 @@ unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
     theStruct->thr = thr;
     theStruct->lwp = lwp;
     theStruct->aixHACK = aixHACK;
-    
+ 
     if (thr) {
        int index = thr->get_index();
        rpcThr *rpc_thr = thrs_[index];
@@ -82,7 +82,7 @@ unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
     else {
        postedProcessRPCs_.push_back(theStruct);
     }
-
+    
     // Stick it in the global listing as well
     allPostedRPCs_.push_back(theStruct);
 
@@ -171,10 +171,20 @@ bool rpcMgr::handleSignalIfDueToIRPC() {
        rpcThr *rpcThr = currRPC->rpcthr;
        rpcLWP *rpcLwp = currRPC->rpclwp;
 
-       if(rpcThr)
-          activeFrame = rpcThr->get_thr()->getActiveFrame();
-       else {
+       if(rpcThr) {
+          dyn_thread *cur_dthr = rpcThr->get_thr();
+          // skip comparing against any outstanding rpcs from threads/lwps
+          // that aren't stopped; couldn't be the one if not stopped
+          if(cur_dthr->get_lwp()->status() != stopped) {
+             continue;
+          }
+          activeFrame = cur_dthr->getActiveFrame();
+       } else {
           assert(rpcLwp != NULL);
+          dyn_lwp *cur_dlwp = rpcLwp->get_lwp();
+          if(cur_dlwp->status() != stopped) {
+             continue;
+          }
           activeFrame = rpcLwp->get_lwp()->getActiveFrame();
        }
 
@@ -207,10 +217,11 @@ bool rpcMgr::handleSignalIfDueToIRPC() {
    }
    if (handledTrap) {
       if (runProcess || allRunningRPCs_.size() > 0) {
-         if(process::IndependentLwpControl())
+         if(process::IndependentLwpControl()) {
             lwp_to_cont->continueLWP();
-         else
+         } else {
             proc_->continueProc();
+         }
       }
    }
    
@@ -242,6 +253,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
 
     recursionGuard = true;
 
+
     bool readyProcessRPC = false;
     bool readyLWPRPC = false;
     bool readyThrRPC = false;
@@ -256,7 +268,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
         recursionGuard = false;
         return false;
     }
-    
+
     dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = lwps_.begin();
     while(rpc_iter != lwps_.end()) {
         rpcLWP *cur_rpc_lwp = (*rpc_iter);
@@ -338,10 +350,9 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
         for (unsigned iter = 0; iter < thrs_.size(); iter++) {
             rpcThr *curThr = thrs_[iter];
             if (curThr == NULL) continue;
-            
+
             irpcLaunchState_t thrState = curThr->launchProcIRPC(wasRunning);
             if (thrState == irpcStarted) {
-                proc_->overrideRepresentativeLWP(curThr->get_thr()->get_lwp());
                 processingProcessRPC = true;
                 break;
             }
