@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.90 2003/04/18 21:26:28 zandy Exp $ */
+/* $Id: context.C,v 1.91 2003/04/20 01:00:15 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -705,6 +705,10 @@ void paradyn_forkCallback(process *parentDynProc,
    metricFocusNode::handleFork(parentProc, childProc);
 
    assert(childProc->status() == stopped);
+   childDynProc->registerPostExecCallback(pd_process::paradynPostExecDispatch,
+                                          (void *)childProc);
+   childDynProc->registerPostForkCallback(paradyn_forkCallback,
+                                          (void *)childProc);
    childProc->continueProc();
    // parent process will get continued by unix.C/handleSyscallExit
 }
