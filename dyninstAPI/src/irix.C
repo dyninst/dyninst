@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.21 2000/11/15 22:56:07 bernat Exp $
+// $Id: irix.C,v 1.22 2001/02/23 23:24:57 shergali Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -57,6 +57,8 @@
 #include "dyninstAPI/src/stats.h" // ptrace{Ops,Bytes}
 #include "common/h/pathName.h" // expand_tilde_pathname, exists_executable
 #include "common/h/irixKludges.h" // PDYN_XXX
+#include "common/h/Time.h"
+#include "common/h/timing.h"
 #include <limits.h>       // poll()
 #include <stropts.h>      // poll()
 #include <poll.h>         // poll()
@@ -68,6 +70,9 @@
 #include <stdlib.h>       // getenv()
 #include <termio.h>       // TIOCNOTTY
 #include <sys/timers.h>   // PTIMER macros
+#include <sys/hwperfmacros.h> // r10k_counter macros 
+#include <sys/hwperftypes.h>  // r10k_counter types
+
 
 extern debug_ostream inferiorrpc_cerr;
 extern char *Bool[];
@@ -1849,8 +1854,21 @@ void OS::osDisconnect(void) {
 
 #ifdef SHM_SAMPLING
 rawTime64 process::getRawCpuTime_hw(int lwp_id) {
-  lwp_id = 0;  // to turn off warning for now
-  return 0;
+  rawTime64 ret = 0;
+  hwperf_cntr_t cnts;
+
+  if(ioctl(proc_fd, PIOCGETEVCTRS, (void *)&cnts) < 0) {
+    return previous;
+  }
+  
+  ret = cnts.hwp_evctr[0];
+  if(ret < previous) {
+    logLine("*** time going backwards in paradynd ***\n");
+    ret = previous;
+  }
+  previous = ret;
+
+  return ret;
 }
 
 /* return unit: nsecs */
@@ -1995,7 +2013,53 @@ fileDescriptor *getExecFileDescriptor(string filename,
 }
 
 #ifndef BPATCH_LIBRARY
+
+// check if hardware cpu cycle counter is available
+bool process::isR10kCntrAvail() {
+  char p_file[128];
+  sprintf(p_file, "/proc/%05d", (int)getpid());
+  int pfd = open(p_file, O_RDWR);
+  hwperf_profevctrarg_t* evctr_args = new hwperf_profevctrarg_t;
+  for(int i=0;i < HWPERF_EVENTMAX; ++i)
+  {
+    if(i == 0)
+    {
+      evctr_args->hwp_evctrargs.hwp_evctrl[i].hwperf_creg.hwp_mode = HWPERF_CNTEN_U;
+      evctr_args->hwp_evctrargs.hwp_evctrl[i].hwperf_creg.hwp_ie = 1;
+      evctr_args->hwp_evctrargs.hwp_evctrl[i].hwperf_creg.hwp_ev = i;
+      evctr_args->hwp_ovflw_freq[i] = 0;
+    }
+    else {
+      evctr_args->hwp_evctrargs.hwp_evctrl[i].hwperf_spec = 0;
+      evctr_args->hwp_ovflw_freq[i] = 0;
+    }
+  }
+  evctr_args->hwp_ovflw_sig = 0;
+
+  if(ioctl(pfd, PIOCENEVCTRS, (void *)evctr_args) < 0)
+  {
+    delete evctr_args;
+    close(pfd);
+    return 0;
+  }
+  else
+  {
+    delete evctr_args;
+    if(ioctl(pfd, PIOCRELEVCTRS) < 0)
+    {
+      perror("PIOCRELEVCTRS in isR10kCntrAvail returns error");
+      close(pfd);
+      return 0;
+    }
+    close(pfd);
+    return 1;
+  }
+}
+
 void process::initCpuTimeMgrPlt() {
+ cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_ONE, &process::isR10kCntrAvail,
+			   getCyclesPerSecond(), timeBase::bNone(), 
+			   &process::getRawCpuTime_hw, "DYNINSTgetCPUtime_hw");
   cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
 			   timeUnit::ns(), timeBase::bNone(), 
 			   &process::getRawCpuTime_sw, "DYNINSTgetCPUtime_sw");
