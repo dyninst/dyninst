@@ -16,9 +16,12 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.6  1994/06/07 18:16:29  newhall
-/* support for adding metrics/resources to an existing set
+/* Revision 1.7  1994/08/11 02:19:22  newhall
+/* added call to dataManager routine destroyPerformanceStream
 /*
+ * Revision 1.6  1994/06/07  18:16:29  newhall
+ * support for adding metrics/resources to an existing set
+ *
  * Revision 1.5  1994/06/03  18:22:50  markc
  * Changes to support igen error handling.
  *
@@ -48,6 +51,7 @@
 #define BUFFERSIZE 64 
 #define SUM     0
 #define AVE     1
+#define  VISI_DEFAULT_FOCUS "Whole Program"
 
 ////////////////////////////////////////
 //  for VISIthread local data  

@@ -25,9 +25,12 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.22  1994/08/10 17:20:59  newhall
-/* changed call to chooseMetricsandResources to conform to new UI interface
+/* Revision 1.23  1994/08/11 02:19:23  newhall
+/* added call to dataManager routine destroyPerformanceStream
 /*
+ * Revision 1.22  1994/08/10  17:20:59  newhall
+ * changed call to chooseMetricsandResources to conform to new UI interface
+ *
  * Revision 1.21  1994/08/05  16:04:33  hollings
  * more consistant use of stringHandle vs. char *.
  *
@@ -116,7 +119,6 @@
 #include "../pdMain/paradyn.h"
 #include "dyninstRPC.CLNT.h"
 #include "../DMthread/DMinternals.h"
-#define  VISI_DEFAULT_FOCUS "Root Nodes"
 #define  ERROR_MSG(s1, s2) \
 	 uiMgr->showError(s1,s2); \
 	 printf("error# %d: %s\n",s1,s2); 
@@ -862,6 +864,9 @@ void *VISIthreadmain(void *vargs){
       ERROR_MSG(16,"remove() in VISIthreadmain"); 
     }
     */
+  }
+  if(!(globals->dmp->destroyPerformanceStream(context,globals->perStream))){
+    ERROR_MSG(16,"remove() in VISIthreadmain");
   }
 
   // notify VM 
