@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.18 2003/08/05 21:49:22 hollings Exp $
+// $Id: arch-x86.C,v 1.19 2004/03/11 05:29:17 lharris Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -1086,18 +1086,22 @@ Address get_target(const unsigned char *instr, unsigned type, unsigned size,
   return (Address)(addr + size + disp);
 }
 
+const unsigned char*
+skip_headers(const unsigned char* addr, bool& isWordAddr,bool& isWordOp);
 
 // get the displacement of a jump or call
-
 int displacement(const unsigned char *instr, unsigned type) {
 
   int disp = 0;
-
+  bool temp1, temp2;
+  //skip prefix
+  instr = skip_headers( instr, temp1, temp2 );
+  
   if (type & IS_JUMP) {
     if (type & REL_B) {
       disp = *(const char *)(instr+1);
     } else if (type & REL_W) {
-      disp = *(const short *)(instr+2); // skip prefix and opcode
+      disp = *(const short *)(instr+1); // skip opcode
     } else if (type & REL_D) {
       disp = *(const int *)(instr+1);
     }
@@ -1105,13 +1109,13 @@ int displacement(const unsigned char *instr, unsigned type) {
     if (type & REL_B) {
       disp = *(const char *)(instr+1);
     } else if (type & REL_W) {
-      disp = *(const short *)(instr+3); // skip prefix and two byte opcode
+      disp = *(const short *)(instr+2); // skip two byte opcode
     } else if (type & REL_D) {
       disp = *(const int *)(instr+2);   // skip two byte opcode
     }
   } else if (type & IS_CALL) {
     if (type & REL_W) {
-      disp = *(const short *)(instr+2); // skip prefix and opcode
+      disp = *(const short *)(instr+1); // skip opcode
     } else if (type & REL_D) {
       disp = *(const int *)(instr+1);
     }
