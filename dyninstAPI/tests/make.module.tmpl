@@ -3,10 +3,10 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.8 1999/05/03 20:03:31 zandy Exp $
+# $Id: make.module.tmpl,v 1.9 1999/05/29 23:47:57 wylie Exp $
 #
 
-SUITE_NAME	= DynInst
+SUITE_NAME	= Dyninst
 RELEASE_NUM	= 1.2
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
@@ -29,7 +29,10 @@ VPATH	     +=
 CXXFLAGS     += -I../../h
 CFLAGS       += -I../../h
 
-LIBS         += -ldyninstAPI -lpdutil
+LIBS         += -ldyninstAPI
+ifndef USES_LIBDYNINST_SO
+LIBS         += -lpdutil
+endif
 SYSLIBS      += -liberty
 
 all:
