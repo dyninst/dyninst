@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.4 2001/02/26 21:34:38 bernat Exp $
+// $Id: Object-xcoff.C,v 1.5 2001/03/01 22:43:22 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -691,21 +691,6 @@ void Object::parse_aout(int fd, int offset)
        // Problem: libc and others show up as file names. So if the
        // file being loaded is a .a (it's a hack, remember?) use the
        // .a as the modName instead of the symbol we just found.
-	 /*
-	   ((file_.suffixed_by("libc.a")) ||
-	   (file_.suffixed_by("libcrypt.a")) ||
-	   (file_.suffixed_by("libm.a")) ||
-	   // MPI libraries
-	   (file_.suffixed_by("libppe.a")) ||
-	   (file_.suffixed_by("libmpci.a")) ||
-	   (file_.suffixed_by("libmpi.a")) ||
-	   (file_.suffixed_by("libvtd.a")) ||
-	   // Paradyn/Dyninst runtime libs
-	   (file_.suffixed_by("libdyninstAPI_RT.so.1")) ||
-	   (file_.suffixed_by("libdyninstRT.so.1")) ||
-	   // catch .so's
-	   (file_.suffixed_by(".so")))
-	 */	 
        if (file_.suffixed_by(".a") ||
 	   file_.suffixed_by(".so") ||
 	   file_.suffixed_by(".so.1"))
@@ -736,11 +721,12 @@ void Object::parse_aout(int fd, int offset)
      // text size is aout.tsize
      // We want, oh, say, a 4M heap to start with. We could "allocate" more
      // on the fly, actually.
-     string name = string("DYNINSTstaticHeap_4M_textHeap_grabbed");
-     string modName = string("DYNINSTheap");
      Address heapAddr = code_off_ + code_len_;
      // Word-align the heap
      heapAddr += (sizeof(instruction)) - (heapAddr % sizeof(instruction));
+     string name = string("DYNINSTstaticHeap_4M_textHeap_");
+     name += heapAddr;
+     string modName = string("DYNINSTheap");
      Symbol sym(name, modName, Symbol::PDST_OBJECT, 
 		Symbol::SL_UNKNOWN, heapAddr,
 		false, 4*1024*1024);
@@ -754,6 +740,27 @@ void Object::parse_aout(int fd, int offset)
 		 32*1024);
      symbols_[name] = sym2;
 
+   }
+   else {
+     // We're dealing with shared libraries. Now, from what I've seen,
+     // we can scavenge the space at the end of the library to use as
+     // tramp space. Is this reminding anyone of Kerninst yet? Hmmm?
+     string name = string("DYNINSTstaticHeap_");
+     //4M_textHeap_");
+     // Need to add size of space (in kilobytes)
+     Address heapAddr = code_off_ + code_len_;
+     // Word-align the heap
+     heapAddr += (sizeof(instruction)) - (heapAddr % sizeof(instruction));
+     Address length = 0x1000 - ((heapAddr) % 0x1000);
+
+     name += length;
+     name += "_textHeap_";
+     name += heapAddr; // unique identifier
+     string modName = string("DYNINSTheap");
+     Symbol sym(name, modName, Symbol::PDST_OBJECT, 
+		Symbol::SL_UNKNOWN, heapAddr,
+		false, 4*1024*1024);
+     symbols_[name] = sym;
    }
    toc_offset_ = toc_offset;
       

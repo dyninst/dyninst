@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.75 2001/02/26 21:34:38 bernat Exp $
+// $Id: aix.C,v 1.76 2001/03/01 22:43:21 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1747,7 +1747,8 @@ static const Address branch_range = 0x01fffffc;
 static const Address lowest_addr = 0x10000000;
 // Looks like we can't touch the shared memory segment. I'm guessing also
 // that 0xe... (kernel space) would be a bad idea, as would 0xf... (shared data)
-static const Address highest_addr = 0xd0000000;
+static const Address highest_addr = 0xe0000000;
+// However, we can scavenge some space in with the shared libraries.
 
 void inferiorMallocConstraints(Address near, Address &lo, 
 			       Address &hi, inferiorHeapType type)

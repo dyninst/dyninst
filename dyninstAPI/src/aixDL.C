@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.3 2001/02/26 21:34:39 bernat Exp $
+// $Id: aixDL.C,v 1.4 2001/03/01 22:43:22 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -119,9 +119,11 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
       // If this is so, the file descriptor has been set to -1
       // This can be a problem, since we expect to find symbol table
       // information from the file.
-      if (fstat (ptr->ldinfo_fd, &ld_stat) < 0)
+      if (fstat (ptr->ldinfo_fd, &ld_stat) < 0) {
 	cerr << "File " << ptr->ldinfo_filename << " has disappeared!" << endl;
-      
+	perror("getSharedObjects");
+      }
+
       string obj_name = string(ptr->ldinfo_filename);
       string member = string(ptr->ldinfo_filename + 
 			     (strlen(ptr->ldinfo_filename) + 1));
