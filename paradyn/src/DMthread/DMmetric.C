@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.36 2001/08/23 14:43:41 schendel Exp $
+// $Id: DMmetric.C,v 1.37 2001/08/30 01:58:51 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -757,7 +757,7 @@ void metricInstance::doAggregation() {
   // components have sent data for this interval)
 
   struct sampleInterval aggSample;
-  while(aggregator.aggregate(&aggSample, getCurrentTime())) {
+  while(aggregator.aggregate(&aggSample)) {
     if(getInitialActualValue().isNaN()) {
       setInitialActualValue(aggregator.getInitialActualValue());
     }
