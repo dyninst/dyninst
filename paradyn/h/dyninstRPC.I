@@ -473,7 +473,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 44;
+    $version 45;
 
     //
     // Define a program to run. 
@@ -579,14 +579,14 @@ $remote dynRPC {
     // resource_name    - name of resource, divided into parts
     // abstraction      - abstraction to which it belongs     
     // type		- the MDL type for this resource (MDL_T_STRING, etc.)
-    $upcall $async void resourceInfoCallback(int program, 
+    $virtual $upcall $async void resourceInfoCallback(int program, 
 					     vector<string> resource_name,
 					     string abstraction, u_int type);
 
     // The id that will be used to represent this resource
     $async void resourceInfoResponse(vector<string> resource_name, u_int resource_id);
 
-    $upcall $async void resourceBatchMode(bool);
+    $virtual $upcall $async void resourceBatchMode(bool);
 
     //
     // Handler that gets called when new mapping data is collected.
@@ -722,6 +722,8 @@ $remote dynRPC {
     $async void send_metrics(vector<mdl_metric*> *);
     $async void send_constraints(vector<mdl_constraint*>*);
     $async void send_stmts(vector<mdl_stmt*> *);
+    $async void send_libs(vector<string>*);
+    $async void send_no_libs();
 
     // get the current wall clock time of the daemon to adjust for clock differences
     double getTime();
