@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.60 2002/08/12 04:21:18 schendel Exp $
+// $Id: pdwinnt.C,v 1.61 2002/08/21 19:42:01 schendel Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1676,9 +1676,10 @@ int process::waitProcs(int *status) {
 			}
 
 			int numThreads = p->maxNumberOfThreads();
-			
-			int sharedOffset = (int) (p->initSharedMetaData() - (Address) p->getSharedMemMgr()->getBaseAddrInDaemon());
-			
+
+			Address offsetOfShMetaOffsetData = 
+			   p->initSharedMetaData();
+
 			//printf(" SETTING VALUES IN PARADYN LIB %d %d %d\n",var1, var2, var3);//PRINTF
 			//fflush(stdout);
                     if(!setVariable(p, "libdyninstRT_DLL_localtheKey", shmKey)){
@@ -1693,7 +1694,8 @@ int process::waitProcs(int *status) {
 		    if(!setVariable(p, "libdyninstRT_DLL_localmaxThreads", numThreads)) {
 		      assert(0);
 		    }
-		    if(!setVariable(p, "libdyninstRT_DLL_localoffset", sharedOffset)) {
+		    if(!setVariable(p, "libdyninstRT_DLL_localoffset", 
+				    offsetOfShMetaOffsetData)) {
 		      assert(0);
 		    }
                 }
