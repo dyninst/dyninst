@@ -429,7 +429,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 49;
+    $version 50;
 
     //
     // Define a program to run. 
@@ -439,10 +439,11 @@ $remote dynRPC {
 
     //
     // Connect up with a running program (not possible on all platforms).
-    // dir + cmd are used to get a path to the executable, which we use
-    // only to read the symbol table.
+    // 'path' gives the full path name to the executable, used only to read
+    // the symbol table.
+    // values for 'afterAttach': 1 --> pause, 2 --> run, 0 --> leave as is
     //
-    bool attach(string dir, string cmd, int pid);
+    bool attach(string path, int pid, int afterAttach);
 
     //
     // Start an application running (This starts the actual execution).
@@ -477,15 +478,19 @@ $remote dynRPC {
     bool detachProgram(int program, bool pause);
 
     //
-    // Gets called when a new application is started that is not visible to
-    //   paradyn (e.g. pvm_spawn, or when a process forks, or when a process execs.
-    //   In the latter case, pass calledFromExec=true to let paradyn know that
-    //   in starting this new process, another one was stomped on).
+    // Called by paradynd when a new process starts up.  Specifically, paradynd
+    // calls it when it detects that the new program has finished running
+    // its DYNINST().
+    //
+    // If the state of the appl as a whole is 'running' then we (paradyn) will
+    // issue an igen call to continue this new process; otherwise, we'll leave it
+    // paused.
     //
     $upcall $async void newProgramCallbackFunc( int pid, 
 						vector<string> argv, 
 						string machine,
-	                                        bool calledFromExec);
+	                                        bool calledFromExec,
+						bool wantToInitiallyRun);
     //
     // Message display with "error" visual characteristics
     // and lookup in error database for explanation. This function
@@ -494,21 +499,6 @@ $remote dynRPC {
     $upcall $async void showErrorCallback (int errCode,
 					   string errString,
 				           string hostName);
-
-    //
-    // Handler that gets called when new sample data is delivered.
-    //
-    //   p - a program from addProgram
-    //   mi - a metricInstance returned by enableDataCollection
-    //   startTimeStamp - starting time of the interval covered by this sample.
-    //   endTimeStamp - ending time of the interval covered by this sample.
-    //   value - the value of this sample
-    //
-//   $virtual $upcall $async void sampleDataCallbackFunc(int program, 
-//						       int mi,
-//						       double startTimeStamp, 
-//						       double endTimeStamp, 
-//						       double value);
 
    // batch the samples (paradynd-->paradyn) to get better performance
    // the functionality is essentially the same as the 
