@@ -2,7 +2,11 @@
 /*
  * 
  * $Log: aggregateSample.C,v $
- * Revision 1.6  1994/06/14 15:36:49  markc
+ * Revision 1.7  1994/07/02 01:47:31  markc
+ * Rename aggregation operator defines.
+ * Rename aggregation operator defines.
+ *
+ * Revision 1.6  1994/06/14  15:36:49  markc
  * Added support for different types of aggregation (max, min, sum, avg).
  * Previously, only summation had been done.
  *
@@ -59,8 +63,8 @@ struct sampleInterval sampleInfo::newValue(List<sampleInfo *> parts,
     sampleValue aggregateVal;
     int len=0;
 
-    assert((aggOp == Sum) || (aggOp == Avg) ||
-	   (aggOp == Min) || (aggOp == Max));
+    assert((aggOp == aggSum) || (aggOp == aggAvg) ||
+	   (aggOp == aggMin) || (aggOp == aggMax));
 
     if (parts.count() <= 1) {
        // not an aggregate.
@@ -115,18 +119,18 @@ struct sampleInterval sampleInfo::newValue(List<sampleInfo *> parts,
 		// each list entry comes from a separate reporter
 		switch (aggOp)
 		  {
-		  case Sum:
-		  case Avg:
+		  case aggSum:
+		  case aggAvg:
 		    aggregateVal += component;
 		    break;
-		  case Min:
+		  case aggMin:
 		    if (first) {
 		      aggregateVal = component;
 		      first = 0;
 		    } else if (component < aggregateVal)
 		      aggregateVal = component;
 		    break;
-		  case Max:
+		  case aggMax:
 		    if (component > aggregateVal)
 		      aggregateVal = component;
 		    break;
@@ -137,7 +141,7 @@ struct sampleInterval sampleInfo::newValue(List<sampleInfo *> parts,
 	      }
 
 	    // len is the number of samples on the list
-	    if (aggOp == Avg)
+	    if (aggOp == aggAvg)
 	      aggregateVal /= len;
 
 	    ret.valid = TRUE;
