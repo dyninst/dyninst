@@ -21,6 +21,33 @@
 #pragma implementation "visi.xdr.h"
 #include "visi.xdr.h"
 
+/*
+ * Handy ready-to-use templates for the templates
+
+
+  ****** dictionary_hash (no iter) *********
+template class pair<>;
+template class dictionary<>;
+template class vector< pair<> >;
+template class vector< dictionary_hash<>::hash_pair>;
+template class vector< vector< dictionary_hash<>::hash_pair> >;
+template class dictionary_hash<>;
+
+  ****** dictionary_hash (iter) ************
+template class dictionary<>;
+template class pair<>;
+template class vector< pair<> >; 
+template class dictionary_hash<>;
+template class dictionary_hash_iter<>;
+template class vector< dictionary_hash<> :: hash_pair >;
+template class vector< vector< dictionary_hash<> :: hash_pair > >;
+
+  ******* priority queue ********************
+template class PriorityQueue<>; 
+template ostream &operator<<(ostream &, PriorityQueue<> &);
+template class vector<PriorityQueue<>::pair>;
+
+*/
 
 /* *********************************   
  * DMthread stuff
@@ -122,44 +149,96 @@ template class ListItem<sampleInfo*>;
 
 template class vector<T_dyninstRPC::batch_buffer_entry>;
 template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *) ;
+
 /* ********************************
  * PCthread stuff
  */
-#include "paradyn/src/PCthread/PCshg.h"
-#include "paradyn/src/PCthread/PCevalTest.h"
-#include "paradyn/src/PCthread/PCglobals.h"
-#include "paradyn/src/PCthread/PCauto.h"
-#include "paradyn/src/PCthread/PCwhen.h"
-#include "paradyn/src/PCthread/PCwhere.h"
+
+#include "paradyn/src/PCthread/PCintern.h"
+
+#include "paradyn/src/PCthread/PCsearch.h"
+#include "paradyn/src/PCthread/PCfilter.h"
+#include "paradyn/src/PCthread/PCmetric.h"
+#include "paradyn/src/PCthread/PCmetricInst.h"
 #include "paradyn/src/PCthread/PCwhy.h"
+#include "paradyn/src/PCthread/PCshg.h"
+#include "paradyn/src/PCthread/PCdata.h"
 
-template class List<focus *>;
-template class ListItem<focus *>;
-template class List<focusList *>;
-template class ListItem<focusList *>;
-template class List<metricInstance *>;
-template class ListItem<metricInstance *>;
+template class vector<dataSubscriber*>;
+template class vector<PCsearch*>;
+template class vector<filter*>;
+template class vector<PCMetInfo*>;
+template class vector<PCmetric*>;
+template class vector<PCMRec>;
+template class vector<PCMRec*>;
+template class vector<inPort*>;
+template class vector<searchHistoryNode*>;
+template class vector<hypothesis*>;
+template class vector<PCmetricInst*>;
+template class pair<PCmetricInst*, filter*>;
 
-template class HTable<PCmetric *>;
-template class List<PCmetric *>;
-template class ListItem<PCmetric *>;
-template class HTable<datum *>;
-template class HTable<focus *>;
+template class pair<unsigned, PCsearch*>;
+template class dictionary<unsigned, PCsearch*>;
+template class vector< pair<unsigned, PCsearch*> >;
+template class vector<dictionary_hash<unsigned, PCsearch*>::hash_pair>;
+template class vector< vector< dictionary_hash< unsigned, PCsearch*>::hash_pair> >;
+template class dictionary_hash<unsigned, PCsearch*>;
 
-template class List<datum *>;
-template class ListItem<datum *>;
-template class List<hint *>;
-template class ListItem<hint *>;
-template class List<hypothesis *>;
-template class ListItem<hypothesis *>;
-template class List<searchHistoryNode *>;
-template class ListItem<searchHistoryNode *>;
-template class List<test *>;
-template class ListItem<test *>;
-template class List<testResult *>;
-template class ListItem<testResult *>;
-template class List<timeInterval *>;
-template class ListItem<timeInterval *>;
+#include "util/src/PriorityQueue.C"
+template class PriorityQueue<unsigned, searchHistoryNode*>; 
+template ostream &operator<<(ostream &, PriorityQueue<unsigned, searchHistoryNode*> &);
+template class vector<PriorityQueue<unsigned, searchHistoryNode*>::pair>;
+
+template class pair<unsigned, filter*>;
+template class dictionary<unsigned, filter*>;
+template class vector< pair< unsigned, filter*> >;
+template class vector<dictionary_hash<unsigned, filter*>::hash_pair>;
+template class vector< vector< dictionary_hash<unsigned, filter*>::hash_pair> >;
+template class dictionary_hash<unsigned, filter*>;
+
+template class pair<unsigned, searchHistoryNode*>;
+template class dictionary<unsigned, searchHistoryNode*>;
+template class vector< pair<unsigned, searchHistoryNode*> >;
+template class vector< dictionary_hash<unsigned, searchHistoryNode*>::hash_pair>;
+template class vector< vector< dictionary_hash<unsigned, searchHistoryNode*>::hash_pair> >;
+template class dictionary_hash<unsigned, searchHistoryNode*>;
+
+template class pair< metricHandle, dictionary_hash< unsigned, filter*>* >;
+template class vector< dictionary_hash< unsigned, filter*>* >;
+template class dictionary<metricHandle, dictionary_hash<unsigned, filter*>* >;
+template class vector< pair<metricHandle, dictionary_hash<unsigned, filter*>* > >;
+template class vector< dictionary_hash< metricHandle, dictionary_hash<unsigned, filter*>* >::hash_pair>;
+template class vector< vector< dictionary_hash<metricHandle, dictionary_hash<unsigned, filter*>*>::hash_pair> >;
+template class dictionary_hash<metricHandle, dictionary_hash<unsigned, filter*>* >; 
+
+template class pair<string, PCmetric*>;
+template class dictionary<string, PCmetric*>;
+template class vector< pair<string, PCmetric*> >;
+template class vector< dictionary_hash<string, PCmetric*>::hash_pair>;
+template class vector< vector< dictionary_hash<string, PCmetric*>::hash_pair> >;
+template class dictionary_hash<string, PCmetric*>;
+
+template class pair<unsigned, PCmetricInst*>;
+template class dictionary<unsigned, PCmetricInst*>;
+template class vector< pair<unsigned, PCmetricInst*> >;
+template class vector< dictionary_hash<unsigned, PCmetricInst*>::hash_pair>;
+template class vector< vector< dictionary_hash<unsigned, PCmetricInst*>::hash_pair> >;
+template class dictionary_hash<unsigned, PCmetricInst*>;
+
+template class pair<string, hypothesis*>;
+template class dictionary<string, hypothesis*>;
+template class vector< pair< string, hypothesis*> >;
+template class vector< dictionary_hash<string, hypothesis*>::hash_pair>;
+template class vector< vector< dictionary_hash<string, hypothesis*>::hash_pair> >;
+template class dictionary_hash<string, hypothesis*>;
+
+template class pair<focus, vector<searchHistoryNode*>*>;
+template class vector<vector<searchHistoryNode*>*>;
+template class dictionary<focus, vector<searchHistoryNode*>*>;
+template class vector< pair<focus, vector<searchHistoryNode*>*> >;
+template class vector< dictionary_hash<focus, vector<searchHistoryNode*>*>::hash_pair>;
+template class vector< vector< dictionary_hash<focus, vector<searchHistoryNode*>*>::hash_pair> >;
+template class dictionary_hash<focus, vector<searchHistoryNode*>*>;
 
 
 /* ************************************
