@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.28 1996/05/15 18:32:45 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.29 1996/05/16 15:03:03 naim Exp $";
 #endif
 
 
@@ -15,7 +15,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.28  1996/05/15 18:32:45  naim
+ * Revision 1.29  1996/05/16 15:03:03  naim
+ * Checking that instInstance pointer is not NULL - naim
+ *
+ * Revision 1.28  1996/05/15  18:32:45  naim
  * Fixing bug in inferiorMalloc and adding some debugging information - naim
  *
  * Revision 1.27  1996/05/10  22:36:31  naim
@@ -468,6 +471,11 @@ void deleteInst(instInstance *old, vector<unsigned> pointsToCheck)
     instInstance *left;
     instInstance *right;
     instInstance *othersAtPoint;
+
+    if (!old) {
+      logLine("Internal error in inst.C: instInstance pointer \"old\" is NULL\n");
+      return;
+    }
 
     /* check if there are other inst points at this location. */
     othersAtPoint = NULL;
