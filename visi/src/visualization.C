@@ -14,10 +14,13 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.13  1994/08/03 20:49:12  newhall
-/* removed code for interface routines NewMetricsResources and Enabled
-/* changed AddMetricsResources to set grid cell's enabled flag
+/* Revision 1.14  1994/08/11 02:52:11  newhall
+/* removed calls to grid cell Deleted member functions
 /*
+ * Revision 1.13  1994/08/03  20:49:12  newhall
+ * removed code for interface routines NewMetricsResources and Enabled
+ * changed AddMetricsResources to set grid cell's enabled flag
+ *
  * Revision 1.12  1994/07/30  03:27:27  newhall
  * added visi interface functions Enabled and BulkDataTransfer
  *
@@ -59,6 +62,7 @@
 /*
 #define DEBUG
 */
+
 
 visi_DataGrid  dataGrid;
 visi_MRList    metricList;
@@ -175,9 +179,8 @@ void StopMetRes(int metricIndex,
       && (metricIndex >= 0)
       && (resourceIndex >= 0)
       && (resourceIndex <dataGrid.NumResources())){
-    dataGrid[metricIndex][resourceIndex].SetDeleted(); 
-    dataGrid[metricIndex][resourceIndex].Invalidate();
     dataGrid[metricIndex][resourceIndex].ClearEnabled();
+    dataGrid[metricIndex][resourceIndex].Invalidate();
     vp->StopMetricResource(dataGrid.MetricId(metricIndex),
 			   dataGrid.ResourceId(resourceIndex));
   }
@@ -244,9 +247,9 @@ int flag = 0;
     if((j<noResources) && (metric < noMetrics)){
 
 #ifdef DEBUG
-       if((!dataGrid[metric][j].Valid()) || (dataGrid[metric][j].Deleted())){
-         fprintf(stderr,"datagrid[%d][%d]: deleted %d valid %d userdata %d\n",
-	    metric,j,dataGrid[metric][j].Deleted(),dataGrid[metric][j].Valid(),
+       if((!dataGrid[metric][j].Valid()) && (dataGrid[metric][j].Enabled())){
+         fprintf(stderr,"datagrid[%d][%d]: enabled %d valid %d userdata %d\n",
+	    metric,j,dataGrid[metric][j].Enabled(),dataGrid[metric][j].Valid(),
 	    (int)dataGrid[metric][j].userdata);
 	 flag = 1;
        }
@@ -256,8 +259,8 @@ int flag = 0;
 		         (float)data.data[i].data);
 #ifdef DEBUG
     if(flag){
-      fprintf(stderr,"datag[%d][%d]:deleted %d valid %d userdata %d fvb = %d\n",
-	    metric,j,dataGrid[metric][j].Deleted(),dataGrid[metric][j].Valid(),
+      fprintf(stderr,"datag[%d][%d]:enabled %d valid %d userdata %d fvb = %d\n",
+	    metric,j,dataGrid[metric][j].Enabled(),dataGrid[metric][j].Valid(),
 	    (int)dataGrid[metric][j].userdata,
 	    dataGrid[metric][j].FirstValidBucket());
       flag = 0;
@@ -337,6 +340,7 @@ int ok;
       (j<dataGrid.NumResources())
       &&(r!=dataGrid.ResourceId(j)); j++) ;
 
+  dataGrid[i][j].ClearEnabled();
   ok = dataGrid.Invalidate(i,j);
 
   //call callback routine assoc. w/event INVALIDMETRICSRESOURCES 
@@ -436,9 +440,6 @@ void visualization::AddMetricsResources(metricType_Array metrics,
     // add new metrics to dataGrid
     if(numMet > 0)
       dataGrid.AddNewMetrics(numMet,mets);
-
-    // clear deleted for all existing grid cell elements
-    dataGrid.ClearDeleted();
 
   }
 

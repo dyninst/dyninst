@@ -14,11 +14,14 @@
  *
  */
 /* $Log: datagrid.C,v $
-/* Revision 1.11  1994/07/30 03:25:35  newhall
-/* added enabled member to gridcell to indicate that the metric associated
-/* w/ this cell has been enabled and data will arrive for it eventually
-/* updated member functions affected by this addition
+/* Revision 1.12  1994/08/11 02:52:09  newhall
+/* removed calls to grid cell Deleted member functions
 /*
+ * Revision 1.11  1994/07/30  03:25:35  newhall
+ * added enabled member to gridcell to indicate that the metric associated
+ * w/ this cell has been enabled and data will arrive for it eventually
+ * updated member functions affected by this addition
+ *
  * Revision 1.10  1994/07/20  22:17:50  newhall
  * added FirstValidBucket method function to visi_GridCellHisto class
  *
@@ -127,7 +130,6 @@ visi_GridCellHisto::visi_GridCellHisto(int numElements){
      value[i] = ERROR;
    valid      = 1;
  }
- deleted = 0;
  enabled = 0;
  size       = numElements;
  lastBucketFilled = -1;
@@ -201,7 +203,6 @@ visi_GridCellHisto *temp;
 				  temp[i].LastBucketFilled(),
 				  temp[i].userdata,
 				  temp[i].Valid(),
-				  temp[i].Deleted(),
 				  temp[i].Enabled()) != OK){
 	 return(ERROR_CREATEGRID);
        }
