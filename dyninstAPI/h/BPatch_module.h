@@ -95,21 +95,20 @@ public:
 
     BPatch_Vector<BPatch_function *> *getProcedures();
     BPatch_Vector<BPatch_function *> *findFunction(const char *name,
-						   BPatch_Vector<BPatch_function *> &funcs,
+						   BPatch_Vector<BPatch_function *> & funcs,
 						   bool notify_on_failure=true,
 						   bool regex_case_sensitive=true);
 
+
     BPatch_function *findFunctionByMangled(const char * mangled_name);
     BPatch_Vector<BPatch_function *> *findUninstrumentableFunction(const char *name,
-								  BPatch_Vector<BPatch_function *> &funcs);
+								  BPatch_Vector<BPatch_function *> & funcs);
 
     void dumpMangled(char * prefix);
-    // parse stab stuff when needed
-    void parseTypes(); // Warning -- parseTypes function body changes with PARSE_ALL_AT_ONCE
+    void parseTypes();
 
 #ifndef PARSE_ALL_AT_ONCE
-    void parseFileLineInfo();  // parses line information
-    // this function assumes that parseTypes has already been called.
+    void parseFileLineInfo();
 #endif
 
     bool isSharedLib() const;
@@ -118,7 +117,7 @@ public:
 
     char *parseStabStringSymbol(int line, char *stabstr, void *stabptr);
 
-//function to get addresses for a line of the module
+    //function to get addresses for a line of the module
     bool getLineToAddr(unsigned short lineNo,
 		       BPatch_Vector<unsigned long>& buffer,
 		       bool exactMatch = true);
@@ -136,6 +135,11 @@ public:
 #endif
 
 private:
+
+    // In particular, we understand the type information
+    // in both DWARF and STABS format.
+    void parseStabTypes();
+    void parseDwarfTypes();
 
 };
 
