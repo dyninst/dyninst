@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.319 2002/05/02 21:28:45 schendel Exp $
+// $Id: process.C,v 1.320 2002/05/04 21:47:16 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4912,7 +4912,14 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
      return 0;
 }
 
-
+pdThread *process::getThread(unsigned tid) {
+  pdThread *foundThr = NULL;
+  for(unsigned i=0; i<threads.size(); i++) {
+    if(threads[i]->get_tid() == tid) 
+      foundThr = threads[i];
+  }
+  return foundThr;
+}
 
 bool process::continueProc() {
   if (status_ == exited) return false;
