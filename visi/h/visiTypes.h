@@ -16,10 +16,12 @@
  *
  */
 /* $Log: visiTypes.h,v $
-/* Revision 1.5  1994/08/03 20:47:46  newhall
-/* removed event type NEWMETRICSRESOURCES
-/* CVS ----------------------------------------------------------------------
+/* Revision 1.6  1994/08/03 20:57:03  newhall
+/* *** empty log message ***
 /*
+ * Revision 1.5  1994/08/03  20:47:46  newhall
+ * removed event type NEWMETRICSRESOURCES
+ *
  * Revision 1.4  1994/07/30  03:26:56  newhall
  * added new msgTag type ENABLED
  *
