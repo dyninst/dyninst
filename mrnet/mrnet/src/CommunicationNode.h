@@ -14,7 +14,7 @@ namespace MRN
 {
 
 enum ProtocolTags {
-    PROT_NEW_SUBTREE = MRN::FIRST_CTL_TAG,
+    PROT_NEW_SUBTREE = FIRST_CTL_TAG,
     PROT_DEL_SUBTREE,
     PROT_RPT_SUBTREE,
     PROT_NEW_APPLICATION,
@@ -37,6 +37,8 @@ class CommunicationNode {
 #endif // READY
     
  public:
+
+    ~CommunicationNode(){}
 #if READY
     CommunicationNode( std::string & _hostname, Port _port,
                        Rank _rank = UnknownRank );
@@ -51,14 +53,14 @@ class CommunicationNode {
 #endif // READY
 };
 
-inline std::string CommunicationNode::get_HostName() const
-{
-    return hostname;
-}
-
 inline Port CommunicationNode::get_Port() const
 {
     return port;
+}
+
+inline std::string CommunicationNode::get_HostName() const
+{
+    return hostname;
 }
 
 #if READY

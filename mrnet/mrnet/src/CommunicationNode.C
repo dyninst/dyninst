@@ -13,15 +13,14 @@ namespace MRN
 /*  CommunicationNode CLASS METHOD DEFINITIONS            */
 /*===========================================================*/
 #if READY
-CommunicationNode::CommunicationNode(std::string &_h, Port _p,
-                                           Rank _rank)
-  : port(_p), rank(_rank)
+CommunicationNode::CommunicationNode(std::string &_h, Port _p, Rank _rank)
+    : port(_p), rank(_rank)
 {
     getNetworkName(hostname, _h);
 }
 #else
 CommunicationNode::CommunicationNode(std::string &_h, Port _p )
-  : port(_p)
+    : port(_p)
 {
     getNetworkName(hostname, _h);
 }
