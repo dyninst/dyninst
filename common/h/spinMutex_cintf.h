@@ -50,7 +50,7 @@
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
 #include "spinMutex_sparc.h"
-#elif defined(i386_unknown_solaris2_5)
+#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
 #include "spinMutex_x86.h"
 #else
 inline int spinMutex_tryToGrab(volatile unsigned char*x) {return 1;}
