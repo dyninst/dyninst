@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.73 2005/02/25 07:04:46 jaw Exp $
+// $Id: osf.C,v 1.74 2005/03/01 23:07:59 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -542,32 +542,38 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
     return foundEvent;
 } 
 
+Frame dyn_thread::getActiveFrameMT() {
+	return Frame();
+}
+
 Frame Frame::getCallerFrame()
 {
-  Frame ret;
   Address values[2];
   gregset_t theIntRegs;
   int_function *currFunc;
   if (fp_ == 0) return Frame();
-  ret.proc_ = proc_;
+
+  Address newPC=0;
+  Address newFP=0;
+  Address newSP=0;
+  Address newpcAddr=0;
 
   if (uppermost_) {
       int proc_fd = getProc()->getRepresentativeLWP()->get_fd();
       if (ioctl(proc_fd, PIOCGREG, &theIntRegs) != -1) {
-          ret.pc_ = theIntRegs.regs[PC_REGNUM];  
-
-          currFunc = getProc()->findFuncByAddr(ret.pc_);
+	newPC = theIntRegs.regs[PC_REGNUM];  
+	if (newPC) {
+          currFunc = getProc()->findFuncByAddr(newPC);
           if (currFunc && currFunc->frame_size) {
-              ret.fp_ = theIntRegs.regs[SP_REGNUM] + currFunc->frame_size;  
-              ret.sp_ = theIntRegs.regs[SP_REGNUM];
-              //bperr(" %s fp=%lx\n",currFunc->prettyName().c_str(), ret.fp_);
+	    newFP = theIntRegs.regs[SP_REGNUM] + currFunc->frame_size;  
+	    newSP = theIntRegs.regs[SP_REGNUM];
+	    //bperr(" %s fp=%lx\n",currFunc->prettyName().c_str(), newFP);
           } else {
-              ret.fp_ = 0;
-              sprintf(errorLine, "%s[%d]: pc %lx, not in a known function\n", 
-                                  __FILE__, __LINE__, ret.pc_);
-              logLine(errorLine);
+	    sprintf(errorLine, "%s[%d]: pc %lx, not in a known function\n", 
+		    __FILE__, __LINE__, newPC);
+	    logLine(errorLine);
           }
-          
+	}
       } else {
           return Frame(); // zero frame
       }
@@ -578,22 +584,22 @@ Frame Frame::getCallerFrame()
       } else {
           // (*sp_) = RA
           // fp_ + frame_size = saved fp
-          ret.pc_ = values[0];
+          newPC = values[0];
           
-          currFunc = getProc()->findFuncByAddr(ret.pc_);
+          currFunc = getProc()->findFuncByAddr(newPC);
           if (currFunc && currFunc->frame_size) {
-              ret.sp_ = fp_;		/* current stack pointer is old fp */
-              ret.fp_ = fp_ + currFunc->frame_size;  
-              //bperr(" %s fp=%lx\n",currFunc->prettyName().c_str(), ret.fp_);
+              newSP = fp_;		/* current stack pointer is old fp */
+              newFP = fp_ + currFunc->frame_size;  
+              //bperr(" %s fp=%lx\n",currFunc->prettyName().c_str(), newFP);
           } else {
               sprintf(errorLine, "%s[%d]: pc %lx, not in a known function\n", 
-                                  __FILE__, __LINE__, ret.pc_);
+                                  __FILE__, __LINE__, newPC);
               logLine(errorLine);
-              ret.fp_ = 0;
+              newFP = 0;
           }
       }
   }
-  return ret;
+  return Frame(newPC, newFP, newSP, 0, this);
 }
 
 bool Frame::setPC(Address newpc) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.62 2005/02/28 01:47:22 jaw Exp $
+// $Id: linux-x86.C,v 1.63 2005/03/01 23:07:56 bernat Exp $
 
 #include <fstream>
 
@@ -428,6 +428,7 @@ void emitCallRel32(unsigned disp32, unsigned char *&insn);
                               // use the frame pointer (also result of gcc's
                               // -fomit-frame-pointer)
 #define TRAMP            0x6  //Trampoline
+#define EDGE_TRAMP       0x7  //Edge tramp
 
 extern bool isFramePush(instruction &i);
 void *parseVsyscallPage(char *buffer, unsigned dso_size, process *p);
@@ -562,6 +563,7 @@ static int getFrameStatus(process *p, unsigned pc)
    relocatedFuncInfo *reloc;
    miniTrampHandle *mini;
    trampTemplate *base;
+   edgeTrampTemplate *edge;
 
    calcVSyscallFrame(p);
 
@@ -575,12 +577,15 @@ static int getFrameStatus(process *p, unsigned pc)
    base = range->is_basetramp();
    mini = range->is_minitramp();
    reloc = range->is_relocated_func();
+   edge = range->is_edge_tramp();
 
    if (base != NULL || mini != NULL)
       return TRAMP;
    if (reloc != NULL && func == NULL)
       func = reloc->func();
-      
+   else if (edge != NULL && func == NULL)
+     func = p->findFuncByAddr(pc);
+   
    if (func == NULL)
       return UNKNOWN;
    else if (!func->hasNoStackFrame()) 
@@ -590,6 +595,7 @@ static int getFrameStatus(process *p, unsigned pc)
    else
      return NO_USE_FP;
 }
+
 
 static bool isPrevInstrACall(Address addr, process *p, int_function **callee)
 {
@@ -740,9 +746,13 @@ Frame Frame::getCallerFrame()
    } addrs;
 
    int status;
-   Frame ret(*this);
 
-   status = getFrameStatus(getProc(), pc_);
+   Address newPC=0;
+   Address newFP=0;
+   Address newSP=0;
+   Address newpcAddr=0;
+
+   status = getFrameStatus(getProc(), getPC());
 
    if (status == VSYSCALL_PAGE)
    {
@@ -758,9 +768,9 @@ Frame Frame::getCallerFrame()
         if (!getProc()->readDataSpace((caddr_t) sp_, sizeof(int), 
                              (caddr_t) &addrs.rtn, true))
           return Frame();
-        ret.fp_ = fp_;
-        ret.pc_ = addrs.rtn;
-        ret.sp_ = sp_ + 4;	
+	newFP = fp_;
+	newPC = addrs.rtn;
+	newSP = sp_+4;
         goto done;
       }
       else
@@ -786,13 +796,13 @@ Frame Frame::getCallerFrame()
         if (error) return Frame();
 
         //Calc registers values.
-        ret.pc_ = getRegValueAtFrame(vsys_data, pc_, DW_PC, reg_map, getProc(), 
+        newPC = getRegValueAtFrame(vsys_data, pc_, DW_PC, reg_map, getProc(), 
 				     &error);
         if (error) return Frame();
-        ret.fp_ = getRegValueAtFrame(vsys_data, pc_, DW_EBP, reg_map, getProc(), 
+        newFP = getRegValueAtFrame(vsys_data, pc_, DW_EBP, reg_map, getProc(), 
 				     &error);
         if (error) return Frame();
-        ret.sp_ = reg_map[DW_CFA];	
+        newSP = reg_map[DW_CFA];	
         goto done;
       }
    }
@@ -801,16 +811,15 @@ Frame Frame::getCallerFrame()
 			(caddr_t)&addrs.fp, true) &&
        getProc()->readDataSpace((caddr_t)(sp_+60), sizeof(int),
 			(caddr_t)&addrs.rtn, true))
-
    {  
       /**
        * If the current frame is for the signal handler function, then we need 
        * to read the information about the next frame from the data saved by 
        * the signal handling mechanism.
        **/
-      ret.fp_ = addrs.fp;
-      ret.pc_ = addrs.rtn;
-      ret.sp_ = sp_ + 64;
+     newFP = addrs.fp;
+     newPC = addrs.rtn;
+     newSP = sp_ + 64;
       goto done;
    }   
    else if ((status == ALLOCATES_FRAME || status == TRAMP))
@@ -828,21 +837,21 @@ Frame Frame::getCallerFrame()
          if (!getProc()->readDataSpace((caddr_t) addrs.fp, sizeof(int), 
                                (caddr_t) &addrs.rtn, true))
             return Frame();
-         ret.pc_ = addrs.rtn;
-         ret.fp_ = fp_;
-         ret.sp_ = addrs.fp+4;
+         newPC = addrs.rtn;
+         newFP = fp_;
+         newSP = addrs.fp+4;
       }
       else
       {
          if (!getProc()->readDataSpace((caddr_t) fp_, 2*sizeof(int), (caddr_t) &addrs, 
                                true))
             return Frame();
-         ret.fp_ = addrs.fp;
-         ret.pc_ = addrs.rtn;
-         ret.sp_ = fp_+8;
+         newFP = addrs.fp;
+         newPC = addrs.rtn;
+         newSP = fp_+8;
       }
       if (status == TRAMP)
-         ret.sp_ += tramp_pre_frame_size;
+	newSP += tramp_pre_frame_size;
       goto done;
    }
    else if (status == SAVES_FP_NOFRAME || status == NO_USE_FP)
@@ -921,11 +930,11 @@ Frame Frame::getCallerFrame()
          int_function *cur_func = getProc()->findFuncByAddr(pc_);
          if (cur_func != NULL && callee != NULL &&
              cur_func->match(callee))
-         {
-            ret.pc_ = estimated_ip;
-            ret.fp_ = estimated_fp;
-            ret.sp_ = estimated_sp+4;
-            goto done;
+	   {
+	     newPC = estimated_ip;
+	     newFP = estimated_fp;
+	     newSP = estimated_sp+4;
+	     goto done;
          }
          
          //Check the validity of the frame pointer.  It's possible the
@@ -950,37 +959,26 @@ Frame Frame::getCallerFrame()
            continue;
          }
 
-         ret.pc_ = estimated_ip;
-         ret.fp_ = estimated_fp;
-         ret.sp_ = estimated_sp+4;
+         newPC = estimated_ip;
+         newFP = estimated_fp;
+         newSP = estimated_sp+4;
          goto done;
       }
    }
 
-   ret.pc_ = 0;
-   ret.fp_ = 0;
-   ret.sp_ = 0;
-   return ret;
+   return Frame();
 
  done:
-   ret.uppermost_ = false;
 
-   status = getFrameStatus(getProc(), ret.pc_);         
-   if (status == TRAMP)
-      ret.frameType_ = FRAME_instrumentation;
-   else if (status == SIG_HANDLER)
-      ret.frameType_ = FRAME_signalhandler;
-   else
-      ret.frameType_ = FRAME_normal;
-      
+   Frame ret = Frame(newPC, newFP, newSP, newpcAddr, this);
+
    if (frameType_ == FRAME_instrumentation) 
    {
       /**
-       * On other architectures a trampoline shares a stack frame with the
-       * function it's in (is implemented with a jump).  On the x86 the
-       * tramp has its own frame (is implemented with a call).  We'll 
-       * immate this behavior by not returning the frame that follows
-       * a trampoline
+       * Instrumentation has its own stack frame (created in the
+       * base tramp), but is really an extension of the function. 
+       * We skip the function. Platform-independent code can
+       * always regenerate it if desired.
        **/
       prevFrameValid = true;
       prevFrame = *this;

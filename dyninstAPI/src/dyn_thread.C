@@ -59,21 +59,11 @@ Frame dyn_thread::getActiveFrame()
 
    if(! get_proc()->multithread_capable(true)) {
       Frame lwpFrame = lwp->getActiveFrame();  
-      return Frame(lwpFrame.getPC(), lwpFrame.getFP(),
-                   lwpFrame.getSP(), lwpFrame.getPID(),
-                   get_proc(),
-		   this, lwpFrame.getLWP(),
-                   true);
+      lwpFrame.thread_ = this;
+      return lwpFrame;
    } else
       return getActiveFrameMT();
 }
-
-// should be moved to alpha.C
-#if defined(alpha_dec_osf4_0)
-Frame dyn_thread::getActiveFrameMT() {
-	return Frame();
-}
-#endif
 
 // stackWalk: return parameter.
 bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)

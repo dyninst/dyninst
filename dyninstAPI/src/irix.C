@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.86 2005/02/25 07:04:46 jaw Exp $
+// $Id: irix.C,v 1.87 2005/03/01 23:07:54 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1137,29 +1137,29 @@ Frame Frame::getCallerFrame()
     return Frame();
   }
     
-    trampTemplate *bt = range->is_basetramp();
-    miniTrampHandle  *mt = range->is_minitramp();
-    const instPoint     *ip = NULL;
-    if (mt) bt = mt->baseTramp;
-    if (bt) ip = bt->location;
-    int_function *callee = range->is_function();
-    Address pc_off;
-    if (!callee && ip)
-        callee = (int_function *) ip->pointFunc();
-
-    // calculate runtime address of callee fn
-    if (!callee) {
-        bperr( "!!! <0x%016lx:???> unknown callee\n", pc_);
-        return Frame(); // zero frame
-    }
-
-    if (ip) {
-        pc_off = ip->pointAddr() - callee->getEffectiveAddress(getProc());
-    }
-    else {
-        pc_off = pc_ - callee->getEffectiveAddress(getProc());
-    }
-    
+  trampTemplate *bt = range->is_basetramp();
+  miniTrampHandle  *mt = range->is_minitramp();
+  const instPoint     *ip = NULL;
+  if (mt) bt = mt->baseTramp;
+  if (bt) ip = bt->location;
+  int_function *callee = range->is_function();
+  Address pc_off;
+  if (!callee && ip)
+    callee = (int_function *) ip->pointFunc();
+  
+  // calculate runtime address of callee fn
+  if (!callee) {
+    bperr( "!!! <0x%016lx:???> unknown callee\n", pc_);
+    return Frame(); // zero frame
+  }
+  
+  if (ip) {
+    pc_off = ip->pointAddr() - callee->getEffectiveAddress(getProc());
+  }
+  else {
+    pc_off = pc_ - callee->getEffectiveAddress(getProc());
+  }
+  
     // frame pointers for native and basetramp frames
     Address fp_bt = sp_;
     if (bt) {
@@ -1311,24 +1311,23 @@ Frame Frame::getCallerFrame()
   // caller frame is invalid if $pc does not resolve to a function
   if (!caller) return Frame(); // zero frame
 
-  // return value
-  Frame ret(0, 0, 0, pid_, proc_, thread_, lwp_, false);
-
-  // I've gotten the strangest segfaults doing direct assignment
-  memcpy(&ret.pc_, &ra, sizeof(Address));
-  memcpy(&ret.sp_, &fp_native, sizeof(Address));
+  Address pc = ra;
+  Address sp = fp_native;
+  Address fp;
 
   if ( caller )
   {
-      if ( caller->uses_fp )
-	memcpy(&ret.fp_, &fp2, sizeof(Address));
-      else {
-	fp_native += caller->frame_size;
-	memcpy(&ret.fp_, &fp_native, sizeof(Address));
-      }
+    if ( caller->uses_fp )
+      fp = fp2;
+    else {
+      fp_native += caller->frame_size;
+      fp = fp_native;
+    }
   }
   else 
-    memcpy(&ret.fp_, &fp2, sizeof(Address));
+    fp = fp2;
+
+  Frame ret(pc, fp, sp, 0, this);
   
   ret.saved_fp = fp2;
   

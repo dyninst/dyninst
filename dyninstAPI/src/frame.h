@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.21 2005/02/24 20:06:11 tlmiller Exp $
+// $Id: frame.h,v 1.22 2005/03/01 23:07:53 bernat Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -57,9 +57,11 @@ class process;
 class dyn_lwp;
 class codeRange;
 
-typedef enum { FRAME_unset, FRAME_instrumentation, FRAME_signalhandler, FRAME_normal, FRAME_unknown } frameType_t;
+typedef enum { FRAME_unset, FRAME_instrumentation, FRAME_signalhandler, FRAME_normal, FRAME_syscall, FRAME_unknown } frameType_t;
 
 class Frame {
+  friend class dyn_lwp;
+  friend class dyn_thread;
  public:
   
   // default ctor (zero frame)
@@ -68,11 +70,17 @@ class Frame {
   // Real constructor -- fill-in.
   // Option 2 would be to have the constructor look up this info,
   // but getCallerFrame works as is.
-  Frame(	Address pc, Address fp, Address sp,
-			unsigned pid, process *proc, 
-			dyn_thread *thread, dyn_lwp *lwp, 
-			bool uppermost,
-			Address pcAddr = 0 );
+  Frame(Address pc, Address fp, Address sp,
+	unsigned pid, process *proc, 
+	dyn_thread *thread, dyn_lwp *lwp, 
+	bool uppermost,
+	Address pcAddr = 0 );
+
+  // getCallerFrame constructor. Choose what we want from the
+  // callee frame, set pc/fp/sp/pcAddr manually
+  Frame(Address pc, Address fp, 
+	Address sp, Address pcAddr,
+	Frame *calleeFrame);
 
   bool operator==(const Frame &F) {
     return ((uppermost_ == F.uppermost_) &&
@@ -96,6 +104,7 @@ class Frame {
   bool     isUppermost() const { return uppermost_; }
   bool	   isSignalFrame() const { return frameType_ == FRAME_signalhandler;}
   bool 	   isInstrumentation() const { return frameType_ == FRAME_instrumentation;}
+  bool     isSyscall() const { return frameType_ == FRAME_syscall; }
   codeRange *getRange();
   void setRange (codeRange *range); 
   friend ostream & operator << ( ostream & s, Frame & m );
@@ -122,6 +131,9 @@ class Frame {
   // May need the process image for various reasons
   Frame getCallerFrame();
   frameType_t frameType_;
+
+  // Set the frameType_ member
+  void calcFrameType();
   
  private:
   bool			uppermost_;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.160 2005/02/28 01:47:23 jaw Exp $
+// $Id: linux.C,v 1.161 2005/03/01 23:07:57 bernat Exp $
 
 #include <fstream>
 
@@ -691,10 +691,12 @@ static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
   pdvector<int> other_lwps;
   unsigned i;
 
+  /*
    fprintf(stderr, "%s[%d]:  doWiatUntilStopped, pid = %d, block = %s\n",
            __FILE__, __LINE__, pid, shouldBlock ? "true" : "false");
   pcout << "doWaitUntilStopped called on " << pid 
         << " (shouldBlock = " << shouldBlock << ")\n"; 
+  */
 
   while (true)
   {
@@ -862,7 +864,6 @@ bool process::continueProc_(int sig)
   {
     if (lwp->status() == running)
       continue;
-
     bool result = lwp->continueLWP(sig);
     if (result)
       set_lwp_status(lwp, running);

@@ -54,8 +54,8 @@ Frame dyn_thread::getActiveFrameMT() {
    if (lwp) {
 	  // We have a kernel thread
 	  Frame lwpFrame = lwp->getActiveFrame();
-	  newFrame = Frame(lwpFrame.getPC(), lwpFrame.getFP(), lwpFrame.getSP(),
-					   lwpFrame.getPID(), lwpFrame.getProc(), this, lwp, true);
+	  lwpFrame.thread_ = this;
+	  return lwpFrame;
    }
    else {
 	  bperr("Error: attempt to get frame info for non-scheduled thread\n");

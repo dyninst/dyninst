@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.192 2005/02/18 23:41:08 bernat Exp $
+// $Id: aix.C,v 1.193 2005/03/01 23:07:49 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -185,7 +185,9 @@ Frame Frame::getCallerFrame()
   linkArea_t stackFrame;
   Address basePCAddr;
 
-  Frame ret; // zero frame
+  Address newPC=0;
+  Address newFP=0;
+  Address newpcAddr=0;
 
   // Are we in a leaf function?
   bool isLeaf = false;
@@ -199,17 +201,13 @@ Frame Frame::getCallerFrame()
       noFrame = func->hasNoStackFrame();
     }
   }
-  ret.pid_ = pid_;
-  ret.proc_ = proc_;
-  ret.thread_ = thread_;
-  ret.lwp_ = lwp_;
- 
+
   // Get current stack frame link area
   if (!getProc()->readDataSpace((caddr_t)fp_, sizeof(linkArea_t),
                         (caddr_t)&thisStackFrame, false))
-      return Frame();
+    return Frame();
   getProc()->readDataSpace((caddr_t) thisStackFrame.oldFp, sizeof(linkArea_t),
-                   (caddr_t) &lastStackFrame, false);
+			   (caddr_t) &lastStackFrame, false);
   
   if (noFrame) {
     stackFrame = thisStackFrame;
@@ -224,18 +222,18 @@ Frame Frame::getCallerFrame()
   // we store if we're in a base tramp or have modified the LR
   if ((stackFrame.binderInfo & MODIFIED_LR_MASK) == MODIFIED_LR) {
       // The actual LR is stored in the "compilerInfo" word
-      ret.pc_ = stackFrame.compilerInfo;
-      ret.pcAddr_ = basePCAddr + compilerInfoOffset;
-      ret.fp_ = thisStackFrame.oldFp;
+    newPC = stackFrame.compilerInfo;
+    newpcAddr = basePCAddr + compilerInfoOffset;
+    newFP = thisStackFrame.oldFp;
   }
   else if ((stackFrame.binderInfo & IN_TRAMP_MASK) == IN_TRAMP) {
-      ret.pc_ = stackFrame.savedLR;
-      ret.pcAddr_ = basePCAddr + savedLROffset;
+      newPC = stackFrame.savedLR;
+      newpcAddr = basePCAddr + savedLROffset;
       // Skip the next stack frame, as we "grew" the frame rather than making
       // a new one
       if (!getProc()->readDataSpace((caddr_t) thisStackFrame.oldFp,
                             sizeof(unsigned),
-                            (caddr_t) &ret.fp_, false))
+                            (caddr_t) &newFP, false))
           return Frame();
   }
   else if (isLeaf) {
@@ -246,8 +244,8 @@ Frame Frame::getCallerFrame()
           if (! status) {
               return Frame();
           }
-          ret.pc_ = regs.theIntRegs.__lr;
-	  ret.pcAddr_ = (Address) 1; /* I'm using an address to signify a register */
+          newPC = regs.theIntRegs.__lr;
+	  newpcAddr = (Address) 1; /* I'm using an address to signify a register */
       }
       else if (thread_ && thread_->get_tid()) {
           cerr << "NOT IMPLEMENTED YET" << endl;
@@ -258,29 +256,31 @@ Frame Frame::getCallerFrame()
           if (!status) {
               return Frame();
           }
-          ret.pc_ = regs.theIntRegs.__lr;
-	  ret.pcAddr_ = (Address) 1;
+          newPC = regs.theIntRegs.__lr;
+	  newpcAddr = (Address) 1;
       }
+      
+
       if (noFrame)
-          ret.fp_ = fp_;
+          newFP = fp_;
       else
-          ret.fp_ = thisStackFrame.oldFp;
+          newFP = thisStackFrame.oldFp;
   }
   else {
       // Common case.
-      ret.pc_ = stackFrame.savedLR;
-      ret.pcAddr_ = basePCAddr + savedLROffset;
+      newPC = stackFrame.savedLR;
+      newpcAddr = basePCAddr + savedLROffset;
       if (noFrame)
-          ret.fp_ = fp_;
+	newFP = fp_;
       else
-          ret.fp_ = thisStackFrame.oldFp;
+	newFP = thisStackFrame.oldFp;
   }
 
 #ifdef DEBUG_STACKWALK
-  fprintf(stderr, "PC %x, FP %x\n", ret.pc_, ret.fp_);
+  fprintf(stderr, "PC %x, FP %x\n", newPC, newFP);
 #endif
 
-  return ret;
+  return Frame(newPC, newFP, 0, newpcAddr, this);
 }
 
 bool Frame::setPC(Address newpc) {

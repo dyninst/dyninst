@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.4 2005/02/24 20:06:12 tlmiller Exp $
+// $Id: frame.C,v 1.5 2005/03/01 23:07:52 bernat Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -51,7 +51,9 @@
 #include "instPoint.h"
 #include "trampTemplate.h"
 #include "miniTrampHandle.h"
+#include "edgeTrampTemplate.h"
 #include "frame.h"
+
 
 Frame::Frame() : 
   frameType_(FRAME_unset), 
@@ -78,9 +80,20 @@ Frame::Frame(Address pc, Address fp, Address sp,
   uppermost_(uppermost),
   pc_(pc), fp_(fp), sp_(sp),
   pid_(pid), proc_(proc), thread_(thread), lwp_(lwp), 
-  range_(0), hasValidCursor(false), pcAddr_(pcAddr)
-  {};
+  range_(0), hasValidCursor(false), pcAddr_(pcAddr) {
+  calcFrameType();
+};
 
+Frame::Frame(Address pc, Address fp, Address sp,
+	     Address pcAddr, Frame *f) : 
+  uppermost_(false),
+  pc_(pc), fp_(fp), 
+  sp_(sp),
+  pid_(f->pid_), proc_(f->proc_),
+  thread_(f->thread_), lwp_(f->lwp_),
+  range_(0), hasValidCursor(false), pcAddr_(pcAddr) {
+  calcFrameType();
+}
 
 codeRange *Frame::getRange() {
   if (!range_) {
@@ -104,34 +117,107 @@ bool Frame::isLastFrame() const
    return false;
 }
 
+#if defined(os_linux) && defined(arch_x86)
+extern void calcVSyscallFrame(process *p);
+#endif
+
+void Frame::calcFrameType()
+{
+   int_function *func;
+   relocatedFuncInfo *reloc;
+   miniTrampHandle *mini;
+   trampTemplate *base;
+   edgeTrampTemplate *edge;
+
+   // Better to have one function that has platform-specific IFDEFs
+   // than a stack of 90% equivalent functions
+#if defined(os_linux) && defined(arch_x86)
+   calcVSyscallFrame(getProc());
+   if (pc_ >= getProc()->getVsyscallStart() && pc_ < getProc()->getVsyscallEnd()) {
+     frameType_ = FRAME_syscall;
+     return;
+   }
+#endif
+   
+   if (getProc()->isInSignalHandler(pc_)) {
+     frameType_ = FRAME_signalhandler;
+     return;
+   }
+   
+   codeRange *range = getRange();
+
+   func = range->is_function();
+   base = range->is_basetramp();
+   mini = range->is_minitramp();
+   reloc = range->is_relocated_func();
+   edge = range->is_edge_tramp(); 
+
+   if (base != NULL || mini != NULL) {
+     frameType_ = FRAME_instrumentation;
+     return;
+   }
+   else if (reloc != NULL || func != NULL || edge != NULL) {
+     frameType_ = FRAME_normal;
+     return;
+   }
+   else {
+     frameType_ = FRAME_unknown;
+     return;
+   }
+   assert(0 && "Unreachable");
+   frameType_ = FRAME_unset;
+   return;
+}
+
 ostream & operator << ( ostream & s, Frame & f ) {
 	codeRange * range = f.getRange();
+	int_function * func_ptr = range->is_function();
+	trampTemplate * basetramp_ptr = range->is_basetramp();
+	miniTrampHandle * minitramp_ptr = range->is_minitramp();
+	relocatedFuncInfo * reloc_ptr = range->is_relocated_func();
+	multitrampTemplate * multitramp_ptr = range->is_multitramp();
+	edgeTrampTemplate *edgetramp_ptr = range->is_edge_tramp();
 	s << "PC: 0x" << std::hex << f.getPC() << " ";
-	if( range ) {
-		int_function * func_ptr = range->is_function();
-		trampTemplate * basetramp_ptr = range->is_basetramp();
-		miniTrampHandle * minitramp_ptr = range->is_minitramp();
-		relocatedFuncInfo * reloc_ptr = range->is_relocated_func();
-		multitrampTemplate * multitramp_ptr = range->is_multitramp();
-		
-		if( func_ptr ) {
-			s << "(" << func_ptr->prettyName().c_str() << ") ";
-			}
-		if( basetramp_ptr ) {
-			s << "(basetramp from '" << basetramp_ptr->location->pointFunc()->prettyName().c_str() << "') ";
-			}
-		if( minitramp_ptr ) {
-			s << "(minitramp from '" << minitramp_ptr->baseTramp->location->pointFunc()->prettyName().c_str() << "') ";
-			}
-		if( reloc_ptr ) {
-			s << "(" << reloc_ptr->func()->prettyName().c_str() << " [RELOCATED]) ";
-			}
-		if( multitramp_ptr ) {
-			s << "(multitramp from '" << multitramp_ptr->location->pointFunc()->prettyName().c_str() << "') ";
-			}
-		}
-   
-	s << "FP: 0x" << std::hex << f.getFP() << " PID: " << std::dec << f.getPID() << " "; 
+	switch (f.frameType_) {
+	case FRAME_unset:
+	  s << "[UNSET FRAME TYPE]";
+	  break;
+	case FRAME_instrumentation:
+	  s << "[Instrumentation:";
+	  if (minitramp_ptr) {
+	    s << "mt from "
+	      << minitramp_ptr->baseTramp->location->pointFunc()->prettyName() 
+	      << "]";
+	  }
+	  else if (basetramp_ptr) {
+	    s << "bt from "
+	      << basetramp_ptr->location->pointFunc()->prettyName() 
+	      << "]";
+	  }
+	  if( multitramp_ptr ) {
+	    s << "[mt from " 
+	      << multitramp_ptr->location->pointFunc()->prettyName() << "]";
+	  }
+	  break;
+	case FRAME_signalhandler:
+	  s << "[SIGNAL HANDLER]";
+	  break;
+	case FRAME_normal:
+	  if( func_ptr ) {
+	    s << "[" << func_ptr->prettyName() << "]";
+	  }
+	  if( reloc_ptr ) {
+	    s << "[" << reloc_ptr->func()->prettyName() << " *RELOCATED*]";
+	  }
+	  break;
+	case FRAME_syscall:
+	  s << "[SYSCALL]";
+	  break;
+	case FRAME_unknown:
+	  s << "[UNKNOWN]";
+	  break;
+	}
+	s << " FP: 0x" << std::hex << f.getFP() << " PID: " << std::dec << f.getPID() << " "; 
 	if( f.getThread() ) {
    		s << "TID: " << f.getThread()->get_tid() << " ";
    		}

@@ -726,7 +726,7 @@ Frame Frame::getCallerFrame() {
 		currentFrame.fp_ = (Address)NULL;
 		currentFrame.pc_ = (Address)NULL;
 		currentFrame.sp_ = (Address)NULL;
-		currentFrame.uppermost_ = true;
+		currentFrame.uppermost_ = false;
 
 		fprintf( stderr, "%s[%d]: detected duplicate stack frame, aborting stack with zeroed frame.\n", __FILE__, __LINE__ );
 		}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.21 2005/02/17 21:10:34 bernat Exp $
+// $Id: aixMT.C,v 1.22 2005/03/01 23:07:50 bernat Exp $
 
 //#include <sys/pthdebug.h> // Pthread debug library, disabled
 #include "dyninstAPI/src/dyn_thread.h"
@@ -64,9 +64,8 @@ Frame dyn_thread::getActiveFrameMT() {
   if (lwp) {
     // We have a kernel thread
     Frame lwpFrame = lwp->getActiveFrame();
-    newFrame = Frame(lwpFrame.getPC(), lwpFrame.getFP(),
-                     0, // no SP
-                     lwpFrame.getPID(), lwpFrame.getProc(), this, lwp, true);
+    lwpFrame.thread_ = this;
+    return lwpFrame;
   }
   else {
 #if 0 // Unsupported for now

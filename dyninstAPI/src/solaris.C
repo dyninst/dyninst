@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.173 2005/02/25 07:04:47 jaw Exp $
+// $Id: solaris.C,v 1.174 2005/03/01 23:08:01 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -844,61 +844,48 @@ int getNumberOfCPUs()
 
 Frame Frame::getCallerFrame()
 {
-   Frame ret;
-   ret.lwp_ = lwp_;
-   ret.thread_ = thread_;
-   ret.proc_ = proc_;
-   ret.pid_ = pid_;
-   ret.thread_ = thread_;
-   ret.lwp_ = lwp_;
-   if (uppermost_) {
-     codeRange *range = getRange();
-       int_function *func = range->is_function();
-       if (func) {
-           if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
-               if (lwp_) { // We have a LWP and are prepared to use it
-                   struct dyn_saved_regs regs;
-                   bool status = lwp_->getRegisters(&regs);
-                   assert(status == true);
-                   ret.pc_ = regs.theIntRegs[R_O7] + 8;
-                   ret.fp_ = fp_; // frame pointer unchanged
-                   ret.frameType_ = FRAME_normal;
-                   return ret;
-                   
-               }
-               else if (thread_)
-                   cerr << "Not implemented yet" << endl;
-               else {
-                   struct dyn_saved_regs regs;
-                   bool status = getProc()->getRepresentativeLWP()->getRegisters(&regs);
-                   assert(status == true);
-                   ret.pc_ = regs.theIntRegs[R_O7] + 8;
-                   ret.fp_ = fp_;
-                   ret.frameType_ = FRAME_normal;
-                   return ret;
-               }
-           }
-       }
-   }
-   //
-   // For the sparc, register %i7 is the return address - 8 and the fp is
-   // register %i6. These registers can be located in %fp+14*5 and
-   // %fp+14*4 respectively, but to avoid two calls to readDataSpace,
-   // we bring both together (i.e. 8 bytes of memory starting at %fp+14*4
-   // or %fp+56).
-   // These values are copied to the stack when the application is paused,
-   // so we are assuming that the application is paused at this point
-   
-   struct {
-      Address fp;
-      Address rtn;
-   } addrs;
-   
-   if (getProc()->readDataSpace((caddr_t)(fp_ + 56), 2*sizeof(int),
-                        (caddr_t)&addrs, true))
-   {
-      ret.fp_ = addrs.fp;
-      ret.pc_ = addrs.rtn + 8;
+  Address newPC=0;
+  Address newFP=0;
+  Address newSP=0;
+
+  if (uppermost_) {
+    codeRange *range = getRange();
+    int_function *func = range->is_function();
+    if (func) {
+      if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
+	struct dyn_saved_regs regs;
+	bool status;
+	if (lwp_)
+	  status = lwp_->getRegisters(&regs);
+	else
+	  status = getProc()->getRepresentativeLWP()->getRegisters(&regs);
+
+	assert(status == true);
+	newPC = regs.theIntRegs[R_O7] + 8;
+	newFP = fp_; // frame pointer unchanged
+      }
+      return Frame(newPC, newFP, newSP, 0, this);
+    }
+  }
+  //
+  // For the sparc, register %i7 is the return address - 8 and the fp is
+  // register %i6. These registers can be located in %fp+14*5 and
+  // %fp+14*4 respectively, but to avoid two calls to readDataSpace,
+  // we bring both together (i.e. 8 bytes of memory starting at %fp+14*4
+  // or %fp+56).
+  // These values are copied to the stack when the application is paused,
+  // so we are assuming that the application is paused at this point
+  
+  struct {
+    Address fp;
+    Address rtn;
+  } addrs;
+  
+  if (getProc()->readDataSpace((caddr_t)(fp_ + 56), 2*sizeof(int),
+			       (caddr_t)&addrs, true))
+    {
+      newFP = addrs.fp;
+      newPC = addrs.rtn + 8;
       
       // Check if we're in a sig handler, since we don't know if the
       // _current_ frame has its type set at all.
@@ -916,35 +903,34 @@ Frame Frame::getCallerFrame()
                
                int_function *func = getProc()->findFuncByAddr(saved_pc);
                
-               ret.pc_ = saved_pc;
+               newPC = saved_pc;
                if (func && func->hasNoStackFrame())
-                  ret.fp_ = fp_;
-               return ret;
+                  newFP = fp_;
             }
          }
-         return Frame();
+	 else {
+	   return Frame();
+	 }
       }
       
+
+      if(getProc()->multithread_capable()) {
+         // MT thread adds another copy of the start function
+         // to the top of the stack... this breaks instrumentation
+         // since we think we're at a function entry.
+         if (newFP == 0) newPC = 0;
+      }
+
+      Frame ret = Frame(newPC, newFP, 0, 0, this);
+
       // If we're in a base tramp, skip this frame (return getCallerFrame)
       // as we only return minitramps
       codeRange *range = getRange();
       if (range->is_basetramp())
           return ret.getCallerFrame();
 
-      if(getProc()->multithread_capable()) {
-         // MT thread adds another copy of the start function
-         // to the top of the stack... this breaks instrumentation
-         // since we think we're at a function entry.
-         if (ret.fp_ == 0) ret.pc_ = 0;
-      }
-
-      // Check if the _current_ PC is in a signal handler, and if so set the type
-      if (getProc()->isInSignalHandler(ret.pc_)) {
-          ret.frameType_ = FRAME_signalhandler;
-      }
-
       return ret;
-   }
+    }
   
    return Frame(); // zero frame
 }

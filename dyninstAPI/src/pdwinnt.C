@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.134 2005/02/28 01:47:23 jaw Exp $
+// $Id: pdwinnt.C,v 1.135 2005/03/01 23:08:00 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1290,15 +1290,18 @@ Frame Frame::getCallerFrame()
 	Address rtn;
     } addrs;
 
+    Address newPC=0;
+    Address newFP=0;
+
     if (getProc()->readDataSpace((caddr_t)(fp_), sizeof(int)*2,
 			 (caddr_t)&addrs, true))
     {
-        Frame ret;
-        ret.fp_ = addrs.fp;
-        ret.pc_ = addrs.rtn;
-        return ret;
+      newPC = addrs.rtn;
+      newFP = addrs.fp;
+      return Frame(newPC, newFP, 0, 0, this);
     }
     
+
     return Frame(); // zero frame
 }
 
@@ -1308,17 +1311,18 @@ Frame Frame::getCallerFrame(process *p) const
 {
 //	DebugBreak();//ccw 6 feb 2001
 
-	Frame ret;
 	Address prevPC;
+	Address newSP;
+	Address newPC;
 
-	ret.sp_ = sp_ - callee->frame_size;
+	newSP = sp_ - callee->frame_size;
 
 	Address tmpSp = sp_ + 20;
 	getProc()->readDataSpace((caddr_t)(tmpSp), sizeof(int),
 			 &prevPC, true);
 
-	ret.pc_ = prevPC;
-	return ret;
+	newPC = prevPC;
+	return Frame(newPC, 0, newSP, 0, this);
 }
 #endif
 
