@@ -1,8 +1,11 @@
 // dg2.C
-// customized (for tableVisi) version of DGclient.C in tclVisi directory
+// implementation of the "Dg" tcl command
 
 /*
  * $Log: dg2.C,v $
+ * Revision 1.2  1995/11/08 21:45:56  tamches
+ * specialized s.t. only the implementation of the "Dg" tcl command is here
+ *
  * Revision 1.1  1995/11/04 00:44:11  tamches
  * First version of new table visi
  *
@@ -19,13 +22,6 @@
 
 #include "visi/h/visualization.h"
 #include "dg2.h"
-
-void my_visi_callback(ClientData, int) {
-   // Installed as a file-handler routine for whenever data arrives over
-   // the socket returned from VisiInit()
-   if (visi_callback() == -1)
-      exit(0);
-}
 
 #define   AGGREGATE        0
 #define   BINWIDTH         1
@@ -212,51 +208,9 @@ int Dg_TclCommand(ClientData, Tcl_Interp *interp,
   return TCL_ERROR;
 }
 
-void (*UsersNewDataCallbackRoutine)(int firstBucket, int lastBucket);
-   // we will call this routine for you when we get a new-data callback
-   // from the visi lib (first, we do a bit of processing for you, such
-   // as determining what the range is buckets you haven't seen yet is).
-
-extern void panic(const char *);
-
 int Dg2_Init(Tcl_Interp *interp) {
-   // initialize with the visi lib
-   int fd = VisiInit();
-   if (fd < 0) {
-      cerr << "Dg2_Init() -- could not initialize with the visi lib" << endl;
-      exit(5);
-   }
-
-   // Register C++ Callback routines with the visi lib when
-   // certain events happen.  The most important (performance-wise)
-   // is the DATAVALUES callback, which signals the arrival of
-   // new barchart data.  We must process this callback very quickly,
-   // in order to perturb the system as little as possible.
-
-   if (RegistrationCallback(ADDMETRICSRESOURCES, Dg2AddMetricsCallback) != 0)
-      panic("Dg2_Init() -- couldn't install ADDMETRICSRESOURCES callback");
-
-   if (RegistrationCallback(FOLD, Dg2Fold) != 0)
-      panic("Dg2_Init() -- couldn't install FOLD callback");
-
-   if (RegistrationCallback(INVALIDMETRICSRESOURCES, Dg2InvalidMetricsOrResources) != 0)
-      panic("Dg2_Init() -- couldn't install INVALID callback");
-
-   if (RegistrationCallback(PHASESTART, Dg2PhaseNameCallback) != 0)
-      panic("Dg2_Init() -- couldn't install PHASENAME callback");
-
-   if (RegistrationCallback(DATAVALUES, Dg2NewDataCallback) != 0)
-      panic("Dg2_Init() -- couldn't install DATAVALUES callback");
-
-   // install "Dg" as a new tcl command; Dg_TclCommand() will be invoked when
-   // a tcl script calls Dg
    Tcl_CreateCommand(interp, "Dg", Dg_TclCommand, 
 		    (ClientData *) NULL,(Tcl_CmdDeleteProc *) NULL);
  
-   // Arrange for my_visi_callback() to be called whenever data is waiting
-   // to be read off of descriptor "fd".  Extremely important! [tcl book
-   // page 357]
-   Tk_CreateFileHandler(fd, TK_READABLE, my_visi_callback, 0);
-
    return TCL_OK;
 }
