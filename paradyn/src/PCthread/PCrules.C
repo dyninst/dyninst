@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.1  1994/02/02 00:38:18  hollings
+ * Revision 1.2  1994/02/08 17:21:27  hollings
+ * made elapsed time optinal metric.
+ *
+ * Revision 1.1  1994/02/02  00:38:18  hollings
  * First version of the Performance Consultant using threads.
  *
  * Revision 1.8  1993/08/16  16:26:50  hollings
@@ -36,7 +39,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.1 1994/02/02 00:38:18 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.2 1994/02/08 17:21:27 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -167,7 +170,8 @@ Boolean highCPUtoSyncRatio_ENABLE(collectMode newMode)
     status = activeProcesses.changeCollection(whereAxis, newMode) && status;
 
     // this is used in the explaination.
-    status = elapsedTime.changeCollection(whereAxis, newMode) && status;
+    // Doesn't changes status if not available.
+    elapsedTime.changeCollection(whereAxis, newMode);
 
     return(status);
 }
