@@ -189,6 +189,19 @@ DYNINSTflushTrace(void) {
     if (DYNINSTtraceFp) fflush(DYNINSTtraceFp);
 }
 
+int
+DYNINSTnullTrace(void) {
+	int nullfd;
+
+	if ((nullfd = open("/dev/null", O_WRONLY)) < 0 ||
+	    dup2(nullfd, DYNINST_trace_fd) < 0 ||
+	    close(nullfd) < 0 ||
+	    freopen("/dev/null", "w", DYNINSTtraceFp) == 0) {
+		perror("DYNINSTnullTrace");
+		return (-1);
+	}
+	return 0;
+}	
 
 /************************************************************************
  * void DYNINSwriteTrace(void)
