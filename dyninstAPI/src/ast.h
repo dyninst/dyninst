@@ -44,8 +44,11 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.31  1998/08/26 21:07:17  zhichen
+ * *** empty log message ***
+ *
  * Revision 1.30  1998/08/26 20:57:20  zhichen
- * Fixed dag code generation, added one parameter to AstNode::CodeGeneration.
+ * Fixed dag code generation.
  *
  * Revision 1.29  1998/08/25 19:35:04  buck
  * Initial commit of DEC Alpha port.
