@@ -48,6 +48,7 @@ DYNINSTsave_temp:
 	stq $24, 80($sp)
 	stq $25, 88($sp)
 	stq $0, 96($sp) /* Save v0 - see note after DYNINSTrestore_temp */
+	/* if you change this, check loadFrameRelativeOp too */
 	stq $15, 104($sp) /* save frame pointer */
 	ret $31, ($26), 1
 	.end DYNINSTsave_temp
