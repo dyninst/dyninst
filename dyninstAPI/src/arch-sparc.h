@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4) && !defined(sparc_tmc_cmost7_3)
+#if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
 #endif
 
@@ -48,6 +48,10 @@
 
 /*
  * $Log: arch-sparc.h,v $
+ * Revision 1.16  1997/02/21 20:13:12  naim
+ * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
+ * out of the ast class. The is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.15  1996/10/31 08:35:36  tamches
  * removed LOW and HIGH; added a few opcodes
  *

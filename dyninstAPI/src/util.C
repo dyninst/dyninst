@@ -43,6 +43,10 @@
  * util.C - support functions.
  *
  * $Log: util.C,v $
+ * Revision 1.13  1997/02/21 20:13:59  naim
+ * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
+ * out of the ast class. The is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.12  1997/01/27 19:41:18  naim
  * Part of the base instrumentation for supporting multithreaded applications
  * (vectors of counter/timers) implemented for all current platforms +
@@ -82,7 +86,7 @@
  */
 
 #include "util/h/headers.h"
-#include "util.h"
+#include "dyninstAPI/src/util.h"
 
 // TIMING code
 
@@ -90,7 +94,7 @@
 
 #include <values.h>
 #define EVERY 1
-#define TIMINGunit 1.0e+09 // 1.0e+09 ns -> secs
+#define TIMINGunit 1.0e+03 // 1.0e+09 ns -> secs
                            // 1.0e+06 ns -> mils
                            // 1.0e+03 ns -> us 
                            // 1.0e+00 ns

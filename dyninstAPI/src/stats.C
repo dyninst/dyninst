@@ -43,6 +43,10 @@
  * Report statistics about dyninst and data collection.
  *
  * $Log: stats.C,v $
+ * Revision 1.17  1997/02/21 20:13:51  naim
+ * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
+ * out of the ast class. The is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.16  1996/08/16 21:19:52  tamches
  * updated copyright for release 1.1
  *
@@ -81,17 +85,17 @@
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "symtab.h"
-#include "process.h"
-#include "inst.h"
-#include "instP.h"
-#include "dyninstP.h"
-#include "metric.h"
-#include "ast.h"
-#include "util.h"
-#include "internalMetrics.h"
-#include "dynrpc.h"
-#include "init.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/dyninstP.h"
+#include "paradynd/src/metric.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "paradynd/src/internalMetrics.h"
+#include "paradynd/src/dynrpc.h"
+#include "paradynd/src/init.h"
 #include "util/h/Timer.h"
 
 int trampBytes = 0;

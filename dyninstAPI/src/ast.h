@@ -44,6 +44,10 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.21  1997/02/21 20:13:17  naim
+ * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
+ * out of the ast class. The is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.20  1997/01/27 19:40:38  naim
  * Part of the base instrumentation for supporting multithreaded applications
  * (vectors of counter/timers) implemented for all current platforms +
@@ -106,9 +110,7 @@
 
 #include <stdio.h>
 #include <strstream.h>
-#include "paradynd/src/inst.h"
-
-class dataReqNode;
+#include "dyninstAPI/src/inst.h"
 
 // a register.
 typedef int reg;
@@ -206,9 +208,7 @@ class AstNode {
 	string callee;		    // only for call nodes
 	vector<AstNode *> operands; // only for call nodes
 	operandType oType;	    // for operand nodes
-	dataReqNode *dValue;	    // for operand nodes with type DataPtr 
-                                    // or DataValue
-	void *oValue;		    // for operand nodes with other type
+	void *oValue;	            // operand value for operand nodes
 
         // These 2 vrbles must be pointers; otherwise, we'd have a recursive
         // data structure with an infinite size.
@@ -225,11 +225,9 @@ class AstNode {
 AstNode *assignAst(AstNode *src);
 void removeAst(AstNode *&ast);
 void terminateAst(AstNode *&ast);
-AstNode *createPrimitiveCall(const string &func, dataReqNode *dataPtr, 
-                             int param2);
 AstNode *createIf(AstNode *expression, AstNode *action);
-AstNode *createCounter(const string &func, dataReqNode *, AstNode *arg);
-AstNode *createTimer(const string &func, dataReqNode *, 
+AstNode *createCounter(const string &func, void *, AstNode *arg);
+AstNode *createTimer(const string &func, void *, 
                      vector<AstNode *> &arg_args);
 unsigned emitFuncCall(opCode op, registerSpace *rs, char *i,unsigned &base, 
 		      const vector<AstNode *> &operands, const string &func,

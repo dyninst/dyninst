@@ -41,6 +41,10 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.37  1997/02/21 20:13:16  naim
+ * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
+ * out of the ast class. The is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.36  1997/01/27 19:40:36  naim
  * Part of the base instrumentation for supporting multithreaded applications
  * (vectors of counter/timers) implemented for all current platforms +
@@ -115,24 +119,24 @@
  */
 
 #include "rtinst/h/rtinst.h"
-#include "symtab.h"
-#include "process.h"
-#include "inst.h"
-#include "instP.h"
-#include "dyninstP.h"
-#include "metric.h"
-#include "ast.h"
-#include "util.h"
-#include "showerror.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/dyninstP.h"
+#include "paradynd/src/metric.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "paradynd/src/showerror.h"
 
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4) || defined(sparc_tmc_cmost7_3)
-#include "inst-sparc.h"
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+#include "dyninstAPI/src/inst-sparc.h"
 #elif defined(hppa1_1_hp_hpux)
-#include "inst-hppa.h"
+#include "dyninstAPI/src/inst-hppa.h"
 #elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-#include "inst-power.h"
+#include "dyninstAPI/src/inst-power.h"
 #elif defined(i386_unknown_solaris2_5)
-#include "inst-x86.h"
+#include "dyninstAPI/src/inst-x86.h"
 #else
 #endif
 
@@ -361,10 +365,7 @@ AstNode &AstNode::operator=(const AstNode &src) {
 
    if (type == operandNode) {
       oType = src.oType;
-      if (oType == DataPtr || oType == DataValue || oType == DataId)
-         dValue = src.dValue;
-      else
-         oValue = src.oValue;
+      oValue = src.oValue;
    }
 
    loperand = assignAst(src.loperand);
@@ -460,11 +461,7 @@ AstNode::AstNode(operandType ot, void *arg) {
     kept_register = -1;
     type = operandNode;
     oType = ot;
-    if (oType == DataPtr || oType == DataValue || oType == DataId)
-	dValue = (dataReqNode *) arg;
-    else
-	oValue = (void *) arg;
-
+    oValue = (void *) arg;
     loperand = roperand = NULL;
 };
 
@@ -555,10 +552,7 @@ AstNode::AstNode(AstNode *src) {
 
    if (type == operandNode) {
       oType = src->oType;
-      if (oType == DataPtr || oType == DataValue || oType == DataId)
-         dValue = src->dValue;
-      else
-	 oValue = src->oValue;
+      oValue = src->oValue;
    }
 
    loperand = assignAst(src->loperand);
@@ -833,7 +827,7 @@ reg AstNode::generateCode_phase2(process *proc,
 	    }
 	    src1 = roperand->generateCode_phase2(proc, rs, insn, base, noCost);
 	    src2 = rs->allocateRegister(insn, base, noCost);
-	    addr = loperand->dValue->getInferiorPtr();
+	    addr = (unsigned) loperand->oValue;
 	    assert(addr != 0); // check for NULL
 	    (void) emit(op, src1, src2, (reg) addr, insn, base, noCost);
 	    rs->freeRegister(src1);
@@ -949,7 +943,7 @@ reg AstNode::generateCode_phase2(process *proc,
 	    (void) emit(loadConstOp, (reg) (*(unsigned int *) oValue),
 		dest, dest, insn, base, noCost);
 	} else if (oType == DataPtr) {
-	    addr = dValue->getInferiorPtr();
+	    addr = (unsigned) oValue;
             assert(addr != 0); // check for NULL
 	    (void) emit(loadConstOp, (reg) addr, dest, dest, insn, base, noCost);
 	} else if (oType == DataIndir) {
@@ -965,19 +959,18 @@ reg AstNode::generateCode_phase2(process *proc,
               rs->keep_register(dest);
             }
 	} else if (oType == DataId) {
-            assert(dValue);
 #if defined(MT_THREAD)
 	    unsigned position;
             Thread *thr = proc->threads[0];
-            position = thr->CTvector->getCTmapId(dValue->getSampleId());
+            position = thr->CTvector->getCTmapId((unsigned) oValue);
             assert(position < thr->CTvector->size());
             assert(thr->CTvector->getCTusagePos(position)==1);
             (void) emit(loadConstOp, (reg) position, dest, dest, insn, base, noCost);
 #else
-	    (void) emit(loadConstOp, (reg) dValue->getSampleId(), dest, dest, insn, base, noCost);
+	    (void) emit(loadConstOp, (reg) oValue, dest, dest, insn, base, noCost);
 #endif
 	} else if (oType == DataValue) {
-	    addr = dValue->getInferiorPtr();
+	    addr = (unsigned) oValue;
 
 	    assert(addr != 0); // check for NULL
 	    (void) emit(loadOp, (reg) addr, dest, dest, insn, base, noCost);
@@ -1124,10 +1117,10 @@ void AstNode::print() const {
 	    sprintf(errorLine, " %d", (int) oValue);
 	    logLine(errorLine);
 	} else if (oType == DataPtr) {
-	    sprintf(errorLine, " %d", (int) dValue->getInferiorPtr());
+	    sprintf(errorLine, " %d", (int) oValue);
 	    logLine(errorLine);
 	} else if (oType == DataValue) {
-	    sprintf(errorLine, "@%d", (int) dValue->getInferiorPtr());
+	    sprintf(errorLine, "@%d", (int) oValue);
 	    logLine(errorLine);
 	} else if (oType == DataIndir) {
 	    logLine("@[");
@@ -1162,18 +1155,6 @@ void AstNode::print() const {
     }
 }
 
-AstNode *createPrimitiveCall(const string &func, dataReqNode *dataPtr, 
-                             int param2) 
-{
-  AstNode *t0, *t1, *t2;
-  t0 = new AstNode(AstNode::DataValue, (void *)dataPtr);
-  t1 = new AstNode(AstNode::Constant, (void *)param2);
-  t2 = new AstNode(func, t0, t1);
-  removeAst(t0);
-  removeAst(t1);
-  return(t2);
-}
-
 AstNode *createIf(AstNode *expression, AstNode *action) 
 {
   AstNode *t;
@@ -1183,7 +1164,7 @@ AstNode *createIf(AstNode *expression, AstNode *action)
 
 #if !defined(MT_THREAD)
 
-AstNode *createTimer(const string &func, dataReqNode *dataPtr, 
+AstNode *createTimer(const string &func, void *dataPtr, 
                      vector<AstNode *> &ast_args)
 {
   AstNode *t0=NULL,*t1=NULL;
@@ -1196,7 +1177,7 @@ AstNode *createTimer(const string &func, dataReqNode *dataPtr,
   return(t1);
 }
 
-AstNode *createCounter(const string &func, dataReqNode *dataPtr, 
+AstNode *createCounter(const string &func, void *dataPtr, 
                        AstNode *ast) 
 {
    AstNode *t0=NULL, *t1=NULL, *t2=NULL;
@@ -1218,13 +1199,14 @@ AstNode *createCounter(const string &func, dataReqNode *dataPtr,
 
 #else
 
-AstNode *computeAddress(dataReqNode *dataPtr)
+AstNode *computeAddress(void *dataPtr)
 {
   AstNode *t0=NULL,*t1=NULL,*t2=NULL,*t3=NULL;
   AstNode *t4=NULL,*t5=NULL,*t6=NULL;
   int value;
 
-  assert(dataPtr);
+  /* We don't need to check wether dataPtr is NULL, because it represents */
+  /* an id rather than a pointer - naim 2/18/97                      */
 
   /* DYNINSTthreadTable[thr_self()] */
   /* make sure we read updated base address */
@@ -1252,7 +1234,7 @@ AstNode *computeAddress(dataReqNode *dataPtr)
   return(t6);
 }
 
-AstNode *createTimer(const string &func, dataReqNode *dataPtr, 
+AstNode *createTimer(const string &func, void *dataPtr, 
                      vector<AstNode *> &ast_args)
 {
   AstNode *t0=NULL,*t1=NULL;
@@ -1266,7 +1248,7 @@ AstNode *createTimer(const string &func, dataReqNode *dataPtr,
   return(t1);
 }
 
-AstNode *createCounter(const string &func, dataReqNode *dataPtr, 
+AstNode *createCounter(const string &func, void *dataPtr, 
                        AstNode *ast) 
 { 
   AstNode *t0=NULL,*t1=NULL,*t2=NULL,*t3=NULL;

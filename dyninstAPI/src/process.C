@@ -40,8 +40,7 @@
  */
 
 // developer mode internal metrics for debugging purposes
-int activeCT=0;
-int memCT=0;
+unsigned memCT=0;
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -53,17 +52,17 @@ int pvmendtask();
 #include "util/h/headers.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "symtab.h"
-#include "process.h"
-#include "util.h"
-#include "inst.h"
-#include "instP.h"
-#include "dyninstP.h"
-#include "os.h"
-#include "showerror.h"
-#include "costmetrics.h"
-#include "perfStream.h"
-#include "dynamiclinking.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/dyninstP.h"
+#include "dyninstAPI/src/os.h"
+#include "paradynd/src/showerror.h"
+#include "paradynd/src/costmetrics.h"
+#include "paradynd/src/perfStream.h"
+#include "dyninstAPI/src/dynamiclinking.h"
 #include "paradynd/src/mdld.h"
 
 #if defined(MT_THREAD)
@@ -118,7 +117,7 @@ debug_ostream sharedobj_cerr(cerr, false);
 #define SIZE_WATERMARK 100
 static const timeStamp MAX_WAITING_TIME=10.0;
 static const timeStamp MAX_DELETING_TIME=2.0;
-int inferiorMemAvailable=0;
+unsigned inferiorMemAvailable=0;
 
 unsigned activeProcesses; // number of active processes
 vector<process*> processVec;
@@ -578,7 +577,7 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 {
     inferiorHeap *hp;
     heapItem *np=NULL, *newEntry = NULL;
-    
+
     assert(size > 0);
     /* round to next cache line size */
     /* 32 bytes on a SPARC */
@@ -1272,6 +1271,10 @@ tp->resourceBatchMode(true);
         // we use this flag to solve race condition between inferiorRPC and 
         // continueProc message from paradyn - naim
         ret->deferredContinueProc = false;
+
+        ret->numOfActCounters_is=0;
+        ret->numOfActProcTimers_is=0;
+        ret->numOfActWallTimers_is=0;
 
 	close(tracePipe[1]);
 	   // parent never writes trace records; it only receives them.
@@ -2342,6 +2345,13 @@ bool process::continueProc() {
   if (status_ == exited) return false;
 
   if (status_ != stopped && status_ != neonatal) {
+    //TEST_DEL
+      sprintf(errorLine,"********** (%s) Error in continue proc (state=%d). Here we go...\n",getHostName().string_of(),status_);
+      logLine(errorLine);
+      kill(getpid(),SIGSTOP);
+      int statusp;
+      wait(&statusp);
+    //TEST_DEL
     showErrorCallback(38, "Internal paradynd error in process::continueProc");
     return false;
   }
@@ -3378,7 +3388,6 @@ bool CT::update(unsigned tableAddr)
     }
     if (CTvectorSize > (unsigned)memCT) memCT = CTvectorSize;
     assert(CTvectorSize >= CTfree.size());
-    activeCT = CTvectorSize-CTfree.size();   
     assert(CTfree.size());
     return(true);
 }
@@ -3411,4 +3420,24 @@ void CT::dup(unsigned CTid, unsigned mid, Thread *thr, unsigned &position)
     CTmapTable[CTid] = thr->CTvector->getCTmapId(mid);
     position = CTmapTable[CTid];
     CTmapTable.undef(mid);
+}
+
+void process::updateActiveCT(bool flag, CTelementType type)
+{
+  switch(type) {
+    case counter:
+      if (flag) numOfActCounters_is++;
+      else numOfActCounters_is--;
+      break;
+    case wallTimer:
+      if (flag) numOfActWallTimers_is++;
+      else numOfActWallTimers_is--;
+      break;
+    case procTimer:
+      if (flag) numOfActProcTimers_is++;
+      else numOfActProcTimers_is--;
+      break;
+    default:
+      assert(0);
+  }
 }

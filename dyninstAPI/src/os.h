@@ -51,6 +51,10 @@
 
 /*
  * $Log: os.h,v $
+ * Revision 1.13  1997/02/21 20:13:41  naim
+ * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
+ * out of the ast class. The is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.12  1996/11/05 20:33:19  tamches
  * some OS:: methods have changed to process:: methods
  *
@@ -69,15 +73,13 @@
  */
 
 #if defined(sparc_sun_sunos4_1_3)
-#include "sunos.h"
+#include "dyninstAPI/src/sunos.h"
 #elif defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
-#include "solaris.h"
+#include "dyninstAPI/src/solaris.h"
 #elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-#include "aix.h"
-#elif defined(sparc_tmc_cmost7_3)
-#include "cmost.h"
+#include "dyninstAPI/src/aix.h"
 #elif defined(hppa1_1_hp_hpux)
-#include "hpux.h"
+#include "dyninstAPI/src/hpux.h"
 #endif
 
 #include "util/h/String.h"

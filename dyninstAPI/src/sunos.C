@@ -41,6 +41,10 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.23  1997/02/21 20:13:53  naim
+ * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
+ * out of the ast class. The is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.22  1997/01/30 18:14:12  tamches
  * skeleton isRunning, tryToFindExecutable, and read_inferiorRPC_result_register
  *
@@ -98,7 +102,7 @@
  */
 
 
-#include "process.h"
+#include "dyninstAPI/src/process.h"
 
 extern "C" {
 extern int ioctl(int, int, ...);
@@ -116,15 +120,16 @@ extern struct rusage *mapUarea();
 #include <machine/reg.h>
 #include <sys/user.h> // for u-area stuff
 
-#include "symtab.h"
+#include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
-#include "os.h"
-#include "stats.h"
+#include "dyninstAPI/src/os.h"
+#include "dyninstAPI/src/stats.h"
 #include "util/h/Types.h"
-#include "showerror.h"
-#include "main.h"
-#include "util.h" // getCurrWallTimeULL
+#include "paradynd/src/showerror.h"
+#include "paradynd/src/main.h"
+#include "dyninstAPI/src/util.h" // getCurrWallTimeULL
 #include "util/h/pathName.h"
+#include "paradynd/src/metric.h" // getCurrentTime
 
 #ifdef SHM_SAMPLING
 #include <kvm.h>
@@ -488,8 +493,6 @@ bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
 
   return (ptraceKludge::deliverPtrace(this, PTRACE_WRITETEXT, inTraced, amount, (void *)inSelf));
 }
-
-#include "metric.h" // getCurrentTime
 
 bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
   if (!checkStatus())

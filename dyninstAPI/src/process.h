@@ -52,32 +52,32 @@
 
 #include <stdio.h>
 #include "rtinst/h/rtinst.h"
-#include "util.h"
+#include "dyninstAPI/src/util.h"
 #include "util/h/String.h"
 #include "util/h/vectorSet.h"
 #include "util/h/Dictionary.h"
 #include "util/h/Types.h"
 #include "util/h/Timer.h"
-#include "ast.h"
-#include "os.h"
-#include "main.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/os.h"
+#include "paradynd/src/main.h"
 #include "dyninstRPC.xdr.h"
-#include "showerror.h"
+#include "paradynd/src/showerror.h"
 
-#include "symtab.h" // internalSym
+#include "dyninstAPI/src/symtab.h" // internalSym
 
 #ifdef SHM_SAMPLING
-#include "fastInferiorHeapMgr.h"
-#include "fastInferiorHeap.h"
-#include "fastInferiorHeapHKs.h"
+#include "paradynd/src/fastInferiorHeapMgr.h"
+#include "paradynd/src/fastInferiorHeap.h"
+#include "paradynd/src/fastInferiorHeapHKs.h"
 #ifdef sparc_sun_sunos4_1_3
 #include <kvm.h>
 #include <sys/user.h>
 #endif
 #endif
 
-#include "sharedobject.h"
-#include "dynamiclinking.h"
+#include "dyninstAPI/src/sharedobject.h"
+#include "dyninstAPI/src/dynamiclinking.h"
 
 extern unsigned activeProcesses; // number of active processes
    // how about just processVec.size() instead?  At least, this should be made
@@ -318,7 +318,11 @@ class process {
       // see para above for reason why this 'vector' can have at most 1 elem!
 
  public:
+  unsigned numOfActCounters_is;
+  unsigned numOfActProcTimers_is;
+  unsigned numOfActWallTimers_is; 
   bool deferredContinueProc;
+  void updateActiveCT(bool flag, CTelementType type);
   void postRPCtoDo(AstNode *, bool noCost,
 		   void (*)(process *, void *, unsigned), void *);
   bool existsRPCreadyToLaunch() const;

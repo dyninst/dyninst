@@ -39,18 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "symtab.h"
+#include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
-#include "os.h"
-#include "paradynd/src/process.h"
-#include "symtab.h"
-#include "stats.h"
+#include "dyninstAPI/src/os.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/stats.h"
 #include "util/h/Types.h"
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <sys/termios.h>
 #include <unistd.h>
-#include "showerror.h"
+#include "paradynd/src/showerror.h"
 #include "util/h/pathName.h" // concat_pathname_components()
 #include "util/h/debugOstream.h"
 

@@ -43,6 +43,10 @@
  * arch-x86.C - x86 instruction decoder
  *
  * $Log: arch-x86.C,v $
+ * Revision 1.3  1997/02/21 20:13:13  naim
+ * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
+ * out of the ast class. The is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.2  1996/11/12 17:48:25  mjrg
  * Moved the computation of cost to the basetramp in the x86 platform,
  * and changed other platform to keep code consistent.
@@ -58,7 +62,7 @@
 
 #include <assert.h>
 #include "util/h/Types.h"
-#include "arch-x86.h"
+#include "dyninstAPI/src/arch-x86.h"
 
 
 // opcode descriptors (from the Pentiumm manual)

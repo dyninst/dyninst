@@ -45,6 +45,10 @@
 
 /*
  * $Log: inst-power.h,v $
+ * Revision 1.5  1997/02/21 20:13:27  naim
+ * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
+ * out of the ast class. The is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.4  1997/02/18 21:24:09  sec
  * Added a field to instPoint, which identifies what the instrumentation
  * point is for (an enum saying ipFuncEntry, ipFuncReturn, ipFuncCallPoint).
@@ -76,8 +80,8 @@
  */
 
 
-#include "ast.h"
-#include "as-power.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/as-power.h"
 
 /* "pseudo" instructions that are placed in the tramp code for the inst funcs
  *   to patch up.   This must be invalid instructions (any instruction with

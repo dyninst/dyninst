@@ -43,7 +43,7 @@
 #define sunos_dl_hdr
 
 #include "util/h/Vector.h"
-#include "paradynd/src/sharedobject.h"
+#include "dyninstAPI/src/sharedobject.h"
 class process;
 
 //

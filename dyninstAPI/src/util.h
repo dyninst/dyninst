@@ -43,6 +43,10 @@
  * util.h - support functions.
  *
  * $Log: util.h,v $
+ * Revision 1.15  1997/02/21 20:14:00  naim
+ * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
+ * out of the ast class. The is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.14  1997/01/27 19:41:19  naim
  * Part of the base instrumentation for supporting multithreaded applications
  * (vectors of counter/timers) implemented for all current platforms +
@@ -122,6 +126,8 @@ typedef struct sym_data {
   string name;
   bool must_find;
 } sym_data;
+
+typedef enum { counter, procTimer, wallTimer } CTelementType;
 
 // TIMING code
 

@@ -49,17 +49,17 @@
 
 
 #include "rtinst/h/rtinst.h"
-#include "symtab.h"
-#include "process.h"
-#include "inst.h"
-#include "instP.h"
-#include "ast.h"
-#include "util.h"
-#include "internalMetrics.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "paradynd/src/internalMetrics.h"
 #include <strstream.h>
-#include "stats.h"
-#include "init.h"
-#include "showerror.h"
+#include "dyninstAPI/src/stats.h"
+#include "paradynd/src/init.h"
+#include "paradynd/src/showerror.h"
 
 dictionary_hash <string, unsigned> primitiveCosts(string::hash);
 
@@ -111,7 +111,7 @@ void clearBaseBranch(process *proc, instInstance *inst)
                  (unsigned)inst->baseInstance->skipPreInsOffset;
       toAddr = inst->baseInstance->baseAddr + 
 #if defined(rs6000_ibm_aix4_1)
-	       (unsigned)inst->baseInstance->emulateInsOffset;
+               (unsigned)inst->baseInstance->emulateInsOffset;
 #else
                (unsigned)inst->baseInstance->updateCostOffset;
 #endif

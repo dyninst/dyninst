@@ -40,14 +40,14 @@
  */
 
 #include "util/h/headers.h"
-#include "os.h"
-#include "process.h"
-#include "stats.h"
+#include "dyninstAPI/src/os.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/stats.h"
 #include "util/h/Types.h"
 #include <fcntl.h>
-#include "showerror.h"
-#include "main.h"
-#include "symtab.h"
+#include "paradynd/src/showerror.h"
+#include "paradynd/src/main.h"
+#include "dyninstAPI/src/symtab.h"
 #include <machine/save_state.h>
 #include "util/h/pathName.h"
 

@@ -45,16 +45,16 @@
 #define dynamic_linking_h
 
 #if defined(sparc_sun_sunos4_1_3)
-#include "paradynd/src/sunosDL.h"
+#include "dyninstAPI/src/sunosDL.h"
 
 #elif defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
-#include "paradynd/src/solarisDL.h"
+#include "dyninstAPI/src/solarisDL.h"
 
 #elif defined(hppa1_1_hp_hpux)
-#include "paradynd/src/hpuxDL.h"
+#include "dyninstAPI/src/hpuxDL.h"
 
 #elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-#include "paradynd/src/aixDL.h"
+#include "dyninstAPI/src/aixDL.h"
 
 #endif
 

@@ -44,6 +44,10 @@
 
 /*
  * $Log: arch-power.h,v $
+ * Revision 1.9  1997/02/21 20:13:11  naim
+ * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
+ * out of the ast class. The is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.8  1997/02/18 21:12:56  sec
  * Redefined most of this include file.  Alot of the representations for
  * instructions were in the form of PowerPC instructions, not Power2; I modified
@@ -82,7 +86,7 @@
  *
  */
 
-#include "symtab.h"
+#include "dyninstAPI/src/symtab.h"
 
 /*
  * Define power instruction information.

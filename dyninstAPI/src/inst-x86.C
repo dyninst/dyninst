@@ -43,6 +43,10 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.12  1997/02/21 20:13:38  naim
+ * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
+ * out of the ast class. The is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.11  1997/02/03 17:20:55  lzheng
  * Changes made for combining the long jump and short jump on solaris platform
  *
@@ -93,18 +97,18 @@
 #include "util/h/headers.h"
 
 #include "rtinst/h/rtinst.h"
-#include "symtab.h"
-#include "process.h"
-#include "inst.h"
-#include "instP.h"
-#include "ast.h"
-#include "util.h"
-#include "stats.h"
-#include "os.h"
-#include "showerror.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/stats.h"
+#include "dyninstAPI/src/os.h"
+#include "paradynd/src/showerror.h"
 
-#include "arch-x86.h"
-#include "inst-x86.h"
+#include "dyninstAPI/src/arch-x86.h"
+#include "dyninstAPI/src/inst-x86.h"
 
 extern bool isPowerOf2(int value, int &result);
 

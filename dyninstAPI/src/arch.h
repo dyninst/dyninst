@@ -41,6 +41,10 @@
 
 /*
  * $Log: arch.h,v $
+ * Revision 1.7  1997/02/21 20:13:14  naim
+ * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
+ * out of the ast class. The is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.6  1996/10/18 23:54:05  mjrg
  * Solaris/X86 port
  *
@@ -61,7 +65,7 @@
  *
  */
 
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4) || defined(sparc_tmc_cmost7_3)
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
 #include "arch-sparc.h"
 #endif
 

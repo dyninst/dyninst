@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "paradynd/src/inst-sparc.h"
+#include "dyninstAPI/src/inst-sparc.h"
 
 instruction newInstr[1024];
 static dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);

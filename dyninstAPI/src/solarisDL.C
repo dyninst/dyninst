@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "paradynd/src/sharedobject.h"
-#include "paradynd/src/solarisDL.h"
-#include "paradynd/src/process.h"
-#include "paradynd/src/symtab.h"
+#include "dyninstAPI/src/sharedobject.h"
+#include "dyninstAPI/src/solarisDL.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/symtab.h"
 #include "util/h/debugOstream.h"
 
 extern debug_ostream sharedobj_cerr;

@@ -60,23 +60,23 @@
  *
  */
 
-#include "dyninstP.h" // isApplicationPaused
-#include "os.h"
-#include "metric.h"
-#include "dyninst.h"
+#include "dyninstAPI/src/dyninstP.h" // isApplicationPaused
+#include "dyninstAPI/src/os.h"
+#include "paradynd/src/metric.h"
+#include "dyninstAPI/src/dyninst.h"
 #include "rtinst/h/trace.h"
-#include "symtab.h"
-#include "process.h"
-#include "inst.h"
-#include "instP.h"
-#include "ast.h"
-#include "ptrace_emul.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/ptrace_emul.h"
 #include "dyninstRPC.xdr.SRVR.h"
-#include "util.h"
-#include "stats.h"
-#include "main.h"
-#include "perfStream.h"
-#include "context.h"
+#include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/stats.h"
+#include "paradynd/src/main.h"
+#include "paradynd/src/perfStream.h"
+#include "paradynd/src/context.h"
 #include <sys/ldr.h>
 
 string process::getProcessStatus() const {

@@ -2,7 +2,7 @@
 #define _shared_object_h
 
 #include "util/h/String.h"
-#include "paradynd/src/symtab.h"
+#include "dyninstAPI/src/symtab.h"
 
 /*
  * A class for link map information about a shared object that is mmapped 

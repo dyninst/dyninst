@@ -43,6 +43,10 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.37  1997/02/21 20:13:22  naim
+ * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
+ * out of the ast class. The is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.36  1997/02/03 05:01:25  lzheng
  * Combined the long jump and short jump for the instrumentation
  *
@@ -154,18 +158,18 @@
 #include "util/h/headers.h"
 
 #include "rtinst/h/rtinst.h"
-#include "symtab.h"
-#include "process.h"
-#include "inst.h"
-#include "instP.h"
-#include "inst-hppa.h"
-#include "arch-hppa.h"
-#include "ast.h"
-#include "util.h"
-#include "internalMetrics.h"
-#include "stats.h"
-#include "os.h"
-#include "showerror.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/inst-hppa.h"
+#include "dyninstAPI/src/arch-hppa.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "paradynd/src/internalMetrics.h"
+#include "dyninstAPI/src/stats.h"
+#include "dyninstAPI/src/os.h"
+#include "paradynd/src/showerror.h"
 #include <sys/mman.h>
 
 #define perror(a) P_abort();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4) && !defined(sparc_tmc_cmost7_3)
+#if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
 #endif
 
@@ -48,20 +48,19 @@
 
 #include "util/h/headers.h"
 #include "rtinst/h/rtinst.h"
-#include "paradynd/src/symtab.h"
-#include "paradynd/src/process.h"
-#include "paradynd/src/inst.h"
-#include "paradynd/src/ast.h"
-#include "paradynd/src/inst-sparc.h"
-#include "paradynd/src/arch-sparc.h"
-#include "paradynd/src/util.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/inst-sparc.h"
+#include "dyninstAPI/src/arch-sparc.h"
+#include "dyninstAPI/src/util.h"
 #include "paradynd/src/internalMetrics.h"
-#include "paradynd/src/stats.h"
-#include "paradynd/src/os.h"
+#include "dyninstAPI/src/stats.h"
+#include "dyninstAPI/src/os.h"
 #include "paradynd/src/showerror.h"
-#include "paradynd/src/as-sparc.h"
-#include "paradynd/src/ast.h"
-#include "paradynd/src/instP.h"
+#include "dyninstAPI/src/as-sparc.h"
+#include "dyninstAPI/src/instP.h"
 
 #define REG_MT               23   /* register saved to keep the address of */
                                   /* the current vector of counter/timers  */

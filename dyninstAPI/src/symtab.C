@@ -44,18 +44,18 @@
 #include <assert.h>
 
 // TODO - machine independent instruction functions
-#include "symtab.h"
-#include "arch.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/arch.h"
 #include "util/h/Object.h"
 #include <fstream.h>
-#include "util.h"
-#include "dyninstP.h"
+#include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/dyninstP.h"
 #include "util/h/String.h"
-#include "inst.h"
-#include "main.h"
+#include "dyninstAPI/src/inst.h"
+#include "paradynd/src/main.h"
 #include "util/h/Timer.h"
-#include "init.h"
-#include "showerror.h"
+#include "paradynd/src/init.h"
+#include "paradynd/src/showerror.h"
 #include "util/h/debugOstream.h"
 
 // All debug_ostream vrbles are defined in process.C (for no particular reason)

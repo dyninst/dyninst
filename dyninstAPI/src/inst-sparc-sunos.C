@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "paradynd/src/inst-sparc.h"
+#include "dyninstAPI/src/inst-sparc.h"
 
 // Another constructor for the class instPoint. This one is called
 // for the define the instPoints for regular functions which means

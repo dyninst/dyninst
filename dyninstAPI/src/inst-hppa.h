@@ -7,8 +7,8 @@
 #define _inst_hppa_h_
 
 
-#include "ast.h"
-#include "as-hppa.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/as-hppa.h"
 
 /* "pseudo" instructions that are placed in the tramp code for the inst funcs
  *   to patch up.   This must be invalid instructions.
