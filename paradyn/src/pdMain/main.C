@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.28  1995/10/19 22:43:04  mjrg
-/* Read both -s and -f files.
+/* Revision 1.29  1995/10/30 23:08:03  naim
+/* Taking the comment out of Tcl_DeleteInterp call - naim
 /*
+ * Revision 1.28  1995/10/19  22:43:04  mjrg
+ * Read both -s and -f files.
+ *
  * Revision 1.27  1995/08/24  15:02:55  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
@@ -220,7 +223,7 @@ main (int argc, char **argv)
      tclpanic(interp, "tk_init() failed (perhaps TK_LIBRARY not set?");
 
   // copy command-line arguments into tcl vrbles argc / argv
-  char *args = Tcl_Merge(argc - 1, argv + 1);
+  char *args = Tcl_Merge(argc - 1, (const char **) (argv + 1));
   Tcl_SetVar(interp, "argv", args, TCL_GLOBAL_ONLY);
   ckfree(args);
 
@@ -439,7 +442,5 @@ main (int argc, char **argv)
 
   thr_join (UIMtid, NULL, NULL);
 
-//  Tcl_DeleteInterp(interp);
-//    Unfortunately, status lines core dump on exit if I
-//    un-comment this out. --ari
+  Tcl_DeleteInterp(interp);
 }
