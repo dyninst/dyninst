@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2000/04/20 20:18:35 jasonxie Exp $
+# $Id: Makefile,v 1.3 2000/04/24 03:51:08 wylie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -16,9 +16,9 @@ include $(TO_CORE)/make.config
 # Now make any necessary architecture specific changes to variables:
 
 SYSLIBS   += -ldwarf -lelf
+GNU_CXX		= g++
 NATIVE_CC	= cc
-GNU_CXX = g++
-NATIVE_CXX = CC
+NATIVE_CXX	= CC
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -28,24 +28,28 @@ include ../make.module.tmpl
 MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
 
 ifeq ($(MUTATEE_CC),$(NATIVE_CC)) 
-MUTATEE_CFLAGS = -64 $(MODCFLAGS) -g
+MABI = -
+MUTATEE_CFLAGS = $(MODCFLAGS) -g
 endif
 
 ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
-MUTATEE_CFLAGS = -64 $(MODCFLAGS) -g
+MABI = -
+MUTATEE_CFLAGS = $(MODCFLAGS) -g
 endif
 
 ifeq ($(MUTATEE_CC), $(GNU_CXX))
-MUTATEE_CFLAGS = -mabi=64 $(ARCH_DEF) -g
+MABI = -mabi=
+MUTATEE_CFLAGS = $(ARCH_DEF) -g
 endif
 
 ifeq ($(MUTATEE_CC), gcc)
-MUTATEE_CFLAGS = -mabi=64 $(ARCH_DEF) -g
+MABI = -mabi=
+MUTATEE_CFLAGS = $(ARCH_DEF) -g
 endif
 
 # 64-bit mutatee
 $(TARGET2): $(MUTATEE_SRC)
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) -g $(MUTATEE_SRC) -o $(TARGET2)
+	$(MUTATEE_CC) $(MABI)64 $(MUTATEE_CFLAGS) $< -o $@ $(MUTLIBS)
 
 libtestA.o: ../src/libtestA.c
 	$(CC) -c $< -o $@
@@ -64,10 +68,7 @@ TARGET3   = $(TARGET2)_n32
 XTARGET3  = $(TARGET2)
 
 $(TARGET3): $(MUTATEE_SRC)
-	$(CC2) $(CFLAGS) -g $(MUTATEE_SRC) -o $(TARGET3)
-
-$(TARGET3).o: ../src/$(XTARGET3).c
-	$(CC2) $(CFLAGS) -c $< -o $@
+	$(MUTATEE_CC) $(MABI)n32 $(MUTATEE_CFLAGS) $< -o $@ $(MUTLIBS)
 
 aTest: $(TARGET3)
 
