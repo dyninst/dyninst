@@ -40,88 +40,6 @@
  */
 
 /*
- * instP.h - interface between inst and the arch specific inst functions.
- *
- * $Log: instP.h,v $
- * Revision 1.20  1996/11/11 01:46:11  lzheng
- * Moved the instructions which is used to caculate the observed cost
- * from the miniTramps to baseTramp
- *
- * Revision 1.19  1996/10/31 09:00:34  tamches
- * added noCost param to findAndInstallBaseTramp
- *
- * Revision 1.18  1996/10/03 22:12:14  mjrg
- * Removed multiple stop/continues when inserting instrumentation
- * Fixed bug on process termination
- * Removed machine dependent code from metric.C and process.C
- *
- * Revision 1.17  1996/09/26 18:58:43  newhall
- * added support for instrumenting dynamic executables on sparc-solaris
- * platform
- *
- * Revision 1.16  1996/09/13 21:41:58  mjrg
- * Implemented opcode ReturnVal for ast's to get the return value of functions.
- * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
- * Removed architecture dependencies from inst.C.
- * Changed code to allow base tramps of variable size.
- *
- * Revision 1.15  1996/09/12 15:08:25  naim
- * This commit move all saves and restores from the mini-tramps to the base
- * tramp. It also add jumps to skip instrumentation in the base-tramp when
- * it isn't required - naim
- *
- * Revision 1.14  1996/09/05 16:31:35  lzheng
- * Move the defination of BREAK_POINT_INSN to the machine dependent file
- *
- * Revision 1.13  1996/08/20 19:05:41  lzheng
- * Implementation of moving multiple instructions sequence and splitting
- * the instrumentation into two phases.
- *
- * Revision 1.12  1996/08/16 21:19:09  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.11  1996/04/26 19:49:21  lzheng
- * remove a #ifdef for hpux
- *
- * Revision 1.10  1996/04/08 21:24:08  lzheng
- * added generateToBranch, an HP-specific routine
- *
- * Revision 1.9  1995/08/24 15:04:10  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.8  1995/02/16  08:53:36  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.7  1995/02/16  08:33:33  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.6  1994/11/02  11:09:27  markc
- * Changed PCptrace prototype.
- *
- * Revision 1.5  1994/10/13  07:24:47  krisna
- * solaris porting and updates
- *
- * Revision 1.4  1994/09/22  02:01:19  markc
- * change instInstanceRec struct to a class
- * change signature to PCptrace
- * changed #defines for cust PTRACE_
- *
- */
-
-/*
  * Functions that need to be provided by the inst-arch file.
  *
  */
@@ -191,7 +109,7 @@ class returnInstance {
 		   :instructionSeq(instSeq), instSeqSize(seqSize), 
 		   addr_(addr), size_(size) {};
 
-    bool checkReturnInstance(const Address adr);
+    bool checkReturnInstance(const vector<Address> adr, u_int &index);
     void installReturnInstance(process *proc);
     void addToReturnWaitingList(Address pc, process *proc);
 
@@ -205,62 +123,47 @@ class returnInstance {
 
 class instWaitingList {
   public:
+    instWaitingList(instruction *i,int s,Address a,Address pc,
+		    instruction r, Address ra, process *wp){
+        instructionSeq = i;
+	instSeqSize = s;
+	addr_ = a;
+	pc_ = pc;
+#if !defined (i386_unknown_solaris2_5)
+	relocatedInstruction.raw = r.raw;
+#endif
+	relocatedInsnAddr = ra;
+	which_proc = wp;
+    }
+    ~instWaitingList(){} 
+    void cleanUp(process *proc, Address pc);
+
     instruction *instructionSeq;
     int instSeqSize;
     Address addr_;
-
+    Address pc_;
     instruction relocatedInstruction;
     Address relocatedInsnAddr;
-
-    instWaitingList *next;
-
-    void cleanUp(process *proc, Address pc);
+    process *which_proc;
 };
 
-extern List<instWaitingList *> instWList;
+extern vector<instWaitingList*> instWList;
 
-trampTemplate *findAndInstallBaseTramp(process *proc, instPoint *location,
-				       returnInstance *&retInstance,
-				       bool noCost);
+trampTemplate *findAndInstallBaseTramp(process *proc, 
+				 const instPoint *&location,
+				 returnInstance *&retInstance,
+				 bool noCost);
 void installTramp(instInstance *inst, char *code, int codeSize);
 void modifyTrampReturn(process*, int returnAddr, int newReturnTo);
 void generateReturn(process *proc, int currAddr, instPoint *location);
 void generateEmulationInsn(process *proc, int addr, instPoint *location);
 void generateNoOp(process *proc, int addr);
-//void generateBreakPoint(instruction &insn);
-//void generateIllegalInsn(instruction &insn);
-
 void initTramps();
 void generateBranch(process *proc, unsigned fromAddr,unsigned newAddr);
 void removeTramp(process *proc, instPoint *location);
 
 int flushPtrace();
 
-
-/*inline bool returnInstance::checkReturnInstance(const Address adr) {
-    if ((adr > addr_) && ( adr <= addr_+size_))
-	return false;
-    else 
-	return true;
-}
- 
-inline void returnInstance::installReturnInstance(process *proc) {
-    proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t) instructionSeq); 
-}
-
-inline void returnInstance::addToReturnWaitingList(instruction insn, Address pc) {
-
-    instWaitingList *instW = new instWaitingList; 
-    
-    instW->instructionSeq = instructionSeq;
-    instW->instSeqSize = instSeqSize;
-    instW->addr_ = addr_;
-
-    instW->relocatedInstruction = insn;
-    instW->relocatedInsnAddr = pc;
-
-    instWList.add(instW, (void *)pc);
-}*/
 
 
 

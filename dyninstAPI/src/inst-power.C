@@ -399,7 +399,7 @@ float getPointFrequency(instPoint *point)
 // return cost in cycles of executing at this point.  This is the cost
 //   of the base tramp if it is the first at this point or 0 otherwise.
 //
-int getPointCost(process *proc, instPoint *point)
+int getPointCost(process *proc, const instPoint *point)
 {
     if (proc->baseMap.defines(point)) {
 	return(0);
@@ -587,7 +587,7 @@ void generateNoOp(process *proc, int addr)
 
 
 trampTemplate *findAndInstallBaseTramp(process *proc, 
-				       instPoint *location,
+				       const instPoint *&location,
 				       returnInstance *&retInstance,
 				       bool noCost)
 {
@@ -812,7 +812,7 @@ unsigned emitFuncCall(opCode op,
             showErrorCallback(80, (const char *) errorLine);
             P_abort();
 	}
-	dest = func->addr();
+	dest = func->getAddress(0);
     }
 	
     for (unsigned u = 0; u < operands.size(); u++)
@@ -1455,7 +1455,7 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 
 bool pdFunction::findInstPoints(const image *owner) 
 {  
-  Address adr = addr();
+  Address adr = getAddress(0);
   instruction instr;
   bool err;
 
@@ -1596,7 +1596,14 @@ bool registerSpace::readOnlyRegister(reg reg_number)
 }
 
 
-bool returnInstance::checkReturnInstance(const Address adr) {
+bool returnInstance::checkReturnInstance(const vector<Address> adr,u_int &index)
+{
+    for(u_int i=0; i < adr.size(); i++){
+        index = i;
+        if ((adr[i] > addr_) && ( adr[i] <= addr_+size_)){
+	     return false;
+        }
+    }
     return true;
 }
  

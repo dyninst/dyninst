@@ -448,13 +448,6 @@ bool process::getActiveFrame(int *fp, int *pc)
       *pc=regs[PC_REG];
       ok=true;
   }
-/*
-#ifdef FREEDEBUG
-  if (!ok) 
-    logLine("--> TEST <-- getActiveFrame is returning FALSE\n");
-#endif
-
-*/
   return(ok);
 }
 
@@ -468,18 +461,14 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
     int rtn;
   } addrs;
 
-#ifdef FREEDEBUG
-  static int fpT=0,rtnT=0;
-#endif
-
   prgregset_t regs;
   pdFunction *func;
   int pc = *rtn;
 
   if (uppermost) {
-      func = symbols -> findFunctionIn(pc);
+      func = this->findFunctionIn(pc);
       if (func) {
-	  if (func -> leaf) {
+	  if (func ->isLeafFunc()) {
 	      if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
 		  *rtn = regs[R_O7] + 8;
 		  return readOK;
@@ -494,7 +483,8 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
   // currentFP+14*4 respectively, but to avoid two calls to readDataSpace,
   // we bring both together (i.e. 8 bytes of memory starting at currentFP+14*4
   // or currentFP+56).
-  //
+  // These values are copied to the stack when the application is paused,
+  // so we are assuming that the application is paused at this point
 
   if (readDataSpace((caddr_t) (currentFP + 56),
                     sizeof(int)*2, (caddr_t) &addrs, true)) {
@@ -503,33 +493,17 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
     // return address
     *rtn = addrs.rtn + 8;
 
-#ifdef FREEDEBUG
-    fpT=*fp; rtnT=*rtn;
-#endif
-
     // if pc==0, then we are in the outermost frame and we should stop. We
     // do this by making fp=0.
-
-#ifdef FREEDEBUG
-if ( (addrs.rtn!=0) && (!isValidAddress(this,(Address) addrs.rtn)) ) {
-  sprintf(errorLine,"==> TEST <== In readDataFromFrame, CHECK, pc out of range. pc=%d, fp=%d\n",rtnT,fpT);
-  logLine(errorLine);
-}
-#endif
 
     if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
       readOK=false;
     }
   }
   else {
-
-#ifdef FREEDEBUG
-  sprintf(errorLine,"==> TEST <== In readDataFromFrame, ERROR?, inTrace=%d, amount=%d, inSelf=%d, previousFP=%d, %x(hex) previousPC=%d, %x(hex). Keep going...\n",(currentFP+56),sizeof(int)*2,&addrs,fpT,fpT,rtnT,rtnT);
-  logLine(errorLine);
-#endif
-
     readOK=false;
   }
+
 
   return(readOK);
 }
@@ -699,3 +673,42 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool )
 }
 
 #endif
+
+
+// needToAddALeafFrame: returns true if the between the current frame 
+// and the next frame there is a leaf function (this occurs when the 
+// current frame is the signal handler and the function that was executing
+// when the sighandler was called is a leaf function)
+bool process::needToAddALeafFrame(Frame current_frame, Address &leaf_pc){
+
+   // check to see if the current frame is the signal handler 
+   Address frame_pc = current_frame.getPC();
+   Address sig_addr = 0;
+   const image *sig_image = (signal_handler->file())->exec();
+   if(getBaseAddress(sig_image, sig_addr)){
+       sig_addr += signal_handler->getAddress(0);
+   } else {
+       sig_addr = signal_handler->getAddress(0);
+   }
+   u_int sig_size = signal_handler->size();
+   if(signal_handler&&(frame_pc >= sig_addr)&&(frame_pc < (sig_addr+sig_size))){
+       // get the value of the saved PC: this value is stored in the address
+       // specified by the value in register i2 + 44. Register i2 must contain
+       // the address of some struct that contains, among other things, the 
+       // saved PC value.  
+       u_int reg_i2;
+       int fp = current_frame.getFramePtr();
+       if (readDataSpace((caddr_t)(fp+40),sizeof(u_int),(caddr_t)&reg_i2,true)){
+          if (readDataSpace((caddr_t) (reg_i2+44), sizeof(int),
+			    (caddr_t) &leaf_pc,true)){
+	      // if the function is a leaf function return true
+	      pdFunction *func = findFunctionIn(leaf_pc);
+	      if(func && func->isLeafFunc()) {
+		  return(true);
+	      }
+          }
+      }
+   }
+   return false;
+}
+

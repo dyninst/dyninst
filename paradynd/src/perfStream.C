@@ -39,54 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * perfStream.C - Manage performance streams.
- *
- * $Log: perfStream.C,v $
- * Revision 1.65  1996/11/05 20:33:56  tamches
- * changed some OS:: methods to process:: methods
- *
- * Revision 1.64  1996/10/31 09:23:49  tamches
- * the shm-sampling commit; shared-memory sampling in the main loop;
- * new inferiorRPC activities in SIGTRAP/STOP/ILL; removed TR_START;
- * removed some warnings
- *
- * Revision 1.63  1996/09/26 18:58:53  newhall
- * added support for instrumenting dynamic executables on sparc-solaris
- * platform
- *
- * Revision 1.62  1996/08/20 19:02:21  lzheng
- * Implementation of moving multiple instructions sequence
- *
- * Revision 1.61  1996/08/16 21:19:31  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.60  1996/08/12 16:27:03  mjrg
- * Code cleanup: removed cm5 kludges and some unused code
- *
- * Revision 1.59  1996/05/13 15:44:48  mjrg
- * Check the pid of a TR_EXEC record
- *
- * Revision 1.58  1996/05/11 00:30:47  mjrg
- * Added new calls to handleProcessExit
- *
- * Revision 1.57  1996/05/08 23:54:59  mjrg
- * added support for handling fork and exec by an application
- * use /proc instead of ptrace on solaris
- * removed warnings
- *
- * Revision 1.56  1996/03/12 20:48:32  mjrg
- * Improved handling of process termination
- * New version of aggregateSample to support adding and removing components
- * dynamically
- * Added error messages
- *
- * Revision 1.55  1996/03/05 16:14:05  naim
- * Making enableDataCollection asynchronous in order to improve performance - naim
- *
- */
-
-
 #ifdef PARADYND_PVM
 extern "C" {
 #include "pvm3.h"
@@ -408,10 +360,10 @@ int handleSigChild(int pid, int status)
 		    
 		//If the list is not empty, it means some previous
 		//instrumentation has yet need to be finished.
-		if (!instWList.empty()) {
-		    //cerr << "SIGTRAP: there was something on the waiting list...cleaning it up now" << endl;
-		    if (curr -> cleanUpInstrumentation(wasRunning))
-		       break; // successfully processed the SIGTRAP
+		if (instWList.size() != 0) {
+		    if(curr -> cleanUpInstrumentation(wasRunning)){
+		        break; // successfully processed the SIGTRAP
+                    }
 		}
 
 		if (curr->inExec) {

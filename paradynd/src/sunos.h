@@ -53,5 +53,6 @@
 #define STOP_WALL_TIMER  "DYNINSTstopWallTimer"
 #define START_PROC_TIMER "DYNINSTstartProcessTimer"
 #define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
+#define SIGNAL_HANDLER  0
 
 #endif

@@ -43,6 +43,12 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.30  1996/11/19 16:27:55  newhall
+ * Fix to stack walking on Solaris: find leaf functions in stack (these can occur
+ * on top of stack or in middle of stack if the signal handler is on the stack)
+ * Fix to relocated functions: new instrumentation points are kept on a per
+ * process basis.  Cleaned up some of the code.
+ *
  * Revision 1.29  1996/11/14 14:27:01  naim
  * Changing AstNodes back to pointers to improve performance - naim
  *
@@ -715,7 +721,7 @@ float getPointFrequency(instPoint *point)
 // return cost in cycles of executing at this point.  This is the cost
 //   of the base tramp if it is the first at this point or 0 otherwise.
 //
-int getPointCost(process *proc, instPoint *point)
+int getPointCost(process *proc, const instPoint *point)
 {
     if (proc->baseMap.defines(point)) {
         return(0);
@@ -773,7 +779,7 @@ void relocateInstruction(process *proc, instruction *&insn, int origAddr,
 		showErrorCallback(80, (const char *) errorLine);
 		P_abort();
 	    }
-	dest = midfunc->addr();
+	dest = midfunc->getAddress(0);
         generateToBranchInsn1(insn,dest); insn++;
         generateToBranchInsn2(insn,dest, location->isDelayed);insn++;
         generateNOOP(insn);
@@ -1042,7 +1048,7 @@ void generateNoOp(process *proc, int addr)
 
 
 trampTemplate *findAndInstallBaseTramp(process *proc,
-				       instPoint *location,
+				       const instPoint *&location,
 				       returnInstance *&retInstance,
 				       bool noCost)
 {
@@ -1156,7 +1162,8 @@ unsigned functionKludge(pdFunction *func, process *proc)
     } else if ((func->entryPoint).raw&&(func->entryPoint).mr.ls.tr == 31) {
     } else {
     }
-    address = func->addr();
+    // TODO: should param to getAddress be 0 or proc?
+    address = func->getAddress(0);
     proc->writeTextWord((caddr_t)address ,(func->entryPoint).raw);
 
     int index = 0;
@@ -1186,10 +1193,12 @@ unsigned functionKludge(pdFunction *func, process *proc)
     } 
     // warning: the following code assumes one exit point!
 //    address = ((func->funcReturn())->addr)+4;
-    address = func->funcReturns[func->funcReturns.size()-1]->addr + 4;
+    const vector<instPoint*> &f_returns = func->funcExits(0);
+    // TODO: should param to getAddress be 0 or proc?
+    address = f_returns[f_returns.size()-1]->addr + 4;
     proc->writeTextWord((caddr_t)address ,(func->exitPoint).raw);
 
-    Address ret = func -> addr(); 
+    Address ret = func -> getAddress(0); 
     return ret;
 }
 
@@ -1292,7 +1301,8 @@ unsigned emitFuncCall(opCode op,
              showErrorCallback(80, (const char *) errorLine);
              P_abort();
             }
-	    dest = func->addr();
+	    // TODO: is this correct or should we pass proc?
+	    dest = func->getAddress(0);
         
 	    generateLoadConst(insn, dest, 28, base);
 	    insn = (instruction *) ((void*)&i[base]);
@@ -1304,7 +1314,7 @@ unsigned emitFuncCall(opCode op,
 		showErrorCallback(80, (const char *) errorLine);
 		P_abort();
 	    }
-	    dest = midfunc->addr();
+	    dest = midfunc->getAddress(0);
 	}
 
         generateToBranchInsn1(insn, dest); insn++;
@@ -1641,7 +1651,7 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 
 bool pdFunction::findInstPoints(const image *owner) {
 
-  Address adr = addr();
+  Address adr = getAddress(0);
   instruction instr;
   bool err;
 
@@ -1649,8 +1659,6 @@ bool pdFunction::findInstPoints(const image *owner) {
   if (!IS_VALID_INSN(instr)) {
     return false;
   }
-
-  bool done;
 
   /*szOfLr = 0;*/
 
@@ -1666,8 +1674,6 @@ bool pdFunction::findInstPoints(const image *owner) {
   entryPoint = instr;
 
   if (size() <= 12) return false;
-
-  int index = 0; 
 
   for (; adr < retAdr; adr += 4) {
 
@@ -1769,39 +1775,49 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
 //   can read, but should not write.
 //   HPPA has no such registers.
 //
-bool registerSpace::readOnlyRegister(reg reg_number) {
+bool registerSpace::readOnlyRegister(reg ) {
   return false;
 }
 
 
-bool returnInstance::checkReturnInstance(const Address adr) {
-    if ((adr > addr_) && ( adr <= addr_+size_))
-	return false;
-    else 
-	return true;
+bool returnInstance::checkReturnInstance(const vector<Address> adr,u_int &index)
+{
+    for(u_int i=0; i < adr.size(); i++){
+        index = i;
+        if ((adr[i] > addr_) && ( adr[i] <= addr_+size_)){
+            return false;
+        }
+    }
+    return true;
 }
- 
+
 void returnInstance::installReturnInstance(process *proc) {
     proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t) instructionSeq); 
 }
 
-void returnInstance::addToReturnWaitingList(Address pc, process * proc) {
+void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
+
+    // if there already is a TRAP set at this pc for this process don't
+    // generate a trap instruction again...you will get the wrong original
+    // instruction if you do a readDataSpace
+    bool found = false;
     instruction insn;
-    instruction insnTrap;
-    generateBreakPoint(insnTrap);
-    proc->readDataSpace((caddr_t)pc, sizeof(insn), (char *)&insn, true);
-    proc->writeTextSpace((caddr_t)pc, sizeof(insnTrap), (caddr_t)&insnTrap);
+    for(u_int i=0; i < instWList.size(); i++){
+	if(((instWList[i])->pc_ == pc)&&((instWList[i])->which_proc == proc)){
+	    found = true;
+	    insn = (instWList[i])->relocatedInstruction;
+	    break;
+    } }
+    if(!found) {
+        instruction insnTrap;
+        generateBreakPoint(insnTrap);
+        proc->readDataSpace((caddr_t)pc, sizeof(insn), (char *)&insn, true);
+        proc->writeTextSpace((caddr_t)pc, sizeof(insnTrap), (caddr_t)&insnTrap);
+    }
 
-    instWaitingList *instW = new instWaitingList; 
-    
-    instW->instructionSeq = instructionSeq;
-    instW->instSeqSize = instSeqSize;
-    instW->addr_ = addr_;
-
-    instW->relocatedInstruction = insn;
-    instW->relocatedInsnAddr = pc;
-
-    instWList.add(instW, (void *)pc);
+    instWaitingList *instW = new instWaitingList(instructionSeq,instSeqSize,
+				 addr_,pc,insn,pc,proc);
+    instWList += instW;
 }
 
 

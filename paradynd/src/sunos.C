@@ -41,6 +41,12 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.20  1996/11/19 16:28:24  newhall
+ * Fix to stack walking on Solaris: find leaf functions in stack (these can occur
+ * on top of stack or in middle of stack if the signal handler is on the stack)
+ * Fix to relocated functions: new instrumentation points are kept on a per
+ * process basis.  Cleaned up some of the code.
+ *
  * Revision 1.19  1996/11/05 20:35:34  tamches
  * changed some OS:: methods to process:: methods
  *
@@ -266,6 +272,11 @@ bool process::getActiveFrame(int *fp, int *pc)
   else return(false);
 }
 
+// TODO: implement this
+bool process::needToAddALeafFrame(Frame,unsigned int &){
+    return false;
+}
+
 bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost)
 {
   bool readOK=true;
@@ -279,9 +290,9 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
   struct regs regs; 
 
   if (uppermost) {
-      func = symbols -> findFunctionIn(pc);
+      func = symbols -> findFunctionIn(pc,this);
       if (func) {
-	  if (func -> leaf) {
+	  if (func ->isLeafFunc()) {
 	      if (ptraceKludge::deliverPtrace(this,PTRACE_GETREGS,
 					      (char *)&regs,0,0)) {
 		  *rtn = regs.r_o7 + 8;
@@ -447,7 +458,7 @@ bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
 
 //  cerr << "writeTextSpace pid=" << getPid() << ", @ " << (void *)inTraced << " len=" << amount << endl; cerr.flush();
 
-  return (ptraceKludge::deliverPtrace(this, PTRACE_WRITETEXT, inTraced, amount, inSelf));
+  return (ptraceKludge::deliverPtrace(this, PTRACE_WRITETEXT, inTraced, amount, (void *)inSelf));
 }
 
 #include "metric.h" // getCurrentTime
@@ -471,7 +482,8 @@ bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
     result = false;
   else {
      ptraceOps++; ptraceBytes += amount;
-     result = ptraceKludge::deliverPtrace(this, PTRACE_READDATA, inTraced, amount, inSelf);
+     result = ptraceKludge::deliverPtrace(this, PTRACE_READDATA, 
+					(void *)inTraced, amount, inSelf);
   }
 
   return result;
@@ -671,7 +683,7 @@ bool process::dumpImage() {
   const string &imageFileName = symbols->file();
   const Address codeOff = symbols->codeOffset();
 
-  int i;
+  u_int i;
   int rd;
   int ifd;
   int ofd;

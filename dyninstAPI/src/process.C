@@ -40,68 +40,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * process.C - Code to control a process.
- *
- * $Log: process.C,v $
- * Revision 1.68  1996/11/14 14:28:03  naim
- * Changing AstNodes back to pointers to improve performance - naim
- *
- * Revision 1.67  1996/11/11 01:44:27  lzheng
- * Moved the instructions which is used to caculate the observed cost
- * from the miniTramps to baseTramp
- *
- * Revision 1.66  1996/11/08 23:45:00  tamches
- * change from 3-->1 shm seg per process
- *
- * Revision 1.65  1996/11/05 20:40:23  tamches
- * some OS:: methods changed to process:: methods
- * process ctor now takes traceLink, ioLink params
- * continueProcessIfWaiting removed (no longer needed)
- * improved error reporting for shm segs
- *
- * Revision 1.64  1996/10/31 09:31:56  tamches
- * major change: the shm-sampling commit
- * inferiorRPC
- * redesigned constructors
- * removed some warnings
- * some member vrbles are now private
- *
- * Revision 1.63  1996/10/03 22:12:06  mjrg
- * Removed multiple stop/continues when inserting instrumentation
- * Fixed bug on process termination
- * Removed machine dependent code from metric.C and process.C
- *
- * Revision 1.62  1996/09/26 18:59:08  newhall
- * added support for instrumenting dynamic executables on sparc-solaris
- * platform
- *
- * Revision 1.61  1996/09/05 16:36:20  lzheng
- * Move the architecture dependent definations to the architecture dependent files
- *
- * Revision 1.60  1996/08/20 19:18:37  lzheng
- * Implementation of moving multiple instructions sequence and
- * splitting the instrumentation into two phases
- *
- * Revision 1.59  1996/08/16 21:19:39  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.58  1996/07/09 04:11:58  lzheng
- * Implentented the stack walking on HPUX machine
- *
- * Revision 1.57  1996/06/01 00:01:03  tamches
- * heapActive now uses addrHash16 instead of addrHash
- * extensively commented how paradynd captures & processs stdio of the
- * program being run.
- *
- * Revision 1.56  1996/05/15 18:32:55  naim
- * Fixing bug in inferiorMalloc and adding some debugging information - naim
- *
- * Revision 1.55  1996/05/11  23:15:17  tamches
- * inferiorHeap now uses addrHash instead of uiHash; performs better.
- *
- */
-
 extern "C" {
 #ifdef PARADYND_PVM
 int pvmputenv (const char *);
@@ -166,7 +104,6 @@ Frame::Frame(process *proc) {
       // failure
       frame_ = pc_ = 0;
    }
-
    uppermostFrame = true;
 }
 
@@ -188,9 +125,8 @@ Frame Frame::getPreviousStackFrameInfo(process *proc) const {
 
 vector<Address> process::walkStack(bool noPause)
 {
+  vector<Address> pcs;
   bool needToCont = noPause ? false : (status() == running);
-
-  vector<Address> pcs; // initially an empty array
 
   if (!noPause && !pause()) {
      // pause failed...give up
@@ -198,21 +134,48 @@ vector<Address> process::walkStack(bool noPause)
      return pcs;
   }
 
-  Frame currentFrame(this);
-  while (!noPause && !currentFrame.isLastFrame()) {
-      if (noPause) break;
-      pcs += currentFrame.getPC();
+  Address sig_addr = 0;
+  u_int sig_size = 0;
+  if(signal_handler){
+      const image *sig_image = (signal_handler->file())->exec();
+      if(getBaseAddress(sig_image, sig_addr)){
+          sig_addr += signal_handler->getAddress(this);
+      } else {
+          sig_addr = signal_handler->getAddress(this);
+      }
+      sig_size = signal_handler->size();
+      // printf("signal_handler = %s size = %d addr = 0x%x\n",
+      //     (signal_handler->prettyName()).string_of(),sig_size,sig_addr);
+  }
+
+  if (pause()) {
+    Frame currentFrame(this);
+    while (!currentFrame.isLastFrame()) {
+      Address next_pc = currentFrame.getPC();
+      pcs += next_pc;
+      // is this pc in the signal_handler function?
+      if(signal_handler && (next_pc >= sig_addr)
+	  && (next_pc < (sig_addr+sig_size))){
+	  // check to see if a leaf function was executing when the signal
+	  // handler was called.  If so, then an extra frame should be added
+	  // for the leaf function...the call to getPreviousStackFrameInfo
+	  // will get the function that called the leaf function
+	  Address leaf_pc = 0;
+	  if(this->needToAddALeafFrame(currentFrame,leaf_pc)){
+              pcs += leaf_pc;
+	  }
+      }
       currentFrame = currentFrame.getPreviousStackFrameInfo(this); 
+    }
+    pcs += currentFrame.getPC();
   }
-  pcs += currentFrame.getPC();
-
   if (!noPause && needToCont) {
-     if (!continueProc())
+     if (!continueProc()){
         cerr << "walkStack: continueProc failed" << endl;
-  }
-
+     }
+  }  
   return(pcs);
-}  
+}
 
 bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) {
   const unsigned disItemPointer = disItem.getPointer();
@@ -1019,7 +982,6 @@ tp->resourceBatchMode(true);
 
 	/* parent */
 	statusLine("initializing process data structures");
-	// sprintf(name, "%s", (char*)img->name);
 
 //	cerr << "welcome to new process, pid=" << getpid() << endl; cerr.flush();
 //	kill(getpid(), SIGSTOP);
@@ -1046,25 +1008,15 @@ tp->resourceBatchMode(true);
 #endif
 				   );
 	   // change this to a ctor that takes in more args
+
 	assert(ret);
 	processVec += ret;
 	activeProcesses++;
 	if (!costMetric::addProcessToAll(ret))
 	   assert(false);
+        // find the signal handler function
+	ret->findSignalHandler();
 
-//	ret->initInferiorHeap(false);
-//	ret->splitHeaps = false;
-//
-//#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-//	// XXXX - move this to a machine dependant place.
-//
-//	// create a seperate text heap.
-//	ret->initInferiorHeap(true);
-//	ret->splitHeaps = true;
-//#endif
-
-//	ret->traceLink = tracePipe[0];
-//	ret->ioLink = ioPipe[0];
 	close(tracePipe[1]);
 	close(ioPipe[1]);
            // parent closes write end of io pipe; child closes its read end.
@@ -1408,33 +1360,6 @@ void process::processCost(unsigned obsCostLow,
 }
 #endif
 
-/* process::handleExec: called when a process exec.
-   Parse the new image and disable metric instances on the old image.
-*/
-void process::handleExec() {
-
-    // all instrumentation that was inserted in this process is gone.
-    // set exited here so that the disables won't try to write to process
-    status_ = exited; 
-
-    removeFromMetricInstances(this);
-
-    image *img = image::parseImage(execFilePath);
-    if (!img) {
-       string msg = string("Unable to parse image: ") + execFilePath;
-       showErrorCallback(68, msg.string_of());
-       P_kill(pid, 9);
-       return;
-    }
-
-    // delete proc->symbols ???
-    symbols = img;
-
-    /* update process status */
-    reachedFirstBreak = false;
-    status_ = stopped;
-}
-
 /*
  * Copy data from controller process to the named process.
  */
@@ -1650,6 +1575,11 @@ bool process::addASharedObject(shared_object &new_obj){
         *all_functions += *(new_obj.getAllFunctions()); 
     }
 
+    // if the signal handler function has not yet been found search for it
+    if(!signal_handler){
+        signal_handler = img->findOneFunction(SIGNAL_HANDLER);
+    }
+
     // clear the include_funcs flag if this shared object should not be
     // included in the some_functions and some_modules lists
     vector<string> lib_constraints;
@@ -1753,6 +1683,33 @@ pdFunction *process::findOneFunction(const string &func_name){
 	        return(pdf);
 	    }
     } }
+    return(0);
+}
+
+// findFunctionIn: returns the function containing the address "adr"
+// this routine checks both the a.out image and any shared object
+// images for this resource
+pdFunction *process::findFunctionIn(Address adr){
+
+    // first check a.out for function symbol
+    pdFunction *pdf = symbols->findFunctionIn(adr,this);
+    if(pdf) return pdf;
+    // search any shared libraries for the function 
+    if(dynamiclinking && shared_objects){
+        for(u_int i=0; i < shared_objects->size(); i++){
+	    pdf = ((*shared_objects)[i])->findFunctionIn(adr,this);
+	    if(pdf){
+	        return(pdf);
+	    }
+    } }
+    // if the function was not found, then see if this addr corresponds
+    // to  a function that was relocated in the heap
+    for(u_int i=0; i < all_functions->size(); i++){
+	Address func_adr = ((*all_functions)[i])->getAddress(this);
+        if((adr>=func_adr) && (adr<=(((*all_functions)[i])->size()+func_adr))){
+	    return((*all_functions)[i]);
+	}
+    }
     return(0);
 }
 	
@@ -1890,6 +1847,25 @@ vector<module *> *process::getIncludedModules(){
     return some_modules;
 }
       
+
+// findSignalHandler: if signal_handler is 0, then it checks all images
+// associtated with this process for the signal handler function.
+// Otherwise, the signal handler function has already been found
+void process::findSignalHandler(){
+
+    if(!signal_handler) { 
+        // first check a.out for signal handler function
+        signal_handler = symbols->findOneFunction(SIGNAL_HANDLER);
+
+	// search any shared libraries for signal handler function
+        if(!signal_handler && dynamiclinking && shared_objects) { 
+	    for(u_int i=0;(i < shared_objects->size()) && !signal_handler; i++){
+	        signal_handler = 
+		      ((*shared_objects)[i])->findOneFunction(SIGNAL_HANDLER);
+	} }
+    }
+}
+
 bool process::continueProc() {
   if (status_ == exited) return false;
 
@@ -1920,6 +1896,63 @@ bool process::detach(const bool paused) {
   return true;
 }
 
+/* process::handleExec: called when a process exec.
+   Parse the new image and disable metric instances on the old image.
+*/
+void process::handleExec() {
+
+    // all instrumentation that was inserted in this process is gone.
+    // set exited here so that the disables won't try to write to process
+    status_ = exited; 
+   
+    removeFromMetricInstances(this);
+
+    // Clean up state from old exec: all dynamic linking stuff, all lists 
+    // of functions and modules from old executable
+    dynamiclinking = false;
+    delete dyn;
+    dyn = new dynamic_linking;
+    if(shared_objects){
+       for(u_int i=0; i< shared_objects->size(); i++){
+	   delete (*shared_objects)[i];
+       }
+       delete shared_objects;
+       shared_objects = 0;
+    }
+
+    // TODO: when can pdFunction's be deleted???
+    delete some_modules;
+    delete some_functions;
+    delete all_functions;
+    delete all_modules;
+    some_modules = 0;
+    some_functions = 0;
+    all_functions = 0;
+    all_modules = 0;
+    signal_handler = 0;
+
+    image *img = image::parseImage(execFilePath);
+    if (!img) {
+       string msg = string("Unable to parse image: ") + execFilePath;
+       showErrorCallback(68, msg.string_of());
+       P_kill(pid, 9);
+       return;
+    }
+
+    // see if new image contains the signal handler function
+    this->findSignalHandler();
+
+    // delete proc->symbols ???  No, the image can be shared by more
+    // than one process...images and instPoints can not be deleted...TODO
+    // add some sort of reference count to these classes so that they can
+    // be deleted
+    symbols = img;
+
+    /* update process status */
+    reachedFirstBreak = false;
+    status_ = stopped;
+}
+
 /* 
    process::cleanUpInstrumentation called when paradynd catch
    a SIGTRAP to find out if there's any previous unfinished instrumentation
@@ -1935,25 +1968,34 @@ bool process::cleanUpInstrumentation(bool wasRunning) {
     // to this->status_, and so on (this is important to avoid bugs).
 
     assert(status_ == stopped); // since we're always called after a SIGTRAP
-
     Frame frame(this);
-    int pc = frame.getPC();
+    Address pc = frame.getPC();
 
     // Go thru the instWList to find out the ones to be deleted 
-    instWaitingList *instW;
-    if ((instW = instWList.find((void *)pc)) != NULL) {
-        instW->cleanUp(this, pc);
-	instWList.remove(instW);
-
-        // we'll be returning true
-	if (wasRunning)
-	   continueProc();
-
-	return true;
+    bool done = false;
+    u_int i=0;
+    bool found = false;
+    while(!done){
+	process *p = (instWList[i])->which_proc;
+	Address blah = (instWList[i])->pc_;
+	printf("ith: %d blah = 0x%x pc = 0x%x proc = %d this = %d\n",
+		i,blah,pc,(u_int)p,(u_int)this);
+        if(((instWList[i])->pc_ == pc) && ((instWList[i])->which_proc == this)){
+	    (instWList[i])->cleanUp(this,pc);
+	    printf("remove item in cleanUpInstrumentation pc = 0x%x\n",pc);
+	    u_int last = instWList.size()-1;
+	    delete (instWList[i]);
+	    instWList[i] = instWList[last];
+	    instWList.resize(last);
+	    found = true;
+	}
+	else {
+	    i++;
+	}
+	if(i >= instWList.size()) done = true;
     }
-    else {
-       return false;
-    }
+    if(found && wasRunning) continueProc();
+    return found;
 }
 
 void process::postRPCtoDo(AstNode *action, bool noCost,

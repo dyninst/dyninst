@@ -41,111 +41,6 @@
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
- *
- * $Log: inst-sparc-solaris.C,v $
- * Revision 1.11  1996/11/14 14:27:05  naim
- * Changing AstNodes back to pointers to improve performance - naim
- *
- * Revision 1.10  1996/11/12 17:48:40  mjrg
- * Moved the computation of cost to the basetramp in the x86 platform,
- * and changed other platform to keep code consistent.
- * Removed warnings, and made changes for compiling with Visual C++
- *
- * Revision 1.9  1996/11/11 01:50:43  lzheng
- * Moved the instructions which is used to caculate the observed cost
- * from the miniTramps to baseTramp
- *
- * Revision 1.8  1996/10/31 08:49:16  tamches
- * the shm-sampling commit; routines to implement inferiorRPC; removed some
- * warnings; added noCost param to some fns.
- *
- * Revision 1.7  1996/10/18 23:52:33  mjrg
- * Changed argument of findInstPoints
- *
- * Revision 1.6  1996/10/15 20:11:05  newhall
- * fix to relocating functions with a call instruction immediately following
- * the save instruction, don't instrument functions with retl instruction and
- * a call instruction, fix to get io and sync metrics to work correctly
- *
- * Revision 1.5  1996/10/04 16:12:40  naim
- * Optimization for code generation (use of immediate operations whenever
- * possible). This first commit is only for the sparc platform. Other platforms
- * should follow soon - naim
- *
- * Revision 1.4  1996/10/04 04:19:52  newhall
- * bug fix to pdFunction::checkCallPoints
- *
- * Revision 1.3  1996/10/03 22:12:12  mjrg
- * Removed multiple stop/continues when inserting instrumentation
- * Fixed bug on process termination
- * Removed machine dependent code from metric.C and process.C
- *
- * Revision 1.2  1996/10/01 18:25:30  newhall
- * bug fix to instPoint::instPoint when relocating a function
- *
- * Revision 1.1  1996/09/26 18:58:36  newhall
- * added support for instrumenting dynamic executables on sparc-solaris
- * platform
- *
- * Revision 1.47  1996/09/13 21:41:51  mjrg
- * Implemented opcode ReturnVal for ast's to get the return value of functions.
- * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
- * Removed architecture dependencies from inst.C.
- * Changed code to allow base tramps of variable size.
- *
- * Revision 1.46  1996/09/12 18:25:14  naim
- * Another minor fix to my previous commit! - naim
- *
- * Revision 1.44  1996/09/12 15:08:21  naim
- * This commit move all saves and restores from the mini-tramps to the base
- * tramp. It also add jumps to skip instrumentation in the base-tramp when
- * it isn't required - naim
- *
- * Revision 1.43  1996/09/05 16:40:07  lzheng
- * Moved the architecture dependent definations to the architecture
- * dependent files; Added some comments
- *
- * Revision 1.42  1996/08/23 16:59:23  lzheng
- * Another minor change related to the undoing of tail-call optimaztion
- *
- * Revision 1.41  1996/08/23 03:44:57  lzheng
- * Changes made for the previous commit and also minor bug fix for the
- * undoing of tail-call optimaztion
- *
- * Revision 1.40  1996/08/20 19:21:57  lzheng
- * Implementation of moving multiple instructions sequence and
- * splitting the instrumentation into two phases
- * (For solaris2.5, ndo the tail-call optimaztion for the system call
- * so we could get the correct value for calculating the time of system call.)
- *
- * Revision 1.39  1996/08/16 21:18:59  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.38  1996/07/18 19:37:46  naim
- * Changing the "frequency" value from 250 to 100 - naim
- *
- * Revision 1.37  1996/05/08  23:51:41  mjrg
- * included instructions to save registers in cost
- *
- * Revision 1.36  1996/04/29 22:18:46  mjrg
- * Added size to functions (get size from symbol table)
- * Use size to define function boundary
- * Find multiple return points for sparc
- * Instrument branches and jumps out of a function as return points (sparc)
- * Recognize tail-call optimizations and instrument them as return points (sparc)
- * Move instPoint to machine dependent files
- *
- * Revision 1.35  1996/04/26 20:43:07  lzheng
- * Changes to the procedure emitFuncCall. (move all the code dealing with
- * function Call in the miniTrampoline here)
- *
- * Revision 1.34  1996/03/25 22:58:05  hollings
- * Support functions that have multiple exit points.
- *
- * Revision 1.33  1996/03/20  17:02:46  mjrg
- * Added multiple arguments to calls.
- * Instrument pvm_send instead of pvm_recv to get tags.
- *
  */
 
 #include "util/h/headers.h"
@@ -215,6 +110,7 @@ public:
   int size;                        /* size of multiple instruction sequences */
   const image *image_ptr;	// for finding correct image in process
   bool firstIsConditional;     /* 1st instruction is conditional branch */
+  bool relocated_;	// true if this instPoint is from a relocated func
 };
 
 
@@ -515,9 +411,11 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
 		     const image *owner, Address &adr, bool delayOK, 
 		     instPointType pointType, Address &oldAddr)
 : addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
-  callIndirect(false), callAggregate(false), callee(NULL), func(f), ipType(pointType), image_ptr(owner), firstIsConditional(false)
+  callIndirect(false), callAggregate(false), callee(NULL), func(f), 
+  ipType(pointType), image_ptr(owner), firstIsConditional(false), 
+  relocated_(false)
 {
-  assert(f->isTrap == true);  
+  assert(f->isTrapFunc() == true);  
 
   isBranchOut = false;
   delaySlotInsn.raw = owner->get_instruction(oldAddr+4);
@@ -564,7 +462,8 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
 		     bool delayOK, bool isLeaf, instPointType pointType)
 : addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
   callIndirect(false), callAggregate(false), callee(NULL), func(f),
-  leaf(isLeaf), ipType(pointType), image_ptr(owner), firstIsConditional(false)
+  leaf(isLeaf), ipType(pointType), image_ptr(owner), firstIsConditional(false),
+  relocated_(false)
 {
 
   isBranchOut = false;
@@ -707,7 +606,7 @@ void pdFunction::checkCallPoints() {
 	non_lib += p;
       } else if(!pdf){
 	   // if this is a call outside the fuction, keep it
-	   if((loc_addr < addr()) || (loc_addr > (addr() + size()))){
+	   if((loc_addr < getAddress(0))||(loc_addr > (getAddress(0)+size()))){
 	        p->callIndirect = true;
                 p->callee = NULL;
                 non_lib += p;
@@ -731,10 +630,12 @@ void pdFunction::checkCallPoints() {
 
 // TODO we cannot find the called function by address at this point in time
 // because the called function may not have been seen.
-//
+// reloc_info is 0 if the function is not currently being relocated
 Address pdFunction::newCallPoint(Address &adr, const instruction instr,
 				 const image *owner, bool &err, 
-				 int &callId, Address &oldAddr)
+				 int &callId, Address &oldAddr,
+				 relocatedFuncInfo *reloc_info,
+				 const instPoint *&location)
 {
     Address ret=adr;
     instPoint *point;
@@ -754,7 +655,7 @@ Address pdFunction::newCallPoint(Address &adr, const instruction instr,
     }
 
     if (isTrap) {
-	if (not_relocating) {
+	if (!reloc_info) {
 	    calls += point;
 	    calls[callId] -> instId = callId++;
 	} else {
@@ -762,10 +663,23 @@ Address pdFunction::newCallPoint(Address &adr, const instruction instr,
 	    // kept in the calls vector
 	    assert(callId >= 0);
 	    assert(((u_int)callId) < calls.size());
-	    *(calls[callId++]) = *point;
+	    point->relocated_ = true;
+	    // if the location was this call site, then change its value
+	    if(location && (calls[callId] == location)) { 
+		assert(calls[callId]->instId  == location->instId);
+		location = point; 
+	    } 
+	    point->instId = callId++;
+	    reloc_info->addFuncCall(point);
 	}
     } else {
-	calls += point;
+	if (!reloc_info) {
+	    calls += point;
+	}
+	else {
+	    point->relocated_ = true;
+	    reloc_info->addFuncCall(point);
+	}
     }
     err = false;
     return ret;
@@ -847,7 +761,7 @@ float getPointFrequency(instPoint *point)
 // return cost in cycles of executing at this point.  This is the cost
 //   of the base tramp if it is the first at this point or 0 otherwise.
 //
-int getPointCost(process *proc, instPoint *point)
+int getPointCost(process *proc, const instPoint *point)
 {
     if (proc->baseMap.defines(point)) {
         return(0);
@@ -889,12 +803,9 @@ void relocateInstruction(instruction *insn, u_int origAddr, u_int targetAddr,
 	// will branch to this new inferior heap code, which will call the
 	// target of the branch
 	if (ABS(newOffset) > MAX_BRANCH) {
-	    int ret = inferiorMalloc(proc, 3*sizeof(instruction), textHeap);
+	    int ret = inferiorMalloc(proc,3*sizeof(instruction), textHeap);
 	    u_int old_offset = insn->branch.disp22 << 2;
 	    insn->branch.disp22  = (ret - targetAddr)>>2;
-// printf("ret = %d origAddr = %d targetAddr = %d disp22 = %d oldoff = %d\n",
-//	    ret ,origAddr, targetAddr,insn->branch.disp22,old_offset);
-
 	    instruction insnPlus[3];
 	    genImmInsn(insnPlus, SAVEop3, REG_SP, -112, REG_SP);
 	    generateCallInsn(insnPlus+1, ret+sizeof(instruction), 
@@ -1012,7 +923,7 @@ void generateMTpreamble(char *insn, unsigned &base, process *proc)
  * This one install the base tramp for the regular functions.
  *
  */
-trampTemplate *installBaseTramp(instPoint *location, process *proc) 
+trampTemplate *installBaseTramp(const instPoint *&location, process *proc)
 {
     unsigned baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
 
@@ -1050,7 +961,6 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 	    if(proc->getBaseAddress(location->image_ptr,baseAddress)){
 		fromAddr += baseAddress;		
             }
-
             // If the instruction is a call instruction to a location somewhere 
 	    // within the function, then the 07 regester must be saved and 
 	    // resored around the relocated call from the base tramp...the call
@@ -1068,8 +978,8 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 	    // not return to the base tramp
 	    if (isInsnType(*temp, CALLmask, CALLmatch)) {
 		Address offset = fromAddr + (temp->call.disp30 << 2);
-		if ((offset >= (location->func->addr()+ baseAddress)) && 
-		    (offset <= ((location->func->addr()+ baseAddress)+
+		if ((offset >= (location->func->getAddress(0)+ baseAddress)) && 
+		    (offset <= ((location->func->getAddress(0)+ baseAddress)+
 				 location->func->size()))) {
 		    // TODO: this assumes that the delay slot instruction is not
 		    // a call instruction....is this okay?
@@ -1080,7 +990,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 		    temp++; 
 		    currAddr += sizeof(instruction);  
 		    *temp = location->originalInstruction;
-		    relocateInstruction(temp, fromAddr, currAddr, proc);
+		    relocateInstruction(temp,fromAddr,currAddr,(process *)proc);
 		    temp++; 
 		    fromAddr += sizeof(instruction); 
 		    currAddr += sizeof(instruction);
@@ -1089,7 +999,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 		}
 	    }   
 
-	    relocateInstruction(temp, fromAddr, currAddr, proc);
+	    relocateInstruction(temp,fromAddr,currAddr,(process *)proc);
 
 	    // Again, for leaf function, one more is needed to move for one
 	    // more spot;
@@ -1098,7 +1008,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 		currAddr += sizeof(instruction);
 		*++temp = location->otherInstruction;
 		relocateInstruction(temp, fromAddr, currAddr, 
-				    proc);
+				    (process *)proc);
 	    }	  
 	    
 	    // Second, relocate the "NEXT instruction";
@@ -1106,7 +1016,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 	    currAddr += sizeof(instruction);
 	    *++temp = location->delaySlotInsn;
 	    relocateInstruction(temp, fromAddr, currAddr,
-				proc);
+				(process *)proc);
 	    
 	    // Third, if the "NEXT instruction" is a DCTI, 
 	    if (location->isDelayed) {
@@ -1114,7 +1024,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 		currAddr += sizeof(instruction);
 		*++temp = location->isDelayedInsn;
 		relocateInstruction(temp, fromAddr, currAddr,
-				    proc);
+				    (process *)proc);
 		
 		// Then, possibly, there's an callAggregate instruction
 		// after this. 
@@ -1148,7 +1058,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 		    fromAddr += sizeof(instruction);
 		    currAddr += sizeof(instruction);
 		    *++temp = location->inDelaySlotInsn;
-		    relocateInstruction(temp, fromAddr, currAddr, proc);
+		    relocateInstruction(temp,fromAddr,currAddr,(process *)proc);
                     if(location->firstIsConditional){
 		        fromAddr += sizeof(instruction);
 		        currAddr += sizeof(instruction);
@@ -1165,7 +1075,6 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 	    // point is from a shared object image
 	    Address baseAddress = 0;
 	    if(proc->getBaseAddress(location->image_ptr,baseAddress)){
-// printf("in installBaseTramp: RETURN_INSN: baseAddr = %x currAddr = %x size = %x\n",baseAddress,currAddr,location->size); 
             }
 	    // Back to the code segement of the application.
             // If the location is in the leaf procedure, generate an RESTORE
@@ -1219,7 +1128,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
  *  long jumps)
  *  for system calls
  */ 
-trampTemplate *installBaseTrampSpecial(instPoint *location,
+trampTemplate *installBaseTrampSpecial(const instPoint *&location,
 			     process *proc,
 			     vector<instruction> &extra_instrs) 
 {
@@ -1229,9 +1138,13 @@ trampTemplate *installBaseTrampSpecial(instPoint *location,
 
     unsigned baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
 
-    if (location->func->not_relocating) {
-	location->func->not_relocating = false;
-	location->func->relocateFunction(proc,location,extra_instrs);
+    if(!(location->func->isInstalled(proc))) {
+        location->func->relocateFunction(proc,location,extra_instrs);
+    }
+    else if(!location->relocated_){
+	// need to find new instPoint for location...it has the pre-relocated
+	// address of the instPoint
+        location->func->modifyInstPoint(location,proc);	     
     }
 
     code = new instruction[baseTemplate.size];
@@ -1241,13 +1154,7 @@ trampTemplate *installBaseTrampSpecial(instPoint *location,
         (currAddr - baseAddr) < (unsigned) baseTemplate.size;
         temp++, currAddr += sizeof(instruction)) {
 
-	// get the base address if this is a shared object
-	Address baseAddress = 0;
-	if(!(proc->getBaseAddress(location->image_ptr,baseAddress))){
-	   baseAddress = 0;
-        }
         if (temp->raw == EMULATE_INSN) {
-
 	    if (location->isBranchOut) {
                 // the original instruction is a branch that goes out of a 
 		// function.  We don't relocate the original instruction. We 
@@ -1255,21 +1162,14 @@ trampTemplate *installBaseTrampSpecial(instPoint *location,
 		// a unconditional branch to the target of the original 
 		// instruction here 
                 assert(location->branchTarget);
-                // int disp = location->branchTarget + baseAddress - currAddr;
                 int disp = location->branchTarget - currAddr;
-                //printf("A disp = %x\n",disp);
                 generateBranchInsn(temp, disp);
                 disp = temp->branch.disp22;
                 continue;
             }
 	    else {
 		*temp = location->originalInstruction;
-		// compute the real from address if this instrumentation
-		// point is from a shared object image
 		Address fromAddress = location->addr;
-		//if(proc->getBaseAddress(location->image_ptr,baseAddress)){
-		//   fromAddress += baseAddress;
-		// }	
 		relocateInstruction(temp, fromAddress, currAddr, proc);
 		if (location->isDelayed) {
 		    /* copy delay slot instruction into tramp instance */
@@ -1346,7 +1246,7 @@ void genImm(process *proc, unsigned fromAddr, int op, reg rs1, int immd,reg rd);
 
 void AstNode::sysFlag(instPoint *location)
 {
-    astFlag = location->func->isTrap;
+    astFlag = location->func->isTrapFunc();
     if (loperand)
 	loperand->sysFlag(location);
     if (roperand)
@@ -1364,21 +1264,15 @@ void AstNode::sysFlag(instPoint *location)
  *
  */
 trampTemplate *findAndInstallBaseTramp(process *proc, 
-				       instPoint *location,
-				       returnInstance *&retInstance,
-				       bool noCost)
+				 const instPoint *&location,
+				 returnInstance *&retInstance,
+				 bool noCost)
 {
     Address adr = location->addr;
-
-    process *globalProc = proc;
-
-    retInstance = NULL;
-
     trampTemplate *ret;
-    if (!globalProc->baseMap.defines(location)) {
-        // There is no base tramp at this location, so create one:
-
-	if (location->func->isTrap) {
+    retInstance = NULL;
+    if (!proc->baseMap.defines((const instPoint *)location)) {
+	if (location->func->isTrapFunc()) {
 	    // get the base Address of this function if it is a 
 	    // shared object
 	    Address baseAddress = 0;
@@ -1389,29 +1283,42 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	    // Install Base Tramp for the functions which are 
 	    // relocated to the heap.
             vector<instruction> extra_instrs;
-	    ret = installBaseTrampSpecial(location, globalProc,extra_instrs);
-	    if (location->isBranchOut){
-		changeBranch(globalProc, location->addr, 
-		  (int) ret->baseAddr, location->originalInstruction);
-            } else {
-		generateBranch(globalProc, location->addr, 
-			      (int)ret->baseAddr);
-            }
+	    ret = installBaseTrampSpecial(location, proc,extra_instrs);
 
-	    // If the function has not been installed to the base Tramp yet,
-	    // generate the following instruction sequece at the right
-	    // beginning of this function:
+            // add a branch from relocated function to the base tramp
+	    // if function was just relocated than location has old address
+	    // otherwise location will have address in already relocated func
+            if(!(location->func->isInstalled(proc))){
+	        if (location->isBranchOut){
+		    changeBranch(proc, location->addr, 
+		          (int) ret->baseAddr, location->originalInstruction);
+                } else {
+		    generateBranch(proc, location->addr, (int)ret->baseAddr);
+                }
+	    }
+	    else {  // location's address is correct...it is in the heap
+	        if (location->isBranchOut){
+		    changeBranch(proc, location->addr, 
+		          (int) ret->baseAddr, location->originalInstruction);
+                } else {
+		    generateBranch(proc, location->addr, (int)ret->baseAddr);
+                }
+	    }
+
+	    // If for this process, a call to the relocated function has not
+	    // yet be installed in its original location, then genterate the
+	    // following instructions at the begining of the function:
 	    //   SAVE;             CALL;         RESTORE.
 	    // so that it would jump the start of the relocated function
 	    // which is in heap.
-	    if (location->func->notInstalled) {
-		location->func->notInstalled = false;
+	    if(!(location->func->isInstalled(proc))){
+	    	location->func->setInstalled(proc);
 		u_int e_size = extra_instrs.size();
 		instruction *insn = new instruction[3 + e_size];
-		Address adr = location-> func -> addr();
+		Address adr = location-> func -> getAddress(0);
 		genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
 		generateCallInsn(insn+1, adr+baseAddress+4, 
-				 location->func->newAddr);
+				 location->func->getAddress(proc));
 		genSimpleInsn(insn+2, RESTOREop3, 0, 0, 0); 
 		for(u_int i=0; i < e_size; i++){
 		    insn[3+i] = extra_instrs[i];
@@ -1427,7 +1334,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 
 	} else {
 	    // Install base tramp for all the other regular functions. 
-	    ret = installBaseTramp(location, globalProc);
+	    ret = installBaseTramp(location, proc);
 	    // compute the real from address if this instrumentation
 	    // point is from a shared object image
 	    Address baseAddress = 0;
@@ -1464,10 +1371,10 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	    }
 	}
 
-	globalProc->baseMap[location] = ret;
+	proc->baseMap[(const instPoint *)location] = ret;
 
     } else {
-        ret = globalProc->baseMap[location];
+        ret = proc->baseMap[(const instPoint *)location];
     }
       
     return(ret);
@@ -1604,7 +1511,8 @@ unsigned emitFuncCall(opCode op,
 		showErrorCallback(80, (const char *) errorLine);
 		P_abort();
 	    }
-	    addr = func->addr();
+	    // TODO: is this correct or should we get relocated address?
+	    addr = func->getAddress(0);
 	}
 	
 	for (unsigned u = 0; u < operands.size(); u++)
@@ -2179,7 +2087,7 @@ bool pdFunction::findInstPoints(const image *owner) {
 
    leaf = true;
    Address adr;
-   Address adr1 = addr();
+   Address adr1 = getAddress(0);
    instruction instr;
    instr.raw = owner->get_instruction(adr1);
    if (!IS_VALID_INSN(instr))
@@ -2188,10 +2096,9 @@ bool pdFunction::findInstPoints(const image *owner) {
    // If it contains an instruction, I assume it would be s system call
    // which will be treat differently. 
    isTrap = false;
-   not_relocating = false;
    bool func_entry_found = false;
 
-   for ( ; adr1 < addr() + size(); adr1 += 4) {
+   for ( ; adr1 < getAddress(0) + size(); adr1 += 4) {
        instr.raw = owner->get_instruction(adr1);
 
        // If there's an TRAP instruction in the function, we 
@@ -2199,9 +2106,7 @@ bool pdFunction::findInstPoints(const image *owner) {
        // to the heap
        if (isInsnType(instr, TRAPmask, TRAPmatch)) {
 	   isTrap = true;
-	   not_relocating = true;
-	   notInstalled = true;
-	   return findInstPoints(owner, addr(), 0);
+	   return findInstPoints(owner, getAddress(0), 0);
        } 
 
        // TODO: This is a hacking for the solaris(solaris2.5 actually)
@@ -2222,9 +2127,7 @@ bool pdFunction::findInstPoints(const image *owner) {
 		   && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
 		       || nexti.rest.op3 == RESTOREop3)) {
 		   isTrap = true;
-		   not_relocating = true;
-		   notInstalled = true;
-		   return findInstPoints(owner, addr(), 0);
+		   return findInstPoints(owner, getAddress(0), 0);
 	       }
 	   }   
        }
@@ -2247,13 +2150,13 @@ bool pdFunction::findInstPoints(const image *owner) {
    // If there's no SAVE instruction found, this is a leaf function and
    // and function Entry will be defined from the first instruction
    if (leaf) {
-       adr = addr();
+       adr = getAddress(0);
        instr.raw = owner->get_instruction(adr);
        funcEntry_ = new instPoint(this, instr, owner, adr, true, leaf, functionEntry);
        assert(funcEntry_);
    }
 
-   for ( ; adr < addr() + size(); adr += sizeof(instruction)) {
+   for ( ; adr < getAddress(0) + size(); adr += sizeof(instruction)) {
 
      instr.raw = owner->get_instruction(adr);
 
@@ -2272,8 +2175,8 @@ bool pdFunction::findInstPoints(const image *owner) {
        // find if this branch is going out of the function
        int disp = instr.branch.disp22;
        Address target = adr +  (disp << 2);
-       if ((target < (addr()))  
-	   || (target >= (addr() + size()))) {
+       if ((target < (getAddress(0)))  
+	   || (target >= (getAddress(0) + size()))) {
 	 instPoint *point = new instPoint(this, instr, owner, adr, false, leaf, 
 					  functionExit);
 	 funcReturns += point;
@@ -2316,7 +2219,8 @@ bool pdFunction::findInstPoints(const image *owner) {
 	 // want to skip instructions
 	 bool err;
 	 int dummyId;
-	 adr = newCallPoint(adr, instr, owner, err, dummyId, adr);
+	 instPoint *blah = 0;
+	 adr = newCallPoint(adr, instr, owner, err, dummyId, adr,0,blah);
        }
      }
 
@@ -2356,11 +2260,9 @@ bool pdFunction::findInstPoints(const image *owner) {
 
 	 targetAddr = (prev2.sethi.imm22 << 10) & 0xfffffc00;
 	 targetAddr |= prev1.resti.simm13;
-	 if (targetAddr < addr() || targetAddr >= addr() + size()) {
-	   //fprintf(stderr, "Jump out of function %s at addr = %x, target = %x\n", 
-	   //	 prettyName().string_of(), adr, targetAddr);
-	   instPoint *point = new instPoint(this, instr, owner, adr, false, leaf, 
-					    functionExit);
+	 if ((targetAddr<getAddress(0))||(targetAddr>=(getAddress(0)+size()))){
+	   instPoint *point = new instPoint(this, instr, owner, adr, false, 
+					    leaf, functionExit);
 	   funcReturns += point;
 	 }
        }
@@ -2390,13 +2292,13 @@ bool pdFunction::checkInstPoints(const image *owner) {
 	return false;
 
     instruction instr;
-    Address adr = addr();
+    Address adr = getAddress(0);
 
     bool retl_inst = false;
     // Check if there's any branch instruction jump to the middle
     // of the instruction sequence in the function entry point
     // and function exit point.
-    for ( ; adr < addr() + size(); adr += sizeof(instruction)) {
+    for ( ; adr < getAddress(0) + size(); adr += sizeof(instruction)) {
 
 	instr.raw = owner->get_instruction(adr);
 	if(isInsnType(instr, RETLmask, RETLmatch)) retl_inst = true;
@@ -2419,7 +2321,6 @@ bool pdFunction::checkInstPoints(const image *owner) {
 		    (target < (funcReturns[i]->addr + funcReturns[i]->size))) {
 		    if ((adr < funcReturns[i]->addr)||
 			(adr > (funcReturns[i]->addr + funcReturns[i]->size)))
-			// cout << "Function (at " << adr << ") " << prettyName_ <<" exit " << i << "  ( adr: " << funcReturns[i]->addr << "   size:" << funcReturns[i]->size<< ")" <<endl;
 			return false;
 		}
 	    }
@@ -2463,8 +2364,9 @@ bool pdFunction::findInstPoints(const image *owner, Address newAdr, process*){
    if (size() == 0) {
      return false;
    }
+   relocatable_ = true;
 
-   Address adr = addr();
+   Address adr = getAddress(0);
    instruction instr;
    instr.raw = owner->get_instruction(adr);
    if (!IS_VALID_INSN(instr))
@@ -2496,7 +2398,7 @@ bool pdFunction::findInstPoints(const image *owner, Address newAdr, process*){
    int retId = 0;
    int callsId = 0; 
 
-   for (i = 0; adr < addr() + size(); adr += sizeof(instruction),  
+   for (i = 0; adr < getAddress(0) + size(); adr += sizeof(instruction),  
 	newAdr += sizeof(instruction), i++) {
 
      instr.raw = owner->get_instruction(adr);
@@ -2516,7 +2418,7 @@ bool pdFunction::findInstPoints(const image *owner, Address newAdr, process*){
        // find if this branch is going out of the function
        int disp = instr.branch.disp22;
        Address target = adr + (disp << 2);
-       if (target < addr() || target >= addr() + size()) {
+       if (target < getAddress(0) || target >= getAddress(0) + size()) {
 	   instPoint *point = new instPoint(this, newInstr[i], owner, 
 					    newAdr, false, 
 					    functionExit, adr);
@@ -2551,7 +2453,8 @@ bool pdFunction::findInstPoints(const image *owner, Address newAdr, process*){
          // the offest is not 8 then do not define this function 
          if(instr.call.op == CALLop){ 
            Address call_target = adr + (instr.call.disp30 << 2);
-           if((call_target >= addr()) && (call_target <= (addr() + size()))){ 
+           if((call_target >= getAddress(0)) 
+	      && (call_target <= (getAddress(0)+size()))){ 
 	      if((instr.call.disp30 << 2) != 2*sizeof(instruction)) {
 	        return false;
 	      }
@@ -2561,7 +2464,8 @@ bool pdFunction::findInstPoints(const image *owner, Address newAdr, process*){
 	 // this may update address - sparc - aggregate return value
 	 // want to skip instructions
 	 bool err;
-	 adr = newCallPoint(newAdr, instr, owner, err, callsId, adr);
+	 instPoint *blah = 0;
+	 adr = newCallPoint(newAdr, instr, owner, err, callsId, adr,0,blah);
 	 if (err)
 	   return false;
        }
@@ -2603,7 +2507,8 @@ bool pdFunction::findInstPoints(const image *owner, Address newAdr, process*){
 	     
 	     targetAddr = (prev2.sethi.imm22 << 10) & 0xfffffc00;
 	     targetAddr |= prev1.resti.simm13;
-	     if (targetAddr < addr() || targetAddr >= addr() + size()) {
+	     if ((targetAddr < getAddress(0)) 
+		 || (targetAddr >= (getAddress(0)+size()))) {
 		 instPoint *point = new instPoint(this, instr, owner, 
 						  newAdr, false,
 						  functionExit, adr);
@@ -2619,16 +2524,19 @@ bool pdFunction::findInstPoints(const image *owner, Address newAdr, process*){
 // This function assigns new address to instrumentation points of  
 // a function that has been relocated
 bool pdFunction::findNewInstPoints(const image *owner, 
+				const instPoint *&location,
 				Address newAdr,
 				process *proc,
-				vector<instruction> &callInstrs) {
+				vector<instruction> &callInstrs,
+				relocatedFuncInfo *reloc_info) {
 
    int i;
    if (size() == 0) {
      return false;
    }
+   assert(reloc_info);
 
-   Address adr = addr();
+   Address adr = getAddress(0);
    instruction instr;
    instr.raw = owner->get_instruction(adr);
    if (!IS_VALID_INSN(instr))
@@ -2636,9 +2544,14 @@ bool pdFunction::findNewInstPoints(const image *owner,
 
    instPoint *point = new instPoint(this, instr, owner, newAdr, true, 
 				    functionEntry, adr);
+   point->relocated_ = true;
+   // if location was the entry point then change location's value to new pt
+   if(location == funcEntry_) { 
+	location = point; 
+   }
 
-   *funcEntry_ = *point;
-   assert(funcEntry_);
+   reloc_info->addFuncEntry(point);
+   assert(reloc_info->funcEntry());
    int retId = 0;
    int callsId = 0; 
 
@@ -2651,16 +2564,12 @@ bool pdFunction::findNewInstPoints(const image *owner,
    // if we have call instructions that need to be added after the instrs
    // to call the relocated instruction, the first address we can use is
    // the address of the 4th instruction in the function
-   Address call_start_addr = addr() + baseAddress + 3*sizeof(instruction);
+   Address call_start_addr = getAddress(0)+baseAddress + 3*sizeof(instruction);
 
-   for (i = 0; adr < addr() + size(); adr += 4,  newAdr += 4, i++) {
+   for (i = 0; adr < getAddress(0) + size(); adr += 4,  newAdr += 4, i++) {
     
-
-
      instr.raw = owner->get_instruction(adr);
      newInstr[i] = instr;
-
-     // printf("next address = %x next instr = %x\n",adr,instr.raw);
 
      bool done;
 
@@ -2670,24 +2579,36 @@ bool pdFunction::findNewInstPoints(const image *owner,
        // define the return point
        instPoint *point	= new instPoint(this, instr, owner, newAdr, false, 
 					functionExit, adr);
-       *funcReturns[retId++] = *point;
+       point->relocated_ = true;
+       // if location was this point, change it to new point
+       if(location == funcReturns[retId]) { 
+	   location = point; 
+       }
+       retId++;
+       reloc_info->addFuncReturn(point);
      } else if (instr.branch.op == 0 
 		&& (instr.branch.op2 == 2 || instr.branch.op2 == 6)) {
        // find if this branch is going out of the function
        int disp = instr.branch.disp22;
        Address target = adr + baseAddress + (disp << 2);
-       if ((target < (addr() + baseAddress)) 
-	   || (target >= (addr() + baseAddress + size()))) {
+       if ((target < (getAddress(0) + baseAddress)) 
+	   || (target >= (getAddress(0) + baseAddress + size()))) {
 	   relocateInstruction(&newInstr[i],adr+baseAddress,newAdr,proc);
 	   instPoint *point = new instPoint(this, newInstr[i], owner, 
 					    newAdr, false, 
 					    functionExit, adr);
+           point->relocated_ = true;
 	   disp = newInstr[i].branch.disp22;
 	   if ((instr.branch.cond != 0) && (instr.branch.cond != 8)) {  
 	       point->isBranchOut = true;
 	       point->branchTarget = adr + (disp<<2);
 	   }
-	   *funcReturns[retId++] = *point;
+           // if location was this point, change it to new point
+           if(location == funcReturns[retId]) { 
+	       location = point;
+           }
+           retId++;
+           reloc_info->addFuncReturn(point);
        }
 
      } else if (isCallInsn(instr)) {
@@ -2747,7 +2668,13 @@ bool pdFunction::findNewInstPoints(const image *owner,
 	    point-> originalInstruction = newInstr[i-1];
 	    point-> delaySlotInsn = newInstr[i];
 	    point-> isDelayed = true;
-	    *funcReturns[retId++] = *point;
+            point->relocated_ = true;
+            // if location was this point, change it to new point
+            if(location == funcReturns[retId]) { 
+		location = point;
+            }
+            retId++;
+            reloc_info->addFuncReturn(point);
        } else {
 	 // if the second instruction in the function is a call instruction
          // then this cannot go in the delay slot of the branch to the
@@ -2758,7 +2685,7 @@ bool pdFunction::findNewInstPoints(const image *owner,
 	 //     save  %sp, -96, %sp             brach to base tramp
 	 //     call  0x73b70                   nop
 	 //                                     call 0x73b70
-	 if(adr == (addr()+4)){
+	 if(adr == (getAddress(0)+4)){
 	     newInstr[i+1] = instr;
 	     generateNOOP(&newInstr[i]);
 	     i++;
@@ -2777,8 +2704,8 @@ bool pdFunction::findNewInstPoints(const image *owner,
 	 // function.  This way the 07 register will contain the address
 	 // of the original call instruction
 	 Address call_target = adr + (instr.call.disp30 << 2);
-         if((call_target >= addr()) 
-		&& (call_target <= (addr() + size()))){ 
+         if((call_target >= getAddress(0)) 
+		&& (call_target <= (getAddress(0) + size()))){ 
 	    assert((newInstr[i].call.disp30 << 2) == 8);
 
 	    // generating call instruction to orginal function address
@@ -2793,7 +2720,6 @@ bool pdFunction::findNewInstPoints(const image *owner,
 			     newAdr+sizeof(instruction));
             callInstrs += new_inst;
 	   
-	    // printf("adr = %x baseAddress = %x call_sart = %x offset = %x addr() = %x\n",adr,baseAddress,call_start_addr,adr+baseAddress-call_start_addr,addr()); 
 	    // generate add isntruction to get correct value for 07 register 
 	    // this will go in delay slot of previous call instr.
 	    genImmInsn(&new_inst,ADDop3,REG_O7,
@@ -2807,7 +2733,7 @@ bool pdFunction::findNewInstPoints(const image *owner,
 	    bool err;
 	    relocateInstruction(&newInstr[i],adr+baseAddress,newAdr,proc);
 	    Address temp = newCallPoint(newAdr, newInstr[i], owner, err, 
-					callsId, adr);
+					callsId, adr,reloc_info,location);
 	    if (err) return false;
          }
        }
@@ -2849,11 +2775,18 @@ bool pdFunction::findNewInstPoints(const image *owner,
 	     
 	     targetAddr = (prev2.sethi.imm22 << 10) & 0xfffffc00;
 	     targetAddr |= prev1.resti.simm13;
-	     if (targetAddr < addr() || targetAddr >= addr() + size()) {
+	     if ((targetAddr < getAddress(0)) 
+		 || (targetAddr >= (getAddress(0)+size()))) {
 		 instPoint *point = new instPoint(this, instr, owner, 
 						  newAdr, false,
 						  functionExit, adr);
-	         *funcReturns[retId++] = *point;
+                 point->relocated_ = true;
+                 // if location was this point, change it to new point
+                 if(location == funcReturns[retId]) { 
+		     location = point;
+                 }
+                 retId++;
+                 reloc_info->addFuncReturn(point);
 	     }
 	 }
      }
@@ -2866,18 +2799,74 @@ bool pdFunction::findNewInstPoints(const image *owner,
 // called to relocate a function: when a request is made to instrument
 // a system call we relocate the entire function into the heap
 //
-bool pdFunction::relocateFunction(process *proc, instPoint *location,
+bool pdFunction::relocateFunction(process *proc, 
+				 const instPoint *&location,
 				 vector<instruction> &extra_instrs) {
 
-    process *globalProc = proc;
-
-    //Allocate the heap for the function to be relocated
-    int ret = inferiorMalloc(globalProc, size()+32, textHeap);
-    newAddr = ret;
-
-    findNewInstPoints(location->image_ptr, ret, proc, extra_instrs);
+    relocatedFuncInfo *reloc_info = 0;
+    // check to see if this process already has a relocation record 
+    // for this function
+    for(u_int i=0; i < relocatedByProcess.size(); i++){
+	if((relocatedByProcess[i])->getProcess() == proc){
+	    reloc_info = relocatedByProcess[i];
+	}
+    }
+    u_int ret = 0;
+    if(!reloc_info){
+        //Allocate the heap for the function to be relocated
+        ret = inferiorMalloc(proc, size()+32, textHeap);
+	if(!ret)  return false;
+        reloc_info = new relocatedFuncInfo(proc,ret);
+	relocatedByProcess += reloc_info;
+    }
+    if(!(findNewInstPoints(location->image_ptr, location, ret, proc, 
+			   extra_instrs, reloc_info))){
+    }
     proc->writeDataSpace((caddr_t)ret, size()+32,(caddr_t) newInstr);
     return true;
+}
+
+// modifyInstPoint: if the function associated with the process was 
+// recently relocated, then the instPoint may have the old pre-relocated
+// address (this can occur because we are getting instPoints in mdl routines 
+// and passing these to routines that do the instrumentation, it would
+// be better to let the routines that do the instrumenting find the points)
+void pdFunction::modifyInstPoint(const instPoint *&location,process *proc)
+{
+
+    if(relocatable_ && !(location->relocated_)){
+        for(u_int i=0; i < relocatedByProcess.size(); i++){
+	    if((relocatedByProcess[i])->getProcess() == proc){
+		if(location->ipType == functionEntry){
+		    const instPoint *new_entry = 
+				(relocatedByProcess[i])->funcEntry();
+		    location = new_entry;
+		} 
+		else if(location->ipType == functionExit){
+		    const vector<instPoint *> new_returns = 
+			(relocatedByProcess[i])->funcReturns(); 
+                    assert(funcReturns.size() == new_returns.size());
+                    for(u_int j=0; j < new_returns.size(); j++){
+			if(funcReturns[j] == location){
+			    location = (new_returns[j]);
+			    break;
+			}
+		    }
+		}
+		else {
+		    const vector<instPoint *> new_calls = 
+				(relocatedByProcess[i])->funcCallSites(); 
+                    assert(calls.size() == new_calls.size());
+                    for(u_int j=0; j < new_calls.size(); j++){
+			if(calls[j] == location){
+			    location = (new_calls[j]);
+			    break;
+			}
+		    }
+
+		}
+ 		break;
+    } } }
 }
 
 
@@ -2955,13 +2944,15 @@ bool registerSpace::readOnlyRegister(reg reg_number) {
       return false;
 }
 
-bool returnInstance::checkReturnInstance(const Address adr) {
-    if ((adr > addr_) && ( adr <= addr_+size_)) {
-        return false;
+bool returnInstance::checkReturnInstance(const vector<Address> adr,u_int &index)
+{
+    for(u_int i=0; i < adr.size(); i++){
+	index = i;
+        if ((adr[i] > addr_) && ( adr[i] <= addr_+size_)){
+	    return false;
+        }
     }
-    else {
-        return true;
-    }
+    return true;
 }
 
 void returnInstance::installReturnInstance(process *proc) {
@@ -2974,23 +2965,33 @@ void generateBreakPoint(instruction &insn) {
 }
 
 void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
+
+    // if there already is a TRAP set at this pc for this process don't
+    // generate a trap instruction again...you will get the wrong original
+    // instruction if you do a readDataSpace
+    bool found = false;
     instruction insn;
-    instruction insnTrap;
-    generateBreakPoint(insnTrap);
-    proc->readDataSpace((caddr_t)pc, sizeof(insn), (char *)&insn, true);
-    proc->writeTextSpace((caddr_t)pc, sizeof(insnTrap), (caddr_t)&insnTrap);
+    for(u_int i=0; i < instWList.size(); i++){
+         if(((instWList[i])->pc_ == pc)&&((instWList[i])->which_proc == proc)){
+	     found = true;
+	     insn = (instWList[i])->relocatedInstruction;
+	     break;
+    } }
+    if(!found) {
+        instruction insnTrap;
+        generateBreakPoint(insnTrap);
+        proc->readDataSpace((caddr_t)pc, sizeof(insn), (char *)&insn, true);
+        proc->writeTextSpace((caddr_t)pc, sizeof(insnTrap), (caddr_t)&insnTrap);
+    }
+    else {
+    }
 
-    instWaitingList *instW = new instWaitingList; 
-    
-    instW->instructionSeq = instructionSeq;
-    instW->instSeqSize = instSeqSize;
-    instW->addr_ = addr_;
+    instWaitingList *instW = new instWaitingList(instructionSeq,instSeqSize,
+				     addr_,pc,insn,pc,proc);
+    instWList += instW;
 
-    instW->relocatedInstruction = insn;
-    instW->relocatedInsnAddr = pc;
-
-    instWList.add(instW, (void *)pc);
 }
+
 
 bool doNotOverflow(int value)
 {

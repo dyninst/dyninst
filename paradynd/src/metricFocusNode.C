@@ -39,48 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * metric.C - define and create metrics.
- *
- * $Log: metricFocusNode.C,v $
- * Revision 1.110  1996/11/14 14:27:59  naim
- * Changing AstNodes back to pointers to improve performance - naim
- *
- * Revision 1.109  1996/10/31 09:28:23  tamches
- * the shm-sampling commit; completely redesigned dataReqNode; designed
- * a handful of derived classes of dataReqNode, which replaces a lot of
- * existing code; removed some warnings; inferiorRPC.
- *
- * Revision 1.108  1996/10/20 20:18:16  mjrg
- * small change to assertions
- *
- * Revision 1.107  1996/10/03 22:12:01  mjrg
- * Removed multiple stop/continues when inserting instrumentation
- * Fixed bug on process termination
- * Removed machine dependent code from metric.C and process.C
- *
- * Revision 1.106  1996/09/26 18:58:51  newhall
- * added support for instrumenting dynamic executables on sparc-solaris
- * platform
- *
- * Revision 1.105  1996/09/05 16:35:35  lzheng
- * Move the architecture dependent definations to the architecture dependent files
- *
- * Revision 1.104  1996/08/20 19:04:22  lzheng
- * Implementation of moving multiple instructions sequence and splitting
- * the instrumentation into two phases
- *
- * Revision 1.103  1996/08/16 21:19:21  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.102  1996/08/12 16:27:07  mjrg
- * Code cleanup: removed cm5 kludges and some unused code
- *
- * Revision 1.101  1996/07/25 23:24:03  mjrg
- * Added sharing of metric components
- *
- */
-
 #include "util/h/headers.h"
 #include <limits.h>
 #include <assert.h>
@@ -300,6 +258,8 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
       for (unsigned v=0; v<v_size; v++) 
         flat_name += canon_focus[u][v];
     }
+
+    // printf("enabling %s\n",flat_name.string_of());
 
     // first see if it is already defined.
     dictionary_hash_iter<unsigned, metricDefinitionNode*> mdi(allMIs);
@@ -780,10 +740,11 @@ bool metricDefinitionNode::insertInstrumentation()
 }
 
 bool metricDefinitionNode::checkAndInstallInstrumentation() {
+
+    vector<Address> pc;
     bool needToCont = false;
 
-    if (installed_)
-       return(true);
+    if (installed_) return(true);
 
     installed_ = true;
 
@@ -796,30 +757,45 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
         if (!proc_->pause()) {
 	    cerr << "checkAnd... pause failed" << endl; cerr.flush();
             return false;
-	}
+        }
 
-	Frame frame(proc_); // formerly getActiveStackFrameInfo()
-	int pc = frame.getPC();
+        Frame frame(proc_);
+        pc = proc_->walkStack();
+
+	// for(u_int i=0; i < pc.size(); i++){
+	//     printf("frame %d: pc = 0x%x\n",i,pc[i]);
+	// }
 
         unsigned rsize = returnInsts.size();
-
-	//cerr << "checkAndInstallInstrumentation: looping thru all " << rsize << " return instances now" << endl;
-
+	u_int max_index = 0;  // first frame where it is safe to install instr
+	bool delay_install = false; // true if some instr. needs to be delayed 
+	vector<bool> delay_elm(rsize); // wch instr. to delay
+        // for each inst point walk the stack to determine if it can be
+	// inserted now (it can if it is not currently on the stack)
+	// If some can not be inserted, then find the first safe point on
+	// the stack where all can be inserted, and set a break point  
         for (unsigned u=0; u<rsize; u++) {
-
-            bool installSafe = returnInsts[u] -> checkReturnInstance(pc); 
+            u_int index = 0;
+            bool installSafe = returnInsts[u] -> checkReturnInstance(pc,index);
+	    if ((!installSafe) && (index > max_index)) max_index = index;
 	    
             if (installSafe) {
 	        //cerr << "installSafe!" << endl;
                 returnInsts[u] -> installReturnInstance(proc_);
+		delay_elm[u] = false;
             } else {
-	        //cerr << "install NOT Safe...putting in a TRAP!" << endl;
-                frame = frame.getPreviousStackFrameInfo(proc_);// more work here
-                pc = frame.getPC();                            // for funcEntry.
-
-		returnInsts[u] -> addToReturnWaitingList(pc, proc_);
+		delay_install = true;
+		delay_elm[u] = true;
             }
         }
+	if(delay_install){
+	    Address pc2 = pc[max_index+1];
+	    for(u_int i=0; i < rsize; i++){
+		if(delay_elm[i]){
+                    returnInsts[i]->addToReturnWaitingList(pc2, proc_);
+		}
+	    }
+	}
 
         if (needToCont) proc_->continueProc();
     }
@@ -1350,7 +1326,8 @@ bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
    ast = new AstNode("DYNINSTreportCounter", tmp);
    removeAst(tmp);
 
-   sampler = addInstFunc(theProc, sampleFunction->funcEntry(),
+   const instPoint *func_entry = sampleFunction->funcEntry(theProc);
+   sampler = addInstFunc(theProc, func_entry,
 			 ast, callPreInsn, orderLastAtPoint, false);
    removeAst(ast);
 
@@ -1622,7 +1599,8 @@ bool sampledTimerReqNode::insertInstrumentation(process *theProc,
    ast = new AstNode("DYNINSTreportTimer", tmp);
    removeAst(tmp);
 
-   sampler = addInstFunc(theProc, sampleFunction->funcEntry(), ast,
+   const instPoint *func_entry = sampleFunction->funcEntry(theProc);
+   sampler = addInstFunc(theProc, func_entry, ast,
 			 callPreInsn, orderLastAtPoint, false);
    removeAst(ast);
 

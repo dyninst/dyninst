@@ -104,7 +104,8 @@ frameChainValid(process *proc, unsigned pc)
 {
     pdFunction *funcStart = proc->findOneFunction("_start");
     if (funcStart) {
-	if (pc >= funcStart->addr() && pc <= (funcStart->addr() + funcStart->size())) {   
+	if ((pc >= funcStart->getAddress(proc)) && 
+	    (pc <= (funcStart->getAddress(proc) + funcStart->size()))) {   
 	    return false;
 	}
     }
@@ -115,7 +116,8 @@ frameChainValid(process *proc, unsigned pc)
     logLine(errorLine);
 
     if (funcStart) {
-	if (pc >= funcStart->addr() && pc <= (funcStart->addr() + funcStart->size())) {   
+	if ((pc >= funcStart->getAddress(proc)) && 
+	     (pc <= (funcStart->getAddress(proc) + funcStart->size()))) {   
 	    return false;
 	}
     }
@@ -185,6 +187,10 @@ bool process::getActiveFrame(int *fp, int *pc)
     
     return err;
 
+}
+
+bool process::needToAddALeafFrame(Frame,unsigned int &){
+    return false;
 }
 
 

@@ -1919,9 +1919,13 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
       case 0: { string prettyName = pdf->prettyName();
 	        if (!ret.set(prettyName)) return false;
 	      } break;
-      case 1: if (!ret.set(&pdf->calls)) return false; break;
-      case 2: if (!ret.set(pdf->funcEntry())) return false; break;
-      case 3: if (!ret.set(&pdf->funcReturns)) return false; break;
+      // TODO: should these be passed a process?
+      case 1: if (!ret.set((vector<instPoint *>*)&pdf->funcCalls(global_proc)))
+		return false; break;
+      case 2: if (!ret.set((instPoint *)pdf->funcEntry(global_proc)))
+		return false; break;
+      case 3: if (!ret.set((vector<instPoint *>*)&pdf->funcExits(global_proc)))
+		return false; break;
       case 4: if (!ret.set((int)pdf->tag())) return false; break;
       default: assert(0); break;
       }

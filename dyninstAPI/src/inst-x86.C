@@ -43,6 +43,12 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.5  1996/11/19 16:28:04  newhall
+ * Fix to stack walking on Solaris: find leaf functions in stack (these can occur
+ * on top of stack or in middle of stack if the signal handler is on the stack)
+ * Fix to relocated functions: new instrumentation points are kept on a per
+ * process basis.  Cleaned up some of the code.
+ *
  * Revision 1.4  1996/11/14 14:27:09  naim
  * Changing AstNodes back to pointers to improve performance - naim
  *
@@ -128,7 +134,7 @@ class instPoint {
     addr = adr;
     jumpAddr = adr;
     func = f;
-    owner = (image *)im;
+    owner = im;
     callee = NULL;
     insnAtPoint = inst;
     insnsBefore = 0;
@@ -163,7 +169,7 @@ class instPoint {
   // instructions when there is a jump.
   // Can only be done after an image has been parsed (that is, all inst. points
   // in the image have been found.
-  void checkInstructions();
+  void checkInstructions () ;
 
   // can't set this in the constructor because call points can't be classified until
   // all functions have been seen -- this might be cleaned up
@@ -383,8 +389,8 @@ bool pdFunction::findInstPoints(const image *i_owner) {
 if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
   return false;
 
-   const unsigned char *instr = (const unsigned char *)owner->getPtrToInstruction(addr());
-   Address adr = addr();
+   const unsigned char *instr = (const unsigned char *)owner->getPtrToInstruction(getAddress(0));
+   Address adr = getAddress(0);
    unsigned numInsns = 0;
 
    instruction insn;
@@ -403,7 +409,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
    if (insn.isJumpDir()) {
      Address target = insn.getTarget(adr);
      owner->addJumpTarget(target);
-     if (target <= addr() && target >= addr() + size()) {
+     if (target <= getAddress(0) && target >= getAddress(0) + size()) {
        // jump out of function
        // this is an empty function
        return false;
@@ -430,7 +436,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
    // points. For now, we only add one instruction to each point.
    // Additional instructions, for the points that need them, will be added later.
 
-   Address funcEnd = addr() + size();
+   Address funcEnd = getAddress(0) + size();
    for ( ; adr < funcEnd; instr += insnSize, adr += insnSize) {
      insnSize = insn.getNextInstruction(instr);
      assert(insnSize > 0);
@@ -441,7 +447,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
 
      if (insn.isJumpIndir()) {
        unsigned jumpTableSz;
-       if (!checkJumpTable(owner, insn, adr, addr(), addr()+size(), jumpTableSz)) {
+       if (!checkJumpTable(owner, insn, adr, getAddress(0), getAddress(0)+size(), jumpTableSz)) {
 	 delete points;
 	 delete allInstr;
          //fprintf(stderr,"Function %s, size = %d, bad jump table\n", 
@@ -459,7 +465,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
        // check for jumps out of this function
        Address target = insn.getTarget(adr);
        owner->addJumpTarget(target);
-       if (target < addr() || target >= addr() + size()) {
+       if (target < getAddress(0) || target >= getAddress(0) + size()) {
 	 // jump out of function
 	 instPoint *p = new instPoint(this, owner, adr, insn);
 	 funcReturns += p;
@@ -778,7 +784,7 @@ bool insertInTrampTable(process *proc, unsigned key, unsigned val) {
 
 // generate a jump to a base tramp or a trap
 // return the size of the instruction generated
-unsigned generateBranchToTramp(process *proc, instPoint *point, unsigned baseAddr, 
+unsigned generateBranchToTramp(process *proc, const instPoint *point, unsigned baseAddr, 
 			   Address imageBaseAddr, unsigned char *insn) {
   if (point->size() < JUMP_REL32_SZ) {
     // must use trap
@@ -807,7 +813,7 @@ unsigned generateBranchToTramp(process *proc, instPoint *point, unsigned baseAdd
  *
  */
 
-trampTemplate *installBaseTramp(instPoint *location, process *proc, bool noCost) 
+trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool noCost) 
 {
 
 /*
@@ -856,7 +862,8 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc, bool noCost)
 
   // check instructions at this point to find how many instructions 
   // we should relocate
-  location->checkInstructions();
+  instPoint *temp = (instPoint *)location;
+  temp->checkInstructions();
 
   // compute the tramp size
   // if there are any changes to the tramp, the size must be updated.
@@ -1051,7 +1058,7 @@ void generateNoOp(process *proc, int addr)
 
 
 trampTemplate *findAndInstallBaseTramp(process *proc, 
-				       instPoint *location,
+				       instPoint const *&location, 
 				       returnInstance *&retInstance,
 				       bool noCost)
 {
@@ -1393,7 +1400,7 @@ unsigned emitFuncCall(opCode op,
       showErrorCallback(80, (const char *) errorLine);
       P_abort();
     }
-    addr = func->addr();
+    addr = func->getAddress(0);
   }
 
   for (unsigned u = 0; u < operands.size(); u++)
@@ -1915,9 +1922,10 @@ float getPointFrequency(instPoint *point)
 // return cost in cycles of executing at this point.  This is the cost
 //   of the base tramp if it is the first at this point or 0 otherwise.
 //
-int getPointCost(process *proc, instPoint *point)
+int getPointCost(process *proc, const instPoint *point)
 {
-    point->checkInstructions();
+    instPoint *temp = (instPoint *)point;
+    temp->checkInstructions();
 
     if (proc->baseMap.defines(point)) {
         return(0);
@@ -1931,7 +1939,7 @@ int getPointCost(process *proc, instPoint *point)
 
 
 
-bool returnInstance::checkReturnInstance(const Address ) {
+bool returnInstance::checkReturnInstance(const vector<Address>, u_int &) {
     return true;
 }
  

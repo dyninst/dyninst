@@ -39,66 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * symtab.C - generic symbol routines.  Implements an ADT for a symbol
- *   table.  The make calls to machine and a.out specific routines to handle
- *   the implementation dependent parts.
- *
- * $Log: symtab.C,v $
- * Revision 1.49  1996/11/05 20:36:19  tamches
- * removed 2 calls to statusLine("ready") that were premature.
- *
- * Revision 1.48  1996/10/31 09:01:42  tamches
- * removed some warnings
- *
- * Revision 1.47  1996/10/18 23:54:18  mjrg
- * Solaris/X86 port
- *
- * Revision 1.46  1996/10/08 19:30:01  lzheng
- * add notInstruFunction to class image (for stack walking)
- *
- * Revision 1.45  1996/09/26 18:59:20  newhall
- * added support for instrumenting dynamic executables on sparc-solaris
- * platform
- *
- * Revision 1.44  1996/08/20 19:00:21  lzheng
- * Implementation of moving multiple instructions sequence
- * Added a Function findFunctionIn(addr) to look for the functions which
- * contains the instruction at this address
- *
- * Revision 1.43  1996/08/16 21:19:59  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.42  1996/07/09 04:07:58  lzheng
- * add infomation of unwind table entry to assist the stack walking on HPUX
- *
- * Revision 1.41  1996/04/29 22:18:49  mjrg
- * Added size to functions (get size from symbol table)
- * Use size to define function boundary
- * Find multiple return points for sparc
- * Instrument branches and jumps out of a function as return points (sparc)
- * Recognize tail-call optimizations and instrument them as return points (sparc)
- * Move instPoint to machine dependent files
- *
- * Revision 1.40  1996/04/26 20:01:44  lzheng
- * Some minor changes in the constructor of pdFunction(for hpux only)
- * in order to prvent paradyn from dying for special instruction sequences.
- *
- * Revision 1.39  1996/04/08 22:27:13  lzheng
- * Added some HP-specific structures and member functions, needed
- * for treating the call site, entry point, and exit points differently
- * on the HP.
- *
- * Revision 1.38  1996/04/06 21:25:33  hollings
- * Fixed inst free to work on AIX (really any platform with split I/D heaps).
- * Removed the Line class.
- * Removed a debugging printf for multiple function returns.
- *
- * Revision 1.37  1996/03/25  22:58:15  hollings
- * Support functions that have multiple exit points.
- *
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -461,14 +401,14 @@ pdFunction *image::findFunction(const Address &addr)
      return NULL;
 }
   
-pdFunction *image::findFunctionIn(const Address &addr) 
+pdFunction *image::findFunctionIn(const Address &addr,const process *p) 
 {
   pdFunction *pdf;
 
   dictionary_hash_iter<Address, pdFunction*> mi(funcsByAddr);
   Address adr;
   while (mi.next(adr, pdf)) {
-      if ((addr >= pdf->addr())&&(addr <= (pdf->addr() + pdf->size()))) 
+      if ((addr>=pdf->getAddress(p))&&(addr<=(pdf->getAddress(p)+pdf->size()))) 
 	  return pdf;
   }
   
@@ -476,7 +416,7 @@ pdFunction *image::findFunctionIn(const Address &addr)
   // uninstrumentable function
   for (unsigned i = 0; i < notInstruFunction.size(); i++) {
       pdf = notInstruFunction[i];
-      if ((addr >= pdf->addr())&&(addr <= (pdf->addr() + pdf->size()))) 
+      if ((addr>=pdf->getAddress(p))&&(addr<=(pdf->getAddress(p)+pdf->size()))) 
 	  return pdf;
   }
 
@@ -1007,7 +947,8 @@ image::image(const string &fileName, bool &err)
   // must use loop+1 not mods.size()-1 since it is an unsigned compare
   //  which could go negative - jkh 5/29/95
   for (loop=0; loop < mods.size(); loop++) {
-    if ((loop+1 < mods.size()) && mods[loop].addr() == mods[loop+1].addr()) {
+    if ((loop+1 < mods.size()) && 
+	(mods[loop].addr() == mods[loop+1].addr())) {
       if (!mods[loop].kludge())
 	mods[loop+1] = mods[loop];
     } else
@@ -1031,8 +972,8 @@ image::image(const string &fileName, bool &err)
   vector<pdFunction*> temp_vec;
   unsigned f_size = mdlLib.size(), index;
   for (index=0; index<f_size; index++) {
-    if (!addr_dict.defines((unsigned)mdlLib[index]->addr())) {
-      addr_dict[(unsigned)mdlLib[index]->addr()] = 1;
+    if (!addr_dict.defines((unsigned)mdlLib[index]->getAddress(0))) {
+      addr_dict[(unsigned)mdlLib[index]->getAddress(0)] = 1;
       temp_vec += mdlLib[index];
     }
   }
@@ -1040,8 +981,8 @@ image::image(const string &fileName, bool &err)
   temp_vec.resize(0); addr_dict.clear();
   f_size = mdlNormal.size();
   for (index=0; index<f_size; index++) {
-    if (!addr_dict.defines((unsigned)mdlNormal[index]->addr())) {
-      addr_dict[(unsigned)mdlNormal[index]->addr()] = 1;
+    if (!addr_dict.defines((unsigned)mdlNormal[index]->getAddress(0))) {
+      addr_dict[(unsigned)mdlNormal[index]->getAddress(0)] = 1;
       temp_vec += mdlNormal[index];
     }
   }
@@ -1140,7 +1081,8 @@ image::image(const string &fileName, u_int baseAddr, bool &err)
   // must use loop+1 not mods.size()-1 since it is an unsigned compare
   //  which could go negative - jkh 5/29/95
   for (loop=0; loop < mods.size(); loop++) {
-    if ((loop+1 < mods.size()) && mods[loop].addr() == mods[loop+1].addr()) {
+    if ((loop+1 < mods.size()) && 
+	 (mods[loop].addr() == mods[loop+1].addr())) {
       if (!mods[loop].kludge())
 	mods[loop+1] = mods[loop];
     } else
@@ -1159,8 +1101,8 @@ image::image(const string &fileName, u_int baseAddr, bool &err)
   vector<pdFunction*> temp_vec;
   unsigned f_size = mdlLib.size(), index;
   for (index=0; index<f_size; index++) {
-    if (!addr_dict.defines((unsigned)mdlLib[index]->addr())) {
-      addr_dict[(unsigned)mdlLib[index]->addr()] = 1;
+    if (!addr_dict.defines((unsigned)mdlLib[index]->getAddress(0))) {
+      addr_dict[(unsigned)mdlLib[index]->getAddress(0)] = 1;
       temp_vec += mdlLib[index];
     }
   }
@@ -1168,8 +1110,8 @@ image::image(const string &fileName, u_int baseAddr, bool &err)
   temp_vec.resize(0); addr_dict.clear();
   f_size = mdlNormal.size();
   for (index=0; index<f_size; index++) {
-    if (!addr_dict.defines((unsigned)mdlNormal[index]->addr())) {
-      addr_dict[(unsigned)mdlNormal[index]->addr()] = 1;
+    if (!addr_dict.defines((unsigned)mdlNormal[index]->getAddress(0))) {
+      addr_dict[(unsigned)mdlNormal[index]->getAddress(0)] = 1;
       temp_vec += mdlNormal[index];
     }
   }
@@ -1262,14 +1204,15 @@ bool image::defineFunction(module *libModule, const Symbol &sym,
 pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
 		       Address adr, const unsigned size, const unsigned tg,
 		       const image *owner, bool &err) :
-  funcEntry_(NULL),
   tag_(tg),
   symTabName_(symbol),
   prettyName_(pretty),
   line_(0),
   file_(f),
   addr_(adr),
-  size_(size)
+  size_(size),
+  funcEntry_(0),
+  relocatable_(false)
 
 {
   err = findInstPoints(owner) == false;

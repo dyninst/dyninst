@@ -44,51 +44,6 @@
  *
  */
 
-/* 
- * $Log: templates0.C,v $
- * Revision 1.12  1996/11/14 14:59:09  naim
- * Minor fix to my previous commit - naim
- *
- * Revision 1.11  1996/11/14 14:28:06  naim
- * Changing AstNodes back to pointers to improve performance - naim
- *
- * Revision 1.10  1996/10/31 08:53:12  tamches
- * split; moved half to templates05.C
- *
- * Revision 1.9  1996/10/18 23:54:16  mjrg
- * Solaris/X86 port
- *
- * Revision 1.8  1996/10/09 14:03:17  mjrg
- * added template for class functionName
- *
- * Revision 1.7  1996/09/26 18:59:24  newhall
- * added support for instrumenting dynamic executables on sparc-solaris
- * platform
- *
- * Revision 1.6  1996/08/20 18:56:53  lzheng
- * Implementation of moving multiple instructions sequence and
- * Splitting the instrumentation into two phases
- *
- * Revision 1.5  1996/08/16 21:20:06  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.4  1996/07/25 23:21:55  mjrg
- * Divided the templates files, to avoid problems compiling on HP.
- * Added new templates
- *
- * Revision 1.3  1996/05/08 23:55:11  mjrg
- * added support for handling fork and exec by an application
- * use /proc instead of ptrace on solaris
- * removed warnings
- *
- * Revision 1.2  1996/04/29 03:43:00  tamches
- * added vector<internalMetric::eachInstance>
- *
- * Revision 1.1  1996/04/08 21:42:12  lzheng
- * split templates.C up into templates0.C and templates1.C; needed for HP.
- *
- */
-
 #pragma implementation "Pair.h"
 #include "util/h/Pair.h"
 
@@ -164,4 +119,4 @@ template class  vector<point *>;
 template class  vector<instInstance *>;
 template class  vector<internalMetric::eachInstance>;
 template class  vector<returnInstance *>;             //XXX
-
+template class  vector<relocatedFuncInfo *>; 

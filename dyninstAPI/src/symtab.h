@@ -43,66 +43,6 @@
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
 
-/*
- * symtab.h - interface to generic symbol table.
- *
- * $Log: symtab.h,v $
- * Revision 1.32  1996/11/12 17:48:33  mjrg
- * Moved the computation of cost to the basetramp in the x86 platform,
- * and changed other platform to keep code consistent.
- * Removed warnings, and made changes for compiling with Visual C++
- *
- * Revision 1.31  1996/10/31 09:01:14  tamches
- * removed some warnings
- *
- * Revision 1.30  1996/10/18 23:54:16  mjrg
- * Solaris/X86 port
- *
- * Revision 1.29  1996/10/08 19:29:43  lzheng
- * add notInstruFunction to class image (for stack walking)
- *
- * Revision 1.28  1996/09/26 18:59:22  newhall
- * added support for instrumenting dynamic executables on sparc-solaris
- * platform
- *
- * Revision 1.27  1996/09/05 16:32:20  lzheng
- * Removing some warning and clean up the code a little bit.
- *
- * Revision 1.26  1996/08/20 19:01:00  lzheng
- * Implementation of moving multiple instructions sequence
- * Added a few variable. (need to change them to private member later)
- *
- * Revision 1.25  1996/08/16 21:20:01  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.24  1996/07/09 04:06:53  lzheng
- * Add infomation of unwind table to assist the stack walking on HPUX.
- *
- * Revision 1.23  1996/05/09 19:21:44  lzheng
- * Minor fix to remove one ifdef for HPUX
- *
- * Revision 1.22  1996/04/29 22:18:51  mjrg
- * Added size to functions (get size from symbol table)
- * Use size to define function boundary
- * Find multiple return points for sparc
- * Instrument branches and jumps out of a function as return points (sparc)
- * Recognize tail-call optimizations and instrument them as return points (sparc)
- * Move instPoint to machine dependent files
- *
- * Revision 1.21  1996/04/26 19:58:29  lzheng
- * Moved some data structures used by HP only to the machine dependent file.
- * And an argument for constructor of instPoint to pass the error.
- *
- * Revision 1.20  1996/04/08 22:26:49  lzheng
- * Added some HP-specific structures and member functions, needed
- * for treating the call site, entry point, and exit points differently
- * on the HP.
- *
- * Revision 1.19  1996/03/25 22:58:18  hollings
- * Support functions that have multiple exit points.
- *
- */
-
 extern "C" {
 #include <sys/types.h>
 #include <stdlib.h>
@@ -157,17 +97,43 @@ typedef enum { langUnknown,
 class module;
 class image;
 class lineTable;
+class process;
 
-// test if the passed instruction is a return instruction.
-//extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne);
+// if a function needs to be relocated when it's instrumented then we need
+// to keep track of new instrumentation points for this function on a per
+// process basis (there is no guarentee that two processes are going to
+// relocated this function to the same location in the heap)
+class relocatedFuncInfo {
+public:
+    relocatedFuncInfo(process *p,Address na):proc_(p),
+	   	      addr_(na),funcEntry_(0),installed_(false){}
+    ~relocatedFuncInfo(){proc_ = 0;}
+    Address address(){ return addr_;}
+    const process *getProcess(){ return proc_;}
+    const vector<instPoint*> &funcReturns(){ return funcReturns_;}
+    const vector<instPoint*> &funcCallSites(){ return calls_;}
+    const instPoint *funcEntry(){ return funcEntry_;}
+    void addFuncEntry(instPoint *e){ if(e) funcEntry_ = e; }
+    void addFuncReturn(instPoint *r){ if(r) funcReturns_ += r; }
+    void addFuncCall(instPoint *c){ if(c) calls_ += c; }
+    bool isInstalled(){ return installed_; }
+    void setInstalled() { installed_ = true; }
+private:
+    const process *proc_;		// process assoc. with the relocation
+    Address addr_;			// function's relocated address
+    instPoint *funcEntry_;		// function entry point
+    bool installed_;			// if true, function has been relocated
+    vector<instPoint*> funcReturns_;    // return point(s)
+    vector<instPoint*> calls_;          // pointer to the calls
+};
 
 //Todo: move this class to machine dependent file?
 class pdFunction {
  public:
 
-    pdFunction(const string symbol, const string &pretty, module *f, Address adr,
-	       const unsigned size,
-	       const unsigned tg, const image *owner, bool &err);
+    pdFunction(const string symbol, const string &pretty, module *f, 
+		Address adr, const unsigned size, const unsigned tg, 
+		const image *owner, bool &err);
     ~pdFunction() { /* TODO */ }
 
     bool findInstPoints(const image *owner);
@@ -178,37 +144,92 @@ class pdFunction {
     string symTabName() const { return symTabName_;}
     string prettyName() const { return prettyName_;}
     const module *file() const { return file_;}
-    Address addr() const { return addr_;}
     unsigned size() const {return size_;}
-    instPoint *funcEntry() const { return funcEntry_;}
-    instPoint *funcEntry_;	/* place to instrument entry (often not addr) */
-    vector<instPoint*> funcReturns;	/* return point(s). */
-    vector<instPoint*> calls;		/* pointer to the calls */
+    // passing in a value of 0 for p will return the original address
+    // otherwise, if the process is relocated it will return the new address
+    Address getAddress(const process *p){
+        if(p && relocatable_) { 
+	  for(u_int i=0; i < relocatedByProcess.size(); i++){
+	    if((relocatedByProcess[i])->getProcess() == p) 
+		return (relocatedByProcess[i])->address();
+	} }
+	return addr_;
+    }
+    const instPoint *funcEntry(process *p) const {
+        if(relocatable_) { 
+	  for(u_int i=0; i < relocatedByProcess.size(); i++){
+	    if((relocatedByProcess[i])->getProcess() == p) 
+		return (relocatedByProcess[i])->funcEntry();
+	} }
+	return funcEntry_;
+    }
+    const vector<instPoint*> &funcExits(process *p) const {
+        if(relocatable_) {
+	  for(u_int i=0; i < relocatedByProcess.size(); i++){
+	    if((relocatedByProcess[i])->getProcess() == p) 
+		return (relocatedByProcess[i])->funcReturns();
+	} }
+	return funcReturns;
+    }
+    const vector<instPoint*> &funcCalls(process *p) const {
+        if(relocatable_) {
+	  for(u_int i=0; i < relocatedByProcess.size(); i++){
+	    if((relocatedByProcess[i])->getProcess() == p) 
+		return (relocatedByProcess[i])->funcCallSites();
+	} }
+	return calls;
+    }
+    bool isInstalled(process *p){
+        if(relocatable_) {
+	  for(u_int i=0; i < relocatedByProcess.size(); i++){
+	    if((relocatedByProcess[i])->getProcess() == p) 
+		return (relocatedByProcess[i])->isInstalled();
+	} }
+	return false;
+    }
+    void setInstalled(process *p){
+        if(relocatable_) {
+	  for(u_int i=0; i < relocatedByProcess.size(); i++){
+	    if((relocatedByProcess[i])->getProcess() == p) 
+	        (relocatedByProcess[i])->setInstalled();
+	} }
+    }
     inline void tagAsLib() { tag_ |= TAG_LIB_FUNC;}
     inline void untagAsLib() { tag_ &= ~TAG_LIB_FUNC;}
     inline bool isTagSimilar(const unsigned comp) const { return(tag_ & comp);}
     bool isLibTag() const { return (tag_ & TAG_LIB_FUNC);}
     unsigned tag() const { return tag_; }
+    bool isLeafFunc() {return leaf;}
+    bool isTrapFunc() {return isTrap;}
+
 #if defined(hppa1_1_hp_hpux)
     instruction entryPoint;
     instruction exitPoint;
     vector<instPoint*> lr;
 #endif
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)   
-    // ToDo : change those variables to the private.
-    bool leaf;
-    bool isTrap;  
-    bool not_relocating;
-    bool notInstalled;
+
     bool checkInstPoints(const image *owner);
     bool findInstPoints(const image *owner, Address adr, process *proc);
-    bool findNewInstPoints(const image *owner, Address adr, process *proc,
+    bool findNewInstPoints(const image *owner, 
+			  const instPoint *&location, Address adr, 
+			  process *proc,
+			  vector<instruction> &extra_instrs, 
+			  relocatedFuncInfo *reloc_info);
+    bool relocateFunction(process *proc, const instPoint *&location,
 			  vector<instruction> &extra_instrs);
-    bool relocateFunction(process *proc, instPoint *location,
-			  vector<instruction> &extra_instrs);
+    // Add a new call point to a function that will be, or currently is
+    // being relocated (if location != 0 && reloc_info != 0,  then this is
+    // called when the the function is actually being relocated
     Address newCallPoint(Address &adr, const instruction code, const 
-                         image *owner, bool &err, int &id, Address &addr);
-    Address newAddr;
+                         image *owner, bool &err, int &id, Address &addr,
+			 relocatedFuncInfo *reloc_info,
+			 const instPoint *&location);
+    // modifyInstPoint: change the value of the instPoint if it is wrong: 
+    // if this instPoint is from a function that was just relocated, then
+    // it may not have the correct address.  This routine finds the correct
+    // address for the instPoint
+    void modifyInstPoint(const instPoint *&location,process *proc);
 #endif
 
   private:
@@ -218,12 +239,19 @@ class pdFunction {
     int line_;			/* first line of function */
     module *file_;		/* pointer to file that defines func. */
     Address addr_;		/* address of the start of the func */
-    /*instPoint *funcEntry_;	 place to instrument entry (often not addr) */
-
     unsigned size_;             /* the function size, in bytes, used to
 				   define the function boundaries. This may not
 				   be exact, and may not be used on all 
 				   platforms. */
+    instPoint *funcEntry_;	/* place to instrument entry (often not addr) */
+    vector<instPoint*> funcReturns;	/* return point(s). */
+    vector<instPoint*> calls;		/* pointer to the calls */
+
+    // these are for relocated functions
+    bool relocatable_;		// true if func will be relocated when instr
+    bool leaf;  		// true if function is a leaf function
+    bool isTrap; 		// true if function contains a trap instruct
+    vector<relocatedFuncInfo *> relocatedByProcess; // one element per process
 };
 
 
@@ -296,7 +324,6 @@ private:
 };
 
 
-class process;
 
 class image {
    friend class process;
@@ -320,7 +347,7 @@ public:
   pdFunction *findFunction(const Address &addr);
   pdFunction *findOneFunction(const string &name);
 
-  pdFunction *findFunctionIn(const Address &addr);
+  pdFunction *findFunctionIn(const Address &addr,const process *p);
 
   // report modules to paradyn
   void defineModules();

@@ -154,6 +154,11 @@ bool process::getActiveFrame(int *fp, int *pc)
     return(ret);
 }
 
+bool process::needToAddALeafFrame(Frame,unsigned int &){
+    return false;
+}
+
+
 //
 // given the pointer to a frame (currentFP), return 
 //     (1) the saved frame pointer (fp)

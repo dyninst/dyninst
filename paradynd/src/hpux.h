@@ -55,5 +55,6 @@
 #define STOP_WALL_TIMER  "DYNINSTstopWallTimer_hpux"
 #define START_PROC_TIMER "DYNINSTstartProcessTimer_hpux"
 #define STOP_PROC_TIMER  "DYNINSTstopProcessTimer_hpux" 
+#define SIGNAL_HANDLER	0
 
 #endif

@@ -43,71 +43,6 @@
 #ifndef INST_HDR
 #define INST_HDR
 
-/*
- * inst.h - This file contains the insrumentation functions that are provied
- *   by the instrumentation layer.
- *
- * $Log: inst.h,v $
- * Revision 1.30  1996/11/14 14:27:12  naim
- * Changing AstNodes back to pointers to improve performance - naim
- *
- * Revision 1.29  1996/11/12 17:48:32  mjrg
- * Moved the computation of cost to the basetramp in the x86 platform,
- * and changed other platform to keep code consistent.
- * Removed warnings, and made changes for compiling with Visual C++
- *
- * Revision 1.28  1996/10/31 09:17:04  tamches
- * the shm-sampling commit; intCounterHandle, timerHandle gone, replaced by
- * new classes in metric.h derived from dataReqNode.
- *
- * Revision 1.27  1996/10/04 16:12:43  naim
- * Optimization for code generation (use of immediate operations whenever
- * possible). This first commit is only for the sparc platform. Other platforms
- * should follow soon - naim
- *
- * Revision 1.26  1996/09/13 21:41:59  mjrg
- * Implemented opcode ReturnVal for ast's to get the return value of functions.
- * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
- * Removed architecture dependencies from inst.C.
- * Changed code to allow base tramps of variable size.
- *
- * Revision 1.25  1996/08/20 19:13:09  lzheng
- * Implementation of moving multiple instructions sequence and
- * splitting the instrumentation into two phases
- *
- * Revision 1.24  1996/08/16 21:19:07  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.23  1996/08/12 16:27:09  mjrg
- * Code cleanup: removed cm5 kludges and some unused code
- *
- * Revision 1.22  1996/05/08 23:54:49  mjrg
- * added support for handling fork and exec by an application
- * use /proc instead of ptrace on solaris
- * removed warnings
- *
- * Revision 1.21  1996/04/29 03:36:40  tamches
- * declaration of computePauseTimeMetric now has a param
- *
- * Revision 1.20  1996/04/26 19:52:11  lzheng
- * Moved prototype of emitFuncCall to ast.h because the function arguments
- * used is changed.
- *
- * Revision 1.19  1996/04/10 17:58:24  lzheng
- * Two opCodes( loadMemOp, storeMemOp) are added for HP and the prototype of
- * emitFuncCall for HP is changed to support multiple arguments.
- *
- * Revision 1.18  1996/04/08 21:23:40  lzheng
- * HP-specific version of emitFuncCall prototype
- *
- * Revision 1.17  1996/04/03 14:27:41  naim
- * Implementation of deallocation of instrumentation for solaris and sunos - naim
- *
- * Revision 1.16  1996/03/25  20:21:08  tamches
- * the reduce-mem-leaks-in-paradynd commit
- *
- */
-
 #include "rtinst/h/trace.h"
 
 class instInstance;
@@ -132,26 +67,26 @@ class returnInstance;
  *
  */
 instInstance *addInstFunc(process *proc,
-			  instPoint *location,
+			  const instPoint *&location,
 			  AstNode *&ast, // ast could change (sysFlag stuff)
 			  callWhen when,
 			  callOrder order,
 			  bool noCost);
 
 instInstance *addInstFunc(process *proc,
-			  instPoint *location,
+			  const instPoint *&location,
 			  AstNode *&ast, // ast could change (sysFlag stuff)
 			  callWhen when,
 			  callOrder order,
 			  bool noCost,
 			  returnInstance *&retInstance);
 
-void copyInstInstances(process *parent, process *child,
+void copyInstInstances(const process *parent, process *child,
 	    dictionary_hash<instInstance *, instInstance *> &instInstanceMapping);
 
 
 float getPointFrequency(instPoint *point);
-int getPointCost(process *proc, instPoint *point);
+int getPointCost(process *proc, const instPoint *point);
 
 /*
  * Test if the inst point is for a call to a tracked function (as opposed to

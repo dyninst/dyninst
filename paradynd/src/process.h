@@ -180,8 +180,41 @@ static inline unsigned instInstanceHash(instInstance * const &inst) {
 //  return ((unsigned)inst);
 }
 
+class Frame;
+
 class process {
  friend class ptraceKludge;
+
+/*
+  process() : baseMap(ipHash), 
+              instInstanceMapping(instInstanceHash),
+              firstRecordTime(0) {
+    symbols = NULL; traceLink = 0; ioLink = 0;
+    status_ = neonatal; pid = 0; thread = 0;
+    aggregate = false; rid = 0; parent = NULL;
+    bufStart = 0; bufEnd = 0; pauseTime = 0.0;
+    reachedFirstBreak = 0; 
+    splitHeaps = false;
+    inExec = false;
+    proc_fd = -1;
+
+    trampTableItems = 0;
+    memset(trampTable, 0, sizeof(trampTable));
+    currentPC_ = 0;
+    hasNewPC = false;
+
+    inhandlestart = false;
+    dynamiclinking = false;
+    dyn = new dynamic_linking;
+    shared_objects = 0;
+    all_functions = 0;
+    all_modules = 0;
+    some_modules = 0;
+    some_functions = 0;
+    waiting_for_resources = false;
+    signal_handler = 0;
+  }
+*/
 
  public:
 
@@ -209,16 +242,15 @@ class process {
      // space, the shm seg was attached.  The attaching was done in DYNINSTinit)
 #endif
 
-  static string programName;
-  static vector<string> arg_list;
-
   vector<Address> walkStack(bool noPause=false);
-  //
+
+  // 
   // getActiveFrame and readDataFromFrame are platform dependant
   //
   bool getActiveFrame(int *fp, int *pc);
+  bool readDataFromFrame(int currentFP, int *previousFP, int *rtn, 
+			 bool uppermost=false);
 
-  bool readDataFromFrame(int currentFP, int *previousFP, int *rtn, bool uppermost=false);
 
 #ifdef SHM_SAMPLING
   unsigned long long getInferiorProcessCPUtime() const;
@@ -232,6 +264,9 @@ class process {
   processState status() const { return status_;}
   inline void Exited();
   inline void Stopped();
+
+  static string programName;
+  static vector<string> arg_list;
 
   internalSym *findInternalSymbol(const string &name, bool warn) {
      assert(symbols);
@@ -336,7 +371,8 @@ class process {
   inferiorHeap	heaps[2];	/* the heaps text and data */
   resource *rid;		/* handle to resource for this process */
 
-  dictionary_hash<instPoint*, trampTemplate *> baseMap;	/* map and inst point to its base tramp */
+  /* map and inst point to its base tramp */
+  dictionary_hash<const instPoint*, trampTemplate *> baseMap;	
 
   // the following 3 are used in perfStream.C
   char buffer[2048];
@@ -427,6 +463,11 @@ class process {
   // for this function
   pdFunction *findOneFunction(const string &func_name);
 
+  // findFunctionIn: returns the function which contains this address
+  // This routine checks both the a.out image and any shared object images 
+  // for this function
+  pdFunction *findFunctionIn(Address adr);
+
   // findModule: returns the module associated with "mod_name" 
   // this routine checks both the a.out image and any shared object 
   // images for this module
@@ -461,14 +502,26 @@ class process {
   // waiting_for_resources flag, if this flag is true a process is not 
   // started until all outstanding resourceInfoResponses have been received
   void setWaitingForResources(){ waiting_for_resources = true; }
-     // called by perfStream.C on SIGSTOP if there are any
-     // resource::num_outstanding_creates,
-     // and process::handleStartProcess, also if there are any
-     // resource::num_outstanding_creates.
+  // called by perfStream.C on SIGSTOP if there are any
+  // resource::num_outstanding_creates,
+  // and process::handleStartProcess, also if there are any
+  // resource::num_outstanding_creates.
+  void clearWaitingForResources(){ waiting_for_resources = false; }
+  bool isWaitingForResources(){ return(waiting_for_resources); }
 
-//  // continueProcessIfWaiting: if the waiting_for_resources flag
-//  // is set then continue the process
-//  void continueProcessIfWaiting(); // called by dynrpc.C ::resourceInfoResponse
+  // findSignalHandler: if signal_handler is 0, then it checks all images
+  // associtated with this process for the signal handler function.
+  // Otherwise, the signal handler function has already been found
+  void findSignalHandler();
+
+  // continueProcessIfWaiting: if the waiting_for_resources flag
+  // is set then continue the process
+  void continueProcessIfWaiting(){
+      if(waiting_for_resources){
+          continueProc();
+      }
+      waiting_for_resources = false;
+  }
 
   void handleExec();
   bool cleanUpInstrumentation(bool wasRunning);
@@ -589,7 +642,6 @@ public:
 private:
   unsigned currentPC_;
   bool hasNewPC;
-
   time64 firstRecordTime;
 
   // for processing observed cost (see method processCost())
@@ -635,6 +687,12 @@ private:
   vector<module *> *some_modules;  
   vector<pdFunction *> *some_functions; 
   bool waiting_for_resources;  // true if waiting for resourceInfoResponse
+  pdFunction *signal_handler;  // signal handler function (for stack walking)
+
+  // needToAddALeafFrame: returns true if the between the current frame 
+  // and the next frame there is a leaf function (this occurs when the 
+  // current frame is the signal handler)
+  bool needToAddALeafFrame(Frame current_frame, Address &leaf_pc);
 };
 
 extern vector<process*> processVec;
@@ -730,9 +788,10 @@ class Frame {
     }
 
     int getPC() const { return pc_; }
-
-    bool isLastFrame() const {
-       return (frame_ == 0);
+    int getFramePtr(){ return frame_;}
+    bool isLastFrame() const { 
+	if (frame_ == 0) return(true);
+	else return(false); 
     }
 
     Frame getPreviousStackFrameInfo(process *proc) const;

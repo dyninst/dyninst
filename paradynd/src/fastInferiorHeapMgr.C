@@ -273,7 +273,7 @@ fastInferiorHeapMgr::fastInferiorHeapMgr(key_t firstKeyToTry,
 	    // else, fall through to error
 	 }
 
-	 perror("shmget");
+	 perror("shmget 1");
 
 	 theShmKey = 0;
 	 theShmId = 0;

@@ -12,10 +12,10 @@
 class shared_object {
 
 public:
-    shared_object():name(0),base_addr(0),size(0),processed(false),
+    shared_object():name(0),base_addr(0),processed(false),
 		 mapped(false),include_funcs(true), objs_image(0){}
-    shared_object(string &n,u_int b, u_int s, bool p,bool m, bool i, image *d):
-		name(n), base_addr(b),size(s),processed(p),mapped(m),
+    shared_object(string &n,u_int b, bool p,bool m, bool i, image *d):
+		name(n), base_addr(b),processed(p),mapped(m),
 		include_funcs(i), objs_image(d){ }
     ~shared_object(){}
 
@@ -24,7 +24,6 @@ public:
     bool  isProcessed() { return(processed); }
     bool  isMapped() { return(mapped); }
     const image  *getImage() { return(objs_image); }
-    u_int getSize(){ return(size);}
     u_int getImageId(){ return((u_int)objs_image); }
     bool includeFunctions(){ return(include_funcs); }
     void changeIncludeFuncs(bool flag){ include_funcs = flag; } 
@@ -66,6 +65,7 @@ public:
     bool removeImage(){ return true;}
 
     pdFunction *findOneFunction(string f_name){
+	if (f_name.string_of() == 0) return 0;
         if(objs_image) {
             return (objs_image->findOneFunction(f_name));
 	}
@@ -77,12 +77,18 @@ public:
 	}
 	return 0;
     }
+    pdFunction *findFunctionIn(Address adr,const process *p){
+        if((adr >= base_addr) && objs_image){
+            Address new_adr = adr - base_addr;
+            return(objs_image->findFunctionIn(new_adr,p));
+	}
+	return (0);
+    }
 
 				
 private:
     string  name;	// full file name of the shared object
     u_int   base_addr;  // base address of where the shared object is mapped
-    u_int   size; 	//  size of object
     bool    processed;  // if true, daemon has processed the shared obj. file
     bool    mapped;     // if true, the application has the shared obj. mapped
 			// shared objects can be unmapped as the appl. runs

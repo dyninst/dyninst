@@ -81,8 +81,5 @@ template class  dictionary<string, resource *>;
 template class  dictionary_iter<string, Symbol>;
 template class  dictionary<string, Symbol>;
 template class  dictionary <string, metricDefinitionNode*>;
-
-/* ***************************************************************************** */
-
-template class  List< instWaitingList *>;
+template class  vector< instWaitingList *>;
 

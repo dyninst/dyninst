@@ -41,32 +41,6 @@
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
- *
- * inst.C,v
- * Revision 1.29  1996/05/16  15:03:03  naim
- * Checking that instInstance pointer is not NULL - naim
- *
- * Revision 1.28  1996/05/15  18:32:45  naim
- * Fixing bug in inferiorMalloc and adding some debugging information - naim
- *
- * Revision 1.27  1996/05/10  22:36:31  naim
- * Bug fix and some improvements passing a reference instead of copying a
- * structure - naim
- *
- * Revision 1.26  1996/05/08  23:54:47  mjrg
- * added support for handling fork and exec by an application
- * use /proc instead of ptrace on solaris
- * removed warnings
- *
- * Revision 1.25  1996/04/03 14:27:39  naim
- * Implementation of deallocation of instrumentation for solaris and sunos - naim
- *
- * Revision 1.24  1996/03/25  22:58:07  hollings
- * Support functions that have multiple exit points.
- *
- * Revision 1.23  1996/03/25  20:21:10  tamches
- * the reduce-mem-leaks-in-paradynd commit
- *
  */
 
 #include <assert.h>
@@ -160,12 +134,12 @@ void clearBaseBranch(process *proc, instInstance *inst)
 // implicit assumption that tramps generate to less than 64K bytes!!!
 static char insn[65536];
 
-static dictionary_hash<instPoint*, point*> activePoints(ipHash);
+static dictionary_hash<const instPoint*, point*> activePoints(ipHash);
 
-List<instWaitingList *> instWList;
+vector<instWaitingList *> instWList;
 
 // Shouldn't this be a member fn of class process?
-instInstance *addInstFunc(process *proc, instPoint *location,
+instInstance *addInstFunc(process *proc, const instPoint *&location,
 			  AstNode *&ast, // ast may change (sysFlag stuff)
 			  callWhen when, callOrder order,
 			  bool noCost)
@@ -184,27 +158,21 @@ instInstance *addInstFunc(process *proc, instPoint *location,
 }
 
 // Shouldn't this be a member fn of class process?
-instInstance *addInstFunc(process *proc, instPoint *location,
-			  AstNode *&ast, // the ast could be changed (sysFlag stuff)
+instInstance *addInstFunc(process *proc, const instPoint *&location,
+			  AstNode *&ast, // the ast could be changed 
 			  callWhen when, callOrder order,
 			  bool noCost,
 			  returnInstance *&retInstance)
 {
-
-    unsigned count;
-    instInstance *next;
-    instInstance *lastAtPoint;
-    instInstance *firstAtPoint;
-
     assert(proc && location);
-
-    initTramps(); // shouldn't we do "delete regSpace" first to avoid leaking memory?
+    initTramps(); // shouldn't we delete regSpace first to avoid leaking memory?
 
     instInstance *ret = new instInstance;
     assert(ret);
 
     ret->proc = proc;
-    ret->baseInstance = findAndInstallBaseTramp(proc, location, retInstance, noCost);
+    ret->baseInstance = findAndInstallBaseTramp(proc, location, retInstance, 
+						noCost);
 
     if (!ret->baseInstance)
        return(NULL);
@@ -216,16 +184,18 @@ instInstance *addInstFunc(process *proc, instPoint *location,
 
     /* check if there are other inst points at this location. for this process
        at the same pre/post mode */
-    firstAtPoint = NULL;
-    lastAtPoint = NULL;
+    instInstance *firstAtPoint = NULL;
+    instInstance *lastAtPoint = NULL;
 
     point *thePoint;
-    if (!activePoints.find(location, thePoint)) {
-      thePoint = new point; assert(thePoint);
-      activePoints[location] = thePoint;
-    }
+    if (!activePoints.defines((const instPoint *)location)) {
+      thePoint = new point;
+      activePoints[(const instPoint*)location] = thePoint;
+    } else
+      thePoint = activePoints[(const instPoint*)location];
     assert(thePoint);
 
+    instInstance *next;
     for (next = thePoint->inst; next; next = next->next) {
 	if ((next->proc == proc) && (next->when == when)) {
 	    if (!next->nextAtPoint) lastAtPoint = next;
@@ -235,7 +205,7 @@ instInstance *addInstFunc(process *proc, instPoint *location,
 
     // must do this before findAndInstallBaseTramp, puts the tramp in to
     // get the correct cost.
-    // int trampCost = getPointCost(proc, location);
+    // int trampCost = getPointCost(proc, (const instPoint*)location);
 
     /* make sure the base tramp has been installed for this point */
     //ret->baseAddr = findAndInstallBaseTramp(proc, location, retInstance);
@@ -252,10 +222,10 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     memset(insn, 0x00, 65536);
 #endif
 
-    count = 0;
+    u_int count = 0;
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)     
-    ast->sysFlag(location);  
+    ast->sysFlag((instPoint*)location);  
 #endif
 
     int trampCost = 0;
@@ -285,7 +255,7 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     ret->returnAddr += ret->trampBase;
 
     ret->when = when;
-    ret->location = location;
+    ret->location = (instPoint*)location;
 
     ret->next = thePoint->inst;
     ret->prev = NULL;
@@ -344,7 +314,7 @@ instInstance *addInstFunc(process *proc, instPoint *location,
 // instInstanceMapping[parentInst] will be the corresponding instInstance for the
 // child.
 //
-void copyInstInstances(process *parent, process *child, 
+void copyInstInstances(const process *parent, process *child, 
 	    dictionary_hash<instInstance *, instInstance *> &instInstanceMapping)
 {
     vector<point*> allPoints = activePoints.values();
@@ -586,7 +556,8 @@ void installBootstrapInst(process *proc) {
    pdFunction *func = proc->findOneFunction("main");
    assert(func);
 
-   addInstFunc(proc, func->funcEntry(), ast, callPreInsn,
+   const instPoint *func_entry = func->funcEntry(proc);
+   addInstFunc(proc, func_entry, ast, callPreInsn,
 	       orderFirstAtPoint,
 	       true // true --> don't try to have tramp code update the cost
 	       );
@@ -623,28 +594,31 @@ void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
       }
 
       if (item->where & FUNC_EXIT) {
-	  for (unsigned i = 0; i < func->funcReturns.size(); i++) {
-		(void) addInstFunc(proc, func->funcReturns[i], ast,
-				   callPreInsn, orderLastAtPoint, false);
+	  const vector<instPoint *> func_rets = func->funcExits(proc);
+	  for (unsigned i = 0; i < func_rets.size(); i++) {
+		(void) addInstFunc(proc, func_rets[i], ast,
+				   callPreInsn, orderLastAtPoint,false);
 	  }
       }
 
       if (item->where & FUNC_ENTRY) {
-	(void) addInstFunc(proc, func->funcEntry(), ast,
-			   callPreInsn, orderLastAtPoint, false);
+	const instPoint *func_entry = func->funcEntry(proc);
+	(void) addInstFunc(proc, func_entry, ast,
+			   callPreInsn, orderLastAtPoint,false);
       }
 
       if (item->where & FUNC_CALL) {
-	if (!func->calls.size()) {
+        const vector<instPoint *> func_calls = func->funcCalls(proc);
+	if (!func_calls.size()) {
 	  ostrstream os(errorLine, 1024, ios::out);
 	  os << "No function calls in procedure " << func->prettyName() <<
 	    endl;
 	  logLine(errorLine);
 	  showErrorCallback(64, (const char *) errorLine);
 	} else {
-	  for (unsigned i = 0; i < func->calls.size(); i++) {
-	    (void) addInstFunc(proc, func->calls[i], ast,
-			       callPreInsn, orderLastAtPoint, false);
+	  for (unsigned i = 0; i < func_calls.size(); i++) {
+	    (void) addInstFunc(proc, func_calls[i], ast,
+			       callPreInsn, orderLastAtPoint,false);
 	  }
 	}
       }

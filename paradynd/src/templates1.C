@@ -61,12 +61,13 @@
 #include "util/h/Object.h"
 #include "sharedobject.h"
 
-template class  dictionary <instPoint *, trampTemplate *>;
-template class  dictionary_hash <instPoint *, trampTemplate *>;
+template class  dictionary <const instPoint *, trampTemplate *>;
+template class  dictionary <const instPoint *, point *>;
+template class  dictionary_hash <const instPoint *, trampTemplate *>;
 template class  dictionary <instInstance *, instInstance *>;
 template class  dictionary_hash <instInstance *, instInstance *>;
 template class  dictionary_hash <Address, Symbol*>;
-template class  dictionary_hash <instPoint*, point*>;
+template class  dictionary_hash<const instPoint*, point*>;
 template class  dictionary_hash <instPoint*, unsigned>;
 template class  dictionary_hash <string, Symbol>;
 template class  dictionary_hash <string, internalSym*>;
@@ -95,11 +96,12 @@ template class  dictionary_iter<string, module *>;
 template class  dictionary_iter<string, internalSym *>;
 template class  dictionary_iter<instPoint *, unsigned int>;
 template class  dictionary_iter<instPoint *, point *>;
+template class  dictionary_iter<const instPoint *, point *>;
 template class  dictionary_iter<unsigned int, Symbol *>;
 
 
 template class  dictionary_hash_iter <Address, Symbol*>;
-template class  dictionary_hash_iter <instPoint*, point*>;
+template class  dictionary_hash_iter <const instPoint*, point*>;
 template class  dictionary_hash_iter <instPoint*, unsigned>;
 template class  dictionary_hash_iter <string, Symbol>;
 template class  dictionary_hash_iter <string, internalSym*>;

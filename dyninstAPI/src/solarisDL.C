@@ -192,7 +192,7 @@ vector<shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 		    //blah += string("\n");
 		    //logLine(P_strdup(blah.string_of()));
                     shared_object *newobj = new shared_object(obj_name,
-				link_elm.l_addr,0,false,true,true,0);
+				link_elm.l_addr,false,true,true,0);
 		    *shared_objects += newobj;
 		}
 		next_addr = (u_int)link_elm.l_next;
