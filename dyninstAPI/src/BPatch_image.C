@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.50 2004/02/25 04:36:35 schendel Exp $
+// $Id: BPatch_image.C,v 1.51 2004/03/01 19:30:49 tikir Exp $
 
 #define BPATCH_FILE
 
@@ -842,7 +842,7 @@ bool BPatch_image::getLineToAddr(const char* fileName,unsigned short lineNo,
 	//then insert the elements to the vector given
 	Address* elements = new Address[addresses.size()];
 	addresses.elements(elements);
-	for(int j=0;j<addresses.size();j++)
+	for(unsigned j=0;j<addresses.size();j++)
 		buffer.push_back(elements[j]);
 	delete[] elements;
 

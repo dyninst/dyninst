@@ -31,7 +31,7 @@ BPatch_sourceBlock::getSourceLines(BPatch_Vector<unsigned short>& lines){
 	unsigned short* elements = new unsigned short[sourceLines->size()];
 	sourceLines->elements(elements);
 
-	for(int j=0;j<sourceLines->size();j++)
+	for(unsigned j=0;j<sourceLines->size();j++)
 		lines.push_back(elements[j]);
 		
 	delete[] elements;

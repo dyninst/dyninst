@@ -37,7 +37,7 @@ void BPatch_basicBlockLoop::getBackEdges(BPatch_Vector<BPatch_basicBlock*>& bes)
 	BPatch_basicBlock** elements = 
 			new BPatch_basicBlock*[backEdges.size()];
 	backEdges.elements(elements);
-	for(int i=0;i<backEdges.size();i++)
+	for(unsigned i=0;i<backEdges.size();i++)
 		bes.push_back(elements[i]);
 	delete[] elements;
 }
@@ -63,7 +63,7 @@ BPatch_basicBlockLoop::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& nls,
 
     containedLoops.elements(elements);
 
-    for(int i=0; i < containedLoops.size(); i++) {
+    for(unsigned i=0; i < containedLoops.size(); i++) {
 	// only return a contained loop if this loop is its parent
 	if (outerMostOnly) {
 	    if (this == elements[i]->parent) {
@@ -99,7 +99,7 @@ void BPatch_basicBlockLoop::getLoopBasicBlocks(BPatch_Vector<BPatch_basicBlock*>
 	BPatch_basicBlock** elements = 
 			new BPatch_basicBlock*[basicBlocks.size()];
 	basicBlocks.elements(elements);
-	for(int i=0;i<basicBlocks.size();i++)
+	for(unsigned i=0;i<basicBlocks.size();i++)
 		bbs.push_back(elements[i]);
 	delete[] elements;
 }

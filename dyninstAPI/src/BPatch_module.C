@@ -1098,7 +1098,7 @@ bool BPatch_module::getLineToAddr(unsigned short lineNo,
 	//then insert the elements to the vector given
 	Address* elements = new Address[addresses.size()];
 	addresses.elements(elements);
-	for(int i=0;i<addresses.size();i++)
+	for(unsigned i=0;i<addresses.size();i++)
 		buffer.push_back(elements[i]);
 	delete[] elements;
 	return true;

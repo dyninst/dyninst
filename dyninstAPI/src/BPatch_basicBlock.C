@@ -63,7 +63,7 @@ BPatch_basicBlock::~BPatch_basicBlock(){
 void BPatch_basicBlock::getSources(BPatch_Vector<BPatch_basicBlock*>& srcs){
 	BPatch_basicBlock** elements = new BPatch_basicBlock*[sources.size()];
 	sources.elements(elements);
-	for(int i=0;i<sources.size();i++)
+	for(unsigned i=0;i<sources.size();i++)
 		srcs.push_back(elements[i]);
 	delete[] elements;
 }
@@ -72,7 +72,7 @@ void BPatch_basicBlock::getSources(BPatch_Vector<BPatch_basicBlock*>& srcs){
 void BPatch_basicBlock::getTargets(BPatch_Vector<BPatch_basicBlock*>& tgrts){
 	BPatch_basicBlock** elements = new BPatch_basicBlock*[targets.size()];
 	targets.elements(elements);
-	for(int i=0;i<targets.size();i++)
+	for(unsigned i=0;i<targets.size();i++)
 		tgrts.push_back(elements[i]);
 	delete[] elements;
 }
@@ -86,7 +86,7 @@ void BPatch_basicBlock::getImmediateDominates(BPatch_Vector<BPatch_basicBlock*>&
 	BPatch_basicBlock** elements = 
 		new BPatch_basicBlock*[immediateDominates->size()];
 	immediateDominates->elements(elements);
-	for(int i=0;i<immediateDominates->size();i++)
+	for(unsigned i=0;i<immediateDominates->size();i++)
 		imds.push_back(elements[i]);
 	delete[] elements;
 }
@@ -100,7 +100,7 @@ void BPatch_basicBlock::getImmediatePostDominates(BPatch_Vector<BPatch_basicBloc
 	BPatch_basicBlock** elements = 
 		new BPatch_basicBlock*[immediatePostDominates->size()];
 	immediatePostDominates->elements(elements);
-	for(int i=0;i<immediatePostDominates->size();i++)
+	for(unsigned i=0;i<immediatePostDominates->size();i++)
 		imds.push_back(elements[i]);
 	delete[] elements;
 }
@@ -115,7 +115,7 @@ BPatch_basicBlock::getAllDominates(BPatch_Set<BPatch_basicBlock*>& buffer){
 		BPatch_basicBlock** elements = 
 			new BPatch_basicBlock*[immediateDominates->size()];
 		immediateDominates->elements(elements);
-		for(int i=0;i<immediateDominates->size();i++)
+		for(unsigned i=0;i<immediateDominates->size();i++)
 			elements[i]->getAllDominates(buffer);
 		delete[] elements;
 	}
@@ -130,7 +130,7 @@ BPatch_basicBlock::getAllPostDominates(BPatch_Set<BPatch_basicBlock*>& buffer){
 		BPatch_basicBlock** elements = 
 			new BPatch_basicBlock*[immediatePostDominates->size()];
 		immediatePostDominates->elements(elements);
-		for(int i=0;i<immediatePostDominates->size();i++)
+		for(unsigned i=0;i<immediatePostDominates->size();i++)
 			elements[i]->getAllPostDominates(buffer);
 		delete[] elements;
 	}
@@ -166,7 +166,7 @@ bool BPatch_basicBlock::dominates(BPatch_basicBlock* bb){
 	BPatch_basicBlock** elements = 
 		new BPatch_basicBlock*[immediateDominates->size()];
 	immediateDominates->elements(elements);
-	for(int i=0;!done && (i<immediateDominates->size());i++)
+	for(unsigned i=0;!done && (i<immediateDominates->size());i++)
 		done = done || elements[i]->dominates(bb);
 	delete[] elements;
 	return done;
@@ -188,7 +188,7 @@ bool BPatch_basicBlock::postdominates(BPatch_basicBlock* bb){
 	BPatch_basicBlock** elements = 
 		new BPatch_basicBlock*[immediatePostDominates->size()];
 	immediatePostDominates->elements(elements);
-	for(int i=0;!done && (i<immediatePostDominates->size());i++)
+	for(unsigned i=0;!done && (i<immediatePostDominates->size());i++)
 		done = done || elements[i]->postdominates(bb);
 	delete[] elements;
 	return done;
