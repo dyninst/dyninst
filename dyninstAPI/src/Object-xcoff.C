@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.26 2003/05/30 18:57:39 buck Exp $
+// $Id: Object-xcoff.C,v 1.27 2003/06/11 20:05:41 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -68,7 +68,6 @@
 #include <sys/reg.h>
 #include <sys/user.h>
 #include <sys/wait.h>
-#include <sys/ptrace.h>
 #include <procinfo.h> // struct procsinfo
 #include <sys/types.h>
 #include <sys/param.h> // PAGESIZE
@@ -81,6 +80,12 @@
 #include "dyninstAPI/src/showerror.h"
 #include "common/h/debugOstream.h"
 #include "arch-power.h"
+
+#if defined(AIX_PROC)
+#include <sys/procfs.h>
+#else
+#include <sys/ptrace.h>
+#endif
 
 /* For some reason this symbol type isn't global */
 #if !defined(C_WEAKEXT)
@@ -303,6 +308,52 @@ int Archive_64::read_mbrhdr()
       goto cleanup; \
       }
 
+// At the point when we read the application, we may or may not
+// have a process object defined. This means we have to have our
+// own memory reading code. Grr... useless duplication of effort.
+
+#if defined(AIX_PROC) 
+bool read_from_mem(int pid, Address in_traced, Address in_self, int size) {
+    char procname[256];
+    sprintf(procname, "/proc/%d/as", pid);
+    int fd = open(procname, O_RDONLY, 0);
+    if (fd <= 0) {
+        perror("Opening FD for parse read");
+        return false;
+    }
+    
+    int bytesread = pread(fd, (void *)in_self, size, (off_t) in_traced);
+    close(fd);
+    return (bytesread == size);
+}
+#else
+// Write something here...
+bool read_from_mem(int pid, Address in_traced, Address in_self, int size) {
+    int amount = size;
+    
+    while (size >= 1024) {
+        if (ptrace(PT_READ_BLOCK, pid, (int *)in_traced, 
+                   1024, (int *)in_self) == -1) {
+            perror("Reading memory of inferior process");
+            return false;
+        }
+        size -= 1024;
+        in_traced += 1024;
+        in_self += 1024;
+    }
+    if (size > 0)
+        if (ptrace(PT_READ_BLOCK, pid, (int *)in_traced,
+                   size, (int *)in_self) == -1) {
+            perror("Reading memory of inferior process");
+            return false;
+        }
+    return true;
+}
+
+
+#endif
+
+
 void Object::parse_aout(int fd, int offset, bool is_aout)
 {
    // all these vrble declarations need to be up here due to the gotos,
@@ -337,10 +388,6 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
    unsigned text_reloc;
    unsigned data_reloc;
 
-   // For reading process data space.
-   unsigned ptrace_amount;
-   char *in_self;
-   char *in_traced;
 
    // Creating extra inferior heap space
    Address heapAddr;
@@ -479,36 +526,33 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
 
    // data_reloc = "relocation value" = data_org_ - aout.data_start
    if (data_org_ != (unsigned) -1) {
-     data_reloc = data_org_ - aout.data_start;
-     // We're forced to get the data segment through ptrace. While
-     // some of the shared libraries are accessible from both the 
-     // mutator and mutatee, all of them are not necessarily mapped. 
-     // Not to mention, things like the table of contents (TOC) are
-     // filled in at load time. Oy.
-     data_ptr_ = (Word *)malloc(aout.dsize);
-     ptrace_amount = aout.dsize;
-     in_self = (char *)data_ptr_;
-     // I've seen the data_org_ value start on a halfword-aligned boundary.
-     // Since the first two bytes don't matter that I can tell, we round
-     // to word alignment
-     in_traced = (char *)(roundup4(data_org_));
-     // Maximum ptrace block = 1k
+       data_reloc = data_org_ - aout.data_start;
+       // We're forced to get the data segment through ptrace/proc. While
+       // some of the shared libraries are accessible from both the 
+       // mutator and mutatee, all of them are not necessarily mapped. 
+       // Not to mention, things like the table of contents (TOC) are
+       // filled in at load time. Oy.
+       data_ptr_ = (Word *)malloc(aout.dsize);
 
-     // Here's a fun one. For the a.out file, we normally have the data in
-     // segment 2 (0x200...). This is not always the case. Programs compiled
-     // with the -bmaxdata flag have the heap in segment 3. In this case, change
-     // the lower bound for the allocation constants in aix.C.
-     extern Address data_low_addr;
-     if (is_aout) {
-       if (data_org_ >= 0x30000000)
-	 {
-	   data_low_addr = 0x30000000;
-	 }
-       else
-	 {
-	   data_low_addr = 0x20000000;
-	 }
-     }
+       // I've seen the data_org_ value start on a halfword-aligned boundary.
+       // Since the first two bytes don't matter that I can tell, we round
+       // to word alignment
+       
+       // Here's a fun one. For the a.out file, we normally have the data in
+       // segment 2 (0x200...). This is not always the case. Programs compiled
+       // with the -bmaxdata flag have the heap in segment 3. In this case, change
+       // the lower bound for the allocation constants in aix.C.
+       extern Address data_low_addr;
+       if (is_aout) {
+           if (data_org_ >= 0x30000000)
+           {
+               data_low_addr = 0x30000000;
+           }
+           else
+           {
+               data_low_addr = 0x20000000;
+           }
+       }
 
 #ifdef DEBUG
      fprintf(stderr, "data_org_ = %x, data_start = %x\n",
@@ -517,39 +561,19 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
      fprintf(stderr, "Data pointer: %x, reloc: %x\n",
 	     (unsigned) data_ptr_, (unsigned) data_reloc);
 #endif
-     for (ptrace_amount = aout.dsize ; 
-	  ptrace_amount > 1024 ; 
-	  ptrace_amount -= 1024)
-       {
-	 if (ptrace(PT_READ_BLOCK, pid_, (int *)in_traced,
-		    1024, (int *)in_self) == -1) {
-	   //#ifdef DEBUG
-	   fprintf(stderr, "PTRACE_READ 1: from %x (in_traced) to %x (in_self)\n",
-		   (int) in_traced, (int) in_self);
-	   perror("Reading data segment of inferior process");
-	   //#endif DEBUG
-	   PARSE_AOUT_DIE("Reading data segment", 49);
-	 }
-	 in_self += 1024;
-	 in_traced += 1024;
-       }
-     if (ptrace_amount)
-       if (ptrace(PT_READ_BLOCK, pid_, (int *)in_traced,
-		  ptrace_amount, (int *)in_self) == -1) {
-#ifdef DEBUG
-	 fprintf(stderr, "PTRACE_READ 2: from %x (in_traced) to %x (in_self)\n",
-		 (int) in_traced, (int) in_self);
-	 perror("Reading data segment of inferior process");
-#endif /* DEBUG */
-	 PARSE_AOUT_DIE("Reading data segment", 49);
-       }
+     if (!read_from_mem(pid_, roundup4(data_org_),
+                        (Address) data_ptr_, 
+                        aout.dsize)) {
+         // This happens quite often
+     }
+     
      // data_off_ is the value subtracted from an (absolute) address to
      // give an offset into the mutator's copy of the data
      data_off_ = data_org_;
    }
    else {
-     data_reloc = 0;
-     data_off_ = 0;
+       data_reloc = 0;
+       data_off_ = 0;
    }
    
 #ifdef DEBUG
