@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.96 2001/11/09 19:41:45 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.97 2001/11/10 02:59:07 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2495,6 +2495,7 @@ bool pd_Function::findInstPoints(const image *owner) {
   // or is a jump to itself....
 
   // Grab second instruction
+  /*
   Address addrSecondInstr = firstAddress + sizeof(instruction);
   instr.raw = owner->get_instruction(addrSecondInstr); 
 
@@ -2513,10 +2514,10 @@ bool pd_Function::findInstPoints(const image *owner) {
     // Branch instruction  
     if ( instr.branch.op == 0 && 
         (instr.branch.op2 == 2 || instr.branch.op2 == 6) ) {
-      canBeRelocated = false;
+      canBeRelocated = false;pwd
     }
   }
-
+  */
 
   // Can't handle function
   if (canBeRelocated == false && isTrap == true) {
@@ -3014,10 +3015,38 @@ bool pd_Function::PA_attachGeneralRewrites( const image *owner,
         // place the no-op after that instruction)   
         InsertNops *nop = new InsertNops(this, 0, sizeof(instruction));
 	p->AddAlteration(nop);
+
 #ifdef DEBUG_PA_INST
 	cerr << " added single NOP in 2nd instruction" << endl;
 #endif
+
+	// Check for call out of function at second instruction
+        // (For debugging purposes).
+	/*
+        Address firstAddress = getAddress(0);
+        Address lastAddress = getAddress(0) + size();
+  
+        Address addrSecondInstr = firstAddress + sizeof(instruction);
+
+        // target of call
+        Address target = addrSecondInstr + (loadedCode[1].call.disp30 << 2);
+
+        // if call dest. is outside of function, assume real
+        // call site.  Assuming cant deal with this case!!!!
+        if ( !(target >= firstAddress && target <= lastAddress) ||
+                                        (target == addrSecondInstr) ) {
+	  cerr << prettyName() << " has call near entry" << endl;
+        }
+
+        // Branch instruction  
+        if ( loadedCode[1].branch.op == 0 && 
+            (loadedCode[1].branch.op2 == 2 || 
+             loadedCode[1].branch.op2 == 6) ) {
+	  cerr << prettyName() << " has branch near entry" << endl;
+        }
+	*/
     }
+
 
     // Iterate over function instruction by instruction, looking for calls to
     //  address + 8....
