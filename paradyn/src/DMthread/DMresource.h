@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.h,v 1.48 2002/12/20 07:50:02 jaw Exp $
+// $Id: DMresource.h,v 1.49 2003/05/29 19:24:57 schendel Exp $
 
 #ifndef DMresource_H 
 #define DMresource_H
@@ -141,6 +141,12 @@ class resource {
    static resource *getRootResource() {
       return rootResource;
    }
+
+   // returns true on success, false if it failed to fill in procName and pid
+   // will fill in procName and pid if the given pointers are non-null
+   static bool splitProcessResourceStr(const string &proc_res_str,
+                                       string *procName, int *pid);
+
  protected:
    resource();
    resource(resourceHandle p_handle,
@@ -229,6 +235,10 @@ class resourceList {
    // find a machine to which it's referring, too.
    // NOTE: If this routine gets confused or isn't sure whether the
    // resource is  specific to a machine, it returns false.
+
+   // returns true if resourceList does specify a process
+   // will fill in procName and pid if the given pointers are non-null
+   bool getProcessReferredTo(string *procName, int *pid) const;
 
    static const char *getName(resourceListHandle rh);
    static bool convertToIDList(resourceListHandle rh,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.59 2002/12/20 07:50:01 jaw Exp $
+// $Id: DMresource.C,v 1.60 2003/05/29 19:24:56 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -124,7 +124,7 @@ resource::resource(resourceHandle p_handle,
 resource::resource(resourceHandle p_handle, 
 		   pdvector<string>& resource_name,
 		   string& r_name,
-		   string& a, unsigned res_type) 
+		   string& a, unsigned res_type)
 {
     
     if(!allResources.defines(r_name)){
@@ -167,7 +167,7 @@ resource *resource::handle_to_resource(resourceHandle r_handle) {
 // vector
 resourceHandle resource::createResource(unsigned res_id, 
                                         pdvector<string>& resource_name,
-                                        string& abstr, unsigned type) 
+                                        string& abstr, unsigned type)
 {
    static const string slashStr = "/";
    static const string baseStr = "BASE";
@@ -325,7 +325,7 @@ resourceHandle resource::createResource(unsigned res_id,
 resourceHandle resource::createResource_ncb(pdvector<string>& resource_name, 
                                             string& abstr, unsigned type,
                                             resourceHandle &p_handle, 
-                                            bool &exist) 
+                                            bool &exist)
 {
    resource *parent = NULL;
    unsigned r_size = resource_name.size();
@@ -1016,43 +1016,174 @@ bool resourceList::getMachineNameReferredTo(string &machName) const {
 
       // Is "theResource" a descendant of "/Machine"?
       if (theResource.isDescendantOf(machineResource)) {
-         // bingo.  Now check out the resource's components.  The machine name
-         // should be in the 2d component, and the first component should be "Machine".
-	 // (For example, the resource "/Machine/goat" has 2 components)
-	 const pdvector<string> &components = theResource.getParts();
-
-         // The following line is not fast; calls string's constructor which calls
-	 // malloc.  But it's really just an assert, so we could get rid of it for
-	 // speed.
+         // bingo.  Now check out the resource's components.  The machine
+         // name should be in the 2d component, and the first component
+         // should be "Machine".  (For example, the resource "/Machine/goat"
+         // has 2 components)
+         const pdvector<string> &components = theResource.getParts();
+         
+         // The following line is not fast; calls string's constructor which
+         // calls malloc.  But it's really just an assert, so we could get
+         // rid of it for speed.
          if (components[0] != "Machine") {
             // I am confused; I expected "Machine"
-	    cout << "getMachineNameReferredTo: expected Machine; found "
+            cout << "getMachineNameReferredTo: expected Machine; found "
                  << components[0] << endl;
-	    return false;
+            return false;
          }
-	 if (components.size() < 2) {
+         if (components.size() < 2) {
             // I am confused; I expected something below "Machine"
-	    cout << "getMachineNameReferredTo: nothing below 'Machine'" << endl;
-	    return false;
-	 }
-	 if (components.size() > 4) {
-            // currently, there is only one level below "Machine"
-	    // Maybe in the future we can have stuff like "/Machine/cluster1/goat"
-	    // But for now this acts as a nice assert (in that if the following error
-            // msg is ever seen, then we need to rethink how we extract the machine
-	    // name)
-	    cout << "getMachineNameReferredTo: too much below 'Machine'" << endl;
-	    return false;
-	 }
-
-	 // success!
-	 machName = components[1];
-	 return true;
+            cout << "getMachineNameReferredTo: nothing below 'Machine'"
+                 << endl;
+            return false;
+         }
+         if (components.size() > 4) {
+            // currently, there is only one level below "Machine" Maybe in
+            // the future we can have stuff like "/Machine/cluster1/goat" But
+            // for now this acts as a nice assert (in that if the following
+            // error msg is ever seen, then we need to rethink how we extract
+            // the machine
+            // name)
+            cout << "getMachineNameReferredTo: too much below 'Machine'"
+                 << endl;
+            return false;
+         }
+         
+         // success!
+         machName = components[1];
+         return true;
       }
    }
 
    return false;
 }
+
+// returns true on success, false if it failed to fill in procName and pid
+// will fill in procName and pid if the given pointers are non-null
+bool resource::splitProcessResourceStr(const string &proc_res_str,
+                                       string *procName, int *pid)
+{
+   const char *fullstr = proc_res_str.c_str();
+
+   char process_name[200];
+   int cur_index = 0;
+
+   // fill in process_name and move up to the '{' character
+   for(cur_index = 0; ; cur_index++) {
+      char cur_char = fullstr[cur_index];
+      if(cur_char == 0)
+         return false;
+      if(cur_char == '{')
+         break;      
+
+      process_name[cur_index] = cur_char;
+   }
+
+   process_name[cur_index] = 0;
+   if(procName != NULL)
+      (*procName) = process_name;
+
+   cur_index++;   // get past the '{'
+   char pid_str[20];
+   int pid_index = 0;
+
+   // get the pid string and move up to the '}'
+   while(1) {
+      char cur_char = fullstr[cur_index];
+      if(cur_char == 0)
+         return false;
+      if(cur_char == '}')
+         break;
+
+      pid_str[pid_index] = cur_char;
+      pid_index++;
+      cur_index++;
+   };
+
+   pid_str[pid_index] = 0;
+   if(pid != NULL)
+      (*pid) = atoi(pid_str);
+
+   return true;
+}
+
+// returns true if resourceList does specify a process
+// will fill in procName and pid if the given pointers are non-null
+bool resourceList::getProcessReferredTo(string *procName, int *pid) const {
+   // If this focus is specific to some process, then fill in "procName" and
+   // "pid" and return true.  Else, leave "procName" and "pid" alone and
+   // return false.
+   
+   // Step 1: Obtain the resources for /Machine and /Process
+   // Since these are expensive operations (the string constructor is called,
+   // which in turn calls new[]), we only do them once.
+   static resource *machine_resource_ptr = NULL; // NULL --> not yet defined
+
+   if (machine_resource_ptr == NULL) {
+      machine_resource_ptr = resource::string_to_resource("/Machine");
+      if (machine_resource_ptr == NULL) {
+         cout << "getMachineNameReferredTo(): couldn't find /Machine" << endl;
+         return false;
+      }
+   }
+
+   assert(machine_resource_ptr);
+   const resource &machineResource = *machine_resource_ptr;
+
+   for (unsigned hierarchy=0; hierarchy < elements.size(); hierarchy++) {
+      const resource *the_resource_ptr = elements[hierarchy];
+      const resource &theResource = *the_resource_ptr;
+
+      // Is "theResource" a descendant of "/Machine"?
+      if (theResource.isDescendantOf(machineResource)) {
+         // bingo.  Now check out the resource's components.  The machine
+         // name should be in the 2d component, and the first component
+         // should be "Machine".  (For example, the resource "/Machine/goat"
+         // has 2 components)
+         const pdvector<string> &components = theResource.getParts();
+         
+         // The following line is not fast; calls string's constructor which
+         // calls malloc.  But it's really just an assert, so we could get
+         // rid of it for speed.
+         if (components[0] != "Machine") {
+            // I am confused; I expected "Machine"
+            cout << "getMachineNameReferredTo: expected Machine; found "
+                 << components[0] << endl;
+            return false;
+         }
+         if (components.size() < 2) {
+            // I am confused; I expected something below "Machine"
+            cout << "getMachineNameReferredTo: nothing below 'Machine'"
+                 << endl;
+            return false;
+         }
+         if (components.size() > 4) {
+            // currently, there is only one level below "Machine" Maybe in
+            // the future we can have stuff like "/Machine/cluster1/goat" But
+            // for now this acts as a nice assert (in that if the following
+            // error msg is ever seen, then we need to rethink how we extract
+            // the machine
+            // name)
+            cout << "getMachineNameReferredTo: too much below 'Machine'"
+                 << endl;
+            return false;
+         }
+
+         if(components.size() == 2) {
+            // for example: /Machine and cham
+            return false;  // machine referred to, but not process
+         }
+
+         // success!         
+         bool result = resource::splitProcessResourceStr(components[2],
+                                                         procName, pid);
+         return result;
+      }
+   }
+
+   return false;
+}
+
 
 pdvector<resourceHandle> *resourceList::getResourceHandles(resourceListHandle h){
     resourceList *focus = getFocus(h);
