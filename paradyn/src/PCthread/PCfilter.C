@@ -21,6 +21,10 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.4  1996/02/22 18:30:01  karavan
+ * bug fix to PC pause/resume so only filters active at time of pause
+ * resubscribe to data
+ *
  * Revision 1.3  1996/02/09 20:57:26  karavan
  * Added performanceConsultant::globalRawDataServer and
  * performanceConsultant::currentRawDataServer to streamline new data
@@ -257,11 +261,15 @@ filteredDataServer::newBinSize (timeStamp bs)
 void
 filteredDataServer::resubscribeAllData() 
 {
+  metricInstanceHandle *curr;
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
-    dataMgr->enableDataCollection2(filteredDataServer::pstream, 
-				   AllDataFilters[i]->getFocus(), 
-				   AllDataFilters[i]->getMetric(),
-				   pht, 1, 0);
+    if (AllDataFilters[i]->isActive()) {
+      curr = dataMgr->enableDataCollection2(filteredDataServer::pstream, 
+					    AllDataFilters[i]->getFocus(), 
+					    AllDataFilters[i]->getMetric(),
+					    pht, 1, 0);
+      delete curr;
+    }
   }
 }
 
@@ -272,8 +280,10 @@ void
 filteredDataServer::unsubscribeAllData() 
 {
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
-    dataMgr->disableDataCollection(filteredDataServer::pstream, 
-				   AllDataFilters[i]->getMI(), pht);
+    if (AllDataFilters[i]->isActive()) {
+      dataMgr->disableDataCollection(filteredDataServer::pstream, 
+				     AllDataFilters[i]->getMI(), pht);
+    }
   }
 }
 

@@ -21,6 +21,10 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.h,v $
+ * Revision 1.2  1996/02/22 18:30:05  karavan
+ * bug fix to PC pause/resume so only filters active at time of pause
+ * resubscribe to data
+ *
  * Revision 1.1  1996/02/02 02:07:27  karavan
  * A baby Performance Consultant is born!
  *
@@ -70,6 +74,9 @@ class filter : public dataProvider
   metricHandle getMetric() {return metric;}
   focus getFocus() {return foc;}
   float getNewEstimatedCost();
+  // active just means has at least one consumer; may not be 
+  // instrumented i.e. if PC is paused
+  bool isActive() {return (numConsumers > 0);}
  private:  
   // these used in newData() to figure out intervals 
   void updateNextSendTime(timeStamp startTime);
