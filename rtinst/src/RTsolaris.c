@@ -57,6 +57,11 @@
 #include <signal.h>
 #include <sys/ucontext.h>
 #include <sys/time.h>
+
+#include <sys/procfs.h> /* /proc PIOCUSAGE */
+#include <stdio.h>
+#include <fcntl.h> /* O_RDONLY */
+
 #include "rtinst/h/rtinst.h"
 
 /*extern int    gettimeofday(struct timeval *, struct timezone *);*/
@@ -123,13 +128,113 @@ DYNINSTos_init(void) {
  *	jkh 3/9/95
 ************************************************************************/
 
+
+static unsigned long long div1000(unsigned long long in) {
+   /* Divides by 1000 without integer division, which is slow.
+    * We want to do only shifts, adds, and subtracts.
+    *
+    * We divide by 1000 in this way:
+    * multiply by 1/1000, or multiply by (1/1000)*2^30 and then right-shift by 30.
+    * So what is 1/1000 * 2^30?
+    * It is 1,073,742.   (actually this is rounded)
+    * So we can multiply by 1,073,742 and then right-shift by 30.
+    *
+    * Now for multiplying by 1,073,742...
+    * 1,073,742 = (1,048,576 + 16384 + 8192 + 512 + 64 + 8 + 4 + 2)
+    * or, slightly optimized:
+    * = (1,048,576 + 16384 + 8192 + 512 + 64 + 16 - 2)
+    * for a total of 8 shifts and 6 add/subs, or 14 operations.
+    *
+    */
+
+   unsigned long long temp = in << 20;
+   temp += in << 14;
+   temp += in << 13;
+   temp += in << 9;
+   temp += in << 6;
+   temp += in << 4;
+   temp -= in >> 2;
+
+   return (temp >> 30);
+}
+
+static unsigned long long mulMillion(unsigned long long in) {
+   unsigned long long result = in;
+
+   /* multiply by 125 by multiplying by 128 and subtracting 3x */
+   result = (result << 7) - result - result - result;
+
+   /* multiply by 125 again, for a total of 15625x */
+   result = (result << 7) - result - result - result;
+
+   /* multiply by 64, for a total of 1,000,000x */
+   result <<= 6;
+
+   /* cost was: 3 shifts and 6 subtracts
+    * cost of calling mul1000(mul1000()) would be: 6 shifts and 4 subtracts
+    *
+    * Another algorithm is to multiply by 2^6 and then 5^6.
+    * The former is super-cheap (one shift); the latter is more expensive.
+    * 5^6 = 15625 = 16384 - 512 - 256 + 8 + 1
+    * so multiplying by 5^6 means 4 shift operations and 4 add/sub ops
+    * so multiplying by 1000000 means 5 shift operations and 4 add/sub ops.
+    * That may or may not be cheaper than what we're doing (3 shifts; 6 subtracts);
+    * I'm not sure.  --ari
+    */
+
+   return result;
+}
+
+static int firstTime = 1; /* boolean */
+static int procfd = -1;
+
 time64
 DYNINSTgetCPUtime(void) {
   static time64 previous=0;
 
   while (1) {
-     time64 now = (time64)gethrvtime()/(time64)1000;
-     if (now < previous) continue;
+/* gethrvtime()/1000 doesn't work right any more with shm sampling because it
+ * returns values that are out of sync with /proc's PIOCUSAGE.  getrusage()
+ * does seem to work okay, but we'd like to not use getrusage() because it's
+ * obsolete in solaris and slower; so we use PIOCUSAGE...
+ */
+
+/*     time64 now = (time64)gethrvtime()/(time64)1000; */
+
+     struct prusage theUsage; /* for /proc PIOCUSAGE call */
+     time64 now;
+
+     if (firstTime) {
+        /* This stuff is done just once */
+        char str[20];
+
+	sprintf(str, "/proc/%d", getpid());
+	procfd = open(str, O_RDONLY);
+	if (procfd < 0) {
+	   fprintf(stderr, "open of /proc failed in get-cpu-time\n");
+	   perror("open");
+	   abort();
+	}
+	
+	firstTime = 0;
+     }
+
+     if (ioctl(procfd, PIOCUSAGE, &theUsage) < 0) {
+        perror("rtinst get-cpu-time PIOCUSAGE");
+	abort();
+     }
+
+     now = theUsage.pr_utime.tv_sec + theUsage.pr_stime.tv_sec;
+
+     now = mulMillion(now); /* sec to usec */
+/*     now *= 1000000; */
+
+     now += div1000(theUsage.pr_utime.tv_nsec + theUsage.pr_stime.tv_nsec);
+/*     now += (theUsage.pr_utime.tv_nsec + theUsage.pr_stime.tv_nsec) / 1000; */
+
+     if (now < previous)
+        /* I don't think that this ever happens for solaris, thankfully */
+        continue;
 
      previous = now;
      return (now);
