@@ -282,7 +282,7 @@ class pd_process {
   bool isAnyIRPCwaitingForSyscall()
     { return dyninst_process->isAnyIRPCwaitingForSyscall();};
   void clearAllIRPCwaitingForSyscall()
-    { return dyninst_process->clearAllIRPCwaitingForSyscall();};
+    { dyninst_process->clearAllIRPCwaitingForSyscall();};
   
       
 };
