@@ -106,7 +106,28 @@ class hashtbl {
     }
 
     void put(key_t* key, value_t value, unsigned len) {
-        assert("Sorry, not implemented" == NULL);
+        monitor.lock();
+        unsigned long index = hashval(key, len);
+        pair<key_t,value_t> *start_bucket, *result_bucket;
+        start_bucket = entries[index];
+        result_bucket = NULL;
+#ifdef HASH_DEBUG
+        fprintf(stderr, "key %d hashes to %d\n", (unsigned)key, index);
+#endif
+        result_bucket = find(start_bucket, key);
+            
+        if(!result_bucket) {
+            result_bucket = new pair<key_t,value_t>;
+            result_bucket->cleanup_next = cleanup_list;
+            result_bucket->next = entries[index];
+            result_bucket->key = key;
+            result_bucket->value = value;
+            cleanup_list = result_bucket;
+            entries[index] = result_bucket;
+        } else {
+            result_bucket->value = value;
+        }
+        monitor.unlock();
     }    
 
     value_t get(key_t key) {
@@ -130,6 +151,44 @@ class hashtbl {
         monitor.unlock();
         return retval;
     }
+
+    value_t get(key_t *key, unsigned len) {
+        monitor.lock();
+        
+        unsigned long index = hashval(key, len);
+        value_t retval;
+        pair<key_t,value_t> *start_bucket, *result_bucket;
+        start_bucket = entries[index];
+        result_bucket = NULL;
+#ifdef HASH_DEBUG
+        fprintf(stderr, "key %d hashes to %d\n", (unsigned)key, index);
+#endif
+        result_bucket = find(start_bucket, key);
+
+        if(result_bucket)
+            retval = result_bucket->value;
+        else
+            retval = NULL;
+        
+        monitor.unlock();
+        return retval;
+    }
+
+    template<class Command>
+    void map_keys(Command* cmd) {
+        monitor.lock();
+        for (int i = 0; i < HASHTBL_SIZE; i++)
+            if(entries[i] != NULL) cmd->exec((entries[i])->key);
+        monitor.unlock();
+    }
+
+    template<class Command>
+    void map_vals(Command* cmd) {
+        monitor.lock();
+        for (int i = 0; i < HASHTBL_SIZE; i++)
+            if(entries[i] != NULL) cmd->exec((entries[i])->value);        
+        monitor.unlock();
+    }    
 };
 
 #endif

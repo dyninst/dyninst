@@ -392,13 +392,19 @@ inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block,
     actual_sender = criterion.actual_sender;
     actual_type = criterion.actual_type;
 
-    // FIXME:  re-write this so that it does a multi-pass check;
-    // checking for message types in the proper order (i.e. 
-    // file,socket,thread if io_first, otherwise thread,file,socket)
-    
     if(found) {
+
         if(do_yank && m) {
+            unsigned oldsize = 
+                yank_from->get_size();
+            unsigned newsize;
+
             *m = yank_from->yank(&criterion);
+
+            newsize = 
+                yank_from->get_size();
+            assert(oldsize == (newsize + 1));
+
         } else if( !do_yank &&
                  thrtab::is_io_entity(actual_sender) &&
                  ((io_entity*)thrtab::get_entry(actual_sender))->is_special()) {
@@ -406,12 +412,22 @@ inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block,
             // we're telling the caller about input on
             // their special file, and we expect them to
             // consume it
+            unsigned oldsize = 
+                yank_from->get_size();
+            unsigned newsize;
+
             msg_from_special = yank_from->yank(&criterion);
             m = &msg_from_special;
+
+            newsize = 
+                yank_from->get_size();
+            assert(oldsize == (newsize + 1));
+
         }
 
         goto done;
     } else if(!found && do_block) {
+        thr_debug_msg(CURRENT_FUNCTION, "blocking; size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
         monitor->wait(RECV_AVAIL);
         goto find_msg;
     }
@@ -451,9 +467,13 @@ inline bool thr_mailbox::check_for(thread_t* sender, tag_t* type, bool do_block,
 
 int thr_mailbox::put(message* m) {
     monitor->lock();
-
-    messages->put(m);
     
+    unsigned old_size = messages->get_size();
+    
+    messages->put(m);
+
+    assert(messages->get_size() == old_size + 1);
+
     monitor->unlock();
     monitor->signal(RECV_AVAIL);
 
@@ -463,7 +483,11 @@ int thr_mailbox::put(message* m) {
 int thr_mailbox::put_sock(message* m) {
     monitor->lock();
 
+    unsigned old_size = sock_messages->get_size();
+
     sock_messages->put(m);
+
+    assert(sock_messages->get_size() == (old_size + 1));
     
     monitor->unlock();
     monitor->signal(RECV_AVAIL);
@@ -480,19 +504,21 @@ int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp
 #endif // READY
 
     monitor->lock();
-    
+    thr_debug_msg(CURRENT_FUNCTION, "RECEIVING: size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
     message* to_recv;
     bool did_recv;
 
     did_recv = check_for(sender, tagp, true, true, &to_recv);
-    
+
+    thr_debug_msg(CURRENT_FUNCTION, "DONE RECEIVING: size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
+
     if(!did_recv) {
         retval = THR_ERR;
         goto done;
     }
     
     *sender = to_recv->deliver(tagp, buf, countp);
-    
+
     delete to_recv;
 
   done:
@@ -516,10 +542,9 @@ int thr_mailbox::poll(thread_t* from, tag_t* tagp, unsigned block,
     //        by passing fd_first to check_for and then implementing 
     //        poll_preference semantics there
     
-#if READY
     signal_fd_selector();
     signal_sock_selector();
-#endif // READY
+
     
     monitor->lock();
     
@@ -555,3 +580,13 @@ void thr_mailbox::bind_sock(PDSOCKET sock, unsigned special, int
 
     signal_sock_selector();
 }
+
+bool thr_mailbox::is_sock_bound(PDSOCKET sock) {
+    
+    sock_monitor->lock();
+    bool ret = bound_socks->contains(sock);
+    sock_monitor->unlock();
+
+    return ret;
+}
+

@@ -87,6 +87,10 @@ int msg_bind(PDDESC fd, unsigned special, int (*will_block)(void*), void* arg, t
     assert(false);
 }
 
+void dummy_breakpoint() {
+    fprintf(stderr, "");
+}
+
 
 int msg_bind_sig(int sig, thread_t* tid) {
     fprintf(stderr,"binding signals to message queues not implemented; aborting...\n");
@@ -101,7 +105,8 @@ int msg_bind_socket(PDSOCKET s, unsigned special, int (*will_block)(void*), void
     thr_mailbox* my_mail = (thr_mailbox*)lwp::get_mailbox();
     thread_t me = thr_self();
     my_mail->bind_sock(s, special, will_block, (void*)(&s), ptid);
-    
+
+    assert(my_mail->is_sock_bound(s));
   done:
     thr_debug_msg(CURRENT_FUNCTION, "returning %d\n", ret);
     return ret;

@@ -5,7 +5,7 @@
   This code taken from Bob Jenkins' web page.
   http://burtleburtle.net/bob/c/lookup2.c
   
-  It is public domain.
+  It is in the public domain.
 */
 
 #define mix(a,b,c) \

@@ -11,6 +11,8 @@
 #include "predicate.h"
 #include "../h/thread.h"
 
+extern int SOCK_FD;
+
 class thr_mailbox : public mailbox {
   private:
     static void* fds_select_loop(void* which_mailbox);    
@@ -64,6 +66,8 @@ class thr_mailbox : public mailbox {
 
     void bind_fd(PDDESC fd, unsigned special, int (*wb)(void*), void* desc, thread_t* ptid);
     void bind_sock(PDSOCKET s, unsigned special, int (*wb)(void*), void* desc, thread_t* ptid);
+
+    bool is_sock_bound(PDSOCKET s);
 };
 #endif
 

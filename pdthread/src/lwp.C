@@ -123,7 +123,7 @@ const char* lwp::name(const char* new_name) {
     const char* retval = (const char*)pthread_getspecific(lwp::name_key);
     if(new_name)
         pthread_setspecific(lwp::name_key, new_name);
-    return new_name;
+    return retval;
 }
 
 

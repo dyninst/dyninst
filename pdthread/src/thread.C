@@ -30,7 +30,7 @@ int thr_create(void* stack, unsigned stack_size, void* (*func)(void*),
 }
 
 const char*	thr_name(const char* name) {
-    return (const char*)0;
+    return lwp::name(name);
 }
 
 
