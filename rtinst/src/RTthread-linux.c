@@ -104,12 +104,17 @@ int tc_lock_destroy(tc_lock_t *t)
   return 0;
 }
 
-int DYNINST_ThreadInfo(void** stkbase, int* tidp, long *startpc, int* lwpidp, void** rs_p) {
+int DYNINST_ThreadInfo(void** stkbase, int* tidp, long *startpc, int* lwpidp,
+                       void** rs_p) {
+   char temp[100];
+   sprintf(temp, "  threadCreate, tid: %d\n", *tidp);
+   //write(1, temp, strlen(temp));
+
    *stkbase = 0;   // unused
-   *tidp = pthread_self();
+   *tidp = P_thread_self();
    *startpc = 0;
-   *lwpidp = 1;
+   *lwpidp = P_lwp_self();
    *rs_p = 0;
-   return 0;
+   return 1;
 }
 
