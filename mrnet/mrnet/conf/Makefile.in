@@ -57,8 +57,6 @@ ifndef SILENCE_WARNINGS
 WARNFLAGS = -Wall \
 	        -Wpointer-arith        \
 	        -Wcast-qual            \
-	        -Wstrict-prototypes    \
-	        -Wmissing-prototypes   \
 	        -Woverloaded-virtual   \
 	        -Wno-deprecated        \
 	        -Wwrite-strings        \

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTclUI.h,v 1.2 2004/03/23 01:12:29 eli Exp $
+// $Id: ParadynTclUI.h,v 1.3 2004/05/17 00:50:53 pcroth Exp $
 #ifndef PARADYNTCLUI_H
 #define PARADYNTCLUI_H
 
@@ -94,41 +94,41 @@ protected:
 	virtual void destroyStatusLine(const char* sl_name);
 
     // "uimpd" Tcl command implementation
-    virtual int SendVisiSelectionsCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ProcessVisiSelectionsCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int TclTunableCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ShowErrorCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int StartPhaseCmd( int argc, TCLCONST char* argv[] ) = NULL;
+    virtual int SendVisiSelectionsCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ProcessVisiSelectionsCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int TclTunableCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ShowErrorCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int StartPhaseCmd( int argc, TCLCONST char* argv[] ) = 0;
 
     // "paradyn" Tcl command implementation
-    virtual int ParadynApplicationDefinedCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynAttachCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynPauseCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynContCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynStatusCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynListCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynDaemonsCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynDetachCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynDisableCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynEnableCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynGetTotalCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynMetricsCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynPrintCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynProcessCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynResourcesCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynSetCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynSaveCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynCoreCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynSuppressCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynVisiCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynWaSetAbstraction( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynWaSelect( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynWaUnSelect( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynDaemonStartInfoCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynGeneralInfoCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynLicenseInfoCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynReleaseInfoCmd( int argc, TCLCONST char* argv[] ) = NULL;
-    virtual int ParadynVersionInfoCmd( int argc, TCLCONST char* argv[] ) = NULL;
+    virtual int ParadynApplicationDefinedCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynAttachCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynPauseCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynContCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynStatusCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynListCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynDaemonsCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynDetachCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynDisableCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynEnableCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynGetTotalCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynMetricsCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynPrintCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynProcessCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynResourcesCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynSetCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynSaveCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynCoreCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynSuppressCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynVisiCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynWaSetAbstraction( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynWaSelect( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynWaUnSelect( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynDaemonStartInfoCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynGeneralInfoCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynLicenseInfoCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynReleaseInfoCmd( int argc, TCLCONST char* argv[] ) = 0;
+    virtual int ParadynVersionInfoCmd( int argc, TCLCONST char* argv[] ) = 0;
 
 public:
     ParadynTclUI( pdstring progName );

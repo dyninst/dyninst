@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.33 2004/03/23 01:12:25 eli Exp $
+// $Id: templatesDM.C,v 1.34 2004/05/17 00:50:52 pcroth Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -190,12 +190,14 @@ template class pdvector<dictionary_hash<resource *, int>::entry>;
 #include "paradyn/src/DMthread/DMmetricFocusReqBundle.h"
 template class pdvector<metricFocusReqBundle *>;
 template class dictionary_hash<unsigned, metricFocusReq *>;
+template class pdvector<dictionary_hash<unsigned, metricFocusReq *>::entry>;
 
 #include "paradyn/src/DMthread/DMmetricFocusReq.h"
 template class pdvector<metricFocusReq *>;
 
 template class dictionary_hash<unsigned, metricFocusReq_Val*>;
 template class pdvector<dictionary_hash<unsigned, metricFocusReq_Val*>::entry>;
+template class pdvector<metricFocusReq_Val*>;
 
 template class dictionary_hash<unsigned, inst_insert_result_t>;
 template class pdvector<dictionary_hash<unsigned,inst_insert_result_t>::entry>;
@@ -212,4 +214,5 @@ template class dictionary_hash<pdstring, pdvector<paradynDaemon*> >;
 template class pdvector<dictionary_hash<pdstring,
                     pdvector<paradynDaemon*> >::entry>;
 
+template class pdvector<int>;
 

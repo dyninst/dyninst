@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynUI.h,v 1.2 2004/03/23 01:12:29 eli Exp $
+// $Id: ParadynUI.h,v 1.3 2004/05/17 00:50:53 pcroth Exp $
 #ifndef PARADYNUI_H
 #define PARADYNUI_H
 
@@ -80,25 +80,25 @@ protected:
 
     perfStreamHandle    GetPerfStreamHandle( void ) const   { return ps_handle;}
 
-    virtual bool IsDoneHandlingEvents( void ) const = NULL;
-    virtual void DoPendingWork( void ) = NULL;
+    virtual bool IsDoneHandlingEvents( void ) const = 0;
+    virtual void DoPendingWork( void ) = 0;
     virtual bool HandleEvent( thread_t mtid, tag_t mtag );
     virtual void Panic( pdstring msg );
 
     // performance stream handlers
     virtual void ResourceBatchChanged( perfStreamHandle,
-                                        batchMode mode ) = NULL;
+                                        batchMode mode ) = 0;
     virtual void ApplicStateChanged( perfStreamHandle h,
-                                        appState s ) = NULL;
+                                        appState s ) = 0;
     virtual void ResourceAdded(perfStreamHandle h,
                         resourceHandle parent, 
                         resourceHandle newResource,
                         const char *name,
-                        const char *abs) = NULL;
+                        const char *abs) = 0;
     virtual void ResourceRetired(perfStreamHandle h,
                                     resourceHandle uniqueID, 
                                     const char* name,
-                                    const char *abs) = NULL;
+                                    const char *abs) = 0;
 
     // igen interface implementation
     virtual void setDeveloperMode( bool newVal );

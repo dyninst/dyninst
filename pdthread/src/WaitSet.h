@@ -66,12 +66,12 @@ public:
 
     virtual ~WaitSet( void ) { }
 
-    virtual void Add( const PdSocket& s )       = NULL;
-    virtual void Add( const PdFile& f )         = NULL;
-    virtual void Clear( void )                  = NULL;
-    virtual WaitReturn Wait( void )             = NULL;
-    virtual bool HasData( const PdSocket& s )   = NULL;
-    virtual bool HasData( const PdFile& f )     = NULL;
+    virtual void Add( const PdSocket& s )       = 0;
+    virtual void Add( const PdFile& f )         = 0;
+    virtual void Clear( void )                  = 0;
+    virtual WaitReturn Wait( void )             = 0;
+    virtual bool HasData( const PdSocket& s )   = 0;
+    virtual bool HasData( const PdFile& f )     = 0;
 };
 
 } // namespace pdthr

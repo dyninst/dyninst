@@ -116,10 +116,10 @@ class Event{
     static unsigned int get_NumEvents();
     static unsigned int get_NumRemoteEvents();
 
-    virtual EventType get_Type( )=NULL;
-    virtual const std::string & get_HostName( )=NULL;
-    virtual unsigned short get_Port( )=NULL;
-    virtual const std::string & get_Description( )=NULL;
+    virtual EventType get_Type( )=0;
+    virtual const std::string & get_HostName( )=0;
+    virtual unsigned short get_Port( )=0;
+    virtual const std::string & get_Description( )=0;
 };
 
 class NetworkImpl;
@@ -139,12 +139,12 @@ class Network{
 
     class LeafInfo {
     public:
-        virtual const char* get_Host( void ) const = NULL;
-        virtual unsigned short get_Rank( void ) const   = NULL;
-        virtual unsigned short get_Id( void ) const   = NULL;
-        virtual const char* get_ParHost( void ) const   = NULL;
-        virtual unsigned short get_ParPort( void ) const   = NULL;
-        virtual unsigned short get_ParRank( void ) const   = NULL;
+        virtual const char* get_Host( void ) const = 0;
+        virtual unsigned short get_Rank( void ) const   = 0;
+        virtual unsigned short get_Id( void ) const   = 0;
+        virtual const char* get_ParHost( void ) const   = 0;
+        virtual unsigned short get_ParPort( void ) const   = 0;
+        virtual unsigned short get_ParRank( void ) const   = 0;
     };
 
     Network(const char * _filename, const char * _backend);

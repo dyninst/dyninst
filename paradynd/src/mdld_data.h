@@ -141,9 +141,9 @@ public:
 class mdld_expr : virtual public T_dyninstRPC::mdl_expr
 {
 public:
-    virtual bool apply_be( mdl_var& ret ) = NULL;
-    virtual bool apply_be( AstNode*& mn ) = NULL;
-    virtual bool mk_list( pdvector<pdstring>& funcs ) = NULL;
+    virtual bool apply_be( mdl_var& ret ) = 0;
+    virtual bool apply_be( AstNode*& mn ) = 0;
+    virtual bool mk_list( pdvector<pdstring>& funcs ) = 0;
 };
 
 
@@ -241,8 +241,8 @@ class mdld_stmt : virtual public T_dyninstRPC::mdl_stmt
 {
 public:
     virtual bool apply_be( instrCodeNode* mn,
-                            pdvector<const instrDataNode*>& flags ) = NULL;
-    virtual bool mk_list( pdvector<pdstring>& funcs ) = NULL;
+                            pdvector<const instrDataNode*>& flags ) = 0;
+    virtual bool mk_list( pdvector<pdstring>& funcs ) = 0;
 };
 
 

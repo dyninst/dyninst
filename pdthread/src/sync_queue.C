@@ -42,8 +42,9 @@
 #ifndef __libthread_syncqueue_C__
 #define __libthread_syncqueue_C__
 
-#include<pthread.h>
-#include<iostream>
+#include <pthread.h>
+#include "common/h/std_namesp.h"
+
 
 #define MAX_QUEUE_SIZE 32768
 #define EMPTY 0

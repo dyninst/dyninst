@@ -91,8 +91,8 @@ protected:
     virtual void populate_wait_set( WaitSet* wset );
     virtual void handle_wait_set_input( WaitSet* wset );
 
-	virtual void raise_msg_avail( void ) = NULL;
-	virtual void clear_msg_avail( void ) = NULL;
+	virtual void raise_msg_avail( void ) = 0;
+	virtual void clear_msg_avail( void ) = 0;
     
 public:
     thr_mailbox(thread_t owner);

@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Once.h,v 1.2 2004/03/23 01:12:22 eli Exp $
+// $Id: Once.h,v 1.3 2004/05/17 00:50:50 pcroth Exp $
 #ifndef XPLAT_ONCE_H
 #define XPLAT_ONCE_H
 
@@ -17,7 +17,7 @@ public:
     {
     public:
         virtual ~Data( void ) { }
-        virtual int DoOnce( void (*func)( void ) ) = NULL;
+        virtual int DoOnce( void (*func)( void ) ) = 0;
     };
 
 private:

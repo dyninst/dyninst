@@ -481,7 +481,7 @@ template <class Type> DO_INLINE_F Type StringList<Type>::find(void *data)
     TYPENAME StringList<Type>::node *curr;
 #endif
 
-    for (curr=head; curr; curr=curr->next) {
+    for (curr=ListBase<Type,void*>::head; curr; curr=curr->next) {
 	if (!strcmp((char *) curr->key, (char *) data)) {
 	    return(curr->data);
 	}

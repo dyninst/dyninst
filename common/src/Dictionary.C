@@ -43,7 +43,7 @@
 
 #if !defined (__XLC__) || defined(DICT_C_IS_HEADER)
 
-#include <iostream>
+#include "common/h/std_namesp.h"
 #include "common/h/Dictionary.h"
 
 // methods of this class implemented in .h so compiler has no trouble finding
@@ -239,7 +239,8 @@ dictionary_hash<K,V>::find(const K& key) {
     return end();
   }
   else {
-    dictionary_hash<K,V>::iterator dictIter(*this, all_elems.getIter(ndx));
+    TYPENAME dictionary_hash<K,V>::iterator dictIter(*this,
+                                                        all_elems.getIter(ndx));
     return dictIter;
   }
 }
@@ -253,8 +254,8 @@ dictionary_hash<K,V>::find(const K& key)
     return end();
   }
   else {
-    dictionary_hash<K,V>::const_iterator dictIter(*this, 
-						  all_elems.getIter(ndx));
+    TYPENAME dictionary_hash<K,V>::const_iterator dictIter(*this, 
+						                                all_elems.getIter(ndx));
     return dictIter;
   }
 }

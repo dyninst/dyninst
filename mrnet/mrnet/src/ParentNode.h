@@ -56,8 +56,8 @@ class ParentNode: public Error {
     XPlat::Mutex streammanagerbyid_sync;
 
 
-    virtual int deliverLeafInfoResponse( Packet& pkt ) = NULL;
-    virtual int deliverConnectLeavesResponse( Packet& pkt ) = NULL;
+    virtual int deliverLeafInfoResponse( Packet& pkt ) = 0;
+    virtual int deliverConnectLeavesResponse( Packet& pkt ) = 0;
 
     bool isLeaf( void ) const {
         return isLeaf_;

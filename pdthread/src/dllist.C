@@ -74,7 +74,7 @@ public:
     dllist_visitor( void ) { }
     virtual ~dllist_visitor( void ) { }
 
-    virtual bool visit( Element item ) = NULL;
+    virtual bool visit( Element item ) = 0;
 };
 
 

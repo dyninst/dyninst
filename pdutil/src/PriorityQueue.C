@@ -43,6 +43,9 @@
 
 /*
  * $Log: PriorityQueue.C,v $
+ * Revision 1.8  2004/05/17 00:50:57  pcroth
+ * Fixed syntax for gcc 3.4.0.
+ *
  * Revision 1.7  2004/03/23 01:12:41  eli
  * Updated copyright string
  *
@@ -119,7 +122,7 @@ bool PriorityQueue<KEY, DATA>::empty() const {
 
 template <class KEY, class DATA>
 void PriorityQueue<KEY, DATA>::add(const KEY &k, const DATA &d) {
-   PriorityQueue<KEY, DATA>::pair p(k, d);
+   TYPENAME PriorityQueue<KEY, DATA>::pair p(k, d);
    data += p;
 
    // our situation is as follows:
@@ -175,7 +178,7 @@ void PriorityQueue<KEY, DATA>::delete_first() {
 
 template <class KEY, class DATA>
 void PriorityQueue<KEY, DATA>::swap_items(unsigned index1, unsigned index2) {
-   PriorityQueue<KEY, DATA>::pair temp = data[index1];
+   TYPENAME PriorityQueue<KEY, DATA>::pair temp = data[index1];
    data[index1] = data[index2];
    data[index2] = temp;
 }
@@ -232,8 +235,10 @@ void PriorityQueue<KEY, DATA>::reheapify_with_children(unsigned index) {
 
 template <class KEY, class DATA>
 int PriorityQueue<KEY, DATA>::cmpfunc(const void *ptr1, const void *ptr2) {
-   const PriorityQueue<KEY, DATA>::pair &pair1 = *(const PriorityQueue<KEY, DATA>::pair *)ptr1;
-   const PriorityQueue<KEY, DATA>::pair &pair2 = *(const PriorityQueue<KEY, DATA>::pair *)ptr2;
+   const TYPENAME PriorityQueue<KEY, DATA>::pair &pair1 = 
+        *(const TYPENAME PriorityQueue<KEY, DATA>::pair *)ptr1;
+   const TYPENAME PriorityQueue<KEY, DATA>::pair &pair2 = 
+        *(const TYPENAME PriorityQueue<KEY, DATA>::pair *)ptr2;
 
    if (pair1 < pair2)
       return -1;
@@ -249,11 +254,11 @@ ostream &PriorityQueue<KEY, DATA>::operator<<(ostream &os) const {
    // However, this is surprisingly hard.  We end up needing to make a copy
    // of the array and sorting it...
 
-   pdvector<PriorityQueue<KEY,DATA>::pair> copy = data;
+   pdvector<TYPENAME PriorityQueue<KEY,DATA>::pair> copy = data;
    copy.sort(cmpfunc);
 
    for (unsigned i=0; i < copy.size(); i++) {
-      const PriorityQueue<KEY, DATA>::pair &p = copy[i];
+      const TYPENAME PriorityQueue<KEY, DATA>::pair &p = copy[i];
 
       os << "[" << i << "]: ";
       p.operator<<(os);

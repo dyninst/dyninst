@@ -108,7 +108,7 @@ void refarray<REFOBJ>::resize(REFOBJ* default_value) {
     new_size = (_size * 2) + 1;
     old_size = _size;
     
-    new_items = new (REFOBJ*)[new_size];
+    new_items = new REFOBJ*[new_size];
 
     for(i = 0; i < old_size; i++)
         new_items[i] = items[i];
