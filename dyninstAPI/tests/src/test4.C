@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.15 2003/01/02 19:52:05 schendel Exp $
+// $Id: test4.C,v 1.16 2003/01/03 07:00:02 jaw Exp $
 //
 
 #include <stdio.h>
@@ -127,11 +127,24 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
        assert(appImage);
        BPatch_function *func2_4 = appImage->findFunction("func2_4");
        BPatch_funcCallExpr callExpr1(*func2_4, nullArgs);
-       //BPatch_Vector<BPatch_point *> *point1;
-       //point1 = appImage->findProcedurePoint("func2_2", BPatch_exit);
-       //child->insertSnippet(callExpr1, *point1);
-       // JAW -- why are we looking up the same info twice here??? changed to following line:
-       child->insertSnippet(callExpr1, *point2);
+
+       BPatch_Vector<BPatch_function *> found_funcs2;
+       const char *inFunction2 = "func2_2";
+       if ((NULL == appImage->findFunction(inFunction, found_funcs2, 1)) || (0 == found_funcs2.size())) {
+	 fprintf(stderr, "    Unable to find function %s\n",
+		 inFunction2);
+	 exit(1);
+       }
+       
+       if (1 < found_funcs2.size()) {
+	 fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		 __FILE__, __LINE__, found_funcs2.size(), inFunction2);
+       }
+       
+       BPatch_Vector<BPatch_point *> *point1 = found_funcs2[0]->findPoint(BPatch_exit);
+       assert(point1);
+
+       child->insertSnippet(callExpr1, *point1);
 
        test2Child = child;
        test2Parent = parent;

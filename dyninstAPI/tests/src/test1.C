@@ -160,7 +160,7 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
     int numReplaced = 0;
 
     BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction(inFunction, found_funcs)) || (0 == found_funcs.size())) {
       fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
       fprintf(stderr, "    Unable to find function %s\n",
 	      inFunction);
@@ -261,7 +261,7 @@ BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
     // Find the point(s) we'll be instrumenting
 
     BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction(inFunction, found_funcs)) || (0 == found_funcs.size())) {
       fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
       fprintf(stderr, "    Unable to find function %s\n",
 	      inFunction);
@@ -380,7 +380,7 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func1_1"
 
   BPatch_Vector<BPatch_function *> found_funcs;
-  if ((NULL == appImage->findFunction("func1_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+  if ((NULL == appImage->findBPFunction("func1_1", found_funcs)) || (0 == found_funcs.size())) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    "func1_1");
     exit(1);
@@ -426,7 +426,7 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func2_1"
 
   BPatch_Vector<BPatch_function *> found_funcs;
-  if ((NULL == appImage->findFunction("func2_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+  if ((NULL == appImage->findBPFunction("func2_1", found_funcs)) || (0 == found_funcs.size())) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    "func2_1");
     exit(1);
@@ -535,7 +535,7 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func3_1"
 
   BPatch_Vector<BPatch_function *> found_funcs;
-  if ((NULL == appImage->findFunction("func3_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+  if ((NULL == appImage->findBPFunction("func3_1", found_funcs)) || (0 == found_funcs.size())) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    "func3_1");
     exit(1);
@@ -564,7 +564,7 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_Vector<BPatch_snippet *> call3_args;
 
   BPatch_Vector<BPatch_function *> found_funcs2;
-  if ((NULL == appImage->findFunction("call3_1", found_funcs2, 1)) || (0 == found_funcs2.size())) {
+  if ((NULL == appImage->findBPFunction("call3_1", found_funcs2)) || (0 == found_funcs2.size())) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    "call3_1");
     exit(1);
@@ -634,7 +634,7 @@ void mutatorTest4(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func4_1"
   BPatch_Vector<BPatch_function *> found_funcs;
-  if ((NULL == appImage->findFunction("func4_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+  if ((NULL == appImage->findBPFunction("func4_1", found_funcs)) || (0 == found_funcs.size())) {
      fprintf(stderr, "    Unable to find function %s\n",
 	    "func4_1");
     exit(1);
@@ -681,7 +681,7 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func5_2"
     
   BPatch_Vector<BPatch_function *> found_funcs;
-  if ((NULL == appImage->findFunction("func5_2", found_funcs, 1)) || (0 == found_funcs.size())) {
+  if ((NULL == appImage->findBPFunction("func5_2", found_funcs)) || (0 == found_funcs.size())) {
      fprintf(stderr, "    Unable to find function %s\n",
 	    "func5_2");
     exit(1);
@@ -700,7 +700,7 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
  BPatch_Vector<BPatch_function *> found_funcs2;
-  if ((NULL == appImage->findFunction("func5_1", found_funcs2, 1)) || (0 == found_funcs2.size())) {
+  if ((NULL == appImage->findBPFunction("func5_1", found_funcs2)) || (0 == found_funcs2.size())) {
      fprintf(stderr, "    Unable to find function %s\n",
 	    "func5_1");
     exit(1);
@@ -757,7 +757,7 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 
     
   BPatch_Vector<BPatch_function *> found_funcs;
-  if ((NULL == appImage->findFunction("func6_2", found_funcs, 1)) || (0 == found_funcs.size())) {
+  if ((NULL == appImage->findBPFunction("func6_2", found_funcs)) || (0 == found_funcs.size())) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    "func6_2");
     exit(1);
@@ -776,7 +776,7 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
   }
 
   BPatch_Vector<BPatch_function *> found_funcs2;
-  if ((NULL == appImage->findFunction("func6_1", found_funcs2, 1)) || (0 == found_funcs2.size())) {
+  if ((NULL == appImage->findBPFunction("func6_1", found_funcs2)) || (0 == found_funcs2.size())) {
      fprintf(stderr, "    Unable to find function %s\n",
 	    "func6_1");
     exit(1);
@@ -913,7 +913,7 @@ void genRelTest(BPatch_image *appImage,BPatch_Vector<BPatch_snippet*> &vect7_1,
 {
 
    BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func7_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("func7_1", found_funcs)) || (0 == found_funcs.size())) {
         fprintf(stderr, "    Unable to find function %s\n",
 	      "func7_1");
       exit(1);
@@ -951,7 +951,7 @@ void genVRelTest(BPatch_image *appImage,
 {
 
    BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func7_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("func7_1", found_funcs)) || (0 == found_funcs.size())) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func7_1");
       exit(1);
@@ -990,7 +990,7 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func7_2"
 
    BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func7_2", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("func7_2", found_funcs)) || (0 == found_funcs.size())) {
        fprintf(stderr, "    Unable to find function %s\n",
 	      "func7_2");
       exit(1);
@@ -1028,7 +1028,7 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
     genRelTest(appImage, vect7_1, BPatch_or, 0, 0, "globalVariable7_16");
 
    BPatch_Vector<BPatch_function *> found_funcs2;
-    if ((NULL == appImage->findFunction("func7_1", found_funcs2, 1)) || (0 == found_funcs2.size())) {
+    if ((NULL == appImage->findBPFunction("func7_1", found_funcs2)) || (0 == found_funcs2.size())) {
        fprintf(stderr, "    Unable to find function %s\n",
 	      "func7_1");
       exit(1);
@@ -1111,7 +1111,7 @@ void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func8_1"
 
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func8_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("func8_1", found_funcs)) || (0 == found_funcs.size())) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func8_1");
       exit(1);
@@ -1165,7 +1165,7 @@ void mutatorTest9(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func9_1"
 
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func9_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("func9_1", found_funcs)) || (0 == found_funcs.size())) {
        fprintf(stderr, "    Unable to find function %s\n",
 	      "func9_1");
       exit(1);
@@ -1271,7 +1271,7 @@ void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func10_1"
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func10_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("func10_1", found_funcs)) || (0 == found_funcs.size())) {
        fprintf(stderr, "    Unable to find function %s\n",
 	      "func10_1");
       exit(1);
@@ -1337,7 +1337,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func11_1"
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func11_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("func11_1", found_funcs)) || (0 == found_funcs.size())) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func11_1");
       exit(1);
@@ -1434,7 +1434,7 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func12_2"
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func12_2", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("func12_2", found_funcs)) || (0 == found_funcs.size())) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func12_2");
       exit(1);
@@ -1538,7 +1538,7 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func13_1"
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func13_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("func13_1", found_funcs)) || (0 == found_funcs.size())) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func13_1");
       exit(1);
@@ -1582,7 +1582,7 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
 
     // now test that a return value can be read.
   BPatch_Vector<BPatch_function *> found_funcs2;
-    if ((NULL == appImage->findFunction("func13_2", found_funcs2, 1)) || (0 == found_funcs2.size())) {
+    if ((NULL == appImage->findBPFunction("func13_2", found_funcs2)) || (0 == found_funcs2.size())) {
         fprintf(stderr, "    Unable to find function %s\n",
 	      "func13_2");
       exit(1);
@@ -1700,7 +1700,7 @@ void mutatorTest16(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func16_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("func16_1", found_funcs)) || (0 == found_funcs.size())) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func16_1");
       exit(1);
@@ -1800,7 +1800,7 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func17_1"
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func17_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("func17_1", found_funcs)) || (0 == found_funcs.size())) {
        fprintf(stderr, "    Unable to find function %s\n",
 	      "func17_1");
       exit(1);
@@ -1847,7 +1847,7 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
 
     // Find the exit point to the procedure "func17_2"
   BPatch_Vector<BPatch_function *> found_funcs2;
-    if ((NULL == appImage->findFunction("func17_2", found_funcs2, 1)) || (0 == found_funcs2.size())) {
+    if ((NULL == appImage->findBPFunction("func17_2", found_funcs2)) || (0 == found_funcs2.size())) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func17_2");
       exit(1);
@@ -1902,7 +1902,7 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
 {
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func18_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("func18_1", found_funcs)) || (0 == found_funcs.size())) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func18_1");
       exit(1);
@@ -2494,7 +2494,7 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
 #if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
     //     First verify that we can find a local variable in call25_1
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("call25_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("call25_1", found_funcs)) || (0 == found_funcs.size())) {
        fprintf(stderr, "    Unable to find function %s\n",
 	      "call25_1");
       exit(1);
@@ -2774,7 +2774,7 @@ void mutatorTest27(BPatch_thread *, BPatch_image *appImage)
     expectError = DYNINST_NO_ERROR;
 
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func27_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("func27_1", found_funcs)) || (0 == found_funcs.size())) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func27_1");
       exit(1);
@@ -2883,7 +2883,7 @@ void mutatorTest28(BPatch_thread *appThread, BPatch_image *appImage)
 
     //     Next verify that we can find a local variable in call28
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("call28_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("call28_1", found_funcs)) || (0 == found_funcs.size())) {
        fprintf(stderr, "    Unable to find function %s\n",
 	      "call28_1");
       exit(1);
@@ -3012,7 +3012,7 @@ void mutatorTest29(BPatch_thread *, BPatch_image *appImage)
     }
 
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func29_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("func29_1", found_funcs)) || (0 == found_funcs.size())) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func29_1");
       exit(1);
@@ -3064,7 +3064,7 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 	    return;
 	} 
   BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("func30_1", found_funcs, 1)) || (0 == found_funcs.size())) {
+    if ((NULL == appImage->findBPFunction("func30_1", found_funcs)) || (0 == found_funcs.size())) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func30_1");
       exit(1);

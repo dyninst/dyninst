@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.69 2003/01/02 19:51:47 schendel Exp $
+// $Id: BPatch_thread.C,v 1.70 2003/01/03 06:59:57 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -104,8 +104,8 @@ static void insertVForkInst(BPatch_thread *thread)
     BPatch_function *vforkFunc = appImage->findFunction("DYNINSTvfork");
 
     BPatch_Vector<BPatch_function *>  vforks;
-    if (NULL == appImage->findFunction("vfork", vforks, 1) || ( 0 == vforks.size())) {
-      fprintf(stderr, "%s[%d]:  FATAL  : findFunction(`vfork`, ...), no vfork found!\n",
+    if (NULL == appImage->findBPFunction("vfork", vforks) || ( 0 == vforks.size())) {
+      fprintf(stderr, "%s[%d]:  FATAL  : findBPFunction(`vfork`, ...), no vfork found!\n",
 	      __FILE__, __LINE__);
       return;
     }
