@@ -33,9 +33,9 @@ char *shared_object::getModulePart(string &full_path_name) {
 
 
 // fill in "short_name" data member.  Use last component of "name" data
-//  member w "/" as field seperator....
+// member with FS_FIELD_SEPERATOR ("/") as field seperator....
 void shared_object::set_short_name() {
-    char *name_string = name.string_of();
+    const char *name_string = name.string_of();
     char *ptr = strrchr(name_string, FS_FIELD_SEPERATOR);
     if (ptr != NULL) {
         short_name = ptr+1;
