@@ -338,9 +338,12 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	      symdescID = parseSymDesc(stabstr, cnt);
 
+#ifdef notdef
+	      /* often have rNN=*yy - what is this ? jkh 11/30/00 */
 	      if (stabstr[cnt])
 		printf("Parsing Error More register info to Parse!!: %s\n",
 		    &(stabstr[cnt]));
+#endif
 	      break;
 
 	  case 'S':/* Global Static Variable */ {
