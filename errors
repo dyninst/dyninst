@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.21  1994/07/11 21:35:42  newhall
+# Revision 1.22  1994/07/11 22:09:02  newhall
+# created error #16
+#
+# Revision 1.21  1994/07/11  21:35:42  newhall
 # created error #15
 #
 # Revision 1.20  1994/07/11  21:31:31  newhall
@@ -211,4 +214,12 @@ to a failure in RPCprocessCreate, msg_bind_buffered, or thr_setspecific.
 %X
 An attempt to create a performance stream for a new visualizaiton
 failed.
+%Y
+
+%N 16
+%E internal error
+%A vi
+%S serious
+%X
+
 %Y
