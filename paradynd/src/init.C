@@ -117,6 +117,10 @@ bool init() {
   resource::newResource(syncRoot, NULL, nullString, "Barrier", 0.0, "", MDL_T_STRING);
   resource::newResource(syncRoot, NULL, nullString, "Semaphore", 0.0, "", MDL_T_STRING);
 
+  memoryRoot = resource::newResource(rootResource, NULL, nullString, 
+				     "Memory", 0.0, "", MDL_T_STRING);
+
+
   im_pred_struct default_im_preds, obs_cost_preds;
   default_im_preds.machine = pred_null;
   default_im_preds.procedure = pred_invalid;
