@@ -21,9 +21,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.43  1996/02/11 18:22:48  tamches
-/* internal cleanup; more tk window names parameterized
+/* Revision 1.44  1996/02/15 23:08:02  tamches
+/* added correct support for why vs. where axis refinement in the shg
 /*
+ * Revision 1.43  1996/02/11 18:22:48  tamches
+ * internal cleanup; more tk window names parameterized
+ *
  * Revision 1.42  1996/02/07 21:46:57  tamches
  * defineNewSearch returns bool
  *
@@ -93,13 +96,11 @@ UIMUser::chosenMetricsandResources
 void 
 UIM::readStartupFile(const char *script)
 {
-  string tcommand;
   if (script != NULL) {   // script specified on paradyn command line
-    tcommand = string("source \"") + string(script);
-    tcommand += string("\"");
-    if (Tcl_Eval (interp, P_strdup(tcommand.string_of())) == TCL_ERROR) {
+    string tcommand = string("source \"") + string(script) + "\"";
+
+    if (Tcl_Eval (interp, tcommand.string_of()) == TCL_ERROR)
       uiMgr->showError(24, "Error reading tcl startup script");
-    }
   }
 }
 
@@ -110,18 +111,12 @@ UIM::readStartupFile(const char *script)
 void
 UIM::showError(int errCode, const char *errString)
 {
-  string tcommand;
-
     // custom error info string to be printed
-    tcommand = string("showError ") + string(errCode);
+    string tcommand = string("showError ") + string(errCode);
     tcommand += string(" {");
     tcommand += string(errString);
     tcommand += string("}");
-    if (Tcl_VarEval (interp,tcommand.string_of(),(char *) NULL) == TCL_ERROR) {
-      printf ("newShowError: Tcl call to showError fails, %s\n", 
-	      interp->result);
-      thr_exit(0);
-    }
+    myTclEval(interp, tcommand);
 }
 
 // ****************************************************************
@@ -288,6 +283,16 @@ void int2style(int styleid, bool &active, shgRootNode::evaluationState &theEvalS
    }
 }
 
+shgRootNode::refinement int2refinement(int styleid) {
+   if (styleid == 0)
+      return shgRootNode::ref_where;
+   else if (styleid == 1)
+      return shgRootNode::ref_why;
+
+   cerr << "unrecognized refinement id " << styleid << endl;
+   exit(5);
+}
+
 /*  flags: 1 = root
  *         0 = non-root
  */
@@ -301,33 +306,28 @@ UIM::DAGaddNode(int dagID, unsigned nodeID, int styleID,
    shgRootNode::evaluationState theEvalState;
    int2style(styleID, active, theEvalState);
 
-   // A temporary hack for the mysterious "1" that appears for the root node:
-//   if (theShgPhases->addNode(dagID, nodeID, active, theEvalState,
-//			     isRootNode ? "Whole Program" : label,
-//			     shgname, isRootNode))
    if (theShgPhases->addNode(dagID, nodeID, active, theEvalState,
-			     label,
-			     shgname, isRootNode))
-      // we should only be redrawing for a root node...
-      initiateShgRedraw(interp, true);
+			     label, shgname, isRootNode))
+      // shouldn't we should only be redrawing for a root node?
+      if (isRootNode)
+         initiateShgRedraw(interp, true);
 
    return 1;
 }
 
 int 
 UIM::DAGaddEdge (int dagID, unsigned srcID, 
-		 unsigned dstID, int styleID,
+		 unsigned dstID,
+		 int styleID, // why vs. where refinement
 		 const char *label // only used for shadow node; else NULL
 		 )
 {
-   bool active;
-   shgRootNode::evaluationState theEvalState;
-   int2style(styleID, active, theEvalState);
+   shgRootNode::refinement theRefinementStyle = int2refinement(styleID);
 
    if (theShgPhases->addEdge(dagID, 
 			     srcID, // parent
 			     dstID, // child
-			     theEvalState,
+			     theRefinementStyle,
 			     label))
       initiateShgRedraw(interp, true); // true --> double buffer
 
