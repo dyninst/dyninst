@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.5  1994/04/10 19:12:12  newhall
-/* added visi command
+/* Revision 1.6  1994/04/19 22:09:14  rbi
+/* Added new tcl commands and updated "enable" to return met id
 /*
+ * Revision 1.5  1994/04/10  19:12:12  newhall
+ * added visi command
+ *
  * Revision 1.4  1994/04/09  18:37:20  hollings
  * Fixed paramter to tunable constant to work.
  *
@@ -62,6 +65,53 @@ int ParadynStatusCmd(ClientData clientData,
   return TCL_OK;
 }
 
+int ParadynMetricsCmd(ClientData clientData, 
+			Tcl_Interp *interp, 
+			int argc, 
+			char *argv[])
+{
+  String_Array ml;
+  int i;
+  
+  ml = dataMgr->getAvailableMetrics(context);
+  for (i=0; i < ml.count; i++)
+    Tcl_AppendElement(interp, ml.data[i]);
+  return TCL_OK;
+}
+
+int ParadynResourcesCmd(ClientData clientData, 
+			Tcl_Interp *interp, 
+			int argc, 
+			char *argv[])
+{
+  resource *parent, *child;
+  resourceList *resList, *children;
+  int i, j, count, count2;
+  char *name;
+
+  parent = uim_rootRes;
+  resList = dataMgr->getResourceChildren(parent);
+
+  count = dataMgr->getResourceCount(resList);
+
+  for (i = 0; i < count; i++) {
+    parent = dataMgr->getNthResource(resList, i);
+
+    name = dataMgr->getResourceName(parent);
+    Tcl_AppendElement(interp, name);
+
+    children = dataMgr->getResourceChildren(parent);
+    count2 = dataMgr->getResourceCount(children);
+
+    for (j = 0; j < count2; j++) {
+      child = dataMgr->getNthResource(children, j);
+      name = dataMgr->getResourceName(child);
+      Tcl_AppendElement(interp, name);
+    }
+  }
+  return TCL_OK;
+}
+
 int ParadynListCmd(ClientData clientData, 
 		Tcl_Interp *interp, 
 		int argc, 
@@ -93,6 +143,39 @@ int ParadynDetachCmd (ClientData clientData,
 		      char *argv[])
 {
   dataMgr->detachApplication(context, True);
+  return TCL_OK;
+}
+
+int ParadynGetTotalCmd (ClientData clientData,
+		     Tcl_Interp *interp,
+		     int argc,
+		     char *argv[])
+{
+  int met;
+  metricInstance *mi;
+  float val;
+
+  if (argc < 2) {
+    sprintf(interp->result, "USAGE: gettotal <metid>");
+    return TCL_ERROR;
+  }
+
+  if (Tcl_GetInt(interp, argv[1], &met) == TCL_ERROR) {
+    sprintf(interp->result, "Could not parse '%s' as an integer", argv[1]);
+    return TCL_ERROR;
+  }
+
+  mi = uim_enabled.find((void *) met);
+
+  if (!mi) {
+    sprintf (interp->result, "unable to find metric %d\n", met); 
+    return TCL_ERROR;
+  }
+  else {
+    val = dataMgr->getTotValue(mi);
+    sprintf(interp->result, "%g", val);
+  }
+
   return TCL_OK;
 }
 
@@ -191,7 +274,45 @@ printf("list is %s\n",list);
 }
 
 //
+//  disable  <metid>
+//
+int ParadynDisableCmd (ClientData clientData,
+		      Tcl_Interp *interp,
+		      int argc,
+		      char *argv[])
+{
+  int met;
+  metricInstance *mi;
+
+  // Hold Everything!
+  dataMgr->pauseApplication (context);
+
+  if (argc < 2) {
+    sprintf(interp->result, "USAGE: disable <metid>");
+    return TCL_ERROR;
+  }
+
+  if (Tcl_GetInt(interp, argv[1], &met) == TCL_ERROR) {
+    sprintf(interp->result, "Could not parse '%s' as an integer", argv[1]);
+    return TCL_ERROR;
+  }
+
+  mi = uim_enabled.find((void *) met);
+
+  if (!mi) {
+    sprintf (interp->result, "unable to find metric %d\n", met); 
+    return TCL_ERROR;
+  }
+  else {
+    dataMgr->disableDataCollection (uim_defaultStream, mi);
+  }
+
+  return TCL_OK;
+}
+
+//
 //  enable <metric> ?<resource>? ...
+//    returns metric id
 //
 int ParadynEnableCmd (ClientData clientData,
 		      Tcl_Interp *interp,
@@ -234,12 +355,15 @@ int ParadynEnableCmd (ClientData clientData,
     mi = dataMgr->enableDataCollection (uim_defaultStream, resList , met);
     if (mi) {
       uim_enabled.add(mi, (void *) uim_eid);
-      printf ("metric %s, id = %d\n", dataMgr->getMetricName(met), uim_eid++);
+      sprintf(interp->result,"%d",uim_eid);
+      printf ("metric %s, id = %d\n", dataMgr->getMetricName(met), uim_eid);
+      uim_eid++;
     } else {
       sprintf (interp->result, "can't enable metric %s for focus \n", argv[1]);
       return TCL_ERROR;
     }
   }
+
   return TCL_OK;
 }
 
@@ -376,8 +500,12 @@ static struct cmdTabEntry Pd_Cmds[] = {
   {"status", ParadynStatusCmd},
   {"list", ParadynListCmd},
   {"detach", ParadynDetachCmd},
+  {"disable", ParadynDisableCmd},
   {"enable", ParadynEnableCmd},
+  {"gettotal", ParadynGetTotalCmd},
+  {"metrics", ParadynMetricsCmd},
   {"print", ParadynPrintCmd},
+  {"resources", ParadynResourcesCmd},
   {"set", ParadynSetCmd},
   {"core", ParadynCoreCmd},
   {"refine", ParadynRefineCmd},
