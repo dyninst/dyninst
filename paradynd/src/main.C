@@ -39,131 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * Main loop for the default paradynd.
- *
- * $Log: main.C,v $
- * Revision 1.68  1998/01/30 16:11:30  ssuen
- * Commented out debug messages
- *
- * Revision 1.67  1997/11/26 21:50:18  mcheyney
- * Extra debugging information in main.C
- * Changed exclude syntax in mdl:
- * Old:
- *   exclude "module";  or
- *   exclude "module/function";
- *
- * New:
- *   exclude "/Code/module"; or
- *   exclude "/Code/module/function";
- *
- * Also added some better error messages for identifying cases where
- *  underlying process falls over.
- *
- * Revision 1.66  1997/06/06 22:01:38  mjrg
- * added option for manual daemon start-up
- *
- * Revision 1.65  1997/05/23 23:02:17  mjrg
- * Windows NT port
- *
- * Revision 1.64  1997/05/17 19:58:51  lzheng
- * Changes made for nonblocking write
- *
- * Revision 1.63  1997/05/13 14:26:04  sec
- * Removed a simple assert
- *
- * Revision 1.62  1997/05/07 19:01:15  naim
- * Getting rid of old support for threads and turning it off until the new
- * version is finished. Additionally, new superTable, baseTable and superVector
- * classes for future support of multiple threads. The fastInferiorHeap class has
- * also changed - naim
- *
- * Revision 1.61  1997/03/29 02:08:53  sec
- * Changed the daemon poe to mpi
- *
- * Revision 1.60  1997/03/23 16:57:48  zhichen
- * added code to set process:pdFlavor
- *
- * Revision 1.59  1997/03/14 18:50:57  zhichen
- * Added reportSelf in the case when the daemons were started by
- * COW DJM. Search for 'Tempest' for the change
- *
- * Revision 1.58  1997/02/26 23:46:35  mjrg
- * First part of WindowsNT port: changes for compiling with Visual C++;
- * moved unix specific code to unix.C file
- *
- * Revision 1.57  1997/02/21 20:15:50  naim
- * Moving files from paradynd to dyninstAPI + eliminating references to
- * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.56  1997/02/18 21:25:15  sec
- * Added poe support
- *
- * Revision 1.55  1997/01/21 20:07:47  mjrg
- * Changed to unix domain socket for trace stream
- * Replaced calls to uname by calls to libutil function getHostName
- *
- * Revision 1.54  1997/01/16 22:07:15  tamches
- * moved RPC_undo_arg_list here from util lib
- *
- * Revision 1.53  1997/01/15 00:28:09  tamches
- * added some debug msgs
- *
- * Revision 1.52  1996/12/16 23:10:16  mjrg
- * bug fixes to fork/exec on all platforms, partial fix to fork on AIX
- *
- * Revision 1.51  1996/12/06 09:37:55  tamches
- * cleanUpAndExit() moved here (from .h file); it now also
- * calls destructors for all processes, which should clean up
- * process state like shm segments.
- *
- * Revision 1.50  1996/11/29 19:41:08  newhall
- * Cleaned up some code.  Moved code that was duplicated in inst-sparc-solaris.C
- * and inst-sparc-sunos.C to inst-sparc.C.  Bug fix to process::findFunctionIn.
- *
- * Revision 1.49  1996/11/26 16:08:09  naim
- * Fixing asserts - naim
- *
- * Revision 1.48  1996/09/26 18:58:44  newhall
- * added support for instrumenting dynamic executables on sparc-solaris
- * platform
- *
- * Revision 1.47  1996/08/16 21:19:13  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.46  1996/08/12 16:27:08  mjrg
- * Code cleanup: removed cm5 kludges and some unused code
- *
- * Revision 1.45  1996/07/18 19:39:14  naim
- * Minor fix to give proper error message when the pvm daemon runs out of
- * virtual memory - naim
- *
- * Revision 1.44  1996/05/31  23:57:48  tamches
- * code to change send socket buffer size moved to comm.h
- * removed handshaking code w/paradyn (where we sent "PARADYND" plus
- * the pid) [wasn't being used and contributed to freeze in paradyn UI]
- *
- * Revision 1.43  1996/05/09 21:27:42  newhall
- * increased the socket send buffer size from 4K to 32K on sunos and hpux
- *
- * Revision 1.42  1996/05/08  23:54:50  mjrg
- * added support for handling fork and exec by an application
- * use /proc instead of ptrace on solaris
- * removed warnings
- *
- * Revision 1.41  1996/02/09 22:13:43  mjrg
- * metric inheritance now works in all cases
- * paradynd now always reports to paradyn when a process is ready to run
- * fixed aggregation to handle first samples and addition of new components
- *
- * Revision 1.40  1996/01/29 22:09:23  mjrg
- * Added metric propagation when new processes start
- * Adjust time to account for clock differences between machines
- * Daemons don't enable internal metrics when they are not running any processes
- * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
- * the application stops only after it starts the CM5 daemon)
- *
- */
+// $Id: main.C,v 1.69 1998/02/24 23:37:39 wylie Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -268,16 +144,14 @@ void cleanUpAndExit(int status) {
 // TODO
 // mdc - I need to clean this up
 bool
-RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
-		   int &well_known_socket, int &flag,
-		   int &firstPVM)
+RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list,
+		   string &machine, int &well_known_socket, int &flag)
 {
   char *ptr;
   bool b_well_known=false; // found well-known socket port num
-  bool b_first=false;
   bool b_machine = false, b_flag = false, b_flavor=false;
 
-  for (int loop=0; loop < argc; ++loop) {
+  for (unsigned loop=0; loop < argc; ++loop) {
       // stop at the -runme argument since the rest are for the application
       //   process we are about to spawn
       if (!strcmp(arg_list[loop], "-runme")) break;
@@ -288,10 +162,7 @@ RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
 	  b_well_known = true;
       }
       else if (!P_strncmp(arg_list[loop], "-v", 2)) {
-	  firstPVM = P_strtol (arg_list[loop] + 2, &ptr, 10);
-	  if (ptr == (arg_list[loop] + 2))
-	    return(false);
-	  b_first = true;
+          cerr << "paradynd: -v flag is obsolete (and ignored)" << endl;
       }
       else if (!P_strncmp(arg_list[loop], "-m", 2)) {
 	  machine = (arg_list[loop] + 2);
@@ -311,14 +182,10 @@ RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
       }
   }
 
-  return (b_flag && b_first && b_machine && b_well_known && b_flavor);
+  return (b_flag && b_machine && b_well_known && b_flavor);
 }
 
-int main(int argc, char *argv[]) {
-    //cerr << "welcome to paradynd, args are:" << endl;
-    //for (unsigned lcv=0; lcv < argc; lcv++) {
-    //   cerr << argv[lcv] << endl;
-    //}
+int main(unsigned argc, char *argv[]) {
 
 #if !defined(i386_unknown_nt4_0)
     struct sigaction act;
@@ -357,11 +224,9 @@ int main(int argc, char *argv[]) {
     process::programName = argv[0];
     // process command line args passed in
     // pd_flag == 1 --> started by paradyn
-    int pvm_first;
     bool aflag;
     aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
-			       pd_known_socket_portnum, pd_flag, 
-			       pvm_first);
+			       pd_known_socket_portnum, pd_flag);
     assert(aflag);
     aflag = RPC_make_arg_list(process::arg_list,
 			      pd_known_socket_portnum, pd_flag, 0,
