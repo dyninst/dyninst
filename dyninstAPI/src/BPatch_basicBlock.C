@@ -1,0 +1,177 @@
+#include <stdio.h>
+#include <iostream.h>
+#include "util/h/Types.h"
+
+#include "BPatch_basicBlock.h"
+
+//constructor that creates the empty sets for 
+//class fields.
+
+BPatch_basicBlock::BPatch_basicBlock() : 
+		isEntryBasicBlock(false),
+		isExitBasicBlock(false),
+		immediateDominates(NULL),
+		immediateDominator(NULL),
+		sourceBlock(NULL) {}
+
+//The argument is a block number.
+//there is no limitation that two blocks can have 
+//the same number but since only way the basic blocks 
+//can be created is through flowGraph class there will never exist
+//two  basic blocks with the same number
+
+BPatch_basicBlock::BPatch_basicBlock(int bno) :
+		blockNumber(bno),
+		isEntryBasicBlock(false),
+		isExitBasicBlock(false),
+		immediateDominates(NULL),
+		immediateDominator(NULL),
+		sourceBlock(NULL) {}
+
+
+//destructor of the class BPatch_basicBlock
+BPatch_basicBlock::~BPatch_basicBlock(){
+	delete immediateDominates;
+	delete sourceBlock;
+}
+
+//returns the predecessors of the basic block in aset 
+void BPatch_basicBlock::getSources(BPatch_Vector<BPatch_basicBlock*>& srcs){
+	BPatch_basicBlock** elements = new BPatch_basicBlock*[sources.size()];
+	sources.elements(elements);
+	for(int i=0;i<sources.size();i++)
+		srcs.push_back(elements[i]);
+	delete[] elements;
+}
+
+//returns the successors of the basic block in a set 
+void BPatch_basicBlock::getTargets(BPatch_Vector<BPatch_basicBlock*>& tgrts){
+	BPatch_basicBlock** elements = new BPatch_basicBlock*[targets.size()];
+	targets.elements(elements);
+	for(int i=0;i<targets.size();i++)
+		tgrts.push_back(elements[i]);
+	delete[] elements;
+}
+
+//returns the dominates of the basic block in a set 
+void BPatch_basicBlock::getImmediateDominates(BPatch_Vector<BPatch_basicBlock*>& imds){
+	if(!immediateDominates)
+		return;
+	BPatch_basicBlock** elements = 
+		new BPatch_basicBlock*[immediateDominates->size()];
+	immediateDominates->elements(elements);
+	for(int i=0;i<immediateDominates->size();i++)
+		imds.push_back(elements[i]);
+	delete[] elements;
+}
+
+//returns the dominates of the basic block in a set 
+void
+BPatch_basicBlock::getAllDominates(BPatch_Set<BPatch_basicBlock*>& buffer){
+	buffer += (BPatch_basicBlock*)this;
+	if(immediateDominates){
+		BPatch_basicBlock** elements = 
+			new BPatch_basicBlock*[immediateDominates->size()];
+		immediateDominates->elements(elements);
+		for(int i=0;i<immediateDominates->size();i++)
+			elements[i]->getAllDominates(buffer);
+		delete[] elements;
+	}
+}
+
+//returns the immediate dominator of the basic block
+BPatch_basicBlock* BPatch_basicBlock::getImmediateDominator(){
+	return immediateDominator;
+}
+
+//returns whether this basic block dominates the argument
+bool BPatch_basicBlock::dominates(BPatch_basicBlock* bb){
+	if(!bb)
+		return false;
+
+	if(bb == this)
+		return true;
+
+	if(!immediateDominates)
+		return false;
+
+	bool done = false;
+	BPatch_basicBlock** elements = 
+		new BPatch_basicBlock*[immediateDominates->size()];
+	immediateDominates->elements(elements);
+	for(int i=0;!done && (i<immediateDominates->size());i++)
+		done = done || elements[i]->dominates(bb);
+	delete[] elements;
+	return done;
+}
+
+//returns the source block corresponding to the basic block
+//which is created looking at the machine code.
+BPatch_sourceBlock *BPatch_basicBlock::getSourceBlock(){
+	return sourceBlock;
+}
+
+//returns the block number of the basic block
+int BPatch_basicBlock::getBlockNumber(){
+	return blockNumber;
+}
+
+//sets the block number of the basic block
+void BPatch_basicBlock::setBlockNumber(int bno){
+	blockNumber = bno;
+}
+
+//print method
+ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
+{
+	int i;
+
+	os << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
+	os << "Basic Block : " << bb.blockNumber <<" : [ ";
+	os << hex << bb.startAddress << " , ";
+	os << hex << bb.endAddress << " | ";
+	os << dec << bb.endAddress-bb.startAddress<< " ]\n";
+
+	if(bb.isEntryBasicBlock)
+		os <<"Type : ENTRY TO CFG\n"; 
+	else if(bb.isExitBasicBlock)
+		os <<"Type : EXIT FROM CFG\n"; 
+
+	os << "Pred :\n";
+
+	BPatch_basicBlock** belements = new BPatch_basicBlock*[bb.sources.size()];
+	bb.sources.elements(belements);
+	for(i=0;i<bb.sources.size();i++)
+		os << "\t<- " << belements[i]->blockNumber << "\n";
+	delete[] belements;
+
+	os << "Succ:\n";
+	belements =  new BPatch_basicBlock*[bb.targets.size()];
+	bb.targets.elements(belements);
+	for(i=0;i<bb.targets.size();i++)
+		os << "\t-> " << belements[i]->blockNumber << "\n";
+	delete[] belements;
+
+	os << "Immediate Dominates:\n";
+	if(bb.immediateDominates){
+		belements = new BPatch_basicBlock*[bb.immediateDominates->size()];
+		bb.immediateDominates->elements(belements);
+		for(i=0;i<bb.immediateDominates->size();i++)
+			os << belements[i]->blockNumber << " ";
+		delete[] belements;
+	}
+
+	os << "Immediate Dominator: ";
+	if(!bb.immediateDominator)
+		os << "None\n";
+	else
+		os << bb.immediateDominator->blockNumber << "\n";
+
+	os << "Source Block:\n";
+	if(bb.sourceBlock)
+		os << *(bb.sourceBlock);
+
+	os << "\n";
+	os << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
+	return os;
+}
