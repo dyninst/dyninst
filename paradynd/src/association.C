@@ -18,7 +18,11 @@
  * association.C - Manage mapping information (associations)
  *
  * $Log: association.C,v $
- * Revision 1.2  1994/07/20 22:21:42  rbi
+ * Revision 1.3  1994/09/22 01:32:26  markc
+ * Made system includes extern"C"
+ * Cast args for string functions
+ *
+ * Revision 1.2  1994/07/20  22:21:42  rbi
  * Small type change
  *
  * Revision 1.1  1994/06/27  21:29:11  rbi
@@ -26,9 +30,10 @@
  *
  */
 
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+}
 
 #include "symtab.h"
 #include "process.h"
@@ -42,7 +47,7 @@ void newAssoc(process *proc, char *abstraction, char *type, char *key,
 	      char *value)
 {
   caddr_t faddr;
-  function *func;
+  pdFunction *func;
 
   /* 
    *  Call abstraction-specific translations here
@@ -54,10 +59,20 @@ void newAssoc(process *proc, char *abstraction, char *type, char *key,
   /* For TCL translate address to name */
   if (strcmp(type, "UserCommand") == 0) {
     /* Translate from string to address */
-    sscanf(value, "%x", &faddr);
+    sscanf(value, "%x", (unsigned int *) &faddr);
     func = findFunctionByAddr(proc->symbols, faddr);
-    strcpy (value, func->symTabName);
+    strcpy (value, (const char*)func->symTabName);
   }    
  
   tp->mappingInfoCallback(0, abstraction, type, key, value);
 }
+
+
+
+
+
+
+
+
+
+
