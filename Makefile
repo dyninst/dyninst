@@ -10,9 +10,9 @@
 #
 # Subsystems is the list of all other pieces which should be built.
 #
-buildfirst	= igen util thread visi dag hist
+buildfirst	= util igen thread visi dag hist
 subsystems	= bininst paradyn paradynd paradyndSIM paradyndPVM \
-		  rtinst rthist
+		  rtinst rthist visiClients/tclVisi
 
 
 # This rule makes most of the normal recursive stuff.  Just about any
