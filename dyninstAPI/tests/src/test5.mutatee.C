@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.1 2000/08/19 02:41:45 buck Exp $ */
+/* $Id: test5.mutatee.C,v 1.2 2000/08/20 21:08:24 paradyn Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -109,7 +109,7 @@ void cpp_test_util::call_cpp(int test)
     }
 
     case  12 : {
-		 cout << "Passed test #12 (C++ Member function)" << endl;
+		 cout << "Passed test #12 (C++ member function)" << endl;
 		 break;
     }
 
@@ -371,7 +371,7 @@ void template_test_call_cpp(int test)
 void decl_test::func_cpp()
 {
 #if !defined(sparc_sun_solaris2_4)
-    printf("Skipped test #8 (decleration)\n");
+    printf("Skipped test #8 (declaration)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[8] = TRUE;
 
