@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.198 1999/12/06 22:49:31 chambrea Exp $
+// $Id: process.C,v 1.199 1999/12/12 17:10:32 zhichen Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -142,6 +142,11 @@ vector<string> process::arg_list;
 #ifndef BPATCH_LIBRARY
 extern string osName;
 #endif
+
+// PARADYND_DEBUG_XXX
+int pd_debug_infrpc=0;
+int pd_debug_catchup=0;
+//
 
 process *findProcess(int pid) { // make a public static member fn of class process
   unsigned size=processVec.size();
@@ -3514,10 +3519,15 @@ void process::postRPCtoDo(AstNode *action, bool noCost,
 #if defined(MT_THREAD)
    theStruct.thrId = thrId;
    theStruct.isSafeRPC = isSAFE ;
-   //inferiorrpc_
-   cerr <<"posting "<<(isSAFE? "SAFE":"")<<"inferiorRPC for tid"<<thrId<<endl;
+   if (pd_debug_infrpc )
+     cerr <<"posting "<<(isSAFE? "SAFE":"")<<"inferiorRPC for tid"<<thrId<<endl;
 #endif
    RPCsWaitingToStart += theStruct;
+   
+   // PARADYND_DEBUG_INFRPC
+   //
+   if ( pd_debug_infrpc )
+     cerr << "postRPCtoDo is called" << endl;
 }
 
 bool process::existsRPCreadyToLaunch() const {
@@ -3569,7 +3579,9 @@ void signalRPCthread(process *p) {
   *(p->DYNINSTthreadRPC_pending_p) = 1;
   cond_signal(p->DYNINSTthreadRPC_cvp);
   mutex_unlock(p->DYNINSTthreadRPC_mp);
-  cerr <<"PD: Signaled RPC thread ..." << endl ;
+
+  if (pd_debug_infrpc)
+    cerr <<"PD: Signaled RPC thread ..." << endl ;
 }
 #endif 
 
@@ -3807,7 +3819,8 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    }
 #endif
 
-   inferiorrpc_cerr << "inferiorRPC should be running now" << endl;
+   if (pd_debug_infrpc)
+     cerr << "inferiorRPC should be running now" << endl;
 
 #if defined(MT_THREAD)
    if (todo.isSafeRPC) { signalRPCthread(this); }
@@ -4094,6 +4107,9 @@ bool process::handleTrapIfDueToRPC() {
 
       inferiorrpc_cerr << "Welcome to handleTrapIfDueToRPC match type 1" << endl;
 
+      if (pd_debug_infrpc) 
+	cerr << "Welcome to handleTrapIfDueToRPC match type 1 (grab the result)" << endl;
+
       assert(theStruct.callbackFunc != NULL);
         // must be a callback to ever see this match_type
 
@@ -4126,6 +4142,8 @@ bool process::handleTrapIfDueToRPC() {
    }
 
    inferiorrpc_cerr << "Welcome to handleTrapIfDueToRPC match type 2" << endl;
+   if (pd_debug_infrpc) 
+     cerr << "Welcome to handleTrapIfDueToRPC match type 2 (rpc finished)" << endl;
 
    assert(match_type == 2);
 

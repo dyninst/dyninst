@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.165 1999/12/06 22:54:33 chambrea Exp $
+// $Id: metricFocusNode.C,v 1.166 1999/12/12 17:10:53 zhichen Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -2742,16 +2742,16 @@ bool instReqNode::triggerNow(process *theProc, int mid) {
 #if defined(MT_THREAD)
 			mid,
 			thrId,
-#ifdef ONE_THREAD
-                        false);
-#else
 			true); //false --> regular RPC, true-->SAFE RPC
-#endif
 #else
 			mid);
 #endif
 
    rpcCount = 0;
+
+   if (pd_debug_catchup)
+     cerr << "launched catchup instrumentation, waiting rpc to finish ..." << endl;
+
    do {
        // Make sure that we are not currently in an RPC to avoid race
        // conditions between catchup instrumentation and waitProcs()
@@ -2761,6 +2761,9 @@ bool instReqNode::triggerNow(process *theProc, int mid) {
        checkProcStatus();
        
    } while ( !rpcCount && theProc->status() != exited );
+
+   if ( pd_debug_catchup )
+     cerr << "catchup instrumentation finished ..." << endl;
 
    if( needToCont && (theProc->status() != running))
 	   theProc->continueProc();

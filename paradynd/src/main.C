@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.80 1999/12/06 22:49:42 chambrea Exp $
+// $Id: main.C,v 1.81 1999/12/12 17:10:52 zhichen Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -206,7 +206,22 @@ RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list,
   return (b_flag && b_machine && b_well_known && b_flavor);
 }
 
+// PARADYND_DEBUG_XXX
+static void initialize_debug_flag(void) {
+  char *p;
+
+  if ( (p=getenv("PARADYND_DEBUG_INFRPC")) ) {
+    pd_debug_infrpc = 1;
+  }
+
+  if ( (p=getenv("PARADYND_DEBUG_CATCHUP")) ) {
+    pd_debug_catchup = 1;
+  }
+}
+
 int main(unsigned argc, char *argv[]) {
+
+  initialize_debug_flag();
 
   string *dir = new string("");
 #if !defined(i386_unknown_nt4_0)

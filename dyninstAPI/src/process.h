@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.123 1999/11/11 00:56:10 wylie Exp $
+/* $Id: process.h,v 1.124 1999/12/12 17:10:34 zhichen Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1268,5 +1268,12 @@ void handleProcessExit(process *p, int exitStatus);
 extern resource *machineResource;
 
 extern vector<process *> processVec;
+
+//
+// PARADYND_DEBUG_XXX
+//
+extern int pd_debug_infrpc;
+extern int pd_debug_catchup;
+
 
 #endif
