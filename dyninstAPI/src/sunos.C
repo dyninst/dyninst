@@ -41,6 +41,11 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.34  1997/07/17 16:53:07  buck
+ * Eliminated the need to link dyninst API with -lkvm on SunOS,
+ * and added a check for the failure of the "attach" constructor for
+ * process.
+ *
  * Revision 1.33  1997/07/16 19:24:08  naim
  * Minor change to my previous commit - naim
  *
@@ -800,6 +805,9 @@ bool process::loopUntilStopped() {
   return true;
 }
 
+#ifdef BPATCH_LIBRARY
+bool process::dumpImage() { return false; }
+#else
 bool process::dumpImage() {
   const string &imageFileName = symbols->file();
   const Address codeOff = symbols->codeOffset();
@@ -926,7 +934,34 @@ bool process::dumpImage() {
   P_close(ifd);
   return true;
 }
+#endif /* BPATCH_LIBRARY */
 
+#ifdef BPATCH_LIBRARY
+float OS::compute_rusage_cpu() { return 0; }
+
+float OS::compute_rusage_sys() { return 0; }
+
+float OS::compute_rusage_min() { return 0; }
+
+float OS::compute_rusage_maj() { return 0; }
+
+float OS::compute_rusage_swap() { return 0; }
+
+float OS::compute_rusage_io_in() { return 0; }
+
+float OS::compute_rusage_io_out() { return 0; }
+
+float OS::compute_rusage_msg_send() { return 0; }
+
+float OS::compute_rusage_msg_recv() { return 0; }
+
+float OS::compute_rusage_sigs() { return 0; }
+
+float OS::compute_rusage_vol_cs() { return 0; }
+
+float OS::compute_rusage_inv_cs() { return 0; }
+
+#else /* BPATCH_LIBRARY */
 // TODO -- only call getrusage once per round
 static struct rusage *get_usage_data() {
   static bool init = false;
@@ -1033,6 +1068,7 @@ float OS::compute_rusage_inv_cs() {
   } else
     return 0;
 }
+#endif /* BPATCH_LIBRARY */
 
 int getNumberOfCPUs()
 {

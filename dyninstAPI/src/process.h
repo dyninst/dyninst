@@ -233,7 +233,8 @@ class process {
      // this is the "normal" ctor
 
   process(int iPid, image *iSymbols,
-          int afterAttach // 1 --> pause, 2 --> run, 0 --> leave as is
+          int afterAttach, // 1 --> pause, 2 --> run, 0 --> leave as is
+	  bool& success 
 #ifdef SHM_SAMPLING
 	  , key_t theShmSegKey,
 	  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats

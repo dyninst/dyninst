@@ -915,7 +915,8 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 //
 
 process::process(int iPid, image *iSymbols,
-		 int afterAttach // 1 --> pause, 2 --> run, 0 --> leave as is
+		 int afterAttach, // 1 --> pause, 2 --> run, 0 --> leave as is
+		 bool &success
 #ifdef SHM_SAMPLING
 		 , key_t theShmKey,
 		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
@@ -1015,6 +1016,7 @@ process::process(int iPid, image *iSymbols,
    // is running.
    if (!attach()) {
       showErrorCallback(26, ""); // unable-to-attach
+      success = false;
       return;
    }
 
@@ -1038,6 +1040,9 @@ process::process(int iPid, image *iSymbols,
 
    // note: we don't call getSharedObjects() yet; that happens once DYNINSTinit
    //       finishes (handleStartProcess)
+
+   // Everything worked
+   success = true;
 }
 
 //
@@ -1449,13 +1454,19 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 #endif
 
    // NOTE: the actual attach happens in the process "attach" constructor:
-   process *theProc = new process(pid, theImage, afterAttach
+   bool success;
+   process *theProc = new process(pid, theImage, afterAttach, success
 #ifdef SHM_SAMPLING
 				  ,7000, // shm seg key to try first
 				  theShmHeapStats
 #endif				  
 				  );
    assert(theProc);
+   if (!success) {
+       // XXX Do we need to do something to get rid of theImage, too?
+       delete theProc;
+       return false;
+   }
 
    // Note: it used to be that the attach ctor called pause()...not anymore...so
    // the process is probably running even as we speak.
