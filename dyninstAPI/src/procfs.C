@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.22 2003/03/08 01:23:44 bernat Exp $
+// $Id: procfs.C,v 1.23 2003/03/12 01:50:08 schendel Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -261,7 +261,6 @@ bool process::pause_() {
    close the file descriptor for the file associated with a process
 */
 bool process::detach_() {
-  delete getDefaultLWP();
   return true;
 }
 
@@ -476,7 +475,7 @@ bool process::API_detach_(const bool cont)
     return false;
   }
 
-  delete getDefaultLWP();
+  deleteLWP(getDefaultLWP());
   return true;
 }
 #endif
