@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2002/02/11 22:01:26 tlmiller Exp $
+# $Id: Makefile,v 1.2 2002/06/03 17:23:25 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -122,5 +122,19 @@ libtestB.so: libtestB.o
 
 include $(TO_CORE)/make.program.tmpl
 
+IA64_TEST_COMPILE_FLAGS = -I. -I../../.. -Dia64_unknown_linux2_4 \
+	-DUSES_DYNAMIC_INF_HEAP -DDETACH_ON_THE_FLY \
+	-g -fno-implicit-templates -g -I../../h -W -Wall
+IA64_TEST_LINK_FLAGS = -L../../../../lib/ia64-unknown-linux2.4 \
+	-ldyninstAPI -lelf -ldl -liberty
 
+ia64_tests :
+	g++3 $(IA64_TEST_COMPILE_FLAGS) -c -o test_ia64_01.o ../src/test_ia64_01.C
+	g++3 $(IA64_TEST_COMPILE_FLAGS) ../src/mutatee_ia64_01.C -S
+	g++3 $(IA64_TEST_COMPILE_FLAGS) ../src/mutatee_ia64_01.C -o mutatee_ia64_01
+	g++3 $(IA64_TEST_COMPILE_FLAGS) ../src/test_ia64_02.C -o test_ia64_02
+	g++3 test_ia64_01.o -o test_ia64_01 $(IA64_TEST_LINK_FLAGS)
+
+tests_clean :
+	rm -f mutatee_ia64_01 test_ia64_01 test_ia64_02
 
