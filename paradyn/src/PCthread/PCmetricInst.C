@@ -20,6 +20,17 @@
  * The PCmetricInst class and the PCmetricInstServer methods.
  * 
  * $Log: PCmetricInst.C,v $
+ * Revision 1.2  1996/02/08 19:52:44  karavan
+ * changed performance consultant's use of tunable constants:  added 3 new
+ * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
+ * are used for all hypotheses for the respective categories.  Also added
+ * PC_useIndividualThresholds, which switches thresholds back to use hypothesis-
+ * specific, rather than categorical, thresholds.
+ *
+ * Moved all TC initialization to PCconstants.C.
+ *
+ * Switched over to callbacks for TC value updates.
+ *
  * Revision 1.1  1996/02/02 02:06:42  karavan
  * A baby Performance Consultant is born!
  *
@@ -234,9 +245,7 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
 
 #ifdef PCDEBUG
     // debug printing
-    tunableBooleanConstant prtc = 
-      tunableConstantRegistry::findBoolTunableConstant("PCprintDataTrace");
-    if (prtc.getValue()) {
+    if (performanceConsultant::printDataTrace) {
       cout << *this << endl;
     }
 #endif
@@ -331,9 +340,7 @@ PCmetricInst::alignTimes()
     }
 #ifdef PCDEBUG
   // debug printing
-  tunableBooleanConstant prtc = 
-    tunableConstantRegistry::findBoolTunableConstant("PCprintDataCollection");
-  if (prtc.getValue()) {
+  if (performanceConsultant::printDataCollection) {
     cout << "alignTimes returns " << allLinedUp << " interval ends at " 
       << intervalEnd << " DataStatus=" << DataStatus << endl;
   }

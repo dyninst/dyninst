@@ -20,6 +20,17 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.30  1996/02/08 19:52:50  karavan
+ * changed performance consultant's use of tunable constants:  added 3 new
+ * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
+ * are used for all hypotheses for the respective categories.  Also added
+ * PC_useIndividualThresholds, which switches thresholds back to use hypothesis-
+ * specific, rather than categorical, thresholds.
+ *
+ * Moved all TC initialization to PCconstants.C.
+ *
+ * Switched over to callbacks for TC value updates.
+ *
  * Revision 1.29  1996/02/02 02:06:49  karavan
  * A baby Performance Consultant is born!
  *
@@ -184,9 +195,7 @@ searchHistoryNode::expand ()
   vector<rlNameId> *kids;
 #ifdef PCDEBUG
   // debug print
-  tunableBooleanConstant prtc = 
-    tunableConstantRegistry::findBoolTunableConstant("PCprintSearchChanges");
-  if (prtc.getValue()) {
+  if (performanceConsultant::printSearchChanges) {
     const vector<resourceHandle> *longname = dataMgr->getResourceHandles(where);
     cout << "EXPAND: why=" << why->getName() << endl
       << "        foc=<" << dataMgr->getFocusName(longname) << ">" << endl
@@ -249,7 +258,7 @@ searchHistoryNode::expand ()
   }
   mamaGraph->setSearchUpdateNeeded();
 #ifdef PCDEBUG
-  if (prtc.getValue()) {
+  if (performanceConsultant::printSearchChanges) {
     cout << mamaGraph->srch->SearchQueue << endl;
   }
 #endif

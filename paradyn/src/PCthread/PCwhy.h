@@ -20,6 +20,17 @@
  * The hypothesis class and the why axis.
  * 
  * $Log: PCwhy.h,v $
+ * Revision 1.9  1996/02/08 19:52:56  karavan
+ * changed performance consultant's use of tunable constants:  added 3 new
+ * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
+ * are used for all hypotheses for the respective categories.  Also added
+ * PC_useIndividualThresholds, which switches thresholds back to use hypothesis-
+ * specific, rather than categorical, thresholds.
+ *
+ * Moved all TC initialization to PCconstants.C.
+ *
+ * Switched over to callbacks for TC value updates.
+ *
  * Revision 1.8  1996/02/02 02:07:36  karavan
  * A baby Performance Consultant is born!
  *
@@ -41,14 +52,16 @@ class hypothesis {
  public:
   hypothesis (const char *hypothesisName,
 	      const char *pcMetricName, 
-	      const char *thresholdName, thresholdFunction getThreshold,
+	      const char *indivThresholdName, 
+	      const char *groupThresholdName,
+	      thresholdFunction getThreshold,
 	      compOperator compareOp,
 	      explanationFunction explanation, bool *success,
 	      vector<string*> *plums); 
   hypothesis (const char *hypothesisName,
 	      explanationFunction explanation, 
 	      bool *success); 
-  const char *getThresholdName () {return thresholdNm.string_of();}
+  const char *getThresholdName () {return indivThresholdNm.string_of();}
   const char *getName() {return name.string_of();}
   PCmetric *getPcMet() {return pcMet;}
   void addChild (hypothesis *child) {kids += child;}
@@ -60,7 +73,8 @@ class hypothesis {
   string name;
   explanationFunction explain;
   PCmetric *pcMet;
-  string thresholdNm;
+  string indivThresholdNm;
+  string groupThresholdNm;
   thresholdFunction getThreshold;
   compOperator compOp;
   vector <hypothesis*> kids;
@@ -73,7 +87,8 @@ class whyAxis {
   bool addHypothesis(const char *hypothesisName,
 		     const char *parentName,
 		     const char *pcMetricName, 
-		     const char *thresholdName, 
+		     const char *indivThresholdName,
+		     const char *groupThresholdName,
 		     thresholdFunction getThreshold,
 		     compOperator compareOp,
 		     explanationFunction explanation,

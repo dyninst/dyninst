@@ -20,6 +20,17 @@
  * The experiment class methods.
  * 
  * $Log: PCexperiment.C,v $
+ * Revision 1.2  1996/02/08 19:52:39  karavan
+ * changed performance consultant's use of tunable constants:  added 3 new
+ * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
+ * are used for all hypotheses for the respective categories.  Also added
+ * PC_useIndividualThresholds, which switches thresholds back to use hypothesis-
+ * specific, rather than categorical, thresholds.
+ *
+ * Moved all TC initialization to PCconstants.C.
+ *
+ * Switched over to callbacks for TC value updates.
+ *
  * Revision 1.1  1996/02/02 02:06:32  karavan
  * A baby Performance Consultant is born!
  *
@@ -50,9 +61,7 @@ experiment::drawConclusion (testResult newConclusion)
   papaNode->changeTruth(currentConclusion);
 #ifdef PCDEBUG
   // debug printing
-  tunableBooleanConstant prtc = 
-    tunableConstantRegistry::findBoolTunableConstant("PCprintSearchChanges");
-  if (prtc.getValue()) {
+  if (performanceConsultant::printSearchChanges) {
     const vector<resourceHandle> *longname = dataMgr->getResourceHandles(where);
     cout << "CONCLUDE for "<< why->getName() << endl
       << "          focus = <" << dataMgr->getFocusName(longname) 
@@ -67,8 +76,12 @@ void
 experiment::newData(PCmetDataID, float val, double start, double end, 
 		    float pauseTime)
 {
-  sampleValue thresh = why->getThreshold (why->thresholdNm.string_of(), where);
-
+  sampleValue thresh;
+  if (performanceConsultant::useIndividualThresholds)
+    thresh = why->getThreshold (why->indivThresholdNm.string_of(), where);
+  else
+    thresh = why->getThreshold (why->groupThresholdNm.string_of(), where);
+    
   // adjust for pause time: 
   // when we compare the pcmetric to the threshold, we need to normalize 
   // e.g., comparing io time to threshold we want io time only for the 
@@ -100,9 +113,7 @@ experiment::newData(PCmetDataID, float val, double start, double end,
 
 #ifdef PCDEBUG
   // debug printing
-  tunableBooleanConstant prtc = 
-    tunableConstantRegistry::findBoolTunableConstant("PCprintTestResults");
-  if (prtc.getValue()) {
+  if (performanceConsultant::printTestResults) {
   const vector<resourceHandle> *longname = dataMgr->getResourceHandles(where);
   cout << "TESTEVAL for "<< why->getName() << endl 
     << "            focus = <" << dataMgr->getFocusName(longname) << ">" 
@@ -125,9 +136,7 @@ experiment::newData(PCmetDataID, float val, double start, double end,
       // this test differs from last result
       currentGuess = ttrue;
       // change hysteresis parameter to reflect true
-      tunableFloatConstant hysRange = 
-	tunableConstantRegistry::findFloatTunableConstant("hysteresisRange");
-      hysConstant = 1 - hysRange.getValue();
+      hysConstant = 1 - performanceConsultant::hysteresisRange;
       // interval for this guess equals interval for this one test
       timeTrueFalse = end - start;
     } else { 
@@ -145,9 +154,7 @@ experiment::newData(PCmetDataID, float val, double start, double end,
       // this test differs from most recent test
       currentGuess = tfalse;
       // change hysteresis parameter to reflect false
-      tunableFloatConstant hysRange = 
-	tunableConstantRegistry::findFloatTunableConstant("hysteresisRange");
-      hysConstant = 1 + hysRange.getValue();
+      hysConstant = 1 + performanceConsultant::hysteresisRange;
       // time for this guess equals interval for this test
       timeTrueFalse = end - start;
     } else {
@@ -190,17 +197,13 @@ currentValue(0.0), startTime(-1), endTime(0), minObservationFlag(false)
   // 1 if new or previously false, and close values won't oscillate 
   // between true/false.  The hysteresis parameter itself is a tunable 
   // constant.
-  tunableFloatConstant hysRange = 
-    tunableConstantRegistry::findFloatTunableConstant("hysteresisRange");
-  hysConstant = 1 + hysRange.getValue();
+  hysConstant = 1 + performanceConsultant::hysteresisRange;
   
   // get an initial estimate of the cost
   estimatedCost = pcmih->getEstimatedCost();
 #ifdef PCDEBUG
   // debug print 
-  tunableBooleanConstant prtc = 
-    tunableConstantRegistry::findBoolTunableConstant("PCprintTestResults");
-  if (prtc.getValue()) {
+  if (performanceConsultant::printTestResults) {
     cout << "EXP added:" << endl;
     cout << *this;
   }
@@ -226,9 +229,7 @@ experiment::start()
     status = true;
 #ifdef PCDEBUG
     // debug printing
-    tunableBooleanConstant prtc = 
-      tunableConstantRegistry::findBoolTunableConstant("PCprintDataTrace");
-    if (prtc.getValue()) {
+    if (performanceConsultant::printDataTrace) {
       cout << "EXP started:" << endl;
       cout << *pcmih << endl;
     }

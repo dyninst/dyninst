@@ -21,6 +21,17 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.2  1996/02/08 19:52:41  karavan
+ * changed performance consultant's use of tunable constants:  added 3 new
+ * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
+ * are used for all hypotheses for the respective categories.  Also added
+ * PC_useIndividualThresholds, which switches thresholds back to use hypothesis-
+ * specific, rather than categorical, thresholds.
+ *
+ * Moved all TC initialization to PCconstants.C.
+ *
+ * Switched over to callbacks for TC value updates.
+ *
  * Revision 1.1  1996/02/02 02:06:33  karavan
  * A baby Performance Consultant is born!
  *
@@ -164,9 +175,7 @@ filter::newData(sampleValue newVal, timeStamp start, timeStamp end)
               nextSendTime, 0);
 #ifdef PCDEBUG
     // debug printing
-    tunableBooleanConstant prtc = 
-      tunableConstantRegistry::findBoolTunableConstant("PCprintDataTrace");
-    if (prtc.getValue()) {
+    if (performanceConsultant::printDataTrace) {
       cout << "FILTER SEND mi=" << mi << " mh=" << metric << " foc=" << foc 
 	<< " value=" << workingValue/workingInterval 
 	  << "interval=" << start << " to " << end << endl;
@@ -193,9 +202,7 @@ filter::newData(sampleValue newVal, timeStamp start, timeStamp end)
   
 #ifdef PCDEBUG
   // debug printing
-  tunableBooleanConstant prtc = 
-    tunableConstantRegistry::findBoolTunableConstant("PCprintDataTrace");
-  if (prtc.getValue()) {
+  if (performanceConsultant::printDataTrace) {
     cout << *this;
   }
 #endif
@@ -210,9 +217,7 @@ filteredDataServer::filteredDataServer(phaseType pt)
     currentBinSize = dataMgr->getGlobalBucketWidth();
   else
     currentBinSize = dataMgr->getCurrentBucketWidth();
-  tunableFloatConstant minObsTime = 
-    tunableConstantRegistry::findFloatTunableConstant("minObservationTime");
-  timeStamp minGranularity = minObsTime.getValue()/4.0;
+  timeStamp minGranularity = performanceConsultant::minObservationTime/4.0;
   // ensure that starting interval size is an even multiple of dm's 
   // bucket width, for efficiency:  once bucket width passes minimum,
   // we will send on each piece of data as it comes rather than splitting
@@ -303,9 +308,7 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
   subfilter->addConsumer (sub);
 #ifdef PCDEBUG
   // debug printing
-  tunableBooleanConstant prtc = 
-    tunableConstantRegistry::findBoolTunableConstant("PCprintDataCollection");
-  if (prtc.getValue()) {
+  if (performanceConsultant::printDataCollection) {
     cout << "FDS: " << sub << " subscribed to " << indexCopy << " met=" 
       << dataMgr->getMetricNameFromMI(indexCopy) << " methandle=" << mh << endl
 	<< "foc=" << dataMgr->getFocusNameFromMI(indexCopy) << endl;
@@ -348,9 +351,7 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
   }
 #ifdef PCDEBUG
   // debug printing
-  tunableBooleanConstant prtc = 
-    tunableConstantRegistry::findBoolTunableConstant("PCprintDataCollection");
-  if (prtc.getValue()) {
+  if (performanceConsultant::printDataCollection) {
     cout << "FDS: subscription ended: " << subID << "numLeft=" << subsLeft
       << endl << " met=" << dataMgr->getMetricNameFromMI(subID) << endl;
     cout << "foc=" << dataMgr->getFocusNameFromMI(subID) << endl;

@@ -20,6 +20,17 @@
  * The hypothesis class and the why axis.
  * 
  * $Log: PCwhy.C,v $
+ * Revision 1.12  1996/02/08 19:52:52  karavan
+ * changed performance consultant's use of tunable constants:  added 3 new
+ * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
+ * are used for all hypotheses for the respective categories.  Also added
+ * PC_useIndividualThresholds, which switches thresholds back to use hypothesis-
+ * specific, rather than categorical, thresholds.
+ *
+ * Moved all TC initialization to PCconstants.C.
+ *
+ * Switched over to callbacks for TC value updates.
+ *
  * Revision 1.11  1996/02/02 02:06:51  karavan
  * A baby Performance Consultant is born!
  *
@@ -29,13 +40,16 @@
 #include "PCmetric.h"
 
 hypothesis::hypothesis (const char *hypothesisName,
-			const char *pcMetricName, const char *thresholdName, 
+			const char *pcMetricName, 
+			const char *indivThresholdName, 
+			const char *groupThresholdName, 
 			thresholdFunction threshold,
 			compOperator compare,
 			explanationFunction explanation, bool *success,
 			vector<string*> *plumList) 
 :name(hypothesisName), explain(explanation), 
- thresholdNm(thresholdName), getThreshold(threshold),
+ indivThresholdNm(indivThresholdName), groupThresholdNm(groupThresholdName), 
+ getThreshold(threshold),
  compOp(compare)
 { 
   string mname = pcMetricName;
@@ -59,7 +73,8 @@ hypothesis::hypothesis (const char *hypothesisName,
 			explanationFunction explanation, 
 			bool *success) 
 :name(hypothesisName), explain(explanation), 
- pcMet (NULL), thresholdNm(NULL), getThreshold(NULL), compOp(gt)
+ pcMet (NULL), indivThresholdNm(NULL), groupThresholdNm(NULL), 
+ getThreshold(NULL), compOp(gt)
 {
   *success = true;
 }
@@ -85,7 +100,8 @@ bool
 whyAxis::addHypothesis(const char *hypothesisName,
 		       const char *parentName,
 		       const char *pcMetricName, 
-		       const char *thresholdName, 
+		       const char *indivThresholdName,
+		       const char *groupThresholdName,
 		       thresholdFunction getThreshold,
 		       compOperator compareOp,
 		       explanationFunction explanation,
@@ -101,7 +117,7 @@ whyAxis::addHypothesis(const char *hypothesisName,
   }
   bool good = true;
   hypothesis *newhypo = new hypothesis (hypothesisName,
-			pcMetricName, thresholdName, 
+			pcMetricName, indivThresholdName, groupThresholdName, 
 			getThreshold, compareOp,
 			explanation, &good, plumList); 
   if (! (good))

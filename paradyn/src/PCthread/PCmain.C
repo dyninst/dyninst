@@ -16,9 +16,20 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.42  1996/02/05 18:51:35  newhall
-/* Change to DM interface: StartPhase and newPhaseCallback
+/* Revision 1.43  1996/02/08 19:52:43  karavan
+/* changed performance consultant's use of tunable constants:  added 3 new
+/* user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
+/* are used for all hypotheses for the respective categories.  Also added
+/* PC_useIndividualThresholds, which switches thresholds back to use hypothesis-
+/* specific, rather than categorical, thresholds.
 /*
+/* Moved all TC initialization to PCconstants.C.
+/*
+/* Switched over to callbacks for TC value updates.
+/*
+ * Revision 1.42  1996/02/05 18:51:35  newhall
+ * Change to DM interface: StartPhase and newPhaseCallback
+ *
  * Revision 1.41  1996/02/02  02:06:38  karavan
  * A baby Performance Consultant is born!
  *
@@ -33,9 +44,19 @@
 
 extern thread_t MAINtid;
 extern void initPCconstants();
+float performanceConsultant::hysteresisRange = 0.0;
+float performanceConsultant::predictedCostLimit = 0.0;
+float performanceConsultant::minObservationTime = 0.0;
+float performanceConsultant::sufficientTime = 0.0;
+bool performanceConsultant::printSearchChanges = false;   
+bool performanceConsultant::printDataCollection = false;   
+bool performanceConsultant::printTestResults  = false;  
+bool performanceConsultant::printDataTrace = false;   
+bool performanceConsultant::useIndividualThresholds  = false;  
 
 // ** note this homeless function moved here from PCauto.C
 // 25% to start
+/*
 bool predictedCostLimitValidChecker(float newVal) {
    // checker function for the tunable constant "predictedCostLimit",
    // whose declaration has moved to pdMain/main.C
@@ -44,6 +65,7 @@ bool predictedCostLimitValidChecker(float newVal) {
    else
       return true; // okay
 }
+*/
 
 // filteredDataServers use the bin width to interpret performance stream data 
 // so we need to pass fold notification to the appropriate server
@@ -69,9 +91,7 @@ void PCnewData(metricInstanceHandle m_handle,
 	       phaseType phase_type)
 {
 #ifdef PCDEBUG
-  tunableBooleanConstant pcEvalPrint = 
-    tunableConstantRegistry::findBoolTunableConstant("PCprintDataTrace");
-  if (pcEvalPrint.getValue()) {
+  if (performanceConsultant::printDataTrace) {
     const char *metname = dataMgr->getMetricNameFromMI(m_handle);
     const char *focname = dataMgr->getFocusNameFromMI(m_handle);
     cout << "AR: " << metname << " " << focname;
@@ -112,19 +132,21 @@ void PCphase (perfStreamHandle,
 	      timeStamp end, 
 	      float bucketwidth,
 	      bool with_new_pc,
-	      bool with_visis)
+	      bool)
 {
+
+#ifdef PCDEBUG
+  if (performanceConsultant::printSearchChanges) {
+    cout << "NEWPH: " << phase << ":" << name << "from:" << begin 
+      << " to:" << end
+	<< " width: " << bucketwidth << endl;
+  }
+#endif
+
   // Guard here against case that no search has ever been initialized, 
   // in which case we don't want to do anything.
   if (PChyposDefined) {
     PCsearch::updateCurrentPhase();
-    tunableBooleanConstant pcEvalPrint = 
-      tunableConstantRegistry::findBoolTunableConstant("pcEvalPrint");
-    if (pcEvalPrint.getValue()) {
-      cout << "NEWPH: " << phase << ":" << name << "from:" << begin 
-	<< " to:" << end
-	  << " width: " << bucketwidth << endl;
-    }
   }
 }
 
@@ -138,48 +160,10 @@ void PCmain(void* varg)
     char PCbuff[64];
     unsigned int msgSize = 64;
 
-    // define all tunable constants used by hypotheses
+    // define all tunable constants used by the performance Consultant
     // tunable constants must be defined here in the sequential section
     // of the code, or values specified in pcl files won't be handled 
     // properly.
-    // Remaining initialization is application- and/or phase-specific and
-    // is done after the user requests a search.
-
-    tunableFloatConstantDeclarator pcl 
-      ("predictedCostLimit",
-       "Max. allowable perturbation of the application.",
-       20.0, // initial value
-       predictedCostLimitValidChecker, // validation function 
-       NULL, // callback routine
-       userConstant);
-
-    tunableFloatConstantDeclarator hysRange
-      ("hysteresisRange",
-       "Fraction above and below threshold that a test should use.",
-       0.15, // initial
-       0.0, // min
-       1.0, // max
-       NULL, // callback
-       developerConstant);
-
-    tunableFloatConstantDeclarator minObsTime
-      ("minObservationTime",
-       "min. time (in seconds) to wait after changing inst to start try hypotheses.",
-       1.0, // initial
-       0.0, // min
-       60.0, // max
-       NULL, // callback
-       userConstant);
-
-    tunableFloatConstantDeclarator sufficientTime
-      ("sufficientTime",
-       "How long to wait (in seconds) before we can conclude a hypothesis is false.",
-       6.0, // initial
-       0.0, // min
-       1000.0, // max
-       NULL,
-       userConstant);
-
     initPCconstants();
 
     // thread startup
@@ -198,6 +182,9 @@ void PCmain(void* varg)
     dataHandlers.sample = PCnewDataCallback;
     filteredDataServer::initPStoken(dataMgr->createPerformanceStream(Sample,
 					       dataHandlers, controlHandlers));
+
+    // Note: remaining initialization is application- and/or phase-specific and
+    // is done after the user requests a search.
 
     while (1) {
 	tag = MSG_TAG_ANY;

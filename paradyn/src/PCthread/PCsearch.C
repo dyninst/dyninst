@@ -20,6 +20,17 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.2  1996/02/08 19:52:48  karavan
+ * changed performance consultant's use of tunable constants:  added 3 new
+ * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
+ * are used for all hypotheses for the respective categories.  Also added
+ * PC_useIndividualThresholds, which switches thresholds back to use hypothesis-
+ * specific, rather than categorical, thresholds.
+ *
+ * Moved all TC initialization to PCconstants.C.
+ *
+ * Switched over to callbacks for TC value updates.
+ *
  * Revision 1.1  1996/02/02 02:06:48  karavan
  * A baby Performance Consultant is born!
  *
@@ -136,9 +147,7 @@ PCsearch::newData(metricInstanceHandle m_handle, sampleValue value,
 //    float currentSearchCost = (100 * dataMgr->getCurrentSmoothObsCost());
 //    cout << "TOTAL CURRENT SEARCH COST = " << currentSearchCost << endl;
     // tunable constant predictedCostLimit
-    tunableFloatConstant searchCostThresholdTFC = 
-      tunableConstantRegistry::findFloatTunableConstant("predictedCostLimit");
-    float searchCostThreshold = (100 * searchCostThresholdTFC.getValue()); 
+    float searchCostThreshold = 100 * performanceConsultant::predictedCostLimit; 
     // we're using number of experiments only until observed cost is 
     // straightened out
     float currentSearchCost = PCnumActiveExperiments;
