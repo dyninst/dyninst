@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2003/03/31 17:45:55 buck Exp $
+# $Id: Makefile,v 1.2 2003/06/11 20:05:40 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -12,6 +12,9 @@ DO_INLINE_ALL           = true
 #NO_IMPLICIT_TEMPLATES    = true
 #AUTO_TEMPLATES 		 = true
 
+# Use /proc support
+AIX_PROC	= true
+
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 
@@ -21,6 +24,7 @@ include ../../make.config
 
 SRCS =		../src/aix.C \
 		../src/aixDL.C \
+		../src/sol_proc.C \
 		../src/inst-power.C \
 		../src/inst-aix.C \
 		../src/parseStab.C \
