@@ -4,7 +4,11 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.53  1995/11/21 15:19:30  naim
+ * Revision 1.54  1995/11/28 15:46:18  naim
+ * Adding the boolean parameter "all" to getAvailableMetric. If this value is
+ * true, then all metrics will be passed regardless the mode - naim
+ *
+ * Revision 1.53  1995/11/21  15:19:30  naim
  * Adding method getFocusName to dataManager class - naim
  *
  * Revision 1.52  1995/11/17  17:18:12  newhall
@@ -432,14 +436,22 @@ int dataManager::destroyPerformanceStream(perfStreamHandle handle){
     return(1);
 }
 
-vector<string> *dataManager::getAvailableMetrics()
+//
+// If "all" is true, then all metrics will be passed regardless the mode.
+// Otherwise, only those metrics corresponding to the current mode will be
+// passed.
+//
+vector<string> *dataManager::getAvailableMetrics(bool all)
 {
-    return(metric::allMetricNames());
+    return(metric::allMetricNames(all));
 }
 
-vector<met_name_id> *dataManager::getAvailableMetInfo()
+//
+// Same comments as for getAvailableMetrics
+//
+vector<met_name_id> *dataManager::getAvailableMetInfo(bool all)
 {
-    return(metric::allMetricNamesIds());
+    return(metric::allMetricNamesIds(all));
 }
 
 

@@ -76,7 +76,7 @@ metric *metric::getMetric(metricHandle handle){
      }
 }
 
-vector<string> *metric::allMetricNames(){
+vector<string> *metric::allMetricNames(bool all){
 
     vector<string> *temp = new vector<string>;
     string name;
@@ -86,19 +86,19 @@ vector<string> *metric::allMetricNames(){
     bool developerModeActive = developerMode.getValue();
     for(unsigned i=0; i < metrics.size(); i++){
         metric *met = metrics[i];
-	if (developerModeActive) {
+        if (all || developerModeActive) {
 	  string name = met->getName();
 	  *temp += name;
-	}
+        }
 	else if (!met->isDeveloperMode()) {
 	  string name = met->getName();
 	  *temp += name;
-	}
+        }
     }
     return(temp);
 }
 
-vector<met_name_id> *metric::allMetricNamesIds(){
+vector<met_name_id> *metric::allMetricNamesIds(bool all){
 
     vector<met_name_id> *temp = new vector<met_name_id>;
     met_name_id next;
@@ -109,7 +109,7 @@ vector<met_name_id> *metric::allMetricNamesIds(){
 
     for(unsigned i=0; i < metrics.size(); i++){
         metric *met = metrics[i];
-        if (developerModeActive) {
+	if (all || developerModeActive) {
           next.name = met->getName();
 	  next.id = met->getHandle();
 	  *temp += next; 
@@ -118,7 +118,7 @@ vector<met_name_id> *metric::allMetricNamesIds(){
 	  next.name = met->getName();
 	  next.id = met->getHandle();
 	  *temp += next;
-	}
+        }
     }
     return(temp);
 }

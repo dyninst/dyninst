@@ -100,8 +100,8 @@ class metric {
 	static const T_dyninstRPC::metricInfo  *getInfo(metricHandle handle);
 	static const char *getName(metricHandle handle);
         static const metricHandle  *find(const string name); 
-	static vector<string> *allMetricNames();
-	static vector<met_name_id> *allMetricNamesIds();
+	static vector<string> *allMetricNames(bool all);
+	static vector<met_name_id> *allMetricNamesIds(bool all);
 	bool isDeveloperMode() { return info.developerMode; }
 
     private:
