@@ -88,7 +88,7 @@ typedef int traceStream;
  *  This should be a power of two to reduce paging and chacing shifts.
  */
 #if defined(hppa1_1_hp_hpux)
-#define SYN_INST_BUF_SIZE	1024*32 // cannot support larger jumps
+#define SYN_INST_BUF_SIZE	1024*32 /* cannot support larger jumps */
 #else
 #define SYN_INST_BUF_SIZE	1024*1024
 #endif
