@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.132 2003/05/27 22:30:36 schendel Exp $
+ * $Id: DMdaemon.C,v 1.133 2003/05/29 19:24:51 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2056,29 +2056,60 @@ void  paradynDaemon::reportResources(){
     newResourceHandles.resize(0);
 }
 
+bool paradynDaemon::isMonitoringProcess(int pid) {
+   for(unsigned i=0; i<pidsThatAreMonitored.size(); i++) {
+      if(pidsThatAreMonitored[i] == pid)
+         return true;
+   }
+   return false;
+}
+
+void paradynDaemon::addProcessInfo(const pdvector<string> &resource_name) {
+   // need at least /Machine, <machine>, process
+   if(resource_name.size() < 3)
+      return;
+   
+   const string &process_str = resource_name[2];
+   string proc_name;
+   int pid;
+   bool result = resource::splitProcessResourceStr(process_str, NULL, &pid);
+
+   if(result == true) {
+      // it's a resource for a process
+      pidsThatAreMonitored.push_back(pid);
+   }
+}
+
 //
 // upcall from paradynd reporting new resource
 //
 void paradynDaemon::resourceInfoCallback(u_int temporaryId,
-			      pdvector<string> resource_name,
-		   	      string abstr, u_int type) {
+                                         pdvector<string> resource_name,
+                                         string abstr, u_int type) {
 
-    resourceHandle r = resource::createResource(temporaryId, resource_name, 
-                                                abstr, type);
-    if(!count){
-      if (r != temporaryId) {
-	pdvector<u_int>tempIds; pdvector<u_int>rIds;
-	tempIds += temporaryId; rIds += r;
-	resourceInfoResponse(tempIds, rIds);
+   if(resource_name.size() > 0) {
+      const char *rstr = resource_name[0].c_str();
+      if(rstr && !strcmp(rstr, "Machine")) {
+         addProcessInfo(resource_name);
       }
-    }
-    else {
-        if (r != temporaryId) {
-	  newResourceTempIds += temporaryId;
-	  newResourceHandles += r;
-	  assert(newResourceTempIds.size() == newResourceHandles.size());
-	}
-    }
+   }
+
+   resourceHandle r = resource::createResource(temporaryId, resource_name, 
+                                               abstr, type);
+   if(!count){
+      if (r != temporaryId) {
+         pdvector<u_int>tempIds; pdvector<u_int>rIds;
+         tempIds += temporaryId; rIds += r;
+         resourceInfoResponse(tempIds, rIds);
+      }
+   }
+   else {
+      if (r != temporaryId) {
+         newResourceTempIds += temporaryId;
+         newResourceHandles += r;
+         assert(newResourceTempIds.size() == newResourceHandles.size());
+      }
+   }
 }
 
 void paradynDaemon::severalResourceInfoCallback(pdvector<T_dyninstRPC::resourceInfoCallbackStruct> items) {
@@ -2126,6 +2157,55 @@ void paradynDaemon::getPredictedDataCostCall(perfStreamHandle ps_handle,
     assert(0);
 }
 
+void filter_based_on_process_in_focus(
+                                const pdvector<paradynDaemon *> &daemon_list,
+                                pdvector<paradynDaemon *> *to_list,
+                                resourceList *focus_resources)
+{
+   // if there are multiple daemons on the same machine and if the focus
+   // specifies a process, then we need to refine this list of daemons down
+   // to the daemon that is monitoring the specified process
+
+   int pid;
+   bool result = focus_resources->getProcessReferredTo(NULL, &pid);
+   if(result == true) {
+      // the metric-focus is specific to a particular process      
+
+      for(unsigned i=0; i<daemon_list.size(); i++) {
+         paradynDaemon *cur_dmn = daemon_list[i];
+         if(cur_dmn->isMonitoringProcess(pid)) {
+            (*to_list).push_back(cur_dmn);
+         }
+      }
+   } else {
+      // it's not a process specific focus, so add all daemons on
+      // machine that was specified in the focus
+      for(unsigned i=0; i<daemon_list.size(); i++) {
+         paradynDaemon *cur_dmn = daemon_list[i];                     
+         (*to_list).push_back(cur_dmn);
+      }
+   }
+}
+
+void strip_duplicate_daemons(const pdvector<paradynDaemon *> &daemon_list,
+                             pdvector<paradynDaemon *> *to_list) {
+   for(u_int j=0; j < daemon_list.size(); j++) {
+      paradynDaemon *cur_dmn = daemon_list[j];
+      bool duplicate = false;
+      
+      for(u_int k=0; k<daemon_list.size(); k++) {
+         paradynDaemon *sec_dmn = daemon_list[k];
+         if(cur_dmn != sec_dmn  &&  cur_dmn->get_id() == sec_dmn->get_id()) {
+            duplicate = true;    
+            break;
+         }
+      }
+      
+      if(!duplicate)
+         (*to_list).push_back(cur_dmn);
+   }
+}
+
 // if whole_prog_focus is false, then the relevant daemons are in daemon_subset
 void paradynDaemon::getMatchingDaemons(pdvector<metricInstance *> *miVec,
                                   pdvector<paradynDaemon *> *matching_daemons)
@@ -2139,25 +2219,20 @@ void paradynDaemon::getMatchingDaemons(pdvector<metricInstance *> *miVec,
       // to the matching_daemons, else set whole_prog_focus to true
       if(! whole_prog_focus) {
          string machine_name;
-         resourceList *rl = (*miVec)[i]->getresourceList(); 
-         assert(rl);
+         resourceList *focus_resources = (*miVec)[i]->getresourceList(); 
+         assert(focus_resources);
          // focus is refined on machine or process heirarchy 
-         if(rl->getMachineNameReferredTo(machine_name)){
+         if(focus_resources->getMachineNameReferredTo(machine_name)){
             // get the daemon corr. to this focus and add it
             // to the list of daemons
             pdvector<paradynDaemon*> vpd = 
                paradynDaemon::machineName2Daemon(machine_name);
             assert(vpd.size());
-            for(u_int j=0; j < vpd.size(); j++){
-               bool found = false;
-               
-               for(u_int k=0; k<(*matching_daemons).size() && !found; k++)
-                  if(vpd[j]->id == (*matching_daemons)[k]->id) 
-                     found = true;    
-               
-               if(!found)  // add new daemon to subset list
-                  (*matching_daemons).push_back(vpd[j]);
-            }  
+
+            pdvector<paradynDaemon*> new_vpd;
+            filter_based_on_process_in_focus(vpd, &new_vpd, focus_resources);
+
+            strip_duplicate_daemons(new_vpd, matching_daemons);
          }
          else {  // focus is not refined on process or machine 
             whole_prog_focus = true;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.61 2003/05/27 21:44:53 bernat Exp $
+// $Id: DMdaemon.h,v 1.62 2003/05/29 19:24:55 schendel Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -256,6 +256,8 @@ class paradynDaemon: public dynRPCUser {
    timeLength updateTimeAdjustment(const int samplesToTake = 5);
    
    thread_t	getSocketTid( void ) const	{ return stid; }
+
+   bool isMonitoringProcess(int pid);
    
 #ifdef notdef
    // Not working -- would provide a read that didn't block other threads
@@ -378,6 +380,7 @@ class paradynDaemon: public dynRPCUser {
    // used to hold responses to resourceInfoCallback
    pdvector<u_int> newResourceTempIds;
    pdvector<resourceHandle> newResourceHandles;
+   pdvector<int> pidsThatAreMonitored;
    static u_int count;
    
    static timeStamp earliestStartTime;
@@ -402,5 +405,6 @@ class paradynDaemon: public dynRPCUser {
    static daemonEntry *findEntry(const string &machine, const string &name);
    
    void propagateMetrics();
+   void addProcessInfo(const pdvector<string> &resource_name);
 };
 #endif
