@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.C,v 1.18 2001/01/16 22:25:42 schendel Exp $
+// $Id: fastInferiorHeapHKs.C,v 1.19 2001/10/12 20:47:20 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -201,6 +201,12 @@ bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
       cerr << "intCounter sample not for valid metric instance, so dropping" << endl;
       return true; // is this right?
    }
+   if(! theMi->inserted()) {
+     sampleVal_cerr << "perform on data id: " << id << " is tied to mdn "
+		    << "which isn't inserted yet, isdeferred: " 
+		    << theMi->hasDeferredInstr() << "\n";
+     return false;
+   }
    assert(theMi == this->mi); // verify our new code is working right
       // eventually, id field can be removed from inferior heap; we'll
       // just use this->mi.
@@ -335,6 +341,12 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
       return true; // is this right?
    }
    assert(theMi == this->mi); // verify our new code is working right
+   if(! theMi->inserted()) {
+     sampleVal_cerr << "perform on data id: " << id << " is tied to mdn "
+		    << "which isn't inserted yet, isdeferred: " 
+		    << theMi->hasDeferredInstr() << "\n";
+     return false;
+   }
 
    // note: we do _not_ assert that id==mi->getMId(), since mi->getMId() returns
    // an entirely different identifier that has no relation to our 'id'
@@ -483,6 +495,12 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
       return true; // is this right?
    }
    assert(theMi == this->mi); // verify our new code is working right
+   if(! theMi->inserted()) {
+     sampleVal_cerr << "perform on data id: " << id << " is tied to mdn "
+		    << "which isn't inserted yet, isdeferred: " 
+		    << theMi->hasDeferredInstr() << "\n";
+     return false;
+   }
 
    // note: we do _not_ assert that id==mi->getMId(), since mi->getMId() returns
    // an entirely different identifier that has no relation to our 'id'
