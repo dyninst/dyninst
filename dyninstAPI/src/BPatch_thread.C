@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.44 2001/11/20 01:12:51 tikir Exp $
+// $Id: BPatch_thread.C,v 1.45 2001/12/11 17:36:06 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -127,11 +127,25 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[],
     }
 
     string directoryName = "";
-#if defined(alpha_dec_osf4_0)
-    char buf[1024];
-    (void*) getcwd(buf, sizeof(buf));
-    directoryName = buf;
+
+#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // i.e. for all unixes
+
+    // this fixes a problem on linux and alpha platforms where pathless filenames
+    // are searched for either in a standard, predefined path, or in $PATH by execvp.
+    // thus paths that should resolve to "./" are missed.
+    // Note that the previous use of getcwd() here for the alpha platform was dangerous
+    // since this is an API and we don't know where the user's code will leave the
+    // cwd pointing.
+    const char *dotslash = "./";
+    if (NULL == strchr(path, '/'))
+      directoryName = dotslash;
 #endif
+
+    //#if defined(alpha_dec_osf4_0)
+    //char buf[1024];
+    //(void*) getcwd(buf, sizeof(buf));
+    //directoryName = buf;
+    //#endif
 
     proc = createProcess(path, argv_vec, envp_vec, directoryName, stdin_fd,
       stdout_fd, stderr_fd);
