@@ -1,10 +1,19 @@
 /*
+ *  $Log: RTcm5_pn.c,v $
+ *  Revision 1.27  1995/11/04 23:58:54  zhichen
+ *  added timer->normalize, so that wall clock time is no longer junk data
+ *
+ */
+/*
  * This file contains the implementation of runtime dynamic instrumentation
  *   functions for a TMC CM-5 machine.
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.26  1995/11/03 00:06:22  newhall
+ * Revision 1.27  1995/11/04 23:58:54  zhichen
+ * added timer->normalize, so that wall clock time is no longer junk data
+ *
+ * Revision 1.26  1995/11/03  00:06:22  newhall
  * initialize sampling rate to BASESAMPLEINTERVAL (defined in util/h/sys.h)
  * changed type of all DYNINSTsampleMultiple to "volatile int"
  *
@@ -247,6 +256,11 @@ retry:
     end.parts.high = timerBuffer.high;
     end.parts.low = *ni;
     if (timerBuffer.sync != 1) goto retry;
+
+    /* i copied the following two lines from getProcessTime -zxu 11/04/95 */
+    /* check for three way race of start/stop & sample & wrap. */
+    if (end.parts.high != timerBuffer.high) goto retry;
+
     return(end.value);
 }
 
@@ -267,6 +281,7 @@ void DYNINSTstartWallTimer(tTimer *timer)
 
     if (timer->counter == 0) {
 	 timer->start = getWallTime();
+	 timer->normalize = NI_CLK_USEC * MILLION;
     }
     /* this must be last to prevent race conditions with the sampler */
     timer->counter++;
