@@ -2,9 +2,12 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.1  1994/04/05 19:37:57  karavan
-/* Initial version.
-/* */
+/* Revision 1.2  1994/04/21 05:03:28  karavan
+/* Added most DAG services and sync versions of message display services.
+/*
+# Revision 1.1  1994/04/05  19:37:57  karavan
+# Initial version.
+# */
 
 #include "dataManager.CLNT.h"
 
@@ -46,7 +49,7 @@ $remote UIM {
 
 	$async void chooseMetricsandResources(chooseMandRCBFunc cb);	
 	
-	$upcall $async void chooseMetricsandResourcesREPLY ( 					chooseMandRCBFunc, 
+	$upcall $async void chosenMetricsandResources ( 					chooseMandRCBFunc, 
 		 char **metricNames,
 		 int numMetrics,
 	 	 resourceList* focusChoice);	
@@ -58,16 +61,21 @@ $remote UIM {
 			char *displayMsg, 
 			int numChoices, 
 			char **choices);
-	$upcall $async void showMsgREPLY (showMsgCBFunc cb, 
+
+	$upcall $async void msgChoice (showMsgCBFunc cb, 
 			int userChoice);
 
+	int showMsgWait (char *displayMsg, 
+			int numChoices, 
+			char **choices);
 
 	// message display with "error" visual characteristics
-	$async void showError (showErrorCBFunc cb, 
-			char *displayMsg);
-	$upcall $async void showErrorREPLY (showErrorCBFunc cb, 
-			int userChoice);
 
+	$async void showError (char *displayMsg);
+
+	int showErrorWait (char *displayMsg,
+				int numChoices,
+				char **choices);
 
 	// returns index of user's menu choice
         $async void chooseMenuItem (chooseMenuItemCBFunc cb, 
@@ -90,18 +98,20 @@ $remote UIM {
 	// 
         // DAG services 
         //
-// DAG services are on holiday until further notice.  stay tuned
-  
-//	int DAGaddNodes(int dagID, int numEntries, int nodeID, int styleID, 
-//			char *label, char *tags, int root);
-//	int DAGaddEdges (int dagID, int numEntries, int edgeID, int srcID, 
-//			int dstID, int styleID, char *tags);
-//	int DAGconfigNodes (int dagID, int numEntries, int nodeID, 
-//                            int styleID);
+	int initSHG ();
+
+	int DAGaddNode(int dagID, int nodeID, int styleID, 
+			char *label, char *shgname, int root);
+	int DAGaddEdge (int dagID, int srcID, 
+			int dstID, int styleID);
+	int DAGconfigNode (int dagID, int nodeID, int styleID);
+
+	int DAGcreateEdgeStyle(int dagID, int styleID, char *options);
+	int DAGcreateNodeStyle(int dagID, int styleID, char *options);
+
+// some DAG services are on holiday until further notice.  stay tuned  
 //	int DAGconfigEdges (int dagID, int numEntries, int edgeID, 
 //                            int styleID);
-//	int DAGcreateEdgeStyle();
-//	int DAGcreateNodeStyle();
 //	int DAGdestroy (int dagID);
 //
 	
