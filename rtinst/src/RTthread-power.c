@@ -12,18 +12,16 @@ int DYNINSTthreadPos ()
   int curr_pos = DYNINSTthreadPosFAST();
   if (!DYNINST_initialize_done)
     return 0;
-  tid = DYNINSTthreadSelf();
+  tid = P_thread_self();
   if (tid <= 0) {
     abort();
   }
   /* Quick method. Could we get away with a logical AND? */
-  /*
   if ((curr_pos >= 0) && 
       (curr_pos < MAX_NUMBER_OF_THREADS)) {
-    if (RTsharedData.posToThread[curr_pos] == tid)
-      return curr_pos;
+      if (RTsharedData.posToThread[curr_pos] == tid)
+          return curr_pos;
   }
-  */
   /* Slow method */
   curr_pos = DYNINSTthreadPosSLOW(tid);
   if (curr_pos == MAX_NUMBER_OF_THREADS) {
