@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.162 2003/07/15 22:43:56 schendel Exp $
+// $Id: aix.C,v 1.163 2003/07/23 22:27:54 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -190,31 +190,12 @@ Frame Frame::getCallerFrame(process *p) const
   ret.pid_ = pid_;
   ret.thread_ = thread_;
   ret.lwp_ = lwp_;
+
   if (func && uppermost_) {
     isLeaf = func->makesNoCalls();
     noFrame = func->hasNoStackFrame();
   }
 
-  // Are we in a minitramp?
-  bool inTramp = false;
-  if (!func) {
-      trampTemplate *tramp = NULL;
-      instInstance *mini = NULL;
-      instPoint *instP = p->findInstPointFromAddress(pc_, &tramp, &mini);
-      if (instP) { /* We found something */
-          // Yeah... but if it's before the register saves (in a base tramp)
-          // we're not actually there yet
-          if (tramp && pc_ == tramp->baseAddr) {
-              // Nothing to do... we're not in a tramp
-          }
-          else {
-              inTramp = true;
-          }
-          
-          func = (pd_Function *)instP->iPgetFunction();
-      }
-      
-  }
 
   // Get current stack frame link area
   if (!p->readDataSpace((caddr_t)fp_, sizeof(linkArea_t),
@@ -227,11 +208,25 @@ Frame Frame::getCallerFrame(process *p) const
       stackFrame = thisStackFrame;
   else
       stackFrame = lastStackFrame;
-  
-  if (inTramp) {
+
+  // Figure out where to grab the LR value from. Switch off a "cookie"
+  // we store if we're in a base tramp or have modified the LR
+  if ((stackFrame.binderInfo & MODIFIED_LR_MASK) == MODIFIED_LR) {
+      // The actual LR is stored in the "compilerInfo" word
+      ret.pc_ = stackFrame.compilerInfo;
+      fprintf(stderr, "Using stored LR 0x%x\n", ret.pc_);
+  }
+  else if ((stackFrame.binderInfo & IN_ENTRY_EXIT_TRAMP_MASK) == IN_ENTRY_EXIT_TRAMP) {
       p->readDataSpace((caddr_t)thisStackFrame.oldFp-TRAMP_FRAME_SIZE+TRAMP_SPR_OFFSET+STK_LR, sizeof(int),
                        (caddr_t)&ret.pc_, false);
+      fprintf(stderr, "In tramp, using LR 0x%x\n", ret.pc_);
   }
+  else if ((stackFrame.binderInfo & IN_OTHER_TRAMP_MASK) == IN_OTHER_TRAMP) {
+      // Skip this one and return the next frame
+      ret.fp_ = thisStackFrame.oldFp;
+      fprintf(stderr, "In tramp already: skipping\n");
+      return ret.getCallerFrame(p);
+  }  
   else if (isLeaf) {
       // So:
       // Normal: call ptrace(pid)
@@ -258,22 +253,7 @@ Frame Frame::getCallerFrame(process *p) const
       // Oh lordy... but NOT if we're at the entry of the function. See, we haven't
       // saved the LR on the stack frame yet!
       ret.pc_ = stackFrame.savedLR;
-  }
-  
-  // If we're in instrumented functions, then the actual LR is stored
-  // in the stack in the compilerInfo word. But how can we tell this?
-  // Well... if there's an exit tramp at the LR addr, then it's the wrong one.
-  if (func) {
-        if( func->funcExits(p).size() > 0 )
-        {
-          instPoint *exitInst = func->funcExits(p)[0];
-          if (p->baseMap.defines(exitInst)) { // should always be true
-              if (p->baseMap[exitInst]->baseAddr == ret.pc_) {
-                  // Again, we might be down one too far stack frames
-                  ret.pc_ = stackFrame.compilerInfo;
-              }
-          }
-      }
+      fprintf(stderr, "Plain old: 0x%x\n", ret.pc_);
   }
   
   if (noFrame) { // We never shifted the stack down, so recycle
@@ -284,6 +264,10 @@ Frame Frame::getCallerFrame(process *p) const
   }
 #ifdef DEBUG_STACKWALK
   fprintf(stderr, "PC %x, FP %x\n", ret.pc_, ret.fp_);
+  pd_Function *stack_fn = p->findAddressInFuncsAndTramps(ret.pc_);
+  if (stack_fn)
+      fprintf(stderr, "   func %s\n", stack_fn->prettyName().c_str());
+  
 #endif
 
   return ret;
@@ -847,6 +831,9 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
       }
   }
   writeDataSpace((void*)(parentFrame.getFP()+12), sizeof(Address), &oldReturnAddr);
+  // And write the "we've modified the LR" trigger value"
+  Address trigger = MODIFIED_LR;
+  writeDataSpace((void*)(parentFrame.getFP()+16), sizeof(Address), &trigger);
   return true;
   
 }

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.19 2002/05/22 15:41:50 bernat Exp $
+ * $Id: inst-power.h,v 1.20 2003/07/23 22:27:54 bernat Exp $
  */
 
 #ifndef INST_POWER_H
@@ -85,7 +85,7 @@ extern trampTemplate withArgsTemplate;
 #define GPRSAVE   (14*4)
 #define FPRSAVE   (14*8)
 #define SPRSAVE   (6*4+8)
-#define PDYNSAVE  (4)
+#define PDYNSAVE  (8)
 #define FUNCSAVE  (14*4)
 #define FUNCARGS  32
 #define LINKAREA  24
@@ -94,8 +94,8 @@ extern trampTemplate withArgsTemplate;
 #define TRAMP_FRAME_SIZE (STACKSKIP + GPRSAVE + FPRSAVE + SPRSAVE + PDYNSAVE + \
                           FUNCSAVE + FUNCARGS + LINKAREA)
 #define PDYN_RESERVED (LINKAREA + FUNCARGS + FUNCSAVE)
-#define PDYN_MT_POS (PDYN_RESERVED + 0)
 #define TRAMP_SPR_OFFSET (PDYN_RESERVED + PDYNSAVE) /* 4 for LR */
+#define STK_GUARD (PDYN_RESERVED)
 #define STK_LR    (           0)
 #define STK_CR    (STK_LR   + 4)
 #define STK_CTR   (STK_CR   + 4)
@@ -107,6 +107,20 @@ extern trampTemplate withArgsTemplate;
 #define TRAMP_GPR_OFFSET (TRAMP_FPR_OFFSET + FPRSAVE)
 
 #define FUNC_CALL_SAVE (LINKAREA + FUNCARGS)
+
+/* Cookie values for marking if we're in a tramp */
+#define MODIFIED_LR_UNSHIFTED 0x5400
+#define MODIFIED_LR 0x5400
+#define MODIFIED_LR_MASK 0xfe00
+
+
+#define IN_ENTRY_EXIT_TRAMP 0x097
+#define IN_ENTRY_EXIT_TRAMP_MASK 0x1FF
+
+#define IN_OTHER_TRAMP 0x1ab
+#define IN_OTHER_TRAMP_MASK 0x1FF
+
+
 
 /* ipOther is never used in Paradyn, but simplifies code to unify */
 enum ipFuncLoc { ipFuncEntry, ipFuncReturn, ipFuncCallPoint, ipOther };
