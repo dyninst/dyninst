@@ -19,6 +19,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "util/h/sys.h"
+#include "util/h/aggregateSample.h"
 #include "util/h/Vector.h"
 #include "util/h/Dictionary.h"
 #include "util/h/String.h"

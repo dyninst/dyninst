@@ -66,6 +66,10 @@ class metric {
     friend class metricInstance;
     friend class paradynDaemon;
     friend void addMetric(T_dyninstRPC::metricInfo &info);
+    friend metricInstance *DMenableData(perfStreamHandle, metricHandle,
+	 			        resourceListHandle, phaseType,
+					unsigned, unsigned);
+
     friend void histDataCallBack(sampleValue *, timeStamp , 
 				 int , int , void *);
     // TODO: remove these when PC is re-written ***************
