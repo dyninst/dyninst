@@ -2,10 +2,13 @@
 // Ariel Tamches
 
 /* $Log: shgConsts.h,v $
-/* Revision 1.3  1996/01/23 07:03:28  tamches
-/* added shadow node features
-/* moved code to .C file
+/* Revision 1.4  1996/02/15 23:10:58  tamches
+/* added code to support why vs. where axis refinement
 /*
+ * Revision 1.3  1996/01/23 07:03:28  tamches
+ * added shadow node features
+ * moved code to .C file
+ *
  * Revision 1.2  1996/01/11 23:42:04  tamches
  * there are now 6 node styles instead of 4
  *
@@ -19,10 +22,8 @@
 
 #ifdef PARADYN
 #include "util/h/Vector.h"
-#include "util/h/String.h"
 #else
 #include "Vector.h"
-#include "String.h"
 #endif
 
 #include "tk.h"
@@ -38,6 +39,9 @@ struct shgConsts {
       rootItemActiveShadowTextGC, rootItemInactiveShadowTextGC;
    GC listboxItemActiveTextGC, listboxItemInactiveTextGC,
       listboxItemActiveShadowTextGC, listboxItemInactiveShadowTextGC;
+
+   GC whyRefinementRayGC, whereRefinementRayGC;
+   XColor *whyRefinementColor, *whereRefinementColor;
 
    vector<Tk_3DBorder> rootItemTk3DBordersByStyle;
    vector<Tk_3DBorder> listboxItemTk3DBordersByStyle;

@@ -1,9 +1,12 @@
 // shgConsts.C
 
 /* $Log: shgConsts.C,v $
-/* Revision 1.3  1996/02/02 18:44:57  tamches
-/* shg color change: unknown is green more more readability than tan
+/* Revision 1.4  1996/02/15 23:10:59  tamches
+/* added code to support why vs. where axis refinement
 /*
+ * Revision 1.3  1996/02/02 18:44:57  tamches
+ * shg color change: unknown is green more more readability than tan
+ *
  * Revision 1.2  1996/01/23 07:04:09  tamches
  * added shadow node features.
  * moved code here from the .h file
@@ -113,6 +116,20 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
    // It seems reasonable to use the exact same colors for shg listbox items:
    listboxItemTk3DBordersByStyle = rootItemTk3DBordersByStyle;
       // indexed, in effect, by shgRootNode::evaluationState & an active flag
+
+   // Refinement Styles (why axis, where axis)
+   whyRefinementColor = Tk_GetColor(interp, theTkWindow, Tk_GetUid("palegoldenrod"));
+   whereRefinementColor = Tk_GetColor(interp, theTkWindow, Tk_GetUid("orchid"));
+
+   values.foreground = whyRefinementColor->pixel;
+   values.line_width = 2;
+   whyRefinementRayGC = Tk_GetGC(theTkWindow, GCForeground | GCLineWidth, &values);
+   assert(whyRefinementRayGC);
+
+   values.foreground = whereRefinementColor->pixel;
+   values.line_width = 2;
+   whereRefinementRayGC = Tk_GetGC(theTkWindow, GCForeground | GCLineWidth, &values);
+   assert(whereRefinementRayGC);
 }
 
 shgConsts::~shgConsts() {
@@ -132,6 +149,12 @@ shgConsts::~shgConsts() {
    Tk_FreeGC(display, listboxItemInactiveTextGC);
    Tk_FreeGC(display, listboxItemActiveShadowTextGC);
    Tk_FreeGC(display, listboxItemInactiveShadowTextGC);
+
+   Tk_FreeGC(display, whyRefinementRayGC);
+   Tk_FreeGC(display, whereRefinementRayGC);
+
+   Tk_FreeColor(whyRefinementColor);
+   Tk_FreeColor(whereRefinementColor);
 
    for (unsigned stylelcv=0; stylelcv < rootItemTk3DBordersByStyle.size(); stylelcv++)
       Tk_Free3DBorder(rootItemTk3DBordersByStyle[stylelcv]);
