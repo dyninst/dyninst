@@ -69,14 +69,16 @@ class BPatch_point {
     friend class BPatch_function;
 
     process	*proc;
+    const BPatch_function	*func;
     instPoint	*point;
     BPatch_procedureLocation pointType;
 
-    BPatch_point(process *_proc, instPoint *_point,
+    BPatch_point(process *_proc, BPatch_function *_func, instPoint *_point,
 		 BPatch_procedureLocation _pointType) :
-	proc(_proc), point(_point), pointType(_pointType) {};
+	proc(_proc), func(_func), point(_point), pointType(_pointType) {};
 public:
     BPatch_procedureLocation getPointType() { return pointType; }
+    const BPatch_function *getFunction() { return func; }
     BPatch_function *getCalledFunction();
     void            *getAddress();
     int             getDisplacedInstructions(int maxSize, void *insns);

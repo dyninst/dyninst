@@ -58,6 +58,9 @@ public:
 // The following functions are for internal use by  the library only:
     BPatch_image(process *_proc);
     BPatch_image() : proc(NULL), modlist(NULL) {};
+
+    bool                 ModuleListExist();
+    void                 addModuleIfExist(BPatch_module *bpmod);
 // End functions for internal use only
   
     BPatch_Vector<BPatch_function *> *getProcedures();
@@ -74,10 +77,9 @@ public:
     BPatch_function	*findBPFunction(const char *name);
 
     BPatch_variableExpr	*findVariable(const char *name);
+    BPatch_variableExpr *findVariable(BPatch_point &scp, const char *nm); 
 
     BPatch_type		*findType(const char *name);
-    bool                 ModuleListExist();
-    void                 addModuleIfExist(BPatch_module *bpmod);
 private:
     BPatch_Vector<BPatch_module *> *modlist;
 

@@ -207,7 +207,8 @@ public:
 #if defined (sparc_sun_solaris2_4)
   int getSize() const { return size; }; /*XXX may need more work -jdd 5/27/99*/
 #else
-  int getSize() const { return sizeof(int); }; // XXX Only ints for now
+  // XXX - for systems without type information, assume things are ints
+  int getSize() const { return ((size) ? size : sizeof(int)); }; 
 #endif
   const char *getName() { return name; }
   const char *getLow() { return low; }

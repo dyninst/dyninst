@@ -77,8 +77,9 @@ typedef enum {
 } BPatch_binOp;
 
 typedef enum {
-    BPatch_negate
-    /* , BPatch_address */
+    BPatch_negate,
+    BPatch_addr,
+    BPatch_deref
 } BPatch_unOp;
 
 
@@ -136,6 +137,7 @@ public:
     BPatch_arithExpr(BPatch_binOp op,
 		     const BPatch_snippet &lOperand,
 		     const BPatch_snippet &rOperand);
+    BPatch_arithExpr(BPatch_unOp op, const BPatch_snippet &lOperand);
 };
 
 class BPatch_boolExpr : public BPatch_snippet {
@@ -194,29 +196,34 @@ public:
 };
 
 class BPatch_variableExpr : public BPatch_snippet {
-    char	*name;
-    process	*proc;
-    void	*address;
-    int		size;
+    char		*name;
+    process		*proc;
+    void		*address;
+    int			size;
+    BPatch_point	*scope;
 public:
 // The following functions are for internal use by the library only:
     BPatch_variableExpr(char *name, process *in_process, void *in_address,
 			const BPatch_type *type);
     BPatch_variableExpr(process *in_process, void *in_address,
-			const BPatch_type *type, bool frameRelative = false);
+			const BPatch_type *type, bool frameRelative = false,
+			BPatch_point *sc = NULL);
     BPatch_variableExpr(process *in_process, void *in_address,
 			int in_size);
+    BPatch_variableExpr(char *in_name, process *in_process, AstNode *_ast,
+			const BPatch_type *type);
 
 // Public functions for use by users of the library:
-    void readValue(void *dst);
+    bool readValue(void *dst);
     void readValue(void *dst, int len);
-    void writeValue(const void *src);
+    bool writeValue(const void *src);
     void writeValue(const void *src, int len);
 
     char *getName() { return name; }
     void *getBaseAddr() const { return address; }
     const BPatch_type *getType();
     void setType(BPatch_type *);
+    void setSize(int sz) {  size = sz; }
     BPatch_Vector<BPatch_variableExpr *> *getComponents();
 };
 
