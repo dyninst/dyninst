@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.78 1998/04/01 01:28:00 wylie Exp $
+/* $Id: dyninstRPC.I,v 1.79 1998/07/12 21:07:10 newhall Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -425,7 +425,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 53;
+    $version 54;
 
     //
     // Define a program to run. 
@@ -588,7 +588,7 @@ $remote dynRPC {
     //
     $upcall $async void newMetricCallback(metricInfo info); 
 
-    void setSampleRate(double sampleInterval);
+    $async void setSampleRate(double sampleInterval);
 
     //
     // tell dyninst to ignore this resource for instrumentation.
