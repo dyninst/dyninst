@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.14 1998/09/02 21:42:15 wylie Exp $
+// $Id: templatesDM.C,v 1.15 1999/05/24 17:01:54 cain Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -195,10 +195,24 @@ template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::trace_batch_b
 
 template class vector<T_dyninstRPC::resourceInfoCallbackStruct>;
 
+class CallGraph;
+template class dictionary_hash<int, CallGraph *>;
+template class vector<CallGraph *>;
+template class vector<dictionary_hash<int, CallGraph*>::entry>;
+
+template class vector<resource *>;
+template class dictionary_hash <resource *, vector<resource *> >;
+template class vector< vector<resource *> >;
+template class vector<dictionary_hash<resource *, vector<resource*> >::entry>;
+
+template class dictionary_hash<resource *, int>;
+template class vector<dictionary_hash<resource *, int>::entry>;
+
 #if defined(rs6000_ibm_aix4_1)
 #include "util/h/Symbol.h"
 template class vector<Symbol>;
 template class dictionary_hash<string, Symbol>;
 template class vector<dictionary_hash<string, Symbol>::entry>;
 #endif
+
 

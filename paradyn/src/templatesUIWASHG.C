@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: templatesUIWASHG.C,v 1.5 1999/05/24 17:01:55 cain Exp $
+
 // templatesUIWASHG.C
 // templates in the UIthread related to the where axis and search history graph
 
@@ -101,3 +103,31 @@ template class vector<where4tree<shgRootNode>*>;
 
 
 template class vector<Tk_3DBorder>; // shg consts
+ 
+/* *************************************
+ * UIthread Call Graph stuff
+ */
+#include "paradyn/src/UIthread/callGraphRootNode.h"
+template class where4tree<callGraphRootNode>;
+template class vector<where4tree<callGraphRootNode>::childstruct>;
+template class whereNodeGraphicalPath<callGraphRootNode>;
+template class vector<const callGraphRootNode *>;
+
+#include "paradyn/src/UIthread/callGraphs.h"
+template class vector<callGraphs::callGraphStruct>;
+
+template class dictionary_hash<unsigned, where4tree<callGraphRootNode> *>;
+template class vector<dictionary_hash<unsigned, where4tree<callGraphRootNode> *>::entry>;
+template class vector<where4tree<callGraphRootNode> *>;
+
+template class dictionary_hash<where4tree<callGraphRootNode> *, where4tree<callGraphRootNode> *>;
+template class vector<dictionary_hash<where4tree<callGraphRootNode> *, where4tree<callGraphRootNode> *>::entry>;
+
+template class dictionary_hash< unsigned, vector<where4tree<callGraphRootNode>*> >;
+template class vector<dictionary_hash< unsigned, vector<where4tree<callGraphRootNode>*> >::entry>;
+template class vector< vector<where4tree<callGraphRootNode>*> >;
+template class vector<where4tree<callGraphRootNode>*>;
+
+
+
+

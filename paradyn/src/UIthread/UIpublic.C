@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.67 1999/05/19 07:51:13 karavan Exp $
+/* $Id: UIpublic.C,v 1.68 1999/05/24 16:59:32 cain Exp $
  */
 
 #include <stdio.h>
@@ -60,6 +60,9 @@
 
 #include "shgPhases.h"
 #include "shgTcl.h"
+
+#include "callGraphs.h"
+#include "callGraphTcl.h"
 
  /* globals for metric resource selection */
 vector<metric_focus_pair> uim_VisiSelections; // keep this one
@@ -293,6 +296,13 @@ void UIM::newPhaseNotification (unsigned ph, const char *name, bool with_new_pc)
    }
 }
 
+extern callGraphs *theCallGraphPrograms;
+//Adds a new program to the call graph display
+void UIM::callGraphProgramAddedCB(unsigned programId, resourceHandle newId, 
+				  const char *shortName, const char *longName){
+  theCallGraphPrograms->addNewProgram(programId, newId, shortName, longName);
+}
+
 void
 UIM::updateStatusDisplay (int dagid, string *info)
 {
@@ -401,6 +411,8 @@ shgRootNode::refinement int2refinement(int styleid) {
    return shgRootNode::ref_why; // placate compiler
 }
 
+
+
 /*  flags: 1 = root
  *         0 = non-root
  */
@@ -421,6 +433,23 @@ UIM::DAGaddNode(int dagID, unsigned nodeID, int styleID,
          initiateShgRedraw(interp, true);
 
    return 1;
+}
+
+//Add node to the call graph
+void UIM::CGaddNode(int pid, resourceHandle parent, resourceHandle newNode,
+		   const char *shortName, const char *fullName, 
+		    bool recursiveFlag){
+  theCallGraphPrograms->addNode(pid, parent, newNode, shortName, fullName,
+				recursiveFlag);
+}
+
+//This is called when the daemon notifies the DM that it has already sent
+//all of the nodes for the static call graph. We should now display it.
+void UIM::CGDoneAddingNodesForNow(int pid) {
+  // "rethinks" the graphical display...expensive, so don't call this
+  // often!
+  theCallGraphPrograms->rethinkLayout(pid);
+  initiateCallGraphRedraw(interp, true);
 }
 
 void
@@ -467,7 +496,6 @@ UIM::DAGaddEdge (int dagID, unsigned srcID,
    return 1;
 }
 
-  
 int 
 UIM::DAGconfigNode (int dagID, unsigned nodeID, int styleID)
 {
@@ -480,6 +508,7 @@ UIM::DAGconfigNode (int dagID, unsigned nodeID, int styleID)
 
    return 1;
 }
+
 
 void UIM::DAGinactivateEntireSearch(int dagID) {
    if (theShgPhases->inactivateEntireSearch(dagID))

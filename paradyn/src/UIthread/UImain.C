@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.88 1999/03/03 18:16:03 pcroth Exp $
+// $Id: UImain.C,v 1.89 1999/05/24 16:59:31 cain Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -62,6 +62,8 @@
 
 #include "abstractions.h"
 #include "whereAxisTcl.h"
+#include "callGraphTcl.h"
+#include "callGraphs.h"
 #include "shgPhases.h"
 #include "shgTcl.h"
 #include "tkTools.h"
@@ -103,9 +105,41 @@ bool tryFirstGoodWhereAxisWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
 				      ".whereAxis.nontop.find.entry",
 				      interp, theTkWindow);
    assert(theAbstractions);
+   
+   return true;   
+}
+
+
+extern callGraphs *theCallGraphPrograms;
+bool haveSeenFirstGoodCallGraphWid = false;
+
+//Call Graph creation routine
+bool tryFirstGoodCallGraphWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
+   if (haveSeenFirstGoodCallGraphWid)
+      return true;
+
+   Tk_Window theTkWindow = Tk_NameToWindow(interp,".callGraph.nontop.main.all",
+                                           topLevelTkWindow);
+   assert(theTkWindow);
+      
+   if (Tk_WindowId(theTkWindow) == 0)
+      return false; // sigh...still invalid (that's why this routine is needed)
+   
+   theCallGraphPrograms = 
+     new callGraphs(".callGraph.titlearea.left.menu.mbar.program.m",
+		    ".callGraph.nontop.main.bottsb",
+		    ".callGraph.nontop.main.leftsb",
+		    ".callGraph.nontop.labelarea.current",
+		    ".callGraph.nontop.currprogramarea.label2",
+		    interp, theTkWindow);
+   
+   assert(theCallGraphPrograms);
+   initiateCallGraphRedraw(interp, true);
+   haveSeenFirstGoodCallGraphWid = true;
 
    return true;   
 }
+
 
 
 /*
@@ -147,6 +181,7 @@ extern int ParadynCmd(ClientData clientData,
 		      Tcl_Interp *interp, 
 		      int argc, 
 		      char *argv[]);
+
 extern void resourceAddedCB (perfStreamHandle handle, 
 		      resourceHandle parent, 
 		      resourceHandle newResource, 
@@ -159,6 +194,7 @@ extern void memoryAddedCB (perfStreamHandle handle,
                       unsigned blk_size,
                       resourceHandle parent,
                       vector<resourceHandle> *newResources ) ;
+
 
 /*
  * Forward declarations for procedures defined later in this file:
@@ -196,7 +232,7 @@ void resourceBatchChanged(perfStreamHandle, batchMode mode)
          ui_status->message("ready");
 
          // Shouldn't we also Tcl_Eval(interp, "update"), to process any
-         // pending idle events?
+	 // pending idle events?
       }
     }
     assert(UIM_BatchMode >= 0);
@@ -330,6 +366,15 @@ void tcShgHideShadowCallback(bool hide) {
    tcShgHideGeneric(shg::ct_shadow, hide);
 }
 
+void tcEnableCallGraphCallback(bool hide){
+  if(hide == true)
+    myTclEval(interp,".parent.menub.left.men.b1.m add command -label \"Call Graph\" -command {callGraphInitialize}");
+  else if(hide == false){
+    myTclEval(interp, ".parent.menub.left.men.b1.m delete \"Call Graph\"");
+    myTclEval(interp, "destroy .callGraph");
+  }
+}
+
 void *UImain(void*) {
 	thread_t mtid;
     tag_t mtag;
@@ -409,6 +454,10 @@ void *UImain(void*) {
 						  false, // initial value
 						  tcShgHideShadowCallback,
 						  userConstant);
+    tunableBooleanConstantDeclarator tcEnableCallGraph("callGraphEnabled", 
+			      "Allows usage of Paradyn's CallGraph Display", 
+			       false,tcEnableCallGraphCallback,developerConstant);
+    
 
     // Add internal UIM command to the tcl interpreter.
     Tcl_CreateCommand(interp, "uimpd", 
@@ -496,6 +545,7 @@ void *UImain(void*) {
     PARADYN_DEBUG(("UIM thread past barrier\n"));
 
     // subscribe to DM new resource notification service
+
     controlFuncs.rFunc = resourceAddedCB;
     controlFuncs.mFunc = NULL;
     controlFuncs.fFunc = NULL;
@@ -515,6 +565,9 @@ void *UImain(void*) {
 
     // New Search History Graph: --ari
     installShgCommands(interp);
+
+    //New Call Graph --trey
+    installCallGraphCommands(interp);
 
     //
     // initialize status lines library
@@ -618,6 +671,7 @@ void *UImain(void*) {
 
    unInstallShgCommands(interp);
    unInstallWhereAxisCommands(interp);
+   unInstallCallGraphCommands(interp);
 
    /*
     * Exiting this thread will signal the main/parent to exit.  No other
