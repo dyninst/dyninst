@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Dictionary.h,v 1.24 2001/01/04 22:50:22 pcroth Exp $
+// $Id: Dictionary.h,v 1.25 2001/08/23 14:36:02 schendel Exp $
 
 #ifndef _DICTIONARY_H_
 #define _DICTIONARY_H_
@@ -98,9 +98,9 @@ class dictionary_hash {
    // in paradynd actually copies entire dictionaries (!)
    dictionary_hash (const dictionary_hash<K,V> &);
    dictionary_hash<K,V>&  operator= (const dictionary_hash<K,V> &);
-
    unsigned                    size ()                       const;
-   V&                    operator[] (const K &);
+   const V               operator[](const K &key)                  const;
+   V&                    operator[] (const K &key);
    bool                        find (const K &, V &)         const;
    bool                     defines (const K &)              const;
    void                       undef (const K &);
