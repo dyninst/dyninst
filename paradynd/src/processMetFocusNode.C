@@ -481,7 +481,10 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
    // because multiple threads will not interfere with each other.
 
    // See comment below for sparc info
-#if !defined(sparc_sun_solaris2_4)
+
+   // can't do "conglomerate rpcs" until bug #369 "AST sequence node
+   // generation" is fixed
+#if defined(CONGLOMERATE_RPCS)
    // Then through each frame in the stack walk
    AstNode *conglomerate = NULL;
    for(int j = catchupWalk.size()-1; j >= 0; j--) { 
@@ -517,9 +520,9 @@ void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
       catchupASTList.push_back(catchup);      
    }
 #else
-   // Sparc is currently having problems with AST sequences, especially
-   // if the sequences include several copies of the same AST tree. So 
-   // we post as individual iRPCs
+   // Sparc (and linux) is currently having problems with AST sequences,
+   // especially if the sequences include several copies of the same AST
+   // tree. So we post as individual iRPCs
 
    // Then through each frame in the stack walk
    for(int j = catchupWalk.size()-1; j >= 0; j--) { 
