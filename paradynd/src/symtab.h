@@ -361,8 +361,8 @@ public:
 
   inline const unsigned char *getPtrToInstruction(Address adr) const;
 
-  string file() {return file_;}
-  string name() { return name_;}
+  string file() const {return file_;}
+  string name() const { return name_;}
   Address codeOffset() { return codeOffset_;}
   Address dataOffset() { return dataOffset_;}
   Address dataLength() { return (dataLen_ << 2);} 
