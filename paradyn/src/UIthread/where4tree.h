@@ -4,10 +4,14 @@
 // Header file for subtree based on where4.fig [and where5.fig]
 
 /* $Log: where4tree.h,v $
-/* Revision 1.8  1995/10/17 22:13:35  tamches
-/* The templated class has changed from a unique-id class to
-/* a full root-node class.
+/* Revision 1.9  1995/11/20 03:25:54  tamches
+/* changed vector<NODEDATA *> to vector<const NODEDATA *>, enabling compilation
+/* under g++ 2.7.1
 /*
+ * Revision 1.8  1995/10/17 22:13:35  tamches
+ * The templated class has changed from a unique-id class to
+ * a full root-node class.
+ *
  * Revision 1.7  1995/09/20 01:24:11  tamches
  * Major cleanification; too many things to enumerate.  no path items
  * have negative values.  No more uses of graphical paths.
@@ -424,7 +428,7 @@ class where4tree {
       // returns true iff found.  char * is used instead of string because
       // we'll be using pointer arithmetic as we parse "name".
 
-   vector<NODEDATA *> getSelections() const;
+   vector<const NODEDATA *> getSelections() const;
 
    void recursiveClearSelections();
 };
