@@ -4,10 +4,15 @@
 // Header file for subtree based on where4.fig [and where5.fig]
 
 /* $Log: where4tree.h,v $
-/* Revision 1.3  1995/07/24 21:34:58  tamches
-/* Added sorting.
-/* Removed member function addChildren()
+/* Revision 1.4  1995/07/27 23:27:45  tamches
+/* Crash upon sorting huge CMF application mysteriously
+/* goes away when quicksort is altered slightly to remove
+/* tail recursion.
 /*
+ * Revision 1.3  1995/07/24  21:34:58  tamches
+ * Added sorting.
+ * Removed member function addChildren()
+ *
  * Revision 1.2  1995/07/18  03:41:20  tamches
  * Added ctrl-double-click feature for selecting/unselecting an entire
  * subtree (nonrecursive).  Added a "clear all selections" option.
@@ -110,6 +115,20 @@ class where4tree {
       bool isExplicitlyExpanded;
       int  nameTextWidthIfInListbox; // caches away an XTextWidth() call [lb width],
          // easing the pain of rethink_listbox_dimensions()
+
+//      childstruct() {} // default constructors are required by Vector
+//      childstruct(const childstruct &src) {
+//         theTree = src.theTree;
+//         isExplicitlyExpanded = src.isExplicitlyExpanded;
+//         nameTextWidthIfInListbox = src.nameTextWidthIfInListbox;
+//      }
+//      childstruct &operator=(const childstruct &src) {
+//         theTree = src.theTree;
+//         isExplicitlyExpanded = src.isExplicitlyExpanded;
+//         nameTextWidthIfInListbox = src.nameTextWidthIfInListbox;
+//
+//         return *this;
+//      }
 
       bool operator<(const childstruct &other) {
          return theTree->getRootName() < other.theTree->getRootName();
@@ -322,7 +341,7 @@ class where4tree {
       // had passed false as the last parameter...(Of course, calling addChildren()
       // just once would have been even better, but it's not always convenient to use.)
 
-   void sortChildren(unsigned left, unsigned right);
+   void sortChildren(int left, int right);
    void sortChildren();
       // does no redrawing.
 

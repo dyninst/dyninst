@@ -2,10 +2,15 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.3  1995/07/24 21:35:00  tamches
-/* Added sorting.
-/* Removed member function addChildren()
+/* Revision 1.4  1995/07/27 23:27:48  tamches
+/* Crash upon sorting huge CMF application mysteriously
+/* goes away when quicksort is altered slightly to remove
+/* tail recursion.
 /*
+ * Revision 1.3  1995/07/24  21:35:00  tamches
+ * Added sorting.
+ * Removed member function addChildren()
+ *
  * Revision 1.2  1995/07/18  03:41:22  tamches
  * Added ctrl-double-click feature for selecting/unselecting an entire
  * subtree (nonrecursive).  Added a "clear all selections" option.
@@ -2177,8 +2182,8 @@ template <class USERNODEDATA>
 int where4tree<USERNODEDATA>::partitionChildren(int left, int right) {
    childstruct partitionAroundMe = theChildren[left];
    
-   left = left-1;
-   right = right+1;
+   left--;
+   right++;
 
    while (true) {
       do {
@@ -2207,15 +2212,27 @@ void where4tree<USERNODEDATA>::sortChildren() {
 }
 
 template <class USERNODEDATA>
-void where4tree<USERNODEDATA>::sortChildren(unsigned left, unsigned right) {
+void where4tree<USERNODEDATA>::sortChildren(int left, int right) {
    // quicksort
+//   cout << "welcome to sortchildren (" << left << "," << right << ")" << endl;
 
-   if (left >= right)
-      return;
+//   if (left < right) {
+//      int partitionIndex = partitionChildren(left, right);
+//      assert(partitionIndex >= left);
+//      assert(partitionIndex <= right);
+//
+//      sortChildren(left, partitionIndex);
+//      sortChildren(partitionIndex + 1, right);
+//   }
+   while (left < right) {
+      int partitionIndex = partitionChildren(left, right);
+      assert(partitionIndex >= left);
+      assert(partitionIndex <= right);
 
-   int partitionIndex = partitionChildren(left, right);
-   sortChildren(left, partitionIndex);
-   sortChildren(partitionIndex + 1, right);
+      sortChildren(left, partitionIndex);
+      left = partitionIndex + 1;
+         // gets rid of tail recursion (right stays unchanged)
+   }
 }
 
 template <class USERNODEDATA>
