@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.171 2003/05/16 21:22:43 bernat Exp $
+ * $Id: inst-power.C,v 1.172 2003/05/20 16:18:12 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -3818,7 +3818,7 @@ bool process::MonitorCallSite(instPoint *callSite){
                   false);                      /* trampRecursiveDesired flag */
       return true;
   }
-  else if (i.xlform.op == BCop) {
+  else if (i.xlform.op == Bop) {
       /// Why didn't we catch this earlier? In any case, don't print an error
       return true;
   }
