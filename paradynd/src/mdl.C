@@ -1002,7 +1002,7 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&ast) {
       bool aflag;
       aflag=get_drn.get(drn);
       assert(aflag);
-      ast = new AstNode(AstNode::DataPtr, drn);      
+      ast = new AstNode(AstNode::DataPtr, (void *)(drn->getInferiorPtr()));
     }
     break;
   case MDL_T_COUNTER:
