@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.111 2003/09/23 17:28:57 tlmiller Exp $
+// $Id: linux.C,v 1.112 2003/10/07 19:06:06 schendel Exp $
 
 #include <fstream>
 
@@ -193,7 +193,7 @@ int ptraceKludge::deliverPtraceReturn(process *p, int req, Address addr,
 /* ********************************************************************** */
 
 void printStackWalk( process *p ) {
-  Frame theFrame = p->getDefaultLWP()->getActiveFrame();
+  Frame theFrame = p->getProcessLWP()->getActiveFrame();
   while (true) {
     // do we have a match?
     const Address framePC = theFrame.getPC();
@@ -373,7 +373,7 @@ process *decodeProcessEvent(int pid,
                 // The following is more correct, but breaks.
                 // Problem is getting the frame requires a ptrace...
                 // which calls loopUntilStopped. Which calls us.
-                //Frame frame = proc->getDefaultLWP()->getActiveFrame();
+                //Frame frame = proc->getProcessLWP()->getActiveFrame();
                 //Address pc = frame.getPC();
                 Address pc = getPC(proc->getPid());
                 
@@ -429,114 +429,6 @@ bool process::installSyscallTracing() {
     
 
     return true;
-}
-
-
-// attach to an inferior process.
-bool process::attach_() {
-  char procName[128];
-  bool running = false;
-  if( createdViaAttach )
-    running = isRunning_();
-
-  // QUESTION: does this attach operation lead to a SIGTRAP being forwarded
-  // to paradynd in all cases?  How about when we are attaching to an
-  // already-running process?  (Seems that in the latter case, no SIGTRAP
-  // is automatically generated)
-
-  // step 1) /proc open: attach to the inferior process memory file
-
-  if(getDefaultLWP() == NULL)
-     return false;
-
-  int fd = getDefaultLWP()->get_fd();
-  if (fd < 0 ) {
-    fprintf(stderr, "attach: open failed on %s: %s\n", procName, sys_errlist[errno]);
-    return false;
-  }
-  // Only if we are really attaching rather than spawning the inferior
-  // process ourselves do we need to call PTRACE_ATTACH
-  if( createdViaAttach || createdViaFork || createdViaAttachToCreated ) {
-	  attach_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
-    if( 0 != P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) )
-	{
-		perror( "process::attach - PTRACE_ATTACH" );
-		return false;
-	}
-
-    if (0 > waitpid(getPid(), NULL, 0)) {
-      perror("process::attach - waitpid");
-      exit(1);
-    }
-  }
-
-  if( createdViaAttach )
-  {
-    // If the process was running, it will need to be restarted, as
-    // PTRACE_ATTACH kills it
-    // Actually, the attach process contructor assumes that the process is
-    // running.  While this is foolish, let's play along for now.
-	if( status_ != running || !isRunning_() ) {
-	        if( 0 != P_ptrace(PTRACE_CONT, getPid(), 0, 0) )
-	        {
-			perror( "process::attach - continue 1" );
-                }
-    }
-  }
-
-  if (createdViaAttachToCreated)
-    {
-      // This case is a special situation. The process is stopped
-      // in the exec() system call but we have not received the first 
-      // TRAP because it has been caught by another process.
-
-      /* lose race */
-      sleep(1);
- 
-
-      /* continue, clearing pending stop */
-      if (0 > P_ptrace(PTRACE_CONT, getPid(), 0, SIGCONT)) {
-          perror("process::attach: PTRACE_CONT 1");
-          return false;
-      }
-     
-
-      if (0 > waitpid(getPid(), NULL, 0)) {
-          perror("process::attach: WAITPID");
-          return false;
-      }
-     
-
-      /* continue, resending the TRAP to emulate the normal situation*/
-      if ( 0 > kill(getPid(), SIGTRAP)){
-	  perror("process::attach: KILL");
-          return false;
-      }
-
-      if (0 > P_ptrace(PTRACE_CONT, getPid(), 0, SIGCONT)) {
-          perror("process::attach: PTRACE_CONT 2");
-          return false;
-      }
-
-      status_ = neonatal;
-      return true;
-
-     } // end - if createdViaAttachToCreated
-
-#ifdef notdef
-  if( status_ != running && isRunning_() )
-  {
-	  attach_cerr << "fixing status_ => running" << endl;
-	  status_ = running;
-  }
-  else if( status_ == running && !isRunning_() )
-  {
-	  attach_cerr << "fixing status_ => stopped" << endl;
-	  status_ = stopped;
-  }
-#endif
-
-  return true;
 }
 
 bool process::trapAtEntryPointOfMain(Address)
@@ -1416,18 +1308,102 @@ void process::inferiorMallocAlign(unsigned &size)
 }
 #endif
 
-bool dyn_lwp::openFD_(void)
-{
-  char procName[128];
-  sprintf(procName, "/proc/%d/mem", (int) proc_->getPid());
-  fd_ = P_open(procName, O_RDWR, 0);
-  if (fd_ < 0) return false;
-  return true;
+
+bool dyn_lwp::threadLWP_attach_() {
+   assert( false && "threads not yet supported on Linux");
+   return false;
 }
 
-void dyn_lwp::closeFD_()
+bool dyn_lwp::processLWP_attach_() {
+   // step 1) /proc open: attach to the inferior process memory file
+   char procName[128];
+   sprintf(procName, "/proc/%d/mem", (int) proc_->getPid());
+   fd_ = P_open(procName, O_RDWR, 0);
+   if (fd_ < 0) return false;
+   
+   bool running = false;
+   if( proc_->wasCreatedViaAttach() )
+      running = proc_->isRunning_();
+   
+   // QUESTION: does this attach operation lead to a SIGTRAP being forwarded
+   // to paradynd in all cases?  How about when we are attaching to an
+   // already-running process?  (Seems that in the latter case, no SIGTRAP
+   // is automatically generated)
+   
+
+   // Only if we are really attaching rather than spawning the inferior
+   // process ourselves do we need to call PTRACE_ATTACH
+   if(proc_->wasCreatedViaAttach() || proc_->wasCreatedViaFork() || 
+      proc_->wasCreatedViaAttachToCreated())
+   {
+      attach_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
+      if( 0 != P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) )
+      {
+         perror( "process::attach - PTRACE_ATTACH" );
+         return false;
+      }
+
+      if (0 > waitpid(getPid(), NULL, 0)) {
+         perror("process::attach - waitpid");
+         exit(1);
+      }
+   }
+
+   if(proc_->wasCreatedViaAttach() )
+   {
+      // If the process was running, it will need to be restarted, as
+      // PTRACE_ATTACH kills it
+      // Actually, the attach process contructor assumes that the process is
+      // running.  While this is foolish, let's play along for now.
+      if( proc_->status() != running || !proc_->isRunning_() ) {
+         if( 0 != P_ptrace(PTRACE_CONT, getPid(), 0, 0) )
+         {
+            perror( "process::attach - continue 1" );
+         }
+      }
+   }
+
+   if(proc_->wasCreatedViaAttachToCreated())
+   {
+      // This case is a special situation. The process is stopped
+      // in the exec() system call but we have not received the first 
+      // TRAP because it has been caught by another process.
+      
+      /* lose race */
+      sleep(1);
+      
+      /* continue, clearing pending stop */
+      if (0 > P_ptrace(PTRACE_CONT, getPid(), 0, SIGCONT)) {
+         perror("process::attach: PTRACE_CONT 1");
+         return false;
+      }
+     
+      if (0 > waitpid(getPid(), NULL, 0)) {
+         perror("process::attach: WAITPID");
+         return false;
+      }
+
+      /* continue, resending the TRAP to emulate the normal situation*/
+      if ( 0 > kill(getPid(), SIGTRAP)){
+         perror("process::attach: KILL");
+         return false;
+      }
+      
+      if (0 > P_ptrace(PTRACE_CONT, getPid(), 0, SIGCONT)) {
+         perror("process::attach: PTRACE_CONT 2");
+         return false;
+      }
+
+      proc_->status_ = neonatal;
+   } // end - if createdViaAttachToCreated
+
+   return true;
+}
+
+void dyn_lwp::detach_()
 {
-  if (fd_) close(fd_);
+   assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
+   if (fd_) close(fd_);
 }
 
 void loadNativeDemangler() {}
