@@ -1,7 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.57  1995/10/09 18:16:00  naim
-/* Minor fix to path variable "temp". I had changed it by mistake! - naim
+/* Revision 1.58  1995/10/17 20:46:39  tamches
+/* Changes for new search history graph.
+/* Remove some obsolete variables such as uim_rootRes
 /*
+ * Revision 1.57  1995/10/09 18:16:00  naim
+ * Minor fix to path variable "temp". I had changed it by mistake! - naim
+ *
  * Revision 1.56  1995/10/05  04:36:23  karavan
  * getDagToken() obsoleted.
  *
@@ -218,8 +222,11 @@
 #include "../pdMain/paradyn.h"
 #include "dag.h"
 
+#include "paradyn/src/TCthread/tunableConst.h"
+
 #include "abstractions.h"
 #include "whereAxisTcl.h"
+#include "shgTcl.h"
 
 bool haveSeenFirstGoodWhereAxisWid = false;
 bool tryFirstGoodWhereAxisWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
@@ -235,13 +242,13 @@ bool tryFirstGoodWhereAxisWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
 
    haveSeenFirstGoodWhereAxisWid = true;
 
-   extern abstractions<resourceHandle> *theAbstractions; // whereAxisTcl.C
-   theAbstractions = new abstractions<resourceHandle>(".whereAxis.top.mbar.abs.m",
-                                                      ".whereAxis.top.mbar.nav.m",
-                                                      ".whereAxis.nontop.main.bottsb",
-                                                      ".whereAxis.nontop.main.leftsb",
-                                                      ".whereAxis.nontop.find.entry",
-                                                      interp, theTkWindow);
+   extern abstractions *theAbstractions; // whereAxisTcl.C
+   theAbstractions = new abstractions(".whereAxis.top.mbar.abs.m",
+				      ".whereAxis.top.mbar.nav.m",
+				      ".whereAxis.nontop.main.bottsb",
+				      ".whereAxis.nontop.main.leftsb",
+				      ".whereAxis.nontop.find.entry",
+				      interp, theTkWindow);
    assert(theAbstractions);
 
    return true;   
@@ -263,7 +270,7 @@ extern int tty;			/* Non-zero means standard input is a
 				 * terminal-like device.  Zero means it's
 				 * a file. */
 
-resourceHandle            uim_rootRes;
+//resourceHandle            uim_rootRes;
 int                       uim_eid;
 List<metricInstInfo *> uim_enabled;
 perfStreamHandle          uim_ps_handle;
@@ -328,7 +335,7 @@ void resourceBatchChanged(perfStreamHandle handle, batchMode mode)
          // spatial graphications...
          ui_status->message("Rethinking after batch mode");
 
-         extern abstractions<resourceHandle> *theAbstractions;
+         extern abstractions *theAbstractions;
          assert(theAbstractions);
 
          theAbstractions->resizeEverything();
@@ -446,6 +453,9 @@ UImain(void* vargs)
         fprintf(stderr, "initialize_tcl_sources: ERROR in Tcl sources, exitting\n");
         exit(-1);
     }
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/initSHG.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/shg.tcl"));
+//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/mainMenu.tcl"));
 
 
    /* display the paradyn main menu tool bar */
@@ -492,11 +502,11 @@ UImain(void* vargs)
     PARADYN_DEBUG(("UIM thread past barrier\n"));
 
     // subscribe to DM new resource notification service
-    resourceHandle *rhptr = dataMgr->getRootResource();
-    if (rhptr == (resourceHandle *)NULL)
-       panic("dataMgr->getRootResource() failed");
+//    resourceHandle *rhptr = dataMgr->getRootResource();
+//    if (rhptr == (resourceHandle *)NULL)
+//       panic("dataMgr->getRootResource() failed");
 
-    uim_rootRes = *rhptr;
+//    uim_rootRes = *rhptr;
     controlFuncs.rFunc = resourceAddedCB;
     controlFuncs.mFunc = NULL;
     controlFuncs.fFunc = NULL;
@@ -511,7 +521,12 @@ UImain(void* vargs)
     // New Where Axis: --ari
     installWhereAxisCommands(interp);
     if (TCL_ERROR == Tcl_Eval(interp, "whereAxisInitialize"))
-       tclpanic(interp, "Could not whereAxisInitialize()");
+       tclpanic(interp, "Could not whereAxisInitialize");
+
+    // New Search History Graph: --ari
+    installShgCommands(interp);
+//    if (TCL_ERROR == Tcl_Eval(interp, "shgInitialize"))
+//       tclpanic(interp, "Could not shgInitialize");
 
     //
     // initialize status lines library
@@ -592,6 +607,7 @@ UImain(void* vargs)
       }
    } 
 
+   unInstallShgCommands(interp);
    unInstallWhereAxisCommands(interp);
 
    /*
