@@ -3,7 +3,10 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.20  1994/10/09 21:26:05  hollings
+ * Revision 1.21  1994/11/11 10:39:14  markc
+ * Commented out non-emergency printfs
+ *
+ * Revision 1.20  1994/10/09  21:26:05  hollings
  * Fixed cycles to time conversion.
  *
  * Revision 1.19  1994/09/20  18:26:51  hollings
@@ -670,6 +673,6 @@ float DYNINSTcyclesPerSecond()
 	}
     }
     pclose(fp);
-    printf(line, "Clock = %d\n", speed);
+    /* printf(line, "Clock = %d\n", speed); */
     return(speed);
 }

@@ -297,8 +297,8 @@ DYNINSTcyclesPerSecond(void) {
     elapsed = (double) end_cpu - start_cpu;
     speed   = (MILLION*256*LOOP_LIMIT)/elapsed;
 
-    printf("elapsed = %f\n", elapsed);
-    printf("speed   = %f\n", speed);
+    /* printf("elapsed = %f\n", elapsed); */
+    /* printf("speed   = %f\n", speed); */
 
     return speed;
 }
@@ -596,7 +596,7 @@ DYNINSTinit(int doskip) {
 
     DYNINST_install_ualarm(val, val);
 
-    printf("Time at main %g us\n", (double) DYNINSTgetCPUtime());
+    /* printf("Time at main %g us\n", (double) DYNINSTgetCPUtime()); */
     if (!doskip) {
         DYNINSTbreakPoint();
     }

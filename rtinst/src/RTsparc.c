@@ -4,7 +4,10 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTsparc.c,v $
- * Revision 1.6  1994/09/20 18:25:00  hollings
+ * Revision 1.7  1994/11/11 10:39:10  markc
+ * Commented out non-emergency printfs
+ *
+ * Revision 1.6  1994/09/20  18:25:00  hollings
  * removed call to getcmd since it was causing a SS-5 slow down.
  *
  * Revision 1.5  1994/07/14  23:34:08  hollings
@@ -416,8 +419,8 @@ float DYNINSTgetClock()
   elapsed = (endF-startF)/((double) MILLION);
   clockSpeed = (256*LOOP_LIMIT)/elapsed/MILLION;
 
-  printf("elapsed = %f\n", elapsed);
-  printf("clockSpeed = %f\n", clockSpeed);
+  /* printf("elapsed = %f\n", elapsed); */
+  /* printf("clockSpeed = %f\n", clockSpeed); */
 
   return(clockSpeed);
 }
