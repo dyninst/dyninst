@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.245 2001/03/07 23:10:24 shergali Exp $
+// $Id: process.C,v 1.246 2001/04/03 17:50:03 shergali Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1345,8 +1345,10 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
   } while (!ret.ready);
   switch ((int)(Address)ret.result) {
   case 0:
+#ifdef DEBUG
     sprintf(errorLine, "DYNINSTos_malloc() failed\n");
     logLine(errorLine);
+#endif
     break;
   case -1:
     // TODO: assert?
