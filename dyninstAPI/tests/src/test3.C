@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.30 2003/07/15 22:44:50 schendel Exp $
+// $Id: test3.C,v 1.31 2004/01/19 21:54:20 schendel Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 #ifdef i386_unknown_nt4_0
 #include <windows.h>
 #include <winbase.h>
@@ -52,7 +53,17 @@ BPatch *bpatch;
 static const char *mutateeNameRoot = "test3.mutatee";
 
 // control debug printf statements
-#define dprintf	if (debugPrint) printf
+void dprintf(const char *fmt, ...) {
+   va_list args;
+   va_start(args, fmt);
+
+   if(debugPrint)
+      vfprintf(stderr, fmt, args);
+
+   va_end(args);
+
+   fflush(stderr);
+}
 
 /**************************************************************************
  * Error callback
@@ -210,8 +221,9 @@ void MopUpMutatees(const unsigned int mutatees, BPatch_thread *appThread[])
     for (n=0; n<mutatees; n++) {
         if (appThread[n]) {
             if (appThread[n]->terminateExecution()) {
-                dprintf("Mutatee %d terminated (code=0x%x).\n",
-                        n, appThread[n]->terminationStatus());
+                assert(appThread[n]->terminationStatus() == ExitedViaSignal);
+                int signalNum = appThread[n]->getExitSignal();
+                dprintf("Mutatee terminated from signal 0x%x\n", signalNum);
             } else {
                 printf("Failed to mop up mutatee %d (pid=%d)!\n",
                         n, appThread[n]->getPid());
@@ -270,11 +282,16 @@ void mutatorTest1(char *pathname, BPatch *bpatch)
         if (!dead || !(appThread[n]->isTerminated())) {
             printf("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
             printf("    mutatee process [%d] was not terminated\n", n);
-            //return;
+            continue;
         }
+        if(appThread[n]->terminationStatus() != ExitedViaSignal) {
+            printf("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
+            printf("    mutatee process [%d] didn't get notice of termination\n", n);
+            continue;
+        }
+        int signalNum = appThread[n]->getExitSignal();
+        dprintf("Terminated mutatee [%d] from signal 0x%x\n", n, signalNum);
         numTerminated++;
-        int statusCode = appThread[n]->terminationStatus();
-        dprintf("Terminated mutatee [%d] returned status code 0x%x\n", n, statusCode);
     }
 
     if (numTerminated == Mutatees) {
@@ -322,11 +339,21 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
 
     // monitor the mutatee termination reports
     while (numTerminated < Mutatees) {
-	bpatch->waitForStatusChange();
+        bpatch->waitForStatusChange();
         for (n=0; n<Mutatees; n++)
             if (!terminated[n] && (appThread[n]->isTerminated())) {
-                dprintf("Mutatee %d termination received (code=0x%x).\n",
-                        n, appThread[n]->terminationStatus());
+                if(appThread[n]->terminationStatus() == ExitedNormally) {
+                    int exitCode = appThread[n]->getExitCode();
+                    if (exitCode || debugPrint)
+                        dprintf("Mutatee %d exited with exit code 0x%x\n", n,
+                                exitCode);
+                }
+                else if(appThread[n]->terminationStatus() == ExitedViaSignal) {
+                    int signalNum = appThread[n]->getExitSignal();
+                    if (signalNum || debugPrint)
+                        dprintf("Mutatee %d exited from signal 0x%d\n", n,
+                                signalNum);
+                }
                 terminated[n]=true;
                 numTerminated++;
             }
@@ -482,8 +509,18 @@ void mutatorTest3(char *pathname, BPatch *bpatch)
 	bpatch->waitForStatusChange();
         for (n=0; n<Mutatees; n++)
             if (!terminated[n] && (appThread[n]->isTerminated())) {
-                dprintf("Mutatee %d termination received (code=0x%x).\n",
-                        n, appThread[n]->terminationStatus());
+                if(appThread[n]->terminationStatus() == ExitedNormally) {
+                    int exitCode = appThread[n]->getExitCode();
+                    if (exitCode || debugPrint)
+                        dprintf("Mutatee %d exited with exit code 0x%x\n", n,
+                                exitCode);
+                }
+                else if(appThread[n]->terminationStatus() == ExitedViaSignal) {
+                    int signalNum = appThread[n]->getExitSignal();
+                    if (signalNum || debugPrint)
+                        dprintf("Mutatee %d exited from signal 0x%d\n", n,
+                                signalNum);
+                }
                 terminated[n]=true;
                 numTerminated++;
             }
@@ -544,8 +581,15 @@ void mutatorTest4(char *pathname, BPatch *bpatch)
         while (!appThread->isTerminated())
             bpatch->waitForStatusChange();
 
-        dprintf("Mutatee %d termination received (code=0x%x).\n",
-            n, appThread->terminationStatus());
+        if(appThread->terminationStatus() == ExitedNormally) {
+           int exitCode = appThread->getExitCode();
+           if (exitCode || debugPrint)
+               dprintf("Mutatee %d exited with exit code 0x%x\n", n, exitCode);
+        } else if(appThread->terminationStatus() == ExitedViaSignal) {
+           int signalNum = appThread->getExitSignal();
+           if (signalNum || debugPrint)
+               dprintf("Mutatee %d exited from signal 0x%d\n", n, signalNum);
+        }
     }
 
     printf("Passed Test #4 (sequential multiple-process management - exit)\n");
@@ -587,8 +631,15 @@ void mutatorTest5(char *pathname, BPatch *bpatch)
         while (!appThread->isTerminated())
             bpatch->waitForStatusChange();
 
-        dprintf("Mutatee %d termination received (code=0x%x).\n",
-            n, appThread->terminationStatus());
+        if(appThread->terminationStatus() == ExitedNormally) {
+           int exitCode = appThread->getExitCode();
+           if (exitCode || debugPrint)
+               dprintf("Mutatee %d exited with exit code 0x%x\n", n, exitCode);
+        } else if(appThread->terminationStatus() == ExitedViaSignal) {
+           int signalNum = appThread->getExitSignal();
+           if (signalNum || debugPrint)
+               dprintf("Mutatee %d exited from signal 0x%d\n", n, signalNum);
+        }
     }
 
     printf("Passed Test #5 (sequential multiple-process management - abort)\n");

@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <stdarg.h>
 #ifdef i386_unknown_nt4_0
 #include <windows.h>
 #include <winbase.h>
@@ -50,7 +51,17 @@ BPatch *bpatch;
 static const char *mutateeNameRoot = "test5.mutatee";
 
 // control debug printf statements
-#define dprintf	if (debugPrint) printf
+void dprintf(const char *fmt, ...) {
+   va_list args;
+   va_start(args, fmt);
+
+   if(debugPrint)
+      vfprintf(stderr, fmt, args);
+
+   va_end(args);
+
+   fflush(stderr);
+}
 
 /**************************************************************************
  * Error callback
@@ -1288,13 +1299,23 @@ int mutatorMAIN(char *pathname, bool useAttach)
     appThread->continueExecution();
 
     while (!appThread->isTerminated())
-	bpatch->waitForStatusChange();
+       bpatch->waitForStatusChange();
 
-    int exitCode = appThread->terminationStatus();
-    if (exitCode || debugPrint) printf("Mutatee exit code 0x%x\n", exitCode);
+    int ret_val;
+    if(appThread->terminationStatus() == ExitedNormally) {
+       int exitCode = appThread->getExitCode();
+       if (exitCode || debugPrint)
+          printf("Mutatee exited with exit code 0x%x\n", exitCode);
+       ret_val = exitCode;
+    } else if(appThread->terminationStatus() == ExitedViaSignal) {
+       int signalNum = appThread->getExitSignal();
+       if (signalNum || debugPrint)
+          printf("Mutatee exited from signal 0x%d\n", signalNum);
+       ret_val = signalNum;
+    }
 
     dprintf("Done.\n");
-    return(exitCode);
+    return ret_val;
 }
 
 //

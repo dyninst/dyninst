@@ -1,9 +1,10 @@
-// $Id: test8.C,v 1.3 2003/04/11 18:44:54 buck Exp $
+// $Id: test8.C,v 1.4 2004/01/19 21:54:22 schendel Exp $
 //
 
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <stdarg.h>
 #ifdef i386_unknown_nt4_0
 #include <windows.h>
 #include <winbase.h>
@@ -25,7 +26,17 @@ int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 bool forceRelocation = false;  // Force relocation upon instrumentation
 
-#define dprintf if (debugPrint) printf
+void dprintf(const char *fmt, ...) {
+   va_list args;
+   va_start(args, fmt);
+
+   if(debugPrint)
+      vfprintf(stderr, fmt, args);
+
+   va_end(args);
+
+   fflush(stderr);
+}
 
 bool runAllTests = true;
 const unsigned int MAX_TEST = 2;
@@ -302,8 +313,8 @@ int mutatorMAIN(char *pathname)
     appThread = bpatch->createProcess(pathname, child_argv,NULL);
 
     if (appThread == NULL) {
-	fprintf(stderr, "Unable to run test program.\n");
-	exit(1);
+       fprintf(stderr, "Unable to run test program.\n");
+       exit(1);
     }
 
     // Read the program's image and get an associated image object
@@ -319,13 +330,23 @@ int mutatorMAIN(char *pathname)
     // above will be in place before the mutatee begins its tests.
 
     while (!appThread->isTerminated()) {
-	if (appThread->isStopped())
-	    appThread->continueExecution();
-	bpatch->waitForStatusChange();
+       if (appThread->isStopped())
+          appThread->continueExecution();
+       bpatch->waitForStatusChange();
     }
 
-    int exitCode = appThread->terminationStatus();
-    if (exitCode || debugPrint) printf("Mutatee exit code 0x%x\n", exitCode);
+    int retval;
+    if(appThread->terminationStatus() == ExitedNormally) {
+       int exitCode = appThread->getExitCode();
+       if (exitCode || debugPrint)
+          printf("Mutatee exited with exit code 0x%x\n", exitCode);
+       retval = exitCode;
+    } else if(appThread->terminationStatus() == ExitedViaSignal) {
+       int signalNum = appThread->getExitSignal();
+       if (signalNum || debugPrint)
+          printf("Mutatee exited from signal 0x%d\n", signalNum);
+       retval = signalNum;
+    }
 
     unsigned int testsFailed = 0;
     for (unsigned int i=1; i <= MAX_TEST; i++) {
@@ -339,11 +360,12 @@ int mutatorMAIN(char *pathname)
             printf("All requested tests passed\n");
         }
     } else {
-	printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
+       printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
     }
 
     dprintf("Done.\n");
-    return(exitCode);
+
+    return retval;
 }
 
 //

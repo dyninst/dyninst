@@ -1,4 +1,4 @@
-// $Id: test10.C,v 1.1 2003/08/19 18:36:32 hollings Exp $
+// $Id: test10.C,v 1.2 2004/01/19 21:54:19 schendel Exp $
 //
 // libdyninst validation suite test #10
 //    Author: Jeff Hollingsworth Williams (14 aug 2003) 
@@ -20,6 +20,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #if defined(i386_unknown_linux2_0)
 #include <sys/types.h>
@@ -59,7 +60,17 @@ BPatch *bpatch;
 static const char *mutateeNameRoot = "test10.mutatee";
 
 // control debug printf statements
-#define dprintf	if (debugPrint) printf
+void dprintf(const char *fmt, ...) {
+   va_list args;
+   va_start(args, fmt);
+
+   if(debugPrint)
+      vfprintf(stderr, fmt, args);
+
+   va_end(args);
+
+   fflush(stderr);
+}
 
 /**************************************************************************
  * Error callback
@@ -262,12 +273,22 @@ int mutatorMAIN(char *pathname)
     while (!appThread->isTerminated())
         bpatch->waitForStatusChange();
 
-    int exitCode = appThread->terminationStatus();
-    if (exitCode || debugPrint) printf("Mutatee exit code 0x%x\n", exitCode);
+    int retval;
+    if(appThread->terminationStatus() == ExitedNormally) {
+       int exitCode = appThread->getExitCode();
+       if (exitCode || debugPrint)
+          printf("Mutatee exited with exit code 0x%x\n", exitCode);
+       retval = exitCode;
+    } else if(appThread->terminationStatus() == ExitedViaSignal) {
+       int signalNum = appThread->getExitSignal();
+       if (signalNum || debugPrint)
+          printf("Mutatee exited from signal 0x%d\n", signalNum);
+       retval = signalNum;
+    }
 
     dprintf("Done.\n");
 
-    return exitCode;
+    return retval;
 }
 
 //
@@ -383,9 +404,9 @@ main(unsigned int argc, char *argv[])
 #else
         strcat(mutateeName,"_gcc");
 #endif
-    int exitCode = mutatorMAIN(mutateeName);
+    int retVal = mutatorMAIN(mutateeName);
 
-	int testsFailed=0;
+    int testsFailed=0;
 
-    return exitCode;
+    return retVal;
 }
