@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.129 2005/02/15 17:44:05 legendre Exp $
+// $Id: main.C,v 1.130 2005/02/17 21:11:01 bernat Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -541,7 +541,6 @@ main( int argc, char* argv[] )
       {
          cerr << "=" << pd_attpid;
       }
-      cerr << ">" << endl;
       cerr << "> -M<MPI_impl";
       if (MPI_impl.length())
       {
