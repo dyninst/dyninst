@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.95 2002/09/07 16:15:25 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.96 2002/10/15 17:11:57 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -61,9 +61,8 @@
 class threadMetFocusNode_Val;
 
 class instInstance; // enough since we only use instInstance* in this file
-#if defined(MT_THREAD)
-class pdThread; // enough since we only use pdThread* in this file
-#endif
+class pd_process;
+class pd_thread;
 
 
 /* ************************************************************************ */
@@ -120,7 +119,7 @@ public:
      // process.  "map" maps instInstance's of the parent to those of the
      // child.
 
-  static void handleFork(const process *parent, process *child);
+  static void handleFork(const pd_process *parent, pd_process *child);
      // called once per fork.  "map" maps all instInstance's of the parent
      // process to the corresponding copy in the child process...we'll delete
      // some instrumentation in the child process if we find that some
@@ -133,7 +132,7 @@ public:
      // instrumentation is actually inserted.  For others, the component mi
      // in question is removed from the system.
 
-  static void handleNewThread(pdThread *thr);
+  static void handleNewThread(pd_process *proc, pd_thread *thr);
 
 protected:
   // Since we don't define these, make sure they're not used:

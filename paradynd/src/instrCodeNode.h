@@ -73,7 +73,7 @@ class instrCodeNode_Val {
   bool instrDeferred_;
   bool instrLoaded_;
   bool hasBeenCatchuped_;
-  process *proc_;
+  pd_process *proc_;
   bool dontInsertData_;
   int referenceCount;
 #if defined(MT_THREAD)
@@ -89,7 +89,7 @@ class instrCodeNode_Val {
     return (metricStr + "-" + focusStr);
   }
 
-  instrCodeNode_Val(const string &name_, const Focus &f, process *p,
+  instrCodeNode_Val(const string &name_, const Focus &f, pd_process *p,
 		    bool dontInsertData, HwEvent* hw) : 
     sampledDataNode(NULL), constraintDataNode(NULL), name(name_), focus(f), 
     _trampsHookedUp(false), instrDeferred_(false), instrLoaded_(false), 
@@ -97,7 +97,7 @@ class instrCodeNode_Val {
     referenceCount(0), hwEvent(hw)
   { }
 
-  instrCodeNode_Val(const instrCodeNode_Val &par, process *childProc);
+  instrCodeNode_Val(const instrCodeNode_Val &par, pd_process *childProc);
   
   ~instrCodeNode_Val();
 
@@ -111,7 +111,7 @@ class instrCodeNode_Val {
   void decrementRefCount() { referenceCount--; }
   int getRefCount() { return referenceCount; }
   void getDataNodes(vector<instrDataNode *> *saveBuf);
-  process *proc() {  return proc_;  }
+  pd_process *proc() {  return proc_;  }
   string getName() const { return name; }
 };
 
@@ -125,14 +125,14 @@ class instrCodeNode {
   static void registerCodeNodeVal(instrCodeNode_Val *nodeVal);
 
   // a copy constructor variation
-  instrCodeNode(const instrCodeNode &par, process *childProc);
+  instrCodeNode(const instrCodeNode &par, pd_process *childProc);
 
  public:
   static instrCodeNode *newInstrCodeNode(string name_, const Focus &f,
-				       process *proc, bool arg_dontInsertData, 
-                                       string hw_cntr_str = "");
+				   pd_process *proc, bool arg_dontInsertData, 
+                                   string hw_cntr_str = "");
   static instrCodeNode *copyInstrCodeNode(const instrCodeNode &par,
-					  process *childProc);
+					  pd_process *childProc);
 
   ~instrCodeNode();
   //bool condMatch(instrCodeNode *mn, vector<dataReqNode*> &data_tuple1,
@@ -176,8 +176,8 @@ class instrCodeNode {
   void markAsDeferred() {
     V.instrDeferred_ = true;
   }
-  process *proc() {  return V.proc(); }
-  process *proc() const {  return V.proc(); }
+  pd_process *proc() {  return V.proc(); }
+  pd_process *proc() const {  return V.proc(); }
   void print();
   const Focus& getFocus() const { return V.focus; }
   static string collectThreadName;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.C,v 1.6 2002/10/08 22:50:30 bernat Exp $
+// $Id: varTable.C,v 1.7 2002/10/15 17:12:21 schendel Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -51,7 +51,7 @@
 #include "paradynd/src/varInstanceHKs.h"
 #include "paradynd/src/variableMgr.h"
 #include "paradynd/src/init.h"
-#include "dyninstAPI/src/process.h"
+#include "paradynd/src/pd_process.h"
 
 #include "papiMgr.h"
 

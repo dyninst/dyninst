@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.h,v 1.5 2002/10/08 16:24:52 mikem Exp $
+// $Id: varInstanceHKs.h,v 1.6 2002/10/15 17:12:19 schendel Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -51,7 +51,7 @@
 #include "common/h/Time.h"
 
 class threadMetFocusNode_Val;
-class process;
+class pd_process;
 class Frame;
 
 // The following should provide a useful building-block for intCounterHK,
@@ -113,7 +113,7 @@ class intCounterHK : public genericHK {
 
   static void initializeAfterFork(rawType *, rawTime64) { }
 
-  bool perform(const intCounter *dataValue, process *);
+  bool perform(const intCounter *dataValue, pd_process *);
   // we used to pass the wall time, to be used as the sample time.  But it
   // seems that unless the sample time is taken at the same time as the
   // sampling of the value, then incorrect values are reported, visible as
@@ -145,7 +145,7 @@ class wallTimerHK : public genericHK {
     assert(thrNodeVal != NULL);
   }
   
-  bool perform(const tTimer *theTimer, process *);
+  bool perform(const tTimer *theTimer, pd_process *);
   // We used to take in a wall time to use as the time-of-sample.  But we've
   // found that the wall time (when used as fudge factor when sampling an
   // active process timer) must be taken at the same time the sample is taken
@@ -196,7 +196,7 @@ class processTimerHK : public genericHK {
     assert(thrNodeVal != NULL);
   }
   
-  bool perform(const tTimer *theTimer, process *);
+  bool perform(const tTimer *theTimer, pd_process *);
   // We used to take in a wall time to use as the time-of-sample, and a
   // process time to use as the current-process-time for use in fudge factor
   // when sampling an active process timer.  But we've found that both values
@@ -242,7 +242,7 @@ class hwTimerHK : public genericHK {
     assert(thrNodeVal != NULL);
   }
 
-  bool perform(const tHwTimer *theTimer, process *);
+  bool perform(const tHwTimer *theTimer, pd_process *);
 
 };
 
@@ -263,7 +263,7 @@ class hwCounterHK : public genericHK {
     assert(thrNodeVal != NULL);
   }
 
-  bool perform(const tHwCounter *dataValue, process *);
+  bool perform(const tHwCounter *dataValue, pd_process *);
 };
 
 #endif

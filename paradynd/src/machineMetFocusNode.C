@@ -50,6 +50,7 @@
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/focus.h"
 #include "paradynd/src/init.h"
+#include "paradynd/src/pd_process.h"
 
 extern pdDebug_ostream sampleVal_cerr;
 extern pdRPC *tp;
@@ -305,7 +306,7 @@ void machineMetFocusNode::addPart(processMetFocusNode* procNode)
   procNode->recordAsParent(this, childAggInfo);
 }
 
-void machineMetFocusNode::propagateToNewProcess(process *newProcess) {
+void machineMetFocusNode::propagateToNewProcess(pd_process *newProcess) {
   // see if this metric-focus needs to be adjusted for this new process
   if(isInternalMetric()) {
     return;
@@ -346,7 +347,8 @@ void machineMetFocusNode::propagateToNewProcess(process *newProcess) {
 }
 
 void machineMetFocusNode::setupProcNodeForForkedProcess(
-		      processMetFocusNode *parentProcNode, process *childProc,
+		      processMetFocusNode *parentProcNode, 
+		      pd_process *childProc,
 		      vector<processMetFocusNode *> *procNodesToUnfork)
 {
   processMetFocusNode *childProcNode = 
@@ -389,8 +391,8 @@ void machineMetFocusNode::setupProcNodeForForkedProcess(
   childProcNode->initializeForSampling(getWallTime(), pdSample::Zero());
 }
 
-void machineMetFocusNode::propagateToForkedProcess(const process *parentProc,
-						   process *childProc,
+void machineMetFocusNode::propagateToForkedProcess(
+			   const pd_process *parentProc, pd_process *childProc,
 			      vector<processMetFocusNode *> *procNodesToUnfork)
 {
   // see if this metric-focus needs to be adjusted for this new process

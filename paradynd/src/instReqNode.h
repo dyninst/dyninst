@@ -52,6 +52,8 @@ class AstNode;
 
 class instrDataNode;
 class instReqNode;
+class pd_process;
+class process;
 
 class catchupReq {
  public:
@@ -88,14 +90,7 @@ class instReqNode {
   { }
 
   // special copy constructor used for fork handling
-  instReqNode(const instReqNode &par, process *childProc) : 
-    point(par.point), ast(assignAst(par.ast)), when(par.when), 
-    order(par.order), loadedIntoApp(par.loadedIntoApp), 
-    trampsHookedUp(par.trampsHookedUp), rinstance(par.rinstance), 
-    rpcCount(par.rpcCount)
-  {
-    assert(getInheritedMiniTramp(&par.mtHandle, &mtHandle, childProc));
-  }
+  instReqNode(const instReqNode &par, pd_process *childProc);
 
   instReqNode &operator=(const instReqNode &src) {
     if (this == &src)
@@ -113,22 +108,22 @@ class instReqNode {
     return *this;
   }
 
-  loadMiniTramp_result loadInstrIntoApp(process *theProc, 
+  loadMiniTramp_result loadInstrIntoApp(pd_process *theProc, 
 					returnInstance *&retInstance);
-  void hookupJumps(process *proc);  
-  void disable(process *proc);
-  timeLength cost(process *theProc) const;
+  void hookupJumps(pd_process *proc);  
+  void disable(pd_process *proc);
+  timeLength cost(pd_process *theProc) const;
   returnInstance *getRInstance() const { return rinstance; }
   void setAffectedDataNodes(instInstanceFreeCallback cb, 
 		            vector<instrDataNode *> *affectedNodes); 
 
-  bool postCatchupRPC(process *theProc, Frame &triggeredFrame, int mid);
+  bool postCatchupRPC(pd_process *theProc, Frame &triggeredFrame, int mid);
   static void catchupRPCCallbackDispatch(process * /*theProc*/,
 					 void *userData, void *returnValue)
     { ((instReqNode*)userData)->catchupRPCCallback( returnValue ); }
   void catchupRPCCallback(void *returnValue);
   
-  bool triggeredInStackFrame(Frame &frame, process *p);
+  bool triggeredInStackFrame(Frame &frame, pd_process *p);
   
   instPoint *Point() {return point;}
   AstNode* Ast()  {return ast;}

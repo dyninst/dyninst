@@ -43,7 +43,7 @@
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/ast.h"
 #include "common/h/timing.h"
-#include "dyninstAPI/src/process.h"
+#include "paradynd/src/pd_process.h"
 #include "pdutil/h/pdDebugOstream.h"
 
 extern pdDebug_ostream metric_cerr;
@@ -66,8 +66,21 @@ instReqNode::instReqNode(instPoint *iPoint, AstNode *iAst, callWhen iWhen,
   assert(point);
 }
 
+// special copy constructor used for fork handling
+instReqNode::instReqNode(const instReqNode &par, pd_process *childProc) : 
+   point(par.point), ast(assignAst(par.ast)), when(par.when), 
+   order(par.order), loadedIntoApp(par.loadedIntoApp), 
+   trampsHookedUp(par.trampsHookedUp), rinstance(par.rinstance), 
+   rpcCount(par.rpcCount)
+{
+	bool res = getInheritedMiniTramp(&par.mtHandle, &mtHandle, 
+												childProc->get_dyn_process());
+	assert(res == true);
+}
+
+
 // returns false if instr insert was deferred
-loadMiniTramp_result instReqNode::loadInstrIntoApp(process *theProc,
+loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
 					      returnInstance *&retInstance) {
   if(loadedIntoApp) return success_res;
 
@@ -80,7 +93,7 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(process *theProc,
   // inserts the instrumentation.
   instInstance *instI = new instInstance;
   loadMiniTramp_result res = 
-    loadMiniTramp(instI, theProc, point, ast, when, order,
+    loadMiniTramp(instI, theProc->get_dyn_process(), point, ast, when, order,
 		  false, // false --> don't exclude cost
 		  retInstance,
 		  false // false --> do not allow recursion
@@ -99,9 +112,9 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(process *theProc,
   return res;
 }
 
-void instReqNode::hookupJumps(process *proc) {
+void instReqNode::hookupJumps(pd_process *proc) {
   assert(trampsHookedUp == false);
-  hookupMiniTramp(proc, mtHandle, order);
+  hookupMiniTramp(proc->get_dyn_process(), mtHandle, order);
   // since we've used it for it's only stated purpose, get rid of it
   trampsHookedUp = true;
 }
@@ -112,14 +125,14 @@ void instReqNode::setAffectedDataNodes(instInstanceFreeCallback cb,
   mtHandle.inst->registerCallback(cb, (void *)affectedNodes);
 }
 
-void instReqNode::disable(process *proc)
+void instReqNode::disable(pd_process *proc)
 {
   //cerr << "in instReqNode (" << this << ")::disable  loadedIntoApp = "
   //     << loadedIntoApp << ", hookedUp: " << trampsHookedUp
   //     << ", deleting inst: " << mtHandle.inst << "\n";
   //     << " points to check\n";
   if(loadedIntoApp == true && trampsHookedUp == true)
-    deleteInst(proc, mtHandle);
+    deleteInst(proc->get_dyn_process(), mtHandle);
 }
 
 instReqNode::~instReqNode()
@@ -127,22 +140,23 @@ instReqNode::~instReqNode()
   removeAst(ast);
 }
 
-timeLength instReqNode::cost(process *theProc) const
+timeLength instReqNode::cost(pd_process *theProc) const
 {
   // Currently the predicted cost represents the maximum possible cost of the
   // snippet.  For instance, for the statement "if(cond) <stmtA> ..."  the
   // cost of <stmtA> is currently included, even if it's actually not called.
   // Feel free to change the maxCost call below to ast->minCost or
   // ast->avgCost if the semantics need to be changed.
-  int unitCostInCycles = ast->maxCost() + getPointCost(theProc, point) +
-                       getInsnCost(trampPreamble) + getInsnCost(trampTrailer);
+  int unitCostInCycles = ast->maxCost() + 
+                         getPointCost(theProc->get_dyn_process(), point) +
+                        getInsnCost(trampPreamble) + getInsnCost(trampTrailer);
   timeLength unitCost(unitCostInCycles, getCyclesPerSecond());
   float frequency = getPointFrequency(point);
   timeLength value = unitCost * frequency;
   return(value);
 }
 
-bool instReqNode::postCatchupRPC(process *theProc,
+bool instReqNode::postCatchupRPC(pd_process *theProc,
 				 Frame &triggeredFrame,
 				 int mid) 
 {
@@ -171,7 +185,7 @@ void instReqNode::catchupRPCCallback(void * /*returnValue*/ ) {
 }
 
 
-bool instReqNode::triggeredInStackFrame(Frame &frame, process *p)
+bool instReqNode::triggeredInStackFrame(Frame &frame, pd_process *p)
 {
    return p->triggeredInStackFrame(point, frame, when, order);
 }

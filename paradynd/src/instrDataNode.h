@@ -47,14 +47,13 @@
 
 class instrCodeNode_Val;
 class threadMetFocusNode_Val;
-class pdThread;
-class process;
+class pd_process;
 class instInstance;
 class HwEvent;
 
 class instrDataNode {
  private:
-  process *proc;
+  pd_process *proc;
   inst_var_type varType;
   inst_var_index varIndex;
   
@@ -73,9 +72,10 @@ class instrDataNode {
  public:
   static int incrementCounterId() {  return ++counterId;  }
   // styles are enumerated in aggregation.h
-  instrDataNode(process *proc_, unsigned type, bool arg_dontInsertData, HwEvent* hw_event=NULL);
+  instrDataNode(pd_process *proc_, unsigned type, bool arg_dontInsertData, 
+		HwEvent* hw_event=NULL);
 
-  instrDataNode(const instrDataNode &par, process *childProc);
+  instrDataNode(const instrDataNode &par, pd_process *childProc);
   /*
   instrDataNode(const instrDataNode &par, process *childProc) :
     proc(childProc), varType(par.varType), varIndex(par.varIndex),

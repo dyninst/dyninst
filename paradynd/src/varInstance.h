@@ -70,7 +70,7 @@ class baseVarInstance {
 };
 
 class variableMgr;
-class process;
+class pd_process;
 class shmMgr;
 class HwEvent;
 
@@ -84,7 +84,7 @@ class varInstance : public baseVarInstance {
   void *baseAddrInApplic;
   vector<HK*> hkBuf;
   bool elementsToBeSampled;  // true if currentSamplingSet > 0
-  process *proc;
+  pd_process *proc;
   RAWTYPE  initValue;
   shmMgr &theShmMgr;
   HwEvent* hwEvent;
@@ -103,7 +103,7 @@ class varInstance : public baseVarInstance {
 
  public:
   varInstance(variableMgr &varMgr, const RAWTYPE &initValue, HwEvent* hwEvent);
-  varInstance(const varInstance<HK> &par, shmMgr &sMgr, process *p);
+  varInstance(const varInstance<HK> &par, shmMgr &sMgr, pd_process *p);
 
   ~varInstance();
   void *elementAddressInDaemon(unsigned thrPos) {

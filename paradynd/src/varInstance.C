@@ -42,7 +42,7 @@
 
 #include "paradynd/src/varInstance.h"
 #include "paradynd/src/shmMgr.h"
-#include "dyninstAPI/src/process.h"
+#include "paradynd/src/pd_process.h"
  
 template <class HK>
 varInstance<HK>::varInstance(variableMgr &varMgr, const RAWTYPE &initValue_, HwEvent* hw)
@@ -64,7 +64,7 @@ varInstance<HK>::varInstance(variableMgr &varMgr, const RAWTYPE &initValue_, HwE
 
 template <class HK>
 varInstance<HK>::varInstance(const varInstance<HK> &par, shmMgr &sMgr, 
-			     process *p) : 
+			     pd_process *p) : 
   numElems(par.numElems), baseAddrInApplic(par.baseAddrInApplic),
   // start with not sampling anything, let the sample requests be 
   // reinitiated, ... so leave hkBuf as empty
