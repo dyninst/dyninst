@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.92 2000/12/07 20:15:37 pcroth Exp $
+// $Id: main.C,v 1.93 2001/02/26 21:37:15 bernat Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -371,58 +371,25 @@ static
 void
 InitRemotelyStarted( char* argv[], const string& pd_machine, bool report )
 { 
-	// we are a remote daemon started by rsh/rexec or some other
-	// use socket to connect back to our front end
-
-	// we fork ourselves and the child process becomes the "real" daemon
-#if !defined(i386_unknown_nt4_0)
-	int pid = fork();
-#else // !defined(i386_unknown_nt4_0)
-	int pid = 0;
-#endif // !defined(i386_unknown_nt4_0)
-	if (pid == 0)
-	{
-		// we are the child process - we are the "true" daemon
-
-		// setup socket
-
-		// We must get a connection with paradyn before starting any 
-		// other daemons, or else one of the daemons we start 
-		// (in PDYN_initForPVM), may get our connection.
-		tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
-						pd_machine, NULL, NULL, 2);
-		assert( tp != NULL );
-
-		// ??? is this the right thing to do? it was in the
-		// non-PVM version of the code, but not in the PVM version
-		// we decide whether to report if the cmdLine was empty or not
-		if( report )
-		{
-			tp->reportSelf( machine_name, argv[0], getpid(), pd_flavor );
-		}
-
-#if defined(PARADYND_PVM)
-		if (pvm_running && 
-			!PDYN_initForPVM (argv, pd_machine, pd_known_socket_portnum, 1))
-		{
-			// TODO -- report error here
-			cleanUpAndExit(-1);
-		}
-#endif // defined(PARADYND_PVM)
-	}
-	else
-	{
-		// we are the parent process - if the fork succeeded, exit
-		if (pid > 0)
-		{
-			P__exit(0);
-		}
-		else
-		{
-			cerr << "Paradyn daemon: Fatal error: fork failed." << endl;
-			cleanUpAndExit(-1);
-		}
-	}
+  // we are a remote daemon started by rsh/rexec or some other
+  // use socket to connect back to our front end
+    
+  // setup socket
+  
+  // We must get a connection with paradyn before starting any 
+  // other daemons, or else one of the daemons we start 
+  // (in PDYN_initForPVM), may get our connection.
+  tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
+		 pd_machine, NULL, NULL, 2);
+  assert( tp != NULL );
+  
+  // ??? is this the right thing to do? it was in the
+  // non-PVM version of the code, but not in the PVM version
+  // we decide whether to report if the cmdLine was empty or not
+  if( report )
+    {
+      tp->reportSelf( machine_name, argv[0], getpid(), pd_flavor );
+    }
 }
 
 
@@ -619,6 +586,7 @@ main( int argc, char* argv[] )
 	//   started by MPI
 	//   started as PVM daemon by another Paradyn daemon using pvm_spawn() 
 	//
+
 
     process::pdFlavor = pd_flavor;
 #ifdef PDYN_DEBUG
