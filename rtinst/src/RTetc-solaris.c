@@ -41,7 +41,7 @@
 
 /************************************************************************
  * clock access functions for solaris-2.
- * $Id: RTetc-solaris.c,v 1.41 2002/12/14 16:38:00 schendel Exp $
+ * $Id: RTetc-solaris.c,v 1.42 2003/01/06 19:27:26 bernat Exp $
  ************************************************************************/
 
 #include <signal.h>
@@ -112,7 +112,9 @@ void PARADYN_forkEarlyInit() {
 
 unsigned PARADYNgetFD(unsigned lwp)
 {
-  return ioctl(procfd, PIOCOPENLWP, &(lwp));
+    char lwpPath[256];
+    sprintf(lwpPath, "/proc/self/lwp/%d", lwp);
+    return open(lwpPath, O_RDONLY, 0);
 }
 
 
@@ -136,21 +138,23 @@ DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd) {
 
   if (lwp_id > 0) {
     if (!fd) {
-      fprintf(stderr, "Warning: opening FD for lwp %d (inefficient)\n");
-      fd = ioctl(procfd, PIOCOPENLWP, &(lwp_id));
-      needs_close = 1;
+        char lwpPath[256];
+        sprintf(lwpPath, "/proc/self/lwp/%d/lwpusage", lwp_id);
+        fd = open(lwpPath, O_RDONLY, 0);
+        needs_close = 1;
     }
 
     if (fd != -1) {
-      if (ioctl(fd, PIOCUSAGE, &theUsage) == -1) {
-	assert(0);
-      }
-      now = (theUsage.pr_utime.tv_sec) * I64_C(1000000000); /* sec to nsec */
-      now += theUsage.pr_utime.tv_nsec;
+        if (pread(fd, &theUsage, sizeof(prusage_t), 0) !=
+            sizeof(prusage_t)) {
+            assert(0);
+        }
+        now = (theUsage.pr_utime.tv_sec) * I64_C(1000000000); /* sec to nsec */
+        now += theUsage.pr_utime.tv_nsec;
     }
   } else {
-    lwpTime = gethrvtime();
-    now = lwpTime;
+      lwpTime = gethrvtime();
+      now = lwpTime;
   }
   if (needs_close) close(fd);
   return(now);  
@@ -175,9 +179,25 @@ rawTime64
 DYNINSTgetCPUtime_sw(void) {
   static int cpuRollbackOccurred = 0;
   rawTime64 now, tmp_cpuPrevious = cpuPrevious_sw;
-
+  static int fd = 0;
+#if 0
   now = gethrvtime();
+#endif
+  prusage_t theUsage;
+  if (!fd) {
+      char usage_fd[256];
+      sprintf(usage_fd, "/proc/self/usage");
+      fd = open(usage_fd, O_RDONLY, 0);
+      if (fd == -1) assert(0);
+  }
+  if (pread(fd, &theUsage, sizeof(prusage_t), 0) !=
+      sizeof(prusage_t)) {
+      assert(0);
+  }
 
+  now =  (theUsage.pr_utime.tv_sec + theUsage.pr_stime.tv_sec) * 1000000000LL;
+  now += (theUsage.pr_utime.tv_nsec+ theUsage.pr_stime.tv_nsec);
+      
 #ifndef MT_THREAD
   if (now < tmp_cpuPrevious) {
     if (cpuRollbackOccurred < MaxRollbackReport) {

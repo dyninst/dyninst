@@ -156,14 +156,30 @@ typedef struct thread_sol28_s {
         int             flag; 
 } thread_sol28;
 
+typedef struct thread_sol29_s {
+    void *t_resumestate; /* 0xff2775a8 */
+    int dontcare1;   /* 0xff2775a8 */
+    int dontcare2;   /* 0 */
+    int dontcare3;   /* 0 */
+    int dontcare4;   /* 0 */
+    int stackbottom; /* 0xff100000 */
+    int stacksize;   /* 0xfc000 */
+    int dontcare5;   /* 0 */
+    int thread_stack;/* 0xff1fc000 */
+    int stacksize2;  /* 0xfc000 */
+    thread_t lwp_id; /* 2 */
+    lwpid_t thread_id;  /* 2 */
+    int dontcare[42];
+    void (*start_pc)();
+} thread_sol29;
 /*
 // A simple test to determine the right thread package
-// only for solaris thread2.6 and 2.7
 */
 #define LIBTHR_UNKNOWN 0
 #define LIBTHR_SOL26   1
 #define LIBTHR_SOL27   2
 #define LIBTHR_SOL28   3
+#define LIBTHR_SOL29   4
 
 int which(void *tls) {
   static int w = 0;
@@ -171,6 +187,9 @@ int which(void *tls) {
   int tid = P_thread_self();
   if (w) return w;
 
+  if ( ((thread_sol29*)tls)->thread_id == tid) {
+      w = LIBTHR_SOL29;
+  }  
   if ( ((thread_sol28*)tls)->thread_id == tid) {
     w = LIBTHR_SOL28;
   }
@@ -194,39 +213,50 @@ void idtot(int tid) {
 */
 }
 
-void DYNINST_ThreadPInfo(void* tls, void** stkbase, int* tid, long *pc, int* lwp, void** rs) {
-  switch (which(tls)) {
+void DYNINST_ThreadPInfo(void* tls, void** stkbase, int* tid, long *pc, int* lwp, void** rs)
+{
+    switch (which(tls)) {
+  case LIBTHR_SOL29: {
+      thread_sol29 *ptr = (thread_sol29 *) tls;
+      *stkbase = (void*) (ptr->thread_stack);
+      *tid = (int) ptr->thread_id ;
+      *pc = (long) ptr->start_pc ;
+      *lwp = (int) ptr->lwp_id ;
+      *rs = &(ptr->t_resumestate);
+      break;
+  }
+  
   case LIBTHR_SOL28: {
-    thread_sol28 *ptr = (thread_sol28 *) tls ;
-    *stkbase = (void*) (ptr->thread_stack);
-    *tid = (int) ptr->thread_id ;
-    *pc = (long) ptr->start_pc ;
-    *lwp = (int) ptr->lwp_id ;
-    *rs = &(ptr->t_resumestate);
-    break;
+      thread_sol28 *ptr = (thread_sol28 *) tls ;
+      *stkbase = (void*) (ptr->thread_stack);
+      *tid = (int) ptr->thread_id ;
+      *pc = (long) ptr->start_pc ;
+      *lwp = (int) ptr->lwp_id ;
+      *rs = &(ptr->t_resumestate);
+      break;
   }
   case LIBTHR_SOL27: {
-    thread_sol27 *ptr = (thread_sol27 *) tls ;
-    *stkbase = (void*) (ptr->thread_stack);
-    *tid = (int) ptr->thread_id ;
-    *pc = (long) ptr->start_pc ;
-    *lwp = (int) ptr->lwp_id ;
-    *rs = &(ptr->t_resumestate);
-    break;
+      thread_sol27 *ptr = (thread_sol27 *) tls ;
+      *stkbase = (void*) (ptr->thread_stack);
+      *tid = (int) ptr->thread_id ;
+      *pc = (long) ptr->start_pc ;
+      *lwp = (int) ptr->lwp_id ;
+      *rs = &(ptr->t_resumestate);
+      break;
   }
   case LIBTHR_SOL26: {
-    thread_sol26 *ptr = (thread_sol26 *) tls ;
-    *stkbase = (void*) (ptr->thread_stack);
-    *tid = (int) ptr->thread_id ;
-    *pc = (long) ptr->start_pc ;
-    *lwp = (int) ptr->lwp_id ;
-    *rs = &(ptr->t_resumestate);
-    break;
+      thread_sol26 *ptr = (thread_sol26 *) tls ;
+      *stkbase = (void*) (ptr->thread_stack);
+      *tid = (int) ptr->thread_id ;
+      *pc = (long) ptr->start_pc ;
+      *lwp = (int) ptr->lwp_id ;
+      *rs = &(ptr->t_resumestate);
+      break;
   }
   default:
-    fprintf(stderr, "Unknown thread type: %d\n", which(tls));
-    assert(0);
-  }
+      fprintf(stderr, "Unknown thread type: %d\n", which(tls));
+      assert(0);
+    }
 }
 
 int DYNINST_ThreadInfo(void** stkbase, int* tidp, long *startpc, int* lwpidp, void** rs_p) {
