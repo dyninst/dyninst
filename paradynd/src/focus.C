@@ -153,52 +153,31 @@ pdvector<pdstring> codeHierarchy::tokenized() const {
    return retVec;
 }
 
-// match_path is a vector of any of the following combinations of input (as
-// of 5/6/02).  It is an attribute of a constraint, and when a focus is
-// chosen, the match_path allows certain constraints to be grepped out
-// (ie. chosen).
 
-// match_path is one of:
-// ( "Code" )       - used to select modules
-// ( "Code", "*" )  - used to select functions
-// ( "SyncObject" ) - used to select a type of synchronization
-// ( "SyncObject", "Message" ) - seems to be used with message group constr.s
-// ( "SyncObject", "Message", "*" ) - used with message tag constraints
+// handle matches of form /Code and /Code/*
 bool codeHierarchy::focus_matches(const pdvector<pdstring> &match_path) const
 {
    unsigned mp_size = match_path.size();
-   bool ret = false;
-   //cerr << "        CODE-heir: " << getName() << "\n";
-   //cerr << "        mp_size: " << mp_size << ", contents: ";
-   //for(unsigned i=0; i<mp_size; i++) {
-   //   cerr << " " << match_path[i] << ",";
-   //}
-   //cerr << "\n";
-   // Currently, only handle constraints on /Code or /SyncObject
+
+   assert(mp_size > 0);
    assert(match_path[0] == "Code" || match_path[0] == "SyncObject");
 
-   if(mp_size == 1) {
-      if(match_path[0] == "Code") {
-         if(module_defined() && !function_defined())  
-            ret = true;
-         else
-            ret = false;
-      } 
+   if (match_path[0] != "Code") 
+       return false;
+
+   if (mp_size == 1) {
+       // the mdl '/Code' specifies that the constraint is applied to
+       // all modules in a program
+       return module_defined() && !function_defined();
    }
-   else if(mp_size == 2) {  
-      if(match_path[0] == "Code") {
-         if(match_path[1] == "*") {
-            if(function_defined())  ret = true;
-            else    ret = false;
-         } else { 
-            ret = (match_path[1] == get_function());
-         }
-      } 
-   } else {
-      ret = false;  // can't handle match_path of this sort
-   }
-   //cerr << "        returning " << ret << "\n";
-   return ret;
+   else if (mp_size == 2) {
+       // the mdl '/Code/*' specifies that the constraint applies to
+       // all modules and all functions in a program
+       if (match_path[1] == "*") 
+           return module_defined() && function_defined();
+   } 
+
+   return false;
 }
 
 syncObjHierarchy::syncObjHierarchy(const pdvector<pdstring> &setupInfo) {
@@ -305,6 +284,9 @@ pdstring syncObjHierarchy::getName() const {
 }
 
 // see description above codeHierarchy::focus_matches
+// ( "SyncObject" ) - used to select a type of synchronization
+// ( "SyncObject", "Message" ) - seems to be used with message group constr.s
+// ( "SyncObject", "Message", "*" ) - used with message tag constraints
 bool syncObjHierarchy::focus_matches(const pdvector<pdstring> &match_path) const
 {
    unsigned mp_size = match_path.size();
