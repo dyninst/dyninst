@@ -2433,3 +2433,9 @@ int main(int argc, char *argv[])
     Tcl_Main(argc, argv, Tcl_AppInit);
     return 0;
 }
+
+
+template class DynerList<BPListElem*>;
+template class DynerList<IPListElem*>;
+template class DynerList<runtimeVar*>;
+
