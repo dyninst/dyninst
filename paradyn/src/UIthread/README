@@ -1,8 +1,11 @@
 /* UIThread/README */
 /* $Log: README,v $
-/* Revision 1.1  1994/04/05 04:42:33  karavan
-/* initial version of UI thread code and tcl paradyn command
-/* */
+/* Revision 1.2  1995/08/07 00:00:16  tamches
+/* Added waSelect, waUnselect, waSetAbstraction
+/*
+# Revision 1.1  1994/04/05  04:42:33  karavan
+# initial version of UI thread code and tcl paradyn command
+# */
 
 The file paradyn.tcl.C implements a "paradyn" command for tcl.  The valid 
 commands are as follows:
@@ -19,3 +22,6 @@ commands are as follows:
   refine [ auto | auto <ivalue> ]
   search
   visi   [ kill <ivalue> | create <ivalue> | info | active ]
+  waSelect <resource name>
+  waUnselect <resource name>
+  waSetAbstraction <abstraction name>
