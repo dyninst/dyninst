@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.68 2001/02/20 21:41:59 gurari Exp $ */
+/* $Id: test1.mutatee.c,v 1.69 2001/03/06 04:55:11 buck Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2308,6 +2308,11 @@ void func33_1()
 void func34_2()
 {
     int i, j, k;
+
+    kludge = 1;	/* Here so that the following loop doesn't start at the
+		   very beginning of the function (which would make it so
+		   that the entry point may overlap the destination of the
+		   jump back from the bottom of the loop). */
 
     /* There are four loops in total. */
     for (i = 0; i < 10; i++) { /* Contains two loops. */
