@@ -3,13 +3,21 @@
  *
  */
 
+#ifndef _DYNINSTP_H
+#define _DYNINSTP_H
+
 /*
  * private structures used by the implementation of the instrumentation 
  *   interface.  modules that use the instrumentation interface should not
  *   include this file.
+ *  
+ * This file will be empty during the restructuring of the paradyn daemon
  *
  * $Log: dyninstP.h,v $
- * Revision 1.3  1994/08/08 20:13:35  hollings
+ * Revision 1.4  1994/09/22 01:51:40  markc
+ * Added most of dyninst.h, temporary
+ *
+ * Revision 1.3  1994/08/08  20:13:35  hollings
  * Added suppress instrumentation command.
  *
  * Revision 1.2  1994/02/01  18:46:51  hollings
@@ -38,13 +46,38 @@
  *
  *
  */
-#include "util/h/list.h"
+
 #include "dyninst.h"
+#include "process.h"
+
+extern "C" {
+#include <stdio.h>
+}
+
+class metric;
+class metricDefinitionNode;
+class metricListRec;
 
 typedef enum { selfTermination, controlTermination } executableType;
 
+Boolean isApplicationPaused();
+
+/* descriptive information about a resource */
+class resourceInfo {
+ public:
+    stringHandle name;			/* name of actual resource */
+    stringHandle fullName;		/* full path name of resource */
+    stringHandle abstraction;          /* abstraction name */
+    timeStamp creation;		/* when did it get created */
+};		
+
 class executableRec {
     public:
+        executableRec() {
+	  name = NULL; machine = NULL; user = NULL;
+	  argc = 0; argv = NULL; type = selfTermination; state = neonatal;
+	  next = NULL; controlPath = NULL; proc = NULL;
+	}
 	char *name;
 	char *machine;
 	char *user;
@@ -57,18 +90,186 @@ class executableRec {
 	process *proc;	/* for directly connected processes */
 };
 
-class _resourceListRec {
+class resourceListRec {
     public:
-	resource *elements;		/* actual data in list */
+        resourceListRec() {
+	  elements = NULL; count=0; maxItems=0;
+	}
+	resource **elements;		/* actual data in list */
 	int count;			/* number of items in the list */
 	int maxItems;		/* limit of current array */
 };
 
-class _metricListRec {
+/* something that data can be collected for */
+class resource {
     public:
-	metric elements;	/* actual data in list */
-	int count;		/* number of items in the list */
-	int maxItems;	/* limit of current array */
+	char *getName()	{ return((char*)info.name); }
+	resource(Boolean full = True) {
+	    if (full) {
+		parent = NULL;
+		handle = NULL;
+		children = NULL;
+		info.name = pool.findAndAdd("");
+		info.fullName = pool.findAndAdd("");
+		info.creation = 0.0;
+		suppressed = False;
+	    }
+	};
+	Boolean suppressed;		/* don't collect data about this */
+	resource *parent;		/* parent of this resource */
+	void *handle;		/* handle to resource specific data */
+	resourceListRec *children;	/* children of this resource */
+	resourceInfo info;
 };
 
-Boolean isApplicationPaused();
+typedef enum { Trace, Sample } dataType;
+
+/*
+ * error handler call back.
+ *
+ */
+typedef int (*errorHandler)(int errno, char *message);
+
+/*
+ * Define a program to run (this is very tentative!)
+ *
+ *   argv - arguments to command
+ *   envp - environment args, for pvm
+ */
+int addProcess(int argc, char*argv[], int nenv=0, char *envp[]=0);
+
+/*
+ * Find out if an application has been defined yet.
+ *
+ */
+Boolean applicationDefined();
+
+/*
+ * Start an application running (This starts the actual execution).
+ *  app - an application context from createPerformanceConext.
+ */
+Boolean startApplication();
+
+/*
+ *   Stop all processes associted with the application.
+ *	app - an application context from createPerformanceConext.
+ *
+ * Pause an application (I am not sure about this but I think we want it).
+ *      - Does this force buffered data to be delivered?
+ *	- Does a paused application respond to enable/disable commands?
+ */
+Boolean pauseAllProcesses();
+
+/*
+ * Continue a paused application.
+ *    app - an application context from createPerformanceConext.
+ */
+Boolean continueAllProcesses();
+
+
+/*
+ * Disconnect the tool from the process.
+ *    pause - leave the process in a stopped state.
+ *
+ */
+Boolean detachProcess(int pid, Boolean pause);
+
+/*
+ * Routines to control data collection.
+ *
+ * resourceList		- a list of resources
+ * metric		- what metric to collect data for
+ *
+ */
+int startCollecting(resourceListRec*, metric*);
+
+
+/*
+ * Return the expected cost of collecting performance data for a single
+ *    metric at a given focus.  The value returned is the fraction of
+ *    perturbation expected (i.e. 0.10 == 10% slow down expected).
+ */
+float guessCost(resourceListRec*, metric*);
+
+/*
+ * Control information arriving about a resource Classes
+ *
+ * resource		- enable notification of children of this resource
+ */
+Boolean enableResourceCreationNotification(resource*);
+
+/*
+ * Resource utility functions.
+ *
+ */
+resourceListRec *getRootResources();
+
+extern resource *rootResource;
+
+stringHandle getResourceName(resource*);
+
+resource *getResourceParent(resource*);
+
+resourceListRec *getResourceChildren(resource*);
+
+Boolean isResourceDescendent(resource *parent, resource *child);
+
+resource *findChildResource(resource *parent, char *name);
+
+int getResourceCount(resourceListRec*);
+
+resource *getNthResource(resourceListRec*, int n);
+
+resourceInfo *getResourceInfo(resource*);
+
+resourceListRec *createResourceList();
+
+Boolean addResourceList(resourceListRec*, resource*);
+
+resource *newResource(resource *parent,
+		      void *handle,
+		      stringHandle abstraction,
+		      const char *name,
+		      timeStamp creation,
+		      Boolean unique);
+
+/*
+ * manipulate user handle (a single void * to permit mapping between low level
+ *   resource's and the resource consumer.
+ *
+ */
+void *getResourceHandle(resource*);
+
+void setResourceHandle(resource*, void*);
+
+resourceListRec *findFocus(int count, char **focusString);
+
+/*
+ * Get the static configuration information.
+ *
+ */
+metricListRec *getMetricList();
+
+/*
+ * looks for a specifc metric instance in an application context.
+ *
+ */
+metric *findMetric(char *name);
+
+/*
+ * Metric utility functions.
+ *
+ */
+char *getMetricName(metric*);
+
+/*
+ * Get metric out of a metric instance.
+ *
+ */
+metric *getMetric(metricDefinitionNode*);
+
+extern resource *findResource(const char *name);
+
+#endif
+
+
