@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.15 2003/04/17 20:55:53 jaw Exp $
+ * $Id: dyn_lwp.h,v 1.16 2003/04/20 01:00:02 schendel Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -117,6 +117,10 @@ class dyn_lwp
   // but hey...
   bool setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
                           void *data);
+  void clearSyscallExitTrapCallback() {
+     trappedSyscallCallback_ = NULL;
+  }
+
   // Clear the above, and perform any necessary emulation work
   bool clearSyscallExitTrap();
   // What if the wrong lwp hits the trap?
@@ -176,7 +180,8 @@ class dyn_lwp
   };
   handleT usage_fd() const {
       if (!fd_opened())
-          fprintf(stderr, "FD not opened for %d (0x%p)\n", get_lwp_id(),(void *) this);
+         cerr << "FD not opened for lwp: " << this << ", lwp_id: "
+              << get_lwp_id() << endl;
       return usage_fd_;
   };
   
