@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.55 1998/08/28 21:56:30 zhichen Exp $
+// $Id: ast.C,v 1.56 1998/08/29 03:06:57 zhichen Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -757,13 +757,15 @@ void AstNode::setUseCount(void)
 */
 
 void AstNode::setUseCount(void) {
+  if (useCount == 0) {
+    kept_register=-1;
+    if (loperand) loperand->setUseCount();
+    if (roperand) roperand->setUseCount();
+    if (eoperand) eoperand->setUseCount();
+    for (unsigned i=0;i<operands.size(); i++)
+      operands[i]->setUseCount() ;
+  }
   useCount++ ;
-  kept_register=-1;
-  if (loperand) loperand->setUseCount();
-  if (roperand) roperand->setUseCount();
-  if (eoperand) eoperand->setUseCount();
-  for (unsigned i=0;i<operands.size(); i++)
-    operands[i]->setUseCount() ;
 }
 
 void AstNode::cleanUseCount(void)
