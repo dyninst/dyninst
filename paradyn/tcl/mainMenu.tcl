@@ -1,6 +1,9 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
+# Revision 1.46  1995/11/29 00:21:30  tamches
+# removed refs to pdBitmapDir; we now call makeLogo (pdLogo.C)
+#
 # Revision 1.45  1995/11/16 00:46:40  tamches
 # removed obsolete menu item "options control"
 #
@@ -197,8 +200,7 @@ proc changeApplicState {newVal} {
 }
 
 proc drawToolBar {} {
-
-    global PdBitmapDir fmap metMenuCtr tclSelectionState
+    global fmap metMenuCtr tclSelectionState
 
     # setup fontmap for dumping postscript files
     set fmap(-*-Times-Bold-R-Normal--*-80*)  \
@@ -334,7 +336,10 @@ proc drawToolBar {} {
 	    .parent.menub.left.men.b5 \
 	    -side left -padx 10
     pack .parent.menub.left -side left -fill both -expand 1
-    mkLogo .parent.menub.logobox right
+
+#    mkLogo .parent.menub.logobox right
+   makeLogo .parent.menub.logobox paradynLogo raised 2 #b3331e1b53c7
+   pack  .parent.menub.logobox -side right
 
     pack .parent.menub.left.title -side top -fill both -expand true
     pack .parent.menub.left.men -side top -fill x -expand false
