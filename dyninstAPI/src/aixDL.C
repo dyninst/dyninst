@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.40 2003/05/07 19:10:48 bernat Exp $
+// $Id: aixDL.C,v 1.41 2003/06/11 20:05:44 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -66,6 +66,7 @@ extern int getthrds(pid_t, struct thrdsinfo *, int, tid_t *, int);
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 extern void generateBreakPoint(instruction &);
 
+#if !defined(AIX_PROC)
 
 /* Parse a binary to extract all shared objects it
    contains, and create shared object objects for each
@@ -292,6 +293,8 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
 }
 
 
+#endif
+
 /*************************************************************************/
 /***  Code to handle dlopen()ing the runtime library                   ***/
 /***                                                                   ***/
@@ -390,12 +393,12 @@ bool process::insertTrapAtEntryPointOfMain()
   
   // save original instruction first
   readDataSpace((void *)addr, sizeof(instruction), savedCodeBuffer, true);
-
   // and now, insert trap
   instruction insnTrap;
   generateBreakPoint(insnTrap);
   writeDataSpace((void *)addr, sizeof(instruction), (char *)&insnTrap);  
   main_brk_addr = addr;
+  
   return true;
 }
 
@@ -568,8 +571,8 @@ Address process::get_dlopen_addr() const {
 
 }
 
-/// Blah blah blah /proc blah blah blah...
-#if 0
+#if defined(AIX_PROC)
+
 bool dynamic_linking::setLibBreakpoint(process *p,
                                        pdvector<shared_object *> *objs)
 {
@@ -592,7 +595,11 @@ bool dynamic_linking::setLibBreakpoint(process *p,
     // Now we have libc... but it hasn't been parsed yet (oy!)
     image *libc_image = image::parseImage(libc_desc, 0);
 
-    pd_Function *loadfunc = libc_image->findFuncByName("load1");
+    pdvector<pd_Function *> *loadFuncs = libc_image->findFuncVectorByPretty(string("load1"));
+    assert(loadFuncs);
+    assert(loadFuncs->size() > 0);
+
+    pd_Function *loadfunc = (*loadFuncs)[0];
     assert(loadfunc);
     // There is no explicit place to put a trap, so we'll replace
     // the final instruction (brl) with a trap, and emulate the branch
@@ -628,7 +635,7 @@ pdvector <shared_object *> *dynamic_linking::processSharedObjects(process *p)
       // First things first, get a list of all loader info structures.
     int pid;
     int ret;
-    // We hope that we don't get more than 1024 libraries loaded.
+
     pid = p->getPid();
     
     prmap_t mapEntry;
@@ -668,12 +675,14 @@ pdvector <shared_object *> *dynamic_linking::processSharedObjects(process *p)
                                    (Address) mapEntry.pr_vaddr,
                                    (Address) next.pr_vaddr,
                                    pid, false);
-/*
+
+#ifdef DEBUG
             fprintf(stderr, "Adding %s:%s with textorg %llx and dataorg %llx\n",
                     objname, objname+strlen(objname)+1,
                     mapEntry.pr_vaddr,
                     next.pr_vaddr);
-*/
+#endif
+
             shared_object *newobj = new shared_object(fda,
                                                       false,
                                                       true,
@@ -810,8 +819,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
         // so grab the value in the link register and set the PC to it.
 
         dyn_saved_regs *regs = brk_lwp->getRegisters();
-        Address lr = LR_REG(regs);
-        brk_lwp->changePC(lr, NULL);
+        brk_lwp->changePC(regs->theIntRegs.__lr, NULL);
         
         return true;
     
