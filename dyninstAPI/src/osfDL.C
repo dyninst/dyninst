@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.26 2002/12/20 07:49:58 jaw Exp $
+// $Id: osfDL.C,v 1.27 2003/02/04 15:19:00 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -217,55 +217,63 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
     pdvector<shared_object *> **shObjects, u_int &changeType, bool & /* err */)
 {
   Address pc;
-
+  
   if (dlopenRetAddr == 0) return false;
 
-  //pc = Frame(proc).getPC();
+  dyn_saved_regs *regs;
+
   pc = proc->getDefaultLWP()->getActiveFrame().getPC();
 
   // dumpMap(proc->getProcFileDescriptor());
   if (pc == dlopenRetAddr) {
-    // fprintf(stdout, ">>> dlopen event\n");
-    proc->getDefaultLWP()->changePC(pc + 4, NULL);
-    
-    changeType = SHAREDOBJECT_ADDED;
-
-
+      fprintf(stderr, "PC is at 0x%x\n", pc);
+      
+      regs = proc->getDefaultLWP()->getRegisters();
+      
+      // We overwrote a return instruction to put the trap in.
+      // We need to patch that up with a return to the caller
+      
+      changeType = SHAREDOBJECT_ADDED;
+      
       *shObjects = new pdvector<shared_object *>;
       // get list of current shared objects defined for the process
       pdvector<shared_object *> *curr_list = proc->sharedObjects();
-
+      
       // get the list from the process via /proc
       pdvector<shared_object *> *new_shared_objs = getSharedObjects(proc);
-
+      
       for (unsigned int i=0; i < new_shared_objs->size(); i++) {
-	  string new_name = ((*new_shared_objs)[i])->getName();
-
-	  unsigned int j;
-	  for (j=0; j < curr_list->size(); j++) {
-	      string curr_name = ((*new_shared_objs)[j])->getName();
-	      if (curr_name == new_name) {
-		  break;
-	      }
-	  }
-	  if (j == curr_list->size()) {
-	      (*shObjects)->push_back(((*new_shared_objs)[i]));
-	      (*new_shared_objs)[i] = NULL;
-	  }
+          string new_name = ((*new_shared_objs)[i])->getName();
+          
+          unsigned int j;
+          for (j=0; j < curr_list->size(); j++) {
+              string curr_name = ((*new_shared_objs)[j])->getName();
+              if (curr_name == new_name) {
+                  break;
+              }
+          }
+          if (j == curr_list->size()) {
+              (*shObjects)->push_back(((*new_shared_objs)[i]));
+              (*new_shared_objs)[i] = NULL;
+          }
       }
-
+      
       // delete new_shared_objs;
-
+      // Get return address
+      Address retAddr = (regs->theIntRegs).regs[REG_RA];
+      proc->getDefaultLWP()->changePC(retAddr, NULL);
+      fprintf(stderr, "Changing PC to 0x%x\n", retAddr);
+      
       return true;
   } else if (pc == dlcloseRetAddr) {
       fprintf(stderr, ">>> dlclose event\n");
       changeType = SHAREDOBJECT_REMOVED;
-
+      
       // this is not yet supported
       return false;
   } else {
       changeType = SHAREDOBJECT_NOCHANGE;
-
+      
       return false;
   }
 }
@@ -275,11 +283,11 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
  */
 void dynamic_linking::setMappingHooks(process *proc)
 {
-    int words;
-    instruction retInsn;
-    instruction branchInsn;
-    Address origDlopenRetAddr;
+    instruction trapInsn;
     instruction tempSpace[1024];
+    dlopenRetAddr = 0;
+    // Replace the return instruction with a trap. We'll
+    // patch up the return mutator-side, just like Solaris.
 
     // XXX - assume dlopen is less than 1K instructions long
     bool err;
@@ -287,40 +295,18 @@ void dynamic_linking::setMappingHooks(process *proc)
     assert(!err);
     proc->readDataSpace((void *)openAddr, INSN_SIZE*1024, tempSpace, true);
     /* Now look for the return address */
-    origDlopenRetAddr = 0;
     for (int i=0; i < 1024; i++) {
-	if (isReturn(tempSpace[i])) {
-	    origDlopenRetAddr = openAddr + i * INSN_SIZE;
-	    retInsn = tempSpace[i];
-	    break;
-	}
+        if (isReturn(tempSpace[i])) {
+            dlopenRetAddr = openAddr + i * INSN_SIZE;
+            break;
+        }
     }
-    assert(origDlopenRetAddr);
-
-    words = 0;
-    generateBreakPoint((instruction &) tempSpace[words]);
-    words ++; 
-
-    words += generate_nop(&tempSpace[words]);
-    words += generate_nop(&tempSpace[words]);
-    words += generate_nop(&tempSpace[words]);
-    words += generate_nop(&tempSpace[words]);
-
-    // The first instruction is the address of the trap instruction.
-    dlopenRetAddr = proc->inferiorMalloc(words * INSN_SIZE, anyHeap,
-	origDlopenRetAddr);
     assert(dlopenRetAddr);
 
-    relocateInstruction(&retInsn, origDlopenRetAddr, dlopenRetAddr + INSN_SIZE);
-    tempSpace[1] = retInsn;
+    generateBreakPoint((instruction &) trapInsn);
 
-    proc->writeDataSpace((caddr_t)dlopenRetAddr, words * INSN_SIZE, 
-	 (caddr_t) tempSpace);
-
-    generateBranchInsn(&branchInsn, 
-	 dlopenRetAddr - (origDlopenRetAddr+INSN_SIZE));
-    proc->writeDataSpace((caddr_t)origDlopenRetAddr, INSN_SIZE, 
-	(caddr_t) &branchInsn);
+    proc->writeDataSpace((caddr_t)dlopenRetAddr, sizeof(instruction),
+	 (caddr_t) &trapInsn);
 }
 
 bool process::trapDueToDyninstLib()
@@ -350,10 +336,10 @@ bool process::trapDueToDyninstLib()
   return ret;
 }
 
-void process::handleIfDueToDyninstLib()
+bool process::loadDYNINSTlibCleanup()
 {
-  // fprintf(stderr, ">>> process::handleIfDueToDyninstLib()\n");
-
+    dyninstlib_brk_addr = 0x0;
+    
   // restore code and registers
   bool err;
   Address code = findInternalAddress("_start", false, err);
@@ -364,7 +350,11 @@ void process::handleIfDueToDyninstLib()
 
   delete [] (char*)savedRegs;
   savedRegs = NULL;
+  dyninstlib_brk_addr = 0;
 
+  return true;
+  /* No idea what everything beyond here is doing... */
+#if 0
   const char *DyninstEnvVar="DYNINSTAPI_RT_LIB";
   const char *DyninstLibName="libdyninstAPI_RT";
 
@@ -377,8 +367,6 @@ void process::handleIfDueToDyninstLib()
       showErrorCallback(101, msg);
       return;
   }
-
-  hasLoadedDyninstLib = true;
 
   if (dyninstRT_name.length()) {
     // use the library name specified on the start-up command-line
@@ -416,10 +404,8 @@ void process::handleIfDueToDyninstLib()
 	  }
       }
   }
-  isLoadingDyninstLib = false;
-  hasLoadedDyninstLib = true;
-
-  dyninstlib_brk_addr = 0;
+  return true;
+#endif  
 }
 
 #ifdef DEBUG
@@ -576,7 +562,7 @@ void process::insertTrapAtEntryPointOfMain()
 
 }
 
-bool process::trapAtEntryPointOfMain()
+bool process::trapAtEntryPointOfMain(Address)
 {
   Address pc;
 
@@ -630,9 +616,9 @@ oc" << endl;
 }
 
 
-bool process::dlopenDYNINSTlib()
+bool process::loadDYNINSTlib()
 {
-    //fprintf(stderr, ">>> process::dlopenDYNINSTlib()\n");
+    //fprintf(stderr, ">>> process::loadDYNINSTlib()\n");
 
   // use "_start" as scratch buffer to invoke dlopen() on DYNINST
   bool err;
@@ -714,15 +700,17 @@ bool process::dlopenDYNINSTlib()
   assert(bufSize <= BYTES_TO_SAVE);
   // fprintf(stderr, "writing %ld bytes to <0x%08lx:_start>, $pc = 0x%lx\n",
       // bufSize, baseAddr, codeAddr);
-  // fprintf(stderr, ">>> dlopenDYNINSTlib <0x%lx(_start): %ld insns>\n",
+  // fprintf(stderr, ">>> loadDYNINSTlib <0x%lx(_start): %ld insns>\n",
       // baseAddr, bufSize/INSN_SIZE);
   writeDataSpace((void *)baseAddr, bufSize, (void *)buf);
   bool ret = getDefaultLWP()->changePC(codeAddr, savedRegs);
   assert(ret);
 
   dyninstlib_brk_addr = trapAddr;
-
-  isLoadingDyninstLib = true;
-
+  fprintf(stderr, "DLOPEN starting at 0x%x, trap at 0x%x\n",
+          codeAddr, trapAddr);
+  
+  setBootstrapState(loadingRT);
+  
   return true;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.19 2003/01/03 21:57:38 bernat Exp $
+// $Id: procfs.C,v 1.20 2003/02/04 15:19:01 bernat Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -195,7 +195,8 @@ bool process::continueProc_() {
   ptraceOps++; ptraceOtherOps++;
   prrun_t flags;
   prstatus_t stat;
-
+  cerr << "ContinueProc_" << endl;
+  
   memset(&flags, '\0', sizeof(flags));
   flags.pr_flags = PRCFAULT; 
 
@@ -213,10 +214,13 @@ bool process::continueProc_() {
   if ((stat.pr_flags & PR_STOPPED) && (stat.pr_why == PR_SIGNALLED)) {
       flags.pr_flags |= PRCSIG; // clear current signal
   }
-
+  cerr << "changedPC at " << getDefaultLWP()->changedPCvalue << endl;
+  
   if (getDefaultLWP()->changedPCvalue) {
       // if we are changing the PC, use the new value as the cont addr.
       flags.pr_flags |= PRSVADDR;
+      fprintf(stderr, "Continue: PC at 0x%x\n", getDefaultLWP()->changedPCvalue);
+      
       flags.pr_vaddr = (char*)getDefaultLWP()->changedPCvalue;
       getDefaultLWP()->changedPCvalue = 0;
   }
@@ -303,44 +307,9 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
    return regs;
 }
 
+// PC is changed when we continue the process
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *savedRegs) 
 {
-#if 0
-#ifdef __alpha
-   prstatus info;
-   ioctl(fd_, PIOCSTATUS,  &info);
-   while (!prismember(&info.pr_flags, PR_STOPPED))
-   {
-       sleep(1);
-       ioctl(fd_, PIOCSTATUS,  &info);
-       proc_->pause();
-   }
-   errno = 0;
-#endif
-
-   gregset_t theIntRegs;
-   if (!savedRegs) {
-       if (-1 == ioctl(fd_, PIOCGREG, &theIntRegs)) {
-           perror("dyn_lwp::changePC PIOCGREG");
-           if (errno == EBUSY) {
-               cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
-               assert(false);
-           }
-           return false;
-       }
-   }
-   else {
-       memcpy(&theIntRegs, &(regs->theIntRegs), sizeof(gregset_t));
-   }
-
-   theIntRegs.regs[PC_REGNUM] = addr;
-   if (ioctl(fd_, PIOCSREG, &theIntRegs) == -1) {
-     perror("dyn_lwp::changePC PIOCSREG failed");
-     if (errno == EBUSY)
-       cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
-     return false;
-   }
-#endif
    changedPCvalue = addr;
 
    return true;

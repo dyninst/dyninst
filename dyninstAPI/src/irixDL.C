@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.15 2002/12/20 07:49:57 jaw Exp $
+// $Id: irixDL.C,v 1.16 2003/02/04 15:18:59 bernat Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -198,7 +198,7 @@ Address process::get_dlopen_addr() const
   return (dyn) ? (dyn->get_dlopen_addr()) : (0);
 }
 
-bool process::trapAtEntryPointOfMain()
+bool process::trapAtEntryPointOfMain(Address)
 {
   Address pc = getDefaultLWP()->getActiveFrame().getPC();
   bool ret = (pc == main_brk_addr);
@@ -405,9 +405,9 @@ pdvector<shared_object *> *dynamic_linking::getSharedObjects(process *p)
   return ret;
 }
 
-bool process::dlopenDYNINSTlib()
+bool process::loadDYNINSTlib()
 {
-  //fprintf(stderr, ">>> dlopenDYNINSTlib()\n");
+  //fprintf(stderr, ">>> loadDYNINSTlib()\n");
 
   // find runtime library
   char *rtlib_var;
@@ -530,7 +530,7 @@ bool process::dlopenDYNINSTlib()
   assert(bufSize <= BYTES_TO_SAVE);
   //fprintf(stderr, "writing %i bytes to <0x%08x:_start>, $pc = 0x%08x\n",
   //bufSize, baseAddr, codeAddr);
-  //fprintf(stderr, ">>> dlopenDYNINSTlib <0x%08x(_start): %i insns>\n",
+  //fprintf(stderr, ">>> loadDYNINSTlib <0x%08x(_start): %i insns>\n",
   //baseAddr, bufSize/INSN_SIZE);
   writeDataSpace((void *)baseAddr, bufSize, (void *)buf);
   bool ret = getDefaultLWP()->changePC(codeAddr, savedRegs);
@@ -544,7 +544,8 @@ bool process::dlopenDYNINSTlib()
   */
 
   dyninstlib_brk_addr = trapAddr;
-  isLoadingDyninstLib = true;
+  setBootstrapState(loadingRT);
+
   return true;
 }
 
@@ -690,10 +691,10 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
   return ret;
 }
 
-void process::handleIfDueToDyninstLib()
+bool process::loadDYNINSTlibCleanup()
 {
-  //fprintf(stderr, ">>> handleIfDueToDyninstLib()\n");
-
+    dyninstlib_brk_addr = 0x0;
+    
   // restore code and registers
   Address code = lookup_fn(this, "_start");
   assert(code);
@@ -702,5 +703,7 @@ void process::handleIfDueToDyninstLib()
 
   delete [] savedRegs;
   savedRegs = NULL;
+  return true;
+  
 }
 
