@@ -1,7 +1,12 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.10  1994/06/12 22:40:50  karavan
+ * Revision 1.11  1994/06/14 15:32:42  markc
+ * Changed spelling of excessive.
+ * Changed and renamed highVariationLock test to highVariation and made it more
+ * generic, it now works across all sync objects.
+ *
+ * Revision 1.10  1994/06/12  22:40:50  karavan
  * changed printf's to calls to status display service.
  *
  * Revision 1.9  1994/05/31  21:43:01  markc
@@ -67,7 +72,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.10 1994/06/12 22:40:50 karavan Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.11 1994/06/14 15:32:42 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -196,10 +201,8 @@ void highSyncToCPURatio_TEST(testValue *result, float normalize)
     sampleValue st;
 
     result->status = FALSE;
-    /*
     active = activeProcesses.value(whereAxis);
-    */
-    active = 1.0;
+
     if (active > 0.0) {
 	if ((st=SyncTime.value())/active > highSyncThreshold * normalize) {
 	    result->status = TRUE;
@@ -284,61 +287,70 @@ void criticalSectionTooLarge_TEST(testValue *result, float normalize)
     return;
 }
 
-Boolean highVariationLock_ENABLE(collectMode newMode)
+//
+// enable all sync objects to determine if the sync_wait time
+// for one object is too high - this does not imply any where
+// axis refinement
+//
+Boolean highVariation_ENABLE(collectMode newMode)
 {
+    Boolean status = FALSE;
+    focusList newFoci;
     focus *i;
-    Boolean status;
-    focusList allLocks;
-    Boolean lockStatus = FALSE;
-     
-    status = SyncTime.changeCollection(whereAxis, newMode);
-    allLocks = currentFocus->magnify(Locks);
-    for (; i= *allLocks; allLocks++) {
-	lockStatus = SyncTime.changeCollection(i, newMode) || lockStatus;
-    }
-    return(status && lockStatus);
+
+    status = activeProcesses.changeCollection(whereAxis, newMode) && status;
+
+    newFoci = currentFocus->magnify(SyncObject);
+    for (; i = *newFoci; newFoci++)
+      status = SyncTime.changeCollection(i, newMode);
+
+    return status;
 }
 
 //
 // Test if one lock is more than highSyncThreshold % of the sync time.
 //
 /* ARGSUSED */
-void highVariationLock_TEST(testValue *result, float normalize)
+void highVariation_TEST(testValue *result, float normalize)
 {
-    focus *i;
-    float share;
-    focusList allLocks;
-     
-    allLocks = currentFocus->magnify(Locks);
-    result->status = FALSE;
-    for (; i=*allLocks; allLocks++) {
-	if (!SyncTime.enabled(i)) continue;
-	share = SyncTime.value(i) / SyncTime.value(whereAxis);
-	if (share > highSyncThreshold * normalize) {
-	    result->status = TRUE;
-	    // define a hint to refine on the selected lock.
-	    if (i != currentFocus) {
-		// there is something useful here.
-		result->addHint(i, "HOT Sync");
+  focus *i;
+  float share, total;
+  focusList allSO;
+
+  result->status = FALSE;
+  
+  allSO = currentFocus->magnify(SyncObject);
+  total = SyncTime.value(whereAxis);
+
+  for (; i = *allSO; allSO++)
+    {
+      if (!SyncTime.enabled(i)) continue;
+      share = SyncTime.value(i) / total;
+      if (share > highSyncThreshold * normalize)
+	{
+	  result->status = TRUE;
+	  // define a hint to refine on the selected sync
+	  if (i != currentFocus)
+	    {
+	      // there is something useful here.
+	      result->addHint(i, "HOT Sync");
 	    }
 	}
     }
-    return;
+  return;
 }
 
 Boolean highSyncRate_ENABLE(collectMode newMode)
 {
     focusList newFoci;
-    Boolean syncObjStatus;
+    Boolean syncObjStatus = FALSE;
+    focus *i;
 
     newFoci = currentFocus->magnify(SyncObject);
-    if (*newFoci) {
-	syncObjStatus = SyncOps.changeCollection(newFoci, newMode);
-	return(syncObjStatus);
-    } else {
-	// no such focus.
-	return(FALSE);
-    }
+    for (; i = *newFoci; newFoci++)
+      syncObjStatus = SyncOps.changeCollection(i, newMode) || syncObjStatus;
+
+    return syncObjStatus;
 }
 
 /* ARGSUSED */
@@ -526,8 +538,8 @@ test criticalSectionTooLarge((changeCollectionFunc)
 	&criticalSectionTooLarge_ENABLE, 
 	(evalFunc) &criticalSectionTooLarge_TEST, "criticalSectionTooLarge");
 
-test highVariationLock((changeCollectionFunc) &highVariationLock_ENABLE, 
-	 (evalFunc) &highVariationLock_TEST, "highVariationLock");
+test highVariation((changeCollectionFunc) &highVariation_ENABLE, 
+	 (evalFunc) &highVariation_TEST, "highVariation");
 
 test highSyncRate((changeCollectionFunc) &highSyncRate_ENABLE,
 	(evalFunc) &highSyncRate_TEST, "highSyncRate");
@@ -644,19 +656,21 @@ hypothesis cpuBound(&cpuBottleneck, &highCPUtoSyncRatio, "cpuBound",
 // Sync bottlenecks
 //
 
-hypothesis excesiveBlockingTime(&syncBottleneck, 
-	&highSyncToCPURatio, "excesiveBlockingTime");
+hypothesis excessiveBlockingTime(&syncBottleneck, 
+	&highSyncToCPURatio, "excessiveBlockingTime");
 
 //
 // Stil being written.
 //
-// hypothesis lockTooLarge(&excesiveBlockingTime, &lockTooLarge);
+// hypothesis lockTooLarge(&excessiveBlockingTime, &lockTooLarge);
 //
 
-hypothesis hotSyncObject(&excesiveBlockingTime, &highVariationLock, "hotSync");
 
-hypothesis excesiveSyncRates(&syncBottleneck, &highSyncRate, 
-	"excesiveSyncRates");
+hypothesis hotSyncObject(&excessiveBlockingTime, &highVariation, "hotSync");
 
-hypothesis syncRegionTooSmall(&excesiveSyncRates, &smallSyncRegion, 
+
+hypothesis excessiveSyncRates(&syncBottleneck, &highSyncRate, 
+	"excessiveSyncRates");
+
+hypothesis syncRegionTooSmall(&excessiveSyncRates, &smallSyncRegion, 
     "SyncRegionTooSmall");
