@@ -6,6 +6,9 @@
 # getMetsAndRes (bottom of this file) is the entry-point.
 
 # $Log: mets.tcl,v $
+# Revision 1.19  1996/09/04 20:48:32  tamches
+# removed old copyright notice
+#
 # Revision 1.18  1996/06/09 18:56:03  newhall
 # removed debug output
 #
@@ -22,21 +25,6 @@
 # to properly initialize the dialog box (a change in "developerMode" had
 # previously confused the dialog box).  New assoc array "selectedMetricNames"
 # is the key.
-#
-
-#
-# Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
-#     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
-#     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
-# 
-#  This software is furnished under the condition that it may not be
-#  provided or otherwise made available to, or used by, any other
-#  person, except as provided for by the terms of applicable license
-#  agreements.  No title to or ownership of the software is hereby
-#  transferred.  The name of the principals may not be used in any
-#  advertising or publicity related to this software without specific,
-#  written prior authorization.  Any use of this software must include
-#  the above copyright notice.
 #
 
 proc acceptMetChoices {threadid numMetrics metIndexes2Id} {
