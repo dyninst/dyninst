@@ -62,6 +62,7 @@ class pd_image {
    static pd_image *get_pd_image(image *dyn_image);
 
    pd_image(image *d_image, pd_process *p_proc);
+   ~pd_image();
 
    image *get_dyn_image() {  return dyn_image; }
    pdstring name() const { return dyn_image->name(); }

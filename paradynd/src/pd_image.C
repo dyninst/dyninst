@@ -65,12 +65,18 @@ pd_image::pd_image(image *d_image, pd_process *p_proc) :
    dyn_image(d_image), parent_proc(p_proc)
 {
    all_pd_images.push_back(this);
-   pdvector<module *> *mods = parent_proc->get_dyn_process()->getAllModules();
+   pdvector<module *> *mods = parent_proc->getAllModules();
   
    for (unsigned int m = 0; m < mods->size(); m++) {
       pdmodule *curr = (pdmodule *) (*mods)[m];
       pd_module *pd_mod = new pd_module(curr);
       pd_modules.push_back(pd_mod);
+   }
+}
+
+pd_image::~pd_image() {
+   for(unsigned i=0; i<pd_modules.size(); i++) {
+      delete pd_modules[i];
    }
 }
 
@@ -90,7 +96,8 @@ void pd_image::FillInCallGraphStatic(pd_process *proc) {
          printLoops = (i==0);
       }
 
-      curmod->FillInCallGraphStatic(proc->get_dyn_process(), printLoops);
+      process *llproc = proc->get_dyn_process()->lowlevel_process();
+      curmod->FillInCallGraphStatic(llproc, printLoops);
    }
 }
 
