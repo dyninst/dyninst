@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,22 +39,22 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-elf.C,v 1.12 1999/06/30 21:55:38 hollings Exp $
+/************************************************************************
+ * $Id: Object-elf.C,v 1.13 1999/07/13 22:08:03 wylie Exp $
+ * Object-elf.C: Object class for ELF file format
+************************************************************************/
 
-
-/**********************************************
- *
- * Implementation of "Object" (descriptive name, huh??) class for 
- *  32 bit ELF format....
- *
- **********************************************/
 
 #include "util/h/Object.h"
-#include "util/h/Object-elf32.h"
+#if !defined(_Object_elf_h_)
+#error "Object-elf.h not #included"
+#endif
+
 #include "util/h/String.h"
 #include "util/h/Symbol.h"
 #include "util/h/Dictionary.h"
 #include "util/h/pathName.h"     // extract_pathname_tail()
+#include <elf.h>
 #include <stdio.h>
 
 #if defined(USES_DWARF_DEBUG)
@@ -62,238 +62,375 @@
 #include <libdwarf.h>
 #endif
 
-#ifdef _Object_elf32_h_
 
-Object::~Object() {
+// add some space to avoid looking for functions in data regions
+#define EXTRA_SPACE 8
+
+static bool pdelf_check_ehdr(Elf *elfp, bool is64)
+{
+  if (is64) {
+    // Elf64_Ehdr integrity check
+#ifndef USES_ELF32_ONLY
+    Elf64_Ehdr *ehdrp_64 = elf64_getehdr(elfp);
+    if ((ehdrp_64 == NULL) ||
+	(ehdrp_64->e_ident[EI_CLASS] != ELFCLASS64) ||
+	(ehdrp_64->e_type != ET_EXEC && ehdrp_64->e_type != ET_DYN) ||
+	(ehdrp_64->e_phoff == 0) ||
+	(ehdrp_64->e_shoff == 0) ||
+	(ehdrp_64->e_phnum == 0) ||
+	(ehdrp_64->e_shnum == 0)) 
+      {
+	return false;
+      }
+#endif
+  } else {
+    // Elf32_Ehdr integrity check
+    Elf32_Ehdr *ehdrp_32 = elf32_getehdr(elfp);
+    if ((ehdrp_32 == NULL) ||
+	(ehdrp_32->e_ident[EI_CLASS] != ELFCLASS32) ||
+	(ehdrp_32->e_type != ET_EXEC && ehdrp_32->e_type != ET_DYN) ||
+	(ehdrp_32->e_phoff == 0) ||
+	(ehdrp_32->e_shoff == 0) ||
+	(ehdrp_32->e_phnum == 0) ||
+	(ehdrp_32->e_shnum == 0)) 
+      {
+	return false;
+      }
+  }
+  return true;
 }
 
-const Object&
-Object::operator=(const Object& obj) {
+const char *pdelf_get_shnames(Elf *elfp, bool is64)
+{
+  size_t shstrndx = 0;
+  if (is64) {
+#ifndef USES_ELF32_ONLY
+    Elf64_Ehdr *ehdrp_64 = elf64_getehdr(elfp);
+    if (ehdrp_64 == NULL) return NULL;
+    shstrndx = ehdrp_64->e_shstrndx;
+#endif
+  } else {
+    Elf32_Ehdr *ehdrp_32 = elf32_getehdr(elfp);
+    if (ehdrp_32 == NULL) return NULL;
+    shstrndx = ehdrp_32->e_shstrndx;
+  }
 
-    (void) AObject::operator=(obj);
-
-    plt_addr_ = obj.plt_addr_;
-    plt_size_ = obj.plt_size_;
-    plt_entry_size_ = obj.plt_entry_size_;
-    got_addr_ = obj.got_addr_;
-    rel_plt_addr_ = obj.rel_plt_addr_;
-    rel_plt_size_ = obj.rel_plt_size_;
-    rel_plt_entry_size_ = obj.rel_plt_entry_size_;
-    dyn_sym_addr_ = obj.dyn_sym_addr_;
-    dyn_str_addr_ = obj.dyn_str_addr_;
-    stabs_ = obj.stabs_;
-    nstabs_ = obj.nstabs_;
-    stabstr_ptr_ = obj.stabstr_ptr_;
-    relocation_table_  = obj.relocation_table_;
-    return *this;
+  Elf_Scn *shstrscnp = elf_getscn(elfp, shstrndx);
+  if (shstrscnp == NULL) return NULL;
+  
+  Elf_Data *shstrdatap = elf_getdata(shstrscnp, 0);
+  if (shstrdatap == NULL) return NULL;
+  
+  return (const char *)shstrdatap->d_buf;
 }
 
-void Object::log_elferror(void (*pfunc)(const char *), const char* msg) {
-    const char* err = elf_errmsg(elf_errno());
-    log_printf(pfunc, "%s: %s\n", msg, err ? err : "(bad elf error)");
-}
+// loaded_elf(): populate elf section pointers
+// for EEL rewritten code, also populate "code_*_" members
+bool Object::loaded_elf(bool& did_elf, Elf*& elfp, 
+  Address& txtaddr, Address& bssaddr,
+  Elf_Scn*& symscnp, Elf_Scn*& strscnp, Elf_Scn*& stabscnp, 
+  Elf_Scn*& stabstrscnp, Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
+  Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp, Elf_Scn*& dynstr_scnp, 
+  bool a_out) 
+{
+  // ELF initialization
+  if (elf_version(EV_CURRENT) == EV_NONE) {
+    return false;
+  }
+  elf_errno(); // TODO: ???
+  elfp = elf_begin(file_fd_, ELF_C_READ, 0);
+  if (elfp == NULL) return false;
+  did_elf = true;
+  if (elf_kind(elfp) != ELF_K_ELF) return false;
 
+  // ELF class: 32/64-bit
+  char *identp = elf_getident(elfp, NULL);
+  if (identp == NULL) return false;
+  is_elf64_ = (identp[EI_CLASS] == ELFCLASS64);
 
+  // ELF header: sanity check
+  if (!pdelf_check_ehdr(elfp, is_elf64_)) {
+    log_elferror(err_func_, "ELF header");
+    return false;
+  }
 
-//EEL
-//
-#define EXTRA_SPACE 8     //added some EXTRA_SPACE space, such that,
-                       // we won't look for functions in the data space
+  // ".shstrtab" section: string table for section header names
+  const char *shnames = pdelf_get_shnames(elfp, is_elf64_);
+  if (shnames == NULL) {
+    log_elferror(err_func_, ".shstrtab section");
+    return false;
+  }
 
+  const char* EDITED_TEXT_NAME = ".edited_text";
+  const char* TEXT_NAME        = ".text";
+  const char* BSS_NAME         = ".bss";
+  const char* SYMTAB_NAME      = ".symtab";
+  const char* STRTAB_NAME      = ".strtab";
+  const char* STAB_NAME        = ".stab";
+  const char* STABSTR_NAME     = ".stabstr";
+  // sections from dynamic executables and shared objects
+  const char* PLT_NAME         = ".plt";
+  const char* REL_PLT_NAME     = ".rela.plt"; // sparc-solaris
+  const char* REL_PLT_NAME2    = ".rel.plt";  // x86-solaris
+  const char* GOT_NAME         = ".got";
+  const char* DYNSYM_NAME      = ".dynsym";
+  const char* DYNSTR_NAME      = ".dynstr";
+  const char* DATA_NAME        = ".data";
+  const char* RO_DATA_NAME     = ".ro_data";  // mips
 
-// Added one extra parameter 'char *ptr', for EEL rewritten software
-// code_ptr_, code_offset_, code_len_ is calculated in this function
-// For more detail , see comments with the word 'EEL'
-//
-bool
-Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp, 
-    Elf32_Ehdr*& ehdrp,
-    Elf32_Phdr*& phdrp, Address& txtaddr, Address& bssaddr,
-    Elf_Scn*& symscnp, Elf_Scn*& strscnp, Elf_Scn*& stabscnp, 
-    Elf_Scn*& stabstrscnp, Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
-    Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp, Elf_Scn*& dynstr_scnp, bool a_out) {
+  // initialize Object members
+  dynsym_addr_ = 0;
+  dynstr_addr_ = 0;
+  got_addr_ = 0;
+  got_size_ = 0;
+  plt_addr_ = 0;
+  plt_size_ = 0;
+  plt_entry_size_ = 0;
+  rel_plt_addr_ = 0;
+  rel_plt_size_ = 0;
+  rel_plt_entry_size_ = 0;
+  stab_off_ = 0;
+  stab_size_ = 0;
+  stabstr_off_ = 0;
 
-    elf_version(EV_CURRENT);
-    elf_errno();
-
-    if (((elfp = elf_begin(fd, ELF_C_READ, 0)) == 0)
-        || (elf_kind(elfp) != ELF_K_ELF)) {
-        log_elferror(err_func_, "opening file");
-        return false;
+  Elf_Scn *scnp = NULL;
+  while ((scnp = elf_nextscn(elfp, scnp)) != NULL) {
+    // ELF section header: wrapper object
+    pdElfShdr pd_shdr(scnp, is_elf64_);
+    pdElfShdr *pd_shdrp = &pd_shdr;
+    if (pd_shdrp->err) {
+      log_elferror(err_func_, "elf_getshdr");
+      return false;
     }
-    did_elf = true;
 
-    if (((ehdrp = elf32_getehdr(elfp)) == 0)
-        || (ehdrp->e_ident[EI_CLASS] != ELFCLASS32)
-        || (ehdrp->e_type != ET_EXEC && ehdrp->e_type != ET_DYN)
-           // support shared library code here also....
-        || (ehdrp->e_phoff == 0)
-        || (ehdrp->e_shoff == 0)
-        || (ehdrp->e_phnum == 0)
-        || (ehdrp->e_shnum == 0)) {
-        log_elferror(err_func_, "loading eheader");
-        return false;
+    // resolve section name
+    const char *name = (const char *)&shnames[pd_shdrp->pd_name];    
+
+    // section-specific processing
+    if (strcmp(name, EDITED_TEXT_NAME) == 0) {
+      // EEL rewritten executable
+      EEL = true;
+      txtaddr = pd_shdrp->pd_addr;
+      code_ptr_ = (Word *)(void*)&file_ptr_[pd_shdrp->pd_offset - EXTRA_SPACE];
+      code_off_ = pd_shdrp->pd_addr - EXTRA_SPACE;
+      code_len_ = (pd_shdrp->pd_size + EXTRA_SPACE) / sizeof(Word);
     }
-
-    if ((phdrp = elf32_getphdr(elfp)) == 0) {
-        log_elferror(err_func_, "loading pheader");
-        return false;
+    if (strcmp(name, TEXT_NAME) == 0) {
+      txtaddr = pd_shdrp->pd_addr;
     }
-
-    stabs_ = NULL;
-    nstabs_ = 0;
-    stabstr_ptr_ = NULL;
-
-    Elf_Scn*    shstrscnp  = 0;
-    Elf32_Shdr* shstrshdrp = 0;
-    Elf_Data*   shstrdatap = 0;
-    if (((shstrscnp = elf_getscn(elfp, ehdrp->e_shstrndx)) == 0)
-        || ((shstrshdrp = elf32_getshdr(shstrscnp)) == 0)
-        || ((shstrdatap = elf_getdata(shstrscnp, 0)) == 0)) {
-        log_elferror(err_func_, "loading header section");
-        return false;
+    else if (strcmp(name, BSS_NAME) == 0) {
+      bssaddr = pd_shdrp->pd_addr;
     }
-
-    const char* shnames = (const char *) shstrdatap->d_buf;
-    Elf_Scn*    scnp    = 0;
-
-    // moved const char declrs out of loop....
-    const char* EDITED_TEXT_NAME   = ".edited_text";
-    const char* TEXT_NAME   = ".text";
-    const char* BSS_NAME    = ".bss";
-    const char* SYMTAB_NAME = ".symtab";
-    const char* STRTAB_NAME = ".strtab";
-    const char* STAB_NAME   = ".stab";
-    const char* STABSTR_NAME= ".stabstr";
-
-    // sections from dynamic executables and shared objects
-    const char* PLT_NAME = ".plt";
-    const char* REL_PLT_NAME = ".rela.plt";	   // sparc-solaris
-    const char* REL_PLT_NAME2 = ".rel.plt";	   // x86-solaris
-    const char* DATA_NAME        = ".data";
-    const char* RO_DATA_NAME     = ".ro_data";  // mips
-    const char* GOT_NAME = ".got";	   
-    const char* DYNSYM_NAME = ".dynsym";	   
-    const char* DYNSTR_NAME = ".dynstr";	   
-
-    while ((scnp = elf_nextscn(elfp, scnp)) != 0) {
-        Elf32_Shdr* shdrp = elf32_getshdr(scnp);
-        if (!shdrp) {
-            log_elferror(err_func_, "scanning sections");
-            return false;
-        }
-
-        const char* name        = (const char *) &shnames[shdrp->sh_name];
-
-	if (strcmp(name, EDITED_TEXT_NAME) == 0) {
-        	// EEL rewriten executable
-                printf("This is an EEL rewritten executable \n") ;
-		EEL = true ;
-                txtaddr = shdrp->sh_addr;
-                code_ptr_ = (Word *) ((void*)&ptr[shdrp->sh_offset-EXTRA_SPACE]);
-                code_off_ = (Address) shdrp->sh_addr -EXTRA_SPACE ;
-                code_len_ = ((unsigned) shdrp->sh_size + EXTRA_SPACE) / sizeof(Word);
-        }
-        if (strcmp(name, TEXT_NAME) == 0) {
-            txtaddr = shdrp->sh_addr;
-        }
-        else if (strcmp(name, BSS_NAME) == 0) {
-            bssaddr = shdrp->sh_addr;
-        }
-        else if (strcmp(name, SYMTAB_NAME) == 0) {
-            symscnp = scnp;
-        }
-        else if (strcmp(name, STRTAB_NAME) == 0) {
-            strscnp = scnp;
-        }
-        else if (strcmp(name, STAB_NAME) == 0) {
-	    Elf_Data *ptr;
-            stabscnp = scnp;
-	    ptr = elf_getdata(scnp, 0); 
-	    stabs_ = (void *) malloc(ptr->d_size);
-	    memcpy(stabs_, ptr->d_buf, ptr->d_size);
-	    nstabs_ = ptr->d_size / sizeof(struct stab_entry);
-        } else if (strcmp(name, STABSTR_NAME) == 0) {
-	    Elf_Data *ptr;
-            stabstrscnp = scnp;
-	    ptr = elf_getdata(scnp, 0);
-	    stabstr_ptr_ = (void *) malloc(ptr->d_size);
-	    memcpy(stabstr_ptr_, ptr->d_buf, ptr->d_size);
-        }
-        else if ((strcmp(name, REL_PLT_NAME) == 0) 
-		|| (strcmp(name, REL_PLT_NAME2) == 0)) {
-	     rel_plt_scnp = scnp;
-	     rel_plt_addr_ = shdrp->sh_addr;
-	     rel_plt_size_ = shdrp->sh_size;
-	     rel_plt_entry_size_ = shdrp->sh_entsize;
-        }
-        else if (strcmp(name, PLT_NAME) == 0) {
-            plt_scnp = scnp;
-	    plt_addr_ = shdrp->sh_addr;
-	    plt_size_ = shdrp->sh_size;
-	    plt_entry_size_ = shdrp->sh_entsize;
-        }
-        else if (strcmp(name, GOT_NAME) == 0) {
-	    got_scnp = scnp;
-	    got_addr_ = shdrp->sh_addr;
-	    if (!bssaddr) bssaddr = shdrp->sh_addr;
-	}
-	else if (strcmp(name, DYNSYM_NAME) == 0) {
-            dynsym_scnp = scnp;
-	    dyn_sym_addr_ = shdrp->sh_addr;
-	}
-        else if (strcmp(name, DYNSTR_NAME) == 0) {
-	    dynstr_scnp = scnp;
-	    dyn_str_addr_ = shdrp->sh_addr;
-	}
+    else if (strcmp(name, SYMTAB_NAME) == 0) {
+      symscnp = scnp;
+    }
+    else if (strcmp(name, STRTAB_NAME) == 0) {
+      strscnp = scnp;
+    }
+    else if (strcmp(name, STAB_NAME) == 0) {
+      stabscnp = scnp;
+      stab_off_ = pd_shdrp->pd_offset;
+      stab_size_ = pd_shdrp->pd_size;
+    }
+    else if (strcmp(name, STABSTR_NAME) == 0) {
+      stabstrscnp = scnp;
+      stabstr_off_ = pd_shdrp->pd_offset;
+    }
+    else if ((strcmp(name, REL_PLT_NAME) == 0) || 
+	     (strcmp(name, REL_PLT_NAME2) == 0)) {
+      rel_plt_scnp = scnp;
+      rel_plt_addr_ = pd_shdrp->pd_addr;
+      rel_plt_size_ = pd_shdrp->pd_size;
+      rel_plt_entry_size_ = pd_shdrp->pd_entsize;
+    }
+    else if (strcmp(name, PLT_NAME) == 0) {
+      plt_scnp = scnp;
+      plt_addr_ = pd_shdrp->pd_addr;
+      plt_size_ = pd_shdrp->pd_size;
+      plt_entry_size_ = pd_shdrp->pd_entsize;
+    }
+    else if (strcmp(name, GOT_NAME) == 0) {
+      got_scnp = scnp;
+      got_addr_ = pd_shdrp->pd_addr;
+      got_size_ = pd_shdrp->pd_size;
+      if (!bssaddr) bssaddr = pd_shdrp->pd_addr;
+    }
+    else if (strcmp(name, DYNSYM_NAME) == 0) {
+      dynsym_scnp = scnp;
+      dynsym_addr_ = pd_shdrp->pd_addr;
+    }
+    else if (strcmp(name, DYNSTR_NAME) == 0) {
+      dynstr_scnp = scnp;
+      dynstr_addr_ = pd_shdrp->pd_addr;
+    }
+    else if (strcmp(name, DATA_NAME) == 0) {
+      if (!bssaddr) bssaddr = pd_shdrp->pd_addr;	  
+    }
+    else if (strcmp(name, RO_DATA_NAME) == 0) {
+      if (!bssaddr) bssaddr = pd_shdrp->pd_addr;	  
+    }
 #if defined(mips_sgi_irix6_4)
-        else if (strcmp(name, DATA_NAME) == 0) {
-            if (!bssaddr) bssaddr = shdrp->sh_addr;	  
-	}
-        else if (strcmp(name, RO_DATA_NAME) == 0) {
-            if (!bssaddr) bssaddr = shdrp->sh_addr;	  
-	}
-	else if (strcmp(name, MIPS_REGINFO) == 0) {
-	  // see <sys/elf.h>, ".reginfo" section
-	  Elf_Data *datap = elf_getdata(scnp, 0);
-	  Elf32_RegInfo *reginfop = (Elf32_RegInfo *)datap->d_buf;
-	  gp_value = reginfop->ri_gp_value;
-	}
-	else if (strcmp(name, ELF_DYNAMIC) == 0) {
-	  // see <sys/elf.h>, ".dynamic" section
-	  Elf_Data *datap = elf_getdata(scnp, 0);
-	  Elf32_Dyn *dyns = (Elf32_Dyn *)datap->d_buf;
-	  unsigned ndyns = datap->d_size / sizeof(Elf32_Dyn);
-	  for (unsigned i = 0; i < ndyns; i++) {
-	    Elf32_Dyn *dyn = &dyns[i];
-	    if (dyn->d_tag == DT_MIPS_RLD_TEXT_RESOLVE_ADDR) {
-	      rbrk_addr = dyn->d_un.d_ptr; // "__rld_text_resolve" address
-	    } else if (dyn->d_tag == DT_MIPS_BASE_ADDRESS) {
-	      base_addr = dyn->d_un.d_ptr; // object base address
-	      if (a_out) base_addr = 0;
-	    }
-	  }
-	}
-#endif /* mips_sgi_irix6_4 */
+    else if (strcmp(name, MIPS_OPTIONS) == 0) {
+      // see <sys/elf.h>, ".MIPS.options" section
+      Elf_Data *datap = elf_getdata(scnp, 0);
+      Elf_Options *optionsp = NULL;
+      for (unsigned i = 0; i < datap->d_size; i += optionsp->size) {
+	optionsp = (Elf_Options *)(void *)(((char *)datap->d_buf) + i);
+	if (optionsp->kind != ODK_REGINFO) continue;
+	if (is_elf64_) {
 
-    }
-    if(!symscnp || !strscnp) {
-      if(dynsym_scnp && dynstr_scnp){
-          symscnp = dynsym_scnp;
-	  strscnp = dynstr_scnp;
+	  // RegInfo starts after Options header
+	  Elf64_RegInfo *reginfop = (Elf64_RegInfo *)(void *)(optionsp + 1);
+	  gp_value = reginfop->ri_gp_value;
+
+	} else { // 32-bit ELF
+
+	  // RegInfo starts after Options header
+	  Elf32_RegInfo *reginfop = (Elf32_RegInfo *)(optionsp + 1);
+	  gp_value = reginfop->ri_gp_value;
+
+	}
+	break;
       }
     }
-    if (!txtaddr || !bssaddr || !symscnp || !strscnp) {
-        log_elferror(err_func_, "no text/bss/symbol/string section");
-        return false;
-    }
+    else if (strcmp(name, MIPS_REGINFO) == 0) {
+      // see <sys/elf.h>, ".reginfo" section
+      Elf_Data *datap = elf_getdata(scnp, 0);
+      if (is_elf64_) {
 
-    return true;
+	Elf64_RegInfo *reginfop = (Elf64_RegInfo *)datap->d_buf;
+	gp_value = reginfop->ri_gp_value;
+
+      } else { // 32-bit ELF
+
+	Elf32_RegInfo *reginfop = (Elf32_RegInfo *)datap->d_buf;
+	gp_value = reginfop->ri_gp_value;
+
+      }
+    }
+    else if (strcmp(name, ELF_DYNAMIC) == 0) {
+      // see <sys/elf.h>, ".dynamic" section
+      if (is_elf64_) {
+
+	Elf_Data *datap = elf_getdata(scnp, 0);
+	Elf64_Dyn *dyns = (Elf64_Dyn *)datap->d_buf;
+	unsigned ndyns = datap->d_size / sizeof(Elf64_Dyn);
+	for (unsigned i = 0; i < ndyns; i++) {
+	  Elf64_Dyn *dyn = &dyns[i];
+	  switch(dyn->d_tag) {
+	  case DT_MIPS_RLD_TEXT_RESOLVE_ADDR:
+	    // "__rld_text_resolve" address
+	    rbrk_addr = dyn->d_un.d_ptr;
+	    break;
+	  case DT_MIPS_BASE_ADDRESS:
+	    // object base address
+	    base_addr = dyn->d_un.d_ptr;
+	    if (a_out) base_addr = 0;
+	    break;
+	  case DT_MIPS_GOTSYM:
+	    // .dynsym index of first external symbol
+	    dynsym_zero_index_ = dyn->d_un.d_val;
+	    break;
+	  case DT_MIPS_LOCAL_GOTNO:
+	    // .got index of first external GOT entry
+	    got_zero_index_ = dyn->d_un.d_val;
+	    break;
+	  }
+	}
+
+      } else { // 32-bit ELF
+
+	Elf_Data *datap = elf_getdata(scnp, 0);
+	Elf32_Dyn *dyns = (Elf32_Dyn *)datap->d_buf;
+	unsigned ndyns = datap->d_size / sizeof(Elf32_Dyn);
+	for (unsigned i = 0; i < ndyns; i++) {
+	  Elf32_Dyn *dyn = &dyns[i];
+	  switch(dyn->d_tag) {
+	  case DT_MIPS_RLD_TEXT_RESOLVE_ADDR:
+	    // "__rld_text_resolve" address
+	    rbrk_addr = dyn->d_un.d_ptr;
+	    break;
+	  case DT_MIPS_BASE_ADDRESS:
+	    // object base address
+	    base_addr = dyn->d_un.d_ptr;
+	    if (a_out) base_addr = 0;
+	    break;
+	  case DT_MIPS_GOTSYM:
+	    // .dynsym index of first external symbol
+	    dynsym_zero_index_ = dyn->d_un.d_val;
+	    break;
+	  case DT_MIPS_LOCAL_GOTNO:
+	    // .got index of first external GOT entry
+	    got_zero_index_ = dyn->d_un.d_val;
+	    break;
+	  }
+	}
+
+      }
+    }
+#endif /* mips_sgi_irix6_4 */
+    
+  }
+  if(!symscnp || !strscnp) {
+    if(dynsym_scnp && dynstr_scnp){
+      symscnp = dynsym_scnp;
+      strscnp = dynstr_scnp;
+    }
+  }
+  if (!txtaddr || !bssaddr || !symscnp || !strscnp) {
+    log_elferror(err_func_, "no text/bss/symbol/string section");
+    return false;
+  }
+
+  //if (is_elf64_) fprintf(stderr, ">>> 64-bit loaded_elf() successful\n");
+  return true;
 }
 
-bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
-			Elf_Scn*& dynsymscnp, Elf_Scn*& dynstrscnp) {
+#if defined(mips_sgi_irix6_4)
+const char *Object::got_entry_name(Address entry_raddr) const
+{
+  const char *ret = NULL;
 
+  // mapped ELF sections: .dynsym .dynstr
+  const char *dynsym_ptr = elf_vaddr_to_ptr(dynsym_addr_);
+  const char *dynstr_ptr = elf_vaddr_to_ptr(dynstr_addr_);
+
+  // find corresponding .dynsym index
+  Address entry_goff = entry_raddr + base_addr - got_addr_;
+  if (entry_goff > got_size_) return NULL;
+  int index_got = (is_elf64_) 
+    ? (entry_goff / sizeof(Elf64_Got))
+    : (entry_goff / sizeof(Elf32_Got));
+  //fprintf(stderr, "    .got index #%i\n", index_got);
+  if (index_got < got_zero_index_) return NULL; // local GOT entry
+  int index_dynsym = (index_got - got_zero_index_) + dynsym_zero_index_;
+  //fprintf(stderr, "    .dynsym index #%i\n", index_dynsym);
+
+  // find symbol name
+  const char *dynstrs = (const char *)(dynstr_ptr);
+  if (is_elf64_) {
+
+    const Elf64_Sym *syms = (const Elf64_Sym *)(const void *)dynsym_ptr;
+    int index_dynstr = syms[index_dynsym].st_name;
+    ret = &dynstrs[index_dynstr];
+    
+  } else { // 32-bit ELF
+
+    const Elf32_Sym *syms = (const Elf32_Sym *)(const void *)dynsym_ptr;
+    int index_dynstr = syms[index_dynsym].st_name;
+    ret = &dynstrs[index_dynstr];
+
+  }
+
+  //fprintf(stderr, ">>> got_entry_name(0x%016lx): \"%s\"\n", entry_raddr, ret);
+  return ret;
+}
+#endif /* mips_sgi_irix6_4 */
+
+bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
+				    Elf_Scn*& dynsym_scnp, 
+				    Elf_Scn*& dynstr_scnp) 
+{
 #if defined (i386_unknown_solaris2_5) || defined (i386_unknown_linux2_0)
         Elf32_Rel *next_entry = 0;
         Elf32_Rel *entries = 0;
@@ -304,8 +441,8 @@ bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
 
     if(rel_plt_size_ && rel_plt_addr_) {
 	Elf_Data *reldatap = elf_getdata(rel_plt_scnp, 0);
-	Elf_Data* symdatap = elf_getdata(dynsymscnp, 0);
-	Elf_Data* strdatap = elf_getdata(dynstrscnp, 0);
+	Elf_Data* symdatap = elf_getdata(dynsym_scnp, 0);
+	Elf_Data* strdatap = elf_getdata(dynstr_scnp, 0);
 	if(!reldatap || !symdatap || !strdatap) return false;
 
 	Elf32_Sym*  syms   = (Elf32_Sym *) symdatap->d_buf;
@@ -325,7 +462,7 @@ bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
 	for(u_int i=0; i < (rel_plt_size_/rel_plt_entry_size_); i++) {
 	    Elf32_Word sym_index = ELF32_R_SYM(next_entry->r_info); 
 	    relocationEntry re(next_plt_entry_addr, next_entry->r_offset,
-				string(&strs[syms[sym_index].st_name]));
+			       string(&strs[syms[sym_index].st_name]));
             relocation_table_ += re; 
 	    next_entry++;
 	    next_plt_entry_addr += plt_entry_size_;
@@ -334,388 +471,320 @@ bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
     return true;
 }
 
-/*************************************************************
- *
- *  New (Experimenta) version of code for loading statically linked
- *   object files....
- *
-*************************************************************/
-void Object::load_object() {
-        const char* file = file_.string_of();
-    struct stat st;
-    int         fd   = -1;
-    char*       ptr  = 0;
-    Elf*        elfp = 0;
+// map object file into memory
+// populates: file_fd_, file_size_, file_ptr_
+bool Object::mmap_file(const char *file, 
+		       bool &did_open, bool &did_mmap)
+{
+  file_fd_ = open(file, O_RDONLY);
+  if (file_fd_ == -1) return false;
+  did_open = true;
+  
+  struct stat st;
+  if (fstat(file_fd_, &st) == -1) return false;
+  file_size_ = st.st_size;
+  
+  file_ptr_ = (char *) mmap(0, file_size_, PROT_READ, MAP_SHARED, file_fd_, 0);
+  if (file_ptr_ == (char *)MAP_FAILED) return false;
+  did_mmap = true;
+  
+  return true;
+}
 
-    bool        did_open = false;
-    bool        did_elf  = false;
+void Object::load_object()
+{
+  Elf  *elfp  = 0;  
+  bool  did_open = false;
+  bool  did_mmap = false;
+  bool  did_elf  = false;
+  
+  { // binding contour (for "goto cleanup")
 
-    /* try */ {
-        //  try to open file for reading, and also use fstat to read info
-        //   about the file in st structure....
-        if (((fd = open(file, O_RDONLY)) == -1) || (fstat(fd, &st) == -1)) {
-            log_perror(err_func_, file);
-            /* throw exception */ goto cleanup;
-        }
-        did_open = true;
-
-        //  attempt to memory map entire file.  st.st_size should contain file
-        //   size (in bytes)....
-        if ((ptr = (char *) mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0))
-            == (char *) -1) {
-            log_perror(err_func_, "mmap");
-            /* throw exception */ goto cleanup;
-        }
-
-        Elf32_Ehdr* ehdrp   = 0;  /* ELF header */
-        Elf32_Phdr* phdrp   = 0;  /* program header */
-        Elf_Scn*    symscnp = 0;
-        Elf_Scn*    strscnp = 0;
-        Elf_Scn*    stabscnp = 0;
-        Elf_Scn*    stabstrscnp = 0;
-        Address    txtaddr = 0;
-        Address    bssaddr = 0;
-    	Elf_Scn* rel_plt_scnp = 0;
-	Elf_Scn* plt_scnp = 0; 
-	Elf_Scn* got_scnp = 0;
-	Elf_Scn* dynsym_scnp = 0;
-	Elf_Scn* dynstr_scnp = 0;
-
-	// EEL, initialize the stuff to zero, so that we know, it is not 
-	// EEL rewritten, if they have not been changed by loaded_elf
-	//
-        code_ptr_ = 0; code_off_ = 0 ;  code_len_ = 0 ;
-
-        // And attempt to parse the ELF data structures in the file....
-	// EEL, added one more parameter
-        if (!loaded_elf(fd, ptr, did_elf, elfp, ehdrp, phdrp, txtaddr,
-                bssaddr, symscnp, strscnp, stabscnp, stabstrscnp,
-		rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,dynstr_scnp, true)) {
-                /* throw exception */ goto cleanup;
-	}
-
- 	// find code and data segments....
-        find_code_and_data(ehdrp, phdrp, ptr, txtaddr, bssaddr);
-
-	//  if could not find code or data segments, log error....
-        if (!code_ptr_ || !code_off_ || !code_len_) {
-            log_printf(err_func_, "cannot locate instructions\n");
-            /* throw exception */ goto cleanup;
-        }
-        if (!data_ptr_ || !data_off_ || !data_len_) {
-            log_printf(err_func_, "cannot locate data segment\n");
-            /* throw exception */ goto cleanup;
-        }
-
-        Elf_Data* symdatap = elf_getdata(symscnp, 0);
-        Elf_Data* strdatap = elf_getdata(strscnp, 0);
-        if (!symdatap || !strdatap) {
-            log_elferror(err_func_, "locating symbol/string data");
-            /* throw exception */ goto cleanup;
-        }
-
-        Elf32_Sym*  syms   = (Elf32_Sym *) symdatap->d_buf;
-        unsigned    nsyms  = symdatap->d_size / sizeof(Elf32_Sym);
-        const char* strs   = (const char *) strdatap->d_buf;
-        string      module = "DEFAULT_MODULE";
-        string      name   = "DEFAULT_NAME";
-
-        // global symbols are put in global_symbols. Later we read the
-        // stab section to find the module to where they belong.
-	// Experiment : lets try to be a bit more intelligent about
-	// how we initially size the global_symbols table.  
-	// dictionary_lite takes an initial # of bins (2nd param), 
-	// a max bin load (3rd param), and a grow factor (4th param).
-	// Leaving aside the grow factor, lets allocate an initial #
-	// of bins = nsyms / max bin load.
-        dictionary_hash<string, Symbol> global_symbols(string::hash, nsyms, 1.0);
-
-        vector<Symbol> allsymbols;
-
-	// try to resolve all symbols found in symbol table + 
-	//  enter them into <allsymbols>.
-	parse_symbols(allsymbols, syms, nsyms, strs, false, module);
-
-	// Sort all the symbols - for patching symbol data sizes....
-	allsymbols.sort(symbol_compare);
-
-	// patch 0 symbol sizes....
-	fix_zero_function_sizes(allsymbols, 0);
-	
-	// override instances of weak symbols w/ instances of strong ones,
-	//  also currently has effect of making sure that symbols dont
-	//  extend beyond the marked beginning of the next symbo....
-	override_weak_symbols(allsymbols);
-
-	// and dump <allsymbols> into (data member) symbols_
-	//  or (paramater) <global_symbols> accoriding to linkage.... 
-	insert_symbols_static(allsymbols, global_symbols);
-
-	// try to resolve the module names of global symbols
-        // (populate the dictionary "symbols_")
-	bool found = false;
-	// STABS format (.stab section)
-	if (!found) found = fix_global_symbol_modules_static_stab(
-                              global_symbols, stabscnp, stabstrscnp);
-	// DWARF format (.debug_info section)
-	if (!found) found = fix_global_symbol_modules_static_dwarf(
-		              global_symbols, elfp);
-	// remaining globals are not associated with a module 
-	fix_global_symbol_unknowns_static(global_symbols);
-
-	if(rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
-	    if(!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) {
-		goto cleanup;
-            }
-	}
-	
-    }  /* try */
-
-        /* catch */
-cleanup: 
+    const char *file = file_.string_of();
+    if (mmap_file(file, did_open, did_mmap) == false) {
+      log_perror(err_func_, "open/fstat/mmap");
+      goto cleanup;
+    }
+    
+    Elf_Scn*    symscnp = 0;
+    Elf_Scn*    strscnp = 0;
+    Elf_Scn*    stabscnp = 0;
+    Elf_Scn*    stabstrscnp = 0;
+    Address     txtaddr = 0;
+    Address     bssaddr = 0;
+    Elf_Scn*    rel_plt_scnp = 0;
+    Elf_Scn*    plt_scnp = 0; 
+    Elf_Scn*    got_scnp = 0;
+    Elf_Scn*    dynsym_scnp = 0;
+    Elf_Scn*    dynstr_scnp = 0;
+    
+    // initialize object (for failure detection)
+    code_ptr_ = 0;
+    code_off_ = 0;
+    code_len_ = 0;
+    data_ptr_ = 0;
+    data_off_ = 0;
+    data_len_ = 0;
+      
+    // And attempt to parse the ELF data structures in the file....
+    // EEL, added one more parameter
+    if (!loaded_elf(did_elf, elfp, txtaddr,
+		    bssaddr, symscnp, strscnp, stabscnp, stabstrscnp,
+		    rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,dynstr_scnp,true)) 
     {
-        if (did_elf && (elf_end(elfp) != 0)) {
-            log_elferror(err_func_, "closing file");
-        }
-        if (did_open && (close(fd) == -1)) {
-            log_perror(err_func_, "close");
-        }
+      goto cleanup;
     }
+    
+    // find code and data segments....
+    find_code_and_data(elfp, txtaddr, bssaddr);
+    if (!code_ptr_ || !code_len_) {
+      log_printf(err_func_, "no text segment\n");
+      goto cleanup;
+    }
+    if (!data_ptr_ || !data_len_) {
+      log_printf(err_func_, "no data segment\n");
+      goto cleanup;
+    }
+    
+    // find symbol and string data
+    Elf_Data* symdatap = elf_getdata(symscnp, 0);
+    Elf_Data* strdatap = elf_getdata(strscnp, 0);
+    if (!symdatap || !strdatap) {
+      log_elferror(err_func_, "no symbol/string data");
+      goto cleanup;
+    }
+    string      module = "DEFAULT_MODULE";
+    string      name   = "DEFAULT_NAME";
+    
+    // global symbols are put in global_symbols. Later we read the
+    // stab section to find the module to where they belong.
+    // Experiment : lets try to be a bit more intelligent about
+    // how we initially size the global_symbols table.  
+    // dictionary_lite takes an initial # of bins (2nd param), 
+    // a max bin load (3rd param), and a grow factor (4th param).
+    // Leaving aside the grow factor, lets allocate an initial #
+    // of bins = nsyms / max bin load.
+    
+    vector<Symbol> allsymbols;
+    parse_symbols(allsymbols, symdatap, strdatap, false, module);
+    allsymbols.sort(symbol_compare);
+    fix_zero_function_sizes(allsymbols, 0);
+    override_weak_symbols(allsymbols);
+    
+    // dump "allsymbols" into "symbols_" (data member)
+    // or "global_symbols" (parameter) according to linkage
+    dictionary_hash<string, Symbol> global_symbols(string::hash, allsymbols.size(), 1.0);
+    insert_symbols_static(allsymbols, global_symbols);
+    
+    // try to resolve the module names of global symbols
+    bool found = false;
+    // STABS format (.stab section)
+    if (!found) found = fix_global_symbol_modules_static_stab(
+			    global_symbols, stabscnp, stabstrscnp);
+    // DWARF format (.debug_info section)
+    if (!found) found = fix_global_symbol_modules_static_dwarf(
+			    global_symbols, elfp);
+    // remaining globals are not associated with a module 
+    fix_global_symbol_unknowns_static(global_symbols);
+    
+    // populate "relocation_table_"
+    if(rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
+      if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) {
+	goto cleanup;
+      }
+    }
+    
+  } // end binding contour (for "goto cleanup2")
+  
+ cleanup: 
+  {
+    /* NOTE: The file should NOT be munmap()ed.  The mapped file is
+       used for function parsing (see dyninstAPI/src/symtab.C) */
+    if (did_elf) elf_end(elfp);
+    if (did_open) close(file_fd_);
+  }
 }
 
+void Object::load_shared_object() 
+{
+  Elf  *elfp  = 0;  
+  bool  did_open = false;
+  bool  did_mmap = false;
+  bool  did_elf  = false;
+  
+  { // binding contour (for "goto cleanup2")
 
-/*************************************************************
- *
- *  New (Experimental) version of code for loading shared
- *   libraries....
- *
-*************************************************************/
+    const char *file = file_.string_of();
+    if (mmap_file(file, did_open, did_mmap) == false) {
+      log_perror(err_func_, "open/fstat/mmap");
+      goto cleanup2;
+    }
+    
+    Elf_Scn*    symscnp = 0;
+    Elf_Scn*    stabscnp = 0;
+    Elf_Scn*    stabstrscnp = 0;
+    Elf_Scn*    strscnp = 0;
+    Address     txtaddr = 0;
+    Address     bssaddr = 0;
+    Elf_Scn*    rel_plt_scnp = 0;
+    Elf_Scn*    plt_scnp = 0; 
+    Elf_Scn*    got_scnp = 0;
+    Elf_Scn*    dynsym_scnp = 0;
+    Elf_Scn*    dynstr_scnp = 0;
 
-void
-Object::load_shared_object() {
-    const char* file = file_.string_of();
-    struct stat st;
-    int         fd   = -1;
-    char*       ptr  = 0;
-    Elf*        elfp = 0;
+    if (!loaded_elf(did_elf, elfp, txtaddr,
+		    bssaddr, symscnp, strscnp, stabscnp, stabstrscnp,
+		    rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp)) 
+    {
+      goto cleanup2;
+    }
 
-    bool        did_open = false;
-    bool        did_elf  = false;
+    // find code and data segments....
+    find_code_and_data(elfp, txtaddr, bssaddr);
 
-    /* try */ {
-        if (((fd = open(file, O_RDONLY)) == -1) || (fstat(fd, &st) == -1)) {
-            log_perror(err_func_, file);
-            /* throw exception */ goto cleanup2;
-        }
-        did_open = true;
+    Elf_Data *symdatap = elf_getdata(symscnp, 0);
+    Elf_Data *strdatap = elf_getdata(strscnp, 0);
+    if (!symdatap || !strdatap) {
+      log_elferror(err_func_, "locating symbol/string data");
+      goto cleanup2;
+    }
 
-        if ((ptr = (char *) mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0))
-            == (char *) -1) {
-            log_perror(err_func_, "mmap");
-            /* throw exception */ goto cleanup2;
-        }
+    // short module name
+    string module = extract_pathname_tail(file_);
+    string name   = "DEFAULT_NAME";
 
-        Elf32_Ehdr* ehdrp   = 0;  /* ELF header */
-        Elf32_Phdr* phdrp   = 0;  /* program header */
-        Elf_Scn*    symscnp = 0;
-        Elf_Scn*    stabscnp = 0;
-        Elf_Scn*    stabstrscnp = 0;
-        Elf_Scn*    strscnp = 0;
-        Address    txtaddr = 0;
-        Address    bssaddr = 0;
-    	Elf_Scn* rel_plt_scnp = 0;
-	Elf_Scn* plt_scnp = 0; 
-	Elf_Scn* got_scnp = 0;
-	Elf_Scn* dynsym_scnp = 0;
-	Elf_Scn* dynstr_scnp = 0;
-
-        /***  ptr, stabscnp, stabstrscnp should NOT be filled in if the parsed
-              object was a shared library  ***/
-	/* The above is not necessarily true...if the shared object was 
-	 * compiled with -g then these will be filled in
-	 */
-        if (!loaded_elf(fd, ptr, did_elf, elfp, ehdrp, phdrp, txtaddr,
-			    bssaddr, symscnp, strscnp, stabscnp, stabstrscnp,
-                            rel_plt_scnp, plt_scnp,got_scnp,dynsym_scnp, dynstr_scnp)) {
-                /* throw exception */ goto cleanup2;
-	}
-
-	// find code and data segments....
-        find_code_and_data(ehdrp, phdrp, ptr, txtaddr, bssaddr);
-
-        Elf_Data* symdatap = elf_getdata(symscnp, 0);
-        Elf_Data* strdatap = elf_getdata(strscnp, 0);
-        if (!symdatap || !strdatap) {
-            log_elferror(err_func_, "locating symbol/string data");
-            /* throw exception */ goto cleanup2;
-        }
-
-        Elf32_Sym*  syms   = (Elf32_Sym *) symdatap->d_buf;
-        unsigned    nsyms  = symdatap->d_size / sizeof(Elf32_Sym);
-        const char* strs   = (const char *) strdatap->d_buf;
-	// short module name
-        string      module = extract_pathname_tail(file_);
-        string      name   = "DEFAULT_NAME";
-
-	// temporary vector of symbols
-        vector<Symbol> allsymbols;
-	
-	// try to resolve all symbols found in symbol table + 
-	//  enter them into <allsymbols>.
-	parse_symbols(allsymbols, syms, nsyms, strs, true, module);
-
-	// Sort all the symbols - for patching symbol data sizes....
-	allsymbols.sort(symbol_compare);
-
-	// patch 0 symbol sizes....
-	fix_zero_function_sizes(allsymbols, 0);
-	
-	// override instances of weak symbols w/ instances of strong ones,
-	//  also currently has effect of making sure that symbols dont
-	//  extend beyond the marked beginning of the next symbo....
-	override_weak_symbols(allsymbols);
-
-	// and inset all found (and theoretically patched) symbols
-	//  into (data member) symbols_.
-	insert_symbols_shared(allsymbols);
+    // build symbol dictionary
+    vector<Symbol> allsymbols;
+    parse_symbols(allsymbols, symdatap, strdatap, true, module);
+    allsymbols.sort(symbol_compare);
+    fix_zero_function_sizes(allsymbols, 0);
+    override_weak_symbols(allsymbols);
+    insert_symbols_shared(allsymbols);
        
-	if(rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
-	    if(!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) { 
-		goto cleanup2;
-            }
-	}
-
-    }  /* try */
-
-    /* catch */
-
-cleanup2: {
-        if (did_elf && (elf_end(elfp) != 0)) {
-            log_elferror(err_func_, "closing file");
-        }
-        if (did_open && (close(fd) == -1)) {
-            log_perror(err_func_, "close");
-        }
+    if(rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
+      if(!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) { 
+	goto cleanup2;
+      }
     }
+
+  } // end binding contour (for "goto cleanup2")
+  
+ cleanup2: 
+  {
+    /* NOTE: The file should NOT be munmap()ed.  The mapped file is
+       used for function parsing (see dyninstAPI/src/symtab.C) */
+    if (did_elf) elf_end(elfp);
+    if (did_open) close(file_fd_);
+  }
 }
 
 
-/*************************************************************
-*
-*  Run through symbol table <syms> (with <nsyms> entries, where
-*   <strs> points to string table), finding all symbols
-*   of type in {STT_FILE, STT_OBJECT, STT_FUNC, STT_NOTYPE}, and
-*   registering the symbol in allsymbols with appropriate type,
-*   scope, etc..
-*   shared - indicates whether the object file being parsed is a
-*    shared library.  
-*   module - only filled in for shared libraries.  Contains name
-*    of shared library module.  As per original (spaghetti) code
-*    scattered in old load_object && load_shared_object, the symbol
-*    reference with the same name as the shared library itself
-*    is stuffed directly into (data member) symbols_ .... 
-*
-**************************************************************/
-void Object::parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym* syms,
-			   unsigned nsyms, const char *strs, 
-			   bool /*shared*/, string module) {
+static Symbol::SymbolType pdelf_type(int elf_type)
+{
+  switch (elf_type) {
+  case STT_FILE:   return Symbol::PDST_MODULE;
+  case STT_OBJECT: return Symbol::PDST_OBJECT;
+  case STT_FUNC:   return Symbol::PDST_FUNCTION;
+  case STT_NOTYPE: return Symbol::PDST_NOTYPE;
+  }
+  return Symbol::PDST_UNKNOWN;
+}
 
-    // local vars....
-    //  name of symbol, and name of module under which to register function,
-    //  respectively.... 
-    string name;
-    unsigned i1;
+static Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
+{
+  switch (elf_binding) {
+  case STB_LOCAL:  return Symbol::SL_LOCAL;
+  case STB_WEAK:   return Symbol::SL_WEAK;
+  case STB_GLOBAL: return Symbol::SL_GLOBAL;
+  }
+  return Symbol::SL_UNKNOWN;
+}
 
-    Symbol::SymbolType type;
-    Symbol::SymbolLinkage linkage = Symbol::SL_UNKNOWN;
-    int binding;
-
-    //cerr << "PARSING SYMBOLS FOR MODULE " << module << endl;
-    for (i1 = 0; i1 < nsyms; i1++) {
-	// First, we must check st_shndx. 
-	// if st_shndx == SHN_UNDEF, this is an undefined symbol,
-	// probably defined in a shared object that will be dynamically
-	// linked with the executable. We just ignore it for now.
-	if (syms[i1].st_shndx != SHN_UNDEF) {
-	    name = string(&strs[syms[i1].st_name]);
-	    //cerr << " Found non undefined symbol : " << name << endl;
-            bool st_kludge = false;
-            type = Symbol::PDST_UNKNOWN;
-	    // resolve symbol type....
-            switch (ELF32_ST_TYPE(syms[i1].st_info)) {
-	    case STT_FILE: {
-	        //cerr << "    name matches module name" << endl;
-		type   = Symbol::PDST_MODULE;
-		//cerr << "  ELF32_ST_TYPE = STT_FILE";
-                break;
-	    }
-            case STT_OBJECT:
-	        //cerr << "  ELF32_ST_TYPE = STT_OBJECT";
-                type = Symbol::PDST_OBJECT;
-                break;
-
-            case STT_FUNC:
-	        //cerr << "  ELF32_ST_TYPE = STT_FUNC";
-                type = Symbol::PDST_FUNCTION;
-                break;
-
-            case STT_NOTYPE:
-	        //cerr << "  ELF32_ST_TYPE = STT_NOTYPE";
-                type = Symbol::PDST_NOTYPE;
-                break;
-
-            default:
-	        //cerr << "  ELF32_ST_TYPE not supported";
-                continue;
-            }
-
-	    // and resolve symbol binding....
-	    switch (binding = ELF32_ST_BIND(syms[i1].st_info)) {
-	    case STB_LOCAL: 
-	        //cerr << "  ELF_32_ST_BIND = STB_LOCAL" << endl;
-		linkage = Symbol::SL_LOCAL;
-	        break;
-            case STB_WEAK:
-	        //cerr << "  ELF_32_ST_BIND = STB_WEAK" << endl;
-	  	linkage = Symbol::SL_WEAK;
-		break;
-	    case STB_GLOBAL: 
-	        //cerr << "  ELF_32_ST_BIND = STB_GLOBAL" << endl;
-		linkage = Symbol::SL_GLOBAL;
-		break;
-	    default :
-	        //cerr << "  ELF_32_ST_BIND UNKNOWN!!!!" << endl;
-	        continue;
-	    } 
-
-	    // symbol address
-	    Address st_addr = syms[i1].st_value;
+// parse_symbols(): populate "allsymbols"
+void Object::parse_symbols(vector<Symbol> &allsymbols, 
+			   Elf_Data *symdatap, Elf_Data *strdatap,
+			   bool shared, string smodule)
+{
+  if (is_elf64_) {
+#ifndef USES_ELF32_ONLY
+    Elf64_Sym *syms = (Elf64_Sym *)symdatap->d_buf;
+    unsigned nsyms = symdatap->d_size / sizeof(Elf64_Sym);
+    const char *strs = (const char *)strdatap->d_buf;
+    for (unsigned i = 0; i < nsyms; i++) {
+      // skip undefined symbols
+      if (syms[i].st_shndx == SHN_UNDEF) continue;
+      int etype = ELF64_ST_TYPE(syms[i].st_info);
+      int ebinding = ELF64_ST_BIND(syms[i].st_info);
+      
+      // resolve symbol elements
+      string sname = &strs[syms[i].st_name];
+      Symbol::SymbolType stype = pdelf_type(etype);
+      Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
+      unsigned ssize = syms[i].st_size;
+      Address saddr = syms[i].st_value;
+      // absolute to relative addressing
 #if defined(mips_sgi_irix6_4)
-	    // convert absolute address to relative address
-	    if (st_addr >= base_addr) st_addr -= base_addr;
+      if (saddr >= base_addr) {
+	saddr -= base_addr;
+	//assert(shared); // TODO
+      }
 #endif
-
-	    // special case for shared libraries.  If the symbol
-	    //  is of type file, and the binding is local binding, and
-	    //  name matches the module name, then stick the symbol
-	    //  directly into (data member) symbols_ (as SL_LOCAL).
-	    if (ELF32_ST_TYPE(syms[i1].st_info) == STT_FILE &&
-		binding == STB_LOCAL &&
-		name == module) {
-		symbols_[name] = Symbol(name, module, type, linkage,
-                                    st_addr, st_kludge, 
-                                    syms[i1].st_size);
-	    } else {
-		// otherwise, register found symbol under its name && type....
-		allsymbols += Symbol(name, module, 
-				        type, linkage,
-                                        st_addr, st_kludge,
-                                        syms[i1].st_size);
-	    }
-	
-	}
-
+      if (stype == Symbol::PDST_UNKNOWN) continue;
+      if (slinkage == Symbol::SL_UNKNOWN) continue;    
+      
+      Symbol newsym(sname, smodule, stype, slinkage, saddr, false, ssize);
+      
+      // register symbol in dictionary
+      if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
+	  (shared) && (sname == smodule)) 
+      {
+	symbols_[sname] = newsym; // special case
+      } else {
+	allsymbols += newsym; // normal case
+      }   
     }
+#endif
+  } else { // 32-bit ELF
+
+    Elf32_Sym *syms = (Elf32_Sym *)symdatap->d_buf;
+    unsigned nsyms = symdatap->d_size / sizeof(Elf32_Sym);
+    const char *strs = (const char *)strdatap->d_buf;
+    for (unsigned i = 0; i < nsyms; i++) {
+      // skip undefined symbols
+      if (syms[i].st_shndx == SHN_UNDEF) continue;
+      int etype = ELF32_ST_TYPE(syms[i].st_info);
+      int ebinding = ELF32_ST_BIND(syms[i].st_info);
+      
+      // resolve symbol elements
+      string sname = &strs[syms[i].st_name];
+      Symbol::SymbolType stype = pdelf_type(etype);
+      Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
+      unsigned ssize = syms[i].st_size;
+      Address saddr = syms[i].st_value;
+      // absolute to relative addressing
+#if defined(mips_sgi_irix6_4)
+      if (saddr >= base_addr) {
+	saddr -= base_addr;
+	//assert(shared); // TODO
+      }
+#endif
+      if (stype == Symbol::PDST_UNKNOWN) continue;
+      if (slinkage == Symbol::SL_UNKNOWN) continue;    
+      
+      Symbol newsym(sname, smodule, stype, slinkage, saddr, false, ssize);
+      
+      // register symbol in dictionary
+      if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
+	  (shared) && (sname == smodule)) 
+      {
+	symbols_[sname] = newsym; // special case
+      } else {
+	allsymbols += newsym; // normal case
+      }   
+    }
+
+  }
+  //if (is_elf64_) fprintf(stderr, ">>> 64-bit parse_symbols() successful\n");
 }
 
 /********************************************************
@@ -817,6 +886,25 @@ void Object::override_weak_symbols(vector<Symbol> &allsymbols) {
     }
 }
 
+static string find_global_symbol(string name,
+              dictionary_hash<string, Symbol> &global_symbols)
+{
+  string name2;
+
+  // pass #1: unmodified
+  name2 = name;
+  if (global_symbols.defines(name2)) return name2;
+
+  // pass #2: leading underscore (C)
+  name2 = "_" + name;
+  if (global_symbols.defines(name2)) return name2;
+
+  // pass #2: trailing underscore (Fortran)
+  name2 = name + "_";
+  if (global_symbols.defines(name2)) return name2;
+
+  return "";
+}
 
 /********************************************************
  *
@@ -850,65 +938,68 @@ bool Object::fix_global_symbol_modules_static_dwarf(
 
   while (dwarf_next_cu_header(dbg, NULL, NULL, NULL, NULL, &hdr, NULL)
 	 == DW_DLV_OK) 
-    {
-      // scan each "compile unit" (CU)
-      for (ret = dwarf_siblingof(dbg, NULL, &die, NULL);
-	   ret == DW_DLV_OK;
-	   ret = dwarf_siblingof(dbg, die, &die, NULL)) 
-	{	    
-	  // sanity check
-	  dwarf_tag(die, &tag, NULL);
-	  assert(tag == DW_TAG_compile_unit); 
-	  
-	  // module name
-	  dwarf_diename(die, &name, NULL);
-	  string module = name;
-	  string module2 = extract_pathname_tail(module);
-	  // TODO: short or long module name?
-
-	  // scan each "debugging information entry" (DIE) in this CU
-	  for (ret2 = dwarf_child(die, &die2, NULL);
-	       ret2 == DW_DLV_OK;
-	       ret2 = dwarf_siblingof(dbg, die2, &die2, NULL))
+  {
+    // scan each "compile unit" (CU)
+    for (ret = dwarf_siblingof(dbg, NULL, &die, NULL);
+	 ret == DW_DLV_OK;
+	 ret = dwarf_siblingof(dbg, die, &die, NULL)) 
+    {	    
+      // sanity check
+      dwarf_tag(die, &tag, NULL);
+      assert(tag == DW_TAG_compile_unit); 
+      
+      // module name
+      dwarf_diename(die, &name, NULL);
+      string module = name;
+      //fprintf(stderr, ">>> dwarf_module \"%s\"\n", name);
+      //string module2 = extract_pathname_tail(module);
+      
+      // scan each "debugging information entry" (DIE) in this CU
+      for (ret2 = dwarf_child(die, &die2, NULL);
+	   ret2 == DW_DLV_OK;
+	   ret2 = dwarf_siblingof(dbg, die2, &die2, NULL))
+      {
+	dwarf_tag(die2, &tag2, NULL);
+	switch (tag2) {
+	case DW_TAG_subprogram:
+	case DW_TAG_inlined_subroutine:
+	case DW_TAG_entry_point:
+	  // function symbol tags
+	case DW_TAG_variable:
+	case DW_TAG_constant:
+	  // variable symbol tags
+	  {
+	    // get symbol name
+	    dwarf_diename(die2, &name2, NULL);
+	    // use "linkage name" if present (matches symbol table)
+	    if (dwarf_attr(die2, DW_AT_MIPS_linkage_name, &attr, NULL) 
+		== DW_DLV_OK) 
 	    {
-	      dwarf_tag(die2, &tag2, NULL);
-	      switch (tag2) {
-	      case DW_TAG_subprogram:
-	      case DW_TAG_inlined_subroutine:
-	      case DW_TAG_entry_point:
-		// function symbol tags
-	      case DW_TAG_variable:
-	      case DW_TAG_constant:
-		// variable symbol tags
-		{
-		  // get symbol name
-		  dwarf_diename(die2, &name2, NULL);
-		  // use "linkage name" if present (matches symbol table)
-		  if (dwarf_attr(die2, DW_AT_MIPS_linkage_name, &attr, NULL) 
-		      == DW_DLV_OK) 
-		    {
-		      ret2 = dwarf_formstring(attr, &name2, NULL);
-		      assert(ret2 == DW_DLV_OK);
-		    }
-		  
-		  // lookup in global_symbols
-		  string SymName = name2;
-		  if (!(global_symbols.defines(SymName))) break;
-		  
-		  // symbol with module info
-		  Symbol &sym = global_symbols[SymName];
-		  symbols_[SymName] = Symbol(sym.name(), module, sym.type(), 
-					     sym.linkage(), sym.addr(),
-					     sym.kludge(), sym.size());
-		} break;
-	      default:
-		/* ignore other entries */
-		break;
-	      }			
+	      ret2 = dwarf_formstring(attr, &name2, NULL);
+	      assert(ret2 == DW_DLV_OK);
 	    }
-	}
+		  
+	    // check if symbol defined in global_symbols
+	    string gsym = find_global_symbol(name2, global_symbols);
+	    if (gsym != "") {
+	      assert(global_symbols.defines(gsym));
+	      // add symbol with module info
+	      Symbol &sym = global_symbols[gsym];
+	      symbols_[gsym] = Symbol(sym.name(), module, sym.type(), 
+				      sym.linkage(), sym.addr(),
+				      sym.kludge(), sym.size());
+	    }
+	  } break;
+	default:
+	  /* ignore other entries */
+	  break;
+	}			
+      }
     }
+  }
+
   dwarf_finish(dbg, NULL);  
+
   return true;
 }
 #else
@@ -932,7 +1023,6 @@ bool Object::fix_global_symbol_modules_static_stab(
     // The symbols appear in the stab section by module. A module begins
     // with a symbol of type N_UNDF and ends with a symbol of type N_ENDM.
     // All the symbols in between those two symbols belong to the module.
-
     Elf_Data* stabdatap = elf_getdata(stabscnp, 0);
     Elf_Data* stabstrdatap = elf_getdata(stabstrscnp, 0);
     if (!stabdatap || !stabstrdatap) {
@@ -952,15 +1042,6 @@ bool Object::fix_global_symbol_modules_static_stab(
     unsigned stabstr_nextoffset = 0;
 
     bool is_fortran = false;  // is the current module fortran code?
-    /* we must know if we are reading a fortran module because fortran
-       symbol names are different in the .stab and .symtab sections.
-       A symbol that appears as 'foo' in the .stab section, appears
-       as 'foo_' in .symtab.
-     */
-    module = "";
-  
-    //printf("in fixup %d stabs\n", stab_nsyms);
-
     for (unsigned i = 0; i < stab_nsyms; i++) {
         switch(stabsyms[i].type) {
 	case N_UNDF: /* start of object file */
@@ -1040,6 +1121,7 @@ bool Object::fix_global_symbol_modules_static_stab(
     return true;
 }
 
+
 /********************************************************
  * Remaining global symbols have no associated module
  ********************************************************/
@@ -1054,7 +1136,6 @@ void Object::fix_global_symbol_unknowns_static(
     }
 }
 
-
 /********************************************************
  *
  * Run over allsymbols, and stuff symbols contained according 
@@ -1066,20 +1147,20 @@ void Object::fix_global_symbol_unknowns_static(
  *
 ********************************************************/
 void Object::insert_symbols_static(vector<Symbol> allsymbols,
-        dictionary_hash<string, Symbol> &global_symbols) {
-    unsigned u, nsymbols = allsymbols.size();
-
-    for (u=0;u<nsymbols;u++) {
-        // We are done with the local symbols. We save the global so that
-        // we can get their module from the .stab section.
-        if (allsymbols[u].linkage() == Symbol::SL_LOCAL)
-	    symbols_[allsymbols[u].name()] = allsymbols[u];
-        else {
-            // globals should be unique
-            assert(!(global_symbols.defines(allsymbols[u].name()))); 
-	    global_symbols[allsymbols[u].name()] = allsymbols[u];
-	}
-    }    
+     dictionary_hash<string, Symbol> &global_symbols)
+{
+  unsigned nsymbols = allsymbols.size();
+  for (unsigned u = 0; u < nsymbols; u++) {
+    // We are done with the local symbols. We save the global so that
+    // we can get their module from the .stab section.
+    if (allsymbols[u].linkage() == Symbol::SL_LOCAL) {
+      symbols_[allsymbols[u].name()] = allsymbols[u];
+    } else {
+      // globals should be unique
+      assert(!(global_symbols.defines(allsymbols[u].name()))); 
+      global_symbols[allsymbols[u].name()] = allsymbols[u];
+    }
+  }    
 }
 
 /********************************************************
@@ -1105,46 +1186,98 @@ void Object::insert_symbols_shared(vector<Symbol> allsymbols) {
     }
 }
 
-/*********************************************************
- *
- * Object::find_code_and_data - find addressm offset, and
- *  length of code and data sections of file described
- *  by ehdrp && phdrp.
- *
- * fills in (data members) code_ptr_, code_off_, code_len_,
- *  data_ptr_, data_off_, data_len_.  As per origional code
- *  of which this is a severely cleaned up version, does not
- *  check here for success or failure.
- *
- * mcheyney - 970904
- *
-*********************************************************/
-void Object::find_code_and_data(Elf32_Ehdr* ehdrp, Elf32_Phdr* phdrp,
-        char *ptr, Address txtaddr, Address bssaddr) {
-    unsigned i0;
-    for (i0 = 0; i0 < ehdrp-> e_phnum;i0++) {
-	if ((phdrp[i0].p_vaddr <= txtaddr)
-                && ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= txtaddr)) {
-	    if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
-                code_ptr_ = (Word *) ((void*)&ptr[phdrp[i0].p_offset]);
-                code_off_ = (Address) phdrp[i0].p_vaddr;
-                code_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
-	    }
-
-        }
-        else if ((phdrp[i0].p_vaddr <= bssaddr)
-                && ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= bssaddr)) {
-	  if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
-                data_ptr_ = (Word *) ((void *) &ptr[phdrp[i0].p_offset]);
-                data_off_ = (Address) phdrp[i0].p_vaddr;
-                data_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
-	  }
-        }
+// find_code_and_data(): populates the following members:
+//   code_ptr_, code_off_, code_len_
+//   data_ptr_, data_off_, data_len_
+void Object::find_code_and_data(Elf *elfp,
+				Address txtaddr, 
+				Address bssaddr) 
+{
+  if (is_elf64_) {
+#ifndef USES_ELF32_ONLY
+    Elf64_Ehdr *ehdrp = elf64_getehdr(elfp);
+    Elf64_Phdr *phdrp = elf64_getphdr(elfp);
+    for (int i = 0; i < ehdrp->e_phnum; i++) {
+      if ((phdrp[i].p_vaddr <= txtaddr) && 
+	  (phdrp[i].p_vaddr + phdrp[i].p_memsz >= txtaddr)) {
+	if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
+	  code_ptr_ = (Word *)(void*)&file_ptr_[phdrp[i].p_offset];
+	  code_off_ = (Address)phdrp[i].p_vaddr;
+	  code_len_ = (unsigned)phdrp[i].p_memsz / sizeof(Word);
+	}
+      } else if ((phdrp[i].p_vaddr <= bssaddr) && 
+		 (phdrp[i].p_vaddr + phdrp[i].p_memsz >= bssaddr)) {
+	if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
+	  data_ptr_ = (Word *)(void *)&file_ptr_[phdrp[i].p_offset];
+	  data_off_ = (Address)phdrp[i].p_vaddr;
+	  data_len_ = (unsigned)phdrp[i].p_memsz / sizeof(Word);
+	}
+      }
     }
+#endif
+  } else { // 32-bit ELF
+
+    Elf32_Ehdr *ehdrp = elf32_getehdr(elfp);
+    Elf32_Phdr *phdrp = elf32_getphdr(elfp);
+    for (int i = 0; i < ehdrp->e_phnum; i++) {
+      if ((phdrp[i].p_vaddr <= txtaddr) && 
+	  (phdrp[i].p_vaddr + phdrp[i].p_memsz >= txtaddr)) {
+	if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
+	  code_ptr_ = (Word *)(void*)&file_ptr_[phdrp[i].p_offset];
+	  code_off_ = (Address)phdrp[i].p_vaddr;
+	  code_len_ = (unsigned)phdrp[i].p_memsz / sizeof(Word);
+	}
+      } else if ((phdrp[i].p_vaddr <= bssaddr) && 
+		 (phdrp[i].p_vaddr + phdrp[i].p_memsz >= bssaddr)) {
+	if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
+	  data_ptr_ = (Word *)(void *)&file_ptr_[phdrp[i].p_offset];
+	  data_off_ = (Address)phdrp[i].p_vaddr;
+	  data_len_ = (unsigned)phdrp[i].p_memsz / sizeof(Word);
+	}
+      }
+    }
+
+  }
 #if defined mips_sgi_irix6_4
+    // absolute to relative addressing
     code_off_ -= base_addr;
     data_off_ -= base_addr;
-#endif    
+#endif
+    //if (is_elf64_) fprintf(stderr, ">>> 64-bit find_code_and_data() successful\n");
+}
+
+const char *Object::elf_vaddr_to_ptr(Address vaddr) const
+{
+  const char *ret = NULL;
+  unsigned code_size_ = code_len_ * sizeof(Word);
+  unsigned data_size_ = data_len_ * sizeof(Word);
+
+#if defined(mips_sgi_irix6_4)
+  vaddr -= base_addr;
+#endif
+
+  if (vaddr >= code_off_ && vaddr < code_off_ + code_size_) {
+    ret = ((char *)code_ptr_) + (vaddr - code_off_);
+  } else if (vaddr >= data_off_ && vaddr < data_off_ + data_size_) {
+    ret = ((char *)data_ptr_) + (vaddr - data_off_);
+  } 
+
+  return ret;
+}
+
+void Object::get_stab_info(void **stabs, int &nstabs, void **stabstr)
+{
+  // check that file has .stab info
+  if (!stab_off_ || !stab_size_ || !stabstr_off_) {
+    *stabs = NULL;
+    nstabs = 0;
+    *stabstr = NULL;
+    return;
+  }
+  
+  *stabs = (void *)(file_ptr_ + stab_off_);
+  nstabs = stab_size_ / sizeof(struct stab_entry);
+  *stabstr = (void *)(file_ptr_ + stabstr_off_);
 }
 
 Object::Object(const string file, void (*err_func)(const char *))
@@ -1153,7 +1286,7 @@ Object::Object(const string file, void (*err_func)(const char *))
     //dump_state_info(cerr);
 }
 
-Object::Object(const string file, const Address /*baseAddr*/,
+Object::Object(const string file, const Address /*baseAddr*/, 
 	       void (*err_func)(const char *))
     : AObject(file, err_func), EEL(false)  {
     load_shared_object();
@@ -1163,6 +1296,35 @@ Object::Object(const string file, const Address /*baseAddr*/,
 Object::Object(const Object& obj)
     : AObject(obj), EEL(false) {
     load_object();
+}
+
+const Object&
+Object::operator=(const Object& obj) {
+
+    (void) AObject::operator=(obj);
+
+    dynsym_addr_ = obj.dynsym_addr_;
+    dynstr_addr_ = obj.dynstr_addr_;
+    got_addr_ = obj.got_addr_;
+    plt_addr_ = obj.plt_addr_;
+    plt_size_ = obj.plt_size_;
+    plt_entry_size_ = obj.plt_entry_size_;
+    rel_plt_addr_ = obj.rel_plt_addr_;
+    rel_plt_size_ = obj.rel_plt_size_;
+    rel_plt_entry_size_ = obj.rel_plt_entry_size_;
+    stab_off_ = obj.stab_off_;
+    stab_size_ = obj.stab_size_;
+    stabstr_off_ = obj.stabstr_off_;
+    relocation_table_  = obj.relocation_table_;
+    return *this;
+}
+
+Object::~Object() {
+}
+
+void Object::log_elferror(void (*pfunc)(const char *), const char* msg) {
+    const char* err = elf_errmsg(elf_errno());
+    log_printf(pfunc, "%s: %s\n", msg, err ? err : "(bad elf error)");
 }
 
 inline bool Object::get_func_binding_table(vector<relocationEntry> &fbt) const {
@@ -1177,44 +1339,34 @@ inline bool Object::get_func_binding_table_ptr(const vector<relocationEntry> *&f
     return true;
 }
 
-/**************************************************
- *
- *  Stream based debuggering output - for resgreesion testing.
- *  Dump info on state of object *this....
- *
-**************************************************/
+// stream-based debug output
+const ostream &Object::dump_state_info(ostream &s) 
+{
+  s << "Debugging Information for Object (address) : " << this << endl;
+  
+  s << " <<begin debugging info for base object>>" << endl;
+  AObject::dump_state_info(s);
+  s << " <<end debuggingo info for base object>>" << endl;
+  
+  s << " dynsym_addr_ = " << dynsym_addr_ << endl;
+  s << " dynstr_addr_ = " << dynstr_addr_ << endl;
+  s << " got_addr_ = " << got_addr_ << endl;
+  s << " plt_addr_ = " << plt_addr_ << endl;
+  s << " plt_size_ = " << plt_size_ << endl;
+  s << " plt_entry_size_ = " << plt_entry_size_ << endl;
+  s << " rel_plt_addr_ = " << rel_plt_addr_ << endl; 
+  s << " rel_plt_size_ = " << rel_plt_size_ << endl;
+  s << " rel_plt_entry_size_ = " << rel_plt_entry_size_ << endl;
+  s << " stab_off_ = " << stab_off_ << endl;
+  s << " stab_size_ = " << stab_size_ << endl;
+  s << " stabstr_off_ = " << stabstr_off_ << endl;
 
-const ostream &Object::dump_state_info(ostream &s) {
-    unsigned i;
+  // and dump the relocation table....
+  s << " relocation_table_ = (field seperator :: )" << endl;   
+  for (unsigned i=0; i < relocation_table_.size(); i++) {
+    s << relocation_table_[i] << " :: "; 
+  }
+  s << endl;
 
-    s << "Debugging Information for Object (address) : " << this << endl;
-
-    s << " <<begin debugging info for base object>>" << endl;
-    AObject::dump_state_info(s);
-    s << " <<end debuggingo info for base object>>" << endl;
-
-    s << " plt_addr_ = " << plt_addr_ << endl;
-    s << " plt_size_ = " << plt_size_ << endl;
-    s << " plt_entry_size_ = " << plt_entry_size_ << endl;
-    s << " get_addr_ = " << got_addr_ << endl;
-    s << " rel_plt_addr_ = " << rel_plt_addr_ << endl; 
-    s << " rel_plt_size_ = " << rel_plt_size_ << endl;
-    s << " rel_plt_entry_size_ = " << rel_plt_entry_size_ << endl;
-    s << " dyn_sym_addr_ = " << dyn_sym_addr_ << endl;
-    s << " dyn_str_addr_ = " << dyn_str_addr_ << endl;
-    s << " stabs_ = " << stabs_ << endl;
-    s << " nstabs_ = " << nstabs_ << endl;
-    s << " stabstr_ptr_ = " << stabstr_ptr_ << endl;
-    
-    // and dump the relocation table....
-    s << " relocation_table_ = (field seperator :: )" << endl;   
-    for (i=0;i<relocation_table_.size();i++) {
-        s << relocation_table_[i] << " :: "; 
-    }
-    s << endl;
-
-    return s;
+  return s;
 } 
-
-#endif  /* #ifdef Object_elf32_h_ */
-
