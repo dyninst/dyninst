@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.109 2004/04/26 21:09:33 rchen Exp $ */
+/* $Id: test1.mutatee.c,v 1.110 2004/08/16 04:33:43 rchen Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2105,7 +2105,13 @@ int func33_3(int x)
 {
     printf("Entry.\n");
 
+    /* The Intel compiler for IA-64 requires at least 18 entries to
+       trigger the generation of a jump table. */
     switch (x) {
+      case 0:
+	printf("0\n");
+	x += 11;
+	break;
       case 1:
 	printf("1\n");
 	x += 10;
@@ -2145,6 +2151,42 @@ int func33_3(int x)
       case 10:
 	printf("10\n");
 	x |= 0x11;
+	break;
+      case 11:
+	printf("11\n");
+	x += 110;
+	break;
+      case 12:
+	printf("12\n");
+	x-= 112;
+	break;
+      case 13:
+	printf("13\n");
+	x *= 133;
+	break;
+      case 14:
+	printf("14\n");
+	x /= 142;
+	break;
+      case 15:
+	printf("15\n");
+	x %= 157;
+	break;
+      case 16:
+	printf("16\n");
+	x <<= 12;
+	break;
+      case 17:
+	printf("17\n");
+	x >>= 13;
+	break;
+      case 18:
+	printf("18\n");
+	x ^= 0x1fe;
+	break;
+      case 19:
+	printf("19\n");
+	x &= 0x144;
 	break;
     };
 
