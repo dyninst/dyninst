@@ -147,6 +147,7 @@ public:
     // The following are only to be called by the library:
     void registerProvisionalThread(int pid);
     void registerForkedThread(int parentPid, int childPid, process *proc);
+    void registerForkingThread(int forkingPid, process *proc);
     void registerExec(BPatch_thread *thread);
     void registerExit(BPatch_thread *thread, int code);
     void registerThread(BPatch_thread *thread);
