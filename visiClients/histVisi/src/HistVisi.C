@@ -46,7 +46,7 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.C,v 1.10 2002/07/25 19:23:06 willb Exp $
+// $Id: HistVisi.C,v 1.11 2002/08/01 18:21:48 willb Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include "common/h/headers.h"
@@ -71,7 +71,11 @@
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm"
 
-#include <strstream.h>
+#if defined(i386_unknown_nt4_0)
+#  include <strstrea.h>
+#else
+#  include <strstream.h>
+#endif
 
 //---------------------------------------------------------------------------
 // prototypes of functions used in this file

@@ -42,7 +42,7 @@
 // tkTools.C
 // Ariel Tamches
 
-/* $Id: tkTools.C,v 1.17 2002/07/31 18:29:15 willb Exp $ */
+/* $Id: tkTools.C,v 1.18 2002/08/01 18:21:30 willb Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // exit()
@@ -50,8 +50,10 @@
 #include "common/h/headers.h"
 #include "tkTools.h"
 
-#if !defined(i386_unknown_nt4_0)
-#include <strstream.h>
+#if defined(i386_unknown_nt4_0)
+#  include <strstrea.h>
+#else
+#  include <strstream.h>
 #endif
 
 tkInstallIdle::tkInstallIdle(void (*iUsersRoutine)(ClientData)) {

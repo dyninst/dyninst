@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.228 2002/06/25 20:27:39 bernat Exp $
+// $Id: metricFocusNode.C,v 1.229 2002/08/01 18:21:39 willb Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -77,7 +77,12 @@
 #include "paradyn/src/met/mdl_data.h"
 #include "paradynd/src/focus.h"
 #ifdef FREEDEBUG
-#include <strstream.h>  // in flush_batch_buffer
+#if defined(i386_unknown_nt4_0)
+#  include <strstrea.h>
+#else
+#  include <strstream.h>
+#endif
+//#include <strstream.h>  // in flush_batch_buffer
 #endif
 
 #include "dyninstAPI/src/instPoint.h"

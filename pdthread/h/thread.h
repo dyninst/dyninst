@@ -143,14 +143,17 @@ typedef enum {
 
 class pthread_sync;
 class rwlock;
-    
-typedef	unsigned thread_t;
-typedef pthread_key_t thread_key_t;
+
+typedef unsigned thread_t;
 typedef unsigned tag_t;
 typedef pthread_sync* thread_monitor_t;
 typedef rwlock* thread_rwlock_t;    
-    
 
+#if USE_PTHREADS
+typedef pthread_key_t thread_key_t;
+#else
+typedef unsigned thread_key_t;
+#endif
 
 
 
