@@ -40,7 +40,7 @@
  */
 
 /* paradyn.tcl.C
-   $Id: paradyn.tcl.C,v 1.85 1999/05/19 07:51:12 karavan Exp $
+   $Id: paradyn.tcl.C,v 1.86 1999/05/19 21:16:39 karavan Exp $
    This code implements the tcl "paradyn" command.  See the README file for 
    command descriptions.
 */
@@ -941,19 +941,18 @@ int ParadynSaveCmd (ClientData,
   if (argc == 4) {
     if (!strcmp(argv[1], "data")) {
       // "save data [global|phase|all] <dirname>" 
-      //char *dirname = new char [strlen(argv[3])+1];
-      //strcpy (dirname, argv[3]);
-      string dirname = string(argv[3]);
-      cout << "paradyn save " << dirname.string_of() << " data all" << endl;
+      char *dirname = new char [strlen(argv[3])+1];
+      strcpy (dirname, argv[3]);
+      cout << "paradyn save " << dirname << " data all" << endl;
       switch (argv[2][0]) {
       case 'a':
-	dataMgr->saveAllData(dirname.string_of(), All);
+	dataMgr->saveAllData(dirname, All);
 	break;
       case 'g':
-	dataMgr->saveAllData(dirname.string_of(), Global);
+	dataMgr->saveAllData(dirname, Global);
 	break;
       case 'p':
-	dataMgr->saveAllData(dirname.string_of(), Phase);
+	dataMgr->saveAllData(dirname, Phase);
 	break;
       default:
 	sprintf(interp->result, 

@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.87 1999/03/03 18:21:15 pcroth Exp $
+ * $Id: dataManager.I,v 1.88 1999/05/19 21:15:37 karavan Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -262,7 +262,7 @@ $remote dataManager {
     // 
     // write all resource information to a file created in dirname
     //
-    $async void saveAllResources (const char *dirname);
+    $async void saveAllResources (char *dirname);
 
     // 
     // Create a performanceStream.  This a flow of performance information
