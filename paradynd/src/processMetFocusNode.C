@@ -73,7 +73,7 @@ processMetFocusNode::processMetFocusNode(pd_process *p,
     currentlyPaused(false), instrInserted_(false),
     isBeingDeleted_(false)
 { 
-  fprintf(stderr, "new procMetFocus, currentlyPaused off\n");
+  // /* DEBUG */ fprintf(stderr, "new procMetFocus, currentlyPaused off\n");
 }
 
 processMetFocusNode::processMetFocusNode(const processMetFocusNode &par, 
@@ -399,7 +399,7 @@ void processMetFocusNode::doCatchupInstrumentation() {
     // The process may have been paused when we inserted instrumentation.
     // If so, the value of "currentlyPaused" is 0 (user paused)
     // If we paused to insert the value of currentlyPaused is 1
-  fprintf(stderr, "doCatchup entry, currentlyPaused = %d\n", currentlyPaused);
+    // /* DEBUG */ fprintf(stderr, "doCatchup entry, currentlyPaused = %d\n", currentlyPaused);
     assert(hasBeenCatchuped() == false);
     
     prepareCatchupInstr();
@@ -816,7 +816,7 @@ void processMetFocusNode::removeProcNodesToDeleteLater() {
 }
 
 void processMetFocusNode::pauseProcess() {
-  fprintf(stderr, "procMetFoc, pauseProc %d\n", currentlyPaused);
+  // /* DEBUG */ fprintf(stderr, "procMetFoc, pauseProc %d\n", currentlyPaused);
   if(currentlyPaused == true)  return;
   if (proc()->isStopped()) return; // at startup, process can be stopped, but not "paused"
                                  // don't need to pause, and setting currentlyPaused
@@ -830,7 +830,7 @@ void processMetFocusNode::pauseProcess() {
 }
 
 void processMetFocusNode::continueProcess() {
-  fprintf(stderr, "procMetFoc, paused %d\n", currentlyPaused);
+  // /* DEBUG */ fprintf(stderr, "procMetFoc, paused %d\n", currentlyPaused);
   if(currentlyPaused) {
       proc()->continueProc();
       currentlyPaused = false;
