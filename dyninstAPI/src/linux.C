@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.95 2003/04/02 07:12:25 jaw Exp $
+// $Id: linux.C,v 1.96 2003/04/07 19:57:09 zandy Exp $
 
 #include <fstream.h>
 
@@ -381,8 +381,10 @@ process *decodeProcessEvent(int pid,
             }
         }
     }
+    else if (result < 0 && errno == ECHILD)
+	    return NULL; /* nothing to wait for */
     else if (result < 0) {
-        //perror("decodeProcessEvent: waitpid failure");
+        perror("decodeProcessEvent: waitpid failure");
     }
     return proc;
 }
