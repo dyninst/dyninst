@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.78 1999/10/19 22:39:38 zandy Exp $
+// $Id: solaris.C,v 1.79 1999/10/29 22:32:32 zandy Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -548,14 +548,20 @@ bool process::attach() {
   // Step 3) /proc PIOCSET:
   // a) turn on the kill-on-last-close flag (kills inferior with SIGKILL when
   //    the last writable /proc fd closes)
-  // b) turn on inherit-on-fork flag (tracing flags inherited when child forks).
+  // b) turn on inherit-on-fork flag (tracing flags inherited when
+  // child forks) in Paradyn only
   // c) turn on breakpoint trap pc adjustment (x86 only).
   // Also, any child of this process will stop at the exit of an exec call.
 
   //Tempest, do not need to inherit-on-fork
   long flags ;
 #ifdef BPATCH_LIBRARY
-  flags = PR_FORK | PR_BPTADJ;
+  /* FIXME: When fork/exec callbacks are implemented for Dyninst, set
+     PR_FORK here, too.  It is not set now because otherwise the child
+     would inherit trap-on-exit from exec.  With no way for a mutator
+     to handle this stop, the child process would remain stopped
+     indefinitely. */
+  flags = PR_BPTADJ;
 #else
   if(process::pdFlavor == string("cow"))
   	flags = PR_KLC |  PR_BPTADJ;

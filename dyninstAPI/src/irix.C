@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.10 1999/08/09 05:50:24 csserra Exp $
+// $Id: irix.C,v 1.11 1999/10/29 22:32:32 zandy Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -384,12 +384,19 @@ bool process::attach()
   // step 3 - /proc PIOC{SET,RESET}:
   // a) turn on the kill-on-last-close flag (kills inferior with SIGKILL when
   //    the last writable /proc fd closes)
-  // b) turn on inherit-on-fork flag (tracing flags inherited when child forks).
+  // b) turn on inherit-on-fork flag (tracing flags inherited when
+  // child forks), Paradyn only.
   // c) turn off run-on-last-close flag (on by default)
-  // Also, any child of this process will stop at the exit of an exec call.
-  long flags = PR_FORK;
+  // Also, any child of this process will stop at the exit of an exec
+  // call, Paradyn only.
+  long flags = 0;
+  /* FIXME: When fork/exec callbacks are implemented for Dyninst, set
+     PR_FORK for Dyninst, too.  It is not set now because otherwise
+     the child would inherit trap-on-exit from exec.  With no way for
+     a mutator to handle this stop, the child process would remain
+     stopped indefinitely. */
 #ifndef BPATCH_LIBRARY
-  flags |= PR_KLC;
+  flags = PR_KLC | PR_FORK;
 #endif
   if (ioctl (fd, PIOCSET, &flags) < 0) {
     perror("process::attach(PIOCSET)");
