@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.h,v 1.8 1998/12/25 23:33:37 wylie Exp $
+// $Id: fastInferiorHeapHKs.h,v 1.9 1999/07/07 16:14:32 zhichen Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -205,28 +205,35 @@ class processTimerHK : public genericHK {
       // currently always 1000000; in theory, platform-dependent (e.g., for some
       // platform, the timer routines could return cycles instead of usecs)
 
+      // The per-thread virtual timer, so that we do not have to
+      // recalulate its address everytime
+   tTimer* vTimer; 
  public:
    processTimerHK() : genericHK() {
       // no-param ctor is required by fastInferiorHeap
       lowLevelId = 0;
       lastTimeValueUsed = 0;
+      vTimer = NULL ;
    }
    processTimerHK(int iCounterId,
 	          metricDefinitionNode *iMi,
 	          time64 iLastTimeValueUsed) : genericHK(iMi) {
       lowLevelId = iCounterId;
       lastTimeValueUsed = iLastTimeValueUsed;
+      vTimer = NULL ;
    }
 
    // new vector class wants copy-ctor defined
    processTimerHK(const processTimerHK &src) : genericHK(src) {
       lowLevelId = src.lowLevelId;
       lastTimeValueUsed = src.lastTimeValueUsed;
+      vTimer = src.vTimer ; //is this right?
    }
    
   ~processTimerHK() {}
    processTimerHK &operator=(const processTimerHK &src);
 
+   tTimer* vtimer() const { return vTimer;} 
    void assertWellDefined() const {
       assert(mi != NULL);
    }
