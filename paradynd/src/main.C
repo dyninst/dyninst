@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.31  1995/02/16 08:53:38  markc
+ * Revision 1.32  1995/02/26 22:46:19  markc
+ * Fixed for pvm version.  The pvm ifdefs are still ugly, but they compile.
+ *
+ * Revision 1.31  1995/02/16  08:53:38  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.30  1995/02/16  08:33:38  markc
@@ -213,7 +216,7 @@ int main(int argc, char *argv[])
     //     started by rsh, rexec, ugly code --> connect via socket
     //     started by exec --> use pipe
     
-    int pvm_id = pvm_mytid();
+    // int pvm_id = pvm_mytid();
 
     if (pvm_parent() != PvmNoParent) {
       // started by pvm_spawn
@@ -245,9 +248,7 @@ int main(int argc, char *argv[])
       assert(!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket, 1));
       // already setup on this FD.
       // disconnect from controlling terminal 
-      int ttyfd = open ("/dev/tty", O_RDONLY);
-      ioctl (ttyfd, TIOCNOTTY, NULL); 
-      close (ttyfd);
+      OS::osDisconnect();
       tp = new pdRPC(0, NULL, NULL);
     }
     assert(tp);
@@ -276,7 +277,6 @@ int main(int argc, char *argv[])
 	exit(-1);
       }
     } else {
-
       OS::osDisconnect();
       tp = new pdRPC(0, NULL, NULL);
       // configStdIO(false);
@@ -301,13 +301,12 @@ int main(int argc, char *argv[])
 int
 PDYND_report_to_paradyn (int pid, int argc, char **argv)
 {
-    String_Array sa;
-
-    sa.count = argc;
-    sa.data = argv;
-    
     assert(tp);
-    tp->newProgramCallbackFunc(pid, argc, sa, machine_name);
+    vector <string> as;
+    for (int i=0; i<argc; i++) 
+      as += argv[i];
+
+    tp->newProgramCallbackFunc(pid, as, machine_name);
     return 0;
 }
 #endif
