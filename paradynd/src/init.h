@@ -39,66 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: init.h,v 1.26 2000/04/28 20:40:18 paradyn Exp $
+
 #ifndef INIT_HDR
 #define INIT_HDR
-
-/*
- * $Log: init.h,v $
- * Revision 1.25  2000/04/20 22:46:04  mirg
- * Added instMPI() - MPI-related instrumentation. Since it is the same
- * on all platforms we could call it on AIX and IRIX as well, instead
- * of inlining the same code in init-*.C
- *
- * Revision 1.24  1999/07/07 16:18:28  zhichen
- *    Mutex, RwLock, CondVar ....
- *
- * Revision 1.23  1997/08/29 16:31:12  naim
- * Minor changes to fix problem on x86 + changed version 2.0 beta 1 to just
- * 2.0 for the release - naim
- *
- * Revision 1.22  1997/02/21 20:15:49  naim
- * Moving files from paradynd to dyninstAPI + eliminating references to
- * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.21  1997/01/27 19:40:43  naim
- * Part of the base instrumentation for supporting multithreaded applications
- * (vectors of counter/timers) implemented for all current platforms +
- * different bug fixes - naim
- *
- * Revision 1.20  1996/10/31 08:44:58  tamches
- * removed globalMetricVec, unused.
- *
- * Revision 1.19  1996/08/16 21:18:47  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.18  1996/08/12 16:27:15  mjrg
- * Code cleanup: removed cm5 kludges and some unused code
- *
- * Revision 1.17  1996/02/13 06:17:29  newhall
- * changes to how cost metrics are computed. added a new costMetric class.
- *
- * Revision 1.16  1996/02/12  16:46:12  naim
- * Updating the way we compute number_of_cpus. On solaris we will return the
- * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
- * which should be equal to the number of cpus - naim
- *
- * Revision 1.15  1996/02/10  21:01:44  naim
- * Changing name of metric number_of_nodes by number_of_cpus - naim
- *
- * Revision 1.14  1996/02/09  23:53:40  naim
- * Adding new internal metric number_of_nodes - naim
- *
- * Revision 1.13  1996/02/02  14:31:27  naim
- * Eliminating old definition for observed cost - naim
- *
- * Revision 1.12  1996/02/01  17:42:24  naim
- * Redefining smooth_obs_cost, fixing some bugs related to internal metrics
- * and adding a new definition for observed_cost - naim
- *
- * Revision 1.11  1995/12/18  15:03:09  naim
- * Eliminating all "daemon" metrics - naim
- *
- */
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"

@@ -39,45 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: init-pvm.C,v $
- * Revision 1.11  1998/08/28 01:38:09  zhichen
- * Make sure the useCount of the DAG generated are correct
- *
- * Revision 1.10  1997/02/21 20:15:46  naim
- * Moving files from paradynd to dyninstAPI + eliminating references to
- * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.9  1996/08/16 21:18:43  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.8  1996/04/08 21:23:08  lzheng
- * changes to accomodate DYNINSTalarmExpire_hpux
- *
- * Revision 1.7  1995/08/28 01:48:05  hollings
- * Corrected error with instMapping constructor for critical path.
- *
- * Revision 1.6  1995/08/24  15:03:53  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.5  1995/05/18  10:33:49  markc
- * Removed resource predicate definitions
- * Removed metric defintions
- *
- * Revision 1.4  1995/03/10  19:33:44  hollings
- * Fixed several aspects realted to the cost model:
- *     track the cost of the base tramp not just mini-tramps
- *     correctly handle inst cost greater than an imm format on sparc
- *     print starts at end of pvm apps.
- *     added option to read a file with more accurate data for predicted cost.
- *
- */
+// $Id: init-pvm.C,v 1.12 2000/04/28 20:40:18 paradyn Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"

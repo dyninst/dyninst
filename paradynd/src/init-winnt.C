@@ -39,19 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: init-winnt.C,v $
- * Revision 1.3  1999/07/07 16:18:03  zhichen
- * tidy
- *
- * Revision 1.2  1998/08/28 01:38:10  zhichen
- * Make sure the useCount of the DAG generated are correct
- *
- * Revision 1.1  1997/05/23 23:02:15  mjrg
- * Windows NT port
- *
- *
- */
+// $Id: init-winnt.C,v 1.4 2000/04/28 20:40:18 paradyn Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"

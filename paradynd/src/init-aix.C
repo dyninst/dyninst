@@ -39,66 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: init-aix.C,v $
- * Revision 1.13  1998/08/28 01:38:09  zhichen
- * Make sure the useCount of the DAG generated are correct
- *
- * Revision 1.12  1997/04/17 19:44:18  sec
- * Did some automatic instrumented of the MPI collective calls, to make sure
- * the message groups and tags are recorded.
- *
- * Revision 1.11  1997/03/29 02:07:52  sec
- * Adding instrumentation of MPI functions
- *
- * Revision 1.10  1997/02/21 20:15:45  naim
- * Moving files from paradynd to dyninstAPI + eliminating references to
- * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.9  1997/02/18 21:16:04  sec
- * Added some support for MPI functions, default instrumentation to catch
- * the msg tags, etc.
- * Removed the default instrumentation for DYNISTexecFailed on the exit point
- * for exec; this was always being called, even when exec worked, due to how
- * AIX handles exec.  This should make exec work now.
- *
- * Revision 1.8  1996/12/16 23:10:27  mjrg
- * bug fixes to fork/exec on all platforms, partial fix to fork on AIX
- *
- * Revision 1.7  1996/10/31 08:42:41  tamches
- * removed main-->DYNINSTinit() instrumentation in initOS()
- *
- * Revision 1.6  1996/08/16 21:18:41  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1996/05/08 23:54:42  mjrg
- * added support for handling fork and exec by an application
- * use /proc instead of ptrace on solaris
- * removed warnings
- *
- * Revision 1.4  1996/03/20 17:02:43  mjrg
- * Added multiple arguments to calls.
- * Instrument pvm_send instead of pvm_recv to get tags.
- *
- * Revision 1.3  1996/03/01 22:31:55  mjrg
- * Replaced calls at the exit point by a call to DYNINSTexit
- *
- * Revision 1.2  1995/12/15 22:26:46  mjrg
- * Merged paradynd and paradyndPVM
- * Get module name for functions from symbol table in solaris
- * Fixed code generation for multiple instrumentation statements
- * Changed syntax of MDL resource lists
- *
- * Revision 1.1  1995/08/24  15:03:50  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- */
+// $Id: init-aix.C,v 1.14 2000/04/28 20:40:17 paradyn Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"

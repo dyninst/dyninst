@@ -39,18 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: init-irix.C,v $
- * Revision 1.3  2000/03/02 18:39:58  chambrea
- * Added initial mappings to MPI functions to gather data and group data.
- *
- * Revision 1.2  1999/12/01 14:41:45  zhichen
- * Remove obsolete Blizzard related code
- *
- * Revision 1.1  1999/06/16 19:28:55  csserra
- * initial mips-sgi-irix6.4 paradynd commit
- *
- */
+// $Id: init-irix.C,v 1.4 2000/04/28 20:40:17 paradyn Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
