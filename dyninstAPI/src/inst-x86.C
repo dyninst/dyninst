@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.83 2001/07/02 22:45:17 gurari Exp $
+ * $Id: inst-x86.C,v 1.84 2001/07/03 21:40:07 gurari Exp $
  */
 
 #include <iomanip.h>
@@ -585,7 +585,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
        } else {
 	   // Temporary: Currently we can't relocate a function if it
 	   // contains a call to adr+5  
-           canBeRelocated = false;
+	   //canBeRelocated = false;
        }
      }
 
@@ -3110,7 +3110,7 @@ BaseTrampTrapHandler (int)//, siginfo_t*, ucontext_t*)
  * proc         The process in which to create the inst point.
  * address      The address for which to create the point.
  */
-BPatch_point *createInstructionInstPoint(process *proc, void *address)
+BPatch_point *createInstructionInstPoint(process* /* proc */, void *address)
 {
     BPatch_reportError(BPatchSerious, 109,
 	"BPatch_image::createInstPointAtAddr unimplemented on this platform");
@@ -3225,6 +3225,7 @@ bool pd_Function::loadCode(const image* /* owner */, process *proc,
     insn = new instruction(p, type, insnSize);   
     insnVec.push_back(*insn);
 
+    /*
     // check for the following instruction sequence:
     //
     //  call (0)       (PC relative address, where the target of call (0)
@@ -3243,19 +3244,12 @@ bool pd_Function::loadCode(const image* /* owner */, process *proc,
     if ( isTrueCallInsn((const instruction)(*insn)) && 
          get_disp(insn) == 0 && *(p + insnSize) == 0x5b ) {
 
-#if DEBUG_FUNC_RELOC
-         cerr << "WARNING: " << prettyName()  
-         cerr << "WARNING: " << prettyName()  
-              << " has a call to the next instruction." << endl;
-         cerr << " ...CANNOT RELOCATE FUNCTION" << endl;
-#endif
-
          relocatable_ = false;
 
          delete insn;
          return false;
     }
-  
+    */
 
     // update p so it points to the next machine code instruction
     p = p + insnSize; 
@@ -3860,6 +3854,51 @@ bool ExpandInstruction::RewriteFootprint(Address /* oldBaseAdr */,
   
 /****************************************************************************/
 /****************************************************************************/
+
+// Insert nops after the machine instruction pointed to by 
+// oldInstructions[oldOffset]
+
+bool PushEIP::RewriteFootprint(Address oldBaseAdr, Address &oldAdr, 
+                               Address newBaseAdr, Address &newAdr, 
+                               instruction oldInstructions[], 
+                               instruction newInstructions[], 
+                               int &oldInsnOffset, int &newInsnOffset,  
+                               int /* newDisp */, unsigned &codeOffset,
+                               unsigned char *code) 
+{
+
+#ifdef DEBUG_FUNC_RELOC
+    cerr << "PushEIP::RewriteFootprint" <<endl;
+#endif 
+
+  instruction oldInsn = oldInstructions[oldInsnOffset]; 
+  unsigned char *insn = (unsigned char *)(&code[codeOffset]);
+
+  // Push OpCode
+  *insn++ = 0x68;
+
+  // address of instruction following call, in original function location
+  *((int *)insn) = oldAdr + 5;
+
+  oldAdr += oldInsn.size();  // size of call instruction
+  newAdr += 5;               // push is 5 bytes
+  oldInsnOffset++;
+  newInsnOffset++;
+  codeOffset += 5;
+ 
+  // Generate x86 instruction object, and place it in buffer of instructions
+  unsigned newInsnType, newInsnSize;
+  newInsnSize = get_instruction(const_cast<const unsigned char *> (insn), 
+                                                            newInsnType);
+  newInstructions[newInsnOffset - 1] = *(new instruction(
+                                      const_cast<const unsigned char *> (insn),
+                                      newInsnType, newInsnSize));
+
+  return true;
+}
+
+/****************************************************************************/
+/****************************************************************************/
 /****************************************************************************/
 
 // Find overlapping instrumentation points 
@@ -4004,7 +4043,8 @@ bool pd_Function::PA_attachGeneralRewrites(
 			      const image* /* owner */,
                               LocalAlterationSet *temp_alteration_set, 
                               Address baseAddress, Address firstAddress,
-                              instruction* /* loadedCode */, 
+                              instruction* loadedCode,
+                              unsigned numInstructions, 
                               int /* codeSize */ ) {
 
 #ifdef DEBUG_FUNC_RELOC
@@ -4012,6 +4052,11 @@ bool pd_Function::PA_attachGeneralRewrites(
     cerr << " baseAddress = " << hex << baseAddress << endl;
     cerr << " firstAddress = " << hex << firstAddress << endl;
 #endif
+
+    int size;
+    int offset;
+    instruction instr;
+    Address instr_address;
 
     // create and sort vector of instPoints
     vector<instPoint*> foo;
@@ -4023,10 +4068,9 @@ bool pd_Function::PA_attachGeneralRewrites(
       // check if instPoint has enough space for jump
       instPoint *ip = foo[i];
       if (ip->size() < JUMP_REL32_SZ) {
+        offset = (ip->iPgetAddress() + baseAddress) - firstAddress; 
 
-        InsertNops *nops = new InsertNops(this, 
-                                         (ip->iPgetAddress()+baseAddress) - firstAddress, 
-                                          ip->extraBytes()); 
+        InsertNops *nops = new InsertNops(this, offset, ip->extraBytes());
 	temp_alteration_set->AddAlteration(nops);
 
 #ifdef DEBUG_FUNC_RELOC
@@ -4036,6 +4080,40 @@ bool pd_Function::PA_attachGeneralRewrites(
 #endif 
       }
     }
+
+    // address of first instruction in function    
+    instr_address = getAddress(0) + baseAddress;
+ 
+    // offset of instruction in function
+    offset = 0;
+
+    // size of previous instruction in function
+    size = 0;
+
+    // Iterate over all instructions looking for calls to adr+5
+    for(unsigned j = 0; j < numInstructions; j++) {       
+      instr = loadedCode[j];
+      instr_address += size;
+      
+      // check if instruction is a relative addressed call
+      if ( instr.isCall() && !instr.isCallIndir() ) {
+
+        if (instr.getTarget(instr_address) == instr_address + 5) {
+
+#ifdef DEBUG_FUNC_RELOC
+    cerr << "adding localAlteration for call to next instruction" 
+         << " at offset " << offset << endl;
+#endif              
+          PushEIP *eip = new PushEIP(this, offset); 
+	  temp_alteration_set->AddAlteration(eip);
+	}
+      }
+
+      // iterated over another instruction
+      size = instr.size();
+      offset += size;
+    }
+
     return true;
 }
 

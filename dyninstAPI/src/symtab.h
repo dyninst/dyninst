@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.85 2001/07/02 22:45:18 gurari Exp $
+// $Id: symtab.h,v 1.86 2001/07/03 21:40:07 gurari Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -387,7 +387,8 @@ class pd_Function : public function_base {
     bool PA_attachGeneralRewrites(const image *owner, 
                                   LocalAlterationSet *temp_alteration_set, 
                                   Address baseAddress, Address firstAddress,
-                                  instruction loadedCode[], int codeSize);
+                                  instruction loadedCode[], 
+                                  unsigned numInstructions, int codeSize);
 
 
     bool PA_attachOverlappingInstPoints(LocalAlterationSet *temp_alteration_set,

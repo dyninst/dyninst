@@ -311,11 +311,11 @@ bool expanded = true;
 #endif
 
   // discover which instPoints need to be expaned  
-  expanded = expandInstPoints( owner, &temp_alteration_set, 
-                               normalized_alteration_set, 
-                               baseAddress, mutator, mutatee, 
-                               oldInstructions, 
-                               numberOfInstructions); 
+  expanded = expandInstPoints(owner, &temp_alteration_set, 
+                              normalized_alteration_set, 
+                              baseAddress, mutator, mutatee, 
+                              oldInstructions, 
+                              numberOfInstructions); 
 
   if (expanded) { 
   // Check if the expansions discovered in expandInstPoints would require
@@ -466,13 +466,12 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
 // numberOfInstructions: # of insn's in function (as opposed to # of bytes)
 // temp_alteration_set: record of the needed expansions 
 
-bool pd_Function::expandInstPoints(
-                               const image *owner,
+bool pd_Function::expandInstPoints(const image *owner,
                                LocalAlterationSet *temp_alteration_set, 
                                LocalAlterationSet &normalized_alteration_set, 
                                Address baseAddress, Address mutator,
                                Address mutatee, instruction oldInstructions[], 
-                               unsigned numberOfInstructions ) {
+                               unsigned numInstructions) {
 
   bool combined1, combined2, combined3;
 
@@ -490,11 +489,11 @@ bool pd_Function::expandInstPoints(
   // Perform three passes looking for instPoints that need expansion
 
   PA_attachGeneralRewrites(owner, temp_alteration_set, baseAddress, 
-                           mutatee, oldInstructions, size());
+                           mutatee, oldInstructions, numInstructions, size());
   PA_attachOverlappingInstPoints(&tmp_alt_set1, baseAddress, 
                                  mutatee, oldInstructions, size());
   PA_attachBranchOverlaps(&tmp_alt_set2, baseAddress, mutator, 
-                          oldInstructions, numberOfInstructions, size());
+                          oldInstructions, numInstructions, size());
 
   // merge the LocalAlterations discovered in the above passes, placing
   // them in normalized_alteration_set 
@@ -849,8 +848,8 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
 
       nextAlter->RewriteFootprint(mutatee, oldAdr_after, 
                                   newAdr, newAdr_after, 
-                                  oldInstructions, newInstructions, oldInsnOffset,  
-                                  newInsnOffset, newDisp, 
+                                  oldInstructions, newInstructions, 
+                                  oldInsnOffset, newInsnOffset, newDisp, 
                                   codeOffset, relocatedCode);
 
       // update offsets by the # of bytes RewriteFootprint walked over
@@ -1024,6 +1023,9 @@ bool pd_Function::relocateFunction(process *proc,
                                    bool &deferred) {
 
     relocatedFuncInfo *reloc_info = 0;
+
+    // silence compiler warnings
+    assert(deferred || true);
 
     // how many bytes the function was expanded by
     unsigned size_change;

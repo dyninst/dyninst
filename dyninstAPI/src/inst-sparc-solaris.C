@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.83 2001/07/02 22:45:14 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.84 2001/07/03 21:40:06 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2996,6 +2996,7 @@ bool pd_Function::PA_attachGeneralRewrites( const image *owner,
                                             Address baseAddress, 
                                             Address firstAddress, 
                                             instruction loadedCode[], 
+                                            unsigned /* numInstructions */,
                                             int codeSize ) {
     instruction instr, nexti;
     TailCallOptimization *tail_call;

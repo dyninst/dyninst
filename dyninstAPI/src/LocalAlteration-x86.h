@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-x86.h,v 1.3 2001/03/07 21:03:25 pcroth Exp $
+// $Id: LocalAlteration-x86.h,v 1.4 2001/07/03 21:40:06 gurari Exp $
 
 #ifndef __LocalAlteration_X86_H__
 #define __LocalAlteration_X86_H__
@@ -53,6 +53,8 @@
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"
 
+
+// Expand jump or call instructions so they have larger displacements
 class ExpandInstruction : public LocalAlteration {
  private: 
     int extra_bytes;
@@ -61,6 +63,27 @@ class ExpandInstruction : public LocalAlteration {
     // constructor same as LocalAlteration except for extra field 
     //  specifying how many BYTES of nop....
     ExpandInstruction(pd_Function *f, int offset, int extra_bytes); 
+
+    virtual int getOffset() const;
+    virtual int getShift() const;
+    virtual int numInstrAddedAfter();
+    virtual bool UpdateExpansions(FunctionExpansionRecord *fer);
+    virtual bool UpdateInstPoints(FunctionExpansionRecord *ips);
+    virtual bool RewriteFootprint(Address oldBaseAdr, Address &oldAdr, 
+                                  Address newBaseAdr, Address &newAdr,
+                                  instruction oldInstructions[], 
+                                  instruction newInstructions[], 
+                                  int &oldOffset, int &newOffset,
+                                  int newDisp, 
+                                  unsigned &codeOffset,
+                                  unsigned char *code);
+};
+
+// Rewrite call to adr+5 to push EIP.
+class PushEIP : public LocalAlteration {
+ public:
+    // constructor same as LocalAlteration 
+    PushEIP(pd_Function *f, int offset); 
 
     virtual int getOffset() const;
     virtual int getShift() const;

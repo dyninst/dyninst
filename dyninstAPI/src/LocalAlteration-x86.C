@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-x86.C,v 1.3 2001/03/07 21:03:25 pcroth Exp $
+// $Id: LocalAlteration-x86.C,v 1.4 2001/07/03 21:40:06 gurari Exp $
 
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/LocalAlteration-x86.h"
@@ -60,7 +60,7 @@ bool ExpandInstruction::UpdateExpansions(FunctionExpansionRecord *fer) {
     return true;
 }
 
-// Update location of inst points in function.  In case of InsertNops, 
+// Update location of inst points in function.  In case of ExpandInstruction, 
 //  changes to inst points same as changes to branch targets....
 bool ExpandInstruction::UpdateInstPoints(FunctionExpansionRecord* /* ips */) {
     return true;
@@ -77,3 +77,36 @@ int ExpandInstruction::getShift() const {
 int ExpandInstruction::numInstrAddedAfter() {
     return 0;
 }
+
+
+// constructor for ExpandInstruction local alteration....
+PushEIP::PushEIP(pd_Function *f, int offset):
+    LocalAlteration(f, offset) 
+{ 
+
+}
+
+// 5 byte call should be replaced with 5 byte push, so no change in branch
+// targets
+bool PushEIP::UpdateExpansions(FunctionExpansionRecord* /* fer */) {
+    return true;
+}
+
+// Update location of inst points in function.  In case of PushEIP, 
+//  changes to inst points same as changes to branch targets....
+bool PushEIP::UpdateInstPoints(FunctionExpansionRecord* /* ips */) {
+    return true;
+}
+
+int PushEIP::getOffset() const {
+    return beginning_offset;
+}
+ 
+int PushEIP::getShift() const {
+    return 0;
+}
+
+int PushEIP::numInstrAddedAfter() {
+    return 0;
+}
+
