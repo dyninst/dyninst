@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.193 2002/04/17 21:18:13 schendel Exp $
+/* $Id: process.h,v 1.194 2002/04/18 19:40:06 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -65,7 +65,7 @@
 #include "common/h/Timer.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/os.h"
-// #include "paradynd/src/main.h"
+#include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/showerror.h"
 
 #if defined(MT_THREAD) && defined(rs6000_ibm_aix4_1)
@@ -126,8 +126,8 @@ class resource;
 class instPoint;
 class instInstance;
 class trampTemplate;
+class instReqNode;
 class pdThread;
-
 // TODO a kludge - to prevent recursive includes
 class image;
 
@@ -331,63 +331,6 @@ static inline unsigned instInstanceHash(instInstance * const &inst) {
 //  return ((unsigned)inst);
 }
 
-
-class Frame {
-  private:
-    bool      uppermost_;
-    Address   pc_;
-    Address   fp_;
-    Address   sp_;     // NOTE: this is not always populated
-    int       lwp_id_; // kernel-level thread (LWP)
-#if defined(mips_sgi_irix6_4)
-    Address   saved_fp;
-#endif
-    pdThread *thread_; // user-level thread
-
-  public:
-
-    /* platform-independent methods */
-
-    // process cconstructor (toplevel frame, particular LWP)
-    // Non-threaded applications assume LWP id = 0.
-    Frame(process *);
-
-    // default ctor (zero frame)
-    Frame() : uppermost_(false), pc_(0), fp_(0), lwp_id_(0), thread_(NULL) {}
-
-    Address getPC() const { return pc_; }
-    Address getFP() const { return fp_; }
-#ifdef mips_unknown_ce2_11 //ccw 6 feb 2001 : 29 mar 2001
-    Address getSP() const { return sp_; }
-#endif
-    int getLWP() const { return lwp_id_;}
-
-    // check for zero frame
-    bool isLastFrame() const { 
-      if (pc_ == 0) return true;
-      if (fp_ == 0) return true;
-      return false;
-    }
-
-    // get stack frame of caller
-    Frame getCallerFrame(process *proc) const;
-
-
-    /* platform-dependent methods */
-
-    // thread-specific ctors (see solaris.C, aix.C)
-    Frame(pdThread *);
-    Frame(int lwpid, Address fp, Address pc, bool uppermost)
-      : uppermost_(uppermost), pc_(pc), fp_(fp), lwp_id_(lwpid), thread_(NULL)
-    {}
-
-
- private:
-
-    // platform-dependent component of Frame::Frame(process *)
-    void getActiveFrame(process *);
-};
-
 typedef void (*continueCallback)(timeStamp timeOfCont);
 
 // inferior RPC callback function type
@@ -447,6 +390,7 @@ class process {
      // space, the shm seg was attached.  The attaching was done in DYNINSTinit)
 #endif
 
+  void walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool paused = false);
   
   // MT_AIX stuff
   // Keep the current "best guess" of the active kernel thread around
@@ -454,11 +398,8 @@ class process {
   bool collectSaveWorldData;//this is set to collect data for
 				//save the world
 
-  void walkStack(Frame currentFrame, vector<Address>&pcs, 
-                 vector<Address>&fps, bool noPause=false);
-
-  bool triggeredInStackFrame(instPoint* point, pd_Function* stack_fn,
-                             Address pc, callWhen when, callOrder order);
+  bool triggeredInStackFrame(instPoint* point, Frame frame,
+			     callWhen when, callOrder order);
 #if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
   // We have the pthread debug library to deal with
   pthdb_session_t *get_pthdb_session() { return &pthdb_session_; }
@@ -467,7 +408,7 @@ class process {
 #endif
 
   // Walk threads stacks
-  vector<vector<Address> > walkAllStack(bool noPause=false);
+  void walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = false);
   //  void walkAStack(Frame, vector<Address>&pcs, vector<Address>&fps);
   bool readDataFromLWPFrame(int lwp_id, 
                          Address currentFP, 
@@ -479,7 +420,8 @@ class process {
                          Address *previousFP, 
                          Address *rtn, 
                          bool uppermost=false);
-  bool getActiveFrame(Address *fp, Address *pc, int *lwpid);
+  Frame getActiveFrame(unsigned lwpid = 0); // Known lwp id
+  
 
   // Notify daemon of threads
 #if defined(MT_THREAD)
@@ -490,8 +432,10 @@ class process {
     unsigned start_pc, 
     void* resumestate_p, 
     bool);
+  // For initial thread (assume main is top func)
   void updateThread(pdThread *thr, int tid, unsigned pos, void* resumestate_p,
                     resource* rid) ;
+  // For new threads
   void updateThread(
     pdThread *thr, 
     int tid, 
@@ -500,17 +444,12 @@ class process {
     unsigned start_pc, 
     void* resumestate_p);
   void deleteThread(int tid);
-
-  // SAFE inferiorRPC
-  bool     handleDoneSAFEinferiorRPC(void);
-
-  // Given a thread ID, find the associated LWP
-  int findLWPbyPthread(int tid);
 #endif
 
   bool getLWPIDs(vector <unsigned> &LWPids);
-  bool getLWPFrame(int lwp_id, Address *fp, Address *pc);
-
+  // Given a thread ID, find the associated LWP
+  // If not threaded, always returns 0
+  int findLWPbyPthread(int tid);
 
   processState status() const { return status_;}
   int exitCode() const { return exitCode_; }
@@ -594,8 +533,7 @@ class process {
 
   void postRPCtoDo(AstNode *, bool noCost,
                    inferiorRPCcallbackFunc, void *data, int, 
-                   int thrId=(-1), 
-		   bool isSAFE=false,
+                   pdThread *thr, unsigned lwp,
 		   bool lowmem=false);
 
   bool existsRPCreadyToLaunch() const;
@@ -619,18 +557,23 @@ class process {
 #ifdef INFERIOR_RPC_DEBUG
   void CheckAppTrapIRPCInfo();
 #endif
+  // we have to clean them manually once they are done
+  bool handleDoneinferiorRPC(void);
   bool handleTrapIfDueToRPC();
 
   // look for curr PC reg value in 'trapInstrAddr' of 'currRunningRPCs'.
   // Return true iff found.  Also, if true is being returned, then
   // additionally does a 'launchRPCifAppropriate' to fire off the next
   // waiting RPC, if any.
-  bool changePC(Address addr);
 
   bool getCurrPCVector(vector <Address> &currPCs);
 
 #if defined(i386_unknown_solaris2_5)
   bool changeIntReg(int reg, Address addr);
+#endif
+
+#if !defined(BPATCH_LIBRARY)
+  bool catchupSideEffect(Frame &frame, instReqNode *inst);
 #endif
 
   void installBootstrapInst();
@@ -723,7 +666,8 @@ void saveWorldData(Address address, int size, const void* src);
 	 //void* GetRegisters() { return getRegisters(); }
 	 //ccw 10 aug 2000
 	 void* GetRegisters(unsigned int thrHandle) { return getRegisters(thrHandle); }
-	 void* getRegisters(unsigned int thrHandle);
+	 // Defined lower down
+	 //void* getRegisters(unsigned int thrHandle);
 	 //bool FlushInstructionCache(); //ccw 29 sep 2000 implemented in pdwinnt.C
 #endif
 
@@ -838,19 +782,10 @@ void saveWorldData(Address address, int size, const void* src);
   int exitCode_;                /* termination status code */
   processState status_;         /* running, stopped, etc. */
   vector<pdThread *> threads;   /* threads belonging to this process */
-#ifdef MT_THREAD 
-  hashTable *threadMap;         /* mapping table for tid->superTable */
-  Address DYNINST_allthreads_p ;  /* in libRTinst  */
-  Address allthreads ;            /* in libthread  */
-  vector<processMetFocusNode*> allMIComponentsWithThreads;
-  bool preambleForDYNINSTinit;
-  bool inThreadCreation;
 
-  // SAFE inferiorRPC
-  rpcToDo* DYNINSTthreadRPC; 
-  mutex_t* DYNINSTthreadRPC_mp;
-  cond_t*  DYNINSTthreadRPC_cvp;
-  int*     DYNINSTthreadRPC_pending_p;
+#ifndef BPATCH_LIBRARY
+  hashTable *threadMap;         /* mapping table for tid->superTable */
+  vector<processMetFocusNode*> allMIComponentsWithThreads;
 #endif
 
   bool continueAfterNextStop_;
@@ -899,16 +834,16 @@ void saveWorldData(Address address, int size, const void* src);
   // Don't confuse the two!
   struct inferiorRPCtoDo {
 
-     AstNode *action;
-     bool noCost; // if true, cost model isn't updated by generated code.
-     inferiorRPCcallbackFunc callbackFunc;
-     void *userData;
-     int mid;
-     bool lowmem; /* set to true when the inferior is low on memory */
-     int thrId;      // -1 for no threads 
-     bool isSafeRPC; // launch it as safe RPC or regular RPC
-                     // if DYNINSTinit, we launch it as regular RPC
-                     // otherwise launch it as MT RPC
+    AstNode *action;
+    bool noCost; // if true, cost model isn't updated by generated code.
+    inferiorRPCcallbackFunc callbackFunc;
+    void *userData;
+    int mid;
+    bool lowmem; /* set to true when the inferior is low on memory */
+    pdThread *thr;
+    unsigned lwp;
+    // if DYNINSTinit, we launch it as regular RPC
+    // otherwise launch it as MT RPC
   };
 
   int abortSyscall();
@@ -922,38 +857,41 @@ void saveWorldData(Address address, int size, const void* src);
   Address trampGuardAddr_;
                                                
   struct inferiorRPCinProgress {
-     // This structure keeps track of a launched inferiorRPC which we're
-     // waiting to complete.  Don't confuse with 'inferiorRPCtoDo', 
-     // which is more of a wait queue of RPCs to start launching.
-     // Also note: It's only safe for 1 (one) RPC to be in progress at a time.
-     // If you _really_ want to launch multiple RPCs at the same time, it's
-     // actually easy to do...just do one inferiorRPC with a sequenceNode AST!
-     // (Admittedly, that confuses the semantics of callback functions.  So the
-     // official line remains: only 1 inferior RPC per process can be ongoing.)
-     inferiorRPCcallbackFunc callbackFunc;
-     void *userData;
-     
-     void *savedRegs; // crucial!
-
-     bool wasRunning; // were we running when we launched the inferiorRPC?
-
-     Address firstInstrAddr; // start location of temp tramp
-
-     Address stopForResultAddr;
-        // location of TRAP or ILL which marks point where paradynd should grab
-        // the result register.  Undefined if no callback fn.
-     Address justAfter_stopForResultAddr; // undefined if no callback fn.
-     Register resultRegister; // undefined if no callback fn.
-
-     void *resultValue; // undefined until we stop-for-result, at which time we
-                        // fill this in.  callback fn (which takes this value)
-                        // isn't invoked until breakAddr (the final break)
-
-     Address breakAddr; // location of TRAP or ILL insn which 
-                        // marks the end of the inferiorRPC
-
-     bool isSafeRPC ;   // for threads
-     unsigned lwp;      // Target the RPC to a specific kernel thread?
+    // This structure keeps track of a launched inferiorRPC which we're
+    // waiting to complete.  Don't confuse with 'inferiorRPCtoDo', 
+    // which is more of a wait queue of RPCs to start launching.
+    // Also note: It's only safe for 1 (one) RPC to be in progress at a time.
+    // If you _really_ want to launch multiple RPCs at the same time, it's
+    // actually easy to do...just do one inferiorRPC with a sequenceNode AST!
+    // (Admittedly, that confuses the semantics of callback functions.  So the
+    // official line remains: only 1 inferior RPC per process can be ongoing.)
+    inferiorRPCcallbackFunc callbackFunc;
+    void *userData;
+    
+    void *savedRegs; // crucial!
+    
+    Address origPC;
+    
+    bool wasRunning; // were we running when we launched the inferiorRPC?
+    
+    Address firstInstrAddr; // start location of temp tramp
+    
+    Address stopForResultAddr;
+    // location of TRAP or ILL which marks point where paradynd should grab
+    // the result register.  Undefined if no callback fn.
+    Address justAfter_stopForResultAddr; // undefined if no callback fn.
+    Register resultRegister; // undefined if no callback fn.
+    
+    void *resultValue; // undefined until we stop-for-result, at which time we
+    // fill this in.  callback fn (which takes this value)
+    // isn't invoked until breakAddr (the final break)
+    
+    Address breakAddr; // location of TRAP or ILL insn which 
+    // marks the end of the inferiorRPC
+    
+    bool isSafeRPC ;   // was run as a "run later" funclet
+    pdThread *thr;     // thread that the sucker was run on
+    unsigned lwp;      // Target the RPC to a specific kernel thread?
   };
   vectorSet<inferiorRPCinProgress> currRunningRPCs;
       // see para above for reason why this 'vector' can have at most 1 elem!
@@ -963,41 +901,40 @@ void saveWorldData(Address address, int size, const void* src);
   //  PRIVATE MEMBER FUNCTIONS
   // 
 
+
+  Address createRPCImage(AstNode *action,
+			 bool noCost, bool careAboutResult,
+			 Address &breakAddr,
+			 Address &stopForResultAddr,
+			 Address &justAfter_stopForResultAddr,
+			 Register &resultReg, bool lowmem,
+			 pdThread *thr, unsigned lwp, bool isFunclet);
+
   bool need_to_wait(void) ;
   // The follwing 5 routines are implemented in an arch-specific .C file
-  bool emitInferiorRPCheader(void *, Address &baseBytes);
+  bool emitInferiorRPCheader(void *, Address &baseBytes, bool isFunclet);
+
+#if defined(MT_THREAD)
+  Address generateMTRPCCode(void *, Address &base, unsigned tid, unsigned pos);
+#endif
 
   bool emitInferiorRPCtrailer(void *, Address &baseBytes,
                               unsigned &breakOffset,
                               bool stopForResult,
                               unsigned &stopForResultOffset,
                               unsigned &justAfter_stopForResultOffset,
-                              int thrId=(-1),
-                              bool isMT=false);
-
-  Address createRPCtempTramp(AstNode *action,
-                              bool noCost, bool careAboutResult,
-                              Address &breakAddr,
-                              Address &stopForResultAddr,
-                              Address &justAfter_stopForResultAddr,
-                              Register &resultReg, bool lowmem=false,
-                              int thrId=(-1), bool isMT=false);
-
-  void *getRegisters();
+                              bool isFunclet);
+  void *getRegisters(); // Not given a particular kernel thread
+  void *getRegisters(unsigned lwp); // Given a particular kernel thread
      // ptrace-GETREGS and ptrace-GETFPREGS (or /proc PIOCGREG and PIOCGFPREG).
      // Result is returned in an opaque type which is allocated with new[]
 
-  bool changePC(Address addr,
-                const void *savedRegs // returned by getRegisters()
-                );
-
  private:
-  bool changePC(Address addr, const void *ignored,
-		int thrId);
 
-  bool executingSystemCall();
+  bool executingSystemCall(unsigned lwp = 0);
 
   bool restoreRegisters(void *buffer);
+  bool restoreRegisters(void *buffer, unsigned lwp);
      // input is the opaque type returned by getRegisters()
 
   bool set_breakpoint_for_syscall_completion();
@@ -1005,6 +942,13 @@ void saveWorldData(Address address, int size, const void* src);
   Address read_inferiorRPC_result_register(Register);
 
  public:
+
+  bool changePC(Address addr);
+  bool changePC(Address addr,
+                const void *savedRegs // returned by getRegisters()
+                );
+  bool changePC(Address addr, const void *ignored,
+		int lwp);
 
 #if !defined(i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   Address get_dlopen_addr() const;
@@ -1117,19 +1061,13 @@ void saveWorldData(Address address, int size, const void* src);
   // Check all loaded images for a function containing the given address.
   pd_Function *findFuncByAddr(Address adr);
 
-
-  // Correct a vector of PCs for the cases where any PC points to an
-  // address in one of our tramps.  The PC should point to the address
-  // to which the tramp returns
-  void correctStackFuncsForTramps(vector<Address> &, vector<pd_Function *> &);
-
   // Convert a vector of PCs (program counters) to vector of
   //  functions which contain them.  Should return vector
   //  with exactly 1 entry (function) per element of <pcs>
   //  NULL is used if address cannot be resolved to unique function.
   // Used to convert vector of pcs returned by walkStack() to
   //  functions....
-  vector <pd_Function*>convertPCsToFuncs(vector<Address> pcs);
+  pd_Function* convertFrameToFunc(Frame frame);
 
   // findModule: returns the module associated with "mod_name" 
   // this routine checks both the a.out image and any shared object 
@@ -1141,7 +1079,7 @@ void saveWorldData(Address address, int size, const void* src);
   // Same as vector <pd_Function*>convertPCsToFuncs(vector<Address> pcs);
   // except that NULL is not used if address cannot be resolved to unique 
   // function. Used in function relocation for x86.
-  vector<pd_Function *>pcsToFuncs(vector<Address> pcs);
+  vector<pd_Function *>pcsToFuncs(vector<Frame> stackWalk);
 #endif
 
 
@@ -1367,16 +1305,17 @@ public:
 
   Address currentPC() {
     Address pc;
-    if (hasNewPC) {
-      return currentPC_;
-    } else if ((pc = Frame(this).getPC())) {
+    if (!hasNewPC) {
+      Frame currFrame = getActiveFrame();
+      pc = currFrame.getPC();
+      assert(pc);
       currentPC_ = pc;
-      return currentPC_;
-    } else {
-      abort();
     }
-    return 0;
+    return currentPC_;
   }
+
+  Address currentPC(pdThread *thr, unsigned lwp);
+
   void setNewPC(Address newPC) {
     currentPC_ = newPC;
     hasNewPC = true;

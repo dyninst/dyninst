@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.317 2002/04/17 21:18:12 schendel Exp $
+// $Id: process.C,v 1.318 2002/04/18 19:40:05 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -55,9 +55,7 @@ int pvmendtask();
 #endif
 #include "common/h/headers.h"
 #include "dyninstAPI/src/symtab.h"
-#ifndef BPATCH_LIBRARY
 #include "dyninstAPI/src/pdThread.h"
-#endif
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/inst.h"
@@ -206,13 +204,13 @@ bool waitingPeriodIsOver()
   }
   return(waiting);
 }
-// Frame(process *): return toplevel (active) stack frame
-// (platform-independent wrapper)
-Frame::Frame(process *p)
-  : uppermost_(true), pc_(0), fp_(0), lwp_id_(0), thread_(NULL)
-{
-  if (p->curr_lwp) lwp_id_ = p->curr_lwp;
-  getActiveFrame(p);
+ostream& operator<<(ostream&s, const Frame &f) {
+  int tid = 0;
+  if (f.thread_)
+    tid = f.thread_->get_tid();
+  fprintf(stderr, "Frame PC: %x, FP: %x, PID: %d, TID: %d, LWP: %d\n",
+	  (unsigned) f.pc_, (unsigned) f.fp_, f.pid_, tid, f.lwp_);
+  return s;
 }
 
 #if defined(USE_STL_VECTOR)
@@ -245,92 +243,32 @@ Address process::getTOCoffsetInfo(Address /*dest */)
 }
 #endif
 
-#if defined(mips_unknown_ce2_11) //ccw 6 feb 2001 : 29 mar 2001
-//ccw 6 feb 2001 : windows CE does not have the NT walkStack function
-//so we use this one.
-
-void process::walkStack(Frame currentFrame, vector<Address>&pcs, 
-                        vector<Address>& /* fps*/, bool noPause)
-{
-  bool needToCont = noPause ? false : (status() == running);
-
-  if (pause()) {
-    Address spOld = 0xffffffff;
-
-    while (!currentFrame.isLastFrame()) {
-      Address spNew = currentFrame.getSP(); // ccw 6 feb 2001 : should get SP?
-
-      // successive frame pointers might be the same (e.g. leaf functions)
-      if (spOld < spNew) {
-
-        // not moving up stack
-        if (!noPause && needToCont && !continueProc()) {
-	  cerr << "walkStack: continueProc failed" << endl;
-	}
-
-	vector<Address> ev; // empty vector
-        pcs = ev;
-
-	return;
-      }
-
-      spOld = spNew;
-
-      Address next_pc = currentFrame.getPC();
-      // printf("currentFrame pc = %p\n",next_pc);
-      pcs.push_back(next_pc);
-
-	  //ccw 6 feb 2001 : at this point, i need to use the 
-	  //list of functions parsed from the debug symbols to
-	  //determine the frame size for each function and find the 
-	  //return value for each (which is the previous fir value)
-      currentFrame = currentFrame.getCallerFrame(this); 
-
-    }
-
-    pcs.push_back(currentFrame.getPC());
-  }
-
-  if (!noPause && needToCont) {
-     if (!continueProc()){
-        cerr << "walkStack: continueProc failed" << endl;
-     }
-  }  
-
-  return;
-}
-
-#elif !defined(i386_unknown_nt4_0)
 // Windows NT has its own version of the walkStack function in pdwinnt.C
-// Note: it may not always be possible to do a correct stack walk.
-// If it can't do a complete walk, the function should return an empty
-// vector, which means that there was an error, and we can't walk the stack.
-//
-// Multithreaded AIX addition: in the case when we have a multithreaded program
-// but are only using the standard daemon, use the cached kernel thread ID to
-// do the ptracing. This is contained in the frame class, but bears mentioning
-// because of the main-search behavior.
-void process::walkStack(Frame currentFrame, vector<Address> &pcs,
-                        vector<Address> &fps, bool noPause) 
+
+// Note: stack walks may terminate early. Previous behavior was to return
+// an empty stack in this case. However, no error handling was being done.
+// Current behavior is to return what we have. 
+
+#if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
+void process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool paused)
 {
   u_int sig_size   = 0;
   Address sig_addr = 0;
-
-  pcs.resize(0);
-  fps.resize(0);
+  
+  stackWalk.resize(0);
 
   Address next_pc = 0;
   Address leaf_pc = 0;
   Address fpOld   = 0;
   Address fpNew   = 0;
 
-  bool needToCont = noPause ? false : (status() == running);
+  bool needToCont = paused ? false : (status() == running);
 
 #ifndef BPATCH_LIBRARY
   startTimingStackwalk();
 #endif
 
-  if (!noPause && !pause()) {
+  if (!paused && !pause()) {
       cerr << "walkStack: pause failed" << endl;
 
 #ifndef BPATCH_LIBRARY
@@ -339,18 +277,15 @@ void process::walkStack(Frame currentFrame, vector<Address> &pcs,
       return;
   }
 
-
-
   if(signal_handler){
-      const image *sig_image = (signal_handler->file())->exec();
-
-      if(getBaseAddress(sig_image, sig_addr)){
-          sig_addr += signal_handler->getAddress(this);
-      } else {
-          sig_addr = signal_handler->getAddress(this);
-      }
-
-      sig_size = signal_handler->size();
+    const image *sig_image = (signal_handler->file())->exec();
+    
+    if(getBaseAddress(sig_image, sig_addr)){
+      sig_addr += signal_handler->getAddress(this);
+    } else {
+      sig_addr = signal_handler->getAddress(this);
+    }
+    sig_size = signal_handler->size();
   }
 
 
@@ -368,7 +303,7 @@ void process::walkStack(Frame currentFrame, vector<Address> &pcs,
       if (fpOld > fpNew) {
 
 
-        if (!noPause && needToCont && !continueProc()) {
+        if (!paused && needToCont && !continueProc()) {
             cerr << "walkStack: continueProc failed" << endl;
         }
 
@@ -379,24 +314,15 @@ void process::walkStack(Frame currentFrame, vector<Address> &pcs,
 	// One thing that makes me feel better: gdb is getting royally
 	// confused as well. This sucks for catchup.
 
-        // empty vector
-        vector<Address> ev;
-
-#ifndef BPATCH_LIBRARY
-        stopTimingStackwalk();
-#endif
-#ifndef rs6000_ibm_aix4_1
-        pcs = ev;
-#endif
+	// We should check to see if this early exit is warranted.
         return;
       }
-
       fpOld = fpNew;
 
       next_pc = currentFrame.getPC();
-      pcs.push_back(next_pc);
-      fps.push_back(fpOld);
-      //fprintf(stderr, "   0x%x/0x%x\n", fpOld, next_pc);
+      stackWalk.push_back(currentFrame);
+      if (pd_debug_catchup)
+	cerr << "Debug: " << currentFrame;
 
       // is this pc in the signal_handler function?
       if(signal_handler && (next_pc >= sig_addr)
@@ -406,22 +332,23 @@ void process::walkStack(Frame currentFrame, vector<Address> &pcs,
           // handler was called.  If so, then an extra frame should be added
           // for the leaf function...the call to getCallerFrame
           // will get the function that called the leaf function
-          leaf_pc = 0;
-
-          if(this->needToAddALeafFrame(currentFrame,leaf_pc)){
-              pcs.push_back(leaf_pc);
-              fps.push_back(fpOld);
-          }
+	leaf_pc = 0;
+	
+	if(this->needToAddALeafFrame(currentFrame,leaf_pc)){
+	  stackWalk.push_back(Frame(leaf_pc, fpOld,
+				    currentFrame.getPID(),
+				    currentFrame.getThread(),
+				    currentFrame.getLWP(),
+				    false));
+	}
       }
-
+      
       currentFrame = currentFrame.getCallerFrame(this); 
     }
-
-    pcs.push_back(currentFrame.getPC());
-    fps.push_back(fpOld);
+    stackWalk.push_back(currentFrame);
   }
 
-  if (!noPause && needToCont) {
+  if (!paused && needToCont) {
      if (!continueProc()){
         cerr << "walkStack: continueProc failed" << endl;
      }
@@ -431,7 +358,7 @@ void process::walkStack(Frame currentFrame, vector<Address> &pcs,
   stopTimingStackwalk();
 #endif
 }
-
+#endif
 
 #if defined(MT_THREAD)
 /*
@@ -484,8 +411,8 @@ bool process::init_pthdb_library()
   callbacks.symbol_addrs = NULL;
   callbacks.read_data = PTHDB_read_data;
   callbacks.write_data = PTHDB_write_data;
-  callbacks.read_regs = NULL;
-  callbacks.write_regs = NULL;
+  callbacks.read_regs = PTHDB_read_regs;
+  callbacks.write_regs = PTHDB_write_regs;
   callbacks.alloc = PTHDB_alloc;
   callbacks.realloc = PTHDB_realloc;
   callbacks.dealloc = PTHDB_dealloc;
@@ -505,17 +432,15 @@ bool process::init_pthdb_library()
 #endif
 
 
-vector<vector<Address> > process::walkAllStack(bool noPause) {
+void process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = false)
+{
+  vector<Frame> stackWalk;
+  bool needToCont = paused ? false : (status() == running);
+  allStackWalks.resize(0);
 
-  vector<vector<Address> > result;
-  vector<vector<Address> > stack_buffer;
-  vector<Address> pcs;
-  vector<Address> fps;
-  bool needToCont = noPause ? false : (status() == running);
-
-  if (!noPause && !pause()) {
+  if (!paused && !pause()) {
      cerr << "walkAllStack: pause failed" << endl;
-     return result;
+     return;
   }
  
 #ifndef BPATCH_LIBRARY
@@ -523,77 +448,27 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
 #endif
 
 
-  if (pause()) {
-
 #ifdef rs6000_ibm_aix4_1
-    // AIX: initialize the pthread debug library
-    init_pthdb_library();
+  // AIX: initialize the pthread debug library
+  // Should do this in a one-time-initialization place
+  init_pthdb_library();
 #endif
 
-    // Walk the lwp stack first, walk a thread stack only if it is not active
-    // If we walk an active thread stack, information may be incorrect. 
-    int i=0;
-    vector<Address> lwp_stack_lo;
-    vector<Address> lwp_stack_hi;
-    vector<unsigned> lwpIDs;
-
-    if (getLWPIDs(lwpIDs)) {
-
-      for (unsigned iter = 0; iter < lwpIDs.size(); iter++){
-        int lwp_id = lwpIDs[i] ;
-        Address fp, pc;
-
-        if (getLWPFrame(lwp_id, &fp, &pc)) {
-          Frame currentFrame(lwp_id, fp, pc, true);
-
-	  //cerr << "Walking stack, lwp_id " << lwp_id << endl;
-          walkStack(currentFrame, pcs, fps, noPause);
-
-	  stack_buffer.push_back(pcs);
-          lwp_stack_hi.push_back(fps[fps.size()-1]);
-          lwp_stack_lo.push_back(fps[0]);
-        }
-
-        i++ ;
-      }
-    }
-
-    for (unsigned j=0; j< lwp_stack_lo.size(); j++) {
-      sprintf(errorLine, "lwp[%d], stack_lo=0x%lx, stack_hi=0x%lx\n", 
-	      j, lwp_stack_lo[j], lwp_stack_hi[j]);
-      logLine(errorLine);
-    }
-
+  if (pause()) {
     //Walk thread stacks
+    // Assume that the frame constructor will tell if the
+    // thread is currently scheduled, and if so walk via LWP
+    // id if necessary
     for (unsigned i=0; i<threads.size(); i++) {
-        Frame currentFrame(threads[i]);
-        Address stack_lo = currentFrame.getFP();
-
-        //sprintf(errorLine, "stack_lo[%d]=0x%lx\n", i, stack_lo);
-        //logLine(errorLine);
-
-        bool active = false;
-
-        // If we find a match in the non-running list (stack_buffer), 
-        // add it to result. This basically sorts the resulting buffer
-        // by lwp id. The sorting is assumed in the catchup code. 
-        // Alternative: use a structure which is a (thread id, vector) pair.
-        for (unsigned j=0; j< lwp_stack_lo.size(); j++) {
-          if (stack_lo >= lwp_stack_lo[j] && stack_lo <= lwp_stack_hi[j]){
-            active = true;
-	    result.push_back(stack_buffer[j]);
-            break;
-          }
-        }
-        
-        if (!active) {
-          walkStack(currentFrame, pcs, fps, noPause);
-          result.push_back(pcs);
-        }
+      Frame currentFrame = threads[i]->getActiveFrame();
+      cerr << "Walking stack of frame " << currentFrame << endl;
+      walkStack(currentFrame, stackWalk, paused);
+      allStackWalks.push_back(stackWalk);
+      stackWalk.resize(0);
     }
   }
 
-  if (!noPause && needToCont) {
+  if (!paused && needToCont) {
      if (!continueProc()){
         cerr << "walkAllStack: continueProc failed" << endl;
      }
@@ -602,43 +477,25 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
 #ifndef BPATCH_LIBRARY
   stopTimingStackwalk();
 #endif
-
-  return result;
 }
 #endif //MT_THREAD
-#endif
 
-void process::correctStackFuncsForTramps(vector<Address> &pcs, 
-                                         vector<pd_Function *> &funcs)
+pd_Function *process::convertFrameToFunc(Frame frame) 
 {
+  pd_Function *func = NULL;
+  func = (pd_Function *)findFuncByAddr(frame.getPC());
+
   instPoint *ip;
   function_base *fn;
-
-  for(unsigned i=0; i < pcs.size(); i++) {
-
-    ip = findInstPointFromAddress(this, pcs[i]);
-    if( ip ) {
-
-      fn = const_cast<function_base*>( ip->iPgetFunction() );
-      if( fn ) {
-        funcs[i] = (pd_Function *) fn;
-      }
+  ip = findInstPointFromAddress(this, frame.getPC());
+  if( ip ) {
+    fn = const_cast<function_base*>( ip->iPgetFunction() );
+    if( fn ) {
+      func = (pd_Function *) fn;
     }
   }
+  return func;
 }
-
-
-vector<pd_Function *> process::convertPCsToFuncs(vector<Address> pcs) {
-    vector <pd_Function *> ret;
-    unsigned i;
-        pd_Function *fn;
-    for(i=0;i<pcs.size();i++) {
-                fn = (pd_Function *)findFuncByAddr(pcs[i]);
-        ret.push_back(fn);
-    }
-    return ret;
-}
-
 
 // triggeredInStackFrame is used to determine whether instrumentation
 //   added at the specified instPoint/callWhen/callOrder would have been
@@ -655,21 +512,36 @@ vector<pd_Function *> process::convertPCsToFuncs(vector<Address> pcs) {
 //   return address of the callsite (indicating that the call is
 //   currently executing), triggeredInStackFrame will return true.
 
-bool process::triggeredInStackFrame(instPoint* point, pd_Function* stack_fn,
-                                    Address pc, callWhen when, callOrder order)
+bool process::triggeredInStackFrame(instPoint* point,  Frame frame, 
+				    callWhen when, callOrder order)
 {
-  //cerr << "process::triggeredInStackFrame - stack_fn: " 
-  //     << stack_fn->prettyName() << " (" << (void*)stack_fn
-  //     << "), point->iPgetFunction: " << point->iPgetFunction()->prettyName()
-  //     << " (" << (void*)point->iPgetFunction() << ")\n";
   //this->print(stderr, ">>> triggeredInStackFrame(): ");
   trampTemplate *tempTramp;
   bool retVal = false;
-
-  if (stack_fn != point->iPgetFunction()) return false;
-
+  pd_Function *instPoint_fn = dynamic_cast<pd_Function *>
+    (const_cast<function_base *>
+     (point->iPgetFunction()));
+  pd_Function *stack_fn;
+  stack_fn = convertFrameToFunc(frame);
+  if (stack_fn != instPoint_fn) {
+    if (pd_debug_catchup) {
+      cerr << "Stack function does not equal instPoint function" << endl;
+      if (stack_fn) {
+	vector<string> name = stack_fn->prettyNameVector();
+	if (name.size())
+	  cerr << "Stack function: " << name[0] << endl;
+      }
+      if (instPoint_fn) {
+	vector<string> name = instPoint_fn->prettyNameVector();
+	if (name.size())
+	  cerr << "instP function: " << name[0] << endl;
+      }
+    }
+    return false;
+  }
+  Address pc = frame.getPC();
   if ( pd_debug_catchup )
-      cerr << "In triggeredInStackFrame : stack function matches function containing instPoint" << endl;
+    cerr << "In triggeredInStackFrame : stack function matches function containing instPoint" << endl;
   
   //  Is the pc within the instPoint instrumentation?
   instPoint* currentIp = findInstPointFromAddress(this, pc);
@@ -934,7 +806,7 @@ static Address alignAddress(Address addr, unsigned align) {
 
 // disItem was previously declared const, but heap management
 // occasionally deletes such items
-bool isFreeOK(process *proc, disabledItem &dis, vector<Address> &pcs)
+bool isFreeOK(process *proc, disabledItem &dis, vector<Frame> stackWalk)
 {
   Address disPointer = dis.block.addr;
   inferiorHeap *hp = &proc->heap;
@@ -955,8 +827,8 @@ bool isFreeOK(process *proc, disabledItem &dis, vector<Address> &pcs)
   assert(ptr);
 
   vector<addrVecType> &points = dis.pointsToCheck; 
-  for (unsigned pci = 0; pci < pcs.size(); pci++) {
-    Address pc = pcs[pci];
+  for (unsigned pci = 0; pci < stackWalk.size(); pci++) {
+    Address pc = stackWalk[pci].getPC();
     // Condition 1: PC is inside current block
     if ((pc >= ptr->addr) && (pc <= ptr->addr + ptr->length)) {
       return false;
@@ -1053,15 +925,12 @@ void inferiorFreeCompact(inferiorHeap *hp)
 void inferiorFreeDeferred(process *proc, inferiorHeap *hp, bool runOutOfMem)
 {
   // The curr_lwp parameter is IGNORED on non-AIX platforms.
-  Frame currentFrame(proc);
-  vector<Address> pcs;
-  vector<Address> fps;
-  proc->walkStack(currentFrame, pcs, fps);
+  Frame currentFrame = proc->getActiveFrame();
+  vector<Frame> stackWalk;
+  proc->walkStack(currentFrame, stackWalk);
 
-#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   // if walkStack() fails, assume not safe to delete anything
-  if (pcs.size() == 0) return;
-#endif
+  if (stackWalk.size() == 0) return;
 
   // set allowed deletion time
   timeLength maxDelTime = MaxDeletingTime;
@@ -1082,7 +951,7 @@ void inferiorFreeDeferred(process *proc, inferiorHeap *hp, bool runOutOfMem)
     }
 
     disabledItem &item = disabled[i];
-    if (isFreeOK(proc, item, pcs)) {
+    if (isFreeOK(proc, item, stackWalk)) {
       heapItem *np = NULL;
       Address pointer = item.block.addr;
       if (!hp->heapActive.find(pointer, np)) {
@@ -1807,8 +1676,13 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
   imd_rpc_ret ret = { false, NULL };
 
   /* set lowmem to ensure there is space for inferior malloc */
-  p->postRPCtoDo(code, true, &inferiorMallocCallback, &ret, -1, -1, 
-                                                      false, true);
+  p->postRPCtoDo(code, true, // noCost
+		 &inferiorMallocCallback, 
+		 &ret,
+		 -1, 
+		 NULL, // No thread required 
+		 0,    // No lwp in particular
+		 true); // But use reserved memory
 
   extern void checkProcStatus();
   do {
@@ -1902,10 +1776,6 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
       inferiorMallocDynamic(p, size, lo, hi);
       break;
     case 4: // remove range constraints
-      /*
-      fprintf(stderr, "Removing address limits: looking for 0x%x near 0x%x. Old constraints: 0x%x - 0x%x\n", 
-	      (unsigned int) size, (unsigned int) near_, (unsigned int)lo, (unsigned int)hi);
-      */
       lo = ADDRESS_LO;
       hi = ADDRESS_HI;
       if (err) {
@@ -2164,28 +2034,18 @@ process::process(int iPid, image *iImage, int iTraceLink
   pendingSig = 0;
 #endif /* DETACH_ON_THE_FLY */
 
-#if defined(MT_THREAD)
-    preambleForDYNINSTinit=true;
-    inThreadCreation=false;
-    DYNINSTthreadRPC = 0 ;      //for safe inferiorRPC
-    DYNINSTthreadRPC_mp = NULL ;
-    DYNINSTthreadRPC_cvp = NULL;
-    DYNINSTthreadRPC_pending_p =  NULL;
-    DYNINST_allthreads_p = 0 ;  //for look into the thread package
-    allthreads = 0 ;            // and the live threads
-#endif
-    hasBootstrapped = false;
-    save_exitset_ptr = NULL;
-
-    // the next two variables are used only if libdyninstRT is dynamically linked
-    hasLoadedDyninstLib = false;
-    isLoadingDyninstLib = false;
+  hasBootstrapped = false;
+  save_exitset_ptr = NULL;
+  
+  // the next two variables are used only if libdyninstRT is dynamically linked
+  hasLoadedDyninstLib = false;
+  isLoadingDyninstLib = false;
 
 #if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-    dyninstlib_brk_addr = 0;
-    main_brk_addr = 0;
+  dyninstlib_brk_addr = 0;
+  main_brk_addr = 0;
 #endif
-
+  
     reachedFirstBreak = false; // haven't yet seen first trap
     wasRunningWhenAttached = false;
     reachedVeryFirstTrap = false;
@@ -2355,16 +2215,6 @@ process::process(int iPid, image *iSymbols,
 #endif /* DETACH_ON_THE_FLY */
 
 
-#if defined(MT_THREAD)
-   inThreadCreation=false;
-   preambleForDYNINSTinit=true;
-   DYNINSTthreadRPC = 0 ;
-   DYNINSTthreadRPC_mp = NULL ;
-   DYNINSTthreadRPC_cvp = NULL;
-   DYNINSTthreadRPC_pending_p = NULL;
-   DYNINST_allthreads_p = 0 ;
-   allthreads = 0 ;
-#endif
    RPCs_waiting_for_syscall_to_complete = false;
    save_exitset_ptr = NULL;
    stoppedInSyscall = false;
@@ -2607,16 +2457,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #endif /* DETACH_ON_THE_FLY */
 
     // This is the "fork" ctor
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-    inThreadCreation=false;
-    preambleForDYNINSTinit=true;
-    DYNINSTthreadRPC = 0 ;
-    DYNINSTthreadRPC_mp = NULL ;
-    DYNINSTthreadRPC_cvp = NULL;
-    DYNINSTthreadRPC_pending_p = NULL;
-    DYNINST_allthreads_p = 0 ;
-    allthreads = 0 ;
-#endif
     RPCs_waiting_for_syscall_to_complete = false;
     save_exitset_ptr = NULL;
     stoppedInSyscall = false;
@@ -3027,8 +2867,8 @@ tp->resourceBatchMode(true);
 
 void process::DYNINSTinitCompletionCallback(process* theProc,
                                             void* userData, // user data
-                                            void* /*ret*/ // return value from DYNINSTinit
-                                            ) {
+                                            void* /*ret*/) // return value from DYNINSTinit
+{
    attach_cerr << "Welcome to DYNINSTinitCompletionCallback" << endl;
    if (NULL != userData && 0==strcmp((char*)userData, "viaCreateProcess"))
      theProc->handleCompletionOfDYNINSTinit(false);
@@ -3041,237 +2881,238 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 #ifdef BPATCH_LIBRARY
                    , process *&newProcess
 #endif
-                   ) {
-   // implementation of dynRPC::attach() (the igen call)
-   // This is meant to be "the other way" to start a process (competes w/ createProcess)
-
-   // progpath gives the full path name of the executable, which we use ONLY to
-   // read the symbol table.
-
-   // We try to make progpath optional, since given pid, we should be able to
-   // calculate it with a clever enough search of the process' PATH, examining
-   // its argv[0], examining its current directory, etc.  /proc gives us this
-   // information on solaris...not sure about other platforms...
-
-   // possible values for afterAttach: 1 --> pause, 2 --> run, 0 --> leave as is
-
-   attach_cerr << "welcome to attachProcess for pid " << pid << endl;
-
-   // QUESTION: When we attach to a process, do we want to redirect its stdout/stderr
-   //           (like we do when we fork off a new process the 'usual' way)?
-   //           My first guess would be no.  -ari
-   //           But although we may ignore the io, we still need the trace stream.
-
-   // When we attach to a process, we don't fork...so this routine is much simpler
-   // than its "competitor", createProcess() (above).
-
-   string fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
-   if (!fullPathToExecutable.length())
-      return false;
-
+                   ) 
+{
+  // implementation of dynRPC::attach() (the igen call)
+  // This is meant to be "the other way" to start a process (competes w/ createProcess)
+  
+  // progpath gives the full path name of the executable, which we use ONLY to
+  // read the symbol table.
+  
+  // We try to make progpath optional, since given pid, we should be able to
+  // calculate it with a clever enough search of the process' PATH, examining
+  // its argv[0], examining its current directory, etc.  /proc gives us this
+  // information on solaris...not sure about other platforms...
+  
+  // possible values for afterAttach: 1 --> pause, 2 --> run, 0 --> leave as is
+  
+  attach_cerr << "welcome to attachProcess for pid " << pid << endl;
+  
+  // QUESTION: When we attach to a process, do we want to redirect its stdout/stderr
+  //           (like we do when we fork off a new process the 'usual' way)?
+  //           My first guess would be no.  -ari
+  //           But although we may ignore the io, we still need the trace stream.
+  
+  // When we attach to a process, we don't fork...so this routine is much simpler
+  // than its "competitor", createProcess() (above).
+  
+  string fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
+  if (!fullPathToExecutable.length())
+    return false;
+  
 #ifndef BPATCH_LIBRARY
-   tp->resourceBatchMode(true);
-      // matching bump-down occurs in procStopFromDYNINSTinit().
+  tp->resourceBatchMode(true);
+  // matching bump-down occurs in procStopFromDYNINSTinit().
 #endif
-
-
-   int status = pid;
-   fileDescriptor *desc = getExecFileDescriptor(fullPathToExecutable,
-						status, false);
-   if (!desc)
-     return false;
-
-   image *theImage = image::parseImage(desc);
-   if (theImage == NULL) {
-      // two failure return values would be useful here, to differentiate
-      // file-not-found vs. catastrophic-parse-error.
-      string msg = string("Unable to parse image: ") + fullPathToExecutable;
-      showErrorCallback(68, msg.string_of());
-      return false; // failure
-   }
-
+  
+  
+  int status = pid;
+  fileDescriptor *desc = getExecFileDescriptor(fullPathToExecutable,
+					       status, false);
+  if (!desc)
+    return false;
+  
+  image *theImage = image::parseImage(desc);
+  if (theImage == NULL) {
+    // two failure return values would be useful here, to differentiate
+    // file-not-found vs. catastrophic-parse-error.
+    string msg = string("Unable to parse image: ") + fullPathToExecutable;
+    showErrorCallback(68, msg.string_of());
+    return false; // failure
+  }
+  
 #ifdef SHM_SAMPLING
-   vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
-   theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
-   theShmHeapStats[0].maxNumElems  = numIntCounters;
-
-   theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
-   theShmHeapStats[1].maxNumElems  = numWallTimers;
-
-   theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
-   theShmHeapStats[2].maxNumElems  = numProcTimers;
+  vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
+  theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
+  theShmHeapStats[0].maxNumElems  = numIntCounters;
+  
+  theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
+  theShmHeapStats[1].maxNumElems  = numWallTimers;
+  
+  theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
+  theShmHeapStats[2].maxNumElems  = numProcTimers;
 #endif
-
-   // NOTE: the actual attach happens in the process "attach" constructor:
-   bool success=false;
-   process *theProc = new process(pid, theImage, afterAttach, success
+  
+  // NOTE: the actual attach happens in the process "attach" constructor:
+  bool success=false;
+  process *theProc = new process(pid, theImage, afterAttach, success
 #ifdef SHM_SAMPLING
-                                  ,7000, // shm seg key to try first
-                                  theShmHeapStats
+				 ,7000, // shm seg key to try first
+				 theShmHeapStats
 #endif                            
-                                  );
-   assert(theProc);
-   if (!success) {
-       // XXX Do we need to do something to get rid of theImage, too?
-       delete theProc;
-       return false;
-   }
-
-   // Note: it used to be that the attach ctor called pause()...not anymore...so
-   // the process is probably running even as we speak.
-
-   processVec.push_back(theProc);
-   activeProcesses++;
-
+				 );
+  assert(theProc);
+  if (!success) {
+    // XXX Do we need to do something to get rid of theImage, too?
+    delete theProc;
+    return false;
+  }
+  
+  // Note: it used to be that the attach ctor called pause()...not anymore...so
+  // the process is probably running even as we speak.
+  
+  processVec.push_back(theProc);
+  activeProcesses++;
+  
 #ifndef BPATCH_LIBRARY
-   theProc->threads += new pdThread(theProc);
+  theProc->threads += new pdThread(theProc);
 #endif
-
+  
 #if !(defined i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-   // we now need to dynamically load libdyninstRT.so.1 - naim
-   if (!theProc->pause()) {
-     logLine("WARNING: pause failed\n");
-     assert(0);
-   }
-
-   theProc->handleStartProcess();
-
-   if (!theProc->dyninstLibAlreadyLoaded()) {
-     /* Ordinarily, dyninstlib has not been loaded yet.  But sometimes
-        a zany user links it into their application, leaving no need
-        to load it again (in fact, we will probably hang if we try to
-        load it again).  This is checked in the call to
-        handleStartProcess */
-
-     if (!theProc->dlopenDYNINSTlib()) {
-	return false;
-     }
-
-     // this will set isLoadingDyninstLib to true - naim
-     if (!theProc->continueProc()) {
-       logLine("WARNING: continueProc failed\n");
-       assert(0);
-     }
-     int status;
-     while (!theProc->dyninstLibAlreadyLoaded()) {
-       theProc->waitProcs(&status);
-     }
-   }
+  // we now need to dynamically load libdyninstRT.so.1 - naim
+  if (!theProc->pause()) {
+    logLine("WARNING: pause failed\n");
+    assert(0);
+  }
+  
+  theProc->handleStartProcess();
+  
+  if (!theProc->dyninstLibAlreadyLoaded()) {
+    /* Ordinarily, dyninstlib has not been loaded yet.  But sometimes
+       a zany user links it into their application, leaving no need
+       to load it again (in fact, we will probably hang if we try to
+       load it again).  This is checked in the call to
+       handleStartProcess */
+    
+    if (!theProc->dlopenDYNINSTlib()) {
+      return false;
+    }
+    
+    // this will set isLoadingDyninstLib to true - naim
+    if (!theProc->continueProc()) {
+      logLine("WARNING: continueProc failed\n");
+      assert(0);
+    }
+    int status;
+    while (!theProc->dyninstLibAlreadyLoaded()) {
+      theProc->waitProcs(&status);
+    }
+  }
 #endif
-
-   theProc->initDyninstLib();
-
+  
+  theProc->initDyninstLib();
+  
 #ifndef BPATCH_LIBRARY
-   if (!costMetric::addProcessToAll(theProc))
-      assert(false);
+  if (!costMetric::addProcessToAll(theProc))
+    assert(false);
 #endif
-
-   // find the signal handler function
-   theProc->findSignalHandler(); // shouldn't this be in the ctor?
-
-   // Now force DYNINSTinit() to be invoked, via inferiorRPC.
-   string buffer = string("PID=") + string(pid) + ", running DYNINSTinit()...";
-   statusLine(buffer.string_of());
-
+  
+  // find the signal handler function
+  theProc->findSignalHandler(); // shouldn't this be in the ctor?
+  
+  // Now force DYNINSTinit() to be invoked, via inferiorRPC.
+  string buffer = string("PID=") + string(pid) + ", running DYNINSTinit()...";
+  statusLine(buffer.string_of());
+  
 #ifdef BPATCH_LIBRARY
-   newProcess = theProc;
-
+  newProcess = theProc;
+  
 #ifdef USE_STL_VECTOR
-   vector<AstNode*> the_args;
-   the_args.push_back(new AstNode(AstNode::Constant, (void*)3));
-   the_args.push_back(new AstNode(AstNode::Constant, (void*)getpid()));
+  vector<AstNode*> the_args;
+  the_args.push_back(new AstNode(AstNode::Constant, (void*)3));
+  the_args.push_back(new AstNode(AstNode::Constant, (void*)getpid()));
 #else
-   vector<AstNode*> the_args(2);
-   the_args[0] = new AstNode(AstNode::Constant, (void*)3);
-   the_args[1] = new AstNode(AstNode::Constant, (void*)getpid());
+  vector<AstNode*> the_args(2);
+  the_args[0] = new AstNode(AstNode::Constant, (void*)3);
+  the_args[1] = new AstNode(AstNode::Constant, (void*)getpid());
 #endif
-
+  
 #else /* BPATCH_LIBRARY */
-   attach_cerr << "calling DYNINSTinit with args:" << endl;
-
+  attach_cerr << "calling DYNINSTinit with args:" << endl;
+  
 #ifndef USE_STL_VECTOR
-   vector<AstNode*> the_args(3);
+  vector<AstNode*> the_args(3);
 #else
-   vector<AstNode*> the_args;
+  vector<AstNode*> the_args;
 #endif
-
+  
 #ifdef SHM_SAMPLING
-   AstNode *an1 = new AstNode(AstNode::Constant,
-			      (void*)(theProc->getShmKeyUsed()));
-   attach_cerr << theProc->getShmKeyUsed() << endl;
-   const unsigned shmHeapTotalNumBytes = theProc->getShmHeapTotalNumBytes();
-   AstNode *an2 = new AstNode(AstNode::Constant,
-			      (void*)shmHeapTotalNumBytes);
-   attach_cerr << shmHeapTotalNumBytes << endl;;
-
+  AstNode *an1 = new AstNode(AstNode::Constant,
+			     (void*)(theProc->getShmKeyUsed()));
+  attach_cerr << theProc->getShmKeyUsed() << endl;
+  const unsigned shmHeapTotalNumBytes = theProc->getShmHeapTotalNumBytes();
+  AstNode *an2 = new AstNode(AstNode::Constant,
+			     (void*)shmHeapTotalNumBytes);
+  attach_cerr << shmHeapTotalNumBytes << endl;;
+  
 #else
-   // 2 dummy args when not shm sampling -- just make sure they're not both -1, which
-   // would indicate that we're called from fork
-   
- AstNode an1 = new AstNode(AstNode::Constant, (void*)0);
- AstNode an2 = new AstNode(AstNode::Constant, (void*)0);
+  // 2 dummy args when not shm sampling -- just make sure they're not both -1, which
+  // would indicate that we're called from fork
+  
+  AstNode an1 = new AstNode(AstNode::Constant, (void*)0);
+  AstNode an2 = new AstNode(AstNode::Constant, (void*)0);
 #endif
+  
 
-
-   /*
-      The third argument to DYNINSTinit is our (paradynd's) pid. It is used
-      by DYNINSTinit to build the socket path to which it connects to in order
-      to get the trace-stream connection.  We make it negative to indicate
-      to DYNINSTinit that it's being called from attach (sorry for that little
-      kludge...if we didn't have it, we'd probably need to boost DYNINSTinit
-      from 3 to 4 parameters).
-      
-      This socket is set up in controllerMainLoop (perfStream.C).
-   */
-   AstNode *an3 =  new AstNode(AstNode::Constant, (void*)(-1 * traceConnectInfo));
-   attach_cerr << (-1* getpid()) << endl;
-
+  /*
+    The third argument to DYNINSTinit is our (paradynd's) pid. It is used
+    by DYNINSTinit to build the socket path to which it connects to in order
+    to get the trace-stream connection.  We make it negative to indicate
+    to DYNINSTinit that it's being called from attach (sorry for that little
+    kludge...if we didn't have it, we'd probably need to boost DYNINSTinit
+    from 3 to 4 parameters).
+    
+    This socket is set up in controllerMainLoop (perfStream.C).
+  */
+  AstNode *an3 =  new AstNode(AstNode::Constant, (void*)(-1 * traceConnectInfo));
+  attach_cerr << (-1* getpid()) << endl;
+  
 #ifndef USE_STL_VECTOR   
-   the_args[0] = an1; 
-   the_args[1] = an2;
-   the_args[2] = an3;
+  the_args[0] = an1; 
+  the_args[1] = an2;
+  the_args[2] = an3;
 #else
-   the_args.push_back(an1);
-   the_args.push_back(an2);
-   the_args.push_back(an3);
+  the_args.push_back(an1);
+  the_args.push_back(an2);
+  the_args.push_back(an3);
 #endif
   
 #endif /* BPATCH_LIBRARY */
-
-   AstNode *the_ast = new AstNode("DYNINSTinit", the_args);
-
-   //  Do not call removeAst if Irix MPI, as the initialRequests vector 
-   //  is being used more than once.
+  
+  AstNode *the_ast = new AstNode("DYNINSTinit", the_args);
+  
+  //  Do not call removeAst if Irix MPI, as the initialRequests vector 
+  //  is being used more than once.
 #ifndef BPATCH_LIBRARY
-   if ( !(process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
+  if ( !(process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
 #endif
-      for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
-
-   theProc->postRPCtoDo(the_ast,
-                        true, // true --> don't try to update cost yet
-                        process::DYNINSTinitCompletionCallback, // callback
-                        NULL, // user data
-                        -1,   // we use -1 if this is not metric definition
-                        -1,
-                        false);
-
-      // the rpc will be launched with a call to launchRPCifAppropriate()
-      // in the main loop (perfStream.C).
-      // DYNINSTinit() ends with a DYNINSTbreakPoint(), so we pick up
-      // where we left off in the processing of the forwarded SIGSTOP signal.
-      // In other words, there's lots more work to do, but since we can't do it until
-      // DYNINSTinit has run, we wait until the SIGSTOP is forwarded.
-
-   // Note: we used to pause() the process while attaching.  Not anymore.
-   // The attached process is running even as we speak.  (Though we'll interrupt
-   // it pretty soon when the inferior RPC of DYNINSTinit gets launched).
-
+  for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
+  
+  theProc->postRPCtoDo(the_ast,
+		       true, // true --> don't try to update cost yet
+		       process::DYNINSTinitCompletionCallback, // callback
+		       NULL, // user data
+		       -1,   // we use -1 if this is not metric definition
+		       NULL, // No thread in particular (is this right?)
+		       0);    // Again, no lwp
+    
+  // the rpc will be launched with a call to launchRPCifAppropriate()
+  // in the main loop (perfStream.C).
+  // DYNINSTinit() ends with a DYNINSTbreakPoint(), so we pick up
+  // where we left off in the processing of the forwarded SIGSTOP signal.
+  // In other words, there's lots more work to do, but since we can't do it until
+  // DYNINSTinit has run, we wait until the SIGSTOP is forwarded.
+  
+  // Note: we used to pause() the process while attaching.  Not anymore.
+  // The attached process is running even as we speak.  (Though we'll interrupt
+  // it pretty soon when the inferior RPC of DYNINSTinit gets launched).
+  
 #if defined(alpha_dec_osf4_0)
-   // need to perform this after dyninst Heap is present and happy
-   theProc->getDyn()->setMappingHooks(theProc);
+  // need to perform this after dyninst Heap is present and happy
+  theProc->getDyn()->setMappingHooks(theProc);
 #endif
-
-   return true; // successful
+  
+  return true; // successful
 }
 
 
@@ -5345,8 +5186,7 @@ bool process::cleanUpInstrumentation(bool wasRunning) {
     // to this->status_, and so on (this is important to avoid bugs).
 
     assert(status_ == stopped); // since we're always called after a SIGTRAP
-    Frame frame(this);
-    Address pc = frame.getPC();
+    Address pc = currentPC();
 
     // Go thru the instWList to find out the ones to be deleted 
     bool done = false;
@@ -5394,8 +5234,8 @@ void process::postRPCtoDo(AstNode *action, bool noCost,
                           inferiorRPCcallbackFunc callbackFunc,
                           void *userData,
                           int mid, 
-                          int thrId,
-                          bool isSAFE,
+                          pdThread *thr,
+			  unsigned lwp,
                           bool lowmem)
 {
    // posts an RPC, but does NOT make any effort to launch it.
@@ -5407,8 +5247,8 @@ void process::postRPCtoDo(AstNode *action, bool noCost,
    theStruct.userData = userData;
    theStruct.mid = mid;
    theStruct.lowmem = lowmem;
-   theStruct.thrId = thrId;
-   theStruct.isSafeRPC = isSAFE;
+   theStruct.thr = thr;
+   theStruct.lwp = lwp;
 
    RPCsWaitingToStart += theStruct;
    
@@ -5421,614 +5261,515 @@ bool process::existsRPCreadyToLaunch() const {
 }
 
 bool process::existsRPCinProgress() {
-  if (is_multithreaded()) {
-    if (!currRunningRPCs.empty()) {
-      for (unsigned k=0; k< currRunningRPCs.size(); k++)
-        if ( !currRunningRPCs[k].isSafeRPC ) 
-          return true ;
-    }
-    return false ;
-
-  } else {
-     return (!currRunningRPCs.empty());
-  }
+  if (!currRunningRPCs.empty())
+    return true ;
+  return false ;
 }
 
-#if defined(MT_THREAD)
 bool process::need_to_wait(void) {
   //
   // Check if there is any slot left for safe RPC
   //
-  if (!currRunningRPCs.empty()){
-    for (unsigned k=0; k< currRunningRPCs.size(); k++) 
-      if (!currRunningRPCs[k].isSafeRPC) {
-        return true ;
-      } 
-       else {
-        if (DYNINSTthreadRPC) {
-          unsigned freeSlot = 0 ;
-          for (unsigned j=0; j<MAX_PENDING_RPC; j++) {
-            if (DYNINSTthreadRPC[j].flag ==0)
-              freeSlot ++ ;
-          }
-          if (freeSlot == 0)
-            return true ;
-        } 
-      }//else
-  }
+  if (!currRunningRPCs.empty())
+    return true ;
   return false ;
 }
 
-#if defined(USES_RPC_TO_TRIGGER_RPC)
-typedef struct {
-  bool ready;
-  void *result;
-} sig_rpc_ret;
-
-void signalRPCthreadCallback(process * /*p*/, void *data, void *result)
+#if !defined(MT_THREAD)
+// Defined in the <platform>MT.C files
+int process::findLWPbyPthread(int /*tid*/)
 {
-  sig_rpc_ret *ret = (sig_rpc_ret *)data;
-  ret->result = result;
-  ret->ready = true;
+  return 0;
 }
 #endif
-
-void signalRPCthread(process *p) {
-#ifdef rs6000_ibm_aix4_1
-  pthread_mutex_lock(p->DYNINSTthreadRPC_mp);
-  *(p->DYNINSTthreadRPC_pending_p) = 1;
-  pthread_cond_signal(p->DYNINSTthreadRPC_cvp);
-  pthread_mutex_unlock(p->DYNINSTthreadRPC_mp);
-#else
-  mutex_lock(p->DYNINSTthreadRPC_mp);
-  *(p->DYNINSTthreadRPC_pending_p) = 1;
-  cond_signal(p->DYNINSTthreadRPC_cvp);
-  mutex_unlock(p->DYNINSTthreadRPC_mp);
-#endif
-#if defined(USES_RPC_TO_TRIGGER_RPC) // Temporary here
-  string callee = "DYNINSTsignalRPCthread";
-  vector<AstNode*> args(0);
-  AstNode *code = new AstNode(callee, args);
-
-  sig_rpc_ret ret = {false, NULL};
-  p->postRPCtoDo(code, true, &signalRPCthreadCallback, &ret, -1, -1, 
-                                                      false, false);
-  extern  void checkProcStatus();
-  do {
-   p->launchRPCifAppropriate(true, false);
-   checkProcStatus();
-  } while (!ret.ready);
-#endif
-
-  if (pd_debug_infrpc)
-    cerr <<"PD: Signaled RPC thread ..." << endl ;
-}
-#endif 
 
 //
 // this should work for both threaded and non-threaded case
 //
 bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
-   // asynchronously launches an inferiorRPC iff RPCsWaitingToStart.size() > 0
-   // AND if currRunningRPCs.size()==0 (the latter for safety)
-#if defined(MT_THREAD)
-   handleDoneSAFEinferiorRPC();
-   if (need_to_wait())
-#else
-   if (!currRunningRPCs.empty())
-#endif
-     {
-       // an RPC is currently executing, so it's not safe to launch a new one.
-       inferiorrpc_cerr << "RPC currently executing!" << endl;
-       return false;
-     }
+  // asynchronously launches an inferiorRPC iff RPCsWaitingToStart.size() > 0
+  // AND if currRunningRPCs.size()==0 (the latter for safety)
+  handleDoneinferiorRPC();
+  if (need_to_wait())
+    {
+      // an RPC is currently executing, so it's not safe to launch a new one.
+      inferiorrpc_cerr << "RPC currently executing!" << endl;
+      return false;
+    }
+  
+  if (RPCsWaitingToStart.empty())
+    {
+      // duh, no RPC is waiting to run, so there's nothing to do.
+      inferiorrpc_cerr << "No RPC to execute!" << endl;
+      return false;
+    }
+  
+  if (status_ == exited)
+    {
+      inferiorrpc_cerr << "Inferior process exited!" << endl;
+      return false;
+    }
+  
+  if (status_ == neonatal)
+    // not sure if this should be some kind of error...is the inferior ready
+    // to execute inferior RPCs??? For now, we'll allow it.
+    ; 
 
-   if (RPCsWaitingToStart.empty())
-     {
-       // duh, no RPC is waiting to run, so there's nothing to do.
-       inferiorrpc_cerr << "No RPC to execute!" << endl;
-       return false;
-     }
+  if (!pause()) {
+    cerr << "launchRPCifAppropriate failed because pause failed" << endl;
+    return false;
+  }
 
-   if (status_ == exited)
-     {
-       inferiorrpc_cerr << "Inferior process exited!" << endl;
-       return false;
-     }
+  // Do not remove it yet
+  inferiorRPCtoDo todo = RPCsWaitingToStart[0] ;
 
-   if (status_ == neonatal)
-      // not sure if this should be some kind of error...is the inferior ready
-      // to execute inferior RPCs??? For now, we'll allow it.
-      ; 
+  inferiorRPCinProgress inProgStruct;
+  void *theSavedRegs;
 
-   // Do not remove it yet
-   inferiorRPCtoDo todo = RPCsWaitingToStart[0] ;
-   /* ****************************************************** */
+  // Figure out if we're running this RPC now, or later
+  // as a "funclet". If now, we save registers.
+  // Logic:
+  //   if RPC was created as a safe RPC, it is. 
+  //   if RPC has a thread, but we can't find an LWP for that thread,
+  //     run it as a funclet.
 
-   // Steps to take (on sparc, at least)
-   // 1) pause the process and wait for it to stop
-   // 2) Get a copy of the registers...store them away
-   // 3) create temp trampoline: save, action, restore, trap, illegal
-   //    (the illegal is just ot be sure that the trap never returns)
-   // 4) set the PC and nPC regs to addr of temp tramp   || NB: not for SAFErpc!
-   // 5) Continue the process...go back to the main loop (SIGTRAP will 
-   //    eventually be delivered)
-
-   // When SIGTRAP is received,
-   // 5) verify that PC is the location of the TRAP instr in the temp tramp
-   // 6) free temp trampoline
-   // 7) SETREGS to restore all regs, including PC and nPC.
-   // 8) continue inferior, if the inferior had been running when we had
-   //    paused it in step 1, above.
-
-   //only wait for syscall to finish if the rpc is SAFErpc
-   if (!todo.isSafeRPC) { 
-     if (!finishingSysCall && RPCs_waiting_for_syscall_to_complete) {
-
+  if (!todo.lwp && todo.thr) // We have a thread, but no lwp to go along with it
+    inProgStruct.lwp = findLWPbyPthread(todo.thr->get_tid());
+  else
+    inProgStruct.lwp = todo.lwp;
+  
+  bool isFunclet = false;
+  if (!inProgStruct.lwp && todo.thr) // Thread but no lwp -- unscheduled
+    {      
+      isFunclet = true;
+      cerr << "Setting funclet to true... " 
+	   << todo.thr << " " << inProgStruct.lwp << endl;
+    }
+    
+  //only wait for syscall to finish if the rpc is not a funclet
+  if (!isFunclet) { 
+    if (!finishingSysCall && RPCs_waiting_for_syscall_to_complete) {
+      
 #if !defined( i386_unknown_linux2_0 ) && ! defined( ia64_unknown_linux2_4 )
 #ifndef MT_THREAD
-            assert(executingSystemCall());
+      assert(executingSystemCall());
 #endif
 #endif
-        return false;
-     }
-   }
-
-   if (!pause()) {
-      cerr << "launchRPCifAppropriate failed because pause failed" << endl;
       return false;
-   }
-
-   void *theSavedRegs = NULL;
-
-   // If we're in the middle of a system call, then it's not safe to launch
-   // an inferiorRPC on most platforms.  On some platforms, it's safe, but the
-   // actual launching won't take place until the system call finishes.  In 
-   // such cases it's a good idea to set a breakpoint for when the sys call 
-   // exits (using /proc PIOCSEXIT), and launch the inferiorRPC then.
-
-   // if non threaded, or threaded and not safe RPC
-   if ( (todo.thrId != -1) || !todo.isSafeRPC) {
-
-     if (!finishingSysCall && executingSystemCall()) {
-       if (RPCs_waiting_for_syscall_to_complete) {
-           inferiorrpc_cerr << "launchRPCifAppropriate: "
-                            << "still waiting for syscall to complete" << endl;
-           if (wasRunning) {
-              inferiorrpc_cerr << "launchRPC: "
-                               << "continuing so syscall may complete" << endl;
-              (void)continueProc();
-
-           } else {
-              inferiorrpc_cerr << "launchRPC: sorry not continuing (problem?)"
-                               << endl;
-	   }
-
-           return false;
-       }
-
-       // don't do the inferior rpc until the system call finishes.  
-       // Determine which system call is in the way, and set a breakpoint 
-       // at its exit point so we know when it's safe to launch the RPC. 
-       // Platform-specific details:
-
-       inferiorrpc_cerr << "launchRPCifAppropriate: within a system call"
-                        << endl;
-
-       if (!set_breakpoint_for_syscall_completion()) {
-
-         // sorry, this platform can't set a breakpoint at the system call
-         // completion point.  In such cases, keep polling 
-         // executingSystemCall() inefficiently.
-	 if (wasRunning) {
-            (void)continueProc();
-	 }
-
-         inferiorrpc_cerr << "launchRPCifAppropriate: couldn't set bkpt for "
-                          << "syscall completion; will just poll." << endl;
-         return false;
-       }
-
-       inferiorrpc_cerr << "launchRPCifAppropriate: "
-                        << "set bkpt for syscall completion" << endl;
-
-       // a SIGTRAP will get delivered when the RPC is ready to go.  Until 
-       // then, mark the rpc as deferred.  Setting this flag prevents 
-       // executing this code too many times.
-
-       RPCs_waiting_for_syscall_to_complete    = true;
-       was_running_before_RPC_syscall_complete = wasRunning;
-
-       (void)continueProc();
-
-       return false;
-     }
-
-     if (finishingSysCall) {
-       clear_breakpoint_for_syscall_completion();
-     }
-
-     // We're not in the middle of a system call, so we can fire off the 
-     // rpc now!
-     if (RPCs_waiting_for_syscall_to_complete) {
-       RPCs_waiting_for_syscall_to_complete = false;
-     }
-
-     // machine-specific implementation
-     theSavedRegs = getRegisters();
-
-     // result is allocated via new[]; we'll delete[] it later.
-     // return value of NULL indicates total failure.
-     // return value of (void *)-1 indicates that the state of the machine
-     // isn't quite ready for an inferiorRPC, and that we should try again
-     // 'later'.  In particular, we must handle the (void *)-1 case very
-     // gracefully (i.e., leave the vrble 'RPCsWaitingToStart' untouched).
-
-     if (theSavedRegs == (void *)-1) {
-       inferiorrpc_cerr << "launchRPCifAppropriate: deferring" << endl;
-
-       if (wasRunning) {
-         (void)continueProc();
-       }
-
-       return false;
-     }
-
-     if (theSavedRegs == NULL) {
-       cerr << "launchRPCifAppropriate failed because getRegisters() failed"
-            << endl;
-
-       if (wasRunning) {
-         (void)continueProc();
-       }
-
-       return false;
-     }
-   }
-
-
-   if (!wasRunning) {
-     inferiorrpc_cerr << "NOTE: launchIfAppropriate: wasRunning==false!!"
-                      << endl;
-   }
-   // Now it is safe to remove the first from the vector
-   RPCsWaitingToStart.removeOne();
-   // note: this line should always be below the test for (void*)-1, thus
-   // leaving 'RPCsWaitingToStart' alone in that case.
-
-   inferiorRPCinProgress inProgStruct;
-   inProgStruct.callbackFunc = todo.callbackFunc;
-   inProgStruct.userData = todo.userData;
-   inProgStruct.savedRegs = theSavedRegs;
-   inProgStruct.isSafeRPC = todo.isSafeRPC;
-
-   if (todo.isSafeRPC) {
-     inProgStruct.wasRunning = wasRunning ;
-   } else {
-
-       if( finishingSysCall ) {
-         inProgStruct.wasRunning = was_running_before_RPC_syscall_complete;
-       } else {
-         inProgStruct.wasRunning = wasRunning;
-       }
-   }
-
-   // If finishing up a system call, current state is paused, but we want to
-   // set wasRunning to true so that it'll continue when the inferiorRPC
-   // completes.  Sorry for the kludge.
-
-   Address tempTrampBase = createRPCtempTramp(todo.action,
-                               todo.noCost,
-                               inProgStruct.callbackFunc != NULL,
-                               inProgStruct.breakAddr,
-                               inProgStruct.stopForResultAddr,
-                               inProgStruct.justAfter_stopForResultAddr,
-                               inProgStruct.resultRegister,
-                               todo.lowmem,
-                               todo.thrId,
-                               todo.isSafeRPC);
-
-   if (tempTrampBase == 0) {
-      cerr << "launchRPCifAppropriate failed because createRPCtempTramp failed"
-           << endl;
-
-      if (wasRunning) {
-         (void)continueProc();
+    }
+  }
+  
+  // If we're in the middle of a system call, then it's not safe to launch
+  // an inferiorRPC on most platforms.  On some platforms, it's safe, but the
+  // actual launching won't take place until the system call finishes.  In 
+  // such cases it's a good idea to set a breakpoint for when the sys call 
+  // exits (using /proc PIOCSEXIT), and launch the inferiorRPC then.
+  // If we're running a funclet it isn't started now anyway, so is safe.
+  if (!isFunclet) {
+    if (!finishingSysCall && executingSystemCall(inProgStruct.lwp)) {
+      if (RPCs_waiting_for_syscall_to_complete) {
+	inferiorrpc_cerr << "launchRPCifAppropriate: "
+			 << "still waiting for syscall to complete" << endl;
+	if (wasRunning) {
+	  inferiorrpc_cerr << "launchRPC: "
+			   << "continuing so syscall may complete" << endl;
+	  (void)continueProc();
+	  
+	} else {
+	  inferiorrpc_cerr << "launchRPC: sorry not continuing (problem?)"
+			   << endl;
+	}
+	
+	return false;
       }
-
+      
+      // don't do the inferior rpc until the system call finishes.  
+      // Determine which system call is in the way, and set a breakpoint 
+      // at its exit point so we know when it's safe to launch the RPC. 
+      // Platform-specific details:
+      
+      inferiorrpc_cerr << "launchRPCifAppropriate: within a system call"
+		       << endl;
+      
+      if (!set_breakpoint_for_syscall_completion()) {
+	
+	// sorry, this platform can't set a breakpoint at the system call
+	// completion point.  In such cases, keep polling 
+	// executingSystemCall() inefficiently.
+	cerr << "Didn't set breakpoint. wasRunning was: " << wasRunning << endl;
+	/*
+	if (wasRunning) {
+	  cerr << "Continuing" << endl;
+	*/
+	(void)continueProc();
+	
+	inferiorrpc_cerr << "launchRPCifAppropriate: couldn't set bkpt for "
+			 << "syscall completion; will just poll." << endl;
+	return false;
+      }
+      
+      inferiorrpc_cerr << "launchRPCifAppropriate: "
+		       << "set bkpt for syscall completion" << endl;
+      
+      // a SIGTRAP will get delivered when the RPC is ready to go.  Until 
+      // then, mark the rpc as deferred.  Setting this flag prevents 
+      // executing this code too many times.
+      
+      RPCs_waiting_for_syscall_to_complete    = true;
+      was_running_before_RPC_syscall_complete = wasRunning;
+      
+      (void)continueProc();
+      
       return false;
-   }
+    }
+  
+    if (finishingSysCall) {
+      clear_breakpoint_for_syscall_completion();
+    }
+    
+    // We're not in the middle of a system call, so we can fire off the 
+    // rpc now!
+    if (RPCs_waiting_for_syscall_to_complete) {
+      RPCs_waiting_for_syscall_to_complete = false;
+    }
+  
+    // Get the registers, using LWP if defined
+    theSavedRegs = getRegisters(inProgStruct.lwp);
 
-   assert(tempTrampBase);
+    // result is allocated via new[]; we'll delete[] it later.
+    // return value of NULL indicates total failure.
+    // return value of (void *)-1 indicates that the state of the machine
+    // isn't quite ready for an inferiorRPC, and that we should try again
+    // 'later'.  In particular, we must handle the (void *)-1 case very
+    // gracefully (i.e., leave the vrble 'RPCsWaitingToStart' untouched).
+    
+    if (theSavedRegs == (void *)-1) {
+      inferiorrpc_cerr << "launchRPCifAppropriate: deferring" << endl;
+      
+      if (wasRunning) {
+	(void)continueProc();
+      }
+      
+      return false;
+    }
+    
+    if (theSavedRegs == NULL) {
+      cerr << "launchRPCifAppropriate failed because getRegisters() failed"
+	   << endl;
+      
+      if (wasRunning) {
+	(void)continueProc();
+      }
+      
+      return false;
+    }
+  } // !isFunclet
 
-   inProgStruct.firstInstrAddr = tempTrampBase;
+  if (!wasRunning) {
+    inferiorrpc_cerr << "NOTE: launchIfAppropriate: wasRunning==false!!"
+		     << endl;
+  }
+  
+  // Now it is safe to remove the first from the vector
+  RPCsWaitingToStart.removeOne();
+  // note: this line should always be below the test for (void*)-1, thus
+  // leaving 'RPCsWaitingToStart' alone in that case.
+  
+  inProgStruct.callbackFunc = todo.callbackFunc;
+  inProgStruct.userData = todo.userData;
+  inProgStruct.savedRegs = theSavedRegs;
+  inProgStruct.thr = todo.thr;
 
-#ifndef BPATCH_LIBRARY
-   if ( is_multithreaded() ) {
-     if (todo.thrId > 0) {
-#ifdef MT_THREAD
-       inProgStruct.lwp = findLWPbyPthread(todo.thrId);
-#endif
-     } else {
-       inProgStruct.lwp = (unsigned) -1;
-     }
-   }
-#endif
+  if (isFunclet) {
+    inProgStruct.wasRunning = wasRunning ;
+  } else {    
+    if( finishingSysCall ) {
+      inProgStruct.wasRunning = was_running_before_RPC_syscall_complete;
+    } else {
+      inProgStruct.wasRunning = wasRunning;
+    }
+  }
+  
+  // If finishing up a system call, current state is paused, but we want to
+  // set wasRunning to true so that it'll continue when the inferiorRPC
+  // completes.  Sorry for the kludge.
+  
+  // In the threaded daemon, we have two cases to worry about: first, we've
+  // been asked to run an iRPC for a thread that is running, and the case
+  // when the thread isn't running. Case 1 is easy -- we can grab the kernel
+  // thread and run the iRPC. Case 2 is more complicated -- we can't run it
+  // until the thread is rescheduled.
+  
 
-   currRunningRPCs += inProgStruct;
-
-//ccw 20 july 2000 : 29 mar 2001
+  Address RPCImage = createRPCImage(todo.action,
+				    todo.noCost,
+				    (inProgStruct.callbackFunc != NULL),
+				    inProgStruct.breakAddr,
+				    inProgStruct.stopForResultAddr,
+				    inProgStruct.justAfter_stopForResultAddr,
+				    inProgStruct.resultRegister,
+				    todo.lowmem,
+				    todo.thr,
+				    todo.lwp,
+				    isFunclet);
+  if (RPCImage == 0) {
+    cerr << "launchRPCifAppropriate failed because createRPCImage failed"
+	 << endl;
+    if (wasRunning) {
+      (void)continueProc();
+    }
+    
+    return false;
+  }
+  
+  
+  inProgStruct.firstInstrAddr = RPCImage;
+  currRunningRPCs += inProgStruct;
+  
+  //ccw 20 july 2000 : 29 mar 2001
 #if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11)
-   Address curPC = currentPC();
+  Address curPC = currentPC();
 #endif
+  
+  if (pd_debug_infrpc) {
+    inferiorrpc_cerr << "Changing pc (" << (void*)RPCImage
+		     << ") and exec.." << endl;
+  }
+  
+  // If we didn't make a funclet, we need to manually run the sucker
+  if (!isFunclet) {
+    if (!changePC(RPCImage, theSavedRegs, inProgStruct.lwp))
+      {
+	cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
+	if (wasRunning)
+	  (void)continueProc();
+	return false;
+      }
+  }
+  else {
+#if defined(MT_THREAD)
+    // We need to be sure the funclet is run. We do this by adding it
+    // to a list of function pointers in the runtime library
+    // We have a data structure that has a array of linked lists of 
+    // these guys -- tag this iRPC on at the tail and sit back and wait
+    RTINSTsharedData *sharedData = (RTINSTsharedData *)getRTsharedDataInParadyndSpace();
+    // The RPC queue is organized as a two-dimensional array of 
+    // rpcToDo structures. Find an empty one (flag == 0),
+    // and write in our data.
+    unsigned i;
+    for (i = 0; i < MAX_PENDING_RPC; i++) {
+      if (sharedData->pendingIRPCs[todo.thr->get_pos()][i].flag == 0)
+	break;
+    }
+    if (i == MAX_PENDING_RPC)
+      return false; // Shouldn't we clean up?
 
-   if (pd_debug_infrpc) {
-     inferiorrpc_cerr << "Changing pc (" << (void*)tempTrampBase 
-                      << ") and exec.." << endl;
-   }
-
-   // change the PC and nPC registers to the addr of the temp tramp
-   if (!todo.isSafeRPC) {
-
-#if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
-     // Take advantage of the fact that on AIX we can target an RPC
-     // to a specific kernel thread. 
-     if (!changePC(tempTrampBase, theSavedRegs, inProgStruct.lwp))
+    sharedData->pendingIRPCs[todo.thr->get_pos()][i].flag = 1;
+    sharedData->pendingIRPCs[todo.thr->get_pos()][i].rpc = (void (*)())RPCImage;
+    // Don't worry about the lock variable -- that is for shared data.
+    // This is thread-specific.
 #else
-     if (!changePC(tempTrampBase, theSavedRegs))
+    // Non-MT has no way of making a non-immediate RPC
+    assert(0);
 #endif
-       {
-	 cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
-	 if (wasRunning)
-	   (void)continueProc();
-	 return false;
-       }
-   }
-   
-   /* Flag in app is set when running irpc.  Used by app to ignore traps
-      which are delivered before or during the irpc.  Also set beginning
-      and ending addresses of irpc.
-
-      Don't need to worry about hasNewPC option within currentPC when
-      setting pcAtLastIRPC because this (hasNewPC) occurs only when
-      relocating instructions to the basetrampoline.  We only use the
-      pcAtLastIRPC address only for validating the address of
-      regenerated traps are from the correct trap address.  However,
-      instrumentation traps aren't relocated, since they're what
-      replaces the relocated instructions. */
-
+  }
+  
+  /* Flag in app is set when running irpc.  Used by app to ignore traps
+     which are delivered before or during the irpc.  Also set beginning
+     and ending addresses of irpc.
+     
+     Don't need to worry about hasNewPC option within currentPC when
+     setting pcAtLastIRPC because this (hasNewPC) occurs only when
+     relocating instructions to the basetrampoline.  We only use the
+     pcAtLastIRPC address only for validating the address of
+     regenerated traps are from the correct trap address.  However,
+     instrumentation traps aren't relocated, since they're what
+     replaces the relocated instructions. */
+  
 #if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-   if (pd_debug_infrpc)
-     inferiorrpc_cerr << "setting the running RPC flag.\n";
-   SendAppIRPCInfo(1, inProgStruct.firstInstrAddr, inProgStruct.breakAddr);
-   SendAppIRPCInfo(curPC);
+  if (pd_debug_infrpc)
+    inferiorrpc_cerr << "setting the running RPC flag.\n";
+  SendAppIRPCInfo(1, inProgStruct.firstInstrAddr, inProgStruct.breakAddr);
+  SendAppIRPCInfo(curPC);
 #endif
-
-   if (!continueProc()) {
-     cerr << "launchRPCifAppropriate: continueProc() failed" << endl;
-     return false;
-   }
-
-#ifdef MT_THREAD
-   if (todo.isSafeRPC) {
-     //cerr << "SAFE inferiorRPC should be running now" << endl;
-       signalRPCthread(this);
-   } else {
-     //cerr << "inferiorRPC should be running now" << endl;
-   }
-#endif
-
-   if (pd_debug_infrpc)
-     inferiorrpc_cerr << "inferiorRPC should be running now" << endl;
-
-   return true; // success
+  
+  if (!continueProc()) {
+    cerr << "launchRPCifAppropriate: continueProc() failed" << endl;
+    return false;
+  }
+ 
+  if (pd_debug_infrpc)
+    inferiorrpc_cerr << "inferiorRPC should be running now" << endl;
+  
+  return true; // success
 }
 
-Address process::createRPCtempTramp(AstNode *action,
-                                     bool noCost,
-                                     bool shouldStopForResult,
-                                     Address &breakAddr,
-                                     Address &stopForResultAddr,
-                                     Address &justAfter_stopForResultAddr,
-                                     Register &resultReg,
-                                     bool lowmem,
-                                     int thrId,
-                                     bool isSAFE)
+Address process::createRPCImage(AstNode *action,
+				bool noCost,
+				bool shouldStopForResult,
+				Address &breakAddr,
+				Address &stopForResultAddr,
+				Address &justAfter_stopForResultAddr,
+				Register &resultReg,
+				bool lowmem,
+				pdThread *thr,
+				unsigned lwp,
+				bool isFunclet)
 {
-
-   // Returns addr of temp tramp, which was allocated in the inferior heap.
-   // You must free it yourself when done.
-   // Note how this is, in many ways, a greatly simplified version of
-   // addInstFunc().
-
-   // Temp tramp structure: save; code; restore; trap; illegal
-   // the illegal is just to make sure that the trap never returns
-   // note that we may not need to save and restore anything, since we've
-   // already done a GETREGS and we'll restore with a SETREGS, right?
-
-   unsigned char insnBuffer[4096];
-
-   initTramps(); // initializes "regSpace", but only the 1st time called
-   extern registerSpace *regSpace;
-   regSpace->resetSpace();
-
-   Address count = 0; // number of bytes required for RPCtempTramp
-
-   // The following is implemented in an arch-specific source file...
-   if (!emitInferiorRPCheader(insnBuffer, count)) {
-      // a fancy dialog box is probably called for here...
-      cerr << "createRPCtempTramp failed because emitInferiorRPCheader failed."
-           << endl;
-      return 0;
-   }
-
-   
-#if defined(MT_THREAD)
-   Address skipBRAddr = 0;
-   // Use -1 since 0 may be a valid pthread id, and -1 is equivalent to
-   // "no thread" for Paradyn purposes.
-   if (thrId != -1) {
-
-     unsigned pos = (unsigned) -1;
-     for (unsigned u=0; u<threads.size(); u++) {
-       // Find our hashed version of the thread ID
-       if (thrId == threads[u]->get_tid()) {
-         pos = threads[u]->get_pos();
-         break;
-       }
-     }
-
-     vector<AstNode* > param ;
-     param.push_back( new AstNode(AstNode::Constant,(void *) thrId) );
-     param.push_back( new AstNode(AstNode::Constant,(void *) pos) );
-
-     // If we're starting a (thread) timer, start it for the 
-     // thread we're acting as
-     function_base* DYNINSTstartThreadTimer = 
-       findOneFunction(string("DYNINSTstartThreadTimer"));
-     function_base* DYNINSTstartThreadTimer_inferiorRPC = 
-       findOneFunction(string("DYNINSTstartThreadTimer_inferiorRPC"));
-     action->replaceFuncInAst(DYNINSTstartThreadTimer, 
-                              DYNINSTstartThreadTimer_inferiorRPC, param, 1);
-
-     // replace DYNINSTthreadPos with DYNINSTthreadPosTID
-     // Fake it as above :)
-     function_base* DYNINST_not_deleted =
-       findOneFunction(string("DYNINST_not_deleted"));
-     function_base* DYNINST_not_deletedTID =
-       findOneFunction(string("DYNINST_not_deletedTID"));
-     action->replaceFuncInAst(DYNINST_not_deleted, 
-                              DYNINST_not_deletedTID, param, 0);
+  // Returns addr of temp tramp, which was allocated in the inferior heap.
+  // You must free it yourself when done.
+  // Note how this is, in many ways, a greatly simplified version of
+  // addInstFunc().
   
-     // replace DYNINSTloop with DYNINSTloopTID
-     // Same thing
-     function_base* DYNINSTloop =
-       findOneFunction(string("DYNINSTloop"));
-     function_base* DYNINSTloopTID =
-       findOneFunction(string("DYNINSTloopTID"));
-     action->replaceFuncInAst(DYNINSTloop, 
-                            DYNINSTloopTID, param, 0);
-
-     for (unsigned i=0; i<param.size(); i++) removeAst(param[i]) ;
-
-     extern Address generateMTRPCCode(char *insn, Address &base, process *proc, int tid, unsigned pos);
-     
-     // We need to put in a branch past the rest of the RPC (to the trailer, actually)
-     // if the MT information given is incorrect. That's the skipBRaddr part.
-     skipBRAddr = generateMTRPCCode((char*)insnBuffer,count,this, thrId, pos);
-     
-   }
-#endif
-   resultReg = (Register)action->generateCode(this, regSpace,
-                                    (char*)insnBuffer,
-                                    count, noCost, true);
-   if (!shouldStopForResult) {
-      regSpace->freeRegister(resultReg);
-   }
-   else
-      ; // in this case, we'll call freeRegister() the inferior rpc completes
-
+  // Temp tramp structure: save; code; restore; trap; illegal
+  // the illegal is just to make sure that the trap never returns
+  // note that we may not need to save and restore anything, since we've
+  // already done a GETREGS and we'll restore with a SETREGS, right?
+  
+  unsigned char insnBuffer[4096];
+  
+  initTramps(); // initializes "regSpace", but only the 1st time called
+  extern registerSpace *regSpace;
+  regSpace->resetSpace();
+  
+  Address count = 0; // number of bytes required for RPCtempTramp
+  
+  // The following is implemented in an arch-specific source file...
+  // isFunclet added since we might save more registers based on that
+  if (!emitInferiorRPCheader(insnBuffer, count, isFunclet)) {
+    // a fancy dialog box is probably called for here...
+    cerr << "createRPCtempTramp failed because emitInferiorRPCheader failed."
+	 << endl;
+    return 0;
+  }
+  
+  
 #if defined(MT_THREAD)
-   Address skipOffset = count;
+  Address skipBRAddr = 0;
+  // Use -1 since 0 may be a valid pthread id, and -1 is equivalent to
+  // "no thread" for Paradyn purposes.
+  if (thr) {
+    
+    vector<AstNode* > param ;
+    param.push_back( new AstNode(AstNode::Constant,(void *) thr->get_tid()) );
+    param.push_back( new AstNode(AstNode::Constant,(void *) thr->get_pos()) );
+    
+    // If we're starting a (thread) timer, start it for the 
+    // thread we're acting as
+    function_base* DYNINSTstartThreadTimer = 
+      findOneFunction(string("DYNINSTstartThreadTimer"));
+    function_base* DYNINSTstartThreadTimer_inferiorRPC = 
+      findOneFunction(string("DYNINSTstartThreadTimer_inferiorRPC"));
+    action->replaceFuncInAst(DYNINSTstartThreadTimer, 
+			     DYNINSTstartThreadTimer_inferiorRPC, param, 1);
+    
+    // replace DYNINSTthreadPos with DYNINSTthreadPosTID
+    // Fake it as above :)
+    function_base* DYNINST_not_deleted =
+      findOneFunction(string("DYNINST_not_deleted"));
+    function_base* DYNINST_not_deletedTID =
+      findOneFunction(string("DYNINST_not_deletedTID"));
+    action->replaceFuncInAst(DYNINST_not_deleted, 
+			     DYNINST_not_deletedTID, param, 0);
+    
+    // replace DYNINSTloop with DYNINSTloopTID
+    // Same thing
+    function_base* DYNINSTloop =
+      findOneFunction(string("DYNINSTloop"));
+    function_base* DYNINSTloopTID =
+      findOneFunction(string("DYNINSTloopTID"));
+    action->replaceFuncInAst(DYNINSTloop, 
+			     DYNINSTloopTID, param, 0);
+    
+    for (unsigned i=0; i<param.size(); i++) removeAst(param[i]) ;
+    
+    // We need to put in a branch past the rest of the RPC (to the trailer, actually)
+    // if the MT information given is incorrect. That's the skipBRaddr part.
+    skipBRAddr = generateMTRPCCode((char*)insnBuffer,count, thr->get_tid(), thr->get_pos());
+    
+  }
 #endif
-
-   // Now, the trailer (restore, TRAP, illegal)
-   // (the following is implemented in an arch-specific source file...)   
-   unsigned breakOffset, stopForResultOffset, justAfter_stopForResultOffset;
-   if (!emitInferiorRPCtrailer(insnBuffer, count,
-                       breakOffset, shouldStopForResult, stopForResultOffset,
-                       justAfter_stopForResultOffset, isSAFE)) {
-
-      // last 4 args except shouldStopForResult are modified by the call
-      cerr << "createRPCtempTramp failed because "
-           << "emitInferiorRPCtrailer failed." << endl;
-
-      return 0;
-   }
-
-   // Patch up the MT skip jump if required
+  resultReg = (Register)action->generateCode(this, regSpace,
+					     (char*)insnBuffer,
+					     count, noCost, true);
+  if (!shouldStopForResult) {
+    regSpace->freeRegister(resultReg);
+  }
+  else
+    ; // in this case, we'll call freeRegister() the inferior rpc completes
+  
 #if defined(MT_THREAD)
-   if (skipBRAddr) {
-     extern void generateMTSkipBranch(unsigned char *insn, Address addr, Address offset);
-     generateMTSkipBranch(insnBuffer, skipBRAddr, skipOffset);
-   }
+  Address skipOffset = count;
 #endif
-
-   Address tempTrampBase;
-   if (lowmem)
-     {
-       /* lowmemHeap should always have free space, so this will not
-          require a recursive inferior RPC. */
-       tempTrampBase = inferiorMalloc(this, count, lowmemHeap);
-     }
-   else
-     {
-       /* May cause another inferior RPC to dynamically allocate a new heap
-          in the inferior. */
-       tempTrampBase = inferiorMalloc(this, count, anyHeap);
-     }
-   assert(tempTrampBase);
-
-   breakAddr                      = tempTrampBase + breakOffset;
-   if (shouldStopForResult) {
-      stopForResultAddr           = tempTrampBase + stopForResultOffset;
-      justAfter_stopForResultAddr = tempTrampBase + justAfter_stopForResultOffset;
-   } 
-   else {
-      stopForResultAddr = justAfter_stopForResultAddr = 0;
-   }
-
-   if (pd_debug_infrpc)
-      cerr << "createRPCtempTramp: temp tramp base=" << (void*)tempTrampBase
-           << ", stopForResultAddr=" << (void*)stopForResultAddr
-           << ", justAfter_stopForResultAddr=" << (void*)justAfter_stopForResultAddr
-           << ", breakAddr=" << (void*)breakAddr
-           << ", count=" << count << " so end addr="
-           << (void*)(tempTrampBase + count - 1) << endl;
-
-
-   /* Now, write to the tempTramp, in the inferior addr's data space
-      (all tramps are allocated in data space) */
-
-   if (!writeDataSpace((void*)tempTrampBase, count, insnBuffer)) {
-      // should put up a nice error dialog window
-      cerr << "createRPCtempTramp failed because writeDataSpace failed" << endl;
-      return 0;
-   }
-
-#if 0
+  
+  // Now, the trailer (restore, TRAP, illegal)
+  // (the following is implemented in an arch-specific source file...)   
+  unsigned breakOffset, stopForResultOffset, justAfter_stopForResultOffset;
+  if (!emitInferiorRPCtrailer(insnBuffer, count,
+			      breakOffset, shouldStopForResult, stopForResultOffset,
+			      justAfter_stopForResultOffset, isFunclet)) {
+    
+    // last 4 args except shouldStopForResult are modified by the call
+    cerr << "createRPCtempTramp failed because "
+	 << "emitInferiorRPCtrailer failed." << endl;
+    
+    return 0;
+  }
+  
+  // Patch up the MT skip jump if required
 #if defined(MT_THREAD)
-   if (!DYNINSTthreadRPC) {
-      RTINSTsharedData* RTsharedData = (RTINSTsharedData* ) getRTsharedDataInParadyndSpace() ;
-      DYNINSTthreadRPC = RTsharedData->rpcToDoList ;
-      assert(DYNINSTthreadRPC) ;
-      memset((char*)DYNINSTthreadRPC, '\0', sizeof(rpcToDo)*MAX_PENDING_RPC) ;
-
-      // mutex, conditional variable, and global to communicate with the RPC thread
-      
-      DYNINSTthreadRPC_mp        = &(RTsharedData->rpc_mutex);
-      DYNINSTthreadRPC_cvp       = &(RTsharedData->rpc_cv);
-      DYNINSTthreadRPC_pending_p = &(RTsharedData->rpc_pending);
-
-      //mutex_init(DYNINSTthreadRPC_mp, USYNC_PROCESS, NULL);
-      //cond_init(DYNINSTthreadRPC_cvp, USYNC_PROCESS, NULL);
-   }
-
-   if (isSAFE) { /* post it in the shared-memory segment */
-     for (unsigned k=0; k< MAX_PENDING_RPC; k++) {
-       if (DYNINSTthreadRPC[k].flag ==0) {
-         DYNINSTthreadRPC[k].rpc = (void (*) (void)) tempTrampBase ;
-         DYNINSTthreadRPC[k].flag = 1 ; 
-         break ;
-       } 
-     }
-   }
-#endif /*MT_THREAD*/
+  if (skipBRAddr) {
+    extern void generateMTSkipBranch(void *insn, Address addr, Address offset);
+    generateMTSkipBranch(insnBuffer, skipBRAddr, skipOffset);
+  }
 #endif
-   extern int trampBytes; // stats.h
-   trampBytes += count;
-
-   return tempTrampBase;
+  
+  Address tempTrampBase;
+  if (lowmem)
+    {
+      /* lowmemHeap should always have free space, so this will not
+	 require a recursive inferior RPC. */
+      tempTrampBase = inferiorMalloc(this, count, lowmemHeap);
+    }
+  else
+    {
+      /* May cause another inferior RPC to dynamically allocate a new heap
+	 in the inferior. */
+      tempTrampBase = inferiorMalloc(this, count, anyHeap);
+    }
+  assert(tempTrampBase);
+  
+  breakAddr                      = tempTrampBase + breakOffset;
+  if (shouldStopForResult) {
+    stopForResultAddr           = tempTrampBase + stopForResultOffset;
+    justAfter_stopForResultAddr = tempTrampBase + justAfter_stopForResultOffset;
+  } 
+  else {
+    stopForResultAddr = justAfter_stopForResultAddr = 0;
+  }
+  
+  if (pd_debug_infrpc)
+    cerr << "createRPCtempTramp: temp tramp base=" << (void*)tempTrampBase
+	 << ", stopForResultAddr=" << (void*)stopForResultAddr
+	 << ", justAfter_stopForResultAddr=" << (void*)justAfter_stopForResultAddr
+	 << ", breakAddr=" << (void*)breakAddr
+	 << ", count=" << count << " so end addr="
+	 << (void*)(tempTrampBase + count - 1) << endl;
+  
+  
+  /* Now, write to the tempTramp, in the inferior addr's data space
+     (all tramps are allocated in data space) */
+  
+  if (!writeDataSpace((void*)tempTrampBase, count, insnBuffer)) {
+    // should put up a nice error dialog window
+    cerr << "createRPCtempTramp failed because writeDataSpace failed" << endl;
+    return 0;
+  }
+  
+  extern int trampBytes; // stats.h
+  trampBytes += count;
+  
+  return tempTrampBase;
 }
 
 /* If the PC is at a tramp instruction, then the trap may have been
@@ -6120,61 +5861,16 @@ void process::CheckAppTrapIRPCInfo() {
 }
 #endif
 
-#if defined(MT_THREAD)
-bool process::handleDoneSAFEinferiorRPC(void) {
-  if (DYNINSTthreadRPC) { 
-    for (unsigned d=0; d< MAX_PENDING_RPC; d++) {
-      if (DYNINSTthreadRPC[d].flag ==2) { //done execute
-        //
-        unsigned cookie = (unsigned) (DYNINSTthreadRPC[d].rpc);
-        if (cookie == 0) {
-          cerr << " a weird condition occurred in handleDoneSAFEinferiorRPC ..." << endl;
-          continue ;
-        }
+bool process::handleDoneinferiorRPC(void) {
+  return true;
+}
 
-        for (unsigned k=0; k < currRunningRPCs.size(); k++) {
-          if (currRunningRPCs[k].firstInstrAddr == cookie) {
-            inferiorRPCinProgress &theStruct = currRunningRPCs[k];
-
-            if (pd_debug_infrpc) {
-              sprintf(errorLine, "find completed SAFE rpc, cookie=0x%x", cookie);
-              cerr << errorLine << endl;
-            }
-
-            // step 1) restore registers: not needed for SAFE RPC
-
-            if (currRunningRPCs.empty() && deferredContinueProc) {
-              deferredContinueProc=false;
-              if (continueProc()) statusLine("application running");
-            }
-
-            // step 2) delete temp tramp
-            vector< addrVecType > pointsToCheck;
-            inferiorFree(this, theStruct.firstInstrAddr, pointsToCheck);
-
-            // step 3) pause process, if appropriate
-            //if (!theStruct.wasRunning && status() == running) {
-            //  cerr << "SAFE RPC completion: pause " << endl;
-            //  if (!pause()) {
-            //    cerr << "RPC completion: pause failed" << endl;
-            //  }
-            //}
-
-            // step 4) invoke user callback, if any
-            if (theStruct.callbackFunc) {
-	       printf("about to invoke RPC callback\n");
-               theStruct.callbackFunc(this, theStruct.userData, theStruct.resultValue);
-            }
-            currRunningRPCs.removeByIndex(k);
-            break; //break the for()
-          }
-        }
-        //
-        DYNINSTthreadRPC[d].rpc = 0 ; //make it free again
-        DYNINSTthreadRPC[d].flag = 0 ; //make it free again
-      }
-    }
-  }
+// Should be defined for Sparc as well. 
+#if !defined(rs6000_ibm_aix4_1)
+bool process::getCurrPCVector(vector<Address> &currPCs)
+{
+  currPCs.resize(0);
+  currPCs.push_back(getActiveFrame().getPC());
   return true;
 }
 #endif
@@ -6192,24 +5888,6 @@ bool process::handleTrapIfDueToRPC() {
       return false; // no chance of a match
    }
 
-   if ( is_multithreaded() ) {
-     unsigned k;
-     unsigned rSize = 0 ;
-     for (k=0; k<currRunningRPCs.size(); k++) {
-       //fprintf(stderr, "Checking currRunning %d\n", k);
-       if (!currRunningRPCs[k].isSafeRPC) {
-         rSize ++ ;
-       }
-     }
-     assert(rSize<=1);
-
-   } else {
-
-       // it's unsafe to have > 1 RPCs going on at a time within a single 
-       // process
-       assert(currRunningRPCs.size() == 1);
-   }
-
    // Okay, time to do a stack trace.
    // If we determine that the PC of any level of the back trace
    // equals the current running RPC's stopForResultAddr or breakAddr,
@@ -6222,14 +5900,14 @@ bool process::handleTrapIfDueToRPC() {
    int the_index = 0;
    vector <Address> currPCs;
    Address currPC = 0;
-#ifdef rs6000_ibm_aix4_1
    if (!getCurrPCVector(currPCs)) return false;
-#else
-   Frame theFrame(this);
-   currPCs.push_back(theFrame.getPC());
-#endif
+
    // Big assumption: the found address will always be unique. If we ever
    // get two RPCs finishing simultaneously, this logic will break.
+   // Reasoning: ST: easy. MT: we try to only run one infRPC at a time,
+   // while holding other threads. In any case, we should get the traps
+   // sequentially.
+
    for (unsigned i = 0; i < currPCs.size(); i++) {
      currPC = currPCs[i];
      // Check to see if it matches a "finished" RPC
@@ -6272,38 +5950,44 @@ bool process::handleTrapIfDueToRPC() {
    if (match_type == 1) {
       // We have stopped in order to grab the result.  Grab it and write
       // to theStruct.resultValue, for use when we get match_type==2.
-
       inferiorrpc_cerr << "Welcome to handleTrapIfDueToRPC match type 1" << endl;
       if (pd_debug_infrpc) 
         cerr << "Welcome to handleTrapIfDueToRPC match type 1 (grab the result)" << endl;
 
       assert(theStruct.callbackFunc != NULL);
-        // must be a callback to ever see this match_type
+      // must be a callback to ever see this match_type
 
       //  In the case where the resultRegister is the Null_Register, we can assume that
-          //  the return value will be ignored and can be set to 0.  This happens in some cases when
-          //  catch-up instrumentation is being executed: there isn't a result value that we are
-          //  interested in, but we call a callback function anyway.
+      //  the return value will be ignored and can be set to 0.  This happens in some cases when
+      //  catch-up instrumentation is being executed: there isn't a result value that we are
+      //  interested in, but we call a callback function anyway.
       Address returnValue = 0;
 
-          if ( theStruct.resultRegister != Null_Register )
-          {
-        returnValue = read_inferiorRPC_result_register(theStruct.resultRegister);
-        extern registerSpace *regSpace;
-        regSpace->freeRegister(theStruct.resultRegister);
-          }
-
+      if ( theStruct.resultRegister != Null_Register )
+	{
+	  returnValue = read_inferiorRPC_result_register(theStruct.resultRegister);
+	  extern registerSpace *regSpace;
+	  regSpace->freeRegister(theStruct.resultRegister);
+	}
+      
       theStruct.resultValue = (void *)returnValue;
-
+      
       // we don't remove the RPC from 'currRunningRPCs', since it's not yet done.
       // we continue the process...but not quite at the PC where we left off, since
       // that will just re-do the trap!  Instead, we need to continue at the location
       // of the next instruction.
-#if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
-      if (!changePC(theStruct.justAfter_stopForResultAddr, NULL, theStruct.lwp))
-#else
-      if (!changePC(theStruct.justAfter_stopForResultAddr))
-#endif
+      // MT change: use a specific LWP. On the other hand, we might be stopped
+      // from a "funclet" RPC, which did not have an LWP recorded. So attempt
+      // to look it up again. On the other hand, we could record the LWP that the
+      // PC was found on and do it that way. Either one.
+      unsigned lwpToUse = 0;
+      if (theStruct.thr)
+	lwpToUse = findLWPbyPthread(theStruct.thr->get_tid());
+      if (theStruct.lwp && (lwpToUse != theStruct.lwp))
+	cerr << "Recorded lwp of " << theStruct.lwp << " not equal to discovered lwp "
+	     << lwpToUse << endl;
+
+      if (!changePC(theStruct.justAfter_stopForResultAddr, NULL, lwpToUse))
 	assert(false);
 
       if (!continueProc())
@@ -6329,7 +6013,7 @@ bool process::handleTrapIfDueToRPC() {
            cerr << "handleTrapIfDueToRPC failed because restoreRegisters failed" << endl;
            assert(false);
    }
-
+   // The above implicitly must restore the PC.
 
    if (currRunningRPCs.empty() && deferredContinueProc) {
      // We have a pending continueProc that we had to delay because
@@ -6582,7 +6266,7 @@ bool process::extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record)
     Address val_a = (unsigned)bs_record->appl_attachedAtPtr.words.hi;
     void *val_p = (void *)val_a;
     bs_record->appl_attachedAtPtr.ptr = val_p;
-    fprintf(stderr, "    %p ptr *\n", bs_record->appl_attachedAtPtr.ptr);
+   fprintf(stderr, "    %p ptr *\n", bs_record->appl_attachedAtPtr.ptr);
   }
   
   return true;
