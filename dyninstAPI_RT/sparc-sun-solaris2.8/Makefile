@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2002/03/27 22:16:56 chadd Exp $
+# $Id: Makefile,v 1.7 2002/04/15 21:48:44 chadd Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -40,7 +40,8 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTsolaris.c \
 		   ../src/RTheap.c \
 		   ../src/RTheap-solaris.c \
-		   ../src/RTheap-svr4.c
+		   ../src/RTheap-svr4.c \
+			../src/RTmutatedBinary.c 
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

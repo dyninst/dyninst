@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.113 2002/03/22 21:55:18 chadd Exp $
+// $Id: solaris.C,v 1.114 2002/04/15 21:48:44 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -197,12 +197,20 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 	strcat(directoryName, "/");
 
 	unsigned int dl_debug_statePltEntry = 0x00016574;//a pretty good guess
-	unsigned int dyninst_SharedLibrariesSize = 0;
+	unsigned int dyninst_SharedLibrariesSize = 0, mutatedSharedObjectsNumb;
 
 	dl_debug_statePltEntry = saveWorldSaveSharedLibs(mutatedSharedObjectsSize, 
-		dyninst_SharedLibrariesSize,directoryName);
+		dyninst_SharedLibrariesSize,directoryName, mutatedSharedObjectsNumb);
 
 	if(mutatedSharedObjectsSize){
+		// This is going to be a section that looks like this:
+		// string
+		// addr
+		// ...
+		// string
+		// addr
+		
+		mutatedSharedObjectsSize += mutatedSharedObjectsNumb * sizeof(unsigned int);
 		mutatedSharedObjects = new char[mutatedSharedObjectsSize ];
 		for(int i=0;shared_objects && i<shared_objects->size() ; i++) {
 			sh_obj = (*shared_objects)[i];
@@ -212,6 +220,10 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 					strlen(sh_obj->getName().string_of())+1);
 				mutatedSharedObjectsIndex += strlen(
 					sh_obj->getName().string_of())+1;
+				unsigned int baseAddr = sh_obj->getBaseAddress();
+				memcpy( & (mutatedSharedObjects[mutatedSharedObjectsIndex]),
+					&baseAddr, sizeof(unsigned int));
+				mutatedSharedObjectsIndex += sizeof(unsigned int);	
 			}
 		}	
 	}
@@ -292,11 +304,15 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 			newElf->addSection(compactedUpdates[i]->address,data ,newSize,name);
 			sectionsAdded ++;
 
-			/* create mmap section */
-			sprintf(name,"dyninstAPI_%08x",sectionsAdded);
-			newElf->addSection(nextPage, &(((char*) data)[newSize]) ,
-				compactedUpdates[i]->size- newSize,name);
-			sectionsAdded ++;
+			if(compactedUpdates[i]->size > newSize){
+				/* only create this section if the size of the update
+					spans beyond the first memcpy section*/ 
+				/* create mmap section */
+				sprintf(name,"dyninstAPI_%08x",sectionsAdded);
+				newElf->addSection(nextPage, &(((char*) data)[newSize]) ,
+					compactedUpdates[i]->size- newSize,name);
+				sectionsAdded ++;
+			}
 		}else{
 			/* create section padded out backwards to a page boundry */
 			paddedDiff = (compactedUpdates[i]->address%pageSize);
@@ -338,9 +354,10 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
                 delete compactedHighmemUpdates[k];
         }
 
-	//the following is for the dlopen problem
-	//newElf->addSection(dl_debug_statePltEntry, dyninst_SharedLibrariesData, 
-	//dyninst_SharedLibrariesSize, "dyninstAPI_SharedLibraries", false);
+	//the following is for the dlopen problem 
+	newElf->addSection(dl_debug_statePltEntry, dyninst_SharedLibrariesData, 
+	dyninst_SharedLibrariesSize, "dyninstAPI_SharedLibraries", false);
+
 	delete [] dyninst_SharedLibrariesData;
 
 

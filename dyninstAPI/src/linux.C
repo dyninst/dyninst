@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.66 2002/04/05 19:38:39 schendel Exp $
+// $Id: linux.C,v 1.67 2002/04/15 21:48:44 chadd Exp $
 
 #include <fstream.h>
 
@@ -1881,12 +1881,14 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 
 	unsigned int dl_debug_statePltEntry = 0x00016574;//a pretty good guess
 	unsigned int dyninst_SharedLibrariesSize = 0;
+	unsigned int mutatedSharedObjectsNumb=0;
 
 	dl_debug_statePltEntry = saveWorldSaveSharedLibs(mutatedSharedObjectsSize, 
-		dyninst_SharedLibrariesSize,directoryName);
+		dyninst_SharedLibrariesSize,directoryName,mutatedSharedObjectsNumb);
 
 	//the mutatedSO section contains a list of the shared objects that have been mutated
 	if(mutatedSharedObjectsSize){
+		mutatedSharedObjectsSize += mutatedSharedObjectsNumb * sizeof(unsigned int);
 		mutatedSharedObjects = new char[mutatedSharedObjectsSize];
 		for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
 			sh_obj = (*shared_objects)[i];
@@ -1896,6 +1898,10 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 					strlen(sh_obj->getName().string_of())+1);
 				mutatedSharedObjectsIndex += strlen(
 					sh_obj->getName().string_of())+1;
+				unsigned int baseAddr = sh_obj->getBaseAddress();
+				memcpy( & (mutatedSharedObjects[mutatedSharedObjectsIndex]),
+					&baseAddr, sizeof(unsigned int));
+				mutatedSharedObjectsIndex += sizeof(unsigned int);	
 			}
 		}	
 	}
@@ -1939,8 +1945,8 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 		delete [] mutatedSharedObjects;
 	}
 	//the following is for the dlopen problem
-	//newElf->addSection(dl_debug_statePltEntry, dyninst_SharedLibrariesData, 
-	//dyninst_SharedLibrariesSize, "dyninstAPI_SharedLibraries", false);
+	newElf->addSection(dl_debug_statePltEntry, dyninst_SharedLibrariesData, 
+	dyninst_SharedLibrariesSize, "dyninstAPI_SharedLibraries", false);
 	delete [] dyninst_SharedLibrariesData;
 
         newElf->createElf();

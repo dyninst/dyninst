@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.46 2002/02/12 15:42:03 chadd Exp $
+ * $Id: Object-elf.h,v 1.47 2002/04/15 21:48:43 chadd Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -159,6 +159,10 @@ class Object : public AObject {
 		}
 		return false;
 	} 
+	// to determine where in the .plt this function is listed 
+	// returns an offset from the base address of the object
+	// so the entry can easily be located in memory
+	Address getPltSlot(string funcName) const ;
 
  private:
   static void log_elferror (void (*)(const char *), const char *);

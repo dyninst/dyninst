@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.103 2002/04/09 18:56:38 tikir Exp $
+ * $Id: inst-x86.C,v 1.104 2002/04/15 21:48:44 chadd Exp $
  */
 
 #include <iomanip.h>
@@ -2352,6 +2352,7 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
       // src1 is a temporary
       // src2 is a "scratch" register, we don't need it in this architecture
       emitMovRMToReg(EAX, EBP, -(src1*4), insn);    // mov eax, -(src1*4)[ebp]
+
       emitMovRegToM(dest, EAX, insn);               // mov dest, eax
       base += insn - first;
       return;

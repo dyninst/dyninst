@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.191 2002/04/05 19:38:40 schendel Exp $
+/* $Id: process.h,v 1.192 2002/04/15 21:48:44 chadd Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -677,12 +677,13 @@ void saveWorldData(Address address, int size, const void* src);
 	char* saveWorldFindDirectory();
 
 	unsigned int saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, unsigned int &dyninst_SharedLibrariesSize,
-		 char* directoryName);
+		 char* directoryName, unsigned int &count);
 	char* saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibrariesSize);
 
 	void saveWorldCreateHighMemSections(vector<imageUpdate*> &compactedHighmemUpdates, 
 		vector<imageUpdate*> &highmemUpdates, void *newElf);
 	void saveWorldCreateDataSections(void* ptr);
+
 #endif
 #endif
 

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.37 2002/02/11 22:02:11 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.38 2002/04/15 21:48:43 chadd Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1645,3 +1645,21 @@ const ostream &Object::dump_state_info(ostream &s)
 
   return s;
 } 
+
+
+Address Object::getPltSlot(string funcName) const{
+
+	relocationEntry re;
+	bool found= false;
+	Address offset=0;
+	for(int i =0;i< relocation_table_.size(); i++){
+		if(funcName == relocation_table_[i].name() ){
+			found = true;
+			offset =  relocation_table_[i].rel_addr();
+		}
+
+	}
+	return offset;	
+
+}
+

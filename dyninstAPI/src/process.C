@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.314 2002/04/05 19:38:42 schendel Exp $
+// $Id: process.C,v 1.315 2002/04/15 21:48:44 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1301,7 +1301,7 @@ char* process::saveWorldFindDirectory(){
 }
 
 unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, unsigned int &dyninst_SharedLibrariesSize, 
-		char* directoryName){
+		char* directoryName, unsigned int &count){
 	shared_object *sh_obj;
 	unsigned int dl_debug_statePltEntry=0;
 	bool dlopenUsed = false;
@@ -1344,9 +1344,11 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, uns
 	// not yet fully implemented and part of the cvs tree.
 	//
 
+	count = 0;
 	for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
 		sh_obj = (*shared_objects)[i];
 		if(sh_obj->isDirty()){
+			count ++;
 			if(!dlopenUsed && sh_obj->isopenedWithdlopen()){
 				BPatch_reportError(BPatchWarning,123,"dumpPatchedImage: dlopen used by the mutatee, this may cause the mutated binary to fail\n");
 				dlopenUsed = true;
@@ -1373,18 +1375,25 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, uns
 
                 	sharedObj->saveMutations(textSection);
                 	sharedObj->closeLibrary();
-			/*
+/*			
 			//this is for the dlopen problem....
 			if(strstr(sh_obj->getName().string_of(), "ld-linux.so") ){
 				//find the offset of _dl_debug_state in the .plt
 				dl_debug_statePltEntry = 
 					sh_obj->getImage()->getObject().getPltSlot("_dl_debug_state");
 			}
-			*/
+*/			
 			mutatedSharedObjectsSize += strlen(sh_obj->getName().string_of()) +1 ;
 			delete [] textSection;
 			delete [] newName;
 		}
+		//this is for the dlopen problem....
+		if(strstr(sh_obj->getName().string_of(), "ld-linux.so") ){
+			//find the offset of _dl_debug_state in the .plt
+			dl_debug_statePltEntry = 
+				sh_obj->getImage()->getObject().getPltSlot("_dl_debug_state");
+		}
+
 		//this is for the dyninst_SharedLibraries section
 		//we need to find out the length of the names of each of
 		//the shared libraries to create the data buffer for the section
@@ -1393,7 +1402,9 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, uns
 		//add the size of the address
 		dyninst_SharedLibrariesSize += sizeof(unsigned int);
 	}
-
+#if defined(sparc_sun_solaris2_4)
+	dl_debug_statePltEntry = getImage()->getObject().getPltSlot("dlopen");
+#endif
 	dyninst_SharedLibrariesSize += 1;//for the trailing '\0'
 
 	return dl_debug_statePltEntry;
@@ -1987,7 +1998,7 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
 			
 
 		}
-		fflush(stdout);
+		//fflush(stdout);
 	}
 #endif
 #endif
