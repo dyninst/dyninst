@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-ia64.h,v 1.2 2002/06/03 18:17:14 tlmiller Exp $
+// $Id: instPoint-ia64.h,v 1.3 2002/08/01 18:37:28 tlmiller Exp $
 
 #ifndef _INST_POINT_IA64_H_
 #define _INST_POINT_IA64_H_
@@ -48,52 +48,45 @@
 
 class instPoint {
 	public:
+		instPoint( Address addr, pd_Function * pdfn, const image * owner );
 
 		const function_base * iPgetCallee() const {
-			#warning FIXME
-			return NULL;
+			return myCallee;
 			} /* required by linux.C */
 
 		const image * iPgetOwner() const { 
-			#warning FIXME
-			return NULL;
+			return (myPDFunction) ? ( (myPDFunction->file()) ? myPDFunction->file()->exec() : NULL ) : NULL;
 			} /* required by linux.C */
 
 		Address getTargetAddress() {
-			#warning FIXME
-			return 0;
+			return myTargetAddress;
 			} /* required by linux.C */
 
-		/* "can't set this in the constructor because call points
-		   can't be classified until all functions have been seen
-		    -- this might be cleaned up" (from instPoint-x86.h) */
 		void set_callee( pd_Function * callee ) {
-			#warning FIXME
-			}
+			myCallee = callee;
+			} /* required by linux.C */
 
 		Address iPgetAddress() const {
-			#warning FIXME
-			return 0;
+			return myAddress;
 			} /* required by func-reloc.C */
 
 		Address firstAddress() const {
-			#warning FIXME
+			assert( 0 );
 			return 0;
 			} /* required by func-reloc.C */
 
 		Address followingAddress() const {
-			#warning FIXME
+			assert( 0 );
 			return 0;
 			} /* required by func-reloc.C */
 
 		Address insnAddress() const {
-			#warning FIXME
+			assert( 0 );
 			return 0;
 			} /* required by func-reloc.C */
 
 		const function_base * iPgetFunction() const {
-			#warning FIXME
-			return NULL;
+			return myPDFunction;
 			} /* required by inst.C */
 
 #ifdef BPATCH_LIBRARY
@@ -111,6 +104,16 @@ class instPoint {
 	public:
 		const BPatch_point* getBPatch_point() const { return bppoint; }
 #endif
+
+	private:
+
+		Address myAddress;
+		pd_Function * myPDFunction;
+		const image * myOwner;
+		IA64_instruction myInstruction;
+
+		pd_Function * myCallee;			/* if I'm a call */
+		Address myTargetAddress;		/* if I'm a call or branch */
 
 	}; /* end class instPoint */
 

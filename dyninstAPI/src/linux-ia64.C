@@ -14,45 +14,34 @@
 
 /* Required by linuxDL.C */
 Address getSP( int /* pid */ ) {
-	TRACE( FIXME );
 	assert( 0 );
 	return 0;
 	} /* end getSP */
 
 bool changeSP( int /* pid */, Address /* loc */ ) {
-	TRACE( FIXME );
 	assert( 0 );
 	return false;
 	} /* end changeSP */
 
 /* Required by linux.C */
 void generateBreakPoint( instruction & insn ) {
-	TRACE( FIXME );
 	assert( 0 );
 	insn = instruction( );
 	} /* end generateBreakPoint() */
 
 /* Require by linux.C's insertTrapAtEntryPointOfMain() */
 IA64_bundle generateTrapBundle() {
-	// right-aligned template ID
-	uint8_t MIIstop = 0x01;
-
-	// left-aligned instructions
-	uint64_t TRAP_M =	0x0000800000000000;
-	uint64_t NOP_I =	0x0004000000000000;
-
 	/* Note: we're using 0x80000 as our break.m immediate,
 	   which is defined to be a debugger breakpoint.  If this
 	   gets flaky, anything up to 0x0FFFFF will generate a SIGTRAP. */
 
-	/* Actually, what we're going to try and do is generate
+	/* Actually, what we're going to do is generate
 	   a SIGILL, (0x40000) because SIGTRAP does silly things. */
 
 	return IA64_bundle( MIIstop, TRAP_M, NOP_I, NOP_I );
 	} /* end generateBreakBundle() */
 
 void *process::getRegisters( unsigned /* lwp */ ) {
-	TRACE( FIXME );
 	assert( 0 );
 	return NULL;
 	} /* end getRegisters() */
@@ -66,18 +55,15 @@ bool changePC( int pid, Address loc ) {
 	} /* end changePC() */
 
 void printRegs( void * /* save */ ) {
-	TRACE( FIXME );
 	assert( 0 );
 	} /* end printReg[isters, should be]() */
 
 bool process::executingSystemCall( unsigned /* lwp */ ) { 
-	TRACE( FIXME );
 	assert( 0 );
 	return false;
 	} /* end executingSystemCall() */
 
-bool process::restoreRegisters( void * /* buffer */) {
-	TRACE( FIXME );
+bool process::restoreRegisters( void * /* buffer */, unsigned /* lwp */ ) {
 	assert( 0 );
 	return false;
 	} /* end restoreRegisters() */
@@ -121,10 +107,6 @@ void process::insertTrapAtEntryPointOfMain() {
 
 	assert( f_main );
 
-	/* For now, because we know function addresses are aligned,
-	   we'll just convert the function address.  FIXME:
-	   function_base::addr() should return an InsnAddr. */
-    
 	Address addr = f_main->addr();
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, this );
 	iAddr.saveMyBundleTo( savedCodeBuffer );
@@ -138,7 +120,7 @@ Address process::readRegister(unsigned /*lwp*/, Register) {
 	TRACE( FIXME );
 	assert( 0 );
 	return 0;
-} /* end readRegister */
+	} /* end readRegister */
 
 Frame process::getActiveFrame( unsigned lwp ) {
 	Address pc, fp, sp, tp;
@@ -267,8 +249,7 @@ bool process::dlopenDYNINSTlib() {
 	/* We need three output registers. */
 	InsnAddr allocAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
 
-	uint64_t NOP_M = 0x0004000000000000; /* FIXME: move this and the other constants in this file to a header?  Include the arch-ia64.C constants? */
-	IA64_instruction alteredAlloc = generateAlteredAlloc( allocAddr, 0, 3, 0 );
+	IA64_instruction alteredAlloc = generateAlteredAlloc( * allocAddr, 0, 3, 0 );
 	/* FIXME: maybe generateAlteredAlloc should have a registerSpace (?) parameter
 	   so I can tell which register the first output might be... (rS.out0, rs.in0 ... ) */
 	IA64_instruction_x setStringPointer = generateLongConstantInRegister( 38, entry + ((DLOPEN_CALL_LENGTH + 1) * 16) );
@@ -276,9 +257,6 @@ bool process::dlopenDYNINSTlib() {
 	IA64_instruction_x setReturnPointer = generateLongConstantInRegister( 40, entry + (DLOPEN_CALL_LENGTH * 16) );
 	IA64_instruction memoryNOP( NOP_M );
 	IA64_instruction_x branchLong = generateLongCallTo( dlopenAddr - (entry + (16 * (DLOPEN_CALL_LENGTH - 1))), 0 );
-
-	// right-aligned template IDs
-	uint8_t MLXstop = 0x05;
 
 	dlopenCallBundles[0] = IA64_bundle( MLXstop, alteredAlloc, setStringPointer );
 	dlopenCallBundles[1] = IA64_bundle( MLXstop, setMode, setReturnPointer );
@@ -304,7 +282,7 @@ void process::handleIfDueToDyninstLib() {
 	/* We function did we hijack? */
 	Address entry = findFunctionToHijack(symbols, this);	// We can avoid using InsnAddr because we know 
 								// that function entry points are aligned.
-	if( !entry ) { /* FIXME: note error condition! */ return; }		
+	if( !entry ) { assert( 0 ); }		
 
 	/* Restore the function we hijacked. */
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
@@ -325,7 +303,6 @@ void process::handleIfDueToDyninstLib() {
 	} /* end handleIfDueToDyninstLib() */
 
 Frame Frame::getCallerFrame( process * /* p */ ) const {
-	/* FIXME */
 	assert( 0 );
 	
 	return Frame(); // zero frame
@@ -333,7 +310,6 @@ Frame Frame::getCallerFrame( process * /* p */ ) const {
 
 /* Required by process.C */
 bool process::set_breakpoint_for_syscall_completion() {
-	/* FIXME */
 	assert( 0 );
 
 	return false;
@@ -341,14 +317,12 @@ bool process::set_breakpoint_for_syscall_completion() {
 
 /* Required by process.C */
 void process::clear_breakpoint_for_syscall_completion() {
-	/* FIXME */
 	assert( 0 );
 
 	} /* end clear_breakpoint_for_syscall_completion() */
 
 /* Required by linux.C */
 bool process::hasBeenBound( const relocationEntry /* entry */, pd_Function * & /* target_pdf */, Address /* base_addr */ ) {
-	/* FIXME */
 	assert( 0 );
 
 	return false;

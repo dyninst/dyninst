@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.7 2002/07/02 21:07:16 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.8 2002/08/01 18:37:28 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -50,7 +50,6 @@
 #define _ARCH_IA64_H
 
 #include "common/h/Types.h"
-#include "inst-ia64.h"
 
 /* So the IA-64 has these cute ideas about ILP, one consequence of which
    is the design of its instruction set.  Instructions execute in parallel
@@ -82,27 +81,37 @@ class IA64_instruction {
 	friend class IA64_bundle;
 
 	public:
-		IA64_instruction( uint64_t insn = 0, uint8_t templ = 0, IA64_bundle * mybl = 0 );
+		IA64_instruction( uint64_t insn = 0, uint8_t templ = 0xFF, const IA64_bundle * mybl = 0, uint8_t slotN = 3 );
 
 		const void * ptr() const;
 		uint32_t size() const { return 16; }
 
-		uint64_t getMachineCode() { return instruction; }	
+		uint64_t getMachineCode() { return instruction; }
+
+		enum insnType { RETURN, CALL, BRANCH, OTHER };
+		virtual insnType getType() const;
+
+		virtual Address getTargetAddress();
 
 	protected:
-		IA64_bundle * myBundle;
+		const IA64_bundle * myBundle;
 
 		uint64_t instruction;
 		uint8_t templateID;
+		uint8_t slotNumber;
 	}; /* end the 41 bit instruction */
 
 class IA64_instruction_x : public IA64_instruction {
 	friend class IA64_bundle;
 
 	public:
-		IA64_instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0, IA64_bundle * mybl = 0 );
+		IA64_instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0xFF, IA64_bundle * mybl = 0 );
 
 		ia64_bundle_t getMachineCode() { ia64_bundle_t r = { instruction, instruction_x }; return r; }	
+
+		virtual insnType getType() const;
+
+		virtual Address getTargetAddress();
 
 	private:
 		uint64_t instruction_x;
@@ -117,14 +126,17 @@ class IA64_bundle {
 		IA64_bundle( ia64_bundle_t rawBundle );
 		IA64_bundle( uint8_t templateID, IA64_instruction & instruction0, IA64_instruction_x & instructionLX );
 
-		ia64_bundle_t getMyBundle() const { return myBundle; }
-		ia64_bundle_t * getMyBundlePtr() { myReturnBundle = myBundle; return & myReturnBundle; }
+		ia64_bundle_t getMachineCode() const { return myBundle; }
+		const ia64_bundle_t * getMachineCodePtr() const { return & myBundle; }
 
 		uint8_t getTemplateID() { return templateID; }
 		IA64_instruction getInstruction0() { return instruction0; }
 		IA64_instruction getInstruction1() { return instruction1; }
 		IA64_instruction getInstruction2() { return instruction2; }
 		IA64_instruction getInstruction( unsigned int slot );
+
+		bool hasLongInstruction() { return templateID == 0x05; }
+		IA64_instruction_x getLongInstruction();
 
 	private:
 		IA64_instruction instruction0;
@@ -133,12 +145,11 @@ class IA64_bundle {
 		uint8_t templateID;
 
 		ia64_bundle_t myBundle;
-
-		ia64_bundle_t myReturnBundle;		// We don't want strangers poking
-							// around in our bundle.
 	}; /* end the 128 bit bundle */
 
 typedef IA64_instruction instruction;
+
+#include "inst-ia64.h"
 
 /* Required by symtab.h, which seems to use it to check
    _instruction_ alignment.  OTOH, it doesn't seem to very
@@ -174,7 +185,7 @@ int sizeOfMachineInsn( instruction * insn );
 int addressOfMachineInsn( instruction * insn );
 
 /* Required by linux-ia64.C */
-IA64_instruction generateAlteredAlloc( InsnAddr & allocAddr, int deltaLocal, int deltaOutput, int deltaRotate );
+IA64_instruction generateAlteredAlloc( uint64_t allocAddr, int deltaLocal, int deltaOutput, int deltaRotate );
 IA64_instruction generateShortConstantInRegister( unsigned int registerN, int imm22 );
 IA64_instruction_x generateLongConstantInRegister( unsigned int registerN, long long int imm64 );
 IA64_instruction_x generateLongCallTo( long long int displacement64, unsigned int branchRegister );
@@ -183,5 +194,48 @@ IA64_instruction_x generateLongCallTo( long long int displacement64, unsigned in
 IA64_instruction generateReturnTo( unsigned int branchRegister );
 IA64_instruction_x generateLongBranchTo( long long int displacement64 );
 
+/* Convience method for inst-ia64.C */
+IA64_bundle generateBundleFromLongInstruction( IA64_instruction_x longInstruction );
+
+/* Required by inst-ia64.C */
+IA64_instruction generateIPToRegisterMove( Register destination );
+IA64_instruction generateBranchToRegisterMove( Register source, Register destination );
+IA64_instruction generateRegisterToBranchMove( Register source, Register destination );
+IA64_instruction generateShortImmediateAdd( Register destination, int immediate, Register source );
+IA64_instruction generateSubtraction( Register destination, Register lhs, Register rhs );
+IA64_instruction generateIndirectCallTo( Register indirect, Register rp );
+IA64_instruction generatePredicatesToRegisterMove( Register destination );
+IA64_instruction generateRegisterToPredicatesMove( Register source, uint64_t imm17 );
+IA64_instruction generateRegisterStore( Register address, Register destination );
+IA64_instruction generateRegisterLoad( Register destination, Register address );
+
+/* For ast.C */
+class instPoint;
+class registerSpace;
+#define NUM_LOCALS 8
+#define NUM_OUTPUT 8
+void defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace );
+
+/* Constants for code generation. */
+#define ALIGN_RIGHT_SHIFT 23
+
+#define BRANCH_SCRATCH	6	/* or 7 */
+#define BRANCH_RETURN	0
+#define REGISTER_GP	1
+#define REGISTER_RP	8	/* return value, if structure/union, pointer. */
+#define REGISTER_SP	12	/* memory stack pointer */
+#define REGISTER_TP	13	/* thread pointer */
+
+/* (right-aligned) Template IDs. */
+const uint8_t MIIstop = 0x01;
+const uint8_t MLXstop = 0x05;
+const uint8_t MMIstop = 0x09;
+const uint8_t MstopMIstop = 0x0B;
+const uint8_t MMBstop = 0x19;
+
+/* (left-aligned) Machine code. */
+const uint64_t NOP_I = 0x0004000000000000;
+const uint64_t NOP_M = 0x0004000000000000;
+const uint64_t TRAP_M = 0x0000800000000000;
 
 #endif

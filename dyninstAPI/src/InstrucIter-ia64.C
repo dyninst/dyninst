@@ -159,17 +159,20 @@ void InstrucIter::setCurrentAddress(Address addr)
 }
 
 instruction InstrucIter::getInstruction()
-{	// FIXME
+{	
+	assert( 0 );
 	return instruction();
 }
 
 instruction InstrucIter::getNextInstruction()
-{	// FIXME
+{	
+	assert( 0 );
 	return instruction();
 }
 
 instruction InstrucIter::getPrevInstruction()
-{	// FIXME
+{	
+	assert( 0 );
 	return instruction();
 }
 
@@ -198,6 +201,7 @@ Address InstrucIter::operator--(int)
 }
 
 Address InstrucIter::operator*()
-{	// FIXME
+{	
+	assert( 0 );
 	return 0;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-ia64.h,v 1.5 2002/06/20 20:06:13 tlmiller Exp $
+// $Id: inst-ia64.h,v 1.6 2002/08/01 18:37:28 tlmiller Exp $
 
 #ifndef INST_IA64_H
 #define INST_IA64_H
@@ -47,6 +47,7 @@
 #include "common/h/Types.h"	// Address
 class process;
 class IA64_bundle;
+class IA64_instruction;
 
 class InsnAddr {
 	public:
@@ -94,5 +95,26 @@ class InsnAddr {
 }; /* end class InsnAddr */
 
 #include "arch-ia64.h"
+
+class IA64_iterator {
+	/* FIXME: if/when InsnAddr and/or InstrucIter are implemented, move the
+	   address-munging functionality here. */
+	public:
+		IA64_iterator( Address addr );
+
+		friend bool operator < ( IA64_iterator lhs, IA64_iterator rhs );
+
+		/* Returns the left-aligned instruction at this address. */
+		IA64_instruction operator * ();
+		
+		/* postfix increment */
+		const IA64_iterator operator++ (int dummy);
+
+		Address getEncodedAddress() { return encodedAddress; }
+
+	private:
+		Address encodedAddress;
+		IA64_bundle currentBundle;
+}; /* end class IA64_iterator */
 
 #endif
