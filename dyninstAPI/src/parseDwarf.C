@@ -1046,6 +1046,13 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				if( status == DW_DLV_NO_ENTRY ) { break; }
 				assert( status == DW_DLV_OK );
 
+				/* If we're fortran, get rid of the trailing _ */
+				BPatch_language language = module->getLanguage();
+				if ( ( language == BPatch_fortran ||
+					 language == BPatch_fortran90 ) &&
+					 variableName[strlen(variableName)-1]=='_') 
+				   variableName[strlen(variableName)-1]='\0';
+
 				/* Acquire the parameter's type. */
 				Dwarf_Attribute typeAttribute;
 				status = dwarf_attr( specEntry, DW_AT_type, & typeAttribute, NULL );

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.240 2005/03/15 23:38:48 lharris Exp $
+ // $Id: symtab.C,v 1.241 2005/03/24 00:47:22 jodom Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,6 +78,12 @@ extern pdvector<sym_data> syms_to_find;
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
 #endif
+
+#if defined( USES_DWARF_DEBUG )
+#include "dwarf.h"
+#include "libdwarf.h"
+#endif
+
 // All debug_ostream vrbles are defined in process.C (for no particular reason)
 extern unsigned enable_pd_sharedobj_debug;
 
@@ -1269,6 +1275,7 @@ supportedLanguages pickLanguage(pdstring &working_module, char *working_options,
 }
 void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> *mod_langs)
 {
+   char *ptr;
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
@@ -1280,7 +1287,6 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
 //   char *stabstr_nextoffset;
 //   const char *stabstrs = 0;
 
-   char *ptr;
    pdstring mod_string;
 
    // This ugly flag is set when certain (sun) fortran compilers are detected.
@@ -1459,6 +1465,82 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
 
 
 #endif // stabs platforms
+
+#if defined( USES_DWARF_DEBUG )
+   if (linkedFile.hasDwarfInfo()) {
+      const char *fileName = linkedFile.getFileName();
+
+      int fd = open( fileName, O_RDONLY );
+      assert ( fd != -1 );
+      Dwarf_Debug dbg;
+      int status = dwarf_init( fd, DW_DLC_READ, NULL, NULL, & dbg, NULL );
+      assert( status == DW_DLV_OK );
+
+      Dwarf_Unsigned hdr;
+
+      while( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) {
+         Dwarf_Die moduleDIE;
+         status = dwarf_siblingof(dbg, NULL, &moduleDIE, NULL);
+         assert ( status == DW_DLV_OK );
+         
+         Dwarf_Half moduleTag;
+         status = dwarf_tag( moduleDIE, & moduleTag, NULL);
+         assert( status == DW_DLV_OK );
+         assert( moduleTag == DW_TAG_compile_unit );
+         
+         /* Extract the name of this module. */
+         char * moduleName;
+         status = dwarf_diename( moduleDIE, & moduleName, NULL );
+         ptr = strrchr(moduleName, '/');
+         if (ptr) {
+            ptr++;
+         } else {
+            ptr = moduleName;
+         }
+
+         working_module = pdstring(ptr);
+
+         if (status != DW_DLV_NO_ENTRY) {
+            assert( status != DW_DLV_ERROR );
+            Dwarf_Attribute languageAttribute;
+            status = dwarf_attr( moduleDIE, DW_AT_language, & languageAttribute, NULL );
+            assert( status != DW_DLV_ERROR );
+            if( status == DW_DLV_OK ) {
+               Dwarf_Unsigned languageConstant;
+               status = dwarf_formudata( languageAttribute, & languageConstant, NULL );
+               assert( status == DW_DLV_OK );
+               
+               switch( languageConstant ) {
+               case DW_LANG_C:
+               case DW_LANG_C89:
+                  (*mod_langs)[working_module] = lang_C;
+                  break;
+               case DW_LANG_C_plus_plus:
+                  (*mod_langs)[working_module] = lang_CPlusPlus;
+                  break;
+               case DW_LANG_Fortran77:
+                  (*mod_langs)[working_module] = lang_Fortran;
+                  break;
+               case DW_LANG_Fortran90:
+                  (*mod_langs)[working_module] = lang_Fortran;
+                  break;
+               default:
+                  /* We know what the language is but don't care. */
+                  break;
+               } /* end languageConstant switch */
+               
+               dwarf_dealloc( dbg, languageAttribute, DW_DLA_ATTR );
+            }
+            dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
+         }
+         dwarf_dealloc( dbg, moduleDIE, DW_DLA_DIE );
+      }
+
+      status = dwarf_finish( dbg, NULL );
+      assert( status == DW_DLV_OK );
+      close( fd );
+   }
+#endif
 
    //
    // eCoff Platforms

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.175 2005/03/14 22:32:02 tlmiller Exp $
+// $Id: symtab.h,v 1.176 2005/03/24 00:47:23 jodom Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -833,7 +833,7 @@ inline bool image::symbol_info(const pdstring& symbol_name, Symbol &ret_sym) {
    if( symbols.size() == 1 ) {
        ret_sym = symbols[0];
        return true;
-       } else {
+       } else if ( symbols.size() > 1 ) {
        return false;
     }
 
