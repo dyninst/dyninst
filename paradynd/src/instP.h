@@ -7,7 +7,10 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
- * Revision 1.2  1994/07/05 03:26:07  hollings
+ * Revision 1.3  1994/07/14 14:27:51  jcargill
+ * Added a couple of new ptrace requests for CM5 nodes
+ *
+ * Revision 1.2  1994/07/05  03:26:07  hollings
  * observed cost model
  *
  * Revision 1.1  1994/01/27  20:31:26  hollings
@@ -95,3 +98,5 @@ int flushPtrace();
 
 /* we define this to be stop a process on the spot. */
 #define PTRACE_INTERRUPT	PTRACE_GETUCODE+1
+#define PTRACE_STATUS		PTRACE_GETUCODE+2
+#define PTRACE_SNARFBUFFER	PTRACE_GETUCODE+3
