@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.25 2002/04/09 18:56:36 tikir Exp $
+// $Id: BPatch_function.C,v 1.26 2002/04/25 22:51:45 gaburici Exp $
 
 #define BPATCH_FILE
 
@@ -354,6 +354,7 @@ BPatch_point* createInstPointForMemAccess(process *proc,
   // VG(09/17/01): This seems the right fuction to update all data structures
   // Trouble is that updating these should be platfrom independent, while this
   // function also does platform dependent stuff...
+  //fprintf(stderr, "memcreat@%p\n", addr);
   BPatch_point *p = createInstructionInstPoint(proc, (void*) addr, alternative);
   if(p)
     p->memacc = ma;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.123 2002/04/23 16:28:01 bernat Exp $
+// $Id: inst-sparc.C,v 1.124 2002/04/25 22:51:45 gaburici Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -80,7 +80,7 @@ int deadListSize = sizeof(deadList);
 
 // Constructor for the instPoint class. 
 instPoint::instPoint(pd_Function *f, const image *owner, Address &adr, 
-                     bool delayOK, instPointType pointType)
+                     bool delayOK, instPointType pointType, bool noCall)
 : insnAddr(adr), addr(adr), 
   firstPriorIsDCTI(false), 
   secondPriorIsDCTI(false),
@@ -96,7 +96,7 @@ instPoint::instPoint(pd_Function *f, const image *owner, Address &adr,
   numPriorInstructions(0),
   callIndirect(false), callee(NULL), func(f), isBranchOut(false),
   ipType(pointType), image_ptr(owner),
-  relocated_(false), needsLongJump(false)
+  relocated_(false), needsLongJump(false), dontUseCall(noCall)
 {
 
   // If the base tramp is too far away from the function for a branch, 
@@ -396,7 +396,7 @@ instPoint::instPoint(pd_Function *f, const instruction instr[],
   numPriorInstructions(0),
   callIndirect(false), callee(NULL), func(f), isBranchOut(false),
   ipType(pointType), image_ptr(owner),
-  relocated_(true), needsLongJump(false)
+  relocated_(true), needsLongJump(false), dontUseCall(false)
 {
 
   // If the base tramp is too far away from the function for a branch, 
@@ -2043,6 +2043,9 @@ bool deleteBaseTramp(process *proc, instPoint* location,
 
 #include <sys/systeminfo.h>
 
+// VG(4/24/2002) It seems a good idea to cache the result.
+// This is not thread safe, but should be okay since the 
+// result shoud be the same for all threads...
 /*
  * function which check whether the architecture is 
  * sparcv8plus or not. For the earlier architectures 
@@ -2050,14 +2053,46 @@ bool deleteBaseTramp(process *proc, instPoint* location,
  */
 bool isV8plusISA()
 {
+  static bool result;
+  static bool gotresult = false;
+
+  if(gotresult)
+    return result;
+  else {
     char isaOptions[256];
 
     if (sysinfo(SI_ISALIST, isaOptions, 256) < 0)
-        return false;
+      return false;
     if (strstr(isaOptions, "sparcv8plus"))
-        return true;
+      return true;
     return false;
+  }
 }
+
+/*
+ * function which check whether the architecture is 
+ * sparcv9 or later. For the earlier architectures 
+ * it is not possible to support ajacent arbitrary 
+ * instrumentation points
+ */
+bool isV9ISA()
+{
+  static bool result;
+  static bool gotresult = false;
+
+  if(gotresult)
+    return result;
+  else { 
+    char isaOptions[256];
+
+    if (sysinfo(SI_ISALIST, isaOptions, 256) < 0)
+      return false;
+    if (strstr(isaOptions, "sparcv9"))
+      return true;
+    return false;
+  }
+}
+
 
 /*
  * createInstructionInstPoint
@@ -2069,12 +2104,13 @@ bool isV8plusISA()
  * address      The address for which to create the point.
  */
 
-BPatch_point *createInstructionInstPoint(process *proc, void *address,
+BPatch_point* createInstructionInstPoint(process *proc, void *address,
 					 BPatch_point** alternative,
 					 BPatch_function* bpf)
 {
     unsigned i;
     Address begin_addr,end_addr,curr_addr;
+    bool dontUseCallHere = false;
 
     //the method to check whether conservative base tramp can be installed
     //or not since it contains condition code instructions which is
@@ -2085,6 +2121,8 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
 	cerr << " sparc architecture earlier than v8plus\n";
 	return NULL;
     }
+
+    //fprintf(stderr, "Called for %p\n", address);
 
     curr_addr = (Address)address;
 
@@ -2120,7 +2158,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
 	    if ((begin_addr - INSN_SIZE) == curr_addr) {
 		delete[] belements;
 		BPatch_reportError(BPatchSerious, 118,
-				   "point uninstrumentable");
+				   "point uninstrumentable (0)");
 		return NULL;
 	    }
 	}
@@ -2183,22 +2221,33 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
     curr_addr += pointImageBase;
 
     /* Check for conflict with a previously created inst point. */
+    // VG(4/24/2002): there is no conflict on v9.
     if (proc->instPointMap.defines(curr_addr - INSN_SIZE)) {
-	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict 4");
-	if(alternative)
-		*alternative = (proc->instPointMap)[curr_addr-INSN_SIZE];
-	return NULL;
+      if(isV9ISA())
+        (proc->instPointMap)[curr_addr-INSN_SIZE]->point->dontUseCall = true;
+      else {
+        BPatch_reportError(BPatchSerious,117,"instrumentation point conflict 4");
+        if(alternative)
+          *alternative = (proc->instPointMap)[curr_addr-INSN_SIZE];
+        return NULL;
+      }
     } else if (proc->instPointMap.defines(curr_addr + INSN_SIZE)) {
-	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict 5");
-	if(alternative)
-		*alternative = (proc->instPointMap)[curr_addr+INSN_SIZE];
-	return NULL;
+      if(isV9ISA())
+        dontUseCallHere=true;
+      else {
+        BPatch_reportError(BPatchSerious,117,"instrumentation point conflict 5");
+        if(alternative)
+          *alternative = (proc->instPointMap)[curr_addr+INSN_SIZE];
+        return NULL;
+      }
     }
 
+    // VG(4/24/2002): Should also modify this no to bother with b,a on v9
     /* Check for instrumenting just before or after a branch. */
 
     bool decrement = false;
     if ((Address)address > func->getEffectiveAddress(proc)) {
+      //fprintf(stderr, "Wierd1=true@%x\n", address);
 	instruction prevInstr;
 	proc->readTextSpace((char *)address - INSN_SIZE,
 			    sizeof(instruction),
@@ -2207,27 +2256,41 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
           if((prevInstr.call.op == CALLop) ||
              ((prevInstr.call.op != CALLop) && !prevInstr.branch.anneal))
           {
-              BPatch_reportError(BPatchSerious, 118, "point uninstrumentable");
+              BPatch_reportError(BPatchSerious, 118, "point uninstrumentable (1)");
               return NULL;
           }
-          decrement = true;
+          if(!(isV9ISA() && isUBA(prevInstr))) {
+            fprintf(stderr, "decrement=true@%x\n", address);
+            decrement = true;
+          }
 	}
     }
 
     if ((Address)address + INSN_SIZE <
 	func->getEffectiveAddress(proc) + func->size()) {
+      //fprintf(stderr, "Wierd2=true@%p\n", address); 
 	instruction nextInstr;
 	proc->readTextSpace((char *)address + INSN_SIZE,
 			    sizeof(instruction),
 			    &nextInstr.raw);
+        //fprintf(stderr, "next@%lx->%x\n", (Address)address + INSN_SIZE, nextInstr.raw);
+        // VG(4/24/2002): If we're on v9 and the next instruction is a DCTI, 
+        // then we cannot use a call.
+        // TODO: There rare case where it is trap was not dealt with...
 	if (isDCTI(nextInstr)){
-          proc->readTextSpace((char *)address + 2*INSN_SIZE,
-                            sizeof(instruction),
-                            &nextInstr.raw);
-          if(!isNopInsn(nextInstr)){
+          //fprintf(stderr, "isDCTI=true@%lx->%x\n", (Address)address + INSN_SIZE, nextInstr.raw);
+          if(isV9ISA())
+            dontUseCallHere=true;
+          else {
+            proc->readTextSpace((char *)address + 2*INSN_SIZE,
+                                sizeof(instruction),
+                                &nextInstr.raw);
+            if(!isNopInsn(nextInstr)){
+              fprintf(stderr, "failes @ %p\n", address);
               BPatch_reportError(BPatchSerious, 118,
-                                 "point uninstrumentable");
+                                 "point uninstrumentable (2)");
               return NULL;
+            }
           }
 	}
     }
@@ -2246,7 +2309,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
 				     (const image*)pointImage,
 				     (Address &)curr_addr,
 				     false, // bool delayOk - ignored,
-				     otherPoint);
+				     otherPoint, dontUseCallHere);
 
     pointFunction->addArbitraryPoint(newpt,proc);
 

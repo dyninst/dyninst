@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.6 2002/02/19 19:19:34 gaburici Exp $
+// $Id: test6.C,v 1.7 2002/04/25 22:51:46 gaburici Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -614,6 +614,8 @@ void mutatorMAIN(char *pathname)
 
   dprintf("starting program execution.\n");
   bpthr->continueExecution();
+  //bpthr->detach(false);
+
 
   unsigned int testsFailed = 0;
   for (unsigned int i=1; i <= MAX_TEST; i++) {

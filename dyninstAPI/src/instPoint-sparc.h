@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.16 2002/01/29 00:19:32 gurari Exp $
+// $Id: instPoint-sparc.h,v 1.17 2002/04/25 22:51:46 gaburici Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
@@ -67,7 +67,7 @@ class instPoint {
 public:
 
   instPoint(pd_Function *f, const image *owner, Address &adr, 
-            const bool delayOK, instPointType ipt);
+            const bool delayOK, instPointType ipt, bool noCall=false);
 
   instPoint(pd_Function *f, const instruction instr[], 
             int instrOffset, const image *owner, Address &adr, 
@@ -178,7 +178,10 @@ public:
   bool relocated_;	        // true if instPoint is from a relocated func
 
   bool needsLongJump;              // true if it turned out the branch from this 
-                                // point to baseTramp needs long jump.   
+                                // point to baseTramp needs long jump.
+  // VG(4/25/2002): True if call may not be used to instrument this point
+  // because the instruction after this one is an inst point itself
+  bool dontUseCall;
 
   // VG(11/06/01): there is some common stuff amongst instPoint
   // classes on all platforms (like addr and the back pointer to

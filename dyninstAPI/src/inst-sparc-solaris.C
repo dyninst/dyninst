@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.103 2002/02/21 21:47:47 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.104 2002/04/25 22:51:45 gaburici Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -399,6 +399,13 @@ trampTemplate * installBaseTramp( instPoint * & location,
     if ( !offsetWithinRangeOfBranchInsn(baseTrampAddress - ipAddr) ) {
       location->needsLongJump = true;
     }
+
+//     if(location->dontUseCall)
+//       fprintf(stderr, "dontUseCall@%p\n", ipAddr);
+
+    // VG(4/25/2002): refuse installation if call is needed, but not safe
+    if(location->needsLongJump && location->dontUseCall)
+      return NULL;
 
     // very conservative installation as o7 can be live 
     // at this arbitrary inst point

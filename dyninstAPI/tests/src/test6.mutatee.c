@@ -1,4 +1,4 @@
-/* $Id: test6.mutatee.c,v 1.11 2002/03/15 21:05:16 gaburici Exp $ */
+/* $Id: test6.mutatee.c,v 1.12 2002/04/25 22:51:46 gaburici Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -354,11 +354,17 @@ void check5()
 
 void check6()
 {
+  int i;
+
 #if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
   skiptest(6, "instrumentation w/byte count snippet");
 #else
   passorfail(6, !doomBC && validateBC(bcExp, bcList),
 	     "count accessed bytes snippet", "count sequences are different");
+/*   for(i=0; i<accessExp; ++i) { */
+/*     printf("%d ", bcList[i]); */
+/*   } */
+/*   printf("\n"); */
 #endif
 }
 

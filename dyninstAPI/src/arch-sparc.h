@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.29 2002/01/29 00:19:31 gurari Exp $
+// $Id: arch-sparc.h,v 1.30 2002/04/25 22:51:45 gaburici Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -59,7 +59,7 @@ struct fmt1 {
 
 struct fmt2 {
     unsigned op:2;
-    unsigned anneal:1;
+    unsigned anneal:1; // VG: must read anull I guess...
     unsigned cond:4;
     unsigned op2:3;
     signed disp22:22;
@@ -245,8 +245,8 @@ typedef union instructUnion instruction;
 #define NOOPop2		4
 #define SETHIop2	4
 
-/* If these bits are non-zero an op2 instruction is a non-annuled branch */
-#define ANNUL_BIT	0x40000000
+// VG(4/24/2002): This was wrong; fortunately, it was not used anywhere...
+#define ANNUL_BIT	0x20000000
 
 #define BREAK_POINT_INSN 0x91d02001   /* ta 1 */
 #define SPILL_REGISTERS_INSN 0x91d02003 /*ta 3*/
@@ -302,19 +302,52 @@ inline bool isJmplInsn(const instruction i){
   return false;
 }
 
+// VG(04/24/2002): There is another conditional branch (BPr op2=3),
+// and another one (FBPfcc op2=7). This function is not used in
+// Dyninst and it should not be!
 inline bool isCondBranch(const instruction i){
-     if (i.branch.op == 0 && (i.branch.op2 == 2 || i.branch.op2 == 6)) {
-         if ((i.branch.cond != 0) && (i.branch.cond != 8))  
-	     return true;
-     }
-     return false;
+  if (i.branch.op == 0 && (i.branch.op2 == 2 || i.branch.op2 == 6)) {
+    if ((i.branch.cond != 0) && (i.branch.cond != 8))  
+      return true;
+  }
+  return false;
 }
 
+// VG(4/24/200): DCTI = delayed control-transfer instruction
+// It was incomplete on v9, so here's a quick rewrite:
 inline bool isDCTI(const instruction insn) {
-  return (insn.call.op == CALLop ||
-	  isInsnType(insn, JMPLmask, JMPLmatch) ||
-	  isInsnType(insn, FBRNCHmask, FBRNCHmatch) ||
-	  isInsnType(insn, BRNCHmask, BRNCHmatch));
+  return (insn.call.op == 1 || // call
+          (insn.branch.op == 0 && // branches (BPcc, Bicc, BPr, FBPfcc, FBfcc)
+           insn.branch.op2 != 0 &&
+           insn.branch.op2 != 4 &&
+           insn.branch.op2 != 7) ||
+          (insn.rest.op == 2 &&  // JMPL, RETURN
+           ((insn.rest.op3 | 1) == 0x39))
+          );
+/*   return (insn.call.op == CALLop || */
+/* 	  isInsnType(insn, JMPLmask, JMPLmatch) || */
+/* 	  isInsnType(insn, FBRNCHmask, FBRNCHmatch) || */
+/* 	  isInsnType(insn, BRNCHmask, BRNCHmatch)); */
+}
+
+inline bool isAnnulled(const instruction i) {
+  return i.branch.anneal == 1;
+}
+
+// VG(4/24/200): UB = unconditional branch
+inline bool isUB(const instruction i) {
+  // Only Bicc(010), BPcc(001), FBfcc (110), FBPfcc(101) can be unconditional
+  if(i.branch.op==00 && ((i.branch.op2 & 3) == 1 ||
+                         (i.branch.op2 & 3) == 2) &&
+     // 0x0=never; 0x8=always
+     (i.branch.cond == 0x0 || i.branch.cond == 0x8))
+    return true;
+  return false;
+}
+
+// VG(4/24/200): UBA = unconditional branch anulled
+inline bool isUBA(const instruction i) {
+  return isUB(i) && isAnnulled(i);
 }
 
 /* catch small ints that are invalid instructions */
