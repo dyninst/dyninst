@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParse.h,v 1.17 1999/05/25 22:35:51 nash Exp $
+// $Id: metParse.h,v 1.18 1999/08/03 20:35:12 nash Exp $
 
 #ifndef _MET_PARSE_H
 #define _MET_PARSE_H
@@ -378,7 +378,7 @@ private:
 
 class processMet {
 public:
-  processMet() { }
+  processMet() { autoStart_ = true; }
   processMet(string& nm, string& cmd, string& d, string& h, string& u, string& exec, bool auto_start);
   ~processMet() { }
 
@@ -397,7 +397,9 @@ public:
   string execDir() const { return execDir_; }
   bool autoStart() const { return autoStart_; }
 
-  static vector<processMet*> allProcs;
+  // These two methods are implemented in metMain.C rather than metClass.C
+  static bool doInitProcess();
+  static void checkDaemonProcess( const string &host );
 
 private:
   string name_;
@@ -407,6 +409,8 @@ private:
   string user_;
   string execDir_;
   bool autoStart_;
+
+  static vector<processMet*> allProcs;
 };
 
 class visiMet {

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.80 1999/05/25 22:35:41 nash Exp $
+ * $Id: DMdaemon.C,v 1.81 1999/08/03 20:35:09 nash Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -68,6 +68,9 @@ double   quiet_nan();
 // TEMP this should be part of a class def.
 status_line *DMstatus=NULL;
 status_line *PROCstatus=NULL;
+
+// This is from met/metMain.C
+void metCheckDaemonProcess( const string & );
 
 // change a char* that points to "" to point to NULL
 // NULL is used to signify "NO ARGUMENT"
@@ -181,7 +184,6 @@ bool paradynDaemon::addRunningProgram (int pid,
     return true;
 }
 
-
 //
 // add a new paradyn daemon
 // called when a new paradynd contacts the advertised socket
@@ -213,6 +215,7 @@ bool paradynDaemon::addDaemon (PDSOCKET sock)
   msg_bind_socket (new_daemon->get_sock(), true, (int(*)(void*)) xdrrec_eof,
 		     (void*)new_daemon->net_obj(), &(new_daemon->stid));
   assert(new_daemon);
+
   // The pid is reported later in an upcall
   return (true);
 }
@@ -1378,6 +1381,8 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
     paradynDaemon::allDaemons+=pd;
     id = paradynDaemon::allDaemons.size()-1;
     assert(paradynDaemon::allDaemons.size() > id); 
+
+	metCheckDaemonProcess( machine );
   }
   // else...we leave "errorConditionFound" for the caller to check...
   //        don't forget to check!
@@ -1634,6 +1639,8 @@ paradynDaemon::reportSelf (string m, string p, int /*pid*/, string flav)
     } else {
       name = flavor;
     }
+
+	metCheckDaemonProcess( machine );
   }
 
   // Send the initial metrics, constraints, and other neato things

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metClass.C,v 1.11 1999/05/25 22:35:51 nash Exp $
+// $Id: metClass.C,v 1.12 1999/08/03 20:35:12 nash Exp $
 
 // Implements classes used for metric description language
 
@@ -285,6 +285,11 @@ void processMet::dump() const
   cout << "    host: " << host_ << endl;
   cout << "    execDir: " << execDir_ << endl;
   cout << "    user: " << user_ << endl;
+  cout << "    autoStart: ";
+  if( autoStart_ )
+	  cout << "true" << endl;
+  else
+	  cout << "false" << endl;
 }
 
 bool processMet::addProcess(processMet *pm)

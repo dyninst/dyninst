@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.39 1999/05/25 22:35:51 nash Exp $
+// $Id: metMain.C,v 1.40 1999/08/03 20:35:12 nash Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -295,12 +295,36 @@ static void start_process(processMet *the_ps)
 
 bool metDoProcess()
 {
-  unsigned size = processMet::allProcs.size();
-  for (unsigned u=0; u<size; u++) {
-    start_process(processMet::allProcs[u]);
-    delete processMet::allProcs[u];
-  }
-  return true;
+    return processMet::doInitProcess();
+}
+
+bool processMet::doInitProcess() {
+    unsigned size = allProcs.size();
+    for (unsigned u=0; u<size; u++) {
+	if( allProcs[u]->autoStart() ) {
+	    start_process( allProcs[u] );
+	    delete allProcs[u];
+	    allProcs[u] = NULL;
+	}
+    }
+    return true;
+}
+
+void metCheckDaemonProcess( const string &host ) {
+    processMet::checkDaemonProcess( host );
+}
+
+void processMet::checkDaemonProcess( const string &host ) {
+    unsigned size = allProcs.size();
+    //cerr << "Checking for non-started processes for host " << host << endl;
+    for (unsigned u=0; u<size; u++) {
+	if( allProcs[u] && allProcs[u]->host() == host ) {
+	    //cerr << " - Starting process " << allProcs[u]->name() << endl;
+	    start_process( allProcs[u] );
+	    delete allProcs[u];
+	    allProcs[u] = NULL;
+	}
+    }	
 }
 
 static void set_tunable (tunableMet *the_ts)
