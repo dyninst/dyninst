@@ -1,8 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.67  1995/11/29 00:18:58  tamches
-/* Paradyn logo is now hard-coded; PARADYNTCL/PdBitmapDir are now
-/* obsolete.
+/* Revision 1.68  1995/12/20 02:27:25  tamches
+/* removed some warnings
 /*
+ * Revision 1.67  1995/11/29 00:18:58  tamches
+ * Paradyn logo is now hard-coded; PARADYNTCL/PdBitmapDir are now
+ * obsolete.
+ *
  * Revision 1.66  1995/11/20 03:22:38  tamches
  * added showWhereAxisTips tunable constant, and related code
  * added tclPrompt tunable constant, and related code
@@ -720,7 +723,7 @@ void *UImain(void*) {
  */
 
 void
-StdinProc(ClientData, int mask)
+StdinProc(ClientData, int)
 {
 #define BUFFER_SIZE 4000
     char input[BUFFER_SIZE+1];
@@ -783,8 +786,8 @@ StdinProc(ClientData, int mask)
     Tcl_ResetResult(interp);
 }
 
-void Prompt(Tcl_Interp *interp,   /* Interpreter to use for prompting. */
-	    int partial)          /* Non-zero means there already
+void Prompt(Tcl_Interp *,         /* Interpreter to use for prompting. */
+	    int)                  /* Non-zero means there already
 				   * exists a partial command, so use
 				   * the secondary prompt. */
 {
