@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.88 2000/03/20 22:56:14 chambrea Exp $
+ * $Id: inst-power.C,v 1.89 2000/06/21 15:40:38 bernat Exp $
  */
 
 #include "util/h/headers.h"
@@ -1176,6 +1176,14 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 	break;
       case SAVE_PRE_INSN:
       case SAVE_POST_INSN:
+	// Note: we're saving the registers 24K down the stack.
+	// This is necessary since the near area around the stack pointer
+	// can contain useful data, and we can't tell when this is.
+	// So we can't shift the SP down a little ways, and in most
+	// cases we don't care about shifting it down a long way here.
+	// If we make a function call (emitFuncCall), it handles
+	// shifting the SP down.
+
 #ifdef BPATCH_LIBRARY
 	for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
 	  registerSlot *reg = theRegSpace->getRegSlot(i);
@@ -1225,14 +1233,14 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 	  }
 #endif
 	  
-	  // if there is more than one instruction, we need this
-	  if (numInsn>0) {
-	    temp--;
-	    currAddr -= sizeof(instruction);
-	  }
+	  temp--;
+	  currAddr -= sizeof(instruction);
+	  
 	  break;
 	case RESTORE_PRE_INSN:
 	case RESTORE_POST_INSN:
+	  // See comment above for why we don't shift SP.
+	  // However, the LR is stored in its normal place (at SP+8)
           currAddr += restoreLR(temp, 10, STKLR); //Restore link register from
 	  
 #ifdef BPATCH_LIBRARY
@@ -1265,7 +1273,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 	  // programs -- uncomment if they get picky
 	  //}
 	
-	  // Also load the floating point registers which were save
+	  // Also load the floating point registers which were saved
 	  // since they could have been modified, f0-r13
 	  for(u_int i=0; i <= 13; i++) {
 	    numInsn = 0;
@@ -1273,11 +1281,9 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 	    currAddr += numInsn;
 	  }
 	  
-	  // if there is more than one instruction, we need this 
-	  if (numInsn>0) {
-	    temp--;
-	    currAddr -= sizeof(instruction);
-	  }
+	  // "Undo" the for loop step, since we've advanced the FP also.
+	  temp--;
+	  currAddr -= sizeof(instruction);
 	  break;
 	case LOCAL_PRE_BRANCH:
 	case GLOBAL_PRE_BRANCH:
@@ -1838,15 +1844,14 @@ Register emitFuncCall(opCode /* ocode */,
 	    dest = func->getAddress(0);
        }
   }
-  // If this code tries to save registers, it might save them in the
-  // wrong area; there was a conflict with where the base trampoline saved
-  // registers and the function, so now the function is saving the registers
-  // above the location where the base trampoline did
+
+  // Generate the code for all function parameters, and keep a list
+  // of what registers they're in.
   for (unsigned u = 0; u < operands.size(); u++) {
     srcs += operands[u]->generateCode(proc, rs, iPtr, base, false, false);
   }
   
-  // TODO cast
+  // generateCode can shift the instruction pointer, so reset insn
   instruction *insn = (instruction *) ((void*)&iPtr[base]);
   vector<int> savedRegs;
   
@@ -1856,8 +1861,10 @@ Register emitFuncCall(opCode /* ocode */,
   insn++;
   base += sizeof(instruction);
   
-  // st r0, (r1)
-  saveRegister(insn,base,0,STKFCALLREGS);
+  // Register 0 is actually the link register, now. However, since we
+  // don't want to overwrite the LR slot, save it as "register 0"
+  saveRegister(insn, base, 0, STKFCALLREGS);
+  // Add 0 to the list of saved registers
   savedRegs += 0;
   
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
@@ -1896,7 +1903,7 @@ Register emitFuncCall(opCode /* ocode */,
       // since the register should be free
       // assert((u == srcs.size()) || (srcs[u] != (int) (u+3)));
       if(u == srcs.size()) {
-	saveRegister(insn,base,reg->number,STKFCALLREGS);
+	saveRegister(insn, base, reg->number, STKFCALLREGS);
 	savedRegs += reg->number;
       }
     } else if (reg->inUse) {
@@ -1923,7 +1930,7 @@ Register emitFuncCall(opCode /* ocode */,
     // the first 8 need to be in registers while the others need to be on
     // the stack, -- sec 3/1/97
     string msg = "Too many arguments to function call in instrumentation code:"
-                " only 8 arguments can be passed on the POWER architecture.\n";
+                " only 8 arguments can (currently) be passed on the POWER architecture.\n";
     fprintf(stderr, msg.string_of());
     showErrorCallback(94,msg);
     cleanUpAndExit(-1);
@@ -1971,9 +1978,17 @@ Register emitFuncCall(opCode /* ocode */,
   //                          and to make sure the floatpings are aligned)
   // OLD STACK POINTER
   //   szdsa    =  4*(argarea+linkarea+nfuncrs+nfprs+ngprs) = 368 + 8 = 376
+  // TODO: move this to arch-power. Here for compiling speed reasons.
+#define emitFuncCallStackSpace 376
 
-  //  Decrement stack ptr
-  genImmInsn(insn, STUop, 1, 1, -376 - STKKEEP);
+  // So as of now, we have a big chunk of space at SP-24K (approx) which
+  // is used. This is not a good situation, as we have _no clue_ what 
+  // our instrumentation is going to do. Simple answer: shift the stack
+  // pointer past our saved area. Not efficient in terms of space (at 24K
+  // a pop), but safe.
+  // Take current SP, decrease by frame amount, and store (both) in
+  // register 1 and in memory. Back chain to "caller"
+  genImmInsn(insn, STUop, REG_SP, REG_SP, -emitFuncCallStackSpace - STKKEEP);
   insn++;
   base += sizeof(instruction);
     
@@ -1989,17 +2004,19 @@ Register emitFuncCall(opCode /* ocode */,
   // generate a to the subroutine to be called.
   // load r0 with address, then move to link reg and branch and link.
   
-  // really addis 0,dest,HIGH(dest) aka lis dest, HIGH(dest)
+  // TODO: can we do this with a branch to fixed, instead of a
+  // branch-to-link-register?
+  // Set the upper half of the link register
   genImmInsn(insn, CAUop, 0, 0, HIGH(dest));
   insn++;
   base += sizeof(instruction);
   
-  // ori dest,dest,LOW(src1)
+  // Set lower half
   genImmInsn(insn, ORILop, 0, 0, LOW(dest));
   insn++;
   base += sizeof(instruction);
   
-  // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
+  // Move to link register
   insn->raw = MTLR0raw;
   insn++;
   base += sizeof(instruction);
@@ -2009,26 +2026,31 @@ Register emitFuncCall(opCode /* ocode */,
   insn++;
   base += sizeof(instruction);
   
-  // should their be a nop of some sort here?, sec
-  // insn->raw = 0x4ffffb82;  // nop
-  // insn++;
-  // base += sizeof(instruction);
+  // should there be a nop of some sort here?, sec
+  // No: AFAIK, the nop is an artifact of the linker, which we bypass.
+  // -- bernat
+  //insn->raw = 0x4ffffb82;  // nop
+  //insn++;
+  //base += sizeof(instruction);
   
   // now cleanup.
-  genImmInsn(insn, CALop, 1, 1, 376 + STKKEEP);
+  genImmInsn(insn, CALop, REG_SP, REG_SP, emitFuncCallStackSpace + STKKEEP);
   insn++;
   base += sizeof(instruction);
   
   // sec
+  // Probably want this in -- bernat
+  // But currently it makes test 1.12 fail in the Dyninst suite
+  // (insert/remove and malloc/free, but I don't know why
   //  // restore TOC
-  //  genImmInsn(insn, Lop, 2, 1, 20);
-  //  insn++;
-  //  base += sizeof(instruction);
+  //genImmInsn(insn, Lop, 2, 1, 20);
+  //insn++;
+  //base += sizeof(instruction);
 
   // get a register to keep the return value in.
   Register retReg = regSpace->allocateRegister(iPtr, base, noCost);
-  // This next line is a hack! - jkh 6/27/96
-  // It is required since allocateRegister can generate code.
+
+  // allocateRegister can generate code. Reset insn
   insn = (instruction *) ((void*)&iPtr[base]);
 
   // put the return value from register 3 to the newly allocated register.
@@ -3144,9 +3166,28 @@ void emitFuncJump(opCode,
      assert(0);
 }
 
-void emitLoadPreviousStackFrameRegister(Address, Register,
-					 char *, Address &, int, bool){
-  assert(0);
+#define REG_LR 64
+
+void emitLoadPreviousStackFrameRegister(Address register_num, 
+					Register dest,
+					char *insn,
+					Address &base,
+					int size,
+					bool noCost)
+{
+  int offset;
+  // Fun with naming: what is the number of the link register?
+  // Define it to be, oh, 64 for now TODO!
+  assert (register_num == REG_LR);
+  // All we support right now is grabbing the LR
+  offset = 8; 
+  // Current SP is not shifted down (assuming we're not in the middle of an
+  // emitFuncCall, and there is no way to tell if we are or not
+  emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest, insn, 
+	  base, noCost);
+  //Load the value stored on the stack at address dest into register dest
+  emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
+  cerr << "Exit emitLoadPrevious..." << endl;
 }
 
 #ifndef BPATCH_LIBRARY
@@ -3159,7 +3200,38 @@ bool process::isDynamicCallSite(instPoint *callSite){
 }
 
 bool process::MonitorCallSite(instPoint *callSite){
-  return false;
+  instruction i = callSite->originalInstruction;
+  vector<AstNode *> the_args(2);
+  
+  // Is this a branch conditional link register (BCLR)
+  // BCLR uses the xlform (6,5,5,5,10,1)
+  if(i.xlform.op == BCLRop)
+    {
+      cerr << "Found branch conditional link register" << endl;
+      // Where we're jumping to (link register)
+      the_args[0] = new AstNode(AstNode::PreviousStackFrameDataReg,
+				(void *) REG_LR); // special value for link register
+      // Where we are now
+      the_args[1] = new AstNode(AstNode::Constant,
+				(void *) callSite->iPgetAddress());
+      // Monitoring function
+      AstNode *func = new AstNode("DYNINSTRegisterCallee", 
+				  the_args);
+      addInstFunc(this, callSite, func, callPreInsn,
+		  orderFirstAtPoint,
+		  true,                              /* noCost flag                */
+		  false);                            /* trampRecursiveDesired flag */
+      cerr << "Added monitoring instrumentation to call site" << endl;
+      return true;
+    }
+  else
+    {
+      cerr << "Skipped adding instrumentation" << endl;
+      return false;
+    }
+
+  
 }
+
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.13 1999/10/18 17:32:43 hollings Exp $
+// $Id: arch-power.h,v 1.14 2000/06/21 15:40:38 bernat Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -151,6 +151,16 @@ union instructUnion {
 
 typedef union instructUnion instruction;
 
+/*
+ * Register saving constants
+ */
+#define maxFPR 13           /* Save FPRs 0-13 */
+#define maxGPR 19           /* More space than is needed */
+#define FPRspaceUsed (8*16) /* Aligned space for FPRs */
+#define GPRoffset(reg) (-1* (FPRspaceUsed + 4*(maxGPR-reg)))
+#define GPRspaceUsed (20*4) /* Aligned space for GPRs */
+
+#define stackFrameSize (FPRspaceUsed+GPRspaceUsed+128)
 
 /*
  * Define the operation codes
