@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.216 2000/03/20 23:13:55 chambrea Exp $
+// $Id: process.C,v 1.217 2000/03/22 01:26:59 mihai Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1364,7 +1364,7 @@ process::~process()
     cleanInstFromActivePoints(this);
 
     // remove it from the processVec
-    int size = processVec.size();
+    unsigned int size = processVec.size();
     bool found = false;
 
     for (unsigned lcv=0; lcv < size; lcv++) {
@@ -3911,6 +3911,10 @@ void process::handleExec() {
 
    theSuperTable.handleExec();
 #endif
+
+   // this is a new process, so we have to invalidate
+   // the address of the guard flag
+   trampGuardFlagAddr = 0;
 
    inExec = false;
    execed_ = true;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.87 2000/03/17 18:49:08 hollings Exp $
+// $Id: solaris.C,v 1.88 2000/03/22 01:27:00 mihai Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -462,7 +462,11 @@ int process::waitProcs(int *status) {
 	    assert(p->save_exitset_ptr != NULL);
 	    if (-1 == ioctl(p->proc_fd, PIOCSEXIT, p->save_exitset_ptr))
 	       assert(false);
-	    delete [] p->save_exitset_ptr;
+	    /*
+	     * according to process.h, p->save_exitset_ptr is
+	     * of type ( sysset_t * ) on Solaris
+	     */
+	    delete [] ( sysset_t * )( p->save_exitset_ptr );
 	    p->save_exitset_ptr = NULL;
 
 	    // fall through on purpose (so status, ret get set)
@@ -770,7 +774,8 @@ bool process::attach() {
   sprintf(procName,"/proc/%05d", (int)pid);
   int fd = P_open(procName, O_RDWR, 0);
   if (fd < 0) {
-    fprintf(stderr, "attach: open failed: %s\n", sys_errlist[errno]);
+    fprintf(stderr, "attach: open failed: %s -- %s[%d]\n",
+	    sys_errlist[errno], __FILE__, __LINE__ );
     return false;
   }
 
@@ -2259,7 +2264,7 @@ bool process::restoreRegisters(void *buffer) {
    assert(status_ == stopped); // /proc requires it
 
    prgregset_t theIntRegs; theIntRegs = *(prgregset_t *)buffer;
-   prfpregset_t theFpRegs = *(prfpregset_t *)((char *)buffer + sizeof(theIntRegs));
+   prfpregset_t theFpRegs = * ( prfpregset_t * )( ( ( char * )buffer ) + sizeof( theIntRegs ) );
 
    if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
       perror("process::restoreRegisters PIOCSREG failed");
