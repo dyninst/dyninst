@@ -7,13 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.28 1996/03/13 21:53:55 newhall Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.29 1996/04/29 03:35:23 tamches Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
+ * Revision 1.29  1996/04/29 03:35:23  tamches
+ * computePauseTimeMetric now takes in a param (but doesn't use it), to conform
+ * to new internalMetrics class
+ *
  * Revision 1.28  1996/03/13 21:53:55  newhall
  * changed pause time to be computed like it is on all other platforms
  *
@@ -420,8 +424,8 @@ float computePauseTimeMetric()
 }
 #endif
 
-float computePauseTimeMetric()
-{
+float computePauseTimeMetric(const metricDefinitionNode *) {
+    // we don't need to use the metricDefinitionNode
     timeStamp now;
     timeStamp elapsed=0.0;
 
