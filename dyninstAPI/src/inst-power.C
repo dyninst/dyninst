@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.208 2005/01/21 23:44:24 bernat Exp $
+ * $Id: inst-power.C,v 1.209 2005/01/27 14:12:56 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -2415,14 +2415,14 @@ Register emitFuncCall(opCode /* ocode */,
    base += sizeof(instruction);
    
    // Saves remaining registers that haven't been clobbered already
-   if (location->getPointType() == otherPoint ||
-       location->getPointType() == callSite)  {
-     for(u_int i = 0; i < rs->getRegisterCount(); i++){
-       registerSlot * reg = rs->getRegSlot(i);
-       if(rs->clobberRegister(reg->number))
-	 saveRegister(insn, base, reg->number, TRAMP_GPR_OFFSET);
-     }
+   //if (location->getPointType() == otherPoint ||
+   //    location->getPointType() == callSite)  {
+   for(u_int i = 0; i < rs->getRegisterCount(); i++){
+     registerSlot * reg = rs->getRegSlot(i);
+     if(rs->clobberRegister(reg->number))
+       saveRegister(insn, base, reg->number, TRAMP_GPR_OFFSET);
    }
+   //   }
    
    // Save floating point registers
    saveFPRegisters(insn, base, TRAMP_FPR_OFFSET);
