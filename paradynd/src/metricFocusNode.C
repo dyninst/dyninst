@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.179 2000/10/17 17:42:37 schendel Exp $
+// $Id: metricFocusNode.C,v 1.180 2000/10/26 17:03:14 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -128,6 +128,7 @@ vector<internalMetric*> internalMetric::allInternalMetrics;
 #define DELETED_MI 1
 #define MILLION 1000000.0
 
+/* No longer used
 bool mdl_internal_metric_data(const string& metric_name, mdl_inst_data& result) {
   unsigned size = internalMetric::allInternalMetrics.size();
   for (unsigned u=0; u<size; u++) {
@@ -149,12 +150,14 @@ bool mdl_internal_metric_data(const string& metric_name, mdl_inst_data& result) 
 
   return (mdl_metric_data(metric_name, result));
 }
+*/
 
 // for non-aggregate metrics
 metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name, 
                         const vector< vector<string> >& foc,
                         const vector< vector<string> >& component_foc,
-                        const string& component_flat_name, int agg_style
+			const string& component_flat_name, 
+			metricStyle metric_style, int agg_style
 #if defined(MT_THREAD)
                       , AGG_LEVEL agg_level)
 : aggLevel(agg_level), 
@@ -162,17 +165,15 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
                         )
 : aggregate_(false), 
 #endif
-  aggOp(agg_style), // CM5 metrics need aggOp to be set
+  aggOp(agg_style),
+  // CM5 metrics need aggOp to be set
   inserted_(false), installed_(false), met_(met_name), focus_(foc), 
-  component_focus(component_foc), flat_name_(component_flat_name), aggSample(0), 
-  cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), proc_(p)
+  component_focus(component_foc), flat_name_(component_flat_name),
+  aggSample(0, sampleInfo::add),  // unused
+  cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), proc_(p), 
+  style_(metric_style)
 {
   metric_cerr << "metricDefinitionNode[non-aggregate]" << endl;
-  mdl_inst_data md;
-  bool aflag;
-  aflag=mdl_internal_metric_data(met_name, md);
-  assert(aflag);
-  style_ = md.style;
 #if defined(MT_THREAD)
   needData_ = true ;
 #endif
@@ -184,22 +185,25 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
                                            const string& cat_name, 
                                            vector<metricDefinitionNode*>& parts,
 #if defined(MT_THREAD)
-					   int agg_op, AGG_LEVEL agg_level)
+					   metricStyle metric_style,int agg_op,
+                                           AGG_LEVEL agg_level)
 : aggLevel(agg_level),
 #else
-					   int agg_op)
+                                           metricStyle metric_style,int agg_op)
 : aggregate_(true), 
 #endif
-  aggOp(agg_op), inserted_(false),  installed_(false), met_(metric_name), 
-  focus_(foc), flat_name_(cat_name), components(parts), aggSample(agg_op),
-  cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), proc_(NULL)
+  aggOp(agg_op), inserted_(false), installed_(false), met_(metric_name), 
+  focus_(foc), flat_name_(cat_name), components(parts), 
+  aggSample(agg_op, metAggInfo.get_proportionCalc(metric_style)), 
+  cumulativeValue(0), id_(-1), originalCost_(timeLength::Zero()), 
+  proc_(NULL), style_(metric_style)
 {
   unsigned p_size = parts.size();
   metric_cerr << "metricDefinitionNode[aggregate:" << p_size << "]" << endl;
   for (unsigned u=0; u<p_size; u++) {
     metricDefinitionNode *mi = parts[u];
     mi->aggregators += this;
-    mi->samples += aggSample.newComponent();
+    mi->samples += aggSample.newComponent(metAggInfo.get_updateStyle(style_));
   }
 #if defined(MT_THREAD)
   needData_ = true ;
@@ -238,8 +242,8 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
          return (metricDefinitionNode*)-2;
 
       mn = new metricDefinitionNode(NULL, metric_name, canon_focus,
-				    component_canon_focus,
-                                    flat_name, theIMetric->aggregate());
+				    component_canon_focus, flat_name, 
+				 theIMetric->style(), theIMetric->aggregate());
       assert(mn);
 
       theIMetric->enableNewInstance(mn);
@@ -256,8 +260,8 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
 	  if (!nc->legalToInst(canon_focus)) return (metricDefinitionNode*)-2;
 
 	  mn = new metricDefinitionNode(NULL, metric_name, canon_focus,
-					component_canon_focus,
-					flat_name, nc->aggregate());
+					component_canon_focus, flat_name, 
+					nc->style(), nc->aggregate());
           assert(mn);
 
           nc->enable(mn); 
@@ -542,7 +546,8 @@ void metricDefinitionNode::propagateToNewProcess(process *p) {
 
     components += theNewComponent;
     theNewComponent->aggregators[0] = this;
-    theNewComponent->samples[0] = aggSample.newComponent();
+    theNewComponent->samples[0] = aggSample.newComponent(
+                                          metAggInfo.get_updateStyle(style_));
     if (!internal) {
       theNewComponent->insertInstrumentation();
       theNewComponent->checkAndInstallInstrumentation();
@@ -660,7 +665,8 @@ metricDefinitionNode* metricDefinitionNode::handleExec() {
 	    aggMI->components[complcv] = resultCompMI;
 
 	    resultCompMI->aggregators += aggMI;
-	    resultCompMI->samples     += aggMI->aggSample.newComponent();
+	    resultCompMI->samples     += aggMI->aggSample.newComponent(
+                                metAggInfo.get_updateStyle(aggMI->metStyle()));
 	    
 	    aggMI->aggSample.removeComponent(this->samples[agglcv]);
 	    
@@ -1143,7 +1149,7 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *child,
 			 focus_, // focus doesn't change (tho component focus will)
 			 newComponentFocus, // this is a change
 			 newComponentFlatName, // this is a change
-			 aggOp // no change
+			 style_, aggOp  // no change
 			 );
     assert(mi);
 
@@ -1298,7 +1304,8 @@ void metricDefinitionNode::handleFork(const process *parent, process *child,
 	    // child component.
 	    aggMI->components += newComp;
 	    newComp->aggregators += aggMI;
-	    newComp->samples     += aggMI->aggSample.newComponent();
+	    newComp->samples     += aggMI->aggSample.newComponent(
+                                metAggInfo.get_updateStyle(aggMI->metStyle()));
 	    foundAgg = true;
 	 }
       }
@@ -4207,7 +4214,7 @@ void metricDefinitionNode::addParts(vector<metricDefinitionNode*>& parts)
     metricDefinitionNode *mi = parts[i];
     components += mi;
     mi->aggregators += this; 
-    mi->samples += aggSample.newComponent();
+    mi->samples += aggSample.newComponent(metAggInfo.get_updateStyle(style_));
   }
 }
 
@@ -4215,7 +4222,7 @@ void metricDefinitionNode::addPart(metricDefinitionNode* mi)
 {
     components += mi;
     mi->aggregators += this; 
-    mi->samples += aggSample.newComponent();
+    mi->samples += aggSample.newComponent(metAggInfo.get_updateStyle(style_));
 }
 
 
@@ -4270,7 +4277,7 @@ void metricDefinitionNode::addThread(pdThread *thr)
 				      focus_thr,
 				      component_focus_thr,
 				      component_flat_name_thr,
-				      aggOp,
+				      style_, aggOp,
 				      THR_COMP); // thread level
     assert(thr_mn);
     allMIComponents[component_flat_name_thr] = thr_mn;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.85 2000/10/17 17:42:36 schendel Exp $
+// $Id: mdl.C,v 1.86 2000/10/26 17:03:14 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -572,7 +572,7 @@ metricDefinitionNode *
 apply_to_process(process *proc, 
 		 string& id, string& name,
 		 vector< vector<string> >& focus,
-		 unsigned& agg_op,
+		 unsigned& agg_op, metricStyle metric_style,
 		 unsigned& type,
 		 vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
 		 T_dyninstRPC::mdl_constraint *base_use,
@@ -649,8 +649,8 @@ apply_to_process(process *proc,
 
     // TODO -- Using aggOp value for this metric -- what about folds
     metricDefinitionNode *mn = new metricDefinitionNode(proc, name, focus,
-							component_focus,
-							component_flat_name, agg_op);
+			                 component_focus, component_flat_name, 
+							metric_style, agg_op);
     assert(mn);
 
     assert(!allMIComponents.defines(component_flat_name));
@@ -810,7 +810,7 @@ metricDefinitionNode *
 apply_to_process(process *proc,
                  string& id, string& name,
                  vector< vector<string> >& focus,
-                 unsigned& agg_op,
+                 unsigned& agg_op, metricStyle metric_style,
                  unsigned& type,
                  vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
                  T_dyninstRPC::mdl_constraint *base_use,
@@ -925,7 +925,7 @@ apply_to_process(process *proc,
     // create the selected_mn
     AGG_LEVEL agg_level = ((thrSelected == -1) ? PROC_COMP : THR_COMP);
     selected_mn = new metricDefinitionNode(proc, name, focus, component_focus,
-		      component_flat_name, agg_op, agg_level);
+		      component_flat_name, metric_style, agg_op, agg_level);
     allMIComponents[component_flat_name] = selected_mn;
     if (thrSelected != -1) 
       newParts += selected_mn;
@@ -945,8 +945,8 @@ apply_to_process(process *proc,
 
     proc_component_flat_name = metricAndCanonFocus2FlatName(name,component_focus);
     if (!allMIComponents.find(proc_component_flat_name,proc_mn)) { 
-      proc_mn=new metricDefinitionNode(proc,name,focus,
-            component_focus,proc_component_flat_name,agg_op,PROC_COMP);
+      proc_mn=new metricDefinitionNode(proc, name, focus, component_focus,
+		    proc_component_flat_name, metric_style, agg_op, PROC_COMP);
       assert(proc_mn);
       allMIComponents[proc_component_flat_name] = proc_mn;
       proc->allMIComponentsWithThreads += proc_mn;
@@ -983,7 +983,7 @@ apply_to_process(process *proc,
         }
         thr_component_flat_name = metricAndCanonFocus2FlatName(name,component_focus);
         if (!allMIComponents.find(thr_component_flat_name,thr_mn)) { // thread level
-            thr_mn=new metricDefinitionNode(proc,name,focus,component_focus,thr_component_flat_name,agg_op,THR_COMP);
+            thr_mn=new metricDefinitionNode(proc,name,focus,component_focus,thr_component_flat_name,metric_style,agg_op,THR_COMP);
             assert(thr_mn);
             allMIComponents[thr_component_flat_name] = thr_mn;
             newParts += thr_mn;
@@ -1032,7 +1032,7 @@ static bool apply_to_process_list(vector<process*>& instProcess,
 				  vector<metricDefinitionNode*>& parts,
 				  string& id, string& name,
 				  vector< vector<string> >& focus,
-				  unsigned& agg_op,
+				  unsigned& agg_op, metricStyle metric_style,
 				  unsigned& type,
 				  vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
 				  T_dyninstRPC::mdl_constraint *base_use,
@@ -1078,7 +1078,7 @@ static bool apply_to_process_list(vector<process*>& instProcess,
     if (proc->status() == exited || proc->status() == neonatal) continue;
 
     metricDefinitionNode *comp = apply_to_process(proc, id, name, focus, 
-						 agg_op, type,
+						 agg_op, metric_style, type,
 						 flag_cons, base_use, stmts, 
 						 flag_dex,
 						 base_dex, temp_ctr,
@@ -1202,12 +1202,13 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
 
   // build the instrumentation request
   vector<metricDefinitionNode*> parts; // one per process
+  metricStyle styleV = static_cast<metricStyle>(style_);
   if (!apply_to_process_list(instProcess, 
 #if defined(MT_THREAD)
                              instThreadsVec, 
 #endif
                              parts, id_, name_, focus,
-			     agg_op_, type_, flag_cons, base_used,
+			     agg_op_, styleV, type_, flag_cons, base_used,
 			     stmts_, flag_dex, base_dex, temp_ctr_,
 			     replace_components_if_present,
 			     computingCost))
@@ -1218,7 +1219,9 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
 
   if (parts.size()) {
     // create aggregate mi, containing the process components "parts"
-    ret = new metricDefinitionNode(name_, focus, flat_name, parts, agg_op_);
+    ret = new metricDefinitionNode(name_, focus, flat_name, parts, styleV, 
+				   agg_op_);
+
   }
 
   metric_cerr << "apply of " << name_ << " ok" << endl;

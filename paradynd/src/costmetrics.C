@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.17 2000/10/17 17:42:32 schendel Exp $
+// $Id: costmetrics.C,v 1.18 2000/10/26 17:03:14 schendel Exp $
 
 #include "paradynd/src/costmetrics.h"
 #include "dyninstAPI/src/process.h"
@@ -57,7 +57,8 @@ costMetric::costMetric(const string n,
 		     bool developerMode,
 		     daemon_MetUnitsType unitstype,
 		     int combiner_op): 
-  aggSample((combiner_op != -1) ? combiner_op : a)
+  aggSample(((combiner_op != -1) ? combiner_op : a), 
+	    metAggInfo.get_proportionCalc(EventCounter))
 {
 
    name_ = n; style_ = style; agg_ = a; units_ = units; pred = preds; 
@@ -71,7 +72,8 @@ costMetric::costMetric(const string n,
        if((processVec[i2])->status_ != exited){
            components += processVec[i2];
            //sampleInfo *s = new sampleInfo;
-           sampleInfo *s = aggSample.newComponent();
+           sampleInfo *s = aggSample.newComponent(
+                                           metAggInfo.get_updateStyle(style_));
            parts += s;
            lastProcessTime += timeStamp::ts1970(); 
            cumulative_values += pdSample(0);
@@ -154,7 +156,7 @@ bool costMetric::addProcess(process *p){
 	 return false;
     }
     components += p;
-    sampleInfo *s = aggSample.newComponent();
+    sampleInfo *s = aggSample.newComponent(metAggInfo.get_updateStyle(style_));
     parts += s;
     lastProcessTime += timeStamp::ts1970();
     cumulative_values += pdSample(0);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.64 2000/10/17 17:42:38 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.65 2000/10/26 17:03:15 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -682,13 +682,14 @@ public:
                        const vector< vector<string> >& foc,
                        const vector< vector<string> >& component_foc,
 		       const string& component_flat_name, 
-                       int agg_style = aggSum,
+                       metricStyle metric_style, int agg_style = aggSum,
                        AGG_LEVEL agg_level = PROC_COMP);
 #else
   metricDefinitionNode(process *p, const string& metric_name, 
                        const vector< vector<string> >& foc,
                        const vector< vector<string> >& component_foc,
-                       const string& component_flat_name, int agg_style = aggSum);
+                       const string& component_flat_name, 
+		       metricStyle metric_style, int agg_style = aggSum);
 #endif
      // for component (per-process) (non-aggregate) mdn's
 
@@ -697,13 +698,13 @@ public:
                        const vector< vector<string> >& foc,
 		       const string& cat_name,
 		       vector<metricDefinitionNode*>& parts,
-		       int agg_op,
+		       metricStyle metric_style, int agg_op, 
                        AGG_LEVEL agg_level = AGG_COMP);
 #else
   metricDefinitionNode(const string& metric_name, const vector< vector<string> >& foc,
 		       const string& cat_name,
 		       vector<metricDefinitionNode*>& parts,
-		       int agg_op);
+		       metricStyle metric_style, int agg_op);
 #endif
      // for aggregate (not component) mdn's
 
@@ -839,6 +840,8 @@ private:
   void removeFromAggregate(metricDefinitionNode *comp, int deleteComp = 1);
 
   void updateAggregateComponent();
+
+  metricStyle metStyle() { return style_; }
 
 #if defined(MT_THREAD)
   AGG_LEVEL              aggLevel;// level of aggregation.
