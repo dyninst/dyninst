@@ -39,23 +39,25 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.h,v 1.16 2002/04/18 19:39:47 bernat Exp $
+// $Id: fastInferiorHeap.h,v 1.17 2002/04/23 18:58:39 schendel Exp $
 // Ari Tamches
 // This class is intended to be used only in paradynd.
-// This templated class manages a heap of objects in a UNIX shared-memory segment
-// (currently, the template types that are used are either intCounter or tTimer).
-// Note that the shm segment itself is managed by our "parent" class,
-// fastInferiorHeapMgr.h/.C.  This class doesn't actually use any shared-memory
-// primitives...
+
+// This templated class manages a heap of objects in a UNIX shared-memory
+// segment (currently, the template types that are used are either intCounter
+// or tTimer).  Note that the shm segment itself is managed by our "parent"
+// class, fastInferiorHeapMgr.h/.C.  This class doesn't actually use any
+// shared-memory primitives...
 
 // Previously, this class would manage its own shared-memory segment, so that
 // if a process creates, say, a fastInferiorHeap<intCounter> and two
 // fastInferiorHeap<tTimer>, then 3 shm segments are created (and 6 shmat()'s
-// are done, since both paradynd and the application need to shmat() to a given
-// segment).  To cut down on the number of segments floating around, and to reduce
-// and hopefully avoid the dreaded EMFILE errno when shmat()'ing to a segment,
-// there's now just 1 shm segment per process (and 2 shmat()'s are done).
-// The actual shm seg management is now done in file fastInferiorHeapMgr.h/.C
+// are done, since both paradynd and the application need to shmat() to a
+// given segment).  To cut down on the number of segments floating around,
+// and to reduce and hopefully avoid the dreaded EMFILE errno when
+// shmat()'ing to a segment, there's now just 1 shm segment per process (and
+// 2 shmat()'s are done).  The actual shm seg management is now done in file
+// fastInferiorHeapMgr.h/.C
 
 #ifndef _FAST_INFERIOR_HEAP_H_
 #define _FAST_INFERIOR_HEAP_H_
@@ -64,7 +66,7 @@
 #pragma interface
 #endif // !defined(i386_unknown_nt4_0)
 
-#include "heapStates.h" // enum states
+#include "superTableTypes.h" // eg. enum states
 #include "common/h/Vector.h"
 #include "rtinst/h/rtinst.h" // for time64
 #include "common/h/Types.h"    // for Address
@@ -188,11 +190,15 @@ class fastInferiorHeap {
    void forkHasCompleted(const vector<states> &statemap);
 
    void makePendingFree(unsigned ndx, const vector<Address> &trampsUsing);
-   bool checkIfInactive(unsigned ndx);
+   bool isMarkedAsSampled(unsigned ndx) {
+     return (activemap[ndx] == varDoSample);
+   }
    bool tryGarbageCollect(const vector<Frame> &stackWalk, unsigned ndx);
+
    void initializeHKAfterFork(unsigned allocatedIndex, 
                               const HK &iHouseKeepingValue);
    void addToPermanentSamplingSet(unsigned lcv);
+   void removeFromCurrentSamplingSet(unsigned varIndex);
 
    // Reads data values (in the shared memory heap) and processes allocated
    // item by calling HK::perform() on it.
