@@ -10,7 +10,10 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.28  1996/02/16 20:23:57  tamches
+ * Revision 1.29  1996/04/03 14:25:59  naim
+ * Eliminating "simd" from the daemon's menu for the meantime - naim
+ *
+ * Revision 1.28  1996/02/16  20:23:57  tamches
  * fixed compile error
  *
  * Revision 1.27  1996/02/16 20:12:32  tamches
@@ -233,7 +236,7 @@ bool metDoDaemon()
     dataMgr->defineDaemon("paradynd", NULL, NULL, "defd", NULL, "unix");
     // TODO -- should cm5d be defined
     dataMgr->defineDaemon("paradynd", NULL, NULL, "cm5d", NULL, "cm5");
-    dataMgr->defineDaemon("simd", NULL, NULL, "simd", NULL, "unix");
+    //dataMgr->defineDaemon("simd", NULL, NULL, "simd", NULL, "unix");
     been_done = true;
   }
   unsigned size=daemonMet::allDaemons.size();
