@@ -41,6 +41,9 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.25  1997/04/02 22:34:52  zhichen
+ * added 'Memory'
+ *
  * Revision 1.24  1997/03/29 02:06:06  sec
  * Changed /MsgTag to /Message
  * Added environment variables $constraint[0], $constraint[1], etc.
@@ -287,6 +290,9 @@ T_dyninstRPC::mdl_constraint::mdl_constraint(string id, vector<string> *match_pa
       hierarchy_ = MDL_RES_PROCESS;
     } else if ((*match_path)[0] == "Machine") {
       hierarchy_ = MDL_RES_MACHINE;
+    } else if((*match_path)[0] == "Memory") {
+      hierarchy_ = MDL_RES_MEMORY;
+      type_ = MDL_T_INT ;
     } else if ((*match_path)[0] == "SyncObject") {
       hierarchy_ = MDL_RES_SYNCOBJECT;
       if (size == 1) {
@@ -877,6 +883,10 @@ bool mdl_init() {
   fe.self = self; fe.kids.resize(0);
   mdl_data::foci += fe;
 
+  self.name = "Memory"; self.type = MDL_T_STRING; self.end_allowed = true;
+  fe.self = self; fe.kids.resize(0);
+  mdl_data::foci += fe;
+
   mdl_env::push();
   // mdl_env::add(string("$procedures"), false, MDL_T_LIST_PROCEDURE);
   // mdl_env::add(string("$modules"), false, MDL_T_LIST_MODULE);
@@ -912,6 +922,11 @@ bool mdl_init() {
   desc.name = "name"; desc.type = MDL_T_STRING; field_list += desc;
   desc.name = "funcs"; desc.type = MDL_T_LIST_PROCEDURE; field_list += desc;
   mdl_data::fields[MDL_T_MODULE] = field_list;
+  field_list.resize(0);
+
+  desc.name = "upper"; desc.type = MDL_T_INT; field_list += desc;
+  desc.name = "lower"; desc.type = MDL_T_INT; field_list += desc;
+  mdl_data::fields[MDL_T_VARIABLE] = field_list;
   field_list.resize(0);
 
   field_list.resize(0);
