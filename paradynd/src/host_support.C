@@ -53,7 +53,15 @@ extern "C" {
 //  extern int gettimeofday (struct timeval *TP, struct timezone *TZP);
 
   extern void endpwent(); 
+
+// temp hack; stuff like this should probably move to util/h/{PLATFORM}headers.h
+// anyway.
+#if defined(hppa1_1_hp_hpux)
+  extern void endservent(void);
+#else
   extern int endservent(void);
+#endif
+
   extern int getdtablesize();
 }
 
