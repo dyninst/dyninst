@@ -74,8 +74,8 @@
 
 #include "util/h/headers.h"
 #include "os.h"
-#include "process.h"
 #include "symtab.h"
+#include "process.h"
 #include "stats.h"
 #include "util/h/Types.h"
 #include "util/h/Object.h"
@@ -100,6 +100,7 @@
 #include <sys/wait.h>
 #include <sys/ptrace.h>
 #include <procinfo.h> // struct procsinfo
+#include <sys/types.h>
 
 #include "showerror.h"
 #include "util/h/debugOstream.h"
@@ -559,6 +560,7 @@ bool process::restoreRegisters(void *buffer) {
    return true; // success
 }
 
+
 bool process::emitInferiorRPCheader(void *insnPtr, unsigned &baseBytes) {
    // TODO: write me!
    instruction *insn = (instruction *)insnPtr;
@@ -566,7 +568,6 @@ bool process::emitInferiorRPCheader(void *insnPtr, unsigned &baseBytes) {
 
 //   extern void generateBreakPoint(instruction &);
 //   generateBreakPoint(insn[baseInstruc++]);
-
 //   extern void generateIllegalInsn(instruction &);
 //   generateIllegalInsn(insn[baseInstruc++]); 
 
@@ -698,7 +699,13 @@ bool process::continueWithForwardSignal(int sig) {
 #endif
 }
 
-void OS::osTraceMe(void) { ptrace(PT_TRACE_ME, 0, (int *)0, 0, 0); }
+void OS::osTraceMe(void)
+{
+  int ret;
+
+  ret = ptrace(PT_TRACE_ME, 0, 0, 0, 0);
+  assert(ret != -1);
+}
 
 
 // wait for a process to terminate or stop
@@ -788,9 +795,10 @@ bool process::dumpCore_(const string /*coreFile*/) {
     return false;
   ptraceOps++; ptraceOtherOps++;
 
-  if (!dumpImage())
+  if (!dumpImage()) {
 //  if (!OS::osDumpImage(symbols->file(), pid, symbols->codeOffset()))
      assert(false);
+  }
 
   errno = 0;
   (void) ptrace(PT_CONTINUE, pid, (int*)1, SIGBUS, NULL);
@@ -809,7 +817,8 @@ bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
   if (!checkStatus()) 
     return false;
   ptraceBytes += amount; ptraceOps++;
-  return (ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced, amount, inSelf));
+  return (ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced, 
+				      amount, inSelf));
 }
 
 bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
@@ -851,7 +860,7 @@ bool process::loopUntilStopped() {
     if ((sig == SIGTRAP) || (sig == SIGSTOP) || (sig == SIGINT)) {
       isStopped = true;
     } else {
-      if (ptrace(PT_CONTINUE, pid, (int*)1, WSTOPSIG(waitStatus), 0) == -1) {
+      if (ptrace(PT_CONTINUE, pid, (int*)1, sig, 0) == -1) {
 	logLine("Ptrace error in PT_CONTINUE, loopUntilStopped\n");
         return false;
       }
@@ -1154,7 +1163,8 @@ void Object::load_object()
 	goto cleanup;
     }
 
-    // data_off_ = sectHdr[aout.o_sndata-1].s_vaddr + AIX_DATA_OFFSET_HACK; (OLD, pre-4.1)
+    // data_off_ = sectHdr[aout.o_sndata-1].s_vaddr + AIX_DATA_OFFSET_HACK; 
+    // (OLD, pre-4.1)
     data_off_ = aout.data_start;
     if (aout.data_start < DATAORG) {
        data_off_ += AIX_DATA_OFFSET_HACK;
@@ -1429,8 +1439,11 @@ static void process_whenBothForkTrapsReceived() {
 
    seenForkTrapForParent = seenForkTrapForChild = false;
 
-   forkexec_cerr << "leaving process_whenBothForkTrapsReceived (parent & child running and should execute DYNINSTfork soon)" << endl;
+   forkexec_cerr << "leaving process_whenBothForkTrapsReceived (parent & "
+                 << "child running and should execute DYNINSTfork soon)"
+                 << endl;
 }
+
 
 bool handleAIXsigTraps(int pid, int status) {
     process *curr = findProcess(pid); // NULL for child of a fork
@@ -1438,10 +1451,11 @@ bool handleAIXsigTraps(int pid, int status) {
     // see man page for "waitpid" et al for descriptions of constants such
     // as W_SLWTED, W_SFWTED, etc.
  
-    if (WIFSTOPPED(status) && WSTOPSIG(status)==SIGTRAP 
+    if (WIFSTOPPED(status) && (WSTOPSIG(status)==SIGTRAP)
 	&& ((status & 0x7f) == W_SLWTED)) {
       // process is stopped on a load, ignore this SIGTRAP 
-      fprintf(stderr, "Got load SIGTRAP from pid %d, PC=%x\n", pid, curr->currentPC());
+      fprintf(stderr, "Got load SIGTRAP from pid %d, PC=%x\n", pid,
+	      curr->currentPC());
       if (curr) {
 	curr->status_ = stopped;
 	curr->continueProc();
@@ -1492,7 +1506,7 @@ bool handleAIXsigTraps(int pid, int status) {
 	seenForkTrapForChild = true;
 	pidForChild = pid;
 	if (seenForkTrapForParent) {
-	   assert(pidForParent == psinfo.pi_ppid);
+	   assert((pid_t) pidForParent == (pid_t) psinfo.pi_ppid);
 
 	   process_whenBothForkTrapsReceived();
 	}
