@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.28 2002/04/18 19:40:07 bernat Exp $
+// $Id: templates0.C,v 1.29 2002/05/02 21:28:48 schendel Exp $
 // Generate all the templates in one file.
 
 /*
@@ -148,7 +148,5 @@ template class vector<dataUpdate*> ;//ccw 26 nov 2001
 #endif
 
 #ifndef BPATCH_LIBRARY
-template class vector<processTimerHK>;
-template class vector<wallTimerHK>;
 template class vector<vector<string> *>;
 #endif
