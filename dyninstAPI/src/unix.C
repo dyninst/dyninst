@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.87 2003/04/16 17:00:12 zandy Exp $
+// $Id: unix.C,v 1.88 2003/04/16 21:07:28 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -566,7 +566,7 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
     // New and improved RPC handling, takes care of both
     // an RPC which has reached a breakpoint and whether
     // we're waiting for a syscall to complete
-    if (proc->handleTrapIfDueToRPC()) {
+    if (proc->getRpcMgr()->handleSignalIfDueToIRPC()) {
         signal_cerr << "processed RPC response in SIGTRAP" << endl;
         return 1;
     }
@@ -618,7 +618,7 @@ int handleSigStopNInt(process *proc, procSignalInfo_t info) {
    signal_cerr << "welcome to SIGSTOP/SIGINT for proc pid " << proc->getPid() 
                << endl;
 
-   if (proc->handleTrapIfDueToRPC()) {
+   if (proc->getRpcMgr()->handleSignalIfDueToIRPC()) {
        inferiorrpc_cerr << "processed RPC response in SIGSTOP\n";
        // don't want to execute ->Stopped() which changes status line
        return 1;
@@ -678,39 +678,40 @@ int handleSignal(process *proc, procSignalWhat_t what,
 #if defined(USE_IRIX_FIXES)
      case SIGEMT:
 #endif
-     case SIGSTOP:
-     case SIGINT:
-        ret = handleSigStopNInt(proc, info);
-        break;
-     case SIGILL:
-        ret = proc->handleTrapIfDueToRPC();
-        break;
-     case SIGCHLD:
-        // Ignore
-        ret = 1;
-        proc->continueProc();
-        break;
-        // Else fall through
-     case SIGIOT:
-     case SIGBUS:
-     case SIGSEGV:
-        ret = handleSigCritical(proc, what, info);
-        break;
-     case SIGCONT:
-        // Should inform the mutator/daemon that the process is running
-     case SIGALRM:
-     case SIGUSR1:
-     case SIGUSR2:
-     case SIGVTALRM:
-     default:
-        ret = 0;
-        break;
-   }
-   if (!ret) {
-      // Signal was not handled
-      ret = forwardSigToProcess(proc, what, info);
-   }
-   return ret;
+  case SIGSTOP:
+  case SIGINT:
+      ret = handleSigStopNInt(proc, info);
+      break;
+  case SIGILL:
+      if (proc->getRpcMgr()->handleSignalIfDueToIRPC())
+          ret = 1;
+      break;
+  case SIGCHLD:
+      // Ignore
+      ret = 1;
+      proc->continueProc();
+      break;
+      // Else fall through
+  case SIGIOT:
+  case SIGBUS:
+  case SIGSEGV:
+      ret = handleSigCritical(proc, what, info);
+      break;
+  case SIGCONT:
+      // Should inform the mutator/daemon that the process is running
+  case SIGALRM:
+  case SIGUSR1:
+  case SIGUSR2:
+  case SIGVTALRM:
+  default:
+      ret = 0;
+      break;
+    }
+    if (!ret) {
+        // Signal was not handled
+        ret = forwardSigToProcess(proc, what, info);
+    }
+    return ret;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -902,25 +903,34 @@ int handleLoadExit(process *proc, procSignalInfo_t info) {
 int handleSyscallExit(process *proc,
                       procSignalWhat_t what,
                       procSignalInfo_t info) {
-   procSyscall_t syscall = decodeSyscall(proc, what);
-   int ret = 0;
+    procSyscall_t syscall = decodeSyscall(proc, what);
+    int ret = 0;
+    
+    // Check to see if a thread we were waiting for exited a
+    // syscall
+    int wasHandled = proc->handleSyscallExit(what);
 
-   switch(syscall) {
-     case procSysFork:
-        ret = handleForkExit(proc, info);
+    // Fall through no matter what since some syscalls have their
+    // own handlers.
+    switch(syscall) {
+  case procSysFork:
+      ret = handleForkExit(proc, info);
+      break;
+  case procSysExec:
+      ret = handleExecExit(proc, info);
+      break;
+  case procSysLoad:
+      ret = handleLoadExit(proc, info);
+      break;
+  default:
         break;
-     case procSysExec:
-        ret = handleExecExit(proc, info);
-        break;
-     case procSysLoad:
-        ret = handleLoadExit(proc, info);
-        break;
-     default:
-        break;
-   }
-   proc->continueProc();
-
-   return ret;    
+    }
+    proc->continueProc();
+    
+    if (ret || wasHandled)
+        return 1;
+    else
+        return 0;
 }
 
 int handleProcessEvent(process *proc,
@@ -955,20 +965,27 @@ int handleProcessEvent(process *proc,
         break;
      case procSignalled:
         ret = handleSignal(proc, what, info);
+        if (!ret)
+            cerr << "handleSignal failed! " << what << endl;
         break;
         // Now the /proc only
         // AIX clones some of these (because of fork/exec/load notification)
      case procSyscallEntry:
         ret = handleSyscallEntry(proc, what, info);
+        if (!ret)
+            cerr << "handleSyscallEntry failed!" << endl;
         break;
      case procSyscallExit:
         ret = handleSyscallExit(proc, what, info);
+        if (!ret)
+            cerr << "handlesyscallExit failed! " << what <<  endl;
         break;
      case procSuspended:
         proc->continueProc();   // ignoring this signal
         break;
      case procUndefined:
         // Do nothing
+         cerr << "Undefined event!" << endl;
         break;
      default:
         assert(0 && "Undefined");
