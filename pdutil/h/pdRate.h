@@ -43,8 +43,12 @@
 #define RATE_H
 
 #include <iostream.h>
+#include <assert.h>
+#include <math.h>
 #include "common/h/Time.h"
+#include "common/h/headers.h"   // for isnan on NT
 #include "pdutil/h/pdSample.h"
+
 
 // -----------------------------------------------------------------------
 // pdRate class definition ----------------------------------------
@@ -53,15 +57,22 @@ class pdRate {
   double data;
 
   static const pdRate *_zero;
+  static const pdRate *_nan;
+  static const pdRate *nanHelp();
  public:
   static const pdRate &Zero();
+  static const pdRate &NaN();    // returns the not-a-number element of pdRate
 
   // Constructors
-  pdRate()  {  }
+  pdRate()  { setNaN(); }
   explicit pdRate(const double v) : data(v) { }
   explicit pdRate(const pdSample s, const timeLength t, 
-		  const timeUnit tu = timeUnit::ns()) : 
-    data(static_cast<double>(s.getValue()) / t.getD(tu))  { }  
+		  const timeUnit tu = timeUnit::ns()) {    
+    if(s.isNaN())  {  setNaN(); }
+    else {
+      data = static_cast<double>(s.getValue()) / t.getD(tu); 
+    }
+  }
 
   // General Assignment from like type
   /*
@@ -71,6 +82,9 @@ class pdRate {
     return *this; 
   }
   */
+
+  bool isNaN() const {  return (isnan(getValue()) != 0); }
+  void setNaN() {  *this = NaN(); }
   
   // user-defined operator casts are very bad, More Effective C++ ch.5
   // so use non-operator cast function
@@ -79,10 +93,12 @@ class pdRate {
   void assign(const double v)  {  data = v;  }
   
   pdRate& operator+=(const pdRate &a) {
+    assert(!a.isNaN());
     assign(data + a.getValue());
     return *this;
   }
   pdRate& operator-=(const pdRate &a) {
+    assert(!a.isNaN());
     assign(data - a.getValue());
     return *this;
   }
@@ -93,61 +109,80 @@ inline const pdRate &pdRate::Zero() {
   return *_zero;
 }
 
+inline const pdRate &pdRate::NaN() {
+  if(_nan == NULL) {  _nan = nanHelp(); }
+  return *_nan;
+}
 
 // pdRate @ pdRate operators ----------------------------------
 inline const pdRate operator+(const pdRate a, const pdRate b) {
+  assert(!a.isNaN() && !b.isNaN());
   return pdRate(a.getValue() + b.getValue());
 }
 inline const pdRate operator-(const pdRate a, const pdRate b) {
+  assert(!a.isNaN() && !b.isNaN());
   return pdRate(a.getValue() - b.getValue());
 }
 inline const pdRate operator*(const pdRate a, const pdRate b) {
+  assert(!a.isNaN() && !b.isNaN());
   return pdRate(a.getValue() * b.getValue());
 }
 inline const pdRate operator/(const pdRate a, const pdRate b) {
+  assert(!a.isNaN() && !b.isNaN());
   return pdRate(a.getValue() / b.getValue());
 }
 
 // assumes that the pdRate was formed with pdSample / timeLength.getD(ns())
 // don't use if this isn't true
 inline const pdSample operator*(const pdRate a, const timeLength b) {
+  assert(!a.isNaN() && b.isInitialized());
   return pdSample(static_cast<int64_t>(a.getValue() * b.getD(timeUnit::ns())));
 }
 
 // pdRate * double 
 inline const pdRate operator*(const pdRate a, const double b) {
+  assert(!a.isNaN());
   return pdRate(a.getValue() * b);
 }
 // double * pdRate
 inline const pdRate operator*(const double a, const pdRate b) {
+  assert(!b.isNaN());
   return pdRate(a * b.getValue());
 }
 // pdRate / double 
 inline const pdRate operator/(const pdRate a, const double b) {
+  assert(!a.isNaN());
   return pdRate(a.getValue() / b);
 }
 // double / pdRate
 inline const pdRate operator/(const double a, const pdRate b) {
+  assert(!b.isNaN());
   return pdRate(a / b.getValue());
 }
 
 
 inline bool operator==(const pdRate a, const pdRate b) {
+  assert(!a.isNaN() && !b.isNaN());
   return (a.getValue() == b.getValue());
 }
 inline bool operator!=(const pdRate a, const pdRate b) {
+  assert(!a.isNaN() && !b.isNaN());
   return (a.getValue() != b.getValue());
 }
 inline bool operator>(const pdRate a, const pdRate b) {
+  assert(!a.isNaN() && !b.isNaN());
   return (a.getValue() > b.getValue());
 }
 inline bool operator>=(const pdRate a, const pdRate b) {
+  assert(!a.isNaN() && !b.isNaN());
   return (a.getValue() >= b.getValue());
 }
 inline bool operator<(const pdRate a, const pdRate b) {
+  assert(!a.isNaN() && !b.isNaN());
   return (a.getValue() < b.getValue());
 }
 inline bool operator<=(const pdRate a, const pdRate b) {
+  assert(!a.isNaN() && !b.isNaN());
   return (a.getValue() <= b.getValue());
 }
 
