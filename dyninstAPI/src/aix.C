@@ -1,7 +1,10 @@
 
 /* 
  * $Log: aix.C,v $
- * Revision 1.5  1996/02/12 16:46:06  naim
+ * Revision 1.6  1996/02/13 16:23:22  hollings
+ * Move Object class constructors to this file.
+ *
+ * Revision 1.5  1996/02/12  16:46:06  naim
  * Updating the way we compute number_of_cpus. On solaris we will return the
  * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
  * which should be equal to the number of cpus - naim
@@ -639,6 +642,23 @@ cleanup:
     return;
 }
 
+
+Object::Object(const string file, void (*err_func)(const char *))
+    : AObject(file, err_func) {
+    load_object();
+}
+
+Object::Object(const Object& obj)
+    : AObject(obj) {
+    load_object();
+}
+
+Object::~Object() { }
+
+Object& Object::operator=(const Object& obj) {
+    (void) AObject::operator=(obj);
+    return *this;
+}
 
 //
 // Verify that that program is statically linked, and establish the text 
