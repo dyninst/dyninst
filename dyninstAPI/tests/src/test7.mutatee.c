@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test7.mutatee.c,v 1.2 2003/05/23 23:45:44 jodom Exp $ */
+/* $Id: test7.mutatee.c,v 1.3 2003/05/24 13:34:40 schendel Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -166,7 +166,7 @@ void mutateeMAIN()
     fprintf(stderr, "error on fork\n");
     exit(pid);  /* error case */
   }
-// On Linux/x86, a SIGCONT after a SIGSTOP will kill the sleep()
+  /* On Linux/x86, a SIGCONT after a SIGSTOP will kill the sleep() */
   for (loopvar = 0; loopvar < NUM_READS; loopvar++)
     sleep(10);  /* will be killed by mutator */
   printf("dummyVal: %d\n",dummyVal);  /* so code doesn't get optimized away */
