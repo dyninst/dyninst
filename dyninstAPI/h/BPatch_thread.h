@@ -176,6 +176,7 @@ public:
 
     bool	dumpCore(const char *file, bool terminate);
     bool	dumpImage(const char *file);
+    bool	dumpPatchedImage(const char* file);//ccw 28 oct 2001
 
     BPatch_variableExpr	*malloc(int n);
     BPatch_variableExpr	*malloc(const BPatch_type &type);

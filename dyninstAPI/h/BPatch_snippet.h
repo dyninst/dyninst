@@ -194,8 +194,8 @@ public:
 // Public functions for use by users of the library:
     bool readValue(void *dst);
     void readValue(void *dst, int len);
-    bool writeValue(const void *src);
-    void writeValue(const void *src, int len);
+    bool writeValue(const void *src, bool saveWorld=false); //ccw 26 nov 2001
+    void writeValue(const void *src, int len,bool saveWorld=false);
 
     char *getName() { return name; }
     void *getBaseAddr() const { return address; }
