@@ -3,11 +3,11 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.5 2000/08/08 15:34:28 wylie Exp $
+# $Id: nmake.module.tmpl,v 1.6 2003/02/04 14:59:46 bernat Exp $
 #
 
 !ifndef TARGET
-TARGET	      = libdyninstRT.dll
+TARGET	      = libparadynRT.dll
 !endif
 
 MODCC         = $(CC)
@@ -41,5 +41,5 @@ DEST		= $(TO_CORE)\$(LIBRARY_DEST)
 UNCOMMON_INSTALL= true
 install: $(DEST)/$(TARGET)
 
-$(DEST)/libdyninstRT.dll:       libdyninstRT.dll
-	$(CP) libdyninstRT.dll $(DEST)
+$(DEST)/libparadynRT.dll:       libparadynRT.dll
+	$(CP) libparadynRT.dll $(DEST)

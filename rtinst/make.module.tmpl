@@ -3,14 +3,14 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.19 2001/06/04 18:42:41 bernat Exp $
+# $Id: make.module.tmpl,v 1.20 2003/02/04 14:59:45 bernat Exp $
 #
 
 ifndef TARGET
-TARGET		= libdyninstRT.o
+TARGET		= libparadynRT.o
 endif
 
-TARGET3_SO	= libdyninstRT.so.1
+TARGET3_SO	= libparadynRT.so.1
 
 ifdef INCLUDE_CP_PROFILING
 TARGET2		= libdyninstCP.o
