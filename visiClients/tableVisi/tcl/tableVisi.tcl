@@ -3,6 +3,11 @@
 
 #
 # $Log: tableVisi.tcl,v $
+# Revision 1.5  1995/12/29 08:16:46  tamches
+# added sort foci by value menu item
+# removed some old and obsolete code
+# added binding for left mouse button (for selection)
+#
 # Revision 1.4  1995/12/20 02:29:44  tamches
 # minor menu fix
 #
@@ -92,7 +97,9 @@ proc initializeTableVisi {} {
    .top.left.menubar.opts.m add radio -label "Don't Sort Foci" \
 	   -variable sortFoci -value 0 -command unsortFoci
    .top.left.menubar.opts.m add radio -label "Sort Foci (ascending)" \
-	   -variable sortFoci -value 1 -command sortFoci
+	   -variable sortFoci -value 1 -command sortFociByValues
+   .top.left.menubar.opts.m add radio -label "Sort Foci By Values (of selected metric)" \
+	   -variable sortFoci -value 2 -command sortFociByValues
    
    # significant digits at the end of the View menu (?)
    global SignificantDigits
@@ -141,6 +148,7 @@ proc initializeTableVisi {} {
 
    bind .body <Configure> {tableVisiConfigure}
    bind .body <Expose>    {tableVisiExpose}
+   bind .body <Button-1>  {tableVisiClick %x %y}
 
    wm minsize . 300 200
    wm title . "Table Visualization"
@@ -187,102 +195,9 @@ proc DgPhaseDataCallback {} {
 }
 
 #
-#  Update the status line
-#
-proc UpdateStatus {} {
-  global DataFormat W
-  global Callbacks UpdateLimit lastBucket
-
-  set bw [Dg binwidth]
-
-  .status.label configure -text [format "Time: %-10s  Format: %s" [TimeLabel [expr int($bw * $lastBucket)]] $DataFormat]
-}
-
-#
-#  GetValue asks visi library for the data value for the met/res pair 
-#    we ask visi for the data in the correct DataFormat
-#
-#proc GetValue {m r bucket} {
-#  global DataFormat
-#  global numMetrics numResources
-#
-#   if {![Dg valid $m $r] || ![Dg enabled $m $r]} {
-#      # there is a hole in valid datagrid entries -- happens all the time
-#      return ""
-#   }
-#
-#   if {[string match $DataFormat Instantaneous]} {
-#      return [Dg value $m $r $bucket]
-#   } elseif {[string match $DataFormat Average]} {
-#      return [Dg aggregate $m $r]
-#   } elseif {[string match $DataFormat Sum]} {
-#      return [Dg sum $m $r]
-#   } else {
-#      puts stderr "GetValue: unknown data format: $DataFormat"
-#      return 0
-#   }
-#}
-
-#
 # DgValidCallback -- visi calls this when curve becomes valid
 #
 #proc DgValidCallback {m} {
 #  return
 #  puts stderr "Bucket $m is now valid"
 #}
-
-set UpdateCounter 0
-set UpdateLimit 1
-
-# TimeToUpdate - returns true (1) iff it is time to redraw
-#                the status (amount of time) at the bottom of the screen
-proc TimeToUpdate {} {
-  global UpdateCounter UpdateLimit
-
-  if {$UpdateCounter <= 0} {
-    set UpdateCounter [expr $UpdateLimit / [Dg binwidth]]
-    return 1
-  } else {
-    set UpdateCounter [expr $UpdateCounter - 1]
-    return 0
-  }
-}
-
-set Callbacks 0
-
-#
-#  DgDataCallback -- visi calls this command when new data is available
-#    we fill in all of the data labels with the new data values
-#
-#proc DgDataCallback {bucket} {
-#   global Callbacks
-#
-#   incr Callbacks
-#   if {[TimeToUpdate]} {
-#      DataUpdate $bucket
-#      UpdateStatus
-#   }
-#}
-
-#
-#  TimeLabel -- given a time value in seconds, format a nice label
-#
-#  note: If called often, this routine should be rewritten in C++.
-proc TimeLabel {val} {
-  if {($val > 60) && ($val < 3600)} {
-    set min [expr $val / 60]
-    set sec [expr $val - ($min * 60)]
-    return [format "%d m %d s" $min $sec]
-  }
-  if {$val < 60} {
-    return [format "%d s" $val]
-  }
-  if {$val > 3600} {
-    set hr [expr $val / 3600]
-    set left [expr $val - ($hr * 3600)]
-    set min [expr $left / 60]
-    set sec [expr $left - ($min * 60)]
-    return [format "%d h %d m %d s" $hr $min $sec]
-  }
-  return "$val s"
-}
