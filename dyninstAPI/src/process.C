@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.336 2002/06/25 20:26:19 bernat Exp $
+// $Id: process.C,v 1.337 2002/06/26 21:14:09 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -524,18 +524,7 @@ bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = f
 
 pd_Function *process::convertFrameToFunc(Frame frame) 
 {
-  pd_Function *func = NULL;
-  func = (pd_Function *)findFuncByAddr(frame.getPC());
-
-  instPoint *ip;
-  function_base *fn;
-  ip = findInstPointFromAddress(this, frame.getPC());
-  if( ip ) {
-    fn = const_cast<function_base*>( ip->iPgetFunction() );
-    if( fn ) {
-      func = (pd_Function *) fn;
-    }
-  }
+  pd_Function *func = findAddressInFuncsAndTramps(frame.getPC());
   return func;
 }
 
@@ -586,7 +575,7 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame frame,
     cerr << "In triggeredInStackFrame : stack function matches function containing instPoint" << endl;
   
   //  Is the pc within the instPoint instrumentation?
-  instPoint* currentIp = findInstPointFromAddress(this, pc);
+  instPoint* currentIp = findInstPointFromAddress(pc);
 
   if ( currentIp && currentIp == point )
   {
@@ -626,11 +615,16 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame frame,
       }
       else //  pc is in a mini-tramp
       {
-        instInstance* currInstance = findMiniTramps(currentIp);
+	installed_miniTramps_list *mtList;
+	getMiniTrampList(currentIp, when, &mtList);
+	List<instInstance*>::iterator curMT = mtList->get_begin_iter();
+	List<instInstance*>::iterator endMT = mtList->get_end_iter();	 
+
         bool pcInTramp = false;
 
-        while ( currInstance != NULL && !pcInTramp )
+	for(; curMT != endMT && !pcInTramp; curMT++)
         {
+	  instInstance *currInstance = *curMT;
           if ( pd_debug_catchup )
           {
             fprintf(stderr, "  Checking for pc in mini-tramp (%lx - %lx)\n",
@@ -666,7 +660,7 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame frame,
               cerr << endl;
 
               cerr << "    The pc is in ";
-              switch(currInstance->when) {
+              switch(when) {
                 case callPreInsn:
                   cerr << "PreInsn ";
                   break;
@@ -674,7 +668,7 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame frame,
                   cerr << "PostInsn ";
                   break;
               }
-              cerr << "instrumentation." << endl;
+              cerr << "instrumentation\n";
             }
             
             // The request should be triggered if it is for:
@@ -685,9 +679,9 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame frame,
             //         and the pc is in PostInsn instrumentation
             if ( (when == callPreInsn && (order == orderFirstAtPoint || 
                   (order == orderLastAtPoint &&
-                    currInstance->when == callPostInsn))) ||
+                    when == callPostInsn))) ||
                  (when == callPostInsn && order == orderFirstAtPoint &&
-                    currInstance->when == callPostInsn) )
+		    when == callPostInsn) )
             {
               if ( pd_debug_catchup )
                 cerr << "  pc is after requested instrumentation point, returning true." << endl;
@@ -699,8 +693,6 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame frame,
                 cerr << "  pc is before requested instrumentation point, returning false." << endl;
             }
           }
-  
-          currInstance = currInstance->next;
         }
       }
     } 
@@ -1761,147 +1753,153 @@ const Address ADDRESS_HI = ((Address)~((Address)0));
 Address process::inferiorMalloc(unsigned size, inferiorHeapType type, 
 				Address near_, bool *err)
 {
-  inferiorHeap *hp = &heap;
-  if (err) *err = false;
-  assert(size > 0);
-
-  // allocation range
-  Address lo = ADDRESS_LO; // Should get reset to a more reasonable value
-  Address hi = ADDRESS_HI; // Should get reset to a more reasonable value
- 
+   inferiorHeap *hp = &heap;
+   if (err) *err = false;
+   assert(size > 0);
+   
+   // allocation range
+   Address lo = ADDRESS_LO; // Should get reset to a more reasonable value
+   Address hi = ADDRESS_HI; // Should get reset to a more reasonable value
+   
 #if defined(USES_DYNAMIC_INF_HEAP)
-  inferiorMallocAlign(size); // align size
-  // Set the lo/hi constraints (if necessary)
-  inferiorMallocConstraints(near_, lo, hi, type);
-
+   inferiorMallocAlign(size); // align size
+   // Set the lo/hi constraints (if necessary)
+   inferiorMallocConstraints(near_, lo, hi, type);
+   
 #else
-  /* align to cache line size (32 bytes on SPARC) */
-  size = (size + 0x1f) & ~0x1f; 
+   /* align to cache line size (32 bytes on SPARC) */
+   size = (size + 0x1f) & ~0x1f; 
 #endif /* USES_DYNAMIC_INF_HEAP */
-  // find free memory block (7 attempts)
-  // attempt 0: as is
-  // attempt 1: deferred free, compact free blocks
-  // attempt 2: allocate new segment (1 MB, constrained)
-  // attempt 3: allocate new segment (sized, constrained)
-  // attempt 4: remove range constraints
-  // attempt 5: allocate new segment (1 MB, unconstrained)
-  // attempt 6: allocate new segment (sized, unconstrained)
-  // attempt 7: deferred free, compact free blocks (why again?)
-  int freeIndex = -1;
-  int ntry = 0;
-  for (ntry = 0; freeIndex == -1; ntry++) {
-    switch(ntry) {
-    case 0: // as is
-      break;
+   // find free memory block (7 attempts)
+   // attempt 0: as is
+   // attempt 1: deferred free, compact free blocks
+   // attempt 2: allocate new segment (1 MB, constrained)
+   // attempt 3: allocate new segment (sized, constrained)
+   // attempt 4: remove range constraints
+   // attempt 5: allocate new segment (1 MB, unconstrained)
+   // attempt 6: allocate new segment (sized, unconstrained)
+   // attempt 7: deferred free, compact free blocks (why again?)
+   int freeIndex = -1;
+   int ntry = 0;
+   for (ntry = 0; freeIndex == -1; ntry++) {
+      switch(ntry) {
+	case 0: // as is
+	   break;
 #if defined(USES_DYNAMIC_INF_HEAP)
-    case 1: // compact free blocks
-      inferiorFreeCompact(hp);
-      break;
-    case 2: // allocate new segment (1MB, constrained)
-      inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
-      break;
-    case 3: // allocate new segment (sized, constrained)
-      inferiorMallocDynamic(size, lo, hi);
-      break;
-    case 4: // remove range constraints
-      lo = ADDRESS_LO;
-      hi = ADDRESS_HI;
-      if (err) {
-	*err = true;
-      }
-      break;
-    case 5: // allocate new segment (1MB, unconstrained)
-      inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
-      break;
-    case 6: // allocate new segment (sized, unconstrained)
-      inferiorMallocDynamic(size, lo, hi);
-      break;
-    case 7: // deferred free, compact free blocks
-      inferiorFreeCompact(hp);
-      break;
+	case 1: // compact free blocks
+	   inferiorFreeCompact(hp);
+	   break;
+	case 2: // allocate new segment (1MB, constrained)
+	   inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
+	   break;
+	case 3: // allocate new segment (sized, constrained)
+	   inferiorMallocDynamic(size, lo, hi);
+	   break;
+	case 4: // remove range constraints
+	   lo = ADDRESS_LO;
+	   hi = ADDRESS_HI;
+	   if (err) {
+	      *err = true;
+	   }
+	   break;
+	case 5: // allocate new segment (1MB, unconstrained)
+	   inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
+	   break;
+	case 6: // allocate new segment (sized, unconstrained)
+	   inferiorMallocDynamic(size, lo, hi);
+	   break;
+	case 7: // deferred free, compact free blocks
+	   inferiorFreeCompact(hp);
+	   break;
 #else /* !(USES_DYNAMIC_INF_HEAP) */
-    case 1: // deferred free, compact free blocks
-      inferiorFreeCompact(hp);
-      break;
+	case 1: // deferred free, compact free blocks
+	   inferiorFreeCompact(hp);
+	   break;
 #endif /* USES_DYNAMIC_INF_HEAP */
-      
-    default: // error - out of memory
-      sprintf(errorLine, "***** Inferior heap overflow: %d bytes "
-              "freed, %d bytes requested\n", hp->freed, size);
-      logLine(errorLine);
-      showErrorCallback(66, (const char *) errorLine);    
+	   
+	default: // error - out of memory
+	   sprintf(errorLine, "***** Inferior heap overflow: %d bytes "
+		   "freed, %d bytes requested\n", hp->freed, size);
+	   logLine(errorLine);
+	   showErrorCallback(66, (const char *) errorLine);    
 #if defined(BPATCH_LIBRARY)
-      return(0);
+	   return(0);
 #else
-      P__exit(-1);
+	   P__exit(-1);
 #endif
-    }
-    freeIndex = findFreeIndex(size, type, lo, hi);
-  }
-
-  // adjust active and free lists
-  heapItem *h = hp->heapFree[freeIndex];
-  assert(h);
-  // remove allocated buffer from free list
-  if (h->length != size) {
-    // size mismatch: put remainder of block on free list
-    heapItem *rem = new heapItem(h);
-    rem->addr += size;
-    rem->length -= size;
-    hp->heapFree[freeIndex] = rem;
-  } else {
-    // size match: remove entire block from free list
-    unsigned last = hp->heapFree.size();
-    hp->heapFree[freeIndex] = hp->heapFree[last-1];
-    hp->heapFree.resize(last-1);
-  }
-  // add allocated block to active list
-  h->length = size;
-  h->status = HEAPallocated;
-  hp->heapActive[h->addr] = h;
-  // bookkeeping
-  hp->totalFreeMemAvailable -= size;
-  inferiorMemAvailable = hp->totalFreeMemAvailable;
-  assert(h->addr);
-
-	// ccw: 28 oct 2001
-	// create imageUpdate here:
-	// imageUpdate(h->addr,size)
-
+      }
+      freeIndex = findFreeIndex(size, type, lo, hi);
+   }
+   
+   // adjust active and free lists
+   heapItem *h = hp->heapFree[freeIndex];
+   assert(h);
+   // remove allocated buffer from free list
+   if (h->length != size) {
+      // size mismatch: put remainder of block on free list
+      heapItem *rem = new heapItem(h);
+      rem->addr += size;
+      rem->length -= size;
+      hp->heapFree[freeIndex] = rem;
+   } else {
+      // size match: remove entire block from free list
+      unsigned last = hp->heapFree.size();
+      hp->heapFree[freeIndex] = hp->heapFree[last-1];
+      hp->heapFree.resize(last-1);
+   }
+   // add allocated block to active list
+   h->length = size;
+   h->status = HEAPallocated;
+   hp->heapActive[h->addr] = h;
+   // bookkeeping
+   hp->totalFreeMemAvailable -= size;
+   inferiorMemAvailable = hp->totalFreeMemAvailable;
+   assert(h->addr);
+   
+   // ccw: 28 oct 2001
+   // create imageUpdate here:
+   // imageUpdate(h->addr,size)
+   
 #ifdef BPATCH_LIBRARY
 #if defined(sparc_sun_solaris2_4 ) || defined(i386_unknown_linux2_0)
-	if(collectSaveWorldData){
-
+   if(collectSaveWorldData){
+      
 #if defined(sparc_sun_solaris2_4)
-		if(h->addr < 0xF0000000){
+      if(h->addr < 0xF0000000)
 #elif defined(i386_unknown_linux2_0)
-		if(h->addr < 0x40000000){
+      if(h->addr < 0x40000000)
 #endif	
-			imageUpdate *imagePatch=new imageUpdate; 
-			imagePatch->address = h->addr;
-			imagePatch->size = size;
-			imageUpdates.push_back(imagePatch);
-			//totalSizeAlloc += size;
-		//	printf(" PUSHBACK %x %x --- %x\n", imagePatch->address, imagePatch->size, totalSizeAlloc); 
-			
-		}else{
-		//	totalSizeAlloc += size;
-		//	printf(" HIGHMEM UPDATE %x %x %x\n", h->addr, size,totalSizeAlloc);
-                	imageUpdate *imagePatch=new imageUpdate;
-	                imagePatch->address = h->addr;
-        	        imagePatch->size = size;
-                	highmemUpdates.push_back(imagePatch);
-	                //printf(" PUSHBACK %x %x\n", imagePatch->address, imagePatch->size);
-			
-			
-
-		}
-		//fflush(stdout);
-	}
+      {
+	 imageUpdate *imagePatch=new imageUpdate; 
+	 imagePatch->address = h->addr;
+	 imagePatch->size = size;
+	 imageUpdates.push_back(imagePatch);
+	 //totalSizeAlloc += size;
+	 //	printf(" PUSHBACK %x %x --- %x\n", imagePatch->address, imagePatch->size, totalSizeAlloc); 		
+      } else {
+	 //	totalSizeAlloc += size;
+	 //	printf(" HIGHMEM UPDATE %x %x %x\n", h->addr, size,totalSizeAlloc);
+	 imageUpdate *imagePatch=new imageUpdate;
+	 imagePatch->address = h->addr;
+	 imagePatch->size = size;
+	 highmemUpdates.push_back(imagePatch);
+	 //printf(" PUSHBACK %x %x\n", imagePatch->address, imagePatch->size);
+      }
+      //fflush(stdout);
+   }
 #endif
 #endif
+  
+   return(h->addr);
+}
 
-  return(h->addr);
+/* returns true if memory was allocated for a variable starting at address
+   "block", otherwise returns false
+*/
+bool isInferiorAllocated(process *p, Address block) {
+  heapItem *h = NULL;  
+  inferiorHeap *hp = &p->heap;
+  return hp->heapActive.find(block, h);
 }
 
 void process::inferiorFree(Address block)
@@ -2001,13 +1999,27 @@ bool process::initDyninstLib() {
 //
 // cleanup when a process is deleted
 //
-#ifdef BPATCH_LIBRARY
 process::~process()
 {
-    detach(false);
+   cerr << "calling process destructor\n";
+    // remove inst points for this process
+    dictionary_hash_iter<const instPoint *, installed_miniTramps_list*>
+      befList = installedMiniTramps_beforePt;
+    for(; befList; befList++) {
+      const instPoint *pt = befList.currkey();
+      delete pt;
+    }
 
     // remove inst points for this process
-    cleanInstFromActivePoints(this);
+    dictionary_hash_iter<const instPoint *, installed_miniTramps_list*>
+      aftList = installedMiniTramps_afterPt;
+    for(; aftList; aftList++) {
+      const instPoint *pt = aftList.currkey();
+      delete pt;
+    }
+
+#ifdef BPATCH_LIBRARY
+    detach(false);
 
     // remove it from the processVec
     unsigned int size = processVec.size();
@@ -2021,12 +2033,10 @@ process::~process()
 	    processVec.resize(size-1);
 	}
     }
-}
 #else
-process::~process() {
   cpuTimeMgr->destroyMechTimers(this);
-}
 #endif
+}
 
 unsigned hash_bp(function_base * const &bp ) { return(addrHash4((Address) bp)); }
 
@@ -2062,6 +2072,8 @@ process::process(int iPid, image *iImage, int iTraceLink
   instPointMap(hash_address),
 #endif
   savedRegs(NULL),
+  installedMiniTramps_beforePt(ipHash),
+  installedMiniTramps_afterPt(ipHash),
   pid(iPid) // needed in fastInferiorHeap ctors below
 #if !defined(BPATCH_LIBRARY)
   ,previous(0)
@@ -2258,6 +2270,8 @@ process::process(int iPid, image *iSymbols,
   instPointMap(hash_address),
 #endif
   savedRegs(NULL),
+  installedMiniTramps_beforePt(ipHash),
+  installedMiniTramps_afterPt(ipHash),
   pid(iPid)
 #if !defined(BPATCH_LIBRARY)  && defined(i386_unknown_nt4_0)
   ,previous(0) //ccw 8 jun 2002
@@ -2488,6 +2502,26 @@ process::process(int iPid, image *iSymbols,
    success = true;
 }
 
+void copyOverInstInstanceObjects(
+        dictionary_hash<const instPoint *, installed_miniTramps_list*> *mtdata)
+{
+   dictionary_hash_iter<const instPoint *, installed_miniTramps_list*> it =
+      *mtdata;
+   for(; it; it++) {
+      installed_miniTramps_list *oldMTlist = it.currval();
+      installed_miniTramps_list *newMTlist =
+	it.currval() = new installed_miniTramps_list();
+      newMTlist->clear();
+      List<instInstance*>::iterator lstIter = oldMTlist->get_begin_iter();
+      List<instInstance*>::iterator endIter = oldMTlist->get_end_iter();
+      for(; lstIter != endIter; lstIter++) {
+	instInstance *oldII = *lstIter;
+	instInstance *newII = new instInstance(*oldII);
+	newMTlist->addMiniTramp(orderLastAtPoint, newII);
+      }
+   }
+}
+
 // #if !defined(BPATCH_LIBRARY)
 
 //
@@ -2515,12 +2549,13 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
 #endif
-  savedRegs(NULL)
+  savedRegs(NULL),
+  installedMiniTramps_beforePt(parentProc.installedMiniTramps_beforePt),
+  installedMiniTramps_afterPt(parentProc.installedMiniTramps_afterPt)
 #ifdef SHM_SAMPLING
   ,previous(0)
 #endif
 {
-
 #ifdef DETACH_ON_THE_FLY
   haveDetached = 0;
   juststopped = 0;
@@ -2555,7 +2590,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     wasRunningWhenAttached = true;
     needToContinueAfterDYNINSTinit = true;
 
-    symbols = parentProc.symbols; // shouldn't a reference count also be bumped?
+    symbols = parentProc.symbols; //shouldn't a reference count also be bumped?
+    symbols->updateForFork(this, &parentProc);
     mainFunction = parentProc.mainFunction;
 
     traceLink = iTrace_fd;
@@ -2569,6 +2605,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     deferredContinueProc = false;
 
     pid = iPid; 
+    copyOverInstInstanceObjects(&installedMiniTramps_beforePt);
+    copyOverInstInstanceObjects(&installedMiniTramps_afterPt);
 
 #ifndef BPATCH_LIBRARY
     theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
@@ -2711,6 +2749,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
    else
            status_ = stopped;
    // would neonatal be more appropriate?  Nah, we've reached the first trap
+
+   initTrampGuard();
 }
 
 // #endif
@@ -3577,15 +3617,6 @@ process *process::forkProcess(const process *theParent, pid_t childPid,
     /* XXX Not sure if this is the right thing to do. */
     ret->instPointMap = theParent->instPointMap;
 #endif
-
-    // the following writes to "map", s.t. for each instInstance in the parent
-    // process, we have a map to the corresponding one in the child process.
-    // that's all this routine does -- it doesn't actually touch
-    // any instrumentation (because it doesn't need to -- fork() syscall copied
-    // all of the actual instrumentation [but what about AIX and its weird load
-    // behavior?])
-    copyInstInstances(theParent, ret, map);
-         // doesn't copy anything; just writes to "map"
 
     return ret;
 }
@@ -4621,6 +4652,7 @@ bool process::getSymbolInfo( const string &name, Symbol &ret )
 
         bool sflag;
         sflag = symbols->symbol_info( name, ret );
+
         if( sflag )
                 return true;
 
@@ -4964,6 +4996,211 @@ vector<module *> *process::getIncludedModules(){
     return some_modules;
 }
 #endif /* BPATCH_LIBRARY */
+
+// writes newly created installed_miniTramps_list into mtList
+void process::newMiniTrampList(const instPoint *loc, callWhen when,
+			       installed_miniTramps_list **mtList) {
+  // operator[] creates an empty installed_miniTramps_list
+  installed_miniTramps_list *newList = new installed_miniTramps_list;
+
+  switch(when) {
+    case callPreInsn: {
+      installedMiniTramps_beforePt[loc] = newList;
+      assert(newList->numMiniTramps() == 0);
+      (*mtList) = newList;
+      break;
+    }
+    case callPostInsn: {
+      installedMiniTramps_afterPt[loc] = newList;
+      assert(newList->numMiniTramps() == 0);
+      (*mtList) = newList;
+      break;
+    }
+    default:
+      assert(false);
+  }
+}
+
+void process::getMiniTrampLists(vector<mtListInfo> *vecBuf) {
+  dictionary_hash_iter<const instPoint *, installed_miniTramps_list*>
+    befIter = installedMiniTramps_beforePt;
+
+  for(; befIter; befIter++) {
+    const instPoint *theLoc = befIter.currkey();
+    installed_miniTramps_list *curList = befIter.currval();
+    mtListInfo listInfo;
+    listInfo.loc = theLoc;
+    listInfo.when = callPreInsn;
+    listInfo.mtList = curList;
+    (*vecBuf).push_back(listInfo);
+  }
+
+  dictionary_hash_iter<const instPoint *, installed_miniTramps_list*>
+    aftIter = installedMiniTramps_afterPt;
+
+  for(; aftIter; aftIter++) {
+    const instPoint *theLoc = aftIter.currkey();
+    installed_miniTramps_list *curList = aftIter.currval();
+    mtListInfo listInfo;
+    listInfo.loc = theLoc;
+    listInfo.when = callPostInsn;
+    listInfo.mtList = curList;
+    (*vecBuf).push_back(listInfo);
+  }
+}
+
+void process::getMiniTrampList(const instPoint *loc, callWhen when,
+			       installed_miniTramps_list **mtList) {
+  // creates an empty installed_miniTramps_list if doesn't already exist
+  switch(when) {
+    case callPreInsn: {
+      dictionary_hash<const instPoint *, installed_miniTramps_list*>::iterator
+	lst = installedMiniTramps_beforePt.find(loc);
+
+      if(lst == installedMiniTramps_beforePt.end())
+	(*mtList) = NULL;
+      else
+	(*mtList) = lst.currval();
+
+      break;
+    }
+    case callPostInsn: {
+      dictionary_hash<const instPoint *, installed_miniTramps_list*>::iterator
+	lst = installedMiniTramps_afterPt.find(loc);
+      if(lst == installedMiniTramps_afterPt.end())
+	(*mtList) = NULL;
+      else
+	(*mtList) = lst.currval();
+      break;
+    }
+    default:
+      assert(false);
+  }
+}
+
+void process::getMiniTrampList(const instPoint *loc, callWhen when,
+			       const installed_miniTramps_list **mtList) const 
+{
+  // doesn't create an empty installed_miniTramps_list if doesn't already exist
+  switch(when) {
+    case callPreInsn: {
+      dictionary_hash<const instPoint *, installed_miniTramps_list*>::iterator
+	lst = installedMiniTramps_beforePt.find(loc);
+      if(lst == installedMiniTramps_beforePt.end())
+	(*mtList) = NULL;
+      else
+	(*mtList) = lst.currval();
+      break;
+    }
+    case callPostInsn: {
+      dictionary_hash<const instPoint *, installed_miniTramps_list*>::iterator
+	lst = installedMiniTramps_afterPt.find(loc);
+      if(lst == installedMiniTramps_afterPt.end())
+	(*mtList) = NULL;
+      else
+	(*mtList) = lst.currval();
+      break;
+    }
+    default:
+      assert(false);
+  }
+}
+
+void process::removeMiniTrampList(const instPoint *loc, callWhen when) {
+  switch(when) {
+    case callPreInsn:
+      installedMiniTramps_beforePt.undef(loc);
+      break;
+    case callPostInsn:
+      installedMiniTramps_afterPt.undef(loc);
+      break;
+    default:
+      assert(false);
+  }
+}
+
+instPoint *process::findInstPointFromAddress(Address addr, trampTemplate **bt,
+					     instInstance **mt)
+{
+   unsigned u;
+   vector<const instPoint*> ips;
+   vector<trampTemplate*> bts;
+   ips = baseMap.keys();
+   bts = baseMap.values();
+   assert( ips.size() == bts.size() );
+
+   for( u = 0; u < bts.size(); ++u ) {
+      if( bts[u]->inBasetramp( addr ) )
+      {
+	 if(bt!=NULL)  (*bt) = bts[u];
+	 return const_cast<instPoint*>(ips[u]);
+      }
+   }
+
+   dictionary_hash_iter<const instPoint *, installed_miniTramps_list*>
+      befIter = installedMiniTramps_beforePt;
+   
+   for(; befIter; befIter++) {
+      installed_miniTramps_list *curList = befIter.currval();
+
+      List<instInstance*>::iterator curMT = curList->get_begin_iter();
+      List<instInstance*>::iterator endMT = curList->get_end_iter();
+      for(; curMT != endMT; curMT++) {
+	 instInstance *inst = *curMT;
+	 if( ( inst->trampBase <= addr && addr <= inst->returnAddr)
+	     || inst->baseInstance->inBasetramp(addr) )
+	 {
+	    if(mt!=NULL)  (*mt) = inst;
+	    return const_cast<instPoint *>(befIter.currkey());
+	 } 
+      }
+   }
+
+   dictionary_hash_iter<const instPoint *, installed_miniTramps_list*>
+      aftIter = installedMiniTramps_afterPt;
+   for(; aftIter; aftIter++) {
+      installed_miniTramps_list *curList = aftIter.currval();
+
+      List<instInstance*>::iterator curMT = curList->get_begin_iter();
+      List<instInstance*>::iterator endMT = curList->get_end_iter();	 
+      for(; curMT != endMT; curMT++) {
+	 instInstance *inst = *curMT;
+	 if( ( inst->trampBase <= addr && addr <= inst->returnAddr)
+	     || inst->baseInstance->inBasetramp(addr) )
+	 {
+	    if(mt!=NULL)  (*mt) = inst;
+	    return const_cast<instPoint *>(aftIter.currkey());
+	 } 
+      }
+   }
+
+   return NULL;
+}
+
+pd_Function *process::findAddressInFuncsAndTramps(Address addr,
+						  instPoint **ip,
+						  trampTemplate **bt,
+						  instInstance **mt)
+{
+  if(ip!=NULL)  (*ip) = NULL;
+  if(bt!=NULL)  (*bt) = NULL;
+  if(mt!=NULL)  (*mt) = NULL;
+
+  pd_Function *func = NULL;
+  func = (pd_Function *)findFuncByAddr(addr);
+
+  instPoint *foundInstPt = findInstPointFromAddress(addr, bt, mt);
+  if(foundInstPt != NULL && ip!=NULL) {
+    (*ip) = foundInstPt;
+
+    function_base *func_base = 
+      const_cast<function_base*>((*ip)->iPgetFunction());
+    if(func_base) {
+      func = static_cast<pd_Function *>(func_base);
+    }
+  }
+  return func;
+}
       
 // getBaseAddress: sets baseAddress to the base address of the 
 // image corresponding to which.  It returns true  if image is mapped
@@ -5088,7 +5325,7 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
 pdThread *process::getThread(unsigned tid) {
   pdThread *foundThr = NULL;
   for(unsigned i=0; i<threads.size(); i++) {
-    if(threads[i]->get_tid() == tid) 
+    if(threads[i]->get_tid() == static_cast<int>(tid))
       foundThr = threads[i];
   }
   return foundThr;
@@ -5204,9 +5441,10 @@ void process::handleExec() {
    baseMap.clear();
 #ifdef BPATCH_LIBRARY
    instPointMap.clear(); /* XXX Should delete instPoints first? */
-   PDFuncToBPFuncMap.clear(),
+   PDFuncToBPFuncMap.clear();
 #endif
-     cleanInstFromActivePoints(this);
+   installedMiniTramps_beforePt.clear();
+   installedMiniTramps_afterPt.clear();
    
    int status = pid;
    fileDescriptor *desc = getExecFileDescriptor(execFilePath,
@@ -6225,11 +6463,13 @@ void process::installBootstrapInst() {
             return;
        }
 #endif
-       addInstFunc(this, func_entry, ast, callPreInsn,
-		   orderFirstAtPoint,
-		   true, // true --> don't try to have tramp code update the cost
-		   true // Don't care about recursion -- it's DYNINSTinit
-               );   
+       miniTrampHandle mtHandle;
+       assert(addInstFunc(&mtHandle, this, func_entry, ast, callPreInsn,
+			  orderFirstAtPoint,
+			  true, // true --> tramp code not update the cost
+			  true // Don't care about recursion --it's DYNINSTinit
+			  )
+	      == success_res);
        // returns an "instInstance", which we ignore (but should we?)
        removeAst(ast);
        attach_cerr << "wrote call to DYNINSTinit to entry of main" << endl;
@@ -6272,16 +6512,21 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
          const vector<instPoint*> func_rets = func->funcExits(this);
          for (unsigned j=0; j < func_rets.size(); j++) {
 	    instPoint *func_ret = const_cast<instPoint *>(func_rets[j]);
-            (void)addInstFunc(this, func_ret, ast,
-                              req->when, req->order, false, false);
+	    miniTrampHandle mtHandle;
+            assert(addInstFunc(&mtHandle, this, func_ret, ast,
+			       req->when, req->order, false, false)
+		   == success_res);
 	 }
 
       }
 
       if (req->where & FUNC_ENTRY) {
          instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
-         (void)addInstFunc(this, func_entry, ast,
-                           req->when, req->order, false, false);
+	 miniTrampHandle mtHandle;
+         assert(addInstFunc(&mtHandle, this, func_entry, ast,
+			    req->when, req->order, false, false)
+		== success_res);
+		
 
       }
 
@@ -6290,10 +6535,13 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
          if (func_calls.size() == 0)
             continue;
 
-         for (unsigned j=0; j < func_calls.size(); j++)
-            (void)addInstFunc(this, func_calls[j], ast,
-                              req->when, req->order, false, false);
+         for (unsigned j=0; j < func_calls.size(); j++) {
+	    miniTrampHandle mtHandle;
+            assert(addInstFunc(&mtHandle, this, func_calls[j], ast,
+			       req->when, req->order, false, false)
+		   == success_res);
 
+	 }
       }
 
       removeAst(ast);
@@ -6687,7 +6935,8 @@ void process::callpDYNINSTinit(){
   function_base *func = getMainFunction();
    if (func) {
        instPoint *func_entry = const_cast<instPoint*>(func->funcEntry(this));
-       addInstFunc(this, func_entry, the_ast, callPreInsn,
+       miniTrampHandle mtHandle;
+       addInstFunc(&mtHandle, this, func_entry, the_ast, callPreInsn,
 		   orderFirstAtPoint,
 		   true, // true --> don't try to have tramp code update the cost
 		   true // Don't care about recursion -- it's DYNINSTinit
@@ -7594,7 +7843,8 @@ bool process::checkIfInstAlreadyDeleted(instInstance *delInst)
   return false;
 }
 
-void process::deleteBaseTramp(trampTemplate *baseTramp, instInstance *lastMiniTramp)
+void process::deleteBaseTramp(trampTemplate *baseTramp, 
+			      instInstance *lastMiniTramp)
 {
   struct instPendingDeletion *toBeDeleted = new instPendingDeletion();
   toBeDeleted->hot.push_back(baseTramp->baseAddr);
