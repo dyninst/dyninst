@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.98 2003/04/11 22:46:31 schendel Exp $ */
+/* $Id: dynrpc.C,v 1.99 2003/04/16 21:07:29 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -354,6 +354,7 @@ bool dynRPC::detachProgram(int program, bool pause)
 //
 void dynRPC::continueApplication(void)
 {
+    cerr << "dynRPC::continueApplication" << endl;
     continueAllProcesses();
     statusLine("application running");
 }
@@ -363,6 +364,8 @@ void dynRPC::continueApplication(void)
 //
 void dynRPC::continueProgram(int program)
 {
+    cerr << "dynRPC::continueProgram " << program << endl;
+    
    pd_process *proc = getProcMgr().find_pd_process(program);
    if (!proc) {
       sprintf(errorLine, "Internal error: cannot continue PID %d\n", program);
@@ -371,21 +374,13 @@ void dynRPC::continueProgram(int program)
 		        machineResource->part_name());
       return;
    }
-   if (proc->existsRPCinProgress())  {
-       cerr << "RPC in progress, deferring in dynRPC::continueProgram" << endl;
-      // An RPC is in progress, so we delay the continueProc until the RPC
-      // finishes - naim
-      proc->get_dyn_process()->deferredContinueProc = true;
-   } else {
-       if( proc->status() != running ) {
-           cerr << "Process status is not running, continuing..." << endl;
-           proc->continueProc();
-       }
-       // we are no longer paused, are we?
-       statusLine("application running");
-       if (!markApplicationRunning()) {
-           return;
-       }
+   if( proc->status() != running ) {
+       proc->continueProc();
+   }
+   // we are no longer paused, are we?
+   statusLine("application running");
+   if (!markApplicationRunning()) {
+       return;
    }
 }
 
@@ -394,6 +389,7 @@ void dynRPC::continueProgram(int program)
 //
 bool dynRPC::pauseApplication(void)
 {
+    cerr << "dynRPC::pauseApplication" << endl;
     pauseAllProcesses();
     return true;
 }
@@ -403,6 +399,7 @@ bool dynRPC::pauseApplication(void)
 //
 bool dynRPC::pauseProgram(int program)
 {
+    cerr << "dynRPC::pauseProgram " << program << endl;
    pd_process *proc = getProcMgr().find_pd_process(program);
    if (!proc) {
       sprintf(errorLine, "Internal error: cannot pause PID %d\n", program);
