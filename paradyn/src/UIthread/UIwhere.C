@@ -3,9 +3,12 @@
  * code related to displaying the where axes lives here
  */
 /* $Log: UIwhere.C,v $
-/* Revision 1.4  1994/11/03 06:41:19  karavan
-/* took out those pesty debug printfs
+/* Revision 1.5  1994/11/03 19:55:55  karavan
+/* added call to dag::setRowSpacing to improve appearance of resource displays
 /*
+ * Revision 1.4  1994/11/03  06:41:19  karavan
+ * took out those pesty debug printfs
+ *
  * Revision 1.3  1994/11/03  06:16:16  karavan
  * status display and where axis added to main window and the look cleaned
  * up a little bit.  Added option to ResourceDisplayObj class to specify
@@ -136,6 +139,7 @@ resourceDisplayObj::addAbstraction (stringHandle newabs)
     delete newdag;
     return (dag *)NULL;
   }
+  newdag->setRowSpacing(40);
   dags.add (newdag, newabs);
   if (numdags == 1) 
     topdag = newdag;
@@ -143,7 +147,8 @@ resourceDisplayObj::addAbstraction (stringHandle newabs)
   return newdag;
 }
 
-resourceDisplayObj::resourceDisplayObj (int baseflag, int &success, char *pwin)
+resourceDisplayObj::resourceDisplayObj (int baseflag, int &success, 
+					const char *pwin)
 {
   numdags = 0;	
   status = DISPLAYED;	
