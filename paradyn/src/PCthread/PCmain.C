@@ -1,8 +1,11 @@
 
 /* $Log: PCmain.C,v $
-/* Revision 1.10  1994/05/10 03:57:43  hollings
-/* Changed data upcall to return array of buckets.
+/* Revision 1.11  1994/05/12 23:34:06  hollings
+/* made path to paradyn.h relative.
 /*
+ * Revision 1.10  1994/05/10  03:57:43  hollings
+ * Changed data upcall to return array of buckets.
+ *
  * Revision 1.9  1994/05/06  06:39:34  karavan
  * SHG now initialized only upon request
  *
@@ -25,7 +28,7 @@
 #include "performanceConsultant.SRVR.h"
 #include "PCglobals.h"
 #include "PCmetric.h"
-#include "paradyn.h"
+#include "../pdMain/paradyn.h"
 
 performanceStream *pcStream;
 extern void initResources();

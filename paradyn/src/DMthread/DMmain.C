@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.22  1994/05/10 03:57:37  hollings
+ * Revision 1.23  1994/05/12 23:34:00  hollings
+ * made path to paradyn.h relative.
+ *
+ * Revision 1.22  1994/05/10  03:57:37  hollings
  * Changed data upcall to return array of buckets.
  *
  * Revision 1.21  1994/05/09  20:56:20  hollings
@@ -91,7 +94,7 @@ double   quiet_nan(int unused);
 #include "dataManager.SRVR.h"
 #include "dyninstRPC.CLNT.h"
 #include "DMinternals.h"
-#include "paradyn.h"
+#include "../pdMain/paradyn.h"
 
 static dataManager *dm;
 stringPool metric::names;

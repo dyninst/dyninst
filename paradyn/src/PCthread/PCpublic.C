@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.8  1994/05/09 20:58:02  hollings
+ * Revision 1.9  1994/05/12 23:34:07  hollings
+ * made path to paradyn.h relative.
+ *
+ * Revision 1.8  1994/05/09  20:58:02  hollings
  * Added clearSHG.
  *
  * Revision 1.7  1994/05/06  06:39:36  karavan
@@ -67,7 +70,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.8 1994/05/09 20:58:02 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.9 1994/05/12 23:34:07 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -84,7 +87,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCshg.h"
 #include "PCevalTest.h"
 #include "performanceConsultant.SRVR.h"
-#include "paradyn.h"
+#include "../pdMain/paradyn.h"
 
 extern void shgInit();
 

@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.12  1994/05/09 20:59:27  hollings
-/* Changed paradyn shg start to clearSHG not init it.
+/* Revision 1.13  1994/05/12 23:34:16  hollings
+/* made path to paradyn.h relative.
 /*
+ * Revision 1.12  1994/05/09  20:59:27  hollings
+ * Changed paradyn shg start to clearSHG not init it.
+ *
  * Revision 1.11  1994/05/06  06:40:06  karavan
  * added shg start command
  *
@@ -49,7 +52,7 @@ extern "C" {
 #include "util/h/tunableConst.h"
 #include "VM.CLNT.h"
 #include "thread/h/thread.h"
-#include "paradyn.h"
+#include "../pdMain/paradyn.h"
 #include "UIglobals.h"
 #include <assert.h>
 

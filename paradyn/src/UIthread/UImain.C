@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.12  1994/05/10 03:57:49  hollings
-/* Changed data upcall to return array of buckets.
+/* Revision 1.13  1994/05/12 23:34:13  hollings
+/* made path to paradyn.h relative.
 /*
+ * Revision 1.12  1994/05/10  03:57:49  hollings
+ * Changed data upcall to return array of buckets.
+ *
  * Revision 1.11  1994/05/07  23:27:21  karavan
  * eliminated [location-dependent] tcl init file.
  *
@@ -85,11 +88,11 @@
 #include <sys/param.h>
 
 extern "C" {
-  #include "/usr/home/paradyn/packages/tcl7.3/src/tcl.h"
-  #include "/usr/home/paradyn/packages/tk3.6/src/tk.h"
+  #include "tcl.h"
+  #include "tk.h"
 }
 #include "thread/h/thread.h"
-#include "paradyn.h"
+#include "../pdMain/paradyn.h"
 #include "UIglobals.h" 
 
 /*

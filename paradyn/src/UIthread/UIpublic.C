@@ -13,9 +13,12 @@
  *            chooseMetricsandResources
  */
 /* $Log: UIpublic.C,v $
-/* Revision 1.5  1994/05/07 23:26:30  karavan
-/* added short explanation feature to SHG.
+/* Revision 1.6  1994/05/12 23:34:15  hollings
+/* made path to paradyn.h relative.
 /*
+ * Revision 1.5  1994/05/07  23:26:30  karavan
+ * added short explanation feature to SHG.
+ *
  * Revision 1.4  1994/05/05  19:52:46  karavan
  * changed chooseMetricsandResources
  *
@@ -33,7 +36,7 @@
 #include "UI.h"
 #include "thread/h/thread.h"
 #include "UIglobals.h"
-#include "paradyn.h"
+#include "../pdMain/paradyn.h"
 extern "C" {
   #include "tk.h"
 }

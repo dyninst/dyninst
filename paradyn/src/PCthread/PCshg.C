@@ -1,6 +1,9 @@
 /*
  * $Log: PCshg.C,v $
- * Revision 1.3  1994/05/09 20:58:04  hollings
+ * Revision 1.4  1994/05/12 23:34:08  hollings
+ * made path to paradyn.h relative.
+ *
+ * Revision 1.3  1994/05/09  20:58:04  hollings
  * Added clearSHG.
  *
  * Revision 1.2  1994/04/21  04:58:53  karavan
@@ -47,7 +50,7 @@
 static char Copyright[] = 
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.3 1994/05/09 20:58:04 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.4 1994/05/12 23:34:08 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -56,7 +59,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 #include "PCshg.h"
 #include "PCglobals.h"
-#include "paradyn.h"
+#include "../pdMain/paradyn.h"
 
 // ugly global to relate back cost of collecting data for a given test.
 float globalPredicatedCost;

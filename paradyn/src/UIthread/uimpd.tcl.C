@@ -3,17 +3,20 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.2  1994/05/07 23:26:48  karavan
-/* added short explanation feature to shg.
+/* Revision 1.3  1994/05/12 23:34:18  hollings
+/* made path to paradyn.h relative.
 /*
+ * Revision 1.2  1994/05/07  23:26:48  karavan
+ * added short explanation feature to shg.
+ *
  * Revision 1.1  1994/05/05  19:54:03  karavan
  * initial version.
  * */
  
 extern "C" {
-  #include "/usr/home/paradyn/packages/tk3.6/src/tk.h"
+  #include "tk.h"
 }
-#include "paradyn.h"
+#include "../pdMain/paradyn.h"
 #include "UIglobals.h"
 extern resourceList *build_resource_list (Tcl_Interp *interp, char *list);
 
