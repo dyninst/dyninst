@@ -52,5 +52,17 @@ _miniCall
                 ldwm -64(%sr0,%r30),%r3
                 be 0(%sr5,%r31)
                 nop
-
+		.align 4
+		.EXPORT DYNINSTdyncall,ENTRY,PRIV_LEV=3,ARGW0=GR,ARGW1=GR,RTNVAL=GR
+DYNINSTdyncall
+_DYNINSTdyncall
+		bb,>=,n 22,30,DYNINSTdyncall_lable
+		depi 0,31,2,%r22	
+		ldw 4(%sr0,%r22),%r19
+		ldw 0(%sr0,%r22),%r22
+DYNINSTdyncall_lable
+		ldsid (%sr0,%r22),%r1
+		mtsp %r1,%sr0
+		be 0(%sr0,%r22)
+		stw %rp,-24(%sr0,%sp)
 
