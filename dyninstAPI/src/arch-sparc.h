@@ -4,7 +4,10 @@
 
 /*
  * $Log: arch-sparc.h,v $
- * Revision 1.3  1994/09/22 01:31:33  markc
+ * Revision 1.4  1994/11/02 10:59:12  markc
+ * Replaced some of the hash-defs with inlines
+ *
+ * Revision 1.3  1994/09/22  01:31:33  markc
  * Added log message, duplicate include guards
  *
  */
@@ -169,13 +172,23 @@ typedef union instructUnion instruction;
 #define LOW(x)	((x)%1024)
 #define HIGH(x)	((x)/1024)
 
-#define isInsn(insn, mask, match)	(((insn).raw & mask) == match)
+inline bool isInsnType(const instruction i,
+		       const unsigned mask,
+		       const unsigned match) {
+  return ((i.raw & mask) == match);
+}
 
-#define IS_DELAYED_INST(insn)	\
-	(insn.call.op == CALLop || \
-	 isInsn(insn, JMPLmask, JMPLmatch) || \
-	 isInsn(insn, BRNCHmask, BRNCHmatch) || \
-	 isInsn(insn, TRAPmask, TRAPmatch))
+inline bool isCallInsn(const instruction i) {
+  return (isInsnType(i, CALLmask, CALLmatch) ||
+	  isInsnType(i, CALLImask, CALLImatch));
+}
+
+inline bool IS_DELAYED_INST(const instruction insn) {
+  return (insn.call.op == CALLop ||
+	  isInsnType(insn, JMPLmask, JMPLmatch) ||
+	  isInsnType(insn, BRNCHmask, BRNCHmatch) ||
+	  isInsnType(insn, TRAPmask, TRAPmatch));
+}
 
 /* catch small ints that are invalid instructions */
 /*
@@ -184,11 +197,11 @@ typedef union instructUnion instruction;
  *    See SPARC Arch manual v8 p. 44.
  *
  */
-#define IS_VALID_INSN(insn)     \
-        ((insn.call.op) || ((insn.branch.op2 == 2) ||   \
-                           (insn.branch.op2 == 4) ||    \
-                           (insn.branch.op2 == 6) ||    \
-                           (insn.branch.op2 == 7)))
-
+inline bool IS_VALID_INSN(const instruction insn) {
+  return ((insn.call.op) || ((insn.branch.op2 == 2) ||
+			     (insn.branch.op2 == 4) ||
+			     (insn.branch.op2 == 6) ||
+			     (insn.branch.op2 == 7)));
+}
 
 #endif
