@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.57 2003/07/29 00:32:47 eli Exp $
+# $Id: make.module.tmpl,v 1.58 2003/07/31 19:01:01 schendel Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -76,16 +76,6 @@ SRCS	     += ../src/association.C \
 		../src/threadMgr.C \
 		../src/pd_thread.C
                  
-ifdef INCLUDE_PVM_SUPPORT
-SRCS	     +=	../src/pvm_support.C \
-		../src/host_support.C \
-		../src/task_support.C \
-		../src/templatesPVM.C
-
-CXXFLAGS	+= -DPARADYND_PVM
-LIBS		+= $(PVM_LIB)
-endif
-
 ifdef USES_SHM_SAMPLING
 SRCS 		+= ../src/varInstanceHKs.C ../src/varInstance.C \
 		   ../src/shmMgr.C  \

@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.112 2003/07/30 14:47:02 pcroth Exp $
+ * $Id: dataManager.I,v 1.113 2003/07/31 19:00:59 schendel Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -190,7 +190,7 @@ $remote dataManager {
     //     dir = directory to use as working directory
     //     login = user name to execute as
     //     name = name of dictionary entry, for matching
-    //     flavor = programming environment (metPVM, metCM5, metUNIX)
+    //     flavor = programming environment (metCM5, metUNIX)
     //     machine = machine to run this daemon on
     //
     //     Note - arguments that are not used should be passed in

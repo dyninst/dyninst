@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.31 2003/07/29 00:32:48 eli Exp $
+# $Id: nmake.module.tmpl,v 1.32 2003/07/31 19:01:02 schendel Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -46,19 +46,6 @@ TARGET	      = paradynd.exe
 #		../src/templates1.C \
 #		../src/templatesIGEN.C
 
-!ifdef INCLUDE_PVM_SUPPORT
-#SRCS	     +=	../src/pvm_support.C \
-#		../src/host_support.C \
-#		../src/task_support.C \
-#		../src/templatesPVM.C
-
-OBJS		= $(OBJS) pvm_support.obj \
-			host_support.obj \
-			task_support.obj
-
-CXXFLAGS	= $(CXXFLAGS) -DPARADYND_PVM
-#LIBS		+= -lpvm3
-!endif
 
 !ifdef USES_SHM_SAMPLING
 SRCS 		= $(SRCS) \

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.16 2003/04/21 19:04:41 willb Exp $
+# $Id: Makefile,v 1.17 2003/07/31 19:01:16 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -32,9 +32,6 @@ CFLAGS          = -Di386_unknown_linux2_0 -g -O2
 # CFLAGS		+= -D_SVID_SOURCE
 CFLAGS		+= -fPIC
 CFLAGS          += -I. -I../..
-ifdef INCLUDE_CP_PROFILING
-CFLAGS          += -I$(PVM_INCDIR)
-endif
 
 VPATH        = ../src
 #:../../dyninstAPI_RT/src

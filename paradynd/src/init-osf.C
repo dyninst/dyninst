@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-osf.C,v 1.6 2003/05/19 03:02:50 schendel Exp $ */
+/* $Id: init-osf.C,v 1.7 2003/07/31 19:01:10 schendel Exp $ */
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -54,72 +54,45 @@
 
 // NOTE - the tagArg integer number starting with 0.  
 bool initOS() {
+   AstNode *retVal;
 
-//  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
-// (obsoleted by installBootstrapInst() --ari)
+   if (process::pdFlavor == "mpi") {
+      instMPI();
+      retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+      initialRequests += new instMapping("fork", "DYNINSTmpi_fork", 
+                                         FUNC_EXIT|FUNC_ARG, retVal);
+      retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+      initialRequests += new instMapping("_fork", "DYNINSTmpi_fork", 
+                                         FUNC_EXIT|FUNC_ARG, retVal);
+   } else { /* Fork and exec */
+      retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+      initialRequests += new instMapping("fork", "DYNINSTfork", 
+                                         FUNC_EXIT|FUNC_ARG, retVal);
 
-
-  AstNode *retVal;
-
-  if (process::pdFlavor == "mpi") {
-	  instMPI();
-	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  initialRequests += new instMapping("fork", "DYNINSTmpi_fork", 
-					     FUNC_EXIT|FUNC_ARG, retVal);
-	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  initialRequests += new instMapping("_fork", "DYNINSTmpi_fork", 
-					     FUNC_EXIT|FUNC_ARG, retVal);
-  } else { /* Fork and exec */
-	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  initialRequests += new instMapping("fork", "DYNINSTfork", 
-					     FUNC_EXIT|FUNC_ARG, retVal);
-
-	  //libthread _fork
-	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  initialRequests += new instMapping("_fork", "DYNINSTfork", 
-					     FUNC_EXIT|FUNC_ARG, retVal);
+      //libthread _fork
+      retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+      initialRequests += new instMapping("_fork", "DYNINSTfork", 
+                                         FUNC_EXIT|FUNC_ARG, retVal);
 
 
-	  //initialRequests += new instMapping("execve", "DYNINSTexec",
-	  //			               FUNC_ENTRY|FUNC_ARG, tidArg);
-	  //initialRequests += new instMapping("execve", "DYNINSTexecFailed", 
-	  //                                   FUNC_EXIT);
-	  AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
-	  initialRequests += new instMapping("_execve", "DYNINSTexec",
-					     FUNC_ENTRY|FUNC_ARG, tidArg);
-	  initialRequests += new instMapping("_execve", "DYNINSTexecFailed", 
-					     FUNC_EXIT);
-  }
-  
-        AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
-  	initialRequests += new instMapping("rexec", "DYNINSTrexec",
-				 FUNC_ENTRY|FUNC_ARG, cmdArg);
-//   initialRequests += new instMapping("PROCEDURE_LINKAGE_TABLE","DYNINSTdynlinker",FUNC_ENTRY);
-
-
-#ifdef PARADYND_PVM
-  char *doPiggy;
-
-  AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);
-  initialRequests += new instMapping("pvm_send", "DYNINSTrecordTag",
-				 FUNC_ENTRY|FUNC_ARG, tagArg);
-
-  // kludge to get Critical Path to work.
-  // XXX - should be tunable constant.
-  doPiggy = getenv("DYNINSTdoPiggy");
-  if (doPiggy) {
-      initialRequests += new instMapping("main", "DYNINSTpvmPiggyInit", FUNC_ENTRY);
+      //initialRequests += new instMapping("execve", "DYNINSTexec",
+      //			               FUNC_ENTRY|FUNC_ARG, tidArg);
+      //initialRequests += new instMapping("execve", "DYNINSTexecFailed", 
+      //                                   FUNC_EXIT);
       AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
-      initialRequests+= new instMapping("pvm_send", "DYNINSTpvmPiggySend",
-                           FUNC_ENTRY|FUNC_ARG, tidArg);
-      initialRequests += new instMapping("pvm_recv", "DYNINSTpvmPiggyRecv", FUNC_EXIT);
-      tidArg = new AstNode(AstNode::Param, (void *) 0);
-      initialRequests += new instMapping("pvm_mcast", "DYNINSTpvmPiggyMcast",
-                           FUNC_ENTRY|FUNC_ARG, tidArg);
-  }
-#endif
+      initialRequests += new instMapping("_execve", "DYNINSTexec",
+                                         FUNC_ENTRY|FUNC_ARG, tidArg);
+      initialRequests += new instMapping("_execve", "DYNINSTexecFailed", 
+                                         FUNC_EXIT);
+   }
+  
+   AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
+  	initialRequests += new instMapping("rexec", "DYNINSTrexec",
+                                      FUNC_ENTRY|FUNC_ARG, cmdArg);
+   //   initialRequests += new instMapping("PROCEDURE_LINKAGE_TABLE","DYNINSTdynlinker",FUNC_ENTRY);
 
-  return true;
+
+   return true;
 };
 
 void initWallTimeMgrPlt() {

@@ -1,12 +1,11 @@
 #
-# $Id: Makefile,v 1.7 2003/07/29 00:32:52 eli Exp $
+# $Id: Makefile,v 1.8 2003/07/31 19:01:06 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 USES_LIBERTY = true
 USES_SHM_SAMPLING = true
-USES_PVM = true
 NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything

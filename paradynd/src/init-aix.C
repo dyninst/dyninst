@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.31 2003/06/24 19:41:43 schendel Exp $
+// $Id: init-aix.C,v 1.32 2003/07/31 19:01:07 schendel Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -204,27 +204,7 @@ bool initOS()
     initialRequestsPARADYN.push_back(mapping);
     // =====================================================================
     
-#ifdef PARADYND_PVM
-    char *doPiggy;
-    
-    initialRequestsPARADYN += new instMapping("pvm_send", "DYNINSTrecordTag",
-                                              FUNC_ENTRY|FUNC_ARG, &tagArg);
-
-  // kludge to get Critical Path to work.
-  // XXX - should be tunable constant.
-  doPiggy = getenv("DYNINSTdoPiggy");
-  if (doPiggy) {
-      initialRequestsPARADYN += new instMapping("main", "DYNINSTpvmPiggyInit", FUNC_ENTRY);
-      tidArg = new AstNode(AstNode::Param, (void *) 0);
-      initialRequestsPARADYN+= new instMapping("pvm_send", "DYNINSTpvmPiggySend",
-                           FUNC_ENTRY|FUNC_ARG, tidArg);
-      initialRequestsPARADYN += new instMapping("pvm_recv", "DYNINSTpvmPiggyRecv", FUNC_EXIT);
-      tidArg = new AstNode(AstNode::Param, (void *) 0);
-      initialRequestsPARADYN += new instMapping("pvm_mcast", "DYNINSTpvmPiggyMcast",
-                           FUNC_ENTRY|FUNC_ARG, tidArg);
-  }
-#endif
-  return true;
+    return true;
 };
 
 union bigWord {

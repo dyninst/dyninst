@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.137 2003/07/30 14:47:11 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.138 2003/07/31 19:01:00 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2890,9 +2890,7 @@ paradynDaemon::reportSelf(pdstring m, pdstring p, int /*pid*/, pdstring flav)
     }
     uiMgr->createProcessStatusLine(status.c_str());
 
-    if(flavor == "pvm") {
-      name = "pvmd";
-    } else if(flavor == "unix") {
+    if(flavor == "unix") {
       name = "defd";
     } else if(flavor == "mpi") {
       name = "mpid";

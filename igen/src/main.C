@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.61 2003/07/18 15:44:16 schendel Exp $
+// $Id: main.C,v 1.62 2003/07/31 19:00:57 schendel Exp $
 
 /*
  * Note: AIX 5.1
@@ -100,11 +100,10 @@ message_layer *Options::ml;
 bool Options::stl_seen = false;
 
 static void usage() {
-  cerr << "igen [-prof] [-shortnames] -xdr | -thread | -pvm [-header | -code]\n";
+  cerr << "igen [-prof] [-shortnames] -xdr | -thread\n";
   cerr << "      [-ignore | -detect | -handle] [-input <file>] <fileName>\n";
   cerr << "  CODE OPTIONS\n";
   cerr << "    -xdr     -->  produce code for sockets/xdr\n";
-  cerr << "    -pvm     -->  produce code for PVM\n";
   cerr << "    -thread  -->  produce code for threads\n";
   cerr << "    -sas     -->  produce code for unknown threading systems\n";
   cerr << "    -mas     -->  produce code for unknown multi-process message passing\n";
@@ -123,101 +122,98 @@ static void usage() {
 }
 
 static void do_opts(int argc, char *argv[]) {
-  Options::current_interface = NULL;
+   Options::current_interface = NULL;
 
-  for (int i=0; i<argc; i++) {
-    if (!strcmp("-pvm", argv[i])) {
-      if (!set_ml("pvm")) {
-	cerr << "Message layer 'pvm' unknown\n";
-	exit(-1);
+   for (int i=0; i<argc; i++) {
+      if (!strcmp("-no_err", argv[i])) {
+         Options::dont_gen_handle_err = true;
+      } else if (!strcmp("-xdr", argv[i])) {
+         if (!set_ml("xdr")) {
+            cerr << "Message layer 'xdr' unknown\n";
+            exit(-1);
+         }
+      } else if (!strcmp("-rpc", argv[i])) {
+         if (!set_ml("rpc")) {
+            cerr << "Message layer 'rpc' unknown\n";
+            exit(-1);
+         }
+      } else if (!strcmp("-sas", argv[i])) {
+         
+      } else if (!strcmp("-mas", argv[i])) {
+         
+      } else if (!strcmp("-prof", argv[i])) {
+         cerr << "-prof is currently unsupported, bye\n"; exit(-1);
+      } else if (!strcmp("-thread", argv[i])) {
+         if (!set_ml("thread")) {
+            cerr << "Message layer 'thread' unknown\n";
+            exit(-1);
+         }
+      } else if (!strcmp("-ignore", argv[i])) {
+         cerr << "-ignore is currently unsupported, bye\n"; exit(-1);
+      } else if (!strcmp("-detect", argv[i])) {
+         cerr << "-detect is currently unsupported, bye\n"; exit(-1);
+      } else if (!strcmp("-handle", argv[i])) {
+         cerr << "-handle is currently unsupported, bye\n"; exit(-1);
+      } else if (!strcmp("-input", argv[i])) {
+         if (!argv[i+1]) {
+            cerr << "-input specified with no filename, goodbye!\n";
+            exit(-1);
+         }
+         Options::set_input_file(argv[i+1]);
+      } else if (!strcmp("-shortnames", argv[i])) {
+         Options::set_shortnames(true);
+      } else if (!strcmp("-V", argv[i])) {
+         cerr << V_igen << endl;         // version information
+      } else if (!strcmp("-usage", argv[i]) || !strcmp("-help",argv[i])) {
+         usage();
+         exit(0);
+      } else if (!strncmp("-", argv[i], 1)) {
+         cerr << "Unexpected flag: " << argv[i] << endl;
+         usage();
+         exit(-1);
       }
-    } else if (!strcmp("-no_err", argv[i])) {
-      Options::dont_gen_handle_err = true;
-    } else if (!strcmp("-xdr", argv[i])) {
-      if (!set_ml("xdr")) {
-	cerr << "Message layer 'xdr' unknown\n";
-	exit(-1);
-      }
-    } else if (!strcmp("-rpc", argv[i])) {
-      if (!set_ml("rpc")) {
-	cerr << "Message layer 'rpc' unknown\n";
-	exit(-1);
-      }
-    } else if (!strcmp("-sas", argv[i])) {
-
-    } else if (!strcmp("-mas", argv[i])) {
-
-    } else if (!strcmp("-prof", argv[i])) {
-      cerr << "-prof is currently unsupported, bye\n"; exit(-1);
-    } else if (!strcmp("-thread", argv[i])) {
-      if (!set_ml("thread")) {
-	cerr << "Message layer 'thread' unknown\n";
-	exit(-1);
-      }
-    } else if (!strcmp("-ignore", argv[i])) {
-      cerr << "-ignore is currently unsupported, bye\n"; exit(-1);
-    } else if (!strcmp("-detect", argv[i])) {
-      cerr << "-detect is currently unsupported, bye\n"; exit(-1);
-    } else if (!strcmp("-handle", argv[i])) {
-      cerr << "-handle is currently unsupported, bye\n"; exit(-1);
-    } else if (!strcmp("-input", argv[i])) {
-      if (!argv[i+1]) {
-	cerr << "-input specified with no filename, goodbye!\n";
-	exit(-1);
-      }
-      Options::set_input_file(argv[i+1]);
-    } else if (!strcmp("-shortnames", argv[i])) {
-      Options::set_shortnames(true);
-    } else if (!strcmp("-V", argv[i])) {
-        cerr << V_igen << endl;         // version information
-    } else if (!strcmp("-usage", argv[i]) || !strcmp("-help",argv[i])) {
-        usage();
-        exit(0);
-    } else if (!strncmp("-", argv[i], 1)) {
-        cerr << "Unexpected flag: " << argv[i] << endl;
-        usage();
-        exit(-1);
-    }
-  }
-
-  if ((Options::ml==NULL) || (Options::ml->med() == message_layer::Med_none)) {
-    cerr << "No message layer defined\n";
-    usage();
-    exit(-1);
-  }
-
-  char *buffer = strdup(argv[argc-1]);
-#if defined(i386_unknown_nt4_0)
-  // support either forward or backslashes (or mixed) in the input pathname
-  char* btemp = strrchr(buffer, '\\');
-  char* ftemp = strrchr(buffer, '/');
-  char* temp = ((btemp > ftemp) ? btemp : ftemp);
-#else
-  char *temp = strrchr(buffer, '/');
-#endif // defined(i386_unknown_nt4_0)
-  if (temp)
-    temp++;
-  else
-    temp = buffer;
-
-  char *temp2 = strstr(temp, ".I");
-  if (!temp2) {
-    cerr << "The file " << argv[argc-1] << " must end with the suffix '.I' \n";
-    usage();
-    exit(-1);
-  }
-  *(temp2) = '\0';
-  Options::set_file_base(temp);
-  free(buffer);
-  
-  if ((Options::input_file()).length()) {
-    Options::input.open((Options::input_file()).c_str(), std::ios::in);
-    if (!Options::input.good()) {
-      cerr << "Could not open " << Options::input_file() << " for input, goodbye\n";
+   }
+   
+   if ((Options::ml==NULL) || (Options::ml->med() == message_layer::Med_none))
+   {
+      cerr << "No message layer defined\n";
       usage();
       exit(-1);
-    }
-  }
+   }
+
+   char *buffer = strdup(argv[argc-1]);
+#if defined(i386_unknown_nt4_0)
+   // support either forward or backslashes (or mixed) in the input pathname
+   char* btemp = strrchr(buffer, '\\');
+   char* ftemp = strrchr(buffer, '/');
+   char* temp = ((btemp > ftemp) ? btemp : ftemp);
+#else
+   char *temp = strrchr(buffer, '/');
+#endif // defined(i386_unknown_nt4_0)
+   if (temp)
+      temp++;
+   else
+      temp = buffer;
+   
+   char *temp2 = strstr(temp, ".I");
+   if (!temp2) {
+      cerr << "The file " << argv[argc-1] << " must end with the suffix '.I' \n";
+      usage();
+      exit(-1);
+   }
+   *(temp2) = '\0';
+   Options::set_file_base(temp);
+   free(buffer);
+   
+   if ((Options::input_file()).length()) {
+      Options::input.open((Options::input_file()).c_str(), std::ios::in);
+      if (!Options::input.good()) {
+         cerr << "Could not open " << Options::input_file()
+              << " for input, goodbye\n";
+         usage();
+         exit(-1);
+      }
+   }
 }
 
 static void open_interface_file(int argc, char *argv[]) {
@@ -515,11 +511,9 @@ static void init_ml() {
 					     true);
 
   /*
-  message_layer pvm_ml("pvm", message_layer::Med_pvm, "pvm_", "bool_t", "*", "XDR", "*",
-		       message_layer::AS_many, "FALSE", "TRUE");
-  message_layer tcp_ml("tcp", message_layer::Med_other, "", "bool_t", "*", "XDR", "*",
-		       message_layer::AS_many, "false", "true");
-		       */
+    message_layer tcp_ml("tcp", message_layer::Med_other, "", "bool_t", "*", "XDR", "*",
+    message_layer::AS_many, "false", "true");
+  */
   Options::all_ml += xdr_ml; Options::all_ml += thrd_ml; Options::all_ml += rpc_ml;
 }
 

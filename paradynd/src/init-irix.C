@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-irix.C,v 1.10 2003/05/19 03:02:48 schendel Exp $
+// $Id: init-irix.C,v 1.11 2003/07/31 19:01:08 schendel Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -153,28 +153,6 @@ bool initOS() {
 				     FUNC_ENTRY|FUNC_ARG, &mpiScattervCommArg);
   initialRequests += new instMapping("PMPI_Scan", "DYNINSTrecordGroup",
 				     FUNC_ENTRY|FUNC_ARG, &mpiScanCommArg);
-
-#ifdef PARADYND_PVM
-  char *doPiggy;
-
-  AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);
-  initialRequests += new instMapping("pvm_send", "DYNINSTrecordTag",
-				 FUNC_ENTRY|FUNC_ARG, tagArg);
-
-  // kludge to get Critical Path to work.
-  // XXX - should be tunable constant.
-  doPiggy = getenv("DYNINSTdoPiggy");
-  if (doPiggy) {
-      initialRequests += new instMapping("main", "DYNINSTpvmPiggyInit", FUNC_ENTRY);
-      AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
-      initialRequests+= new instMapping("pvm_send", "DYNINSTpvmPiggySend",
-                           FUNC_ENTRY|FUNC_ARG, tidArg);
-      initialRequests += new instMapping("pvm_recv", "DYNINSTpvmPiggyRecv", FUNC_EXIT);
-      tidArg = new AstNode(AstNode::Param, (void *) 0);
-      initialRequests += new instMapping("pvm_mcast", "DYNINSTpvmPiggyMcast",
-                           FUNC_ENTRY|FUNC_ARG, tidArg);
-  }
-#endif
 
   return true;
 };

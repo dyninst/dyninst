@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.20 2003/02/04 14:59:45 bernat Exp $
+# $Id: make.module.tmpl,v 1.21 2003/07/31 19:01:15 schendel Exp $
 #
 
 ifndef TARGET
@@ -14,7 +14,7 @@ TARGET3_SO	= libparadynRT.so.1
 
 ifdef INCLUDE_CP_PROFILING
 TARGET2		= libdyninstCP.o
-CP_OBJS		= RTpvmPiggy.o RTcriticalPath.o
+CP_OBJS		= RTcriticalPath.o
 endif
 
 ifdef BUILD_CODE_BLOCKS        

@@ -39,14 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.159 2003/07/18 15:44:57 schendel Exp $
-
-#ifdef PARADYND_PVM
-extern "C" {
-#include <pvm3.h>
-}
-#include "pvm_support.h"
-#endif
+// $Id: perfStream.C,v 1.160 2003/07/31 19:01:14 schendel Exp $
 
 #include "common/h/headers.h"
 #include "rtinst/h/rtinst.h"

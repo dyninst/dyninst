@@ -10,7 +10,7 @@
 class message_layer {
 public:
   typedef enum { AS_one, AS_many, AS_none } AS;
-  typedef enum { Med_xdr, Med_pvm, Med_thread, Med_other, Med_none, Med_rpc } medium;
+  typedef enum { Med_xdr, Med_thread, Med_other, Med_none, Med_rpc } medium;
 
   message_layer() { med_ = Med_none; }
   message_layer(const pdstring) { }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-winnt.C,v 1.12 2003/05/19 03:02:52 schendel Exp $
+// $Id: init-winnt.C,v 1.13 2003/07/31 19:01:12 schendel Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -56,34 +56,15 @@ static AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
 static AstNode *retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
 
 bool initOS() {
-//ccw 29 apr 2002 : SPLIT3 initialRequestsPARADYN is changed to
-// initialRequestsPARADYNPARADYN
+   //ccw 29 apr 2002 : SPLIT3 initialRequestsPARADYN is changed to
+   // initialRequestsPARADYNPARADYN
 
-  AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
-  initialRequestsPARADYN += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
-
-#ifdef PARADYND_PVM
-  char *doPiggy;
-
-  initialRequestsPARADYN += new instMapping("pvm_send", "DYNINSTrecordTag",
-				 FUNC_ENTRY|FUNC_ARG, tagArg);
-
-  // kludge to get Critical Path to work.
-  // XXX - should be tunable constant.
-  doPiggy = getenv("DYNINSTdoPiggy");
-  if (doPiggy) {
-      initialRequestsPARADYN += new instMapping("main", "DYNINSTpvmPiggyInit", FUNC_ENTRY);
-      tidArg = new AstNode(AstNode::Param, (void *) 0);
-      initialRequestsPARADYN+= new instMapping("pvm_send", "DYNINSTpvmPiggySend",
-                           FUNC_ENTRY|FUNC_ARG, tidArg);
-      initialRequestsPARADYN += new instMapping("pvm_recv", "DYNINSTpvmPiggyRecv", FUNC_EXIT);
-      tidArg = new AstNode(AstNode::Param, (void *) 0);
-      initialRequestsPARADYN += new instMapping("pvm_mcast", "DYNINSTpvmPiggyMcast",
-                           FUNC_ENTRY|FUNC_ARG, tidArg);
-  }
-#endif
-
-  return true;
+   AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
+   instMapping *mapping = new instMapping("execve", "DYNINSTexecFailed",
+                                          FUNC_EXIT);
+   initialRequestsPARADYN.push_back(mapping);
+   
+   return true;
 };
 
 // returns units of high-resolution perf counter (can be determined with
