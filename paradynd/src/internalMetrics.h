@@ -1,5 +1,9 @@
 
+#ifndef INTERNAL_MET_HDR
+#define INTERNAL_MET_HDR
+
 #include "metric.h"
+#include "util/h/list.h"
 
 typedef float (*sampleValueFunc)();
 
@@ -8,7 +12,9 @@ typedef float (*sampleValueFunc)();
 //
 class internalMetric {
   public:
-    internalMetric(const char *n, int style, int a, const char *units, sampleValueFunc f);
+    internalMetric(const string n, int style, int a, const string units,
+		   sampleValueFunc f, resourcePredicate *r);
+
     float getValue() {
 	if (func) {
 	    return((func)());
@@ -23,14 +29,20 @@ class internalMetric {
     void disable() {
 	node = NULL;
     }
-    Boolean enabled() {
+    bool enabled() {
 	return(node != NULL);
     }
     metric metRec;
     float value;
-    float cumlativeValue;
+    float cumulativeValue;
     sampleValueFunc func;
-    static List<internalMetric*> allInternalMetrics;
+    static dictionary_hash<string, internalMetric*> allInternalMetrics;
     static List<internalMetric*> activeInternalMetrics;
     metricDefinitionNode *node;
+    string getName() const { return name;}
+
+  private:
+    string name;
 };
+
+#endif
