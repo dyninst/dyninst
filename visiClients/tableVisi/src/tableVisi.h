@@ -3,6 +3,9 @@
 
 /*
  * $Log: tableVisi.h,v $
+ * Revision 1.4  1995/12/19 00:44:39  tamches
+ * changeUnitsLabel now takes in a string &, not char *
+ *
  * Revision 1.3  1995/12/03 21:09:27  newhall
  * changed units labeling to match type of data being displayed
  *
@@ -125,7 +128,7 @@ class tableVisi {
 
    void addMetric(const string &metricName, const string &metricUnits);
    void addFocus(const string &focusName);
-   void changeUnitsLabel(u_int which, const char *new_name);
+   void changeUnitsLabel(unsigned which, const string &new_name);
 
    void sortMetrics();
    void unsortMetrics();
@@ -137,7 +140,7 @@ class tableVisi {
       // returns true iff any changes
 
    bool setSigFigs(unsigned);
-      // returns true iff any changes
+      // returns true iff any changes.  Can change column widths.
 
    void invalidateCell(unsigned theMetric, unsigned theFocus);
    void setCellValidData(unsigned theMetric, unsigned theFocus, double data);
