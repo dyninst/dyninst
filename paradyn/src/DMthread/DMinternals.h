@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.7  1994/03/21 20:32:47  hollings
+ * Revision 1.8  1994/03/22 21:02:54  hollings
+ * Made it possible to add new processes (& paradynd's) via addExecutable.
+ *
+ * Revision 1.7  1994/03/21  20:32:47  hollings
  * Changed the mid to mi mapping to be per paradyn daemon.  This is required
  * because mids are asigned by the paradynd's, and are not globally unique.
  *
@@ -42,6 +45,9 @@ class paradynDaemon: public dynRPCUser {
     public:
 	paradynDaemon(char *m, char *u, char *p, xdrIOFunc r, xdrIOFunc w):
 	    dynRPCUser(m, u, p, r, w, args) {
+		if (!m) m = "";
+		if (!u) u = "";
+
 		machine = m;
 		login = u;
 		program = p;

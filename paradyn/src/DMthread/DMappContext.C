@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.10  1994/03/20 01:49:46  markc
+ * Revision 1.11  1994/03/22 21:02:53  hollings
+ * Made it possible to add new processes (& paradynd's) via addExecutable.
+ *
+ * Revision 1.10  1994/03/20  01:49:46  markc
  * Gave process structure a buffer to allow multiple writers.  Added support
  * to register name of paradyn daemon.  Changed addProcess to return type int.
  *
@@ -118,6 +121,10 @@ int applicationContext::addExecutable(char  *machine,
      String_Array programToRun;
      List<paradynDaemon*> curr;
 
+    // null machine & login are mapped empty strings to keep strcmp happy.
+    if (!machine) machine = "";
+    if (!login) login = "";
+
     // find out if we have a paradynd on this machine+login+paradynd
     for (curr=daemons, daemon = NULL; *curr; curr++) {
 	if (!strcmp((*curr)->machine, machine) &&
@@ -132,24 +139,27 @@ int applicationContext::addExecutable(char  *machine,
 	daemon = new paradynDaemon(machine, login, program, NULL, NULL);
 	if (daemon->fd < 0) {
 	    printf("unable to start paradynd: %s\n", program);
-	    exit(-1);
+	    return(-1);
 	}
 	daemons.add(daemon);
 	msg_bind(daemon->fd, TRUE);
 	daemon->my_pid = getpid();
 	paradynDdebug(daemon->pid);
-	
     }
 
     programToRun.count = argc;
     programToRun.data = argv;
     pid = daemon->addExecutable(argc, programToRun);
-    // TODO 
-    fprintf (stderr, "PID is %d\n", pid);
-    exec = new executable(pid, argc, argv, daemon);
-    programs.add(exec);
-
-    return(0);
+    // did the application get started ok?
+    if (pid > 0) {
+	// TODO
+	fprintf (stderr, "PID is %d\n", pid);
+	exec = new executable(pid, argc, argv, daemon);
+	programs.add(exec);
+	return(-1);
+    } else {
+	return(0);
+    }
 }
 
 //

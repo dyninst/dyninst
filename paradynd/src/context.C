@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.2 1994/03/20 01:53:03 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.3 1994/03/22 21:03:12 hollings Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.2  1994/03/20 01:53:03  markc
+ * Revision 1.3  1994/03/22 21:03:12  hollings
+ * Made it possible to add new processes (& paradynd's) via addExecutable.
+ *
+ * Revision 1.2  1994/03/20  01:53:03  markc
  * Added a buffer to each process structure to allow for multiple writers on the
  * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
  * int.
@@ -60,6 +63,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 #include <sys/time.h>
 #include <sys/ptrace.h>
 #include <sys/signal.h>
@@ -159,17 +163,22 @@ void forkProcess(traceHeader *hr, traceFork *fr)
 
 int addProcess(int argc, char *argv[])
 {
+    int i;
     struct executableRec *newExec;
 
     newExec = (struct executableRec *) calloc(sizeof(struct executableRec), 1);
 
-    newExec->name = argv[0];
     newExec->argc = argc;
-    newExec->argv = argv;
+    newExec->argv = (char **) calloc(sizeof(char *), argc+1);
+    for (i=0; i < argc; i++) {
+	newExec->argv[i] = strdup(argv[i]);
+    }
+
+    newExec->name = strdup(argv[0]);
     newExec->type = selfTermination;
     newExec->state = neonatal;
     
-    newExec->proc = createProcess(newExec->argv[0], argv);
+    newExec->proc = createProcess(newExec->argv[0], newExec->argv);
     if (newExec->proc) {
 	installDefaultInst(newExec->proc, initialRequests);
 	return(newExec->proc->pid);

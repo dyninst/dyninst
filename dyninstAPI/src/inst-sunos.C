@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.2  1994/03/20 01:53:07  markc
+ * Revision 1.3  1994/03/22 21:03:14  hollings
+ * Made it possible to add new processes (& paradynd's) via addExecutable.
+ *
+ * Revision 1.2  1994/03/20  01:53:07  markc
  * Added a buffer to each process structure to allow for multiple writers on the
  * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
  * int.
@@ -14,7 +17,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.2 1994/03/20 01:53:07 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.3 1994/03/22 21:03:14 hollings Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,18 +48,26 @@ process *nodePseudoProcess;
 
 char *getProcessStatus(process *proc)
 {
-    switch (proc->status) {
+   char ret[80];
+
+   switch (proc->status) {
 	case running:
-	    return("running");
+	    sprintf(ret, "%d running", proc->pid);
+	    break;
 	case neonatal:
-	    return("neonatal");
+	    sprintf(ret, "%d neonatal", proc->pid);
+	    break;
 	case stopped:
-	    return("stopped");
+	    sprintf(ret, "%d stopped", proc->pid);
+	    break;
 	case exited:
-	    return("exited");
+	    sprintf(ret, "%d exited", proc->pid);
+	    break;
 	default:
-	    return("UNKNOWN State");
-   }
+	    sprintf(ret, "%d UNKNOWN State", proc->pid);
+	    break;
+    }
+    return(ret);
 }
 
 

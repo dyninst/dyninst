@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.3 1994/03/20 01:53:11 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.4 1994/03/22 21:03:15 hollings Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.3  1994/03/20 01:53:11  markc
+ * Revision 1.4  1994/03/22 21:03:15  hollings
+ * Made it possible to add new processes (& paradynd's) via addExecutable.
+ *
+ * Revision 1.3  1994/03/20  01:53:11  markc
  * Added a buffer to each process structure to allow for multiple writers on the
  * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
  * int.
@@ -259,7 +262,7 @@ process *createProcess(char *file, char *argv[])
 	pvmendtask();
 #endif       
 	execv(file, argv);
-	perror("exev\n");
+	perror("exev");
 	_exit(-1);
     } else {
 	perror("vfork");
