@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.43 2002/08/04 17:29:54 gaburici Exp $
+# $Id: make.module.tmpl,v 1.44 2002/08/05 23:05:41 bernat Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -16,13 +16,13 @@ ifdef TARGET
 SRCS	     += ../src/$(TARGET).C ../src/test_util.C
 else
 TARGETS       =  test1 test2 test3 test4 test5 test6 test7
-TARGETS      +=	 test1.mutatee_gcc \
-		 test2.mutatee_gcc \
-		 test3.mutatee_gcc \
-		 test4a.mutatee_gcc \
-		 test4b.mutatee_gcc \
-		 test6.mutatee_gcc \
-		 test7.mutatee_gcc
+TARGETS      +=	 test1.mutatee_$(M_GCC) \
+		 test2.mutatee_$(M_GCC) \
+		 test3.mutatee_$(M_GCC) \
+		 test4a.mutatee_$(M_GCC) \
+		 test4b.mutatee_$(M_GCC) \
+		 test6.mutatee_$(M_GCC) \
+		 test7.mutatee_$(M_GCC)
 
 ifdef NATIVE_CC
 TARGETS      +=  test1.mutatee_$(NATIVE_CC) \
@@ -34,14 +34,14 @@ TARGETS      +=  test1.mutatee_$(NATIVE_CC) \
 		 test7.mutatee_$(NATIVE_CC)
 endif
 
-ifdef GNU_CXX	
-TARGETS      +=  test1.mutatee_$(GNU_CXX) \
-		 test2.mutatee_$(GNU_CXX) \
-		 test3.mutatee_$(GNU_CXX) \
-		 test4a.mutatee_$(GNU_CXX) \
-		 test4b.mutatee_$(GNU_CXX) \
-		 test5.mutatee_$(GNU_CXX) \
-		 test7.mutatee_$(GNU_CXX)
+ifdef M_GXX	
+TARGETS      +=  test1.mutatee_$(M_GXX) \
+		 test2.mutatee_$(M_GXX) \
+		 test3.mutatee_$(M_GXX) \
+		 test4a.mutatee_$(M_GXX) \
+		 test4b.mutatee_$(M_GXX) \
+		 test5.mutatee_$(M_GXX) \
+		 test7.mutatee_$(M_GXX)
 endif
 
 ifdef NATIVE_CXX
@@ -113,11 +113,11 @@ endif
 endif
 
 # For gcc (which may use gas) we force the native assembler with TEST6_ASFLAGS
-ifeq (test6.mutatee_gcc, $(findstring test6.mutatee_gcc,$(TARGET2)))
+ifeq (test6.mutatee_$(M_GCC), $(findstring test6.mutatee_$(M_GCC),$(TARGET2)))
 TEST6_AS_OBJ	= 	$(TEST6_AS_SRC:.$(TEST6_ASSUFFIX)=.o)
 MUTATEE_SRC     +=      $(TEST6_AS_OBJ)
 
-test6.mutatee_gcc:	$(TEST6_AS_OBJ)
+test6.mutatee_$(M_GCC):	$(TEST6_AS_OBJ)
 
 $(TEST6_AS_OBJ):	../src/$(TEST6_AS_SRC)
 ifdef NASM
