@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.2 2000/03/22 01:52:31 wylie Exp $
+// $Id: test4.C,v 1.3 2000/04/24 02:51:18 wylie Exp $
 //
 
 #include <stdio.h>
@@ -19,11 +19,7 @@
 
 extern "C" const char V_libdyninstAPI[];
 
-#if defined(i386_unknown_nt4_0)
-char *mutateeName = "test4a.mutatee_cl.exe";
-#else
-char *mutateeName = "test4a.mutatee_gcc";
-#endif
+char *mutateeNameRoot = "test4a.mutatee";
 
 int inTest;		// current test #
 int expectError;
@@ -496,9 +492,12 @@ int
 main(unsigned int argc, char *argv[])
 {
     unsigned int i;
-    char libname[256];
+    bool N32ABI=false;
+    char mutateeName[128];
+    char libRTname[256];
 
-    libname[0]='\0';
+    strcpy(mutateeName,mutateeNameRoot);
+    libRTname[0]='\0';
 
 #if !defined(USES_LIBDYNINSTRT_SO)
     fprintf(stderr,"(Expecting subject application to be statically linked"
@@ -513,7 +512,7 @@ main(unsigned int argc, char *argv[])
          exit(-1);
 #endif
     } else
-         strcpy((char *)libname, (char *)getenv("DYNINSTAPI_RT_LIB"));
+         strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
 #endif
 
     // by default run all tests
@@ -529,7 +528,8 @@ main(unsigned int argc, char *argv[])
 	    debugPrint = 1;
 	} else if (!strcmp(argv[i], "-V")) {
             fprintf (stdout, "%s\n", V_libdyninstAPI);
-            if (libname[0]) fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libname);
+            if (libRTname[0]) 
+                fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libRTname);
             fflush(stdout);
 	} else if (!strcmp(argv[i], "-skip")) {
 	    unsigned int j;
@@ -569,11 +569,14 @@ main(unsigned int argc, char *argv[])
             }
             i=j-1;
 	} else if (!strcmp(argv[i], "-mutatee")) {
-	    mutateeName = argv[i+1];
 	    i++;
+            if (*argv[i]=='_')
+                strcat(mutateeName,argv[i]);
+            else
+                strcpy(mutateeName,argv[i]);
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {
-	    mutateeName = "test4a.mutatee_gcc_n32";
+	    N32ABI=true;
 #endif
 	} else {
 	    fprintf(stderr, "Usage: test4 "
@@ -595,6 +598,22 @@ main(unsigned int argc, char *argv[])
 	}
 	printf("\n");
     }
+
+    // patch up the default compiler in mutatee name (if necessary)
+    if (!strstr(mutateeName, "_"))
+#if defined(i386_unknown_nt4_0)
+        strcat(mutateeName,"_VC");
+#else
+        strcat(mutateeName,"_gcc");
+#endif
+    if (N32ABI || strstr(mutateeName,"_n32")) {
+        // patch up file names based on alternate ABI (as necessary)
+        if (!strstr(mutateeName, "_n32")) strcat(mutateeName,"_n32");
+    }
+    // patch up the platform-specific filename extensions
+#if defined(i386_unknown_nt4_0)
+    if (!strstr(mutateeName, ".exe")) strcat(mutateeName,".exe");
+#endif
 
     mutatorMAIN(mutateeName);
 
