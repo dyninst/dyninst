@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.85 2001/10/24 21:24:54 bernat Exp $
+// $Id: aix.C,v 1.86 2001/11/02 19:28:39 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -866,7 +866,7 @@ bool process::attach() {
   } else
     return true;
 #else
-  if (parent != 0) {
+  if (parent != 0 || createdViaAttach) {
     return attach_();
   }
   else
@@ -879,7 +879,6 @@ bool process::attach_() {
    int ret = ptrace(PT_ATTACH, getPid(), (int *)0, 0, 0);
    if (ret == -1)
       ret = ptrace(PT_REATT, getPid(), (int *)0, 0, 0);
-
    return (ret != -1);
 }
 
@@ -1376,11 +1375,11 @@ fileDescriptor *getExecFileDescriptor(string filename,
     // Is this still around? How do you tell?
     usleep (36000);
 
-    ret = 0;
     ret = ptrace(PT_LDINFO, pid, 
 		 (int *) ptr, 1024 * sizeof(struct ld_info), (int *)ptr);
 
     if (ret != 0) {
+      int foo = errno;
       // Two possible problems here -- one, the process didn't exist. We
       // need to handle this. Second, we haven't attached yet. Work around
       if (0) { // Proc doesn't exist
@@ -1586,6 +1585,8 @@ bool handleAIXsigTraps(int pid, int status) {
 string process::tryToFindExecutable(const string &progpath, int /*pid*/) {
    // returns empty string on failure
 
+  if (!progpath.length())
+    cerr << "Warning: Attach on AIX requires program path to be specified" << endl;
    if (progpath.length() == 0)
       return "";
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.100 2001/10/04 20:04:45 buck Exp $
+// $Id: symtab.h,v 1.101 2001/11/02 19:28:39 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -800,6 +800,7 @@ public:
 
   string file() const {return desc_->file();}
   string name() const { return name_;}
+  string pathname() const { return pathname_; }
   const fileDescriptor *desc() const { return desc_; }
   Address codeOffset() { return codeOffset_;}
   Address dataOffset() { return dataOffset_;}
@@ -917,7 +918,8 @@ public:
   //
 
   fileDescriptor *desc_; /* file descriptor (includes name) */
-  string name_;		/* filename part of file, no slashes */
+  string name_;		 /* filename part of file, no slashes */
+  string pathname_;      /* file name with path */
 
   Address codeOffset_;
   unsigned codeLen_;

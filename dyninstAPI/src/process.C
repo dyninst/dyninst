@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.274 2001/11/01 05:00:25 gaburici Exp $
+// $Id: process.C,v 1.275 2001/11/02 19:28:39 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2001,9 +2001,10 @@ process::process(int iPid, image *iSymbols,
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
    // Now that we're attached, we can reparse the image with correct
-   // settings. TODO: get a correct symbols, and blow away the old one.
+   // settings.
+   // Process is paused 
    int status = pid;
-   fileDescriptor *desc = getExecFileDescriptor(symbols->name(), status, false);
+   fileDescriptor *desc = getExecFileDescriptor(symbols->pathname(), status, false);
    if (!desc) {
       string msg = string("Warning: unable to parse to specified process: ")
                    + string(pid);
@@ -2032,17 +2033,12 @@ process::process(int iPid, image *iSymbols,
    }
 #endif
 
-#if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1)
    wasRunningWhenAttached = false; /* XXX Or should the default be true? */
-#else
-   wasRunningWhenAttached = isRunning_();
-#endif
-
-#if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
    // We use ptrace of AIX, which stops the process on attach.
    status_ = stopped;
 #else
-   // Note: we used to pause the program here, but not anymore.
+   wasRunningWhenAttached = isRunning_();
    status_ = running;
 #endif
 
