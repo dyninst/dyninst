@@ -14,6 +14,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metricDefs-cm5.
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
+ * Revision 1.21  1995/10/24 03:37:56  tamches
+ * Commented out createSyncWait, as part of removing metricDefs-common.C
+ *
  * Revision 1.20  1995/08/24 15:04:22  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
@@ -148,25 +151,25 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metricDefs-cm5.
 #include "rtinst/h/trace.h"
 #include "metricDef.h"
 
-// A process timer is used because it does not stop on blocking
-// system calls.
-void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)
-{
-    dataReqNode *dataPtr;
-    AstNode *stopNode, *startNode;
-
-    dataPtr = mn->addTimer(processTime);
-
-    startNode = new AstNode("DYNINSTstartProcessTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    if (trigger) startNode = createIf(trigger, startNode);
-
-    stopNode = new AstNode("DYNINSTstopProcessTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    if (trigger) stopNode = createIf(trigger, stopNode);
-
-    instAllFunctions(mn, TAG_MSG_FILT, startNode, stopNode);
-}
+//// A process timer is used because it does not stop on blocking
+//// system calls.
+//void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)
+//{
+//    dataReqNode *dataPtr;
+//    AstNode *stopNode, *startNode;
+//
+//    dataPtr = mn->addTimer(processTime);
+//
+//    startNode = new AstNode("DYNINSTstartProcessTimer", 
+//	new AstNode(DataValue, dataPtr), NULL);
+//    if (trigger) startNode = createIf(trigger, startNode);
+//
+//    stopNode = new AstNode("DYNINSTstopProcessTimer", 
+//	new AstNode(DataValue, dataPtr), NULL);
+//    if (trigger) stopNode = createIf(trigger, stopNode);
+//
+//    instAllFunctions(mn, TAG_MSG_FILT, startNode, stopNode);
+//}
 
 //
 // ***** Warning this metric is CM-5 specific. *****
