@@ -66,8 +66,8 @@ class metric {
     friend class metricInstance;
     friend class paradynDaemon;
     friend void addMetric(T_dyninstRPC::metricInfo &info);
-    friend void histDataCallBack(sampleValue *buckets, timeStamp start_time, 
-				 int count, int first, void *arg);
+    friend void histDataCallBack(sampleValue *, timeStamp , 
+				 int , int , void *);
     // TODO: remove these when PC is re-written ***************
     friend void PCmetricFunc(perfStreamHandle, const char *name,
 			     int style, int aggregate,
@@ -112,11 +112,11 @@ class metricInstance {
     friend class dataManager;
     friend class metric;
     friend class paradynDaemon;
-    friend void histDataCallBack(sampleValue *buckets, int count, 
+    friend void histDataCallBack(sampleValue *buckets, timeStamp, int count, 
 				 int first, void *arg);
     // TODO: remove these when PC is re-written ***************
     friend void PCnewData(perfStreamHandle,metricInstanceHandle,
-			  sampleValue,int,int);
+			  sampleValue *,int,int);
     friend class datum;
     friend class PCmetric;
     // friend void phaseInfo::startPhase(timeStamp start_Time, const string &name);

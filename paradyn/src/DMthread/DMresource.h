@@ -2,6 +2,9 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
+ * Revision 1.20  1995/08/05 17:08:42  krisna
+ * updated friend entries for histDataCallback() and createResource()
+ *
  * Revision 1.19  1995/08/01 02:11:21  newhall
  * complete implementation of phase interface:
  *   - additions and changes to DM interface functions
@@ -108,7 +111,7 @@ class resource {
       friend void printAllResources();
       friend class dynRPCUser;
       friend string DMcreateRLname(const vector<resourceHandle> &res);
-      resourceHandle createResource(vector<string>&, string&);
+      friend resourceHandle createResource(vector<string>&, string&);
 
       // TODO: these should go when PC is re-written *******************
       friend class testValue;
