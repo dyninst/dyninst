@@ -69,7 +69,7 @@ extern unsigned enable_pd_inferior_rpc_debug;
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
 /* Required by linux.C */
-void generateBreakPoint( instruction & insn ) {
+void generateBreakPoint( instruction & /* insn */ ) {
 	assert( 0 );
 	} /* end generateBreakPoint() */
 
@@ -305,9 +305,9 @@ Address dyn_lwp::readRegister( Register reg ) {
 #include <libunwind.h>
 
 /* Refactored from getActiveFrame() and getCallerFrame(). */
-Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP, pid_t pid, bool isActiveFrame ) {
+Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP, pid_t pid, bool /* isActiveFrame */ ) {
 	Address ip = 0, sp = 0, fp = 0, tp = 0;
-	bool isLeaf = false, isUppermost = false, isSignalFrame = false, isTrampoline = false;
+	bool isUppermost = false, isSignalFrame = false, isTrampoline = false;
 	int status = 0;
 
 	/* Use the unwind cursor to fill in the frame. */
@@ -339,9 +339,6 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 			}	
 		}
 	
-	// trampTemplate * baseTramp = range->is_basetramp();
-	// miniTrampHandle * miniTramp = range->is_minitramp();     
-
 	/* I could've just ptrace()d the ip, sp, and tp, but
 	   I couldn't have gotten the frame pointer.  With libunwind,
 	   the frame pointer is simply the stack pointer of the previous frame. */
@@ -371,7 +368,16 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 	/* FIXME: multithread implementation. */
 	dyn_thread * dynThread = NULL;
     
-	Frame currentFrame( ip, fp, sp, pid, dynThread, dynLWP, isUppermost, isLeaf, isSignalFrame, isTrampoline, unwindCursor );
+	Frame currentFrame( ip, fp, sp, pid, dynThread, dynLWP, isUppermost, unwindCursor );
+	if( isTrampoline ) {
+		currentFrame.frameType_ = FRAME_instrumentation;
+		}
+	else if( isSignalFrame ) {
+		currentFrame.frameType_ = FRAME_signalhandler;
+		}
+	else {
+		currentFrame.frameType_ = FRAME_normal;
+		}
 	
 	// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): ip = 0x%lx, fp = 0x%lx, sp = 0x%lx, tp = 0x%lx\n", pid, ip, fp, sp, tp );
 	return currentFrame;
@@ -639,33 +645,8 @@ Frame Frame::getCallerFrame( process * proc ) const {
 		proc->unwindProcessArg = _UPT_create( proc->getPid() );
 		assert( proc->unwindProcessArg != NULL );
 		}
-		
-	/* If _this_ is a trampoline frame, return a synthetic frame for the instrumented function. */
-	if( this->isTrampoline() ) { 
-		codeRange * range = proc->findCodeRangeByAddress( this->getPC() );
-		assert( range != NULL );
-		
-		trampTemplate * baseTramp = range->is_basetramp();
-		if( baseTramp == NULL ) {
-			miniTrampHandle * mTH = range->is_minitramp();
-			assert( mTH != NULL );
-			baseTramp = mTH->baseTramp;
-			}
-		assert( baseTramp != NULL );
-		
-		Address ip = baseTramp->location->pointAddr();
-		Address baseAddress; assert( proc->getBaseAddress( baseTramp->location->getOwner(), baseAddress ) );
-		assert( baseAddress % 16 == 0 );
-		ip += baseAddress;
-		
-		// /* DEBUG */ fprintf( stderr, "getCallerFrame(): synthetic frame ip = 0x%lx\n", ip );
-		
-		/* The base tramp's frame pointer is the stack pointer of the function which called the instrumented function,
-		   so the instrumented function's synthetic frame has the same frame pointer as the base tramp.  (Because
-		   we did not tell libunwind how we modified the SP in the base tramp, only that we modified it, the instrumented
-		   function's SP is also correct.) */
-		return Frame( ip, this->getFP(), this->getSP(), this->getPID(), this->getThread(), this->getLWP(), false, false, false, false, this->unwindCursor_ );
-		}
+	
+	/* Generate the synthetic frame above the instrumentation is cross-platform code. */
 
 	Frame currentFrame;
 	if( this->unwindCursor_ == NULL ) {
