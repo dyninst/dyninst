@@ -2234,10 +2234,10 @@ void dynRPC::send_stmts(vector<T_dyninstRPC::mdl_stmt*> *vs) {
 void dynRPC::send_libs(vector<string> *libs) {
 
     mdl_libs = true;
-    cerr << "void dynRPC::send_libs(vector<string> *libs) called" << endl;
+    //cerr << "void dynRPC::send_libs(vector<string> *libs) called" << endl;
     for(u_int i=0; i < libs->size(); i++){
 	mdl_data::lib_constraints += (*libs)[i]; 
-	cerr << " send_libs : adding " << (*libs)[i] << " to paradynd set of mdl_data::lib_constraints" << endl;
+	//cerr << " send_libs : adding " << (*libs)[i] << " to paradynd set of mdl_data::lib_constraints" << endl;
     }
 
 }

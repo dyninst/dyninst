@@ -43,6 +43,9 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.68  1998/01/30 16:11:30  ssuen
+ * Commented out debug messages
+ *
  * Revision 1.67  1997/11/26 21:50:18  mcheyney
  * Extra debugging information in main.C
  * Changed exclude syntax in mdl:
@@ -312,10 +315,10 @@ RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
 }
 
 int main(int argc, char *argv[]) {
-    cerr << "welcome to paradynd, args are:" << endl;
-    for (unsigned lcv=0; lcv < argc; lcv++) {
-       cerr << argv[lcv] << endl;
-    }
+    //cerr << "welcome to paradynd, args are:" << endl;
+    //for (unsigned lcv=0; lcv < argc; lcv++) {
+    //   cerr << argv[lcv] << endl;
+    //}
 
 #if !defined(i386_unknown_nt4_0)
     struct sigaction act;
