@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.113 2004/03/02 22:46:15 bernat Exp $ */
+/* $Id: dynrpc.C,v 1.114 2004/03/15 18:05:55 mirg Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -488,24 +488,6 @@ bool dynRPC::attach(pdstring progpath, int pid, int afterAttach)
     pd_process *p = pd_attachProcess(progpath, pid);
     if (!p) return false;
     
-    if (afterAttach == 0) {
-        cerr << "afterAttach: leave as is" << endl;
-        if (p->wasRunningWhenAttached())
-            p->continueProc();
-        else
-            p->pause();
-    }
-    else if (afterAttach == 1) {
-        cerr << "afterAttach: pause" << endl;
-        p->pause();
-    }
-    else if (afterAttach == 2) {
-        cerr << "afterAttach: run" << endl;
-        p->continueProc();
-    }
-    else
-        assert(0 && "Unknown value for afterAttach");
-
     metricFocusNode::handleNewProcess(p);
 
     return true;
