@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.96 2003/05/14 17:15:21 bernat Exp $
+// $Id: unix.C,v 1.97 2003/05/14 20:46:20 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -747,9 +747,13 @@ int handleSignal(process *proc, procSignalWhat_t what,
      ret = handleSigStopNInt(proc, info);
      break;
  case SIGILL: 
+     // x86 uses SIGILL for various purposes
      if (proc->getRpcMgr()->handleSignalIfDueToIRPC())
          ret = 1;
+     else 
+         ret = handleSigCritical(proc, what, info);
      break;
+     
  case SIGCHLD:
      // Ignore
      ret = 1;
