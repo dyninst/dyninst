@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.61 2002/08/29 00:33:27 rchen Exp $
+// $Id: BPatch_thread.C,v 1.62 2002/09/19 01:21:37 buck Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -55,6 +55,32 @@
 #include "BPatch.h"
 #include "BPatch_thread.h"
 #include "LineInformation.h"
+
+/*
+ * class OneTimeCodeInfo
+ *
+ * This is used by the oneTimeCode (inferiorRPC) mechanism to keep per-RPC
+ * information.
+ */
+class OneTimeCodeInfo {
+    bool synchronous;
+    bool completed;
+    void *userData;
+    void *returnValue;
+public:
+    OneTimeCodeInfo(bool _synchronous, void *_userData) :
+	synchronous(_synchronous), completed(false), userData(_userData) { };
+
+    bool isSynchronous() { return synchronous; }
+
+    bool isCompleted() const { return completed; }
+    void setCompleted(bool _completed) { completed = _completed; }
+
+    void *getUserData() { return userData; }
+
+    void setReturnValue(void *_returnValue) { returnValue = _returnValue; }
+    void *getReturnValue() { return returnValue; }
+};
 
 
 /*
@@ -114,7 +140,7 @@ static void insertVForkInst(BPatch_thread *thread)
 BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[],
 			     int stdin_fd, int stdout_fd, int stderr_fd)
   : proc(NULL), image(NULL), lastSignal(-1), exitCode(-1), mutationsActive(true), 
-    createdViaAttach(false), detached(false), waitingForOneTimeCode(false),
+    createdViaAttach(false), detached(false),
     unreportedStop(false), unreportedTermination(false)
 {
     vector<string> argv_vec;
@@ -186,7 +212,7 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[],
  */
 BPatch_thread::BPatch_thread(char *path, int pid)
   : proc(NULL), image(NULL), lastSignal(-1), exitCode(-1), mutationsActive(true), 
-    createdViaAttach(true), detached(false), waitingForOneTimeCode(false),
+    createdViaAttach(true), detached(false),
     unreportedStop(false), unreportedTermination(false)
 {
 
@@ -210,7 +236,7 @@ BPatch_thread::BPatch_thread(char *path, int pid)
     image = new BPatch_image(proc);
 
     while (!proc->isBootstrappedYet() && !statusIsTerminated()) {
-	BPatch::bpatch->getThreadEvent(false);
+	BPatch::bpatch->getThreadEventOnly(false);
 	proc->launchRPCifAppropriate(false, false);
     }
 
@@ -232,7 +258,7 @@ BPatch_thread::BPatch_thread(char *path, int pid)
  */
 BPatch_thread::BPatch_thread(int /*pid*/, process *nProc)
   : proc(nProc), image(NULL), lastSignal(-1), exitCode(-1), mutationsActive(true), 
-    createdViaAttach(true), detached(false), waitingForOneTimeCode(false),
+    createdViaAttach(true), detached(false),
     unreportedStop(false), unreportedTermination(false)
 {
     proc->thread = this;
@@ -1120,12 +1146,23 @@ void BPatch_thread::oneTimeCodeCallbackDispatch(process *theProc,
 {
     assert(BPatch::bpatch != NULL);
 
+    OneTimeCodeInfo *info = (OneTimeCodeInfo *)userData;
+
     BPatch_thread *theThread =
 	BPatch::bpatch->getThreadByPid(theProc->getPid());
 
     assert(theThread != NULL);
+    assert(info && !info->isCompleted());
 
-    theThread->oneTimeCodeCallback(userData, returnValue);
+    info->setReturnValue(returnValue);
+    info->setCompleted(true);
+
+    if (!info->isSynchronous()) {
+	if (BPatch::bpatch->oneTimeCodeCallback)
+	    BPatch::bpatch->oneTimeCodeCallback(theThread, info->getUserData(), returnValue);
+
+	delete info;
+    }
 
 #ifdef IBM_BPATCH_COMPAT
     if (BPatch::bpatch->RPCdoneCallback) {
@@ -1137,37 +1174,27 @@ void BPatch_thread::oneTimeCodeCallbackDispatch(process *theProc,
 
 
 /*
- * BPatch_thread::oneTimeCodeCallback
- *
- * This function is called by BPatch_thread:::oneTimeCodeCallbackDispatch
- * when in inferior RPC completes.
- *
- * userData	This is a value that can be set when we invoke an inferior RPC
- *		and which will be returned to us in this callback.
- * returnValue	The value returned by the RPC.
- */
-void BPatch_thread::oneTimeCodeCallback(void * /*userData*/, void *returnValue)
-{
-    assert(waitingForOneTimeCode);
-
-    lastOneTimeCodeReturnValue = returnValue;
-    waitingForOneTimeCode = false;
-}
-
-
-/*
- * BPatch_thread::oneTimeCode
+ * BPatch_thread::oneTimeCodeInternal
  *
  * Causes a snippet expression to be evaluated once in the mutatee at the next
- * available opportunity.
+ * available opportunity.  Optionally, Dyninst will call a callback function
+ * when the snippet has executed in the mutatee, and can wait until the
+ * snippet has executed to return.
  *
- * snippet	The snippet to evaluate.
+ * expr		The snippet to evaluate.
+ * userData	This value is given to the callback function along with the
+ *		return value for the snippet.  Can be used by the caller to
+ *		store per-oneTimeCode information.
+ * synchronous	True means wait until the snippet has executed, false means
+ *		return immediately.
  */
-void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
+void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
+					 void *userData,
+					 bool synchronous)
 {
     bool needToResume = false;
 
-    if (!statusIsStopped()) {
+    if (synchronous && !statusIsStopped()) {
         stopExecution();
         if (!statusIsStopped()) {
             return NULL;
@@ -1175,27 +1202,35 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
         needToResume = true;
     }
 
+    OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData);
+
     proc->postRPCtoDo(expr.ast,
 		      false, // XXX = calculate cost - is this what we want?
 		      BPatch_thread::oneTimeCodeCallbackDispatch, // Callback
-		      NULL, // User data
+		      (void *)info, // User data
 		      -1,   // This isn't a metric definition - we shouldn't
 		      NULL, // No particular thread (yet),
 		      0,    // Same -- no kernel thread
                       false);  
 
-    waitingForOneTimeCode = true;
-	
-    do {
-	proc->launchRPCifAppropriate(false, false);
-	BPatch::bpatch->getThreadEvent(false);
-    } while (waitingForOneTimeCode && !statusIsTerminated());
+    if (synchronous) {
+	do {
+	    proc->launchRPCifAppropriate(false, false);
+	    BPatch::bpatch->getThreadEvent(false);
+	} while (!info->isCompleted() && !statusIsTerminated());
 
-    if (needToResume) {
-        continueExecution();
+	void *ret = info->getReturnValue();
+	delete info;
+
+	if (needToResume)
+	    continueExecution();
+
+	return ret;
+    } else {
+	proc->launchRPCifAppropriate(proc->status() == running, false);
+
+	return NULL;
     }
-
-    return lastOneTimeCodeReturnValue;
 }
 
 
@@ -1228,7 +1263,7 @@ bool BPatch_thread::loadLibrary(char *libname, bool reload)
 
     BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
 
-    if (!oneTimeCodeInternal(call_dlopen)) {
+    if (!oneTimeCodeInternal(call_dlopen, NULL, true)) {
       // dlopen FAILED
       // find the (global var) error string in the RT Lib and send it to the
       // error reporting mechanism

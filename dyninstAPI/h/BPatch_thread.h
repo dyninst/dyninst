@@ -114,9 +114,6 @@ class BPATCH_DLL_EXPORT BPatch_thread {
     bool		createdViaAttach;
     bool		detached;
 
-    bool		waitingForOneTimeCode;
-    void		*lastOneTimeCodeReturnValue;
-
     bool		unreportedStop;
     bool		unreportedTermination;
 
@@ -137,10 +134,9 @@ class BPATCH_DLL_EXPORT BPatch_thread {
 						    void *userData,
 						    void *returnValue);
 
-    void		oneTimeCodeCallback(void *userData,
-					    void *returnValue);
-
-    void		*oneTimeCodeInternal(const BPatch_snippet &expr);
+    void		*oneTimeCodeInternal(const BPatch_snippet &expr,
+					     void *userData,
+					     bool synchronous);
 
 protected:
     // for creating a process
@@ -216,7 +212,11 @@ public:
 				BPatch_function &newFunc);
 
     void	oneTimeCode(const BPatch_snippet &expr) {
-			oneTimeCodeInternal(expr);
+			oneTimeCodeInternal(expr, NULL, true);
+		    };
+
+    void	oneTimeCodeAsync(const BPatch_snippet &expr, void *userData = NULL) {
+			oneTimeCodeInternal(expr, userData, false);
 		    };
 
 	//the reload argument is used by save the world to determine

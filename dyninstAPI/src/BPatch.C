@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.47 2002/06/26 21:14:35 schendel Exp $
+// $Id: BPatch.C,v 1.48 2002/09/19 01:21:37 buck Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -271,6 +271,7 @@ BPatch::BPatch()
     dynLibraryCallback = NULL;
     execCallback = NULL;
     exitCallback = NULL;
+    oneTimeCodeCallback = NULL;
 
 #ifdef DETACH_ON_THE_FLY
     // Register handler for notification from detached inferiors
@@ -428,6 +429,24 @@ BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
 
     return ret;
 #endif
+}
+
+/*
+ * BPatch::registerOneTimeCodeCallback
+ *
+ * Registers a function that is to be called by the library when a 
+ * oneTimeCode (inferior RPC) is completed.
+ *
+ * func	The function to be called.
+ */
+BPatchOneTimeCodeCallback BPatch::registerOneTimeCodeCallback(BPatchOneTimeCodeCallback func)
+{
+    BPatchOneTimeCodeCallback ret;
+
+    ret = oneTimeCodeCallback;
+    oneTimeCodeCallback = func;
+
+    return ret;
 }
 
 #ifdef IBM_BPATCH_COMPAT
@@ -785,20 +804,44 @@ BPatch_thread *BPatch::attachProcess(char *path, int pid)
     return ret;
 }
 
-
 /*
- * getThreadEvent
+ * BPatch::getThreadEvent
  *
  * Checks for changes in any child process, and optionally blocks until such a
- * change has occurred.  Also updates the process object representing each
- * process for which a change is detected.  The return value is true if a
- * change was detected, otherwise it is false.
+ * change has occurred.  Also performs housekeeping on behalf of Dyninst:
+ * - Launches pending oneTimeCode calls (aka inferior RPCs)
+ * - Updates the process object representing each process for which a
+ *   change is detected.
+ *
+ * The return value is true if a change was detected, otherwise it is false.
  *
  * block	Set this parameter to true to block waiting for a change,
  * 		set to false to poll and return immediately, whether or not a
  * 		change occurred.
  */
 bool BPatch::getThreadEvent(bool block)
+{
+    launchDeferredOneTimeCode();
+
+    return getThreadEventOnly(block);
+}
+
+/*
+ * BPatch::getThreadEventOnly
+ *
+ * Like getThreadEvent (which actually calls this function), this function
+ * checks for changes in any child process, optionally blocking until such a
+ * change occurs.  It also updates the process objects with information about
+ * such changes.  Unlike getThreadEvent, it does not perform any additional
+ * housekeeping like launching deferred RPCs.
+ *
+ * Returns true if a change was detected, otherwise returns false.
+ *
+ * block	Set this parameter to true to block waiting for a change,
+ * 		set to false to poll and return immediately, whether or not a
+ * 		change occurred.
+ */
+bool BPatch::getThreadEventOnly(bool block)
 {
     bool	result = false;
     int		pid, status;
@@ -1232,3 +1275,24 @@ void setLogging_NP(BPatchLoggingCallback, int)
 }
 
 #endif
+
+/*
+ * BPatch::launchDeferredOneTimeCode
+ *
+ * Launch any deferred oneTimeCode calls (aka inferior RPCs) that might exist,
+ * if it is now okay to do so.
+ */
+void BPatch::launchDeferredOneTimeCode()
+{
+    for (unsigned int p = 0; p < processVec.size(); p++) {
+	process *proc = processVec[p];
+
+	if (proc == NULL)
+	    continue;
+
+	if (proc->status() == exited || proc->status() == neonatal)
+	    continue;
+
+	proc->launchRPCifAppropriate(proc->status() == running, false);
+    }
+}

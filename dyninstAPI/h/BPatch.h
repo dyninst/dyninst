@@ -76,6 +76,7 @@ typedef void (*BPatchExitCallback)(BPatch_thread *proc, int code);
 
 typedef void (*BPatchSignalCallback)(BPatch_thread *proc, int sigNum);
 
+typedef void (*BPatchOneTimeCodeCallback)(BPatch_thread *proc, void *userData, void *returnValue);
 
 #ifdef IBM_BPATCH_COMPAT
 typedef void *BPatch_Address;
@@ -108,12 +109,14 @@ class BPATCH_DLL_EXPORT BPatch {
     BPatchForkCallback    	preForkCallback;
     BPatchExecCallback		execCallback;
     BPatchExitCallback		exitCallback;
+    BPatchOneTimeCodeCallback   oneTimeCodeCallback;
     bool	typeCheckOn;
     int		lastError;
     bool	debugParseOn;
     bool	baseTrampDeletionOn;
 
     bool	getThreadEvent(bool block);
+    bool	getThreadEventOnly(bool block);
     bool	havePendingEvent();
 
     /* If true, trampolines can recurse to their heart's content.
@@ -148,6 +151,7 @@ public:
     void registerExit(BPatch_thread *thread, int code);
     void registerThread(BPatch_thread *thread);
     void unRegisterThread(int pid);
+    void launchDeferredOneTimeCode();
 
     BPatch_thread *getThreadByPid(int pid, bool *exists = NULL);
 
@@ -182,6 +186,7 @@ public:
     BPatchForkCallback registerPreForkCallback(BPatchForkCallback func);
     BPatchExecCallback registerExecCallback(BPatchExecCallback func);
     BPatchExitCallback registerExitCallback(BPatchExitCallback func);
+    BPatchOneTimeCodeCallback registerOneTimeCodeCallback(BPatchOneTimeCodeCallback func);
 
     BPatch_Vector<BPatch_thread*> *getThreads();
 

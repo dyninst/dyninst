@@ -1648,6 +1648,13 @@ void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
     expr18_1->writeValue(&n);
 }
 
+void test19_oneTimeCodeCallback(BPatch_thread *thread,
+				void *userData,
+				void *returnValue)
+{
+    *(int *)userData = 1;
+}
+
 //
 // Start Test Case #19 - mutator side (oneTimeCode)
 //
@@ -1669,8 +1676,11 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
 
     appThread->oneTimeCode(call19_1Expr);
 
+    // Let the mutatee run to check the result
     appThread->continueExecution();
-    P_sleep(1);           /* wait for child to continue */
+
+    // Wait for the next test
+    waitUntilStopped(bpatch, appThread, 19, "oneTimeCode");
 
     BPatch_function *call19_2_func;
     call19_2_func = appImage->findFunction("call19_2");
@@ -1683,7 +1693,22 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_funcCallExpr call19_2Expr(*call19_2_func, nullArgs);
     checkCost(call19_2Expr);
 
-    appThread->oneTimeCode(call19_2Expr);
+    int callbackFlag = 0;
+
+    // Register a callback that will set the flag callbackFlag
+    BPatchOneTimeCodeCallback oldCallback = 
+	bpatch->registerOneTimeCodeCallback(test19_oneTimeCodeCallback);
+
+    appThread->oneTimeCodeAsync(call19_2Expr, (void *)&callbackFlag);
+
+    // Wait for the callback to be called
+    while (!appThread->isTerminated() && !callbackFlag) ;
+
+    // Restore old callback (if there was one)
+    bpatch->registerOneTimeCodeCallback(oldCallback);
+
+    // Let the mutatee run to check the result and then go on to the next test
+    appThread->continueExecution();
 }
 
 //
