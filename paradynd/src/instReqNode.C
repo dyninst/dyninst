@@ -115,10 +115,10 @@ void instReqNode::setAffectedDataNodes(instInstanceFreeCallback cb,
 void instReqNode::disable(process *proc)
 {
   //cerr << "in instReqNode (" << this << ")::disable  loadedIntoApp = "
-  //    << loadedIntoApp << ", deleting inst: " << mtHandle.inst
-  //    << "\n";
+  //     << loadedIntoApp << ", hookedUp: " << trampsHookedUp
+  //     << ", deleting inst: " << mtHandle.inst << "\n";
   //     << " points to check\n";
-  if(loadedIntoApp == true)
+  if(loadedIntoApp == true && trampsHookedUp == true)
     deleteInst(proc, mtHandle);
 }
 
