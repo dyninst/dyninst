@@ -1,7 +1,6 @@
-
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.52 2000/07/13 18:00:23 zandy Exp $ */
+/* $Id: test1.mutatee.c,v 1.53 2000/07/18 19:55:46 bernat Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
