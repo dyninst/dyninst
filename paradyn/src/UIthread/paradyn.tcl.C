@@ -5,11 +5,15 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.46  1995/10/05 04:33:07  karavan
-/* changes to paradyn search and paradyn shg commands to support new igen
-/* interface.
-/* deleted commented obsolete code.
+/* Revision 1.47  1995/10/06 19:53:32  naim
+/* Fixing bug: pressing RUN while defining a process produces a core dump. Now,
+/* the RUN and PAUSE keys are disabled while a process is being defined - naim
 /*
+ * Revision 1.46  1995/10/05  04:33:07  karavan
+ * changes to paradyn search and paradyn shg commands to support new igen
+ * interface.
+ * deleted commented obsolete code.
+ *
  * Revision 1.45  1995/09/18  22:32:45  mjrg
  * Added directory command.
  *
@@ -186,6 +190,8 @@
 #include "Status.h"
 
 extern bool detachApplication(bool);
+
+extern appState PDapplicState;
 
 int ParadynPauseCmd(ClientData clientData, 
 		Tcl_Interp *interp, 
@@ -409,6 +415,32 @@ void processUsage()
   printf("USAGE: process <-user user> <-machine machine> <-daemon> daemon> <-dir> directory \"command\"\n");
 }
 
+void disablePAUSEandRUN()
+{
+  string msg = string("Tcl interpreter failed in routine changeApplicState: ");
+  if (Tcl_VarEval(interp,"changeApplicState 2",0)==TCL_ERROR) {
+    msg += string((const char *) interp->result);
+    uiMgr->showError(83, P_strdup(msg.string_of()));
+  }
+}
+
+void enablePAUSEorRUN()
+{
+  string msg = string("Tcl interpreter failed in routine changeApplicState: ");
+  if (PDapplicState==appRunning) {
+    if (Tcl_VarEval(interp,"changeApplicState 1",0)==TCL_ERROR) {
+      msg += string((const char *) interp->result);
+      uiMgr->showError(83, P_strdup(msg.string_of()));
+    }   
+  }
+  else {
+    if (Tcl_VarEval(interp,"changeApplicState 0",0)==TCL_ERROR) {
+      msg += string((const char *) interp->result);
+      uiMgr->showError(83, P_strdup(msg.string_of()));
+    }
+  }
+}
+
 /****
  * Process
  * Calls data manager service "addExecutable".  
@@ -424,6 +456,7 @@ int ParadynProcessCmd(ClientData clientData,
   char *machine = NULL;
   char *paradynd = NULL;
   char *dir = NULL;
+  static bool firstProcess=true;
   
   for (i=1; i < argc-1; i++) {
     if (!strcmp("-user", argv[i])) {
@@ -471,11 +504,38 @@ int ParadynProcessCmd(ClientData clientData,
     av += argv[ve];
     ve++;
   }
+
+  // We disabled PAUSE and RUN buttons to avoid problems. If any of these
+  // keys is pressed while defining a process, we end in a deadlock - naim
+  disablePAUSEandRUN();
+
   if (dataMgr->addExecutable(machine, user, paradynd, dir,
 			     &av) == false)
+  {
+    enablePAUSEorRUN();
     return TCL_ERROR;
-  else
+  }
+  else {
+    // When the very first process is created...
+    // RUN is now enabled. PDapplicState is set to appRunning, because we
+    // need a previous state of appRunning if we want to pause the application
+    if (firstProcess) {
+      firstProcess=false;
+      PDapplicState=appRunning;
+      dataMgr->pauseApplication();
+    }
+    else {
+      if (PDapplicState==appRunning) {
+	PDapplicState=appPaused;
+	dataMgr->continueApplication();
+      }
+      else {
+	PDapplicState=appRunning;
+	dataMgr->pauseApplication();
+      }
+    }
     return TCL_OK;
+  }
 }
 
 //
