@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.135 2004/01/23 22:01:14 tlmiller Exp $
+// $Id: ast.C,v 1.136 2004/03/11 22:20:32 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1619,7 +1619,7 @@ Address AstNode::generateCode_phase2(process *proc,
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1) //ccw 30 jul 2002
            if(proc->requestTextMiniTramp){
               bool mallocFlag;
-              addr = (Address) proc->inferiorMalloc(len, textHeap, 0x10000000, &mallocFlag); //textheap
+              addr = (Address) proc->inferiorMalloc(len, (inferiorHeapType) (textHeap | uncopiedHeap), 0x10000000, &mallocFlag); //textheap
            }else{	
               addr = (Address) proc->inferiorMalloc(len, dataHeap); //dataheap
            }
