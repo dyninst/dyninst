@@ -3,7 +3,10 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.16  1994/11/06 09:45:29  jcargill
+ * Revision 1.17  1994/11/11 10:16:00  jcargill
+ * "Fixed" pause_time definition for CM5
+ *
+ * Revision 1.16  1994/11/06  09:45:29  jcargill
  * Added prototype for clock functions to fix pause_time metric for cm5
  *
  * Revision 1.15  1994/11/02  19:03:54  hollings
@@ -182,7 +185,7 @@ void DYNINSTreportBaseTramps()
     time64 currentCPU;
     time64 currentWall;
     time64 elapsedWallTime;
-    time64 currentPauseTime;
+    static time64 elapsedPauseTime = 0;
 
     sample.slotsExecuted = 0;
 
@@ -192,8 +195,8 @@ void DYNINSTreportBaseTramps()
     currentCPU = DYNINSTgetCPUtime();
     currentWall = DYNINSTgetWallTime();
     elapsedWallTime = currentWall - DYNINSTlastWallTime;
-    currentPauseTime = elapsedWallTime - (currentCPU - DYNINSTlastCPUTime);
-    sample.pauseTime = ((double) currentPauseTime);
+    elapsedPauseTime += elapsedWallTime - (currentCPU - DYNINSTlastCPUTime);
+    sample.pauseTime = ((double) elapsedPauseTime);
     sample.pauseTime /= 1000000.0;
     DYNINSTlastWallTime = currentWall;
     DYNINSTlastCPUTime = currentCPU;

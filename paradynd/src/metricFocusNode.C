@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.45 1994/11/11 05:11:06 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.46 1994/11/11 10:17:47 jcargill Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.45  1994/11/11 05:11:06  markc
+ * Revision 1.46  1994/11/11 10:17:47  jcargill
+ * "Fixed" pause_time definition for CM5
+ *
+ * Revision 1.45  1994/11/11  05:11:06  markc
  * Turned off print message when internal metrics are enbled.
  *
  * Revision 1.44  1994/11/10  21:03:42  markc
@@ -880,8 +883,8 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     process *p;
 
     if (proc->theCost.wallTimeLastTrampSample) {
-	proc->pauseTime = s->pauseTime/ 
-	    ((h->wall - proc->theCost.wallTimeLastTrampSample)/1000000.0);
+	proc->pauseTime = s->pauseTime;
+/*	    ((h->wall - proc->theCost.wallTimeLastTrampSample)/1000000.0); */
     }
     proc->theCost.wallTimeLastTrampSample = h->wall;
 
