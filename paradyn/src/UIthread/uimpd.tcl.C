@@ -3,10 +3,14 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.32  1996/02/07 18:50:35  tamches
-/* added uimpd_startPhaseCmd
-/* made copy of uim_visiSelections before calling chosenMetricsAndResources
+/* Revision 1.33  1996/04/01 22:31:47  tamches
+/* refs to uim_AvailMets etc. gone
+/* added UI_all_metric_names, UI_all_metrics_set_yet
 /*
+ * Revision 1.32  1996/02/07 18:50:35  tamches
+ * added uimpd_startPhaseCmd
+ * made copy of uim_visiSelections before calling chosenMetricsAndResources
+ *
  * Revision 1.31  1996/02/02 18:55:19  tamches
  * removed a lot of obsolete code that had been commented out
  *
@@ -161,8 +165,6 @@ int sendVisiSelectionsCmd(ClientData,
 {
   Tcl_HashEntry *entry;
   UIMReplyRec *msgRec;
-  chooseMandRCBFunc mcb;
-  int msgID;
 
 #if UIM_DEBUG
   cout << "processing " << uim_VisiSelections.size() << " visiselections...\n";
@@ -172,7 +174,7 @@ int sendVisiSelectionsCmd(ClientData,
 #endif
   
   // get callback and thread id for this msg
-  msgID = atoi(argv[1]);
+  int msgID = atoi(argv[1]);
   if (!(entry = Tcl_FindHashEntry (&UIMMsgReplyTbl, (char *) msgID))) {
     Tcl_AppendResult (interp, "invalid message ID!", (char *) NULL);
     return TCL_ERROR;
@@ -181,7 +183,7 @@ int sendVisiSelectionsCmd(ClientData,
 
      /* set thread id for return */
   uim_server->setTid(msgRec->tid);
-  mcb = (chooseMandRCBFunc) msgRec->cb;
+  chooseMandRCBFunc mcb = (chooseMandRCBFunc) msgRec->cb;
 
   // if cancel was selected invoke callback with null list
   int cancelFlag = atoi(argv[2]);
@@ -211,8 +213,7 @@ int sendVisiSelectionsCmd(ClientData,
 
   // cleanup data structures
   Tcl_DeleteHashEntry (entry);   // cleanup hash table record
-  delete uim_AvailMets;;
-  delete uim_AvailMetHandles;
+
   return TCL_OK;
 }
 
@@ -279,9 +280,11 @@ vector<numlist> parseSelections(vector<numlist> &theHierarchy,
 
 /* arguments:
        0: "processVisiSelection"
-       1: rdo token
-       2: list of selected metrics
+       1: list of selected metrics
 */
+extern dictionary_lite<unsigned, string> UI_all_metric_names;
+extern bool UI_all_metrics_set_yet;
+
 int processVisiSelectionCmd(ClientData,
 			    Tcl_Interp *interp, 
 			    int,
@@ -301,39 +304,41 @@ int processVisiSelectionCmd(ClientData,
    }
 #endif
 
-  vector<numlist> retList = parseSelections (theHierarchySelections,
-					     wholeProgram, wholeProgramFocus);
+  vector<numlist> fociList = parseSelections (theHierarchySelections,
+					      wholeProgram, wholeProgramFocus);
 
 #if UIM_DEBUG
-  printResSelectList(retList, "list of selected focii");
+  printResSelectList(fociList, "list of selected focii");
 #endif
 
 //** and, list of metric indices from selections put into metlst
 
+  assert(UI_all_metrics_set_yet);
+
   int metcnt;
   char **metlst;
-  // reminder: argv[2] is the list of selected metrics (each is an integer id)
-  if (Tcl_SplitList (interp, argv[2], &metcnt, &metlst) == TCL_OK) {
-    metricHandle currmet;
-    
-    //uim_VisiSelections = new vector<metric_focus_pair>;
-    uim_VisiSelections.resize(0);
-    
-    for (unsigned i = 0; i < metcnt; i++) {
-      int metindx = atoi(metlst[i]);
-      currmet = uim_AvailMetHandles[metindx];
-      for (unsigned j = 0; j < retList.size(); j++) {
-	metric_focus_pair currpair;
-	currpair.met = currmet;
-	currpair.res = retList[j];
-	uim_VisiSelections += currpair;
-      }
-    }
-    free (metlst);   // cleanup after Tcl_SplitList
-  }
+  // reminder: argv[1] is the list of selected metrics (each is an integer id)
+  assert(TCL_OK == Tcl_SplitList (interp, argv[1], &metcnt, &metlst));
 
-  sprintf (interp->result, "%d", 1);
-  return TCL_OK;
+//   cout << "Here are the selections (in metric-ids)" << endl;
+//   for (unsigned i=0; i < metcnt; i++)
+//      cout << metlst[i] << " ";
+//   cout << endl;
+
+   uim_VisiSelections.resize(0);
+   
+   for (unsigned i = 0; i < metcnt; i++) {
+      unsigned metric_id = atoi(metlst[i]);
+      assert(UI_all_metric_names.defines(metric_id)); // just a sanity check
+
+      for (unsigned focuslcv = 0; focuslcv < fociList.size(); focuslcv++)
+	 uim_VisiSelections += metric_focus_pair(metric_id, fociList[focuslcv]);
+   }
+
+   free (metlst);   // cleanup after Tcl_SplitList
+
+   sprintf (interp->result, "%d", 1);
+   return TCL_OK;
 }
 
 /* 
