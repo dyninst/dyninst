@@ -24,7 +24,7 @@ MC_StreamImpl::MC_StreamImpl(MC_Communicator *_comm, int _filter_id)
 
   if ( MC_Network::network ){
     std::vector <MC_EndPoint *> * endpoints = communicator->get_EndPoints();
-    int * backends = (int *) malloc (sizeof(int) * endpoints->size());
+    int * backends = new int[endpoints->size()];
     unsigned int i;
 
     mc_printf(MCFL, stderr, "Adding backends to stream %d: [ ", stream_id);
