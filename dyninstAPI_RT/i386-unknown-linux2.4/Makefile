@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2000/05/11 04:52:26 zandy Exp $
+# $Id: Makefile,v 1.4 2000/07/13 18:00:46 zandy Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -25,14 +25,17 @@ CFLAGS          = -I. -I../.. -Di386_unknown_linux2_0 -g -Dexternal_templates -f
 LDFLAGS         = -shared -ldl
 endif
 
-ifdef DETACH_ON_THE_FLY
-CFLAGS += -DDETACH_ON_THE_FLY
-endif
+ASFLAGS         = 
 
 SRCS		+= ../src/RTposix.c \
 		   ../src/RTlinux.c \
 		   ../src/RTheap.c \
                    ../src/RTheap-linux.c
+
+ifdef DETACH_ON_THE_FLY
+CFLAGS += -DDETACH_ON_THE_FLY
+SRCS += ../src/RTsigill-x86.S
+endif
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

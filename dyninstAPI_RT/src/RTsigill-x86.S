@@ -39,27 +39,35 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/************************************************************************
- * RTposix.c: runtime instrumentation functions for generic posix.
- ************************************************************************/
+/*
+   DYNINSTsigill:
+	
+   DYNINSTsigill executes an illegal instruction, causing SIGILL to be
+   sent to the calling process.  It is only needed for
+   detach-on-the-fly, where detached mutatees stop to wait for the
+   mutator or paradynd to reattach by sending themselves SIGILL.
 
-#include <assert.h>
-#include <signal.h>
-#include <unistd.h>
+   A detached mutatee that stops itself with SIGSTOP will not be
+   noticed by the mutator or paradynd.  It must send SIGILL to be
+   noticed.
+    
+   There are two ways to send SIGILL to yourself: call kill() or
+   execute an illegal instruction.
 
-/************************************************************************
- * void DYNINSTbreakPoint(void)
- *
- * stop oneself.
-************************************************************************/
+   We chose to use illegal instructions. The SIGILL handler has a
+   simpler implementation if SIGILL is caused by an illegal
+   instruction.  We do not use kill() to send SIGILL.
 
-extern DYNINSTsigill();
+   The test suite calls this function through the dynamic loader to
+   avoid duplication of code in the test suite and additional makefile
+   complexity.
+    
+   3000 bytes of source code for 3 bytes of object code.
+*/
 
-void DYNINSTbreakPoint(void)
-{
-#ifdef DETACH_ON_THE_FLY
-     DYNINSTsigill();
-     return;
-#endif /* DETACH_ON_THE_FLY */
-    kill(getpid(), SIGSTOP);
-}
+    .text
+    .globl DYNINSTsigill
+
+DYNINSTsigill:
+    ud2
+    ret
