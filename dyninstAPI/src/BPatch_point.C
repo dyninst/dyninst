@@ -171,7 +171,7 @@ const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets(BPat
  */
 void *BPatch_point::getAddress()
 {
-    return (void *)point->iPgetAddress();
+    return (void *)point->iPgetAddress(proc);
 }
 
 
