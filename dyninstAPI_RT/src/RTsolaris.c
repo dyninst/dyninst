@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.12 2000/08/08 15:03:43 wylie Exp $
+ * $Id: RTsolaris.c,v 1.13 2002/06/26 21:15:06 schendel Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -105,6 +105,8 @@ DYNINSTos_init(int calledByFork, int calledByAttach)
 #endif
 
     DYNINSTheap_setbounds();
+    /* uncomment this if you want instrumentation written out in core files */
+    /* setmemwrite(); */
 }
 
 
@@ -240,3 +242,70 @@ int DYNINSTloadLibrary(char *libname)
 	return 0;
 }
 
+
+
+/*
+We can get Solaris to put instrumented code in the core file of dumped
+mutatees by setting setting WRITE protection on all pages in the
+process (SHARED text pages cannot have WRITE protect set).
+
+To use, compile and link this code with the runtime library, and call
+setmemwrite from DYNINSTinit.
+*/
+
+/* Set every page in this process to be writable to
+   cause pages with instrumented code to be saved in core dumps. */
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/procfs.h>
+#define maxpmap 512
+static
+int setmemwrite()
+{
+    int pfd, numpmap, i;
+    prmap_t pmap[maxpmap];
+
+    char buf[32];
+    sprintf(buf, "/proc/%05d", getpid());
+    pfd = open(buf, O_RDONLY);
+    if (0 > pfd) {
+	 perror("open (in setmemwrite)");
+	 fprintf(stderr, "Can't open /proc on myself\n");
+	 exit(1);
+    }
+    if (0 > ioctl(pfd, PIOCNMAP, &numpmap)) {
+	 perror("PIOCNMAP (in setmemwrite)");
+	 exit(1);
+    }
+    if (numpmap + 1 > maxpmap) {
+	 fprintf(stderr, "Too many memory mappings\n");
+	 exit(1);
+    }
+    if (0 > ioctl(pfd, PIOCMAP, pmap)) {
+	 perror("PIOCMAP (in setmemwrite)");
+	 exit(1);
+    }
+    for (i = 0; i < numpmap; i++) {
+	 prmap_t *p = &pmap[i];
+	 /* Enable WRITE if this region does not have it already and
+	    we won't get in trouble for setting it (i.e., it is not
+	    SHARED). */
+	 if (~p->pr_mflags & MA_WRITE
+	     && ~p->pr_mflags & MA_SHARED)
+	      if (0 > mprotect(p->pr_vaddr, p->pr_size,
+			       PROT_WRITE
+			       | PROT_READ
+			       | (p->pr_mflags & MA_EXEC ? PROT_EXEC : 0))) {
+		   perror("mprotect (in setmemwrite)");
+		   fprintf(stderr, "mprotect (it %d) args: %#010x, %x, %x\n",
+			   i,
+			   p->pr_vaddr, p->pr_size, 
+			   PROT_WRITE
+			   | PROT_READ
+			   | (p->pr_mflags & MA_EXEC ? PROT_EXEC : 0));
+		   exit(1);
+	      }
+    }
+    close(pfd);
+    return 0;
+}
