@@ -15,7 +15,7 @@ visualization.obj: ../src/visualization.C \
  ../../visi/src/visualizationP.h visi.xdr.SRVR.h visi.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/solarisHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../visi/src/datagridP.h \
@@ -24,20 +24,20 @@ visualization.obj: ../src/visualization.C \
 visi.xdr.SRVR.obj: visi.xdr.SRVR.C visi.xdr.SRVR.h visi.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/solarisHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h
 visi.xdr.CLNT.obj: visi.xdr.CLNT.C visi.xdr.CLNT.h visi.xdr.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/solarisHeaders.h ../../pdutil/h/pdsocket.h \
- ../../thread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
+ ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h
 visi.xdr.obj: visi.xdr.C visi.xdr.h ../../pdutil/h/rpcUtil.h \
  ../../common/h/headers.h ../../common/h/solarisHeaders.h \
- ../../pdutil/h/pdsocket.h ../../thread/h/thread.h ../../pdutil/h/pddesc.h \
+ ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h
