@@ -1244,7 +1244,7 @@ void* DYNINSTsignalRPCthread(void) {
 void DYNINSTlaunchRPCthread(void) {
   mutex_init(rpc_mutex_ptr, USYNC_PROCESS, NULL);
   cond_init(rpc_cv_ptr, USYNC_PROCESS, NULL);
-  thr_create(NULL, 0, DYNINST_RPC_Thread, NULL, THR_NEW_LWP|THR_BOUND, &DYNINSTthreadRPC_threadId) ;
+  /* thr_create(NULL, 0, DYNINST_RPC_Thread, NULL, THR_NEW_LWP|THR_BOUND, &DYNINSTthreadRPC_threadId) ; */
 }
 
 void DYNINST_initialize_RPCthread(void) {
