@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.19  1994/05/11 18:45:37  markc
+ * Revision 1.20  1994/05/17 00:17:06  hollings
+ * Made sure we did the correct thing on a callErrr.
+ *
+ * Revision 1.19  1994/05/11  18:45:37  markc
  * Put code in addExecutable to assign the machine name for paradynDaemons
  * that are started on the local host.
  *
@@ -493,8 +496,7 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
 	id = daemon->enableDataCollection(ra, m->getName());
 	if (daemon->callErr == -1) {
 	    removeDaemon(daemon, TRUE);
-	}
-	if (id > 0) {
+	} else if (id > 0) {
 	    comp = new component(*curr, id, mi);
 	    mi->components.add(comp, (void *) *curr);
 	    mi->parts.add(&comp->sample, (void *) *curr);
