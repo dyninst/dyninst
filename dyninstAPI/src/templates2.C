@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.15 2002/08/31 16:53:15 mikem Exp $
+// $Id: templates2.C,v 1.16 2002/10/08 16:23:19 mikem Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -108,8 +108,10 @@ template class vectorSet<inferiorRPCinProgress>;
 template class vector<intCounterHK*>;
 template class vector<wallTimerHK*>;
 template class vector<processTimerHK*>;
+#ifdef PAPI
 template class vector<hwTimerHK*>;
 template class vector<hwCounterHK*>;
+#endif
 
 #ifndef USES_NATIVE_CC
 #include "varInstance.C"
@@ -117,8 +119,10 @@ template class vector<hwCounterHK*>;
 template class varInstance<intCounterHK>;
 template class varInstance<wallTimerHK>;
 template class varInstance<processTimerHK>;
+#ifdef PAPI
 template class varInstance<hwTimerHK>;
 template class varInstance<hwCounterHK>;
+#endif
 template class vector<baseVarInstance *>;
 
 #ifndef USES_NATIVE_CC
@@ -127,8 +131,10 @@ template class vector<baseVarInstance *>;
 template class varTable<intCounterHK>;
 template class varTable<wallTimerHK>;
 template class varTable<processTimerHK>;
+#ifdef PAPI
 template class varTable<hwTimerHK>;
 template class varTable<hwCounterHK>;
+#endif
 template class vector<baseVarTable *>;
 #endif
 
