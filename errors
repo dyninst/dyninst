@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.14  1994/07/08 21:19:18  jcargill
+# Revision 1.15  1994/07/08 21:23:43  jcargill
+# created error #13
+#
+# Revision 1.14  1994/07/08  21:19:18  jcargill
 # created error #12
 #
 # Revision 1.13  1994/07/08  21:14:07  jcargill
@@ -172,4 +175,13 @@ bogus test error message
 %S information
 %X
 testing
+%Y
+
+%N 13
+%E testing
+%A dm
+%S serious
+%X
+foo
+again
 %Y
