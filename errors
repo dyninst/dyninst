@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.5  1994/04/19 18:46:30  hollings
+# Revision 1.6  1994/04/19 18:50:06  hollings
+# created error #5
+#
+# Revision 1.5  1994/04/19  18:46:30  hollings
 # created error #4
 #
 # Revision 1.4  1994/04/19  18:41:55  hollings
@@ -60,4 +63,13 @@ machine (either from the user or the system based on adding new hosts), and
 the paradyn user process was unable to rendezvous with the paradynd process.
 This could indicate a network failure, the paradynd process not being 
 installed on the remote machine, or a file permission problem.
+%Y
+
+%N 5
+%E paradynd process has died
+%A paradynd
+%S information
+%X
+A paradynd process has died somewhere in the system.  This indicates either
+a network failure, a host failure, or a bug in the paradyd process.
 %Y
