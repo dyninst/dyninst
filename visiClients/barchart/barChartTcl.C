@@ -1,9 +1,12 @@
 // barChartTcl.C
 
 /* $Log: barChartTcl.C,v $
-/* Revision 1.7  1994/11/06 10:24:59  tamches
-/* minor cleanups (especially comments)
+/* Revision 1.8  1995/09/22 19:25:29  tamches
+/* removed warnings under g++ 2.7.0
 /*
+ * Revision 1.7  1994/11/06  10:24:59  tamches
+ * minor cleanups (especially comments)
+ *
  * Revision 1.6  1994/10/14  10:29:33  tamches
  * commented out diagnosted message when gracefully closing
  *
@@ -48,7 +51,7 @@ int Dg2NewDataCallback(int lastBucket) {
       return TCL_ERROR;
 }
 
-int resizeCallbackCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
+int resizeCallbackCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
    // called from barChart.tcl when it detects a resize; gives our C++ code
    // a chance to process the resize, too.
 
@@ -61,7 +64,7 @@ int resizeCallbackCommand(ClientData cd, Tcl_Interp *interp, int argc, char **ar
       return TCL_ERROR;
 }
 
-int exposeCallbackCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
+int exposeCallbackCommand(ClientData, Tcl_Interp *, int, char **) {
    // called from barChart.tcl when it detects an expose; gives our C++ code
    // a chance to process the expose, too.
 
@@ -73,7 +76,7 @@ int exposeCallbackCommand(ClientData cd, Tcl_Interp *interp, int argc, char **ar
       return TCL_ERROR;
 }
 
-int resourcesAxisHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
+int resourcesAxisHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **) {
    // called from barChart.tcl when the x-axis layout has changed due to resize,
    // insertion/deletion, etc; gives our C++ code a chance to update its
    // internal structures.
@@ -89,7 +92,7 @@ int resourcesAxisHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, 
       return TCL_ERROR;
 }
 
-int metricsAxisHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
+int metricsAxisHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **) {
    // called from barChart.tcl when the y-axis layout has changed due to resize,
    // insertion/deletion, etc; gives our C++ code a chance to update its
    // internal structures.
@@ -105,7 +108,7 @@ int metricsAxisHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, ch
       return TCL_ERROR;
 }
 
-int newScrollPositionCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
+int newScrollPositionCommand(ClientData, Tcl_Interp *, int, char **argv) {
    // called by tcl code when it's time to scroll the bars to a given value
    if (barChartIsValid) {
       int newPos = atoi(argv[1]);
@@ -117,7 +120,7 @@ int newScrollPositionCommand(ClientData cd, Tcl_Interp *interp, int argc, char *
       return TCL_ERROR;
 }
 
-int dataFormatHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
+int dataFormatHasChangedCommand(ClientData, Tcl_Interp *, int, char **) {
    if (barChartIsValid) {
       theBarChart->rethinkDataFormat();
       return TCL_OK;
@@ -126,7 +129,7 @@ int dataFormatHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, cha
       return TCL_ERROR;
 }
 
-int rethinkIndirectResourcesCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
+int rethinkIndirectResourcesCommand(ClientData, Tcl_Interp *, int, char **) {
    if (barChartIsValid) {
       theBarChart->rethinkIndirectResources();
       return TCL_OK;
@@ -135,7 +138,7 @@ int rethinkIndirectResourcesCommand(ClientData, Tcl_Interp *, int argc, char **a
       return TCL_ERROR;
 }
 
-int launchBarChartCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
+int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
    // called just once to fix some information needed by drawBarsCommand, especially
    // the (sub-)window in which to draw.
 
@@ -156,13 +159,10 @@ int launchBarChartCommand(ClientData cd, Tcl_Interp *interp, int argc, char **ar
    char *wname = argv[1];
    const int iNumMetrics   = atoi(argv[4]);
    const int iNumResources = atoi(argv[5]);
-   const bool iFlushFlag = (0==strcmp("1", argv[6]));
+//   const bool iFlushFlag = (0==strcmp("1", argv[6]));
 
    theBarChart = new BarChart(wname,
-			      0==strcmp("doublebuffer", argv[2]),
-			      0==strcmp("noflicker", argv[3]),
-			      iNumMetrics, iNumResources,
-			      iFlushFlag);
+			      iNumMetrics, iNumResources);
    if (theBarChart == NULL)
       panic("launchBarChartCommand() -- out of memory!");
 
@@ -170,13 +170,13 @@ int launchBarChartCommand(ClientData cd, Tcl_Interp *interp, int argc, char **ar
    return TCL_OK;
 }
 
-void deleteLaunchBarChartCommand(ClientData cd) {
+void deleteLaunchBarChartCommand(ClientData) {
    // cout << "Gracefully closing down barchart..." << endl;
 
    barChartIsValid = false; // important!
    delete theBarChart;
 }
 
-void deleteDummyProc(ClientData cd) { }
+void deleteDummyProc(ClientData) { }
    // do-nothing routine to be called when a command is deleted that
    // doesn't require closing down...

@@ -7,9 +7,12 @@
 // option which does -O and -DNDEBUG
 
 /* $Log: barChart.C,v $
-/* Revision 1.16  1995/08/06 22:09:47  tamches
-/* tk.h, tcl.h --> tkclean.h, tclclean.h
+/* Revision 1.17  1995/09/22 19:24:21  tamches
+/* removed warnings under g++ 2.7.0
 /*
+ * Revision 1.16  1995/08/06  22:09:47  tamches
+ * tk.h, tcl.h --> tkclean.h, tclclean.h
+ *
  * Revision 1.15  1995/07/06  18:54:32  tamches
  * Update for tk4.0
  *
@@ -130,9 +133,7 @@ BarChart *theBarChart;
 */
 
 BarChart::BarChart(char *tkWindowName,
-		   const bool dblBuffer, const bool noFlicker,
-		   const int initNumMetrics, const int initNumResources,
-		   const bool initFlushFlag) :
+		   const int initNumMetrics, const int initNumResources) :
             metricColors(initNumMetrics),
 	    indirectResources(initNumResources),
 	    validMetrics(initNumMetrics),
@@ -623,21 +624,21 @@ void BarChart::rethinkValidMetricsAndResources() {
    for (int resourcelcv=0; resourcelcv<numResources; resourcelcv++) 
       validResources[resourcelcv]=false;
 
-   for (metriclcv=0; metriclcv<numMetrics; metriclcv++)
-      for (resourcelcv=0; resourcelcv<numResources; resourcelcv++)
-         if (dataGrid[metriclcv][resourcelcv].Enabled()) {
-            validMetrics[metriclcv] = true;
-            validResources[resourcelcv] = true;
+   for (int metlcv=0; metlcv<numMetrics; metlcv++)
+      for (int reslcv=0; reslcv<numResources; reslcv++)
+         if (dataGrid[metlcv][reslcv].Enabled()) {
+            validMetrics[metlcv] = true;
+            validResources[reslcv] = true;
 	 }
 
    numValidMetrics=0;
-   for (metriclcv=0; metriclcv<numMetrics; metriclcv++)
-      if (validMetrics[metriclcv])
+   for (int metlcv2=0; metlcv2<numMetrics; metlcv2++)
+      if (validMetrics[metlcv2])
          numValidMetrics++;
 
    numValidResources=0;
-   for (resourcelcv=0; resourcelcv<numResources; resourcelcv++)
-      if (validResources[resourcelcv])
+   for (int reslcv=0; reslcv<numResources; reslcv++)
+      if (validResources[reslcv])
          numValidResources++;
 }
 
@@ -791,7 +792,7 @@ void BarChart::lowestLevelDrawBarsDoubleBuffer() {
 	    );
 }
 
-void BarChart::lowestLevelDrawBars(ClientData ignore) {
+void BarChart::lowestLevelDrawBars(ClientData) {
    // NOTE: a --static-- member function --> no "this" exists!!
 
    currentlyInstalledLowLevelDrawBars = false;

@@ -2,9 +2,12 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.8  1995/08/06 22:11:48  tamches
-/* removed some warnings by using myTclEval
+/* Revision 1.9  1995/09/22 19:23:41  tamches
+/* removed warnings under g++ 2.7.0
 /*
+ * Revision 1.8  1995/08/06  22:11:48  tamches
+ * removed some warnings by using myTclEval
+ *
  * Revision 1.7  1995/02/26  02:01:48  newhall
  * added callback functions for new visiLib phase info.
  *
@@ -45,7 +48,7 @@
 #include "barChartTcl.h"
 #include "barChart.h"
 
-void my_visi_callback(void* arg0, int* arg1, long unsigned int* arg2) {
+void my_visi_callback(void*, int*, long unsigned int*) {
    if (visi_callback() == -1)
       exit(0);
 }
@@ -57,7 +60,7 @@ void myTclEval(Tcl_Interp *interp, const char *cmd) {
    }
 }
 
-int Dg2AddMetricsCallback(int dummy) {
+int Dg2AddMetricsCallback(int) {
    myTclEval(MainInterp, "DgConfigCallback");
 
    // if necessary, the tcl program will call xAxisHasChanged and/or
@@ -67,17 +70,17 @@ int Dg2AddMetricsCallback(int dummy) {
    return TCL_OK;
 }
 
-int Dg2Fold(int dummy) {
+int Dg2Fold(int) {
    myTclEval(MainInterp, "DgFoldCallback");
    return TCL_OK;
 }
 
-int Dg2InvalidMetricsOrResources(int dummy) {
+int Dg2InvalidMetricsOrResources(int) {
    myTclEval(MainInterp, "DgInvalidCallback");
    return TCL_OK;
 }
 
-int Dg2PhaseNameCallback(int dummy) {
+int Dg2PhaseNameCallback(int) {
    myTclEval(MainInterp, "DgPhaseCallback");
    return TCL_OK;
 }
@@ -155,10 +158,9 @@ int findCommand(Tcl_Interp *interp,
   return CMDERROR;
 }
 
-int Dg_TclCommand(ClientData clientData,
-	       Tcl_Interp *interp, 
-	       int argc, 
-	       char *argv[]) {
+int Dg_TclCommand(ClientData,
+		  Tcl_Interp *interp, 
+		  int argc, char *argv[]) {
   // entrypoint to the tcl "Dg" command we've installed
   // all the sprintf()'s are rather slow...
 

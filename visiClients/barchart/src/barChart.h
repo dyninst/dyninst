@@ -1,9 +1,12 @@
 // barChart.h
 
 /* $Log: barChart.h,v $
-/* Revision 1.8  1994/11/06 10:26:20  tamches
-/* removed fullResourceHeight as a member vrble
+/* Revision 1.9  1995/09/22 19:24:03  tamches
+/* removed warnings under g++ 2.7.0
 /*
+ * Revision 1.8  1994/11/06  10:26:20  tamches
+ * removed fullResourceHeight as a member vrble
+ *
  * Revision 1.7  1994/10/14  10:27:45  tamches
  * Swapped the x and y axes -- now resources print vertically and
  * metrics print horizontally.  Can fit many, many more resources
@@ -139,9 +142,7 @@ class BarChart {
    double nicelyRoundedMetricNewMaxValue(const int metricindex, const double newmaxval);
 
   public:
-   BarChart(char *tkWindowName, const bool dblBuffer, const bool noFlicker,
-	    const int iNumMetrics, const int iNumResources,
-	    const bool iFlushFlag);
+   BarChart(char *tkWindowName, const int iNumMetrics, const int iNumResources);
   ~BarChart();
 
    void processFirstGoodWid();

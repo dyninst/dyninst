@@ -1,10 +1,13 @@
 // barChartDriver.C
 
 /* $Log: barChartDriver.C,v $
-/* Revision 1.6  1995/08/06 22:11:13  tamches
-/* barChart now uses tcl2c.
-/* Now needs no command-line args.
+/* Revision 1.7  1995/09/22 19:25:04  tamches
+/* removed warnings under g++ 2.7.0
 /*
+ * Revision 1.6  1995/08/06  22:11:13  tamches
+ * barChart now uses tcl2c.
+ * Now needs no command-line args.
+ *
  * Revision 1.5  1995/07/06  18:55:31  tamches
  * Now contains a main program suitable for tk4.0
  *
@@ -42,7 +45,7 @@ void panic(const char *msg) {
 
 Tcl_Interp *MainInterp = NULL; // needed by Dg
 
-int main(int argc, char **argv) {
+int main(int argc, char **) {
    // argc should be 3.  The first argv is of course the program name.
    // The second is "-f".  The third is a full-path-name to the barchart tcl file.
    if (argc == 2)
