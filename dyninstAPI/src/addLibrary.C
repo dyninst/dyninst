@@ -1,4 +1,9 @@
-/* $Id: addLibrary.C,v 1.6 2002/06/19 18:18:34 chadd Exp $ */
+/* -*- Mode: C; indent-tabs-mode: true -*- */
+// Since the author of this file chose to use tabs instead of spaces
+// for the indentation mode, the above line switches users into tabs
+// mode with emacs when editing this file.
+/* $Id: addLibrary.C,v 1.7 2003/01/02 19:51:33 schendel Exp $ */
+
 
 #if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
 #include "addLibrary.h"
@@ -171,7 +176,7 @@ void addLibrary::updateDynamic(Elf_Data *newData, unsigned int hashOff, unsigned
 
 }
 
-int addLibrary::findSection(char* name){
+int addLibrary::findSection(const char* name){
 	
 	for(int cnt = 0 ; cnt < arraySize; cnt ++ ){
 		if (newElfFileSec[cnt].sec_hdr && 
@@ -234,8 +239,8 @@ void addLibrary::updateProgramHeaders(Elf32_Phdr *phdr, unsigned int dynstrOffse
 } 
 
 
-void addLibrary::addStr(Elf_Data *newData,Elf_Data *oldData ,char* libname){
-
+void addLibrary::addStr(Elf_Data *newData,Elf_Data *oldData, 
+			const char* libname){
 	newData->d_size += libnameLen;
 	
 	delete [] (char*) newData->d_buf;
@@ -248,13 +253,13 @@ void addLibrary::addStr(Elf_Data *newData,Elf_Data *oldData ,char* libname){
 
 }
 
-int addLibrary::writeNewElf(char* filename, char* libname){
+int addLibrary::writeNewElf(char* filename, const char* libname){
 
 	Elf32_Ehdr *realEhdr;
 	Elf32_Phdr *realPhdr;
 	Elf_Scn *realScn;
 	Elf32_Shdr *realShdr;
-	Elf_Data *realData, *strTabData;
+	Elf_Data *realData, *l_strTabData;
 	unsigned int dynstrOffset;
 	bool seenDynamic = false;
 
@@ -300,7 +305,7 @@ int addLibrary::writeNewElf(char* filename, char* libname){
 
 	realEhdr ->e_phoff = newPhdrOffset;
 
-	strTabData = newElfFileSec[findSection(".shstrtab")].sec_data; 
+	l_strTabData = newElfFileSec[findSection(".shstrtab")].sec_data; 
 	//section data
 	
 	int pastPhdr = 0;
@@ -382,32 +387,32 @@ int addLibrary::writeNewElf(char* filename, char* libname){
                 }
 
 		if(!foundDynstr){
-			if(!strcmp(".hash", (char *)strTabData->d_buf+realShdr->sh_name)){
+			if(!strcmp(".hash", (char *)l_strTabData->d_buf+realShdr->sh_name)){
 				realShdr->sh_offset = hashOffset;
-			}else if(!strcmp(".dynsym", (char *)strTabData->d_buf+realShdr->sh_name)){
+			}else if(!strcmp(".dynsym", (char *)l_strTabData->d_buf+realShdr->sh_name)){
 				realShdr->sh_offset = dynsymOffset;
-			}else if(!strcmp(".hash", (char *)strTabData->d_buf+realShdr->sh_name)){
+			}else if(!strcmp(".hash", (char *)l_strTabData->d_buf+realShdr->sh_name)){
 				realShdr->sh_offset = dynstrOffsetNEW;
 			}else{ // .interp 
 				realShdr->sh_offset -= libnameLen;
 			}
 		}
 
-		if( !strcmp(".dynamic", (char *)strTabData->d_buf+realShdr->sh_name) && !seenDynamic) {
+		if( !strcmp(".dynamic", (char *)l_strTabData->d_buf+realShdr->sh_name) && !seenDynamic) {
 			seenDynamic = true; 
 			updateDynamic(realData, hashOffset+BASEADDR, dynsymOffset+BASEADDR, 
 				dynstrOffsetNEW+BASEADDR);
 			realShdr->sh_size += sizeof(Elf32_Dyn);  // i added a shared library
 			
 
-		}else if( !strcmp(".dynamic", (char *)strTabData->d_buf+realShdr->sh_name) && seenDynamic) {
+		}else if( !strcmp(".dynamic", (char *)l_strTabData->d_buf+realShdr->sh_name) && seenDynamic) {
 			realShdr->sh_name = 0;
 			realShdr->sh_type = 1;
 			realData->d_size = realShdr->sh_size;
 		}
 
 		
-		if( !strcmp(".dynstr", (char *)strTabData->d_buf+realShdr->sh_name) ){
+		if( !strcmp(".dynstr", (char *)l_strTabData->d_buf+realShdr->sh_name) ){
 			dynstrOffset = realShdr->sh_offset;
 			addStr(realData,newElfFileSec[cnt].sec_data, libname);
 			realShdr->sh_size += libnameLen;
@@ -417,9 +422,9 @@ int addLibrary::writeNewElf(char* filename, char* libname){
 			realShdr->sh_offset+=_pageSize;
 			pastPhdr = 1;
 		}
-		if( !strncmp("dyninstAPI_",(char *)strTabData->d_buf+realShdr->sh_name, 11)){
-			if(strcmp("dyninstAPI_mutatedSO", (char *)strTabData->d_buf+realShdr->sh_name)  &&
-				strcmp("dyninstAPI_data", (char *)strTabData->d_buf+realShdr->sh_name) 	){
+		if( !strncmp("dyninstAPI_",(char *)l_strTabData->d_buf+realShdr->sh_name, 11)){
+			if(strcmp("dyninstAPI_mutatedSO", (char *)l_strTabData->d_buf+realShdr->sh_name)  &&
+				strcmp("dyninstAPI_data", (char *)l_strTabData->d_buf+realShdr->sh_name) 	){
 	
 				realShdr->sh_offset += extraSegmentPad;
 				while( (realShdr->sh_addr - realShdr->sh_offset)%0x10000 ){
@@ -428,14 +433,14 @@ int addLibrary::writeNewElf(char* filename, char* libname){
 	
 				}
 				foundExtraSegment = 1;
-				newSegments[atoi(& ( ((char *)strTabData->d_buf+realShdr->sh_name )[11]))] = realShdr;
+				newSegments[atoi(& ( ((char *)l_strTabData->d_buf+realShdr->sh_name )[11]))] = realShdr;
 			} else{
 				realShdr->sh_offset += extraSegmentPad;
 			}	
 		}else if(foundExtraSegment){
 			realShdr->sh_offset += extraSegmentPad;
 
-			if(!strncmp("dyninstAPIhighmem_",(char *)strTabData->d_buf+realShdr->sh_name, 18)){
+			if(!strncmp("dyninstAPIhighmem_",(char *)l_strTabData->d_buf+realShdr->sh_name, 18)){
 				//since this is not loaded by the loader, ie it is mmaped (maybe)
 				//by libdyninstAPI_RT.so it only needs aligned on the real pag size
 				while( (realShdr->sh_addr - realShdr->sh_offset)%realPageSize ){
@@ -460,7 +465,7 @@ int addLibrary::writeNewElf(char* filename, char* libname){
 //text gap (1) or the data gap (2)
 //
 //If we cannot open the new file we return -1
-int addLibrary::driver(Elf *elf,  char* newfilename, char *libname){
+int addLibrary::driver(Elf *elf,  char* newfilename, const char *libname) {
 
 	libnameLen = strlen(libname) +1;
 	oldElf = elf;	
@@ -492,8 +497,8 @@ int addLibrary::driver(Elf *elf,  char* newfilename, char *libname){
 
 void addLibrary::fixUpPhdrForDynamic(){
 
-//change data segment
-//change dynamic ptr
+	//change data segment
+	//change dynamic ptr
 	unsigned int dataSegSizeChange;
 	int dataSegIndex=0, dynSegIndex=0;
 
@@ -681,16 +686,16 @@ unsigned int addLibrary::findStartOfDataSegment(){
 
 
 int addLibrary::findNewPhdrAddr(){
-        Elf32_Shdr *tmpShdr;
+	Elf32_Shdr *tmpShdr;
 
-        if(gapFlag == TEXTGAP){
-                tmpShdr = newElfFileSec[/*findSection(".rodata")*/ textSegEndIndx].sec_hdr;
-                newPhdrAddr = tmpShdr->sh_addr + tmpShdr->sh_size;
-        }else if(gapFlag == DATAGAP){
-                tmpShdr = newElfFileSec[/*findSection(".data")*/ dataSegStartIndx].sec_hdr;
-                newPhdrAddr = tmpShdr->sh_addr - phdrSize;
+	if(gapFlag == TEXTGAP){
+		tmpShdr = newElfFileSec[/*findSection(".rodata")*/ textSegEndIndx].sec_hdr;
+		newPhdrAddr = tmpShdr->sh_addr + tmpShdr->sh_size;
+	} else if(gapFlag == DATAGAP) {
+		tmpShdr = newElfFileSec[/*findSection(".data")*/ dataSegStartIndx].sec_hdr;
+		newPhdrAddr = tmpShdr->sh_addr - phdrSize;
 	}
-
+	
 	while(newPhdrAddr %4){
 		newPhdrAddr ++;
 	}	

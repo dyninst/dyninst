@@ -1,4 +1,9 @@
-/* $Id: imageUpdate.h,v 1.3 2002/12/20 07:49:56 jaw Exp $ */
+/* -*- Mode: C; indent-tabs-mode: true -*- */
+// Since the author of this file chose to use tabs instead of spaces
+// for the indentation mode, the above line switches users into tabs
+// mode with emacs when editing this file.
+
+/* $Id: imageUpdate.h,v 1.4 2003/01/02 19:51:35 schendel Exp $ */
 
 #if defined(BPATCH_LIBRARY)
 
@@ -13,13 +18,11 @@
 
 
 class imageUpdate{
+ public:
 
-        public:
-
-        unsigned int address;
-        unsigned int size;
-        int startPage, stopPage;
-
+	unsigned int address;
+	unsigned int size;
+	int startPage, stopPage;
 
 	imageUpdate(){
 		address =0;
@@ -33,11 +36,11 @@ class imageUpdate{
 		stopPage = obj.stopPage;
 	};
 
-	const imageUpdate& operator=(const imageUpdate &obj){ 
-                address = obj.address;
-                size = obj.size;
-                startPage = obj.startPage;
-                stopPage = obj.stopPage;
+	const imageUpdate& operator=(const imageUpdate &obj) { 
+		address = obj.address;
+		size = obj.size;
+		startPage = obj.startPage;
+		stopPage = obj.stopPage;
 		return *this;
 	};
 
@@ -56,27 +59,27 @@ class imageUpdate{
 	bool operator>(const imageUpdate &right) const{
 		return address> right.address;
 	};
-
-	static int imageUpdateSort(const void * left, const void *right)
-	  {
-	    const imageUpdate *leftSym = *(const imageUpdate* const *) left;
-	    const imageUpdate *rightSym = *(const imageUpdate* const *) right;
-
-	    if(leftSym->address > rightSym->address)
-	      return 1;
-	    else 
-	      return -1;
-	  };
 };
 
+extern "C" {
+static inline int imageUpdateSort(const void * left, 
+											 const void *right)
+{
+	const imageUpdate *leftSym = *(const imageUpdate* const *) left;
+	const imageUpdate *rightSym = *(const imageUpdate* const *) right;
+   
+	if(leftSym->address > rightSym->address)
+		return 1;
+	else 
+		return -1;
+};
+}
 
-typedef struct dataUpdate__{
 
-
+typedef struct dataUpdate__ {
 	unsigned int address;
 	unsigned int size;
 	char* value;	
-
 } dataUpdate;
 
 #endif

@@ -1,4 +1,9 @@
-/* $Id: addLibrary.h,v 1.3 2002/05/21 17:40:30 chadd Exp $ */
+/* -*- Mode: C; indent-tabs-mode: true -*- */
+// Since the author of this file chose to use tabs instead of spaces
+// for the indentation mode, the above line switches users into tabs
+// mode with emacs when editing this file.
+
+/* $Id: addLibrary.h,v 1.4 2003/01/02 19:51:34 schendel Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
 
@@ -45,11 +50,11 @@ class addLibrary {
 
 	
 	void createNewElf();
-	int findSection(char *name);
+	int findSection(const char *name);
 	void updateDynamic(Elf_Data*newData,unsigned int hashOff, unsigned int dynsymOff, unsigned int dynstrOff);
 	void updateProgramHeaders(Elf32_Phdr *phdr, unsigned int dynstrOffset, Elf32_Shdr**newSegs);
-	void addStr(Elf_Data* newData, Elf_Data* oldData, char *str);
-	int writeNewElf(char* filename, char* libname);
+	void addStr(Elf_Data* newData, Elf_Data* oldData, const char *str);
+	int writeNewElf(char* filename, const char* libname);
 	unsigned int findEndOfTextSegment();
 	unsigned int findStartOfDataSegment();
 
@@ -64,7 +69,7 @@ class addLibrary {
 
 	unsigned int _pageSize, realPageSize;	
 	public:
-	int driver(Elf *elf, char *newfilename, char *libname);
+	int driver(Elf *elf, char *newfilename, const char *libname);
 	addLibrary();
 	~addLibrary();
 
