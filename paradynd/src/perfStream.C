@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.126 2002/02/21 21:48:32 bernat Exp $
+// $Id: perfStream.C,v 1.127 2002/04/05 19:39:21 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -57,6 +57,7 @@ extern "C" {
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/dyninstP.h"
 #include "paradynd/src/metric.h"
+#include "paradynd/src/machineMetFocusNode.h"
 #include "dyninstAPI/src/util.h"
 #include "paradynd/src/comm.h"
 #include "dyninstAPI/src/stats.h"
@@ -447,53 +448,29 @@ void processTraceStream(process *curr)
 }
 
 
-extern vector<defInst*> instrumentationToDo;
-extern int startCollecting(string& metric_name, vector<u_int>& focus, 
-                           int id, vector<process *> &procsToCont);
+extern vector<defInst*> instrToDo;
 
 void doDeferredInstrumentation() {
-  string metric;
-  vector<u_int> focus; 
-  int id;
- 
-  for (unsigned i=0; i < instrumentationToDo.size(); i++) {
+  for (int i=(int)instrToDo.size()-1; i>=0; i--) {
+    int id     = instrToDo[i]->id();
 
-    vector<process *> procsToContinue;
-    metric = instrumentationToDo[i]->metric();
-    focus  = instrumentationToDo[i]->focus();
-    id     = instrumentationToDo[i]->id();
+    machineMetFocusNode *machNode;
+    machNode = machineMetFocusNode::lookupMachNode(id);
 
-    bool instrumented = startCollecting(metric, focus, id, procsToContinue);
-
-    // continue the processes that were stopped in start collecting
-    for (unsigned u = 0; u < procsToContinue.size(); u++) {
-
-#ifdef DETACH_ON_THE_FLY
-      procsToContinue[u]->detachAndContinue();
-#else
-      procsToContinue[u]->continueProc();
-#endif
-
+    if(machNode == NULL) {
+      cerr << "Can't find machineMetFocusNode which should exist\n";
+      assert(false);
     }
+    machNode->pauseProcesses();
+    bool instrumented = machNode->insertInstrumentation();
 
-    if (instrumented) {
-
-      int numDeferred = instrumentationToDo.size();
-      // delete the defInst object for the deferred instrumentation that was 
-      // successfully inserted and shift the defInst objects in the 
-      // instrumentationToDo vector, resizing the vector
-      delete instrumentationToDo[i];
-
-      for (int j=i; j < numDeferred-1; j++) {
-        instrumentationToDo[j] = instrumentationToDo[j+1];
-      }
-
-      instrumentationToDo.resize(numDeferred - 1); 
-      
-      // defInst objects were shifted, so index i has new deferred 
-      // instrumentation to be inserted
-      i--;
-    }  
+    if(instrumented) {
+      delete instrToDo[i];
+      instrToDo.erase(i);
+    
+      machNode->initializeForSampling(getWallTime(), pdSample::Zero());
+    }
+    machNode->continueProcesses();
   }
 
 
