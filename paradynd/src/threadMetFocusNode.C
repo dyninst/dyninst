@@ -44,14 +44,7 @@
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/pd_thread.h"
 #include "paradynd/src/pd_process.h"
-
-extern unsigned enable_pd_samplevalue_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
-#else
-#define sampleVal_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
+#include "paradynd/src/debug.h"
 
 dictionary_hash<pdstring, threadMetFocusNode_Val*> 
              threadMetFocusNode::allThrMetFocusNodeVals(pdstring::hash);
@@ -170,11 +163,11 @@ unsigned threadMetFocusNode_Val::getThreadIndex() const {
 
 bool threadMetFocusNode_Val::isReadyForUpdates() {
   if(! instrInserted()) {
-    sampleVal_cerr << "mi " << this << " hasn't been inserted\n";
+    sample_cerr << "mi " << this << " hasn't been inserted\n";
     return false;
   }
   if(! hasAggInfoBeenInitialized()) {
-    sampleVal_cerr << "mi " << this 
+    sample_cerr << "mi " << this 
 		   << " hasn't had it's agg info initialized yet\n";
     return false;
   }
@@ -185,7 +178,7 @@ bool threadMetFocusNode_Val::isReadyForUpdates() {
 void threadMetFocusNode_Val::updateValue(timeStamp sampleTime, pdSample value)
 {
   assert(value >= pdSample::Zero());
-  sampleVal_cerr << "thrNode::updateValue() - mdn: " << (void*)this
+  sample_cerr << "thrNode::updateValue() - mdn: " << (void*)this
 		 << ", value: " << value << ", cumVal: " << cumulativeValue 
 		 << "\n";
 
@@ -213,7 +206,7 @@ void threadMetFocusNode_Val::updateWithDeltaValue(timeStamp startTime,
     bool shouldAddSample = adjustSampleIfNewMdn(&valToPass, startTime, 
 				  sampleTime, curParent->getStartTime());
     if(!shouldAddSample)   continue;
-    sampleVal_cerr << "thrNode::updateWithDeltaVal- (" << i+1 
+    sample_cerr << "thrNode::updateWithDeltaVal- (" << i+1 
 		   << ") addSamplePt, tm: " << sampleTime << ", val: " 
 		   << valToPass << "\n";
     thrNodeAggInfo->addSamplePt(sampleTime, valToPass);

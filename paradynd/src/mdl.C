@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.172 2005/02/24 20:06:19 tlmiller Exp $
+// $Id: mdl.C,v 1.173 2005/03/07 21:19:00 bernat Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -62,6 +62,7 @@
 #include "paradynd/src/papiMgr.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/mdld_data.h"
+#include "paradynd/src/debug.h"
 
 // for REG_MT_POS
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
@@ -73,48 +74,6 @@
 #endif
 
 #include <ctype.h>
-
-// The following vrbles were defined in process.C:
-
-extern unsigned enable_pd_attach_detach_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define attach_cerr if (enable_pd_attach_detach_debug) cerr
-#else
-#define attach_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_inferior_rpc_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define inferiorrpc_cerr if (enable_pd_inferior_rpc_debug) cerr
-#else
-#define inferiorrpc_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_shm_sampling_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define shmsample_cerr if (enable_pd_shm_sampling_debug) cerr
-#else
-#define shmsample_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_fork_exec_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define forkexec_cerr if (enable_pd_fork_exec_debug) cerr
-#else
-#define forkexec_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_metric_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define metric_cerr if (enable_pd_metric_debug) cerr
-#else
-#define metric_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
 
 // Some global variables
 pdvector<pdstring>global_excluded_funcs;

@@ -64,6 +64,7 @@
 #include <Windows.h>
 #endif
 
+#include "paradynd/src/debug.h"
 
 // Set in main.C
 extern int termWin_port;
@@ -173,6 +174,8 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir,
         return NULL;
     }
 
+    fprintf(stderr, "Process creation...\n");
+
     // Load the paradyn runtime lib
     if (!proc->getSharedMemMgr()->initialize()) {
       fprintf(stderr, "%s[%d]:  failed to init shared mem mgr, fatal...\n", __FILE__, __LINE__);
@@ -180,6 +183,8 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir,
       return NULL;
     }
     proc->loadParadynLib(pd_process::create_load);
+
+    fprintf(stderr, "paradyn lib loaded...\n");
     
     // Run necessary initialization
     proc->init();
@@ -189,12 +194,16 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir,
     process *llproc = proc->get_dyn_process()->lowlevel_process();
     if(!costMetric::addProcessToAll(llproc))
         assert(false);
+
+    fprintf(stderr, "Adding process...\n");
     
     getProcMgr().addProcess(proc);
 
     pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
     buffer += pdstring(", ready");
     statusLine(buffer.c_str());
+
+    fprintf(stderr, "Should be paused...\n");
 
     return proc;
 }
@@ -228,6 +237,8 @@ pd_process *pd_attachProcess(const pdstring &progpath, int pid, bool parse_loops
     getProcMgr().addProcess(proc);
 
     llproc->recognize_threads(NULL);
+    
+    cerr << "Done recognizing threads" << endl;
 
     pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
     buffer += pdstring(", ready");
@@ -707,7 +718,12 @@ void pd_process::postForkHandler(BPatch_thread *child) {
    if(childDynProc->multithread_capable())
       MT_lwp_setup(parentDynProc, childDynProc);
 
+   fprintf(stderr, "Child status: %d (stopped %d)\n", childDynProc->status(), stopped);
+
    childDynProc->setParadynBootstrap();
+
+   fprintf(stderr, "Child status: %d (stopped %d)\n", childDynProc->status(), stopped);
+
    assert(childDynProc->status() == stopped);
 
    pd_process *parentProc = 
@@ -2252,4 +2268,12 @@ bool pd_process::findAllFuncsByName(resource *func, resource *mod,
        return false;
      }
      return true;
-   }
+}
+
+bool pd_process::isStopped() const {return dyninst_process->isStopped();}
+bool pd_process::isTerminated() const {return dyninst_process->isTerminated();}
+bool pd_process::isDetached() const {return dyninst_process->isDetached();}
+bool pd_process::continueProc() { 
+  fprintf(stderr, "pd_process continuing process\n");
+  return dyninst_process->continueExecution(); 
+}

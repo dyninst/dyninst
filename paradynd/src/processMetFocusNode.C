@@ -49,17 +49,10 @@
 #include "paradynd/src/init.h"
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
+#include "paradynd/src/debug.h"
 
 void checkProcStatus();  
   
-extern unsigned enable_pd_samplevalue_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
-#else
-#define sampleVal_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
 inline unsigned ui_hash_(const unsigned &u) { return u; }
 
 pdvector<processMetFocusNode *> processMetFocusNode::procNodesToDeleteLater;
@@ -240,13 +233,13 @@ void processMetFocusNode::tryAggregation() {
 bool adjustSampleIfNewMdn(pdSample *sampleVal, timeStamp startTime,
 			  timeStamp sampleTime, timeStamp MFstartTime) {
   if(! MFstartTime.isInitialized()) {
-    sampleVal_cerr << "  skipping sample since startTime- is uninitialized\n";
+    sample_cerr << "  skipping sample since startTime- is uninitialized\n";
     return false;
   }
   
   // the sample did not occur while (but before) the mdn was active
   if(sampleTime < MFstartTime) {
-    sampleVal_cerr << "  skipping sample since sample did not occur while"
+    sample_cerr << "  skipping sample since sample did not occur while"
 		   << " the mdn was active\n";
     return false;
   }
@@ -266,7 +259,7 @@ bool adjustSampleIfNewMdn(pdSample *sampleVal, timeStamp startTime,
     assert(sampleLen >= timeActiveForNewMdn);
     double pcntIntvlActiveForNewMdn = timeActiveForNewMdn / sampleLen;
     *sampleVal = pcntIntvlActiveForNewMdn * (*sampleVal);
-    sampleVal_cerr << "  using " << pcntIntvlActiveForNewMdn
+    sample_cerr << "  using " << pcntIntvlActiveForNewMdn
 		   << ", new val = " << *sampleVal << "\n";
   }
   
@@ -283,7 +276,7 @@ void processMetFocusNode::updateWithDeltaValue(timeStamp startTime,
   assert(aggInfo->isReadyToReceiveSamples());
   assert(sampleTime >= aggInfo->getInitialStartTime());
 
-  sampleVal_cerr << "procNode: " << this << ", updateWithDeltaValue, time: "
+  sample_cerr << "procNode: " << this << ", updateWithDeltaValue, time: "
 		 << sampleTime << ", val: " << valToPass << "\n";
 
   aggInfo->addSamplePt(sampleTime, valToPass);
@@ -453,7 +446,6 @@ void processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&st
     bool catchupPosted = postCatchupRPCs();
 
     if (!catchupPosted) {
-
       if (currentlyPaused) continueProcess();
       return;
     }
@@ -465,7 +457,11 @@ void processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&st
     //    our purposes
     // 3) Waiting for a system call, no trap. Nothing we can do but
     //    wait and pick it up somewhere else.
-    proc_->launchRPCs(currentlyPaused);
+    fprintf(stderr, "Doing catchup, currentlyPaused %d\n", currentlyPaused);
+    if (!proc_->launchRPCs(currentlyPaused)) {
+      if (currentlyPaused) continueProcess();
+      return;
+    }
     // currentlyPaused now becomes the state to leave the process in when we're
     // done with catchup. For a little while, we'll be out of sync with the 
     // actual process. This is annoying, but necessary, since we can't effectively

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.131 2005/03/03 18:03:06 bernat Exp $
+// $Id: main.C,v 1.132 2005/03/07 21:18:59 bernat Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -61,6 +61,7 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 #include "paradynd/src/processMgr.h"
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/processMetFocusNode.h"
+#include "paradynd/src/debug.h"
 
 int StartOrAttach( void );
 bool isInfProcAttached = false;
@@ -127,6 +128,11 @@ void cleanUpAndExit(int status) {
    // delete the trace socket file
    unlink(traceSocketPath.c_str());
 #endif
+
+   // Don't send anything more to the frontend, for safety.
+   frontendExited = true;
+   // TODO: replace this with a real check. But right now we only call
+   // cleanUpAndExit if the frontend goes away.
 
    // If the process manager hasn't been initialized, then we can
    // skip the following.
@@ -280,22 +286,6 @@ void RPC_do_environment_work(pdstring pd_flavor, pdstring MPI_impl){
 void RPC_undo_environment_work(){
    putenv("PARADYN_MPI=");
 }
-
-// PARADYND_DEBUG_XXX
-static void initialize_debug_flag(void) {
-  char *p;
-
-  if ( (p=getenv("PARADYND_DEBUG_INFRPC")) ) {
-    cerr << "Enabling inferior RPC debugging code" << endl;
-    pd_debug_infrpc = 1;
-  }
-
-  if ( (p=getenv("PARADYND_DEBUG_CATCHUP")) ) {
-    cerr << "Enabling catchup instrumentation debugging code" << endl;
-    pd_debug_catchup = 1;
-  }
-}
-
 
 static
 void
@@ -485,8 +475,8 @@ int
 main( int argc, char* argv[] )
 {
    PauseIfDesired();
-   initialize_debug_flag();
-   
+
+   init_daemon_debug();
 #if !defined(i386_unknown_nt4_0)
    InitSigTermHandler();
 #endif // defined(i386_unknown_nt4_0)
@@ -729,6 +719,7 @@ main( int argc, char* argv[] )
     }
 
     // start handling requests
+    fprintf(stderr, "Going into main loop\n");
     controllerMainLoop( true );
 
     RPC_undo_environment_work();
@@ -765,6 +756,7 @@ StartOrAttach( void )
       {
          // ignore return val (is this right?)
          pd_createProcess(newProcCmdLine, *newProcDir, true); 
+	 fprintf(stderr, "Created initial process\n");
       } 
       else if (pd_attpid && (pd_flag==2))
       {
@@ -793,6 +785,7 @@ StartOrAttach( void )
    }
    
    isInfProcAttached = true;
+   fprintf(stderr, "startOrAttach returning\n");
    return 0;
 }
 

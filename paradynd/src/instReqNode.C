@@ -45,14 +45,6 @@
 #include "paradynd/src/pd_process.h"
 #include "pdutil/h/pdDebugOstream.h"
 
-extern unsigned enable_pd_metric_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define metric_cerr if (enable_pd_metric_debug) cerr
-#else
-#define metric_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
 const int MAX_INSERTION_ATTEMPTS_USING_RELOCATION = 1000;
 
 /*

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.119 2005/02/15 17:44:04 legendre Exp $ */
+/* $Id: dynrpc.C,v 1.120 2005/03/07 21:18:53 bernat Exp $ */
 
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
@@ -57,49 +57,8 @@
 #include "paradynd/src/processMgr.h"
 #include "pdutil/h/mdlParse.h"
 #include "paradynd/src/mdld_data.h"
-
-// The following were defined in process.C
-extern unsigned enable_pd_attach_detach_debug;
-
-// from perfStream.C
-extern void printDyninstStats(BPatch_stats &); 
-#if ENABLE_DEBUG_CERR == 1
-#define attach_cerr if (enable_pd_attach_detach_debug) cerr
-#else
-#define attach_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_inferior_rpc_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define inferiorrpc_cerr if (enable_pd_inferior_rpc_debug) cerr
-#else
-#define inferiorrpc_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_shm_sampling_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define shmsample_cerr if (enable_pd_shm_sampling_debug) cerr
-#else
-#define shmsample_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_fork_exec_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define forkexec_cerr if (enable_pd_fork_exec_debug) cerr
-#else
-#define forkexec_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_signal_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define signal_cerr if (enable_pd_signal_debug) cerr
-#else
-#define signal_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
+#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/stats.h"
 
 int StartOrAttach( void );
 extern bool startOnReportSelfDone;
@@ -134,8 +93,7 @@ const timeLength &getCurrSamplingRate() {
 
 void dynRPC::printStats(void)
 {
-  BPatch_stats st = getBPatch().getBPatchStatistics();
-  printDyninstStats(st);
+  printDyninstStats();
 }
 
 void dynRPC::coreProcess(int id)
@@ -268,6 +226,7 @@ void processInstrDeletionRequests() {
 
    for(unsigned k=0; k<procsToCont.size(); k++) {
       pd_process *proc = procsToCont[k];
+      fprintf(stderr, "Continuing in instrDeletionRequests\n");
       proc->continueProc();
    }
 }
@@ -415,6 +374,8 @@ void dynRPC::continueApplication(void)
 //
 void dynRPC::continueProgram(int pid)
 {
+
+  fprintf(stderr, "dynRPC->continueProgram\n");
    pd_process *proc = getProcMgr().find_pd_process(pid);
    if (!proc) {
       if(getProcMgr().hasProcessExited(pid)) {
@@ -458,6 +419,7 @@ void dynRPC::continueProgram(int pid)
 //
 bool dynRPC::pauseApplication(void)
 {
+  fprintf(stderr, "dynRPC::pauseApp\n");
     pauseAllProcesses();
     return true;
 }
@@ -467,6 +429,7 @@ bool dynRPC::pauseApplication(void)
 //
 bool dynRPC::pauseProgram(int program)
 {
+  fprintf(stderr, "dynRPC::pauseProg\n");
    pd_process *proc = getProcMgr().find_pd_process(program);
    if (!proc) {
       sprintf(errorLine, "Internal error: cannot pause PID %d\n", program);
@@ -480,6 +443,7 @@ bool dynRPC::pauseProgram(int program)
 
 bool dynRPC::startProgram(int )
 {
+  fprintf(stderr, "dynRPC::startProgram\n");
     statusLine("starting application");
     continueAllProcesses();
     return(false);
@@ -505,12 +469,12 @@ int dynRPC::addExecutable(pdvector<pdstring> argv, pdstring dir,
                           bool parse_loops)
 {
   pd_process *p = pd_createProcess(argv, dir, parse_loops);
-
   metricFocusNode::handleNewProcess(p);
-
-  if (p)
-      return 1;
-  return -1;
+  if (p) {
+    return 1;
+  }
+  else
+    return -1;
 }
 
 //
@@ -522,10 +486,10 @@ int dynRPC::addExecutable(pdvector<pdstring> argv, pdstring dir,
 bool dynRPC::attach(pdstring progpath, int pid, int afterAttach, 
                     bool parse_loops)
 {
-    attach_cerr << "WELCOME to dynRPC::attach" << endl;
-    attach_cerr << "progpath=" << progpath << endl;
-    attach_cerr << "pid=" << pid << endl;
-    attach_cerr << "afterAttach=" << afterAttach << endl;
+  startup_cerr << "WELCOME to dynRPC::attach" << endl;
+  startup_cerr << "progpath=" << progpath << endl;
+  startup_cerr << "pid=" << pid << endl;
+  startup_cerr << "afterAttach=" << afterAttach << endl;
 
     pd_process *p = pd_attachProcess(progpath, pid, parse_loops);
     if (!p) return false;

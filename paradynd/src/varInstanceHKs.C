@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.22 2005/01/14 20:57:53 tlmiller Exp $
+// $Id: varInstanceHKs.C,v 1.23 2005/03/07 21:19:07 bernat Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -50,14 +50,7 @@
 #include "paradynd/src/init.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "common/h/int64iostream.h"
-
-extern unsigned enable_pd_samplevalue_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
-#else
-#define sampleVal_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
+#include "paradynd/src/debug.h"
 
 genericHK &genericHK::operator=(const genericHK &src) {
    if (&src == this)
@@ -144,7 +137,7 @@ bool intCounterHK::perform(const intCounter *dataValue,
 
    assert(thrNval->proc() == inferiorProc);
    if(! thrNval->isReadyForUpdates()) {
-     sampleVal_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
+     sample_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
      return false;
    }
 
@@ -182,7 +175,7 @@ void wallTimerHK::initializeAfterFork(rawType *curElem, rawTime64 curRawTime)
 
 static rawTime64 calcTimeValueToUse(int count, rawTime64 start,
 				    rawTime64 total, rawTime64 currentTime) {
-  sampleVal_cerr << "calcTimeValueToUse-  count:" << count << ", start: " 
+  sample_cerr << "calcTimeValueToUse-  count:" << count << ", start: " 
 		 << start << ", total: " << total 
 		 << ", currentTime: " << currentTime;
 
@@ -211,7 +204,7 @@ static rawTime64 calcTimeValueToUse(int count, rawTime64 start,
    else {
       retVal = total + (currentTime - start);
    }
-   sampleVal_cerr << ", return:" << retVal << "\n";
+   sample_cerr << ", return:" << retVal << "\n";
    return retVal;
 }
 
@@ -278,7 +271,7 @@ bool wallTimerHK::perform(const tTimer *theTimer, pd_process *) {
    // this is where conversion from native units to real time units is done
    timeLength timeValueToUse = 
                 getWallTimeMgr().units2timeLength(rawTimeValueToUse);
-   sampleVal_cerr << "timeValueToUse: " << timeValueToUse
+   sample_cerr << "timeValueToUse: " << timeValueToUse
 		  << ", lastTime: " << lastTimeValueUsed << "\n";
 
    // Check for rollback; update lastTimeValueUsed (the two go hand in hand)
@@ -297,7 +290,7 @@ bool wallTimerHK::perform(const tTimer *theTimer, pd_process *) {
       lastTimeValueUsed = timeValueToUse;
 
    if(! thrNval->isReadyForUpdates()) {
-     sampleVal_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
+     sample_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
      return false;
    }
 
@@ -429,7 +422,7 @@ bool processTimerHK::perform(const tTimer *theTimer,
                                                     inferiorCPUtime);
    // this is where conversion from native units to real time units is done
    timeLength timeValueToUse=inferiorProc->units2timeLength(rawTimeValueToUse);
-   sampleVal_cerr << "raw-total: " << total << ", timeValToUse: " 
+   sample_cerr << "raw-total: " << total << ", timeValToUse: " 
 		  << timeValueToUse << "\n";
 
    // Check for rollback; update lastTimeValueUsed (the two go hand in hand)
@@ -456,7 +449,7 @@ bool processTimerHK::perform(const tTimer *theTimer,
       lastTimeValueUsed = timeValueToUse;
 
    if(! thrNval->isReadyForUpdates()) {
-     sampleVal_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
+     sample_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
      return false;
    }
 
@@ -602,7 +595,7 @@ bool hwTimerHK::perform(const tHwTimer *theTimer, pd_process *inferiorProc) {
 
 
    if(! thrNval->isReadyForUpdates()) {
-     sampleVal_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
+     sample_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
      return false;
    }
 
@@ -642,7 +635,7 @@ bool hwCounterHK::perform(const tHwCounter *dataValue,
 
    assert(thrNval->proc() == inferiorProc);
    if(! thrNval->isReadyForUpdates()) {
-     sampleVal_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
+     sample_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
      return false;
    }
 

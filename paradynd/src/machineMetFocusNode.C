@@ -50,14 +50,7 @@
 #include "paradynd/src/focus.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/pd_process.h"
-
-extern unsigned enable_pd_samplevalue_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
-#else
-#define sampleVal_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
+#include "paradynd/src/debug.h"
 
 extern pdRPC *tp;
 
@@ -278,7 +271,7 @@ void machineMetFocusNode::forwardSimpleValue(timeStamp start, timeStamp end,
 					     pdSample value)
 {
   // TODO mdc
-  sampleVal_cerr << "forwardSimpleValue - st: " << start << "  end: " << end 
+  sample_cerr << "forwardSimpleValue - st: " << start << "  end: " << end 
 		 << "  value: " << value << "\n";
 
   assert(start >= getFirstRecordTime());
@@ -292,7 +285,7 @@ void machineMetFocusNode::forwardSimpleValue(timeStamp start, timeStamp end,
 void machineMetFocusNode::updateWithDeltaValue(timeStamp startTime,
 			 timeStamp sampleTime, pdSample value) {
   assert(startTime.isInitialized());
-  sampleVal_cerr << "Batching st: " << startTime << ", end: " << sampleTime 
+  sample_cerr << "Batching st: " << startTime << ", end: " << sampleTime 
 		 <<", val: " << value << "\n";
 
   batchSampleData(getMetName(), id_, startTime, sampleTime, value);

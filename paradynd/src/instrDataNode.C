@@ -46,21 +46,6 @@
 #include "paradynd/src/pd_process.h"
 #include "dyninstAPI/src/BPatch_typePrivate.h"
 
-extern unsigned enable_pd_metric_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define metric_cerr if (enable_pd_metric_debug) cerr
-#else
-#define metric_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_samplevalue_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
-#else
-#define sampleVal_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
 
 instrDataNode::instrDataNode(pd_process *proc_, unsigned type,
 			     bool arg_dontInsertData, HwEvent* hw_event)

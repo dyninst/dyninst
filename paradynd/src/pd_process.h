@@ -296,10 +296,10 @@ class pd_process {
       return dyninst_process;
    }
 
-   bool isStopped() const {return dyninst_process->isStopped();}
-   bool isTerminated() const {return dyninst_process->isTerminated();}
-   bool isDetached() const {return dyninst_process->isDetached();}
-   bool continueProc() { return dyninst_process->continueExecution(); }
+   bool isStopped() const;
+   bool isTerminated() const;
+   bool isDetached() const;
+   bool continueProc();
    int getPid() const { return dyninst_process->getPid(); }
    bool pause(); 
    shmMgr *getSharedMemMgr() { return sharedMemManager; }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.85 2005/03/04 23:45:59 bernat Exp $
+// $Id: init.C,v 1.86 2005/03/07 21:18:54 bernat Exp $
 
 
 #include "paradynd/src/internalMetrics.h"
@@ -58,6 +58,7 @@
 #include "paradynd/src/processMgr.h"
 #include "paradynd/src/pd_process.h"
 #include "dyninstAPI/h/BPatch.h"
+#include "paradynd/src/debug.h"
 
 #ifdef PAPI
 #include "papi.h"
@@ -69,11 +70,6 @@ extern int getNumberOfCPUs();
 
 extern unsigned enable_pd_samplevalue_debug;
 extern void addLibraryCallback(BPatch_thread *, BPatch_module *, bool);
-#if ENABLE_DEBUG_CERR == 1
-#define sampleVal_cerr if (enable_pd_samplevalue_debug) cerr
-#else
-#define sampleVal_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
 
 internalMetric *activeProcs = NULL;
 internalMetric *sampling_rate = NULL;
@@ -583,12 +579,12 @@ void initWallTimeMgr() {
     wallTimeMgr_t::mech_t *tm = 
       wallTimeMgr->getMechLevel(wallTimeMgr_t::LEVEL_TWO);
     wallTimeMgr->installMechLevel(wallTimeMgr_t::LEVEL_BEST, tm);
-    sampleVal_cerr << "Forcing to software level wall timer\n";
+    sample_cerr << "Forcing to software level wall timer\n";
   } else {
     wallTimeMgr->determineBestLevels();
   }
   wallTimeMgr_t::timeMechLevel ml = wallTimeMgr->getBestLevel();
-  sampleVal_cerr << "Chosen wall timer level: " << int(ml)+1 << "  "
+  sample_cerr << "Chosen wall timer level: " << int(ml)+1 << "  "
 		 << *wallTimeMgr->getMechLevel(ml) << "\n\n";
   if(bShowTimerInfo()) {
     cerr << "Chosen wall timer level: " << int(ml)+1 << "  "
