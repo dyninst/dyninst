@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.6 1999/03/02 21:45:49 nash Exp $
+// $Id: linux.C,v 1.7 1999/04/15 21:23:10 nash Exp $
 
 #include <fstream.h>
 
@@ -78,8 +78,6 @@ extern debug_ostream signal_cerr;
 extern bool isValidAddress(process *proc, Address where);
 extern void generateBreakPoint(instruction &insn);
 
-extern struct rusage *mapUarea();
-
 const char DYNINST_LOAD_HIJACK_FUNCTIONS[][15] = {
   "_start",
   "_init"
@@ -102,7 +100,7 @@ static int regmap[] =
   UESP, EBP, ESI, EDI,
   EIP, EFL, CS, SS,
   DS, ES, FS, GS,
-//  ORIG_EAX
+  ORIG_EAX
 };
 
 #define NUM_REGS (17 /*+ NUM_FREGS*/)
@@ -232,6 +230,7 @@ void *process::getRegisters() {
    {
 	   perror("process::getRegisters PTRACE_GETREGS" );
    }
+   //printf( "ORIG_EAX %#.8x\n", *(((int*)buffer)+ORIG_EAX) );
 
    if( P_ptrace( PTRACE_GETFPREGS, pid, 0, (int)(buffer + GENREGS_STRUCT_SIZE) ) )
    {
@@ -289,12 +288,24 @@ static bool changePC(int pid, Address loc) {
  }
 
 bool process::executingSystemCall() {
-  // this is not implemented yet - I don't know how in Linux
-  // we assume we're not in a syscall - 7/28/98
-  // Another note: there is a PTRACE_SYSCALL to wait for the
-  // inferior process to return from a system call, but I
-  // don't know how to find out if it's in one to begin with. - DAN
-  return false;
+	// From the program strace, it appears that a non-negative number
+	// in the ORIG_EAX register of the inferior process indicates
+	// that it is in a system call, and is the number of the system
+	// call. - DAN
+
+	Address regaddr = ORIG_EAX * INTREGSIZE;
+	int res;
+	res = P_ptrace ( PTRACE_PEEKUSER, getPid(), regaddr, 0 );
+	if( res < 0 )
+		return false;
+
+	inferiorrpc_cerr << "In system call #" << res << endl;
+#ifndef CHECK_SYSTEM_CALLS
+	// Even though we can do this, currently it causes problems - DAN
+	return false;
+#else
+	return true;
+#endif
 }
 
 bool process::changePC(Address loc, const void * /* savedRegs */ ) {
@@ -334,10 +345,12 @@ bool process::restoreRegisters(void *buffer) {
    int regno;
    Address regaddr;
 
-   for (regno = 0; regno < NUM_REGS; regno++) {
+   for (regno = 0; regno < NUM_REGS-1; regno++) {
      regaddr = register_addr (regno);
      if( P_ptrace (PTRACE_POKEUSER, pid, regaddr, buf[regno] ) ) {
        perror("process::restoreRegisters PTRACE_POKEUSER");
+	   fprintf( stderr, "PID %d, reg %d, address %#.8x, value %#.8x\n",
+				pid, regno, regaddr, buf[regno] );
        return false;
      }
    }
@@ -427,25 +440,41 @@ int process::waitProcs(int *status) {
     ignore = false;
     result = waitpid( -1, status, options );
 
-    // If the process stopped on a signal, and it's not SIGSTOP or SIGILL,
+	// Check for TRAP at the end of a syscall, then
+    // if the signal's not SIGSTOP or SIGILL,
     // send the signal back and wait for another.
-    if( result > 0 && !WIFSIGNALED(*status) && !WIFEXITED(*status) && WIFSTOPPED(*status) ) {
+    if( result > 0 && WIFSTOPPED(*status) ) {
+		process *p = findProcess( result );
 		sig = WSTOPSIG(*status);
-		if( sig != SIGSTOP && sig != SIGILL /* && sig != SIGTRAP */ ) {
+#ifdef CHECK_SYSTEM_CALLS
+		if( sig == SIGTRAP && p->isRPCwaitingForSysCallToComplete() )
+		{
+			assert( !p->isRunning_() );
+		}
+		else 
+#endif
+		if( sig != SIGSTOP && sig != SIGILL ) {
 			ignore = true;
+			if( sig != SIGTRAP )
+			{
 //#ifdef notdef
-			signal_cerr << "Signal " << sig << " in " << result << ", resignalling the process" << endl;
+				Address pc;
+				pc = getPC( result );
+				signal_cerr << "Signal " << sig << " in " << result << "@" << (void*)pc << ", resignalling the process" << endl;
 //#endif
+			}
 			if( P_ptrace(PTRACE_CONT, result, 1, sig) == -1 ) {
-				if( errno == ESRCH )
+				if( errno == ESRCH ) {
+					cerr << "WARNING -- process does not exist, constructing exit code" << endl;
+					*status = W_EXITCODE(0,sig);
 					ignore = false;
-				else
+				} else
 					cerr << "ERROR -- process::waitProcs forwarding signal " << sig << " -- " << sys_errlist[errno] << endl;
 			}
-//#ifdef notdef
+#ifdef notdef
 			else
 				signal_cerr << "Signal " << sig << " in " << result << endl;
-//#endif
+#endif
 		}
     }
 	
@@ -826,8 +855,9 @@ bool process::continueProc_() {
   ret = P_ptrace(PTRACE_DETACH, pid, (char*)1, SIGCONT);
 #endif
 
-  if (ret == -1)
-     perror("continueProc_()");
+/*  if (ret == -1)
+      perror("continueProc_()");
+*/
 
   return ret != -1;
 }
@@ -916,21 +946,14 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
   off = addr % sizeof(int);
   if( off != 0 || amount < sizeof(int) ) {
     addr -= off;
-    // This is what I did originally
-    /*if( -1 == P_ptrace( PTRACE_PEEKTEXT, getPid(), addr, (int)buf ) ) {
+    *((int*)buf) = P_ptrace( PTRACE_PEEKTEXT, getPid(), addr, 0 );
+	if( errno )
+	{
       char errb[150];
       sprintf( errb, "process::writeDataSpace_, ptrace( PEEKTXT, %d, %#.8x, &tmp )", getPid(), addr );
       perror( errb );
       return false;
-      }*/
-    // Unfortunately, PEEKTEXT doesn't work as advertised, it seems to return
-    // the read value rather than putting it in *data.  I'll use /proc instead
-    assert( proc_fd != -1 );
-    if( ((lseek(proc_fd, (off_t)addr, SEEK_SET)) != (off_t)addr) ||
-	read(proc_fd, (char*)buf, sizeof(int)) != sizeof(int) ) {
-      printf("writeDataSpace_: error in read word addr = 0x%x\n",addr);
-      return false;
-    }
+	}
 #ifdef PTRACEDEBUG_EXCESSIVE
 #if !defined(PTRACEDEBUG_ALWAYS)
     if( debug_ptrace )
@@ -984,7 +1007,7 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
 	assert( proc_fd != -1 );
 	if( ((lseek(proc_fd, (off_t)addr, SEEK_SET)) != (off_t)addr) ||
 	    read(proc_fd, (char*)buf, sizeof(int)) != sizeof(int) ) {
-	  printf("writeDataSpace_: error in read word addr = 0x%x\n",addr);
+		//printf("writeDataSpace_: error in read word addr = 0x%x\n",addr);
 	  return false;
 	}
 
@@ -1029,11 +1052,11 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
       int result = read(proc_fd, inSelf, amount);
       if( result < 0 ) {
 	fprintf( stderr, "(linux)readDataSpace_  amount=%d  %#.8x <- %#.8x\n", amount, (int)inSelf, (int)inTraced );
-	perror( "process::readDataSpace_ - read" );
+	//perror( "process::readDataSpace_ - read" );
 	return false;
       } else if( result == 0 ) {
 	if( errno )
-	  perror( "process::readDataSpace_" );
+		//perror( "process::readDataSpace_" );
 	fprintf( stderr, "process::readDataSpace_ -- Failed to read( /proc/*/mem ), trying ptrace\n" );
 	break;
       }
@@ -1070,7 +1093,7 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
   for( count = 0; count < amount; count += sizeof(int), addr++, dst++ ) {
     result = P_ptrace( PTRACE_PEEKTEXT, getPid(), (int)addr, 0 );
     if( errno ) {
-      perror( "process::writeDataSpace, ptrace PTRACE_POKETXT" );
+		//perror( "process::writeDataSpace, ptrace PTRACE_POKETXT" );
       return false;
     }
     *dst = result;
@@ -1241,8 +1264,8 @@ time64 process::getInferiorProcessCPUtime() /* const */ {
   */
 
   time64 now = 0;
-  char buf[80], *buf2;
-  int bufsize = 80, utime, stime;
+  int bufsize = 150, utime, stime;
+  char buf[bufsize], *buf2;
   static int realHZ = 0;
   // Determine the number of jiffies/sec by checking the clock idle time in
   // /proc/uptime against the jiffies idle time in /proc/stat
@@ -1258,7 +1281,9 @@ time64 process::getInferiorProcessCPUtime() /* const */ {
     assert( 1 == fscanf( tmp, "%*s %*d %*d %*d %d", &uptimeJiffies ) );
     fclose( tmp );
     realHZ = (int)floor( (double)uptimeJiffies / uptimeReal );
-    printf( "Determined jiffies/sec as %d\n", realHZ );
+#ifdef notdef
+    fprintf( stderr, "Determined jiffies/sec as %d\n", realHZ );
+#endif
   }
 
   sprintf( buf, "/proc/%d/stat", getPid() );
@@ -1301,111 +1326,7 @@ time64 process::getInferiorProcessCPUtime() /* const */ {
 
   return now;
 }
-/*
-user *process::tryToMapChildUarea(int childpid) {
-   // a static member fn
-   // see DYNINSTprobeUarea of rtinst/src/sunos.c
-
-assert(0);
-
-   kvm_t *kvmfd = kvm_open(0, 0, 0, O_RDONLY, 0);
-   if (kvmfd == NULL) {
-      perror("could not map child's uarea because kvm_open failed");
-      return NULL;
-   }
-
-   // kvm_getproc returns a ptr to a _copy_ of the proc structure
-   // in static memory.
-   time64 wall1 = getCurrWallTime();
-   proc *p = kvm_getproc(kvmfd, childpid);
-   if (p == NULL) {
-      perror("could not map child's uarea because kvm_getproc failed");
-      return NULL;
-   }
-   time64 wall2 = getCurrWallTime();
-   time64 difference = wall2-wall1;
-   unsigned long difference_long = difference;
-   cout << "took " << difference_long << " usecs to kvm_getproc" << endl;
- 
-   // kvm_getu returns a copy to a _copy_ of the process' uarea
-   // in static memory.
-   user *u = kvm_getu(kvmfd, p);
-   if (u == NULL) {
-      perror("could not map child's uarea because kvm_getu failed");
-      return NULL;
-   }
-
-   kvm_close(kvmfd);
-
-   void *uareaPtr = p->p_uarea;
-
-   int kmemfd = open("/dev/kmem", O_RDONLY, 0);
-   if (kmemfd == -1) {
-      perror("could not map child's uarea because could not open /dev/kmem for reading");
-      return NULL;
-   }
-
-   void *result = P_mmap(NULL, sizeof(user), PROT_READ, MAP_SHARED, kmemfd,
-                         (off_t)uareaPtr);
-   if (result == (void *)-1) {
-      perror("could not map child's uarea because could not mmap /dev/kmem");
-      close(kmemfd);
-      return NULL;
-   }
-
-   cout << "mmap of child's uarea succeeded!" << endl;
-
-   return (user *)result;
-} */
-#endif
-
-//time64 process::getInferiorProcessCPUtime() const {
-//   // We get the inferior process's cpu time via a ptrace() of the u-area
-//   // of the inferior process, though it should be possible to mmap()
-//   // the inferior process's uarea into paradynd if we really want to...
-//
-//   // UH OH: this will only work if the inferior process has been stopped!!!
-//
-//   static time64 prevResult = 0;
-//
-//   while (true) {
-//      // assumes child process has been stopped
-//      user childUareaPtr; // just a dummy
-//      unsigned addrOffset = (void *)&childUareaPtr.u_ru.ru_utime - (void *)&childUareaPtr;
-//      unsigned numBytesNeeded = (void *)&childUareaPtr.u_ru.ru_maxrss -
-//                                (void *)&childUareaPtr.u_ru.ru_utime;
-//      assert(numBytesNeeded % 4 == 0);
-//
-//      rusage theUsage; // we'll write into the first few bytes of this structure
-//      void *ptr = &theUsage.ru_utime;
-//
-//      cout << "peeking from uarea for pid " << this->getPid() << endl; cout.flush();
-//      while (numBytesNeeded) {
-//         errno = 0;
-//         unsigned result = P_ptrace(PTRACE_PEEKUSER, this->getPid(),
-//				    (char*)addrOffset, 0, NULL);
-//         if (errno != 0) {
-//            perror("could not getChildCPUtimeViaPtraceOfUarea: ptrace()");
-//            exit(5);
-//         }
-//
-//         memcpy(ptr, &result, 4);
-//         ptr += 4;
-//         addrOffset += 4;
-//         numBytesNeeded -= 4;
-//      }
-//
-//      time64 result = userAndSysTime2uSecs(theUsage.ru_utime, theUsage.ru_stime);
-//      if (result < prevResult) {
-//         cout << "process::getInferiorProcessCPUtime() retrying due to rollback!" << endl;
-//         continue;
-//      }
-//      else {
-//         prevResult = result;
-//         return result;
-//      }
-//   }
-//}
+#endif // SHM_SAMPLING
 
 bool process::loopUntilStopped() {
   /* make sure the process is stopped in the eyes of ptrace */
@@ -1546,8 +1467,7 @@ int getNumberOfCPUs()
 }
 
 Address process::read_inferiorRPC_result_register(Register reg) {
-   // On x86, the result is always stashed in %EAX; at least, it is under Solaris
-   // We'll see about Linux -- DAN
+   // On x86, the result is always stashed in %EAX
 
    int raddr = EAX * 4;
    int eaxval = ptraceKludge::deliverPtrace(this, PTRACE_PEEKUSER, raddr, 0);
@@ -1559,10 +1479,18 @@ Address process::read_inferiorRPC_result_register(Register reg) {
 }
 
 bool process::set_breakpoint_for_syscall_completion() {
-  // SUNos can't do this (as far as I know)
-
-  // I wonder if linux can? -- DAN
-   return false;
+#ifndef CHECK_SYSTEM_CALLS
+	// Unfortunately, PTRACE_SYSCALL doesn't work in a useful way
+	return false;
+#else
+	if( P_ptrace( PTRACE_SYSCALL, pid, 0, 0 ) != 0 )
+	{
+		inferiorrpc_cerr << "ERROR -- process::set_breakpoint_for_syscall_completion : "
+					<< sys_errlist[ errno ] << endl;
+		return false;
+	}
+	return true;
+#endif
 }
 
 

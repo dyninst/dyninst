@@ -148,7 +148,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 
     if (pid > 0) {
 
-        //*** parent
+        // *** parent
 
 	if (errno) {
 	    sprintf(errorLine, "Unable to start %s: %s\n", file.string_of(), 
@@ -175,7 +175,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 	return true;
 
     } else if (pid == 0) {
-        //*** child
+        // *** child
 
 #ifdef PARADYND_PVM
 	if (pvm_running)
@@ -378,6 +378,7 @@ int handleSigChild(int pid, int status)
 
     if (WIFSTOPPED(status)) {
 	int sig = WSTOPSIG(status);
+	int orig_sig = sig;
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
         // we put an illegal instead of a trap at the following places, but 
@@ -610,7 +611,16 @@ int handleSigChild(int pid, int status)
 		else {
 #ifdef i386_unknown_linux2_0
 			Address pc = getPC( pid );
-			signal_cerr << "SIGTRAP not handled for pid " << pid << " at " << (void*)pc << ", so leaving process in current state" << endl << flush;
+			if( orig_sig == SIGTRAP )
+			{
+				signal_cerr << "SIGTRAP not handled for pid " << pid << " at " << (void*)pc << ", so forwarding back to process" << endl << flush;
+				if( P_ptrace(PTRACE_CONT, pid, 1, SIGTRAP) == -1 )
+					cerr << "ERROR -- process::handleSigChild forwarding SIGTRAP -- " << sys_errlist;
+			}
+			else
+			{
+				signal_cerr << "Signal " << orig_sig << " not handled for pid " << pid << " at " << (void*)pc << ", so leaving process in current state" << endl << flush;
+			}
 #endif
 		}
 
@@ -800,12 +810,12 @@ int handleSigChild(int pid, int status)
 	statusLine(errorLine);
 	logLine(errorLine);
 
-	printDyninstStats();
         handleProcessExit(curr, WEXITSTATUS(status));
     } else if (WIFSIGNALED(status)) {
 	sprintf(errorLine, "process %d has terminated on signal %d\n", curr->getPid(), WTERMSIG(status));
 	logLine(errorLine);
 	statusLine(errorLine);
+	printDyninstStats();
 	handleProcessExit(curr, WTERMSIG(status));
     } else {
 	sprintf(errorLine, "Unknown state %d from process %d\n", status, curr->getPid());
