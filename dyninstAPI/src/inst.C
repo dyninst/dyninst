@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.100 2002/10/14 21:02:32 bernat Exp $
+// $Id: inst.C,v 1.101 2002/12/14 16:37:37 schendel Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -628,18 +628,16 @@ vector<Address> getTrampAddressesAtPoint(process *proc, const instPoint *loc,
  *
  */
 
-void deleteInst(process *proc, const miniTrampHandle &mtHandle)
+// returns true if deleted, false if not deleted (because non-existant
+// or already deleted
+bool deleteInst(process *proc, const miniTrampHandle &mtHandle)
 {
    installed_miniTramps_list *mtList;
    callWhen when = mtHandle.when;
    proc->getMiniTrampList(mtHandle.location, when, &mtList);
    if(mtList == NULL) {
-      cerr << "in inst.C: location is NOT defined" << endl;
-#if !defined(MT_THREAD)
-      abort();
-#else
-      return ;
-#endif
+      //cerr << "in inst.C: location is NOT defined" << endl;
+      return false;
    }
 
    // First check: have we started to delete this guy already?
@@ -651,7 +649,7 @@ void deleteInst(process *proc, const miniTrampHandle &mtHandle)
    // Better fix: figure out why we're double-deleting instrCodeNodes.
    
    if (proc->checkIfInstAlreadyDeleted(mtHandle.inst))
-     return;
+     return false;
 
    List<instInstance*>::iterator curMT = mtList->get_begin_iter();
    List<instInstance*>::iterator endMT = mtList->get_end_iter();	 
@@ -670,7 +668,9 @@ void deleteInst(process *proc, const miniTrampHandle &mtHandle)
       }
       prevMT = inst;
    }
-   assert(thisMT != NULL);  // couldn't find the minitramp to delete
+   if(thisMT == NULL)
+      return false;   // must have already been deleted
+
    if(proc->status() != exited) {
       bool noOtherMTsAtPoint = (prevMT==NULL && nextMT==NULL);
       if(noOtherMTsAtPoint) {
@@ -728,6 +728,7 @@ void deleteInst(process *proc, const miniTrampHandle &mtHandle)
       }
    }   
 #endif
+   return true;
 }
 
 //
