@@ -95,24 +95,26 @@ metricFocusReq *metricFocusReqBundle::getMetricFocusReq(unsigned handle) {
    return mfReq;
 }
 
-bool metricFocusReqBundle::isBundleComplete() const {
-   bool all_bundles_success_or_failure = true;
-   dictionary_hash<unsigned, metricFocusReq *>::iterator mfiter =
-      mfRequests.begin();
-   
-   while(mfiter != mfRequests.end()) {
-      inst_insert_result_t cur_state = (*mfiter)->getOverallState();
-      if(cur_state != inst_insert_success &&
-         cur_state != inst_insert_failure)
-      {
-         all_bundles_success_or_failure = false;
-         break;
-      }
-      mfiter++;
-   }
 
-   return all_bundles_success_or_failure;
+bool
+metricFocusReqBundle::isBundleComplete( void ) const
+{
+    for( dictionary_hash<unsigned, metricFocusReq*>::iterator mfiter = 
+            mfRequests.begin();
+            mfiter != mfRequests.end();
+            mfiter++ )
+    {            
+        if( !(*mfiter)->isEachDaemonComplete() )
+        {
+            // we have an item that is still unknown or deferred
+            return false;
+        }
+    }
+    // all responses were success or failure
+    return true;
 }
+
+
 
 metricFocusReqBundle *metricFocusReqBundle::createMetricFocusReqBundle(
                             perfStreamHandle ps_handle_,
@@ -134,6 +136,7 @@ metricFocusReqBundle *metricFocusReqBundle::createMetricFocusReqBundle(
    // allocate up to the index
    while(all_mfReq_bundles.size() < ((unsigned)current_request_id) + 1)
       all_mfReq_bundles.push_back(NULL);
+
    all_mfReq_bundles[current_request_id] = newBundle;
    return newBundle;
 }

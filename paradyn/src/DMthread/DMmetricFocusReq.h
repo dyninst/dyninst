@@ -117,6 +117,8 @@ class metricFocusReq_Val {
       return cur_overall_state;
    }
 
+   bool isEachDaemonComplete( void ) const;
+
    inst_insert_result_t getCurrentDmnState(unsigned daemon_id) const {
       inst_insert_result_t state;
       bool foundIt;
@@ -161,6 +163,8 @@ class metricFocusReq {
    inst_insert_result_t getOverallState() const {
       return V.getOverallState();
    }
+
+   bool isEachDaemonComplete( void ) const { return V.isEachDaemonComplete(); }
 
    inst_insert_result_t getCurrentDmnState(unsigned daemon_id) const {
       return V.getCurrentDmnState(daemon_id);

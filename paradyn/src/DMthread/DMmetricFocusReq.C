@@ -101,6 +101,34 @@ inst_insert_result_t metricFocusReq_Val::calculateNewOverallState() const {
       return inst_insert_unknown;
 }
 
+bool
+metricFocusReq_Val::isEachDaemonComplete( void ) const
+{
+    bool ret = true;
+
+    for( dictionary_hash<unsigned, inst_insert_result_t>::iterator iter =
+                dmn_state_buf.begin();
+            iter != dmn_state_buf.end();
+            iter++ )
+    {
+        unsigned int nComplete = 0;
+        inst_insert_result_t curState = (*iter);
+        if( (curState == inst_insert_success) ||
+            (curState == inst_insert_failure) )
+        {
+            nComplete++;
+        }
+
+        if( nComplete < num_daemons )
+        {
+            ret = false;
+            break;
+        }
+    }
+    return ret;
+}
+
+
 void metricFocusReq_Val::setNewDmnState(unsigned daemon_id, 
                                         inst_insert_result_t new_state,
                                         //errmsg only used in failure state
