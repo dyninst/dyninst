@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.22 2003/11/13 22:49:03 schendel Exp $
+ * $Id: dyn_lwp.h,v 1.23 2003/12/04 19:15:01 schendel Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -162,6 +162,12 @@ class dyn_lwp
   bool stop_(); // formerly OS::osStop
   bool continueLWP();
   bool continueLWP_();
+
+  bool writeDataSpace(void *inTracedProcess, u_int amount, const void *inSelf);
+  bool readDataSpace(const void *inTracedProcess, u_int amount, void *inSelf);
+  bool writeTextWord(caddr_t inTracedProcess, int data);
+  bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
+  bool readTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
 
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
   bool deliverPtrace(int req, Address addr, Address data);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.119 2003/11/24 17:37:52 schendel Exp $
+// $Id: linux.C,v 1.120 2003/12/04 19:15:06 schendel Exp $
 
 #include <fstream>
 
@@ -732,33 +732,34 @@ bool process::API_detach_(const bool cont) {
 
 bool process::dumpCore_(const pdstring/* coreFile*/) { return false; }
 
-bool process::writeTextWord_(caddr_t inTraced, int data) {
-//  cerr << "writeTextWord @ " << (void *)inTraced << endl; cerr.flush();
-  return writeDataSpace_(inTraced, sizeof(int), (caddr_t) &data);
+bool dyn_lwp::writeTextWord(caddr_t inTraced, int data) {
+   //  cerr << "writeTextWord @ " << (void *)inTraced << endl; cerr.flush();
+   return writeDataSpace(inTraced, sizeof(int), (caddr_t) &data);
 }
 
-bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
-//  cerr << "writeTextSpace pid=" << getPid() << ", @ " << (void *)inTraced << " len=" << amount << endl; cerr.flush();
-  return writeDataSpace_(inTraced, amount, inSelf);
+bool dyn_lwp::writeTextSpace(void *inTraced, u_int amount, const void *inSelf)
+{
+   //  cerr << "writeTextSpace pid=" << getPid() << ", @ " << (void *)inTraced
+   //       << " len=" << amount << endl; cerr.flush();
+   return writeDataSpace(inTraced, amount, inSelf);
 }
 
-bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
-  return readDataSpace_( inTraced, amount, const_cast<void*>( inSelf ) );
+bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) {
+   return readDataSpace(inTraced, amount, const_cast<void*>( inSelf ));
 }
 
-bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
+bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
 {
    unsigned char *ap = (unsigned char*) inTraced;
    const unsigned char *dp = (const unsigned char*) inSelf;
-   int pid = getPid();
    Address w;               /* ptrace I/O buffer */
    unsigned len = sizeof(w); /* address alignment of ptrace I/O requests */
    unsigned cnt;
 
 #if defined(BPATCH_LIBRARY)
 #if defined(i386_unknown_linux2_0)
-   if (collectSaveWorldData) {
-       codeRange *range = findCodeRangeByAddress((Address)inTraced);
+   if (proc_->collectSaveWorldData) {
+       codeRange *range = proc_->findCodeRangeByAddress((Address)inTraced);
        if (range &&
            range->sharedobject_ptr) {
            // If we're writing into a shared object, mark it as dirty.
@@ -783,7 +784,7 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
       /* Read the segment containing the unaligned portion, edit
          in the data from DP, and write the segment back. */
       errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), 0);
+      w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) (ap-cnt), 0);
 
       if (errno)
          return false;
@@ -791,7 +792,7 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
       for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
          p[cnt+i] = dp[i];
 
-      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) (ap-cnt), w))
+      if (0 > P_ptrace(PTRACE_POKETEXT, get_lwp_id(), (Address) (ap-cnt), w))
          return false;
 
       if (len-cnt >= nbytes) 
@@ -806,7 +807,7 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
    while (nbytes >= len) {
       assert(0 == ((Address)ap) % len);
       memcpy(&w, dp, len);
-      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w))
+      if (0 > P_ptrace(PTRACE_POKETEXT, get_lwp_id(), (Address) ap, w))
          return false;
       dp += len;
       ap += len;
@@ -820,7 +821,7 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
       /* Read the segment containing the unaligned portion, edit
          in the data from DP, and write it back. */
       errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0);
+      w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0);
 
       if (errno)
          return false;
@@ -828,7 +829,7 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
       for (unsigned i = 0; i < nbytes; i++)
          p[i] = dp[i];
 
-      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w))
+      if (0 > P_ptrace(PTRACE_POKETEXT, get_lwp_id(), (Address) ap, w))
          return false;
 
    }
@@ -836,10 +837,9 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
    return true;
 }
 
-bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf) {
+bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
      const unsigned char *ap = (const unsigned char*) inTraced;
      unsigned char *dp = (unsigned char*) inSelf;
-     int pid = getPid();
      Address w;               /* ptrace I/O buffer */
      unsigned len = sizeof(w); /* address alignment of ptrace I/O requests */
      unsigned cnt;
@@ -856,7 +856,7 @@ bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf) {
 	  /* Read the segment containing the unaligned portion, and
              copy what was requested to DP. */
 	  errno = 0;
-	  w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), w);
+	  w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) (ap-cnt), w);
 	  if (errno)
 	       return false;
 	  for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
@@ -873,7 +873,7 @@ bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf) {
      /* Copy aligned portion */
      while (nbytes >= len) {
 	  errno = 0;
-	  w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0);
+	  w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0);
 	  if (errno)
 	       return false;
 	  memcpy(dp, &w, len);
@@ -889,7 +889,7 @@ bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf) {
 	  /* Read the segment containing the unaligned portion, and
              copy what was requested to DP. */
 	  errno = 0;
-	  w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0);
+	  w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0);
 	  if (errno)
 	       return false;
 	  for (unsigned i = 0; i < nbytes; i++)
@@ -1233,7 +1233,7 @@ bool process::dumpImage( pdstring imageFileName ) {
 	char * codeBuffer = (char *)malloc( length );
 	assert( codeBuffer != NULL );
 
-	if( ! readTextSpace_( (void *) baseAddr, length, codeBuffer ) ) {
+	if( ! readTextSpace( (void *) baseAddr, length, codeBuffer ) ) {
 		free( codeBuffer );
 		elf_end( elfPointer );
 		close( copyFD );

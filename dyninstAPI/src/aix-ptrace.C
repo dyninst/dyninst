@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.12 2003/10/23 17:03:10 bernat Exp $
+// $Id: aix-ptrace.C,v 1.13 2003/12/04 19:15:03 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -759,21 +759,18 @@ bool process::dumpCore_(const pdstring coreFile) {
   return true;
 }
 
-bool process::writeTextWord_(caddr_t inTraced, int data) {
-   if (!checkStatus()) 
-      return false;
-
+bool dyn_lwp::writeTextWord(caddr_t inTraced, int data) {
    ptraceBytes += sizeof(int); ptraceOps++;
-   return getRepresentativeLWP()->deliverPtrace(PT_WRITE_I, inTraced, data,
-                                                NULL);
+   return deliverPtrace(PT_WRITE_I, inTraced, data, NULL);
 }
 
-bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
-  return writeDataSpace_(inTraced, amount, inSelf);
+bool dyn_lwp::writeTextSpace(void *inTraced, u_int amount, const void *inSelf)
+{
+  return writeDataSpace(inTraced, amount, inSelf);
 }
 
-bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
-  return readDataSpace_(inTraced, amount, const_cast<void *>(inSelf));
+bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) {
+  return readDataSpace(inTraced, amount, const_cast<void *>(inSelf));
 }
 
 /* Note:
@@ -787,16 +784,15 @@ bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
  *
  * Update: there is an OS fix for this.
  */
-bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
-   if (!checkStatus()) 
-      return false;
-   
+bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
+{
    ptraceBytes += amount;
   
    while (amount > 1024) {
       ptraceOps++;
-      if(! getRepresentativeLWP()->deliverPtrace(PT_WRITE_BLOCK, inTraced,
-                                          1024, const_cast<void*>(inSelf))) {
+      if(! deliverPtrace(PT_WRITE_BLOCK, inTraced, 1024,
+                         const_cast<void*>(inSelf)))
+      {
          perror("Failed write");
          return false;
       }
@@ -807,8 +803,9 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
 
    ptraceOps++;
 
-   if(! getRepresentativeLWP()->deliverPtrace(PT_WRITE_BLOCK, inTraced,
-                                       amount, const_cast<void*>(inSelf))) {
+   if(! deliverPtrace(PT_WRITE_BLOCK, inTraced, amount,
+                      const_cast<void*>(inSelf)))
+   {
       fprintf(stderr, "Write of %d bytes from 0x%x to 0x%x\n",
               amount, inSelf, inTraced);      
       perror("Failed write2");
@@ -819,19 +816,15 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
    return true;
 }
 
-bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf)
+bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf)
 {
-   if (!checkStatus())
-      return false;
-
    ptraceBytes += amount;
 
-   dyn_lwp *plwp = getRepresentativeLWP();
    while (amount > 1024) {
       ptraceOps++;
 
-      if(! plwp->deliverPtrace(PT_READ_BLOCK,const_cast<void*>(inTraced),
-                               1024, inSelf))
+      if(!deliverPtrace(PT_READ_BLOCK,const_cast<void*>(inTraced),
+                        1024, inSelf))
          return false;
 
       amount -= 1024;
@@ -840,8 +833,8 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf)
    }
 
    ptraceOps++;
-   return plwp->deliverPtrace(PT_READ_BLOCK, const_cast<void*>(inTraced),
-                              amount, inSelf);
+   return deliverPtrace(PT_READ_BLOCK, const_cast<void*>(inTraced),
+                        amount, inSelf);
 }
 
 // Can this be unified with linux' version?

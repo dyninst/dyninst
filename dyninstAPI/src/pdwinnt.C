@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.111 2003/10/22 16:00:52 schendel Exp $
+// $Id: pdwinnt.C,v 1.112 2003/12/04 19:15:07 schendel Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1161,12 +1161,13 @@ bool process::dumpCore_(const pdstring) {
     return false;
 }
 
-bool process::writeTextWord_(caddr_t inTraced, int data) {
-    return writeDataSpace_(inTraced, sizeof(int), (caddr_t) &data);
+bool dyn_lwp::writeTextWord(caddr_t inTraced, int data) {
+   return writeDataSpace(inTraced, sizeof(int), (caddr_t) &data);
 }
 
-bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
-    return writeDataSpace_(inTraced, amount, inSelf);
+bool dyn_lwp::writeTextSpace(void *inTraced, u_int amount, const void *inSelf)
+{
+   return writeDataSpace(inTraced, amount, inSelf);
 }
 
 bool process::flushInstructionCache_(void *baseAddr, size_t size){ //ccw 25 june 2001
@@ -1175,16 +1176,15 @@ bool process::flushInstructionCache_(void *baseAddr, size_t size){ //ccw 25 june
                                 baseAddr, size);
 }
 
-//#ifdef BPATCH_SET_MUTATIONS_ACTIVE
-bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
-  return readDataSpace_(inTraced, amount, (void *)inSelf);
+bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) {
+   return readDataSpace(inTraced, amount, (void *)inSelf);
 }
-//#endif
 
-bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
+bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
+{
     DWORD nbytes;
 
-    handleT procHandle = getRepresentativeLWP()->getProcessHandle();
+    handleT procHandle = getProcessHandle();
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
     bool res = BPatch::bpatch->rDevice->RemoteWriteProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
 				  (LPVOID)inSelf, (DWORD)amount, &nbytes);
@@ -1197,9 +1197,9 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
 }
 
 
-bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
+bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) {
     DWORD nbytes;
-    handleT procHandle = getRepresentativeLWP()->getProcessHandle();
+    handleT procHandle = getProcessHandle();
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
     bool res = BPatch::bpatch->rDevice->RemoteReadProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
 				 (LPVOID)inSelf, (DWORD)amount, &nbytes);

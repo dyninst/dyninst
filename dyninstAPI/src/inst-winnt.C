@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.14 2003/08/22 19:54:24 hollings Exp $
+// $Id: inst-winnt.C,v 1.15 2003/12/04 19:15:04 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
@@ -253,7 +253,8 @@ bool process::findCallee(instPoint &instr, function_base *&target)
 
 			// obtain the target address from memory if it is available
 			Address targetAddr = ADDR_NULL;
-			readDataSpace_( (const void*)funcPtrAddress, sizeof(Address), &targetAddr );
+			readDataSpace( (const void*)funcPtrAddress, sizeof(Address),
+                        &targetAddr, true );
 			if( targetAddr != ADDR_NULL )
 			{
 				// see whether we already know anything about the target

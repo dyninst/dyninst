@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.39 2003/10/22 16:00:58 schendel Exp $
+// $Id: sol_proc.C,v 1.40 2003/12/04 19:15:09 schendel Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1241,36 +1241,40 @@ bool process::API_detach_(const bool cont)
 }
 
 
-bool process::writeTextWord_(caddr_t inTraced, int data) {
-//  cerr << "writeTextWord @ " << (void *)inTraced << endl; cerr.flush();
-  return writeDataSpace_(inTraced, sizeof(int), (caddr_t) &data);
+bool dyn_lwp::writeTextWord(caddr_t inTraced, int data) {
+   //  cerr << "writeTextWord @ " << (void *)inTraced << endl; cerr.flush();
+   return writeDataSpace(inTraced, sizeof(int), (caddr_t) &data);
 }
 
-bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
-//  cerr << "writeTextSpace pid=" << getPid() << ", @ " << (void *)inTraced << " len=" << amount << endl; cerr.flush();
-  return writeDataSpace_(inTraced, amount, inSelf);
+bool dyn_lwp::writeTextSpace(void *inTraced, u_int amount, const void *inSelf)
+{
+   //  cerr << "writeTextSpace pid=" << getPid() << ", @ " << (void *)inTraced
+   //       << " len=" << amount << endl; cerr.flush();
+   return writeDataSpace(inTraced, amount, inSelf);
 }
 
-bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
-  return readDataSpace_(inTraced, amount, const_cast<void *>(inSelf));
+bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) {
+   return readDataSpace(inTraced, amount, const_cast<void *>(inSelf));
 }
 
-bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
+bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
+{
    ptraceOps++; ptraceBytes += amount;
 
    //  cerr << "process::writeDataSpace_ pid " << getPid() << " writing "
    //       << amount << " bytes at loc " << inTraced << endl;
 #if defined(BPATCH_LIBRARY)
 #if defined (sparc_sun_solaris2_4)
-	if(collectSaveWorldData &&  ((Address) inTraced) >
-      getDyn()->getlowestSObaseaddr() )
+	if(proc_->collectSaveWorldData &&  ((Address) inTraced) >
+      proc_->getDyn()->getlowestSObaseaddr() )
    {
 		shared_object *sh_obj = NULL;
 		bool result = false;
-		for(unsigned i=0; shared_objects && !result && i<shared_objects->size();
+		for(unsigned i=0;
+          proc_->shared_objects && !result && i<proc_->shared_objects->size();
           i++)
       {
-			sh_obj = (*shared_objects)[i];
+			sh_obj = (*proc_->shared_objects)[i];
 			result = sh_obj->isinText((Address) inTraced);
 		}
 		if( result  ){
@@ -1288,9 +1292,7 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
    // set. So how to convince the system that it's not negative?
    loc = (off64_t) ((unsigned) inTraced);
 
-   dyn_lwp *replwp = getRepresentativeLWP();
-
-   int written = pwrite64(replwp->as_fd(), inSelf, amount, loc);
+   int written = pwrite64(as_fd(), inSelf, amount, loc);
    if(written != (int)amount) {
       perror("writeDataSpace");
       return false;
@@ -1299,14 +1301,13 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
    return true;
 }
 
-bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
+bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) {
     ptraceOps++; ptraceBytes += amount;
 
     off64_t loc;
     loc = (off64_t) ((unsigned) inTraced);
 
-    dyn_lwp *replwp = getRepresentativeLWP();    
-    if(pread64(replwp->as_fd(), inSelf, amount, loc) != (int)amount) {
+    if(pread64(as_fd(), inSelf, amount, loc) != (int)amount) {
         perror("readDataSpace");
         fprintf(stderr, "From 0x%x (mutator) to 0x%x (mutatee), %d bytes\n",
                 inSelf, inTraced, amount);

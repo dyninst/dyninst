@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.278 2003/11/24 17:37:55 schendel Exp $
+/* $Id: process.h,v 1.279 2003/12/04 19:15:11 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1194,19 +1194,7 @@ private:
 
   Address costAddr_;
 
-  // deal with system differences for ptrace
-  bool writeDataSpace_(void *inTracedProcess, u_int amount, const void *inSelf);
-  bool readDataSpace_(const void *inTracedProcess, u_int amount, void *inSelf);
-
   bool flushInstructionCache_(void *baseAddr, size_t size); //ccw 25 june 2001
-
-
-  bool writeTextWord_(caddr_t inTracedProcess, int data);
-  bool writeTextSpace_(void *inTracedProcess, u_int amount, const void *inSelf);
-  //#ifdef BPATCH_SET_MUTATIONS_ACTIVE
-  bool readTextSpace_(void *inTracedProcess, u_int amount, const void *inSelf);
-  //#endif
-
   void clearProcessEvents();
 
 #if defined(i386_unknown_nt4_0)
@@ -1222,7 +1210,7 @@ private:
   bool osDumpImage(const pdstring &imageFileName,  pid_t pid, Address codeOff);
   bool API_detach_(const bool cont); // XXX Should eventually replace detach_()
 
-  dyn_lwp *get_stopped_lwp();
+  dyn_lwp *query_for_stopped_lwp();
   dyn_lwp *stop_an_lwp();
 
   // stops a process

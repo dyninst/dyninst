@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.68 2003/10/24 14:29:10 bernat Exp $
+// $Id: irix.C,v 1.69 2003/12/04 19:15:05 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -162,15 +162,14 @@ void print_proc_pc(int fd)
   fprintf(stderr, "%5s: %#10x\n", "$pc", (unsigned)regs[CTX_EPC]);
 }
 
-bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf)
+bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf)
 {
    //fprintf(stderr, ">>> process::readDataSpace_(%d@0x%016lx)\n", 
    //        nbytes, inTraced);
    ptraceOps++; 
    ptraceBytes += nbytes;
 
-   dyn_lwp *replwp = getRepresentativeLWP();
-   if(lseek(replwp->get_fd(), (off_t)inTraced, SEEK_SET) == -1)
+   if(lseek(get_fd(), (off_t)inTraced, SEEK_SET) == -1)
    {
       perror("process::readDataSpace_(lseek)");
       return false;
@@ -179,7 +178,7 @@ bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf)
    // TODO: check for infinite loop if read returns 0?
    char *dst = (char *)inSelf;
    for (int last, left = nbytes; left > 0; left -= last) {
-      if ((last = read(replwp->get_fd(), dst + nbytes - left, left)) == -1)
+      if ((last = read(get_fd(), dst + nbytes - left, left)) == -1)
       {
          perror("process::readDataSpace_(read)");
          return false;
@@ -192,15 +191,14 @@ bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf)
    return true;
 }
 
-bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
+bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
 {
    //fprintf(stderr, ">>> process::writeDataSpace_(%d@0x%016lx)\n", 
    //        nbytes, inTraced);
    ptraceOps++; 
    ptraceBytes += nbytes;
 
-   dyn_lwp *replwp = getRepresentativeLWP();   
-   if(lseek(replwp->get_fd(), (off_t)inTraced, SEEK_SET) == -1)
+   if(lseek(get_fd(), (off_t)inTraced, SEEK_SET) == -1)
    {
       perror("process::writeDataSpace_(lseek)");
       return false;
@@ -209,7 +207,7 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
    // TODO: check for infinite loop if write returns 0?
    char *src = (char *)const_cast<void*>(inSelf);
    for (int last, left = nbytes; left > 0; left -= last) {
-      if ((last = write(replwp->get_fd(), src + nbytes - left, left)) == -1)
+      if ((last = write(get_fd(), src + nbytes - left, left)) == -1)
       {
          perror("process::writeDataSpace_(write)");
          return false;
@@ -218,23 +216,23 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
    return true;
 }
 
-bool process::writeTextWord_(caddr_t inTraced, int data)
+bool dyn_lwp::writeTextWord(caddr_t inTraced, int data)
 {
-  //fprintf(stderr, ">>> process::writeTextWord_()\n");
-  return writeDataSpace_(inTraced, INSN_SIZE, &data);
+   //fprintf(stderr, ">>> process::writeTextWord_()\n");
+   return writeDataSpace(inTraced, INSN_SIZE, &data);
 }
 
-bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf)
+bool dyn_lwp::writeTextSpace(void *inTraced, u_int amount, const void *inSelf)
 {
-  //fprintf(stderr, ">>> process::writeTextSpace_()\n");
-  return writeDataSpace_(inTraced, amount, inSelf);
+   //fprintf(stderr, ">>> process::writeTextSpace_()\n");
+   return writeDataSpace(inTraced, amount, inSelf);
 }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
-bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf)
+bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf)
 {
-  //fprintf(stderr, ">>> process::readTextSpace_()\n");
-  return readDataSpace_(inTraced, amount, (void *)inSelf);
+   //fprintf(stderr, ">>> process::readTextSpace_()\n");
+   return readDataSpace(inTraced, amount, (void *)inSelf);
 }
 #endif
 
@@ -1001,7 +999,7 @@ bool process::dumpImage() {
   if (txtLen > 0) {
     char *buf2 = new char[txtLen];
     // TODO: readTextSpace_() only defined for BPATCH_MUTATIONS_ACTIVE
-    if (!(readDataSpace_((void *)txtAddr, txtLen, buf2))) {
+    if (!(readDataSpace((void *)txtAddr, txtLen, buf2, false))) {
       delete [] buf2;
       return false;
     }

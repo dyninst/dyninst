@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.29 2003/10/22 16:00:57 schendel Exp $
+// $Id: procfs.C,v 1.30 2003/12/04 19:15:08 schendel Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -485,34 +485,34 @@ bool process::API_detach_(const bool cont)
   return true;
 }
 
-bool process::writeTextWord_(caddr_t inTraced, int data) {
-  return writeDataSpace_(inTraced, sizeof(int), (caddr_t) &data);
+bool dyn_lwp::writeTextWord(caddr_t inTraced, int data) {
+   return writeDataSpace(inTraced, sizeof(int), (caddr_t) &data);
 }
 
-bool process::writeTextSpace_(void  *inTracedProcess, u_int amount,const void *inSelf) {
-  return writeDataSpace_(inTracedProcess, amount, inSelf);
+bool dyn_lwp::writeTextSpace(void  *inTracedProcess, u_int amount,
+                             const void *inSelf) {
+   return writeDataSpace(inTracedProcess, amount, inSelf);
 }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
-bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
-  return readDataSpace_(inTraced, amount, (void*)inSelf);
+bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) {
+   return readDataSpace(inTraced, amount, (void*)inSelf);
 }
 #endif
 
-bool process::writeDataSpace_(void *inTracedProcess, u_int amount,
-                              const void *inSelf)
+bool dyn_lwp::writeDataSpace(void *inTracedProcess, u_int amount,
+                             const void *inSelf)
 {
    off_t ret;
    ptraceOps++; ptraceBytes += amount;
 
-   dyn_lwp *replwp = getRepresentativeLWP();
 #ifdef __alpha
    errno = 0;
    prmap_t tmp;
    tmp.pr_vaddr = (char*)inTracedProcess;
-   ret = lseek(replwp->get_fd(), (off_t) tmp.pr_vaddr, SEEK_SET);
+   ret = lseek(get_fd(), (off_t) tmp.pr_vaddr, SEEK_SET);
 #else
-   ret = lseek(replwp->get_fd(), (off_t)inTracedProcess, SEEK_SET);
+   ret = lseek(get_fd(), (off_t)inTracedProcess, SEEK_SET);
 #endif  
 
    if (ret != (off_t)inTracedProcess) {
@@ -520,33 +520,32 @@ bool process::writeDataSpace_(void *inTracedProcess, u_int amount,
       fprintf(stderr, "   target address %lx\n", inTracedProcess);
       return false;
    }
-   return (write(replwp->get_fd(), inSelf, amount) == (int)amount);
+   return (write(get_fd(), inSelf, amount) == (int)amount);
 }
 
-bool process::readDataSpace_(const void *inTracedProcess, u_int amount,
-                             void *inSelf)
+bool dyn_lwp::readDataSpace(const void *inTracedProcess, u_int amount,
+                            void *inSelf)
 {
    off_t ret;
    ptraceOps++; ptraceBytes += amount;
-   dyn_lwp *replwp = getRepresentativeLWP();
+
 #ifdef __alpha   
    prstatus info;
-   ioctl(replwp->get_fd(), PIOCSTATUS,  &info);
+   ioctl(get_fd(), PIOCSTATUS,  &info);
    while (!prismember(&info.pr_flags, PR_STOPPED))
    {
       sleep(1);
-      ret = ioctl(replwp->get_fd(), PIOCSTATUS,  &info);
+      ret = ioctl(get_fd(), PIOCSTATUS,  &info);
       if (ret == -1) return false;
    } 
    errno = 0;
 #endif  
-   ret = lseek(replwp->get_fd(), reinterpret_cast<off_t>(inTracedProcess),
-               SEEK_SET);
+   ret = lseek(get_fd(), reinterpret_cast<off_t>(inTracedProcess), SEEK_SET);
 
    if (ret != (off_t)inTracedProcess) {
       perror("lseek");
       fprintf(stderr, "   target address %lx\n", inTracedProcess);
-      fprintf(stderr, "lseek(%d,%lx,%d)\n", replwp->get_fd(), inTracedProcess,
+      fprintf(stderr, "lseek(%d,%lx,%d)\n", get_fd(), inTracedProcess,
               SEEK_SET); 
       fprintf(stderr, "The return address: %lx\n",ret); 
 #ifdef DEBUG
@@ -569,7 +568,7 @@ bool process::readDataSpace_(const void *inTracedProcess, u_int amount,
 #endif
       return false;
    }
-   return (read(replwp->get_fd(), inSelf, amount) == (int)amount);
+   return (read(get_fd(), inSelf, amount) == (int)amount);
 }
 
 bool dyn_lwp::waitUntilStopped() {

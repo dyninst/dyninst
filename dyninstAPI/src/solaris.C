@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.159 2003/10/22 16:00:59 schendel Exp $
+// $Id: solaris.C,v 1.160 2003/12/04 19:15:10 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -389,87 +389,87 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
 bool process::dumpImage(pdstring imageFileName) 
 {
-    int newFd;
-    image *im;
-    pdstring command;
+   int newFd;
+   image *im;
+   pdstring command;
+   
+   im = getImage();
+   pdstring origFile = im->file();
+   
+   // first copy the entire image file
+   command = "cp ";
+   command += origFile;
+   command += " ";
+   command += imageFileName;
+   system(command.c_str());
+   
+   // now open the copy
+   newFd = open(imageFileName.c_str(), O_RDWR, 0);
+   if (newFd < 0) {
+      // log error
+      return false;
+   }
 
-    im = getImage();
-    pdstring origFile = im->file();
+   Elf *elfp = elf_begin(newFd, ELF_C_READ, 0);
+   Elf_Scn *scn = 0;
+   Address baseAddr = 0;
+   int length = 0;
+   int offset = 0;
+   
+   Elf32_Ehdr*	ehdrp;
+   Elf_Scn* shstrscnp  = 0;
+   Elf_Data* shstrdatap = 0;
+   Elf32_Shdr* shdrp;
+   
+   assert(ehdrp = elf32_getehdr(elfp));
+   assert(((shstrscnp = elf_getscn(elfp, ehdrp->e_shstrndx)) != 0) &&
+          ((shstrdatap = elf_getdata(shstrscnp, 0)) != 0));
+   const char* shnames = (const char *) shstrdatap->d_buf;
+   
+   while ((scn = elf_nextscn(elfp, scn)) != 0) {
+      const char* name;
+      
+      shdrp = elf32_getshdr(scn);
+      name = (const char *) &shnames[shdrp->sh_name];
+      if (!strcmp(name, ".text")) {
+         offset = shdrp->sh_offset;
+         length = shdrp->sh_size;
+         baseAddr = shdrp->sh_addr;
+         break;
+      }
+   }
+   
 
+   char *tempCode = new char[length];
+   
+   
+   bool ret = readTextSpace((void *) baseAddr, length, tempCode);
+   if (!ret) {
+      // log error
+      return false;
+   }
+   
+   lseek(newFd, offset, SEEK_SET);
+   write(newFd, tempCode, length);
+   delete[] tempCode;
+   close(newFd);
 
-    // first copy the entire image file
-    command = "cp ";
-    command += origFile;
-    command += " ";
-    command += imageFileName;
-    system(command.c_str());
-
-    // now open the copy
-    newFd = open(imageFileName.c_str(), O_RDWR, 0);
-    if (newFd < 0) {
-	// log error
-	return false;
-    }
-
-    Elf *elfp = elf_begin(newFd, ELF_C_READ, 0);
-    Elf_Scn *scn = 0;
-    Address baseAddr = 0;
-    int length = 0;
-    int offset = 0;
-
-    Elf32_Ehdr*	ehdrp;
-    Elf_Scn* shstrscnp  = 0;
-    Elf_Data* shstrdatap = 0;
-    Elf32_Shdr* shdrp;
-
-    assert(ehdrp = elf32_getehdr(elfp));
-    assert(((shstrscnp = elf_getscn(elfp, ehdrp->e_shstrndx)) != 0) &&
-           ((shstrdatap = elf_getdata(shstrscnp, 0)) != 0));
-    const char* shnames = (const char *) shstrdatap->d_buf;
-
-    while ((scn = elf_nextscn(elfp, scn)) != 0) {
-	const char* name;
-
-	shdrp = elf32_getshdr(scn);
-	name = (const char *) &shnames[shdrp->sh_name];
-	if (!strcmp(name, ".text")) {
-	    offset = shdrp->sh_offset;
-	    length = shdrp->sh_size;
-	    baseAddr = shdrp->sh_addr;
-	    break;
-	}
-    }
-
-
-    char *tempCode = new char[length];
-
-
-    bool ret = readTextSpace_((void *) baseAddr, length, tempCode);
-    if (!ret) {
-       // log error
-       return false;
-    }
-
-    lseek(newFd, offset, SEEK_SET);
-    write(newFd, tempCode, length);
-    delete[] tempCode;
-    close(newFd);
-
-    return true;
+   return true;
 }
 
 /* Auxiliary function */
 bool checkAllThreadsForBreakpoint(process *proc, Address break_addr)
 {
-    pdvector<Frame> activeFrames;
-  if (!proc->getAllActiveFrames(activeFrames)) return false;
-  for (unsigned frame_iter = 0; frame_iter < activeFrames.size(); frame_iter++) {
+   pdvector<Frame> activeFrames;
+   if (!proc->getAllActiveFrames(activeFrames)) return false;
+   for(unsigned frame_iter = 0; frame_iter < activeFrames.size(); frame_iter++)
+   {
       if (activeFrames[frame_iter].getPC() == break_addr) {
-          return true;
+         return true;
       }
-  }
-  
-  return false;
+   }
+   
+   return false;
 }
 
 bool process::trapAtEntryPointOfMain(Address)
