@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.30 2003/09/18 01:05:26 jodom Exp $
+// $Id: Object-xcoff.C,v 1.31 2003/09/29 20:47:43 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -864,6 +864,8 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
    //to be. the loader could put it before .text, after .data, before .data
    //but beyond 0x1ffffffc, somewhere in ohio.
 
+   
+
    if( loader_len_ && loader_off_  && is_aout 
        && ( (loader_off_+ loader_len_) > (code_off_ + code_len_  ))
        && ((loader_off_+ loader_len_) < 0x1ffffffc) ){
@@ -871,26 +873,32 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
    }else{
        heapAddr = code_off_ + code_len_;
    }
-   // Word-align the heap
-   heapAddr += (sizeof(instruction)) - (heapAddr % sizeof(instruction));
-   
-   // Get the appropriate length
-   if (is_aout) // main application binary
-     heapLen = 0x1ffffffc - heapAddr;
-   else {
-     heapLen = PAGESIZE - (heapAddr % PAGESIZE);
+   // MT: I've seen problems writing into a "found" heap that is in the application
+   // heap (IE a dlopen'ed library). Since we don't have any problems getting memory
+   // there, I'm skipping any heap that is in 0x2.....
+   if (heapAddr < 0x20000000 || 
+       heapAddr >= 0xd0000000) {
+       // Word-align the heap
+       heapAddr += (sizeof(instruction)) - (heapAddr % sizeof(instruction));
+       
+       // Get the appropriate length
+       if (is_aout) // main application binary
+           heapLen = 0x1ffffffc - heapAddr;
+       else {
+           heapLen = PAGESIZE - (heapAddr % PAGESIZE);
+       }
+       char name_scratch[256];
+       sprintf(name_scratch, "DYNINSTstaticHeap_%i_textHeap_%x_scratchpage",
+               (unsigned) heapLen,
+               (unsigned) heapAddr);
+       name = pdstring(name_scratch);
+       modName = pdstring("DYNINSTheap");
+       heapSym = Symbol(name, modName, Symbol::PDST_OBJECT, 
+                        Symbol::SL_UNKNOWN, heapAddr,
+                        false, (int) heapLen);
+       symbols_[name] = heapSym;
    }
-   char name_scratch[256];
-   sprintf(name_scratch, "%s%i%s%x",
-	   "DYNINSTstaticHeap_", (unsigned) heapLen,
-	   "_textHeap_", (unsigned) heapAddr);
-   name = pdstring(name_scratch);
-   modName = pdstring("DYNINSTheap");
-   heapSym = Symbol(name, modName, Symbol::PDST_OBJECT, 
-		    Symbol::SL_UNKNOWN, heapAddr,
-		    false, (int) heapLen);
-   symbols_[name] = heapSym;
-
+   
    // Set the table of contents offset
    toc_offset_ = toc_offset;
    

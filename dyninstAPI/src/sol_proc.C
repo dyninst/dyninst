@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.35 2003/09/05 16:28:05 schendel Exp $
+// $Id: sol_proc.C,v 1.36 2003/09/29 20:48:01 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -217,8 +217,6 @@ bool dyn_lwp::isRunning() const {
 
 bool dyn_lwp::clearSignal() {
     long command[2];
-    //fprintf(stderr, "Clearing signal from process\n");
-    
     command[0] = PCRUN; command[1] = PRSTOP | PRCSIG;
     if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
         perror("clearSignal: PCRUN");
@@ -311,10 +309,6 @@ bool dyn_lwp::continueLWP() {
       
   }
   
-
-  // Odd occurrence: in MT startup, we first get a SIGTRAP, then
-  // a SIGSTOP (after a run/pause pair), and then another SIGSTOP.
-
   return true;
   
 }
@@ -487,6 +481,7 @@ Frame dyn_lwp::getActiveFrame()
   Frame newFrame = Frame(GETREG_PC(regs->theIntRegs),
                          GETREG_FP(regs->theIntRegs), 
                          proc_->getPid(), NULL, this, true);
+
   delete regs;
   return newFrame;
 }
@@ -506,6 +501,7 @@ struct dyn_saved_regs *dyn_lwp::getRegisters()
 
     memcpy(&(regs->theIntRegs), &(status.pr_reg), sizeof(prgregset_t));
     memcpy(&(regs->theFpRegs), &(status.pr_fpreg), sizeof(prfpregset_t));
+
     return regs;
 }
 
@@ -568,10 +564,10 @@ void determineLWPs(int pid, pdvector<unsigned> *all_lwps) {
    char procdir[128];
    sprintf(procdir, "/proc/%d/lwp", pid);
    DIR *dirhandle = opendir(procdir);
-   dirent_t *direntry;
+   struct dirent *direntry;
    while((direntry= readdir(dirhandle)) != NULL) {
       char str[100];
-      strlcpy(str, direntry->d_name, direntry->d_reclen);
+      strncpy(str, direntry->d_name, direntry->d_reclen);
       unsigned lwp_id = atoi(direntry->d_name);
       if(lwp_id != 0) // && lwp_id != 1)
          (*all_lwps).push_back(lwp_id);
@@ -661,7 +657,7 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs)
 {
     lwpstatus_t status;
     get_status(&status);
-
+    
     // The fact that this routine can be shared between solaris/sparc and
     // solaris/x86 is just really, really cool.  /proc rules!
     int regbufsize = sizeof(long) + sizeof(prgregset_t);
@@ -670,6 +666,7 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs)
     memcpy(regbufptr, &(regs->theIntRegs), sizeof(prgregset_t));
     int writesize;
     writesize = write(ctl_fd(), regbuf, regbufsize);
+    
     if (writesize != regbufsize) {
         perror("restoreRegisters: GPR write");
         return false;
@@ -704,9 +701,25 @@ bool dyn_lwp::executingSystemCall()
           // Not in a syscall any more :)
           return false;
       }
-      else 
+      else {
           return true;
+      }
   }
+
+#if defined(AIX_PROC)
+  // I've seen cases where we're apparently not in a system
+  // call, but can't write registers... we'll label this case
+  // a syscall for now
+  int regbufsize = sizeof(long) + sizeof(prgregset_t);
+  char regbuf[regbufsize]; long *regbufptr = (long *)regbuf;
+  *regbufptr = PCSREG; regbufptr++;
+  memcpy(regbufptr, &(status.pr_reg), sizeof(prgregset_t));
+  int writesize = write(ctl_fd(), regbuf, regbufsize);
+  if (writesize == -1) {
+      return true;
+  }
+#endif
+  
   return false;
 }
 
@@ -715,7 +728,7 @@ bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 {
     // Don't change the contents of regs if given
     dyn_saved_regs *local;
-
+    
     if (!regs) {
         local = getRegisters();    
     }
@@ -734,6 +747,10 @@ bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
     if (!restoreRegisters(local))
         return false;
     
+    dyn_saved_regs *check;
+    check = getRegisters();
+    assert(GETREG_PC(local->theIntRegs) == GETREG_PC(check->theIntRegs));
+    delete check;
     delete local;
 
     return true;
@@ -825,6 +842,8 @@ bool dyn_lwp::openFD_()
   }
   else {
       // No LWP = representative LWP
+      fprintf(stderr, "Opening /proc FD for process %d\n", proc_->getPid());
+      
     char temp[128];
     sprintf(temp, "/proc/%d/ctl", (int)proc_->getPid());
     ctl_fd_ = P_open(temp, O_WRONLY | O_EXCL, 0);
@@ -998,11 +1017,11 @@ bool process::attach_() {
     premptyset(&sigs);
     praddset(&sigs, SIGSTOP);
     
-#ifndef i386_unknown_solaris2_5
+//#ifndef i386_unknown_solaris2_5
     praddset(&sigs, SIGTRAP);
-#else
+//#else
     praddset(&sigs, SIGILL);
-#endif    
+//#endif    
     
     praddset(&sigs, SIGCONT);
     praddset(&sigs, SIGBUS);
@@ -1358,7 +1377,7 @@ bool process::set_syscalls(sysset_t *entry, sysset_t *exit) const
 {
     int bufentrysize = sizeof(long) + SYSSET_SIZE(entry);
     char bufentry[bufentrysize]; long *bufptr = (long *)bufentry;
-
+    
     // Write entry syscalls
     *bufptr = PCSENTRY; bufptr++;
     memcpy(bufptr, entry, SYSSET_SIZE(entry));
@@ -1373,6 +1392,10 @@ bool process::set_syscalls(sysset_t *entry, sysset_t *exit) const
               bufexit, bufexitsize) != bufexitsize) return false;
     return true;    
 }
+
+#if defined(AIX_PROC)
+extern void generateBreakPoint(instruction &insn);
+#endif
 
 syscallTrap *process::trapSyscallExitInternal(Address syscall)
 {
@@ -1401,11 +1424,37 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
         // 1) Get the original value
         // 2) Place a trap
         // 3) Create a new syscallTrap object and return it
-
         trappedSyscall = new syscallTrap;
         trappedSyscall->refcount = 1;
         trappedSyscall->syscall_id = (int) syscall;
 
+#if defined(AIX_PROC) 
+        // AIX does some weird things, as we can't modify a thread
+        // at a system call exit -- this means that using /proc
+        // doesn't get us anywhere.
+        // The "address" of the system call is actually the LWP
+        // in the call
+        dyn_lwp *syslwp = getLWP((unsigned) syscall);
+        Frame frame = syslwp->getActiveFrame();
+        Frame callerFrame = frame.getCallerFrame(this);
+        
+        Address origLR;
+        readDataSpace((void *)(callerFrame.getFP() + 8),
+                      sizeof(Address),
+                      (void *)&origLR, false);
+        trappedSyscall->origLR = origLR;
+        
+        Address trapAddr = inferiorMalloc(sizeof(instruction));
+        trappedSyscall->trapAddr = trapAddr;
+        instruction insn;
+        generateBreakPoint(insn);
+
+        writeDataSpace((void *)trapAddr, sizeof(instruction),
+                       (void *)&insn);
+        writeDataSpace((void *)(callerFrame.getFP() + 8), 
+                       sizeof(Address),
+                       (void *)&trapAddr);
+#else
         sysset_t *cur_syscalls = SYSSET_ALLOC(getPid());
         pstatus_t proc_status;
         if (!get_status(&proc_status)) return NULL;
@@ -1427,8 +1476,8 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
             return NULL;
         }
         //fprintf(stderr, "PCSexit for %d, orig %d\n", 
-        //        trappedSyscall->syscall_id, trappedSyscall->orig_setting);
-        
+        //trappedSyscall->syscall_id, trappedSyscall->orig_setting);
+#endif
         // Insert into the list of trapped syscalls
         syscallTraps_ += (trappedSyscall);
 
@@ -1451,6 +1500,11 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
         return true;
     }
     // Erk... it hit 0. Remove the trap at the system call
+#if defined(AIX_PROC) 
+    dyn_lwp *lwp = getLWP(trappedSyscall->syscall_id);
+    inferiorFree(trappedSyscall->trapAddr);
+    lwp->changePC(trappedSyscall->origLR, NULL);
+#else
     sysset_t *cur_syscalls = SYSSET_ALLOC(getPid());
     pstatus_t proc_status;
     if (!get_status(&proc_status)) return false;
@@ -1467,7 +1521,7 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
         perror("Syscall trap clear");
         return false;
     }
-    
+#endif
     // Now that we've reset the original behavior, remove this
     // entry from the vector
     pdvector<syscallTrap *> newSyscallTraps;
@@ -1488,14 +1542,21 @@ Address dyn_lwp::getCurrentSyscall(Address /*ignored*/) {
         fprintf(stderr, "Failed to get status\n");
         return 0;
     }
-
+#if defined(AIX_PROC)
+    return get_lwp_id();
+#else
     return status.pr_syscall;
+#endif
 }
 
 
 
 bool dyn_lwp::stepPastSyscallTrap()
 {
+#if defined(AIX_PROC)
+    // What is something else doing hitting our trap?
+    assert(0);
+#endif
     // Nice... on /proc systems we don't need to do anything here
     return true;
 }
@@ -1507,8 +1568,15 @@ bool dyn_lwp::stepPastSyscallTrap()
 // 1: Trapped, but did not have a syscall trap placed for this LWP
 // 2: Trapped with a syscall trap desired.
 int dyn_lwp::hasReachedSyscallTrap() {
-    Address syscall;
+#if defined(AIX_PROC) 
+    if (!trappedSyscall_) return 0;
     
+    Frame frame = getActiveFrame();
+    
+    if (frame.getPC() == trappedSyscall_->trapAddr)
+        return 2;
+#else
+    Address syscall;
     // Get the status of the LWP
     lwpstatus_t status;
     if (!get_status(&status)) {
@@ -1524,12 +1592,13 @@ int dyn_lwp::hasReachedSyscallTrap() {
     if (trappedSyscall_ && syscall == trappedSyscall_->syscall_id) {
         return 2;
     }
-    
     // Unfortunately we can't check a recorded system call trap,
     // since we don't have one saved. So do a scan through all traps the
     // process placed
     if (proc()->checkTrappedSyscallsInternal(syscall))
         return 1;
+#endif
+
     // This is probably an error case... but I'm not sure.
     return 0;
 }
@@ -1763,8 +1832,8 @@ process *decodeProcessEvent(int pid,
              if(!decodeProcStatus(currProcess, procstatus, why, what, info))
                 return NULL;
              if(why == procSyscallExit && what == 2 &&
-                            currProcess->multithread_ready()) {
-                findLWPStoppedFromForkExit(currProcess);
+                currProcess->multithread_ready()) {
+                 findLWPStoppedFromForkExit(currProcess);
              }
 #if defined(AIX_PROC)
              if (why == procSignalled && what == SIGSTOP) {

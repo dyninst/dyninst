@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.185 2003/09/05 16:27:46 schendel Exp $
+ * $Id: inst-power.C,v 1.186 2003/09/29 20:47:56 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1139,11 +1139,15 @@ void loadOrigLR(instruction *&insn, Address &base)
     // We had previously set a "cookie" instructing our stackwalk
     // code to look at the saved LR spot. Remove this value
     // for correctness.
-    genImmInsn(insn, CAUop, 0, 0, 0x0000);
+    genImmInsn(insn, CALop, 0, 0, 0x0000);
     insn++; base += sizeof(instruction);
     genImmInsn(insn, STop, 0, 1, 16);
     insn++; base += sizeof(instruction);
     genImmInsn(insn, Lop, 0, 1, 12);
+    insn++; base += sizeof(instruction);
+    // Save the LR in the right place on the stack for
+    // walk purposes
+    genImmInsn(insn, STop, 0, 1, 8);
     insn++; base += sizeof(instruction);
     insn->raw = MTLR0raw;
     insn++; base += sizeof(instruction);
@@ -1265,8 +1269,11 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 
   // Pad the start of the base tramp with a noop -- used for
   // system call trap emulation
+#if !defined(AIX_PROC)
+  // NOTE: PTRACE ONLY!
   generateNOOP(insn);
   insn++; currAddr += sizeof(instruction);
+#endif
   
   // Put in the function stomping at the beginning
   switch (location->ipLoc) {
@@ -1315,24 +1322,14 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // Let the stack walk code/anyone else know we're in a base tramp
   // via cookie writing.
   {
-      unsigned int cookie_value;
-      switch(location->ipLoc) {
-    case ipFuncReturn:
-    case ipFuncEntry:
-        cookie_value = IN_ENTRY_EXIT_TRAMP + MODIFIED_LR;
-        break;
-    case ipOther:
-    case ipFuncCallPoint:
-        cookie_value = IN_OTHER_TRAMP;
-        break;
-      }
+      unsigned int cookie_value = IN_TRAMP;
       
       // Load previous cookie value
       // add (OR) our cookie
       genImmInsn(insn, CALop, 10, 0, cookie_value);
       insn++; currAddr += sizeof(instruction);
       // Store it back
-      genImmInsn(insn, STop, 10, 1, 16 + TRAMP_FRAME_SIZE);
+      genImmInsn(insn, STop, 10, 1, 16);
       insn++; currAddr += sizeof(instruction);
   }
 
@@ -1453,10 +1450,6 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // Not in a base tramp any more
   {
       unsigned int cookie_value = 0x0;
-      if (location->ipLoc == ipFuncReturn ||
-          location->ipLoc == ipFuncEntry)
-          // Still should have the "overwritten LR" cookie
-          cookie_value = MODIFIED_LR;
       genImmInsn(insn, CALop, 10, 0, cookie_value);
       insn++; currAddr += sizeof(instruction);
       // Store it back
@@ -1511,24 +1504,14 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // Let the stack walk code/anyone else know we're in a base tramp
   // via cookie writing.
   {
-      unsigned int cookie_value;
-      switch(location->ipLoc) {
-    case ipFuncReturn:
-    case ipFuncEntry:
-        cookie_value = MODIFIED_LR + IN_ENTRY_EXIT_TRAMP;
-        break;
-    case ipOther:
-    case ipFuncCallPoint:
-        cookie_value = IN_OTHER_TRAMP;
-        break;
-      }
+      unsigned int cookie_value = IN_TRAMP;
       
       // Load previous cookie value
       // add (OR) our cookie
       genImmInsn(insn, CALop, 10, 0, cookie_value);
       insn++; currAddr += sizeof(instruction);
       // Store it back
-      genImmInsn(insn, STop, 10, 1, 16 + TRAMP_FRAME_SIZE);
+      genImmInsn(insn, STop, 10, 1, 16);
       insn++; currAddr += sizeof(instruction);
   }
 
@@ -1641,10 +1624,6 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // Not in a base tramp any more
   {
       unsigned int cookie_value = 0x0;
-      if (location->ipLoc == ipFuncReturn ||
-          location->ipLoc == ipFuncEntry)
-          // Still should have the "overwritten LR" cookie
-          cookie_value = MODIFIED_LR;
       genImmInsn(insn, CALop, 10, 0, cookie_value);
       insn++; currAddr += sizeof(instruction);
       // Store it back
@@ -1780,7 +1759,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // TODO cast
   proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) tramp);
 
-  //fprintf(stderr, "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
+//  fprintf(stderr, "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
   //baseAddr, baseAddr+theTemplate->size, location->addr, 
   //location->func->prettyName().c_str());
   if (isReinstall) return NULL;
@@ -3356,6 +3335,7 @@ bool isReturnInsn(const image *owner, Address adr)
 bool pd_Function::findInstPoints(const image *owner) 
 {  
   Address adr = getAddress(0);
+  Address preamble_adr = adr;
   instruction instr;
   bool err;
 
@@ -3373,9 +3353,6 @@ bool pd_Function::findInstPoints(const image *owner)
   noStackFrame = true;
 
 
-  if (instr.raw == MFLR0raw) {
-    makesNoCalls_ = false;
-  }
   // Do we make a stack frame? Umm... well... it's hard to tell. If we spot
   // the instruction used (stwu) on r1, then we assume we make a frame. If
   // not, no.
@@ -3401,39 +3378,56 @@ bool pd_Function::findInstPoints(const image *owner)
   funcReturns.push_back(new instPoint(this, retInsn, owner, adr+1, false, ipFuncReturn));
 
 
-  if (instr.dform.op == STFDop) {
-      goto set_uninstrumentable;
+//  if (instr.dform.op == STFDop) {
+//      goto set_uninstrumentable;
+//  }
+//  if (instr.dform.op == LFDop) {
+//      goto set_uninstrumentable;
+//  }
+
+  // Check whether we're a leaf function (makes no calls, LR never saved)
+  // or don't create a stack frame.
+  // 26SEP03: just to make life impossible, there are functions (sqrt is a good example)
+  // that do create stack frames, but only before calling error functions -- so checking
+  // for the existence of "save SP" is _not_ sufficient. We need to check within the preamble
+  // of the function. Define that to the first 10 instructions -- normally the SP is saved
+  // within the first 4
+  instr.raw = owner->get_instruction(preamble_adr);
+  for (unsigned i = 0; i < 10; i++) {
+      if ((instr.dform.op == STUop) &&
+          (instr.dform.rt == 1) &&
+          (instr.dform.ra == 1)) {
+          noStackFrame = false;
+      }
+      if (instr.raw == MFLR0raw) {
+          makesNoCalls_ = false;
+      }
+      preamble_adr += sizeof(instruction);
+      instr.raw = owner->get_instruction(preamble_adr);
   }
-  if (instr.dform.op == LFDop) {
-      goto set_uninstrumentable;
-  }
+
+  // Now we go through the entire function looking for calls.
   
   // Define call sites in the function
   instr.raw = owner->get_instruction(adr);
   while(instr.raw != 0x0) {
-    if (isCallInsn(instr)) {
-        // Define the call point
-        
-        
-        adr = newCallPoint(adr, instr, owner, err);
-
-
-      if (err)   goto set_uninstrumentable;
-     }
-    else if (isDynamicCall(instr)) {
-      // Define the call point
-      adr = newCallPoint(adr, instr, owner, err);
-      if (err)   goto set_uninstrumentable;
-    }
-    else if ((instr.dform.op == STUop) &&
-	     (instr.dform.rt == 1) &&
-	     (instr.dform.ra == 1)) {
-      //cerr << " saves stack frame...";
-      noStackFrame = false;
-    }
-    // now do the next instruction
-    adr += sizeof(instruction);
-    instr.raw = owner->get_instruction(adr);
+      if (isCallInsn(instr)) {
+          // Define the call point
+          
+          
+          adr = newCallPoint(adr, instr, owner, err);
+          
+          
+          if (err)   goto set_uninstrumentable;
+      }
+      else if (isDynamicCall(instr)) {
+          // Define the call point
+          adr = newCallPoint(adr, instr, owner, err);
+          if (err)   goto set_uninstrumentable;
+      }
+      // now do the next instruction
+      adr += sizeof(instruction);
+      instr.raw = owner->get_instruction(adr);
   }
   //cerr << endl;
   // Check for linkage code, and if so enter the call site as 
@@ -3447,7 +3441,7 @@ bool pd_Function::findInstPoints(const image *owner)
   // bctr                    // non-saving branch to CTR
 
   // The parser detects linkage functions and appends _linkage to the name
-
+  
   isInstrumentable_ = 1;
   return(true);
 

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.20 2003/07/23 22:27:54 bernat Exp $
+ * $Id: inst-power.h,v 1.21 2003/09/29 20:47:59 bernat Exp $
  */
 
 #ifndef INST_POWER_H
@@ -109,17 +109,12 @@ extern trampTemplate withArgsTemplate;
 #define FUNC_CALL_SAVE (LINKAREA + FUNCARGS)
 
 /* Cookie values for marking if we're in a tramp */
-#define MODIFIED_LR_UNSHIFTED 0x5400
-#define MODIFIED_LR 0x5400
-#define MODIFIED_LR_MASK 0xfe00
+#define MODIFIED_LR 0x54a7
+#define MODIFIED_LR_MASK 0xffff
 
 
-#define IN_ENTRY_EXIT_TRAMP 0x097
-#define IN_ENTRY_EXIT_TRAMP_MASK 0x1FF
-
-#define IN_OTHER_TRAMP 0x1ab
-#define IN_OTHER_TRAMP_MASK 0x1FF
-
+#define IN_TRAMP 0xda73
+#define IN_TRAMP_MASK 0xffff
 
 
 /* ipOther is never used in Paradyn, but simplifies code to unify */

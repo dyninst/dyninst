@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: syscalltrap.h,v 1.2 2003/04/16 21:07:10 bernat Exp $
+/* $Id: syscalltrap.h,v 1.3 2003/09/29 20:48:02 bernat Exp $
  */
 
 #ifndef _SYSCALL_TRAP_H_
@@ -72,6 +72,9 @@ struct syscallTrap {
     char saved_insn[32];
     // Handle for further info
     void *saved_data;
+    // AIX use
+    Address origLR;
+    Address trapAddr;
 };
 
 /*

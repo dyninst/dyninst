@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.105 2003/09/05 16:28:09 schendel Exp $
+// $Id: unix.C,v 1.106 2003/09/29 20:48:03 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -61,6 +61,11 @@
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/stats.h"
+
+// BREAK_POINT_INSN
+#if defined(AIX_PROC)
+#include "dyninstAPI/src/arch-power.h"
+#endif
 
 // The following were all defined in process.C (for no particular reason)
 
@@ -547,7 +552,6 @@ int handleSigTrap(process *proc, procSignalInfo_t /*info*/) {
     // we're waiting for a syscall to complete
     if (proc->getRpcMgr()->handleSignalIfDueToIRPC()) {
         signal_cerr << "processed RPC response in SIGTRAP" << endl;
-        
         return 1;
     }
     
@@ -596,16 +600,29 @@ int handleSigTrap(process *proc, procSignalInfo_t /*info*/) {
     }
 #endif
 
-    if(proc->multithread_capable()) {
-       // Check to see if this is a syscall exit
-       proc->handleSyscallExit(0);
-       
-       proc->continueProc();
-       return 1;
-    } else {
-       // Forward the trap to the process
-       return 0;
+    // Check to see if this is a syscall exit
+    if (proc->handleSyscallExit(0)) {
+        proc->continueProc();
+        return 1;
     }
+
+    // Okay... on AIX we get spurious traps, IE the instruction at the
+    // PC is _not_ a trap instruction. Until I can figure out _why_ this
+    // is, we'll hand-check and see whether to ignore a trap.
+#if defined(AIX_PROC)
+    lwpstatus_t status;
+    proc->getDefaultLWP()->get_status(&status);
+    
+    instruction foo;
+    proc->readDataSpace((void *)status.pr_reg.__iar, 
+                        sizeof(instruction),
+                        (void *)&foo, false);
+    if (foo.raw != BREAK_POINT_INSN) {
+        proc->continueProc();
+        return 1;
+    }
+#endif
+    return 0;
 }
 
 // Needs to be fleshed out
@@ -670,36 +687,41 @@ int handleSigCritical(process *proc, procSignalWhat_t what, procSignalInfo_t inf
    }
 #endif
 
-#ifdef DEBUG
    signal_cerr << "caught signal, dying...  (sig="
                << (int) what << ")" << endl << std::flush;
 
-   pdvector<pdvector<Frame> > stackwalks;
-   proc->walkStacks(stackwalks);
+#ifdef DEBUG
+   fprintf(stderr, "Process dying on signal %d\n", what);
    
-   for (unsigned i = 0; i < stackwalks.size(); i++) {
-       pdvector<Frame> stackWalk = stackwalks[i];
-       fprintf(stderr, "LWP: %d, TID: %d\n",
-               stackWalk[0].getLWP()->get_lwp_id(),
-               stackWalk[0].getThread()->get_tid());
+   for (unsigned thr_iter = 0; thr_iter <  proc->threads.size(); thr_iter++) {
+       dyn_lwp *lwp = proc->threads[thr_iter]->get_lwp();
+       if (lwp) {
+           pdvector<Frame> stackWalk;
+           lwp->walkStack(stackWalk);
+           
+           fprintf(stderr, "TID: %d, LWP: %d\n",
+                   proc->threads[thr_iter]->get_tid(),
+                   lwp->get_lwp_id());
 #if defined(sparc_sun_solaris2_4)
-       lwpstatus status;
-       stackWalk[0].getLWP()->get_status(&status);
-       fprintf(stderr, "why: %d, what: %d\n",
-               status.pr_why, 
-               status.pr_what);
+           lwpstatus status;
+           lwp->get_status(&status);
+           fprintf(stderr, "why: %d, what: %d\n",
+                   status.pr_why, 
+                   status.pr_what);
 #endif
        
-       for (unsigned j = 0; j < stackWalk.size(); j++) {
-           fprintf(stderr, "PC: 0x%x   ", stackWalk[j].getPC());
-           pd_Function *func = proc->findFuncByAddr(stackWalk[j].getPC());
-           if (func)
-               fprintf(stderr, "%s", func->prettyName().c_str());
-           fprintf(stderr, "\n");
+           for (unsigned j = 0; j < stackWalk.size(); j++) {
+               fprintf(stderr, "PC: 0x%x (0x%x)   ", stackWalk[j].getPC(),
+                       stackWalk[j].getFP());
+               pd_Function *func = proc->findFuncByAddr(stackWalk[j].getPC());
+               if (func)
+                   fprintf(stderr, "%s", func->prettyName().c_str());
+               fprintf(stderr, "\n");
+           }
+           fprintf(stderr, "\n\n\n");
        }
-       fprintf(stderr, "\n\n\n");
    }
-
+   
 #endif
    proc->dumpImage("imagefile");
    
