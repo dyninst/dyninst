@@ -5,6 +5,10 @@
 ; *    appropriate inferior process via ptrace calls.
 ; *
 ; * $Log: tramp-hppa.s,v $
+; * Revision 1.6  1997/01/22 15:45:33  lzheng
+; * Fix a problem with skip branch.(Some instructions cannot be skipped
+; * at any time)
+; *
 ; * Revision 1.5  1996/11/11 01:43:19  lzheng
 ; * Moved the instructions which is used to caculate the observed cost
 ; * from the miniTramps to baseTramp
@@ -62,14 +66,14 @@ _baseTramp
 	.word	0xffffff2f		; PREAMBLE_2 save 2
 	.word   0xffffff3f		; PREAMBLE_3 save 3
 	.word	0xffffff4f		; PREAMBLE_4 save 28
-	.word	0xfffffffa		; GLOBAL_PRE_BRANCH
-	.word   0xffffffd3		; SKIP_PRE_INSN
-	nop			        ; delay slot
 	; SAVE registers here
 	.word	0xffffffa2		; SAVE_PRE
 	nop
 	nop
 	nop
+	.word	0xfffffffa		; GLOBAL_PRE_BRANCH
+	.word   0xffffffd3		; SKIP_PRE_INSN
+	nop			        ; delay slot
 	nop			        ; fill this in with instructions to 
 	nop			        ; compute the address of the vector
 	nop			        ; of counter/timers for each thread
@@ -81,11 +85,6 @@ _baseTramp
 	nop		
 	.word	0xfffffff8		; LOCAL_PRE_BRANCH
 	.word	0xfffffff9		; LOCAL_PRE_BRANCH_1
-	; RESTORE registers here
-	.word	0xffffffb3		; RESTORE_PRE
-	nop
-	nop
-	nop
 	.word   0xffffffd4		; update cost
 	nop
 	nop
@@ -93,6 +92,11 @@ _baseTramp
 	nop
 	nop
 	nop	 
+	; RESTORE registers here
+	.word	0xffffffb3		; RESTORE_PRE
+	nop
+	nop
+	nop
 	.word   0xffffffaf		; TRAILER_4 restore 28
 	.word   0xffffffbf		; TRAILER_3 restore 3
 	.word	0xffffffcf		; TRAILER_2 restore 2
@@ -106,12 +110,12 @@ _baseTramp
 	nop
 	nop
 	nop
-        .word   0xffffffe3		; SKIP_POST_INSN
+	.word   0xffffff01	;  PREAMBLE_00 stack pointer
+	.word   0xffffff31	;  PREAMBLE_33 save 3
+	.word   0xffffffe3		; SKIP_POST_INSN
 	nop				; delay slot
-	.word	0xffffff01		; PREAMBLE_00 stack pointer
 	.word	0xffffff11		; PREAMBLE_11 save 31
 	.word	0xffffff21		; PREAMBLE_22 save 2
-	.word   0xffffff31		; PREAMBLE_33 save 3
 	.word	0xffffff41		; PREAMBLE_44 save 28
 	.word	0xfffffffc		; GLOBAL_POST_BRANCH
 	; SAVE registers here
@@ -136,9 +140,9 @@ _baseTramp
 	nop
 	nop
 	.word	0xffffffa1		; TRAILER_44 restore 28
-	.word   0xffffffb1		; TRAILER_33 restore 3
 	.word	0xffffffc1		; TRAILER_22 restore 2
 	.word	0xffffffd1		; TRAILER_11 restore 31
+	.word   0xffffffb1		; TRAILER_33 restore 3
 	.word	0xffffffe1		; TRAILER_00 stack pointer
 	.word	0xfffffff7		; RETURN_INSN
 	.word   0xfffffff6		; RETURN_INSN_1
