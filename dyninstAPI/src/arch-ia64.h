@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.28 2004/08/18 21:17:40 rchen Exp $
+// $Id: arch-ia64.h,v 1.29 2005/01/11 22:44:58 legendre Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -175,7 +175,8 @@ typedef IA64_instruction * instruction;
    much paid attention to.  Anyway, IA-64 instruction bundles
    are always 16-byte aligned. */
 inline bool isAligned( const Address address ) {
-	return (address & 0xFFFFFFFFFFFFFFF0) == address;
+   Address algned = address & 0xFFFFFFFFFFFFFFF0;
+   return (algned == address || algned+1 == address || algned+2 == address);
 	} /* end isAligned() */
 
 /* Required by linux.C to find the address bounds
