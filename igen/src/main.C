@@ -257,8 +257,8 @@ static void init_header_files() {
 
   Options::temp_dot_c << "#pragma implementation \"Vector.h\"\n";
   Options::temp_dot_c << "#include \"util/h/Vector.h\"\n";
-  Options::temp_dot_c << "#pragma implementation \"Queue.h\"\n";
-  Options::temp_dot_c << "#include \"util/h/Queue.h\"\n";
+//  Options::temp_dot_c << "#pragma implementation \"Queue.h\"\n";
+//  Options::temp_dot_c << "#include \"util/h/Queue.h\"\n";
   Options::temp_dot_c << "#pragma implementation \"" << base << "h\"\n";
   Options::temp_dot_c << "#include \"" << base << "h\"\n";
   Options::temp_dot_c << "#include \"util/h/String.h\"\n";
@@ -300,12 +300,12 @@ static void init_header_files() {
   Options::clnt_dot_h << "#define " << cpp_base << "CLNT_H\n";
   Options::clnt_dot_h << "#include \"" << base << "h\"\n";
 
-  Options::clnt_dot_h << "#include \"util/h/Queue.h\"\n";
+//  Options::clnt_dot_h << "#include \"util/h/Queue.h\"\n";
 
   Options::srvr_dot_h << "#ifndef " << cpp_base << "SRVR_H\n";
   Options::srvr_dot_h << "#define " << cpp_base << "SRVR_H\n";
   Options::srvr_dot_h << "#include \"" << base << "h\"\n";
-  Options::srvr_dot_h << "#include \"util/h/Queue.h\"\n";
+//  Options::srvr_dot_h << "#include \"util/h/Queue.h\"\n";
 
   Options::clnt_dot_c << "#include \"" << base << "CLNT.h\"\n";
   Options::srvr_dot_c << "#include \"" << base << "SRVR.h\"\n";
@@ -1134,10 +1134,8 @@ string message_layer::read_tag(const string obj_name, const string tag_s) const 
 }
 
 void Options::dump_types() {
-  dictionary_hash_iter<string, type_defn*> dhi(Options::all_types);
-  string s; type_defn *td;
-  while (dhi.next(s, td)) 
-    td->dump_type();
+   for (dictionary_hash_iter<string, type_defn*> dhi=Options::all_types; dhi; dhi++)
+      dhi.currval()->dump_type();
 }
 
 string remote_func::request_tag(bool unqual) const {
@@ -1447,11 +1445,14 @@ signature::signature(vector<arg*> *alist, const string rf_name) : is_const_(fals
     is_const_ = args[0]->is_const();
     break;
   default:
-    type_defn *td; string s;
-    dictionary_hash_iter<string, type_defn*> tdi(Options::all_types);
+    type_defn *td;
     bool match = false;
-    while (!match && tdi.next(s, td))
-      match = td->is_same_type(alist);
+    for (dictionary_hash_iter<string, type_defn*> tdi=Options::all_types;
+         tdi && !match; tdi++) {
+       td = tdi.currval();
+       match = td->is_same_type(alist);
+    }
+    
     if (match) {
       type_ = td->name();
       for (unsigned q=0; q<args.size(); ++q)
