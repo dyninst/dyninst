@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: as-power.h,v 1.9 2000/02/18 20:40:51 bernat Exp $ */
+/* $Id: as-power.h,v 1.10 2000/03/06 17:34:56 bernat Exp $ */
 
 #ifndef AS_POWER_H
 #define AS_POWER_H
@@ -99,8 +99,9 @@
 /* Various recursion avoidance constants */
 /* Added 5JAN99 by Drew Bernat */
 
-#define REENTRANT_GUARD_LOAD      0x20
-#define REENTRANT_PRE_INSN_JUMP   0x21
+#define REENTRANT_GUARD_ADDR      0x20
+#define REENTRANT_GUARD_LOAD      0x21
+#define REENTRANT_PRE_INSN_JUMP   0x22
 #define REENTRANT_POST_INSN_JUMP  0x26
 #define REENTRANT_GUARD_INC       0x2a
 #define REENTRANT_GUARD_DEC       0x2b

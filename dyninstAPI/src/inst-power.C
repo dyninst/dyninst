@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.86 2000/02/25 17:16:03 bernat Exp $
+ * $Id: inst-power.C,v 1.87 2000/03/06 17:34:56 bernat Exp $
  */
 
 #include "util/h/headers.h"
@@ -617,14 +617,19 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp, bool guardDesired =
 	        break;
   	}	
     }
+    thisTemp->cost = 8;
+    thisTemp->prevBaseCost = 20;
+    thisTemp->postBaseCost = 30;
     if (!guardDesired)
       {
 	thisTemp->recursiveGuardPreJumpOffset = 0;
 	thisTemp->recursiveGuardPostJumpOffset = 0;
       }
-    thisTemp->cost = 8;
-    thisTemp->prevBaseCost = 20;
-    thisTemp->postBaseCost = 30;
+    else // Update the costs
+      {
+	thisTemp->prevBaseCost += 11;  
+	thisTemp->postBaseCost += 11;
+      }
     thisTemp->prevInstru = thisTemp->postInstru = false;
     thisTemp->size = (int) temp - (int) tramp;
 }
@@ -1379,7 +1384,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 	  temp--;                                   //`for' loop compensate
 	  currAddr -= sizeof(instruction);          //`for' loop compensate
 	  break;
-        case REENTRANT_GUARD_LOAD:
+        case REENTRANT_GUARD_ADDR:
 	  if (theTemplate->recursiveGuardPreJumpOffset)
 	    {
 	      // Need to write the following instructions:
@@ -1396,7 +1401,13 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 			 6,       // Destination
 			 6,       // Source
 			 LOW((int)trampGuardFlagAddr));
-	      temp++; currAddr += sizeof(instruction);
+	    }
+	  else // No guard wanted, so overwrite with noop
+	    temp->raw = NOOPraw;
+	  break;
+	case REENTRANT_GUARD_LOAD:
+	  if (theTemplate->recursiveGuardPreJumpOffset)
+	    {
 	      // load (addr: 6, dest: 5)
 	      genImmInsn(temp,   // instruction
 			 Lop,    // Load
@@ -1404,9 +1415,9 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 			 6,      // Addr in register 6
 			 0);     // No offset
 	    }
-	  else // No guard wanted, so overwrite with noop
+	  else
 	    temp->raw = NOOPraw;
-	    break;
+	  break;
         case REENTRANT_PRE_INSN_JUMP:
 	  if (theTemplate->recursiveGuardPreJumpOffset)
 	    {
