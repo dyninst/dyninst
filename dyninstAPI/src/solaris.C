@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.76 1999/09/06 20:55:49 wylie Exp $
+// $Id: solaris.C,v 1.77 1999/10/14 22:27:29 zandy Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -782,6 +782,11 @@ bool process::dlopenDYNINSTlib() {
 #ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
   if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
     strcpy((char*)libname,(char*)getenv("DYNINSTAPI_RT_LIB"));
+    if (access(libname, R_OK|X_OK)) {
+	 string msg = string(libname) + string(" does not exist or cannot be accessed");
+	 showErrorCallback(101, msg);
+	 return false;
+    }
   } else {
     string msg = string("Environment variable DYNINSTAPI_RT_LIB is not defined;"
         " should be set to the pathname of the dyninstAPI_RT runtime library.");
@@ -791,6 +796,11 @@ bool process::dlopenDYNINSTlib() {
 #else
   if (getenv("PARADYN_LIB") != NULL) {
     strcpy((char*)libname,(char*)getenv("PARADYN_LIB"));
+    if (access(libname, R_OK|X_OK)) {
+	 string msg = string(libname) + string(" does not exist or cannot be accessed");
+	 showErrorCallback(101, msg);
+	 return false;
+    }
   } else {
     string msg = string("Environment variable PARADYN_LIB has not been defined"
                  " for process") + string(pid);
@@ -922,6 +932,7 @@ bool process::continueProc_() {
   ptraceOps++; ptraceOtherOps++;
   prrun_t flags;
   prstatus_t stat;
+  Address pc;  // PC at which we are trying to continue
 
 #ifdef PURE_BUILD
   // explicitly initialize "flags" struct (to pacify Purify)
@@ -961,12 +972,128 @@ bool process::continueProc_() {
     flags.pr_vaddr = (caddr_t) currentPC_;
     flags.pr_flags |= PRSVADDR;
     hasNewPC = false;
+    pc = currentPC_;
+  } else
+    pc = (Address)stat.pr_reg[PC_REG];
+  
+  if (! (stoppedInSyscall && pc == postsyscallpc)) {
+       // Continue the process
+       if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
+	   sprintf(errorLine,
+		   "continueProc_: PIOCRUN 2 failed: %s\n",
+		   sys_errlist[errno]);
+	   logLine(errorLine);
+	   return false;
+       }
+  } else {
+       // We interrupted a sleeping system call at some previous pause
+       // (i.e. stoppedInSyscall is true), we have not restarted that
+       // system call yet, and the current PC is the insn following
+       // the interrupted call.  It is time to restart the system
+       // call.
+       
+       // Note that when we make the process runnable, we ignore
+       // `flags', set if `hasNewPC' was true in the previous block,
+       // because we don't want its PC; we want the PC of the system
+       // call trap, which was saved in `syscallreg'.
+       
+       sysset_t scentry, scsavedentry;
+       prrun_t run;
+ 
+#if 0
+       sprintf(errorLine,
+ 	       "NOTE: Continuing a process that was sleeping in a syscall\n");
+       logLine(errorLine);
+#endif
+       
+       // Restore the registers
+       if (0 > ioctl(proc_fd, PIOCSREG, syscallreg)) {
+	   sprintf(errorLine,
+		   "Can't restart sleeping syscall (PIOCSREG)\n");
+	   logLine(errorLine);
+	   return false;
+       }
+       
+       // Save current syscall entry traps
+       if (0 > ioctl(proc_fd, PIOCGENTRY, &scsavedentry)) {
+	   sprintf(errorLine,
+		   "warn: Can't restart sleeping syscall (PIOCGENTRY)\n");
+	   logLine(errorLine);
+	   return false;
+       }
+       
+       // Set the process to trap on entry to previously stopped syscall
+       premptyset(&scentry);
+       praddset(&scentry, stoppedSyscall);
+       if (0 > ioctl(proc_fd, PIOCSENTRY, &scentry)) {
+	   sprintf(errorLine,
+		   "warn: Can't restart sleeping syscall (PIOCSENTRY)\n");
+	   logLine(errorLine);
+	   return false;
+       }
+       
+       // Continue the process
+       run.pr_flags = PRCSIG; // Clear current signal
+       if (0 > ioctl(proc_fd, PIOCRUN, &run)) {
+	   sprintf(errorLine,
+		   "warn: Can't restart sleeping syscall (PIOCRUN)\n");
+	   logLine(errorLine);
+	   return false;
+       }
+       
+       // Wait for the process to stop
+       if (0 > ioctl(proc_fd, PIOCWSTOP, &stat)) {
+	   sprintf(errorLine,
+		   "warn: Can't restart sleeping syscall (PIOCWSTOP)\n");
+	   logLine(errorLine);
+	   return false;
+       }
+       
+       // Verify we've stopped at the entry of the call we're trying
+       // to restart
+       if (stat.pr_why != PR_SYSENTRY
+ 	   || stat.pr_what != stoppedSyscall) {
+	   sprintf(errorLine,
+		   "warn: Can't restart sleeping syscall (verify)\n");
+	   logLine(errorLine);
+	   return false;
+       }
+       
+       // Restore the syscall entry traps
+       if (0 > ioctl(proc_fd, PIOCSENTRY, &scsavedentry)) {
+	   sprintf(errorLine,
+		   "warn: Can't restart sleeping syscall (PIOCSENTRY)\n");
+	   logLine(errorLine);
+	   return false;
+       }
+       
+#if 0
+       // Restore the registers again.
+       // Sun told us to do this, but we don't know why.  On the
+       // SPARC, it doesn't matter -- the system call can be restarted
+       // whether or not we do this.  On the x86, the restart FAILS if
+       // we do this.  So Sun can go sit and spin for all I care.
+       if (0 > ioctl(proc_fd, PIOCSREG, syscallreg)) {
+	   sprintf(errorLine,
+		   "Can't restart sleeping syscall (PIOCSREG)\n");
+	   logLine(errorLine);
+	   return false;
+       }
+#endif
+       
+       // We are done -- the process is in the kernel for the system
+       // call, with the right registers values.  Make the process
+       // runnable, restoring its previously blocked signals.
+       stoppedInSyscall = false;
+       run.pr_sighold = sighold;
+       run.pr_flags = PRSHOLD;
+       if (0 > ioctl(proc_fd, PIOCRUN, &run)) {
+	   sprintf(errorLine,
+		   "Can't restart sleeping syscall (PIOCRUN)\n");
+	   logLine(errorLine);
+	   return false;
+       }
   }
-  if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
-    fprintf(stderr, "continueProc_: PIOCRUN 2 failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
-
   return true;
 }
 
@@ -1007,15 +1134,145 @@ void inferiorMallocAlign(unsigned &size)
 bool process::pause_() {
   ptraceOps++; ptraceOtherOps++;
   int ioctl_ret;
+  prrun_t run;
+  sysset_t scexit, scsavedexit;
+  prstatus_t prstatus;
 
   // /proc PIOCSTOP: direct all LWPs to stop, _and_ wait for them to stop.
-  ioctl_ret = ioctl(proc_fd, PIOCSTOP, 0);
+  ioctl_ret = ioctl(proc_fd, PIOCSTOP, &prstatus);
   if (ioctl_ret == -1) {
-      sprintf(errorLine, "warn : process::pause_ use ioctl to send PICOSTOP returns error : errno = %i\n", errno);
+      sprintf(errorLine,
+	      "warn : process::pause_ use ioctl to send PICOSTOP returns error : errno = %i\n", errno);
       perror("warn : process::pause_ ioctl PICOSTOP: ");
       logLine(errorLine);
+      return 0;
   }
-  return (ioctl_ret != -1);
+
+  // Determine if the process was in a system call when we stopped it.
+  if (! (prstatus.pr_why == PR_REQUESTED
+	 && prstatus.pr_syscall != 0
+	 && (prstatus.pr_flags & PR_ASLEEP))) {
+       // The process was not in a system call.  We're done.
+       return 1;
+  }
+
+  // We stopped a process that it is a system call.  We abort the
+  // system call, so that the process can execute an inferior RPC.  We
+  // save the process state as it was at the ENTRY of the system call,
+  // so that the system call can be restarted when we continue the
+  // process.  Note: this code does not deal with multiple LWPs.
+
+  // We do not expect to recursively interrupt system calls.  We could
+  // probably handle it by keeping a stack of system call state.  But
+  // we haven't yet seen any reason to have this functionality.
+  assert(!stoppedInSyscall);
+
+  // 1. Save the syscall number, registers, and blocked signals
+  stoppedInSyscall = true;
+  stoppedSyscall = prstatus.pr_syscall;
+  memcpy(syscallreg, prstatus.pr_reg, sizeof(prstatus.pr_reg));
+  sighold = prstatus.pr_sighold;
+#ifdef i386_unknown_solaris2_5
+  // From Roger A. Faulkner at Sun (email unknown), 6/29/1997:
+  //
+  // On Intel and PowerPC machines, the system call trap instruction
+  // leaves the PC (program counter, instruction pointer) referring to
+  // the instruction that follows the system call trap instruction.
+  // On Sparc machines, the system call trap instruction leaves %pc
+  // referring to the system call trap instruction itself (the
+  // operating system increments %pc on exit from the system call).
+  //
+  // We have to reset the PC back to the system call trap instruction
+  // on Intel and PowerPC machines.
+  //
+  // This is 7 on Intel, 4 on PowerPC.
+
+  // Note: On x86/Linux this should probably be 2 bytes, because Linux
+  // uses "int" to trap, not lcall.
+
+  syscallreg[PC_REG] -= 7;
+#endif
+
+  // 2. Abort the system call
+
+  // Save current syscall exit traps
+  if (0 > ioctl(proc_fd, PIOCGEXIT, &scsavedexit)) {
+       sprintf(errorLine,
+	       "warn: Can't get status (PIOCGEXIT) of paused process\n");
+       logLine(errorLine);
+       return 0;
+  }
+
+  // Set process to trap on exit from this system call
+  premptyset(&scexit);
+  praddset(&scexit, stoppedSyscall);
+  if (0 > ioctl(proc_fd, PIOCSEXIT, &scexit)) {
+       sprintf(errorLine,
+	       "warn: Can't step paused process out of syscall (PIOCSEXIT)\n");
+       logLine(errorLine);
+       return 0;
+  }
+
+  // Continue, aborting this system call and blocking all sigs except
+  // those needed by DynInst.
+  sigfillset(&run.pr_sighold);
+  sigdelset(&run.pr_sighold, SIGTRAP);
+  sigdelset(&run.pr_sighold, SIGILL);
+  run.pr_flags = PRSABORT|PRSHOLD;
+  if (0 > ioctl(proc_fd, PIOCRUN, &run)) {
+       sprintf(errorLine,
+	       "warn: Can't step paused process out of syscall (PIOCRUN)\n");
+       logLine(errorLine);
+       return 0;
+  }
+
+
+  // Wait for it to stop (at exit of aborted syscall)
+  if (0 > ioctl(proc_fd, PIOCWSTOP, &prstatus)) {
+       sprintf(errorLine,
+	       "warn: Can't step paused process out of syscall (PIOCWSTOP)\n");
+       logLine(errorLine);
+       return 0;
+  }
+
+  // Note: We assume that is always safe to restart the call after
+  // aborting it.  We are wrong if it turns out that some
+  // interruptible system call can make partial progress before we
+  // abort it.
+  // We think this is impossible because the proc manpage says EINTR
+  // would be returned to the process if we didn't trap the syscall
+  // exit, and the manpages for interruptible system calls say an
+  // EINTR return value means no progress was made.
+  // If we are wrong, this is probably the place to decide whether
+  // and/or how the syscall should be restarted later.
+
+  // Verify that we're stopped in the right place
+  if (((prstatus.pr_flags & (PR_STOPPED|PR_ISTOP))
+       != (PR_STOPPED|PR_ISTOP))
+      || prstatus.pr_why != PR_SYSEXIT
+      || prstatus.pr_syscall != stoppedSyscall) {
+       sprintf(errorLine,
+	       "warn: Can't step paused process out of syscall (Verify)\n");
+       logLine(errorLine);
+       return 0;
+  }
+
+  // Reset the syscall exit traps
+  if (0 > ioctl(proc_fd, PIOCSEXIT, &scsavedexit)) {
+       sprintf(errorLine,
+	       "warn: Can't step paused process out of syscall (PIOCSEXIT)\n");
+       logLine(errorLine);
+       return 0;
+  }
+
+  // Remember the current PC.  When we continue the process at this PC
+  // we will restart the system call.
+  postsyscallpc = (Address) prstatus.pr_reg[PC_REG];
+
+  sprintf(errorLine,
+	  "NOTE: paused the mutatee while it was sleeping in a system call\n");
+  logLine(errorLine);
+  return 1;
 }
 
 /*
