@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCshg.h,v 1.34 1998/08/16 23:37:41 wylie Exp $
+ * $Id: PCshg.h,v 1.35 1999/05/19 07:50:28 karavan Exp $
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  */
 
@@ -72,7 +72,7 @@ class searchHistoryNode;
 class searchHistoryGraph;
 
 class searchHistoryNode {
-  
+  friend ostream& operator <<(ostream &os, searchHistoryNode& shn);
 public:
   searchHistoryNode(searchHistoryNode *parent, hypothesis *why, 
 		    focus where, refineType axis, 
@@ -144,8 +144,11 @@ private:
   string sname;
 };
 
+ostream& operator <<(ostream &os, searchHistoryNode& shn);
+
 class searchHistoryGraph {
   friend class searchHistoryNode;
+  friend ostream& operator <<(ostream &os, searchHistoryGraph& shg);
  public:
   searchHistoryGraph(PCsearch *searchPhase, unsigned displayToken);
 
@@ -189,4 +192,6 @@ class searchHistoryGraph {
   vector<uiSHGrequest> *uiRequestBuff;
 };
   
+ostream& operator <<(ostream &os, searchHistoryGraph& shg);
+
 #endif

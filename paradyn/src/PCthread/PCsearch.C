@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.C,v 1.27 1998/04/28 22:19:04 wylie Exp $
+ * $Id: PCsearch.C,v 1.28 1999/05/19 07:50:28 karavan Exp $
  * class PCsearch
  */
 
@@ -85,15 +85,23 @@ searchHistoryNode *PCsearch::SearchThrottleNode = NULL;
 const float costFudge = 0.1;
 const int MaxPendingSearches = 30;
 const int MaxActiveExperiments = 300;
+
+ostream& operator <<(ostream &os, PCsearch& srch)
+{
+  os << *srch.shg;
+  return os;
+}
+        
 //
 // remove from search queues and start up as many experiments as we can 
 // without exceeding our cost limit.  
 //
+
 void 
 PCsearch::expandSearch (sampleValue estimatedCost)
 {
   bool costLimitReached = false;
-  searchHistoryNode *curr;
+  searchHistoryNode *curr = NULL;
   float candidateCost = 0.0;
 
 #ifdef PCDEBUG

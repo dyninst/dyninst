@@ -45,6 +45,10 @@
  * PC thread interface functions
  *
  * $Log: PCpublic.C,v $
+ * Revision 1.41  1999/05/19 07:50:25  karavan
+ *
+ * Added new shg save feature.
+ *
  * Revision 1.40  1996/11/26 16:13:53  naim
  * Fixing asserts - naim
  *
@@ -199,6 +203,35 @@ performanceConsultant::requestNodeInfo(unsigned phaseID, int nodeID)
     }
   }
   uiMgr->requestNodeInfoCallback(phaseID,nodeID,theInfo,ok);
+}
+
+void
+performanceConsultant::saveSHG(const char *filename, int flag)
+{
+  bool success = false;
+  string dir = string (filename) + string("/shg.txt");
+  ofstream saveFile (dir.string_of(), ios::out);
+  if (!saveFile) {
+    success = false;
+  } else {
+    if ((flag == 1) || (flag == 3)) { // global phase selected
+      if (PCsearch::AllPCSearches.defines(0)) {
+        saveFile << *(PCsearch::AllPCSearches[0]);
+        success = true;
+      }
+    }
+    if ((flag == 2) || (flag == 3))  {   // current phase selected
+      if (PCsearch::PCactiveCurrentPhase > 0) {  // save all current phases
+        for (unsigned counter = PCsearch::PCactiveCurrentPhase; counter > 0; counter--) {
+          saveFile << *(PCsearch::AllPCSearches[counter]);
+        }
+        success = true;
+      }
+    }
+    saveFile.close();
+  }
+  delete filename;
+  uiMgr->shgSaved(success);
 }
 
 

@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.56 1998/04/28 22:14:41 wylie Exp $
+ * $Id: PCshg.C,v 1.57 1999/05/19 07:50:26 karavan Exp $
  */
 
 #include "PCintern.h"
@@ -54,6 +54,24 @@
 //
 
 // note: searchHistoryNodes never die.
+
+ostream& operator <<(ostream &os, searchHistoryNode& shn)
+{
+  os << "*** search history node ***" << endl;
+  os << shn.nodeID << "  #nodeID" << endl;
+  os << shn.name << endl;
+  if (shn.exp) {
+    os << "1  # experiment defined?" << endl;
+    os << *(shn.exp) <<  endl;
+  } else {
+    os << "0  # experiment defined?" << endl;
+  }
+  int numKids = shn.children.size();
+  for (int i = 0; i < numKids; i++) {
+    os << *(shn.children[i]) ;
+  }
+  return os;
+}
 
 searchHistoryNode::searchHistoryNode(searchHistoryNode *parent,
 				     hypothesis *why, 
@@ -204,6 +222,14 @@ searchHistoryNode::changeDisplay()
       break;
     };
   }
+}
+
+ostream& operator <<(ostream &os, searchHistoryGraph& shg)
+{
+  os << '\n' << "# " << shg.guiToken << 
+    " Performance Consultant Search History Graph"  << endl;
+  os << *(shg.root) <<  endl;
+  return os;
 }
 
 void 
