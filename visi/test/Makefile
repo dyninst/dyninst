@@ -10,13 +10,15 @@ CLNTOBJS      = client1.o visithread.o
 
 CLNT2OBJS      = client2.o visithread.o
 
-OBJS	      = client1.o server1.o xtext.o xtext2.o client2.o visithread.o
+OBJS	      = client1.o server1.o xtext.o \
+		xtext2.o client2.o visithread.o
 
-SRCS	      = client1.C server1.C xtext.C xtext.C client2.C visithread.C
+SRCS	      = visi.C visi.CLNT.C visi.SRVR.C client1.C server1.C xtext.C \
+		xtext2.C client2.C visithread.C
 
 PRINT	      = pr
 
-all: 	client1 server1 xtext xtext2 client2 
+all: 	visi.C client1 server1 xtext xtext2 client2 
 
 
 
@@ -37,13 +39,13 @@ xtext2: xtext2.o
 
 
 clean:	
-	rm -f $(OBJS) server1 client1 client2 xtext xtext2 *pure*
+	rm -f $(OBJS) server1 client1 client2 xtext xtext2 *pure* visi.*
 
-depend: $(SRCS) visi.C
+depend: visi.C $(SRCS)
 	@echo "Building dependancies"
 	/usr/sup/X11/bin/makedepend $(SRCS) $(CFLAGS)
 
-visi.C: ../h/visi.I
+visi.C visi.CLNT.C visi.SRVR.C: ../h/visi.I
 	igen -xdr ../h/visi.I
 
 library:        $(LIBRARY)
@@ -54,6 +56,43 @@ update:         $(DEST)/$(LIBRARY)
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
+visi.o: /usr/include/stdio.h /usr/include/stdlib.h
+visi.o: /usr/include/sys/stdtypes.h /usr/include/rpc/types.h
+visi.o: /usr/include/malloc.h /usr/include/sys/types.h
+visi.o: /usr/include/sys/sysmacros.h /usr/include/sys/time.h
+visi.o: /usr/include/sys/time.h /usr/include/assert.h /usr/include/rpc/xdr.h
+visi.o: /usr/include/errno.h /usr/include/sys/errno.h visi.h
+visi.o: ../../util/h/rpcUtil.h /usr/include/strings.h /usr/include/string.h
+visi.o: /usr/include/fcntl.h /usr/include/sys/fcntlcom.h
+visi.o: /usr/include/sys/stat.h /usr/include/memory.h
+visi.o: /usr/include/sys/socket.h /usr/include/netinet/in.h
+visi.o: /usr/include/netdb.h /usr/include/unistd.h /usr/include/sys/file.h
+visi.CLNT.o: /usr/include/stdio.h /usr/include/stdlib.h
+visi.CLNT.o: /usr/include/sys/stdtypes.h /usr/include/rpc/types.h
+visi.CLNT.o: /usr/include/malloc.h /usr/include/sys/types.h
+visi.CLNT.o: /usr/include/sys/sysmacros.h /usr/include/sys/time.h
+visi.CLNT.o: /usr/include/sys/time.h /usr/include/assert.h
+visi.CLNT.o: /usr/include/rpc/xdr.h /usr/include/errno.h
+visi.CLNT.o: /usr/include/sys/errno.h visi.CLNT.h visi.h
+visi.CLNT.o: ../../util/h/rpcUtil.h /usr/include/strings.h
+visi.CLNT.o: /usr/include/string.h /usr/include/fcntl.h
+visi.CLNT.o: /usr/include/sys/fcntlcom.h /usr/include/sys/stat.h
+visi.CLNT.o: /usr/include/memory.h /usr/include/sys/socket.h
+visi.CLNT.o: /usr/include/netinet/in.h /usr/include/netdb.h
+visi.CLNT.o: /usr/include/unistd.h /usr/include/sys/file.h
+visi.SRVR.o: /usr/include/stdio.h /usr/include/stdlib.h
+visi.SRVR.o: /usr/include/sys/stdtypes.h /usr/include/rpc/types.h
+visi.SRVR.o: /usr/include/malloc.h /usr/include/sys/types.h
+visi.SRVR.o: /usr/include/sys/sysmacros.h /usr/include/sys/time.h
+visi.SRVR.o: /usr/include/sys/time.h /usr/include/assert.h
+visi.SRVR.o: /usr/include/rpc/xdr.h /usr/include/errno.h
+visi.SRVR.o: /usr/include/sys/errno.h visi.SRVR.h visi.h
+visi.SRVR.o: ../../util/h/rpcUtil.h /usr/include/strings.h
+visi.SRVR.o: /usr/include/string.h /usr/include/fcntl.h
+visi.SRVR.o: /usr/include/sys/fcntlcom.h /usr/include/sys/stat.h
+visi.SRVR.o: /usr/include/memory.h /usr/include/sys/socket.h
+visi.SRVR.o: /usr/include/netinet/in.h /usr/include/netdb.h
+visi.SRVR.o: /usr/include/unistd.h /usr/include/sys/file.h
 client1.o: visi.CLNT.h visi.h ../../util/h/rpcUtil.h /usr/include/stdio.h
 client1.o: /usr/include/strings.h /usr/include/string.h
 client1.o: /usr/include/sys/stdtypes.h /usr/include/stdlib.h
@@ -110,33 +149,34 @@ xtext.o: /usr/include/netdb.h /usr/include/sys/time.h /usr/include/sys/time.h
 xtext.o: /usr/include/unistd.h /usr/include/sys/file.h
 xtext.o: /usr/include/rpc/types.h /usr/include/malloc.h
 xtext.o: /usr/include/rpc/xdr.h ../h/mrlist.h visi.SRVR.h
-xtext.o: /usr/include/stdio.h /usr/include/X11/Intrinsic.h
-xtext.o: /usr/include/X11/Xlib.h /usr/include/sys/types.h
-xtext.o: /usr/include/sys/stdtypes.h /usr/include/sys/sysmacros.h
-xtext.o: /usr/include/X11/X.h /usr/include/X11/Xfuncproto.h
-xtext.o: /usr/include/X11/Xosdefs.h /usr/include/stddef.h
-xtext.o: /usr/include/X11/Xutil.h /usr/include/X11/Xresource.h
-xtext.o: /usr/include/string.h /usr/include/X11/Core.h
-xtext.o: /usr/include/X11/Composite.h /usr/include/X11/Constraint.h
-xtext.o: /usr/include/X11/Object.h /usr/include/X11/RectObj.h
-xtext.o: /usr/include/X11/StringDefs.h /usr/include/X11/Xaw/AsciiText.h
-xtext.o: /usr/include/X11/Xaw/Text.h /usr/include/X11/Xaw/TextSink.h
-xtext.o: /usr/include/X11/Xaw/TextSrc.h /usr/include/X11/Xaw/AsciiSrc.h
-xtext.o: /usr/include/X11/Xaw/AsciiSink.h /usr/include/X11/Xaw/Command.h
-xtext.o: /usr/include/X11/Xaw/Label.h /usr/include/X11/Xaw/Simple.h
-xtext.o: /usr/include/X11/Xmu/Converters.h /usr/include/X11/Xaw/Paned.h
-xtext.o: /usr/include/X11/Xaw/Cardinals.h ../h/visualization.h
-xtext.o: ../h/datagrid.h /usr/include/math.h /usr/include/floatingpoint.h
-xtext.o: /usr/include/sys/ieeefp.h /usr/include/values.h ../h/error.h visi.h
-xtext.o: ../../util/h/rpcUtil.h /usr/include/strings.h /usr/include/stdlib.h
-xtext.o: /usr/include/errno.h /usr/include/sys/errno.h /usr/include/assert.h
-xtext.o: /usr/include/fcntl.h /usr/include/sys/fcntlcom.h
-xtext.o: /usr/include/sys/stat.h /usr/include/memory.h
-xtext.o: /usr/include/sys/socket.h /usr/include/netinet/in.h
-xtext.o: /usr/include/netdb.h /usr/include/sys/time.h /usr/include/sys/time.h
-xtext.o: /usr/include/unistd.h /usr/include/sys/file.h
-xtext.o: /usr/include/rpc/types.h /usr/include/malloc.h
-xtext.o: /usr/include/rpc/xdr.h ../h/mrlist.h visi.SRVR.h
+xtext2.o: /usr/include/stdio.h /usr/include/X11/Intrinsic.h
+xtext2.o: /usr/include/X11/Xlib.h /usr/include/sys/types.h
+xtext2.o: /usr/include/sys/stdtypes.h /usr/include/sys/sysmacros.h
+xtext2.o: /usr/include/X11/X.h /usr/include/X11/Xfuncproto.h
+xtext2.o: /usr/include/X11/Xosdefs.h /usr/include/stddef.h
+xtext2.o: /usr/include/X11/Xutil.h /usr/include/X11/Xresource.h
+xtext2.o: /usr/include/string.h /usr/include/X11/Core.h
+xtext2.o: /usr/include/X11/Composite.h /usr/include/X11/Constraint.h
+xtext2.o: /usr/include/X11/Object.h /usr/include/X11/RectObj.h
+xtext2.o: /usr/include/X11/StringDefs.h /usr/include/X11/Xaw/AsciiText.h
+xtext2.o: /usr/include/X11/Xaw/Text.h /usr/include/X11/Xaw/TextSink.h
+xtext2.o: /usr/include/X11/Xaw/TextSrc.h /usr/include/X11/Xaw/AsciiSrc.h
+xtext2.o: /usr/include/X11/Xaw/AsciiSink.h /usr/include/X11/Xaw/Command.h
+xtext2.o: /usr/include/X11/Xaw/Label.h /usr/include/X11/Xaw/Simple.h
+xtext2.o: /usr/include/X11/Xmu/Converters.h /usr/include/X11/Xaw/Paned.h
+xtext2.o: /usr/include/X11/Xaw/Cardinals.h ../h/visualization.h
+xtext2.o: ../h/datagrid.h /usr/include/math.h /usr/include/floatingpoint.h
+xtext2.o: /usr/include/sys/ieeefp.h /usr/include/values.h ../h/error.h visi.h
+xtext2.o: ../../util/h/rpcUtil.h /usr/include/strings.h /usr/include/stdlib.h
+xtext2.o: /usr/include/errno.h /usr/include/sys/errno.h /usr/include/assert.h
+xtext2.o: /usr/include/fcntl.h /usr/include/sys/fcntlcom.h
+xtext2.o: /usr/include/sys/stat.h /usr/include/memory.h
+xtext2.o: /usr/include/sys/socket.h /usr/include/netinet/in.h
+xtext2.o: /usr/include/netdb.h /usr/include/sys/time.h
+xtext2.o: /usr/include/sys/time.h /usr/include/unistd.h
+xtext2.o: /usr/include/sys/file.h /usr/include/rpc/types.h
+xtext2.o: /usr/include/malloc.h /usr/include/rpc/xdr.h ../h/mrlist.h
+xtext2.o: visi.SRVR.h
 client2.o: visi.CLNT.h visi.h ../../util/h/rpcUtil.h /usr/include/stdio.h
 client2.o: /usr/include/strings.h /usr/include/string.h
 client2.o: /usr/include/sys/stdtypes.h /usr/include/stdlib.h
