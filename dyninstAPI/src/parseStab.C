@@ -45,6 +45,7 @@
 #include "BPatch_module.h"
 #include "BPatch_collections.h"
 #include "showerror.h"
+#include "Object.h" // For looking up compiler type
 
 extern char *current_func_name;
 
@@ -109,7 +110,13 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
     cnt= 0;
 
     /* get type or variable name */
-    char *name = getIdentifier(stabstr, cnt);
+    char *mangledname = getIdentifier(stabstr, cnt);
+    char *name = (char *) malloc(1000 * sizeof(char));
+    if (P_cplus_demangle(mangledname, name, 1000, mod->isNativeCompiler())) {
+      free(name);
+      name = mangledname;
+    } else
+      free(mangledname);
 
     if (*name) {
        // non-null string
@@ -1453,6 +1460,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 	      break;
 
 	  case 'f':
+          case 'g':  // We really should parse out the parameter types too (JMO)
 	        /* function type */
 		typdescr = BPatch_dataFunction;
 
@@ -1634,7 +1642,9 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 
 	default:
 	    fprintf(stderr, "ERROR: Unrecognized str = %s\n", &stabstr[cnt]);
-	    return NULL;
+	    //	    return NULL;
+	    // Null probably isn't the right choice here.
+	    cnt = strlen(stabstr);
 	    break;
       }
     }
@@ -1668,4 +1678,42 @@ static BPatch_type *parseConstantUse(BPatch_module *mod, char *stabstr, int &cnt
     cnt = strlen(stabstr);
 
     return ret;
+}
+
+//
+// parseCompilerType - parse for compiler that was used to generate object
+//
+//
+//
+bool parseCompilerType(Object *objPtr) {
+
+  int stab_nsyms;
+  char *stabstr_nextoffset;
+  const char *stabstrs = 0;
+  struct stab_entry *stabptr = NULL;
+
+  objPtr->get_stab_info((void **) &stabptr, stab_nsyms, 
+	(void **) &stabstr_nextoffset);
+
+  for(int i=0;i<stab_nsyms;i++){
+    // if (stabstrs) printf("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
+    switch(stabptr[i].type){
+
+    case N_UNDF: /* start of object file */
+      /* value contains offset of the next string table for next module */
+      // assert(stabptr[i].name == 1);
+      stabstrs = stabstr_nextoffset;
+      stabstr_nextoffset = const_cast<char*>(stabstrs) + stabptr[i].val;
+      
+      break;
+    case N_OPT: /* Compiler options */
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)      
+      if (strstr(&stabstrs[stabptr[i].name], "Sun")!=NULL)
+	return true;
+#endif
+      return false;
+    }
+
+  }
+  return false; // Shouldn't happen - maybe N_OPT stripped
 }

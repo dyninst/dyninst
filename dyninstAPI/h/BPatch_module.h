@@ -71,11 +71,12 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj {
     BPatch_image	*img;
     BPatch_Vector<BPatch_function *> * BPfuncs;
     LineInformation* lineInformation;
+    bool nativeCompiler;
      
 public:
 // The following functions are for internal use by  the library only:
     BPatch_module(process *_proc, pdmodule *_mod, BPatch_image *img);
-    BPatch_module() : mod(NULL), img(NULL), BPfuncs(NULL),lineInformation(NULL) {
+    BPatch_module() : mod(NULL), img(NULL), BPfuncs(NULL),lineInformation(NULL),nativeCompiler(false) {
 	_srcType = BPatch_sourceModule;
     };
 
@@ -100,6 +101,8 @@ public:
     void parseTypes();
 
     bool isSharedLib() const;
+
+    inline bool isNativeCompiler() const { return nativeCompiler; }
 
     char *parseStabStringSymbol(int line, char *stabstr, void *stabptr);
 

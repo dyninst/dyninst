@@ -237,7 +237,8 @@ extern "C" char *cplus_demangle(char *, int);
    size: specifies the size of the buffer, prototype
    return 0 for success and non-zero for failure
 */
-inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size) {
+inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size,
+			    bool /* nativeCompiler */) {
    char *demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0);
    if(demangled_sym==NULL || strlen(demangled_sym) >= size)
       return 1;

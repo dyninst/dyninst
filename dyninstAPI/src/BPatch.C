@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.57 2003/03/14 23:18:20 bernat Exp $
+// $Id: BPatch.C,v 1.58 2003/03/21 23:40:38 jodom Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -58,6 +58,7 @@
 #endif
 
 extern bool dyninstAPI_init();
+extern void loadNativeDemangler();
 
 BPatch *BPatch::bpatch = NULL;
 
@@ -272,6 +273,8 @@ BPatch::BPatch()
     execCallback = NULL;
     exitCallback = NULL;
     oneTimeCodeCallback = NULL;
+
+    loadNativeDemangler();
 
 }
 

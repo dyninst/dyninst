@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.50 2002/12/20 07:49:56 jaw Exp $
+ * $Id: Object-elf.h,v 1.51 2003/03/21 23:40:38 jodom Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -94,6 +94,7 @@ struct stab_entry { // an entry in the stab section
 #define N_STSYM 0x26 /* initialized static symbol */
 #define N_LCSYM 0x28 /* unitialized static symbol */
 #define N_ROSYM 0x2c /* read-only static symbol */
+#define N_OPT   0x3c /* compiler options */
 #define N_ENDM  0x62 /* end module */
 #define N_SO    0x64 /* source directory and file */
 #define N_ENTRY 0xa4 /* fortran alternate subroutine entry point */

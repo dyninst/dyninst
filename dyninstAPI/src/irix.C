@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.54 2003/03/21 21:21:03 bernat Exp $
+// $Id: irix.C,v 1.55 2003/03/21 23:40:39 jodom Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1949,3 +1949,4 @@ void dyn_lwp::closeFD_()
   if (fd_) close(fd_);
 }
 
+void loadNativeDemangler() {}

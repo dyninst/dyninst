@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.152 2003/03/21 21:19:03 bernat Exp $
+// $Id: symtab.C,v 1.153 2003/03/21 23:40:40 jodom Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,6 +72,9 @@ extern pdvector<sym_data> syms_to_find;
 
 // All debug_ostream vrbles are defined in process.C (for no particular reason)
 extern unsigned enable_pd_sharedobj_debug;
+
+// Parsing for compiler type in parseStab.C
+extern bool parseCompilerType(Object *);
 
 #if ENABLE_DEBUG_CERR == 1
 #define sharedobj_cerr if (enable_pd_sharedobj_debug) cerr
@@ -168,7 +171,7 @@ pdmodule *image::newModule(const string &name, const Address addr)
 
 
 // TODO -- is this g++ specific
-bool buildDemangledName(const string &mangled, string &use)
+bool buildDemangledName(const string &mangled, string &use, bool nativeCompiler)
 {
  /* The C++ demangling function demangles MPI__Allgather (and other MPI__
   * functions with start with A) into the MPI constructor.  In order to
@@ -178,7 +181,7 @@ bool buildDemangledName(const string &mangled, string &use)
   if(!mangled.prefixed_by("MPI__")) {
     char *tempName = P_strdup(mangled.c_str());
     char demangled[1000];
-    int result = P_cplus_demangle(tempName, demangled, 1000);
+    int result = P_cplus_demangle(tempName, demangled, 1000, nativeCompiler);
     
     if(result==0) {
       use = demangled;
@@ -229,7 +232,7 @@ bool image::newFunc(pdmodule *mod, const string &name,
   }
   
   string demangled;
-  if (!buildDemangledName(mangled_name, demangled)) 
+  if (!buildDemangledName(mangled_name, demangled, nativeCompiler)) 
     demangled = mangled_name;
 
   bool err=false;
@@ -349,7 +352,7 @@ void image::addMultipleFunctionNames(pdvector<Symbol> &mods,
   }
 
   string demangled;
-  if (!buildDemangledName(mangled_name, demangled)) 
+  if (!buildDemangledName(mangled_name, demangled, nativeCompiler)) 
     demangled = mangled_name;
 
   /* add the names to the vectors in the function object */
@@ -507,7 +510,7 @@ bool image::addAllVariables()
     if (symInfo.type() == Symbol::PDST_OBJECT) {
        char unmangledName[1000];
        int result = P_cplus_demangle((char*)mangledName.c_str(), unmangledName,
-                                     1000);
+                                     1000, nativeCompiler);
        if(result == 1) {
           strcpy(unmangledName, mangledName.c_str());
        }
@@ -1383,7 +1386,8 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
     excludedFunctions(string::hash),
     modsByFileName(string::hash),
     modsByFullName(string::hash),
-    varsByPretty(string::hash)
+    varsByPretty(string::hash),
+    nativeCompiler(false)
 {
   sharedobj_cerr << "image::image for file name="
 		 << desc->file() << endl;
@@ -1480,6 +1484,13 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   // avoid case where all (ELF) module symbols have address zero
   if (num_zeros == tmods.size()) uniq.resize(0);
   
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+  // make sure we're using the right demangler
+
+  nativeCompiler = parseCompilerType(&linkedFile);
+
+#endif
+
   // define all of the functions
   statusLine("winnowing functions");
   

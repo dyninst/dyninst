@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.12 2003/03/10 21:05:23 pcroth Exp $
+// $Id: ntHeaders.h,v 1.13 2003/03/21 23:40:38 jodom Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -205,7 +205,8 @@ extern char *cplus_demangle(char *, int);
    size: specifies the size of the buffer, prototype
    return 0 for success and non-zero for failure
 */
-inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size) {
+inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size,
+			    bool /* nativeCompiler */) {
    char *demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0);
    if(demangled_sym==NULL || strlen(demangled_sym) >= size)
       return 1;

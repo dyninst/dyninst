@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.47 2003/03/14 23:18:25 bernat Exp $
+// $Id: osf.C,v 1.48 2003/03/21 23:40:39 jodom Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -892,3 +892,4 @@ void dyn_lwp::closeFD_()
 }
 
 
+void loadNativeDemangler() {}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.119 2003/03/21 21:19:04 bernat Exp $
+// $Id: symtab.h,v 1.120 2003/03/21 23:40:40 jodom Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -874,6 +874,8 @@ public:
   inline const Word get_instruction(Address adr) const;
   inline const unsigned char *getPtrToInstruction(Address adr) const;
 
+  inline bool isNativeCompiler() const { return nativeCompiler; }
+
   // Return symbol table information
   inline bool symbol_info(const string& symbol_name, Symbol& ret);
 
@@ -988,6 +990,8 @@ public:
 #endif
   bool is_a_out;
   Address main_call_addr_; // address of call to main()
+
+  bool nativeCompiler;
 
   // data from the symbol table 
   Object linkedFile;

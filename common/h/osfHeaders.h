@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfHeaders.h,v 1.5 2003/01/02 19:51:19 schendel Exp $
+// $Id: osfHeaders.h,v 1.6 2003/03/21 23:40:38 jodom Exp $
 
 #if !defined(_osf_headers_h)
 #define _osf_headers_h
@@ -184,7 +184,8 @@ extern "C" char *cplus_demangle(char *, int);
    size: specifies the size of the buffer, prototype
    return 0 for success and non-zero for failure
 */
-inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size) {
+inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size,
+			    bool /* nativeCompiler */) {
    char *demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0);
    if(demangled_sym==NULL || strlen(demangled_sym) >= size)
       return 1;

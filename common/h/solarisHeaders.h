@@ -76,6 +76,8 @@
 typedef int (*P_xdrproc_t)(XDR*, ...);
 extern const char *sys_errlist[];
 
+extern int (*P_native_demangle)(const char *, char *, size_t);
+
 extern "C" int rexec(char **, unsigned short, const char *,
 		     const char *, const char *, int *);
 
@@ -243,20 +245,52 @@ extern "C" char *cplus_demangle(char *, int);
 /* symbol: is the mangled name
    prototype:  the unmangled name is saved in this buffer
    size: specifies the size of the buffer, prototype
+   native: target was compiled using Sun compiler
    return 0 for success and non-zero for failure
 */
-inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size) {
+inline int P_cplus_demangle(const char *symbol, char *prototype, size_t size, 
+			    bool nativeCompiler) {
+  char *demangled_sym;
 #if defined(__GNUC__)
-   char *demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0);
+  if (!nativeCompiler || P_native_demangle == NULL) {
+   demangled_sym = cplus_demangle(const_cast<char*>(symbol), 0);
    if(demangled_sym==NULL || strlen(demangled_sym) >= size)
-      return 1;
-   
-   strcpy(prototype, demangled_sym);
-   free(demangled_sym);
-   return 0;
-#else
-   return cplus_demangle(symbol, prototype, size);
+     return 1;
+  }
 #endif
+
+  // Since the Sun demangler gives prototypes, we need to strip that away
+  demangled_sym = (char *) malloc(size * sizeof(char));
+#if defined(__GNUC__)
+  if ((*P_native_demangle)(symbol, demangled_sym, size)) {
+#else
+  if (cplus_demangle(symbol, demangled_sym, size) {
+#endif
+    free(demangled_sym);
+    return 1;
+  }
+  char *ptr;
+  if (demangled_sym[0] == '(' &&
+      (ptr = strstr(demangled_sym, "::")) != NULL) {
+    // Local variable
+    ptr = strrchr(demangled_sym, ')');
+    strncpy(prototype, ptr+3, size - (ptr-demangled_sym));
+    if ((ptr = strrchr(prototype, ' ')) != NULL)
+      *ptr = '\0';
+  } else if ((ptr = strchr(demangled_sym, '(')) != NULL) { 
+    // Function prototype
+    *ptr = '\0';
+    if ((ptr = strrchr(demangled_sym, '*')) == NULL &&
+	(ptr = strrchr(demangled_sym, ' ')) == NULL)
+      strncpy(prototype, demangled_sym, size);
+    else
+      // Correctly demangled
+      strncpy(prototype, ptr+1, size - (ptr-demangled_sym));
+  } else
+    // Correctly demangled
+    strncpy(prototype, demangled_sym, size);
+  free(demangled_sym);
+  return 0;
 }
 
 inline void   P_xdr_destroy(XDR *x) { xdr_destroy(x);}

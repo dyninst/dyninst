@@ -113,6 +113,7 @@ BPatch_module::BPatch_module(process *_proc, pdmodule *_mod,BPatch_image *_img):
     proc(_proc), mod(_mod), img(_img), BPfuncs(NULL),lineInformation(NULL) 
 {
     _srcType = BPatch_sourceModule;
+    nativeCompiler = _mod->exec()->isNativeCompiler();
 
     moduleTypes = new BPatch_typeCollection;
 
@@ -173,7 +174,7 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
  * name The name of function to look up.
  */
 
-extern bool buildDemangledName(const string &mangled, string &use);
+extern bool buildDemangledName(const string &mangled, string &use, bool nativeCompiler);
 
 BPatch_function * BPatch_module::findFunction(const char * name)
 {
@@ -190,7 +191,7 @@ BPatch_function * BPatch_module::findFunction(const char * name)
 	//Try with demangled name
 	string mangled_name = name;
 	string demangled;
-	if (buildDemangledName(mangled_name, demangled))
+	if (buildDemangledName(mangled_name, demangled, nativeCompiler))
 		func = (pd_Function*)mod->findFunctionFromAll(demangled);
     }
 
@@ -645,6 +646,7 @@ void BPatch_module::parseTypes()
   int currentEntry = 0;
   char* colonPtr = NULL;
   
+  int mostRecentLinenum = 0;
 
   for(i=0;i<stab_nsyms;i++){
     // if (stabstrs) printf("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
@@ -829,6 +831,7 @@ void BPatch_module::parseTypes()
 	     break;
 
     case N_SLINE:
+	    mostRecentLinenum = stabptr[i].desc;
 	    //if the stab information is a line information
 	    //then insert an entry to the line info object
 	    if(!currentFunctionName) break;
@@ -893,6 +896,8 @@ void BPatch_module::parseTypes()
         case N_FUN:
         case 128:   // typedefs and variables -- N_LSYM
         case 160:   // parameter variable -- N_PSYM 
+        case 0xc6:  // position-independant local typedefs -- N_ISYM
+        case 0xc8: // position-independant external typedefs -- N_ESYM
 
 	     ptr = (char *) &stabstrs[stabptr[i].name];
              while (ptr[strlen(ptr)-1] == '\\') {
@@ -910,6 +915,9 @@ void BPatch_module::parseTypes()
 
               // printf("stab #%d = %s\n", i, ptr);
               // may be nothing to parse - XXX  jdd 5/13/99
+	     if (nativeCompiler)
+	      temp = parseStabString(this, mostRecentLinenum, (char *)ptr, stabptr[i].val, commonBlock);
+	     else
               temp = parseStabString(this, stabptr[i].desc, (char *)ptr, stabptr[i].val, commonBlock);
               if (*temp) {
 	          //Error parsing the stabstr, return should be \0

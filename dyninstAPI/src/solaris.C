@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.139 2003/03/21 21:21:03 bernat Exp $
+// $Id: solaris.C,v 1.140 2003/03/21 23:40:40 jodom Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -73,6 +73,8 @@
 #include "dyn_lwp.h"
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
+
+int (*P_native_demangle)(const char *, char *, size_t);
 
 extern "C" {
 extern long sysconf(int);
@@ -1271,3 +1273,11 @@ void process::initCpuTimeMgrPlt() {
 }
 #endif
 
+void loadNativeDemangler() {
+  
+  P_native_demangle = NULL;
+  void *hDemangler = dlopen("libdemangle.so", DLOPEN_MODE);
+  if (hDemangler != NULL)
+    P_native_demangle = (int (*) (const char *, char *, size_t)) 
+      dlsym(hDemangler, "cplus_demangle");
+}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.84 2003/03/17 21:22:49 bernat Exp $
+// $Id: pdwinnt.C,v 1.85 2003/03/21 23:40:39 jodom Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -2487,3 +2487,5 @@ bool process::loadDYNINSTlibCleanup()
 	iptr +=4;
 
 #endif
+
+void loadNativeDemangler() {}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.131 2003/03/21 21:21:03 bernat Exp $
+// $Id: aix.C,v 1.132 2003/03/21 23:40:39 jodom Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -96,6 +96,8 @@
 #endif
 
 const int special_register_codenums [] = {IAR, MSR, CR, LR, CTR, XER, MQ, TID, FPSCR};
+
+(void *) (*P_native_demangle)(char *, char **, unsigned long);
 
 
 /* Getprocs() should be defined in procinfo.h, but it's not */
@@ -2793,3 +2795,15 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 }
 
 #endif
+
+void loadNativeDemangler() {
+  
+  P_native_demangle = NULL;
+  // The following is untested - JMO 03/21/03
+#if 0
+  void *hDemangler = dlopen("libdemangle.a", 0);
+  if (hDemangler != NULL)
+    P_native_demangle = ((void *) (*) (char *, char **, unsigned long)) 
+      dlsym(hDemangler, "demangle");
+#endif
+}
