@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.24  1994/07/12 16:46:42  newhall
+# Revision 1.25  1994/07/12 16:52:14  newhall
+# created error #19
+#
+# Revision 1.24  1994/07/12  16:46:42  newhall
 # created error #18
 #
 # Revision 1.23  1994/07/11  22:22:11  newhall
@@ -245,4 +248,12 @@ result of attempting to add metrics and/or foci to a visualization.
 %S fatal
 %X
 Call to malloc failed within a visi manager function.
+%Y
+
+%N 19
+%E strdup failure
+%A vm
+%S fatal
+%X
+Call to strdup failed within a visi manager function.
 %Y
