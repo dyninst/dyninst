@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.10  1994/07/07 18:17:25  karavan
+# Revision 1.11  1994/07/20 18:16:50  rbi
+# Cut and Paste for Entries (Yahoo!) and better BW support
+#
+# Revision 1.10  1994/07/07  18:17:25  karavan
 # bug fix:  menu name specification error
 #
 # Revision 1.9  1994/07/07  05:57:05  karavan
@@ -68,16 +71,26 @@ proc drawToolBar {} {
 
     global PdBitmapDir
 
-    option add *background grey
-    option add *Frame*bg red
-    option add *Scrollbar*background DimGray
+    if {[string match [tk colormodel .] color] == 1} {
+      # . seems to be created before the options data base gets loaded.
+      . config -bg grey
 
-    option add *Scrollbar*foreground grey
-    option add *activeBackground LightGrey
-    option add *Scrollbar*activeBackground DimGray
+      option add *background grey
+      option add *Scrollbar*background DimGray
 
-    # . seems to be created before the options data base gets loaded.
-    . config -bg grey
+      option add *Scrollbar*foreground grey
+      option add *activeBackground LightGrey
+      option add *activeForeground black
+      option add *Scrollbar*activeBackground DimGray
+      option add *Entry.relief sunken
+
+    } else {
+      option add *Background white
+      option add *Foreground black
+      option add *Entry.relief groove
+    }
+
+    bind Entry <2> { %W insert insert [selection get] }
 
     wm geometry . =750x750
 
