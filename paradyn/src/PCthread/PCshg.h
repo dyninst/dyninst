@@ -1,7 +1,10 @@
 /*
  *
  * $Log: PCshg.h,v $
- * Revision 1.5  1994/06/27 18:55:12  hollings
+ * Revision 1.6  1994/07/14 23:47:01  hollings
+ * added flag to record if a SHG node has ever been true.
+ *
+ * Revision 1.5  1994/06/27  18:55:12  hollings
  * Added compiler flag to add SHG nodes to dag only on first evaluation.
  *
  * Revision 1.4  1994/05/19  00:00:31  hollings
@@ -84,6 +87,7 @@ class searchHistoryNode {
 	void changeTested(Boolean newtested);
 	Boolean getActive() { return(active); }
 	Boolean getStatus() { return(status); }
+	Boolean getBeenTrue() { return(beenTrue); }
     private:
 	void changeColor();		// update node color.
 	Boolean beenActive;		// ever been tried
@@ -91,6 +95,7 @@ class searchHistoryNode {
 					// root of item(s) under test.
 	Boolean beenTested;	
 	Boolean status;			// true not not true.
+	Boolean beenTrue;		// has it ever been true??
 	int style;			// current color
 };
 
