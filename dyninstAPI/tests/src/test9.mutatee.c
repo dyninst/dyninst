@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test9.mutatee.c,v 1.1 2003/07/25 15:51:38 chadd Exp $ */
+/* $Id: test9.mutatee.c,v 1.2 2003/08/11 17:32:05 chadd Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -12066,7 +12066,7 @@ void call2_1(){
 }
 
 int func2_1(){
-#if !defined(sparc_sun_solaris2_4) &&  !defined(rs6000_ibm_aix4_1) &&!defined(i386_unknown_linux2_0) 
+#if !defined(sparc_sun_solaris2_4) &&  !defined(rs6000_ibm_aix4_1) &&!defined(i386_unknown_linux2_0) &&!defined(rs6000_ibm_aix5_1)
 
     printf("Skipped test #2 (instrument many simple function calls and save the world)\n");
     printf("\t- not implemented on this platform\n");
@@ -12101,7 +12101,7 @@ void call1_1(){
 
 
 int func1_1(){
-#if !defined(sparc_sun_solaris2_4) &&  !defined(rs6000_ibm_aix4_1) &&!defined(i386_unknown_linux2_0) 
+#if !defined(sparc_sun_solaris2_4) &&  !defined(rs6000_ibm_aix4_1) &&!defined(i386_unknown_linux2_0) &&!defined(rs6000_ibm_aix5_1)
 
     printf("Skipped test #1 (instrument one simple function call and save the world)\n");
     printf("\t- not implemented on this platform\n");
@@ -12126,7 +12126,7 @@ int func1_1(){
  * Start of Test #3
  */
 void func3_1() {
-#if !defined(sparc_sun_solaris2_4) &&!defined(i386_unknown_linux2_0) 
+#if !defined(sparc_sun_solaris2_4) &&!defined(i386_unknown_linux2_0) &&!defined(rs6000_ibm_aix5_1)
 /* 
 	&&  !defined(rs6000_ibm_aix4_1) this fails on aix from the test case but the
 	mutated binary works fine when it is run by hand 
@@ -12168,7 +12168,7 @@ void call3_1(int arg1, int arg2, char *arg3, void *arg4)
  */
 void func4_1()
 {
-#if !defined(sparc_sun_solaris2_4) &&!defined(i386_unknown_linux2_0) 
+#if !defined(sparc_sun_solaris2_4) &&!defined(i386_unknown_linux2_0) &&  !defined(rs6000_ibm_aix4_1) 
 /* 
 	&&  !defined(rs6000_ibm_aix4_1) this fails on aix from the test case but the
 	mutated binary works fine when it is run by hand 

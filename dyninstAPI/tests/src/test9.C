@@ -1,4 +1,4 @@
-// $Id: test9.C,v 1.2 2003/07/25 21:28:17 chadd Exp $
+// $Id: test9.C,v 1.3 2003/08/11 17:32:04 chadd Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -177,6 +177,30 @@ char* saveWorld(BPatch_thread *appThread){
 
 	return dirName;
 }
+
+/****** CHANGE PATH **********/
+extern char**environ;
+
+void changePath(char *path){
+
+	char  *newPATH;
+
+	newPATH= new char[strlen("PWD=") + strlen(path) +  1];
+	newPATH[0] = '\0';
+	strcpy(newPATH, "PWD=");
+	strcat(newPATH,path); 
+
+	for(int i=0;environ[i]!= '\0';i++){
+
+		if( strstr(environ[i], "PWD=") ){
+			environ[i] = newPATH;
+		}
+	}
+
+}
+
+/****************************/
+
 int runMutatedBinary(char *path, char* fileName, char* testID){
 
    pid_t pid;
@@ -187,7 +211,7 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 	char *realfileName;
 
 	realfileName = fileName;
-#if defined(rs6000_ibm_aix4_1)	
+#if defined(rs6000_ibm_aix4_1)	 || defined(rs6000_ibm_aix5_1)	
 	realfileName = aixBinary;
 #endif
 
@@ -205,6 +229,10 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 		case 0 : 
 			//child
 			fprintf(stderr," running: %s %s %s\n", mutatedBinary, realfileName, testID);
+#if defined(rs6000_ibm_aix5_1) || defined(rs6000_ibm_aix4_1) 
+			changePath(path);
+#endif
+
 			execl(mutatedBinary, realfileName,"-run", testID, 0); 
 			fprintf(stderr,"ERROR!\n");
 			perror("execl");
@@ -213,13 +241,13 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 		default: 
 			//parent
 			delete [] mutatedBinary;
-#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) 
+#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) ||defined(rs6000_ibm_aix5_1)	
 
 
 			died= waitpid(pid, &status, 0); 
 #endif
    	}
- #if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) 
+ #if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)  ||defined(rs6000_ibm_aix5_1)	
 	if(WIFEXITED(status)){
 		int exitStatus = WEXITSTATUS(status);
 
@@ -235,7 +263,6 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 
 }
 
-extern char**environ;
 
 int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 
@@ -280,12 +307,12 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 		default: 
 			//parent
 			delete [] mutatedBinary;
-#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) 
+#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)  ||defined(rs6000_ibm_aix5_1)	
 			died= waitpid(pid, &status, 0); 
 #endif
    	}
 
-#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) 
+#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix5_1)	
 	if(WIFEXITED(status)){
 		int exitStatus = WEXITSTATUS(status);
 
@@ -381,7 +408,7 @@ void mutatorTest1(char *pathname, char** child_argv)
   char* testName = "instrument one simple function call and save the world";
   int testNo = 1;
  
-#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) 
+#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)  || defined(rs6000_ibm_aix5_1)	
 
   BPatch_thread *appThread;
 	BPatch_image *appImage;
@@ -409,7 +436,7 @@ void mutatorTest2(char *pathname, char** child_argv)
 	int testNo = 2;
 		//for(i in 1 to 1000)
 	//	instrument func2_i to call call2_i
-#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) 
+#if defined(sparc_sun_solaris2_4) ||  defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix5_1)	
 
 	char instrumentee[15];
 	char patch[15];
@@ -445,7 +472,8 @@ void mutatorTest3(char *pathname, char** child_argv)
 {
   const char* testName = "four parameter function";
   int testNo = 3;
- #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) 
+ #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  || defined(rs6000_ibm_aix5_1)	
+
 //||  defined(rs6000_ibm_aix4_1) this fails on aix from the test case but the
 //mutated binary works fine when it is run by hand 
 
@@ -547,7 +575,7 @@ void mutatorTest4(char *pathname, char** child_argv)
 {
 	int testNo = 4;
 
-#if defined(sparc_sun_solaris2_4) ||  defined(i386_unknown_linux2_0) 
+#if defined(sparc_sun_solaris2_4) ||  defined(i386_unknown_linux2_0) ||  defined(rs6000_ibm_aix4_1)
 //||  defined(rs6000_ibm_aix4_1) this fails on aix from the test case but the
 //mutated binary works fine when it is run by hand 
 
