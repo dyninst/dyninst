@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.176 2004/05/28 22:50:18 legendre Exp $
+ * $Id: inst-x86.C,v 1.177 2004/05/29 14:30:25 legendre Exp $
  */
 #include <iomanip>
 
@@ -926,14 +926,6 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                 Address target = ah.getBranchTarget();
                 Address val = *ah + insnSize;
 
-/*           if( owner->getObject->isCatchAddr( val ) && !leaders.contains( val ) )
-              {
-                   leadersToBlock[ val ] = new BPatch_basicBlock;
-                   leadersToBlock[ val ]->setRelStart( val );
-                   jmpTargets.push_back( val );
-                   //blockList->push_back( leadersToBlock[ val ] );
-                   owner->addJumpTarget( val );
-                   }*/
                 ExceptionBlock b;
                 if (owner->getObject().getCatchBlock(b, val))
                 {
@@ -951,17 +943,6 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                    if (b.hasTry())
                    {
                       foundExceptions.push_back(b);
-
-                      /*
-                      Address tstart = b.tryStart();
-                      if (!leaders.contains(tstart))
-                      {
-                         leadersToBlock[tstart] = new BPatch_basicBlock;
-                         leaders += tstart;
-                         blockList->push_back(leadersToBlock[tstart]);
-                      }
-                      leadersToBlock[tstart]->setRelStart(tstart);
-                      */
                    }
                    else
                    {
@@ -1279,12 +1260,12 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
             b2->addSource( b1 );	            
         }        
     }    
-    for ( unsigned u = 0; u < foundExceptions.size(); u++ )
+    for ( unsigned e = 0; e < foundExceptions.size(); e++ )
     {
-       Address cur_addr = foundExceptions[u].tryStart();
-       Address try_end = cur_addr + foundExceptions[u].trySize();
+       Address cur_addr = foundExceptions[e].tryStart();
+       Address try_end = cur_addr + foundExceptions[e].trySize();
        BPatch_basicBlock *try_bl, *catch_bl;       
-       catch_bl = leadersToBlock.get(foundExceptions[u].catchStart());
+       catch_bl = leadersToBlock.get(foundExceptions[e].catchStart());
 
        while (!leaders.contains(cur_addr))
           cur_addr--;

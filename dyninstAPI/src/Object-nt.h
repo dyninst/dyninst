@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.25 2004/04/16 22:58:30 lharris Exp $
+ * $Id: Object-nt.h,v 1.26 2004/05/29 14:30:24 legendre Exp $
 ************************************************************************/
 
 
@@ -66,7 +66,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-
+class ExceptionBlock;
 
 class fileDescriptor_Win : public fileDescriptor
 {
@@ -248,6 +248,7 @@ public:
     fileDescriptor_Win* GetDescriptor( void ) const     { return desc; }
 	Module* GetCurrentModule( void )				    { return curModule; }
 
+    bool getCatchBlock(ExceptionBlock &b, Address addr, unsigned size = 0) const; { return false; }
     unsigned int GetTextSectionId( void ) const         { return textSectionId;}
     PIMAGE_NT_HEADERS   GetImageHeader( void ) const    { return peHdr; }
     PVOID GetMapAddr( void ) const                      { return mapAddr; }
