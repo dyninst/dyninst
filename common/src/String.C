@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.22 2003/04/26 20:27:05 schendel Exp $
+// $Id: String.C,v 1.23 2003/05/02 20:36:23 jodom Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -96,7 +96,7 @@ void dedemangle( const char * demangled, char * result ) {
 				if( stack == 0 ) { inTemplate = false; }
 				}
 			if( !inTemplate && resultBegins[offset] == ' ' ) {
-				resultBegins = &(resultBegins[offset]);
+				resultBegins = &(resultBegins[offset+1]);
 				break;
 				} 
 			} /* end template elimination loop */
