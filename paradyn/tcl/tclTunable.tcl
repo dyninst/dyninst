@@ -1,7 +1,11 @@
 # tclTunable.tcl
 
 # $Log: tclTunable.tcl,v $
-# Revision 1.5  1994/10/31 08:53:04  tamches
+# Revision 1.6  1994/10/31 22:02:30  tamches
+# Typing return/enter/tab in one of the entry widgets for floating
+# tunables is suppresses (return would enter \0x0d which is expecially ugly)
+#
+# Revision 1.5  1994/10/31  08:53:04  tamches
 # Eliminated "flicker" window startup.
 # Added tunable descriptions and coordinated with tunable
 # conststants window (e.g. when switch to and from developer
@@ -240,7 +244,7 @@ proc drawBoolTunable {lcv} {
    set tunableDescription [uimpd tclTunable getdescription $lcv]
 
    checkbutton .tune.middle.canvas.tunable$numTunablesDrawn -text $tunableName \
-	   -variable newTunableValues($lcv) -anchor w
+	   -variable newTunableValues($lcv) -anchor w -relief flat
    pack .tune.middle.canvas.tunable$numTunablesDrawn -side top -fill x -expand false
       # expand is false; if the window is made taller, we don't want the extra height
 #  place .tune.middle.canvas.tunable$numTunablesDrawn -x 0 -y $nextStartY
@@ -277,6 +281,8 @@ proc everyChangeCommand {lcv newValue} {
    # entry widget had its -textvariable set to this vrble
 }
 
+proc dummySuppressChar {} {
+}
 proc drawFloatTunable {lcv} {
    global nextStartY
    global numTunablesDrawn
@@ -300,6 +306,14 @@ proc drawFloatTunable {lcv} {
    # [other options to try: -font -width (# chars, not #pix)]
    entry .tune.middle.canvas.tunable$numTunablesDrawn.entry -relief sunken \
 	   -textvariable newTunableValues($lcv) -width 8
+   # for debugging:
+#   bind .tune.middle.canvas.tunable$numTunablesDrawn.entry <Key> {puts stderr "hello %K"}
+
+   # turn off some useless characters (such as "return" key)
+   bind .tune.middle.canvas.tunable$numTunablesDrawn.entry <Return> {dummySuppressChar}
+   bind .tune.middle.canvas.tunable$numTunablesDrawn.entry <Tab>    {dummySuppressChar}
+   bind .tune.middle.canvas.tunable$numTunablesDrawn.entry <KP_Enter> {dummySuppressChar}
+
    pack .tune.middle.canvas.tunable$numTunablesDrawn.entry -side right -expand false
       # expand is false; if the window is made taller, we don't want the extra height
 
@@ -543,7 +557,7 @@ proc processShowTunableDescriptions {} {
    canvas .tunableDescriptions.top.canvas \
    	-yscrollcommand myDescriptionsScroll -relief flat \
 	-scrollincrement 1 \
-	-width 4i -height 2.2i
+	-width 4i -height 3i
    pack propagate .tunableDescriptions.top.canvas false
    pack   .tunableDescriptions.top.canvas -side left -fill both -expand true
       # expand is true; we want extra width & height if window is resized
