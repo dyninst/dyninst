@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.34 1995/11/22 00:02:17 mjrg Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.35 1995/12/18 14:59:17 naim Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.34  1995/11/22 00:02:17  mjrg
+ * Revision 1.35  1995/12/18 14:59:17  naim
+ * Minor change to status line messages - naim
+ *
+ * Revision 1.34  1995/11/22  00:02:17  mjrg
  * Updates for paradyndPVM on solaris
  * Fixed problem with wrong daemon getting connection to paradyn
  * Removed -f and -t arguments to paradyn
@@ -345,7 +348,7 @@ void continueProcWaitingForDaemon(void) {
       p->waitingForNodeDaemon = false;
       if (!appPause) {
         // application is running. Continue the process that is waiting.
-	statusLine("Application running");
+	statusLine("application running");
 	p->continueProc();
       }
     }

@@ -7,7 +7,10 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.49  1995/12/15 22:26:56  mjrg
+ * Revision 1.50  1995/12/18 14:59:20  naim
+ * Minor change to status line messages - naim
+ *
+ * Revision 1.49  1995/12/15  22:26:56  mjrg
  * Merged paradynd and paradyndPVM
  * Get module name for functions from symbol table in solaris
  * Fixed code generation for multiple instrumentation statements
@@ -528,7 +531,7 @@ int handleSigChild(int pid, int status)
 			P_abort();
 		      }
 		      curr->status_ = running;
-		      statusLine("Application running");
+		      statusLine("application running");
 		    }
 		}
 #ifdef notdef
