@@ -522,8 +522,14 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 		op3 = SDIVop3;
                 if (isPowerOf2(src2,result) && (result<32))
                   generateRShift(insn, src1, (reg)result, dest);           
-                else 
+                else { // needs to set the Y register to zero first
+                  // Set the Y register to zero: Zhichen
+                  genImmInsn(insn, WRYop3, REG_G0, 0, 0);
+                  base += sizeof(instruction);
+                  insn = (instruction *) ((void*)&i[base]);
                   genImmInsn(insn, op3, src1, src2, dest);
+                }
+
 		break;
 
 	    // Bool ops
