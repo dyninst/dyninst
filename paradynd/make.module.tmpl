@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.34 2000/10/17 17:42:28 schendel Exp $
+# $Id: make.module.tmpl,v 1.35 2000/11/20 23:14:27 schendel Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -49,7 +49,7 @@ SRCS	     += ../src/association.C \
 		../src/templatesPD.C \
 		../src/templatesIGEN.C \
 		../src/hashTable.C \
-		../../dyninstAPI/src/FunctionExpansionRecord.C \
+		../../dyninstAPI/src/FunctionExpansionRecord.C
 
 ifdef INCLUDE_PVM_SUPPORT
 SRCS	     +=	../src/pvm_support.C \
