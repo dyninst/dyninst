@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.81 2003/04/11 18:33:14 buck Exp $
+// $Id: BPatch_thread.C,v 1.82 2003/04/11 22:46:18 schendel Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1178,8 +1178,9 @@ bool BPatch_thread::replaceFunction(BPatch_function &oldFunc,
  * returnValue	The value returned by the RPC.
  */
 void BPatch_thread::oneTimeCodeCallbackDispatch(process *theProc,
-						void *userData,
-						void *returnValue)
+                                                unsigned /* rpcid */, 
+                                                void *userData,
+                                                void *returnValue)
 {
     assert(BPatch::bpatch != NULL);
 
@@ -1246,7 +1247,6 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
                       false, // XXX = calculate cost - is this what we want?
                       BPatch_thread::oneTimeCodeCallbackDispatch, // Callback
                       (void *)info, // User data
-                      -1,   // This isn't a metric definition - we shouldn't
                       false);  
 
     if (synchronous) {
