@@ -94,11 +94,6 @@ int_Array test::retVector(int num, int start)
     return(retVal);
 }
 
-void test::triggerSyncUpcall(int val)
-{
-    syncUpcall(val);
-}
-
 
 void test::triggerAsyncUpcall(int val)
 {

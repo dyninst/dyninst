@@ -20,10 +20,12 @@ main()
     intStruct is;
     testUser *remote;
 
+    printf("In client2 before thread create\n");
     // do a thread create???
     thr_create(0, 0, serverMainFunc, (void *) thr_self(), (unsigned int) 0, 
 	(unsigned int *) &tid);
 
+    printf("In client2 after thread create\n");
     remote = new testUser(tid);
 
     remote->nullNull();
@@ -47,10 +49,6 @@ main()
     }
     assert(remote->sumVector(vect) == total);
 
-    // This causes deadlock now.  I am not sure if it should be fixed though.
-    //   This has to due with the way procedures wait for data.
-    //   hollings 1/18/94
-    // remote->triggerSyncUpcall(42);
 
     remote->triggerAsyncUpcall(-10);
 
@@ -61,10 +59,6 @@ main()
     printf("ThreadPC test1 passed\n");
 }
 
-void testUser::syncUpcall(int val)
-{
-    printf("syncUpcall called with value = %d\n", val);
-}
 
 void testUser::asyncUpcall(int val)
 {

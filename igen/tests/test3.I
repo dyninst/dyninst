@@ -39,8 +39,6 @@ $remote test {
     int classArrayTest($array sStruct);
     $array int retVector(int len, int start);
     String stringString(String);
-    void triggerSyncUpcall(int val);
-    $upcall void syncUpcall(int x);
     void triggerAsyncUpcall(int val);
     $upcall $async void asyncUpcall(int x);
     $virtual $upcall $async void VasyncUpcall(int x);

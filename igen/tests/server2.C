@@ -9,12 +9,15 @@ void *serverMainFunc(void *parentId)
     int ret;
     test *tp;
 
+    printf("In server2\n");
     tp = new test((int) parentId);
 
+    printf("In server2 -- after test, before main loop\n");
     // now go into main loop
     while(1) {
 	ret = tp->mainLoop();	
 	if (ret < 0) {
+            printf(" mainLoop returned < 0, bye bye\n");
 	    // assume the client has exited, and leave.
 	    exit(-1);
 	}
@@ -73,11 +76,6 @@ int_Array test::retVector(int num, int start)
 	retVal.data[i] = start+i;
     }
     return(retVal);
-}
-
-void test::triggerSyncUpcall(int val)
-{
-    syncUpcall(val);
 }
 
 

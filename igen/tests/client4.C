@@ -47,11 +47,6 @@ main()
     }
     assert(remote->sumVector(vect) == total);
 
-    // This causes deadlock now.  I am not sure if it should be fixed though.
-    //   This has to due with the way procedures wait for data.
-    //   hollings 1/18/94
-    // remote->triggerSyncUpcall(42);
-
     remote->triggerAsyncUpcall(-10);
 
     for (i=0; i < 10000; i++) {
@@ -62,10 +57,6 @@ main()
     delete (remote);
 }
 
-void testUser::syncUpcall(int val)
-{
-    printf("syncUpcall called with value = %d\n", val);
-}
 
 void testUser::asyncUpcall(int val)
 {

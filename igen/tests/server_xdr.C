@@ -43,7 +43,7 @@ main(int argc, char *argv[])
       perror ("socket creation\n");
       exit (-1);
     }
-  arg_list = RPC_make_arg_list ("xdrc_pvm", AF_INET, SOCK_STREAM, well_known_socket, 1);
+  arg_list = RPC_make_arg_list (AF_INET, SOCK_STREAM, well_known_socket, 1);
   
   // start the first 'paradynd'
   fd = RPCprocessCreate (&eid, "localhost", "", "xdrc_pvm", arg_list);

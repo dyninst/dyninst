@@ -67,7 +67,6 @@ main()
     assert(strlen(str1) == remote->intString(str1));
     assert(strlen(str3) == remote->intString(str3));
     assert(-1 == remote->intString((char*) 0));
-    assert(remote->callErr == 0);
 
     str2 = remote->stringString(str1);
     assert(!strcmp(str2, str1));
@@ -88,8 +87,6 @@ main()
     }
     assert(remote->sumVector(vect) == total);
 
-    remote->triggerSyncUpcall(42);
-
     remote->triggerAsyncUpcall(-10);
 
     for (i=0; i < 10000; i++) {
@@ -99,10 +96,6 @@ main()
     delete (remote);
 }
 
-void testUser::syncUpcall(int val)
-{
-    printf("syncUpcall called with value = %d\n", val);
-}
 
 void testUser::asyncUpcall(int val)
 {

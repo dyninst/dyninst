@@ -18,8 +18,6 @@ $remote test {
     int sumVector($array int);
     $array int retVector(int len, int start);
     String stringString(String);
-    void triggerSyncUpcall(int val);
-    $upcall void syncUpcall(int x);
     void triggerAsyncUpcall(int val);
-    $upcall $async void asyncUpcall(int x);
+    $upcall $async void asyncUpcall(int x1);
 };

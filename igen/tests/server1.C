@@ -58,6 +58,10 @@ int test::add(int a, int b)
     return(a+b);
 }
 
+float test::fadd(float a, float b)
+{
+    return(a+b);
+}
 int test::sumVector(int_Array nums)
 {
    int i, total;
@@ -81,13 +85,20 @@ int_Array test::retVector(int num, int start)
     return(retVal);
 }
 
-void test::triggerSyncUpcall(int val)
-{
-    syncUpcall(val);
-}
-
 
 void test::triggerAsyncUpcall(int val)
 {
     asyncUpcall(val);
+}
+
+int test::triggerSyncUpcall(int val)
+{
+    SyncUpcall(val);
+    return val;
+}
+
+void test::asyncClient()
+{
+  printf("In test::asyncClient(), goodbye!\n");
+  exit(-1);
 }

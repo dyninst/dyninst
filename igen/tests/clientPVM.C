@@ -48,8 +48,6 @@ main()
     }
     assert(remote->sumVector(vect) == total);
 
-    remote->triggerSyncUpcall(42);
-
     remote->triggerAsyncUpcall(-10);
 
     for (i=0; i < 500; i++) {
@@ -60,10 +58,6 @@ main()
     pvm_exit();
 }
 
-void testUser::syncUpcall(int val)
-{
-    printf("syncUpcall called with value = %d\n", val);
-}
 
 void testUser::asyncUpcall(int val)
 {

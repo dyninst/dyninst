@@ -31,7 +31,7 @@ SRCS 	= client1.C \
            
 EXTRA_CFLAGS = $(CFLAGS) -I./util/h
 
-all:  client3 server3 program4 clientPVM serverPVM xdrc_pvm server_xdr \
+all:  client3 server3 program4 server_xdr \
       client1 server1 program2
 
 all_igen: test1_igen test2_igen test3_igen test4_igen testPVM_igen xdr_link_igen
@@ -93,7 +93,7 @@ server1: $(S_OBJS1)
 	$(CC) $(CFLAGS) -o server1 $(S_OBJS1) $(LIBDIR) -lutil
 
 program2: $(OBJS2) 
-	$(CC) $(CFLAGS) -o program2 $(OBJS2) $(LIBDIR) -lthread -lutil
+	$(CC) $(CFLAGS) -static -o program2 $(OBJS2) $(LIBDIR) -lthread -lutil
 
 program4: $(OBJS4) 
 	$(CC) $(CFLAGS) -o program4 $(OBJS4) $(LIBDIR) -lthread -lutil

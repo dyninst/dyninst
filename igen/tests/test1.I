@@ -11,14 +11,16 @@ $remote test {
     $version 1;
     void nullNull();				// a comment
     int intNull();
+    $async void asyncClient();
     void nullStruct(intStruct);
     int intString(String);
     int add(int, int);
+    float fadd(float, float);
     int sumVector($array int);
     $array int retVector(int len, int start);
     String stringString(String);
-    void triggerSyncUpcall(int val);
-    $upcall void syncUpcall(int x);
     void triggerAsyncUpcall(int val);
+    int triggerSyncUpcall(int val);
     $upcall $async void asyncUpcall(int x);
+    $upcall int SyncUpcall(int x);
 };

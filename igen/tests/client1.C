@@ -48,19 +48,14 @@ main()
     }
     assert(remote->sumVector(vect) == total);
 
-    remote->triggerSyncUpcall(42);
-
     remote->triggerAsyncUpcall(-10);
+    assert(-10 == remote->triggerSyncUpcall(-10));
 
     for (i=0; i < 10000; i++) {
 	remote->add(1, i);
     }
     printf("RPC test1 passed\n");
-}
-
-void testUser::syncUpcall(int val)
-{
-    printf("syncUpcall called with value = %d\n", val);
+    remote->asyncClient();
 }
 
 void testUser::asyncUpcall(int val)
@@ -68,3 +63,8 @@ void testUser::asyncUpcall(int val)
     printf("asyncUpcall called with value = %d\n", val);
 }
 
+int testUser::SyncUpcall(int val)
+{
+    printf("SyncUpcall called with value = %d\n", val);
+    return val;
+}
