@@ -41,6 +41,9 @@
  */
 /*
  * $Log: metScanner.l,v $
+ * Revision 1.17  1997/06/24 17:13:19  newhall
+ * changed exclude_node to exclude
+ *
  * Revision 1.16  1997/06/07 21:01:26  newhall
  * replaced exclude_func and exclude_lib with exclude_node
  *
@@ -252,7 +255,7 @@ i
 "daemon"		{ return(tDAEMON); }
 "process"		{ return(tPROCESS); }
 "visi"		{ return(tVISI); }
-"exclude_node"		{ return(tEXLIB); }
+"exclude"		{ return(tEXLIB); }
 "tunable_constant"	{ return(tTUNABLE_CONSTANT); }
 "command"		{ return(tCOMMAND); }
 "host"		{ return(tHOST); }
