@@ -49,7 +49,7 @@ public:
              Object (const Object &);
     virtual ~Object ();
 
-    Object&    operator= (const Object &);
+    const Object& operator= (const Object &);
 
 private:
     static
@@ -77,7 +77,7 @@ Object::~Object() {
 }
 
 inline
-Object&
+const Object&
 Object::operator=(const Object& obj) {
     (void) AObject::operator=(obj);
     return *this;
@@ -212,7 +212,7 @@ Object::load_object() {
             }
             else if ((phdrp[i].p_vaddr <= bssaddr)
                 && ((phdrp[i].p_vaddr+phdrp[i].p_memsz) >= bssaddr)) {
-                data_ptr_ = (Word *) &ptr[phdrp[i].p_offset];
+                data_ptr_ = (Word *) ((void *) &ptr[phdrp[i].p_offset]);
                 data_off_ = (Address) phdrp[i].p_vaddr;
                 data_len_ = (unsigned) phdrp[i].p_memsz / sizeof(Word);
             }
@@ -244,7 +244,7 @@ Object::load_object() {
                 ? Symbol::SL_LOCAL
                 : Symbol::SL_GLOBAL);
 
-	    bool st_kludge = false;
+            bool st_kludge = false;
             Symbol::SymbolType type = Symbol::ST_UNKNOWN;
             switch (ELF32_ST_TYPE(syms[i].st_info)) {
             case STT_FILE:

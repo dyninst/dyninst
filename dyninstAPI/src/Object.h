@@ -55,7 +55,7 @@ public:
 protected:
     AObject (const string, void (*)(const char *)); // explicitly protected
     AObject                    (const AObject &);   // explicitly protected
-    virtual AObject& operator= (const AObject &);   // explicitly protected
+    AObject&         operator= (const AObject &);   // explicitly protected
 
     string                          file_;
     dictionary_hash<string, Symbol> symbols_;

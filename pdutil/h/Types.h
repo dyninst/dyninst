@@ -28,7 +28,7 @@ typedef unsigned Address;
  * functions.
 ************************************************************************/
 
-static unsigned hash_address(const Address& addr) {
+static inline unsigned hash_address(const Address& addr) {
     return (addr >> 2);
 }
 

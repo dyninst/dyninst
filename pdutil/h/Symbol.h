@@ -72,12 +72,12 @@ public:
     ostream&      operator<< (ostream &os, const Symbol &s) {
       return os << "{"
         << " name="    << s.name_
-	<< " module="  << s.module_
-	<< " type="    << (unsigned) s.type_
-	<< " linkage=" << (unsigned) s.linkage_
-	<< " addr="    << s.addr_
-	<< " tag="     << (unsigned) s.tag_
-	<< " kludge="  << s.kludge_
+        << " module="  << s.module_
+        << " type="    << (unsigned) s.type_
+        << " linkage=" << (unsigned) s.linkage_
+        << " addr="    << s.addr_
+        << " tag="     << (unsigned) s.tag_
+        << " kludge="  << s.kludge_
         << " }" << endl;
     }
 
@@ -108,11 +108,11 @@ Symbol::Symbol(unsigned dummy)
 }
 
 inline
-Symbol::Symbol(const string& name, const string& module,
-    SymbolType type, SymbolLinkage linkage, Address addr, const bool kl)
-    : name_(name), module_(module),
-    type_(type), linkage_(linkage), addr_(addr),
-    tag_(TAG_UNKNOWN), kludge_(kl) {
+Symbol::Symbol(const string& iname, const string& imodule,
+    SymbolType itype, SymbolLinkage ilinkage, Address iaddr, const bool ikl)
+    : name_(iname), module_(imodule),
+    type_(itype), linkage_(ilinkage), addr_(iaddr),
+    tag_(TAG_UNKNOWN), kludge_(ikl) {
 }
 
 inline
@@ -149,7 +149,7 @@ Symbol::operator==(const Symbol& s) const {
         && (type_    == s.type_)
         && (linkage_ == s.linkage_)
         && (addr_    == s.addr_)
-	&& (kludge_  == s.kludge_));
+        && (kludge_  == s.kludge_));
 }
 
 inline
