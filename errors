@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.31  1994/11/02 23:47:17  karavan
+# Revision 1.32  1994/11/03 04:38:47  karavan
+# created error #26
+#
+# Revision 1.31  1994/11/02  23:47:17  karavan
 # created error #25
 #
 # Revision 1.30  1994/11/02  23:41:51  karavan
@@ -326,4 +329,12 @@ paradyn command line with the -s option.
 %S information
 %X
 An error occurred while attempting to define an application.
+%Y
+
+%N 26
+%E tcl initialization for new resource display object failed.
+%A ui
+%S fatal
+%X
+Call to tcl command initRDO failed.
 %Y
