@@ -294,12 +294,12 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		      // warn if we find more than one function with current_func_name
 		      bperr("%s[%d]:  WARNING: found %d functions with name %s, using the first",
 			     __FILE__, __LINE__, bpfv.size(), name);
-		      fp = bpfv[0];
-                    }else { // bpfv.size() == 0
+                    }else if (!bpfv.size()) {
                       bperr("%s[%d]:  SERIOUS: found 0 functions with name %s",
                              __FILE__, __LINE__, name);
                       break;
                     }
+		    fp = bpfv[0];
 		    // set return type.
 		    fp->setReturnType(ptrType);
 		  }
