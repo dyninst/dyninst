@@ -62,10 +62,10 @@ extern BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& 
 //class fields.
 
 BPatch_basicBlock::BPatch_basicBlock() : 
-                startAddress(0),
-		endAddress(0),
-                absEndAddr(0), 						 
-                isEntryBasicBlock(false),
+        startAddress(0),
+        lastInsnAddress(0),
+        endAddr(0), 						 
+        isEntryBasicBlock(false),
 		isExitBasicBlock(false),
 		immediateDominates(NULL),
 		immediateDominator(NULL),
@@ -90,9 +90,10 @@ BPatch_basicBlock::BPatch_basicBlock(BPatch_flowGraph* fg, int bno) :
 		immediatePostDominates(NULL),
 		immediatePostDominator(NULL),
 		sourceBlocks(NULL),
-                startAddress(0),
-                endAddress(0),
-                instructions(NULL) {}
+        startAddress(0),
+        endAddr(0),
+        lastInsnAddress(0),
+        instructions(NULL) {}
 
 
 //destructor of the class BPatch_basicBlock
@@ -265,10 +266,10 @@ void BPatch_basicBlock::setBlockNumber(int bno){
 
 // returns the range of addresses of the code for the basic block
 bool BPatch_basicBlock::getAddressRange(void*& _startAddress,
-                                        void*& _endAddress)
+                                        void*& _lastInsnAddress)
 {
-	_startAddress = (void *)startAddress;
-	_endAddress   = (void *)endAddress;
+	_startAddress = (void *)getStartAddress();
+	_lastInsnAddress =(void *)(getStartAddress()-startAddress+lastInsnAddress);
 
 	return true;
 }
@@ -280,8 +281,8 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 	os << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
 	os << "Basic Block : " << bb.blockNumber <<" : [ ";
 	os << ostream::hex << bb.startAddress << " , ";
-	os << ostream::hex << bb.endAddress << " | ";
-	os << ostream::dec << bb.endAddress-bb.startAddress<< " ]\n";
+	os << ostream::hex << bb.lastInsnAddress << " | ";
+	os << ostream::dec << bb.lastInsnAddress-bb.startAddress<< " ]\n";
 
 	if(bb.isEntryBasicBlock)
 		os <<"Type : ENTRY TO CFG\n"; 
@@ -377,4 +378,56 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructions(void) {
   }
 
   return instructions;
+}
+
+unsigned long BPatch_basicBlock::getStartAddress() const
+{
+    Address imgBaseAddr = 0;   
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0) 
+    
+     //all other platforms have absolute addresses for basic blocks
+     //at this point
+     process *proc = flowGraph->getProcess();
+     image *img = flowGraph->getModule()->exec();
+                                                                               
+     if (!proc->getBaseAddress(img, imgBaseAddr)) {
+        fprintf(stdout /* ? */, "getBaseAddress error\n");
+        abort();
+     }
+#endif
+     return startAddress + imgBaseAddr;
+}
+
+unsigned BPatch_basicBlock::size() const
+{
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0) 
+    //variable length instructions on x86
+    return endAddr - startAddress;
+#elif defined(ia64_unknown_linux2_0 )
+    //16 byte bundly size on ia64
+    return 16 + lastInsnAddress - startAddress;
+#else
+    //4 byte instructions on all other platforms
+    return 4 + lastInsnAddress - startAddress;
+#endif
+
+}
+
+unsigned long BPatch_basicBlock::getRelStart() const
+{
+    return startAddress;
+}
+
+unsigned long BPatch_basicBlock::getRelEnd() const
+{
+    return endAddr;
+}
+
+unsigned long BPatch_basicBlock::getRelLast() const
+{
+    return lastInsnAddress;
 }

@@ -87,13 +87,13 @@ private:
 	/** the end address of the basic blocks
 	  * address of the last instruction in the block 
 	  */
-	unsigned long endAddress;
+	unsigned long lastInsnAddress;
 
-        /** this is the absolute end of the basic block
-          * i.e. the first Address that is outside the block  
+    /** this is the absolute end of the basic block
+      * i.e. the first Address that is outside the block  
 	  * needed on x86 because of variable length instructions
-          */
-        unsigned long absEndAddr;
+      */
+    unsigned long endAddr;
 
         /** set of basic blocks that this basicblock dominates immediately*/
 	BPatch_Set<BPatch_basicBlock*>* immediateDominates;
@@ -134,7 +134,7 @@ public:
 
 	/** method that returns the basic blocks immediately dominated by 
 	  * the basic block 
-          */
+      */
 	void getImmediateDominates(BPatch_Vector<BPatch_basicBlock*>&);
 
 	/** method that returns all basic blocks dominated by the basic block */
@@ -153,17 +153,31 @@ public:
 	/** returns the block id */
 	int getBlockNumber();
  
-	unsigned long getStartAddress() { return startAddress; }
-	unsigned long getEndAddress() { return endAddress; }
-        unsigned long getAbsoluteEndAddr() { return absEndAddr; }
-	
-	void setEntryBlock( bool b ) { isEntryBasicBlock = b; }
+    void setEntryBlock( bool b ) { isEntryBasicBlock = b; }
 	void setExitBlock( bool b ) { isExitBasicBlock = b; }
-	void setStartAddress( unsigned long sAddr ){ startAddress = sAddr; }
-	void setEndAddress( unsigned long eAddr ){ endAddress = eAddr; } 
-	void setAbsoluteEndAddr( unsigned long eAddr ) { absEndAddr = eAddr; }
-        void addSource( BPatch_basicBlock* b ){ sources += b; }
+    bool isExitBlock(){ return isExitBasicBlock; }
+    bool isEntryBlock(){ return isEntryBasicBlock; }
+
+    unsigned size() const;
+
+    //these always return absolute address
+	unsigned long getStartAddress() const;
+	unsigned long getLastInsnAddress() const;
+       
+    //basic blocks on x86 store relative addresses
+    //we manipulate them with these functions
+    unsigned long getRelStart() const;
+    unsigned long getRelLast() const;
+    unsigned long getRelEnd() const;
+    void setRelStart( unsigned long sAddr ){ startAddress = sAddr; }
+	void setRelLast( unsigned long eAddr ){ lastInsnAddress = eAddr; }
+    void setRelEnd( unsigned long eAddr ) { endAddr = eAddr; }
+
+
+    void addSource( BPatch_basicBlock* b ){ sources += b; }
 	void addTarget( BPatch_basicBlock* b ){ targets += b; }
+    void removeSource( BPatch_basicBlock* b ){ sources.remove( b ); }
+    void removeTarget( BPatch_basicBlock* b ){ targets.remove( b ); };
 
 	/** destructor of class */
 	~BPatch_basicBlock();
