@@ -593,7 +593,7 @@ bool BPatch_flowGraph::createBasicBlocks()
       
       else if( inst.getInstruction()->getType() == IA64_instruction::ALLOC ) {
         if( ! leaders.contains( pos ) ) { 
-        	/* DEBUG */ fprintf( stderr, "%s[%d]: alloc at 0x%lx is a (new) leader.\n", __FILE__, __LINE__, pos );
+        	// /* DEBUG */ fprintf( stderr, "%s[%d]: alloc at 0x%lx is a (new) leader.\n", __FILE__, __LINE__, pos );
         	leaders += pos;
         	leaderToBlock[pos] = new BPatch_basicBlock( this, bno++ );
         	allBlocks += leaderToBlock[pos];
