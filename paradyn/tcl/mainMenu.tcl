@@ -1,7 +1,11 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.23  1994/11/03 18:06:23  karavan
+# Revision 1.24  1994/11/03 21:04:24  tamches
+# "Metrics" (blank) and "Options" (error history, where axis postscripts) menus
+# commented out.  "File" menu (only option: Exit) added.
+#
+# Revision 1.23  1994/11/03  18:06:23  karavan
 # Nasty useless obsolete REPORT button put to death
 #
 # Revision 1.22  1994/11/03  16:10:44  rbi
@@ -175,14 +179,23 @@ proc drawToolBar {} {
           -relief raised -background #b3331e1b53c7 -foreground white
 
     frame .menub.left.men -class TopMenu -borderwidth 2 -relief raised
+    menubutton .menub.left.men.b0 -text "File" -menu .menub.left.men.b0.m 
     menubutton .menub.left.men.b1 -text "Setup" -menu .menub.left.men.b1.m 
-    menubutton .menub.left.men.b3 -text "Metrics"
-    menubutton .menub.left.men.b2 -text "Options" -menu .menub.left.men.b2.m
+#    menubutton .menub.left.men.b3 -text "Metrics"
+#    menubutton .menub.left.men.b2 -text "Options" -menu .menub.left.men.b2.m
     menubutton .menub.left.men.b5 -text "Start Visual" \
 	    -menu .menub.left.men.b5.m 
     menubutton .menub.left.men.b6 -text "Help" 
+
     menu .menub.left.men.b5.m -postcommand \
 	    {uimpd drawStartVisiMenu .menub.left.men.b5.m}
+
+    menu .menub.left.men.b0.m
+    .menub.left.men.b0.m add command -label "Exit" -command "destroy ."
+       # the -command is the same as the command executed when "EXIT"
+       # button (lower right of screen) is clicked on.  If this is not right,
+       # then by all means change it.
+ 
     menu .menub.left.men.b1.m 
     .menub.left.men.b1.m add command -label "Define A Process" \
 	    -command DefineProcess
@@ -192,21 +205,23 @@ proc drawToolBar {} {
             -command {tunableEntryPoint}
     .menub.left.men.b1.m add command -label "Options Control" \
 	    -state disabled
-    menu .menub.left.men.b2.m 
-    .menub.left.men.b2.m add command -label "Error History" \
-	    -command {showErrorHistory}
-    .menub.left.men.b2.m add command -label "Where Axis Postscript C" \
-	    -command ".baseWA.dag._c_ postscript -colormode color \
-	    -file cwhere.ps -pageheight 3.0i"
-    .menub.left.men.b2.m add command -label "Where Axis Postscript Gr" \
-	    -command ".baseWA.dag._c_ postscript -colormode gray \
-	    -file gwhere.ps -pageheight 3.0i"
-    .menub.left.men.b2.m add command -label "Where Axis Postscript BW" \
-	    -command ".baseWA.dag._c_ postscript -colormode mono \
-	    -file mwhere.ps -pageheight 3.0i"
+
+#    menu .menub.left.men.b2.m 
+#    .menub.left.men.b2.m add command -label "Error History" \
+#	    -command {showErrorHistory}
+#    .menub.left.men.b2.m add command -label "Where Axis Postscript C" \
+#	    -command ".baseWA.dag._c_ postscript -colormode color \
+#	    -file cwhere.ps -pageheight 3.0i"
+#    .menub.left.men.b2.m add command -label "Where Axis Postscript Gr" \
+#	    -command ".baseWA.dag._c_ postscript -colormode gray \
+#	    -file gwhere.ps -pageheight 3.0i"
+#    .menub.left.men.b2.m add command -label "Where Axis Postscript BW" \
+#	    -command ".baseWA.dag._c_ postscript -colormode mono \
+#	    -file mwhere.ps -pageheight 3.0i"
 
     set mb .menub.left.men
-    tk_menuBar $mb $mb.b1 $mb.b2 $mb.b3 $mb.b4 $mb.b5 $mb.b6
+#    tk_menuBar $mb $mb.b1 $mb.b2 $mb.b3 $mb.b4 $mb.b5 $mb.b6
+    tk_menuBar $mb $mb.b0 $mb.b1 $mb.b5 $mb.b6
 
     wm title . "Paradyn"
 
@@ -216,8 +231,10 @@ proc drawToolBar {} {
     pack .buttons -side bottom -fill x 
 
     pack .menub.left.men.b6 -side right -padx 10
-    pack .menub.left.men.b1 .menub.left.men.b3 .menub.left.men.b2 \
-	    .menub.left.men.b5 \
+#    pack .menub.left.men.b1 .menub.left.men.b3 .menub.left.men.b2 \
+#	    .menub.left.men.b5 \
+#	    -side left -padx 10
+    pack .menub.left.men.b0 .menub.left.men.b1 .menub.left.men.b5 \
 	    -side left -padx 10
     pack .menub.left -side left -fill both -expand 1
     mkLogo .menub.logobox right
