@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.26  1994/08/05 16:04:25  hollings
-/* more consistant use of stringHandle vs. char *.
+/* Revision 1.27  1994/08/30 16:23:17  karavan
+/* added "silent" node trimming to the base where axis.
 /*
+ * Revision 1.26  1994/08/05  16:04:25  hollings
+ * more consistant use of stringHandle vs. char *.
+ *
  * Revision 1.25  1994/08/01  20:24:39  karavan
  * new version of dag; new dag support commands
  *
@@ -311,7 +314,9 @@ applicStateChanged (performanceStream*, appState state)
 int addDefaultWhereStyles (dag *where)
 {
   if (where->AddNStyle (1, "#c99e5f54dcab", "black", NULL,
-			    "-Adobe-times-bold-r-normal--*-80*", 
+			    "-*-Times-Bold-R-Normal--*-80-*", 
+//		      "-Adobe-times-medium-r-normal--*-80*",
+//			"*-courier-medium-r-normal--*-80-*",
 			    "black", 'r', 1.0) != AOK) {
     printf ("Error adding WHERE node style\n");
     return 0;
@@ -323,7 +328,7 @@ int addDefaultWhereStyles (dag *where)
   }
   return 1;
 }
-
+/*
 int addDefaultWhereBindings (dag *where, int token)
 {
   char tcommand[100];
@@ -333,6 +338,19 @@ int addDefaultWhereBindings (dag *where, int token)
     return 1;
   else
     return 0;
+}  
+*/
+
+int addDefaultWhereBindings (dag *where, int token)
+{
+  char tcommand[100];
+  sprintf (tcommand, "all <1> {updateCurrentSelection %s %d}", 
+	   where->getCanvasName(), token);
+  where->addTkBinding (tcommand); 
+  sprintf (tcommand, "all <3> {hideCurrentSelection %s %d}", 
+	   where->getCanvasName(), token);
+  where->addTkBinding (tcommand);
+  return 1;
 }  
 
 int initWhereAxis (dag *wheredag, char *aName, char *title) 
