@@ -2,7 +2,18 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.35  1995/01/26 17:59:30  jcargill
+ * Revision 1.36  1995/02/16 08:01:41  markc
+ * Modified interfaces:
+ *   1) XDR interfaces use strings and vectors instead of igen arrays and char*'s
+ *   2) No sync upcalls are allowed by the server in xdr interfaces
+ *   3) Redefined igen arrays that were used in thread code to use manually defined
+ *      structures rather than igen-defined, since igen did not need to know about
+ *      these structures.
+ *   4) Upped all of the version numbers since all new interface code is generated
+ *   5) Async calls are no longer handled while waiting for sync responses, these
+ *      requests are buffered.
+ *
+ * Revision 1.35  1995/01/26  17:59:30  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -143,14 +154,17 @@ class performanceStream;
 /* something that data can be collected for */
 class resource;		
 
-$remote array char* String_Array;
-
 /* descriptive information about a resource */
 typedef struct {
     char *name;			/* name of actual resource */
     char *fullName;		/* full path name of resource */
     timeStamp creation;		/* when did it get created */
 } resourceInfo;		
+
+typedef struct String_Array {
+   int count;
+   char **data;
+} String_Array;
 
 /* list of resources */
 class resourceList;		
@@ -265,7 +279,7 @@ $remote dataManager {
     //
     // Start a paradyn daemon
     //
-    Boolean addDaemon (applicationContext *app,
+    bool addDaemon (applicationContext *app,
 	               char *machine,
 		       char *login,
 		       char *name);
@@ -282,7 +296,7 @@ $remote dataManager {
     //     Note - arguments that are not used should be passed in
     //            as null, anything else will be assumed to be a
     //            valid string.
-    Boolean defineDaemon (applicationContext *app,
+    bool defineDaemon (applicationContext *app,
 	                  const char *command,
 	                  const char *dir,
 	                  const char *login,
@@ -300,24 +314,23 @@ $remote dataManager {
     //     Note - arguments that are not used should be passed in
     //            as null, anything else will be assumed to be a
     //            valid string.
-    Boolean addExecutable(applicationContext *app,
+    bool addExecutable(applicationContext *app,
 			  char  *machine, 
 			  char *login, 
 			  char *name, 
 	                  char *dir,
-			  int argc,
-			  char **argv);
+			  vector<string> *argv);
 
     //
     // Find out if an application has been defined yet.
     //
-    Boolean applicationDefined(applicationContext *app);
+    bool applicationDefined(applicationContext *app);
 
     //
     // Start an application running (This starts the actual execution).
     //   app - an application context from createPerformanceConext.
     // 
-    Boolean startApplication(applicationContext *app);
+    bool startApplication(applicationContext *app);
 
     //
     //   Stop all processes associted with the application.
@@ -327,7 +340,7 @@ $remote dataManager {
     //      - Does this force buffered data to be delivered?
     //	- Does a paused application respond to enable/disable commands?
     //
-    Boolean pauseApplication(applicationContext *app);
+    bool pauseApplication(applicationContext *app);
 
     //
     //   Stop all processes associted with the application.
@@ -337,27 +350,27 @@ $remote dataManager {
     //      - Does this force buffered data to be delivered?
     //	- Does a paused application respond to enable/disable commands?
     //
-    Boolean pauseProcess(applicationContext *app, int pid);
+    bool pauseProcess(applicationContext *app, int pid);
 
     //
     //
     // Continue a paused application.
     //    app - an application context from createPerformanceConext.
     //
-    Boolean continueApplication(applicationContext *app);
+    bool continueApplication(applicationContext *app);
 
     //
     // Continue a paused process in an application.
     //    app - an application context from createPerformanceConext.
     //
-    Boolean continueProcess(applicationContext *app, int pid);
+    bool continueProcess(applicationContext *app, int pid);
 
     //
     // Disconnect the tool from the process.
     //    app - an application context from createPerformanceConext.
     //    pause - leave the process in a stopped state.
     //
-    Boolean detachApplication(applicationContext *app,Boolean pause);
+    bool detachApplication(applicationContext *app,bool pause);
 
     // 
     // Create a performanceStream.  This a flow of performance information
@@ -454,19 +467,19 @@ $remote dataManager {
     // don't search the SHG for this node.
     //
     void setResourceSearchSuppress(applicationContext *app,
-			     resource *res, Boolean newValue);
+			     resource *res, bool newValue);
 
     //
     // don't search the SHG for children of this node.
     //
     void setResourceSearchChildrenSuppress(applicationContext *app,
-					   resource *res, Boolean newValue);
+					   resource *res, bool newValue);
 
     //
     // consider this resource a black box (applies to modules/procedures now).
     //
     void setResourceInstSuppress(applicationContext *app,
-			     resource *res, Boolean newValue);
+			     resource *res, bool newValue);
 
     // Get the static config. information for the passed applicationContext.
     //
@@ -484,7 +497,7 @@ $remote dataManager {
 
     //
     // get the supporting info about a metric.
-    metricInfo *getMetricInfo(metric*);
+    T_dyninstRPC::metricInfo *getMetricInfo(metric*);
 
     //
     // Get metric out of a metric instance.
@@ -571,13 +584,15 @@ $remote dataManager {
     // time 0
     double firstSampleTime(int program, double firstTime);
 
-    $smember applicationContext *appContext;
-    $smember int socket;
-    $smember int sock_fd;
+    $signore
+    applicationContext *appContext;
+    int socket;
+    int sock_fd;
 
     // This is set in DMsetupSocket,
     // TODO mdc - make this be set in the constructor
-    $smember double firstTime;
+    double firstTime;
+    $signore
 };
 
 #endif

@@ -3,7 +3,18 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
- * Revision 1.10  1995/01/26 17:59:31  jcargill
+ * Revision 1.11  1995/02/16 08:01:45  markc
+ * Modified interfaces:
+ *   1) XDR interfaces use strings and vectors instead of igen arrays and char*'s
+ *   2) No sync upcalls are allowed by the server in xdr interfaces
+ *   3) Redefined igen arrays that were used in thread code to use manually defined
+ *      structures rather than igen-defined, since igen did not need to know about
+ *      these structures.
+ *   4) Upped all of the version numbers since all new interface code is generated
+ *   5) Async calls are no longer handled while waiting for sync responses, these
+ *      requests are buffered.
+ *
+ * Revision 1.10  1995/01/26  17:59:31  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -45,9 +56,15 @@
 class searchHistoryNode;
 typedef searchHistoryNode *SHNptr;
 
-$remote array int int_Array;
+typedef struct int_Array {
+  int count;
+  int *data;
+} int_Array;
 
-$remote array SHNptr SHNptr_Array;
+typedef struct SHNptr_Array {
+  int count;
+  SHNptr *data;
+} SHNptr_Array;
 
 $remote performanceConsultant {
     $base 6000;
@@ -77,7 +94,7 @@ $remote performanceConsultant {
     void printSHGList();
 
     // try to make automated refinements.  Up to limit number of steps.
-    $async void search(Boolean, int limit);
+    $async void search(bool, int limit);
 
     // stop the automated search process in its tracks.
     $async void pauseSearch();

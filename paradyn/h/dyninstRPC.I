@@ -16,7 +16,18 @@
 
 /*
  * $Log: dyninstRPC.I,v $
- * Revision 1.24  1994/11/09 18:38:36  rbi
+ * Revision 1.25  1995/02/16 08:01:42  markc
+ * Modified interfaces:
+ *   1) XDR interfaces use strings and vectors instead of igen arrays and char*'s
+ *   2) No sync upcalls are allowed by the server in xdr interfaces
+ *   3) Redefined igen arrays that were used in thread code to use manually defined
+ *      structures rather than igen-defined, since igen did not need to know about
+ *      these structures.
+ *   4) Upped all of the version numbers since all new interface code is generated
+ *   5) Async calls are no longer handled while waiting for sync responses, these
+ *      requests are buffered.
+ *
+ * Revision 1.24  1994/11/09  18:38:36  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.23  1994/11/03  16:05:31  rbi
@@ -66,27 +77,22 @@
 
 #include "util/h/aggregation.h"
 
-$remote array char * String_Array;
-
 /* descriptive information about a metric */
-$remote typedef struct { 
-    char *name;
+$remote struct metricInfo { 
+    string name;
     int style;
     int aggregate;
-    char *units;
-} metricInfo;		
-
-$remote array metricInfo metricInfo_Array;
+    string units;
+};
 
 /*
  * Create a paradynd process.
  *
  */
-int createDaemon(char *machine,
-		 char *login,
-		 char *name,
-		 int argc,
-		 char *argv[]);
+int createDaemon(string machine,
+		 string login,
+		 string name,
+		 vector<string> argv);
 
 
 $remote dynRPC {
@@ -95,27 +101,27 @@ $remote dynRPC {
 
     //
     // Define a program to run. 
-    int addExecutable(String_Array argv);
+    int addExecutable(vector<string> argv);
 
     //
     // Connect up with a running program (not possible on all platforms).
     //
-    Boolean attachProgram(int pid);
+    bool attachProgram(int pid);
 
     //
     // Start an application running (This starts the actual execution).
     //
-    Boolean startProgram(int program);
+    bool startProgram(int program);
 
     //
     //   Stop a process
     //
-    Boolean pauseProgram(int program);
+    bool pauseProgram(int program);
 
     //
     //   Stop all processes associted with the application.
     //
-    Boolean pauseApplication();
+    bool pauseApplication();
 
     //
     // Continue a paused process
@@ -132,16 +138,15 @@ $remote dynRPC {
     //    pause - leave the process in a stopped state.
     //
     //
-    Boolean detachProgram(int program, Boolean pause);
+    bool detachProgram(int program, bool pause);
 
     //
     // Gets called when a new application is started that is not visible to
     //   paradyn (e.g. pvm_spawn).
     //
     $upcall $async void newProgramCallbackFunc( int pid, 
-						int argc, 
-						String_Array argv, 
-						char *machine);
+						vector<string> argv, 
+						string machine);
 				
 
     //
@@ -175,29 +180,21 @@ $remote dynRPC {
     // abstraction      - abstraction to which it belongs     
     //
     $upcall $async void resourceInfoCallback(int program, 
-					      char *parent, 
-					      char *newResource, 
-					      char *name,
-					      char *abstraction);
+					     string parent, 
+					     string newResource, 
+					     string name,
+					     string abstraction);
 
-    $upcall $async void resourceBatchMode(Boolean);
+    $upcall $async void resourceBatchMode(bool);
 
     //
     // Handler that gets called when new mapping data is collected.
     //
     $upcall $async void mappingInfoCallback(int program, 
-					      char *abstraction, 
-					      char *type, 
-					      char *key,
-					      char *value);
-
-    //
-    // Request a unique resource name
-    //
-    $upcall char *getUniqueResource(int program, 
-				     char *parent, 
-				     char *newResource);
-
+					    string abstraction, 
+					    string type, 
+					    string key,
+					    string value);
 
     // Upcall for a new metric being defined.
     //
@@ -211,7 +208,7 @@ $remote dynRPC {
     //    False - suppress
     //    True - enable
     //
-    Boolean setTracking(char *resource, Boolean);
+    bool setTracking(string resource, bool);
 
     //
     // Routines to control data collection on a performanceStream.
@@ -219,7 +216,7 @@ $remote dynRPC {
     // resourceList	- a list of resources
     // metric	- what metric to collect data for
     //
-    int enableDataCollection(String_Array resourceList, char *metric);
+    int enableDataCollection(vector<string> resourceList, string metric);
 
     //
     // stop collecting data for the named mi.
@@ -232,7 +229,7 @@ $remote dynRPC {
     //    metric at a given focus.  The value returned is the fraction of
     //    perturbation expected (i.e. 0.10 == 10% slow down expected).
     //
-    double getPredictedDataCost(String_Array resourceList, char *metric);
+    double getPredictedDataCost(vector<string> resourceList, string metric);
 
     //
     // Current best guess about the cost of instrumentation.
@@ -242,36 +239,36 @@ $remote dynRPC {
     //
     // Get the static configuration information.
     //
-    metricInfo_Array getAvailableMetrics();
+    vector<metricInfo> getAvailableMetrics();
 
     //
     // Create a new resource.
     //
-    void addResource(const char *parent, const char *name);
+    void addResource(string parent, string name);
 
     //
     // stdio or stderr from an application.
     //
-    $upcall $async void applicationIO(int pid, int len, char *line);
+    $upcall $async void applicationIO(int pid, int len, string line);
 
     //
     // stdio or stderr from an application.
     //
-    $virtual $upcall $async void reportStatus(const char *line);
+    $virtual $upcall $async void reportStatus(string line);
 
     //
     // Debugger style calls.
     //
     //
-    char *getStatus(int pid);
+    string getStatus(int pid);
     void coreProcess(int pid);
 
     //
     // For paradynd's that may get started, but not by paradyn
     // This allows them to report system information
     // flavor = programming environment {metPVM, metCM5}
-    $virtual $upcall $async void reportSelf(char *machine, 
-					    char *program, 
+    $virtual $upcall $async void reportSelf(string machine, 
+					    string program, 
 					    int pid,
 					    int flavor);
 

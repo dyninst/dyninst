@@ -1,8 +1,19 @@
 /* $Log: VM.I,v $
-/* Revision 1.8  1994/09/30 21:19:32  newhall
-/* added interface function VMStringToMetResPair
-/* changed parameters to VMCreateVisi to take list of metrespair
+/* Revision 1.9  1995/02/16 08:01:39  markc
+/* Modified interfaces:
+/*   1) XDR interfaces use strings and vectors instead of igen arrays and char*'s
+/*   2) No sync upcalls are allowed by the server in xdr interfaces
+/*   3) Redefined igen arrays that were used in thread code to use manually defined
+/*      structures rather than igen-defined, since igen did not need to know about
+/*      these structures.
+/*   4) Upped all of the version numbers since all new interface code is generated
+/*   5) Async calls are no longer handled while waiting for sync responses, these
+/*      requests are buffered.
 /*
+# Revision 1.8  1994/09/30  21:19:32  newhall
+# added interface function VMStringToMetResPair
+# changed parameters to VMCreateVisi to take list of metrespair
+#
 # Revision 1.7  1994/09/25  01:49:03  newhall
 # UI and VM interface changes to support new representation
 # of metric/focus lists as a list of metric/focus pairs (either
@@ -32,20 +43,31 @@
 
 #include "../src/VMthread/metrespair.h"
 
-$remote typedef struct {
+typedef struct VM_activeVisiInfo {
   int visiNum; // tid of active visi used to kill visi (VMDestroyVisi)
   int visiTypeId;  
   char *name;
-}VM_activeVisiInfo;
+} VM_activeVisiInfo;
 
-$remote typedef struct {
+typedef struct VM_activeVisiInfo_Array {
+  int count;
+  VM_activeVisiInfo *data;
+} VM_activeVisiInfo_Array;
+
+typedef struct VM_visiInfo {
   int visiTypeId;  // id of visi used to start visi (VMCreateVisi)
   char *name;
-}VM_visiInfo;
+} VM_visiInfo;
 
-$remote array VM_activeVisiInfo VM_activeVisiInfo_Array;
-$remote array VM_visiInfo VM_visiInfo_Array;
-$remote array metrespair  metrespair_Array; 
+typedef struct VM_visiInfo_Array {
+  int count;
+  VM_visiInfo *data;
+} VM_visiInfo_Array;
+
+typedef struct metrespair_Array {
+  int count;
+  metrespair *data;
+} metrespair_Array;
 
 $remote VM{
 
@@ -90,3 +112,4 @@ metrespair_Array  VMStringToMetResPair(char *metresString);
   // visiThreadId: thread identifier of visithread that has died
   void VMVisiDied(int visiThreadId); // from visithread 
 };
+
