@@ -14,11 +14,14 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.17  1994/09/25 02:00:29  newhall
-/* changes to visi interface routines that take list of met/focus pairs:
-/* AddMetricsResources, GetMetRes
-/* and changes to support the new version of igen
+/* Revision 1.18  1994/09/30 21:00:51  newhall
+/* use datagrid method functions MetricId and ResourceId
 /*
+ * Revision 1.17  1994/09/25  02:00:29  newhall
+ * changes to visi interface routines that take list of met/focus pairs:
+ * AddMetricsResources, GetMetRes
+ * and changes to support the new version of igen
+ *
  * Revision 1.16  1994/09/22  03:14:41  markc
  * declared arrays at start
  * incremented version number
@@ -76,10 +79,6 @@
  *  */ 
 #include "visi/h/visualization.h"
 #include "visi.SRVR.h"
-/*
-#define DEBUG
-*/
-
 
 visi_DataGrid  dataGrid;
 int            LastBucketSent = -1;
@@ -131,7 +130,7 @@ int StartVisi(int argc,
     VisiInit();
 
   // call GetMetricResources with initial metric resource lists
-  if(argc >= 3)
+  if(argc == 3)
    vp->GetMetricResource(argv[1],(int)argv[2],0);
   else
    vp->GetMetricResource(NULL,0,0);
@@ -222,13 +221,9 @@ void NamePhase(timeType begin,
 ///////////////////////////////////////////////////////////
 void visualization::Data(dataValue_Array data){
 
-int *metricIds, *resourceIds;
 int noMetrics, noResources;
 int i,j,metric,ok;
 int temp,min,max;
-#ifdef DEBUG
-int flag = 0;
-#endif
 
 
   if(!initDone)
@@ -237,75 +232,39 @@ int flag = 0;
   noMetrics = dataGrid.NumMetrics();
   noResources = dataGrid.NumResources();
 
-  if((metricIds = (int *)malloc(sizeof(int)*noMetrics)) == NULL){
-      visi_ErrorHandler(ERROR_MALLOC,"error in malloc in visi::Data()");
-  }
-  if((resourceIds = (int *)malloc(sizeof(int)*noResources)) == NULL){
-    visi_ErrorHandler(ERROR_MALLOC,"error in malloc in visi::Data()");
-  }
-
-  for(i=0; i < noMetrics; i++){
-     metricIds[i] = dataGrid.MetricId(i);
-  }
-
-  for(i=0; i < noResources; i++){
-    resourceIds[i] = dataGrid.ResourceId(i);
-  }
 
   for(i=0; i < data.count; i++){
 
-    // find metric and resource index into dataGrid and add value if found
-    for(j=0;(j<noMetrics)&&(data.data[i].metricId!=metricIds[j]);j++) ;
-    metric = j;
-    for(j=0;(j<noResources)&&(data.data[i].resourceId!=resourceIds[j]);j++) ;
+      // get metric and resource index into dataGrid and add value if found
+      metric = dataGrid.MetricIndex(data.data[i].metricId);
+      j = dataGrid.ResourceIndex(data.data[i].resourceId);
 
-    if((j<noResources) && (metric < noMetrics)){
+      if((j >= 0) && (metric >= 0)){
 
-#ifdef DEBUG
-       if((!dataGrid[metric][j].Valid()) && (dataGrid[metric][j].Enabled())){
-         fprintf(stderr,"datagrid[%d][%d]: enabled %d valid %d userdata %d\n",
-	    metric,j,dataGrid[metric][j].Enabled(),dataGrid[metric][j].Valid(),
-	    (int)dataGrid[metric][j].userdata);
-	 flag = 1;
-       }
-#endif
-       dataGrid.AddValue(metric,j,
+         dataGrid.AddValue(metric,j,
 		         data.data[i].bucketNum,
 		         (float)data.data[i].data);
-#ifdef DEBUG
-    if(flag){
-      fprintf(stderr,"datag[%d][%d]:enabled %d valid %d userdata %d fvb = %d\n",
-	    metric,j,dataGrid[metric][j].Enabled(),dataGrid[metric][j].Valid(),
-	    (int)dataGrid[metric][j].userdata,
-	    dataGrid[metric][j].FirstValidBucket());
-      flag = 0;
-    }
-#endif
-       
-    }
+      }
   } 
 
   min = max = dataGrid.NumBins()+1;
   for(i=0; i < noMetrics; i++){
-    for(j=0; j < noResources; j++){
-      if(dataGrid.Valid(i,j)){
-        temp = dataGrid.LastBucketFilled(i,j);  
-        if((temp > -1) && (temp < min))
-          min = temp; 
+      for(j=0; j < noResources; j++){
+          if(dataGrid.Valid(i,j)){
+              temp = dataGrid.LastBucketFilled(i,j);  
+              if((temp > -1) && (temp < min))
+              min = temp; 
+          }
       }
-    }
   }
-
-  free(metricIds);
-  free(resourceIds);
 
   //call user registered callback routine assoc. w/event DATAVALUES
   if((min > LastBucketSent) // if a new datagrid cross-section has been filled
      && (min != max)
      && (eventCallbacks[DATAVALUES] !=  NULL)){ // there is a callback routine 
 
-     LastBucketSent = min;
-     ok = eventCallbacks[DATAVALUES](LastBucketSent);
+       LastBucketSent = min;
+       ok = eventCallbacks[DATAVALUES](LastBucketSent);
   }
 }
 
@@ -455,9 +414,6 @@ void visualization::AddMetricsResources(visi_matrix_Array newElements,
           }
       }
     }
-#ifdef DEBUG
-    fprintf(stderr,"number of new resources = %d\n",numRes);
-#endif
 
     // add new resources to dataGrid
     if(numRes > 0)
@@ -490,9 +446,6 @@ void visualization::AddMetricsResources(visi_matrix_Array newElements,
       }
     }
 
-#ifdef DEBUG
-    fprintf(stderr,"number of new metrics = %d\n",numMet);
-#endif
 
     // add new metrics to dataGrid
     if(numMet > 0)
