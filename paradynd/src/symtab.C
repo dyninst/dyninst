@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.2 1994/05/16 22:31:55 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.3 1994/06/27 18:57:15 hollings Exp $";
 #endif
 
 /*
@@ -16,7 +16,12 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.2  1994/05/16 22:31:55  hollings
+ * Revision 1.3  1994/06/27 18:57:15  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.2  1994/05/16  22:31:55  hollings
  * added way to request unique resource name.
  *
  * Revision 1.1  1994/01/27  20:31:45  hollings
@@ -116,7 +121,8 @@ module *moduleFindOrAdd(image *exec, int addr, char *name)
 	    return(curr);
 	}
     }
-    printf("warning no symbol table for module %s\n", name);
+    sprintf(errorLine, "warning no symbol table for module %s\n", name);
+    logLine(errorLine);
     curr = (module *) xcalloc(sizeof(module), 1);
     curr->fileName = pool.findAndAdd(name);
     curr->fullName = NULL;
@@ -173,7 +179,7 @@ function *newFunc(image *exec, module *mod, char *name, int addr)
     function *func;
 
     if (!mod) {
-	printf("Error function without module\n");
+	logLine("Error function without module\n");
     }
     func = (function *) xcalloc(sizeof(function),1);
     p = strchr(name, ':');
@@ -311,7 +317,11 @@ internalSym *findInternalSymbol(image *i, char *name, Boolean warn)
 	    return(&i->iSyms[count]);
 	}
     }
-    if (warn) printf("unable to find internal symbol %s\n", name);
+    if (warn) {
+	sprintf(errorLine, "unable to find internal symbol %s\n", name);
+	logLine(errorLine);
+    }
+    
     return(NULL);
 }
 

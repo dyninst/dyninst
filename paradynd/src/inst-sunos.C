@@ -3,7 +3,12 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.4  1994/03/26 20:50:47  jcargill
+ * Revision 1.5  1994/06/27 18:56:49  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.4  1994/03/26  20:50:47  jcargill
  * Changed the pause/continue code.  Now it really stops, instead of
  * spin looping.
  *
@@ -21,7 +26,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.4 1994/03/26 20:50:47 jcargill Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.5 1994/06/27 18:56:49 hollings Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,6 +79,26 @@ char *getProcessStatus(process *proc)
     return(ret);
 }
 
+#define NS_TO_SEC       1000000000.0
+
+StringList<int> primitiveCosts;
+
+
+//
+// All costs are based on Measurements on a SPARC station 10/40.
+//
+void initPrimitiveCost()
+{
+    /* based on measured values for the CM-5. */
+    /* Need to add code here to collect values for other machines */
+    primitiveCosts.add(240, (void *) "DYNINSTincrementCounter");
+    primitiveCosts.add(240, (void *) "DYNINSTdecrementCounter");
+    primitiveCosts.add(4990, (void *) "DYNINSTstartWallTimer");
+    primitiveCosts.add(5020, (void *) "DYNINSTstopWallTimer");
+    primitiveCosts.add(1150, (void *) "DYNINSTstartProcessTimer");
+    primitiveCosts.add(1510, (void *) "DYNINSTstopProcessTimer");
+}
+
 
 /*
  * return the time required to execute the passed primitive.
@@ -82,8 +107,15 @@ char *getProcessStatus(process *proc)
 float getPrimitiveCost(char *name)
 {
     float ret;
+    static int init;
 
-    ret = 0.0;
+    if (!init) { init = 1; initPrimitiveCost(); }
+
+    ret = primitiveCosts.find(name)/NS_TO_SEC;
+    if (ret == 0.0) {
+        printf("no cost value for primitive %s, using 10 usec\n", name);
+        ret = 10000/NS_TO_SEC;
+    }
     return(ret);
 }
 

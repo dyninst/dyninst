@@ -2,7 +2,12 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.15  1994/06/22 03:46:31  markc
+ * Revision 1.16  1994/06/27 18:56:53  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.15  1994/06/22  03:46:31  markc
  * Removed compiler warnings.
  *
  * Revision 1.14  1994/06/02  23:27:56  markc
@@ -75,6 +80,7 @@
 #include "dyninstP.h"
 #include "metric.h"
 #include "comm.h"
+#include "internalMetrics.h"
 
 extern "C" {
 int gethostname(char*, int);
@@ -95,6 +101,23 @@ int ready;
 // default to once a second.
 float samplingRate = 1.0;
 
+
+void configStdIO(Boolean closeStdIn)
+{
+    int nullfd;
+
+    /* now make stdin, out and error things that we can't hurt us */
+    if ((nullfd = open("/dev/null", O_RDWR, 0)) < 0) {
+	abort();
+    }
+
+    if (closeStdIn) (void) dup2(nullfd, 0);
+    (void) dup2(nullfd, 1);
+    (void) dup2(nullfd, 2);
+
+    if (nullfd > 2) close(nullfd);
+}
+
 main(int argc, char *argv[])
 {
     int i, family, type, well_known_socket, flag;
@@ -108,27 +131,17 @@ main(int argc, char *argv[])
     assert (RPC_undo_arg_list (argc, argv, &machine, family, type,
 		       well_known_socket, flag) == 0);
 
+
 #ifdef PARADYND_PVM
     tp = init_pvm_code(argv, machine, family, type, well_known_socket, flag);
 #else
+
     if (!flag) {
 	int pid;
 
-
 	pid = fork();
 	if (pid == 0) {
-	    int nullfd;
-
-	    /* now make stdin, out and error things that we can't hurt us */
-	    if ((nullfd = open("/dev/null", O_RDWR, 0)) < 0) {
-		abort();
-	    }
-	    (void) dup2(nullfd, 0);
-	    (void) dup2(nullfd, 1);
-	    (void) dup2(nullfd, 2);
-
-	    if (nullfd > 2) close(nullfd);
-
+	    configStdIO(TRUE);
 	    // setup socket
 	    tp = new pdRPC(family, well_known_socket, type, machine, 
 			    NULL, NULL, 0);
@@ -143,6 +156,8 @@ main(int argc, char *argv[])
     } else {
 	// already setup on this FD.
 	tp = new pdRPC(0, NULL, NULL);
+
+	configStdIO(FALSE);
     }
 #endif
 
@@ -230,14 +245,21 @@ double dynRPC::getPredictedDataCost(String_Array focusString, String metric)
 
 void dynRPC::disableDataCollection(int mid)
 {
+    float cost;
     metricInstance mi;
+    extern internalMetric totalPredictedCost;
     extern void printResourceList(resourceList);
 
-    printf("disable of %s for RL =", getMetricName(mi->met));
+    sprintf(errorLine, "disable of %s for RL =", getMetricName(mi->met));
+    logLine(errorLine);
     printResourceList(mi->resList);
-    printf("\n");
+    logLine("\n");
 
     mi = allMIs.find((void *) mid);
+
+    cost = mi->originalCost;
+    totalPredictedCost.value -= cost;
+
     mi->disable();
     allMIs.remove(mi);
     delete(mi);
@@ -288,10 +310,12 @@ void dynRPC::continueProgram(int program)
     for (curr = processList; *curr; curr++) {
 	if ((*curr)->pid == pid) break;
     }
-    if (*curr)
+    if (*curr) {
         continueProcess(*curr);
-    else
-	printf("Can't continue PID %d\n", program);
+    } else {
+	sprintf(errorLine, "Can't continue PID %d\n", program);
+	logLine(errorLine);
+    }
 }
 
 //
@@ -314,7 +338,8 @@ Boolean dynRPC::pauseProgram(int program)
         if ((*curr)->pid == program) break;
     }
     if (!(*curr)) {
-	printf("Can't pause PID %d\n", program);
+	sprintf(errorLine, "Can't pause PID %d\n", program);
+	logLine(errorLine);
 	return FALSE;
     }
     pauseProcess(*curr);

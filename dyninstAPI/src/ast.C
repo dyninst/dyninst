@@ -8,6 +8,7 @@
 #include "dyninstP.h"
 #include "metric.h"
 #include "ast.h"
+#include "util.h"
 
 registerSpace::registerSpace(int count, int *possibles) {
     int i;
@@ -89,7 +90,7 @@ reg AstNode::generateCode(process *proc,registerSpace *rs,char *insn, int *base)
 	    // call emit again now with correct offset.
 	    (void) emit(op, src, (reg) 0, (reg) (*base - fromAddr), 
 		insn, &startInsn);
-            // printf("branch forward %d\n", *base - fromAddr);
+            // sprintf(errorLine,branch forward %d\n", *base - fromAddr);
 	} else if (op == storeOp) {
 	    src1 = roperand->generateCode(proc, rs, insn, base);
 	    src2 = rs->allocateRegister();
@@ -136,7 +137,8 @@ reg AstNode::generateCode(process *proc,registerSpace *rs,char *insn, int *base)
 	    function *func;
 	    func = findFunction(proc->symbols, callee);
 	    if (!func) {
-		printf("unable to find addr of %s\n", callee);
+		sprintf(errorLine, "unable to find addr of %s\n", callee);
+		logLine(errorLine);
 		abort();
 	    }
 	    addr = func->addr;
@@ -190,9 +192,10 @@ char *getOpString(opCode op)
 float AstNode::cost()
 {
     float total;
+    float getInsnCost(operandType t);
 
     if (type == operandNode) {
-	total = 0.0;
+	total = getInsnCost(oType);
     } else if (type == opCodeNode) {
 	total = 0.0;
 	if (loperand) total += loperand->cost();
@@ -213,27 +216,33 @@ void AstNode::print()
 {
     if (type == operandNode) {
 	if (oType == Constant) {
-	    printf(" %d", (int) oValue);
+	    sprintf(errorLine, " %d", (int) oValue);
+	    logLine(errorLine);
 	} else if (oType == DataPtr) {
-	    printf(" %d", (int) dValue->getInferriorPtr());
+	    sprintf(errorLine, " %d", (int) dValue->getInferriorPtr());
+	    logLine(errorLine);
 	} else if (oType == DataValue) {
-	    printf(" @%d", (int) dValue->getInferriorPtr());
+	    sprintf(errorLine, "@%d", (int) dValue->getInferriorPtr());
+	    logLine(errorLine);
 	} else if (oType == Param) {
-	    printf(" param[%d]", oValue);
+	    sprintf(errorLine, "param[%d]", oValue);
+	    logLine(errorLine);
 	}
     } else if (type == opCodeNode) {
-	printf(" (%s", getOpString(op));
+	sprintf(errorLine, "(%s", getOpString(op));
+	logLine(errorLine);
 	if (loperand) loperand->print();
 	if (roperand) roperand->print();
-	printf(")");
+	logLine(")");
     } else if (type == callNode) {
-	printf(" (%s", callee);
+	sprintf(errorLine, "(%s", callee);
+	logLine(errorLine);
 	if (loperand) loperand->print();
 	if (roperand) roperand->print();
-	printf(")");
+	logLine(")");
     } else if (type == sequenceNode) {
 	if (loperand) loperand->print();
-	printf(", ");
+	logLine(",");
 	if (roperand) roperand->print();
     }
 }

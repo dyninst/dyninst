@@ -1,20 +1,37 @@
 /*
- *  Copyright 1993 Jeff Hollingsworth.  All rights reserved.
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
  *
  */
 
 #ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
-    All rights reserved.";
+static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
+  Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
+  Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.2 1994/06/22 01:43:15 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.3 1994/06/27 18:56:47 hollings Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.2  1994/06/22 01:43:15  markc
+ * Revision 1.3  1994/06/27 18:56:47  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.2  1994/06/22  01:43:15  markc
  * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
  * reference to proc->status to use proc->heap->status.
  *
@@ -75,6 +92,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "inst-sparc.h"
 #include "ast.h"
 #include "util.h"
+#include "internalMetrics.h"
 
 #define perror(a) abort();
 
@@ -259,7 +277,7 @@ struct instPointRec {
                            (insn.branch.op2 == 7)))
 
 extern int errno;
-extern int pointsUsed;
+extern internalMetric activePoints;
 extern int totalMiniTramps;
 
 
@@ -293,7 +311,7 @@ inline void generateNOOP(instruction *insn)
     insn->branch.op = 0;
     insn->branch.op2 = NOOPop2;
 
-    // printf("nop\n");
+    // logLine("nop\n");
 }
 
 inline void generateBranchInsn(instruction *insn, int offset)
@@ -305,7 +323,7 @@ inline void generateBranchInsn(instruction *insn, int offset)
     insn->branch.anneal = TRUE;
     insn->branch.disp22 = offset;
 
-    // printf("ba,a %x\n", offset);
+    // logLine("ba,a %x\n", offset);
 }
 
 inline void genSimpleInsn(instruction *insn, int op, reg rs1, reg rs2, reg rd)
@@ -317,7 +335,7 @@ inline void genSimpleInsn(instruction *insn, int op, reg rs1, reg rs2, reg rd)
     insn->rest.rs1 = rs1;
     insn->rest.rs2 = rs2;
 
-    // printf("%s %%%s,%%%s,%%%s\n", getStrOp(op), registerNames[rs1], 
+    // logLine("%s %%%s,%%%s,%%%s\n", getStrOp(op), registerNames[rs1], 
     // 	registerNames[rs2], registerNames[rd]);
 }
 
@@ -331,7 +349,7 @@ inline void genImmInsn(instruction *insn, int op, reg rs1, int immd, reg rd)
     insn->resti.i = 1;
     insn->resti.simm13 = immd;
 
-    // printf("%s %%%s,%d,%%%s\n", getStrOp(op), registerNames[rs1], immd,
+    // logLine("%s %%%s,%d,%%%s\n", getStrOp(op), registerNames[rs1], immd,
     // 	registerNames[rd]);
 }
 
@@ -364,7 +382,7 @@ inline void generateSetHi(instruction *insn, int src1, int dest)
     insn->sethi.op2 = SETHIop2;
     insn->sethi.imm22 = HIGH(src1);
 
-    // printf("sethi  %%hi(0x%x), %%%s\n", HIGH(src1)*1024, 
+    // logLine("sethi  %%hi(0x%x), %%%s\n", HIGH(src1)*1024, 
     // 	registerNames[dest]);
 }
 
@@ -381,8 +399,9 @@ void defineInstPoint(function *func, instPoint *point, instruction *code,
     }
     point->inDelaySlot = 0;
     if (IS_DELAYED_INST(code[codeIndex-1]) && !delayOK) {
-	 printf("**** inst point %s %s at addr %x in a delay slot\n", 
+	 sprintf(errorLine, "**** inst point %s %s at addr %x in a dely slot\n", 
 	     func->file->fullName, func->prettyName, point->addr);
+	 logLine(errorLine);
 	 point->inDelaySlot = 1;
     }
 }
@@ -442,6 +461,9 @@ void initDefaultPointFrequencyTable()
  *  WARNING: This code contins arbitray values for func frequency (both user 
  *     and system).  This should be refined over time.
  *
+ * Using 1000 calls sec to be one SD from the mean for most FPSPEC apps.
+ *	-- jkh 6/24/94
+ *
  */
 float getPointFrequency(instPoint *point)
 {
@@ -456,9 +478,9 @@ float getPointFrequency(instPoint *point)
     val = funcFrequencyTable.find(func->prettyName);
     if (!val) {
 	if (func->tag & TAG_LIB_FUNC) {
-	    return(100);
+	    return(1000);
 	} else {
-	    return(100);
+	    return(1000);
 	}
     }
     return(val);
@@ -511,10 +533,6 @@ void locateAllInstPoints(image *i)
 
     for (func=i->funcs; func; func=func->next) {
 	if (!(func->tag & TAG_LIB_FUNC)) {
-	    if (func->line) {
-		// printf("inst %s line %d:%s\n", func->file->fileName, 
-		//    func->line, func->prettyName);
-	    }
 	    locateInstPoints(func, (instruction *) i->code, i->textOffset,TRUE);
 	}
     }
@@ -537,13 +555,13 @@ void relocateInstruction(instruction *insn, int origAddr, int targetAddr)
     } else if isInsn(*insn, BRNCHmask, BRNCHmatch) {
 	newOffset = origAddr - targetAddr + (insn->branch.disp22 << 2);
 	if (ABS(newOffset) > MAX_BRANCH) {
-	    printf("a branch too far\n");
+	    logLine("a branch too far\n");
 	    abort();
 	} else {
 	    insn->branch.disp22 = newOffset >> 2;
 	}
     } else if isInsn(*insn, TRAPmask, TRAPmatch) {
-	printf("attempt to relocate trap\n");
+	logLine("attempt to relocate trap\n");
 	abort();
     } 
     /* The rest of the instructions should be fine as is */
@@ -670,7 +688,7 @@ void *findAndInstallBaseTramp(process *proc, instPoint *location)
 
     if (nodePseudoProcess && (proc->symbols == nodePseudoProcess->symbols)){
 	globalProc = nodePseudoProcess;
-	// printf("findAndInstallBaseTramp global\n");
+	// logLine("findAndInstallBaseTramp global\n");
     } else {
 	globalProc = proc;
     }
@@ -680,7 +698,7 @@ void *findAndInstallBaseTramp(process *proc, instPoint *location)
 	installBaseTramp((int) ret, location, globalProc);
 	generateBranch(globalProc, location->addr, (int) ret);
 	globalProc->baseMap.add(ret, location);
-	pointsUsed++;
+	activePoints.value++;
     }
     return(ret);
 }
@@ -911,4 +929,31 @@ reg getParameter(reg dest, int param)
     }
     abort();
     return(-1);
+}
+
+#define NS_TO_SEC       1000000000.0
+
+float getInsnCost(operandType oType)
+{
+    return(100/NS_TO_SEC);
+#ifdef notdef
+    if (oType == Constant) {
+	// (void) emit(loadConstOp, (reg) oValue, dest, dest, insn, base);
+        return(10);
+    } else if (oType == DataPtr) {
+	// (void) emit(loadConstOp, (reg) addr, dest, dest, insn, base);
+    } else if (oType == DataValue) {
+	// if (dValue->getType() == timer) {
+	    // (void) emit(loadConstOp, (reg) addr, dest, dest, insn, base);
+	// } else {
+	    // (void) emit(loadOp, (reg) addr, dest, dest, insn, base);
+	// }
+    } else if (oType == Param) {
+	// src = rs->allocateRegister();
+	// dest = getParameter(src, (int) oValue);
+	// if (src != dest) {
+	    // rs->freeRegister(src);
+	// }
+    }
+#endif
 }

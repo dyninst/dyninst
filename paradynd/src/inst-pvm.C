@@ -3,7 +3,12 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.6  1994/05/31 18:10:12  markc
+ * Revision 1.7  1994/06/27 18:56:44  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.6  1994/05/31  18:10:12  markc
  * Added default instrumentation requests and modified the library functions
  * that get are instrumented.
  *
@@ -26,7 +31,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-pvm.C,v 1.6 1994/05/31 18:10:12 markc Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-pvm.C,v 1.7 1994/06/27 18:56:44 hollings Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -127,7 +132,8 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
     extern int errno;
 
     if (proc->status == exited) {
-        printf("attempt to ptrace exited process %d\n", proc->pid);
+        sprintf(errorLine, "attempt to ptrace exited process %d\n", proc->pid);
+	logLine(errorLine);
         return(-1);
     }
 
@@ -145,7 +151,7 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
 		return(0);
 	    }
 	    if (!WIFSTOPPED(status) && !WIFSIGNALED(status)) {
-		printf("problem stopping process\n");
+		logLine("problem stopping process\n");
 		abort();
 	    }
 	    sig = WSTOPSIG(status);

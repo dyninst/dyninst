@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.1 1994/01/27 20:31:43 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.2 1994/06/27 18:57:11 hollings Exp $";
 #endif
 
 /*
  * sym-bsd.C - parse BSD style a.out files.
  *
  * $Log: sym-bsd.C,v $
- * Revision 1.1  1994/01/27 20:31:43  hollings
+ * Revision 1.2  1994/06/27 18:57:11  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.1  1994/01/27  20:31:43  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.9  1993/12/13  19:56:24  hollings
@@ -252,7 +257,7 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
      *
      */
     if (offset && (exec.a_magic != OMAGIC)) {
-        printf("program not linked with O_MAGIC, can't use dyninst\n");
+        logLine("program not linked with O_MAGIC, can't use dyninst\n");
         return(NULL);
     }
 
@@ -268,7 +273,7 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
 
     dynamic = 0;
     if (exec.a_dynamic) {
-	printf("Warning: Program dynamicly linked, can not inst system calls\n");
+	logLine("Warning: Program dynamicly linked, can not inst system calls\n");
 	dynamic = 1;
     }
 
@@ -280,7 +285,7 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
 	free(ret->code);
 	free(strings);
 	free(ret);
-	printf("Unable to read text segment\n");
+	logLine("Unable to read text segment\n");
 	return(NULL);
     }
 
@@ -291,7 +296,7 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
 	free(ret->code);
 	free(strings);
 	free(ret);
-	printf("Unable to read symbols segment\n");
+	logLine("Unable to read symbols segment\n");
 	return(NULL);
     }
 
@@ -306,8 +311,8 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
     }
 
     strings = (char *) xmalloc(stringLength);
-    if (read(fd, &strings[4], stringLength-sizeof(int)) != 
-	stringLength-sizeof(int)) {
+    (void) lseek(fd,  N_STROFF(exec)+offset, 0);
+    if (read(fd, strings, stringLength) != stringLength) {
 	free(ret->code);
 	free(stabs);
 	free(strings);
@@ -345,7 +350,7 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
 		currentFunc = newFunc(ret, currentModule, str,stabs[i].n_value);
 		break;
 	    case N_ENTRY:
-		printf("warning code contains alternate entry point\n");
+		logLine("warning code contains alternate entry point\n");
 		break;
 	    default:
 		break;

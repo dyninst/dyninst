@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.5 1994/05/18 00:52:27 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.6 1994/06/27 18:56:41 hollings Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.5  1994/05/18 00:52:27  hollings
+ * Revision 1.6  1994/06/27 18:56:41  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.5  1994/05/18  00:52:27  hollings
  * added ability to gather IO from application processes and forward it to
  * the paradyn proces.
  *
@@ -297,7 +302,7 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
     if (!tsdConnected) {
 	tsdConnected = 1;
 	if (CMTS_ConnectToDaemon() == -1) {
-	    printf("Can't connect to TS Daemon\n");
+	    logLine("Can't connect to TS Daemon\n");
 	    free(ret);
 	    return;
 	}
@@ -366,11 +371,11 @@ retry:
 	     * JKH - 8/9/93
 	     */
 	     ptrace(PTRACE_CONT, pid, (char*)1, SIGCONT, 0);
-	     printf("got sigalarm eating it\n");
+	     logLine("got sigalarm eating it\n");
 	     goto retry;
 
 	case SIGSTOP:
-	  printf("CONTROLLER: Breakpoint reached, continuing for node init\n");
+	  logLine("CONTROLLER: Breakpoint reached, continuing for node init\n");
 	  curr->status = stopped;
 	  /* force it into the stoped signal handler */
 	  ptrace(PTRACE_CONT, pid, (char*)1, SIGPROF, 0);
@@ -385,7 +390,7 @@ retry:
 	  break;
 
 	default:
-	  printf("CP process reached a non-stopped state (signal %d). Weird.\n",
+	  logLine("CP process reached a non-stopped state (signal %d). Weird.\n",
 	      WSTOPSIG(status));
 	  abort();
     }
@@ -418,21 +423,21 @@ retry:
      * Get nodes to call DYNINSTinit.
      *
      */
-    printf("forcing node inits\n");
+    logLine("forcing node inits\n");
     for (i=0; i < fr->npids; i++) {
 	val = CM_ptrace(i, PE_PTRACE_INTERRUPT, fr->ppid, 0, 0, 0);
 	if (val) {
-	    printf("CM_ptrace: pn%d error PE_PTRACE_INTERRUPT\n",i);
+	    logLine("CM_ptrace: pn%d error PE_PTRACE_INTERRUPT\n",i);
 	    exit(-1);
 	}
-	printf(".");
+	logLine(".");
 	fflush(stdout);
     }
     for (i=0; i < fr->npids; i++) {
 	val = CM_ptrace(i, PE_PTRACE_GETREGS, fr->ppid, 
 	    (char *) &nodeRegisters, 0, 0);
 	if (val) {
-	    printf("CM_ptrace: pn%d error PE_PTRACE_GETREGS\n",i);
+	    logLine("CM_ptrace: pn%d error PE_PTRACE_GETREGS\n",i);
 	    exit(-1);
 	}
 
@@ -445,15 +450,15 @@ retry:
 	val = CM_ptrace(i, PE_PTRACE_SETREGS, fr->ppid, 
 	    (char *) &newRegisters, 0, 0);
 	if (val) {
-	    printf("CM_ptrace: pn%d error PE_PTRACE_SETREGS\n",i);
+	    logLine("CM_ptrace: pn%d error PE_PTRACE_SETREGS\n",i);
 	    exit(-1);
 	}
 	val = CM_ptrace(i, PE_PTRACE_CONT, fr->ppid, 0, 0, 0);
 	if (val) {
-	    printf("CM_ptrace: pn%d error PE_PTRACE_CONT\n",i);
+	    logLine("CM_ptrace: pn%d error PE_PTRACE_CONT\n",i);
 	    exit(-1);
 	}
-	printf(".");
+	logLine(".");
 	fflush(stdout);
     }
     for (i=0; i < fr->npids; i++) {
@@ -462,31 +467,31 @@ retry:
 	while (val != PE_STATUS_BREAK) {
 	    val = CM_ptrace(i, PE_PTRACE_GETSTATUS, fr->ppid, 0, 0, 0);
 	}
-	// printf("process %d got break after init\n", i);
+	// logLine("process %d got break after init\n", i);
 
 	val = CM_ptrace(i, PE_PTRACE_INTERRUPT, fr->ppid, 0, 0, 0);
 	if (val) {
-	    printf("CM_ptrace: pn%d error PE_PTRACE_INTERRUPT\n",i);
+	    logLine("CM_ptrace: pn%d error PE_PTRACE_INTERRUPT\n",i);
 	    exit(-1);
 	}
 
 	val = CM_ptrace(i, PE_PTRACE_SETREGS, fr->ppid, 
 	    (char *) &nodeRegisters, 0, 0);
 	if (val) {
-	    printf("CM_ptrace: pn%d error PE_PTRACE_SETREGS\n",i);
+	    logLine("CM_ptrace: pn%d error PE_PTRACE_SETREGS\n",i);
 	    exit(-1);
 	}
 	val = CM_ptrace(i, PE_PTRACE_CONT, fr->ppid, 0, 0, 0);
 	if (val) {
-	    printf("CM_ptrace: pn%d error PE_PTRACE_CONT\n",i);
+	    logLine("CM_ptrace: pn%d error PE_PTRACE_CONT\n",i);
 	    exit(-1);
 	}
 
-	printf(".");
+	logLine(".");
 	fflush(stdout);
-	// printf("process %d was continued after init\n", i);
+	// logLine("process %d was continued after init\n", i);
     }
-    printf("node initing done\n");
+    logLine("node initing done\n");
     fflush(stdout);
     
     nodePseudoProcess = createGlobalPseudoProcess(ret);
@@ -618,7 +623,7 @@ void processPtraceAck (traceHeader *header, ptraceAck *ackRecord)
     
     assert(seqNumAcked >= 0);
     assert(seqNumAcked <= seqNumSent);
-    printf ("received Ptrace ack (seq #%d)\n", seqNumAcked);
+    logLine ("received Ptrace ack (seq #%d)\n", seqNumAcked);
 }
 
 
@@ -637,7 +642,7 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
     struct regs regs;
 
     if (proc->status == exited) {
-	printf("attempt to ptrace exited process %d\n", proc->pid);
+	logLine("attempt to ptrace exited process %d\n", proc->pid);
 	return(-1);
     }
 
@@ -675,7 +680,7 @@ int PCptrace(int request, process *proc, void *addr, int data, void *addr2)
 		    return(0);
 		}
 		if (!WIFSTOPPED(status) && !WIFSIGNALED(status)) {
-		    printf("problem stopping process\n");
+		    logLine("problem stopping process\n");
 		    abort();
 		}
 		sig = WSTOPSIG(status);
@@ -842,7 +847,7 @@ int emulatePtraceRequest (int request, process *proc, int cmPid, void *addr,
     }  
 
 #ifdef DEBUG_PRINTS
-    printf ("Buffering (%d, %d, %d)\n", cmPid, addr, header.length);
+    logLine ("Buffering (%d, %d, %d)\n", cmPid, addr, header.length);
 #endif
    
     /*
@@ -916,16 +921,20 @@ void sendPtraceBuffer(process *proc)
 
 StringList<int> primitiveCosts;
 
+//
+// All costs are based on 30ns clock (~33MHz) and stats reported in the
+//   SHPCC paper.
+//
 void initPrimitiveCost()
 {
     /* based on measured values for the CM-5. */
     /* Need to add code here to collect values for other machines */
-    primitiveCosts.add(728, (void *) "DYNINSTincrementCounter");
-    primitiveCosts.add(728, (void *) "DYNINSTdecrementCounter");
-    primitiveCosts.add(1159, (void *) "DYNINSTstartWallTimer");
-    primitiveCosts.add(1939, (void *) "DYNINSTstopWallTimer");
-    primitiveCosts.add(1296, (void *) "DYNINSTstartProcessTimer");
-    primitiveCosts.add(2365, (void *) "DYNINSTstopProcessTimer");
+    primitiveCosts.add(240, (void *) "DYNINSTincrementCounter");
+    primitiveCosts.add(240, (void *) "DYNINSTdecrementCounter");
+    primitiveCosts.add(1056, (void *) "DYNINSTstartWallTimer");
+    primitiveCosts.add(1650, (void *) "DYNINSTstopWallTimer");
+    primitiveCosts.add(1221, (void *) "DYNINSTstartProcessTimer");
+    primitiveCosts.add(2130, (void *) "DYNINSTstopProcessTimer");
 }
 
 /*
@@ -938,7 +947,8 @@ float getPrimitiveCost(char *name)
 
     ret = primitiveCosts.find(name)/NS_TO_SEC;
     if (ret == 0.0) {
-	printf("no cost value for primitive %s, using 10 usec\n", name);
+	sprintf(errorLine, "no cost value for primitive %s, using 10 usec\n", name);
+	logLine(errorLine);
 	ret = 10000/NS_TO_SEC;
     }
     ret = 0.0;

@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.2 1994/03/20 01:53:08 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.3 1994/06/27 18:56:51 hollings Exp $";
 #endif
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.2  1994/03/20 01:53:08  markc
+ * Revision 1.3  1994/06/27 18:56:51  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.2  1994/03/20  01:53:08  markc
  * Added a buffer to each process structure to allow for multiple writers on the
  * traceStream.  Replaced old inst-pvm.C.  Changed addProcess to return type
  * int.
@@ -82,6 +87,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
 #include "instP.h"
 #include "ast.h"
 #include "util.h"
+#include "internalMetrics.h"
 
 static instInstance *instList;
 
@@ -253,6 +259,9 @@ void deleteInst(instInstance *old)
     }
 
     if (!othersAtPoint) {
+	extern internalMetric activePoints;
+
+	activePoints.value--;
 	clearBaseBranch(old->proc, old);
     } else {
 	if (left) {
@@ -306,7 +315,6 @@ void installDefaultInst(process *proc, instMaping *initialRequests)
     for (item = initialRequests; item->func; item++) {
 	func = findFunction(proc->symbols, item->func);
 	if (!func) {
-	    // printf("unable to find %s\n", item->func);
 	    continue;
 	}
 
@@ -325,7 +333,8 @@ void installDefaultInst(process *proc, instMaping *initialRequests)
 	}
 	if (item->where & FUNC_CALL) {
 	    if (!func->callCount) {
-		printf("no function calls in procedure %s\n", func->prettyName);
+		sprintf(errorLine, "no function calls in procedure %s\n", func->prettyName);
+		logLine(errorLine);
 	    } else {
 		for (i = 0; i < func->callCount; i++) {
 		    (void) addInstFunc(proc, func->calls[i], ast,
@@ -350,7 +359,6 @@ void continueProcess(process *proc)
     if (proc->status == stopped) {
 	(void) PCptrace(PTRACE_CONT, proc, (int*)1, 0, 0);
         proc->status = running;
-        fprintf(stderr, "process %d continued\n", proc->pid);
     }
 }
 

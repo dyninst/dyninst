@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.19 1994/06/22 01:43:16 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.20 1994/06/27 18:56:56 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.19  1994/06/22 01:43:16  markc
+ * Revision 1.20  1994/06/27 18:56:56  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.19  1994/06/22  01:43:16  markc
  * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
  * reference to proc->status to use proc->heap->status.
  *
@@ -151,6 +156,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "ast.h"
 #include "util.h"
 #include "comm.h"
+#include "internalMetrics.h"
 
 
 extern "C" {
@@ -164,13 +170,9 @@ extern int metResPairsEnabled;
 extern HTable<metric> metricsUsed;
 extern HTable<resourceList> fociUsed;
 
-// used in other modules.
-metricDefinitionNode *pauseTimeNode=0;
-
 HTable<metricInstance> midToMiMap;
 
 metricList globalMetricList;
-extern struct _metricRec DYNINSTallMetrics[];
 extern process *nodePseudoProcess;
 
 // used to indicate the mi is no longer used.
@@ -228,6 +230,7 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
     int covered;
     List<process*> pl;
     metricInstance ret;
+    internalMetric *im;
     process *proc = NULL;
     resourcePredicate *pred;
     struct _metricRec *curr;
@@ -240,9 +243,20 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 
     if (!processList.count()) return(NULL);
 
+    /* HACK - This should be fixed/generalized to handle "internal" metrics */
+    /* check for "special" metrics that are computed directly by paradynd */
+    im = internalMetric::allInternalMetrics.find(m->info.name);
+    if (im) {
+	mn = new metricDefinitionNode(*pl);
+	im->enable(mn);
+	sprintf(errorLine, "enabled internal metric %s\n", (m->info.name));
+	logLine(errorLine);
+	return(mn);
+    }
+
     /* first find the named metric */
     for (i=0; i < metricCount; i++) {
-	curr = &DYNINSTallMetrics[i];
+	curr = &globalMetricList->elements[i];
 	if (curr == m) {
 	    break;
 	}
@@ -316,13 +330,6 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 	return(NULL);
     }
 
-    /* HACK - This should be fixed/generalized to handle "internal" metrics */
-    /* check for "special" metrics that are computed directly by paradynd */
-    if (!strcmp(m->info.name, "pause_time")) {
-	 pauseTimeNode = new metricDefinitionNode(*pl);
-	 return(pauseTimeNode);
-    }
-
     for (count=0; proc = instProcessList[count]; count++) {
 	mn = new metricDefinitionNode(proc);
 
@@ -362,12 +369,13 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 		predInstance = pred->creator(mn, r->info.name, predInstance);
 	    } else {
 		if (complexPred) {
-		    printf("Error two complex predicates in a single metric\n");
+		    sprintf(errorLine, "Error two complex predicates in a single metric\n");
+		    logLine(errorLine);
 		    abort();
 		} else {
 		    complexPredResource = r;
 		    if (predInstance) {
-			printf("Error predicate before complex in list\n");
+			logLine("Error predicate before complex in list\n");
 			abort();
 		    }
 		    complexPred = pred;
@@ -376,7 +384,7 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 	    }
 	}
 	if (covered < l->count) {
-	    printf("unable to find a predicate\n");
+	    logLine("unable to find a predicate\n");
 	    abort();
 	}
 
@@ -452,21 +460,27 @@ metricInstance createMetricInstance(resourceList l, metric m)
 
 int startCollecting(resourceList l, metric m)
 {
+    float cost;
     metricInstance mi;
+    extern internalMetric totalPredictedCost;
     extern void printResourceList(resourceList);
 
     mi = createMetricInstance(l, m);
     if (!mi) return(-1);
 
-    // cost = mi->cost();
-    // printf("*** metric cost = %f\n", cost);
+    cost = mi->cost();
+    mi->originalCost = cost;
+    totalPredictedCost.value += cost;
+    sprintf(errorLine, "*** metric cost = %f\n", cost);
+    logLine(errorLine);
 
     mi->insertInstrumentation();
     flushPtrace();
 
-    printf("enable of %s for RL =", getMetricName(m));
+    sprintf(errorLine, "enable of %s for RL =", getMetricName(m));
+    logLine(errorLine);
     printResourceList(l);
-    printf("\n");
+    logLine("\n");
 
     // collect some stats.
     metResPairsEnabled++;
@@ -535,13 +549,19 @@ float metricDefinitionNode::cost()
 
 void metricDefinitionNode::disable()
 {
+    internalMetric *im;
     List<dataReqNode*> dp;
     List<instReqNode*> req;
     metricDefinitionNode *mi;
     List<metricDefinitionNode*> curr;
 
-    /* HACK - special case for pause node */
-    if (this == pauseTimeNode) pauseTimeNode = NULL;
+    // check for internal metrics
+    im = internalMetric::activeInternalMetrics.find(this);
+    if (im) {
+	im->disable();
+	logLine("disabled internal metric\n");
+	return;
+    }
 
     if (!inserted) return;
 
@@ -648,22 +668,35 @@ void processSample(traceHeader *h, traceSample *s)
 
     mi = midToMiMap.find((void *) s->id.id);
     if (!mi) {
-	// printf("sample %d not for a valid metric instance\n", s->id.id);
+	// logLine("sample %d not for a valid metric instance\n", s->id.id);
 	return;
     }
      
-    // printf("sample id %d at time %f = %f\n", s->id.id, now, s->value);
+    // logLine("sample id %d at time %f = %f\n", s->id.id, now, s->value);
     mi->updateValue(h->wall, s->value);
     samplesDelivered++;
 }
 
 metricList getMetricList()
 {
+    int i;
+    List<internalMetric*> curr;
+    extern struct _metricRec DYNINSTallMetrics[];
+
     if (!globalMetricList) {
+	 // merge internal and external metrics into one list.
 	 globalMetricList = (metricList) 
 	     xcalloc(sizeof(struct _metricListRec), 1);
-	 globalMetricList->elements = DYNINSTallMetrics;
-	 globalMetricList->count = metricCount;
+	 globalMetricList->count = 
+	     metricCount + internalMetric::allInternalMetrics.count();
+	 globalMetricList->elements = (struct _metricRec *)
+	     xcalloc(sizeof(struct _metricRec), globalMetricList->count);
+	 for (i=0; i < metricCount; i++) {
+	     globalMetricList->elements[i] = DYNINSTallMetrics[i];
+	 }
+	 for (curr = internalMetric::allInternalMetrics; *curr; curr++) {
+	     globalMetricList->elements[i++] = (*curr)->metRec;
+	 }
     }
     return(globalMetricList);
 }
@@ -866,14 +899,10 @@ dataReqNode::~dataReqNode()
 }
 
 
-void computePauseTimeMetric()
+float computePauseTimeMetric()
 {
-    timeStamp now;
-    timeStamp start;
     timeStamp elapsed;
     struct timeval tv;
-    static timeStamp end;
-    extern float samplingRate;
     extern timeStamp startPause;
     extern time64 firstRecordTime;
     extern Boolean firstSampleReceived;
@@ -881,21 +910,69 @@ void computePauseTimeMetric()
     extern timeStamp elapsedPauseTime;
     static timeStamp reportedPauseTime = 0;
 
-    if (pauseTimeNode && firstRecordTime && firstSampleReceived) {
+    if (firstRecordTime && firstSampleReceived) {
 	gettimeofday(&tv, NULL);
-	now = (tv.tv_sec * MILLION + tv.tv_usec - firstRecordTime)/MILLION;
-	if (now < end + samplingRate) 
-	    return;
 
-	start = end;
-	end = now;
 	elapsed = elapsedPauseTime - reportedPauseTime;
 	if (applicationPaused) {
 	    elapsed += tv.tv_sec * MILLION + tv.tv_usec - startPause;
 	}
 	assert(elapsed >= 0.0); 
 	reportedPauseTime += elapsed;
-	pauseTimeNode->forwardSimpleValue(start, end, elapsed/MILLION);
+	return(elapsed/MILLION);
+    } else {
+	return(0.0);
     }
 }
 
+List<internalMetric*>internalMetric::allInternalMetrics;
+List<internalMetric*>internalMetric::activeInternalMetrics;
+
+internalMetric pauseTime("pause_time", 
+			 SampledFunction, 
+			 opMin, 
+			 "% Time",
+			 computePauseTimeMetric);
+
+internalMetric totalPredictedCost("predicted_cost", 
+				  SampledFunction,
+				  opMax,
+				  "% Time",
+				  NULL);
+
+internalMetric activePoints("active_points", 
+			    SampledFunction,
+			    opSum,
+			    "NUmber",
+			    NULL);
+
+void reportInternalMetrics()
+{
+    timeStamp now;
+    timeStamp start;
+    sampleValue value;
+    struct timeval tv;
+    internalMetric *im;
+    static timeStamp end;
+    extern float samplingRate;
+    List<internalMetric*> curr;
+    extern time64 firstRecordTime;
+
+    //  check if it is time for a sample
+    gettimeofday(&tv, NULL);
+
+    // see if we have a sample to establish time base.
+    if (!firstRecordTime) return;
+    now = (tv.tv_sec * MILLION + tv.tv_usec - firstRecordTime)/MILLION;
+    if (now < end + samplingRate) 
+	return;
+
+    start = end;
+    end = now;
+    for (curr = internalMetric::allInternalMetrics; im = *curr; curr++) {
+	if (im->enabled()) {
+	    value = im->getValue();
+	    im->node->forwardSimpleValue(start, end, value);
+	}
+    }
+}

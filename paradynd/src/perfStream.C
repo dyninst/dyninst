@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.15 1994/06/22 01:43:17 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.16 1994/06/27 18:57:04 hollings Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.15  1994/06/22 01:43:17  markc
+ * Revision 1.16  1994/06/27 18:57:04  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.15  1994/06/22  01:43:17  markc
  * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
  * reference to proc->status to use proc->heap->status.
  *
@@ -169,7 +174,7 @@ extern void PDYN_reportSIGCHLD (int pid, int exit_status);
 #endif
 
 extern pdRPC *tp;
-extern void computePauseTimeMetric();
+extern void reportInternalMetrics();
 extern void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr);
 extern void processPtraceAck (traceHeader *header, ptraceAck *ackRecord);
 extern void forkProcess(traceHeader *hr, traceFork *fr);
@@ -206,6 +211,19 @@ void processAppIO(process *curr)
 
 }
 
+char errorLine[1024];
+
+void logLine(char *line)
+{
+    static char fullLine[1024];
+
+    strcat(fullLine, line);
+    if (fullLine[strlen(fullLine)-1] == '\n') {
+	tp->applicationIO(0, strlen(fullLine), fullLine);
+	fullLine[0] = '\0';
+    }
+}
+
 void processTraceStream(process *curr)
 {
     int ret;
@@ -225,7 +243,8 @@ void processTraceStream(process *curr)
 	exit(-2);
     } else if (ret == 0) {
 	/* end of file */
-	printf("got EOF on link %d\n", curr->traceLink);
+	sprintf(errorLine, "got EOF on link %d\n", curr->traceLink);
+	logLine(errorLine);
 	curr->traceLink = -1;
 	curr->status = exited;
 	return;
@@ -248,8 +267,10 @@ void processTraceStream(process *curr)
 	memcpy(&header, &(curr->buffer[curr->bufStart]), sizeof(header));
 	curr->bufStart += sizeof(header);
 
-	if (header.length % WORDSIZE != 0)
-	    printf("Warning: non-aligned length (%d) received on traceStream.  Type=%d\n", header.length, header.type);
+	if (header.length % WORDSIZE != 0) {
+	    sprintf(errorLine, "Warning: non-aligned length (%d) received on traceStream.  Type=%d\n", header.length, header.type);
+	    logLine(errorLine);
+	}
 	    
 	if (curr->bufEnd - curr->bufStart < header.length) {
 	    /* the whole record isn't here yet */
@@ -269,7 +290,8 @@ void processTraceStream(process *curr)
 
 	    firstRecordTime = header.wall;
 	    st = firstRecordTime/1000000.0;
-	    printf("started at %f\n", st);
+	    sprintf(errorLine, "started at %f\n", st);
+	    logLine(errorLine);
 	}
 	header.wall -= firstRecordTime;
 
@@ -304,7 +326,8 @@ void processTraceStream(process *curr)
 		break;
 
 	    default:
-		printf("got record type %d on sid %d\n", header.type, sid);
+		sprintf(errorLine, "got record type %d on sid %d\n", header.type, sid);
+		logLine(errorLine);
 	}
     }
 
@@ -333,6 +356,8 @@ int handleSigChild(int pid, int status)
 	switch (sig) {
 
 	    case SIGTSTP:
+		sprintf(errorLine, "process %d got SIGTSTP\n", pid);
+		logLine(errorLine);
 		curr->status = stopped;
 		break;
 
@@ -340,7 +365,7 @@ int handleSigChild(int pid, int status)
 		/* trap at the start of a ptraced process 
 		 *   continue past it.
 		 */
-		printf("passed trap at start of program\n");
+		logLine("passed trap at start of program\n");
 		ptrace(PTRACE_CONT, pid, (char*)1, 0, 0);
 #ifdef PARADYND_PVM
 		curr->status = neonatal;
@@ -351,7 +376,8 @@ int handleSigChild(int pid, int status)
 		break;
 
 	    case SIGSTOP:
-		printf("CONTROLLER: Breakpoint reached %d\n", pid);
+		sprintf(errorLine, "CONTROLLER: Breakpoint reached %d\n", pid);
+		logLine(errorLine);
 #ifdef PARADYND_PVM
 		pvm_perror("CONTROLLER: Breakpoint reached\n");
 #endif
@@ -371,10 +397,16 @@ int handleSigChild(int pid, int status)
 	    case SIGSEGV:
 	    case SIGBUS:
 	    case SIGILL:
-		printf("caught fatal signal, dumping program image\n");
 		dumpProcessImage(curr, True);
 		ptrace(PTRACE_DUMPCORE, pid, "core.real", 0, 0);
-		abort();
+		curr->status = exited;
+		// ???
+		// should really log this to the error reporting system.
+		// jkh - 6/25/96
+		logLine("caught fatal signal, dumping program image\n");
+
+		// now forward it to the process.
+		ptrace(PTRACE_CONT, pid, (char*)1, WSTOPSIG(status), 0);
 		break;
 
 	    case SIGCHLD:
@@ -390,13 +422,16 @@ int handleSigChild(int pid, int status)
 #ifdef PARADYND_PVM
 		PDYN_reportSIGCHLD (pid, WEXITSTATUS(status));
 #endif
-	printf("process %d has terminated\n", curr->pid);
+	sprintf(errorLine, "process %d has terminated\n", curr->pid);
+	logLine(errorLine);
 	curr->status = exited;
     } else if (WIFSIGNALED(status)) {
-	printf("process %d has terminated on signal %d\n", curr->pid,
+	sprintf(errorLine, "process %d has terminated on signal %d\n", curr->pid,
 	    WTERMSIG(status));
+	logLine(errorLine);
     } else {
-	printf("unknown state %d from process %d\n", status, curr->pid);
+	sprintf(errorLine, "unknown state %d from process %d\n", status, curr->pid);
+	logLine(errorLine);
     }
     return(0);
 }
@@ -522,8 +557,8 @@ void controllerMainLoop()
 #endif
 	}
 
-	/* report pause time */
-	computePauseTimeMetric();
+	/* generate internal metrics */
+	reportInternalMetrics();
 
 	/* check for status change on inferrior processes */
 	pid = wait3(&status, WNOHANG, NULL);

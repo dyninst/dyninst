@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.5 1994/06/02 23:28:00 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.6 1994/06/27 18:57:08 hollings Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
- * Revision 1.5  1994/06/02 23:28:00  markc
+ * Revision 1.6  1994/06/27 18:57:08  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.5  1994/06/02  23:28:00  markc
  * Replaced references to igen generated class to a new class derived from
  * this class to implement error handling for igen code.
  *
@@ -216,7 +221,8 @@ void printResources(resource r)
     resource *curr;
 
     if (r) {
-	printf("%s\n", r->info.fullName);
+	sprintf(errorLine, "%s", r->info.fullName);
+	logLine(errorLine);
 	if (r->children) {
 	    for (curr=r->children->elements, c=0;
 		 c < r->children->count; c++) {
@@ -230,12 +236,12 @@ void printResourceList(resourceList rl)
 {
     int i;
 
-    printf("<");
+    logLine("<");
     for (i=0; i < rl->count; i++) {
-	printf(rl->elements[i]->info.fullName);
-	if (i!= rl->count-1) printf(",");
+	logLine(rl->elements[i]->info.fullName);
+	if (i!= rl->count-1) logLine(",");
     }
-    printf(">");
+    logLine(">");
 }
 
 /*

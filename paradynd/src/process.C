@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.10 1994/06/22 03:46:32 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.11 1994/06/27 18:57:07 hollings Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.10  1994/06/22 03:46:32  markc
+ * Revision 1.11  1994/06/27 18:57:07  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.10  1994/06/22  03:46:32  markc
  * Removed compiler warnings.
  *
  * Revision 1.9  1994/06/22  01:43:18  markc
@@ -84,6 +89,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <sys/param.h>
 #include <sys/ptrace.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -171,7 +177,7 @@ int inferriorMalloc(process *proc, int size)
     }
 
     if (!curr) {
-	printf("Inferrior heap overflow\n");
+	logLine("Inferrior heap overflow\n");
 	abort();
     }
 
@@ -205,12 +211,12 @@ void inferriorFree(process *proc, int pointer)
     }
 
     if (!curr) {
-	printf("unable to find heap entry %x\n", pointer);
+	logLine("unable to find heap entry %x\n", pointer);
 	abort();
     }
 
     if (curr->status != HEAPallocated) {
-	printf("attempt to free already free heap entry %x\n", pointer);
+	logLine("attempt to free already free heap entry %x\n", pointer);
 	abort();
     }
     curr->status = HEAPfree;
@@ -249,13 +255,36 @@ process *allocateProcess(int pid, char *name)
  */
 process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 {
-    int pid;
     int r;
-    image *i;
+    int fd;
+    int pid;
+    image *img;
+    int i, j, k;
     process *ret;
     char name[20];
     int ioPipe[2];
     int tracePipe[2];
+    FILE *childError;
+    char *inputFile = NULL;
+    char *outputFile = NULL;
+
+    // check for I/O redirection in arg list.
+    for (i=0; argv[i]; i++) {
+	if (argv[i] && !strcmp("<", argv[i])) {
+	    inputFile = argv[i+1];
+	    for (j=i+2, k=i; argv[j]; j++, k++) {
+		argv[k] = argv[j];
+	    }
+	    argv[k] = NULL;
+	}
+	if (argv[i] && !strcmp(">", argv[i])) {
+	    outputFile = argv[++i];
+	    for (j=i+2, k=i; argv[j]; j++, k++) {
+		argv[k] = argv[j];
+	    }
+	    argv[k] = NULL;
+	}
+    }
 
     r = socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, tracePipe);
     if (r) {
@@ -281,17 +310,18 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 #endif
     if (pid > 0) {
 	if (errno) {
-	    printf("Unable to start %s: %s\n", file, sys_errlist[errno]);
+	    sprintf(errorLine, "Unable to start %s: %s\n", file, sys_errlist[errno]);
+	    logLine(errorLine);
 	    return(NULL);
 	}
 
-	i = parseImage(file, 0);
-	if (!i) return(NULL);
+	img = parseImage(file, 0);
+	if (!img) return(NULL);
 
 	/* parent */
-	sprintf(name, "%s", i->name);
+	sprintf(name, "%s", img->name);
 	ret = allocateProcess(pid, name);
-	ret->symbols = i;
+	ret->symbols = img;
 	initInferiorHeap(ret, False);
 
 	ret->status = neonatal;
@@ -310,15 +340,43 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 	dup2(ioPipe[1], 2);
 	if (ioPipe[1] > 2) close (ioPipe[1]);
 
+	// setup stderr for rest of exec try.
+	childError = fdopen(2, "w");
+
 	close(tracePipe[0]);
-	if (dup2(tracePipe[1], 3) != 3)
-	  {
-	    fprintf (stderr, "dup2 failed\n");
-	    abort();
-	  }
+	if (dup2(tracePipe[1], 3) != 3) {
+	    fprintf(childError, "dup2 failed\n");
+	    fflush(childError);
+	    _exit(-1);
+	}
 
 	/* close if higher */
 	if (tracePipe[1] > 3) close(tracePipe[1]);
+
+	/* see if I/O needs to be redirected */
+	if (inputFile) {
+	    fd = open(inputFile, O_RDONLY, 0);
+	    if (fd < 0) {
+		fprintf(childError, "stdin open of %s failed\n", inputFile);
+		fflush(childError);
+		_exit(-1);
+	    } else {
+		dup2(fd, 0);
+		close(fd);
+	    }
+	}
+
+	if (outputFile) {
+	    fd = open(outputFile, O_WRONLY|O_CREAT, 0);
+	    if (fd < 0) {
+		fprintf(childError, "stdout open of %s failed\n", inputFile);
+		fflush(childError);
+		_exit(-1);
+	    } else {
+		dup2(fd, 1);
+		close(fd);
+	    }
+	}
 
 	/* indicate our desire to be trace */
 	errno = 0;

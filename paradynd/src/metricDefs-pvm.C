@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.7 1994/05/31 18:06:25 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.8 1994/06/27 18:57:02 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-pvm.C,v $
- * Revision 1.7  1994/05/31 18:06:25  markc
+ * Revision 1.8  1994/06/27 18:57:02  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.7  1994/05/31  18:06:25  markc
  * Reordered predicate definitions.  Procedure preds must appear before sync object
  * preds to enable conditions to be tested in the correct order.  Now, the condition
  * variable that is set in a focus procedure is used as the trigger for a sync
@@ -92,9 +97,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "metric.h"
 #include "ast.h"
 #include "rtinst/h/trace.h"
-
-extern metricDefinitionNode *pauseTimeNode;
-
 
 AstNode *defaultProcedurePredicate(metricDefinitionNode *mn, char *funcName,
     AstNode *pred)
@@ -422,13 +424,6 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
     return(new AstNode(DataValue, data));
 }
 
-//
-// place holder for pause time metric.
-//
-void createPauseTime(metricDefinitionNode *mn, AstNode *trigger)
-{
-}
-
 void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)
 {
     dataReqNode *dataPtr;
@@ -671,38 +666,35 @@ resourcePredicate globalOnlyPredicates[] = {
 };
 
 struct _metricRec DYNINSTallMetrics[] = {
-    { { "active_processes", SampledFunction, "Processes" },
+    { { "active_processes", averageFunction, "Processes" },
       { (createMetricFunc) createActiveProcesses, defaultPredicates },
     },
-    { { "cpu", EventCounter, "# CPUs" },
+    { { "cpu", sumFunction, "# CPUs" },
       { (createMetricFunc) createCPUTime, cpuTimePredicates },
     },
-    { { "exec_time", EventCounter, "%Time" },
+    { { "exec_time", sumFunction, "%Time" },
       { (createMetricFunc) createExecTime, wallTimePredicates },
     },
-    { { "procedure_calls", EventCounter, "Calls/sec" },
+    { { "procedure_calls", sumFunction, "Calls/sec" },
       { (createMetricFunc) createProcCalls, procCallsPredicates },
     },
-    { { "msgs", EventCounter, "Ops/sec" },
+    { { "msgs", sumFunction, "Ops/sec" },
       { (createMetricFunc) createMsgs, defaultPredicates },
     },
-    { { "msg_bytes", EventCounter, "Bytes/Sec" },
+    { { "msg_bytes", sumFunction, "Bytes/Sec" },
       { (createMetricFunc) createMsgBytesTotal, defaultPredicates },
     },
-    { { "msg_bytes_sent", EventCounter, "Bytes/Sec" },
+    { { "msg_bytes_sent", sumFunction, "Bytes/Sec" },
       { (createMetricFunc) createMsgBytesSent, defaultPredicates },
     },
-    { { "msg_bytes_recv", EventCounter, "Bytes/Sec" },
+    { { "msg_bytes_recv", sumFunction, "Bytes/Sec" },
       { (createMetricFunc) createMsgBytesRecv, defaultPredicates },
     },
-    { { "sync_ops", EventCounter, "Ops/sec" },
+    { { "sync_ops", sumFunction, "Ops/sec" },
       { (createMetricFunc) createSyncOps, msgPredicates },
     },
-    { { "sync_wait", EventCounter, "# Waiting" },
+    { { "sync_wait", sumFunction, "# Waiting" },
       { (createMetricFunc) createSyncWait, msgPredicates },
-    },
-    { { "pause_time", SampledFunction, "# Paused" },
-      { (createMetricFunc) createPauseTime, globalOnlyPredicates },
     },
 };
 

@@ -1,7 +1,12 @@
 
 /*
  * $Log: debugger.C,v $
- * Revision 1.3  1994/06/22 03:46:30  markc
+ * Revision 1.4  1994/06/27 18:56:40  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.3  1994/06/22  03:46:30  markc
  * Removed compiler warnings.
  *
  */
@@ -27,6 +32,7 @@
 #include "instP.h"
 #include "dyninst.h"
 #include "dyninstP.h"
+#include "util.h"
 
 process *defaultProcess;
 
@@ -45,7 +51,8 @@ void changeDefaultProcess(int pid)
 
     nProc = findProcess(pid);
     if (!nProc) {
-	printf("unable to find process %d\n", pid);
+	sprintf(errorLine, "unable to find process %d\n", pid);
+	logLine(errorLine);
     } else {
 	defaultProcess = nProc;
     }
@@ -59,13 +66,15 @@ void changeDefaultThread(int tid)
     if (processList.count()) {
 	basePid = (*processList)->pid;
     } else {
-	fprintf(stderr, "no process defined to take thread of\n");
+	sprintf(errorLine, "no process defined to take thread of\n");
+	logLine(errorLine);
 	return;
     }
 
     nProc = findProcess(tid*MAXPID+basePid);
     if (!nProc) {
-	printf("unable to find thread %d\n", tid);
+	sprintf(errorLine, "unable to find thread %d\n", tid);
+	logLine(errorLine);
     } else {
 	defaultProcess = nProc;
     }
@@ -92,7 +101,8 @@ void dumpProcessImage(process *proc, Boolean stopped)
     struct stat statBuf;
 
     if (proc->pid > MAXPID) {
-	printf("only able to dump for UNIX processes now\n");
+	sprintf(errorLine, "only able to dump for UNIX processes now\n");
+	logLine(errorLine);
 	return;
     }
 
@@ -115,7 +125,8 @@ void dumpProcessImage(process *proc, Boolean stopped)
     }
     length = statBuf.st_size;
     sprintf(outFile, "%s.real", proc->symbols->file);
-    printf("saving program to %s\n", outFile);
+    sprintf(errorLine, "saving program to %s\n", outFile);
+    logLine(errorLine);
 
     ofd = open(outFile, O_WRONLY|O_CREAT, 0777);
     if (ofd < 0) {
@@ -166,7 +177,8 @@ void dumpProcessImage(process *proc, Boolean stopped)
         total += rd;
     }
     if (total != length) {
-        printf("tried to write %d bytes, only %d written\n", length, total);
+        sprintf(errorLine, "tried to write %d bytes, only %d written\n", length, total);
+	logLine(errorLine);
     }
 
     close(ofd);

@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.9 1994/06/22 01:43:13 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.10 1994/06/27 18:56:37 hollings Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.9  1994/06/22 01:43:13  markc
+ * Revision 1.10  1994/06/27 18:56:37  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.9  1994/06/22  01:43:13  markc
  * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
  * reference to proc->status to use proc->heap->status.
  *
@@ -245,8 +250,9 @@ Boolean detachProcess(int pid, Boolean paused)
 	    PCptrace(PTRACE_DETACH, *curr, (int*) 1, SIGCONT, NULL);
 	    if (paused) {
 		(void) kill((*curr)->pid, SIGSTOP);
-		fprintf(stderr, "deatching process %d leaving it paused\n", 
+		sprintf(errorLine, "deatching process %d leaving it paused\n", 
 		    (*curr)->pid);
+		logLine(errorLine);
 	    }
 	}
     }
@@ -288,7 +294,8 @@ Boolean markApplicationPaused()
     startPause = tv.tv_sec;
     startPause *= MILLION;
     startPause += tv.tv_usec;
-    printf("paused at %f\n", startPause / 1000000.0);
+    // sprintf(errorLine, "paused at %f\n", startPause / 1000000.0);
+    // logLine(errorLine);
     
     return(True);
 }
@@ -321,7 +328,8 @@ Boolean continueAllProcesses()
     }
 
     elapsedPauseTime += (endPause - startPause);
-    printf("continued at %f\n", endPause / 1000000.0);
+    // sprintf(errorLine, "continued at %f\n", endPause / 1000000.0);
+    // logLine(errorLine);
 
     return(False);
 }

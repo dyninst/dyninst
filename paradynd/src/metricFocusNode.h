@@ -7,7 +7,12 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.5  1994/06/02 23:27:58  markc
+ * Revision 1.6  1994/06/27 18:56:58  hollings
+ * removed printfs.  Now use logLine so it works in the remote case.
+ * added internalMetric class.
+ * added extra paramter to metric info for aggregation.
+ *
+ * Revision 1.5  1994/06/02  23:27:58  markc
  * Replaced references to igen generated class to a new class derived from
  * this class to implement error handling for igen code.
  *
@@ -52,6 +57,9 @@
  *
  *
  */
+
+#ifndef METRIC_H
+#define METRIC_H
 
 #include "comm.h"
 #include "util/h/aggregateSample.h"
@@ -153,6 +161,7 @@ class metricDefinitionNode {
 	int id;				// unique id for this one 
 	metric met;			// what type of metric
 	resourceList resList;		// what resource list is this for.
+	float originalCost;
 
 	// is this a final value or a component of a larger metric.
 	Boolean inform;
@@ -211,3 +220,5 @@ struct _metricRec {
 };
 
 extern List<metricDefinitionNode*> allMIs;
+
+#endif
