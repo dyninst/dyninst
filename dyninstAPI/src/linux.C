@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.12 1999/05/21 17:33:11 wylie Exp $
+// $Id: linux.C,v 1.13 1999/05/25 22:33:45 nash Exp $
 
 #include <fstream.h>
 
@@ -1436,15 +1436,21 @@ time64 process::getInferiorProcessCPUtime() /* const */ {
 
 bool process::loopUntilStopped() {
   int flags = WUNTRACED | WNOHANG;
+  bool stopSig = false;
+  int count = 0;
   /* make sure the process is stopped in the eyes of ptrace */
-  stop_();
 
   while (true) {
     int waitStatus;
     int ret = P_waitpid( getPid(), &waitStatus, flags );
 	if( ret == 0 ) {
-	  if( !isRunning_() )
-	    break;
+	  if( !stopSig )
+	  {
+		  stopSig = true;
+		  stop_();
+	  }
+	  else if( ++count > 10 && !isRunning_() )
+		  break;
 	} else if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
       // the child is gone.
       handleProcessExit(this, WEXITSTATUS(waitStatus));
