@@ -134,10 +134,10 @@ void processAppIO(process *curr)
 
 char errorLine[1024];
 
-void logLine(const char *line)
-{
+void logLine(const char *line) {
     static char fullLine[1024];
 
+    assert(strlen(fullLine) + strlen(line) < 1024) ;
     strcat(fullLine, line);
        // Ack!  Possible overflow!  Possible bug!
        // If you put a '\n' at the end of every string passed to a call
