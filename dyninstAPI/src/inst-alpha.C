@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.24 2000/03/14 00:49:21 hollings Exp $
+// $Id: inst-alpha.C,v 1.25 2000/06/06 00:37:13 buck Exp $
 
 #include "util/h/headers.h"
 
@@ -702,6 +702,7 @@ void installBaseTramp(instPoint *location,
   Address dyn_restore = fun_restore->addr() + baseAddr;
 
   // Pre branch
+  instruction *skipPreBranch = &code[words];
   tramp.skipPreInsOffset = words*4;
   words += generate_nop(code+words);
 
@@ -759,6 +760,11 @@ void installBaseTramp(instPoint *location,
       pointAddr += baseAddress;
   }
 
+  // Post branch
+  instruction *skipPostBranch = &code[words];
+  tramp.skipPostInsOffset = words*4;
+  words += generate_nop(code+words);
+
   // decrement stack by 16
   tramp.savePostInsOffset = words*4;
   words += generate_lda(code+words, REG_SP, REG_SP, -16, true);
@@ -806,7 +812,7 @@ void installBaseTramp(instPoint *location,
   // slot for return (branch) instruction
   // actual code after we know its locations
   // branchFromAddr offset from base until we know base of tramp 
-  Address branchFromAddr = (words * 4);		
+  tramp.returnInsOffset = (words * 4);		
   instruction *branchBack = &code[words];
   words += 1;
 
@@ -822,7 +828,9 @@ void installBaseTramp(instPoint *location,
   // branchFromAddr = address of the branch insn that returns to user code
   // branchFromAddr + 4 is updated pc when branch instruction executes
   // we assumed this one was instruction long before
-  branchFromAddr += tramp.baseAddr;	// update now that we know base
+
+  // update now that we know base
+  Address branchFromAddr = tramp.returnInsOffset + tramp.baseAddr;
 
   int count = generate_branch(branchBack, REG_ZERO,
 			   (pointAddr+4) - (branchFromAddr+4), OP_BR);
@@ -831,6 +839,15 @@ void installBaseTramp(instPoint *location,
   // Do actual relocation once we know the base address of the tramp
   relocateInstruction(reloc, pointAddr, 
        tramp.baseAddr + tramp.emulateInsOffset);
+
+  // Generate skip pre and post instruction branches
+  generateBranchInsn(skipPreBranch,
+		     tramp.emulateInsOffset - (tramp.skipPreInsOffset+4));
+  generateBranchInsn(skipPostBranch,
+		     tramp.returnInsOffset - (tramp.skipPostInsOffset+4));
+
+  tramp.prevInstru = false;
+  tramp.postInstru = false;
 
   proc->writeDataSpace((caddr_t)tramp.baseAddr, tramp.size, (caddr_t) code);
   delete (code);
@@ -1657,6 +1674,18 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 
     // TODO cast
     (inst->proc)->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
+
+    // overwrite branches for skipping instrumentation
+    trampTemplate *base = inst->baseInstance;
+    if (inst->when == callPreInsn && base->prevInstru == false) {
+	base->cost += base->prevBaseCost;
+	base->prevInstru = true;
+	generateNoOp(inst->proc, base->baseAddr + base->skipPreInsOffset);
+    } else if (inst->when == callPostInsn && base->postInstru == false) {
+	base->cost += base->postBaseCost;
+	base->postInstru = true;
+	generateNoOp(inst->proc, base->baseAddr + base->skipPostInsOffset);
+    }
 }
 
 
