@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.58 2002/06/26 21:14:31 schendel Exp $
+// $Id: BPatch_thread.C,v 1.59 2002/08/09 23:32:38 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1172,9 +1172,9 @@ bool BPatch_thread::loadLibrary(char *libname, bool reload)
     defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
     defined(alpha_dec_osf4_0) || defined(rs6000_ibm_aix4_1) ||\
     defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-    if (!statusIsStopped())
-	return false;
-
+  if (!statusIsStopped()) {
+    return false;
+  }
     BPatch_Vector<BPatch_snippet *> args;
 
     BPatch_constExpr nameArg(libname);
@@ -1188,9 +1188,18 @@ bool BPatch_thread::loadLibrary(char *libname, bool reload)
 
     BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
 
-    if (!oneTimeCodeInternal(call_dlopen))
-	return false;
-
+    if (!oneTimeCodeInternal(call_dlopen)) {
+      // dlopen FAILED
+      // find the (global var) error string in the RT Lib and send it to the
+      // error reporting mechanism
+      BPatch_variableExpr *dlerror_str_var = image->findVariable("gLoadLibraryErrorString");
+      assert(NULL != dlerror_str_var);
+      
+      char dlerror_str[256];
+      dlerror_str_var->readValue((void *)dlerror_str, 256);
+      BPatch_reportError(BPatchSerious, 124, dlerror_str);
+      return false;
+    }
 
 #ifdef BPATCH_LIBRARY //ccw 14 may 2002
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTirix.c,v 1.6 2000/03/23 01:25:57 wylie Exp $
+ * $Id: RTirix.c,v 1.7 2002/08/09 23:32:38 jaw Exp $
  * RTirix.c: mutatee-side library function specific to IRIX
  ************************************************************************/
 
@@ -55,7 +55,7 @@
 #include <sys/procfs.h>               /* procfs */
 #include <sys/mman.h>                 /* mmap() */
 #include <dlfcn.h>                    /* dlopen() */
-
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 /************************************************************************
  * EXPORTED SYMBOLS:
@@ -70,9 +70,26 @@ void DYNINSTos_init(int calledByFork, int calledByAttach)
 {
 }
 
-void *DYNINSTloadLibrary(char *libname)
+char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
+int DYNINSTloadLibrary(char *libname)
 {
-  void *ret = dlopen(libname, RTLD_NOW | RTLD_GLOBAL);
-  return ret;
-}
+  void *res;
+  char *err_str;
+  gLoadLibraryErrorString[0]='\0';
+  
+  if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
+    // An error has occurred
+    perror( "DYNINSTloadLibrary -- dlopen" );
+    printf("%s[%d]:  DYNINSTloadLibrary -- dlopen\n", __FILE__, __LINE__);
+    fflush(NULL);
 
+    if (NULL != (err_str = dlerror()))
+      strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
+    else 
+      sprintf(gLoadLibraryErrorString,"unknown error with dlopen");
+    
+    //fprintf(stderr, "%s[%d]: %s\n",__FILE__,__LINE__,gLoadLibraryErrorString);
+    return 0;  
+  } else {
+    return 1;
+  }

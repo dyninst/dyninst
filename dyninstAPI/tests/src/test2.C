@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.48 2002/03/12 18:40:05 jaw Exp $
+// $Id: test2.C,v 1.49 2002/08/09 23:32:38 jaw Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -41,7 +41,7 @@
 #endif
 
 BPatch_thread *mutatorMAIN(char *path);
-
+void errorFunc(BPatchErrorLevel level, int num, const char **params);
 bool useAttach = false;
 int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
@@ -50,7 +50,7 @@ bool gotError = false;
 bool forceRelocation = false;
 
 int mutateeCplusplus = 0;
-const unsigned int MAX_TEST = 13;
+const unsigned int MAX_TEST = 14;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
@@ -356,12 +356,12 @@ void test8b(BPatch_thread *thread)
 void test9(BPatch_thread *thread)
 {
 #if !defined(sparc_sun_sunos4_1_3) \
- && !defined(sparc_sun_solaris2_4) \
- && !defined(mips_sgi_irix6_4)
+ && !defined(sparc_sun_solaris2_4) 
     printf("Skipping test #9 (dump core but do not terminate)\n");
     printf("    BPatch_thread::dumpCore not implemented on this platform\n");
     passedTest[9] = true;
 #else
+
     // dump core, but do not terminate.
     // this doesn't seem to do anything - jkh 7/12/97
     if (access("mycore", F_OK) == 0) {
@@ -412,6 +412,13 @@ void test10(BPatch_thread *thread)
     printf("    BPatch_thread::dumpImage not implemented on this platform\n");
     passedTest[10] = true;
 #else
+
+  if (thread->isTerminated()) {
+    printf( "**Failed** test #10 (dump image)\n" );
+    printf("%s[%d]: mutatee in unexpected (terminated) state\n", __FILE__, __LINE__);
+    exit(1);
+  }
+
     // dump image
     if (access("myimage", F_OK) == 0) {
 	dprintf("File \"myimage\" exists.  Deleting it.\n");
@@ -443,8 +450,9 @@ void test10(BPatch_thread *thread)
 //	This function tests the getDisplacedInstructions instructions methods.
 //	Currently this tests is only enabled on AIX platforms.
 //
-void test11(BPatch_thread * /*appThread*/, BPatch_image *appImage)
+void test11(BPatch_thread * appThread, BPatch_image *appImage)
 {
+
     BPatch_Vector<BPatch_point*> *points =
 	appImage->findProcedurePoint("func11_1", BPatch_entry);
     if (points == NULL) {
@@ -484,9 +492,9 @@ void test11(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 
 void test12(BPatch_thread *appThread, BPatch_image *appImage)
 {
-
-    BPatch_Vector<BPatch_point*> *points =
-	appImage->findProcedurePoint("func12_1", BPatch_entry);
+   
+  BPatch_Vector<BPatch_point*> *points =
+    appImage->findProcedurePoint("func12_1", BPatch_entry);
     
     if (!points) {
 	printf("**Failed** test #12 (BPatch_point query funcs)\n");
@@ -503,17 +511,73 @@ void test12(BPatch_thread *appThread, BPatch_image *appImage)
     passedTest[12] = true;
 }
 
+char loadLibErrStr[256] = "no error";
+
+void llErrorFunc(BPatchErrorLevel level, int num, const char **params)
+{
+
+  char line[256];
+  const char *msg = bpatch->getEnglishErrorString(num);
+  bpatch->formatErrorString(line, sizeof(line), msg, params);
+
+  if (num == 124) {
+    strcpy(loadLibErrStr, line);
+  }
+  else {
+    printf("Unexpected Error #%d (level %d): %s\n", num, level, line);
+  }
+
+}
+
+// Start Test Case #13 - (loadLibrary failure test)
+void test13( BPatch_thread * appThread, BPatch_image * appImage )
+{
+
+#if !defined(i386_unknown_nt4_0) && !defined(alpha_dec_osf4_0)
+
+  if (appThread->isTerminated()) {
+    printf( "**Failed** test #13 (dlopen failure reporting test)\n" );
+    printf("%s[%d]: mutatee in unexpected (terminated) state\n", __FILE__, __LINE__);
+    exit(1);
+  }
+
+  bpatch->registerErrorCallback(llErrorFunc);
+  
+  if (appThread->loadLibrary("adskfoieweadsf")) {
+    fprintf(stderr, "**Failed** test #13 (failure reporting for loadLibrary)\n");
+    exit(1);
+  }
+  else {
+    if (!strcmp(loadLibErrStr, "no error")) {
+      printf( "**Failed** test #13 (dlopen failure reporting test)\n" );
+      printf( "\tno error string produced\n" );
+      passedTest[13] = false;
+    }
+    else {
+      passedTest[13] = true;
+      printf( "Passed test #13 (dlopen failure test: %s)\n", loadLibErrStr);
+    }
+  }
+  bpatch->registerErrorCallback(errorFunc);
+#else
+  passedTest[13] = true;
+  printf( "Skipped test #13 (dlopen failure reporting test)\n" );
+  printf( "\t- not implemented on this platform\n" );
+#endif
+
+}
+
 //
-// Test 13 - Look through the thread list and make sure the thread has
+// Test 14 - Look through the thread list and make sure the thread has
 //    been deleted as required.
 //
-void test13(BPatch_thread *thread)
+void test14(BPatch_thread *thread)
 {
     bool failed_this = false;
     BPatch_Vector<BPatch_thread *> *threads = bpatch->getThreads();
     for (unsigned int i=0; i < threads->size(); i++) {
 	if ((*threads)[i] == thread) {
-	    printf("**Failed** test #13 (delete thread)\n"); 
+	    printf("**Failed** test #14 (delete thread)\n"); 
 	    printf("    thread %d was deleted, but getThreads found it\n",
 		thread->getPid());
 	    failed_this = true;
@@ -521,8 +585,8 @@ void test13(BPatch_thread *thread)
     }
 
     if (!failed_this) {
-	printf("Passed test #13 (delete thread)\n");
-	passedTest[13] = true;
+	printf("Passed test #14 (delete thread)\n");
+	passedTest[14] = true;
     }
 }
 
@@ -647,7 +711,7 @@ main(unsigned int argc, char *argv[])
                     if ((testId > 0) && (testId <= MAX_TEST)) {
                         runTest[testId] = false;
                     } else {
-                        printf("invalid test %d requested\n", testId);
+                        printf("%s[%d]: invalid test %d requested\n", __FILE__, __LINE__, testId);
                         exit(-1);
                     }
                 } else {
@@ -665,7 +729,7 @@ main(unsigned int argc, char *argv[])
                     if ((testId > 0) && (testId <= MAX_TEST)) {
                         runTest[testId] = true;
                     } else {
-                        printf("invalid test %d requested\n", testId);
+                        printf("%s[%d]: invalid test %d requested\n", __FILE__, __LINE__, testId);
                         exit(-1);
                     }
                 } else {
@@ -784,6 +848,7 @@ main(unsigned int argc, char *argv[])
     if (runTest[10]) test10(ret);
     if (runTest[11]) test11(ret, img);
     if (runTest[12]) test12(ret, img);
+    if (runTest[13]) test13(ret, img);     
 
     /**********************************************************************
      * Kill process and make sure it goes away
@@ -829,7 +894,7 @@ main(unsigned int argc, char *argv[])
 
     delete (ret);
 
-    if (runTest[13]) test13(ret);
+    if (runTest[14]) test14(ret);
 
     delete (bpatch);
 

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.13 2002/06/26 21:15:06 schendel Exp $
+ * $Id: RTsolaris.c,v 1.14 2002/08/09 23:32:38 jaw Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -234,6 +234,29 @@ void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap) {
 
 #endif
 
+char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
+int DYNINSTloadLibrary(char *libname)
+{
+  void *res;
+  char *err_str;
+  gLoadLibraryErrorString[0]='\0';
+  
+  if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
+    // An error has occurred
+    perror( "DYNINSTloadLibrary -- dlopen" );
+    
+    if (NULL != (err_str = dlerror()))
+      strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
+    else 
+      sprintf(gLoadLibraryErrorString,"unknown error with dlopen");
+    
+    //fprintf(stderr, "%s[%d]: %s\n",__FILE__,__LINE__,gLoadLibraryErrorString);
+    return 0;  
+  } else
+    return 1;
+}
+
+/*
 int DYNINSTloadLibrary(char *libname)
 {
     if (dlopen(libname, RTLD_NOW | RTLD_GLOBAL) != NULL)
@@ -241,7 +264,7 @@ int DYNINSTloadLibrary(char *libname)
     else
 	return 0;
 }
-
+*/
 
 
 /*

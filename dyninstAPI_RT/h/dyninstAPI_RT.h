@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.15 2002/07/22 20:20:48 rchen Exp $
+ * $Id: dyninstAPI_RT.h,v 1.16 2002/08/09 23:32:38 jaw Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -126,5 +126,7 @@ extern int DYNINSTdebugPrintRT; /* control run-time lib debug/trace prints */
 #endif
 
 #endif /* !defined(__ASSEMBLER__) */
+
+#define ERROR_STRING_LENGTH 256
 
 #endif /* _DYNINSTAPI_RT_H */

@@ -87,8 +87,8 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
         bpatch->formatErrorString(line, sizeof(line), msg, params);
         
         if (num != expectError) {
-		if(num != 112)
-    		printf("Error #%d (level %d): %s\n", num, level, line);
+	  if(num != 112)
+	    printf("Error #%d (level %d): %s\n", num, level, line);
         
             // We consider some errors fatal.
             if (num == 101) {
@@ -3579,6 +3579,7 @@ void mutatorTest35( BPatch_thread * appThread, BPatch_image * appImage )
 #endif   
 }    
 
+
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
@@ -3743,8 +3744,8 @@ int mutatorMAIN(char *pathname, bool useAttach)
     if( runTest[ 34 ] ) mutatorTest34( appThread, appImage );
 
     if( runTest[ 35 ] ) mutatorTest35( appThread, appImage );
-
-/* the following bit of code saves the mutatee in its mutated state to the
+    
+    /* the following bit of code saves the mutatee in its mutated state to the
 	file "originalmutateename"_mutated
 
 	test cases 12, 15, 19 fail on the saved mutatee because they 

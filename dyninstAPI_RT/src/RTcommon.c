@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.27 2002/07/07 00:37:01 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.28 2002/08/09 23:32:38 jaw Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -55,7 +55,6 @@
 #endif
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
-
 
 extern void DYNINSTbreakPoint();
 extern void DYNINSTos_init(int calledByFork, int calledByAttach);

@@ -48,7 +48,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <dlfcn.h>                    /* dlopen() */
-
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 /* The alpha does not have a divide instruction */
 /* Division is emulated in software */
@@ -57,11 +57,26 @@ int divide(int a,int b)
   return (a/b);
 }
 
+char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 int DYNINSTloadLibrary(char *libname)
 {
-  /* TODO: return dlopen() handle? */
-  void *ret = dlopen(libname, RTLD_NOW);
-  return (ret != NULL) ? (1) : (0);
+  void *res;
+  char *err_str;
+  gLoadLibraryErrorString[0]='\0';
+  
+  if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
+    // An error has occurred
+    perror( "DYNINSTloadLibrary -- dlopen" );
+    
+    if (NULL != (err_str = dlerror()))
+      strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
+    else 
+      sprintf(gLoadLibraryErrorString,"unknown error with dlopen");
+    
+    //fprintf(stderr, "%s[%d]: %s\n",__FILE__,__LINE__,gLoadLibraryErrorString);
+    return 0;  
+  } else
+    return 1;
 }
 
 void DYNINSTos_init(int calledByFork, int calledByAttach)

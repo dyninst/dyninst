@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.17 2002/07/23 15:28:06 rchen Exp $
+ * $Id: RTlinux.c,v 1.18 2002/08/09 23:32:38 jaw Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -353,41 +353,50 @@ void DYNINSTtrapHandler(int sig, struct sigcontext uap) {
 }
 #endif /* !ia64_unknown_linux2_4 */
 
+char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 int DYNINSTloadLibrary(char *libname)
 {
-    void *res;
-
-    res = dlopen( libname, RTLD_NOW | RTLD_GLOBAL );
-
-    if( res == NULL ) {
-	perror( "DYNINSTloadLibrary -- dlopen" );
-	return 0;  // An error has occurred
-    } else
-	return 1;
-
-    /*
-     * All of this is necessary because on linux, dlopen is not in libc, but
-     * in a separate library libdl.  Not all programs are linked with libdl,
-     * but libc does contain the underlying functions.  This is gross and
-     * may break with new versions of glibc.  It is based on glibc 2.0.6
-     */
-/*
+  void *res;
+  char *err_str;
+  gLoadLibraryErrorString[0]='\0';
+  
+  if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
+    // An error has occurred
+    perror( "DYNINSTloadLibrary -- dlopen" );
+    
+    if (NULL != (err_str = dlerror()))
+      strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
+    else 
+      sprintf(gLoadLibraryErrorString,"unknown error with dlopen");
+    
+    //fprintf(stderr, "%s[%d]: %s\n",__FILE__,__LINE__,gLoadLibraryErrorString);
+    return 0;  
+  } else
+    return 1;
+  
+  /*
+   * All of this is necessary because on linux, dlopen is not in libc, but
+   * in a separate library libdl.  Not all programs are linked with libdl,
+   * but libc does contain the underlying functions.  This is gross and
+   * may break with new versions of glibc.  It is based on glibc 2.0.6
+   */
+  /*
     struct link_map *new;
     char *errstr;
     int err;
     
     void doit (void) {
-	new = _dl_open( libname ?: "", RTLD_NOW | RTLD_GLOBAL );
+    new = _dl_open( libname ?: "", RTLD_NOW | RTLD_GLOBAL );
     }
-
+    
     err = _dl_catch_error( &errstr, doit );
     
     if( errstr == NULL )
-	return 1;
+    return 1;
     else {
-	fprintf( stderr, errstr );
-	free( errstr );
-	return 0;
+    fprintf( stderr, errstr );
+    free( errstr );
+    return 0;
     }
-*/
+  */
 }

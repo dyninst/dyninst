@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.52 2002/02/05 17:01:40 chadd Exp $
+# $Id: errorList.tcl,v 1.53 2002/08/09 23:32:39 jaw Exp $
 
 #
 # Error message format:
@@ -1102,10 +1102,18 @@ set pdError(123) {
 library into the correct place and may fail.}
 }
 
+set pdError(124) {
+{loadLibrary(): dlopen failed}
+{rtlibrary}
+{serious error}
+{The RPC call to DYNINSTloadLibrary in the runtime library failed because \
+dlopen failed.}
+}
+
 
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 123
+    return 124
 }

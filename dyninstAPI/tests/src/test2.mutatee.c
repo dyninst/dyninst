@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.30 2002/02/11 22:02:36 tlmiller Exp $ */
+/* $Id: test2.mutatee.c,v 1.31 2002/08/09 23:32:38 jaw Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -59,7 +59,7 @@ int debugPrint = 0;
 #define TRUE    1
 #define FALSE   0
 
-#define MAX_TEST 13
+#define MAX_TEST 14
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
 
@@ -227,7 +227,7 @@ int main(int iargc, char *argv[])
                         dprintf("selecting test %d\n", testId);
                         runTest[testId] = TRUE;
                     } else {
-                        printf("invalid test %d requested\n", testId);
+                        printf("%s[%d]: invalid test %d requested\n", __FILE__, __LINE__, testId);
                         exit(-1);
                     }
                 } else {

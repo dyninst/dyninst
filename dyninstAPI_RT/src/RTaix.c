@@ -45,7 +45,7 @@
 
 #include <dlfcn.h> /* dlopen constants */
 #include <stdio.h>
-
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 /************************************************************************
  * void DYNINSTos_init(void)
  *
@@ -57,16 +57,25 @@ DYNINSTos_init(int calledByFork, int calledByAttach)
 {
 }
 
+char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 int DYNINSTloadLibrary(char *libname)
 {
-    void *res = 1;
-
-    res = dlopen( libname, RTLD_NOW | RTLD_GLOBAL );
-
-    if( res == NULL ) {
-	perror( "DYNINSTloadLibrary -- dlopen" );
-	return 0;  /* An error has occurred */
-    } else
-	return 1;
-
+  void *res;
+  char *err_str;
+  gLoadLibraryErrorString[0]='\0';
+  
+  if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
+    // An error has occurred
+    perror( "DYNINSTloadLibrary -- dlopen" );
+    
+    if (NULL != (err_str = dlerror()))
+      strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
+    else 
+      sprintf(gLoadLibraryErrorString,"unknown error with dlopen");
+    
+    //fprintf(stderr, "%s[%d]: %s\n",__FILE__,__LINE__,gLoadLibraryErrorString);
+    return 0;  
+  } else
+    return 1;
 }
+
