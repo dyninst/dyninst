@@ -17,7 +17,12 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.18  1994/09/06 09:26:27  karavan
+ * Revision 1.19  1994/09/22 01:06:05  markc
+ * Added correct number of args to printf
+ * Changed malloc on line 179 "shortName = (char*) malloc(32) since more than
+ * 16 chars are needed.  This is a bug.
+ *
+ * Revision 1.18  1994/09/06  09:26:27  karavan
  * added back color-coded edges: added int edgeStyle to SearchHistoryNode
  * class and added estyle argument to constructor and findAndAddSHG
  *
@@ -131,7 +136,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.18 1994/09/06 09:26:27 karavan Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.19 1994/09/22 01:06:05 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -174,9 +179,9 @@ searchHistoryNode::searchHistoryNode(hypothesis *h, focus *f, timeInterval *t,
     beenTested = FALSE;
     nodeId = ++nextId;
     children = new(searchHistoryNodeList);
-    sprintf(tempName, "%s %s %s", h->name, f->getName(), t->getName());
+    sprintf(tempName, "%s %s %s", h->name, (char*)f->getName(), t->getName());
     name= shgNames.findAndAdd(tempName);
-    shortName = (char *) malloc(16);
+    shortName = (char *) malloc(32);
     sprintf(shortName, " %d ", nodeId);
     style = UNTESTEDNODESTYLE;
     suppressed = FALSE;
@@ -245,10 +250,10 @@ Boolean searchHistoryNode::print(int parent, FILE *fp)
 	omited = omited | (*curr)->print(nodeId, fp);
     }
     if (omited) {
-	fprintf(fp,"draw %d.st as Box color orange label\\n;\n",nodeId,nodeId);
-	fprintf(fp,"draw %d.end as Box color orange label\\n;\n",nodeId,nodeId);
-	fprintf(fp, "path %d %d.st;\n", parent);
-	fprintf(fp, "path %d %d.end;\n", parent);
+	fprintf(fp,"draw %d.st as Box color orange label %d\\n;\n",nodeId, nodeId);
+	fprintf(fp,"draw %d.end as Box color orange label %d\\n;\n",nodeId,nodeId);
+	fprintf(fp, "path %d %d.st;\n", parent, nodeId);
+	fprintf(fp, "path %d %d.end;\n", parent, nodeId);
     }
     return(False);
 }
