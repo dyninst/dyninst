@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2001/06/04 16:24:23 schendel Exp $
+# $Id: Makefile,v 1.2 2001/10/26 06:30:00 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -19,7 +19,7 @@ VPATH		+= ..
 CXXFLAGS	+= $(TCLFRIENDLYWARNINGS)
 TFLAGS		+= $(TCLFRIENDLYWARNINGS)
 CFLAGS		+= $(TCLFRIENDLYWARNINGS)
-SYSLIBS		= -lXpm -lw -lintl -lsocket -lnsl 
+SYSLIBS		= -lw -lintl -lsocket -lnsl 
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
