@@ -40,13 +40,14 @@
  */
 
 /*
- * $Id: PCfilter.C,v 1.35 2000/06/08 15:27:17 pcroth Exp $    
+ * $Id: PCfilter.C,v 1.36 2000/06/09 14:49:19 paradyn Exp $    
  */
 
 #include "PCfilter.h"
 #include "PCintern.h"
 #include "PCmetricInst.h"
 #include "dataManager.thread.h"
+#include <math.h> // fabs
 
 #ifdef MYPCDEBUG
 #include <sys/time.h>
