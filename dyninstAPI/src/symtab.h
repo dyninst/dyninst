@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.67 1999/07/26 21:50:48 cain Exp $
+// $Id: symtab.h,v 1.68 1999/08/09 05:50:31 csserra Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -335,15 +335,22 @@ class pd_Function : public function_base {
     Address findJumpTarget(instPoint *p, instruction i);
     Address findIndirectJumpTarget(instPoint *p, instruction i);
     void    setVectorIds();
-    // stack frame layout
-    int     frameSize; // stack frame size
-    Address saveInsn;  // stack frame "save" insn (addiu $sp,$sp,-XX)
+
+    // stack frame info
+    Address findStackFrame(const image *owner);
+    // register saves into frame
     struct regSave_t {
-      int     slot;    // $sp (stack frame) offset of saved register
-      bool    dword;   // is register saved as 64-bit doubleword?
-      Address insn;    // offset of insn that saves this register
-    } regSaves[NUM_REGS];
-    Address findStackFrame(const image *owner); // populate above fields
+      int           slot;       // stack frame ($fp) offset of saved register
+      bool          dword;      // is register saved as 64-bit doubleword?
+      Address       insn;       // offset of insn that saves this register
+    } reg_saves[NUM_REGS];
+    // $sp-style frame (common)
+    Address         sp_mod;     // offset of insn that modifies $sp
+    vector<Address> sp_ret;     // offset of insn that restores $sp
+    int             frame_size; // stack frame size ($sp frame only)
+    // $fp-style frame (rare)
+    Address         fp_mod;     // offset of insn that modifies $fp
+    bool            uses_fp;    // does this fn use $s8 as a frame pointer?
 #endif
 
 #ifndef BPATCH_LIBRARY

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.4 1999/06/10 19:14:35 hollings Exp $
+// $Id: osfDL.C,v 1.5 1999/08/09 05:50:26 csserra Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -205,10 +205,10 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc, 
     vector<shared_object *> **shObjects, u_int &changeType, bool & /* err */)
 {
-  Address fp, pc; 
+  Address pc;
 
   if (dlopenRetAddr == 0) return false;
-  proc->getActiveFrame(&fp, &pc);
+  pc = Frame(proc).getPC();
 
   // dumpMap(proc->getProcFileDescriptor());
   if (pc == dlopenRetAddr) {
@@ -312,11 +312,11 @@ void dynamic_linking::setMappingHooks(process *proc)
 
 bool process::trapDueToDyninstLib()
 {
-  Address pc, fp;
+  Address pc;
 
   if (dyninstlib_brk_addr == 0) return false;
 
-  getActiveFrame(&fp, &pc);
+  pc = Frame(this).getPC();
 
   // printf("testing for trap at entry to DyninstLib, current pc = 0x%lx\n",pc);
   // printf("    breakpoint addr = 0x%lx\n", dyninstlib_brk_addr);
@@ -466,9 +466,6 @@ void process::insertTrapAtEntryPointOfMain()
   main_brk_addr = findInternalAddress("main", false, err);
   assert(main_brk_addr);
 
-  Address pc, fp; 
-  getActiveFrame(&fp, &pc);
-
   // dumpMap(proc_fd);
 
   readDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer, true);
@@ -483,11 +480,11 @@ void process::insertTrapAtEntryPointOfMain()
 
 bool process::trapAtEntryPointOfMain()
 {
-  Address pc, fp; 
+  Address pc;
 
   if (main_brk_addr == 0) return false;
 
-  getActiveFrame(&fp, &pc);
+  pc = Frame(this).getPC();
 
   // printf("testing for trap at enttry to main, current pc = %lx\n", pc);
 

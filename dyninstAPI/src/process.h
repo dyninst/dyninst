@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.115 1999/07/28 19:21:01 nash Exp $
+/* $Id: process.h,v 1.116 1999/08/09 05:50:29 csserra Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -220,7 +220,7 @@ public:
 static inline unsigned ipHash(const instPoint * const &ip)
 {
   // assume all addresses are 4-byte aligned
-  unsigned result = (unsigned)ip;
+  unsigned result = (unsigned)(Address)ip;
   result >>= 2;
   return result;
   // how about %'ing by a huge prime number?  Nah, x % y == x when x < y 
@@ -229,13 +229,71 @@ static inline unsigned ipHash(const instPoint * const &ip)
 
 
 static inline unsigned instInstanceHash(instInstance * const &inst) {
-   unsigned result = (unsigned)inst;
+   unsigned result = (unsigned)(Address)inst;
    result >>= 2;
    return result; // how about %'ing by a huge prime number?
 //  return ((unsigned)inst);
 }
 
-class Frame;
+
+class Frame {
+  private:
+    bool      uppermost_;
+    Address   pc_;
+    Address   fp_;
+    Address   sp_;     // NOTE: this is not always populated
+    // the following data members are used only by "MT_THREAD" code
+    int       lwp_id_; // kernel-level thread (LWP)
+    pdThread *thread_; // user-level thread
+
+  public:
+
+    /* platform-independent methods */
+
+    // process ctor (toplevel frame)
+    Frame(process *);
+    // default ctor (zero frame)
+    Frame() : uppermost_(false), pc_(0), fp_(0), 
+      lwp_id_(0), thread_(NULL) 
+      {}
+
+    Address getPC() const { return pc_; }
+    Address getFP() const { return fp_; }
+
+    // check for zero frame
+    bool isLastFrame() const { 
+      if (pc_ == 0) return true;
+      if (fp_ == 0) return true;
+      return false;
+    }
+
+    // get stack frame of caller
+    Frame getCallerFrame(process *proc) const;
+
+
+    /* platform-dependent methods */
+
+#if defined(MT_THREAD)
+    // thread-specific ctors (see solaris.C)
+    Frame(pdThread *);
+    Frame(int lwpid, Address fp, Address pc, bool uppermost)
+      : uppermost_(uppermost), pc_(pc), fp_(fp), 
+      lwp_id_(lwp_id), thread(NULL)
+      {}
+#endif
+
+ private:
+
+    // platform-dependent component of Frame::Frame(process *)
+    void getActiveFrame(process *);
+
+    // platform-dependent components of getCallerFrame()
+    Frame getCallerFrameNormal(process *) const;
+#if defined(MT_THREAD)
+    Frame getCallerFrameLWP(process *) const;
+    Frame getCallerFrameThread(process *) const;
+#endif
+};
 
 
 // inferior RPC callback function type
@@ -297,13 +355,6 @@ class process {
     u_int sig_size, 
     vector<Address>&pcs,
     vector<Address>&fps);
-#endif
-
-  // 
-  // getActiveFrame and readDataFromFrame are platform dependant
-  //
-  bool getActiveFrame(Address *fp, Address *pc); 
-#if defined(MT_THREAD)
   bool getLWPIDs(int **IDs_p); //caller should do a "delete [] *IDs_p"
   bool getLWPFrame(int lwp_id, Address *fp, Address *pc);
   bool readDataFromLWPFrame(int lwp_id, 
@@ -318,9 +369,6 @@ class process {
 			 bool uppermost=false);
   bool getActiveFrame(Address *fp, Address *pc, int *lwpid);
 #endif
-  bool readDataFromFrame(Address currentFP, Address *previousFP, Address *rtn, 
-			 bool uppermost=false);
-
 
 #ifdef SHM_SAMPLING
   time64 getInferiorProcessCPUtime(int lwp_id=-1);
@@ -450,6 +498,7 @@ class process {
   bool continueProc();
 #ifdef BPATCH_LIBRARY
   bool terminateProc() { return terminateProc_(); }
+  ~process() { detach(false); }
 #endif
   bool pause();
 
@@ -755,13 +804,6 @@ class process {
   // for this function
   function_base *findFunctionIn(Address adr);
 
-  // findFunctionInFuncsAndTramps: returns the function which contains
-  // this address.  This checks the a.out image and shared object images
-  // for this function, as well as checking base- and mini-tramps which 
-  // correspond to this function.  If the address was in a tramp, the 
-  // trampTemplate is returned as well.
-  function_base *findAddressInFuncsAndTramps(Address, trampTemplate *&);
-
   // Correct a vector of PCs for the cases where any PC points to an
   // address in one of our tramps.  The PC should point to the address
   // to which the tramp returns
@@ -995,14 +1037,15 @@ public:
   dynamic_linking *getDyn() { return dyn; }
 
   Address currentPC() {
-    Address pc, fp;
-    if (hasNewPC)
+    Address pc;
+    if (hasNewPC) {
       return currentPC_;
-    else if (getActiveFrame(&fp, &pc)) {
+    } else if ((pc = Frame(this).getPC())) {
       currentPC_ = pc;
       return currentPC_;
+    } else {
+      abort();
     }
-    else abort();
     return 0;
   }
   void setNewPC(Address newPC) {
@@ -1182,53 +1225,6 @@ bool attachProcess(const string &progpath, int pid, int afterAttach);
 void handleProcessExit(process *p, int exitStatus);
 
 extern resource *machineResource;
-
-class Frame {
-  private:
-    Address frame_;
-    Address pc_;
-    bool uppermostFrame;
-#if defined(MT_THREAD)
-    int lwp_id ;       // a frame for a LWP
-    pdThread* thread ; // a frame for a user-level thread
-#endif
-
-  public:
-    Frame(process *); 
-       // formerly getActiveStackFrameInfo
-
-#if defined(MT_THREAD)
-    Frame(pdThread *); //solaris.C
-#endif
-    Frame(Address theFrame, Address thePc, bool theUppermost) {
-       frame_ = theFrame; pc_ = thePc;
-       uppermostFrame = theUppermost;
-#if defined(MT_THREAD)
-       lwp_id = 0 ;
-       thread = NULL;
-#endif
-    }
-
-#if defined(MT_THREAD)
-    Frame(int lwpid, Address theFrame, Address thePc, bool theUppermost) {
-       frame_ = theFrame; pc_ = thePc;
-       uppermostFrame = theUppermost;
-       lwp_id = lwpid ;
-       thread = NULL ;
-    }
-#endif
-
-    Address getPC() const { return pc_; }
-    Address getFramePtr(){ return frame_;}
-    bool isLastFrame() const { 
-	if ((pc_ == 0)||(frame_ == 0))
-	    return(true);
-	else 
-	    return(false); 
-    }
-
-    Frame getPreviousStackFrameInfo(process *proc) const;
-};
 
 extern vector<process *> processVec;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.49 1999/07/29 13:58:49 hollings Exp $
+// $Id: inst.h,v 1.50 1999/08/09 05:50:24 csserra Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -95,6 +95,17 @@ void getAllInstInstancesForProcess(const process *,
 instPoint * findInstPointFromAddress(const process *, Address);
 instInstance * findMiniTramps( const instPoint * );
 trampTemplate * findBaseTramp( const instPoint * );
+
+// findAddressInFuncsAndTramps: returns the function which contains
+// this address.  This checks the a.out image and shared object images
+// for this function, as well as checking base- and mini-tramps which 
+// correspond to this function.  If the address was in a tramp, the 
+// trampTemplate is returned as well.
+pd_Function *findAddressInFuncsAndTramps(process *, Address,
+					 instPoint *&,
+					 trampTemplate *&,
+					 instInstance *&);
+
 
 
 void copyInstInstances(const process *parent, const process *child,

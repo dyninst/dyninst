@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.186 1999/07/28 19:21:01 nash Exp $
+// $Id: process.C,v 1.187 1999/08/09 05:50:28 csserra Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -171,50 +171,45 @@ bool waiting=false;
   return(waiting);
 }
 
-Frame::Frame(process *proc) {
-
-    frame_ = pc_ = 0;
-#if defined(MT_THREAD)
-    proc->getActiveFrame(&frame_, &pc_, &lwp_id);
-    thread = NULL ;
-#else
-    proc->getActiveFrame(&frame_, &pc_);
-#endif
-
-    uppermostFrame = true;
+// Frame(process *): return toplevel (active) stack frame
+// (platform-independent wrapper)
+Frame::Frame(process *p)
+  : uppermost_(true), pc_(0), fp_(0),
+    lwp_id_(0), thread_(NULL)
+{
+  // platform-dependent implementation
+  getActiveFrame(p);
 }
 
-Frame Frame::getPreviousStackFrameInfo(process *proc) const {
-   if (frame_ == 0){
-      // no prev frame exists; must return frame with 0 pc value otherwise
-      // will never break out of loop in walkStack()
-      Frame fake_frame(0,0,false);
-      return fake_frame; 
-   }
+// getCallerFrame(): return stack frame of caller, 
+// relative to current (callee) stack frame
+// (platform-independent wrapper)
+Frame Frame::getCallerFrame(process *p) const
+{
+  // if no previous frame exists, return zero frame
+  Frame ret; // zero frame
+  if (fp_ == 0) return Frame(); // zero frame
 
-   Address fp = frame_;
-   Address rtn = pc_;
-
-   Frame result(0, 0, false);
+  // platform-dependent implementation
 #if defined(MT_THREAD)
-   if ( !thread && lwp_id ) { //Frame for a kernel level thread
-     if (proc->readDataFromLWPFrame(lwp_id, frame_, &fp, &rtn, uppermostFrame)){
-       result.frame_ = fp;
-       result.pc_    = rtn;
-       result.lwp_id = lwp_id ;
-     }
-   } else if (proc->readDataFromThreadFrame(frame_, &fp, &rtn, uppermostFrame)){
+  if (!thread_ && lwp_id_) {
+    // kernel-level thread
+    ret = getCallerFrameLWP(p);
+  } else {
+    // user-level thread
+    ret = getCallerFrameThread(p);
+  }
 #else
-   if (proc->readDataFromFrame(frame_, &fp, &rtn, uppermostFrame)) {
+  ret = getCallerFrameNormal(p);
 #endif
-      result.frame_ = fp;
-      result.pc_    = rtn;
-#if defined(MT_THREAD)
-      result.thread = thread;
-#endif
-   }
 
-   return result;
+  // if this is the outermost frame, stop by returning zero frame
+  extern bool isValidAddress(process *, Address);
+  if (ret.pc_ == 0 || !isValidAddress(p, ret.pc_)) {
+    return Frame(); // zero frame
+  }
+
+  return ret;
 }
 
 #if !defined(rs6000_ibm_aix4_1)
@@ -257,14 +252,16 @@ vector<Address> process::walkStack(bool noPause)
   }
 
   if (pause()) {
-    Frame   currentFrame(this);
+    Frame currentFrame(this);
     Address fpOld = 0;
     while (!currentFrame.isLastFrame()) {
-      Address fpNew = currentFrame.getFramePtr();
-      if (fpOld >= fpNew) {                             //Not moving up stack
+      Address fpNew = currentFrame.getFP();
+      // successive frame pointers might be the same (e.g. leaf functions)
+      if (fpOld > fpNew) {
+	// not moving up stack
         if (!noPause && needToCont && !continueProc())
           cerr << "walkStack: continueProc failed" << endl;
-        vector<Address> ev;                             //Empty vector
+        vector<Address> ev; // empty vector
         return ev;
       }
       fpOld = fpNew;
@@ -277,14 +274,14 @@ vector<Address> process::walkStack(bool noPause)
 	  && (next_pc < (sig_addr+sig_size))){
 	  // check to see if a leaf function was executing when the signal
 	  // handler was called.  If so, then an extra frame should be added
-	  // for the leaf function...the call to getPreviousStackFrameInfo
+	  // for the leaf function...the call to getCallerFrame
 	  // will get the function that called the leaf function
 	  Address leaf_pc = 0;
 	  if(this->needToAddALeafFrame(currentFrame,leaf_pc)){
               pcs += leaf_pc;
 	  }
       }
-      currentFrame = currentFrame.getPreviousStackFrameInfo(this); 
+      currentFrame = currentFrame.getCallerFrame(this); 
     }
     pcs += currentFrame.getPC();
   }
@@ -310,7 +307,7 @@ void process::walkAStack(int /*id*/,
   fps.resize(0);
   Address fpOld = 0;
   while (!currentFrame.isLastFrame()) {
-      Address fpNew = currentFrame.getFramePtr();
+      Address fpNew = currentFrame.getFP();
       fpOld = fpNew;
 
       Address next_pc = currentFrame.getPC();
@@ -321,7 +318,7 @@ void process::walkAStack(int /*id*/,
 	    && (next_pc < (sig_addr+sig_size))){
 	    // check to see if a leaf function was executing when the signal
 	    // handler was called.  If so, then an extra frame should be added
-	    // for the leaf function...the call to getPreviousStackFrameInfo
+	    // for the leaf function...the call to getCallerFrame
 	    // will get the function that called the leaf function
 	    Address leaf_pc = 0;
 	    if(this->needToAddALeafFrame(currentFrame,leaf_pc)){
@@ -329,7 +326,7 @@ void process::walkAStack(int /*id*/,
 		fps += fpOld ;
 	    }
       }
-      currentFrame = currentFrame.getPreviousStackFrameInfo(this); 
+      currentFrame = currentFrame.getCallerFrame(this); 
     }
     pcs += currentFrame.getPC();
     fps += fpOld ;
@@ -395,7 +392,7 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
     //Walk thread stacks
     for (unsigned i=0; i<threads.size(); i++) {
       Frame   currentFrame(threads[i]);
-      Address stack_lo = currentFrame.getFramePtr();
+      Address stack_lo = currentFrame.getFP();
       sprintf(errorLine, "stack_lo[%d]=0x%lx\n", i, stack_lo);
       logLine(errorLine);
 
@@ -425,38 +422,37 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
 #endif
 
 
-void process::correctStackFuncsForTramps( vector<Address> &pcs, vector<pd_Function *> &funcs ) {
-    unsigned i;
-	instPoint *ip;
-	function_base *fn;
-    for(i=0;i<pcs.size();i++) {
-		//if( funcs[ i ] == NULL ) {
-			ip = findInstPointFromAddress(this, pcs[i]);
-			if( ip ) {
-				fn = const_cast<function_base*>( ip->iPgetFunction() );
-				if( fn )
-					funcs[ i ] = dynamic_cast<pd_Function*>( fn );
-			}
-			//}
-	}
-}
-
-
-function_base *process::findAddressInFuncsAndTramps(Address addr, trampTemplate *&bt) {
-	function_base *ret = NULL;
-	bt = NULL;
-
-	ret = findFunctionIn( addr );
-
-	if( !ret ) {
-		instPoint *ip = findInstPointFromAddress(this, addr);
-		if( ip ) {
-			ret = const_cast<function_base*>( ip->iPgetFunction() );
-			bt = findBaseTramp( ip );
-		}
-	}
-
-	return ret;
+void process::correctStackFuncsForTramps(vector<Address> &pcs, 
+					 vector<pd_Function *> &funcs)
+{
+  unsigned i;
+  instPoint *ip;
+  function_base *fn;
+  for(i=0;i<pcs.size();i++) {
+    //if( funcs[ i ] == NULL ) {
+    ip = findInstPointFromAddress(this, pcs[i]);
+    if( ip ) {
+      fn = const_cast<function_base*>( ip->iPgetFunction() );
+      if( fn )
+	funcs[ i ] = dynamic_cast<pd_Function*>( fn );
+    }
+    //}
+  }
+  // debug --csserra
+  fprintf(stderr, ">>> stack walk (adjusted)\n");
+  for (i = 0; i < pcs.size(); i++) {
+    fprintf(stderr, "    0x%016lx", pcs[i]);
+    instPoint *ip = NULL;
+    trampTemplate *bt = NULL;
+    instInstance *mt = NULL;
+    pd_Function *fn = findAddressInFuncsAndTramps(this, pcs[i], ip, bt, mt);
+    if (!fn) fprintf(stderr, " => <unknown>\n");
+    else {
+      char *info = "";
+      if (ip) info = (bt) ? ("[basetramp]") : ("[minitramp]");
+      fprintf(stderr, " => \"%s\" %s\n", fn->prettyName().string_of(), info);
+    }
+  }
 }
 
 
@@ -804,7 +800,7 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
     checkProcStatus();
   } while (!ret.ready);
 
-  switch ((int)ret.result) {
+  switch ((int)(Address)ret.result) {
   case 0:
     sprintf(errorLine, "DYNINSTos_malloc() failed\n");
     logLine(errorLine);
@@ -2479,10 +2475,9 @@ bool process::handleStartProcess(){
 // has been loaded by the run-time linker
 // It processes the image, creates new resources
 bool process::addASharedObject(shared_object &new_obj){
-    // debug
-    char *name = const_cast<char*>(new_obj.getName().string_of());
-    char *name_trunc = strrchr(name, '/');
-    if (name_trunc) name = name_trunc + 1;
+
+    fprintf(stderr, ">>> addASharedObject(0x%016lx:%s)\n",  
+            new_obj.getBaseAddress(), new_obj.getShortName().string_of());
 
     image *img = image::parseImage(new_obj.getName(),new_obj.getBaseAddress());
     if(!img){
@@ -3905,7 +3900,7 @@ bool process::handleTrapIfDueToRPC() {
 	 return false;
 
       // else, backtrace 1 more level
-      theFrame = theFrame.getPreviousStackFrameInfo(this);
+      theFrame = theFrame.getCallerFrame(this);
    }
 
    assert(match_type == 1 || match_type == 2);
@@ -4148,17 +4143,11 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
   // (see rtinst/h/trace.h)
   assert(sizeof(int64) == 8); // sanity check
   assert(sizeof(int32) == 4); // sanity check
-  int32 ptr_off, ptr_size;
-  internalSym sym2;
-  bool ret2;
-
-  // read pointer offset
-  ret2 = findInternalSymbol("DYNINST_attachPtrOff", true, sym2);
-  if (!ret2) return false;
-  ret2 = readDataSpace((void *)sym2.getAddr(), sizeof(int32), &ptr_off, true);
-  if (!ret2) return false;
 
   // read pointer size
+  int32 ptr_size;
+  internalSym sym2;
+  bool ret2;
   ret2 = findInternalSymbol("DYNINST_attachPtrSize", true, sym2);
   if (!ret2) return false;
   ret2 = readDataSpace((void *)sym2.getAddr(), sizeof(int32), &ptr_size, true);
@@ -4166,19 +4155,17 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
   // problem scenario: 64-bit application, 32-bit paradynd
   assert((size_t)ptr_size <= sizeof(bs_record->appl_attachedAtPtr.ptr));
 
-  // re-read pointer if necessary
+  // re-align pointer if necessary
   if ((size_t)ptr_size < sizeof(bs_record->appl_attachedAtPtr.ptr)) {
     // assumption: 32-bit application, 64-bit paradynd
     assert(ptr_size == sizeof(int32));
     assert(sizeof(bs_record->appl_attachedAtPtr.ptr) == sizeof(int64));
-    // zero out high bits
-    bs_record->appl_attachedAtPtr.ptr = NULL;
-    // read low bits from bootstrap structure
-    char *from_addr = ((char *)symAddr) + ptr_off;
-    char *to_addr = 
-      ((char *)&bs_record->appl_attachedAtPtr.ptr) + sizeof(int32);
-    ret2 = readDataSpace(from_addr, ptr_size, to_addr, true);
-    if (!ret2) return false;
+    assert(sizeof(bs_record->appl_attachedAtPtr.words.hi) == sizeof(int32));
+    // read 32-bit pointer from high word
+    Address val_a = (unsigned)bs_record->appl_attachedAtPtr.words.hi;
+    void *val_p = (void *)val_a;
+    bs_record->appl_attachedAtPtr.ptr = val_p;
+    fprintf(stderr, "    0x%016lx ptr *\n", bs_record->appl_attachedAtPtr.ptr);
   }
 #endif /* SHM_SAMPLING */
   

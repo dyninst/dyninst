@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.70 1999/07/29 22:35:05 nash Exp $
+// $Id: inst.C,v 1.71 1999/08/09 05:50:23 csserra Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -66,7 +66,7 @@ dictionary_hash <string, unsigned> primitiveCosts(string::hash);
 #ifndef BPATCH_LIBRARY
 static unsigned function_base_ptr_hash(function_base *const &f) {
   function_base *ptr = f;
-  unsigned l = (unsigned)ptr;
+  unsigned l = (unsigned)(Address)ptr;
   return addrHash4(l); 
 }
 
@@ -414,13 +414,13 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
     return(ret);
 }
 
-bool trampTemplate::inTramp( Address addr ) {
-	return addr >= baseAddr && addr <= ( baseAddr + size );
+bool trampTemplate::inBasetramp( Address addr ) {
+	return addr >= baseAddr && addr < ( baseAddr + size );
 }
 
 
 bool trampTemplate::inSavedRegion( Address addr ) {
-	if( !inTramp( addr ) )
+	if( !inBasetramp( addr ) )
 		return false;
 	addr -= baseAddr;
 	return ( addr > (Address)savePreInsOffset && addr <= (Address)restorePreInsOffset )
@@ -437,7 +437,7 @@ instPoint * findInstPointFromAddress(const process *proc, Address addr) {
 	bts = proc->baseMap.values();
 	assert( ips.size() == bts.size() );
 	for( u = 0; u < bts.size(); ++u ) {
-		if( bts[u]->inTramp( addr ) )
+		if( bts[u]->inBasetramp( addr ) )
 		{
 			return const_cast<instPoint*>( ips[u] );
 		}
@@ -449,7 +449,7 @@ instPoint * findInstPointFromAddress(const process *proc, Address addr) {
 		for( instInstance *inst = allPoints[u]->inst; inst; inst = inst->next ) {
   			if( inst->proc == proc ) {
  			 if( ( inst->trampBase <= addr && inst->returnAddr >= addr )
-  			 || inst->baseInstance->inTramp( addr ) )
+  			 || inst->baseInstance->inBasetramp( addr ) )
 			{
 				return inst->location;
 			}
@@ -476,6 +476,60 @@ instInstance * findMiniTramps( const instPoint * ip ) {
 	}
 	return NULL;
 }
+
+
+// TODO: this functionality overlaps with "findInstPointFromAddress()"
+pd_Function *findAddressInFuncsAndTramps(process *p, Address addr,
+					 instPoint *&ip,
+					 trampTemplate *&bt,
+					 instInstance *&mt)
+{
+  unsigned n;
+
+  // default return values
+  ip = NULL;
+  bt = NULL;
+  mt = NULL;
+
+  // look for address in user code
+  function_base *fn = p->findFunctionIn(addr);
+  if (fn != NULL) return (pd_Function *)fn;
+
+  // look for address in basetramps ("baseMap")
+  vector<const instPoint *> ips = p->baseMap.keys();
+  vector<trampTemplate *> bts = p->baseMap.values();
+  n = ips.size();
+  assert(n == bts.size());
+  for (unsigned i = 0; i < n; i++) {
+    if (bts[i]->inBasetramp(addr)) {
+      ip = const_cast<instPoint *>(ips[i]);
+      bt = bts[i];
+      return (pd_Function*)const_cast<function_base*>(ip->iPgetFunction());
+    }
+  }
+    
+  // look for address in minitramps ("activePoints")
+  vector<point *> pts = activePoints.values();
+  n = pts.size();
+  for (unsigned i2 = 0; i2 < n; i2++) {
+    instInstance *inst = pts[i2]->inst;
+    for ( ; inst != NULL; inst = inst->next) {
+      if (inst->proc == p) {
+	if (addr >= inst->trampBase && addr <= inst->returnAddr) {
+	  ip = inst->location;
+	  mt = inst;
+	  return (pd_Function*)const_cast<function_base*>(ip->iPgetFunction());
+	} else if (inst->baseInstance->inBasetramp(addr)) {
+	  // the basetramp search should have turned this up
+	  assert(0);
+	}
+      }
+    }
+  }
+
+  return NULL;
+}
+
 
 //
 // copyInstInstances: called when a process we are tracing forks.

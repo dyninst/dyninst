@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.73 1999/07/19 22:58:04 wylie Exp $
+// $Id: solaris.C,v 1.74 1999/08/09 05:50:30 csserra Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -1213,24 +1213,22 @@ int getNumberOfCPUs()
     return(1);
 }  
 
-
-bool process::getActiveFrame(Address *fp, Address *pc)
+// getActiveFrame(): populate Frame object using toplevel frame
+void Frame::getActiveFrame(process *p)
 {
-  bool ok=false;
-
-  prgregset_t regs;
+  prstatus_t status;
 #ifdef PURE_BUILD
-  // explicitly initialize "regs" struct (to pacify Purify)
-  // (at least initialize those components which we actually use)
-  for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
+  memset(&status, 0, sizeof(prstatus_t));
 #endif
 
-  if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
-      *fp=regs[FP_REG];
-      *pc=regs[PC_REG];
-      ok=true;
+  int proc_fd = p->getProcFileDescriptor();
+  if (ioctl(proc_fd, PIOCSTATUS, &status) != -1) {
+#if defined(MT_THREAD)
+      lwp_id = status.pr_who;
+#endif
+      fp_ = status.pr_reg[FP_REG];
+      pc_ = status.pr_reg[PC_REG];
   }
-  return(ok);
 }
 
 #if defined(MT_THREAD)
@@ -1271,21 +1269,6 @@ bool process::getLWPFrame(int lwp_id, Address* fp, Address *pc) {
   return false ;
 }
 
-//also returns the LWPID
-bool process::getActiveFrame(Address *fp, Address *pc,  int *lwpid) {
-  bool ok=false;
-
-  prstatus_t status;
-  if (ioctl (proc_fd, PIOCSTATUS, &status) != -1) {
-    *lwpid = status.pr_who ;
-    *fp = status.pr_reg[FP_REG];
-    *pc = status.pr_reg[PC_REG];
-    ok=true;
-  }
-
-  return(ok);
-}
-
 Frame::Frame(pdThread* thr) {
   typedef struct {
     long    sp;
@@ -1297,8 +1280,8 @@ Frame::Frame(pdThread* thr) {
     long    l5; 
   } resumestate_t;
 
-  frame_ = pc_ = 0 ;
-  uppermostFrame = true ;
+  fp_ = pc_ = 0 ;
+  uppermost_ = true ;
   lwp_id = 0 ;
   thread = thr ;
 
@@ -1307,27 +1290,72 @@ Frame::Frame(pdThread* thr) {
   if (thr->get_start_pc() &&
       proc->readDataSpace((caddr_t) thr->get_resumestate_p(),
                     sizeof(resumestate_t), (caddr_t) &rs, false)) {
-    frame_ = rs.sp;
-    pc_    = rs.pc;
+    fp_ = rs.sp;
+    pc_ = rs.pc;
   } 
 }
 #endif
 
 #ifdef sparc_sun_solaris2_4
 
-#if defined(MT_THREAD)
-bool process::readDataFromThreadFrame(Address currentFP, Address *fp, 
-				Address *rtn, bool /*uppermost*/)
+Frame Frame::getCallerFrameNormal(process *p) const
 {
-  bool readOK=true;
+  prgregset_t regs;
+#ifdef PURE_BUILD
+  // explicitly initialize "regs" struct (to pacify Purify)
+  // (at least initialize those components which we actually use)
+  for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
+#endif
+
+  if (uppermost_) {
+    function_base *func = p->findFunctionIn(pc_);
+    if (func) {
+      if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
+	int proc_fd = p->getProcFileDescriptor();
+	if (ioctl(proc_fd, PIOCGREG, &regs) != -1) {
+	  Frame ret;
+	  ret.pc_ = regs[R_O7] + 8;
+	  ret.fp_ = fp_; // frame pointer unchanged
+	  return ret;
+	}    
+      }
+    }
+  }
+  
+  //
+  // For the sparc, register %i7 is the return address - 8 and the fp is
+  // register %i6. These registers can be located in %fp+14*5 and
+  // %fp+14*4 respectively, but to avoid two calls to readDataSpace,
+  // we bring both together (i.e. 8 bytes of memory starting at %fp+14*4
+  // or %fp+56).
+  // These values are copied to the stack when the application is paused,
+  // so we are assuming that the application is paused at this point
+
   struct {
     Address fp;
     Address rtn;
   } addrs;
+  
+  if (p->readDataSpace((caddr_t)(fp_ + 56), 2*sizeof(int),
+		       (caddr_t)&addrs, true))
+  {
+    Frame ret;
+    ret.fp_ = addrs.fp;
+    ret.pc_ = addrs.rtn + 8;
+    return ret;
+  }
+  
+  return Frame(); // zero frame
+}
 
-  //function_base *func;
-  //Address pc = *rtn;
+#if defined(MT_THREAD)
+Frame Frame::getCallerFrameThread(process *p) const
+{
+  Frame ret; // zero frame
+  ret.lwp_id_ = 0;
+  ret.thread_ = thread_;
 
+  // TODO: special handling for uppermost/leaf frame?
   /*
   prgregset_t regs;
 #ifdef PURE_BUILD
@@ -1336,13 +1364,14 @@ bool process::readDataFromThreadFrame(Address currentFP, Address *fp,
   for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
 #endif
 
-  if (uppermost) {
-      func = this->findFunctionIn(pc);
+  if (uppermost_) {
+      func = this->findFunctionIn(pc_);
       if (func) {
 	 if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
-	   if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
-	     *rtn = regs[R_O7] + 8;
-	     return readOK;
+	   int proc_fd = p->getProcFileDescriptor();
+	   if (ioctl(proc_fd, PIOCGREG, &regs) != -1) {
+	     ret.pc_ = regs[R_O7] + 8;
+	     return ret;
 	   }    
 	 }
       }
@@ -1351,47 +1380,33 @@ bool process::readDataFromThreadFrame(Address currentFP, Address *fp,
 
   //
   // For the sparc, register %i7 is the return address - 8 and the fp is
-  // register %i6. These registers can be located in currentFP+14*5 and
-  // currentFP+14*4 respectively, but to avoid two calls to readDataSpace,
-  // we bring both together (i.e. 8 bytes of memory starting at currentFP+14*4
-  // or currentFP+56).
+  // register %i6. These registers can be located in %fp+14*5 and
+  // %fp+14*4 respectively, but to avoid two calls to readDataSpace,
+  // we bring both together (i.e. 8 bytes of memory starting at %fp+14*4
+  // or %fp+56).
   // These values are copied to the stack when the application is paused,
   // so we are assuming that the application is paused at this point
 
-  if (readDataSpace((caddr_t) (currentFP + 56),
-                    sizeof(int)*2, (caddr_t) &addrs, true)) {
-    // this is the previous frame pointer
-    *fp = addrs.fp;
-    // return address
-    *rtn = addrs.rtn + 8;
-
-    // if pc==0, then we are in the outermost frame and we should stop. We
-    // do this by making fp=0.
-
-    if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
-      readOK=false;
-    }
-  }
-  else {
-    readOK=false;
-  }
-
-
-  return(readOK);
-}
-#endif
-
-bool process::readDataFromFrame(Address currentFP, Address *fp, 
-				Address *rtn, bool uppermost)
-{
-  bool readOK=true;
   struct {
     Address fp;
     Address rtn;
   } addrs;
 
-  function_base *func;
-  Address pc = *rtn;
+  if (p->readDataSpace((caddr_t)(fp_ + 56), sizeof(int)*2, 
+		       (caddr_t)&addrs, true)) 
+  {
+    ret.fp_ = addrs.fp;
+    ret.pc_ = addrs.rtn + 8;
+  }
+
+  return ret;
+}
+
+Frame Frame::getCallerFrameLWP(process *p) const
+{
+  Frame ret; // zero frame
+  ret.lwp_id_ = lwp_id_;
+  ret.thread_ = NULL:
 
   prgregset_t regs;
 #ifdef PURE_BUILD
@@ -1400,114 +1415,46 @@ bool process::readDataFromFrame(Address currentFP, Address *fp,
   for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
 #endif
 
-  if (uppermost) {
-      func = this->findFunctionIn(pc);
-      if (func) {
-	 if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
-	      if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
-		  *rtn = regs[R_O7] + 8;
-		  return readOK;
-	      }    
-	 }
+  if (uppermost_) {
+    function_base *func = p->findFunctionIn(pc_);
+    if (func) {
+      if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
+	int proc_fd = p->getProcFileDescriptor();
+	int lwp_fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp_id_));
+	if (-1 == lwp_fd) {
+	  cerr << "process::getCallerFrameLWP, cannot get lwp_fd" << endl ;
+	  return Frame(); // zero frame
+	}
+	if (ioctl(lwp_fd, PIOCGREG, &regs) != -1) {
+	  ret.pc_ = regs[R_O7] + 8;
+	  ret.fp_ = fp_; // frame pointer unchanged
+	  close(lwp_fd);
+	  return ret;
+	}
+	close(lwp_fd);
       }
+    }
   }
 
   //
   // For the sparc, register %i7 is the return address - 8 and the fp is
-  // register %i6. These registers can be located in currentFP+14*5 and
-  // currentFP+14*4 respectively, but to avoid two calls to readDataSpace,
-  // we bring both together (i.e. 8 bytes of memory starting at currentFP+14*4
-  // or currentFP+56).
+  // register %i6. These registers can be located in %fp+14*5 and
+  // %fp+14*4 respectively, but to avoid two calls to readDataSpace,
+  // we bring both together (i.e. 8 bytes of memory starting at %fp+14*4
+  // or %fp+56).
   // These values are copied to the stack when the application is paused,
   // so we are assuming that the application is paused at this point
 
-  if (readDataSpace((caddr_t) (currentFP + 56),
-                    sizeof(int)*2, (caddr_t) &addrs, true)) {
-    // this is the previous frame pointer
-    *fp = addrs.fp;
-    // return address
-    *rtn = addrs.rtn + 8;
-
-    // if pc==0, then we are in the outermost frame and we should stop. We
-    // do this by making fp=0.
-
-    if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
-      readOK=false;
-    }
-  }
-  else {
-    readOK=false;
-  }
-
-
-  return(readOK);
-}
-
-#if defined(MT_THREAD)
-bool process::readDataFromLWPFrame(int lwp_id, Address currentFP, Address *fp, 
-				Address *rtn, bool uppermost)
-{
-  bool readOK=true;
   struct {
     Address fp;
     Address rtn;
   } addrs;
 
-  function_base *func;
-  Address pc = *rtn;
-
-  prgregset_t regs;
-#ifdef PURE_BUILD
-  // explicitly initialize "regs" struct (to pacify Purify)
-  // (at least initialize those components which we actually use)
-  for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
-#endif
-
-  if (uppermost) {
-      func = this->findFunctionIn(pc);
-      if (func) {
-	 if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
-           int lwp_fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp_id));
-	   if (-1 == lwp_fd) {
-	     readOK = false ;
-	     cerr << "process::readDataFromLWPFrame, cannot get lwp_fd" << endl ;
-	     return readOK;
-	   }
-	   if (ioctl (lwp_fd, PIOCGREG, &regs) != -1) {
-	     *rtn = regs[R_O7] + 8;
-	     close(lwp_fd);
-	     return readOK;
-	   }    
-	   close(lwp_fd);
-	 }
-      }
-  }
-
-  //
-  // For the sparc, register %i7 is the return address - 8 and the fp is
-  // register %i6. These registers can be located in currentFP+14*5 and
-  // currentFP+14*4 respectively, but to avoid two calls to readDataSpace,
-  // we bring both together (i.e. 8 bytes of memory starting at currentFP+14*4
-  // or currentFP+56).
-  // These values are copied to the stack when the application is paused,
-  // so we are assuming that the application is paused at this point
-
-  if (readDataSpace((caddr_t) (currentFP + 56),
-                    sizeof(int)*2, (caddr_t) &addrs, true)) {
-    // this is the previous frame pointer
-    *fp = addrs.fp;
-    // return address
-    *rtn = addrs.rtn + 8;
-
-    // if pc==0, then we are in the outermost frame and we should stop. We
-    // do this by making fp=0.
-
-    if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
-      readOK=false;
-    }
-  }
-  else {
-    readOK=false;
+  if (readDataSpace((caddr_t)(fp_ + 56), 2*sizeof(int)*2, 
+		    (caddr_t)&addrs, true))
+  {
+    ret.fp_ = addrs.fp;
+    ret.pc_ = addrs.rtn + 8;
   }
 
 /*
@@ -1523,7 +1470,7 @@ bool process::readDataFromLWPFrame(int lwp_id, Address currentFP, Address *fp,
        stopped, the operation returns undefined values.
 */
 
-  return(readOK);
+  return ret;
 }
 #endif //MT_THREAD
 #endif
@@ -1760,38 +1707,27 @@ bool process::restoreRegisters(void *buffer) {
 
 #ifdef i386_unknown_solaris2_5
 
-bool process::readDataFromFrame(Address currentFP, Address *fp, Address *rtn, bool )
+Frame Frame::getCallerFrameNormal(process *p) const
 {
-  bool readOK=true;
+  //
+  // for the x86, the frame-pointer (EBP) points to the previous frame-pointer,
+  // and the saved return address is in EBP-4.
+  //
   struct {
     Address fp;
     Address rtn;
   } addrs;
 
-  //
-  // for the x86, the frame-pointer (EBP) points to the previous frame-pointer,
-  // and the saved return address is in EBP-4.
-  //
-
-  if (readDataSpace((caddr_t) (currentFP),
-                    sizeof(int)*2, (caddr_t) &addrs, true)) {
-    // this is the previous frame pointer
-    *fp = addrs.fp;
-    // return address
-    *rtn = addrs.rtn;
-
-    // if pc==0, then we are in the outermost frame and we should stop. We
-    // do this by making fp=0.
-
-    if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
-      readOK=false;
-    }
+  if (p->readDataSpace((caddr_t)(fp_), 2*sizeof(int),
+		       (caddr_t)&addrs, true)) 
+  {
+    Frame ret;
+    ret.fp_ = addrs.fp;
+    ret.pc_ = addrs.rtn;
+    return ret;
   }
-  else {
-    readOK=false;
-  }
-
-  return(readOK);
+  
+  return Frame(); // zero frame
 }
 
 #endif
@@ -1826,7 +1762,7 @@ bool process::needToAddALeafFrame(Frame current_frame, Address &leaf_pc){
        // the address of some struct that contains, among other things, the 
        // saved PC value.  
        u_int reg_i2;
-       int fp = current_frame.getFramePtr();
+       int fp = current_frame.getFP();
        if (readDataSpace((caddr_t)(fp+40),sizeof(u_int),(caddr_t)&reg_i2,true)){
           if (readDataSpace((caddr_t) (reg_i2+44), sizeof(int),
 			    (caddr_t) &leaf_pc,true)){

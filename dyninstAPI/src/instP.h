@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.28 1999/07/28 19:20:59 nash Exp $
+// $Id: instP.h,v 1.29 1999/08/09 05:50:24 csserra Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -68,10 +68,10 @@ class trampTemplate {
     int emulateInsOffset;
     int updateCostOffset;
 
-	int savePreInsOffset;
-	int restorePreInsOffset;
-	int savePostInsOffset;
-	int restorePostInsOffset;
+    int savePreInsOffset;
+    int restorePreInsOffset;
+    int savePostInsOffset;
+    int restorePostInsOffset;
 
     int cost;			/* cost in cycles for this basetramp. */
     Address costAddr;           /* address of cost in this tramp      */
@@ -82,8 +82,8 @@ class trampTemplate {
 
     void updateTrampCost(process *proc, int c);
 
-	bool inTramp( Address addr );
-	bool inSavedRegion( Address addr );
+    bool inBasetramp( Address addr );
+    bool inSavedRegion( Address addr );
 };
 
 extern trampTemplate baseTemplate;

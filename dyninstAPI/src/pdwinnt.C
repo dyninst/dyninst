@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.14 1999/07/29 19:22:37 pcroth Exp $
+// $Id: pdwinnt.C,v 1.15 1999/08/09 05:50:26 csserra Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -880,55 +880,44 @@ int getNumberOfCPUs() {
 }  
 
 
-bool process::getActiveFrame(Address *fp, Address *pc) {
+void Frame::getActiveFrame(process *p)
+{
     CONTEXT cont;
 
     // we must set ContextFlags to indicate the registers we want returned,
     // in this case, the control registers.
     // The values for ContextFlags are defined in winnt.h
     cont.ContextFlags = CONTEXT_CONTROL;
-    if (GetThreadContext((HANDLE)threads[0]->get_handle(), &cont)) {
-	*fp = cont.Ebp;
-	*pc = cont.Eip;
-	return true;
+    if (GetThreadContext((HANDLE)p->threads[0]->get_handle(), &cont)) {
+        fp_ = cont.Ebp;
+	pc_ = cont.Eip;
+	return;
     }
     printSysError(GetLastError());
-    return false;
 }
 
 
-bool process::readDataFromFrame(Address currentFP, Address *fp, Address *rtn,
-        bool ) {
-    bool readOK=true;
+Frame Frame::getCallerFrameNormal(process *p) const
+{
+    //
+    // for the x86, the frame-pointer (EBP) points to the previous frame-pointer,
+    // and the saved return address is in EBP-4.
+    //
     struct {
 	Address fp;
 	Address rtn;
     } addrs;
 
-    //
-    // for the x86, the frame-pointer (EBP) points to the previous frame-pointer,
-    // and the saved return address is in EBP-4.
-    //
-
-    if (readDataSpace((caddr_t) (currentFP),
-		      sizeof(int)*2, (caddr_t) &addrs, true)) {
-	// this is the previous frame pointer
-	*fp = addrs.fp;
-	// return address
-	*rtn = addrs.rtn;
-
-	// if pc==0, then we are in the outermost frame and we should stop. We
-	// do this by making fp=0.
-	
-	if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
-	    readOK=false;
-	}
-    }
-    else {
-	readOK=false;
+    if (p->readDataSpace((caddr_t)(fp_), sizeof(int)*2,
+			 (caddr_t)&addrs, true))
+    {
+        Frame ret;
+        ret.fp_ = addrs.fp;
+	ret.pc_ = addrs.rtn;
+	return ret;
     }
 
-    return(readOK);
+    return Frame(); // zero frame
 }
 
 

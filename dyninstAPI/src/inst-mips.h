@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-mips.h,v 1.3 1999/07/28 19:20:56 nash Exp $
+// $Id: inst-mips.h,v 1.4 1999/08/09 05:50:23 csserra Exp $
 
 #ifndef INST_MIPS_H
 #define INST_MIPS_H
@@ -56,8 +56,6 @@ extern registerSpace *regSpace;
 extern Register Dead[];
 extern const unsigned int nDead;
 
-const unsigned int BaseTrampStack = 512;
-
 typedef Register reg;
 void genRtype(instruction *insn, int ops, reg rs, reg rt, reg rd, int sa = 0); 
 void genItype(instruction *insn, int op, reg rs, reg rt, signed short imm);
@@ -66,10 +64,10 @@ void genBranch(instruction *insn, Address branch, Address target);
 bool genJump(instruction *insn, Address jump, Address target);
 void genNop(instruction *insn);
 void genMove(instruction *insn, reg rs, reg rd);
-void genZeroCC(instruction *insn, opCode op, reg rs, reg rd, int &cost);
 void genTrap(instruction *insn);
 void genIll(instruction *insn);
 
+Address readAddressInMemory(process *p, Address ptr, bool is_elf64);
 Address lookup_fn(process *p, const string &f);
 void dis(void *actual, void *addr = NULL, int ninsns = 1, 
 	 const char *pre = NULL, FILE *stream = stderr);

@@ -129,6 +129,84 @@ void print_function(pd_Function *f)
   print_inst_pts(f->funcExits(0), f);
 }
 
+static void mips_dis_init()
+{
+  static bool init = true;
+  if (init) {
+    //dis_init32("0x%016lx\t", 0, reg_names, 1);
+    //dis_init64("0x%016lx\t", 0, reg_names, 1);
+    init = false;
+  }
+}
+
+void disDataSpace(process *p, void *addr_, int ninsns, 
+		  const char *pre, FILE *stream)
+{
+  mips_dis_init();
+  
+  instruction *addr = (instruction *)addr_;
+  assert(isAligned((Address)addr));
+  instruction insn;
+  char buf[64];
+  static bool is_elf64 = p->getImage()->getObject().is_elf64();
+
+  for (int i = 0; i < ninsns; i++) {
+    void *inTraced = addr + i;
+    p->readDataSpace(inTraced, INSN_SIZE, &insn, true);
+    Elf32_Addr regmask, lsreg;
+    if (is_elf64) {
+
+      Elf64_Addr value;
+      //disasm64(buf, (Elf64_Addr)inTraced, *(Elf32_Addr *)&insn, &regmask, &value, &lsreg);
+
+    } else { // 32-bit app
+
+      Elf32_Addr value;
+      //disasm32(buf, (Elf32_Addr)(Address)inTraced, *(Elf32_Addr *)&insn, &regmask, &value, &lsreg);
+
+    }
+    if (pre) fprintf(stream, "%s", pre);
+    fprintf(stream, "%s\n", buf);
+  }
+}
+
+void dis(void *actual_, void *addr_, int ninsns, 
+	 const char *pre, FILE *stream)
+{
+  mips_dis_init();
+
+  instruction *actual = (instruction *)actual_;
+  instruction *addr = (instruction *)addr_;
+  if (addr == NULL) addr = actual;
+  char buf[64];
+
+  Elf32_Addr regmask, value, lsreg;
+  for (int i = 0; i < ninsns; i++) {
+    Elf32_Addr inSelf = (Elf32_Addr)(Address)(addr + i);
+    Elf32_Addr insn = *(Elf32_Addr *)(actual + i);
+    //disasm32(buf, inSelf, insn, &regmask, &value, &lsreg);
+    fprintf(stream, "%s%s\n", (pre) ? (pre) : (""), buf);
+  }
+}
+
+Address readAddressInMemory(process *p, Address ptr, bool is_elf64)
+{
+  void *ret = NULL;
+  char *local_addr = (char *)&ret;
+  unsigned nbytes = sizeof(void *);
+
+  if (!is_elf64 && sizeof(void *) == sizeof(uint64_t)) {
+    // 64-bit paradynd, 32-bit application
+    local_addr += sizeof(uint32_t);
+    nbytes -= sizeof(uint32_t);
+  }
+
+  // read pointer from memory
+  bool ret2 = p->readDataSpace((void *)ptr, nbytes, local_addr, true);
+  assert(ret2);
+
+  return (Address)ret;
+}
 
 Address lookup_fn(process *p, const string &f)
 {
@@ -167,66 +245,6 @@ Address lookup_fn(process *p, const string &f)
   return ret;
 }
 
-static void mips_dis_init()
-{
-  static bool init = true;
-  if (init) {
-    //dis_init32("0x%016lx\t", 0, reg_names, 1);
-    //dis_init64("0x%016lx\t", 0, reg_names, 1);
-    init = false;
-  }
-}
-
-void disDataSpace(process *p, void *addr_, int ninsns, 
-		  const char *pre, FILE *stream)
-{
-  mips_dis_init();
-  
-  instruction *addr = (instruction *)addr_;
-  assert(isAligned((Address)addr));
-  instruction insn;
-  char buf[64];
-  static bool is_elf64 = p->getImage()->getObject().is_elf64();
-
-  for (int i = 0; i < ninsns; i++) {
-    void *inTraced = addr + i;
-    p->readDataSpace(inTraced, INSN_SIZE, &insn, true);
-    Elf32_Addr regmask, lsreg;
-    if (is_elf64) {
-
-      Elf64_Addr value;
-      //disasm64(buf, (Elf64_Addr)inTraced, *(Elf32_Addr *)&insn, &regmask, &value, &lsreg);
-
-    } else { // 32-bit app
-
-      Elf32_Addr value;
-      //disasm32(buf, (Elf32_Addr)inTraced, *(Elf32_Addr *)&insn, &regmask, &value, &lsreg);
-
-    }
-    if (pre) fprintf(stream, "%s", pre);
-    fprintf(stream, "%s\n", buf);
-  }
-}
-
-void dis(void *actual_, void *addr_, int ninsns, 
-	 const char *pre, FILE *stream)
-{
-  mips_dis_init();
-
-  instruction *actual = (instruction *)actual_;
-  instruction *addr = (instruction *)addr_;
-  if (addr == NULL) addr = actual;
-  char buf[64];
-
-  Elf32_Addr regmask, value, lsreg;
-  for (int i = 0; i < ninsns; i++) {
-    Elf32_Addr inSelf = (Elf32_Addr)(addr + i);
-    Elf32_Addr insn = *(Elf32_Addr *)(actual + i);
-    //disasm32(buf, inSelf, insn, &regmask, &value, &lsreg);
-    fprintf(stream, "%s%s\n", (pre) ? (pre) : (""), buf);
-  }
-}
-
 /*
  * findInstPoints(): EXPORTED
  *
@@ -239,6 +257,7 @@ void dis(void *actual_, void *addr_, int ninsns,
  *   isTrap
  *
  */
+
 #ifdef CSS_DEBUG_INST
 #define UNINSTR(str) \
   fprintf(stderr, "uninstrumentable: %s (%0#10x: %i insns) - %s\n", \
@@ -401,85 +420,153 @@ static void print_saved_registers(pd_Function *fn, const vector<vector<int> > &s
 Address pd_Function::findStackFrame(const image *owner)
 {
   /*
-  fprintf(stderr, "*** %s (%0#10x: %i insns): stack frame\n",
-	  prettyName().string_of(), getAddress(0), size() / INSN_SIZE);
+  fprintf(stderr, ">>> findStackFrame(): <0x%016lx:\"%s\"> %i insns\n",
+	  owner->getObject().get_base_addr() + getAddress(0), 
+	  prettyName().string_of(), size() / INSN_SIZE);
   */
 
   // initialize stack frame info
-  frameSize = 0;
-  saveInsn = (Address)-1;
   for (int i = 0; i < NUM_REGS; i++) {
-    regSaves[i].slot = -1;
+    reg_saves[i].slot = -1;
+  }
+  sp_mod = (Address)-1;
+  frame_size = 0;
+  fp_mod = (Address)-1;
+  uses_fp = false;
+
+  // register aliasing
+  int aliases[NUM_REGS];
+  for (int i = 0; i < NUM_REGS; i++) {
+    aliases[i] = i;
   }
 
-  // multiple register saves
-  vector<vector<int> >slots(32);
-
-  // parse instPoints
+  // parse insns relevant to stack frame
   Address start = getAddress(0);
   Address end = start + size();
   Offset off;
   instruction insn;
-
+  Address fn_addr = owner->getObject().get_base_addr() + getAddress(0);
   for (off = 0; off < end - start; off += INSN_SIZE) {
     insn.raw = owner->get_instruction(start + off);
     struct fmt_itype &itype = insn.itype;
+    struct fmt_rtype &rtype = insn.rtype;
+    //Address iaddr = fn_addr + off; // debug
 
-    // stack frame save: "[d]addiu sp,sp,-XX" insn
+    /* TODO: This stack frame parsing does not handle cases where the
+       stack frame is adjusted multiple times in the same function.
+       Dataflow analysis is required to handle this scenario
+       correctly. */
+
+    // stack frame (save): "[d]addiu sp,sp,-XX" insn
     if ((itype.op == ADDIUop || itype.op == DADDIUop) && 
 	itype.rs == REG_SP &&
 	itype.rt == REG_SP &&
-	itype.simm16 < 0)
-      {
-	noStackFrame = false;
-	frameSize = -itype.simm16;
-	saveInsn = off;
-      }
-
-    // register save
-    // not seen yet: "sw  RR,-XX(sp)"
-    assert(!(itype.op == SWop &&
+	itype.simm16 < 0 &&
+	noStackFrame == true)
+    {
+      noStackFrame = false;
+      sp_mod = off;
+      frame_size = -itype.simm16;
+    }
+    // stack frame (restore): "[d]addiu sp,sp,<frame_size>" insn
+    else if ((itype.op == ADDIUop || itype.op == DADDIUop) && 
 	     itype.rs == REG_SP &&
-	     itype.simm16 < 0));
-    // not seen yet: "sd  RR,-XX(sp)"
-    assert(!(itype.op == SDop &&
+	     itype.rt == REG_SP &&
+	     itype.simm16 == frame_size &&
+	     noStackFrame == false)
+    {
+      sp_ret += off;
+    }
+    // stack frame (restore from $fp): "move sp,s8" insn
+    else if (rtype.op == SPECIALop &&
+	     rtype.ops == ORops &&
+	     rtype.rt == REG_ZERO &&
+	     rtype.rs == REG_S8 &&
+	     rtype.rd == REG_SP &&
+	     uses_fp == true)
+    {
+      sp_ret += off;
+    }
+
+    // frame pointer #1: "[d]addiu s8,sp,<frame_size>" insn
+    else if ((itype.op == ADDIUop || itype.op == DADDIUop) &&
 	     itype.rs == REG_SP &&
-	     itype.simm16 < 0));
-    if ((itype.op == SDop || itype.op == SWop) &&
-	itype.rs == REG_SP &&
-	itype.rt != REG_ZERO &&
-	itype.simm16 >= 0) // TODO: bogus constraint? (see asserts above)
-      {
-	assert(isAligned(itype.simm16));
-	int r = itype.rt;
-	regSave_t &save = regSaves[r];
-	// earliest save insn for this register
-	if (save.slot == -1) {
-	  save.slot = itype.simm16;
-	  save.dword = (itype.op == SDop);
-	  save.insn = off;
-	}
-	// multiple register saves
-	addIfNew(slots[r], save.slot);
+	     itype.rt == REG_S8 &&
+	     itype.simm16 == frame_size)
+    {
+      fp_mod = off;
+      uses_fp = true;
+    }
+    // frame pointer #2: "move s8,sp" insn
+    else if (rtype.op == SPECIALop &&
+	     rtype.ops == ORops &&
+	     rtype.rt == REG_ZERO &&
+	     rtype.rs == REG_SP &&
+	     rtype.rd == REG_S8 &&
+	     frame_size == 0)
+    {
+      fp_mod = off;
+      uses_fp = true;
+    }
+
+    // register aliasing: "move R2,R1" insn
+    else if (rtype.op  == SPECIALop &&
+	     rtype.ops == ORops &&
+	     rtype.rt  == REG_ZERO &&
+	     rtype.rs  != REG_ZERO)
+    {
+      int r_src = aliases[rtype.rs];
+      // check if register has been saved yet
+      if (reg_saves[r_src].slot == -1) {
+	int r_dst = rtype.rd;
+	/*
+	if (aliases[r_dst] != r_dst) {
+	  fprintf(stderr, "!!! <0x%016lx:\"%s\" multiple aliasing\n",
+		  iaddr, prettyName().string_of());
+	} */
+	aliases[r_dst] = r_src;
       }
-  }
+    }
 
-  // multiple register saves
-  //print_saved_registers(this, slots);
-
-  /*
-  if (!noStackFrame) {
-    Address saveOff = saveInsn;
-    if (saveOff > 4*INSN_SIZE) 
-      fprintf(stderr, "!!! late save insn (%s, %0#10x, %i insns)\n", 
-	      prettyName().string_of(), 
-	      getAddress(0) + saveOff,
-	      saveOff / INSN_SIZE);
+    // register save #1: "sd/sw RR,XX(sp)" insn
+    else if ((itype.op == SDop || itype.op == SWop) &&
+	     itype.rs == REG_SP &&
+	     itype.simm16 >= 0)
+    {
+      assert(isAligned(itype.simm16));
+      int r = aliases[itype.rt];
+      regSave_t &save = reg_saves[r];
+      // check if register has been saved yet
+      if (save.slot == -1) {
+	// convert positive $sp offset to negative $fp offset
+	save.slot = itype.simm16 - frame_size;
+	save.dword = (itype.op == SDop);
+	save.insn = off;
+      }
+    }
+    // register save #2: "sd/sw RR,-XX(s8)" insn
+    else if ((itype.op == SDop || itype.op == SWop) &&
+	     uses_fp && itype.rs == REG_S8 &&
+	     itype.simm16 < 0)
+    {
+      int r = aliases[itype.rt];
+      regSave_t &save = reg_saves[r];
+      // check if register has been saved yet
+      if (save.slot == -1) {
+	save.slot = itype.simm16; // negative $fp offset
+	save.dword = (itype.op == SDop);
+	save.insn = off;
+      }
+    }
   }
-  */
+  // must have at least one stack frame restore
+  if (sp_mod != (Address)-1) {
+    //assert(sp_ret.size() != 0);
+    sp_ret += (Address)-1;
+  }
 
   // default return value (entry point = first insn of fn)
-  return (noStackFrame) ? (0) : (saveInsn);
+  return (noStackFrame) ? (0) : (sp_mod);
 }
 
 void pd_Function::setVectorIds()
@@ -529,7 +616,7 @@ bool pd_Function::checkInstPoints()
   } 
 
   /* no exit points */
-  if (funcReturns.size() == 0) {
+  if (funcReturns.size() == 0 && symTabName() != "main") {
     UNINSTR("no exit points");
     ret = false;
   }
@@ -866,33 +953,29 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
   Address obj_base = elf.get_base_addr();
   bool is_elf64 = elf.is_elf64();
 
-  // special case: external symbol call via GOT entry
+  // special case: function call via GOT entry
   if (baseRegs.size() == 1 && 
       targetReg == REG_GP &&
       adjusts[0] == 0) 
-    {
-      Address got_entry_off = target + baseAdjusts[0] - obj_base;
-      // address-in-memory
-      Address got_entry = (is_elf64)
-	? (get_dword(elf, got_entry_off))
-	: (get_word(elf, got_entry_off));
-      Address fn_off = got_entry - obj_base;
-      if (fn_off) {
-	pd_Function *pdf = owner->findFunction(fn_off);
-	if (pdf) return fn_off;
-      }
+  {
+    /* NOTE: We do not resolve the GOT entry yet.  While the static
+       entry may appear to resolve to a local symbol, it can be
+       preempted at runtime.  The Fortran function "MAIN__" is one
+       such case. */
 
-      // check for calls to "main"
-      const char *callee_name = elf.got_entry_name(got_entry_off);
-      if (callee_name && !strcmp("main", callee_name)) {
-	owner->main_call_addr_ = ip->address();
-      }
+    Address got_entry_off = target + baseAdjusts[0] - obj_base;    
 
-      // external symbol (GOT hint will be resolved at runtime)
-      ip->hint_got_ = got_entry_off;
-      return 0;
+    // check for calls to "main"
+    const char *callee_name = elf.got_entry_name(got_entry_off);
+    if (callee_name && !strcmp("main", callee_name)) {
+      owner->main_call_addr_ = ip->address();
     }
-
+    
+    // wait for runtime value of GOT entry
+    ip->hint_got_ = got_entry_off;
+    return 0;
+  }
+  
   // debug: target arithmetic
   /*
   fprintf(stderr, ">>> findIndirectJumpTarget <0x%016lx: %s>\n", 
@@ -1049,41 +1132,6 @@ void genIll(instruction *insn) {
 void genMove(instruction *insn, reg rs, reg rd) {
   genRtype(insn, ORops, rs, REG_ZERO, rd);
 }
-/* set "rd" on "(rs <op> 0)" */
-void genZeroCC(instruction *i, opCode op, reg rs, reg rd, int &ninsns)
-{
-  switch (op) {
-
-  case greaterOp:
-    genItype(i, BGTZLop, rs, 0, 0x2);
-    break;
-
-  case leOp:
-    genItype(i, BLEZLop, rs, 0, 0x2);
-    break;
-
-  case geOp:
-    genItype(i, REGIMMop, rs, BGEZLopr, 0x2);
-    break;
-
-  case eqOp:
-    genItype(i, BEQLop, rs, REG_ZERO, 0x2);
-    break;
-
-  case neOp:
-    genItype(i, BNELop, rs, REG_ZERO, 0x2);
-    break;
-
-  case lessOp: // should never be called
-  default:
-    assert(0);
-  }
-
-  genItype(i+1, ORIop, REG_ZERO, rd, 0x1);
-  genItype(i+2, ORIop, REG_ZERO, rd, 0x0);
-
-  ninsns = 1 + 1 + 1; // branch + set + set
-}
 
 #define IMM_NBITS ((Address)0x10)
 #define IMM_MASK  ((Address)0xffff)
@@ -1154,7 +1202,10 @@ void genLoadNegConst(reg dst, Address imm, char *code, Address &base, bool /*noC
 void genLoadConst(reg dst, RegValue imm, char *code, Address &base, bool noCost)
 {
   // if negative, use genLoadNegConst()
-  if (imm < 0) return genLoadNegConst(dst, (Address)imm, code, base, noCost);
+  if (imm < 0) {
+    genLoadNegConst(dst, (Address)imm, code, base, noCost);
+    return;
+  }
 
   //fprintf(stderr, ">>> genLoadConst(0x%lx)\n", imm);
   //Address base_orig = base; // debug
@@ -1499,7 +1550,7 @@ void emitV(opCode op, Register src1, Register src2, Register dst,
 
 // [loadConstOp, loadOp]
 void emitVload(opCode op, Address src1, Register /*src2*/, Register dst, 
-	       char *code, Address &base, bool noCost, int /* size */)
+	       char *code, Address &base, bool noCost, int size)
 {
   switch (op) {
 
@@ -1515,7 +1566,17 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dst,
     // "dst"  : value register (to)
     //fprintf(stderr, ">>> emit(loadOp)\n");
     genLoadConst(dst, src1, code, base, noCost);
-    emitV(loadIndirOp, dst, 0, dst, code, base, noCost);
+    if (size == sizeof(uint32_t)) {
+      // 32-bit load (use "loadIndirOp")
+      emitV(loadIndirOp, dst, 0, dst, code, base, noCost);
+    } else if (size == sizeof(uint64_t)) {
+      // 64-bit load
+      genItype((instruction *)(code + base), LDop, dst, dst, 0);
+      base += INSN_SIZE;
+    } else {
+      // bogus pointer size
+      assert(0);
+    }
     break;
 
   default: 
@@ -1525,7 +1586,7 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dst,
 
 // [storeOp]
 void emitVstore(opCode op, Register src1, Register src2, Address dst, 
-                char *code, Address &base, bool noCost, int /* size */)
+                char *code, Address &base, bool noCost, int size)
 {
   assert(op == storeOp);
   // "src1" : value register (from)
@@ -1533,7 +1594,17 @@ void emitVstore(opCode op, Register src1, Register src2, Address dst,
   // "dst"  : address value (to)
   //fprintf(stderr, ">>> emit(storeOp)\n");
   genLoadConst(src2, dst, code, base, noCost);
-  emitV(storeIndirOp, src1, 0, src2, code, base, noCost);
+  if (size == sizeof(uint32_t)) {
+    // 32-bit store (use "storeIndirOp")
+    emitV(storeIndirOp, src1, 0, src2, code, base, noCost);
+  } else if (size == sizeof(uint64_t)) {
+    // 64-bit store
+    genItype((instruction *)(code + base), SDop, src2, src1, 0);
+    base += INSN_SIZE;
+  } else {
+    // bogus pointer size
+    assert(0);
+  }
 }
 
 // [updateCostOp]
@@ -1758,6 +1829,10 @@ int getInsnCost(opCode op)
   case loadConstOp:
     return 3; // average = 3.0625
 
+  case getAddrOp:
+    // usually generates "loadConstOp" above
+    return 3;
+
   case loadOp:
   case storeOp:
     return 4; // average = 4.0625
@@ -1796,9 +1871,16 @@ int getInsnCost(opCode op)
     // not used on this platform
     assert(0);
     
+  case loadFrameAddr:
+  case storeFrameRelativeOp:
+    // TODO: not implemented on this platform
+    assert(0);
+
   default:
     assert(0);
   }
+
+  return 0;
 }
 
 // baseTramp assembly code symbols
@@ -2134,29 +2216,64 @@ void instWaitingList::cleanUp(process *p, Address pc)
   p->writeTextSpace((void *)addr_, instSeqSize, instructionSeq);
 }
 
-// TODO: more flexible implementation?
-// PROBLEMS: delay slot, define $t9, out of range, GOT lookup
-// replaceFunctionCall(): this function has many requirements
+// parse backwards to find "ld t9,-XX(gp)" insn (or analogue)
+static int got_ld_off(const image *owner,
+		      Address start,
+		      int last_off,
+		      Register jump_reg)
+{
+  instruction i2;
+  for (int off = last_off; off >= 0; off -= INSN_SIZE) {
+    i2.raw = owner->get_instruction(start+off);
+    // "lw <reg>,X(gp)"
+    // "ld <reg>,X(gp)"
+    if ((isInsnType(i2, LWmask, LWmatch) || 
+	 isInsnType(i2, LDmask, LDmatch)) &&
+	i2.itype.rs == REG_GP &&
+	i2.itype.rt == jump_reg)
+    {
+      return off;
+    }
+  }
+  return -1;
+}
+
+static int pdcmp_got_name(const char *got_name_, const string &pd_name)
+{
+  string got_name = got_name_;
+  if (pd_name == (got_name) ||
+      pd_name == ("_" + got_name) ||
+      pd_name == (got_name + "_") ||
+      pd_name == ("__" + got_name))
+  {
+    return 0;
+  }
+  return 1;
+}
+
+// replaceFunctionCall(): two requirements --
 // (1) "ip" must be a call site
 // (2) "ip" must not be instrumented yet
-// (3) old callee must be known
-// (4) delay slot of instPoint must be a NOP insn
-// (5) new callee must be within range of a JAL insn
-// (6) callees must be within 16 bits (imm16) of each other
+// NOTE: modifying $t9 in the delay slot of "jalr ra,t9" does not work
 bool process::replaceFunctionCall(const instPoint *ip, 
 				  const function_base *newFunc)
 {
-  //fprintf(stderr, ">>> process::replaceFunctionCall(%s to %s)\n",
-  //(ip->callee_) ? (ip->callee_->prettyName().string_of()) : ("<unknown>"),
-  //(newFunc) ? (newFunc->prettyName().string_of()) : ("<nothing>"));
-  // constraints: (1) call site, (2) no basetramp
-  if (ip->type() != IPT_CALL) return false;
-  if (baseMap.defines(ip)) return false;
-
   // runtime address of instPoint
   Address pt_base  = 0;
   getBaseAddress(ip->iPgetOwner(), pt_base);
-  Address pt_addr = pt_base + ip->address(this);
+  Address pt_addr = pt_base + ip->address(0);
+
+  /*
+  fprintf(stderr, ">>> replaceFunctionCall(): <0x%016lx:%s> to \"%s\"\n",
+	  pt_addr, 
+	  ip->iPgetFunction()->prettyName().string_of(),
+	  (newFunc) ? (newFunc->prettyName().string_of()) : ("NOP"));
+  */
+
+  // requirement #1
+  if (ip->type() != IPT_CALL) return false;
+  // requirement #2
+  if (baseMap.defines(ip)) return false;
 
   // if "newFunc" is null, stomp existing call with NOP
   if (newFunc == NULL) {
@@ -2164,66 +2281,161 @@ bool process::replaceFunctionCall(const instPoint *ip,
     return true;
   }
 
-  // runtime address of new callee
+  // resolve new callee
   pd_Function *dst2_pdf = (pd_Function *)const_cast<function_base*>(newFunc);
   Address dst2_base = 0;
   getBaseAddress(dst2_pdf->file()->exec(), dst2_base);
-  Address dst2_addr = dst2_base + dst2_pdf->getAddress(this);
+  Address dst2_addr = dst2_base + dst2_pdf->getAddress(0);
 
-  // requirements
-  if (!ip->callee_) {
-    fprintf(stderr, "!!! replaceFunctionCall: previous callee unknown\n");
-    return false;
+  /* NOTE: Calling conventions require that $t9 contain the callee
+     address.  This holds even for some non-"jalr ra,t9" call insns.
+     To correctly replace the function call, we need to parse
+     backwards to check for an "ld t9,-XX(gp)" insn and, if present,
+     modify it to point to the new callee's GOT entry.  One
+     complication is that "jalr"-type calls may use a non-standard
+     jump register.  */
+  // check for non-default jump register (i.e. "jalr ra,RR")
+  Register jump_reg = REG_T9;
+  if (isInsnType(ip->origInsn_, JALRmask, JALRmatch)) {
+    jump_reg = ip->origInsn_.rtype.rs;
   }
-  if (ip->delayInsn_.raw != NOP_INSN) {
-      fprintf(stderr, "!!! replaceFunctionCall: delay slot already in use\n");
+  // parsing stuff
+  const Object &elf = ip->iPgetOwner()->getObject();
+  const image *owner = ip->iPgetOwner();
+  pd_Function *ip_pdf = (pd_Function *)ip->iPgetFunction();
+  // parse backwards to check for "ld RR,-XX(gp)" insn
+  Address fn_start = ip_pdf->getAddress(0);
+  int ld_off = got_ld_off(owner, fn_start, ip->offset()+INSN_SIZE, jump_reg);
+  Address ld_addr;
+  instruction ld_insn;
+  int gp_disp1, gp_disp2 = -1;
+  if (ld_off != -1) {
+    // fetch "ld RR,-XX(gp)" insn
+    ld_addr = pt_base + fn_start + ld_off;
+    ld_insn.raw = owner->get_instruction(fn_start + ld_off);
+    assert(ld_insn.itype.op == LDop ||
+	   ld_insn.itype.op == LWop);
+    assert(ld_insn.itype.rs == REG_GP);
+    // old GOT entry
+    gp_disp1 = ld_insn.itype.simm16;
+    // new GOT entry (modify insn)
+    gp_disp2 = elf.got_gp_disp(dst2_pdf->prettyName().string_of());
+    ld_insn.itype.simm16 = gp_disp2;
+  }
+
+  /* NOTE: At this point, things differ depending on whether this is a
+     direct or indirect function call. */
+  if (isInsnType(ip->origInsn_, JALRmask, JALRmatch)) {
+    // indirect function call
+
+    assert(ip->origInsn_.rtype.rd == REG_RA);
+
+    if (ip->hint_got_) { 
+      // GOT-based function call
+      // --- sequence #1 ---
+      //   ld    RR,-XX(gp)
+      //   ...
+      //   jalr  ra,RR
+      
+      // requirement: must know location of "ld RR,-XX(gp)" insn
+      if (ld_off == -1) return false;
+      // requirement: new callee must have GOT entry
+      if (gp_disp2 == -1) return false;
+
+      // write modified insn back
+      bool ret = writeTextSpace((void *)ld_addr, INSN_SIZE, &ld_insn);
+      if (!ret) return false;
+
+      return true;
+    } else { 
+      // pointer-based function call: unresolvable
       return false;
+    }
+    
+  } else {
+    // direct function call
+    // --- sequence #1 ---
+    //   jal   XX
+    // --- sequence #2 ---
+    //   b<op> XX
+    // --- sequence #3 ---
+    //   ld    t9,-XX(gp)
+    //   ...
+    //   jal   XX
+    // --- sequence #4 ---
+    //   ld    t9,-XX(gp)
+    //   ...
+    //   b<op> XX
+    
+    /* check if need to modify "ld t9,-XX(gp)" insn: conditions are
+       (a) "ld" insn is present and (b) old GOT entry corresponds to
+       old callee */
+    bool use_got_ld = false;
+    if (ld_off != -1) {
+
+      // resolve old callee
+      function_base *dst1_fn;
+      instPoint *ip2 = const_cast<instPoint *>(ip);
+      findCallee(*ip2, dst1_fn);
+      /* since these are "direct" function calls (i.e. absolute jump
+         or relative branch), it should always be possible to resolve
+         the original callee */
+      assert(dst1_fn != NULL);
+
+      // resolve GOT entry
+      Address got_entry_off = elf.get_gp_value() + gp_disp1 - pt_base;
+      const char *got_name = elf.got_entry_name(got_entry_off);
+
+      // check that GOT entry actually corresponds to callee
+      if (got_name && 
+	  pdcmp_got_name(got_name, dst1_fn->prettyName()) == 0)
+      {
+	// requirement: new callee must have GOT entry
+	if (gp_disp2 == -1) return false;
+	use_got_ld = true;
+      }
+    }
+    
+    // generate call 
+    instruction pt_insn;
+    signed long dst2_disp = (dst2_addr - (pt_addr + INSN_SIZE)) >> 2;
+    if (use_got_ld) {
+      // use "jalr ra,RR"
+      genRtype(&pt_insn, JALRops, jump_reg, 0, REG_RA);
+    } else if (region_num(pt_addr + INSN_SIZE) == region_num(dst2_addr)) {
+      // use "jal <dst2_addr>" insn
+      pt_insn.jtype.op = JALop;
+      pt_insn.jtype.imm26 = (dst2_addr & REGION_OFF_MASK) >> 2;
+    } else if (dst2_disp >= MIN_IMM16 && dst2_disp <= MAX_IMM16) {
+      // use "bgezal zero,<dst2_addr>" insn
+      pt_insn.regimm.op = REGIMMop;
+      pt_insn.regimm.opr = BGEZALopr;
+      pt_insn.regimm.rs = REG_ZERO;
+      pt_insn.regimm.simm16 = dst2_disp;
+    } else {
+      // new callee unreachable
+      return false;
+    }
+
+    // write modified "ld t9,-XX(gp)" insn back, if used
+    if (use_got_ld) {
+      //disDataSpace(this, (void *)ld_addr, 1, "    ");
+      bool ret1 = writeTextSpace((void *)ld_addr, INSN_SIZE, &ld_insn);
+      if (!ret1) return false;
+      //disDataSpace(this, (void *)ld_addr, 1, "    ");
+    }	
+
+    // write modified call insn back
+    // TODO: cleanup "ld t9,-XX(gp)" insn
+    //disDataSpace(this, (void *)pt_addr, 1, "    ");
+    bool ret2 = writeTextSpace((void *)pt_addr, INSN_SIZE, &pt_insn);
+    if (!ret2) return false;
+    //disDataSpace(this, (void *)pt_addr, 1, "    ");
+
+    return true;
   }
-  if (region_num(pt_addr + INSN_SIZE) != region_num(dst2_addr)) {
-    fprintf(stderr, "!!! replaceFunctionCall: new callee too far\n");
-    return false;
-  }
 
-  // debug
-  /*
-  pd_Function *from_pdf = (pd_Function *)const_cast<function_base*>(ip->iPgetFunction());
-  Address from_base = 0;
-  getBaseAddress(from_pdf->file()->exec(), from_base);
-  Address from_addr = from_base + from_pdf->getAddress(this);
-  int from_n = from_pdf->size() / INSN_SIZE;
-  fprintf(stderr, "  caller (0x%08x, %s, %i insns):\n",
-	  from_addr, from_pdf->prettyName().string_of(), from_n);
-  disDataSpace(this, (void *)from_addr, from_n, "  ");
-  */
-
-  // runtime address of old callee
-  pd_Function *dst1_pdf = (pd_Function *)ip->callee_;
-  Address dst1_base = 0;
-  getBaseAddress(dst1_pdf->file()->exec(), dst1_base);
-  Address dst1_addr = dst1_base + dst1_pdf->getAddress(this);    
-  signed long dst_diff = dst2_addr - dst1_addr;
-  if (dst_diff < MIN_IMM16 || dst_diff > MAX_IMM16) {
-    fprintf(stderr, "!!! replaceFunctionCall: callees too far apart\n");
-    return false;
-  }
-
-  // function call code
-  instruction insn[2];
-  // jal    dst2_addr
-  insn[0].jtype.op = JALop;
-  insn[0].jtype.imm26 = (dst2_addr & REGION_OFF_MASK) >> 2;
-  // NOTE: modifying $t9 in the delay slot of "jalr ra,t9" doesn't seem to work
-  // jalr   ra,t9
-  //genRtype(&insn[0], JALRops, REG_T9, 0, REG_RA);
-  // daddiu  t9,t9,dst_diff
-  genItype(&insn[1], DADDIop, REG_T9, REG_T9, dst_diff);
-  this->writeTextSpace((void *)pt_addr, 2*INSN_SIZE, insn);
-
-  // debug
-  //fprintf(stderr, "!!! function call replacement\n");
-  //disDataSpace(this, (void *)pt_addr, 2, "  ");
-
-  return true;
+  return false;
 }
 
 // Emit code to jump to function CALLEE without linking.  (I.e., when
@@ -2237,59 +2449,123 @@ void emitFuncJump(opCode /*op*/,
      assert(0);
 }
 
+/* TODO: This function is supposed to mirror the name resolution
+   algorithm of the runtime linker (rld).  This is problematic, so we
+   settle for a weak approximation.  Namely, search each module in
+   order, starting with the executable. */
+/* findFunctionLikeRld(): The reason for the underscore kludges here
+   is that the function "names" come from the .dynstr table, by way of
+   .got entries.  These strings do not necessarily match paradynd's
+   list of symbol names. */
+static function_base *findFunctionLikeRld(process *p, const string &fn_name)
+{
+  function_base *ret = NULL;
+  string name;
+
+  // pass #1: unmodified
+  name = fn_name;
+  ret = p->findOneFunctionFromAll(name);
+  if (ret) return ret;
+
+  // pass #2: leading underscore (C)
+  name = "_" + fn_name;
+  ret = p->findOneFunctionFromAll(name);
+  if (ret) return ret;
+
+  // pass #3: trailing underscore (Fortran)
+  name = fn_name + "_";
+  ret = p->findOneFunctionFromAll(name);
+  if (ret) return ret;
+
+  // pass #4: two leading underscores (libm)
+  name = "__" + fn_name;
+  ret = p->findOneFunctionFromAll(name);
+  if (ret) return ret;
+
+  return NULL;
+}
+
 bool process::findCallee(instPoint &ip, function_base *&target)
 {
-  //ip.print(stderr, ">>> findCallee(): ");
+  /*
+  fprintf(stderr, ">>> <0x%016lx:\"%s\"> => ", 
+	  ip.iPgetOwner()->getObject().get_base_addr() + ip.address(),
+	  ip.iPgetFunction()->prettyName().string_of());
+  */
+
+  // sanity check
   assert(ip.type() == IPT_CALL);
 
-  // callee already known?
-  function_base *callee = const_cast<function_base*>(ip.iPgetCallee());
-  if (callee) {
-    target = callee;
+  // check if callee was already resolved
+  if (ip.callee_) {
+    //fprintf(stderr, "\"%s\" (static)\n", callee->prettyName().string_of());
+    target = ip.callee_;
     return true;
   }
   
-  /* GOT-based calls are partially resolved by checkCallPoints(); all
-     we need to do here is correct the runtime address of the GOT
-     entry and dereference it */
+  /* GOT-based calls are partially resolved by checkCallPoints().  Now
+     we find the runtime address of the GOT entry, read the entry
+     value, and figure out which function it corresponds to . */
   if (ip.hint_got_) {
+    const image *owner = ip.iPgetOwner();
+    const Object &elf = owner->getObject();
+
     // runtime address of GOT entry
     Address got_entry_base = 0;
-    getBaseAddress(ip.iPgetOwner(), got_entry_base);
+    getBaseAddress(owner, got_entry_base);
     Address got_entry_off = ip.hint_got_;
     Address got_entry_addr = got_entry_base + got_entry_off;
 
     // read GOT entry from process address space
-    void *fn_ptr;
+    void *tgt_ptr;
     // address-in-memory
-    if ((sizeof(void *) == sizeof(uint64_t)) &&
-	(!getImage()->getObject().is_elf64())) 
+    if (sizeof(void *) == sizeof(uint64_t) && !elf.is_elf64()) 
     {
       // 32-bit application, 64-bit paradynd
-      fn_ptr = NULL;
-      char *fn_ptr_adj = ((char *)&fn_ptr) + sizeof(uint32_t);
-      readDataSpace((void *)got_entry_addr, sizeof(uint32_t), fn_ptr_adj, true);
+      tgt_ptr = NULL;
+      char *tgt_ptr_adj = ((char *)&tgt_ptr) + sizeof(uint32_t);
+      readDataSpace((void *)got_entry_addr, sizeof(uint32_t), tgt_ptr_adj, true);
     } else {
-      readDataSpace((void *)got_entry_addr, sizeof(void *), &fn_ptr, true);
+      readDataSpace((void *)got_entry_addr, sizeof(void *), &tgt_ptr, true);
     }
 
-    // lookup function by address
-    Address fn_addr = (Address)fn_ptr;
-    pd_Function *pdf = (pd_Function *)findFunctionIn(fn_addr);
+    // lookup function by runtime address
+    Address tgt_addr = (Address)tgt_ptr;
+    pd_Function *pdf = (pd_Function *)findFunctionIn(tgt_addr);
     if (pdf) {
       Address fn_base;
       getBaseAddress(pdf->file()->exec(), fn_base);
-      if (fn_base + pdf->getAddress(0) == fn_addr) {
-	target = pdf;
-	return true;
+      assert(fn_base + pdf->getAddress(0) == tgt_addr);
+
+      //fprintf(stderr, "\"%s\" (GOT)\n", pdf->prettyName().string_of());
+      target = pdf;
+      return true;
+    } else {
+      // check if GOT entry points to .MIPS.stubs
+      Address tgt_vaddr = tgt_addr - got_entry_base + elf.get_base_addr();
+      if (tgt_vaddr >= elf.MIPS_stubs_addr_ &&
+	  tgt_vaddr < elf.MIPS_stubs_addr_ + elf.MIPS_stubs_size_)
+      {	
+	const char *fn_name_ = elf.got_entry_name(got_entry_off);
+	string fn_name = fn_name_;
+	// TODO: rld might resolve to a different fn
+	pdf = (pd_Function *)findFunctionLikeRld(this, fn_name);
+	if (pdf) {
+	  //fprintf(stderr, "\"%s\" (stub)\n", pdf->prettyName().string_of());
+	  target = pdf;
+	  return true;
+	}
       }
     }
   }
 
-  // TODO: if we get to this point, don't know what to do
-  //fprintf(stderr, "process::findCallee(%s:0x%08x): unknown callee\n",
-  //ip.iPgetFunction()->prettyName().string_of(), ip.iPgetAddress());
+  /* TODO: We're hosed if we get to this point.  Likely reasons for
+     this happening are: (A) a call was made through a function
+     pointer, (B) "findIndirectJumpTarget" got confused due to a lack
+     of dataflow analysis, or (C) a new call sequence was
+     encountered and not parsed correctly. */
 
+  //fprintf(stderr, "unknown\n");
   target = NULL;
   return false;
 }
@@ -2532,78 +2808,65 @@ void initLibraryFunctions()
 
 
 #ifndef BPATCH_LIBRARY
+// triggeredInStackFrame(): Would instPoint "this" have been triggered
+// in stack frame "stack_pc"?
+// - entry: triggered if "stack_func" on the stack
+// - call:  triggered if "stack_func" on the stack AND return address
+//          points to just after the call site
+
 // Would inst point *this have been triggered in the specified stack frame?
 // For entry instrumentation, the inst point is assumed to be triggered
 //  once for every time the function it applies to appears on the stack.
 // For call site instrumentation, the inst point is assumed to be triggered
-//  when the function to which apoplies appears on the stack only if the 
+//  when the function appears on the stack only if the 
 //  return pc in that function is directloy after the call site.
 // For other types of instrumentation, thee inst point is assumed not to
 //  be triggered.
-bool instPoint::triggeredInStackFrame( pd_Function *stack_func, Address stack_pc,
-				      callWhen when, process *proc ) {
-    bool ret = false;
-/*
-    cerr << "instPoint (Addr =  " << (void*)addr_ << " size = " << size_
-         << " func->name = " << func_->prettyName()
-		 << " ipType = " << (int)ipType_ << ")" << endl;
-    cerr << " triggeredInStackFrame called, stack_func = ";
-    if ( stack_func != NULL ) { 
-		cerr << stack_func->prettyName(); 
-    } else {
-        cerr << "<null-function>";
-    }
-    cerr << " stack_pc = " << (void*)stack_pc << " when = " << (int)when << endl;
-*/
-    if ( ipType_ == IPT_ENTRY ) {
-        if ( stack_func == func_ ) {
-			//cerr << " hit for function entry" << endl;
-			ret = true;
-        }
-    } else if ( ipType_ == IPT_CALL ) {
-        if ( stack_func == func_ && when == callPreInsn ) {
-			// check if the stack_pc points to the instruction after the call site
-			Address target = addr_ + size_;
-			//cerr << " stack_pc should be " << (void*)target;
-			if ( stack_pc == target ) {
-				//cerr << " -- HIT";
-				ret = true;
-			} else {
-				instPoint *ip = findInstPointFromAddress( proc, stack_pc );
-				if( ip == this )
-					ret = true;
-			}
-			//cerr << endl;
-        }
-    }
+bool instPoint::triggeredInStackFrame(pd_Function *stack_fn,
+				      Address pc,
+				      callWhen when,
+				      process *p)
+{
+  //this->print(stderr, ">>> triggeredInStackFrame(): ");
+  
+  if (stack_fn != func_) return false;
 
-    //cerr << " returning " << ret << endl;
+  if (ipType_ == IPT_ENTRY) {
+    return true;
+  } else if (ipType_ == IPT_CALL && when == callPreInsn) {
+    // check if the $pc corresponds to the native call insn
+    Address base;
+    p->getBaseAddress(stack_fn->file()->exec(), base);
+    Address native_ra = base + stack_fn->getAddress(0) + offset_ + size_;
+    if (pc == native_ra) return true;
+    // check if $pc is in instrumentation code
+    if (findInstPointFromAddress(p, pc) == this) return true;
+  }
 
-    return ret;
+  return false;
 }
 
-bool instPoint::triggeredExitingStackFrame( pd_Function *stack_func, Address stack_pc,
-				      callWhen when, process *proc ) {
-    bool ret = false;
+bool instPoint::triggeredExitingStackFrame(pd_Function *stack_fn,
+					   Address pc,
+					   callWhen when,
+					   process *p)
+{
+  //this->print(stderr, ">>> triggeredExitingStackFrame(): ");
+  
+  if (stack_fn != func_) return false;
 
-    if ( ipType_ == IPT_EXIT ) {
-        if ( stack_func == func_ ) {
-			ret = true;
-        }
-    } else if ( ipType_ == IPT_CALL ) {
-        if ( stack_func == func_ && when == callPostInsn ) {
-			Address target = addr_ + size_;
-			if ( stack_pc == target ) {
-				ret = true;
-			} else {
-				instPoint *ip = findInstPointFromAddress( proc, stack_pc );
-				if( ip == this )
-					ret = true;
-			}
-        }
-    }
-
-    return ret;
+  if (ipType_ == IPT_ENTRY) {
+    return true;
+  } else if (ipType_ == IPT_CALL && when == callPostInsn) {
+    Address base;
+    p->getBaseAddress(stack_fn->file()->exec(), base);
+    Address native_ra = base + stack_fn->getAddress(0) + offset_ + size_;
+    if (pc == native_ra) return true;
+    if (findInstPointFromAddress(p, pc) == this) return true;
+  }
+  
+  return false;
 }
-#endif
+
+#endif // BPATCH_LIBRARY
 

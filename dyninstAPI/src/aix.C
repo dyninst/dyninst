@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.56 1999/06/08 22:14:06 csserra Exp $
+// $Id: aix.C,v 1.57 1999/08/09 05:50:21 csserra Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -109,34 +109,23 @@ bool ptraceKludge::haltProcess(process *p) {
   return wasStopped;
 }
 
-// what is the top most frame.
-static Address firstFrame;
-
-//
-// returns the current frame pointer (fp) and program counter (pc). 
-// returns true if we are able to read the registers.
-//
-bool process::getActiveFrame(Address *fp, Address *pc)
+// getActiveFrame(): populate Frame object using toplevel frame
+void Frame::getActiveFrame(process *p)
 {
-    Address sp;
-    Address dummy;
+    errno = 0;
+    pc_ = P_ptrace(PT_READ_GPR, pid, (int *) IAR, 0, 0); // aix 4.1 likes int *
+    if (errno != 0) return;
 
     errno = 0;
-    sp = P_ptrace(PT_READ_GPR, pid, (int *) STKP, 0, 0); // aix 4.1 likes int *
-    if (errno != 0) return false;
+    fp_ = P_ptrace(PT_READ_GPR, pid, (int *) STKP, 0, 0); // aix 4.1 likes int *
+    if (errno != 0) return;
 
-    errno = 0;
-    *pc = P_ptrace(PT_READ_GPR, pid, (int *) IAR, 0, 0); // aix 4.1 likes int *
-    if (errno != 0) return false;
-
-    // now we need to read the first frame from memory.
-    //   The first frame pointer in in the memory location pointed to be sp
-    //   However, there is no pc stored there, its the place to store a pc
-    //      if the current function makes a call.
-    bool ret = readDataFromFrame(sp, fp, &dummy);
-    firstFrame = *fp;
-
-    return(ret);
+    /* Read the first frame from memory.  The first frame pointer is
+       in the memory location pointed to by $sp.  However, there is no
+       $pc stored there, it's the place to store a $pc if the current
+       function makes a call. */
+    Frame dummy = getCallerFrame(p);
+    fp_ = dummy.fp_;
 }
 
 bool process::needToAddALeafFrame(Frame, Address &){
@@ -151,40 +140,41 @@ bool process::needToAddALeafFrame(Frame, Address &){
 //     (2) the return address of the function for that frame (rtn).
 //     (3) return true if we are able to read the frame.
 //
-bool process::readDataFromFrame(Address currentFP, Address *fp, Address *rtn,
-        bool /*uppermost*/)
+Frame Frame::getCallerFrameNormal(process *p) const
 {
-    //
-    // define the linkage area of an activation record.
-    //    This information is based on the data obtained from the
-    //    info system (search for link area). - jkh 4/5/96
-    //
-    struct {
-        unsigned oldFp;
-        unsigned savedCR;
-        unsigned savedLR;
-	unsigned compilerInfo;
-	unsigned binderInfo;
-	unsigned savedTOC;
-    } linkArea;
+  //
+  // define the linkage area of an activation record.
+  //    This information is based on the data obtained from the
+  //    info system (search for link area). - jkh 4/5/96
+  //
 
-    if (readDataSpace((caddr_t) currentFP, 
-		      sizeof(linkArea), 
-		      (caddr_t) &linkArea,
-		      false)) {
-        *fp = linkArea.oldFp;
-        *rtn = linkArea.savedLR;
+  struct {
+    unsigned oldFp;
+    unsigned savedCR;
+    unsigned savedLR;
+    unsigned compilerInfo;
+    unsigned binderInfo;
+    unsigned savedTOC;
+  } linkArea;
+  
+  if (p->readDataSpace((caddr_t)fp_, sizeof(linkArea),
+		       (caddr_t)&linkArea, false))
+  {
+    Frame ret;
+    ret.fp_ = linkArea.oldFp;
+    ret.pc_ = linkArea.savedLR;
 
-        if (currentFP == firstFrame) {
-            // use the value stored in the link register instead.
-            errno = 0;
-            *rtn = P_ptrace(PT_READ_GPR, pid, (int *)LR, 0, 0); // aix 4.1 likes int *
-            if (errno != 0) return false;
-        }
-        return true;
-    } else {
-        return false;
+    if (uppermost_) {
+      // use the value stored in the link register instead.
+      errno = 0;
+      ret.pc_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *)LR, 0, 0); // aix 4.1 likes int *
+      if (errno != 0) return Frame(); // zero frame
     }
+
+    return ret;
+  }
+
+  return Frame(); // zero frame
 }
 
 void *process::getRegisters() {

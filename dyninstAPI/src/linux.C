@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.18 1999/07/28 19:21:00 nash Exp $
+// $Id: linux.C,v 1.19 1999/08/09 05:50:25 csserra Exp $
 
 #include <fstream.h>
 
@@ -335,7 +335,7 @@ void printStackWalk( process *p ) {
 			break;
 		
 		// else, backtrace 1 more level
-		theFrame = theFrame.getPreviousStackFrameInfo(p);
+		theFrame = theFrame.getCallerFrame(p);
 	}
 }
  
@@ -443,17 +443,14 @@ bool process::restoreRegisters(void *buffer) {
    return true;
 }
 
-bool process::getActiveFrame(Address *fp, Address *pc)
+// getActiveFrame(): populate Frame object using toplevel frame
+void Frame::getActiveFrame(process *p)
 {
-  *fp = ptraceKludge::deliverPtraceReturn(this, PTRACE_PEEKUSER, 0 + EBP * INTREGSIZE, 0);
-  if( errno )
-    return false;
+  fp_ = ptraceKludge::deliverPtraceReturn(p, PTRACE_PEEKUSER, 0 + EBP * INTREGSIZE, 0);
+  if (errno) return;
 
-  *pc = ptraceKludge::deliverPtraceReturn(this, PTRACE_PEEKUSER, 0 + EIP * INTREGSIZE, 0);
-  if( errno )
-    return false;
-
-  return true;
+  pc_ = ptraceKludge::deliverPtraceReturn(p, PTRACE_PEEKUSER, 0 + EIP * INTREGSIZE, 0);
+  if (errno) return;
 }
 
 // TODO: implement this
@@ -1264,38 +1261,27 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 }
 */
 
-bool process::readDataFromFrame(Address currentFP, Address *fp, Address *rtn, bool )
+Frame Frame::getCallerFrameNormal(process *p) const
 {
-  bool readOK=true;
+  //
+  // for the x86, the frame-pointer (EBP) points to the previous frame-pointer,
+  // and the saved return address is in EBP-4.
+  //
   struct {
     int fp;
     int rtn;
   } addrs;
 
-  //
-  // for the x86, the frame-pointer (EBP) points to the previous frame-pointer,
-  // and the saved return address is in EBP-4.
-  //
-
-  if (readDataSpace((caddr_t) (currentFP),
-                    sizeof(int)*2, (caddr_t) &addrs, true)) {
-    // this is the previous frame pointer
-    *fp = addrs.fp;
-    // return address
-    *rtn = addrs.rtn;
-
-    // if pc==0, then we are in the outermost frame and we should stop. We
-    // do this by making fp=0.
-
-    if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
-      readOK=false;
-    }
-  }
-  else {
-    readOK=false;
+  if (p->readDataSpace((caddr_t)(fp_), 2*sizeof(int),
+		       (caddr_t) &addrs, true))
+  {
+    Frame ret;
+    ret.fp_ = addrs.fp;
+    ret.pc_ = addrs.rtn;
+    return ret;
   }
 
-  return(readOK);
+  return Frame(); // zero frame
 }
 
 // You know, /proc/*/exe is a perfectly good link (directly to the inode) to

@@ -42,8 +42,8 @@
 /*  base trampoline template layout: 
  *
  *  pre-instrumentation
- *    - [slot to skip pre-instr]
  *    - save registers
+ *    - [slot to skip pre-instr]
  *    - [slot for global pre-instr]
  *    - [slot for local pre-instr]
  *    - update instr cost

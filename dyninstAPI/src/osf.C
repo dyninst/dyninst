@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.8 1999/06/18 21:44:41 hollings Exp $
+// $Id: osf.C,v 1.9 1999/08/09 05:50:26 csserra Exp $
 
 #include "util/h/headers.h"
 #include "os.h"
@@ -141,21 +141,15 @@ bool process::needToAddALeafFrame(Frame, Address &)
     return false;
 }
 
-//
-// return the current frame pointer (fp) and program counter (pc). 
-//    returns true if we are able to read the regsiters.
-//
-bool process::getActiveFrame(Address *fp, Address *pc)
+// getActiveFrame(): populate Frame object using toplevel frame
+void Frame::getActiveFrame(process *p)
 {
   gregset_t theIntRegs;
-  bool ok=false;
-
-  if (ioctl (proc_fd, PIOCGREG, &theIntRegs) != -1) {
-      *fp=theIntRegs.regs[FP_REGNUM];  
-      *pc=theIntRegs.regs[PC_REGNUM]-4; /* -4 because the PC is updated */
-      ok=true;
+  int proc_fd = p->getProcFileDescriptor();
+  if (ioctl(proc_fd, PIOCGREG, &theIntRegs) != -1) {
+    fp_ = theIntRegs.regs[FP_REGNUM];  
+    pc_ = theIntRegs.regs[PC_REGNUM]-4; /* -4 because the PC is updated */
   }
-  return(ok);
 }
 
 static inline bool execResult(prstatus_t) 
@@ -376,47 +370,39 @@ int process::waitProcs(int *status, bool block = false)
     return ret;
 }
 
-
-//
-// given the pointer to a frame (currentFP), return 
-//     (1) the saved frame pointer (fp)
-//            NULL -> that currentFP is the bottom (last) frame.	
-//     (2) the return address of the function for that frame (rtn).
-//     (3) return true if we are able to read the frame.
-//
-bool process::readDataFromFrame(Address currentFP, Address *fp, Address *rtn,
-                                bool uppermost = False)
+Frame Frame::getCallerFrameNormal(process *p) const
 {
-    Address values[2];
-    gregset_t theIntRegs;
+  Frame ret;
+  Address values[2];
+  gregset_t theIntRegs;
 
 #ifdef notdef
-    if (currentFP == 0) return false;
+  if (fp_ == 0) return false;
 
-    if (uppermost) {
-	if (ioctl (proc_fd, PIOCGREG, &theIntRegs) != -1) {
-	    *fp=theIntRegs.regs[FP_REGNUM];  
-	    *rtn=theIntRegs.regs[RA_REGNUM];  
-	} else {
-	    return false;
-	}
+  if (uppermost_) {
+    int proc_fd = p->getProcFileDescriptor();
+    if (ioctl(proc_fd, PIOCGREG, &theIntRegs) != -1) {
+      ret.fp_ = theIntRegs.regs[FP_REGNUM];  
+      ret.pc_ = theIntRegs.regs[RA_REGNUM];  
     } else {
-	if (!readDataSpace((void *)currentFP, sizeof(Address)*2, values,false)){
-	    *rtn = 0;
-	    *fp = 0;
-	    printf("error reading frame at %lx\n", currentFP);
-	    return false;
-	} else {
-	    // (*fp) = RA
-	    // (*fp+8) = saved fp
-	    *rtn = values[0];
-	    *fp = values[1];
-	    printf("in uppermost fp = %lx, ra = %lx\n", *fp, *rtn);
-	}
+      return Frame(); // zero frame
     }
-    return true;
+  } else {
+    if (!p->readDataSpace((void *)fp_, sizeof(Address)*2, values, false)){
+      printf("error reading frame at %lx\n", fp_);
+      return Frame(); // zero frame
+    } else {
+      // (*fp) = RA
+      // (*fp+8) = saved fp
+      ret.pc_ = values[0];
+      ret.fp_ = values[1];
+      printf("in uppermost fp = %lx, ra = %lx\n", ret.fp_, ret.pc_);
+    }
+  }
+  return ret;
 #endif
-    return false;
+
+  return Frame(); // zero frame
 }
 
 bool process::dumpCore_(const string coreFile) 
