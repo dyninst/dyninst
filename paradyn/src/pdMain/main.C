@@ -1,12 +1,16 @@
 /* $Log: main.C,v $
-/* Revision 1.38  1996/01/29 22:12:59  mjrg
-/* Added metric propagation when new processes start
-/* Adjust time to account for clock differences between machines
-/* Daemons don't enable internal metrics when they are not running any processes
-/* Changed CM5 start (paradynd doesn't stop application at first breakpoint;
-/* the application stops only after it starts the CM5 daemon)
-/* Added -default_host option to paradyn
+/* Revision 1.39  1996/02/02 02:08:20  karavan
+/* moved performance consultant related tunable constant definitions to the
+/* PC thread.
 /*
+ * Revision 1.38  1996/01/29 22:12:59  mjrg
+ * Added metric propagation when new processes start
+ * Adjust time to account for clock differences between machines
+ * Daemons don't enable internal metrics when they are not running any processes
+ * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
+ * the application stops only after it starts the CM5 daemon)
+ * Added -default_host option to paradyn
+ *
  * Revision 1.37  1996/01/09 01:08:27  tamches
  * added develModeCallback
  *
@@ -374,72 +378,6 @@ main (int argc, char **argv)
 //  (void)msg_recv(&mtag, mbuf, &msgsize);
 ////  cout << "pdMain: TC thread has given us the okay to continue creating threads!" << endl;
   
-// Declare some tunable constants (declaring them here makes them last as long
-// as this routine does, which is "forever")
-  extern bool predictedCostLimitValidChecker(float); // in PCauto.C
-  tunableFloatConstantDeclarator pcl ("predictedCostLimit",
-				 "Max. allowable perturbation of the application.",
-				 100.0, // initial value
-				 predictedCostLimitValidChecker, // validation function (in PCauto.C)
-				 NULL, // callback routine
-				 userConstant);
-
-  tunableFloatConstantDeclarator mnh ("maxEval",
-				 "Max. number of hypotheses to consider at once.",
-				 25.0, // initial
-				 0.0,  // min
-				 250.0, // max
-				 NULL, // callback
-				 userConstant);
-  tunableFloatConstantDeclarator hysRange("hysteresisRange",
-					  "Fraction above and below threshold that a test should use.",
-					  0.15, // initial
-					  0.0, // min
-					  1.0, // max
-					  NULL, // callback
-					  developerConstant);
-
-  //
-  // Fix this soon... This should be based on some real information.
-  //
-  tunableFloatConstantDeclarator minObsTime("minObservationTime",
-					    "min. time (in seconds) to wait after changing inst to start try hypotheses.",
-					    1.0, // initial
-					    0.0, // min
-					    60.0, // max
-					    NULL, // callback
-					    userConstant);
-
-  tunableFloatConstantDeclarator sufficientTime("sufficientTime",
-						"How long to wait (in seconds) before we can conclude a hypothesis is false.",
-						6.0, // initial
-						0.0, // min
-						1000.0, // max
-						NULL,
-						userConstant);
-  tunableBooleanConstantDeclarator printNodes("printNodes",
-					      "Print out changes to the state of SHG nodes",
-					      false, // initial value
-					      NULL, // callback
-					      developerConstant);
-
-  tunableBooleanConstantDeclarator printTestResults("printTestResults",
-						    "Print out the result of each test as it is computed",
-						    false,
-						    NULL,
-						    developerConstant);
-
-  tunableBooleanConstantDeclarator pcEvalPrint("pcEvalPrint",
-					       "Print out the values of tests each time they are evaluated",
-					       false,
-					       NULL,
-					       developerConstant);
-					       
-  tunableBooleanConstantDeclarator suppressSHG("suppressSHG",
-					       "Don't print the SHG",
-					       false,
-					       NULL,
-					       userConstant);
 
 // initialize DM
 
