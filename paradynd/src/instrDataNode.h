@@ -50,6 +50,7 @@ class threadMetFocusNode_Val;
 class pdThread;
 class process;
 class instInstance;
+class HwEvent;
 
 class instrDataNode {
  private:
@@ -64,13 +65,15 @@ class instrDataNode {
   /* unique id for a counter or timer */
   static int counterId;
 
+  HwEvent* hw;
+
  protected:
   virtual ~instrDataNode(); // use disableAndDelete() to delete
 
  public:
   static int incrementCounterId() {  return ++counterId;  }
   // styles are enumerated in aggregation.h
-  instrDataNode(process *proc_, unsigned type, bool arg_dontInsertData);
+  instrDataNode(process *proc_, unsigned type, bool arg_dontInsertData, HwEvent* hw_event=NULL);
 
   instrDataNode(const instrDataNode &par, process *childProc);
   /*
@@ -91,6 +94,8 @@ class instrDataNode {
   void incRefCount();
   void decRefCount();
   static void decRefCountCallback(void *, instInstance *);
+
+  HwEvent* getHwEvent() { return hw; }
 
 };
 

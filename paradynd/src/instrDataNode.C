@@ -46,13 +46,12 @@
 #include "pdutil/h/pdDebugOstream.h"
 #include "dyninstAPI/src/pdThread.h"
 
-
 extern pdDebug_ostream sampleVal_cerr;
 extern pdDebug_ostream metric_cerr;
 
 
 instrDataNode::instrDataNode(process *proc_, unsigned type,
-			     bool arg_dontInsertData)
+			     bool arg_dontInsertData, HwEvent* hw_event)
   : proc(proc_), thrNodeClientSet(false), dontInsertData_(arg_dontInsertData)
 { 
   switch (type) {
@@ -65,6 +64,12 @@ instrDataNode::instrDataNode(process *proc_, unsigned type,
     case MDL_T_PROC_TIMER:
       varType = ProcTimer;
       break;
+    case MDL_T_HW_TIMER:
+      varType = HwTimer;
+      break;
+    case MDL_T_HW_COUNTER:
+      varType = HwCounter;
+      break;
     case MDL_T_NONE:
       // just to keep mdl apply allocate a dummy un-sampled counter.
       varType = Counter;
@@ -73,8 +78,9 @@ instrDataNode::instrDataNode(process *proc_, unsigned type,
       assert(0);  break;
   }
 
+  hw = hw_event;
   variableMgr &varMgr = proc->getVariableMgr();
-  varIndex = varMgr.allocateForInstVar(varType);
+  varIndex = varMgr.allocateForInstVar(varType, hw_event);
   refCount = 0;
 }
 
@@ -128,6 +134,12 @@ unsigned instrDataNode::getSize() const {
   case WallTimer:
   case ProcTimer:
     return sizeof(tTimer);
+    break;
+  case HwTimer:
+    return sizeof(tHwTimer);
+    break;
+  case HwCounter:
+    return sizeof(tHwCounter);
     break;
   default:
     assert(0);
