@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.108 2000/06/26 17:01:54 wylie Exp $
+// $Id: symtab.C,v 1.109 2000/06/27 23:14:43 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -209,7 +209,7 @@ bool image::newFunc(pdmodule *mod, const string &name, const Address addr,
     demangled = mangled_name;
 
   bool err=false;
-  
+
   func = new pd_Function(name, demangled, mod, addr, size, tag, this, err);
   assert(func);
   //cout << name << " pretty: " << demangled << " addr :" << addr <<endl;
@@ -478,7 +478,7 @@ pdmodule *image::findModule(const string &name, bool find_if_excluded)
     return (modsByFileName[name]);
   }
   else if (modsByFullName.defines(name)) {
-    //cerr << " (image::findModule) found module in modsByFuleName" << endl;
+    //cerr << " (image::findModule) found module in modsByFullName" << endl;
     return (modsByFullName[name]);
   }
   
@@ -675,7 +675,6 @@ pd_Function *image::findPossiblyRelocatedFunctionIn(const Address &addr,const pr
     if ((addr>=pdf->getEffectiveAddress(p))&&(addr<(pdf->getEffectiveAddress(p)+pdf->size()))) 
       return pdf;
   }
-  
   return NULL; 
 }
  
@@ -1472,7 +1471,6 @@ bool image::addAllFunctions(vector<Symbol> &mods,
   // find the real functions -- those with the correct type in the symbol table
   for(SymbolIter symIter(linkedFile); symIter;symIter++) {
     const Symbol &lookUp = symIter.currval();
-
     if (funcsByAddr.defines(lookUp.addr()) ||
         ((lookUp.addr() == mainFuncSymbol.addr()) &&
          (lookUp.name() != mainFuncSymbol.name()))) {
@@ -1936,7 +1934,7 @@ bool image::defineFunction(pdmodule *libModule, const Symbol &sym,
   // We used to skip a leading underscore, but not any more.
 
   unsigned tags = findTags(sym.name());
-
+  
   if (TAG_LIB_FUNC & tags)
     return (newFunc(libModule, sym.name(), sym.addr(), sym.size(),
 		    tags | TAG_LIB_FUNC, retFunc));
@@ -1988,9 +1986,9 @@ Address pd_Function::getEffectiveAddress(const process *p) const {
      return base + addr();
 }
 
-// image::addAllFunctions dupliactes this section of code.
+// image::addAllFunctions duplicates this section of code.
 // As part of an effort to clean up the code a bit, I merged the
-// duplicates into this 1 function.  
+// duplicates into this 1 function.
 void image::insert_function_internal_static(vector<Symbol> &mods,
 	const Symbol &lookUp,
         const Address boundary_start,  const Address boundary_end,

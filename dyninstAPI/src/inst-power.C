@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.89 2000/06/21 15:40:38 bernat Exp $
+ * $Id: inst-power.C,v 1.90 2000/06/27 23:14:41 bernat Exp $
  */
 
 #include "util/h/headers.h"
@@ -654,6 +654,11 @@ void initTramps()
     //  The instruction storage pointer is advanced the number of 
     //    instructions generated.
     //
+// NOTE: the bit layout of the mfspr instruction is as follows:
+// opcode:6 ; RT: 5 ; SPR: 10 ; const 339:10 ; Rc: 1
+// However, the two 5-bit halves of the SPR field are reversed
+// so just using the xfxform will not work
+
 static int saveSPR(instruction *&insn,     //Instruction storage pointer
 		   Register    scratchReg, //Scratch register
 		   int         sprnum,     //SPR number
@@ -1771,7 +1776,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
 		base += sizeof(instruction);
 		return;
 		break;
-
+	
 	    default:
                 Register dest2 = regSpace->allocateRegister(i, base, noCost);
                 emitVload(loadConstOp, src2imm, dest2, dest2, i, base, noCost);
@@ -2699,6 +2704,19 @@ bool isCallInsn(const instruction i)
   return(isInsnType(i, OPmask | AALKmask, CALLmatch));
 }
 
+/*
+ * We need to also find calls that don't go to a known location.
+ * AFAIK, POWER has no "branch to register" calls. It does, however,
+ * have branch to link register and branch to count register calls.
+ */
+
+bool isDynamicCall(const instruction i)
+{
+  #define BRLCmatch 0x4C000001 /* bLR and bCR have opcode 19 */
+  if (isInsnType(i, OPmask | LLmask, BRLCmatch))
+    return true;
+  return false;
+}
 
 /* ************************************************************************
    --  This function, isReturnInsn, is no longer needed.  -- sec
@@ -2804,15 +2822,18 @@ bool pd_Function::findInstPoints(const image *owner)
   instr.raw = owner->get_instruction(adr);
   while(instr.raw != 0x0) {
     if (isCallInsn(instr)) {
-      // define a call point
-      // this may update address - sparc - aggregate return value
-      // want to skip instructions
+      // Define the call point
+      adr = newCallPoint(adr, instr, owner, err);
+      if (err) return false;
+    }
+    else if (isDynamicCall(instr)) {
+      // Define the call point
       adr = newCallPoint(adr, instr, owner, err);
       if (err) return false;
     }
 
     // now do the next instruction
-    adr += 4;
+    adr += sizeof(instruction);
     instr.raw = owner->get_instruction(adr);
   }
 
@@ -3167,6 +3188,7 @@ void emitFuncJump(opCode,
 }
 
 #define REG_LR 64
+#define REG_CTR 65
 
 void emitLoadPreviousStackFrameRegister(Address register_num, 
 					Register dest,
@@ -3175,19 +3197,38 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 					int size,
 					bool noCost)
 {
+  // Offset if needed
   int offset;
-  // Fun with naming: what is the number of the link register?
-  // Define it to be, oh, 64 for now TODO!
-  assert (register_num == REG_LR);
-  // All we support right now is grabbing the LR
-  offset = 8; 
-  // Current SP is not shifted down (assuming we're not in the middle of an
-  // emitFuncCall, and there is no way to tell if we are or not
-  emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest, insn, 
-	  base, noCost);
-  //Load the value stored on the stack at address dest into register dest
-  emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
-  cerr << "Exit emitLoadPrevious..." << endl;
+  // Pointer to instruction space if needed
+  instruction *temp = (instruction *) ((void*)&insn[base]);
+  // We need values to define special registers.
+  switch ( (int) register_num)
+    {
+    case REG_LR:
+      // LR is saved down the stack
+      offset = STKLR - STKPAD; 
+      // Get address (SP + offset) and stick in register dest.
+      emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest, insn, 
+	      base, noCost);
+      // Load LR into register dest
+      emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
+      break;
+    case REG_CTR:
+      // Not saved on the stack, still in a register
+      // CTR in SPR 9
+      temp->raw = 0;                    //mfspr:  mflr scratchReg
+      temp->xfxform.op = 31;
+      temp->xfxform.rt = dest;
+      temp->xfxform.spr = 9;
+      temp->xfxform.xo = 339;
+      base += sizeof(instruction);
+      break;
+    default:
+      cerr << "Fallthrough in emitLoadPreviousStackFrameRegister" << endl;
+      cerr << "Unexpected register " << register_num << endl;
+      abort();
+      break;
+    }
 }
 
 #ifndef BPATCH_LIBRARY
@@ -3202,15 +3243,27 @@ bool process::isDynamicCallSite(instPoint *callSite){
 bool process::MonitorCallSite(instPoint *callSite){
   instruction i = callSite->originalInstruction;
   vector<AstNode *> the_args(2);
-  
+  Register branch_target;
   // Is this a branch conditional link register (BCLR)
   // BCLR uses the xlform (6,5,5,5,10,1)
-  if(i.xlform.op == BCLRop)
+  if(i.xlform.op == BCLRop) // BLR or BCR
     {
-      cerr << "Found branch conditional link register" << endl;
+      if (i.xlform.xo == BCLRxop) // BLR (bclr)
+	{
+	  branch_target = REG_LR;
+	}
+      else if (i.xlform.xo == BCCTRxop)
+	{
+	  branch_target = REG_CTR;
+	}
+      else
+	{
+	  cerr << "MonitorCallSite: Unknown extended opcode " << i.xlform.xo << endl;
+	  return false;
+	}
       // Where we're jumping to (link register)
       the_args[0] = new AstNode(AstNode::PreviousStackFrameDataReg,
-				(void *) REG_LR); // special value for link register
+				(void *) branch_target); 
       // Where we are now
       the_args[1] = new AstNode(AstNode::Constant,
 				(void *) callSite->iPgetAddress());
@@ -3221,12 +3274,11 @@ bool process::MonitorCallSite(instPoint *callSite){
 		  orderFirstAtPoint,
 		  true,                              /* noCost flag                */
 		  false);                            /* trampRecursiveDesired flag */
-      cerr << "Added monitoring instrumentation to call site" << endl;
       return true;
     }
   else
     {
-      cerr << "Skipped adding instrumentation" << endl;
+      cerr << "MonitorCallSite: Unknown opcode " << i.xlform.op << endl; 
       return false;
     }
 

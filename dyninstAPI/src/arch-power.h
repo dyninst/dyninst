@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.14 2000/06/21 15:40:38 bernat Exp $
+// $Id: arch-power.h,v 1.15 2000/06/27 23:14:41 bernat Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -197,6 +197,7 @@ typedef union instructUnion instruction;
 // ------------- Op Codes, instruction form XL  -----------------
 #define BCLRop		19	/* branch conditional link register */
 #define BCLRxop		16	/* branch conditional link register */
+#define BCCTRxop        528     /* branch conditional count register */
 
 // ------------- Op Codes, instruction form XO  -----------------
 /* #define XFPop        31      -- extendened fixed point ops */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.66 2000/05/24 00:04:53 tikir Exp $
+// $Id: aix.C,v 1.67 2000/06/27 23:14:40 bernat Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1245,8 +1245,8 @@ void Object::load_object()
       goto cleanup;
    }
 
-   // fprintf(stderr, "symbol table has %d entries starting at %d\n",
-   //    (int) hdr.f_nsyms, (int) hdr.f_symptr);
+   //fprintf(stderr, "symbol table has %d entries starting at %d\n",
+   //	   (int) hdr.f_nsyms, (int) hdr.f_symptr);
 
    if (!seekAndRead(fd, hdr.f_symptr, (void**) &symbols, 
                     hdr.f_nsyms * SYMESZ, true)) {
@@ -1443,10 +1443,9 @@ void Object::load_object()
 
          //dump << "name \"" << name << "\" in module \"" << modName << "\" value=" << (void*)value << endl;
             
-         // fprintf(stderr, "Found symbol %s in (%s) at %x\n", 
-            // name.string_of(), modName.string_of(), value);
+         //fprintf(stderr, "Found symbol %s in (%s) at %x\n", 
+	 //	 name.string_of(), modName.string_of(), value);
 
-#ifdef BPATCH_LIBRARY
 	 unsigned int size = 0;
          if (type == Symbol::PDST_FUNCTION) {
 	    Word *inst = (Word *)((char *)code_ptr_ + value - code_off_);
@@ -1455,9 +1454,9 @@ void Object::load_object()
          }
 
          Symbol sym(name, modName, type, linkage, value, false, size);
-#else
-         Symbol sym(name, modName, type, linkage, value, false);
-#endif /* BPATCH_LIBRARY */
+	 // If we don't want the function size for some reason, comment out
+	 // the above and use this:
+	 // Symbol sym(name, modName, type, linkage, value, false);
 
          symbols_[name] = sym;
 
