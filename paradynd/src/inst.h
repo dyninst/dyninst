@@ -11,6 +11,10 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
+ * Revision 1.20  1996/04/26 19:52:11  lzheng
+ * Moved prototype of emitFuncCall to ast.h because the function arguments
+ * used is changed.
+ *
  * Revision 1.19  1996/04/10 17:58:24  lzheng
  * Two opCodes( loadMemOp, storeMemOp) are added for HP and the prototype of
  * emitFuncCall for HP is changed to support multiple arguments.
@@ -266,10 +270,8 @@ typedef enum { plusOp,
                loadOp,           
                loadConstOp,
                storeOp,
-#if defined(hppa1_1_hp_hpux)
 	       storeMemOp,
 	       loadMemOp,
-#endif	   
                ifOp,
 	       callOp,
 	       trampPreamble,
@@ -285,11 +287,8 @@ typedef enum { plusOp,
  *
  */
 unsigned emit(opCode op, reg src1, reg src2, reg dest, char *insn, unsigned &base);
-#if defined(hppa1_1_hp_hpux)
-unsigned emitFuncCall(opCode op,char *i,unsigned &base, string func=0x0, process *proc=0x0);
-#else
-unsigned emitFuncCall(opCode op, vector<reg> srcs, reg dest, char *i, unsigned &base);
-#endif
+//unsigned emitFuncCall(opCode op, registerSpace *rs, char *i,unsigned &base, 
+//		      vector<AstNode> operands, string func, process *proc);
 
 int getInsnCost(opCode t);
 
