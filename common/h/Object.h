@@ -169,10 +169,15 @@ private:
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(hppa1_1_hp_hpux) */
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
 #include <util/h/Object-elf32.h>
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(sparc_sun_solaris2_4) */
+
+#if defined(i386_unknown_linux2_0)
+#include <util/h/Object-linux.h>
+#define HAVE_SPECIFIC_OBJECT
+#endif /* defined(i386_unknown_linux2_0) */
 
 #if defined(sparc_sun_sunos4_1_3)
 #include <util/h/Object-bsd.h>
