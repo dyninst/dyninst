@@ -1,6 +1,10 @@
 
 /*
  * $Log: init.C,v $
+ * Revision 1.32  1996/05/03 17:05:57  tamches
+ * a don't blame me commit: active_processes can now be enabled for
+ * any focus, not just processes, machines, and whole program.
+ *
  * Revision 1.31  1996/04/29 03:34:10  tamches
  * added activeProcessesProc
  * changed declaration of active_processes internal metric
@@ -197,9 +201,9 @@ bool init() {
   // but also (2) a given machine and (3) a given process.
   im_pred_struct active_procs_preds;
   active_procs_preds.machine = pred_null;
-  active_procs_preds.procedure = pred_invalid;
+  active_procs_preds.procedure = pred_null;
   active_procs_preds.process = pred_null;
-  active_procs_preds.sync = pred_invalid;
+  active_procs_preds.sync = pred_null;
 
   bucket_width = internalMetric::newInternalMetric("bucket_width", 
 						   EventCounter,
