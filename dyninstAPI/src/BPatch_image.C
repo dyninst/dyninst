@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.13 1999/07/29 13:58:41 hollings Exp $
+// $Id: BPatch_image.C,v 1.14 1999/08/17 21:50:05 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -83,11 +83,13 @@ BPatch_Vector<BPatch_function *> *BPatch_image::getProcedures()
     // XXX Also, what should we do about getting rid of this?  Should
     //     the BPatch_functions already be made and kept around as long
     //     as the process is, so the user doesn't have to delete them?
-    vector<function_base *> *funcs = proc->getAllFunctions();
+    BPatch_Vector<BPatch_module *> *mods = getModules();
 
-    for (unsigned int f = 0; f < funcs->size(); f++) {
-	BPatch_function *bpfunc = new BPatch_function(proc, (*funcs)[f]);
-	proclist->push_back(bpfunc);
+    for (unsigned int i = 0; i < mods->size(); i++) {
+	BPatch_Vector<BPatch_function *> *funcs = (*mods)[i]->getProcedures();
+	for (unsigned int j=0; j < funcs->size(); j++) {
+	    proclist->push_back((*funcs)[j]);
+	}
     }
 
     return proclist;
@@ -162,6 +164,10 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules()
     modlist->push_back(bpmod);
   }
   
+  // BPatch_procedures are only built on demand, and we need to make sure
+  //    they get built.
+  BPatch_Vector<BPatch_function *> *procedures = getProcedures();
+
   return modlist;
 }
 
@@ -294,6 +300,8 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
  */
 BPatch_function *BPatch_image::findFunction(const char *name)
 {
+    extern dictionary_hash <function_base*, BPatch_function*> PDFuncToBPFunc;
+
     function_base *func = proc->findOneFunction(name);
 
     if (func == NULL) {
@@ -307,7 +315,13 @@ BPatch_function *BPatch_image::findFunction(const char *name)
 	return NULL;
     }
 
-    return new BPatch_function(proc, func);
+    BPatch_function *bpfunc = PDFuncToBPFunc[func];
+    if (!bpfunc) {
+	bpfunc = new BPatch_function(proc, func, NULL);
+	printf("created BPatch_function wo module\n");
+    }
+	
+    return bpfunc;
 }
 
 

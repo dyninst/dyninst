@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.21 1999/07/29 13:58:42 hollings Exp $
+// $Id: BPatch_snippet.C,v 1.22 1999/08/17 21:50:06 hollings Exp $
 
 #include <string.h>
 #include "ast.h"
@@ -808,13 +808,25 @@ BPatch_breakPointExpr::BPatch_breakPointExpr()
  * Constructor that creates a BPatch_function.
  *
  */
-BPatch_function::BPatch_function(process *_proc, function_base *_func) :
-	proc(_proc), func(_func)
+unsigned fbHash(function_base * const &bp ) { return(addrHash4((Address) bp)); }
+
+dictionary_hash <function_base*, BPatch_function*> PDFuncToBPFunc(fbHash);
+
+BPatch_function::BPatch_function(process *_proc, function_base *_func,
+	BPatch_module *_mod) :
+	proc(_proc), mod(_mod), func(_func)
 {
+
+  // there should be at most one BPatch_func for each function_base
+  assert(!PDFuncToBPFunc[_func]);
+
   localVariables = new BPatch_localVarCollection;
   funcParameters = new BPatch_localVarCollection;
   retType = NULL;
+
+  PDFuncToBPFunc[_func] = this;
 };
+
 /*
  * BPatch_function::BPatch_function
  *
@@ -822,8 +834,8 @@ BPatch_function::BPatch_function(process *_proc, function_base *_func) :
  *
  */
 BPatch_function::BPatch_function(process *_proc, function_base *_func,
-				 BPatch_type * _retType) :
-	proc(_proc), func(_func)
+				 BPatch_type * _retType, BPatch_module *_mod) :
+	proc(_proc), mod(_mod), func(_func)
 {
   localVariables = new BPatch_localVarCollection;
   funcParameters = new BPatch_localVarCollection;

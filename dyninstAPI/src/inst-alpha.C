@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.15 1999/07/29 13:58:44 hollings Exp $
+// $Id: inst-alpha.C,v 1.16 1999/08/17 21:50:06 hollings Exp $
 
 #include "util/h/headers.h"
 
@@ -579,7 +579,7 @@ void pd_Function::checkCallPoints() {
       // assume this is a library function
       // since it is a jump through a register
       // TODO -- should this be deleted here ?
-      p->callee = NULL;
+      p->callIndirect = true;
       non_lib += p;
       //      delete p;
     } else if (isBsr(p->originalInstruction)) {
@@ -606,21 +606,10 @@ void pd_Function::checkCallPoints() {
 // TODO we cannot find the called function by address at this point in time
 // because the called function may not have been seen.
 //
-Address pd_Function::newCallPoint(Address adr, const instruction code,
-				 const image *owner, bool &err) {
-  instPoint *point;
-  err = true;
-  point = new instPoint(this, code, owner, adr, false,callSite);
-
-  if (isJsr(code)) {
-    point->callIndirect = true;
-    point->callee = NULL;
-  } else
-    point->callIndirect = false;
-
-  calls += point;
-  err = false;
-  return adr;
+Address pd_Function::newCallPoint(Address, const instruction,
+				  const image *, bool &) {
+    abort();
+    // This is not used on Alpha
 }
 
 //
@@ -1666,10 +1655,12 @@ bool isCallInsn(const instruction i) {
 
 bool pd_Function::findInstPoints(const image *owner) 
 {  
+  bool err;
   Address adr = addr();
   instruction instr;
   instruction instr2;
-  bool err;
+  long gpValue;	// gp needs signed operations
+  bool gpKnown = false;
 
   // normal linkage on alphas is that the first two instructions load gp.
   //   In this case, many functions jump past these two instructions, so
@@ -1680,6 +1671,9 @@ bool pd_Function::findInstPoints(const image *owner)
   instr2.raw = owner->get_instruction(adr+4);
   if ((instr.mem.opcode == OP_LDAH) && (instr.mem.ra == REG_GP) &&
       (instr2.mem.opcode == OP_LDA) && (instr2.mem.ra == REG_GP)) {
+      // compute the value of the gp
+      gpKnown = true;
+      gpValue = ((long) adr) + (SEXT_16(instr.mem.disp)<<16) + instr2.mem.disp;
       adr += 8;
   }
 
@@ -1691,6 +1685,9 @@ bool pd_Function::findInstPoints(const image *owner)
   funcEntry_ = new instPoint(this, instr, owner, adr, true,functionEntry);
   assert(funcEntry_);
 
+  // perform simple data flow tracking on t12 within a basic block.
+  Address t12Value;
+  bool t12Known = false;
   while (true) {
     instr.raw = owner->get_instruction(adr);
 
@@ -1717,12 +1714,31 @@ bool pd_Function::findInstPoints(const image *owner)
       if (done) return true;
     } else if (isCallInsn(instr)) {
       // define a call point
-      // this may update address - sparc - aggregate return value
-      // want to skip instructions
+      instPoint *point = new instPoint(this, instr, owner, adr, false,callSite);
 
-      adr = newCallPoint(adr, instr, owner, err);
-      if (err)
-	return false;
+      if (isJsr(instr)) {
+	  Address destAddr = 0;
+	  if ((instr.mem_jmp.rb == REG_T12) && t12Known) {
+	      destAddr = t12Value;
+	  }
+	  point->callIndirect = true;
+          point->callee = destAddr;		// this is the indirect address
+      } else {
+          point->callIndirect = false;
+	  point->callee = NULL;
+      }
+      calls += point;
+      t12Known = false;
+    } else if (isJmpType(instr) || isBranchType(instr)) {
+      // end basic block, kill t12
+      t12Known = false;
+    } else if ((instr.mem.opcode == OP_LDQ) && (instr.mem.ra == REG_T12) &&
+	       (instr.mem.rb = REG_GP)) {
+      // intruction is:  ldq t12, disp(gp)
+      if (gpKnown) {
+	  t12Value = gpValue + instr.mem.disp;
+	  t12Known = true;
+      }
     }
 
     // now do the next instruction
@@ -1958,6 +1974,18 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 
     if((target = (function_base *)instr.iPgetCallee())) {
        return true;
+    }
+    if (instr.callIndirect && instr.callee) {
+	// callee contains the address in the mutatee
+	// read the contents of the address
+	Address dest;
+	if (!readDataSpace((caddr_t)(instr.callee), sizeof(Address),
+	    (caddr_t)&(dest),true)) {
+	    return false;
+	}
+	// now lookup the funcation
+	target = findFunctionIn(dest);
+	if (target) return true;
     }
     return false;
 }

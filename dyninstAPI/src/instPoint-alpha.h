@@ -58,7 +58,9 @@ public:
   void set_callee(pd_Function *to) { callee = to; }
   
   const function_base *iPgetFunction() const { return func;   }
-  const function_base *iPgetCallee()   const { return callee; }
+  const function_base *iPgetCallee()   const { 
+	return callIndirect ? NULL : callee; 
+  }
   const image         *iPgetOwner()    const { 
     return (func) ? ( (func->file()) ? func->file()->exec() : NULL ) : NULL; }
   Address        iPgetAddress()  const { return addr;   }

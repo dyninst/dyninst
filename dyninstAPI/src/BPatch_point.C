@@ -60,7 +60,10 @@
  */
 BPatch_function *BPatch_point::getCalledFunction()
 {
+    BPatch_function *ret;
+
     assert(point);
+    extern dictionary_hash <function_base*, BPatch_function*> PDFuncToBPFunc;
 
     // XXX Should get rid of the machine-dependent stuff here
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
@@ -79,9 +82,11 @@ BPatch_function *BPatch_point::getCalledFunction()
     	return NULL;
 
     if (func != NULL)
-    	return new BPatch_function(proc, func);
+	ret = PDFuncToBPFunc[func];
     else
-	return NULL;
+	ret = NULL;
+    
+    return ret;
 }
 
 

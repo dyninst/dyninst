@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.15 1999/08/09 05:50:26 csserra Exp $
+// $Id: pdwinnt.C,v 1.16 1999/08/17 21:50:07 hollings Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -772,8 +772,8 @@ bool process::pause_() {
     for (unsigned u = 0; u < threads.size(); u++) {
 	unsigned count = SuspendThread((HANDLE)threads[u]->get_handle());
 	if (count == 0xFFFFFFFF) {
-	    printf("pause_: %d\n", threads[u]->get_tid());
-	    printSysError(GetLastError());
+	    // printf("pause_: %d\n", threads[u]->get_tid());
+	    // printSysError(GetLastError());
 	    return false;
 	} 
     }

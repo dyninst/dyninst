@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.188 1999/08/09 13:43:07 csserra Exp $
+// $Id: process.C,v 1.189 1999/08/17 21:50:08 hollings Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -434,7 +434,8 @@ void process::correctStackFuncsForTramps(vector<Address> &pcs,
     if( ip ) {
       fn = const_cast<function_base*>( ip->iPgetFunction() );
       if( fn )
-	funcs[ i ] = dynamic_cast<pd_Function*>( fn );
+	// funcs[ i ] = dynamic_cast<pd_Function*>( fn );
+	funcs[ i ] = (pd_Function *) fn;
     }
     //}
   }
@@ -2551,6 +2552,9 @@ bool process::addASharedObject(shared_object &new_obj){
 	  //cout<<"Module: "<<name<<" in Process.C"<<endl;
 	  image->addModuleIfExist(bpmod);
 	}
+
+	// XXX - jkh Add the BPatch_funcs here
+
 	if (BPatch::bpatch->dynLibraryCallback) {
 	  BPatch::bpatch->dynLibraryCallback(thread, bpmod, true);
 	}
