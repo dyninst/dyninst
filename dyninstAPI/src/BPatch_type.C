@@ -235,10 +235,8 @@ nullType(false), cblocks(NULL)
       else
       */
 	name = strdup(_name);
-	/*
     } else {
       name = NULL;
-	*/
     }
     if(_ptr ){
       if(_ptr->ptr) // point to whatever it points to
