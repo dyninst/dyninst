@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.46 1999/07/07 16:06:12 zhichen Exp $
+ * $Id: inst-x86.C,v 1.47 1999/07/08 00:22:30 nash Exp $
  */
 
 #include <limits.h>
@@ -176,6 +176,51 @@ void instPoint::checkInstructions() {
   }
 #endif
 }
+
+#ifndef BPATCH_LIBRARY
+// Would inst point *this have been triggered in the specified stack frame?
+// For entry instrumentation, the inst point is assumed to be triggered
+//  once for every time the function it applies to appears on the stack.
+// For call site instrumentation, the inst point is assumed to be triggered
+//  when the function to which apoplies appears on the stack only if the 
+//  return pc in that function is directloy after the call site.
+// For other types of instrumentation, thee inst point is assumed not to
+//  be triggered.
+bool instPoint::triggeredInStackFrame( pd_Function *stack_func, Address stack_pc,
+				      callWhen when ) {
+    bool ret = false;
+
+    //cerr << "instPoint (Addr =  " << (void*)addr_ << " size = " << size()
+    //     << " func->name = " << func_->prettyName() << ")" << endl;
+    //cerr << " triggeredInStackFrame called, stack_func = ";
+    //if ( stack_func != NULL ) { 
+	//	cerr << stack_func->prettyName(); 
+    //} else {
+    //    cerr << "<null-function>";
+    //}
+    //cerr << " stack_pc = " << (void*)stack_pc << " when = " << (int)when << endl;
+
+    if ( addr_ == func_->addr() && stack_func == func_ ) {
+		//cerr << " hit for function entry" << endl;
+		ret = true;
+    } else if ( insnAtPoint_.isCall() ) {
+        if ( stack_func == func_ && when == callPreInsn ) {
+			// check if the stack_pc points to the instruction after the call site
+			Address target = addr_ + insnAtPoint_.size();
+			//cerr << " stack_pc should be " << (void*)target;
+			if ( stack_pc == target ) {
+				//cerr << " -- HIT";
+				ret = true;
+			}
+			//cerr << endl;
+        }
+    }
+
+    //cerr << " returning " << ret << endl;
+
+    return ret;
+}
+#endif
 
 
 #ifdef BPATCH_LIBRARY
@@ -1818,7 +1863,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
   return(Null_Register);        // should never be reached!
 }
 
-void emitVload(opCode op, Address src1, Register src2, Register dest, 
+void emitVload(opCode op, Address src1, Register /*src2*/, Register dest, 
              char *ibuf, Address &base, bool /*noCost*/)
 {
     unsigned char *insn = (unsigned char *) (&ibuf[base]);
@@ -2360,7 +2405,18 @@ int getPointCost(process *proc, const instPoint *point)
 
 
 
-bool returnInstance::checkReturnInstance(const vector<Address> &, u_int &) {
+bool returnInstance::checkReturnInstance(const vector<Address> &stack, u_int &index) {
+	return true;
+
+    // If false (unsafe) is returned, then 'index' is set to the first unsafe call stack
+    // index.
+    for (u_int i=0; i < stack.size(); i++) {
+        index = i;
+
+        if (stack[i] >= addr_ && stack[i] < addr_+size_)
+            return false;
+    }
+
     return true;
 }
  
@@ -2372,7 +2428,8 @@ void returnInstance::installReturnInstance(process *proc) {
 }
 
 void returnInstance::addToReturnWaitingList(Address , process *) {
-    P_abort();
+    //P_abort();
+	assert(0);
 }
 
 void generateBreakPoint(instruction &insn) {
@@ -2501,9 +2558,9 @@ bool process::replaceFunctionCall(const instPoint *point,
 
 // Emit code to jump to function CALLEE without linking.  (I.e., when
 // CALLEE returns, it returns to the current caller.)
-void emitFuncJump(opCode op, 
-		  char *i, Address &base, 
-		  const function_base *callee, process *proc)
+void emitFuncJump(opCode /*op*/, 
+		  char * /*i*/, Address & /*base*/, 
+		  const function_base * /*callee*/, process * /*proc*/)
 {
      /* Unimplemented on this platform! */
      assert(0);

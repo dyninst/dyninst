@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.113 1999/07/07 16:08:37 zhichen Exp $
+/* $Id: process.h,v 1.114 1999/07/08 00:22:34 nash Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -335,14 +335,14 @@ class process {
   string getStatusAsString() const; // useful for debug printing etc.
 
   bool checkContinueAfterStop() {
-	  if( continueAfterNextStop_ > 0 ) {
-		  continueAfterNextStop_++;
+	  if( continueAfterNextStop_ ) {
+		  continueAfterNextStop_ = false;
 		  return true;
 	  }
 	  return false;
   }
 		  
-  void continueAfterNextStop( int num = 1 ) { continueAfterNextStop_ += num; }
+  void continueAfterNextStop() { continueAfterNextStop_ = true; }
   void Exited();
   void Stopped();
 
@@ -754,6 +754,14 @@ class process {
   // This routine checks both the a.out image and any shared object images 
   // for this function
   function_base *findFunctionIn(Address adr);
+
+  // Convert a vector of PCs (program counters) to vector of
+  //  functions which contain them.  Should return vector
+  //  with exactly 1 entry (function) per element of <pcs>
+  //  NULL is used if address cannot be resolved to unique function.
+  // Used to convert vector of pcs returned by walkStack() to
+  //  functions....
+  vector <pd_Function*>convertPCsToFuncs(vector<Address> pcs);
 
   // findModule: returns the module associated with "mod_name" 
   // this routine checks both the a.out image and any shared object 

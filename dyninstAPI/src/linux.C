@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.15 1999/07/07 16:07:35 zhichen Exp $
+// $Id: linux.C,v 1.16 1999/07/08 00:22:31 nash Exp $
 
 #include <fstream.h>
 
@@ -91,7 +91,28 @@ const char DL_OPEN_FUNC_NAME[] = "_dl_open";
 static bool debug_ptrace = false;
 #endif
 
-/* ********************************************************************** */
+#ifndef _SYS_USER_H
+struct user_regs_struct
+{
+  long ebx;
+  long ecx;
+  long edx;
+  long esi;
+  long edi;
+  long ebp;
+  long eax;
+  long xds;
+  long xes;
+  long xfs;
+  long xgs;
+  long orig_eax;
+  long eip;
+  long xcs;
+  long eflags;
+  long esp;
+  long xss;
+};
+#endif
 
 /* this table must line up with REGISTER_NAMES */
 /* symbols like 'EAX' come from <sys/reg.h> */
@@ -117,7 +138,7 @@ static int regmap[] =
 #define REGS_INTS ( REGS_SIZE / INTREGSIZE )
 
 const int GENREGS_STRUCT_SIZE = sizeof( user::regs );
-const int FPREGS_STRUCT_SIZE = sizeof( user::i387 );
+const int FPREGS_STRUCT_SIZE = sizeof( user_fpregs_struct );
 
 int register_addr (int regno )
 {
@@ -468,7 +489,7 @@ int process::waitProcs(int *status, bool block) {
 int process::waitProcs(int *status) {
   int options = WNOHANG;
 #endif
-  int result, sig;
+  int result = 0, sig = 0;
   bool ignore;
   do {
     ignore = false;
@@ -546,9 +567,8 @@ int process::waitProcs(int *status) {
 #ifdef SIGNAL_DEBUG
 	  if( WIFSIGNALED(*status) )
 	  {
-		  Address pc;
-		  pc = getPC( result );
-		  signal_cerr << "process::waitProcs -- Exit on signal #" << sig << " in " << result << "@" << (void*)pc << ", resignalling the process" << endl;
+		  sig = WTERMSIG(*status);
+		  signal_cerr << "process::waitProcs -- Exit on signal #" << sig << " in " << result << ", resignalling the process" << endl;
 	  }
 	  else if( WIFEXITED(*status) )
 	  {
@@ -564,7 +584,7 @@ int process::waitProcs(int *status) {
 bool process::attach() {
   char procName[128];
 
-  bool running;
+  bool running = false;
   if( createdViaAttach )
     running = isRunning_();
 
@@ -694,7 +714,7 @@ void process::handleIfDueToDyninstLib()
   if( isRunning_() )
 	  cerr << "WARNING -- process is running at trap from dlopenDYNINSTlib" << endl;
 
-  delete[] savedRegs;
+  delete [] savedRegs;
   savedRegs = NULL;
 }
 
@@ -1605,7 +1625,7 @@ int getNumberOfCPUs()
   return(1);
 }
 
-Address process::read_inferiorRPC_result_register(Register reg) {
+Address process::read_inferiorRPC_result_register(Register /*reg*/) {
    // On x86, the result is always stashed in %EAX
 
    int raddr = EAX * 4;

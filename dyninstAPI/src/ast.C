@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.66 1999/07/07 16:03:17 zhichen Exp $
+// $Id: ast.C,v 1.67 1999/07/08 00:22:26 nash Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -335,8 +335,10 @@ AstNode &AstNode::operator=(const AstNode &src) {
    astFlag = src.astFlag;
 #endif
 
+#if defined(BPATCH_LIBRARY)
    bptype = src.bptype;
    doTypeCheck = src.doTypeCheck;
+#endif
 
    return *this;
 }
@@ -372,8 +374,10 @@ AstNode::AstNode() {
    useCount = 0;
    kept_register = Null_Register;
    // "operands" is left as an empty vector
+#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
+#endif
 }
 
 AstNode::AstNode(const string &func, AstNode *l, AstNode *r) {
@@ -392,8 +396,10 @@ AstNode::AstNode(const string &func, AstNode *l, AstNode *r) {
     loperand = roperand = eoperand = NULL;
     if (l) operands += assignAst(l);
     if (r) operands += assignAst(r);
+#if defined(BPATCH_LIBRARY)
     bptype = NULL;
     doTypeCheck = true;
+#endif
 }
 
 AstNode::AstNode(const string &func, AstNode *l) {
@@ -411,8 +417,10 @@ AstNode::AstNode(const string &func, AstNode *l) {
     callee = func;
     calleefunc = NULL;
     if (l) operands += assignAst(l);
+#if defined(BPATCH_LIBRARY)
     bptype = NULL;
     doTypeCheck = true;
+#endif
 }
 
 AstNode::AstNode(const string &func, vector<AstNode *> &ast_args) {
@@ -431,8 +439,10 @@ AstNode::AstNode(const string &func, vector<AstNode *> &ast_args) {
    type = callNode;
    callee = func;
    calleefunc = NULL;
+#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
+#endif
 }
 
 
@@ -452,8 +462,10 @@ AstNode::AstNode(function_base *func, vector<AstNode *> &ast_args) {
    type = callNode;
    callee = func->prettyName();
    calleefunc = func;
+#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
+#endif
 }
 
 
@@ -474,8 +486,10 @@ AstNode::AstNode(function_base *func) {
    op = funcJumpOp;
    callee = func->prettyName();
    calleefunc = func;
+#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
+#endif
 }
 
 
@@ -496,8 +510,10 @@ AstNode::AstNode(operandType ot, void *arg) {
     else
     	oValue = (void *) arg;
     loperand = roperand = eoperand = NULL;
+#if defined(BPATCH_LIBRARY)
     bptype = NULL;
     doTypeCheck = true;
+#endif
 };
 
 AstNode::AstNode(operandType ot, AstNode *l) {
@@ -516,8 +532,10 @@ AstNode::AstNode(operandType ot, AstNode *l) {
     roperand = NULL;
     eoperand = NULL;
     loperand = assignAst(l);
+#if defined(BPATCH_LIBRARY)
     bptype = NULL;
     doTypeCheck = true;
+#endif
 };
 
 AstNode::AstNode(AstNode *l, AstNode *r) {
@@ -534,8 +552,10 @@ AstNode::AstNode(AstNode *l, AstNode *r) {
    loperand = assignAst(l);
    roperand = assignAst(r);
    eoperand = NULL;
+#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
+#endif
 };
 
 AstNode::AstNode(opCode ot) {
@@ -552,8 +572,10 @@ AstNode::AstNode(opCode ot) {
    type = opCodeNode;
    op = ot;
    loperand = roperand = eoperand = NULL;
+#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
+#endif
 }
 
 AstNode::AstNode(opCode ot, AstNode *l) {
@@ -572,8 +594,10 @@ AstNode::AstNode(opCode ot, AstNode *l) {
    loperand = assignAst(l);
    roperand = NULL;
    eoperand = NULL;
+#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
+#endif
 }
 
 AstNode::AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e) {
@@ -591,8 +615,10 @@ AstNode::AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e) {
    loperand = assignAst(l);
    roperand = assignAst(r);
    eoperand = assignAst(e);
+#if defined(BPATCH_LIBRARY)
    bptype = NULL;
    doTypeCheck = true;
+#endif
 };
 
 AstNode::AstNode(AstNode *src) {
@@ -631,8 +657,10 @@ AstNode::AstNode(AstNode *src) {
    loperand = assignAst(src->loperand);
    roperand = assignAst(src->roperand);
    eoperand = assignAst(src->eoperand);
+#if defined(BPATCH_LIBRARY)
    bptype = src->bptype;
    doTypeCheck = src->doTypeCheck;
+#endif
 }
 
 #if defined(ASTDEBUG)

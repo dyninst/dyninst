@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-mips.h,v 1.3 1999/05/25 16:38:12 wylie Exp $
+// $Id: instPoint-mips.h,v 1.4 1999/07/08 00:22:30 nash Exp $
 // MIPS-specific definition of class instPoint
 
 #ifndef _INST_POINT_MIPS_H_
@@ -87,6 +87,12 @@ class instPoint {
   const function_base *iPgetCallee()   const { return callee_; }
   const image         *iPgetOwner()    const { return owner_;  }
         Address        iPgetAddress()  const { return addr_;   }
+
+#ifndef BPATCH_LIBRARY
+  // Used to allow trigering of metrics when their foci appear on the stack when
+  //  the metric is inserted.
+  bool triggeredInStackFrame(pd_Function *, Address, callWhen );
+#endif
 
   instPointType type() const { return ipType_; }
   int size() const { return size_; }

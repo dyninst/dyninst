@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.37 1999/07/07 16:03:28 zhichen Exp $
+// $Id: ast.h,v 1.38 1999/07/08 00:22:28 nash Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -53,7 +53,9 @@
 #include "util/h/Dictionary.h"
 #include "util/h/String.h"
 #include "util/h/Types.h"
+#if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/h/BPatch_type.h"
+#endif
 
 class process;
 class instPoint;
@@ -200,8 +202,10 @@ class AstNode {
 	vector<AstNode *> operands; // only for call nodes
 	operandType oType;	    // for operand nodes
 	void *oValue;	            // operand value for operand nodes
+#ifdef BPATCH_LIBRARY
 	const BPatch_type *bptype;  // type of corresponding BPatch_snippet
 	bool doTypeCheck;	    // should operands be type checked
+#endif
 
         // These 2 vrbles must be pointers; otherwise, we'd have a recursive
         // data structure with an infinite size.

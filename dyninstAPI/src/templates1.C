@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.24 1999/06/30 16:11:30 davisj Exp $
+// $Id: templates1.C,v 1.25 1999/07/08 00:22:34 nash Exp $
 
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
@@ -57,10 +57,13 @@
 #include "dyninstAPI/src/sharedobject.h"
 
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
+
+#if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/h/BPatch_type.h"
 
 class BPatch_thread;
 class BPatch_field;
+#endif
 
 #if defined(mips_sgi_irix6_4)
 #include "dyninstAPI/src/irixDL.h" // dsoEvent_t

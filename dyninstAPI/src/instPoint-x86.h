@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.3 1999/05/24 21:42:49 cain Exp $
+// $Id: instPoint-x86.h,v 1.4 1999/07/08 00:22:31 nash Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -121,6 +121,12 @@ class instPoint {
   }
 
   image *owner() const { return func()->file()->exec(); }
+
+#ifndef BPATCH_LIBRARY
+  // Used to allow trigering of metrics when their foci appear on the stack when
+  //  the metric is inserted.
+  bool triggeredInStackFrame(pd_Function *func, Address addr, callWhen when);
+#endif
 
   // return the size of all instructions in this point
   // size may change after point is checked

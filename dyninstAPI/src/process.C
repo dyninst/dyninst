@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.180 1999/07/07 16:08:37 zhichen Exp $
+// $Id: process.C,v 1.181 1999/07/08 00:22:32 nash Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -294,6 +294,7 @@ vector<Address> process::walkStack(bool noPause)
   }  
   return(pcs);
 }
+
 #if defined(MT_THREAD)
 // For threaded application only
 void process::walkAStack(int /*id*/, 
@@ -421,6 +422,17 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
 }
 #endif //MT_THREAD
 #endif
+
+
+vector<pd_Function *> process::convertPCsToFuncs(vector<Address> pcs) {
+    vector <pd_Function *> ret;
+    unsigned i;
+    for(i=0;i<pcs.size();i++) {
+        ret += (pd_Function *)findFunctionIn(pcs[i]);
+    }
+    return ret;
+}
+
 
 static Address alignAddress(Address addr, unsigned align) {
   Address skew = addr % align;

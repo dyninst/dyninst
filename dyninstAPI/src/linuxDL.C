@@ -73,7 +73,7 @@ bool dynamic_linking::get_ld_info(u_int &addr, char **path, process *proc ){
   char *ldpath;
   ldpath = getenv( "LD_PATH" );
   if( !ldpath ) {
-    ldpath = new char[ strlen(ldlibpath+1) ];
+    ldpath = new char[ strlen(ldlibpath)+1 ];
     strcpy( ldpath, ldlibpath );
   }
 
@@ -470,7 +470,7 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 	   obj_name != p->getArgv0()) {
 	   sharedobj_cerr << 
 	       "file name doesn't match image, so not ignoring it...firsttime=" 
-	       << first_time << endl;
+	       << (int)first_time << endl;
 
 	   // kludge for when an exec occurs...the first element
 	   // in the link maps is the file name of the parent process
@@ -484,7 +484,7 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 	else {
 	   sharedobj_cerr << 
 	       "file name matches that of image, so ignoring...firsttime=" 
-	       << first_time << endl;
+	       << (int)first_time << endl;
         }
 
 	first_time = false;

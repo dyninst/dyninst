@@ -2470,3 +2470,52 @@ void initLibraryFunctions()
 #endif
 }
 
+
+#ifndef BPATCH_LIBRARY
+// Would inst point *this have been triggered in the specified stack frame?
+// For entry instrumentation, the inst point is assumed to be triggered
+//  once for every time the function it applies to appears on the stack.
+// For call site instrumentation, the inst point is assumed to be triggered
+//  when the function to which apoplies appears on the stack only if the 
+//  return pc in that function is directloy after the call site.
+// For other types of instrumentation, thee inst point is assumed not to
+//  be triggered.
+bool instPoint::triggeredInStackFrame( pd_Function *stack_func, Address stack_pc,
+				      callWhen when ) {
+    bool ret = false;
+/*
+    cerr << "instPoint (Addr =  " << (void*)addr_ << " size = " << size_
+         << " func->name = " << func_->prettyName()
+		 << " ipType = " << (int)ipType_ << ")" << endl;
+    cerr << " triggeredInStackFrame called, stack_func = ";
+    if ( stack_func != NULL ) { 
+		cerr << stack_func->prettyName(); 
+    } else {
+        cerr << "<null-function>";
+    }
+    cerr << " stack_pc = " << (void*)stack_pc << " when = " << (int)when << endl;
+*/
+    if ( ipType_ == IPT_ENTRY ) {
+        if ( stack_func == func_ ) {
+			//cerr << " hit for function entry" << endl;
+			ret = true;
+        }
+    } else if ( ipType_ == IPT_CALL ) {
+        if ( stack_func == func_ && when == callPreInsn ) {
+			// check if the stack_pc points to the instruction after the call site
+			Address target = addr_ + size_;
+			//cerr << " stack_pc should be " << (void*)target;
+			if ( stack_pc == target ) {
+				//cerr << " -- HIT";
+				ret = true;
+			}
+			//cerr << endl;
+        }
+    }
+
+    //cerr << " returning " << ret << endl;
+
+    return ret;
+}
+#endif
+
