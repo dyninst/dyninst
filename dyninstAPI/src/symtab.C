@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.150 2003/03/13 00:47:55 buck Exp $
+// $Id: symtab.C,v 1.151 2003/03/14 20:07:10 buck Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -447,17 +447,17 @@ bool image::addAllFunctions(pdvector<Symbol> &mods)
     if (linkedFile.isEEL() && np[0] == '.')
          /* ignore these EEL symbols; we don't understand their values */
 	 continue; 
+    if (is_a_out && 
+	(lookUp.addr() == mainFuncSymbol.addr()) &&
+	(lookUp.name() == mainFuncSymbol.name()))
+      // We already added main(), so skip it now
+      continue;
     if (funcsByAddr.defines(lookUp.addr())) {
       // We have already seen a function at this addr. add a second name
       // for this function.
       addMultipleFunctionNames(mods, lookUp);
       continue;
     }
-    if (is_a_out && 
-	(lookUp.addr() == mainFuncSymbol.addr()) &&
-	(lookUp.name() == mainFuncSymbol.name()))
-      // We already added main(), so skip it now
-      continue;
     if (lookUp.type() == Symbol::PDST_FUNCTION) {
       if (!isValidAddress(lookUp.addr())) {
 	string msg;
