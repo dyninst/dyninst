@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.293 2002/02/05 17:09:43 chadd Exp $
+// $Id: process.C,v 1.294 2002/02/07 20:31:38 cortes Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1909,11 +1909,14 @@ process::process(int iPid, image *iImage, int iTraceLink
     reachedVeryFirstTrap = false;
     createdViaAttach = false;
     createdViaFork = false;
+    createdViaAttachToCreated = false;
 
-    if (iTraceLink != -1 ) createdViaAttachToCreated = false; 
-    else 
-       createdViaAttachToCreated = true; // indicates the unique case where paradynd is attached to
-                                         // a stopped application just after executing the execv() --Ana 
+
+#ifndef BPATCH_LIBRARY
+      if (iTraceLink == -1 ) createdViaAttachToCreated = true;
+                         // indicates the unique case where paradynd is attached to
+                         // a stopped application just after executing the execv() --Ana
+#endif
 
     needToContinueAfterDYNINSTinit = false;  //Wait for press of "RUN" button
 
