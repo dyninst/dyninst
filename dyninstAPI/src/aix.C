@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.181 2004/03/08 23:45:39 bernat Exp $
+// $Id: aix.C,v 1.182 2004/03/11 22:20:31 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -2065,10 +2065,10 @@ fileDescriptor *getExecFileDescriptor(pdstring filename, int &status, bool waitF
 
 
 void process::copyDanglingMemory(process *child) {
-    // Copy everything in a heap marked "text" over by hand
+    // Copy everything in a heap marked "uncopied" over by hand
     pdvector<heapItem *> items = heap.heapActive.values();
     for (unsigned i = 0; i < items.size(); i++) {
-        if (items[i]->type == textHeap) {
+        if (items[i]->type == uncopiedHeap) {
             char buffer[items[i]->length];
             readDataSpace((void *)items[i]->addr, items[i]->length,
                           buffer, true);
@@ -2082,8 +2082,6 @@ void process::copyDanglingMemory(process *child) {
     pdvector<trampTemplate *> tramps = baseMap.values();
     for (unsigned j = 0; j < tramps.size(); j++) {
         instruction insn;
-        fprintf(stderr, "Copying jump at 0x%x\n",
-                tramps[j]->location->absPointAddr(this));
         readDataSpace((void *)tramps[j]->location->absPointAddr(this),
                       sizeof(instruction),
                       (void *)&insn, true);
