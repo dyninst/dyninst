@@ -1227,7 +1227,7 @@ DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid) {
 
       /* portnum and hostaddr are passed in as params */
       char path[100];
-      sprintf(path, "%sparadynd.%d\n", P_tmpdir, paradyndPid);
+      sprintf(path, "%sparadynd.%d", P_tmpdir, paradyndPid);
       DYNINST_trace_fd = connectToDaemon(path);
       assert(DYNINST_trace_fd != -1);
 
