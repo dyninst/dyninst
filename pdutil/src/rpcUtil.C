@@ -1,8 +1,12 @@
 /*
 $Log: rpcUtil.C,v $
-Revision 1.19  1994/04/21 23:23:49  hollings
-removed paradynd name from make args function.
+Revision 1.20  1994/05/12 18:47:51  jcargill
+Changed make args function to leave room for program name in arg_list[0],
+and added code to RPCprocessCreate to poke it in there before execv'ing.
 
+ * Revision 1.19  1994/04/21  23:23:49  hollings
+ * removed paradynd name from make args function.
+ *
  * Revision 1.18  1994/04/06  22:46:12  markc
  * Fixed bug in XDRrpc constructor that clobbered the fd value.  Added feature
  * to RPC_readReady to do blocking select.
@@ -240,11 +244,12 @@ char **RPC_make_arg_list (int family, int type, int well_known_socket,
 		   int flag)
 {
   char arg_str[100];
-  int arg_count = 0;
+  int arg_count = 1;
   char **arg_list;
   char machine_name[50];
 
-  arg_list = new char*[7];
+  arg_list = new char*[8];
+  arg_list[0] = NULL;
   sprintf(arg_str, "%s%d", "-p", well_known_socket);
   arg_list[arg_count++] = strdup (arg_str);
   sprintf(arg_str, "%s%d", "-f", family);
@@ -423,8 +428,10 @@ int RPCprocessCreate(int *pid, char *hostName, char *userName,
 	    dup2(sv[1], 0);
 	    if (!arg_list)
 	      execl(command, command);
-	    else
-	      execv(command, arg_list);
+	    else {
+		arg_list[0] = command;
+		execv(command, arg_list);
+	    }
 	    execlERROR = errno;
 	    _exit(-1);
 	} else if (*pid > 0 && !execlERROR) {
