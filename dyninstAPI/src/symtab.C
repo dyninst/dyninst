@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.117 2001/02/26 21:34:44 bernat Exp $
+// $Id: symtab.C,v 1.118 2001/05/12 21:29:39 ning Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,6 +81,20 @@ extern char *cplus_demangle(char *, int);
 extern "C" char *cplus_demangle(char *, int);
 #endif
 
+// coming to dyninstAPI/src/symtab.hC
+// needed in metric.C
+bool function_base::match(function_base *fb)
+{
+  if (this == fb)
+    return true;
+  else
+    return ((symTabName_ == fb->symTabName_) &&
+	    (prettyName_ == fb->prettyName_) &&
+	    (line_       == fb->line_) &&
+	    (addr_       == fb->addr_) &&
+	    (size_       == fb->size_) &&
+	    (tag_        == fb->tag_));
+}
 
 /*
   Debuggering info for function_base....

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.248 2001/05/07 19:22:36 tikir Exp $
+// $Id: process.C,v 1.249 2001/05/12 21:29:38 ning Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1555,7 +1555,9 @@ bool process::initDyninstLib() {
    assert(hasLoadedDyninstLib);
 #endif
 
+
   initInferiorHeap();
+
   extern vector<sym_data> syms_to_find;
   if (!heapIsOk(syms_to_find))
     return false;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.33 2001/04/16 18:47:38 tikir Exp $
+// $Id: inst-alpha.C,v 1.34 2001/05/12 21:29:37 ning Exp $
 
 #include "common/h/headers.h"
 
@@ -2288,3 +2288,16 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 }
 
 #endif
+
+// needed in metric.C
+bool instPoint::match(instPoint *p)
+{
+  if (this == p)
+    return true;
+  
+  // should we check anything else?
+  if (addr == p->addr)
+    return true;
+  
+  return false;
+}

@@ -64,6 +64,8 @@ public:
   const image         *iPgetOwner()    const { 
     return (func) ? ( (func->file()) ? func->file()->exec() : NULL ) : NULL; }
   Address        iPgetAddress()  const { return addr;   }
+
+  bool match(instPoint *p);
   
   Address addr;                   /* address of inst point */
   instruction originalInstruction;    /* original instruction */

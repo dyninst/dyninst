@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.C,v 1.10 2000/10/17 17:42:39 schendel Exp $
+// $Id: superVector.C,v 1.11 2001/05/12 21:29:54 ning Exp $
 
 #include <sys/types.h>
 #include <limits.h>
@@ -760,6 +760,7 @@ bool superVector<HK, RAW>::alloc(unsigned thr_pos, const RAW &iValue,
 #if defined(TEST_DEL_DEBUG)
    else logLine("=====> doNotSample is TRUE\n");
 #endif
+
   //used to be inside
   theSuperVector[idx]->set_houseKeeping(allocatedIndex, iHKValue);
 

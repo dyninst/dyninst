@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-power.h,v 1.6 2000/03/20 22:56:15 chambrea Exp $
+// $Id: instPoint-power.h,v 1.7 2001/05/12 21:29:38 ning Exp $
 
 #ifndef _INST_POINT_POWER_H_
 #define _INST_POINT_POWER_H_
@@ -66,6 +66,8 @@ public:
     return (func) ? ( (func->file()) ? func->file()->exec() : NULL ) : NULL; }
         Address        iPgetAddress()  const { return addr;   }
 
+  bool match(instPoint *p);
+  
   Address addr;                   /* address of inst point */
   instruction originalInstruction;    /* original instruction */
 

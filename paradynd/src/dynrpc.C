@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.79 2000/10/27 23:04:36 zandy Exp $ */
+/* $Id: dynrpc.C,v 1.80 2001/05/12 21:29:53 ning Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -156,10 +156,11 @@ void dynRPC::disableDataCollection(int mid)
     mi = allMIs[mid];
     // cout << "disable of " << mi->getFullName() << endl; 
 
-    timeLength cost = mi->originalCost();
+    // timeLength cost = mi->originalCost();
+    timeLength cost = mi->cost();
     
     if(cost > currentPredictedCost)
-	setCurrentPredictedCost(timeLength::Zero());
+        setCurrentPredictedCost(timeLength::Zero());
     else 
         subCurrentPredictedCost(cost);
 

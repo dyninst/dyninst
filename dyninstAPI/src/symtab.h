@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.80 2001/04/04 17:33:12 gurari Exp $
+// $Id: symtab.h,v 1.81 2001/05/12 21:29:39 ning Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -155,6 +155,8 @@ public:
     Address addr() const {return addr_;}
     unsigned tag() const { return tag_;}
     void setTag(unsigned tg){ tag_ = tg; }
+
+    bool match(function_base *p);
 
     virtual Address getAddress(const process *p) = 0;
     virtual Address getEffectiveAddress(const process *p) const = 0;

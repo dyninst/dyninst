@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.116 2001/04/25 20:34:17 wxd Exp $
+// $Id: perfStream.C,v 1.117 2001/05/12 21:29:54 ning Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -122,6 +122,7 @@ void processAppIO(process *curr)
 	string msg = string("Process ") + string(curr->getPid()) + string(" exited");
 	statusLine(msg.string_of());
 	handleProcessExit(curr,0);
+	
 	return;
     }
 

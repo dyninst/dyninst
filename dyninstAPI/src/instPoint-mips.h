@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-mips.h,v 1.9 2000/07/28 17:21:15 pcroth Exp $
+// $Id: instPoint-mips.h,v 1.10 2001/05/12 21:29:38 ning Exp $
 // MIPS-specific definition of class instPoint
 
 #ifndef _INST_POINT_MIPS_H_
@@ -112,6 +112,8 @@ class instPoint {
       }
       fprintf(stream, "point of \"%s\"\n", func_->prettyName().string_of());      
     }
+
+  bool match(instPoint *p);
 
  public:
   unsigned       flags;

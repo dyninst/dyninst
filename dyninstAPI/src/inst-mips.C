@@ -4592,3 +4592,17 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 }
 
 #endif
+
+
+// needed in metric.C
+bool instPoint::match(instPoint *p)
+{
+  if (this == p)
+    return true;
+  
+  // should we check anything else?
+  if (addr == p->addr_)
+    return true;
+  
+  return false;
+}

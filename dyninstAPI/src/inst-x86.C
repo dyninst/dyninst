@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.77 2001/05/02 20:21:24 pcroth Exp $
+ * $Id: inst-x86.C,v 1.78 2001/05/12 21:29:37 ning Exp $
  */
 
 #include <iomanip.h>
@@ -4203,13 +4203,16 @@ LocalAlteration *fixOverlappingAlterations(LocalAlteration *alteration,
 }
 
 
-
-
-
-
-
-
-
-
-
+// needed in metric.C
+bool instPoint::match(instPoint *p)
+{
+  if (this == p)
+    return true;
+  
+  // should we check anything else?
+  if (addr_ == p->addr_)
+    return true;
+  
+  return false;
+}
 

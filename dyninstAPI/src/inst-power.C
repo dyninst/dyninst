@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.104 2001/04/16 18:47:38 tikir Exp $
+ * $Id: inst-power.C,v 1.105 2001/05/12 21:29:37 ning Exp $
  */
 
 #include "common/h/headers.h"
@@ -3571,3 +3571,17 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 }
 
 #endif
+
+
+// needed in metric.C
+bool instPoint::match(instPoint *p)
+{
+  if (this == p)
+    return true;
+  
+  // should we check anything else?
+  if (addr == p->addr)
+    return true;
+  
+  return false;
+}

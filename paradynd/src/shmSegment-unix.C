@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-unix.C,v 1.5 2001/03/08 23:01:00 bernat Exp $
+// $Id: shmSegment-unix.C,v 1.6 2001/05/12 21:29:54 ning Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -130,9 +130,10 @@ ShmSegment::Create( key_t& key, unsigned int size, void* /*addr*/ )
 	        // If sucessful, then retry; else, retry after incrementing
 	        // firstKeyToTry.
 	        gcResult result = TryToReleaseShmSegment(key, size);
+
 	        if (result == gcHappened) {
 #ifdef SHM_SAMPLING_DEBUG
-	           cerr << "ShmSegment::Create successfully gc'd key " 
+		   cerr << "ShmSegment::Create successfully gc'd key " 
                         << (int)key << endl;
 #endif
 	           continue;

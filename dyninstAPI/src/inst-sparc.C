@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.99 2001/05/04 21:22:43 gurari Exp $
+// $Id: inst-sparc.C,v 1.100 2001/05/12 21:29:37 ning Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1681,3 +1681,16 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
 }
 
 #endif
+
+// needed in metric.C
+bool instPoint::match(instPoint *p)
+{
+  if (this == p)
+    return true;
+  
+  // should we check anything else?
+  if (addr == p->addr)
+    return true;
+  
+  return false;
+}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.44 2000/07/28 17:21:13 pcroth Exp $
+// $Id: ast.h,v 1.45 2001/05/12 21:29:36 ning Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -66,6 +66,7 @@ class function_base;
 // typedef int reg; // see new Register type in "common/h/Types.h"
 
 typedef enum { plusOp,
+
                minusOp,
                timesOp,
                divOp,
@@ -132,11 +133,18 @@ class registerSpace {
         vector<Register> keep_list;
 };
 
+class dataReqNode;
 class AstNode {
     public:
         enum nodeType { sequenceNode, opCodeNode, operandNode, callNode };
         enum operandType { Constant, ConstantPtr, ConstantString,
-			   /*DataValue, DataPtr,*/ 
+#if defined(MT_THREAD)
+			   OffsetConstant,      // add a OffsetConstant type for offset
+			                        // generated for level or index:
+			                        //   it is  MAX#THREADS * level * tSize  for level
+			                        //     or                 index * tSize  for index
+#endif
+			   DataValue, DataPtr,  // restore AstNode::DataValue and AstNode::DataPtr
                            DataId, DataIndir, DataReg,
 			   Param, ReturnVal, DataAddr, FrameAddr,
 			   SharedData, PreviousStackFrameDataReg};
@@ -145,6 +153,9 @@ class AstNode {
 	AstNode(const string &func, AstNode *l, AstNode *r);
         AstNode(const string &func, AstNode *l); // needed by inst.C
 	AstNode(operandType ot, void *arg);
+#if defined(MT_THREAD)
+	AstNode(operandType ot, void *arg, bool isLev, unsigned v_level, unsigned v_index);
+#endif
 	AstNode(AstNode *l, AstNode *r);
 
         AstNode(opCode, AstNode *left); 
@@ -195,6 +206,13 @@ class AstNode {
 	void optRetVal(AstNode *opt);
 #endif
 
+	// only function that's defined in metric.C (only used in metri.C)
+	bool condMatch(AstNode* a,
+		       vector<dataReqNode*> &data_tuple1,
+		       vector<dataReqNode*> &data_tuple2,
+		       vector<dataReqNode*> datareqs1,
+		       vector<dataReqNode*> datareqs2);
+
     private:
         AstNode(opCode); // like AstNode(opCode, const AstNode &, 
                          //              const AstNode &)
@@ -206,6 +224,13 @@ class AstNode {
 	vector<AstNode *> operands; // only for call nodes
 	operandType oType;	    // for operand nodes
 	void *oValue;	            // operand value for operand nodes
+#if defined(MT_THREAD)              // for OffsetConstant type for offset
+	bool isLevel;               // true  if lvlOrIdx is level
+	                            // false if lvlOrIdex is idex
+	unsigned lvl;               // if level:  MAX#THREADS * level * tSize
+	unsigned idx;               // if index:                index * tSize
+	                            // lvl AND idx together identify a variable
+#endif
 #ifdef BPATCH_LIBRARY
 	const BPatch_type *bptype;  // type of corresponding BPatch_snippet
 	bool doTypeCheck;	    // should operands be type checked
@@ -242,7 +267,7 @@ AstNode *createIf(AstNode *expression, AstNode *action);
 AstNode *createCounter(const string &func, void *, void *, AstNode *arg);
 AstNode *createTimer(const string &func, void *, void *, 
                      vector<AstNode *> &arg_args);
-AstNode *computeAddress(void *level, void *index, int type);
+AstNode *computeAddress(void *level, int type);
 AstNode *addIndexToAddress(AstNode *addr, void *index, int type);
 AstNode *computeTheAddress(void *level, void *index, int type);
 #else

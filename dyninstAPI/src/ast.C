@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.81 2001/02/26 21:34:39 bernat Exp $
+// $Id: ast.C,v 1.82 2001/05/12 21:29:36 ning Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -522,6 +522,40 @@ AstNode::AstNode(operandType ot, void *arg) {
 #endif
 };
 
+// to create a newly added type for recognizing offset for locating variables
+#if defined(MT_THREAD)
+AstNode::AstNode(operandType ot, void *arg, bool isLev, unsigned v_level, unsigned v_index) {
+    assert(ot == OffsetConstant);
+#if defined(ASTDEBUG)
+    ASTcounterNP();
+#endif
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+    astFlag = false;
+#endif
+    referenceCount = 1;
+    useCount = 0;
+    kept_register = Null_Register;
+    type = operandNode;
+    oType = ot;
+    if (ot == ConstantString)
+	oValue = (void *)P_strdup((char *)arg);
+    else
+    	oValue = (void *) arg;
+    loperand = roperand = eoperand = NULL;
+    size = 4;
+#if defined(BPATCH_LIBRARY)
+    bptype = NULL;
+    doTypeCheck = true;
+#endif
+    // so far it's the same as AstNode(operandType ot, void *arg)
+    // now assign isLevel and lvlOrIdx
+    isLevel = isLev;
+    lvl     = v_level;
+    idx     = v_index;
+};
+#endif
+
+
 AstNode::AstNode(operandType ot, AstNode *l) {
 #if defined(ASTDEBUG)
     ASTcounter();
@@ -545,6 +579,7 @@ AstNode::AstNode(operandType ot, AstNode *l) {
 #endif
 };
 
+// for sequence node
 AstNode::AstNode(AstNode *l, AstNode *r) {
 #if defined(ASTDEBUG)
    ASTcounter();
@@ -1271,10 +1306,15 @@ Address AstNode::generateCode_phase2(process *proc,
 	} else if (oType == ConstantPtr) {
 	    emitVload(loadConstOp, (*(Address *) oValue), dest, dest, 
                         insn, base, noCost);
-/*	} else if (oType == DataPtr) {
-	    addr = (Address) oValue;
-            assert(addr != 0); // check for NULL
-	    emitVload(loadConstOp, addr, dest, dest, insn, base, noCost); */
+#if defined(MT_THREAD)
+	} else if (oType == OffsetConstant) {  // a newly added type for recognizing offset for locating variables
+	    emitVload(loadConstOp, (Address)oValue, dest, dest, 
+                        insn, base, noCost);
+#endif
+	} else if (oType == DataPtr) { // restore AstNode::DataPtr type
+	  addr = (Address) oValue;
+	  assert(addr != 0); // check for NULL
+	  emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
 	} else if (oType == DataIndir) {
 	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost);
 #ifdef BPATCH_LIBRARY
@@ -1298,10 +1338,10 @@ Address AstNode::generateCode_phase2(process *proc,
 	else if (oType == DataId) {
 	    emitVload(loadConstOp, (Address)oValue, dest, dest, 
                         insn, base, noCost);
-/*	} else if (oType == DataValue) {
-	    addr = (Address) oValue;
-	    assert(addr != 0); // check for NULL
-	    emitVload(loadOp, addr, dest, dest, insn, base, noCost); */
+	} else if (oType == DataValue) {  // restore AstNode::DataValue type
+	  addr = (Address) oValue;
+	  assert(addr != 0); // check for NULL
+	  emitVload(loadOp, addr, dest, dest, insn, base, noCost);
 	} else if (oType == ReturnVal) {
             rs->unkeep_register(dest);
 	    rs->freeRegister(dest);
@@ -1452,10 +1492,14 @@ int AstNode::cost() const {
     } else if (type == operandNode) {
 	if (oType == Constant) {
 	    total = getInsnCost(loadConstOp);
-/*	} else if (oType == DataPtr) {
+#if defined(MT_THREAD)
+	} else if (oType == OffsetConstant) {  // a newly added type for recognizing offset for locating variables
 	    total = getInsnCost(loadConstOp);
-	} else if (oType == DataValue) {
-	total = getInsnCost(loadOp); */
+#endif
+	} else if (oType == DataPtr) {  // restore AstNode::DataPtr type
+	  total = getInsnCost(loadConstOp);
+	} else if (oType == DataValue) {  // restore AstNode::DataValue type
+	  total = getInsnCost(loadOp); 
 	} else if (oType == DataId) {
 	    total = getInsnCost(loadConstOp);
 	} else if (oType == DataIndir) {
@@ -1493,14 +1537,17 @@ void AstNode::print() const {
       } else if (oType == ConstantString) {
         sprintf(errorLine, " %s", (char *)oValue);
 	logLine(errorLine) ;
-/*
-      } else if (oType == DataPtr) {
+#if defined(MT_THREAD)
+      } else if (oType == OffsetConstant) {  // a newly added type for recognizing offset for locating variables
 	sprintf(errorLine, " %d", (int)(Address) oValue);
 	logLine(errorLine);
-      } else if (oType == DataValue) {
+#endif
+      } else if (oType == DataPtr) {  // restore AstNode::DataPtr type
+	sprintf(errorLine, " %d", (int)(Address) oValue);
+	logLine(errorLine);
+      } else if (oType == DataValue) {  // restore AstNode::DataValue type
 	sprintf(errorLine, " @%d", (int)(Address) oValue);
 	logLine(errorLine); 
-*/
       } else if (oType == DataIndir) {
 	logLine(" @[");
         loperand->print();
@@ -1572,11 +1619,16 @@ AstNode *computeAddress(void *level, void *index, int type)
 
   /* Now we compute the offset for the corresponding level. We assume */
   /* that the DYNINSTthreadTable is stored by rows - naim 4/18/97 */
-  if ((int)level != 0) {
+  //  if ((int)level != 0) {
     tSize = sizeof(unsigned);
 
-    AstNode* t5 = new AstNode(AstNode::Constant, 
-		    (void*) (MAX_NUMBER_OF_THREADS*((unsigned) level)*tSize)) ;
+    // AstNode* t5 = new AstNode(AstNode::Constant, 
+    // (void*) (MAX_NUMBER_OF_THREADS*((unsigned) level)*tSize)) ;
+    AstNode* t5 = new AstNode(AstNode::OffsetConstant, 
+			      (void*) (MAX_NUMBER_OF_THREADS*((unsigned) level)*tSize),
+			      true,  // this IS level
+			      (unsigned) level,
+			      (unsigned) index) ;  // value of level
 
     /* Given the level and tid, we compute the position in the thread */
     /* table. */
@@ -1588,11 +1640,13 @@ AstNode *computeAddress(void *level, void *index, int type)
     /* vector of counters and timers in the shared memory segment. */
     t7 = new AstNode(AstNode::DataIndir, t6); 
     removeAst(t6);
-  } else {
+
+    // remove 0 as a special case, so that we know the type "OffsetConstant"
+    //  } else {
     /* if level is 0, we don't need to compute the offset */
-    t7 = new AstNode(AstNode::DataIndir, t0);
-    removeAst(t0);
-  }
+    //    t7 = new AstNode(AstNode::DataIndir, t0);
+    //    removeAst(t0);
+    //  }
   return(t7);
 }
 
@@ -1607,7 +1661,7 @@ AstNode *checkAddress(AstNode *addr, opCode op)
 }
 
 
-AstNode *addIndexToAddress(AstNode *addr, void *index, int type)
+AstNode *addIndexToAddress(AstNode *addr, void *level, void *index, int type)
 {
   AstNode *t10, *t11;
   int tSize;
@@ -1622,7 +1676,12 @@ AstNode *addIndexToAddress(AstNode *addr, void *index, int type)
     tSize = sizeof(tTimer);
   }
 
-  t10 = new AstNode(AstNode::Constant, (void*) (((unsigned)index)*tSize)) ;
+  // t10 = new AstNode(AstNode::Constant, (void*) (((unsigned)index)*tSize)) ;
+  t10 = new AstNode(AstNode::OffsetConstant,
+		    (void*) (((unsigned)index)*tSize),
+		    false,  // this is NOT level
+		    (unsigned) level,
+		    (unsigned) index);  // value of index
   t11 = new AstNode(plusOp, addr, t10); /* address of counter/timer */
   removeAst(t10) ;
 
@@ -1632,7 +1691,7 @@ AstNode *addIndexToAddress(AstNode *addr, void *index, int type)
 
 AstNode *computeTheAddress(void *level, void *index, int type) {
   AstNode* base = computeAddress(level, index, type) ;
-  AstNode* addr = addIndexToAddress(base, index, type) ;
+  AstNode* addr = addIndexToAddress(base, level, index, type) ;
   removeAst(base) ;
   return addr ;
 }
@@ -1656,7 +1715,7 @@ AstNode *createTimer(const string &func, void *level, void *index,
   AstNode* t31 = new AstNode(ifOp, t30, t32) ;
   removeAst(t30);
   removeAst(t32); 
-  AstNode* t0 = computeAddress(level,index,1); /* 1 means tTimer */
+  AstNode* t0 = computeAddress(level, index, 1); /* 1 means tTimer */
   AstNode* t2 = checkAddress(t0, eqOp);
   removeAst(t0); 
   AstNode* t18 = new AstNode(whileOp, t2, t31) ;
@@ -1665,7 +1724,7 @@ AstNode *createTimer(const string &func, void *level, void *index,
 
   //t1:
   // Timer
-  AstNode* t3 = addIndexToAddress(t0, index, 1); /* 1 means tTimer */
+  AstNode* t3 = addIndexToAddress(t0, level, index, 1); /* 1 means tTimer */
   ast_args += (t3);
   AstNode* t1 = new AstNode(func, ast_args);
   for(unsigned i=0; i<ast_args.size(); i++)
@@ -1694,9 +1753,9 @@ AstNode *createCounter(const string &func, void *level, void *index,
   AstNode *t0=NULL,*t1=NULL,*t2=NULL,*t3=NULL;
   AstNode *t4=NULL,*t5=NULL,*t6=NULL;
 
-  t0 = computeAddress(level,index,0); /* 0 means intCounter */
+  t0 = computeAddress(level, index, 0); /* 0 means intCounter */
   t4 = checkAddress(t0, neOp);
-  t5 = addIndexToAddress(t0, index, 0); /* 0 means intCounter */
+  t5 = addIndexToAddress(t0, level, index, 0); /* 0 means intCounter */
   removeAst(t0) ;
 
   if (func == "addCounter") {
@@ -1730,7 +1789,8 @@ AstNode *createTimer(const string &func, void *dataPtr,
 {
   AstNode *t0=NULL,*t1=NULL;
 
-  t0 = new AstNode(AstNode::Constant, (void *) dataPtr);  // This was AstNode::DataPtr
+  // t0 = new AstNode(AstNode::Constant, (void *) dataPtr);  // This was AstNode::DataPtr
+  t0 = new AstNode(AstNode::DataPtr, (void *) dataPtr);  // restore AstNode::DataPtr
   ast_args += assignAst(t0);
   removeAst(t0);
   t1 = new AstNode(func, ast_args);
@@ -1744,6 +1804,7 @@ AstNode *createCounter(const string &func, void *dataPtr,
    AstNode *t0=NULL, *t1=NULL, *t2=NULL;
 
    t0 = new AstNode(AstNode::DataAddr, (void *)dataPtr);  // This was AstNode::DataValue
+   // t0 = new AstNode(AstNode::DataValue, (void *)dataPtr);  // restore AstNode::DataValue
    if (func=="addCounter") {
      t1 = new AstNode(plusOp,t0,ast);
      t2 = new AstNode(storeOp,t0,t1);
