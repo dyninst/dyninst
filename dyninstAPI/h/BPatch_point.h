@@ -144,25 +144,34 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     friend class BPatch_thread;
     friend class BPatch_image;
     friend class BPatch_function;
+    friend class BPatch_basicBlockLoop;
+    friend class BPatch_flowGraph; // Access to setLoop
     friend class process;
     friend class BPatch_edge;
 #if !defined (__XLC__)
     friend BPatch_point* createInstructionInstPoint(process*proc,void*address,
 						    BPatch_point** alternative,
-						    BPatch_function* bpf = NULL);
+					    BPatch_function* bpf = NULL);
 #endif
     friend BPatch_point* createInstPointForMemAccess(process *proc,
 						     void *addr,
 						     BPatch_memoryAccess* ma,
 						     BPatch_point** alternative);
-    process *proc;
-    const BPatch_function *func;
-    instPoint *point;
+    process	*proc;
+    const BPatch_function	*func;
+    BPatch_basicBlockLoop *loop;
+    instPoint	*point;
+
     BPatch_procedureLocation pointType;
     BPatch_memoryAccess *memacc;
 
     BPatch_point(process *_proc, BPatch_function *_func, instPoint *_point,
 		 BPatch_procedureLocation _pointType, BPatch_memoryAccess* _ma = NULL);
+    void setLoop(BPatch_basicBlockLoop *l);
+
+    // We often create a point with the arbitrary point type,
+    // and later need to override it to a specific type (e.g., loop entry)
+    void overrideType(BPatch_procedureLocation loc) { pointType = loc; }
 
     //  dynamic_call_site_flag:
     //    0:  is not dynamic call site
@@ -179,6 +188,12 @@ public:
     //  This function should go away when paradyn lives on top of dyninst
     //  DO NOT USE
     instPoint * PDSEP_instPoint() {return point;}
+
+
+    // Get the loop ID
+    API_EXPORT(Int, (),
+	       
+    BPatch_basicBlockLoop *, getLoop, ());
 
     //  BPatch_point::getPointType
     //  
