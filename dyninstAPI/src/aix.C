@@ -39,39 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* 
- * aix.C,v
- * Revision 1.10  1996/05/12  05:12:57  tamches
- * (really Jeff)
- * Added ability to process aix 4.1-linked files.
- *
- * Revision 1.9  1996/05/08 23:54:33  mjrg
- * added support for handling fork and exec by an application
- * use /proc instead of ptrace on solaris
- * removed warnings
- *
- * Revision 1.8  1996/04/06 21:25:24  hollings
- * Fixed inst free to work on AIX (really any platform with split I/D heaps).
- * Removed the Line class.
- * Removed a debugging printf for multiple function returns.
- *
- * Revision 1.7  1996/03/12  20:48:16  mjrg
- * Improved handling of process termination
- * New version of aggregateSample to support adding and removing components
- * dynamically
- * Added error messages
- *
- * Revision 1.6  1996/02/13 16:23:22  hollings
- * Move Object class constructors to this file.
- *
- * Revision 1.5  1996/02/12  16:46:06  naim
- * Updating the way we compute number_of_cpus. On solaris we will return the
- * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
- * which should be equal to the number of cpus - naim
- *
- */
-
-
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/process.h"
