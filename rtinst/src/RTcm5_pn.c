@@ -4,7 +4,14 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.17  1994/07/28 23:22:55  hollings
+ * Revision 1.18  1994/08/02 18:18:52  hollings
+ * added code to save/restore FP state on entry/exit to signal handle
+ * (really jcargill, but commited by hollings).
+ *
+ * changed comparisons on time regression to use 64 bit int compares rather
+ * than floats to prevent fp rounding error from causing false alarms.
+ *
+ * Revision 1.17  1994/07/28  23:22:55  hollings
  * clear g7 on init, and fixed DYNINSTcyclesToUsec.
  *
  * Revision 1.16  1994/07/26  20:06:12  hollings
@@ -304,7 +311,7 @@ retry:
     }
 }
 
-double previous[1000];
+time64 previous[1000];
 
 void set_timer_buf(volatile struct timer_buf *param)
 {
@@ -348,15 +355,15 @@ void DYNINSTreportTimer(tTimer *timer)
     sample.value = total / (double) timer->normalize;
     sample.id = timer->id;
 
-    temp = sample.value;
-    if (temp < previous[sample.id.id]) {
+    if (total < previous[sample.id.id]) {
+	 temp = total;
 	 temp2 = previous[sample.id.id];
 	 printf("FATAL ERROR NEGATIVE TIME****\n");
 	 printf("cur = %f, prev = %f\n", temp, temp2);
 	 fflush(stdout);
 	 abort();
     }
-    previous[sample.id.id] = temp;
+    previous[sample.id.id] = total;
 
     DYNINSTtotalSamples++;
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, FALSE);
@@ -563,3 +570,57 @@ void DYNINSTprintCost()
     DYNINSTtotalSamples++;
     DYNINSTgenerateTraceRecord(0, TR_EXIT, sizeof(stats), &stats, 1);
 }
+
+
+/*
+ * These are null routines for Unix: signal handler semantics
+ * guarantee that the FPU state is saved/restored.  Not so on CM5 nodes! 
+ */
+
+void saveFPUstate(float *base)
+{
+    asm ("std     %f0,[%o0+0]");
+    asm ("std     %f2,[%o0+8]");
+    asm ("std     %f4,[%o0+16]");
+    asm ("std     %f6,[%o0+24]");
+    asm ("std     %f8,[%o0+32]");
+    asm ("std     %f10,[%o0+40]");
+    asm ("std     %f12,[%o0+48]");
+    asm ("std     %f14,[%o0+56]");
+    asm ("std     %f16,[%o0+64]");
+    asm ("std     %f18,[%o0+72]");
+    asm ("std     %f20,[%o0+80]");
+    asm ("std     %f22,[%o0+88]");
+    asm ("std     %f24,[%o0+96]");
+    asm ("std     %f26,[%o0+104]");
+    asm ("std     %f28,[%o0+112]");
+    asm ("std     %f30,[%o0+120]");
+
+    asm ("st      %fsr,[%o0+128]"); /* Store FSR. */
+}
+
+
+void restoreFPUstate(float *base)
+{
+    asm ("ld      [%o0+128],%fsr"); /* Restore FSR. */
+
+    asm ("ldd     [%o0+0],%f0");
+    asm ("ldd     [%o0+8],%f2");
+    asm ("ldd     [%o0+16],%f4");
+    asm ("ldd     [%o0+24],%f6");
+    asm ("ldd     [%o0+32],%f8");
+    asm ("ldd     [%o0+40],%f10");
+    asm ("ldd     [%o0+48],%f12");
+    asm ("ldd     [%o0+56],%f14");
+    asm ("ldd     [%o0+64],%f16");
+    asm ("ldd     [%o0+72],%f18");
+    asm ("ldd     [%o0+80],%f20");
+    asm ("ldd     [%o0+88],%f22");
+    asm ("ldd     [%o0+96],%f24");
+    asm ("ldd     [%o0+104],%f26");
+    asm ("ldd     [%o0+112],%f28");
+    asm ("ldd     [%o0+120],%f30");
+}
+
+
+

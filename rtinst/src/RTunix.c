@@ -3,7 +3,14 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.15  1994/07/26 20:04:48  hollings
+ * Revision 1.16  1994/08/02 18:18:57  hollings
+ * added code to save/restore FP state on entry/exit to signal handle
+ * (really jcargill, but commited by hollings).
+ *
+ * changed comparisons on time regression to use 64 bit int compares rather
+ * than floats to prevent fp rounding error from causing false alarms.
+ *
+ * Revision 1.15  1994/07/26  20:04:48  hollings
  * removed slots used variables.
  *
  * Revision 1.14  1994/07/22  19:24:54  hollings
@@ -585,3 +592,20 @@ void DYNINSTprintCost()
     /* record that we are done -- should be somewhere better. */
     DYNINSTgenerateTraceRecord(0, TR_EXIT, sizeof(stats), &stats, 1);
 }
+
+
+/*
+ * These are null routines for Unix: signal handler semantics
+ * guarantee that the FPU state is saved/restored.  Not so on CM5 nodes! 
+ */
+
+void saveFPUstate(float *base)
+{
+}
+
+
+void restoreFPUstate(float *base)
+{
+}
+
+

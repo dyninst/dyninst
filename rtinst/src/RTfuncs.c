@@ -3,7 +3,14 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.11  1994/07/26 20:04:49  hollings
+ * Revision 1.12  1994/08/02 18:18:56  hollings
+ * added code to save/restore FP state on entry/exit to signal handle
+ * (really jcargill, but commited by hollings).
+ *
+ * changed comparisons on time regression to use 64 bit int compares rather
+ * than floats to prevent fp rounding error from causing false alarms.
+ *
+ * Revision 1.11  1994/07/26  20:04:49  hollings
  * removed slots used variables.
  *
  * Revision 1.10  1994/07/22  19:24:53  hollings
@@ -201,6 +208,7 @@ void DYNINSTreportCost(intCounter *counter)
     traceSample sample;
 
     value = DYNINSTgetObservedCycles(1);
+
     cost = ((double) value) * (DYNINSTcyclesToUsec / 1000000.0);
 
     if (cost < prevCost) {
@@ -228,6 +236,7 @@ void DYNINSTalarmExpire()
 {
     time64 start, end;
     static int inSample;
+    float fp_context[33];	/* space to store fp context */
 
 /*     printf ("DYNINSTalarmExpired\n"); */
     /* should use atomic test and set for this */
@@ -238,6 +247,9 @@ void DYNINSTalarmExpire()
     /* only sample every DYNINSTsampleMultiple calls */
     DYNINSTtotalAlaramExpires++;
     if ((++DYNINSTnumSampled % DYNINSTsampleMultiple) == 0)  {
+
+	saveFPUstate(fp_context);
+
 	start = DYNINSTgetCPUtime();
 
 	/* make sure we call this enough to keep observed cost accurate due to
@@ -252,6 +264,8 @@ void DYNINSTalarmExpire()
 	DYNINSTflushTrace();
 	end = DYNINSTgetCPUtime();
 	DYNINSTtotalSampleTime += end - start;
+
+	restoreFPUstate(fp_context);
     }
 
     inSample = 0;
