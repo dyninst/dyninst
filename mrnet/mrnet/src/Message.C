@@ -325,7 +325,9 @@ Packet::Packet(int _tag, const char *fmt, ...)
   mrn_printf(3, MCFL, stderr, "In Packet(%p) constructor\n", this);
   fmt_str = strdup(fmt);
   assert(fmt_str);
-  src = strdup(getNetworkName().c_str());
+  std::string network_name;
+  getNetworkName( network_name );
+  src = strdup( network_name.c_str() );
   assert(src);
 
   va_start(arg_list, fmt);
@@ -361,9 +363,9 @@ Packet::Packet(unsigned short _stream_id, int _tag, const char *fmt, va_list arg
 
   fmt_str = strdup(fmt);
 
-  std::string tmp = getNetworkName();
+  std::string tmp;
+  getNetworkName( tmp );
   src = strdup(tmp.c_str());
-  //src = strdup(getNetworkName().c_str());
 
   if( ArgList2DataElementArray(arg_list) == -1){
     mrn_printf(1, MCFL, stderr, "ArgList2DataElementArray() failed\n");

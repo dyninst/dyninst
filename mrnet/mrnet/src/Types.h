@@ -2,8 +2,12 @@
 #define Types_h
 
 
+#if !defined (__STDC_LIMIT_MACROS)
 #define __STDC_LIMIT_MACROS
+#endif
+#if !defined (__STDC_CONSTANT_MACROS)
 #define __STDC_CONSTANT_MACROS
+#endif
 
 #include <sys/types.h>
 

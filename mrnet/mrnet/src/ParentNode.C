@@ -24,7 +24,7 @@ ParentNode::ParentNode(bool _threaded, std::string _hostname,
 {
   mrn_printf(3, MCFL, stderr, "In ParentNode(): Calling bind_to_port(%d)\n", 
              port);
-  if( bind_to_port(&listening_sock_fd, &port) == -1){
+  if( bindPort(&listening_sock_fd, &port) == -1){
     mrn_printf(1, MCFL, stderr, "bind_to_port() failed\n");
     //errno = MRN_ECANNOTBINDPORT;
     return;
@@ -945,7 +945,7 @@ ParentNode::proc_connectLeaves( Packet* pkt )
         for( unsigned int i = 0; i < children_nodes.size(); i++ )
         {
             // accept a connection
-            int sock_fd = get_socket_connection( listening_sock_fd );
+            int sock_fd = getSocketConnection( listening_sock_fd );
             if( sock_fd == -1 )
             {
                 mrn_printf(1, MCFL, stderr, "get_socket_connection() failed\n");

@@ -16,6 +16,7 @@ void * RemoteNode::recv_thread_main(void * args)
 {
   std::list <Packet *>packet_list;
   RemoteNode * remote_node = (RemoteNode *)args;
+  std::string local_hostname, remote_hostname;
 
   //TLS: setup thread local storage for recv thread
   // I am localhost:localport_UPRECVFROM_remotehost:remoteport
@@ -27,31 +28,34 @@ void * RemoteNode::recv_thread_main(void * args)
             local_child_node->get_Port());
     sprintf(remote_port_str, "%d",
             remote_node->CommunicationNode::id);
-
+    getHostName(local_hostname, local_child_node->get_HostName() );
+    getHostName(remote_hostname, remote_node->get_HostName() );
     name = "UPRECV(";
-    name += getHostName( local_child_node->get_HostName() );
+    name += local_hostname;
     name += ":";
     name += local_port_str;
     name += "<==";
-    name += getHostName( remote_node->get_HostName() );
+    name += remote_hostname;
     name += ":";
     name += remote_port_str;
     name += ")";
   }
   else{
       sprintf(local_port_str, "%d", local_parent_node->config_port);
-    sprintf(remote_port_str, "%d",
-            remote_node->CommunicationNode::id);
+      sprintf(remote_port_str, "%d",
+              remote_node->CommunicationNode::id);
 
-    name = "DOWNRECV(";
-    name += getHostName( local_parent_node->get_HostName() );
-    name += ":";
-    name += local_port_str;
-    name += "<==";
-    name += getHostName( remote_node->get_HostName() );
-    name += ":";
-    name += remote_port_str;
-    name += ")";
+      getHostName(local_hostname, local_parent_node->get_HostName() );
+      getHostName(remote_hostname, remote_node->get_HostName() );
+      name = "DOWNRECV(";
+      name += local_hostname;
+      name += ":";
+      name += local_port_str;
+      name += "<==";
+      name += remote_hostname;
+      name += ":";
+      name += remote_port_str;
+      name += ")";
   }
 
   int status;
@@ -101,7 +105,7 @@ void * RemoteNode::send_thread_main(void * args)
 
   //TLS: setup thread local storage for recv thread
   // I am localhost:localport_UPRECVFROM_remotehost:remoteport
-  std::string name;
+  std::string name, local_hostname, remote_hostname;
   char local_port_str[128];
   char remote_port_str[128];
 
@@ -110,13 +114,15 @@ void * RemoteNode::send_thread_main(void * args)
             local_child_node->get_Port());
     sprintf(remote_port_str, "%d",
             remote_node->CommunicationNode::id);
+    getHostName(local_hostname, local_child_node->get_HostName() );
+    getHostName(remote_hostname, remote_node->get_HostName() );
 
     name = "UPSEND(";
-    name += getHostName( local_child_node->get_HostName() );
+    name += local_hostname;
     name += ":";
     name += local_port_str;
     name += "==>";
-    name += getHostName( remote_node->get_HostName() );
+    name += remote_hostname;
     name += ":";
     name += remote_port_str;
     name += ")";
@@ -125,13 +131,15 @@ void * RemoteNode::send_thread_main(void * args)
     sprintf(local_port_str, "%d", local_parent_node->config_port);
     sprintf(remote_port_str, "%d",
             remote_node->CommunicationNode::id);
+    getHostName(local_hostname, local_child_node->get_HostName() );
+    getHostName(remote_hostname, remote_node->get_HostName() );
 
     name = "DOWNSEND";
-    name += getHostName( local_parent_node->get_HostName() );
+    name += local_hostname;
     name += ":";
     name += local_port_str;
     name += "==>";
-    name += getHostName( remote_node->get_HostName() );
+    name += remote_hostname;
     name += ":";
     name += remote_port_str;
     name += ")";
@@ -186,18 +194,20 @@ RemoteNode::RemoteNode(bool _threaded, std::string &_hostname,
 
 int RemoteNode::connect()
 {
-  mrn_printf(3, MCFL, stderr, "In connect(%s:%d) ...\n", hostname.c_str(), port);
-  if(connect_to_host(&sock_fd, hostname.c_str(), port) == -1){
-    mrn_printf(1, MCFL, stderr, "connect_to_host() failed\n");
-    MRN_errno = MRN_ECREATPROCFAILURE;
-    return -1;
-  }
-
-  poll_struct.fd = sock_fd;
-  poll_struct.events = POLLIN;
-
-  mrn_printf(3, MCFL, stderr, "connect_to_host() succeeded. new socket = %d\n", sock_fd);
-  return 0;
+    mrn_printf(3, MCFL, stderr, "In connect(%s:%d) ...\n",
+               hostname.c_str(), port);
+    if(connectHost(&sock_fd, hostname.c_str(), port) == -1){
+        mrn_printf(1, MCFL, stderr, "connect_to_host() failed\n");
+        MRN_errno = MRN_ECREATPROCFAILURE;
+        return -1;
+    }
+    
+    poll_struct.fd = sock_fd;
+    poll_struct.events = POLLIN;
+    
+    mrn_printf(3, MCFL, stderr,
+               "connect_to_host() succeeded. new socket = %d\n", sock_fd);
+    return 0;
 }
 
 
@@ -210,7 +220,7 @@ RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
 
   if( do_connect )
   {
-    if( (sock_fd = get_socket_connection(lsock_fd)) == -1){
+    if( (sock_fd = getSocketConnection(lsock_fd)) == -1){
         mrn_printf(1, MCFL, stderr, "get_socket_connection() failed\n");
         MRN_errno = MRN_ESOCKETCONNECT;
         return -1;
@@ -274,7 +284,7 @@ int RemoteNode::new_InternalNode(int listening_sock_fd, std::string parent_host,
   sprintf(parent_id_str, "%d", parent_id);
   args.push_back(std::string(parent_id_str));
 
-  if(create_Process(rsh, hostname, username, commnode_cmd, args) == -1){
+  if(createProcess(rsh, hostname, username, commnode_cmd, args) == -1){
     mrn_printf(1, MCFL, stderr, "createProcess() failed\n"); 
     MRN_errno = MRN_ECREATPROCFAILURE;
     return -1;
@@ -311,7 +321,7 @@ int RemoteNode::new_Application(int listening_sock_fd,
   args.push_back(std::string(parent_port_str));
   args.push_back(std::string(parent_id_str));
 
-  if(create_Process(rsh, hostname, username, cmd, args) == -1){
+  if(createProcess(rsh, hostname, username, cmd, args) == -1){
     mrn_printf(1, MCFL, stderr, "createProcess() failed\n"); 
     MRN_errno = MRN_ECREATPROCFAILURE;
     return -1;
@@ -321,7 +331,7 @@ int RemoteNode::new_Application(int listening_sock_fd,
   sprintf(backend_id_str, "%u", backend_id);
 
   // accept the connection
-  sock_fd = get_socket_connection( listening_sock_fd );
+  sock_fd = getSocketConnection( listening_sock_fd );
   if( sock_fd == -1 )
   {
     mrn_printf(1, MCFL, stderr, "get_socket_connection() failed\n" );

@@ -1,5 +1,5 @@
-#ifndef __utils_h
-#define __utils_h 1
+#ifndef utils_h
+#define utils_h 1
 
 #include <vector>
 #include <string>
@@ -11,45 +11,50 @@
 #include <stdio.h>
 #include <assert.h>
 
-class Line{
- private:
-  std::vector <std::string> words;
- public:
-  Line(const char *);
-  std::string get_NextWord();
-  std::string get_Word(int);
-  int get_NumWords();
-};
+int createProcess(const std::string &remote_shell,
+                  const std::string &hostName,
+                  const std::string &userName,
+                  const std::string &command,
+                  const std::vector<std::string> &arg_list);
 
-inline unsigned int uintHash(const unsigned int &val) {
-  return val;
-}
+int execCmd(const std::string command,
+            const std::vector<std::string> &args);
 
-inline unsigned intHash(const int &val) {
-  return val;
-}
-
-int connect_to_host(int *sock_in, const char * hostname, unsigned short port);
-int bind_to_port(int *sock_in, unsigned short *port_in);
-int get_socket_connection(int bound_socket);
-int get_socket_peer(int connected_socket, char **hostname, unsigned short * port);
-unsigned short get_port_from_socket(int sock);
-const std::string getHostName(const std::string hostname="");    // e.g. "foo"
-const std::string getDomainName(const std::string hostname="");  // "bar.net"
-const std::string getNetworkName(const std::string hostname=""); // "foo.bar.net"
-const std::string getNetworkAddr(const std::string hostname=""); // "127.0.0.1"
-
-int create_Process(const std::string &remote_shell,
-                   const std::string &hostName, const std::string &userName,
-                   const std::string &command, const std::vector<std::string> &arg_list);
 int remoteCommand(const std::string remoteExecCmd,
-                  const std::string hostName, const std::string userName,
-                  const std::string command, const std::vector<std::string> &arg_list);
-int rshCommand(const std::string &hostName, const std::string &userName, 
-               const std::string &command, const std::vector<std::string> &arg_list);
-int execCmd(const std::string command, const std::vector<std::string> &args);
+                  const std::string hostName,
+                  const std::string userName,
+                  const std::string command,
+                  const std::vector<std::string> &arg_list);
 
-extern unsigned int _count;
+int rshCommand(const std::string &hostName,
+               const std::string &userName, 
+               const std::string &command,
+               const std::vector<std::string> &arg_list);
+
+int connectHost(int *sock_in,
+                const std::string &hostname,
+                unsigned short port);
+
+int bindPort(int *sock_in, unsigned short *port_in);
+
+int getSocketConnection(int bound_socket);
+
+int getSocketPeer(int connected_socket,
+                  std::string &hostname,
+                  unsigned short * port);
+
+int getPortFromSocket(int sock, unsigned short *port);
+
+int getHostName(std::string & out_hostname,
+                const std::string& in_hostname="");      // e.g. "foo"
+int getDomainName(std::string & out_hostname,
+                  const std::string& in_hostname="");    // e.g. "bar.net"
+int getNetworkName(std::string & out_hostname,
+                   const std::string& in_hostname="");   // e.g. "foo.bar.net"
+int getNetworkAddr(std::string &ipaddr_str,
+                   const std::string hostname="");       // "127.0.0.1"
+
+//extern unsigned int _count;
 
 #include <libgen.h>
 
@@ -75,4 +80,4 @@ class tsd_t{
 #define MCFL  __FILE__,__LINE__  //used to call mrn_printf(MCFL, ...)
 int mrn_printf(int level, const char * file, int line, FILE * fp, const char * format, ...);
 
-#endif /* __utils_h */
+#endif /* utils_h */

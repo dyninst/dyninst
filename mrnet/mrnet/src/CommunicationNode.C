@@ -7,14 +7,16 @@
 int CommunicationNode::poll_timeout=-1;
 
 CommunicationNode::CommunicationNode(std::string &_h, unsigned short _p)
-  :hostname(getNetworkName(_h)), port(_p), id(0)
+  : port(_p), id(0)
 {
+    getNetworkName(hostname, _h);
 }
 
 CommunicationNode::CommunicationNode(std::string &_h, unsigned short _p,
                                            unsigned short _id)
-  :hostname(getNetworkName(_h)), port(_p), id(_id)
+  : port(_p), id(_id)
 {
+    getNetworkName(hostname, _h);
 }
 
 std::string CommunicationNode::get_HostName() const
