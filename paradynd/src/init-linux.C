@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.24 2004/10/07 00:45:58 jaw Exp $
+// $Id: init-linux.C,v 1.25 2004/10/13 07:48:54 jaw Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/init.h"
@@ -57,8 +57,10 @@ bool initOS() {
       instMPI();
    } 
    cmdArg = new BPatch_paramExpr(4);
+   static bool no_warn = false;
    initialRequestsPARADYN += new pdinstMapping("rexec", "DYNINSTrexec",
-                                             FUNC_ENTRY|FUNC_ARG, cmdArg);
+                                             FUNC_ENTRY|FUNC_ARG, BPatch_callBefore,
+                                             BPatch_lastSnippet, cmdArg,no_warn);
    
    // ===  MULTI-THREADED FUNCTIONS  ======================================
    // Official gotten-from-tracing name. While pthread_create() is the
@@ -66,26 +68,30 @@ bool initOS() {
    // thread, and so is a good place to instrument.
    pdinstMapping *mapping;
    mapping = new pdinstMapping("start_thread", "DYNINST_dummy_create",
-                               FUNC_ENTRY, BPatch_callBefore, BPatch_firstSnippet);
+                               FUNC_ENTRY, BPatch_callBefore, BPatch_firstSnippet,
+                               NULL, no_warn);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
    
 
    mapping = new pdinstMapping("pthread_exit", "DYNINSTthreadDelete", 
-                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet);
+                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet,
+                               NULL, no_warn);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
    
    
    // Should really be the longjmp in the pthread library
    mapping = new pdinstMapping("_longjmp", "DYNINSTthreadStart",
-                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet) ;
+                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet,
+                               NULL, no_warn) ;
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
    
    
    mapping = new pdinstMapping("_usched_swtch", "DYNINSTthreadStop",
-                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet) ;
+                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet, 
+                               NULL, no_warn) ;
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
    
@@ -94,7 +100,7 @@ bool initOS() {
    // mutex
    BPatch_snippet* arg0 = new BPatch_paramExpr(0);
    mapping = new pdinstMapping("pthread_mutex_init", "DYNINSTreportNewMutex", 
-                             FUNC_ENTRY|FUNC_ARG, arg0);
+                             FUNC_ENTRY|FUNC_ARG, arg0, no_warn);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
    
@@ -104,7 +110,7 @@ bool initOS() {
    //
    arg0 = new BPatch_paramExpr(0);
    mapping = new pdinstMapping("pthread_rwlock_init", "DYNINSTreportNewRwLock", 
-                             FUNC_ENTRY|FUNC_ARG, arg0);
+                             FUNC_ENTRY|FUNC_ARG, arg0, no_warn);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
 #endif
@@ -113,7 +119,7 @@ bool initOS() {
    //
    arg0 = new BPatch_paramExpr(0);
    mapping = new pdinstMapping("i_need_a_name", "DYNINSTreportNewSema", 
-                             FUNC_ENTRY|FUNC_ARG, arg0);
+                             FUNC_ENTRY|FUNC_ARG, arg0, no_warn);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
    
@@ -122,7 +128,7 @@ bool initOS() {
    //
    arg0 = new BPatch_paramExpr(0);
    mapping = new pdinstMapping("pthread_cond_init", "DYNINSTreportNewCondVar", 
-                               FUNC_ENTRY|FUNC_ARG, arg0);
+                               FUNC_ENTRY|FUNC_ARG, arg0, no_warn);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
    // =======
@@ -138,11 +144,11 @@ bool initOS() {
    static BPatch_paramExpr oactArg(2); argList[2] = &oactArg;
 
    mapping = new pdinstMapping(sigactionF, "DYNINSTdeferSigHandler",
-                               FUNC_ENTRY|FUNC_ARG, argList);
+                               FUNC_ENTRY|FUNC_ARG, argList, no_warn);
    initialRequestsPARADYN.push_back(mapping);
 
    mapping = new pdinstMapping(sigactionF, "DYNINSTresetSigHandler",
-                               FUNC_EXIT|FUNC_ARG, argList);
+                               FUNC_EXIT|FUNC_ARG, argList, no_warn);
    initialRequestsPARADYN.push_back(mapping);
 
    return true;

@@ -362,20 +362,90 @@ class pd_process {
    BPatch_Vector<BPatch_module *> *getAllModules() {
       return dyninst_process->getImage()->getModules();
    }
+   // Parse name into library name and function name. If no library is specified,
+   // lib gets the empty string "".
+   //
+   // e.g. libc.so/read => lib_name = libc.so, func_name = read
+   //              read => lib_name = "", func_name = read
+   void getLibAndFunc(const pdstring &name, pdstring &lib_name, pdstring &func_name) {
 
-   bool findAllFuncsByName(const pdstring &func_name,
+     unsigned index = 0;
+     unsigned length = name.length();
+     bool hasNoLib = true;
+
+     // clear the strings
+     lib_name = "";
+     func_name = "";
+
+     for (unsigned i = length-1; i > 0 && hasNoLib; i--) {
+       if (name[i] == '/') {
+         index = i;
+         hasNoLib = false;
+       }
+     }
+
+     if (hasNoLib) {
+       // No library specified
+       func_name = name;
+     } else {
+         // Grab library name and function name
+         lib_name = name.substr(0, index);
+         func_name = name.substr(index+1, length-index);
+     }
+   }
+
+
+   bool findAllFuncsByName(const pdstring &name,
                            BPatch_Vector<BPatch_function *> &res) {
      //process *llproc = dyninst_process->lowlevel_process();
      BPatch_image *appImage = dyninst_process->getImage();
 
-     if (NULL == appImage->findFunction(func_name.c_str(), res, false)
-        || !res.size()) {
-          //fprintf(stderr, "%s[%d]: function %s not found in image\n",
-          //        __FILE__, __LINE__, func_name.c_str());
-       return false;
-     } 
-     return true;
+     // Split name into library and function
+     pdstring lib_name;
+     pdstring func_name;
+     getLibAndFunc(name, lib_name, func_name);
 
+     if (lib_name != "") {
+        // library specified, search for module first, then do function
+        //  search by module.
+        BPatch_Vector<BPatch_module *> *mods;
+        mods = appImage->getModules();
+        BPatch_module *target_mod = NULL;
+        for (unsigned int i = 0; i < mods->size(); ++i) {
+          char mname[512];
+          BPatch_module *mod = (*mods)[i];
+          assert(mod);
+          mod->getName(mname, 512);
+          if (pdstring(mname) == lib_name) {
+            target_mod = mod;
+            break;
+          }
+        }
+        if (!target_mod) {
+           //fprintf(stderr, "%s[%d]:  could not find module %s in search for %s\n",
+           //       __FILE__, __LINE__, lib_name.c_str(), func_name.c_str());
+           //goto func_only_search;
+           return false;
+        }
+        unsigned old_size = res.size();
+        if (!target_mod->findFunction(func_name.c_str(), res) 
+            || old_size == res.size()) {
+          fprintf(stderr, "%s[%d]:  could not find func %s in mod %s\n",
+                 __FILE__, __LINE__, func_name.c_str(), lib_name.c_str());
+          return false;
+        }
+        else 
+          return true;
+     }
+  //func_only_search:
+    unsigned  old_size = res.size();
+    if (NULL == appImage->findFunction(func_name.c_str(), res, false)
+       || old_size == res.size()) {
+       //fprintf(stderr, "%s[%d]: function %s not found in image\n",
+       //        __FILE__, __LINE__, func_name.c_str());
+      return false;
+    } 
+    return true;
    }
 
    bool findAllFuncsByName(resource *func, resource *mod,

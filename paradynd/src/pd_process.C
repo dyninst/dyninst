@@ -1920,14 +1920,16 @@ bool pd_process::installInstrRequests(const pdvector<pdinstMapping*> &requests)
       BPatch_Vector<BPatch_function *> bpfv2;
       if (!appImage->findFunction(req->inst.c_str(), bpfv2)
           || !bpfv2.size()) {
-         fprintf(stderr, "%s[%d]:  cannot find function %s, instrRequest skipped\n",
-                 __FILE__, __LINE__, req->inst.c_str());
+         if (!req->quiet_fail)
+           fprintf(stderr, "%s[%d]:  cannot find function %s, instrRequest skipped\n",
+                   __FILE__, __LINE__, req->inst.c_str());
          err = true;
          continue;
       }
       if (bpfv2.size() > 1) {
-        fprintf(stderr, "%s[%d]: %d matches for function %s, using the first\n",
-               __FILE__, __LINE__, bpfv2.size(), req->inst.c_str());
+        if (!req->quiet_fail)
+          fprintf(stderr, "%s[%d]: %d matches for function %s, using the first\n",
+                 __FILE__, __LINE__, bpfv2.size(), req->inst.c_str());
       }
       BPatch_function *bpf_inst = bpfv2[0];
       BPatch_snippet *snip;
@@ -1945,9 +1947,10 @@ bool pd_process::installInstrRequests(const pdvector<pdinstMapping*> &requests)
       if (req->where & FUNC_EXIT) {
          BPatch_Vector<BPatch_point *> *exit_points = bpf->findPoint(BPatch_exit);
          if ((!exit_points) || !exit_points->size()) {
-           fprintf(stderr, "%s[%d]:  function %s has no exit points, %s\n",
-                   __FILE__, __LINE__, req->func.c_str(),
-                   "cannot perform instrumentation request.");
+           if (!req->quiet_fail)
+             fprintf(stderr, "%s[%d]:  function %s has no exit points, %s\n",
+                     __FILE__, __LINE__, req->func.c_str(),
+                     "cannot perform instrumentation request.");
            err = true;
          }
          else {
@@ -1962,9 +1965,9 @@ bool pd_process::installInstrRequests(const pdvector<pdinstMapping*> &requests)
                //  this request failed, but keep going...
                //  QUESTION:  should we add the NULL to req->snippetHandles so that
                //  a 1-1 mapping between requests and results is maintained?
-
-               fprintf(stderr, "%s[%d]:  failed to insert inst request for %s exit\n",
-                      __FILE__, __LINE__, req->func.c_str());
+               if (!req->quiet_fail) 
+                 fprintf(stderr, "%s[%d]:  failed to insert inst request for %s exit\n",
+                        __FILE__, __LINE__, req->func.c_str());
                err = true;
              }
              else {
@@ -1978,9 +1981,10 @@ bool pd_process::installInstrRequests(const pdvector<pdinstMapping*> &requests)
       if (req->where & FUNC_ENTRY) {
          BPatch_Vector<BPatch_point *> *entry_points = bpf->findPoint(BPatch_entry);
          if ((!entry_points) || !entry_points->size()) {
-           fprintf(stderr, "%s[%d]:  function %s has no entry points, %s\n",
-                   __FILE__, __LINE__, req->func.c_str(),
-                   "cannot perform instrumentation request.");
+           if (!req->quiet_fail) 
+             fprintf(stderr, "%s[%d]:  function %s has no entry points, %s\n",
+                     __FILE__, __LINE__, req->func.c_str(),
+                     "cannot perform instrumentation request.");
            err = true;
          }
          else {
@@ -1994,9 +1998,9 @@ bool pd_process::installInstrRequests(const pdvector<pdinstMapping*> &requests)
              //  this request failed, but keep going...
              //  QUESTION:  should we add the NULL to req->snippetHandles so that
              //  a 1-1 mapping between requests and results is maintained?
-
-             fprintf(stderr, "%s[%d]:  failed to insert inst request for %s entry\n",
-                    __FILE__, __LINE__, req->func.c_str());
+             if (!req->quiet_fail)
+               fprintf(stderr, "%s[%d]:  failed to insert inst request for %s entry\n",
+                      __FILE__, __LINE__, req->func.c_str());
              err = true;
            }
            else {
@@ -2009,9 +2013,10 @@ bool pd_process::installInstrRequests(const pdvector<pdinstMapping*> &requests)
       if (req->where & FUNC_CALL) {
          BPatch_Vector<BPatch_point *> *call_points = bpf->findPoint(BPatch_subroutine);
          if ((!call_points) || !call_points->size()) {
-           fprintf(stderr, "%s[%d]:  function %s has no call points, %s\n",
-                   __FILE__, __LINE__, req->func.c_str(),
-                   "cannot perform instrumentation request.");
+           if (!req->quiet_fail)
+             fprintf(stderr, "%s[%d]:  function %s has no call points, %s\n",
+                     __FILE__, __LINE__, req->func.c_str(),
+                     "cannot perform instrumentation request.");
            err = true;
          }
          else {
@@ -2026,8 +2031,9 @@ bool pd_process::installInstrRequests(const pdvector<pdinstMapping*> &requests)
                //  this request failed, but keep going...
                //  QUESTION:  should we add the NULL to req->snippetHandles so that
                //  a 1-1 mapping between requests and results is maintained?
-               fprintf(stderr, "%s[%d]:  failed to insert inst request for %s call (%s)\n",
-                      __FILE__, __LINE__, req->func.c_str(), req->inst.c_str());
+               if (!req->quiet_fail)
+                 fprintf(stderr, "%s[%d]:  failed to insert inst request for %s call (%s)\n",
+                        __FILE__, __LINE__, req->func.c_str(), req->inst.c_str());
                err = true;
              }
              else {
