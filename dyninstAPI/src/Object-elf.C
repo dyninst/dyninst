@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.61 2004/03/12 23:18:01 legendre Exp $
+ * $Id: Object-elf.C,v 1.62 2004/03/15 01:52:20 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -402,7 +402,6 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
 	  switch(dyn->d_tag) {
 
 		case DT_PLTGOT:
-			fprintf( stderr, "dyngp: 0x%lx\n", dyn->d_un.d_ptr );
 			this->gp = dyn->d_un.d_ptr;
 			break;
 

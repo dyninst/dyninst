@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.130 2004/03/13 17:42:09 legendre Exp $
+// $Id: linux.C,v 1.131 2004/03/15 01:52:20 tlmiller Exp $
 
 #include <fstream>
 
@@ -310,6 +310,27 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
       wait_options |= WNOHANG;
    }
 
+	/* If we're blocking, check to make sure we don't do so forever. */
+	if( block ) {
+		/* If we're waiting on just one process, only check it. */
+		if( wait_arg > 0 ) { 
+			process * proc = process::findProcess( wait_arg );
+			assert( proc != NULL );
+			
+			if( proc->status() == exited ) { return false; }
+			}
+		else {
+			/* Iterate over all the processes. */
+			for( unsigned i = 0; i < processVec.size(); i++ ) {
+				if( processVec[i] != NULL ) {
+					process * proc = processVec[i];
+					
+					if( proc->status() == exited ) { return false; }
+					}
+				}
+			} /* end multiple-process wait */
+		} /* end if we're blocking */
+		
    result = waitpid( wait_arg, &status, wait_options );
 
    if (result < 0 && errno == ECHILD) {
@@ -319,23 +340,23 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
    } else if(result == 0)
       return false;
 
-   int pertinantPid = result;
+   int pertinentPid = result;
 
    // Translate the signal into a why/what combo.
    // We can fake results here as well: translate a stop in fork
    // to a (SYSEXIT,fork) pair. Don't do that yet.
-   process *pertinantProc = process::findProcess(pertinantPid);
-   dyn_lwp *pertinantLWP  = NULL;
+   process *pertinentProc = process::findProcess(pertinentPid);
+   dyn_lwp *pertinentLWP  = NULL;
 
-   if(pertinantProc) {
+   if(pertinentProc) {
       // Got a signal, process is stopped.
       if(process::IndependentLwpControl() &&
-         pertinantProc->getRepresentativeLWP() == NULL) {
-         pertinantLWP = pertinantProc->getInitialThread()->get_lwp();
+         pertinentProc->getRepresentativeLWP() == NULL) {
+         pertinentLWP = pertinentProc->getInitialThread()->get_lwp();
       } else
-         pertinantLWP = pertinantProc->getRepresentativeLWP();
+         pertinentLWP = pertinentProc->getRepresentativeLWP();
 
-      pertinantProc->set_lwp_status(pertinantLWP, stopped);
+      pertinentProc->set_lwp_status(pertinentLWP, stopped);
    } else {
       extern pdvector<process*> processVec;
       for (unsigned u = 0; u < processVec.size(); u++) {
@@ -343,10 +364,10 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
          if(! curproc)
             continue;
          dyn_lwp *curlwp = NULL;
-         if( (curlwp = curproc->lookupLWP(pertinantPid)) ) {
-            pertinantProc = curproc;
-            pertinantLWP  = curlwp;
-            pertinantProc->set_lwp_status(curlwp, stopped);
+         if( (curlwp = curproc->lookupLWP(pertinentPid)) ) {
+            pertinentProc = curproc;
+            pertinentLWP  = curlwp;
+            pertinentProc->set_lwp_status(curlwp, stopped);
             break;
          }
       }
@@ -374,7 +395,7 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
 
       switch(what) {
         case SIGSTOP:
-           decodeRTSignal(pertinantProc, why, what, info);
+           decodeRTSignal(pertinentProc, why, what, info);
            break;
         case SIGTRAP:
            // We use int03s (traps) to do instrumentation when there
@@ -391,22 +412,22 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
            // loopUntilStopped. Which calls us.
            //Frame frame = proc->getDefaultLWP()->getActiveFrame();
            //Address pc = frame.getPC();
-           Address pc = getPC(pertinantPid);
+           Address pc = getPC(pertinentPid);
            
-           if(pc == pertinantProc->dyninstlib_brk_addr ||
-              pc == pertinantProc->main_brk_addr || 
-              pertinantProc->getDyn()->reachedLibHook(pc)) {
+           if(pc == pertinentProc->dyninstlib_brk_addr ||
+              pc == pertinentProc->main_brk_addr || 
+              pertinentProc->getDyn()->reachedLibHook(pc)) {
                what = SIGTRAP;
            }
            break;
       }
    }
 
-   if(! pertinantProc)
+   if(! pertinentProc)
       return false;
 
-   (*new_event).proc = pertinantProc;
-   (*new_event).lwp  = pertinantLWP;
+   (*new_event).proc = pertinentProc;
+   (*new_event).lwp  = pertinentLWP;
    (*new_event).why  = why;
    (*new_event).what = what;
    (*new_event).info = info;
