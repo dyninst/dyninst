@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.202 2000/02/18 20:40:54 bernat Exp $
+// $Id: process.C,v 1.203 2000/02/25 17:16:04 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1074,6 +1074,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #ifdef BPATCH_LIBRARY
 	     instPointMap(hash_address),
 #endif
+	     trampGuardFlagAddr(0),
 	     savedRegs(NULL),
 	     pid(iPid) // needed in fastInferiorHeap ctors below
 #if defined(SHM_SAMPLING)
@@ -1224,6 +1225,7 @@ process::process(int iPid, image *iSymbols,
 #ifdef BPATCH_LIBRARY
 		instPointMap(hash_address),
 #endif
+		trampGuardFlagAddr(0),
 		savedRegs(NULL),
 		pid(iPid)
 #ifdef SHM_SAMPLING
@@ -1438,6 +1440,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #ifdef BPATCH_LIBRARY
   instPointMap(hash_address),
 #endif
+  trampGuardFlagAddr(0),
   savedRegs(NULL)
 #ifdef SHM_SAMPLING
   ,previous(0),
@@ -4402,8 +4405,8 @@ void process::installBootstrapInst() {
        addInstFunc(this, func_entry, ast, callPreInsn,
                orderFirstAtPoint,
                true, // true --> don't try to have tramp code update the cost
- 	       false // don't want to allow recursion
-               );
+               false // Use recursive guard
+               );   
        // returns an "instInstance", which we ignore (but should we?)
        removeAst(ast);
 	   attach_cerr << "wrote call to DYNINSTinit to entry of main" << endl;
@@ -4446,7 +4449,6 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 	ast = new AstNode(req->inst, tmp);
 	removeAst(tmp);
       }
-
       if (req->where & FUNC_EXIT) {
 	 const vector<instPoint*> func_rets = func->funcExits(this);
 	 for (unsigned j=0; j < func_rets.size(); j++)

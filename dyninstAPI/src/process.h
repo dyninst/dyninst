@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.126 2000/02/22 23:10:01 pcroth Exp $
+/* $Id: process.h,v 1.127 2000/02/25 17:16:05 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -341,6 +341,7 @@ class process {
   //  
 
  public:
+
   process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #ifdef SHM_SAMPLING
 	  , key_t theShmSegKey,
@@ -562,6 +563,11 @@ class process {
   bool MonitorCallSite(instPoint *callSite);
   bool isDynamicCallSite(instPoint *callSite); 
 #endif
+
+  // Trampoline guard get/set functions
+  unsigned long getTrampGuardFlagAddr(void) { return trampGuardFlagAddr; }
+  void setTrampGuardFlagAddr(unsigned long t) { trampGuardFlagAddr = t;  }
+
   //  
   //  PUBLIC DATA MEMBERS
   //  
@@ -660,6 +666,9 @@ class process {
   bool was_running_before_RPC_syscall_complete;
   void *save_exitset_ptr; // platform-specific (for now, just solaris;
 			  // it's actually a sysset_t*)
+ 
+  // Trampoline guard location
+  unsigned long trampGuardFlagAddr;
 					       
   struct inferiorRPCinProgress {
      // This structure keeps track of an inferiorRPC that has been launched and

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.85 2000/02/23 22:54:07 bernat Exp $
+ * $Id: inst-power.C,v 1.86 2000/02/25 17:16:03 bernat Exp $
  */
 
 #include "util/h/headers.h"
@@ -545,7 +545,6 @@ void relocateInstruction(instruction *insn, Address origAddr, Address targetAddr
 trampTemplate baseTemplate;
 
 // New version of the base tramp -- will not enter instrumentation recursively
-unsigned baseTemplateGuardAddr = 0;
 trampTemplate baseTemplateNonRecursive;
 
 #ifdef BPATCH_LIBRARY
@@ -1143,6 +1142,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
                                 Address exitTrampAddr = 0,
 				Address baseAddr = 0)
 {
+    unsigned long trampGuardFlagAddr = proc->getTrampGuardFlagAddr();
     Address currAddr;
     instruction *code;
     instruction *temp;
@@ -1169,23 +1169,23 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 	}
 	else
 #endif
-	if (trampRecursiveDesired)
-	  {
+	{
+	  if (trampRecursiveDesired)
 	    theTemplate = &baseTemplate;
-	  }
-	else
-	  {
+	  else
 	    theTemplate = &baseTemplateNonRecursive;
-	  }
-
+        }
       }
-    /* We allocate the guard location if it hasn't been already */
-    if (!trampRecursiveDesired && !baseTemplateGuardAddr)
+
+    // Have we allocated space for the flag yet?
+    if (trampGuardFlagAddr == 0)
       {
 	int zeroval = 0;
-	baseTemplateGuardAddr = inferiorMalloc(proc, sizeof(int), dataHeap);
-	// Zero out the new value
-	proc->writeDataSpace((void *)baseTemplateGuardAddr, sizeof(int), &zeroval);
+        trampGuardFlagAddr = inferiorMalloc(proc, sizeof(int), dataHeap);
+        // Zero out the new value
+        proc->writeDataSpace((void *)trampGuardFlagAddr, sizeof(int), &zeroval);
+	// Keep track in the process space
+	proc->setTrampGuardFlagAddr(trampGuardFlagAddr);
       }
 
     if (! isReinstall) 
@@ -1388,14 +1388,14 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 			 CAUop,   // Add immediate and shift
 			 6,       // Destination
 			 0,       // Source
-			 HIGH((int)baseTemplateGuardAddr));
+			 HIGH((int)trampGuardFlagAddr));
 	      temp++; currAddr += sizeof(instruction); // Step for loop
 	      // oril 6,7,LOW(baseAddr)
 	      genImmInsn(temp,
 			 ORILop,  // OR immediate
 			 6,       // Destination
 			 6,       // Source
-			 LOW((int)baseTemplateGuardAddr));
+			 LOW((int)trampGuardFlagAddr));
 	      temp++; currAddr += sizeof(instruction);
 	      // load (addr: 6, dest: 5)
 	      genImmInsn(temp,   // instruction
@@ -1568,7 +1568,7 @@ void findAndReinstallBaseTramps(process                  *p,
       trampTemplate *rt = p->baseMap[rp];                       //Return tramp
       // Note: we can safely ignore the return value of installBaseTramp
       // since it is NULL for the reinstallation case. 
-      installBaseTramp(rp, p, true, rt,  0, rt->baseAddr);
+      installBaseTramp(rp, p, true, rt, 0, rt->baseAddr);
       rt->updateTrampCost(p, 0);
                                                               
       const instPoint *ep = ip->iPgetFunction()->funcEntry(p);  //Entry point
@@ -1611,7 +1611,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	  const instPoint* newLoc2 = location->func->funcEntry(globalProc);
 	  assert(newLoc2->ipLoc == ipFuncEntry);
           assert(exTramp->baseAddr != 0);
-	  ret = installBaseTramp(newLoc2, globalProc, trampRecursiveDesired, 
+	  ret = installBaseTramp(newLoc2, globalProc, trampRecursiveDesired,
 				 NULL, // Don't have a previous trampType to pass in
 				 exTramp->baseAddr);
 
