@@ -70,7 +70,7 @@ class BPatch_module: public BPatch_sourceObj {
 public:
 // The following functions are for internal use by  the library only:
     BPatch_module(process *_proc, pdmodule *_mod, BPatch_image *img);
-    BPatch_module() : mod(NULL), img(NULL), BPfuncs(NULL) {
+    BPatch_module() : mod(NULL), img(NULL), BPfuncs(NULL),lineInformation(NULL) {
 	_srcType = BPatch_sourceModule;
     };
 

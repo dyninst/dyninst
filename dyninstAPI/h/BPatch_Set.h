@@ -47,14 +47,25 @@ struct comparison {
   * structure that is used to compare the elements of the BPatch_Set. The template
   * structure has to overload () for comparison of two elements as explained above
   */
+
+#if defined i386_unknown_nt4_0
+
+static const bool RED = true;
+static const bool BLACK = false;
+
+#endif
+
 template<class T,class Compare = comparison<T> >
 class BPatch_Set {
 private:
+
+#ifndef i386_unknown_nt4_0
 	/** color variable used for red-black tree */
 	static const bool RED = true;
 
 	/** color variable used for red-black tree */
 	static const bool BLACK = false;
+#endif
 
 	/** tree implementation structure. Used to implement the RB tree */
 	typedef struct entry {
@@ -193,12 +204,6 @@ public:
 	  */
 	DO_INLINE_F bool contains(const T&) const;
 
-	/** returns an array of elemnt type that contains the sorted
-	  * elements of the BPatch_Set in ascending order according to comparison function
-	  * if the BPatch_Set is empty it retuns NULL
-	  */
-	DO_INLINE_F T* elements() const;
-
 	/** fill an buffer array with the sorted
 	  * elements of the BPatch_Set in ascending order according to comparison function
 	  * if the BPatch_Set is empty it retuns NULL, other wise it returns 
@@ -327,17 +332,6 @@ DO_INLINE_F T BPatch_Set<T,Compare>::maximum() const{
 	while(node->right != nil)
 		node = node->right;
 	return node->data;
-}
-/** returns the sorted array of the elements of the BPatch_Set in
-  * ascending order 
-  */
-template <class T,class Compare>
-DO_INLINE_F T* BPatch_Set<T,Compare>::elements() const{
-	if(setData == nil) return NULL;
-	T* buffer = new T[setSize];
-	int tmp = 0;
-	traverse(buffer,setData,tmp);	
-	return buffer;
 }
 template <class T,class Compare>
 DO_INLINE_F T* BPatch_Set<T,Compare>::elements(T* buffer) const{

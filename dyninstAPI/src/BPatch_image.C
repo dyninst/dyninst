@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.18 2000/03/14 22:31:29 tikir Exp $
+// $Id: BPatch_image.C,v 1.19 2000/03/15 22:14:31 tikir Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -615,8 +615,8 @@ bool BPatch_image::getLineToAddr(const char* fileName,unsigned short lineNo,
 	//then insert the elements to the vector given
 	Address* elements = new Address[addresses.size()];
 	addresses.elements(elements);
-	for(int i=0;i<addresses.size();i++)
-		buffer.push_back(elements[i]);
+	for(int j=0;j<addresses.size();j++)
+		buffer.push_back(elements[j]);
 	delete[] elements;
 
 	return true;

@@ -339,8 +339,8 @@ bool FileLineInformation::getAddrFromLine(string name,
 //temporary function to print info about line information
 void FileLineInformation::print(){
 	cerr << "LINE TO ADDRESS :\n";
-	for(int i=0;i<size;i++)
-		cerr << dec << lineToAddr[i].lineNo << " ----> " << hex << lineToAddr[i].codeAddress << "\n";
+	for(int j=0;j<size;j++)
+		cerr << dec << lineToAddr[j].lineNo << " ----> " << hex << lineToAddr[j].codeAddress << "\n";
 	for(int i=0;i<functionCount;i++){
 		FunctionInfo* funcinfo = lineInformationList[i];
 		cerr << "FUNCTION LINE : " << *functionNameList[i] << " : " ;
@@ -476,9 +476,9 @@ bool LineInformation::getAddrFromLine(BPatch_Set<Address>& codeAddress,
 
 //returns the line information for the given filename
 FileLineInformation* LineInformation::getFileLineInformation(string fileName){
-	for(int i=0;i<sourceFileCount;i++)
-		if(fileName == *sourceFileList[i])
-			return lineInformationList[i];
+	for(int j=0;j<sourceFileCount;j++)
+		if(fileName == *sourceFileList[j])
+			return lineInformationList[j];
 	for(int i=0;i<sourceFileCount;i++){
 		char* name = new char[sourceFileList[i]->length()+1];
 		strncpy(name,sourceFileList[i]->string_of(),
