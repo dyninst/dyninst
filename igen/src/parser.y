@@ -62,13 +62,13 @@ optUpcall:   { $$.fd.call = remote_func::sync_call; $$.fd.is_virtual = false; }
 optFree:        { $$.b = false;}
         | tFREE { $$.b = true;}
 
-definition: optFree optUpcall typeName pointers tIDENT tLPAREN arglist tRPAREN tSEMI {
-  arg a($3.cp, $4.u, false, NULL);
-  if (!Options::current_interface->new_remote_func($5.cp, $7.arg_vector,
+definition: optFree optUpcall optConst typeName pointers tIDENT tLPAREN arglist tRPAREN tSEMI {
+  arg a($4.cp, $5.u, $3.b, NULL);
+  if (!Options::current_interface->new_remote_func($6.cp, $8.arg_vector,
 						   $2.fd.call, $2.fd.is_virtual,
 						   a, $1.b))
     abort();
-  delete ($5.cp); delete ($3.cp); delete ($7.arg_vector);
+  delete ($6.cp); delete ($4.cp); delete ($8.arg_vector);
 
 } | tCIGNORE {
  Options::current_interface->ignore(false, $1.charp);
@@ -96,7 +96,7 @@ typeSpec: classOrStruct tIDENT optDerived
    // FREE ALL MEMORY
    $$.cp = new string(Options::allocate_type(*$2.cp,
 					     type_defn::TYPE_COMPLEX, true, false,
-					     $5.arg_vector));
+					     $5.arg_vector, $6.charp));
    delete ($2.cp); delete($3.derived.name); delete ($5.arg_vector); delete($6.cp);
    parsing = 0;
  }; 

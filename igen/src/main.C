@@ -72,6 +72,11 @@ static void do_opts(int argc, char *argv[]) {
 	cerr << "Message layer 'xdr' unknown\n";
 	exit(-1);
       }
+    } else if (!strcmp("-rpc", argv[i])) {
+      if (!set_ml("rpc")) {
+	cerr << "Message layer 'rpc' unknown\n";
+	exit(-1);
+      }
     } else if (!strcmp("-sas", argv[i])) {
 
     } else if (!strcmp("-mas", argv[i])) {
@@ -288,12 +293,12 @@ static void init_types() {
   Options::add_type("int", type_defn::TYPE_SCALAR, false, true, NULL);
   Options::add_type("double", type_defn::TYPE_SCALAR, false, true, NULL);
   Options::add_type("void", type_defn::TYPE_SCALAR, false, true, NULL);
-  Options::add_type("bool", type_defn::TYPE_SCALAR, false, true, NULL, "Boolean");
+  Options::add_type("bool", type_defn::TYPE_SCALAR, false, true, NULL, NULL, "Boolean");
   Options::add_type("u_int", type_defn::TYPE_SCALAR, false, true, NULL);
   Options::add_type("float", type_defn::TYPE_SCALAR, false, true, NULL);
   Options::add_type("u_char", type_defn::TYPE_SCALAR, false, true, NULL);
   Options::add_type("char", type_defn::TYPE_SCALAR, false, true, NULL);
-  Options::add_type("string", type_defn::TYPE_SCALAR, false, true, NULL, "string_pd");
+  Options::add_type("string", type_defn::TYPE_SCALAR, false, true, NULL, NULL, "string_pd");
 }
 
 static bool set_ml(const string ml_name) {
@@ -357,13 +362,39 @@ static void init_ml() {
 					      " ",
 					      false);
 
+
+  message_layer * rpc_ml = new message_layer("rpc",
+					     message_layer::Med_rpc,
+					     "P_rpc_",
+					     "bool",
+					     "*",
+					     "RPC",
+					     "*",
+					     message_layer::AS_many,
+					     "false",
+					     "true",
+					     "x_op",
+					     "RPC::ENCODE",
+					     "RPC::DECODE", 
+					     "RPC::FREE",
+					     "RPCrpc",
+					     "P_xdrrec_endofrecord(net_obj(), TRUE)",
+					     true,
+					     "P_xdrrec_skiprecord(net_obj())",
+					     "XXX_RECV",
+					     " ",
+					     true,
+					     "setDirEncode()",
+					     "setDirDecode()",
+					     true);
+
   /*
   message_layer pvm_ml("pvm", message_layer::Med_pvm, "pvm_", "bool_t", "*", "XDR", "*",
 		       message_layer::AS_many, "FALSE", "TRUE");
   message_layer tcp_ml("tcp", message_layer::Med_other, "", "bool_t", "*", "XDR", "*",
 		       message_layer::AS_many, "false", "true");
 		       */
-  Options::all_ml += xdr_ml; Options::all_ml += thrd_ml;
+  Options::all_ml += xdr_ml; Options::all_ml += thrd_ml; Options::all_ml += rpc_ml;
 }
 
 int main(int argc, char *argv[]) {
@@ -400,6 +431,13 @@ string Options::make_ptrs(unsigned count) {
     buffer[i] = '*';
   buffer[count] = '\0';
   return buffer;
+}
+
+string arg::type(const bool use_const) const {
+  if (use_const)
+    return ((constant_ ? string("const ") : string("")) + type_+pointers_);
+  else
+    return (type_ + pointers_);
 }
 
 string arg::gen_bundler_name() const {
@@ -488,7 +526,7 @@ bool type_defn::assign_to(const string prefix, const vector<arg*> &alist,
 			  ofstream &out_stream) const
 {
   assert (alist.size() == arglist_.size());
-  for (int i=0; i<alist.size(); i++)
+  for (int i=0; i<alist.size(); i++) 
     out_stream << prefix << arglist_[i]->name() << " = " << alist[i]->name() << ";\n";
 }
 
@@ -576,9 +614,9 @@ type_defn::type_defn(string stl_name, string element_name, const unsigned ct,
 
 type_defn::type_defn(const string name, const type_type type,
 		     vector<arg*> *arglist, const bool can_point, 
-		     bool in_lib, const string bundle_name)
+		     bool in_lib, const string ignore, const string bundle_name)
 : my_type_(type), bundle_name_(bundle_name), in_lib_(in_lib),
-  is_stl_(false), pointer_used_(false), can_point_(can_point)
+  is_stl_(false), pointer_used_(false), can_point_(can_point), ignore_(ignore)
 {
   stl_arg_ = NULL;
   if (Options::all_types.defines(name)) {
@@ -605,12 +643,12 @@ type_defn::type_defn(const string name, const type_type type,
 
 bool type_defn::gen_class(const string bundler_prefix, ofstream &out_stream) {
 
-  out_stream << "struct " << unqual_name() << "{ \n";
+  out_stream << "class " << unqual_name() << "{ \npublic:";
   
   for (int i=0; i<arglist_.size(); i++) 
-    out_stream << arglist_[i]->type() << " " << arglist_[i]->name() << ";\n";
+    out_stream << arglist_[i]->type(true) << " " << arglist_[i]->name() << ";\n";
   out_stream << "};\n";
-  out_stream << "typedef struct " << unqual_name() << " " << unqual_name() << ";\n";
+  // out_stream << "typedef struct " << unqual_name() << " " << unqual_name() << ";\n";
   return true;
 }
 
@@ -739,15 +777,18 @@ string Options::allocate_stl_type(string stl_type, string element_name,
 
 string Options::allocate_type(const string name, const type_defn::type_type &typ,
 			      const bool can_point, const bool &in_lib,
-			      vector<arg*> *arglist, const string bundle_name) {
-  return (Options::add_type(name, typ, can_point, in_lib, arglist, bundle_name));
+			      vector<arg*> *arglist, const string ignore_text,
+			      const string bundle_name) {
+  return (Options::add_type(name, typ, can_point, in_lib, arglist, ignore_text, bundle_name));
 }
 
 
 string Options::add_type(const string name, const type_defn::type_type &type,
 			 const bool can_point, const bool in_lib,
-			 vector<arg*> *arglist, const string bundler_name) {
-  type_defn *ign = new type_defn(name, type, arglist, can_point, in_lib, bundler_name);
+			 vector<arg*> *arglist, const string ignore_text,
+			 const string bundler_name) {
+  type_defn *ign = new type_defn(name, type, arglist, can_point, in_lib, ignore_text,
+				 bundler_name);
   assert(ign);
   Options::all_types[ign->name()] = ign;
   return (ign->name());
@@ -1073,7 +1114,7 @@ bool remote_func::gen_stub_helper_one(ofstream &out_srvr, ofstream &out_clnt,
   return true;
 }
 
-signature::signature(vector<arg*> *alist, const string rf_name) : stars_(0) {
+signature::signature(vector<arg*> *alist, const string rf_name) : is_const_(false), stars_(0) {
   assert(alist);
   for (int i=0; i<alist->size(); i++) 
     args += (*alist)[i];
@@ -1083,6 +1124,7 @@ signature::signature(vector<arg*> *alist, const string rf_name) : stars_(0) {
   case 1:
     type_ = args[0]->base_type();
     stars_ = args[0]->stars();
+    is_const_ = args[0]->is_const();
     break;
   default:
     type_defn *td; string s;
@@ -1097,16 +1139,23 @@ signature::signature(vector<arg*> *alist, const string rf_name) : stars_(0) {
       args.resize(0);
       args = td->copy_args();
       // get names here
-    }
-    else 
+    } else {
       type_ = Options::allocate_type(string("T_") + rf_name,
 				     type_defn::TYPE_COMPLEX,
 				     true, false, &args);
+    }
     break;
   }
 }
 
-string signature::type() const { return (type_+ Options::make_ptrs(stars_));}
+string signature::type(const bool use_c) const {
+  string ret;
+  if (use_c && is_const_)
+    ret = "const ";
+  ret += type_;
+  ret += Options::make_ptrs(stars_);
+  return ret;
+}
 
 string signature::gen_bundler_call(const string obj_nm, const string data_nm) const {
   return ((Options::all_types[base_type()])->gen_bundler_call(obj_nm,
@@ -1150,16 +1199,15 @@ bool signature::tag_bundle_send_many(ofstream &out_stream, const string return_v
 bool signature::tag_bundle_send_one(ofstream &out_stream, const string return_value,
 				    const string req_tag) const
 {
-  if (type() != "void")
-    out_stream << type() << " send_buffer;\n";
-
   switch (args.size()) {
   case 0:
     break;
   case 1:
-    out_stream << "send_buffer = " <<  args[0]->name() << ";\n";
+    out_stream << type(true) << " send_buffer(";
+    out_stream << args[0]->name() << ");\n";
     break;
   default:
+    out_stream << type(true) << " send_buffer;\n";
     (Options::all_types[type()])->assign_to("send_buffer.", args, out_stream);
     break;
   }
@@ -1206,9 +1254,7 @@ bool signature::gen_sig(ofstream &out_stream) const {
   case 1:
   default:
     for (int i=0; i<args.size(); i++) {
-      if (args[i]->is_const())
-	out_stream << " const ";
-      out_stream << args[i]->type() << " " << args[i]->name();
+      out_stream << args[i]->type(true) << " " << args[i]->name();
       if (i < (args.size()-1))
 	out_stream << ", ";
     }

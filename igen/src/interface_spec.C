@@ -208,9 +208,9 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
     out_h << "union msg_buf { \n";
     while (rfi.next(s, rf)) {
       if (rf->sig_type() != "void")
-	out_h << rf->sig_type() << " " << rf->name() << "_call;\n";
+	out_h << rf->sig_type(true) << " " << rf->name() << "_call;\n";
       if (rf->ret_type() != "void")
-	out_h << rf->ret_type() << " " << rf->name() << "_req;\n";
+	out_h << rf->ret_type(true) << " " << rf->name() << "_req;\n";
     }
     out_h << "};\n";
   }

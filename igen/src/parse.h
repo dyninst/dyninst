@@ -34,7 +34,7 @@ public:
 
   string pointers() const { return pointers_; }
   string base_type() const { return type_;}
-  string type() const { return (type_+pointers_); }
+  string type(const bool use_const=false) const;
   string name() const { return name_; }
   bool is_const() const { return constant_;}
   bool tag_bundle_send(ofstream &out_stream, const string bundle_value, 
@@ -61,7 +61,8 @@ public:
   type_defn(string stl_name, string element_name, const unsigned star_count,
 	    const bool in_lib);
   type_defn(const string name, const type_type type, vector<arg*> *arglist = NULL, 
-	    const bool can_point=false, bool in_lib=false, const string bundle_name="");
+	    const bool can_point=false, bool in_lib=false, const string ignore="",
+	    const string bundle_name="");
   ~type_defn() { }
 
   string gen_bundler_name() const;
@@ -91,6 +92,7 @@ public:
   void set_pointer_used() { pointer_used_ = true;}
   bool can_point() const { return can_point_;}
   const vector<arg*> &copy_args() const { return (arglist_);}
+  string ignore() const { return ignore_;}
 
 private:
   type_type my_type_;
@@ -104,6 +106,7 @@ private:
   bool pointer_used_;
   bool can_point_;
   arg *stl_arg_;
+  string ignore_;
 };
 
 class signature {
@@ -111,7 +114,7 @@ public:
   signature(vector<arg*> *alist, const string rf_name);
   ~signature() { }
 
-  string type() const;
+  string type(const bool use_bool=false) const;
   string base_type() const { return type_;}
   void type(const string t, const unsigned star);
   bool gen_sig(ofstream &out_stream) const;
@@ -128,6 +131,7 @@ public:
 private:
   vector<arg*> args;
   string type_;
+  bool is_const_;
   unsigned stars_;
 };
 
@@ -164,8 +168,8 @@ public:
   string return_value() const
     { return ((is_async_call()||is_void()) ? string("") : string("ret_arg"));}
   bool do_free() const { return do_free_;}
-  string sig_type() const { return call_sig_.type();}
-  string ret_type() const { return return_arg_.type();}
+  string sig_type(const bool use_const=false) const { return call_sig_.type(use_const);}
+  string ret_type(const bool use_const=false) const { return return_arg_.type(use_const);}
 
 private:
   string name_;
@@ -251,7 +255,7 @@ private:
 class message_layer {
 public:
   typedef enum { AS_one, AS_many, AS_none } AS;
-  typedef enum { Med_xdr, Med_pvm, Med_thread, Med_other, Med_none } medium;
+  typedef enum { Med_xdr, Med_pvm, Med_thread, Med_other, Med_none, Med_rpc } medium;
 
   message_layer() { med_ = Med_none; }
   message_layer(const string fileName) { }
@@ -372,11 +376,13 @@ public:
 				  const unsigned star_count, const bool in_lib);
   static string allocate_type(const string name, const type_defn::type_type &typ,
 			      const bool can_point, const bool &in_lib,
-			      vector<arg*> *arglist=NULL, const string bundle_name="");
+			      vector<arg*> *arglist=NULL, const string ignore_text="",
+			      const string bundle_name="");
 
   static string add_type(const string name, const type_defn::type_type &type, 
 			 const bool can_point, const bool in_lib,
-			 vector<arg*> *arglist=NULL, const string bundler_name="");
+			 vector<arg*> *arglist=NULL, const string ignore="",
+			 const string bundler_name="");
 
   static string obj() { return (string("obj"));}
   static string obj_ptr() { return (string("obj->") + Options::ml->dir_field());}
