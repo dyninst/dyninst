@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.16 2004/03/31 20:37:18 tlmiller Exp $
+// $Id: frame.h,v 1.17 2004/04/06 16:37:10 bernat Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -51,12 +51,14 @@ class process;
 class dyn_lwp;
 class codeRange;
 
+typedef enum { FRAME_unset, FRAME_instrumentation, FRAME_signalhandler, FRAME_normal, FRAME_unknown } frameType_t;
+
 class Frame {
  public:
   
   // default ctor (zero frame)
-  Frame() : uppermost_(false), pc_(0), fp_(0), sp_(0),
-    pid_(0), thread_(NULL), lwp_(NULL), isLeaf_(false), range_(0), isSignalFrame_(false), isTrampoline_(false), unwindCursor_(NULL)
+  Frame() : frameType_(FRAME_unset), uppermost_(false), pc_(0), fp_(0), sp_(0),
+  pid_(0), thread_(NULL), lwp_(NULL), range_(0), unwindCursor_(NULL)
   {}
 
   // I'm keeping the frame class (relatively) stupid,
@@ -66,46 +68,17 @@ class Frame {
   // then trace it back. The thread and lwp are just there
   // for reference by the frame user
 
-  // For all those times you just need to stick in values
-  Frame(Address pc, Address fp, 
-		  unsigned pid, dyn_thread *thread, dyn_lwp *lwp, 
-	bool uppermost, bool isLeaf = false, bool isSignalFrame = false, bool isTrampoline = false, void * unwindCursor = NULL ) :
-    uppermost_(uppermost),
-    pc_(pc), fp_(fp), sp_(0),
-  pid_(pid), thread_(thread), lwp_(lwp), isLeaf_(isLeaf),
-  range_(0), isSignalFrame_(isSignalFrame), isTrampoline_( isTrampoline ), unwindCursor_( unwindCursor )
-    {};
   // Identical, with sp definition
   Frame(Address pc, Address fp, Address sp,
-		  unsigned pid, dyn_thread *thread, dyn_lwp *lwp, 
-	bool uppermost, bool isLeaf=false, bool isSignalFrame = false, bool isTrampoline = false, void * unwindCursor = NULL ) :
-    uppermost_(uppermost),
-    pc_(pc), fp_(fp), sp_(sp),
-  pid_(pid), thread_(thread), lwp_(lwp), isLeaf_(isLeaf),
-  range_(0), isSignalFrame_(isSignalFrame), isTrampoline_(isTrampoline), unwindCursor_( unwindCursor )
-    {};
-
-  Frame &operator=(const Frame &F) {
-    uppermost_ = F.uppermost_;
-    pc_ = F.pc_;
-    fp_ = F.fp_;
-    sp_ = F.sp_;
-    pid_ = F.pid_;
-    thread_ = F.thread_;
-    lwp_ = F.lwp_;
-    saved_fp = F.saved_fp;
-    isLeaf_ = F.isLeaf_;
-    range_ = F.range_;
-    isSignalFrame_ = F.isSignalFrame_;
-    isTrampoline_ = F.isTrampoline_;
-
-	/* Don't worry about shallowness; all of the frames in a stack walk
-	   point to the same cursor anyway, so trying to getCallerFrame()
-	   on a frame you've already walked through will break even
-	   if you don't copy the frame away. */
-    unwindCursor_ = F.unwindCursor_;
-    return *this;
-  }
+        unsigned pid, dyn_thread *thread, dyn_lwp *lwp, 
+        bool uppermost,
+        void * unwindCursor = NULL ) :
+  frameType_(FRAME_unset),
+  uppermost_(uppermost),
+  pc_(pc), fp_(fp), sp_(sp),
+  pid_(pid), thread_(thread), lwp_(lwp), 
+  range_(0), unwindCursor_( unwindCursor )
+  {};
 
   bool operator==(const Frame &F) {
     return ((uppermost_ == F.uppermost_) &&
@@ -116,9 +89,6 @@ class Frame {
 	    (thread_  == F.thread_) &&
 	    (lwp_     == F.lwp_) &&
 	    (saved_fp == F.saved_fp) &&
-	    (isLeaf_  == F.isLeaf_) &&
-	    (isSignalFrame_ == F.isSignalFrame_) &&
-	    (isTrampoline_ == F.isTrampoline_) &&
 	    (unwindCursor_ == F.unwindCursor_) );
   }
 
@@ -129,20 +99,19 @@ class Frame {
   dyn_thread *getThread() const { return thread_; }
   dyn_lwp  *getLWP() const { return lwp_;}
   bool     isUppermost() const { return uppermost_; }
-  bool	   isSignalFrame() const { return isSignalFrame_; }
-  bool 	   isTrampoline() const { return isTrampoline_; }
-  void setLeaf(bool isLeaf) { isLeaf_ = isLeaf; }
+  bool	   isSignalFrame() const { return frameType_ == FRAME_signalhandler;}
+  bool 	   isInstrumentation() const { return frameType_ == FRAME_instrumentation;}
   codeRange *getRange() const { return range_;}
   void setRange(codeRange *r) { range_ = r;}
   friend ostream& operator<<(ostream&s, const Frame &m);
-
+  
   // check for zero frame
   bool isLastFrame(process *p) const;
   
   // get stack frame of caller
   // May need the process image for various reasons
   Frame getCallerFrame(process *p) const;
-  
+  frameType_t frameType_;
   
  private:
   bool      uppermost_;
@@ -153,11 +122,8 @@ class Frame {
   dyn_thread *thread_; // user-level thread
   dyn_lwp  *lwp_;    // kernel-level thread (LWP)
   Address   saved_fp;// IRIX
-  bool      isLeaf_; // Linux/x86
   codeRange *range_; // If we've done a by-address lookup,
                     // keep it here
-  bool      isSignalFrame_;
-  bool		isTrampoline_;
   void *	unwindCursor_; // Linux/ia64.
 };
 
