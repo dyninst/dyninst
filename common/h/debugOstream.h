@@ -72,7 +72,7 @@ class debug_ostream {
    debug_ostream &operator<<(unsigned short s);
    debug_ostream &operator<<(int i);
    debug_ostream &operator<<(unsigned i);
-#if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
+#if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0) && !defined(ia64_unknown_linux2_4)
    // int64_t is a long which causes multiply defined functions if this
    // is included
    debug_ostream &operator<<(long l);
