@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.114 2002/08/20 22:01:13 bernat Exp $
+// $Id: ast.C,v 1.115 2002/08/27 21:19:20 mirg Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1517,7 +1517,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	}
       } else if (type == operandNode) {
 	// Allocate a register to return
-	if (oType != DataReg && oType != ReturnVal && oType != Param) {
+	if (oType != DataReg) {
 	    dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
 	}
 	Register temp;
@@ -1572,7 +1572,6 @@ Address AstNode::generateCode_phase2(process *proc,
 	  emitVload(loadOp, addr, dest, dest, insn, base, noCost);
 	  break;
 	case ReturnVal:
-	    dest = rs->allocateRegister(insn, base, noCost);
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
 	    if (loperand) {
 		instruction instr;
@@ -1591,16 +1590,14 @@ Address AstNode::generateCode_phase2(process *proc,
 	    }
 	    break;
 	case Param:
-	    dest = rs->allocateRegister(insn, base, noCost);
-	    // return the actual reg it is in.
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
 	    if (astFlag)
-		src = emitR(getSysParamOp, (Register)oValue, 0, dest, insn, 
-			    base, noCost);
+		src = emitR(getSysParamOp, (Register)oValue, Null_Register, 
+			    dest, insn, base, noCost);
 	    else 
 #endif
-		src = emitR(getParamOp, (Address)oValue, 0, dest, insn,
-			    base, noCost);
+		src = emitR(getParamOp, (Register)oValue, Null_Register,
+			    dest, insn, base, noCost);
 	    if (src != dest) {
 		// Move src to dest. Can't simply return src, since it was not
 		// allocated properly
@@ -2326,7 +2323,7 @@ bool AstNode::canBeKept() const
 	}
     }
     else if (type == operandNode) {
-	if (oType == DataReg || oType == ReturnVal || oType == Param) {
+	if (oType == DataReg) {
 	    return false;
 	}
     }
