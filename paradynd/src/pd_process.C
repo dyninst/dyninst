@@ -416,9 +416,14 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
 pd_process::~pd_process() {
    cpuTimeMgr->destroyMechTimers(this);
 
-   delete theVariableMgr;
-   delete sharedMemManager;
    delete dyninst_process;
+   dyninst_process = NULL;
+
+   delete sharedMemManager;
+   sharedMemManager = NULL;
+
+   delete theVariableMgr;
+   theVariableMgr = NULL;
 }
 
 bool pd_process::doMajorShmSample() {
