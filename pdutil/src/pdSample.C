@@ -46,10 +46,14 @@
 #include "common/h/int64iostream.h"
 
 const pdSample *pdSample::_zero = NULL;
+const pdSample *pdSample::_nan  = NULL;
 const int64_t pdSample::MaxValue = I64_MAX;
 
 ostream& operator<<(ostream&s, const pdSample &sm) {
-  s << "[" << sm.getValue() << "]";
+  s << "[";
+  if(sm.isNaN()) {  s << "NaN"; }
+  else           {  s << sm.getValue(); }
+  s << "]";
   return s;
 }
 

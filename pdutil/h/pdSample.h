@@ -43,8 +43,12 @@
 #define SAMPLE_H
 
 #include <iostream.h>
+#include <assert.h>
 #include "common/h/Types.h"
 #include "common/h/Time.h"
+
+// an enum isn't accurately representing this 64 bit value, so use a define
+#define NaN_value I64_MIN
 
 
 // -----------------------------------------------------------------------
@@ -52,17 +56,15 @@
 class pdSample {
  private:
   int64_t data;
-  // This is only temporary, just needed for while paradyn in differnt states
-  // as far as time type enhancement.  Future information like this should
-  // probably be communicated through some type of sample subtypes.
-
   static const pdSample *_zero;
+  static const pdSample *_nan;
   static const int64_t MaxValue;
  public:
   static const pdSample &Zero();
+  static const pdSample &NaN();  //returns the not-a-number element of pdSample
 
   // Constructors
-  pdSample()  {  }
+  pdSample() : data(0) {  }
   explicit pdSample(const int64_t v) : data(v) { }
   //  explicit pdSample(const pdCount v) : data(v.getValue()) {  }
   explicit pdSample(const timeLength &o) : data(o.get_ns()) {  }
@@ -83,12 +85,19 @@ class pdSample {
   void assign(const int64_t v)  {  data = v;  }
   void assign(const pdSample &o) {  assign(o.getValue());  }
   void assign(const timeLength &o) {  assign(o.get_ns());  }
-  
-  pdSample& operator+=(const pdSample &a) {
+ 
+  // the not-a-number element of pdSample is represented as the sentinal
+  // value of the lowest possible (negative) value, ie. I64_MIN
+  bool isNaN() const {  return (getValue() == NaN_value);  }
+  void setNaN() {  assign(NaN_value); }
+
+  const pdSample& operator+=(const pdSample &a) {
+    assert(!isNaN() && !a.isNaN());
     assign(data + a.getValue());
     return *this;
   }
-  pdSample& operator-=(const pdSample &a) {
+  const pdSample& operator-=(const pdSample &a) {
+    assert(!isNaN() && ! a.isNaN());
     assign(data - a.getValue());
     return *this;
   }
@@ -99,35 +108,49 @@ inline const pdSample &pdSample::Zero() {
   return *_zero;
 }
 
+inline const pdSample &pdSample::NaN() {
+  if(_nan == NULL) {  _nan = new pdSample(NaN_value);  }
+  return *_nan;
+}
 
 // pdSample @ pdSample operators ----------------------------------
+// any op that interacts with a NaN pdSample, returns a NaN
+// eg. NaN * 2.0 = NaN
 inline const pdSample operator+(const pdSample a, const pdSample b) {
+  assert(!a.isNaN() && !b.isNaN());
   return pdSample(a.getValue() + b.getValue());
 }
 inline const pdSample operator-(const pdSample a, const pdSample b) {
+  assert(!a.isNaN() && !b.isNaN());
   return pdSample(a.getValue() - b.getValue());
 }
 inline const pdSample operator*(const pdSample a, const pdSample b) {
+  assert(!a.isNaN() && !b.isNaN());
   return pdSample(a.getValue() * b.getValue());
 }
 inline const pdSample operator/(const pdSample a, const pdSample b) {
+  assert(!a.isNaN() && !b.isNaN());
   return pdSample(a.getValue() / b.getValue());
 }
 
 // pdSample * double 
 inline const pdSample operator*(const pdSample a, const double b) {
+  assert(!a.isNaN());
   return pdSample(static_cast<int64_t>(static_cast<double>(a.getValue()) * b));
 }
 // double * pdSample
 inline const pdSample operator*(const double a, const pdSample b) {
+  assert(!b.isNaN());
   return pdSample(static_cast<int64_t>(a * static_cast<double>(b.getValue())));
 }
 // pdSample / double 
 inline const pdSample operator/(const pdSample a, const double b) {
+  assert(!a.isNaN());
   return pdSample(static_cast<int64_t>(static_cast<double>(a.getValue()) / b));
 }
 // double / pdSample
 inline const pdSample operator/(const double a, const pdSample b) {
+  assert(!b.isNaN());
   return pdSample(static_cast<int64_t>(a / static_cast<double>(b.getValue())));
 }
 
