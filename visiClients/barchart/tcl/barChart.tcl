@@ -2,6 +2,11 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
+#  Revision 1.24  1995/11/29 00:37:56  tamches
+#  grouped window initialization into routine init_barchart_window.
+#  We now use the makeLogo cmd
+#  We no longer call Initialize in this file
+#
 #  Revision 1.23  1995/11/17 17:32:20  newhall
 #  changed Dg start command to take no arguments, replaced call to MetricUnits
 #  with call to MetricLabel
@@ -150,194 +155,196 @@
 
 #  ################### Default options #################
 
-option add *Visi*font *-New*Century*Schoolbook-Bold-R-*-14-*
+proc init_barchart_window {} {
+#option add *Visi*font *-New*Century*Schoolbook-Bold-R-*-14-*
 option add *Data*font *-Helvetica-*-r-*-12-*
 option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
 
-if {[winfo depth .] > 1} {
-   # You have a color monitor...
-#   . config -bg grey
-   option add *Background grey
-   option add *activeBackground LightGrey
-   option add *activeForeground black
-   option add *Scale.activeForeground grey
-} else {
-   # You don't have a color monitor...
-   option add *Background white
-   option add *Foreground black
+   if {[winfo depth .] > 1} {
+      # You have a color monitor...
+   #   . config -bg grey
+      option add *Background grey
+      option add *activeBackground LightGrey
+      option add *activeForeground black
+      option add *Scale.activeForeground grey
+   } else {
+      # You don't have a color monitor...
+      option add *Background white
+      option add *Foreground black
+   }
+   
+   # ####################  Overall frame ###########################
+   
+   set resourcesAxisWidth 1.4i
+   set metricsAxisHeight 0.65i
+
+   global W   
+   set W .bargrph
+#   frame $W -class Visi
+   frame $W
+   
+   frame $W.top
+   pack $W.top -side top -fill x -expand false -anchor n
+      # this area will encompass the title bar, menu bar, and logo
+      # expand is set to false; if the window is made taller,
+      # we don't want to get any taller.
+   
+   frame $W.top.left
+   pack $W.top.left -side left -fill both -expand true
+      # this area encompasses the title bar and menu bar
+      # expand is set to true so that if the window is made
+      # wider, we get the extra space (as opposed to the logo
+      # or as opposed to nobody, which would leave ugly blank
+      # space)
+   
+   # #################### Paradyn logo #################
+   
+   #label $W.top.logo -relief raised \
+   #		  -bitmap @/p/paradyn/core/paradyn/tcl/logo.xbm \
+   #                  -foreground indianred
+   makeLogo $W.top.logo paradynLogo raised 2 indianred
+   
+   pack $W.top.logo -side right -expand false
+      # we set expand to false; if the window is made wider, we
+      # don't want any of the extra space; let the menu bar and
+      # title bar have it.
+   
+   # #################### Title bar #################
+   
+   label $W.top.left.titlebar  -text "Barchart Visualization" -foreground white -background indianred -relief raised
+   pack $W.top.left.titlebar -side top -fill both -expand true
+      # expand is set to true, not because we want more space if the window
+      # is made taller (which won't happen, since the expand flag of our
+      # parent was set to false), but because we want to take up any padding
+      # space left after we and the menu bar are placed (if the logo is
+      # taller than the two of us, which it currently is)
+   
+   # ##################### Menu bar ###################
+   
+   set Wmbar $W.top.left.mbar
+   frame $Wmbar -class MyMenu -borderwidth 2 -relief raised
+   pack  $Wmbar -side top -fill both -expand false
+   
+   # #################### File menu #################
+   
+   menubutton $Wmbar.file -text File -menu $Wmbar.file.m
+   menu $Wmbar.file.m -selectcolor tomato
+   $Wmbar.file.m add command -label "Close Bar chart" -command GracefulClose
+   
+   # #################### Actions Menu ###################
+   
+   menubutton $Wmbar.actions -text Actions -menu $Wmbar.actions.m
+   menu $Wmbar.actions.m -selectcolor tomato
+   $Wmbar.actions.m add command -label "Add Bars..." -command AddMetricDialog
+   $Wmbar.actions.m add separator
+   $Wmbar.actions.m add command -label "Remove Selected Metric(s)" -state disabled
+   $Wmbar.actions.m add command -label "Remove Selected Resource(s)" -state disabled
+   
+   # #################### View menu ###################
+   
+   menubutton $Wmbar.view -text View -menu $Wmbar.view.m
+   menu $Wmbar.view.m -selectcolor tomato
+   $Wmbar.view.m add radio -label "Order Resources by Name (ascending)" -variable SortPrefs -command ProcessNewSortPrefs -value ByName
+   $Wmbar.view.m add radio -label "Order Resources by Name (descending)" -variable SortPrefs -command ProcessNewSortPrefs -value ByNameDescending
+   $Wmbar.view.m add radio -label "Order Resources as Inserted by User" -variable SortPrefs -command ProcessNewSortPrefs -value NoParticular
+   
+   $Wmbar.view.m add separator
+   
+   $Wmbar.view.m add radio -label "Current Values" \
+      -variable DataFormat -command {rethinkDataFormat} \
+      -value Instantaneous
+   $Wmbar.view.m add radio -label "Average Values" \
+      -variable DataFormat -command {rethinkDataFormat} \
+      -value Average
+   $Wmbar.view.m add radio -label "Total Values" \
+      -variable DataFormat -command {rethinkDataFormat} \
+      -value Sum
+   
+   $Wmbar.view.m add separator
+
+   global LongNames
+   set LongNames 0
+   
+   $Wmbar.view.m add checkbutton -label "Long Names" -variable LongNames \
+   	-command ProcessLongNamesChange
+   
+   # #################### Help menu #################
+   
+   #menubutton $Wmbar.help -text Help \
+   #          -menu $Wmbar.help.m
+   #menu $Wmbar.help.m 
+   #$Wmbar.help.m add command -label "General" -command "NotImpl" -state disabled
+   #$Wmbar.help.m add command -label "Context" -command "NotImpl" -state disabled
+   
+   
+   # #################### Build the menu bar and add to display #################
+   
+   pack $Wmbar.file $Wmbar.actions $Wmbar.view -side left -padx 4
+   #pack $Wmbar.help -side right
+   
+   # #######################  Scrollbar ######################
+   
+   canvas $W.farLeft
+   pack $W.farLeft -side left -expand false -fill y
+      # expand is set to false; if the window is made wider, don't change width
+   
+   scrollbar $W.farLeft.resourcesAxisScrollbar -orient vertical -width 16 \
+           -background gray -activebackground gray -relief sunken \
+           -command ".bargrph.left.resourcesAxisCanvas yview"
+   
+   pack $W.farLeft.resourcesAxisScrollbar -side top -fill y -expand true
+      # expand is set to true; if the window is made taller, we want
+      # extra height.
+   
+   canvas $W.farLeft.sbPadding -height $metricsAxisHeight -width 16 -relief flat
+   pack $W.farLeft.sbPadding -side bottom -expand false -fill x
+      # expand is set to false; if the window is made taller, we don't
+      # want any of the extra height.
+   
+   # #####################  Resources Axis #################
+   
+   canvas $W.left -width $resourcesAxisWidth
+   pack   $W.left -side left -expand false -fill y
+      # expand is set to false; if the window is made wider, we don't want
+      # any of the extra width
+   
+   canvas $W.left.metricsKey -height $metricsAxisHeight -width $resourcesAxisWidth\
+           -relief groove
+   pack   $W.left.metricsKey -side bottom -expand false
+      # expand is set to false; if the window is made taller, we don't
+      # want any of the extra height
+
+   global WresourcesCanvas   
+   set WresourcesCanvas $W.left.resourcesAxisCanvas
+   canvas $WresourcesCanvas -width $resourcesAxisWidth -relief groove \
+                                -yscrollcommand myYScroll \
+                                -yscrollincrement 1
+   pack   $WresourcesCanvas -side top -expand true -fill y
+      # expand is set to true; if the window is made taller, we want the
+      # extra height.
+   
+   # ####################  Metrics Axis Canvas ############################
+   
+   canvas $W.metricsAxisCanvas -height $metricsAxisHeight -relief groove
+   pack   $W.metricsAxisCanvas -side bottom -fill x -expand false
+      # expand is set to false; if the window is made wider, we don't want
+      # extra width to go to the metrics axis
+   
+   # ####################  Barchart Area ($W.body) #################
+   
+   canvas $W.body -height 2.5i -width 3.5i -relief groove
+   pack  $W.body -side top -fill both -expand true
+      # expand is set to true; if the window is made taller, we want the
+      # extra height to go to us
+   
+   # ######### pack $W (and all its subwindows) into the main (top-level)
+   # ######### window such that it basically consumes the entire window...
+   pack append . $W {fill expand frame center}
+
+   # set some window manager hints:
+   #wm minsize  . 350 250
+   wm title    . "Barchart"
 }
-
-# ####################  Overall frame ###########################
-
-set resourcesAxisWidth 1.4i
-set metricsAxisHeight 0.65i
-
-set W .bargrph
-frame $W -class Visi
-
-frame $W.top
-pack $W.top -side top -fill x -expand false -anchor n
-   # this area will encompass the title bar, menu bar, and logo
-   # expand is set to false; if the window is made taller,
-   # we don't want to get any taller.
-
-frame $W.top.left
-pack $W.top.left -side left -fill both -expand true
-   # this area encompasses the title bar and menu bar
-   # expand is set to true so that if the window is made
-   # wider, we get the extra space (as opposed to the logo
-   # or as opposed to nobody, which would leave ugly blank
-   # space)
-
-# #################### Paradyn logo #################
-
-label $W.top.logo -relief raised \
-		  -bitmap @/p/paradyn/core/paradyn/tcl/logo.xbm \
-                  -foreground indianred
-
-pack $W.top.logo -side right -expand false
-   # we set expand to false; if the window is made wider, we
-   # don't want any of the extra space; let the menu bar and
-   # title bar have it.
-
-# #################### Title bar #################
-
-label $W.top.left.titlebar  -text "Barchart Visualization" -foreground white -background indianred -relief raised
-pack $W.top.left.titlebar -side top -fill both -expand true
-   # expand is set to true, not because we want more space if the window
-   # is made taller (which won't happen, since the expand flag of our
-   # parent was set to false), but because we want to take up any padding
-   # space left after we and the menu bar are placed (if the logo is
-   # taller than the two of us, which it currently is)
-
-# ##################### Menu bar ###################
-
-set Wmbar $W.top.left.mbar
-frame $Wmbar -class MyMenu -borderwidth 2 -relief raised
-pack  $Wmbar -side top -fill both -expand false
-
-# #################### File menu #################
-
-menubutton $Wmbar.file -text File -menu $Wmbar.file.m
-menu $Wmbar.file.m -selectcolor tomato
-$Wmbar.file.m add command -label "Close Bar chart" -command GracefulClose
-
-# #################### Actions Menu ###################
-
-menubutton $Wmbar.actions -text Actions -menu $Wmbar.actions.m
-menu $Wmbar.actions.m -selectcolor tomato
-$Wmbar.actions.m add command -label "Add Bars..." -command AddMetricDialog
-$Wmbar.actions.m add separator
-$Wmbar.actions.m add command -label "Remove Selected Metric(s)" -state disabled
-$Wmbar.actions.m add command -label "Remove Selected Resource(s)" -state disabled
-
-# #################### View menu ###################
-
-menubutton $Wmbar.view -text View -menu $Wmbar.view.m
-menu $Wmbar.view.m -selectcolor tomato
-$Wmbar.view.m add radio -label "Order Resources by Name (ascending)" -variable SortPrefs -command ProcessNewSortPrefs -value ByName
-$Wmbar.view.m add radio -label "Order Resources by Name (descending)" -variable SortPrefs -command ProcessNewSortPrefs -value ByNameDescending
-$Wmbar.view.m add radio -label "Order Resources as Inserted by User" -variable SortPrefs -command ProcessNewSortPrefs -value NoParticular
-
-$Wmbar.view.m add separator
-
-$Wmbar.view.m add radio -label "Current Values" \
-   -variable DataFormat -command {rethinkDataFormat} \
-   -value Instantaneous
-$Wmbar.view.m add radio -label "Average Values" \
-   -variable DataFormat -command {rethinkDataFormat} \
-   -value Average
-$Wmbar.view.m add radio -label "Total Values" \
-   -variable DataFormat -command {rethinkDataFormat} \
-   -value Sum
-
-$Wmbar.view.m add separator
-
-$Wmbar.view.m add checkbutton -label "Long Names" -variable LongNames \
-	-command ProcessLongNamesChange
-
-set LongNames 0
-
-# #################### Help menu #################
-
-#menubutton $Wmbar.help -text Help \
-#          -menu $Wmbar.help.m
-#menu $Wmbar.help.m 
-#$Wmbar.help.m add command -label "General" -command "NotImpl" -state disabled
-#$Wmbar.help.m add command -label "Context" -command "NotImpl" -state disabled
-
-
-# #################### Build the menu bar and add to display #################
-
-pack $Wmbar.file $Wmbar.actions $Wmbar.view -side left -padx 4
-#pack $Wmbar.help -side right
-
-# #################### Organize all menu buttons into a menubar ##############
-
-tk_menuBar $Wmbar $Wmbar.file $Wmbar.actions \
-   $Wmbar.view
-
-# #######################  Scrollbar ######################
-
-canvas $W.farLeft
-pack $W.farLeft -side left -expand false -fill y
-   # expand is set to false; if the window is made wider, don't change width
-
-scrollbar $W.farLeft.resourcesAxisScrollbar -orient vertical -width 16 \
-        -background gray -activebackground gray -relief sunken \
-        -command ".bargrph.left.resourcesAxisCanvas yview"
-
-pack $W.farLeft.resourcesAxisScrollbar -side top -fill y -expand true
-   # expand is set to true; if the window is made taller, we want
-   # extra height.
-
-canvas $W.farLeft.sbPadding -height $metricsAxisHeight -width 16 -relief flat
-pack $W.farLeft.sbPadding -side bottom -expand false -fill x
-   # expand is set to false; if the window is made taller, we don't
-   # want any of the extra height.
-
-# #####################  Resources Axis #################
-
-canvas $W.left -width $resourcesAxisWidth
-pack   $W.left -side left -expand false -fill y
-   # expand is set to false; if the window is made wider, we don't want
-   # any of the extra width
-
-canvas $W.left.metricsKey -height $metricsAxisHeight -width $resourcesAxisWidth\
-        -relief groove
-pack   $W.left.metricsKey -side bottom -expand false
-   # expand is set to false; if the window is made taller, we don't
-   # want any of the extra height
-
-set WresourcesCanvas $W.left.resourcesAxisCanvas
-canvas $WresourcesCanvas -width $resourcesAxisWidth -relief groove \
-                             -yscrollcommand myYScroll \
-                             -yscrollincrement 1
-pack   $WresourcesCanvas -side top -expand true -fill y
-   # expand is set to true; if the window is made taller, we want the
-   # extra height.
-
-# ####################  Metrics Axis Canvas ############################
-
-canvas $W.metricsAxisCanvas -height $metricsAxisHeight -relief groove
-pack   $W.metricsAxisCanvas -side bottom -fill x -expand false
-   # expand is set to false; if the window is made wider, we don't want
-   # extra width to go to the metrics axis
-
-# ####################  Barchart Area ($W.body) #################
-
-canvas $W.body -height 2.5i -width 3.5i -relief groove
-pack  $W.body -side top -fill both -expand true
-   # expand is set to true; if the window is made taller, we want the
-   # extra height to go to us
-
-# ######### pack $W (and all its subwindows) into the main (top-level)
-# ######### window such that it basically consumes the entire window...
-pack append . $W {fill expand frame center}
-
-# set some window manager hints:
-#wm minsize  . 350 250
-wm title    . "Barchart"
 
 proc getWindowWidth {wName} {
    # warning!  This routine will return an old number if an important
@@ -1420,9 +1427,3 @@ proc GracefulClose {} {
 
    exit
 }
-
-# #########################################################################
-#                           "Main Program"
-# #########################################################################
-
-Initialize
