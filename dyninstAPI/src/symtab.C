@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.194 2003/10/24 21:25:54 jaw Exp $
+// $Id: symtab.C,v 1.195 2003/10/28 04:33:06 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -249,6 +249,7 @@ bool buildDemangledName( const pdstring & mangled, pdstring & use, bool nativeCo
   //         symbols.  We may need to do something more sophisticated
   //         in the future.  JAW 10/03
 
+#if !defined(i386_unknown_nt4_0)
   char *atat;
   if (NULL != (atat = strstr(mangled.c_str(), "@@"))) {
     use = mangled.substr(0 /*start pos*/, 
@@ -261,7 +262,7 @@ bool buildDemangledName( const pdstring & mangled, pdstring & use, bool nativeCo
       
     return true;
   }
-
+#endif
 
 
   /* Try demangling it. */
@@ -2907,7 +2908,7 @@ pdvector<pd_Function *> *image::findFuncVectorByMangled(functionNameSieve_t bpsi
   pdstring fname;
   pdvector<pd_Function *> *fmatches;
   while (iter.next(fname, fmatches)) {
-    if ((*bpsieve)(iter.currkey().c_str(), user_data)) {
+    if ((*bpsieve)(fname.c_str(), user_data)) {
       result.push_back(fmatches);
     }
   }
