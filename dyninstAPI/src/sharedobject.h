@@ -19,13 +19,16 @@
 class shared_object {
 
 public:
-    shared_object():name(0),base_addr(0),processed(false),
+    shared_object():name(0),short_name(0),base_addr(0),processed(false),
 	 mapped(false),include_funcs(true), objs_image(0),some_funcs(0){}
     shared_object(string &n,u_int b, bool p,bool m, bool i, image *d):
 	name(n), base_addr(b),processed(p),mapped(m),
-	include_funcs(i), objs_image(d),some_funcs(0){ }
+	include_funcs(i), objs_image(d),some_funcs(0){ 
+        set_short_name();
+    }
     shared_object(const shared_object &s_obj){
 	name = s_obj.name;
+	short_name = s_obj.short_name;
 	base_addr = s_obj.base_addr;
 	processed = s_obj.processed;
 	mapped = s_obj.mapped;
@@ -36,6 +39,7 @@ public:
     ~shared_object(){ objs_image = 0;}
 
     const string &getName(){ return(name); }
+    const string &getShortName() { return short_name; }
     u_int getBaseAddress() { return(base_addr); }
     bool  isProcessed() { return(processed); }
     bool  isMapped() { return(mapped); }
@@ -168,6 +172,8 @@ public:
     //				
 private:
     string  name;	// full file name of the shared object
+    string  short_name; // name of shared object as it should be identified
+			//  in mdl, e.g. as used for "exclude"....
     u_int   base_addr;  // base address of where the shared object is mapped
     bool    processed;  // if true, daemon has processed the shared obj. file
     bool    mapped;     // if true, the application has the shared obj. mapped
@@ -180,6 +186,8 @@ private:
     image  *objs_image; // pointer to image if processed is true 
     vector<pd_Function *> *some_funcs; // all functions not excluded by 
 				       // exclude_func option
+
+    void set_short_name();
 };
 
 #endif

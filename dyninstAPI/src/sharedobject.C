@@ -1,5 +1,7 @@
 #include "dyninstAPI/src/sharedobject.h"
 
+#define FS_FIELD_SEPERATOR '/'
+
 // TODO: this should probably not be a shared_object method, but since
 // for now it is only used by shared_objects it is
 // from a string that is a complete path name to a function in a module
@@ -30,13 +32,35 @@ char *shared_object::getModulePart(string &full_path_name) {
 }
 
 
+// fill in "short_name" data member.  Use last component of "name" data
+//  member w "/" as field seperator....
+void shared_object::set_short_name() {
+    char *name_string = name.string_of();
+    char *ptr = strrchr(name_string, FS_FIELD_SEPERATOR);
+    if (ptr != NULL) {
+        short_name = ptr+1;
+    } else {
+        short_name = string("");
+    }
+}
+
 #ifndef BPATCH_LIBRARY
 // returns all the functions not excluded by exclude_lib or exclude_func
 // mdl option
 vector<pd_Function *> *shared_object::getSomeFunctions(){
+
+    //cerr << "shared_object::getSomeFunctions called for shared object " \
+    //	 << short_name << endl;
+
     if(objs_image) {
 
-        if(some_funcs) return some_funcs;
+        if(some_funcs) {
+	    //cerr << " (shared_object::getSomeFunctions) some_funcs already created" \
+	    //     << " about to return : " << endl;
+	    //print_func_vector_by_pretty_name(string("  "), (vector<function_base *>*)some_funcs);
+	    return some_funcs;
+	}
+
         // return (&(objs_image->mdlNormal));
         // check to see if this module occurs in the list of modules from
         // exclude_funcs mdl option...if it does then we need to check
@@ -45,7 +69,7 @@ vector<pd_Function *> *shared_object::getSomeFunctions(){
 
         vector<pd_Function *> temp = *(getAllFunctions());
 
-        if (filter_excluded_functions(temp, *some_funcs, name) == FALSE) {
+        if (filter_excluded_functions(temp, *some_funcs, short_name) == FALSE) {
 	    // WRONG!!!!  Leads to memory leak!!!!
             //  some_funcs = 0;
             // correct :
@@ -53,6 +77,10 @@ vector<pd_Function *> *shared_object::getSomeFunctions(){
             some_funcs = NULL;
             return NULL;
         }
+        
+        //cerr << " (shared_object::getSomeFunctions) some_funcs newly created" \
+	//	 << " about to return : " << endl;
+	//print_func_vector_by_pretty_name(string("  "), (vector<function_base *>*)some_funcs);
         return some_funcs;
     }
     return NULL;    

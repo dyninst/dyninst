@@ -1634,7 +1634,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 	 // ALERT ALERT
 	 //fprintf(stderr, "#### Tail-call optimization in function %s, addr %x\n",
 	 //	prettyName().string_of(), adr);
-	 //cerr << "tail-call optimization detected for function " << prettyName().string_of() << endl;
+	 // cerr << "tail-call optimization detected for function " << prettyName().string_of() << endl;
 	 funcReturns += new instPoint(this, instr, owner, adr, false,
 				      functionExit);
 
@@ -1971,7 +1971,10 @@ bool pd_Function::findNewInstPoints(const image *owner,
 
    int i, orig_call_insn;
    if (size() == 0) {
-     return false;
+       cerr << "WARN : attempting to relocate function " \
+       	    << prettyName().string_of() << " with size 0, unable to instrument" \
+            <<  endl;
+       return false;
    }
    assert(reloc_info);
 
@@ -1982,8 +1985,12 @@ bool pd_Function::findNewInstPoints(const image *owner,
    Address adr = getAddress(0);
    instruction instr;
    instr.raw = owner->get_instruction(adr);
-   if (!IS_VALID_INSN(instr))
-     return false;
+   if (!IS_VALID_INSN(instr)) {
+       cerr << "WARN : attempting to relocate function "\
+	    << prettyName().string_of() << " first instruction could not " \
+	    << " be correctly parsed, unable to instrument" << endl;
+       return false;
+   }
 
    instPoint *point = new instPoint(this, instr, owner, newAdr, true, 
 				    functionEntry, adr);
@@ -2084,7 +2091,7 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	    //                                    st  [ %fp + 0x44 ], %i0
 	    //         			          retl
             //                                    nop
-	    //  ********    OR    ********
+	    //  ********    OR (NOT USED)    ********
 	    //   before:          --->             after
 	    // ---------------------------------------------------
 	    //   call  PC_REL_ADDR                want : move ABS_ADD,
@@ -2103,7 +2110,7 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	    //                                    st  [ %fp + 0x44 ], %i0
 	    //         			          retl
             //                                    nop
-	    //  ********    OR    ********
+	    //  ********    OR (USED)   ********
 	    //   before:          --->             after
 	    // ---------------------------------------------------
 	    //   call  PC_REL_ADDR                 ADDR' = PC_REL_ADDR - diff
@@ -2138,8 +2145,6 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	    //      as it is.
 	    //    ( If you could give an counter-example, please
 	    //      let me know.                         --ling )
-
-
 	    bool true_call = isTrueCallInsn(instr);
 	    bool jmpl_call = isJmplCallInsn(instr);
 	    
@@ -2195,7 +2200,9 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	        relocateInstruction(&newInstr[i],
 		        adr+baseAddress,
 		        newAdr + (i - orig_call_insn) * 4, proc);
-		//cerr << "adr+baseAddress = " << adr+baseAddress << " (i - orig_call_insn) = " << (i - orig_call_insn) << " newAdr = " << newAdr << endl;
+		//cerr << "adr+baseAddress = " << adr+baseAddress << \
+		//  " (i - orig_call_insn) = " << (i - orig_call_insn) << \
+		//  " newAdr = " << newAdr << endl;
 		i++;
 
 	        // newInstr[i].raw = owner->get_instruction(adr);
@@ -2295,7 +2302,8 @@ bool pd_Function::findNewInstPoints(const image *owner,
           (e.g. read/write on SunOS). In general, the only way to 
 	  know if a jump is exiting the function is to instrument
 	  the jump to test if the target is outside the current 
-	  function. Instead of doing this, we just check the 
+	  function. Instead 
+of doing this, we just check the 
 	  previous two instructions, to see if they are loading
 	  an address that is out of the current function.
 	  This should catch the most common cases (e.g. read/write).
@@ -2345,3 +2353,4 @@ bool pd_Function::findNewInstPoints(const image *owner,
    
    return true;
 }
+

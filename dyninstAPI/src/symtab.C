@@ -179,9 +179,9 @@ bool image::newFunc(pdmodule *mod, const string &name, const Address addr,
   retFunc = NULL;
   // KLUDGE
   if ((func = findFunction(addr, TRUE))){
-    string temp = name;
-    temp += string(" findFunction succeeded\n");
-    logLine(P_strdup(temp.string_of()));
+    //string temp = name;
+    //temp += string(" findFunction succeeded\n");
+    //logLine(P_strdup(temp.string_of()));
     return false;
   }
 
@@ -865,13 +865,14 @@ vector<function_base *> *pdmodule::getIncludedFunctions() {
     //      << endl;
     if (some_funcs_inited == TRUE) {
         //cerr << "  about to return : " << endl;
-        print_func_vector_by_pretty_name(string("  "), (vector<function_base *>*)&some_funcs);
+        //print_func_vector_by_pretty_name(string("  "), (vector<function_base *>*)&some_funcs);
         return (vector<function_base *>*)&some_funcs;
     }
 #ifdef BPATCH_LIBRARY /* BPatch Library doesn't know about excluded funcs */
     some_funcs = funcs;
 #else
     some_funcs.resize(0);
+    
     if (filter_excluded_functions(funcs, some_funcs, fileName()) == FALSE) {
         //cerr << "  about to return NULL";
 	return NULL;
@@ -884,7 +885,7 @@ vector<function_base *> *pdmodule::getIncludedFunctions() {
     return (vector<function_base *>*)&some_funcs;
 }
 
-
+#ifdef NOT_DEFINED
 // get all functions in module which are not "excluded" (e.g.
 //  with mdl "exclude" command.  
 // Assed to provide support for mdl "exclude" on functions in
@@ -896,6 +897,7 @@ const vector<pd_Function *> &image::getIncludedFunctions() {
     //        (vector<function_base*>*)&includedFunctions);
     return includedFunctions;
 }
+#endif
 
 const vector<pd_Function*> &image::getAllFunctions() {
     //cerr << "pdmodule::getAllFunctions() called, about to return instrumentableFunctions = " << endl;
@@ -1025,8 +1027,8 @@ bool module_is_excluded(pdmodule *module) {
 
 // mcheyney, Oct. 3, 1997
 // Return boolean value indicating whether function is found to
-//  be excluded (via "exclude module_name" or "exclude module_name/
-//  function_name").
+//  be excluded via "exclude module_name/function_name" (but NOT
+//  via "exclude module_name").
 bool function_is_excluded(pd_Function *func, string module_name) {
     // strings holding exclude constraints....
     vector<string> func_constraints;
@@ -1051,8 +1053,9 @@ bool function_is_excluded(pd_Function *func, string module_name) {
         constraint_module_name = getModuleName(func_constraints[i]);
 	if (constraint_module_name == module_name) { 
 	    constraint_function_name = getFunctionName(func_constraints[i]);
+	    // if module/function is excluded....
 	    if (constraint_function_name == function_name) {
-	        //cerr << " (function_is_excluded) found matching constraint " << func_constraints[i] << " returning TRUE" << endl;
+	        //cerr << " (function_is_excluded) found matching FUNCTION constraint " << func_constraints[i] << " returning TRUE" << endl;
 	        return TRUE;
 	    }
 	}
@@ -1241,13 +1244,11 @@ bool inLibrary(Address addr, Address boundary_start, Address boundary_end,
     return false;
 }
 
-#ifdef NOT_DEFINED
 // as per getAllFunctions, but filters out those excluded with 
 // e.g. mdl "exclude" command....
-// Note that unlike several other paradynd classes, we do
-// not allocate a seperate list of some functions , but rather
-// filter the list of all functions whenevr queried for list 
-// of included funtions.....
+// to clarify a function should NOT be returned from here if its 
+//  module is excluded (with exclude "/Code/module") or if it
+//  is excluded (with exclude "/Code/module/function"). 
 const vector<pd_Function*> &image::getIncludedFunctions() {
     unsigned int i;    
     includedFunctions.resize(0);
@@ -1255,11 +1256,10 @@ const vector<pd_Function*> &image::getIncludedFunctions() {
     vector<pd_Function *> *temp2;
 
     //cerr << "image::getIncludedFunctions called, name = " << name () << endl;
-    //cerr << " mods = " << endl;
-    //print_module_vector_by_short_name(string("  "), &mods);
-
-    for (i=0;i<mods.size();i++) {
-         temp = mods[i]->getIncludedFunctions();
+    //cerr << " includedMods = " << endl;
+    //print_module_vector_by_short_name(string("  "), &includedMods);
+    for (i=0;i<includedMods.size();i++) {
+         temp = includedMods[i]->getIncludedFunctions();
          temp2 = (vector<pd_Function *> *) temp;
          includedFunctions += *temp2;
     }
@@ -1271,7 +1271,6 @@ const vector<pd_Function*> &image::getIncludedFunctions() {
     // what about shared objects????
     return includedFunctions;
 }
-#endif
 
 //  COMMENTS??  HELLO?
 //  Here's a guess what this function tries to do:

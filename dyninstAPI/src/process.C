@@ -2264,6 +2264,9 @@ function_base *process::findOneFunction(resource *func,resource *mod){
     string func_name = f_names[f_names.size() -1]; 
     string mod_name = m_names[m_names.size() -1]; 
 
+    //cerr << "process::findOneFunction called.  function name = " << func_name.string_of() \
+    //	 << endl;
+
     // KLUDGE: first search any shared libraries for the module name 
     //  (there is only one module in each shared library, and that 
     //  is the library name)
@@ -2273,15 +2276,19 @@ function_base *process::findOneFunction(resource *func,resource *mod){
 	    next = ((*shared_objects)[j])->findModule(mod_name,true);
 	    if(next){
 	        if(((*shared_objects)[j])->includeFunctions()){	
+		    //cerr << "function found in module " << mod_name.string_of() << endl;
 	            return(((*shared_objects)[j])->findOneFunction(func_name,
 								   true));
 		} 
-		else { return 0;} 
+		else { 
+		    //cerr << "function found in module " << mod_name.string() << \
+		    " that module excluded" << endl;
+		  return 0;
+		} 
 	    }
         }
     }
 
-    // check a.out for function symbol
     return(symbols->findOneFunction(func_name));
 }
 #endif /* BPATCH_LIBRARY */
@@ -2293,6 +2300,8 @@ function_base *process::findOneFunction(resource *func,resource *mod){
 vector<function_base *> *process::getIncludedFunctions(module *mod) {
 
     if((!mod)) { return 0; }
+
+    //cerr << "process::getIncludedFunctions(" << mod->fileName() << ") called" << endl;
 
     // KLUDGE: first search any shared libraries for the module name 
     //  (there is only one module in each shared library, and that 
@@ -2546,9 +2555,8 @@ vector<module *> *process::getAllModules(){
 // a.out and in the shared objects
 // TODO: what to do about duplicate function names?
 vector<function_base *> *process::getIncludedFunctions(){
-
-    //cerr << "process " << programName << " :: getIncludedFunctions() called"
-    //     << endl;
+    //cerr << "process " << programName << " :: getIncludedFunctions() called" \
+    //	 << endl;
     // if this list has already been created, return it
     if(some_functions) 
 	return some_functions;
@@ -2575,7 +2583,7 @@ vector<function_base *> *process::getIncludedFunctions(){
             } 
     } } 
 
-    //cerr << " about to return fucntion list : ";
+    //cerr << " (process::getIncludedFunctions()) about to return fucntion list : ";
     //print_func_vector_by_pretty_name(string("  "), some_functions);
 
     return some_functions;
@@ -2587,8 +2595,14 @@ vector<function_base *> *process::getIncludedFunctions(){
 // the mdl
 vector<module *> *process::getIncludedModules(){
 
+    //cerr << "process::getIncludedModules called" << endl;
+
     // if the list of all modules has already been created, the return it
-    if(some_modules) return some_modules;
+    if(some_modules) {
+        //cerr << "some_modules already created, returning it:" << endl;
+        //print_module_vector_by_short_name(string("  "), (vector<pdmodule*>*)some_modules);
+        return some_modules;
+    }
 
     // else create the list of all modules
     some_modules = new vector<module *>;
@@ -2604,6 +2618,10 @@ vector<module *> *process::getIncludedModules(){
                }
 	   }
     } } 
+
+    //cerr << "some_modules newlyu created, returning it:" << endl;
+    //print_module_vector_by_short_name(string("  "), \
+    //    (vector<pdmodule*>*)some_modules);
     return some_modules;
 }
       

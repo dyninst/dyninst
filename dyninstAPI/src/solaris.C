@@ -392,7 +392,13 @@ bool process::attach() {
   // step 2) /proc PIOCSTRACE: define which signals should be forwarded to daemon
   //   These are (1) SIGSTOP and (2) either SIGTRAP (sparc) or SIGILL (x86), to
   //   implement inferiorRPC completion detection.
+
   sigset_t sigs;
+
+  /*  ALERT ALERT !!!!  Important do NOT commit....  */
+  prfillset(&sigs);
+
+  /*  ****  UNCOMMENT BEFORE COMMIT!!!!    ****
   premptyset(&sigs);
   praddset(&sigs, SIGSTOP);
 
@@ -403,6 +409,7 @@ bool process::attach() {
 #ifdef i386_unknown_solaris2_5
   praddset(&sigs, SIGILL);
 #endif
+  *********************************************/
 
   if (ioctl(fd, PIOCSTRACE, &sigs) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);

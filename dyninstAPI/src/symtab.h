@@ -424,6 +424,9 @@ private:
 // allImages
 // varsByPretty
 // knownJumpTargets
+// COMMENTS????
+//  Image class contains information about statically and dynamically linked code 
+//  belonging to a process....
 class image {
    friend class process;
 
@@ -447,8 +450,7 @@ public:
   // Non-NULL if symbol can be found, even if it it is excluded!!!!
   Address findInternalAddress(const string &name, const bool warn, bool &err);
 
-  // find the named module - 
-  // mcheyey - Should this work if function is excluded?? 
+  // find the named module  
   pdmodule *findModule(const string &name, bool find_if_excluded = FALSE);
 
   // find the function by name, address, or the first by name
