@@ -46,6 +46,7 @@ bool interface_spec::gen_ctor_hdr(ofstream &out_stream, const bool &server) cons
       out_stream << "private:\n";
       out_stream << "virtual bool verifyProtocolAndVersion();\n";
       out_stream << "public:\n";
+      out_stream << "bool errorConditionFound;\n";
     }
   }
 
@@ -307,8 +308,18 @@ bool interface_spec::gen_header(ofstream &out_stream, const bool &server) const 
 }
 
 bool interface_spec::gen_ctor_helper(ofstream &out_stream, const bool &server) const {
-  if (!server)
-    out_stream << "if (!opened()) assert(0);\nif (!verifyProtocolAndVersion()) assert(0);\n";
+  if (!server) {
+//    out_stream << "if (!opened()) assert(0);\n";
+//    out_stream << "if (!verifyProtocolAndVersion()) assert(0);\n";
+    out_stream << "if (!opened())\n";
+    out_stream << "  errorConditionFound=true;\n";
+    out_stream << "else {\n";
+    out_stream << "  if (!verifyProtocolAndVersion())\n";
+    out_stream << "    errorConditionFound=true;\n";
+    out_stream << "  else\n"; 
+    out_stream << "    errorConditionFound=false;\n";
+    out_stream << "}\n";
+  }
   return true;
 }
 
@@ -412,7 +423,7 @@ bool interface_spec::gen_server_verify(ofstream &out_stream) const {
 
   if (!Options::dont_gen_handle_err) {
     out_stream << "void " << gen_class_prefix(true) << "handle_error() {\n";
-    out_stream << "cerr << \"Error not handled, exiting\";\n";
+    out_stream << "cerr << \"Error not handled, exiting\n\";\n";
     out_stream << "IGEN_ERR_ASSERT;\n";
     out_stream << "exit(-1);\n";
     out_stream << "}\n\n";
@@ -458,8 +469,9 @@ bool interface_spec::gen_client_verify(ofstream &out_stream) const {
 
   if (!Options::dont_gen_handle_err) {
     out_stream << "void " << gen_class_prefix(false) << "handle_error() {\n";
-    out_stream << "cerr << \"Error not handled, exiting\";\n";
-    out_stream << "assert(0);\n";
+    out_stream << "cerr << \"Error condition found - handle_error\n\";\n";
+//    out_stream << "cerr << \"Error not handled, exiting\";\n";
+//    out_stream << "assert(0);\n";
     out_stream << "}\n\n";
   }
 
