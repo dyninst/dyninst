@@ -1,5 +1,10 @@
 # tclTunable.tcl
 
+# $Log: tclTunable.tcl,v $
+# Revision 1.2  1994/10/26 22:45:41  tamches
+# first version
+#
+
 proc tunableInitialize {} {
    global tunableMinWidth
    global tunableMinHeight
