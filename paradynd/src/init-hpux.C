@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "metric.h"
-#include "internalMetrics.h"
-#include "inst.h"
-#include "init.h"
-#include "ast.h"
-#include "util.h"
-#include "os.h"
+#include "paradynd/src/metric.h"
+#include "paradynd/src/internalMetrics.h"
+#include "dyninstAPI/src/inst.h"
+#include "paradynd/src/init.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/os.h"
 
 // NOTE - the tagArg integer number starting with 0.  
 static AstNode tagArg(AstNode::Param, (void *) 1);

@@ -43,6 +43,10 @@
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.51  1997/02/21 20:15:37  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.50  1997/01/30 18:17:58  tamches
  * continueAllProcesses() won't try to continue an already-running process;
  * pauseAllProcesses won't try to pause an already-paused process
@@ -73,21 +77,21 @@
  *
  */
 
-#include "symtab.h"
-#include "process.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "dyninst.h"
-#include "dyninstP.h"
-#include "inst.h"
-#include "instP.h"
-#include "ast.h"
-#include "util.h"
-#include "metric.h"
-#include "perfStream.h"
-#include "os.h"
-#include "showerror.h"
-#include "costmetrics.h"
+#include "dyninstAPI/src/dyninst.h"
+#include "dyninstAPI/src/dyninstP.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "paradynd/src/metric.h"
+#include "paradynd/src/perfStream.h"
+#include "dyninstAPI/src/os.h"
+#include "paradynd/src/showerror.h"
+#include "paradynd/src/costmetrics.h"
 
 extern vector<process*> processVec;
 

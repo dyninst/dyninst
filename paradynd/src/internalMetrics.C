@@ -41,7 +41,7 @@
 
 // internalMetrics.C
 
-#include "process.h" // processVec
+#include "dyninstAPI/src/process.h" // processVec
 #include "internalMetrics.h"
 
 internalMetric::eachInstance::eachInstance(sampleValueFunc f, metricDefinitionNode *n) {

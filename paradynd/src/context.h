@@ -43,7 +43,7 @@
 #define CONTEXT_HDR
 
 #include "rtinst/h/trace.h"
-#include "dyninst.h"
+#include "dyninstAPI/src/dyninst.h"
 
 extern timeStamp startPause;
 extern timeStamp elapsedPauseTime;

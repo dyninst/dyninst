@@ -43,6 +43,10 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.62  1997/02/21 20:15:42  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.61  1997/01/31 15:59:24  naim
  * Fixing race condition between continueProc and inferiorRPC in progress - naim
  *
@@ -80,23 +84,23 @@
  *
  */
 
-#include "symtab.h"
-#include "process.h"
-#include "inst.h"
-#include "instP.h"
-#include "ast.h"
-#include "util.h"
-#include "dyninstP.h"
-#include "metric.h"
-#include "internalMetrics.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/dyninstP.h"
+#include "paradynd/src/metric.h"
+#include "paradynd/src/internalMetrics.h"
 #include "dyninstRPC.xdr.SRVR.h"
-#include "dyninst.h"
-#include "stats.h"
-#include "resource.h"
+#include "dyninstAPI/src/dyninst.h"
+#include "dyninstAPI/src/stats.h"
+#include "paradynd/src/resource.h"
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/costmetrics.h"
-#include "showerror.h"
+#include "paradynd/src/showerror.h"
 #include "util/h/sys.h" 
 #include "util/h/debugOstream.h"
 
@@ -302,13 +306,6 @@ int dynRPC::enableDataCollection2(vector<u_int> focus, string met, int gid)
 // symbol _DYNINSTsampleMultiple which will affect the frequency with
 // which performance data is sent to the paradyn process 
 //
-#ifdef sparc_tmc_cmost7_3
-extern float SAMPLEnodes ;
-int SAMPLE_MULTIPLE ;
-extern int getNumberOfJobs(void) ;
-#endif
-
-
 void dynRPC::setSampleRate(double sampleInterval)
 {
     // TODO: implement this:
@@ -345,18 +342,6 @@ void dynRPC::setSampleRate(double sampleInterval)
 //		 sampleInterval, *sample_multiple);
 //	 logLine(buffer);
          
-#ifdef sparc_tmc_cmost7_3 
-	int number_of_jobs = getNumberOfJobs() ;
-	sprintf(errorLine, "FOLD, sample_multiple=%d\n", *sample_multiple) ;
-	SAMPLE_MULTIPLE = *sample_multiple ;
-	// adjust the snarf rate accordingly
-	SAMPLEnodes = ((float) BASEBUCKETWIDTH)* 
-		      ((float)(SAMPLE_MULTIPLE))*
-		      number_of_jobs ;
-
-	if(SAMPLEnodes < 1.0) 
-		SAMPLEnodes =  1.0 ;
-#endif
 	// setSampleMultiple(sample_multiple);
 	// set the sample multiple in all processes
 	unsigned p_size = processVec.size();

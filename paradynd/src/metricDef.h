@@ -44,6 +44,10 @@
 
 /* 
  * $Log: metricDef.h,v $
+ * Revision 1.7  1997/02/21 20:16:00  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.6  1996/08/16 21:19:25  tamches
  * updated copyright for release 1.1
  *
@@ -71,7 +75,7 @@
  *
  */
 
-#include "ast.h"
+#include "dyninstAPI/src/ast.h"
 #include "metric.h"
 
 // os independent predicate functions

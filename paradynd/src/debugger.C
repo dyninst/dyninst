@@ -41,6 +41,10 @@
 
 /*
  * $Log: debugger.C,v $
+ * Revision 1.16  1997/02/21 20:15:41  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.15  1997/01/15 00:20:40  tamches
  * commented out some unused code
  *
@@ -81,16 +85,16 @@
 // support for debugger style commands and interface.
 //
 
-#include "symtab.h"
-#include "process.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
 #include "rtinst/h/rtinst.h"
-#include "inst.h"
-#include "instP.h"
-#include "dyninst.h"
-#include "dyninstP.h"
-#include "util.h"
-#include "os.h"
-#include "showerror.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/dyninst.h"
+#include "dyninstAPI/src/dyninstP.h"
+#include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/os.h"
+#include "paradynd/src/showerror.h"
 
 #include <sys/param.h>
 

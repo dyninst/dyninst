@@ -44,6 +44,10 @@
  * metricDefs-critPath.C - Compute the Critical Path.
  *
  * $Log: metricDefs-critPath.C,v $
+ * Revision 1.4  1997/02/21 20:16:00  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.3  1996/08/16 21:19:27  tamches
  * updated copyright for release 1.1
  *
@@ -83,19 +87,19 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "symtab.h"
-#include "process.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/critPath.h"
-#include "inst.h"
-#include "dyninstP.h"
-#include "metric.h"
-#include "ast.h"
-#include "util.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/dyninstP.h"
+#include "paradynd/src/metric.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
 #include "rtinst/h/trace.h"
-#include "metricDef.h"
-#include "os.h"
-#include "main.h"
+#include "paradynd/src/metricDef.h"
+#include "dyninstAPI/src/os.h"
+#include "paradynd/src/main.h"
 
 #define MILLION	1000000.0
 

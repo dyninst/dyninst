@@ -41,6 +41,10 @@
 
 /*
  * $Log: init-sunos.C,v $
+ * Revision 1.16  1997/02/21 20:15:47  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.15  1997/01/27 19:40:41  naim
  * Part of the base instrumentation for supporting multithreaded applications
  * (vectors of counter/timers) implemented for all current platforms +
@@ -94,13 +98,13 @@
  *
  */
 
-#include "metric.h"
-#include "internalMetrics.h"
-#include "inst.h"
-#include "init.h"
-#include "ast.h"
-#include "util.h"
-#include "os.h"
+#include "paradynd/src/metric.h"
+#include "paradynd/src/internalMetrics.h"
+#include "dyninstAPI/src/inst.h"
+#include "paradynd/src/init.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/os.h"
 
 // NOTE - the tagArg integer number starting with 0.  
 static AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);

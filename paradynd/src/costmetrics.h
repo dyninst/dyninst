@@ -43,7 +43,7 @@
 #define  COST_METRICS_HDR
 
 #include "paradynd/src/metric.h"
-#include "paradynd/src/process.h"
+#include "dyninstAPI/src/process.h"
 #include "paradynd/src/im_preds.h"
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/resource.h"

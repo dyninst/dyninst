@@ -41,6 +41,10 @@
 
 /*
  * $Log: mdld.h,v $
+ * Revision 1.8  1997/02/21 20:15:54  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.7  1997/01/15 00:28:31  tamches
  * extra bool param to mdl_do()
  *
@@ -92,7 +96,7 @@ extern bool mdl_metric_data(const string&, mdl_inst_data&);
 extern metricDefinitionNode *mdl_do(vector< vector<string> >& canon_focus,
 				    string& metric_name, string& flat_name,
 				    vector<process *> procs,
-				    bool);
+				    bool, bool);
 extern bool mdl_can_do(string& metric_name);
 
 //extern metricDefinitionNode *mdl_observed_cost(vector< vector<string> >& canon_focus,

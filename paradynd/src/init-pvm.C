@@ -41,6 +41,10 @@
 
 /*
  * $Log: init-pvm.C,v $
+ * Revision 1.10  1997/02/21 20:15:46  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.9  1996/08/16 21:18:43  tamches
  * updated copyright for release 1.1
  *
@@ -72,13 +76,13 @@
  *
  */
 
-#include "metric.h"
-#include "internalMetrics.h"
-#include "inst.h"
-#include "init.h"
-#include "ast.h"
-#include "util.h"
-#include "os.h"
+#include "paradynd/src/metric.h"
+#include "paradynd/src/internalMetrics.h"
+#include "dyninstAPI/src/inst.h"
+#include "paradynd/src/init.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/os.h"
 
 // NOTE - the tagArg integer number starting with 0.  
 static AstNode tidArg(Param, (void *) 0);

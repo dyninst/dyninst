@@ -43,6 +43,10 @@
  * association.C - Manage mapping information (associations)
  *
  * $Log: association.C,v $
+ * Revision 1.10  1997/02/21 20:15:34  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.9  1996/08/16 21:18:11  tamches
  * updated copyright for release 1.1
  *
@@ -77,11 +81,11 @@
  */
 
 #include "util/h/headers.h"
-#include "symtab.h"
-#include "process.h"
-#include "dyninstP.h"
-#include "util.h"
-#include "main.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dyninstP.h"
+#include "dyninstAPI/src/util.h"
+#include "paradynd/src/main.h"
 
 #include <stdio.h>
 #include <assert.h>

@@ -42,9 +42,9 @@
 #ifndef SHOWERROR_H
 #define SHOWERROR_H
 
-#include "comm.h"
-#include "dyninst.h"
-#include "resource.h"
+#include "paradynd/src/comm.h"
+#include "dyninstAPI/src/dyninst.h"
+#include "paradynd/src/resource.h"
 
 extern resource *machineResource;
 extern pdRPC *tp;

@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "dyninstP.h" // nullString
+#include "dyninstAPI/src/dyninstP.h" // nullString
 
-#include "metric.h"
-#include "internalMetrics.h"
-#include "costmetrics.h"
-#include "inst.h"
-#include "init.h"
-#include "resource.h"
+#include "paradynd/src/metric.h"
+#include "paradynd/src/internalMetrics.h"
+#include "paradynd/src/costmetrics.h"
+#include "dyninstAPI/src/inst.h"
+#include "paradynd/src/init.h"
+#include "paradynd/src/resource.h"
 
 extern pdRPC *tp;
 extern int getNumberOfCPUs();
@@ -63,6 +63,10 @@ internalMetric *total_CT = NULL;
 internalMetric *active_CT = NULL;
 internalMetric *infHeapMemAvailable = NULL;
 internalMetric *mem_CT = NULL;
+
+internalMetric *numOfActCounters = NULL;
+internalMetric *numOfActProcTimers = NULL;
+internalMetric *numOfActWallTimers = NULL;
 
 int numberOfCPUs;
 
@@ -148,6 +152,36 @@ bool init() {
 						   default_im_preds,
 						   false,
 						   Sampled);
+
+  numOfActCounters = internalMetric::newInternalMetric(
+                                                "numOfActCounters", 
+						EventCounter,
+						aggMax,
+						"operations",
+						NULL,
+						default_im_preds,
+						true,
+						Sampled);
+
+  numOfActProcTimers = internalMetric::newInternalMetric(
+                                                "numOfActProcTimers", 
+						EventCounter,
+						aggMax,
+						"operations",
+						NULL,
+						default_im_preds,
+						true,
+						Sampled);
+
+  numOfActWallTimers = internalMetric::newInternalMetric(
+                                                "numOfActWallTimers", 
+						EventCounter,
+						aggMax,
+						"operations",
+						NULL,
+						default_im_preds,
+						true,
+						Sampled);
 
   total_CT = internalMetric::newInternalMetric("total_CT", 
 						EventCounter,

@@ -44,6 +44,10 @@
 
 /* 
  * $Log: main.h,v $
+ * Revision 1.8  1997/02/21 20:15:51  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.7  1996/12/06 09:38:29  tamches
  * moved cleanUpAndExit to .C file
  *
@@ -82,7 +86,7 @@
  */
 
 #include "comm.h"
-#include "process.h" // processVec[]
+#include "dyninstAPI/src/process.h" // processVec[]
 
 extern pdRPC *tp;
 

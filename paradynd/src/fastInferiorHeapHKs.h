@@ -49,7 +49,7 @@
 
 #include "rtinst/h/rtinst.h" // intCounter, tTimer
 #include "metric.h" // metricDefinitionNode
-#include "process.h" 
+#include "dyninstAPI/src/process.h" 
 
 // The following should provide a useful building-block for intCounterHK,
 // wallTimerHK, processTimerHK, etc.

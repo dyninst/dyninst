@@ -44,6 +44,10 @@
 
 /*
  * $Log: init.h,v $
+ * Revision 1.22  1997/02/21 20:15:49  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.21  1997/01/27 19:40:43  naim
  * Part of the base instrumentation for supporting multithreaded applications
  * (vectors of counter/timers) implemented for all current platforms +
@@ -84,11 +88,11 @@
  *
  */
 
-#include "metric.h"
-#include "internalMetrics.h"
-#include "costmetrics.h"
-#include "inst.h"
-#include "process.h"
+#include "paradynd/src/metric.h"
+#include "paradynd/src/internalMetrics.h"
+#include "paradynd/src/costmetrics.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/process.h"
 
 extern internalMetric *activeProcs;
 extern internalMetric *bucket_width;
@@ -97,6 +101,10 @@ extern internalMetric *total_CT;
 extern internalMetric *active_CT;
 extern internalMetric *infHeapMemAvailable;
 extern internalMetric *mem_CT;
+
+extern internalMetric *numOfActCounters;
+extern internalMetric *numOfActProcTimers;
+extern internalMetric *numOfActWallTimers;
 
 extern internalMetric *pauseTime;
 extern costMetric *totalPredictedCost;

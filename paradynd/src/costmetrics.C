@@ -40,7 +40,7 @@
  */
 
 #include "paradynd/src/costmetrics.h"
-#include "paradynd/src/process.h"
+#include "dyninstAPI/src/process.h"
 
 vector<costMetric*> costMetric::allCostMetrics;
 extern vector<process*> processVec;

@@ -44,7 +44,7 @@
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
-#include "paradynd/src/process.h"
+#include "dyninstAPI/src/process.h"
 #include "fastInferiorHeapHKs.h"
 
 // Define some static member vrbles:
@@ -353,15 +353,15 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    const time64 total = theTimer.total;
    const time64 start = (count > 0) ? theTimer.start : 0; // not needed if count==0
 
-   volatile const int protector1 = theTimer.protector1;
-
    const unsigned long long inferiorCPUtime =
-                      (count > 0) ? inferiorProc->getInferiorProcessCPUtime() : 0;
+                  (count > 0) ? inferiorProc->getInferiorProcessCPUtime() : 0;
       // Also cheating; see below.
       // the fudge factor is needed only if count > 0.
    const unsigned long long theWallTime = getCurrWallTimeULL();
       // This is cheating a little; officially, this call should be inside
       // of the two protector vrbles.  But, it was taking too long...
+
+   volatile const int protector1 = theTimer.protector1;
 
    if (protector1 != protector2)
       return false;

@@ -41,6 +41,10 @@
 
 /*
  * $Log: init-aix.C,v $
+ * Revision 1.10  1997/02/21 20:15:45  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.9  1997/02/18 21:16:04  sec
  * Added some support for MPI functions, default instrumentation to catch
  * the msg tags, etc.
@@ -86,14 +90,14 @@
  *
  */
 
-#include "metric.h"
-#include "internalMetrics.h"
-#include "inst.h"
-#include "init.h"
-#include "metricDef.h"
-#include "ast.h"
-#include "util.h"
-#include "os.h"
+#include "paradynd/src/metric.h"
+#include "paradynd/src/internalMetrics.h"
+#include "dyninstAPI/src/inst.h"
+#include "paradynd/src/init.h"
+#include "paradynd/src/metricDef.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/os.h"
 
 // NOTE - the tagArg integer number starting with 0.  
 static AstNode tagArg(AstNode::Param, (void *) 1);

@@ -46,26 +46,26 @@
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "util/h/aggregateSample.h"
-#include "symtab.h"
-#include "process.h"
-#include "inst.h"
-#include "instP.h"
-#include "dyninstP.h"
-#include "ast.h"
-#include "util.h"
-#include "comm.h"
-#include "internalMetrics.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/dyninstP.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "paradynd/src/comm.h"
+#include "paradynd/src/internalMetrics.h"
 #include <strstream.h>
-#include "init.h"
-#include "perfStream.h"
-#include "main.h"
-#include "stats.h"
-#include "dynrpc.h"
+#include "paradynd/src/init.h"
+#include "paradynd/src/perfStream.h"
+#include "paradynd/src/main.h"
+#include "dyninstAPI/src/stats.h"
+#include "paradynd/src/dynrpc.h"
 #include "paradynd/src/mdld.h"
 #include "util/h/Timer.h"
-#include "showerror.h"
-#include "costmetrics.h"
-#include "metric.h"
+#include "paradynd/src/showerror.h"
+#include "paradynd/src/costmetrics.h"
+#include "paradynd/src/metric.h"
 #include "util/h/debugOstream.h"
 
 // The following vrbles were defined in process.C:
@@ -75,19 +75,18 @@ extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
 extern debug_ostream metric_cerr;
 
-extern int activeCT;
-extern int memCT;
-extern int inferiorMemAvailable;
+extern unsigned memCT;
+extern unsigned inferiorMemAvailable;
 extern vector<unsigned> getAllTrampsAtPoint(instInstance *instance);
-static int internalMetricCounterId = 0;
+static unsigned internalMetricCounterId = 0;
+
+static unsigned numOfActCounters_all=0;
+static unsigned numOfActProcTimers_all=0;
+static unsigned numOfActWallTimers_all=0;
 
 void flush_batch_buffer();
 void batchSampleData(int mid, double startTimeStamp, double endTimeStamp,
 		     double value, unsigned val_weight, bool internal_metric);
-
-#ifdef sparc_tmc_cmost7_3
-extern int getNumberOfCPUs();
-#endif
 
 double currentPredictedCost = 0.0;
 
@@ -347,7 +346,11 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
 	return NULL;
       }
 
-      mi = mdl_do(canonicalFocus, metric_name, flat_name, procs, false);
+      bool computingCost;
+      if (enable) computingCost = false;
+      else computingCost = true;
+      mi = mdl_do(canonicalFocus, metric_name, flat_name, procs, false,
+		  computingCost);
       if (mi == NULL) {
 	 metric_cerr << "createMetricInstance failed since mdl_do failed" << endl;
 	 metric_cerr << "metric name was " << metric_name << "; focus was ";
@@ -417,7 +420,7 @@ void metricDefinitionNode::propagateToNewProcess(process *p) {
       mdl_env::set(this->getMId(), vname);
 
       vector<process *> vp(1,p);
-      mi = mdl_do(focus_, met_, flat_name_, vp, false);
+      mi = mdl_do(focus_, met_, flat_name_, vp, false, false);
   } else {
     // internal and cost metrics don't need to be propagated (um, is this correct?)
     mi = NULL;
@@ -504,8 +507,8 @@ metricDefinitionNode* metricDefinitionNode::handleExec() {
 					    aggregateMI->met_,
 					    aggregateMI->flat_name_,
 					    vp,
-					    true // --> fry existing component MI
-					    );
+					    true, // fry existing component MI
+					    false);
    if (tempAggMI == NULL)
       return NULL; // failure
 
@@ -693,18 +696,22 @@ void removeFromMetricInstances(process *proc) {
 // obligatory definition of static member vrble:
 int metricDefinitionNode::counterId=0;
 
-dataReqNode *metricDefinitionNode::addSampledIntCounter(int initialValue) {
+dataReqNode *metricDefinitionNode::addSampledIntCounter(int initialValue,
+                                                        bool computingCost) 
+{
    dataReqNode *result=NULL;
 
 #ifdef SHM_SAMPLING
    // shared memory sampling of a reported intCounter
    result = new sampledShmIntCounterReqNode(initialValue,
-					    metricDefinitionNode::counterId);
+					    metricDefinitionNode::counterId,
+                                            this, computingCost);
       // implicit conversion to base class
 #else
    // non-shared-memory sampling of a reported intCounter
    result = new sampledIntCounterReqNode(initialValue,
-					 metricDefinitionNode::counterId);
+					 metricDefinitionNode::counterId,
+                                         this, computingCost);
       // implicit conversion to base class
 #endif
 
@@ -718,13 +725,15 @@ dataReqNode *metricDefinitionNode::addSampledIntCounter(int initialValue) {
    return result;
 }
 
-dataReqNode *metricDefinitionNode::addUnSampledIntCounter(int initialValue) {
+dataReqNode *metricDefinitionNode::addUnSampledIntCounter(int initialValue,
+                                                          bool computingCost) {
    // sampling of a non-reported intCounter (probably just a predicate)
    // NOTE: In the future, we should probably put un-sampled intcounters
    // into shared-memory when SHM_SAMPLING is defined.  After all, the shared
    // memory heap is faster.
    dataReqNode *result = new nonSampledIntCounterReqNode
-                         (initialValue, metricDefinitionNode::counterId);
+                         (initialValue, metricDefinitionNode::counterId, 
+                          this, computingCost);
       // implicit conversion to base class
    assert(result);
 
@@ -736,14 +745,14 @@ dataReqNode *metricDefinitionNode::addUnSampledIntCounter(int initialValue) {
    return result;
 };
 
-dataReqNode *metricDefinitionNode::addWallTimer() {
+dataReqNode *metricDefinitionNode::addWallTimer(bool computingCost) {
    dataReqNode *result = NULL;
 
 #ifdef SHM_SAMPLING
-   result = new sampledShmWallTimerReqNode(metricDefinitionNode::counterId);
+   result = new sampledShmWallTimerReqNode(metricDefinitionNode::counterId, this, computingCost);
       // implicit conversion to base class
 #else
-   result = new sampledTimerReqNode(wallTime, metricDefinitionNode::counterId);
+   result = new sampledTimerReqNode(wallTime, metricDefinitionNode::counterId, this, computingCost);
       // implicit conversion to base class
 #endif
 
@@ -757,14 +766,14 @@ dataReqNode *metricDefinitionNode::addWallTimer() {
    return result;
 }
 
-dataReqNode *metricDefinitionNode::addProcessTimer() {
+dataReqNode *metricDefinitionNode::addProcessTimer(bool computingCost) {
    dataReqNode *result = NULL;
 
 #ifdef SHM_SAMPLING
-   result = new sampledShmProcTimerReqNode(metricDefinitionNode::counterId);
+   result = new sampledShmProcTimerReqNode(metricDefinitionNode::counterId, this, computingCost);
       // implicit conversion to base class
 #else
-   result = new sampledTimerReqNode(processTime, metricDefinitionNode::counterId);
+   result = new sampledTimerReqNode(processTime, metricDefinitionNode::counterId, this, computingCost);
       // implicit conversion to base class
 #endif
 
@@ -1180,8 +1189,11 @@ bool metricDefinitionNode::insertInstrumentation()
       for (unsigned u=0; u<size; u++) {
 	// the following allocs an object in inferior heap and arranges for
         // it to be alarm sampled, if appropriate.
-        if (!dataRequests[u]->insertInstrumentation(proc_, this))
-           return false; // shouldn't we try to undo what's already put in?
+        // Note: this is not necessary anymore because we are allocating the
+        // space when the constructor for dataReqNode is called. This was
+        // done for the dyninstAPI - naim 2/18/97
+        //if (!dataRequests[u]->insertInstrumentation(proc_, this))
+        //  return false; // shouldn't we try to undo what's already put in?
 
 	unsigned mid = dataRequests[u]->getSampleId();
 	assert(!midToMiMap.defines(mid));
@@ -1756,8 +1768,10 @@ bool instReqNode::triggerNow(process *theProc) {
 /* ************************************************************************* */
 
 #ifndef SHM_SAMPLING
-sampledIntCounterReqNode::sampledIntCounterReqNode(int iValue, int iCounterId) :
-                                                  dataReqNode() {
+sampledIntCounterReqNode::sampledIntCounterReqNode(int iValue, int iCounterId,
+                                                   metricDefinitionNode *iMi, 
+						   bool computingCost) :
+                                                   dataReqNode() {
    theSampleId = iCounterId;
    initialValue = iValue;
 
@@ -1768,6 +1782,12 @@ sampledIntCounterReqNode::sampledIntCounterReqNode(int iValue, int iCounterId) :
 #if defined(MT_THREAD)
    position_=0;
 #endif
+
+   if (!computingCost) {
+     bool isOk=false;
+     isOk = insertInstrumentation(iMi->proc(), iMi);
+     assert(isOk && counterPtr!=NULL); 
+   }
 }
 
 sampledIntCounterReqNode::sampledIntCounterReqNode(const sampledIntCounterReqNode &src,
@@ -1848,7 +1868,7 @@ bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
    removeAst(ast);
 
 #if defined(MT_THREAD)
-   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr());
+   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr(),counter);
 #endif
 
    return true; // success
@@ -1870,6 +1890,7 @@ void sampledIntCounterReqNode::disable(process *theProc,
 #if defined(MT_THREAD)
    Thread *thr = theProc->threads[0];
    thr->CTvector->remove(this->theSampleId, this->position_);
+   theProc->updateActiveCT(false,counter);
 #endif
 }
 
@@ -1903,8 +1924,11 @@ unFork(dictionary_hash<instInstance*,instInstance*> &map) {
 
 #ifdef SHM_SAMPLING
 
-sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(int iValue, int iCounterId) :
-                                                  dataReqNode() {
+sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(int iValue, 
+						     int iCounterId, 
+						     metricDefinitionNode *iMi,
+						     bool computingCost) :
+                                                     dataReqNode() {
    theSampleId = iCounterId;
    initialValue = iValue;
 
@@ -1915,6 +1939,12 @@ sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(int iValue, int iCounte
 #if defined(MT_THREAD)
    position_=0;
 #endif
+
+   if (!computingCost) {
+     bool isOk=false;
+     isOk = insertInstrumentation(iMi->proc(), iMi);
+     assert(isOk && inferiorCounterPtr!=NULL); 
+   }
 }
 
 sampledShmIntCounterReqNode::
@@ -2022,7 +2052,7 @@ bool sampledShmIntCounterReqNode::insertInstrumentation(process *theProc,
       // just a check for fun
 
 #if defined(MT_THREAD)
-   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr());
+   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr(),counter);
 #endif
 
    return true; // success
@@ -2047,6 +2077,7 @@ void sampledShmIntCounterReqNode::disable(process *theProc,
 #if defined(MT_THREAD)
     Thread *thr = theProc->threads[0];
     thr->CTvector->remove(this->theSampleId, this->position_);
+    theProc->updateActiveCT(false,counter);
 #endif
 }
 
@@ -2054,8 +2085,11 @@ void sampledShmIntCounterReqNode::disable(process *theProc,
 
 /* ************************************************************************* */
 
-nonSampledIntCounterReqNode::nonSampledIntCounterReqNode(int iValue, int iCounterId) :
-                                                  dataReqNode() {
+nonSampledIntCounterReqNode::nonSampledIntCounterReqNode(int iValue, 
+                                                    int iCounterId,
+                                                    metricDefinitionNode *iMi, 
+                                                    bool computingCost) :
+                                                    dataReqNode() {
    theSampleId = iCounterId;
    initialValue = iValue;
 
@@ -2065,6 +2099,12 @@ nonSampledIntCounterReqNode::nonSampledIntCounterReqNode(int iValue, int iCounte
 #if defined(MT_THREAD)
    position_=0;
 #endif
+
+   if (!computingCost) {
+     bool isOk=false;
+     isOk = insertInstrumentation(iMi->proc(), iMi);
+     assert(isOk && counterPtr!=NULL); 
+   }
 }
 
 nonSampledIntCounterReqNode::
@@ -2126,7 +2166,7 @@ bool nonSampledIntCounterReqNode::insertInstrumentation(process *theProc,
    writeToInferiorHeap(theProc, temp);
 
 #if defined(MT_THREAD)
-   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr());
+   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr(),counter);
 #endif
 
    return true; // success
@@ -2144,6 +2184,7 @@ void nonSampledIntCounterReqNode::disable(process *theProc,
 #if defined(MT_THREAD)
     Thread *thr = theProc->threads[0];
     thr->CTvector->remove(this->theSampleId, this->position_);
+    theProc->updateActiveCT(false,counter);
 #endif
 }
 
@@ -2158,8 +2199,10 @@ void nonSampledIntCounterReqNode::writeToInferiorHeap(process *theProc,
 /* ****************************************************************** */
 
 #ifndef SHM_SAMPLING
-sampledTimerReqNode::sampledTimerReqNode(timerType iType, int iCounterId) :
-                                                 dataReqNode() {
+sampledTimerReqNode::sampledTimerReqNode(timerType iType, int iCounterId, 
+					 metricDefinitionNode *iMi,
+					 bool computingCost) :
+                                         dataReqNode() {
    theSampleId = iCounterId;
    theTimerType = iType;
 
@@ -2170,6 +2213,12 @@ sampledTimerReqNode::sampledTimerReqNode(timerType iType, int iCounterId) :
 #if defined(MT_THREAD)
    position_=0;
 #endif
+
+   if (!computingCost) {
+     bool isOk=false;
+     isOk = insertInstrumentation(iMi->proc(), iMi);
+     assert(isOk && timerPtr!=NULL); 
+   }
 }
 
 sampledTimerReqNode::sampledTimerReqNode(const sampledTimerReqNode &src,
@@ -2261,7 +2310,10 @@ bool sampledTimerReqNode::insertInstrumentation(process *theProc,
    removeAst(ast);
 
 #if defined(MT_THREAD)
-   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr());
+   CTelementType CTtype;
+   if (this->theTimerType==processTime) CTtype=procTimer;
+   else CTtype=wallTimer;
+   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr(),CTtype);
 #endif
 
    return true; // successful
@@ -2283,6 +2335,11 @@ void sampledTimerReqNode::disable(process *theProc,
 #if defined(MT_THREAD)
     Thread *thr = theProc->threads[0];
     thr->CTvector->remove(this->theSampleId, this->position_);
+    if (theTimerType==processTime) {
+      theProc->updateActiveCT(false,procTimer);
+    } else {
+      theProc->updateActiveCT(false,wallTimer);
+    }
 #endif
 }
 
@@ -2315,13 +2372,25 @@ unFork(dictionary_hash<instInstance*,instInstance*> &map) {
 /* ****************************************************************** */
 
 #ifdef SHM_SAMPLING
-sampledShmWallTimerReqNode::sampledShmWallTimerReqNode(int iCounterId) :
-                                                 dataReqNode() {
+sampledShmWallTimerReqNode::sampledShmWallTimerReqNode(int iCounterId,
+						     metricDefinitionNode *iMi,
+						     bool computingCost) :
+                                                     dataReqNode() {
    theSampleId = iCounterId;
 
    // The following fields are NULL until insertInstrumentation():
    allocatedIndex = UINT_MAX;
    inferiorTimerPtr = NULL;
+
+#if defined(MT_THREAD)
+   position_=0;
+#endif
+
+   if (!computingCost) {
+     bool isOk=false;
+     isOk = insertInstrumentation(iMi->proc(), iMi);
+     assert(isOk && inferiorTimerPtr!=NULL); 
+   }
 }
 
 sampledShmWallTimerReqNode::
@@ -2445,7 +2514,7 @@ bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
       // just a check for fun
 
 #if defined(MT_THREAD)
-   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr());
+   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr(),wallTimer);
 #endif
 
    return true;
@@ -2469,13 +2538,16 @@ void sampledShmWallTimerReqNode::disable(process *theProc,
 #if defined(MT_THREAD)
     Thread *thr = theProc->threads[0];
     thr->CTvector->remove(this->theSampleId, this->position_);
+    theProc->updateActiveCT(false,wallTimer);
 #endif
 }
 
 /* ****************************************************************** */
 
-sampledShmProcTimerReqNode::sampledShmProcTimerReqNode(int iCounterId) :
-                                                 dataReqNode() {
+sampledShmProcTimerReqNode::sampledShmProcTimerReqNode(int iCounterId,
+						     metricDefinitionNode *iMi,
+						     bool computingCost) :
+                                                     dataReqNode() {
    theSampleId = iCounterId;
 
    // The following fields are NULL until insertInstrumentatoin():
@@ -2485,6 +2557,12 @@ sampledShmProcTimerReqNode::sampledShmProcTimerReqNode(int iCounterId) :
 #if defined(MT_THREAD)
    position_=0;
 #endif
+
+   if (!computingCost) {
+     bool isOk=false;
+     isOk = insertInstrumentation(iMi->proc(), iMi);
+     assert(isOk && inferiorTimerPtr!=NULL); 
+   }
 }
 
 sampledShmProcTimerReqNode::
@@ -2608,7 +2686,7 @@ bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
       // just a check for fun
 
 #if defined(MT_THREAD)
-   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr());
+   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr(),procTimer);
 #endif
 
    return true;
@@ -2633,6 +2711,7 @@ void sampledShmProcTimerReqNode::disable(process *theProc,
 #if defined(MT_THREAD)
    Thread *thr = theProc->threads[0];
    thr->CTvector->remove(this->theSampleId, this->position_);
+   theProc->updateActiveCT(false,procTimer);
 #endif
 }
 #endif
@@ -2669,6 +2748,21 @@ void reportInternalMetrics(bool force)
 
     // TODO -- clean me up, please
 
+    unsigned max1=0;
+    unsigned max2=0;
+    unsigned max3=0;
+    for (unsigned u = 0; u < processVec.size(); u++) {
+      if (processVec[u]->numOfActCounters_is > max1)
+        max1=processVec[u]->numOfActCounters_is;
+      if (processVec[u]->numOfActProcTimers_is > max2)
+        max2=processVec[u]->numOfActProcTimers_is;
+      if (processVec[u]->numOfActWallTimers_is > max3)
+        max3=processVec[u]->numOfActWallTimers_is;
+    }
+    numOfActCounters_all=max1;
+    numOfActProcTimers_all=max2;
+    numOfActWallTimers_all=max3;
+
     unsigned ai_size = internalMetric::allInternalMetrics.size();
     for (unsigned u=0; u<ai_size; u++) {
       internalMetric *theIMetric = internalMetric::allInternalMetrics[u];
@@ -2694,8 +2788,17 @@ void reportInternalMetrics(bool force)
         } else if (theIMetric->name() == "total_CT") {
           value = (end - start) * internalMetricCounterId;
           assert(value>=0.0);
+        } else if (theIMetric->name() == "numOfActCounters") {
+          value = (end - start) * numOfActCounters_all;
+          assert(value>=0.0);
+        } else if (theIMetric->name() == "numOfActProcTimers") {
+          value = (end - start) * numOfActProcTimers_all;
+          assert(value>=0.0);
+        } else if (theIMetric->name() == "numOfActWallTimers") {
+          value = (end - start) * numOfActWallTimers_all;
+          assert(value>=0.0);
         } else if (theIMetric->name() == "active_CT") {
-          value = (end - start) * activeCT;
+          value = (end - start) * (numOfActCounters_all+numOfActProcTimers_all+numOfActWallTimers_all);
           assert(value>=0.0);
         } else if (theIMetric->name() == "mem_CT") {
           value = (end - start) * memCT;
@@ -2735,7 +2838,8 @@ void disableAllInternalMetrics() {
 
 void dataReqNode::updateCounterTimerVectorMT(process *proc, int CTid, 
                                              unsigned &position, 
-                                             unsigned CTaddr)
+                                             unsigned CTaddr,
+					     CTelementType type)
 {
 #if defined(MT_DEBUG)
     sprintf(errorLine,"(pid=%d) Creating new Counter/Timer, CTid is %d\n",proc->pid, CTid);
@@ -2777,6 +2881,7 @@ void dataReqNode::updateCounterTimerVectorMT(process *proc, int CTid,
     assert(addr);
 
     thr->CTvector->add(CTid, position);
+    proc->updateActiveCT(true,type);
 
     // Save pointer to Counter/Timer in table of counter/timers 
     // (using CTid as offset)

@@ -43,6 +43,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.57  1997/02/21 20:15:50  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.56  1997/02/18 21:25:15  sec
  * Added poe support
  *
@@ -117,20 +121,20 @@
 
 #include "rtinst/h/rtinst.h"
 
-#include "symtab.h"
-#include "process.h"
-#include "inst.h"
-#include "instP.h"
-#include "ast.h"
-#include "util.h"
-#include "dyninstP.h"
-#include "metric.h"
-#include "comm.h"
-#include "internalMetrics.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/dyninstP.h"
+#include "paradynd/src/metric.h"
+#include "paradynd/src/comm.h"
+#include "paradynd/src/internalMetrics.h"
 #include "util/h/machineType.h"
-#include "init.h"
-#include "perfStream.h"
-#include "clock.h"
+#include "paradynd/src/init.h"
+#include "paradynd/src/perfStream.h"
+#include "dyninstAPI/src/clock.h"
 #include "paradynd/src/mdld.h"
 #include <sys/signal.h>
 

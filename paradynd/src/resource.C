@@ -43,6 +43,10 @@
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
+ * Revision 1.23  1997/02/21 20:16:03  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.22  1997/01/15 00:30:18  tamches
  * added some uses of dictionary find() method
  *
@@ -73,15 +77,15 @@
  *
  */
 
-#include "symtab.h"
-#include "process.h"
-#include "dyninstP.h"
-#include "util.h"
-#include "comm.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dyninstP.h"
+#include "dyninstAPI/src/util.h"
+#include "paradynd/src/comm.h"
 #include "util/h/String.h"
 #include "util/h/Dictionary.h"
 #include <strstream.h>
-#include "main.h"
+#include "paradynd/src/main.h"
 
 u_int resource::num_outstanding_creates = 0;
 dictionary_hash<string, resource*> resource::allResources(string::hash);

@@ -57,9 +57,13 @@
 
 
 /* $Log: task_support.C,v $
-/* Revision 1.5  1996/11/26 16:08:15  naim
-/* Fixing asserts - naim
+/* Revision 1.6  1997/02/21 20:16:05  naim
+/* Moving files from paradynd to dyninstAPI + eliminating references to
+/* dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
 /*
+ * Revision 1.5  1996/11/26 16:08:15  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.4  1996/08/16 21:20:03  tamches
  * updated copyright for release 1.1
  *
@@ -93,16 +97,16 @@ extern int pvmputenv(char*);
 
 }
 
-#include "paradynd/src/dyninstP.h"
+#include "dyninstAPI/src/dyninstP.h"
 #include <string.h>
 #include <unistd.h>
-#include "pvm_support.h"
+#include "paradynd/src/pvm_support.h"
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <stdio.h>
 #include <pvm3.h>
 #include <pvmsdpro.h>
-#include "paradynd/src/dyninst.h"
+#include "dyninstAPI/src/dyninst.h"
 #include <assert.h>
 #include "util/h/list.h"
 

@@ -43,6 +43,10 @@
  * Implements virtual function called during an igen error.
  *
  * $Log: comm.C,v $
+ * Revision 1.10  1997/02/21 20:15:35  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.9  1996/08/16 21:18:19  tamches
  * updated copyright for release 1.1
  *
@@ -79,10 +83,10 @@
  */
 
 #include <util/h/headers.h>
-#include "comm.h"
-#include "util.h"
-#include "showerror.h"
-#include "main.h"
+#include "paradynd/src/comm.h"
+#include "dyninstAPI/src/util.h"
+#include "paradynd/src/showerror.h"
+#include "paradynd/src/main.h"
 
 void dump_profile(pdRPC *pdr) {
   delete pdr;

@@ -45,14 +45,14 @@
 #include "dyninstRPC.xdr.SRVR.h"
 #include "paradyn/src/met/globals.h"
 #include "paradynd/src/metric.h"
-#include "paradynd/src/inst.h"
-#include "paradynd/src/ast.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/ast.h"
 #include "paradynd/src/main.h"
-#include "paradynd/src/symtab.h"
+#include "dyninstAPI/src/symtab.h"
 #include "util/h/Timer.h"
 #include "paradynd/src/mdld.h"
 #include "showerror.h"
-#include "process.h"
+#include "dyninstAPI/src/process.h"
 #include "util/h/debugOstream.h"
 
 // The following vrbles were defined in process.C:
@@ -269,12 +269,7 @@ static void add_processes(vector< vector<string> > &focus,
 
   switch(focus[resource::process].size()) {
   case 1:
-#ifdef sparc_tmc_cmost7_3
-    assert(nodePseudoProcess);
-    ip += nodePseudoProcess;
-#else
     ip = procs;
-#endif    
     break;
   case 2:
 #if defined(MT_THREAD)
@@ -439,20 +434,21 @@ static bool update_environment(process *proc, bool get_all) {
 }
 
 dataReqNode *create_data_object(unsigned mdl_data_type,
-				metricDefinitionNode *mn) {
+				metricDefinitionNode *mn,
+				bool computingCost) {
   switch (mdl_data_type) {
   case MDL_T_COUNTER:
-    return (mn->addSampledIntCounter(0));
+    return (mn->addSampledIntCounter(0, computingCost));
 
   case MDL_T_WALL_TIMER:
-    return (mn->addWallTimer());
+    return (mn->addWallTimer(computingCost));
 
   case MDL_T_PROC_TIMER:
-    return (mn->addProcessTimer());
+    return (mn->addProcessTimer(computingCost));
 
   case MDL_T_NONE:
     // just to keep mdl apply allocate a dummy un-sampled counter.
-    return (mn->addUnSampledIntCounter(0));
+    return (mn->addUnSampledIntCounter(0, computingCost));
 
   default:
     assert(0);
@@ -473,7 +469,8 @@ apply_to_process(process *proc,
 		 vector<unsigned>& flag_dex,
 		 unsigned& base_dex,
 		 vector<string> *temp_ctr,
-		 bool replace_component) {
+		 bool replace_component,
+		 bool computingCost) {
 
 
     // TODO: if this is a dynamic executable check the focus...
@@ -558,7 +555,7 @@ apply_to_process(process *proc,
     allMIComponents[component_flat_name] = mn;
 
     // Create the timer, counter
-    dataReqNode *the_node = create_data_object(type, mn);
+    dataReqNode *the_node = create_data_object(type, mn, computingCost);
     assert(the_node);
     mdl_env::set(the_node, id);
 
@@ -566,7 +563,7 @@ apply_to_process(process *proc,
     if (temp_ctr) {
       unsigned tc_size = temp_ctr->size();
       for (unsigned tc=0; tc<tc_size; tc++) {
-	dataReqNode *temp_node = mn->addUnSampledIntCounter(0);
+	dataReqNode *temp_node = mn->addUnSampledIntCounter(0, computingCost);
 	mdl_env::set(temp_node, (*temp_ctr)[tc]);
       }
     }
@@ -577,7 +574,7 @@ apply_to_process(process *proc,
       for (unsigned fs=0; fs<flag_size; fs++) {
 	// TODO -- cache these created flags
 	dataReqNode *flag = NULL;
-	if (! (flag_cons[fs]->apply(mn, flag, focus[flag_dex[fs]], proc))) {
+	if (! (flag_cons[fs]->apply(mn, flag, focus[flag_dex[fs]], proc, computingCost))) {
 	  delete mn;
 	  return NULL;
 	}
@@ -589,7 +586,7 @@ apply_to_process(process *proc,
 
     if (base_use) {
       dataReqNode *flag = NULL;
-      if (!base_use->apply(mn, flag, focus[base_dex], proc)) {
+      if (!base_use->apply(mn, flag, focus[base_dex], proc, computingCost)) {
 	// cout << "apply of " << name << " failed\n";
 	delete mn;
 	return NULL;
@@ -625,7 +622,8 @@ static bool apply_to_process_list(vector<process*>& instProcess,
 				  vector<unsigned>& flag_dex,
 				  unsigned& base_dex,
 				  vector<string> *temp_ctr,
-				  bool replace_components_if_present) {
+				  bool replace_components_if_present,
+				  bool computingCost) {
 #ifdef DEBUG_MDL
   timer loadTimer, totalTimer;
   static ofstream *of=NULL;
@@ -653,10 +651,13 @@ static bool apply_to_process_list(vector<process*>& instProcess,
     // skip neonatal and exited processes.
     if (proc->status() == exited || proc->status() == neonatal) continue;
 
-    metricDefinitionNode *comp = apply_to_process(proc, id, name, focus, agg_op, type,
-						  flag_cons, base_use, stmts, flag_dex,
-						  base_dex, temp_ctr,
-						  replace_components_if_present);
+    metricDefinitionNode *comp = apply_to_process(proc, id, name, focus, 
+						 agg_op, type,
+						 flag_cons, base_use, stmts, 
+						 flag_dex,
+						 base_dex, temp_ctr,
+						 replace_components_if_present,
+						 computingCost);
     if (comp)
       // we have another component (i.e. process-specific) mi
       parts += comp;
@@ -687,9 +688,10 @@ static bool apply_to_process_list(vector<process*>& instProcess,
 }
 
 metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &focus,
-						      string& flat_name,
-						      vector<process *> procs,
-						      bool replace_components_if_present) {
+					              string& flat_name,
+					              vector<process *> procs,
+					              bool replace_components_if_present,
+					              bool computingCost) {
   // TODO -- check to see if this is active ?
   // TODO -- create counter or timer
   // TODO -- put it into the environment ?
@@ -741,7 +743,8 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
   if (!apply_to_process_list(instProcess, parts, id_, name_, focus,
 			     agg_op_, type_, flag_cons, base_used,
 			     stmts_, flag_dex, base_dex, temp_ctr_,
-			     replace_components_if_present))
+			     replace_components_if_present,
+			     computingCost))
     return NULL;
 
   // construct aggregate for the metric instance parts
@@ -844,7 +847,7 @@ static bool do_trailing_resource(vector<string>& resource_, process *proc) {
 bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
 					 dataReqNode *&flag,
 					 vector<string>& resource,
-					 process *proc) {
+					 process *proc, bool computingCost) {
   assert(mn);
   switch (data_type_) {
   case MDL_T_COUNTER:
@@ -859,7 +862,7 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
   if (!replace_) {
     // create the counter used as a flag
     mdl_env::add(id_, false, MDL_T_DRN);
-    dataReqNode *drn = mn->addUnSampledIntCounter(0);
+    dataReqNode *drn = mn->addUnSampledIntCounter(0, computingCost);
     // this flag will construct a predicate for the metric -- have to return it
     flag = drn;
     assert(drn);
@@ -1037,7 +1040,10 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&ast) {
 		  fflush(stderr);
 		  return false;
 	      } else {
-		  ast = new AstNode(AstNode::DataValue, (void*) drn);
+                  // Note: getInferiorPtr could return a NULL pointer here if
+                  // we are just computing cost - naim 2/18/97
+		  ast = new AstNode(AstNode::DataValue, 
+				    (void*)(drn->getInferiorPtr()));
 	      }
 	      break;
 	  default:
@@ -1113,19 +1119,35 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *pred,
 
   switch (type_) {
   case MDL_SET_COUNTER:
-    code = createCounter("setCounter", drn, ast_arg);
+#if defined(MT_THREAD)
+    code = createCounter("setCounter", (void *)(drn->getSampleId()), ast_arg);
+#else
+    code = createCounter("setCounter", (void *)(drn->getInferiorPtr()), ast_arg);
+#endif
     break;
   case MDL_ADD_COUNTER:
-    code = createCounter("addCounter", drn, ast_arg);
+#if defined(MT_THREAD)
+    code = createCounter("addCounter", (void *)(drn->getSampleId()), ast_arg);
+#else
+    code = createCounter("addCounter", (void *)(drn->getInferiorPtr()), ast_arg);
+#endif
     break;
   case MDL_SUB_COUNTER:
-    code = createCounter("subCounter", drn, ast_arg);
+#if defined(MT_THREAD)
+    code = createCounter("subCounter", (void *)(drn->getSampleId()), ast_arg);
+#else
+    code = createCounter("subCounter", (void *)(drn->getInferiorPtr()), ast_arg);
+#endif
     break;
   case MDL_START_WALL_TIMER:
   case MDL_STOP_WALL_TIMER:
   case MDL_START_PROC_TIMER:
   case MDL_STOP_PROC_TIMER:
-    code = createTimer(timer_fun, drn, ast_args);
+#if defined(MT_THREAD)
+    code = createTimer(timer_fun, (void *)(drn->getSampleId()), ast_args);
+#else
+    code = createTimer(timer_fun, (void *)(drn->getInferiorPtr()), ast_args);
+#endif
     break;
   case MDL_CALL_FUNC:
     if (! rand_->apply(code))
@@ -1566,7 +1588,10 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
   if (constrained_) {
      unsigned fsize = inFlags.size();
      for (int fi=fsize-1; fi>=0; fi--) { // any reason why we go backwards?
-        AstNode *temp1 = new AstNode(AstNode::DataValue, inFlags[fi]);
+        // Note: getInferiorPtr could return a NULL pointer here if we are
+        // just computing cost - naim 2/18/97
+        AstNode *temp1 = new AstNode(AstNode::DataValue, 
+				     (void*)((inFlags[fi])->getInferiorPtr()));
         // Note: we don't use assignAst on purpose here
         AstNode *temp2 = code;
         code = createIf(temp1, temp2);
@@ -1667,14 +1692,16 @@ metricDefinitionNode *mdl_do(vector< vector<string> >& canon_focus,
                              string& met_name,
 			     string& flat_name,
 			     vector<process *> procs,
-			     bool replace_components_if_present) {
+			     bool replace_components_if_present,
+			     bool computingCost) {
   currentMetric = met_name;
   unsigned size = mdl_data::all_metrics.size();
   // NOTE: We can do better if there's a dictionary of <metric-name> to <metric>!
   for (unsigned u=0; u<size; u++) 
     if (mdl_data::all_metrics[u]->name_ == met_name) {
       return (mdl_data::all_metrics[u]->apply(canon_focus, flat_name, procs,
-					      replace_components_if_present));
+					      replace_components_if_present,
+					      computingCost));
          // calls mdl_metric::apply()
     }
   return NULL;

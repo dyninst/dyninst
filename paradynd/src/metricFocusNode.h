@@ -43,6 +43,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.43  1997/02/21 20:15:59  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.42  1997/01/27 19:41:07  naim
  * Part of the base instrumentation for supporting multithreaded applications
  * (vectors of counter/timers) implemented for all current platforms +
@@ -77,7 +81,8 @@
 #include "util/h/Vector.h"
 #include "util/h/Dictionary.h"
 #include "util/h/aggregateSample.h"
-#include "ast.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
 
 class dataReqNode {
  private:
@@ -110,7 +115,7 @@ class dataReqNode {
 			   ) const = 0;
      // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-  void updateCounterTimerVectorMT(process *proc, int CTid, unsigned &position, unsigned CTaddr);
+  void updateCounterTimerVectorMT(process *proc, int CTid, unsigned &position, unsigned CTaddr, CTelementType type);
 
      // "map" provides a dictionary that maps instInstance's of the parent process to
      // those in the child process; dup() may find it useful. (for now, the shm
@@ -199,7 +204,8 @@ class sampledIntCounterReqNode : public dataReqNode {
    void writeToInferiorHeap(process *theProc, const intCounter &src) const;
 
  public:
-   sampledIntCounterReqNode(int iValue, int iCounterId);
+   sampledIntCounterReqNode(int iValue, int iCounterId,
+                            metricDefinitionNode *iMi, bool computingCost);
   ~sampledIntCounterReqNode() {}
       // Hopefully, disable() has already been called.  A bit of a complication
       // since disable() needs an arg passed, which we can't do here.  Too bad.
@@ -259,7 +265,8 @@ class sampledShmIntCounterReqNode : public dataReqNode {
 			       int iCounterId);
 
  public:
-   sampledShmIntCounterReqNode(int iValue, int iCounterId);
+   sampledShmIntCounterReqNode(int iValue, int iCounterId, 
+                               metricDefinitionNode *iMi, bool computingCost);
   ~sampledShmIntCounterReqNode() {}
       // Hopefully, disable() has already been called.
       // A bit of a complication since disable() needs an
@@ -314,7 +321,8 @@ class nonSampledIntCounterReqNode : public dataReqNode {
    void writeToInferiorHeap(process *theProc, const intCounter &src) const;
 
  public:
-   nonSampledIntCounterReqNode(int iValue, int iCounterId);
+   nonSampledIntCounterReqNode(int iValue, int iCounterId,
+                               metricDefinitionNode *iMi, bool computingCost);
   ~nonSampledIntCounterReqNode() {}
       // Hopefully, disable() has already been called.
       // A bit of a complication since disable() needs an
@@ -329,7 +337,9 @@ class nonSampledIntCounterReqNode : public dataReqNode {
    void disable(process *, const vector< vector<unsigned> > &);
 
    unsigned getInferiorPtr() const {
-      assert(counterPtr != NULL); // NULL until insertInstrumentation()
+      //assert(counterPtr != NULL); // NULL until insertInstrumentation()
+      // counterPtr could be NULL if we are building AstNodes just to compute
+      // the cost - naim 2/18/97
       return (unsigned)counterPtr;
    }
 
@@ -372,7 +382,8 @@ class sampledTimerReqNode : public dataReqNode {
    void writeToInferiorHeap(process *theProc, const tTimer &dataSrc) const;
 
  public:
-   sampledTimerReqNode(timerType iType, int iCounterId);
+   sampledTimerReqNode(timerType iType, int iCounterId,
+                       metricDefinitionNode *iMi, bool computingCost);
   ~sampledTimerReqNode() {}
       // hopefully, freeInInferior() has already been called
       // a bit of a complication since freeInInferior() needs an
@@ -427,7 +438,8 @@ class sampledShmWallTimerReqNode : public dataReqNode {
 			      metricDefinitionNode *, int iCounterId);
 
  public:
-   sampledShmWallTimerReqNode(int iCounterId);
+   sampledShmWallTimerReqNode(int iCounterId,
+                              metricDefinitionNode *iMi, bool computingCost);
   ~sampledShmWallTimerReqNode() {}
       // hopefully, freeInInferior() has already been called
       // a bit of a complication since freeInInferior() needs an
@@ -477,7 +489,8 @@ class sampledShmProcTimerReqNode : public dataReqNode {
 			      metricDefinitionNode *, int iCounterId);
 
  public:
-   sampledShmProcTimerReqNode(int iCounterId);
+   sampledShmProcTimerReqNode(int iCounterId,
+			      metricDefinitionNode *iMi, bool computingCost);
   ~sampledShmProcTimerReqNode() {}
       // hopefully, freeInInferior() has already been called
       // a bit of a complication since freeInInferior() needs an
@@ -637,10 +650,10 @@ public:
   // the heart of it all.  They append to dataRequets or instRequests, so that
   // a future call to metricDefinitionNode::insertInstrumentation() will
   // "do their thing".  The MDL calls these routines.
-  dataReqNode *addSampledIntCounter(int initialValue);
-  dataReqNode *addUnSampledIntCounter(int initialValue);
-  dataReqNode *addWallTimer();
-  dataReqNode *addProcessTimer();
+  dataReqNode *addSampledIntCounter(int initialValue, bool computingCost);
+  dataReqNode *addUnSampledIntCounter(int initialValue, bool computingCost);
+  dataReqNode *addWallTimer(bool computingCost);
+  dataReqNode *addProcessTimer(bool computingCost);
   inline void addInst(instPoint *point, AstNode *, callWhen when, 
                       callOrder o,
 		      bool manuallyTrigger);
