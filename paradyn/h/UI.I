@@ -2,9 +2,12 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.29  1996/05/01 20:57:20  tamches
-/* added DAGinactivateEntireSearch
+/* Revision 1.30  1996/05/07 18:06:28  newhall
+/* added threadExiting, this routine must be synchrounous
 /*
+# Revision 1.29  1996/05/01  20:57:20  tamches
+# added DAGinactivateEntireSearch
+#
  * Revision 1.28  1996/05/01 14:03:48  naim
  * Adding async. call to requestNodeInfoCallback to avoid deadlock between UI
  * and PC - naim
@@ -98,7 +101,7 @@ struct uiSHGrequest {
 
 $remote UIM {
 	$base 3000;
-	$version 17;
+	$version 18;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -108,7 +111,13 @@ $remote UIM {
 	$upcall $async void chosenMetricsandResources (chooseMandRCBFunc, 
 			      vector<metric_focus_pair> *pairList);
 
-	
+        //
+	// called by an exiting thread to notify the UI that it is exiting
+	// this is so that the UI does not try to send a metrics menuing 
+	// response to a dead tid
+	//
+	void threadExiting();
+
 	// message display with "error" visual characteristics
         //  and lookup in error database for explanation
 
