@@ -4,9 +4,12 @@
 // Implementations of new commands and tk bindings related to the where axis.
 
 /* $Log: whereAxisTcl.C,v $
-/* Revision 1.4  1995/08/04 19:19:25  tamches
-/* Commented out some cout statements that are for debugging only.
+/* Revision 1.5  1995/09/20 01:30:36  tamches
+/* File size reduced by using some utilities in the new tkTools.C file
 /*
+ * Revision 1.4  1995/08/04  19:19:25  tamches
+ * Commented out some cout statements that are for debugging only.
+ *
  * Revision 1.3  1995/07/24  21:37:37  tamches
  * better existsCurrent() error checking.
  * Implemented alt-freescroll feature
@@ -23,6 +26,7 @@
 
 #include "tclclean.h"
 #include "tkclean.h"
+#include "tkTools.h"
 
 #ifndef PARADYN
 // The test program has "correct" -I paths already set
@@ -47,12 +51,9 @@ extern Tk_Window mainWindow;
 #define topLevelTkWindow mainWindow
 #endif
 
-
-bool currentlyInstalledDrawWhenIdle = false;
 void whereAxisWhenIdleDrawRoutine(ClientData cd) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
-   currentlyInstalledDrawWhenIdle=false;
    const bool doubleBuffer = (bool)cd;
 
 #ifdef PARADYN
@@ -65,15 +66,13 @@ void whereAxisWhenIdleDrawRoutine(ClientData cd) {
    if (theAbstractions->existsCurrent())
       theAbstractions->getCurrent().draw(doubleBuffer, isXsynchOn);
 }
+tkInstallIdle whereAxisDrawWhenIdle(&whereAxisWhenIdleDrawRoutine);
 
-void initiateWhereAxisRedraw(Tcl_Interp *interp, bool doubleBuffer) {
-   if (!currentlyInstalledDrawWhenIdle) {
-      Tk_DoWhenIdle(whereAxisWhenIdleDrawRoutine, (ClientData)doubleBuffer);
-      currentlyInstalledDrawWhenIdle = true;
-   }
+void initiateWhereAxisRedraw(Tcl_Interp *, bool doubleBuffer) {
+   whereAxisDrawWhenIdle.install((ClientData)doubleBuffer);
 }
 
-int whereAxisResizeCallbackCommand(ClientData cd, Tcl_Interp *interp,
+int whereAxisResizeCallbackCommand(ClientData, Tcl_Interp *interp,
 				   int argc, char **argv) {
    if (!tryFirstGoodWhereAxisWid(interp, topLevelTkWindow))
       return TCL_ERROR;
@@ -90,7 +89,7 @@ int whereAxisResizeCallbackCommand(ClientData cd, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int whereAxisExposeCallbackCommand(ClientData cd, Tcl_Interp *interp,
+int whereAxisExposeCallbackCommand(ClientData, Tcl_Interp *interp,
 				   int argc, char **argv) {
    if (!tryFirstGoodWhereAxisWid(interp, topLevelTkWindow))
       return TCL_ERROR;
@@ -105,10 +104,11 @@ int whereAxisExposeCallbackCommand(ClientData cd, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int whereAxisSingleClickCallbackCommand(ClientData cd, Tcl_Interp *interp,
+int whereAxisSingleClickCallbackCommand(ClientData, Tcl_Interp *,
 					int argc, char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
+   assert(argc == 3);
    const int x = atoi(argv[1]);
    const int y = atoi(argv[2]);
 
@@ -119,17 +119,16 @@ int whereAxisSingleClickCallbackCommand(ClientData cd, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int whereAxisDoubleClickCallbackCommand(ClientData cd, Tcl_Interp *interp,
+int whereAxisDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 					int argc, char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
+   assert(argc==3);
 
    const int x = atoi(argv[1]);
    const int y = atoi(argv[2]);
 
    if (theAbstractions->existsCurrent()) {
-      bool needToRedrawAll=theAbstractions->getCurrent().processDoubleClick(x, y, true);
-         // true --> redraw now
-
+      bool needToRedrawAll=theAbstractions->getCurrent().processDoubleClick(x, y);
       if (needToRedrawAll)
          initiateWhereAxisRedraw(interp, true); // true--> use double buffer
    }
@@ -137,9 +136,10 @@ int whereAxisDoubleClickCallbackCommand(ClientData cd, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int whereAxisShiftDoubleClickCallbackCommand(ClientData cd, Tcl_Interp *interp,
+int whereAxisShiftDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 					     int argc, char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
+   assert(argc == 3);
 
    const int x = atoi(argv[1]);
    const int y = atoi(argv[2]);
@@ -154,10 +154,11 @@ int whereAxisShiftDoubleClickCallbackCommand(ClientData cd, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int whereAxisCtrlDoubleClickCallbackCommand(ClientData cd, Tcl_Interp *interp,
+int whereAxisCtrlDoubleClickCallbackCommand(ClientData, Tcl_Interp *interp,
 					    int argc, char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
+   assert(argc==3);
    const int x = atoi(argv[1]);
    const int y = atoi(argv[2]);
 
@@ -171,7 +172,7 @@ int whereAxisCtrlDoubleClickCallbackCommand(ClientData cd, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int whereAxisNewVertScrollPositionCommand(ClientData cd, Tcl_Interp *interp,
+int whereAxisNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
 					  int argc, char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
@@ -180,36 +181,27 @@ int whereAxisNewVertScrollPositionCommand(ClientData cd, Tcl_Interp *interp,
    // 2) scroll [num-units] unit   (num-units is always either -1 or 1)
    // 3) scroll [num-pages] page   (num-pages is always either -1 or 1)
 
-   if (theAbstractions->existsCurrent()) {
-      if (0==strcmp(argv[1], "moveto")) {
-         const float newVertPosition = atof(argv[2]);
-         theAbstractions->getCurrent().adjustVertSBOffset(newVertPosition);
-      }
-      else if (0==strcmp(argv[1], "scroll")) {
-         const int num = atoi(argv[2]);
-         if (0==strcmp(argv[3], "unit"))
-            theAbstractions->getCurrent().adjustVertSBOffsetFromDeltaPix(num);
-         else if (0==strcmp(argv[3], "units"))
-            theAbstractions->getCurrent().adjustVertSBOffsetFromDeltaPix(num);
-         else if (0==strcmp(argv[3], "page"))
-            theAbstractions->getCurrent().adjustVertSBOffsetFromDeltaPages(num);
-         else if (0==strcmp(argv[3], "pages"))
-            theAbstractions->getCurrent().adjustVertSBOffsetFromDeltaPages(num);
-         else {
-            cerr << "unrecognized: " << argv[3] << " (expected 'unit(s)' or 'page(s)')" << endl;
-            assert(false);
-         }
-      }
-      else
-         assert(false);
+   if (!theAbstractions->existsCurrent())
+      return TCL_OK;
+
+   float newFirst;
+   bool anyChanges = processScrollCallback(interp, argc, argv,
+			   theAbstractions->getVertSBName(),
+			   theAbstractions->getCurrent().getVertSBOffset(),  // <= 0
+			   theAbstractions->getCurrent().getTotalVertPixUsed(),
+			   theAbstractions->getCurrent().getVisibleVertPix(),
+			   newFirst);
+
+   if (anyChanges)
+      anyChanges = theAbstractions->getCurrent().adjustVertSBOffset(newFirst);
    
+   if (anyChanges)
       initiateWhereAxisRedraw(interp, true);
-   }
 
    return TCL_OK;
 }
 
-int whereAxisNewHorizScrollPositionCommand(ClientData cd, Tcl_Interp *interp,
+int whereAxisNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 					   int argc, char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
@@ -218,35 +210,27 @@ int whereAxisNewHorizScrollPositionCommand(ClientData cd, Tcl_Interp *interp,
    // 2) scroll [num-units] unit   (num-units is always either -1 or 1)
    // 3) scroll [num-pages] page   (num-pages is always either -1 or 1)
 
-   if (theAbstractions->existsCurrent()) {
-      if (0==strcmp(argv[1], "moveto")) {
-         const float newFrac = atof(argv[2]);
-         theAbstractions->getCurrent().adjustHorizSBOffset(newFrac);
-      }
-      else if (0==strcmp(argv[1], "scroll")) {
-         const int num = atoi(argv[2]);
-         if (0==strcmp(argv[3], "unit") || 0==strcmp(argv[3], "units")) {
-            theAbstractions->getCurrent().adjustHorizSBOffsetFromDeltaPix(num);
-         }
-         else if (0==strcmp(argv[3], "page") || 0==strcmp(argv[3], "pages")) {
-            theAbstractions->getCurrent().adjustHorizSBOffsetFromDeltaPages(num);
-         }
-         else {
-            cerr << "unrecognized: " << argv[3] << " (expected 'unit(s)' or 'page(s)')" << endl;
-            assert(false);
-         }
-      }
-      else
-         assert(false);
+   if (!theAbstractions->existsCurrent())
+      return TCL_OK;
 
+   float newFirst;
+   bool anyChanges = processScrollCallback(interp, argc, argv,
+			   theAbstractions->getHorizSBName(),
+			   theAbstractions->getCurrent().getHorizSBOffset(), // <= 0
+			   theAbstractions->getCurrent().getTotalHorizPixUsed(),
+			   theAbstractions->getCurrent().getVisibleHorizPix(),
+			   newFirst);
+   if (anyChanges)
+      anyChanges = theAbstractions->getCurrent().adjustHorizSBOffset(newFirst);
+
+   if (anyChanges)
       initiateWhereAxisRedraw(interp, true);   
-   }
 
    return TCL_OK;
 }
 
-int whereAxisClearSelectionsCommand(ClientData cd, Tcl_Interp *interp,
-				    int argc, char **argv) {
+int whereAxisClearSelectionsCommand(ClientData, Tcl_Interp *interp,
+				    int argc, char **) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
    assert(argc == 1);
@@ -258,7 +242,7 @@ int whereAxisClearSelectionsCommand(ClientData cd, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int whereAxisNavigateToCommand(ClientData cd, Tcl_Interp *interp,
+int whereAxisNavigateToCommand(ClientData, Tcl_Interp *interp,
 			       int argc, char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
@@ -274,7 +258,7 @@ int whereAxisNavigateToCommand(ClientData cd, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int whereAxisChangeAbstractionCommand(ClientData cd, Tcl_Interp *interp,
+int whereAxisChangeAbstractionCommand(ClientData, Tcl_Interp *interp,
 				      int argc, char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
@@ -295,7 +279,7 @@ int whereAxisChangeAbstractionCommand(ClientData cd, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int whereAxisFindCommand(ClientData cd, Tcl_Interp *interp,
+int whereAxisFindCommand(ClientData, Tcl_Interp *interp,
 			 int argc, char **argv) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
@@ -308,18 +292,6 @@ int whereAxisFindCommand(ClientData cd, Tcl_Interp *interp,
          // 1 --> found, and nothing had to be expanded (i.e. just a pure scroll)
          // 2 --> found, and stuff had to be expanded (i.e. must redraw everything)
    
-      if (result == 0) {
-         //cout << "could not find what you were looking for" << endl;
-      }
-      else if (result == 1) {
-         //cout << "found what you were looking for...no expansion necessary" << endl;
-      }
-      else if (result == 2) {
-         //cout << "found what you were looking for...had to expand stuff tho" << endl;
-      }
-      else
-         assert(false);
-   
       if (result==1 || result==2)
          initiateWhereAxisRedraw(interp, true);
    }
@@ -331,7 +303,7 @@ int altAnchorX, altAnchorY;
 bool currentlyInstalledAltMoveHandler = false;
 bool ignoreNextAltMove = false;
 
-int whereAxisAltPressCommand(ClientData cd, Tcl_Interp *interp,
+int whereAxisAltPressCommand(ClientData, Tcl_Interp *interp,
 			     int argc, char **argv) {
    if (!haveSeenFirstGoodWhereAxisWid)
       return TCL_OK;
@@ -352,6 +324,10 @@ int whereAxisAltPressCommand(ClientData cd, Tcl_Interp *interp,
       int deltax = x - altAnchorX;
       int deltay = y - altAnchorY;
 //      cout << "Scroll (" << deltax << "," << deltay << ")" << endl;
+
+      // add some extra speedup juice as an incentive to use alt-mousemove scrolling
+      deltax *= 4;
+      deltay *= 4;
 
       theAbstractions->getCurrent().adjustHorizSBOffsetFromDeltaPix(deltax);
       theAbstractions->getCurrent().adjustVertSBOffsetFromDeltaPix(deltay);
@@ -382,8 +358,8 @@ int whereAxisAltPressCommand(ClientData cd, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int whereAxisAltReleaseCommand(ClientData cd, Tcl_Interp *interp,
-			       int argc, char **argv) {
+int whereAxisAltReleaseCommand(ClientData, Tcl_Interp *,
+			       int argc, char **) {
 //   cout << "welcome to whereAxisAltReleaseCommand" << endl;
 
    if (!haveSeenFirstGoodWhereAxisWid)
@@ -409,55 +385,42 @@ int whereAxisAltReleaseCommand(ClientData cd, Tcl_Interp *interp,
 
 /* ******************************************************************** */
 
-void deleteDummyProc(ClientData cd) {}
+void deleteDummyProc(ClientData) {}
 void installWhereAxisCommands(Tcl_Interp *interp) {
    Tcl_CreateCommand(interp, "configureHook", whereAxisResizeCallbackCommand,
 		     NULL, // clientData
 		     deleteDummyProc);
    Tcl_CreateCommand(interp, "exposeHook", whereAxisExposeCallbackCommand,
-		     NULL, // clientData
-		     deleteDummyProc);
+		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "singleClickHook", whereAxisSingleClickCallbackCommand,
-		     NULL, // clientData
-		     deleteDummyProc);
+		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "doubleClickHook", whereAxisDoubleClickCallbackCommand,
-		     NULL, // clientData
-		     deleteDummyProc);
+		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "shiftDoubleClickHook",
 		     whereAxisShiftDoubleClickCallbackCommand,
-		     NULL, // clientData
-		     deleteDummyProc);
+		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "ctrlDoubleClickHook",
 		     whereAxisCtrlDoubleClickCallbackCommand,
-		     NULL, // clientData
-		     deleteDummyProc);
+		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "newVertScrollPosition",
 		     whereAxisNewVertScrollPositionCommand,
-		     NULL, // clientData
-		     deleteDummyProc);
+		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "newHorizScrollPosition",
 		     whereAxisNewHorizScrollPositionCommand,
-		     NULL, // clientData
-		     deleteDummyProc);
+		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "whereAxisClearSelections",
 		     whereAxisClearSelectionsCommand,
-		     NULL, // clientData
-		     deleteDummyProc);
+		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "navigateTo", whereAxisNavigateToCommand,
-		     NULL, // clientData
-		     deleteDummyProc);
+		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "changeAbstraction", whereAxisChangeAbstractionCommand,
-		     NULL, // clientData
-		     deleteDummyProc);
+		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "findHook", whereAxisFindCommand,
-		     NULL, // clientData
-		     deleteDummyProc);
+		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "altPressHook", whereAxisAltPressCommand,
-		     NULL, // clientData
-		     deleteDummyProc);
+		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "altReleaseHook", whereAxisAltReleaseCommand,
-		     NULL, // clientData
-		     deleteDummyProc);
+		     NULL, deleteDummyProc);
 }
 
 void unInstallWhereAxisCommands(Tcl_Interp *interp) {
@@ -476,4 +439,3 @@ void unInstallWhereAxisCommands(Tcl_Interp *interp) {
    Tcl_DeleteCommand(interp, "exposeHook");
    Tcl_DeleteCommand(interp, "configureHook");
 }
-
