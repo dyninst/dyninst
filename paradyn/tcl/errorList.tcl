@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.39 1999/05/03 19:57:28 zandy Exp $
+# $Id: errorList.tcl,v 1.40 1999/05/24 17:06:17 cain Exp $
 
 #
 # Error message format:
@@ -971,9 +971,16 @@ set pdError(109) {
 this platform.}
 }
 
+set pdError(110) {
+{Must define an application before creating a Call Graph.}
+{ui}
+{warning}
+{No additional information available.}
+}
+
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 109
+    return 110
 }
