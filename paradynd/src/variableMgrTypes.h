@@ -42,9 +42,8 @@
 #ifndef _VARIABLE_MGR_TYPES_H_
 #define _VARIABLE_MGR_TYPES_H_
 
-enum element_state {elemAllocated, elemFree, elemPendingFree, 
-		    elemMaybeAllocatedByFork};
-//enum sampling_states { varDoSample, varDontSample };
+enum element_state {varAllocated, varFree, varPendingFree, 
+		    varMaybeAllocatedByFork};
 
 enum inst_var_type { Counter=0, WallTimer, ProcTimer };
 typedef unsigned inst_var_index;
