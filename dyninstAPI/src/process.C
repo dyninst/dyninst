@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.404 2003/04/10 22:46:59 jodom Exp $
+// $Id: process.C,v 1.405 2003/04/11 20:02:38 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -209,6 +209,20 @@ extern string osName;
 int pd_debug_infrpc=0;
 int pd_debug_catchup=0;
 //
+
+void printLoadDyninstLibraryError() {
+    cerr << "Paradyn/Dyninst failed to load the runtime library. This is normally caused by " << endl;
+    cerr << "one of the following:" << endl;
+    cerr << "Incorrenct DYNINSTAPI_RT_LIB environment variable" << endl;
+    cerr << "Missing RT library" << endl;
+    cerr << "Unavailable dependency of the library" << endl;
+#if defined(rs6000_ibm_aix4_1)
+    cerr << "   libDyninstText.a must exist in a directory in the LIBPATH environment variable" << endl;
+#endif
+    cerr << "Please check your environment and try again." << endl;
+}
+
+    
 
 bool reachedLibState(libraryState_t lib, libraryState_t state) { return (lib >= state); }
 
@@ -2869,9 +2883,13 @@ process *createProcess(const string File, pdvector<string> argv,
 #endif
 
     bool res = theProc->loadDyninstLib();
-    if(res == false)
-       return NULL;
-
+    if(res == false) {
+        // Error message printout macro
+        printLoadDyninstLibraryError();
+        delete theProc;
+        return NULL;
+    }
+    
     while (!theProc->reachedBootstrapState(bootstrapped)) {
        // We're waiting for something... so wait
        // true: block until a signal is received (efficiency)
@@ -2963,6 +2981,7 @@ process *attachProcess(const string &progpath, int pid)
   theProc->findSignalHandler(); // shouldn't this be in the ctor?
 
   if (!theProc->loadDyninstLib()) {
+      printLoadDyninstLibraryError();
       delete theProc;
       return NULL;
   }
@@ -3044,7 +3063,6 @@ bool process::loadDyninstLib() {
 #if defined(alpha_dec_osf4_0)
     // This installs a trap at dlopen/dlclose. Should be wrapped
     // into initSharedObjects
-    // need to perform this after dyninst Heap is present and happy
     dyn->setMappingHooks(this);
 #endif
 
@@ -3102,6 +3120,10 @@ bool process::loadDyninstLib() {
        decodeAndHandleProcessEvent(true);
     }
 
+    // Make sure the library was actually loaded
+    if (!runtime_lib) return false;
+    
+
     // Get rid of the callback
     unregisterLoadLibraryCallback(dyninstRT_name);
 
@@ -3139,6 +3161,15 @@ bool process::loadDyninstLib() {
     statusLine(buffer.c_str());    
     return true;
 }
+
+// Set the shared object mapping for the RT library
+bool process::setDyninstLibPtr(shared_object *RTobj) {
+    assert (!runtime_lib);
+    
+    runtime_lib = RTobj;
+    return true;
+}
+
 
 // Set up the parameters for DYNINSTinit in the RT lib
 
@@ -3189,7 +3220,8 @@ bool process::setDyninstLibInitParams() {
 }
 
 // Callback for the above
-void process::dyninstLibLoadCallback(process *p, string /*ignored*/, void * /*ignored*/) {
+void process::dyninstLibLoadCallback(process *p, string /*ignored*/, shared_object *libobj, void * /*ignored*/) {
+    p->setDyninstLibPtr(libobj);
     p->setDyninstLibInitParams();
 }
 
@@ -3917,7 +3949,7 @@ bool process::handleIfDueToSharedObjectMapping(){
                  // library, and if so call it.
                  string libname =  (*changed_objects)[i]->getName();
 
-                 runLibraryCallback(libname);
+                 runLibraryCallback(libname, (*changed_objects)[i]);;
 
              } // addASharedObject, above
              else {
@@ -3983,10 +4015,10 @@ bool process::unregisterLoadLibraryCallback(string libname) {
 }
 
 //
-bool process::runLibraryCallback(string libname) {
+bool process::runLibraryCallback(string libname, shared_object *libobj) {
     if (loadLibraryCallbacks_.defines(libname)) {
         libraryCallback *lib = loadLibraryCallbacks_[libname];
-        (lib->callback)(this, libname, lib->data);
+        (lib->callback)(this, libname, libobj, lib->data);
     }
     return true;
 }

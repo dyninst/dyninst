@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.247 2003/04/02 07:12:26 jaw Exp $
+/* $Id: process.h,v 1.248 2003/04/11 20:02:38 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -528,8 +528,9 @@ class process {
    **** Runtime library initialization code (Dyninst)                     ****
    ***************************************************************************/
   bool loadDyninstLib();
+  bool setDyninstLibPtr(shared_object *libobj);
   bool setDyninstLibInitParams();
-  static void dyninstLibLoadCallback(process *, string libname, void *data);
+  static void dyninstLibLoadCallback(process *, string libname, shared_object *libobj, void *data);
   bool finalizeDyninstLib();
   
   bool iRPCDyninstInit();
@@ -927,7 +928,7 @@ void saveWorldData(Address address, int size, const void* src);
   bool unregisterLoadLibraryCallback(string libname);  
 
   // Run a callback (if appropriate)
-  bool runLibraryCallback(string libname);
+  bool runLibraryCallback(string libname, shared_object *libobj);
     
   private:
   // Hashtable of registered callbacks
@@ -1285,7 +1286,7 @@ private:
 
   process *parent;        /* parent of this process */
   image *symbols;               /* information related to the process */
-  const image *runtime_lib;           /* shortcut to the runtime library */
+  shared_object *runtime_lib;           /* shortcut to the runtime library */
   dictionary_hash<const instPoint *, installed_miniTramps_list*> 
                                            installedMiniTramps_beforePt;
   dictionary_hash<const instPoint *, installed_miniTramps_list*> 
