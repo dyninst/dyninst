@@ -332,12 +332,9 @@ void dataManager::saveAllData (const char *dirname, SaveRequestType optionFlag)
   string dir = string (dirname);
   dir += string("/");
 
-  cout << "dm:saveAllData into " << dir.string_of() << " start request" << endl;
-
   // create index file
   string indexFileName = dir + "index";
 
-  cout << "index file name " << indexFileName.string_of() << endl;
   ofstream indexFile (indexFileName.string_of(), ios::out);
   if (!indexFile) {
     success = false;
@@ -355,13 +352,13 @@ void dataManager::saveAllData (const char *dirname, SaveRequestType optionFlag)
 	// save all phase data
 	string fileSuffix = string("hist_") + string(findex);
 	string miFileName = dir + fileSuffix;
-
-	cout << "writing to file name " << miFileName.string_of() << endl;
+	
 	ofstream activeFile (miFileName.string_of(), ios::out);
 	if (!activeFile)
 	  continue;
-	activeFile << activeMI->getMetricName() << endl <<  
+	activeFile << "histogram " << activeMI->getMetricName() << endl <<  
 	  activeMI->getFocusName() << endl;
+	
 	activeMI->saveAllData (activeFile, CurrentPhase);
 	indexFile << fileSuffix.string_of() << " " << activeMI->getMetricName()
 	  << " " << activeMI->getFocusName() << endl;
@@ -374,11 +371,10 @@ void dataManager::saveAllData (const char *dirname, SaveRequestType optionFlag)
 	string fileSuffix = string("hist_") + string(findex);
 	string miFileName = dir + fileSuffix;
 
-	cout << "writing to file name " << miFileName.string_of() << endl;
 	ofstream activeFile (miFileName.string_of(), ios::out);
 	if (!activeFile)
 	  continue;
-	activeFile << activeMI->getMetricName() << endl <<  
+	activeFile << "histogram " << activeMI->getMetricName() << endl <<  
 	  activeMI->getFocusName() << endl;
 	activeMI->saveAllData (activeFile, GlobalPhase);
 	indexFile << fileSuffix.string_of() << " " <<  
@@ -396,18 +392,18 @@ void dataManager::saveAllData (const char *dirname, SaveRequestType optionFlag)
 void
 dataManager::saveAllResources (const char *dirname)
 {
-  cout << "DM: saveAllResources request for " << dirname << endl;
+  bool success = true;
   string dir = string (dirname) + string("/resources");
 
   ofstream saveFile (dir.string_of(), ios::out);
   if (!saveFile) {
-    cout << "open file failed" << endl;
-    return;
+    success = false;
+  } else {
+    resource::saveHierarchiesToFile(saveFile);
+    saveFile.close();
   }
-  resource::saveHierarchiesToFile(saveFile);
-  saveFile.close();
   delete dirname;
-  cout << "DM: saveAllResources complete" << endl;
+  uiMgr->resourcesSaved(success);
 }
 
 perfStreamHandle dataManager::createPerformanceStream(dataType dt,
