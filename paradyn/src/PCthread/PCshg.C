@@ -20,6 +20,11 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.37  1996/04/13 04:42:30  karavan
+ * better implementation of batching for new edge requests to UI shg display
+ *
+ * changed type returned from datamgr->magnify and datamgr->magnify2
+ *
  * Revision 1.36  1996/04/09 19:25:57  karavan
  * added batch mode for adding a group of new nodes and edges to SHG display.
  *
@@ -191,16 +196,17 @@ searchHistoryNode::stopExperiment()
 }
 
 void 
-searchHistoryNode::addToDisplay(unsigned parentID, const char *label, 
-				bool edgeOnlyFlag)
+searchHistoryNode::addNodeToDisplay() 
 {
-  if (!edgeOnlyFlag) {
-    uiMgr->DAGaddNode (mamaGraph->guiToken, nodeID, 
-		       searchHistoryGraph::InactiveUnknownNodeStyle, 
-		       sname.string_of(), name.string_of(), 0);
-  }
-  uiMgr->DAGaddEdge (mamaGraph->guiToken, parentID, nodeID, (unsigned)axis,
-		     label);
+  uiMgr->DAGaddNode (mamaGraph->guiToken, nodeID, 
+		     searchHistoryGraph::InactiveUnknownNodeStyle, 
+		     sname.string_of(), name.string_of(), 0);
+}
+
+void 
+searchHistoryNode::addEdgeToDisplay(unsigned parentID, const char *label)
+{
+    uiMgr->DAGaddEdge (mamaGraph->guiToken, parentID, nodeID, (unsigned)axis, label);
 }
 
 void 
@@ -239,6 +245,34 @@ searchHistoryNode::changeDisplay()
   }
 }
 
+void 
+searchHistoryGraph::addUIrequest(unsigned srcID, unsigned dstID, 
+				 int styleID, const char *label)
+{
+  static unsigned size = 0;
+  if (numUIrequests == 0) {
+    size = 10;
+    uiRequestBuff = new vector<uiSHGrequest> (size);
+    numUIrequests = 0;
+  }
+  ((*uiRequestBuff)[numUIrequests]).srcNodeID = srcID;
+  (*uiRequestBuff)[numUIrequests].dstNodeID = dstID;
+  (*uiRequestBuff)[numUIrequests].styleID = styleID;
+  (*uiRequestBuff)[numUIrequests].label = label;
+  numUIrequests++;
+  if (numUIrequests == size) {
+    size = size * 2;
+    uiRequestBuff->resize (size);
+  }
+}
+
+void
+searchHistoryGraph::flushUIbuffer()
+{
+  uiMgr->DAGaddBatchOfEdges(guiToken, uiRequestBuff, numUIrequests);
+  numUIrequests = 0;
+}
+
 void
 searchHistoryNode::expand ()
 {
@@ -254,8 +288,8 @@ searchHistoryNode::expand ()
 #endif
   expanded = true;
   searchHistoryNode *curr;
-  uiMgr->setBatchMode(this->getPhase());
-
+  bool newNodeFlag;
+  
   // first expand along where axis
   if (why->prunesDefined()) {
   // prunes limit the resource trees along which we will expand this node
@@ -271,7 +305,22 @@ searchHistoryNode::expand ()
 	    curr = mamaGraph->addNode (this, why, (*kids)[j].id, 
 				       refineWhereAxis,
 				       false,  
-				       (*kids)[j].res_name.string_of());
+				       (*kids)[j].res_name,
+				       &newNodeFlag);
+	    if (newNodeFlag) {
+	      // a new node was added
+	      curr->addNodeToDisplay(); 
+	      mamaGraph->addUIrequest(nodeID,   // parent ID
+				      curr->getNodeId(),  // child ID
+				      (unsigned)refineWhereAxis, // edge style
+				      (char *)NULL);
+	    } else {
+	      // shadow node
+	      mamaGraph->addUIrequest(nodeID,
+				      curr->getNodeId(),
+				      (unsigned)refineWhereAxis,
+				      (*kids)[j].res_name);
+	    }
 	  }
 	  delete kids;
 	}
@@ -286,7 +335,22 @@ searchHistoryNode::expand ()
 	curr = mamaGraph->addNode (this, why, (*kids)[k].id, 
 				   refineWhereAxis,
 				   false,  
-				   (*kids)[k].res_name.string_of());
+				   (*kids)[k].res_name,
+				   &newNodeFlag);
+	if (newNodeFlag) {
+	  // a new node was added
+	  curr->addNodeToDisplay();
+	  mamaGraph->addUIrequest(nodeID,   // parent ID
+				  curr->getNodeId(),  // child ID
+				  (unsigned)refineWhereAxis, // edge style
+				  (char *)NULL);
+	} else {
+	  // shadow node
+	  mamaGraph->addUIrequest(nodeID,
+				  curr->getNodeId(),
+				  (unsigned)refineWhereAxis,
+				  (*kids)[k].res_name);
+	}
       }
       delete kids;
     }
@@ -298,11 +362,26 @@ searchHistoryNode::expand ()
       curr = mamaGraph->addNode (this, (*hypokids)[i], where,
 				 refineWhyAxis, 
 				 false,  
-				 (*hypokids)[i]->getName());
+				 (*hypokids)[i]->getName(),
+				 &newNodeFlag);
+      if (newNodeFlag) {
+	// a new node was added
+	curr->addNodeToDisplay();
+	mamaGraph->addUIrequest(nodeID,   // parent ID
+				curr->getNodeId(),  // child ID
+				(unsigned)refineWhereAxis, // edge style
+				(char *)NULL);
+      } else {
+	// shadow node
+	mamaGraph->addUIrequest(nodeID,
+				curr->getNodeId(),
+				(unsigned)refineWhereAxis,
+				(*hypokids)[i]->getName());
+      }
     }
     delete hypokids;
   }
-  uiMgr->clearBatchMode(this->getPhase());
+  mamaGraph->flushUIbuffer();
 
 #ifdef PCDEBUG
   if (performanceConsultant::printSearchChanges) {
@@ -492,7 +571,9 @@ searchHistoryGraph::searchHistoryGraph(PCsearch *searchPhase,
  NodesByFocus(searchHistoryGraph::uhash),
  srch(searchPhase), 
  guiToken(phaseToken),
- nextID(0)
+ nextID(0),
+ uiRequestBuff(NULL),
+ numUIrequests(0)
 {
   vector<searchHistoryNode*> Nodes;
   root = new searchHistoryNode ((searchHistoryNode *)NULL,
@@ -544,24 +625,23 @@ searchHistoryGraph::addNode (searchHistoryNode *parent,
 			     focus whereowhere,
 			     refineType axis,
 			     bool persist,
-			     const char *shortName)
+			     const char *shortName,
+			     bool *newFlag)
 {
   // check if node already exists
   searchHistoryNode *newkid = NULL;
   vector<searchHistoryNode*> *foclist = NULL;
+  *newFlag = false;
   if (NodesByFocus.defines(whereowhere)) {
     foclist = NodesByFocus[whereowhere];
     for (unsigned i = 0; i < foclist->size(); i++) {
       if ((*foclist)[i]->hypoMatches(why)) {
 	newkid = (*foclist)[i];
-	break;
+	return newkid;
       }
     }
-    if (newkid) {
-      newkid->addToDisplay(parent->getNodeId(), shortName, true);
-      return newkid;
-    }
   }
+  *newFlag = true;
   if (foclist == NULL) {
     foclist = new vector<searchHistoryNode*>;
     NodesByFocus[whereowhere] = foclist;
@@ -569,8 +649,8 @@ searchHistoryGraph::addNode (searchHistoryNode *parent,
   newkid = parent->addChild (why, whereowhere, axis, persist, 
 			     shortName, nextID++);
   *foclist += newkid;
-  newkid->addToDisplay(parent->getNodeId(), (char *)NULL, false);
   newkid->setupExperiment();
+  //
   //** this will be replaced with more rational priority calculation
   if (axis == refineWhyAxis)
     PCsearch::addToQueue(5, newkid, getPhase());
@@ -596,13 +676,16 @@ searchHistoryGraph::initPersistentNodes()
   searchHistoryNode *nodeptr;
   hypothesis *currhypo;
   vector<hypothesis*> *topmost = topLevelHypothesis->expand();
-
+  bool nodeAdded;
   for (unsigned i = 0; i < topmost->size(); i++) {
     currhypo = (*topmost)[i];
     nodeptr = addNode (root, currhypo, topLevelFocus, 
 		       refineWhyAxis, true,  
-		       currhypo->getName());
-    
+		       currhypo->getName(),
+		       &nodeAdded);
+    nodeptr->addNodeToDisplay();
+    nodeptr->addEdgeToDisplay(root->getNodeId(), (char *)NULL);
+
     // note: at this point no experiment has been started for this search.
     // addNode puts these on the ready queue, but the ready queue is only 
     // checked when new data arrives from the data manager, so its a chicken

@@ -20,6 +20,11 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.19  1996/04/13 04:42:32  karavan
+ * better implementation of batching for new edge requests to UI shg display
+ *
+ * changed type returned from datamgr->magnify and datamgr->magnify2
+ *
  * Revision 1.18  1996/04/07 21:29:46  karavan
  * split up search ready queue into two, one global one current, and moved to
  * round robin queue removal.
@@ -101,7 +106,8 @@ public:
   bool getActive();
   testResult getStatus();
   bool hypoMatches (hypothesis *candidate) {return (why == candidate);}
-  void addToDisplay(unsigned parentID, const char *label, bool edgeOnlyFlag);
+  void addNodeToDisplay();
+  void addEdgeToDisplay(unsigned parentID, const char *label);
   void changeDisplay ();
   void changeTruth (testResult newTruth);
   void expand();
@@ -114,6 +120,7 @@ public:
   void setExpanded () {expanded = true;}
   void inActivateAll();
   unsigned getPhase();
+  const char *getShortName() {return sname.string_of();}
 private:
   void percolateUp(testResult newTruth);
   void percolateDown(testResult newTruth);
@@ -161,11 +168,14 @@ class searchHistoryGraph {
 			      focus whereowhere,
 			      refineType axis,
 			      bool persist,
-			      const char *shortName);
+			      const char *shortName,
+			      bool *newFlag);
   searchHistoryNode *const getNode (unsigned nodeId);
   void updateDisplayedStatus (string &newmsg);
   void finalizeSearch(timeStamp searchEndTime);
   unsigned getPhase() {return guiToken;}
+  void addUIrequest(unsigned srcID, unsigned dstID, int styleID, const char *label);
+  void flushUIbuffer();
  private:
   vector<searchHistoryNode*> Nodes;
   static unsigned uhash (unsigned& val) {return (unsigned) (val % 20);} 
@@ -175,6 +185,8 @@ class searchHistoryGraph {
   PCsearch *srch;
   int guiToken;      // use in UI calls to select correct search display  
   unsigned nextID;   // used to create unique ids for the nodes
+  vector<uiSHGrequest> *uiRequestBuff;
+  unsigned numUIrequests;
 };
   
 #endif
