@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.6  1994/05/10 03:57:54  hollings
-/* Changed data upcall to return array of buckets.
+/* Revision 1.7  1994/05/18 00:51:03  hollings
+/* We don't want SIGPIPEs to kill us.
 /*
+ * Revision 1.6  1994/05/10  03:57:54  hollings
+ * Changed data upcall to return array of buckets.
+ *
  * Revision 1.5  1994/04/28  22:07:39  newhall
  * added PARADYN_DEBUG macro: prints debug message if PARADYNDEBUG
  * environment variable has value >= 1
@@ -28,6 +31,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <signal.h>
 
 #include "paradyn.h"
 #include "thread/h/thread.h"
@@ -90,6 +94,11 @@ main (int argc, char *argv[])
   tag_t mtag;
   char *temp;
 
+
+  //
+  // We check our own read/write events.
+  //
+  signal(SIGPIPE, SIG_IGN);
 
   if (argc != 1) {
     printf("usage: %s\n", argv[0]);
