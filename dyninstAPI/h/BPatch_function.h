@@ -67,6 +67,7 @@ class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj {
     BPatch_Vector<BPatch_localVar *> params;
     BPatch_module *mod;
     BPatch_flowGraph* cfg;
+    bool cfgCreated;
 
     void *getBaseAddrRelative() const;
     BPatch_point* createMemInstPoint(void *addr, BPatch_memoryAccess* ma);
