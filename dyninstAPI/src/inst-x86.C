@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.125 2003/04/04 20:49:18 mirg Exp $
+ * $Id: inst-x86.C,v 1.126 2003/04/11 22:32:52 mirg Exp $
  */
 
 #include <iomanip.h>
@@ -728,12 +728,27 @@ bool pd_Function::findInstPoints(const image *i_owner) {
 
       // add instructions after the point
       if (type == ReturnPt && p->address() == funcEnd-1) {
-	 // On Linux, we used to try and scavenge a few extra bytes
-	 // past the end of the function, assuming that the next
-	 // function will start at the 4-byte boundary. However, this
-	 // is no longer true with gcc 3.x and it has never been true
-	 // with Visual C++. Hence, bonus = 0;
-         unsigned bonus = 0;
+
+         /* If an instrumentation point at the end of the function
+            does not end on a 4-byte boundary, we claim the bytes up
+            to the next 4-byte boundary (or the next symbol, whichever
+            comes first) as "bonus bytes" for the point, since the
+            next function will likely begin at or past the boundary.
+            We do not try to reclaim more than 4 bytes, because this
+	    approach is a hack in the first place and may break if some
+	    unlabeled data is located after the ret instruction (we have
+	    not seen it happening, but it is possible). Remove when
+	    a more robust instrumentation mechanism is implemented! */
+	 unsigned bonus = 0;
+#ifndef i386_unknown_nt4_0 /* VC++ does not align functions by default */
+	 Address nextPossibleEntry = funcEnd;
+	 while ((nextPossibleEntry & 3) != 0 &&
+		!owner->hasSymbolAtPoint(nextPossibleEntry)) {
+	     bonus++;
+	     nextPossibleEntry++;
+	 }
+#endif /* i386_unknown_nt4_0 */
+       //p->setBonusBytes(bonus);
          unsigned u1;
          for (u1 = index+1 + bonus; u1 < index+JUMP_SZ-1 && u1 < numInsns; u1++) {
             if (allInstr[u1].isNop() || *(allInstr[u1].ptr()) == 0xCC) {
