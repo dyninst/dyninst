@@ -21,6 +21,7 @@ extern int vfork();
 extern int fork();
 extern int strcasecmp(char *s1, char *s2);
 extern int strncasecmp(char *s1, char *s2, int n);
+extern int pipe(int fd[2]);
 };
 
 /* Non standard (even from sunos4 to sunos5 -- blech */
@@ -142,6 +143,8 @@ int P_socket (int NAMESPACE, int STYLE, int PROTOCOL) {
 int P_socketpair(int Namespace, int style, int protocol, int filedes[2]) {
   return (socketpair(Namespace, style, protocol, filedes));}
   // note: "namespace" is now a reserved word in c++!
+
+int P_pipe(int fd[2]) { return (pipe(fd)); }
 
 int P_strcasecmp(const char *s1, const char *s2) {
   return (strcasecmp((char*)s1, (char*)s2));}

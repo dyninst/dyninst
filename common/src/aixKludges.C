@@ -14,6 +14,7 @@ extern int rexec(char **ahost, u_short inport, char *user, char *passwd,
 		 char *cmd, int *fd2p);
 extern int socket(int, int, int);
 extern int socketpair(int, int, int, int sv[2]);
+extern int pipe(int fd[2]);
 extern int vfork();
 extern int fork();
 extern int strcasecmp(char *s1, char *s2);
@@ -138,6 +139,8 @@ int P_socket (int NAMESPACE, int STYLE, int PROTOCOL) {
 
 int P_socketpair(int NAMESPACE, int style, int protocol, int filedes[2]) {
   return (socketpair(NAMESPACE, style, protocol, filedes));}
+
+int P_pipe(int fd[2]) { return (pipe(fd)); }
 
 int P_strcasecmp(const char *s1, const char *s2) {
   return (strcasecmp((char*)s1, (char*)s2));}

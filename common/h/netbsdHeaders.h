@@ -134,6 +134,7 @@ inline int P_socket (int NAMESPACE, int STYLE, int PROTOCOL) {
   return (socket(NAMESPACE, STYLE, PROTOCOL));}
 inline int P_socketpair(int namesp, int style, int protocol, int filedes[2]) {
   return (socketpair(namesp, style, protocol, filedes));}
+inline int P_pipe(int fds[2]) { return (pipe(fds)); }
 inline int P_strcasecmp(const char *s1, const char *s2) {
   return (strcasecmp(s1, s2));}
 inline int P_strncasecmp (const char *S1, const char *S2, size_t N) {
