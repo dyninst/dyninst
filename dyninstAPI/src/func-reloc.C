@@ -116,7 +116,11 @@ bool pd_Function::branchInsideRange(instruction insn, Address branchAddress,
   disp = get_disp(&insn);
 
   // get target of branch instruction
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
   target = branchAddress + disp + insn.size();
+#elif defined(sparc_sun_solaris2_4)
+  target = branchAddress + disp;
+#endif
 
   if (target < firstAddress) return false;
   if (target >= lastAddress) return false;
@@ -154,8 +158,12 @@ bool pd_Function::trueCallInsideRange(instruction insn, Address callAddress,
   // get the displacement of the target
   disp = get_disp(&insn);
    
-  // calculate the target address of the call instruction 
+  // get target of call instruction
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
   target = callAddress + disp + insn.size();
+#elif defined(sparc_sun_solaris2_4)
+  target = callAddress + disp;
+#endif
 
   if (target < firstAddress) return false;
   if (target >= lastAddress) return false;
@@ -230,11 +238,11 @@ int pd_Function::patchOffset(bool setDisp, LocalAlterationSet *alteration_set,
 // relocated
 int pd_Function::relocatedSizeChange(const image *owner, process *proc) {
 
-  instruction *oldInstr = 0;
+  instruction *oldInstructions = 0;
   Address mutator, mutatee;
   LocalAlterationSet normalized_alteration_set(this);
 
-  return findAlterations(owner, proc, oldInstr, normalized_alteration_set, 
+  return findAlterations(owner, proc, oldInstructions, normalized_alteration_set, 
                          mutator, mutatee);
 }
 
@@ -249,13 +257,13 @@ int pd_Function::relocatedSizeChange(const image *owner, process *proc) {
 // normalized_alteration_set will contain the record of these changes
 // Return the sum total of the sizes of the alterations
 
-// oldInstr: buffer of instruction objects
+// oldInstructions: buffer of instruction objects
 // mutatee: address of actual function to be relocated (located in the mutatee)
 // mutator: address of copy of the above function  (located in the mutator)
 
 int pd_Function::findAlterations(const image *owner, 
                                  process *proc, 
-                                 instruction *&oldInstr,
+                                 instruction *&oldInstructions,
                                  LocalAlterationSet &normalized_alteration_set,
                                  Address &mutator, Address &mutatee) {
 
@@ -263,7 +271,8 @@ LocalAlterationSet temp_alteration_set(this);
 Address baseAddress;
 unsigned numberOfInstructions;
 int totalSizeChange = 0;
-
+bool relocate = true;
+bool expanded = true;
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << "pd_Function::findAlterations called " << endl;
@@ -288,12 +297,12 @@ int totalSizeChange = 0;
   mutatee = baseAddress + getAddress(0);
 
   // create a buffer of instruction objects 
-  if (!(loadCode(proc, oldInstr, numberOfInstructions, mutatee))) {
+  if (!(loadCode(owner, proc, oldInstructions, numberOfInstructions, mutatee))) {
     return false;  
   }
 
   // address of copy of function (in mutator)
-  mutator = addressOfMachineInsn(&oldInstr[0]);
+  mutator = addressOfMachineInsn(&oldInstructions[0]);
 
 #ifdef DEBUG_FUNC_RELOC
   cerr << " mutator = " << mutator << endl;
@@ -301,16 +310,26 @@ int totalSizeChange = 0;
 #endif
 
   // discover which instPoints need to be expaned  
-  expandInstPoints(&temp_alteration_set, normalized_alteration_set, 
-                   baseAddress, mutator, mutatee, oldInstr, 
+  expanded = expandInstPoints(&temp_alteration_set, normalized_alteration_set, 
+                   baseAddress, mutator, mutatee, oldInstructions, 
                    numberOfInstructions); 
 
+  if (expanded) { 
   // Check if the expansions discovered in expandInstPoints would require
   // further expansion of the function (this occurs if the target of a 
   // relative branch or call would be moved outside the range of the insn
-  updateAlterations(&temp_alteration_set, normalized_alteration_set, oldInstr,
-                    baseAddress, mutatee, totalSizeChange); 
- 
+    relocate = updateAlterations(&temp_alteration_set, 
+                                 normalized_alteration_set, 
+                                 oldInstructions, baseAddress, 
+                                 mutatee, totalSizeChange); 
+  } else {
+    // Don't relocate
+    totalSizeChange = -1;
+  }
+
+  // Don't relocate
+  if (!relocate) totalSizeChange = -1;
+
 #ifdef DEBUG_FUNC_RELOC
     cerr << " totalSizeChange = " << totalSizeChange << endl;
 #endif
@@ -341,13 +360,13 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
                                           relocatedFuncInfo *&reloc_info, 
                                           unsigned &size_change) {
 	
-  instruction *oldInstr = 0;
+  instruction *oldInstructions = 0, *newInstructions = 0;
   Address mutator, mutatee;
   int totalSizeChange = 0;
   LocalAlterationSet normalized_alteration_set(this); 
 
   // assumes delete NULL ptr safe....
-  oldInstr = NULL;
+  oldInstructions = NULL;
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << "pd_Function::findAndApplyAlterations called " << endl;
@@ -357,11 +376,20 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
 #endif
 
   // Find the alterations that need to be applied
-  totalSizeChange = findAlterations(owner, proc, oldInstr,
+  totalSizeChange = findAlterations(owner, proc, oldInstructions,
                                     normalized_alteration_set,
                                     mutator, mutatee);  
 
-    // make sure that new function version can fit in newInstr (statically allocated)....
+  if (totalSizeChange == -1) {
+
+    cerr << "ERROR: UNABLE TO RELOCATE FUNCTION" << endl;
+
+    // Do not relocate function
+    delete []oldInstructions;
+    return false;
+  }
+
+    // make sure that new function version can fit in newInstructions (statically allocated)....
     if (size() + totalSizeChange > NEW_INSTR_ARRAY_LEN) {
        cerr << "WARN : attempting to relocate function " \
        	    << prettyName().string_of() << " with size " \
@@ -369,7 +397,7 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
 	    << "), unable to instrument : " \
             << " size = " << size() << " , totalSizeChange = " \
 	    << totalSizeChange << endl;
-       delete []oldInstr;
+       delete []oldInstructions;
        return FALSE;
     }
 
@@ -385,18 +413,24 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
       u_int ret = inferiorMalloc(proc, size() + totalSizeChange, textHeap, ipAddr);
       newAdr = ret;
       if(!newAdr) {
-        delete []oldInstr; 
+        delete []oldInstructions; 
         return false;
       }
       reloc_info = new relocatedFuncInfo(proc,newAdr);
       relocatedByProcess += reloc_info;
     }
 
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+      newInstructions = NEW_INSTR;
+#elif defined(sparc_sun_solaris2_4)
+      newInstructions = newInstr;
+#endif
+
     // Apply the alterations needed for relocation. The expanded function 
     // will be placed in NEW_CODE.
     if (!(applyAlterations(normalized_alteration_set, mutator, mutatee, 
-                           newAdr, oldInstr, size(), newInstr))) {
-      delete []oldInstr;
+                           newAdr, oldInstructions, size(), newInstructions))) {
+      delete []oldInstructions;
       return false;
     }
 
@@ -404,13 +438,13 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
     // Fill reloc_info up with relocated (and altered by alterations) inst 
     // points. Do AFTER all alterations are attached AND applied....
     fillInRelocInstPoints(owner, proc, location, reloc_info, 
-                          mutatee, mutator, oldInstr, newAdr, newInstr, 
+                          mutatee, mutator, oldInstructions, newAdr, newInstructions, 
                           normalized_alteration_set);
 
     
     size_change = totalSizeChange;  
 
-    delete []oldInstr;
+    delete []oldInstructions;
     return true;
 }
 
@@ -422,11 +456,13 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
 // numberOfInstructions: # of insn's in function (as opposed to # of bytes)
 // temp_alteration_set: record of the needed expansions 
 
-void pd_Function::expandInstPoints(LocalAlterationSet *temp_alteration_set, 
+bool pd_Function::expandInstPoints(LocalAlterationSet *temp_alteration_set, 
                                    LocalAlterationSet &normalized_alteration_set, 
                                    Address baseAddress, Address mutator,
-                                   Address mutatee, instruction oldInstr[], 
+                                   Address mutatee, instruction oldInstructions[], 
                                    unsigned numberOfInstructions) {
+
+  bool combined1, combined2, combined3;
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << "pd_Function::expandInstPoints called "<< endl;
@@ -442,163 +478,27 @@ void pd_Function::expandInstPoints(LocalAlterationSet *temp_alteration_set,
   // Perform three passes looking for instPoints that need expansion
 
   PA_attachGeneralRewrites(temp_alteration_set, baseAddress, 
-                           mutatee, oldInstr, size());
+                           mutatee, oldInstructions, size());
   PA_attachOverlappingInstPoints(&tmp_alt_set1, baseAddress, 
-                                 mutatee, oldInstr, size());
+                                 mutatee, oldInstructions, size());
   PA_attachBranchOverlaps(&tmp_alt_set2, baseAddress, mutator, 
-                          oldInstr, numberOfInstructions, size());
+                          oldInstructions, numberOfInstructions, size());
 
   // merge the LocalAlterations discovered in the above passes, placing
   // them in normalized_alteration_set 
 
-  combineAlterationSets(temp_alteration_set, &tmp_alt_set1);
-  combineAlterationSets(temp_alteration_set, &tmp_alt_set2);
-  combineAlterationSets(&normalized_alteration_set, temp_alteration_set);    
-}
+  combined1 = combineAlterationSets(temp_alteration_set, &tmp_alt_set1);
+  combined2 = combineAlterationSets(temp_alteration_set, &tmp_alt_set2);
+  combined3 = combineAlterationSets(&normalized_alteration_set, temp_alteration_set);    
 
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-  /* Platform independent */
-
-// Find overlapping instrumentation points 
-
-bool pd_Function::PA_attachOverlappingInstPoints(
-                              LocalAlterationSet *temp_alteration_set, 
-                              Address baseAddress, Address firstAddress,
-                              instruction* /* loadedCode */, int /* codeSize */) {
-
-  int overlap = 0, offset = 0;
-
-#ifdef DEBUG_FUNC_RELOC
-    cerr << "pd_Function::PA_attachOverlappingInstPoints called" <<endl;
-#endif
-
-    // create and sort vector of instPoints
-    vector<instPoint*> foo;
-    sorted_ips_vector(foo);
-
-    // loop over all consecutive pairs of instPoints
-    for (unsigned i=0;i<foo.size()-1;i++) {
-        instPoint *this_inst_point = foo[i];
-        instPoint *next_inst_point = foo[i+1];
-
-        overlap = ((this_inst_point->iPgetAddress() + 
-                    this_inst_point->sizeOfInstrumentation()) - 
-                    next_inst_point->iPgetAddress()); 
-
-        // check if inst point overlaps with next inst point
-        if (overlap > 0) {
-            offset = ((this_inst_point->iPgetAddress() + baseAddress) - firstAddress);
-
-            // LocalAlteration inserting nops after this_inst_point
-       	    InsertNops *nops = new InsertNops(this, offset, overlap);
-	    temp_alteration_set->AddAlteration(nops);
-
-#ifdef DEBUG_FUNC_RELOC
-    cerr << " detected overlapping inst points: "  << endl;
-    cerr << " adding LocalAlteration of size: " << overlap 
-         << " at offset: " << offset << endl; 
-#endif
-
-	}
-    }
-    return true;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-
- /* Platform independent */
-
-// Locate jumps with targets inside the footprint of an inst points. 
-
-bool pd_Function::PA_attachBranchOverlaps(
-                           LocalAlterationSet *temp_alteration_set, 
-                           Address /* baseAddress */, Address firstAddress, 
-                           instruction loadedCode[],
-                           unsigned numberOfInstructions, int codeSize)  {
-
-#ifdef DEBUG_FUNC_RELOC
-    cerr << "pd_Function::PA_attachBranchOverlaps called" <<endl;
-    cerr << " codeSize = " << codeSize << endl;
-    cerr << " numberOfInstructions = " << numberOfInstructions << endl;
-#endif
-
-  int instr_address;
-  int disp, offset;
-  instruction instr;
-   
-  // create and sort vector of instPoints
-  vector<instPoint*> foo;
-  sorted_ips_vector(foo);
-
-  // Iterate over function instruction by instruction....
-  for(unsigned i = 0; i < numberOfInstructions; i++) {       
-    instr = loadedCode[i];
-    instr_address = addressOfMachineInsn(&instr);
-     
-#ifdef DEBUG_FUNC_RELOC
-    cerr << " insn address = " << hex << (unsigned ) instr_address << endl;
-    cerr << " insn offset = "  << instr_address - firstAddress << endl;
-#endif
-     
-    // look for branch and call insns whose targets are inside the function.
-    if (!branchInsideRange(instr, instr_address, firstAddress, 
-                                        firstAddress + codeSize) &&
-        !trueCallInsideRange(instr, instr_address, firstAddress, 
-                                        firstAddress + codeSize)) {
-      continue;
-    } 
-
-#ifdef DEBUG_FUNC_RELOC
-    cerr << " branch at " << hex << (unsigned) instr_address 
-         << " has target inside range of function" << endl;
-#endif  
-
-    disp = get_disp(&instr);
-
-    // target of branch or call instruction 
-    Address target = instr_address + disp;
-
-    // Check if target is in the footprint of an inst point....
-    instPoint *overlap = find_overlap(foo, target);
-    if (overlap == NULL) continue;
-
-    // offset of instruction from the beginning of the function 
-    offset = overlap->address() - firstAddress;
-
-    temp_alteration_set->iterReset();
-
-    // If multiple jumps have their target address within the same 
-    // instPoint, we only want to add nops once. To do this we
-    // iterate over the known LocalAlterations, checking if any already 
-    // are already planning on inserting nops at this instPoint.
-    LocalAlteration *alteration = temp_alteration_set->iterNext();
-    while (alteration != NULL && alteration->getOffset() < offset) {
-      alteration = temp_alteration_set->iterNext();
-    }
-
-    if (alteration == NULL || alteration->getOffset() != offset) {
- 
-      int shift = overlap->followingAddress() - target;
-
-      InsertNops *nops = new InsertNops(this, offset, shift);
-      temp_alteration_set->AddAlteration(nops);
-
-#ifdef DEBUG_FUNC_RELOC
-   cerr << " detected overlap between branch target and inst point : offset "
-        << target - firstAddress << " # bytes " 
-        << overlap->firstAddress() - target << endl;
-   cerr << " adding LocalAlteration" << endl;        
-#endif
-
-    }
+  if (!combined1 || !combined2 || !combined3) {
+    return false;
   }
+
   return true;
 }
 
+/****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
 
@@ -679,9 +579,12 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
 
     // if instruction needs to be expanded 
     if (size_of_expansion1) {
+
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+
       // expansion was not already found
       if (!alreadyExpanded(oldOffset, size_of_expansion1, &norm_alt_set)) {
-          
+
         // new LocalAlteration
         ExpandInstruction *exp = new ExpandInstruction(this, oldOffset,       
                                                        size_of_expansion1);
@@ -693,8 +596,14 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
           cerr << "     offset: " << oldOffset << endl; 
           cerr << "     size: " << size_of_expansion1 << endl;
 #endif
-
       }
+
+#elif defined(sparc_sun_solaris2_4)
+        // Don't expand instruction on sparc. i.e. if the new branch target is 
+        // greater than 2^21 bytes away, don't relocate the function 
+        return false;
+#endif
+
     }
 
     // # of bytes needed to expand instruction so that its target 
@@ -711,6 +620,8 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
       // of function, not both
       assert(!size_of_expansion1);
 
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+
       // expansion was not already found
       if (!alreadyExpanded(oldOffset, size_of_expansion2, &norm_alt_set)) {
 
@@ -725,8 +636,14 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
           cerr << "     offset: " << oldOffset << endl; 
           cerr << "     size: " << size_of_expansion2 << endl;
 #endif
-
       }
+
+#elif defined(sparc_sun_solaris2_4)
+        // Don't expand instruction on sparc. i.e. if the new branch target is 
+        // greater than 2^21 bytes away, don't relocate the function 
+        return false;
+#endif
+
     }
 
     // next intsruction
@@ -749,66 +666,22 @@ bool pd_Function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
 
     /* Platform independent */
 
-// Check if an ExpandInstruction alteration has already been created 
-// at an offset, with size, shift.
-// This allows us to avoid adding a new ExpandInstruction LocalAlterations for
-// an instruction each time we go through discoverAlterations. This prevents
-// an infinite looping 
-
-bool alreadyExpanded(int offset, int shift, LocalAlterationSet *alteration_set) {
-  bool already_expanded;
-  LocalAlteration *alteration = 0;
-
-#ifdef DEBUG_FUNC_RELOC 
-	  cerr << " Method alreadyExpanded called " << endl;
-#endif  
-
-  alteration_set->iterReset();
-
-  // find the LocalAlteration at offset  
-  do {
-    alteration = alteration_set->iterNext();
-  } while (alteration != NULL && alteration->getOffset() < offset);
-  
-  if ((alteration != NULL) && (alteration->getOffset() == offset)) {
- 
-    alteration = dynamic_cast<ExpandInstruction *> (alteration);
-
-    if (alteration == NULL || alteration->getShift() > shift) {
-      already_expanded = false;
-    }
-    else {
-      already_expanded = true;
-    }
-  } else {
-      already_expanded = false;
-  }
-  
-  alteration_set->iterReset();
-  return already_expanded;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-
-    /* Platform independent */
-
 // place an expanded copy of the original function in NEW_CODE 
 
 // mutatee: first address of function in mutatee
 // mutator: first address of copy of function in mutator
 // newAdr: address in mutatee where function is to be relocated to
 // codeSize: size of original, unexpanded function
-// oldInstr: buffer of insn's corresponding to copy of function in mutator
-// newInstr: buffer of insn's corresponding to expanded function located
+// oldInstructions: buffer of insn's corresponding to copy of function in mutator
+// newInstructions: buffer of insn's corresponding to expanded function located
 //          in temporary buffer in mutator
 
 bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
 				   Address mutator, Address mutatee, 
                                    Address newAdr, 
-                                   instruction oldInstr[], 
+                                   instruction oldInstructions[], 
 				   unsigned codeSize, 
-                                   instruction newInstr[]) {
+                                   instruction newInstructions[]) {
 
   // offset of current insn from beginning of original function  
   Address oldOffset = 0;
@@ -820,19 +693,17 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
   Address nextAlterBegins;
 
   // offset of current insn into buffer of instructon objects 
-  // (oldInstr and newInstr respectively)
+  // (oldInstructions and newInstructions respectively)
   int oldInsnOffset = 0, newInsnOffset = 0;
 
   int newDisp = 0;
 
-  // x86-specific, temporary buffer for expanded function
+  // buffer for relocated function
   unsigned char *code = 0; 
   unsigned codeOffset = 0;
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
       code = NEW_CODE;
-#else
-      code = 0;
 #endif
  
   Address mutator_before, mutator_after, newAdr_before, newAdr_after; 
@@ -871,29 +742,26 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
 #endif
          
       // copy current instruction into temporary buffer in mutator
-      copyInstruction(newInstr[newInsnOffset], oldInstr[oldInsnOffset], 
+      copyInstruction(newInstructions[newInsnOffset], oldInstructions[oldInsnOffset], 
                                                           codeOffset);
     
-      // Sparc will need a version of copyInstruction that does this:
-      //    newInstr[newInsnOffset] = oldInstr[oldInsnOffset];
-
       // mutatee + oldOffset = address in mutatee of current instruction
       // newAdr + newOffset = address in mutatee where current instruction is
       // to be relocated
       // update relative branches and calls to locations outside the function 
-      relocateInstructionWithFunction(true,&newInstr[newInsnOffset], 
+      relocateInstructionWithFunction(true,&newInstructions[newInsnOffset], 
                                       mutatee + oldOffset, newAdr + newOffset,
                                       mutatee, codeSize);
 
       // mutatee + oldOffset = address in mutatee of current instruction
-      // newInstr[newInsnOffset] = insn in temporary buffer to be patched up
+      // newInstructions[newInsnOffset] = insn in temporary buffer to be patched up
       // update relative branches and calls to locations inside the function
-      patchOffset(true, &norm_alt_set, newInstr[newInsnOffset], 
+      patchOffset(true, &norm_alt_set, newInstructions[newInsnOffset], 
                   mutator + oldOffset, mutator, codeSize);
 
       // next instruction
-      oldOffset += sizeOfMachineInsn(&oldInstr[oldInsnOffset]);
-      newOffset += sizeOfMachineInsn(&oldInstr[oldInsnOffset]);
+      oldOffset += sizeOfMachineInsn(&oldInstructions[oldInsnOffset]);
+      newOffset += sizeOfMachineInsn(&oldInstructions[oldInsnOffset]);
       oldInsnOffset++; 
       newInsnOffset++;
     }
@@ -909,16 +777,16 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
     if (nextAlter != NULL) {
 
       // branch or call instruction with relative addressing
-      if(isNearBranchInsn(oldInstr[oldInsnOffset])  || 
-         isTrueCallInsn(oldInstr[oldInsnOffset])) {
-        int oldDisp = get_disp(&oldInstr[oldInsnOffset]);
-        int oldInsnSize = sizeOfMachineInsn(&oldInstr[oldInsnOffset]);  
+      if(isNearBranchInsn(oldInstructions[oldInsnOffset])  || 
+         isTrueCallInsn(oldInstructions[oldInsnOffset])) {
+        int oldDisp = get_disp(&oldInstructions[oldInsnOffset]);
+        int oldInsnSize = sizeOfMachineInsn(&oldInstructions[oldInsnOffset]);  
 
         // mutator + oldOffset = address in mutator of current instruction
         // mutator + codeSize = last address of copy of function in mutator
-        if ((branchInsideRange(oldInstr[oldInsnOffset], mutator + oldOffset, 
+        if ((branchInsideRange(oldInstructions[oldInsnOffset], mutator + oldOffset, 
                                mutator, mutator + codeSize))   ||
-            (trueCallInsideRange(oldInstr[oldInsnOffset], mutator + oldOffset, 
+            (trueCallInsideRange(oldInstructions[oldInsnOffset], mutator + oldOffset, 
                                  mutator, mutator + codeSize))) {
 
           // updated disp for relative branch or call insn to target 
@@ -930,9 +798,15 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
 
             // updated disp for relative branch or call insn to target 
             // outside function
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
             int origAddr = (mutatee + oldOffset + oldInsnSize + oldDisp);
             int targetAddr = (newAdr + newOffset + oldInsnSize + 
-                    set_disp(false, &oldInstr[oldInsnOffset], newDisp, true));
+                    set_disp(false, &oldInstructions[oldInsnOffset], newDisp, true));
+#elif defined(sparc_sun_solaris2_4)
+            int origAddr = (mutatee + oldOffset + oldDisp);
+            int targetAddr = (newAdr + newOffset + 
+                    set_disp(false, &oldInstructions[oldInsnOffset], newDisp, true));
+#endif
 
             newDisp = origAddr - targetAddr;
 	} 
@@ -945,7 +819,7 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
 
       // RewriteFootprint makes the appropriate alterations to the  
       // function at the instruction specified by the instPoint. 
-      // Unfortunately RewriteFootprint may change certain values, 
+      // Unfortunately RewriteFootprint may change the offset values, 
       // so we have to make sure we fix any altered values
       // 
 
@@ -956,11 +830,11 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
       // newAdr_before: address where current insn will be relocated to   
       // newAdr_after: address where next instruction will be relocated to 
 
-      // oldInstr: buffer of old insn objects
-      // newInstr: buffer of new insn objects being made
-      // oldInsnOffset: offset of instruction object (in oldInstr) 
+      // oldInstructions: buffer of old insn objects
+      // newInstructions: buffer of new insn objects being made
+      // oldInsnOffset: offset of instruction object (in oldInstructions) 
       //                corresponding to current insn
-      // newInsnOffset: offset of instruction object (in newInstr) 
+      // newInsnOffset: offset of instruction object (in newInstructions) 
       //                corresponding to current insn
 
       mutator_after = mutator_before = mutator + oldOffset;
@@ -968,7 +842,7 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
 
       nextAlter->RewriteFootprint(mutator, mutator_after, 
                                   newAdr, newAdr_after, 
-                                  oldInstr, newInstr, oldInsnOffset,  
+                                  oldInstructions, newInstructions, oldInsnOffset,  
                                   newInsnOffset, newDisp, 
                                   codeOffset, code);
 
@@ -988,58 +862,10 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
 /****************************************************************************/
 
 /* Platform independent */
-/* This will become platform specific */
-
-// It may be that in two different passes over a function, we note 
-// two different LocalAlterations at the same offset. This function 
-// reconciles any conflict between the LocalAlterations and merges them into 
-// a single LocalAlteration, or ignores one of them,
-
-LocalAlteration *fixOverlappingAlterations(LocalAlteration *alteration, 
-                                           LocalAlteration *tempAlteration) {
-
-  LocalAlteration *casted_alteration = 0, *casted_tempAlteration = 0; 
-
-#ifdef DEBUG_FUNC_RELOC 
-	   cerr << "pd_Function::fixOverlappingAlterations " << endl;
-#endif
-
-  // assert that there is indeed a conflict  
-  assert (alteration->getOffset() == tempAlteration->getOffset()); 
-
-  casted_alteration = dynamic_cast<ExpandInstruction *> (alteration); 
-  casted_tempAlteration = dynamic_cast<ExpandInstruction *> (tempAlteration);
-  if (casted_alteration != NULL) {
-    return alteration;
-  } else {
-      if (casted_tempAlteration != NULL) {
-        return tempAlteration;
-      }
-  }  
-  
-  casted_alteration = dynamic_cast<InsertNops *> (alteration); 
-  casted_tempAlteration = dynamic_cast<InsertNops *> (tempAlteration); 
-  if (casted_alteration != NULL) {
-    if (casted_tempAlteration != NULL) {
-      if (alteration->getShift() >= tempAlteration->getShift()) {
-        return alteration;
-      } else {  
-          return tempAlteration;
-      }
-    }
-  }
-
-  return NULL;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-
-/* Platform independent */
 
 // Combine two LocalAlterationSets, making sure the LocalAlterations
 // remain in order from smallest to largest offset.
-void combineAlterationSets(LocalAlterationSet *combined_alteration_set, 
+bool combineAlterationSets(LocalAlterationSet *combined_alteration_set, 
                           LocalAlterationSet *alteration_set) {
 
   assert (combined_alteration_set != NULL);
@@ -1081,7 +907,9 @@ void combineAlterationSets(LocalAlterationSet *combined_alteration_set,
 
             // reconcile the conflict of overlapping LocalAlterations
             alteration = fixOverlappingAlterations(alteration, tempAlteration);
-           
+  
+            if (alteration == NULL) return false;
+            
             combined_alteration_set->AddAlteration(alteration);
   
             alteration = alteration_set->iterNext();
@@ -1091,6 +919,7 @@ void combineAlterationSets(LocalAlterationSet *combined_alteration_set,
   }
   combined_alteration_set->iterReset();  
   combined_alteration_set->Collapse(); 
+  return true;
 }
 
 /****************************************************************************/
@@ -1101,11 +930,14 @@ void combineAlterationSets(LocalAlterationSet *combined_alteration_set,
 
 bool pd_Function::updateAlterations(LocalAlterationSet *temp_alteration_set,
                                     LocalAlterationSet &normalized_alteration_set,
-                                    instruction *oldInstr, 
+                                    instruction *oldInstructions, 
                                     Address baseAddress,
                                     Address firstAddress,
                                     int &totalSizeChange) { 
 
+  // false if discoverAlterations failed
+  bool relocate = true;
+  bool combined = true;
   assert (temp_alteration_set != NULL);
 
   temp_alteration_set->iterReset();
@@ -1123,19 +955,23 @@ bool pd_Function::updateAlterations(LocalAlterationSet *temp_alteration_set,
     
     // normalized_alteration_set already contains 
     // temp_alteration_set is already normalized the first time through
-    if (i != 0) {    
-
+    if (i != 0) {   
+      
       // merge normalized_alteration_set and temp_alteration_set
-      combineAlterationSets(&normalized_alteration_set, temp_alteration_set);
-
+      combined = combineAlterationSets(&normalized_alteration_set, temp_alteration_set);
+ 
+      if (!combined) return false;
     }
 
     temp_alteration_set->Flush();
 
     // find new alterations that have come about, due to the expansion 
     // of the function. e.g. ExpandInstruction LocalAlterations 
-    discoverAlterations(temp_alteration_set, normalized_alteration_set, 
-                        baseAddress, firstAddress, oldInstr, size());
+    relocate = discoverAlterations(temp_alteration_set, normalized_alteration_set, 
+                                     baseAddress, firstAddress, oldInstructions, size());
+ 
+    // Don't relocate the function
+    if (!relocate) return false;
 
     temp_alteration_set->iterReset();
 
@@ -1190,6 +1026,11 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
     cerr << " this = " << *this << endl;
 #endif
 
+    //    if (prettyName() == "_exithandle") {
+    //      int tag=1;
+    //      while (tag != 0) {}
+    //    }
+
     // check if this process already has a relocation record for this 
     // function, meaning that the.function has already been relocated
     for(u_int j=0; j < relocatedByProcess.size(); j++){
@@ -1239,7 +1080,7 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
 
 
     Address baseAddress = 0;
-    if(!(proc->getBaseAddress(location->owner(),baseAddress))){
+    if(!(proc->getBaseAddress(location->iPgetOwner(),baseAddress))){
       baseAddress = 0;
     }
 
@@ -1261,7 +1102,8 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
         // Copy the expanded and updated function into the mutatee
         proc->writeDataSpace((caddr_t)ret, size() + size_change,
                              (caddr_t) NEW_CODE);
-#else
+#elif defined(sparc_sun_solaris2_4)
+        // Copy the expanded and updated function into the mutatee
         proc->writeDataSpace((caddr_t)ret, size() + size_change,
                              (caddr_t) newInstr);
 #endif
@@ -1273,10 +1115,10 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
 #ifdef DEBUG_FUNC_RELOC
         cerr << "pd_Function::relocateFunction " << endl;
         cerr << " prettyName = " << prettyName().string_of() << endl;      
-        cerr << " relocated from " << hex << origAddress
-	     << " with size " << size() << endl;
-        cerr << " to " << hex << ret 
-             << " with size " << size()+size_change << endl;
+        cerr << " relocated from 0x" << hex << origAddress
+	     << " with size 0x" << size() << endl;
+        cerr << " to 0x" << hex << ret 
+             << " with size 0x" << size()+size_change << endl;
 #endif
 
       }
@@ -1337,65 +1179,3 @@ void pd_Function::sorted_ips_vector(vector<instPoint*>&fill_in) {
 	}
     }
 }
-
-// modifyInstPoint: if the function associated with the process was 
-// recently relocated, then the instPoint may have the old pre-relocated
-// address (this can occur because we are getting instPoints in mdl routines 
-// and passing these to routines that do the instrumentation, it would
-// be better to let the routines that do the instrumenting find the points)
-
-void pd_Function::modifyInstPoint(instPoint *&location, process *proc) {
-    
-    unsigned retId = 0, callId = 0;
-    bool found = false;
-
-    if(relocatable_ && !(location->getRelocated())){
-        for(u_int i=0; i < relocatedByProcess.size(); i++){
-           if((relocatedByProcess[i])->getProcess() == proc){
-               if(location == funcEntry_){
-                 instPoint *new_entry = const_cast<instPoint *>
-                                        ((relocatedByProcess[i])->funcEntry());
-                 location = new_entry;
-               } 
-               else {
-                 for(retId=0;retId < funcReturns.size(); retId++) {
-                    if(location == funcReturns[retId]){
-                       const vector<instPoint *> new_returns = 
-                          (relocatedByProcess[i])->funcReturns(); 
-                       location = (new_returns[retId]);
-                       found = true;
-                       break;
-		    }
-		 }
-                 if (found) break;
-         
-                 for(callId=0;callId < calls.size(); callId++) {
-                    if(location == calls[callId]){
-                       vector<instPoint *> new_calls = 
-                          (relocatedByProcess[i])->funcCallSites(); 
-                       location = (new_calls[callId]);
-                       break;
-                    }
-		 }
-               break;
-	       }
-	   }
-	}
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

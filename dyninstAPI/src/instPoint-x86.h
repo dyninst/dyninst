@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.9 2001/02/02 21:18:26 gurari Exp $
+// $Id: instPoint-x86.h,v 1.10 2001/02/20 21:36:37 gurari Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -198,9 +198,7 @@ class instPoint {
   Address firstAddress() {return iPgetAddress();}
   Address followingAddress() {return iPgetAddress() + insnAtPoint_.size();}
   unsigned sizeOfInsnAtPoint() {return insnAtPoint_.size();}
-  int sizeOfInstrumentation() {
-    return 5;
-  }
+  int sizeOfInstrumentation() {return 5;}
 
   // can't set this in the constructor because call points can't be classified until
   // all functions have been seen -- this might be cleaned up

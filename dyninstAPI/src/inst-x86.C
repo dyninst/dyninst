@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.73 2001/02/02 21:18:01 gurari Exp $
+ * $Id: inst-x86.C,v 1.74 2001/02/20 21:36:36 gurari Exp $
  */
 
 #include <iomanip.h>
@@ -70,7 +70,7 @@
 
 // for function relocation
 #include "dyninstAPI/src/func-reloc.h" 
-#include "dyninstAPI/src/LocalAlteration-x86.h"
+#include "dyninstAPI/src/LocalAlteration.h"
 
 class ExpandInstruction;
 class InsertNops;
@@ -81,7 +81,7 @@ extern void modifyInstPoint(instPoint *&location,process *proc);
 extern bool isPowerOf2(int value, int &result);
 void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
 
-instruction newInstr[NEW_INSTR_ARRAY_LEN/2];
+instruction NEW_INSTR[NEW_INSTR_ARRAY_LEN];
 unsigned char NEW_CODE[NEW_INSTR_ARRAY_LEN];
 unsigned char OLD_CODE[NEW_INSTR_ARRAY_LEN];
 
@@ -1662,7 +1662,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 
     // location may not have been updated since relocation of function
     if (f->needsRelocation() && f->isInstalled(proc)) {
-      f->modifyInstPoint(location, proc);
+      f->modifyInstPoint(const_cast<const instPoint *&>(location), proc);
     }
 
     if (!proc->baseMap.defines(location)) {
@@ -3221,7 +3221,8 @@ bool pd_Function::isTrueCallInsn(const instruction insn) {
 // Create a buffer of x86 instructon objects. These x86 instructions will
 // contain pointers to the machine code 
 
-bool pd_Function::loadCode(process *proc, instruction *&oldCode, 
+bool pd_Function::loadCode(const image* /* owner */, process *proc, 
+                           instruction *&oldCode, 
                            unsigned &numberOfInstructions, 
                            Address &firstAddress) {
 
@@ -3688,16 +3689,25 @@ bool pd_Function::fillInRelocInstPoints(
 /****************************************************************************/
 /****************************************************************************/
 
+// returns the number of instructions that function rewriting will insert 
+int InsertNops::numInstrAddedAfter() {
+    return sizeNopRegion;
+}
+
+// size (in bytes) of x86 nop instruction
+int InsertNops::sizeOfNop() {
+    return 1;
+}
 
 /****************************************************************************/
 /****************************************************************************/
 
-// Insert nops after the machine instruction pointed to by oldInstr[oldOffset]
+// Insert nops after the machine instruction pointed to by oldInstructions[oldOffset]
 
 bool InsertNops::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr, 
                                   Address /* newBaseAdr */, Address &newAdr, 
-                                  instruction oldInstr[], 
-                                  instruction newInstr[], 
+                                  instruction oldInstructions[], 
+                                  instruction newInstructions[], 
                                   int &oldOffset, int &newOffset,  
                                   int /* newDisp */, unsigned &codeOffset,
                                   unsigned char *code) {
@@ -3705,7 +3715,7 @@ bool InsertNops::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr,
   unsigned char *insn = 0;
 
   // copy the instruction we are inserting nops after into NEW_CODE 
-  function->copyInstruction(newInstr[newOffset], oldInstr[oldOffset], codeOffset);
+  function->copyInstruction(newInstructions[newOffset], oldInstructions[oldOffset], codeOffset);
   newOffset++;  
 
   // add nops
@@ -3720,13 +3730,13 @@ bool InsertNops::RewriteFootprint(Address /* oldBaseAdr */, Address &oldAdr,
     insn--;  
 
     // add instruction corresponding to nop to buffer of instructions
-    newInstr[newOffset] = *(new instruction ((const unsigned char *)insn, 0, 1));
+    newInstructions[newOffset] = *(new instruction ((const unsigned char *)insn, 0, 1));
 
     newOffset++;
     codeOffset++;
   }
-  oldAdr += oldInstr[oldOffset].size();
-  newAdr += oldInstr[oldOffset].size() + sizeNopRegion;
+  oldAdr += oldInstructions[oldOffset].size();
+  newAdr += oldInstructions[oldOffset].size() + sizeNopRegion;
   oldOffset++;
 
   return true;
@@ -3745,8 +3755,8 @@ bool ExpandInstruction::RewriteFootprint(Address /* oldBaseAdr */,
                                          Address &oldAdr, 
                                          Address /* newBaseAdr */, 
                                          Address &newAdr, 
-                                         instruction oldInstr[], 
-                                         instruction newInstr[], 
+                                         instruction oldInstructions[], 
+                                         instruction newInstructions[], 
                                          int &oldOffset, int &newOffset, 
                                          int newDisp, unsigned &codeOffset,
                                          unsigned char* code) {
@@ -3761,7 +3771,7 @@ bool ExpandInstruction::RewriteFootprint(Address /* oldBaseAdr */,
   unsigned char *newInsn = (unsigned char *)(&code[codeOffset]);
   const unsigned char *tmpInsn = const_cast<const unsigned char *> (newInsn);  
 
-  instruction insn = oldInstr[oldOffset];
+  instruction insn = oldInstructions[oldOffset];
   unsigned oldInsnType = insn.type();
   int oldInsnSize = insn.size();
 
@@ -3839,11 +3849,150 @@ bool ExpandInstruction::RewriteFootprint(Address /* oldBaseAdr */,
  
   unsigned newInsnType, newInsnSize;
   newInsnSize = get_instruction(tmpInsn, newInsnType);
-  newInstr[newOffset - 1] = *(new instruction(tmpInsn, newInsnType, newInsnSize));
+  newInstructions[newOffset - 1] = *(new instruction(tmpInsn, newInsnType, newInsnSize));
 
   return rtn;   
 }
   
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+// Find overlapping instrumentation points 
+
+bool pd_Function::PA_attachOverlappingInstPoints(
+                              LocalAlterationSet *temp_alteration_set, 
+                              Address baseAddress, Address firstAddress,
+                              instruction* /* loadedCode */, int /* codeSize */) {
+
+  int overlap = 0, offset = 0;
+
+#ifdef DEBUG_FUNC_RELOC
+    cerr << "pd_Function::PA_attachOverlappingInstPoints called" <<endl;
+#endif
+
+    // create and sort vector of instPoints
+    vector<instPoint*> foo;
+    sorted_ips_vector(foo);
+
+    // loop over all consecutive pairs of instPoints
+    for (unsigned i=0;i<foo.size()-1;i++) {
+        instPoint *this_inst_point = foo[i];
+        instPoint *next_inst_point = foo[i+1];
+
+        overlap = ((this_inst_point->iPgetAddress() + 
+                    this_inst_point->sizeOfInstrumentation()) - 
+                    next_inst_point->iPgetAddress()); 
+
+        // check if inst point overlaps with next inst point
+        if (overlap > 0) {
+            offset = ((this_inst_point->iPgetAddress() + baseAddress) - firstAddress);
+
+            // LocalAlteration inserting nops after this_inst_point
+       	    InsertNops *nops = new InsertNops(this, offset, overlap);
+	    temp_alteration_set->AddAlteration(nops);
+
+#ifdef DEBUG_FUNC_RELOC
+    cerr << " detected overlapping inst points: "  << endl;
+    cerr << " adding LocalAlteration of size: " << overlap 
+         << " at offset: " << offset << endl; 
+#endif
+
+	}
+    }
+    return true;
+}
+
+/****************************************************************************/
+/****************************************************************************/
+
+// Locate jumps with targets inside the footprint of an inst points. 
+
+bool pd_Function::PA_attachBranchOverlaps(
+                           LocalAlterationSet *temp_alteration_set, 
+                           Address /* baseAddress */, Address firstAddress, 
+                           instruction loadedCode[],
+                           unsigned numberOfInstructions, int codeSize)  {
+
+#ifdef DEBUG_FUNC_RELOC
+    cerr << "pd_Function::PA_attachBranchOverlaps called" <<endl;
+    cerr << " codeSize = " << codeSize << endl;
+    cerr << " numberOfInstructions = " << numberOfInstructions << endl;
+#endif
+
+  int instr_address;
+  int disp, offset;
+  instruction instr;
+   
+  // create and sort vector of instPoints
+  vector<instPoint*> foo;
+  sorted_ips_vector(foo);
+
+  // Iterate over function instruction by instruction....
+  for(unsigned i = 0; i < numberOfInstructions; i++) {       
+    instr = loadedCode[i];
+    instr_address = addressOfMachineInsn(&instr);
+     
+#ifdef DEBUG_FUNC_RELOC
+    cerr << " insn address = " << hex << (unsigned ) instr_address << endl;
+    cerr << " insn offset = "  << instr_address - firstAddress << endl;
+#endif
+     
+    // look for branch and call insns whose targets are inside the function.
+    if (!branchInsideRange(instr, instr_address, firstAddress, 
+                                        firstAddress + codeSize) &&
+        !trueCallInsideRange(instr, instr_address, firstAddress, 
+                                        firstAddress + codeSize)) {
+      continue;
+    } 
+
+#ifdef DEBUG_FUNC_RELOC
+    cerr << " branch at " << hex << (unsigned) instr_address 
+         << " has target inside range of function" << endl;
+#endif  
+
+    disp = get_disp(&instr);
+
+    // target of branch or call instruction 
+    Address target = instr_address + disp;
+
+    // Check if target is in the footprint of an inst point....
+    instPoint *overlap = find_overlap(foo, target);
+    if (overlap == NULL) continue;
+
+    // offset of instruction from the beginning of the function 
+    offset = overlap->iPgetAddress() - firstAddress;
+
+    temp_alteration_set->iterReset();
+
+    // If multiple jumps have their target address within the same 
+    // instPoint, we only want to add nops once. To do this we
+    // iterate over the known LocalAlterations, checking if any already 
+    // are already planning on inserting nops at this instPoint.
+    LocalAlteration *alteration = temp_alteration_set->iterNext();
+    while (alteration != NULL && alteration->getOffset() < offset) {
+      alteration = temp_alteration_set->iterNext();
+    }
+
+    if (alteration == NULL || alteration->getOffset() != offset) {
+ 
+      int shift = overlap->followingAddress() - target;
+
+      InsertNops *nops = new InsertNops(this, offset, shift);
+      temp_alteration_set->AddAlteration(nops);
+
+#ifdef DEBUG_FUNC_RELOC
+   cerr << " detected overlap between branch target and inst point : offset "
+        << target - firstAddress << " # bytes " 
+        << overlap->firstAddress() - target << endl;
+   cerr << " adding LocalAlteration" << endl;        
+#endif
+
+    }
+  }
+  return true;
+}
+
 /****************************************************************************/
 /****************************************************************************/
 
@@ -3885,10 +4034,138 @@ bool pd_Function::PA_attachGeneralRewrites(
     return true;
 }
 
+// modifyInstPoint: if the function associated with the process was 
+// recently relocated, then the instPoint may have the old pre-relocated
+// address (this can occur because we are getting instPoints in mdl routines 
+// and passing these to routines that do the instrumentation, it would
+// be better to let the routines that do the instrumenting find the points)
 
+void pd_Function::modifyInstPoint(const instPoint *&location, process *proc) {
+    
+    unsigned retId = 0, callId = 0;
+    bool found = false;
 
+    if(relocatable_ && !(const_cast<instPoint *>(location)->getRelocated())){
+        for(u_int i=0; i < relocatedByProcess.size(); i++){
+           if((relocatedByProcess[i])->getProcess() == proc){
+               if(location == funcEntry_){
+                 const instPoint *new_entry =
+                                        ((relocatedByProcess[i])->funcEntry());
+                 location = new_entry;
+               } 
+               else {
+                 for(retId=0;retId < funcReturns.size(); retId++) {
+                    if(location == funcReturns[retId]){
+                       const vector<instPoint *> new_returns = 
+                          (relocatedByProcess[i])->funcReturns(); 
+                       location = (new_returns[retId]);
+                       found = true;
+                       break;
+		    }
+		 }
+                 if (found) break;
+         
+                 for(callId=0;callId < calls.size(); callId++) {
+                    if(location == calls[callId]){
+                       vector<instPoint *> new_calls = 
+                          (relocatedByProcess[i])->funcCallSites(); 
+                       location = (new_calls[callId]);
+                       break;
+                    }
+		 }
+               break;
+	       }
+	   }
+	}
+    }
+}
 
+/****************************************************************************/
+/****************************************************************************/
 
+// Check if an ExpandInstruction alteration has already been created 
+// at an offset, with size, shift.
+// This allows us to avoid adding a new ExpandInstruction LocalAlterations for
+// an instruction each time we go through discoverAlterations. This prevents
+// an infinite looping 
+
+bool alreadyExpanded(int offset, int shift, LocalAlterationSet *alteration_set) {
+  bool already_expanded;
+  LocalAlteration *alteration = 0;
+
+#ifdef DEBUG_FUNC_RELOC 
+	  cerr << "Function alreadyExpanded called " << endl;
+#endif  
+
+  alteration_set->iterReset();
+
+  // find the LocalAlteration at offset  
+  do {
+    alteration = alteration_set->iterNext();
+  } while (alteration != NULL && alteration->getOffset() < offset);
+  
+  if ((alteration != NULL) && (alteration->getOffset() == offset)) {
+ 
+    alteration = dynamic_cast<ExpandInstruction *> (alteration);
+
+    if (alteration == NULL || alteration->getShift() > shift) {
+      already_expanded = false;
+    }
+    else {
+      already_expanded = true;
+    }
+  } else {
+      already_expanded = false;
+  }
+  
+  alteration_set->iterReset();
+  return already_expanded;
+}
+
+/****************************************************************************/
+/****************************************************************************/
+
+// It may be that in two different passes over a function, we note 
+// two different LocalAlterations at the same offset. This function 
+// reconciles any conflict between the LocalAlterations and merges them into 
+// a single LocalAlteration, or ignores one of them,
+
+LocalAlteration *fixOverlappingAlterations(LocalAlteration *alteration, 
+                                           LocalAlteration *tempAlteration) {
+
+  LocalAlteration *casted_alteration = 0, *casted_tempAlteration = 0; 
+
+#ifdef DEBUG_FUNC_RELOC 
+	   cerr << "Function fixOverlappingAlterations called" << endl;
+#endif
+
+  // assert that there is indeed a conflict  
+  assert (alteration->getOffset() == tempAlteration->getOffset()); 
+
+  casted_alteration = dynamic_cast<ExpandInstruction *> (alteration); 
+  casted_tempAlteration = dynamic_cast<ExpandInstruction *> (tempAlteration);
+  if (casted_alteration != NULL) {
+    return alteration;
+  } else {
+      if (casted_tempAlteration != NULL) {
+        return tempAlteration;
+      }
+  }  
+  
+  casted_alteration = dynamic_cast<InsertNops *> (alteration); 
+  casted_tempAlteration = dynamic_cast<InsertNops *> (tempAlteration); 
+  if (casted_alteration != NULL) {
+    if (casted_tempAlteration != NULL) {
+      if (alteration->getShift() >= tempAlteration->getShift()) {
+        return alteration;
+      } else {  
+          return tempAlteration;
+      }
+    }
+  }
+
+  return NULL;
+}
 
 
 

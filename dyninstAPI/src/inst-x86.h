@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.8 2001/02/02 21:18:02 gurari Exp $
+// $Id: inst-x86.h,v 1.9 2001/02/20 21:36:37 gurari Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -51,7 +51,7 @@
                                      /* counter/timers for each thread     */
 
 #define NEW_INSTR_ARRAY_LEN 16384
-extern instruction newInstr[NEW_INSTR_ARRAY_LEN/2];
+extern instruction NEW_INSTR[NEW_INSTR_ARRAY_LEN];
 extern unsigned char NEW_CODE[NEW_INSTR_ARRAY_LEN];
 
 //#ifndef DEBUG_FUNC_RELOC

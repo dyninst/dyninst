@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.10 2000/08/01 22:39:52 tikir Exp $
+// $Id: instPoint-sparc.h,v 1.11 2001/02/20 21:36:37 gurari Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
@@ -115,6 +115,12 @@ public:
   Address firstAddress() {return iPgetAddress();}
   // address of 1st instruction AFTER those clobbered by inst point....
   Address followingAddress() {return firstAddress() + Size();}
+  
+  // size (in bytes) of a sparc jump instruction 
+  int sizeOfInstrumentation() {return 4;}
+
+  bool getRelocated() { return relocated_; }
+  void setRelocated() {relocated_ = true;}
 
   // These are the instructions corresponding to different instrumentation
   // points (the instr point is always the "originalInstruction" instruction,
