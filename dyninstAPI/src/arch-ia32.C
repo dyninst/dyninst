@@ -1,4 +1,4 @@
-// $Id: arch-ia32.C,v 1.3 2002/06/13 00:37:06 gaburici Exp $
+// $Id: arch-ia32.C,v 1.4 2002/06/13 00:45:53 gaburici Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual
 //                                   volume 2: Instruction Set Reference
@@ -484,7 +484,7 @@ static ia32_entry twoByteMap[256] = {
   { 0,        t_ill,  0, 0, { Zz, Zz, Zz }, 0 },
   { "prefetch(w)", t_done,  0, true,  { Zz, Zz, Zz }, 0 }, // AMD
   { "femms",       t_done,  0, false, { Zz, Zz, Zz }, 0 }, // AMD 
-  { 0,             t_3dnow, 0, true,  { Zz, Zz, Zz }, 0 }, // AMD 3DNOW! suffixes
+  { 0,             t_3dnow, 0, true,  { Pq, Qq, Zz }, 0 }, // AMD 3DNOW! suffixes
   /* 10 */
   { 0, t_sse, SSE10, true, { Zz, Zz, Zz }, 0 },
   { 0, t_sse, SSE11, true, { Zz, Zz, Zz }, 0 },
