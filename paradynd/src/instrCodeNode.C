@@ -43,13 +43,12 @@
 #include "paradynd/src/instrDataNode.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/threadMetFocusNode.h"
-#include "dyninstAPI/src/process.h"
+#include "paradynd/src/pd_process.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/instReqNode.h"
 #include "paradynd/src/variableMgr.h"
-#include "dyninstAPI/src/pdThread.h"
 
 extern pdDebug_ostream metric_cerr;
 extern pdDebug_ostream sampleVal_cerr;
@@ -61,8 +60,8 @@ dictionary_hash<string, instrCodeNode_Val*>
 
 
 instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
-				        process *proc, bool arg_dontInsertData, 
-                                        string hw_cntr_str)
+				    pd_process *proc, bool arg_dontInsertData, 
+                                    string hw_cntr_str)
 {
   instrCodeNode_Val *nodeVal;
   // it's fine to use a code node with data inserted for a code node
@@ -81,7 +80,7 @@ instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
     if (hw_cntr_str != "") {
 #ifdef PAPI
       papiMgr* papi;
-      papi = proc->getPapiMgr();
+      papi = proc->get_dyn_proc()->getPapiMgr();
       assert(papi);
       hw = papi->createHwEvent(hw_cntr_str);
       if (hw == NULL) {
@@ -103,7 +102,7 @@ instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
 }
 
 instrCodeNode *instrCodeNode::copyInstrCodeNode(const instrCodeNode &par,
-						process *childProc) {
+						pd_process *childProc) {
   instrCodeNode_Val *nodeVal;
   Focus adjustedFocus = adjustFocusForPid(par.getFocus(), childProc->getPid());
   string key_name = instrCodeNode_Val::construct_key_name(par.getName(), 
@@ -131,12 +130,14 @@ void instrCodeNode::registerCodeNodeVal(instrCodeNode_Val *nodeVal) {
     allInstrCodeNodeVals[nodeVal->getKeyName()] = nodeVal;
 }
 
-instrCodeNode::instrCodeNode(const instrCodeNode &par, process *childProc) : 
-  V(* new instrCodeNode_Val(par.V, childProc)) { }
+instrCodeNode::instrCodeNode(const instrCodeNode &par, pd_process *childProc)
+   : V(* new instrCodeNode_Val(par.V, childProc)) 
+{ }
 
 instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
-				     process *childProc) :
-  name(par.name), focus(adjustFocusForPid(par.focus, childProc->getPid())), hwEvent(par.hwEvent)
+				     pd_process *childProc) :
+  name(par.name), focus(adjustFocusForPid(par.focus, childProc->getPid())), 
+  hwEvent(par.hwEvent)
 {
   if(par.sampledDataNode)
     sampledDataNode = new instrDataNode(*par.sampledDataNode, childProc);
@@ -468,7 +469,8 @@ bool instrCodeNode::insertJumpsToTramps(vector<vector<Frame> > &stackWalks) {
       bool installSafe = baseTrampInstances[u]->checkReturnInstance(stackWalks);
 
       if (installSafe) {
-	 baseTrampInstances[u]->installReturnInstance(proc());
+	 baseTrampInstances[u]->installReturnInstance(
+						    proc()->get_dyn_process());
 	 delay_elm[u] = false;
       } else {
 	 delay_install = true;

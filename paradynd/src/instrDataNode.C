@@ -42,15 +42,14 @@
 #include "common/h/Types.h"
 #include "paradynd/src/instrDataNode.h"
 #include "paradynd/src/instrCodeNode.h"
-#include "dyninstAPI/src/process.h"
 #include "pdutil/h/pdDebugOstream.h"
-#include "dyninstAPI/src/pdThread.h"
+#include "paradynd/src/pd_process.h"
 
 extern pdDebug_ostream sampleVal_cerr;
 extern pdDebug_ostream metric_cerr;
 
 
-instrDataNode::instrDataNode(process *proc_, unsigned type,
+instrDataNode::instrDataNode(pd_process *proc_, unsigned type,
 			     bool arg_dontInsertData, HwEvent* hw_event)
   : proc(proc_), thrNodeClientSet(false), dontInsertData_(arg_dontInsertData)
 { 
@@ -84,7 +83,7 @@ instrDataNode::instrDataNode(process *proc_, unsigned type,
   refCount = 0;
 }
 
-instrDataNode::instrDataNode(const instrDataNode &par, process *childProc) :
+instrDataNode::instrDataNode(const instrDataNode &par, pd_process *childProc) :
   proc(childProc), varType(par.varType), varIndex(par.varIndex),
   thrNodeClientSet(par.thrNodeClientSet), 
   dontInsertData_(par.dontInsertData_), 
