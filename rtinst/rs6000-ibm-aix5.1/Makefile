@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2003/04/11 16:18:33 bernat Exp $
+# $Id: Makefile,v 1.3 2003/05/10 23:53:01 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -11,6 +11,7 @@ BUILD_CODE_BLOCKS = true
 # Much more efficient, and the standard.
 USES_SHM_SAMPLING = true
 #NO_OPT_FLAG = true
+DEBUG_FLAG = -g
 
 # We change the permissions on the installed library to 0640
 UNCOMMON_INSTALL = true
