@@ -3,7 +3,11 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.25  1995/10/27 01:06:20  zhichen
+ * Revision 1.26  1995/11/03 00:06:25  newhall
+ * initialize sampling rate to BASESAMPLEINTERVAL (defined in util/h/sys.h)
+ * changed type of all DYNINSTsampleMultiple to "volatile int"
+ *
+ * Revision 1.25  1995/10/27  01:06:20  zhichen
  * Included <stdlib.h> to remove some warnings
  *
  * Revision 1.24  1995/10/19  22:44:45  mjrg
@@ -116,6 +120,7 @@
 #include "kludges.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
+#include "util/h/sys.h"
 
 #define MILLION	1000000
 extern int DYNINSTmappedUarea;
@@ -385,12 +390,19 @@ void DYNINSTinit(int skipBreakpoint)
 
     /* All the signal-initiating stuff is now in the paradynd. */
 
+#ifdef n_def
+
     /* default is 500msec */
     val = 500000;
     interval = (char *) getenv("DYNINSTsampleInterval");
     if (interval) {
 	val = atoi(interval);
     }
+#endif
+
+    /* set sampling interval to default value in util/h/sys.h */
+    val = BASESAMPLEINTERVAL;
+
     DYNINSTsamplingRate = val/1000000.0;
     sigvec(SIGALRM, &alarmVector, NULL);
     ualarm(val, val);

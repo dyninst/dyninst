@@ -4,7 +4,11 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.25  1995/10/27 01:02:25  zhichen
+ * Revision 1.26  1995/11/03 00:06:22  newhall
+ * initialize sampling rate to BASESAMPLEINTERVAL (defined in util/h/sys.h)
+ * changed type of all DYNINSTsampleMultiple to "volatile int"
+ *
+ * Revision 1.25  1995/10/27  01:02:25  zhichen
  * took out some static storage class for global variables,
  * for the first version of paradyn-blizzard
  *
@@ -100,6 +104,7 @@
 /* our include files */
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
+#include "util/h/sys.h"
 #define extern
 #include "traceio.h"
 #undef extern
@@ -503,11 +508,17 @@ void DYNINSTinit()
      * traces get puit into the traceBuffer every once in a while.
      */
 
+#ifdef n_def
     sampleInterval = 500000;     /* default is 500msec  */
     interval = (char *) getenv("DYNINSTsampleInterval");
     if (interval) {
 	sampleInterval = atoi(interval);
     }
+#endif
+
+    /* set sampling rate to default value in util/sys.h */
+    sampleInterval = BASESAMPLEINTERVAL; 
+
     DYNINSTsamplingRate = ((float) sampleInterval)/ 1000000.0;
 
     CMOS_signal (CM_SIGALRM, DYNINSTalarmExpire, ~0);

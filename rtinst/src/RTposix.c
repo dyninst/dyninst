@@ -61,6 +61,7 @@
 #include "kludges.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
+#include "util/h/sys.h"
 
 
 
@@ -584,7 +585,7 @@ DYNINSTreportBaseTramps() {
 
 #define N_FP_REGS 33
 
-static volatile int DYNINSTsampleMultiple    = 1;
+volatile int DYNINSTsampleMultiple    = 1;
 static int          DYNINSTnumSampled        = 0;
 static int          DYNINSTtotalAlarmExpires = 0;
 static time64       DYNINSTtotalSampleTime   = 0;
@@ -603,6 +604,7 @@ DYNINSTalarmExpire(int signo) {
 
     DYNINSTtotalAlarmExpires++;
     if ((++DYNINSTnumSampled % DYNINSTsampleMultiple) == 0) {
+
         saveFPUstate(fp_context);
         start_cpu = DYNINSTgetCPUtime();
 
@@ -673,11 +675,17 @@ DYNINSTinit(int doskip) {
         abort();
     }
 
+#ifdef n_def
     val = 500000;
     interval = getenv("DYNINSTsampleInterval");
     if (interval) {
         val = atoi(interval);
     }
+#endif
+
+    /* assign sampling rate to be default value in util/h/sys.h */
+    val = BASESAMPLEINTERVAL;
+
     DYNINSTsamplingRate = val/MILLION;
 
     DYNINST_install_ualarm(val, val);
