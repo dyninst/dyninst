@@ -44,6 +44,9 @@
 
 /* 
  * $Log: main.h,v $
+ * Revision 1.7  1996/12/06 09:38:29  tamches
+ * moved cleanUpAndExit to .C file
+ *
  * Revision 1.6  1996/08/16 21:19:14  tamches
  * updated copyright for release 1.1
  *
@@ -79,6 +82,7 @@
  */
 
 #include "comm.h"
+#include "process.h" // processVec[]
 
 extern pdRPC *tp;
 
@@ -90,13 +94,7 @@ extern bool pvm_running;
 
 // Cleanup for pvm and exit.
 // This function must be called when we exit, to clean up and exit from pvm.
-inline void cleanUpAndExit(int status) {
-#ifdef PARADYND_PVM
-  if (pvm_running)
-    PDYN_exit_pvm();
-#endif
-  P_exit(status);
-}
-
+// Now also cleans up shm segs by deleting all processes  -ari
+void cleanUpAndExit(int status);
 
 #endif
