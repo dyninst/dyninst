@@ -576,18 +576,6 @@ float paradynDaemon::predictedDataCost(resourceList *rl, metric *m)
     return(max);
 }
 
-float paradynDaemon::currentSmoothObsCost()
-{
-    double val, max = 0.0;
-    paradynDaemon *pd;
-    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-        pd = paradynDaemon::allDaemons[i];
-        val = pd->getCurrentSmoothObsCost();
-        if (val > max) max = val;
-    }
-    return(max);
-}
-
 //
 // Start collecting data about the passed resource list (focus) and metric.
 //    The returned metricInstance is used to provide a unique handle for this
@@ -881,6 +869,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	   }
 
 	   if (found) {
+#ifdef ndef
 	      tunableBooleanConstant developerMode = tunableConstantRegistry::findBoolTunableConstant("developerMode");
 	      bool developerModeActive = developerMode.getValue();
 	      if (developerModeActive) {
@@ -889,6 +878,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 		 cout << msg.string_of() << endl;
 		 DMstatus->message(P_strdup(msg.string_of()));
 	      }
+#endif
 	      return;
 	   } else {
 	      cout << "ERROR: data for unknown mid: " << mid << endl;

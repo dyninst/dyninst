@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.69  1996/02/12 19:55:30  karavan
+ * Revision 1.70  1996/02/22 23:38:37  newhall
+ * removed DM and dyninst interface func getCurrentSmoothObsCost
+ *
+ * Revision 1.69  1996/02/12  19:55:30  karavan
  * Bug fix: changed arguments to histFoldCallBack
  *
  * Revision 1.68  1996/02/12 08:05:59  karavan
@@ -1018,11 +1021,6 @@ float dataManager::getPredictedDataCost(resourceListHandle rl_handle,
     } }
     float ret = PARADYN_NaN;
     return(ret);
-}
-
-float dataManager::getCurrentSmoothObsCost() 
-{
-    return(paradynDaemon::currentSmoothObsCost());
 }
 
 // caller provides array of sampleValue to be filled
