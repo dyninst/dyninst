@@ -4,7 +4,11 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.21  1994/11/06 09:46:21  jcargill
+ * Revision 1.22  1995/02/16 09:07:10  markc
+ * Made Boolean type RT_Boolean to prevent picking up a different boolean
+ * definition.
+ *
+ * Revision 1.21  1994/11/06  09:46:21  jcargill
  * Removed outdated cost-model code that initialized g7
  *
  * Revision 1.20  1994/10/27  16:15:49  hollings
@@ -390,7 +394,7 @@ void DYNINSTreportTimer(tTimer *timer)
     sample.id = timer->id;
 
     DYNINSTtotalSamples++;
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, FALSE);
+    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, RT_FALSE);
 }
 
 
@@ -567,7 +571,7 @@ void DYNINSTprintCost()
     int64 value;
     time64 endWall;
     struct endStatsRec stats;
-    extern int64 DYNINSTgetObservedCycles(Boolean);
+    extern int64 DYNINSTgetObservedCycles(RT_Boolean);
 
     DYNINSTstopProcessTimer(&DYNINSTelapsedCPUTime);
     CMOS_get_time(&endWall);

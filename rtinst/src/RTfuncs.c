@@ -3,7 +3,11 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.17  1994/11/11 10:16:00  jcargill
+ * Revision 1.18  1995/02/16 09:07:15  markc
+ * Made Boolean type RT_Boolean to prevent picking up a different boolean
+ * definition.
+ *
+ * Revision 1.17  1994/11/11  10:16:00  jcargill
  * "Fixed" pause_time definition for CM5
  *
  * Revision 1.16  1994/11/06  09:45:29  jcargill
@@ -156,7 +160,7 @@ void DYNINSTsampleValues()
 unsigned DYNINSTobsCostLow;
 
 /************************************************************************
- * int64 DYNINSTgetObservedCycles(Boolean in_signal)
+ * int64 DYNINSTgetObservedCycles(RT_Boolean in_signal)
  *
  * report the observed cost of instrumentation in machine cycles.
  *
@@ -164,7 +168,7 @@ unsigned DYNINSTobsCostLow;
  *   a 32 bit counter (for speed).  So this function also converts the
  *   cost into a 64 bit value.
  ************************************************************************/
-int64 DYNINSTgetObservedCycles(Boolean in_signal) 
+int64 DYNINSTgetObservedCycles(RT_Boolean in_signal) 
 {
     static int64    value = 0;
 

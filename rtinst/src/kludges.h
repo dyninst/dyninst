@@ -117,6 +117,10 @@ extern void perror(const char *);
 
 #endif /* !defined(__cplusplus) */
 
+/* If we must make up a boolean type, we should make it unique */
+#define RT_Boolean unsigned char
+#define RT_TRUE 1
+#define RT_FALSE 0
 
 
 

@@ -332,7 +332,7 @@ restoreFPUstate(float* base) {
 unsigned DYNINSTobsCostLow;
 
 /************************************************************************
- * int64 DYNINSTgetObservedCycles(Boolean in_signal)
+ * int64 DYNINSTgetObservedCycles(RT_Boolean in_signal)
  *
  * report the observed cost of instrumentation in machine cycles.
  *
@@ -340,7 +340,7 @@ unsigned DYNINSTobsCostLow;
  *   a 32 bit counter (for speed).  So this function also converts the
  *   cost into a 64 bit value.
  ************************************************************************/
-static int64 DYNINSTgetObservedCycles(Boolean in_signal) 
+static int64 DYNINSTgetObservedCycles(RT_Boolean in_signal) 
 {
     static int64    value = 0;
 

@@ -3,7 +3,11 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTcm5_cp.c,v $
- * Revision 1.5  1994/07/14 23:36:06  hollings
+ * Revision 1.6  1995/02/16 09:07:04  markc
+ * Made Boolean type RT_Boolean to prevent picking up a different boolean
+ * definition.
+ *
+ * Revision 1.5  1994/07/14  23:36:06  hollings
  * added extra arg to generateTrace.
  *
  * Revision 1.4  1994/07/11  22:47:43  jcargill
@@ -79,7 +83,7 @@ DYNINSTnodeCreate()
     forkRec.npids = CMNA_partition_size;
     forkRec.stride = MAXPID;
     DYNINSTgenerateTraceRecord(sid, TR_MULTI_FORK, sizeof(forkRec), 
-	&forkRec, TRUE);
+	&forkRec, RT_TRUE);
 }
 
 void DYNINSTparallelInit()

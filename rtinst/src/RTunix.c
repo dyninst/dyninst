@@ -3,7 +3,11 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.21  1994/11/11 10:39:14  markc
+ * Revision 1.22  1995/02/16 09:07:33  markc
+ * Made Boolean type RT_Boolean to prevent picking up a different boolean
+ * definition.
+ *
+ * Revision 1.21  1994/11/11  10:39:14  markc
  * Commented out non-emergency printfs
  *
  * Revision 1.20  1994/10/09  21:26:05  hollings
@@ -117,7 +121,7 @@ extern time64 DYNINSTlastWallTime;
 FILE *DYNINSTtraceFp;
 tTimer DYNINSTelapsedTime;
 tTimer DYNINSTelapsedCPUTime;
-int64 DYNINSTgetObservedCycles(Boolean);
+int64 DYNINSTgetObservedCycles(RT_Boolean);
 time64 DYNINSTtotalSampleTime;
 int64 DYNINSTgetObservedCycles();
 
