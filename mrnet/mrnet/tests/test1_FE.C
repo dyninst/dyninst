@@ -10,13 +10,13 @@ int main(int argc, char **argv){
   char * buf=NULL;
   timer init_timer("FE:NETWORK_INIT"), exp_timer("FE:BROADCAST/REDUCE");
 
-  if(argc !=3){
-    fprintf(stderr, "FFF: Usage: %s <topology file> <application exe>\n", argv[0]);
+  if(argc !=4){
+    fprintf(stderr, "FFF: Usage: %s <topology file> <comm_node exe> <application exe>\n", argv[0]);
     exit(-1);
   }
 
   init_timer.start();
-  if( MC_Network::new_Network(argv[1], argv[2]) == -1){
+  if( MC_Network::new_Network(argv[1], argv[2], argv[3]) == -1){
     fprintf(stderr, "FFF: Network Initialization failed\n");
     MC_Network::error_str(argv[0]);
     exit(-1);
@@ -45,17 +45,24 @@ int main(int argc, char **argv){
   }
   fprintf(stderr, "FFF: stream.flush() succeeded\n");
 
-  for (int i = 0; i < comm_BC->size(); ){
-    MC_Stream * stream;
+    unsigned int nTries = 0;
+    unsigned int nReceived = 0;
+    while( (nReceived < comm_BC->size()) && (nTries < (5*comm_BC->size())) )
+    {
+        MC_Stream* stream = NULL;
 
-    fprintf(stderr, "FFF: calling recv() on stream ...\n");
-    if(MC_Stream::recv(&tag, (void **)&buf, &stream) > 0){
-      stream->unpack(buf, "%d", &recv_val);
-      fprintf(stderr, "FFF: Recieved val: %d from a backend\n", recv_val);
-      i++;
+        nTries++;
+        fprintf(stderr, "FFF: calling recv() on stream\n" );
+
+        if( MC_Stream::recv(&tag, (void**)&buf, &stream) > 0 )
+        {
+            stream->unpack( buf, "%d", &recv_val );
+            fprintf(stderr, "FFF: Received val: %d from a backend\n", recv_val);
+            nReceived++;
+        }
     }
-  }
 
+  fprintf(stderr, "FFF: deleting network\n" );
   MC_Network::delete_Network();
   fprintf(stderr, "FFF: frontend deleted. Exiting ...\n");
   init_timer.print_start();
