@@ -41,7 +41,7 @@
 
 // pdLogo.C
 
-/* $Id: pdLogo.C,v 1.5 1999/04/27 16:03:45 nash Exp $ */
+/* $Id: pdLogo.C,v 1.6 1999/11/09 15:54:16 pcroth Exp $ */
 
 #include "pdLogo.h"
 
@@ -63,18 +63,16 @@ bool pdLogo::tryFirst() {
 	// drawable
 	values.foreground = foregroundColor->pixel;
 	values.background = backgroundColor->pixel;
-	copyGC = XCreateGC(theDisplay,
-						Tk_WindowId(theTkWindow),
+	copyGC = Tk_GetGC(theTkWindow,
 						GCForeground | GCBackground,
 						&values);
 
 	// create a bitmap from the data
-	theLogo = Tk_GetBitmapFromData(interp,
-						theTkWindow,
-						(char*)theLogoData.rawData,
-						theLogoData.width,
-						theLogoData.height);
-
+	Tk_DefineBitmap( interp, Tk_GetUid( "ParadynLogo" ),
+		(char*)theLogoData.rawData,
+		theLogoData.width,
+		theLogoData.height );
+	theLogo = Tk_GetBitmap( interp, theTkWindow, Tk_GetUid( "ParadynLogo" ) );
    assert(theLogo);
 
    return true;
@@ -141,7 +139,7 @@ pdLogo::pdLogo(Tcl_Interp *iInterp, Tk_Window iTkWindow,
 pdLogo::~pdLogo() {
    if (copyGC != None)
    {
-      XFreeGC(theDisplay, copyGC);
+      Tk_FreeGC(theDisplay, copyGC);
    }
 
    if (theLogo)

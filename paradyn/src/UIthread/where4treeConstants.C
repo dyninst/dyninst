@@ -42,7 +42,7 @@
 // where4treeConstants.C
 // Ariel Tamches
 
-/* $Id: where4treeConstants.C,v 1.10 1999/04/27 16:03:53 nash Exp $ */
+/* $Id: where4treeConstants.C,v 1.11 1999/11/09 15:54:17 pcroth Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -71,7 +71,6 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
 
    listboxHeightWhereSBappears = Tk_Height(theTkWindow) * 8 / 10; // 80%
 
-   // should change to use Tk_GetFont(), right?
    rootTextFontStruct = Tk_GetFont(interp, theWindow, "*-Helvetica-*-r-*-14-*");
 
    grayColor = Tk_GetColor(interp, theWindow, Tk_GetUid("gray"));
@@ -95,7 +94,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
 
    // Erasing:
    values.foreground = grayColor->pixel;
-   erasingGC = XCreateGC(display, Tk_WindowId(theTkWindow),
+   erasingGC = Tk_GetGC(theTkWindow,
 			 GCForeground,
 			 &values);
 
@@ -116,7 +115,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    // Root Text
    values.foreground = blackColor->pixel;
    values.font = Tk_FontId(rootTextFontStruct);
-   rootItemTextGC = XCreateGC(display, Tk_WindowId(theTkWindow),
+   rootItemTextGC = Tk_GetGC(theTkWindow,
 			      GCForeground | GCFont,
 			      &values);
 
@@ -125,7 +124,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    values.background = grayColor->pixel;
    values.line_width = 2;
    values.cap_style = CapButt;
-   listboxRayGC = XCreateGC(display, Tk_WindowId(theTkWindow),
+   listboxRayGC = Tk_GetGC(theTkWindow,
 				  GCForeground | GCBackground | GCLineWidth | GCCapStyle,
 				  &values);
 
@@ -135,7 +134,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    values.background = grayColor->pixel;
    values.line_width = 2;
    values.cap_style = CapButt;
-   subchildRayGC = XCreateGC(display, Tk_WindowId(theTkWindow),
+   subchildRayGC = Tk_GetGC(theTkWindow,
 			     GCForeground | GCBackground | GCLineWidth | GCCapStyle,
 			     &values);
 
@@ -159,7 +158,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    values.foreground = blackColor->pixel;
    values.background = pinkColor->pixel;
    values.font = Tk_FontId(listboxFontStruct);
-   listboxTextGC = XCreateGC(display, Tk_WindowId(theTkWindow),
+   listboxTextGC = Tk_GetGC(theTkWindow,
 				   GCForeground | GCBackground | GCFont,
 				   &values);
 
@@ -169,7 +168,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    values.join_style = JoinMiter;
    values.fill_style = FillSolid;
 
-   listboxTriangleGC = XCreateGC(display, Tk_WindowId(theTkWindow),
+   listboxTriangleGC = Tk_GetGC(theTkWindow,
 				 GCForeground | GCBackground | GCJoinStyle | GCFillStyle,
 				 &values);
 
@@ -197,19 +196,18 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
 }
 
 where4TreeConstants::~where4TreeConstants() {
-   // should change to use Tk_FreeFont, right?
    Tk_FreeFont(rootTextFontStruct);
    Tk_FreeFont(listboxFontStruct);
 
    Tk_FreeGC(display, listboxCopyAreaGC);
-   XFreeGC(display, erasingGC);
-   XFreeGC(display, rootItemTextGC);
+   Tk_FreeGC(display, erasingGC);
+   Tk_FreeGC(display, rootItemTextGC);
 
-   XFreeGC(display, listboxRayGC);
-   XFreeGC(display, subchildRayGC);
+   Tk_FreeGC(display, listboxRayGC);
+   Tk_FreeGC(display, subchildRayGC);
 
-   XFreeGC(display, listboxTextGC);
-   XFreeGC(display, listboxTriangleGC);
+   Tk_FreeGC(display, listboxTextGC);
+   Tk_FreeGC(display, listboxTriangleGC);
 
    Tk_FreeColor(grayColor);
    Tk_FreeColor(pinkColor);
