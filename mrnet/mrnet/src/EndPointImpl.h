@@ -13,7 +13,7 @@ namespace MRN
 {
 
 class NetworkNode;
-class EndPointImpl: public EndPoint{
+class EndPointImpl{
  private:
     unsigned int id;
     std::string hostname;
@@ -21,11 +21,11 @@ class EndPointImpl: public EndPoint{
 
  public:
     EndPointImpl(int _id, const char * _hostname, unsigned short _port);
-    virtual ~EndPointImpl();
-    virtual const char * get_HostName()const;
-    virtual unsigned short get_Port()const;
-    virtual unsigned int get_Id()const;
-    virtual bool compare(const char * _hostname, unsigned short _port)const;
+    ~EndPointImpl();
+    const char * get_HostName()const;
+    unsigned short get_Port()const;
+    unsigned int get_Id()const;
+    bool compare(const char * _hostname, unsigned short _port)const;
 };
 
 inline const char * EndPointImpl::get_HostName() const

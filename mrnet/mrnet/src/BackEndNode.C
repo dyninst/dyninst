@@ -18,13 +18,14 @@ namespace MRN
 /*  BackEndNode CLASS METHOD DEFINITIONS            */
 /*=====================================================*/
 
-BackEndNode::BackEndNode(std::string _hostname,
+BackEndNode::BackEndNode(Network * _network, std::string _hostname,
                          unsigned short _backend_id,
                          std::string _parent_hostname,
                          unsigned short _parent_port,
                          unsigned short _parent_id)
     :ChildNode(false, _hostname, _backend_id), 
-     CommunicationNode(_hostname, 0, _backend_id)
+     CommunicationNode(_hostname, 0, _backend_id),
+     network(_network)
 {
     RemoteNode::local_child_node = this;
     mrn_printf(3, MCFL, stderr, "In BackEndNode() cnstr.\n");
@@ -109,17 +110,17 @@ int BackEndNode::proc_PacketsFromUpStream(std::list <Packet> &packets)
 
 int BackEndNode::proc_DataFromUpStream(Packet& packet)
 {
-    StreamImpl * stream;
+    Stream * stream;
 
     mrn_printf(3, MCFL, stderr, "In proc_DataFromUpStream()\n");
 
-    stream = StreamImpl::get_Stream(packet.get_StreamId());
+    stream = network->get_Stream( packet.get_StreamId() );
 
     if( stream ){
         stream->add_IncomingPacket(packet);
     }
     else{
-        stream = new StreamImpl(packet.get_StreamId());
+        stream = network->new_Stream( packet.get_StreamId() );
         stream->add_IncomingPacket(packet);
     }
     mrn_printf(3, MCFL, stderr, "Leaving proc_DataFromUpStream()\n");
@@ -187,12 +188,8 @@ int BackEndNode::proc_newStream(Packet& pkt)
 
     // Build a new stream object.
     // (As a side effect, registers the stream.)
-    (void)new StreamImpl( stream_id,
-                          backends,
-                          num_backends,
-                          sync_id,
-                          ds_filter_id,
-                          us_filter_id );
+    (void)network->new_Stream( stream_id, backends, num_backends,
+                               us_filter_id, sync_id, ds_filter_id );
 
     mrn_printf( 3, MCFL, stderr, "procNewStream() succeeded\n" );
     return 1;

@@ -15,21 +15,21 @@
 namespace MRN
 {
 
-CommunicatorImpl * CommunicatorImpl::comm_Broadcast=NULL;
-
-
-CommunicatorImpl::CommunicatorImpl(void)
+CommunicatorImpl::CommunicatorImpl( Network * _network )
+    : network(_network)
 {
 }
 
-CommunicatorImpl::CommunicatorImpl( const std::vector<EndPoint*>& eps )
-  : endpoints( eps )
+CommunicatorImpl::CommunicatorImpl( Network * _network,
+                                    const std::vector<EndPoint*>& eps )
+  : network(_network), endpoints( eps )
 {
 }
 
-CommunicatorImpl::CommunicatorImpl(Communicator &comm)
+CommunicatorImpl::CommunicatorImpl( Network * _network, Communicator &comm)
+    :network(_network)
 {
-    endpoints = ((CommunicatorImpl)comm).endpoints;
+    endpoints = comm.get_EndPoints();
 }
 
 CommunicatorImpl::~CommunicatorImpl(void)
@@ -39,7 +39,7 @@ CommunicatorImpl::~CommunicatorImpl(void)
 int CommunicatorImpl::add_EndPoint(const char * _hostname,
                                    unsigned short _port)
 {
-    EndPoint * new_endpoint = Network::network->get_EndPoint(_hostname, _port);
+    EndPoint * new_endpoint = network->get_EndPoint(_hostname, _port);
 
     if(new_endpoint == NULL){
         return -1;

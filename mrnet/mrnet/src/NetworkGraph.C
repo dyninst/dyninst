@@ -85,9 +85,10 @@ void NetworkGraph::preorder_traversal(NetworkNode * node){
             node->id = next_leaf_id++;
             serial_graph.add_BackEnd(node->get_HostName(), node->get_Port(),
                                      node->id);
-            endpoints.push_back(EndPoint::new_EndPoint( node->id,
-							node->get_HostName().c_str(),
-							node->get_Port()));
+            endpoints.push_back(Network::new_EndPoint( node->id,
+                                                       node->get_HostName()
+                                                       .c_str(),
+                                                       node->get_Port()) );
             return;
         }
         else{

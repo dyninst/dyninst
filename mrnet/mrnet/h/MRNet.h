@@ -3,118 +3,88 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-#if !defined(mc_network_h)
-#define mc_network_h 1
+#if !defined(mrnet_h)
+#define mrnet_h 1
 
 #if !defined(NULL)
 #  define NULL (0)
 #endif // NULL
 
 #include <string>
+#include <vector>
 #include "mrnet/src/FilterDefinitions.h"
 namespace MRN
 {
-class NetworkImpl;
-class BackEndNode;
-
 const int FIRST_CTL_TAG=100;
 const int FIRST_APPL_TAG=200;
 
-class Network{
-    friend class NetworkImpl;
-
- private:
-    Network(){} //explicitly disallow creation without "new_Network()"
-
- public:
-    class LeafInfo {
-    public:
-        virtual const char* get_Host( void ) const = NULL;
-        virtual unsigned short get_Rank( void ) const   = NULL;
-        virtual unsigned short get_Id( void ) const   = NULL;
-        virtual const char* get_ParHost( void ) const   = NULL;
-        virtual unsigned short get_ParPort( void ) const   = NULL;
-        virtual unsigned short get_ParRank( void ) const   = NULL;
-    };
-
-    static int new_Network(const char * _filename, const char * _backend);
-    static int new_NetworkNoBE(const char * _filename,
-                               LeafInfo*** leafInfo,
-                               unsigned int* nLeaves );
-    static int connect_Backends( void );
-    static void delete_Network();
-
-    static int init_Backend(const char *hostname, const char *port,
-                            const char *phostname, const char *pport,
-                            const char *pid);
-    static int init_Backend(const char *hostname, unsigned int backend_id,
-                            const char *phostname, unsigned int pport,
-                            unsigned int pid);
-    static int getConnections( int** conns, unsigned int* nConns );
-    static void error_str(const char *);
-
-    static NetworkImpl * network;
-    static BackEndNode * back_end;
-};
-
+class EndPointImpl;
 class EndPoint{
-    friend class EndPointImpl;
+    friend class Network;
 
  private:
-    EndPoint(){} //explicitly disallow creation without "new_EndPoint()"
+    EndPoint(int _id, const char * _hostname, unsigned short _port);
+    EndPointImpl * endpoint;
 
  public:
-    static EndPoint * new_EndPoint(int _id, const char * _hostname,
-                                   unsigned short _port);
-    virtual bool compare(const char * _hostname, unsigned short _port)const=NULL;
-    virtual const char * get_HostName()const=NULL;
-    virtual unsigned short get_Port()const=NULL;
-    virtual unsigned int get_Id()const=NULL;
+    ~EndPoint();
+    bool compare(const char * _hostname, unsigned short _port)const;
+    const char * get_HostName()const;
+    unsigned short get_Port()const;
+    unsigned int get_Id()const;
 };
 
+class CommunicatorImpl;
+class Network;
 class Communicator{
-    friend class CommunicatorImpl;
+    friend class Network;
 
  private:
-    Communicator(){} //explicitly disallow creation without "new_Communicator()"
+    CommunicatorImpl * communicator;
+    Communicator( Network * );
+    Communicator( Network *, Communicator &);
+    Communicator( Network *, std::vector<EndPoint *>& );
 
  public:
-    static Communicator * new_Communicator();
-    static Communicator * new_Communicator(Communicator &);
-    static Communicator * get_BroadcastCommunicator();
 
-    virtual int add_EndPoint(const char * hostname, unsigned short port)=NULL;
-    virtual void add_EndPoint(EndPoint *)=NULL;
+    ~Communicator();
 
-    virtual unsigned int size() const=NULL;
-    virtual const char * get_HostName(int) const=NULL; 
-    virtual unsigned short get_Port(int) const=NULL;
-    virtual unsigned int get_Id(int) const=NULL;
+    int add_EndPoint(const char * hostname, unsigned short port);
+    void add_EndPoint(EndPoint *);
+    unsigned int size( void ) const;
+    const char * get_HostName(int) const; 
+    unsigned short get_Port(int) const;
+    unsigned int get_Id(int) const;
+    const std::vector<EndPoint *> & get_EndPoints( void ) const;
 };
 
+class StreamImpl;
 class Stream{
-    friend class StreamImpl;
+    friend class Network;
+    friend class FrontEndNode;
+    friend class BackEndNode;
+    friend class NetworkImpl;
  private:
-    Stream(){} //explicitly disallow creation without "new_Stream()"
+    StreamImpl * stream;
+    Stream(Network *, Communicator *, int us_filter_id=TFILTER_NULL,
+           int _sync_id=SFILTER_WAITFORALL, int _ds_filter_id=TFILTER_NULL);
+    Stream( Network *, int stream_id, int *backends = 0,
+            int num_backends = -1, int ds_filter_id=TFILTER_NULL,
+            int sync_id = SFILTER_DONTWAIT, int us_filter_id=TFILTER_NULL );
+    Packet get_IncomingPacket();
+    void add_IncomingPacket( Packet& );
 
  public:
-    static Stream * new_Stream(Communicator *, int us_filter_id=TFILTER_NULL,
-                               int _sync_id=SFILTER_WAITFORALL,
-                               int _ds_filter_id=TFILTER_NULL);
-    static int recv(int *tag, void **buf, Stream ** stream, bool blocking=true);
     static int unpack(void * buf, const char * format_str, ...);
-    static void set_BlockingTimeOut(int timeout);
-    static int get_BlockingTimeOut( );
-    static int load_FilterFunc( const char * so_file, const char * func,
-                                bool is_trans_filter=true );
-    static Stream* get_Stream( unsigned int id );
 
-    virtual int send(int tag, const char * format_str, ...)const=NULL;
-    virtual int flush()const=NULL;
-    virtual int recv(int *tag, void **buf, bool blocking=true)=NULL;
-    virtual unsigned int get_NumEndPoints()const=NULL;
-    virtual Communicator* get_Communicator()const=NULL;
-    virtual unsigned int get_Id( void ) const=NULL;
+    void set_BlockingTimeOut(int timeout);
+    int get_BlockingTimeOut( );
+    int send(int tag, const char * format_str, ...)const;
+    int flush()const;
+    int recv(int *tag, void **buf, bool blocking=true);
+    unsigned int get_NumEndPoints()const;
+    Communicator* get_Communicator()const;
+    unsigned int get_Id( void ) const;
 };
 
 typedef enum {
@@ -152,6 +122,74 @@ class Event{
     virtual const std::string & get_Description( )=NULL;
 };
 
+class NetworkImpl;
+class FrontEndNode;
+class BackEndNode;
+class Packet;
+class Network{
+    friend class StreamImpl;
+
+ private:
+    FrontEndNode * get_FrontEndNode( void );
+    BackEndNode * get_BackEndNode( void );
+    NetworkImpl * network;
+    static unsigned int next_stream_id;
+
+ public:
+    class LeafInfo {
+    public:
+        virtual const char* get_Host( void ) const = NULL;
+        virtual unsigned short get_Rank( void ) const   = NULL;
+        virtual unsigned short get_Id( void ) const   = NULL;
+        virtual const char* get_ParHost( void ) const   = NULL;
+        virtual unsigned short get_ParPort( void ) const   = NULL;
+        virtual unsigned short get_ParRank( void ) const   = NULL;
+    };
+
+    Network(const char * _filename, const char * _backend);
+    Network(const char * _filename, LeafInfo*** leafInfo,
+            unsigned int* nLeaves );
+    ~Network();
+
+    int connect_Backends( void );
+    int getConnections( int** conns, unsigned int* nConns );
+
+    int init_Backend(const char *hostname, const char *port,
+                     const char *phostname, const char *pport,
+                     const char *pid);
+    int init_Backend(const char *hostname, unsigned int backend_id,
+                     const char *phostname, unsigned int pport,
+                     unsigned int pid);
+    int send(Packet &);
+    int recv(bool blocking=true);
+    int recv(int *tag, void **buf, Stream ** stream, bool blocking=true);
+    int load_FilterFunc( const char * so_file, const char * func,
+                                bool is_trans_filter=true );
+    void error_str(const char *);
+    Communicator * get_BroadcastCommunicator( void );
+
+    EndPoint * get_EndPoint(const char*, short unsigned int);
+    Communicator * new_Communicator( void );
+    Communicator * new_Communicator( Communicator& );
+    Communicator * new_Communicator( std::vector <EndPoint *> & );
+
+    static EndPoint * new_EndPoint(int id, const char * hostname, unsigned short port);
+
+    Stream * new_Stream( Communicator *,
+                         int us_filter_id=TFILTER_NULL,
+                         int sync_id=SFILTER_WAITFORALL,
+                         int ds_filter_id=TFILTER_NULL );
+
+    Stream * new_Stream( int stream_id, int *backends=NULL,
+                         int num_backends=-1,
+                         int us_filter_id=TFILTER_NULL,
+                         int sync_id=SFILTER_DONTWAIT,
+                         int ds_filter_id=TFILTER_NULL );
+    Stream *get_Stream( int stream_id );
+    bool is_FrontEnd();
+    bool is_BackEnd();
+};
+
 } /* namespace MRN */
 
-#endif /* mrnet_H */
+#endif /* mrnet_h */

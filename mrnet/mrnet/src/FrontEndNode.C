@@ -14,9 +14,11 @@ namespace MRN
 /*  FrontEndNode CLASS METHOD DEFINITIONS            */
 /*======================================================*/
 
-FrontEndNode::FrontEndNode( std::string _hostname, unsigned short _port )
+FrontEndNode::FrontEndNode( Network * _network, std::string _hostname,
+                            unsigned short _port )
     : ParentNode( false, _hostname, _port ),
       CommunicationNode( _hostname, _port ),
+      network(_network),
       leafInfoPacket( *Packet::NullPacket ),
       leavesConnectedPacket( *Packet::NullPacket )
 {
@@ -41,8 +43,8 @@ int FrontEndNode::proc_DataFromDownStream( Packet& packet )
     if( !packets.empty(  ) ) {
         for( unsigned int i = 0; i < packets.size(  ); i++ ) {
             Packet cur_packet = packets[i];
-            StreamImpl *stream;
-            stream = StreamImpl::get_Stream( cur_packet.get_StreamId(  ) );
+            Stream *stream;
+            stream = network->get_Stream( cur_packet.get_StreamId( ) );
 
             if( stream ) {
                 mrn_printf( 3, MCFL, stderr, "Put packet in stream %d\n",

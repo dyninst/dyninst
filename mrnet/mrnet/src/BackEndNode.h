@@ -17,10 +17,11 @@ namespace MRN
 
 class BackEndNode: public ChildNode, public CommunicationNode{
  private:
+    Network * network;
     int proc_newStream( Packet & pkt );
 
  public:
-    BackEndNode(std::string _hostname, unsigned short _backend_id,
+    BackEndNode(Network *, std::string _hostname, unsigned short _backend_id,
                 std::string _phostname, unsigned short _pport, 
                 unsigned short _pid);
     virtual ~BackEndNode(void);

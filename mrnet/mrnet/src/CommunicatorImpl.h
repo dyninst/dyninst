@@ -14,48 +14,34 @@ namespace MRN
 {
 
 class RemoteNode;
-class CommunicatorImpl: public Communicator{
+class CommunicatorImpl{
     friend class Stream;
     friend class Network;
+    friend class Communicator;
 
  private:
-    static CommunicatorImpl * comm_Broadcast;
+    Network * network;
     std::vector <RemoteNode *> downstream_nodes; 
     std::vector <EndPoint *> endpoints;  //BackEnds addressed by communicator
 
     // used to construct broadcast communicator
-    CommunicatorImpl( const std::vector<EndPoint*>& eps );
+    CommunicatorImpl( Network * );
+    CommunicatorImpl( Network *, Communicator &);
+    CommunicatorImpl( Network *, const std::vector<EndPoint*>& eps );
 
  public:
-    CommunicatorImpl( void );
-    CommunicatorImpl(Communicator &);
-    virtual ~CommunicatorImpl( void );
+    ~CommunicatorImpl( void );
 
-    static CommunicatorImpl * get_BroadcastCommunicator(void);
-    static void create_BroadcastCommunicator(std::vector <EndPoint *> &);
     const std::vector <EndPoint *> & get_EndPoints() const;
 
-    virtual int add_EndPoint(const char * hostname, unsigned short port);
-    virtual void add_EndPoint(EndPoint *);
+    int add_EndPoint(const char * hostname, unsigned short port);
+    void add_EndPoint(EndPoint *);
 
-    virtual unsigned int size() const;
-    virtual const char * get_HostName(int) const; 
-    virtual unsigned short get_Port(int) const;
-    virtual unsigned int get_Id(int) const;
+    unsigned int size() const;
+    const char * get_HostName(int) const; 
+    unsigned short get_Port(int) const;
+    unsigned int get_Id(int) const;
 };
-
-inline CommunicatorImpl * CommunicatorImpl::get_BroadcastCommunicator(void)
-{
-    return comm_Broadcast;
-}
-
-inline void
-CommunicatorImpl::create_BroadcastCommunicator( std::vector <EndPoint *>
-                                                & _endpoints)
-{
-    comm_Broadcast = new CommunicatorImpl( _endpoints );
-}
-
 
 inline void CommunicatorImpl::add_EndPoint(EndPoint * new_endpoint)
 {

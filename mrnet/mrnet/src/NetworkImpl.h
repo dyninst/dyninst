@@ -22,12 +22,7 @@ namespace MRN
 {
 
 class NetworkImpl: public Error {
-    friend class NetworkGraph;
-    friend class CommunicatorImpl;
-    friend class StreamImpl;
-    friend class Stream;
-
-
+    friend class Network;
  public:
     class LeafInfoImpl : public Network::LeafInfo {
     private:
@@ -39,29 +34,11 @@ class NetworkImpl: public Error {
         unsigned short prank;
 
     public:
-        LeafInfoImpl( unsigned short _id,
-                        const char* _host,
-                        unsigned short _rank,
-                        const char* _phost,
-                        unsigned short _pport,
-                        unsigned short _prank )
-          : host( new char[strlen(_host)+1] ),
-            id( _id ),
-            rank( _rank ),
-            phost( new char[strlen(_phost)+1] ),
-            pport( _pport ),
-            prank( _prank )
-        {
-            strcpy( host, _host );
-            strcpy( phost, _phost );
-        }
-
-        virtual ~LeafInfoImpl( void )
-        {
-            delete[] host;
-            delete[] phost;
-        }
-
+        LeafInfoImpl( unsigned short _id, const char* _host,
+                      unsigned short _rank, const char* _phost,
+                      unsigned short _pport, unsigned short _prank );
+        virtual ~LeafInfoImpl( void );
+      
         virtual const char* get_Host( void ) const      { return host; }
         virtual unsigned short get_Rank( void ) const   { return rank; }
         virtual unsigned short get_Id( void ) const   { return id; }
@@ -74,33 +51,49 @@ class NetworkImpl: public Error {
     std::string filename;          /* Name of topology configuration file */
     std::string application;       /* Name of application to launch */
     std::vector <EndPoint *> endpoints; //BackEnds addressed by communicator
-    static BackEndNode * back_end;
+    Communicator * comm_Broadcast;
     FrontEndNode *front_end;
+    BackEndNode * back_end;
+
+    //There is both is_backend and is_frontend to detect the case
+    //when neither has been initialized.
+    static bool is_backend;
+    static bool is_frontend;
+    FrontEndNode * get_FrontEndNode( void ) { return front_end; }
+    BackEndNode * get_BackEndNode( void ) { return back_end; }
     
-    EndPoint * get_EndPoint(const char * _hostname, unsigned short _port);
     int parse_configfile();
 
+    /* "Registered" streams */
+    static std::map < unsigned int, Stream * >streams;
+    static unsigned int cur_stream_idx;
+
  public:
+    NetworkGraph * graph;  /* hierarchical DAG of tree nodes */
     static NetworkGraph* parsed_graph;
 
-    NetworkGraph * graph;  /* hierarchical DAG of tree nodes */
     static void error_str(const char *);
-    static int recv( bool blocking=true );
-    static int send(Packet &);
     static bool is_FrontEnd();
     static bool is_BackEnd();
 
-    NetworkImpl(const char * _filename, const char * _application);
+    NetworkImpl(Network *, const char * _filename, const char * _application);
     ~NetworkImpl();
+
+    Communicator * get_BroadcastCommunicator(void);
+    int recv(int *tag, void **ptr, Stream **stream, bool blocking=true);
+    int send(Packet &);
+    int recv( bool blocking=true );
+    EndPoint * get_EndPoint(const char * _hostname, unsigned short _port);
 
     int get_LeafInfo( Network::LeafInfo*** linfo, unsigned int* nLeaves );
     int connect_Backends( void );
 
-    int getConnections( int** conns, unsigned int* nConns )
-    {
-        return front_end->getConnections( conns, nConns );
-    }
+    int getConnections( int** conns, unsigned int* nConns );
+    int init_Backend(Network *, const char *hostname, unsigned int backend_id,
+                     const char *phostname, unsigned int pport,
+                     unsigned int pid);
 };
+
 
 } // namespace MRN
 #endif /* __networkimpl_h */

@@ -23,12 +23,16 @@ namespace MRN
 int mrnparse( );
 
 NetworkGraph *NetworkImpl::parsed_graph = NULL;
+bool NetworkImpl::is_backend=false;
+bool NetworkImpl::is_frontend=false;
+unsigned int NetworkImpl::cur_stream_idx=0;
+std::map <unsigned int, Stream *> NetworkImpl::streams;
 
-NetworkImpl::NetworkImpl( const char *_filename,
+NetworkImpl::NetworkImpl( Network * _network, const char *_filename,
                           const char *_application )
     : filename( _filename ),
       application( ( _application == NULL ) ? "" : _application ),
-      front_end( NULL )
+      front_end( NULL ), back_end( NULL )
 {
     // ensure our variables are set for parsing
     parsed_graph = new NetworkGraph;
@@ -70,12 +74,13 @@ NetworkImpl::NetworkImpl( const char *_filename,
         return;
     }
 
-    NetworkImpl::endpoints = graph->get_EndPoints( );
-    CommunicatorImpl::create_BroadcastCommunicator( NetworkImpl::endpoints );
+    endpoints = graph->get_EndPoints( );
+    comm_Broadcast = _network->new_Communicator( endpoints );
 
     //Frontend is root of the tree
-    front_end = new FrontEndNode( graph->get_Root( )->get_HostName( ),
+    front_end = new FrontEndNode( _network, graph->get_Root( )->get_HostName( ),
                                   graph->get_Root( )->get_Port( ) );
+    is_frontend = true;
     SerialGraph sg = graph->get_SerialGraph(  );
     sg.print(  );
 
@@ -124,10 +129,11 @@ int NetworkImpl::parse_configfile(  )
 NetworkImpl::~NetworkImpl(  ) {
     delete graph;
     delete front_end;
+    is_frontend = false;
 }
 
 EndPoint * NetworkImpl::get_EndPoint( const char *_hostname,
-                                     unsigned short _port )
+                                      unsigned short _port )
 {
     unsigned int i;
 
@@ -140,39 +146,47 @@ EndPoint * NetworkImpl::get_EndPoint( const char *_hostname,
     return NULL;
 }
 
+Communicator * NetworkImpl::get_BroadcastCommunicator(void)
+{
+    return comm_Broadcast;
+}
+
 int NetworkImpl::recv( bool blocking )
 {
-    if( Network::network ) {
+    if( is_FrontEnd() ) {
         mrn_printf( 3, MCFL, stderr, "In NetImpl::recv(). "
                     "Calling FrontEnd::recv()\n" );
-        return Network::network->front_end->recv( blocking );
+        return front_end->recv( blocking );
     }
     else {
         mrn_printf( 3, MCFL, stderr, "In NetImpl::recv(). "
                     "Calling BackEnd::recv()\n" );
-        return Network::back_end->recv( blocking );
+        return front_end->recv( blocking );
     }
 }
 
 
 int NetworkImpl::send( Packet& packet )
 {
-    if( Network::network ) {
-        return Network::network->front_end->send( packet );
+    if( is_FrontEnd() ) {
+        return front_end->send( packet );
     }
-    else {
-        return Network::back_end->send( packet );
+    else if ( is_BackEnd() ) {
+        return back_end->send( packet );
+    }
+    else{
+        assert(0); // shouldn't call send when backend/front not init'd
     }
 }
 
 bool NetworkImpl::is_FrontEnd(  )
 {
-    return ( Network::network != NULL );
+    return is_frontend;
 }
 
 bool NetworkImpl::is_BackEnd(  )
 {
-    return ( Network::network == NULL );
+    return is_backend;
 }
 
 
@@ -345,6 +359,165 @@ int NetworkImpl::connect_Backends( void )
         // we failed to deliver the request
         mrn_printf( 1, MCFL, stderr, "failed to deliver request\n" );
         ret = -1;
+    }
+
+    return ret;
+}
+
+int NetworkImpl::recv(int *tag, void **ptr, Stream **stream, bool blocking)
+{
+    bool checked_network = false;   // have we checked sockets for input?
+    Packet cur_packet;
+
+    mrn_printf(3, MCFL, stderr, "In StreamImpl::recv().\n");
+
+    if( streams.empty() && is_FrontEnd() ){
+      //No streams exist -- bad for FE
+      mrn_printf(1, MCFL, stderr, "%s recv in FE when no streams "
+         "exist\n", (blocking? "Blocking" : "Non-blocking") );
+      return -1;
+    }
+
+    // check streams for input
+get_packet_from_stream_label:
+    if( !streams.empty() ) {
+        unsigned int start_idx = cur_stream_idx;
+        do{
+            Stream* cur_stream = streams[cur_stream_idx];
+            if(!cur_stream){
+                //TODO: on failure, doesn't map allocate a new entry?
+                cur_stream_idx++;
+                cur_stream_idx %= streams.size();
+                continue;
+            }
+
+            cur_packet = cur_stream->get_IncomingPacket();
+            if( cur_packet != *Packet::NullPacket ){
+                mrn_printf( 3, MCFL, stderr, "Found a packet on stream[%d] ...",
+                            cur_stream_idx);
+                cur_stream_idx++;
+                cur_stream_idx %= streams.size();
+                break;
+            }
+
+            
+
+            cur_stream_idx++;
+            cur_stream_idx %= streams.size();
+        } while(start_idx != cur_stream_idx);
+    }
+
+    if( cur_packet != *Packet::NullPacket ) {
+        *tag = cur_packet.get_Tag();
+        *stream = streams[cur_packet.get_StreamId()];
+        *ptr = (void *) new Packet(cur_packet);
+        mrn_printf(4, MCFL, stderr, "cur_packet tag: %d, fmt: %s\n",
+                   cur_packet.get_Tag(), cur_packet.get_FormatString() );
+        return 1;
+    }
+    else if( blocking || !checked_network ) {
+
+        // No packets are already in the stream
+        // check whether there is data waiting to be read on our sockets
+        if( recv( blocking ) == -1 ){
+            mrn_printf( 1, MCFL, stderr, "Network::recv() failed.\n" );
+            return -1;
+        }
+        checked_network = true;
+
+        // go back to check whether we found enough to make a complete packet
+        goto get_packet_from_stream_label;
+    }
+
+    assert( !blocking );
+    assert( checked_network );
+    return 0;
+}
+
+int NetworkImpl::init_Backend( Network *_network,
+                               const char *_hostname, unsigned int port,
+                               const char *_phostname, unsigned int pport,
+                               unsigned int pid )
+{
+    std::string host( _hostname );
+    std::string phost( _phostname );
+
+    //TLS: setup thread local storage for frontend
+    //I am "BE(host:port)"
+    std::string prettyHost;
+    getHostName( prettyHost, host );
+    char port_str[16];
+    sprintf( port_str, "%u", port );
+    std::string name( "BE(" );
+    name += prettyHost;
+    name += ":";
+    name += port_str;
+    name += ")";
+
+    int status;
+    if( ( status = pthread_key_create( &tsd_key, NULL ) ) != 0 ) {
+        //TODO: add event to notify upstream
+        //error(ESYSTEM, "pthread_key_create(): %s\n", strerror( status ) );
+        mrn_printf( 1, MCFL, stderr, "pthread_key_create(): %s\n",
+                    strerror( status ) );
+        return -1;
+    }
+    tsd_t *local_data = new tsd_t;
+    local_data->thread_id = pthread_self(  );
+    local_data->thread_name = strdup( name.c_str(  ) );
+    if( ( status = pthread_setspecific( tsd_key, local_data ) ) != 0 ) {
+        //TODO: add event to notify upstream
+        //error(ESYSTEM, "pthread_setspecific(): %s\n", strerror( status ) );
+        mrn_printf( 1, MCFL, stderr, "pthread_setspecific(): %s\n",
+                    strerror( status ) );
+        return -1;
+    }
+
+    is_backend = true;
+    back_end = new BackEndNode( _network, host, port, phost, pport, pid );
+
+    if( back_end->fail(  ) ) {
+        return -1;
+    }
+
+    return 0;
+}
+
+NetworkImpl::LeafInfoImpl::LeafInfoImpl( unsigned short _id, const char* _host,
+                                         unsigned short _rank,
+                                         const char* _phost,
+                                         unsigned short _pport,
+                                         unsigned short _prank )
+    : host( new char[strlen(_host)+1] ),
+    id( _id ),
+    rank( _rank ),
+    phost( new char[strlen(_phost)+1] ),
+    pport( _pport ),
+    prank( _prank )
+{
+    strcpy( host, _host );
+    strcpy( phost, _phost );
+}
+
+NetworkImpl::LeafInfoImpl::~LeafInfoImpl( void )
+{
+    delete[] host;
+    delete[] phost;
+}
+
+int NetworkImpl::getConnections( int** conns, unsigned int* nConns )
+{
+    int ret = 0;
+
+    if( is_FrontEnd()  ) {
+        ret = front_end->getConnections( conns, nConns );
+    }
+    else if( is_BackEnd() ) {
+        ret = back_end->getConnections( conns, nConns );
+        assert( ( ret != 0 ) || ( *nConns == 1 ) );
+    }
+    else{
+        assert( 0 ); //either front_end or back_end should be init'd
     }
 
     return ret;

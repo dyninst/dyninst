@@ -28,44 +28,34 @@
 namespace MRN
 {
 
-NetworkImpl *Network::network = NULL;
-BackEndNode *Network::back_end = NULL;
+unsigned int Network::next_stream_id=1;  //id '0' reserved for broadcast
 
 /*===========================================================*/
 /*             Network static function DEFINITIONS        */
 /*===========================================================*/
-int Network::new_Network( const char *_filename, const char *_application )
+Network::Network( const char *_filename, const char *_application )
 {
-    Network::network = new NetworkImpl( _filename, _application );
-
-    if( Network::network->fail( ) ){
-        return -1;
-    }
-
-    StreamImpl::set_ForceNetworkRecv(  );
-    return 0;
+    network = new NetworkImpl( this, _filename, _application );
 }
 
-int Network::new_NetworkNoBE( const char *cfgFileName,
-                              Network::LeafInfo *** leafInfo,
-                              unsigned int *nLeaves )
+Network::Network( const char *cfgFileName, Network::LeafInfo *** leafInfo,
+                  unsigned int *nLeaves )
 {
-    int ret = -1;
-
     // build the network
-    Network::network = new NetworkImpl( cfgFileName, NULL );
-    if( !Network::network->fail(  ) ) {
+    network = new NetworkImpl( this, cfgFileName, NULL );
+    if( !network->fail( ) ) {
         if( ( leafInfo != NULL ) && ( nLeaves != NULL ) ) {
-            Network::network->get_LeafInfo( leafInfo, nLeaves );
-            ret = 0;
+            network->get_LeafInfo( leafInfo, nLeaves );
         }
         else {
             // TODO is this the right error?
-            ret = MRN_ENETWORK_FAILURE;
         }
     }
+}
 
-    return ret;
+Network::~Network(  )
+{
+    delete network;
 }
 
 int Network::connect_Backends( void )
@@ -73,30 +63,15 @@ int Network::connect_Backends( void )
     // TODO is this the right error?
     int ret = MRN_ENETWORK_FAILURE;
 
-    if( Network::network != NULL ) {
-        ret = Network::network->connect_Backends(  );
+    if( network != NULL ) {
+        ret = network->connect_Backends(  );
     }
     return ret;
-}
-
-void Network::delete_Network(  )
-{
-    delete Network::network;
 }
 
 int Network::getConnections( int **conns, unsigned int *nConns )
 {
-    int ret = 0;
-
-    if( Network::network != NULL ) {
-        ret = Network::network->getConnections( conns, nConns );
-    }
-    else {
-        ret = Network::back_end->getConnections( conns, nConns );
-        assert( ( ret != 0 ) || ( *nConns == 1 ) );
-    }
-
-    return ret;
+    return network->getConnections( conns, nConns );
 }
 
 int Network::init_Backend( const char *_hostname, const char *_port,
@@ -107,74 +82,186 @@ int Network::init_Backend( const char *_hostname, const char *_port,
     unsigned int pport( atoi( _pport ) );
     unsigned int pid( atoi( _pid ) );
 
-    return init_Backend( _hostname, port, _phostname, pport, pid );
+    return network->init_Backend( this, _hostname, port, _phostname, pport, pid );
 }
 
 int Network::init_Backend( const char *_hostname, unsigned int port,
                            const char *_phostname,
                            unsigned int pport, unsigned int pid )
 {
-    std::string host( _hostname );
-    std::string phost( _phostname );
-
-    //TLS: setup thread local storage for frontend
-    //I am "BE(host:port)"
-    std::string prettyHost;
-    getHostName( prettyHost, host );
-    char port_str[16];
-    sprintf( port_str, "%u", port );
-    std::string name( "BE(" );
-    name += prettyHost;
-    name += ":";
-    name += port_str;
-    name += ")";
-
-    int status;
-    if( ( status = pthread_key_create( &tsd_key, NULL ) ) != 0 ) {
-        //TODO: add event to notify upstream
-        //error(ESYSTEM, "pthread_key_create(): %s\n", strerror( status ) );
-        mrn_printf( 1, MCFL, stderr, "pthread_key_create(): %s\n",
-                    strerror( status ) );
-        return -1;
-    }
-    tsd_t *local_data = new tsd_t;
-    local_data->thread_id = pthread_self(  );
-    local_data->thread_name = strdup( name.c_str(  ) );
-    if( ( status = pthread_setspecific( tsd_key, local_data ) ) != 0 ) {
-        //TODO: add event to notify upstream
-        //error(ESYSTEM, "pthread_setspecific(): %s\n", strerror( status ) );
-        mrn_printf( 1, MCFL, stderr, "pthread_setspecific(): %s\n",
-                    strerror( status ) );
-        return -1;
-    }
-
-    Network::back_end = new BackEndNode( host, port, phost, pport, pid );
-
-    if( Network::back_end->fail(  ) ) {
-        return -1;
-    }
-
-    return 0;
+    return network->init_Backend( this, _hostname, port, _phostname, pport, pid );
 }
 
 void Network::error_str( const char *s )
 {
-    Network::network->perror( s );
+    assert(network);
+    network->perror( s );
+}
+
+int Network::send(Packet & packet )
+{
+    assert( network );
+    network->send( packet );
+}
+
+int Network::recv(bool blocking)
+{
+    assert( network );
+    network->recv( blocking );
+}
+
+int Network::recv(int *tag, void **buf, Stream ** stream, bool blocking)
+{
+    assert( network );
+    network->recv( tag, buf, stream, blocking );
+}
+
+EndPoint * Network::get_EndPoint(const char* hostname,
+                                 short unsigned int port )
+{
+    assert(network);
+    return network->get_EndPoint( hostname, port );
+}
+
+Communicator * Network::get_BroadcastCommunicator(void)
+{
+    assert(network);
+    return network->get_BroadcastCommunicator();
+}
+
+Communicator * Network::new_Communicator()
+{
+    return new Communicator(this);
+}
+
+Communicator * Network::new_Communicator( Communicator& comm )
+{
+    assert(network);
+    return new Communicator( this, comm );
+}
+
+Communicator * Network::new_Communicator( std::vector <EndPoint *> & endpoints )
+{
+    assert(network);
+    return new Communicator( this, endpoints );
+}
+
+EndPoint * Network::new_EndPoint(int id, const char * hostname,
+                                 unsigned short port)
+{
+    return new EndPoint(id, hostname, port);
+}
+
+Stream * Network::new_Stream( Communicator *comm, int ds_filter_id,
+                              int sync_id, int us_filter_id)
+{
+    assert(network);
+    Stream * new_stream = new Stream( this, comm, us_filter_id,
+                                      sync_id, ds_filter_id );
+
+    network->streams[next_stream_id] = new_stream;
+    next_stream_id++;
+    return new_stream;
+}
+
+Stream * Network::new_Stream( int stream_id, int *backends,
+                              int num_backends, int us_filter_id,
+                              int sync_id, int ds_filter_id)
+{
+    assert(network);
+    Stream * new_stream = new Stream( this, stream_id, backends,
+                                      num_backends, us_filter_id,
+                                      sync_id, ds_filter_id );
+
+    network->streams[next_stream_id] = new_stream;
+    next_stream_id++;
+    return new_stream;
+}
+
+Stream* Network::get_Stream(int stream_id)
+{
+    Stream *stream = network->streams[stream_id];
+    if(stream){
+        return stream;
+    }
+    else{
+        network->streams.erase(stream_id);
+        return NULL;
+    }
+}
+
+int Network::load_FilterFunc( const char *so_file, const char *func,
+                             bool is_trans_filter )
+{
+    int fid = Filter::load_FilterFunc( so_file, func,
+                                       is_trans_filter );
+    
+    if( fid == -1 ) {
+        mrn_printf( 1, MCFL, stderr,
+                    "Filter::load_FilterFunc() failed.\n" );
+        return -1;
+    }
+
+    //Filter registered locally, now propagate to tree
+    Packet packet( 0, PROT_NEW_FILTER, "%uhd %s %s %c",
+                   fid, so_file, func, is_trans_filter );
+    network->front_end->send_PacketDownStream( packet, true );
+
+    return fid;
+}
+
+bool Network::is_FrontEnd()
+{
+    assert(network);
+    return network->is_FrontEnd();
+}
+
+bool Network::is_BackEnd()
+{
+    assert(network);
+    return network->is_BackEnd();
+}
+
+FrontEndNode * Network::get_FrontEndNode( void )
+{
+    assert( network );
+    return network->get_FrontEndNode();
+}
+
+BackEndNode * Network::get_BackEndNode( void )
+{
+    assert( network );
+    return network->get_BackEndNode();
 }
 
 /*================================================*/
 /*             Stream class DEFINITIONS        */
 /*================================================*/
-Stream *Stream::new_Stream( Communicator * comm, int us_filter_id,
-                            int sync_id, int ds_filter_id )
+Stream::Stream(Network *network, Communicator *comm, int us_filter_id,
+       int sync_id, int ds_filter_id)
+    : stream( new StreamImpl( network, comm, us_filter_id, sync_id,
+                               ds_filter_id ) )
 {
-    return new StreamImpl( (CommunicatorImpl*)comm, sync_id,
-                           ds_filter_id, us_filter_id );
 }
 
-int Stream::recv( int *tag, void **buf, Stream ** stream, bool blocking )
+Stream::Stream( Network *network, int stream_id, int *backends,
+                int num_backends, int ds_filter_id,
+                int sync_id , int us_filter_id)
+    : stream( new StreamImpl( network, stream_id, backends, num_backends,
+                              ds_filter_id, sync_id, us_filter_id ) )
 {
-    return StreamImpl::recv( tag, buf, stream, blocking );
+}
+
+void Stream::add_IncomingPacket( Packet& packet )
+{
+    assert(stream);
+    return stream->add_IncomingPacket( packet );
+}
+
+Packet Stream::get_IncomingPacket()
+{
+    assert(stream);
+    return stream->get_IncomingPacket( );
 }
 
 int Stream::unpack( void *buf, char const *fmt_str, ... )
@@ -197,55 +284,109 @@ int Stream::get_BlockingTimeOut(  )
     return RemoteNode::get_BlockingTimeOut(  );
 }
 
-int Stream::load_FilterFunc( const char *so_file, const char *func,
-                             bool is_trans_filter )
-{
-    int fid = Filter::load_FilterFunc( so_file, func,
-                                       is_trans_filter );
-    
-    if( fid == -1 ) {
-        mrn_printf( 1, MCFL, stderr,
-                    "Filter::load_FilterFunc() failed.\n" );
-        return -1;
-    }
-
-    //Filter registered locally, now propagate to tree
-    Packet packet( 0, PROT_NEW_FILTER, "%uhd %s %s %c",
-                   fid, so_file, func, is_trans_filter );
-    Network::network->front_end->send_PacketDownStream( packet, true );
-
-    return fid;
-}
-
-Stream*
-Stream::get_Stream( unsigned int id )
-{
-    return StreamImpl::get_Stream( id );
-}
-
-
 /*======================================================*/
 /*             Communicator class DEFINITIONS        */
 /*======================================================*/
-Communicator *Communicator::new_Communicator(  )
+Communicator::Communicator( Network * network )
+    : communicator( new CommunicatorImpl( network ) )
 {
-    return new CommunicatorImpl;
 }
 
-Communicator * Communicator::get_BroadcastCommunicator(  )
+Communicator::Communicator( Network * network, Communicator & comm )
+    :communicator( new CommunicatorImpl( network, comm ) )
 {
-    return CommunicatorImpl::get_BroadcastCommunicator(  );
 }
 
-/*==================================================*/
+Communicator::Communicator( Network * network,
+                            std::vector<EndPoint *>& endpoints )
+    :communicator( new CommunicatorImpl( network, endpoints ) )
+{
+}
+
+int Communicator::add_EndPoint(const char * hostname, unsigned short port)
+{
+    assert(communicator);
+    return communicator->add_EndPoint( hostname, port );
+}
+
+void Communicator::add_EndPoint(EndPoint *endpoint )
+{
+    assert(communicator);
+    communicator->add_EndPoint( endpoint );
+}
+
+unsigned int Communicator::size( void ) const
+{
+    assert(communicator);
+    return communicator->size( );
+}
+
+const char * Communicator::get_HostName( int i ) const
+{
+    assert(communicator);
+    return communicator->get_HostName( i );
+}
+
+unsigned short Communicator::get_Port( int i ) const
+{
+    assert(communicator);
+    return communicator->get_Port( i );
+}
+
+unsigned int Communicator::get_Id( int i ) const
+{
+    assert(communicator);
+    return communicator->get_Id( i );
+}
+
+const std::vector<EndPoint *> & Communicator::get_EndPoints( void ) const
+{
+    assert(communicator);
+    return communicator->get_EndPoints( );
+}
+
+/*============================================*/
 /*             EndPoint class DEFINITIONS        */
-/*==================================================*/
-EndPoint *EndPoint::new_EndPoint( int _id, const char *_hostname,
-                                  unsigned short _port )
+/*============================================*/
+EndPoint::EndPoint(int id, const char * hostname, unsigned short port)
+    : endpoint(new EndPointImpl( id, hostname, port ) )
 {
-    return new EndPointImpl( _id, _hostname, _port );
 }
 
+EndPoint::~EndPoint()
+{
+    assert(endpoint);
+    delete endpoint;
+}
+
+bool EndPoint::compare(const char * hostname, unsigned short port)const
+{
+    assert(endpoint);
+    return endpoint->compare( hostname, port );
+}
+
+const char * EndPoint::get_HostName()const
+{
+    assert(endpoint);
+    return endpoint->get_HostName();
+}
+
+unsigned short EndPoint::get_Port()const
+{
+    assert(endpoint);
+    return endpoint->get_Port();
+}
+
+unsigned int EndPoint::get_Id()const
+{
+    assert(endpoint);
+    return endpoint->get_Id();
+}
+
+
+/*============================================*/
+/*             Event class DEFINITIONS        */
+/*============================================*/
 Event * Event::new_Event( EventType t, std::string desc,
                           std::string h, unsigned short p){
     return new EventImpl( t, desc, h, p );
