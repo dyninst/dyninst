@@ -1,6 +1,11 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.13  1994/05/18 00:48:52  hollings
+ * Revision 1.14  1994/05/19 00:00:27  hollings
+ * Added tempaltes.
+ * Fixed limited number of nodes being evaluated on once.
+ * Fixed color coding of nodes.
+ *
+ * Revision 1.13  1994/05/18  00:48:52  hollings
  * Major changes in the notion of time to wait for a hypothesis.  We now wait
  * until the earlyestLastSample for a metrics used by a hypothesis is at
  * least sufficient observation time after the change was made.
@@ -88,7 +93,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.13 1994/05/18 00:48:52 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.14 1994/05/19 00:00:27 hollings Exp $";
 #endif
 
 
@@ -102,12 +107,26 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCshg.h"
 #include "PCevalTest.h"
 #include "PCglobals.h"
+#include "PCauto.h"
 #include "performanceConsultant.SRVR.h"
 
 tunableConstant hysteresisRange(0.15, 0.0, 1.0, NULL, "hysteresisRange",
   "Fraction above and bellow threshold that a test should use.");
 
+//
+// Fix this soon... This should be based on some real information.
+//
+tunableConstant minObservationTime(1.0, 0.0, 60.0, NULL, "minObservationTime",
+ "min. time (in seconds) to wait after chaning inst to start try hypotheses.");
+
+tunableConstant sufficientTime(6.0, 0.0, 1000.0, NULL, "sufficientTime",
+  "How long to wait (in seconds) before we can concule a hypothesis is false.");
+
+int PCsearchPaused;
 extern Boolean textMode;
+extern int samplesSinceLastChange;
+extern timeStamp PClastTestChangeTime;
+extern timeStamp PCshortestEnableTime;
 Boolean printTestResults = FALSE;
 Boolean printNodes = FALSE;
 
@@ -329,11 +348,11 @@ void configureTests()
     }
     currentTestResults = new(testResultList);
     for (currNode = allSHGNodes; curr=*currNode; currNode++) {
-	if (curr->active) {
+	if (curr->getActive()) {
 	    whyAxis.unLabel();
 	    // Setting beenTested here assumes that a test that is configured 
 	    //   get run. We really should not assume this.
-	    curr->beenTested = TRUE;
+	    curr->changeTested(TRUE);
 	    curr->ableToEnable = 
 	       buildTestResultForHypothesis(currentTestResults,&prevTestResults,
 		curr->why, curr->where, curr->when);
@@ -504,11 +523,11 @@ Boolean doScan()
 	    // (*curr)->print(-1);
 	    // printf("\n");
 
-	    if (shgNode->active == FALSE) continue;
+	    if (shgNode->getActive() == FALSE) continue;
 	    assert(shgNode->why);
 	    ret = checkIfTrue(shgNode->why, shgNode->where, 
 		shgNode->when, &shgNode->hints);
-	    if (shgNode->status != ret) {
+	    if (shgNode->getStatus() != ret) {
 		shgNode->changeStatus(ret);
 
 		if (printNodes) {
@@ -581,7 +600,7 @@ Boolean verifyPreviousRefinements()
 
     // verify that the refinement path we took is still true;
     for (i=0; i < PCpathDepth; i++) {
-	if (PCrefinementPath[i]->status != TRUE) {
+	if (PCrefinementPath[i]->getStatus() != TRUE) {
 	    // pauseApplication(context);
 
 	    printf("The bottleneck we were refining changed\n");
@@ -590,6 +609,7 @@ Boolean verifyPreviousRefinements()
 
 	    // disable all nodes.
 	    for (currNode = allSHGNodes; curr = *currNode; currNode++) {
+		curr->changeTested(FALSE);
 		curr->changeActive(FALSE);
 	    }
 
@@ -598,8 +618,9 @@ Boolean verifyPreviousRefinements()
 	    SearchHistoryGraph->changeActive(TRUE);
 	    currentSHGNode = SearchHistoryGraph;
 	    for (i=0; i < PCpathDepth; i++) {
-		if (PCrefinementPath[i]->status == TRUE) {
+		if (PCrefinementPath[i]->getStatus() == TRUE) {
 		    currentSHGNode = PCrefinementPath[i];
+		    currentSHGNode->changeTested(TRUE);
 		    currentSHGNode->changeActive(TRUE);
 		} else {
 		    // the current one is not true so stop marking.
@@ -610,18 +631,11 @@ Boolean verifyPreviousRefinements()
 
 	    // reset status of disabled nodes.
 	    for (currNode = allSHGNodes; curr = *currNode; currNode++) {
-		if (curr->active == FALSE) curr->changeStatus(FALSE);
+		if (curr->getActive() == FALSE) curr->changeStatus(FALSE);
 	    }
-
-	    // prevent any further auto refinement.
-	    // PCautoRefinementLimit = 0;
 
 	    printf("The search has been reset to the bottleneck\n    ");
 	    defaultExplanation(currentSHGNode);
-	    printf("\nprogram execution paused.\n");
-
-	    // ??? put something here????
-	    // if (!textMode) redraw_func();
 
 	    return(FALSE);
 	}
@@ -629,9 +643,52 @@ Boolean verifyPreviousRefinements()
     return(TRUE);
 }
 
+
+void PCevaluateWorld()
+{
+    Boolean changed;
+
+    //
+    // see that we are actively searching before trying to eval tests!
+    //
+    if (PCsearchPaused) {
+	return;
+    }
+
+    //
+    // wait minObservationTime between calls to eval.
+    //
+    if (PCcurrentTime >= PClastTestChangeTime + minObservationTime.getValue()) {
+	/* try to evaluate a test */
+	changed = doScan();
+	if (PCautoRefinementLimit != 0) {
+	    if (changed) {
+		autoTestRefinements();
+	    } else if ((PCshortestEnableTime > sufficientTime.getValue()) &&
+		       (samplesSinceLastChange > sufficientTime.getValue())) {
+		// we have waited sufficient observation time move on.
+		printf("autorefinement timelimit reached at %f\n", 
+		    PCcurrentTime);
+		printf("samplesSinceLastChange = %d\n", samplesSinceLastChange);
+		printf("shortest enable time = %f\n", PCshortestEnableTime);
+		autoTimeLimitExpired();
+	    }
+	} else if (changed) {
+	    if (verifyPreviousRefinements() == TRUE) {
+		dataMgr->pauseApplication(context);
+		PCsearchPaused = TRUE;
+		printf("application paused\n");
+	    } else {
+		// previous refinement now false.
+		dataMgr->pauseApplication(context);
+	    }
+	}
+    }
+}
+
+
 void performanceConsultant::search(Boolean stopOnChange, int limit)
 {
-    extern timeStamp PClastTestChangeTime;
     extern void autoSelectRefinements();
 
     PClastTestChangeTime = PCcurrentTime;
@@ -643,7 +700,7 @@ void performanceConsultant::search(Boolean stopOnChange, int limit)
 	delete(currentTestResults); 
     currentTestResults = NULL;
 
-    if (currentSHGNode->status != TRUE) {
+    if (currentSHGNode->getStatus() != TRUE) {
 	SearchHistoryGraph->resetStatus();
 	SearchHistoryGraph->resetActive();
 	configureTests();
@@ -681,16 +738,16 @@ int performanceConsultant::setCurrentSHGnode(int node)
 	printf("paradyn Error #8\n");
 	return(-1);
     }
-    if (n->active != TRUE) {
+    if (n->getActive() != TRUE) {
 	printf("Node %d is not active \n", node);
 	return(-1);
     }
-    if (n->status != TRUE) {
+    if (n->getStatus() != TRUE) {
 	printf("Node %d is not true \n", node);
 	return(-1);
     }
     for (i=0; i < PCpathDepth; i++) {
-        if (PCrefinementPath[i]->status != TRUE) {
+        if (PCrefinementPath[i]->getStatus() != TRUE) {
             printf("search history graph ancestor not true\n");
             printf("paradyn Error #9\n");
             return(-1);

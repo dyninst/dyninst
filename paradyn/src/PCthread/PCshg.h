@@ -1,7 +1,12 @@
 /*
  *
  * $Log: PCshg.h,v $
- * Revision 1.3  1994/04/21 04:58:08  karavan
+ * Revision 1.4  1994/05/19 00:00:31  hollings
+ * Added tempaltes.
+ * Fixed limited number of nodes being evaluated on once.
+ * Fixed color coding of nodes.
+ *
+ * Revision 1.3  1994/04/21  04:58:08  karavan
  * Added changeStatus and changeActive member functions to searchHistoryNode.
  *
  * Revision 1.2  1994/02/03  23:27:03  hollings
@@ -60,10 +65,6 @@ class searchHistoryNode {
 	hypothesis *why;
 	focus *where;
 	timeInterval *when;
-	Boolean active;			// currently at or along path to 	
-					// root of item(s) under test.
-	Boolean beenTested;	
-	Boolean status;			// true not not true.
 	Boolean ableToEnable;		// refine has no data.
 	Boolean resetActive();
 	Boolean marked;			// for print.
@@ -76,6 +77,16 @@ class searchHistoryNode {
 	static stringPool shgNames;
 	void changeStatus(Boolean newstat);
 	void changeActive(Boolean newact);
+	void changeTested(Boolean newtested);
+	Boolean getActive() { return(active); }
+	Boolean getStatus() { return(status); }
+    private:
+	void changeColor();		// update node color.
+	Boolean active;			// currently at or along path to 	
+					// root of item(s) under test.
+	Boolean beenTested;	
+	Boolean status;			// true not not true.
+	int style;			// current color
 };
 
 searchHistoryNode *findAndAddSHG(searchHistoryNode *parent,

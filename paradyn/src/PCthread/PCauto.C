@@ -2,7 +2,12 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.7  1994/05/18 02:49:26  hollings
+ * Revision 1.8  1994/05/19 00:00:25  hollings
+ * Added tempaltes.
+ * Fixed limited number of nodes being evaluated on once.
+ * Fixed color coding of nodes.
+ *
+ * Revision 1.7  1994/05/18  02:49:26  hollings
  * Changed the time since last change to use the time of the first sample
  * arrivial after the change (rather than the time of the change).
  *
@@ -131,7 +136,7 @@ void autoSelectRefinements()
     int i;
     searchHistoryNodeList refList;
 
-    if (currentSHGNode->status != TRUE) {
+    if (currentSHGNode->getStatus() != TRUE) {
 	// select this node.
 	refList.add(currentSHGNode); 
     } else {
@@ -170,16 +175,19 @@ void autoChangeRefineList()
     extern tunableConstant sufficientTime;
 
     if (printNodes) printf("TRYING: ");
-    // for (i = currentRefinementBase; i < currentRefinementBase + maxEval.getValue(); i++) {
     for (i =currentRefinementBase; 
 	 totalCost < predictedCostLimit.getValue(); i++) {
-	// also limit to 25 refinements for now.
-	if (i >= currentRefinementBase + maxEval.getValue()) break;
+	if (i >= currentRefinementBase + maxEval.getValue()) {
+	    // its one too high.
+	    i--;
+	    break;
+	}
 	if (i >= refineCount) break;
+	if (printNodes) printf("%d ", refinementOptions[i]->nodeId);
 	curr = refinementOptions[i];
 	// newCost = curr->cost(); 
 	// totalCost += newCost;
-	curr->active = TRUE;
+	curr->changeActive(TRUE);
     }
     currentRefinementLimit = i;
 
@@ -187,7 +195,6 @@ void autoChangeRefineList()
 
     // see if there was any thing to test.
     if (currentRefinementBase >= refineCount) {
-	// ???? what should really go here.
 	dataMgr->pauseApplication(context);
 	printf("all refinements considered...application paused\n");
 
@@ -203,7 +210,7 @@ void autoChangeRefineList()
     printf("setting autorefinement timelimit to %f\n", timeLimit);
 
     // see if the new ones are true already.
-    (void) autoTestRefinements();
+    // (void) autoTestRefinements();
 }
 
 void autoTimeLimitExpired()
@@ -214,7 +221,7 @@ void autoTimeLimitExpired()
     for (i=currentRefinementBase; i <= currentRefinementLimit; i++) {
 	if (i >= refineCount) break;
 	if (printNodes) printf("%d ",  refinementOptions[i]->nodeId);
-	refinementOptions[i]->active = FALSE;
+	refinementOptions[i]->changeActive(FALSE);
     }
     if (printNodes) printf("\n");
 
@@ -225,24 +232,34 @@ void autoTimeLimitExpired()
 Boolean autoTestRefinements()
 {
     int i;
+    Boolean previousOK;
     searchHistoryNode *curr;
     extern void setCurrentRefinement(searchHistoryNode*);
     extern Boolean verifyPreviousRefinements();
 
-    verifyPreviousRefinements();
+    previousOK = verifyPreviousRefinements();
+    if (!previousOK) {
+	// something changed 
+	free(refinementOptions);
+	refinementOptions = NULL;
+
+	// find a a good new refinement to try back of the SHG. 
+	autoSelectRefinements();
+	return(TRUE);
+    }
 
     // see if we found one.
     for (i=currentRefinementBase; i <= currentRefinementLimit; i++) {
 	if (i >= refineCount) break;
 	curr = refinementOptions[i];
-	if (curr->status == TRUE) {
+	if (curr->getStatus() == TRUE) {
 
 	    setCurrentRefinement(curr);
 
 	    // disable other refinement options.
 	    for (i=0; i < refineCount; i++) {
 		if (refinementOptions[i] == curr) continue;
-		refinementOptions[i]->active = FALSE;
+		refinementOptions[i]->changeActive(FALSE);
 	    }
 	    free(refinementOptions);
 	    refinementOptions = NULL;

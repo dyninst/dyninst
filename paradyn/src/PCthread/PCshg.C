@@ -1,6 +1,11 @@
 /*
  * $Log: PCshg.C,v $
- * Revision 1.5  1994/05/18 00:48:56  hollings
+ * Revision 1.6  1994/05/19 00:00:30  hollings
+ * Added tempaltes.
+ * Fixed limited number of nodes being evaluated on once.
+ * Fixed color coding of nodes.
+ *
+ * Revision 1.5  1994/05/18  00:48:56  hollings
  * Major changes in the notion of time to wait for a hypothesis.  We now wait
  * until the earlyestLastSample for a metrics used by a hypothesis is at
  * least sufficient observation time after the change was made.
@@ -55,7 +60,7 @@
 static char Copyright[] = 
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.5 1994/05/18 00:48:56 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.6 1994/05/19 00:00:30 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -97,6 +102,7 @@ searchHistoryNode::searchHistoryNode(hypothesis *h, focus *f, timeInterval *t)
     name= shgNames.findAndAdd(tempName);
     shortName = (char *) malloc(16);
     sprintf(shortName, " %d ", nodeId);
+    style = UNTESTEDNODESTYLE;
 };
 
 void searchHistoryNode::print(int level)
@@ -164,30 +170,47 @@ Boolean searchHistoryNode::print(int parent, FILE *fp)
     return(False);
 }
 
-void 
-searchHistoryNode::changeActive(Boolean newact)
+void inline searchHistoryNode::changeColor()
+{
+  int newStyle;
+
+  if (beenTested == FALSE) {
+      newStyle = UNTESTEDNODESTYLE;
+  } else {
+      if (active == TRUE) {
+	  if (status == TRUE) {
+	      newStyle = ACTIVETRUENODESTYLE;
+	  } else {
+	      newStyle = ACTIVEFALSENODESTYLE;
+	  }
+      } else {
+	  newStyle = INACTIVENODESTYLE;
+      }
+  }
+  if (newStyle != style) {
+      uiMgr->DAGconfigNode(SHGid, nodeId, newStyle);
+      // work around bug.
+      uiMgr->DAGaddNode(SHGid, nodeId, newStyle, shortName, name, 0);
+      style = newStyle;
+  }
+}
+
+void searchHistoryNode::changeActive(Boolean newact)
 {
   active = newact;
-  if (newact == TRUE) {
-    if (status == TRUE) 
-      uiMgr->DAGconfigNode(SHGid, nodeId, ACTIVETRUENODESTYLE);
-    else
-      uiMgr->DAGconfigNode(SHGid, nodeId, ACTIVEFALSENODESTYLE);
-  }
-  else
-    uiMgr->DAGconfigNode (SHGid, nodeId, INACTIVENODESTYLE);
+  changeColor();
 }    
 
-void 
-searchHistoryNode::changeStatus(Boolean newstat)
+void searchHistoryNode::changeStatus(Boolean newstat)
 {
   status = newstat;
-  if (newstat == TRUE) {
-    uiMgr->DAGconfigNode(SHGid, nodeId, ACTIVETRUENODESTYLE);
-  }
-  else {
-    uiMgr->DAGconfigNode(SHGid, nodeId, ACTIVEFALSENODESTYLE);
-  }
+  changeColor();
+}
+    
+void searchHistoryNode::changeTested(Boolean newstat)
+{
+  beenTested = newstat;
+  changeColor();
 }
     
 void searchHistoryNode::resetStatus()
@@ -281,7 +304,7 @@ void shgInit()
     allSHGNodes.add(SearchHistoryGraph, SearchHistoryGraph->name);
 
     currentSHGNode = SearchHistoryGraph;
-    currentSHGNode->active = TRUE;
+    currentSHGNode->changeActive(TRUE);
 
     // begin visual display of shg
     SHGid = uiMgr->initSHG();     

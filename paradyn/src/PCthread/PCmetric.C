@@ -1,7 +1,12 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.8  1994/05/18 02:49:28  hollings
+ * Revision 1.9  1994/05/19 00:00:28  hollings
+ * Added tempaltes.
+ * Fixed limited number of nodes being evaluated on once.
+ * Fixed color coding of nodes.
+ *
+ * Revision 1.8  1994/05/18  02:49:28  hollings
  * Changed the time since last change to use the time of the first sample
  * arrivial after the change (rather than the time of the change).
  *
@@ -69,7 +74,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.8 1994/05/18 02:49:28 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.9 1994/05/19 00:00:28 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -83,10 +88,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCwhen.h"
 #include "PCauto.h"
 
-tunableConstant sufficientTime(6.0, 0.0, 1000.0, NULL, "sufficientTime",
-  "How long to wait (in seconds) before we can concule a hypothesis is false.");
-
-int PCsearchPaused;
 timeStamp PCcurrentTime;
 int PCautoRefinementLimit;
 stringPool PCmetricStrings;
@@ -99,12 +100,6 @@ Boolean explainationFlag = FALSE;
 // ugly global to pass cost around for a single hypothesis.
 //
 extern float globalPredicatedCost;
-
-//
-// Fix this soon... This should be based on some real information.
-//
-tunableConstant minObservationTime(1.0, 0.0, 60.0, NULL, "minObservationTime",
- "min. time (in seconds) to wait after chaning inst to start try hypotheses.");
 
 warningLevel noDataWarning = wNever;
 extern performanceStream *pcStream;
@@ -445,48 +440,6 @@ void datum::newSample(timeStamp start, timeStamp end, sampleValue value)
 
     samplesSinceLastChange = globalMinSampleCount();
     PCshortestEnableTime = globalMinEnabledTime();
-}
-
-void PCevaluateWorld()
-{
-    Boolean changed;
-    extern Boolean doScan();
-    extern Boolean verifyPreviousRefinements();
-
-    //
-    // see that we are actively searching before trying to eval tests!
-    //
-    if (PCsearchPaused) {
-	return;
-    }
-
-    //
-    // wait minObservationTime between calls to eval.
-    //
-    if (PCcurrentTime >= PClastTestChangeTime + minObservationTime.getValue()) {
-	/* try to evaluate a test */
-	changed = doScan();
-	if (PCautoRefinementLimit != 0) {
-	    if (changed) {
-		autoTestRefinements();
-	    } else if (PCshortestEnableTime > sufficientTime.getValue()) {
-		// we have waited sufficient observation time move on.
-		printf("autorefinement timelimit reached at %f\n", 
-		    PCcurrentTime);
-		printf("samplesSinceLastChange = %d\n", samplesSinceLastChange);
-		printf("shortest enable time = %f\n", PCshortestEnableTime);
-		autoTimeLimitExpired();
-	    }
-	} else if (changed) {
-	    if (verifyPreviousRefinements()) {
-		dataMgr->pauseApplication(context);
-		printf("application paused\n");
-	    } else {
-		// previous refinement now false.
-		dataMgr->pauseApplication(context);
-	    }
-	}
-    }
 }
 
 PCmetricList allMetrics;

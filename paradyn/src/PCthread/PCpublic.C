@@ -1,7 +1,12 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.9  1994/05/12 23:34:07  hollings
+ * Revision 1.10  1994/05/19 00:00:29  hollings
+ * Added tempaltes.
+ * Fixed limited number of nodes being evaluated on once.
+ * Fixed color coding of nodes.
+ *
+ * Revision 1.9  1994/05/12  23:34:07  hollings
  * made path to paradyn.h relative.
  *
  * Revision 1.8  1994/05/09  20:58:02  hollings
@@ -70,7 +75,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.9 1994/05/12 23:34:07 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.10 1994/05/19 00:00:29 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -185,7 +190,7 @@ searchHistoryNodeList BuildWhenRefinements(searchHistoryNode *of)
 	ret.add(newNode);
 	newArc = of->children->addUnique(newNode);
 
-          // note:  this will draw the nodeID# as the shg node label!!
+        // note:  this will draw the nodeID# as the shg node label!!
 	uiMgr->DAGaddNode (SHGid, newNode->nodeId, UNTESTEDNODESTYLE, 
 			   newNode->shortName, newNode->name, 0);
 	if (newArc) {
@@ -388,11 +393,9 @@ void performanceConsultant::resetRefinement()
 
     setCurrentRefinement(SearchHistoryGraph);
     for (ptr = allSHGNodes; curr = *ptr; ptr++) {
-	curr->active = FALSE;
-	curr->status = FALSE;
-	curr->beenTested = FALSE;
-	   // update SHG display
-	uiMgr->DAGconfigNode (SHGid, curr->nodeId, UNTESTEDNODESTYLE);
+	curr->changeActive(FALSE);
+	curr->changeStatus(FALSE);
+	curr->changeTested(FALSE);
     }
     currentSHGNode->changeActive(TRUE);
 }
