@@ -228,46 +228,7 @@ bool dataManager::addExecutable(const char *machine,
   string n = name;
   string d = dir;
 
-  if(n == "mpid") {
-    int    pid;
-    
-    pid = fork();
-    if(pid == 0) {         // Child process
-      char** str;
-      int    dx;
-
-      str = (char **) malloc(sizeof(char*) * (paradynDaemon::args.size() 
-					      + argv->size() + 5));
-      assert(str != NULL);
-
-      str[0] = strdup("poe");
-      str[1] = strdup("paradynd");
-      for(dx=0; dx < (int) paradynDaemon::args.size(); dx++) {
-	if(strcmp(paradynDaemon::args[dx].string_of(), "-l1") == 0) {
-	  str[dx+2] = strdup("-l0");
-	} else {
-	  str[dx+2] = strdup(paradynDaemon::args[dx].string_of());
-	}
-      }
-      str[paradynDaemon::args.size()+2] = strdup("-zmpi");
-      str[paradynDaemon::args.size()+3] = strdup("-runme");
-      
-      for(dx=0; dx < (int) argv->size(); dx++) {
-	str[paradynDaemon::args.size()+dx+4] = strdup((*argv)[dx].string_of());
-      }
-      str[paradynDaemon::args.size()+argv->size()+4] = NULL;
-                      //IBM POE sets remote directory same as current directory
-      if ((d.length() > 0) && (P_chdir(d.string_of()) < 0)) 
-        cerr << "cannot chdir to " << d.string_of() << ": " 
-             << sys_errlist[errno] << endl;
-
-      execvp(str[0], str);
-    } else {
-      return(true);
-    }
-  } else {
-    return(paradynDaemon::newExecutable(m, l, n, d, *argv));
-  }
+  return(paradynDaemon::newExecutable(m, l, n, d, *argv));
 }
 
 

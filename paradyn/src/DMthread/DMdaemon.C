@@ -657,6 +657,100 @@ static int startBlzApp(const string &machine,
 }
 
 
+static bool execPOE(const string /* &machine*/, const string /* &login */,
+                    const string /* &name   */, const string         &dir,
+                    const vector<string> &argv, const vector<string>  args,
+                    daemonEntry          *de)
+{
+  char **s = (char**) malloc(sizeof(char*) * (args.size() + argv.size() + 5));
+  char   t[1024];
+  assert(s != NULL);
+
+  s[0] = strdup("poe");
+  s[1] = strdup(de->getCommand());
+
+  for (unsigned i = 0; i < args.size(); i++)
+    s[i+2] = (strcmp(args[i].string_of(), "-l1")) 
+             ? strdup(args[i].string_of()) : strdup("-l0");
+
+  sprintf(t, "-z%s", de->getFlavor());
+  s[args.size()+2] = strdup(t);
+  s[args.size()+3] = strdup("-runme");
+      
+  for (unsigned i = 0; i < argv.size(); i++) 
+    s[args.size()+4+i] = (i || strcmp(argv[i].string_of(), "poe"))
+                         ? strdup(argv[i].string_of()) : strdup("");
+
+  s[args.size()+argv.size()+4] = NULL;
+
+                      //IBM POE sets remote directory same as current directory
+  if (dir.length() && (P_chdir(dir.string_of()) < 0)) 
+    cerr << "cannot chdir to " << dir.string_of() << ": " 
+         << sys_errlist[errno] << endl;
+
+  return(execvp(s[0], s) != -1);
+}
+
+
+
+static bool rshPOE(const string         &machine, const string         &login,
+                   const string      /* &name*/,  const string         &dir,
+                   const vector<string> &argv,    const vector<string>  args,
+                   daemonEntry          *de)
+{
+  char *s[6];
+  char  t[1024];
+
+  s[0] = strdup("rsh");
+  s[1] = strdup(machine.string_of());
+  s[2] = (login.length()) ? strdup("-l"):              strdup("");
+  s[3] = (login.length()) ? strdup(login.string_of()): strdup("");
+
+  sprintf(t, "(");
+
+  if (dir.length()) strcat(strcat(strcat(t, "cd "), dir.string_of()), "; ");
+
+  strcat(strcat(strcat(t, "poe "), de->getCommand()), " ");
+
+  for (unsigned i = 0; i < args.size(); i++)
+    strcat(strcat(t, (strcmp(args[i].string_of(), "-l1")) 
+                     ? args[i].string_of() : "-l0"), " ");
+
+  strcat(strcat(strcat(t, "-z"), de->getFlavor()), " -runme ");
+      
+  for (unsigned i = 0; i < argv.size(); i++) 
+    strcat(strcat(t, (i || strcmp(argv[i].string_of(), "poe"))
+                     ? argv[i].string_of() : ""), " ");
+
+  strcat(t, ")");
+
+  s[4] = strdup(t);
+  s[5] = NULL;
+
+  return(execvp(s[0], s) != -1);
+}
+
+
+
+static bool startPOE(const string         &machine, const string         &login,
+                     const string         &name,    const string         &dir,
+                     const vector<string> &argv,    const vector<string>  args,
+		     daemonEntry          *de)
+{
+
+  if (DMstatus)   uiMgr->updateStatus(DMstatus,   "ready");
+  if (PROCstatus) uiMgr->updateStatus(PROCstatus, "IBM POE");
+
+  if (fork()) return(true);
+
+  if ((machine.length() == 0) || (machine == "localhost") || 
+      (machine == getHostName()))
+    return(execPOE(machine, login, name, dir, argv, args, de));
+  else
+    return( rshPOE(machine, login, name, dir, argv, args, de));
+}
+
+
 
 // TODO: fix this
 //
@@ -691,6 +785,10 @@ bool paradynDaemon::newExecutable(const string &machine,
   if(def->getFlavorString() == "cow")
         return startBlzApp(machine, login, name, dir, argv) ;
   //------------
+
+  if (def->getFlavorString() == "mpi")
+    return(startPOE(machine, login, name, dir, argv, args, def));
+
   paradynDaemon *daemon;
   if ((daemon=getDaemonHelper(machine, login, name)) == (paradynDaemon*) NULL)
       return false;
