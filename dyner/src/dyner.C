@@ -215,6 +215,7 @@ int help(ClientData, Tcl_Interp *, int, char **)
     printf("     break point at specified points of <function>\n");
     printf("break <file name:line number> [<condition>] - set an arbitrary (conditional) break\n");
     printf("     point at <line number> of <file name>\n");
+    printf("execute <statement> - Execute <statement> at the current point\n");
     printf("listbreak - list break points\n");
     printf("load <program> [arguments] [< filename] [> filename] - load a program\n");
     printf("load library <lib name> - load a dynamically linked library\n");
@@ -900,6 +901,54 @@ int instStatement(ClientData, Tcl_Interp *, int argc, char *argv[])
 
     // printf("Inst point %d set.\n", ipCtr);
     ipCtr++;
+
+    return TCL_OK;
+}
+
+int execStatement(ClientData, Tcl_Interp *, int argc, char *argv[])
+{
+    if (!haveApp()) return TCL_ERROR;
+
+    if (argc < 2) {
+	printf("Usage: execute <statement>\n");
+	return TCL_ERROR;
+    }
+
+    int expr_start = 1;
+
+    // Count up how large a buffer we need for the whole line
+    int line_len = 0;
+    int i = 0;
+    for (i = expr_start; i < argc; i++)
+	line_len += strlen(argv[i]) + 1;
+    line_len += 2;
+    // Make the buffer and copy the line into it
+    char *line_buf = new char[line_len];
+    *line_buf = '\0';
+    for (i = expr_start; i < argc; i++) {
+	strcat(line_buf, argv[i]);
+	if (i != argc-1) strcat(line_buf, " ");
+    }
+    strcat(line_buf, "\n");
+
+    //printf("calling parse of %s\n", line_buf);
+    set_lex_input(line_buf);
+    if (dynerparse() != 0) {
+	fprintf(stderr, "Execution can not be done due to error.\n");
+	delete line_buf;
+	return TCL_ERROR;
+    }
+
+    if (parse_type != parsed_statement) {
+	fprintf(stderr, "Syntax error, expression is not a statement.\n");
+	delete line_buf;
+	delete parse_result;
+	return TCL_ERROR;
+    }
+
+    appThread->oneTimeCode(*parse_result);
+    delete parse_result;
+    delete line_buf;
 
     return TCL_OK;
 }
@@ -1752,7 +1801,7 @@ int repCall(char *func1, char *func2) {
     }
 
     BPatch_function *newFunc = appImage->findFunction(func2);
-    if (func2 == NULL) {
+    if (newFunc == NULL) {
 	printf("Invalid function name: %s\n", func2);
 	return TCL_ERROR;
     }
@@ -2114,6 +2163,7 @@ int Tcl_AppInit(Tcl_Interp *interp)
     Tcl_CreateCommand(interp, "removecall", removeCommand, NULL, NULL);
     //Tcl_CreateCommand(interp, "dump", dumpCommand, NULL, NULL);
     Tcl_CreateCommand(interp, "detach", detachCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "execute", execStatement, NULL, NULL);
 
     bpatch->registerErrorCallback(errorFunc);
     bpatch->setTypeChecking(false);
