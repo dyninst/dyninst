@@ -98,6 +98,7 @@ $ignore
 public:
   virtual ~mdl_expr();
   virtual bool apply(mdl_var &ret) = 0;
+  virtual bool mk_list(vector<string> &funcs) = 0;
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) = 0;
 #endif
@@ -129,6 +130,7 @@ public:
   mdl_v_expr(string var, u_int array_index);
   ~mdl_v_expr();
   bool apply(mdl_var &ret);
+  bool mk_list(vector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) {
     os << "MDL_V_EXPR: var=" << var_ << " res_type=" << res_type_ << " do_type_walk="
@@ -219,6 +221,7 @@ $ignore
 public:
   virtual ~mdl_stmt() { }
   virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags) = 0;
+  virtual bool mk_list(vector<string> &funcs) = 0;
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) = 0;
 #endif
@@ -239,6 +242,7 @@ public:
 		bool is_lib, vector<string> *flavor);
   virtual ~mdl_list_stmt();
   virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags);
+  virtual bool mk_list(vector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
 #endif
@@ -257,6 +261,7 @@ public:
   mdl_for_stmt(string index_name, mdl_expr *list_exp, mdl_stmt *body);
   virtual ~mdl_for_stmt();
   virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags);
+  virtual bool mk_list(vector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
 #endif
@@ -274,6 +279,7 @@ public:
   mdl_if_stmt(mdl_expr *expr, mdl_stmt *body);
   virtual ~mdl_if_stmt();
   virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags);
+  virtual bool mk_list(vector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
 #endif
@@ -290,6 +296,7 @@ public:
   mdl_seq_stmt(vector<mdl_stmt*> *stmts);
   virtual ~mdl_seq_stmt();
   virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags);
+  virtual bool mk_list(vector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream&) { }
 #endif
@@ -311,6 +318,7 @@ public:
 		 unsigned where_instr, bool constrained);
   virtual ~mdl_instr_stmt();
   virtual bool apply(metricDefinitionNode *mn, vector<dataReqNode*>& flags);
+  virtual bool mk_list(vector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) {
     os << "MDL_INSTR_STMT: constrained=" << constrained_ << " ";
@@ -339,6 +347,7 @@ public:
   ~mdl_constraint();
   bool apply(metricDefinitionNode *mn, dataReqNode *&flag,
 	     vector<string>& resource, process *proc, bool computingCost);
+  bool mk_list(vector<string> &funcs);
 
 #ifdef NO_MDL_PRINT
    friend ostream& operator<< (ostream& os, const mdl_constraint& cons) {
