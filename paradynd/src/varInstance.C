@@ -55,11 +55,22 @@ varInstance<HK>::varInstance(variableMgr &varMgr, const RAWTYPE &initValue_)
   baseAddrInDaemon = (void*) theShmMgr.malloc(mem_amount);
   baseAddrInApplic = theShmMgr.getAddressInApplic(baseAddrInDaemon);
   //  baseAddrInApplic = (void*) baseAddrInApp_;
- 
+  
   for(unsigned i=0; i<numElems; i++) {
     RAWTYPE *curElem = static_cast<RAWTYPE*>( elementAddressInDaemon(i));
     (*curElem) = initValue;
   }
+}
+
+template <class HK>
+varInstance<HK>::varInstance(const varInstance<HK> &par, shmMgr &sMgr, 
+			     process *p) : 
+  numElems(par.numElems), baseAddrInApplic(par.baseAddrInApplic),
+  // start with not sampling anything, let the sample requests be 
+  // reinitiated, ... so leave hkBuf as empty
+  elementsToBeSampled(false), proc(p), initValue(par.initValue), 
+  theShmMgr(sMgr), permanentSamplingSet(), currentSamplingSet() {
+  baseAddrInDaemon = theShmMgr.applicAddrToDaemonAddr(baseAddrInApplic);
 }
 
 template <class HK>
@@ -85,7 +96,6 @@ void varInstance<HK>::markVarAsSampled(unsigned thrPos,
 				       threadMetFocusNode_Val *thrNval) {
   createHKifNotPresent(thrPos);
   hkBuf[thrPos]->setThrClient(thrNval);
-  assert(varState == varAllocated);
 
   permanentSamplingSet.push_back(thrPos);
   currentSamplingSet.push_back(thrPos);
@@ -107,13 +117,19 @@ bool varInstance<HK>::removeFromSamplingSet(vector<unsigned> *set,
 
 template <class HK>
 void varInstance<HK>::markVarAsNotSampled(unsigned thrPos) {
-  assert(varState == varAllocated);
-  assert(removeFromSamplingSet(&permanentSamplingSet, thrPos));
-  removeFromSamplingSet(&currentSamplingSet, thrPos);
+  // Function removeFromSamplingSet will return true (ie. was deleted) except
+  // in the case of sampling attempted to be turned off through the "unfork"
+  // mechanish for forked processes.  This is because the sampling was never
+  // turned on for the forked process, so it's already been deleted per se.
+  if(removeFromSamplingSet(&permanentSamplingSet, thrPos)) {
+    removeFromSamplingSet(&currentSamplingSet, thrPos);
 
-  hkBuf[thrPos]->setThrClient(NULL);
-  delete hkBuf[thrPos];
-  hkBuf[thrPos] = NULL;
+    // if the sample is in the permanent sampling set (and now deleted), then
+    // it's housekeeping object should also be defined
+    hkBuf[thrPos]->setThrClient(NULL);
+    delete hkBuf[thrPos];
+    hkBuf[thrPos] = NULL;
+  }
 }
 
 // returns true if all relevant elements successfully sampled
@@ -134,10 +150,8 @@ bool varInstance<HK>::doMinorSample() {
 }
 
 template <class HK>
-varInstance<HK>::~varInstance()
-{
-   assert(varState == varAllocated);
-   theShmMgr.free((Address) baseAddrInDaemon);
+varInstance<HK>::~varInstance() {
+  theShmMgr.free((Address) baseAddrInDaemon);
 }
 
 template <class HK>
@@ -147,4 +161,11 @@ void varInstance<HK>::deleteThread(unsigned thrPos) {
   (*shmVarAddr) = initValue;
 }
 
+template <class HK>
+void varInstance<HK>::initializeVarsAfterFork(rawTime64 curRawTime) {
+  for(unsigned i=0; i<numElems; i++) {
+    RAWTYPE *curElem = static_cast<RAWTYPE*>( elementAddressInDaemon(i));
+    HK::initializeAfterFork(curElem, curRawTime);
+  }
+}
 
