@@ -14,6 +14,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.59  1995/11/18 18:19:33  krisna
+ * const this cannot be put into container of non-consts
+ *
  * Revision 1.58  1995/11/17 17:24:31  newhall
  * support for MDL "unitsType" option, added normalized member to metric class
  *
@@ -381,7 +384,7 @@ metricDefinitionNode::metricDefinitionNode(string& metric_name,
   unsigned p_size = parts.size();
   for (unsigned u=0; u<p_size; u++) {
     metricDefinitionNode *mi = parts[u];
-    const metricDefinitionNode *t = this;
+    metricDefinitionNode *t = (metricDefinitionNode *) this;
     mi->aggregators += t;
     // parts[u]->aggregators += this;
     valueList.add(&parts[u]->sample);
