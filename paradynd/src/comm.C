@@ -3,7 +3,11 @@
  * Implements virtual function called during an igen error.
  *
  * $Log: comm.C,v $
- * Revision 1.2  1994/06/22 01:43:12  markc
+ * Revision 1.3  1994/09/22 01:46:42  markc
+ * Made system includes extern "C"
+ * Access igen members via methods
+ *
+ * Revision 1.2  1994/06/22  01:43:12  markc
  * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
  * reference to proc->status to use proc->heap->status.
  *
@@ -13,9 +17,12 @@
  *
  */
 
+extern "C" {
+#include <stdio.h>
+#include <unistd.h>
+}
+
 #include "comm.h"
-#include "stdio.h"
-#include "stdlib.h"
 
 // handle_error is a virtual function in the igen generated code
 // defining it allows for custom error handling routines to be implemented
@@ -35,7 +42,7 @@
 //
 void pdRPC::handle_error()
 {
-  switch (err_state)
+  switch (get_err_state())
     {
     case igen_encode_err:
     case igen_decode_err:
@@ -63,7 +70,7 @@ void pdRPC::handle_error()
     case igen_read_err:
       // if paradyn quits either of these errors can occur, so don't dump core
     default:
-      fprintf(stderr, "Error: err_state = %d\n", err_state);
+      fprintf(stderr, "Error: err_state = %d\n", get_err_state());
       exit(-1);
     }
 }
