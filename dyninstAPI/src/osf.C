@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.16 2000/10/17 17:42:19 schendel Exp $
+// $Id: osf.C,v 1.17 2000/11/15 22:56:08 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -1011,6 +1011,14 @@ rawTime64 process::getRawCpuTime_sw(int lwp_id) {
     return now;
 }
 #endif
+
+fileDescriptor *getExecFileDescriptor(string filename,
+				     int &,
+				     bool)
+{
+  fileDescriptor *desc = new fileDescriptor(filename);
+  return desc;
+}
 
 #ifndef BPATCH_LIBRARY
 void process::initCpuTimeMgrPlt() {

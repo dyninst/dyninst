@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.18 2000/07/28 17:21:18 pcroth Exp $
+// $Id: sharedobject.h,v 1.19 2000/11/15 22:56:10 bernat Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -48,6 +48,7 @@
 #include "common/h/Types.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/Object.h"
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/mdld.h"
 #endif
@@ -63,17 +64,32 @@
 class shared_object {
 
 public:
-    shared_object():name(0),short_name(0),base_addr(0),processed(false),
-	 mapped(false),include_funcs(true), objs_image(0),some_funcs(0){}
+    shared_object():desc(0),name(0),
+      short_name(0),
+      base_addr(0),
+      processed(false),
+      mapped(false),include_funcs(true), 
+      objs_image(0),some_funcs(0){}
     shared_object(string &n, Address b, bool p,bool m, bool i, image *d):
-	name(n), base_addr(b),processed(p),mapped(m),
-	include_funcs(i), objs_image(d),some_funcs(0){ 
-        set_short_name();
+      name(n), base_addr(b),
+      processed(p),mapped(m),
+      include_funcs(i), objs_image(d),some_funcs(0){ 
+      desc = new fileDescriptor(n, b);
+      set_short_name();
     }
+    shared_object(fileDescriptor *f,
+		  bool p, bool m, bool i, image *d):
+      desc(f),
+      name(f->file()), base_addr(0),
+      processed(p),mapped(m),
+      include_funcs(i), objs_image(d),some_funcs(0){ 
+      set_short_name();
+    }
+
+
     shared_object(const shared_object &s_obj){
-	name = s_obj.name;
+      desc = s_obj.desc;
 	short_name = s_obj.short_name;
-	base_addr = s_obj.base_addr;
 	processed = s_obj.processed;
 	mapped = s_obj.mapped;
 	include_funcs = s_obj.include_funcs;
@@ -82,9 +98,10 @@ public:
     }
     ~shared_object(){ objs_image = 0;}
 
-    const string &getName(){ return(name); }
+    fileDescriptor *getFileDesc() { return desc; }
+    const string &getName(){ return name; }
     const string &getShortName() { return short_name; }
-    Address getBaseAddress() { return(base_addr); }
+    Address getBaseAddress() { return base_addr; }
     bool  isProcessed() { return(processed); }
     bool  isMapped() { return(mapped); }
     const image  *getImage() { return(objs_image); }
@@ -123,7 +140,7 @@ public:
     // Get list of ALL modules, not just included ones.
     const vector<pdmodule *> *getModules() {
         if(objs_image) {
-	    return (&(objs_image->getAllModules()));
+	  return (&(objs_image->getAllModules()));
 	}
 	return 0;
     }
@@ -222,10 +239,13 @@ public:
     //     PRIVATE DATA MEMBERS
     //				
 private:
+    fileDescriptor *desc; // full file descriptor
+
     string  name;	// full file name of the shared object
     string  short_name; // name of shared object as it should be identified
 			//  in mdl, e.g. as used for "exclude"....
     Address   base_addr;// base address of where the shared object is mapped
+
     bool    processed;  // if true, daemon has processed the shared obj. file
     bool    mapped;     // if true, the application has the shared obj. mapped
 			// shared objects can be unmapped as the appl. runs

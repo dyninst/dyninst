@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.112 2000/10/17 17:42:23 schendel Exp $
+// $Id: symtab.C,v 1.113 2000/11/15 22:56:10 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -287,28 +287,32 @@ static FILE *timeOut=0;
  *    copies of the same image since we don't have to stat and read to find the
  *    physical offset. 
  */
-image *image::parseImage(const string file)
+
+image *image::parseImage(fileDescriptor *desc)
 {
   /*
    * Check to see if we have parsed this image at this offset before.
+   * We only match if the entire file descriptor matches, which can
+   * can be filename matching or filename/offset matching.
    */
-  // TODO -- better method to detect same image/offset --> offset only for CM5
-
   unsigned numImages = allImages.size();
 
   for (unsigned u=0; u<numImages; u++)
-    if (file == allImages[u]->file())
+    if ((*desc) == *(allImages[u]->desc()))
       return allImages[u];
-
+  
   /*
    * load the symbol table. (This is the a.out format specific routine).
    */
 
-  statusLine("Process executable file");
+  if(desc->isSharedObject()) 
+    statusLine("Processing a shared object file");
+  else  
+    statusLine("Processing an executable file");
   bool err=false;
-
+  
   // TODO -- kill process here
-  image *ret = new image(file, err);
+  image *ret = new image(desc, err);
   if (err || !ret) {
     if (ret)
       delete ret;
@@ -332,50 +336,6 @@ image *image::parseImage(const string file)
   tp->resourceBatchMode(false);
 #endif
 
-  return(ret);
-}
-
-/*
- * load a shared object:
- *   1.) parse symbol table and identify rotuines.
- *   2.) scan executable to identify inst points.
- *
- */
-image *image::parseImage(const string file, Address baseAddr)
-{
-  /*
-   * Check to see if we have parsed this image at this offeset before.
-   */
-  // TODO -- better method to detect same image/offset --> offset only for CM5
-
-  unsigned theSize = allImages.size();
-
-  for (unsigned u=0; u<theSize; u++)
-    if (file == allImages[u]->file())
-      return allImages[u];
-
-  /*
-   * load the symbol table. (This is the a.out format specific routine).
-   */
-
-  if(!baseAddr) statusLine("Processing an executable file");
-  else  statusLine("Processing a shared object file");
-  bool err=false;
-
-  // TODO -- kill process here
-  image *ret = new image(file, baseAddr, err);
-  if (err || !ret) {
-    if (ret)
-      delete ret;
-    //logLine("error after new image in parseImage\n");
-    return NULL;
-  }
-
-  // Add to master image list.
-  image::allImages += ret;
-
-  // define all modules.
-  ret->defineModules();
   return(ret);
 }
 
@@ -766,7 +726,7 @@ void image::postProcess(const string pifname)
   if (!(pifname == (char*)NULL)) {
     fname = pifname;
   } else {
-    fname = file_ + ".pif";
+    fname = desc_->file() + ".pif";
   }
 
   /* Open the file */
@@ -1346,6 +1306,7 @@ bool image::addOneFunction(vector<Symbol> &mods,
   // find module name
   Address modAddr = 0;
   string modName = lookUp.module();
+
   if (modName == "") {
     modName = name_ + "_module";
   } else if (modName == "DEFAULT_MODULE") {
@@ -1624,18 +1585,19 @@ image::image(const string &fileName, bool &err)
     funcsByAddr(addrHash4),
     funcsByPretty(string::hash),
     funcsByMangled(string::hash),
-    file_(fileName),
     linkedFile(fileName, pd_log_perror),
     iSymsMap(string::hash),
     varsByPretty(string::hash),
     knownJumpTargets(int_addrHash, 8192)
 {
-    sharedobj_cerr << "image::image for non-sharedobj; file name="
-                   << file_ << endl;
-
-    // shared_object and static object (a.out) constructors merged into
-    //  common initialize routine.... 
-    initialize(fileName, err, 0);
+  cerr << "Deprecated non-shared image constructor called!" << endl;
+  desc_ = new fileDescriptor(fileName);
+  sharedobj_cerr << "image::image for non-sharedobj; file name="
+		 << desc_->file()<< endl;
+  
+  // shared_object and static object (a.out) constructors merged into
+  //  common initialize routine.... 
+  initialize(fileName, err, 0);
 }
 
 // 
@@ -1652,18 +1614,53 @@ image::image(const string &fileName, Address baseAddr, bool &err)
     funcsByAddr(addrHash4),
     funcsByPretty(string::hash),
     funcsByMangled(string::hash),
-    file_(fileName),
     linkedFile(fileName, baseAddr, pd_log_perror),
     iSymsMap(string::hash),
     varsByPretty(string::hash),
     knownJumpTargets(int_addrHash, 8192)
 {
-    sharedobj_cerr << "welcome to image::image for shared obj; file name="
-                   << file_ << endl;
+  cerr << "Deprecated shared image constructor called!" << endl;
+  desc_ = new fileDescriptor(fileName, baseAddr);
+  sharedobj_cerr << "welcome to image::image for shared obj; file name="
+		 << desc_->file() << endl;
+  
+  // shared_object and static object (a.out) constructors merged into
+  //  common initialize routine.... 
+  initialize(fileName, err, 1, baseAddr);
+}
 
+// Interface for AIX (and possibly others)
+
+image::image(fileDescriptor *desc, bool &err)
+  : main_call_addr_(0),
+    modsByFileName(string::hash),
+    modsByFullName(string::hash),
+    includedFunctions(0),
+    excludedFunctions(string::hash),
+    instrumentableFunctions(0),
+    notInstruFunctions(string::hash),
+    funcsByAddr(addrHash4),
+    funcsByPretty(string::hash),
+    funcsByMangled(string::hash),
+    desc_(desc),
+    linkedFile(desc, pd_log_perror),
+    iSymsMap(string::hash),
+    varsByPretty(string::hash),
+    knownJumpTargets(int_addrHash, 8192)
+{
+  if (desc->isSharedObject())
+    {
+      sharedobj_cerr << "image::image for shared obj; file name="
+		     << desc->file() << endl;
+    }
+  else
+    {
+      sharedobj_cerr << "image::image for non-sharedobj; file name="
+		     << desc->file() << endl;
+    }
     // shared_object and static object (a.out) constructors merged into
     //  common initialize routine.... 
-    initialize(fileName, err, 1, baseAddr);
+    initialize(desc->file(), err, desc->isSharedObject());
 }
 
 static bool findStartSymbol(Object &lf, Address &adr) {
@@ -1699,6 +1696,7 @@ static bool findEndSymbol(Object &lf, Address &adr) {
    	from shared library.
       base_addr - curr. used IFF shared_library == 1.
  */
+
 void image::initialize(const string &fileName, bool &err,
 		       bool shared_object, Address /*base_addr*/) {
     // initialize (data members) codeOffset_, dataOffset_,
@@ -1707,7 +1705,7 @@ void image::initialize(const string &fileName, bool &err,
     dataOffset_ = linkedFile.data_off();
     codeLen_ = linkedFile.code_len();
     dataLen_ = linkedFile.data_len();
-
+    
     // if unable to parse object file (somehow??), try to
     //  notify luser/calling process + return....    
     if (!codeLen_ || !linkedFile.code_ptr()) {
@@ -1729,6 +1727,11 @@ void image::initialize(const string &fileName, bool &err,
     //  w/ paradyn need to link with the DYNINST library, try to find
     //  the paradyn lib version # (DYNINSTversion or _DYNINSTversion
     //  symbol).
+
+    // This works for now on AIX since we're statically linking the
+    // runtime library. But this doesn't allow for the RT to be linked
+    // in, just not in the executable. FIXME
+
     if (!shared_object) {
         Symbol version;
         if (!linkedFile.get_symbol("DYNINSTversion", version) &&

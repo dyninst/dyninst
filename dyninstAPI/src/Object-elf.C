@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.20 2000/10/17 17:42:14 schendel Exp $
+ * $Id: Object-elf.C,v 1.21 2000/11/15 22:56:04 bernat Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1343,6 +1343,14 @@ Object::Object(const string file, const Address /*baseAddr*/,
     : AObject(file, err_func), EEL(false)  {
     load_shared_object();
     //dump_state_info(cerr);
+}
+
+Object::Object(fileDescriptor *desc, void (*err_func)(const char *))
+  : AObject(desc->file(), err_func) {
+  if (desc->isSharedObject())
+    load_shared_object();
+  else load_object();
+    
 }
 
 Object::Object(const Object& obj)

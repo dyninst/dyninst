@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.25 2000/10/17 17:42:20 schendel Exp $
+// $Id: pdwinnt.C,v 1.26 2000/11/15 22:56:08 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1329,6 +1329,13 @@ rawTime64 process::getRawCpuTime_sw(int lwp_id) {
 }
 #endif // SHM_SAMPLING
 
+fileDescriptor *getExecFileDescriptor(string filename,
+				     int &,
+				     bool)
+{
+  fileDescriptor *desc = new fileDescriptor(filename);
+  return desc;
+}
 
 #ifndef BPATCH_LIBRARY
 void process::initCpuTimeMgrPlt() {

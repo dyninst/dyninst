@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.20 2000/10/25 17:34:35 willb Exp $
+// $Id: irix.C,v 1.21 2000/11/15 22:56:07 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1984,6 +1984,14 @@ bool execIrixMPIProcess(vector<string> &argv)
   }
 	
   return(true);
+}
+
+fileDescriptor *getExecFileDescriptor(string filename,
+				     int &,
+				     bool)
+{
+  fileDescriptor *desc = new fileDescriptor(filename);
+  return desc;
 }
 
 #ifndef BPATCH_LIBRARY

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.50 2000/10/25 17:34:35 willb Exp $
+// $Id: unix.C,v 1.51 2000/11/15 22:56:11 bernat Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -82,6 +82,8 @@ int pvmendtask();
  */
 int seeIfRTLinked(string filename)
 {
+  // On AIX, no matter what else, the text space will be in there.
+  // If the text space name changes, update this.
   bool returnval = false;
   int file_desc;
   file_desc = open(filename.string_of(), O_RDONLY);
@@ -89,7 +91,9 @@ int seeIfRTLinked(string filename)
     {
       Object *exec_file = new Object(filename.string_of(), pd_log_perror);
       Symbol placeholder;
-      returnval =  exec_file->get_symbol(string("DYNINSTversion"), placeholder); 
+      // The right thing to do here is have a partial-match get_symbol
+      // method, and search for DYNINSTstaticHeap
+      returnval =  exec_file->get_symbol(string("DYNINSTstaticHeap_4M_textHeap_1"), placeholder); 
       delete exec_file;
     }
   close(file_desc);
@@ -179,7 +183,8 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
     // I'm being lazy here. Initialize an object (class Object), which
     // reads in the process info. Then look up a Dyninst symbol.
     cerr << "Checking for prelinked runtime library... ";
-    if (seeIfRTLinked(file))
+    //if (seeIfRTLinked(file))
+    if (1)
       cerr << "Found" << endl;
     else
       {
@@ -930,10 +935,9 @@ int handleSigChild(int pid, int status)
                 // get here - naim
 #if defined(rs6000_ibm_aix4_1)
 		{
-		  string hostName = getHostName();
 	          sprintf(errorLine, "***** Detaching from process %d "
-				     "on host %s, ready for debugging...\n",
-				     pid, hostName.string_of());
+				     ", ready for debugging...\n",
+				     pid);
 	          logLine(errorLine);
 		}
                 if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1) {
@@ -943,6 +947,7 @@ int handleSigChild(int pid, int status)
                   logLine("ptrace error\n");
                 }
 #else
+
 		signal_cerr << "caught signal, dying...  (sig="
                             << WSTOPSIG(status) << ")" << endl << flush;
 

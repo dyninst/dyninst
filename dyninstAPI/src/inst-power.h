@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.12 1999/10/18 17:32:46 hollings Exp $
+ * $Id: inst-power.h,v 1.13 2000/11/15 22:56:07 bernat Exp $
  */
 
 #ifndef INST_POWER_H
@@ -67,6 +67,7 @@ extern trampTemplate noArgsTemplate;
 extern trampTemplate withArgsTemplate;
 
 #define REG_SP		      1		
+#define REG_TOC               2   /* TOC anchor                            */
 #define REG_MT               12   /* register saved to keep the address of */
                                   /* the current vector of counter/timers  */
                                   /* for each thread.                      */

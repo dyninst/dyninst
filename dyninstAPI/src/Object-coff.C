@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.9 2000/07/28 17:20:41 pcroth Exp $
+// $Id: Object-coff.C,v 1.10 2000/11/15 22:56:04 bernat Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -747,8 +747,13 @@ Object::Object (const string fileName, const Address /*BaseAddr*/,
 {
 
   load_object(true);
-
 }
+
+Object::Object(fileDescriptor *desc, void (*err_func)(const char *))
+  : AObject(desc->file(), err_func) {
+  load_object(desc->isSharedObject());
+}
+
 
 inline
 Object::Object(const Object& obj)

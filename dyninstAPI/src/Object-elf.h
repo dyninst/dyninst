@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.40 2000/07/28 17:20:41 pcroth Exp $
+ * $Id: Object-elf.h,v 1.41 2000/11/15 22:56:05 bernat Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -128,6 +128,8 @@ class Object : public AObject {
   // shared object ctor
   Object(const string, const Address base, 
 	 void (*)(const char *) = log_msg);  
+  // "Filedescriptor" ctor
+  Object(fileDescriptor *desc, void (*)(const char *) = log_msg);
   Object(const Object &);
   virtual ~Object();
   const Object& operator=(const Object &);

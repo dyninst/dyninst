@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.32 2000/10/17 17:42:14 schendel Exp $
+ * $Id: Object.h,v 1.33 2000/11/15 22:56:05 bernat Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -61,6 +61,36 @@
 #include "common/h/lprintf.h"
 
 extern int symbol_compare(const void *x, const void *y);
+
+// File descriptor information
+class fileDescriptor {
+ public:
+  fileDescriptor():file_(0), addr_(0), shared_(false){}
+  fileDescriptor(string file):file_(file), addr_(0), shared_(false){}
+  fileDescriptor(string file, Address addr):file_(file), addr_(addr), shared_(true){}
+  fileDescriptor(const fileDescriptor &fd) : file_(fd.file_), addr_(fd.addr_),
+    shared_(fd.shared_) {}
+  ~fileDescriptor() {}
+  
+  bool operator==(const fileDescriptor &fd) const
+  {
+    if ((file_ == fd.file_) &&
+	(addr_ == fd.addr_) &&
+	(shared_ == fd.shared_))
+      return true;
+    else
+      return false;
+  }
+  
+  const string &file() const { return file_; }
+  Address addr() const { return addr_; };
+  bool isSharedObject() const { return shared_; }
+
+ protected:
+  string file_;
+  Address addr_;
+  bool shared_;
+};
 
 // relocation information for calls to functions not in this image
 // on sparc-solaris: target_addr_ = rel_addr_ = PLT entry addr

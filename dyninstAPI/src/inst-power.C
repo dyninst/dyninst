@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.96 2000/10/17 17:42:16 schendel Exp $
+ * $Id: inst-power.C,v 1.97 2000/11/15 22:56:06 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -70,12 +70,13 @@ extern debug_ostream inferiorrpc_cerr;
 extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
 
-#define perror(a) P_abort();
+//#define perror(a) P_abort();
 
 extern bool isPowerOf2(int value, int &result);
 
 #define ABS(x)		((x) > 0 ? x : -x)
-#define MAX_BRANCH	0x1<<23
+//#define MAX_BRANCH	0x1<<23
+#define MAX_BRANCH      0x01fffffc
 #define MAX_CBRANCH	0x1<<13
 
 #define MAX_IMM		0x1<<15		/* 15 plus sign == 16 bits */
@@ -232,7 +233,6 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
    // callAggregate = false;
 }
 
-
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
 // classified
@@ -241,6 +241,7 @@ void pd_Function::checkCallPoints() {
   unsigned int i;
   instPoint *p;
   Address loc_addr;
+  image *owner = file_->exec();
 
   vector<instPoint*> non_lib;
 
@@ -251,22 +252,39 @@ void pd_Function::checkCallPoints() {
 
     if(isCallInsn(p->originalInstruction)) {
       loc_addr = p->addr + (p->originalInstruction.iform.li << 2);
-      pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
+      pd_Function *pdf = owner->findFunction(loc_addr);
       if (pdf) {
         p->callee = pdf;
         non_lib += p;
       } else {
-	delete p;
+	p->callIndirect = true;
+	p->callee = NULL;
+	non_lib += p;
       }
-    } else {
-      // Indirect call -- be conservative, assume it is a call to
-      // an unnamed user function
-      assert(!p->callee); assert(p->callIndirect);
-      p->callee = NULL;
-      non_lib += p;
-    }
+    } else 
+      {
+	if ((this->prettyName()).suffixed_by("_linkage"))
+	  {
+	    // Inter-module call. See note below.
+	    // Assert the call is a bctr. Otherwise this code is FUBARed.
+	    p->callIndirect = true;
+	    p->callee = NULL;
+	    non_lib += p;
+	  }
+	else 
+	  {
+	    // Indirect call -- be conservative, assume it is a call to
+	    // an unnamed user function
+	    assert(!p->callee); assert(p->callIndirect);
+	    p->callee = NULL;
+	    non_lib += p;
+	  }
+      }
   }
+
+
   calls = non_lib;
+
 }
 
 // TODO we cannot find the called function by address at this point in time
@@ -613,42 +631,46 @@ void initTramps()
 #endif
 }
 
-
-	///////////////////////////////////////////////////////////////////////
-	//Our base trampolines save and restore registers onto the stack using
-	//  negative offsets from the stack pointer.  These offsets were
-	//  colliding with offsets used by instructions in the application.
-	//  STKPAD is an extra offset to translate our offsets further down
-	//  the stack to reduce the chance of collision.
-	//
-	//  -24 to -248    We were colliding in this zone.  STKPAD used here.
-	//
-	//    -24  to -52    Saves GPR 3 - 10
-	//    -56            Saves LR.  STKLR is set to this offset.
-	//    -144 to -248   Saves FPR 0 - 13
-	//
-	//  Above -248     Used by mini trampolines.  STKPAD avoids this zone.
-	//
-	//  STKPAD values of 0.5KB, 1KB, 2KB, 4KB, 8KB were too small.
-	//
+/*
+ * Saving and restoring registers
+ *
+ * The base trampoline needs somewhere to save registers to. We currently
+ * save registers based on a negative offset from the stack pointer (on
+ * AIX, the stack grows down). This avoids having to construct a "dummy" stack
+ * frame when building the base tramp. To avoid overwriting program data, 
+ * we shift our save down by an arbitrary "stack pad" value. This is currently 24K.
+ * Basically, we're fine unless we instrument a function with a 24K array. 
+ * I've unified the Dyninst/Paradyn register saving behavior. When paradyn is used,
+ * we "allocate" some extra space. This really isn't a problem, and if we don't emit
+ * a function call, the stack pointer is never even shifted.
+ *
+ *       Stack:    ________________________
+ *             SP  |                      |
+ *                 |                      |
+ *    SP-STKPAD (0)| Begin saving here    |
+ *              -4 |      GPR 0           | actually, I'm not sure if GPRs are
+ *             ... |      GPRs            | saved high first or low first.
+ *  -(13+1)*4  -56 |      Last GPR        |
+ *             -64 |      LR              | LR and CTR are the two registers used
+ *             -68 |      CTR             | in indirect branches.
+ *             -72 |      CR              |
+ *             -76 |      XER             |
+ *             -80 |      SPR0            |
+ *             -88 |      FPSCR           | We allocate 8 bytes for this one.
+ *             -96 | FPR save space       | Allow a little extra room 
+ *            -104 |      FPR             |
+ *             ... |                      |
+ */
 #define STKPAD ( 24 * 1024 )
-
-#ifdef BPATCH_LIBRARY
 #define STKLR    ( -(8 + (13+1)*4) )
 #define STKCR    (STKLR - 4)
-#define STKXER	 (STKLR - 8)
-#define STKCTR	 (STKLR - 12)
+#define STKXER   (STKLR - 8)
+#define STKCTR   (STKLR - 12)
 #define STKSPR0  (STKLR - 16)
 #define STKFPSCR (STKLR - 24)
 #define STKFP    (- STKFPSCR)
 #define STKFCALLREGS (STKFP+(14*8))
 #define STKKEEP (STKFCALLREGS+((13+1)*4)+STKPAD)
-#else
-#define STKLR  ( -(8 + (11+1)*4) )
-#define STKFP  (8+(32*4))
-#define STKFCALLREGS (8+(32*4)+(14*8))
-#define STKKEEP 0
-#endif
 
     ////////////////////////////////////////////////////////////////////
     //Generates instructions to save a special purpose register onto
@@ -1122,12 +1144,15 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 	// Keep track in the process space
 	proc->setTrampGuardFlagAddr(trampGuardFlagAddr);
       }
-
     if (! isReinstall) 
       baseAddr = inferiorMalloc(proc, theTemplate->size, textHeap, location->addr);
     // InferiorMalloc can ignore our "hints" when necessary, but that's bad here.
-    assert(DISTANCE(location->addr, baseAddr) <= MAX_BRANCH);
-
+    if (DISTANCE(location->addr, baseAddr) > MAX_BRANCH)
+      {
+	fprintf(stderr, "Instrumentation point %x too far from tramp location %x\n",
+		(unsigned) location->addr, (unsigned) baseAddr);
+	assert(0);
+      }
     code = new instruction[theTemplate->size / sizeof(instruction)];
     memcpy((char *) code, (char*) theTemplate->trampTemp, theTemplate->size);
     // bcopy(theTemplate->trampTemp, code, theTemplate->size);
@@ -1194,38 +1219,33 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 	// So we can't shift the SP down a little ways, and in most
 	// cases we don't care about shifting it down a long way here.
 	// If we make a function call (emitFuncCall), it handles
-	// shifting the SP down.
+	// shifting the SP down. See comment at the STKPAD definition.
 
 #ifdef BPATCH_LIBRARY
-	for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
-	  registerSlot *reg = theRegSpace->getRegSlot(i);
+      for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
+        registerSlot *reg = theRegSpace->getRegSlot(i);
 #else
-	  for(u_int i = 0; i < regSpace->getRegisterCount(); i++) {
-	    registerSlot *reg = regSpace->getRegSlot(i);
+        for(u_int i = 0; i < regSpace->getRegisterCount(); i++) {
+          registerSlot *reg = regSpace->getRegSlot(i);
 #endif
-	    if (reg->startsLive) {
-	      numInsn = 0;
-	      saveRegister(temp,numInsn,reg->number,8);
-	      assert(numInsn > 0);
-	      currAddr += numInsn;
-	    }
+	  if (reg->startsLive) {
+	    numInsn = 0;
+	    saveRegister(temp,numInsn,reg->number,8);
+	    assert(numInsn > 0);
+	    currAddr += numInsn;
 	  }
-
-	  // A commented-out closing brace to satisfy the auto-indentation
-	  // programs -- uncomment if they get picky
-	  //}
-		  
-	  currAddr += saveLR(temp, 10, STKLR);   //Save link register on stack
-
+	}
+	currAddr += saveLR(temp, 10, STKLR);   //Save link register on stack
+	
 #ifdef BPATCH_LIBRARY
-	  // If this is a point where we're using a conservative base tramp,
-	  // we need to save some more registers.
-	  if (location->ipLoc == ipOther) {
-	    currAddr += saveCR(temp, 10, STKCR); // Save the condition codes
-	    currAddr += saveSPR(temp, 10, SPR_XER, STKXER); // & XER
-	    currAddr += saveSPR(temp, 10, SPR_CTR, STKCTR); // & count reg
-	    currAddr += saveSPR(temp, 10, 0, STKSPR0);      // & SPR0
-	  }
+	// If this is a point where we're using a conservative base tramp,
+	// we need to save some more registers.
+	if (location->ipLoc == ipOther) {
+	  currAddr += saveSPR(temp, 10, SPR_CTR, STKCTR); // & count reg
+	  currAddr += saveCR(temp, 10, STKCR); // Save the condition codes
+	  currAddr += saveSPR(temp, 10, SPR_XER, STKXER); // & XER
+	  currAddr += saveSPR(temp, 10, 0, STKSPR0);      // & SPR0
+	}
 #endif
 	  
 	  // Also save the floating point registers which could
@@ -1259,11 +1279,11 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 	  // If this is a point where we're using a conservative base tramp,
 	  // we need to restore some more registers.
 	  if (location->ipLoc == ipOther) {
+	  currAddr += restoreSPR(temp, 10, SPR_CTR, STKCTR); // & count reg
 	    currAddr += restoreCR(temp, 10, STKCR); // Restore condition codes
 	    currAddr += restoreSPR(temp, 10, SPR_XER, STKXER); // & XER
-	    currAddr += restoreSPR(temp, 10, SPR_CTR, STKCTR); // & count reg
 	    currAddr += restoreSPR(temp, 10, 0, STKSPR0); // & SPR0
-	      currAddr += restoreFPSCR(temp, 13, STKFPSCR); // & FPSCR
+	    currAddr += restoreFPSCR(temp, 13, STKFPSCR); // & FPSCR
 	  }
 #endif
 	  
@@ -1818,7 +1838,9 @@ void cleanUpAndExit(int status);
 // Emit a function call.
 //   It saves registers as needed.
 //   copy the passed arguments into the canonical argument registers (r3-r10)
+//   Locate the TOC entry of the callee module and copy it into R2
 //   generate a branch and link the destination
+//   Restore the original TOC into R2
 //   restore the saved registers.
 //
 // Parameters:
@@ -1829,6 +1851,7 @@ void cleanUpAndExit(int status);
 //   based - offset into the code generated.
 //
 
+
 Register emitFuncCall(opCode /* ocode */, 
 		      registerSpace *rs,
 		      char *iPtr, Address &base, 
@@ -1837,11 +1860,14 @@ Register emitFuncCall(opCode /* ocode */,
 		      const function_base *calleefunc)
 {
   Address dest;
+  Address toc_anchor;
   bool err;
   vector <Register> srcs;
   
   if (calleefunc)
-       dest = calleefunc->getEffectiveAddress(proc);
+    {
+      dest = calleefunc->getEffectiveAddress(proc);
+    }
   else {
        dest = proc->findInternalAddress(callee, false, err);
        if (err) {
@@ -1856,6 +1882,11 @@ Register emitFuncCall(opCode /* ocode */,
 	    dest = func->getAddress(0);
        }
   }
+
+
+  // Now that we have the destination address (unique, hopefully) 
+  // get the TOC anchor value for that function
+  toc_anchor = proc->getTOCoffsetInfo(dest);
 
   // Generate the code for all function parameters, and keep a list
   // of what registers they're in.
@@ -1879,12 +1910,16 @@ Register emitFuncCall(opCode /* ocode */,
   // Add 0 to the list of saved registers
   savedRegs += 0;
   
+  // Save register 2 (TOC)
+  saveRegister(insn, base, 2, STKFCALLREGS);
+  savedRegs += 2;
+
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
   // save REG_MT
   saveRegister(insn,base,REG_MT,STKFCALLREGS);
   savedRegs += REG_MT;
 #endif
-  
+
   // see what others we need to save.
   for (u_int i = 0; i < regSpace->getRegisterCount(); i++) {
     registerSlot *reg = regSpace->getRegSlot(i);
@@ -2003,14 +2038,18 @@ Register emitFuncCall(opCode /* ocode */,
   genImmInsn(insn, STUop, REG_SP, REG_SP, -emitFuncCallStackSpace - STKKEEP);
   insn++;
   base += sizeof(instruction);
-    
-  // save and reset the value of TOC 
-  vector<int> toc_info = proc->getTOCoffsetInfo();
-  assert(toc_info.size()==3);
-  insn->raw = toc_info[0]; insn++; base += sizeof(instruction);
-  insn->raw = toc_info[1]; insn++; base += sizeof(instruction);
-  insn->raw = toc_info[2]; insn++; base += sizeof(instruction);
-  // 0x90410014 0x3c402000 0x6042fd7c 
+
+  // save the TOC 
+  // Done above, right after we save the LR
+  // Push in the value of the TOC anchor to register 2
+
+  genImmInsn(insn, CAUop, 2, 0, HIGH(toc_anchor));
+  insn++;
+  base += sizeof(instruction);
+  genImmInsn(insn, ORILop, 2, 2, LOW(toc_anchor));
+  insn++;
+  base += sizeof(instruction);
+
   // cout << "Dummy" << dummy[0] << "\t" << dummy[1]<< "\t" << dummy[2]<<endl;
 
   // generate a to the subroutine to be called.
@@ -2038,31 +2077,27 @@ Register emitFuncCall(opCode /* ocode */,
   base += sizeof(instruction);
   
   // brl - branch and link through the link reg.
+
   insn->raw = BRLraw;
   insn++;
   base += sizeof(instruction);
-  
+
   // should there be a nop of some sort here?, sec
   // No: AFAIK, the nop is an artifact of the linker, which we bypass.
+  // ld replaces the nop with a instr to reload the TOC anchor, below.
   // -- bernat
   //insn->raw = 0x4ffffb82;  // nop
   //insn++;
   //base += sizeof(instruction);
-  
+
+  // restore TOC
+  // Implicitly done by restoreRegs below (it was saved above)
+
   // now cleanup.
   genImmInsn(insn, CALop, REG_SP, REG_SP, emitFuncCallStackSpace + STKKEEP);
   insn++;
   base += sizeof(instruction);
   
-  // sec
-  // Probably want this in -- bernat
-  // But currently it makes test 1.12 fail in the Dyninst suite
-  // (insert/remove and malloc/free, but I don't know why
-  //  // restore TOC
-  //genImmInsn(insn, Lop, 2, 1, 20);
-  //insn++;
-  //base += sizeof(instruction);
-
   // get a register to keep the return value in.
   Register retReg = regSpace->allocateRegister(iPtr, base, noCost);
 
@@ -2723,9 +2758,38 @@ bool isCallInsn(const instruction i)
 
 bool isDynamicCall(const instruction i)
 {
-  #define BRLCmatch 0x4C000001 /* bLR and bCR have opcode 19 */
-  if (isInsnType(i, OPmask | LLmask, BRLCmatch))
-    return true;
+  // I'm going to break this up a little so that I can comment
+  // it better. 
+
+  if (i.xlform.op == BCLRop && i.xlform.xo == BCLRxop)
+    {
+      if (i.xlform.lk)
+	// Type one: Branch-to-LR, save PC in LR
+	// Standard function pointer call
+	return true;
+      else
+	// Type two: Branch-to-LR, don't save PC
+	// Haven't seen one of these around
+	// It would be a return instruction, probably
+	{
+	  return false;
+	}
+    }
+  if (i.xlform.op == BCLRop && i.xlform.xo == BCCTRxop)
+    {
+      if (i.xlform.lk)
+	// Type three: Branch-to-CR, save PC
+	{
+	  return true;
+	}
+      else
+	// Type four: Branch-to-CR, don't save PC
+	// Used for global linkage code.
+	// We handle those elsewhere.
+	{
+	  return true;
+	}
+    }
   return false;
 }
 
@@ -2839,6 +2903,7 @@ bool pd_Function::findInstPoints(const image *owner)
   retInsn.raw = 0;
   funcReturns+= new instPoint(this, retInsn, owner, adr+1, false, ipFuncReturn);
 
+  // Define call sites in the function
   instr.raw = owner->get_instruction(adr);
   while(instr.raw != 0x0) {
     if (isCallInsn(instr)) {
@@ -2857,6 +2922,19 @@ bool pd_Function::findInstPoints(const image *owner)
     instr.raw = owner->get_instruction(adr);
   }
 
+  // Check for linkage code, and if so enter the call site as 
+  // a static call.
+  // Linkage template:
+  // l      r12,<offset>(r2) // address of call into R12
+  // st     r2,20(r1)        // Store old TOC on the stack
+  // l      r0,0(r12)        // Address of callee func
+  // l      r2,4(r12)        // callee TOC
+  // mtctr  0                // We keep the LR static, use the CTR
+  // bctr                    // non-saving branch to CTR
+  // All linkage code will be in module glink.s, and have _linkage
+  // appended to the function name by the parser. Woohoo.
+
+
   return(true);
 }
 
@@ -2868,7 +2946,7 @@ bool pd_Function::findInstPoints(const image *owner)
 //
 // find all DYNINST symbols that are data symbols
 bool process::heapIsOk(const vector<sym_data> &find_us) {
-  Address instHeapStart;
+  Address instHeapStart; instHeapStart = 0; // unused?
   Symbol sym;
   string str;
 
@@ -3054,6 +3132,7 @@ bool completeTheFork(process *parentProc, int childpid) {
 
 	 // now write "this_time_len" bytes from "buffer" into the inferior process,
 	 // starting at "addr".
+	 // Will this have problems with the 1024-byte-at-a-time limit?
 	 if (-1 == ptrace(PT_WRITE_BLOCK, childpid, (int*)addr, this_time_len,
 			  (int*)buffer))
 	    assert(false);
@@ -3124,6 +3203,7 @@ bool completeTheFork(process *parentProc, int childpid) {
       // the parent process, and then ptrace-write it to the same location
       // in the child process.
 
+      // 64-bit problem
       int data; // big enough to hold 1 instr
 
       errno = 0;
@@ -3143,19 +3223,94 @@ bool completeTheFork(process *parentProc, int childpid) {
 
 
 // hasBeenBound: returns false
-// dynamic linking not implemented on this platform
+// On AIX (at least what we handle so far), all symbols are bound
+// at load time. This kind of obviates the need for a hasBeenBound
+// function: of _course_ the symbol has been bound. 
+// So the idea of having a relocation entry for the function doesn't
+// quite make sense. Given the target address, we can scan the function
+// lists (symbol and shared_objects) until we find the desired function.
+
 bool process::hasBeenBound(const relocationEntry ,pd_Function *&, Address ) {
-    return false;
+  // What needs doing:
+  // Locate call instruction
+  // Decipher call instruction (static/dynamic call, global linkage code)
+  // Locate target
+  // Lookup target
+  return false; // Haven't patched this up yet
 }
 
-// findCallee: returns false unless callee is already set in instPoint
-// dynamic linking not implemented on this platform
+// findCallee
 bool process::findCallee(instPoint &instr, function_base *&target){
+  if((target = const_cast<function_base *>(instr.iPgetCallee()))) {
+    return true; // callee already set
+  }
+  // Other possibilities: call through a function pointer,
+  // or a inter-module call. We handle inter-module calls as
+  // a static function call.
+  const image *owner = instr.iPgetOwner();
+  const function_base *caller = instr.iPgetFunction();
+  // Or module == glink.s == "Global_Linkage"
+  if (caller->prettyName().suffixed_by("_linkage"))
+    {
+      // Make sure we're not mistaking a function named
+      // *_linkage for global linkage code. 
+      if (instr.originalInstruction.raw != 0x4e800420) // BCTR
+	return false;
+      Address TOC_addr = (owner->getObject()).getTOCoffset();
+      instruction offset_instr;
+      offset_instr.raw = owner->get_instruction(instr.addr - 20); // Five instructions up.
+      if ((offset_instr.dform.op != Lop) ||
+	  (offset_instr.dform.rt != 12) ||
+	  (offset_instr.dform.ra != 2))
+	// Not a l r12, <offset>(r2), so not actually linkage code.
+	return false;
+      // This should be the contents of R12 in the linkage function
+      Address callee_TOC_entry = owner->get_instruction(TOC_addr + offset_instr.dform.d_or_si);
+      // We need to find what object the callee TOC entry is defined in. This will be the
+      // same place we find the function, later.
+      Address callee_addr = 0;
+      const image *callee_img;
+      if ( (callee_addr = symbols->get_instruction(callee_TOC_entry) ))
+	callee_img = symbols;
+      else
+	if (shared_objects) {
+	  for(u_int i=0; i < shared_objects->size(); i++){
+	    const image *img_tmp = ((*shared_objects)[i])->getImage();
+	    if ( (callee_addr = img_tmp->get_instruction(callee_TOC_entry)))
+	      {
+		callee_img = img_tmp;
+		break;
+	      }
+	  }
+	}
+      if (!callee_img) return false;
+      // callee_addr: address of function called, contained in image callee_img
+      // Sanity check on callee_addr
+      if ((callee_addr < 0x20000000) ||
+	  (callee_addr > 0xdfffffff))
+	{
+	  fprintf(stderr, "Skipping illegal address 0x%x in function %s\n",
+		  callee_addr, caller->prettyName().string_of());
+	  return false;
+	}
 
-    if((target = const_cast<function_base *>(instr.iPgetCallee()))) {
-       return true; // callee already set
+      // Again, by definition, the function is not in owner. Loop through all 
+      // images to find it.
+      pd_Function *pdf = 0;
+      if (pdf = callee_img->findFunctionInInstAndUnInst(callee_addr, this))
+	{
+	  target = pdf;
+	  instr.set_callee(pdf);
+	  return true;
+	}
+      else
+	fprintf(stderr, "Couldn't find target function for address 0x%x\n",
+		callee_addr);
     }
-    return false;
+  // Todo
+  target = 0;
+  return false;
+  
 }
 
 
@@ -3207,8 +3362,9 @@ void emitFuncJump(opCode,
      assert(0);
 }
 
-#define REG_LR 64
-#define REG_CTR 65
+// Match AIX register numbering (sys/reg.h)
+#define REG_LR  131
+#define REG_CTR 132
 
 void emitLoadPreviousStackFrameRegister(Address register_num, 
 					Register dest,
@@ -3232,16 +3388,17 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 	      base, noCost);
       // Load LR into register dest
       emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
+      fprintf(stderr, "Emitted a load LR into %d, base %x insn\n", dest, base);
       break;
     case REG_CTR:
-      // Not saved on the stack, still in a register
-      // CTR in SPR 9
-      temp->raw = 0;                    //mfspr:  mflr scratchReg
-      temp->xfxform.op = 31;
-      temp->xfxform.rt = dest;
-      temp->xfxform.spr = 9;
-      temp->xfxform.xo = 339;
-      base += sizeof(instruction);
+      // CTR is saved down the stack
+      offset = STKCTR - STKPAD; 
+      // Get address (SP + offset) and stick in register dest.
+      emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest, insn, 
+	      base, noCost);
+      // Load LR into register dest
+      emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
+      fprintf(stderr, "Emitted a load CTR into %d, base %x insn\n", dest, base);
       break;
     default:
       cerr << "Fallthrough in emitLoadPreviousStackFrameRegister" << endl;
@@ -3264,9 +3421,12 @@ bool process::MonitorCallSite(instPoint *callSite){
   instruction i = callSite->originalInstruction;
   vector<AstNode *> the_args(2);
   Register branch_target;
+  fprintf(stderr, "Monitor call site called at %x for insn %x\n",
+	  callSite->addr, i.raw);
+
   // Is this a branch conditional link register (BCLR)
   // BCLR uses the xlform (6,5,5,5,10,1)
-  if(i.xlform.op == BCLRop) // BLR or BCR
+  if(i.xlform.op == BCLRop) // BLR/BCR, or bcctr/bcc. Same opcode.
     {
       if (i.xlform.xo == BCLRxop) // BLR (bclr)
 	{
@@ -3274,14 +3434,21 @@ bool process::MonitorCallSite(instPoint *callSite){
 	}
       else if (i.xlform.xo == BCCTRxop)
 	{
-	  branch_target = REG_CTR;
+	  // We handle global linkage branches (BCTR) as static call
+          // sites. They're currently registered when the static call
+          // graph is built (Paradyn), after all objects have been read
+          // and parsed.
+	  return false;
+	  //branch_target = REG_CTR;
 	}
       else
 	{
-	  cerr << "MonitorCallSite: Unknown extended opcode " << i.xlform.xo << endl;
+	  // Used to print an error, but the opcode (19) is also used
+	  // for other instructions, and errors could confuse people.
+	  // So just return false instead.
 	  return false;
 	}
-      // Where we're jumping to (link register)
+      // Where we're jumping to (link register, count register)
       the_args[0] = new AstNode(AstNode::PreviousStackFrameDataReg,
 				(void *) branch_target); 
       // Where we are now
@@ -3294,6 +3461,7 @@ bool process::MonitorCallSite(instPoint *callSite){
 		  orderFirstAtPoint,
 		  true,                              /* noCost flag                */
 		  false);                            /* trampRecursiveDesired flag */
+      fprintf(stderr, "Added DYNINSTRegister call to site %x\n", callSite->addr);
       return true;
     }
   else
@@ -3301,8 +3469,6 @@ bool process::MonitorCallSite(instPoint *callSite){
       cerr << "MonitorCallSite: Unknown opcode " << i.xlform.op << endl; 
       return false;
     }
-
-  
 }
 
 #endif

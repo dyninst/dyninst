@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-power.S,v 1.15 2000/03/06 17:34:55 bernat Exp $ */
+/* $Id: tramp-power.S,v 1.16 2000/11/15 22:56:11 bernat Exp $ */
 
 /*
  * trampoline code to get from a code location to an inst. primitive.
@@ -80,7 +80,9 @@ _baseTramp:
 	nop                                                     /* GPR4  */
 	nop                                                     /* GPR3  */
 	nop                             /* mfspr  1. Copy LR into a GPR  */
-	nop                             /* st     2. Copy GRP onto stack */
+	nop                             /* st     2. Copy GPR onto stack */
+	nop				/* mfspr  1. Copy CTR into a GPR */
+	nop				/* st     2. Copy GPR onto stack */
 	nop                                                     /* FPR0  */
 	nop                                                     /* FPR1  */
 	nop                                                     /* FPR2  */
@@ -146,6 +148,8 @@ _baseTramp:
 	.long REENTRANT_GUARD_STORE	/* stw 5,0(6)             */
 	.long	RESTORE_PRE_INSN	/* restore registers *//* l     LR   */
 	nop                                                    /* mtspr ""   */
+	nop				                       /* l CTR      */
+	nop				                       /* mfspr ""   */
 	nop                                                          /* GPR10*/
 	nop                                                          /* GPR9 */
 	nop                                                          /* GPR8 */
@@ -181,6 +185,8 @@ _baseTramp:
 	nop                                                     /* GPR3  */
 	nop                             /* mfspr  1. Copy LR into a GPR  */
 	nop                             /* st     2. Copy GRP onto stack */
+	nop				/* mfspr  1. Copy CTR into a GPR */
+	nop				/* st     2. Copy GPR onto stack */
 	nop                                                     /* FPR0  */
 	nop                                                     /* FPR1  */
 	nop                                                     /* FPR2  */
@@ -238,6 +244,8 @@ _baseTramp:
 	.long REENTRANT_GUARD_STORE	/* stw 5,0(6)             */
         .long RESTORE_POST_INSN         /* restore registers *//* l     LR   */
 	nop                                                    /* mtspr ""   */
+	nop				                       /* l CTR      */
+	nop				                       /* mfspr ""   */
 	nop                                                          /* GPR10*/
 	nop                                                          /* GPR9 */
 	nop                                                          /* GPR8 */

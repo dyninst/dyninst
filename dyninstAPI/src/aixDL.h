@@ -55,26 +55,26 @@ class dynamic_linking {
 
 public:
 
-    dynamic_linking(){} 
-    ~dynamic_linking(){}
-    
-    // getSharedObjects: This routine is called before main() to get and
-    // process all shared objects that have been mapped into the process's
-    // address space
-    // returns 0 
-    vector< shared_object *> *getSharedObjects(process *){ return 0;}
-
-    // handleIfDueToSharedObjectMapping: returns true if the trap was caused
-    // by a change to the link maps  
-    bool handleIfDueToSharedObjectMapping(process *, vector<shared_object *> **,
-			       u_int &, bool &){ return false;}
-
-
-    // returns true if the executable is dynamically linked 
-    bool isDynamic(){ return(false);}
-
-
+  dynamic_linking(): dynlinked(false) {} 
+  ~dynamic_linking(){}
+  
+  // getSharedObjects: This routine is called before main() to get and
+  // process all shared objects that have been mapped into the process's
+  // address space
+  
+  vector< shared_object *> *getSharedObjects(process *);
+  
+  // handleIfDueToSharedObjectMapping: returns true if the trap was caused
+  // by a change to the link maps  
+  bool handleIfDueToSharedObjectMapping(process *, vector<shared_object *> **,
+					u_int &, bool &);
+  
+  
+  // returns true if the executable is dynamically linked 
+  bool isDynamic() {return dynlinked;}
+  
 private:
+    bool dynlinked;
 };
 
 #endif

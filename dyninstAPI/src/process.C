@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.236 2000/10/17 17:42:20 schendel Exp $
+// $Id: process.C,v 1.237 2000/11/15 22:56:08 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -240,9 +240,9 @@ Frame Frame::getCallerFrame(process *p) const
 }
 
 #if !defined(rs6000_ibm_aix4_1)
-vector<int> process::getTOCoffsetInfo() const
+Address process::getTOCoffsetInfo(Address /*dest */) const
 {
-  vector<int> tmp;
+  Address tmp;
   assert(0);
   return tmp; // this is to make the nt compiler happy! - naim
 }
@@ -1052,7 +1052,13 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
       char *garbage_str = strtok(temp_str, "_"); // Don't care about beginning
       assert(!strcmp("DYNINSTstaticHeap", garbage_str));
       // Name is as is.
-      // Address is as is
+      // If address is zero, then skip (error condition)
+      if (heapSymbols[j].addr() == 0)
+	{
+	  cerr << "Skipping heap " << heapSymbols[j].name().string_of()
+	       << "with address 0" << endl;
+	  continue;
+	}
       // Size needs to be parsed out (second item)
       // Just to make life difficult, the heap can have an optional
       // trailing letter (k,K,m,M,g,G) which indicates that it's in
@@ -1159,11 +1165,6 @@ void process::initInferiorHeap()
       {
 	hp->bufferPool += new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
 					infHeaps[j].type(), false);
-	/*
-	fprintf(stderr, "new heapItem(%x, %d, %d, false)\n",
-		infHeaps[j].addr(), infHeaps[j].size(),
-		infHeaps[j].type());
-	*/
 	heapAdded = true;
 	if (infHeaps[j].type() == lowmemHeap)
 	  lowmemHeapAdded = true;
@@ -1244,6 +1245,7 @@ inferiorHeap::inferiorHeap(const inferiorHeap &src):
 int findFreeIndex(process *p, unsigned size, int type, Address lo, Address hi)
 {
   vector<heapItem *> &freeList = p->heap.heapFree;
+
   int best = -1;
   for (unsigned i = 0; i < freeList.size(); i++) {
     heapItem *h = freeList[i];
@@ -1362,11 +1364,12 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
   // allocation range
   Address lo = ADDRESS_LO; // Should get reset to a more reasonable value
   Address hi = ADDRESS_HI; // Should get reset to a more reasonable value
-
+ 
 #if defined(USES_DYNAMIC_INF_HEAP)
   inferiorMallocAlign(size); // align size
   // Set the lo/hi constraints (if necessary)
   inferiorMallocConstraints(near_, lo, hi, type);
+
 #else
   /* align to cache line size (32 bytes on SPARC) */
   size = (size + 0x1f) & ~0x1f; 
@@ -2258,14 +2261,14 @@ process *createProcess(const string File, vector<string> argv,
     BPatch::bpatch->registerProvisionalThread(pid);
 #endif
 
-#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-        extern bool establishBaseAddrs(int pid, int &status, bool waitForTrap);
-        int status;
-
-        if (!establishBaseAddrs(pid, status, true)) {
-            return(NULL);
-        }
-#endif
+    int status = pid;
+    
+    // Get the file descriptor for the executable file
+    // "true" value is for AIX -- waiting for an initial trap
+    // it's ignored on other platforms
+    fileDescriptor *desc = getExecFileDescriptor(file, status, true);
+    if (!desc)
+      return NULL;
 
 #ifndef BPATCH_LIBRARY
 // NEW: We bump up batch mode here; the matching bump-down occurs after shared objects
@@ -2275,19 +2278,7 @@ process *createProcess(const string File, vector<string> argv,
 tp->resourceBatchMode(true);
 #endif /* BPATCH_LIBRARY */
 
-        image *img = image::parseImage(file);
-#if defined(rs6000_ibm_aix4_1)
-	// At this point, we can blow away the inc. linked version
-	// of the file, and restore the file name to the original.
-	// Hope this works :)
-	/*
-	cerr << "Deleting file " << file << endl;
-	unlink(file.string_of());
-	file = File;
-	if (!file.prefixed_by("/") && dir.length() > 0)
-	  file = dir + "/" + file;
-	*/
-#endif
+        image *img = image::parseImage(desc);
         if (!img) {
             // For better error reporting, two failure return values would be
             // useful.  One for simple error like because-file-not-because.
@@ -2358,7 +2349,7 @@ tp->resourceBatchMode(true);
         ret->numOfActWallTimers_is=0;
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-        // XXXX - this is a hack since establishBaseAddrs needed to wait for
+        // XXXX - this is a hack since getExecFileDescriptor needed to wait for
         //    the TRAP signal.
         // We really need to move most of the above code (esp parse image)
         //    to the TRAP signal handler.  The problem is that we don't
@@ -2414,8 +2405,6 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
    // When we attach to a process, we don't fork...so this routine is much simpler
    // than its "competitor", createProcess() (above).
 
-   // TODO: What about AIX establishBaseAddrs???  Do that now?
-
    string fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
    if (!fullPathToExecutable.length())
       return false;
@@ -2425,7 +2414,12 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
       // matching bump-down occurs in procStopFromDYNINSTinit().
 #endif
 
-   image *theImage = image::parseImage(fullPathToExecutable);
+   int status = pid;
+   fileDescriptor *desc = getExecFileDescriptor(fullPathToExecutable,
+						status, false);
+   if (!desc)
+     return false;
+   image *theImage = image::parseImage(desc);
    if (theImage == NULL) {
       // two failure return values would be useful here, to differentiate
       // file-not-found vs. catastrophic-parse-error.
@@ -2615,7 +2609,12 @@ bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach) {
    tp->resourceBatchMode(true);
       // matching bump-down occurs in procStopFromDYNINSTinit().
 
-   image *theImage = image::parseImage(fullPathToExecutable);
+   int status = pid;
+   fileDescriptor *desc = getExecFileDescriptor(fullPathToExecutable,
+						status,
+						false);
+
+   image *theImage = image::parseImage(desc);
    if (theImage == NULL) {
       // two failure return values would be useful here, to differentiate
       // file-not-found vs. catastrophic-parse-error.
@@ -3366,7 +3365,10 @@ check_rtinst(process *proc, shared_object *so)
 bool process::addASharedObject(shared_object &new_obj){
     int ret;
     string msg;
-    image *img = image::parseImage(new_obj.getName(),new_obj.getBaseAddress());
+    // FIXME
+
+    image *img = image::parseImage(new_obj.getFileDesc());
+
     if(!img){
         //logLine("error parsing image in addASharedObject\n");
         return false;
@@ -4133,60 +4135,57 @@ void process::handleExec() {
    // So we set hasBootstrapped to false until we run DYNINSTinit again.
    hasBootstrapped = false;
 
-    // all instrumentation that was inserted in this process is gone.
-    // set exited here so that the disables won't try to write to process
-    status_ = exited; 
+   // all instrumentation that was inserted in this process is gone.
+   // set exited here so that the disables won't try to write to process
+   status_ = exited; 
    
-    // Clean up state from old exec: all dynamic linking stuff, all lists 
-    // of functions and modules from old executable
-
-    // can't delete dynamic linking stuff here, because parent process
-    // could still have pointers
-    dynamiclinking = false;
-    dyn = 0; // AHEM.  LEAKED MEMORY!  not if the parent still has a pointer
-             // to this dynamic_linking object.
-    dyn = new dynamic_linking;
-    if(shared_objects){
-        for(u_int j=0; j< shared_objects->size(); j++){
-            delete (*shared_objects)[j];
-        }
-        delete shared_objects;
-        shared_objects = 0;
-    }
-
-    // TODO: when can pdFunction's be deleted???  definitely not here.
-    delete some_modules;
-    delete some_functions;
-    delete all_functions;
-    delete all_modules;
-    some_modules = 0;
-    some_functions = 0;
-    all_functions = 0;
-    all_modules = 0;
-    signal_handler = 0;
+   // Clean up state from old exec: all dynamic linking stuff, all lists 
+   // of functions and modules from old executable
+   
+   // can't delete dynamic linking stuff here, because parent process
+   // could still have pointers
+   dynamiclinking = false;
+   dyn = 0; // AHEM.  LEAKED MEMORY!  not if the parent still has a pointer
+   // to this dynamic_linking object.
+   dyn = new dynamic_linking;
+   if(shared_objects){
+     for(u_int j=0; j< shared_objects->size(); j++){
+       delete (*shared_objects)[j];
+     }
+     delete shared_objects;
+     shared_objects = 0;
+   }
+   
+   // TODO: when can pdFunction's be deleted???  definitely not here.
+   delete some_modules;
+   delete some_functions;
+   delete all_functions;
+   delete all_modules;
+   some_modules = 0;
+   some_functions = 0;
+   all_functions = 0;
+   all_modules = 0;
+   signal_handler = 0;
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
  || defined(i386_unknown_nt4_0)
-    trampTableItems = 0;
-    memset(trampTable, 0, sizeof(trampTable));
+   trampTableItems = 0;
+   memset(trampTable, 0, sizeof(trampTable));
 #endif
-    baseMap.clear();
+   baseMap.clear();
 #ifdef BPATCH_LIBRARY
-    instPointMap.clear(); /* XXX Should delete instPoints first? */
-    PDFuncToBPFuncMap.clear(),
+   instPointMap.clear(); /* XXX Should delete instPoints first? */
+   PDFuncToBPFuncMap.clear(),
 #endif
-    cleanInstFromActivePoints(this);
-
-#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-    // must call establishBaseAddrs before parsing the new image,
-    // but doesn't need to wait for trap, since we already got the trap.
-    bool establishBaseAddrs(int pid, int &status, bool waitForTrap);
-    int status;
-    establishBaseAddrs(getPid(), status, false);
-#endif
-
-    image *img = image::parseImage(execFilePath);
-
-    if (!img) {
+     cleanInstFromActivePoints(this);
+   
+   int status = pid;
+   fileDescriptor *desc = getExecFileDescriptor(execFilePath,
+						status,
+						false);
+   if (!desc) return;
+   image *img = image::parseImage(desc);
+   
+   if (!img) {
        // For better error reporting, two failure return values would be useful
        // One for simple error like because-file-not-found
        // Another for serious errors like found-but-parsing-failed (internal error;
@@ -5385,7 +5384,6 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 #ifndef BPATCH_LIBRARY    // metric_cerr is a pdDebug_ostream
       metric_cerr << "Found " << req->func << endl;
 #endif
-
       AstNode *ast;
       if ((req->where & FUNC_ARG) && req->args.size()>0) {
         ast = new AstNode(req->inst, req->args);
@@ -5731,7 +5729,6 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
         logLine("WARNING: handleStartProcess failed\n");
       }
 #endif
-
 
 #ifndef BPATCH_LIBRARY
       // we decrement the batch mode here; it matches the bump-up in createProcess()
@@ -6143,7 +6140,7 @@ void process::FillInCallGraphStatic()
   //  main as the entry point should usually work fairly well, except
   //  that call graph PC searches will NOT catch time spent in the
   //  environment specific setup of _start.
-  
+
   pd_Function *entry_pdf = (pd_Function *)findOneFunction("main");
   assert(entry_pdf);
   

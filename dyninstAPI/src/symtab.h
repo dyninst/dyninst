@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.75 2000/08/16 19:52:21 hollings Exp $
+// $Id: symtab.h,v 1.76 2000/11/15 22:56:11 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -555,13 +555,15 @@ class image {
    //
 public:
   static image *parseImage(const string file);
-  static image *parseImage(const string file, Address baseAddr);
+  static image *parseImage(fileDescriptor *desc);
 #ifndef BPATCH_LIBRARY
   static void changeLibFlag(resource*, const bool);
 #endif
 
   image(const string &file, bool &err);
+
   image(const string &file, Address baseAddr, bool &err);
+  image(fileDescriptor *desc, bool &err);
   ~image() { /* TODO */ }
 
   // True if symbol can be found, regardless of whether it is
@@ -629,8 +631,9 @@ public:
 
   inline const unsigned char *getPtrToInstruction(Address adr) const;
 
-  string file() const {return file_;}
+  string file() const {return desc_->file();}
   string name() const { return name_;}
+  const fileDescriptor *desc() const { return desc_; }
   Address codeOffset() { return codeOffset_;}
   Address dataOffset() { return dataOffset_;}
   Address dataLength() { return (dataLen_ << 2);} 
@@ -808,7 +811,7 @@ public:
   //  ****  PRIVATE DATA MEMBERS  ****
   //
 
-  string file_;		/* image file name */
+  fileDescriptor *desc_; /* file descriptor (includes name) */
   string name_;		/* filename part of file, no slashes */
 
   Address codeOffset_;

@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-aix.h,v 1.13 2000/07/28 17:20:41 pcroth Exp $
+ * $Id: Object-aix.h,v 1.14 2000/11/15 22:56:04 bernat Exp $
 ************************************************************************/
 
 
@@ -77,9 +77,77 @@ extern "C" {
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+class fileDescriptor_AIX : public fileDescriptor {
+ public:
+  fileDescriptor_AIX():fileDescriptor(), member_(0), data_(0), pid_(0) {}
+  fileDescriptor_AIX(string file):fileDescriptor(file), member_(0),
+    data_(0), pid_(0) {}
+  fileDescriptor_AIX(string file, string member,
+		     Address text, Address data,
+		     unsigned pid) :
+    fileDescriptor(file, text), member_(member), data_(data), pid_(pid) {}
+  fileDescriptor_AIX(const fileDescriptor_AIX &fda) :
+    fileDescriptor(fda.file_, fda.addr_),
+    member_(fda.member_), data_(fda.data_), pid_(fda.pid_) {}
+  ~fileDescriptor_AIX() {}
+
+  const string &member() const { return member_; }
+  Address data() const { return data_; }
+  unsigned pid() const { return pid_; }
+
+ private:
+  string member_;
+  Address data_;
+  unsigned pid_;
+};
 
 
+#define __AR_BIG__
+#define __AR_SMALL__
+#include <ar.h>
+// Object to represent both the 32-bit and 64-bit archive headers
+// for ar files (libraries)
+class Archive {
+ public:
+  Archive (int file) : member_name(0),fd(file) {}
+  virtual ~Archive () {}
+  
+  virtual int read_arhdr() = 0;
+  virtual int read_mbrhdr() = 0;
 
+  unsigned long long aout_offset;
+  unsigned long long next_offset;
+  char *member_name;
+  int member_len;
+ protected:
+  unsigned long long first_offset;
+  unsigned long long last_offset;
+  int fd;
+};
+
+class Archive_32 : private Archive {
+ public:
+  Archive_32 (int file) : Archive(file) {};
+  ~Archive_32 () {if (member_name) free(member_name);};
+  virtual int read_arhdr();
+  virtual int read_mbrhdr();
+  
+ private:  
+  struct fl_hdr filehdr;
+  struct ar_hdr memberhdr;
+};
+
+class Archive_64 : private Archive {
+ public:
+  Archive_64 (int file) : Archive(file) {};
+  ~Archive_64 () {if (member_name) free(member_name);};
+  virtual int read_arhdr();
+  virtual int read_mbrhdr();
+
+ private:  
+  struct fl_hdr_big filehdr;
+  struct ar_hdr_big memberhdr;
+};
 
 /************************************************************************
  * class Object
@@ -90,6 +158,8 @@ public:
              Object (const string, void (*)(const char *) = log_msg);
              Object (const Object &);
 	     Object (const string, const Address baseAddr,
+                void (*)(const char *) = log_msg);
+	     Object (fileDescriptor *desc,
                 void (*)(const char *) = log_msg);
     ~Object ();
 
@@ -109,6 +179,10 @@ public:
 
 private:
     void load_object ();
+    void load_archive(int fd);
+    void parse_aout(int fd, int offset);
+
+    string member_;
     int  toc_offset_;
     int  nstabs_;
     int  nlines_;
@@ -117,6 +191,12 @@ private:
     Address stringpool_;
     Address linesptr_;
     Address linesfdptr_;
+    // Offset to actual start of text segment (for relocation)
+    Address text_org_;
+    // Offset to actual start of data segment (for relocation)
+    Address data_org_;
+    // Process PID (used for ptrace_read)
+    unsigned pid_;    
 };
 
 

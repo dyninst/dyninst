@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.96 2000/10/17 17:42:22 schendel Exp $
+// $Id: solaris.C,v 1.97 2000/11/15 22:56:10 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1357,6 +1357,14 @@ bool process::terminateProc_()
     return true;
 }
 #endif
+
+fileDescriptor *getExecFileDescriptor(string filename,
+				     int &,
+				     bool)
+{
+  fileDescriptor *desc = new fileDescriptor(filename);
+  return desc;
+}
 
 #if defined(USES_DYNAMIC_INF_HEAP)
 static const Address lowest_addr = 0x0;

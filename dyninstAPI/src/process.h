@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.149 2000/10/17 17:42:21 schendel Exp $
+/* $Id: process.h,v 1.150 2000/11/15 22:56:09 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -57,6 +57,7 @@
 #include "rtinst/h/rtinst.h"
 #include "paradynd/src/timeMgr.h"
 #endif
+#include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/util.h"
 #include "common/h/String.h"
 #include "common/h/vectorSet.h"
@@ -389,6 +390,11 @@ class Frame {
 // inferior RPC callback function type
 typedef void(*inferiorRPCcallbackFunc)(process *p, void *data, void *result);
 
+// Get the file descriptor for the (eventually) 'symbols' image
+// Necessary data to load and parse the executable file
+fileDescriptor *getExecFileDescriptor(string filename,
+				      int &status,
+				      bool); // bool for AIX
 
 class process {
  friend class ptraceKludge;
@@ -536,7 +542,8 @@ class process {
   }
 
   // this is only used on aix so far - naim
-  vector<int> getTOCoffsetInfo() const;
+  // And should really be defined in a arch-dependent place, not process.h - bernat
+  Address getTOCoffsetInfo(Address) const;
 
   bool dyninstLibAlreadyLoaded() { return hasLoadedDyninstLib; }
   bool dyninstLibIsBeingLoaded() { return isLoadingDyninstLib; }
@@ -595,7 +602,6 @@ class process {
 
   void installBootstrapInst();
   void installInstrRequests(const vector<instMapping*> &requests);
-
 
   int getPid() const { return pid;}
 
