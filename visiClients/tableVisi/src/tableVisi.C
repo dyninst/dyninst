@@ -3,6 +3,9 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.2  1995/11/08 21:46:46  tamches
+ * some ui bug fixes
+ *
  * Revision 1.1  1995/11/04 00:45:20  tamches
  * First version of new table visi
  *
@@ -134,7 +137,7 @@ tableVisi::tableVisi(Tcl_Interp *interp,
    cellFont = myXLoadQueryFont(cellFontName);
 
    focusLongNameMode = true;
-   numSigFigs = 2;
+   numSigFigs = iSigFigs;
 //   dataFormat = Current;
 
    maxFocusNamePixWidth = 0;
@@ -237,10 +240,6 @@ bool tableVisi::tryFirst() {
    return true;
 }
 
-//void tableVisi::setDataFormat(tableVisi::dataFormat newDataFormat) {
-//   dataFormat = 
-//}
-
 void tableVisi::resizeScrollbars(Tcl_Interp *interp) {
    // used to be a tcl routine (resize1Scrollbar):
 
@@ -288,12 +287,8 @@ void tableVisi::resize(Tcl_Interp *interp) {
 }
 
 void tableVisi::draw(bool xsynch) const {
-   if (!offscreenPixmap) {
-//      cout << "tableVisi draw must defer..." << endl;
-      return;
-   }
-
-   assert(offscreenPixmap);
+   if (!offscreenPixmap)
+      return; // we haven't done a tryFirst() yet
 
    bool doubleBuffer = !xsynch;
 
@@ -506,7 +501,7 @@ void tableVisi::drawCells(Drawable theDrawable) const {
    
    for (unsigned metriclcv = 0; metriclcv < indirectMetrics.size(); metriclcv++) {
       if (curr_x > maxVisibleX)
-         return;
+         break;
 
       const tvMetric &theMetric = metrics[indirectMetrics[metriclcv]];
       const int next_x = curr_x + theMetric.getColPixWidth();
@@ -538,7 +533,7 @@ void tableVisi::drawCells1Col(Drawable theDrawable, int middle_x, int top_y,
 
    for (unsigned focuslcv=0; focuslcv < indirectFoci.size(); focuslcv++) {
       if (curr_y > maxVisibleY)
-         return;
+         break;
 
       const int next_y = curr_y + getFocusLinePixHeight();
       if (next_y - 1 < minVisibleY) {
