@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.132 2003/01/02 19:51:51 schendel Exp $
+// $Id: inst-sparc.C,v 1.133 2003/01/29 23:00:16 jodom Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1664,10 +1664,26 @@ bool process::replaceFunctionCall(const instPoint *point,
         return false;
 
     // Replace the call
+    Address addr = point->addr;
+
+#ifdef BPATCH_LIBRARY
+    // Make sure our address is absolute, and not relative
+    if (point->getBPatch_point() != NULL &&
+	point->getBPatch_point()->func != NULL) {
+      pd_Function *pdfp;
+
+      pdfp = dynamic_cast<pd_Function *>(point->getBPatch_point()->func->func);
+      if (pdfp != NULL) {
+	Address base;
+	getBaseAddress(pdfp->file()->exec(), base);
+	addr += base;
+      }
+    }
+#endif
     if (func == NULL)
-        generateNoOp(this, point->addr);
+        generateNoOp(this, addr);
     else
-        generateCall(this, point->addr,
+        generateCall(this, addr,
                      func->getEffectiveAddress(this));
 
     return true;
