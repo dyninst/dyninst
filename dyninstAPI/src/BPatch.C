@@ -224,14 +224,25 @@ void BPatch::formatErrorString(char *dst, int size,
  * BPatch::pidToThread
  *
  * Given a process ID, this function returns a pointer to the associated
- * BPatch_thread object (or NULL if there is none).
+ * BPatch_thread object (or NULL if there is none).  Since a process may be
+ * registered provisionally with a thread object pointer of NULL, the boolean
+ * pointed to by the parameter "exists" is set to true if the pid exists in
+ * the table of processes, and false if it does not.
+ *
+ * pid		The pid to look up.
+ * exists	A pointer to a boolean to fill in with true if the pid exists
+ *		in the table and false if it does not.  NULL may be passed in
+ *		if this information is not required.
  */
-BPatch_thread *BPatch::pidToThread(int pid)
+BPatch_thread *BPatch::pidToThread(int pid, bool *exists)
 {
-    if (info->threadsByPid.defines(pid))
+    if (info->threadsByPid.defines(pid)) {
+	if (exists) *exists = true;
 	return info->threadsByPid[pid];
-    else
+    } else {
+	if (exists) *exists = false;
     	return NULL;
+    }
 }
 
 
@@ -281,9 +292,15 @@ bool pollForStatusChange()
 	// There's been a change in a child process
 	result = true;
 	assert(BPatch::bpatch != NULL);
-	BPatch_thread *thread = BPatch::bpatch->pidToThread(pid);
+	bool exists;
+	BPatch_thread *thread = BPatch::bpatch->pidToThread(pid, &exists);
 	if (thread == NULL) {
-	    fprintf(stderr, "Warning - wait returned status of an unknown process (%d)\n", pid);
+	    if (exists) {
+		if (WIFSIGNALED(status) || WIFEXITED(status))
+		    BPatch::bpatch->unRegisterThread(pid);
+	    } else {
+    		fprintf(stderr, "Warning - wait returned status of an unknown process (%d)\n", pid);
+	    }
 	}
 	if (thread != NULL) {
 	    if (WIFSTOPPED(status))
@@ -300,6 +317,21 @@ bool pollForStatusChange()
 
 
 /*
+ * BPatch::registerProvisionalThread
+ *
+ * Register a new process that is not yet associated with a thread.
+ * (this function is called only by createProcess).
+ *
+ * pid		The pid of the process to register.
+ */
+void BPatch::registerProvisionalThread(int pid)
+{
+    assert(!info->threadsByPid.defines(pid));
+    info->threadsByPid[pid] = NULL;
+}
+
+
+/*
  * BPatch::registerThread
  *
  * Register a new BPatch_thread object with the BPatch library (this function
@@ -309,7 +341,8 @@ bool pollForStatusChange()
  */
 void BPatch::registerThread(BPatch_thread *thread)
 {
-    assert(!info->threadsByPid.defines(thread->getPid()));
+    assert(!info->threadsByPid.defines(thread->getPid()) ||
+	    info->threadsByPid[thread->getPid()] == NULL);
     info->threadsByPid[thread->getPid()] = thread;
 }
 

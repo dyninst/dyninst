@@ -38,21 +38,15 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-/*
- * $Log: api_showerror.C,v $
- * Revision 1.1  1997/03/18 19:44:07  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- *
- */
 
 #include <stdio.h>
+#include <assert.h>
+#include "BPatch.h"
 #include "paradynd/src/showerror.h"
 
 void showErrorCallback(int num, string msg)
 {
-    fprintf(stderr, "Error %d: %s\n", num, msg.string_of());
+    assert(BPatch::bpatch != NULL);
+    BPatch::bpatch->reportError(BPatchSerious, num, msg.string_of());
 }
+

@@ -42,6 +42,7 @@
 #ifndef _BPatch_h_
 #define _BPatch_h_
 
+#include <stdio.h>
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 
@@ -65,7 +66,7 @@ class BPatch {
     BPatchErrorCallback	errorHandler;
     bool		typeCheckOn;
 
-    BPatch_thread *pidToThread(int pid);
+    BPatch_thread *pidToThread(int pid, bool *exists = NULL);
 
 public:
     static BPatch		*bpatch;
@@ -88,6 +89,7 @@ public:
     // The following are only to be called by the library:
     bool isTypeChecked() { return typeCheckOn; }
 
+    void registerProvisionalThread(int pid);
     void registerThread(BPatch_thread *thread);
     void unRegisterThread(int pid);
 

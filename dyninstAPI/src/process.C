@@ -59,7 +59,9 @@ int pvmendtask();
 #include "dyninstAPI/src/dynamiclinking.h"
 // #include "paradynd/src/mdld.h"
 
-#ifndef BPATCH_LIBRARY
+#ifdef BPATCH_LIBRARY
+#include "dyninstAPI/h/BPatch.h"
+#else
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "paradynd/src/perfStream.h"
@@ -1263,6 +1265,13 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
       // forkNewProcess is resposible for displaying error messages
       return NULL;
     }
+
+#ifdef BPATCH_LIBRARY
+    // Register the pid with the BPatch library (not yet associated with a
+    // BPatch_thread object).
+    assert(BPatch::bpatch != NULL);
+    BPatch::bpatch->registerProvisionalThread(pid);
+#endif
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 	extern bool establishBaseAddrs(int pid, int &status, bool waitForTrap);

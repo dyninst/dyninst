@@ -107,7 +107,7 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
 
     image = new BPatch_image(proc);
 
-    while (!proc->isBootstrappedYet())
+    while (!proc->isBootstrappedYet() && !isTerminated())
 	pollForStatusChange();
 }
 
@@ -137,7 +137,7 @@ BPatch_thread::BPatch_thread(char *path, int pid)
 
     image = new BPatch_image(proc);
 
-    while (!proc->isBootstrappedYet()) {
+    while (!proc->isBootstrappedYet() && !isTerminated()) {
 	pollForStatusChange();
 	proc->launchRPCifAppropriate(false, false);
     }
