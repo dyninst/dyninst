@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.3  1993/08/26 23:07:34  hollings
+ * Revision 1.4  1993/09/02 22:09:38  hollings
+ * fixed race condition caused be no re-trying sampling of process time.
+ *
+ * Revision 1.3  1993/08/26  23:07:34  hollings
  * made initTraceLibPN called from DYNINSTinitTraceLib.
  *
  * Revision 1.2  1993/07/02  21:53:33  hollings
@@ -68,17 +71,35 @@ void DYNINSTstartWallTimer(tTimer *timer)
 
 void DYNINSTstopWallTimer(tTimer *timer)
 {
-    time64 end;
+    time64 now;
 
     if (timer->trigger && (timer->trigger->value <= 0)) return;
     if (!timer->counter) return;
 
     if (timer->counter == 1) {
-	 CMOS_get_time(&end);
-	 timer->total += (end - timer->start);
+	 CMOS_get_time(&now);
+	 timer->snapShot = timer->total + now - timer->start;
+	 timer->mutex = 1;
+	 timer->counter = 0;
+	 timer->total = timer->snapShot;
+	 timer->mutex = 0;
+    } else {
+	timer->counter--;
     }
-    /* this must be last to prevent race conditions with the sampler */
-    timer->counter--;
+}
+
+time64 inline getProcessTime()
+{
+    time64 end;
+    time64 ni_end;
+    time64 ni2;
+
+retry:
+    CMOS_get_NI_time(&ni_end);
+    CMOS_get_time(&end);
+    CMOS_get_NI_time(&ni2);
+    if (ni_end != ni2) goto retry;
+    return(end-ni_end);
 }
 
 
@@ -86,77 +107,99 @@ void DYNINSTstartProcessTimer(tTimer *timer)
 {
     if (timer->trigger && (!timer->trigger->value)) return;
     if (timer->counter == 0) {
-	 CMOS_get_time(&timer->start);
-	 CMOS_get_NI_time(&timer->ni_start);
+	 timer->start = getProcessTime();
 	 timer->normalize = NI_CLK_USEC * MILLION;
     }
     /* this must be last to prevent race conditions with the sampler */
     timer->counter++;
 }
 
+double previous[1000];
+
 void DYNINSTstopProcessTimer(tTimer *timer)
 {
     time64 end;
-    time64 ni_end;
+    time64 elapsed;
+    tTimer timerTemp;
 
     if (timer->trigger && (timer->trigger->value <= 0)) return;
     if (!timer->counter) return;
 
     if (timer->counter == 1) {
-	 CMOS_get_time(&end);
-	 CMOS_get_NI_time(&ni_end);
-	 timer->total += (end - timer->start);
-	 timer->total -= (ni_end - timer->ni_start);
-#ifdef notdef
-	 if (timer->total < 0) abort();
-#endif
+	end = getProcessTime();
+	elapsed = end - timer->start;
+	timer->snapShot = elapsed + timer->total;
+	timer->mutex = 1;
+	timer->counter = 0;
+	/* read proces time again in case the value was sampled between
+	 *  last sample and mutex getting set.
+	 */
+	timer->total += getProcessTime() - timer->start;
+	timer->mutex = 0;
+
+	/* for debugging */
+	if (timer->total < 0) {
+	    timerTemp = *timer;
+	    abort();
+	}
+
+    } else {
+	timer->counter--;
     }
-    /* this must be last to prevent race conditions with the sampler */
-    timer->counter--;
 }
 
 void DYNINSTreportTimer(tTimer *timer)
 {
+    double temp;
+    double temp2;
     time64 now;
     double value;
     time64 total;
-    time64 ni_now;
+    tTimer timerTemp;
     traceSample sample;
 
 
-    total = timer->total;
-    if (timer->counter) {
+    if (timer->mutex) {
+	total = timer->snapShot;
+    } else if (timer->counter) {
 	/* timer is running */
-
-	CMOS_get_time(&now);
-	CMOS_get_NI_time(&ni_now);
 	if (timer->type == processTime) {
-	    total += (now - ni_now) - (timer->start - timer->ni_start);
+	    now = getProcessTime();
+	    total = now - timer->start;
 	} else {
-	    total += (now - timer->start);
+	    CMOS_get_time(&now);
+	    total = (now - timer->start);
 	}
+	total += timer->total;
+    } else {
+	total = timer->total;
     }
-    if (total < 0) {
-	double w1, w2, ni1, ni2;
 
-	w1 = timer->start;
-	w2 = now;
-	ni1 = timer->ni_start;
-	ni2 = ni_now;
+    if (total < 0) {
+	timerTemp = *timer;
 	abort();
     }
 
     sample.value = total / (double) timer->normalize;
     sample.id = timer->id;
 
+    temp = sample.value;
+    if (temp < previous[sample.id.id]) {
+	timerTemp = *timer;
+	temp2 = previous[sample.id.id];
+	abort();
+	while(1);
+    }
+    previous[sample.id.id] = temp;
+
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample);
 }
 
-time64 startWall;
+static time64 startWall;
 int DYNINSTnoHandlers;
 
 /*
- * should be called before main in each process1.
+ * should be called before main in each process.
  *
  */
 void DYNINSTinit()
