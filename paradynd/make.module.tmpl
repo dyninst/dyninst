@@ -44,10 +44,10 @@ SRCS	     += ../src/association.C \
 		../src/resource.C \
 		../src/stats.C \
 		../src/symtab.C \
-		../src/templates.C \
 		../src/util.C \
- 		../src/mdl.C
-
+ 		../src/mdl.C \
+		../src/templates0.C \
+		../src/templates1.C
 
 
 ifdef USES_PVM
@@ -74,6 +74,8 @@ IFLAGS       += -I../$(PLATFORM) -I../src
 
 all:    $(TARGET)
 
-templates.o: ../src/templates.C
-	$(CXX) $(TFLAGS) -c ../src/templates.C
+templates0.o: ../src/templates0.C
+	$(CXX) $(TFLAGS) -c ../src/templates0.C
 
+templates1.o: ../src/templates1.C
+	$(CXX) $(TFLAGS) -c ../src/templates1.C
