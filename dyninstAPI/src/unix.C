@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.33 2000/03/06 21:30:08 zandy Exp $
+// $Id: unix.C,v 1.34 2000/03/07 00:20:13 wylie Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -98,12 +98,21 @@ int pvmendtask();
  *   procHandle: handle for new process (needed by WindowsNT)
  *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
+#ifdef BPATCH_LIBRARY
+bool forkNewProcess(string file, string /*dir*/, vector<string> argv, 
+                    vector<string> /*envp*/, 
+                    string /*inputFile*/, string /*outputFile*/,
+                    int & /*traceLink*/, int & /*ioLink*/, 
+                    int &pid, int & /*tid*/, 
+                    int & /*procHandle*/, int & /*thrHandle*/) 
+#else
 bool forkNewProcess(string file, string dir, vector<string> argv, 
-		    vector<string>envp, string inputFile, string outputFile,
-		    int &traceLink, int &ioLink, 
-		    int &pid, int & /*tid*/, 
-		    int & /*procHandle*/, int & /*thrHandle*/) {
-
+                    vector<string>envp, string inputFile, string outputFile,
+                    int &traceLink, int &ioLink, 
+                    int &pid, int & /*tid*/, 
+                    int & /*procHandle*/, int & /*thrHandle*/) 
+#endif
+{
 #ifndef BPATCH_LIBRARY
     // Strange, but using socketpair here doesn't seem to work OK on SunOS.
     // Pipe works fine.
