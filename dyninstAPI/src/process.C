@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.392 2003/03/08 01:23:33 bernat Exp $
+// $Id: process.C,v 1.393 2003/03/10 15:05:59 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1163,7 +1163,7 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
       }
 #if defined(sparc_sun_solaris2_4)
       
-      if( (tmp_dlopen = sh_obj->getImage()->getObject().getPltSlot("dlopen") && !sh_obj->isopenedWithdlopen())){
+      if( ((tmp_dlopen = sh_obj->getImage()->getObject().getPltSlot("dlopen")) && !sh_obj->isopenedWithdlopen())){
          dl_debug_statePltEntry = tmp_dlopen + sh_obj->getBaseAddress();
       }
 #endif
