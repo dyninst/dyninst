@@ -45,6 +45,12 @@
 
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
 
+static unsigned pfdp_to_pfdp_hash(pd_Function * const &f) {
+    pd_Function *pdf = f;
+    unsigned l = (unsigned)pdf;
+    return addrHash4(l); 
+}
+
 // Another constructor for the class instPoint. This one is called
 // for the define the instPoints for regular functions which means
 // multiple instructions is going to be moved to based trampoline.
@@ -57,7 +63,8 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
 		     bool delayOK,
 		     instPointType pointType)
 : addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
-  callIndirect(false), callAggregate(false), callee(NULL), func(f),
+  callIndirect(false), callAggregate(false), callee(NULL), 
+  func(f),
   ipType(pointType), image_ptr(owner), firstIsConditional(false),
   relocated_(false), isLongJump(false)
 {
@@ -86,7 +93,7 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
 	      isDelayedInsn.raw = owner->get_instruction(addr+8);
 	      size += 1*sizeof(instruction);
 
-	      // Life is hard. If the second instruction is actually
+	      // Life is Hard. If the second instruction is actually
 	      // an CALL instruction, we need to move the instruction
 	      // after the instruction in the delayed slot if the 
 	      // return value of this function is a aggregate value.
@@ -237,7 +244,7 @@ void pd_Function::checkCallPoints() {
 	        //cerr << "   apparent call outside function, adding p to non_lib"
 	        //     << endl;
 	        p->callIndirect = true;
-                p->callee = NULL;
+                p->callee = NULL; 
                 non_lib += p;
 	   }
 	   else {
@@ -269,6 +276,14 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
     Address ret=adr;
     instPoint *point;
 
+#ifdef DEBUG_CALL_POINTS
+    cerr << "pd_Function::newCallPoint called " << endl;
+    cerr << " this " << *this << endl;
+    cerr << " adr = " << adr << endl;
+    cerr << " isTrap = " << isTrap << endl;
+    cerr << " reloc_info = " << reloc_info << endl;
+#endif
+
     err = true;
     if (isTrap) {
 	point = new instPoint(this, instr, owner, adr, false, callSite, oldAddr);
@@ -291,13 +306,32 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
 	    // calls to a location within the function are not
 	    // kept in the calls vector
 	    assert(callId >= 0);
-	    assert(((u_int)callId) < calls.size());
+
+#ifdef DEBUG_CALL_POINTS
+	    cerr << " *this = " << *this;
+	    cerr << " callId = " << callId;
+	    cerr << " (u_int)callId = " << (u_int)callId;
+	    cerr << " calls.size() = " << calls.size() << endl;
+	    cerr << " calls = " << endl;
+	    for(unsigned un=0;un<calls.size();un++) {
+	        cerr << calls[un] << " , ";
+	    }
+	    cerr << endl;
+#endif
+
 	    point->relocated_ = true;
-	    // if the location was this call site, then change its value
+
+	    // Alert!!!!
+	    // cannot simply assert that this is true, because of the case
+	    //  where (as a hack), the call site in a tail-call optimization
+	    //  might not have been previously seeen....
+	    assert(((u_int)callId) < calls.size());
+	  
 	    if(location && (calls[callId] == location)) { 
 		assert(calls[callId]->instId  == location->instId);
 		location = point; 
 	    } 
+	   
 	    point->instId = callId++;
 	    reloc_info->addFuncCall(point);
 	}
@@ -317,7 +351,7 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
 /*
  * Given and instruction, relocate it to a new address, patching up
  *   any relative addressing that is present.
- *
+ * 
  */
 void relocateInstruction(instruction *insn, u_int origAddr, u_int targetAddr,
 			 process *proc)
@@ -402,7 +436,7 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
 
 		if (in1BranchInsnRange(baseAddress, baseAddr) == false) {
 		    //cerr << "This happen very rarely, I suppose "<< endl;
-		    //cerr << "Let's see if this is going to be executed..." << endl;
+		    //cerr << "Lets see if this is going to be executed..." << endl;
 		    location -> isLongJump = true;
 		    genImmInsn(temp, RESTOREop3, 0, 0, 0);
 		} else {
@@ -1572,6 +1606,9 @@ static inline bool JmpNopTC(instruction instr, instruction nexti, \
 bool pd_Function::findInstPoints(const image *owner) {
     bool call_restore_tc;
     int jmp_nop_tc;
+    instPoint *blah = 0;
+    bool err;
+    int dummyId;
 
     //cerr << "pd_Function::findInstPoints called " << *this;
    if (size() == 0) {
@@ -1627,12 +1664,6 @@ bool pd_Function::findInstPoints(const image *owner) {
        jmp_nop_tc = JmpNopTC(instr, nexti, adr1, this);
        if (call_restore_tc || jmp_nop_tc) {
            isTrap = true;
-	   // ALERT ALERT
-	   //if (call_restore_tc) {
-	   //    cerr << " Call, Restore tail call optimization pattern detected, returning findInstPoints, function name = " << prettyName().string_of()  << endl;
-	   //} else {
-	   //    cerr << " Jmp, Nop tail call optimization pattern detected, returning findInstPoints, function name = " << prettyName().string_of()  << endl;
-	   //}
 	   return findInstPoints(owner, getAddress(0), 0);
        }
        
@@ -1718,7 +1749,8 @@ bool pd_Function::findInstPoints(const image *owner) {
        nexti.raw = owner->get_instruction(adr+4);
 
        if (CallRestoreTC(instr, nexti)) {
-         //cerr << "CALL, RESTORE tail-call optimization detected for function " << prettyName().string_of() << endl;
+	 // Alert!!!!
+	 adr = newCallPoint(adr, instr, owner, err, dummyId, adr,0,blah);
 	 funcReturns += new instPoint(this, instr, owner, adr, false,
 				      functionExit);
 
@@ -1726,14 +1758,13 @@ bool pd_Function::findInstPoints(const image *owner) {
 	 // define a call point
 	 // this may update address - sparc - aggregate return value
 	 // want to skip instructions
-	 bool err;
-	 int dummyId;
-	 instPoint *blah = 0;
 	 adr = newCallPoint(adr, instr, owner, err, dummyId, adr,0,blah);
        }
      }
      else if (JmpNopTC(instr, nexti, adr, this)) {
-         //cerr << "JMP, NOP tail-call optimization detected for function " << prettyName().string_of() << endl;
+         // Alert!!!! 
+         adr = newCallPoint(adr, instr, owner, err, dummyId, adr,0,blah);
+
 	 funcReturns += new instPoint(this, instr, owner, adr, false,
 				      functionExit);
      }
@@ -1888,10 +1919,12 @@ bool pd_Function::checkInstPoints(const image *owner) {
 // This function is to find the inst Points for a function
 // that will be relocated if it is instrumented. 
 bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
-
    int i, jmp_nop_tc;
    instruction second_instr;
    instruction nexti; 
+
+   bool err;
+   instPoint *blah = 0;
 
    if (size() == 0) {
      return false;
@@ -1990,6 +2023,10 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
        //   is opened up and seperate call site and exit point
        //   should be falgged.
        if (CallRestoreTC(instr, nexti)) {
+	   // Alert!!!!
+	   adr = newCallPoint(newAdr, instr, owner, err, callsId, adr,0,blah);
+	   if (err) return false;
+
            instPoint *point = new instPoint(this, instr, owner, newAdr, false,
 				      functionExit, adr);
            funcReturns += point;
@@ -2010,14 +2047,16 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 	 // define a call point
 	 // this may update address - sparc - aggregate return value
 	 // want to skip instructions
-	 bool err;
-	 instPoint *blah = 0;
 	 adr = newCallPoint(newAdr, instr, owner, err, callsId, adr,0,blah);
 	 if (err)
 	   return false;
        }
      }
      else if ((jmp_nop_tc = JmpNopTC(instr, nexti, adr, this)) == 1) {
+           // Alert!!!!
+           adr = newCallPoint(newAdr, instr, owner, err, callsId, adr,0,blah);
+	   if (err) return false;
+
            instPoint *point = new instPoint(this, instr, owner, newAdr, false,
 				      functionExit, adr);
            funcReturns += point;
@@ -2086,7 +2125,7 @@ bool pd_Function::findNewInstPoints(const image *owner,
 
    int i, extra_offset, disp;
    instruction nexti; 
-   bool call_restore_tc, jmp_nop_tc;
+   bool call_restore_tc, jmp_nop_tc, err;
 
    if (size() == 0) {
        cerr << "WARN : attempting to relocate function " \
@@ -2370,17 +2409,25 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	    genImmInsn(&newInstr[i++], ORop3, REG_I(4), 0, REG_O(4));
 	    genImmInsn(&newInstr[i++], ORop3, REG_I(5), 0, REG_O(5));
 
+	    err = false;
+
 	    if (jmp_nop_tc) {
 	        // if origional jmp/call instruction was call to a register, that
 	        //  register should have been pushed into g0, so generate a call
 	        //  to %g0.
 	        //  generate <call %g1>
-	        generateJmplInsn(&newInstr[i++], 1, 0, 15);
+	        generateJmplInsn(&newInstr[i], 1, 0, 15);
+
+		newCallPoint(newAdr += 8 *sizeof(instruction), newInstr[i], owner, \
+			     err, callsId, adr, \
+			     reloc_info, location);
+		i++;
 
 		// here, 18 instructions are generated and used to replace
 		//  the origional 2 (jmp, nop), resulting in an addition 
 		//  of 16 instructions....
-		newAdr += 16 * sizeof(instruction);
+		// 8 instructions added above, so add 8 more here....
+		newAdr += 8 * sizeof(instruction);
 	        
 	    } else {
 	        assert(call_restore_tc);
@@ -2389,13 +2436,18 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	            //  register should have been pushed into g0, so generate a call
 	            //  to %g0.
 	            //  generate <call %g1>
-	            generateJmplInsn(&newInstr[i++], 1, 0, 15);
-		    if (jmpl_call) {
-		        // in the case of a jmpl call, 17 instructions are generated
-	                // and used to replace origional 2 (call, restore), resulting
-	                // in a new addition of 15 instructions....
-	                newAdr += 15 * sizeof(instruction);
-	            } 
+	            generateJmplInsn(&newInstr[i], 1, 0, 15);
+		    
+		    newCallPoint(newAdr += 7 *sizeof(instruction), newInstr[i], \
+			     owner, err, callsId, adr, \
+			     reloc_info, location);
+
+		    i++;
+		    // in the case of a jmpl call, 17 instructions are generated
+	            // and used to replace origional 2 (call, restore), resulting
+	            // in a new addition of 15 instructions....
+		    // 7 instructions added above, so add 8 more here....
+	            newAdr += 8 * sizeof(instruction); 
 	        } else {
 	            // if the origional call was a call to an ADDRESS, then want
 	            //  to copy the origional call.  There is, however, a potential
@@ -2405,23 +2457,40 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	            //  As such, want to change the call target to account for 
 	            //  the difference in PCs.
 
+		    newAdr += 6 * sizeof(instruction);
+
 	            newInstr[i].raw = owner->get_instruction(adr);
 	            relocateInstruction(&newInstr[i],
 		        adr+baseAddress,
-		        newAdr + 6 * sizeof(instruction), \
+		        newAdr, \
 			proc);
-		    //cerr << "adr+baseAddress = " << adr+baseAddress << \
-		    //  " (i - orig_call_insn) = " << (i - orig_call_insn) << \
-		    //  " newAdr = " << newAdr << endl;
+		    
+		    // mark the call instruction as a call site....
+		    //  alert -
+		    //  callsId looks ok, only used in calls to newInstPoint
+		    //  reloc_info looks ok as long as new call site added in 
+		    //   newCallPoint? - CHECK
+		    //  location looks ok as long as compared with funcReturns[id?}
+		    //   ? - CHECK
+		    newCallPoint(newAdr, \
+                    		 newInstr[i], owner, err, callsId, adr, \
+                    		 reloc_info, location); 
+
 		    i++;
+
 		    // in the case of a "true" call, 16 instructions are generated
 	            //  + replace origional 2, resulting in addition of 18 instrs.
-		    //  this addition of 14 here should make newAdr point to
+		    // Addition of 14 total should make newAdr point to
 		    //  the retl instruction 2nd to last in unwound tail-call 
 		    //  opt. sequence....
-	            newAdr += 14 * sizeof(instruction);
+		    // 6 instructions were added above, so add 8 more here....
+	            newAdr += 8 * sizeof(instruction);
 	        }
 	    }
+
+	    // err should have been set in call to newCallPoint - to mark
+	    //  relocated call insn as cal site....
+	    if (err) return false;
 
 	    // generate NOP following call instruction (for delay slot)
 	    //  ....
@@ -2543,7 +2612,6 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	 else {
 	    // otherwise, this is a call instruction to a location
 	    // outside the function
-	    bool err;
 	    relocateInstruction(&newInstr[i],adr+baseAddress,newAdr,proc);
 	    (void)newCallPoint(newAdr, newInstr[i], owner, err, 
 			       callsId, adr,reloc_info,location);
