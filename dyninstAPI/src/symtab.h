@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.89 2001/07/14 03:43:31 shergali Exp $
+// $Id: symtab.h,v 1.90 2001/07/18 20:34:42 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -254,7 +254,7 @@ class pd_Function : public function_base {
 	} }
 	return arbitraryPoints;
     }
-    void addArbitraryPoint(instPoint* insp,process* p){
+    void addArbitraryPoint(instPoint* insp,process* /*p*/){
 	if(insp) arbitraryPoints.push_back(insp);
 
 #if defined(i386_unknown_nt4_0) || \
