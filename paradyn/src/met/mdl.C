@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.47 2002/04/23 18:58:55 schendel Exp $
+// $Id: mdl.C,v 1.48 2002/05/04 21:47:20 schendel Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -181,7 +181,7 @@ machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(int,
   // apply 'base' statements
   assert(stmts_);
   unsigned size = stmts_->size();
-  vector<const dataReqNode*> flags;
+  vector<const instrDataNode*> flags;
   for (unsigned u=0; u<size; u++) {
     if (!(*stmts_)[u]->apply(NULL, flags)) {
       cerr << "In metric " << name_ << ": apply of " << u 
@@ -195,9 +195,9 @@ machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(int,
   for (unsigned u1=0; u1<size; u1++) {
     if ((*constraints_)[u1]->match_path_) {
       // inlined constraint def
-      dataReqNode *drn = NULL;
+      instrDataNode *drn = NULL;
       vector<string> res;
-      if (!(*constraints_)[u1]->apply(NULL, NULL, &drn, res, NULL, NULL, NULL))
+      if (!(*constraints_)[u1]->apply(NULL, &drn, res, NULL, false))
       {
         cerr << "In metric " << name_ << ": apply of " << u1
           << "th constraint failed." << endl;
@@ -309,11 +309,10 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
 }
 
 bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *,
-					 instrThrDataNode *,
-					 dataReqNode **,
+					 instrDataNode **,
 					 const vector<string>&,
-					 process *, pdThread*,
-					 inst_var_index *)
+					 process *, 
+					 bool)
 {
   mdl_env::push();
 
@@ -342,7 +341,7 @@ bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *,
   }
 
   unsigned stmts_size = stmts_->size();
-  vector<const dataReqNode*> flags;
+  vector<const instrDataNode*> flags;
   for (unsigned q=0; q<stmts_size; q++)
     if (!(*stmts_)[q]->apply(NULL, flags)) {
       mdl_env::pop();
@@ -391,7 +390,7 @@ T_dyninstRPC::mdl_for_stmt::~mdl_for_stmt() {
 
 
 bool T_dyninstRPC::mdl_for_stmt::apply(instrCodeNode *mn,
-				       vector<const dataReqNode*>& flags) {
+				       vector<const instrDataNode*>& flags) {
   mdl_env::push();
 
   if (!mdl_env::add(index_name_, false)) return false;
@@ -419,7 +418,7 @@ T_dyninstRPC::mdl_list_stmt::mdl_list_stmt()
 T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt() { delete elements_; }
 
 bool T_dyninstRPC::mdl_list_stmt::apply(instrCodeNode * ,
-					vector<const dataReqNode*>& ) {
+					vector<const instrDataNode*>& ) {
   if (!elements_)
     return false;
   unsigned list_type = MDL_T_NONE;
@@ -686,7 +685,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*&)
         case MDL_T_COUNTER:
         case MDL_T_PROC_TIMER:
         case MDL_T_WALL_TIMER:
-        case MDL_T_DRN:
+        case MDL_T_DATANODE:
           ok_ = true;
           return true;
         default:
@@ -703,7 +702,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*&)
         {
           mdl_var get_drn;
           if (!left_->apply(get_drn)) return false;
-          dataReqNode *drn;
+          instrDataNode *drn;
           if (!get_drn.get(drn)) return false;
           break;
         }
@@ -939,7 +938,7 @@ T_dyninstRPC::mdl_if_stmt::~mdl_if_stmt() {
 }
 
 bool T_dyninstRPC::mdl_if_stmt::apply(instrCodeNode * ,
-				      vector<const dataReqNode*>& flags) {
+				      vector<const instrDataNode*>& flags) {
   mdl_var res(false); int iv;
   if (!expr_->apply(res))
     return false;
@@ -971,7 +970,7 @@ T_dyninstRPC::mdl_seq_stmt::~mdl_seq_stmt() {
 }
  
 bool T_dyninstRPC::mdl_seq_stmt::apply(instrCodeNode * ,
-				       vector<const dataReqNode*>& flags) {
+				       vector<const instrDataNode*>& flags) {
   if (!stmts_)
     return true;
   unsigned size = stmts_->size();
@@ -1003,7 +1002,7 @@ T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
 }
 
 bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode * ,
-					 vector<const dataReqNode*>& ) {
+					 vector<const instrDataNode*>& ) {
   mdl_var temp(false);
   if (!icode_reqs_)
     return false;
@@ -1240,7 +1239,7 @@ bool mdl_apply() {
   // apply resource list statements
   //
   unsigned size = mdl_data::stmts.size();
-  vector<const dataReqNode*> flags;
+  vector<const instrDataNode*> flags;
   for (unsigned u=0; u<size; u++)
     if (!mdl_data::stmts[u]->apply(NULL, flags))
       return false;
@@ -1251,9 +1250,9 @@ bool mdl_apply() {
   vector<T_dyninstRPC::mdl_constraint*> ok_cons;
   size = mdl_data::all_constraints.size();
   for (unsigned u1=0; u1<size; u1++) {
-    dataReqNode *drn = NULL;
+    instrDataNode *drn = NULL;
     vector<string> res;
-    if (mdl_data::all_constraints[u1]->apply(NULL, NULL, &drn, res, NULL, NULL, NULL)) {
+    if (mdl_data::all_constraints[u1]->apply(NULL, &drn, res, NULL, false)) {
       ok_cons += mdl_data::all_constraints[u1];
       // cout << "constraint defined: " << mdl_data::all_constraints[u1]->id_ << endl;
     } else {
