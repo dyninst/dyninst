@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.406 2003/04/11 22:46:24 schendel Exp $
+// $Id: process.C,v 1.407 2003/04/11 22:53:08 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5409,6 +5409,7 @@ void process::handleExecExit() {
    // can't delete dynamic linking stuff here, because parent process
    // could still have pointers
    dynamiclinking = false;
+   runtime_lib = NULL;
    dyn = 0; // AHEM.  LEAKED MEMORY!  not if the parent still has a pointer
    // to this dynamic_linking object.
    dyn = new dynamic_linking;
