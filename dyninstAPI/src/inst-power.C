@@ -513,10 +513,10 @@ void initTramps()
 	//
 	//  Above -248     Used by mini trampolines.  STKPAD avoids this zone.
 	//
-	//  STKPAD values of 0.5KB, 1KB, 2KB, and 4KB were too small.
+	//  STKPAD values of 0.5KB, 1KB, 2KB, 4KB, 8KB were too small.
 	//
-#define STKPAD  (8 * 1024)
-#define STKLR  -(8 + (11+1)*4)
+#define STKPAD ( 24 * 1024 )
+#define STKLR  ( -(8 + (11+1)*4) )
 
 
            ////////////////////////////////////////////////////////////////////
