@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.222 2002/10/14 21:02:26 bernat Exp $
+/* $Id: process.h,v 1.223 2002/10/15 17:11:22 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -136,7 +136,7 @@ class resource;
 class instPoint;
 class trampTemplate;
 class instReqNode;
-class pdThread;
+class dyn_thread;
 // TODO a kludge - to prevent recursive includes
 class image;
 class instPoint;
@@ -352,7 +352,7 @@ fileDescriptor *getExecFileDescriptor(string filename,
 
 class process {
  friend class ptraceKludge;
- friend class pdThread;
+ friend class dyn_thread;
  friend class dyn_lwp;
 #ifdef BPATCH_LIBRARY
  friend class BPatch_image;
@@ -421,7 +421,7 @@ class process {
 
   // Notify daemon of threads
 #if defined(MT_THREAD)
-  pdThread *createThread(
+  dyn_thread *createThread(
     int tid, 
     unsigned pos, 
     unsigned stack_addr, 
@@ -429,11 +429,11 @@ class process {
     void* resumestate_p, 
     bool);
   // For initial thread (assume main is top func)
-  void updateThread(pdThread *thr, int tid, unsigned pos, void* resumestate_p,
+  void updateThread(dyn_thread *thr, int tid, unsigned pos, void* resumestate_p,
                     resource* rid) ;
   // For new threads
   void updateThread(
-    pdThread *thr, 
+    dyn_thread *thr, 
     int tid, 
     unsigned pos, 
     unsigned stack_addr, 
@@ -516,13 +516,6 @@ class process {
   bool dyninstLibIsBeingLoaded() { return isLoadingDyninstLib; }
   void clearDyninstLibLoadFlags() {
         hasLoadedDyninstLib = isLoadingDyninstLib = false; }
-  unsigned numOfActCounters_is;
-  unsigned numOfActProcTimers_is;
-  unsigned numOfActWallTimers_is;
-#if !defined(BPATCH_LIBRARY)
-  unsigned numOfCurrentLevels_is;
-  unsigned numOfCurrentThreads_is; 
-#endif
 
   bool deferredContinueProc;
   void updateActiveCT(bool flag, CTelementType type);
@@ -530,8 +523,8 @@ class process {
 
   void postRPCtoDo(AstNode *, bool noCost,
                    inferiorRPCcallbackFunc, void *data, int, 
-                   pdThread *thr, dyn_lwp *lwp,
-		   bool lowmem=false);
+                   dyn_thread *thr, dyn_lwp *lwp,
+						 bool lowmem=false);
 
   bool getReadyRPCs(vectorSet<inferiorRPCtoDo> &readyRPCs);
 
@@ -896,7 +889,7 @@ void saveWorldData(Address address, int size, const void* src);
 			 Address &stopForResultAddr,
 			 Address &justAfter_stopForResultAddr,
 			 Register &resultReg, bool lowmem,
-			 pdThread *thr, dyn_lwp *lwp, bool isFunclet);
+			 dyn_thread *thr, dyn_lwp *lwp, bool isFunclet);
 
   bool need_to_wait(void) ;
   // The follwing 5 routines are implemented in an arch-specific .C file
@@ -1094,10 +1087,8 @@ void saveWorldData(Address address, int size, const void* src);
 #endif
   }
   
-  pdThread *STpdThread();
-  pdThread *getThread(unsigned tid);
-
-  pdThread *getThreadByPOS(unsigned pos) { return threads[pos]; };
+  dyn_thread *STdyn_thread();
+  dyn_thread *getThreadByPOS(unsigned pos) { return threads[pos]; };
 
   // findOneFunction: returns the function associated with function "func_name"
   // This routine checks both the a.out image and any shared object images 
@@ -1231,8 +1222,6 @@ void saveWorldData(Address address, int size, const void* src);
 
 #ifdef SHM_SAMPLING
   key_t getShmKeyUsed() const {return theSharedMemMgr->getShmKey();}
-  bool doMajorShmSample();
-  bool doMinorShmSample();
 
   shmMgr *getSharedMemMgr() { return theSharedMemMgr; };
 
@@ -1305,7 +1294,6 @@ void saveWorldData(Address address, int size, const void* src);
 
 private:
   // Since we don't define these, 'private' makes sure they're not used:
-  process(const process &); // copy ctor
   process &operator=(const process &); // assign oper
 
   bool hasBootstrapped;
@@ -1349,18 +1337,9 @@ bool isLoadingParadynLib;
 
   // New components of the conceptual "inferior heap"
   shmMgr *theSharedMemMgr;
-  variableMgr *theVariableMgr;
 #endif
 
 public:
-#ifdef SHM_SAMPLING
-  const variableMgr &getVariableMgr() const {
-     return *theVariableMgr;
-  }
-  variableMgr &getVariableMgr() {
-     return *theVariableMgr;
-  }
-#endif
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
  || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
@@ -1448,7 +1427,7 @@ private:
   // access methods. 
  public:
   dictionary_hash<unsigned, dyn_lwp *> lwps;
-  vector<pdThread *> threads;   /* threads belonging to this process */
+  vector<dyn_thread *> threads;   /* threads belonging to this process */
   handleT getProcessHandle() const { return procHandle_; };
  private:
   handleT procHandle_; // Process-specific, as opposed to thread-specific,
@@ -1601,12 +1580,9 @@ void inferiorFree(process *p, Address item, const vector<addrVecType> &);
 process *createProcess(const string file, vector<string> argv, 
 		       vector<string> envp, const string dir,
 		       int stdin_fd, int stdout_fd, int stderr_fd);
-#ifdef BPATCH_LIBRARY
+
 bool attachProcess(const string &progpath, int pid, int afterAttach,
-                   process *&newProcess);
-#else
-bool attachProcess(const string &progpath, int pid, int afterAttach);
-#endif 
+                   process **newProcess);
 bool  AttachToCreatedProcess(int pid, const string &progpath);
 
 void handleProcessExit(process *p, int exitStatus);
