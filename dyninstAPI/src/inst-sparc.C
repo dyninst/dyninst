@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.118 2002/03/01 22:22:09 gurari Exp $
+// $Id: inst-sparc.C,v 1.119 2002/04/05 19:39:24 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1728,7 +1728,7 @@ bool returnInstance::checkReturnInstance(const vector<Address> &stack, u_int &in
 void returnInstance::installReturnInstance(process *proc) {
     proc->writeTextSpace((caddr_t)addr_, instSeqSize, 
                          (caddr_t) instructionSeq); 
-	installed = true;
+    installed = true;
 }
 
 /****************************************************************************/
