@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.148 2002/09/17 20:08:02 bernat Exp $
+ * $Id: inst-power.C,v 1.149 2002/09/18 14:54:04 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1871,49 +1871,6 @@ bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes, bool isFu
   return true;
 }
 
-
-#if defined(MT_THREAD)/*
- * offset: if the hash value comes back negative, jump forward this
- *         (effectively skipping the RPC, do we want error handling?)
- */
-
-Address process::generateMTRPCCode(void *insnPtr, Address &base,
-				   unsigned tid, unsigned pos)
-{
-  AstNode *threadPOS;
-  vector<AstNode *>param;
-  Address returnVal;
-  bool err;
-  Register src = Null_Register;
-
-  // registers cleanup
-  regSpace->resetSpace();
-
-  /* Get the hashed value of the thread */
-  param += new AstNode(AstNode::Constant, (void *)tid);
-  param += new AstNode(AstNode::Constant, (void *)pos);
-  threadPOS = new AstNode("DYNINSTthreadPos", param);
-  for (unsigned i=0; i<param.size(); i++) 
-    removeAst(param[i]);
-
-  src = threadPOS->generateCode(this, regSpace, (char *)insnPtr,
-				   base, 
-				   false, // noCost 
-				   true); // root node
-  instruction *tmp_insn = (instruction *) (&(((instruction *)insnPtr)[base/sizeof(instruction)]));
-  if ((src) != REG_MT_POS) {
-    genImmInsn(tmp_insn, ORILop, src, REG_MT_POS, 0);
-    tmp_insn++; base+=sizeof(instruction);
-  }
-
-  // Store POS on the stack
-  // Don't use saveReg because we don't want the reg offset calculation
-  genImmInsn(tmp_insn, STop, REG_MT_POS, 1, PDYN_MT_POS);
-  tmp_insn++; base += sizeof(instruction);
-  return returnVal;
-}
-
-#endif
 
 bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
                                      unsigned &breakOffset,
