@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.12 2004/04/02 21:56:47 jaw Exp $
+// $Id: api_showerror.C,v 1.13 2004/04/05 19:37:23 jaw Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -84,7 +84,11 @@ int bpfatal(const char *format, ...)
 
   va_list va;
   va_start(va, format);
+#if defined (i386_unknown_nt4_0)
+  _vsnprintf(errbuf, ERR_BUF_SIZE,format, va);
+#else
   vsnprintf(errbuf, ERR_BUF_SIZE,format, va);
+#endif
   va_end(va);
 
   BPatch::reportError(BPatchFatal, 0, errbuf);
@@ -100,12 +104,20 @@ int bperr(const char *format, ...)
 
   va_list va;
   va_start(va, format);
+#if defined (i386_unknown_nt4_0)
+  int errbuflen = _vsnprintf(errbuf, ERR_BUF_SIZE, format, va);
+#else
   int errbuflen = vsnprintf(errbuf, ERR_BUF_SIZE, format, va);
+#endif
   va_end(va);
 
   char syserr[128];
   if (errno) {
+#if defined (i386_unknown_nt4_0)
+    int syserrlen = _snprintf(syserr, 128," [%d: %s]", errno, strerror(errno));
+#else
     int syserrlen = snprintf(syserr, 128," [%d: %s]", errno, strerror(errno));
+#endif
     if ((errbuflen + syserrlen) < ERR_BUF_SIZE)
       strcat(errbuf, syserr);
     else {
@@ -127,7 +139,11 @@ int bpwarn(const char *format, ...)
 
   va_list va;
   va_start(va, format);
+#if defined (i386_unknown_nt4_0)
+  _vsnprintf(errbuf, ERR_BUF_SIZE,format, va);
+#else
   vsnprintf(errbuf, ERR_BUF_SIZE,format, va);
+#endif
   va_end(va);
 
   BPatch::reportError(BPatchWarning, 0, errbuf);
@@ -143,7 +159,11 @@ int bpinfo(const char *format, ...)
 
   va_list va;
   va_start(va, format);
+#if defined (i386_unknown_nt4_0)
+  _vsnprintf(errbuf, ERR_BUF_SIZE, format, va);
+#else
   vsnprintf(errbuf, ERR_BUF_SIZE, format, va);
+#endif
   va_end(va);
 
   BPatch::reportError(BPatchInfo, 0, errbuf);
