@@ -43,59 +43,7 @@
  * tunableConst - a system parameter that we might one to change during 
  *    execution of the system.
  *
- * $Log: tunableConst.C,v $
- * Revision 1.11  2004/03/23 01:12:28  eli
- * Updated copyright string
- *
- * Revision 1.10  2003/07/18 15:44:33  schendel
- * fix obsolete header file warnings by updating to new C++ header files;
- *
- * Revision 1.9  2003/07/15 22:45:59  schendel
- * rename string to pdstring
- *
- * Revision 1.8  2002/12/20 07:50:04  jaw
- * This commit fully changes the class name of "vector" to "pdvector".
- *
- * A nice upshot is the removal of a bunch of code previously under the flag
- * USE_STL_VECTOR, which is no longer necessary in many cases where a
- * functional difference between common/h/Vector.h and stl::vector was
- * causing a crash.
- *
- * Generally speaking, Dyninst and Paradyn now use pdvector exclusively.
- * This commit DOES NOT cover the USE_STL_VECTOR flag, which will now
- * substitute stl::vector for BPatch_Vector only.  This is currently, to
- * the best of my knowledge, only used by DPCL.  This will be updated and
- * tested in a future commit.
- *
- * The purpose of this, again, is to create a further semantic difference
- * between two functionally different classes (which both have the same
- * [nearly] interface).
- *
- * Revision 1.7  1999/03/03 18:15:26  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.6  1996/08/16 21:04:36  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1995/12/20 02:27:01  tamches
- * general cleanup
- *
- * Revision 1.4  1995/10/12 18:35:59  tamches
- * Changed a lot of prototypes from "string" to "const pdstring &", thus avoiding
- * an unnecessary string copy.
- *
- * Revision 1.3  1995/08/05  17:09:36  krisna
- * no `virtual' outside a class declaration
- *
- * Revision 1.2  1995/06/24 20:49:47  tamches
- * Removed setValue() and print() for individual tc's.
- *
- * Revision 1.1  1995/02/27  18:50:03  tamches
- * First version of TCthread; files tunableConst.h and .C have
- * simply moved from the util lib (and have been changed); file
- * TCmain.C is completely new.
+ * $Id: tunableConst.C,v 1.12 2004/06/21 21:42:36 pcroth Exp $
  *
  */
 
