@@ -110,8 +110,8 @@ void clearBaseBranch(process *proc, instInstance *inst)
       fromAddr = inst->baseInstance->baseAddr + 
                  (unsigned)inst->baseInstance->skipPreInsOffset;
       toAddr = inst->baseInstance->baseAddr + 
-#if defined(MT_THREAD) && defined(rs6000_ibm_aix4_1)
-               (unsigned)inst->baseInstance->emulateInsOffset;
+#if defined(rs6000_ibm_aix4_1)
+	       (unsigned)inst->baseInstance->emulateInsOffset;
 #else
                (unsigned)inst->baseInstance->updateCostOffset;
 #endif
@@ -156,7 +156,8 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
        // writes to addr space
     }
 
-//    delete retInstance; // safe if NULL (may have been alloc'd by findAndInstallBaseTramp)
+    // delete retInstance; 
+    // safe if NULL (may have been alloc'd by findAndInstallBaseTramp)
 
     return inst;
 }
@@ -293,6 +294,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 	unsigned fromAddr = getBaseBranchAddr(proc, ret);
 	generateBranch(proc, fromAddr, ret->trampBase);
     }
+
     return(ret);
 }
 
@@ -523,6 +525,7 @@ bool isValidAddress(process * , Address )
 
   return(result);
 }
+
 
 /*
  * return the time required to execute the passed primitive.
