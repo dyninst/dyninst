@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.27 1996/02/15 14:56:58 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.28 1996/03/13 21:53:55 newhall Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.27  1996/02/15 14:56:58  naim
+ * Revision 1.28  1996/03/13 21:53:55  newhall
+ * changed pause time to be computed like it is on all other platforms
+ *
+ * Revision 1.27  1996/02/15  14:56:58  naim
  * Laeving previous values for costs primitives on the CM-5 - naim
  *
  * Revision 1.26  1996/02/13  21:37:08  naim
@@ -195,6 +198,12 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "stats.h"
 #include "ptrace_emul.h"
 #include "os.h"
+
+extern timeStamp startPause;
+extern time64 firstRecordTime;
+extern timeStamp elapsedPauseTime;
+extern timeStamp getCurrentTime(bool firstRecordRelative);
+extern bool isApplicationPaused();
 
 /*
  * Define the various classes of library functions to inst. 
@@ -396,6 +405,7 @@ string process::getProcessStatus() const
     }
 }
 
+#ifdef ndef
 float computePauseTimeMetric()
 {
     float max=0.0;
@@ -407,6 +417,24 @@ float computePauseTimeMetric()
       }
     }
     return(max);
+}
+#endif
+
+float computePauseTimeMetric()
+{
+    timeStamp now;
+    timeStamp elapsed=0.0;
+
+    now = getCurrentTime(false);
+    if (firstRecordTime) {
+	elapsed = elapsedPauseTime;
+	if (isApplicationPaused())
+            elapsed += now - startPause;
+       assert(elapsed >= 0.0);
+       return(elapsed);
+    } else {
+       return(0.0);
+    }
 }
 
 void osDependentInst(process *proc) {
