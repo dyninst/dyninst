@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.47 1999/05/03 20:02:00 zandy Exp $
+// $Id: inst-sparc-solaris.C,v 1.48 1999/05/19 21:22:30 zhichen Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -496,8 +496,11 @@ void pd_Function::relocateInstructionWithFunction(instruction *insn, Address ori
  */
 trampTemplate *installBaseTramp(instPoint *&location, process *proc)
 {
-    Address baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
-
+    Address ipAddr = 0;
+    proc->getBaseAddress(location->image_ptr,ipAddr);
+    ipAddr += location -> addr;
+    Address baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap, ipAddr);
+    assert(baseAddr);
     instruction *code = new instruction[baseTemplate.size];
     assert(code);
 
@@ -858,19 +861,20 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
     instruction *code;
     instruction *temp;
 
-    Address baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
-
     if(!(location->func->isInstalled(proc))) {
         location->func->relocateFunction(proc,location,extra_instrs);
     }
     else if(!location->relocated_){
-	// need to find new instPoint for location...it has the pre-relocated
-	// address of the instPoint
-        location->func->modifyInstPoint(location,proc);	     
+        // need to find new instPoint for location...it has the pre-relocated
+        // address of the instPoint
+        location->func->modifyInstPoint(location,proc);
     }
 
     code = new instruction[baseTemplate.size];
     memcpy((char *) code, (char*) baseTemplate.trampTemp, baseTemplate.size);
+
+    Address baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap, location->addr);
+    assert(baseAddr);
 
     for (temp = code, currAddr = baseAddr; 
         (currAddr - baseAddr) < (unsigned) baseTemplate.size;

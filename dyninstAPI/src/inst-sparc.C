@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.76 1999/05/03 20:02:03 zandy Exp $
+// $Id: inst-sparc.C,v 1.77 1999/05/19 21:22:31 zhichen Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -809,8 +809,10 @@ bool pd_Function::relocateFunction(process *proc,
 
     if(!reloc_info){
         //Allocate the heap for the function to be relocated
-        ret = inferiorMalloc(proc, size() + size_change,
-                             textHeap);
+        Address ipAddr = 0;
+        proc->getBaseAddress(location->image_ptr,ipAddr);
+        ipAddr += location -> addr;
+        ret = inferiorMalloc(proc, size() + size_change, textHeap, ipAddr);
         if(!ret)  return false;
         reloc_info = new relocatedFuncInfo(proc,ret);
         relocatedByProcess += reloc_info;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.22 1998/12/25 22:02:07 wylie Exp $
+// $Id: arch-sparc.h,v 1.23 1999/05/19 21:22:29 zhichen Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -321,4 +321,6 @@ inline bool IS_VALID_INSN(const instruction insn) {
 /* addresses on sparc are aligned to word boundaries */
 inline bool isAligned(const Address addr) { return !(addr & 0x3); }
 
+#define region_lo(x) ( (x > (0x1 << 23))? (x-(0x1 << 23)):0x0 )
+#define region_hi(x) (x + (0x1 << 23))
 #endif
