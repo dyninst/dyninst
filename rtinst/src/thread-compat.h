@@ -5,6 +5,10 @@
 #ifndef _THREAD_COMPAT_
 #define _THREAD_COMPAT
 
+#if defined(i386_unknown_linux2_0)
+#include <syscall.h>
+#endif
+
 #if defined(rs6000_ibm_aix4_1) | defined(i386_unknown_linux2_0)
 #include <pthread.h>
 typedef pthread_key_t                     dyninst_key_t;
@@ -19,7 +23,11 @@ typedef pthread_rwlock_t                  dyninst_rwlock_t;
 #define P_thread_setspecific(key, val)    pthread_setspecific(key,val)
 #define P_thread_key_create(key,dest)     pthread_key_create(key,dest)
 #define P_thread_self()                   pthread_self()
+#if defined(i386_unknown_linux2_0)
+#define P_lwp_self()                      syscall(SYS_gettid)
+#else if defined(rs6000_ibm_aix4_1)
 #define P_lwp_self()                      thread_self()
+#endif
 #endif
 
 #if defined(sparc_sun_solaris2_4)
