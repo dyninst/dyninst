@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.55 2002/06/21 14:19:29 chadd Exp $
+// $Id: pdwinnt.C,v 1.56 2002/06/26 21:14:51 schendel Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -214,7 +214,7 @@ findFunctionFromAddress( process* proc, Address addr )
 {
     function_base* fp = NULL;
 
-    instPoint* ip = findInstPointFromAddress( proc, addr );
+    instPoint* ip = proc->findInstPointFromAddress(addr);
     if( ip != NULL )
     {
         // the address is within a tramp
