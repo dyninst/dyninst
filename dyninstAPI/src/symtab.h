@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.165 2005/01/11 22:47:04 legendre Exp $
+// $Id: symtab.h,v 1.166 2005/01/18 18:34:19 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -131,7 +131,7 @@ public:
 
 class image;
 class lineTable;
-class process;
+//class process;
 class pd_Function;
 class Frame;
 class ExceptionBlock;
@@ -144,9 +144,10 @@ struct pdFuncCmp;
 class relocatedFuncInfo : public codeRange {
  public:
    relocatedFuncInfo(process *p, Address na, unsigned s, pd_Function *f):
-      proc_(p), addr_(na), size_(s), funcEntry_(0), func_(f) { }
+     proc_(p), addr_(na), size_(s), funcEntry_(0), func_(f) {};
         
    ~relocatedFuncInfo(){proc_ = 0;}
+
    Address get_address() const { return addr_;}
    unsigned get_size() const { return size_;}
    codeRange *copy() const { return new relocatedFuncInfo(*this);}
@@ -189,6 +190,7 @@ class relocatedFuncInfo : public codeRange {
    pdvector<instPoint*> calls_;          // pointer to the calls
    pdvector<instPoint*> arbitraryPoints_;          // pointer to the calls
    pd_Function *func_;         // "Parent" function pointer
+   int id_; // Matches the associated process ID
 };
 
 
@@ -340,6 +342,8 @@ class pd_Function : public function_base {
       /* TODO */ 
    }
 
+   void cleanProcessSpecific(process *p);
+
    codeRange *copy() const { return new pd_Function(*this); }
 
    void updateFunctionEnd( Address addr, image* owner );
@@ -362,33 +366,40 @@ class pd_Function : public function_base {
    Address getAddress(const process *p){
       if(p && needs_relocation_) { 
          for(u_int i=0; i < relocatedByProcess.size(); i++){
-            if((relocatedByProcess[i])->getProcess() == p) 
+	   if(relocatedByProcess[i] &&
+	      (relocatedByProcess[i])->getProcess() == p)
                return (relocatedByProcess[i])->get_address();
          } }
       return get_address();
    }
    Address getEffectiveAddress(const process *p) const;
    instPoint *funcEntry(const process *p) const {
-      if(p && needs_relocation_) { 
-         for(u_int i=0; i < relocatedByProcess.size(); i++){
-            if((relocatedByProcess[i])->getProcess() == p) {
-               return (relocatedByProcess[i])->funcEntry();
-            }
-         } }
-      return funcEntry_;
+     if(p && needs_relocation_) { 
+       for(u_int i=0; i < relocatedByProcess.size(); i++){
+	 if(relocatedByProcess[i] &&
+	    (relocatedByProcess[i])->getProcess() == p) {
+	   return (relocatedByProcess[i])->funcEntry();
+	 }
+       }       
+     }
+     return funcEntry_;
    }
+   
    const pdvector<instPoint*> &funcExits(const process *p) const {
-      if(p && needs_relocation_) {
-         for(u_int i=0; i < relocatedByProcess.size(); i++){
-            if((relocatedByProcess[i])->getProcess() == p) 
-               return (relocatedByProcess[i])->funcReturns();
-         } }
-      return funcReturns;
+     if(p && needs_relocation_) {
+       for(u_int i=0; i < relocatedByProcess.size(); i++){
+	 if(relocatedByProcess[i] &&
+	    (relocatedByProcess[i])->getProcess() == p)
+	   return (relocatedByProcess[i])->funcReturns();
+       } 
+     }
+     return funcReturns;
    }
    const pdvector<instPoint*> &funcArbitraryPoints(const process *p) const {
       if(p && needs_relocation_) {
          for(u_int i=0; i < relocatedByProcess.size(); i++){
-            if((relocatedByProcess[i])->getProcess() == p) 
+	   if(relocatedByProcess[i] &&
+	      (relocatedByProcess[i])->getProcess() == p)
                return (relocatedByProcess[i])->funcArbitraryPoints();
          } }
       return arbitraryPoints;
@@ -407,7 +418,8 @@ class pd_Function : public function_base {
 
       if(p && needs_relocation_) {
          for(u_int i=0; i < relocatedByProcess.size(); i++){
-            if((relocatedByProcess[i])->getProcess() == p) 
+	   if(relocatedByProcess[i] &&
+	      (relocatedByProcess[i])->getProcess() == p)
                return (relocatedByProcess[i])->funcCallSites();
          } }
       return calls;
@@ -415,7 +427,8 @@ class pd_Function : public function_base {
    bool hasBeenRelocated(process *p){
       if(p && needs_relocation_) {
          for(u_int i=0; i < relocatedByProcess.size(); i++) {
-            if((relocatedByProcess[i])->getProcess() == p) 
+	   if(relocatedByProcess[i] &&
+	      (relocatedByProcess[i])->getProcess() == p)
                return true;
          }
       }
@@ -426,7 +439,8 @@ class pd_Function : public function_base {
         //explaination, this is part of the test4 exec on linux fix.
    void unrelocatedByProcess(process *p){ //ccw 20 apr 2004
          for(u_int i=0; i < relocatedByProcess.size(); i++) {
-            if((relocatedByProcess[i])->getProcess() == p)
+	   if(relocatedByProcess[i] &&
+	      (relocatedByProcess[i])->getProcess() == p)
                 (relocatedByProcess[i])->setProcess(NULL);
          }
    }
@@ -776,6 +790,8 @@ class pdmodule: public module {
 
    ~pdmodule();
 
+void cleanProcessSpecific(process *p);
+
    void setLineAddr(unsigned line, Address addr) {
       lines_.setLineAddr(line, addr);}
    bool getLineAddr(unsigned line, Address &addr) { 
@@ -930,10 +946,20 @@ class image : public codeRange {
  public:
    static image *parseImage(const pdstring file);
    static image *parseImage(fileDescriptor *desc, Address newBaseAddr = 0); 
+
    // And to get rid of them if we need to re-parse
    static void removeImage(image *img);
+
+   // "I need another handle!"
+   image *clone() { refCount++; return this; }
+
+   // And alternates
    static void removeImage(const pdstring file);
    static void removeImage(fileDescriptor *desc);
+
+   // Cleaning function -- removes all process-dependent info
+   void cleanProcessSpecific(process *p);
+
    void parseStaticCallTargets( pdvector< Address >& callTargets,
                                 pdvector< pd_Function* > *raw_funcs,
                                 pdmodule* mod );
@@ -942,14 +968,20 @@ class image : public codeRange {
                        pdmodule* mod );
    image(fileDescriptor *desc, bool &err, Address newBaseAddr = 0); 
  protected:
-   ~image() { /* TODO */ }
- public:
-   image *clone() { refCount++; return this; }
+   ~image();
+
+   // 7JAN05: go through the removeImage call!
    int destroy() {
-      if (!--refCount)
-         delete this; 
-      return refCount; 
+     refCount--;
+     if (refCount == 0) {
+       //delete this;
+       // Uncomment that when we have a destructor that works...
+     }
+     if (refCount < 0)
+       assert(0 && "NEGATIVE REFERENCE COUNT FOR IMAGE!");
+     return refCount; 
    }
+ public:
 
    // Check the list of symbols returned by the parser, return
    // name/addr pair

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.222 2005/01/18 00:51:55 eli Exp $
+ // $Id: symtab.C,v 1.223 2005/01/18 18:34:18 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1264,41 +1264,6 @@ unsigned int int_addrHash(const Address& addr) {
 }
 
 /*
- * Remove a parsed executable from the global list. Used if the old handle
- * is no longer valid.
- */
-void image::removeImage(image *img)
-{
-    pdvector<image*> newImages;
-    for (unsigned i = 0; i < allImages.size(); i++)
-        if (allImages[i] != img)
-            newImages.push_back(allImages[i]);
-    
-    allImages = newImages;
-}
-
-void image::removeImage(const pdstring file)
-{
-    pdvector<image*> newImages;
-    for (unsigned i = 0; i < allImages.size(); i++)
-        if (allImages[i]->file() != file)
-            newImages.push_back(allImages[i]);
-    
-    allImages = newImages;
-}
-
-void image::removeImage(fileDescriptor *desc)
-{
-    pdvector<image*> newImages;
-    for (unsigned i = 0; i < allImages.size(); i++)
-        // Never bothered to implement a != operator
-        if (!(*(allImages[i]->desc()) == *desc))
-            newImages.push_back(allImages[i]);
-    
-    allImages = newImages;
-}
-
-/*
  * load an executable:
  *   1.) parse symbol table and identify rotuines.
  *   2.) scan executable to identify inst points.
@@ -1324,9 +1289,9 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
   // it, basically.
   for (unsigned u=0; u<numImages; u++)
      if ((*desc) == *(allImages[u]->desc())) {
-        return allImages[u];
+       // We reference count...
+       return allImages[u]->clone();
      }
-
   /*
    * load the symbol table. (This is the a.out format specific routine).
    */
@@ -1337,6 +1302,7 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
     statusLine("Processing an executable file");
   
   bool err=false;
+
   
   // TODO -- kill process here
   image *ret = new image(desc, err, newBaseAddr); 
@@ -1354,7 +1320,8 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
   // On AIX, we might have a "stub" image instead of the
   // actual image we want. So we check to see if we do,
   // and if so copy over the list. In normal practice,
-  // the stub will be the first and only entry.
+  // the stub will be the last entry (as it has been
+  // most recently parsed)
   for (unsigned i=0; i<numImages; i++)
     if (allImages[i]->desc()->addr() == (unsigned) -1) {
       image *imageTemp = allImages[i];
@@ -1381,8 +1348,68 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
 #ifndef BPATCH_LIBRARY
   tp->resourceBatchMode(false);
 #endif
-
   return ret;
+}
+
+/*
+ * Remove a parsed executable from the global list. Used if the old handle
+ * is no longer valid.
+ */
+void image::removeImage(image *img)
+{
+
+  // Here's a question... do we want to actually delete images?
+  // Pro: free up memory. Con: we'd just have to parse them again...
+  // I guess the question is "how often do we serially open files".
+  int refCount = img->destroy();
+  
+
+  /*
+    // We're not deleting when the refcount hits 0, so we may as well
+    // keep the vector. It's a time/memory problem. 
+  if (refCount == 0) {
+    pdvector<image*> newImages;
+    // It's gone... remove from image vector
+    for (unsigned i = 0; i < allImages.size(); i++) {
+      if (allImages[i] != img)
+	newImages.push_back(allImages[i]);
+    }
+    allImages = newImages;
+  }
+  */
+}
+
+void image::removeImage(const pdstring file)
+{
+  image *img = NULL;
+  for (unsigned i = 0; i < allImages.size(); i++) {
+    if (allImages[i]->file() == file)
+      img = allImages[i];
+  }
+  // removeImage plays with the allImages vector... so do this
+  // outside the for loop.
+  if (img) image::removeImage(img);
+}
+
+void image::removeImage(fileDescriptor *desc)
+{
+  image *img = NULL;
+  for (unsigned i = 0; i < allImages.size(); i++) {
+    // Never bothered to implement a != operator
+    if (allImages[i]->desc() == desc)
+      img = allImages[i];
+  }
+  if (img) image::removeImage(img);
+}
+
+void image::cleanProcessSpecific(process *p) {
+  // For each module and function, blow away process-specific data.
+  // Includes:
+  // Relocation information
+  
+  for (unsigned i = 0; i < _mods.size(); i++) {
+    _mods[i]->cleanProcessSpecific(p);
+  }
 }
 
 
@@ -2190,6 +2217,13 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
    instrumentableFunctions = temp_vec;
 }
 
+image::~image() 
+{
+  fprintf(stderr, "Error: calling image destructor %p\n", this);
+  // Doesn't do anything yet, moved here so we don't mess with symtab.h
+}
+
+
 void pdmodule::updateForFork(process *childProcess, 
 			     const process *parentProcess) {
   /* Mangled names are unique, so we don't have to nest our loops. */
@@ -2654,11 +2688,14 @@ void pd_Function::updateForFork(process *childProcess,
 				const process *parentProcess) {
   if(needs_relocation_) {
     for(u_int i=0; i < relocatedByProcess.size(); i++) {
-      if((relocatedByProcess[i])->getProcess() == parentProcess) {
-	  relocatedFuncInfo *childRelocInfo = 
-	    new relocatedFuncInfo(*relocatedByProcess[i]);
-	  childRelocInfo->setProcess(childProcess);
-	  relocatedByProcess.push_back(childRelocInfo);
+      if(relocatedByProcess[i] &&
+	 (relocatedByProcess[i])->getProcess() == parentProcess) {
+	relocatedFuncInfo *childRelocInfo = 
+	  new relocatedFuncInfo(*relocatedByProcess[i]);
+	childRelocInfo->setProcess(childProcess);
+	relocatedByProcess.push_back(childRelocInfo);
+	// And add the relocation to the process' address tree
+	childProcess->addCodeRange(childRelocInfo->get_address(), childRelocInfo);
       }
     }
   }
@@ -2679,7 +2716,8 @@ void pd_Function::addArbitraryPoint(instPoint* insp, process* p) {
     
     if(insp && p && needs_relocation_)
 	for(u_int i=0; i < relocatedByProcess.size(); i++)
-            if((relocatedByProcess[i])->getProcess() == p) {
+	  if(relocatedByProcess[i] &&
+	     (relocatedByProcess[i])->getProcess() == p) {
 		addArbitraryPoint(insp, p, relocatedByProcess[i]);
 		return;
             }
@@ -3182,10 +3220,40 @@ void pdmodule::cleanupLineInformation()
     lineInformation->cleanEmptyFunctions();
 }
 
+void pdmodule::cleanProcessSpecific(process *p) {
+
+  // Appears that the sum of allInstrumentableFunctionsByMangledName and
+  // allUninstrumentableFunctionsByMangledName is every function.
+  /* Mangled names are unique, so we don't have to nest our loops. */
+  FunctionsByMangledNameIterator iiter = allInstrumentableFunctionsByMangledName.begin();
+  FunctionsByMangledNameIterator iend = allInstrumentableFunctionsByMangledName.end();
+  for( ; iiter != iend; ++ iiter ) {
+    (*iiter)->cleanProcessSpecific(p);
+  }
+
+  FunctionsByMangledNameIterator niter = allUninstrumentableFunctionsByMangledName.begin();
+  FunctionsByMangledNameIterator nend = allUninstrumentableFunctionsByMangledName.end();
+  for( ; niter != nend; ++ niter ) {
+    (*niter)->cleanProcessSpecific(p);
+  }
+}
+
 pdmodule::~pdmodule()
 {
     if(lineInformation) delete lineInformation;
 }
+
+void pd_Function::cleanProcessSpecific(process *p) {
+  // Relocated func info needs to go
+  for (unsigned i = 0; i < relocatedByProcess.size(); i++) {
+    if (relocatedByProcess[i] && 
+	relocatedByProcess[i]->getProcess() == p) {
+      delete relocatedByProcess[i];
+      relocatedByProcess[i] = NULL;
+    }
+  }      
+}
+
 
 // Parses symtab for file and line info. Should not be called before
 // parseTypes. The ptr to lineInformation should be NULL before this is called.
