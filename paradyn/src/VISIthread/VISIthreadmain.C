@@ -22,13 +22,16 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.46  1995/10/12 19:44:29  naim
-/* Adding error recovery when a visi cannot be created. This change
-/* implies that whenever the visiUser constructor is used, it
-/* is the user's responsability to check whether the new object have been
-/* successfully created or not (i.e. by checking the public method
-/* bool errorConditionFound in class visualizationUser) - naim
+/* Revision 1.47  1995/10/13 22:08:54  newhall
+/* added phaseType parameter to VISIthreadDataHandler.   Purify fixes.
 /*
+ * Revision 1.46  1995/10/12  19:44:29  naim
+ * Adding error recovery when a visi cannot be created. This change
+ * implies that whenever the visiUser constructor is used, it
+ * is the user's responsability to check whether the new object have been
+ * successfully created or not (i.e. by checking the public method
+ * bool errorConditionFound in class visualizationUser) - naim
+ *
  * Revision 1.45  1995/09/26  20:48:43  naim
  * Minor error messages changes
  *
@@ -223,7 +226,8 @@ char *AbbreviatedFocus(char *);
 void VISIthreadDataHandler(perfStreamHandle handle,
 			    metricInstanceHandle mi,
 			    int bucketNum,
-			    sampleValue value){
+			    sampleValue value,
+			    phaseType phase_type){
 
   VISIthreadGlobals *ptr;
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
@@ -290,6 +294,7 @@ void VISIthreadDataHandler(perfStreamHandle handle,
   info = 0;
 }
 
+#ifdef n_def
 /////////////////////////////////////////////////////////////
 //  VISIthreadDataCallback: Callback routine for DataManager 
 //    newPerfData Upcall
@@ -306,6 +311,7 @@ void VISIthreadDataCallback(perfStreamHandle handle,
   }
 
 }
+#endif
 
 
 /////////////////////////////////////////////////////////
@@ -452,6 +458,10 @@ void VISIthreadPhaseCallback(perfStreamHandle ps_handle,
       return;
    }
 
+  if(ptr->start_up)  // if visi process has not been started yet return
+     return;
+
+
 #ifdef DEBUG3
    fprintf(stderr,"in VISIthreadPhaseCallback\n");
    fprintf(stderr,"phase name = %s\n",name);
@@ -470,6 +480,16 @@ void VISIthreadPhaseCallback(perfStreamHandle ps_handle,
    // send visi phase start call for new phase
    ptr->visip->PhaseStart((double)begin,(double)end,bucketWidth,name,handle);
 
+   // if this visi is defined for the current phase then data values 
+   // will stop arriving so remove all mrlist elements
+//   if(ptr->args->phase_type == CurrentPhase){ 
+//      for(unsigned i=0; i < ptr->mrlist.size(); i++){
+//         metricInstInfo *next = ptr->mrlist[i]; 
+//        delete(next);
+//      }
+//       ptr->mrlist.resize(0);
+//      assert(!(ptr->mrlist.size()));
+//   }
 }
 
 /////////////////////////////////////////////////////////////
@@ -525,7 +545,9 @@ int VISIthreadStartProcess(){
   return(1);
 }
 
-
+#ifdef n_def
+static u_int VISIthread_num_enabled = 0;
+#endif
 ///////////////////////////////////////////////////////////////////
 //  VISIthreadchooseMetRes: callback for User Interface Manager 
 //    chooseMetricsandResources upcall
@@ -569,10 +591,44 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
   metricInstInfo *newPair = NULL;
   metricInstInfo **newEnabled = new (metricInstInfo *)[newMetRes->size()];
   for(unsigned k=0; k < newMetRes->size(); k++){
-      // try to enable this metric/focus pair
-      if((newPair = ptr->dmp->enableDataCollection(ptr->ps_handle,
+
+#ifdef n_def
+      switch (VISIthread_num_enabled % 4) {
+            case 0:
+		cout << "enabling with persistent data 0 collection 0" << endl;
+                newPair = ptr->dmp->enableDataCollection(ptr->ps_handle,
 			      &((*newMetRes)[k].res), (*newMetRes)[k].met,
-			      ptr->args->phase_type,0,0))){
+			      ptr->args->phase_type,0,0);
+                
+                break;
+            case 1:
+		cout << "enabling with persistent data 1 collection 0" << endl;
+                newPair = ptr->dmp->enableDataCollection(ptr->ps_handle,
+			      &((*newMetRes)[k].res), (*newMetRes)[k].met,
+			      ptr->args->phase_type,1,0);
+                break;
+            case 2:
+		cout << "enabling with persistent data 0 collection 1" << endl;
+                newPair = ptr->dmp->enableDataCollection(ptr->ps_handle,
+			      &((*newMetRes)[k].res), (*newMetRes)[k].met,
+			      ptr->args->phase_type,0,1);
+                break;
+            case 3:
+		cout << "enabling with persistent data 1 collection 1" << endl;
+                newPair = ptr->dmp->enableDataCollection(ptr->ps_handle,
+			      &((*newMetRes)[k].res), (*newMetRes)[k].met,
+			      ptr->args->phase_type,1,1);
+                break;
+      }
+
+      VISIthread_num_enabled++;
+      if(newPair)
+#endif
+
+      if((newPair = ptr->dmp->enableDataCollection(ptr->ps_handle,
+		    &((*newMetRes)[k].res), (*newMetRes)[k].met,
+		    ptr->args->phase_type,0,0))){
+
           // check to see if this pair has already been enabled
           bool found = false;
 	  for(unsigned i = 0; i < ptr->mrlist.size(); i++){
@@ -667,8 +723,8 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 
       // get old data bucket values for new metric/resources and
       // send them to visualization
+      sampleValue *buckets = new sampleValue[1001];
       for(unsigned q=0;q<numEnabled;q++){
-        sampleValue buckets[1000];
         int howmany = ptr->dmp->getSampleValues(newEnabled[q]->mi_id,
 					    buckets,1000,0,
 					    ptr->args->phase_type);
@@ -677,6 +733,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 	    vector<float> bulk_data;
 	    for (unsigned ve=0; ve<howmany; ve++){
 	      bulk_data += buckets[ve];
+	      if(ve > 1000) cout << "Array bounds error in VISIthreadMain" << endl;
             }
             ptr->visip->BulkDataTransfer(bulk_data, (int)newEnabled[q]->m_id,
 		                        (int)newEnabled[q]->r_id);
@@ -702,6 +759,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
         delete(retryList);
       }
       delete(newMetRes);
+      delete(buckets);
   }
   else {
       // if nothing was enabled, and remenuflag is set make remenu request
@@ -779,7 +837,6 @@ void *VISIthreadmain(void *vargs){
 
   // create performance stream
   union dataCallback dataHandlers;
-  // dataHandlers.sample = (sampleDataCallbackFunc)VISIthreadDataCallback;
   dataHandlers.sample = (sampleDataCallbackFunc)VISIthreadDataHandler;
   if((globals->ps_handle = globals->dmp->createPerformanceStream(
 		   Sample,dataHandlers,callbacks)) == 0){
@@ -819,7 +876,6 @@ void *VISIthreadmain(void *vargs){
     // call get metrics and resources with first set
     globals->ump->chooseMetricsandResources(VISIthreadchooseMetRes, NULL);
   }
-
 
  
   PARADYN_DEBUG(("before enter main loop"));
