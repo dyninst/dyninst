@@ -1,11 +1,3 @@
-// vectorSet.h
-// a container class for a set of objects providing just the following operations
-// (but doing so _very_ efficiently, in space and time)
-// 1) add an item
-// 2) remove an arbitrary item from the set and return its contents
-// 3) peek at individual items in the set by their index (0 thru size-1)
-// 4) remove an item by its index
-
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -47,6 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// vectorSet.h
+// A container class for a set of objects providing just a few operations
+// (but doing so _very_ efficiently, in space and time):
+// 1) add an item
+// 2) remove an arbitrary item from the set and return its contents
+// 3) peek at individual items in the set by their index (0 thru size-1)
+// 4) remove an item by its index
+
 #ifndef _VECTOR_SET_H_
 #define _VECTOR_SET_H_
 
@@ -75,6 +75,10 @@ class vectorSet {
    unsigned size() const {return data.size();}
 
    const T &operator[](unsigned index) const {
+      return data[index];
+   }
+
+   T &operator[](unsigned index) {
       return data[index];
    }
 
