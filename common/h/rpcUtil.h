@@ -26,9 +26,10 @@ class XDRrpc {
 class THREADrpc {
   public:
     THREADrpc(int tid);
+    void setTid(int id) { tid = id; }
   protected:
     int tid;
-    // this are only to be used by implmentors of thread RPCs.
+    // these are only to be used by implmentors of thread RPCs.
     //   the value is only valid during a thread RPC.
     unsigned int requestingThread;
     unsigned int getRequestingThread()	{ return requestingThread; }
