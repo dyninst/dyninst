@@ -45,6 +45,7 @@
 #include "paradynd/src/metricFocusNode.h"
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/frame.h"
+#include "focus.h"
 
 class machineMetFocusNode;
 class instrCodeNode;
@@ -81,7 +82,7 @@ class processMetFocusNode : public metricFocusNode {
   timeStamp procStartTime;    // the time that this metric started
                               // need this in updateWithDeltaValue()
   const string &metric_name;
-  const Focus &focus;
+  const Focus focus;
   bool dontInsertData_;
   bool catchupNotDoneYet_;
   bool currentlyPaused;
@@ -116,7 +117,7 @@ class processMetFocusNode : public metricFocusNode {
 				 aggregateOp agg_op, bool arg_dontInsertData);
   ~processMetFocusNode();
 
-  const Focus &getFocus() const { 
+  const Focus getFocus() const { 
     return focus;
   }
   void setMetricVarCodeNode(instrCodeNode* part);
