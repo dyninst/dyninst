@@ -2,10 +2,13 @@
 // C++ code that provides access to tunable constants from tcl.
 
 /* $Log: tclTunable.C,v $
-/* Revision 1.2  1994/11/04 15:51:26  tamches
-/* Fixed a bug when searching for tunable constants by name.
-/* Added some extra error checking.
+/* Revision 1.3  1994/12/21 00:44:07  tamches
+/* Reduces compiler warnings e.g Bool to bool, char * to const char *
 /*
+ * Revision 1.2  1994/11/04  15:51:26  tamches
+ * Fixed a bug when searching for tunable constants by name.
+ * Added some extra error checking.
+ *
  * Revision 1.1  1994/10/26  23:12:52  tamches
  * First version of tclTunable.C; provides "tclTunable" tcl command that
  * can access tunable constants.
@@ -20,7 +23,7 @@
 #include "tclTunable.h"
 
 struct cmdTabEntry {
-   char *cmdName;
+   const char *cmdName;
    int   index;
    int   numArgs;
 };
@@ -155,7 +158,7 @@ int setValue(Tcl_Interp *interp, tunableConstant *tc, char *newValString) {
 
    // stick value into interp->result as a string
    if (tc->getType() == tunableBoolean)
-      ((tunableBooleanConstant *)tc)->setValue((Boolean)atoi(newValString));
+      ((tunableBooleanConstant *)tc)->setValue((bool)atoi(newValString));
    else if (tc->getType() == tunableFloat)
       ((tunableFloatConstant *)tc)->setValue((float)atof(newValString));
    else
@@ -224,7 +227,7 @@ int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
          tunableConstant *tc = tunableConstantListEntryByIndex(atoi(argv[2]));
          if (tc==NULL) return TCL_ERROR;
 
-         sprintf(interp->result, "%s", (char *)tc->getName());
+         sprintf(interp->result, "%s", tc->getName());
          return TCL_OK;
       }
 
@@ -233,7 +236,7 @@ int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
          tunableConstant *tc = tunableConstantListEntryByIndex(atoi(argv[2]));
          if (NULL == tc) return TCL_ERROR;
 
-         sprintf(interp->result, "%s", (tc->getDesc()==NULL) ? (char *)tc->getName() : (char *)tc->getDesc());
+         sprintf(interp->result, "%s", (tc->getDesc()==NULL) ? tc->getName() : tc->getDesc());
          return TCL_OK;
       }
 
@@ -299,6 +302,7 @@ void InstallTunableTclCommand(Tcl_Interp *interp) {
 /* ****************************************************** */
 // temporary stuff
 #ifdef tcltunabletestprog
+
 extern int main(int argc, char **argv);
 void *dummy = (void *)main;
 
