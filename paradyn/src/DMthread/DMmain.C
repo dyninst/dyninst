@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.52  1994/11/09 18:39:34  rbi
+ * Revision 1.53  1994/11/11 07:08:51  markc
+ * Added extra arg to RPC_make_arg_list to tell paradyndPVM that it should
+ * start other paradyndPVMs
+ *
+ * Revision 1.52  1994/11/09  18:39:34  rbi
  * the "Don't Blame Me" commit
  *
  * Revision 1.51  1994/11/03  21:58:49  karavan
@@ -715,7 +719,7 @@ void *DMmain(void* varg)
     dynRPCUser::__wellKnownPortFd__ = sockfd;
 
     paradynDaemon::args =
-	      RPC_make_arg_list(AF_INET, SOCK_STREAM, known_sock, 1);
+	      RPC_make_arg_list(AF_INET, SOCK_STREAM, known_sock, 1, 1);
 
     msg_send (MAINtid, MSG_TAG_DM_READY, (char *) NULL, 0);
     tag = MSG_TAG_ALL_CHILDREN_READY;
