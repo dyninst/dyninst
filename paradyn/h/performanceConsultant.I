@@ -1,6 +1,6 @@
 /*
  * Interface between the Performance Consultant and the rest of paradyn.
- * $Id: performanceConsultant.I,v 1.31 1998/04/01 01:28:01 wylie Exp $
+ * $Id: performanceConsultant.I,v 1.32 1998/04/28 22:11:55 wylie Exp $
  */
 
 #include "dataManager.thread.h"
@@ -18,13 +18,17 @@ typedef struct int_Array {
 } int_Array;
 
 // Note: the following structure (used by the "getNodeInfo" igen call) is
-//       subject to fairly frequent change, as we thing of more goodies.
+//       subject to fairly frequent change, as we think of more goodies.
 struct shg_node_info {
    string why;
    string where;
+   bool active;                 // new
    bool currentConclusion;
    timeStamp timeTrueFalse;
-   sampleValue currentValue;
+   sampleValue currentValue;    // changed to reflect "pure" value
+   sampleValue adjustedValue;   // what was previously currentValue
+   sampleValue lastThreshold;   // new
+   sampleValue hysConstant;     // new
    timeStamp startTime;
    timeStamp endTime;
    sampleValue estimatedCost;
@@ -33,7 +37,7 @@ struct shg_node_info {
 
 $remote performanceConsultant {
     $base 6000;
-    $version 19;
+    $version 20;
 
     // If search is paused, resumes search.  Otherwise, performs
     // all initialization for new search; initializes root node and 
