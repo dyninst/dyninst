@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.79 2003/03/10 21:06:04 pcroth Exp $
+// $Id: pdwinnt.C,v 1.80 2003/03/10 23:15:34 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -507,63 +507,59 @@ Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
 // osTraceMe is not needed in Windows NT
 void OS::osTraceMe(void) {}
 
+// Default continue type (modified by handlers)
 DWORD continueType = DBG_CONTINUE; //ccw 25 oct 2000 : 28 mar 2001
 
-// Signal (EXCEPTION_BREAKPOINT) handling
-int handleSigTrap(process *proc, procSignalWhat_t debugEv) {
-    Address addr = (Address) debugEv.u.Exception.ExceptionRecord.ExceptionAddress;
+// Breakpoint handler
+DWORD handleBreakpoint(process *proc,
+                       procSignalInfo_t info) {
+    Address addr = (Address) info.u.Exception.ExceptionRecord.ExceptionAddress;
     
-    DWORD continueType = DBG_CONTINUE;
     /*
       printf("Debug breakpoint exception, %d, addr = %x\n", 
-      debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
-      debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
+      info.u.Exception.ExceptionRecord.ExceptionFlags,
+      info.u.Exception.ExceptionRecord.ExceptionAddress);
     */
-#if defined(mips_unknown_ce2_11) //ccw 20 mar 2001 : 29 mar 2001
-    continueType = DBG_EXCEPTION_NOT_HANDLED;//ccw 25 oct 2000
-#endif
-    
-    // If we're attaching, the OS sends a stream of debug events
-    // to the mutator informing it of the status of the process.
-    // This finishes with a breakpoint that basically says
-    // "We're done, have fun". Check for that here.
-    if (proc->wasCreatedViaAttach() &&
-        !proc->reachedBootstrapState(initialized)) {
-        proc->setBootstrapState(initialized);
-        // Leave paused
-        return 1;
-    }
-    
-    // Wait for the process to hit main before we start
-    // doing things to it (creation only)
-    if(!proc->reachedBootstrapState(begun)) {
-        proc->setBootstrapState(begun);
-        proc->insertTrapAtEntryPointOfMain();
-        proc->continueProc();
-        return 1;
-    }
-    
-    // When we hit main, cleanup and set init state
-    if (proc->trapAtEntryPointOfMain(addr)) {
-        proc->handleTrapAtEntryPointOfMain(); // cleanup
-        proc->setBootstrapState(initialized);
+
+    if (!proc->reachedBootstrapState(bootstrapped)) {
         
-        // createProcess or attachProcess will read the state
-        // as initialized and begin the dyninst library load
-        return 1;
-    }
-    
-    
-    // When dyninst lib load finishes, cleanup
-    if (proc->dyninstlib_brk_addr &&
-        (proc->dyninstlib_brk_addr == addr)) {
+        // If we're attaching, the OS sends a stream of debug events
+        // to the mutator informing it of the status of the process.
+        // This finishes with a breakpoint that basically says
+        // "We're done, have fun". Check for that here.
+        if (proc->wasCreatedViaAttach() &&
+            !proc->reachedBootstrapState(initialized)) {
+            proc->setBootstrapState(initialized);
+            return DBG_CONTINUE;
+        }
         
-        proc->dyninstlib_brk_addr = 0;
-        proc->loadDYNINSTlibCleanup();
-        proc->setBootstrapState(loadedRT);
-        return 1;
+        // Wait for the process to hit main before we start
+        // doing things to it (creation only)
+        if(!proc->reachedBootstrapState(begun)) {
+            proc->setBootstrapState(begun);
+            proc->insertTrapAtEntryPointOfMain();
+            proc->continueProc();
+            return DBG_CONTINUE;
+        }
+    
+        // When we hit main, cleanup and set init state
+        if (proc->trapAtEntryPointOfMain(addr)) {
+            proc->handleTrapAtEntryPointOfMain(); // cleanup
+            proc->setBootstrapState(initialized);
+            return DBG_CONTINUE;
     }
     
+        
+        // When dyninst lib load finishes, cleanup
+        if (proc->dyninstlib_brk_addr &&
+            (proc->dyninstlib_brk_addr == addr)) {
+            proc->dyninstlib_brk_addr = 0;
+            proc->loadDYNINSTlibCleanup();
+            proc->setBootstrapState(loadedRT);
+            return DBG_CONTINUE;
+        }
+    }
+
     // Hitting a base tramp?
     
 #if !defined( mips_unknown_ce2_11 )//ccw 26 july 2000 : 29 mar 2001
@@ -586,7 +582,7 @@ int handleSigTrap(process *proc, procSignalWhat_t debugEv) {
         dyn_thread* currThread = NULL;
         for(unsigned int i = 0; i < proc->threads.size(); i++)
         {
-            if ((unsigned)proc->threads[i]->get_tid() == debugEv.dwThreadId)
+            if ((unsigned)proc->threads[i]->get_tid() == info.dwThreadId)
             {
                 currThread = proc->threads[i];
                 break;
@@ -631,23 +627,20 @@ int handleSigTrap(process *proc, procSignalWhat_t debugEv) {
         // We're actually in instrumentation, so rerun the 
         // process
         proc->continueProc();
-        return 1;
+        return DBG_CONTINUE;
     } // if trampAddr         
 #endif // mips_unknown_ce2_11
     
     // If it is not from an instrumentation point,
-    // it could be from a call to DYNINSTbreakPoint
-    // or an inferior procedure call
-    
-#if defined( mips_unknown_ce2_11 )//ccw 20 mar 2001 : 29 mar 2001
-    continueType = DBG_EXCEPTION_NOT_HANDLED;//ccw 1 mar 2001
-#endif
-    return 1;
+    // it could be from a call to DYNINSTbreakPoint,
+    // and so we leave paused
+
+    return DBG_CONTINUE;
 }
 
-int handleSigIll(process *proc, procSignalWhat_t debugEv) {
+DWORD handleIllegal(process *proc, procSignalInfo_t info) {
 
-    Address addr = (Address) debugEv.u.Exception.ExceptionRecord.ExceptionAddress;
+    Address addr = (Address) info.u.Exception.ExceptionRecord.ExceptionAddress;
     
     if( proc->handleTrapIfDueToRPC() )
     {
@@ -667,7 +660,7 @@ int handleSigIll(process *proc, procSignalWhat_t debugEv) {
             dyn_thread* currThread = NULL;
             for( unsigned int i = 0; i < proc->threads.size(); i++ ) {
                 if ((unsigned)proc->threads[i]->get_tid() == 
-                    debugEv.dwThreadId) {
+                    info.dwThreadId) {
                     currThread = proc->threads[i];
                     break;
                 }
@@ -687,27 +680,20 @@ int handleSigIll(process *proc, procSignalWhat_t debugEv) {
                 currThread->set_pending_tramp_addr(0);
             }
         }
+        // Inferior RPC states whether to leave running or paused
+        return DBG_CONTINUE;
     }
-    
     proc->continueProc();
-#if defined( mips_unknown_ce2_11) //ccw 28 july 2000 : 29 mar 2001
-    BPatch::bpatch->rDevice->RemoteContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
-                                                      DBG_EXCEPTION_NOT_HANDLED);
-#else
-    ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
-                       DBG_EXCEPTION_NOT_HANDLED);
-#endif
-    return 1;
+    return DBG_EXCEPTION_NOT_HANDLED;
 }
 
-int handleSigSegv(process *proc, procSignalWhat_t debugEv) {
-    
+DWORD handleViolation(process *proc, procSignalInfo_t info) {
     /*
 	  printf("Access violation exception, %d, addr = %08x\n", 
-      debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
-      debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
+      info.u.Exception.ExceptionRecord.ExceptionFlags,
+      info.u.Exception.ExceptionRecord.ExceptionAddress);
     */
-    dumpMem(proc, debugEv.u.Exception.ExceptionRecord.ExceptionAddress, 32);
+    dumpMem(proc, info.u.Exception.ExceptionRecord.ExceptionAddress, 32);
     
     {
         
@@ -725,116 +711,112 @@ int handleSigSegv(process *proc, procSignalWhat_t debugEv) {
 #endif
         
     }
-    //	ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
-    //			   DBG_EXCEPTION_NOT_HANDLED);
-    //	break;
-    return 0;
+    proc->continueProc();
+    return DBG_EXCEPTION_NOT_HANDLED;
 }
 
 
-// Signal (DEBUG_EVENT) handling
-int handleSignal(process *proc, procSignalWhat_t what) {
+// Exception dispatcher
+DWORD handleException(process *proc, procSignalWhat_t what, procSignalInfo_t info) {
+    DWORD ret = DBG_EXCEPTION_NOT_HANDLED;
 
-    // Pause the process to mimic unix-style continuing
-    proc->status_ = running;
-    // Need to fake pause so that it will do something
-    proc->pause();
-    
-    int ret = 0;
-    switch (what.u.Exception.ExceptionRecord.ExceptionCode) {
+    switch (what) {
   case EXCEPTION_BREAKPOINT: 
-      ret = handleSigTrap(proc, what);
+      ret = handleBreakpoint(proc, info);
       break;
   case EXCEPTION_ILLEGAL_INSTRUCTION:
-      ret = handleSigIll(proc, what);
+      ret = handleIllegal(proc, info);
       break;
   case EXCEPTION_ACCESS_VIOLATION:
-      ret = handleSigSegv(proc, what);
+      ret = handleViolation(proc, info);
       break;
   default:
-      ret = 0;
       break;
     }
     return ret;
 }
 
-int handleThreadCreate(process *proc, procSignalWhat_t debugEv) {
-    dyn_lwp *l = new dyn_lwp(debugEv.dwThreadId, // ID
-                             debugEv.u.CreateThread.hThread, // fd
+// Thread creation
+DWORD handleThreadCreate(process *proc, procSignalInfo_t info) {
+    dyn_lwp *l = new dyn_lwp(info.dwThreadId, // ID
+                             info.u.CreateThread.hThread, // fd
                              proc); // process
     l->openFD();
-    dyn_thread *t = new dyn_thread(proc, debugEv.dwThreadId, // thread ID
+    dyn_thread *t = new dyn_thread(proc, info.dwThreadId, // thread ID
                                    proc->threads.size()-1, // POS (unused currently)
                                    l); // dyn_lwp object for thread handle
     proc->threads.push_back(t);
-    proc->lwps[debugEv.dwThreadId] = l; // Store in table of lwps
-    return 1;
+    proc->lwps[info.dwThreadId] = l; // Store in table of lwps
+    proc->continueProc();
+    return DBG_CONTINUE;
 }
 
-int handleProcCreate(process *proc, procSignalWhat_t debugEv) {
-    printf("CREATE_PROCESS event: %d\n", debugEv.dwProcessId);
+// Process creation
+DWORD handleProcessCreate(process *proc, procSignalInfo_t info) {
     if (proc) {
-        
-        //fprintf(stderr,"create process: base = %x\n", info.lpBaseOfImage);
         dyn_lwp *l = proc->getDefaultLWP();
         if (!l) {
             // It's possible we never created the default LWP
-            l = new dyn_lwp(debugEv.dwThreadId,
-                            debugEv.u.CreateProcessInfo.hThread, 
+            l = new dyn_lwp(info.dwThreadId,
+                            info.u.CreateProcessInfo.hThread, 
                             proc);
             proc->lwps[0] = l;
         }
         if (proc->threads.size() == 0) {
-            dyn_thread *t = new dyn_thread(proc, debugEv.dwThreadId, // thread ID,
+            dyn_thread *t = new dyn_thread(proc, info.dwThreadId, // thread ID,
                                            0, // POS (main thread is always 0)
                                            l);
             // define the main thread
             proc->threads.push_back(t);
         }
         else {
-            proc->threads[0]->update_tid(debugEv.dwThreadId);
+            proc->threads[0]->update_tid(info.dwThreadId);
             proc->threads[0]->update_lwp(l);
         }
     }
-    return 1;
+    
+    proc->continueProc();
+    return DBG_CONTINUE;
 }
 
-int handleThreadExit(process *proc, procSignalWhat_t debugEv) {
-    printf("exit thread, tid = %d\n", debugEv.dwThreadId);
+DWORD handleThreadExit(process *proc, procSignalInfo_t info) {
+    printf("exit thread, tid = %d\n", info.dwThreadId);
     unsigned nThreads = proc->threads.size();
     // start from one to skip main thread
     for (unsigned u = 1; u < nThreads; u++) {
-        if ((unsigned)proc->threads[u]->get_tid() == debugEv.dwThreadId) {
+        if ((unsigned)proc->threads[u]->get_tid() == info.dwThreadId) {
             delete proc->threads[u];
             proc->threads[u] = proc->threads[nThreads-1];
             proc->threads.resize(nThreads-1);
             break;
         }
     }
-    return 1;
+    proc->continueProc();
+    return DBG_CONTINUE;
 }
 
-int handleProcessExit(process *proc, procSignalWhat_t debugEv) {
+DWORD handleProcessExit(process *proc, procSignalInfo_t info) {
     if (proc) {
         char errorLine[1024];
         sprintf(errorLine, "Process %d has terminated with code 0x%x\n", 
-                proc->getPid(), debugEv.u.ExitProcess.dwExitCode);
+                proc->getPid(), info.u.ExitProcess.dwExitCode);
           statusLine(errorLine);
           logLine(errorLine);
-          handleProcessExit(proc, debugEv.u.ExitProcess.dwExitCode);
+          handleProcessExit(proc, info.u.ExitProcess.dwExitCode);
     }
-    return 1;
+    proc->continueProc();
+    return DBG_CONTINUE;
 }
 
-int handleDllLoad(process *proc, procSignalWhat_t debugEv) {
+DWORD handleDllLoad(process *proc, procSignalInfo_t info) {
     /*
       printf("load dll: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
-      debugEv.u.LoadDll.hFile, debugEv.u.LoadDll.lpBaseOfDll,
-      debugEv.u.LoadDll.dwDebugInfoFileOffset,
-      debugEv.u.LoadDll.nDebugInfoSize,
-      debugEv.u.LoadDll.lpImageName,
-      debugEv.u.LoadDll.fUnicode
-      GetFileSize(debugEv.u.LoadDll.hFile,NULL));
+      info.u.LoadDll.hFile, info.u.LoadDll.lpBaseOfDll,
+      info.u.LoadDll.dwDebugInfoFileOffset,
+      info.u.LoadDll.nDebugInfoSize,
+      info.u.LoadDll.lpImageName,
+      info.u.LoadDll.fUnicode
+      GetFileSize(info.u.LoadDll.hFile,NULL));
     */
     // This is NT's version of handleIfDueToSharedObjectMapping
     
@@ -842,11 +824,11 @@ int handleDllLoad(process *proc, procSignalWhat_t debugEv) {
     // parsings. 
     
     // obtain the name of the DLL
-    string imageName = GetLoadedDllImageName( proc, debugEv );
+    string imageName = GetLoadedDllImageName( proc, info );
     
     // try to load symbols for the DLL
     if (!SymLoadModule((HANDLE)proc->getProcessHandle(),
-                       debugEv.u.LoadDll.hFile,
+                       info.u.LoadDll.hFile,
                        NULL, NULL, 0, 0)) {
         
         char msgText[1024];
@@ -862,7 +844,7 @@ int handleDllLoad(process *proc, procSignalWhat_t debugEv) {
     if (imageName.length() > 0) {
         shared_object *so = 
 #if defined( mips_unknown_ce2_11 )//ccw 29 mar 2001
-        new shared_object(imageName, (unsigned long) debugEv.u.LoadDll.lpBaseOfDll,
+        new shared_object(imageName, (unsigned long) info.u.LoadDll.lpBaseOfDll,
                           false, true, true, 0);
 #else
         new shared_object(imageName, 0,false, true, true, 0);
@@ -876,7 +858,7 @@ int handleDllLoad(process *proc, procSignalWhat_t debugEv) {
 #ifndef BPATCH_LIBRARY
         tp->resourceBatchMode(true);
 #endif 
-        proc->addASharedObject(*so,(Address) debugEv.u.LoadDll.lpBaseOfDll); //ccw 20 jun 2002
+        proc->addASharedObject(*so,(Address) info.u.LoadDll.lpBaseOfDll); //ccw 20 jun 2002
 #ifndef BPATCH_LIBRARY
         tp->resourceBatchMode(false);
 #endif 
@@ -893,21 +875,8 @@ int handleDllLoad(process *proc, procSignalWhat_t debugEv) {
     // WinCE used to check for "coredll.dll" here to see if the process
     // was initialized, this should have been fixed by inserting a trap
     // at the entry of main -- bernat, JAN03
-    return 1;
-}
-
-
-
-void decodeAndHandleProcessEvent(bool block) {
-    procSignalWhy_t why;
-    procSignalWhat_t what;
-    int retval;
-    process *proc;
-    
-    proc = decodeProcessEvent(-1, why, what, retval, block);
-    if (!proc) return;
-    handleProcessEvent(proc, why, what, retval
-);
+    proc->continueProc();
+    return DBG_CONTINUE;
 }
 
 // ccw 2 may 2001 win2k fixes
@@ -958,39 +927,46 @@ int secondDLL = 0; //ccw 24 oct 2000 : 28 mar 2001
 int handleProcessEvent(process *proc,
                        procSignalWhy_t why,
                        procSignalWhat_t what,
-                       int retval) {
-    int ret = 0;
+                       procSignalInfo_t info) {
+    DWORD ret = DBG_EXCEPTION_NOT_HANDLED;
+    // Process is paused
+    // Make sure pause does something...
+    proc->savePreSignalStatus();
+    // Due to NT's odd method, we have to call pause_
+    // directly (a call to pause returns without doing anything
+    // pre-initialization)
+    proc->pause_();
+    proc->status_ = stopped;
+
     switch(why) {
-  case procSignalled:
-        ret = handleSignal(proc, what);
-        break;
-        
+  case procException:
+      ret = handleException(proc, what, info);
+      break;
   case procThreadCreate:
-        ret = handleThreadCreate(proc, what);
-        break;
+      ret = handleThreadCreate(proc, info);
+      break;
   case procProcessCreate:
-        ret = handleProcCreate(proc, what);
-        break;
+      ret = handleProcessCreate(proc, info);
+      break;
   case procThreadExit:
-        ret = handleThreadExit(proc, what);
-        break;
-  case procExitedNormally:
-        ret = handleThreadExit(proc, what);
-        break;
+      ret = handleThreadExit(proc, info);
+      break;
+  case procProcessExit:
+      ret = handleProcessExit(proc, info);
+      break;
   case procDllLoad:
-        ret = handleDllLoad(proc, what);
-        break;
+      ret = handleDllLoad(proc, info);
+      break;
   default:
       break;
     }
     // Continue the process after the debug event
-  
+    
 #if defined( mips_unknown_ce2_11 )//ccw 28 july 2000 : 29 mar 2001
-    if (!BPatch::bpatch->rDevice->RemoteContinueDebugEvent(what.dwProcessId, what.dwThreadId, 
-                                                           continueType))
+    if (!BPatch::bpatch->rDevice->RemoteContinueDebugEvent(info.dwProcessId, info.dwThreadId, 
+                                                           ret))
 #else
-    if (!ContinueDebugEvent(what.dwProcessId, what.dwThreadId, 
-                            DBG_CONTINUE))
+    if (!ContinueDebugEvent(info.dwProcessId, info.dwThreadId, ret))
 #endif
     {
         
@@ -998,17 +974,16 @@ int handleProcessEvent(process *proc,
         printf("ContinueDebugEvent failed\n");
         printSysError(GetLastError());
     }
-    return ret;
-    
+    return (ret == DBG_CONTINUE);
 }
 
+// Decode only, _NO_ process state changes!
 process *decodeProcessEvent(int pid,
                             procSignalWhy_t &why,
                             procSignalWhat_t &what,
-                            int &retval,
+                            procSignalInfo_t &info,
                             bool block) {
-    DEBUG_EVENT debugEv;
-    process *p;
+    process *proc;
     
     // We wait for 1 millisecond here. On the Unix platforms, the wait
     // happens on the select in controllerMainLoop. But on NT, because
@@ -1020,14 +995,14 @@ process *decodeProcessEvent(int pid,
     else milliseconds = 1;
 
 #if defined(mips_unknown_ce2_11) //ccw 28 july 2000 : 29 mar 2001
-    if (!BPatch::bpatch->rDevice->RemoteWaitForDebugEvent(&debugEv, milliseconds))
+    if (!BPatch::bpatch->rDevice->RemoteWaitForDebugEvent(&info, milliseconds))
 #else
-    if (!WaitForDebugEvent(&debugEv, milliseconds))
+    if (!WaitForDebugEvent(&info, milliseconds))
 #endif    
-        return 0;
+        return NULL;
    
-    p = findProcess(debugEv.dwProcessId);
-    if (p == NULL) {
+    proc = findProcess(info.dwProcessId);
+    if (proc == NULL) {
         /* 
            this case can happen when we create a process, but then are
            unable to parse the symbol table, and so don't complete the
@@ -1035,28 +1010,20 @@ process *decodeProcessEvent(int pid,
         */
         
 #if defined(mips_unknown_ce2_11) //ccw 28 july 2000 : 29 mar 2001
-        BPatch::bpatch->rDevice->RemoteContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
+        BPatch::bpatch->rDevice->RemoteContinueDebugEvent(info.dwProcessId, info.dwThreadId, 
                                                           DBG_CONTINUE);
 #else
-		ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
+		ContinueDebugEvent(info.dwProcessId, info.dwThreadId, 
                            DBG_CONTINUE);
         
 #endif
         return NULL; 
     }
     
-#if defined(mips_unknown_ce2_11 )
-	continueType = DBG_CONTINUE;
-#endif
-    
-    // The process is stopped at this point
-    p->savePreSignalStatus();
-    p->status_ = stopped;
-
-    what = debugEv;
-    switch (debugEv.dwDebugEventCode) {
+    switch (info.dwDebugEventCode) {
   case EXCEPTION_DEBUG_EVENT:
-      why = procSignalled;
+      why = procException;
+      what = info.u.Exception.ExceptionRecord.ExceptionCode;
       break;
   case CREATE_THREAD_DEBUG_EVENT:
       why = procThreadCreate;
@@ -1068,7 +1035,7 @@ process *decodeProcessEvent(int pid,
       why = procThreadExit;
       break;
   case EXIT_PROCESS_DEBUG_EVENT:
-      why = procExitedNormally;
+      why = procProcessExit;
       break;
   case LOAD_DLL_DEBUG_EVENT:
       why = procDllLoad;
@@ -1078,9 +1045,23 @@ process *decodeProcessEvent(int pid,
       break;
     }
     
-    return p;
+    return proc;
     
 }    
+
+// Global interface
+void decodeAndHandleProcessEvent(bool block) {
+    procSignalWhy_t why;
+    procSignalWhat_t what;
+    procSignalInfo_t info;
+    process *proc;
+    
+    proc = decodeProcessEvent(-1, why, what, info, block);
+    if (!proc) return;
+    handleProcessEvent(proc, why, what, info);
+}
+
+
 
 // already setup on this FD.
 // disconnect from controlling terminal 
@@ -1132,17 +1113,17 @@ bool process::attach() {
 /* continue a process that is stopped */
 bool process::continueProc_() {
   for (unsigned u = 0; u < threads.size(); u++) {
-    unsigned count;
-    
+      unsigned count;
+      
 #ifdef mips_unknown_ce2_11 //ccw 10 feb 2001 : 29 mar 2001
-    count = BPatch::bpatch->rDevice->RemoteResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
+      count = BPatch::bpatch->rDevice->RemoteResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
 #else
-    count = ResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
+      count = ResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
 #endif
-    if (count == 0xFFFFFFFF) {
-        printSysError(GetLastError());
-        return false;
-    }
+      if (count == 0xFFFFFFFF) {
+          printSysError(GetLastError());
+          return false;
+      }
   }
   return true;
 }
@@ -1166,18 +1147,17 @@ bool process::terminateProc_()
 */
 bool process::pause_() {
     for (unsigned u = 0; u < threads.size(); u++) {
-	unsigned count ;
+        unsigned count ;
 #ifdef mips_unknown_ce2_11 //ccw 10 feb 2001 : 29 mar 2001
-	count = BPatch::bpatch->rDevice->RemoteSuspendThread((HANDLE)threads[u]->get_lwp()->get_fd());
+        count = BPatch::bpatch->rDevice->RemoteSuspendThread((HANDLE)threads[u]->get_lwp()->get_fd());
 #else
-	count = SuspendThread((HANDLE)threads[u]->get_lwp()->get_fd());
+        count = SuspendThread((HANDLE)threads[u]->get_lwp()->get_fd());
 #endif
-
-	if (count == 0xFFFFFFFF) {
-	    // printf("pause_: %d\n", threads[u]->get_tid());
-	    // printSysError(GetLastError());
-	    return false;
-	} 
+        if (count == 0xFFFFFFFF) {
+            // printf("pause_: %d\n", threads[u]->get_tid());
+            // printSysError(GetLastError());
+            return false;
+        } 
     }
     return true;
 }
@@ -2297,7 +2277,6 @@ bool process::loadDYNINSTlib()
     *iptr++ = (char)0xe8;
    
     // Jump offset is relative
-    fprintf(stderr, "Address of  LoadLibrary: 0x%x, offset 0x%x\n", LoadLibAddr, LoadLibAddr - (codeBase + offsetFromBufferStart));
     *(int *)iptr = LoadLibAddr - (codeBase + 
                                   offsetFromBufferStart); // End of next instruction
     iptr += sizeof(int);
