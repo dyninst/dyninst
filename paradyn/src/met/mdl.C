@@ -41,6 +41,9 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.26  1997/04/14 20:01:52  zhichen
+ * Added MDL_T_RECORD and fixed a bug.
+ *
  * Revision 1.25  1997/04/02 22:34:52  zhichen
  * added 'Memory'
  *
@@ -430,6 +433,8 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&) {
   case MDL_T_COUNTER:
     break;
   case MDL_T_COUNTER_PTR:
+    break;
+  case MDL_T_RECORD:
     break;
   default:
     cout << "invalid operand\n";
