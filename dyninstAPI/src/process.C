@@ -1646,31 +1646,6 @@ void handleProcessExit(process *proc, int exitStatus) {
     return;
 
   proc->Exited(); // updates status line
-  if (proc->traceLink >= 0) {
-    // We used to call processTraceStream(proc) here to soak up any last
-    // messages but since it uses a blocking read, that doesn't seem like such
-    // a good idea.
-    //processTraceStream(proc);
-
-    P_close(proc->traceLink);
-    proc->traceLink = -1;
-  }
-  if (proc->ioLink >= 0) {
-    // We used to call processAppIO(proc) here to soak up any last
-    // messages but since it uses a blocking read, that doesn't seem like such
-    // a good idea.
-    //processAppIO(proc);
-
-    P_close(proc->ioLink);
-    proc->ioLink = -1;
-  }
-
-#ifndef BPATCH_LIBRARY
-  // for each component mi of this process, remove it from all aggregate mi's it
-  // belongs to.  (And if the agg mi now has no components, fry it too.)
-  // Also removes this proc from all cost metrics (but what about internal metrics?)
-  removeFromMetricInstances(proc);
-#endif
 
   --activeProcesses;
 
@@ -1678,10 +1653,6 @@ void handleProcessExit(process *proc, int exitStatus) {
   if (activeProcesses == 0)
     disableAllInternalMetrics();
 #endif
-
-  proc->detach(false);
-     // after this, the process will continue to run (presumably, just to complete
-     // an exit())
 
 #ifdef PARADYND_PVM
   if (pvm_running) {
@@ -3756,15 +3727,46 @@ void process::Stopped() {
 }
 
 /*
- *  The process has exited. Update its status and notify Paradyn.
+ *  The process has exited. Close it down.  Notify Paradyn.
  */
 void process::Exited() {
-  if (status_ != exited) {
-    status_ = exited;
-#ifndef BPATCH_LIBRARY
-    tp->processStatus(pid, procExited);
+  if (status_ == exited)
+     return;
+
+  // snag the last shared-memory sample:
+#ifdef SHM_SAMPLING
+  (void)doMajorShmSample(getCurrWallTime());
 #endif
+
+  // close down the trace stream:
+  if (traceLink >= 0) {
+     //processTraceStream(proc); // can't do this since it's a blocking read (deadlock)
+     P_close(traceLink);
+     traceLink = -1;
   }
+
+  // close down the ioLink:
+  if (ioLink >= 0) {
+     //processAppIO(proc); // can't do this since it's a blocking read (deadlock)
+     P_close(ioLink);
+     ioLink = -1;
+  }
+  
+#ifndef BPATCH_LIBRARY
+  // for each component mi of this process, remove it from all aggregate mi's it
+  // belongs to.  (And if the agg mi now has no components, fry it too.)
+  // Also removes this proc from all cost metrics (but what about internal metrics?)
+  removeFromMetricInstances(this);
+#endif
+
+  detach(false);
+     // the process will continue to run (presumably, it will finish _very_ soon)
+
+  status_ = exited;
+
+#ifndef BPATCH_LIBRARY
+  tp->processStatus(pid, procExited);
+#endif
 }
 
 string process::getStatusAsString() const {
