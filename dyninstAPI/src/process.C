@@ -14,7 +14,10 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.42  1996/04/22 16:10:25  naim
+ * Revision 1.43  1996/04/24 15:00:34  naim
+ * Fixing misspelling error - naim
+ *
+ * Revision 1.42  1996/04/22  16:10:25  naim
  * Fixing bug: making sure that application was running before calling
  * continueProc in procedure walkStack - naim
  *
@@ -282,7 +285,7 @@ bool isFreeOK(process *proc, disabledItem disItem, vector<Address> pcs)
   unsigned pointer;
 
   if (!proc->heaps[disItem.whichHeap].heapActive.defines(disItem.pointer)) {
-    sprintf(errorLine,"Attempt to free already free heap entry %x\n", pointer);
+    sprintf(errorLine,"Attempt to free already freed heap entry %x\n",pointer);
     logLine(errorLine);
     showErrorCallback(67, (const char *)errorLine); 
     return(false);
