@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.35 2001/08/09 15:06:16 chadd Exp $
+// $Id: pdwinnt.C,v 1.36 2001/08/10 18:55:28 chadd Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1380,9 +1380,11 @@ int process::waitProcs(int *status) {
 			assert(0);
 		}
 #else
+#include "paradynd/src/perfStream.h"
+
 #ifdef SHM_SAMPLING
-   	key_t theKey   = getShmKeyUsed();
-	numBytes = getShmHeapTotalNumBytes();
+   	key_t theKey   = p->getShmKeyUsed();
+	int numBytes = p->getShmHeapTotalNumBytes();
 #else
 	int theKey = 0;
 	int numBytes = 0;
@@ -1393,7 +1395,7 @@ int process::waitProcs(int *status) {
 		if(!setVariable(p, "libdyninstAPI_RT_DLL_localNumBytes", numBytes)){
 			assert(0);
 		}
-	        if(!setVariable(p, "libdyninstAPI_RT_DLL_localPPid",getPid())){
+	        if(!setVariable(p, "libdyninstAPI_RT_DLL_localPPid",traceConnectInfo)){
 			assert(0);
 		}	
 #endif	
