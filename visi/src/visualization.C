@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.39  1996/01/17 18:29:18  newhall
-/* reorginization of visiLib
+/* Revision 1.40  1996/01/19 20:55:44  newhall
+/* more chages to visiLib interface
 /*
+ * Revision 1.39  1996/01/17 18:29:18  newhall
+ * reorginization of visiLib
+ *
  * Revision 1.38  1996/01/05 20:02:43  newhall
  * changed parameters to showErrorVisiCallback, so that visilib users are
  * not forced into using our string class
@@ -179,10 +182,6 @@ int visi_Init(){
 
 int i;
 
-//  for(i=0;i<FILETABLESIZE;i++){
-//    fileDescCallbacks[i] = NULL;
-//    fileDesc[i] = -1;
-//  }
   visi_fileDescCallbacks = NULL;
   visi_fileDesc = -1;
   for(i=0;i<EVENTSIZE;i++){
@@ -190,8 +189,6 @@ int i;
   }
 
   visi_vp = new visi_visualization(0);
-//  visi_fileDesc[0] = 0;
-//  visi_fileDescCallbacks[0] = visi_callback;
   visi_fileDesc = 0;
   visi_fileDescCallbacks = visi_callback;
   visi_initDone = 1;
@@ -230,7 +227,6 @@ int visi_StartVisi(int argc,
 void visi_QuitVisi(){
 
     delete visi_vp;
-
 }
 
 //
@@ -265,29 +261,13 @@ int visi_RegistrationCallback(visi_msgTag event,
 }
 
 ///////////////////////////////////////////////////////////
-// fd registration and callback routine registration for user
-// to register callback routines when they use the provided main routine
-///////////////////////////////////////////////////////////
-//int RegFileDescriptors(int *, int (*)()){
-//  return(OK);
-//}
-
-///////////////////////////////////////////////////////////
 // invokes upcall to paradyn VISIthread associated with the visualization
 // takes list of current metrics, list of foci, and type of data
 // (0 for histogram, 1 for scalar). 
 // currently, only the NULL string, type 0 case is supported 
 ///////////////////////////////////////////////////////////
-void visi_GetMetsRes(char *metres,
-		int numElements,
-		int ){
+void visi_GetMetsRes(char *, int){
 
-  if(!visi_initDone)
-    visi_Init();
-  visi_vp->GetMetricResource(metres,numElements,0);
-}
-
-void visi_GetMetsRes(){
   if(!visi_initDone)
     visi_Init();
   visi_vp->GetMetricResource(0,0,0);
@@ -324,8 +304,7 @@ void visi_StopMetRes(int metricIndex,
 // invokes upcall to paradyn.  Visualization sends phase
 // definition to paradyn.  
 ///////////////////////////////////////////////////////////
-void visi_DefinePhase(visi_timeType, char *name){
-
+void visi_DefinePhase(char *name){
   if(!visi_initDone)
     visi_Init();
   visi_vp->StartPhase((double)-1.0,name);
@@ -824,7 +803,7 @@ const char *visi_GetMyPhaseName(){
 // returns the handle of the phase for which this visi is defined or
 // -1 on error
 //
-int visi_GetPhaseHandle(){
+int visi_GetMyPhaseHandle(){
 
     return (visi_dataGrid.GetPhaseHandle());
 }
@@ -835,7 +814,7 @@ int visi_GetPhaseHandle(){
 //
 int visi_GetPhaseHandle(u_int phase_num){
 
-    PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
+    const PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
     if(p){
         return (p->getPhaseHandle());
     }
@@ -847,7 +826,7 @@ int visi_GetPhaseHandle(u_int phase_num){
 //
 const char *visi_GetPhaseName(u_int phase_num){
 
-    PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
+    const PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
     if(p){
         return (p->getName());
     }
@@ -859,7 +838,7 @@ const char *visi_GetPhaseName(u_int phase_num){
 //
 visi_timeType visi_GetPhaseStartTime(u_int phase_num){
 
-    PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
+    const PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
     if(p){
         return (p->getStartTime());
     }
@@ -871,7 +850,7 @@ visi_timeType visi_GetPhaseStartTime(u_int phase_num){
 //
 visi_timeType visi_GetPhaseEndTime(u_int phase_num){
 
-    PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
+    const PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
     if(p){
         return (p->getEndTime());
     }
@@ -883,18 +862,11 @@ visi_timeType visi_GetPhaseEndTime(u_int phase_num){
 //
 visi_timeType visi_GetPhaseBucketWidth(u_int phase_num){
 
-    PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
+    const PhaseInfo *p = visi_dataGrid.GetPhaseInfo(phase_num);
     if(p){
         return (p->getBucketWidth());
     }
     return (-1.0);
-}
-
-//
-// returns phase info. for the ith phase, or returns 0 on error
-//
-PhaseInfo *visi_GetPhaseInfo(u_int phase_num){
-    return visi_dataGrid.GetPhaseInfo(phase_num);
 }
 
 //
@@ -925,7 +897,7 @@ visi_sampleType visi_DataValue(int metric_num, int resource_num, int bucket_num)
 // returns the data values for the metric/resource pair "metric_num" 
 // and "resource_num", returns NaN value on error
 //
-visi_sampleType *visi_DataValues(int metric_num, int resource_num){
+const visi_sampleType *visi_DataValues(int metric_num, int resource_num){
 
     if((metric_num >= 0) && (metric_num < visi_dataGrid.NumMetrics())
        && (resource_num >= 0) && (resource_num < visi_dataGrid.NumResources())){

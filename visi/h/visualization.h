@@ -20,12 +20,9 @@
 //  It contains definitions for all the Paradyn visi
 //  interface routines.  
 /////////////////////////////////////////////////////////
-#include "visiTypes.h"
 
-//
-// callback associated with paradyn-visualization interface routines
-//
-extern int visi_callback();
+
+#include "visiTypes.h"
 
 /////////////////////////////////////////////////////////////
 // these functions invoke upcalls to a visi interface client
@@ -33,71 +30,61 @@ extern int visi_callback();
 /////////////////////////////////////////////////////////////
 //
 // get a new set of metrics and resources from Paradyn
+// currently, passing a list of met-res pairs is not supported 
+// (i.e. these parameters are ignored)
 //
-extern void visi_GetMetsRes(char *metres,  // predefined list met-res pairs 
-		       int numElements,  
-		       int type);      // 0-histogram, 1-scalar
-
-//
-// equivalent to a call to GetMetRes(0,0,0)
-//
-extern void visi_GetMetsRes();
+extern void visi_GetMetsRes(char *metres,  // predefined list met-res pairs
+		       	    int numElements); 
 
 //
 // stop data collection for a metric/resource pair
 // arguments are the datagrid indicies associated with the
 // metric and resource to stop
 //
-extern void visi_StopMetRes(int metricIndex,    // datagrid index of metric
-		       int resourceIndex); // datagrid index of resource
+extern void visi_StopMetRes(int metricIndex,int resourceIndex); 
 
 //
-// define a new phase to paradyn, can specify some time in the future
-// for the phase to begin or a begin value of -1 means now
+// define a new phase to paradyn, can specify a name for the phase
+// passing 0 for name argument will cause visiLib to create a 
+// unique name for the phase
 //
-extern void visi_DefinePhase(visi_timeType begin,  // in seconds 
-		        char *name);     // name of phase 
-
-////////////////////////////////////////////////////////////////
-//   initialization routines 
-////////////////////////////////////////////////////////////////
-//
-// connects to parent socket and registers the mainLoop routine
-// as a callback on events on fileDesc[0]
-// This routine should be called before entering the visualization's
-// main loop, and before calling any other visi-interface routines
-//
-extern int  visi_Init();
-
-
-//
-//  Makes initial call to get Metrics and Resources.
-//  For visualizations that do not provide an event that
-//  invokes the GetMetsRes upcall this routine should be
-//  called by the visualization before entrering the mainloop.
-//  (this will be the only chance to get metrics and resources
-//  for the visualization).
-//  For other visualizaitons, calling this routine before
-//  entering the mainloop is optional. 
-//
-extern int  visi_StartVisi(int argc,char *argv[]);
-
-//
-// cleans up visi interface data structs
-// Visualizations should call this routine before exiting 
-extern void visi_QuitVisi();
-
-
-//
-// registration callback routine for paradyn events
-// sets eventCallbacks[event] to callback routine provided by user
-//
-extern int visi_RegistrationCallback(visi_msgTag event,int (*callBack)(int));
+extern void visi_DefinePhase(char *name); // name of phase 
 
 //
 // request to Paradyn to display error message
 //
 extern void visi_showErrorVisiCallback(const char *msg);
+
+////////////////////////////////////////////////////////////////
+//   initialization routines 
+////////////////////////////////////////////////////////////////
+//
+// Visi Initialization routine, returns a file descriptor that  
+// is used to communicate with Paradyn.  This file descriptor 
+// should be added by the visi as a source of input with the
+// visiLib routine "visi_callback" as the callback routine 
+// associated with this file descriptor.
+// This routine should be called before entering the visualization's
+// main loop, and before calling any other visi-interface routines
+//
+extern int  visi_Init();
+
+//
+// callback associated with paradyn-visualization interface routines
+//
+extern int visi_callback();
+
+//
+// registration callback routine for paradyn events
+// sets eventCallbacks[event] to callback routine provided by user
+// returns -1 on error, otherwise returns 0 
+//
+extern int visi_RegistrationCallback(visi_msgTag event,int (*callBack)(int));
+
+//
+// cleans up visi interface data structs
+// Visualizations should call this routine before exiting 
+extern void visi_QuitVisi();
 
 // **********************************************
 //
@@ -165,7 +152,7 @@ extern const char *visi_GetMyPhaseName();
 // returns the handle of the phase for which this visi is defined or
 // -1 on error
 //
-extern int visi_GetPhaseHandle();
+extern int visi_GetMyPhaseHandle();
 
 //
 // returns the handle of the ith phase or -1 on error
@@ -209,13 +196,13 @@ extern visi_sampleType visi_SumValue(int metric_num, int resource_num);
 // "metric_num" and "resource_num", returns NaN value on error 
 //
 extern visi_sampleType visi_DataValue(int metric_num, int resource_num, 
-				 int bucket_num);
+				      int bucket_num);
 
 //
 // returns the data values for the metric/resource pair "metric_num" 
 // and "resource_num", returns NaN value on error 
 //
-extern visi_sampleType *visi_DataValues(int metric_num, int resource_num);
+extern const visi_sampleType *visi_DataValues(int metric_num, int resource_num);
 
 //
 //  returns true if the data grid cell corresponding to metric_num   

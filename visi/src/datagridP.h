@@ -17,9 +17,12 @@
  */
 
 /* $Log: datagridP.h,v $
-/* Revision 1.1  1996/01/17 18:29:15  newhall
-/* reorginization of visiLib
+/* Revision 1.2  1996/01/19 20:55:42  newhall
+/* more chages to visiLib interface
 /*
+ * Revision 1.1  1996/01/17 18:29:15  newhall
+ * reorginization of visiLib
+ *
  * Revision 1.22  1995/12/18 23:22:29  newhall
  * changed metric units type so that it can have one of 3 values (normalized,
  * unnormalized or sampled)
@@ -168,10 +171,10 @@ class PhaseInfo{
     void setEndTime(visi_timeType e){ endTime = e;}
     void setBucketWidth(visi_timeType w){ bucketWidth = w;}
     u_int  getPhaseHandle() const { return(phaseHandle);}
-    const char *getName() { return(phaseName.string_of());}
-    visi_timeType getStartTime() { return(startTime);}
-    visi_timeType getEndTime() { return(endTime);}
-    visi_timeType getBucketWidth() { return(bucketWidth);}
+    const char *getName() const{ return(phaseName.string_of());}
+    visi_timeType getStartTime() const{ return(startTime);}
+    visi_timeType getEndTime() const{ return(endTime);}
+    visi_timeType getBucketWidth() const{ return(bucketWidth);}
 };
 
 
@@ -505,7 +508,7 @@ class visi_DataGrid {
      int 	GetPhaseHandle(){return(phase_handle);}
      const char *GetMyPhaseName();
 
-     PhaseInfo	*GetPhaseInfo(unsigned i){
+     const PhaseInfo	*GetPhaseInfo(unsigned i){
 	    unsigned j = phases.size();
             if((j == 0) || (i >= j)){
 		return(NULL);

@@ -48,6 +48,10 @@ xtext2
 ------
     is an extension to xtext that includes callbacks for all Paradyn events
     and upcalls.
+
+xtext3
+------
+    complete example from "VisiLib Programer's Guide"
       
 ######################################
 examples of how run test applications: 

@@ -1,7 +1,10 @@
 /* $Log: xtext.C,v $
-/* Revision 1.2  1996/01/17 19:29:10  newhall
-/* changes due to new visiLib
+/* Revision 1.3  1996/01/19 20:56:14  newhall
+/* more chages to visiLib interface
 /*
+ * Revision 1.2  1996/01/17 19:29:10  newhall
+ * changes due to new visiLib
+ *
  * Revision 1.1  1995/09/18  18:27:12  newhall
  * updated test subdirectory, added visilib routine GetMetRes()
  * */
@@ -212,7 +215,7 @@ int fd_input2(int dummy){
 //
 static void GetMetsResCallback(Widget w,XtAppContext app_con,XtPointer call_data){
 
-  visi_GetMetsRes();  
+  visi_GetMetsRes(0,0);  
 }
 /////////////////////////////////////
 

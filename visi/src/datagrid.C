@@ -14,9 +14,12 @@
  *
  */
 /* $Log: datagrid.C,v $
-/* Revision 1.20  1996/01/17 18:29:13  newhall
-/* reorginization of visiLib
+/* Revision 1.21  1996/01/19 20:55:40  newhall
+/* more chages to visiLib interface
 /*
+ * Revision 1.20  1996/01/17 18:29:13  newhall
+ * reorginization of visiLib
+ *
  * Revision 1.19  1995/12/18 23:22:03  newhall
  * changed metric units type so that it can have one of 3 values (normalized,
  * unnormalized or sampled)
@@ -579,6 +582,7 @@ int i;
 
   numMetrics += howmany;
   tempdata = 0;
+  temp = 0;
   return(OK);
 
 }

@@ -1,7 +1,10 @@
 /* $Log: xtext2.C,v $
-/* Revision 1.3  1996/01/17 19:29:11  newhall
-/* changes due to new visiLib
+/* Revision 1.4  1996/01/19 20:56:15  newhall
+/* more chages to visiLib interface
 /*
+ * Revision 1.3  1996/01/17 19:29:11  newhall
+ * changes due to new visiLib
+ *
  * Revision 1.2  1996/01/17 18:40:26  newhall
  * *** empty log message ***
  *
@@ -197,7 +200,7 @@ static void GetMetsResCallback(Widget w,
 {
 
   fprintf(stderr,"@@@@ in GetMetsResCallback upcall\n"); 
-  visi_GetMetsRes();  
+  visi_GetMetsRes(0,0);  
 }
 
 static void StopMetsResCallback(Widget w,
@@ -212,7 +215,7 @@ static void StopMetsResCallback(Widget w,
 static void PName(Widget w,XtAppContext app_con,XtPointer call_data){
 
  fprintf(stderr,"@@@@ in PName upcall\n"); 
-  visi_DefinePhase(0.0," ");  
+  visi_DefinePhase(" ");  
 }
 /////////////////////////////////////
 
