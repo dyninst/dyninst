@@ -1,10 +1,11 @@
 #
-# $Id: Makefile,v 1.3 2000/05/02 19:48:10 paradyn Exp $
+# $Id: Makefile,v 1.4 2000/05/31 18:33:21 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 TO_CORE	= 	../../..
 NO_OPT_FLAG=true
+NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.

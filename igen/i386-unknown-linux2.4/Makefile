@@ -1,5 +1,10 @@
 #
 # $Log: Makefile,v $
+# Revision 1.2  2000/05/31 18:33:22  schendel
+# updates the daemon, util library, igen, dyninstAPI, and dyninstAPI test suite
+# to use the -fno-impilicit-templates flag instead of the -fexplicit-templates
+# flag, which is depracated.
+#
 # Revision 1.1  2000/03/31 01:58:54  wylie
 # Platform migration
 #
@@ -14,6 +19,7 @@
 # Define any symbols needed to invoke configuration changes in make.config
 
 USES_FLEX = true
+NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.

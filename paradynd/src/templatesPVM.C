@@ -46,6 +46,11 @@
 
 /* 
  * $Log: templatesPVM.C,v $
+ * Revision 1.3  2000/05/31 18:33:25  schendel
+ * updates the daemon, util library, igen, dyninstAPI, and dyninstAPI test suite
+ * to use the -fno-impilicit-templates flag instead of the -fexplicit-templates
+ * flag, which is depracated.
+ *
  * Revision 1.2  1996/08/16 21:20:12  tamches
  * updated copyright for release 1.1
  *
@@ -71,3 +76,4 @@
 typedef struct task;
 
 typedef List<task *> v1;
+template class List<task *>;

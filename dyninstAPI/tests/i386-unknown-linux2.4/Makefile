@@ -1,10 +1,11 @@
 #
-# $Id: Makefile,v 1.6 2000/05/14 19:02:52 zandy Exp $
+# $Id: Makefile,v 1.7 2000/05/31 18:33:21 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 TO_CORE	= 	../../..
 NO_OPT_FLAG=true
+NO_IMPLICIT_TEMPLATES = true
 
 DEBUG_FLAG = -gstabs+
 

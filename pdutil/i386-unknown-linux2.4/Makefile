@@ -1,10 +1,10 @@
 #
-# $Id: Makefile,v 1.1 2000/03/31 01:59:50 wylie Exp $
+# $Id: Makefile,v 1.2 2000/05/31 18:33:25 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
-INSTANTIATE_TEMPLATES	= true
+NO_IMPLICIT_TEMPLATES = true
 DO_INLINE_ALL		= true
 
 # Include standard make configuration stuff that applies to everything

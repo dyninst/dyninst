@@ -1,11 +1,12 @@
 #
-# $Id: Makefile,v 1.1 2000/03/31 01:58:18 wylie Exp $
+# $Id: Makefile,v 1.2 2000/05/31 18:32:58 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 #USES_SHM_SAMPLING = true
 DEBUG_FLAG = -g -gstabs+
+NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
