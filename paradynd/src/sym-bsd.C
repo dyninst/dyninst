@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.4 1994/07/05 03:26:19 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.5 1994/07/12 19:38:34 jcargill Exp $";
 #endif
 
 /*
  * sym-bsd.C - parse BSD style a.out files.
  *
  * $Log: sym-bsd.C,v $
- * Revision 1.4  1994/07/05 03:26:19  hollings
+ * Revision 1.5  1994/07/12 19:38:34  jcargill
+ * Fixed iSymCount problem, improved speed of search for lib functions,
+ * removed old/dead CM5 code, and fixed pagemask error
+ *
+ * Revision 1.4  1994/07/05  03:26:19  hollings
  * observed cost model
  *
  * Revision 1.3  1994/06/29  02:52:49  hollings
@@ -93,19 +97,24 @@ void findInternalSymbols(image *ret, char **iSym)
     int iCount;
     char **curr;
 
+    ret->iSymCount=0;
+
     for (curr = iSym; *curr; curr++) {
 	len = strlen(*curr);
-	for (i=0, ret->iSymCount=0; i < nsyms; i++) {
+	for (i=0; i < nsyms; i++) {
 	    str = &strings[stabs[i].n_un.n_strx];
 	    if (!strncmp(str+1, *curr, len))  {
 		ret->iSymCount++;
+		// printf ("Counting internal symbol:  '%s'\n", str);
 	    }
 	}
     }
 
     ret->iSyms = (internalSym*) xcalloc(sizeof(internalSym), ret->iSymCount);
+    iCount=0;
     for (curr = iSym; *curr; curr++) {
-	for (iCount=0, i=0; i < nsyms; i++) {
+	len = strlen(*curr);
+	for (i=0; i < nsyms; i++) {
 	    switch (stabs[i].n_type & 0xfe) {
 		case N_TEXT:
 		case N_DATA:
@@ -114,6 +123,7 @@ void findInternalSymbols(image *ret, char **iSym)
 		    if (!strncmp(str+1, *curr, len)) {
 			ret->iSyms[iCount].addr = stabs[i].n_value;
 			ret->iSyms[iCount].name = pool.findAndAdd(str+1);
+			// printf ("Found internal symbol:  '%s'\n", str);
 			iCount++;
 			break;
 		    
@@ -191,9 +201,11 @@ void locateLibFunctions(image *ret, libraryList libraryFunctions)
     for (scount=0; lSym = *libraryFunctions; libraryFunctions++) {
 	currentFunc = findFunction(ret, lSym->name);
 	if (currentFunc) {
+//	    printf ("locateLibFunctions: found %s\n", lSym->name);
 	    currentFunc->tag = lSym->tags;
 	    locateInstPoints(currentFunc, ret->code, ret->textOffset, 0);
 	} else {
+//	    printf ("locateLibFunctions: did NOT find %s\n", lSym->name);
 	    tempSyms[scount++] = lSym;
 	}
     }
@@ -207,15 +219,25 @@ void locateLibFunctions(image *ret, libraryList libraryFunctions)
     for (i=0; i < nsyms; i++) {
 	if ((stabs[i].n_type & 0xfe) == N_TEXT)  {
 	    str = &strings[stabs[i].n_un.n_strx];
+//	    printf ("Checking for lib function, found %s\n", str+1);
 	    for (j=0; j < scount; j++) {
 		if (!strcmp(str+1, tempSyms[j]->name))  {
 		    currentFunc = newFunc(ret, currentModule, tempSyms[j]->name,
 			stabs[i].n_value);
 		    currentFunc->tag = tempSyms[j]->tags;
 		    locateInstPoints(currentFunc, ret->code, ret->textOffset,0);
+		    tempSyms[j]=tempSyms[--scount];  /* delete if found */
+		    break;	/* why look further? */
 		}
+		
 	    }
 	}
+    }
+
+    /* Check for library functions not found... */
+    for (j=0; j < scount; j++) {
+	printf ("Warning:  Couldn't find library function %s\n", 
+		tempSyms[j]->name);
     }
 
     free(tempSyms);
@@ -270,27 +292,6 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
 	return(NULL);
     }
 
-    /*
-     * since only CM-5 programs have an offset, and we now need O_MAGIC for
-     * node program (self modifing code), check that the program had been setup
-     * for this mode.
-     *
-     */
-    if (offset && (exec.a_magic != OMAGIC)) {
-        logLine("program not linked with O_MAGIC, can't use dyninst\n");
-        return(NULL);
-    }
-
-    /*
-     * Force the OMAGIC node binaries to be treated as a ZMAGIC
-     * structure it really is.  We've overloaded the meaning of OMAGIC
-     * to be equivalent to "ZMAGIC with writable text".  This will
-     * have to change if TMC ever supports OMAGIC on the nodes.  But
-     * if they do, we'll just use real OMAGIC instead.
-     */
-    if (exec.a_magic == OMAGIC)
-        exec.a_magic = ZMAGIC;
-
     dynamic = 0;
     if (exec.a_dynamic) {
 	logLine("Warning: Program dynamicly linked, can not inst system calls\n");
@@ -306,7 +307,7 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
 
     // pagemask is the mask to remove page offset bits.
     pagemask = getpagesize() - 1;
-    fileOffset = (N_TXTOFF(exec)+offset) & pagemask;
+    fileOffset = (N_TXTOFF(exec)+offset) & ~pagemask;
 
     // use mmap to get program into memory.
     mapAddr = mmap(0, exec.a_text+exec.a_data, PROT_READ, MAP_SHARED, fd, fileOffset);
