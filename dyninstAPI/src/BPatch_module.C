@@ -781,6 +781,19 @@ void BPatch_module::parseTypes()
 		break;
 	}
   }
+  DWORD executableBaseAddress = 0;
+  for( i = 0; i < pDebugInfo->NumberOfSections; i++ )
+  {
+	IMAGE_SECTION_HEADER& section = pDebugInfo->Sections[i];
+	if(section.Characteristics & IMAGE_SCN_MEM_EXECUTE){
+  		executableBaseAddress = 
+			pDebugInfo->ImageBase + section.VirtualAddress;
+		//cerr << "BASE ADDRESS : " << hex << executableBaseAddress 
+		//    << dec << "\n";
+		break;
+	}
+  }
+
 
   //
   // parse the symbols, if available
@@ -791,7 +804,9 @@ void BPatch_module::parseTypes()
 	// we have CodeView debug information
 	CodeView *cv = new CodeView( (const char*)pDebugInfo->CodeViewSymbols, 
 					textSectionId );
-	cv->CreateTypeInfo(this);
+
+	cv->CreateTypeAndLineInfo(this,executableBaseAddress,
+			   lineInformation);
   }
   else if( pDebugInfo->CoffSymbols != NULL )
   {

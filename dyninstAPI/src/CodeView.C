@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.7 2000/08/01 17:09:59 paradyn Exp $
+// $Id: CodeView.C,v 1.8 2000/12/13 19:57:47 tikir Exp $
 
 #include <assert.h>
 
@@ -177,14 +177,111 @@ CodeView::ParseSrcModuleSubsection( SDEntry* pEntry )
 }
 
 #ifdef BPATCH_LIBRARY
+
+#include "LineInformation.h"
+
+/**
+ * @param srcModuleTable the pointer to the beginning of the srcModuleSection 
+ *		         of the debug information. This is the address where 
+ * 			 the line information table can be found in the exec.
+ * @param baseAddr	 the information for line numbers is given relative to
+ *			 beginning of the module. That is for a line number the
+ *			 information that can be obtained is the relative addres
+ *			 with respect to module so we pass also the start addres
+ *			 of the code in the module.
+ * @param lineInformation lineInformation object of ours
+ * 
+ * !!!!!! IMPORTANT !!!!!!!
+ * This function only generates the data structures for source files and
+ * the mappings lineNumber <-> lineAddress in the source files. It does not
+ * relate the functions to the lines or files yet. Actual functions are related
+ * to data structure in CreateTypeAndLineInfo function.
+ */
+
+void
+CodeView::CreateLineInfo( const char* srcModuleTable, DWORD baseAddr ,
+                          LineInformation* lineInformation)
+{
+	SrcModuleSubsection* psrc = (SrcModuleSubsection*)srcModuleTable;
+
+	//get the number of segments in file to skip some fields
+	WORD segInModule = psrc->cSeg;
+	WORD fileInModule = psrc->cFile;
+
+	//cerr << "NUMBER OF FILES " << fileInModule << "\n";
+
+	//process each file in the module
+	for(WORD fileE=0 ; fileE < fileInModule ; fileE++){
+
+		//get the offset and claculate the address for the file record
+		DWORD fileEOffset = 
+			*(DWORD*)(srcModuleTable + (1 + fileE)*sizeof(DWORD));
+		const char* fileEAddress = srcModuleTable + fileEOffset;
+		SrcModuleSubsection::FileInfo* fileI = 
+			(SrcModuleSubsection::FileInfo*)fileEAddress;
+
+		//get the number of segments in  this file record
+		WORD segInFile = fileI->cSegFile;
+
+		//get the pointer for the file name and then create string
+		const char* ptr = 
+			fileEAddress + sizeof(DWORD)+ 3*segInFile*sizeof(DWORD);
+		LPString currentSourceFile(ptr);
+
+		//cerr << "FILE NAME : " <<  (string)currentSourceFile << "\n";
+		lineInformation->insertSourceFileName(string("___tmp___"),
+						      (string)currentSourceFile);
+
+		for(WORD segmentE = 0; segmentE < segInFile; segmentE++){
+			//calculate the segment table offset and the address
+			//for the table
+			DWORD segmentEOffset = 
+				*(DWORD*)(fileEAddress+ (1+segmentE)*sizeof(DWORD));
+			const char* segmentEAddress = 
+				srcModuleTable + segmentEOffset;
+
+			//find how many pais exist in the table for line numbers
+			WORD pairInSegment = 
+				*(WORD*)(segmentEAddress + sizeof(WORD));
+
+			//calculate the starting addresses for parallel arrays
+			const char* lineOffsetAddress = 
+					segmentEAddress + sizeof(DWORD); 
+			const char* lineNumberAddress = 
+				lineOffsetAddress + sizeof(DWORD)*pairInSegment;
+
+			//for each pair (number,address) mapping insert to
+			//line number data structure
+			for(WORD pairE = 0; pairE < pairInSegment; pairE++){
+				DWORD lineOffset = *(DWORD*)(lineOffsetAddress + pairE*sizeof(DWORD));
+				WORD lineNumber = *(WORD*)(lineNumberAddress + pairE*sizeof(WORD));
+				//cerr << "LINE : " << lineNumber << " -- "
+				//     << hex << (lineOffset + baseAddr) 
+				//     <<  " : " << lineOffset << dec << "\n";
+				lineInformation->insertLineAddress(
+					string("___tmp___"),
+					(string)currentSourceFile,
+					lineNumber,lineOffset + baseAddr);
+			}
+		}
+	}
+	//since at this point no function info is available we used
+	//a temporary function to insert the data but later this
+	//function is not going to be used so we delete the entry for
+	//this function.
+
+	if(fileInModule)
+		lineInformation->deleteFunction(string("___tmp___"));
+}
+
 //
 // Create type information for a specific module
 //
 void
-CodeView::CreateTypeInfo( BPatch_module *inpMod )
+CodeView::CreateTypeAndLineInfo( BPatch_module *inpMod , DWORD baseAddr ,
+				 LineInformation* lineInformation)
 {
         DWORD i;
-
 
         // verify the CodeView signature
         // currently, we only support the NB11 format
@@ -208,6 +305,7 @@ CodeView::CreateTypeInfo( BPatch_module *inpMod )
 	SDEntry *alignSubSec = NULL;
 	int iMod = -1;
 	TypesSubSection *pTypeBase = NULL;
+	SrcModuleSubsection* lineData = NULL; //to check line info is available
 
         // parse the subsections, extracting the information we need
         for( i = 0; i < pSDHdr->cDir; i++ )
@@ -253,6 +351,12 @@ CodeView::CreateTypeInfo( BPatch_module *inpMod )
 			pTypeBase = (TypesSubSection *) (pBase + pEntry->offset);
                         break;
 
+		case sstSrcModule:
+			if(mod && (iMod == pEntry->iMod)){ 
+				lineData = (SrcModuleSubsection*)(pBase + pEntry->offset);
+				mod->psrc = lineData ;
+			}
+			break;
                 default:
                         // it is a subsection type we do not care about - skip it
                         break;
@@ -262,8 +366,18 @@ CodeView::CreateTypeInfo( BPatch_module *inpMod )
 	if (!mod)
 		return; //We could not find the input module
 
+	//if the debug section do not contain the line info section for 
+	//the module we return witha warning.
+	if(lineData)
+		CreateLineInfo((const char*)(mod->psrc),baseAddr,
+			       lineInformation);
+	else
+		cerr << "WARNING : CodeView::CreateTypeAndLineInfo"
+		     << " can not create Line Information for : "
+		     << inpModName << ".\n";
+
 	mod->syms.CreateTypeInfo( (const char *)mod->pas, alignSubSec->cb,
-					pTypeBase, inpMod);
+					pTypeBase, inpMod,lineInformation);
 }
 #endif // BPATCH_LIBRARY
 
@@ -361,7 +475,8 @@ CodeView::Symbols::operator=( const CodeView::Symbols& syms )
 //
 void
 CodeView::Symbols::CreateTypeInfo( const char* pSymBase, DWORD cb, 
-                                TypesSubSection *pTypeBase, BPatch_module *mod )
+                                TypesSubSection *pTypeBase, BPatch_module *mod ,
+				LineInformation* lineInformation)
 {
 	char currFuncName[1024];
 	char symName[1024];
@@ -391,6 +506,10 @@ CodeView::Symbols::CreateTypeInfo( const char* pSymBase, DWORD cb,
 			//Find function in the module
 			fp = mod->findFunction(currFuncName);
 			if (fp) {
+				lineInformation->insertFunction(
+					string(currFuncName),
+					(Address)(fp->getBaseAddr()),
+					fp->getSize());
 				DWORD offset = pTypeBase->offType[((SymRecordProc*)curr )->procType - 0x1000];
 				TypeRec *trec = (TypeRec *)(startAddr + offset);
 				if (trec->leaf == LF_PROCEDURE)

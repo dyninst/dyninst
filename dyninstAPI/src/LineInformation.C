@@ -148,6 +148,88 @@ bool FileLineInformation::findFunction(string functionName){
 	return true;
 }
 
+//delete the records for function
+void FileLineInformation::deleteFunction(string functionName){
+	int i = 0;
+	for(i=0;i<functionCount;i++)
+		if(functionName == *functionNameList[i])
+			break;
+	if(i >= functionCount)
+		return;
+
+	functionCount--;
+	if(!functionCount){
+		delete[] functionNameList;
+		delete[] lineInformationList;
+		functionNameList = NULL; 
+		lineInformationList = NULL; 
+		return;
+	}
+	delete functionNameList[i];
+
+	functionNameList[i] = functionNameList[functionCount];
+	functionNameList = 
+		(string**)realloc(functionNameList,functionCount*sizeof(string*));
+	lineInformationList[i] = lineInformationList[functionCount];
+	lineInformationList = 
+		(FunctionInfo**)realloc(lineInformationList,functionCount*sizeof(FunctionInfo*));
+}
+
+//updates records for a function
+bool FileLineInformation::insertFunction(string functionName,Address baseAddr,
+					 Address functionSize)
+{
+	tuple toSearchBegin(0,baseAddr);
+	tuple toSearchEnd(0,baseAddr+functionSize-1);
+
+	tuple** next=NULL;
+	tuple** retBegin = binarySearchAddrFirst(toSearchBegin,
+					addrToLine,size,next);
+	if(retBegin){
+		unsigned short beginLineIndex = retBegin[0]->linePtr;	
+		unsigned short beginAddrIndex = retBegin[0]->addrPtr;	
+
+		tuple** retEnd = binarySearchAddrFirst(toSearchEnd,
+					addrToLine,size,next);
+		if(!retEnd && !next)
+			return false;
+
+		unsigned short endLineIndex;
+		unsigned short endAddrIndex;
+		if(retEnd){
+			endLineIndex = retEnd[0]->linePtr;
+			endAddrIndex = retEnd[0]->addrPtr;
+		}
+		else{
+			endLineIndex = next[0]->linePtr;
+			endAddrIndex = next[0]->addrPtr;
+		}
+
+		//cerr << "FOUND " << " LINE RANGE ( " 
+	        //     <<  beginLineIndex << "," << endLineIndex << " ) -- "
+		//     << " ADDRESS RANGE ( " <<  beginAddrIndex << "," 
+		//     << endAddrIndex << " )\n";
+		functionNameList = (string**)(functionCount ?
+			realloc(functionNameList,(functionCount+1)*sizeof(string*)) :
+               		new string*[1]);
+		lineInformationList = (FunctionInfo**)(functionCount ?
+			realloc(lineInformationList,(functionCount+1)*sizeof(FunctionInfo*)) :
+			new FunctionInfo*[1]);
+		functionNameList[functionCount] = new string(functionName);
+
+		FunctionInfo* fInfo = new FunctionInfo();
+                fInfo->startLinePtr = lineToAddr[beginLineIndex];
+                fInfo->endLinePtr = lineToAddr[endLineIndex];
+                fInfo->startAddrPtr = addrToLine[beginAddrIndex];
+                fInfo->endAddrPtr = addrToLine[endAddrIndex];
+                fInfo->validInfo = true;
+		lineInformationList[functionCount] = fInfo;
+
+		functionCount++;
+		return true;
+	}
+	return false;
+}
 
 //insert a mapping from line number to address and address to line number
 //to the corresponding structures and updates the records for the function
@@ -512,12 +594,33 @@ bool LineInformation::findFunction(string functionName){
 	return ret;
 }
 
+//delete the records for function
+void LineInformation::deleteFunction(string functionName){
+	for(int i=0;i<sourceFileCount;i++)
+		lineInformationList[i]->deleteFunction(functionName);
+}
+
+//updates records for a function
+void LineInformation::insertFunction(string functionName,Address baseAddr,
+				     Address functionSize)
+{
+	if(findFunction(functionName))
+		return;
+	bool ret = false;
+	for(int i=0;!ret && (i<sourceFileCount);i++)
+		ret = lineInformationList[i]->insertFunction(functionName,
+						       baseAddr,functionSize);
+}
+
 ostream& operator<<(ostream& os,FileLineInformation& linfo){
 
-	cerr << "LINE TO ADDRESS :\n";
+	cerr << "\tLINE TO ADDRESS \t\t ADDRESS TO LINE:\n";
 	for(int j=0;j<linfo.size;j++){
+		os << dec << j << "\t";
 		os << dec << linfo.lineToAddr[j]->lineNo << " ----> ";
-		os << hex << linfo.lineToAddr[j]->codeAddress << "\n";
+		os << hex << linfo.lineToAddr[j]->codeAddress << "\t\t";
+		os << hex << linfo.addrToLine[j]->codeAddress  << " ----> ";
+		os << dec << linfo.addrToLine[j]->lineNo << "\n";
 	}
 	for(int i=0;i<linfo.functionCount;i++){
 		FunctionInfo* funcinfo = linfo.lineInformationList[i];
@@ -525,7 +628,9 @@ ostream& operator<<(ostream& os,FileLineInformation& linfo){
 		if(!funcinfo->validInfo)
 			continue;
 		os << dec << funcinfo->startLinePtr->lineNo << " --- ";
-		os << dec << funcinfo->endLinePtr->lineNo << "\n";
+		os << dec << funcinfo->endLinePtr->lineNo << "\t\t";
+		os << hex << funcinfo->startAddrPtr->codeAddress << " --- ";
+		os << hex << funcinfo->endAddrPtr->codeAddress << "\n";
 	}
 	return os;
 }

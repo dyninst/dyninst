@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.h,v 1.5 2000/08/01 17:10:00 paradyn Exp $
+// $Id: CodeView.h,v 1.6 2000/12/13 19:57:47 tikir Exp $
 
 //
 // This file contains the declaration of the CodeView class.
@@ -614,7 +614,8 @@ public:
 		Symbols& operator=( const Symbols& syms );
 #ifdef BPATCH_LIBRARY
 		void CreateTypeInfo( const char* pSymBase, DWORD cb, 
-                               TypesSubSection *pTypeBase, BPatch_module *mod );
+                               TypesSubSection *pTypeBase, BPatch_module *mod ,
+			       LineInformation* lineInformation);
 #endif
 
 	private:
@@ -685,7 +686,15 @@ public:
     // operations
 	bool Parse( void );
 #ifdef BPATCH_LIBRARY
-	void CreateTypeInfo( BPatch_module *inpMod );
+	//this method parses debug infor and generates type and line info
+	void CreateTypeAndLineInfo( BPatch_module *inpMod , DWORD baseAddr ,
+                                    LineInformation* lineInformation);
+
+	//method is called by former to create the mappings (address,line)
+        //for source files. It does not include the specific fucntion info
+	//which is later done by former.
+	void CreateLineInfo(const char* srcMod, DWORD baseAddr ,
+                            LineInformation* lineInformation);
 #endif
 
 private:

@@ -91,6 +91,13 @@ public:
 	/** method that checks the mapping for existence of the function */
 	bool findFunction(string functionName);
 
+	/** method that cleans the record for the given function */
+	void deleteFunction(string functionName);
+
+	/** method that updates the info for a function */
+	bool insertFunction(string functionName,Address beginAddr,
+			    Address functionSize);
+
 	/** method that inserts a line information entry to the array of
 	  * tuples and updates the info for function given.
 	  * @param functionName name of the function to update info for
@@ -248,6 +255,13 @@ public:
 	/** method that checks the existence of a function in the line info object */
 	bool findFunction(string functionName);
 
+	/** method that cleans the record for the given function */
+	void deleteFunction(string functionName);
+
+	/** method that updates the info for a function */
+	void insertFunction(string functionName,Address beginAddr,
+			    Address functionSize);
+			     
 
 	/** tempoprary method to be deleted in commit */
 	void print();

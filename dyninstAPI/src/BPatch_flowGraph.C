@@ -12,13 +12,18 @@
 #include "symtab.h"
 #include "instPoint.h"
 
-#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
+#if defined(sparc_sun_solaris2_4) ||\
+    defined(mips_sgi_irix6_4) ||\
+    defined(rs6000_ibm_aix4_1)
+
 #include "AddressHandle.h"
 #endif
 
 #include "LineInformation.h"
 
 #include "BPatch_flowGraph.h"
+
+class TarjanDominator;
 
 const int BPatch_flowGraph::WHITE = 0;
 const int BPatch_flowGraph::GRAY  = 1;
@@ -173,7 +178,9 @@ void BPatch_flowGraph::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb){
 //to insert all entry basic blocks to the relevant field of the class.
 void BPatch_flowGraph::createBasicBlocks(){
 
-#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
+#if defined(sparc_sun_solaris2_4) ||\
+    defined(mips_sgi_irix6_4) ||\
+    defined(rs6000_ibm_aix4_1)
 	int tbs = 0,i,j;
 
 	Address effectiveAddress = (Address) (bpFunction->getBaseAddr());
@@ -211,14 +218,12 @@ void BPatch_flowGraph::createBasicBlocks(){
 
 
 	for(;ah.hasMore();){
-
 		//get the inctruction and the address
 		inst = ah.getInstruction();
 		Address pos = ah++;
 
 		//if it is a conditional branch 
 		if(isLocalCondBranch(inst)){
-
 			//if also it is inside the function space
 			//then insert the target address as a leader
 			//and create the basic block for the leader
@@ -265,8 +270,11 @@ void BPatch_flowGraph::createBasicBlocks(){
 				//architecture then skip one more instruction
 				++ah;
 		}
+#if defined(rs6000_ibm_aix4_1)
+		else if(isLocalIndirectJump(inst,AddressHandle(ah))){
+#else
 		else if(isLocalIndirectJump(inst)){
-			//cerr << "********* INDIRECT ***********\n";
+#endif
 			AddressHandle ah2(ah);
 			BPatch_Set<Address> possTargets; 
 			ah2.getMultipleJumpTargets(possTargets);
@@ -383,11 +391,11 @@ void BPatch_flowGraph::createBasicBlocks(){
 					//if the delay instruction is supported
 					++ah;
 			}
-			else if(isReturn(inst)){
-				exitBlock += bb;
-				bb->isExitBasicBlock = true;
-			}
+#if defined(rs6000_ibm_aix4_1)
+			else if(isLocalIndirectJump(inst,AddressHandle(ah))){
+#else
 			else if(isLocalIndirectJump(inst)){
+#endif
 				AddressHandle ah2(ah);
 				BPatch_Set<Address> possTargets; 
 				ah2.getMultipleJumpTargets(possTargets);
@@ -409,6 +417,10 @@ void BPatch_flowGraph::createBasicBlocks(){
 					//architecture then skip one more instruction
 					++ah;
 			}
+			else if(isReturn(inst)){
+				exitBlock += bb;
+				bb->isExitBasicBlock = true;
+			}
 		}
 		//if the while loop terminated due to recahing the
 		//end of the address space of the function then set the
@@ -429,7 +441,10 @@ void BPatch_flowGraph::createBasicBlocks(){
 // and ending line numbers in the source block for the basic block.
 void BPatch_flowGraph::createSourceBlocks(){
 
-#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
+#if defined(sparc_sun_solaris2_4) ||\
+    defined(mips_sgi_irix6_4) ||\
+    defined(rs6000_ibm_aix4_1)
+
 	if (isSourceBlockInfoReady)
 		return;
 	isSourceBlockInfoReady = true;
@@ -521,6 +536,173 @@ void BPatch_flowGraph::createSourceBlocks(){
 
 }
 
+/* class that calculates the dominators of a flow graph using
+   tarjan's algorithms with results an almost linear complexity
+   for graphs with less than 8 basic blocks */
+
+class TarjanDominator {
+private:
+	int n,r;
+	BPatch_basicBlock** numberToBlock;
+	int *dom,*parent, *ancestor, *child, *vertex, *label, *semi,*size;
+	BPatch_Set<int>** bucket;
+
+	inline int bbToint(BPatch_basicBlock* bb){
+		return bb->blockNumber + 1;
+	}
+	void dfs(int v,int* dfsNo){
+		semi[v] = ++(*dfsNo);
+		vertex[*dfsNo] = v;
+		label[v] = v;
+		ancestor[v] = 0;
+		child[v] = 0;
+		size[v] = 1;
+		BPatch_basicBlock* bb = numberToBlock[v];
+		BPatch_basicBlock** elements = new BPatch_basicBlock*[bb->targets.size()];
+        	bb->targets.elements(elements);
+        	for(int i=0;i<bb->targets.size();i++){
+			int w = bbToint(elements[i]);
+			if(semi[w] == 0){
+				parent[w] = v;
+				dfs(w,dfsNo);
+			}
+		}
+		delete[] elements;
+	}
+	void COMPRESS(int v){
+		if(ancestor[ancestor[v]] != 0){
+			COMPRESS(ancestor[v]);
+			if(semi[label[ancestor[v]]] < semi[label[v]])
+				label[v] = label[ancestor[v]];
+			ancestor[v] = ancestor[ancestor[v]];
+		}
+	}
+	int EVAL(int v){
+		if(ancestor[v] == 0)
+			return label[v];
+		COMPRESS(v);
+		if(semi[label[ancestor[v]]] >= semi[label[v]])
+			return label[v];
+		return label[ancestor[v]];
+	}
+	void LINK(int v,int w){
+		int s = w;
+		while(semi[label[w]] < semi[label[child[s]]]){
+			if((size[s]+size[child[child[s]]]) >= (2*size[child[s]])){
+				ancestor[child[s]] = s;
+				child[s] = child[child[s]];
+			}
+			else{
+				size[child[s]] = size[s];
+				ancestor[s] = child[s];
+				s = child[s];
+			}
+		}
+		label[s] = label[w];
+		size[v] += size[w];
+		if(size[v] < (2*size[w])){
+			int tmp = s;
+			child[v] = s;
+			s = tmp;
+		}
+		while(s != 0){
+			ancestor[s] = v;
+			s = child[s];
+		}
+	}
+public:
+	TarjanDominator(int size,BPatch_basicBlock* root,BPatch_basicBlock** blocks) 
+		: n(size),r(bbToint(root)) 
+	{
+		int i;
+
+		size++;
+		numberToBlock = new BPatch_basicBlock*[size];
+		numberToBlock[0] = NULL;
+		for(i=0;i<n;i++)
+			numberToBlock[bbToint(blocks[i])] = blocks[i];	
+
+		dom = new int[size];
+
+		parent = new int[size];
+		ancestor = new int[size];
+		child = new int[size];
+		vertex = new int[size];
+		label = new int[size];
+		semi = new int[size];
+		this->size = new int[size];
+		bucket = new BPatch_Set<int>*[size];
+
+		for(i=0;i<size;i++){
+			bucket[i] = new BPatch_Set<int>;
+			semi[i] = 0;	
+		}
+	}
+	~TarjanDominator(){
+		int i;
+		delete[] numberToBlock;
+		delete[] parent;
+		delete[] ancestor;
+		delete[] child;
+		delete[] vertex;
+		delete[] label;
+		delete[] semi;
+		delete[] size;
+		delete[] dom;
+		for(i=0;i<(n+1);i++)
+			delete bucket[i];
+		delete[] bucket;
+	}
+	void findDominators(){
+		int i;
+		int dfsNo = 0;
+		dfs(r,&dfsNo);
+
+		size[0] = 0;
+		label[0] = 0;
+		semi[0] = 0;
+
+		for(i=n;i>1;i--){
+			int w =  vertex[i];
+
+			BPatch_basicBlock* bb = numberToBlock[w];
+			BPatch_basicBlock** elements = new BPatch_basicBlock*[bb->sources.size()];
+        		bb->sources.elements(elements);
+        		for(int j=0;j<bb->sources.size();j++){
+				int v = bbToint(elements[j]);
+				int u = EVAL(v);
+				if(semi[u] < semi[w])
+					semi[w] = semi[u];
+			}
+			bucket[vertex[semi[w]]]->insert(w);
+			LINK(parent[w],w);
+			int v = 0;
+			BPatch_Set<int>* bs = bucket[parent[w]];
+			while(bs->extract(v)){
+				int u = EVAL(v);
+				dom[v] = ( semi[u] < semi[v] ) ? u : parent[w];
+			}
+		}
+		for(i=2;i<=n;i++){
+			int w = vertex[i];
+			if(dom[w] != vertex[semi[w]])
+				dom[w] = dom[dom[w]];
+		}
+		dom[r] = 0;
+
+		for(i=1;i<=n;i++){
+			int w = vertex[i];
+			BPatch_basicBlock* bb = numberToBlock[w];
+			bb->immediateDominator = numberToBlock[dom[w]];
+			if(bb->immediateDominator){
+				if(!bb->immediateDominator->immediateDominates)
+					bb->immediateDominator->immediateDominates =
+                                        	new BPatch_Set<BPatch_basicBlock*>;
+                        	bb->immediateDominator->immediateDominates->insert(bb);
+                	}
+		}
+	}
+};
 
 //this method fill the dominator information of each basic block
 //looking at the control flow edges. It uses a fixed point calculation
@@ -534,10 +716,29 @@ void BPatch_flowGraph::fillDominatorInfo(){
 	int i,j,k;
 	BPatch_basicBlock* bb;
 	BPatch_Set<BPatch_basicBlock*>* domSet;
+	BPatch_basicBlock** elements = NULL;
 
 	if(isDominatorInfoReady)
 		return;
 	isDominatorInfoReady = true;
+
+	/* if the number of basic blocks is greater than 8 then use
+	   tarjan's fast dominator algorithm. Otherwise use the 
+	   previous one */
+
+	if(allBlocks.size() >= 8 ){
+		elements = new BPatch_basicBlock*[allBlocks.size()];
+		allBlocks.elements(elements);
+		TarjanDominator tarjanDominator(allBlocks.size(),
+						entryBlock.minimum(),
+						elements);
+		delete[] elements;
+		tarjanDominator.findDominators();
+
+		return;
+	}
+
+	/* end of the tarjan dominator claculation  if used */
 
         BPatch_Set<BPatch_basicBlock*>** blockToDominator = 
 			new BPatch_Set<BPatch_basicBlock*>*[allBlocks.size()];
@@ -558,7 +759,7 @@ void BPatch_flowGraph::fillDominatorInfo(){
 	}
 
 	//a dfs order of basic blocks
-	BPatch_basicBlock** elements = new BPatch_basicBlock*[entryBlock.size()];
+	elements = new BPatch_basicBlock*[entryBlock.size()];
 	entryBlock.elements(elements);
 	for(i=0;i<entryBlock.size();i++)
 		if(bbToColor[elements[i]->blockNumber] == WHITE)

@@ -1,20 +1,28 @@
 #ifndef _AddressHandle_h_
 #define _AddressHandle_h_
 
-#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
+#if defined(sparc_sun_solaris2_4) ||\
+    defined(mips_sgi_irix6_4) ||\
+    defined(rs6000_ibm_aix4_1)
 
 #include "BPatch_Set.h"
 
+class AddressHandle;
 
 /** helper function to identify the properties of the
   * instruction such as the type and the offset.
   */
 bool isReturn(const instruction);
-bool isLocalIndirectJump(const instruction);
 bool isLocalCondBranch(const instruction);
 bool isLocalJump(const instruction);
 bool isLocalCall(const instruction);
 Address getBranchTargetAddress(const instruction,Address pos);
+
+#if defined(rs6000_ibm_aix4_1)
+bool isLocalIndirectJump(const instruction,AddressHandle);
+#else 
+bool isLocalIndirectJump(const instruction);
+#endif
 
 /** class for manipulating the address space in an image for a given
   * range. Such as the valid addresses and the instructions in the addresses
