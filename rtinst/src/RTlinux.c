@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTlinux.c,v 1.5 1999/05/28 01:57:29 nash Exp $ */
+/* $Id: RTlinux.c,v 1.6 1999/10/19 05:18:06 nick Exp $ */
 
 /************************************************************************
  * RTlinux.c: clock access functions for linux-2.0.x and linux-2.2.x
@@ -58,7 +58,7 @@
 #include <sys/procfs.h> /* /proc PIOCUSAGE */
 #include <stdio.h>
 #include <fcntl.h> /* O_RDONLY */
-#include <sigcontext.h>
+/* #include <sigcontext.h> - included in signal.h */
 #include <unistd.h> /* getpid() */
 
 #include "rtinst/h/rtinst.h"
