@@ -1550,7 +1550,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 
     // get the target address of this function
     Address target_addr = 0;
-    Address insn_addr = instr.iPgetAddress(); 
+//    Address insn_addr = instr.iPgetAddress(); 
     target_addr = instr.getTargetAddress();
 
     if(!target_addr) {  

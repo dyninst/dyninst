@@ -44,6 +44,9 @@
  * metricDefs-critPath.C - Compute the Critical Path.
  *
  * $Log: metricDefs-critPath.C,v $
+ * Revision 1.5  1997/10/10 00:42:17  tamches
+ * removed a warning
+ *
  * Revision 1.4  1997/02/21 20:16:00  naim
  * Moving files from paradynd to dyninstAPI + eliminating references to
  * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
@@ -105,7 +108,7 @@
 
 dictionary_hash<unsigned, cpSample*> contextToSample(uiHash);
 
-void processCP(process *proc, traceHeader *hdr, cpSample *sample)
+void processCP(process *, traceHeader *hdr, cpSample *sample)
 {
     cpSample *item;
 

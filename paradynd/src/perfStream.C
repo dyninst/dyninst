@@ -883,7 +883,7 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
 }
 
 // report a piece of shared-memory
-static void reportMemory(int pid, traceHeader *header, struct _traceMemory *r)
+static void reportMemory(int pid, traceHeader *, struct _traceMemory *r)
 {
     char        *name   = r->name;
     int         va = r->va ;

@@ -43,6 +43,9 @@
  * association.C - Manage mapping information (associations)
  *
  * $Log: association.C,v $
+ * Revision 1.11  1997/10/10 00:41:24  tamches
+ * removed a warning
+ *
  * Revision 1.10  1997/02/21 20:15:34  naim
  * Moving files from paradynd to dyninstAPI + eliminating references to
  * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
@@ -91,7 +94,7 @@
 #include <assert.h>
 
 // TODO -- clean me up
-void newAssoc(process *proc, char *abstraction, char *type, char *key, 
+void newAssoc(process *, char *abstraction, char *type, char *key, 
 	      char *value)
 {
 
