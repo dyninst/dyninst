@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.135 2005/03/04 17:46:13 bernat Exp $
+// $Id: unix.C,v 1.136 2005/03/07 21:18:48 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -66,65 +66,6 @@
 #if defined(AIX_PROC)
 #include "dyninstAPI/src/arch-power.h"
 #endif
-
-// The following were all defined in process.C (for no particular reason)
-
-extern unsigned enable_pd_attach_detach_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define attach_cerr if (enable_pd_attach_detach_debug) cerr
-#else 
-#define attach_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_inferior_rpc_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define inferiorrpc_cerr if (enable_pd_inferior_rpc_debug) cerr
-#else
-#define inferiorrpc_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_shm_sampling_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define shmsample_cerr if (enable_pd_shm_sampling_debug) cerr
-#else
-#define shmsample_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_fork_exec_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define forkexec_cerr if (enable_pd_fork_exec_debug) cerr
-#else
-#define forkexec_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_metric_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define metric_cerr if (enable_pd_metric_debug) cerr
-#else
-#define metric_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_signal_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define signal_cerr if (enable_pd_signal_debug) cerr
-#else
-#define signal_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
-extern unsigned enable_pd_sharedobj_debug;
-
-#if ENABLE_DEBUG_CERR == 1
-#define sharedobj_cerr if (enable_pd_sharedobj_debug) cerr
-#else
-#define sharedobj_cerr if (0) cerr
-#endif /* ENABLE_DEBUG_CERR == 1 */
-
 
 /*****************************************************************************
  * forkNewProcess: starts a new process, setting up trace and io links between
@@ -537,7 +478,7 @@ int handleSigTrap(const procevent &event) {
             pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
             buffer += pdstring(", loaded dyninst library");
             statusLine(buffer.c_str());
-            //signal_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
+            signal_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
             proc->loadDYNINSTlibCleanup();
             proc->setBootstrapState(loadedRT);
             return 1;
@@ -645,8 +586,7 @@ int handleSigCritical(const procevent &event) {
    signal_cerr << "caught signal, dying...  (sig="
                << (int) event.what << ")" << endl << std::flush;
 
-#ifdef DEBUG
-   bperr("Process %d dying on signal %d\n", proc->getPid(), event.what);
+   signal_printf("Process %d dying on signal %d\n", proc->getPid(), event.what);
    
    for (unsigned thr_iter = 0; thr_iter <  proc->threads.size(); thr_iter++) {
        dyn_lwp *lwp = proc->threads[thr_iter]->get_lwp();
@@ -654,32 +594,19 @@ int handleSigCritical(const procevent &event) {
            pdvector<Frame> stackWalk;
            lwp->walkStack(stackWalk);
            
-           bperr( "TID: %d, LWP: %d\n",
+           signal_printf( "TID: %d, LWP: %d\n",
                    proc->threads[thr_iter]->get_tid(),
                    lwp->get_lwp_id());
-#if defined(sparc_sun_solaris2_4)
-           lwpstatus status;
-           lwp->get_status(&status);
-           bperr( "why: %d, what: %d\n",
-                   status.pr_why, 
-                   status.pr_what);
-#endif
-       
-           for (unsigned j = 0; j < stackWalk.size(); j++) {
-               int_function *func = proc->findFuncByAddr(stackWalk[j].getPC());
-               bperr( "PC: 0x%x (0x%x)  %s", stackWalk[j].getPC(),
-                       stackWalk[j].getFP() , func ? func->prettyName().c_str() : "no func");
-           }
-           bperr( "\n\n");
+	   for (unsigned foo = 0; foo < stackWalk.size(); foo++)
+	     signal_cerr << "   " << foo << ": " << stackWalk[foo] << endl;
        }
    }
-   
-#endif
+
    proc->dumpImage("imagefile");
    
    forwardSigToProcess(event);
-    return 1;
- }
+   return 1;
+}
 
 int handleSignal(const procevent &event) {
     process *proc = event.proc;
@@ -735,7 +662,7 @@ int handleSignal(const procevent &event) {
       case SIGIOT:
       case SIGBUS:
       case SIGSEGV:
-          // Unhandled 
+	ret = handleSigCritical(event);
          break;
       case SIGCONT:
 #if defined(os_linux)
@@ -980,14 +907,12 @@ int handleSyscallExit(const procevent &event) {
 int signalHandler::handleProcessEvent(const procevent &event) {
    process *proc = event.proc;
    assert(proc);
-   /*
-   cerr << "handleProcessEvent, pid: " << proc->getPid() << ", why: "
-        << event.why << ", what: " << event.what << ", lwps: "
-        << event.lwp->get_lwp_id() << endl;
-
-   Frame activeFrame = event.lwp->getActiveFrame();
-   cerr << "Event active frame: " << activeFrame << endl;
-   */
+   signal_cerr << "handleProcessEvent, pid: " << proc->getPid() << ", why: "
+	       << event.why << ", what: " << event.what << ", lwps: "
+	       << event.lwp->get_lwp_id() << endl;
+   Frame activeFrame;
+   if (dyn_debug_signal) activeFrame = event.lwp->getActiveFrame();
+   signal_cerr << "Event active frame: " << activeFrame << endl;
 
    int ret = 0;
    if(proc->hasExited()) {
