@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.71 1999/06/29 15:56:40 wylie Exp $
+// $Id: solaris.C,v 1.72 1999/07/07 16:09:28 zhichen Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/pdThread.h"
 #include "dyninstAPI/src/stats.h"
 #include "util/h/Types.h"
 #include <sys/ioctl.h>
@@ -385,12 +386,13 @@ int process::waitProcs(int *status) {
 	 break;
        }
        case PR_REQUESTED:
-         assert(0);
+	 assert(0);
+	 break;
        case PR_JOBCONTROL:
 	 assert(0);
 	 break;
        }	
-      }
+     }
 
      --selected_fds;
      ++curr;
@@ -829,6 +831,7 @@ bool process::dlopenDYNINSTlib() {
   // at this time, we know the offset for the library name, so we fix the
   // call to dlopen and we just write the code again! This is probably not
   // very elegant, but it is easy and it works - naim
+  // loading the socket library - naim
   removeAst(dlopenAst); // to avoid leaking memory
   //dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(codeBase+count+strlen(libname)+1));
   dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(socketlib_addr));
@@ -857,6 +860,7 @@ bool process::dlopenDYNINSTlib() {
 			  dyninst_count, true, true);
   writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
   removeAst(dlopenAst);
+  count += dyninst_count;
 
   // save registers
   savedRegs = getRegisters();
@@ -1227,7 +1231,153 @@ bool process::getActiveFrame(Address *fp, Address *pc)
   return(ok);
 }
 
+#if defined(MT_THREAD)
+// It is the caller's responsibility to do a "delete [] (*IDs)"
+bool process::getLWPIDs(int** IDs) {
+   int nlwp;
+   prstatus_t the_psinfo;
+   if (-1 !=  ioctl(proc_fd, PIOCSTATUS, &the_psinfo)) {
+     nlwp =  the_psinfo.pr_nlwp ;
+     id_t *id_p = new id_t [nlwp+1] ;
+     if (-1 != ioctl(proc_fd, PIOCLWPIDS, id_p)) {
+       *IDs = new int [nlwp+1];
+       unsigned i=0; 
+       do { 
+	 (*IDs)[i] = (int) id_p[i]; 
+       } while (id_p[i++]);
+       delete [] id_p;
+       return true ;
+     }
+   }
+   return false ;
+}
+
+bool process::getLWPFrame(int lwp_id, Address* fp, Address *pc) {
+  prgregset_t regs ;
+  int lwp_fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp_id));
+  if (-1 == lwp_fd) {
+    cerr << "process::getLWPFrame, cannot get lwp_fd" << endl ;
+    return false ;
+  }
+  if (-1 != ioctl(lwp_fd, PIOCGREG, &regs)) {
+    *fp = regs[FP_REG];
+    *pc = regs[PC_REG];
+    close(lwp_fd);
+    return true ;
+  }
+  close(lwp_fd);
+  return false ;
+}
+
+//also returns the LWPID
+bool process::getActiveFrame(Address *fp, Address *pc,  int *lwpid) {
+  bool ok=false;
+
+  prstatus_t status;
+  if (ioctl (proc_fd, PIOCSTATUS, &status) != -1) {
+    *lwpid = status.pr_who ;
+    *fp = status.pr_reg[FP_REG];
+    *pc = status.pr_reg[PC_REG];
+    ok=true;
+  }
+
+  return(ok);
+}
+
+Frame::Frame(pdThread* thr) {
+  typedef struct {
+    long    sp;
+    long    pc;
+    long    l1; //fsr
+    long    l2; //fpu_en;
+    long    l3; //g2, g3, g4
+    long    l4; 
+    long    l5; 
+  } resumestate_t;
+
+  frame_ = pc_ = 0 ;
+  uppermostFrame = true ;
+  lwp_id = 0 ;
+  thread = thr ;
+
+  process* proc = thr->get_proc();
+  resumestate_t rs ;
+  if (thr->get_start_pc() &&
+      proc->readDataSpace((caddr_t) thr->get_resumestate_p(),
+                    sizeof(resumestate_t), (caddr_t) &rs, false)) {
+    frame_ = rs.sp;
+    pc_    = rs.pc;
+  } 
+}
+#endif
+
 #ifdef sparc_sun_solaris2_4
+
+#if defined(MT_THREAD)
+bool process::readDataFromThreadFrame(Address currentFP, Address *fp, 
+				Address *rtn, bool /*uppermost*/)
+{
+  bool readOK=true;
+  struct {
+    Address fp;
+    Address rtn;
+  } addrs;
+
+  //function_base *func;
+  //Address pc = *rtn;
+
+  /*
+  prgregset_t regs;
+#ifdef PURE_BUILD
+  // explicitly initialize "regs" struct (to pacify Purify)
+  // (at least initialize those components which we actually use)
+  for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
+#endif
+
+  if (uppermost) {
+      func = this->findFunctionIn(pc);
+      if (func) {
+	 if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
+	   if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
+	     *rtn = regs[R_O7] + 8;
+	     return readOK;
+	   }    
+	 }
+      }
+  }
+  */
+
+  //
+  // For the sparc, register %i7 is the return address - 8 and the fp is
+  // register %i6. These registers can be located in currentFP+14*5 and
+  // currentFP+14*4 respectively, but to avoid two calls to readDataSpace,
+  // we bring both together (i.e. 8 bytes of memory starting at currentFP+14*4
+  // or currentFP+56).
+  // These values are copied to the stack when the application is paused,
+  // so we are assuming that the application is paused at this point
+
+  if (readDataSpace((caddr_t) (currentFP + 56),
+                    sizeof(int)*2, (caddr_t) &addrs, true)) {
+    // this is the previous frame pointer
+    *fp = addrs.fp;
+    // return address
+    *rtn = addrs.rtn + 8;
+
+    // if pc==0, then we are in the outermost frame and we should stop. We
+    // do this by making fp=0.
+
+    if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
+      readOK=false;
+    }
+  }
+  else {
+    readOK=false;
+  }
+
+
+  return(readOK);
+}
+#endif
 
 bool process::readDataFromFrame(Address currentFP, Address *fp, 
 				Address *rtn, bool uppermost)
@@ -1291,11 +1441,94 @@ bool process::readDataFromFrame(Address currentFP, Address *fp,
   return(readOK);
 }
 
+#if defined(MT_THREAD)
+bool process::readDataFromLWPFrame(int lwp_id, Address currentFP, Address *fp, 
+				Address *rtn, bool uppermost)
+{
+  bool readOK=true;
+  struct {
+    Address fp;
+    Address rtn;
+  } addrs;
+
+  function_base *func;
+  Address pc = *rtn;
+
+  prgregset_t regs;
+#ifdef PURE_BUILD
+  // explicitly initialize "regs" struct (to pacify Purify)
+  // (at least initialize those components which we actually use)
+  for (unsigned r=0; r<(sizeof(regs)/sizeof(regs[0])); r++) regs[r]=0;
+#endif
+
+  if (uppermost) {
+      func = this->findFunctionIn(pc);
+      if (func) {
+	 if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
+           int lwp_fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp_id));
+	   if (-1 == lwp_fd) {
+	     readOK = false ;
+	     cerr << "process::readDataFromLWPFrame, cannot get lwp_fd" << endl ;
+	     return readOK;
+	   }
+	   if (ioctl (lwp_fd, PIOCGREG, &regs) != -1) {
+	     *rtn = regs[R_O7] + 8;
+	     close(lwp_fd);
+	     return readOK;
+	   }    
+	   close(lwp_fd);
+	 }
+      }
+  }
+
+  //
+  // For the sparc, register %i7 is the return address - 8 and the fp is
+  // register %i6. These registers can be located in currentFP+14*5 and
+  // currentFP+14*4 respectively, but to avoid two calls to readDataSpace,
+  // we bring both together (i.e. 8 bytes of memory starting at currentFP+14*4
+  // or currentFP+56).
+  // These values are copied to the stack when the application is paused,
+  // so we are assuming that the application is paused at this point
+
+  if (readDataSpace((caddr_t) (currentFP + 56),
+                    sizeof(int)*2, (caddr_t) &addrs, true)) {
+    // this is the previous frame pointer
+    *fp = addrs.fp;
+    // return address
+    *rtn = addrs.rtn + 8;
+
+    // if pc==0, then we are in the outermost frame and we should stop. We
+    // do this by making fp=0.
+
+    if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
+      readOK=false;
+    }
+  }
+  else {
+    readOK=false;
+  }
+
+/*
+  PIOCGWIN
+       This  operation  applies  only  to SPARC machines.  p is a
+       pointer to a gwindows_t structure, defined in <sys/reg.h>,
+       that  is  filled with the contents of those SPARC register
+       windows that could not be stored on the stack when the lwp
+       stopped.   Conditions under which register windows are not
+       stored on the stack  are:  the  stack  pointer  refers  to
+       nonexistent process memory or the stack pointer is improp-
+       erly aligned.  If  the  specific  or  chosen  lwp  is  not
+       stopped, the operation returns undefined values.
+*/
+
+  return(readOK);
+}
+#endif //MT_THREAD
 #endif
 
 #ifdef SHM_SAMPLING
-time64 process::getInferiorProcessCPUtime() {
-   // returns user+sys time from the u or proc area of the inferior process, which in
+time64 process::getInferiorProcessCPUtime(int lwp_id) {
+   // returns user time from the u or proc area of the inferior process, which in
    // turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
    // to obtain it (solaris).  It must not stop the inferior process in order
    // to obtain the result, nor can it assue that the inferior has been stopped.
@@ -1312,13 +1545,46 @@ time64 process::getInferiorProcessCPUtime() {
    time64 result;
    prusage_t theUsage;
 
+#if defined(MT_THREAD)
+   if (lwp_id != -1) {
+     // we need to get the CPU time per LWP to be in sync with gethrvtime - naim
+     int lwp_fd = ioctl(proc_fd, PIOCOPENLWP, &(lwp_id));
+     if (lwp_fd == -1) {
+       sprintf(errorLine,"Cannot read CPU time of inferior process PIOCOPENLWP, lwp_id = %d\n",
+	       lwp_id);
+       logLine(errorLine);
+       return 0;
+     }  
+     if (ioctl(lwp_fd, PIOCUSAGE, &theUsage) == -1) {
+       perror("could not read CPU time of inferior process PIOCUSAGE");
+       return 0;     
+     }
+     // we only use pr_utime in here to be in sync with gethrvtime - naim
+     result = PDYN_mulMillion(theUsage.pr_utime.tv_sec); // sec to usec
+     result += PDYN_div1000(theUsage.pr_utime.tv_nsec);  // nsec to usec
+     close(lwp_fd);
+
+   } else {
+#ifdef PURE_BUILD
+     // explicitly initialize "theUsage" struct (to pacify Purify)
+     memset(&theUsage, '\0', sizeof(prusage_t));
+#endif
+     // compute the CPU timer for the whole process
+     if (ioctl(proc_fd, PIOCUSAGE, &theUsage) == -1) {
+       perror("could not read CPU time of inferior PIOCUSAGE");
+       return 0;
+     }
+     result = PDYN_mulMillion(theUsage.pr_utime.tv_sec); // sec to usec
+     result += PDYN_div1000(theUsage.pr_utime.tv_nsec);  // nsec to usec
+   }
+#else
 #ifdef PURE_BUILD
    // explicitly initialize "theUsage" struct (to pacify Purify)
    memset(&theUsage, '\0', sizeof(prusage_t));
 #endif
 
    if (ioctl(proc_fd, PIOCUSAGE, &theUsage) == -1) {
-      perror("could not read CPU time of inferior PIOCPSINFO");
+      perror("could not read CPU time of inferior PIOCUSAGE");
       return 0;
    }
    result = PDYN_mulMillion(theUsage.pr_utime.tv_sec); // sec to usec
@@ -1332,6 +1598,7 @@ time64 process::getInferiorProcessCPUtime() {
    } else {
      previous=result;
    }
+#endif   
 
    return result;
 }
@@ -1433,7 +1700,7 @@ bool process::changePC(Address addr) {
    assert(status_ == stopped); // /proc will require this
 
    prgregset_t theIntRegs;
-   if (-1 == ioctl(proc_fd, PIOCGREG, &theIntRegs)) {
+   if (ioctl(proc_fd, PIOCGREG, &theIntRegs) == -1) {
       perror("process::changePC PIOCGREG");
       if (errno == EBUSY) {
 	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
@@ -1447,7 +1714,7 @@ bool process::changePC(Address addr) {
    theIntRegs[R_nPC] = addr + 4;
 #endif
 
-   if (-1 == ioctl(proc_fd, PIOCSREG, &theIntRegs)) {
+   if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
       perror("process::changePC PIOCSREG");
       if (errno == EBUSY) {
 	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
@@ -1682,18 +1949,20 @@ void print_read_error_info(const relocationEntry entry,
     sprintf(errorLine, "               name %s\n", (entry.name()).string_of());
     logLine(errorLine);
 
-    sprintf(errorLine, "  target_pdf : symTabName %s\n",
-	    (target_pdf->symTabName()).string_of());
-    logLine(errorLine);    
-    sprintf(errorLine , "              prettyName %s\n",
-	    (target_pdf->symTabName()).string_of());
-    logLine(errorLine);
-    sprintf(errorLine , "              size %i\n",
-	    target_pdf->size());
-    logLine(errorLine);
-    sprintf(errorLine , "              addr 0x%lx\n",
-	    target_pdf->addr());
-    logLine(errorLine);
+    if (target_pdf) {
+      sprintf(errorLine, "  target_pdf : symTabName %s\n",
+	      (target_pdf->symTabName()).string_of());
+      logLine(errorLine);    
+      sprintf(errorLine , "              prettyName %s\n",
+	      (target_pdf->symTabName()).string_of());
+      logLine(errorLine);
+      sprintf(errorLine , "              size %i\n",
+	      target_pdf->size());
+      logLine(errorLine);
+      sprintf(errorLine , "              addr 0x%lx\n",
+	      target_pdf->addr());
+      logLine(errorLine);
+    }
 
     sprintf(errorLine, "  base_addr  0x%lx\n", base_addr);
     logLine(errorLine);
@@ -1940,3 +2209,194 @@ bool process::findCallee(instPoint &instr, function_base *&target){
     target = 0;
     return false;  
 }
+
+#if defined(MT_THREAD) 
+pdThread *process::createThread(
+  int tid, 
+  unsigned pos, 
+  unsigned stackbase, 
+  unsigned startpc, 
+  void* resumestate_p,  
+  bool bySelf)
+{
+  pdThread *thr;
+
+  // creating new thread
+  thr = new pdThread(this, tid, pos);
+  threads += thr;
+
+  unsigned pd_pos;
+  if(!threadMap->add(tid,pd_pos)) {
+    // we run out of space, so we should try to get some more - naim
+    if (getTable().increaseMaxNumberOfThreads()) {
+      if (!threadMap->add(tid,pd_pos)) {
+	// we should be able to add more threads! - naim
+	assert(0);
+      }
+    } else {
+      // we completely run out of space! - naim
+      assert(0);
+    }
+  }
+  thr->update_pd_pos(pd_pos);
+  thr->update_resumestate_p(resumestate_p);
+  function_base *pdf ;
+
+  if (startpc) {
+    thr->update_stack_addr(stackbase) ;
+    thr->update_start_pc(startpc) ;
+    pdf = findFunctionIn(startpc) ;
+    thr->update_start_func(pdf) ;
+  } else {
+    pdf = findOneFunction("main");
+    assert(pdf);
+    //thr->update_start_pc(pdf->addr()) ;
+    thr->update_start_pc(0);
+    thr->update_start_func(pdf) ;
+
+    prstatus_t theStatus;
+    if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
+      thr->update_stack_addr((stackbase=(unsigned)theStatus.pr_stkbase));
+    } else {
+      assert(0);
+    }
+  }
+
+  getTable().addThread(thr);
+
+  //  
+  sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
+	  pdf->prettyName().string_of(), pd_pos,pos,tid,stackbase,resumestate_p, bySelf?"Self":"Parent");
+  logLine(errorLine);
+
+  return(thr);
+}
+
+//
+// CALLED for mainThread
+//
+void process::updateThread(pdThread *thr, int tid, unsigned pos, void* resumestate_p, resource *rid) {
+  unsigned pd_pos;
+  assert(thr);
+  thr->update_tid(tid, pos);
+  assert(threadMap);
+  if(!threadMap->add(tid,pd_pos)) {
+    // we run out of space, so we should try to get some more - naim
+    if (getTable().increaseMaxNumberOfThreads()) {
+      if (!threadMap->add(tid,pd_pos)) {
+        // we should be able to add more threads! - naim
+        assert(0);
+      }
+    } else {
+      // we completely run out of space! - naim
+      assert(0);
+    }
+  }
+  thr->update_pd_pos(pd_pos);
+  thr->update_rid(rid);
+  thr->update_resumestate_p(resumestate_p);
+  function_base *f_main = findOneFunction("main");
+  assert(f_main);
+
+  //unsigned addr = f_main->addr();
+  //thr->update_start_pc(addr) ;
+  thr->update_start_pc(0) ;
+  thr->update_start_func(f_main) ;
+
+  prstatus_t theStatus;
+  if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
+    thr->update_stack_addr((unsigned)theStatus.pr_stkbase);
+  } else {
+    assert(0);
+  }
+
+  sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x\n",pd_pos,pos,tid,theStatus.pr_stkbase, resumestate_p);
+  logLine(errorLine);
+}
+
+//
+// CALLED from Attach
+//
+void process::updateThread(
+  pdThread *thr, 
+  int tid, 
+  unsigned pos, 
+  unsigned stackbase, 
+  unsigned startpc, 
+  void* resumestate_p) 
+{
+  unsigned pd_pos;
+  assert(thr);
+  //  
+  sprintf(errorLine," updateThread(tid=%d, pos=%d, stackaddr=0x%x, startpc=0x%x)\n",
+	 tid, pos, stackbase, startpc);
+  logLine(errorLine);
+
+  thr->update_tid(tid, pos);
+  assert(threadMap);
+  if(!threadMap->add(tid,pd_pos)) {
+    // we run out of space, so we should try to get some more - naim
+    if (getTable().increaseMaxNumberOfThreads()) {
+      if (!threadMap->add(tid,pd_pos)) {
+	// we should be able to add more threads! - naim
+	assert(0);
+      }
+    } else {
+      // we completely run out of space! - naim
+      assert(0);
+    }
+  }
+
+  thr->update_pd_pos(pd_pos);
+  thr->update_resumestate_p(resumestate_p);
+
+  function_base *pdf;
+
+  if(startpc) {
+    thr->update_start_pc(startpc) ;
+    pdf = findFunctionIn(startpc) ;
+    thr->update_start_func(pdf) ;
+    thr->update_stack_addr(stackbase) ;
+  } else {
+    pdf = findOneFunction("main");
+    assert(pdf);
+    thr->update_start_pc(startpc) ;
+    //thr->update_start_pc(pdf->addr()) ;
+    thr->update_start_func(pdf) ;
+
+    prstatus_t theStatus;
+    if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
+      thr->update_stack_addr((stackbase=(unsigned)theStatus.pr_stkbase));
+    } else {
+      assert(0);
+    }
+  } //else
+
+  sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
+    pdf->prettyName().string_of(), pd_pos, pos, tid, stackbase, resumestate_p);
+  logLine(errorLine);
+}
+
+void process::deleteThread(int tid)
+{
+  pdThread *thr=NULL;
+  unsigned i;
+
+  for (i=0;i<threads.size();i++) {
+    if (threads[i]->get_tid() == tid) {
+      thr = threads[i];
+      break;
+    }   
+  }
+  if (thr != NULL) {
+    getTable().deleteThread(thr);
+    unsigned theSize = threads.size();
+    threads[i] = threads[theSize-1];
+    threads.resize(theSize-1);
+    delete thr;    
+    sprintf(errorLine,"----- deleting thread, tid=%d, threads.size()=%d\n",tid,threads.size());
+    logLine(errorLine);
+  }
+}
+#endif
+
