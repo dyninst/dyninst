@@ -46,14 +46,16 @@
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
 #include "paradynd/src/variableMgrTypes.h"
+#include "rtinst/h/rtinst.h"
 
 class threadMetFocusNode_Val;
 class Frame;
 
 class baseVarInstance {
  public:
+  baseVarInstance() { }
+  baseVarInstance(const baseVarInstance &) { }
   virtual ~baseVarInstance() { }
-  virtual void allocateVar() = 0;
   virtual void *getBaseAddressInDaemon() = 0;
   virtual void *getBaseAddressInApplic() = 0;
   virtual void *elementAddressInDaemon(unsigned thrPos) = 0;
@@ -64,16 +66,12 @@ class baseVarInstance {
 				threadMetFocusNode_Val *thrNval) = 0;
   virtual void markVarAsNotSampled(unsigned thrPos) = 0;
   virtual void deleteThread(unsigned thrPos) = 0;
+  virtual void initializeVarsAfterFork(rawTime64 curRawTime) = 0;
 };
 
 class variableMgr;
 class process;
 class shmMgr;
-
-struct trampRange {
-  Address startAddr;
-  Address endAddr;
-};
 
 template <class HK>
 class varInstance : public baseVarInstance {
@@ -88,19 +86,23 @@ class varInstance : public baseVarInstance {
   process *proc;
   RAWTYPE  initValue;
   shmMgr &theShmMgr;
-
   vector<unsigned> permanentSamplingSet;
   vector<unsigned> currentSamplingSet;
-  element_state varState;
+
   void createHKifNotPresent(unsigned thrPos);
   bool removeFromSamplingSet(vector<unsigned> *set, unsigned thrPosToRemove);
 
+  // --- disallow these -------------------
+  varInstance(const varInstance<HK> &par) : baseVarInstance(par),
+    theShmMgr(par.theShmMgr) { }
+  varInstance &operator=(const varInstance<HK> &) { return *this; }
+  // --------------------------------------
+
  public:
   varInstance(variableMgr &varMgr, const RAWTYPE &initValue);
+  varInstance(const varInstance<HK> &par, shmMgr &sMgr, process *p);
+
   ~varInstance();
-  void allocateVar() {
-    varState = varAllocated;
-  }
   void *elementAddressInDaemon(unsigned thrPos) {
     RAWTYPE *baseAddr = static_cast<RAWTYPE *>(baseAddrInDaemon);
     return static_cast<void*>(baseAddr + thrPos);  // ptr arith
@@ -126,6 +128,8 @@ class varInstance : public baseVarInstance {
   void markVarAsSampled(unsigned thrPos, threadMetFocusNode_Val *thrNval);
   void markVarAsNotSampled(unsigned thrPos);
   void deleteThread(unsigned thrPos);
+
+  void initializeVarsAfterFork(rawTime64 curRawTime);
 };
 
 
