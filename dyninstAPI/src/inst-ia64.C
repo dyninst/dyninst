@@ -41,7 +41,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.12 2002/08/01 18:37:28 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.13 2002/08/01 19:13:57 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -687,10 +687,10 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 		} /* end if using alloc method */
 
 	/* Emulate the relocated instructions. */
-	Address installationPoint = location->iPgetAddr();
-	IA64_bundle bundleToEmulate( * (ia64_bundle_t *) location->iPgetOwner()->getPtrToInstruction( fnEntryOffset ) );
+	Address installationPoint = location->iPgetAddress();
+	IA64_bundle bundleToEmulate( * (ia64_bundle_t *) location->iPgetOwner()->getPtrToInstruction( installationPoint ) );
 	baseTramp->emulateInsOffset = baseTramp->size;
-	emulateBundle( bundleToEmulate, installationPoint, insnPtr, bundleCount, baseTramp->size );
+	// emulateBundle( bundleToEmulate, installationPoint, insnPtr, bundleCount, baseTramp->size );
 	
 	/* Replace the skipPre nop bundle with a jump from it to baseTramp->emulateInsOffset. */
 	unsigned int skipPreJumpBundleOffset = baseTramp->skipPreInsOffset / 16;
