@@ -43,10 +43,6 @@
 
 typedef int (*intKludge)();
 
-void * P_memcpy (void *A1, const void *A2, size_t SIZE) {
-  return (memcpy(A1, A2, SIZE));
-}
-
 int P_getopt(int argc, char *argv[], const char *optstring)
 {
   /* On linux we prepend a + character */
