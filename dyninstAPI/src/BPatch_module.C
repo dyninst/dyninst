@@ -275,7 +275,12 @@ void parseLineInformation(process* proc,LineInformation* lineInformation,
 
 		/* access the line information now using the C_FCN entry*/
 		SYMENT *bfsym = (SYMENT*)(((unsigned)sym)+SYMESZ);
-		assert(bfsym->n_sclass == C_FCN);
+
+		if (bfsym->n_sclass != C_FCN) {
+		    printf("unable to process line info for %s\n", symbolName);
+		    return;
+		}
+
 		aux = (union auxent*)((char*)bfsym+SYMESZ);
 		initialLine = aux->x_sym.x_misc.x_lnsz.x_lnno;
 
@@ -349,6 +354,7 @@ void BPatch_module::parseTypes()
       SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * SYMESZ);
       // SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * sizeof(struct syment));
 
+
       if (sym->n_sclass == C_FILE) {
 	 char *moduleName;
 	 if (!sym->n_zeroes) {
@@ -389,6 +395,39 @@ void BPatch_module::parseTypes()
 
       if (!parseActive) continue;
 
+      char *nmPtr;
+      if (!sym->n_zeroes && ((sym->n_sclass & DBXMASK) ||
+			     (sym->n_sclass == C_BINCL) ||
+			     (sym->n_sclass == C_EINCL))) {
+	  if (sym->n_offset < 3) {
+	      if (sym->n_offset == 2 && stabstr[0]) {
+		  nmPtr = &stabstr[0];
+	      } else {
+		  nmPtr = &stabstr[sym->n_offset];
+	      }
+	  } else if (!stabstr[sym->n_offset-3]) {
+	      nmPtr = &stabstr[sym->n_offset];
+	  } else {
+	      /* has off by two error */
+	      nmPtr = &stabstr[sym->n_offset-2];
+	  }
+#ifdef notdef
+	  printf("using nmPtr = %s\n", nmPtr);
+	  printf("got n_offset = (%d) %s\n", sym->n_offset, &stabstr[sym->n_offset]);
+	  if (sym->n_offset>=2) 
+	      printf("got n_offset-2 = %s\n", &stabstr[sym->n_offset-2]);
+	  if (sym->n_offset>=3) 
+	      printf("got n_offset-3 = %x\n", stabstr[sym->n_offset-3]);
+	  if (sym->n_offset>=4) 
+	      printf("got n_offset-4 = %x\n", stabstr[sym->n_offset-4]);
+#endif
+      } else {
+	  // names 8 or less chars on inline, not in stabstr
+	  memset(tempName, 0, 9);
+	  strncpy(tempName, sym->n_name, 8);
+	  nmPtr = tempName;
+      }
+
       if ((sym->n_sclass == C_BINCL) ||
 	  (sym->n_sclass == C_EINCL) ||
 	  (sym->n_sclass == C_FUN)) {
@@ -396,25 +435,7 @@ void BPatch_module::parseTypes()
 		    free(funcName);
 		    funcName = NULL;
 		}
-		if(!sym->n_zeroes){
-			char* cb = NULL;
-			if (sym->n_sclass == C_FUN) {
-			    if (sym->n_offset < 3) {
-				cb = &stabstr[0];
-			    } else {
-				cb = !stabstr[sym->n_offset-3] ?
-					&stabstr[sym->n_offset] :
-					&stabstr[sym->n_offset-2];
-			    }
-			} else {
-				cb = &stringPool[sym->n_offset];
-			}
-			funcName = strdup(cb);
-		} else {
-			funcName = (char *) malloc(9);
-			strncpy(funcName,sym->n_name,8);
-			funcName[8] = '\0';
-		}	
+		funcName = strdup(nmPtr);
 		parseLineInformation(proc,lineInformation,includeFiles,
 				     currentSourceFile,funcName,sym,
 				     linesfdptr,lines,nlines);
@@ -424,16 +445,7 @@ void BPatch_module::parseTypes()
 	  if (sym->n_sclass == C_BCOMM) {
 	      char *commonBlockName;
 
-	      if (!sym->n_zeroes) {
-		  if (!stabstr[sym->n_offset-3]) {
-		      /* has off by two error */
-		      commonBlockName = &stabstr[sym->n_offset];
-		  } else {
-		      commonBlockName = &stabstr[sym->n_offset-2];
-		  }
-	      } else {
-		  commonBlockName = sym->n_name;
-	      }
+	      commonBlockName = nmPtr;
 
 	      // find the variable for the common block
 	      BPatch_image *progam = (BPatch_image *) getObjParent();
@@ -477,24 +489,6 @@ void BPatch_module::parseTypes()
 	      staticBlockBaseAddr = tsym->n_value;
 	  } else if (sym->n_sclass == C_ESTAT) {
 	      staticBlockBaseAddr = 0;
-	  }
-
-	  char *nmPtr;
-	  if (!sym->n_zeroes) {
-	      // see if this is the version of records with the off by
-	      // two bug in stabs
-	      // this assumes there are no strings of length 3 or less, but
-	      //   those are represented inline on AIX
-	      if (!stabstr[sym->n_offset-3]) {
-		  nmPtr = &stabstr[sym->n_offset];
-	      } else {
-		  nmPtr = &stabstr[sym->n_offset-2];
-	      }
-	  } else {
-	      // names 8 or less chars on inline, not in stabstr
-	      memset(tempName, 0, 9);
-	      strncpy(tempName, sym->n_name, 8);
-	      nmPtr = tempName;
 	  }
 
 	  if (staticBlockBaseAddr && (sym->n_sclass == C_STSYM)) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.1 2000/11/21 20:23:59 bernat Exp $
+// $Id: Object-xcoff.C,v 1.2 2000/12/05 05:30:15 hollings Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -402,12 +402,14 @@ void Object::parse_aout(int fd, int offset)
 		    (void **) &code_ptr_, aout.tsize, true))
      PARSE_AOUT_DIE("Reading text segment", 49);
 
+#ifdef notdef
    fprintf(stderr, "text_org_ = %x, scnptr = %x, text_start = %x\n",
 	   (unsigned) text_org_, sectHdr[aout.o_sntext-1].s_scnptr, 
 	   (unsigned) aout.text_start);
    fprintf(stderr, "Code pointer: %x, reloc: %x, offset: %x, length: %x\n",
 	   (unsigned) code_ptr_, (unsigned) text_reloc,
 	   (unsigned) code_off_, (unsigned) code_len_);
+#endif
 
    // data_reloc = "relocation value" = data_org_ - aout.data_start
    data_reloc = data_org_ - aout.data_start;
@@ -440,15 +442,19 @@ void Object::parse_aout(int fd, int offset)
    // give an offset into the mutator's copy of the data
    data_off_ = data_org_;
 
+#ifdef notdef
    fprintf(stderr, "data_org_ = %x, scnptr = %x, data_start = %x\n",
 	   (unsigned) data_org_, sectHdr[aout.o_sndata-1].s_scnptr, 
 	   (unsigned) aout.data_start);
+#endif
 
    data_len_ = aout.dsize;
 
+#ifdef notdef
    fprintf(stderr, "Data pointer: %x, reloc: %x, offset: %x, length: %x\n",
 	   (unsigned) data_ptr_, (unsigned) data_reloc, 
 	   (unsigned) data_off_, (unsigned) data_len_);
+#endif
 
    foundDebug = false;
 

@@ -737,8 +737,13 @@ static BPatch_type *parseArrayDef(BPatch_module *mod, char *name,
     } else { 
 	if (stabstr[cnt] == '=') {
 	    /* multi dimensional array */
-	    stabstr = parseTypeDef(mod, &(stabstr[cnt+1]), NULL, elementType);
-	    cnt = 0;
+	    char *temp;
+	    temp = parseTypeDef(mod, &(stabstr[cnt+1]), NULL, elementType);
+	    /* parseTypeDef uses old style of returning updated stabstr,
+	       but parseArrayDef function needs to return an updated cnt.  
+	       This simple hack updates cnt based on how far parseTypDef 
+	       advances it.  jkh 12/4/00 */
+	    cnt = temp-stabstr;
 	    if (stabstr[cnt] == ':') {
 		//C++ stuff
 		//printf("Skipping C++ rest of array def:  %s\n",name );
