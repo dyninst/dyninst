@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.128 2004/03/08 23:45:45 bernat Exp $
+// $Id: linux.C,v 1.129 2004/03/12 23:18:05 legendre Exp $
 
 #include <fstream>
 
@@ -1495,6 +1495,64 @@ bool dyn_lwp::representativeLWP_attach_() {
    } // end - if createdViaAttachToCreated
 
    return true;
+}
+
+//These constants are not defined in all versions of elf.h
+#ifndef AT_NULL
+#define AT_NULL 0
+#endif
+#ifndef AT_SYSINFO
+#define AT_SYSINFO 32
+#endif
+#ifndef AT_SYSINFO_EHDR
+#define AT_SYSINFO_EHDR 33
+#endif
+
+bool process::readAuxvInfo()
+{
+  /**
+   * The location of the vsyscall is stored in /proc/PID/auxv in Linux 2.6
+   * auxv consists of a list of name/value pairs, ending with the AT_NULL
+   * name.  There isn't a direct way to get the vsyscall info on Linux 2.4
+   **/
+  char buffer[32];
+  int fd;
+  Address dso_start = 0x0, text_start = 0x0;
+  unsigned page_size = 0x0;
+  struct {
+    int type;
+    int value;
+  } auxv_entry;
+  
+  sprintf(buffer, "/proc/%d/auxv", pid);
+
+  fd = open(buffer, O_RDONLY);
+  if (fd == -1)
+  {
+    //This is expected on linux 2.4 systems
+    return false;
+  }
+
+  do {
+    read(fd, &auxv_entry, sizeof(auxv_entry));
+    if (auxv_entry.type == AT_SYSINFO)
+      text_start = auxv_entry.value;
+    else if (auxv_entry.type == AT_SYSINFO_EHDR)
+      dso_start = auxv_entry.value;
+    else if (auxv_entry.type == AT_PAGESZ)
+      page_size = auxv_entry.value;
+  } while (auxv_entry.type != AT_NULL);
+
+  close(fd);
+
+  assert(text_start != 0x0 && dso_start != 0x0);
+  if (page_size == 0x0) page_size = getpagesize();
+  
+  vsyscall_start_ = dso_start;
+  vsyscall_end_ = dso_start + page_size;
+  vsyscall_text_ = text_start;
+
+  return true;
 }
 
 void loadNativeDemangler() {}

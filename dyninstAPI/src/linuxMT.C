@@ -54,7 +54,7 @@ Frame dyn_thread::getActiveFrameMT() {
    if (lwp) {
 	  // We have a kernel thread
 	  Frame lwpFrame = lwp->getActiveFrame();
-	  newFrame = Frame(lwpFrame.getPC(), lwpFrame.getFP(),
+	  newFrame = Frame(lwpFrame.getPC(), lwpFrame.getFP(), lwpFrame.getSP(),
 					   lwpFrame.getPID(), this, lwp, true);
    }
    else {
