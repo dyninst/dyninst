@@ -2,11 +2,14 @@
 // Ariel Tamches
 
 /* $Log: where4treeConstants.h,v $
-/* Revision 1.2  1995/10/17 22:16:26  tamches
-/* Removed masterWindow.  Removed rootItemTextGC, rootItemRectGC,
-/* and their highlighted variants.  Removed listboxScrollbarBorderDragging.
-/* Removed several listbox gc's.
+/* Revision 1.3  1996/04/01 22:33:34  tamches
+/* Added X visibility event features
 /*
+ * Revision 1.2  1995/10/17 22:16:26  tamches
+ * Removed masterWindow.  Removed rootItemTextGC, rootItemRectGC,
+ * and their highlighted variants.  Removed listboxScrollbarBorderDragging.
+ * Removed several listbox gc's.
+ *
  * Revision 1.1  1995/07/17 04:59:05  tamches
  * First version of the new where axis
  *
@@ -17,8 +20,8 @@
 
 #include <iostream.h>
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 
 struct where4TreeConstants {
    Display *display;
@@ -51,6 +54,7 @@ struct where4TreeConstants {
    int listboxTriangleWidth, listboxTriangleHeight;
    int listboxHorizPadAfterTriangle;
    int listboxVertPadAboveItem, listboxVertPadAfterItemBaseline;
+   GC listboxCopyAreaGC;
 
    // Other Spacing issues:
    int horizPixBetweenChildren;
@@ -60,10 +64,17 @@ struct where4TreeConstants {
    // Some XColors allocated with Tk_GetColor() [deallocate w/ Tk_FreeColor()]:
    XColor *grayColor, *pinkColor, *blackColor, *cornflowerBlueColor;
 
+   bool obscured;
+      // true iff the window is partially or fully obscured.
+
    where4TreeConstants(Tcl_Interp *, Tk_Window theWindow);
   ~where4TreeConstants();  // needed to free some resources
   
    void resize();
+
+   void makeVisibilityUnobscured() {obscured = false;}
+   void makeVisibilityPartiallyObscured() {obscured = true;}
+   void makeVisibilityFullyObscured() {obscured = true;}
 };
 
 #endif
