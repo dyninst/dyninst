@@ -82,8 +82,10 @@ struct tTimerRec {
 typedef int (*filterFunc)(void *cdata, parameters *params);
 typedef int traceStream;
 
-void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
-    void *eventData, int flush,time64 wall_time,time64 process_time);
+void DYNINSTgenerateTraceRecord(traceStream sid, short type, 
+			        short length,
+                                void *eventData, int flush,
+			        time64 wall_time,time64 process_time);
 extern time64 DYNINSTgetCPUtime(void);
 extern time64 DYNINSTgetWalltime(void);
 
@@ -94,9 +96,12 @@ extern time64 DYNINSTgetWalltime(void);
  *
  *  This should be a power of two to reduce paging and chacing shifts.
  */
-// The only possible problem with 1024*1024 instead of 1024*256 is that
-// HP needs to handle longjumps in mini-trampolines...sparc doesn't have
-// this problem until the size gets much bigger...
+
+/* The only possible problem with 1024*1024 instead of 1024*256 is that
+ * HP needs to handle longjumps in mini-trampolines...sparc doesn't have
+ * this problem until the size gets much bigger...
+ */
+
 #define SYN_INST_BUF_SIZE	1024*1024
 
 #endif
