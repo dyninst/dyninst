@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2002 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.147 2003/03/21 21:19:09 bernat Exp $
+// $Id: DMmain.C,v 1.148 2003/04/17 19:41:12 pcroth Exp $
 
 #include <assert.h>
 extern "C" {
@@ -1070,11 +1070,28 @@ void *DMmain(void* varg)
 	    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
 	      pd = paradynDaemon::allDaemons[i]; 
 	      if(pd->get_sock() == fromSock){
-		
-		if(pd->waitLoop() == T_dyninstRPC::error) {
-		  cout << "error on paradyn daemon\n";
-		  paradynDaemon::removeDaemon(pd, true);
-		}
+#if defined(i386_unknown_nt4_0)
+            
+            {
+                timeval zeroTimeout;
+                zeroTimeout.tv_sec = 0;
+                zeroTimeout.tv_usec = 0;
+                fd_set fds;
+                FD_ZERO( &fds );
+                FD_SET( fromSock, &fds );
+                int sret = select( 0, &fds, NULL, NULL, &zeroTimeout );
+                if( sret != 1 )
+                {
+                    // spurious wakeup - 
+                    // no data on indicated socket
+                    break;
+                }
+            }
+#endif // defined(i386_unknown_nt4_0)
+            if(pd->waitLoop() == T_dyninstRPC::error) {
+              cout << "error on paradyn daemon\n";
+              paradynDaemon::removeDaemon(pd, true);
+            }
 	      }
 	      
 	      // handle async requests that may have been buffered
