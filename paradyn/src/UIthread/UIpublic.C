@@ -21,11 +21,14 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.49  1996/04/07 21:17:12  karavan
-/* changed new phase notification handling; instead of being notified by the
-/* data manager, the UI is notified by the performance consultant.  This prevents
-/* a race condition.
+/* Revision 1.50  1996/04/09 19:25:07  karavan
+/* added batch mode to cut down on shg redraw time.
 /*
+ * Revision 1.49  1996/04/07 21:17:12  karavan
+ * changed new phase notification handling; instead of being notified by the
+ * data manager, the UI is notified by the performance consultant.  This prevents
+ * a race condition.
+ *
  * Revision 1.48  1996/04/01 22:42:14  tamches
  * added UI_all_metric_names, UI_all_metrics_set_yet
  * removed uim_AvailMets etc.
@@ -395,6 +398,20 @@ shgRootNode::refinement int2refinement(int styleid) {
    exit(5);
 }
 
+void
+UIM::setBatchMode(int phaseID)
+{
+  theShgPhases->setBatchMode(phaseID);
+}
+
+void
+UIM::clearBatchMode(int phaseID)
+{
+  theShgPhases->clearBatchMode(phaseID);
+  if (theShgPhases->clearBatchMode(phaseID))
+    initiateShgRedraw(interp, true); 
+}
+
 /*  flags: 1 = root
  *         0 = non-root
  */
@@ -431,7 +448,7 @@ UIM::DAGaddEdge (int dagID, unsigned srcID,
 			     dstID, // child
 			     theRefinementStyle,
 			     label))
-      initiateShgRedraw(interp, true); // true --> double buffer
+     initiateShgRedraw(interp, true); // true --> double buffer
 
    return 1;
 }

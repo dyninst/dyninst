@@ -4,10 +4,13 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.10  1996/03/10 23:20:51  hollings
-/* Mad sure all assert statements were in { } blocks.  odd compiler problem
-/* for AIX or UMD.
+/* Revision 1.11  1996/04/09 19:25:13  karavan
+/* added batch mode to cut down on shg redraw time.
 /*
+ * Revision 1.10  1996/03/10 23:20:51  hollings
+ * Mad sure all assert statements were in { } blocks.  odd compiler problem
+ * for AIX or UMD.
+ *
  * Revision 1.9  1996/03/08  00:21:20  tamches
  * added support for hidden nodes
  *
@@ -129,6 +132,8 @@ class shg {
    bool hideActiveNodes, hideInactiveNodes;
    bool hideShadowNodes;
 
+   int batchMode;  // if set, rethink_entire_layout will be postponed to save time
+
    void resizeScrollbars();
 
    bool set_scrollbars(int absolute_x, int relative_x,
@@ -147,7 +152,8 @@ class shg {
    static void sliderButtonRelease(ClientData cd, XEvent *eventPtr);
  
    void rethink_entire_layout(bool isCurrShg) {
-      // slow...
+      // slow... so we may use batchMode to save time
+     if (batchMode) return;
       assert(rootPtr);
       rootPtr->recursiveDoneAddingChildren(consts, false); // false --> don't resort
       rethink_nominal_centerx();
@@ -304,6 +310,15 @@ class shg {
       // Returns true iff any changes.
    bool changeHiddenNodes(changeType, bool hide, bool isCurrShg);
       // Like above routine but just changes 1 trait
+
+   // batch mode to save unnecessary draw time
+   void setBatchMode () {batchMode++;}
+   bool clearBatchMode(bool isCurrShg) {
+     batchMode--;
+     if (batchMode == 0) rethink_entire_layout(isCurrShg);
+     return (batchMode == 0);
+   }
+   bool isInBatchMode() {return batchMode > 0;}
 
    // The following are very high-level routines; they tend to correspond
    // with shg-related igen calls in UI.I:

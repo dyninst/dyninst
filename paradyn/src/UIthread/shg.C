@@ -4,9 +4,12 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.16  1996/04/01 21:19:22  tamches
-/* changeHiddenNodes now checks for a NULL rootPtr
+/* Revision 1.17  1996/04/09 19:25:10  karavan
+/* added batch mode to cut down on shg redraw time.
 /*
+ * Revision 1.16  1996/04/01 21:19:22  tamches
+ * changeHiddenNodes now checks for a NULL rootPtr
+ *
  * Revision 1.15  1996/03/29 20:51:12  tamches
  * on configNode, check for change in hide-ness is moved before check for
  * true-ness; avoids an assertion failure when expanding a hidden node at times.
@@ -135,7 +138,8 @@ shg::shg(int iPhaseId, Tcl_Interp *iInterp, Tk_Window theTkWindow,
 	    horizSBName(iHorizSBName),
 	    vertSBName(iVertSBName),
 	    currItemLabelName(iCurrItemLabelName),
-	    lastItemUnderMousePath(0, 0, consts, NULL, 0, 0) // yuck
+	    lastItemUnderMousePath(0, 0, consts, NULL, 0, 0), // yuck
+	    batchMode(0)
 {
    initializeStaticsIfNeeded();
 

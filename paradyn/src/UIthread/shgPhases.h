@@ -4,9 +4,12 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.h,v $
-/* Revision 1.10  1996/03/08 00:21:53  tamches
-/* added support for hidden nodes
+/* Revision 1.11  1996/04/09 19:25:18  karavan
+/* added batch mode to cut down on shg redraw time.
 /*
+ * Revision 1.10  1996/03/08 00:21:53  tamches
+ * added support for hidden nodes
+ *
  * Revision 1.9  1996/02/15 23:12:29  tamches
  * corrected parameters of addEdge to properly handle why vs. where
  * axis refinements
@@ -246,6 +249,11 @@ class shgPhases {
       // the "to" node.  Rethinks the entire layout of the shg
    bool configNode(int phaseId, unsigned nodeId,
                    bool active, shgRootNode::evaluationState);
+
+   // suppress or restore calls to rethink_entire_layout and 
+   // initiateShgRedraw during shg updates; handles nested requests
+   void setBatchMode(int phaseID);
+   bool clearBatchMode(int phaseID); // true if no longer in batch mode
 
    void addToStatusDisplay(int phaseId, const string &msg);
       // currently, we do not append the newline character for you

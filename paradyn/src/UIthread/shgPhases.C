@@ -4,10 +4,13 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.14  1996/04/08 19:54:56  tamches
-/* fixed bug in shg message window that could leave some residue when
-/* changing phases.
+/* Revision 1.15  1996/04/09 19:25:15  karavan
+/* added batch mode to cut down on shg redraw time.
 /*
+ * Revision 1.14  1996/04/08 19:54:56  tamches
+ * fixed bug in shg message window that could leave some residue when
+ * changing phases.
+ *
  * Revision 1.13  1996/03/08 03:01:35  tamches
  * constructor now grabs initial hide-node flags from the actual paradyn
  * tunable constants
@@ -612,7 +615,7 @@ bool shgPhases::addEdge(int phaseId, unsigned fromId, unsigned toId,
    const bool isCurrShg = (getCurrentId() == phaseId);
    theShg.addEdge(fromId, toId, theRefinement, label, isCurrShg);
 
-   return isCurrShg;
+   return (isCurrShg && !theShg.isInBatchMode);
 }
 
 bool shgPhases::configNode(int phaseId, unsigned nodeId,
@@ -625,6 +628,16 @@ bool shgPhases::configNode(int phaseId, unsigned nodeId,
    return isCurrShg;
 }
 
+void shgPhases::setBatchMode(int phaseID) {
+  shg &theShg = getByID(phaseID);
+  theShg.setBatchMode();
+}
+
+bool shgPhases::clearBatchMode(int phaseID) {
+  shg &theShg = getByID(phaseID);
+  const bool isCurrShg = (getCurrentId() == phaseID);
+  return theShg.clearBatchMode(isCurrShg);
+}
 void shgPhases::addToStatusDisplay(int phaseId, const string &iMsg) {
    if (!existsCurrent()) {
       cerr << "addToStatusDisplay: no current phase to display msg:" << endl;
