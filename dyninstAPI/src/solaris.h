@@ -42,10 +42,10 @@
 #if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
 #error "invalid architecture-os inclusion"
 #endif
-
 #ifndef SOLARIS_PD_HDR
 #define SOLARIS_PD_HDR
 
+#include <sys/procfs.h>
 #include <sys/param.h>
 
 #define EXIT_NAME "_exithandle"
@@ -69,6 +69,12 @@
 #define SIGNAL_HANDLER	 "sigacthandler"
 
 typedef int handleT; // a /proc file descriptor
+
+struct dyn_saved_regs
+{
+    prgregset_t theIntRegs;
+    prfpregset_t theFpRegs;
+};
 
 //#include "saveSharedLibrary.h" //ccw 13 jan 2002
 #include "writeBackElf.h" //ccw 28 oct 2001

@@ -60,4 +60,12 @@
 
 typedef int handleT; // a /proc file descriptor
 
+struct dyn_saved_regs
+{
+    gregset_t intRegs;
+    fpregset_t fpRegs;
+};
+
+
+
 #endif /* _IRIX_PD_H_ */

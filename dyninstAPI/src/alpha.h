@@ -47,6 +47,7 @@
 #define ALPHA_PD_HDR
 
 #include <sys/param.h>
+#include <sys/procfs.h>
 #define EXIT_NAME "exit"
 
 #define BYTES_TO_SAVE 512 // should be a multiple of sizeof(instruction)
@@ -60,5 +61,12 @@
 /*extern unsigned AIX_TEXT_OFFSET_HACK;
 extern unsigned AIX_DATA_OFFSET_HACK;*/
 typedef int handleT; // defined for compatibility with other platforms
+
+struct dyn_saved_regs
+{
+    gregset_t theIntRegs;
+    fpregset_t theFpRegs;
+};
+
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.h,v 1.13 2001/11/06 19:20:20 bernat Exp $
+// $Id: aix.h,v 1.14 2002/11/14 20:26:25 bernat Exp $
 
 #if !defined(rs6000_ibm_aix3_2) && !defined(rs6000_ibm_aix4_1)
 #error "invalid architecture-os inclusion"
@@ -75,4 +75,13 @@
 
 typedef int handleT; // defined for compatibility with other platforms
                      // not currently used on the AIX platform
+
+#define num_special_registers 9
+struct dyn_saved_regs
+{
+    int gprs[32];
+    double fprs[32];
+    int sprs[num_special_registers];
+};
+
 #endif
