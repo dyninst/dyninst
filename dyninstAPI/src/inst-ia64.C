@@ -41,7 +41,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.17 2002/08/23 01:56:03 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.18 2002/08/29 18:57:27 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -93,7 +93,7 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 
 	switch( op ) {
 		case loadOp:  // FIXME
-			assert( 0 );	
+			assert( 0 );
 			break;
 
 		case loadConstOp: {
@@ -856,14 +856,17 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 	trampTemplate * baseTramp = new trampTemplate();
 
 	bool allocErr; Address allocatedAddress = proc->inferiorMalloc( MAX_BASE_TRAMP_SIZE, anyHeap, NEAR_ADDRESS, & allocErr );
-//	Address allocatedAddress = (Address)malloc( MAX_BASE_TRAMP_SIZE ); bool allocErr = ( allocatedAddress == 0 );
-//	fprintf( stderr, "WARNING: NOT USING INFERIOR MALLOC, CORRECT BEFORE TESTING BASE TRAMP.\n" );
 	if( allocErr ) { fprintf( stderr, "Unable to allocate base tramp, aborting.\n" ); abort(); }
 	if( allocatedAddress % 16 != 0 ) { allocatedAddress = allocatedAddress - (allocatedAddress % 16); }
+
+	/* Initialize the baseTramp. */
 	baseTramp->baseAddr = allocatedAddress;
 	baseTramp->size = 0;
 
-	/* Generate the base tramp at allocatedAddress. */
+	/* Acquire the base address of the object we're instrumenting. */
+	Address baseAddress; assert( proc->getBaseAddress( location->iPgetOwner(), baseAddress ) );
+
+	/* Generate the base tramp in insnPtr, and copy to allocatedAddress. */
 	unsigned int bundleCount = 0;
 	ia64_bundle_t insnPtr[ MAX_BASE_TRAMP_SIZE ];
 	
@@ -941,14 +944,14 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 		   rather than saving & restoring a register around the alloc
 		   (since we have to stick its return value somewhere),
 		   we'll just allocate an extra output register and store it there. */
-
 		
 		IA64_instruction alteredAlloc = generateRestoreAlloc( allocInsn.getMachineCode() );
 		IA64_bundle allocBundle( MIIstop, alteredAlloc, NOP_I, NOP_I );
 		insnPtr[bundleCount++] = allocBundle.getMachineCode(); baseTramp->size += 16;
 		} /* end if using alloc method */
 
-	/* Emulate the relocated instructions. */
+	/* Emulate the relocated instructions.  Since we're using the owner to read the
+	   instructions, don't adjust by the base pointer. */
 	Address installationPoint = location->iPgetAddress();
 	installationPoint = installationPoint - (installationPoint % 16);
 	Address installationPointAddress = (Address)location->iPgetOwner()->getPtrToInstruction( installationPoint );
@@ -1003,9 +1006,10 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 		insnPtr[bundleCount++] = allocBundle.getMachineCode(); baseTramp->size += 16;
 		} /* end if using alloc method */
 
-	/* Insert the jump back to normal execution. */
+	/* Insert the jump back to normal execution.
+	   Question: why do we do this if we generate a returnInstance? */
 	baseTramp->returnInsOffset = baseTramp->size;
-	Address returnAddress = location->iPgetAddress();
+	Address returnAddress = installationPoint + baseAddress;
 	returnAddress = returnAddress - (returnAddress % 16) + 16;
 	IA64_instruction_x returnFromTrampoline = generateLongBranchTo( returnAddress - (baseTramp->baseAddr + baseTramp->size) );
 	IA64_bundle returnBundle( MLXstop, memoryNOP, returnFromTrampoline );
@@ -1021,9 +1025,16 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( allocatedAddress, proc );
 	iAddr.writeBundlesFrom( (unsigned char *)insnPtr, bundleCount );
 
-	fprintf( stderr, "*** Installed base tramp at 0x%lx\n", baseTramp->baseAddr );
+	/* Install the jump to the base tramp. */
+	Address originatingAddress = returnAddress - 16;
+	IA64_instruction_x jumpToBaseInstruction = generateLongBranchTo( allocatedAddress - originatingAddress );
+	IA64_bundle jumpToBaseBundle( MLXstop, memoryNOP, jumpToBaseInstruction );
+	InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( originatingAddress, proc );
+	jAddr.replaceBundleWith( jumpToBaseBundle );
+
+	fprintf( stderr, "*** Installed base tramp at 0x%lx, from 0x%lx\n", baseTramp->baseAddr, originatingAddress );
 	return baseTramp;
-	} /* end generateTrampTemplate() */
+	} /* end installBaseTramp() */
 
 /* Required by inst.C */
 trampTemplate * findAndInstallBaseTramp( process * proc, instPoint * & location,
@@ -1049,7 +1060,7 @@ trampTemplate * findAndInstallBaseTramp( process * proc, instPoint * & location,
 	Address returnFrom = installedBaseTramp->baseAddr + installedBaseTramp->size;
 	Address returnTo; assert( proc->getBaseAddress( location->iPgetOwner(), returnTo ) );
 	returnTo += location->iPgetAddress();
-// fprintf( stderr, "Generating return instance from 0x%lx to 0x%lx\n", returnFrom, returnTo );
+fprintf( stderr, "Generating return instance from 0x%lx to 0x%lx\n", returnFrom, returnTo );
 	* longBranchInstruction = generateLongBranchTo( returnTo - returnFrom );
 	retInstance = new returnInstance( 3, longBranchInstruction, 16, returnFrom, 16 );
 
