@@ -4,6 +4,9 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.18  1995/11/08 23:44:21  tamches
+# added TCLFRIENDLYWARNINGS to the flags
+#
 # Revision 1.17  1995/10/18 00:52:32  tamches
 # removed 4 no-longer-used .C files from SRCS
 #
@@ -66,6 +69,10 @@
 # Major build system reorganization
 #
 #
+
+CFLAGS		+= $(TCLFRIENDLYWARNINGS)
+CXXFLAGS	+= $(TCLFRIENDLYWARNINGS)
+TFLAGS		+= $(TCLFRIENDLYWARNINGS)
 
 TARGET	      = paradyn
 
@@ -157,6 +164,8 @@ IGEN_ISRCS    = dataManager.I \
 TCL2C		= tcl2c
 TCL2C_GEN_SRCS	= tcl2c.C
 TCL_SRCS	= $(wildcard ../tcl/*.tcl)
+#TCL_SRCS	=
+		
 SRCS		+= $(TCL2C_GEN_SRCS)
 
 
@@ -164,6 +173,7 @@ IFLAGS       += -DPARADYN
 LIBDIR	     += -L/usr/psup/lib -L/s/flex/lib
 
 LIBS 	     += -lpdutil -lpdthread
+#SYSLIBS	     += -ltix -ltk -ltcl -lX11 -lm -lfl
 SYSLIBS	     += -ltk -ltcl -lX11 -lm -lfl
 
 CFLAGS       += -DNO_MDL_PRINT
