@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: stringPool.C,v $
- * Revision 1.6  1994/09/22 03:19:13  markc
+ * Revision 1.7  1995/02/16 09:28:13  markc
+ * Removed compiler warnings.
+ * Changed Boolean to bool
+ *
+ * Revision 1.6  1994/09/22  03:19:13  markc
  * Changed private pointers to char*
  *
  * Revision 1.5  1994/08/05  16:02:05  hollings
@@ -38,6 +42,8 @@
 
 #include "util/h/list.h"
 #include "util/h/stringPool.h"
+
+#define SP_PAGE_SIZE 4090
 
 /*
  * Hash Function from Aho, Sethi, Ulman _Compilers_ (Second Edition)
@@ -83,7 +89,7 @@ char *stringPool::getSpace(int size)
 {
     char *ret;
 
-    if ((int)(currPos - currPage) + size > PAGE_SIZE) {
+    if ((int)(currPos - currPage) + size > SP_PAGE_SIZE) {
       // create a new page.
       currPage = new char[4090];
       if (!currPage) abort();

@@ -10,10 +10,7 @@
  * header files.
 ************************************************************************/
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdarg.h>
-
+#include "util/h/headers.h"
 #include "util/h/lprintf.h"
 
 
@@ -45,7 +42,6 @@ log_printf(void (*pfunc)(const char *), const char* fmt, ...) {
 
 void
 log_perror(void (*pfunc)(const char *), const char* msg) {
-    extern char* sys_errlist[];
     sprintf(log_buffer, "%s: %s\n", msg, sys_errlist[errno]);
     pfunc(log_buffer);
 }

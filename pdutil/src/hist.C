@@ -16,7 +16,11 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.10  1994/06/29 02:48:31  hollings
+ * Revision 1.11  1995/02/16 09:28:02  markc
+ * Removed compiler warnings.
+ * Changed Boolean to bool
+ *
+ * Revision 1.10  1994/06/29  02:48:31  hollings
  * Added destructor to Histogram class.
  *
  * Revision 1.9  1994/05/10  03:56:47  hollings
@@ -87,7 +91,7 @@ int Histogram::lastGlobalBin = 0;
 
 Histogram::Histogram(metricStyle type, dataCallBack d, foldCallBack f, void *c)
 {
-    smooth = False;
+    smooth = false;
     lastBin = 0;
     metricType = type;
     intervalCount = 0;
@@ -151,7 +155,7 @@ Histogram::~Histogram()
 void Histogram::addInterval(timeStamp start, 
 			    timeStamp end, 
 			    sampleValue value, 
-			    Boolean smooth)
+			    bool smooth)
 {
     Histogram *h;
 
@@ -224,7 +228,7 @@ void Histogram::foldAllHist()
 void Histogram::bucketValue(timeStamp start_clock, 
 			   timeStamp end_clock, 
 			   sampleValue value, 
-			   Boolean smooth)
+			   bool smooth)
 {
     register int i;
     int first_bin, last_bin;

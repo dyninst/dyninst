@@ -2,7 +2,11 @@
 /*
  * 
  * $Log: aggregateSample.C,v $
- * Revision 1.7  1994/07/02 01:47:31  markc
+ * Revision 1.8  1995/02/16 09:27:59  markc
+ * Removed compiler warnings.
+ * Changed Boolean to bool
+ *
+ * Revision 1.7  1994/07/02  01:47:31  markc
  * Rename aggregation operator defines.
  * Rename aggregation operator defines.
  *
@@ -29,16 +33,16 @@ struct sampleInterval sampleInfo::newValue(timeStamp sampleTime,
 
     // use the first sample to define a baseline in time and value.
     if (!firstSampleReceived) {
-	firstSampleReceived = True;
+	firstSampleReceived = true;
 	lastSampleStart = sampleTime;
 	lastSampleEnd = sampleTime;
 	lastSample = 0.0;
 	value = newVal;
-	ret.valid = FALSE;
+	ret.valid = false;
 	return(ret);
     }
 
-    ret.valid = TRUE;
+    ret.valid = true;
     ret.start = lastSampleEnd;
     ret.end = sampleTime;
     ret.value = newVal;
@@ -82,8 +86,8 @@ struct sampleInterval sampleInfo::newValue(List<sampleInfo *> parts,
 	if (earlyestTime > lastSampleEnd + 0.0001) {
 	    /* eat the first one to get a good interval basis */
 	    if (!firstSampleReceived) {
-		firstSampleReceived = True;
-		ret.valid = FALSE;
+		firstSampleReceived = true;
+		ret.valid = false;
 		lastSampleEnd = earlyestTime;
 
                // this gives all of the samples the same initial starting
@@ -144,7 +148,7 @@ struct sampleInterval sampleInfo::newValue(List<sampleInfo *> parts,
 	    if (aggOp == aggAvg)
 	      aggregateVal /= len;
 
-	    ret.valid = TRUE;
+	    ret.valid = true;
 	    ret.start = lastSampleEnd;
 	    ret.end = earlyestTime;
 	    ret.value = aggregateVal;
@@ -153,7 +157,7 @@ struct sampleInterval sampleInfo::newValue(List<sampleInfo *> parts,
 	    lastSampleStart = lastSampleEnd;
 	    lastSampleEnd = earlyestTime;
 	} else {
-	    ret.valid = FALSE;
+	    ret.valid = false;
 	}
     }
     return(ret);

@@ -1,7 +1,8 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.36  1995/01/30 17:34:41  jcargill
- * SPARC had been used to guard inclusion of sunos files; fixed for solaris
+ * Revision 1.37  1995/02/16 09:28:10  markc
+ * Removed compiler warnings.
+ * Changed Boolean to bool
  *
  * Revision 1.35  1994/11/11  06:59:23  markc
  * Added additional argument to RPC_make_arg_list and RPC_undo_arg_list to
@@ -90,171 +91,112 @@
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
 // malloc 
-
-#include <signal.h>
-#include <sys/wait.h>
-
+// This is ugly, and I hope to get rid of it -- mdc 2/2/95
+#if defined(notdef)
 /* prevents malloc from being redefined */
 #ifdef MIPS
 #define MALLOC_DEFINED_AS_VOID
 #endif
-
-#include "util/h/rpcUtil.h"
-#include "util/h/tunableConst.h"
-
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <memory.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <sys/file.h>
-
-extern "C" {
-#include <rpc/types.h>
-#include <rpc/xdr.h>
-}
-
-// functions that g++-fixincludes missed
-#ifdef MIPS
-extern "C" {
-void bzero (char*, int);
-int select (int, fd_set*, fd_set*, fd_set*, struct timeval*);
-char *strdup (char*);
-int gethostname(char*, int);
-int socket(int, int, int);
-int bind(int s, struct sockaddr *, int);
-int getsockname(int, struct sockaddr*, int *);
-int listen(int, int);
-int connect(int s, struct sockaddr*, int);
-int socketpair(int, int, int, int sv[2]);
-int vfork();
-int accept(int, struct sockaddr *addr, int *); 
-}
-#elif sparc_sun_sunos4_1_3
-#include <sys/socket.h>
-#include <vfork.h>
-extern "C" {
-void bzero (char*, int);
-int select (int, fd_set*, fd_set*, fd_set*, struct timeval*);
-int socket(int, int, int);
-int gethostname(char*, int);
-int bind(int s, struct sockaddr *, int);
-int getsockname(int, struct sockaddr*, int *);
-int listen(int, int);
-int connect(int s, struct sockaddr*, int);
-int socketpair(int, int, int, int sv[2]);
-int accept(int, struct sockaddr *addr, int *); 
-int rexec(char **ahost, u_short inport, const char *user, const char *passwd, 
-	  const char *cmd, int *fd2p);
-}
-#elif SOLARIS
 #endif
 
+#include "util/h/rpcUtil.h"
 
 const char *RSH_COMMAND="rsh";
 
-tunableBooleanConstant useRexec(FALSE, NULL, userConstant, "useRexec",
-    "Use rsedc instead of rsh to establish connection to daemon");
-
-int RPCdefaultXDRRead(const void* handle, char *buf, u_int len)
+int RPCdefaultXDRRead(const void* handle, char *buf, const u_int len)
 {
     int fd = (int) handle;
     int ret;
 
     do {
-	ret = read(fd, buf, len);
+	ret = P_read(fd, buf, len);
     } while (ret < 0 && errno == EINTR);
 
-    if (ret <= 0) return(-1);
+    if (ret <= 0) { return(-1); }
     return (ret);
 }
 
-int RPCdefaultXDRWrite(const void* handle, char *buf, u_int len)
+int RPCdefaultXDRWrite(const void* handle, const char *buf, const u_int len)
 {
     int fd = (int) handle;
     int ret;
 
     do {
-	ret = write(fd, buf, len);
+
+	ret = P_write(fd, buf, len);
     } while (ret < 0 && errno == EINTR);
 
-    if (ret != len) 
-	return(-1);
+    errno = 0;
+    if (ret != len)
+      return(-1);
     else
-	return (ret);
+      return (ret);
 }
 
 XDRrpc::~XDRrpc()
 {
   if (fd >= 0)
     {
-      fcntl (fd, F_SETFL, FNDELAY);
-      close(fd);
+      P_fcntl (fd, F_SETFL, FNDELAY);
+      P_close(fd);
+      fd = -1;
     }
-  if (__xdrs__) 
+  if (xdrs) 
     {
-      xdr_destroy (__xdrs__);
-      delete (__xdrs__);
+      P_xdr_destroy (xdrs);
+      delete (xdrs);
+      xdrs = NULL;
     }
 }
 
 //
 // prepare for RPC's to be done/received on the passed fd.
 //
-XDRrpc::XDRrpc(int f, xdrIOFunc readRoutine, xdrIOFunc writeRoutine, int nblock)
+XDRrpc::XDRrpc(int f, xdr_rd_func readRoutine, xdr_wr_func writeRoutine, const bool nblock)
+: xdrs(NULL), fd(f), pid(-1)
 {
-    fd = f;
-    __xdrs__ = new XDR;
-    if (!readRoutine) readRoutine = (xdrIOFunc) RPCdefaultXDRRead;
-    if (!writeRoutine) writeRoutine = (xdrIOFunc) RPCdefaultXDRWrite;
-    (void) xdrrec_create(__xdrs__, 0, 0, (char *) fd, readRoutine,writeRoutine);
+    assert(fd >= 0);
+    xdrs = new XDR;
+    assert(xdrs);
+    if (!readRoutine) readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
+    if (!writeRoutine) writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
+    P_xdrrec_create(xdrs, 0, 0, (char *) fd, readRoutine, writeRoutine);
     if (nblock)
-      fcntl (fd, F_SETFL, FNDELAY);
+      P_fcntl (fd, F_SETFL, FNDELAY);
 }
 
 //
 // prepare for RPC's to be done/received on the passed fd.
 //
-XDRrpc::XDRrpc(char *machine,
-	       char *user,
-	       char *program,
-	       xdrIOFunc readRoutine, 
-	       xdrIOFunc writeRoutine,
-	       char **arg_list,
-	       int nblock,
+XDRrpc::XDRrpc(const string machine,
+	       const string user,
+	       const string program,
+	       xdr_rd_func readRoutine, 
+	       xdr_wr_func writeRoutine,
+	       const vector<string> &arg_list,
+	       const bool nblock,
 	       int wellKnownPortFd)
+: xdrs(NULL), fd(-1), pid(-1)
 {
-    fd = RPCprocessCreate(pid, machine, user, program, arg_list, 
-	wellKnownPortFd);
+    fd = RPCprocessCreate(pid, machine, user, program, arg_list, wellKnownPortFd);
     if (fd >= 0) {
-        __xdrs__ = new XDR;
-	if (!readRoutine) readRoutine = (xdrIOFunc) RPCdefaultXDRRead;
-	if (!writeRoutine) writeRoutine = (xdrIOFunc) RPCdefaultXDRWrite;
-	(void) xdrrec_create(__xdrs__, 0, 0, (char *) fd, 
-		readRoutine, writeRoutine);
+        xdrs = new XDR;
+	if (!readRoutine) readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
+	if (!writeRoutine) writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
+	P_xdrrec_create(xdrs, 0, 0, (char *) fd, readRoutine, writeRoutine);
 	if (nblock)
-	  fcntl (fd, F_SETFL, FNDELAY);
-    } else {
-	__xdrs__ = NULL;
-	fd = -1;
+	  P_fcntl (fd, F_SETFL, FNDELAY);
     }
 }
 
-int
+bool
 RPC_readReady (int fd, int timeout)
 {
   fd_set readfds;
   struct timeval tvptr, *the_tv;
 
   tvptr.tv_sec = timeout; tvptr.tv_usec = 0;
-  if (fd < 0) return -1;
+  if (fd < 0) return false;
   FD_ZERO(&readfds);
   FD_SET (fd, &readfds);
 
@@ -264,72 +206,70 @@ RPC_readReady (int fd, int timeout)
   else
      the_tv = &tvptr;
  
-  if (select (fd+1, &readfds, NULL, NULL, the_tv) == -1)
+  if (P_select (fd+1, &readfds, NULL, NULL, the_tv) == -1)
     {
       // if (errno == EBADF)
-	return -1;
+	return false;
     }
   return (FD_ISSET (fd, &readfds));
 }
 
 // TODO
 // mdc - I need to clean this up
-int 
-RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
+bool
+RPC_undo_arg_list (int argc, char **arg_list, string &machine, int &family,
 		   int &type, int &well_known_socket, int &flag, int &firstPVM)
 {
   int loop;
   char *ptr;
-  int sum = 0;
+  bool b_well_known=false, b_family=false, b_first=false, b_type = false,
+  b_machine = false, b_flag = false;
 
   for (loop=0; loop < argc; ++loop)
     {
-      if (!strncmp(arg_list[loop], "-p", 2))
+      if (!P_strncmp(arg_list[loop], "-p", 2))
 	{
-	  well_known_socket = (int) strtol (arg_list[loop] + 2, &ptr, 10);
+	  well_known_socket = P_strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (ptr == (arg_list[loop] + 2))
-	    return(-1);
-	  sum |= 1;
+	    return(false);
+	  b_well_known = true;
 	}
-      else if (!strncmp(arg_list[loop], "-f", 2))
+      else if (!P_strncmp(arg_list[loop], "-f", 2))
 	{
-	  family = (int) strtol (arg_list[loop] + 2, &ptr, 10);
+	  family = P_strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (ptr == (arg_list[loop] + 2))
-	    return(-1);
-          sum |= 2;
+	    return(false);
+	  b_family = true;
 	}
-      else if (!strncmp(arg_list[loop], "-v", 2))
+      else if (!P_strncmp(arg_list[loop], "-v", 2))
 	{
-	  firstPVM = (int) strtol (arg_list[loop] + 2, &ptr, 10);
+	  firstPVM = P_strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (ptr == (arg_list[loop] + 2))
-	    return(-1);
-          sum |= 4;
+	    return(false);
+	  b_first = true;
 	}
-      else if (!strncmp(arg_list[loop], "-t", 2))
+      else if (!P_strncmp(arg_list[loop], "-t", 2))
 	{
-	  type = (int) strtol (arg_list[loop] + 2, &ptr, 10);
+	  type = P_strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (ptr == (arg_list[loop] + 2))
-	    return(-1);
-          sum |= 8;
+	    return(false);
+	  b_type = true;
 	}
-      else if (!strncmp(arg_list[loop], "-m", 2))
+      else if (!P_strncmp(arg_list[loop], "-m", 2))
 	{
-	  *machine = strdup (arg_list[loop] + 2);
-	  if (!(*machine)) return -1;
-	  sum |= 16;
+	  machine = (arg_list[loop] + 2);
+	  if (!machine.length()) return false;
+	  b_machine = true;
 	}
-      else if (!strncmp(arg_list[loop], "-l", 2))
+      else if (!P_strncmp(arg_list[loop], "-l", 2))
 	{
-	  flag = (int) strtol (arg_list[loop] + 2, &ptr, 10);
+	  flag = P_strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (ptr == (arg_list[loop] + 2))
-	    return(-1);
-          sum |= 32;
+	    return(false);
+	  b_flag = true;
 	}
     }
-  if (sum == (32 + 16 + 8 + 4 + 2 + 1))
-	return 0;
-  else
-	return -1;
+  return (b_flag && b_family && b_first && b_machine && b_type && b_well_known);
 }
 
 /*
@@ -338,65 +278,74 @@ RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
  * AND, the command name will have to be inserted at the head of the list
  * But, a NULL space will NOT be left at the head of the list
  */
-char **RPC_make_arg_list(int family, int type, int well_known_socket,
-			 int flag, int firstPVM, char *machine_name)
+bool RPC_make_arg_list(vector<string> &list, const int family, const int type, 
+		       const int well_known_socket, const int flag, const int firstPVM,
+		       const string machine_name, const bool use_machine)
 {
   char arg_str[100];
-  int arg_count = 0;
-  char **arg_list;
 
-  arg_list = new char*[9];
+  list.resize(0);
+
   sprintf(arg_str, "%s%d", "-p", well_known_socket);  
-  arg_list[arg_count++] = strdup (arg_str);  // 0
+  list += arg_str;
+  // arg_list[arg_count++] = strdup (arg_str);  // 0
+
   sprintf(arg_str, "%s%d", "-f", family);
-  arg_list[arg_count++] = strdup (arg_str);  // 1
+  list += arg_str;
+  // arg_list[arg_count++] = strdup (arg_str);  // 1
+
   sprintf(arg_str, "%s%d", "-t", type);
-  arg_list[arg_count++] = strdup (arg_str);  // 2
-  if (!machine_name) {
-      machine_name = (char *) malloc(50);
-      gethostname (machine_name, 49);
+  list += arg_str;
+  // arg_list[arg_count++] = strdup (arg_str);  // 2
+
+  if (!use_machine) {
+    struct utsname unm;
+    if (P_uname(&unm) == -1)
+      assert(0);
+    sprintf(arg_str, "%s%s", "-m", unm.nodename);
+    list += arg_str;
+  } else {
+    sprintf(arg_str, "%s%s", "-m", machine_name.string_of());
+    list += arg_str;
   }
-  sprintf(arg_str, "%s%s", "-m", machine_name);
-  arg_list[arg_count++] = strdup (arg_str); // 3
+  // arg_list[arg_count++] = strdup (arg_str); // 3
+
   sprintf(arg_str, "%s%d", "-l", flag);
-  arg_list[arg_count++] = strdup (arg_str);  // 4
+  list += arg_str;
+  //arg_list[arg_count++] = strdup (arg_str);  // 4
+
   sprintf(arg_str, "%s%d", "-v", firstPVM);
-  arg_list[arg_count++] = strdup (arg_str);  // 5 
-  arg_list[arg_count++] = 0;                 // 6
-  return arg_list;
+  list += arg_str;
+  // arg_list[arg_count++] = strdup (arg_str);  // 5 
+
+  return true;
 }
 
 // returns fd of socket that is listened on, or -1
 int
-RPC_setup_socket (int *sfd,   // return file descriptor
-		  int family, // AF_INET ...
-		  int type)   // SOCK_STREAM ...
+RPC_setup_socket (int &sfd,   // return file descriptor
+		  const int family, // AF_INET ...
+		  const int type)   // SOCK_STREAM ...
 {
   struct sockaddr_in serv_addr;
-  int length;
-  char machine[50];
 
-  if (gethostname(machine, 49) != 0)
+  if ((sfd = P_socket(family, type, 0)) < 0)
     return -1;
 
-  if ((*sfd = socket(family, type, 0)) < 0)
-    return -1;
-
-  memset ((char*) &serv_addr, 0, sizeof(serv_addr));
-  /* bzero ((char *) &serv_addr, sizeof(servaddr)); */
+  P_memset ((void*) &serv_addr, 0, sizeof(serv_addr));
   serv_addr.sin_family = (short) family;
   serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
   serv_addr.sin_port = htons(0);
   
-  length = sizeof(serv_addr);
+  size_t length = sizeof(serv_addr);
 
-  if (bind(*sfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+  if (P_bind(sfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
     return -1;
 
-  if (getsockname (*sfd, (struct sockaddr *) &serv_addr, &length) < 0)
+  if (P_getsockname (sfd, (struct sockaddr *) &serv_addr, &length) < 0)
     return -1;
 
-  if (listen(*sfd, 5) < 0)
+  if (P_listen(sfd, 5) < 0)
     return -1;
 
   return (ntohs (serv_addr.sin_port));
@@ -408,132 +357,162 @@ RPC_setup_socket (int *sfd,   // return file descriptor
 XDRrpc::XDRrpc(int family,            
 	       int req_port,             
 	       int type,
-	       char *machine, 
-	       xdrIOFunc readRoutine,
-	       xdrIOFunc writeRoutine,
-	       int nblock)
+	       const string machine, 
+	       xdr_rd_func readRoutine,
+	       xdr_wr_func writeRoutine,
+	       const bool nblock) : xdrs(NULL), fd(-1), pid(-1)
      // socket, connect using machine
 {
   struct sockaddr_in serv_addr;
   struct hostent *hostptr = 0;
   struct in_addr *inadr = 0;
+  if (!(hostptr = P_gethostbyname(machine.string_of())))
+    return;
 
-  __xdrs__ = 0;
-
-  if ( (hostptr = gethostbyname(machine)) == 0)
-    { fd = -1; return; }
-
-  inadr = (struct in_addr *) hostptr->h_addr_list[0];
-  memset ((char*) &serv_addr, 0, sizeof(serv_addr));
-  /* bzero ((char *) &serv_addr, sizeof(serv_addr)); */
+  inadr = (struct in_addr *) ((void*) hostptr->h_addr_list[0]);
+  P_memset ((void*) &serv_addr, 0, sizeof(serv_addr));
   serv_addr.sin_family = family;
   serv_addr.sin_addr = *inadr;
   serv_addr.sin_port = htons(req_port);
 
-  if ( (fd = socket(family, type, 0)) < 0)
+  if ( (fd = P_socket(family, type, 0)) < 0)
     { fd = -1; return; }
 
-  if (connect(fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+  if (P_connect(fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
     { fd = -1; return; }
 
-    __xdrs__ = new XDR;
-    if (!readRoutine) readRoutine = (xdrIOFunc) RPCdefaultXDRRead;
-    if (!writeRoutine) writeRoutine = (xdrIOFunc) RPCdefaultXDRWrite;
-    (void) xdrrec_create(__xdrs__, 0, 0, (char *) fd, readRoutine,writeRoutine);
+    xdrs = new XDR;
+    assert(xdrs);
+    if (!readRoutine) readRoutine = (xdr_rd_func) RPCdefaultXDRRead;
+    if (!writeRoutine) writeRoutine = (xdr_wr_func) RPCdefaultXDRWrite;
+    P_xdrrec_create(xdrs, 0, 0, (char *) fd, readRoutine,writeRoutine);
     if (nblock)
-      fcntl (fd, F_SETFL, FNDELAY);
+      P_fcntl (fd, F_SETFL, FNDELAY);
 
 }
 
 //
+// These xdr functions are not to be called with XDR_FREE
+//
+bool_t xdr_Boolean(XDR *xdrs, bool *bool_val) {
+   u_char i;
+   bool_t res;
+   switch (xdrs->x_op) {
+   case XDR_ENCODE:
+      i = (u_char) *bool_val;
+      return (P_xdr_u_char(xdrs, &i));
+   case XDR_DECODE:
+      res = P_xdr_u_char(xdrs, &i);
+      *bool_val = (bool) i;
+      return res;
+   case XDR_FREE:
+   default:
+      assert(0);
+      return FALSE;
+   }
+}
+
+// XDR_FREE not handled, free it yourself!
 // our version of string encoding that does malloc as needed.
 //
-bool_t xdr_char_PTR(XDR *xdrs, char **str)
+bool_t xdr_string_pd(XDR *xdrs, string *str)
 {
-    int len;
-    unsigned char isNull=0;
+  unsigned int length = 0;
+  assert(str);
 
-	// if XDR_FREE, str's memory is freed
-    switch (xdrs->x_op) {
-	case XDR_ENCODE:
-		if (*str) {
-		    len = strlen(*str)+1;
-                    if (!xdr_u_char(xdrs, &isNull))
-			return FALSE;
-                } else {
-		    isNull = (unsigned char) 1;
-                    if (!xdr_u_char(xdrs, &isNull))
-			return FALSE;
-                    else
-			return TRUE;
-                }
-                return (xdr_string (xdrs, str, 65536));
-	case XDR_DECODE:
-		*str = NULL;
-		if (!xdr_u_char(xdrs, &isNull))
-		    return FALSE;
-                if (isNull)
-		    return TRUE;
-                else
-                    return (xdr_string (xdrs, str, 65536));
-	case XDR_FREE:
-		// xdr_free (xdr_string, str);
-		if (*str)
-		  free (*str);
-		*str = NULL;
-		return (TRUE);
-		// return(TRUE);
-		// free the memory
-	default:
-                return (FALSE);
-		// this should never occur	
+  // if XDR_FREE, str's memory is freed
+  switch (xdrs->x_op) {
+  case XDR_ENCODE:
+    if (length = str->length()) {
+      if (!P_xdr_u_int(xdrs, &length))
+	return FALSE;
+      else {
+	char *buffer = (char*) str->string_of(); 
+	bool_t res = P_xdr_string (xdrs, &buffer, str->length() + 1);
+	return res;
+      }
+    } else {
+      return (P_xdr_u_int(xdrs, &length));
     }
+  case XDR_DECODE:
+    if (!P_xdr_u_int(xdrs, &length))
+      return FALSE;
+     else if (!length) {
+       *str = (char*) NULL;
+       return TRUE;
+     } else {
+       char *temp; 
+       bool newd = false;
+       unsigned max_len = 511;
+       char stat_buf[512];
+       if (length < 512) 
+          temp = (char*) stat_buf;
+       else {
+          temp = new char[length+1];
+          max_len = length;
+          newd = true;
+       }      
+       if (!P_xdr_string (xdrs, &temp, max_len)) {
+          if (newd) 
+            delete temp;
+ 	  return FALSE;
+       } else {
+	  *str = temp;
+          if (newd)
+            delete temp; 
+	  return TRUE;
+       }
+     }
+  case XDR_FREE:
+  default:
+    // this should never occur	
+    assert(0);
+    return (FALSE);
+  }
 }
 
 //
 // directly exec the command (local).
 //
-int execCmd(int &pid, const char *command, char **arg_list, int portFd)
+int execCmd(int &pid, const string command, const vector<string> &arg_list, int portFd)
 {
-    int ret;
-    int sv[2];
-    char **new_al;
-    int al_len, i;
-    int execlERROR;
+  int ret;
+  int sv[2];
+  int execlERROR;
 
-    ret = socketpair(AF_UNIX, SOCK_STREAM, 0, sv);
-    if (ret) return(ret);
-    execlERROR = 0;
-    pid = vfork();
-    if (pid == 0) {
-	close(sv[0]);
-	dup2(sv[1], 0);
-	if (!arg_list)
-	  execlp(command, command);
-	else {
-	  // how long is the arg_list?
-	  for (al_len=0; arg_list[al_len]; al_len++) 
-	    ; // not a typo
+  errno = 0;
+  ret = P_socketpair(AF_UNIX, SOCK_STREAM, 0, sv);
+  if (ret==-1) return(ret);
+  execlERROR = 0;
+  int al_len = arg_list.size();
+  char **new_al = new char*[al_len+2];
+  // TODO argv[0] should not include path
+  new_al[0] = P_strdup(command.string_of());
+  new_al[al_len+1] = NULL;
+  for (int i=0; i<al_len; ++i)
+    new_al[i+1] = P_strdup(arg_list[i].string_of());
+  ret = -1;
 
-	  new_al = new char*[al_len+2];
-	  new_al[0] = strdup (command);
-	  new_al[al_len+1] = 0;
-	  for (i=0; i<al_len; ++i) {
-	    new_al[i+1] = arg_list[i];
-	  }
-	  execvp(command, new_al);
-	  delete(new_al[0]);
-	  delete(new_al);
-	}
-	execlERROR = errno;
-	_exit(-1);
-    } else if (pid > 0 && !execlERROR) {
-	close(sv[1]);
-	return(sv[0]);
-    } else {
-	return(-1);
-    }
-    return(-1);
+  pid = vfork();
+
+  if (pid == 0) {
+    if (P_close(sv[0])) { execlERROR = errno; _exit(-1);}
+    if (P_dup2(sv[1], 0)) { execlERROR = errno; _exit(-1);}
+    P_execvp(new_al[0], new_al);
+    execlERROR = errno;
+    _exit(-1);
+  } else if (pid > 0 && !execlERROR) {
+    P_close(sv[1]);
+    ret = sv[0];
+  }
+
+  al_len=0;
+  while (new_al[al_len]) {
+    delete (new_al[al_len]);
+    al_len++;
+  }
+  delete(new_al);
+  return ret;
 }
 
 int handleRemoteConnect(int &pid, int fd, int portFd)
@@ -543,14 +522,14 @@ int handleRemoteConnect(int &pid, int fd, int portFd)
     FILE *pfp;
     char line[256];
 
-    pfp = fdopen(fd, "r");
+    pfp = P_fdopen(fd, "r");
     if (pfp == NULL) {
        cerr << "handleRemoteConnect: fdopen of fd " << fd << " failed." << endl;
        return -1;
     }
 
     do {
-	ret = fgets(line, sizeof(line)-1, pfp);
+	ret = P_fgets(line, sizeof(line)-1, pfp);
 	if (ret && !strncmp(line, "PARADYND", strlen("PARADYND"))) {
 	    // got the good stuff
 	    sscanf(line, "PARADYND %d", &pid);
@@ -569,26 +548,24 @@ int handleRemoteConnect(int &pid, int fd, int portFd)
 //
 // use rsh to get a remote process started.
 //
-int rshCommand(int &pid, const char *hostName, const char *userName, 
-	       const char *command, char **arg_list, int portFd)
+int rshCommand(int &pid, const string hostName, const string userName, 
+	       const string command, const vector<string> &arg_list, int portFd)
 {
-    int total;
     int fd[2];
-    char **curr;
     int shellPid;
-    char *paradyndCommand;
     int ret;
 
-    total = strlen(command) + 2;
-    for (curr = arg_list; *curr; curr++) {
-	total += strlen(*curr) + 2;
+    int total = command.length() + 2;
+    for (int i=0; i<arg_list.size(); i++) {
+      total += arg_list[i].length() + 2;
     }
-    paradyndCommand = (char *) malloc(total+2);
 
-    sprintf(paradyndCommand, "%s ", command);
-    for (curr = arg_list; *curr; curr++) {
-	strcat(paradyndCommand, *curr);
-	strcat(paradyndCommand, " ");
+    char *paradyndCommand = (char *) P_malloc(total+2);
+
+    sprintf(paradyndCommand, "%s ", command.string_of());
+    for (int j=0; j<arg_list.size(); j++) {
+	P_strcat(paradyndCommand, arg_list[j].string_of());
+	P_strcat(paradyndCommand, " ");
     }
 
     // need to rsh to machine and setup io path.
@@ -604,12 +581,12 @@ int rshCommand(int &pid, const char *hostName, const char *userName,
 	assert(-1 != dup2(fd[1], 1)); /* copy it onto stdout */
 	assert(-1 != close(fd[0]));
 	assert(-1 != close(fd[1]));
-	if (userName) {
-	    ret = execlp(RSH_COMMAND, RSH_COMMAND, hostName, "-l", 
-			 userName, "-n", paradyndCommand, "-l0", NULL);
+	if (userName.length()) {
+	    ret = execlp(RSH_COMMAND, RSH_COMMAND, hostName.string_of(), "-l", 
+			 userName.string_of(), "-n", paradyndCommand, "-l0", NULL);
             fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
 	} else {
-	    ret = execlp(RSH_COMMAND, RSH_COMMAND, hostName, "-n", 
+	    ret = execlp(RSH_COMMAND, RSH_COMMAND, hostName.string_of(), "-n", 
 			 paradyndCommand, "-l0", NULL);
             fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
 	}
@@ -619,37 +596,44 @@ int rshCommand(int &pid, const char *hostName, const char *userName,
     } else {
 	// error situation
     }
+    if (paradyndCommand)
+      delete paradyndCommand;
+
     return(handleRemoteConnect(pid, fd[0], portFd));
 }
 
-int rexecCommand(int &pid, const char *hostName, const char *userName, 
-		 const char *command, char **arg_list, int portFd)
+int rexecCommand(int &pid, const string hostName, const string userName, 
+		 const string command, const vector<string> &arg_list, int portFd)
 {
-    int fd;
-    int total;
-    char **curr;
-    char *paradyndCommand;
     struct servent *inport;
 
-    total = strlen(command) + 2;
-    for (curr = arg_list; *curr; curr++) {
-	total += strlen(*curr) + 2;
+    int total = command.length() + 2;
+    for (int i=0; i<arg_list.size(); i++) {
+      total += arg_list[i].length() + 2;
     }
-    paradyndCommand = (char *) malloc(total+2);
+    char *paradyndCommand = (char *) P_malloc(total+2);
 
-    sprintf(paradyndCommand, "%s ", command);
-    for (curr = arg_list; *curr; curr++) {
-	strcat(paradyndCommand, *curr);
-	strcat(paradyndCommand, " ");
+    sprintf(paradyndCommand, "%s ", command.string_of());
+    for (int j=0; j<arg_list.size(); j++) {
+	P_strcat(paradyndCommand, arg_list[j].string_of());
+	P_strcat(paradyndCommand, " ");
     }
 
-    inport = getservbyname("exec",  "tcp");
+    inport = P_getservbyname("exec",  "tcp");
 
-    fd = rexec(&hostName, inport->s_port, userName,NULL, paradyndCommand, NULL);
+    char *hname = P_strdup(hostName.string_of());
+    char *uname = P_strdup(userName.string_of());
+    int fd = P_rexec(&hname, inport->s_port, uname, NULL,
+		   paradyndCommand, NULL);
+    delete hname; delete uname;
+
     if (fd < 0) {
 	perror("rexec");
 	printf("rexec failed\n");
     }
+    if (paradyndCommand)
+      delete paradyndCommand;
+
     return(handleRemoteConnect(pid, fd, portFd));
 }
 
@@ -659,21 +643,21 @@ int rexecCommand(int &pid, const char *hostName, const char *userName,
  *
  * if arg_list == NULL, command is the only argument used
  */
-int RPCprocessCreate(int &pid, const char *hostName, const char *userName,
-		     const char *command, char **arg_list, int portFd)
+int RPCprocessCreate(int &pid, const string hostName, const string userName,
+		     const string command, const vector<string> &arg_list,
+		     int portFd, const bool useRexec)
 {
     int ret;
-    char local[50];
+    struct utsname unm;
 
-    if (gethostname(local, 49))
-	strcpy (local, " ");
+    if (P_uname(&unm) == -1)
+      assert(0);
 
-    if (!hostName || 
-	!strcmp(hostName, "") || 
-	!strcmp(hostName, "localhost") ||
-	!strcmp(hostName, local)) {
+    if ((hostName == "") || 
+	(hostName == "localhost") ||
+	(hostName == unm.nodename)) {
       ret = execCmd(pid, command, arg_list, portFd);
-    } else if (useRexec.getValue()) {
+    } else if (useRexec) {
       ret = rexecCommand(pid, hostName, userName, command, arg_list, portFd);
     } else {
       ret = rshCommand(pid, hostName, userName, command, arg_list, portFd);
@@ -681,23 +665,23 @@ int RPCprocessCreate(int &pid, const char *hostName, const char *userName,
     return(ret);
   }
 
-int RPC_getConnect(int fd)
+int RPC_getConnect(const int fd)
 {
-  int clilen;
   struct in_addr cli_addr;
   int new_fd;
 
   if (fd == -1)
     return -1;
 
-  clilen = sizeof(cli_addr);
+  size_t clilen = sizeof(cli_addr);
 
-  if ((new_fd = accept (fd, (struct sockaddr *) &cli_addr, &clilen)) < 0)
+  if ((new_fd = P_accept (fd, (struct sockaddr *) &cli_addr, &clilen)) < 0)
     return -1;
   else
     return new_fd;
 }
 
+// TODO -- use vectors and strings ?
 /*
  *  RPCgetArg - break a string into blank separated words
  *  Used to parse a command line.
@@ -707,40 +691,28 @@ int RPC_getConnect(int fd)
  *  returns --> words (separated by blanks on command line)
  *  Note --> this allocates memory 
  */
-char **RPCgetArg(int &argc, const char *input)
+bool RPCgetArg(vector<string> &arg, const char *input)
 {
 #define BLANK ' '
 
-  char **temp, **result;
-  const char *word_start;
-  int word_count = 0, temp_max, index, length, word_len;
-
-  argc = 0;
+  int word_len;
   if (!input) 
-    return ((char **) 0);
+    return false;
 
-  length = strlen(input);
-  index = 0;
+  int length = strlen(input);
+  int index = 0;
 
   /* advance past blanks in input */
   while ((index < length) && (input[index] == BLANK))
     index++;
 
   /* input is all blanks, or NULL */
-  if (index >= length) {
-    result = new char*[1];
-    if (!result) return ((char**) 0);
-    result[0] = 0;
-    return result;
-  }
-
-  temp = new char*[30];
-  if (!temp) return temp;
-  temp_max = 29;
+  if (index >= length) 
+    return true;
 
   do {
     /* the start of each string */
-    word_len = 0; word_start = input + index;
+    word_len = 0; const char *word_start = input + index;
 
     /* find the next BLANK and the WORD size */
     while ((index < length) && (input[index] != BLANK)) {
@@ -748,37 +720,16 @@ char **RPCgetArg(int &argc, const char *input)
     }
 
     /* copy the word */
-    temp[word_count] = new char[word_len+1];
-    strncpy(temp[word_count], word_start, word_len);
-    temp[word_count][word_len] = (char) 0;
-    word_count++;
+    char *temp = new char[word_len+1];
+    strncpy(temp, word_start, word_len);
+    temp[word_len] = (char) 0;
+    arg += temp;
+    delete temp;
 
     /* skip past consecutive blanks */
     while ((index < length) && (input[index] == BLANK))
       index++;
-
-    /* no more room in temp, copy it to new_temp */
-    if (word_count > temp_max) {
-      char **new_temp;
-      int nt_len, i;
-      
-      /* new temp_max size */
-      nt_len = (temp_max+1) >> 1;
-      temp_max = nt_len - 1;
-
-      /* copy temp to new_temp */
-      new_temp = new char*[nt_len];
-      if (!new_temp) return ((char**) 0);
-      for (i=0; i<word_count; ++i)
-	new_temp[i] = temp[i];
-      
-      delete temp;
-      temp = new_temp;
-    }
   } while (index < length);
-
-  argc = word_count;
-  /* null terminate the word list */
-  temp[word_count] = (char*) 0;
-  return temp;
+  return true;
 }
+
