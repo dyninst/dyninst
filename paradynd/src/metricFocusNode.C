@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.11 1994/04/13 03:09:00 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.12 1994/04/13 16:48:10 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.11  1994/04/13 03:09:00  markc
+ * Revision 1.12  1994/04/13 16:48:10  hollings
+ * fixed pause_time to work with multiple processes/node.
+ *
+ * Revision 1.11  1994/04/13  03:09:00  markc
  * Turned off pause_metric reporting for paradyndPVM because the metricDefNode is
  * not setup properly.  Updated inst-pvm.C and metricDefs-pvm.C to reflect changes
  * in cm5 versions.
@@ -129,6 +132,8 @@ extern int metResPairsEnabled;
 extern HTable<metric> metricsUsed;
 extern HTable<resourceList> fociUsed;
 
+// used in other modules.
+metricDefinitionNode *pauseTimeNode;
 
 HTable<metricInstance> midToMiMap;
 
@@ -277,6 +282,13 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
     /* check all proceses are in an ok state */
     if (!isApplicationPaused()) {
 	return(NULL);
+    }
+
+    /* HACK - This should be fixed/generalized to handle "internal" metrics */
+    /* check for "special" metrics that are computed directly by paradynd */
+    if (!strcmp(m->info.name, "pause_time")) {
+	 pauseTimeNode = new metricDefinitionNode(*pl);
+	 return(pauseTimeNode);
     }
 
     for (count=0; proc = instProcessList[count]; count++) {
@@ -495,6 +507,9 @@ void metricDefinitionNode::disable()
     List<instReqNode*> req;
     metricDefinitionNode *mi;
     List<metricDefinitionNode*> curr;
+
+    /* HACK - special case for pause node */
+    if (this == pauseTimeNode) pauseTimeNode = NULL;
 
     if (!inserted) return;
 
@@ -818,7 +833,6 @@ dataReqNode::~dataReqNode()
     instance = NULL;
 }
 
-// used in other modules.
 metricDefinitionNode *pauseTimeNode=0;
 
 void computePauseTimeMetric()

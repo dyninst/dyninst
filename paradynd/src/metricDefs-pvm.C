@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.2 1994/04/13 03:09:01 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.3 1994/04/13 16:48:13 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-pvm.C,v $
- * Revision 1.2  1994/04/13 03:09:01  markc
+ * Revision 1.3  1994/04/13 16:48:13  hollings
+ * fixed pause_time to work with multiple processes/node.
+ *
+ * Revision 1.2  1994/04/13  03:09:01  markc
  * Turned off pause_metric reporting for paradyndPVM because the metricDefNode is
  * not setup properly.  Updated inst-pvm.C and metricDefs-pvm.C to reflect changes
  * in cm5 versions.
@@ -417,7 +420,6 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
 //
 void createPauseTime(metricDefinitionNode *mn, AstNode *trigger)
 {
-    pauseTimeNode = mn;
 }
 
 void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)

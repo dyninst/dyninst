@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.5 1994/04/11 23:25:24 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.6 1994/04/13 16:48:11 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
- * Revision 1.5  1994/04/11 23:25:24  hollings
+ * Revision 1.6  1994/04/13 16:48:11  hollings
+ * fixed pause_time to work with multiple processes/node.
+ *
+ * Revision 1.5  1994/04/11  23:25:24  hollings
  * Added pause_time metric.
  *
  * Revision 1.4  1994/03/25  23:00:44  hollings
@@ -78,8 +81,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "dyninstP.h"
 #include "metric.h"
 #include "ast.h"
-
-extern metricDefinitionNode *pauseTimeNode;
 
 AstNode *defaultProcedurePredicate(metricDefinitionNode *mn, char *funcName,
     AstNode *pred)
@@ -346,7 +347,6 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
 //
 void createPauseTime(metricDefinitionNode *mn, AstNode *trigger)
 {
-    pauseTimeNode = mn;
 }
 
 void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)
