@@ -17,7 +17,7 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/error.c,v 1.2 1997/05/18 22:50:11 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/error.c,v 1.3 1997/05/19 01:00:08 tung Exp $";
 #endif
 
 /* Modified by Chi-Ting Lam for terrain plot */
@@ -82,8 +82,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  * 
  *
  */
-#include "config.h"
-
 #include <stdio.h>
 #include <X11/Xlib.h>
 #include <X11/Xmu/Xmu.h>

@@ -17,13 +17,16 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/menu.c,v 1.1 1997/05/12 20:15:31 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/menu.c,v 1.2 1997/05/19 01:00:09 tung Exp $";
 #endif
 
 /*
  * menu.c - menu handler code.
  *
  * $Log: menu.c,v $
+ * Revision 1.2  1997/05/19 01:00:09  tung
+ * Eliminate ips dependent library files.
+ *
  * Revision 1.1  1997/05/12 20:15:31  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -71,8 +74,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  * 
  *
  */
-#include "config.h"
-
 #include <X11/Intrinsic.h>
 #include <X11/StringDefs.h>
 #include <X11/Xaw/SimpleMenu.h>

@@ -19,6 +19,9 @@
  * Public interface to formatted boc widget 
  *
  * $Log: FormatBox.h,v $
+ * Revision 1.2  1997/05/19 01:00:06  tung
+ * Eliminate ips dependent library files.
+ *
  * Revision 1.1  1997/05/12 20:15:17  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -52,5 +55,11 @@ typedef struct _FormatBoxWidgetClass *FormatBoxWidgetClass;
 typedef struct _FormatBoxRec *FormatBoxWidget;
 
 extern WidgetClass formatBoxWidgetClass;
+
+void StringToOption(XrmValue *args, int a_count, XrmValue *from, XrmValue *to);
+static void InitStuff();
+static void ChangedManaged(FormatBoxWidget w);
+static void Resize(FormatBoxWidget w);
+
 
 #endif

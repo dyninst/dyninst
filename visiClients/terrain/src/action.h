@@ -16,6 +16,9 @@
  * action.h - Header file for RequestAction Display.
  *
  * $Log: action.h,v $
+ * Revision 1.2  1997/05/19 01:00:07  tung
+ * Eliminate ips dependent library files.
+ *
  * Revision 1.1  1997/05/12 20:15:21  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -46,9 +49,20 @@
  * 
  */
 
+
+#ifndef ACTION_H
+#define ACTION_H
+
 struct Logo {
     Pixmap icon;
     int w, h;
 };
 
-/* InitAction(); */
+static void EndActFunc(Widget w, int id, int cdata);
+int  RequestAction(int labelc, int buttonc, int justify, char *banner, char *labels[],
+                   char *buttons[], struct Logo *Llogo, struct Logo *Rlogo,
+                   void (*callBack)());
+void InitAction(int x, int y);
+
+
+#endif

@@ -33,13 +33,16 @@
  *
  */
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/setshow.c,v 1.1 1997/05/12 20:15:38 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/setshow.c,v 1.2 1997/05/19 01:00:11 tung Exp $";
 #endif
 
 /*
  * setshow.c - option settings for GNUPlot.
  *
  * $Log: setshow.c,v $
+ * Revision 1.2  1997/05/19 01:00:11  tung
+ * Eliminate ips dependent library files.
+ *
  * Revision 1.1  1997/05/12 20:15:38  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -54,10 +57,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 #include "plot.h"
 #include "setshow.h"
 #include "misc.h"
-
-#ifdef EVU_LIB
-#	include "evu_lib.h"
-#endif
 
 #define DEF_FORMAT   "%g"	/* default format for tic mark labels */
 
@@ -173,19 +172,8 @@ int color_mode = 1;
  * Left paren is already scanned off before entry.
  */
 
-#ifdef EVU_LIB
-
-void
-load_tic_user(tdef, metric)
-	struct ticdef *tdef;
-        Metric metric[];
-#else
-
-void
-load_tic_user(tdef)
-	struct ticdef *tdef;
-
-#endif
+void load_tic_user(tdef)
+struct ticdef *tdef;
 {
     struct ticmark *list = NULL; /* start of list */
     struct ticmark *last = NULL; /* end of list */
@@ -203,17 +191,10 @@ load_tic_user(tdef)
 	   tic->position = i;
 	   tic->label = terrain_alloc(100);
 
-#ifdef EVU_LIB
-
-	   strcpy(tic -> label,
-		  metric[i].name -> components[metric[i].name -> level]);
-
-#else
 
 	   printf("Label for curve %d: ", i);
 	   scanf("%s", tic->label);
 
-#endif
 	   tic->next = NULL;
 
 	   /* append to list */

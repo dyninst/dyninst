@@ -17,13 +17,16 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/misc.c,v 1.2 1997/05/14 19:14:57 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/misc.c,v 1.3 1997/05/19 01:00:09 tung Exp $";
 #endif
 
 /*
  * misc.c - misc utility routines.
  *
  * $Log: misc.c,v $
+ * Revision 1.3  1997/05/19 01:00:09  tung
+ * Eliminate ips dependent library files.
+ *
  * Revision 1.2  1997/05/14 19:14:57  naim
  * Minor changes for sunos version of terrain - naim
  *
@@ -48,10 +51,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 #include "plot.h"
 #include "terrain.h"
 #include "command.h"
-
-#ifdef EVU_LIB
-#include "ipsstuff.h"
-#endif
 
 char *ta_new_mem;		/* allocated memory */
 
@@ -107,10 +106,6 @@ struct surface_points *surface;
 
 quit3d()
 {
-#ifdef EVU_LIB
-   ips_cleanup();
-#endif
-
   kill_surface();
    
   XClearArea(dpy, win, 0, 0, 0, 0, True);

@@ -1,0 +1,74 @@
+/*
+ *    x11.trm  --- inboard terminal driver for X11
+ */
+
+/*
+ * Modified for terrain plot:
+ *     Chi-Ting Lam
+ *
+ */
+
+/*
+ * x11.trm - coordinate convertion and x argument parsing.
+ *
+ * $Log: x11.trm,v $
+ * Revision 1.1  1997/05/19 01:00:12  tung
+ * Eliminate ips dependent library files.
+ *
+# Revision 1.1  1992/05/19  07:27:02  lam
+# Initial revision
+#
+ *
+ */
+
+#define X11_XMAX 4096
+#define X11_YMAX 4096
+
+/* approximations for typical font/screen sizes */
+#define X11_VCHAR (X11_YMAX/25) 
+#define X11_HCHAR (X11_XMAX/100) 
+#define X11_VTIC (X11_YMAX/100)
+#define X11_HTIC (X11_XMAX/150)
+
+#define X11_nopts 10
+char X11_opts[X11_nopts][20] = {
+   "-iconic", "-rv", "+rv", 
+   "-display", "-bg",
+   "-fg", "-fn", "-name", 
+   "-title", "-xrm" 
+   };
+int X11_optarg[X11_nopts] = { 
+   0, 0, 0,
+   1, 1,
+   1, 1, 1, 
+   1, 1
+   };
+
+FILE *X11_pipe, *popen();
+char X11_command[1024]= "gnuplot_x11 -name gnuplot";
+
+
+/*   X11_args - scan gnuplot command line for standard X Toolkit options */
+
+X11_args(argc, argv) int argc; char *argv[]; {
+   int nx11 = 0, n;
+
+   while(++argv, --argc > 0) {
+      for (n=0; n<X11_nopts; n++) {
+	 if (!strcmp(*argv, X11_opts[n])) {
+	    strcat(X11_command, " ");
+	    strcat(X11_command, *argv); 
+	    if (X11_optarg[n]) {
+	       if (--argc <= 0) return(nx11);
+	       strcat(X11_command, " \"");
+	       strcat(X11_command, *++argv); 
+	       strcat(X11_command, "\"");
+	       nx11++;
+	       }
+	    nx11++; break;
+	    }
+	 }
+      if (n == X11_nopts) break; 
+      }
+   return(nx11);
+   }

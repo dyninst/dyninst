@@ -17,7 +17,7 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.2 1997/05/18 22:50:09 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.3 1997/05/19 01:00:06 tung Exp $";
 #endif
 
 
@@ -28,6 +28,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  *   message.
  *
  * $Log: action.c,v $
+ * Revision 1.3  1997/05/19 01:00:06  tung
+ * Eliminate ips dependent library files.
+ *
  * Revision 1.2  1997/05/18 22:50:09  tung
  * Eliminate ips dependent library files.
  *
@@ -39,7 +42,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  *
  *
  * Revision 2.14  1991/03/14  20:48:17  hollings
- * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.2 1997/05/18 22:50:09 tung Exp $ definition.
+ * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.3 1997/05/19 01:00:06 tung Exp $ definition.
  *
  * Revision 2.13  1990/08/24  13:01:40  hollings
  * Added include of <X11/Intrinsic.h>.
@@ -96,7 +99,6 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  * Initial revision
  * 
  */
-#include "config.h"
 
 #define max(x,y) 	((x > y) ? x : y);
 #include <stdio.h>
@@ -109,13 +111,14 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 #include <X11/Xaw/Box.h>
 #include <X11/Xaw/Form.h>
 #include <X11/Xaw/AsciiText.h>
-
+#include <stdlib.h>
 
 #include "FormatBox.h"
 #include "Xbase.h"
 #include "Xglobals.h"
 #include "action.h"
 #include "terrain.h"
+#include "miscx.h"
 
 static int Xorig, Yorig;
 
@@ -146,29 +149,21 @@ static Arg get_stuff[] = {
     {    XtNwidth,      (XtArgVal) &width },
 };
 
-static EndActFunc(w, id, cdata)
-Widget w;
-int id;
-int cdata;
+static void EndActFunc(Widget w, int id, int cdata)
 {
     XtRemoveGrab(act.shell);
     XtUnmapWidget(act.shell);
     if (act.callBack) (act.callBack)(id);
     XtDestroyWidget(act.shell);
     act.active = 0;
-    if (act.message) free(act.message);
+    if (act.message) 
+       free(act.message);
     return;
 }
 
-RequestAction(banner, Llogo, Rlogo, labelc, labels, buttonc, buttons, justify, callBack)
-int labelc;
-int buttonc;
-int justify;
-char *banner;
-char *labels[];
-char *buttons[];
-struct Logo *Llogo, *Rlogo;
-void (*callBack)();
+int RequestAction(int labelc, int buttonc, int justify, char *banner, char *labels[],
+                   char *buttons[], struct Logo *Llogo, struct Logo *Rlogo, 
+                   void (*callBack)())
 {
 
     int i;
@@ -192,13 +187,13 @@ void (*callBack)();
     XtSetArg(args[count], XtNiconName, "Terrain Message"); count++;
     XtSetArg(args[count], XtNmappedWhenManaged, False); count++;
     act.shell = XtCreatePopupShell("Message" , topLevelShellWidgetClass,
-        w_top, args, count);
+        w_top, args, (unsigned) count);
 
     /* form to hold items */
     count = 0;
     XtSetArg(args[count], XtNdefaultDistance, DEF_DIST); count++;
     act.form = XtCreateManagedWidget("form", formWidgetClass,
-        act.shell, args, count);
+        act.shell, args, (unsigned) count);
     XtAddEventHandler(act.form, ButtonPressMask, NULL, IFeep, NULL);
 
     /* left logo if it exists */
@@ -207,7 +202,7 @@ void (*callBack)();
 	XtSetArg(args[count], XtNborderWidth, 0); count++;
         XtSetArg(args[count], XtNbitmap, Llogo->icon); count++;
 	last = act.Llogo = XtCreateManagedWidget("Llogo", labelWidgetClass,
-	    act.form, args, count);
+	    act.form, args, (unsigned) count);
     }
 
     /* banner title */
@@ -222,7 +217,7 @@ void (*callBack)();
     XtSetArg(args[count], XtNborderWidth, 0); count++;
     XtSetArg(args[count], XtNlabel, banner); count++;
     last = act.banner = XtCreateManagedWidget("bannerString", labelWidgetClass,
-	act.form, args, count);
+	act.form, args, (unsigned) count);
 
     /* right logo if it exists */
     if (Rlogo) {
@@ -232,7 +227,7 @@ void (*callBack)();
 	XtSetArg(args[count], XtNfromHoriz, act.banner); count++;
 	XtSetArg(args[count], XtNhorizDistance, 5), count++;
 	last = act.Rlogo = XtCreateManagedWidget("Rlogo", labelWidgetClass,
-	    act.form, args, count);
+	    act.form, args, (unsigned) count);
     }
 
     if (labelc) {
@@ -241,9 +236,9 @@ void (*callBack)();
 	for (i=0; i < labelc; i++) {
 	    leng += strlen(labels[i]);
 	    width = max(width,XTextWidth(fontStruct, labels[i], 
-					 strlen(labels[i])));
+					 (signed) strlen(labels[i])));
 	}
-	act.str = (char *) ips_malloc(leng + labelc);
+	act.str = (char *) malloc(leng + labelc);
 	act.str[0] = '\0';
 	for (i=0; i < labelc; i++) {
 	    if (i) strcat(act.str, "\n");
@@ -264,7 +259,7 @@ void (*callBack)();
 	XtSetArg(args[count], XtNresize, XawtextResizeWidth); count++;
 	XtSetArg(args[count], XtNstring, act.str); count++;
 	last = act.message = XtCreateManagedWidget("message", 
-	    asciiTextWidgetClass, act.form, args, count);
+	    asciiTextWidgetClass, act.form, args, (unsigned) count);
     }
 	
     count = 0;
@@ -280,9 +275,9 @@ void (*callBack)();
     XtSetArg(args[count], XtNresize, True); count++;
     XtSetArg(args[count], XtNformat, XtNcenter); count++;
     act.box = XtCreateManagedWidget("box", formatBoxWidgetClass, 
-        act.form, args, count);
+        act.form, args, (unsigned) count);
 
-    act.buttons = (Widget *) calloc(buttonc, sizeof(Widget));
+    act.buttons = (Widget *) calloc((unsigned) buttonc, sizeof(Widget));
     for (i=0; i < buttonc; i++) {
         last = act.buttons[i] = XtCreateManagedWidget(buttons[i], 
             commandWidgetClass, act.box, NULL, 0);
@@ -317,8 +312,7 @@ void (*callBack)();
     return(0);
 }
 
-InitAction(x, y)
-int x, y;
+void InitAction(int x, int y)
 {
     start_x = x;
     start_y = y;

@@ -36,13 +36,16 @@
  */     
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.3 1997/05/18 22:50:10 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.4 1997/05/19 01:00:08 tung Exp $";
 #endif
 
 /*
  * command.c - main switchboard of the program.
  *
  * $Log: command.c,v $
+ * Revision 1.4  1997/05/19 01:00:08  tung
+ * Eliminate ips dependent library files.
+ *
  * Revision 1.3  1997/05/18 22:50:10  tung
  * Eliminate ips dependent library files.
  *
@@ -76,17 +79,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 #include "setshow.h"
 
 #include "misc.h"
-#include "reduce.h"
 #include "smooth.h"
-#include "shadow.h"
 #include "command.h"
 #include "terrain.h"
 
-
-
-#ifdef EVU_LIB
-#include "ipsstuff.h"
-#endif
 
 #define inrange(z,min,max) ((min<max) ? ((z>=min)&&(z<=max)) : ((z>=max)&&(z<=min)) )
 
@@ -99,10 +95,6 @@ struct surface_points *get_newplot();
 
 /* Reduce needs screen width */
 extern W;
-
-#ifdef EVU_LIB
-Metric *metric;			        /* For node reduction */
-#endif
 
 /* input data, parsing variables */
 struct lexical_unit token[MAX_TOKENS];

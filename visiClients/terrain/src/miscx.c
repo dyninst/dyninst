@@ -17,13 +17,16 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.\n";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/miscx.c,v 1.1 1997/05/12 20:15:33 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/miscx.c,v 1.2 1997/05/19 01:00:10 tung Exp $";
 #endif
 
 /*
  * miscx.c - Assorted X routines.
  *
  * $Log: miscx.c,v $
+ * Revision 1.2  1997/05/19 01:00:10  tung
+ * Eliminate ips dependent library files.
+ *
  * Revision 1.1  1997/05/12 20:15:33  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -120,6 +123,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 #include "terrain.h"
 #include "Xbase.h"
 #include "action.h"
+#include "miscx.h"
 
 #define FONTASCENT ((fontStruct->max_bounds).ascent)
 
@@ -127,7 +131,7 @@ XFontStruct 	*fontStruct;
 int 		fontHeight, fontWidth;
 
 
-PopUpInit()
+void PopUpInit()
 {
    fontStruct = rv.font;
    fontHeight = vchar;
@@ -136,37 +140,19 @@ PopUpInit()
 }
 
 
-IFeep()
+void IFeep()
 {
     XBell(dpy, 0);
 }
 
 
-int
-IGetGeometry(win, Info)
-Window win;
-WindowInfo *Info;
+int IGetGeometry(Window win, WindowInfo *Info)
 {
     return(XGetGeometry(dpy, win, &(Info->root), &(Info->x), &(Info->y), &(Info->width), &(Info->height), &(Info->bdrwidth), &(Info->depth)));
 }
 
-
-/*
- * malloc the request bytes, and if we can't get them call the IPS error
- *    handler.
- *
- */
-char *ips_malloc(count)
-int count;
-{
-   return terrain_alloc(count);
-}
-
 /* The X tool kit should have had this function defined  */
-void XtGetValue(widget, field, result)                       
-Widget widget;
-char *field;
-caddr_t result;
+void XtGetValue(Widget widget, char *field, caddr_t result)                       
 {
     Arg AList[1];
     
@@ -175,10 +161,7 @@ caddr_t result;
 }
 
 /* The X tool kit should have had this function defined  */
-void XtSetValue(widget, field, result)                       
-Widget widget;
-char *field;
-caddr_t result;
+void XtSetValue(Widget widget, char *field, caddr_t result)                       
 {
     Arg AList[1];
     
