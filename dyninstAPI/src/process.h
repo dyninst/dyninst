@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.180 2002/02/12 18:05:30 gurari Exp $
+/* $Id: process.h,v 1.181 2002/02/12 23:50:30 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1096,6 +1096,14 @@ class process {
   // exclude_lib or exclude_func
   // return 0 on error.
   vector<function_base *> *getIncludedFunctions(module *mod); 
+
+  bool is_multithreaded() {
+#if defined(MT_THREAD)
+    return true;
+#else
+    return false;
+#endif
+  }
 #endif
 
   // findOneFunction: returns the function associated with function "func_name"
