@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.23 2004/01/27 22:02:14 tlmiller Exp $
+// $Id: test6.C,v 1.24 2004/03/15 18:46:08 tlmiller Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -322,11 +322,6 @@ void instByteCnt(BPatch_thread* bpthr, const char* fname,
 							       false, true, \
                                                                (bytes), (imm), (rs1), (rs2), 0, \
                                                                -1, true))
-#if defined( ia64_unknown_linux2_4 )
-/* FIXME: dummy variables. */
-const unsigned int naxses = 0;
-#endif
-
 // what we expect to find in the "loadsnstores" function; platform specific
 #ifdef sparc_sun_solaris2_4
 
@@ -687,9 +682,34 @@ void init_test_data()
 #endif
 
 #ifdef ia64_unknown_linux2_4
-void init_test_data()
-{
-}
+
+const unsigned int nloads = 6;
+const unsigned int nstores = 3;
+const unsigned int nprefes = 3;
+/* I don't know why this doesn't include nprefes on other platforms. */
+const unsigned int naxses = 12;
+
+BPatch_memoryAccess* loadList[nloads];
+BPatch_memoryAccess* storeList[nstores];
+BPatch_memoryAccess* prefeList[nprefes];
+
+void init_test_data() {
+	loadList[0] = MK_LD( 0, 16, -1, 8 );
+	loadList[1] = MK_LD( 0, 14, -1, 8 );
+	loadList[2] = MK_LD( 0, 15, -1, 8 );
+	
+	loadList[3] = MK_LD( 0, 14, -1, 8 );
+	loadList[4] = MK_LD( 0, 14, -1, 16 );
+	loadList[5] = MK_LD( 0, 14, -1, 16 );
+	
+	storeList[0] = MK_ST( 0, 14, -1, 8 );
+	storeList[1] = MK_ST( 0, 14, -1, 8 );
+	storeList[2] = MK_ST( 0, 14, -1, 8 );
+	
+	prefeList[0] = MK_PF( 0, 14, -1, 0 );
+	prefeList[1] = MK_PF( 0, 14, -1, 0 );
+	prefeList[2] = MK_PF( 0, 14, -1, 0 );
+	} /* end init_test_data() */
 #endif
 
 #ifdef mips_sgi_irix6_4
@@ -800,7 +820,7 @@ void mutatorTest1(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 1, 
                   const char* testdesc = "load instrumentation")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> loads;
@@ -842,7 +862,7 @@ void mutatorTest2(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 2,
                   const char* testdesc = "store instrumentation")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> stores;
@@ -883,7 +903,7 @@ void mutatorTest3(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 3, 
                   const char* testdesc = "prefetch instrumentation")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> prefes;
@@ -926,7 +946,7 @@ void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 4,
                   const char* testdesc = "access instrumentation")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -952,7 +972,7 @@ void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
 
-  //dumpvect(res1, "Accesses");
+  // dumpvect(res1, "Accesses");
 
   if((*res1).size() != naxses)
     failtest(testnum, testdesc,
@@ -973,7 +993,7 @@ void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 5,
                   const char* testdesc = "instrumentation w/effective address snippet")
 {
-#if !defined(sparc_sun_solaris2_4) &&  ( !defined(rs6000_ibm_aix4_1) ||  defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) &&  ( !defined(rs6000_ibm_aix4_1) ||  defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -1011,7 +1031,7 @@ void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
                   int testnum = 6,
                   const char* testdesc ="instrumentation w/byte count snippet")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -1049,7 +1069,7 @@ void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
 void mutatorTest7(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 7,
                   const char* testdesc = "conditional instrumentation w/effective address snippet")
 {
-#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1) ||  defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1) ||  defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;
@@ -1085,7 +1105,7 @@ void mutatorTest7(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 7,
 void mutatorTest8(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 8,
                   const char* testdesc = "conditional instrumentation w/byte count snippet")
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
   skiptest(testnum, testdesc);
 #else
   BPatch_Set<BPatch_opCode> axs;

@@ -1,4 +1,4 @@
-/* $Id: test6.mutatee.c,v 1.23 2004/01/27 22:02:15 tlmiller Exp $ */
+/* $Id: test6.mutatee.c,v 1.24 2004/03/15 18:46:10 tlmiller Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -377,18 +377,29 @@ void init_test_data()
 
 
 #ifdef ia64_unknown_linux2_4
-#define loadExp 0
-#define storeExp 0
-#define prefeExp 0
-#define accessExp 1
-#define accessExpCC 1
 
-long loadsnstores(long x, long y, long z)
-{
-  return x + y + z;
-}
+#define loadExp 6
+#define storeExp 3
+#define prefeExp 3
 
-unsigned int bcExp[] = { 0 };
+/* Other platforms don't seem to count prefetches as accesses.  I'm not sure why. */
+#define accessExp 12
+#define accessExpCC 12
+
+unsigned int bcExp[] = { 8, 8, 8,  8, 8, 8,  8, 16, 16, 0, 0, 0 };
+unsigned int bcExpCC[] = { 8, 8, 8,  8, 8, 8,  8, 16, 16, 0, 0, 0 };
+
+/* FIXME: this should be made more complicated and/or assembly
+   to actually test all the loads and stores that I know about
+   and claim that Dyninst will recognize and handle.  This
+   means redefining the stuff above to match up to the new
+   code.
+   
+   FIXME: I don't understand what the "CC" stuff is or does. 
+   
+   FIXME: I don't understand what the "EA" stuff is or does. 
+*/
+extern long loadsnstores( long x, long y, long z );
 
 void init_test_data()
 {
@@ -502,11 +513,13 @@ void check0()
 
 void check1()
 {
+  // /* DEBUG */fprintf( stderr, "load: %d == %d\n", loadCnt, loadExp );
   passorfail(1, loadCnt == loadExp, "load instrumentation", "load counter seems wrong.");
 }
 
 void check2()
 {
+  // /* DEBUG */ fprintf( stderr, "store: %d == %d\n", storeCnt, storeExp );
   passorfail(2, storeCnt == storeExp, "store instrumentation", "store counter seems wrong.");
 }
 
@@ -517,17 +530,14 @@ void check3()
 
 void check4()
 {
-#if ! defined( ia64_unknown_linux2_4 )
+  // /* DEBUG */ fprintf( stderr, "access: %d == %d\n", accessCnt, accessExp );
   passorfail(4, accessCnt == accessExp, "access instrumentation", "access counter seems wrong.");
   dprintf("accessCnt = %d    accessExp = %d\n", accessCnt, accessExp);
-#else
-  skiptest(4, "access instrumentation" );
-#endif
 }
 
 void check5()
 {
-#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1)  || defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1)  || defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
   skiptest(5, "instrumentation w/ [unconditional] effective address snippet");
 #else
   passorfail(5, !doomEA && validateEA(eaExp, eaList, accessExp),
@@ -537,7 +547,7 @@ void check5()
 
 void check6()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
   skiptest(6, "instrumentation w/ [unconditional] byte count snippet");
 #else
   passorfail(6, !doomBC && validateBC(bcExp, bcList, accessExp),
@@ -547,7 +557,7 @@ void check6()
 
 void check7()
 {
-#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1)  || defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) && ( !defined(rs6000_ibm_aix4_1)  || defined(AIX5) ) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
   skiptest(7, "instrumentation w/ conditional effective address snippet");
 #else
   passorfail(7, !doomEAcc && validateEA(eaExpCC, eaListCC, accessExpCC),
@@ -557,7 +567,7 @@ void check7()
 
 void check8()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0) && ! defined( ia64_unknown_linux2_4 )
   skiptest(8, "instrumentation w/ conditional byte count snippet");
 #else
   passorfail(8, !doomBCcc && validateBC(bcExpCC, bcListCC, accessExpCC),
