@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.23 2003/05/02 20:36:23 jodom Exp $
+// $Id: String.C,v 1.24 2003/05/08 19:18:47 tlmiller Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -69,13 +69,8 @@ void dedemangle( const char * demangled, char * result ) {
 		/* End it at the right-most space, if any. */
 		resultEnds = strrchr( resultBegins, ' ' );
 		if( resultEnds != NULL ) { * resultEnds = '\0'; }
-		// fprintf( stderr, "demangled variable '%s' to '%s'\n", demangled, resultBegins );
 		}
-	else if ( (resultEnds = strrchr( demangled, '(' )) != NULL ) {
-		/* Function prototype; end at the last left parenthesis. */ 
-		// fprintf( stderr, "Demangling fn '%s'...\n", demangled );
-		* resultEnds = '\0';
-
+	else if ( strrchr( demangled, '(' ) != NULL ) {
 		/* Strip off return types, if any.  Be careful not to
 		   pull off [template?/]class/namespace information.
 	
@@ -86,7 +81,8 @@ void dedemangle( const char * demangled, char * result ) {
 
 		resultBegins = demangled;
 		int stack = 0; bool inTemplate = false;
-		for( unsigned int offset = 0; offset < strlen( resultBegins ); offset++ ) {
+		unsigned int offset = 0;
+		for( offset = 0; offset < strlen( resultBegins ); offset++ ) {
 			if( resultBegins[offset] == '<' ) {
 				stack++;
 				inTemplate = true;
@@ -95,13 +91,37 @@ void dedemangle( const char * demangled, char * result ) {
 				stack--;
 				if( stack == 0 ) { inTemplate = false; }
 				}
+			if( !inTemplate && resultBegins[offset] == '(' ) {
+				/* We've stumbled on something without a return value. */
+				offset = 0;
+				resultBegins = demangled;
+				break;
+			        }
 			if( !inTemplate && resultBegins[offset] == ' ' ) {
-				resultBegins = &(resultBegins[offset+1]);
+				offset++;
+				resultBegins = &(resultBegins[offset]);
 				break;
 				} 
 			} /* end template elimination loop */
 
-		// fprintf( stderr, "Demangled fn '%s'?\n", resultBegins );
+		/* Scan past the function name; the first left parenthesis
+		   not in in a template declaration starts the function arguments. */
+		stack = 0; inTemplate = false;
+		for( ; offset < strlen( resultBegins ); offset++ ) {
+			if( resultBegins[offset] == '<' ) {
+				stack++;
+				inTemplate = true;
+				}
+			if( resultBegins[offset] == '>' ) {
+				stack--;
+				if( stack == 0 ) { inTemplate = false; }
+				}
+			if( !inTemplate && resultBegins[offset] == '(' ) {
+				resultEnds = (char *)&(resultBegins[offset]);
+				* resultEnds = '\0';
+				break;
+				} 
+			} /* end template elimination loop */
 		} /* end if a function prototype */
 	else {
 		/* Assume demangle OK. */
