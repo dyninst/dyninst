@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.30 2000/03/02 23:49:25 hollings Exp $
+// $Id: BPatch_thread.C,v 1.31 2000/03/12 23:27:14 hollings Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -64,6 +64,30 @@ int BPatch_thread::getPid()
 }
 
 
+static void insertVForkInst(BPatch_thread *thread)
+{
+#ifndef i386_unknown_nt4_0
+    BPatch_image *appImage = thread->getImage();
+    if (!appImage) return;
+
+    BPatch_function *vforkFunc = appImage->findFunction("DYNINSTvfork");
+    BPatch_Vector<BPatch_point *> *points =
+      appImage->findProcedurePoint("vfork", BPatch_exit);
+    if (vforkFunc && points) {
+	BPatch_Vector<BPatch_snippet *> args;
+	BPatch_constExpr pidExpr(thread->getPid());
+	args.push_back(&pidExpr);
+
+	BPatch_snippet *ret = new BPatch_funcCallExpr(*vforkFunc, args);
+	if (!ret) {
+	    printf("error creating function\n");
+	    return;
+	}
+	thread->insertSnippet(*ret, *points);
+    }
+#endif
+}
+
 /*
  * BPatch_thread::BPatch_thread
  *
@@ -79,7 +103,8 @@ int BPatch_thread::getPid()
  *              NULL pointer.  If envp is NULL, the parent's environment is
  *              copied and passed to the child.
  */
-BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
+BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[],
+			     int stdin_fd, int stdout_fd, int stderr_fd)
   : proc(NULL), image(NULL), lastSignal(-1), exitCode(-1), mutationsActive(true), 
     createdViaAttach(false), detached(false), waitingForOneTimeCode(false),
     unreportedStop(false), unreportedTermination(false)
@@ -104,7 +129,8 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
     directoryName = buf;
 #endif
 
-    proc = createProcess(path, argv_vec, envp_vec, directoryName);
+    proc = createProcess(path, argv_vec, envp_vec, directoryName, stdin_fd,
+      stdout_fd, stderr_fd);
 
     // XXX Should do something more sensible.
     if (proc == NULL) return;
@@ -120,6 +146,10 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
 
     while (!proc->isBootstrappedYet() && !statusIsTerminated())
 	BPatch::bpatch->getThreadEvent(false);
+
+    if (BPatch::bpatch->postForkCallback) {
+      insertVForkInst(this);
+    }
 }
 
 
@@ -160,6 +190,30 @@ BPatch_thread::BPatch_thread(char *path, int pid)
 	BPatch::bpatch->getThreadEvent(false);
 	proc->launchRPCifAppropriate(false, false);
     }
+
+    insertVForkInst(this);
+}
+
+/*
+ * BPatch_thread::BPatch_thread
+ *
+ * Constructs a new BPatch_thread and associates it with a forked process.
+ *
+ * parentPid          Pathname of the executable file for the process.
+ * childPid           Process ID of the target process.
+ */
+BPatch_thread::BPatch_thread(int pid, process *nProc)
+  : proc(nProc), image(NULL), lastSignal(-1), exitCode(-1), mutationsActive(true), 
+    createdViaAttach(true), detached(false), waitingForOneTimeCode(false),
+    unreportedStop(false), unreportedTermination(false)
+{
+    proc->thread = this;
+
+    // Add this object to the list of threads
+    assert(BPatch::bpatch != NULL);
+    BPatch::bpatch->registerThread(this);
+
+    image = new BPatch_image(proc);
 }
 
 
@@ -178,7 +232,7 @@ BPatch_thread::~BPatch_thread()
 
     if (!detached) {
 #ifndef i386_unknown_nt4_0
-    	if (createdViaAttach)
+    	if (createdViaAttach && !statusIsTerminated())
     	    proc->API_detach(true);
 	else
 #endif
@@ -1065,3 +1119,4 @@ BPatchSnippetHandle::~BPatchSnippetHandle()
 {
     // don't delete inst instances since they are might have been copied
 }
+

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.211 2000/03/12 22:20:45 wylie Exp $
+// $Id: process.C,v 1.212 2000/03/12 23:27:15 hollings Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1069,7 +1069,33 @@ bool process::initDyninstLib() {
   return true;
 }
 
+//
+// cleanup when a process is deleted
+//
+#ifdef BPATCH_LIBRARY
+process::~process()
+{
+    detach(false);
 
+    // remove inst points for this process
+    cleanInstFromActivePoints(this);
+
+    // remove it from the processVec
+    int size = processVec.size();
+    bool found = false;
+
+    for (unsigned lcv=0; lcv < size; lcv++) {
+	if (processVec[lcv] == this) {
+	    assert(!found);
+	    found = true;
+	    processVec[lcv] = processVec[processVec.size()-1];
+	    processVec.resize(size-1);
+	}
+    }
+}
+#endif
+
+unsigned hash_bp(function_base * const &bp ) { return(addrHash4((Address) bp)); }
 
 //
 // Process "normal" (non-attach, non-fork) ctor, for when a new process
@@ -1084,7 +1110,8 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 ) :
              baseMap(ipHash), 
 #ifdef BPATCH_LIBRARY
-             instPointMap(hash_address),
+	     PDFuncToBPFuncMap(hash_bp),
+	     instPointMap(hash_address),
 #endif
              trampGuardFlagAddr(0),
              savedRegs(NULL),
@@ -1126,6 +1153,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #endif
 
     reachedFirstBreak = false; // haven't yet seen first trap
+    wasRunningWhenAttached = false;
     reachedVeryFirstTrap = false;
     createdViaAttach = false;
         createdViaFork = false;
@@ -1235,7 +1263,8 @@ process::process(int iPid, image *iSymbols,
                  ) :
                 baseMap(ipHash),
 #ifdef BPATCH_LIBRARY
-                instPointMap(hash_address),
+	        PDFuncToBPFuncMap(hash_bp),
+		instPointMap(hash_address),
 #endif
                 trampGuardFlagAddr(0),
                 savedRegs(NULL),
@@ -1435,7 +1464,8 @@ process::process(int iPid, image *iSymbols,
    success = true;
 }
 
-#if !defined(BPATCH_LIBRARY)
+// #if !defined(BPATCH_LIBRARY)
+
 //
 // Process "fork" ctor, for when a process which is already being monitored by
 // paradynd executes the fork syscall.
@@ -1450,6 +1480,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
                  ) :
   baseMap(ipHash), // could change to baseMap(parentProc.baseMap)
 #ifdef BPATCH_LIBRARY
+  PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
 #endif
   trampGuardFlagAddr(0),
@@ -1598,6 +1629,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     signal_handler = parentProc.signal_handler;
     execed_ = false;
 
+#if !defined(BPATCH_LIBRARY)
    // threads... // 6/2/99 zhichen
    for (unsigned i=0; i<parentProc.threads.size(); i++) {
      threads += new pdThread(this,parentProc.threads[i]);
@@ -1612,6 +1644,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
      thr->update_rid(rid);
 #endif
    }
+#endif
 
 #if defined(SHM_SAMPLING) && defined(sparc_sun_sunos4_1_3)
    childUareaPtr = NULL;
@@ -1619,6 +1652,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
    if (!attach()) {     // moved from ::forkProcess
       showErrorCallback(69, "Error in fork: cannot attach to child process");
+      status_ = exited;
+      return;
    }
 
    if( isRunning_() )
@@ -1628,7 +1663,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
    // would neonatal be more appropriate?  Nah, we've reached the first trap
 }
 
-#endif
+// #endif
 
 #ifdef SHM_SAMPLING
 void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
@@ -1648,16 +1683,17 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
 
 
 extern bool forkNewProcess(string file, string dir, vector<string> argv, 
-                    vector<string>envp, string inputFile, string outputFile,
-                    int &traceLink, int &ioLink, 
-                    int &pid, int &tid, 
-                    int &procHandle, int &thrHandle);
+		    vector<string>envp, string inputFile, string outputFile,
+		    int &traceLink, int &ioLink, 
+		    int &pid, int &tid, 
+		    int &procHandle, int &thrHandle,
+		    int stdin_fd, int stdout_fd, int stderr_fd);
 
 /*
  * Create a new instance of the named process.  Read the symbols and start
  *   the program
  */
-process *createProcess(const string File, vector<string> argv, vector<string> envp, const string dir = "")
+process *createProcess(const string File, vector<string> argv, vector<string> envp, const string dir = "", int stdin_fd=0, int stdout_fd=1, int stderr_fd=2)
 {
     // prepend the directory (if any) to the file, unless the filename
     // starts with a /
@@ -1689,6 +1725,8 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
         argv.resize(argv.size()-2);
       }
     }
+
+
 #endif /* BPATCH_LIBRARY */
 
     int traceLink = -1;
@@ -1699,7 +1737,8 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
     int thrHandle;
 
     if (!forkNewProcess(file, dir, argv, envp, inputFile, outputFile,
-                   traceLink, ioLink, pid, tid, procHandle, thrHandle)) {
+		   traceLink, ioLink, pid, tid, procHandle, thrHandle,
+		   stdin_fd, stdout_fd, stderr_fd)) {
       // forkNewProcess is resposible for displaying error messages
       return NULL;
     }
@@ -2387,16 +2426,14 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
   bool res = readDataSpace_(inTracedProcess, size, inSelf);
   if (!res) {
     if (displayErrMsg) {
-      string msg;
-// * (char*) 0 = 1;
-      msg=string("System error: unable to read from process data space:")
-          + string(sys_errlist[errno]);
-      sprintf(errorLine, msg.string_of());
-      logLine(errorLine);
+      sprintf(errorLine, 
+	  "System error: unable to read from process data space: %s (pid = %d)",
+	  sys_errlist[errno], getPid());
+      string msg(errorLine);
       showErrorCallback(38, msg);
     }
     return false;
-  }
+ }
 
   if (needToCont) {
     needToCont = this->continueProc();
@@ -2519,9 +2556,10 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
 
   bool res = readTextSpace_(const_cast<void*>(inTracedProcess), amount, inSelf);
   if (!res) {
-    string msg;
-    msg=string("System error: unable to read from process data space:")
-        + string(sys_errlist[errno]);
+    sprintf(errorLine, 
+	  "System error: unable to read from process data space: %s (pid = %d)",
+	  sys_errlist[errno], getPid());
+    string msg(errorLine);
     showErrorCallback(38, msg);
     return false;
   }
@@ -2831,24 +2869,24 @@ bool process::addASharedObject(shared_object &new_obj){
         pdmodule *curr = (*modlist)[i];
         string name = curr->fileName();
 
-        BPatch_thread *thread = BPatch::bpatch->getThreadByPid(pid);
-        if(!thread)
-          continue;  //There is no BPatch_thread yet, so nothing else to do
-        // this occurs in the attach case - jdd 6/30/99
-        
-        BPatch_image *image = thread->getImage();
-        assert(image);
+	BPatch_thread *thread = BPatch::bpatch->getThreadByPid(pid);
+	if(!thread)
+	  continue;  //There is no BPatch_thread yet, so nothing else to do
+	// this occurs in the attach case - jdd 6/30/99
+	
+	BPatch_image *image = thread->getImage();
+	assert(image);
 
-        BPatch_module *bpmod = NULL;
-        if ((name != "DYN_MODULE") && (name != "LIBRARY_MODULE")) {
-          if( image->ModuleListExist() )
-            bpmod = new BPatch_module(this, curr);
-        }
-        // add to module list
-        if( bpmod){
-          //cout<<"Module: "<<name<<" in Process.C"<<endl;
-          image->addModuleIfExist(bpmod);
-        }
+	BPatch_module *bpmod = NULL;
+	if ((name != "DYN_MODULE") && (name != "LIBRARY_MODULE")) {
+	  if( image->ModuleListExist() )
+	    bpmod = new BPatch_module(this, curr, image);
+	}
+	// add to module list
+	if( bpmod){
+	  //cout<<"Module: "<<name<<" in Process.C"<<endl;
+	  image->addModuleIfExist(bpmod);
+	}
 
         // XXX - jkh Add the BPatch_funcs here
 
@@ -3526,6 +3564,7 @@ void process::handleExec() {
     baseMap.clear();
 #ifdef BPATCH_LIBRARY
     instPointMap.clear(); /* XXX Should delete instPoints first? */
+    PDFuncToBPFuncMap.clear(),
 #endif
     cleanInstFromActivePoints(this);
 
@@ -4545,6 +4584,11 @@ void process::installBootstrapInst() {
     } else {
        printf("no main function, skipping DYNINSTinit\n");
        hasBootstrapped = true;
+#ifdef BPATCH_LIBRARY
+       if (wasExeced()) {
+	     BPatch::bpatch->registerExec(thread);
+       }
+#endif
     }
 
 #if defined(alpha_dec_osf4_0)
@@ -4777,6 +4821,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 
 #ifndef BPATCH_LIBRARY
    const bool calledFromExec   = (bs_record.event == 1 && execed_);
+// jkh - why was the above line commented out??
 #endif
    const bool calledFromFork   = (bs_record.event == 2);
    const bool calledFromAttach = fromAttach || bs_record.event == 3;
@@ -4849,6 +4894,11 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
    }
 
    hasBootstrapped = true; // now, shm sampling may safely take place.
+#ifdef BPATCH_LIBRARY
+   if (wasExeced()) {
+	 BPatch::bpatch->registerExec(thread);
+   }
+#endif
 
    string str=string("PID=") + string(bs_record.pid) + ", executing new-prog callback...";
    statusLine(str.string_of());

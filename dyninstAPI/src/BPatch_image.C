@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.16 1999/12/15 20:35:09 buck Exp $
+// $Id: BPatch_image.C,v 1.17 2000/03/12 23:27:14 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -76,6 +76,8 @@ BPatch_image::BPatch_image(process *_proc) : proc(_proc)
 {
     modlist = NULL;
     AddrToVarExpr = new AddrToVarExprHash();
+
+    _srcType = BPatch_sourceProgram;
 }
 
 /*
@@ -86,6 +88,40 @@ BPatch_image::BPatch_image(process *_proc) : proc(_proc)
 BPatch_image::BPatch_image() : proc(NULL), modlist(NULL) 
 {
     AddrToVarExpr = new AddrToVarExprHash();
+
+    _srcType = BPatch_sourceProgram;
+}
+
+/* 
+ * Cleanup the image's memory usage when done.
+ *
+ */
+BPatch_image::~BPatch_image()
+{
+    // modules are shared by multuple programs, don't delete them
+    // for (unsigned int i = 0; i < modlist->size(); i++) {
+	 // delete (*modlist)[i];
+    // }
+
+    delete AddrToVarExpr;
+}
+
+/* 
+ * getSourceObj - Return the children (modules)
+ *
+ */
+BPatch_Vector<BPatch_sourceObj *> *BPatch_image::getSourceObj()
+{
+    return (BPatch_Vector<BPatch_sourceObj *> *) getModules();
+}
+
+/* 
+ * getObjParent - Return the parent (this is the top level so its null)
+ *
+ */
+BPatch_sourceObj *BPatch_image::getObjParent()
+{
+    return NULL;
 }
 
 /*
@@ -184,7 +220,7 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModules()
   
   for (unsigned int m = 0; m < mods->size(); m++) {
     pdmodule *curr = (pdmodule *) (*mods)[m];
-    BPatch_module *bpmod = new BPatch_module(proc, curr);
+    BPatch_module *bpmod = new BPatch_module(proc, curr, this);
     modlist->push_back(bpmod);
   }
   
@@ -220,7 +256,6 @@ BPatch_Vector<BPatch_point*> *BPatch_image::findProcedurePoint(
      */
 
     BPatch_function *func = findBPFunction(name);
-    
     if (func == NULL) return NULL;
 
     return func->findPoint(loc);
@@ -305,7 +340,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 
     proc->instPointMap[(Address)address] = newpt; // Save this instPoint
 
-    return new BPatch_point(proc, NULL, newpt, BPatch_address);
+    return new BPatch_point(proc, NULL, newpt, BPatch_instruction);
 #else
     /* Not implemented on this platform (yet). */
     assert(false);
@@ -324,8 +359,6 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
  */
 BPatch_function *BPatch_image::findFunction(const char *name)
 {
-    extern dictionary_hash <function_base*, BPatch_function*> PDFuncToBPFunc;
-
     function_base *func = proc->findOneFunction(name);
 
     if (func == NULL) {
@@ -339,12 +372,10 @@ BPatch_function *BPatch_image::findFunction(const char *name)
 	return NULL;
     }
 
-    BPatch_function *bpfunc = PDFuncToBPFunc[func];
+    BPatch_function *bpfunc = proc->PDFuncToBPFuncMap[func];
     if (!bpfunc) {
 	bpfunc = new BPatch_function(proc, func, NULL);
-	printf("created BPatch_function wo module\n");
     }
-	
     return bpfunc;
 }
 
@@ -484,9 +515,12 @@ BPatch_function  *BPatch_image::findBPFunction(const char *name)
     for (int m = 0; m < mods->size(); m++) {
 	BPatch_module *module = (*mods)[m];
 	func = module->findFunction(name);
-	if (func){
-	  funclist->push_back(func);
-	 }
+	if (func) {
+	    if (func->getProc() != proc) {
+		printf("got func in the wrong proc\n");
+	    }
+	    funclist->push_back(func);
+	}
     }
     if( funclist->size()){
       //printf("Function list has %d functions\n", funclist->size());

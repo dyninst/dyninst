@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.1 2000/02/15 23:48:00 hollings Exp $
+// $Id: BPatch_function.C,v 1.2 2000/03/12 23:27:14 hollings Exp $
 
 #include <string.h>
 #include "symtab.h"
@@ -54,6 +54,7 @@
 /* XXX Should be in a dyninst API include file (right now in perfStream.h) */
 extern double cyclesPerSecond;
 
+
 /**************************************************************************
  * BPatch_function
  *************************************************************************/
@@ -63,23 +64,21 @@ extern double cyclesPerSecond;
  * Constructor that creates a BPatch_function.
  *
  */
-unsigned fbHash(function_base * const &bp ) { return(addrHash4((Address) bp)); }
-
-dictionary_hash <function_base*, BPatch_function*> PDFuncToBPFunc(fbHash);
-
 BPatch_function::BPatch_function(process *_proc, function_base *_func,
 	BPatch_module *_mod) :
 	proc(_proc), mod(_mod), func(_func)
 {
 
-  // there should be at most one BPatch_func for each function_base
-  assert(!PDFuncToBPFunc[_func]);
+  // there should be at most one BPatch_func for each function_base per process
+  assert(proc->thread && !proc->PDFuncToBPFuncMap[func]);
+
+  _srcType = BPatch_sourceFunction;
 
   localVariables = new BPatch_localVarCollection;
   funcParameters = new BPatch_localVarCollection;
   retType = NULL;
 
-  PDFuncToBPFunc[_func] = this;
+  proc->PDFuncToBPFuncMap[_func] = this;
 };
 
 /*
@@ -92,11 +91,43 @@ BPatch_function::BPatch_function(process *_proc, function_base *_func,
 				 BPatch_type * _retType, BPatch_module *_mod) :
 	proc(_proc), mod(_mod), func(_func)
 {
+  _srcType = BPatch_sourceFunction;
   localVariables = new BPatch_localVarCollection;
   funcParameters = new BPatch_localVarCollection;
   retType = _retType;
 };
 
+
+BPatch_function::~BPatch_function()
+{
+    // if (ast != NULL)
+        // removeAst(ast);
+    if (localVariables) delete localVariables;
+    if (funcParameters) delete funcParameters;
+}
+
+/* 
+ * BPatch_function::getSourceObj()
+ *
+ * Return the contained source objects (e.g. statements).
+ *    This is not currently supported.
+ *
+ */
+BPatch_Vector<BPatch_sourceObj *> *BPatch_function::getSourceObj()
+{
+    return NULL;
+}
+
+/*
+ * BPatch_function::getObjParent()
+ *
+ * Return the parent of the function (i.e. the module)
+ *
+ */
+BPatch_sourceObj *BPatch_function::getObjParent()
+{
+    return (BPatch_sourceObj *) mod;
+}
 
 /*
  * BPatch_function::getName
@@ -229,7 +260,6 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
 
     return result;
 }
-
 /*
  * BPatch_function::addParam()
  *

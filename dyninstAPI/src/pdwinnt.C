@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.19 2000/02/22 23:10:01 pcroth Exp $
+// $Id: pdwinnt.C,v 1.20 2000/03/12 23:27:14 hollings Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -1106,7 +1106,8 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 		    vector<string>envp, string inputFile, string outputFile,
 		    int &traceLink, int &ioLink, 
 		    int &pid, int &tid, 
-		    int &procHandle, int &thrHandle) {
+		    int &procHandle, int &thrHandle, int /* stdin_fd */, 
+		    int /* stdout_fd */, int /* stderr_fd */) {
 #ifndef BPATCH_LIBRARY
 #ifdef notdef_Pipes     // isn't this all obsolete???
     HANDLE rTracePipe;

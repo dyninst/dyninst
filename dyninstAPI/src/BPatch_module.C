@@ -56,6 +56,28 @@
 char * current_func_name = NULL;
 
 
+/*
+ * BPatch_module::getSourceObj()
+ *
+ * Return the contained source objects (e.g. functions).
+ *
+ */
+BPatch_Vector<BPatch_sourceObj *> *BPatch_module::getSourceObj()
+{
+    return  (BPatch_Vector<BPatch_sourceObj *> *) getProcedures();
+}
+
+/*
+ * BPatch_function::getObjParent()
+ *
+ * Return the parent of the function (i.e. the image)
+ *
+ */
+BPatch_sourceObj *BPatch_module::getObjParent()
+{
+    return (BPatch_sourceObj *) img;
+}
+
 /* XXX temporary */
 char *BPatch_module::getName(char *buffer, int length)
 {
@@ -67,9 +89,11 @@ char *BPatch_module::getName(char *buffer, int length)
 }
 
 
-BPatch_module::BPatch_module(process *_proc, pdmodule *_mod):
-    proc(_proc), mod(_mod), BPfuncs(NULL) 
+BPatch_module::BPatch_module(process *_proc, pdmodule *_mod,BPatch_image *_img):
+    proc(_proc), mod(_mod), img(_img), BPfuncs(NULL) 
 {
+    _srcType = BPatch_sourceModule;
+
     moduleTypes = new BPatch_typeCollection;
 
     // load all of the type information
@@ -84,7 +108,15 @@ BPatch_module::BPatch_module(process *_proc, pdmodule *_mod):
 #endif
 }
 
-extern dictionary_hash <function_base*, BPatch_function*> PDFuncToBPFunc;
+BPatch_module::~BPatch_module()
+{
+    delete moduleTypes;
+
+    for (unsigned int f = 0; f < BPfuncs->size(); f++) {
+	delete (*BPfuncs)[f];
+    }
+    delete BPfuncs;
+}
 
 /*
  * BPatch_module::getProcedures
@@ -107,7 +139,7 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
 
     for (unsigned int f = 0; f < funcs->size(); f++) {
 	BPatch_function *bpfunc;
-	bpfunc = PDFuncToBPFunc[(*funcs)[f]];
+	bpfunc = proc->PDFuncToBPFuncMap[(*funcs)[f]];
 	if (!bpfunc) bpfunc = new BPatch_function(proc, (*funcs)[f], this);
 	BPfuncs->push_back(bpfunc);
     }
@@ -154,7 +186,7 @@ BPatch_function * BPatch_module::findFunction(const char * name)
     }
   
     BPatch_function * bpfunc; 
-    if ((bpfunc = PDFuncToBPFunc[func])) {
+    if ((bpfunc = proc->PDFuncToBPFuncMap[func])) {
 	// we have a BPatch_function for this already
 	return bpfunc;
     }
@@ -386,7 +418,6 @@ void BPatch_module::parseTypes()
 #if defined(alpha_dec_osf4_0)
 extern void parseCoff(BPatch_module *mod, char *exeName, const string& modName);
 
-//Main fcn to construct type information
 void BPatch_module::parseTypes()
 {
   image * imgPtr=NULL;

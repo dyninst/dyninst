@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.34 2000/03/07 00:20:13 wylie Exp $
+// $Id: unix.C,v 1.35 2000/03/12 23:27:16 hollings Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -104,13 +104,16 @@ bool forkNewProcess(string file, string /*dir*/, vector<string> argv,
                     string /*inputFile*/, string /*outputFile*/,
                     int & /*traceLink*/, int & /*ioLink*/, 
                     int &pid, int & /*tid*/, 
-                    int & /*procHandle*/, int & /*thrHandle*/) 
+                    int & /*procHandle*/, int & /*thrHandle*/, 
+		    int stdin_fd, int stdout_fd, int stderr_fd)
 #else
 bool forkNewProcess(string file, string dir, vector<string> argv, 
-                    vector<string>envp, string inputFile, string outputFile,
-                    int &traceLink, int &ioLink, 
-                    int &pid, int & /*tid*/, 
-                    int & /*procHandle*/, int & /*thrHandle*/) 
+		    vector<string>envp, string inputFile, string outputFile,
+		    int &traceLink, int &ioLink, 
+		    int &pid, int & /*tid*/, 
+		    int & /*procHandle*/, int & /*thrHandle*/,
+		    int stdin_fd, int stdout_fd, int stderr_fd)
+
 #endif
 {
 #ifndef BPATCH_LIBRARY
@@ -242,10 +245,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 	  P__exit(-1);
 	}
 #endif
-#if !defined(BPATCH_LIBRARY) || defined(BPATCH_REDIRECT_IO)
-#if defined(BPATCH_LIBRARY) /* For BPATCH_REDIRECT_IO */
-	FILE *childError = stderr;
-#endif
+#if !defined(BPATCH_LIBRARY)
 	/* see if I/O needs to be redirected */
 	if (inputFile.length()) {
 	    int fd = P_open(inputFile.string_of(), O_RDONLY, 0);
@@ -271,6 +271,11 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 	    }
 	}
 #endif
+
+        /* see if we should use alternate file decriptors */
+	if (stdin_fd != 0) dup2(stdin_fd, 0);
+	if (stdout_fd != 1) dup2(stdout_fd, 1);
+	if (stderr_fd != 2) dup2(stderr_fd, 2);
 
 	/* indicate our desire to be traced */
 	errno = 0;
@@ -523,6 +528,8 @@ int handleSigChild(int pid, int status)
 		   //  tryToReadAndProcessBootstrapInfo which
 		   // calls tp->resourceBatchMode(false)
 		   tp->resourceBatchMode(true);
+#else
+		   // BPatch::bpatch->registerExec(curr->thread);
 #endif
 
 		   // set reachedFirstBreak to false here, so we execute
@@ -572,6 +579,7 @@ int handleSigChild(int pid, int status)
 		       logLine("WARNING: handleStartProcess failed\n");
 		       assert(0);
 		     }
+		     // at main
 		     if (!curr->continueProc()) {
 		       assert(0);
 		     }
@@ -706,6 +714,7 @@ int handleSigChild(int pid, int status)
 
 		   // note: status will now be 'running', since handleStopDueToExec()
 		   // did a continueProc() to let the exec() syscall go forward.
+		   printf("at end of handleStopDueToExecEntry\n");
 		   assert(curr->status_ == running);
 		      // would neonatal be better? or exited?
 

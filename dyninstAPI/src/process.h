@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.131 2000/03/12 22:20:46 wylie Exp $
+/* $Id: process.h,v 1.132 2000/03/12 23:27:15 hollings Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -143,6 +143,7 @@ class image;
 
 #ifdef BPATCH_LIBRARY
 class BPatch_thread;
+class BPatch_function;
 #endif
 
 typedef enum { neonatal, running, stopped, exited } processState;
@@ -473,6 +474,7 @@ class process {
   Address findInternalAddress(const string &name, bool warn, bool &err) const;
 
 #ifdef BPATCH_LIBRARY
+  bool setProcfsFlags();
   bool dumpImage(string outFile);
 #else
   bool dumpImage();
@@ -579,7 +581,7 @@ class process {
   bool continueProc();
 #ifdef BPATCH_LIBRARY
   bool terminateProc() { return terminateProc_(); }
-  ~process() { detach(false); }
+  ~process();
 #endif
   bool pause();
 
@@ -642,6 +644,9 @@ class process {
   dictionary_hash<const instPoint*, trampTemplate *> baseMap;   
 
 #ifdef BPATCH_LIBRARY
+  /* map a dyninst internal function back to a BPatch_function(per proc) */
+  dictionary_hash <function_base*, BPatch_function*> PDFuncToBPFuncMap;
+
   /* map an address to an instPoint (that's not at entry, call or exit) */
   dictionary_hash<Address, instPoint *> instPointMap;
 #endif
@@ -1331,7 +1336,8 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type=anyHeap,
                        Address near_=0, bool *err=NULL);
 void inferiorFree(process *p, Address item, const vector<addrVecType> &);
 process *createProcess(const string file, vector<string> argv, 
-                       vector<string> envp, const string dir);
+		       vector<string> envp, const string dir,
+		       int stdin_fd, int stdout_fd, int stderr_fd);
 #ifdef BPATCH_LIBRARY
 bool attachProcess(const string &progpath, int pid, int afterAttach,
                    process *&newProcess);

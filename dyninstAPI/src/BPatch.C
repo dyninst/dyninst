@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.24 2000/02/15 22:22:10 bernat Exp $
+// $Id: BPatch.C,v 1.25 2000/03/12 23:27:14 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -246,7 +246,14 @@ BPatch::BPatch()
     // -34 integer*8, 64 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("integer*8",-34,
 						 BPatch_built_inType, 8));
-    
+
+    // default callbacks are null
+    postForkCallback = NULL;
+    preForkCallback = NULL;
+    errorHandler = NULL;
+    dynLibraryCallback = NULL;
+    execCallback = NULL;
+    exitCallback = NULL;
 }
 
 
@@ -288,7 +295,105 @@ BPatchErrorCallback BPatch::registerErrorCallback(BPatchErrorCallback function)
 }
 
 
-//#ifdef BPATCH_NOT_YET
+/*
+ * BPatch::registerPostForkCallback
+ *
+ * Registers a function that is to be called by the library when a new
+ * process has been forked off by an mutatee process.
+ *
+ * function	The function to be called.
+ */
+BPatchForkCallback BPatch::registerPostForkCallback(BPatchForkCallback func)
+{
+
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
+    reportError(BPatchWarning, 0,
+	"fork callbacks not implemented on this platform");
+    return NULL;
+#else
+    BPatchForkCallback ret;
+
+    ret = postForkCallback;
+    postForkCallback = func;
+
+    return ret;
+#endif
+}
+
+/*
+ * BPatch::registerPreForkCallback
+ *
+ * Registers a function that is to be called by the library when a process
+ * is about to fork a new process
+ *
+ * function	The function to be called.
+ */
+BPatchForkCallback BPatch::registerPreForkCallback(BPatchForkCallback func)
+{
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
+    reportError(BPatchWarning, 0,
+	"fork callbacks not implemented on this platform");
+    return NULL;
+#else
+    BPatchForkCallback ret;
+
+    ret = preForkCallback;
+    preForkCallback = func;
+
+    return ret;
+#endif
+}
+
+/*
+ * BPatch::registerExecCallback
+ *
+ * Registers a function that is to be called by the library when a 
+ * process has just completed an exec* call
+ *
+ * func	The function to be called.
+ */
+BPatchExecCallback BPatch::registerExecCallback(BPatchExecCallback func)
+{
+
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
+    reportError(BPatchWarning, 0,
+	"exec callbacks not implemented on this platform");
+    return NULL;
+#else
+    BPatchExecCallback ret;
+
+    ret = execCallback;
+    execCallback = func;
+
+    return ret;
+#endif
+}
+
+/*
+ * BPatch::registerExecCallback
+ *
+ * Registers a function that is to be called by the library when a 
+ * process has just called the exit system call
+ *
+ * func	The function to be called.
+ */
+BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
+{
+
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
+    reportError(BPatchWarning, 0,
+	"exec callbacks not implemented on this platform");
+    return NULL;
+#else
+    BPatchExitCallback ret;
+
+    ret = exitCallback;
+    exitCallback = func;
+
+    return ret;
+#endif
+}
+
 /*
  * BPatch::registerDynLibraryCallback
  *
@@ -308,7 +413,6 @@ BPatch::registerDynLibraryCallback(BPatchDynLibraryCallback function)
 
     return ret;
 }
-//#endif
 
 
 /*
@@ -466,6 +570,68 @@ void BPatch::registerProvisionalThread(int pid)
 
 
 /*
+ * BPatch::registerForkedThread
+ *
+ * Register a new process that is not yet associated with a thread.
+ * (this function is an upcall when a new process is created).
+ *
+ * parentPid		the pid of the parent process.
+ * childPid		The pid of the process to register.
+ * proc			lower lever handle to process specific stuff
+ *
+ */
+void BPatch::registerForkedThread(int parentPid, int childPid, process *proc)
+{
+    assert(!info->threadsByPid.defines(childPid));
+
+    BPatch_thread *parent = info->threadsByPid[parentPid];
+
+    assert(parent);
+    info->threadsByPid[childPid] = new BPatch_thread(childPid, proc);
+
+    if (postForkCallback) {
+	postForkCallback(parent, info->threadsByPid[childPid]);
+    }
+}
+
+
+/*
+ * BPatch::registerExec
+ *
+ * Register a process that has just done an exec call.
+ *
+ * thread	thread that has just performed the exec
+ *
+ */
+void BPatch::registerExec(BPatch_thread *thread)
+{
+    // build a new BPatch_image for this one
+    thread->image = new BPatch_image(thread->proc);
+
+    if (execCallback) {
+	execCallback(thread);
+    }
+}
+
+
+/*
+ * BPatch::registerExit
+ *
+ * Register a process that has just done an exit call.
+ *
+ * thread	thread that has just performed the exec
+ * code		the exit status code
+ *
+ */
+void BPatch::registerExit(BPatch_thread *thread, int code)
+{
+    if (exitCallback) {
+	exitCallback(thread, code);
+    }
+}
+
+
+/*
  * BPatch::registerThread
  *
  * Register a new BPatch_thread object with the BPatch library (this function
@@ -508,12 +674,18 @@ void BPatch::unRegisterThread(int pid)
  * envp		A list of values that make up the environment for the new
  *		process, terminated by a NULL.  If envp is NULL, the new
  *		new process will inherit the environemnt of the parent.
+ * stdin_fd	file descriptor to use for stdin for the application
+ * stdout_fd	file descriptor to use for stdout for the application
+ * stderr_fd	file descriptor to use for stderr for the application
+
  */
-BPatch_thread *BPatch::createProcess(char *path, char *argv[], char *envp[])
+BPatch_thread *BPatch::createProcess(char *path, char *argv[], 
+	char *envp[], int stdin_fd, int stdout_fd, int stderr_fd)
 {
     clearError();
 
-    BPatch_thread *ret = new BPatch_thread(path, argv, envp);
+    BPatch_thread *ret = 
+	new BPatch_thread(path, argv, envp, stdin_fd, stdout_fd, stderr_fd);
 
     if (!ret->proc ||
        (ret->proc->status() != stopped) ||
@@ -602,6 +774,20 @@ bool BPatch::getThreadEvent(bool block)
 	}
 #ifndef i386_unknown_nt4_0
 	handleSigChild(pid, status);
+#ifdef notdef
+	if (thread->lastSignal == SIGSTOP) {
+	    // need to continue process after initial sigstop
+	    // thread->continueExecution();
+	    printf("BPatch past handleSigChild for SIGSTOP\n");
+	    if (thread->proc->wasCreatedViaFork()) {
+		printf("marking forked process stopped\n");
+		thread->proc->status_ = stopped;
+    		// thread->lastSignal = SIGSTOP;
+		// thread->setUnreportedStop(true);
+		// thread->proc->continueProc();
+	    }
+	}
+#endif
 #endif
     }
 

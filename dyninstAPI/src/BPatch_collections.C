@@ -147,6 +147,8 @@ BPatch_typeCollection::~BPatch_typeCollection()
     BPatch_type	*type;
 
     // delete all of the types
+    // This doesn't seem to work - jkh 1/31/00
+#ifdef notdef
     while (tid.next(id, type))
       delete type;
 
@@ -158,6 +160,7 @@ BPatch_typeCollection::~BPatch_typeCollection()
     // delete globalVarsByName collection
     while (gi.next(name, type))
 	delete type;
+#endif
     
 }
 
