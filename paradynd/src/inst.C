@@ -87,36 +87,29 @@
 #include "init.h"
 #include "showerror.h"
 
-#define NS_TO_SEC	1000000000.0
 dictionary_hash <string, unsigned> primitiveCosts(string::hash);
-// dictionary_hash<string, unsigned> tagDict(string::hash);
-process *nodePseudoProcess=NULL;
 
 // get the address of the branch from the base to the minitramp
-int getBaseBranchAddr(process *proc, instInstance *inst)
+int getBaseBranchAddr(process *, instInstance *inst)
 {
     int fromAddr;
 
     fromAddr = (int) inst->baseInstance->baseAddr;
     if (inst->when == callPreInsn) {
-	fromAddr += proc->aggregate ? inst->baseInstance->globalPreOffset :
-	    inst->baseInstance->localPreOffset;
+	fromAddr += inst->baseInstance->localPreOffset;
     } else {
-	fromAddr += proc->aggregate ? inst->baseInstance->globalPostOffset :
-	    inst->baseInstance->localPostOffset;
+	fromAddr += inst->baseInstance->localPostOffset;
     }
     return(fromAddr);
 }
 
 // get the address in the base tramp where the minitramp should return to
-int getBaseReturnAddr(process *proc, instInstance *inst) {
+int getBaseReturnAddr(process *, instInstance *inst) {
     int returnAddr = (int)inst->baseInstance->baseAddr;
     if (inst->when == callPreInsn) {
-      returnAddr += proc->aggregate ? inst->baseInstance->localPreOffset :
-           inst->baseInstance->localPreReturnOffset;
+      returnAddr += inst->baseInstance->localPreReturnOffset;
     } else {
-      returnAddr += proc->aggregate ? inst->baseInstance->localPostOffset :
-           inst->baseInstance->localPostReturnOffset;
+      returnAddr += inst->baseInstance->localPostReturnOffset;
     }
     return(returnAddr);
 }
@@ -128,11 +121,9 @@ void clearBaseBranch(process *proc, instInstance *inst)
 
     addr = (int) inst->baseInstance->baseAddr;
     if (inst->when == callPreInsn) {
-	addr += proc->aggregate ? inst->baseInstance->globalPreOffset :
-	    inst->baseInstance->localPreOffset;
+	addr += inst->baseInstance->localPreOffset;
     } else {
-	addr += proc->aggregate ? inst->baseInstance->globalPostOffset :
-	    inst->baseInstance->localPostOffset;
+	addr += inst->baseInstance->localPostOffset;
     }
     // stupid kludge because the instPoint class is defined in a .C file
     // so we can't access any of its member functions
@@ -165,40 +156,56 @@ static dictionary_hash<instPoint*, point*> activePoints(ipHash);
 
 List<instWaitingList *> instWList;
 
+// Shouldn't this be a member fn of class process?
 instInstance *addInstFunc(process *proc, instPoint *location,
-			     AstNode &ast,
-			     callWhen when, callOrder order)
+			  AstNode &ast, // ast may change (sysFlag stuff)
+			  callWhen when, callOrder order,
+			  bool noCost)
 {
-    returnInstance *retInstance;
-    instInstance *inst;
+    returnInstance *retInstance = NULL;
+    instInstance *inst = addInstFunc(proc, location, ast, when, order,
+				     noCost, retInstance);
+    //cerr << "small addInstFunc: call to addInstFunc set retInstance to: " << retInstance << endl;
+    if (retInstance) {
+       //cerr << "small addInstFunc doing retInstance->installReturnInstance(proc)" << endl;
+       retInstance-> installReturnInstance(proc);
+       // writes to addr space
+    }
+    else {
+       //cerr << "small addInstFunc NOT doing retInstance->installReturnInstance(proc)" << endl;
+    }
 
-    inst = addInstFunc(proc, location, ast, when, order, retInstance);
-    if (retInstance) retInstance-> installReturnInstance(proc);
+//    delete retInstance; // safe if NULL (may have been alloc'd by findAndInstallBaseTramp)
 
     return inst;
 }
 
+// Shouldn't this be a member fn of class process?
 instInstance *addInstFunc(process *proc, instPoint *location,
-			  AstNode &ast,
+			  AstNode &ast, // the ast could be changed (sysFlag stuff)
 			  callWhen when, callOrder order,
+			  bool noCost,
 			  returnInstance *&retInstance)
 {
-    int trampCost;
+
     unsigned count;
-    point *thePoint;
-    instInstance *ret, *next;
+    instInstance *next;
     instInstance *lastAtPoint;
     instInstance *firstAtPoint;
 
     assert(proc && location);
 
-    initTramps();
+    initTramps(); // shouldn't we do "delete regSpace" first to avoid leaking memory?
 
-    ret = new instInstance;
+    instInstance *ret = new instInstance;
     assert(ret);
+
     ret->proc = proc;
-    ret->baseInstance = findAndInstallBaseTramp(proc, location, retInstance);
-    if (!ret->baseInstance) return(NULL);
+    ret->baseInstance = findAndInstallBaseTramp(proc, location, retInstance, noCost);
+
+    //cerr << "addInstFunc: call to findAndBaseTramp set retInstance to " << (void*)retInstance << endl;
+    if (!ret->baseInstance)
+       return(NULL);
 
 #if defined(MT_DEBUG)
     sprintf(errorLine,"==>BaseTramp is in 0x%x\n",ret->baseInstance->baseAddr);
@@ -210,13 +217,13 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     firstAtPoint = NULL;
     lastAtPoint = NULL;
 
-    if (!activePoints.defines(location)) {
-      thePoint = new point;
+    point *thePoint;
+    if (!activePoints.find(location, thePoint)) {
+      thePoint = new point; assert(thePoint);
       activePoints[location] = thePoint;
-    } else
-      thePoint = activePoints[location];
-
+    }
     assert(thePoint);
+
     for (next = thePoint->inst; next; next = next->next) {
 	if ((next->proc == proc) && (next->when == when)) {
 	    if (!next->nextAtPoint) lastAtPoint = next;
@@ -224,13 +231,9 @@ instInstance *addInstFunc(process *proc, instPoint *location,
 	}
     }
 
-    //ret = new instInstance;
-    //assert(ret);
-    //ret->proc = proc;
-
     // must do this before findAndInstallBaseTramp, puts the tramp in to
     // get the correct cost.
-    trampCost = getPointCost(proc, location);
+    int trampCost = getPointCost(proc, location);
 
     /* make sure the base tramp has been installed for this point */
     //ret->baseAddr = findAndInstallBaseTramp(proc, location, retInstance);
@@ -251,9 +254,21 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     ast.sysFlag(location);  
 #endif
 
-    ret->returnAddr = ast.generateTramp(proc, insn, count, trampCost); 
+    ret->returnAddr = ast.generateTramp(proc, insn, count, trampCost, noCost);
 
     ret->trampBase = inferiorMalloc(proc, count, textHeap);
+    assert(ret->trampBase);
+
+#ifdef FREEDEBUG1
+    static vector<unsigned> TESTaddrs;
+    for (unsigned i=0;i<TESTaddrs.size();i++) {
+      if (TESTaddrs[i] == ret->trampBase) {
+        sprintf(errorLine,"=====> inferiorMalloc returned same address 0x%x\n",ret->trampBase);
+        logLine(errorLine);
+      }
+    }
+    TESTaddrs += (unsigned)ret->trampBase;
+#endif
 
     if (!ret->trampBase) return(NULL);
     trampBytes += count;
@@ -271,8 +286,7 @@ instInstance *addInstFunc(process *proc, instPoint *location,
      * Now make the call to actually put the code in place.
      *
      */
-    installTramp(ret, insn, count);
-
+    installTramp(ret, insn, count); // install mini-tramp into inferior addr space
 
     if (!lastAtPoint) {
       
@@ -283,6 +297,7 @@ instInstance *addInstFunc(process *proc, instPoint *location,
 	// jump from the minitramp back to the basetramp
 	unsigned toAddr = getBaseReturnAddr(proc, ret);
 	generateBranch(proc, ret->returnAddr, toAddr);
+
 	// just activated this slot.
 	//activeSlots->value += 1.0;
     } else if (order == orderLastAtPoint) {
@@ -407,7 +422,7 @@ vector<unsigned> getAllTrampsAtPoint(instInstance *instance)
  *    one.
  *
  */
-void deleteInst(instInstance *old, vector<unsigned> pointsToCheck)
+void deleteInst(instInstance *old, const vector<unsigned> &pointsToCheck)
 {
     point *thePoint;
     instInstance *lag;
@@ -519,6 +534,44 @@ bool isValidAddress(process * , Address )
   return(result);
 }
 
+void installBootstrapInst(process *proc) {
+   // (should be a member fn of class process)
+   // What is needed here: instrument main() to call DYNINSTinit(), without
+   // using any shm seg stuff, since the process hasn't attached them yet.
+   // All we can use is the conventional inferior heap.
+   // Note also that since we can't use shm segs, about the only
+   // instrumentation that is allowed is to insert code to call another
+   // function --- not to update performance data.
+
+   // Build an ast saying: "call DYNINSTinit() with the following args:
+   // (key base, int counter nbytes, wall timer nbytes, proc timer nbytes)
+
+   vector<AstNode> the_args;
+
+#ifdef SHM_SAMPLING
+   const fastInferiorHeap<intCounterHK, intCounter> &theIntCounters = proc->getInferiorIntCounters();
+   the_args += AstNode(AstNode::Constant, (void*)theIntCounters.getShmSegKey());
+   the_args += AstNode(AstNode::Constant, (void*)theIntCounters.getShmSegNumBytes());
+
+   const fastInferiorHeap<wallTimerHK, tTimer> &theWallTimers = proc->getInferiorWallTimers();
+   the_args += AstNode(AstNode::Constant, (void*)theWallTimers.getShmSegNumBytes());
+   
+   const fastInferiorHeap<processTimerHK, tTimer> &theProcTimers = proc->getInferiorProcessTimers();
+   the_args += AstNode(AstNode::Constant, (void*)theProcTimers.getShmSegNumBytes());
+#endif
+
+   AstNode ast("DYNINSTinit", the_args);
+
+   pdFunction *func = proc->findOneFunction("main");
+   assert(func);
+
+   addInstFunc(proc, func->funcEntry(), ast, callPreInsn,
+	       orderFirstAtPoint,
+	       true // true --> don't try to have tramp code update the cost
+	       );
+      // returns an "instInstance", which we ignore (but should we?)
+}
+
 void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
 {
     unsigned ir_size = initialReqs.size(); 
@@ -526,7 +579,7 @@ void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
       instMapping *item = initialReqs[u];
       // TODO this assumes only one instance of each function (no siblings)
       // TODO - are failures safe here ?
-      pdFunction *func = (proc->symbols)->findOneFunction(item->func);
+      pdFunction *func = proc->findOneFunction(item->func);
       if (!func) {
 //
 //  it's ok to fail on an initial inst request if the request 
@@ -542,18 +595,18 @@ void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
       if (item->where & FUNC_ARG)
 	ast = AstNode(item->inst, *(item->arg));
       else
-	ast = AstNode(item->inst, AstNode(Constant, 0));
+	ast = AstNode(item->inst, AstNode(AstNode::Constant, 0));
 
       if (item->where & FUNC_EXIT) {
 	  for (unsigned i = 0; i < func->funcReturns.size(); i++) {
 		(void) addInstFunc(proc, func->funcReturns[i], ast,
-				   callPreInsn, orderLastAtPoint);
+				   callPreInsn, orderLastAtPoint, false);
 	  }
       }
 
       if (item->where & FUNC_ENTRY) {
 	(void) addInstFunc(proc, func->funcEntry(), ast,
-			   callPreInsn, orderLastAtPoint);
+			   callPreInsn, orderLastAtPoint, false);
       }
 
       if (item->where & FUNC_CALL) {
@@ -566,7 +619,7 @@ void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
 	} else {
 	  for (unsigned i = 0; i < func->calls.size(); i++) {
 	    (void) addInstFunc(proc, func->calls[i], ast,
-			       callPreInsn, orderLastAtPoint);
+			       callPreInsn, orderLastAtPoint, false);
 	  }
 	}
       }
@@ -578,7 +631,7 @@ void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
  * return the time required to execute the passed primitive.
  *
  */
-unsigned getPrimitiveCost(const string name)
+unsigned getPrimitiveCost(const string &name)
 {
 
     static bool init=false;
