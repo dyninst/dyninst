@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.1  1994/02/02 00:38:16  hollings
+ * Revision 1.2  1994/03/01 21:25:11  hollings
+ * added tunable constants.
+ *
+ * Revision 1.1  1994/02/02  00:38:16  hollings
  * First version of the Performance Consultant using threads.
  *
  * Revision 1.11  1993/09/03  19:02:22  hollings
@@ -43,19 +46,21 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.1 1994/02/02 00:38:16 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.2 1994/03/01 21:25:11 hollings Exp $";
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
+#include "util/h/tunableConst.h"
 #include "PCmetric.h"
 #include "PCglobals.h"
 #include "PCwhen.h"
 #include "PCauto.h"
 
-#define MIN_SAMPLES	6
+tunableConstant sufficientTime(6.0, 0.0, 1000.0, NULL, "sufficientTime",
+  "How long to wait (in samples) before we can concule a hypothesis is false.");
 
 int totalHistograms;
 timeStamp currentTime;
@@ -73,7 +78,9 @@ extern float globalPredicatedCost;
 //
 // Fix this soon... This should be based on some real information.
 //
-timeStamp minObservationTime = 0.5;
+tunableConstant minObservationTime(0.5, 0.0, 60.0, NULL, "minObservationTime",
+ "min. time (in seconds) to wait after chaning inst to start try hypotheses.");
+
 warningLevel noDataWarning = wNever;
 extern performanceStream *pcStream;
 extern searchHistoryNode *currentSHGNode;
@@ -404,7 +411,8 @@ void datum::newSample(timeStamp start, timeStamp end, sampleValue value)
     if (end > currentTime) {
 	currentTime = end;
 
-	if (currentTime < lastTestChageTime + minObservationTime) return;
+	if (currentTime < lastTestChageTime + minObservationTime.getValue()) 
+	    return;
 
 	/* try to evaluate a test */
 	changed = doScan();
@@ -412,7 +420,7 @@ void datum::newSample(timeStamp start, timeStamp end, sampleValue value)
 	    if (changed) {
 		autoTestRefinements();
 	    } else if ((currentTime > timeLimit) && 
-		       (samplesSinceLastChange >= MIN_SAMPLES)) {
+		       (samplesSinceLastChange >= sufficientTime.getValue())) {
 		// we have waited sufficient observation time move on.
 		printf("autorefinement timelimit reached at %f\n", currentTime);
 		printf("samplesSinceLastChange = %d\n", samplesSinceLastChange);

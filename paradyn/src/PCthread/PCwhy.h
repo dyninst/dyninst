@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCwhy.h,v $
- * Revision 1.2  1994/02/03 23:27:06  hollings
+ * Revision 1.3  1994/03/01 21:25:13  hollings
+ * added tunable constants.
+ *
+ * Revision 1.2  1994/02/03  23:27:06  hollings
  * Changes to work with g++ version 2.5.2.
  *
  * Revision 1.1  1994/02/02  00:38:25  hollings
@@ -41,7 +44,7 @@
 class testValue;
 
 typedef Boolean (*changeCollectionFunc)(collectMode);
-typedef void (*evalFunc)(testValue*); 
+typedef void (*evalFunc)(testValue*, float hysteresis); 
 enum statusType { Enabled, Disabled };
 
 class test {

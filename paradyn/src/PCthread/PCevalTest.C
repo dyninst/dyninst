@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.3  1994/02/24 04:36:47  markc
+ * Revision 1.4  1994/03/01 21:25:09  hollings
+ * added tunable constants.
+ *
+ * Revision 1.3  1994/02/24  04:36:47  markc
  * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
  * startup.  Added a data member to the class that igen generates.
  * Make depend differences due to new header files that igen produces.
@@ -55,7 +58,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.3 1994/02/24 04:36:47 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.4 1994/03/01 21:25:09 hollings Exp $";
 #endif
 
 
@@ -70,6 +73,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCevalTest.h"
 #include "PCglobals.h"
 #include "performanceConsultant.SRVR.h"
+
+tunableConstant hysteresisRange(0.0, 0.0, 1.0, NULL, "hysteresisRange",
+  "Fraction above and bellow threshold that a test should use.");
 
 extern Boolean textMode;
 Boolean printTestResults = FALSE;
@@ -320,6 +326,7 @@ Boolean evalTests()
 {
     Boolean ret;
     testResult *r;
+    float hysteresis;
     testResultList curr;
     Boolean previousStatus;
 
@@ -345,7 +352,12 @@ Boolean evalTests()
 		r->f->print();
 		printf(" at time %f\n", currentTime);
 	    }
-	    (r->t->evaluate(&(r->state)));
+	    if (r->state.status == TRUE) {
+		hysteresis = 1.0 - hysteresisRange.getValue();
+	    } else {
+		hysteresis = 1.0 + hysteresisRange.getValue();
+	    }
+	    (r->t->evaluate(&(r->state), hysteresis));
 	}
 	// always return for now
 	// this is done to pick up changes in shg that are due to

@@ -2,7 +2,10 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.2  1994/02/05 23:14:45  hollings
+ * Revision 1.3  1994/03/01 21:25:08  hollings
+ * added tunable constants.
+ *
+ * Revision 1.2  1994/02/05  23:14:45  hollings
  * Added context to pauseApplication call.
  *
  * Revision 1.1  1994/02/02  00:38:10  hollings
@@ -38,6 +41,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "util/h/tunableConst.h"
 #include "dataManager.h"
 #include "PCshg.h"
 #include "PCevalTest.h"
@@ -46,7 +50,8 @@
 
 
 // 25% to start
-float predictedCostLimit = 0.25;
+tunableConstant predictedCostLimit(0.25, 0.0, 1.0, NULL, "predictedCostLimit",
+  "Max. allowable perturbation of the application.");
 searchHistoryNode *baseSHGNode;
 extern int autoRefinementLimit;
 extern searchHistoryNodeList BuildAllRefinements(searchHistoryNode *of);
@@ -97,11 +102,8 @@ int CompareOptions(const void *left, const void *right)
     }
 }
 
-// consider at most 25 possible refinements at a time.
-int const INC = 25;
-
-// must wait 10 bins before trying another set.
-double const MIN_OBS_TIME = 10;
+tunableConstant maxEval(25.0, 0.0, 250.0, NULL, "maxEval",
+    "Max. number of hypotheses to consider at once.");
 
 static int refineCount;
 static int currentRefinementBase;
@@ -143,12 +145,14 @@ void autoChangeRefineList()
     // float newCost;
     float totalCost = 0.0;
     searchHistoryNode *curr;
+    extern tunableConstant sufficientTime;
 
     if (printNodes) printf("TRYING: ");
-    // for (i = currentRefinementBase; i < currentRefinementBase + INC; i++) {
-    for (i = currentRefinementBase; totalCost < predictedCostLimit; i++) {
+    // for (i = currentRefinementBase; i < currentRefinementBase + maxEval.getValue(); i++) {
+    for (i =currentRefinementBase; 
+	 totalCost < predictedCostLimit.getValue(); i++) {
 	// also limit to 25 refinements for now.
-	if (i >= currentRefinementBase + INC) break;
+	if (i >= currentRefinementBase + maxEval.getValue()) break;
 	if (i >= refineCount) break;
 	curr = refinementOptions[i];
 	// newCost = curr->cost(); 
@@ -172,10 +176,7 @@ void autoChangeRefineList()
     }
 
     configureTests();
-    // timeLimit = currentTime + MIN_OBS_TIME * bucket_size;
-    // at least one second.
-    // if (timeLimit < currentTime + 1.0) timeLimit = currentTime + 1.0;
-    timeLimit = currentTime + 7.0;
+    timeLimit = currentTime + sufficientTime.getValue();
     printf("setting autorefinement timelimit to %f\n", timeLimit);
 
     // see if the new ones are true already.

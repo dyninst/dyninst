@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.2  1994/02/08 17:21:27  hollings
+ * Revision 1.3  1994/03/01 21:25:12  hollings
+ * added tunable constants.
+ *
+ * Revision 1.2  1994/02/08  17:21:27  hollings
  * made elapsed time optinal metric.
  *
  * Revision 1.1  1994/02/02  00:38:18  hollings
@@ -39,7 +42,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.2 1994/02/08 17:21:27 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.3 1994/03/01 21:25:12 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -128,11 +131,11 @@ Boolean highFuncInst_ENABLE(collectMode newMode)
 }
 
 /* ARGSUSED */
-void highFuncInst_TEST(testValue *result)
+void highFuncInst_TEST(testValue *result, float hysteresis)
 {
     result->status = FALSE;
     if (procedureCalls.value()/activeProcesses.value(whereAxis)/
-	maxIPSprocedureCallRate > highInstOverheadThreshold) {
+	maxIPSprocedureCallRate > highInstOverheadThreshold*hysteresis) {
 	result->status = TRUE;
     }
     return;
@@ -148,14 +151,14 @@ Boolean highSyncToCPURatio_ENABLE(collectMode newMode)
 }
 
 /* ARGSUSED */
-void highSyncToCPURatio_TEST(testValue *result)
+void highSyncToCPURatio_TEST(testValue *result, float hysteresis)
 {
     float active;
 
     result->status = FALSE;
     active = activeProcesses.value(whereAxis);
     if (active > 0.0) {
-	if (SyncTime.value()/active > highSyncThreshold) {
+	if (SyncTime.value()/active > highSyncThreshold * hysteresis) {
 	    result->status = TRUE;
 	}
     }
@@ -181,14 +184,15 @@ Boolean highCPUtoSyncRatio_ENABLE(collectMode newMode)
 // If we are getting highCPUtoSyncRatioThreshold of the attempted parallelism
 //   consider the job CPU bound.
 //
-void highCPUtoSyncRatio_TEST(testValue *result)
+void highCPUtoSyncRatio_TEST(testValue *result, float hysteresis)
 {
     float processes;
 
     result->status = FALSE;
     processes = activeProcesses.value(whereAxis);
-    if (CPUtime.value()/processes > highCPUtoSyncRatioThreshold) {
+    if (CPUtime.value()/processes > highCPUtoSyncRatioThreshold * hysteresis) {
 	result->status = TRUE;
+	result->addHint(Procedures, "Lots of cpu time");
     }
     return;
 }
@@ -204,7 +208,7 @@ Boolean criticalSectionTooLarge_ENABLE(collectMode newMode)
 }
 
 /* ARGSUSED */
-void criticalSectionTooLarge_TEST(testValue *result)
+void criticalSectionTooLarge_TEST(testValue *result, float hysteresis)
 {
     float pctHeld;
 
@@ -212,7 +216,7 @@ void criticalSectionTooLarge_TEST(testValue *result)
     //   id holding it?
     pctHeld = lockHoldingTime.value() / CPUtime.value();
     result->status = FALSE;
-    if (pctHeld > largeCriticalSectionThreshold) {
+    if (pctHeld > largeCriticalSectionThreshold * hysteresis) {
 	result->status = TRUE;
     }
     return;
@@ -237,7 +241,7 @@ Boolean highVariationLock_ENABLE(collectMode newMode)
 // Test if one lock is more than highSyncThreshold % of the sync time.
 //
 /* ARGSUSED */
-void highVariationLock_TEST(testValue *result)
+void highVariationLock_TEST(testValue *result, float hysteresis)
 {
     focus *i;
     float share;
@@ -248,7 +252,7 @@ void highVariationLock_TEST(testValue *result)
     for (; i=*allLocks; allLocks++) {
 	if (!SyncTime.enabled(i)) continue;
 	share = SyncTime.value(i) / SyncTime.value(whereAxis);
-	if (share > highSyncThreshold) {
+	if (share > highSyncThreshold * hysteresis) {
 	    result->status = TRUE;
 	    // define a hint to refine on the selected lock.
 	    if (i != currentFocus) {
@@ -276,14 +280,14 @@ Boolean highSyncRate_ENABLE(collectMode newMode)
 }
 
 /* ARGSUSED */
-void highSyncRate_TEST(testValue *result)
+void highSyncRate_TEST(testValue *result, float hysteresis)
 {
     focus *newFocus;
 
     result->status = FALSE;
     newFocus = currentFocus->constrain(Locks);
     if (SyncOps.enabled(newFocus)) {
-	if (SyncOps.value(newFocus) > maxLockRate) {
+	if (SyncOps.value(newFocus) > maxLockRate * hysteresis) {
 	    result->status = TRUE;
 	    result->addHint(Locks, "Lots of lock operations");
 	}
@@ -291,14 +295,14 @@ void highSyncRate_TEST(testValue *result)
     newFocus = currentFocus->constrain(Barriers);
     if (SyncOps.enabled(newFocus)) {
 	if (SyncOps.value(newFocus) > 
-	    maxBarrierRate * highSyncThreshold) {
+	    maxBarrierRate * highSyncThreshold * hysteresis) {
 	    result->status = TRUE;
 	    result->addHint(Barriers, "Lots of barrier operations");
 	}
     }
     newFocus = currentFocus->constrain(Semaphores);
     if (SyncOps.enabled(newFocus)) {
-	if (SyncOps.value(newFocus) > maxSemaphoreRate) {
+	if (SyncOps.value(newFocus) > maxSemaphoreRate * hysteresis) {
 	    result->status = TRUE;
 	    result->addHint(Semaphores, "Lots of semaphore operations");
 	}
@@ -317,13 +321,13 @@ Boolean smallSyncRegion_ENABLE(collectMode newMode)
 }
 
 /* ARGSUSED */
-void smallSyncRegion_TEST(testValue *result)
+void smallSyncRegion_TEST(testValue *result, float hysteresis)
 {
     float avgHold;
 
     avgHold = lockHoldingTime.value() / SyncOps.value();
     result->status = FALSE;
-    if (avgHold / lockOverhead < minLockSize) {
+    if (avgHold / lockOverhead < minLockSize * hysteresis) {
 	 // lock is too small.
 	 result->status = TRUE;
     }
@@ -339,10 +343,10 @@ Boolean highIOwait_ENABLE(collectMode newMode)
 }
 
 /* ARGSUSED */
-void highIOwait_TEST(testValue *result)
+void highIOwait_TEST(testValue *result, float hysteresis)
 {
     result->status = FALSE;
-    if (IOwait.value() > highIOthreshold) {
+    if (IOwait.value() > highIOthreshold * hysteresis) {
 	result->status = TRUE;
     }
     return;
@@ -360,14 +364,14 @@ Boolean smallIO_ENABLE(collectMode newMode)
 }
 
 /* ARGSUSED */
-void smallIO_TEST(testValue *result)
+void smallIO_TEST(testValue *result, float hysteresis)
 {
     float avgRead;
 
     avgRead = IOBytes.value() / IOops.value();
     // should be at least a disk block. 
     result->status = FALSE;
-    if (avgRead < diskBlockSize) {
+    if (avgRead < diskBlockSize * hysteresis) {
 	result->status = TRUE;
     }
     return;
@@ -383,10 +387,10 @@ Boolean manySeeks_ENABLE(collectMode newMode)
 }
 
 /* ARGSUSED */
-void manySeeks_TEST(testValue *result)
+void manySeeks_TEST(testValue *result, float hysteresis)
 {
     result->status = FALSE;
-    if ((seekWait.value()/IOwait.value()) > seekBoundThreshold) {
+    if ((seekWait.value()/IOwait.value()) > seekBoundThreshold * hysteresis) {
 	result->status = TRUE;
     }
     return;
@@ -401,13 +405,13 @@ Boolean highIOops_ENABLE(collectMode newMode)
 }
 
 /* ARGSUSED */
-void highIOops_TEST(testValue *result)
+void highIOops_TEST(testValue *result, float hysteresis)
 {
     double value;
 
     value = IOops.value();
     result->status = FALSE;
-    if (value/contextSwitchLimit > highIOthreshold) {
+    if (value/contextSwitchLimit > highIOthreshold * hysteresis) {
 	result->status = TRUE;
     }
 
@@ -423,7 +427,7 @@ Boolean highPageFaults_ENABLE(collectMode newMode)
 }
 
 /* ARGSUSED */
-void highPageFaults_TEST(testValue *result)
+void highPageFaults_TEST(testValue *result, float hysteresis)
 {
     double value;
 

@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.h,v $
- * Revision 1.2  1994/02/03 23:27:01  hollings
+ * Revision 1.3  1994/03/01 21:25:10  hollings
+ * added tunable constants.
+ *
+ * Revision 1.2  1994/02/03  23:27:01  hollings
  * Changes to work with g++ version 2.5.2.
  *
  * Revision 1.1  1994/02/02  00:38:13  hollings
@@ -27,6 +30,8 @@
  */
 #ifndef EVAL_H
 #define EVAL_H
+
+#include "util/h/tunableConst.h"
 
 //
 // What tests return.
@@ -109,6 +114,7 @@ class testResultList: public List<testResult*> {
 
 extern Boolean doScan();
 extern void configureTests();
+extern tunableConstant hysteresisRange;
 
 extern testResultList *currentTestResults;
 extern Boolean printTestResults;
