@@ -20,31 +20,34 @@ class BPATCH_DLL_EXPORT BPatch_loopTreeNode {
     friend class BPatch_flowGraph;
 
  public:
-    BPatch_loopTreeNode(BPatch_basicBlockLoop * l): loop(l) {}
+    /** Create a loop tree node for BPatch_basicBlockLoop with name n */
+    BPatch_loopTreeNode(BPatch_basicBlockLoop *l, const char *n);
 
     ~BPatch_loopTreeNode();
 
-    /** A loop node contains a single basic block loop. */
-    BPatch_basicBlockLoop * loop;
+    /** A loop node contains a single BPatch_basicBlockLoop instance */
+    BPatch_basicBlockLoop *loop;
 
-    /** The loop node's nested within this loop. */
+    /** The BPatch_loopTreeNode instances nested within this loop. */
     BPatch_Vector<BPatch_loopTreeNode *> children;
 
-    /** A vector of functions called within the body of this loop (and
-     * not the body of sub loops). */
+    /** Return the name of this loop. */
+    const char *name();
+
+    // A vector of functions called within the body of this loop (and
+    // not the body of sub loops). 
     BPatch_Vector<function_base *> callees;
 
-    /** Return true if the given address is within the range of. */
-    bool containsAddress(unsigned long addr);
-
-    /** Return the name of this loop. */
-    const char * name();
-
-    /** Return the function name of the ith callee. */
-    const char * getCalleeName(unsigned int i);
+    // Return the function name of the ith callee. 
+    const char *getCalleeName(unsigned int i);
     
-    /** Return the number of callees contained in this loop's body. */
+    // Return the number of callees contained in this loop's body. 
     unsigned int numCallees();
+
+ private:
+
+    /** name which indicates this loop's relative nesting */
+    char *hierarchicalName;
 };
 
 
@@ -102,13 +105,10 @@ public:
   void fillPostDominatorInfo();
 
   /** return root of loop hierarchy  */
-  BPatch_loopTreeNode * getLoopTree();
+  BPatch_loopTreeNode *getLoopTree();
 
-  /** print the loops in this FG to stderr  */
+  // for debugging, print loops with line numbers to stderr
   void printLoops();
-
-  /** create the tree of loops/callees for this flow graph */
-  void createLoopHierarchy();
 
  private:
 
@@ -129,7 +129,7 @@ public:
   BPatch_Set<BPatch_basicBlock*> allBlocks;
 
   /** root of the tree of loops */
-  BPatch_loopTreeNode * loopRoot;
+  BPatch_loopTreeNode *loopRoot;
   
   /** three colors used in depth first search algorithm */
   static const int WHITE;
@@ -148,6 +148,9 @@ public:
   bool createBasicBlocks();
   
   void fillLoopInfo(BPatch_Set<BPatch_basicBlock*>**,BPatch_basicBlock**);
+
+  /** create the tree of loops/callees for this flow graph */
+  void createLoopHierarchy();
   
   void dfsVisit(BPatch_basicBlock*,int*); 
   
@@ -168,6 +171,7 @@ public:
 
   void insertCalleeIntoLoopHierarchy(function_base * func, unsigned long addr);
 
+  void dfsPrintLoops(BPatch_loopTreeNode *n);
 };
 
 
