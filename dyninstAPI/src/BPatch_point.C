@@ -98,14 +98,14 @@ const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets() {
 
     trampTemplate *baseTramp = proc->baseMap[point];
 
-    if (baseTramp->pre_minitramps) {
+    if (baseTramp && baseTramp->pre_minitramps) {
         List<miniTrampHandle *>::iterator preIter = baseTramp->pre_minitramps->get_begin_iter();
         List<miniTrampHandle *>::iterator preEnd = baseTramp->pre_minitramps->get_end_iter();
         for (; preIter != preEnd; preIter++) {
             mt_buf.push_back(*preIter);
         }
     }
-    if (baseTramp->post_minitramps) {
+    if (baseTramp && baseTramp->post_minitramps) {
         List<miniTrampHandle *>::iterator postIter = baseTramp->post_minitramps->get_begin_iter();
         List<miniTrampHandle *>::iterator postEnd = baseTramp->post_minitramps->get_end_iter();
         for (; postIter != postEnd; postIter++) {
