@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aggregateSample.C,v 1.24 2001/07/06 18:50:35 schendel Exp $
+// $Id: aggregateSample.C,v 1.25 2001/07/06 21:34:29 schendel Exp $
 
 #include <assert.h>
 #include <math.h>
@@ -116,7 +116,7 @@ ostream& operator<<(ostream&s, const sampleInfo &info) {
 struct sampleInterval aggregateSample::aggregateValues() {
     struct sampleInterval ret(timeStamp::ts1970(), timeStamp::ts1970(), 
 			      pdSample::Zero());
-    const timeLength ten_ms(10, timeUnit::ms());
+    //const timeLength ten_ms(10, timeUnit::ms());
     timeStamp earlyestTime = timeStamp::ts2200();
     ret.valid = false;
 
@@ -137,12 +137,14 @@ struct sampleInterval aggregateSample::aggregateValues() {
         if ((!newParts[u]->firstValueReceived())) {
           return ret;
         }
+	/*  adjusting the component time is causing asserts
         if (newParts[u]->lastSampleStart < lastSampleEnd + ten_ms) {
           // round lastSampleStart to avoid generating very small aggregate
           // samples. I'm using 0.01 as an arbitrary value. We should
           // do some measurements to find a good value -- mjrg
           newParts[u]->lastSampleStart = lastSampleEnd;
         }
+	*/
         if (newParts[u]->lastSampleStart < newStart) {
           newStart = newParts[u]->lastSampleStart;
         }
@@ -198,10 +200,12 @@ struct sampleInterval aggregateSample::aggregateValues() {
           partsToRemove = true;
           continue;
         }
+	/*  adjusting the component time is causing asserts
         if (parts[u]->lastSampleEnd < lastSampleEnd + ten_ms) {
            // round to avoid very small intervals;
            parts[u]->lastSampleEnd = lastSampleEnd + ten_ms;
          }
+	*/
       }
       if (parts[u]->lastSampleEnd < earlyestTime)
         earlyestTime = parts[u]->lastSampleEnd;
