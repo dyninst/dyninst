@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.28 2001/11/06 19:20:58 bernat Exp $
+ * $Id: RTetc-aix.c,v 1.29 2002/01/07 23:05:49 schendel Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -288,12 +288,43 @@ DYNINSTgetCPUtime_sw(void) {
   return now;
 }
 
+union bigWord {
+  uint64_t b64;
+  unsigned b32[2];
+} bitGrabber;
+
 /* --- CPU time retrieval functions --- */
 /* Hardware Level --- */
 rawTime64
 DYNINSTgetWalltime_hw(void) {
-  return 0;
+  static rawTime64 wallPrevious=0;
+  static int wallRollbackOccurred=0;
+  rawTime64 now, tmp_wallPrevious=wallPrevious;
+  struct timebasestruct timestruct;
+
+  read_real_time(&timestruct, TIMEBASE_SZ);
+  bitGrabber.b32[0] = timestruct.tb_high;
+  bitGrabber.b32[1] = timestruct.tb_low;
+  now = bitGrabber.b64;
+
+  if (now < tmp_wallPrevious) {
+    if (wallRollbackOccurred < MaxRollbackReport) {
+      rtUIMsg traceData;
+      sprintf(traceData.msgString,"Wall time rollback %lld with current time: "
+	      "%lld fast units, using previous value %lld fast units.",
+                tmp_wallPrevious-now,now,tmp_wallPrevious);
+      traceData.errorNum = 112;
+      traceData.msgType = rtWarning;
+      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
+				 1, 1);
+    }
+    wallRollbackOccurred++;
+    now = wallPrevious;
+  }
+  else wallPrevious = now;
+  return now;
 }
+ 
 
 /* Software Level --- 
    method:      read_real_time()
