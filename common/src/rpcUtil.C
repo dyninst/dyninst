@@ -41,6 +41,10 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.56  1997/10/23 16:02:08  nash
+ * Removed previous changes for Linux.  A better way to include the '-F' command
+ * line argument for 'rsh' is to put a script in the PATH.
+ *
  * Revision 1.55  1997/10/17 00:26:59  nash
  * Added "-F" option to execlp(rsh...) from rshCommand (temporarily?) for the Linux development machines to work.
  *
@@ -947,22 +951,12 @@ int rshCommand(const string hostName, const string userName,
 	aflag=(-1 != close(fd[1]));
 	assert(aflag);
 	if (userName.length()) {
-	    ret = execlp(RSH_COMMAND, RSH_COMMAND,
-#if defined(i386_unknown_linux2_0)
-// Required on the development Linux machines in order for rsh to work with Kerberos
-			 "-F",
-#endif
-			 hostName.string_of(), "-l", 
+	    ret = execlp(RSH_COMMAND, RSH_COMMAND, hostName.string_of(), "-l", 
 			 userName.string_of(), "-n", paradyndCommand.string_of(),
 			 "-l0", NULL);
             fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
 	} else {
-	    ret = execlp(RSH_COMMAND, RSH_COMMAND,
-#if defined(i386_unknown_linux2_0)
-// Required on the development Linux machines in order for rsh to work with Kerberos
-			 "-F",
-#endif
-			 hostName.string_of(), "-n", 
+	    ret = execlp(RSH_COMMAND, RSH_COMMAND, hostName.string_of(), "-n", 
 			 paradyndCommand.string_of(), "-l0", NULL);
             fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
 	}
