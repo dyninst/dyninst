@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.19 2003/09/18 01:05:26 jodom Exp $
+// $Id: Object-coff.C,v 1.20 2003/12/11 21:23:04 rchen Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -547,7 +547,12 @@ void Object::load_object(bool sharedLibrary) {
 		sym_use = false;
 	}
 
-	 // cout << index << "\t" << name << "\t" << StName(symbol.st) << "\t" << ScName(symbol.sc) << "\t" << symbol.value << "\n";
+	// Skip eCoff encoded stab string.  Functions and global variable
+	// addresses will still be found via the external symbols.
+	if (P_strchr(name, ':'))
+	    sym_use = false;
+	
+	// cout << index << "\t" << name << "\t" << StName(symbol.st) << "\t" << ScName(symbol.sc) << "\t" << symbol.value << "\n";
 
 	  index++;
 
