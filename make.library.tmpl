@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.library.tmpl,v 1.22 2004/06/24 22:27:50 legendre Exp $
+# $Id: make.library.tmpl,v 1.23 2004/07/15 21:24:03 jaw Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -28,6 +28,15 @@ OBJS =		$(filter %.o, $(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o))
 
 XLC_DEPFILES =  $(filter %.u, $(patsubst %.u, %.o, $(filter %.u,$(notdir $(SRCS)))))
+
+# specify build prerequisite dependencies (for parallel make)
+ifdef PREREQUISITES
+$(OBJS): $(PREREQUISITES)
+ifdef TARGET2
+$(OBJS2): $(PREREQUISITES)
+endif
+endif
+
 ifndef UNCOMMON_LINK
 $(TARGET): $(OBJS)
 	@$(RM) $(TARGET)
@@ -192,7 +201,7 @@ pure:
 # A few pattern rules for simplicity in handling igen-generated files.
 #
 
-%.xdr.C %.xdr.CLNT.C %.xdr.CLNT.h %.xdr.SRVR.C %.xdr.SRVR.h %.xdr.h: %.I
+%.xdr.C %.xdr.CLNT.C %.xdr.CLNT.h %.xdr.SRVR.C %.xdr.SRVR.h %.xdr.h %.xdr.temp.C: %.I
 	$(IGEN) -xdr $(ICFLAGS) $<
 
 %.thread.C %.thread.CLNT.h %.thread.SRVR.h %.thread.h: %.I

@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.39 2004/06/21 19:38:51 pcroth Exp $
+# $Id: make.module.tmpl,v 1.40 2004/07/15 21:24:03 jaw Exp $
 #
 
 USES_FLEX       = true
@@ -61,6 +61,8 @@ SRCS	     += ../../common/src/String.C \
  
 IGEN_ISRCS      = dyninstRPC.I
 IGEN_GEN_SRCS   = dyninstRPC.xdr.h
+PREREQUISITES = $(IGEN_GEN_SRCS)
+PREREQUISITES += mdlParser.C mdlScanner.C
 
 all: $(TARGET)
 
@@ -71,3 +73,4 @@ mdlScanner.C:   mdlParser.C dyninstRPC.xdr.h
 templates.o:    ../src/templates.C
 	$(CXX) $(TFLAGS) -c $<
 
+y.tab.h: mdlScanner.C

@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.program.tmpl,v 1.23 2004/05/07 08:53:21 jodom Exp $
+# $Id: make.program.tmpl,v 1.24 2004/07/15 21:24:03 jaw Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -28,6 +28,12 @@ OBJS =		$(filter %.o, $(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
 		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o))
+
+# PREREQUISITES is a list of files to be generated before general
+# compilation can proceed.  This enables build parallelization.
+ifdef PREREQUISITES
+$(OBJS): $(PREREQUISITES)
+endif
 
 ifndef UNCOMMON_LINK
 ifneq ($(TARGET),test11)
@@ -148,12 +154,14 @@ endif
 %.C: %.l
 	$(LEX) -t $(LFLAGS) $< > $@
 
-%.xdr.C %.xdr.CLNT.C %.xdr.CLNT.h %.xdr.SRVR.C %.xdr.SRVR.h %.xdr.h: %.I
+%.xdr.C %.xdr.CLNT.C %.xdr.CLNT.h %.xdr.SRVR.C %.xdr.SRVR.h %.xdr.h %.xdr.temp.C: %.I
 	$(IGEN) -xdr $(ICFLAGS) $<
 
-%.thread.C %.thread.CLNT.h %.thread.SRVR.h %.thread.h: %.I
+%.thread.C %.thread.CLNT.h %.thread.CLNT.C %.thread.SRVR.h %.thread.SRVR.C %.thread.h: %.I
 	$(IGEN) -thread $(ICFLAGS) $<
 
+%.thread.CLNT.C: %.thread.CLNT.h
+%.thread.SRVR.C: %.thread.SRVR.h
 #
 # include the dependencies.
 #

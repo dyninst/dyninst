@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.6 2004/06/21 18:58:40 pcroth Exp $
+# $Id: make.module.tmpl,v 1.7 2004/07/15 21:24:04 jaw Exp $
 #
 
 VPATH 	     += ../../../paradyn/src/UIthread \
@@ -28,7 +28,7 @@ IGEN_GEN_SRCS	= termWin.xdr.SRVR.C \
 					termWin.xdr.C
 
 IGEN_ISRCS	= termWin.I
-
+PREREQUISITES = $(IGEN_GEN_SRCS)
 # if $(TO_CORE)/visi doesn't exist, then the -I$(TO_CORE) automatically
 # inserted by make.config won't be enough for the compiler to find,
 # say, visi/h/visualization.h.  We don't want to force the user to have

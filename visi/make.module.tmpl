@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.10 2002/04/09 18:05:46 mjbrim Exp $
+# $Id: make.module.tmpl,v 1.11 2004/07/15 21:24:03 jaw Exp $
 #
 
 TARGET	      = libvisi.a 
@@ -21,6 +21,7 @@ IGEN_GEN_SRCS =	visi.xdr.SRVR.C \
 		visi.xdr.temp.C
 
 IGEN_ISRCS    = visi.I
+PREREQUISITES = $(IGEN_GEN_SRCS)
 
 all: $(TARGET)
 

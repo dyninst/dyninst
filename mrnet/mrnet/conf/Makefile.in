@@ -216,7 +216,7 @@ $(LIBMRNET): $(LIBMRNET_OBJS)
 
 #$(COMMNODE_OBJS): $(OBJDIR)
 
-$(BINDIR)/mrnet_commnode: $(COMMNODE_OBJS) $(LIBMRNET)
+$(BINDIR)/mrnet_commnode: $(COMMNODE_OBJS) $(LIBMRNET) xplat-all
 	@echo Linking `basename $@` ...
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@  $(COMMNODE_OBJS) $(LIBMRNET) $(LIBS)
 

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.21 2004/06/24 22:27:41 legendre Exp $
+# $Id: make.module.tmpl,v 1.22 2004/07/15 21:24:03 jaw Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -49,6 +49,7 @@ lex.$(TARGET).C: ../src/cmdline.l $(TARGET).tab.h
 	$(LEX) $(LEXFLAGS) ../src/cmdline.l
 	mv lex.$(TARGET).c lex.$(TARGET).C
 
-$(TARGET).tab.C $(TARGET).tab.h: ../src/cmdline.y
+$(TARGET).tab.h: $(TARGET).tab.C
+$(TARGET).tab.C: ../src/cmdline.y
 	$(YACC) $(YACCFLAGS) ../src/cmdline.y
 	mv $(TARGET).tab.c $(TARGET).tab.C

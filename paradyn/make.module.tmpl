@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.49 2004/07/14 18:23:55 eli Exp $
+# $Id: make.module.tmpl,v 1.50 2004/07/15 21:24:03 jaw Exp $
 #
 
 CFLAGS		+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
@@ -120,6 +120,8 @@ IGEN_ISRCS    = dataManager.I \
 		UI.I \
 		VM.I \
 		termWin.I
+
+PREREQUISITES = $(IGEN_GEN_SRCS)
 
 TCL_SRCS 	= ../tcl/applic.tcl \
 		../tcl/callGraph.tcl \

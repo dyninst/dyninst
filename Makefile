@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.65 2004/06/24 22:27:49 legendre Exp $
+# $Id: Makefile,v 1.66 2004/07/15 21:24:03 jaw Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -19,9 +19,9 @@ BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 #
 # "DyninstAPI" is the list of additional API components (optional).
 
-basicComps	= igen mrnet pdutil mdl
-ParadynD	= dyninstAPI_RT sharedMem rtinst paradynd
-ParadynFE	= mrnet pdutil pdthread paradyn
+basicComps	= igen mrnet pdutil 
+ParadynD	= sharedMem rtinst paradynd
+ParadynFE	= pdthread paradyn
 ParadynVC	= visi \
 		visiClients/tclVisi visiClients/barchart \
 		visiClients/tableVisi visiClients/phaseTable \
@@ -31,6 +31,8 @@ subSystems	= $(ParadynD) $(ParadynFE) $(ParadynVC)
 DyninstAPI	= dyninstAPI_RT dyninstAPI dyninstAPI/tests dyner codeCoverage
 
 threadComps	= rtinst/multi-thread-aware
+
+allSubdirs	= $(basicComps) $(subSystems) dyninstAPI dyninstAPI_RT dyninstAPI/tests dyner codeCoverage $(threadComps)
 
 # "fullSystem" is the list of all Paradyn & DyninstAPI components to build:
 # set DONT_BUILD_PARADYN or DONT_BUILD_DYNINST in make.config.local if desired
@@ -134,29 +136,44 @@ ifdef DONT_BUILD_DYNINST
 endif
 
 world: intro
-	+for target in $(Build_list); do				\
-	    ( $(MAKE) $$target ) || exit 1;				\
-	done
+	$(MAKE) $(fullSystem)
 	@echo "Build of $(BUILD_ID) complete for $(PLATFORM)!"
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-Paradyn ParadynD ParadynFE ParadynVC DyninstAPI basicComps subSystems threadComps:
-	@echo "Building $@ ..."
-	@date
-	+for subsystem in $($@); do				\
-	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then		\
-		if ( $(MAKE) -C $$subsystem/$(PLATFORM) all ); then	\
-		    $(MAKE) -C $$subsystem/$(PLATFORM) install;		\
-		else							\
-		    exit 1;						\
-		fi							\
-	    else							\
-		true;							\
-	    fi								\
-	done
+Paradyn ParadynD ParadynFE ParadynVC DyninstAPI basicComps subSystems threadComps: 
+	$(MAKE) $($@)
+	@sleep 5
+	@echo "boo 1"
 	@echo "Build of $@ complete."
 	@date
+
+# Low-level directory-targets  (used in the sets defined above)
+# Explicit specification of these rules permits better parallelization
+# than building subsystems using a for loop
+
+.PHONY: $(allSubdirs)
+
+$(allSubdirs): 
+	@echo "Building in $@ ... "
+	$(MAKE) -C $@/$(PLATFORM) 
+	$(MAKE) -C $@/$(PLATFORM) install
+
+# dependencies -- keep parallel make from building out of order
+paradynd:  pdutil 
+paradyn: pdutil pdthread 
+pdthread: igen mrnet 
+visi:  pdutil
+pdutil: igen
+visiClients/tclVisi: visi
+visiClients/barchart: visi
+visiClients/tableVisi: visi
+visiClients/phaseTable: visi
+visiClients/histVisi: visi
+visiClients/terrain: visi
+visiClients/termWin: visi mrnet pdthread
+dyner codeCoverage dyninstAPI/tests: dyninstAPI
+rtinst: igen dyninstAPI_RT 
 
 # This rule passes down the documentation-related make stuff to
 # lower-level Makefiles in the individual "docs" directories.
