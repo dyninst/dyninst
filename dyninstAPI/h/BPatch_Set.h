@@ -43,7 +43,7 @@
 #define _BPatch_Set_h_
 
 #if defined(external_templates)
-pragma interface
+#pragma interface
 #endif
 
 /*******************************************************/
