@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2000/05/31 18:33:21 schendel Exp $
+# $Id: Makefile,v 1.5 2000/06/09 16:45:35 paradyn Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -47,7 +47,7 @@ MUTATEE_CFLAGS = $(MODCFLAGS) -static -Wl,-bgcbypass:3
 endif
 
 $(TARGET2): $(MUTATEE_SRC)
-	$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) -Wl,-bnoobjreorder \
+	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) -Wl,-bnoobjreorder \
 	-Wl,-bE:$(TO_CORE)/$(LIBRARY_DEST)/DYNINSTAPI_RT_EXPORTS \
 	$(DYNINSTAPI_RT_LIB) $(MUTATEE_SRC) -o $(TARGET2)
 
