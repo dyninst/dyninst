@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.8 1998/12/25 22:08:18 wylie Exp $
+// $Id: pdwinnt.C,v 1.9 1999/05/07 15:22:17 nash Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -990,6 +990,8 @@ bool process::set_breakpoint_for_syscall_completion() {
     assert(false);
     return false;
 }
+
+void process::clear_breakpoint_for_syscall_completion() { return; }
 
 Address process::read_inferiorRPC_result_register(Register) {
     CONTEXT *cont = new CONTEXT;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.165 1999/04/27 16:03:06 nash Exp $
+// $Id: process.C,v 1.166 1999/05/07 15:22:17 nash Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3049,9 +3049,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    //    paused it in step 1, above.
 
    if (!finishingSysCall && RPCs_waiting_for_syscall_to_complete) {
-#if !defined(i386_unknown_linux2_0) || !defined(CHECK_SYSTEM_CALLS)
 	  assert(executingSystemCall());
-#endif
       return false;
    }
 
@@ -3105,12 +3103,16 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
       // this code too many times.
 
       RPCs_waiting_for_syscall_to_complete = true;
+	  was_running_before_RPC_syscall_complete = wasRunning;
 
-      if (wasRunning)
-	 (void)continueProc();
+      //if (wasRunning)
+	  (void)continueProc();
 
       return false;
    }
+
+   if( finishingSysCall )
+	   clear_breakpoint_for_syscall_completion();
 
    // Okay, we're not in the middle of a system call, so we can fire off the rpc now!
    if (RPCs_waiting_for_syscall_to_complete)
@@ -3150,7 +3152,10 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    inProgStruct.callbackFunc = todo.callbackFunc;
    inProgStruct.userData = todo.userData;
    inProgStruct.savedRegs = theSavedRegs;
-   inProgStruct.wasRunning = wasRunning || finishingSysCall;
+   if( finishingSysCall )
+	   inProgStruct.wasRunning = was_running_before_RPC_syscall_complete;
+   else
+	   inProgStruct.wasRunning = wasRunning;
       // If finishing up a system call, current state is paused, but we want to
       // set wasRunning to true so that it'll continue when the inferiorRPC
       // completes.  Sorry for the kludge.
@@ -3177,7 +3182,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    assert(currRunningRPCs.empty()); // since it's unsafe to run > 1 at a time
    currRunningRPCs += inProgStruct;
 
-   inferiorrpc_cerr << "Changing pc and exec.." << endl;
+   inferiorrpc_cerr << "Changing pc (" << (void*)tempTrampBase << ") and exec.." << endl;
 
    // change the PC and nPC registers to the addr of the temp tramp
    if (!changePC(tempTrampBase, theSavedRegs)) {
@@ -3419,10 +3424,12 @@ bool process::handleTrapIfDueToRPC() {
    assert(match_type == 2);
 
    // step 1) restore registers:
+
    if (!restoreRegisters(theStruct.savedRegs)) {
-      cerr << "handleTrapIfDueToRPC failed because restoreRegisters failed" << endl;
-      assert(false);
+	   cerr << "handleTrapIfDueToRPC failed because restoreRegisters failed" << endl;
+	   assert(false);
    }
+
    currRunningRPCs.removeByIndex(0);
 
    if (currRunningRPCs.empty() && deferredContinueProc) {
@@ -3442,7 +3449,7 @@ bool process::handleTrapIfDueToRPC() {
       inferiorrpc_cerr << "end of rpc -- continuing process, since it had been running" << endl;
 
       if (!continueProc()) {
-	 cerr << "RPC completion: continueProc failed" << endl;
+		  cerr << "RPC completion: continueProc failed" << endl;
       }
    }
    else
@@ -3522,7 +3529,7 @@ void process::installBootstrapInst() {
    }
 #endif /* BPATCH_LIBRARY */
 
-#if !defined(BPATCH_LIBRARY) && defined(USES_LIBDYNINSTRT_SO) && ( defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) )
+#if !defined(BPATCH_LIBRARY) && defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
    postRPCtoDo(ast, true, NULL, //process::DYNINSTinitCompletionCallback, 
       "viaCreateProcess", -1);
 #else
@@ -3535,6 +3542,7 @@ void process::installBootstrapInst() {
                );
        // returns an "instInstance", which we ignore (but should we?)
        removeAst(ast);
+	   attach_cerr << "wrote call to DYNINSTinit to entry of main" << endl;
     } else {
        printf("no main function, skipping DYNINSTinit\n");
        hasBootstrapped = true;

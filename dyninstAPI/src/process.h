@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.106 1999/04/27 16:03:08 nash Exp $
+/* $Id: process.h,v 1.107 1999/05/07 15:22:18 nash Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -346,6 +346,7 @@ class process {
 
   bool dyninstLibAlreadyLoaded() { return hasLoadedDyninstLib; }
   bool dyninstLibIsBeingLoaded() { return isLoadingDyninstLib; }
+  void clearDyninstLibLoadFlags() { hasLoadedDyninstLib = isLoadingDyninstLib = false; }
   unsigned numOfActCounters_is;
   unsigned numOfActProcTimers_is;
   unsigned numOfActWallTimers_is; 
@@ -498,6 +499,7 @@ class process {
   };
   vectorSet<inferiorRPCtoDo> RPCsWaitingToStart;
   bool RPCs_waiting_for_syscall_to_complete;
+  bool was_running_before_RPC_syscall_complete;
   void *save_exitset_ptr; // platform-specific (for now, just solaris;
 			  // it's actually a sysset_t*)
 					       
@@ -569,6 +571,7 @@ class process {
      // input is the opaque type returned by getRegisters()
 
   bool set_breakpoint_for_syscall_completion();
+  void clear_breakpoint_for_syscall_completion();
   Address read_inferiorRPC_result_register(Register);
 
  public:

@@ -705,6 +705,8 @@ bool process::set_breakpoint_for_syscall_completion()
   return true;
 }
 
+void process::clear_breakpoint_for_syscall_completion() { return; }
+
 // TODO: this ignores the "sig" argument
 bool process::continueWithForwardSignal(int /*sig*/)
 {

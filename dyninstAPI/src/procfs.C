@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.3 1999/01/21 01:26:47 hollings Exp $
+// $Id: procfs.C,v 1.4 1999/05/07 15:22:19 nash Exp $
 
 #include "symtab.h"
 #include "util/h/headers.h"
@@ -507,6 +507,8 @@ bool process::set_breakpoint_for_syscall_completion() {
 
    return true;
 }
+
+void process::clear_breakpoint_for_syscall_completion() { return; }
 
 
 #ifdef BPATCH_LIBRARY

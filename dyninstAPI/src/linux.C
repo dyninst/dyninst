@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.9 1999/04/27 16:03:06 nash Exp $
+// $Id: linux.C,v 1.10 1999/05/07 15:22:16 nash Exp $
 
 #include <fstream.h>
 
@@ -199,7 +199,7 @@ bool ptraceKludge::deliverPtrace(process *p, int req, int addr,
 
 // Some ptrace requests in Linux return the value rather than storing at the address in data
 // (especially PEEK requests)
-// -DAN
+// - nash
 int ptraceKludge::deliverPtraceReturn(process *p, int req, int addr,
 				 int data ) {
   bool halted = true;
@@ -297,11 +297,27 @@ static bool changeBP(int pid, Address loc) {
      return (Address)res;
  }
 
+void printStackWalk( process *p ) {
+	Frame theFrame(p);
+	while (true) {
+		// do we have a match?
+		const Address framePC = theFrame.getPC();
+		inferiorrpc_cerr << "stack frame pc @ " << (void*)framePC << endl;
+		
+		if (theFrame.isLastFrame())
+			// well, we've gone as far as we can, with no match.
+			break;
+		
+		// else, backtrace 1 more level
+		theFrame = theFrame.getPreviousStackFrameInfo(p);
+	}
+}
+
 bool process::executingSystemCall() {
 	// From the program strace, it appears that a non-negative number
 	// in the ORIG_EAX register of the inferior process indicates
 	// that it is in a system call, and is the number of the system
-	// call. - DAN
+	// call. - nash
 
 	Address regaddr = ORIG_EAX * INTREGSIZE;
 	int res;
@@ -309,13 +325,9 @@ bool process::executingSystemCall() {
 	if( res < 0 )
 		return false;
 
-	inferiorrpc_cerr << "In system call #" << res << endl;
-#ifndef CHECK_SYSTEM_CALLS
-	// Even though we can do this, currently it causes problems - DAN
-	return false;
-#else
+	inferiorrpc_cerr << "In system call #" << res << " @ " << (void*)getPC( getPid() ) << endl;
+
 	return true;
-#endif
 }
 
 bool process::changePC(Address loc, const void * /* savedRegs */ ) {
@@ -456,11 +468,12 @@ int process::waitProcs(int *status) {
     if( result > 0 && WIFSTOPPED(*status) ) {
 		process *p = findProcess( result );
 		sig = WSTOPSIG(*status);
-		if( sig == SIGTRAP && !p->reachedVeryFirstTrap )
+		if( sig == SIGTRAP && ( !p->reachedVeryFirstTrap || p->inExec ) )
 			; // Report it
 #ifdef CHECK_SYSTEM_CALLS
 		else if( sig == SIGTRAP && p->isRPCwaitingForSysCallToComplete() )
 		{
+			inferiorrpc_cerr << "Catching SIGTRAP for RPCwaitingForSysCallToComplete" << endl;
 			assert( !p->isRunning_() );
 		}
 #endif
@@ -549,7 +562,10 @@ bool process::attach() {
   if( createdViaAttach || createdViaFork ) {
 	  attach_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
     if( 0 != P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) )
-      { perror( "process::attach - PTRACE_ATTACH" ); return false; }
+	{
+		perror( "process::attach - PTRACE_ATTACH" );
+		return false;
+	}
   }
 
   if( createdViaAttach )
@@ -558,20 +574,26 @@ bool process::attach() {
     // PTRACE_ATTACH kills it
     // Actually, the attach process contructor assumes that the process is
     // running.  While this is foolish, let's play along for now.
-	if( true /* running */ ) {
+	if( status_ != running || !isRunning_() ) {
 		if( 0 != P_ptrace(PTRACE_CONT, getPid(), 0, 0) )
 		{
 			perror( "process::attach - continue" );
-			return false;
 		}
     }
   }
 
-/*  if( isRunning_() )
+#ifdef notdef
+  if( status_ != running && isRunning_() )
   {
 	  attach_cerr << "fixing status_ => running" << endl;
 	  status_ = running;
-	  }*/
+  }
+  else if( status_ == running && !isRunning_() )
+  {
+	  attach_cerr << "fixing status_ => stopped" << endl;
+	  status_ = stopped;
+  }
+#endif
 
   return true;
 }
@@ -636,6 +658,9 @@ void process::handleIfDueToDyninstLib()
   // this is pretty kludge. if the stack frame of _start is not the right
   // size, this would break.
   writeDataSpace ((void*)(theEBP-6*sizeof(int)),6*sizeof(int),savedStackFrame);
+
+  if( isRunning_() )
+	  cerr << "WARNING -- process is running at trap from dlopenDYNINSTlib" << endl;
 
   delete[] savedRegs;
   savedRegs = NULL;
@@ -814,6 +839,8 @@ bool process::dlopenDYNINSTlib() {
   if( !theEBP )
   {
 	  theEBP = regs->esp;
+	  attach_cerr << "eBP at 0x0, creating fake stack frame with eSP == "
+				  << (void*)theEBP << endl;
 	  changeBP( getPid(), theEBP );
   }
 
@@ -824,6 +851,7 @@ bool process::dlopenDYNINSTlib() {
 
   isLoadingDyninstLib = true;
 
+  attach_cerr << "Changing PC to " << (void*)codeBase << endl;
   if (!changePC(codeBase,savedRegs))
   {
 	  logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
@@ -1121,10 +1149,10 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
   }
 
   // For some reason we couldn't or didn't open /proc/*/mem, so use ptrace
-  // Should I remove this part? - DAN
+  // Should I remove this part? - nash
 
   // Well, since you sometimes don't seem to be able to read from the fd
-  // maybe we do need to keep this - DAN
+  // maybe we do need to keep this - nash
 
   if( amount % sizeof(int) != 0 ||
       (int)inTraced % sizeof(int) != 0 ||
@@ -1215,7 +1243,7 @@ bool process::readDataFromFrame(Address currentFP, Address *fp, Address *rtn, bo
 
 // You know, /proc/*/exe is a perfectly good link (directly to the inode) to
 // the executable file, who cares where the executable really is, we can open
-// this link. - DAN
+// this link. - nash
 string process::tryToFindExecutable(const string & /* iprogpath */, int pid) {
   return string("/proc/") + string(pid) + "/exe";
 }
@@ -1362,7 +1390,7 @@ time64 process::getInferiorProcessCPUtime() /* const */ {
 
   // The reason for this complicated method of reading and sseekf-ing is
   // to ensure that we read enough of the buffer 'atomically' to make sure
-  // the data is consistent.  Is this necessary?  I *think* so. - DAN
+  // the data is consistent.  Is this necessary?  I *think* so. - nash
   do {
     fd = P_open(buf, O_RDONLY, 0);
     if (fd < 0) {
@@ -1378,7 +1406,7 @@ time64 process::getInferiorProcessCPUtime() /* const */ {
       // These numbers are in 'jiffies' or clock ticks.  For now, we
       // check at the beginning the ratio between the idle seconds in
       // /proc/uptime and the idle jiffies in /proc/stat, and later we can
-      // use some kind of gethrvptime for the whole thing. - DAN
+      // use some kind of gethrvptime for the whole thing. - nash
       // Oh, and I'm also assuming that process time includes system time
       now = ( (time64)1000000 * ( (time64)utime + (time64)stime ) ) / (time64)realHZ;
       break;
@@ -1549,18 +1577,25 @@ Address process::read_inferiorRPC_result_register(Register reg) {
 }
 
 bool process::set_breakpoint_for_syscall_completion() {
-#ifndef CHECK_SYSTEM_CALLS
-	// Unfortunately, PTRACE_SYSCALL doesn't work in a useful way
-	return false;
-#else
-	if( P_ptrace( PTRACE_SYSCALL, pid, 0, 0 ) != 0 )
-	{
-		inferiorrpc_cerr << "ERROR -- process::set_breakpoint_for_syscall_completion : "
-					<< sys_errlist[ errno ] << endl;
-		return false;
-	}
+	Address codeBase;
+	codeBase = getPC( getPid() );
+	readDataSpace( (void*)codeBase, 2, savedCodeBuffer, true);
+
+	instruction insnTrap;
+	generateBreakPoint(insnTrap);
+	writeDataSpace((void *)codeBase, 2, insnTrap.ptr());
+
+	inferiorrpc_cerr << "Set breakpoint at " << (void*)codeBase << endl;
+
 	return true;
-#endif
+}
+
+void process::clear_breakpoint_for_syscall_completion() {
+	Address codeBase;
+	codeBase = getPC( getPid() );
+	writeDataSpace( (void*)codeBase, 2, savedCodeBuffer );
+
+	inferiorrpc_cerr << "Cleared breakpoint at " << (void*)codeBase << endl;
 }
 
 

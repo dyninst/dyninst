@@ -378,6 +378,10 @@ bool dynamic_linking::set_r_brk_point(process *proc) {
     if(brkpoint_set) return true;
     if(!r_brk_addr) return false;
 
+#ifdef LD_DEBUG
+    fprintf( stderr, "Installing r_brk illegal instruction\n" );
+#endif
+
 #if defined(BPATCH_LIBRARY)
     // Before putting in the breakpoint, save what is currently at the
     // location that will be overwritten.
@@ -397,14 +401,10 @@ bool dynamic_linking::set_r_brk_point(process *proc) {
 }
 
 #if defined(BPATCH_LIBRARY)
-// set_r_brk_point: this routine instruments the code pointed to by
-// the r_debug.r_brk (the linkmap update routine).  Currently this code  
-// corresponds to no function in the symbol table and consists of only
-// 2 instructions on sparc-solaris (retl nop).  Also, the library that 
-// contains these instrs is the runtime linker which is not parsed like
-// other shared objects, so adding instrumentation here is ugly. 
-// TODO: add support for this on x86
 bool dynamic_linking::unset_r_brk_point(process *proc) {
+#ifdef LD_DEBUG
+    fprintf( stderr, "*** Removing r_brk illegal instruction\n" );
+#endif
     return proc->writeDataSpace((caddr_t)r_brk_addr, R_BRK_SAVE_BYTES,
 				(caddr_t)r_brk_save);
 }
@@ -765,6 +765,9 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 
   // is the trap instr at r_brk_addr?
   if(pc == (u_int)r_brk_addr){ 
+#ifdef LD_DEBUG
+    fprintf( stderr, "r_brk occurred\n" );
+#endif
     // find out what has changed in the link map
     // and process it
     r_debug debug_elm;
@@ -779,14 +782,17 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
     // the link maps, otherwise just set the r_state value
     change_type = r_state;   // previous state of link maps 
     r_state = debug_elm.r_state;  // new state of link maps
-    if( debug_elm.r_state == 0){
+    if( r_state == 0 ){
+#ifdef LD_DEBUG
+      fprintf( stderr, "Change in link maps, now consistent\n" );
+#endif
       // figure out how link maps have changed, and then create
       // a list of either all the removed shared objects if this
       // was a dlclose or the added shared objects if this was a dlopen
 
       // kludge: the state of the first add can get screwed up
       // so if both change_type and r_state are 0 set change_type to 1
-      if(change_type == 0) change_type = 1;
+      if( change_type == 0 ) change_type = 1;
       *changed_objects = findChangeToLinkMaps(proc, change_type,
 					      error_occured);
     } 

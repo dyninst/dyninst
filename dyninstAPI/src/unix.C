@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.24 1999/04/27 16:03:09 nash Exp $
+// $Id: unix.C,v 1.25 1999/05/07 15:22:20 nash Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -404,7 +404,8 @@ int handleSigChild(int pid, int status)
           if ( (sig == SIGILL)
           && (pc==(Address)curr->rbrkAddr()
             ||pc==(Address)curr->main_brk_addr
-            ||pc==(Address)curr->dyninstlib_brk_addr)) {
+            ||pc==(Address)curr->dyninstlib_brk_addr
+			||curr->isRPCwaitingForSysCallToComplete())) {
 			  signal_cerr << "Changing SIGILL to SIGTRAP" << endl;
 			  sig = SIGTRAP;
           }
@@ -513,6 +514,13 @@ int handleSigChild(int pid, int status)
 		   // in the new image. (Actually, this is already done by handleExec())
 		   curr->reachedFirstBreak = false;
 
+#if defined(USES_LIBDYNINSTRT_SO)
+		   // Since exec will 'remove' our library, we must redo the whole process
+		   curr->reachedVeryFirstTrap = false;
+		   curr->clearDyninstLibLoadFlags();
+		   forkexec_cerr << "About to start exec reconstruction of shared library" << endl;
+#endif
+
 		   // fall through...
 		}
 
@@ -615,7 +623,7 @@ int handleSigChild(int pid, int status)
 			Address pc = getPC( pid );
 			if( orig_sig == SIGTRAP )
 			{
-				signal_cerr << "SIGTRAP not handled for pid " << pid << " at " << (void*)pc << ", so forwarding back to process" << endl << flush;
+				//signal_cerr << "SIGTRAP not handled for pid " << pid << " at " << (void*)pc << ", so forwarding back to process" << endl << flush;
 				if( P_ptrace(PTRACE_CONT, pid, 1, SIGTRAP) == -1 )
 					cerr << "ERROR -- process::handleSigChild forwarding SIGTRAP -- " << sys_errlist;
 			}

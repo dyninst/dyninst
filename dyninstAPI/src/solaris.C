@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.65 1999/04/13 22:43:56 paradyn Exp $
+// $Id: solaris.C,v 1.66 1999/05/07 15:22:19 nash Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -1625,6 +1625,8 @@ bool process::set_breakpoint_for_syscall_completion() {
 
    return true;
 }
+
+void process::clear_breakpoint_for_syscall_completion() { return; }
 
 Address process::read_inferiorRPC_result_register(Register) {
    prgregset_t theIntRegs;

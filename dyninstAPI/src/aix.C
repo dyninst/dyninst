@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.54 1998/12/26 18:21:45 wylie Exp $
+// $Id: aix.C,v 1.55 1999/05/07 15:22:15 nash Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1701,6 +1701,8 @@ bool process::set_breakpoint_for_syscall_completion() {
    // We don't know how to do this on AIX
    return false;
 }
+
+void process::clear_breakpoint_for_syscall_completion() { return; }
 
 vector<int> process::getTOCoffsetInfo() const
 {
