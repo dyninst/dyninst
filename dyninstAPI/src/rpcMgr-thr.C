@@ -88,7 +88,6 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
         mgr_->postedProcessRPCs_.size() == 0)
         return irpcNoIRPC;
 
-
     // We can run the RPC if we're not currently in a system call.
     // This is defined as "any time we can't modify the state of the
     // process". In this case we try and set a breakpoint when we leave
@@ -101,7 +100,8 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
         // to set a breakpoint at the exit of the call
         if (postedRPCs_.size() > 0) {
             if (lwp->setSyscallExitTrap(launchThrIRPCCallbackDispatch,
-                                        (void *)this)) {
+                                        (void *)this,
+                                        postedRPCs_[0]->aixHACK)) {
                 // If there is an RPC queued we set it up as pending
                 // and record it
                 if (!pendingRPC_) {
@@ -151,7 +151,7 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
         pendingRPC_->runProcWhenDone = runProcWhenDone;
         mgr_->addPendingRPC(pendingRPC_);
     }
-
+    
     return runPendingIRPC();
 }
 
@@ -354,7 +354,6 @@ void rpcThr::launchThrIRPCCallbackDispatch(dyn_lwp * /*lwp*/,
                                            void *data)
 {
     rpcThr *thr = (rpcThr *)data;
-    
     // the runProcess code here is ignored if a pending RPC
     // is already set (which must be true for this callback to
     // happen)

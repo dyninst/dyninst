@@ -84,6 +84,7 @@ struct inferiorRPCtoDo {
     int id;
     dyn_thread *thr;
     dyn_lwp *lwp;
+    Address aixHACK;
 };
 
 struct inferiorRPCinProgress {
@@ -309,7 +310,7 @@ class rpcMgr {
    unsigned postRPCtoDo(AstNode *action, bool noCost,
                         inferiorRPCcallbackFunc callbackFunc,
                         void *userData, bool lowmem, dyn_thread *thr,
-                        dyn_lwp *lwp);
+                        dyn_lwp *lwp, Address aixHACK = 0);
 
    // Create the body of the IRPC
    Address createRPCImage(AstNode *action, bool noCost,

@@ -47,9 +47,10 @@
 
 // post RPC toDo for process
 unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
-                         inferiorRPCcallbackFunc callbackFunc,
-                         void *userData, bool lowmem,
-                         dyn_thread *thr, dyn_lwp *lwp) 
+                             inferiorRPCcallbackFunc callbackFunc,
+                             void *userData, bool lowmem,
+                             dyn_thread *thr, dyn_lwp *lwp,
+                             Address aixHACK) 
 {
     static int sequence_num = 0;
     // posts an RPC, but does NOT make any effort to launch it.
@@ -62,7 +63,8 @@ unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
     theStruct->id = sequence_num++;
     theStruct->thr = thr;
     theStruct->lwp = lwp;
-
+    theStruct->aixHACK = aixHACK;
+    
     if (thr) {
        int pos = thr->get_pos();
        rpcThr *rpc_thr = thrs_[pos];
@@ -189,13 +191,16 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     bool readyLWPRPC = false;
     bool readyThrRPC = false;
     bool processingLWPRPC = false;
-
     // We check LWP RPCs first. If there are any they are run first -- even
     // if there is a thread RPC currently running. Only use LWP RPCs for very low
     // level operations. 
+    
+    // We have a central list of all posted or pending RPCs... if those are empty
+    // then don't bother doing work
+    if (allPostedRPCs_.size() == 0)
+        return false;
     dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = 
     lwps_.begin();
-
     while(rpc_iter != lwps_.end()) {
         rpcLWP *cur_rpc_lwp = (*rpc_iter);
         if(cur_rpc_lwp->isReadyForIRPC()) {
@@ -240,7 +245,6 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     // Okay, there is an inferior RPC to do somewhere. Now we just need
     // to launch ze sucker
     bool runProcessWhenDone = false;
-
     // Run LWP RPCs (if there are any)
     if (readyLWPRPC) {
         dictionary_hash<unsigned, rpcLWP *>::iterator lwp_iter = lwps_.begin();
@@ -274,6 +278,8 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
             }
         }
     }
+    else
+        assert(0);
     
     // Return value states whether the process should be run or not.
     // If we have an inferior RPC going then always return true (since
