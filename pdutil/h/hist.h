@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: hist.h,v 1.24 2001/08/23 14:44:31 schendel Exp $
+
 #ifndef HIST
 #define HIST
 
@@ -48,19 +50,16 @@
 
 #define BASEBUCKETWIDTH_SECS  0.2   /* .2 seconds  */
 
-typedef enum { EventCounter, SampledFunction } metricStyle;
 typedef enum { HistNewValue, HistNewTimeBase } callType;
 typedef pdSample Bin;
 
-typedef void (*foldCallBack)(const timeLength*, void* userData,
-			     bool globalFlag);
+typedef void (*foldCallBack)(const timeLength*, void* userData);
 
 typedef void (*dataCallBack)(pdSample *buckets,
 			     relTimeStamp start_time,
 			     int numberOfBuckets,
 			     int first,
-			     void *userData,
-			     bool globalFlag);
+			     void *userData);
 
 class Histogram;
 
@@ -72,14 +71,12 @@ class Histogram {
 	void newDataFunc(callType type, relTimeStamp time, void* userData);
     public:
 	~Histogram();
-	Histogram(relTimeStamp, metricStyle, dataCallBack, foldCallBack, void*, bool );
+	Histogram(relTimeStamp, dataCallBack, foldCallBack, void*);
 	Histogram(Bin *buckets,  
 		  relTimeStamp start,  // binWidth is computed by this value 
-		  metricStyle, 
 		  dataCallBack, 
 		  foldCallBack, 
-		  void*,
-		  bool);
+		  void*);
 	pdSample getValue();
 	pdSample getValue(relTimeStamp start, relTimeStamp end);
 	pdSample getBinValue(int i){
@@ -103,6 +100,11 @@ class Histogram {
 	void addPoint(relTimeStamp start, pdSample value) {
 	    addInterval(start, start, value);
 	}
+	pdSample getCurrentActualValue();
+	void setInitialActualValue(pdSample v) {
+	  initActualVal = v;
+	}
+
 	static relTimeStamp currentTime() { 
 		return relTimeStamp(lastGlobalBin*globalBucketSize); 
 	}
@@ -134,18 +136,17 @@ class Histogram {
 	int lastBin;			/* current (for this hist) last bin */
 	int curBinFilling;
 	int lastBinSent;
+	pdSample initActualVal;         // used by getCurrentActualValue()
 	timeLength bucketWidth;		// bucket width of this histogram 
 	relTimeStamp startTime;		// not all histograms start at time 0
 	relTimeStamp endTime;	        /* numBins * baseBucketSize */
 	bool active;			// if clear, don't add values 
 	bool fold_on_inactive;		// if set, fold inactive histograms 
 
-	metricStyle metricType; /* sampled function or event counter */
 	Bin *buckets;
 	dataCallBack dataFunc;
 	foldCallBack foldFunc;
 	void *cData;
-	bool globalData;    /* true if this histogram stores global phase data */
 };
 
 #endif
