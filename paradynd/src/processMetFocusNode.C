@@ -54,7 +54,7 @@ extern pdDebug_ostream sampleVal_cerr;
 vector<processMetFocusNode*> processMetFocusNode::allProcNodes;
 
 processMetFocusNode::processMetFocusNode(process *p,
-                       const vector< vector<string> >& component_foc,
+                       const Focus &component_foc,
 		       aggregateOp agg_op, bool arg_dontInsertData)
   : aggregator(agg_op, getCurrSamplingRate()),
     parentNode(NULL), aggInfo(NULL), proc_(p), aggOp(agg_op), 
@@ -201,7 +201,7 @@ void processMetFocusNode::updateWithDeltaValue(timeStamp startTime,
 
 processMetFocusNode *processMetFocusNode::newProcessMetFocusNode(
                        process *p, 
-		       const vector< vector<string> >& component_foc,
+		       const Focus &component_foc,
 		       aggregateOp agg_op, bool arg_dontInsertData)
 {
   processMetFocusNode *procNode = 
@@ -287,7 +287,7 @@ processMetFocusNode* processMetFocusNode::handleExec() {
               const_cast<vector< vector<string> > &>(machnode->getFocus()),
 	                      const_cast<string &>(machnode->getMetName()),
 	                      const_cast<string &>(machnode->getFullName()),
-	                      vp, threadsVec,
+	                      vp, 
                               true, // fry existing component MI
 	                      false);
    if (tempMachNode == NULL)
