@@ -1259,13 +1259,27 @@ paradynDaemon::nodeDaemonReadyCallback(void) {
 }
 
 
-// Called by a daemon when there is no more data to be sent for a metric instance
-// (because the processes have exited).
+// Called by a daemon when there is no more data to be sent for a metric
+// instance (because the processes have exited).
 void
 paradynDaemon::endOfDataCollection(int mid) {
-    metricInstance *mi = activeMids[mid];
-    assert(mi);
 
-    assert(mi->removeComponent(this));
-
+    if(activeMids.defines(mid)){
+        metricInstance *mi = activeMids[mid];
+	assert(mi);
+        assert(mi->removeComponent(this));
+    }
+    else{  // check if this mid is for a disabled metric 
+        bool found = false;
+        for (unsigned ve=0; ve<disabledMids.size(); ve++) {
+            if (disabledMids[ve] == mid) {
+ 	        found = true;
+	        break;
+ 	    }
+        }
+	if (!found) {
+	    cout << "Ending data collection for unknown metric" << endl;
+	    uiMgr->showError (2, "Ending data collection for unknown metric");
+	}
+    }
 }

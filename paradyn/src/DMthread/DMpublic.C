@@ -4,7 +4,11 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.75  1996/04/18 22:01:19  naim
+ * Revision 1.76  1996/04/19 21:38:32  newhall
+ * change to paradynDaemon::endOfDataCollection to check for disabled mid case
+ * replaced msg_poll with msg_poll_pref in DMmain
+ *
+ * Revision 1.75  1996/04/18  22:01:19  naim
  * Changes to make getPredictedDataCost asynchronous - naim
  *
  * Revision 1.74  1996/04/10  19:07:54  newhall
@@ -945,6 +949,7 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
 	    mi->dataDisable();  // makes disable call to daemons
 	    if (!(mi->isDataPersistent())){
 	        delete mi;	
+		mi = 0;
 		assert(metricInstance::numGlobalHists());
 		metricInstance::decrNumGlobalHists();
 	    }

@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.95  1996/04/19 16:24:23  naim
+ * Revision 1.96  1996/04/19 21:38:27  newhall
+ * change to paradynDaemon::endOfDataCollection to check for disabled mid case
+ * replaced msg_poll with msg_poll_pref in DMmain
+ *
+ * Revision 1.95  1996/04/19  16:24:23  naim
  * Fixing a minor problem with getPredictedDataCost procedure - naim
  *
  * Revision 1.94  1996/04/18  22:01:16  naim
@@ -737,6 +741,7 @@ int dataManager::DM_post_thread_create_init(int tid) {
 //
 void *DMmain(void* varg)
 {
+    unsigned fd_first = 0;
     // We declare the "printChangeCollection" tunable constant here; it will
     // last for the lifetime of this function, which is pretty much forever.
     // (used to be declared as global in DMappContext.C.  Globally declared
@@ -776,7 +781,9 @@ void *DMmain(void* varg)
 	} } }
 
 	tag = MSG_TAG_ANY;
-	ret = msg_poll(&tag, true);
+	// ret = msg_poll(&tag, true);
+	ret = msg_poll_preference(&tag, true,fd_first);
+	fd_first = !fd_first;
 	assert(ret != THR_ERR);
 
 	if (tag == MSG_TAG_FILE) {
