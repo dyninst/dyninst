@@ -1,4 +1,4 @@
-// $Id: test8.C,v 1.2 2003/01/02 19:52:10 schendel Exp $
+// $Id: test8.C,v 1.3 2003/04/11 18:44:54 buck Exp $
 //
 
 #include <stdio.h>
@@ -439,12 +439,12 @@ main(unsigned int argc, char *argv[])
 	    N32ABI=true;
 #endif
 	} else {
-	    fprintf(stderr, "Usage: test4 "
+	    fprintf(stderr, "Usage: test8 "
 		    "[-V] [-verbose] "
 #if defined(mips_sgi_irix6_4)
 		    "[-n32] "
 #endif
-                    "[-mutatee <test4a.mutatee>] "
+                    "[-mutatee <test8.mutatee>] "
 		    "[-run <test#> <test#> ...] "
 		    "[-skip <test#> <test#> ...]\n");
             fprintf(stderr, "%d subtests\n", MAX_TEST);
