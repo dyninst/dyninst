@@ -270,8 +270,8 @@ Object::get_som_exec_auxhdr(const struct header* hdrp) {
 
 
 static int symbol_compare(const void *x, const void *y) {
-    Symbol *s1 = (Symbol *)x;
-    Symbol *s2 = (Symbol *)y;
+    const Symbol *s1 = (const Symbol *)x;
+    const Symbol *s2 = (const Symbol *)y;
     return (s1->addr() - s2->addr());
 }
 
@@ -430,7 +430,7 @@ Object::load_object() {
 	const struct space_dictionary_record *sdr;
 	const struct subspace_dictionary_record *subdr;
  
-	char *ssdr;                             /* space        */
+	const char *ssdr;                             /* space        */
 	char *gdb_string;                       /* GCC: subspace $GDB_STRING */
 	struct internal_nlist *gdb_symbol;      /* GCC: subspace $GDB_SYMBOL */  
 	char *vt;                               /* CC:  subspace $GNTT$, $VT$*/
@@ -449,7 +449,7 @@ Object::load_object() {
         sdr = (const struct space_dictionary_record *)
         ((const void *) ((const char *) hdrp + (hdrp->space_location)));
 
-        ssdr = (char *)((const char *) hdrp + (hdrp->space_strings_location));
+        ssdr = (const char *) hdrp + (hdrp->space_strings_location);
 
 
 	/* Get the subspace infomation of the $GDB_STRINGS$, $GDB_SYMBOLS$,

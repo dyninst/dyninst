@@ -99,8 +99,8 @@ private:
 };
 
 static int symbol_compare(const void *x, const void *y) {
-    Symbol *s1 = (Symbol *)x;
-    Symbol *s2 = (Symbol *)y;
+    const Symbol *s1 = (const Symbol *)x;
+    const Symbol *s2 = (const Symbol *)y;
     return (s1->addr() - s2->addr());
 }
 
