@@ -45,6 +45,7 @@
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/debugOstream.h"
+#include "dyninstAPI/src/dyn_thread.h"
 
 extern unsigned enable_pd_sharedobj_debug;
 
@@ -332,96 +333,94 @@ bool dynamic_linking::unset_r_brk_point(process *proc) {
 // address space.  This routine reads the link maps from the application 
 // process to find the shared object file base mappings. It returns 0 on error.
 pdvector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
-
-    r_debug debug_elm;
-    if(!p->readDataSpace((caddr_t)(r_debug_addr),
-        sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
-        return 0;
-    }
-
-    r_brk_addr = debug_elm.r_brk;
-
+   r_debug debug_elm;
+   if(!p->readDataSpace((caddr_t)(r_debug_addr),
+                        sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
+      return 0;
+   }
+   
+   r_brk_addr = debug_elm.r_brk;
+   
 #if defined(ia64_unknown_linux2_4)
 	/* The IA-64's function pointers don't actually point at the function,
-	   because you also need to know the GP to call it.  Hence, another indirection. */
-	if( ! p->readDataSpace( (void *)r_brk_addr, 8, (void *)&r_brk_addr, true ) ) {
+	   because you also need to know the GP to call it.  Hence, another
+	   indirection. */
+	if(! p->readDataSpace( (void *)r_brk_addr, 8, (void *)&r_brk_addr, true ) )
+   {
 		fprintf( stderr, "Failed to read r_brk_addr.\n" );
 		return 0;
-		}
+   }
 #endif
 
-    // get each link_map object
-    bool first_time = true;
-    link_map *next_link_map = debug_elm.r_map;
-    Address next_addr = (Address)next_link_map; 
-    pdvector<shared_object*> *shared_objects = new pdvector<shared_object*>;
-    while(next_addr != 0){
-	link_map link_elm;
-        if(!p->readDataSpace((caddr_t)(next_addr),
-            sizeof(link_map),(caddr_t)&(link_elm),true)) {
-            logLine("read next_link_map failed\n");
-	    return 0;
-        }
-	// get file name
-	char f_name[256]; // assume no file names greater than 256 chars
-	// check to see if reading 256 chars will go out of bounds
-	// of data segment
-	u_int f_amount = 256;
-        bool done = false;
-	for(u_int i=0; (i<256) && (!done); i++){
-            if(!p->readDataSpace((caddr_t)((Address)(link_elm.l_name)+i),
-		sizeof(char),(caddr_t)(&(f_name[i])),true)){
-            }
-	    if(f_name[i] == '\0'){
-		done = true;
-		f_amount = i+1;
-	    }
-	}
-        f_name[f_amount-1] = '\0';
-	pdstring obj_name = pdstring(f_name);
+   // get each link_map object
+   bool first_time = true;
+   link_map *next_link_map = debug_elm.r_map;
+   Address next_addr = (Address)next_link_map; 
+   pdvector<shared_object*> *shared_objects = new pdvector<shared_object*>;
+   while(next_addr != 0) {
+      link_map link_elm;
+      if(!p->readDataSpace((caddr_t)(next_addr),
+                           sizeof(link_map),(caddr_t)&(link_elm),true)) {
+         logLine("read next_link_map failed\n");
+         return 0;
+      }
+      // get file name
+      char f_name[256]; // assume no file names greater than 256 chars
+      // check to see if reading 256 chars will go out of bounds
+      // of data segment
+      u_int f_amount = 256;
+      bool done = false;
+      for(u_int i=0; (i<256) && (!done); i++) {
+         if(!p->readDataSpace((caddr_t)((Address)(link_elm.l_name)+i),
+                              sizeof(char),(caddr_t)(&(f_name[i])),true)){
+         }
+         if(f_name[i] == '\0'){
+            done = true;
+            f_amount = i+1;
+         }
+      }
+      f_name[f_amount-1] = '\0';
+      pdstring obj_name = pdstring(f_name);
 
-	sharedobj_cerr << 
-	    "dynamicLinking::processLinkMaps(): file name of next shared obj="
-	    << obj_name << endl;
-
-	// create a shared_object and add it to the list
-	// kludge: ignore the entry if it has the same name as the
-	// executable file...this seems to be the first link-map entry
-	if(obj_name != p->getImage()->file() && 
-	   obj_name != p->getImage()->name() &&
-	   obj_name != p->getArgv0()) {
-	   sharedobj_cerr << 
-	       "file name doesn't match image, so not ignoring it...firsttime=" 
-	       << (int)first_time << endl;
-
-	   // kludge for when an exec occurs...the first element
-	   // in the link maps is the file name of the parent process
-	   // so in this case, we ignore the first entry
-	   if((!(p->wasExeced())) || (p->wasExeced() && !first_time)){ 
-                shared_object *newobj = new shared_object(obj_name,
-                                                          link_elm.l_addr,false,true,true,0);
-                (*shared_objects).push_back(newobj);
+      sharedobj_cerr << "dynamicLinking::processLinkMaps(): file name of next "
+                     << "shared obj=" << obj_name << endl;
+      
+      // create a shared_object and add it to the list
+      // kludge: ignore the entry if it has the same name as the
+      // executable file...this seems to be the first link-map entry
+      if(obj_name != p->getImage()->file() && 
+         obj_name != p->getImage()->name() &&
+         obj_name != p->getArgv0()) {
+         sharedobj_cerr << "file name doesn't match image, so not ignoring "
+                        << "it...firsttime=" << (int)first_time << endl;
+         
+         // kludge for when an exec occurs...the first element
+         // in the link maps is the file name of the parent process
+         // so in this case, we ignore the first entry
+         if((!(p->wasExeced())) || (p->wasExeced() && !first_time)) { 
+            shared_object *newobj =
+               new shared_object(obj_name, link_elm.l_addr, false,true,true,0);
+            (*shared_objects).push_back(newobj);
 #if defined(BPATCH_LIBRARY)
 #if defined(i386_unknown_linux2_0)
-		setlowestSObaseaddr(link_elm.l_addr);
+            setlowestSObaseaddr(link_elm.l_addr);
 #endif
-#endif
-
-	    }
-	}
-	else {
-	   sharedobj_cerr << 
-	       "file name matches that of image, so ignoring...firsttime=" 
-	       << (int)first_time << endl;
-        }
-
-	first_time = false;
-	next_addr = (Address)link_elm.l_next;
-    }
-    p->setDynamicLinking();
-    dynlinked = true;
-    return shared_objects;
-    shared_objects = 0;
+#endif  
+         }
+      }
+      else {
+         sharedobj_cerr << 
+            "file name matches that of image, so ignoring...firsttime=" 
+                        << (int)first_time << endl;
+      }
+      
+      first_time = false;
+      next_addr = (Address)link_elm.l_next;
+   }
+   p->setDynamicLinking();
+   dynlinked = true;
+   return shared_objects;
+   shared_objects = 0;
 }
 
 
@@ -466,69 +465,69 @@ pdvector<Address> *dynamic_linking::getLinkMapAddrs(process *p) {
 // returns 0 on error.
 pdvector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
 						pdvector<Address> *old_addrs,
-						bool &error_occured){
+						bool &error_occured)
+{
+   r_debug debug_elm;
+   if(!p->readDataSpace((caddr_t)(r_debug_addr),
+                        sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
+      error_occured = true;
+      return 0;
+   }
 
-    r_debug debug_elm;
-    if(!p->readDataSpace((caddr_t)(r_debug_addr),
-        sizeof(r_debug),(caddr_t)&(debug_elm),true)) {
-	error_occured = true;
-        return 0;
-    }
-
-    // get each link_map object
-    bool first_time = true;
-    link_map *next_link_map = debug_elm.r_map;
-    Address next_addr = (Address)next_link_map; 
-    pdvector<shared_object*> *new_shared_objects = new pdvector<shared_object*>;
-    while(next_addr != 0){
-	link_map link_elm;
-        if(!p->readDataSpace((caddr_t)(next_addr),
-            sizeof(link_map),(caddr_t)&(link_elm),true)) {
-            logLine("read next_link_map failed\n");
-	    delete new_shared_objects;
-	    error_occured = true;
-	    return 0;
-        }
-
-	// kludge: ignore the entry 
-	if(!first_time){
-	    // check to see if this is a new shared object 
-	    bool found = false;
-	    for(u_int i=0; i < old_addrs->size(); i++){
-		if((*old_addrs)[i] == link_elm.l_addr) {
-		    found = true; 
-		    break;
-		}
-	    }
-	    if (!found) {  
-		// this is a new shared object, create a shrared_object for it 
-	        char f_name[256];// assume no file names greater than 256 chars
-	        // check to see if reading 256 chars will go out of bounds
-	        // of data segment
-	        u_int f_amount = 256;
-                bool done = false;
-	        for(u_int i=0; (i<256) && (!done); i++){
-                    if(!p->readDataSpace((caddr_t)((Address)(link_elm.l_name)+i),
-		        sizeof(char),(caddr_t)(&(f_name[i])),true)){
-                    }
-	            if(f_name[i] == '\0'){
-		        done = true;
-		        f_amount = i+1;
-	            }
-	        }
-                f_name[f_amount-1] = '\0';
-	        pdstring obj_name = pdstring(f_name);
-                shared_object *newobj = new shared_object(obj_name,
-			link_elm.l_addr,false,true,true,0);
-		(*new_shared_objects).push_back(newobj);
+   // get each link_map object
+   bool first_time = true;
+   link_map *next_link_map = debug_elm.r_map;
+   Address next_addr = (Address)next_link_map; 
+   pdvector<shared_object*> *new_shared_objects = new pdvector<shared_object*>;
+   while(next_addr != 0) {
+      link_map link_elm;
+      if(!p->readDataSpace((caddr_t)(next_addr),
+                           sizeof(link_map),(caddr_t)&(link_elm),true)) {
+         logLine("read next_link_map failed\n");
+         delete new_shared_objects;
+         error_occured = true;
+         return 0;
+      }
+      
+      // kludge: ignore the entry 
+      if(!first_time) {
+         // check to see if this is a new shared object 
+         bool found = false;
+         for(u_int i=0; i < old_addrs->size(); i++){
+            if((*old_addrs)[i] == link_elm.l_addr) {
+               found = true; 
+               break;
             }
-	}
-	first_time = false;
-	next_addr = (Address)link_elm.l_next;
-    }
-    error_occured = false;
-    return new_shared_objects;
-    new_shared_objects = 0;
+         }
+         if (!found) {  
+            // this is a new shared object, create a shrared_object for it 
+            char f_name[256];// assume no file names greater than 256 chars
+            // check to see if reading 256 chars will go out of bounds
+            // of data segment
+            u_int f_amount = 256;
+            bool done = false;
+            for(u_int i=0; (i<256) && (!done); i++){
+               if(!p->readDataSpace((caddr_t)((Address)(link_elm.l_name)+i),
+                                    sizeof(char),(caddr_t)(&(f_name[i])),true))
+               { }
+	            if(f_name[i] == '\0'){
+                  done = true;
+                  f_amount = i+1;
+	            }
+            }
+            f_name[f_amount-1] = '\0';
+            pdstring obj_name = pdstring(f_name);
+            shared_object *newobj =
+               new shared_object(obj_name, link_elm.l_addr, false,true,true,0);
+            (*new_shared_objects).push_back(newobj);
+         }
+      }
+      first_time = false;
+      next_addr = (Address)link_elm.l_next;
+   }
+   error_occured = false;
+   return new_shared_objects;
+   new_shared_objects = 0;
 }
 
 
@@ -709,6 +708,12 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 
     } 
 
+    dyn_lwp *lwp_to_use = NULL;
+    lwp_to_use = proc->getRepresentativeLWP();
+    if(lwp_to_use == NULL)
+    if(process::IndependentLwpControl() && lwp_to_use == NULL)
+       lwp_to_use = proc->getInitialThread()->get_lwp();
+
 #if defined(i386_unknown_linux2_0)
     // Return from the function.  We used to do this by setting the program
     // counter to the end of the function, but we don't necessarily know
@@ -730,7 +735,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
       return true;
     }
 
-    if (!proc->getRepresentativeLWP()->changePC(ret_addr, NULL))
+    if (! lwp_to_use->changePC(ret_addr, NULL))
       error_occured = true;
 
     return true;
@@ -739,10 +744,11 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 	if( brkpoint_set ) {
 		/* We've inserted a return statement at r_brk_target_addr
 		   for our use here. */
-		proc->getRepresentativeLWP()->changePC( r_brk_target_addr, NULL );
-		} else {
-		// /* DEBUG */ fprintf( stderr, "* Not changing PC on dyninst library load.\n" );
-		}
+		lwp_to_use->changePC( r_brk_target_addr, NULL );
+   } else {
+		// /* DEBUG */ fprintf( stderr,
+      //                      "* Not changing PC on dyninst library load.\n" );
+   }
 
 	return true;
 	} /* end if r_brk occurred. */
