@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.157 2004/06/08 22:03:16 legendre Exp $
+// $Id: symtab.h,v 1.158 2004/07/19 22:29:30 eli Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -195,10 +195,6 @@ class module;
 
 class function_base : public codeRange {
  public:
-   // needed to workaround gcc 3.0.2 problem (bug?)
-   typedef const unsigned char* InstrucPos;
-   InstrucPos *iptrs;
-    
    static pdstring emptyString;
 
    function_base(const pdstring &symbol, Address adr, const unsigned size) :
@@ -212,21 +208,13 @@ class function_base : public codeRange {
 
        symTabName_.push_back(symbol);
 
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) ||\
-    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-       iptrs = NULL;
+#if defined(arch_x86)
        blockList = new pdvector< BPatch_basicBlock* >;
 #endif
    }
 
    virtual ~function_base() {
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) ||\
-    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-       if (iptrs) delete[] iptrs;
+#if defined(arch_x86)
        delete blockList;
 #endif
    }
