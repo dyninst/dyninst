@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.62 2003/05/09 14:29:50 chadd Exp $
+// $Id: BPatch.C,v 1.63 2003/07/31 19:01:43 schendel Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -757,7 +757,7 @@ void BPatch::unRegisterThread(int pid)
 
  */
 BPatch_thread *BPatch::createProcess(const char *path, char *argv[], 
-	char *envp[], int stdin_fd, int stdout_fd, int stderr_fd)
+                                     char *envp[], int stdin_fd, int stdout_fd, int stderr_fd)
 {
     clearError();
 
