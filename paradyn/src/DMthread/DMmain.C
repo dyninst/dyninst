@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.36  1994/07/05 03:27:17  hollings
+ * Revision 1.37  1994/07/07 03:30:16  markc
+ * Changed expected return types for appContext functions from integer to Boolean
+ *
+ * Revision 1.36  1994/07/05  03:27:17  hollings
  * added observed cost model.
  *
  * Revision 1.35  1994/07/02  01:43:11  markc
@@ -404,7 +407,7 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
    }
       
    assert (dm->appContext);
-   assert (!dm->appContext->addRunningProgram(pid, argc, argv, daemon));
+   assert (dm->appContext->addRunningProgram(pid, argc, argv, daemon));
 }
 
 void dynRPCUser::newMetricCallback(metricInfo info)
@@ -550,7 +553,7 @@ DMnewParadynd (int sockfd, dataManager *dm)
   }
 
   assert (dm->appContext);
-  assert (!dm->appContext->addDaemon(new_fd));
+  assert (dm->appContext->addDaemon(new_fd));
 }
 
 //
