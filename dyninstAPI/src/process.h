@@ -250,6 +250,7 @@ class process {
   // the following 2 vrbles probably belong in a different class:
   static string programName; // the name of paradynd (more specifically, its argv[0])
   static vector<string> arg_list; // the arguments of paradynd
+  static string pdFlavor ;
 
   internalSym *findInternalSymbol(const string &name, bool warn) {
      assert(symbols);
