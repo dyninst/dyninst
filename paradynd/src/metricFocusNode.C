@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: metricFocusNode.C,v 1.152 1998/08/16 23:44:14 wylie Exp $
+
 #include "util/h/headers.h"
 #include <limits.h>
 #include <assert.h>
@@ -295,9 +297,9 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
        return NULL;
     }
 
-    //cerr << "createMetricInstance called.  metric_name = " << \
-    //     metric_name << endl;
-    //cerr << " canonicalFocus (derived from focus (u_int id array)) == " \
+    //cerr << "createMetricInstance called.  metric_name = "
+    //     << metric_name << endl;
+    //cerr << " canonicalFocus (derived from focus (u_int id array)) == "
     //	 << endl;
     //for(unsigned z = 0; z < canonicalFocus.size(); z++) {
     //    vector<string> temp_strings = canonicalFocus[z];
@@ -336,7 +338,7 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
        }
     }
 
-    //cerr << " previous instance of metric not found, trying to create" \
+    //cerr << " previous instance of metric not found, trying to create"
     //	 << endl;
 
     if (mdl_can_do(metric_name)) {
