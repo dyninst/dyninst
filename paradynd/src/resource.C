@@ -7,13 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.17 1995/12/20 16:10:23 tamches Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.18 1996/03/01 22:35:57 mjrg Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
+ * Revision 1.18  1996/03/01 22:35:57  mjrg
+ * Added a type to resources.
+ * Changes to the MDL to handle the resource hierarchy better.
+ *
  * Revision 1.17  1995/12/20 16:10:23  tamches
  * minor changes for the new vector class (no constructor taking in T&)
  *
@@ -115,7 +119,8 @@ resource *processResource;
 resource *moduleRoot;
 resource *syncRoot;
 
-resource *resource::newResource(resource *parent, string& name, unsigned id) {
+resource *resource::newResource(resource *parent, string& name, unsigned id, 
+				unsigned type) {
   assert (name != (char*) NULL);
   assert ((name.string_of())[0] != '/');
 
@@ -128,7 +133,7 @@ resource *resource::newResource(resource *parent, string& name, unsigned id) {
   vector<string> v_names = parent->names();
   v_names += name;
   string abs;
-  resource *ret = new resource(abs, name, 0.0, NULL, false, parent, v_names);
+  resource *ret = new resource(abs, name, 0.0, NULL, false, parent, v_names, type);
   assert(ret);
   allResources[res_string] = ret;
   res_dict[id] = ret;
@@ -136,7 +141,8 @@ resource *resource::newResource(resource *parent, string& name, unsigned id) {
 }
 
 resource *resource::newResource(resource *parent, void *handle, string abstraction, 
-				string name, timeStamp creation, string unique)
+				string name, timeStamp creation, string unique,
+				unsigned type)
 {
   assert (name != (char*) NULL);
   assert ((name.string_of())[0] != '/');
@@ -154,12 +160,12 @@ resource *resource::newResource(resource *parent, void *handle, string abstracti
   vector<string> v_names = parent->names();
   v_names += unique_string;
   resource *ret = new resource(abstraction, unique_string, creation, handle,
-			       false, parent, v_names);
+			       false, parent, v_names, type);
   assert(ret);
   allResources[res_string] = ret;
 
   // TODO -- use pid here
-  tp->resourceInfoCallback(0, v_names, abstraction); 
+  tp->resourceInfoCallback(0, v_names, abstraction, type); 
   return(ret);
 }
 

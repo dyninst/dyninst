@@ -1,6 +1,10 @@
 
 /*
  * $Log: init.C,v $
+ * Revision 1.30  1996/03/01 22:35:54  mjrg
+ * Added a type to resources.
+ * Changes to the MDL to handle the resource hierarchy better.
+ *
  * Revision 1.29  1996/02/13 06:17:28  newhall
  * changes to how cost metrics are computed. added a new costMetric class.
  *
@@ -136,22 +140,22 @@ bool init() {
   string hostName(un.nodename);
   rootResource = new resource;
   machineRoot = resource::newResource(rootResource, NULL, nullString,
-				      "Machine", 0.0, "");
-  machineResource = resource::newResource(machineRoot, NULL, nullString, hostName, 0.0, "");
+				      "Machine", 0.0, "", MDL_T_STRING);
+  machineResource = resource::newResource(machineRoot, NULL, nullString, hostName, 
+					  0.0, "", MDL_T_STRING);
   processResource = resource::newResource(rootResource, NULL, nullString,
-					  "Process", 0.0, "");
+					  "Process", 0.0, "", MDL_T_STRING);
 //  moduleRoot = resource::newResource(rootResource, NULL, nullString,
 //				     "Procedure", 0.0, "");
   moduleRoot = resource::newResource(rootResource, NULL, nullString,
-				     "Code", 0.0, "");
+				     "Code", 0.0, "", MDL_T_STRING);
   syncRoot = resource::newResource(rootResource, NULL, nullString, 
-				   "SyncObject", 0.0, "");
-
+				   "SyncObject", 0.0, "", MDL_T_STRING);
   // TODO -- should these be detected and built ?
-  resource::newResource(syncRoot, NULL, nullString, "MsgTag", 0.0, "");
-  resource::newResource(syncRoot, NULL, nullString, "SpinLock", 0.0, "");
-  resource::newResource(syncRoot, NULL, nullString, "Barrier", 0.0, "");
-  resource::newResource(syncRoot, NULL, nullString, "Semaphore", 0.0, "");
+  resource::newResource(syncRoot, NULL, nullString, "MsgTag", 0.0, "", MDL_T_STRING);
+  resource::newResource(syncRoot, NULL, nullString, "SpinLock", 0.0, "", MDL_T_STRING);
+  resource::newResource(syncRoot, NULL, nullString, "Barrier", 0.0, "", MDL_T_STRING);
+  resource::newResource(syncRoot, NULL, nullString, "Semaphore", 0.0, "", MDL_T_STRING);
 
   im_pred_struct default_im_preds, obs_cost_preds;
   default_im_preds.machine = pred_null;

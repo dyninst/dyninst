@@ -3,6 +3,10 @@
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.20  1996/03/01 22:35:56  mjrg
+ * Added a type to resources.
+ * Changes to the MDL to handle the resource hierarchy better.
+ *
  * Revision 1.19  1996/02/02 14:31:30  naim
  * Eliminating old definition for observed cost - naim
  *
@@ -83,6 +87,7 @@
 #include "util/h/Timer.h"
 #include <strstream.h>
 #include "paradynd/src/mdld.h"
+#include "showerror.h"
 
 #ifdef paradyndCM5_blizzard
 // START_NAME corresponds some routine with $start of your mdl
@@ -91,6 +96,11 @@
 #else
 #define START_NAME "main"
 #endif
+
+// Some global variables used to print error messages:
+string currentMetric;  // name of the metric that is being processed.
+string currentFocus;   // the focus
+
 
 static string daemon_flavor;
 static process *global_proc = NULL;
@@ -285,6 +295,24 @@ static inline void add_processes(vector< vector<string> > &focus,
   }
 }
 
+static inline bool focus_matches(vector<string>& focus, vector<string> *match_path) {
+  unsigned mp_size = match_path->size();
+  unsigned f_size = focus.size();
+  if (mp_size < 1 || f_size < 2 || mp_size != f_size - 1)
+    return false;
+
+  // need special rule to check for /Code/Module
+  if (focus[0] == "Code" && (*match_path)[0] == "Code" && mp_size == 2 &&
+      (*match_path)[1] == "Module")
+    return true;
+
+  for (unsigned u = 0; u < mp_size; u++)
+    if (focus[u] != (*match_path)[u])
+      return false;
+  return true;
+}
+
+#ifdef notdef
 // TODO -- determine if a focus matches
 // What are the rules ?
 static inline bool focus_matches(vector<string>& focus, vector<string> *match_path) {
@@ -302,6 +330,7 @@ static inline bool focus_matches(vector<string>& focus, vector<string> *match_pa
   // TODO -- I am ignoring intermediate fields in the match path
   //      -- I only care about the first and the last fields
 }
+#endif
 
 // Global constraints are specified by giving their name within a metric def
 // Find the real constraint by searching the dictionary using this name
@@ -320,6 +349,7 @@ static inline T_dyninstRPC::mdl_constraint *flag_matches(vector<string>& focus,
 	return match_me;
       }
     }
+
   return NULL;
 }
 
@@ -368,7 +398,20 @@ static inline bool check_constraints(vector<T_dyninstRPC::mdl_constraint*>& flag
 	}
 	ci++;
       }
-      if (!matched && (el_size>1)) return false;
+      if (!matched && (el_size>1)) {
+	string focus_str;
+	for (unsigned u = 0; u < focus.size(); u++) {
+	  focus_str += string("/") + focus[u][0];
+	  for (unsigned v = 1; v < focus[u].size(); v++) {
+	    focus_str += string(",") + focus[u][v];
+	  }
+	}
+	string msg = string("Metric ") + currentMetric + 
+               string(" has no constraint that matches focus ") + 
+               focus_str;
+	showErrorCallback(93, msg.string_of());
+	return false;
+      }
     } else {
       return false;
     }
@@ -629,8 +672,64 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
 // determine the type of the trailing part of the constraint's match path
 // and put this into the environment
 static inline bool do_trailing_resource(unsigned& type, unsigned& hierarchy,
-					vector<string>& resource, process *proc) {
+					vector<string>& resource_, process *proc) {
   string c_string = "$constraint";
+  assert(resource_.size());
+  string trailing_res = resource_[resource_.size()-1];
+
+  resource *r = resource::findResource(resource_);
+  if (!r) {
+    // internal error
+     assert(0); 
+  }
+
+  switch (r->type()) {
+  case MDL_T_INT: 
+    {
+      const char *p = trailing_res.string_of();
+      char *q;
+      int val = (int) strtol(p, &q, 0);
+      if (p == q) {
+	string msg = string("unable to convert resource '") + trailing_res + 
+	             string("' to integer.");
+	showErrorCallback(92,msg.string_of());
+	return false;
+      }
+      mdl_env::add(c_string, false, MDL_T_INT);
+      mdl_env::set(val, c_string);
+    }
+    break;
+  case MDL_T_STRING:
+    mdl_env::add(c_string, false, MDL_T_STRING);
+    mdl_env::set(trailing_res, c_string);
+    break;
+  case MDL_T_PROCEDURE:
+    {
+      pdFunction *pdf = proc->symbols->findOneFunction(trailing_res);
+      if (!pdf) {
+	
+	return false;
+      }
+      mdl_env::add(c_string, false, MDL_T_PROCEDURE);
+      mdl_env::set(pdf, c_string);
+    }
+    break;
+  case MDL_T_MODULE:
+    {
+      module *mod = proc->symbols->findModule(trailing_res);
+      if (!mod) return false;
+      mdl_env::add(c_string, false, MDL_T_MODULE);
+      mdl_env::set(mod, c_string);
+    }
+    break;
+  default:
+    assert(0);
+    break;
+  }
+  return true;
+
+
+#ifdef notdef
   switch (hierarchy) {
   case MDL_RES_CODE:
     if (type == MDL_T_PROCEDURE) {
@@ -650,7 +749,6 @@ static inline bool do_trailing_resource(unsigned& type, unsigned& hierarchy,
     }
     break;
   case MDL_RES_SYNCOBJECT:
-    {
     if (resource.size() != 3) return false;
     if (type != MDL_T_INT) assert(0);
     mdl_env::add(c_string, false, MDL_T_INT);
@@ -665,6 +763,7 @@ static inline bool do_trailing_resource(unsigned& type, unsigned& hierarchy,
     assert(0);
   }
   return true;
+#endif
 }
 
 // Replace constraints not working yet
@@ -1211,6 +1310,7 @@ bool mdl_can_do(string& met_name) {
 
 metricDefinitionNode *mdl_do(vector< vector<string> >& canon_focus, string& met_name,
 			     string& flat_name, vector<process *> procs) {
+  currentMetric = met_name;
   unsigned size = mdl_data::all_metrics.size();
   for (unsigned u=0; u<size; u++) 
     if (mdl_data::all_metrics[u]->name_ == met_name) {
@@ -1222,6 +1322,8 @@ metricDefinitionNode *mdl_do(vector< vector<string> >& canon_focus, string& met_
 bool mdl_init(string& flavor) { 
 
   daemon_flavor = flavor;
+
+#ifdef notdef
   vector<mdl_type_desc> kids;
   mdl_type_desc self, kid;
   mdl_focus_element fe;
@@ -1249,6 +1351,7 @@ bool mdl_init(string& flavor) {
   self.name = "Machine"; self.type = MDL_T_STRING; self.end_allowed = true;
   fe.self = self; fe.kids.resize(0);
   mdl_data::foci += fe;
+#endif
 
   mdl_env::push();
   // These are pushed on per-process
@@ -1432,6 +1535,19 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val,
   case MDL_GE:
   case MDL_EQ:
   case MDL_NE:
+    if ((left_val.type() == MDL_T_STRING) && (right_val.type() == MDL_T_STRING)) {
+      string v1, v2;
+      if (!left_val.get(v1)) return false;
+      if (!right_val.get(v2)) return false;
+      switch (bin_op) {
+      case MDL_LT: return (ret.set(v1 < v2));
+      case MDL_GT: return (ret.set(v1 > v2));
+      case MDL_LE: return (ret.set(v1 <= v2));
+      case MDL_GE: return (ret.set(v1 >= v2));
+      case MDL_EQ: return (ret.set(v1 == v2));
+      case MDL_NE: return (ret.set(v1 != v2));
+      }  
+    }
     if ((left_val.type() == MDL_T_INT) && (right_val.type() == MDL_T_INT)) {
       int v1, v2;
       if (!left_val.get(v1)) return false;

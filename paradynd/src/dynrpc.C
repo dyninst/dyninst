@@ -27,6 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.37  1996/03/01 22:35:52  mjrg
+ * Added a type to resources.
+ * Changes to the MDL to handle the resource hierarchy better.
+ *
  * Revision 1.36  1996/02/27 20:10:08  naim
  * Changing getPredictedDataCost from double to float for consistency (it was
  * double in some places and float in some others) - naim
@@ -198,11 +202,11 @@ void dynRPC::printStats(void)
 }
 
 // TODO -- use a different creation time
-void dynRPC::addResource(u_int parent_id, u_int id, string name)
+void dynRPC::addResource(u_int parent_id, u_int id, string name, u_int type)
 {
   resource *parent = resource::findResource(parent_id);
   if (!parent) return;
-  resource::newResource(parent, name, id);
+  resource::newResource(parent, name, id, type);
 }
 
 void dynRPC::coreProcess(int id)
@@ -346,6 +350,7 @@ void dynRPC::setSampleRate(double sampleInterval)
 	// set the sample multiple in all processes
 	unsigned p_size = processVec.size();
 	for (unsigned u=0; u<p_size; u++){
+	  if (processVec[u]->status() != exited) {
             internalSym *ret_sym = 0; 
             if(!(ret_sym = processVec[u]->symbols->findInternalSymbol(
 				"DYNINSTsampleMultiple",true))){
@@ -356,6 +361,7 @@ void dynRPC::setSampleRate(double sampleInterval)
 	    Address addr = ret_sym->getAddr();
             processVec[u]->writeDataSpace((caddr_t)addr,sizeof(int),
 					  (caddr_t)sample_multiple);
+	  }
         }
         currSamplingRate = sampleInterval;
     }
@@ -392,6 +398,7 @@ void dynRPC::continueProgram(int program)
       showErrorCallback(62,(const char *) errorLine);
     }
     proc->continueProc();
+    statusLine("application running");
 }
 
 //

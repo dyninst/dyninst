@@ -4,6 +4,10 @@
 
 /*
  * $Log: resource.h,v $
+ * Revision 1.4  1996/03/01 22:35:58  mjrg
+ * Added a type to resources.
+ * Changes to the MDL to handle the resource hierarchy better.
+ *
  * Revision 1.3  1995/11/29 18:45:25  krisna
  * added inlines for compiler. added templates
  *
@@ -42,7 +46,8 @@ public:
   inline resource();
   inline resource(string& abstraction, string& self_name, timeStamp creation,
 		  void *handle, bool suppressed, resource *parent, 
-		  vector<string>& v_names);
+		  vector<string>& v_names,
+		  unsigned type);
 
   vector<string>& names() { return names_; }
 
@@ -58,6 +63,7 @@ public:
   void *handle() const { return handle_; }
   resource *parent() const { return parent_; }
   unsigned id() const { return id_; }
+  unsigned type() const { return type_; }
 
   static void make_canonical(const vector< vector<string> >& focus,
 			     vector< vector<string> >& ret);
@@ -69,8 +75,10 @@ public:
 
   static bool foc_to_strings(vector< vector<string> >& string_foc, vector<u_int>& ids);
   static resource *newResource(resource *parent, void *handle, string abstraction,
-			       string name, timeStamp creation, string unique);
-  static resource *newResource(resource *parent, string& name, unsigned id);
+			       string name, timeStamp creation, string unique, 
+			       unsigned type);
+  static resource *newResource(resource *parent, string& name, unsigned id,
+			       unsigned type);
   inline void set_id(unsigned id);
 
 private:
@@ -83,6 +91,7 @@ private:
   resource *parent_;
   string part_name_;
   unsigned id_;
+  unsigned type_;  // the mdl type of this resource
   
   static dictionary_hash<string, resource*> allResources;
   static dictionary_hash<unsigned, resource*> res_dict;
@@ -104,11 +113,11 @@ inline resource::resource()
 
 inline resource::resource(string& abstraction, string& self_name, timeStamp creat,
 		   void *hand, bool supp, resource *par,
-		   vector<string>& v_names)
+		   vector<string>& v_names, unsigned type)
 : names_(v_names), flat_name_(par->full_name() + "/" + self_name),
   abstraction_(abstraction),
   creation_(creat), handle_(hand), suppressed_(supp), parent_(par),
-  part_name_(self_name) { }
+  part_name_(self_name), type_(type) { }
 
 inline resource *resource::findResource(unsigned& name) {
   if (!res_dict.defines(name)) return NULL;

@@ -16,6 +16,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/symtab.C,v 1.26
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
+ * Revision 1.36  1996/03/01 22:36:00  mjrg
+ * Added a type to resources.
+ * Changes to the MDL to handle the resource hierarchy better.
+ *
  * Revision 1.35  1995/12/20 16:10:47  tamches
  * removed ref to sorted() (vector class)
  *
@@ -605,7 +609,7 @@ void image::postProcess(const string pifname)
       do {
 	fscanf(Fil, "%s", tmp1);
         if (tmp1[0] != '}') {
-          parent = resource::newResource(parent, NULL, abstraction, tmp1, 0.0, "");
+          parent = resource::newResource(parent, NULL, abstraction, tmp1, 0.0, "", MDL_T_STRING);
         } else {
 	  parent = NULL;
 	}
@@ -676,9 +680,9 @@ void module::define() {
       // see if we have created module yet.
       if (!modResource) {
 	modResource = resource::newResource(moduleRoot, this, nullString, 
-					    fileName(), 0.0, "");
+					    fileName(), 0.0, "", MDL_T_MODULE);
       }
-      resource::newResource(modResource, pdf, nullString, pdf->prettyName(), 0.0, "");
+      resource::newResource(modResource, pdf, nullString, pdf->prettyName(), 0.0, "", MDL_T_PROCEDURE);
     }
   }
 }
@@ -1244,6 +1248,7 @@ pdFunction::pdFunction(const string symbol, const string &pretty, module *f,
 #else
     if (isReturnInsn(instr)) {
 #endif
+
       // define the return point
       funcReturn_ = new instPoint(this, instr, owner, adr, false);
       assert(funcReturn_);
