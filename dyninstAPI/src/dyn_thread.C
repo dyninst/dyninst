@@ -84,12 +84,6 @@ bool dyn_thread::updateLWP()
   return true;
 }
 
-Frame dyn_thread::getActiveFrameMT()
-{
-    Frame dummy;
-
-    return dummy;
-}
 #endif
   
 // MT version lives in the <os>MT.C files, and can do things like
@@ -108,6 +102,13 @@ Frame dyn_thread::getActiveFrame()
    } else
       return getActiveFrameMT();
 }
+
+// should be moved to alpha.C
+#if defined(alpha_dec_osf4_0)
+Frame dyn_thread::getActiveFrameMT() {
+	return Frame();
+}
+#endif
 
 // stackWalk: return parameter.
 bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
