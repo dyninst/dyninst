@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.269 2001/10/18 16:06:55 schendel Exp $
+// $Id: process.C,v 1.270 2001/10/24 21:13:52 pcroth Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2322,11 +2322,29 @@ process *createProcess(const string File, vector<string> argv,
                         vector<string> envp, const string dir = "", 
                         int stdin_fd=0, int stdout_fd=1, int stderr_fd=2)
 {
-    // prepend the directory (if any) to the file, unless the filename
-    // starts with a /
+
+	// prepend the directory (if any) to the filename,
+	// unless the filename is an absolute pathname
+	// 
+	// The filename is an absolute pathname if it starts with a '/' on UNIX,
+	// or a letter and colon pair on Windows.
     string file = File;
-    if (!file.prefixed_by("/") && dir.length() > 0)
-      file = dir + "/" + file;
+	if( dir.length() > 0 )
+	{
+#if !defined(i386_unknown_nt4_0)
+		if( !file.prefixed_by("/") )
+		{
+			file = dir + "/" + file;
+		}
+#else // !defined(i386_unknown_nt4_0)
+		if( (file.length() < 2) ||	// file is too short to be a drive specifier
+			!isalpha( file[0] ) ||	// first character in file is not a letter
+			(file[1] != ':') )		// second character in file is not a colon
+		{
+			file = dir + "\\" + file;
+		}
+#endif // !defined(i386_unknown_nt4_0)
+	}
 
 #if defined(BPATCH_LIBRARY) && !defined(BPATCH_REDIRECT_IO)
     string inputFile;
