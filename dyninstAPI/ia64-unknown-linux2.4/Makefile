@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.14 2004/03/08 22:30:52 schendel Exp $
+# $Id: Makefile,v 1.15 2004/03/15 18:45:56 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -7,12 +7,15 @@
 #DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
+USES_UNWIND_LIB = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 
+# It's not clear what, if anything, this actually does.
 NO_OPT_FLAG = true
-OPT_FLAG = -O2
+# OPT_FLAG = -02
+OPT_FLAG = 
 
 include ../../make.config 
 
@@ -41,7 +44,8 @@ SRCS =	../src/linux.C \
 		../src/ia64-template.s	\
 		../src/syscall-linux.C
 
-MYFLAGS		+= -I/usr/include/libelf -DUSES_DWARF_DEBUG -I$(LIBDWARFDIR)
+MYFLAGS		+= -I/usr/include/libelf -DUSES_DWARF_DEBUG -I$(LIBDWARFDIR) \
+			   -I$(LIBUNWINDDIR)/include
 
 CXXFLAGS	+= $(MYFLAGS)
 CFLAGS		+= $(MYFLAGS)
@@ -51,7 +55,7 @@ TFLAGS		+= $(MYFLAGS)
 #TFLAGS           += -g
 
 SYSLIBS		= -lelf -ldl
-LIBS		= -L$(LIBDWARFDIR)/lib -ldwarf
+LIBS		= -L$(LIBDWARFDIR)/lib -ldwarf -L$(LIBUNWINDDIR)/lib -Wl,-Bstatic -lunwind -Wl,-Bdynamic
 
 AS		= /usr/bin/as
 
