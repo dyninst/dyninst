@@ -41,6 +41,10 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.27  1996/08/20 19:07:30  lzheng
+ * Implementation of moving multiple instructions sequence and
+ * splitting the instrumentations into two phases.
+ *
  * Revision 1.26  1996/08/16 21:18:14  tamches
  * updated copyright for release 1.1
  *
@@ -216,6 +220,10 @@ AstNode &AstNode::operator=(const AstNode &src) {
 
    firstInsn = src.firstInsn;
    lastInsn = src.lastInsn;
+
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+   astFlag = src.astFlag;
+#endif
 
    return *this;
 }
@@ -516,7 +524,12 @@ reg AstNode::generateCode(process *proc,
 	} else if (oType == Param) {
 	    src = rs->allocateRegister(insn, base);
 	    // return the actual reg it is in.
-	    dest = emit(getParamOp, (reg)oValue, 0, src, insn, base);
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
+	    if (astFlag)
+		dest = emit(getSysParamOp, (reg)oValue, 0, src, insn, base);
+	    else 
+#endif
+		dest = emit(getParamOp, (reg)oValue, 0, src, insn, base);
 	    if (src != dest) {
 		rs->freeRegister(src);
 	    }
