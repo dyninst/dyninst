@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -952,27 +953,18 @@ void shm_detach(void *shmSegPtr) {
 #ifdef SHM_SAMPLING
 /* these vrbles exist in this scope so that fork() knows the attributes of the
    shm segs we've been using */
-static int the_shmSegBaseKey;
-static int the_shmSegIntCounterSize;
-static int the_shmSegWallTimerSize;
-static int the_shmSegProcTimerSize;
-
-static int the_shmSegIntCounterSegId; /* not the same as the key -- needed? */
-static int the_shmSegWallTimerSegId; /* not the same as the key -- needed? */
-static int the_shmSegProcTimerSegId; /* not the same as the key -- needed? */
-
-static intCounter *the_shmSegIntCounterPtr;
-static tTimer *the_shmSegWallTimerPtr;
-static tTimer *the_shmSegProcTimerPtr;
+static int the_shmSegKey;
+static int the_shmSegNumBytes;
+static int the_shmSegShmId; /* needed? */
+static void *the_shmSegAttachedPtr;
 #endif
 
 void
-DYNINSTinit(int shmSegIntCounterKey, int shmSegIntCounterSize,
-            int shmSegWallTimerSize, int shmSegProcTimerSize) {
-
+DYNINSTinit(int theKey, int shmSegNumBytes) {
    /* If all params are -1 then we're being called by DYNINSTfork(), so don't
       do any of the shm seg attach stuff... */
-   int calledFromFork = (shmSegIntCounterKey == -1);
+
+   int calledFromFork = (theKey == -1);
 
 #ifndef SHM_SAMPLING
     struct sigaction act;
@@ -989,33 +981,22 @@ DYNINSTinit(int shmSegIntCounterKey, int shmSegIntCounterSize,
    (void)gethostname(thehostname, 80);
    thehostname[79] = '\0';
 
-   fprintf(stderr, "WELCOME to DYNINSTinit (%s, pid=%d)\n",
-           thehostname, (int)getpid());
+#ifdef SHM_SAMPLING_DEBUG
+   fprintf(stderr, "WELCOME to DYNINSTinit (%s, pid=%d), args are %d and %d\n",
+           thehostname, (int)getpid(), theKey, shmSegNumBytes);
    fflush(stderr);
+#endif
 
 #ifdef SHM_SAMPLING
    if (!calledFromFork) {
-      the_shmSegBaseKey = shmSegIntCounterKey;
-      the_shmSegIntCounterSize = shmSegIntCounterSize;
-      the_shmSegWallTimerSize = shmSegWallTimerSize;
-      the_shmSegProcTimerSize = shmSegProcTimerSize;
+      the_shmSegKey = theKey;
+      the_shmSegNumBytes = shmSegNumBytes;
    
        /* note: error checking needs to be beefed up here: */
    
-       /* note how we account for the 16 bytes of meta-data which paradynd reserves
-          at the beginning of each shm segment */
-       the_shmSegIntCounterSegId = shm_create(shmSegIntCounterKey, shmSegIntCounterSize);
-       the_shmSegIntCounterPtr = (intCounter *)
-                     ((char*)shm_attach(the_shmSegIntCounterSegId) + 16);
-   
-       the_shmSegWallTimerSegId = shm_create(shmSegIntCounterKey+1, shmSegWallTimerSize);
-       the_shmSegWallTimerPtr = (tTimer *)
-                     ((char*)shm_attach(the_shmSegWallTimerSegId) + 16);
-   
-       the_shmSegProcTimerSegId = shm_create(shmSegIntCounterKey+2, shmSegProcTimerSize);
-       the_shmSegProcTimerPtr = (tTimer *)
-                     ((char*)shm_attach(the_shmSegProcTimerSegId) + 16);
-    }
+       the_shmSegShmId = shm_create(theKey, shmSegNumBytes);
+       the_shmSegAttachedPtr = shm_attach(the_shmSegShmId);
+   }
 #endif
 
     /*
@@ -1110,9 +1091,7 @@ DYNINSTinit(int shmSegIntCounterKey, int shmSegIntCounterSize,
     if (!calledFromFork) {
 
 #ifdef SHM_SAMPLING
-       DYNINST_bootstrap_info.intCounterAttachedAt = the_shmSegIntCounterPtr;
-       DYNINST_bootstrap_info.wallTimerAttachedAt  = the_shmSegWallTimerPtr;
-       DYNINST_bootstrap_info.procTimerAttachedAt  = the_shmSegProcTimerPtr;
+       DYNINST_bootstrap_info.applicAttachedAt = the_shmSegAttachedPtr;
 #endif
 
        /* We do this field last as a way to synchronize; paradynd will
@@ -1130,16 +1109,20 @@ DYNINSTinit(int shmSegIntCounterKey, int shmSegIntCounterSize,
       it will read from DYNINST_bootstrap_info (and then probably clear
       that structure). */
 
+#ifdef SHM_SAMPLING_DEBUG
     fprintf(stderr, "DYNINSTinit (%s, pid=%d) --> about to DYNINSTbreakPoint()\n",
 	    thehostname, (int)getpid());
     fflush(stderr);
+#endif
 
    if (!calledFromFork)
       DYNINSTbreakPoint();
 
+#ifdef SHM_SAMPLING_DEBUG
     fprintf(stderr, "leaving DYNINSTinit (%s, pid=%d) --> the process is running freely now\n",
 	    thehostname, (int)getpid());
     fflush(stderr);
+#endif
 }
 
 
@@ -1337,16 +1320,10 @@ static int connectToDaemon(int daemonPort) {
 
 #ifdef SHM_SAMPLING
 void pickNewShmSegBaseKey(key_t *resultKey,
-			  int *resultIntCounterSegId,
-			  int *resultWallTimerSegId,
-			  int *resultProcTimerSegId) {
+			  int *resultSegId) {
    /* doesn't create anything; just picks an available trio of shm segs */
-   /* WARNING: race condition exists: say >1 app forks at the same time; then
-      how can we be sure that we've properly reserved 3 in a row?  Maybe the
-      trick is to allocate 3 in a row (repeat until we can do this ok)
-      and then delete the 3 and return the result */
 
-   *resultKey = the_shmSegBaseKey; /* as good a place to start as any... */
+   *resultKey = the_shmSegKey; /* as good a place to start as any... */
 
    while (1) {
       /* permissions should be chosen s.t. the request will fail if already exists */
@@ -1354,41 +1331,29 @@ void pickNewShmSegBaseKey(key_t *resultKey,
          /* using IPC_EXCL ensure failure if already-exists */
       int failure;
 
-      *resultIntCounterSegId = shmget(*resultKey, the_shmSegIntCounterSize, permissions);
-      *resultWallTimerSegId = shmget(*resultKey+1, the_shmSegWallTimerSize, permissions);
-      *resultProcTimerSegId = shmget(*resultKey+2, the_shmSegProcTimerSize, permissions);
+      *resultSegId = shmget(*resultKey, the_shmSegNumBytes, permissions);
 
       /* successful? */
-      failure = (*resultIntCounterSegId == -1 ||
-		 *resultWallTimerSegId == -1 ||
-		 *resultProcTimerSegId == -1);
+      failure = (*resultSegId == -1);
 
       /* If successful, then keep the segments and update result vrbles */
       if (!failure)
          return;
 
-      /* On failure, fry the segments... */
-      if (*resultIntCounterSegId != -1)
-	 (void)shmctl(*resultIntCounterSegId, IPC_RMID, 0);
-
-      if (*resultWallTimerSegId != -1)
-	 (void)shmctl(*resultWallTimerSegId, IPC_RMID, 0);
-
-      if (*resultProcTimerSegId != -1)
-	 (void)shmctl(*resultProcTimerSegId, IPC_RMID, 0);
+      /* On failure, fry the newly created segment. */
+      if (*resultSegId != -1)
+	 (void)shmctl(*resultSegId, IPC_RMID, 0);
 
       /* ...and bump the key */
-      *resultKey += 10;
+      (*resultKey)++;
    }
 }
 
 static void makeNewShmSegsCopy(void) {
-   intCounter *new_shmSegIntCounterPtr = NULL;
-   tTimer *new_shmSegWallTimerPtr = NULL;
-   tTimer *new_shmSegProcTimerPtr = NULL;
+   void *new_shmSegAttachedPtr = NULL;
 
-   key_t new_shmSegBaseKey;
-   int new_shmSegIntCounterSegId, new_shmSegWallTimerSegId, new_shmSegProcTimerSegId;
+   key_t new_shmSegKey;
+   int new_shmSegShmId;
 
    fprintf(stderr, "dyninst-fork makeNewShmSegsCopy: welcome\n");
    fflush(stderr);
@@ -1396,29 +1361,19 @@ static void makeNewShmSegsCopy(void) {
    /* create new shm segments, copy data from the existing ones,
       detach from the old ones, and return the key of the new one(s) */
    
-   /* 1. What are the key's we're currently using?  the_shmSegBaseKey, +1, and +2 */
-
-   /* 2. Pick 3 new, unused keys: */
-   pickNewShmSegBaseKey(&new_shmSegBaseKey,
-			&new_shmSegIntCounterSegId,
-			&new_shmSegWallTimerSegId,
-			&new_shmSegProcTimerSegId);
+   /* 2. Pick a new, unused, key: */
+   pickNewShmSegBaseKey(&new_shmSegKey, &new_shmSegShmId);
       /* picks, creates, and attaches (must do all 3 to avoid a race condition
          with competing forking processes, if any). */
 
    fprintf(stderr, "d-f makeNewShmSegsCopy: did pickNewShmSegBaseKey; chose key %d\n",
-	   (int)new_shmSegBaseKey);
+	   (int)new_shmSegKey);
    fflush(stderr);
 
    /* 3. Attach to the segs, accounting for the 16 bytes of meta-data reserved
          at the start of each seg by paradynd: */
 
-   new_shmSegIntCounterPtr = (intCounter *)
-                          ((char*)shm_attach(new_shmSegIntCounterSegId) + 16);
-   new_shmSegWallTimerPtr = (tTimer *)
-                          ((char*)shm_attach(new_shmSegWallTimerSegId) + 16);
-   new_shmSegProcTimerPtr = (tTimer *)
-                          ((char*)shm_attach(new_shmSegProcTimerSegId) + 16);
+   new_shmSegAttachedPtr = shm_attach(new_shmSegShmId);
 
    fprintf(stderr, "d-f makeNewShmSegsCopy: attached to new segs\n");
    fflush(stderr);
@@ -1427,36 +1382,27 @@ static void makeNewShmSegsCopy(void) {
    /* Actually, we could let paradynd do this -- should we?  fork() semantics
       argues that we should (fork() shouldn't return until a true copy is made);
       do-more-work-in-paradynd argues that paradynd should. */
-   memcpy(new_shmSegIntCounterPtr, the_shmSegIntCounterPtr, the_shmSegIntCounterSize);
-   memcpy(new_shmSegWallTimerPtr, the_shmSegWallTimerPtr, the_shmSegWallTimerSize);
-   memcpy(new_shmSegProcTimerPtr, the_shmSegProcTimerPtr, the_shmSegProcTimerSize);
+   memcpy(new_shmSegAttachedPtr, the_shmSegAttachedPtr, the_shmSegNumBytes);
 
    fprintf(stderr, "d-f makeNewShmSegsCopy: memcopied data from old to new segs\n");
    fflush(stderr);
 
-   /* 5. Detach from the old shm segs */
-   shm_detach(the_shmSegIntCounterPtr);
-   shm_detach(the_shmSegWallTimerPtr);
-   shm_detach(the_shmSegProcTimerPtr);
+   /* 5. Detach from the old shm seg */
+   shm_detach(the_shmSegAttachedPtr);
 
    fprintf(stderr, "d-f makeNewShmSegsCopy: detached from old segs.\n");
    fflush(stderr);
 
    /* 6. update important global variables; only the sizes don't change */
-   the_shmSegBaseKey = new_shmSegBaseKey;
-   the_shmSegIntCounterSegId = new_shmSegIntCounterSegId;
-   the_shmSegWallTimerSegId = new_shmSegWallTimerSegId;
-   the_shmSegProcTimerSegId = new_shmSegProcTimerSegId;
-   the_shmSegIntCounterPtr = new_shmSegIntCounterPtr;
-   the_shmSegWallTimerPtr = new_shmSegWallTimerPtr;
-   the_shmSegProcTimerPtr = new_shmSegProcTimerPtr;
+   the_shmSegKey = new_shmSegKey;
+   the_shmSegShmId = new_shmSegShmId;
+   the_shmSegAttachedPtr = new_shmSegAttachedPtr;
 
    fprintf(stderr, "d-f makeNewShmSegsCopy: done. New vrbles are:\n");
-   fprintf(stderr, "key: %d, intCounterPtr=%x, wallTimerPtr=%x, procTimerPtr=%x.\n",
-	   (int)new_shmSegBaseKey, (unsigned)new_shmSegIntCounterPtr,
-	   (unsigned)new_shmSegWallTimerPtr, (unsigned)new_shmSegProcTimerPtr);
-   fprintf(stderr, "and segids respectively are %d, %d, %d.\n",
-	   new_shmSegIntCounterSegId, new_shmSegWallTimerSegId, new_shmSegProcTimerSegId);
+   fprintf(stderr, "key: %d, attachedPtr=%x\n",
+	   (int)new_shmSegKey, (unsigned)new_shmSegAttachedPtr);
+   fprintf(stderr, "and segid is %d.\n",
+	   new_shmSegShmId);
    fflush(stderr);
 
    /* all done, successfully */
@@ -1506,10 +1452,8 @@ DYNINSTfork(int pid) {
         forkRec.stride = 0;
 
 #ifdef SHM_SAMPLING
-	forkRec.the_shmSegBaseKey = the_shmSegBaseKey;
-        forkRec.appl_shmSegIntCounterPtr = the_shmSegIntCounterPtr;
-        forkRec.appl_shmSegWallTimerPtr = the_shmSegWallTimerPtr;
-        forkRec.appl_shmSegProcTimerPtr = the_shmSegProcTimerPtr;
+	forkRec.the_shmSegKey = the_shmSegKey;
+        forkRec.appl_attachedAtPtr = the_shmSegAttachedPtr;
 #endif
 
 	fprintf(stderr, "dyninst-fork sending TR_FORK record...\n");
@@ -1544,9 +1488,9 @@ DYNINSTfork(int pid) {
 	fflush(stderr);
 	fwrite(&pid, sizeof(pid), 1, DYNINSTtraceFp);
 
-	fprintf(stderr, "dyninst-fork finally calling DYNINSTinit(-1,-1,-1,-1)\n");
+	fprintf(stderr, "dyninst-fork finally calling DYNINSTinit(-1,-1)\n");
 	fflush(stderr);
-	DYNINSTinit(-1,-1,-1,-1); /* -1 params indicate called from DYNINSTfork */
+	DYNINSTinit(-1,-1); /* -1 params indicate called from DYNINSTfork */
 
 	fprintf(stderr, "dyninst-fork done...running freely.\n");
 	fflush(stderr);

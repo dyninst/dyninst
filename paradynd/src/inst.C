@@ -165,14 +165,9 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     returnInstance *retInstance = NULL;
     instInstance *inst = addInstFunc(proc, location, ast, when, order,
 				     noCost, retInstance);
-    //cerr << "small addInstFunc: call to addInstFunc set retInstance to: " << retInstance << endl;
     if (retInstance) {
-       //cerr << "small addInstFunc doing retInstance->installReturnInstance(proc)" << endl;
        retInstance-> installReturnInstance(proc);
        // writes to addr space
-    }
-    else {
-       //cerr << "small addInstFunc NOT doing retInstance->installReturnInstance(proc)" << endl;
     }
 
 //    delete retInstance; // safe if NULL (may have been alloc'd by findAndInstallBaseTramp)
@@ -203,7 +198,6 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     ret->proc = proc;
     ret->baseInstance = findAndInstallBaseTramp(proc, location, retInstance, noCost);
 
-    //cerr << "addInstFunc: call to findAndBaseTramp set retInstance to " << (void*)retInstance << endl;
     if (!ret->baseInstance)
        return(NULL);
 
@@ -544,20 +538,28 @@ void installBootstrapInst(process *proc) {
    // function --- not to update performance data.
 
    // Build an ast saying: "call DYNINSTinit() with the following args:
-   // (key base, int counter nbytes, wall timer nbytes, proc timer nbytes)
+   // (key base, total num bytes)
 
    vector<AstNode> the_args;
 
 #ifdef SHM_SAMPLING
-   const fastInferiorHeap<intCounterHK, intCounter> &theIntCounters = proc->getInferiorIntCounters();
-   the_args += AstNode(AstNode::Constant, (void*)theIntCounters.getShmSegKey());
-   the_args += AstNode(AstNode::Constant, (void*)theIntCounters.getShmSegNumBytes());
+   the_args += AstNode(AstNode::Constant,
+		       (void*)(proc->getShmKeyUsed())
+		       );
+   const unsigned shmHeapTotalNumBytes = proc->getShmHeapTotalNumBytes();
 
-   const fastInferiorHeap<wallTimerHK, tTimer> &theWallTimers = proc->getInferiorWallTimers();
-   the_args += AstNode(AstNode::Constant, (void*)theWallTimers.getShmSegNumBytes());
-   
-   const fastInferiorHeap<processTimerHK, tTimer> &theProcTimers = proc->getInferiorProcessTimers();
-   the_args += AstNode(AstNode::Constant, (void*)theProcTimers.getShmSegNumBytes());
+#ifdef SHM_SAMPLING_DEBUG
+   cerr << "paradynd inst.C: about to call DYNINSTinit() with key="
+        << (proc->getShmKeyUsed()) << " and #bytes=" << shmHeapTotalNumBytes
+        << endl;
+#endif
+
+   the_args += AstNode(AstNode::Constant, (void*)shmHeapTotalNumBytes);
+#else
+   /* 2 dummy args when not shm sampling -- just make sure they're not -1, which
+      tells DYNINSTinit() that it's being called by DYNINSTfork */
+   the_args += AstNode(AstNode::Constant, NULL);
+   the_args += AstNode(AstNode::Constant, NULL);
 #endif
 
    AstNode ast("DYNINSTinit", the_args);

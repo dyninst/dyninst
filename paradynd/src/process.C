@@ -44,6 +44,9 @@
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.66  1996/11/08 23:45:00  tamches
+ * change from 3-->1 shm seg per process
+ *
  * Revision 1.65  1996/11/05 20:40:23  tamches
  * some OS:: methods changed to process:: methods
  * process ctor now takes traceLink, ioLink params
@@ -129,166 +132,6 @@ vector<string> process::arg_list;
 static unsigned numIntCounters=10000; // rather arbitrary; can we do better?
 static unsigned numWallTimers =10000; // rather arbitrary; can we do better?
 static unsigned numProcTimers =10000; // rather arbitrary; can we do better?
-
-static bool shmSegExists(key_t theKey, int theSize) {
-   // returns true iff a shm seg w/ given key already exists
-   // A crude way to find this out is to try and create a shm seg
-   // with exclusive privileges; if it already exists then we'll get
-   // a specific error return value.
-
-   //cerr << "welcome to shmSegExists with key=" << theKey << endl;
-
-   int shmid = P_shmget(theKey, theSize, IPC_CREAT | IPC_EXCL | 0666);
-   if (shmid == -1) {
-      if (errno == EEXIST)
-	 return true;
-      else {
-         perror("shmSegExists: unknown shmget errcode");
-	 return true; // just to be safe
-      }
-   }
-
-   // we successfully created the shm seg, so it didn't exist before.
-   // But now we need to clean up!
-   if (-1 == P_shmctl(shmid, IPC_RMID, NULL)) {
-      perror("shmSegExists: unexpected error during shmctl");
-      return true; // just to be safe
-   }
-
-   return false;
-}
-
-static bool garbageCollect1ShmSeg(key_t theKey, int size) {
-   if (!shmSegExists(theKey, size))
-      return true; // no need to garbage collect; successful
-
-   // attach to existing segment
-   int shmid = P_shmget(theKey, size, 0666);
-   if (shmid == -1) {
-      cerr << "garbageCollect1ShmSeg: key was " << theKey << ", size was " << size << endl;
-      perror("garbageCollect1ShmSeg shmget");
-      return false;
-   }
-
-   void *shmAddr = P_shmat(shmid, NULL, SHM_RDONLY);
-   if (shmAddr == (void *)-1) {
-      perror("garbageCollect1ShmSeg shmat");
-      return false;
-   }
-
-   // attach successful.  First word should be our 'cookie'
-   unsigned word0 = *(unsigned *)shmAddr;
-   if (word0 != 0xabcdefab) {
-      cout << "paradynd note: it appears that shm seg with key " << theKey << " is in use by another application" << endl;
-      (void)P_shmdt(shmAddr);
-      return false; // don't touch
-   }
-
-   // cookie matches.  Next 2 words are as follows: applic pid, paradynd pid.
-   // If neither process exists, then garbage collect; else, forget it.
-   const int applicPid = *((int *)shmAddr + 1);
-   const int paradyndPid = *((int *)shmAddr + 2);
-   if (P_kill(applicPid, 0) == -1 && errno == ESRCH)
-      if (P_kill(paradyndPid, 0) == -1 && errno == ESRCH) {
-         // neither process exists.  Garbage collect!
-
-	 //cerr << "paradynd trying to garbage collect shm seg, key=" << theKey << endl;
-	 if (P_shmdt(shmAddr) == 0 && P_shmctl(shmid, IPC_RMID, NULL) == 0) {
-            //cerr << "paradynd successfully gc'd shm seg, key=" << theKey << endl;
-	    return true;
-	 }
-	 else {
-	    perror("shmdt or shmctl");
-	    cerr << "paradynd note: couldn't gc shm seg, key=" << theKey << endl;
-	    return false;
-         }
-      }
-
-   // We couldn't garbage collect because at least one of the processes exists
-   // But let's at least clean up as much as we can; i.e. undo our shmat() that we
-   // had to do in order to check cookie & pids.
-   (void)P_shmdt(shmAddr);
-   (void)P_shmctl(shmid, IPC_RMID, NULL);
-
-   return false; // could not garbage collect
-}
-
-static bool garbageCollectShmSegs(key_t theKey,
-				  int size0, int size1, int size2) {
-   // if shm seg corresponding to "theKey" exists then try to garbage
-   // collect it.  Return true if freed, false otherwise; false (to be
-   // safe) in cases of doubt.
-
-   bool result = true;
-
-   if (!garbageCollect1ShmSeg(theKey, size0))
-      result = false;
-
-   if (!garbageCollect1ShmSeg(theKey+1, size1))
-      result = false;
-
-   if (!garbageCollect1ShmSeg(theKey+2, size2))
-      result = false;
-
-   return result;
-}
-
-// shared mem segs have 12 bytes of meta-data at the beginning:
-// cookie (unsigned), applic pid (int), paradynd pid (int).
-// We make it 16 bytes to make sure we're very, very aligned.
-static int intCounterShmSegNumBytes(unsigned num) {
-   return sizeof(unsigned) + 2 * sizeof(int) + sizeof(unsigned) + sizeof(intCounter) * num;
-}
-static int wallTimerShmSegNumBytes(unsigned num) {
-   return sizeof(unsigned) + 2 * sizeof(int) + sizeof(unsigned) + sizeof(tTimer) * num;
-}
-static int procTimerShmSegNumBytes(unsigned num) {
-   return sizeof(unsigned) + 2 * sizeof(int) + sizeof(unsigned) + sizeof(tTimer) * num;
-}
-
-static key_t pickShmSegKey() {
-   // assuming we're creating a new process, let's find an available
-   // key to use in the shmget() call.  While we're at it, let's garbage
-   // collect any unused segments we find along the way...
-
-   key_t shmSegKey = 7000;
-   int size0 = intCounterShmSegNumBytes(::numIntCounters);
-   int size1 = wallTimerShmSegNumBytes(::numWallTimers);
-   int size2 = procTimerShmSegNumBytes(::numProcTimers);
-
-   while (true) {
-      if (!shmSegExists(shmSegKey, size0) && !shmSegExists(shmSegKey+1, size1) &&
-	  !shmSegExists(shmSegKey+2, size2)) {
-	 // we found 3 consecutive unused keys, so we're done.
-	 // TODO: We should also do some garbage collecting of higher-numbered keys
-
-	 //cerr << "paradynd found 3 consecutive unused segments starting at key " << shmSegKey << endl;
-	 return shmSegKey;
-      }
-
-      // at least one of the 3 segs we tried above already exists.
-      // let's try to garbage collect it.
-      if (garbageCollectShmSegs(shmSegKey, size0, size1, size2)) {
-	 // We're on a roll, so what the hell, let's garbage collect more.
-	 key_t tempKey = shmSegKey;
-	 do {
-	    tempKey += 10;
-	    //cerr << "what the hell with tempKey=" << tempKey << endl;
-
-	    if (!shmSegExists(tempKey, size0) && !shmSegExists(tempKey+1, size1) &&
-		!shmSegExists(tempKey+2, size2)) {
-	       //cerr << "3 segs in a row don't exist starting at key " << tempKey << "; ceasing extra gc'ing" << endl;
-	       break;
-	    }
-	 } while (garbageCollectShmSegs(tempKey, size0, size1, size2));
-
-	 continue; // we'll soon be successful
-      }
-
-      // not successful; try new keys
-      shmSegKey += 10;
-   }
-}
 #endif
 
 bool waitingPeriodIsOver()
@@ -316,17 +159,24 @@ Frame::Frame(process *proc) {
       // failure
       frame_ = pc_ = 0;
    }
+
+   uppermostFrame = true;
 }
 
 Frame Frame::getPreviousStackFrameInfo(process *proc) const {
    if (frame_ == 0)
       return *this; // no prev frame exists; not much we can do here
 
-   int theFrame, thePc;
-   if (!proc->readDataFromFrame(this->frame_, &theFrame, &thePc))
-      ; // what to do here?
+   int fp = frame_;
+   int rtn = pc_;
 
-   return Frame(theFrame, thePc);
+   Frame result(0, 0, false);
+   if (proc->readDataFromFrame(frame_, &fp, &rtn, uppermostFrame)) {
+      result.frame_ = fp;
+      result.pc_    = rtn;
+   }
+
+   return result;
 }
 
 vector<Address> process::walkStack(bool noPause)
@@ -838,21 +688,24 @@ t3=t1;
 process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #ifdef SHM_SAMPLING
 		 , key_t theShmKey,
-		 unsigned iicNumElems,
-		 unsigned iwtNumElems,
-		 unsigned iptNumElems
+		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
 ) :
-                     baseMap(ipHash), 
-                     instInstanceMapping(instInstanceHash),
-		     pid(iPid), // needed in fastInferiorHeap ctors below
+             baseMap(ipHash), 
+             instInstanceMapping(instInstanceHash),
+	     pid(iPid), // needed in fastInferiorHeap ctors below
 #ifdef SHM_SAMPLING
-		     inferiorIntCounters(this, theShmKey, iicNumElems),
-		     inferiorWallTimers (this, theShmKey+1, iwtNumElems),
-		     inferiorProcessTimers(this, theShmKey+2, iptNumElems),
+	     inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
+	     inferiorIntCounters((intCounter*)inferiorHeapMgr.getSubHeapInParadynd(0),
+				 this, iShmHeapStats[0].maxNumElems),
+	     inferiorWallTimers ((tTimer*)inferiorHeapMgr.getSubHeapInParadynd(1),
+				 this, iShmHeapStats[1].maxNumElems),
+	     inferiorProcessTimers((tTimer*)inferiorHeapMgr.getSubHeapInParadynd(2),
+				   this, iShmHeapStats[2].maxNumElems),
 #endif
                      firstRecordTime(0)
 {
+
     hasBootstrapped = false;
 
     // this is the 'normal' ctor, when a proc is started fresh as opposed
@@ -932,24 +785,29 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 }
 
 // This is the "fork" constructor:
-
 process::process(const process &parentProc, int iPid
 #ifdef SHM_SAMPLING
 		 ,key_t theShmKey,
-		 void *applShmSegIntCounterPtr,
-		 void *applShmSegWallTimerPtr,
-		 void *applShmSegProcTimerPtr
+		 void *applShmSegPtr,
+		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
 		 ) :
                      baseMap(ipHash), 
                      instInstanceMapping(instInstanceHash),
 #ifdef SHM_SAMPLING
+		     inferiorHeapMgr(applShmSegPtr, theShmKey, iShmHeapStats, iPid),
 		     inferiorIntCounters(parentProc.inferiorIntCounters,
-					 this, theShmKey, applShmSegIntCounterPtr),
+					 this,
+					 inferiorHeapMgr.getSubHeapInParadynd(0),
+					 inferiorHeapMgr.getSubHeapInApplic(0)),
 		     inferiorWallTimers(parentProc.inferiorWallTimers,
-					this, theShmKey+1, applShmSegWallTimerPtr),
+					this,
+					inferiorHeapMgr.getSubHeapInParadynd(1),
+					inferiorHeapMgr.getSubHeapInApplic(1)),
 		     inferiorProcessTimers(parentProc.inferiorProcessTimers,
-					   this, theShmKey+2, applShmSegProcTimerPtr),
+					   this,
+					   inferiorHeapMgr.getSubHeapInParadynd(2),
+					   inferiorHeapMgr.getSubHeapInApplic(2)),
 #endif
                      firstRecordTime(0)
 {
@@ -1020,18 +878,19 @@ process::process(const process &parentProc, int iPid
 }
 
 #ifdef SHM_SAMPLING
-void process::registerInferiorAttachedSegs(intCounter *inferiorIntCounterPtr,
-					   tTimer *inferiorWallTimerPtr,
-					   tTimer *inferiorProcTimerPtr) {
-cerr << "process pid " << getPid() << ": welcome to register with intCounterPtr=" << inferiorIntCounterPtr << ", wallTimerPtr=" << inferiorWallTimerPtr << ", procTimerPtr=" << inferiorProcTimerPtr << endl;
+void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
+#ifdef SHM_SAMPLING_DEBUG
+cerr << "process pid " << getPid() << ": welcome to register with inferiorAttachedAtPtr=" << inferiorAttachedAtPtr << endl;
+#endif
 
-   inferiorIntCounters.setBaseAddrInApplic(inferiorIntCounterPtr);
-   inferiorWallTimers.setBaseAddrInApplic(inferiorWallTimerPtr);
-   inferiorProcessTimers.setBaseAddrInApplic(inferiorProcTimerPtr);
+   inferiorHeapMgr.registerInferiorAttachedAt(inferiorAttachedAtPtr);
+   inferiorIntCounters.setBaseAddrInApplic((intCounter*)
+					   inferiorHeapMgr.getSubHeapInApplic(0));
+   inferiorWallTimers.setBaseAddrInApplic((tTimer*)
+					  inferiorHeapMgr.getSubHeapInApplic(1));
+   inferiorProcessTimers.setBaseAddrInApplic((tTimer*)
+					     inferiorHeapMgr.getSubHeapInApplic(2));
 }
-
-static key_t childShmKeyToUse;
-
 #endif
 
 /*
@@ -1096,11 +955,11 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	return(NULL);
     }
 
-#ifdef SHM_SAMPLING
-    // Do this _before_ the fork so both the parent and child get the updated
-    // value of ::childShmKeyToUse
-    ::childShmKeyToUse = pickShmSegKey();
-#endif
+//#ifdef SHM_SAMPLING
+//    // Do this _before_ the fork so both the parent and child get the updated
+//    // value of ::childShmKeyToUse
+//    ::childShmKeyToUse = pickShmSegKey();
+//#endif
 
     //
     // WARNING This code assumes that vfork is used, and a failed exec will
@@ -1151,18 +1010,28 @@ tp->resourceBatchMode(true);
 	statusLine("initializing process data structures");
 	// sprintf(name, "%s", (char*)img->name);
 
-//	cerr << "welcome to new process" << endl; cerr.flush();
+//	cerr << "welcome to new process, pid=" << getpid() << endl; cerr.flush();
 //	kill(getpid(), SIGSTOP);
-//	cerr << "doing new process with key=" << childShmKeyToUse << endl; cerr.flush();
+//	cerr << "doing new process " << endl; cerr.flush();
+
+#ifdef SHM_SAMPLING
+	vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
+	theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
+	theShmHeapStats[0].maxNumElems  = numIntCounters;
+
+	theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
+	theShmHeapStats[1].maxNumElems  = numWallTimers;
+
+	theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
+	theShmHeapStats[2].maxNumElems  = numProcTimers;
+#endif
 
 	process *ret = new process(pid, img,
 				   tracePipe[0], // trace link
 				   ioPipe[0] // io link
 #ifdef SHM_SAMPLING
-				   , ::childShmKeyToUse,
-				   numIntCounters,
-				   numWallTimers,
-				   numProcTimers
+				   , 7000, // shm seg key to try first
+				   theShmHeapStats
 #endif
 				   );
 	   // change this to a ctor that takes in more args
@@ -1192,8 +1061,6 @@ tp->resourceBatchMode(true);
            // comes from the child's write fd.  In short, when the child writes to
            // its stdout/stderr, it gets sent to the pipe which in turn sends it to
            // the parent's ret->ioLink fd for reading.
-
-//	statusLine("ready"); // this shouldn't be here, right? (cuz we're not ready)
 
 //	// attach to the child process
 //	ret->attach();
@@ -1331,30 +1198,6 @@ tp->resourceBatchMode(true);
 	string paradyndSockInfo = string("PARADYND_TRACE_SOCKET=") + string(traceSocket);
 	P_putenv(paradyndSockInfo.string_of());
 
-#ifdef SHM_SAMPLING
-        // Although the parent (paradynd) incremented ::inferiorIntCounterKey et al,
-        // we (the child) don't see those effects, so we'll get the old values, which
-        // is exactly what we want.
-	int keyInt = (int)::childShmKeyToUse;
-	string paradyndShmSegIntCtr = string("PARADYND_SHMSEG_INTCTRKEY=") + string(keyInt);
-	P_putenv(paradyndShmSegIntCtr.string_of());
-
-	string paradyndShmSegIntCtrSize = string("PARADYND_SHMSEG_INTCTRSIZE=") + string(intCounterShmSegNumBytes(::numIntCounters));
-	P_putenv(paradyndShmSegIntCtrSize.string_of());
-
-        keyInt++;
-	string paradyndShmSegWallTimer = string("PARADYND_SHMSEG_WALLTIMERKEY=") + string(keyInt);
-	P_putenv(paradyndShmSegWallTimer.string_of());
-	string paradyndShmSegWallTimerSize = string("PARADYND_SHMSEG_WALLTIMERSIZE=") + string(wallTimerShmSegNumBytes(::numWallTimers));
-	P_putenv(paradyndShmSegWallTimerSize.string_of());
-
-        keyInt++;
-	string paradyndShmSegProcTimer = string("PARADYND_SHMSEG_PROCTIMERKEY=") + string(keyInt);
-	P_putenv(paradyndShmSegProcTimer.string_of());
-	string paradyndShmSegProcTimerSize = string("PARADYND_SHMSEG_PROCTIMERSIZE=") + string(procTimerShmSegNumBytes(::numProcTimers));
-	P_putenv(paradyndShmSegProcTimerSize.string_of());
-#endif
-
 	char **args;
 	args = new char*[argv.size()+1];
 	for (unsigned ai=0; ai<argv.size(); ai++)
@@ -1392,7 +1235,7 @@ void process::doSharedMemSampling(unsigned long long theWallTime) {
    inferiorProcessTimers.processAll(theWallTime, theProcTime);
 
    // Now do the observed cost.
-   // WARNING: we should be using a mutex!
+   // WARNING: shouldn't we be using a mutex?!
    unsigned *costAddr = this->getObsCostLowAddrInParadyndSpace();
    const unsigned theCost = *costAddr;
 
@@ -1442,19 +1285,28 @@ void handleProcessExit(process *proc, int exitStatus) {
 */
 process *process::forkProcess(const process *theParent, pid_t childPid
 #ifdef SHM_SAMPLING
-			      ,key_t theShmSegBaseKey,
-			      void *applShmSegIntCounterPtr,
-			      void *applShmSegWallTimerPtr,
-			      void *applShmSegProcTimerPtr
+			      ,key_t theKey,
+			      void *applAttachedPtr
 #endif
 			      ) {
 
+#ifdef SHM_SAMPLING
+    vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
+    theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
+    theShmHeapStats[0].maxNumElems  = numIntCounters;
+    
+    theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
+    theShmHeapStats[1].maxNumElems  = numWallTimers;
+
+    theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
+    theShmHeapStats[2].maxNumElems  = numProcTimers;
+#endif
+
     process *ret = new process(*theParent, childPid
 #ifdef SHM_SAMPLING
-			       , theShmSegBaseKey,
-			       applShmSegIntCounterPtr,
-			       applShmSegWallTimerPtr,
-			       applShmSegProcTimerPtr
+			       , theKey,
+			       applAttachedPtr,
+			       theShmHeapStats
 #endif
 			       );
 
@@ -1750,35 +1602,8 @@ bool process::handleStartProcess(process *p){
     // get shared objects, parse them, and define new resources 
     p->getSharedObjects();
 
-//    // either continue the process here (if the SIGSTOP has already been
-//    // caught by the daemon), or wait and continue it when the SIGSTOP
-//    // is received
-//    bool needToCont = (p->status() == running);
-//    if (needToCont){ 
-//	// this means that the signal from the child process has not been
-//	// caught yet...set flag that will be tested for in handleSigChild
-//	// which will continue the child process
-//	p->inhandlestart = true;
-//	int status;
-//	int waiting_pid = process::waitProcs(&status);
-//	if (waiting_pid > 0) {
-//	    extern int handleSigChild(int,int);
-//	    handleSigChild(waiting_pid, status);
-//	}
-//    }
-//    else {
-//	p->status_ = stopped;
-//	// if there are no outstanding resource responses from Paradyn
-//	// then continure the process, otherwise set flag to continue
-//	// the process when all outstanding creates have completed
-
-	if(!resource::num_outstanding_creates){
-	    //p->continueProc();
-	}
-	else {
-	   p->setWaitingForResources();
-	}
-//    }
+    if(resource::num_outstanding_creates)
+       p->setWaitingForResources();
 
     return true;
 }
@@ -1860,7 +1685,6 @@ bool process::getSharedObjects() {
 	        logLine("Error after call to addASharedObject\n");
 	    }
 	}
-//	statusLine("ready");  // should this be here?  Are we really ready?
 
 	tp->resourceBatchMode(false);
 	return true;
@@ -2425,9 +2249,7 @@ bool process::tryToReadAndProcessBootstrapInfo() {
    assert(checkProc == this); // just to be sure
 
 #ifdef SHM_SAMPLING
-   registerInferiorAttachedSegs(bs_record.intCounterAttachedAt,
-				bs_record.wallTimerAttachedAt,
-				bs_record.procTimerAttachedAt);
+   registerInferiorAttachedSegs(bs_record.applicAttachedAt);
 #endif
 
    str=string("PID=") + string(bs_record.pid) + ", calling handleStartProcess...";
