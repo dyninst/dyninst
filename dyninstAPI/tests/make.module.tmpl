@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.39 2002/02/05 17:01:39 chadd Exp $
+# $Id: make.module.tmpl,v 1.40 2002/06/26 21:15:01 schendel Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -15,13 +15,14 @@ DEST		= $(TO_CORE)/$(PROGRAM_DEST)/testprogs
 ifdef TARGET
 SRCS	     += ../src/$(TARGET).C ../src/test_util.C
 else
-TARGETS       =  test1 test2 test3 test4 test5 test6
+TARGETS       =  test1 test2 test3 test4 test5 test6 test7
 TARGETS      +=	 test1.mutatee_gcc \
 		 test2.mutatee_gcc \
 		 test3.mutatee_gcc \
 		 test4a.mutatee_gcc \
 		 test4b.mutatee_gcc \
-		 test6.mutatee_gcc
+		 test6.mutatee_gcc \
+		 test7.mutatee_gcc
 
 ifdef NATIVE_CC
 TARGETS      +=  test1.mutatee_$(NATIVE_CC) \
@@ -29,7 +30,8 @@ TARGETS      +=  test1.mutatee_$(NATIVE_CC) \
 		 test3.mutatee_$(NATIVE_CC) \
 		 test4a.mutatee_$(NATIVE_CC) \
 		 test4b.mutatee_$(NATIVE_CC) \
-		 test6.mutatee_$(NATIVE_CC)
+		 test6.mutatee_$(NATIVE_CC) \
+		 test7.mutatee_$(NATIVE_CC)
 endif
 
 ifdef GNU_CXX	
@@ -38,7 +40,8 @@ TARGETS      +=  test1.mutatee_$(GNU_CXX) \
 		 test3.mutatee_$(GNU_CXX) \
 		 test4a.mutatee_$(GNU_CXX) \
 		 test4b.mutatee_$(GNU_CXX) \
-		 test5.mutatee_$(GNU_CXX)
+		 test5.mutatee_$(GNU_CXX) \
+		 test7.mutatee_$(GNU_CXX)
 endif
 
 ifdef NATIVE_CXX
@@ -54,7 +57,8 @@ TARGETS      +=  test1.mutatee_$(NATIVE_CXX) \
 		 test3.mutatee_$(NATIVE_CXX) \
 		 test4a.mutatee_$(NATIVE_CXX) \
 		 test4b.mutatee_$(NATIVE_CXX) \
-		 test5.mutatee_$(NATIVE_CXX)
+		 test5.mutatee_$(NATIVE_CXX) \
+		 test7.mutatee_$(NATIVE_CXX)
 endif
 
 ifdef NATIVE_FC
@@ -67,7 +71,8 @@ SRCS	     += ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
 		../src/test4.C ../src/test4a.mutatee.c ../src/test4b.mutatee.c \
 		../src/test5.C ../src/test5.mutatee.C \
                 ../src/libtestA.c ../src/libtestB.c \
-		../src/test6.C
+		../src/test6.C \
+		../src/test7.C
 endif
 
 ifdef NATIVE_FC
@@ -158,6 +163,7 @@ endif
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET2=test4b.mutatee_gcc
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test5
 	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test6 TARGET2=test6.mutatee_gcc
+	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test7 TARGET2=test7.mutatee_gcc
 	$(MAKE) testlibs MUTATEE_CC=gcc
 
 ifneq ($(NATIVE_CC),)
@@ -167,6 +173,7 @@ ifneq ($(NATIVE_CC),)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test4a.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test4b.mutatee_$(NATIVE_CC)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test6.mutatee_$(NATIVE_CC)
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test7.mutatee_$(NATIVE_CC)
 else
 	@echo "WARNING: Skipping native C compiler mutatees..."
 endif
@@ -177,6 +184,7 @@ ifneq ($(GNU_CXX),)
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test4a.mutatee_$(GNU_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test4b.mutatee_$(GNU_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test5.mutatee_$(GNU_CXX) MUTATEE_SUFFIX=.C
+	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test7.mutatee_$(GNU_CXX)
 else
 	@echo "WARNING: Skipping g++ mutatees..."
 endif
@@ -187,6 +195,7 @@ ifneq ($(NATIVE_CXX),)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test4a.mutatee_$(NATIVE_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test4b.mutatee_$(NATIVE_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test5.mutatee_$(NATIVE_CXX) MUTATEE_SUFFIX=.C
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test7.mutatee_$(NATIVE_CXX)
 else
 	@echo "WARNING: Skipping native C++ compiler mutatees..."
 endif

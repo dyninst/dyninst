@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.78 2002/04/02 16:11:12 pcroth Exp $ */
+/* $Id: test1.mutatee.c,v 1.79 2002/06/26 21:15:02 schendel Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -772,7 +772,6 @@ void func11_1()
     globalVariable11_1 = 1;
     func11_2();
     globalVariable11_1 = 3;
-
 }
 
 /*
