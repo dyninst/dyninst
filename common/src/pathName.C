@@ -147,6 +147,9 @@ bool extractNextPathElem(const char * &ptr, string &result) {
    // variable.  Extracts the next element (writing to result, updating
    // ptr, returning true) if available else returns false;
 
+   if( ptr == NULL )
+      return false;
+
    while (isspace(*ptr))
       ptr++;
 
