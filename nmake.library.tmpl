@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: nmake.library.tmpl,v 1.7 2001/02/01 01:07:25 schendel Exp $
+# $Id: nmake.library.tmpl,v 1.8 2003/03/13 17:20:57 pcroth Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -22,13 +22,13 @@ VPATH           = $(VPATH) ../src
 
 !ifndef UNCOMMON_LINK
 $(TARGET): $(OBJS)
-	@$(RM) $(TARGET)
+	-$(RM) $(TARGET)
 	@$(MAKE) $(VOUCHER)
 	$(LINK) -lib $(LDFLAGS) -out:$*.lib $(VOUCHER).obj $(OBJS) $(SYSLIBS)
 
 !ifdef TARGET2
 $(TARGET2): $(OBJS2)
-	@$(RM) $(TARGET2)
+	-$(RM) $(TARGET2)
 	@$(MAKE) $(VOUCHER)
 	$(AR) crv $(TARGET2) $(VOUCHER).obj $(OBJS2)
 	$(RANLIB) $(TARGET2)
@@ -43,7 +43,7 @@ echo:
 	echo $(OBJS)
 
 clean:
-	$(RM) *.obj *.h *.C *.lib *.exp *.pdb $(TARGET)
+	-$(RM) *.obj *.h *.C *.lib *.exp *.pdb $(TARGET)
 
 !ifndef UNCOMMON_INSTALL
 install: $(DEST)/$(TARGET)
@@ -129,12 +129,12 @@ pure:
 
 {..\src\}.y.C:
 	$(YACC) $(YFLAGS) $<
-	$(RM) $@
+	-$(RM) $@
 	$(MV) y.tab.c $@
 
 {..\src\}.y.obj:
 	$(YACC) $(YFLAGS) $<
-	$(RM) $@
+	-$(RM) $@
 	$(MV) y.tab.c $@
 	$(CXX) $(CXXFLAGS) -c $<
 

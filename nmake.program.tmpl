@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: nmake.program.tmpl,v 1.6 2001/11/07 05:03:12 darnold Exp $
+# $Id: nmake.program.tmpl,v 1.7 2003/03/13 17:20:57 pcroth Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -57,7 +57,7 @@ echo:
 	echo $(VPATH)
 
 clean:
-	$(RM) *.obj  *.ilk *.pdb *.h *.C $(TARGET) $(TARGETS)
+	-$(RM) *.obj  *.ilk *.pdb *.h *.C $(TARGET) $(TARGETS)
 
 !ifndef UNCOMMON_INSTALL
 install:  $(DEST)\$(TARGET)
@@ -118,12 +118,12 @@ $(DEST)\$(TARGET): $(TARGET)
 
 {..\src\}.y.C:
 	$(YACC) $(YFLAGS) $<
-	$(RM) $@
+	-$(RM) $@
 	$(MV) y.tab.c $@
 
 {..\src\}.y.obj:
 	$(YACC) $(YFLAGS) $<
-	$(RM) $@
+	-$(RM) $@
 	$(MV) y.tab.c $@
 	$(CXX) $(CXXFLAGS) -c $<
 
