@@ -4,10 +4,13 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.h,v $
-/* Revision 1.3  1995/07/24 21:36:03  tamches
-/* removed addChildToRoot() member function.
-/* Some changes related to newly implemented where4tree sorting.
+/* Revision 1.4  1995/08/07 00:02:52  tamches
+/* Added selectUnSelectFromFullPathName
 /*
+ * Revision 1.3  1995/07/24  21:36:03  tamches
+ * removed addChildToRoot() member function.
+ * Some changes related to newly implemented where4tree sorting.
+ *
  * Revision 1.2  1995/07/18  03:41:24  tamches
  * Added ctrl-double-click feature for selecting/unselecting an entire
  * subtree (nonrecursive).  Added a "clear all selections" option.
@@ -118,17 +121,6 @@ class whereAxis {
       return rootPtr->getRootName();
    }
 
-//   where4tree<USERNODEDATA> *newSubtree(const char *rootName) {
-//      where4tree<USERNODEDATA> *result =
-//                                new where4tree<USERNODEDATA>(rootName, consts);
-//      assert(result);
-//      
-//      return result;
-//   }
-
-//   void addChildToRoot(where4tree<USERNODEDATA> *theChild,
-//		       const bool explicitlyExpanded);
-
    void addItem(const string &name,
 		USERNODEDATA parentUniqueId,
 		USERNODEDATA newNodeUniqueId,
@@ -188,6 +180,11 @@ class whereAxis {
 
    void rethinkNavigateMenu();
 
+   bool selectUnSelectFromFullPathName(const string &name, const bool select);
+      // returns true iff the item was found
+      // pass true for the 2nd param iff you want to select it; false
+      // if you want to unselect it.
+   
    vector< vector<USERNODEDATA> > getSelections() const;
    void clearSelections();
 };

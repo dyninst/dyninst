@@ -4,10 +4,13 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.4  1995/08/01 23:03:54  tamches
-/* Fixed a layout bug whereby scrolling a listbox whose width was less
-/* than that of the parent (pink) node would redraw the listbox incorrectly.
+/* Revision 1.5  1995/08/07 00:02:53  tamches
+/* Added selectUnSelectFromFullPathName
 /*
+ * Revision 1.4  1995/08/01  23:03:54  tamches
+ * Fixed a layout bug whereby scrolling a listbox whose width was less
+ * than that of the parent (pink) node would redraw the listbox incorrectly.
+ *
  * Revision 1.3  1995/07/24  21:36:04  tamches
  * removed addChildToRoot() member function.
  * Some changes related to newly implemented where4tree sorting.
@@ -124,6 +127,7 @@ void whereAxis<USERNODEDATA>::addItem(const string &newName,
 }
 
 #ifndef PARADYN
+// only the where axis test program uses this stuff:
 template <class USERNODEDATA>
 int whereAxis<USERNODEDATA>::readTree(ifstream &is,
 				      USERNODEDATA parentUniqueId,
@@ -1058,6 +1062,18 @@ void whereAxis<USERNODEDATA>::rethinkNavigateMenu() {
          currTree = currTree->theChildren[theItem.childnum].theTree;
       }
    }
+}
+
+template <class USERNODEDATA>
+bool whereAxis<USERNODEDATA>::
+selectUnSelectFromFullPathName(const string &name,
+			       const bool selectFlag) const {
+   // returns true iff found
+   const char *str = name.string_of();
+   if (str == NULL)
+      return false;
+
+   return rootPtr->selectUnSelectFromFullPathName(str, selectFlag);
 }
 
 template <class USERNODEDATA>
