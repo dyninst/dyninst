@@ -289,17 +289,17 @@ static void add_processes(vector< vector<string> > &focus,
 static bool focus_matches(vector<string>& focus, vector<string> *match_path) {
   unsigned mp_size = match_path->size();
   unsigned f_size = focus.size();
-  if (mp_size < 1 || f_size < 2 || mp_size != f_size - 1)
+
+  if ((mp_size < 1) || (f_size < 2) || (mp_size != (f_size-1))) {
     return false;
+  }
 
-  // need special rule to check for /Code/Module
-  if (focus[0] == "Code" && (*match_path)[0] == "Code" && mp_size == 2 &&
-      (*match_path)[1] == "Module")
-    return true;
-
-  for (unsigned u = 0; u < mp_size; u++)
-    if (focus[u] != (*match_path)[u])
+  for (unsigned u = 0; u < mp_size; u++) {
+    if(((*match_path)[u] != "*") && (focus[u] != (*match_path)[u])) {
       return false;
+    }
+  }
+
   return true;
 }
 
@@ -470,8 +470,6 @@ apply_to_process(process *proc,
 		 vector<string> *temp_ctr,
 		 bool replace_component,
 		 bool computingCost) {
-
-
     // TODO: if this is a dynamic executable check the focus...
     // if it is not refined on the /Code heirarchy then only get 
     // functions and modules from shared libraries that are
@@ -773,73 +771,74 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
   }
 }
 
-// determine the type of the trailing part of the constraint's match path
-// and put this into the environment
-static bool do_trailing_resource(vector<string>& resource_, process *proc) {
-  string c_string = "$constraint";
-  assert(resource_.size());
-  string trailing_res = resource_[resource_.size()-1];
 
-  resource *r = resource::findResource(resource_);
-  if (!r) {
-    // internal error
-     assert(0); 
-  }
+static bool do_trailing_resources(vector<string>& resource_,
+				  process *proc)
+{
+  vector<string>  resPath;
 
-  switch (r->type()) {
-  case MDL_T_INT: 
-    {
-      const char *p = trailing_res.string_of();
-      char *q;
-      int val = (int) strtol(p, &q, 0);
+  for(int pLen = 0; pLen < resource_.size(); pLen++) {
+    string   caStr = string("$constraint") + 
+                     string(resource_.size()-pLen-1);
+    string   trailingRes = resource_[pLen];
+
+    resPath += resource_[pLen];
+    assert(resPath.size() == (pLen+1));
+
+    resource *r = resource::findResource(resPath);
+    if (!r) assert(0);
+
+    switch (r->type()) {
+    case MDL_T_INT: {
+      const char* p = trailingRes.string_of();
+      char*       q;
+      int         val = (int) strtol(p, &q, 0);
       if (p == q) {
-	string msg = string("unable to convert resource '") + trailing_res + 
-	             string("' to integer.");
+	string msg = string("unable to convert resource '") + trailingRes + 
+                     string("' to integer.");
 	showErrorCallback(92,msg.string_of());
-	return false;
+	return(false);
       }
-      mdl_env::add(c_string, false, MDL_T_INT);
-      mdl_env::set(val, c_string);
+      mdl_env::add(caStr, false, MDL_T_INT);
+      mdl_env::set(val, caStr);
+      break;
     }
-    break;
-  case MDL_T_STRING:
-    mdl_env::add(c_string, false, MDL_T_STRING);
-    mdl_env::set(trailing_res, c_string);
-    break;
-  case MDL_T_PROCEDURE:
-    {
+    case MDL_T_STRING:
+      mdl_env::add(caStr, false, MDL_T_STRING);
+      mdl_env::set(trailingRes, caStr);
+      break;
+    case MDL_T_PROCEDURE: {
       // find the resource corresponding to this function's module 
       vector<string> m_vec;
-      for(u_int i=0; i < resource_.size()-1; i++){
-          m_vec += resource_[i];
+      for(u_int i=0; i < resPath.size()-1; i++){
+	m_vec += resPath[i];
       }
       assert(m_vec.size());
-      assert(m_vec.size() == (resource_.size()-1));
+      assert(m_vec.size() == (resPath.size()-1));
       resource *m_resource = resource::findResource(m_vec);
-      if(!m_resource) { return false; }
-
+      if(!m_resource) return(false);
+      
       pdFunction *pdf = proc->findOneFunction(r,m_resource);
-      if (!pdf) {
-	return false;
-      }
-      mdl_env::add(c_string, false, MDL_T_PROCEDURE);
-      mdl_env::set(pdf, c_string);
+      if (!pdf) return(false);
+      mdl_env::add(caStr, false, MDL_T_PROCEDURE);
+      mdl_env::set(pdf, caStr);
+      break;
     }
-    break;
-  case MDL_T_MODULE:
-    {
-      module *mod = proc->findModule(trailing_res);
-      if (!mod) return false;
-      mdl_env::add(c_string, false, MDL_T_MODULE);
-      mdl_env::set(mod, c_string);
+    case MDL_T_MODULE: {
+      module *mod = proc->findModule(trailingRes);
+      if (!mod) return(false);
+      mdl_env::add(caStr, false, MDL_T_MODULE);
+      mdl_env::set(mod, caStr);
+      break;
     }
-    break;
-  default:
-    assert(0);
-    break;
+    default:
+      assert(0);
+      break;
+    }
   }
-  return true;
+  return(true);
 }
+
 
 // Replace constraints not working yet
 // Flag constraints need to return a handle to a data request node -- the flag
@@ -868,10 +867,10 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
     mdl_env::set(drn, id_);
   }
 
-  // put "$constraint" into the environment
-  if (!do_trailing_resource(resource, proc)) {
+  // put $constraint[X] in the environment
+  if(!do_trailing_resources(resource, proc)) {
     mdl_env::pop();
-    return false;
+    return(false);
   }
 
   // Now evaluate the constraint statements
@@ -880,11 +879,11 @@ bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
   for (unsigned u=0; u<size; u++) {
     if (!(*stmts_)[u]->apply(mn, flags)) {
       // cout << "apply of constraint " << id_ << " failed\n";
-      return false;
+      return(false);
     }
   }
   mdl_env::pop();
-  return true;
+  return(true);
 }
 
 T_dyninstRPC::mdl_constraint *mdl_data::new_constraint(string id, vector<string> *path,
@@ -1697,13 +1696,14 @@ metricDefinitionNode *mdl_do(vector< vector<string> >& canon_focus,
   currentMetric = met_name;
   unsigned size = mdl_data::all_metrics.size();
   // NOTE: We can do better if there's a dictionary of <metric-name> to <metric>!
-  for (unsigned u=0; u<size; u++) 
+  for (unsigned u=0; u<size; u++) {
     if (mdl_data::all_metrics[u]->name_ == met_name) {
       return (mdl_data::all_metrics[u]->apply(canon_focus, flat_name, procs,
 					      replace_components_if_present,
 					      computingCost));
          // calls mdl_metric::apply()
     }
+  }
   return NULL;
 }
 
@@ -1717,7 +1717,7 @@ bool mdl_init(string& flavor) {
   mdl_focus_element fe;
 
   self.name = "SyncObject"; self.type = 0; self.end_allowed = false; 
-  kid.name = "MsgTag"; kid.type = MDL_T_INT; kid.end_allowed = true; kids += kid;
+  kid.name = "Message"; kid.type = MDL_T_INT; kid.end_allowed = true; kids += kid;
   kid.name = "Barrier"; kid.type = MDL_T_INT; kid.end_allowed = true; kids += kid;
   kid.name = "Semaphore"; kid.type = MDL_T_INT; kid.end_allowed = true; kids += kid;
   kid.name = "SpinLock"; kid.type = MDL_T_INT; kid.end_allowed = true; kids += kid;
