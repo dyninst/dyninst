@@ -44,7 +44,6 @@ SRCS =		../src/aix.C \
 		../src/Object-xcoff.C \
 		../src/unix.C \
 		../src/InstrucIter-power.C \
-		../src/FunctionExpansionRecord.C \
 		../../common/src/aixv41Kludges.C \
 		../../common/src/timing-aix.C \
 		../src/writeBackXCOFF.C  \
