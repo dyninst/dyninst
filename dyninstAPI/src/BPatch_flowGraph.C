@@ -1088,7 +1088,7 @@ typedef struct STACK {
 	BPatch_basicBlock** data;
 
 	STACK() : size(0),top(-1),data(NULL) {}
-	~STACK() { delete[] data; }
+	~STACK() { free(data); }
 	bool empty() { return (top < 0); }
 	void push(BPatch_basicBlock* b) {
 		if(!size) 

@@ -107,14 +107,14 @@ FileLineInformation::~FileLineInformation(){
 	int i;
 	for(i=0;i<size;i++)
 		delete lineToAddr[i];
-	delete[] lineToAddr;
-	delete[] addrToLine;
+	free(lineToAddr);
+	free(addrToLine);
 	for(i=0;i<functionCount;i++){
 		delete lineInformationList[i];
 		delete functionNameList[i];
 	}
-	delete[] functionNameList;
-	delete[] lineInformationList;
+	free(functionNameList);
+	free(lineInformationList);
 }
 
 //returns the function info structure
@@ -131,10 +131,10 @@ void FileLineInformation::insertFunction(string functionName){
 	if(!fInfo){
 		functionNameList = (string**)(functionCount ? 
 			realloc(functionNameList,(functionCount+1)*sizeof(string*)) : 
-			new string*[1]);
+			malloc(sizeof(string*)));
 		lineInformationList = (FunctionInfo**)(functionCount ? 
 			realloc(lineInformationList,(functionCount+1)*sizeof(FunctionInfo*)) : 
-			new FunctionInfo*[1]);
+			malloc(sizeof(FunctionInfo*)));
 		functionNameList[functionCount] = new string(functionName);
 		lineInformationList[functionCount] = new FunctionInfo();
 		functionCount++;
@@ -159,8 +159,8 @@ void FileLineInformation::deleteFunction(string functionName){
 
 	functionCount--;
 	if(!functionCount){
-		delete[] functionNameList;
-		delete[] lineInformationList;
+		free(functionNameList);
+		free(lineInformationList);
 		functionNameList = NULL; 
 		lineInformationList = NULL; 
 		return;
@@ -211,10 +211,10 @@ bool FileLineInformation::insertFunction(string functionName,Address baseAddr,
 		//     << endAddrIndex << " )\n";
 		functionNameList = (string**)(functionCount ?
 			realloc(functionNameList,(functionCount+1)*sizeof(string*)) :
-               		new string*[1]);
+               		malloc(sizeof(string*)));
 		lineInformationList = (FunctionInfo**)(functionCount ?
 			realloc(lineInformationList,(functionCount+1)*sizeof(FunctionInfo*)) :
-			new FunctionInfo*[1]);
+			malloc(sizeof(FunctionInfo*)));
 		functionNameList[functionCount] = new string(functionName);
 
 		FunctionInfo* fInfo = new FunctionInfo();
@@ -440,8 +440,8 @@ LineInformation::~LineInformation() {
 		delete sourceFileList[i];
 		delete lineInformationList[i];
 	}
-	delete[] sourceFileList;
-	delete[] lineInformationList;
+	free(sourceFileList);
+	free(lineInformationList);
 }
 
 //method to insert entries for the given file name and function name
@@ -453,10 +453,10 @@ void LineInformation::insertSourceFileName(string functionName,string fileName)
 		fInfo = new FileLineInformation(fileName);
 		sourceFileList = (string**)(sourceFileCount ? 
 			realloc(sourceFileList,(sourceFileCount+1)*sizeof(string*)) : 
-			new string*[1]);
+			malloc(sizeof(string*)));
 		lineInformationList = (FileLineInformation**)(sourceFileCount ? 
 			realloc(lineInformationList,(sourceFileCount+1)*sizeof(FileLineInformation*)) : 
-			new FileLineInformation*[1]);
+			malloc(sizeof(FileLineInformation*)));
 		sourceFileList[sourceFileCount] = new string(fileName);
 		lineInformationList[sourceFileCount] = fInfo;
 		sourceFileCount++;

@@ -102,7 +102,7 @@ AddressHandle::AddressHandle(process* fProcess,
 		unsigned instructionType;
 		unsigned instructionSize = get_instruction(ptr,instructionType);
 		unsigned j;
-		for(j=1;j<instructionSize;j++)
+		for(j=1;(j<instructionSize) && (i<range);j++)
 			instructionPointers[i++] = NULL;
 		ptr += instructionSize;
 	}	
