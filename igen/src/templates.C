@@ -41,6 +41,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.8  1997/10/28 20:26:59  tamches
+ * updates for the new dictionary class
+ *
  * Revision 1.7  1997/04/29 22:58:06  mjrg
  * Changed generated code so that it compiles with Visual C++
  *
@@ -58,7 +61,7 @@
 #include "util/h/Vector.h"
 
 #pragma implementation "Dictionary.h"
-#include "util/h/Dictionary.h"
+#include "util/src/Dictionary.C"
 
 #include "parse.h"
 
@@ -68,11 +71,6 @@ template class vector<string>;
 template class vector<Options::el_data>;
 template class vector<Options::stl_data>;
 template class vector<type_defn *>;
-
-template class dictionary_iter<string, remote_func *>;
-template class dictionary_iter<string, type_defn *>;
-template class dictionary<string, type_defn *>;
-template class dictionary<string, remote_func *>;
 
 template class dictionary_hash<string, remote_func*>;
 template class dictionary_hash<string, type_defn*>;
