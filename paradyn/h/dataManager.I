@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.104 2001/06/20 20:33:34 schendel Exp $
+ * $Id: dataManager.I,v 1.105 2001/08/23 14:43:31 schendel Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -11,7 +11,6 @@
 #include "pdutil/h/pdSample.h"
 #include "dyninstRPC.xdr.h"
 #include "visi.xdr.h"
-#include "pdutil/h/aggregation.h"
 #include "pdutil/h/stringPool.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
@@ -105,6 +104,12 @@ typedef void (*resourceBatchModeCallback)(perfStreamHandle, batchMode mode);
 typedef void (*histFoldCallback)(perfStreamHandle, timeLength *width,
                                  phaseType);
 
+// initActValCallback must delete memory at initActValPtr
+typedef void (*initActValCallback)(perfStreamHandle, 
+				   metricHandle mi,
+				   pdSample *initActValPtr,
+                                   phaseType phaseID);
+
 typedef enum { appRunning, appPaused, appExited } appState;
 
 typedef void (*appStateChangeCallback)(perfStreamHandle, appState state);
@@ -150,6 +155,8 @@ struct controlCallback {
     resourceBatchModeCallback	bFunc;
     // histFoldCallback must delete memory at widthPtr
     histFoldCallback		fFunc;
+    // initActValCallback must delete memory at 
+    initActValCallback          avFunc;
     appStateChangeCallback	sFunc;
     // newPhaseCallback must delete memory at beginPtr, endPtr, bucketWidthPtr
     newPhaseCallback	        pFunc;
@@ -720,6 +727,12 @@ $remote dataManager {
 				 perfStreamHandle, 
 				 timeLength *widthPtr,
 				 phaseType);
+
+    $upcall $async void setInitialActualValue(initActValCallback, 
+					      perfStreamHandle,
+					      metricHandle mi, 
+					      pdSample *initActValPtr,
+					      phaseType phaseID);
 
     $upcall $async void changeState(appStateChangeCallback, 
 				    perfStreamHandle, 
