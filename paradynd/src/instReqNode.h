@@ -99,8 +99,8 @@ class instReqNode {
    // special copy constructor used for fork handling
    instReqNode(const instReqNode &par, pd_process *childProc);
 
-   bool instrLoaded()      { return loadedIntoApp_;    }
-   bool trampsHookedUp()   { return trampsHookedUp_;   }
+   bool instrLoaded()    const { return loadedIntoApp_;    }
+   bool trampsHookedUp() const { return trampsHookedUp_;   }
 
    loadMiniTramp_result loadInstrIntoApp(pd_process *theProc, 
 					 returnInstance *&retInstance);
