@@ -411,6 +411,7 @@ void DYNINSTProcessPiggyMessage()
 		 break;
 
 	     default:
+                ;
 	 }
     }
 }
