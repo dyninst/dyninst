@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.155 2004/04/21 14:25:49 chadd Exp $
+// $Id: symtab.h,v 1.156 2004/05/28 22:50:14 legendre Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -134,6 +134,7 @@ class lineTable;
 class process;
 class pd_Function;
 class Frame;
+class ExceptionBlock;
 
 // if a function needs to be relocated when it's instrumented then we need
 // to keep track of new instrumentation points for this function on a per
@@ -1161,7 +1162,6 @@ class image : public codeRange {
    //
 
    Address get_main_call_addr() const { return main_call_addr_; }
- 
  private:
 
    // Adds a function to the following lists
@@ -1347,6 +1347,37 @@ class libraryFunc {
    pdstring name;
    unsigned tags;
 };
+
+/**
+ * Used to represent something like a C++ try/catch block.  
+ * Currently only used on Linux/x86
+ **/
+class ExceptionBlock {
+ public:
+   ExceptionBlock(Address tStart, unsigned tSize, Address cStart) :
+     tryStart_(tStart), trySize_(tSize), catchStart_(cStart), hasTry_(true) {}
+   ExceptionBlock(Address cStart) :
+      tryStart_(0), trySize_(0), catchStart_(cStart), hasTry_(false) {}
+   ExceptionBlock(const ExceptionBlock &eb) : tryStart_(eb.tryStart_), 
+      trySize_(eb.trySize_), catchStart_(eb.catchStart_), hasTry_(eb.hasTry_) {}
+   ExceptionBlock() : tryStart_(0), trySize_(0), catchStart_(0), hasTry_(false) {}
+   ~ExceptionBlock() {}
+
+   bool hasTry() const { return hasTry_; }
+   Address tryStart() const { return tryStart_; }
+   Address tryEnd() const { return tryStart_ + trySize_; }
+   Address trySize() const { return trySize_; }
+   Address catchStart() const { return catchStart_; }
+   Address contains(Address a) const 
+      { return (a >= tryStart_ && a < tryStart_ + trySize_); }
+
+ private:
+   Address tryStart_;
+   unsigned trySize_;
+   Address catchStart_;
+   bool hasTry_;
+}; 
+
 
 #ifndef BPATCH_LIBRARY
 // TODO -- remove this

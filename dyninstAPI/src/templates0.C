@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.43 2004/03/23 01:12:10 eli Exp $
+// $Id: templates0.C,v 1.44 2004/05/28 22:50:15 legendre Exp $
 // Generate all the templates in one file.
 
 /*
@@ -112,6 +112,8 @@ template class  pdvector<trampTemplate *>;
 template class  pdvector<int>;
 template class  pdvector<instruction>;
 template class  pdvector< point_ >;
+template class  pdvector< ExceptionBlock >;
+
 #ifndef BPATCH_LIBRARY
 class processMetFocusNode;
 
