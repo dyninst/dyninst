@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.73 2002/04/05 19:38:41 schendel Exp $ */
+/* $Id: context.C,v 1.74 2002/05/02 21:28:54 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -204,7 +204,7 @@ void forkProcess(int pid, int ppid, int trace_fd, key_t theKey,
    metricDefinitionNode::handleFork(parentProc, childProc, map);
 
    // The following routines perform some assertion checks.
-   childProc->getTable().forkHasCompleted();
+   //   childProc->getTable().forkHasCompleted();
 
 #ifdef FORK_EXEC_DEBUG
    cerr << "Fork process took " << (getWallTime()-forkTime) << endl;
