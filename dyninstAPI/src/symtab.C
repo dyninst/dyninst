@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: symtab.C,v 1.88 1998/12/25 22:06:13 wylie Exp $
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -337,7 +339,7 @@ image *image::parseImage(const string file)
  *   2.) scan executable to identify inst points.
  *
  */
-image *image::parseImage(const string file,u_int baseAddr)
+image *image::parseImage(const string file, Address baseAddr)
 {
   /*
    * Check to see if we have parsed this image at this offeset before.
@@ -359,7 +361,7 @@ image *image::parseImage(const string file,u_int baseAddr)
   bool err;
 
   // TODO -- kill process here
-  image *ret = new image(file, baseAddr,err);
+  image *ret = new image(file, baseAddr, err);
   if (err || !ret) {
     if (ret)
       delete ret;
@@ -1236,14 +1238,14 @@ bool image::addAllFunctions(vector<Symbol> &mods,
   string symString;
 
 #ifdef BPATCH_LIBRARY
-  boundary_start = boundary_end = NULL;
+  boundary_start = boundary_end = 0;
 #else
   if (!linkedFile.get_symbol(symString="DYNINSTfirst", lookUp) &&
       !linkedFile.get_symbol(symString="_DYNINSTfirst", lookUp)) {
     //statusLine("Internal symbol DYNINSTfirst not found");
     //showErrorCallback(31, "Internal symbol DYNINSTfirst not found");
     //return false;
-    boundary_start = NULL;
+    boundary_start = 0;
   } else
     boundary_start = lookUp.addr();
 
@@ -1252,7 +1254,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
     //statusLine("Internal symbol DYNINSTend not found");
     //showErrorCallback(32, "Internal symbol DYNINSTend not found");
     //return false;
-    boundary_end = NULL;
+    boundary_end = 0;
   } else
     boundary_end = lookUp.addr();
 #endif
@@ -1285,7 +1287,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
       if (!isValidAddress(lookUp.addr())) {
 	string msg;
 	char tempBuffer[40];
-	sprintf(tempBuffer,"%x",lookUp.addr());
+	sprintf(tempBuffer,"0x%lx",lookUp.addr());
 	msg = string("Function") + lookUp.name() + string("has bad address ") +
 	      string(tempBuffer);
 	statusLine(msg.string_of());
@@ -1338,7 +1340,7 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
       if (!isValidAddress(lookUp.addr())) {
 	string msg;
 	char tempBuffer[40];
-	sprintf(tempBuffer,"%x",lookUp.addr());
+	sprintf(tempBuffer,"0x%lx",lookUp.addr());
 	msg = string("Function") + lookUp.name() + string("has bad address ") +
 	      string(tempBuffer);
 	statusLine(msg.string_of());
@@ -1400,13 +1402,6 @@ bool image::addAllVariables()
   return true;
 }
 
-int symCompare(const void *s1, const void *s2) {
-  const Symbol *sym1 = (const Symbol*)s1, *sym2 = (const Symbol*)s2;
-  // TODO mdc
-  return (sym1->addr() - sym2->addr());
-}
-
-
 unsigned int int_addrHash(const Address& addr) {
   return (unsigned int)addr;
 }
@@ -1444,7 +1439,7 @@ image::image(const string &fileName, bool &err)
 // 
 // load a shared object
 //
-image::image(const string &fileName, u_int baseAddr, bool &err)
+image::image(const string &fileName, Address baseAddr, bool &err)
 :   
     modsByFileName(string::hash),
     modsByFullName(string::hash),
@@ -1456,7 +1451,7 @@ image::image(const string &fileName, u_int baseAddr, bool &err)
     funcsByPretty(string::hash),
     funcsByMangled(string::hash),
     file_(fileName),
-    linkedFile(fileName, baseAddr,pd_log_perror),
+    linkedFile(fileName, baseAddr, pd_log_perror),
     iSymsMap(string::hash),
     varsByPretty(string::hash),
     knownJumpTargets(int_addrHash, 8192)
@@ -1503,7 +1498,7 @@ static bool findEndSymbol(Object &lf, Address &adr) {
       base_addr - curr. used IFF shared_library == 1.
  */
 void image::initialize(const string &fileName, bool &err,
-	bool shared_object, u_int) {
+	bool shared_object, Address) {
 
     // initialize (data members) codeOffset_, dataOffset_,
     //  codeLen_, dataLen_.
@@ -1583,9 +1578,6 @@ void image::initialize(const string &fileName, bool &err,
     // because calls out of each function must be tagged as calls to user
     // functions or call to "library" functions
 
-    Symbol lookUp;
-    string symString;
-
     //
     // sort the modules by address into a vector to allow a binary search to 
     // determine the module that a symbol will map to -- this 
@@ -1596,6 +1588,7 @@ void image::initialize(const string &fileName, bool &err,
     for (SymbolIter symIter = linkedFile; symIter; symIter++) {
         const Symbol &lookUp = symIter.currval();
         if (lookUp.type() == Symbol::PDST_MODULE) {
+
             const string &lookUpName = lookUp.name();
             const char *str = lookUpName.string_of();
             assert(str);
@@ -1610,18 +1603,17 @@ void image::initialize(const string &fileName, bool &err,
 
     // sort the modules by address
     statusLine("sorting modules");
-    tmods.sort(symCompare);
+    tmods.sort(symbol_compare);
     //  assert(mods.sorted(symCompare));
 
     // remove duplicate entries -- some .o files may have the same 
     // address as .C files.  kludge is true for module symbols that 
     // I am guessing are modules
     vector<Symbol> uniq;
-    unsigned loop=0;
 
     // must use loop+1 not mods.size()-1 since it is an unsigned compare
     //  which could go negative - jkh 5/29/95
-    for (loop=0; loop < tmods.size(); loop++) {
+    for (unsigned loop=0; loop < tmods.size(); loop++) {
         if ((loop+1 < tmods.size()) && 
 	        (tmods[loop].addr() == tmods[loop+1].addr())) {
             if (!tmods[loop].kludge())
