@@ -70,7 +70,7 @@ int DYNINSTthreadIndex ()
   /* Quick method. Could we get away with a logical AND? */
   if ((curr_index >= 0) && 
       (curr_index < MAX_NUMBER_OF_THREADS)) {
-      if (RTsharedData.indexToThread[curr_index] == tid)
+      if (indexToThreads[curr_index] == tid)
           return curr_index;
   }
 
