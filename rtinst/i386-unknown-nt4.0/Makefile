@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2001/02/01 01:04:58 schendel Exp $
+# $Id: Makefile,v 1.13 2001/02/23 00:01:03 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -32,6 +32,8 @@ SRCS		= ../../dyninstAPI_RT/src/RTwinnt.c \
                   ../src/RThwtimer-winnt.c
 
 OBJS		= RTwinnt.obj RTetc-winnt.obj RThwtimer-winnt.obj
+
+CFLAGS		= $(CFLAGS) -Ox -Oy-
 
 # enable debug/trace messages from runtime library
 #CFLAGS		= $(CFLAGS) -DDEBUG_PRINT_RT

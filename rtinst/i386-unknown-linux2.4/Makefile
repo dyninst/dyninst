@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2001/02/01 01:08:45 schendel Exp $
+# $Id: Makefile,v 1.9 2001/02/23 00:00:56 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -30,7 +30,7 @@ CFLAGS		+= -O2
 # if we want to produce a shared object...
 ifdef USES_LIBDYNINSTRT_SO
 LD              = gcc
-CFLAGS          = -Di386_unknown_linux2_0 -g
+CFLAGS          = -Di386_unknown_linux2_0 -g -O2
 # CFLAGS		+= -D_SVID_SOURCE
 CFLAGS		+= -fPIC
 CFLAGS          += -I. -I../..
