@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.23  1994/09/05 20:01:00  jcargill
+/* Revision 1.24  1994/09/06 08:32:30  karavan
 /* Better control of PC output through tunable constants.
 /*
+ * Revision 1.23  1994/09/05  20:01:00  jcargill
+ * Better control of PC output through tunable constants.
+ *
  * Revision 1.22  1994/08/22  15:55:58  markc
  * Cast stringHandles to char* for printing.
  *
@@ -93,7 +96,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.23 1994/09/05 20:01:00 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.24 1994/09/06 08:32:30 karavan Exp $";
 #endif
 
 #include <assert.h>
@@ -118,7 +121,7 @@ extern void PCevaluateWorld();
 extern thread_t MAINtid;
 extern timeStamp PCstartTransTime;
 extern timeStamp PCendTransTime;
-
+extern tunableBooleanConstant pcEvalPrint;
 
 statusDisplayObj *PCstatusDisplay;   // token needed for PC status calls 
 
