@@ -43,6 +43,9 @@
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.53  1997/03/29 02:07:35  sec
+ * Debugging stuff
+ *
  * Revision 1.52  1997/02/26 23:46:27  mjrg
  * First part of WindowsNT port: changes for compiling with Visual C++;
  * moved unix specific code to unix.C file
@@ -223,10 +226,11 @@ void forkProcess(int pid, int ppid, int trace_fd
 int addProcess(vector<string> &argv, vector<string> &envp, string dir) {
     process *proc = createProcess(argv[0], argv, envp, dir);
 
-    if (proc)
+    if (proc) {
       return(proc->getPid());
-    else
+    } else {
       return(-1);
+    }
 }
 
 #ifdef notdef

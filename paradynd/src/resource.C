@@ -43,6 +43,9 @@
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
+ * Revision 1.25  1997/03/29 02:11:06  sec
+ * Debugging stuff
+ *
  * Revision 1.24  1997/02/26 23:46:48  mjrg
  * First part of WindowsNT port: changes for compiling with Visual C++;
  * moved unix specific code to unix.C file
@@ -172,9 +175,9 @@ bool resource::foc_to_strings(vector< vector<string> >& string_foc,
   for (unsigned i=0; i<id_size; i++) {
     resource *r;
     if (!res_dict.find(ids[i], r)) { // writes to "r" if found
-       if (print_err_msg)
-	  cerr << "resource::foc_to_strings -- could not find resource entry for id " << ids[i] << endl;
-
+       if (print_err_msg) {
+	 cerr << "resource::foc_to_strings -- could not find resource entry for id " << ids[i] << endl;
+       }
        return false;
     }
 

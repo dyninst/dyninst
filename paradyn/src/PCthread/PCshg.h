@@ -45,6 +45,9 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.33  1997/03/29 02:05:23  sec
+ * Debugging stuff
+ *
  * Revision 1.32  1996/12/08 17:36:22  karavan
  * part 1 of 2 part commit to add new searching functionality
  *
@@ -183,7 +186,7 @@ public:
   unsigned getPhase();
   const char *getShortName() {return sname.string_of();}
   const char *getHypoName() {return why->getName();}
-  //const char *getFocus() {return exp->getFocus();}
+  // const char *getFocus() {return exp->getFocus();}
   void estimatedCostNotification(); 
   void enableReply (bool);
   void addActiveSearch();

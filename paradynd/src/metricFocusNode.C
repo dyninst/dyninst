@@ -291,7 +291,6 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
     if (!focus2CanonicalFocus(focus, canonicalFocus, enable)) {
        if (enable) // for real, so an error msg is appropriate
 	  cerr << "createMetricInstance failed because focus2CanonicalFocus failed" << endl;
-
        return NULL;
     }
 
@@ -316,11 +315,12 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
     metricDefinitionNode *mi= NULL;
 
     // TODO -- a dictionary search here will be much faster
-    while (mdi.next(key, mi))
+    while (mdi.next(key, mi)) {
       if (mi->getFullName() == flat_name) {
 	metric_cerr << "createMetricInstance: mi with flat_name " << flat_name << " already exists! using it" << endl;
         return mi; // this metricDefinitionNode has already been defined
       }
+    }
 
     if (mdl_can_do(metric_name)) {
       internal = false;
@@ -1068,7 +1068,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
                                                     true, internal);
        // calls mdl_do()
     if (!mi) {
-       cerr << "startCollecting failed because createMetricInstance failed" << endl;
+       cerr << "startCollecting for " << metric_name << " failed because createMetricInstance failed" << endl;
        return(-1);
     }
 
