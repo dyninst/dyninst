@@ -115,37 +115,11 @@ dag::~dag(void)
   delete graph;
 }
 
-/*** delete after testing complete klk10/23
-int 
-dag::createDisplay (char *parentWindow)
+void 
+dag::setRowSpacing (int newspace)
 {
-  int nameLength;
-  nameLength = strlen(parentWindow);
-  dframe = new char[nameLength + 5];
-  dcanvas = new char[nameLength+9];
-  strcpy (dframe, parentWindow);
-  strcpy (dcanvas, parentWindow);
-  if (nameLength == 1) {
-    strcpy (dframe+nameLength, "dag");
-    strcpy (dcanvas+nameLength, "dag._c_");
-  } else {
-    strcpy (dframe+nameLength, ".dag");
-    strcpy (dcanvas+nameLength, ".dag._c_");
-  }
-#if UIM_DAG_DEBUG 
-  printf ("canvas name: %s\n", dcanvas);
-  printf ("frame name: %s\n", dframe);
-#endif
-  if (Tcl_VarEval (interp, "setupDAG ", dframe, 0) == TCL_ERROR)
-    printf ("UIMcreateDisplay: %s\n", interp->result);
-
-  displayActive = 1;
-
-  RePaintDag(this);
-  flags = 0;
-  return 1;
+  graph->row_spacing = newspace;
 }
-*/
 
 int 
 dag::createDisplay (char *parentWindow)
@@ -928,16 +902,9 @@ dag::highlightAllRootNodes ()
 
   for (me = graph->row[0].first; me; me = me->forw) {
     if (me->nodeStyle->styleID < 1000) 
-      configureNode (me, NULL, me->nodeStyle->styleID + 1000);
+      highlightNode (me);
   }
 
-    // flush redraw request from idle queue, if one exists  -- 
-    // we need to redraw dag immediately for selection effect
-  if (flags & REDRAW_PENDING) {
-      flags &= ~REDRAW_PENDING;
-      Tk_CancelIdleCall (RePaintDag, (ClientData) this);
-    }
-  RePaintDag (this);
   return AOK;
 }
   
@@ -950,17 +917,10 @@ dag::clearAllHighlighting ()
     me = graph->row[r].first;
     while (me != NULL) {
       if (me->nodeStyle->styleID >= 1000) 
-	configureNode (me, NULL, me->nodeStyle->styleID - 1000);
+	unhighlightNode (me);
       me = me->forw;
     }
   }
-    // flush redraw request from idle queue, if one exists  -- 
-    // we need to redraw dag immediately for selection effect
-  if (flags & REDRAW_PENDING) {
-      flags &= ~REDRAW_PENDING;
-      Tk_CancelIdleCall (RePaintDag, (ClientData) this);
-    }
-  RePaintDag (this);
   return AOK;
 }
 
@@ -1004,6 +964,30 @@ dag::highlightNode (int nodeID)
 }
  
 int
+dag::highlightNode (rNode me)
+{
+  nStyle *newStyle;
+  int newStyleID;
+
+  /* store new style in node record */
+  if (me->nodeStyle->styleID < 1000)  
+    newStyleID = me->nodeStyle->styleID + 1000;
+  else
+    newStyleID = me->nodeStyle->styleID - 1000;
+  newStyle = getNStyle (newStyleID);
+  me->nodeStyle = newStyle;
+
+  /* directly change display using canvas configure */
+  sprintf (tcommand, "%s itemconfigure n%d -fill %s",
+	   dcanvas, me->aNode, newStyle->bg);
+  Tcl_VarEval (interp, tcommand, 0);
+  sprintf (tcommand, "%s itemconfigure t%d -fill %s",
+	   dcanvas, me->aNode, newStyle->text);
+  Tcl_VarEval (interp, tcommand, 0);
+  return AOK;
+}
+ 
+int
 dag::unhighlightNode (int nodeID)
 {
   rNode me;
@@ -1025,6 +1009,27 @@ dag::unhighlightNode (int nodeID)
     Tcl_VarEval (interp, tcommand, 0);
     sprintf (tcommand, "%s itemconfigure t%d -fill %s",
 	     dcanvas, nodeID, newStyle->text);
+    Tcl_VarEval (interp, tcommand, 0);
+  }
+  return AOK;
+}
+ 
+int
+dag::unhighlightNode (rNode me)
+{
+  nStyle *newStyle;
+
+  if (me->nodeStyle->styleID >= 1000) {
+
+    newStyle = getNStyle (me->nodeStyle->styleID - 1000);
+    me->nodeStyle = newStyle;
+
+    /* directly change display using canvas configure */
+    sprintf (tcommand, "%s itemconfigure n%d -fill %s",
+	     dcanvas, me->aNode, newStyle->bg);
+    Tcl_VarEval (interp, tcommand, 0);
+    sprintf (tcommand, "%s itemconfigure t%d -fill %s",
+	     dcanvas, me->aNode, newStyle->text);
     Tcl_VarEval (interp, tcommand, 0);
   }
   return AOK;

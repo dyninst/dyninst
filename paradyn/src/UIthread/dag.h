@@ -138,6 +138,7 @@ class dag {
   public:
     dag(Tcl_Interp *nterp);
     ~dag();
+    void setRowSpacing (int newspace); 
     int createDisplay (char *parentWindow);
     void destroyDisplay ();
     void PrintGraph(FILE *f);
@@ -156,6 +157,8 @@ class dag {
     int configureEdge (int srcID, int dstID, int styleID);
     int highlightNode (int nodeID);
     int unhighlightNode (int nodeID);
+    int highlightNode (rNode me);
+    int unhighlightNode (rNode me);
     int clearAllHighlighting();
     int highlightAllRootNodes();
     int addTkBinding (char *bindCmd);
