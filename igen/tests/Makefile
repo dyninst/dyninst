@@ -1,8 +1,8 @@
 
 include	../../make.config
 
-C_OBJS1	= client1.o test1.o test1.CLNT.o 
-S_OBJS1	= server1.o test1.o test1.SRVR.o 
+C_OBJS1	= test1.o client1.o test1.CLNT.o 
+S_OBJS1	= test1.o server1.o test1.SRVR.o 
 OBJS2	= client2.o test2.o server2.o 
 
 all: client1 server1 program2

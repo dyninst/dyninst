@@ -2,7 +2,11 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.4  1994/01/28 19:42:30  hollings
+ * Revision 1.5  1994/01/31 20:05:57  hollings
+ * Added code to check the protocol name and version tests are run
+ * before any upcalls get invoked.
+ *
+ * Revision 1.4  1994/01/28  19:42:30  hollings
  * Fixed max variable name length.
  *
  * Revision 1.3  1994/01/27  20:36:29  hollings
@@ -106,6 +110,7 @@ void interfaceSpec::generateXDRLoop()
     printf("            __val__ = %d;\n", version);
     printf("            xdr_int(__xdrs__, &__val__);\n");
     printf("            xdrrec_endofrecord(__xdrs__, TRUE);\n");
+    printf("		__versionVerifyDone__ = TRUE;\n");
     printf("            break;\n");
 
     for (cf = methods; *cf; cf++) {
@@ -550,6 +555,24 @@ void remoteFunc::genXDRStub(char *className)
     if (strcmp(retType, "void")) {
 	printf("    %s %s;\n", retType, retVar);
     }
+    // check to see protocol verify has been done.
+    if (upcall != notUpcall) {
+	printf("    if (!__versionVerifyDone__) {\n");
+	printf("        char *__ProtocolName__ = \"%s\";\n", spec->getName());
+	printf("	int __status__;\n");
+	printf("        __xdrs__->x_op = XDR_DECODE;\n");
+	printf("        xdrrec_skiprecord(__xdrs__);\n");
+	printf("        __status__ = xdr_int(__xdrs__, &__tag__);\n");
+	printf("	assert(__status__ && (__tag__ == 0));\n");
+	printf("        __xdrs__->x_op = XDR_ENCODE;\n");
+	printf("        xdr_int(__xdrs__, &__tag__);\n");
+	printf("        xdr_String(__xdrs__, &__ProtocolName__);\n");
+	printf("        __tag__ = %d;\n", spec->getVersion());
+	printf("        xdr_int(__xdrs__, &__tag__);\n");
+	printf("        xdrrec_endofrecord(__xdrs__, TRUE);\n");
+	printf("	__versionVerifyDone__ = TRUE;\n");
+	printf("    }\n");
+    }
     printf("    __tag__ = %s_%s_REQ;\n", spec->getName(), name);
     printf("    __xdrs__->x_op = XDR_ENCODE;\n");
     printf("    xdr_int(__xdrs__, &__tag__);\n");
@@ -580,6 +603,7 @@ void remoteFunc::genStub(char *className, Boolean forUpcalls)
     if (!forUpcalls && (upcall != notUpcall)) return;
 
     printf("\n");
+
     if (generateXDR) {
 	genXDRStub(className);
     } else if (generateTHREAD) {

@@ -2,7 +2,11 @@
  * parse.h - define the classes that are used in parsing an interface.
  *
  * $Log: parse.h,v $
- * Revision 1.2  1994/01/26 06:50:11  hollings
+ * Revision 1.3  1994/01/31 20:05:59  hollings
+ * Added code to check the protocol name and version tests are run
+ * before any upcalls get invoked.
+ *
+ * Revision 1.2  1994/01/26  06:50:11  hollings
  * made the output of igen pass through g++ -Wall.
  *
  * Revision 1.1  1994/01/25  20:48:44  hollings
@@ -40,6 +44,7 @@ class interfaceSpec {
     int getNextTag();
     char *genVariable();
     char *getName() { return(name); }
+    int getVersion() { return(version); }
   private:
     char *name;
     char *unionName;

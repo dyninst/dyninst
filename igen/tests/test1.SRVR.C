@@ -25,6 +25,7 @@ int test::mainLoop(void)
             __val__ = 1;
             xdr_int(__xdrs__, &__val__);
             xdrrec_endofrecord(__xdrs__, TRUE);
+		__versionVerifyDone__ = TRUE;
             break;
         case test_triggerAsyncUpcall_REQ: {
             	    extern xdr_void(XDR*, void*);
@@ -164,6 +165,21 @@ int test::mainLoop(void)
 
 void test::asyncUpcall(int x) {
     unsigned int __tag__;
+    if (!__versionVerifyDone__) {
+        char *__ProtocolName__ = "test";
+	int __status__;
+        __xdrs__->x_op = XDR_DECODE;
+        xdrrec_skiprecord(__xdrs__);
+        __status__ = xdr_int(__xdrs__, &__tag__);
+	assert((__status__ == 0) && (__tag__ == 0));
+        __xdrs__->x_op = XDR_ENCODE;
+        xdr_int(__xdrs__, &__tag__);
+        xdr_String(__xdrs__, &__ProtocolName__);
+        __tag__ = 1;
+        xdr_int(__xdrs__, &__tag__);
+        xdrrec_endofrecord(__xdrs__, TRUE);
+	__versionVerifyDone__ = TRUE;
+    }
     __tag__ = test_asyncUpcall_REQ;
     __xdrs__->x_op = XDR_ENCODE;
     xdr_int(__xdrs__, &__tag__);
@@ -174,6 +190,21 @@ void test::asyncUpcall(int x) {
 
 void test::syncUpcall(int x) {
     unsigned int __tag__;
+    if (!__versionVerifyDone__) {
+        char *__ProtocolName__ = "test";
+	int __status__;
+        __xdrs__->x_op = XDR_DECODE;
+        xdrrec_skiprecord(__xdrs__);
+        __status__ = xdr_int(__xdrs__, &__tag__);
+	assert((__status__ == 0) && (__tag__ == 0));
+        __xdrs__->x_op = XDR_ENCODE;
+        xdr_int(__xdrs__, &__tag__);
+        xdr_String(__xdrs__, &__ProtocolName__);
+        __tag__ = 1;
+        xdr_int(__xdrs__, &__tag__);
+        xdrrec_endofrecord(__xdrs__, TRUE);
+	__versionVerifyDone__ = TRUE;
+    }
     __tag__ = test_syncUpcall_REQ;
     __xdrs__->x_op = XDR_ENCODE;
     xdr_int(__xdrs__, &__tag__);

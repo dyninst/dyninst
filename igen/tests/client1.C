@@ -13,12 +13,13 @@ main()
 {
     int i;
     int fd;
+    int pid;
     int eid;
     int total;
     intStruct is;
     testUser *remote;
 
-    fd = RPCprocessCreate("localhost", "", "server1");
+    fd = RPCprocessCreate(&pid, "localhost", "", "server1");
     if (fd < 0) {
 	perror("process Create");
 	exit(-1);
