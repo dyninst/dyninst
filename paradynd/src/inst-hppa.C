@@ -43,6 +43,9 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.23  1996/10/07 22:01:47  lzheng
+ * Adding the function emitImm
+ *
  * Revision 1.22  1996/10/04 14:57:58  naim
  * Moving save/restore instructions from mini-tramp to base-tramp. Also, changes
  * to the base-tramp to support arrays of counters and timers (multithreaded
@@ -118,6 +121,8 @@
 #include <sys/mman.h>
 
 #define perror(a) P_abort();
+
+extern bool isPowerOf2(int value, int &result);
 
 class instPoint {
 public:
@@ -1162,7 +1167,41 @@ pdFunction *getFunction(instPoint *point)
 
 unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
                  unsigned &base)
-{
+{        
+    instruction *insn = (instruction *) ((void*)&i[base]);
+    int result;
+    
+    switch (op) {
+	// integer ops
+      case plusOp:
+	genArithImmn(insn, ADDIop, src1, dest, src2);
+	break;
+	
+      case minusOp:
+	genArithImmn(insn, SUBIop, src1, dest, src2);
+	break;
+	
+      case timesOp:
+	if (isPowerOf2(src2,result))
+	    genArithLogInsn(insn, SHDop, src1, 0, 32-result, dest); 
+	else 
+	    abort(); // emulated via "floating point!" multiply
+	break;
+	
+      case divOp:
+	if (isPowerOf2(src2,result))
+	    genArithLogInsn(insn, SHDop, 0, src1, result, dest);
+	else 
+	    abort(); // not implemented
+	break;
+	
+      default:
+	abort();
+	break;
+    }
+    
+    base += sizeof(instruction);
+    return(0);
 }
 
 unsigned emitFuncCall(opCode op, 
