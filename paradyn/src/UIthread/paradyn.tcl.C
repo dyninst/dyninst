@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.21  1994/07/25 14:58:15  hollings
-/* added suppress resource option.
+/* Revision 1.22  1994/08/03 19:10:25  hollings
+/* split tunable constant into boolean and float types.
 /*
+ * Revision 1.21  1994/07/25  14:58:15  hollings
+ * added suppress resource option.
+ *
  * Revision 1.20  1994/07/07  03:27:36  markc
  * Changed expected result of call to dataMgr->addExecutable
  *
@@ -179,7 +182,7 @@ int ParadynListCmd(ClientData clientData,
   printf("CONSTANTS\n");
   assert(tunableConstant::allConstants);
   for (curr = *tunableConstant::allConstants; c = *curr; curr++) {
-    printf("%s = %f\n", c->getName(), c->getValue());
+    c->print();
   }
   printf("bucketWidth %f\n", dataMgr->getCurrentBucketWidth());
   printf("number of buckets = %d\n", dataMgr->getMaxBins());
@@ -486,8 +489,11 @@ int ParadynSetCmd (ClientData clientData,
 		    int argc,
 		    char *argv[])
 {
+  int val;
   char *sp;
   tunableConstant *curr;
+  tunableFloatConstant *fConst;
+  tunableBooleanConstant *bConst;
   float f;
   double d;
 
@@ -499,21 +505,36 @@ int ParadynSetCmd (ClientData clientData,
   sp = tunableConstant::pool->findAndAdd(argv[1]);
   curr = tunableConstant::allConstants->find(sp);
 
-  if (Tcl_GetDouble(interp, argv[2], &d) == TCL_ERROR)
-    return TCL_ERROR;
-  else 
-    f = (float) d;
-  if (curr) {
-    if (!curr->setValue(f)) {
-      sprintf (interp->result, "value %f not valid.\n", f);
-      return TCL_ERROR;
-    }
-    else {
-      printf ("%s set to %f\n", curr->getName(), curr->getValue());
-    }
-  } else {
+  if (!curr) {
     sprintf (interp->result, "variable %s not defined\n", argv[1]);
     return TCL_ERROR;
+  } else if (curr->getType() == tunableFloat) {
+      fConst = (tunableFloatConstant *) curr;
+      if (Tcl_GetDouble(interp, argv[2], &d) == TCL_ERROR) {
+	return TCL_ERROR;
+      } else {
+	f = (float) d;
+      }
+
+      if (!fConst->setValue(f)) {
+	  sprintf (interp->result, "value %f not valid.\n", f);
+	  return TCL_ERROR;
+      } else {
+	  printf ("%s set to %f\n", fConst->getName(), fConst->getValue());
+      }
+  } else if (curr->getType() == tunableBoolean) {
+      bConst = (tunableBooleanConstant *) curr;
+      if (Tcl_GetBoolean(interp, argv[2], &val) == TCL_ERROR) {
+	  return TCL_ERROR;
+      }
+
+      if (val) {
+	  bConst->setValue(True);
+	  printf ("%s set to True\n", bConst->getName());
+      } else {
+	  bConst->setValue(False);
+	  printf ("%s set to False\n", bConst->getName());
+      }
   }
   return TCL_OK;
 }
