@@ -316,7 +316,10 @@ class process {
      void *userData;
   };
   vectorSet<inferiorRPCtoDo> RPCsWaitingToStart;
-
+  bool RPCs_waiting_for_syscall_to_complete;
+  void *save_exitset_ptr; // platform-specific (for now, just solaris;
+			  // it's actually a sysset_t*)
+					       
   struct inferiorRPCinProgress {
      // This structure keeps track of an inferiorRPC that has been launched and
      // for which we're waiting to complete.  Don't confuse with 'inferiorRPCtoDo',
@@ -361,13 +364,19 @@ class process {
 		   void (*)(process *, void *, unsigned), void *);
   bool existsRPCreadyToLaunch() const;
   bool existsRPCinProgress() const;
-  bool launchRPCifAppropriate(bool wasRunning);
+  bool launchRPCifAppropriate(bool wasRunning, bool finishingSysCall);
      // returns true iff anything was launched.
      // asynchronously launches iff RPCsWaitingToStart.size() > 0 AND
      // if currRunningRPCs.size()==0 (the latter for safety)
      // If we're gonna launch, then we'll stop the process (a necessity).
      // Pass wasRunning as true iff you want the process  to continue after
      // receiving the TRAP signifying completion of the RPC.
+  bool isRPCwaitingForSysCallToComplete() const {
+     return RPCs_waiting_for_syscall_to_complete;
+  }
+  void setRPCwaitingForSysCallToComplete(bool flag) {
+     RPCs_waiting_for_syscall_to_complete = flag;
+  }
 
   bool handleTrapIfDueToRPC();
      // look for curr PC reg value in 'trapInstrAddr' of 'currRunningRPCs'.  Return
@@ -391,11 +400,9 @@ class process {
 			      unsigned &justAfter_stopForResultAddr,
 			      reg &resultReg);
 
-  // The parameter syscall is only used for hpux platform right now
-  // Can "syscall" be embedded into the opaque type?
-  void *getRegisters(bool &syscall);
-     // ptrace-GETREGS and ptrace-GETFPREGS.  Result is returned in an opaque type
-     // which is allocated with new[]
+  void *getRegisters();
+     // ptrace-GETREGS and ptrace-GETFPREGS (or /proc PIOCGREG and PIOCGFPREG).
+     // Result is returned in an opaque type which is allocated with new[]
 
   bool changePC(unsigned addr,
                 const void *savedRegs // returned by getRegisters()
@@ -406,6 +413,7 @@ class process {
   bool restoreRegisters(void *buffer);
      // input is the opaque type returned by getRegisters()
 
+  bool set_breakpoint_for_syscall_completion();
   unsigned read_inferiorRPC_result_register(reg);
 
  public:
