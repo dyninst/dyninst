@@ -39,177 +39,113 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.1 2002/02/11 22:01:53 tlmiller Exp $
-// x86 instruction declarations
+// $Id: arch-ia64.h,v 1.2 2002/06/03 18:17:13 tlmiller Exp $
+// ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
 #error "invalid architecture-os inclusion"
 #endif
 
-#ifndef _ARCH_X86_H
-#define _ARCH_X86_H
+#ifndef _ARCH_IA64_H
+#define _ARCH_IA64_H
 
-#if defined(i386_unknown_nt4_0)
-// disable VC++ warning C4800: (performance warning)
-// forcing 'unsigned int' value to bool 'true' or 'false'
-#pragma warning (disable : 4800)
-#endif
+#include "common/h/Types.h"
 
-/* operand types */
-typedef char byte_t;   /* a byte operand */
-typedef short word_t;  /* a word (16-bit) operand */
-typedef int dword_t;   /* a double word (32-bit) operand */
+/* So the IA-64 has these cute ideas about ILP, one consequence of which
+   is the design of its instruction set.  Instructions execute in parallel
+   until an architectural stop (certain instructions, types of bundles, etc)
+   is reached, which forces the processor to make it look like all the
+   instructions in the group since the the last stop were executed in
+   sequence.  The instructions are stored three to a bundle, which is 128
+   bits long, and includes three 41-bit instructions, as well as five bits
+   determining the 'template,' which includes architectural stop information,
+   as well as determining which execution unit(s) get which instruction(s).
 
-/* operand sizes */
-#define byteSzB (1)    /* size of a byte operand */
-#define wordSzB (2)    /* size of a word operand */
-#define dwordSzB (4)   /* size of a dword operand */
+   The instructions themselves don't identify their execution unit, only
+   the major opcode of the instruction for that unit.  So considering an
+   instruction in isolation is an excercise in futility.
 
-/* The following values are or'ed together to form an instruction type descriptor */
-/* the instruction types of interest */
-#define IS_CALL (1<<1)   /* call instruction */
-#define IS_RET  (1<<2)   /* near return instruction */
-#define IS_RETF (1<<3)   /* far return instruction */
-#define IS_JUMP (1<<4)   /* jump instruction */
-#define IS_JCC  (1<<5)   /* conditional jump instruction */
-#define ILLEGAL (1<<6)   /* illegal instruction */
-
-/* addressing modes for calls and jumps */
-#define REL_B   (1<<10)  /* relative address, byte offset */
-#define REL_W   (1<<11)  /* relative address, word offset */
-#define REL_D   (1<<12)  /* relative address, dword offset */
-#define REL_X   (1<<13)  /* relative address, word or dword offset */
-#define INDIR   (1<<14)  /* indirect (register or memory) address */
-#define PTR_WW  (1<<15)  /* 4-byte pointer */
-#define PTR_WD  (1<<16)  /* 6-byte pointer */
-#define PTR_WX  (1<<17)  /* 4 or 6-byte pointer */
-
-/* prefixes */
-#define PREFIX_INST (1<<20) /* instruction prefix */
-#define PREFIX_SEG  (1<<21) /* segment override prefix */
-#define PREFIX_OPR  (1<<22) /* operand size override */
-#define PREFIX_ADDR (1<<23) /* address size override */
-/* end of instruction type descriptor values */
-
-
-/* opcodes of some instructions */
-#define PUSHAD   (0x60)
-#define PUSHFD   (0x9C)
-#define POPAD    (0x61)
-#define POPFD    (0x9D)
-#define PUSH_DS  (0x1E)
-#define POP_DS   (0X1F)
-#define NOP      (0x90)
-
-#define JCXZ     (0xE3)
-
-#define JE_R8    (0x74)
-#define JNE_R8   (0x75)
-#define JL_R8    (0x7C)
-#define JLE_R8   (0x7E)
-#define JG_R8    (0x7F)
-#define JGE_R8   (0x7D)
-
-#define FSAVE    (0x9BDD)
-#define FSAVE_OP (6)
-
-#define FRSTOR   (0xDD)
-#define FRSTOR_OP (4)
-
-/* limits */
-#define MIN_IMM8 (-128)
-#define MAX_IMM8 (127)
-#define MIN_IMM16 (-32768)
-#define MAX_IMM16 (32767)
-
-// Size of floating point information saved by FSAVE
-#define FSAVE_STATE_SIZE 108
-
-enum dynamic_call_address_mode {
-  REGISTER_DIRECT, REGISTER_INDIRECT,
-  REGISTER_INDIRECT_DISPLACED, SIB, DISPLACED
-};
-
-/*
-   get_instruction: get the instruction that starts at instr.
-   return the size of the instruction and set instType to a type descriptor
+   The question, then, is if we consider only whole bundles
+   'instructions' and do some magic in the instruction iterator,
+   of vice-versa...
 */
-unsigned get_instruction(const unsigned char *instr, unsigned &instType);
 
-/* get the target of a jump or call */
-Address get_target(const unsigned char *instr, unsigned type, unsigned size,
-                Address addr);
+class IA64_bundle;
 
-class instruction {
- public:
-  instruction(): type_(0), size_(0), ptr_(0) {}
+class IA64_instruction {
+	friend class IA64_bundle;
 
-  instruction(const unsigned char *p, unsigned type, unsigned sz):
-    type_(type), size_(sz), ptr_(p) {}
+	public:
+		IA64_instruction( uint64_t insn = 0, uint8_t templ = 0, IA64_bundle * mybl = 0 );
 
-  instruction(const instruction &insn) {
-    type_ = insn.type_;
-    size_ = insn.size_;
-    ptr_ = insn.ptr_;
-  }
+		/* Required of instructions; deprecate ASAP, since
+		   they don't have sensible semantics on the IA-64. */
+		const void * ptr() const { return (void *)0; }
+		uint32_t size() const { return 16; }
 
-  unsigned getNextInstruction(const unsigned char *p) {
-    ptr_ = p;
-    size_ = get_instruction(ptr_, type_);
-    return size_;
-  }
+	private:
+		IA64_bundle * myBundle;
 
-  // if the instruction is a jump or call, return the target, else return zero
-  Address getTarget(Address addr) const { 
-    return (Address)get_target(ptr_, type_, size_, addr); 
-  }
+		uint64_t instruction;
+		uint8_t templateID;
+	}; /* end the 41 bit instruction */
 
-  // return the size of the instruction in bytes
-  unsigned size() const { return size_; }
+struct ia64_bundle_t {
+	uint64_t low;
+	uint64_t high;
+	};
 
-  // return the type of the instruction
-  unsigned type() const { return type_; }
+class IA64_bundle {
+	public:
+		IA64_bundle( uint64_t lowHalfBundle = 0, uint64_t highHalfBundle = 0 );
+		IA64_bundle( uint8_t templateID, uint64_t instruction0, uint64_t instruction1, uint64_t instruction2 );
 
-  // return a pointer to the instruction
-  const unsigned char *ptr() const { return ptr_; }
+		ia64_bundle_t getMyBundle() const { return myBundle; }
 
-  bool isCall() const { return type_ & IS_CALL; }
-  bool isCallIndir() const { return (type_ & IS_CALL) && (type_ & INDIR); }
-  bool isReturn() const { return (type_ & IS_RET) || (type_ & IS_RETF); }
-  bool isRetFar() const { return type_ & IS_RETF; }
-  bool isJumpIndir() const { return (type_ & IS_JUMP) && (type_ & INDIR); }
-  bool isJumpDir() const
-    { return ~(type_ & INDIR) && ((type_ & IS_JUMP) || (type_ & IS_JCC)); }
-  bool isNop() const { return *ptr_ == 0x90; }
-  bool isIndir() const { return type_ & INDIR; }
-  bool isIllegal() const { return type_ & ILLEGAL; }
+	private:
+		IA64_instruction instruction0;
+		IA64_instruction instruction1;
+		IA64_instruction instruction2;
+		uint8_t templateID;
 
- private:
-  unsigned type_;   // type of the instruction (e.g. IS_CALL | INDIR)
-  unsigned size_;   // size in bytes
-  const unsigned char *ptr_;       // pointer to the instruction
-};
+		ia64_bundle_t myBundle;
 
+	}; /* end the 128 bit bundle */
 
-int get_disp(instruction *insn);
-int set_disp(bool setDisp, instruction *insn, int newOffset, bool outOfFunc);
-int displacement(const unsigned char *instr, unsigned type);
+typedef IA64_instruction instruction;
 
-int sizeOfMachineInsn(instruction *insn);
-int addressOfMachineInsn(instruction *insn);
+/* Required by symtab.h, which seems to use it to check
+   _instruction_ alignment.  OTOH, it doesn't seem to very
+   much paid attention to.  Anyway, IA-64 instruction bundles
+   are always 16-byte aligned. */
+inline bool isAligned( const Address address ) {
+	return (address & 0xFFFFFFFFFFFFFFF0) == address;
+	} /* end isAligned() */
 
-int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
-			    Register& index_reg, int& displacement, 
-			    unsigned& scale, unsigned &mod);
-void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg);
+/* Required by linux.C to find the address bounds
+   of new dynamic heap segments. */
+inline Address region_lo( const Address x ) {
+	#warning WAG
+	return 0x00000000;
+	} /* end region_lo */
 
-/* addresses on x86 don't have to be aligned */
-inline bool isAligned(const Address ) { return true; }
+/* Required by linux.C to find the address bounds
+   of new dynamic heap segments. */
+inline Address region_hi( const Address x ) {
+	#warning WAG
+	return 0xf0000000;
+	} /* end region_hi */
 
-/* Address bounds of new dynamic heap segments.  On x86 we don't try
-to allocate new segments near base tramps, so heap segments can be
-allocated anywhere (the tramp address "x" is ignored). */
-inline Address region_lo(const Address /*x*/) { return 0x00000000; }
-inline Address region_hi(const Address /*x*/) { return 0xf0000000; }
+/* Required by func-reloc.C to calculate relative displacements. */
+int get_disp( instruction *insn );
+
+/* Required by func-reloc.C to correct relative displacements after relocation. */
+int set_disp( bool setDisp, instruction * insn, int newOffset, bool outOfFunc );
+
+/* Convenience methods for func-reloc.C */
+/* The problem being that neither of these really apply, do they? */
+int sizeOfMachineInsn( instruction * insn );
+int addressOfMachineInsn( instruction * insn );
+
 
 #endif

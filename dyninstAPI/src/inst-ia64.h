@@ -39,9 +39,54 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-ia64.h,v 1.3 2002/03/11 22:04:26 tlmiller Exp $
+// $Id: inst-ia64.h,v 1.4 2002/06/03 18:17:14 tlmiller Exp $
 
 #ifndef INST_IA64_H
 #define INST_IA64_H
+
+#include "common/h/Types.h"	// Address
+#include "arch-ia64.h"		// instruction
+class process;
+
+class InsnAddr {
+	public:
+		/* prefix increment */
+		InsnAddr operator++ ();
+
+		/* prefix decrement */
+		InsnAddr operator-- ();
+
+		/* postfix increment */
+		InsnAddr operator++ (int dummy);
+
+		/* postfix decrement */
+		InsnAddr operator-- (int dummy);
+
+		/* sum of two InsnAddrs */
+		friend InsnAddr operator + ( InsnAddr lhs, InsnAddr rhs );
+
+		/* difference of two InsnAddrs */
+		friend InsnAddr operator - ( InsnAddr lhs, InsnAddr rhs );
+
+		friend bool operator < ( InsnAddr lhs, InsnAddr rhs );
+		friend bool operator <= ( InsnAddr lhs, InsnAddr rhs );
+		friend bool operator > ( InsnAddr lhs, InsnAddr rhs );
+		friend bool operator >= ( InsnAddr lhs, InsnAddr rhs );
+		friend bool operator == ( InsnAddr lhs, InsnAddr rhs );
+		friend bool operator != ( InsnAddr lhs, InsnAddr rhs );
+
+		static InsnAddr generateFromAlignedDataAddress( Address addr, process * p );
+		bool writeMyBundleFrom( const unsigned char * savedCodeBuffer );
+		bool saveMyBundleTo( unsigned char * savedCodeBuffer );
+		bool saveBundlesTo( unsigned char * savedCodeBuffer, unsigned int numberOfBundles );
+		bool replaceBundleWith( const IA64_bundle & bundle );
+		bool replaceBundlesWith( const IA64_bundle * replacementBundles, unsigned int numberOfReplacementBundles );
+		bool writeStringAtOffset( unsigned int offsetInBundles, const char * string, unsigned int length );
+
+	private:
+		InsnAddr( Address addr, process * p ) : encodedAddress( addr ), myProc( p ) { }
+		Address encodedAddress;
+		process * myProc;
+}; /* end class InsnAddr */
 
 #endif

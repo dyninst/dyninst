@@ -39,235 +39,79 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-ia64.h,v 1.1 2002/02/11 22:01:54 tlmiller Exp $
+// $Id: instPoint-ia64.h,v 1.2 2002/06/03 18:17:14 tlmiller Exp $
 
-#ifndef _INST_POINT_X86_H_
-#define _INST_POINT_X86_H_
+#ifndef _INST_POINT_IA64_H_
+#define _INST_POINT_IA64_H_
 
 #include "dyninstAPI/src/symtab.h"
 
-class process;
-
-#ifdef BPATCH_LIBRARY
-class BPatch_point;
-#endif
-
-/************************************************************************
- *
- *  class instPoint: representation of instrumentation points
- *
- ***********************************************************************/
-
 class instPoint {
+	public:
 
- public:
+		const function_base * iPgetCallee() const {
+			#warning FIXME
+			return NULL;
+			} /* required by linux.C */
 
-  instPoint(pd_Function *f, const image *, Address adr, instruction inst,
-	    bool conservative = false) {
-    addr_   = adr;
-    func_   = f;
-    callee_ = NULL;
+		const image * iPgetOwner() const { 
+			#warning FIXME
+			return NULL;
+			} /* required by linux.C */
 
-    jumpAddr_     = 0;
-    insnAtPoint_  = inst;
-    insnBeforePt_ = 0;
-    insnAfterPt_  = 0;
-    bonusBytes_   = 0;
-    relocated_ = false;    
-    conservative_ = conservative;
-  };
+		Address getTargetAddress() {
+			#warning FIXME
+			return 0;
+			} /* required by linux.C */
 
-  ~instPoint() {
-    if (insnBeforePt_) delete insnBeforePt_;
-    if (insnAfterPt_) delete insnAfterPt_;
-  };
+		/* "can't set this in the constructor because call points
+		   can't be classified until all functions have been seen
+		    -- this might be cleaned up" (from instPoint-x86.h) */
+		void set_callee( pd_Function * callee ) {
+			#warning FIXME
+			}
 
+		Address iPgetAddress() const {
+			#warning FIXME
+			return 0;
+			} /* required by func-reloc.C */
 
-  const function_base *iPgetFunction() const { return func();    }
-  const function_base *iPgetCallee()   const { return callee();  }
-  const image         *iPgetOwner()    const { return owner();   }
-        Address        iPgetAddress()  const { return addr_; }
+		Address firstAddress() const {
+			#warning FIXME
+			return 0;
+			} /* required by func-reloc.C */
 
+		Address followingAddress() const {
+			#warning FIXME
+			return 0;
+			} /* required by func-reloc.C */
 
-  Address insnAddress() { return addr_; }
-  Address address() const { return addr_; }
-  pd_Function *func() const { return func_; }
+		Address insnAddress() const {
+			#warning FIXME
+			return 0;
+			} /* required by func-reloc.C */
 
-  const instruction &insnAtPoint() const { return insnAtPoint_; }
+		const function_base * iPgetFunction() const {
+			#warning FIXME
+			return NULL;
+			} /* required by inst.C */
 
-  // add an instruction before the point. Instructions should be added in reverse
-  // order, the instruction closest to the point first.
-  void addInstrBeforePt(instruction inst) {
-    if (!insnBeforePt_) insnBeforePt_ = new vector<instruction>;
-    (*insnBeforePt_).push_back(inst);
-  };
-
-  // add an instruction after the point.
-  void addInstrAfterPt(instruction inst) {
-    if (!insnAfterPt_) insnAfterPt_ = new vector<instruction>;
-    (*insnAfterPt_).push_back(inst);
-  }
-
-  const instruction &insnBeforePt(unsigned index) const 
-    { assert(insnBeforePt_); return ((*insnBeforePt_)[index]); }
-
-  const instruction &insnAfterPt(unsigned index) const 
-    { assert(insnAfterPt_); return ((*insnAfterPt_)[index]); }
-
-  unsigned insnsBefore() const
-    { if (insnBeforePt_) return (*insnBeforePt_).size(); return 0; }
-
-  unsigned insnsAfter() const 
-    { if (insnAfterPt_) return (*insnAfterPt_).size(); return 0; }
-
-  Address jumpAddr() const { assert(jumpAddr_); return jumpAddr_; }
-  
-  void setJumpAddr(Address jumpAddr) { jumpAddr_ = jumpAddr; }
-
-  Address returnAddr() const {
-    Address ret = addr_ + insnAtPoint_.size();
-    for (unsigned u = 0; u < insnsAfter(); u++)
-      ret += (*insnAfterPt_)[u].size();
-    return ret;
-  }
-
-  bool getRelocated() { return relocated_; }
-  void setRelocated() {relocated_ = true;}
-
-  image *owner() const { return func()->file()->exec(); }
-
-  // return the number of instructions in this point
-  // that will be overwritten when a returnInstance is installed
-  unsigned insns() const {
-    unsigned size = 1;
-
-    if (insnBeforePt_)
-      size += (*insnBeforePt_).size();
-    if (insnAfterPt_)
-      size += (*insnAfterPt_).size();
-
-    return size;
-  }
-  
-  // return the size of all instructions in this point
-  // size may change after point is checked
-  unsigned size() const {
-    unsigned tSize = insnAtPoint_.size();
-    for (unsigned u1 = 0; u1 < insnsBefore(); u1++)
-      tSize += (*insnBeforePt_)[u1].size();
-    for (unsigned u2 = 0; u2 < insnsAfter(); u2++)
-      tSize += (*insnAfterPt_)[u2].size();
-    tSize += bonusbytes();
-    return tSize;
-  }
-
-    // return the number of bytes that need to be added so that the
-  // instruction will be instrumentable after the function has been relocated
-  int extraBytes() const {
-    assert (jumpAddr_ <= addr_);
-
-    int tSize = (addr_ - jumpAddr_) + insnAtPoint_.size();
-
-    for (unsigned u2 = 0; u2 < insnsAfter(); u2++)
-      tSize += (*insnAfterPt_)[u2].size();
-    if (tSize < 5) 
-      return 5 - tSize;
-    else 
-      return 0;
-  }
-
-  void setBonusBytes(unsigned num) {
-       bonusBytes_ = num;
-  }
-
-  unsigned bonusbytes() const {
-       return bonusBytes_;
-  }
-
-  // check for jumps to instructions before and/or after this point, and discard
-  // instructions when there is a jump.
-  // Can only be done after an image has been parsed (that is, all inst. points
-  // in the image have been found.
-  void checkInstructions ();
-
-  pd_Function *callee() const { 
-    if (insnAtPoint().isCall()) {
-      if (insnAtPoint().isCallIndir())
-	return NULL;
-      else {
-	Address addr = insnAtPoint().getTarget(address());
-	pd_Function *pdf = owner()->findFuncByAddr(addr);
-	return pdf;
-      }
-    }
-    return NULL;
-  }
-
-  Address getTargetAddress() {
-    if (insnAtPoint().isCall()) {
-      if (insnAtPoint().isCallIndir()) {
-	return 0;
-      }
-      else {
-	return insnAtPoint().getTarget(address());
-      }
-    }
-    return 0;
-  }
-
-  Address firstAddress() {return iPgetAddress();}
-  Address followingAddress() {return iPgetAddress() + insnAtPoint_.size();}
-  unsigned sizeOfInsnAtPoint() {return insnAtPoint_.size();}
-  int sizeOfInstrumentation() {return 5;}
-
-  bool match(instPoint *p);
-
-  // can't set this in the constructor because call points can't be classified until
-  // all functions have been seen -- this might be cleaned up
-  void set_callee(pd_Function * to) { callee_ = to;  }
-
-  bool usesTrap(process *proc) const;
-  bool canUseExtraSlot(process *proc) const;
-
-  bool isConservative() const { return conservative_; }
-
- private:
-  Address      addr_;    //The address of this instPoint: this is the address
-                         // of the actual point (i.e. a function entry point,
-			 // a call or a return instruction)
-  pd_Function *func_;	 //The function where this instPoint belongs to
-  pd_Function *callee_;	 //If this point is a call, the function being called
-
-  Address              jumpAddr_;     //This is the address where we insert the jump.
-                                      // It may be an instruction before the point
-  instruction          insnAtPoint_;  //The instruction at this point
-  vector<instruction> *insnBeforePt_; //Additional instructions before the point
-  vector<instruction> *insnAfterPt_;  //Additional instructions after the point
-  unsigned            bonusBytes_;    //Additional bytes after function for points
-                                      //at end of function.
-  bool relocated_;       // true if the function where this instPoint belongs
-                         // has been relocated, and this instPoint has been 
-                         // updated to reflect that relocation. 
-  bool conservative_;    // true for arbitrary inst points
-
-  // VG(11/06/01): there is some common stuff amongst instPoint
-  // classes on all platforms (like addr and the back pointer to
-  // BPatch_point). 
-  // TODO: Merge these classes and put ifdefs for platform-specific
-  // fields.
 #ifdef BPATCH_LIBRARY
- private:
-  // We need this here because BPatch_point gets dropped before
-  // we get to generate code from the AST, and we glue info needed
-  // to generate code for the effective address snippet/node to the
-  // BPatch_point rather than here.
-  friend class BPatch_point;
-  BPatch_point *bppoint; // unfortunately the correspondig BPatch_point
-  			 // is created afterwards, so it needs to set this
- public:
-  const BPatch_point* getBPatch_point() const { return bppoint; }
+	private:
+		// We need this here because BPatch_point gets dropped before
+		// we get to generate code from the AST, and we glue info needed  
+		// to generate code for the effective address snippet/node to the
+		// BPatch_point rather than here.
+		friend class BPatch_point;
+
+		// unfortunately the correspondig BPatch_point
+		// is created afterwards, so it needs to set this
+		BPatch_point *bppoint; 
+
+	public:
+		const BPatch_point* getBPatch_point() const { return bppoint; }
 #endif
 
-};
+	}; /* end class instPoint */
 
 #endif
